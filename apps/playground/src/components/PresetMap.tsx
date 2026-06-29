@@ -20,7 +20,7 @@ const PRESETS: PresetNode[] = [
     label: "sequence",
     icon: "↔",
     cluster: "basic",
-    x: 22, y: 26,
+    x: 20, y: 24,
     description: "UML sequence (actor + msg)。 mermaid sequenceDiagram と同等。",
     sampleDsl: `title: "sequence demo"
 type: sequence
@@ -42,7 +42,7 @@ flow:
     label: "flow",
     icon: "↓",
     cluster: "basic",
-    x: 42, y: 22,
+    x: 35, y: 12,
     description: "flowchart (縦並び step)。 step ごとの遷移を視覚化。",
     sampleDsl: `title: "auth flow"
 type: flow
@@ -62,7 +62,7 @@ flow:
     label: "swimlane",
     icon: "∥",
     cluster: "basic",
-    x: 62, y: 22,
+    x: 65, y: 12,
     description: "actor 別 lane に分ける sequence。 責任分担が明確。",
     sampleDsl: `title: "checkout"
 type: swimlane
@@ -83,7 +83,7 @@ flow:
     label: "topology",
     icon: "◌",
     cluster: "basic",
-    x: 78, y: 28,
+    x: 80, y: 24,
     description: "system 配置図。 server / db / cache の network を描く。",
     sampleDsl: `title: "system"
 type: topology
@@ -103,7 +103,7 @@ flow:
     label: "er",
     icon: "▢",
     cluster: "basic",
-    x: 26, y: 44,
+    x: 26, y: 38,
     description: "ER 図 (entity + relation + cardinality)。 DB schema 視覚化。",
     sampleDsl: `title: "User-Order ER"
 type: er
@@ -121,7 +121,7 @@ flow:
     label: "state",
     icon: "⊙",
     cluster: "basic",
-    x: 74, y: 44,
+    x: 74, y: 38,
     description: "state machine (initial / final / transition)。",
     sampleDsl: `title: "auth FSM"
 type: state
@@ -142,7 +142,7 @@ flow:
     label: "solidity",
     icon: "◆",
     cluster: "domain",
-    x: 20, y: 75,
+    x: 22, y: 88,
     description: "Solidity smart contract 専用。 EOA / contract / storage / event を自動 sort。",
     sampleDsl: `title: "ERC-20 transfer"
 type: solidity
@@ -176,7 +176,7 @@ animation:
     label: "gantt",
     icon: "▬",
     cluster: "extended",
-    x: 82, y: 62,
+    x: 86, y: 48,
     description: "timeline 横棒。 task の期間 / 依存を視覚化。",
     sampleDsl: `title: "Q1-Q4 roadmap"
 type: gantt
@@ -193,7 +193,7 @@ actors:
     label: "class",
     icon: "▤",
     cluster: "extended",
-    x: 74, y: 76,
+    x: 60, y: 66,
     description: "UML class (fields + methods)。 OOP design 視覚化。",
     sampleDsl: `title: "User class"
 type: class
@@ -211,7 +211,7 @@ flow:
     label: "pie",
     icon: "◐",
     cluster: "extended",
-    x: 90, y: 76,
+    x: 92, y: 66,
     description: "円グラフ。 value + label で割合を表現。",
     sampleDsl: `title: "Market share"
 type: pie
@@ -227,7 +227,7 @@ actors:
     label: "c4",
     icon: "▣",
     cluster: "extended",
-    x: 74, y: 89,
+    x: 62, y: 84,
     description: "C4 model 階層 (system / container / component)。",
     sampleDsl: `title: "C4 context"
 type: c4
@@ -247,7 +247,7 @@ flow:
     label: "mind",
     icon: "✺",
     cluster: "extended",
-    x: 90, y: 89,
+    x: 88, y: 80,
     description: "mind map (中央 root + 放射)。 思考整理 / brainstorm。",
     sampleDsl: `title: "Project ideas"
 type: mind
@@ -354,37 +354,52 @@ export function PresetMap(): React.JSX.Element {
           className="map-inner"
           style={{ transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})` }}
         >
-          {/* cluster zones (node を 14% 余白で囲む) */}
-          <div className="cluster-zone cluster-basic" style={{ left: "12%", top: "12%", width: "76%", height: "42%" }}></div>
-          <div className="cluster-label" style={{ left: "14%", top: "14%", color: "#2d6a8f" }}>
-            <span className="num">6</span>basic
-          </div>
-          <div className="cluster-zone cluster-domain" style={{ left: "8%", top: "62%", width: "26%", height: "30%" }}></div>
-          <div className="cluster-label" style={{ left: "10%", top: "64%", color: "#c2410c" }}>
-            <span className="num">1</span>domain
-          </div>
-          <div className="cluster-zone cluster-extended" style={{ left: "66%", top: "54%", width: "30%", height: "40%" }}></div>
-          <div className="cluster-label" style={{ left: "68%", top: "56%", color: "#6d28d9" }}>
-            <span className="num">5</span>extended
-          </div>
+          {/* cluster zones (head + 各 preset を囲む) */}
+          <div className="cluster-zone cluster-basic" style={{ left: "10%", top: "4%", width: "80%", height: "44%" }}></div>
+          <div className="cluster-zone cluster-domain" style={{ left: "12%", top: "62%", width: "22%", height: "34%" }}></div>
+          <div className="cluster-zone cluster-extended" style={{ left: "54%", top: "38%", width: "44%", height: "50%" }}></div>
 
-          {/* edges (bezier curves) */}
+          {/* hierarchy edges: dragon (50,50) → cluster head (3) → 各 preset */}
           <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Tier 1: dragon → cluster head */}
+            <path className="edge-path edge-basic edge-tier1" d="M 50 50 C 50 40, 50 30, 50 24" />
+            <path className="edge-path edge-domain edge-tier1" d="M 50 50 C 40 58, 30 66, 22 72" />
+            <path className="edge-path edge-extended edge-tier1" d="M 50 50 C 66 52, 76 56, 82 58" />
+
+            {/* Tier 2: cluster head → preset nodes */}
             {filtered.map((p) => {
-              // bezier control points: midpoint with offset toward each cluster
-              const cx = (50 + p.x) / 2;
-              const cy = (50 + p.y) / 2;
-              const cluster = p.cluster;
-              const colorClass = `edge-${cluster}`;
+              const head =
+                p.cluster === "basic" ? { x: 50, y: 24 } :
+                p.cluster === "domain" ? { x: 22, y: 72 } :
+                { x: 82, y: 58 };
+              const cx = (head.x + p.x) / 2;
+              const cy = (head.y + p.y) / 2;
               return (
                 <path
                   key={`edge-${p.id}`}
-                  className={`edge-path ${colorClass}`}
-                  d={`M 50 50 C ${cx} ${cy}, ${(p.x + cx) / 2} ${(p.y + cy) / 2}, ${p.x} ${p.y}`}
+                  className={`edge-path edge-${p.cluster}`}
+                  d={`M ${head.x} ${head.y} C ${cx} ${cy}, ${(p.x + cx) / 2} ${(p.y + cy) / 2}, ${p.x} ${p.y}`}
                 />
               );
             })}
           </svg>
+
+          {/* cluster head nodes (3) */}
+          <div className="cluster-head head-basic" style={{ left: "50%", top: "24%" }}>
+            <div className="head-glyph head-basic-glyph">B</div>
+            <div className="head-label">basic</div>
+            <div className="head-meta">6 preset</div>
+          </div>
+          <div className="cluster-head head-domain" style={{ left: "22%", top: "72%" }}>
+            <div className="head-glyph head-domain-glyph">D</div>
+            <div className="head-label">domain</div>
+            <div className="head-meta">1 preset</div>
+          </div>
+          <div className="cluster-head head-extended" style={{ left: "82%", top: "58%" }}>
+            <div className="head-glyph head-extended-glyph">E</div>
+            <div className="head-label">extended</div>
+            <div className="head-meta">5 preset</div>
+          </div>
 
           {/* center dragon */}
           <div className="node node-center" style={{ left: "50%", top: "50%" }}>
@@ -445,9 +460,9 @@ export function PresetMap(): React.JSX.Element {
         </div>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* cluster zone outlines */}
-          <rect x="12" y="12" width="76" height="42" rx="3" fill="rgba(45,106,143,0.06)" stroke="rgba(45,106,143,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
-          <rect x="8" y="62" width="26" height="30" rx="3" fill="rgba(194,65,12,0.06)" stroke="rgba(194,65,12,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
-          <rect x="66" y="54" width="30" height="40" rx="3" fill="rgba(109,40,217,0.06)" stroke="rgba(109,40,217,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="10" y="4" width="80" height="44" rx="3" fill="rgba(45,106,143,0.06)" stroke="rgba(45,106,143,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="12" y="62" width="22" height="34" rx="3" fill="rgba(194,65,12,0.06)" stroke="rgba(194,65,12,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="54" y="38" width="44" height="50" rx="3" fill="rgba(109,40,217,0.06)" stroke="rgba(109,40,217,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
           {/* nodes (cluster 色) */}
           {PRESETS.map((p) => {
             const color = p.cluster === "basic" ? "#2d6a8f" : p.cluster === "domain" ? "#c2410c" : "#6d28d9";
