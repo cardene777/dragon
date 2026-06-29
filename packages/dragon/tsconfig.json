@@ -17,6 +17,5 @@
     "declaration": true,
     "emitDeclarationOnly": true
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../cdl" }]
+  "include": ["src/**/*"]
 }
