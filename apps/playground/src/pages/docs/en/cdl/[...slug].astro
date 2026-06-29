@@ -1,0 +1,91 @@
+---
+import DocsLayout from "@/layouts/DocsLayout.astro";
+
+// EN 版 docs を eager glob
+const enModules = import.meta.glob<{ Content: any; frontmatter: any }>(
+  "../../../../content/cdl-docs-en/**/*.md",
+  { eager: true },
+);
+// JA 版 fallback (EN 未訳ページは JA を表示 + バナー)
+const jaModules = import.meta.glob<{ Content: any; frontmatter: any }>(
+  "../../../../content/cdl-docs/**/*.md",
+  { eager: true },
+);
+
+export async function getStaticPaths() {
+  // JA 版の全 slug を生成 (EN routing でも全 path を提供、 未訳は JA fallback)
+  const mods = import.meta.glob<unknown>(
+    "../../../../content/cdl-docs/**/*.md",
+    { eager: true },
+  );
+  return Object.keys(mods).map((p) => {
+    const m = p.match(/cdl-docs\/(.+)\.md$/);
+    const slug = m ? m[1]! : "README";
+    return { params: { slug } };
+  });
+}
+
+const { slug } = Astro.params;
+const slugStr = (slug as string | undefined) ?? "README";
+
+const enKey = Object.keys(enModules).find((k) => k.endsWith(`/${slugStr}.md`));
+const jaKey = Object.keys(jaModules).find((k) => k.endsWith(`/${slugStr}.md`));
+const mod = enKey ? enModules[enKey] : jaKey ? jaModules[jaKey] : null;
+const isTranslated = !!enKey;
+
+const titleMap: Record<string, string> = {
+  README: "Overview",
+  "overview/README": "Overview",
+  "overview/quickstart": "Quickstart",
+  "overview/cookbook": "Cookbook",
+  "overview/mermaid-migration": "Mermaid Migration",
+  "primitives/README": "Primitives",
+  "primitives/lane": "lane",
+  "primitives/node": "node",
+  "primitives/edge": "edge",
+  "primitives/state": "state",
+  "primitives/phase": "phase",
+  "presets/README": "Presets",
+  "presets/swimlane": "swimlane preset",
+  "presets/flow": "flow preset",
+  "presets/sequence": "sequence preset",
+  "presets/topology": "topology preset",
+  "presets/er": "er preset",
+  "presets/state-machine": "stateMachine preset",
+  "patterns/README": "Patterns",
+  "patterns/permit": "Permit",
+  "patterns/bridge": "Bridge",
+  "patterns/dex-swap": "DEX Swap",
+  "patterns/multicall": "Multicall",
+  "patterns/approve-pull": "Approve → Pull",
+  "reference/README": "Reference",
+  "reference/api": "API Reference",
+  "reference/generated/README": "Auto-generated Type API",
+  "reference/verifier-guide": "Verifier Guide",
+  "text-dsl-spec": "Text DSL Specification (v0.4)",
+  "text-dsl-llm-guide": "Text DSL: LLM Generation Guide",
+  "migration-guide": "Migration Guide: Builder API → Text DSL",
+};
+const pageTitle = `${titleMap[slugStr] ?? slugStr} - @cardenelabs/cdl Docs`;
+const description = "Official documentation for @cardenelabs/cdl — a TypeScript DSL for animated SVG diagrams as easy to draw as mermaid.";
+---
+
+<DocsLayout title={pageTitle} currentSlug={slugStr} description={description} lang="en">
+  {mod && mod.Content ? (
+    <>
+      {!isTranslated && (
+        <div class="docs-i18n-banner">
+          <strong>⚠️ This page is not translated yet.</strong>
+          The Japanese version is shown below. Help wanted on <a href="https://github.com/cardene777/cdl" target="_blank" rel="noopener">GitHub</a>.
+        </div>
+      )}
+      <mod.Content />
+    </>
+  ) : (
+    <div>
+      <h1>Not Found</h1>
+      <p>Doc "{slugStr}" not found.</p>
+      <p><a href="/docs/en/cdl/README">Back to Overview</a></p>
+    </div>
+  )}
+</DocsLayout>

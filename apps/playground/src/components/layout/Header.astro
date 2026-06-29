@@ -1,0 +1,54 @@
+---
+const links = [
+  { href: "/catalog", label: "Catalog" },
+  { href: "/editor", label: "Editor" },
+  { href: "/docs", label: "Docs" },
+];
+const currentPath = Astro.url.pathname;
+const repoUrl = "https://github.com/cardene777/cdl";
+---
+
+<header class="site-header sticky top-0 z-40 border-b border-nm-shadow-dark/20 bg-nm-bg/90 backdrop-blur-sm">
+  <div class="shell flex h-14 items-center justify-between gap-6">
+    <a href="/" class="flex items-center gap-2 no-underline text-nm-text">
+      <span
+        class="grid h-7 w-7 place-items-center rounded-nm-sm shadow-nm-raised-sm text-base font-bold"
+        style="background: linear-gradient(135deg, #4a7c8f 0%, #2d5567 100%); color: #fff;"
+        aria-hidden="true"
+      >
+        ◢
+      </span>
+      <span class="text-base font-semibold tracking-tight">dragon</span>
+      <span class="text-xs text-nm-text-muted hidden sm:inline">/ Mermaid 感覚で動く図を描く Text DSL</span>
+    </a>
+    <nav aria-label="Main navigation" class="flex items-center gap-6">
+      {
+        links.map((link) => {
+          const active =
+            currentPath === link.href || currentPath.startsWith(link.href + "/");
+          return (
+            <a
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              class={[
+                "no-underline text-sm font-medium transition-colors",
+                active ? "text-nm-accent" : "text-nm-text-secondary hover:text-nm-text",
+              ].join(" ")}
+            >
+              {link.label}
+            </a>
+          );
+        })
+      }
+      <a
+        href={repoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="GitHub repository"
+        class="text-sm font-medium text-nm-text-secondary hover:text-nm-text no-underline transition-colors"
+      >
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>

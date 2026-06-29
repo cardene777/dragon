@@ -1,0 +1,220 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const heroBadge = "Mermaid 感覚で動く図を書く Text DSL";
+
+const featuredEntries = [
+  {
+    href: "/editor",
+    eyebrow: "Visual Editor",
+    title: "Editor で dragon を書いて動かす",
+    summary: "split view で dragon DSL v0.5 を入力 → 300 ms 後に animation 付き SVG。 共有 URL コピー / SVG ダウンロードに対応。",
+    cta: "/editor を開く",
+  },
+  {
+    href: "/docs/cdl/overview/quickstart",
+    eyebrow: "Tutorial",
+    title: "5 step Tutorial で全体像を掴む",
+    summary: "最初の図 → animation → 複数 phase → 6 preset → inline option を 30 分で網羅。 dragon syntax v0.5 だけで完結する構成。",
+    cta: "Quickstart を読む",
+  },
+  {
+    href: "/docs/cdl/overview/cookbook",
+    eyebrow: "Cookbook",
+    title: "Cookbook 25 例を真似する",
+    summary: "DeFi 10 / NFT 5 / DAO 5 / Bridge 5 の即動く dragon DSL 例。 ERC-20 / Permit / Uniswap / Aave / Multisig / LayerZero までカバー。",
+    cta: "Cookbook を開く",
+  },
+] as const;
+
+const presets = [
+  { group: "Core", items: ["sequence", "flow", "swimlane", "topology", "er", "state-machine"] },
+  { group: "Domain", items: ["solidity"] },
+  { group: "Extended", items: ["gantt", "class", "pie", "c4", "mind"] },
+];
+
+const stats = [
+  { label: "presets", value: "12" },
+  { label: "tests", value: "357" },
+  { label: "golden snapshots", value: "100" },
+  { label: "indexed pages", value: "72" },
+];
+---
+
+<BaseLayout>
+  <section class="shell pt-12 pb-16 sm:pt-20 sm:pb-24">
+    <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <div class="space-y-7">
+        <span class="section-eyebrow">{heroBadge}</span>
+        <h1 class="heading-h1 text-4xl sm:text-5xl lg:text-6xl">
+          dragon で
+          <br />
+          <span class="text-nm-accent">animated diagram</span> を書く。
+        </h1>
+        <p class="max-w-xl text-lg text-nm-text-secondary leading-relaxed">
+          dragon は Mermaid 感覚で書ける Text DSL。 英語 keyword + 日本語値 quote の短文構文で、
+          ERC-20 transfer や DeFi swap の挙動を phase ごとに分解したアニメーション付き SVG にできます。
+          parse + compile は dragon、 layout / render / animation は cdl engine。 ブラウザだけで完結し、 SVG ダウンロード / 共有 URL に対応。
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="/editor" class="nm-btn-accent">
+            Editor で試す
+            <span aria-hidden="true">→</span>
+          </a>
+          <a href="/docs/cdl/overview/quickstart" class="nm-btn">
+            Quickstart を読む
+          </a>
+          <a href="/catalog" class="nm-btn">
+            Catalog を見る
+          </a>
+        </div>
+      </div>
+      <div class="nm-card relative overflow-hidden">
+        <div class="absolute inset-0 opacity-50">
+          <div class="hero-grid"></div>
+        </div>
+        <div class="relative space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
+              dragon DSL v0.5 sample
+            </span>
+            <span class="nm-badge bg-nm-success-bg text-nm-success-text">solidity</span>
+          </div>
+          <pre class="hero-code">{`title: "ERC-20 transfer"
+type: solidity
+
+actors:
+  - Alice: { kind: eoa }
+  - Token: { kind: contract }
+  - balances: { kind: storage }
+  - "Transfer": { kind: event }
+
+states:
+  alice_bal: 100
+  bob_bal: 0
+
+flow:
+  - Alice -> Token: "transfer(Bob, 10)"
+  - Token -> balances: "update"
+  - Token -> "Transfer": "emit" (success)
+
+animation:
+  - step: "call" 1.2s
+    focus: [Alice, Token]
+  - step: "storage" 1.5s
+    focus: [Token, balances]
+    tween:
+      alice_bal: 100 -> 90
+      bob_bal: 0 -> 10
+  - step: "emit" 0.8s
+    focus: [Token, "Transfer"]
+`}</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="entry" class="shell pb-20">
+    <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div class="space-y-3">
+        <span class="section-eyebrow">Get started</span>
+        <h2 class="heading-h2">3 つの入り口</h2>
+      </div>
+    </div>
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        featuredEntries.map((entry) => (
+          <a href={entry.href} class="nm-card-interactive group block no-underline">
+            <div class="flex h-full flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
+                  {entry.eyebrow}
+                </span>
+              </div>
+              <h3 class="text-xl font-bold leading-snug text-nm-text">{entry.title}</h3>
+              <p class="text-sm leading-relaxed text-nm-text-secondary">{entry.summary}</p>
+              <div class="mt-auto flex items-center justify-between pt-3 text-sm font-medium text-nm-accent">
+                <span>{entry.cta}</span>
+                <span class="nm-arrow" aria-hidden="true">→</span>
+              </div>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="shell pb-20">
+    <div class="nm-card-sm">
+      <div class="mb-5 flex flex-col gap-3">
+        <span class="section-eyebrow">12 presets</span>
+        <h2 class="heading-h2 text-xl sm:text-2xl">type: で切替できる図表現</h2>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        {
+          presets.map((g) => (
+            <div class="space-y-2">
+              <div class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
+                {g.group}
+              </div>
+              <ul class="space-y-1">
+                {g.items.map((p) => (
+                  <li class="rounded-nm-sm bg-nm-bg/50 px-3 py-2 text-sm font-medium text-nm-text shadow-nm-pressed-sm">
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="shell pb-24">
+    <div class="nm-card-sm">
+      <div class="mb-5 flex flex-col gap-3">
+        <span class="section-eyebrow">Quality</span>
+        <h2 class="heading-h2 text-xl sm:text-2xl">本体は test と benchmark で守る</h2>
+      </div>
+      <ul class="grid gap-3 sm:grid-cols-4">
+        {
+          stats.map((s) => (
+            <li class="rounded-nm-sm bg-nm-bg/50 p-4 text-center shadow-nm-pressed-sm">
+              <div class="text-2xl font-bold text-nm-accent">{s.value}</div>
+              <div class="mt-1 text-xs uppercase tracking-wider text-nm-text-muted">{s.label}</div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero-grid {
+    background-image:
+      linear-gradient(rgba(196, 185, 172, 0.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(196, 185, 172, 0.25) 1px, transparent 1px);
+    background-size: 36px 36px;
+    width: 100%;
+    height: 100%;
+    mask-image: radial-gradient(circle at top right, black 40%, transparent 80%);
+  }
+  .hero-code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    background: rgba(255, 251, 246, 0.6);
+    border-radius: 8px;
+    padding: 12px;
+    overflow: auto;
+    max-height: 360px;
+    margin: 0;
+    color: #3b2e22;
+  }
+  :global(html.dark) .hero-code {
+    background: rgba(18, 16, 14, 0.6);
+    color: #ede2d2;
+  }
+</style>

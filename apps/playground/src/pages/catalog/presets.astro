@@ -1,0 +1,100 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
+import { presetSwimlane, presetFlow, presetSequence, presetTopology, presetEr, presetStateMachine } from "@/topics/catalog/presets.cdl";
+
+const items = [
+  { label: "swimlane preset (3 lane 自動配置 + slug 自動)", d: presetSwimlane, docHref: "/docs/cdl/presets/swimlane" },
+  { label: "flow preset (1 lane sequence、 step → step 自動 edge)", d: presetFlow, docHref: "/docs/cdl/presets/flow" },
+  { label: "sequence preset (actor 列 × 時系列 row、 UML sequence diagram 風)", d: presetSequence, docHref: "/docs/cdl/presets/sequence" },
+  { label: "topology preset (group + container 配置、 構成図 / deployment 風)", d: presetTopology, docHref: "/docs/cdl/presets/topology" },
+  { label: "er preset (entity + cardinality、 ER 図 / DB schema 風)", d: presetEr, docHref: "/docs/cdl/presets/er" },
+  { label: "stateMachine preset (state + transition trigger、 FSM / workflow 風)", d: presetStateMachine, docHref: "/docs/cdl/presets/state-machine" },
+];
+---
+
+<BaseLayout title="Catalog - Presets - dragon">
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <a href="/catalog" class="text-nm-text-secondary hover:text-nm-accent no-underline">Catalog</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Presets</span>
+      </nav>
+      <span class="section-eyebrow">Catalog / Presets (高位 API)</span>
+      <h1 class="heading-h1">Presets</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
+        swimlane / flow / sequence 等の preset で 複数 lane / node / edge を 1 行宣言。 低位 API より簡潔。
+      </p>
+    </div>
+  </section>
+
+  <section class="shell pb-24">
+    <div class="space-y-6">
+      {
+        items.map((item) => (
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
+              <a
+                href={item.docHref}
+                class="catalog-doc-link shrink-0"
+                aria-label={`${item.label} のドキュメントへ`}
+              >
+                <span aria-hidden="true">📖</span>
+                <span>ドキュメント</span>
+              </a>
+            </div>
+            <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
+              <a href={item.docHref} class="catalog-thumb-doc-link" aria-label="ドキュメント" title="ドキュメントを見る">📖</a>
+              <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+  <style is:global>
+    .catalog-doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c17f3e;
+      background: rgba(193, 127, 62, 0.1);
+      border: 1px solid rgba(193, 127, 62, 0.3);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .catalog-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: translateY(-1px);
+    }
+    .catalog-thumb-doc-link {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      background: rgba(232, 221, 208, 0.95);
+      border: 1px solid rgba(196, 185, 172, 0.6);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+      z-index: 5;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .catalog-thumb-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: scale(1.08);
+    }
+  </style>
+</BaseLayout>

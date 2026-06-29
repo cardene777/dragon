@@ -1,0 +1,65 @@
+{
+  "name": "@cardenelabs/dragon",
+  "version": "0.1.0",
+  "description": "Dragon — Mermaid 感覚で animated SVG を生成する Text DSL。 cdl engine を内部利用。",
+  "license": "MIT",
+  "author": "cardene777",
+  "homepage": "https://github.com/cardene777/dragon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardene777/dragon.git",
+    "directory": "packages/dragon"
+  },
+  "bugs": {
+    "url": "https://github.com/cardene777/dragon/issues"
+  },
+  "keywords": [
+    "dragon",
+    "diagram",
+    "animation",
+    "text-dsl",
+    "mermaid-alternative",
+    "solidity"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cardenelabs/cdl": "link:../../../cdl/packages/cdl"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "react": "^19.1.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.0"
+  }
+}

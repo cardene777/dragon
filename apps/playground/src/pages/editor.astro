@@ -1,0 +1,309 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { CdlEditor } from "@/components/CdlEditor";
+---
+
+<BaseLayout
+  title="dragon Visual Editor"
+  description="dragon DSL v0.5 を split view で書きながら live preview する Visual Editor。 cdl engine が animated SVG として render し、 ブラウザだけで動き、 SVG ダウンロード + 共有 URL に対応。"
+>
+  <main class="editor-main">
+    <header class="editor-header">
+      <span class="editor-eyebrow">dragon Visual Editor (v1.0)</span>
+      <h1 class="editor-title">dragon DSL を書きながら、 すぐに動かす</h1>
+      <p class="editor-summary">
+        左に dragon DSL v0.5 を入力すると、 300 ms 後に右側でアニメーション付き SVG として描画されます。
+        サンプルを選んで構造を真似たり、 共有 URL でリンクしたり、 SVG でダウンロードして資料に貼り付けたりできます。
+        parse は dragon、 render は cdl engine が担います。
+      </p>
+    </header>
+    <CdlEditor client:load />
+  </main>
+</BaseLayout>
+
+<style>
+  .editor-main {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 16px 24px 24px;
+  }
+  .editor-header {
+    margin-bottom: 16px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .editor-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c17f3e;
+    margin-bottom: 8px;
+  }
+  .editor-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #3b2e22;
+    margin: 0 0 12px;
+  }
+  .editor-summary {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #5b4d3f;
+    max-width: 720px;
+    margin: 0;
+  }
+  html.dark .editor-title {
+    color: #ede2d2;
+  }
+  html.dark .editor-summary {
+    color: #b8a994;
+  }
+
+  /* === Editor === */
+  :global(.cdl-editor) {
+    border: 1px solid rgba(196, 185, 172, 0.5);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(245, 237, 227, 0.6);
+  }
+  :global(.cdl-editor-toolbar) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(232, 221, 208, 0.6);
+    border-bottom: 1px solid rgba(196, 185, 172, 0.5);
+    flex-wrap: wrap;
+  }
+  :global(.cdl-editor-samples) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  :global(.cdl-editor-sample-scroll) {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  :global(.cdl-editor-sample-scroll::-webkit-scrollbar) {
+    height: 6px;
+  }
+  :global(.cdl-editor-sample-scroll::-webkit-scrollbar-thumb) {
+    background: rgba(196, 185, 172, 0.6);
+    border-radius: 3px;
+  }
+  :global(.cdl-editor-toolbar-label) {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b5e52;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+  :global(.cdl-editor-sample-btn) {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(245, 237, 227, 0.8);
+    border: 1px solid rgba(196, 185, 172, 0.6);
+    color: #3b2e22;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  :global(.cdl-editor-sample-btn:hover) {
+    background: #c17f3e;
+    color: #fff;
+  }
+  :global(.cdl-editor-actions) {
+    display: flex;
+    gap: 8px;
+  }
+  :global(.cdl-editor-action-btn) {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #c17f3e;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  :global(.cdl-editor-action-btn:hover) {
+    background: #a86927;
+  }
+  :global(.cdl-editor-action-btn:disabled) {
+    background: rgba(196, 185, 172, 0.4);
+    cursor: not-allowed;
+  }
+  :global(.cdl-editor-split) {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    min-height: 600px;
+  }
+  @media (max-width: 768px) {
+    :global(.cdl-editor-split) {
+      grid-template-columns: 1fr;
+    }
+  }
+  :global(.cdl-editor-input-pane) {
+    border-right: 1px solid rgba(196, 185, 172, 0.5);
+  }
+  :global(.cdl-editor-textarea) {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    padding: 16px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    background: rgba(255, 251, 246, 0.6);
+    border: none;
+    color: #3b2e22;
+    resize: none;
+    outline: none;
+  }
+  :global(.cdl-editor-preview-pane) {
+    display: flex;
+    flex-direction: column;
+    background: rgba(232, 221, 208, 0.3);
+    padding: 16px;
+    overflow: hidden;
+    min-height: 600px;
+  }
+  :global(.cdl-editor-error) {
+    background: rgba(193, 60, 60, 0.1);
+    border: 1px solid rgba(193, 60, 60, 0.4);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #8b2828;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    flex-shrink: 0;
+  }
+  :global(.cdl-editor-preview-wrap) {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    user-select: none;
+    cursor: grab;
+    background: rgba(255, 251, 246, 0.4);
+    border-radius: 8px;
+    min-height: 500px;
+  }
+  :global(.cdl-editor-preview-wrap:active) {
+    cursor: grabbing;
+  }
+  :global(.cdl-editor-pan-zoom) {
+    transform-origin: 0 0;
+    will-change: transform;
+    display: inline-block;
+  }
+  :global(.cdl-editor-preview) {
+    display: inline-block;
+  }
+  :global(.cdl-editor-preview svg) {
+    display: block;
+    pointer-events: none;
+  }
+  :global(.cdl-editor-zoom-toolbar) {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: rgba(255, 251, 246, 0.95);
+    border: 1px solid rgba(196, 185, 172, 0.6);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+  :global(.cdl-editor-zoom-toolbar button) {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #3b2e22;
+    border-radius: 4px;
+    min-width: 32px;
+  }
+  :global(.cdl-editor-zoom-toolbar button:hover) {
+    background: rgba(193, 127, 62, 0.15);
+    color: #3b2e22;
+  }
+  :global(.cdl-editor-zoom-display) {
+    font-size: 12px;
+    color: #6b5e52;
+    padding: 0 8px;
+    border-left: 1px solid rgba(196, 185, 172, 0.6);
+    font-family: ui-monospace, monospace;
+    min-width: 44px;
+    text-align: right;
+  }
+  :global(.cdl-editor-empty) {
+    color: #6b5e52;
+    font-size: 14px;
+  }
+  html.dark :global(.cdl-editor) {
+    background: rgba(28, 24, 20, 0.6);
+    border-color: rgba(212, 165, 116, 0.3);
+  }
+  html.dark :global(.cdl-editor-toolbar) {
+    background: rgba(18, 16, 14, 0.6);
+    border-bottom-color: rgba(212, 165, 116, 0.3);
+  }
+  html.dark :global(.cdl-editor-toolbar-label) {
+    color: #b8a994;
+  }
+  html.dark :global(.cdl-editor-sample-btn) {
+    background: rgba(28, 24, 20, 0.8);
+    border-color: rgba(212, 165, 116, 0.4);
+    color: #ede2d2;
+  }
+  html.dark :global(.cdl-editor-input-pane) {
+    border-right-color: rgba(212, 165, 116, 0.3);
+  }
+  html.dark :global(.cdl-editor-textarea) {
+    background: rgba(18, 16, 14, 0.6);
+    color: #ede2d2;
+  }
+  html.dark :global(.cdl-editor-preview-pane) {
+    background: rgba(18, 16, 14, 0.3);
+  }
+  html.dark :global(.cdl-editor-preview-wrap) {
+    background: rgba(18, 16, 14, 0.4);
+  }
+  html.dark :global(.cdl-editor-zoom-toolbar) {
+    background: rgba(28, 24, 20, 0.95);
+    border-color: rgba(212, 165, 116, 0.4);
+  }
+  html.dark :global(.cdl-editor-zoom-toolbar button) {
+    color: #ede2d2;
+  }
+  html.dark :global(.cdl-editor-zoom-toolbar button:hover) {
+    background: rgba(212, 165, 116, 0.2);
+    color: #ede2d2;
+  }
+  html.dark :global(.cdl-editor-zoom-display) {
+    color: #b8a994;
+    border-left-color: rgba(212, 165, 116, 0.3);
+  }
+</style>

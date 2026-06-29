@@ -1,0 +1,57 @@
+---
+import "../styles/global.css";
+import "../styles/docs-site.css";
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 Not Found - dragon</title>
+    <meta name="description" content="お探しのページが見つかりませんでした。" />
+  </head>
+  <body class="docs-body">
+    <header class="docs-navbar">
+      <div class="docs-navbar-inner">
+        <a href="/docs" class="docs-navbar-brand">
+          <span class="docs-navbar-logo">C</span>
+          <span class="docs-navbar-title">cdl <span class="docs-navbar-title-sub">engine Docs</span></span>
+        </a>
+        <nav class="docs-navbar-nav" aria-label="docs navigation">
+          <a href="/docs" class="docs-navbar-link">Introduction</a>
+          <a href="/docs/cdl/overview/quickstart" class="docs-navbar-link">Guide</a>
+          <a href="/docs/cdl/reference/api" class="docs-navbar-link">Reference</a>
+          <a href="/catalog" class="docs-navbar-link">Catalog</a>
+          <a href="/" class="docs-navbar-link docs-navbar-link-external">サイト</a>
+          <a href="https://github.com/cardene777/cdl" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">GitHub ↗</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="docs-404">
+      <div class="docs-404-inner">
+        <div class="docs-404-code">404</div>
+        <h1 class="docs-404-title">ページが見つかりません</h1>
+        <p class="docs-404-lead">
+          お探しのページは移動 / 削除されたか、 そもそも存在しないようです。
+        </p>
+        <div class="docs-404-links">
+          <a href="/docs" class="docs-hero-cta-primary">Docs トップへ</a>
+          <a href="/docs/cdl/overview/quickstart" class="docs-hero-cta-secondary">Quickstart を読む</a>
+          <a href="/" class="docs-hero-cta-secondary">サイトトップへ</a>
+        </div>
+        <div class="docs-404-suggest">
+          <h3>探していたのはこれですか？</h3>
+          <ul>
+            <li><a href="/docs/cdl/README">@cardenelabs/cdl Overview</a></li>
+            <li><a href="/docs/cdl/primitives/README">Primitives (lane / node / edge / state / phase)</a></li>
+            <li><a href="/docs/cdl/presets/README">Presets (sequence / er / state-machine 等)</a></li>
+            <li><a href="/docs/cdl/patterns/README">Patterns (Permit / Bridge / DEX 等)</a></li>
+            <li><a href="/catalog">Catalog (見本 78 種)</a></li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

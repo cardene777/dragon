@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --nm-shadow-dark: #c4b9ac;
+    --nm-shadow-light: #f5ede3;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: #e0d5c8;
+    color: #3d3229;
+    font-family: Outfit, system-ui, -apple-system, "Hiragino Sans", sans-serif;
+  }
+
+  body {
+    @apply min-h-screen bg-nm-bg text-nm-text antialiased;
+  }
+
+  ::selection {
+    background-color: #c17f3e;
+    color: #fbf0e4;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold text-nm-text;
+    letter-spacing: -0.01em;
+  }
+
+  a {
+    @apply text-nm-accent transition-colors;
+  }
+
+  a:hover {
+    @apply text-nm-accent-hover;
+  }
+
+  /* btn class の <a> は a:hover の text-color override を無効化、 各 btn class が text-color を SSOT 管理 */
+  a.nm-btn,
+  a.nm-btn-accent,
+  a.nm-card-interactive,
+  a.nm-card,
+  a.no-underline {
+    @apply text-nm-text;
+  }
+  a.nm-btn-accent {
+    @apply text-white;
+  }
+  a.nm-btn:hover,
+  a.nm-card-interactive:hover,
+  a.nm-card:hover,
+  a.no-underline:hover {
+    @apply text-nm-text;
+  }
+  a.nm-btn-accent:hover {
+    @apply text-white;
+  }
+
+  code {
+    @apply rounded bg-nm-surface px-1.5 py-0.5 font-mono text-[0.9em] text-nm-text;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-6xl px-6 sm:px-8;
+  }
+
+  .nm-card {
+    @apply rounded-nm bg-nm-surface p-6 shadow-nm-raised;
+  }
+
+  .nm-card-sm {
+    @apply rounded-nm-sm bg-nm-surface p-4 shadow-nm-raised-sm;
+  }
+
+  .nm-card-interactive {
+    @apply rounded-nm bg-nm-surface p-6 shadow-nm-raised transition-all duration-300;
+  }
+
+  .nm-card-interactive:hover {
+    @apply shadow-nm-flat;
+    transform: translateY(-2px);
+  }
+
+  .nm-card-interactive:active {
+    @apply shadow-nm-pressed-sm;
+    transform: translateY(0);
+  }
+
+  .nm-pressed {
+    @apply rounded-nm-sm bg-nm-surface shadow-nm-pressed;
+  }
+
+  .nm-btn {
+    @apply inline-flex items-center gap-2 rounded-nm-sm bg-nm-surface px-5 py-2.5 font-medium text-nm-text shadow-nm-raised-sm transition-all duration-200;
+  }
+
+  .nm-btn:hover {
+    @apply shadow-nm-flat;
+  }
+
+  .nm-btn:active {
+    @apply shadow-nm-pressed-sm;
+  }
+
+  .nm-btn-accent {
+    @apply inline-flex items-center gap-2 rounded-nm-sm bg-nm-accent px-5 py-2.5 font-medium text-white shadow-nm-raised-sm transition-all duration-200;
+  }
+
+  .nm-btn-accent:hover {
+    @apply bg-nm-accent-hover;
+    box-shadow:
+      3px 3px 6px #b0764080,
+      -3px -3px 6px #d4a06a60;
+  }
+
+  .nm-btn-accent:active {
+    box-shadow:
+      inset 2px 2px 4px #8e582680,
+      inset -2px -2px 4px #d4a06a40;
+  }
+
+  .nm-input {
+    @apply rounded-nm-sm bg-nm-bg px-4 py-2.5 text-nm-text shadow-nm-pressed-sm outline-none transition-all duration-200 placeholder:text-nm-text-muted;
+  }
+
+  .nm-input:focus {
+    @apply ring-2 ring-nm-accent/40;
+  }
+
+  .nm-badge {
+    @apply inline-flex items-center rounded-full bg-nm-surface px-3 py-1 text-xs font-semibold text-nm-text-secondary shadow-nm-flat;
+  }
+}
+
+@layer utilities {
+  .font-gas {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+
+}
+
+/* ─── Heading variants (neumorphism + accent rail / dot / dash) ─── */
+
+.heading-h1 {
+  @apply relative pl-5 text-3xl font-bold tracking-tight text-nm-text sm:text-4xl lg:text-5xl;
+  line-height: 1.15;
+}
+
+.heading-h1::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  bottom: 0.45em;
+  width: 6px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #c17f3e 0%, #d4a06a 60%, #4a8b7f 100%);
+  box-shadow:
+    1px 1px 2px var(--nm-shadow-dark),
+    -1px -1px 2px var(--nm-shadow-light);
+}
+
+.heading-h2 {
+  @apply relative flex items-center gap-3 pb-3 text-2xl font-bold tracking-tight text-nm-text sm:text-3xl;
+  border-bottom: 1px solid var(--nm-shadow-dark);
+  box-shadow: 0 1px 0 var(--nm-shadow-light);
+}
+
+.heading-h2::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #c17f3e;
+  box-shadow:
+    inset 1px 1px 2px #8e5826,
+    inset -1px -1px 2px #d4a06a,
+    0 0 0 4px rgba(193, 127, 62, 0.12);
+  flex-shrink: 0;
+}
+
+.heading-h3 {
+  @apply relative flex items-center gap-3 text-lg font-semibold tracking-tight text-nm-text sm:text-xl;
+}
+
+.heading-h3::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1.2em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c17f3e 0%, #d4a06a 100%);
+  box-shadow:
+    1px 0 1px var(--nm-shadow-dark),
+    -1px 0 1px var(--nm-shadow-light);
+  flex-shrink: 0;
+}
+
+.section-eyebrow {
+  @apply inline-flex items-center rounded-full bg-nm-surface px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-nm-accent shadow-nm-flat;
+}
+
+/* Prose for content body (erc20-transfer article) */
+.prose {
+  @apply text-nm-text;
+  line-height: 1.75;
+}
+
+.prose h2 {
+  @apply relative mt-12 mb-5 flex items-center gap-3 pb-3 text-2xl font-bold tracking-tight text-nm-text;
+  border-bottom: 1px solid var(--nm-shadow-dark);
+  box-shadow: 0 1px 0 var(--nm-shadow-light);
+}
+
+.prose h2::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #c17f3e;
+  box-shadow:
+    inset 1px 1px 2px #8e5826,
+    inset -1px -1px 2px #d4a06a,
+    0 0 0 4px rgba(193, 127, 62, 0.12);
+  flex-shrink: 0;
+}
+
+.prose h3 {
+  @apply relative mt-9 mb-3 flex items-center gap-3 text-lg font-semibold tracking-tight text-nm-text sm:text-xl;
+}
+
+.prose h3::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1.2em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c17f3e 0%, #d4a06a 100%);
+  box-shadow:
+    1px 0 1px var(--nm-shadow-dark),
+    -1px 0 1px var(--nm-shadow-light);
+  flex-shrink: 0;
+}
+
+.prose p {
+  @apply mb-4;
+}
+
+.prose ol {
+  @apply mb-4 list-decimal space-y-2 pl-6;
+}
+
+.prose ol li strong {
+  @apply text-nm-text;
+}
+
+.prose ol li span {
+  @apply mt-1 block text-sm text-nm-text-secondary;
+}
+
+.prose .inline-phase-diagram {
+  @apply my-6 overflow-hidden rounded-nm-sm shadow-nm-raised-sm;
+}

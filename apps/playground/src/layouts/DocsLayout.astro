@@ -1,0 +1,552 @@
+---
+/**
+ * mermaid 公式 (mermaid.js.org) 流儀の docs layout。 VitePress 風 4 領域構成。
+ *
+ * 領域。
+ *   1. DocsNavBar ... 上部固定 (Logo + Search + 主要 link)、 通常 ヘッダー (Header.astro) を非表示
+ *   2. Sidebar    ... 左固定 sticky、 全 docs 階層を常設展開
+ *   3. Doc        ... 中央本文 (markdown render)
+ *   4. Aside      ... 右固定 sticky、 現ページの TOC (H2/H3 自動抽出 client-side)
+ *
+ * 加えて。
+ *   - パンくず ... ページ上部
+ *   - Prev/Next ... ページ下部 (sidebar 配列の前後)
+ *   - Edit on GitHub ... ページ下部
+ *   - Last updated ... 末尾
+ */
+import "../styles/global.css";
+import "../styles/docs-site.css";
+import { SearchBar } from "../components/SearchBar";
+
+export interface Props {
+  title: string;
+  currentSlug: string;
+  description?: string;
+  lang?: "ja" | "en";
+}
+
+const { title, currentSlug, description, lang = "ja" } = Astro.props;
+const docsPrefix = lang === "en" ? "/docs/en/cdl" : "/docs/cdl";
+
+// サイドメニュー定義 (docs/cdl/ 配下の navigation SSOT、 4 階層構造)
+// 各 item は i18n 対応 ... ja / en で label を持ち、 client-side で localStorage の docs-lang を見て切替
+type SidebarItem = { slug: string; ja: string; en: string };
+type SidebarSection = { sectionJa: string; sectionEn: string; items: SidebarItem[] };
+
+const sidebar: SidebarSection[] = [
+  {
+    sectionJa: "はじめに",
+    sectionEn: "Introduction",
+    items: [
+      { slug: "README", ja: "概要", en: "Overview" },
+      { slug: "overview/quickstart", ja: "クイックスタート", en: "Quickstart" },
+      { slug: "overview/cookbook", ja: "サンプル集", en: "Cookbook" },
+      { slug: "overview/mermaid-migration", ja: "mermaid からの移行", en: "Mermaid Migration" },
+    ],
+  },
+  {
+    sectionJa: "基本パーツ",
+    sectionEn: "Primitives",
+    items: [
+      { slug: "primitives/README", ja: "概要", en: "Overview" },
+      { slug: "primitives/lane", ja: "lane (列)", en: "lane (column)" },
+      { slug: "primitives/node", ja: "node (要素)", en: "node (element)" },
+      { slug: "primitives/edge", ja: "edge (関連)", en: "edge (relation)" },
+      { slug: "primitives/state", ja: "state (状態)", en: "state (variable)" },
+      { slug: "primitives/phase", ja: "phase (章)", en: "phase (step)" },
+    ],
+  },
+  {
+    sectionJa: "高位 API",
+    sectionEn: "Presets",
+    items: [
+      { slug: "presets/README", ja: "概要", en: "Overview" },
+      { slug: "presets/swimlane", ja: "スイムレーン図", en: "Swimlane" },
+      { slug: "presets/flow", ja: "フローチャート", en: "Flowchart" },
+      { slug: "presets/sequence", ja: "シーケンス図", en: "Sequence Diagram" },
+      { slug: "presets/topology", ja: "システム構成図", en: "Topology" },
+      { slug: "presets/er", ja: "ER 図", en: "ER Diagram" },
+      { slug: "presets/state-machine", ja: "状態遷移図", en: "State Machine" },
+      { slug: "presets/solidity", ja: "Solidity 専用", en: "Solidity" },
+      { slug: "presets/gantt", ja: "ガントチャート", en: "Gantt Chart" },
+      { slug: "presets/class", ja: "クラス図", en: "Class Diagram" },
+      { slug: "presets/pie", ja: "円グラフ", en: "Pie Chart" },
+      { slug: "presets/c4", ja: "C4 モデル", en: "C4 Model" },
+      { slug: "presets/mind", ja: "マインドマップ", en: "Mind Map" },
+    ],
+  },
+  {
+    sectionJa: "実用パターン",
+    sectionEn: "Patterns",
+    items: [
+      { slug: "patterns/README", ja: "概要", en: "Overview" },
+      { slug: "patterns/permit", ja: "Permit (EIP-2612)", en: "Permit (EIP-2612)" },
+      { slug: "patterns/bridge", ja: "Bridge (Lock-Mint)", en: "Bridge (Lock-Mint)" },
+      { slug: "patterns/dex-swap", ja: "DEX Swap", en: "DEX Swap" },
+      { slug: "patterns/multicall", ja: "Multicall", en: "Multicall" },
+      { slug: "patterns/approve-pull", ja: "Approve → Pull", en: "Approve → Pull" },
+    ],
+  },
+  {
+    sectionJa: "リファレンス",
+    sectionEn: "Reference",
+    items: [
+      { slug: "reference/README", ja: "概要", en: "Overview" },
+      { slug: "reference/api", ja: "API 一覧", en: "API Reference" },
+      { slug: "reference/generated/README", ja: "型 API (自動生成)", en: "Auto-generated Type API" },
+      { slug: "reference/verifier-guide", ja: "「目」 verifier ガイド", en: "Verifier Guide" },
+      { slug: "text-dsl-spec", ja: "Text DSL 仕様 (v0.5)", en: "Text DSL Spec (v0.5)" },
+      { slug: "text-dsl-llm-guide", ja: "Text DSL: LLM 生成ガイド", en: "Text DSL: LLM Generation Guide" },
+      { slug: "migration-guide", ja: "Builder API → Text DSL 移行ガイド", en: "Migration Guide: Builder API → Text DSL" },
+    ],
+  },
+];
+
+// 現在 page の section (ja) を判定 (default で展開)
+const currentSection = (() => {
+  const segs = currentSlug.split("/");
+  if (segs.length < 2 || currentSlug === "README") return "はじめに";
+  const map: Record<string, string> = {
+    overview: "はじめに",
+    primitives: "基本パーツ",
+    presets: "高位 API",
+    patterns: "実用パターン",
+    reference: "リファレンス",
+  };
+  return map[segs[0]] ?? "はじめに";
+})();
+
+// flat list (Prev/Next 計算用、 ja label を default として SSR、 client で en に切替)
+const flat = sidebar.flatMap((sec) => sec.items.map((i) => ({ slug: i.slug, ja: i.ja, en: i.en })));
+const currentIdx = flat.findIndex((i) => i.slug === currentSlug);
+const prevItem = currentIdx > 0 ? flat[currentIdx - 1] : null;
+const nextItem = currentIdx >= 0 && currentIdx < flat.length - 1 ? flat[currentIdx + 1] : null;
+
+// breadcrumb 解析
+const slugSegments = currentSlug.split("/");
+const sectionLabelMap: Record<string, { ja: string; en: string }> = {
+  overview: { ja: "はじめに", en: "Introduction" },
+  primitives: { ja: "基本パーツ", en: "Primitives" },
+  presets: { ja: "高位 API", en: "Presets" },
+  patterns: { ja: "実用パターン", en: "Patterns" },
+  reference: { ja: "リファレンス", en: "Reference" },
+};
+const sectionLabelJa = slugSegments.length > 1 ? sectionLabelMap[slugSegments[0]]?.ja ?? slugSegments[0] : null;
+const sectionLabelEn = slugSegments.length > 1 ? sectionLabelMap[slugSegments[0]]?.en ?? slugSegments[0] : null;
+const currentPageItem = flat.find((i) => i.slug === currentSlug);
+// {section}/README は flat に登録されていないので fallback で section 概要を「概要 / Overview」 と表示
+const sectionReadmeFallback = slugSegments.length === 2 && slugSegments[1] === "README";
+const currentPageLabelJa = currentPageItem?.ja ?? (sectionReadmeFallback ? "概要" : currentSlug);
+const currentPageLabelEn = currentPageItem?.en ?? (sectionReadmeFallback ? "Overview" : currentSlug);
+
+// Edit on GitHub link
+const githubEditUrl = `https://github.com/cardene777/cdl/blob/main/docs/cdl/${currentSlug}.md`;
+const canonicalUrl = `https://cdl-playground.vercel.app${docsPrefix}/${currentSlug}`;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="ja" href={`https://cdl-playground.vercel.app/docs/cdl/${currentSlug}`} />
+    <link rel="alternate" hreflang="en" href={`https://cdl-playground.vercel.app/docs/en/cdl/${currentSlug}`} />
+    {/* OGP */}
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:site_name" content="cdl Docs" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={`https://cdl-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    {description && <meta name="twitter:description" content={description} />}
+    <meta name="twitter:image" content={`https://cdl-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
+    {/* dark mode + lang pre-flash 防止: html.dark / html[lang] を localStorage で決定 */}
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem("docs-theme");
+          if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            document.documentElement.classList.add("dark");
+          }
+          var l = localStorage.getItem("docs-lang");
+          if (l === "en" || l === "ja") {
+            document.documentElement.setAttribute("lang", l);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="docs-body">
+    <!-- 1. DocsNavBar (上部固定) -->
+    <header class="docs-navbar">
+      <div class="docs-navbar-inner">
+        <a href="/docs" class="docs-navbar-brand">
+          <span class="docs-navbar-logo">C</span>
+          <span class="docs-navbar-title">cdl <span class="docs-navbar-title-sub">engine Docs</span></span>
+        </a>
+        <nav class="docs-navbar-nav" aria-label="docs navigation">
+          <a href="/docs" class={`docs-navbar-link ${currentSlug === "README" ? "active" : ""}`} data-i18n="nav.home" data-ja="はじめに" data-en="Home">はじめに</a>
+          <a href={`${docsPrefix}/overview/quickstart`} class={`docs-navbar-link ${currentSlug.startsWith("overview/") ? "active" : ""}`} data-i18n="nav.guide" data-ja="ガイド" data-en="Guide">ガイド</a>
+          <a href={`${docsPrefix}/reference/api`} class={`docs-navbar-link ${currentSlug.startsWith("reference/") ? "active" : ""}`} data-i18n="nav.reference" data-ja="リファレンス" data-en="Reference">リファレンス</a>
+          <a href="/catalog" class="docs-navbar-link" data-i18n="nav.catalog" data-ja="Catalog" data-en="Catalog">Catalog</a>
+          <a href="/editor" class="docs-navbar-link" data-i18n="nav.editor" data-ja="Editor" data-en="Editor">Editor</a>
+          <a href="/" class="docs-navbar-link docs-navbar-link-external" data-i18n="nav.site" data-ja="dragon サイト" data-en="dragon Site">dragon サイト</a>
+          <a href="https://github.com/cardene777/cdl" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">GitHub ↗</a>
+        </nav>
+        <div class="docs-navbar-search">
+          {/* Pagefind 全文検索 UI (build 後 dist/_pagefind/ から runtime fetch) */}
+          <SearchBar client:load />
+        </div>
+        <button class="docs-navbar-lang-toggle" id="docs-lang-toggle" aria-label="言語切替" title="言語切替">
+          <span class="docs-lang-ja">JA</span>
+          <span class="docs-lang-en">EN</span>
+        </button>
+        <button class="docs-navbar-theme-toggle" id="docs-theme-toggle" aria-label="dark/light 切替" title="dark/light 切替">
+          <span class="docs-theme-icon-light">☀</span>
+          <span class="docs-theme-icon-dark">☾</span>
+        </button>
+        <button class="docs-navbar-menu-toggle" id="docs-sidebar-toggle" aria-label="メニュー切替">☰</button>
+      </div>
+    </header>
+
+    <div class="docs-shell">
+      <!-- 2. Sidebar (左固定、 各 section <details> でトグル可能) -->
+      <aside class="docs-sidebar" id="docs-sidebar">
+        <nav aria-label="docs sidebar">
+          {sidebar.map((sec) => {
+            const containsCurrent = sec.items.some((i) => i.slug === currentSlug);
+            const defaultOpen = sec.sectionJa === currentSection || containsCurrent;
+            return (
+              <details class="docs-sidebar-section" open={defaultOpen}>
+                <summary class="docs-sidebar-section-title">
+                  <span class="docs-sidebar-section-caret" aria-hidden="true">▸</span>
+                  <span data-ja={sec.sectionJa} data-en={sec.sectionEn}>{sec.sectionJa}</span>
+                </summary>
+                <ul class="docs-sidebar-list">
+                  {sec.items.map((item) => {
+                    const active = item.slug === currentSlug;
+                    return (
+                      <li>
+                        <a
+                          href={`${docsPrefix}/${item.slug}`}
+                          aria-current={active ? "page" : undefined}
+                          class={`docs-sidebar-link ${active ? "active" : ""}`}
+                          data-ja={item.ja}
+                          data-en={item.en}
+                        >
+                          {item.ja}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <!-- 3. Doc (中央本文) -->
+      <main class="docs-main">
+        <nav class="docs-breadcrumb" aria-label="パンくず">
+          <a href="/docs">Docs</a>
+          {sectionLabelJa && (
+            <>
+              <span aria-hidden="true">/</span>
+              <span data-ja={sectionLabelJa} data-en={sectionLabelEn}>{sectionLabelJa}</span>
+            </>
+          )}
+          <span aria-hidden="true">/</span>
+          <span class="current" data-ja={currentPageLabelJa} data-en={currentPageLabelEn}>{currentPageLabelJa}</span>
+        </nav>
+
+        <article class="docs-prose" id="docs-content" data-pagefind-body data-pagefind-meta={`title:${title}`}>
+          <slot />
+        </article>
+
+        <!-- Prev/Next ナビゲーション -->
+        <nav class="docs-pager" aria-label="ページ送り">
+          {prevItem ? (
+            <a href={`${docsPrefix}/${prevItem.slug}`} class="docs-pager-link docs-pager-prev">
+              <span class="docs-pager-label" data-ja="← 前のページ" data-en="← Previous">← 前のページ</span>
+              <span class="docs-pager-title" data-ja={prevItem.ja} data-en={prevItem.en}>{prevItem.ja}</span>
+            </a>
+          ) : (
+            <div></div>
+          )}
+          {nextItem && (
+            <a href={`${docsPrefix}/${nextItem.slug}`} class="docs-pager-link docs-pager-next">
+              <span class="docs-pager-label" data-ja="次のページ →" data-en="Next →">次のページ →</span>
+              <span class="docs-pager-title" data-ja={nextItem.ja} data-en={nextItem.en}>{nextItem.ja}</span>
+            </a>
+          )}
+        </nav>
+
+        <footer class="docs-footer">
+          <a href={githubEditUrl} target="_blank" rel="noopener" class="docs-footer-edit" data-ja="このページを GitHub で編集 ↗" data-en="Edit this page on GitHub ↗">
+            このページを GitHub で編集 ↗
+          </a>
+          <div class="docs-footer-license">
+            © {new Date().getFullYear()} cdl contributors · MIT License
+          </div>
+        </footer>
+      </main>
+
+      <!-- 4. Aside (右 TOC) -->
+      <aside class="docs-aside">
+        <div class="docs-aside-title" data-ja="このページの目次" data-en="On this page">このページの目次</div>
+        <ul class="docs-aside-toc" id="docs-toc"></ul>
+      </aside>
+    </div>
+
+    <!-- TOC + UI 切替 client-side script (検索は SearchBar.tsx へ移行済) -->
+    <script is:inline>
+      // === TOC auto-extract from article H2/H3 ===
+      (() => {
+        const article = document.getElementById("docs-content");
+        const toc = document.getElementById("docs-toc");
+        if (!article || !toc) return;
+        const headings = article.querySelectorAll("h2, h3");
+        const items = [];
+        headings.forEach((h) => {
+          if (!h.id) {
+            h.id = (h.textContent ?? "")
+              .toLowerCase()
+              .replace(/[^\w぀-ヿ一-鿿-]+/g, "-")
+              .replace(/^-|-$/g, "");
+          }
+          items.push({ id: h.id, text: h.textContent ?? "", level: h.tagName });
+        });
+        toc.innerHTML = items
+          .map(
+            (i) =>
+              `<li class="docs-aside-toc-item docs-aside-toc-${i.level.toLowerCase()}"><a href="#${i.id}">${i.text}</a></li>`,
+          )
+          .join("");
+        // scroll-spy
+        const links = toc.querySelectorAll("a");
+        const linkById = new Map();
+        links.forEach((a) => linkById.set(a.getAttribute("href").slice(1), a));
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                links.forEach((a) => a.classList.remove("active"));
+                linkById.get(entry.target.id)?.classList.add("active");
+              }
+            });
+          },
+          { rootMargin: "0% 0% -70% 0%" },
+        );
+        headings.forEach((h) => observer.observe(h));
+      })();
+
+      // === 検索 ===
+      // 既存 client-side search (search-index.json) は Pagefind 全文検索 (SearchBar.tsx) に
+      // 置換済。 keyboard shortcut (Cmd+K / Escape / ↑↓ / Enter) は SearchBar component が担当。
+
+      // === sidebar 開閉 (mobile) ===
+      (() => {
+        const toggle = document.getElementById("docs-sidebar-toggle");
+        const sidebar = document.getElementById("docs-sidebar");
+        if (!toggle || !sidebar) return;
+        toggle.addEventListener("click", () => {
+          sidebar.classList.toggle("docs-sidebar-open");
+        });
+      })();
+
+      // === dark mode toggle ===
+      (() => {
+        const toggle = document.getElementById("docs-theme-toggle");
+        if (!toggle) return;
+        const apply = (theme) => {
+          if (theme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          try {
+            localStorage.setItem("docs-theme", theme);
+          } catch (e) {}
+        };
+        toggle.addEventListener("click", () => {
+          const cur = document.documentElement.classList.contains("dark") ? "dark" : "light";
+          apply(cur === "dark" ? "light" : "dark");
+        });
+      })();
+
+      // === lang toggle (JA / EN) ... URL 切替で route 自体を変える ===
+      (() => {
+        const applyLang = (lang) => {
+          document.documentElement.setAttribute("lang", lang);
+          document.querySelectorAll("[data-ja][data-en]").forEach((el) => {
+            const v = el.getAttribute(lang === "en" ? "data-en" : "data-ja");
+            if (v !== null) el.textContent = v;
+          });
+          document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+            const v = el.getAttribute(lang === "en" ? "data-en" : "data-ja");
+            if (v !== null) el.setAttribute("placeholder", v);
+          });
+          try {
+            localStorage.setItem("docs-lang", lang);
+          } catch (e) {}
+        };
+
+        // 起動時 ... pre-flash script で lang 属性は設定済、 UI text を反映
+        const initial = document.documentElement.getAttribute("lang") === "en" ? "en" : "ja";
+        if (initial === "en") applyLang("en");
+
+        const toggle = document.getElementById("docs-lang-toggle");
+        if (!toggle) return;
+        toggle.addEventListener("click", () => {
+          const path = window.location.pathname;
+          const isEn = path.startsWith("/docs/en/");
+          const next = isEn ? "ja" : "en";
+          // URL 切替 ... /docs/cdl/foo ↔ /docs/en/cdl/foo
+          let newPath;
+          if (isEn) {
+            newPath = path.replace("/docs/en/cdl/", "/docs/cdl/");
+          } else if (path.startsWith("/docs/cdl/")) {
+            newPath = path.replace("/docs/cdl/", "/docs/en/cdl/");
+          } else {
+            // Hero (/docs) は in-place toggle のみ
+            applyLang(next);
+            return;
+          }
+          try {
+            localStorage.setItem("docs-lang", next);
+          } catch (e) {}
+          window.location.href = newPath;
+        });
+      })();
+
+      // === doc tabs (人向け / LLM 向け 切替、 localStorage で全 page 同期) ===
+      (() => {
+        const STORAGE_KEY = "docs-tab-pref";
+        const getPref = () => {
+          try { return localStorage.getItem(STORAGE_KEY) || "humans"; } catch (e) { return "humans"; }
+        };
+        const setPref = (v) => {
+          try { localStorage.setItem(STORAGE_KEY, v); } catch (e) {}
+        };
+        const applyPref = (pref) => {
+          document.querySelectorAll(".docs-tabs").forEach((tabs) => {
+            const btns = tabs.querySelectorAll(".docs-tab-btn");
+            const panels = tabs.querySelectorAll(".docs-tab-panel");
+            // pref の tab が存在するか
+            const hasPref = Array.from(btns).some((b) => b.getAttribute("data-tab") === pref);
+            const target = hasPref ? pref : (tabs.getAttribute("data-default") || "humans");
+            btns.forEach((b) => b.classList.toggle("active", b.getAttribute("data-tab") === target));
+            panels.forEach((p) => p.classList.toggle("active", p.getAttribute("data-tab") === target));
+          });
+        };
+        // 起動時に localStorage 反映
+        applyPref(getPref());
+        // 各 tab btn にハンドラ
+        document.querySelectorAll(".docs-tabs").forEach((tabs) => {
+          tabs.querySelectorAll(".docs-tab-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const id = btn.getAttribute("data-tab");
+              setPref(id);
+              applyPref(id);
+            });
+          });
+        });
+      })();
+
+      // === コード copy ボタン ===
+      (() => {
+        const pres = document.querySelectorAll(".docs-prose pre");
+        pres.forEach((pre) => {
+          if (pre.querySelector(".docs-code-copy")) return;
+          const btn = document.createElement("button");
+          btn.className = "docs-code-copy";
+          btn.type = "button";
+          btn.setAttribute("aria-label", "コードを copy");
+          btn.innerHTML = '<span class="docs-code-copy-default">copy</span><span class="docs-code-copy-done">copied</span>';
+          btn.addEventListener("click", async () => {
+            const code = pre.querySelector("code");
+            const text = code ? code.textContent : pre.textContent;
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.classList.add("done");
+              setTimeout(() => btn.classList.remove("done"), 1500);
+            } catch (e) {}
+          });
+          pre.style.position = "relative";
+          pre.appendChild(btn);
+        });
+      })();
+
+    </script>
+
+    {/* Live cdl preview ... 別 script で独立化 (define:vars escape 回避) */}
+    <script is:inline>
+      (() => {
+        const article = document.getElementById("docs-content");
+        if (!article) return;
+        const re = /^\s*\[preview:([a-z-]+)\/([a-z0-9-]+)\]\s*$/;
+        const paragraphs = Array.from(article.querySelectorAll("p"));
+        paragraphs.forEach(async (p) => {
+          const text = p.textContent || "";
+          const m = text.match(re);
+          if (!m) return;
+          const cat = m[1];
+          const slug = m[2];
+          const wrap = document.createElement("div");
+          wrap.className = "docs-live-preview";
+          const header = document.createElement("div");
+          header.className = "docs-live-preview-header";
+          const isEn = document.documentElement.getAttribute("lang") === "en";
+          const eyebrow = document.createElement("span");
+          eyebrow.className = "docs-live-preview-eyebrow";
+          eyebrow.textContent = isEn ? "Live preview" : "ライブプレビュー";
+          const catalogLink = document.createElement("a");
+          catalogLink.className = "docs-live-preview-link";
+          catalogLink.href = "/catalog/" + cat + "#" + slug;
+          catalogLink.target = "_blank";
+          catalogLink.rel = "noopener";
+          catalogLink.textContent = isEn ? "View in catalog ↗" : "カタログで見る ↗";
+          header.appendChild(eyebrow);
+          header.appendChild(catalogLink);
+          const loading = document.createElement("div");
+          loading.className = "docs-live-preview-loading";
+          loading.textContent = isEn ? "Loading…" : "読み込み中…";
+          wrap.appendChild(header);
+          wrap.appendChild(loading);
+          p.replaceWith(wrap);
+          try {
+            const res = await fetch("/catalog/" + cat);
+            if (!res.ok) throw new Error("status " + res.status);
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, "text/html");
+            const target = doc.querySelector('[data-cdl-diagram="' + slug + '"]');
+            if (target) {
+              const svg = target.querySelector("svg");
+              if (svg) {
+                loading.remove();
+                const inner = document.createElement("div");
+                inner.className = "docs-live-preview-frame";
+                inner.appendChild(svg.cloneNode(true));
+                wrap.appendChild(inner);
+                return;
+              }
+            }
+            loading.textContent = isEn ? "Preview load failed (slug: " + cat + "/" + slug + ")" : "プレビュー読込失敗 (slug: " + cat + "/" + slug + ")";
+          } catch (e) {
+            loading.textContent = isEn ? "Preview load failed: " + (e && e.message ? e.message : "unknown") : "プレビュー読込失敗: " + (e && e.message ? e.message : "unknown");
+          }
+        });
+      })();
+    </script>
+
+  </body>
+</html>

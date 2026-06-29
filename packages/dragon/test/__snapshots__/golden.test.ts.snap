@@ -1,0 +1,11099 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-order",
+      "label": "places",
+      "to": "order",
+    },
+  ],
+  "id": "e01",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E01",
+  "viewBox": {
+    "h": 478,
+    "w": 1090,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-order",
+      "label": "places",
+      "to": "order",
+    },
+    {
+      "from": "order",
+      "id": "rel-1-order-product",
+      "label": "contains",
+      "to": "product",
+    },
+  ],
+  "id": "e02",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-product",
+      "width": 460,
+      "x": 1080,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 1310,
+      "cy": 203,
+      "h": 150,
+      "id": "product",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E02",
+  "viewBox": {
+    "h": 614,
+    "w": 1630,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E03 cardinality 1:N 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-order",
+      "label": "places (1:N)",
+      "to": "order",
+    },
+  ],
+  "id": "e03",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E03",
+  "viewBox": {
+    "h": 478,
+    "w": 1090,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E04 cardinality N:N 1`] = `
+{
+  "edges": [
+    {
+      "from": "student",
+      "id": "rel-0-student-course",
+      "label": "enrolls (N:N)",
+      "to": "course",
+    },
+  ],
+  "id": "e04",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-student",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-course",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "student",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "course",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E04",
+  "viewBox": {
+    "h": 478,
+    "w": 1090,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E05 entity with subtitle 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-order",
+      "label": "places",
+      "to": "order",
+    },
+  ],
+  "id": "e05",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E05",
+  "viewBox": {
+    "h": 478,
+    "w": 1090,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E06 4 entity ring 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "rel-0-a-b",
+      "label": "ab",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "rel-1-b-c",
+      "label": "bc",
+      "to": "c",
+    },
+    {
+      "from": "c",
+      "id": "rel-2-c-d",
+      "label": "cd",
+      "to": "d",
+    },
+    {
+      "from": "d",
+      "id": "rel-3-d-a",
+      "label": "da",
+      "to": "a",
+    },
+  ],
+  "id": "e06",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-a",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-b",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-c",
+      "width": 460,
+      "x": 1080,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-d",
+      "width": 460,
+      "x": 1620,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "a",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "b",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 1310,
+      "cy": 203,
+      "h": 150,
+      "id": "c",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 1850,
+      "cy": 203,
+      "h": 150,
+      "id": "d",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E06",
+  "viewBox": {
+    "h": 614,
+    "w": 2170,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E07 1:1 relation 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-profile",
+      "label": "has (1:1)",
+      "to": "profile",
+    },
+  ],
+  "id": "e07",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-profile",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "profile",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E07",
+  "viewBox": {
+    "h": 478,
+    "w": 1090,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: er preset > E08 cardinality animation badge 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "e0-user-order",
+      "label": "places",
+      "to": "order",
+    },
+  ],
+  "id": "e08",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "show",
+    },
+  ],
+  "states": [],
+  "topic": "E08",
+  "viewBox": {
+    "h": 362,
+    "w": 1104,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: er preset > E09 self-reference 1`] = `
+{
+  "edges": [
+    {
+      "from": "employee",
+      "id": "rel-0-employee-employee",
+      "label": "manages (1:N)",
+      "to": "employee",
+    },
+  ],
+  "id": "e09",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-employee",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "employee",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E09",
+  "viewBox": {
+    "h": 444,
+    "w": 695,
+    "x": -30,
+    "y": -104,
+  },
+}
+`;
+
+exports[`golden: er preset > E10 5 entity star schema 1`] = `
+{
+  "edges": [
+    {
+      "from": "fact",
+      "id": "rel-0-fact-dima",
+      "label": "a",
+      "to": "dima",
+    },
+    {
+      "from": "fact",
+      "id": "rel-1-fact-dimb",
+      "label": "b",
+      "to": "dimb",
+    },
+    {
+      "from": "fact",
+      "id": "rel-2-fact-dimc",
+      "label": "c",
+      "to": "dimc",
+    },
+    {
+      "from": "fact",
+      "id": "rel-3-fact-dimd",
+      "label": "d",
+      "to": "dimd",
+    },
+  ],
+  "id": "e10",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-fact",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-dima",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-dimb",
+      "width": 460,
+      "x": 1080,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-dimc",
+      "width": 460,
+      "x": 1620,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-dimd",
+      "width": 460,
+      "x": 2160,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "fact",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "dima",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 1310,
+      "cy": 203,
+      "h": 150,
+      "id": "dimb",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 1850,
+      "cy": 203,
+      "h": 150,
+      "id": "dimc",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 2390,
+      "cy": 203,
+      "h": 150,
+      "id": "dimd",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "E10",
+  "viewBox": {
+    "h": 614,
+    "w": 2710,
+    "x": -30,
+    "y": -140,
+  },
+}
+`;
+
+exports[`golden: flow preset > F01 minimal 1 step 1`] = `
+{
+  "edges": [],
+  "id": "f01",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 228,
+      "h": 200,
+      "id": "start",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F01",
+  "viewBox": {
+    "h": 320,
+    "w": 500,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F02 2 step 1`] = `
+{
+  "edges": [
+    {
+      "from": "start",
+      "id": "e-start-end",
+      "label": "go",
+      "to": "end",
+    },
+  ],
+  "id": "f02",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 228,
+      "h": 200,
+      "id": "start",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 200,
+      "cy": 528,
+      "h": 200,
+      "id": "end",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F02",
+  "viewBox": {
+    "h": 620,
+    "w": 556,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F03 4 step linear 1`] = `
+{
+  "edges": [
+    {
+      "from": "start",
+      "id": "e-start-verify",
+      "label": "input",
+      "to": "verify",
+    },
+    {
+      "from": "verify",
+      "id": "e-verify-save",
+      "label": "ok",
+      "to": "save",
+    },
+    {
+      "from": "save",
+      "id": "e-save-done",
+      "label": "saved",
+      "to": "done",
+    },
+  ],
+  "id": "f03",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 228,
+      "h": 200,
+      "id": "start",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 210,
+      "cy": 513,
+      "h": 170,
+      "id": "verify",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 783,
+      "h": 170,
+      "id": "save",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1068,
+      "h": 200,
+      "id": "done",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F03",
+  "viewBox": {
+    "h": 1160,
+    "w": 603,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F04 6 step + tween 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0",
+      "id": "e0-s0-s1",
+      "label": "1",
+      "to": "s1",
+    },
+    {
+      "from": "s1",
+      "id": "e1-s1-s2",
+      "label": "2",
+      "to": "s2",
+    },
+    {
+      "from": "s2",
+      "id": "e2-s2-s3",
+      "label": "3",
+      "to": "s3",
+    },
+    {
+      "from": "s3",
+      "id": "e3-s3-s4",
+      "label": "4",
+      "to": "s4",
+    },
+    {
+      "from": "s4",
+      "id": "e4-s4-s5",
+      "label": "5",
+      "to": "s5",
+    },
+  ],
+  "id": "f04",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "main",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 228,
+      "h": 200,
+      "id": "s0",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 210,
+      "cy": 513,
+      "h": 170,
+      "id": "s1",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 783,
+      "h": 170,
+      "id": "s2",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1053,
+      "h": 170,
+      "id": "s3",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1323,
+      "h": 170,
+      "id": "s4",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1608,
+      "h": 200,
+      "id": "s5",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2000,
+      "id": "advance",
+    },
+  ],
+  "states": [
+    {
+      "id": "step",
+      "initial": 0,
+    },
+  ],
+  "topic": "F04",
+  "viewBox": {
+    "h": 1792,
+    "w": 571,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: flow preset > F05 tone variation (info / success / warning / error) 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e-a-b",
+      "label": "ok",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e-b-c",
+      "label": "good",
+      "to": "c",
+    },
+    {
+      "from": "c",
+      "id": "e-c-d",
+      "label": "warn",
+      "to": "d",
+    },
+  ],
+  "id": "f05",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "a",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "b",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 753,
+      "h": 170,
+      "id": "c",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1023,
+      "h": 170,
+      "id": "d",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F05",
+  "viewBox": {
+    "h": 1100,
+    "w": 594,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
+{
+  "edges": [
+    {
+      "from": "input",
+      "id": "e-input-path1",
+      "label": "left",
+      "to": "path1",
+    },
+    {
+      "from": "path1",
+      "id": "e-path1-path2",
+      "label": "right",
+      "to": "path2",
+    },
+  ],
+  "id": "f06",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 228,
+      "h": 200,
+      "id": "input",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 210,
+      "cy": 513,
+      "h": 170,
+      "id": "path1",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 783,
+      "h": 170,
+      "id": "path2",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F06",
+  "viewBox": {
+    "h": 860,
+    "w": 603,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e-a-b",
+      "label": "→",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e-b-sink",
+      "label": "in1",
+      "to": "sink",
+    },
+  ],
+  "id": "f07",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "a",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "b",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 768,
+      "h": 200,
+      "id": "sink",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F07",
+  "viewBox": {
+    "h": 860,
+    "w": 585,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F08 step with guard 1`] = `
+{
+  "edges": [
+    {
+      "from": "check",
+      "id": "e-check-go",
+      "label": "pass",
+      "to": "go",
+    },
+    {
+      "from": "go",
+      "id": "e-go-stop",
+      "label": "deny",
+      "to": "stop",
+    },
+  ],
+  "id": "f08",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "check",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 498,
+      "h": 200,
+      "id": "go",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 210,
+      "cy": 798,
+      "h": 200,
+      "id": "stop",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F08",
+  "viewBox": {
+    "h": 890,
+    "w": 594,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F09 inline option mix 1`] = `
+{
+  "edges": [
+    {
+      "from": "login",
+      "id": "e-login-profile",
+      "label": "ok",
+      "to": "profile",
+    },
+  ],
+  "id": "f09",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "login",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "profile",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F09",
+  "viewBox": {
+    "h": 560,
+    "w": 576,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F10 multi-phase with set 1`] = `
+{
+  "edges": [
+    {
+      "from": "boot",
+      "id": "e0-boot-run",
+      "label": "start",
+      "to": "run",
+    },
+    {
+      "from": "run",
+      "id": "e1-run-halt",
+      "label": "end",
+      "to": "halt",
+    },
+  ],
+  "id": "f10",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "main",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 228,
+      "h": 200,
+      "id": "boot",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 210,
+      "cy": 513,
+      "h": 170,
+      "id": "run",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 798,
+      "h": 200,
+      "id": "halt",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "boot",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "halt",
+    },
+  ],
+  "states": [
+    {
+      "id": "mode",
+      "initial": "init",
+    },
+  ],
+  "topic": "F10",
+  "viewBox": {
+    "h": 982,
+    "w": 607,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
+{
+  "edges": [
+    {
+      "from": "n1",
+      "id": "e-n1-n2",
+      "label": "a",
+      "to": "n2",
+    },
+    {
+      "from": "n2",
+      "id": "e-n2-n3",
+      "label": "b",
+      "to": "n3",
+    },
+    {
+      "from": "n3",
+      "id": "e-n3-n4",
+      "label": "c",
+      "to": "n4",
+    },
+    {
+      "from": "n4",
+      "id": "e-n4-n5",
+      "label": "d",
+      "to": "n5",
+    },
+    {
+      "from": "n5",
+      "id": "e-n5-n6",
+      "label": "e",
+      "to": "n6",
+    },
+    {
+      "from": "n6",
+      "id": "e-n6-n7",
+      "label": "f",
+      "to": "n7",
+    },
+    {
+      "from": "n7",
+      "id": "e-n7-n8",
+      "label": "g",
+      "to": "n8",
+    },
+  ],
+  "id": "f11",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "n1",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "n2",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 753,
+      "h": 170,
+      "id": "n3",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1023,
+      "h": 170,
+      "id": "n4",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1293,
+      "h": 170,
+      "id": "n5",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1563,
+      "h": 170,
+      "id": "n6",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 1833,
+      "h": 170,
+      "id": "n7",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 2103,
+      "h": 170,
+      "id": "n8",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F11",
+  "viewBox": {
+    "h": 2180,
+    "w": 567,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F12 viewport with gap override 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e-a-b",
+      "label": "x",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e-b-c",
+      "label": "y",
+      "to": "c",
+    },
+  ],
+  "id": "f12",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "a",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 579,
+      "h": 170,
+      "id": "b",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 945,
+      "h": 170,
+      "id": "c",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F12",
+  "viewBox": {
+    "h": 1022,
+    "w": 1800,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e-a-b",
+      "label": "1",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e-b-c",
+      "label": "2",
+      "to": "c",
+    },
+  ],
+  "id": "f13",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "a",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "b",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 753,
+      "h": 170,
+      "id": "c",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F13",
+  "viewBox": {
+    "h": 830,
+    "w": 567,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F14 single edge with all tones 1`] = `
+{
+  "edges": [
+    {
+      "from": "x",
+      "id": "e-x-y",
+      "label": "go",
+      "to": "y",
+    },
+  ],
+  "id": "f14",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 420,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 210,
+      "cy": 213,
+      "h": 170,
+      "id": "x",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 210,
+      "cy": 483,
+      "h": 170,
+      "id": "y",
+      "kind": "function",
+      "w": 380,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F14",
+  "viewBox": {
+    "h": 560,
+    "w": 576,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
+{
+  "edges": [
+    {
+      "from": "in",
+      "id": "e-in-mid",
+      "label": "put",
+      "to": "mid",
+    },
+    {
+      "from": "mid",
+      "id": "e-mid-out",
+      "label": "emit",
+      "to": "out",
+    },
+  ],
+  "id": "f15",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "flow",
+      "width": 440,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 220,
+      "cy": 228,
+      "h": 200,
+      "id": "in",
+      "kind": "event",
+      "w": 360,
+    },
+    {
+      "cx": 220,
+      "cy": 548,
+      "h": 240,
+      "id": "mid",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 220,
+      "cy": 868,
+      "h": 200,
+      "id": "out",
+      "kind": "event",
+      "w": 360,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "flow",
+    },
+  ],
+  "states": [],
+  "topic": "F15",
+  "viewBox": {
+    "h": 960,
+    "w": 614,
+    "x": -40,
+    "y": 68,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X01 subtitle only 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "x",
+      "to": "s0-b",
+    },
+  ],
+  "id": "x01",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X01",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-sensor",
+      "id": "e0-sensor-meter",
+      "label": "read",
+      "to": "s0-meter",
+    },
+  ],
+  "id": "x02",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "meter",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "sensor",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "meter-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "meter-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "sensor-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "sensor-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-sensor",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-meter",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "meter-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "sensor-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X02",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-cli",
+      "id": "e0-cli-kv",
+      "label": "scan",
+      "to": "s0-kv",
+    },
+  ],
+  "id": "x03",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "kv",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "cli",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "kv-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "kv-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "cli-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "cli-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-cli",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-kv",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "kv-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "cli-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X03",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "go",
+      "to": "s0-b",
+    },
+  ],
+  "id": "x04",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X04",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "go",
+      "to": "s0-b",
+    },
+  ],
+  "id": "x05",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X05",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "rel-0-user-order",
+      "label": "places (1:N)",
+      "to": "order",
+    },
+  ],
+  "id": "x06",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-user",
+      "width": 460,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-order",
+      "width": 460,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 203,
+      "h": 150,
+      "id": "user",
+      "kind": "storage",
+      "w": 400,
+    },
+    {
+      "cx": 770,
+      "cy": 203,
+      "h": 150,
+      "id": "order",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "er",
+    },
+  ],
+  "states": [],
+  "topic": "X06",
+  "viewBox": {
+    "h": 271,
+    "w": 1090,
+    "x": -30,
+    "y": 67,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-sys",
+      "label": "GET /user",
+      "to": "s0-sys",
+    },
+  ],
+  "id": "x07",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "user",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "sys",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "sys-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "sys-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-sys",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "sys-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X07",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X08 viewport with laneWidth + gap 1`] = `
+{
+  "edges": [
+    {
+      "from": "x",
+      "id": "c0-x-y",
+      "label": "",
+      "to": "y",
+    },
+    {
+      "from": "y",
+      "id": "c1-y-z",
+      "label": "",
+      "to": "z",
+    },
+  ],
+  "id": "x08",
+  "lanes": [
+    {
+      "height": 988,
+      "id": "main",
+      "width": 500,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 250,
+      "cy": 218,
+      "h": 180,
+      "id": "x",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 250,
+      "cy": 574,
+      "h": 180,
+      "id": "y",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 250,
+      "cy": 930,
+      "h": 180,
+      "id": "z",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "X08",
+  "viewBox": {
+    "h": 1100,
+    "w": 2000,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "i",
+      "to": "s0-b",
+    },
+    {
+      "from": "s1-b",
+      "id": "e1-b-c",
+      "label": "s",
+      "to": "s1-c",
+    },
+    {
+      "from": "s2-c",
+      "id": "e2-c-d",
+      "label": "w",
+      "to": "s2-d",
+    },
+    {
+      "from": "s3-d",
+      "id": "e3-d-a",
+      "label": "e",
+      "to": "s3-a",
+    },
+  ],
+  "id": "x09",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "c",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "d",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "c-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "c-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "d-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "d-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 884,
+      "h": 72,
+      "id": "c-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 884,
+      "h": 72,
+      "id": "d-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X09",
+  "viewBox": {
+    "h": 1032,
+    "w": 1704,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "1",
+      "to": "s0-b",
+    },
+    {
+      "from": "s1-b",
+      "id": "e1-b-d",
+      "label": "2",
+      "to": "s1-d",
+    },
+    {
+      "from": "s2-d",
+      "id": "e2-d-c",
+      "label": "3",
+      "to": "s2-c",
+    },
+    {
+      "from": "s3-c",
+      "id": "e3-c-e",
+      "label": "4",
+      "to": "s3-e",
+    },
+  ],
+  "id": "x10",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "c",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "d",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "e",
+      "width": 340,
+      "x": 1680,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "c-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "c-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "d-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "d-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 164,
+      "h": 72,
+      "id": "e-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 320,
+      "h": 40,
+      "id": "e-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-e",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 884,
+      "h": 72,
+      "id": "c-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 884,
+      "h": 72,
+      "id": "d-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 884,
+      "h": 72,
+      "id": "e-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "X10",
+  "viewBox": {
+    "h": 1032,
+    "w": 2124,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-alice",
+      "label": "noop",
+      "to": "s0-alice",
+    },
+  ],
+  "id": "s01",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S01",
+  "viewBox": {
+    "h": 726,
+    "w": 444,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S02 2 actor 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-bob",
+      "label": "hello",
+      "to": "s0-bob",
+    },
+  ],
+  "id": "s02",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "bob",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S02",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S03 3 actor 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-vault",
+      "label": "deposit",
+      "to": "s0-vault",
+    },
+    {
+      "from": "s1-vault",
+      "id": "e1-vault-bob",
+      "label": "send",
+      "to": "s1-bob",
+    },
+  ],
+  "id": "s03",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "vault",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "bob",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "vault-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "vault-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "vault-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S03",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-vault",
+      "label": "deposit",
+      "to": "s0-vault",
+    },
+    {
+      "from": "s1-vault",
+      "id": "e1-vault-bob",
+      "label": "send",
+      "to": "s1-bob",
+    },
+  ],
+  "id": "s04",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "vault",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "bob",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "vault-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "vault-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "vault-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1500,
+      "id": "in",
+    },
+    {
+      "duration_ms": 1500,
+      "id": "out",
+    },
+  ],
+  "states": [
+    {
+      "id": "alice_bal",
+      "initial": 100,
+    },
+    {
+      "id": "bob_bal",
+      "initial": 0,
+    },
+  ],
+  "topic": "S04",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-bob",
+      "label": "tap",
+      "to": "s0-bob",
+    },
+  ],
+  "id": "s05",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "bob",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S05",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-counter",
+      "label": "increment",
+      "to": "s0-counter",
+    },
+  ],
+  "id": "s06",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "counter",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "user",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "counter-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "counter-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-counter",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "counter-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S06",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "1",
+      "to": "s0-b",
+    },
+    {
+      "from": "s1-b",
+      "id": "e1-b-c",
+      "label": "2",
+      "to": "s1-c",
+    },
+    {
+      "from": "s2-c",
+      "id": "e2-c-d",
+      "label": "3",
+      "to": "s2-d",
+    },
+  ],
+  "id": "s07",
+  "lanes": [
+    {
+      "height": 818,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "c",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "d",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "c-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "c-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "d-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "d-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 782,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 782,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 782,
+      "h": 72,
+      "id": "c-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 782,
+      "h": 72,
+      "id": "d-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S07",
+  "viewBox": {
+    "h": 930,
+    "w": 1704,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-client",
+      "id": "e0-client-server",
+      "label": "req",
+      "to": "s0-server",
+    },
+    {
+      "from": "s1-server",
+      "id": "e1-server-client",
+      "label": "ok",
+      "to": "s1-client",
+    },
+    {
+      "from": "s2-client",
+      "id": "e2-client-server",
+      "label": "again",
+      "to": "s2-server",
+    },
+    {
+      "from": "s3-server",
+      "id": "e3-server-client",
+      "label": "fail",
+      "to": "s3-client",
+    },
+  ],
+  "id": "s08",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "client",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "server",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "client-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "client-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "server-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "server-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-client",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-server",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-server",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-client",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-client",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-server",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-server",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-client",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "client-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "server-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S08",
+  "viewBox": {
+    "h": 1032,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S09 set (string state) animation 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-api",
+      "id": "e0-api-db",
+      "label": "verify",
+      "to": "s0-db",
+    },
+  ],
+  "id": "s09",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "api",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "db",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "api-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "api-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "db-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "db-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-api",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-db",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "api-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "db-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 800,
+      "id": "submit",
+    },
+    {
+      "duration_ms": 1200,
+      "id": "done",
+    },
+  ],
+  "states": [
+    {
+      "id": "status",
+      "initial": "idle",
+    },
+  ],
+  "topic": "S09",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S10 storage actor rows 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-balances",
+      "label": "read",
+      "to": "s0-balances",
+    },
+    {
+      "from": "s1-balances",
+      "id": "e1-balances-bob",
+      "label": "write",
+      "to": "s1-bob",
+    },
+  ],
+  "id": "s10",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "balances",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "bob",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "balances-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "balances-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-balances",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-balances",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "balances-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S10",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-a",
+      "id": "e0-a-b",
+      "label": "a",
+      "to": "s0-b",
+    },
+    {
+      "from": "s1-b",
+      "id": "e1-b-c",
+      "label": "b",
+      "to": "s1-c",
+    },
+    {
+      "from": "s2-c",
+      "id": "e2-c-d",
+      "label": "c",
+      "to": "s2-d",
+    },
+    {
+      "from": "s3-d",
+      "id": "e3-d-e",
+      "label": "d",
+      "to": "s3-e",
+    },
+    {
+      "from": "s4-e",
+      "id": "e4-e-a",
+      "label": "back",
+      "to": "s4-a",
+    },
+  ],
+  "id": "s11",
+  "lanes": [
+    {
+      "height": 1022,
+      "id": "a",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 1022,
+      "id": "b",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 1022,
+      "id": "c",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 1022,
+      "id": "d",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+    {
+      "height": 1022,
+      "id": "e",
+      "width": 340,
+      "x": 1680,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "a-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "a-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "b-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "b-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "c-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "c-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "d-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "d-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 164,
+      "h": 72,
+      "id": "e-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 320,
+      "h": 40,
+      "id": "e-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-b",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-c",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-d",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-e",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 849,
+      "h": 2,
+      "id": "s4-e",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 849,
+      "h": 2,
+      "id": "s4-a",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 986,
+      "h": 72,
+      "id": "a-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 986,
+      "h": 72,
+      "id": "b-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 986,
+      "h": 72,
+      "id": "c-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 986,
+      "h": 72,
+      "id": "d-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 986,
+      "h": 72,
+      "id": "e-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S11",
+  "viewBox": {
+    "h": 1134,
+    "w": 2124,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S12 sub label on edge 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-x",
+      "id": "e0-x-y",
+      "label": "call",
+      "to": "s0-y",
+    },
+    {
+      "from": "s1-y",
+      "id": "e1-y-x",
+      "label": "ack",
+      "to": "s1-x",
+    },
+  ],
+  "id": "s12",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "x",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "y",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "x-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "x-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "y-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "y-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-x",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-y",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-y",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-x",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "x-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "y-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S12",
+  "viewBox": {
+    "h": 828,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-p",
+      "id": "e0-p-q",
+      "label": "go",
+      "to": "s0-q",
+    },
+  ],
+  "id": "s13",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "p",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "q",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "p-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "p-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "q-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "q-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-p",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-q",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "p-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "q-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S13",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S14 viewport explicit width / height 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-l",
+      "id": "e0-l-r",
+      "label": "msg",
+      "to": "s0-r",
+    },
+  ],
+  "id": "s14",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "l",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "r",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "l-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "l-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "r-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "r-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-l",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-r",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "l-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "r-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "S14",
+  "viewBox": {
+    "h": 900,
+    "w": 1600,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-cli",
+      "id": "e0-cli-srv",
+      "label": "req",
+      "to": "s0-srv",
+    },
+    {
+      "from": "s1-srv",
+      "id": "e1-srv-db",
+      "label": "query",
+      "to": "s1-db",
+    },
+    {
+      "from": "s2-db",
+      "id": "e2-db-srv",
+      "label": "row",
+      "to": "s2-srv",
+    },
+    {
+      "from": "s3-srv",
+      "id": "e3-srv-cli",
+      "label": "resp",
+      "to": "s3-cli",
+    },
+  ],
+  "id": "s15",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "cli",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "srv",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "db",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "cli-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "cli-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "srv-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "srv-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "db-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "db-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-cli",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-srv",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-srv",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-db",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-db",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-srv",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-srv",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-cli",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "cli-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "srv-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 884,
+      "h": 72,
+      "id": "db-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "p1",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "p2",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "p3",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "p4",
+    },
+  ],
+  "states": [
+    {
+      "id": "n",
+      "initial": 0,
+    },
+  ],
+  "topic": "S15",
+  "viewBox": {
+    "h": 1032,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-token",
+      "label": "transfer(Bob, 10)",
+      "to": "s0-token",
+    },
+    {
+      "from": "s1-token",
+      "id": "e1-token-transfer",
+      "label": "emit",
+      "to": "s1-transfer",
+    },
+  ],
+  "id": "y01",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "token",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "transfer",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "token-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "token-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "transfer-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "transfer-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-transfer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "token-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "transfer-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y01",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-token",
+      "label": "transfer",
+      "to": "s0-token",
+    },
+    {
+      "from": "s1-token",
+      "id": "e1-token-balances",
+      "label": "write",
+      "to": "s1-balances",
+    },
+  ],
+  "id": "y02",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "token",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "balances",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "token-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "token-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "balances-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "balances-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-balances",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "token-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "balances-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y02",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-nft",
+      "label": "safeTransferFrom(Alice, Receiver, 1)",
+      "to": "s0-nft",
+    },
+    {
+      "from": "s1-nft",
+      "id": "e1-nft-receiver",
+      "label": "onERC721Received",
+      "to": "s1-receiver",
+    },
+    {
+      "from": "s2-nft",
+      "id": "e2-nft-transfer",
+      "label": "emit",
+      "to": "s2-transfer",
+    },
+  ],
+  "id": "y03",
+  "lanes": [
+    {
+      "height": 818,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "nft",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "receiver",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "transfer",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "nft-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "nft-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "receiver-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "receiver-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "transfer-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "transfer-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-nft",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-nft",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-receiver",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-nft",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-transfer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 782,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 782,
+      "h": 72,
+      "id": "nft-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 782,
+      "h": 72,
+      "id": "receiver-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 782,
+      "h": 72,
+      "id": "transfer-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y03",
+  "viewBox": {
+    "h": 930,
+    "w": 1704,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-trader",
+      "id": "e0-trader-router",
+      "label": "swapExactTokensForTokens",
+      "to": "s0-router",
+    },
+    {
+      "from": "s1-router",
+      "id": "e1-router-pool",
+      "label": "swap",
+      "to": "s1-pool",
+    },
+    {
+      "from": "s2-pool",
+      "id": "e2-pool-swap",
+      "label": "emit",
+      "to": "s2-swap",
+    },
+  ],
+  "id": "y04",
+  "lanes": [
+    {
+      "height": 818,
+      "id": "trader",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "router",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "pool",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "swap",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "trader-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "trader-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "router-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "router-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "pool-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "pool-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "swap-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "swap-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-trader",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-router",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-router",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-swap",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 782,
+      "h": 72,
+      "id": "trader-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 782,
+      "h": 72,
+      "id": "router-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 782,
+      "h": 72,
+      "id": "pool-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 782,
+      "h": 72,
+      "id": "swap-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y04",
+  "viewBox": {
+    "h": 930,
+    "w": 1704,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y05 multisig execute 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-owner1",
+      "id": "e0-owner1-safe",
+      "label": "approveHash",
+      "to": "s0-safe",
+    },
+    {
+      "from": "s1-owner2",
+      "id": "e1-owner2-safe",
+      "label": "approveHash",
+      "to": "s1-safe",
+    },
+    {
+      "from": "s2-safe",
+      "id": "e2-safe-target",
+      "label": "execTransaction",
+      "to": "s2-target",
+    },
+  ],
+  "id": "y05",
+  "lanes": [
+    {
+      "height": 818,
+      "id": "owner1",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "owner2",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "safe",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "target",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "owner1-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "owner1-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "owner2-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "owner2-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "safe-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "safe-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "target-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "target-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-owner1",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-safe",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-owner2",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-safe",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-safe",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-target",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 782,
+      "h": 72,
+      "id": "owner1-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 782,
+      "h": 72,
+      "id": "owner2-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 782,
+      "h": 72,
+      "id": "safe-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 782,
+      "h": 72,
+      "id": "target-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y05",
+  "viewBox": {
+    "h": 930,
+    "w": 1704,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-proxy",
+      "label": "call(data)",
+      "to": "s0-proxy",
+    },
+    {
+      "from": "s1-proxy",
+      "id": "e1-proxy-impl",
+      "label": "delegatecall",
+      "to": "s1-impl",
+    },
+  ],
+  "id": "y06",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "user",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "proxy",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "impl",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "proxy-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "proxy-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "impl-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "impl-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-proxy",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-proxy",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-impl",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "proxy-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "impl-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y06",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y07 library use 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-vault",
+      "label": "deposit(10)",
+      "to": "s0-vault",
+    },
+    {
+      "from": "s1-vault",
+      "id": "e1-vault-safemath",
+      "label": "add(a,b)",
+      "to": "s1-safemath",
+    },
+  ],
+  "id": "y07",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "user",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "vault",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "safemath",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "vault-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "vault-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "safemath-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "safemath-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-safemath",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "vault-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "safemath-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y07",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y08 interface call 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-caller",
+      "id": "e0-caller-ierc20",
+      "label": "IERC20(token).transfer(to, amount)",
+      "to": "s0-ierc20",
+    },
+    {
+      "from": "s1-ierc20",
+      "id": "e1-ierc20-token",
+      "label": "transfer",
+      "to": "s1-token",
+    },
+  ],
+  "id": "y08",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "caller",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "ierc20",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "token",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "caller-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "caller-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "ierc20-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "ierc20-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "token-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "token-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-caller",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-ierc20",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-ierc20",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "caller-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "ierc20-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "token-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y08",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-token",
+      "label": "transfer(Bob, 10)",
+      "to": "s0-token",
+    },
+    {
+      "from": "s1-token",
+      "id": "e1-token-balances",
+      "label": "write",
+      "to": "s1-balances",
+    },
+    {
+      "from": "s2-token",
+      "id": "e2-token-transfer",
+      "label": "emit",
+      "to": "s2-transfer",
+    },
+  ],
+  "id": "y09",
+  "lanes": [
+    {
+      "height": 818,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "bob",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "token",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "balances",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+    {
+      "height": 818,
+      "id": "transfer",
+      "width": 340,
+      "x": 1680,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "token-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "token-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "balances-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "balances-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 164,
+      "h": 72,
+      "id": "transfer-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 320,
+      "h": 40,
+      "id": "transfer-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-balances",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-transfer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 782,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 782,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 782,
+      "h": 72,
+      "id": "token-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 782,
+      "h": 72,
+      "id": "balances-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 782,
+      "h": 72,
+      "id": "transfer-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "call",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "write",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "emit",
+    },
+  ],
+  "states": [
+    {
+      "id": "a",
+      "initial": 100,
+    },
+    {
+      "id": "b",
+      "initial": 0,
+    },
+  ],
+  "topic": "Y09",
+  "viewBox": {
+    "h": 930,
+    "w": 2124,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-attacker",
+      "id": "e0-attacker-vault",
+      "label": "withdraw",
+      "to": "s0-vault",
+    },
+    {
+      "from": "s1-vault",
+      "id": "e1-vault-attacker",
+      "label": "call(value)",
+      "to": "s1-attacker",
+    },
+    {
+      "from": "s2-attacker",
+      "id": "e2-attacker-vault",
+      "label": "withdraw (reentry)",
+      "to": "s2-vault",
+    },
+    {
+      "from": "s3-vault",
+      "id": "e3-vault-drain",
+      "label": "emit",
+      "to": "s3-drain",
+    },
+  ],
+  "id": "y10",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "attacker",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "vault",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "drain",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "attacker-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "attacker-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "vault-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "vault-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "drain-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "drain-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-attacker",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-attacker",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-attacker",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-vault",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-drain",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "attacker-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "vault-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 884,
+      "h": 72,
+      "id": "drain-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y10",
+  "viewBox": {
+    "h": 1032,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-token",
+      "label": "safeBatchTransferFrom",
+      "to": "s0-token",
+    },
+    {
+      "from": "s1-token",
+      "id": "e1-token-transferbatch",
+      "label": "emit",
+      "to": "s1-transferbatch",
+    },
+  ],
+  "id": "y11",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "token",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "transferbatch",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "token-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "token-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "transferbatch-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "transferbatch-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-token",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-transferbatch",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "token-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "transferbatch-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y11",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-caller",
+      "id": "e0-caller-contract",
+      "label": "adminOp",
+      "to": "s0-contract",
+    },
+    {
+      "from": "s1-contract",
+      "id": "e1-contract-revert",
+      "label": "revert",
+      "to": "s1-revert",
+    },
+  ],
+  "id": "y12",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "caller",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "contract",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "revert",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "caller-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "caller-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "contract-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "contract-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "revert-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "revert-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-caller",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-contract",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-contract",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-revert",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "caller-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "contract-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "revert-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y12",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y13 bridge node + relayer 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-l1",
+      "label": "deposit",
+      "to": "s0-l1",
+    },
+    {
+      "from": "s1-l1",
+      "id": "e1-l1-l2",
+      "label": "mint",
+      "to": "s1-l2",
+    },
+  ],
+  "id": "y13",
+  "lanes": [
+    {
+      "height": 716,
+      "id": "user",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "l1",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 716,
+      "id": "l2",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "l1-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "l1-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "l2-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "l2-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-l1",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-l1",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-l2",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 680,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 680,
+      "h": 72,
+      "id": "l1-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 680,
+      "h": 72,
+      "id": "l2-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y13",
+  "viewBox": {
+    "h": 828,
+    "w": 1284,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-user",
+      "id": "e0-user-counter",
+      "label": "increment",
+      "to": "s0-counter",
+    },
+  ],
+  "id": "y14",
+  "lanes": [
+    {
+      "height": 614,
+      "id": "user",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 614,
+      "id": "counter",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "user-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "user-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "counter-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "counter-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-user",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-counter",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 578,
+      "h": 72,
+      "id": "user-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 578,
+      "h": 72,
+      "id": "counter-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "inc",
+    },
+  ],
+  "states": [
+    {
+      "id": "n",
+      "initial": 0,
+    },
+  ],
+  "topic": "Y14",
+  "viewBox": {
+    "h": 726,
+    "w": 864,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0-alice",
+      "id": "e0-alice-pool",
+      "label": "swap",
+      "to": "s0-pool",
+    },
+    {
+      "from": "s1-pool",
+      "id": "e1-pool-safemath",
+      "label": "mul(x,y)",
+      "to": "s1-safemath",
+    },
+    {
+      "from": "s2-pool",
+      "id": "e2-pool-bob",
+      "label": "transfer",
+      "to": "s2-bob",
+    },
+    {
+      "from": "s3-pool",
+      "id": "e3-pool-swap",
+      "label": "emit",
+      "to": "s3-swap",
+    },
+  ],
+  "id": "y15",
+  "lanes": [
+    {
+      "height": 920,
+      "id": "alice",
+      "width": 340,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "bob",
+      "width": 340,
+      "x": 420,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "pool",
+      "width": 340,
+      "x": 840,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "safemath",
+      "width": 340,
+      "x": 1260,
+      "y": 28,
+    },
+    {
+      "height": 920,
+      "id": "swap",
+      "width": 340,
+      "x": 1680,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 170,
+      "cy": 164,
+      "h": 72,
+      "id": "alice-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 170,
+      "cy": 320,
+      "h": 40,
+      "id": "alice-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 164,
+      "h": 72,
+      "id": "bob-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 320,
+      "h": 40,
+      "id": "bob-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 164,
+      "h": 72,
+      "id": "pool-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 320,
+      "h": 40,
+      "id": "pool-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 164,
+      "h": 72,
+      "id": "safemath-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 320,
+      "h": 40,
+      "id": "safemath-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 164,
+      "h": 72,
+      "id": "swap-header",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 320,
+      "h": 40,
+      "id": "swap-spacer",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-alice",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 441,
+      "h": 2,
+      "id": "s0-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1430,
+      "cy": 543,
+      "h": 2,
+      "id": "s1-safemath",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 590,
+      "cy": 645,
+      "h": 2,
+      "id": "s2-bob",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1010,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-pool",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 1850,
+      "cy": 747,
+      "h": 2,
+      "id": "s3-swap",
+      "kind": "card",
+      "w": 2,
+    },
+    {
+      "cx": 170,
+      "cy": 884,
+      "h": 72,
+      "id": "alice-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 590,
+      "cy": 884,
+      "h": 72,
+      "id": "bob-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1010,
+      "cy": 884,
+      "h": 72,
+      "id": "pool-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1430,
+      "cy": 884,
+      "h": 72,
+      "id": "safemath-footer",
+      "kind": "card",
+      "w": 140,
+    },
+    {
+      "cx": 1850,
+      "cy": 884,
+      "h": 72,
+      "id": "swap-footer",
+      "kind": "card",
+      "w": 140,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "seq",
+    },
+  ],
+  "states": [],
+  "topic": "Y15",
+  "viewBox": {
+    "h": 1032,
+    "w": 2124,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "t0-idle-done",
+      "label": "go",
+      "to": "done",
+    },
+  ],
+  "id": "m01",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-done",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "done",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M01",
+  "viewBox": {
+    "h": 419,
+    "w": 900,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "t0-idle-loading",
+      "label": "submit",
+      "to": "loading",
+    },
+    {
+      "from": "loading",
+      "id": "t1-loading-done",
+      "label": "ok",
+      "to": "done",
+    },
+  ],
+  "id": "m02",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-loading",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-done",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "loading",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "done",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M02",
+  "viewBox": {
+    "h": 496,
+    "w": 1340,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M03 with error path 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "t0-idle-loading",
+      "label": "submit",
+      "to": "loading",
+    },
+    {
+      "from": "loading",
+      "id": "t1-loading-done",
+      "label": "success",
+      "to": "done",
+    },
+    {
+      "from": "loading",
+      "id": "t2-loading-error",
+      "label": "fail",
+      "to": "error",
+    },
+  ],
+  "id": "m03",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-loading",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-done",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-error",
+      "width": 360,
+      "x": 1320,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "loading",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "done",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1500,
+      "cy": 203,
+      "h": 150,
+      "id": "error",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M03",
+  "viewBox": {
+    "h": 496,
+    "w": 1780,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M04 guard on transition 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "t0-idle-auth",
+      "label": "login",
+      "to": "auth",
+    },
+    {
+      "from": "idle",
+      "id": "t1-idle-denied",
+      "label": "noCreds",
+      "to": "denied",
+    },
+  ],
+  "id": "m04",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-auth",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-denied",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "auth",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "denied",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M04",
+  "viewBox": {
+    "h": 524,
+    "w": 1340,
+    "x": -40,
+    "y": -95,
+  },
+}
+`;
+
+exports[`golden: state preset > M05 cyclic states 1`] = `
+{
+  "edges": [
+    {
+      "from": "on",
+      "id": "t0-on-off",
+      "label": "toggle",
+      "to": "off",
+    },
+    {
+      "from": "off",
+      "id": "t1-off-on",
+      "label": "toggle",
+      "to": "on",
+    },
+  ],
+  "id": "m05",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-on",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-off",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "on",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "off",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M05",
+  "viewBox": {
+    "h": 718,
+    "w": 900,
+    "x": -40,
+    "y": -380,
+  },
+}
+`;
+
+exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
+{
+  "edges": [
+    {
+      "from": "start",
+      "id": "t0-start-a",
+      "label": "left",
+      "to": "a",
+    },
+    {
+      "from": "start",
+      "id": "t1-start-b",
+      "label": "right",
+      "to": "b",
+    },
+    {
+      "from": "a",
+      "id": "t2-a-end",
+      "label": "ok",
+      "to": "end",
+    },
+    {
+      "from": "b",
+      "id": "t3-b-end",
+      "label": "ok",
+      "to": "end",
+    },
+  ],
+  "id": "m06",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-start",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-a",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-b",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-end",
+      "width": 360,
+      "x": 1320,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "start",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "a",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "b",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1500,
+      "cy": 203,
+      "h": 150,
+      "id": "end",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M06",
+  "viewBox": {
+    "h": 496,
+    "w": 1780,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M07 with state counter + tween 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "e0-idle-run",
+      "label": "start",
+      "to": "run",
+    },
+    {
+      "from": "run",
+      "id": "e1-run-done",
+      "label": "end",
+      "to": "done",
+    },
+  ],
+  "id": "m07",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-run",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-done",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "run",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "done",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "start",
+    },
+  ],
+  "states": [
+    {
+      "id": "counter",
+      "initial": 0,
+    },
+  ],
+  "topic": "M07",
+  "viewBox": {
+    "h": 362,
+    "w": 1344,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: state preset > M08 5 state diamond 1`] = `
+{
+  "edges": [
+    {
+      "from": "s0",
+      "id": "t0-s0-l",
+      "label": "left",
+      "to": "l",
+    },
+    {
+      "from": "s0",
+      "id": "t1-s0-r",
+      "label": "right",
+      "to": "r",
+    },
+    {
+      "from": "l",
+      "id": "t2-l-merge",
+      "label": "join1",
+      "to": "merge",
+    },
+    {
+      "from": "r",
+      "id": "t3-r-merge",
+      "label": "join2",
+      "to": "merge",
+    },
+    {
+      "from": "merge",
+      "id": "t4-merge-end",
+      "label": "done",
+      "to": "end",
+    },
+  ],
+  "id": "m08",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-s0",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-l",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-r",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-merge",
+      "width": 360,
+      "x": 1320,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-end",
+      "width": 360,
+      "x": 1760,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "s0",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "l",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "r",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1500,
+      "cy": 203,
+      "h": 150,
+      "id": "merge",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1940,
+      "cy": 203,
+      "h": 150,
+      "id": "end",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M08",
+  "viewBox": {
+    "h": 496,
+    "w": 2220,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M09 self-loop 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "t0-idle-wait",
+      "label": "enter",
+      "to": "wait",
+    },
+    {
+      "from": "wait",
+      "id": "t1-wait-wait",
+      "label": "tick",
+      "to": "wait",
+    },
+    {
+      "from": "wait",
+      "id": "t2-wait-done",
+      "label": "exit",
+      "to": "done",
+    },
+  ],
+  "id": "m09",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-wait",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-done",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "wait",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "done",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "fsm",
+    },
+  ],
+  "states": [],
+  "topic": "M09",
+  "viewBox": {
+    "h": 532,
+    "w": 1340,
+    "x": -40,
+    "y": -81,
+  },
+}
+`;
+
+exports[`golden: state preset > M10 with set on transition phase 1`] = `
+{
+  "edges": [
+    {
+      "from": "idle",
+      "id": "e0-idle-active",
+      "label": "on",
+      "to": "active",
+    },
+    {
+      "from": "active",
+      "id": "e1-active-off",
+      "label": "stop",
+      "to": "off",
+    },
+  ],
+  "id": "m10",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-idle",
+      "width": 360,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-active",
+      "width": 360,
+      "x": 440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-off",
+      "width": 360,
+      "x": 880,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 180,
+      "cy": 203,
+      "h": 150,
+      "id": "idle",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 620,
+      "cy": 203,
+      "h": 150,
+      "id": "active",
+      "kind": "card",
+      "w": 320,
+    },
+    {
+      "cx": 1060,
+      "cy": 203,
+      "h": 150,
+      "id": "off",
+      "kind": "card",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "on",
+    },
+    {
+      "duration_ms": 1000,
+      "id": "off",
+    },
+  ],
+  "states": [
+    {
+      "id": "mode",
+      "initial": "idle",
+    },
+  ],
+  "topic": "M10",
+  "viewBox": {
+    "h": 362,
+    "w": 1344,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L01 2 lane 1`] = `
+{
+  "edges": [
+    {
+      "from": "svca",
+      "id": "e0-svca-svcb",
+      "label": "call",
+      "to": "svcb",
+    },
+  ],
+  "id": "l01",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "svca",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "svcb",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "svca",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "svcb",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L01",
+  "viewBox": {
+    "h": 392,
+    "w": 984,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L02 3 lane 1`] = `
+{
+  "edges": [
+    {
+      "from": "svca",
+      "id": "e0-svca-svcb",
+      "label": "dispatch",
+      "to": "svcb",
+    },
+    {
+      "from": "svcb",
+      "id": "e1-svcb-svcc",
+      "label": "forward",
+      "to": "svcc",
+    },
+  ],
+  "id": "l02",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "svca",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "svcb",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "svcc",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "svca",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "svcb",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "svcc",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L02",
+  "viewBox": {
+    "h": 392,
+    "w": 1464,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L03 4 lane with all info tone 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "1",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e1-b-c",
+      "label": "2",
+      "to": "c",
+    },
+    {
+      "from": "c",
+      "id": "e2-c-d",
+      "label": "3",
+      "to": "d",
+    },
+  ],
+  "id": "l03",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "c",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "d",
+      "width": 400,
+      "x": 1440,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1640,
+      "cy": 218,
+      "h": 180,
+      "id": "d",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L03",
+  "viewBox": {
+    "h": 392,
+    "w": 1944,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
+{
+  "edges": [
+    {
+      "from": "front",
+      "id": "e0-front-back",
+      "label": "GET /x",
+      "to": "back",
+    },
+  ],
+  "id": "l04",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "front",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "back",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "front",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "back",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L04",
+  "viewBox": {
+    "h": 392,
+    "w": 984,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L05 animation focus + badge 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "dispatch",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e1-b-c",
+      "label": "forward",
+      "to": "c",
+    },
+  ],
+  "id": "l05",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-c",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1500,
+      "id": "p1",
+    },
+    {
+      "duration_ms": 1500,
+      "id": "p2",
+    },
+  ],
+  "states": [],
+  "topic": "L05",
+  "viewBox": {
+    "h": 392,
+    "w": 1464,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L06 5 service lane 1`] = `
+{
+  "edges": [
+    {
+      "from": "s1",
+      "id": "e0-s1-s2",
+      "label": "a",
+      "to": "s2",
+    },
+    {
+      "from": "s2",
+      "id": "e1-s2-s3",
+      "label": "b",
+      "to": "s3",
+    },
+    {
+      "from": "s3",
+      "id": "e2-s3-s4",
+      "label": "c",
+      "to": "s4",
+    },
+    {
+      "from": "s4",
+      "id": "e3-s4-s5",
+      "label": "d",
+      "to": "s5",
+    },
+  ],
+  "id": "l06",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "s1",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "s2",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "s3",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "s4",
+      "width": 400,
+      "x": 1440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "s5",
+      "width": 400,
+      "x": 1920,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "s1",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "s2",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "s3",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1640,
+      "cy": 218,
+      "h": 180,
+      "id": "s4",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 2120,
+      "cy": 218,
+      "h": 180,
+      "id": "s5",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L06",
+  "viewBox": {
+    "h": 392,
+    "w": 2424,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
+{
+  "edges": [
+    {
+      "from": "web",
+      "id": "e0-web-worker",
+      "label": "enqueue",
+      "to": "worker",
+    },
+    {
+      "from": "worker",
+      "id": "e1-worker-storage",
+      "label": "write",
+      "to": "storage",
+    },
+  ],
+  "id": "l07",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "web",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "worker",
+      "width": 420,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "storage",
+      "width": 440,
+      "x": 980,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 213,
+      "h": 170,
+      "id": "web",
+      "kind": "api",
+      "w": 320,
+    },
+    {
+      "cx": 690,
+      "cy": 213,
+      "h": 170,
+      "id": "worker",
+      "kind": "function",
+      "w": 380,
+    },
+    {
+      "cx": 1200,
+      "cy": 213,
+      "h": 170,
+      "id": "storage",
+      "kind": "storage",
+      "w": 400,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L07",
+  "viewBox": {
+    "h": 382,
+    "w": 1524,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "forward",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e1-b-c",
+      "label": "next",
+      "to": "c",
+    },
+    {
+      "from": "c",
+      "id": "e2-c-a",
+      "label": "back",
+      "to": "a",
+    },
+  ],
+  "id": "l08",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "c",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L08",
+  "viewBox": {
+    "h": 392,
+    "w": 1464,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
+{
+  "edges": [
+    {
+      "from": "l",
+      "id": "e0-l-r",
+      "label": "send",
+      "to": "r",
+    },
+  ],
+  "id": "l09",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "l",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "r",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "l",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "r",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L09",
+  "viewBox": {
+    "h": 392,
+    "w": 984,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L10 6 lane with viewport 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e1-b-c",
+      "label": "",
+      "to": "c",
+    },
+    {
+      "from": "c",
+      "id": "e2-c-d",
+      "label": "",
+      "to": "d",
+    },
+    {
+      "from": "d",
+      "id": "e3-d-e",
+      "label": "",
+      "to": "e",
+    },
+    {
+      "from": "e",
+      "id": "e4-e-f",
+      "label": "",
+      "to": "f",
+    },
+  ],
+  "id": "l10",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "c",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "d",
+      "width": 400,
+      "x": 1440,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "e",
+      "width": 400,
+      "x": 1920,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "f",
+      "width": 400,
+      "x": 2400,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1640,
+      "cy": 218,
+      "h": 180,
+      "id": "d",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 2120,
+      "cy": 218,
+      "h": 180,
+      "id": "e",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 2600,
+      "cy": 218,
+      "h": 180,
+      "id": "f",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L10",
+  "viewBox": {
+    "h": 800,
+    "w": 2904,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L11 tone variation 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "ok",
+      "to": "b",
+    },
+    {
+      "from": "b",
+      "id": "e1-b-c",
+      "label": "warn",
+      "to": "c",
+    },
+  ],
+  "id": "l11",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "c",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L11",
+  "viewBox": {
+    "h": 392,
+    "w": 1464,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L12 with state + tween 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "send",
+      "to": "b",
+    },
+  ],
+  "id": "l12",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "lane-a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "lane-b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "tx",
+    },
+  ],
+  "states": [
+    {
+      "id": "n",
+      "initial": 0,
+    },
+  ],
+  "topic": "L12",
+  "viewBox": {
+    "h": 392,
+    "w": 984,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L13 labelOffset on swimlane 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "e0-a-b",
+      "label": "x",
+      "to": "b",
+    },
+  ],
+  "id": "l13",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "a",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "b",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L13",
+  "viewBox": {
+    "h": 392,
+    "w": 984,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
+{
+  "edges": [
+    {
+      "from": "solo",
+      "id": "e0-solo-solo",
+      "label": "retry",
+      "to": "solo",
+    },
+  ],
+  "id": "l14",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "solo",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "solo",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L14",
+  "viewBox": {
+    "h": 394,
+    "w": 567,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "e0-user-web",
+      "label": "open",
+      "to": "web",
+    },
+    {
+      "from": "web",
+      "id": "e1-web-api",
+      "label": "fetch",
+      "to": "api",
+    },
+  ],
+  "id": "l15",
+  "lanes": [
+    {
+      "height": 40,
+      "id": "user",
+      "width": 400,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "web",
+      "width": 400,
+      "x": 480,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "api",
+      "width": 400,
+      "x": 960,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 200,
+      "cy": 218,
+      "h": 180,
+      "id": "user",
+      "kind": "person",
+      "w": 280,
+    },
+    {
+      "cx": 680,
+      "cy": 218,
+      "h": 180,
+      "id": "web",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 1160,
+      "cy": 218,
+      "h": 180,
+      "id": "api",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [],
+  "states": [],
+  "topic": "L15",
+  "viewBox": {
+    "h": 392,
+    "w": 1464,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: topology preset > T01 simple 2 node 1`] = `
+{
+  "edges": [
+    {
+      "from": "browser",
+      "id": "c0-browser-api",
+      "label": "HTTPS",
+      "to": "api",
+    },
+  ],
+  "id": "t01",
+  "lanes": [
+    {
+      "height": 556,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "browser",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 498,
+      "h": 180,
+      "id": "api",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T01",
+  "viewBox": {
+    "h": 668,
+    "w": 597,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T02 3 node chain 1`] = `
+{
+  "edges": [
+    {
+      "from": "browser",
+      "id": "c0-browser-api",
+      "label": "HTTPS",
+      "to": "api",
+    },
+    {
+      "from": "api",
+      "id": "c1-api-db",
+      "label": "SQL",
+      "to": "db",
+    },
+  ],
+  "id": "t02",
+  "lanes": [
+    {
+      "height": 856,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "browser",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 498,
+      "h": 180,
+      "id": "api",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 788,
+      "h": 200,
+      "id": "db",
+      "kind": "database",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T02",
+  "viewBox": {
+    "h": 968,
+    "w": 597,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T03 with cache layer 1`] = `
+{
+  "edges": [
+    {
+      "from": "web",
+      "id": "c0-web-cache",
+      "label": "GET",
+      "to": "cache",
+    },
+    {
+      "from": "cache",
+      "id": "c1-cache-db",
+      "label": "MISS",
+      "to": "db",
+    },
+  ],
+  "id": "t03",
+  "lanes": [
+    {
+      "height": 836,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "web",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 488,
+      "h": 160,
+      "id": "cache",
+      "kind": "cache",
+      "w": 280,
+    },
+    {
+      "cx": 230,
+      "cy": 768,
+      "h": 200,
+      "id": "db",
+      "kind": "database",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T03",
+  "viewBox": {
+    "h": 948,
+    "w": 588,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T04 queue + worker 1`] = `
+{
+  "edges": [
+    {
+      "from": "producer",
+      "id": "c0-producer-q",
+      "label": "enqueue",
+      "to": "q",
+    },
+    {
+      "from": "q",
+      "id": "c1-q-worker",
+      "label": "dequeue",
+      "to": "worker",
+    },
+  ],
+  "id": "t04",
+  "lanes": [
+    {
+      "height": 796,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "producer",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 478,
+      "h": 140,
+      "id": "q",
+      "kind": "queue",
+      "w": 340,
+    },
+    {
+      "cx": 230,
+      "cy": 738,
+      "h": 180,
+      "id": "worker",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T04",
+  "viewBox": {
+    "h": 908,
+    "w": 625,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T05 cdn + origin 1`] = `
+{
+  "edges": [
+    {
+      "from": "user",
+      "id": "c0-user-cdn",
+      "label": "GET",
+      "to": "cdn",
+    },
+    {
+      "from": "cdn",
+      "id": "c1-cdn-origin",
+      "label": "MISS",
+      "to": "origin",
+    },
+  ],
+  "id": "t05",
+  "lanes": [
+    {
+      "height": 816,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "user",
+      "kind": "person",
+      "w": 280,
+    },
+    {
+      "cx": 230,
+      "cy": 488,
+      "h": 160,
+      "id": "cdn",
+      "kind": "cdn",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 758,
+      "h": 180,
+      "id": "origin",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T05",
+  "viewBox": {
+    "h": 928,
+    "w": 588,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T06 microservice mesh 1`] = `
+{
+  "edges": [
+    {
+      "from": "gw",
+      "id": "c0-gw-svc1",
+      "label": "/a",
+      "to": "svc1",
+    },
+    {
+      "from": "gw",
+      "id": "c1-gw-svc2",
+      "label": "/b",
+      "to": "svc2",
+    },
+    {
+      "from": "gw",
+      "id": "c2-gw-svc3",
+      "label": "/c",
+      "to": "svc3",
+    },
+  ],
+  "id": "t06",
+  "lanes": [
+    {
+      "height": 1096,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 208,
+      "h": 160,
+      "id": "gw",
+      "kind": "api",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 478,
+      "h": 180,
+      "id": "svc1",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 758,
+      "h": 180,
+      "id": "svc2",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 1038,
+      "h": 180,
+      "id": "svc3",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T06",
+  "viewBox": {
+    "h": 1208,
+    "w": 696,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T07 with viewport explicit 1`] = `
+{
+  "edges": [
+    {
+      "from": "front",
+      "id": "c0-front-mid",
+      "label": "",
+      "to": "mid",
+    },
+    {
+      "from": "mid",
+      "id": "c1-mid-back",
+      "label": "",
+      "to": "back",
+    },
+  ],
+  "id": "t07",
+  "lanes": [
+    {
+      "height": 856,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "front",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 498,
+      "h": 180,
+      "id": "mid",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 788,
+      "h": 200,
+      "id": "back",
+      "kind": "database",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T07",
+  "viewBox": {
+    "h": 1000,
+    "w": 1600,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T08 with top-level lanes group 1`] = `
+{
+  "edges": [
+    {
+      "from": "a",
+      "id": "c0-a-b",
+      "label": "call",
+      "to": "b",
+    },
+  ],
+  "id": "t08",
+  "lanes": [
+    {
+      "height": 612,
+      "id": "main",
+      "width": 480,
+      "x": 0,
+      "y": 60,
+    },
+    {
+      "height": 40,
+      "id": "group-cloud",
+      "width": 480,
+      "x": 560,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "l1",
+      "width": 480,
+      "x": 0,
+      "y": 28,
+    },
+    {
+      "height": 40,
+      "id": "aws",
+      "width": 480,
+      "x": 540,
+      "y": 28,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 240,
+      "cy": 218,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 240,
+      "cy": 554,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T08",
+  "viewBox": {
+    "h": 900,
+    "w": 1400,
+    "x": -44,
+    "y": -24,
+  },
+}
+`;
+
+exports[`golden: topology preset > T09 multi-tier (cdn → web → cache → db) 1`] = `
+{
+  "edges": [
+    {
+      "from": "cdn",
+      "id": "c0-cdn-web",
+      "label": "edge",
+      "to": "web",
+    },
+    {
+      "from": "web",
+      "id": "c1-web-cache",
+      "label": "lookup",
+      "to": "cache",
+    },
+    {
+      "from": "cache",
+      "id": "c2-cache-db",
+      "label": "miss",
+      "to": "db",
+    },
+  ],
+  "id": "t09",
+  "lanes": [
+    {
+      "height": 1096,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 208,
+      "h": 160,
+      "id": "cdn",
+      "kind": "cdn",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 478,
+      "h": 180,
+      "id": "web",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 748,
+      "h": 160,
+      "id": "cache",
+      "kind": "cache",
+      "w": 280,
+    },
+    {
+      "cx": 230,
+      "cy": 1028,
+      "h": 200,
+      "id": "db",
+      "kind": "database",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T09",
+  "viewBox": {
+    "h": 1208,
+    "w": 606,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;
+
+exports[`golden: topology preset > T10 7 node fan-out 1`] = `
+{
+  "edges": [
+    {
+      "from": "hub",
+      "id": "c0-hub-a",
+      "label": "",
+      "to": "a",
+    },
+    {
+      "from": "hub",
+      "id": "c1-hub-b",
+      "label": "",
+      "to": "b",
+    },
+    {
+      "from": "hub",
+      "id": "c2-hub-c",
+      "label": "",
+      "to": "c",
+    },
+    {
+      "from": "hub",
+      "id": "c3-hub-d",
+      "label": "",
+      "to": "d",
+    },
+    {
+      "from": "hub",
+      "id": "c4-hub-e",
+      "label": "",
+      "to": "e",
+    },
+    {
+      "from": "hub",
+      "id": "c5-hub-f",
+      "label": "",
+      "to": "f",
+    },
+  ],
+  "id": "t10",
+  "lanes": [
+    {
+      "height": 1956,
+      "id": "main",
+      "width": 460,
+      "x": 0,
+      "y": 60,
+    },
+  ],
+  "nodes": [
+    {
+      "cx": 230,
+      "cy": 218,
+      "h": 180,
+      "id": "hub",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 498,
+      "h": 180,
+      "id": "a",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 778,
+      "h": 180,
+      "id": "b",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 1058,
+      "h": 180,
+      "id": "c",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 1338,
+      "h": 180,
+      "id": "d",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 1618,
+      "h": 180,
+      "id": "e",
+      "kind": "service",
+      "w": 320,
+    },
+    {
+      "cx": 230,
+      "cy": 1898,
+      "h": 180,
+      "id": "f",
+      "kind": "service",
+      "w": 320,
+    },
+  ],
+  "phases": [
+    {
+      "duration_ms": 2400,
+      "id": "topo",
+    },
+  ],
+  "states": [],
+  "topic": "T10",
+  "viewBox": {
+    "h": 2068,
+    "w": 660,
+    "x": -44,
+    "y": 8,
+  },
+}
+`;

@@ -1,0 +1,153 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
+import {
+  patternDirect, patternPassthrough,
+  patternCallReadWrite, patternEmit, patternHook, patternNftMint,
+  patternBridge, patternApprovePull, patternPermit, patternMulticall, patternProxy, patternMetaTx,
+  patternDexSwap, patternLending, patternOracle, patternStaking, patternLiquidation, patternCctp,
+} from "@/topics/catalog/patterns.cdl";
+
+const groups = [
+  {
+    title: "Edge 経路パターン",
+    desc: "直結と経由貫通の挙動差。 cdl は edge path 上に node があれば auto で貫通動作。",
+    items: [
+      { label: "直結 (隣接 node)", d: patternDirect },
+      { label: "経由 node 貫通 (自動判定)", d: patternPassthrough },
+    ],
+  },
+  {
+    title: "Smart Contract 基本構造",
+    desc: "call → read → write → emit のような関数実行の典型フロー、 hook callback、 NFT Mint。",
+    items: [
+      { label: "call → read → write", d: patternCallReadWrite },
+      { label: "emit event", d: patternEmit },
+      { label: "Hook callback (受信側問合せ)", d: patternHook },
+      { label: "NFT Mint (payable + emit)", d: patternNftMint },
+    ],
+  },
+  {
+    title: "Token / Approve 系",
+    desc: "Approve-Pull (ERC-20)、 Permit (EIP-2612 gasless)、 Multicall (1 tx で複数操作)。",
+    items: [
+      { label: "Approve → Pull (2 step)", d: patternApprovePull, docHref: "/docs/cdl/patterns/approve-pull" },
+      { label: "Permit (EIP-2612 gasless)", d: patternPermit, docHref: "/docs/cdl/patterns/permit" },
+      { label: "Multicall (Router 経由)", d: patternMulticall, docHref: "/docs/cdl/patterns/multicall" },
+    ],
+  },
+  {
+    title: "DeFi (DEX / Lending / Oracle)",
+    desc: "Uniswap V2 風 AMM swap、 Aave/Compound 風 supply-borrow、 Chainlink 風 price feed。",
+    items: [
+      { label: "DEX Swap (AMM, x*y=k)", d: patternDexSwap, docHref: "/docs/cdl/patterns/dex-swap" },
+      { label: "Lending (Supply / Borrow)", d: patternLending },
+      { label: "Oracle Price Feed", d: patternOracle },
+      { label: "Liquidation (担保強制清算)", d: patternLiquidation },
+    ],
+  },
+  {
+    title: "Consensus / Cross-Chain / Account 抽象化",
+    desc: "Staking (PoS)、 Bridge / CCTP (cross chain transfer)、 Proxy (upgradeable)、 Meta-Tx (gasless relayer)。",
+    items: [
+      { label: "Staking (Stake / Reward)", d: patternStaking },
+      { label: "Bridge (Lock-Mint)", d: patternBridge, docHref: "/docs/cdl/patterns/bridge" },
+      { label: "CCTP (USDC Burn-Mint)", d: patternCctp },
+      { label: "Proxy + Implementation", d: patternProxy },
+      { label: "Meta-Transaction (gasless)", d: patternMetaTx },
+    ],
+  },
+];
+---
+
+<BaseLayout title="Catalog - Patterns - dragon">
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <a href="/catalog" class="text-nm-text-secondary hover:text-nm-accent no-underline">Catalog</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Patterns</span>
+      </nav>
+      <span class="section-eyebrow">Catalog / Patterns</span>
+      <h1 class="heading-h1">Patterns</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
+        ブロックチェーン解説で頻出する構成パターン。 ここの diagram は実 topic の小さい sample として参考にできます。
+      </p>
+    </div>
+  </section>
+
+  {
+    groups.map((g) => (
+      <section class="shell pb-10">
+        <div class="space-y-2 mb-5">
+          <h2 class="heading-h2">{g.title}</h2>
+          <p class="text-sm text-nm-text-secondary">{g.desc}</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {g.items.map((item) => (
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
+                {item.docHref && (
+                  <a href={item.docHref} class="catalog-doc-link shrink-0" aria-label="ドキュメント">
+                    <span aria-hidden="true">📖</span>
+                    <span>ドキュメント</span>
+                  </a>
+                )}
+              </div>
+              <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
+                {item.docHref && (
+                  <a href={item.docHref} class="catalog-thumb-doc-link" aria-label="ドキュメント" title="ドキュメントを見る">📖</a>
+                )}
+                <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+  <style is:global>
+    .catalog-doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c17f3e;
+      background: rgba(193, 127, 62, 0.1);
+      border: 1px solid rgba(193, 127, 62, 0.3);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .catalog-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: translateY(-1px);
+    }
+    .catalog-thumb-doc-link {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      background: rgba(232, 221, 208, 0.95);
+      border: 1px solid rgba(196, 185, 172, 0.6);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+      z-index: 5;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .catalog-thumb-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: scale(1.08);
+    }
+  </style>
+</BaseLayout>

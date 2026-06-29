@@ -1,0 +1,153 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
+import {
+  erc20Transfer, permit, uniswapV2Swap, uniswapV3Swap, aaveBorrow,
+  compoundSupply, curveSwap, yearnVault, makerCdp, lidoStake,
+  erc721Transfer, lazyMint, englishAuction, royalty2981, soulbound,
+  governorPropose, govVote, timelock, multisigSafe, snapshotVote,
+  layerzeroV2, cctp, wormholeVaa, optimismBridge, hopRelay,
+} from "@/topics/catalog/cookbook.cdl";
+
+const groups = [
+  {
+    title: "A. DeFi (10 例)",
+    desc: "ERC-20 / Permit / UniswapV2-V3 / Aave / Compound / Curve / yEarn / MakerDAO / Lido。",
+    items: [
+      { label: "A-1. ERC-20 transfer", d: erc20Transfer },
+      { label: "A-2. Permit (EIP-2612)", d: permit },
+      { label: "A-3. UniswapV2 swap", d: uniswapV2Swap },
+      { label: "A-4. UniswapV3 swap", d: uniswapV3Swap },
+      { label: "A-5. Aave borrow / repay", d: aaveBorrow },
+      { label: "A-6. Compound supply", d: compoundSupply },
+      { label: "A-7. Curve stable swap", d: curveSwap },
+      { label: "A-8. yEarn vault deposit", d: yearnVault },
+      { label: "A-9. MakerDAO CDP", d: makerCdp },
+      { label: "A-10. Lido stake", d: lidoStake },
+    ],
+  },
+  {
+    title: "B. NFT (5 例)",
+    desc: "ERC-721 safe-transfer / Lazy mint / English Auction / Royalty (EIP-2981) / Soulbound。",
+    items: [
+      { label: "B-1. ERC-721 safeTransferFrom", d: erc721Transfer },
+      { label: "B-2. Lazy mint (signature-based)", d: lazyMint },
+      { label: "B-3. English Auction (bid loop)", d: englishAuction },
+      { label: "B-4. Royalty (EIP-2981)", d: royalty2981 },
+      { label: "B-5. Soulbound (non-transferable)", d: soulbound },
+    ],
+  },
+  {
+    title: "C. DAO (5 例)",
+    desc: "Governor propose / Vote / Timelock / Gnosis Safe multisig / Snapshot off-chain vote。",
+    items: [
+      { label: "C-1. Governor propose", d: governorPropose },
+      { label: "C-2. Vote (For / Against / Abstain)", d: govVote },
+      { label: "C-3. Timelock queue / execute", d: timelock },
+      { label: "C-4. Gnosis Safe execTransaction", d: multisigSafe },
+      { label: "C-5. Snapshot off-chain vote", d: snapshotVote },
+    ],
+  },
+  {
+    title: "D. Bridge (5 例)",
+    desc: "LayerZero V2 / CCTP / Wormhole VAA / Optimism canonical bridge / Hop relay。",
+    items: [
+      { label: "D-1. LayerZero V2 send", d: layerzeroV2 },
+      { label: "D-2. CCTP USDC transfer", d: cctp },
+      { label: "D-3. Wormhole VAA bridge", d: wormholeVaa },
+      { label: "D-4. Optimism canonical bridge", d: optimismBridge },
+      { label: "D-5. Hop relay (L2 -> L2)", d: hopRelay },
+    ],
+  },
+];
+const cookbookHref = "/docs/cdl/overview/cookbook";
+---
+
+<BaseLayout title="Catalog - Cookbook - dragon">
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <a href="/catalog" class="text-nm-text-secondary hover:text-nm-accent no-underline">Catalog</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Cookbook</span>
+      </nav>
+      <span class="section-eyebrow">Catalog / Cookbook</span>
+      <h1 class="heading-h1">Cookbook</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
+        cdl Text DSL v0.5 で書いた現場頻出 25 パターン (DeFi 10 / NFT 5 / DAO 5 / Bridge 5)。
+        各 thumbnail は <a href={cookbookHref} class="text-nm-accent underline">Cookbook ドキュメント</a> の対応 entry が <code>[preview:cookbook/&lt;slug&gt;]</code> で参照しています。
+      </p>
+    </div>
+  </section>
+
+  {
+    groups.map((g) => (
+      <section class="shell pb-10">
+        <div class="space-y-2 mb-5">
+          <h2 class="heading-h2">{g.title}</h2>
+          <p class="text-sm text-nm-text-secondary">{g.desc}</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {g.items.map((item) => (
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
+                <a href={cookbookHref} class="catalog-doc-link shrink-0" aria-label="Cookbook ドキュメント">
+                  <span aria-hidden="true">📖</span>
+                  <span>ドキュメント</span>
+                </a>
+              </div>
+              <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
+                <a href={cookbookHref} class="catalog-thumb-doc-link" aria-label="Cookbook ドキュメント" title="Cookbook を見る">📖</a>
+                <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+  <style is:global>
+    .catalog-doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c17f3e;
+      background: rgba(193, 127, 62, 0.1);
+      border: 1px solid rgba(193, 127, 62, 0.3);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .catalog-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: translateY(-1px);
+    }
+    .catalog-thumb-doc-link {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      background: rgba(232, 221, 208, 0.95);
+      border: 1px solid rgba(196, 185, 172, 0.6);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+      z-index: 5;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .catalog-thumb-doc-link:hover {
+      background: rgba(193, 127, 62, 0.18);
+      transform: scale(1.08);
+    }
+  </style>
+</BaseLayout>

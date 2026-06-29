@@ -1,0 +1,45 @@
+{
+  "name": "dragon-monorepo",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardene777/dragon.git"
+  },
+  "scripts": {
+    "dev": "pnpm --filter dragon-playground dev",
+    "build": "pnpm build:packages && pnpm --filter dragon-playground build",
+    "build:packages": "pnpm --filter @cardenelabs/dragon build",
+    "preview": "pnpm --filter dragon-playground preview",
+    "lint": "eslint .",
+    "typecheck": "tsc -b",
+    "lint:docs-preview": "node scripts/lint-docs-preview.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "devDependencies": {
+    "@astrojs/mdx": "^4.3.0",
+    "@astrojs/react": "^4.3.0",
+    "@eslint/js": "^9.29.0",
+    "@playwright/test": "^1.61.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitest/ui": "^4.1.9",
+    "astro": "^5.10.0",
+    "eslint": "^9.29.0",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
+    "prettier": "^3.5.0",
+    "react-dom": "^19.2.7",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.35.0",
+    "vitest": "^4.1.9",
+    "zod": "^3.25.0"
+  }
+}

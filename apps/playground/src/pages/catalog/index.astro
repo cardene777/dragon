@@ -1,0 +1,109 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const categories = [
+  {
+    href: "/catalog/primitives",
+    label: "Primitives",
+    desc: "lane / node の基本パーツ + 拡充 NodeKind 29 種 (人 / インフラ / アプリ / blockchain / 暗号)。",
+    items: ["NodeKind 29 種", "Lane 3 種", "Stack 2 種"],
+  },
+  {
+    href: "/catalog/presets",
+    label: "Presets (高位 API)",
+    desc: "swimlane / flow 等の preset で 複数 lane / node / edge を 1 行宣言。 低位 API より簡潔に書ける。",
+    items: ["swimlane (3 lane)", "flow (sequence 風)"],
+  },
+  {
+    href: "/catalog/styles",
+    label: "Styles",
+    desc: "edge 種類 (solid / dotted-flow) と tone 全 6 種 (accent / teal / success / error / warning / info)、 active / inactive 状態。",
+    items: ["EdgeStyle 2 種", "Tone 6 種", "Active / Inactive"],
+  },
+  {
+    href: "/catalog/animation",
+    label: "Animation",
+    desc: "phase / state / tween / set / badge の動作。 数値補間と即時切替、 連続 phase、 badge 切替の挙動。",
+    items: ["Tween 線形補間", "Set 即時切替", "Badge 切替", "Tween + Set 併用"],
+  },
+  {
+    href: "/catalog/patterns",
+    label: "Patterns",
+    desc: "ブロックチェーン解説で頻出する構成パターン (18 件)。 Smart Contract 基本 / Token 系 / DeFi (DEX / Lending / Oracle / Liquidation) / Consensus / Cross-Chain / Account 抽象化。",
+    items: [
+      "call / read / write",
+      "emit / Hook / NFT Mint",
+      "Approve-Pull / Permit / Multicall",
+      "DEX Swap / Lending / Oracle / Liquidation",
+      "Staking / Bridge / CCTP",
+      "Proxy / Meta-Tx",
+    ],
+  },
+  {
+    href: "/catalog/text-dsl",
+    label: "dragon DSL (v0.5)",
+    desc: "「タイトル / 種類 / 登場人物 / 流れ / アニメーション」 の 5 ブロック箇条書きで書ける dragon DSL から、 6 preset × animation すべてが visual に動く確認場。",
+    items: ["sequence + tween", "flow + progress", "swimlane 並列", "FSM state", "topology system", "ER schema"],
+  },
+  {
+    href: "/catalog/cookbook",
+    label: "Cookbook (25 例)",
+    desc: "dragon DSL v0.5 で書いた現場頻出 25 パターン (DeFi 10 / NFT 5 / DAO 5 / Bridge 5)。 docs cookbook の各 entry が data-cdl-diagram slug 経由でここを参照。",
+    items: [
+      "ERC-20 / Permit / UniswapV2-V3",
+      "Aave / Compound / Curve / yEarn",
+      "MakerDAO / Lido",
+      "ERC-721 / Lazy mint / Auction",
+      "Royalty / Soulbound",
+      "Governor / Vote / Timelock / Multisig / Snapshot",
+      "LayerZero / CCTP / Wormhole / Optimism / Hop",
+    ],
+  },
+];
+---
+
+<BaseLayout title="Catalog - dragon">
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Catalog</span>
+      </nav>
+      <span class="section-eyebrow">dragon DSL · powered by cdl engine</span>
+      <h1 class="heading-h1">dragon カタログ</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed sm:text-lg">
+        dragon DSL の primitives / styles / animation / patterns を 4 カテゴリで整理。
+        各カテゴリ内に小さい diagram を多数並べ、 1 概念ずつ動作確認できます。
+        engine 層は @cardenelabs/cdl が担うため、 render / animation の挙動はそのまま cdl の仕様に従います。
+      </p>
+    </div>
+  </section>
+
+  <section class="shell pb-24">
+    <div class="grid gap-5 sm:grid-cols-2">
+      {
+        categories.map((c) => (
+          <a href={c.href} class="nm-card-interactive group block no-underline">
+            <div class="flex h-full flex-col gap-4">
+              <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">Catalog</span>
+              <h2 class="text-2xl font-bold leading-snug text-nm-text">{c.label}</h2>
+              <p class="text-sm leading-relaxed text-nm-text-secondary">{c.desc}</p>
+              <div class="mt-auto flex flex-wrap gap-2 pt-3">
+                {c.items.map((i) => (
+                  <span class="rounded-nm-sm bg-nm-bg/60 px-2.5 py-1 text-xs font-medium text-nm-text-secondary shadow-nm-pressed-sm">
+                    {i}
+                  </span>
+                ))}
+              </div>
+              <div class="flex items-center justify-between pt-3 text-sm font-medium text-nm-accent">
+                <span>開く</span>
+                <span class="nm-arrow" aria-hidden="true">→</span>
+              </div>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
