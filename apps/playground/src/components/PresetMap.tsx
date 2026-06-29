@@ -20,7 +20,7 @@ const PRESETS: PresetNode[] = [
     label: "sequence",
     icon: "↔",
     cluster: "basic",
-    x: 22, y: 22,
+    x: 22, y: 26,
     description: "UML sequence (actor + msg)。 mermaid sequenceDiagram と同等。",
     sampleDsl: `title: "sequence demo"
 type: sequence
@@ -42,7 +42,7 @@ flow:
     label: "flow",
     icon: "↓",
     cluster: "basic",
-    x: 38, y: 14,
+    x: 42, y: 22,
     description: "flowchart (縦並び step)。 step ごとの遷移を視覚化。",
     sampleDsl: `title: "auth flow"
 type: flow
@@ -62,7 +62,7 @@ flow:
     label: "swimlane",
     icon: "∥",
     cluster: "basic",
-    x: 54, y: 14,
+    x: 62, y: 22,
     description: "actor 別 lane に分ける sequence。 責任分担が明確。",
     sampleDsl: `title: "checkout"
 type: swimlane
@@ -83,7 +83,7 @@ flow:
     label: "topology",
     icon: "◌",
     cluster: "basic",
-    x: 70, y: 22,
+    x: 78, y: 28,
     description: "system 配置図。 server / db / cache の network を描く。",
     sampleDsl: `title: "system"
 type: topology
@@ -103,7 +103,7 @@ flow:
     label: "er",
     icon: "▢",
     cluster: "basic",
-    x: 26, y: 38,
+    x: 26, y: 44,
     description: "ER 図 (entity + relation + cardinality)。 DB schema 視覚化。",
     sampleDsl: `title: "User-Order ER"
 type: er
@@ -121,7 +121,7 @@ flow:
     label: "state",
     icon: "⊙",
     cluster: "basic",
-    x: 66, y: 38,
+    x: 74, y: 44,
     description: "state machine (initial / final / transition)。",
     sampleDsl: `title: "auth FSM"
 type: state
@@ -142,7 +142,7 @@ flow:
     label: "solidity",
     icon: "◆",
     cluster: "domain",
-    x: 14, y: 56,
+    x: 20, y: 75,
     description: "Solidity smart contract 専用。 EOA / contract / storage / event を自動 sort。",
     sampleDsl: `title: "ERC-20 transfer"
 type: solidity
@@ -176,7 +176,7 @@ animation:
     label: "gantt",
     icon: "▬",
     cluster: "extended",
-    x: 80, y: 50,
+    x: 82, y: 62,
     description: "timeline 横棒。 task の期間 / 依存を視覚化。",
     sampleDsl: `title: "Q1-Q4 roadmap"
 type: gantt
@@ -193,7 +193,7 @@ actors:
     label: "class",
     icon: "▤",
     cluster: "extended",
-    x: 86, y: 36,
+    x: 74, y: 76,
     description: "UML class (fields + methods)。 OOP design 視覚化。",
     sampleDsl: `title: "User class"
 type: class
@@ -211,7 +211,7 @@ flow:
     label: "pie",
     icon: "◐",
     cluster: "extended",
-    x: 88, y: 62,
+    x: 90, y: 76,
     description: "円グラフ。 value + label で割合を表現。",
     sampleDsl: `title: "Market share"
 type: pie
@@ -227,7 +227,7 @@ actors:
     label: "c4",
     icon: "▣",
     cluster: "extended",
-    x: 80, y: 76,
+    x: 74, y: 89,
     description: "C4 model 階層 (system / container / component)。",
     sampleDsl: `title: "C4 context"
 type: c4
@@ -247,7 +247,7 @@ flow:
     label: "mind",
     icon: "✺",
     cluster: "extended",
-    x: 68, y: 82,
+    x: 90, y: 89,
     description: "mind map (中央 root + 放射)。 思考整理 / brainstorm。",
     sampleDsl: `title: "Project ideas"
 type: mind
@@ -262,9 +262,14 @@ actors:
 ];
 
 const CLUSTER_COLOR: Record<PresetNode["cluster"], string> = {
-  basic: "rgba(193,127,62,0.06)",
-  domain: "rgba(193,127,62,0.12)",
-  extended: "rgba(193,127,62,0.06)",
+  basic: "rgba(45,106,143,0.06)",   // teal
+  domain: "rgba(194,65,12,0.08)",   // orange
+  extended: "rgba(109,40,217,0.06)", // purple
+};
+const CLUSTER_STROKE: Record<PresetNode["cluster"], string> = {
+  basic: "#2d6a8f",
+  domain: "#c2410c",
+  extended: "#6d28d9",
 };
 
 export function PresetMap(): React.JSX.Element {
@@ -349,28 +354,46 @@ export function PresetMap(): React.JSX.Element {
           className="map-inner"
           style={{ transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})` }}
         >
-          {/* edges from center */}
+          {/* cluster zones (node を 14% 余白で囲む) */}
+          <div className="cluster-zone cluster-basic" style={{ left: "12%", top: "12%", width: "76%", height: "42%" }}></div>
+          <div className="cluster-label" style={{ left: "14%", top: "14%", color: "#2d6a8f" }}>
+            <span className="num">6</span>basic
+          </div>
+          <div className="cluster-zone cluster-domain" style={{ left: "8%", top: "62%", width: "26%", height: "30%" }}></div>
+          <div className="cluster-label" style={{ left: "10%", top: "64%", color: "#c2410c" }}>
+            <span className="num">1</span>domain
+          </div>
+          <div className="cluster-zone cluster-extended" style={{ left: "66%", top: "54%", width: "30%", height: "40%" }}></div>
+          <div className="cluster-label" style={{ left: "68%", top: "56%", color: "#6d28d9" }}>
+            <span className="num">5</span>extended
+          </div>
+
+          {/* edges (bezier curves) */}
           <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {filtered.map((p) => (
-              <line
-                key={`edge-${p.id}`}
-                x1="50"
-                y1="50"
-                x2={p.x}
-                y2={p.y}
-                stroke="rgba(193,127,62,0.25)"
-                strokeWidth="0.15"
-                strokeDasharray="0.5 0.5"
-              />
-            ))}
+            {filtered.map((p) => {
+              // bezier control points: midpoint with offset toward each cluster
+              const cx = (50 + p.x) / 2;
+              const cy = (50 + p.y) / 2;
+              const cluster = p.cluster;
+              const colorClass = `edge-${cluster}`;
+              return (
+                <path
+                  key={`edge-${p.id}`}
+                  className={`edge-path ${colorClass}`}
+                  d={`M 50 50 C ${cx} ${cy}, ${(p.x + cx) / 2} ${(p.y + cy) / 2}, ${p.x} ${p.y}`}
+                />
+              );
+            })}
           </svg>
 
           {/* center dragon */}
           <div className="node node-center" style={{ left: "50%", top: "50%" }}>
-            <div className="node-icon">◢</div>
-            <div className="node-label">dragon</div>
-            <div className="node-meta">animated DSL</div>
-            <button className="node-edit-btn center-btn" onClick={() => window.location.href = "/editor"}>
+            <div className="center-glyph">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M3 21 L21 3 L21 21 Z" fill="#fff" /></svg>
+            </div>
+            <div className="center-title">dragon</div>
+            <div className="center-meta">animated diagram dsl</div>
+            <button className="center-btn" onClick={() => (window.location.href = "/editor")}>
               open editor →
             </button>
           </div>
@@ -380,12 +403,17 @@ export function PresetMap(): React.JSX.Element {
             <div
               key={p.id}
               className={`node node-${p.cluster} ${selected?.id === p.id ? "node-selected" : ""}`}
-              style={{ left: `${p.x}%`, top: `${p.y}%`, background: CLUSTER_COLOR[p.cluster] }}
+              style={{ left: `${p.x}%`, top: `${p.y}%` }}
               onClick={() => setSelected(p)}
             >
-              <div className="node-icon">{p.icon}</div>
-              <div className="node-label">{p.label}</div>
-              <div className="node-meta">type: {p.id}</div>
+              <div className="node-head">
+                <div className={`node-icon icon-${p.cluster}`}>
+                  <PresetIcon id={p.id} />
+                </div>
+                <div className="node-label">{p.label}</div>
+              </div>
+              <div className="node-desc">{p.description.split("。")[0]}。</div>
+              <div className="node-tag">type: {p.id}</div>
             </div>
           ))}
         </div>
@@ -411,11 +439,24 @@ export function PresetMap(): React.JSX.Element {
 
       {/* minimap */}
       <div className="map-minimap">
-        <svg viewBox="0 0 100 100">
-          {PRESETS.map((p) => (
-            <circle key={p.id} cx={p.x} cy={p.y} r="2.5" fill="#c17f3e" opacity="0.6" />
-          ))}
-          <circle cx="50" cy="50" r="3.5" fill="#3b2e22" />
+        <div className="minimap-head">
+          <span>overview</span>
+          <span className="live-dot"></span>
+        </div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          {/* cluster zone outlines */}
+          <rect x="12" y="12" width="76" height="42" rx="3" fill="rgba(45,106,143,0.06)" stroke="rgba(45,106,143,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="8" y="62" width="26" height="30" rx="3" fill="rgba(194,65,12,0.06)" stroke="rgba(194,65,12,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="66" y="54" width="30" height="40" rx="3" fill="rgba(109,40,217,0.06)" stroke="rgba(109,40,217,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          {/* nodes (cluster 色) */}
+          {PRESETS.map((p) => {
+            const color = p.cluster === "basic" ? "#2d6a8f" : p.cluster === "domain" ? "#c2410c" : "#6d28d9";
+            return <circle key={p.id} cx={p.x} cy={p.y} r={p.cluster === "domain" ? 1.8 : 1.5} fill={color} />;
+          })}
+          {/* center */}
+          <rect x="46" y="46" width="8" height="8" rx="1.5" fill="#0a0e1a" />
+          {/* viewport */}
+          <rect x="8" y="8" width="84" height="84" fill="none" stroke="#2d6a8f" strokeWidth="0.6" rx="2" opacity="0.4" />
         </svg>
       </div>
 
@@ -425,7 +466,9 @@ export function PresetMap(): React.JSX.Element {
           <div className="map-modal" onClick={(e) => e.stopPropagation()}>
             <button className="map-modal-close" onClick={() => setSelected(null)} aria-label="close">×</button>
             <div className="map-modal-head">
-              <span className="map-modal-icon">{selected.icon}</span>
+              <div className={`map-modal-icon icon-${selected.cluster}`}>
+                <PresetIcon id={selected.id} />
+              </div>
               <div>
                 <h2>{selected.label}</h2>
                 <span className="map-modal-meta">type: {selected.id} · cluster: {selected.cluster}</span>
@@ -450,10 +493,52 @@ export function PresetMap(): React.JSX.Element {
         </div>
       )}
 
-      {/* onboarding hint */}
+      {/* stats */}
+      <div className="map-stats">
+        <div className="stat-pill basic"><span className="dot"></span><span className="num">6</span>basic</div>
+        <div className="stat-pill domain"><span className="dot"></span><span className="num">1</span>domain</div>
+        <div className="stat-pill extended"><span className="dot"></span><span className="num">5</span>extended</div>
+      </div>
+
+      {/* hint */}
       <div className="map-hint">
-        ⌘ scroll to zoom · drag to pan · click node to preview
+        <div className="hint-row"><kbd>⌘</kbd>scroll · zoom</div>
+        <div className="hint-row"><kbd>drag</kbd>pan · canvas</div>
+        <div className="hint-row"><kbd>click</kbd>preview · node</div>
       </div>
     </div>
   );
+}
+
+// SVG icon per preset
+function PresetIcon({ id }: { id: string }): React.JSX.Element {
+  const props = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const };
+  switch (id) {
+    case "sequence":
+      return <svg {...props}><path d="M3 12h18M3 12l4-4M3 12l4 4M21 12l-4-4M21 12l-4 4" /></svg>;
+    case "flow":
+      return <svg {...props}><path d="M12 3v18M12 21l-4-4M12 21l4-4" /></svg>;
+    case "swimlane":
+      return <svg {...props}><path d="M6 3v18M12 3v18M18 3v18" /></svg>;
+    case "topology":
+      return <svg {...props} strokeLinecap="butt"><circle cx="6" cy="6" r="3" /><circle cx="18" cy="6" r="3" /><circle cx="12" cy="18" r="3" /><path d="m8 8 8 0M8 8l4 7M16 8l-4 7" strokeLinecap="round" /></svg>;
+    case "er":
+      return <svg {...props} strokeLinecap="butt"><rect x="3" y="4" width="8" height="6" rx="1" /><rect x="13" y="14" width="8" height="6" rx="1" /><path d="M11 7h2v7" strokeLinecap="round" /></svg>;
+    case "state":
+      return <svg {...props} strokeLinecap="butt"><circle cx="6" cy="12" r="3" /><circle cx="18" cy="12" r="3" /><path d="M9 12h6" strokeLinecap="round" /></svg>;
+    case "solidity":
+      return <svg {...props} strokeLinejoin="round"><path d="M12 2 L20 10 L12 22 L4 10 Z" /></svg>;
+    case "gantt":
+      return <svg {...props}><rect x="3" y="6" width="8" height="3" rx="1.5" /><rect x="8" y="11" width="10" height="3" rx="1.5" /><rect x="6" y="16" width="12" height="3" rx="1.5" /></svg>;
+    case "class":
+      return <svg {...props} strokeLinecap="butt"><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M4 10h16M4 15h16" strokeLinecap="round" /></svg>;
+    case "pie":
+      return <svg {...props} strokeLinecap="butt"><circle cx="12" cy="12" r="9" /><path d="M12 3 v9 L21 12" strokeLinecap="round" /></svg>;
+    case "c4":
+      return <svg {...props} strokeLinecap="butt"><rect x="3" y="3" width="18" height="18" rx="1" /><rect x="7" y="7" width="10" height="10" rx="1" /><rect x="10" y="10" width="4" height="4" rx="1" /></svg>;
+    case "mind":
+      return <svg {...props} strokeLinecap="butt"><circle cx="12" cy="12" r="3" /><circle cx="4" cy="6" r="2" /><circle cx="20" cy="6" r="2" /><circle cx="4" cy="18" r="2" /><circle cx="20" cy="18" r="2" /><path d="M10 11 6 7M14 11l6-4M10 13l-6 4M14 13l6 4" strokeLinecap="round" /></svg>;
+    default:
+      return <svg {...props}><circle cx="12" cy="12" r="9" /></svg>;
+  }
 }
