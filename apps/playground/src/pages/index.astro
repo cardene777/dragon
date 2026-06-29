@@ -1,220 +1,374 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-
-const heroBadge = "Mermaid 感覚で動く図を書く Text DSL";
-
-const featuredEntries = [
-  {
-    href: "/editor",
-    eyebrow: "Visual Editor",
-    title: "Editor で dragon を書いて動かす",
-    summary: "split view で dragon DSL v0.5 を入力 → 300 ms 後に animation 付き SVG。 共有 URL コピー / SVG ダウンロードに対応。",
-    cta: "/editor を開く",
-  },
-  {
-    href: "/docs/cdl/overview/quickstart",
-    eyebrow: "Tutorial",
-    title: "5 step Tutorial で全体像を掴む",
-    summary: "最初の図 → animation → 複数 phase → 6 preset → inline option を 30 分で網羅。 dragon syntax v0.5 だけで完結する構成。",
-    cta: "Quickstart を読む",
-  },
-  {
-    href: "/docs/cdl/overview/cookbook",
-    eyebrow: "Cookbook",
-    title: "Cookbook 25 例を真似する",
-    summary: "DeFi 10 / NFT 5 / DAO 5 / Bridge 5 の即動く dragon DSL 例。 ERC-20 / Permit / Uniswap / Aave / Multisig / LayerZero までカバー。",
-    cta: "Cookbook を開く",
-  },
-] as const;
-
-const presets = [
-  { group: "Core", items: ["sequence", "flow", "swimlane", "topology", "er", "state-machine"] },
-  { group: "Domain", items: ["solidity"] },
-  { group: "Extended", items: ["gantt", "class", "pie", "c4", "mind"] },
-];
-
-const stats = [
-  { label: "presets", value: "12" },
-  { label: "tests", value: "357" },
-  { label: "golden snapshots", value: "100" },
-  { label: "indexed pages", value: "72" },
-];
+import { PresetMap } from "@/components/PresetMap";
 ---
 
-<BaseLayout>
-  <section class="shell pt-12 pb-16 sm:pt-20 sm:pb-24">
-    <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-      <div class="space-y-7">
-        <span class="section-eyebrow">{heroBadge}</span>
-        <h1 class="heading-h1 text-4xl sm:text-5xl lg:text-6xl">
-          dragon で
-          <br />
-          <span class="text-nm-accent">animated diagram</span> を書く。
-        </h1>
-        <p class="max-w-xl text-lg text-nm-text-secondary leading-relaxed">
-          dragon は Mermaid 感覚で書ける Text DSL。 英語 keyword + 日本語値 quote の短文構文で、
-          ERC-20 transfer や DeFi swap の挙動を phase ごとに分解したアニメーション付き SVG にできます。
-          parse + compile は dragon、 layout / render / animation は cdl engine。 ブラウザだけで完結し、 SVG ダウンロード / 共有 URL に対応。
-        </p>
-        <div class="flex flex-wrap items-center gap-3">
-          <a href="/editor" class="nm-btn-accent">
-            Editor で試す
-            <span aria-hidden="true">→</span>
-          </a>
-          <a href="/docs/cdl/overview/quickstart" class="nm-btn">
-            Quickstart を読む
-          </a>
-          <a href="/catalog" class="nm-btn">
-            Catalog を見る
-          </a>
-        </div>
-      </div>
-      <div class="nm-card relative overflow-hidden">
-        <div class="absolute inset-0 opacity-50">
-          <div class="hero-grid"></div>
-        </div>
-        <div class="relative space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
-              dragon DSL v0.5 sample
-            </span>
-            <span class="nm-badge bg-nm-success-bg text-nm-success-text">solidity</span>
-          </div>
-          <pre class="hero-code">{`title: "ERC-20 transfer"
-type: solidity
-
-actors:
-  - Alice: { kind: eoa }
-  - Token: { kind: contract }
-  - balances: { kind: storage }
-  - "Transfer": { kind: event }
-
-states:
-  alice_bal: 100
-  bob_bal: 0
-
-flow:
-  - Alice -> Token: "transfer(Bob, 10)"
-  - Token -> balances: "update"
-  - Token -> "Transfer": "emit" (success)
-
-animation:
-  - step: "call" 1.2s
-    focus: [Alice, Token]
-  - step: "storage" 1.5s
-    focus: [Token, balances]
-    tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
-  - step: "emit" 0.8s
-    focus: [Token, "Transfer"]
-`}</pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="entry" class="shell pb-20">
-    <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div class="space-y-3">
-        <span class="section-eyebrow">Get started</span>
-        <h2 class="heading-h2">3 つの入り口</h2>
-      </div>
-    </div>
-    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {
-        featuredEntries.map((entry) => (
-          <a href={entry.href} class="nm-card-interactive group block no-underline">
-            <div class="flex h-full flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
-                  {entry.eyebrow}
-                </span>
-              </div>
-              <h3 class="text-xl font-bold leading-snug text-nm-text">{entry.title}</h3>
-              <p class="text-sm leading-relaxed text-nm-text-secondary">{entry.summary}</p>
-              <div class="mt-auto flex items-center justify-between pt-3 text-sm font-medium text-nm-accent">
-                <span>{entry.cta}</span>
-                <span class="nm-arrow" aria-hidden="true">→</span>
-              </div>
-            </div>
-          </a>
-        ))
-      }
-    </div>
-  </section>
-
-  <section class="shell pb-20">
-    <div class="nm-card-sm">
-      <div class="mb-5 flex flex-col gap-3">
-        <span class="section-eyebrow">12 presets</span>
-        <h2 class="heading-h2 text-xl sm:text-2xl">type: で切替できる図表現</h2>
-      </div>
-      <div class="grid gap-4 sm:grid-cols-3">
-        {
-          presets.map((g) => (
-            <div class="space-y-2">
-              <div class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">
-                {g.group}
-              </div>
-              <ul class="space-y-1">
-                {g.items.map((p) => (
-                  <li class="rounded-nm-sm bg-nm-bg/50 px-3 py-2 text-sm font-medium text-nm-text shadow-nm-pressed-sm">
-                    {p}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
-        }
-      </div>
-    </div>
-  </section>
-
-  <section class="shell pb-24">
-    <div class="nm-card-sm">
-      <div class="mb-5 flex flex-col gap-3">
-        <span class="section-eyebrow">Quality</span>
-        <h2 class="heading-h2 text-xl sm:text-2xl">本体は test と benchmark で守る</h2>
-      </div>
-      <ul class="grid gap-3 sm:grid-cols-4">
-        {
-          stats.map((s) => (
-            <li class="rounded-nm-sm bg-nm-bg/50 p-4 text-center shadow-nm-pressed-sm">
-              <div class="text-2xl font-bold text-nm-accent">{s.value}</div>
-              <div class="mt-1 text-xs uppercase tracking-wider text-nm-text-muted">{s.label}</div>
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </section>
+<BaseLayout
+  title="dragon — animated diagram DSL"
+  description="Mermaid 感覚で書く animated SVG。 12 preset を map で探索、 click で即動かす。"
+>
+  <PresetMap client:load />
 </BaseLayout>
 
-<style>
-  .hero-grid {
-    background-image:
-      linear-gradient(rgba(196, 185, 172, 0.25) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(196, 185, 172, 0.25) 1px, transparent 1px);
-    background-size: 36px 36px;
+<style is:global>
+  body {
+    margin: 0;
+    overflow: hidden;
+  }
+  .site-header {
+    z-index: 50;
+  }
+
+  .map-root {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(193,127,62,0.04), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(196,185,172,0.15) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(196,185,172,0.15) 39px 40px);
+    overflow: hidden;
+  }
+  html.dark .map-root {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(212,165,116,0.06), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(80,70,60,0.2) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(80,70,60,0.2) 39px 40px);
+  }
+
+  .map-canvas {
     width: 100%;
     height: 100%;
-    mask-image: radial-gradient(circle at top right, black 40%, transparent 80%);
+    cursor: grab;
+    user-select: none;
   }
-  .hero-code {
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 11px;
-    line-height: 1.5;
-    background: rgba(255, 251, 246, 0.6);
-    border-radius: 8px;
-    padding: 12px;
-    overflow: auto;
-    max-height: 360px;
-    margin: 0;
+  .map-canvas:active { cursor: grabbing; }
+
+  .map-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  .edges {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 150px;
+    padding: 14px 16px;
+    background: rgba(255, 251, 246, 0.96);
+    border: 1.5px solid rgba(193, 127, 62, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 6px 14px -6px rgba(0,0,0,0.08);
+  }
+  .node:hover {
+    transform: translate(-50%, calc(-50% - 3px));
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 14px 28px -8px rgba(193,127,62,0.25);
+    border-color: rgba(193,127,62,0.6);
+  }
+  .node-selected {
+    border-color: #c17f3e;
+    box-shadow: 0 0 0 3px rgba(193,127,62,0.2), 0 14px 28px -8px rgba(193,127,62,0.3);
+  }
+  .node-icon {
+    font-size: 22px;
+    color: #c17f3e;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .node-label {
+    font-weight: 700;
+    font-size: 14px;
     color: #3b2e22;
+    text-align: center;
   }
-  :global(html.dark) .hero-code {
-    background: rgba(18, 16, 14, 0.6);
+  .node-meta {
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: #8a8275;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .node-center {
+    background: #3b2e22 !important;
+    border-color: #3b2e22 !important;
+    color: #fff !important;
+    width: 180px;
+    padding: 18px 20px;
+  }
+  .node-center .node-icon {
+    color: #c17f3e !important;
+    font-size: 32px;
+  }
+  .node-center .node-label {
+    color: #fff;
+    font-size: 18px;
+  }
+  .node-center .node-meta {
+    color: rgba(255,255,255,0.5);
+  }
+  .center-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 6px 10px;
+    background: #c17f3e;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .center-btn:hover { background: #a86a2f; }
+
+  html.dark .node {
+    background: rgba(40, 32, 26, 0.96);
+    border-color: rgba(212, 165, 116, 0.4);
+  }
+  html.dark .node-label { color: #ede2d2; }
+  html.dark .node-meta { color: #a8a092; }
+  html.dark .node-center {
+    background: #ede2d2 !important;
+    border-color: #ede2d2 !important;
+  }
+  html.dark .node-center .node-label { color: #3b2e22; }
+  html.dark .node-center .node-meta { color: rgba(59,46,34,0.6); }
+
+  .map-search {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+  }
+  .map-search input {
+    width: 320px;
+    padding: 10px 16px;
+    font-size: 14px;
+    background: rgba(255,251,246,0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(196,185,172,0.6);
+    border-radius: 999px;
+    outline: none;
+    color: #3b2e22;
+    box-shadow: 0 4px 14px -4px rgba(0,0,0,0.1);
+  }
+  .map-search input:focus {
+    border-color: #c17f3e;
+    box-shadow: 0 0 0 3px rgba(193,127,62,0.15);
+  }
+  html.dark .map-search input {
+    background: rgba(40,32,26,0.95);
+    border-color: rgba(212,165,116,0.4);
     color: #ede2d2;
   }
+
+  .map-controls {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(255,251,246,0.95);
+    backdrop-filter: blur(8px);
+    padding: 6px;
+    border: 1px solid rgba(196,185,172,0.6);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px -4px rgba(0,0,0,0.1);
+  }
+  .map-controls button {
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #3b2e22;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .map-controls button:hover { background: rgba(193,127,62,0.15); }
+  .map-zoom-display {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: #8a8275;
+    text-align: center;
+    padding: 4px 0;
+  }
+  html.dark .map-controls {
+    background: rgba(40,32,26,0.95);
+    border-color: rgba(212,165,116,0.4);
+  }
+  html.dark .map-controls button { color: #ede2d2; }
+  html.dark .map-zoom-display { color: #a8a092; }
+
+  .map-minimap {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 20;
+    width: 140px;
+    height: 140px;
+    background: rgba(255,251,246,0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(196,185,172,0.6);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px -4px rgba(0,0,0,0.1);
+    padding: 8px;
+  }
+  .map-minimap svg {
+    width: 100%;
+    height: 100%;
+  }
+  html.dark .map-minimap {
+    background: rgba(40,32,26,0.95);
+    border-color: rgba(212,165,116,0.4);
+  }
+
+  .map-hint {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    z-index: 20;
+    font-size: 11px;
+    color: #8a8275;
+    background: rgba(255,251,246,0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(196,185,172,0.6);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: ui-monospace, monospace;
+  }
+  html.dark .map-hint {
+    background: rgba(40,32,26,0.85);
+    color: #a8a092;
+    border-color: rgba(212,165,116,0.4);
+  }
+
+  .map-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    animation: fadein 0.15s ease;
+  }
+  @keyframes fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .map-modal {
+    background: #fff;
+    border-radius: 18px;
+    padding: 28px 32px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 30px 60px -10px rgba(0,0,0,0.3);
+  }
+  html.dark .map-modal {
+    background: #2a221c;
+  }
+  .map-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #8a8275;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .map-modal-close:hover { background: rgba(196,185,172,0.2); }
+  .map-modal-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .map-modal-icon {
+    font-size: 36px;
+    color: #c17f3e;
+  }
+  .map-modal h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #3b2e22;
+    margin: 0;
+  }
+  html.dark .map-modal h2 { color: #ede2d2; }
+  .map-modal-meta {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: #8a8275;
+  }
+  .map-modal-desc {
+    font-size: 14px;
+    color: #5b4d3f;
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+  html.dark .map-modal-desc { color: #b8a994; }
+  .map-modal-preview {
+    border: 1px solid rgba(196,185,172,0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    background: #f5ede3;
+  }
+  html.dark .map-modal-preview {
+    background: #1c1814;
+    border-color: rgba(212,165,116,0.3);
+  }
+  .map-modal-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .map-modal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .map-modal-btn.primary {
+    background: #c17f3e;
+    color: #fff;
+  }
+  .map-modal-btn.primary:hover { background: #a86a2f; }
+  .map-modal-btn.ghost {
+    background: transparent;
+    color: #3b2e22;
+    border: 1px solid rgba(196,185,172,0.6);
+  }
+  .map-modal-btn.ghost:hover { background: rgba(193,127,62,0.1); }
+  html.dark .map-modal-btn.ghost { color: #ede2d2; border-color: rgba(212,165,116,0.4); }
 </style>
