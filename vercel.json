@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @cardenelabs/anim build && pnpm --filter @cardenelabs/cdl build && pnpm --filter cdl-playground build",
+  "buildCommand": "pnpm --filter @cardenelabs/anim build && pnpm --filter @cardenelabs/cdl build && pnpm --filter dragon-playground build",
   "outputDirectory": "apps/playground/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,

@@ -37,8 +37,8 @@ pnpm dev             # http://localhost:4321 で playground 起動
 ```bash
 pnpm test                                    # vitest 全 380 件 (unit + integration)
 pnpm test:watch                              # vitest watch mode
-pnpm --filter cdl-playground test:visual     # Playwright screenshot diff
-pnpm --filter cdl-playground test:e2e        # Editor flow
+pnpm --filter dragon-playground test:visual     # Playwright screenshot diff
+pnpm --filter dragon-playground test:e2e        # Editor flow
 pnpm lint                                    # eslint
 pnpm typecheck                               # tsc -b 全 workspace
 pnpm lint:docs-preview                       # docs の preview 強制 lint

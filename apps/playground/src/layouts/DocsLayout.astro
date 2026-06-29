@@ -141,7 +141,7 @@ const currentPageLabelEn = currentPageItem?.en ?? (sectionReadmeFallback ? "Over
 
 // Edit on GitHub link
 const githubEditUrl = `https://github.com/cardene777/cdl/blob/main/docs/cdl/${currentSlug}.md`;
-const canonicalUrl = `https://cdl-playground.vercel.app${docsPrefix}/${currentSlug}`;
+const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${currentSlug}`;
 ---
 
 <!doctype html>
@@ -153,21 +153,21 @@ const canonicalUrl = `https://cdl-playground.vercel.app${docsPrefix}/${currentSl
     {description && <meta name="description" content={description} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonicalUrl} />
-    <link rel="alternate" hreflang="ja" href={`https://cdl-playground.vercel.app/docs/cdl/${currentSlug}`} />
-    <link rel="alternate" hreflang="en" href={`https://cdl-playground.vercel.app/docs/en/cdl/${currentSlug}`} />
+    <link rel="alternate" hreflang="ja" href={`https://dragon-playground.vercel.app/docs/cdl/${currentSlug}`} />
+    <link rel="alternate" hreflang="en" href={`https://dragon-playground.vercel.app/docs/en/cdl/${currentSlug}`} />
     {/* OGP */}
     <meta property="og:type" content="article" />
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:site_name" content="cdl Docs" />
     <meta property="og:url" content={canonicalUrl} />
-    <meta property="og:image" content={`https://cdl-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
+    <meta property="og:image" content={`https://dragon-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
-    <meta name="twitter:image" content={`https://cdl-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
+    <meta name="twitter:image" content={`https://dragon-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
     {/* dark mode + lang pre-flash 防止: html.dark / html[lang] を localStorage で決定 */}
     <script is:inline>
       (function () {

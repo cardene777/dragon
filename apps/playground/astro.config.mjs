@@ -7,7 +7,7 @@ import remarkDocTabs from "./src/lib/remark-doc-tabs.mjs";
 
 export default defineConfig({
   output: "static",
-  site: process.env.SITE_URL || "https://cdl-playground.vercel.app",
+  site: process.env.SITE_URL || "https://dragon-playground.vercel.app",
   integrations: [
     mdx(),
     react(),

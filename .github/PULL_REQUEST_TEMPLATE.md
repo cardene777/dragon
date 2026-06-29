@@ -16,8 +16,8 @@
 - [ ] `pnpm test` 全 pass
 - [ ] `pnpm typecheck` pass
 - [ ] `pnpm build` pass
-- [ ] (該当時) `pnpm --filter cdl-playground test:visual` pass
-- [ ] (該当時) `pnpm --filter cdl-playground test:e2e` pass
+- [ ] (該当時) `pnpm --filter dragon-playground test:visual` pass
+- [ ] (該当時) `pnpm --filter dragon-playground test:e2e` pass
 - [ ] 新機能には test を追加した (test なしの新機能は merge 不可)
 
 動作確認手順 / 結果を簡潔に書く (screenshot / GIF があれば貼る)。

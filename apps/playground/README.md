@@ -10,10 +10,10 @@ dragon は user 向けの表玄関、 [`@cardenelabs/cdl`](../../packages/cdl) e
 pnpm install            # repo root で 1 回
 pnpm dev                # http://localhost:4321
 # or
-pnpm --filter cdl-playground dev
+pnpm --filter dragon-playground dev
 ```
 
-(内部 package 名は `cdl-playground` のまま、 表玄関は dragon)
+(内部 package 名は `dragon-playground` のまま、 表玄関は dragon)
 
 ## 3 つの app
 
@@ -49,13 +49,13 @@ dragon DSL の lower layer (layout / render / animation) を解説。
 ## 開発 script
 
 ```bash
-pnpm --filter cdl-playground dev               # dev server
-pnpm --filter cdl-playground build             # static build + pagefind index
-pnpm --filter cdl-playground preview           # build 結果を local preview
-pnpm --filter cdl-playground typecheck         # astro check + tsc
-pnpm --filter cdl-playground test:visual       # Playwright screenshot diff
-pnpm --filter cdl-playground test:e2e          # Editor flow E2E
-pnpm --filter cdl-playground test:visual:update    # screenshot 更新
+pnpm --filter dragon-playground dev               # dev server
+pnpm --filter dragon-playground build             # static build + pagefind index
+pnpm --filter dragon-playground preview           # build 結果を local preview
+pnpm --filter dragon-playground typecheck         # astro check + tsc
+pnpm --filter dragon-playground test:visual       # Playwright screenshot diff
+pnpm --filter dragon-playground test:e2e          # Editor flow E2E
+pnpm --filter dragon-playground test:visual:update    # screenshot 更新
 ```
 
 ## 構成
@@ -100,7 +100,7 @@ apps/playground/
 ## build artifact
 
 ```bash
-pnpm --filter cdl-playground build
+pnpm --filter dragon-playground build
 # → apps/playground/dist/
 #    ├── _pagefind/    search index
 #    ├── catalog/      catalog pages
