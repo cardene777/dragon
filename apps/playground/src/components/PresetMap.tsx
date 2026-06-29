@@ -20,7 +20,7 @@ const PRESETS: PresetNode[] = [
     label: "sequence",
     icon: "↔",
     cluster: "basic",
-    x: 22, y: 26,
+    x: 20, y: 24,
     description: "UML sequence (actor + msg)。 mermaid sequenceDiagram と同等。",
     sampleDsl: `title: "sequence demo"
 type: sequence
@@ -42,7 +42,7 @@ flow:
     label: "flow",
     icon: "↓",
     cluster: "basic",
-    x: 42, y: 22,
+    x: 35, y: 12,
     description: "flowchart (縦並び step)。 step ごとの遷移を視覚化。",
     sampleDsl: `title: "auth flow"
 type: flow
@@ -62,7 +62,7 @@ flow:
     label: "swimlane",
     icon: "∥",
     cluster: "basic",
-    x: 62, y: 22,
+    x: 65, y: 12,
     description: "actor 別 lane に分ける sequence。 責任分担が明確。",
     sampleDsl: `title: "checkout"
 type: swimlane
@@ -83,7 +83,7 @@ flow:
     label: "topology",
     icon: "◌",
     cluster: "basic",
-    x: 78, y: 28,
+    x: 80, y: 24,
     description: "system 配置図。 server / db / cache の network を描く。",
     sampleDsl: `title: "system"
 type: topology
@@ -103,7 +103,7 @@ flow:
     label: "er",
     icon: "▢",
     cluster: "basic",
-    x: 26, y: 44,
+    x: 26, y: 38,
     description: "ER 図 (entity + relation + cardinality)。 DB schema 視覚化。",
     sampleDsl: `title: "User-Order ER"
 type: er
@@ -121,7 +121,7 @@ flow:
     label: "state",
     icon: "⊙",
     cluster: "basic",
-    x: 74, y: 44,
+    x: 74, y: 38,
     description: "state machine (initial / final / transition)。",
     sampleDsl: `title: "auth FSM"
 type: state
@@ -142,7 +142,7 @@ flow:
     label: "solidity",
     icon: "◆",
     cluster: "domain",
-    x: 20, y: 75,
+    x: 32, y: 84,
     description: "Solidity smart contract 専用。 EOA / contract / storage / event を自動 sort。",
     sampleDsl: `title: "ERC-20 transfer"
 type: solidity
@@ -176,7 +176,7 @@ animation:
     label: "gantt",
     icon: "▬",
     cluster: "extended",
-    x: 82, y: 62,
+    x: 92, y: 48,
     description: "timeline 横棒。 task の期間 / 依存を視覚化。",
     sampleDsl: `title: "Q1-Q4 roadmap"
 type: gantt
@@ -193,7 +193,7 @@ actors:
     label: "class",
     icon: "▤",
     cluster: "extended",
-    x: 74, y: 76,
+    x: 58, y: 68,
     description: "UML class (fields + methods)。 OOP design 視覚化。",
     sampleDsl: `title: "User class"
 type: class
@@ -211,7 +211,7 @@ flow:
     label: "pie",
     icon: "◐",
     cluster: "extended",
-    x: 90, y: 76,
+    x: 90, y: 70,
     description: "円グラフ。 value + label で割合を表現。",
     sampleDsl: `title: "Market share"
 type: pie
@@ -227,7 +227,7 @@ actors:
     label: "c4",
     icon: "▣",
     cluster: "extended",
-    x: 74, y: 89,
+    x: 62, y: 84,
     description: "C4 model 階層 (system / container / component)。",
     sampleDsl: `title: "C4 context"
 type: c4
@@ -247,7 +247,7 @@ flow:
     label: "mind",
     icon: "✺",
     cluster: "extended",
-    x: 90, y: 89,
+    x: 88, y: 80,
     description: "mind map (中央 root + 放射)。 思考整理 / brainstorm。",
     sampleDsl: `title: "Project ideas"
 type: mind
@@ -272,6 +272,16 @@ const CLUSTER_STROKE: Record<PresetNode["cluster"], string> = {
   extended: "#6d28d9",
 };
 
+// cluster head 配置 + tier-1 制御点を 1 箇所に集約 (PRESETS の coords 同様、 SSOT)
+const CLUSTER_LAYOUT: Record<
+  PresetNode["cluster"],
+  { x: number; y: number; label: string; glyph: string; tier1d: string }
+> = {
+  basic: { x: 50, y: 24, label: "basic", glyph: "B", tier1d: "M 50 50 C 48 42, 49 32, 50 24" },
+  domain: { x: 22, y: 72, label: "domain", glyph: "D", tier1d: "M 50 50 C 40 58, 30 66, 22 72" },
+  extended: { x: 78, y: 60, label: "extended", glyph: "E", tier1d: "M 50 50 C 62 52, 72 56, 78 60" },
+};
+
 export function PresetMap(): React.JSX.Element {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
@@ -285,6 +295,17 @@ export function PresetMap(): React.JSX.Element {
     const q = search.toLowerCase();
     return PRESETS.filter((p) => p.id.includes(q) || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
   }, [search]);
+
+  // filter 後に preset を持つ cluster だけ tier-1 edge + head を render する用
+  const countsByCluster = useMemo(() => {
+    const m: Record<PresetNode["cluster"], number> = { basic: 0, domain: 0, extended: 0 };
+    for (const p of filtered) m[p.cluster]++;
+    return m;
+  }, [filtered]);
+  const visibleClusters = useMemo(
+    () => (Object.keys(CLUSTER_LAYOUT) as PresetNode["cluster"][]).filter((c) => countsByCluster[c] > 0),
+    [countsByCluster]
+  );
 
   // node click → diagram render
   useEffect(() => {
@@ -320,7 +341,8 @@ export function PresetMap(): React.JSX.Element {
   };
 
   const onMouseDown = (e: React.MouseEvent): void => {
-    if ((e.target as HTMLElement).closest(".node")) return;
+    const t = e.target as HTMLElement;
+    if (t.closest(".node") || t.closest(".cluster-head")) return;
     dragRef.current = { active: true, x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
   const onMouseMove = (e: React.MouseEvent): void => {
@@ -354,37 +376,49 @@ export function PresetMap(): React.JSX.Element {
           className="map-inner"
           style={{ transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})` }}
         >
-          {/* cluster zones (node を 14% 余白で囲む) */}
-          <div className="cluster-zone cluster-basic" style={{ left: "12%", top: "12%", width: "76%", height: "42%" }}></div>
-          <div className="cluster-label" style={{ left: "14%", top: "14%", color: "#2d6a8f" }}>
-            <span className="num">6</span>basic
-          </div>
-          <div className="cluster-zone cluster-domain" style={{ left: "8%", top: "62%", width: "26%", height: "30%" }}></div>
-          <div className="cluster-label" style={{ left: "10%", top: "64%", color: "#c2410c" }}>
-            <span className="num">1</span>domain
-          </div>
-          <div className="cluster-zone cluster-extended" style={{ left: "66%", top: "54%", width: "30%", height: "40%" }}></div>
-          <div className="cluster-label" style={{ left: "68%", top: "56%", color: "#6d28d9" }}>
-            <span className="num">5</span>extended
-          </div>
+          {/* cluster zones (head + 各 preset を囲む) */}
+          <div className="cluster-zone cluster-basic" style={{ left: "10%", top: "4%", width: "80%", height: "44%" }}></div>
+          <div className="cluster-zone cluster-domain" style={{ left: "12%", top: "62%", width: "22%", height: "34%" }}></div>
+          <div className="cluster-zone cluster-extended" style={{ left: "54%", top: "38%", width: "44%", height: "50%" }}></div>
 
-          {/* edges (bezier curves) */}
+          {/* hierarchy edges: dragon (50,50) → cluster head → 各 preset、 filter で head ごと連動 */}
           <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Tier 1: dragon → cluster head */}
+            {visibleClusters.map((c) => (
+              <path key={`tier1-${c}`} className={`edge-path edge-${c} edge-tier1`} d={CLUSTER_LAYOUT[c].tier1d} />
+            ))}
+
+            {/* Tier 2: cluster head → preset nodes */}
             {filtered.map((p) => {
-              // bezier control points: midpoint with offset toward each cluster
-              const cx = (50 + p.x) / 2;
-              const cy = (50 + p.y) / 2;
-              const cluster = p.cluster;
-              const colorClass = `edge-${cluster}`;
+              const head = CLUSTER_LAYOUT[p.cluster];
+              const cx = (head.x + p.x) / 2;
+              const cy = (head.y + p.y) / 2;
               return (
                 <path
                   key={`edge-${p.id}`}
-                  className={`edge-path ${colorClass}`}
-                  d={`M 50 50 C ${cx} ${cy}, ${(p.x + cx) / 2} ${(p.y + cy) / 2}, ${p.x} ${p.y}`}
+                  className={`edge-path edge-${p.cluster}`}
+                  d={`M ${head.x} ${head.y} C ${cx} ${cy}, ${(p.x + cx) / 2} ${(p.y + cy) / 2}, ${p.x} ${p.y}`}
                 />
               );
             })}
           </svg>
+
+          {/* cluster head nodes (filter 連動、 装飾用 pointer-events:none) */}
+          {visibleClusters.map((c) => {
+            const head = CLUSTER_LAYOUT[c];
+            const n = countsByCluster[c];
+            return (
+              <div
+                key={`head-${c}`}
+                className={`cluster-head head-${c}`}
+                style={{ left: `${head.x}%`, top: `${head.y}%` }}
+              >
+                <div className={`head-glyph head-${c}-glyph`}>{head.glyph}</div>
+                <div className="head-label">{head.label}</div>
+                <div className="head-meta">{n} {n === 1 ? "preset" : "presets"}</div>
+              </div>
+            );
+          })}
 
           {/* center dragon */}
           <div className="node node-center" style={{ left: "50%", top: "50%" }}>
@@ -437,7 +471,7 @@ export function PresetMap(): React.JSX.Element {
         <div className="map-zoom-display">{Math.round(transform.scale * 100)}%</div>
       </div>
 
-      {/* minimap */}
+      {/* minimap (hierarchy + filter 連動 + viewport は pan/zoom 反映) */}
       <div className="map-minimap">
         <div className="minimap-head">
           <span>overview</span>
@@ -445,18 +479,43 @@ export function PresetMap(): React.JSX.Element {
         </div>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* cluster zone outlines */}
-          <rect x="12" y="12" width="76" height="42" rx="3" fill="rgba(45,106,143,0.06)" stroke="rgba(45,106,143,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
-          <rect x="8" y="62" width="26" height="30" rx="3" fill="rgba(194,65,12,0.06)" stroke="rgba(194,65,12,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
-          <rect x="66" y="54" width="30" height="40" rx="3" fill="rgba(109,40,217,0.06)" stroke="rgba(109,40,217,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
-          {/* nodes (cluster 色) */}
-          {PRESETS.map((p) => {
-            const color = p.cluster === "basic" ? "#2d6a8f" : p.cluster === "domain" ? "#c2410c" : "#6d28d9";
-            return <circle key={p.id} cx={p.x} cy={p.y} r={p.cluster === "domain" ? 1.8 : 1.5} fill={color} />;
+          <rect x="10" y="4" width="80" height="44" rx="3" fill="rgba(45,106,143,0.06)" stroke="rgba(45,106,143,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="12" y="62" width="22" height="34" rx="3" fill="rgba(194,65,12,0.06)" stroke="rgba(194,65,12,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          <rect x="54" y="38" width="44" height="50" rx="3" fill="rgba(109,40,217,0.06)" stroke="rgba(109,40,217,0.3)" strokeWidth="0.4" strokeDasharray="1 1" />
+          {/* cluster head marker (visible のみ) */}
+          {visibleClusters.map((c) => {
+            const h = CLUSTER_LAYOUT[c];
+            return <rect key={`mini-head-${c}`} x={h.x - 2.5} y={h.y - 2.5} width="5" height="5" rx="1" fill={CLUSTER_STROKE[c]} opacity="0.85" />;
           })}
-          {/* center */}
+          {/* preset nodes (filter 後のみ) */}
+          {filtered.map((p) => (
+            <circle key={p.id} cx={p.x} cy={p.y} r={p.cluster === "domain" ? 1.8 : 1.5} fill={CLUSTER_STROKE[p.cluster]} />
+          ))}
+          {/* center dragon */}
           <rect x="46" y="46" width="8" height="8" rx="1.5" fill="#0a0e1a" />
-          {/* viewport */}
-          <rect x="8" y="8" width="84" height="84" fill="none" stroke="#2d6a8f" strokeWidth="0.6" rx="2" opacity="0.4" />
+          {/* viewport rect (pan/zoom 反映、 inverse transform で表示領域を計算) */}
+          {(() => {
+            const s = transform.scale;
+            // canvas 全体は 0-100 の世界座標。 viewport は inner の transform を逆算。
+            // 表示領域の世界座標 = (0 - tx)/s, (canvasW - tx)/s に相当するが viewBox は %、 簡略化 ... canvas 100% を s で割って tx/canvasW% 引く。
+            const vw = 100 / s;
+            const vh = 100 / s;
+            const vx = -transform.tx / s / 6;   // tx px → canvas % へは canvas 幅依存、 概算で /6 (rough)
+            const vy = -transform.ty / s / 6;
+            return (
+              <rect
+                x={Math.max(0, Math.min(100 - vw, vx))}
+                y={Math.max(0, Math.min(100 - vh, vy))}
+                width={Math.min(100, vw)}
+                height={Math.min(100, vh)}
+                fill="none"
+                stroke="#2d6a8f"
+                strokeWidth="0.6"
+                rx="2"
+                opacity="0.5"
+              />
+            );
+          })()}
         </svg>
       </div>
 
@@ -493,11 +552,15 @@ export function PresetMap(): React.JSX.Element {
         </div>
       )}
 
-      {/* stats */}
+      {/* stats (filter 連動) */}
       <div className="map-stats">
-        <div className="stat-pill basic"><span className="dot"></span><span className="num">6</span>basic</div>
-        <div className="stat-pill domain"><span className="dot"></span><span className="num">1</span>domain</div>
-        <div className="stat-pill extended"><span className="dot"></span><span className="num">5</span>extended</div>
+        {(Object.keys(CLUSTER_LAYOUT) as PresetNode["cluster"][]).map((c) => (
+          <div key={c} className={`stat-pill ${c}`}>
+            <span className="dot"></span>
+            <span className="num">{countsByCluster[c]}</span>
+            {c}
+          </div>
+        ))}
       </div>
 
       {/* hint */}

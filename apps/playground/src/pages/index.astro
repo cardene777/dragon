@@ -87,30 +87,56 @@ import { PresetMap } from "@/components/PresetMap";
     background: linear-gradient(180deg, rgba(109,40,217,0.05) 0%, transparent 100%);
     border: 1px dashed rgba(109,40,217,0.18);
   }
-  .cluster-label {
+  /* cluster head node (3、 装飾目的、 hover/click 不要) */
+  .cluster-head {
     position: absolute;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: ui-monospace, "JetBrains Mono", monospace;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1.5px solid;
+    box-shadow: 0 1px 3px rgba(10,14,26,0.04), 0 12px 28px -10px rgba(10,14,26,0.15);
     pointer-events: none;
-    z-index: 3;
+    z-index: 4;
+    text-align: center;
   }
-  .cluster-label .num {
-    background: rgba(255,255,255,0.9);
-    padding: 1px 7px;
-    border-radius: 4px;
+  .head-basic { border-color: #2d6a8f; background: linear-gradient(135deg, #eaf3f7 0%, #fff 70%); }
+  .head-domain { border-color: #c2410c; background: linear-gradient(135deg, #fef0e6 0%, #fff 70%); }
+  .head-extended { border-color: #6d28d9; background: linear-gradient(135deg, #f0e9ff 0%, #fff 70%); }
+  .head-glyph {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: #fff;
+    margin: 0 auto 6px;
+    font-family: "Manrope", "Inter", sans-serif;
+  }
+  .head-basic-glyph { background: linear-gradient(135deg, #2d6a8f 0%, #1f4d6e 100%); }
+  .head-domain-glyph { background: linear-gradient(135deg, #c2410c 0%, #9a3209 100%); }
+  .head-extended-glyph { background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%); }
+  .head-label {
     font-weight: 700;
-    border: 1px solid currentColor;
-    opacity: 0.75;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    color: #0a0e1a;
   }
-  html.dark .cluster-label .num {
-    background: rgba(15,20,25,0.9);
+  .head-meta {
+    font-size: 11px;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    color: #6b7785;
+    margin-top: 2px;
   }
+  /* dark mode は各 .head-* 個別に gradient 再指定 (汎用 .cluster-head 上書き禁止) */
+  html.dark .head-basic { background: linear-gradient(135deg, #18303d 0%, #1a1f2a 70%); }
+  html.dark .head-domain { background: linear-gradient(135deg, #3a1d10 0%, #1a1f2a 70%); }
+  html.dark .head-extended { background: linear-gradient(135deg, #2a1b48 0%, #1a1f2a 70%); }
+  html.dark .head-label { color: #f5f5f7; }
+  html.dark .head-meta { color: #99a3b3; }
 
   /* ─── edges ─── */
   .edges {
@@ -130,6 +156,12 @@ import { PresetMap } from "@/components/PresetMap";
   .edges .edge-basic { stroke: #2d6a8f; }
   .edges .edge-domain { stroke: #c2410c; stroke-width: 0.22; }
   .edges .edge-extended { stroke: #6d28d9; }
+  /* tier 1 edge は太め、 source order で .edge-path の後に置いて specificity tie 解決 */
+  .edges .edge-path.edge-tier1 {
+    stroke-width: 0.32;
+    opacity: 0.72;
+    stroke-dasharray: 0.45 0.4;
+  }
 
   /* ─── nodes ─── */
   .node {
@@ -277,7 +309,7 @@ import { PresetMap } from "@/components/PresetMap";
     box-shadow: 0 6px 16px -2px rgba(45,106,143,0.7);
   }
 
-  /* ─── search ─── */
+  /* ─── search (top center、 header 直下) ─── */
   .map-search {
     position: fixed;
     top: 76px;
@@ -286,8 +318,8 @@ import { PresetMap } from "@/components/PresetMap";
     z-index: 20;
   }
   .map-search input {
-    width: 380px;
-    padding: 11px 18px 11px 42px;
+    width: 340px;
+    padding: 10px 16px 10px 40px;
     font-size: 13.5px;
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
@@ -428,11 +460,11 @@ import { PresetMap } from "@/components/PresetMap";
   html.dark .map-controls button:hover { background: rgba(255,255,255,0.05); }
   html.dark .map-zoom-display { color: #99a3b3; }
 
-  /* ─── minimap (右下から左下に移動して mind node と被らないように) ─── */
+  /* ─── minimap (bottom-left、 mind preset (右下) との衝突回避) ─── */
   .map-minimap {
     position: fixed;
     bottom: 24px;
-    left: 70px;
+    left: 80px;
     z-index: 20;
     width: 160px;
     background: rgba(255,255,255,0.95);
