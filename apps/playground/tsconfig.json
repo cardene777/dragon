@@ -8,8 +8,6 @@
     "types": ["node"]
   },
   "references": [
-    { "path": "../../packages/anim" },
-    { "path": "../../packages/cdl" },
     { "path": "../../packages/dragon" }
   ],
   "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
