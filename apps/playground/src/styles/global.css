@@ -152,66 +152,79 @@
 
 }
 
-/* ─── Heading variants (neumorphism + accent rail / dot / dash) ─── */
+/* ─── Heading variants (v4 design ... Newsreader serif + italic em + teal accent) ─── */
 
 .heading-h1 {
-  @apply relative pl-5 text-3xl font-bold tracking-tight text-nm-text sm:text-4xl lg:text-5xl;
-  line-height: 1.15;
+  font-family: "Newsreader", "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 36px;
+  letter-spacing: -0.03em;
+  color: #1a1f2a;
+  line-height: 1.1;
 }
-
-.heading-h1::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.45em;
-  bottom: 0.45em;
-  width: 6px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #c17f3e 0%, #d4a06a 60%, #4a8b7f 100%);
-  box-shadow:
-    1px 1px 2px var(--nm-shadow-dark),
-    -1px -1px 2px var(--nm-shadow-light);
+@media (min-width: 640px) {
+  .heading-h1 { font-size: 44px; }
+}
+@media (min-width: 1024px) {
+  .heading-h1 { font-size: 52px; }
+}
+.heading-h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: #1f4d6e;
 }
 
 .heading-h2 {
-  @apply relative flex items-center gap-3 pb-3 text-2xl font-bold tracking-tight text-nm-text sm:text-3xl;
-  border-bottom: 1px solid var(--nm-shadow-dark);
-  box-shadow: 0 1px 0 var(--nm-shadow-light);
+  font-family: "Newsreader", "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.022em;
+  color: #1a1f2a;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0d9c8;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
-
+@media (min-width: 640px) {
+  .heading-h2 { font-size: 28px; }
+}
 .heading-h2::before {
   content: "";
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 9999px;
-  background: #c17f3e;
-  box-shadow:
-    inset 1px 1px 2px #8e5826,
-    inset -1px -1px 2px #d4a06a,
-    0 0 0 4px rgba(193, 127, 62, 0.12);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2d6a8f;
   flex-shrink: 0;
+  transform: translateY(-3px);
+}
+.heading-h2 em {
+  font-style: italic;
+  font-weight: 400;
+  color: #1f4d6e;
 }
 
 .heading-h3 {
-  @apply relative flex items-center gap-3 text-lg font-semibold tracking-tight text-nm-text sm:text-xl;
+  font-family: "Newsreader", "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 19px;
+  letter-spacing: -0.018em;
+  color: #1a1f2a;
 }
-
-.heading-h3::before {
-  content: "";
-  display: inline-block;
-  width: 4px;
-  height: 1.2em;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #c17f3e 0%, #d4a06a 100%);
-  box-shadow:
-    1px 0 1px var(--nm-shadow-dark),
-    -1px 0 1px var(--nm-shadow-light);
-  flex-shrink: 0;
+@media (min-width: 640px) {
+  .heading-h3 { font-size: 22px; }
 }
 
 .section-eyebrow {
-  @apply inline-flex items-center rounded-full bg-nm-surface px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-nm-accent shadow-nm-flat;
+  display: inline-flex;
+  align-items: center;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #2d6a8f;
 }
 
 /* Prose for content body (erc20-transfer article) */
