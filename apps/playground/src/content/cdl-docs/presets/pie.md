@@ -1,71 +1,53 @@
-# pie preset
+# pie chart (via chart preset)
 
-`pie` preset は円グラフ (mermaid `pie` 相当) を表現するための preset です。
-各 slice を 1 actor (`kind: card`) として配置し、 `value` 属性にパーセンテージを宣言します。
+`pie` chart は [chart preset](/docs/cdl/presets/chart) の `type: "pie"` で生成します。
+専用 preset としては存在せず、 chart preset の 1 mode です。
+
+mermaid `pie` に対応します。
+各 datum の `value` を total に対する % として subtitle に表示し、 視覚的に比率を確認できます。
 
 ## いつ使うか
 
-- シェア / 構成比 / 比率を 1 枚で示したい
-- KPI の構成内訳 (新規 / 既存 / 解約 等) を視覚化したい
-- 投票 / アンケート結果を表現したい
+`pie` は静的な比率共有に最適です。
 
-現状は専用の円グラフ描画 layout を持たず、 topology preset と同じ「全 slice を 1 group 内」 構造で描画される簡略実装です。
-完全な円グラフ (角度配置 / 中央 label) は将来 PR で追加予定です。
+- 売上構成比 (Web 45% / Mobile 35% / API 20%)
+- 機能利用率 (主要機能 A / B / C)
+- 予算配分 (Engineering / Marketing / Operations)
 
-## 最小例
+時系列の比率変化は [chart preset (line)](/docs/cdl/presets/chart) のほうが見やすいです。
 
-::: tabs
+## chart preset (pie) の挙動
 
-@@@ humans 👤 For humans
+- 各 datum の subtitle は `<percentage>%` (例 `45.0%`)
+- total = 全 datum の value 合計、 各 datum の % は `value / total × 100`
+- edge は生成されません (純粋な並列表示)
 
-```text
-title: "シェア内訳"
-type: pie
+## Signature
 
-actors:
-  - A: { kind: card, value: "30%" }
-  - B: { kind: card, value: "50%" }
-  - C: { kind: card, value: "20%" }
-
-states:
-  a_share: 30
-  b_share: 50
-
-animation:
-  - step: "再分配" 1s
-    focus: [A, B]
-    tween:
-      a_share: 30 -> 40
-      b_share: 50 -> 40
-    badge: "更新"
+```ts
+chart({ id: string, topic: string, type: "pie", itemWidth?: number, defaultTone?: Tone })
+  .datum({ id, label, value: number, tone? })
+  .build()
 ```
 
-@@@ llm 🤖 For LLM
+[preview:presets/chart-pie-demo]
 
-```yaml
-preset: pie
-intent: "Share / ratio breakdown with percentage slices"
-actors:
-  - { id: A, kind: card, value: "30%" }
-  - { id: B, kind: card, value: "50%" }
-states:
-  - { id: a_share, initial: 30 }
-phases:
-  - { id: rebalance, focus: [A, B], tweens: [a_share: 30->40] }
-constraints:
-  - "slice kind は card 推奨、 value にパーセンテージを宣言"
-  - "現状は円グラフ専用 layout なし、 group 内 card 配置で表現"
+## 完全な例
+
+```ts
+import { chart } from "@cardenelabs/cdl";
+
+export const marketShare = chart({ id: "share", topic: "Market share", type: "pie" })
+  .datum({ id: "web", label: "Web", value: 45 })
+  .datum({ id: "mobile", label: "Mobile", value: 35 })
+  .datum({ id: "api", label: "API", value: 20 })
+  .build();
 ```
 
-:::
-
-## 引数
-
-`pie` の引数は他 preset と共通です。
-`actors` の `value` 属性 (`"30%"` 等) が slice の数値を表します。
-`states` + `animation` で slice 値の増減 animation を表現できます。
+[preview:presets/chart-pie-demo]
 
 ## 関連
 
-- [topology preset](/docs/cdl/presets/topology) ... base layout として利用
-- [state primitive](/docs/cdl/primitives/state) ... value の tween 表現
+- [chart preset](/docs/cdl/presets/chart) — bar / line も含めた 3 統合 chart
+- [funnel preset](/docs/cdl/presets/funnel) — 段階的な数値推移を示したい時
+- [quadrant preset](/docs/cdl/presets/quadrant) — 2 軸評価

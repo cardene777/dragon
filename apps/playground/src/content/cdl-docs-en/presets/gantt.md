@@ -1,74 +1,63 @@
 # gantt preset
 
-The `gantt` preset expresses a Gantt chart (tasks laid out on a timeline for project progress, equivalent to mermaid `gantt`) in a simplified form.
-The current implementation does not have a dedicated time-axis layout; each task is placed as one lane / one card and dependencies are expressed via `flow` edges.
+`gantt` is a high-level API for Gantt charts (tasks × time axis) built up via `task` items.
+It corresponds to mermaid `gantt`.
+
+Each task carries `start` / `end` (period), `owner`, and `dependsOn` (id of the predecessor). When `dependsOn` is set, an edge is auto-generated.
+It suits sprint planning / release timeline / project planning narratives.
 
 ## When to use
 
-- Show a roadmap / milestones / project progress on one page.
-- Lay out quarterly (Q1 / Q2 / Q3) or monthly task progression along time.
-- Animate each task's progress (0-100%) via `states` + `tween`.
+`gantt` is great for project / sprint planning share-outs.
 
-A full Gantt chart (time-axis bars, dependency arrows) is planned for a future PR with a dedicated layout.
-Today it borrows the `swimlane` layout, drawing tasks as side-by-side cards.
+- Quarterly release roadmap (Q1 Design → Q2 Build → Q3 Test → Q4 Ship)
+- Sprint planning (work split across Week 1-2 / Week 3-4)
+- Visualising dependencies across multiple teams
 
-## Minimal example
+The cdl chart API does not provide hour-precise timeline rendering.
+If you need a fully fledged Gantt, consider a dedicated library (e.g. Bryntum Gantt).
 
-::: tabs
+## Why a dedicated preset
 
-@@@ humans 👤 For humans
+`task` dependencies (`dependsOn`) auto-create edges, so declaring tasks alone gives you the dependency graph.
+You no longer have to write each dependency edge by hand with the low-level API.
 
-```text
-title: "Roadmap"
-type: gantt
+## Signature
 
-actors:
-  - task1: { kind: card, subtitle: "Q1" }
-  - task2: { kind: card, subtitle: "Q2" }
-  - task3: { kind: card, subtitle: "Q3" }
-
-flow:
-  - task1 -> task2: "depends"
-  - task2 -> task3: "depends"
-
-states:
-  task1_progress: 0
-
-animation:
-  - step: "Q1 in progress" 1.2s
-    focus: [task1]
-    tween:
-      task1_progress: 0 -> 100
-    badge: "Q1 done"
+```ts
+gantt({ id: string, topic: string, laneWidth?: number, defaultTone?: Tone })
+  .task({ id, title, start: string, end: string, owner?, dependsOn? })
+  .build()
 ```
 
-@@@ llm 🤖 For LLM
+[preview:presets/gantt-demo]
 
-```yaml
-preset: gantt
-intent: "Project roadmap with quarterly tasks"
-actors:
-  - { id: task1, kind: card, subtitle: "Q1" }
-  - { id: task2, kind: card, subtitle: "Q2" }
-flow:
-  - { from: task1, to: task2, label: depends }
-states:
-  - { id: task1_progress, initial: 0 }
-phases:
-  - { id: q1, focus: [task1], tweens: [task1_progress: 0->100] }
-constraints:
-  - "task kind should be card (label + subtitle (period) is the focus)"
-  - "no dedicated time-axis layout yet, planned for a future PR"
+## Auto-generated subtitle
+
+Each task subtitle includes:
+
+- `<start> → <end>` (e.g. `Q1 → Q1`)
+- `owner: <name>` (only when provided, e.g. `owner: Designer`)
+
+## Complete example
+
+```ts
+import { gantt } from "@cardenelabs/cdl";
+
+export const releaseTimeline = gantt({ id: "release", topic: "Release timeline" })
+  .task({ id: "design", title: "Design", start: "Q1", end: "Q1", owner: "Designer" })
+  .task({ id: "build", title: "Build", start: "Q2", end: "Q2", owner: "Eng",
+          dependsOn: "design" })
+  .task({ id: "test", title: "Test", start: "Q3", end: "Q3", owner: "QA",
+          dependsOn: "build" })
+  .task({ id: "ship", title: "Ship", start: "Q4", end: "Q4", owner: "PM",
+          dependsOn: "test" })
+  .build();
 ```
 
-:::
+[preview:presets/gantt-demo]
 
-## Arguments
+## See also
 
-The arguments mirror the other presets (`title` / `type` / `actors` / `flow` / `states` / `animation`).
-Put the period (`"Q1"`, `"2026/06"`) into `subtitle`, and the progress percentage (`"50%"`) into `value`.
-
-## Related
-
-- [swimlane preset](/docs/en/cdl/presets/swimlane) — the base layout used here.
-- [state primitive](/docs/en/cdl/primitives/state) — tween progress values over time.
+- [flow preset](/docs/en/cdl/presets/flow) — plain sequential step list, no dependencies
+- [flowchart preset](/docs/en/cdl/presets/flowchart) — role-split business workflow

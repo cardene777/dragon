@@ -1,64 +1,63 @@
-# mind preset
+# mindMap preset
 
-The `mind` preset expresses a mind map (ideas radiating out from a central theme, equivalent to mermaid `mindmap`).
-The first actor would ideally become the central root with the rest as leaves, but the current implementation does not have a dedicated radial layout; instead it routes through the topology preset and auto-generates implicit edges from the root to each leaf.
+`mindMap` is a high-level API for a mind map (ideas radiating from a central topic) built up via `branch` calls.
+It corresponds to mermaid `mindmap`.
+
+You declare the centre via `rootId` + `rootTitle`, and each branch references its `parent` to grow level 1 / level 2.
+Branches at level 1 rotate through six colours (accent / teal / success / warning / info / error). Level 2 and deeper branches inherit the colour of their parent.
 
 ## When to use
 
-- Show a brainstorm / idea expansion on a single page.
-- Visualize a concept map (central concept fanning out to related terms).
-- Organize learning material chapter structure (root = title, leaves = chapters).
+`mindMap` is great for thought organisation, brainstorming, and idea structuring.
 
-A full radial layout (root at the center, leaves spread across 360 degrees) is planned for a future PR.
-Today, actors are placed vertically inside a group, with edges from the root to each leaf.
+- Project ideation branching (Project → Features / UI design / Launch)
+- Blog post outline (Topic → Section A / B / C → Sub points)
+- Concept maps (cdl → Diagram engine / DSL / Visual editor)
 
-## Minimal example
+If the hierarchy is one-way and the order matters, [tree preset](/docs/en/cdl/presets/tree) reads better.
 
-::: tabs
+## Compared to `tree`
 
-@@@ humans 👤 For humans
+| aspect | tree | mindMap |
+|---|---|---|
+| root | required (no `parent`) | required (`rootId`) |
+| colours | single edge tone | six-colour rotation at level 1 |
+| use case | org charts / file trees | brainstorming / idea structuring |
+| feel | clear hierarchy | radial from a centre |
 
-Even with an empty `flow`, the first actor becomes the root and implicit edges are generated to the rest.
+## Signature
 
-```text
-title: "Idea expansion"
-type: mind
-
-actors:
-  - Core: { kind: card, subtitle: "central theme" }
-  - Idea1: { kind: card, subtitle: "option 1" }
-  - Idea2: { kind: card, subtitle: "option 2" }
-  - Idea3: { kind: card, subtitle: "option 3" }
+```ts
+mindMap({ id: string, topic: string, rootId: string, rootTitle: string,
+          branchWidth?: number, defaultTone?: Tone })
+  .branch({ id, title, parent, tone?, subtitle? })
+  .build()
 ```
 
-Declare a `flow` to make edges explicit.
+[preview:presets/mind-demo]
 
-```text
-flow:
-  - Core -> Idea1: "branch"
-  - Core -> Idea2: "branch"
-  - Idea1 -> Idea3: "child"
+## Complete example
+
+```ts
+import { mindMap } from "@cardenelabs/cdl";
+
+export const projectIdeas = mindMap({
+  id: "ideas",
+  topic: "Project ideas",
+  rootId: "root",
+  rootTitle: "Project",
+})
+  .branch({ id: "feat", title: "Features", parent: "root" })
+  .branch({ id: "ui", title: "UI design", parent: "root" })
+  .branch({ id: "launch", title: "Launch", parent: "root" })
+  .branch({ id: "auth", title: "Auth", parent: "feat" })
+  .branch({ id: "billing", title: "Billing", parent: "feat" })
+  .build();
 ```
 
-@@@ llm 🤖 For LLM
+[preview:presets/mind-demo]
 
-```yaml
-preset: mind
-intent: "Mind map / brainstorm with central root and leaves"
-actors:
-  - { id: Core, kind: card, role: root }
-  - { id: Idea1, kind: card, role: leaf }
-  - { id: Idea2, kind: card, role: leaf }
-flow: []   # empty: root -> leaf edges are generated automatically
-constraints:
-  - "actors[0] = root, rest = leaves"
-  - "empty flow auto-generates root -> leaf edges"
-  - "no dedicated radial layout yet, drawn as vertical cards"
-```
+## See also
 
-:::
-
-## Related
-
-- [topology preset](/docs/en/cdl/presets/topology) — the base layout used here.
-- [flow preset](/docs/en/cdl/presets/flow) — use this for sequential idea organization.
+- [tree preset](/docs/en/cdl/presets/tree) — clear org chart / file tree hierarchy
+- [classDiagram preset](/docs/en/cdl/presets/class) — to convey UML-flavoured structure
