@@ -95,23 +95,20 @@ const cookbookHref = "/docs/cdl/overview/cookbook";
           <h2 class="heading-h2">{g.title}</h2>
           <p class="text-sm text-nm-text-secondary">{g.desc}</p>
         </div>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
           {g.items.map((item) => (
-            <div class="space-y-2">
-              <div class="flex items-center justify-between gap-3">
-                <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
-                <a href={cookbookHref} class="catalog-doc-link shrink-0" aria-label="Cookbook ドキュメント">
+            <article class="catalog-card">
+              <header class="catalog-card-head">
+                <div class="catalog-card-title">{item.label}</div>
+                <a href={cookbookHref} class="catalog-card-link" aria-label="Cookbook ドキュメント">
                   <span aria-hidden="true">📖</span>
-                  <span>ドキュメント</span>
+                  <span>Docs</span>
                 </a>
+              </header>
+              <div class="catalog-card-body">
+                <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
               </div>
-              <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
-                <a href={cookbookHref} class="catalog-thumb-doc-link" aria-label="Cookbook ドキュメント" title="Cookbook を見る">📖</a>
-                <div class="catalog-thumb-inner">
-                  <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
-                </div>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>
@@ -157,14 +154,21 @@ const cookbookHref = "/docs/cdl/overview/cookbook";
       background: rgba(193, 127, 62, 0.18);
       transform: scale(1.08);
     }
-    /* card 囲いサイズ統一 (全 25 例で同じ高さ) */
+    /* card 囲いサイズ統一 (全 25 例で同じ高さ、 内容に応じた最低高 320px、 白背景) */
     .catalog-thumb-wrap {
-      aspect-ratio: 16 / 9;
+      aspect-ratio: 4 / 3;
       width: 100%;
-      background: var(--color-nm-surface, #f5ede2);
+      min-height: 320px;
+      background: #ffffff;
+      border: 1px solid rgba(45, 106, 143, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 16px;
+    }
+    html.dark .catalog-thumb-wrap {
+      background: #1f2630;
+      border-color: rgba(94, 196, 232, 0.12);
     }
     .catalog-thumb-inner {
       width: 100%;
@@ -172,6 +176,7 @@ const cookbookHref = "/docs/cdl/overview/cookbook";
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
     .catalog-thumb-inner > * {
       width: 100%;
@@ -179,6 +184,10 @@ const cookbookHref = "/docs/cdl/overview/cookbook";
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+    }
+    /* SVG 内部は白背景に統一 + dark mode で dark surface に */
+    .catalog-thumb-inner svg {
+      background: transparent !important;
     }
   </style>
 </BaseLayout>
