@@ -1,8 +1,8 @@
 ---
 import "../../styles/global.css";
 import "../../styles/docs-site.css";
-const title = "@cardenelabs/cdl engine - Docs";
-const description = "@cardenelabs/cdl engine 公式ドキュメント。 mermaid 並みに人が描きやすい animated SVG diagram engine (dragon DSL の lower layer)。";
+const title = "dragon docs";
+const description = "dragon は YAML 風 Text DSL から animated SVG diagram を生成する OSS。 Mermaid 感覚で書ける、 動く図のためのツール。";
 ---
 
 <!doctype html>
@@ -17,7 +17,7 @@ const description = "@cardenelabs/cdl engine 公式ドキュメント。 mermaid
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:site_name" content="cdl engine Docs (dragon)" />
+    <meta property="og:site_name" content="dragon docs" />
     <meta property="og:url" content="https://dragon-playground.vercel.app/docs" />
     <meta property="og:image" content="https://dragon-playground.vercel.app/ogp/default.png" />
     <meta property="og:image:width" content="1200" />
@@ -46,17 +46,21 @@ const description = "@cardenelabs/cdl engine 公式ドキュメント。 mermaid
     <!-- 同じ DocsNavBar を Hero ページにも (DocsLayout の navbar と統一スタイル) -->
     <header class="docs-navbar">
       <div class="docs-navbar-inner">
-        <a href="/docs" class="docs-navbar-brand">
-          <span class="docs-navbar-logo">C</span>
-          <span class="docs-navbar-title">cdl <span class="docs-navbar-title-sub">engine Docs</span></span>
+        <a href="/" class="docs-navbar-brand">
+          <span class="docs-navbar-logo">
+            <svg viewBox="0 0 28 28" fill="none" width="22" height="22">
+              <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a"/>
+              <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85"/>
+            </svg>
+          </span>
+          <span class="docs-navbar-title">dragon <span class="docs-navbar-title-sub">docs</span></span>
         </a>
         <nav class="docs-navbar-nav" aria-label="docs navigation">
-          <a href="/docs" class="docs-navbar-link active" data-ja="はじめに" data-en="Home">はじめに</a>
-          <a href="/docs/cdl/overview/quickstart" class="docs-navbar-link" data-ja="ガイド" data-en="Guide">ガイド</a>
-          <a href="/docs/cdl/reference/api" class="docs-navbar-link" data-ja="リファレンス" data-en="Reference">リファレンス</a>
-          <a href="/catalog" class="docs-navbar-link" data-ja="Catalog" data-en="Catalog">Catalog</a>
-          <a href="/" class="docs-navbar-link docs-navbar-link-external" data-ja="dragon サイト" data-en="dragon Site">dragon サイト</a>
-          <a href="https://github.com/cardene777/cdl" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">GitHub ↗</a>
+          <a href="/" class="docs-navbar-link">overview</a>
+          <a href="/editor" class="docs-navbar-link">editor</a>
+          <a href="/catalog" class="docs-navbar-link">catalog</a>
+          <a href="/docs" class="docs-navbar-link active">docs</a>
+          <a href="https://github.com/cardene777/dragon" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">github ↗</a>
         </nav>
         <div style="margin-left: auto;"></div>
         <button class="docs-navbar-lang-toggle" id="docs-lang-toggle" aria-label="言語切替" title="言語切替">
@@ -85,16 +89,16 @@ const description = "@cardenelabs/cdl engine 公式ドキュメント。 mermaid
 
     <main class="docs-hero-shell">
       <section class="docs-hero">
-        <div class="docs-hero-eyebrow">@cardenelabs/cdl · TypeScript DSL</div>
+        <div class="docs-hero-eyebrow" data-ja="dragon · text dsl × svg animation" data-en="dragon · text dsl × svg animation">dragon · text dsl × svg animation</div>
         <h1 class="docs-hero-title">
-          <span data-ja="人が描きやすい" data-en="Human-friendly">人が描きやすい</span><br />
-          <span class="docs-hero-title-accent" data-ja="animated diagram" data-en="animated diagrams">animated diagram</span>
-          <span data-ja=" を宣言する。" data-en=", declared.">を宣言する。</span>
+          <span data-ja="書くと、" data-en="Write,">書くと、</span>
+          <span class="docs-hero-title-accent" data-ja="動く" data-en="it animates">動く</span>
+          <span data-ja="。" data-en=".">。</span>
         </h1>
-        <p class="docs-hero-lead" data-ja="cdl は TypeScript で diagram を declare → React + SVG で animated render する OSS library。 mermaid のような simplicity と、 phase / state / tween による dynamic 表現を両立。 書いた declaration が画面に出ているかを engine が自動検証する 「目」 を備えるのが他にない特徴。" data-en="cdl is an OSS library that lets you declare diagrams in TypeScript and render them as animated React + SVG. It combines mermaid-like simplicity with dynamic expressions via phase / state / tween, plus a unique &quot;eye&quot; engine that automatically verifies whether your declaration matches what is actually drawn.">
-          cdl は TypeScript で diagram を declare → React + SVG で animated render する OSS library。
-          mermaid のような simplicity と、 phase / state / tween による dynamic 表現を両立。
-          書いた declaration が画面に出ているかを engine が自動検証する <strong>「目」</strong> を備えるのが他にない特徴。
+        <p class="docs-hero-lead" data-ja="dragon は YAML 風 Text DSL を書くだけで sequence / topology / er / state ほか 12 種の図と animation が出力される OSS。 mermaid 感覚の simplicity と、 phase / state / tween による dynamic 表現を両立。 install 不要、 web editor で 30 秒から書ける。" data-en="dragon turns YAML-like Text DSL into animated diagrams (sequence / topology / er / state and 12+ presets). Mermaid-like simplicity meets dynamic phase / state / tween rendering. No install — start in 30 seconds in the web editor.">
+          dragon は YAML 風 Text DSL を書くだけで sequence / topology / er / state ほか 12 種の図と animation が出力される OSS。
+          mermaid 感覚の simplicity と、 phase / state / tween による dynamic 表現を両立。
+          install 不要、 web editor で 30 秒から書ける。
         </p>
         <div class="docs-hero-cta">
           <a href="/docs/cdl/overview/quickstart" class="docs-hero-cta-primary" data-ja="Quickstart (5 分) →" data-en="Quickstart (5 min) →">Quickstart (5 分) →</a>
@@ -112,7 +116,7 @@ const description = "@cardenelabs/cdl engine 公式ドキュメント。 mermaid
         <a href="/docs/cdl/overview/cookbook" class="docs-feature-card">
           <div class="docs-feature-icon">📖</div>
           <h3 data-ja="9 実用例" data-en="9 examples">9 実用例</h3>
-          <p data-ja="sequence / swimlane / ER / FSM / Permit / Bridge etc." data-en="sequence / swimlane / ER / FSM / Permit / Bridge etc.">sequence / swimlane / ER / FSM / Permit / Bridge etc.</p>
+          <p data-ja="sequence / swimlane / ER / FSM / topology ほか、 現場頻出パターン集。" data-en="sequence / swimlane / ER / FSM / topology and more practical patterns.">sequence / swimlane / ER / FSM / topology ほか、 現場頻出パターン集。</p>
         </a>
         <a href="/docs/cdl/primitives/README" class="docs-feature-card">
           <div class="docs-feature-icon">🧱</div>

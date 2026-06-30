@@ -32,17 +32,6 @@ const categories = [
   },
   {
     href: "/catalog/patterns",
-    label: "patterns",
-    desc: "ブロックチェーン解説で頻出する構成パターン 18 件。 Smart Contract 基本 / Token 系 / DeFi / Consensus / Cross-Chain / Account 抽象化。",
-    items: [
-      "call / read / write",
-      "Approve-Pull / Permit",
-      "DEX Swap / Lending",
-      "Bridge / Proxy / Meta-Tx",
-    ],
-    cluster: "domain",
-  },
-  {
     href: "/catalog/text-dsl",
     label: "dragon DSL (v0.5)",
     desc: "「タイトル / 種類 / 登場人物 / 流れ / アニメーション」 の 5 ブロック箇条書きで書ける dragon DSL から、 6 preset × animation すべてが visual に動く確認場。",
@@ -51,16 +40,26 @@ const categories = [
   },
   {
     href: "/catalog/cookbook",
-    label: "cookbook (25 例)",
-    desc: "dragon DSL v0.5 で書いた現場頻出 25 パターン (DeFi 10 / NFT 5 / DAO 5 / Bridge 5)。 docs cookbook の各 entry が data-cdl-diagram slug 経由でここを参照。",
+    label: "cookbook",
+    desc: "dragon DSL v0.5 で書いた現場頻出パターン集。 docs cookbook の各 entry が data-cdl-diagram slug 経由でここを参照する。",
     items: [
-      "ERC-20 / UniswapV2",
-      "Aave / Compound / Curve",
-      "ERC-721 / Auction",
-      "Governor / Multisig",
-      "LayerZero / CCTP / Bridge",
+      "API call / DB query",
+      "auth / FSM",
+      "system topology",
+      "schema / migration",
     ],
     cluster: "extended",
+  },
+  {
+    href: "/catalog/patterns",
+    label: "patterns (domain)",
+    desc: "特定領域 (現在は web3 / smart contract) で頻出する構成パターン集。 必要なときだけ参照する。",
+    items: [
+      "call / read / write",
+      "approve-pull",
+      "proxy / meta-tx",
+    ],
+    cluster: "domain",
   },
 ];
 ---
