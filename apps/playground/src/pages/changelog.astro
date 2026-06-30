@@ -1,0 +1,63 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const changelogPath = path.resolve(process.cwd(), "../../CHANGELOG.md");
+const raw = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, "utf-8") : "# Changelog\n\nNot found.";
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
+}
+
+function renderInline(line: string): string {
+  let s = escapeHtml(line);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code class="rounded bg-nm-surface px-1.5 py-0.5 text-sm">$1</code>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-nm-accent underline">$1</a>');
+  return s;
+}
+
+function renderMd(md: string): string {
+  const lines = md.split("\n");
+  const out: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      out.push(`<h1 class="heading-h1 mb-6">${renderInline(line.slice(2))}</h1>`);
+    } else if (line.startsWith("## ")) {
+      out.push(`<h2 class="heading-h2 mt-10 mb-3">${renderInline(line.slice(3))}</h2>`);
+    } else if (line.startsWith("### ")) {
+      out.push(`<h3 class="heading-h3 mt-6 mb-2">${renderInline(line.slice(4))}</h3>`);
+    } else if (line.startsWith("- ")) {
+      out.push(`<li class="ml-6 list-disc text-nm-text-secondary">${renderInline(line.slice(2))}</li>`);
+    } else if (line.trim() === "") {
+      out.push("<br/>");
+    } else {
+      out.push(`<p class="text-nm-text-secondary">${renderInline(line)}</p>`);
+    }
+  }
+  return out.join("\n");
+}
+
+const html = renderMd(raw);
+---
+
+<BaseLayout
+  title="Changelog - dragon"
+  description="dragon DSL の全 release の詳細変更履歴 (CHANGELOG.md SSOT)。"
+>
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Changelog</span>
+      </nav>
+      <span class="section-eyebrow">Release</span>
+    </div>
+  </section>
+
+  <section class="shell pb-16 max-w-3xl">
+    <article class="changelog-md space-y-1" set:html={html}></article>
+  </section>
+</BaseLayout>

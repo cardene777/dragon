@@ -1,11 +1,25 @@
 # Changelog
 
-CDL (Chainome Diagram Language) の主要変更履歴。
+dragon DSL の主要変更履歴。
 [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) format + [Semantic Versioning](https://semver.org/lang/ja/) 準拠。
 
 ## [Unreleased]
 
 予定 ... feedback を反映した patch / minor。
+
+## [0.6.0] - 2026-06-30
+
+### Changed
+
+- catalog 全 page (cookbook / patterns / text-dsl / presets / animation / styles / primitives) + docs (ja/en) を WebApp 軸の汎用 doc tool 表現に書直し、 blockchain 専用文脈から脱却
+- cookbook を WebApp 軸 25 例 (API/Auth 5 + データ操作 5 + UI 5 + 非同期 5 + 運用 5) に再構築、 card 囲い 16:9 統一
+- patterns を 12 種の汎用 pattern (Direct / Passthrough / Call-RW / Emit / Hook / Branch / Loop / Fan-out / Fan-in / Rollback / Schedule / Validate→Process) に再構築
+
+### Removed
+
+- 旧 patterns docs (bridge / permit / dex-swap / multicall / approve-pull + solidity preset 解説) を全削除
+- primitives-extra の 8 NodeKind (wallet / validator / miner / blockchain-node / mempool / block / bridge-node / relayer) 参照を削除
+- 旧 cookbook 25 例 (DeFi 10 / NFT 5 / DAO 5 / Bridge 5) を全削除
 
 ## [0.5.0] - 2026-06-28
 
@@ -13,8 +27,8 @@ CDL (Chainome Diagram Language) の主要変更履歴。
 
 Initial OSS release.
 
-- **12 preset** ... sequence / flow / swimlane / er / state / topology / solidity / gantt / class / pie / c4 / mind
-- **29 NodeKind** ... actor / function / storage / event / service / database / cache / queue / wallet / validator / 他
+- **6 preset** ... sequence / flow / swimlane / er / state / topology
+- **多数の NodeKind** ... actor / function / storage / event / service / database / cache / queue / 他
 - **8 EdgeStyle** ... solid / dotted / dashed / dotted-flow / 他
 - **6 Tone** ... accent / teal / success / error / warning / info
 - **phase / state / tween / set / badge** ... 時系列 animation を宣言的に
