@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
 import {
   textDslSequence,
   textDslFlow,
@@ -233,7 +233,7 @@ const items = [
               </a>
             </header>
             <div class="catalog-card-body">
-              <CdlDiagramView client:load diagram={item.d} />
+              <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
             </div>
             <details class="catalog-dsl-source">
               <summary>
