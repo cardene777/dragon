@@ -1,11 +1,98 @@
 ---
 const year = new Date().getFullYear();
+const repoUrl = "https://github.com/cardene777/dragon";
 ---
 
-<footer class="mt-24 border-t border-nm-shadow-dark/30 py-10">
-  <div class="shell flex flex-col items-center gap-2 text-sm text-nm-text-secondary sm:flex-row sm:justify-between">
-    <span class="font-semibold text-nm-text">dragon</span>
-    <span>Mermaid 感覚 Text DSL · powered by cdl engine</span>
-    <span class="text-xs text-nm-text-muted">© {year}</span>
+<footer class="v4-foot">
+  <div class="v4-foot-brand">
+    <a href="/" class="v4-nav-brand" style="margin-right:0;">
+      <div class="v4-nav-mark">
+        <svg viewBox="0 0 28 28" fill="none">
+          <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a" />
+          <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85" />
+        </svg>
+      </div>
+      <span class="v4-nav-name">dragon</span>
+    </a>
+    <p>Text DSL × SVG animation の OSS。 mermaid 感覚で書ける、 動く図のためのツール。</p>
+    <p class="v4-foot-copy">© {year} cardenelabs · MIT</p>
+  </div>
+  <div class="v4-foot-col">
+    <h4>project</h4>
+    <a href="/">overview</a>
+    <a href={`${repoUrl}/releases`} target="_blank" rel="noopener">changelog</a>
+    <a href={`${repoUrl}/issues`} target="_blank" rel="noopener">roadmap</a>
+    <a href={repoUrl} target="_blank" rel="noopener">github ↗</a>
+  </div>
+  <div class="v4-foot-col">
+    <h4>learn</h4>
+    <a href="/docs">docs</a>
+    <a href="/catalog">catalog</a>
+    <a href="/editor">editor</a>
+    <a href={`${repoUrl}#readme`} target="_blank" rel="noopener">readme</a>
+  </div>
+  <div class="v4-foot-col">
+    <h4>community</h4>
+    <a href={`${repoUrl}/discussions`} target="_blank" rel="noopener">discussions</a>
+    <a href={`${repoUrl}/issues/new`} target="_blank" rel="noopener">report issue</a>
+    <a href={`${repoUrl}/blob/main/CONTRIBUTING.md`} target="_blank" rel="noopener">contribute</a>
   </div>
 </footer>
+
+<style is:global>
+  .v4-foot {
+    border-top: 1px solid var(--v4-line);
+    padding: 40px 32px;
+    max-width: 1180px;
+    margin: 56px auto 0;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 32px;
+    font-size: 13px;
+    font-family: var(--v4-sans);
+    color: var(--v4-ink-dim);
+  }
+  .v4-foot-brand .v4-nav-name {
+    font-size: 18px;
+  }
+  .v4-foot-brand p {
+    color: var(--v4-ink-dim);
+    margin-top: 10px;
+    font-size: 12.5px;
+    max-width: 280px;
+    line-height: 1.55;
+  }
+  .v4-foot-copy {
+    color: var(--v4-ink-mute);
+    font-size: 11.5px;
+    font-family: var(--v4-mono);
+    margin-top: 8px !important;
+  }
+  .v4-foot-col h4 {
+    font-family: var(--v4-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--v4-ink-mute);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .v4-foot-col a {
+    display: block;
+    color: var(--v4-ink-dim);
+    padding: 3px 0;
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .v4-foot-col a:hover {
+    color: var(--v4-ink);
+  }
+
+  @media (max-width: 900px) {
+    .v4-foot {
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+  }
+</style>

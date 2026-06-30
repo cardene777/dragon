@@ -4,106 +4,267 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 const categories = [
   {
     href: "/catalog/primitives",
-    label: "Primitives",
+    label: "primitives",
     desc: "lane / node の基本パーツ + 拡充 NodeKind 29 種 (人 / インフラ / アプリ / blockchain / 暗号)。",
     items: ["NodeKind 29 種", "Lane 3 種", "Stack 2 種"],
+    cluster: "basic",
   },
   {
     href: "/catalog/presets",
-    label: "Presets (高位 API)",
+    label: "presets",
     desc: "swimlane / flow 等の preset で 複数 lane / node / edge を 1 行宣言。 低位 API より簡潔に書ける。",
     items: ["swimlane (3 lane)", "flow (sequence 風)"],
+    cluster: "basic",
   },
   {
     href: "/catalog/styles",
-    label: "Styles",
+    label: "styles",
     desc: "edge 種類 (solid / dotted-flow) と tone 全 6 種 (accent / teal / success / error / warning / info)、 active / inactive 状態。",
     items: ["EdgeStyle 2 種", "Tone 6 種", "Active / Inactive"],
+    cluster: "basic",
   },
   {
     href: "/catalog/animation",
-    label: "Animation",
+    label: "animation",
     desc: "phase / state / tween / set / badge の動作。 数値補間と即時切替、 連続 phase、 badge 切替の挙動。",
     items: ["Tween 線形補間", "Set 即時切替", "Badge 切替", "Tween + Set 併用"],
+    cluster: "basic",
   },
   {
     href: "/catalog/patterns",
-    label: "Patterns",
-    desc: "ブロックチェーン解説で頻出する構成パターン (18 件)。 Smart Contract 基本 / Token 系 / DeFi (DEX / Lending / Oracle / Liquidation) / Consensus / Cross-Chain / Account 抽象化。",
+    label: "patterns",
+    desc: "ブロックチェーン解説で頻出する構成パターン 18 件。 Smart Contract 基本 / Token 系 / DeFi / Consensus / Cross-Chain / Account 抽象化。",
     items: [
       "call / read / write",
-      "emit / Hook / NFT Mint",
-      "Approve-Pull / Permit / Multicall",
-      "DEX Swap / Lending / Oracle / Liquidation",
-      "Staking / Bridge / CCTP",
-      "Proxy / Meta-Tx",
+      "Approve-Pull / Permit",
+      "DEX Swap / Lending",
+      "Bridge / Proxy / Meta-Tx",
     ],
+    cluster: "domain",
   },
   {
     href: "/catalog/text-dsl",
     label: "dragon DSL (v0.5)",
     desc: "「タイトル / 種類 / 登場人物 / 流れ / アニメーション」 の 5 ブロック箇条書きで書ける dragon DSL から、 6 preset × animation すべてが visual に動く確認場。",
     items: ["sequence + tween", "flow + progress", "swimlane 並列", "FSM state", "topology system", "ER schema"],
+    cluster: "extended",
   },
   {
     href: "/catalog/cookbook",
-    label: "Cookbook (25 例)",
+    label: "cookbook (25 例)",
     desc: "dragon DSL v0.5 で書いた現場頻出 25 パターン (DeFi 10 / NFT 5 / DAO 5 / Bridge 5)。 docs cookbook の各 entry が data-cdl-diagram slug 経由でここを参照。",
     items: [
-      "ERC-20 / Permit / UniswapV2-V3",
-      "Aave / Compound / Curve / yEarn",
-      "MakerDAO / Lido",
-      "ERC-721 / Lazy mint / Auction",
-      "Royalty / Soulbound",
-      "Governor / Vote / Timelock / Multisig / Snapshot",
-      "LayerZero / CCTP / Wormhole / Optimism / Hop",
+      "ERC-20 / UniswapV2",
+      "Aave / Compound / Curve",
+      "ERC-721 / Auction",
+      "Governor / Multisig",
+      "LayerZero / CCTP / Bridge",
     ],
+    cluster: "extended",
   },
 ];
 ---
 
-<BaseLayout title="Catalog - dragon">
-  <section class="shell pt-12 pb-8">
-    <div class="space-y-4">
-      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
-        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
-        <span aria-hidden="true">/</span>
-        <span class="text-nm-text">Catalog</span>
-      </nav>
-      <span class="section-eyebrow">dragon DSL · powered by cdl engine</span>
-      <h1 class="heading-h1">dragon カタログ</h1>
-      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed sm:text-lg">
-        dragon DSL の primitives / styles / animation / patterns を 4 カテゴリで整理。
-        各カテゴリ内に小さい diagram を多数並べ、 1 概念ずつ動作確認できます。
-        engine 層は @cardenelabs/cdl が担うため、 render / animation の挙動はそのまま cdl の仕様に従います。
-      </p>
-    </div>
+<BaseLayout title="catalog · dragon">
+  <section class="v4-cat-hero">
+    <nav class="v4-crumb" aria-label="パンくず">
+      <a href="/">overview</a>
+      <span>/</span>
+      <span class="cur">catalog</span>
+    </nav>
+    <span class="v4-eyebrow">primitives · presets · animation · patterns</span>
+    <h1>すべての preset を、 <em>動かしながら</em>読む。</h1>
+    <p class="v4-lead">
+      dragon DSL の primitives / styles / animation / patterns を 7 カテゴリで整理。
+      各カテゴリ内に小さい diagram を多数並べ、 1 概念ずつ動作確認できる。
+      engine 層は <code>@cardenelabs/cdl</code> が担い、 render / animation の挙動は cdl の仕様に従う。
+    </p>
   </section>
 
-  <section class="shell pb-24">
-    <div class="grid gap-5 sm:grid-cols-2">
-      {
-        categories.map((c) => (
-          <a href={c.href} class="nm-card-interactive group block no-underline">
-            <div class="flex h-full flex-col gap-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-nm-text-muted">Catalog</span>
-              <h2 class="text-2xl font-bold leading-snug text-nm-text">{c.label}</h2>
-              <p class="text-sm leading-relaxed text-nm-text-secondary">{c.desc}</p>
-              <div class="mt-auto flex flex-wrap gap-2 pt-3">
-                {c.items.map((i) => (
-                  <span class="rounded-nm-sm bg-nm-bg/60 px-2.5 py-1 text-xs font-medium text-nm-text-secondary shadow-nm-pressed-sm">
-                    {i}
-                  </span>
-                ))}
-              </div>
-              <div class="flex items-center justify-between pt-3 text-sm font-medium text-nm-accent">
-                <span>開く</span>
-                <span class="nm-arrow" aria-hidden="true">→</span>
-              </div>
-            </div>
-          </a>
-        ))
-      }
-    </div>
+  <section class="v4-cat-grid">
+    {
+      categories.map((c) => (
+        <a href={c.href} class={`v4-cat-card v4-cat-${c.cluster}`}>
+          <div class="v4-cat-head">
+            <span class="v4-cat-tag">{c.cluster}</span>
+            <h2>{c.label}</h2>
+          </div>
+          <p>{c.desc}</p>
+          <div class="v4-cat-chips">
+            {c.items.map((i) => (
+              <span class="v4-cat-chip">{i}</span>
+            ))}
+          </div>
+          <div class="v4-cat-go">
+            <span>open</span>
+            <span class="arrow">→</span>
+          </div>
+        </a>
+      ))
+    }
   </section>
 </BaseLayout>
+
+<style>
+  .v4-cat-hero {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 32px 28px;
+  }
+  .v4-crumb {
+    display: flex;
+    gap: 8px;
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    color: var(--v4-ink-mute);
+    margin-bottom: 18px;
+  }
+  .v4-crumb a {
+    color: var(--v4-ink-dim);
+    text-decoration: none;
+  }
+  .v4-crumb a:hover {
+    color: var(--v4-brand-deep);
+  }
+  .v4-crumb .cur {
+    color: var(--v4-ink);
+  }
+  .v4-eyebrow {
+    display: inline-block;
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--v4-brand);
+    margin-bottom: 14px;
+  }
+  .v4-cat-hero h1 {
+    font-family: var(--v4-serif);
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--v4-ink);
+    margin-bottom: 14px;
+    line-height: 1.1;
+  }
+  .v4-cat-hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--v4-brand-deep);
+  }
+  .v4-lead {
+    font-size: 15px;
+    color: var(--v4-ink-dim);
+    max-width: 720px;
+    line-height: 1.65;
+  }
+  .v4-lead code {
+    font-family: var(--v4-mono);
+    font-size: 13px;
+    background: var(--v4-surface-2);
+    padding: 1px 7px;
+    border-radius: 5px;
+    color: var(--v4-ink);
+  }
+
+  .v4-cat-grid {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 24px 32px 60px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .v4-cat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .v4-cat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 24px 18px;
+    background: var(--v4-surface);
+    border: 1px solid var(--v4-line);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--v4-ink);
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  }
+  .v4-cat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--v4-brand);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 18px 40px -22px rgba(45, 106, 143, 0.18);
+  }
+
+  .v4-cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .v4-cat-tag {
+    font-family: var(--v4-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 99px;
+    color: var(--v4-brand-deep);
+    background: rgba(45, 106, 143, 0.08);
+  }
+  .v4-cat-domain .v4-cat-tag {
+    color: var(--v4-accent-domain);
+    background: rgba(194, 65, 12, 0.1);
+  }
+  .v4-cat-extended .v4-cat-tag {
+    color: var(--v4-accent-extended);
+    background: rgba(109, 40, 217, 0.1);
+  }
+  .v4-cat-card h2 {
+    font-family: var(--v4-serif);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.022em;
+    color: var(--v4-ink);
+  }
+  .v4-cat-card p {
+    color: var(--v4-ink-dim);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .v4-cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .v4-cat-chip {
+    padding: 3px 9px;
+    background: #fcf8ee;
+    border: 1px solid var(--v4-line);
+    border-radius: 99px;
+    font-family: var(--v4-mono);
+    font-size: 10.5px;
+    color: var(--v4-ink-dim);
+  }
+  .v4-cat-go {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--v4-line-soft);
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    color: var(--v4-brand-deep);
+  }
+  .v4-cat-go .arrow {
+    transition: transform 0.15s;
+  }
+  .v4-cat-card:hover .arrow {
+    transform: translateX(4px);
+  }
+</style>

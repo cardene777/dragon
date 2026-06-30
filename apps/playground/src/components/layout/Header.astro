@@ -1,54 +1,159 @@
 ---
 const links = [
-  { href: "/catalog", label: "Catalog" },
-  { href: "/editor", label: "Editor" },
-  { href: "/docs", label: "Docs" },
+  { href: "/", label: "overview" },
+  { href: "/editor", label: "editor" },
+  { href: "/catalog", label: "catalog" },
+  { href: "/docs", label: "docs" },
 ];
 const currentPath = Astro.url.pathname;
-const repoUrl = "https://github.com/cardene777/cdl";
+const repoUrl = "https://github.com/cardene777/dragon";
 ---
 
-<header class="site-header sticky top-0 z-40 border-b border-nm-shadow-dark/20 bg-nm-bg/90 backdrop-blur-sm">
-  <div class="shell flex h-14 items-center justify-between gap-6">
-    <a href="/" class="flex items-center gap-2 no-underline text-nm-text">
-      <span
-        class="grid h-7 w-7 place-items-center rounded-nm-sm shadow-nm-raised-sm text-base font-bold"
-        style="background: linear-gradient(135deg, #4a7c8f 0%, #2d5567 100%); color: #fff;"
-        aria-hidden="true"
-      >
-        ◢
-      </span>
-      <span class="text-base font-semibold tracking-tight">dragon</span>
-      <span class="text-xs text-nm-text-muted hidden sm:inline">/ Mermaid 感覚で動く図を描く Text DSL</span>
-    </a>
-    <nav aria-label="Main navigation" class="flex items-center gap-6">
-      {
-        links.map((link) => {
-          const active =
-            currentPath === link.href || currentPath.startsWith(link.href + "/");
-          return (
-            <a
-              href={link.href}
-              aria-current={active ? "page" : undefined}
-              class={[
-                "no-underline text-sm font-medium transition-colors",
-                active ? "text-nm-accent" : "text-nm-text-secondary hover:text-nm-text",
-              ].join(" ")}
-            >
-              {link.label}
-            </a>
-          );
-        })
-      }
-      <a
-        href={repoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="GitHub repository"
-        class="text-sm font-medium text-nm-text-secondary hover:text-nm-text no-underline transition-colors"
-      >
-        GitHub
-      </a>
-    </nav>
-  </div>
+<header class="v4-nav">
+  <a href="/" class="v4-nav-brand">
+    <div class="v4-nav-mark">
+      <svg viewBox="0 0 28 28" fill="none">
+        <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a" />
+        <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85" />
+      </svg>
+    </div>
+    <div>
+      <span class="v4-nav-name">dragon</span>
+      <span class="v4-nav-sub">— animated diagram dsl</span>
+    </div>
+  </a>
+  <nav class="v4-nav-links" aria-label="Main navigation">
+    {
+      links.map((link) => {
+        const active =
+          link.href === "/"
+            ? currentPath === "/"
+            : currentPath === link.href || currentPath.startsWith(link.href + "/");
+        return (
+          <a
+            href={link.href}
+            aria-current={active ? "page" : undefined}
+            class={`v4-nav-link${active ? " active" : ""}`}
+          >
+            {link.label}
+          </a>
+        );
+      })
+    }
+    <a class="v4-nav-link" href={repoUrl} target="_blank" rel="noopener noreferrer">github ↗</a>
+  </nav>
+  <a class="v4-nav-cta" href="/editor">open editor →</a>
 </header>
+
+<style is:global>
+  @import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+  :root {
+    --v4-canvas: #f5f1e8;
+    --v4-surface: #fffdf7;
+    --v4-surface-2: #ede5d2;
+    --v4-line: #e0d9c8;
+    --v4-line-soft: #ece4d0;
+    --v4-ink: #1a1f2a;
+    --v4-ink-dim: #5a6270;
+    --v4-ink-mute: #8a8678;
+    --v4-brand: #2d6a8f;
+    --v4-brand-deep: #1f4d6e;
+    --v4-brand-glow: #4e9dc4;
+    --v4-accent-domain: #c2410c;
+    --v4-accent-extended: #6d28d9;
+    --v4-serif: "Newsreader", "EB Garamond", Georgia, serif;
+    --v4-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+    --v4-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  }
+
+  .v4-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    height: 60px;
+    background: rgba(245, 241, 232, 0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--v4-line);
+    font-family: var(--v4-sans);
+  }
+  .v4-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-right: auto;
+    color: var(--v4-ink);
+    text-decoration: none;
+  }
+  .v4-nav-mark {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+  }
+  .v4-nav-mark svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+  }
+  .v4-nav-name {
+    font-family: var(--v4-serif);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    color: var(--v4-ink);
+  }
+  .v4-nav-sub {
+    color: var(--v4-ink-mute);
+    font-weight: 400;
+    margin-left: 8px;
+    font-size: 12.5px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+  }
+  .v4-nav-links {
+    display: flex;
+    gap: 2px;
+  }
+  .v4-nav-link {
+    padding: 6px 13px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: var(--v4-ink-dim);
+    transition: color 0.15s, background 0.15s;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .v4-nav-link:hover {
+    color: var(--v4-ink);
+    background: rgba(26, 31, 42, 0.05);
+  }
+  .v4-nav-link.active {
+    color: var(--v4-brand-deep);
+    background: rgba(45, 106, 143, 0.08);
+  }
+  .v4-nav-cta {
+    margin-left: 14px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    background: var(--v4-ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--v4-canvas);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    transition: transform 0.15s, background 0.15s;
+    text-decoration: none;
+  }
+  .v4-nav-cta:hover {
+    transform: translateY(-1px);
+    background: var(--v4-brand-deep);
+  }
+</style>
