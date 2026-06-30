@@ -690,38 +690,70 @@ export function CdlEditor(): React.JSX.Element {
     setActiveSample(s.label);
   };
 
+  const handleNewFile = (): void => {
+    const blank = `title: "untitled"
+type: sequence
+
+actors:
+  - A
+  - B
+
+flow:
+  - A -> B: "msg"
+
+animation:
+  - step: "step 1" 1.2s
+    focus: [A, B]
+`;
+    setSrc(blank);
+    setActiveSample("new");
+  };
+
   return (
     <div className="v4-editor">
-      {/* ── 左 sidebar ── */}
+      {/* ── 左 sidebar (new file 主体) ── */}
       <aside className="v4-editor-side">
-        <div className="v4-editor-side-head">
-          <span className="v4-editor-side-eyebrow">samples</span>
-          <span className="v4-editor-side-count">{filteredSamples.length}</span>
-        </div>
-        <input
-          className="v4-editor-search"
-          type="text"
-          placeholder="🔍 search sample..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="v4-editor-side-list">
-          {Object.entries(groupedSamples).map(([cat, list]) => (
-            <div key={cat} className="v4-editor-side-group">
-              <div className="v4-editor-side-group-title">{cat}</div>
-              {list.map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  className={`v4-editor-side-item ${activeSample === s.label ? "active" : ""}`}
-                  onClick={() => handleSelectSample(s)}
-                >
-                  {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
-                </button>
+        <button
+          type="button"
+          className="v4-editor-side-new"
+          onClick={handleNewFile}
+        >
+          <span className="v4-editor-side-new-plus">+</span>
+          <span>new file</span>
+        </button>
+        <details className="v4-editor-side-samples" open={false}>
+          <summary className="v4-editor-side-samples-summary">
+            <span className="v4-editor-side-samples-label">samples</span>
+            <span className="v4-editor-side-samples-count">{filteredSamples.length}</span>
+            <span className="v4-editor-side-samples-caret">›</span>
+          </summary>
+          <div className="v4-editor-side-samples-body">
+            <input
+              className="v4-editor-search"
+              type="text"
+              placeholder="🔍 search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="v4-editor-side-list">
+              {Object.entries(groupedSamples).map(([cat, list]) => (
+                <div key={cat} className="v4-editor-side-group">
+                  <div className="v4-editor-side-group-title">{cat}</div>
+                  {list.map((s) => (
+                    <button
+                      key={s.label}
+                      type="button"
+                      className={`v4-editor-side-item ${activeSample === s.label ? "active" : ""}`}
+                      onClick={() => handleSelectSample(s)}
+                    >
+                      {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
+          </div>
+        </details>
       </aside>
 
       {/* ── 中央 DSL editor (CodeMirror) ── */}

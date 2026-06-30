@@ -188,18 +188,21 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
     <!-- 1. DocsNavBar (上部固定) -->
     <header class="docs-navbar">
       <div class="docs-navbar-inner">
-        <a href="/docs" class="docs-navbar-brand">
-          <span class="docs-navbar-logo">C</span>
-          <span class="docs-navbar-title">cdl <span class="docs-navbar-title-sub">engine Docs</span></span>
+        <a href="/" class="docs-navbar-brand">
+          <span class="docs-navbar-logo">
+            <svg viewBox="0 0 28 28" fill="none" width="22" height="22">
+              <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a"/>
+              <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85"/>
+            </svg>
+          </span>
+          <span class="docs-navbar-title">dragon <span class="docs-navbar-title-sub">docs</span></span>
         </a>
         <nav class="docs-navbar-nav" aria-label="docs navigation">
-          <a href="/docs" class={`docs-navbar-link ${currentSlug === "README" ? "active" : ""}`} data-i18n="nav.home" data-ja="はじめに" data-en="Home">はじめに</a>
-          <a href={`${docsPrefix}/overview/quickstart`} class={`docs-navbar-link ${currentSlug.startsWith("overview/") ? "active" : ""}`} data-i18n="nav.guide" data-ja="ガイド" data-en="Guide">ガイド</a>
-          <a href={`${docsPrefix}/reference/api`} class={`docs-navbar-link ${currentSlug.startsWith("reference/") ? "active" : ""}`} data-i18n="nav.reference" data-ja="リファレンス" data-en="Reference">リファレンス</a>
-          <a href="/catalog" class="docs-navbar-link" data-i18n="nav.catalog" data-ja="Catalog" data-en="Catalog">Catalog</a>
-          <a href="/editor" class="docs-navbar-link" data-i18n="nav.editor" data-ja="Editor" data-en="Editor">Editor</a>
-          <a href="/" class="docs-navbar-link docs-navbar-link-external" data-i18n="nav.site" data-ja="dragon サイト" data-en="dragon Site">dragon サイト</a>
-          <a href="https://github.com/cardene777/cdl" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">GitHub ↗</a>
+          <a href="/" class="docs-navbar-link">overview</a>
+          <a href="/editor" class="docs-navbar-link">editor</a>
+          <a href="/catalog" class="docs-navbar-link">catalog</a>
+          <a href="/docs" class="docs-navbar-link active">docs</a>
+          <a href="https://github.com/cardene777/dragon" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">github ↗</a>
         </nav>
         <div class="docs-navbar-search">
           {/* Pagefind 全文検索 UI (build 後 dist/_pagefind/ から runtime fetch) */}
