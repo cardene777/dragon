@@ -9,12 +9,12 @@ import { CdlEditor } from "@/components/CdlEditor";
 >
   <main class="editor-main">
     <header class="editor-header">
-      <span class="editor-eyebrow">dragon Visual Editor (v1.0)</span>
-      <h1 class="editor-title">dragon DSL を書きながら、 すぐに動かす</h1>
+      <span class="editor-eyebrow">visual editor · v1.0</span>
+      <h1 class="editor-title">書きながら、 <em>動かす</em>。</h1>
       <p class="editor-summary">
-        左に dragon DSL v0.5 を入力すると、 300 ms 後に右側でアニメーション付き SVG として描画されます。
-        サンプルを選んで構造を真似たり、 共有 URL でリンクしたり、 SVG でダウンロードして資料に貼り付けたりできます。
-        parse は dragon、 render は cdl engine が担います。
+        左に dragon DSL v0.5 を入力すると、 300 ms 後に右側で animated SVG として描画される。
+        sample を選んで構造を真似する、 URL で share、 SVG として download、 すべて browser だけで完結。
+        parse は dragon、 render は cdl engine が担う。
       </p>
     </header>
     <CdlEditor client:load />
@@ -24,60 +24,60 @@ import { CdlEditor } from "@/components/CdlEditor";
 <style>
   .editor-main {
     width: 100%;
-    max-width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 16px 24px 24px;
+    padding: 28px 28px 40px;
   }
   .editor-header {
-    margin-bottom: 16px;
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-bottom: 22px;
   }
   .editor-eyebrow {
     display: inline-block;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #c17f3e;
-    margin-bottom: 8px;
+    color: var(--v4-brand);
+    margin-bottom: 12px;
   }
   .editor-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #3b2e22;
-    margin: 0 0 12px;
+    font-family: var(--v4-serif);
+    font-size: 34px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    color: var(--v4-ink);
+    margin: 0 0 10px;
+  }
+  .editor-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--v4-brand-deep);
   }
   .editor-summary {
-    font-size: 15px;
-    line-height: 1.7;
-    color: #5b4d3f;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--v4-ink-dim);
     max-width: 720px;
     margin: 0;
-  }
-  html.dark .editor-title {
-    color: #ede2d2;
-  }
-  html.dark .editor-summary {
-    color: #b8a994;
   }
 
   /* === Editor === */
   :global(.cdl-editor) {
-    border: 1px solid rgba(196, 185, 172, 0.5);
-    border-radius: 16px;
+    border: 1px solid var(--v4-line);
+    border-radius: 14px;
     overflow: hidden;
-    background: rgba(245, 237, 227, 0.6);
+    background: var(--v4-surface);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 18px 40px -22px rgba(26, 31, 42, 0.12);
   }
   :global(.cdl-editor-toolbar) {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    background: rgba(232, 221, 208, 0.6);
-    border-bottom: 1px solid rgba(196, 185, 172, 0.5);
+    padding: 10px 14px;
+    background: #fcf8ee;
+    border-bottom: 1px solid var(--v4-line-soft);
     flex-wrap: wrap;
   }
   :global(.cdl-editor-samples) {
@@ -100,53 +100,63 @@ import { CdlEditor } from "@/components/CdlEditor";
     height: 6px;
   }
   :global(.cdl-editor-sample-scroll::-webkit-scrollbar-thumb) {
-    background: rgba(196, 185, 172, 0.6);
+    background: var(--v4-line);
     border-radius: 3px;
   }
   :global(.cdl-editor-toolbar-label) {
-    font-size: 12px;
+    font-family: var(--v4-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     font-weight: 600;
-    color: #6b5e52;
+    color: var(--v4-ink-mute);
     margin-right: 4px;
     flex-shrink: 0;
   }
   :global(.cdl-editor-sample-btn) {
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: rgba(245, 237, 227, 0.8);
-    border: 1px solid rgba(196, 185, 172, 0.6);
-    color: #3b2e22;
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    padding: 5px 11px;
+    border-radius: 7px;
+    background: var(--v4-surface);
+    border: 1px solid var(--v4-line);
+    color: var(--v4-ink-dim);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
   }
   :global(.cdl-editor-sample-btn:hover) {
-    background: #c17f3e;
-    color: #fff;
+    background: rgba(45, 106, 143, 0.08);
+    color: var(--v4-brand-deep);
+    border-color: var(--v4-brand);
   }
   :global(.cdl-editor-actions) {
     display: flex;
-    gap: 8px;
+    gap: 6px;
   }
   :global(.cdl-editor-action-btn) {
-    font-size: 13px;
-    font-weight: 600;
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    font-weight: 500;
     padding: 6px 14px;
-    border-radius: 8px;
-    background: #c17f3e;
+    border-radius: 7px;
+    background: var(--v4-ink);
     border: none;
-    color: #fff;
+    color: var(--v4-canvas);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.15s;
+    letter-spacing: -0.02em;
   }
   :global(.cdl-editor-action-btn:hover) {
-    background: #a86927;
+    background: var(--v4-brand-deep);
+    transform: translateY(-1px);
   }
   :global(.cdl-editor-action-btn:disabled) {
-    background: rgba(196, 185, 172, 0.4);
+    background: var(--v4-line);
+    color: var(--v4-ink-mute);
     cursor: not-allowed;
+    transform: none;
   }
   :global(.cdl-editor-split) {
     display: grid;
@@ -159,40 +169,40 @@ import { CdlEditor } from "@/components/CdlEditor";
     }
   }
   :global(.cdl-editor-input-pane) {
-    border-right: 1px solid rgba(196, 185, 172, 0.5);
+    border-right: 1px solid var(--v4-line-soft);
   }
   :global(.cdl-editor-textarea) {
     width: 100%;
     height: 100%;
     min-height: 600px;
-    padding: 16px;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    padding: 18px 20px;
+    font-family: var(--v4-mono);
     font-size: 13px;
-    line-height: 1.6;
-    background: rgba(255, 251, 246, 0.6);
+    line-height: 1.7;
+    background: #fcf8ee;
     border: none;
-    color: #3b2e22;
+    color: var(--v4-ink);
     resize: none;
     outline: none;
   }
   :global(.cdl-editor-preview-pane) {
     display: flex;
     flex-direction: column;
-    background: rgba(232, 221, 208, 0.3);
-    padding: 16px;
+    background: #fcf8ee;
+    padding: 14px;
     overflow: hidden;
     min-height: 600px;
   }
   :global(.cdl-editor-error) {
-    background: rgba(193, 60, 60, 0.1);
-    border: 1px solid rgba(193, 60, 60, 0.4);
+    background: rgba(193, 60, 60, 0.08);
+    border: 1px solid rgba(193, 60, 60, 0.3);
     border-radius: 8px;
     padding: 12px 16px;
     font-size: 12px;
     color: #8b2828;
     margin-bottom: 12px;
     white-space: pre-wrap;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-family: var(--v4-mono);
     flex-shrink: 0;
   }
   :global(.cdl-editor-preview-wrap) {
@@ -201,8 +211,12 @@ import { CdlEditor } from "@/components/CdlEditor";
     overflow: hidden;
     user-select: none;
     cursor: grab;
-    background: rgba(255, 251, 246, 0.4);
+    background: var(--v4-surface);
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px);
     border-radius: 8px;
+    border: 1px solid var(--v4-line-soft);
     min-height: 500px;
   }
   :global(.cdl-editor-preview-wrap:active) {
@@ -225,85 +239,44 @@ import { CdlEditor } from "@/components/CdlEditor";
     top: 8px;
     right: 8px;
     display: flex;
-    gap: 4px;
+    gap: 2px;
     align-items: center;
-    background: rgba(255, 251, 246, 0.95);
-    border: 1px solid rgba(196, 185, 172, 0.6);
+    background: rgba(255, 253, 247, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--v4-line);
     border-radius: 8px;
     padding: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px -2px rgba(26, 31, 42, 0.08);
     z-index: 10;
   }
   :global(.cdl-editor-zoom-toolbar button) {
     padding: 4px 10px;
+    font-family: var(--v4-mono);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     background: transparent;
     border: none;
     cursor: pointer;
-    color: #3b2e22;
-    border-radius: 4px;
-    min-width: 32px;
+    color: var(--v4-ink);
+    border-radius: 5px;
+    min-width: 28px;
+    transition: background 0.15s;
   }
   :global(.cdl-editor-zoom-toolbar button:hover) {
-    background: rgba(193, 127, 62, 0.15);
-    color: #3b2e22;
+    background: rgba(45, 106, 143, 0.1);
   }
   :global(.cdl-editor-zoom-display) {
-    font-size: 12px;
-    color: #6b5e52;
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    color: var(--v4-ink-mute);
     padding: 0 8px;
-    border-left: 1px solid rgba(196, 185, 172, 0.6);
-    font-family: ui-monospace, monospace;
+    border-left: 1px solid var(--v4-line);
     min-width: 44px;
     text-align: right;
   }
   :global(.cdl-editor-empty) {
-    color: #6b5e52;
-    font-size: 14px;
-  }
-  html.dark :global(.cdl-editor) {
-    background: rgba(28, 24, 20, 0.6);
-    border-color: rgba(212, 165, 116, 0.3);
-  }
-  html.dark :global(.cdl-editor-toolbar) {
-    background: rgba(18, 16, 14, 0.6);
-    border-bottom-color: rgba(212, 165, 116, 0.3);
-  }
-  html.dark :global(.cdl-editor-toolbar-label) {
-    color: #b8a994;
-  }
-  html.dark :global(.cdl-editor-sample-btn) {
-    background: rgba(28, 24, 20, 0.8);
-    border-color: rgba(212, 165, 116, 0.4);
-    color: #ede2d2;
-  }
-  html.dark :global(.cdl-editor-input-pane) {
-    border-right-color: rgba(212, 165, 116, 0.3);
-  }
-  html.dark :global(.cdl-editor-textarea) {
-    background: rgba(18, 16, 14, 0.6);
-    color: #ede2d2;
-  }
-  html.dark :global(.cdl-editor-preview-pane) {
-    background: rgba(18, 16, 14, 0.3);
-  }
-  html.dark :global(.cdl-editor-preview-wrap) {
-    background: rgba(18, 16, 14, 0.4);
-  }
-  html.dark :global(.cdl-editor-zoom-toolbar) {
-    background: rgba(28, 24, 20, 0.95);
-    border-color: rgba(212, 165, 116, 0.4);
-  }
-  html.dark :global(.cdl-editor-zoom-toolbar button) {
-    color: #ede2d2;
-  }
-  html.dark :global(.cdl-editor-zoom-toolbar button:hover) {
-    background: rgba(212, 165, 116, 0.2);
-    color: #ede2d2;
-  }
-  html.dark :global(.cdl-editor-zoom-display) {
-    color: #b8a994;
-    border-left-color: rgba(212, 165, 116, 0.3);
+    color: var(--v4-ink-mute);
+    font-size: 13.5px;
+    font-family: var(--v4-mono);
   }
 </style>

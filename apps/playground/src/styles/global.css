@@ -10,26 +10,32 @@
 
   html {
     scroll-behavior: smooth;
-    background-color: #e0d5c8;
-    color: #3d3229;
-    font-family: Outfit, system-ui, -apple-system, "Hiragino Sans", sans-serif;
+    background-color: #f5f1e8;
+    color: #1a1f2a;
+    font-family: "Inter", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
   }
 
   body {
-    @apply min-h-screen bg-nm-bg text-nm-text antialiased;
+    min-height: 100vh;
+    background-color: #f5f1e8;
+    color: #1a1f2a;
   }
 
   ::selection {
-    background-color: #c17f3e;
-    color: #fbf0e4;
+    background-color: rgba(45, 106, 143, 0.2);
+    color: #1a1f2a;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-semibold text-nm-text;
-    letter-spacing: -0.01em;
+    font-family: "Newsreader", "EB Garamond", Georgia, serif;
+    font-weight: 600;
+    color: #1a1f2a;
+    letter-spacing: -0.02em;
   }
 
   a {
