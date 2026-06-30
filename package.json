@@ -16,7 +16,10 @@
     "lint:docs-preview": "node scripts/lint-docs-preview.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:overlap": "pnpm --filter dragon-playground exec playwright test tests/visual/overlap-detector.spec.ts",
+    "test:visual:all": "pnpm --filter dragon-playground test:visual",
+    "verify": "pnpm typecheck && pnpm test && pnpm test:overlap"
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.0",

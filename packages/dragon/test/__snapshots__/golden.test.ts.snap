@@ -54,10 +54,10 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 478,
+    "h": 456,
     "w": 1090,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -137,10 +137,10 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 614,
+    "h": 753,
     "w": 1630,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -199,10 +199,10 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "states": [],
   "topic": "E03",
   "viewBox": {
-    "h": 478,
+    "h": 456,
     "w": 1090,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -261,10 +261,10 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 478,
+    "h": 456,
     "w": 1090,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -323,10 +323,10 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 478,
+    "h": 456,
     "w": 1090,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -433,10 +433,10 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 614,
+    "h": 710,
     "w": 2170,
     "x": -30,
-    "y": -140,
+    "y": 21,
   },
 }
 `;
@@ -495,10 +495,10 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "states": [],
   "topic": "E07",
   "viewBox": {
-    "h": 478,
+    "h": 456,
     "w": 1090,
     "x": -30,
-    "y": -140,
+    "y": -118,
   },
 }
 `;
@@ -557,7 +557,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "states": [],
   "topic": "E08",
   "viewBox": {
-    "h": 362,
+    "h": 430,
     "w": 1104,
     "x": -44,
     "y": -24,
@@ -732,7 +732,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
     "h": 614,
     "w": 2710,
     "x": -30,
-    "y": -140,
+    "y": 21,
   },
 }
 `;
@@ -2459,10 +2459,10 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "states": [],
   "topic": "X06",
   "viewBox": {
-    "h": 271,
+    "h": 483,
     "w": 1090,
     "x": -30,
-    "y": 67,
+    "y": 68,
   },
 }
 `;
@@ -8295,10 +8295,10 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
   "states": [],
   "topic": "M01",
   "viewBox": {
-    "h": 419,
+    "h": 383,
     "w": 900,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -8378,10 +8378,10 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
   "states": [],
   "topic": "M02",
   "viewBox": {
-    "h": 496,
+    "h": 621,
     "w": 1340,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -8482,10 +8482,10 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "states": [],
   "topic": "M03",
   "viewBox": {
-    "h": 496,
+    "h": 621,
     "w": 1780,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -8565,10 +8565,10 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "states": [],
   "topic": "M04",
   "viewBox": {
-    "h": 524,
+    "h": 663,
     "w": 1340,
     "x": -40,
-    "y": -95,
+    "y": -73,
   },
 }
 `;
@@ -8743,10 +8743,10 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "states": [],
   "topic": "M06",
   "viewBox": {
-    "h": 496,
+    "h": 621,
     "w": 1780,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -8831,7 +8831,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   ],
   "topic": "M07",
   "viewBox": {
-    "h": 362,
+    "h": 430,
     "w": 1344,
     "x": -44,
     "y": -24,
@@ -8962,10 +8962,10 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "states": [],
   "topic": "M08",
   "viewBox": {
-    "h": 496,
+    "h": 621,
     "w": 2220,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -9051,10 +9051,10 @@ exports[`golden: state preset > M09 self-loop 1`] = `
   "states": [],
   "topic": "M09",
   "viewBox": {
-    "h": 532,
+    "h": 496,
     "w": 1340,
     "x": -40,
-    "y": -81,
+    "y": -45,
   },
 }
 `;
@@ -9143,7 +9143,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   ],
   "topic": "M10",
   "viewBox": {
-    "h": 362,
+    "h": 430,
     "w": 1344,
     "x": -44,
     "y": -24,
@@ -9200,7 +9200,7 @@ exports[`golden: swimlane preset > L01 2 lane 1`] = `
   "states": [],
   "topic": "L01",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -9278,7 +9278,7 @@ exports[`golden: swimlane preset > L02 3 lane 1`] = `
   "states": [],
   "topic": "L02",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -9377,7 +9377,7 @@ exports[`golden: swimlane preset > L03 4 lane with all info tone 1`] = `
   "states": [],
   "topic": "L03",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1944,
     "x": -44,
     "y": -24,
@@ -9434,7 +9434,7 @@ exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
   "states": [],
   "topic": "L04",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -9521,7 +9521,7 @@ exports[`golden: swimlane preset > L05 animation focus + badge 1`] = `
   "states": [],
   "topic": "L05",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -9641,7 +9641,7 @@ exports[`golden: swimlane preset > L06 5 service lane 1`] = `
   "states": [],
   "topic": "L06",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 2424,
     "x": -44,
     "y": -24,
@@ -9719,7 +9719,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
   "states": [],
   "topic": "L07",
   "viewBox": {
-    "h": 382,
+    "h": 450,
     "w": 1524,
     "x": -44,
     "y": -24,
@@ -9803,7 +9803,7 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
   "states": [],
   "topic": "L08",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -9860,7 +9860,7 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
   "states": [],
   "topic": "L09",
   "viewBox": {
-    "h": 392,
+    "h": 628,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10079,7 +10079,7 @@ exports[`golden: swimlane preset > L11 tone variation 1`] = `
   "states": [],
   "topic": "L11",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -10146,7 +10146,7 @@ exports[`golden: swimlane preset > L12 with state + tween 1`] = `
   ],
   "topic": "L12",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10203,7 +10203,7 @@ exports[`golden: swimlane preset > L13 labelOffset on swimlane 1`] = `
   "states": [],
   "topic": "L13",
   "viewBox": {
-    "h": 392,
+    "h": 450,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10245,7 +10245,7 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "states": [],
   "topic": "L14",
   "viewBox": {
-    "h": 394,
+    "h": 460,
     "w": 567,
     "x": -44,
     "y": -24,
@@ -10323,7 +10323,7 @@ exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
   "states": [],
   "topic": "L15",
   "viewBox": {
-    "h": 392,
+    "h": 460,
     "w": 1464,
     "x": -44,
     "y": -24,
