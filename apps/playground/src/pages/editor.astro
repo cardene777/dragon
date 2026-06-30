@@ -7,276 +7,243 @@ import { CdlEditor } from "@/components/CdlEditor";
   title="dragon Visual Editor"
   description="dragon DSL v0.5 を split view で書きながら live preview する Visual Editor。 cdl engine が animated SVG として render し、 ブラウザだけで動き、 SVG ダウンロード + 共有 URL に対応。"
 >
-  <main class="editor-main">
-    <header class="editor-header">
-      <span class="editor-eyebrow">visual editor · v1.0</span>
-      <h1 class="editor-title">書きながら、 <em>動かす</em>。</h1>
-      <p class="editor-summary">
-        左に dragon DSL v0.5 を入力すると、 300 ms 後に右側で animated SVG として描画される。
-        sample を選んで構造を真似する、 URL で share、 SVG として download、 すべて browser だけで完結。
-        parse は dragon、 render は cdl engine が担う。
-      </p>
-    </header>
-    <CdlEditor client:load />
-  </main>
+  <CdlEditor client:load />
 </BaseLayout>
 
-<style>
-  .editor-main {
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 28px 28px 40px;
+<style is:global>
+  /* editor の page wrapper ... main の余白を消して画面いっぱい使う */
+  body:has(.v4-editor) main {
+    padding: 0 !important;
+    min-height: calc(100vh - 60px) !important;
   }
-  .editor-header {
-    margin-bottom: 22px;
+  body:has(.v4-editor) .v4-foot { display: none; }
+
+  .v4-editor {
+    display: grid;
+    grid-template-columns: 260px 1fr 1fr;
+    height: calc(100vh - 60px);
+    background: var(--v4-canvas);
+    font-family: var(--v4-sans);
   }
-  .editor-eyebrow {
-    display: inline-block;
+
+  /* ── sidebar ── */
+  .v4-editor-side {
+    background: var(--v4-surface);
+    border-right: 1px solid var(--v4-line);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .v4-editor-side-head {
+    padding: 16px 16px 8px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .v4-editor-side-eyebrow {
     font-family: var(--v4-mono);
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--v4-brand);
-    margin-bottom: 12px;
-  }
-  .editor-title {
-    font-family: var(--v4-serif);
-    font-size: 34px;
-    font-weight: 500;
-    letter-spacing: -0.025em;
-    color: var(--v4-ink);
-    margin: 0 0 10px;
-  }
-  .editor-title em {
-    font-style: italic;
-    font-weight: 400;
-    color: var(--v4-brand-deep);
-  }
-  .editor-summary {
-    font-size: 14.5px;
-    line-height: 1.65;
-    color: var(--v4-ink-dim);
-    max-width: 720px;
-    margin: 0;
-  }
-
-  /* === Editor === */
-  :global(.cdl-editor) {
-    border: 1px solid var(--v4-line);
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--v4-surface);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 18px 40px -22px rgba(26, 31, 42, 0.12);
-  }
-  :global(.cdl-editor-toolbar) {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background: #fcf8ee;
-    border-bottom: 1px solid var(--v4-line-soft);
-    flex-wrap: wrap;
-  }
-  :global(.cdl-editor-samples) {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-  }
-  :global(.cdl-editor-sample-scroll) {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    flex: 1;
-    min-width: 0;
-    padding-bottom: 2px;
-    scrollbar-width: thin;
-  }
-  :global(.cdl-editor-sample-scroll::-webkit-scrollbar) {
-    height: 6px;
-  }
-  :global(.cdl-editor-sample-scroll::-webkit-scrollbar-thumb) {
-    background: var(--v4-line);
-    border-radius: 3px;
-  }
-  :global(.cdl-editor-toolbar-label) {
-    font-family: var(--v4-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     font-weight: 600;
-    color: var(--v4-ink-mute);
-    margin-right: 4px;
-    flex-shrink: 0;
   }
-  :global(.cdl-editor-sample-btn) {
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
-    padding: 5px 11px;
-    border-radius: 7px;
-    background: var(--v4-surface);
-    border: 1px solid var(--v4-line);
-    color: var(--v4-ink-dim);
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  :global(.cdl-editor-sample-btn:hover) {
-    background: rgba(45, 106, 143, 0.08);
-    color: var(--v4-brand-deep);
-    border-color: var(--v4-brand);
-  }
-  :global(.cdl-editor-actions) {
-    display: flex;
-    gap: 6px;
-  }
-  :global(.cdl-editor-action-btn) {
-    font-family: var(--v4-mono);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 7px;
-    background: var(--v4-ink);
-    border: none;
-    color: var(--v4-canvas);
-    cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
-    letter-spacing: -0.02em;
-  }
-  :global(.cdl-editor-action-btn:hover) {
-    background: var(--v4-brand-deep);
-    transform: translateY(-1px);
-  }
-  :global(.cdl-editor-action-btn:disabled) {
-    background: var(--v4-line);
-    color: var(--v4-ink-mute);
-    cursor: not-allowed;
-    transform: none;
-  }
-  :global(.cdl-editor-split) {
-    display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    min-height: 600px;
-  }
-  @media (max-width: 768px) {
-    :global(.cdl-editor-split) {
-      grid-template-columns: 1fr;
-    }
-  }
-  :global(.cdl-editor-input-pane) {
-    border-right: 1px solid var(--v4-line-soft);
-  }
-  :global(.cdl-editor-textarea) {
-    width: 100%;
-    height: 100%;
-    min-height: 600px;
-    padding: 18px 20px;
-    font-family: var(--v4-mono);
-    font-size: 13px;
-    line-height: 1.7;
-    background: #fcf8ee;
-    border: none;
-    color: var(--v4-ink);
-    resize: none;
-    outline: none;
-  }
-  :global(.cdl-editor-preview-pane) {
-    display: flex;
-    flex-direction: column;
-    background: #fcf8ee;
-    padding: 14px;
-    overflow: hidden;
-    min-height: 600px;
-  }
-  :global(.cdl-editor-error) {
-    background: rgba(193, 60, 60, 0.08);
-    border: 1px solid rgba(193, 60, 60, 0.3);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 12px;
-    color: #8b2828;
-    margin-bottom: 12px;
-    white-space: pre-wrap;
-    font-family: var(--v4-mono);
-    flex-shrink: 0;
-  }
-  :global(.cdl-editor-preview-wrap) {
-    position: relative;
-    flex: 1;
-    overflow: hidden;
-    user-select: none;
-    cursor: grab;
-    background: var(--v4-surface);
-    background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px);
-    border-radius: 8px;
-    border: 1px solid var(--v4-line-soft);
-    min-height: 500px;
-  }
-  :global(.cdl-editor-preview-wrap:active) {
-    cursor: grabbing;
-  }
-  :global(.cdl-editor-pan-zoom) {
-    transform-origin: 0 0;
-    will-change: transform;
-    display: inline-block;
-  }
-  :global(.cdl-editor-preview) {
-    display: inline-block;
-  }
-  :global(.cdl-editor-preview svg) {
-    display: block;
-    pointer-events: none;
-  }
-  :global(.cdl-editor-zoom-toolbar) {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 2px;
-    align-items: center;
-    background: rgba(255, 253, 247, 0.95);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--v4-line);
-    border-radius: 8px;
-    padding: 4px;
-    box-shadow: 0 4px 12px -2px rgba(26, 31, 42, 0.08);
-    z-index: 10;
-  }
-  :global(.cdl-editor-zoom-toolbar button) {
-    padding: 4px 10px;
-    font-family: var(--v4-mono);
-    font-size: 12px;
-    font-weight: 500;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--v4-ink);
-    border-radius: 5px;
-    min-width: 28px;
-    transition: background 0.15s;
-  }
-  :global(.cdl-editor-zoom-toolbar button:hover) {
-    background: rgba(45, 106, 143, 0.1);
-  }
-  :global(.cdl-editor-zoom-display) {
+  .v4-editor-side-count {
     font-family: var(--v4-mono);
     font-size: 11px;
     color: var(--v4-ink-mute);
-    padding: 0 8px;
+  }
+  .v4-editor-search {
+    margin: 4px 16px 12px;
+    padding: 8px 12px;
+    font-family: var(--v4-mono);
+    font-size: 12.5px;
+    background: #fcf8ee;
+    border: 1px solid var(--v4-line);
+    border-radius: 8px;
+    color: var(--v4-ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .v4-editor-search:focus {
+    border-color: var(--v4-brand);
+  }
+  .v4-editor-search::placeholder {
+    color: var(--v4-ink-mute);
+  }
+  .v4-editor-side-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 16px;
+  }
+  .v4-editor-side-group {
+    margin-bottom: 14px;
+  }
+  .v4-editor-side-group-title {
+    font-family: var(--v4-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--v4-ink-mute);
+    padding: 8px 8px 4px;
+  }
+  .v4-editor-side-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border: none;
+    background: transparent;
+    color: var(--v4-ink-dim);
+    font-family: var(--v4-sans);
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 1px;
+  }
+  .v4-editor-side-item:hover {
+    background: rgba(26, 31, 42, 0.05);
+    color: var(--v4-ink);
+  }
+  .v4-editor-side-item.active {
+    background: rgba(45, 106, 143, 0.1);
+    color: var(--v4-brand-deep);
+    font-weight: 500;
+  }
+
+  /* ── 中央 + 右共通 bar ── */
+  .v4-editor-bar {
+    height: 40px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+  }
+  .v4-editor-bar-file {
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    color: var(--v4-ink-mute);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .v4-editor-bar-gap { flex: 1; }
+  .v4-editor-bar-btn {
+    padding: 5px 11px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--v4-ink-dim);
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .v4-editor-bar-btn:hover {
+    background: rgba(26, 31, 42, 0.05);
+    color: var(--v4-ink);
+  }
+  .v4-editor-bar-btn-primary {
+    background: var(--v4-ink);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-bar-btn-primary:hover {
+    background: var(--v4-brand-deep);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-bar-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .v4-editor-bar-zoom {
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    color: var(--v4-ink-mute);
+    padding-left: 10px;
+    margin-left: 4px;
     border-left: 1px solid var(--v4-line);
     min-width: 44px;
     text-align: right;
   }
-  :global(.cdl-editor-empty) {
-    color: var(--v4-ink-mute);
-    font-size: 13.5px;
+  .v4-editor-live {
+    width: 6px;
+    height: 6px;
+    background: #a3d6a8;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #a3d6a8;
+    animation: live-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── 中央 code ── */
+  .v4-editor-code {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--v4-line);
+    background: #fcf8ee;
+    min-width: 0;
+  }
+  .v4-editor-code-body {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .v4-editor-code-body .cm-editor {
+    height: 100%;
+  }
+  .v4-editor-error {
+    padding: 12px 18px;
+    background: rgba(193, 90, 74, 0.06);
+    border-top: 1px solid rgba(193, 90, 74, 0.3);
     font-family: var(--v4-mono);
+    font-size: 12px;
+    color: #8b2828;
+    white-space: pre-wrap;
+    max-height: 130px;
+    overflow-y: auto;
+  }
+
+  /* ── 右 preview ── */
+  .v4-editor-preview {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .v4-editor-stage {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--v4-surface);
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px);
+    cursor: grab;
+    user-select: none;
+  }
+  .v4-editor-stage:active {
+    cursor: grabbing;
+  }
+  .v4-editor-pan {
+    will-change: transform;
+    display: inline-block;
+  }
+  .v4-editor-svg-wrap {
+    display: inline-block;
+  }
+  .v4-editor-svg-wrap svg {
+    display: block;
+    pointer-events: none;
+  }
+  .v4-editor-empty {
+    color: var(--v4-ink-mute);
+    font-family: var(--v4-mono);
+    font-size: 13.5px;
+    padding: 40px;
   }
 </style>
