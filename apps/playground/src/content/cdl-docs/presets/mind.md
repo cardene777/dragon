@@ -1,64 +1,63 @@
-# mind preset
+# mindMap preset
 
-`mind` preset は mind map (中心テーマから放射状にアイデアを展開する図、 mermaid `mindmap` 相当) を表現するための preset です。
-最初の actor を中央 root、 残り actor を leaf として配置するのが理想ですが、 現状は専用 radial layout を持たず、 topology preset 経由で root → 各 leaf の暗黙 edge を自動生成する簡略実装です。
+`mindMap` preset は mind map (中心 topic から放射状に伸びる思考図) を `branch` (枝) で組み立てる高位 API です。
+mermaid `mindmap` に対応します。
+
+中心 root topic は `rootId` + `rootTitle` で宣言、 各 branch は `parent` 指定で第 1 階層 / 第 2 階層と展開します。
+第 1 階層の branch ごとに 6 色 (accent / teal / success / warning / info / error) が rotation 表示され、 第 2 階層以降は parent の色を継承します。
 
 ## いつ使うか
 
-- ブレインストーミング / アイデア展開を 1 枚で示したい
-- 概念マップ (中心概念から関連語を展開) を視覚化したい
-- 学習資料の章構成 (root = タイトル、 leaf = 章) を整理したい
+`mindMap` は思考整理 / ブレスト / アイデア整理に最適です。
 
-完全な放射状 layout (root を中央に配置、 leaf を 360 度に分散) は将来 PR で専用 layout を追加予定です。
-現状は group 内に actor を縦並びに配置し、 root から各 leaf に edge を引きます。
+- プロジェクト構想の枝分かれ (Project → Features / UI design / Launch)
+- ブログ記事構成 (Topic → Section A / B / C → Sub points)
+- 概念マップ (cdl → Diagram engine / DSL / Visual editor)
 
-## 最小例
+階層が一方向で順序が重要な場合は [tree preset](/docs/cdl/presets/tree) のほうが読みやすいです。
 
-::: tabs
+## tree との違い
 
-@@@ humans 👤 For humans
+| 観点 | tree | mindMap |
+|---|---|---|
+| root | 必須 (parent なし) | 必須 (`rootId` 指定) |
+| 色分け | edge 全て同色 | 第 1 階層で 6 色 rotation |
+| 用途 | 組織図 / file tree | ブレスト / アイデア整理 |
+| 階層感 | 階層が明確 | 中心からの放射 |
 
-`flow` が空でも、 先頭 actor を root として残り actor に暗黙 edge が自動生成されます。
+## Signature
 
-```text
-title: "アイデア展開"
-type: mind
-
-actors:
-  - Core: { kind: card, subtitle: "中心テーマ" }
-  - Idea1: { kind: card, subtitle: "案 1" }
-  - Idea2: { kind: card, subtitle: "案 2" }
-  - Idea3: { kind: card, subtitle: "案 3" }
+```ts
+mindMap({ id: string, topic: string, rootId: string, rootTitle: string,
+          branchWidth?: number, defaultTone?: Tone })
+  .branch({ id, title, parent, tone?, subtitle? })
+  .build()
 ```
 
-明示的に edge を宣言したい場合は flow を書きます。
+[preview:presets/mind-demo]
 
-```text
-flow:
-  - Core -> Idea1: "branch"
-  - Core -> Idea2: "branch"
-  - Idea1 -> Idea3: "child"
+## 完全な例
+
+```ts
+import { mindMap } from "@cardenelabs/cdl";
+
+export const projectIdeas = mindMap({
+  id: "ideas",
+  topic: "Project ideas",
+  rootId: "root",
+  rootTitle: "Project",
+})
+  .branch({ id: "feat", title: "Features", parent: "root" })
+  .branch({ id: "ui", title: "UI design", parent: "root" })
+  .branch({ id: "launch", title: "Launch", parent: "root" })
+  .branch({ id: "auth", title: "Auth", parent: "feat" })
+  .branch({ id: "billing", title: "Billing", parent: "feat" })
+  .build();
 ```
 
-@@@ llm 🤖 For LLM
-
-```yaml
-preset: mind
-intent: "Mind map / brainstorm with central root and leaves"
-actors:
-  - { id: Core, kind: card, role: root }
-  - { id: Idea1, kind: card, role: leaf }
-  - { id: Idea2, kind: card, role: leaf }
-flow: []   # 空ならroot → leaf を自動生成
-constraints:
-  - "actors[0] が root、 残り全部 leaf"
-  - "flow 宣言が空なら root → 各 leaf の暗黙 edge を自動生成"
-  - "現状は専用 radial layout なし、 縦並び card で表現"
-```
-
-:::
+[preview:presets/mind-demo]
 
 ## 関連
 
-- [topology preset](/docs/cdl/presets/topology) ... base layout として利用
-- [flow preset](/docs/cdl/presets/flow) ... 単方向に流れる思考整理はこちら
+- [tree preset](/docs/cdl/presets/tree) — 階層が明確な組織図 / file tree
+- [classDiagram preset](/docs/cdl/presets/class) — UML 風の構造を示す時

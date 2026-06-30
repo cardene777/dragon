@@ -1,60 +1,87 @@
-# class preset
+# classDiagram preset
 
-`class` preset は UML class diagram (クラス図、 mermaid `classDiagram` 相当) を表現するための preset です。
-各 class を 1 actor として配置し、 `subtitle` に attribute、 `rows` に method、 flow の edge で継承 / 関連 (extends / implements / has-a) を表現する慣習です。
+`classDiagram` preset は UML class diagram (クラス図) を `class` (クラス) と `relation` (関係) の chain API で組み立てる高位 API です。
+mermaid `classDiagram` に対応します。
+
+各 class は `attributes` (属性) と `methods` (メソッド) を rows に持ち、 storage kind で描画されます。
+relation は extends / implements / uses / aggregates / composes の 5 種類をサポートします。
 
 ## いつ使うか
 
-- オブジェクト指向設計の class 階層を 1 枚で示したい
-- 継承 (extends) / 実装 (implements) / 関連 (cardinality 1:N 等) を視覚化したい
-- DDD の entity / aggregate / value object の関係を整理したい
+`classDiagram` は OO 設計や TypeScript / Python の型階層を共有するときに最適です。
 
-現状は専用 UML layout を持たず、 sequence preset と同じ横並び layout で描画される簡略実装です。
-完全な UML class layout (上下重ね / インターフェース菱形矢印) は将来 PR で追加予定です。
+- React component の props 階層 (Base → Variant → Specialized)
+- DDD の entity / aggregate / value object の関係
+- SDK の class 階層 (Client → Resource → Operation)
+- 状態管理 store の構造
 
-## 最小例
+table の関係を描きたい場合は [er preset](/docs/cdl/presets/er) を使ってください。
+`classDiagram` は behaviour (method) を持つ object 設計向けです。
 
-::: tabs
+## relation の 5 種類
 
-@@@ humans 👤 For humans
+| type | UML | 用途 |
+|---|---|---|
+| `extends` | 継承 (実線 + 中空 ▲) | superclass → subclass の type 拡張 |
+| `implements` | 実装 (破線 + 中空 ▲) | interface → concrete class |
+| `uses` | 使用 (実線 + → ) | 他 class の method を呼ぶ依存 |
+| `aggregates` | 集約 (実線 + 中空 ◇) | has-a 関係、 lifecycle 独立 |
+| `composes` | 合成 (実線 + 黒 ◆) | has-a 関係、 lifecycle 共有 |
 
-```text
-title: "User / Admin"
-type: class
+## Signature
 
-actors:
-  - User: { kind: card, subtitle: "+name: string", rows: ["+login(): void"] }
-  - Admin: { kind: card, subtitle: "+role: string", rows: ["+delete(): void"] }
-
-flow:
-  - User -> Admin: "extends"
+```ts
+classDiagram({ id: string, topic: string, classWidth?: number, defaultTone?: Tone })
+  .class({ id, title, attributes?, methods?, stereotype? })
+  .relation({ from, to, type, label?, cardinality?, tone? })
+  .build()
 ```
 
-@@@ llm 🤖 For LLM
+[preview:presets/class-demo]
 
-```yaml
-preset: class
-intent: "UML class hierarchy with inheritance"
-actors:
-  - { id: User, kind: card, subtitle: "+name: string", rows: ["+login(): void"] }
-  - { id: Admin, kind: card, subtitle: "+role: string", rows: ["+delete(): void"] }
-flow:
-  - { from: User, to: Admin, label: extends }
-constraints:
-  - "subtitle = attribute (例 +name: string)、 rows = method 配列"
-  - "edge label = extends / implements / has-a / 1:N 等の関係 keyword"
-  - "現状は UML 専用 layout なし、 横並び card で表現"
+## attribute / method の書式
+
+UML 慣習に従い `+` (public) / `-` (private) / `#` (protected) を prefix にできます。
+
+- `+name: string` → public 属性、 type string
+- `-id: number` → private 属性
+- `+login(): void` → public method、 戻り値 void
+
+`attributes` と `methods` は両方とも optional ですが、 両方あると `─────` の separator が自動挿入されます。
+
+## 完全な例
+
+```ts
+import { classDiagram } from "@cardenelabs/cdl";
+
+export const userDomain = classDiagram({ id: "user-domain", topic: "User domain model" })
+  .class({
+    id: "User",
+    title: "User",
+    attributes: ["+name: string", "+email: string"],
+    methods: ["+login(): void", "+logout(): void"],
+  })
+  .class({
+    id: "Admin",
+    title: "Admin",
+    attributes: ["+permissions: string[]"],
+    methods: ["+banUser(): void"],
+    stereotype: "subclass",
+  })
+  .class({
+    id: "Order",
+    title: "Order",
+    attributes: ["+id: number", "+total: number"],
+    methods: ["+pay(): void"],
+  })
+  .relation({ from: "Admin", to: "User", type: "extends" })
+  .relation({ from: "User", to: "Order", type: "aggregates", cardinality: "1..*" })
+  .build();
 ```
 
-:::
-
-## 引数
-
-`class` の引数は他 preset と共通です。
-`actors` の `subtitle` に attribute、 `rows` に method 配列を入れる慣習を推奨します。
-`flow` の `label` に `"extends"` / `"implements"` / `"has-a"` 等の関係 keyword を、 `cardinality` inline option に `"1:N"` 等を指定します。
+[preview:presets/class-demo]
 
 ## 関連
 
-- [sequence preset](/docs/cdl/presets/sequence) ... base layout として利用
-- [er preset](/docs/cdl/presets/er) ... DB schema の entity 関係はこちら
+- [er preset](/docs/cdl/presets/er) — table の関係を描く時
+- [tree preset](/docs/cdl/presets/tree) — シンプルな継承階層なら

@@ -1,71 +1,53 @@
-# pie preset
+# pie chart (via chart preset)
 
-The `pie` preset expresses a pie chart (equivalent to mermaid `pie`).
-Each slice is one actor (`kind: card`); the `value` property holds the percentage.
+A `pie` chart is produced by the [chart preset](/docs/en/cdl/presets/chart) with `type: "pie"`.
+There is no standalone `pie` preset; it is one mode of `chart`.
+
+It corresponds to mermaid `pie`.
+Each datum's `value` is rendered as its percentage of the total in the subtitle, so the reader can read off the ratios at a glance.
 
 ## When to use
 
-- Show share / breakdown / ratios on a single page.
-- Visualize KPI composition (new / existing / churned, etc.).
-- Express voting / survey results.
+`pie` is great for static share-of-pie callouts.
 
-There is no dedicated pie rendering layout yet, so slices are placed inside a single group via the topology layout.
-A full pie chart (angular slice layout, central label) is planned for a future PR.
+- Revenue split (Web 45% / Mobile 35% / API 20%)
+- Feature usage ratio (top features A / B / C)
+- Budget allocation (Engineering / Marketing / Operations)
 
-## Minimal example
+For ratios that change over time, [chart preset (line)](/docs/en/cdl/presets/chart) reads better.
 
-::: tabs
+## Behaviour of `chart` with `type: "pie"`
 
-@@@ humans 👤 For humans
+- Each datum's subtitle becomes `<percentage>%` (e.g. `45.0%`)
+- `total` is the sum of every datum's `value`, and the percentage is `value / total × 100`
+- No edges are generated (purely parallel display)
 
-```text
-title: "Share breakdown"
-type: pie
+## Signature
 
-actors:
-  - A: { kind: card, value: "30%" }
-  - B: { kind: card, value: "50%" }
-  - C: { kind: card, value: "20%" }
-
-states:
-  a_share: 30
-  b_share: 50
-
-animation:
-  - step: "rebalance" 1s
-    focus: [A, B]
-    tween:
-      a_share: 30 -> 40
-      b_share: 50 -> 40
-    badge: "update"
+```ts
+chart({ id: string, topic: string, type: "pie", itemWidth?: number, defaultTone?: Tone })
+  .datum({ id, label, value: number, tone? })
+  .build()
 ```
 
-@@@ llm 🤖 For LLM
+[preview:presets/chart-pie-demo]
 
-```yaml
-preset: pie
-intent: "Share / ratio breakdown with percentage slices"
-actors:
-  - { id: A, kind: card, value: "30%" }
-  - { id: B, kind: card, value: "50%" }
-states:
-  - { id: a_share, initial: 30 }
-phases:
-  - { id: rebalance, focus: [A, B], tweens: [a_share: 30->40] }
-constraints:
-  - "slice kind should be card; declare percentage in value"
-  - "no dedicated pie layout yet, drawn as cards inside a group"
+## Complete example
+
+```ts
+import { chart } from "@cardenelabs/cdl";
+
+export const marketShare = chart({ id: "share", topic: "Market share", type: "pie" })
+  .datum({ id: "web", label: "Web", value: 45 })
+  .datum({ id: "mobile", label: "Mobile", value: 35 })
+  .datum({ id: "api", label: "API", value: 20 })
+  .build();
 ```
 
-:::
+[preview:presets/chart-pie-demo]
 
-## Arguments
+## See also
 
-The arguments mirror the other presets.
-The `value` property of each actor (e.g. `"30%"`) represents the slice value.
-Combine `states` + `animation` to animate slice values.
-
-## Related
-
-- [topology preset](/docs/en/cdl/presets/topology) — the base layout used here.
-- [state primitive](/docs/en/cdl/primitives/state) — tween slice values.
+- [chart preset](/docs/en/cdl/presets/chart) — full 3-mode chart (bar / line + pie)
+- [funnel preset](/docs/en/cdl/presets/funnel) — for stage-wise numeric trends
+- [quadrant preset](/docs/en/cdl/presets/quadrant) — 2-axis evaluation
