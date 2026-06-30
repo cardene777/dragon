@@ -11,26 +11,26 @@ const W = 440;
 /** 1. NodeKind 全 5 種 (actor / function / storage / event / card) */
 export const kindActor = diagram("kind-actor", { topic: "kind: actor (外部主体)" })
   .lane("l", { x: 0, width: W })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Alice", eyebrow: "外部主体", value: "100" })
-  .phase("p", { duration: 1500, title: "actor", body: "外部主体 (送信元 / 受信側 等)。 残高 value 表示可。" }, (p: PhaseBuilder) => p.activate("a").badge("active"))
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Client", eyebrow: "外部主体", value: "100" })
+  .phase("p", { duration: 1500, title: "actor", body: "外部主体 (Client / 利用者 等)。 数値 value 表示可。" }, (p: PhaseBuilder) => p.activate("a").badge("active"))
   .build();
 
 export const kindFunction = diagram("kind-function", { topic: "kind: function (関数呼び出し)" })
   .lane("l", { x: 0, width: W })
-  .node("fn", { lane: "l", stack: 0, kind: "function", title: "transfer(to, amt)", eyebrow: "関数呼び出し", subtitle: "実行者は msg.sender" })
-  .phase("p", { duration: 1500, title: "function", body: "コントラクト関数。 mono 等幅 title + subtitle で署名表示。" }, (p: PhaseBuilder) => p.activate("fn").badge("active"))
+  .node("fn", { lane: "l", stack: 0, kind: "function", title: "handler(req)", eyebrow: "関数呼び出し", subtitle: "Service 内の処理" })
+  .phase("p", { duration: 1500, title: "function", body: "Service の関数。 mono 等幅 title + subtitle で署名表示。" }, (p: PhaseBuilder) => p.activate("fn").badge("active"))
   .build();
 
 export const kindStorage = diagram("kind-storage", { topic: "kind: storage (保存データ)" })
   .lane("l", { x: 0, width: W })
-  .node("s", { lane: "l", stack: 0, kind: "storage", title: "balances", eyebrow: "保存データ", rows: ["Alice: 100", "Bob: 0"] })
-  .phase("p", { duration: 1500, title: "storage", body: "オンチェーン保存。 rows で複数 entry 表示。" }, (p: PhaseBuilder) => p.activate("s").badge("active"))
+  .node("s", { lane: "l", stack: 0, kind: "storage", title: "users", eyebrow: "保存データ", rows: ["id: PK", "email: text"] })
+  .phase("p", { duration: 1500, title: "storage", body: "DB の table。 rows で複数 column 表示。" }, (p: PhaseBuilder) => p.activate("s").badge("active"))
   .build();
 
 export const kindEvent = diagram("kind-event", { topic: "kind: event (イベントログ)" })
   .lane("l", { x: 0, width: W })
-  .node("e", { lane: "l", stack: 0, kind: "event", title: "Transfer", eyebrow: "イベント", subtitle: "(from, to, value)" })
-  .phase("p", { duration: 1500, title: "event", body: "emit されたログ。 ウォレット / explorer が読む。" }, (p: PhaseBuilder) => p.activate("e").badge("active"))
+  .node("e", { lane: "l", stack: 0, kind: "event", title: "OrderCreated", eyebrow: "イベント", subtitle: "(orderId, userId, total)" })
+  .phase("p", { duration: 1500, title: "event", body: "emit された event。 event bus / log が読む。" }, (p: PhaseBuilder) => p.activate("e").badge("active"))
   .build();
 
 export const kindCard = diagram("kind-card", { topic: "kind: card (汎用情報)" })
@@ -54,7 +54,7 @@ export const laneMulti = diagram("lane-multi", { topic: "lane: 3 本 (横並び)
   .node("a", { lane: "l1", stack: 0, kind: "function", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
   .node("c", { lane: "l3", stack: 0, kind: "event", title: "C" })
-  .phase("p", { duration: 1500, title: "3 lane", body: "lane を横並びで責務分担 (送信元 / コントラクト / 通知)。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("OK"))
+  .phase("p", { duration: 1500, title: "3 lane", body: "lane を横並びで責務分担 (Client / Service / Event)。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("OK"))
   .build();
 
 export const laneContain = diagram("lane-contain", { topic: "lane: contain (枠囲み)" })

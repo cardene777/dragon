@@ -21,7 +21,7 @@
   - [`states` / `animation` (アニメーション)](#states--animation-アニメーション)
 - [完全例](#完全例)
   - [例 1 ... ログイン flow (sequence)](#例-1--ログイン-flow-sequence)
-  - [例 2 ... 送金 animation (sequence + tween)](#例-2--送金-animation-sequence--tween)
+  - [例 2 ... API call animation (sequence + tween)](#例-2--API call-animation-sequence--tween)
   - [例 3 ... 複数 phase (sequential animation)](#例-3--複数-phase-sequential-animation)
 - [エラーハンドリング](#エラーハンドリング)
 - [i18n 対応](#i18n-対応)
@@ -182,7 +182,7 @@ phase 内の `tween:` / `set:` で state の値を変えます。
 
 ```
 animation:
-  - step: "送金" 1.5s
+  - step: "API call" 1.5s
     tween:
       balance: 100 -> 90       # tween (lerp)
     set:
@@ -239,53 +239,53 @@ DSL の利点は「Mermaid 感覚で読みやすい」 「LLM が生成しやす
 
 [preview:presets/seq-demo]
 
-### 例 2 ... 送金 animation (sequence + tween)
+### 例 2 ... API call animation (sequence + tween)
 
 state と tween を使った animation 例です。
 v0.5 で完成した典型 case です。
 
 ```
-title: "送金"
+title: "API call"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
+  - Client
+  - API: storage
+  - Server
 
 flow:
-  - Alice -> Vault: "deposit" (info)
-  - Vault -> Bob: "send" (success)
+  - Client -> API: "deposit" (info)
+  - API -> Server: "send" (success)
 
 states:
-  aliceBalance: 100
-  bobBalance: 0
+  clientBalance: 100
+  serverBalance: 0
 
 animation:
-  - step: "送金" 1.5s
-    focus: [Alice, Vault, Alice->Vault]
+  - step: "API call" 1.5s
+    focus: [Client, API, Client->API]
     tween:
-      aliceBalance: 100 -> 90
-      bobBalance: 0 -> 10
-    body: "Alice が Vault 経由で Bob に 10 送る"
+      clientBalance: 100 -> 90
+      serverBalance: 0 -> 10
+    body: "Client が API 経由で Server に 10 送る"
 ```
 
 これを compile すると、 以下の builder API と等価になります。
 低位 builder の boilerplate を、 DSL では大幅に削減できることが分かります。
 
 ```ts
-diagram("送金", { topic: "送金" })
-  .lane("alice", { width: 340, label: "Alice", lifeline: true })
+diagram("API call", { topic: "API call" })
+  .lane("client", { width: 340, label: "Client", lifeline: true })
   // ... 各 lane の header / spacer / step box / footer
-  .state("aliceBalance", { initial: 100 })
-  .state("bobBalance", { initial: 0 })
+  .state("clientBalance", { initial: 100 })
+  .state("serverBalance", { initial: 0 })
   .phase(
-    "送金",
-    { duration: 1500, title: "送金", body: "Alice が Vault 経由で Bob に 10 送る" },
+    "API call",
+    { duration: 1500, title: "API call", body: "Client が API 経由で Server に 10 送る" },
     (p) => p
-      .activate("alice-header", "alice-footer", "vault-header", "vault-footer", "e0-alice-vault")
-      .tween("aliceBalance", 100, 90)
-      .tween("bobBalance", 0, 10),
+      .activate("client-header", "client-footer", "api-header", "api-footer", "e0-client-api")
+      .tween("clientBalance", 100, 90)
+      .tween("serverBalance", 0, 10),
   )
   .build()
 ```

@@ -103,25 +103,25 @@ boilerplate が多い builder API ほど、 DSL に移行したときの行数�
 
 ### Before
 
-builder API で書いた送金 animation です。
+builder API で書いた API call animation です。
 低位 builder を直接使うため、 各 lane / header / spacer / step box / footer を 1 つずつ宣言します。
 
 ```ts
 import { diagram } from "@cardenelabs/cdl";
 
-export const transfer = diagram("transfer", { topic: "送金" })
-  .lane("alice", { width: 340, label: "Alice", lifeline: true })
-  .lane("vault", { width: 340, label: "Vault", lifeline: true })
-  .lane("bob", { width: 340, label: "Bob", lifeline: true })
-  .node("alice-header", { lane: "alice", stack: 0, kind: "card", title: "Alice" })
+export const apiCall = diagram("api-call", { topic: "API call" })
+  .lane("client", { width: 340, label: "Client", lifeline: true })
+  .lane("api", { width: 340, label: "API", lifeline: true })
+  .lane("db", { width: 340, label: "DB", lifeline: true })
+  .node("client-header", { lane: "client", stack: 0, kind: "card", title: "Client" })
   // ... (大量の boilerplate)
-  .state("alice残高", { initial: 100 })
-  .state("bob残高", { initial: 0 })
-  .phase("送金", { duration: 1500, title: "送金", body: "Alice → Bob 10" }, (p) =>
-    p.activate("alice-header", "vault-header", "alice-vault")
-      .tween("alice残高", 100, 90)
-      .tween("bob残高", 0, 10)
-      .badge("送金中"))
+  .state("request_count", { initial: 0 })
+  .state("row_count", { initial: 0 })
+  .phase("call", { duration: 1500, title: "call", body: "Client → API → DB" }, (p) =>
+    p.activate("client-header", "api-header", "client-api")
+      .tween("request_count", 0, 1)
+      .tween("row_count", 0, 20)
+      .badge("call"))
   .build();
 ```
 
@@ -136,28 +136,28 @@ export const transfer = diagram("transfer", { topic: "送金" })
 header / footer / spacer 等の boilerplate は、 DSL compiler が自動生成するため不要です。
 
 ```ts
-export const transfer = textDslToDiagram(`
-タイトル: 送金
+export const apiCall = textDslToDiagram(`
+タイトル: API call
 種類: sequence
 
 登場人物:
-  - Alice
-  - Vault (storage)
-  - Bob
+  - Client
+  - API (function)
+  - DB (storage)
 
 流れ:
-  1. Alice → Vault: deposit
-  2. Vault → Bob: send (成功)
+  1. Client → API: GET /items
+  2. API → DB: SELECT (成功)
 
 アニメーション:
-  状態: alice残高 = 100
-  状態: bob残高 = 0
-  ステップ「送金」 1.5 秒:
-    強調: Alice, Vault, Alice→Vault
-    遷移: alice残高: 100 → 90
-    遷移: bob残高: 0 → 10
-    バッジ: 送金中
-    説明: Alice → Bob 10
+  状態: request_count = 0
+  状態: row_count = 0
+  ステップ「call」 1.5 秒:
+    強調: Client, API, Client→API
+    遷移: request_count: 0 → 1
+    遷移: row_count: 0 → 20
+    バッジ: call
+    説明: Client → API → DB
 `);
 ```
 

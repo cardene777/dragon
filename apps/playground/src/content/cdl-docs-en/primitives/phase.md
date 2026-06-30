@@ -157,15 +157,15 @@ title: "activate mix"
 type: sequence
 
 actors:
-  - alice
+  - client
   - fn: function
 
 flow:
-  - alice -> fn: "call"
+  - client -> fn: "call"
 
 animation:
   - step: "p" 1.5s
-    focus: [alice, fn]
+    focus: [client, fn]
 ```
 
 @@@ llm 🤖 For LLM
@@ -173,7 +173,7 @@ animation:
 ```yaml
 phases:
   - id: p
-    activates: [alice, fn, alice-fn]   # 2 nodes + 1 edge mixed under the same method
+    activates: [client, fn, client-fn]   # 2 nodes + 1 edge mixed under the same method
 intent: activate is variadic and accepts node / edge / phase ids uniformly
 ```
 
@@ -198,14 +198,14 @@ title: "tween balance"
 type: sequence
 
 actors:
-  - vault: storage
+  - api: storage
 
 states:
   balance: 100
 
 animation:
   - step: "transfer" 1.5s
-    focus: [vault]
+    focus: [api]
     tween:
       balance: 100 -> 90
 ```
@@ -215,7 +215,7 @@ animation:
 ```yaml
 phases:
   - id: transfer
-    activates: [vault]
+    activates: [api]
     tweens:
       - { state: balance, from: 100, to: 90 }
 intent: linear-interpolate balance over the full phase duration (100 -> 90)
@@ -411,10 +411,10 @@ Use the builder API when you need callback-based declarations or fine-grained ac
   (p) => p.activate("user", "api", "user-api").badge("call"))
 
 .phase("p", { ... },
-  (p) => p.activate("alice", "fn", "alice-fn"))   // alice node + fn node + alice-fn edge become active
+  (p) => p.activate("client", "fn", "client-fn"))   // client node + fn node + client-fn edge become active
 
 .phase("transfer", { ... },
-  (p) => p.activate("vault").tween("balance", 100, 90))
+  (p) => p.activate("api").tween("balance", 100, 90))
 
 .phase("submit", { ... }, (p) => p.set("status", "loading"))
 

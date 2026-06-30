@@ -116,25 +116,25 @@ title: "minimal call"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - greet: function
 
 flow:
-  - Alice -> greet: "call"
+  - Client -> greet: "call"
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 edges:
-  - { from: alice, to: greet, label: call }
-    # id auto: alice-greet、 tone default: accent、 style default: solid
+  - { from: client, to: greet, label: call }
+    # id auto: client-greet、 tone default: accent、 style default: solid
 intent: 最小 3 field (from / to / label)、 残り全部 default で省略可
 ```
 
 :::
 
-この例では `Alice` から `greet` に accent (橙) 色の実線矢印が引かれ、 中央に `call` ラベルが表示されます。
+この例では `Client` から `greet` に accent (橙) 色の実線矢印が引かれ、 中央に `call` ラベルが表示されます。
 
 ## batch 宣言
 
@@ -478,8 +478,8 @@ v0.5 Text DSL の `focus` field は node id を列挙し、 edge は自動で ac
 v0.5 Text DSL で表現できない `tone` 細粒度指定 (一部) / `sub` / `labelOffsetX` / `labelOffsetY` / `side` / `routing` 等を扱う場合は builder API を使います。
 
 ```ts
-.edge("alice", "greet", { label: "call" })
-// id auto: "alice-greet"、 tone default: "accent"、 style default: "solid"
+.edge("client", "greet", { label: "call" })
+// id auto: "client-greet"、 tone default: "accent"、 style default: "solid"
 
 .edges([
   { from: "a", to: "b", label: "call" },

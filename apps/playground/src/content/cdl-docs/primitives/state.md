@@ -309,37 +309,37 @@ DB の table や mapping 型のように、 複数 key の値を同時に表現�
 @@@ humans 👤 For humans
 
 ```text
-title: "Vault rows"
+title: "API rows"
 type: sequence
 
 actors:
-  - Vault: storage
+  - API: storage
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 states:
-  - { id: alice_bal, initial: 100 }
-  - { id: bob_bal,   initial: 0   }
+  - { id: client_bal, initial: 100 }
+  - { id: server_bal,   initial: 0   }
 nodes:
-  - id: vault
+  - id: api
     lane: p
     stack: 1
     kind: storage
-    title: Vault
+    title: API
     rows:
-      - "alice: {alice_bal}"
-      - "bob: {bob_bal}"
+      - "client: {client_bal}"
+      - "server: {server_bal}"
 ```
 
 :::
 
-v0.5 Text DSL では `kind: storage` の actor 宣言 + states 群で auto-bind されますが、 rows の literal pattern (`"alice: {alice_bal}"`) を細かく制御したい場合は chain API を使います。
+v0.5 Text DSL では `kind: storage` の actor 宣言 + states 群で auto-bind されますが、 rows の literal pattern (`"client: {client_bal}"`) を細かく制御したい場合は chain API を使います。
 
 [preview:animation/mixed-tween-set]
 
@@ -357,18 +357,18 @@ title: "parallel transfer"
 type: sequence
 
 actors:
-  - vault: storage
+  - api: storage
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 
 animation:
   - step: "transfer" 1.5s
-    focus: [vault]
+    focus: [api]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
+      client_bal: 100 -> 90
+      server_bal: 0 -> 10
 ```
 
 @@@ llm 🤖 For LLM
@@ -378,10 +378,10 @@ phases:
   - id: transfer
     duration_ms: 1500
     title: transfer
-    activates: [vault]
+    activates: [api]
     tweens:
-      - { state: alice_bal, from: 100, to: 90 }
-      - { state: bob_bal,   from: 0,   to: 10 }
+      - { state: client_bal, from: 100, to: 90 }
+      - { state: server_bal,   from: 0,   to: 10 }
 note: "1 phase 内 tweens 配列に複数 state を並列指定可、 全て同 duration で同期 lerp"
 ```
 
@@ -418,17 +418,17 @@ diagram("counter", { topic: "Counter" })
 .state("balance", { initial: 100 })
 .node("user", { lane: "u", stack: 0, kind: "actor", title: "User", value: "{balance}" })
 
-.state("alice_bal", { initial: 100 })
-.state("bob_bal",   { initial: 0 })
-.node("vault", {
-  lane: "p", stack: 1, kind: "storage", title: "Vault",
-  rows: ["alice: {alice_bal}", "bob: {bob_bal}"],
+.state("client_bal", { initial: 100 })
+.state("server_bal",   { initial: 0 })
+.node("api", {
+  lane: "p", stack: 1, kind: "storage", title: "API",
+  rows: ["client: {client_bal}", "server: {server_bal}"],
 })
 
 .phase("transfer", { duration: 1500, title: "transfer", body: "" },
-  (p) => p.activate("vault")
-    .tween("alice_bal", 100, 90)
-    .tween("bob_bal", 0, 10)
+  (p) => p.activate("api")
+    .tween("client_bal", 100, 90)
+    .tween("server_bal", 0, 10)
 )
 ```
 

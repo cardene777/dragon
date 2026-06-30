@@ -347,8 +347,7 @@ import {
 | 人系 | person / user-group / admin / developer / external-user |
 | インフラ | database / cache / queue / message-bus / cloud / cdn |
 | アプリ | service / api / frontend / backend / webhook / microservice |
-| blockchain | wallet / validator / miner / blockchain-node / mempool / block / bridge-node / relayer |
-| 暗号 / データ | signer / oracle / merkle-tree / decision |
+| データ / 判定 | signer / oracle / merkle-tree / decision |
 
 各 NodeKind の見本は `/catalog/primitives` ページで visual に確認できます。
 

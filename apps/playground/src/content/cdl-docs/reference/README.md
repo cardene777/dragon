@@ -102,4 +102,4 @@ pnpm verify:intent          # 作者意図 ↔ 実画面 (mermaid 的本質)
 - [Overview](/docs/cdl/README) ... docs 全体の index、 cdl の思想と全体像
 - [Primitives](/docs/cdl/primitives/README) ... lane / node / edge / state / phase の 5 基本パーツ
 - [Presets](/docs/cdl/presets/README) ... 6 preset の完成例
-- [Patterns](/docs/cdl/patterns/README) ... 18 実用 pattern (Permit / Bridge / DEX 等)
+- [Patterns](/docs/cdl/patterns/README) ... 12 種の汎用 pattern (Direct / Passthrough / Branch / Loop / Fan-out / Fan-in 等)

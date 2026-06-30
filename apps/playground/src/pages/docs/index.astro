@@ -68,11 +68,11 @@ const hello = diagram("hello", { topic: "Hello world" })
   .lane("left",  { x: 0,   width: 320 })
   .lane("right", { x: 460, width: 320 })
   .nodes([
-    { id: "a", lane: "left",  stack: 0, kind: "actor",    title: "Alice" },
+    { id: "a", lane: "left",  stack: 0, kind: "actor",    title: "Client" },
     { id: "b", lane: "right", stack: 0, kind: "function", title: "greet()" },
   ])
   .edge("a", "b", { label: "hello" })
-  .phase("call", { duration: 1500, title: "Call", body: "Alice が greet を呼ぶ。" },
+  .phase("call", { duration: 1500, title: "Call", body: "Client が greet を呼ぶ。" },
     (p) => p.activate("a", "b", "a-b"))
   .build();
 

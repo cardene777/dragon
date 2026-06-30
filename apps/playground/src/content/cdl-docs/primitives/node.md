@@ -62,7 +62,7 @@ constraints:
   - "stack numbers within the same lane must be unique"
 common_hallucinations:
   - '.node({ id: ..., lane: ... }) — opts is 2nd arg, not 1st'
-  - '.node("a", "lane-l", 0, "actor", "Alice") — opts must be object'
+  - '.node("a", "lane-l", 0, "actor", "Client") — opts must be object'
   - 'kind: "rectangle" / "circle" — kind is semantic (29 values), not shape'
   - 'opts.x / opts.y — coordinates are derived from lane + stack, not direct'
   - 'rows / value on kind: "function" — only storage (rows) / actor / storage (value)'
@@ -114,18 +114,18 @@ title: "greet"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - "greet()": function
 
 flow:
-  - Alice -> "greet()": "call"
+  - Client -> "greet()": "call"
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 nodes:
-  - { id: alice, lane: left,  stack: 0, kind: actor,    title: Alice }
+  - { id: client, lane: left,  stack: 0, kind: actor,    title: Client }
   - { id: greet, lane: right, stack: 0, kind: function, title: "greet()" }
 intent: 同 stack: 0 を異なる lane に置くと水平整列 (layout engine で y 自動計算)
 ```
@@ -151,8 +151,8 @@ title: "actors batch"
 type: flow
 
 actors:
-  - Alice
-  - Bob
+  - Client
+  - Server
   - "greet()": function
 ```
 
@@ -160,8 +160,8 @@ actors:
 
 ```yaml
 nodes:
-  - { id: a, lane: l, stack: 0, kind: actor,    title: Alice }
-  - { id: b, lane: l, stack: 1, kind: actor,    title: Bob }
+  - { id: a, lane: l, stack: 0, kind: actor,    title: Client }
+  - { id: b, lane: l, stack: 1, kind: actor,    title: Server }
   - { id: c, lane: l, stack: 2, kind: function, title: "greet()" }
 intent: batch 宣言で chain 見通し向上 (個別 .node() の連鎖回避)
 ```
@@ -196,18 +196,18 @@ intent: batch 宣言で chain 見通し向上 (個別 .node() の連鎖回避)
 @@@ humans 👤 For humans
 
 ```text
-title: "Vault"
+title: "API"
 type: sequence
 
 actors:
-  - Vault: storage
+  - API: storage
 
 states:
   balance: 100
 
 animation:
   - step: "transfer" 1.5s
-    focus: [Vault]
+    focus: [API]
     tween:
       balance: 100 -> 90
 ```
@@ -218,14 +218,14 @@ animation:
 states:
   - { id: balance, initial: 100 }
 nodes:
-  - id: vault
+  - id: api
     lane: p
     stack: 1
     kind: storage
-    title: Vault
+    title: API
     rows:
-      - "alice: {balance}"
-      - "bob: 0"
+      - "client: {balance}"
+      - "server: 0"
 intent: storage kind で表形式 render、 {stateId} 補間で phase 進行に同期して値変化
 ```
 
@@ -235,7 +235,7 @@ intent: storage kind で表形式 render、 {stateId} 補間で phase 進行に�
 
 v0.5 Text DSL では `kind: storage` の actor が宣言されると、 state 値が自動で rows に bind されます。
 phase の tween で `balance` の値が変化すると、 storage 内部の表示も animation で同期更新されます。
-rows の細かい formatting (`alice: {balance}` 等の literal interpolation) を表現したい場合は chain API を使います。
+rows の細かい formatting (`client: {balance}` 等の literal interpolation) を表現したい場合は chain API を使います。
 
 ## actor の value
 
@@ -292,12 +292,12 @@ title: "horizontal align"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - greet: function
   - OK: event
 
 flow:
-  - Alice -> greet: "call"
+  - Client -> greet: "call"
   - greet -> OK: "emit"
 ```
 
@@ -305,8 +305,8 @@ flow:
 
 ```yaml
 nodes:
-  - { id: alice,  lane: l, stack: 0, kind: actor,    title: Alice }   # 上
-  - { id: greet,  lane: r, stack: 0, kind: function, title: greet }   # 上 (alice と水平)
+  - { id: client,  lane: l, stack: 0, kind: actor,    title: Client }   # 上
+  - { id: greet,  lane: r, stack: 0, kind: function, title: greet }   # 上 (client と水平)
   - { id: result, lane: r, stack: 1, kind: event,    title: OK }      # 下
 intent: 同 stack = 水平整列、 同 lane で stack 増分 = 縦並び (順番だけ宣言、 y 座標は layout engine 計算)
 ```
@@ -366,22 +366,22 @@ v0.5 Text DSL では `eyebrow` / `subtitle` を直接表現できないため、
 v0.5 Text DSL で表現できない `eyebrow` / `subtitle` / `rows` literal interpolation / `w` / `h` の override が必要な場合は builder API を使います。
 
 ```ts
-.node("alice", { lane: "left", stack: 0, kind: "actor", title: "Alice" })
+.node("client", { lane: "left", stack: 0, kind: "actor", title: "Client" })
 .node("greet", { lane: "right", stack: 0, kind: "function", title: "greet()" })
 
 .nodes([
-  { id: "a", lane: "l", stack: 0, kind: "actor",    title: "Alice" },
-  { id: "b", lane: "l", stack: 1, kind: "actor",    title: "Bob" },
+  { id: "a", lane: "l", stack: 0, kind: "actor",    title: "Client" },
+  { id: "b", lane: "l", stack: 1, kind: "actor",    title: "Server" },
   { id: "c", lane: "l", stack: 2, kind: "function", title: "greet()" },
 ])
 
 .state("balance", { initial: 100 })
-.node("vault", {
+.node("api", {
   lane: "p",
   stack: 1,
   kind: "storage",
-  title: "Vault",
-  rows: ["alice: {balance}", "bob: 0"],
+  title: "API",
+  rows: ["client: {balance}", "server: 0"],
 })
 
 .state("supply", { initial: 0 })

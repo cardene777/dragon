@@ -3,40 +3,40 @@
  *
  * 設計方針:
  * - keyword は英語のみ (title / type / actors / flow / states / animation / step / focus / tween / set / badge)
- * - 値の日本語は quote 必須 (`title: "送金"` / `step: "送金開始" 1.5s`)
+ * - 値の日本語は quote 必須 (`title: "API call"` / `step: "request" 1.5s`)
  * - YAML 風 + 短縮 keyword + 箇条書き構造
  * - Mermaid 知ってる人にもゼロ学習、 非エンジニアにも直感的
  *
  * syntax 例:
  *
- *   title: "送金フロー"
+ *   title: "API call"
  *   type: sequence
  *
  *   actors:
- *     - Alice
- *     - Vault: storage
- *     - Bob
+ *     - Client
+ *     - API: function
+ *     - DB
  *
  *   flow:
- *     - Alice -> Vault: "deposit"
- *     - Vault -> Bob: "send" (success)
+ *     - Client -> API: "GET /items"
+ *     - API -> DB: "SELECT" (success)
  *
  *   states:
- *     alice_bal: 100
- *     bob_bal: 0
+ *     request_count: 0
+ *     row_count: 0
  *
  *   animation:
- *     - step: "送金開始" 1.5s
- *       focus: [Alice, Vault]
+ *     - step: "request" 1.5s
+ *       focus: [Client, API]
  *       tween:
- *         alice_bal: 100 -> 90
- *       badge: "送金開始"
+ *         request_count: 0 -> 1
+ *       badge: "request"
  *
- *     - step: "送金完了" 1.5s
- *       focus: [Vault, Bob]
+ *     - step: "query" 1.5s
+ *       focus: [API, DB]
  *       tween:
- *         bob_bal: 0 -> 10
- *       badge: "送金完了"
+ *         row_count: 0 -> 20
+ *       badge: "query"
  *
  * 出力は v0.4 と同じ DslDocument。 既存 compile.ts で CdlDiagram に変換できる。
  */
@@ -195,7 +195,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
           errors.push({
             line: it.no,
             message: `invalid actor entry: "${it.trimmed}"`,
-            hint: 'use `- Alice` or `- Alice: storage`',
+            hint: 'use `- Client` or `- Client: storage`',
           });
         }
       }
@@ -450,7 +450,7 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
 }
 
 /**
- * inline mapping を parse: `subtitle: "送り手", kind: actor, stack: 0`
+ * inline mapping を parse: `subtitle: "送信元", kind: actor, stack: 0`
  * brace 内は { } で wrap してから渡す、 本関数は内部だけ受ける
  * 値が `[a, b]` 配列は文字列のまま返す (caller で split)
  */
@@ -533,13 +533,13 @@ function collectAnimationSteps(lines: Line[], start: number, parentIndent: numbe
 
 function parseActor(line: Line): DslActor | null {
   // 4 形式 サポート:
-  // 1. `Alice`                              ... name のみ、 kind=actor default
-  // 2. `Alice: storage`                     ... name + kind 略記
-  // 3. `Alice: { kind: actor, subtitle: "送り手", value: "{x}" }` ... name + inline option mapping
+  // 1. `Client`                              ... name のみ、 kind=actor default
+  // 2. `Client: storage`                     ... name + kind 略記
+  // 3. `Client: { kind: actor, subtitle: "送信元", value: "{x}" }` ... name + inline option mapping
   // 4. `"画面"` / `"画面": event`           ... 日本語 quote
   const raw = line.trimmed.trim();
   if (!raw) return null;
-  // 3. inline mapping check (`Alice: { ... }`)、 nested { } を depth count で正しく抽出
+  // 3. inline mapping check (`Client: { ... }`)、 nested { } を depth count で正しく抽出
   const mapMatch = matchActorInlineMapping(raw);
   if (mapMatch) {
     const namePart = stripQuotes(mapMatch.name.trim());
@@ -583,11 +583,11 @@ function parseActor(line: Line): DslActor | null {
 
 function parseFlowStep(line: Line, no: number): DslStep | null {
   // 形式 (順序自由、 部分省略可):
-  // 1. `Alice -> Vault`                            ... label / option なし
-  // 2. `Alice -> Vault: "deposit"`                 ... label
-  // 3. `Alice -> Vault: "deposit" (success)`       ... label + tone tuple
-  // 4. `Alice -> Vault: "deposit" { sub: "...", guard: "...", cardinality: "1:N", labelOffsetY: -8 }` ... inline option
-  // 5. `Alice -> Vault: "deposit" (success) { guard: "..." }` ... 両方
+  // 1. `Client -> API`                            ... label / option なし
+  // 2. `Client -> API: "deposit"`                 ... label
+  // 3. `Client -> API: "deposit" (success)`       ... label + tone tuple
+  // 4. `Client -> API: "deposit" { sub: "...", guard: "...", cardinality: "1:N", labelOffsetY: -8 }` ... inline option
+  // 5. `Client -> API: "deposit" (success) { guard: "..." }` ... 両方
   let raw = line.trimmed;
   const arrowIdx = raw.indexOf("->");
   if (arrowIdx < 0) return null;
@@ -646,7 +646,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
 }
 
 function parseStateEntry(text: string, lineNo: number): DslState | null {
-  // `alice_bal: 100` / `status: "idle"`
+  // `client_bal: 100` / `status: "idle"`
   const m = text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.+)$/);
   if (!m) return null;
   const name = m[1] ?? "";
@@ -668,7 +668,7 @@ function ensureAnimate(a: DslAnimate | undefined, lineNo: number): DslAnimate {
 }
 
 function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
-  // block[0]!: `step: "送金開始" 1.5s`
+  // block[0]!: `step: "request" 1.5s`
   const head = block[0]!;
   const m = head.trimmed.match(/^step\s*:\s*(.+)$/);
   if (!m) {
@@ -676,7 +676,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
     return null;
   }
   const headRest = (m[1] ?? "").trim();
-  // `"送金開始" 1.5s` 形式 ... quote 後の duration 抽出
+  // `"request" 1.5s` 形式 ... quote 後の duration 抽出
   const headParse = parseStepHead(headRest);
   if (!headParse) {
     errors.push({ line: head.no, message: `invalid step value: "${headRest}"`, hint: 'use `"name" 1.5s` (duration in s)' });
@@ -718,7 +718,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       continue;
     }
     if (key === "tween") {
-      // inline (tween: alice_bal 100 -> 90) or block
+      // inline (tween: client_bal 100 -> 90) or block
       if (value) {
         const tw = parseTweenLine(value, ln.no);
         if (tw) phase.tweens!.push(tw);
@@ -765,7 +765,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
 }
 
 function parseStepHead(s: string): { name: string; durationMs: number } | null {
-  // 例: `"送金開始" 1.5s` / `"step1" 1500ms` / `step1 2s`
+  // 例: `"request" 1.5s` / `"step1" 1500ms` / `step1 2s`
   let rest = s.trim();
   let name = "";
   if (rest.startsWith('"') || rest.startsWith("'")) {
@@ -789,7 +789,7 @@ function parseStepHead(s: string): { name: string; durationMs: number } | null {
 }
 
 function parseFocusList(s: string): string[] {
-  // `[Alice, Vault]` / `Alice, Vault` / `Alice Vault`
+  // `[Client, API]` / `Client, API` / `Client API`
   let body = s.trim();
   if (body.startsWith("[") && body.endsWith("]")) body = body.slice(1, -1);
   const parts = body.split(/[,\s]+/).map((x) => stripQuotes(x.trim())).filter(Boolean);
@@ -797,7 +797,7 @@ function parseFocusList(s: string): string[] {
 }
 
 function parseTweenLine(s: string, lineNo: number): DslTween | null {
-  // `alice_bal 100 -> 90` / `alice_bal: 100 -> 90`
+  // `client_bal 100 -> 90` / `client_bal: 100 -> 90`
   const cleaned = s.replace(/^-\s*/, "").trim();
   const m = cleaned.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
   if (!m) return null;

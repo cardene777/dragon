@@ -116,25 +116,25 @@ title: "minimal call"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - greet: function
 
 flow:
-  - Alice -> greet: "call"
+  - Client -> greet: "call"
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 edges:
-  - { from: alice, to: greet, label: call }
-    # auto id: alice-greet, tone default: accent, style default: solid
+  - { from: client, to: greet, label: call }
+    # auto id: client-greet, tone default: accent, style default: solid
 intent: minimal 3 fields (from / to / label); the rest default and can be omitted
 ```
 
 :::
 
-In this example, an accent-colored (orange) solid arrow connects `Alice` to `greet`, with the `call` label shown at the center.
+In this example, an accent-colored (orange) solid arrow connects `Client` to `greet`, with the `call` label shown at the center.
 
 ## Batch declaration
 
@@ -478,8 +478,8 @@ In v0.5 Text DSL, the `focus` field enumerates node ids only, and edges connecti
 Use the builder API for cases v0.5 Text DSL cannot express, such as per-edge `tone` precision (some values), `sub`, `labelOffsetX` / `labelOffsetY`, `side`, or `routing`.
 
 ```ts
-.edge("alice", "greet", { label: "call" })
-// auto id: "alice-greet", tone default: "accent", style default: "solid"
+.edge("client", "greet", { label: "call" })
+// auto id: "client-greet", tone default: "accent", style default: "solid"
 
 .edges([
   { from: "a", to: "b", label: "call" },

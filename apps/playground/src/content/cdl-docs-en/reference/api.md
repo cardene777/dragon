@@ -347,8 +347,7 @@ Categories are organized so that you can pick whichever matches your use case.
 | people | person / user-group / admin / developer / external-user |
 | infrastructure | database / cache / queue / message-bus / cloud / cdn |
 | application | service / api / frontend / backend / webhook / microservice |
-| blockchain | wallet / validator / miner / blockchain-node / mempool / block / bridge-node / relayer |
-| crypto / data | signer / oracle / merkle-tree / decision |
+| data / control | signer / oracle / merkle-tree / decision |
 
 You can visually inspect each NodeKind on the `/catalog/primitives` page.
 
