@@ -1,6 +1,37 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { compile, CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
+import CodeMirror from "@uiw/react-codemirror";
+import { yaml } from "@codemirror/lang-yaml";
+import { EditorView } from "@codemirror/view";
+
+// dragon DSL は YAML 互換、 yaml mode を流用 + v4 palette で theme override
+const v4EditorTheme = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "#fcf8ee",
+      color: "#1a1f2a",
+      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+      fontSize: "13px",
+      height: "100%",
+    },
+    ".cm-content": { padding: "18px 14px", caretColor: "#2d6a8f" },
+    ".cm-cursor": { borderLeftColor: "#2d6a8f" },
+    ".cm-line": { padding: "0 4px" },
+    ".cm-gutters": {
+      backgroundColor: "#fcf8ee",
+      color: "#8a8678",
+      border: "none",
+      borderRight: "1px solid #e0d9c8",
+      fontFamily: "'JetBrains Mono', monospace",
+    },
+    ".cm-activeLineGutter": { backgroundColor: "rgba(45,106,143,0.06)", color: "#2d6a8f" },
+    ".cm-activeLine": { backgroundColor: "rgba(45,106,143,0.04)" },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(45,106,143,0.18) !important" },
+    "&.cm-focused": { outline: "none" },
+  },
+  { dark: false }
+);
 
 /**
  * Visual Editor v1.1
@@ -434,6 +465,29 @@ export function CdlEditor(): React.JSX.Element {
   const [src, setSrc] = useState<string>(SAMPLES[0]!.code);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeSample, setActiveSample] = useState(SAMPLES[0]!.label);
+
+  const filteredSamples = useMemo(() => {
+    if (!search.trim()) return SAMPLES;
+    const q = search.toLowerCase();
+    return SAMPLES.filter((s) => s.label.toLowerCase().includes(q));
+  }, [search]);
+
+  const categorize = (label: string): string => {
+    const m = label.match(/\(([^)]+)\)/);
+    return m ? m[1]! : "other";
+  };
+
+  const groupedSamples = useMemo(() => {
+    const groups: Record<string, typeof SAMPLES> = {};
+    for (const s of filteredSamples) {
+      const cat = categorize(s.label);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat]!.push(s);
+    }
+    return groups;
+  }, [filteredSamples]);
   const timerRef = useRef<number | null>(null);
 
   // pan/zoom state
@@ -631,102 +685,133 @@ export function CdlEditor(): React.JSX.Element {
 
   const scaleDisplay = useMemo(() => `${Math.round(transform.scale * 100)}%`, [transform.scale]);
 
+  const handleSelectSample = (s: { label: string; code: string }): void => {
+    setSrc(s.code);
+    setActiveSample(s.label);
+  };
+
   return (
-    <div className="cdl-editor">
-      <div className="cdl-editor-toolbar">
-        <div className="cdl-editor-samples">
-          <span className="cdl-editor-toolbar-label">サンプル</span>
-          <div className="cdl-editor-sample-scroll">
-            {SAMPLES.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className="cdl-editor-sample-btn"
-                onClick={() => setSrc(s.code)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+    <div className="v4-editor">
+      {/* ── 左 sidebar ── */}
+      <aside className="v4-editor-side">
+        <div className="v4-editor-side-head">
+          <span className="v4-editor-side-eyebrow">samples</span>
+          <span className="v4-editor-side-count">{filteredSamples.length}</span>
         </div>
-        <div className="cdl-editor-actions">
-          <button
-            id="editor-share-btn"
-            type="button"
-            className="cdl-editor-action-btn"
-            onClick={handleShare}
-          >
-            共有 URL コピー
+        <input
+          className="v4-editor-search"
+          type="text"
+          placeholder="🔍 search sample..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="v4-editor-side-list">
+          {Object.entries(groupedSamples).map(([cat, list]) => (
+            <div key={cat} className="v4-editor-side-group">
+              <div className="v4-editor-side-group-title">{cat}</div>
+              {list.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className={`v4-editor-side-item ${activeSample === s.label ? "active" : ""}`}
+                  onClick={() => handleSelectSample(s)}
+                >
+                  {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      {/* ── 中央 DSL editor (CodeMirror) ── */}
+      <section className="v4-editor-code">
+        <header className="v4-editor-bar">
+          <span className="v4-editor-bar-file">▲ {activeSample}.dragon</span>
+          <span className="v4-editor-bar-gap" />
+          <button type="button" className="v4-editor-bar-btn" onClick={handleShare}>
+            共有 URL
           </button>
           <button
             type="button"
-            className="cdl-editor-action-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-primary"
             onClick={handleDownload}
             disabled={!diagram}
           >
-            SVG ダウンロード
+            SVG download
           </button>
-        </div>
-      </div>
-      <div className="cdl-editor-split">
-        <div className="cdl-editor-input-pane">
-          <textarea
-            className="cdl-editor-textarea"
+        </header>
+        <div className="v4-editor-code-body">
+          <CodeMirror
             value={src}
-            onChange={(e) => setSrc(e.target.value)}
-            spellCheck={false}
-            placeholder="title: '...'\ntype: sequence\nactors:\n  - ..."
+            theme={v4EditorTheme}
+            extensions={[yaml()]}
+            onChange={(v) => setSrc(v)}
+            height="100%"
+            basicSetup={{
+              lineNumbers: true,
+              foldGutter: true,
+              dropCursor: false,
+              highlightActiveLine: true,
+              highlightActiveLineGutter: true,
+              autocompletion: false,
+              indentOnInput: true,
+            }}
           />
         </div>
-        <div className="cdl-editor-preview-pane">
-          {error ? (
-            <pre className="cdl-editor-error">{error}</pre>
-          ) : null}
+        {error && <pre className="v4-editor-error">{error}</pre>}
+      </section>
+
+      {/* ── 右 preview pane (full-bleed) ── */}
+      <section className="v4-editor-preview">
+        <header className="v4-editor-bar">
+          <span className="v4-editor-bar-file">
+            <span className="v4-editor-live" /> live preview
+          </span>
+          <span className="v4-editor-bar-gap" />
+          <button type="button" className="v4-editor-bar-btn" onClick={handleFit}>
+            fit
+          </button>
+          <button type="button" className="v4-editor-bar-btn" onClick={handleReset}>
+            reset
+          </button>
+          <button type="button" className="v4-editor-bar-btn" onClick={handle100}>
+            100%
+          </button>
+          <button type="button" className="v4-editor-bar-btn" onClick={handleZoomOut}>
+            −
+          </button>
+          <button type="button" className="v4-editor-bar-btn" onClick={handleZoomIn}>
+            +
+          </button>
+          <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
+        </header>
+        <div
+          className="v4-editor-stage"
+          ref={previewRef}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <div
-            className="cdl-editor-preview-wrap"
-            ref={previewRef}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="v4-editor-pan"
+            style={{
+              transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})`,
+              transformOrigin: "0 0",
+            }}
           >
-            <div
-              className="cdl-editor-pan-zoom"
-              style={{
-                transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})`,
-                transformOrigin: "0 0",
-              }}
-            >
-              <div className="cdl-editor-preview">
-                {diagram ? (
-                  <CdlDiagramView diagram={diagram} />
-                ) : (
-                  <div className="cdl-editor-empty">読み込み中…</div>
-                )}
+            {diagram ? (
+              <div className="v4-editor-svg-wrap">
+                <CdlDiagramView diagram={diagram} />
               </div>
-            </div>
-            <div className="cdl-editor-zoom-toolbar">
-              <button type="button" onClick={handleFit} title="Fit (画面に合わせる)">
-                Fit
-              </button>
-              <button type="button" onClick={handleReset} title="Reset (Esc)">
-                Reset
-              </button>
-              <button type="button" onClick={handle100} title="100%">
-                100%
-              </button>
-              <button type="button" onClick={handleZoomOut} title="Zoom out">
-                −
-              </button>
-              <button type="button" onClick={handleZoomIn} title="Zoom in">
-                +
-              </button>
-              <span className="cdl-editor-zoom-display">{scaleDisplay}</span>
-            </div>
+            ) : (
+              <div className="v4-editor-empty">読み込み中...</div>
+            )}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
