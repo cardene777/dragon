@@ -83,44 +83,6 @@ export const App = () => <CdlDiagramView diagram={hello} />;`}</code></pre>
     </section>
   </main>
 
-  {/* lang toggle (Header.astro の docs-lang-toggle button と連動) */}
-  <script is:inline>
-    (() => {
-      const rewriteCtaUrls = (lang) => {
-        document.querySelectorAll("a[href]").forEach((a) => {
-          const h = a.getAttribute("href");
-          if (!h) return;
-          if (lang === "en" && h.startsWith("/docs/cdl/")) {
-            a.setAttribute("href", h.replace("/docs/cdl/", "/docs/en/cdl/"));
-          } else if (lang === "ja" && h.startsWith("/docs/en/cdl/")) {
-            a.setAttribute("href", h.replace("/docs/en/cdl/", "/docs/cdl/"));
-          }
-        });
-      };
-      const applyLang = (lang) => {
-        document.documentElement.setAttribute("lang", lang);
-        document.querySelectorAll("[data-ja][data-en]").forEach((el) => {
-          const v = el.getAttribute(lang === "en" ? "data-en" : "data-ja");
-          if (v !== null) el.textContent = v;
-        });
-        rewriteCtaUrls(lang);
-        try { localStorage.setItem("docs-lang", lang); } catch (e) {}
-      };
-      try {
-        const saved = localStorage.getItem("docs-lang");
-        if (saved === "en") applyLang("en");
-      } catch (e) {}
-      document.addEventListener("DOMContentLoaded", () => {
-        const toggle = document.getElementById("docs-lang-toggle");
-        if (!toggle) return;
-        toggle.addEventListener("click", () => {
-          const cur = document.documentElement.getAttribute("lang") === "en" ? "en" : "ja";
-          applyLang(cur === "en" ? "ja" : "en");
-        });
-      });
-    })();
-  </script>
-
   {/* code copy ボタン */}
   <script is:inline>
     document.addEventListener("DOMContentLoaded", () => {
