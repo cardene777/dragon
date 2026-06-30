@@ -248,23 +248,23 @@ type: sequence
 actors:
   - User
   - "cUSDC.mint()": function
-  - "USDC vault": storage
+  - "USDC api": storage
   - "cUSDC balance": storage
 
 flow:
   - User -> "cUSDC.mint()": "mint(1000)" (accent)
-  - "cUSDC.mint()" -> "USDC vault": "transferFrom 1000 USDC" (teal, dotted-flow)
+  - "cUSDC.mint()" -> "USDC api": "transferFrom 1000 USDC" (teal, dotted-flow)
   - "cUSDC.mint()" -> "cUSDC balance": "mint 49.5 cUSDC" (success, dotted-flow)
 
 states:
-  usdc_in_vault: 0
+  usdc_in_api: 0
   user_ctoken: 0
 
 animation:
   - step: "supply 1000 USDC" 1.8s
-    focus: [User, "cUSDC.mint()", "USDC vault", "cUSDC balance"]
+    focus: [User, "cUSDC.mint()", "USDC api", "cUSDC balance"]
     tween:
-      usdc_in_vault: 0 -> 1000
+      usdc_in_api: 0 -> 1000
       user_ctoken: 0 -> 49.5
     badge: "supplied"
 ```
@@ -272,7 +272,7 @@ animation:
 [preview:cookbook/compound-supply]
 
 The point is to depict the exchange rate (`1 cUSDC = 1000 / 49.5 USDC`) through two parallel tweens.
-You can add a follow-up phase like `tween: usdc_in_vault: 1000 -> 1005` to show value accruing over time.
+You can add a follow-up phase like `tween: usdc_in_api: 1000 -> 1005` to show value accruing over time.
 
 ### A-7. Curve stable swap
 
@@ -314,13 +314,13 @@ animation:
 The point is that Curve's `A` (amplification coefficient) keeps slippage near `999.5 USDC`.
 A UniswapV2 constant-product pool would only return roughly `990 USDC` under the same conditions.
 
-### A-8. yEarn vault deposit
+### A-8. yEarn api deposit
 
-yEarn (a yield-aggregating protocol where depositing into a vault triggers an optimized strategy) vault deposit.
-When a user deposits into the vault, the strategy allocates the funds into external protocols (Aave / Compound / etc.).
+yEarn (a yield-aggregating protocol where depositing into a api triggers an optimized strategy) api deposit.
+When a user deposits into the api, the strategy allocates the funds into external protocols (Aave / Compound / etc.).
 
 ```text
-title: "yEarn vault deposit"
+title: "yEarn api deposit"
 type: sequence
 
 actors:
@@ -337,14 +337,14 @@ flow:
   - "Strategy" -> "Aave Pool": "supply 1000 USDC" (success, dotted-flow)
 
 states:
-  vault_pool: 0
+  api_pool: 0
   user_shares: 0
 
 animation:
   - step: "deposit" 1.5s
     focus: [User, "yvUSDC.deposit()", "yvUSDC shares"]
     tween:
-      vault_pool: 0 -> 1000
+      api_pool: 0 -> 1000
       user_shares: 0 -> 950
     badge: "deposited"
 
@@ -353,7 +353,7 @@ animation:
     badge: "deployed"
 ```
 
-[preview:cookbook/yearn-vault]
+[preview:cookbook/yearn-api]
 
 The point is to split deposit and auto-deploy into separate phases, making clear that the user-visible "single deposit" is actually two internal steps.
 
@@ -369,12 +369,12 @@ type: sequence
 actors:
   - User
   - "CDP Manager": function
-  - "Vault (ETH locked)": storage
+  - "API (ETH locked)": storage
   - "DAI minted": storage
 
 flow:
   - User -> "CDP Manager": "open + lock 10 ETH" (accent)
-  - "CDP Manager" -> "Vault (ETH locked)": "transferFrom 10 ETH" (teal, dotted-flow)
+  - "CDP Manager" -> "API (ETH locked)": "transferFrom 10 ETH" (teal, dotted-flow)
   - User -> "CDP Manager": "draw 5000 DAI" (accent)
   - "CDP Manager" -> "DAI minted": "mint 5000 DAI" (success, dotted-flow)
   - "DAI minted" -> User: "send DAI" (success, dotted-flow)
@@ -385,7 +385,7 @@ states:
 
 animation:
   - step: "lock ETH" 1.2s
-    focus: [User, "CDP Manager", "Vault (ETH locked)"]
+    focus: [User, "CDP Manager", "API (ETH locked)"]
     tween:
       locked_eth: 0 -> 10
     badge: "locked"

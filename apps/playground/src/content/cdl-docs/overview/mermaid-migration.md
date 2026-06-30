@@ -23,10 +23,10 @@
 | mermaid | cdl Text DSL v0.5 |
 |---|---|
 | `sequenceDiagram` 宣言 | `type: sequence` |
-| `participant Alice` | `actors:` 配下に `- Alice` |
-| `Alice->>API: 呼び出し` | `flow:` 配下に `- Alice -> API: "呼び出し"` |
-| `API-->>Alice: response` | `- API -> Alice: "response" (success, dotted-flow)` |
-| `Note over Alice` | actor の `subtitle:` か `kind: card` で代用 |
+| `participant Client` | `actors:` 配下に `- Client` |
+| `Client->>API: 呼び出し` | `flow:` 配下に `- Client -> API: "呼び出し"` |
+| `API-->>Client: response` | `- API -> Client: "response" (success, dotted-flow)` |
+| `Note over Client` | actor の `subtitle:` か `kind: card` で代用 |
 | `activate` / `deactivate` | `animation:` 配下の `focus:` で制御 |
 
 ポイントは、 mermaid の `participant` 個別宣言が cdl では `actors:` 配下に `-` で並べる形式になる点と、 mermaid の `Note over` に直接対応する仕組みがない点です。
@@ -167,31 +167,31 @@ mermaid から cdl に移行する際、 「mermaid にはなかった機能」 
 ### animation の例
 
 mermaid では描けない animation を追加した完全例です。
-balance が `100 → 90` へ滑らかに変化する送金 sequence です。
+balance が `100 → 90` へ滑らかに変化するAPI call sequence です。
 
 ```text
-title: "送金"
+title: "API call"
 type: sequence
 
 actors:
-  - Alice: { kind: actor, value: "{alice_bal}" }
-  - Vault: storage
-  - Bob: { kind: actor, value: "{bob_bal}" }
+  - Client: { kind: actor, value: "{client_bal}" }
+  - API: storage
+  - Server: { kind: actor, value: "{server_bal}" }
 
 flow:
-  - Alice -> Vault: "deposit"
-  - Vault -> Bob: "send" (success)
+  - Client -> API: "deposit"
+  - API -> Server: "send" (success)
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 
 animation:
-  - step: "送金" 1.5s
-    focus: [Alice, Vault, Bob]
+  - step: "API call" 1.5s
+    focus: [Client, API, Server]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
+      client_bal: 100 -> 90
+      server_bal: 0 -> 10
     badge: "+10"
 ```
 
@@ -254,8 +254,8 @@ mermaid と cdl の選択は、 あなたの用途で決まります。
 **修正例**:
 
 ```diff
-- - 送金処理 -> Vault: "deposit"
-+ - "送金処理" -> Vault: "deposit"
+- - API call処理 -> API: "deposit"
++ - "API call処理" -> API: "deposit"
 ```
 
 actor 名に空白や日本語 / 記号が含まれる場合は必ず `"..."` で囲みます。

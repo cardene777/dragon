@@ -23,10 +23,10 @@ Replace mermaid syntax line by line to produce a semantically equivalent cdl doc
 | mermaid | cdl Text DSL v0.5 |
 |---|---|
 | `sequenceDiagram` declaration | `type: sequence` |
-| `participant Alice` | `- Alice` under `actors:` |
-| `Alice->>API: call` | `- Alice -> API: "call"` under `flow:` |
-| `API-->>Alice: response` | `- API -> Alice: "response" (success, dotted-flow)` |
-| `Note over Alice` | Use the actor's `subtitle:` or a `kind: card` actor |
+| `participant Client` | `- Client` under `actors:` |
+| `Client->>API: call` | `- Client -> API: "call"` under `flow:` |
+| `API-->>Client: response` | `- API -> Client: "response" (success, dotted-flow)` |
+| `Note over Client` | Use the actor's `subtitle:` or a `kind: card` actor |
 | `activate` / `deactivate` | Use `focus:` inside `animation:` |
 
 The point is that mermaid's `participant` per-line declarations collapse into entries under `actors:` in cdl, and there is no direct equivalent of `Note over`.
@@ -174,24 +174,24 @@ title: "Transfer"
 type: sequence
 
 actors:
-  - Alice: { kind: actor, value: "{alice_bal}" }
-  - Vault: storage
-  - Bob: { kind: actor, value: "{bob_bal}" }
+  - Client: { kind: actor, value: "{client_bal}" }
+  - API: storage
+  - Server: { kind: actor, value: "{server_bal}" }
 
 flow:
-  - Alice -> Vault: "deposit"
-  - Vault -> Bob: "send" (success)
+  - Client -> API: "deposit"
+  - API -> Server: "send" (success)
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 
 animation:
   - step: "transfer" 1.5s
-    focus: [Alice, Vault, Bob]
+    focus: [Client, API, Server]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
+      client_bal: 100 -> 90
+      server_bal: 0 -> 10
     badge: "+10"
 ```
 
@@ -254,8 +254,8 @@ The two are not rivals but complements; cdl owns "dynamic, complex, LLM-friendly
 **Fix**:
 
 ```diff
-- - Send Money -> Vault: "deposit"
-+ - "Send Money" -> Vault: "deposit"
+- - Send Money -> API: "deposit"
++ - "Send Money" -> API: "deposit"
 ```
 
 Wrap actor names that contain whitespace, non-ASCII characters, or punctuation in `"..."`.

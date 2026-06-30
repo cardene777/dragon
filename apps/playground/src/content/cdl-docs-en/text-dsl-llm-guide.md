@@ -78,34 +78,34 @@ Prefer a style that shows the action clearly rather than short trace-log-like gl
 This is an animation example covering state, tween, focus, badge, and body.
 It shows the full animation syntax in a single example.
 
-**Request**: A transfer flow where Alice sends 10 to Bob via a Vault, with a balance animation
+**Request**: A transfer flow where Client sends 10 to Server via a API, with a balance animation
 
 **Output**:
 ```
-title: "Alice -> Bob transfer"
+title: "Client -> Server transfer"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
+  - Client
+  - API: storage
+  - Server
 
 flow:
-  - Alice -> Vault: "deposit(10)" (info)
-  - Vault -> Bob: "send(10)" (success)
+  - Client -> API: "deposit(10)" (info)
+  - API -> Server: "send(10)" (success)
 
 states:
-  aliceBalance: 100
-  bobBalance: 0
+  clientBalance: 100
+  serverBalance: 0
 
 animation:
   - step: "transfer" 1.5s
-    focus: [Alice, Vault, Bob]
+    focus: [Client, API, Server]
     tween:
-      aliceBalance: 100 -> 90
-      bobBalance: 0 -> 10
+      clientBalance: 100 -> 90
+      serverBalance: 0 -> 10
     badge: "transferring"
-    body: "Alice goes from 100 to 90; Bob goes from 0 to 10"
+    body: "Client goes from 100 to 90; Server goes from 0 to 10"
 ```
 
 `tween:` interpolates two states simultaneously.
@@ -242,7 +242,7 @@ We defend from both sides by hardening the parser and stating expectations to th
 | Weakness | Mitigation |
 |---|---|
 | `animation` structure (states / tween / step relationships) | Show detailed patterns in Examples 2 and 3 |
-| Missing quotes on Japanese values (`title: 送金` instead of `title: "送金"`) | The spec mandates double quotes |
+| Missing quotes on Japanese values (`title: API call` instead of `title: "API call"`) | The spec mandates double quotes |
 | Choosing among the 12 presets (sequence vs. flow vs. topology vs. solidity, etc.) | Include the per-preset interpretation table in the LLM context |
 | Arrow variants (-> vs. → vs. =>) | The parser normalizes all forms — the LLM may pick any |
 | Undeclared actor | The parser detects it as a clear error — you can ask the LLM to regenerate |

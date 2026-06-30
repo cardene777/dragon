@@ -249,25 +249,25 @@ title: "Transfer"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
+  - Client
+  - API: storage
+  - Server
 
 flow:
-  - Alice -> Vault: "deposit" (info)
-  - Vault -> Bob: "send" (success)
+  - Client -> API: "deposit" (info)
+  - API -> Server: "send" (success)
 
 states:
-  aliceBalance: 100
-  bobBalance: 0
+  clientBalance: 100
+  serverBalance: 0
 
 animation:
   - step: "transfer" 1.5s
-    focus: [Alice, Vault, Alice->Vault]
+    focus: [Client, API, Client->API]
     tween:
-      aliceBalance: 100 -> 90
-      bobBalance: 0 -> 10
-    body: "Alice sends 10 to Bob via Vault"
+      clientBalance: 100 -> 90
+      serverBalance: 0 -> 10
+    body: "Client sends 10 to Server via API"
 ```
 
 Compiling this yields the builder API equivalent below.
@@ -275,17 +275,17 @@ You can see that the DSL drastically reduces the boilerplate of the low-level bu
 
 ```ts
 diagram("transfer", { topic: "Transfer" })
-  .lane("alice", { width: 340, label: "Alice", lifeline: true })
+  .lane("client", { width: 340, label: "Client", lifeline: true })
   // ... each lane's header / spacer / step box / footer
-  .state("aliceBalance", { initial: 100 })
-  .state("bobBalance", { initial: 0 })
+  .state("clientBalance", { initial: 100 })
+  .state("serverBalance", { initial: 0 })
   .phase(
     "transfer",
-    { duration: 1500, title: "transfer", body: "Alice sends 10 to Bob via Vault" },
+    { duration: 1500, title: "transfer", body: "Client sends 10 to Server via API" },
     (p) => p
-      .activate("alice-header", "alice-footer", "vault-header", "vault-footer", "e0-alice-vault")
-      .tween("aliceBalance", 100, 90)
-      .tween("bobBalance", 0, 10),
+      .activate("client-header", "client-footer", "api-header", "api-footer", "e0-client-api")
+      .tween("clientBalance", 100, 90)
+      .tween("serverBalance", 0, 10),
   )
   .build()
 ```

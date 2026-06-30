@@ -104,25 +104,25 @@ The more boilerplate the builder API carries, the larger the line-count win when
 
 ### Before
 
-This is a transfer animation written in the builder API.
+This is an API call animation written in the builder API.
 Because it uses the low-level builder directly, you declare each lane's header, spacer, step box, and footer one by one.
 
 ```ts
 import { diagram } from "@cardenelabs/cdl";
 
-export const transfer = diagram("transfer", { topic: "送金" })
-  .lane("alice", { width: 340, label: "Alice", lifeline: true })
-  .lane("vault", { width: 340, label: "Vault", lifeline: true })
-  .lane("bob", { width: 340, label: "Bob", lifeline: true })
-  .node("alice-header", { lane: "alice", stack: 0, kind: "card", title: "Alice" })
+export const apiCall = diagram("api-call", { topic: "API call" })
+  .lane("client", { width: 340, label: "Client", lifeline: true })
+  .lane("api", { width: 340, label: "API", lifeline: true })
+  .lane("db", { width: 340, label: "DB", lifeline: true })
+  .node("client-header", { lane: "client", stack: 0, kind: "card", title: "Client" })
   // ... (a lot of boilerplate)
-  .state("alice残高", { initial: 100 })
-  .state("bob残高", { initial: 0 })
-  .phase("送金", { duration: 1500, title: "送金", body: "Alice → Bob 10" }, (p) =>
-    p.activate("alice-header", "vault-header", "alice-vault")
-      .tween("alice残高", 100, 90)
-      .tween("bob残高", 0, 10)
-      .badge("送金中"))
+  .state("request_count", { initial: 0 })
+  .state("row_count", { initial: 0 })
+  .phase("call", { duration: 1500, title: "call", body: "Client -> API -> DB" }, (p) =>
+    p.activate("client-header", "api-header", "client-api")
+      .tween("request_count", 0, 1)
+      .tween("row_count", 0, 20)
+      .badge("call"))
   .build();
 ```
 
@@ -137,28 +137,28 @@ This is the same diagram rewritten in the Text DSL.
 The DSL compiler auto-generates boilerplate such as headers, footers, and spacers, so they are no longer needed.
 
 ```ts
-export const transfer = textDslToDiagram(`
-タイトル: 送金
-種類: sequence
+export const apiCall = textDslToDiagram(`
+title: API call
+type: sequence
 
-登場人物:
-  - Alice
-  - Vault (storage)
-  - Bob
+actors:
+  - Client
+  - API (function)
+  - DB (storage)
 
-流れ:
-  1. Alice → Vault: deposit
-  2. Vault → Bob: send (成功)
+flow:
+  1. Client -> API: GET /items
+  2. API -> DB: SELECT (success)
 
-アニメーション:
-  状態: alice残高 = 100
-  状態: bob残高 = 0
-  ステップ「送金」 1.5 秒:
-    強調: Alice, Vault, Alice→Vault
-    遷移: alice残高: 100 → 90
-    遷移: bob残高: 0 → 10
-    バッジ: 送金中
-    説明: Alice → Bob 10
+animation:
+  state: request_count = 0
+  state: row_count = 0
+  step "call" 1.5s:
+    focus: Client, API, Client->API
+    tween: request_count: 0 -> 1
+    tween: row_count: 0 -> 20
+    badge: call
+    description: Client -> API -> DB
 `);
 ```
 

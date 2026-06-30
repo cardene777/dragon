@@ -244,13 +244,13 @@ title: "ERC20 Transfer"
 type: swimlane
 
 actors:
-  - Alice
+  - Client
   - "transfer()": function
-  - Bob
+  - Server
 
 flow:
-  - Alice -> "transfer()": "call"
-  - "transfer()" -> Bob: "emit" (success)
+  - Client -> "transfer()": "call"
+  - "transfer()" -> Server: "emit" (success)
 ```
 
 [preview:presets/swim-demo]

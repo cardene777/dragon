@@ -244,13 +244,13 @@ title: "ERC20 Transfer"
 type: swimlane
 
 actors:
-  - Alice
+  - Client
   - "transfer()": function
-  - Bob
+  - Server
 
 flow:
-  - Alice -> "transfer()": "call"
-  - "transfer()" -> Bob: "emit" (success)
+  - Client -> "transfer()": "call"
+  - "transfer()" -> Server: "emit" (success)
 ```
 
 [preview:presets/swim-demo]
@@ -341,7 +341,7 @@ actor 側で使える option は以下 6 種類です。
 | option | 用途 | 例 |
 |---|---|---|
 | `kind:` | 29 種類の visual kind から選ぶ | `kind: storage` |
-| `subtitle:` | actor の下に添える補足文字列 | `subtitle: "送り手"` |
+| `subtitle:` | actor の下に添える補足文字列 | `subtitle: "送信元"` |
 | `eyebrow:` | actor の上に添える小ラベル | `eyebrow: "User"` |
 | `value:` | 動的値 placeholder | `value: "{count}"` |
 | `rows:` | 行配列 (entity の column 等) | `rows: ["id: PK", "name: string"]` |

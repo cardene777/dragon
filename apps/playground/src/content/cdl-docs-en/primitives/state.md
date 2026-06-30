@@ -309,37 +309,37 @@ You can express multiple keyed values at the same time, just like a DB table or 
 @@@ humans 👤 For humans (EN)
 
 ```text
-title: "Vault rows"
+title: "API rows"
 type: sequence
 
 actors:
-  - Vault: storage
+  - API: storage
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 states:
-  - { id: alice_bal, initial: 100 }
-  - { id: bob_bal,   initial: 0   }
+  - { id: client_bal, initial: 100 }
+  - { id: server_bal,   initial: 0   }
 nodes:
-  - id: vault
+  - id: api
     lane: p
     stack: 1
     kind: storage
-    title: Vault
+    title: API
     rows:
-      - "alice: {alice_bal}"
-      - "bob: {bob_bal}"
+      - "client: {client_bal}"
+      - "server: {server_bal}"
 ```
 
 :::
 
-In v0.5 Text DSL, an actor with `kind: storage` plus the states block auto-binds, but for fine-grained rows literal patterns (such as `"alice: {alice_bal}"`), use the chain API.
+In v0.5 Text DSL, an actor with `kind: storage` plus the states block auto-binds, but for fine-grained rows literal patterns (such as `"client: {client_bal}"`), use the chain API.
 
 [preview:animation/mixed-tween-set]
 
@@ -357,18 +357,18 @@ title: "parallel transfer"
 type: sequence
 
 actors:
-  - vault: storage
+  - api: storage
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  client_bal: 100
+  server_bal: 0
 
 animation:
   - step: "transfer" 1.5s
-    focus: [vault]
+    focus: [api]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
+      client_bal: 100 -> 90
+      server_bal: 0 -> 10
 ```
 
 @@@ llm 🤖 For LLM
@@ -378,10 +378,10 @@ phases:
   - id: transfer
     duration_ms: 1500
     title: transfer
-    activates: [vault]
+    activates: [api]
     tweens:
-      - { state: alice_bal, from: 100, to: 90 }
-      - { state: bob_bal,   from: 0,   to: 10 }
+      - { state: client_bal, from: 100, to: 90 }
+      - { state: server_bal,   from: 0,   to: 10 }
 note: "place multiple states under tweens within a single phase to lerp them in parallel under the same duration"
 ```
 
@@ -418,17 +418,17 @@ diagram("counter", { topic: "Counter" })
 .state("balance", { initial: 100 })
 .node("user", { lane: "u", stack: 0, kind: "actor", title: "User", value: "{balance}" })
 
-.state("alice_bal", { initial: 100 })
-.state("bob_bal",   { initial: 0 })
-.node("vault", {
-  lane: "p", stack: 1, kind: "storage", title: "Vault",
-  rows: ["alice: {alice_bal}", "bob: {bob_bal}"],
+.state("client_bal", { initial: 100 })
+.state("server_bal",   { initial: 0 })
+.node("api", {
+  lane: "p", stack: 1, kind: "storage", title: "API",
+  rows: ["client: {client_bal}", "server: {server_bal}"],
 })
 
 .phase("transfer", { duration: 1500, title: "transfer", body: "" },
-  (p) => p.activate("vault")
-    .tween("alice_bal", 100, 90)
-    .tween("bob_bal", 0, 10)
+  (p) => p.activate("api")
+    .tween("client_bal", 100, 90)
+    .tween("server_bal", 0, 10)
 )
 ```
 

@@ -82,8 +82,8 @@ common_hallucinations:
   - 'sequence(id, topic, actors) — opts must be a single object, not positional args'
   - '.step("User", "API", "label") — step takes object, not positional args'
   - '.step({ actor: ..., message: ... }) — use from / to / label, not actor / message'
-  - '.participant("Alice") — no such method, declare in actors array instead'
-  - '.note({ over: "Alice" }) — no note API yet, use step.sub instead'
+  - '.participant("Client") — no such method, declare in actors array instead'
+  - '.note({ over: "Client" }) — no note API yet, use step.sub instead'
 ```
 
 :::
@@ -225,10 +225,10 @@ mermaid `sequenceDiagram` の主要 syntax を cdl `sequence` に置き換える
 | mermaid | cdl |
 |---|---|
 | `sequenceDiagram` | `sequence({ id, topic, actors })` |
-| `participant Alice` | `actors: ["Alice", ...]` の配列要素 |
-| `Alice->>API: 呼び出し` | `.step({ from: "Alice", to: "API", label: "呼び出し" })` |
-| `API-->>Alice: response` | `.step({ from: "API", to: "Alice", label: "response", style: "dotted-flow" })` |
-| `Note over Alice` | 現状は `step.sub` で代用 |
+| `participant Client` | `actors: ["Client", ...]` の配列要素 |
+| `Client->>API: 呼び出し` | `.step({ from: "Client", to: "API", label: "呼び出し" })` |
+| `API-->>Client: response` | `.step({ from: "API", to: "Client", label: "response", style: "dotted-flow" })` |
+| `Note over Client` | 現状は `step.sub` で代用 |
 
 mermaid の `Note` 相当の機能は今のところ `step.sub` (補助 label) で代用します。
 独立した note box を描く API は今後追加予定です。

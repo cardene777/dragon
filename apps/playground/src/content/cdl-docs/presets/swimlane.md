@@ -119,21 +119,21 @@ title: "ERC20 Transfer"
 type: swimlane
 
 actors:
-  - Alice
+  - Client
   - "transfer()": function
-  - Bob
+  - Server
 
 flow:
-  - Alice -> "transfer()": "call"
-  - "transfer()" -> Bob: "emit" (success, dotted-flow)
+  - Client -> "transfer()": "call"
+  - "transfer()" -> Server: "emit" (success, dotted-flow)
 
 animation:
   - step: "call" 1.5s
-    focus: [Alice, "transfer()"]
+    focus: [Client, "transfer()"]
     badge: "call"
 
   - step: "emit" 1.5s
-    focus: ["transfer()", Bob]
+    focus: ["transfer()", Server]
     badge: "emit"
 ```
 
@@ -143,15 +143,15 @@ animation:
 diagram: { id: transfer, topic: "ERC20 Transfer" }
 lanes: [Sender, Contract, Receiver]
 nodes:
-  - { id: alice, lane: Sender,   stack: 0, kind: actor,    title: Alice }
+  - { id: client, lane: Sender,   stack: 0, kind: actor,    title: Client }
   - { id: fn,    lane: Contract, stack: 0, kind: function, title: "transfer()" }
-  - { id: bob,   lane: Receiver, stack: 0, kind: actor,    title: Bob }
+  - { id: server,   lane: Receiver, stack: 0, kind: actor,    title: Server }
 edges:
-  - { from: alice, to: fn,  label: call }
-  - { from: fn,    to: bob, label: emit, tone: success, style: dotted-flow }
+  - { from: client, to: fn,  label: call }
+  - { from: fn,    to: server, label: emit, tone: success, style: dotted-flow }
 phases:
-  - { id: call, duration_ms: 1500, title: call, body: "Alice が transfer を呼ぶ。", activates: [alice, fn, alice-fn] }
-  - { id: emit, duration_ms: 1500, title: emit, body: "Bob へ通知。", activates: [fn, bob, fn-bob] }
+  - { id: call, duration_ms: 1500, title: call, body: "Client が transfer を呼ぶ。", activates: [client, fn, client-fn] }
+  - { id: emit, duration_ms: 1500, title: emit, body: "Server へ通知。", activates: [fn, server, fn-server] }
 intent: 3 lane 並列 + 2 phase animation で ERC20 transfer の往復を可視化
 note: "node.lane は raw label 不可、 swim.laneId(label) で取得した slug を渡す"
 ```
@@ -202,17 +202,17 @@ const lContract = swim.laneId("Contract");
 const lReceiver = swim.laneId("Receiver");
 
 const transfer = swim
-  .node("alice", { lane: lSender,   stack: 0, kind: "actor",    title: "Alice" })
+  .node("client", { lane: lSender,   stack: 0, kind: "actor",    title: "Client" })
   .node("fn",    { lane: lContract, stack: 0, kind: "function", title: "transfer()" })
-  .node("bob",   { lane: lReceiver, stack: 0, kind: "actor",    title: "Bob" })
+  .node("server",   { lane: lReceiver, stack: 0, kind: "actor",    title: "Server" })
   .edges([
-    { from: "alice", to: "fn",  label: "call" },
-    { from: "fn",    to: "bob", label: "emit", tone: "success", style: "dotted-flow" },
+    { from: "client", to: "fn",  label: "call" },
+    { from: "fn",    to: "server", label: "emit", tone: "success", style: "dotted-flow" },
   ])
-  .phase("call", { duration: 1500, title: "call", body: "Alice が transfer を呼ぶ。" },
-    (p) => p.activate("alice", "fn", "alice-fn"))
-  .phase("emit", { duration: 1500, title: "emit", body: "Bob へ通知。" },
-    (p) => p.activate("fn", "bob", "fn-bob"))
+  .phase("call", { duration: 1500, title: "call", body: "Client が transfer を呼ぶ。" },
+    (p) => p.activate("client", "fn", "client-fn"))
+  .phase("emit", { duration: 1500, title: "emit", body: "Server へ通知。" },
+    (p) => p.activate("fn", "server", "fn-server"))
   .build();
 ```
 

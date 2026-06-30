@@ -82,8 +82,8 @@ common_hallucinations:
   - 'sequence(id, topic, actors) — opts must be a single object, not positional args'
   - '.step("User", "API", "label") — step takes object, not positional args'
   - '.step({ actor: ..., message: ... }) — use from / to / label, not actor / message'
-  - '.participant("Alice") — no such method, declare in actors array instead'
-  - '.note({ over: "Alice" }) — no note API yet, use step.sub instead'
+  - '.participant("Client") — no such method, declare in actors array instead'
+  - '.note({ over: "Client" }) — no note API yet, use step.sub instead'
 ```
 
 :::
@@ -225,10 +225,10 @@ The table below maps the key mermaid `sequenceDiagram` syntax to its cdl `sequen
 | mermaid | cdl |
 |---|---|
 | `sequenceDiagram` | `sequence({ id, topic, actors })` |
-| `participant Alice` | element of `actors: ["Alice", ...]` |
-| `Alice->>API: invoke` | `.step({ from: "Alice", to: "API", label: "invoke" })` |
-| `API-->>Alice: response` | `.step({ from: "API", to: "Alice", label: "response", style: "dotted-flow" })` |
-| `Note over Alice` | use `step.sub` for now |
+| `participant Client` | element of `actors: ["Client", ...]` |
+| `Client->>API: invoke` | `.step({ from: "Client", to: "API", label: "invoke" })` |
+| `API-->>Client: response` | `.step({ from: "API", to: "Client", label: "response", style: "dotted-flow" })` |
+| `Note over Client` | use `step.sub` for now |
 
 The mermaid `Note` is currently expressed via `step.sub` (a secondary label).
 A dedicated API for standalone note boxes is planned.

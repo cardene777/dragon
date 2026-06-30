@@ -248,23 +248,23 @@ type: sequence
 actors:
   - User
   - "cUSDC.mint()": function
-  - "USDC vault": storage
+  - "USDC api": storage
   - "cUSDC balance": storage
 
 flow:
   - User -> "cUSDC.mint()": "mint(1000)" (accent)
-  - "cUSDC.mint()" -> "USDC vault": "transferFrom 1000 USDC" (teal, dotted-flow)
+  - "cUSDC.mint()" -> "USDC api": "transferFrom 1000 USDC" (teal, dotted-flow)
   - "cUSDC.mint()" -> "cUSDC balance": "mint 49.5 cUSDC" (success, dotted-flow)
 
 states:
-  usdc_in_vault: 0
+  usdc_in_api: 0
   user_ctoken: 0
 
 animation:
   - step: "supply 1000 USDC" 1.8s
-    focus: [User, "cUSDC.mint()", "USDC vault", "cUSDC balance"]
+    focus: [User, "cUSDC.mint()", "USDC api", "cUSDC balance"]
     tween:
-      usdc_in_vault: 0 -> 1000
+      usdc_in_api: 0 -> 1000
       user_ctoken: 0 -> 49.5
     badge: "supplied"
 ```
@@ -272,7 +272,7 @@ animation:
 [preview:cookbook/compound-supply]
 
 ポイントは、 exchange rate (`1 cUSDC = 1000 / 49.5 USDC`) を 2 つの tween で同時に示す点です。
-時間経過で cUSDC value が上がる挙動も、 後続の phase で `tween: usdc_in_vault: 1000 -> 1005` のように書けます。
+時間経過で cUSDC value が上がる挙動も、 後続の phase で `tween: usdc_in_api: 1000 -> 1005` のように書けます。
 
 ### A-7. Curve stable swap
 
@@ -314,13 +314,13 @@ animation:
 ポイントは、 Curve の `A` (amplification coefficient、 stable swap の曲線を制御する係数) によって slippage が `999.5 USDC` 程度に抑えられる点です。
 UniswapV2 の constant product だと同条件で `990 USDC` 程度しか受け取れません。
 
-### A-8. yEarn vault deposit
+### A-8. yEarn api deposit
 
-yEarn (利回り自動運用 protocol、 vault に deposit すると最適 strategy で運用される) の vault deposit です。
-User が vault に deposit すると、 strategy が外部 protocol (Aave / Compound 等) に資金を配置します。
+yEarn (利回り自動運用 protocol、 api に deposit すると最適 strategy で運用される) の api deposit です。
+User が api に deposit すると、 strategy が外部 protocol (Aave / Compound 等) に資金を配置します。
 
 ```text
-title: "yEarn vault deposit"
+title: "yEarn api deposit"
 type: sequence
 
 actors:
@@ -337,14 +337,14 @@ flow:
   - "Strategy" -> "Aave Pool": "supply 1000 USDC" (success, dotted-flow)
 
 states:
-  vault_pool: 0
+  api_pool: 0
   user_shares: 0
 
 animation:
   - step: "deposit" 1.5s
     focus: [User, "yvUSDC.deposit()", "yvUSDC shares"]
     tween:
-      vault_pool: 0 -> 1000
+      api_pool: 0 -> 1000
       user_shares: 0 -> 950
     badge: "deposited"
 
@@ -353,7 +353,7 @@ animation:
     badge: "deployed"
 ```
 
-[preview:cookbook/yearn-vault]
+[preview:cookbook/yearn-api]
 
 ポイントは、 deposit と auto-deploy を別 phase に分けて、 「user 視点では deposit 1 step」 だが内部では 2 step あることを時系列で示す点です。
 
@@ -369,12 +369,12 @@ type: sequence
 actors:
   - User
   - "CDP Manager": function
-  - "Vault (ETH locked)": storage
+  - "API (ETH locked)": storage
   - "DAI minted": storage
 
 flow:
   - User -> "CDP Manager": "open + lock 10 ETH" (accent)
-  - "CDP Manager" -> "Vault (ETH locked)": "transferFrom 10 ETH" (teal, dotted-flow)
+  - "CDP Manager" -> "API (ETH locked)": "transferFrom 10 ETH" (teal, dotted-flow)
   - User -> "CDP Manager": "draw 5000 DAI" (accent)
   - "CDP Manager" -> "DAI minted": "mint 5000 DAI" (success, dotted-flow)
   - "DAI minted" -> User: "send DAI" (success, dotted-flow)
@@ -385,7 +385,7 @@ states:
 
 animation:
   - step: "lock ETH" 1.2s
-    focus: [User, "CDP Manager", "Vault (ETH locked)"]
+    focus: [User, "CDP Manager", "API (ETH locked)"]
     tween:
       locked_eth: 0 -> 10
     badge: "locked"

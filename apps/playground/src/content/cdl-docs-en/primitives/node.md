@@ -62,7 +62,7 @@ constraints:
   - "stack numbers within the same lane must be unique"
 common_hallucinations:
   - '.node({ id: ..., lane: ... }) — opts is 2nd arg, not 1st'
-  - '.node("a", "lane-l", 0, "actor", "Alice") — opts must be object'
+  - '.node("a", "lane-l", 0, "actor", "Client") — opts must be object'
   - 'kind: "rectangle" / "circle" — kind is semantic (29 values), not shape'
   - 'opts.x / opts.y — coordinates are derived from lane + stack, not direct'
   - 'rows / value on kind: "function" — only storage (rows) / actor / storage (value)'
@@ -114,18 +114,18 @@ title: "greet"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - "greet()": function
 
 flow:
-  - Alice -> "greet()": "call"
+  - Client -> "greet()": "call"
 ```
 
 @@@ llm 🤖 For LLM
 
 ```yaml
 nodes:
-  - { id: alice, lane: left,  stack: 0, kind: actor,    title: Alice }
+  - { id: client, lane: left,  stack: 0, kind: actor,    title: Client }
   - { id: greet, lane: right, stack: 0, kind: function, title: "greet()" }
 intent: identical stack: 0 across different lanes aligns horizontally (layout engine derives y)
 ```
@@ -151,8 +151,8 @@ title: "actors batch"
 type: flow
 
 actors:
-  - Alice
-  - Bob
+  - Client
+  - Server
   - "greet()": function
 ```
 
@@ -160,8 +160,8 @@ actors:
 
 ```yaml
 nodes:
-  - { id: a, lane: l, stack: 0, kind: actor,    title: Alice }
-  - { id: b, lane: l, stack: 1, kind: actor,    title: Bob }
+  - { id: a, lane: l, stack: 0, kind: actor,    title: Client }
+  - { id: b, lane: l, stack: 1, kind: actor,    title: Server }
   - { id: c, lane: l, stack: 2, kind: function, title: "greet()" }
 intent: batch declaration keeps the chain readable (avoids stacking individual .node() calls)
 ```
@@ -196,18 +196,18 @@ When you embed `state` with `{stateId}`, the value animates as the phase advance
 @@@ humans 👤 For humans (EN)
 
 ```text
-title: "Vault"
+title: "API"
 type: sequence
 
 actors:
-  - Vault: storage
+  - API: storage
 
 states:
   balance: 100
 
 animation:
   - step: "transfer" 1.5s
-    focus: [Vault]
+    focus: [API]
     tween:
       balance: 100 -> 90
 ```
@@ -218,14 +218,14 @@ animation:
 states:
   - { id: balance, initial: 100 }
 nodes:
-  - id: vault
+  - id: api
     lane: p
     stack: 1
     kind: storage
-    title: Vault
+    title: API
     rows:
-      - "alice: {balance}"
-      - "bob: 0"
+      - "client: {balance}"
+      - "server: 0"
 intent: storage kind renders as a table; {stateId} interpolation syncs the value to phase progress
 ```
 
@@ -235,7 +235,7 @@ intent: storage kind renders as a table; {stateId} interpolation syncs the value
 
 In v0.5 Text DSL, declaring an actor with `kind: storage` auto-binds state values to its rows.
 When the phase tween changes `balance`, the storage table updates in sync via animation.
-For fine-grained rows formatting (such as the `alice: {balance}` literal interpolation), use the chain API.
+For fine-grained rows formatting (such as the `client: {balance}` literal interpolation), use the chain API.
 
 ## actor value
 
@@ -292,12 +292,12 @@ title: "horizontal align"
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - greet: function
   - OK: event
 
 flow:
-  - Alice -> greet: "call"
+  - Client -> greet: "call"
   - greet -> OK: "emit"
 ```
 
@@ -305,8 +305,8 @@ flow:
 
 ```yaml
 nodes:
-  - { id: alice,  lane: l, stack: 0, kind: actor,    title: Alice }   # top
-  - { id: greet,  lane: r, stack: 0, kind: function, title: greet }   # top (aligned with alice)
+  - { id: client,  lane: l, stack: 0, kind: actor,    title: Client }   # top
+  - { id: greet,  lane: r, stack: 0, kind: function, title: greet }   # top (aligned with client)
   - { id: result, lane: r, stack: 1, kind: event,    title: OK }      # bottom
 intent: same stack = horizontal alignment, incrementing stack within one lane = vertical stack (order only; the layout engine derives y)
 ```
@@ -366,22 +366,22 @@ v0.5 Text DSL cannot express `eyebrow` / `subtitle` directly; use the chain API 
 When you need overrides such as `eyebrow` / `subtitle` / `rows` literal interpolation / `w` / `h` that v0.5 Text DSL cannot express, use the builder API.
 
 ```ts
-.node("alice", { lane: "left", stack: 0, kind: "actor", title: "Alice" })
+.node("client", { lane: "left", stack: 0, kind: "actor", title: "Client" })
 .node("greet", { lane: "right", stack: 0, kind: "function", title: "greet()" })
 
 .nodes([
-  { id: "a", lane: "l", stack: 0, kind: "actor",    title: "Alice" },
-  { id: "b", lane: "l", stack: 1, kind: "actor",    title: "Bob" },
+  { id: "a", lane: "l", stack: 0, kind: "actor",    title: "Client" },
+  { id: "b", lane: "l", stack: 1, kind: "actor",    title: "Server" },
   { id: "c", lane: "l", stack: 2, kind: "function", title: "greet()" },
 ])
 
 .state("balance", { initial: 100 })
-.node("vault", {
+.node("api", {
   lane: "p",
   stack: 1,
   kind: "storage",
-  title: "Vault",
-  rows: ["alice: {balance}", "bob: 0"],
+  title: "API",
+  rows: ["client: {balance}", "server: 0"],
 })
 
 .state("supply", { initial: 0 })

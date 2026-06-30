@@ -73,39 +73,39 @@ flow:
 ラベルはなるべく自然文寄りに書かせています。
 trace log のような短い記号ではなく、 動作を読みやすく示すスタイルを推奨します。
 
-### 例 2 ... 「送金 with アニメーション」
+### 例 2 ... 「API call with アニメーション」
 
 state / tween / focus / badge / body を網羅した animation の例です。
 animation 構文の使い方を、 1 例で全部見せています。
 
-**依頼**: Alice が Vault 経由で Bob に 10 送る送金フロー、 残高アニメーション付き
+**依頼**: Client が API 経由で Server に 10 送るAPI call フロー、 残高アニメーション付き
 
 **出力**:
 ```
-title: "Alice -> Bob 送金"
+title: "Client -> Server API call"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
+  - Client
+  - API: storage
+  - Server
 
 flow:
-  - Alice -> Vault: "deposit(10)" (info)
-  - Vault -> Bob: "send(10)" (success)
+  - Client -> API: "deposit(10)" (info)
+  - API -> Server: "send(10)" (success)
 
 states:
-  aliceBalance: 100
-  bobBalance: 0
+  clientBalance: 100
+  serverBalance: 0
 
 animation:
-  - step: "送金" 1.5s
-    focus: [Alice, Vault, Bob]
+  - step: "API call" 1.5s
+    focus: [Client, API, Server]
     tween:
-      aliceBalance: 100 -> 90
-      bobBalance: 0 -> 10
-    badge: "送金中"
-    body: "Alice の残高が 100 から 90 へ、 Bob は 0 から 10 へ"
+      clientBalance: 100 -> 90
+      serverBalance: 0 -> 10
+    badge: "calling"
+    body: "Client の残高が 100 から 90 へ、 Server は 0 から 10 へ"
 ```
 
 `tween:` で 2 つの state を同時に補間しています。
@@ -242,7 +242,7 @@ parser 側の robust 化と、 LLM への明示で両側から防いでいます
 | 苦手 | 対策 |
 |---|---|
 | `animation` の構造 (states / tween / step の関係) | few-shot 例 2 と 3 で詳細パターン提示 |
-| 日本語値の引用符忘れ (`title: 送金` ではなく `title: "送金"`) | spec で double quote 必須を明記 |
+| 日本語値の引用符忘れ (`title: API call` ではなく `title: "API call"`) | spec で double quote 必須を明記 |
 | 12 preset の選択 (sequence vs flow vs topology vs solidity 等) | spec の preset 別解釈表を context に含める |
 | 矢印の種類 (-> vs → vs =>) | parser 側で全部正規化、 LLM はどれを使っても OK |
 | 未宣言 actor | parser エラーで明確に検知 → LLM に再生成依頼可能 |

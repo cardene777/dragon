@@ -1092,7 +1092,7 @@ Defined in: [builder.ts:84](https://github.com/cardene777/cdl/blob/14cc7200f1d85
 ###### Example
 
 ```ts
-.nodes([{ id: "a", lane: "l", stack: 0, kind: "actor", title: "Alice" }, ...])
+.nodes([{ id: "a", lane: "l", stack: 0, kind: "actor", title: "Client" }, ...])
 ```
 
 ##### edges
