@@ -160,11 +160,11 @@ const repoUrl = "https://github.com/cardene777/dragon";
   @import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
   :root {
-    --v4-canvas: #f5f1e8;
-    --v4-surface: #fffdf7;
-    --v4-surface-2: #ede5d2;
-    --v4-line: #e0d9c8;
-    --v4-line-soft: #ece4d0;
+    --v4-canvas: #f8fafc;
+    --v4-surface: #ffffff;
+    --v4-surface-2: #f1f5f9;
+    --v4-line: #e2e8f0;
+    --v4-line-soft: #f1f5f9;
     --v4-ink: #1a1f2a;
     --v4-ink-dim: #5a6270;
     --v4-ink-mute: #8a8678;
@@ -295,6 +295,33 @@ const repoUrl = "https://github.com/cardene777/dragon";
   .v4-theme-icon-dark { display: none; }
   html.dark .v4-theme-icon-light { display: none; }
   html.dark .v4-theme-icon-dark { display: inline; }
+
+  /* ── share button (theme toggle と同 size、 余白 8px 確保) ── */
+  .v4-nav-share-btn {
+    margin-left: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+    color: var(--v4-ink-dim);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .v4-nav-share-btn:hover {
+    border-color: var(--v4-brand);
+    color: var(--v4-brand);
+  }
+  html.dark .v4-nav-share-btn {
+    background: var(--v4-surface);
+    color: var(--v4-ink-dim);
+  }
+  html.dark .v4-nav-share-btn:hover {
+    border-color: var(--v4-brand-glow);
+    color: var(--v4-brand-glow);
+  }
 
   /* ─────── dark mode palette override (全 page 共通) ─────── */
   html.dark {
