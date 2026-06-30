@@ -217,23 +217,22 @@ const items = [
     <div class="space-y-8">
       {
         items.map((item) => (
-          <div class="space-y-2">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
-                <p class="text-sm text-nm-text-secondary mt-1">{item.description}</p>
+          <article class="catalog-card">
+            <header class="catalog-card-head">
+              <div class="catalog-card-title-block">
+                <div class="catalog-card-title">{item.label}</div>
+                <p class="catalog-card-subtitle">{item.description}</p>
               </div>
               <a
                 href={item.docHref}
-                class="catalog-doc-link shrink-0"
+                class="catalog-card-link"
                 aria-label={`${item.label} のドキュメントへ`}
               >
                 <span aria-hidden="true">📖</span>
-                <span>ドキュメント</span>
+                <span>Docs</span>
               </a>
-            </div>
-            <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
-              <a href={item.docHref} class="catalog-thumb-doc-link" aria-label="ドキュメント" title="ドキュメントを見る">📖</a>
+            </header>
+            <div class="catalog-card-body">
               <CdlDiagramView client:load diagram={item.d} />
             </div>
             <details class="catalog-dsl-source">
@@ -243,7 +242,7 @@ const items = [
               </summary>
               <pre><code>{item.dsl}</code></pre>
             </details>
-          </div>
+          </article>
         ))
       }
     </div>

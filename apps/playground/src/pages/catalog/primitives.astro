@@ -137,26 +137,22 @@ const groups = [
             </a>
           )}
         </div>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
           {g.items.map((item) => (
-            <div class="space-y-3 flex flex-col">
-              <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
-              <div class="catalog-thumb-wrap flex-1 flex items-stretch overflow-hidden rounded-nm shadow-nm-raised min-h-[260px] relative">
+            <article class="catalog-card">
+              <header class="catalog-card-head">
+                <div class="catalog-card-title">{item.label}</div>
                 {g.docHref && (
-                  <a
-                    href={g.docHref}
-                    class="catalog-thumb-doc-link"
-                    aria-label={`${item.label} のドキュメントへ`}
-                    title="ドキュメントを見る"
-                  >
-                    📖
+                  <a href={g.docHref} class="catalog-card-link" aria-label={`${item.label} のドキュメントへ`}>
+                    <span aria-hidden="true">📖</span>
+                    <span>Docs</span>
                   </a>
                 )}
-                <div class="w-full flex items-center justify-center">
-                  <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
-                </div>
+              </header>
+              <div class="catalog-card-body">
+                <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>
