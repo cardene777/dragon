@@ -138,7 +138,7 @@ export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel preset (C
   .stage({ id: "paid", title: "Paid", count: 200 })
   .build();
 
-// quadrant preset ... 2 軸 matrix
+// quadrant preset ... 2 軸 matrix (topLeft/topRight のみ、 bottom は cdl bug 解消後に 4 象限へ拡張)
 export const presetQuadrant = quadrant({
   id: "quad-demo",
   topic: "quadrant preset (Priority matrix)",
@@ -147,8 +147,6 @@ export const presetQuadrant = quadrant({
 })
   .item({ id: "qw", title: "Quick win", quadrant: "topLeft" })
   .item({ id: "mp", title: "Major project", quadrant: "topRight" })
-  .item({ id: "fi", title: "Fill in", quadrant: "bottomLeft" })
-  .item({ id: "tt", title: "Thankless", quadrant: "bottomRight" })
   .build();
 
 // chart preset (pie) ... 統計チャート
