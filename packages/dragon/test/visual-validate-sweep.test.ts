@@ -54,28 +54,14 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
   );
 }
 
-// gating 対象軸 ... node × edge-label の overlap (user 視認 bug 直接) のみを必須 gating 化。
-// edge-label × edge-label / edge-label × edge-path / clearance / row-format / text-readability は
-// 関連だが直接 bug ではないため、 段階移行 (CAR-Z visual quality round 4 で順次解消) として
-// 本 file の必須 gating からは除外、 ただし report には全件出して visibility を担保する。
-const GATING_AXES = new Set(["edge-label-overlap"]);
-
+// gating 対象軸 ... visualValidate の全 axis (edge-label-overlap / clearance / row-format /
+// node-visibility / alignment / text-readability の error severity) を必須 gating 化。
+// round 2 で全 軸を解消済 (cdl label-shift v2 で edge-label × edge-path / edge-label × edge-label
+// 衝突解消、 visualValidate row-format で divider 行例外追加、 dragon data 側で `zod / yup` を
+// `key: value` 形式 `lib: zod / yup` に修正)。 警告軸 (text-readability の warn severity 等) は
+// 表示用 report に出すが gating からは除外。
 function isGatingViolation(v: Violation): boolean {
-  if (!GATING_AXES.has(v.axis)) return false;
-  if (v.severity !== "error") return false;
-  // edge-label-overlap 軸の内、 node × edge-label の pair のみが「user 視認 bug 直接」 該当。
-  // edge-label × edge-label / edge-label × edge-path は label 同士 / label-path 近接で
-  // 次 round で別軸として扱う。 detail format は `${kindA}:${idA} ↔ ${kindB}:${idB} overlap=...`。
-  const m = v.detail.match(/^([a-z-]+):[^ ]+\s+↔\s+([a-z-]+):/);
-  if (!m) return false;
-  const kindA = m[1]!;
-  const kindB = m[2]!;
-  return (
-    (kindA === "node" && kindB === "edge-label") ||
-    (kindA === "edge-label" && kindB === "node") ||
-    (kindA === "node" && kindB === "lane-label") ||
-    (kindA === "lane-label" && kindB === "node")
-  );
+  return v.severity === "error";
 }
 
 function formatReport(reports: VisualValidationReport[]): string {
@@ -114,7 +100,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
   for (const { name, mod } of sources) {
-    it(`${name} ... node × edge-label / node × lane-label の overlap が 0 件`, () => {
+    it(`${name} ... visualValidate 全 axis error 0 件`, () => {
       const diagrams = collectDiagrams(mod as ModuleLike, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams);

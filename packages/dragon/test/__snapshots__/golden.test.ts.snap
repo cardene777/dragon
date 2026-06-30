@@ -54,10 +54,10 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 456,
+    "h": 386.5,
     "w": 1090,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -137,10 +137,10 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 753,
+    "h": 683.5,
     "w": 1630,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -199,10 +199,10 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "states": [],
   "topic": "E03",
   "viewBox": {
-    "h": 456,
+    "h": 386.5,
     "w": 1090,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -261,10 +261,10 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 456,
+    "h": 386.5,
     "w": 1090,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -323,10 +323,10 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 456,
+    "h": 386.5,
     "w": 1090,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -433,7 +433,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 710,
+    "h": 714,
     "w": 2170,
     "x": -30,
     "y": 21,
@@ -495,10 +495,10 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "states": [],
   "topic": "E07",
   "viewBox": {
-    "h": 456,
+    "h": 386.5,
     "w": 1090,
     "x": -30,
-    "y": -118,
+    "y": -48.5,
   },
 }
 `;
@@ -2459,7 +2459,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "states": [],
   "topic": "X06",
   "viewBox": {
-    "h": 483,
+    "h": 413.5,
     "w": 1090,
     "x": -30,
     "y": 68,
@@ -8633,7 +8633,7 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
   "states": [],
   "topic": "M05",
   "viewBox": {
-    "h": 718,
+    "h": 803.5,
     "w": 900,
     "x": -40,
     "y": -380,
@@ -9860,7 +9860,7 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
   "states": [],
   "topic": "L09",
   "viewBox": {
-    "h": 628,
+    "h": 551,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10245,8 +10245,8 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "states": [],
   "topic": "L14",
   "viewBox": {
-    "h": 460,
-    "w": 567,
+    "h": 394,
+    "w": 637,
     "x": -44,
     "y": -24,
   },
@@ -11091,7 +11091,7 @@ exports[`golden: topology preset > T10 7 node fan-out 1`] = `
   "topic": "T10",
   "viewBox": {
     "h": 2068,
-    "w": 660,
+    "w": 664,
     "x": -44,
     "y": 8,
   },

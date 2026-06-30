@@ -201,7 +201,7 @@ export const patternValidateProcess = diagram("pattern-validate-process", { topi
   .lane("p", { x: L3_X3, width: L3_W_LR })
   .node("client", { lane: "u", stack: 0, kind: "actor", title: "Client" })
   .node("validate", { lane: "v", stack: 0, kind: "function", title: "validate(input)" })
-  .node("schema", { lane: "v", stack: 1, kind: "storage", title: "schema", rows: ["zod / yup"] })
+  .node("schema", { lane: "v", stack: 1, kind: "storage", title: "schema", rows: ["lib: zod / yup"] })
   .node("process", { lane: "p", stack: 0, kind: "function", title: "process()" })
   .node("err", { lane: "p", stack: 1, kind: "event", title: "ValidationError" })
   .edge("client", "validate", { id: "e1", label: "submit", tone: "accent", style: "dotted-flow" })
