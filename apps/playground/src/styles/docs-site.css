@@ -227,7 +227,7 @@ body.docs-body summary.docs-sidebar-section-title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #1a1f2a;
+  color: var(--nm-text);
   padding: 12px 14px;
   cursor: pointer;
   user-select: none;
@@ -252,7 +252,7 @@ body.docs-body .docs-sidebar-section-caret {
   place-items: center;
   font-size: 20px;
   font-weight: 700;
-  color: #8a8678;
+  color: var(--nm-text-muted);
   transition: transform 0.2s, color 0.15s;
   width: 22px;
   height: 22px;
@@ -292,7 +292,7 @@ body.docs-body a.docs-sidebar-link {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 body.docs-body a.docs-sidebar-link:hover {
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
   background: rgba(45, 106, 143, 0.08) !important;
 }
 body.docs-body a.docs-sidebar-link.active {
@@ -363,9 +363,9 @@ body.docs-body .docs-prose code {
   font-family: "JetBrains Mono", monospace;
 }
 body.docs-body .docs-prose pre {
-  background: #fffdf7 !important;
-  background-color: #fffdf7 !important;
-  color: #1a1f2a !important;
+  background: var(--nm-surface) !important;
+  background-color: var(--nm-surface) !important;
+  color: var(--nm-text) !important;
   padding: 18px 20px;
   border-radius: 10px;
   overflow-x: auto;
@@ -386,7 +386,7 @@ body.docs-body .docs-prose pre code {
 /* inline code */
 body.docs-body .docs-prose code:not(pre code) {
   background: rgba(196, 185, 172, 0.25) !important;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.875em;
@@ -658,7 +658,7 @@ body.docs-body .docs-i18n-banner {
   padding: 12px 16px;
   margin: 0 0 24px;
   font-size: 14px;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
 }
 body.docs-body .docs-i18n-banner strong {
   display: block;
@@ -756,9 +756,9 @@ body.docs-body .docs-hero-cta-primary:hover {
 }
 body.docs-body .docs-hero-cta-secondary,
 body.docs-body a.docs-hero-cta-secondary {
-  background: #fffdf7 !important;
-  background-color: #fffdf7 !important;
-  color: #1a1f2a !important;
+  background: var(--nm-surface) !important;
+  background-color: var(--nm-surface) !important;
+  color: var(--nm-text) !important;
   border: 1px solid rgba(196, 185, 172, 0.5) !important;
 }
 body.docs-body .docs-hero-cta-secondary:hover {
@@ -776,12 +776,12 @@ body.docs-body .docs-feature-card,
 body.docs-body a.docs-feature-card {
   display: block;
   padding: 24px;
-  background: #fffdf7 !important;
-  background-color: #fffdf7 !important;
-  border: 1px solid rgba(196, 185, 172, 0.4) !important;
+  background: var(--nm-surface) !important;
+  background-color: var(--nm-surface) !important;
+  border: 1px solid var(--nm-border) !important;
   border-radius: 12px;
   text-decoration: none !important;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
   transition: border-color 0.15s, transform 0.15s;
 }
 body.docs-body .docs-feature-card:hover {
@@ -796,11 +796,11 @@ body.docs-body .docs-feature-card h3 {
   font-size: 17px;
   font-weight: 700;
   margin: 0 0 6px;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
 }
 body.docs-body .docs-feature-card p {
   font-size: 13.5px;
-  color: #5a6270 !important;
+  color: var(--nm-text-secondary) !important;
   line-height: 1.55;
   margin: 0;
 }
@@ -816,9 +816,9 @@ body.docs-body .docs-hero-snippet h2 {
   text-align: center;
 }
 body.docs-body .docs-hero-snippet pre {
-  background: #fffdf7 !important;
-  background-color: #fffdf7 !important;
-  color: #1a1f2a !important;
+  background: var(--nm-surface) !important;
+  background-color: var(--nm-surface) !important;
+  color: var(--nm-text) !important;
   padding: 24px 28px;
   border-radius: 12px;
   overflow-x: auto;
@@ -905,7 +905,7 @@ body.docs-body button.docs-navbar-theme-toggle {
   line-height: 1;
   display: grid;
   place-items: center;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
   margin-left: 4px;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
@@ -938,7 +938,7 @@ body.docs-body button.docs-navbar-lang-toggle {
   letter-spacing: 0.04em;
   display: grid;
   place-items: center;
-  color: #1a1f2a !important;
+  color: var(--nm-text) !important;
   margin-left: 4px;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
@@ -963,13 +963,13 @@ body.docs-body .docs-search-result.active {
 }
 body.docs-body .docs-search-result-preview {
   font-size: 12px;
-  color: #5a6270;
+  color: var(--nm-text-secondary);
   margin-top: 3px;
   line-height: 1.4;
 }
 body.docs-body .docs-search-result-preview mark {
   background: rgba(45, 106, 143, 0.25);
-  color: #1a1f2a;
+  color: var(--nm-text);
   padding: 0 2px;
   border-radius: 2px;
 }
@@ -1017,9 +1017,9 @@ body.docs-body .docs-prose .callout-note {
  */
 body.docs-body .docs-prose pre.astro-code,
 body.docs-body .docs-prose pre[style] {
-  background-color: #fffdf7 !important;
-  background: #fffdf7 !important;
-  color: #1a1f2a !important;
+  background-color: var(--nm-surface) !important;
+  background: var(--nm-surface) !important;
+  color: var(--nm-text) !important;
   padding: 18px 20px !important;
   border: 1px solid rgba(196, 185, 172, 0.4) !important;
   border-radius: 10px !important;
@@ -1165,11 +1165,11 @@ body.docs-body .docs-404-title {
   font-size: 32px;
   font-weight: 800;
   margin: 0 0 16px;
-  color: #1a1f2a;
+  color: var(--nm-text);
 }
 body.docs-body .docs-404-lead {
   font-size: 16px;
-  color: #5a6270;
+  color: var(--nm-text-secondary);
   line-height: 1.7;
   margin-bottom: 32px;
 }
@@ -1192,7 +1192,7 @@ body.docs-body .docs-404-suggest h3 {
   margin: 0 0 12px;
   font-size: 16px;
   font-weight: 700;
-  color: #1a1f2a;
+  color: var(--nm-text);
 }
 body.docs-body .docs-404-suggest ul {
   list-style: none;
@@ -1295,7 +1295,7 @@ body.docs-body .docs-live-preview-link:hover {
 body.docs-body .docs-live-preview-loading {
   padding: 32px;
   text-align: center;
-  color: #5a6270;
+  color: var(--nm-text-secondary);
   font-size: 13px;
 }
 body.docs-body .docs-live-preview-frame {
@@ -1351,7 +1351,7 @@ body.docs-body .docs-tab-btn {
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #5a6270;
+  color: var(--nm-text-secondary);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   margin-bottom: -1px;
