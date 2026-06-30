@@ -4,6 +4,28 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
+
+// v4 syntax highlight (light) ... yaml key teal, string olive-green, number orange, comment muted
+const v4HighlightLight = HighlightStyle.define([
+  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#1f4d6e", fontWeight: "500" },
+  { tag: [t.string, t.special(t.string)], color: "#6a8a3a" },
+  { tag: [t.number, t.integer, t.float], color: "#c2410c" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "#8a8678", fontStyle: "italic" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "#5a6270" },
+  { tag: [t.invalid], color: "#c15a4a" },
+]);
+
+// v4 syntax highlight (dark) ... teal-glow / mint / amber-glow
+const v4HighlightDark = HighlightStyle.define([
+  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#7dc7e8", fontWeight: "500" },
+  { tag: [t.string, t.special(t.string)], color: "#93e0a1" },
+  { tag: [t.number, t.integer, t.float], color: "#f0b75e" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "#6b7785", fontStyle: "italic" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "#99a3b3" },
+  { tag: [t.invalid], color: "#e8807d" },
+]);
 
 // dragon DSL は YAML 互換、 yaml mode を流用 + v4 palette で theme override
 const v4EditorThemeLight = EditorView.theme(
@@ -668,7 +690,7 @@ animation:
           <CodeMirror
             value={src}
             theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
-            extensions={[yaml()]}
+            extensions={[yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]}
             onChange={(v) => setSrc(v)}
             height="100%"
             basicSetup={{
