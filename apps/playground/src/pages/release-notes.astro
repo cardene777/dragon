@@ -1,0 +1,81 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const changelogPath = path.resolve(process.cwd(), "../../CHANGELOG.md");
+const rawChangelog = fs.existsSync(changelogPath)
+  ? fs.readFileSync(changelogPath, "utf-8")
+  : "# Changelog\n\nNot found.";
+
+type Release = { version: string; date: string; sections: { heading: string; bullets: string[] }[] };
+
+function parseChangelog(md: string): Release[] {
+  const releases: Release[] = [];
+  const blocks = md.split(/^## /m).slice(1);
+  for (const block of blocks) {
+    const headerMatch = block.match(/^\[(.+?)\](?:\s*-\s*(.+))?/);
+    if (!headerMatch) continue;
+    const version = headerMatch[1];
+    const date = headerMatch[2] ?? "";
+    const sections: { heading: string; bullets: string[] }[] = [];
+    const sectionBlocks = block.split(/^### /m).slice(1);
+    for (const sb of sectionBlocks) {
+      const lines = sb.split("\n");
+      const heading = lines[0].trim();
+      const bullets = lines
+        .slice(1)
+        .filter((l) => l.trim().startsWith("- "))
+        .map((l) => l.replace(/^\s*-\s*/, "").trim())
+        .filter(Boolean);
+      sections.push({ heading, bullets });
+    }
+    releases.push({ version, date, sections });
+  }
+  return releases;
+}
+
+const releases = parseChangelog(rawChangelog);
+---
+
+<BaseLayout
+  title="Release Notes - dragon"
+  description="dragon DSL の release ごとの主要変更を 要約 + 主要セクションのみで表示。 詳細は /changelog。"
+>
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Release Notes</span>
+      </nav>
+      <span class="section-eyebrow">Release</span>
+      <h1 class="heading-h1">Release Notes</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
+        各 release の要約。 詳細は <a href="/changelog" class="text-nm-accent underline">Changelog</a> を参照。
+      </p>
+    </div>
+  </section>
+
+  <section class="shell pb-12 space-y-10">
+    {releases.map((r) => (
+      <article class="release-card rounded-nm shadow-nm-raised p-8 bg-nm-surface">
+        <header class="flex items-baseline gap-4 mb-4">
+          <h2 class="heading-h2">v{r.version}</h2>
+          {r.date && <span class="text-sm text-nm-text-muted">{r.date}</span>}
+        </header>
+        {r.sections.map((s) => (
+          <section class="mb-6">
+            <h3 class="heading-h3 mb-2">{s.heading}</h3>
+            <ul class="space-y-2 list-disc list-inside text-nm-text-secondary">
+              {s.bullets.slice(0, 5).map((b) => <li>{b}</li>)}
+              {s.bullets.length > 5 && (
+                <li class="text-nm-text-muted">…他 {s.bullets.length - 5} 件は <a href="/changelog" class="text-nm-accent underline">changelog</a> を参照</li>
+              )}
+            </ul>
+          </section>
+        ))}
+      </article>
+    ))}
+  </section>
+</BaseLayout>

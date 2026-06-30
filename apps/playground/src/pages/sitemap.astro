@@ -1,0 +1,115 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const groups = [
+  {
+    title: "Top",
+    links: [
+      { label: "ホーム", href: "/" },
+      { label: "Editor", href: "/editor" },
+    ],
+  },
+  {
+    title: "Catalog",
+    links: [
+      { label: "Catalog 全体", href: "/catalog" },
+      { label: "Cookbook (25 例)", href: "/catalog/cookbook" },
+      { label: "Patterns (12 種)", href: "/catalog/patterns" },
+      { label: "Text DSL demo", href: "/catalog/text-dsl" },
+      { label: "Presets (6 種)", href: "/catalog/presets" },
+      { label: "Animation", href: "/catalog/animation" },
+      { label: "Styles", href: "/catalog/styles" },
+      { label: "Primitives", href: "/catalog/primitives" },
+    ],
+  },
+  {
+    title: "Docs (日本語)",
+    links: [
+      { label: "Overview", href: "/docs/cdl" },
+      { label: "Quickstart", href: "/docs/cdl/overview/quickstart" },
+      { label: "Mermaid migration", href: "/docs/cdl/overview/mermaid-migration" },
+      { label: "Cookbook", href: "/docs/cdl/overview/cookbook" },
+      { label: "Primitives", href: "/docs/cdl/primitives/README" },
+      { label: "Presets", href: "/docs/cdl/presets/README" },
+      { label: "Patterns", href: "/docs/cdl/patterns/README" },
+      { label: "Text DSL spec", href: "/docs/cdl/text-dsl-spec" },
+      { label: "Migration guide", href: "/docs/cdl/migration-guide" },
+      { label: "Reference", href: "/docs/cdl/reference/README" },
+    ],
+  },
+  {
+    title: "Docs (English)",
+    links: [
+      { label: "Overview", href: "/docs/en/cdl" },
+      { label: "Quickstart", href: "/docs/en/cdl/overview/quickstart" },
+      { label: "Mermaid migration", href: "/docs/en/cdl/overview/mermaid-migration" },
+      { label: "Cookbook", href: "/docs/en/cdl/overview/cookbook" },
+      { label: "Primitives", href: "/docs/en/cdl/primitives/README" },
+      { label: "Presets", href: "/docs/en/cdl/presets/README" },
+      { label: "Patterns", href: "/docs/en/cdl/patterns/README" },
+      { label: "Text DSL spec", href: "/docs/en/cdl/text-dsl-spec" },
+      { label: "Migration guide", href: "/docs/en/cdl/migration-guide" },
+      { label: "Reference", href: "/docs/en/cdl/reference/README" },
+    ],
+  },
+  {
+    title: "Release",
+    links: [
+      { label: "Release Notes", href: "/release-notes" },
+      { label: "Changelog", href: "/changelog" },
+    ],
+  },
+  {
+    title: "Community",
+    links: [
+      { label: "Contribute", href: "/contribute" },
+      { label: "GitHub", href: "https://github.com/cardene777/dragon" },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title="Sitemap - dragon"
+  description="dragon DSL site の全 page リンク一覧。 HTML 版 sitemap。"
+>
+  <section class="shell pt-12 pb-8">
+    <div class="space-y-4">
+      <nav aria-label="パンくず" class="flex items-center gap-1.5 text-xs font-medium text-nm-text-muted">
+        <a href="/" class="text-nm-text-secondary hover:text-nm-accent no-underline">トップ</a>
+        <span aria-hidden="true">/</span>
+        <span class="text-nm-text">Sitemap</span>
+      </nav>
+      <span class="section-eyebrow">Navigation</span>
+      <h1 class="heading-h1">Sitemap</h1>
+      <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
+        site 内の全 page を 1 ページで俯瞰。 XML sitemap は <a href="/sitemap-index.xml" class="text-nm-accent underline">/sitemap-index.xml</a> から取得可能。
+      </p>
+    </div>
+  </section>
+
+  <section class="shell pb-12">
+    <div class="grid gap-6 md:grid-cols-2">
+      {groups.map((g) => (
+        <article class="rounded-nm shadow-nm-raised p-6 bg-nm-surface">
+          <h2 class="heading-h2 mb-3 text-xl">{g.title}</h2>
+          <ul class="space-y-2">
+            {g.links.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-nm-text-secondary hover:text-nm-accent no-underline"
+                  target={link.href.startsWith("http") ? "_blank" : undefined}
+                  rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                >
+                  {link.label}
+                  {link.href.startsWith("http") && <span aria-hidden="true"> ↗</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
