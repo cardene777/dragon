@@ -42,6 +42,19 @@
   --sans: "Inter", -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 }
+html.dark {
+  --canvas: #0e1117;
+  --surface: #161b22;
+  --surface-2: #1f2630;
+  --line: #2a3340;
+  --line-soft: #1f2630;
+  --ink: #f0f3f8;
+  --ink-dim: #99a3b3;
+  --ink-mute: #6b7785;
+  --brand: #5ec4e8;
+  --brand-deep: #4e9dc4;
+  --brand-glow: #7dc7e8;
+}
 html, body {
   background: var(--canvas);
   color: var(--ink);
@@ -130,6 +143,43 @@ button { font: inherit; cursor: pointer; border: none; background: transparent; 
   transition: transform 0.15s, background 0.15s;
 }
 .nav-cta:hover { transform: translateY(-1px); background: var(--brand-deep); }
+
+/* theme toggle */
+.nav-theme-toggle {
+  margin-left: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.nav-theme-toggle:hover {
+  border-color: var(--brand);
+}
+.v4-theme-icon-dark { display: none; }
+html.dark .v4-theme-icon-light { display: none; }
+html.dark .v4-theme-icon-dark { display: inline; }
+html.dark .nav-cta {
+  background: var(--brand);
+  color: var(--canvas);
+}
+html.dark .nav-cta:hover {
+  background: var(--brand-glow);
+}
+html.dark .nav {
+  background: rgba(14, 17, 23, 0.85);
+}
+
+/* logo svg dark variant */
+html.dark .nav-mark svg path:first-child {
+  fill: #f0f3f8;
+}
 
 /* ── typography ── */
 h1, h2, h3 { font-family: var(--serif); }
@@ -769,8 +819,42 @@ body { padding: 0; }
     <a class="nav-link" href="/docs">docs</a>
     <a class="nav-link" href="https://github.com/cardene777/dragon" target="_blank" rel="noopener">github ↗</a>
   </div>
+  <button
+    type="button"
+    class="nav-theme-toggle"
+    id="v4-theme-toggle"
+    aria-label="dark/light 切替"
+    title="dark/light 切替"
+  >
+    <span class="v4-theme-icon-light">☀</span>
+    <span class="v4-theme-icon-dark">☾</span>
+  </button>
   <a class="nav-cta" href="/editor">open editor →</a>
 </nav>
+
+<script is:inline>
+  (function () {
+    try {
+      var t = localStorage.getItem("v4-theme");
+      if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+    } catch (e) {}
+  })();
+</script>
+<script is:inline>
+  document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.getElementById("v4-theme-toggle");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.classList.contains("dark") ? "dark" : "light";
+      var next = cur === "dark" ? "light" : "dark";
+      if (next === "dark") document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+      try { localStorage.setItem("v4-theme", next); } catch (e) {}
+    });
+  });
+</script>
 
 <section class="hero">
   <div class="hero-copy">

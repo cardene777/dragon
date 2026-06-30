@@ -27,6 +27,17 @@ const {
       rel="stylesheet"
     />
     <title>{title}</title>
+    {/* theme pre-flash 防止 (site 共通 v4-theme key) */}
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem("v4-theme");
+          if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="v4-body">
     <Header />

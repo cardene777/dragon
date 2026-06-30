@@ -6,7 +6,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 
 // dragon DSL は YAML 互換、 yaml mode を流用 + v4 palette で theme override
-const v4EditorTheme = EditorView.theme(
+const v4EditorThemeLight = EditorView.theme(
   {
     "&": {
       backgroundColor: "#fcf8ee",
@@ -31,6 +31,33 @@ const v4EditorTheme = EditorView.theme(
     "&.cm-focused": { outline: "none" },
   },
   { dark: false }
+);
+
+const v4EditorThemeDark = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "#161b22",
+      color: "#f0f3f8",
+      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+      fontSize: "13px",
+      height: "100%",
+    },
+    ".cm-content": { padding: "18px 14px", caretColor: "#5ec4e8" },
+    ".cm-cursor": { borderLeftColor: "#5ec4e8" },
+    ".cm-line": { padding: "0 4px" },
+    ".cm-gutters": {
+      backgroundColor: "#161b22",
+      color: "#6b7785",
+      border: "none",
+      borderRight: "1px solid #2a3340",
+      fontFamily: "'JetBrains Mono', monospace",
+    },
+    ".cm-activeLineGutter": { backgroundColor: "rgba(94,196,232,0.1)", color: "#5ec4e8" },
+    ".cm-activeLine": { backgroundColor: "rgba(94,196,232,0.06)" },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(94,196,232,0.25) !important" },
+    "&.cm-focused": { outline: "none" },
+  },
+  { dark: true }
 );
 
 /**
@@ -320,6 +347,17 @@ export function CdlEditor(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0]!.label);
+  const [isDark, setIsDark] = useState(false);
+
+  // html.dark の変化を監視して CodeMirror theme を切替
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = (): void => setIsDark(document.documentElement.classList.contains("dark"));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const filteredSamples = useMemo(() => {
     if (!search.trim()) return SAMPLES;
@@ -629,7 +667,7 @@ animation:
         <div className="v4-editor-code-body">
           <CodeMirror
             value={src}
-            theme={v4EditorTheme}
+            theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
             extensions={[yaml()]}
             onChange={(v) => setSrc(v)}
             height="100%"
