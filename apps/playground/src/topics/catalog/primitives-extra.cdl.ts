@@ -2,7 +2,7 @@ import { diagram } from "@cardenelabs/cdl";
 import type { NodeKind, PhaseBuilder } from "@cardenelabs/cdl";
 
 /**
- * Catalog - Primitives Extra ... 拡充 25 NodeKind (人 / インフラ / アプリ / blockchain / 暗号)。
+ * Catalog - Primitives Extra ... 拡充 NodeKind (人 / インフラ / アプリ / データ / 判定)。
  * 各 kind を独立 diagram で展示、 全 catalog で lane width=440 統一。
  */
 
@@ -17,7 +17,7 @@ function single(id: string, kind: NodeKind, eyebrow: string, title: string, subt
 }
 
 // 人系 5
-export const kPerson = single("k-person", "person", "個人", "Alice", "外部の 1 ユーザー");
+export const kPerson = single("k-person", "person", "個人", "User", "外部の 1 ユーザー");
 export const kUserGroup = single("k-user-group", "user-group", "複数ユーザー", "Users", "team / コミュニティ");
 export const kAdmin = single("k-admin", "admin", "管理者", "Admin", "権限保有者");
 export const kDeveloper = single("k-developer", "developer", "開発者", "Developer", "コード書く人");
@@ -39,18 +39,8 @@ export const kBackend = single("k-backend", "backend", "バックエンド", "Ex
 export const kWebhook = single("k-webhook", "webhook", "Webhook", "POST callback", "incoming event");
 export const kMicroservice = single("k-microservice", "microservice", "マイクロサービス", "Order Service", "1 機能 1 サービス");
 
-// ブロックチェーン系 8
-export const kWallet = single("k-wallet", "wallet", "ウォレット", "MetaMask", "private key 保持");
-export const kValidator = single("k-validator", "validator", "Validator", "Validator A", "stake してブロック生成");
-export const kMiner = single("k-miner", "miner", "Miner", "Miner B", "PoW で hash 計算");
-export const kBlockchainNode = single("k-blockchain-node", "blockchain-node", "ノード", "Geth Node", "RPC + p2p");
-export const kMempool = single("k-mempool", "mempool", "Mempool", "Mempool", "未承認 tx 集約");
-export const kBlock = single("k-block", "block", "Block", "Block #18M", "tx 群を確定");
-export const kBridgeNode = single("k-bridge-node", "bridge-node", "Bridge", "Bridge Node", "cross-chain 中継");
-export const kRelayer = single("k-relayer", "relayer", "Relayer", "Relayer", "msg pass");
-
-// 暗号 / データ 4
-export const kSigner = single("k-signer", "signer", "署名者", "Signer", "ECDSA / EdDSA");
-export const kOracle = single("k-oracle", "oracle", "Oracle", "Chainlink", "off-chain → on-chain");
-export const kMerkleTree = single("k-merkle-tree", "merkle-tree", "Merkle Tree", "Merkle Root", "ハッシュ二分木");
+// データ / 判定 4
+export const kSigner = single("k-signer", "signer", "署名者", "Signer", "HMAC / 公開鍵署名");
+export const kOracle = single("k-oracle", "oracle", "Oracle", "Feature flag service", "外部設定の取込");
+export const kMerkleTree = single("k-merkle-tree", "merkle-tree", "Merkle Tree", "Hash tree", "ハッシュ二分木");
 export const kDecision = single("k-decision", "decision", "判定分岐", "if/else", "条件分岐");
