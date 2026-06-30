@@ -1,4 +1,13 @@
 ---
+import { SearchBar } from "@/components/SearchBar";
+
+type Props = {
+  showSearch?: boolean;
+  showLangToggle?: boolean;
+};
+
+const { showSearch = false, showLangToggle = false } = Astro.props;
+
 const links = [
   { href: "/", label: "overview" },
   { href: "/editor", label: "editor" },
@@ -42,6 +51,23 @@ const repoUrl = "https://github.com/cardene777/dragon";
     }
     <a class="v4-nav-link" href={repoUrl} target="_blank" rel="noopener noreferrer">github ↗</a>
   </nav>
+  {showSearch && (
+    <div class="v4-nav-search">
+      <SearchBar client:load />
+    </div>
+  )}
+  {showLangToggle && (
+    <button
+      type="button"
+      class="v4-nav-lang-toggle"
+      id="docs-lang-toggle"
+      aria-label="言語切替"
+      title="言語切替"
+    >
+      <span class="v4-lang-ja">JA</span>
+      <span class="v4-lang-en">EN</span>
+    </button>
+  )}
   <button
     type="button"
     class="v4-nav-theme-toggle"
@@ -280,5 +306,42 @@ const repoUrl = "https://github.com/cardene777/dragon";
   }
   html.dark .v4-foot-copy {
     color: var(--v4-ink-mute);
+  }
+
+  /* ── search bar (docs) ── */
+  .v4-nav-search {
+    min-width: 220px;
+  }
+
+  /* ── lang toggle (docs) ── */
+  .v4-nav-lang-toggle {
+    margin-left: 4px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+    color: var(--v4-ink);
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 0.15s;
+  }
+  .v4-nav-lang-toggle:hover {
+    border-color: var(--v4-brand);
+  }
+  /* lang を [lang=...] で切替 */
+  html[lang="ja"] .v4-lang-en,
+  html[lang="en"] .v4-lang-ja {
+    color: var(--v4-ink-mute);
+    opacity: 0.4;
+  }
+  html[lang="ja"] .v4-lang-ja,
+  html[lang="en"] .v4-lang-en {
+    color: var(--v4-brand);
   }
 </style>

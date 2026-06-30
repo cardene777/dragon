@@ -6,11 +6,17 @@ import "@/styles/global.css";
 type Props = {
   title?: string;
   description?: string;
+  bodyClass?: string;
+  showSearch?: boolean;
+  showLangToggle?: boolean;
 };
 
 const {
   title = "dragon — Animated Diagram DSL",
   description = "dragon は Mermaid 感覚で書ける Text DSL から animated SVG diagram を生成する OSS。 cdl engine 上で phase / state / tween を動かせる。",
+  bodyClass = "v4-body",
+  showSearch = false,
+  showLangToggle = false,
 } = Astro.props;
 ---
 
@@ -39,8 +45,8 @@ const {
       })();
     </script>
   </head>
-  <body class="v4-body">
-    <Header />
+  <body class={bodyClass}>
+    <Header showSearch={showSearch} showLangToggle={showLangToggle} />
     <main class="min-h-[calc(100vh-220px)]">
       <slot />
     </main>

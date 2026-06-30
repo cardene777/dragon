@@ -16,7 +16,7 @@
  */
 import "../styles/global.css";
 import "../styles/docs-site.css";
-import { SearchBar } from "../components/SearchBar";
+import Header from "../components/layout/Header.astro";
 
 export interface Props {
   title: string;
@@ -185,40 +185,8 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
     </script>
   </head>
   <body class="docs-body">
-    <!-- 1. DocsNavBar (上部固定) -->
-    <header class="docs-navbar">
-      <div class="docs-navbar-inner">
-        <a href="/" class="docs-navbar-brand">
-          <span class="docs-navbar-logo">
-            <svg viewBox="0 0 28 28" fill="none" width="22" height="22">
-              <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a"/>
-              <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85"/>
-            </svg>
-          </span>
-          <span class="docs-navbar-title">dragon <span class="docs-navbar-title-sub">docs</span></span>
-        </a>
-        <nav class="docs-navbar-nav" aria-label="docs navigation">
-          <a href="/" class="docs-navbar-link">overview</a>
-          <a href="/editor" class="docs-navbar-link">editor</a>
-          <a href="/catalog" class="docs-navbar-link">catalog</a>
-          <a href="/docs" class="docs-navbar-link active">docs</a>
-          <a href="https://github.com/cardene777/dragon" class="docs-navbar-link docs-navbar-link-external" target="_blank" rel="noopener">github ↗</a>
-        </nav>
-        <div class="docs-navbar-search">
-          {/* Pagefind 全文検索 UI (build 後 dist/_pagefind/ から runtime fetch) */}
-          <SearchBar client:load />
-        </div>
-        <button class="docs-navbar-lang-toggle" id="docs-lang-toggle" aria-label="言語切替" title="言語切替">
-          <span class="docs-lang-ja">JA</span>
-          <span class="docs-lang-en">EN</span>
-        </button>
-        <button class="docs-navbar-theme-toggle" id="docs-theme-toggle" aria-label="dark/light 切替" title="dark/light 切替">
-          <span class="docs-theme-icon-light">☀</span>
-          <span class="docs-theme-icon-dark">☾</span>
-        </button>
-        <button class="docs-navbar-menu-toggle" id="docs-sidebar-toggle" aria-label="メニュー切替">☰</button>
-      </div>
-    </header>
+    {/* site 共通 Header (search + lang toggle 有効) */}
+    <Header showSearch={true} showLangToggle={true} />
 
     <div class="docs-shell">
       <!-- 2. Sidebar (左固定、 各 section <details> でトグル可能) -->

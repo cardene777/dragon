@@ -1,23 +1,286 @@
 ---
-// dragon top — v4 design (cream + teal + serif/mono、 動く前提)。
-// 単独 page 構造、 BaseLayout は使用しない (既存 nm-* palette との干渉回避)。
+import BaseLayout from "@/layouts/BaseLayout.astro";
 ---
 
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="dragon は Mermaid 感覚で書ける Text DSL から animated SVG diagram を生成する OSS。 sequence / topology / er など 12+ preset、 install 不要、 phase / state / tween で動く図を 1 ファイルで。"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+<BaseLayout
+  title="dragon — animated diagram DSL"
+  description="dragon は Mermaid 感覚で書ける Text DSL から animated SVG diagram を生成する OSS。 sequence / topology / er など 12+ preset、 install 不要、 phase / state / tween で動く図を 1 ファイルで。"
+>
+<section class="hero">
+  <div class="hero-copy">
+    <div class="hero-eyebrow">
+      <span class="ver">v0.5</span>
+      <span>text dsl × svg animation</span>
+    </div>
+    <h1>書くと、<em>動く</em>。</h1>
+    <p class="lead">YAML 風 1 ファイルで <code>actors</code> / <code>flow</code> / <code>animation</code> を書くだけで、 sequence / topology / er / state ほか 12 種 (拡大予定) の図が phase 単位で動き出す。 install 不要、 mermaid 感覚で 1 分後に走り出す。</p>
+    <div class="hero-cta">
+      <a class="btn-primary" href="/editor">open editor →</a>
+      <a class="btn-secondary">pnpm add @cardenelabs/dragon</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="num">12+</span>preset</div>
+      <div class="stat"><span class="num">3</span>cluster</div>
+      <div class="stat"><span class="num">0</span>install</div>
+      <div class="stat"><span class="num">MIT</span>license</div>
+    </div>
+  </div>
+
+  <div class="hero-canvas">
+    <div class="canvas-bar">
+      <div class="dots">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      </div>
+      <span class="file">▲ <b>api-call.dragon</b></span>
+      <span class="phase">
+        <span class="live-dot"></span> phase 2/4 · API → DB
+      </span>
+    </div>
+    <div class="canvas-body">
+      <pre class="canvas-code"><span class="ln">1</span><span class="k">title</span>: <span class="s">"login API"</span>
+<span class="ln">2</span><span class="k">type</span>: sequence
+<span class="ln">3</span>
+<span class="ln">4</span><span class="k">actors</span>:
+<span class="ln">5</span>  - User
+<span class="ln">6</span>  - API
+<span class="ln">7</span>  - DB
+<span class="ln">8</span>
+<span class="ln">9</span><span class="k">flow</span>:
+<span class="ln">10</span>  - <span class="hl-1">User → API: <span class="s">"login"</span></span>
+<span class="ln">11</span>  - <span class="hl-2">API → DB: <span class="s">"select"</span></span>
+<span class="ln">12</span>  - <span class="hl-3">DB → API: <span class="s">"row"</span></span>
+<span class="ln">13</span>  - <span class="hl-4">API → User: <span class="s">"200"</span></span>
+<span class="ln">14</span>
+<span class="ln">15</span><span class="k">animation</span>:
+<span class="ln">16</span>  - step: <span class="s">"call"</span> 1.4s
+<span class="ln">17</span>  - step: <span class="s">"query"</span> 1.4s
+<span class="ln">18</span>  - step: <span class="s">"return"</span> 1.4s
+<span class="ln">19</span>  - step: <span class="s">"ok"</span> 1.4s</pre>
+
+      <div class="canvas-stage">
+        <svg viewBox="0 0 600 320">
+          <defs>
+            <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#1f4d6e"/>
+            </marker>
+            <marker id="ar-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#6d28d9"/>
+            </marker>
+            <marker id="ar-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#4ea36a"/>
+            </marker>
+            <marker id="ar-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#8a8678"/>
+            </marker>
+          </defs>
+          <!-- lifelines -->
+          <line class="lifeline" x1="100" y1="80" x2="100" y2="290"/>
+          <line class="lifeline" x1="300" y1="80" x2="300" y2="290"/>
+          <line class="lifeline" x1="500" y1="80" x2="500" y2="290"/>
+
+          <!-- actor heads -->
+          <rect class="actor-box actor-focus-user" x="60" y="55" width="80" height="36" rx="7"/>
+          <text class="actor-label" x="100" y="78" text-anchor="middle">User</text>
+          <rect class="actor-box actor-focus-api" x="260" y="55" width="80" height="36" rx="7"/>
+          <text class="actor-label" x="300" y="78" text-anchor="middle">API</text>
+          <rect class="actor-box actor-focus-db" x="460" y="55" width="80" height="36" rx="7"/>
+          <text class="actor-label" x="500" y="78" text-anchor="middle">DB</text>
+
+          <!-- msg 1: User → API -->
+          <path class="seq-msg seq-msg-1" d="M 100 130 L 300 130" marker-end="url(#ar-teal)"/>
+          <text class="seq-label seq-label-1" x="200" y="122" text-anchor="middle">POST /login</text>
+
+          <!-- msg 2: API → DB -->
+          <path class="seq-msg seq-msg-2" d="M 300 175 L 500 175" marker-end="url(#ar-teal)"/>
+          <text class="seq-label seq-label-2" x="400" y="167" text-anchor="middle">SELECT user</text>
+
+          <!-- msg 3: DB → API -->
+          <path class="seq-msg seq-msg-3" d="M 500 220 L 300 220" marker-end="url(#ar-purple)"/>
+          <text class="seq-label seq-label-3" x="400" y="212" text-anchor="middle">row (1)</text>
+
+          <!-- msg 4: API → User -->
+          <path class="seq-msg seq-msg-4" d="M 300 265 L 100 265" marker-end="url(#ar-green)"/>
+          <text class="seq-label seq-label-4" x="200" y="257" text-anchor="middle">200 OK</text>
+
+          <!-- phase label (上) -->
+          <text class="phase-text phase-1" x="300" y="30" fill="#1f4d6e">phase 1 · call · 1.4s</text>
+          <text class="phase-text phase-2" x="300" y="30" fill="#1f4d6e">phase 2 · query · 1.4s</text>
+          <text class="phase-text phase-3" x="300" y="30" fill="#6d28d9">phase 3 · return · 1.4s</text>
+          <text class="phase-text phase-4" x="300" y="30" fill="#4ea36a">phase 4 · ok · 1.4s</text>
+        </svg>
+      </div>
+    </div>
+    <div class="canvas-foot">
+      <span class="play">▶</span>
+      <span>0.0s</span>
+      <div class="pb"></div>
+      <span>5.6s</span>
+      <span>loop</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── featured 3 narrative ── -->
+<section class="featured">
+  <div class="featured-track">
+    <div class="featured-head">
+      <h2>3 つの図、 <em>3 つの動き</em>。</h2>
+      <span class="sub">dragon の表現力を 3 例で示す。 残り 9 個 (拡大予定) は catalog で。</span>
+    </div>
+
+    <!-- 01 sequence -->
+    <div class="f-row">
+      <div class="idx">01</div>
+      <div class="info">
+        <h3>sequence <span class="type">type: sequence</span></h3>
+        <p>登場人物どうしのやりとりを <em style="font-style:italic;color:var(--brand-deep)">時間軸</em>で並べる。 hero でも live 中の代表 preset。 phase ごとに <code>focus:</code> を切替え、 <code>flow:</code> 順に msg を流す。 API call の順序、 認証 flow、 system 連携の説明に。</p>
+        <div class="cluster"><span class="dot-basic"></span>basic / 全業種共通 6 種の代表</div>
+      </div>
+      <div class="preset-frame">
+        <div class="pf-head">▲ sequence-demo.dragon<span class="live"></span></div>
+        <div class="pf-stage">
+          <svg viewBox="0 0 100 80">
+            <line x1="20" y1="14" x2="20" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
+            <line x1="50" y1="14" x2="50" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
+            <line x1="80" y1="14" x2="80" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
+            <rect x="12" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
+            <text x="20" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">Alice</text>
+            <rect x="42" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
+            <text x="50" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">API</text>
+            <rect x="72" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
+            <text x="80" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">DB</text>
+            <path class="seqp-msg seqp-msg-1" d="M 20 30 L 49 30" marker-end="url(#sp-arr-teal)"/>
+            <text x="35" y="27" font-size="3.4" font-family="JetBrains Mono" fill="#1a1f2a">request</text>
+            <path class="seqp-msg seqp-msg-2" d="M 50 48 L 79 48" marker-end="url(#sp-arr-teal)"/>
+            <text x="65" y="45" font-size="3.4" font-family="JetBrains Mono" fill="#1a1f2a">query</text>
+            <path class="seqp-msg seqp-msg-3" d="M 80 66 L 21 66" marker-end="url(#sp-arr-green)"/>
+            <text x="50" y="63" font-size="3.4" font-family="JetBrains Mono" fill="#4ea36a">200 ok</text>
+            <defs>
+              <marker id="sp-arr-teal" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a8f"/></marker>
+              <marker id="sp-arr-green" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ea36a"/></marker>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 topology -->
+    <div class="f-row">
+      <div class="idx">02</div>
+      <div class="info">
+        <h3>topology <span class="type">type: topology</span></h3>
+        <p><em style="font-style:italic;color:var(--brand-deep)">空間配置</em>と <em style="font-style:italic;color:var(--brand-deep)">動的 data flow</em> を同時に描く。 LB → Web → cache / DB の system 構成 + 「今 request がどこを通っているか」 を edge animation で。 architecture review、 onboarding 資料、 inspect の補助に。</p>
+        <div class="cluster"><span class="dot-basic"></span>basic / system 構成の代表</div>
+      </div>
+      <div class="preset-frame">
+        <div class="pf-head">▲ system-arch.dragon<span class="live"></span></div>
+        <div class="pf-stage">
+          <svg viewBox="0 0 100 80">
+            <!-- LB -->
+            <circle class="topo-node topo-node-lb" cx="14" cy="40" r="8" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
+            <text x="14" y="42" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">LB</text>
+            <text x="14" y="55" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">cloud</text>
+            <!-- Web -->
+            <rect class="topo-node topo-node-web" x="40" y="20" width="22" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
+            <text x="51" y="29" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">Web</text>
+            <text x="51" y="40" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">service</text>
+            <!-- Cache -->
+            <rect class="topo-node topo-node-cache" x="40" y="48" width="22" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
+            <text x="51" y="57" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">Cache</text>
+            <text x="51" y="68" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">redis</text>
+            <!-- DB -->
+            <rect class="topo-node topo-node-db" x="76" y="34" width="20" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8" stroke-dasharray="1.5 1.5"/>
+            <text x="86" y="43" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">DB</text>
+            <text x="86" y="54" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">postgres</text>
+
+            <!-- edges -->
+            <path class="topo-edge topo-edge-1" d="M 22 38 L 40 26" marker-end="url(#topo-arr)"/>
+            <path class="topo-edge topo-edge-2" d="M 62 27 L 76 39" marker-end="url(#topo-arr)"/>
+            <path class="topo-edge topo-edge-3" d="M 62 55 L 76 45" marker-end="url(#topo-arr-purple)"/>
+            <path class="topo-edge topo-edge-4" d="M 40 26 L 22 38" marker-end="url(#topo-arr-green)"/>
+            <defs>
+              <marker id="topo-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f4d6e"/></marker>
+              <marker id="topo-arr-purple" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6d28d9"/></marker>
+              <marker id="topo-arr-green" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ea36a"/></marker>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 er -->
+    <div class="f-row">
+      <div class="idx">03</div>
+      <div class="info">
+        <h3>er <span class="type">type: er</span></h3>
+        <p>DB の table と <em style="font-style:italic;color:var(--brand-deep)">関係性</em> を順に reveal。 entity を 1 つずつ生成、 relation 線を後から引いて cardinality (<code>1:N</code> / <code>N:N</code>) を text で表示。 schema review、 migration 説明、 新メンバー onboarding に。</p>
+        <div class="cluster"><span class="dot-basic"></span>basic / DB 設計の代表</div>
+      </div>
+      <div class="preset-frame">
+        <div class="pf-head">▲ user-order-er.dragon<span class="live"></span></div>
+        <div class="pf-stage">
+          <svg viewBox="0 0 100 80">
+            <!-- User entity -->
+            <g class="er-entity er-entity-1">
+              <rect x="8" y="10" width="32" height="28" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
+              <line x1="8" y1="18" x2="40" y2="18" stroke="#2d6a8f" stroke-width="0.6"/>
+              <text x="24" y="16" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">User</text>
+              <text x="11" y="24" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
+              <text x="11" y="29" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">email</text>
+              <text x="11" y="34" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">created_at</text>
+            </g>
+            <!-- Order entity -->
+            <g class="er-entity er-entity-2">
+              <rect x="60" y="10" width="32" height="28" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
+              <line x1="60" y1="18" x2="92" y2="18" stroke="#2d6a8f" stroke-width="0.6"/>
+              <text x="76" y="16" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">Order</text>
+              <text x="63" y="24" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
+              <text x="63" y="29" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">user_id FK</text>
+              <text x="63" y="34" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">total</text>
+            </g>
+            <!-- Item entity -->
+            <g class="er-entity er-entity-3">
+              <rect x="34" y="50" width="32" height="24" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
+              <line x1="34" y1="58" x2="66" y2="58" stroke="#2d6a8f" stroke-width="0.6"/>
+              <text x="50" y="56" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">Item</text>
+              <text x="37" y="64" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
+              <text x="37" y="69" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">order_id FK</text>
+            </g>
+
+            <!-- Relations -->
+            <path class="er-rel er-rel-1" d="M 40 24 L 60 24" marker-end="url(#er-arr)"/>
+            <text class="er-card er-card-1" x="50" y="22" text-anchor="middle">1:N</text>
+            <path class="er-rel er-rel-2" d="M 76 38 L 50 50" marker-end="url(#er-arr)"/>
+            <text class="er-card er-card-2" x="68" y="45">1:N</text>
+            <defs>
+              <marker id="er-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f4d6e"/></marker>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── catalog bridge ── -->
+<section class="bridge">
+  <h3>もちろん <em style="font-style:italic;color:var(--brand-deep)">他にも</em>。</h3>
+  <p>flow / swimlane / state / class / gantt / pie / c4 / mind、 preset は今後さらに増える。 全件は catalog で。</p>
+  <div class="bridge-chips">
+    <span class="chip basic"><span class="ic">↓</span>flow</span>
+    <span class="chip basic"><span class="ic">∥</span>swimlane</span>
+    <span class="chip basic"><span class="ic">⊙</span>state</span>
+    <span class="chip extended"><span class="ic">▤</span>class</span>
+    <span class="chip extended"><span class="ic">▬</span>gantt</span>
+    <span class="chip extended"><span class="ic">◐</span>pie</span>
+    <span class="chip extended"><span class="ic">▣</span>c4</span>
+    <span class="chip extended"><span class="ic">✺</span>mind</span>
+  </div>
+  <a class="btn-primary bridge-cta" href="/catalog">browse catalog →</a>
+</section>
+</BaseLayout>
+
+<style is:global>
     <title>dragon — animated diagram DSL</title>
     <style is:global>
 /* dragon site v3 SSOT (cream + teal、 全 page 統一) */
@@ -68,118 +331,8 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; border: none; background: transparent; }
 
 /* ── nav ── */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  padding: 0 32px;
-  height: 60px;
-  background: rgba(245,241,232,0.85);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
-}
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-right: auto;
-}
-.nav-mark {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-}
-.nav-mark svg {
-  width: 28px;
-  height: 28px;
-  display: block;
-}
-.nav-name {
-  font-family: var(--serif);
-  font-weight: 600;
-  font-size: 19px;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-.nav-sub {
-  color: var(--ink-mute);
-  font-weight: 400;
-  margin-left: 8px;
-  font-size: 12.5px;
-  font-family: var(--mono);
-  letter-spacing: -0.02em;
-}
-.nav-links {
-  display: flex;
-  gap: 2px;
-}
-.nav-link {
-  padding: 6px 13px;
-  border-radius: 7px;
-  font-size: 13px;
-  color: var(--ink-dim);
-  transition: color 0.15s, background 0.15s;
-  font-family: var(--mono);
-  letter-spacing: -0.02em;
-}
-.nav-link:hover { color: var(--ink); background: rgba(26,31,42,0.05); }
-.nav-link.active { color: var(--brand-deep); background: rgba(45,106,143,0.08); }
-.nav-cta {
-  margin-left: 14px;
-  padding: 7px 16px;
-  border-radius: 8px;
-  background: var(--ink);
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--canvas);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--mono);
-  letter-spacing: -0.02em;
-  transition: transform 0.15s, background 0.15s;
-}
-.nav-cta:hover { transform: translateY(-1px); background: var(--brand-deep); }
-
-/* theme toggle */
-.nav-theme-toggle {
-  margin-left: 8px;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  transition: background 0.15s, border-color 0.15s;
-}
-.nav-theme-toggle:hover {
-  border-color: var(--brand);
-}
-.v4-theme-icon-dark { display: none; }
-html.dark .v4-theme-icon-light { display: none; }
-html.dark .v4-theme-icon-dark { display: inline; }
-html.dark .nav-cta {
-  background: var(--brand);
-  color: var(--canvas);
-}
-html.dark .nav-cta:hover {
-  background: var(--brand-glow);
-}
-html.dark .nav {
-  background: rgba(14, 17, 23, 0.85);
-}
 
 /* logo svg dark variant */
-html.dark .nav-mark svg path:first-child {
-  fill: #f0f3f8;
-}
 
 /* ── typography ── */
 h1, h2, h3 { font-family: var(--serif); }
@@ -772,389 +925,4 @@ body { padding: 0; }
 .bridge-cta { display: inline-flex; }
 
 /* ── footer ── */
-.foot {
-  border-top: 1px solid var(--line);
-  padding: 40px 32px;
-  max-width: 1180px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
-  gap: 32px;
-  font-size: 13px;
-}
-.foot-brand .nav-name { font-size: 18px; }
-.foot-brand p { color: var(--ink-dim); margin-top: 8px; font-size: 12.5px; max-width: 280px; }
-.foot-col h4 {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-.foot-col a { display: block; color: var(--ink-dim); padding: 3px 0; font-size: 13px; }
-.foot-col a:hover { color: var(--ink); }
-    </style>
-  </head>
-  <body>
-
-<nav class="nav">
-  <div class="nav-brand">
-    <div class="nav-mark">
-      <svg viewBox="0 0 28 28" fill="none">
-        <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a"/>
-        <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85"/>
-      </svg>
-    </div>
-    <div>
-      <span class="nav-name">dragon</span>
-      <span class="nav-sub">— animated diagram dsl</span>
-    </div>
-  </div>
-  <div class="nav-links">
-    <a class="nav-link active" href="/">overview</a>
-    <a class="nav-link" href="/editor">editor</a>
-    <a class="nav-link" href="/catalog">catalog</a>
-    <a class="nav-link" href="/docs">docs</a>
-    <a class="nav-link" href="https://github.com/cardene777/dragon" target="_blank" rel="noopener">github ↗</a>
-  </div>
-  <button
-    type="button"
-    class="nav-theme-toggle"
-    id="v4-theme-toggle"
-    aria-label="dark/light 切替"
-    title="dark/light 切替"
-  >
-    <span class="v4-theme-icon-light">☀</span>
-    <span class="v4-theme-icon-dark">☾</span>
-  </button>
-  <a class="nav-cta" href="/editor">open editor →</a>
-</nav>
-
-<script is:inline>
-  (function () {
-    try {
-      var t = localStorage.getItem("v4-theme");
-      if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-        document.documentElement.classList.add("dark");
-      }
-    } catch (e) {}
-  })();
-</script>
-<script is:inline>
-  document.addEventListener("DOMContentLoaded", function () {
-    var btn = document.getElementById("v4-theme-toggle");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      var cur = document.documentElement.classList.contains("dark") ? "dark" : "light";
-      var next = cur === "dark" ? "light" : "dark";
-      if (next === "dark") document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
-      try { localStorage.setItem("v4-theme", next); } catch (e) {}
-    });
-  });
-</script>
-
-<section class="hero">
-  <div class="hero-copy">
-    <div class="hero-eyebrow">
-      <span class="ver">v0.5</span>
-      <span>text dsl × svg animation</span>
-    </div>
-    <h1>書くと、<em>動く</em>。</h1>
-    <p class="lead">YAML 風 1 ファイルで <code>actors</code> / <code>flow</code> / <code>animation</code> を書くだけで、 sequence / topology / er / state ほか 12 種 (拡大予定) の図が phase 単位で動き出す。 install 不要、 mermaid 感覚で 1 分後に走り出す。</p>
-    <div class="hero-cta">
-      <a class="btn-primary" href="/editor">open editor →</a>
-      <a class="btn-secondary">pnpm add @cardenelabs/dragon</a>
-    </div>
-    <div class="hero-stats">
-      <div class="stat"><span class="num">12+</span>preset</div>
-      <div class="stat"><span class="num">3</span>cluster</div>
-      <div class="stat"><span class="num">0</span>install</div>
-      <div class="stat"><span class="num">MIT</span>license</div>
-    </div>
-  </div>
-
-  <div class="hero-canvas">
-    <div class="canvas-bar">
-      <div class="dots">
-        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-      </div>
-      <span class="file">▲ <b>api-call.dragon</b></span>
-      <span class="phase">
-        <span class="live-dot"></span> phase 2/4 · API → DB
-      </span>
-    </div>
-    <div class="canvas-body">
-      <pre class="canvas-code"><span class="ln">1</span><span class="k">title</span>: <span class="s">"login API"</span>
-<span class="ln">2</span><span class="k">type</span>: sequence
-<span class="ln">3</span>
-<span class="ln">4</span><span class="k">actors</span>:
-<span class="ln">5</span>  - User
-<span class="ln">6</span>  - API
-<span class="ln">7</span>  - DB
-<span class="ln">8</span>
-<span class="ln">9</span><span class="k">flow</span>:
-<span class="ln">10</span>  - <span class="hl-1">User → API: <span class="s">"login"</span></span>
-<span class="ln">11</span>  - <span class="hl-2">API → DB: <span class="s">"select"</span></span>
-<span class="ln">12</span>  - <span class="hl-3">DB → API: <span class="s">"row"</span></span>
-<span class="ln">13</span>  - <span class="hl-4">API → User: <span class="s">"200"</span></span>
-<span class="ln">14</span>
-<span class="ln">15</span><span class="k">animation</span>:
-<span class="ln">16</span>  - step: <span class="s">"call"</span> 1.4s
-<span class="ln">17</span>  - step: <span class="s">"query"</span> 1.4s
-<span class="ln">18</span>  - step: <span class="s">"return"</span> 1.4s
-<span class="ln">19</span>  - step: <span class="s">"ok"</span> 1.4s</pre>
-
-      <div class="canvas-stage">
-        <svg viewBox="0 0 600 320">
-          <defs>
-            <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#1f4d6e"/>
-            </marker>
-            <marker id="ar-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#6d28d9"/>
-            </marker>
-            <marker id="ar-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#4ea36a"/>
-            </marker>
-            <marker id="ar-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#8a8678"/>
-            </marker>
-          </defs>
-          <!-- lifelines -->
-          <line class="lifeline" x1="100" y1="80" x2="100" y2="290"/>
-          <line class="lifeline" x1="300" y1="80" x2="300" y2="290"/>
-          <line class="lifeline" x1="500" y1="80" x2="500" y2="290"/>
-
-          <!-- actor heads -->
-          <rect class="actor-box actor-focus-user" x="60" y="55" width="80" height="36" rx="7"/>
-          <text class="actor-label" x="100" y="78" text-anchor="middle">User</text>
-          <rect class="actor-box actor-focus-api" x="260" y="55" width="80" height="36" rx="7"/>
-          <text class="actor-label" x="300" y="78" text-anchor="middle">API</text>
-          <rect class="actor-box actor-focus-db" x="460" y="55" width="80" height="36" rx="7"/>
-          <text class="actor-label" x="500" y="78" text-anchor="middle">DB</text>
-
-          <!-- msg 1: User → API -->
-          <path class="seq-msg seq-msg-1" d="M 100 130 L 300 130" marker-end="url(#ar-teal)"/>
-          <text class="seq-label seq-label-1" x="200" y="122" text-anchor="middle">POST /login</text>
-
-          <!-- msg 2: API → DB -->
-          <path class="seq-msg seq-msg-2" d="M 300 175 L 500 175" marker-end="url(#ar-teal)"/>
-          <text class="seq-label seq-label-2" x="400" y="167" text-anchor="middle">SELECT user</text>
-
-          <!-- msg 3: DB → API -->
-          <path class="seq-msg seq-msg-3" d="M 500 220 L 300 220" marker-end="url(#ar-purple)"/>
-          <text class="seq-label seq-label-3" x="400" y="212" text-anchor="middle">row (1)</text>
-
-          <!-- msg 4: API → User -->
-          <path class="seq-msg seq-msg-4" d="M 300 265 L 100 265" marker-end="url(#ar-green)"/>
-          <text class="seq-label seq-label-4" x="200" y="257" text-anchor="middle">200 OK</text>
-
-          <!-- phase label (上) -->
-          <text class="phase-text phase-1" x="300" y="30" fill="#1f4d6e">phase 1 · call · 1.4s</text>
-          <text class="phase-text phase-2" x="300" y="30" fill="#1f4d6e">phase 2 · query · 1.4s</text>
-          <text class="phase-text phase-3" x="300" y="30" fill="#6d28d9">phase 3 · return · 1.4s</text>
-          <text class="phase-text phase-4" x="300" y="30" fill="#4ea36a">phase 4 · ok · 1.4s</text>
-        </svg>
-      </div>
-    </div>
-    <div class="canvas-foot">
-      <span class="play">▶</span>
-      <span>0.0s</span>
-      <div class="pb"></div>
-      <span>5.6s</span>
-      <span>loop</span>
-    </div>
-  </div>
-</section>
-
-<!-- ── featured 3 narrative ── -->
-<section class="featured">
-  <div class="featured-track">
-    <div class="featured-head">
-      <h2>3 つの図、 <em>3 つの動き</em>。</h2>
-      <span class="sub">dragon の表現力を 3 例で示す。 残り 9 個 (拡大予定) は catalog で。</span>
-    </div>
-
-    <!-- 01 sequence -->
-    <div class="f-row">
-      <div class="idx">01</div>
-      <div class="info">
-        <h3>sequence <span class="type">type: sequence</span></h3>
-        <p>登場人物どうしのやりとりを <em style="font-style:italic;color:var(--brand-deep)">時間軸</em>で並べる。 hero でも live 中の代表 preset。 phase ごとに <code>focus:</code> を切替え、 <code>flow:</code> 順に msg を流す。 API call の順序、 認証 flow、 system 連携の説明に。</p>
-        <div class="cluster"><span class="dot-basic"></span>basic / 全業種共通 6 種の代表</div>
-      </div>
-      <div class="preset-frame">
-        <div class="pf-head">▲ sequence-demo.dragon<span class="live"></span></div>
-        <div class="pf-stage">
-          <svg viewBox="0 0 100 80">
-            <line x1="20" y1="14" x2="20" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
-            <line x1="50" y1="14" x2="50" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
-            <line x1="80" y1="14" x2="80" y2="76" stroke="rgba(45,106,143,0.4)" stroke-width="0.6" stroke-dasharray="2 1.5"/>
-            <rect x="12" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
-            <text x="20" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">Alice</text>
-            <rect x="42" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
-            <text x="50" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">API</text>
-            <rect x="72" y="6" width="16" height="9" rx="1.5" fill="#fffdf7" stroke="#2d6a8f" stroke-width="0.8"/>
-            <text x="80" y="12.5" text-anchor="middle" font-size="4.2" fill="#1a1f2a" font-weight="600">DB</text>
-            <path class="seqp-msg seqp-msg-1" d="M 20 30 L 49 30" marker-end="url(#sp-arr-teal)"/>
-            <text x="35" y="27" font-size="3.4" font-family="JetBrains Mono" fill="#1a1f2a">request</text>
-            <path class="seqp-msg seqp-msg-2" d="M 50 48 L 79 48" marker-end="url(#sp-arr-teal)"/>
-            <text x="65" y="45" font-size="3.4" font-family="JetBrains Mono" fill="#1a1f2a">query</text>
-            <path class="seqp-msg seqp-msg-3" d="M 80 66 L 21 66" marker-end="url(#sp-arr-green)"/>
-            <text x="50" y="63" font-size="3.4" font-family="JetBrains Mono" fill="#4ea36a">200 ok</text>
-            <defs>
-              <marker id="sp-arr-teal" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a8f"/></marker>
-              <marker id="sp-arr-green" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ea36a"/></marker>
-            </defs>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- 02 topology -->
-    <div class="f-row">
-      <div class="idx">02</div>
-      <div class="info">
-        <h3>topology <span class="type">type: topology</span></h3>
-        <p><em style="font-style:italic;color:var(--brand-deep)">空間配置</em>と <em style="font-style:italic;color:var(--brand-deep)">動的 data flow</em> を同時に描く。 LB → Web → cache / DB の system 構成 + 「今 request がどこを通っているか」 を edge animation で。 architecture review、 onboarding 資料、 inspect の補助に。</p>
-        <div class="cluster"><span class="dot-basic"></span>basic / system 構成の代表</div>
-      </div>
-      <div class="preset-frame">
-        <div class="pf-head">▲ system-arch.dragon<span class="live"></span></div>
-        <div class="pf-stage">
-          <svg viewBox="0 0 100 80">
-            <!-- LB -->
-            <circle class="topo-node topo-node-lb" cx="14" cy="40" r="8" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
-            <text x="14" y="42" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">LB</text>
-            <text x="14" y="55" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">cloud</text>
-            <!-- Web -->
-            <rect class="topo-node topo-node-web" x="40" y="20" width="22" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
-            <text x="51" y="29" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">Web</text>
-            <text x="51" y="40" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">service</text>
-            <!-- Cache -->
-            <rect class="topo-node topo-node-cache" x="40" y="48" width="22" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8"/>
-            <text x="51" y="57" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">Cache</text>
-            <text x="51" y="68" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">redis</text>
-            <!-- DB -->
-            <rect class="topo-node topo-node-db" x="76" y="34" width="20" height="14" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.8" stroke-dasharray="1.5 1.5"/>
-            <text x="86" y="43" text-anchor="middle" font-size="3.8" fill="#1a1f2a" font-weight="600">DB</text>
-            <text x="86" y="54" text-anchor="middle" font-size="2.8" font-family="JetBrains Mono" fill="#8a8678">postgres</text>
-
-            <!-- edges -->
-            <path class="topo-edge topo-edge-1" d="M 22 38 L 40 26" marker-end="url(#topo-arr)"/>
-            <path class="topo-edge topo-edge-2" d="M 62 27 L 76 39" marker-end="url(#topo-arr)"/>
-            <path class="topo-edge topo-edge-3" d="M 62 55 L 76 45" marker-end="url(#topo-arr-purple)"/>
-            <path class="topo-edge topo-edge-4" d="M 40 26 L 22 38" marker-end="url(#topo-arr-green)"/>
-            <defs>
-              <marker id="topo-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f4d6e"/></marker>
-              <marker id="topo-arr-purple" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6d28d9"/></marker>
-              <marker id="topo-arr-green" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4ea36a"/></marker>
-            </defs>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- 03 er -->
-    <div class="f-row">
-      <div class="idx">03</div>
-      <div class="info">
-        <h3>er <span class="type">type: er</span></h3>
-        <p>DB の table と <em style="font-style:italic;color:var(--brand-deep)">関係性</em> を順に reveal。 entity を 1 つずつ生成、 relation 線を後から引いて cardinality (<code>1:N</code> / <code>N:N</code>) を text で表示。 schema review、 migration 説明、 新メンバー onboarding に。</p>
-        <div class="cluster"><span class="dot-basic"></span>basic / DB 設計の代表</div>
-      </div>
-      <div class="preset-frame">
-        <div class="pf-head">▲ user-order-er.dragon<span class="live"></span></div>
-        <div class="pf-stage">
-          <svg viewBox="0 0 100 80">
-            <!-- User entity -->
-            <g class="er-entity er-entity-1">
-              <rect x="8" y="10" width="32" height="28" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
-              <line x1="8" y1="18" x2="40" y2="18" stroke="#2d6a8f" stroke-width="0.6"/>
-              <text x="24" y="16" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">User</text>
-              <text x="11" y="24" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
-              <text x="11" y="29" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">email</text>
-              <text x="11" y="34" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">created_at</text>
-            </g>
-            <!-- Order entity -->
-            <g class="er-entity er-entity-2">
-              <rect x="60" y="10" width="32" height="28" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
-              <line x1="60" y1="18" x2="92" y2="18" stroke="#2d6a8f" stroke-width="0.6"/>
-              <text x="76" y="16" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">Order</text>
-              <text x="63" y="24" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
-              <text x="63" y="29" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">user_id FK</text>
-              <text x="63" y="34" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">total</text>
-            </g>
-            <!-- Item entity -->
-            <g class="er-entity er-entity-3">
-              <rect x="34" y="50" width="32" height="24" rx="2" fill="#fffdf7" stroke="#2d6a8f" stroke-width="1.2"/>
-              <line x1="34" y1="58" x2="66" y2="58" stroke="#2d6a8f" stroke-width="0.6"/>
-              <text x="50" y="56" text-anchor="middle" font-size="4.5" font-weight="700" fill="#1a1f2a">Item</text>
-              <text x="37" y="64" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">id   PK</text>
-              <text x="37" y="69" font-size="3.2" font-family="JetBrains Mono" fill="#5a6270">order_id FK</text>
-            </g>
-
-            <!-- Relations -->
-            <path class="er-rel er-rel-1" d="M 40 24 L 60 24" marker-end="url(#er-arr)"/>
-            <text class="er-card er-card-1" x="50" y="22" text-anchor="middle">1:N</text>
-            <path class="er-rel er-rel-2" d="M 76 38 L 50 50" marker-end="url(#er-arr)"/>
-            <text class="er-card er-card-2" x="68" y="45">1:N</text>
-            <defs>
-              <marker id="er-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1f4d6e"/></marker>
-            </defs>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── catalog bridge ── -->
-<section class="bridge">
-  <h3>もちろん <em style="font-style:italic;color:var(--brand-deep)">他にも</em>。</h3>
-  <p>flow / swimlane / state / class / gantt / pie / c4 / mind、 preset は今後さらに増える。 全件は catalog で。</p>
-  <div class="bridge-chips">
-    <span class="chip basic"><span class="ic">↓</span>flow</span>
-    <span class="chip basic"><span class="ic">∥</span>swimlane</span>
-    <span class="chip basic"><span class="ic">⊙</span>state</span>
-    <span class="chip extended"><span class="ic">▤</span>class</span>
-    <span class="chip extended"><span class="ic">▬</span>gantt</span>
-    <span class="chip extended"><span class="ic">◐</span>pie</span>
-    <span class="chip extended"><span class="ic">▣</span>c4</span>
-    <span class="chip extended"><span class="ic">✺</span>mind</span>
-  </div>
-  <a class="btn-primary bridge-cta" href="/catalog">browse catalog →</a>
-</section>
-
-<footer class="foot">
-  <div class="foot-brand">
-    <div class="nav-brand">
-      <div class="nav-mark">
-        <svg viewBox="0 0 28 28" fill="none">
-          <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a"/>
-          <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85"/>
-        </svg>
-      </div>
-      <span class="nav-name">dragon</span>
-    </div>
-    <p>Text DSL × SVG animation の OSS。 mermaid 感覚で書ける、 動く図のためのツール。</p>
-  </div>
-  <div class="foot-col">
-    <h4>project</h4>
-    <a>overview</a><a>changelog</a><a>roadmap</a><a>github ↗</a>
-  </div>
-  <div class="foot-col">
-    <h4>learn</h4>
-    <a>quickstart</a><a>concepts</a><a>preset reference</a><a>animation guide</a>
-  </div>
-  <div class="foot-col">
-    <h4>community</h4>
-    <a>discussions</a><a>x / @cardenelabs</a><a>discord</a><a>contribute</a>
-  </div>
-</footer>
-
-  </body>
-</html>
+</style>
