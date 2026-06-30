@@ -26,11 +26,11 @@ const description = "dragon は YAML 風 Text DSL から animated SVG diagram �
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content="https://dragon-playground.vercel.app/ogp/default.png" />
-    {/* dark mode + lang pre-flash 防止 (DocsLayout と統一) */}
+    {/* dark mode + lang pre-flash 防止 (site 共通 v4-theme key) */}
     <script is:inline>
       (function () {
         try {
-          var t = localStorage.getItem("docs-theme");
+          var t = localStorage.getItem("v4-theme") || localStorage.getItem("docs-theme");
           if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
             document.documentElement.classList.add("dark");
           }
@@ -82,7 +82,7 @@ const description = "dragon は YAML 風 Text DSL から animated SVG diagram �
           const next = cur === "dark" ? "light" : "dark";
           if (next === "dark") document.documentElement.classList.add("dark");
           else document.documentElement.classList.remove("dark");
-          try { localStorage.setItem("docs-theme", next); } catch (e) {}
+          try { localStorage.setItem("v4-theme", next); } catch (e) {}
         });
       })();
     </script>

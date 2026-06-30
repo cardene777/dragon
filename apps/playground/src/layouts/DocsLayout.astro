@@ -168,11 +168,11 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     <meta name="twitter:image" content={`https://dragon-playground.vercel.app/ogp/${lang === "en" ? "default" : "ja"}.png`} />
-    {/* dark mode + lang pre-flash 防止: html.dark / html[lang] を localStorage で決定 */}
+    {/* dark mode + lang pre-flash 防止: site 共通の v4-theme localStorage key を使う */}
     <script is:inline>
       (function () {
         try {
-          var t = localStorage.getItem("docs-theme");
+          var t = localStorage.getItem("v4-theme") || localStorage.getItem("docs-theme");
           if (t === "dark" || (!t && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
             document.documentElement.classList.add("dark");
           }
@@ -377,7 +377,7 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
             document.documentElement.classList.remove("dark");
           }
           try {
-            localStorage.setItem("docs-theme", theme);
+            localStorage.setItem("v4-theme", theme);
           } catch (e) {}
         };
         toggle.addEventListener("click", () => {
