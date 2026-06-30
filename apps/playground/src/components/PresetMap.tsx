@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { textDslToDiagram, type CdlDiagram } from "@cardenelabs/dragon";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
+import { CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
 
 type PresetNode = {
   id: string;
@@ -26,15 +26,15 @@ const PRESETS: PresetNode[] = [
 type: sequence
 
 actors:
-  - Alice
+  - Client
   - API
   - DB
 
 flow:
-  - Alice -> API: "request"
+  - Client -> API: "request"
   - API -> DB: "query"
   - DB -> API: "result" (success)
-  - API -> Alice: "response" (success)
+  - API -> Client: "response" (success)
 `,
   },
   {
@@ -138,36 +138,34 @@ flow:
   },
   // domain cluster (left, 1 preset)
   {
-    id: "solidity",
-    label: "solidity",
+    id: "code",
+    label: "code",
     icon: "◆",
     cluster: "domain",
     x: 32, y: 84,
-    description: "Solidity smart contract 専用。 EOA / contract / storage / event を自動 sort。",
-    sampleDsl: `title: "ERC-20 transfer"
-type: solidity
+    description: "アプリケーションの code path 専用。 actor / function / storage / event を自動 sort。",
+    sampleDsl: `title: "Service handler"
+type: code
 
 actors:
-  - Alice: { kind: eoa }
-  - Token: { kind: contract }
-  - balances: { kind: storage }
+  - Client: { kind: actor }
+  - Server: { kind: function }
+  - DB: { kind: storage }
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  count: 100
 
 flow:
-  - Alice -> Token: "transfer(Bob, 10)"
-  - Token -> balances: "update"
+  - Client -> Server: "POST /orders"
+  - Server -> DB: "UPDATE"
 
 animation:
   - step: "call" 1.2s
-    focus: [Alice, Token]
+    focus: [Client, Server]
   - step: "storage" 1.5s
-    focus: [Token, balances]
+    focus: [Server, DB]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
+      count: 100 -> 99
 `,
   },
   // extended cluster (right, 5 preset)
@@ -589,7 +587,7 @@ function PresetIcon({ id }: { id: string }): React.JSX.Element {
       return <svg {...props} strokeLinecap="butt"><rect x="3" y="4" width="8" height="6" rx="1" /><rect x="13" y="14" width="8" height="6" rx="1" /><path d="M11 7h2v7" strokeLinecap="round" /></svg>;
     case "state":
       return <svg {...props} strokeLinecap="butt"><circle cx="6" cy="12" r="3" /><circle cx="18" cy="12" r="3" /><path d="M9 12h6" strokeLinecap="round" /></svg>;
-    case "solidity":
+    case "code":
       return <svg {...props} strokeLinejoin="round"><path d="M12 2 L20 10 L12 22 L4 10 Z" /></svg>;
     case "gantt":
       return <svg {...props}><rect x="3" y="6" width="8" height="3" rx="1.5" /><rect x="8" y="11" width="10" height="3" rx="1.5" /><rect x="6" y="16" width="12" height="3" rx="1.5" /></svg>;

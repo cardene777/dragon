@@ -7,17 +7,17 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  */
 
 // swimlane preset ... 3 lane 自動配置 + laneId(label) で slug 取得
-const swim = swimlane({ id: "swim-demo", topic: "swimlane preset (3 lane 自動)", lanes: ["送信元", "Contract", "出力"], laneWidth: 520 });
-const lSrc = swim.laneId("送信元");
-const lCt = swim.laneId("Contract");
-const lOut = swim.laneId("出力");
+const swim = swimlane({ id: "swim-demo", topic: "swimlane preset (3 lane 自動)", lanes: ["Client", "Service", "Event"], laneWidth: 520 });
+const lSrc = swim.laneId("Client");
+const lCt = swim.laneId("Service");
+const lOut = swim.laneId("Event");
 swim
-  .node("alice", { lane: lSrc, stack: 0, kind: "actor", title: "Alice" })
-  .node("fn", { lane: lCt, stack: 0, kind: "function", title: "transfer(...)" })
-  .node("ev", { lane: lOut, stack: 0, kind: "event", title: "Transfer" })
-  .edge("alice", "fn", { id: "call", label: "call", tone: "accent", style: "dotted-flow" })
+  .node("user", { lane: lSrc, stack: 0, kind: "actor", title: "User" })
+  .node("fn", { lane: lCt, stack: 0, kind: "function", title: "handler(...)" })
+  .node("ev", { lane: lOut, stack: 0, kind: "event", title: "Processed" })
+  .edge("user", "fn", { id: "call", label: "call", tone: "accent", style: "dotted-flow" })
   .edge("fn", "ev", { id: "emit", label: "emit", tone: "success", style: "dotted-flow" })
-  .phase("p", { duration: 2400, title: "swimlane", body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。" }, (p: PhaseBuilder) => p.activate("alice", "fn", "ev", "call", "emit").badge("preset"));
+  .phase("p", { duration: 2400, title: "swimlane", body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。" }, (p: PhaseBuilder) => p.activate("user", "fn", "ev", "call", "emit").badge("preset"));
 
 export const presetSwimlane = swim.build();
 

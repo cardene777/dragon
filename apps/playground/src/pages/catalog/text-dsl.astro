@@ -10,29 +10,29 @@ import {
   textDslEr,
 } from "@/topics/catalog/text-dsl.cdl";
 
-const SEQ_DSL = `タイトル: 送金 (DSL)
+const SEQ_DSL = `タイトル: API call (DSL)
 種類: sequence
 
 登場人物:
-  - Alice
-  - Vault (storage)
-  - Bob
+  - Client
+  - API (function)
+  - DB (storage)
 
 流れ:
-  1. Alice → Vault: deposit (情報)
-  2. Vault → Bob: send (成功)
+  1. Client → API: GET /items (情報)
+  2. API → DB: SELECT (成功)
 
 アニメーション:
-  状態: alice残高 = 100
-  状態: bob残高 = 0
+  状態: request_count = 0
+  状態: row_count = 0
 
   ステップ「step1」 1.5 秒:
-    強調: Alice, Vault
-    遷移: alice残高: 100 → 90
+    強調: Client, API
+    遷移: request_count: 0 → 1
 
   ステップ「step2」 1.5 秒:
-    強調: Vault, Bob
-    遷移: bob残高: 0 → 10`;
+    強調: API, DB
+    遷移: row_count: 0 → 20`;
 
 const FLOW_DSL = `タイトル: 認証フロー (DSL)
 種類: flow
@@ -130,10 +130,10 @@ const ER_DSL = `タイトル: スキーマ (DSL)
 
 const items = [
   {
-    label: "sequence + animation ... 送金フロー (DSL v0.3)",
+    label: "sequence + animation ... API call フロー (DSL v0.3)",
     d: textDslSequence,
     docHref: "/docs/cdl/text-dsl-spec",
-    description: "actors 3 人 + 2 phase + tween (alice残高 / bob残高) を箇条書き DSL から compile",
+    description: "actors 3 人 + 2 phase + tween (request_count / row_count) を箇条書き DSL から compile",
     dsl: SEQ_DSL,
   },
   {

@@ -10,7 +10,6 @@ import {
   kPerson, kUserGroup, kAdmin, kDeveloper, kExternalUser,
   kDatabase, kCache, kQueue, kMessageBus, kCloud, kCdn,
   kService, kApi, kFrontend, kBackend, kWebhook, kMicroservice,
-  kWallet, kValidator, kMiner, kBlockchainNode, kMempool, kBlock, kBridgeNode, kRelayer,
   kSigner, kOracle, kMerkleTree, kDecision,
 } from "@/topics/catalog/primitives-extra.cdl";
 
@@ -69,22 +68,7 @@ const groups = [
     ],
   },
   {
-    title: "ブロックチェーン系 NodeKind (8)",
-    desc: "wallet / validator / miner / blockchain-node / mempool / block / bridge-node / relayer。",
-    docHref: NODE_DOC,
-    items: [
-      { label: "wallet", d: kWallet },
-      { label: "validator", d: kValidator },
-      { label: "miner", d: kMiner },
-      { label: "blockchain-node", d: kBlockchainNode },
-      { label: "mempool", d: kMempool },
-      { label: "block", d: kBlock },
-      { label: "bridge-node", d: kBridgeNode },
-      { label: "relayer", d: kRelayer },
-    ],
-  },
-  {
-    title: "暗号 / データ NodeKind (4)",
+    title: "データ / 判定 NodeKind (4)",
     desc: "signer / oracle / merkle-tree / decision。",
     docHref: NODE_DOC,
     items: [

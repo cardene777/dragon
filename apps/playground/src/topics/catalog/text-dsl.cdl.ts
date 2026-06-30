@@ -8,38 +8,38 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * ことを実際に動かして証明する。
  */
 
-// ─── sequence + animation (送金フロー) ─────
+// ─── sequence + animation (API call フロー) ─────
 export const textDslSequence = textDslToDiagram(`
-title: "送金 (DSL)"
+title: "API call (DSL)"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
+  - Client
+  - "API": function
+  - DB: storage
 
 flow:
-  - Alice -> Vault: "deposit" (info)
-  - Vault -> Bob: "send" (success)
+  - Client -> "API": "GET /items" (info)
+  - "API" -> DB: "SELECT" (success)
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  request_count: 0
+  row_count: 0
 
 animation:
   - step: "step1" 1.5s
-    focus: [Alice, Vault]
+    focus: [Client, "API"]
     tween:
-      alice_bal: 100 -> 90
-    badge: "送金開始"
-    description: "Alice の残高が 100 → 90"
+      request_count: 0 -> 1
+    badge: "request"
+    description: "Client が API を呼出"
 
   - step: "step2" 1.5s
-    focus: [Vault, Bob]
+    focus: ["API", DB]
     tween:
-      bob_bal: 0 -> 10
-    badge: "送金完了"
-    description: "Bob の残高が 0 → 10"
+      row_count: 0 -> 20
+    badge: "fetched"
+    description: "DB から 20 行取得"
 `);
 
 // ─── flow + animation (認証フロー) ─────
@@ -287,39 +287,35 @@ animation:
     badge: "発想"
 `);
 
-// ─── solidity preset (ERC-20 transfer + Transfer event) ─────
-export const textDslSolidity = textDslToDiagram(`
-title: "ERC-20 transfer"
-type: solidity
+// ─── code preset (関数呼出 + DB write + event emit) ─────
+export const textDslCode = textDslToDiagram(`
+title: "Service call + write + emit"
+type: sequence
 
 actors:
-  - Alice: { kind: eoa, subtitle: "送り手" }
-  - Bob: { kind: eoa, subtitle: "受け手" }
-  - Token: { kind: contract, subtitle: "ERC-20" }
-  - balances: { kind: storage, rows: ["Alice: {alice_bal}", "Bob: {bob_bal}"] }
-  - "Transfer": { kind: event, subtitle: "from, to, amount" }
+  - Client: { kind: actor, subtitle: "request" }
+  - Server: { kind: function, subtitle: "handler" }
+  - DB: { kind: storage, rows: ["count: {count}"] }
+  - OrderCreated: { kind: event, subtitle: "orderId, total" }
 
 states:
-  alice_bal: 100
-  bob_bal: 0
+  count: 100
 
 flow:
-  - Alice -> Token: "transfer(Bob, 10)"
-  - Token -> balances: "balances[Alice] -= 10" (info)
-  - Token -> balances: "balances[Bob] += 10" (info)
-  - Token -> "Transfer": "emit" (success)
+  - Client -> Server: "POST /orders"
+  - Server -> DB: "UPDATE count -= 1" (info)
+  - Server -> OrderCreated: "emit" (success)
 
 animation:
   - step: "call" 1.2s
-    focus: [Alice, Token]
-    badge: "msg.sender = Alice"
-  - step: "storage write" 1.5s
-    focus: [Token, balances]
+    focus: [Client, Server]
+    badge: "request"
+  - step: "write" 1.5s
+    focus: [Server, DB]
     tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
-    badge: "balances 更新"
+      count: 100 -> 99
+    badge: "DB update"
   - step: "emit" 0.8s
-    focus: [Token, "Transfer"]
-    badge: "Transfer(Alice, Bob, 10)"
+    focus: [Server, OrderCreated]
+    badge: "OrderCreated"
 `);

@@ -3,9 +3,10 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
 import {
   patternDirect, patternPassthrough,
-  patternCallReadWrite, patternEmit, patternHook, patternNftMint,
-  patternBridge, patternApprovePull, patternPermit, patternMulticall, patternProxy, patternMetaTx,
-  patternDexSwap, patternLending, patternOracle, patternStaking, patternLiquidation, patternCctp,
+  patternCallReadWrite, patternEmit, patternHook,
+  patternBranch, patternLoop,
+  patternFanOut, patternFanIn,
+  patternRollback, patternSchedule, patternValidateProcess,
 } from "@/topics/catalog/patterns.cdl";
 
 const groups = [
@@ -18,43 +19,37 @@ const groups = [
     ],
   },
   {
-    title: "Smart Contract 基本構造",
-    desc: "call → read → write → emit のような関数実行の典型フロー、 hook callback、 NFT Mint。",
+    title: "関数内部処理",
+    desc: "call → read → write → emit のような関数実行の典型フロー、 hook callback。",
     items: [
       { label: "call → read → write", d: patternCallReadWrite },
       { label: "emit event", d: patternEmit },
       { label: "Hook callback (受信側問合せ)", d: patternHook },
-      { label: "NFT Mint (payable + emit)", d: patternNftMint },
     ],
   },
   {
-    title: "Token / Approve 系",
-    desc: "Approve-Pull (ERC-20)、 Permit (EIP-2612 gasless)、 Multicall (1 tx で複数操作)。",
+    title: "制御フロー",
+    desc: "if/else 分岐、 繰り返し処理。 任意の処理 chain に組込んで動作分岐を表現。",
     items: [
-      { label: "Approve → Pull (2 step)", d: patternApprovePull, docHref: "/docs/cdl/patterns/approve-pull" },
-      { label: "Permit (EIP-2612 gasless)", d: patternPermit, docHref: "/docs/cdl/patterns/permit" },
-      { label: "Multicall (Router 経由)", d: patternMulticall, docHref: "/docs/cdl/patterns/multicall" },
+      { label: "Branch (条件分岐)", d: patternBranch },
+      { label: "Loop (繰り返し処理)", d: patternLoop },
     ],
   },
   {
-    title: "DeFi (DEX / Lending / Oracle)",
-    desc: "Uniswap V2 風 AMM swap、 Aave/Compound 風 supply-borrow、 Chainlink 風 price feed。",
+    title: "並列 / 集約",
+    desc: "1 入力を複数 worker に分配 → 結果集約。 job queue / map-reduce 系の基本骨格。",
     items: [
-      { label: "DEX Swap (AMM, x*y=k)", d: patternDexSwap, docHref: "/docs/cdl/patterns/dex-swap" },
-      { label: "Lending (Supply / Borrow)", d: patternLending },
-      { label: "Oracle Price Feed", d: patternOracle },
-      { label: "Liquidation (担保強制清算)", d: patternLiquidation },
+      { label: "Fan-out (1 入力 → 複数 worker)", d: patternFanOut },
+      { label: "Fan-in (複数 worker → 集約)", d: patternFanIn },
     ],
   },
   {
-    title: "Consensus / Cross-Chain / Account 抽象化",
-    desc: "Staking (PoS)、 Bridge / CCTP (cross chain transfer)、 Proxy (upgradeable)、 Meta-Tx (gasless relayer)。",
+    title: "障害 / スケジューリング / 検証",
+    desc: "失敗時の rollback、 cron による定期実行、 input validation。 運用で頻出する pattern。",
     items: [
-      { label: "Staking (Stake / Reward)", d: patternStaking },
-      { label: "Bridge (Lock-Mint)", d: patternBridge, docHref: "/docs/cdl/patterns/bridge" },
-      { label: "CCTP (USDC Burn-Mint)", d: patternCctp },
-      { label: "Proxy + Implementation", d: patternProxy },
-      { label: "Meta-Transaction (gasless)", d: patternMetaTx },
+      { label: "Rollback (失敗時巻き戻し)", d: patternRollback },
+      { label: "Schedule (定期実行)", d: patternSchedule },
+      { label: "Validate → Process (検証後処理)", d: patternValidateProcess },
     ],
   },
 ];
@@ -73,7 +68,7 @@ const groups = [
       <span class="section-eyebrow">Catalog / Patterns</span>
       <h1 class="heading-h1">Patterns</h1>
       <p class="max-w-3xl text-base text-nm-text-secondary leading-relaxed">
-        ブロックチェーン解説で頻出する構成パターン。 ここの diagram は実 topic の小さい sample として参考にできます。
+        一般的な web 開発で頻出する構成パターン。 ここの diagram は実 topic の小さい sample として参考にできます。
       </p>
     </div>
   </section>
@@ -90,17 +85,8 @@ const groups = [
             <div class="space-y-2">
               <div class="flex items-center justify-between gap-3">
                 <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
-                {item.docHref && (
-                  <a href={item.docHref} class="catalog-doc-link shrink-0" aria-label="ドキュメント">
-                    <span aria-hidden="true">📖</span>
-                    <span>ドキュメント</span>
-                  </a>
-                )}
               </div>
               <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
-                {item.docHref && (
-                  <a href={item.docHref} class="catalog-thumb-doc-link" aria-label="ドキュメント" title="ドキュメントを見る">📖</a>
-                )}
                 <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
               </div>
             </div>
