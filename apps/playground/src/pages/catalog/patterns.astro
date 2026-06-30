@@ -80,16 +80,16 @@ const groups = [
           <h2 class="heading-h2">{g.title}</h2>
           <p class="text-sm text-nm-text-secondary">{g.desc}</p>
         </div>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
           {g.items.map((item) => (
-            <div class="space-y-2">
-              <div class="flex items-center justify-between gap-3">
-                <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
-              </div>
-              <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
+            <article class="catalog-card">
+              <header class="catalog-card-head">
+                <div class="catalog-card-title">{item.label}</div>
+              </header>
+              <div class="catalog-card-body">
                 <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>

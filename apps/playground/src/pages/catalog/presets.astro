@@ -32,26 +32,25 @@ const items = [
   </section>
 
   <section class="shell pb-24">
-    <div class="space-y-6">
+    <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
       {
         items.map((item) => (
-          <div class="space-y-2">
-            <div class="flex items-center justify-between gap-3">
-              <div class="text-xl font-bold text-nm-text tracking-tight">{item.label}</div>
+          <article class="catalog-card">
+            <header class="catalog-card-head">
+              <div class="catalog-card-title">{item.label}</div>
               <a
                 href={item.docHref}
-                class="catalog-doc-link shrink-0"
+                class="catalog-card-link"
                 aria-label={`${item.label} のドキュメントへ`}
               >
                 <span aria-hidden="true">📖</span>
-                <span>ドキュメント</span>
+                <span>Docs</span>
               </a>
-            </div>
-            <div class="catalog-thumb-wrap overflow-hidden rounded-nm shadow-nm-raised relative">
-              <a href={item.docHref} class="catalog-thumb-doc-link" aria-label="ドキュメント" title="ドキュメントを見る">📖</a>
+            </header>
+            <div class="catalog-card-body">
               <CdlDiagramThumbnail client:load diagram={item.d} hideHeader />
             </div>
-          </div>
+          </article>
         ))
       }
     </div>
