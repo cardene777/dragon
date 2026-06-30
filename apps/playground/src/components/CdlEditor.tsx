@@ -49,72 +49,145 @@ const v4EditorTheme = EditorView.theme(
 
 const SAMPLES: { label: string; code: string }[] = [
   {
-    label: "送金 (sequence)",
-    code: `title: "送金フロー"
+    label: "API call (sequence)",
+    code: `title: "ログイン API"
 type: sequence
 
 actors:
-  - Alice
-  - Vault: storage
-  - Bob
-
-states:
-  alice_bal: 100
-  bob_bal: 0
+  - User
+  - API
+  - DB
 
 flow:
-  - Alice -> Vault: "deposit"
-  - Vault -> Bob: "send" (success)
+  - User -> API: "POST /login"
+  - API -> DB: "SELECT user"
+  - DB -> API: "row"
+  - API -> User: "200 OK" (success)
 
 animation:
-  - step: "送金開始" 1.5s
-    focus: [Alice, Vault]
-    tween:
-      alice_bal: 100 -> 90
-    badge: "送金開始"
-  - step: "送金完了" 1.5s
-    focus: [Vault, Bob]
-    tween:
-      bob_bal: 0 -> 10
-    badge: "送金完了"
+  - step: "call" 1.4s
+    focus: [User, API]
+  - step: "query" 1.4s
+    focus: [API, DB]
+  - step: "return" 1.4s
+    focus: [API, DB]
+  - step: "ok" 1.4s
+    focus: [User, API]
 `,
   },
   {
-    label: "ERC-20 transfer (solidity)",
-    code: `title: "ERC-20 transfer"
-type: solidity
+    label: "Order checkout (sequence)",
+    code: `title: "Order checkout"
+type: sequence
 
 actors:
-  - Alice: { kind: eoa, subtitle: "送り手" }
-  - Bob: { kind: eoa, subtitle: "受け手" }
-  - Token: { kind: contract, subtitle: "ERC-20" }
-  - balances: { kind: storage, rows: ["Alice: {alice_bal}", "Bob: {bob_bal}"] }
-  - "Transfer": { kind: event }
-
-states:
-  alice_bal: 100
-  bob_bal: 0
+  - User
+  - Cart
+  - Payment
 
 flow:
-  - Alice -> Token: "transfer(Bob, 10)"
-  - Token -> balances: "balances update"
-  - Token -> "Transfer": "emit" (success)
+  - User -> Cart: "add item"
+  - Cart -> Payment: "charge"
+  - Payment -> User: "receipt" (success)
 
 animation:
-  - step: "call" 1.2s
-    focus: [Alice, Token]
-  - step: "storage" 1.5s
-    focus: [Token, balances]
-    tween:
-      alice_bal: 100 -> 90
-      bob_bal: 0 -> 10
-  - step: "emit" 0.8s
-    focus: [Token, "Transfer"]
+  - step: "add" 1.2s
+    focus: [User, Cart]
+  - step: "charge" 1.5s
+    focus: [Cart, Payment]
+  - step: "receipt" 1.2s
+    focus: [User, Payment]
+`,
+  },
+  {
+    label: "CI pipeline (flow)",
+    code: `title: "CI pipeline"
+type: flow
+
+actors:
+  - Push: { kind: event }
+  - Build: { kind: function }
+  - Test: { kind: function }
+  - Deploy: { kind: function }
+
+flow:
+  - Push -> Build: "trigger"
+  - Build -> Test: "artifact"
+  - Test -> Deploy: "pass" (success)
+
+animation:
+  - step: "trigger" 1.2s
+  - step: "build" 1.5s
+  - step: "test" 1.5s
+  - step: "deploy" 1.2s
+`,
+  },
+  {
+    label: "Microservices (swimlane)",
+    code: `title: "User registration"
+type: swimlane
+
+actors:
+  - User
+  - Auth: { kind: service }
+  - DB: { kind: database }
+  - Mail: { kind: service }
+
+flow:
+  - User -> Auth: "POST /register"
+  - Auth -> DB: "INSERT user"
+  - Auth -> Mail: "send welcome"
+  - Mail -> User: "email"
+
+animation:
+  - step: "register" 1.4s
+  - step: "persist" 1.4s
+  - step: "notify" 1.4s
+`,
+  },
+  {
+    label: "System architecture (topology)",
+    code: `title: "system architecture"
+type: topology
+
+actors:
+  - LB: { kind: cloud, subtitle: "Load Balancer" }
+  - Web: { kind: service, subtitle: "API server" }
+  - Cache: { kind: service, subtitle: "Redis" }
+  - DB: { kind: database, subtitle: "Postgres" }
+
+flow:
+  - LB -> Web: "route"
+  - Web -> Cache: "lookup"
+  - Web -> DB: "query"
+
+animation:
+  - step: "ingress" 1.2s
+    focus: [LB, Web]
+  - step: "cache" 1.2s
+    focus: [Web, Cache]
+  - step: "fallback" 1.5s
+    focus: [Web, DB]
+`,
+  },
+  {
+    label: "User-Post schema (er)",
+    code: `title: "User-Post schema"
+type: er
+
+actors:
+  - User: { kind: entity, rows: ["id: PK", "email", "name"] }
+  - Post: { kind: entity, rows: ["id: PK", "userId: FK", "title", "body"] }
+  - Comment: { kind: entity, rows: ["id: PK", "postId: FK", "body"] }
+
+flow:
+  - User -> Post: "writes" { cardinality: "1:N" }
+  - Post -> Comment: "has" { cardinality: "1:N" }
 `,
   },
   {
     label: "Auth FSM (state-machine)",
-    code: `title: "Auth FSM"
+    code: `title: "auth FSM"
 type: state
 
 actors:
@@ -126,315 +199,95 @@ actors:
 flow:
   - Idle -> Loading: "submit"
   - Loading -> Done: "ok" (success)
-  - Loading -> Error: "fail" (error)
+  - Loading -> Error: "fail"
+  - Error -> Idle: "retry"
+
+animation:
+  - step: "idle" 1.0s
+    focus: [Idle]
+  - step: "submit" 1.2s
+    focus: [Loading]
+  - step: "done" 1.0s
+    focus: [Done]
 `,
   },
   {
-    label: "Permit (EIP-2612)",
-    code: `title: "EIP-2612 Permit"
-type: sequence
+    label: "OOP class (class)",
+    code: `title: "Animal class hierarchy"
+type: class
 
 actors:
-  - Owner: { kind: actor, subtitle: "署名のみ (gas 0)" }
-  - Spender: { kind: actor, subtitle: "relayer" }
-  - "EIP-712 typed-data": card
-  - "permit(...sig)": function
-  - allowances: storage
+  - Animal: { rows: ["+name: string", "+age: int", "+speak(): void"] }
+  - Dog: { rows: ["+breed: string", "+bark(): void"] }
+  - Cat: { rows: ["+indoor: boolean", "+meow(): void"] }
 
 flow:
-  - Owner -> "EIP-712 typed-data": "sign" (info, dotted-flow)
-  - "EIP-712 typed-data" -> Spender: "send sig" (info, dotted-flow)
-  - Spender -> "permit(...sig)": "permit(sig)" (accent, dotted-flow)
-  - "permit(...sig)" -> allowances: "set allowance" (teal, dotted-flow)
-
-states:
-  allowance: 0
-
-animation:
-  - step: "Off-chain signature" 1.5s
-    focus: [Owner, "EIP-712 typed-data"]
-    badge: "signed"
-  - step: "Spender relay" 1.2s
-    focus: ["EIP-712 typed-data", Spender]
-    badge: "relayed"
-  - step: "on-chain execute" 1.5s
-    focus: [Spender, "permit(...sig)", allowances]
-    tween:
-      allowance: 0 -> 100
-    badge: "approved"
+  - Dog -> Animal: "extends"
+  - Cat -> Animal: "extends"
 `,
   },
   {
-    label: "Uniswap V2 swap",
-    code: `title: "UniswapV2 swap"
-type: sequence
+    label: "Sprint roadmap (gantt)",
+    code: `title: "Q1-Q4 roadmap"
+type: gantt
 
 actors:
-  - Trader
-  - "Router.swap()": function
-  - "Pair (USDC/ETH)": storage
-
-flow:
-  - Trader -> "Router.swap()": "swapExactTokensForTokens" (accent)
-  - "Router.swap()" -> "Pair (USDC/ETH)": "transferFrom + transfer" (teal, dotted-flow)
-  - "Pair (USDC/ETH)" -> Trader: "send out token" (success, dotted-flow)
-
-states:
-  pool_usdc: 100000
-  pool_eth: 50
-  trader_eth: 0
+  - Design: { subtitle: "Q1" }
+  - Build: { subtitle: "Q2" }
+  - Test: { subtitle: "Q3" }
+  - Ship: { subtitle: "Q4" }
 
 animation:
-  - step: "swap 1000 USDC -> ETH" 1.8s
-    focus: [Trader, "Router.swap()", "Pair (USDC/ETH)"]
-    tween:
-      pool_usdc: 100000 -> 101000
-      pool_eth: 50 -> 49.5
-      trader_eth: 0 -> 0.5
-    badge: "swapped"
+  - step: "Q1" 1.0s
+    focus: [Design]
+  - step: "Q2" 1.0s
+    focus: [Build]
+  - step: "Q3" 1.0s
+    focus: [Test]
+  - step: "Q4" 1.0s
+    focus: [Ship]
 `,
   },
   {
-    label: "Multisig (Gnosis Safe)",
-    code: `title: "Gnosis Safe execTransaction"
-type: sequence
+    label: "Project brainstorm (mind)",
+    code: `title: "Project ideas"
+type: mind
 
 actors:
-  - "Owner 1"
-  - "Owner 2"
-  - "Owner 3"
-  - "Safe.execTransaction()": function
-  - "Target contract": function
-
-flow:
-  - "Owner 1" -> "Safe.execTransaction()": "sig 1" (info, dotted-flow)
-  - "Owner 2" -> "Safe.execTransaction()": "sig 2" (info, dotted-flow)
-  - "Owner 3" -> "Safe.execTransaction()": "sig 3 + execute" (accent, dotted-flow)
-  - "Safe.execTransaction()" -> "Target contract": "call(data)" (success, dotted-flow)
-
-states:
-  sigs_collected: 0
-  threshold: 3
-
-animation:
-  - step: "Owner 1 sign" 1.0s
-    focus: ["Owner 1", "Safe.execTransaction()"]
-    tween:
-      sigs_collected: 0 -> 1
-    badge: "1/3"
-  - step: "Owner 2 sign" 1.0s
-    focus: ["Owner 2", "Safe.execTransaction()"]
-    tween:
-      sigs_collected: 1 -> 2
-    badge: "2/3"
-  - step: "Owner 3 sign + execute" 1.2s
-    focus: ["Owner 3", "Safe.execTransaction()", "Target contract"]
-    tween:
-      sigs_collected: 2 -> 3
-    badge: "3/3 executed"
+  - root: { title: "New Project" }
+  - features: { title: "Features" }
+  - design: { title: "Design" }
+  - launch: { title: "Launch" }
+  - market: { title: "Go-to-market" }
 `,
   },
   {
-    label: "Login flow",
-    code: `title: "Login flow"
-type: flow
+    label: "Language share (pie)",
+    code: `title: "Language share"
+type: pie
 
 actors:
-  - Start: event
-  - Verify: function
-  - Done: event
-  - Error: event
-
-flow:
-  - Start -> Verify: "submit credentials"
-  - Verify -> Done: "OK" (success)
-  - Verify -> Error: "NG" (error)
-
-states:
-  progress: 0
-
-animation:
-  - step: "verify" 1s
-    focus: [Start, Verify]
-    tween:
-      progress: 0 -> 50
-    badge: "verifying"
-  - step: "complete" 1s
-    focus: [Verify, Done]
-    tween:
-      progress: 50 -> 100
-    badge: "logged in"
+  - TypeScript: { value: "45%" }
+  - Python: { value: "30%" }
+  - Rust: { value: "15%" }
+  - Go: { value: "10%" }
 `,
   },
   {
-    label: "System topology",
-    code: `title: "System topology"
-type: topology
+    label: "C4 context (c4)",
+    code: `title: "C4 context model"
+type: c4
 
 actors:
-  - Browser: service
-  - API: service
-  - DB: database
-  - Cache: storage
+  - User: { kind: person, subtitle: "L1" }
+  - System: { kind: service, subtitle: "L1: system" }
+  - API: { kind: service, subtitle: "L2: container" }
+  - DB: { kind: database, subtitle: "L2: container" }
 
 flow:
-  - Browser -> API: "HTTPS"
-  - API -> Cache: "get cached"
-  - API -> DB: "SQL"
-
-animation:
-  - step: "request" 1s
-    focus: [Browser, API]
-    badge: "request"
-  - step: "cache lookup" 1s
-    focus: [API, Cache]
-    badge: "cache"
-  - step: "db query" 1s
-    focus: [API, DB]
-    badge: "query"
-`,
-  },
-  {
-    label: "User-Order ER",
-    code: `title: "User-Order schema"
-type: er
-
-actors:
-  - User
-  - Order
-  - Product
-
-flow:
-  - User -> Order: "places" (info)
-  - Order -> Product: "contains" (teal)
-
-animation:
-  - step: "user places order" 1s
-    focus: [User, Order]
-    badge: "1:N"
-  - step: "order contains product" 1s
-    focus: [Order, Product]
-    badge: "N:M"
-`,
-  },
-  {
-    label: "NFT mint sequence",
-    code: `title: "Lazy mint (signature-based)"
-type: sequence
-
-actors:
-  - Creator: { kind: actor, subtitle: "署名のみ (gas 0)" }
-  - "Voucher": card
-  - Buyer
-  - "redeem()": function
-  - "tokenId 42": storage
-
-flow:
-  - Creator -> "Voucher": "sign voucher" (info, dotted-flow)
-  - "Voucher" -> Buyer: "off-chain hand-off" (info, dotted-flow)
-  - Buyer -> "redeem()": "redeem(voucher, sig)" (accent)
-  - "redeem()" -> "tokenId 42": "_mint + transfer" (success, dotted-flow)
-
-states:
-  minted: 0
-
-animation:
-  - step: "creator signs voucher" 1.2s
-    focus: [Creator, "Voucher"]
-    badge: "signed"
-  - step: "buyer receives voucher" 1.2s
-    focus: ["Voucher", Buyer]
-    badge: "received"
-  - step: "buyer redeems" 1.5s
-    focus: [Buyer, "redeem()", "tokenId 42"]
-    tween:
-      minted: 0 -> 1
-    badge: "minted"
-`,
-  },
-  {
-    label: "Bridge (LayerZero)",
-    code: `title: "LayerZero V2 send"
-type: sequence
-
-actors:
-  - "Source OApp"
-  - "Source Endpoint": function
-  - "DVN": service
-  - "Executor": service
-  - "Dest Endpoint": function
-  - "Dest OApp"
-
-flow:
-  - "Source OApp" -> "Source Endpoint": "send(message)" (accent)
-  - "Source Endpoint" -> "DVN": "verify request" (info, dotted-flow)
-  - "DVN" -> "Dest Endpoint": "verified payload" (info, dotted-flow)
-  - "Executor" -> "Dest Endpoint": "execute()" (accent)
-  - "Dest Endpoint" -> "Dest OApp": "lzReceive(message)" (success, dotted-flow)
-
-states:
-  src_sent: 0
-  dst_received: 0
-
-animation:
-  - step: "source send" 1.5s
-    focus: ["Source OApp", "Source Endpoint", "DVN"]
-    tween:
-      src_sent: 0 -> 1
-    badge: "sent"
-  - step: "DVN verify" 1.2s
-    focus: ["DVN", "Dest Endpoint"]
-    badge: "verified"
-  - step: "dest receive" 1.5s
-    focus: ["Executor", "Dest Endpoint", "Dest OApp"]
-    tween:
-      dst_received: 0 -> 1
-    badge: "received"
-`,
-  },
-  {
-    label: "DAO Governor",
-    code: `title: "Governor propose + vote"
-type: sequence
-
-actors:
-  - Proposer
-  - "Voter A"
-  - "Voter B"
-  - "Governor.propose()": function
-  - "castVote()": function
-  - "proposals map": storage
-  - "vote tally": storage
-
-flow:
-  - Proposer -> "Governor.propose()": "propose(targets, calldatas)" (accent)
-  - "Governor.propose()" -> "proposals map": "store proposalId" (teal, dotted-flow)
-  - "Voter A" -> "castVote()": "For" (success)
-  - "castVote()" -> "vote tally": "+1 For" (teal, dotted-flow)
-  - "Voter B" -> "castVote()": "Against" (error)
-  - "castVote()" -> "vote tally": "+1 Against" (teal, dotted-flow)
-
-states:
-  proposal_count: 0
-  for_count: 0
-  against_count: 0
-
-animation:
-  - step: "propose" 1.2s
-    focus: [Proposer, "Governor.propose()", "proposals map"]
-    tween:
-      proposal_count: 0 -> 1
-    badge: "proposed"
-  - step: "Voter A votes For" 1.0s
-    focus: ["Voter A", "castVote()", "vote tally"]
-    tween:
-      for_count: 0 -> 1
-    badge: "For"
-  - step: "Voter B votes Against" 1.0s
-    focus: ["Voter B", "castVote()", "vote tally"]
-    tween:
-      against_count: 0 -> 1
-    badge: "Against"
+  - User -> System: "use"
+  - System -> API: "request"
+  - API -> DB: "query"
 `,
   },
 ];
