@@ -11091,7 +11091,7 @@ exports[`golden: topology preset > T10 7 node fan-out 1`] = `
   "topic": "T10",
   "viewBox": {
     "h": 2068,
-    "w": 664,
+    "w": 804,
     "x": -44,
     "y": 8,
   },
