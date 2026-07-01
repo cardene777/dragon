@@ -607,7 +607,7 @@ exports[`golden: er preset > E09 self-reference 1`] = `
     "h": 372.10835055998655,
     "w": 550,
     "x": -30,
-    "y": 66,
+    "y": -32.10835055998655,
   },
 }
 `;
@@ -729,10 +729,10 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 399.8885438199983,
+    "h": 511.8885438199983,
     "w": 2710,
     "x": -30,
-    "y": -61.88854381999832,
+    "y": -44,
   },
 }
 `;
@@ -8482,10 +8482,10 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "states": [],
   "topic": "M03",
   "viewBox": {
-    "h": 538,
+    "h": 484.10835055998655,
     "w": 1780,
     "x": -40,
-    "y": -200,
+    "y": -75,
   },
 }
 `;
@@ -8565,7 +8565,7 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "states": [],
   "topic": "M04",
   "viewBox": {
-    "h": 482,
+    "h": 764,
     "w": 1340,
     "x": -40,
     "y": -144,
@@ -8743,7 +8743,7 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "states": [],
   "topic": "M06",
   "viewBox": {
-    "h": 676,
+    "h": 806,
     "w": 1780,
     "x": -40,
     "y": -200,
@@ -8962,7 +8962,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "states": [],
   "topic": "M08",
   "viewBox": {
-    "h": 676,
+    "h": 806,
     "w": 2220,
     "x": -40,
     "y": -200,
@@ -10738,8 +10738,8 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 700,
-    "x": -60,
+    "w": 684,
+    "x": -44,
     "y": 8,
   },
 }
