@@ -98,221 +98,244 @@ const v4EditorThemeDark = EditorView.theme(
 
 const SAMPLES: { label: string; code: string }[] = [
   {
-    label: "API call (sequence)",
-    code: `title: "ログイン API"
+    label: "ログインAPI呼び出し (sequence)",
+    code: `title: "ログインAPI"
 type: sequence
 
 actors:
-  - User
+  - ユーザー
   - API
-  - DB
+  - データベース
 
 flow:
-  - User -> API: "POST /login"
-  - API -> DB: "SELECT user"
-  - DB -> API: "row"
-  - API -> User: "200 OK" (success)
+  - ユーザー -> API: "ログイン要求"
+  - API -> データベース: "ユーザー検索"
+  - データベース -> API: "結果"
+  - API -> ユーザー: "認証成功" (success)
 
 animation:
   - step: "call" 1.4s
-    focus: [User, API]
+    focus: [ユーザー, API, "ユーザー -> API"]
   - step: "query" 1.4s
-    focus: [API, DB]
+    focus: [API, データベース, "API -> データベース"]
   - step: "return" 1.4s
-    focus: [API, DB]
+    focus: [API, データベース, "データベース -> API"]
   - step: "ok" 1.4s
-    focus: [User, API]
+    focus: [ユーザー, API, "API -> ユーザー"]
 `,
   },
   {
-    label: "Order checkout (sequence)",
-    code: `title: "Order checkout"
+    label: "注文チェックアウト (sequence)",
+    code: `title: "注文チェックアウト"
 type: sequence
 
 actors:
-  - User
-  - Cart
-  - Payment
+  - ユーザー
+  - カート
+  - 決済
 
 flow:
-  - User -> Cart: "add item"
-  - Cart -> Payment: "charge"
-  - Payment -> User: "receipt" (success)
+  - ユーザー -> カート: "商品追加"
+  - カート -> 決済: "課金"
+  - 決済 -> ユーザー: "領収書" (success)
 
 animation:
   - step: "add" 1.2s
-    focus: [User, Cart]
+    focus: [ユーザー, カート, "ユーザー -> カート"]
   - step: "charge" 1.5s
-    focus: [Cart, Payment]
+    focus: [カート, 決済, "カート -> 決済"]
   - step: "receipt" 1.2s
-    focus: [User, Payment]
+    focus: [ユーザー, 決済, "決済 -> ユーザー"]
 `,
   },
   {
-    label: "CI pipeline (flow)",
-    code: `title: "CI pipeline"
+    label: "CIパイプライン (flow)",
+    code: `title: "CIパイプライン"
 type: flow
 
 actors:
   - Push: { kind: event }
-  - Build: { kind: function }
-  - Test: { kind: function }
-  - Deploy: { kind: function }
+  - ビルド: { kind: function }
+  - テスト: { kind: function }
+  - デプロイ: { kind: function }
 
 flow:
-  - Push -> Build: "trigger"
-  - Build -> Test: "artifact"
-  - Test -> Deploy: "pass" (success)
+  - Push -> ビルド: "トリガー"
+  - ビルド -> テスト: "成果物"
+  - テスト -> デプロイ: "合格" (success)
 
 animation:
   - step: "trigger" 1.2s
+    focus: [Push, ビルド, "Push -> ビルド"]
   - step: "build" 1.5s
+    focus: [ビルド, テスト, "ビルド -> テスト"]
   - step: "test" 1.5s
+    focus: [テスト, デプロイ, "テスト -> デプロイ"]
   - step: "deploy" 1.2s
+    focus: [デプロイ]
 `,
   },
   {
-    label: "Microservices (swimlane)",
-    code: `title: "User registration"
+    label: "ユーザー登録 (swimlane)",
+    code: `title: "ユーザー登録"
 type: swimlane
 
 actors:
-  - User
-  - Auth: { kind: service }
-  - DB: { kind: database }
-  - Mail: { kind: service }
+  - ユーザー
+  - 認証: { kind: service }
+  - データベース: { kind: database }
+  - メール: { kind: service }
 
 flow:
-  - User -> Auth: "POST /register"
-  - Auth -> DB: "INSERT user"
-  - Auth -> Mail: "send welcome"
-  - Mail -> User: "email"
+  - ユーザー -> 認証: "登録要求"
+  - 認証 -> データベース: "ユーザー保存"
+  - 認証 -> メール: "歓迎メール送信"
+  - メール -> ユーザー: "メール到着"
 
 animation:
   - step: "register" 1.4s
+    focus: [ユーザー, 認証, "ユーザー -> 認証"]
   - step: "persist" 1.4s
+    focus: [認証, データベース, "認証 -> データベース"]
   - step: "notify" 1.4s
+    focus: [認証, メール, "認証 -> メール"]
+  - step: "deliver" 1.4s
+    focus: [メール, ユーザー, "メール -> ユーザー"]
 `,
   },
   {
-    label: "System architecture (topology)",
-    code: `title: "system architecture"
+    label: "システム構成 (topology)",
+    code: `title: "システム構成"
 type: topology
 
 actors:
-  - LB: { kind: cloud, subtitle: "Load Balancer" }
-  - Web: { kind: service, subtitle: "API server" }
-  - Cache: { kind: service, subtitle: "Redis" }
-  - DB: { kind: database, subtitle: "Postgres" }
+  - LB: { kind: cloud, subtitle: "ロードバランサー" }
+  - Web: { kind: service, subtitle: "APIサーバー" }
+  - キャッシュ: { kind: cache, subtitle: "Redis" }
+  - データベース: { kind: database, subtitle: "Postgres" }
 
 flow:
-  - LB -> Web: "route"
-  - Web -> Cache: "lookup"
-  - Web -> DB: "query"
+  - LB -> Web: "振り分け"
+  - Web -> キャッシュ: "参照"
+  - Web -> データベース: "問い合わせ"
 
 animation:
   - step: "ingress" 1.2s
-    focus: [LB, Web]
+    focus: [LB, Web, "LB -> Web"]
   - step: "cache" 1.2s
-    focus: [Web, Cache]
+    focus: [Web, キャッシュ, "Web -> キャッシュ"]
   - step: "fallback" 1.5s
-    focus: [Web, DB]
+    focus: [Web, データベース, "Web -> データベース"]
 `,
   },
   {
-    label: "User-Post schema (er)",
-    code: `title: "User-Post schema"
+    label: "ユーザーと投稿のスキーマ (er)",
+    code: `title: "ユーザー投稿スキーマ"
 type: er
 
 actors:
-  - User: { kind: entity, rows: ["id: PK", "email", "name"] }
-  - Post: { kind: entity, rows: ["id: PK", "userId: FK", "title", "body"] }
-  - Comment: { kind: entity, rows: ["id: PK", "postId: FK", "body"] }
+  - ユーザー: { kind: storage, rows: ["id: PK", "email: string", "name: string"] }
+  - 投稿: { kind: storage, rows: ["id: PK", "userId: FK", "title: string", "body: text"] }
+  - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
 
 flow:
-  - User -> Post: "writes" { cardinality: "1:N" }
-  - Post -> Comment: "has" { cardinality: "1:N" }
+  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N" }
+  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [ユーザー, 投稿, コメント, "ユーザー -> 投稿", "投稿 -> コメント"]
 `,
   },
   {
-    label: "Auth FSM (state-machine)",
-    code: `title: "auth FSM"
+    label: "認証状態遷移 (state-machine)",
+    code: `title: "認証状態遷移"
 type: state
 
 actors:
-  - Idle: { kind: state, initial: true }
-  - Loading: { kind: state }
-  - Done: { kind: state, final: true }
-  - Error: { kind: state }
+  - 待機: { kind: card }
+  - 検証中: { kind: card }
+  - 完了: { kind: card }
+  - 失敗: { kind: card }
 
 flow:
-  - Idle -> Loading: "submit"
-  - Loading -> Done: "ok" (success)
-  - Loading -> Error: "fail"
-  - Error -> Idle: "retry"
+  - 待機 -> 検証中: "送信"
+  - 検証中 -> 完了: "認証成功" (success)
+  - 検証中 -> 失敗: "認証失敗"
+  - 失敗 -> 待機: "再試行"
 
 animation:
   - step: "idle" 1.0s
-    focus: [Idle]
+    focus: [待機]
   - step: "submit" 1.2s
-    focus: [Loading]
-  - step: "done" 1.0s
-    focus: [Done]
+    focus: [検証中, "待機 -> 検証中"]
+  - step: "success" 1.0s
+    focus: [完了, "検証中 -> 完了"]
+  - step: "fail" 1.0s
+    focus: [失敗, "検証中 -> 失敗"]
 `,
   },
   {
-    label: "OOP class (class)",
-    code: `title: "Animal class hierarchy"
+    label: "OOP クラス階層 (class)",
+    code: `title: "動物クラス階層"
 type: class
 
 actors:
-  - Animal: { rows: ["+name: string", "+age: int", "+speak(): void"] }
-  - Dog: { rows: ["+breed: string", "+bark(): void"] }
-  - Cat: { rows: ["+indoor: boolean", "+meow(): void"] }
+  - 動物: { kind: storage, rows: ["+name: string", "+age: int", "+speak(): void"] }
+  - 犬: { kind: storage, rows: ["+breed: string", "+bark(): void"] }
+  - 猫: { kind: storage, rows: ["+indoor: boolean", "+meow(): void"] }
 
 flow:
-  - Dog -> Animal: "extends"
-  - Cat -> Animal: "extends"
+  - 犬 -> 動物: "extends"
+  - 猫 -> 動物: "extends"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [動物, 犬, 猫, "犬 -> 動物", "猫 -> 動物"]
 `,
   },
   {
-    label: "Sprint roadmap (gantt)",
-    code: `title: "Q1-Q4 roadmap"
+    label: "スプリントロードマップ (gantt)",
+    code: `title: "Q1-Q4ロードマップ"
 type: gantt
 
 actors:
-  - Design: { subtitle: "Q1" }
-  - Build: { subtitle: "Q2" }
-  - Test: { subtitle: "Q3" }
-  - Ship: { subtitle: "Q4" }
+  - 設計: { subtitle: "Q1" }
+  - 実装: { subtitle: "Q2" }
+  - テスト: { subtitle: "Q3" }
+  - リリース: { subtitle: "Q4" }
 
 animation:
   - step: "Q1" 1.0s
-    focus: [Design]
+    focus: [設計]
   - step: "Q2" 1.0s
-    focus: [Build]
+    focus: [実装]
   - step: "Q3" 1.0s
-    focus: [Test]
+    focus: [テスト]
   - step: "Q4" 1.0s
-    focus: [Ship]
+    focus: [リリース]
 `,
   },
   {
-    label: "Project brainstorm (mind)",
-    code: `title: "Project ideas"
+    label: "プロジェクト構想 (mind)",
+    code: `title: "プロジェクト構想"
 type: mind
 
 actors:
-  - root: { title: "New Project" }
-  - features: { title: "Features" }
-  - design: { title: "Design" }
-  - launch: { title: "Launch" }
-  - market: { title: "Go-to-market" }
+  - root: { title: "新プロジェクト" }
+  - features: { title: "機能" }
+  - design: { title: "デザイン" }
+  - launch: { title: "リリース" }
+  - market: { title: "マーケット" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [root, features, design, launch, market]
 `,
   },
   {
-    label: "Language share (pie)",
-    code: `title: "Language share"
+    label: "言語シェア (pie)",
+    code: `title: "言語シェア"
 type: pie
 
 actors:
@@ -320,23 +343,35 @@ actors:
   - Python: { value: "30%" }
   - Rust: { value: "15%" }
   - Go: { value: "10%" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [TypeScript, Python, Rust, Go]
 `,
   },
   {
-    label: "C4 context (c4)",
-    code: `title: "C4 context model"
+    label: "C4コンテキスト (c4)",
+    code: `title: "C4コンテキストモデル"
 type: c4
 
 actors:
-  - User: { kind: person, subtitle: "L1" }
-  - System: { kind: service, subtitle: "L1: system" }
+  - ユーザー: { kind: person, subtitle: "L1" }
+  - システム: { kind: service, subtitle: "L1: system" }
   - API: { kind: service, subtitle: "L2: container" }
-  - DB: { kind: database, subtitle: "L2: container" }
+  - データベース: { kind: database, subtitle: "L2: container" }
 
 flow:
-  - User -> System: "use"
-  - System -> API: "request"
-  - API -> DB: "query"
+  - ユーザー -> システム: "利用"
+  - システム -> API: "要求"
+  - API -> データベース: "問い合わせ"
+
+animation:
+  - step: "use" 1.2s
+    focus: [ユーザー, システム, "ユーザー -> システム"]
+  - step: "request" 1.2s
+    focus: [システム, API, "システム -> API"]
+  - step: "query" 1.2s
+    focus: [API, データベース, "API -> データベース"]
 `,
   },
 ];
@@ -450,34 +485,53 @@ export function CdlEditor(): React.JSX.Element {
       setTransform({ tx: 0, ty: 0, scale: 1 });
       return;
     }
-    const scaleX = previewRect.width / vb.width;
-    const scaleY = previewRect.height / vb.height;
-    const scale = Math.min(scaleX, scaleY) * 0.95;
+    // SVG の CSS width / height を viewBox 実 pixel 値に強制する。
+    // CdlDiagramView は className="w-full h-auto" で親幅を欲しがるが、 pan は inline-block で
+    // 循環参照になり svg が default 300x150 に潰れる。 明示 pixel を渡して回避する。
+    svg.style.setProperty("width", `${vb.width}px`, "important");
+    svg.style.setProperty("height", `${vb.height}px`, "important");
+    svg.style.setProperty("max-width", "none", "important");
+    // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
+    const PADDING_RATIO = 0.04;
+    const availableW = previewRect.width * (1 - PADDING_RATIO * 2);
+    const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
+    const scaleX = availableW / vb.width;
+    const scaleY = availableH / vb.height;
+    const scale = Math.min(scaleX, scaleY);
+    // SVG 中心と stage 中心を一致させる (左寄り解消の core)。
     const tx = (previewRect.width - vb.width * scale) / 2;
     const ty = (previewRect.height - vb.height * scale) / 2;
     setTransform({ tx, ty, scale });
   }, []);
 
-  // diagram 切替時に自動 Fit
+  // diagram 切替時 / stage リサイズ時に自動 Fit
   useEffect(() => {
-    if (!diagram) return;
-    // SVG の layout 反映を待つため 2 frame 遅延 + 100ms fallback
+    if (!diagram || !previewRef.current) return;
     let cancelled = false;
+    let lastFitAt = 0;
+    const runFit = () => {
+      if (cancelled) return;
+      const now = Date.now();
+      if (now - lastFitAt < 50) return; // 50ms rate limit
+      lastFitAt = now;
+      handleFit();
+    };
+    // 初回 rAF + 100ms fallback で SVG layout 反映を待つ
     const r1 = window.requestAnimationFrame(() => {
       if (cancelled) return;
-      const r2 = window.requestAnimationFrame(() => {
-        if (cancelled) return;
-        handleFit();
-      });
-      return () => window.cancelAnimationFrame(r2);
+      window.requestAnimationFrame(runFit);
     });
-    const t = window.setTimeout(() => {
-      if (!cancelled) handleFit();
-    }, 120);
+    const t1 = window.setTimeout(runFit, 100);
+    const t2 = window.setTimeout(runFit, 400); // hydration 遅延 fallback
+    // stage リサイズを検知して再 fit (window resize / sidebar 折畳等)
+    const ro = new ResizeObserver(() => runFit());
+    ro.observe(previewRef.current);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(r1);
-      window.clearTimeout(t);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      ro.disconnect();
     };
   }, [diagram, handleFit]);
 
@@ -581,19 +635,90 @@ export function CdlEditor(): React.JSX.Element {
     }
   };
 
-  const handleDownload = (): void => {
-    if (typeof document === "undefined") return;
-    const svg = document.querySelector(".cdl-editor-preview svg");
-    if (!svg) return;
-    const serializer = new XMLSerializer();
-    const svgStr = serializer.serializeToString(svg);
-    const blob = new Blob([svgStr], { type: "image/svg+xml" });
+  const getPreviewSvg = (): SVGSVGElement | null => {
+    if (typeof document === "undefined") return null;
+    return document.querySelector(".v4-editor-preview svg") as SVGSVGElement | null;
+  };
+
+  const downloadBlob = (blob: Blob, filename: string): void => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${diagram?.id ?? "diagram"}.svg`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  /** SMIL <animate> / <animateMotion> を含む animated SVG 全体を serialize */
+  const handleExportAnimatedSvg = (): void => {
+    const svg = getPreviewSvg();
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    // ns 明示 (単独 file として開いた時に SVG 表示崩れないよう)
+    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    const svgStr = new XMLSerializer().serializeToString(clone);
+    downloadBlob(new Blob([svgStr], { type: "image/svg+xml" }), `${diagram?.id ?? "diagram"}.svg`);
+  };
+
+  /** 現 phase の static frame (animation 要素を全部除去 + inactive → active を data で確定) */
+  const handleExportStaticSvg = (): void => {
+    const svg = getPreviewSvg();
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    // animation element を全除去 (static frame にする)
+    for (const el of Array.from(clone.querySelectorAll("animate, animateMotion, animateTransform, set"))) {
+      el.remove();
+    }
+    const svgStr = new XMLSerializer().serializeToString(clone);
+    downloadBlob(new Blob([svgStr], { type: "image/svg+xml" }), `${diagram?.id ?? "diagram"}-static.svg`);
+  };
+
+  /** 現 phase を canvas 経由で PNG (2x DPR で高解像度) */
+  const handleExportPng = async (): Promise<void> => {
+    const svg = getPreviewSvg();
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    for (const el of Array.from(clone.querySelectorAll("animate, animateMotion, animateTransform, set"))) {
+      el.remove();
+    }
+    // viewBox から実寸を決定 (2x DPR で高解像度出力)
+    const vb = clone.viewBox.baseVal;
+    const scale = 2;
+    const w = vb.width * scale;
+    const h = vb.height * scale;
+    const svgStr = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.width = w;
+    img.height = h;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("SVG image load failed"));
+      img.src = svgUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      URL.revokeObjectURL(svgUrl);
+      return;
+    }
+    // dark mode 対応 = 現在の theme に応じた stage bg を塗る
+    const isDark = document.documentElement.classList.contains("dark");
+    ctx.fillStyle = isDark ? "#1e293b" : "#f1f5f9";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(svgUrl);
+    const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!pngBlob) return;
+    downloadBlob(pngBlob, `${diagram?.id ?? "diagram"}.png`);
   };
 
   const scaleDisplay = useMemo(() => `${Math.round(transform.scale * 100)}%`, [transform.scale]);
@@ -675,16 +800,27 @@ animation:
           <span className="v4-editor-bar-file">▲ {activeSample}.dragon</span>
           <span className="v4-editor-bar-gap" />
           <button type="button" className="v4-editor-bar-btn" onClick={handleShare}>
-            共有 URL
+            共有URL
           </button>
-          <button
-            type="button"
-            className="v4-editor-bar-btn v4-editor-bar-btn-primary"
-            onClick={handleDownload}
-            disabled={!diagram}
-          >
-            SVG download
-          </button>
+          <div className="v4-editor-export">
+            <button type="button" className="v4-editor-bar-btn v4-editor-bar-btn-primary" disabled={!diagram}>
+              export ↓
+            </button>
+            <div className="v4-editor-export-menu">
+              <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
+                <strong>animated SVG</strong>
+                <span>単一fileで動く / GitHub README / Notion</span>
+              </button>
+              <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
+                <strong>static SVG</strong>
+                <span>現phaseの静止1frame / Keynote / PDF</span>
+              </button>
+              <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
+                <strong>PNG</strong>
+                <span>ラスター2x DPR / Slack / Twitter</span>
+              </button>
+            </div>
+          </div>
         </header>
         <div className="v4-editor-code-body">
           <CodeMirror

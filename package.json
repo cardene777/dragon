@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter dragon-playground dev",
+    "dev:fresh": "pnpm --filter dragon-playground dev:fresh",
     "build": "pnpm build:packages && pnpm --filter dragon-playground build",
     "build:packages": "pnpm --filter @cardenelabs/dragon build",
     "preview": "pnpm --filter dragon-playground preview",
