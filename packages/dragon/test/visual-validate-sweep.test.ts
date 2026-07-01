@@ -55,23 +55,9 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
 }
 
 // gating 対象軸 ... visualValidate の全 axis の error severity を必須 gating 化。
-// 例外 ... 手作業 labelOffset では収束しない 3 diagram の残 error は
-// engine 側 label 位置 auto shift v3 (path 交差 avoid + node bbox avoid + label 間 clearance の統合)
-// が必要、 大規模 refactor で別 PR に分割 (label-shift-v3)。 本 gating では該当 3 diagram を
-// allowlist で除外し、 他 diagram の regression 検知に集中する。
-// (topo-demo は本 PR の labelOffset 手作業修正で解消済 → allowlist から除外)
-const BORDER_CASE_DIAGRAMS = new Set([
-  "pattern-fan-in",
-  "pattern-rollback",
-  "infra-demo",
-  "pattern-call-rw",
-  "pattern-loop",
-  "pattern-schedule",
-  "fsm-demo",
-  "er-demo",
-  "tree-demo",
-  "mind-demo",
-]);
+// cdl routing v6 (PR #44) + shift v5 (PR #45) + baseline (PR #46) + 空 label bbox guard (PR #48)
+// の 4 段改良で border case は全て engine 側で解消済。 手作業 labelOffset は sample DSL から
+// 全撤廃、 allowlist なしで全 diagram を必須 gating 化する。
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
   return true;
@@ -113,15 +99,13 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
   for (const { name, mod } of sources) {
-    it(`${name} ... visualValidate 全 axis error 0 件 (border case 4 diagram 除く)`, () => {
+    it(`${name} ... visualValidate 全 axis error 0 件 (border case allowlist なし)`, () => {
       const diagrams = collectDiagrams(mod as ModuleLike, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams);
-      const gatingViolations = report.reports.flatMap((r) => {
-        // border case diagram の error は label 位置 refactor PR で解消するため、 本 gating では skip
-        if (BORDER_CASE_DIAGRAMS.has(r.diagramId)) return [];
-        return r.violations.filter(isGatingViolation).map((v) => ({ diagramId: r.diagramId, ...v }));
-      });
+      const gatingViolations = report.reports.flatMap((r) =>
+        r.violations.filter(isGatingViolation).map((v) => ({ diagramId: r.diagramId, ...v })),
+      );
       const detail = formatReport(report.reports);
       expect(gatingViolations, `\n${detail}`).toEqual([]);
     });
