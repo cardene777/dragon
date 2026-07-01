@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { compile, CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
+import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { yaml } from "@codemirror/lang-yaml";
@@ -402,6 +402,7 @@ export function CdlEditor(): React.JSX.Element {
   const [src, setSrc] = useState<string>(SAMPLES[0]!.code);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<Violation[]>([]);
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0]!.label);
   const [isDark, setIsDark] = useState(false);
@@ -458,14 +459,20 @@ export function CdlEditor(): React.JSX.Element {
       try {
         const d = textDslToDiagram(src);
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
-        // ここで catch しないと CdlDiagramView 内 useMemo の throw が React island 全体を unmount し、
-        // .cdl-editor-textarea / .cdl-editor-error 等の UI も丸ごと消える (e.g. self-loop edge)。
         compile(d);
         setDiagram(d);
         setError(null);
+        // visualValidate で位置関係を機械検証、 warn / error を editor 上部に表示。
+        // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
+        try {
+          const report = visualValidate(d);
+          setWarnings(report.violations);
+        } catch {
+          setWarnings([]);
+        }
       } catch (e) {
         setError((e as Error).message);
-        // diagram は前回のまま (preview を残す)
+        setWarnings([]);
       }
     }, 300);
     return () => {
@@ -841,6 +848,29 @@ animation:
           />
         </div>
         {error && <pre className="v4-editor-error">{error}</pre>}
+        {!error && warnings.length > 0 && (
+          <div className="v4-editor-warnings">
+            <div className="v4-editor-warnings-head">
+              <span className="v4-editor-warnings-badge">
+                {warnings.filter((w) => w.severity === "error").length > 0
+                  ? "位置関係NG"
+                  : `位置関係の警告 ${warnings.length}件`}
+              </span>
+              <span className="v4-editor-warnings-hint">DSLの labelOffsetX/Y でnodeとの位置を調整できます</span>
+            </div>
+            <ul className="v4-editor-warnings-list">
+              {warnings.slice(0, 6).map((w, i) => (
+                <li key={i} className={`v4-editor-warning-item v4-editor-warning-${w.severity}`}>
+                  <span className="v4-editor-warning-axis">{w.axis}</span>
+                  <span className="v4-editor-warning-detail">{w.detail}</span>
+                </li>
+              ))}
+              {warnings.length > 6 && (
+                <li className="v4-editor-warning-more">…他 {warnings.length - 6} 件</li>
+              )}
+            </ul>
+          </div>
+        )}
       </section>
 
       {/* ── 右 preview pane (full-bleed) ── */}
