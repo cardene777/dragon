@@ -1,7 +1,7 @@
 /**
  * Visual regression ... cookbook 25 demo の subset 10 件。
  *
- * /catalog/cookbook の 4 カテゴリ (DeFi / NFT / DAO / Bridge) 各 2-3 件抜粋し
+ * /catalog/cookbook の 5 カテゴリ (API / Auth / Data / Realtime / Job) 各 2 件抜粋し
  * 視覚 regression を担保。 全 25 件は coverage 過剰なので頻出 pattern のみ。
  *
  * baseline 不一致 = SVG path / fill / stroke / text rendering の崩れ。
@@ -9,20 +9,21 @@
 import { test, expect } from "@playwright/test";
 
 const subset = [
-  // A. DeFi
-  { slug: "erc20-transfer", label: "ERC-20 transfer" },
-  { slug: "permit", label: "EIP-2612 Permit" },
-  { slug: "uniswap-v2-swap", label: "UniswapV2 swap" },
-  // B. NFT
-  { slug: "erc721-transfer", label: "ERC-721 safeTransferFrom" },
-  { slug: "lazy-mint", label: "Lazy mint" },
-  // C. DAO
-  { slug: "governor-propose", label: "Governor propose" },
-  { slug: "timelock", label: "Timelock queue/execute" },
-  // D. Bridge
-  { slug: "layerzero-v2", label: "LayerZero V2 send" },
-  { slug: "cctp", label: "CCTP USDC transfer" },
-  { slug: "wormhole-vaa", label: "Wormhole VAA bridge" },
+  // A. API 系
+  { slug: "api-call", label: "REST API GET" },
+  { slug: "rate-limit", label: "Rate limit" },
+  // B. Auth 系
+  { slug: "jwt-auth", label: "JWT auth" },
+  { slug: "oauth-flow", label: "OAuth 2.0" },
+  // C. Data 系
+  { slug: "crud-create", label: "CRUD create" },
+  { slug: "cache-read", label: "Cache read-through" },
+  // D. Realtime 系
+  { slug: "websocket", label: "WebSocket" },
+  { slug: "sse-stream", label: "SSE stream" },
+  // E. Job 系
+  { slug: "background-job", label: "Background job" },
+  { slug: "webhook", label: "Webhook" },
 ];
 
 const PAGE_URL = "/catalog/cookbook";
