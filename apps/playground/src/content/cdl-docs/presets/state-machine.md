@@ -28,7 +28,7 @@ mermaid `stateDiagram-v2` に対応します。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 FSM は v0.5 Text DSL で `type: state` を指定し、 `actors` に state を `state` kind で並べ、 `flow` で state 間の transition を書きます。
 
@@ -52,7 +52,7 @@ flow:
 state の宣言順序が forward path の左から右の並びになり、 `from` の index > `to` の index となる戻り遷移を engine が検出して自動で上方の bezier 曲線で描きます。
 v0.5 Text DSL では `initial` / `final` flag と `guard` (sub label の条件式) は表現できないため、 詳細は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: stateMachine(opts)
@@ -122,7 +122,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "Auth FSM"
@@ -141,7 +141,7 @@ flow:
   - Error -> Idle: "retry"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: fsm, topic: "Auth FSM" }
@@ -235,7 +235,7 @@ cdl 著者は何も書かなくても overlap (forward と back の重なり) �
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "guard example"
@@ -249,7 +249,7 @@ flow:
   - Error -> Idle: "retry"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 transitions:

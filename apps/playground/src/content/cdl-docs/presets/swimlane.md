@@ -37,7 +37,7 @@ mermaid `flowchart LR` で `subgraph` を並列に置く構成と同等のこと
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 `swimlane` 図は v0.5 Text DSL で `type: swimlane` を指定し、 `actors` に lane を並列に並べ、 `flow` で lane 間の矢印を書きます。
 
@@ -60,7 +60,7 @@ flow:
 v0.5 Text DSL では 1 lane = 1 actor 単位で並べ、 lane の `x` 座標 / `laneWidth` / `contain` (枠付き) は engine が自動計算します。
 1 lane に複数 node を `stack` で縦並びにしたい場合は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: swimlane(opts)
@@ -112,7 +112,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "ERC20 Transfer"
@@ -137,7 +137,7 @@ animation:
     badge: "emit"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: transfer, topic: "ERC20 Transfer" }
@@ -223,7 +223,7 @@ const transfer = swim
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "日本語 lane 例"
@@ -237,7 +237,7 @@ flow:
   - "送信元" -> "出力": "transfer"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: ja, topic: "日本語 lane 例" }
@@ -269,7 +269,7 @@ swim.node("a", { lane: lSrc, ... });
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "laneWidth example"
@@ -285,7 +285,7 @@ flow:
   - B -> C: "step 2"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 swimlane:
@@ -310,7 +310,7 @@ swimlane({ lanes: ["A", "B", "C"], laneWidth: 520 })
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "contain example"
@@ -326,7 +326,7 @@ flow:
   - "中段" -> "後段": "step 2"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 swimlane:

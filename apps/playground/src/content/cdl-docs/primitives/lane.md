@@ -8,7 +8,7 @@ actor 群、 system 境界、 category などを 1 つの列にまとめる単�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```ts
 .lane(id: string, opts: {
@@ -20,7 +20,7 @@ actor 群、 system 境界、 category などを 1 つの列にまとめる単�
 })
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: .lane
@@ -86,7 +86,7 @@ chain で `.lane()` や `.node()` を続けて呼び出せます。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "Example"
@@ -97,7 +97,7 @@ actors:
   - right
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: ex, topic: Example }
@@ -119,7 +119,7 @@ AWS / GCP などのクラウド境界や、 microservice の責務範囲を表�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "AWS Boundary"
@@ -129,7 +129,7 @@ actors:
   - aws: cloud
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 lanes:
@@ -151,7 +151,7 @@ UML sequence diagram の lifeline (actor の生存期間を示す縦線) を表�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "User Lifeline"
@@ -161,7 +161,7 @@ actors:
   - User
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 lanes:
@@ -193,7 +193,7 @@ preset を介さず手動で sequence 風 diagram を組む場合のみ chain AP
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "3-lane swimlane"
@@ -205,7 +205,7 @@ actors:
   - db: storage
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 preset: swimlane

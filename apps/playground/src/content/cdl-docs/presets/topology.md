@@ -28,7 +28,7 @@ group の `lane` (列) 化や container の `stack` (積み順) は engine が a
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 `topology` 図は v0.5 Text DSL で `type: topology` を指定し、 `actors` に container を flat に並べ、 `flow` で container 間の接続を書きます。
 
@@ -51,7 +51,7 @@ flow:
 v0.5 Text DSL では container を flat に並べ、 group (枠付き lane) や container の縦 stack は engine に委ねます。
 階層的な group (Client 内の Browser、 AWS 内の ALB / ECS / RDS 等) を作りたい場合は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: topology(opts)
@@ -119,7 +119,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "AWS deployment"
@@ -137,7 +137,7 @@ flow:
   - "ECS Task" -> RDS: "TCP 5432" (success)
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: aws, topic: "AWS deployment" }

@@ -5,50 +5,50 @@ const categories = [
   {
     href: "/catalog/presets",
     label: "presets",
-    desc: "18 種類の図を 1 行宣言で書ける高位 API。 sequence / flow / swimlane / topology / er / state など。",
-    items: ["sequence", "flow", "swimlane", "topology", "er", "stateMachine", "+ 12 種"],
+    desc: "図の高位API。sequence / flow / swimlane / topology / er / stateなど、1行宣言でよくある構造を書ける。",
+    items: ["sequence", "flow", "swimlane", "topology", "er", "stateMachine"],
     cluster: "basic",
   },
   {
     href: "/catalog/cookbook",
     label: "cookbook",
-    desc: "現場で使える 25 例の完全レシピ。 API call / 認証 / CRUD / 非同期 / 運用などをコピペで動かせる。",
+    desc: "現場で使える完全レシピ。API call / 認証 / CRUD / 非同期 / 運用などをコピペで動かせる。",
     items: ["API / Auth", "データ操作", "UI / フォーム", "非同期", "運用"],
     cluster: "basic",
   },
   {
     href: "/catalog/patterns",
     label: "patterns",
-    desc: "汎用的な構成パターン 12 種。 直結 / 経由 / 分岐 / ループ / Fan-out / Rollback など、 図の組み立て方の型。",
+    desc: "汎用の構成パターン集。直結 / 経由 / 分岐 / ループ / Fan-out / Rollbackなど、図の組み立て方の型。",
     items: ["Direct", "Branch", "Loop", "Fan-out", "Rollback", "Schedule"],
     cluster: "basic",
   },
   {
     href: "/catalog/primitives",
     label: "primitives",
-    desc: "図の最小パーツ。 actor / function / storage 等の基本 5 種 + 人 / インフラ / アプリ系の合計 26 NodeKind。",
-    items: ["NodeKind 26 種", "Lane 3 種", "Stack バリエーション"],
+    desc: "図の最小パーツ。actor / function / storageなど基本5種 + 人 / インフラ / アプリ系のNodeKindをまとめて。",
+    items: ["NodeKind", "Lane", "Stack"],
     cluster: "extended",
   },
   {
     href: "/catalog/text-dsl",
     label: "text-dsl",
-    desc: "5 ブロック箇条書きで書ける dragon DSL の動作確認場。 sequence / flow / state / topology / er / その他 8 種類すべて。",
-    items: ["sequence", "flow", "swimlane", "state", "topology", "er", "+ 拡張"],
+    desc: "5ブロックの箇条書きで書けるdragon DSLの動作確認場。sequence / flow / state / topology / erなどをそのまま試せる。",
+    items: ["sequence", "flow", "swimlane", "state", "topology", "er"],
     cluster: "extended",
   },
   {
     href: "/catalog/animation",
     label: "animation",
-    desc: "phase / state / tween / set / badge の動作確認。 数値補間 / 即時切替 / 連続 phase / バッジ切替。",
+    desc: "phase / state / tween / set / badgeの動作確認。数値補間 / 即時切替 / 連続phase / バッジ切替。",
     items: ["Tween", "Set", "Badge", "Tween + Set"],
     cluster: "extended",
   },
   {
     href: "/catalog/styles",
     label: "styles",
-    desc: "edge 種類 (solid / dotted-flow) と tone 全 6 種 (accent / teal / success / error / warning / info)、 active / inactive 状態。",
-    items: ["EdgeStyle 2 種", "Tone 6 種", "Active / Inactive"],
+    desc: "edge種類 (solid / dotted-flow) とtone 6種 (accent / teal / success / error / warning / info)、active / inactive状態。",
+    items: ["EdgeStyle", "Tone", "Active / Inactive"],
     cluster: "extended",
   },
 ];
@@ -63,12 +63,10 @@ const categories = [
     </nav>
     <span class="v4-eyebrow">primitives · presets · animation · patterns</span>
     <h1>
-      <span data-ja="すべての preset を、 " data-en="All presets, ">すべての preset を、 </span><em data-ja="動かしながら" data-en="in motion">動かしながら</em><span data-ja="読む。" data-en=".">読む。</span>
+      すべてのpresetを、<em>動かしながら</em>読む。
     </h1>
-    <p class="v4-lead" data-ja="dragon DSL の primitives / styles / animation / patterns を 7 カテゴリで整理。 各カテゴリ内に小さい diagram を多数並べ、 1 概念ずつ動作確認できる。 engine 層は @cardenelabs/cdl が担い、 render / animation の挙動は cdl の仕様に従う。" data-en="dragon DSL primitives / styles / animation / patterns organized into 7 categories. Each category packs many small diagrams so you can verify one concept at a time. The engine layer is @cardenelabs/cdl, and render / animation follows the cdl spec.">
-      dragon DSL の primitives / styles / animation / patterns を 7 カテゴリで整理。
-      各カテゴリ内に小さい diagram を多数並べ、 1 概念ずつ動作確認できる。
-      engine 層は <code>@cardenelabs/cdl</code> が担い、 render / animation の挙動は cdl の仕様に従う。
+    <p class="v4-lead">
+      dragon DSLのprimitives / styles / animation / patternsを7カテゴリで整理。各カテゴリに小さい図を並べて、1概念ずつ動作確認できる。engine層は<code>@cardenelabs/cdl</code>が担う。
     </p>
   </section>
 

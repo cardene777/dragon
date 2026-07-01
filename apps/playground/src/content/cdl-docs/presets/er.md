@@ -27,7 +27,7 @@ mermaid `erDiagram` に対応します。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ER 図は v0.5 Text DSL で `type: er` を指定し、 `actors` に `entity` kind の table を並べ、 `flow` で entity 間の relation を書きます。
 
@@ -48,7 +48,7 @@ flow:
 v0.5 Text DSL は entity 名と relation の最小宣言に絞っており、 `rows` (カラム配列) と `cardinality` (`1:1` / `1:N` / `N:M` / `0..1` / `1..*`) は表現できません。
 table の表組み宣言と cardinality を指定したい場合は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: er(opts)
@@ -117,7 +117,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "User-Order schema"
@@ -131,7 +131,7 @@ flow:
   - User -> Order: "places"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: schema, topic: "User-Order schema" }
@@ -212,7 +212,7 @@ engine が key と value を区別して、 左側 (key) を黒文字、 右側 
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "rows example"
@@ -226,7 +226,7 @@ flow:
   - User -> Order: "places"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 rows:

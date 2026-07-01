@@ -8,7 +8,7 @@
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```ts
 .state(id: string, opts: {
@@ -16,7 +16,7 @@
 })
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: .state
@@ -78,7 +78,7 @@ phase 進行中、 `{count}` が `0` から `1` まで線形補間されて rend
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "Counter"
@@ -97,7 +97,7 @@ animation:
       count: 0 -> 1
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: counter, topic: Counter }
@@ -128,7 +128,7 @@ phase 進行中、 `{balance}` が `100, 99.3, 98.7, ..., 90.0` のように滑�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "transfer"
@@ -147,7 +147,7 @@ animation:
       balance: 100 -> 90
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -172,7 +172,7 @@ status flag (`idle` → `loading` → `done`) など、 補間に意味がない
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "status flag"
@@ -195,7 +195,7 @@ animation:
       status: "done"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -224,7 +224,7 @@ phases:
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "累積 sum"
@@ -251,7 +251,7 @@ animation:
       sum: 50 -> 100
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -272,7 +272,7 @@ note: "各 phase 終値 = 次 phase 開始値 (連続性は from 値の明示で
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "User balance"
@@ -285,7 +285,7 @@ states:
   balance: 100
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -306,7 +306,7 @@ DB の table や mapping 型のように、 複数 key の値を同時に表現�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "API rows"
@@ -320,7 +320,7 @@ states:
   server_bal: 0
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -350,7 +350,7 @@ transfer のように「片方が減って片方が増える」 動作を、 1 �
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "parallel transfer"
@@ -371,7 +371,7 @@ animation:
       server_bal: 0 -> 10
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:

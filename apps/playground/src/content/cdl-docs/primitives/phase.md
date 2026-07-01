@@ -8,7 +8,7 @@
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```ts
 .phase(id: string, opts: { duration?: number; title: string; body: string },
@@ -22,7 +22,7 @@ interface PhaseBuilder {
 }
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: .phase
@@ -109,7 +109,7 @@ chain で続けて `.phase()` や `.build()` を呼び出せます。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "User to API call"
@@ -128,7 +128,7 @@ animation:
     badge: "call"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -150,7 +150,7 @@ node / edge / phase の id を同じ method で受け取り、 該当要素に a
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "activate mix"
@@ -168,7 +168,7 @@ animation:
     focus: [client, fn]
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -191,7 +191,7 @@ phase の duration 全体で state を線形補間します。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "tween balance"
@@ -210,7 +210,7 @@ animation:
       balance: 100 -> 90
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -230,7 +230,7 @@ status flag (`loading` → `done` 等) のように、 中間値に意味がな�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "submit set"
@@ -249,7 +249,7 @@ animation:
       status: "loading"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -268,7 +268,7 @@ phase 名の補足や、 流れの目印として使います。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "badge example"
@@ -287,7 +287,7 @@ animation:
     badge: "processing"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -312,7 +312,7 @@ animation の長さと、 header に表示する文字を制御します。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "DB save phase"
@@ -330,7 +330,7 @@ animation:
     focus: [api, db]
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:
@@ -353,7 +353,7 @@ v0.5 Text DSL では phase `body` (header 下の説明文) を直接表現でき
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "Auth Flow"
@@ -385,7 +385,7 @@ animation:
       status: "done"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: auth, topic: "Auth Flow" }

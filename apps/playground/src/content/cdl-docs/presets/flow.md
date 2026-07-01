@@ -35,7 +35,7 @@ mermaid `flowchart TB` (top-to-bottom flowchart) の縦方向の流れに相当�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 `flow` 図は v0.5 Text DSL で `type: flow` を指定し、 `actors` に縦並びの node を並べ、 `flow` で step 間 label を書きます。
 
@@ -58,7 +58,7 @@ flow:
 `actors` の宣言順序が縦並びの上から下の順となり、 `flow` で書いた矢印 label が前 step から次 step への遷移 label として描画されます。
 chain API の `transitionLabel` (第 2 引数) と `eyebrow` (副 label) と `laneLabel` (lane 見出し) は v0.5 Text DSL では表現できないため、 詳細は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: flow(opts)
@@ -120,7 +120,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "Auth Flow"
@@ -138,7 +138,7 @@ flow:
   - AuthService -> "users 表": "credential 検証"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: auth, topic: Auth Flow, laneLabel: Authentication }

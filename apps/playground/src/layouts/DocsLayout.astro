@@ -399,7 +399,9 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
         });
       })();
 
-      // === doc tabs (人向け / LLM 向け 切替、 localStorage で全 page 同期) ===
+      // === doc tabs (人間向け / LLM向け 切替、 各 instance 独立 state) ===
+      // localStorage の初期 preference は page 初回 mount 時にのみ全 tab に適用、
+      // click は当該 .docs-tabs ブロックの中だけで切替。 全 figure 連動は廃止。
       (() => {
         const STORAGE_KEY = "docs-tab-pref";
         const getPref = () => {
@@ -408,26 +410,24 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
         const setPref = (v) => {
           try { localStorage.setItem(STORAGE_KEY, v); } catch (e) {}
         };
-        const applyPref = (pref) => {
-          document.querySelectorAll(".docs-tabs").forEach((tabs) => {
-            const btns = tabs.querySelectorAll(".docs-tab-btn");
-            const panels = tabs.querySelectorAll(".docs-tab-panel");
-            // pref の tab が存在するか
-            const hasPref = Array.from(btns).some((b) => b.getAttribute("data-tab") === pref);
-            const target = hasPref ? pref : (tabs.getAttribute("data-default") || "humans");
-            btns.forEach((b) => b.classList.toggle("active", b.getAttribute("data-tab") === target));
-            panels.forEach((p) => p.classList.toggle("active", p.getAttribute("data-tab") === target));
-          });
+        const applyToTabs = (tabs, target) => {
+          const btns = tabs.querySelectorAll(".docs-tab-btn");
+          const panels = tabs.querySelectorAll(".docs-tab-panel");
+          const hasTarget = Array.from(btns).some((b) => b.getAttribute("data-tab") === target);
+          const id = hasTarget ? target : (tabs.getAttribute("data-default") || "humans");
+          btns.forEach((b) => b.classList.toggle("active", b.getAttribute("data-tab") === id));
+          panels.forEach((p) => p.classList.toggle("active", p.getAttribute("data-tab") === id));
         };
-        // 起動時に localStorage 反映
-        applyPref(getPref());
-        // 各 tab btn にハンドラ
+        // mount 時 ... 全 tab に初期 preference 適用 (default を override)
+        const initialPref = getPref();
+        document.querySelectorAll(".docs-tabs").forEach((tabs) => applyToTabs(tabs, initialPref));
+        // click ハンドラ ... 当該 .docs-tabs だけ切替 (closest で scope)。 preference 自体は更新するが他 tab は触らない
         document.querySelectorAll(".docs-tabs").forEach((tabs) => {
           tabs.querySelectorAll(".docs-tab-btn").forEach((btn) => {
             btn.addEventListener("click", () => {
               const id = btn.getAttribute("data-tab");
               setPref(id);
-              applyPref(id);
+              applyToTabs(tabs, id);
             });
           });
         });
