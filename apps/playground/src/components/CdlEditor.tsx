@@ -160,9 +160,9 @@ actors:
   - デプロイ: { kind: function }
 
 flow:
-  - Push -> ビルド: "トリガー" { labelOffsetX: -140 }
-  - ビルド -> テスト: "成果物" { labelOffsetX: -140 }
-  - テスト -> デプロイ: "合格" (success) { labelOffsetX: -140 }
+  - Push -> ビルド: "トリガー"
+  - ビルド -> テスト: "成果物"
+  - テスト -> デプロイ: "合格" (success)
 
 animation:
   - step: "trigger" 1.2s
@@ -189,8 +189,8 @@ actors:
 flow:
   - ユーザー -> 認証: "登録要求"
   - 認証 -> データベース: "ユーザー保存"
-  - 認証 -> メール: "歓迎メール送信" { labelOffsetY: 160 }
-  - メール -> ユーザー: "メール到着" { labelOffsetY: 160 }
+  - 認証 -> メール: "歓迎メール送信"
+  - メール -> ユーザー: "メール到着"
 
 animation:
   - step: "register" 1.4s
@@ -216,8 +216,8 @@ actors:
 
 flow:
   - LB -> Web: "振り分け"
-  - Web -> キャッシュ: "参照" { labelOffsetX: -160 }
-  - Web -> データベース: "問い合わせ" { labelOffsetX: -160 }
+  - Web -> キャッシュ: "参照"
+  - Web -> データベース: "問い合わせ"
 
 animation:
   - step: "ingress" 1.2s
@@ -239,8 +239,8 @@ actors:
   - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
 
 flow:
-  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N", labelOffsetY: -250 }
-  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N", labelOffsetY: -250 }
+  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N" }
+  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
 
 animation:
   - step: "reveal" 2.0s
