@@ -40,17 +40,9 @@ const PAGES = [
   { url: "/catalog/styles", label: "styles" },
 ];
 
-// engine 側 label auto shift v3 refactor が別 PR 対象の border case diagram は
-// 本 gating の overlap 検出から除外する。 手作業 labelOffset では収束しない残 case。
-const BORDER_CASE_DIAGRAMS = new Set([
-  "pattern-fan-in",
-  "pattern-rollback",
-  "infra-demo",
-  "pattern-call-rw",
-  "pattern-loop",
-  "pattern-schedule",
-  "fsm-demo",
-]);
+// cdl engine 側 routing v8 (fan-in / fan-out orthogonal 抜本改良) + label auto shift v5 で
+// border case は全て engine 層で解消済。 allowlist なしで全 diagram を必須 gating 化する。
+const BORDER_CASE_DIAGRAMS = new Set<string>();
 
 async function collectBoxes(page: Page): Promise<DiagramBox[]> {
   return await page.evaluate(() => {
