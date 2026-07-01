@@ -8,7 +8,7 @@ phase で `activate` 対象に edge id を渡すと、 該当 step で edge が�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```ts
 .edge(from: string, to: string, opts: {
@@ -24,7 +24,7 @@ phase で `activate` 対象に edge id を渡すと、 該当 step で edge が�
 })
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: .edge
@@ -109,7 +109,7 @@ chain で続けて `.edge()` や `.phase()` を呼び出せます。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "minimal call"
@@ -123,7 +123,7 @@ flow:
   - Client -> greet: "call"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -143,7 +143,7 @@ chain API では `.edges()` で配列の各 entry が `.edge()` と同じ option
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "round-trip"
@@ -160,7 +160,7 @@ flow:
   - c -> a: "done" (info)
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -190,7 +190,7 @@ intent: batch 宣言、 chain 見通し向上 (個別 .edge() 連鎖回避)
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "tone palette"
@@ -205,7 +205,7 @@ flow:
   - a -> b: "fail" (error)
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -237,7 +237,7 @@ intent: tone は意味の semantic enum (色名直書き禁止)
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "sync vs async"
@@ -253,7 +253,7 @@ flow:
   - b -> c: "emit"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -274,7 +274,7 @@ SQL クエリのように主動作と詳細を分けたいときに `sub` を使
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "SQL query"
@@ -288,7 +288,7 @@ flow:
   - api -> db: "SELECT"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -310,7 +310,7 @@ v0.5 Text DSL では sub label (副 label) は表現できません。 詳細表
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "label offset"
@@ -324,7 +324,7 @@ flow:
   - a -> b: "x"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -343,7 +343,7 @@ state machine の back transition のように、 逆向き edge が forward pat
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "retry loop"
@@ -358,7 +358,7 @@ flow:
   - error -> idle: "retry"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -379,7 +379,7 @@ preset を介さず手動で構築する場合のみ chain API で `routing: "ba
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "top connect"
@@ -393,7 +393,7 @@ flow:
   - a -> b: "x"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -412,7 +412,7 @@ v0.5 Text DSL では `side` を直接表現できないため、 default の自�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "duplicate edges"
@@ -427,7 +427,7 @@ flow:
   - a -> b: "step 2"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 edges:
@@ -442,7 +442,7 @@ phase で active 化するときは生成済み id を使います。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "phase activate edge"
@@ -460,7 +460,7 @@ animation:
     focus: [a, b]
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 phases:

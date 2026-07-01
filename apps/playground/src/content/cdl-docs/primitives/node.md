@@ -8,7 +8,7 @@ actor / function / storage / event など 29 種の `kind` から選び、 lane 
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```ts
 .node(id: string, opts: {
@@ -25,7 +25,7 @@ actor / function / storage / event など 29 種の `kind` から選び、 lane 
 })
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: .node
@@ -107,7 +107,7 @@ chain で続けて `.node()` や `.edge()` を呼び出せます。
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "greet"
@@ -121,7 +121,7 @@ flow:
   - Client -> "greet()": "call"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 nodes:
@@ -144,7 +144,7 @@ chain API では `.nodes()` を使うと、 個別宣言と比べて chain の�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "actors batch"
@@ -156,7 +156,7 @@ actors:
   - "greet()": function
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 nodes:
@@ -193,7 +193,7 @@ intent: batch 宣言で chain 見通し向上 (個別 .node() の連鎖回避)
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "API"
@@ -212,7 +212,7 @@ animation:
       balance: 100 -> 90
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -244,7 +244,7 @@ rows の細かい formatting (`client: {balance}` 等の literal interpolation) 
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "User Supply"
@@ -263,7 +263,7 @@ animation:
       supply: 0 -> 100
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 states:
@@ -285,7 +285,7 @@ v0.5 Text DSL では state 宣言 + tween 駆動で actor value の自動更新�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "horizontal align"
@@ -301,7 +301,7 @@ flow:
   - greet -> OK: "emit"
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 nodes:
@@ -331,7 +331,7 @@ title の補足情報を表示する 2 種類の field を用意しています�
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 ```text
 title: "Owner Node"
@@ -341,7 +341,7 @@ actors:
   - Owner
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 nodes:

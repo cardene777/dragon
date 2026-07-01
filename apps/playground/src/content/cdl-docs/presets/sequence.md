@@ -28,7 +28,7 @@ mermaid `sequenceDiagram` に対応し、 actor 配列だけで `lane` (列) と
 
 ::: tabs
 
-@@@ humans 👤 For humans
+@@@ humans 👤 人間向け
 
 `sequence` 図は v0.5 Text DSL で `type: sequence` を指定し、 `actors` に header 名を並べ、 `flow` に矢印を書きます。
 
@@ -54,7 +54,7 @@ engine が内部で slug 化して lane id に変換するため、 著者は ac
 末尾の `(<tone>, <style>)` で `success` / `error` / `warning` / `info` / `accent` / `teal` 等の tone と `solid` / `dotted-flow` の line style を指定できます。
 chain API の型 signature は本ページ末尾の「API Reference (chain API)」 section を参照してください。
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 fn: sequence(opts)
@@ -118,7 +118,7 @@ common_hallucinations:
 
 ::: tabs
 
-@@@ humans 👤 For humans (JA)
+@@@ humans 👤 人間向け (JA)
 
 ```text
 title: "Login Flow"
@@ -136,7 +136,7 @@ flow:
   - API -> User: "200 OK" (success)
 ```
 
-@@@ llm 🤖 For LLM
+@@@ llm 🤖 LLM向け
 
 ```yaml
 diagram: { id: login, topic: Login Flow }
