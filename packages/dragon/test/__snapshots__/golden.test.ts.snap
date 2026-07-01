@@ -433,10 +433,10 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 304,
+    "h": 399,
     "w": 2170,
     "x": -30,
-    "y": 51,
+    "y": -44,
   },
 }
 `;
@@ -729,10 +729,10 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 368.4213562373095,
+    "h": 544,
     "w": 2710,
     "x": -30,
-    "y": -30.42135623730951,
+    "y": -69,
   },
 }
 `;
@@ -8482,10 +8482,10 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "states": [],
   "topic": "M03",
   "viewBox": {
-    "h": 496,
+    "h": 611,
     "w": 1780,
     "x": -40,
-    "y": -45,
+    "y": -200,
   },
 }
 `;
@@ -8565,10 +8565,10 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "states": [],
   "topic": "M04",
   "viewBox": {
-    "h": 524,
+    "h": 457,
     "w": 1340,
     "x": -40,
-    "y": -59,
+    "y": -119,
   },
 }
 `;
@@ -8743,10 +8743,10 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "states": [],
   "topic": "M06",
   "viewBox": {
-    "h": 496,
+    "h": 711,
     "w": 1780,
     "x": -40,
-    "y": -45,
+    "y": -200,
   },
 }
 `;
@@ -8962,10 +8962,10 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "states": [],
   "topic": "M08",
   "viewBox": {
-    "h": 496,
+    "h": 711,
     "w": 2220,
     "x": -40,
-    "y": -45,
+    "y": -200,
   },
 }
 `;
@@ -9051,10 +9051,10 @@ exports[`golden: state preset > M09 self-loop 1`] = `
   "states": [],
   "topic": "M09",
   "viewBox": {
-    "h": 496,
+    "h": 556,
     "w": 1340,
     "x": -40,
-    "y": -45,
+    "y": -105,
   },
 }
 `;
@@ -9803,10 +9803,10 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
   "states": [],
   "topic": "L08",
   "viewBox": {
-    "h": 450,
+    "h": 456,
     "w": 1464,
     "x": -44,
-    "y": -24,
+    "y": -30,
   },
 }
 `;
@@ -10738,8 +10738,8 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 684,
-    "x": -44,
+    "w": 820,
+    "x": -180,
     "y": 8,
   },
 }
@@ -11091,8 +11091,8 @@ exports[`golden: topology preset > T10 7 node fan-out 1`] = `
   "topic": "T10",
   "viewBox": {
     "h": 2068,
-    "w": 684,
-    "x": -44,
+    "w": 1180,
+    "x": -360,
     "y": 8,
   },
 }

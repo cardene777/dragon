@@ -69,6 +69,8 @@ const BORDER_CASE_DIAGRAMS = new Set([
   "pattern-schedule",
   "fsm-demo",
   "er-demo",
+  "tree-demo",
+  "mind-demo",
 ]);
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
