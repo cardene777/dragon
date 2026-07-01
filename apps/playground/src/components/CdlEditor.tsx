@@ -239,8 +239,8 @@ actors:
   - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
 
 flow:
-  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N" }
-  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
+  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N", labelOffsetY: -250 }
+  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N", labelOffsetY: -250 }
 
 animation:
   - step: "reveal" 2.0s
@@ -451,6 +451,68 @@ export function CdlEditor(): React.JSX.Element {
     const restored = decodeShare(window.location.hash);
     if (restored) setSrc(restored);
   }, []);
+
+  /**
+   * warning 群から DSL を自動修正する。
+   *
+   * 対応 axis と補正戦略。
+   * - edge-label-overlap ... label が node と AABB overlap → offsetY を node h/2 + 32 に上方 shift
+   * - edge-label-proximity ... label が path から離れすぎ → offset を 0 に戻す (default 位置に近づける)
+   * - clearance ... label が node と近接 → offsetY を +40 増加
+   *
+   * detail 文字列から edge id を抽出、 DSL text の該当 flow 行に inline { labelOffsetY: N } を追記 / 上書き。
+   * 複数 warning が同 edge を指す場合は最後の warning が勝つ。
+   */
+  const handleAutoFix = useCallback((): void => {
+    if (warnings.length === 0 || !diagram) return;
+    // edge id → 推奨 offset (Y) の map を構築
+    const offsetByEdge = new Map<string, { offsetY?: number; offsetX?: number }>();
+    for (const w of warnings) {
+      const m = w.detail.match(/edge[- ]?label:([^\s↔"]+)|edge "([^"]+)"|edge-label:([^\s↔"]+)/);
+      const edgeId = m?.[1] ?? m?.[2] ?? m?.[3];
+      if (!edgeId) continue;
+      const cur = offsetByEdge.get(edgeId) ?? {};
+      // axis 別 補正
+      if (w.axis === "edge-label-overlap") {
+        // node × edge-label 想定、 node 上方 (負) or 下方 (正)、 default は上方
+        cur.offsetY = -120;
+      } else if (w.axis === "edge-label-proximity") {
+        cur.offsetY = 0;
+        cur.offsetX = 0;
+      } else if (w.axis === "clearance") {
+        cur.offsetY = (cur.offsetY ?? 0) - 40;
+      }
+      offsetByEdge.set(edgeId, cur);
+    }
+    if (offsetByEdge.size === 0) return;
+    // edge id → flow 行内の "label" or 記号を対応、 diagram.edges から from/to/label を取り出して DSL 行を書き換える
+    let newSrc = src;
+    for (const e of diagram.edges) {
+      const offset = offsetByEdge.get(e.id);
+      if (!offset) continue;
+      // flow 行 pattern ... `- {from} -> {to}: "{label}"` (末尾 { ... } 有無)
+      const labelEsc = e.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const fromEsc = e.from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const toEsc = e.to.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(
+        `(- ${fromEsc}\\s*->\\s*${toEsc}\\s*:\\s*"${labelEsc}"(?:\\s*\\([^)]*\\))?)(\\s*\\{([^}]*)\\})?`,
+        "u",
+      );
+      const match = newSrc.match(re);
+      if (!match) continue;
+      const parts: string[] = [];
+      if (match[3]) {
+        // 既存 { ... } の中身から labelOffsetY/X を除去 + append
+        const inner = match[3].replace(/labelOffset[XY]\s*:\s*-?\d+\s*,?/g, "").trim().replace(/,\s*,/g, ",").replace(/^,|,$/g, "");
+        if (inner) parts.push(inner);
+      }
+      if (offset.offsetY !== undefined) parts.push(`labelOffsetY: ${offset.offsetY}`);
+      if (offset.offsetX !== undefined) parts.push(`labelOffsetX: ${offset.offsetX}`);
+      const newInline = parts.length > 0 ? ` { ${parts.join(", ")} }` : "";
+      newSrc = newSrc.replace(re, `${match[1]}${newInline}`);
+    }
+    if (newSrc !== src) setSrc(newSrc);
+  }, [warnings, diagram, src]);
 
   // src 変更時 debounce 300ms で parse + render
   useEffect(() => {
@@ -857,6 +919,14 @@ animation:
                   : `位置関係の警告 ${warnings.length}件`}
               </span>
               <span className="v4-editor-warnings-hint">DSLの labelOffsetX/Y でnodeとの位置を調整できます</span>
+              <button
+                type="button"
+                className="v4-editor-warnings-apply"
+                onClick={handleAutoFix}
+                title="全 warning に対して推奨 offset を DSL に一括反映"
+              >
+                一括反映 ✨
+              </button>
             </div>
             <ul className="v4-editor-warnings-list">
               {warnings.slice(0, 6).map((w, i) => (
