@@ -54,10 +54,10 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 426,
+    "h": 366,
     "w": 1090,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -137,10 +137,10 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 582,
+    "h": 366,
     "w": 1630,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -199,10 +199,10 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "states": [],
   "topic": "E03",
   "viewBox": {
-    "h": 426,
+    "h": 366,
     "w": 1090,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -261,10 +261,10 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 426,
+    "h": 366,
     "w": 1090,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -323,10 +323,10 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 426,
+    "h": 366,
     "w": 1090,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -433,10 +433,10 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 404,
+    "h": 304,
     "w": 2170,
     "x": -30,
-    "y": 51,
+    "y": 39,
   },
 }
 `;
@@ -495,10 +495,10 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "states": [],
   "topic": "E07",
   "viewBox": {
-    "h": 426,
+    "h": 366,
     "w": 1090,
     "x": -30,
-    "y": -88,
+    "y": 68,
   },
 }
 `;
@@ -604,10 +604,10 @@ exports[`golden: er preset > E09 self-reference 1`] = `
   "states": [],
   "topic": "E09",
   "viewBox": {
-    "h": 428,
+    "h": 368,
     "w": 695,
     "x": -30,
-    "y": -88,
+    "y": 66,
   },
 }
 `;
@@ -729,10 +729,10 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 443,
+    "h": 366,
     "w": 2710,
     "x": -30,
-    "y": 51,
+    "y": 68,
   },
 }
 `;
