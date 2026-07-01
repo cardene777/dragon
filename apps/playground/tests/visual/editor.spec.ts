@@ -12,11 +12,12 @@ test.describe("Visual regression - Editor (/editor)", () => {
   test("editor initial render SVG snapshot", async ({ page }) => {
     await page.goto("/editor", { waitUntil: "networkidle" });
     // Editor の preview SVG が出るまで待つ (default sample が auto render される)
-    await page.waitForSelector(".cdl-editor-textarea", { timeout: 10_000 });
-    await page.waitForSelector(".cdl-editor-preview svg", { timeout: 10_000 });
+    // v4 editor で class 名 refactor 済 (cdl-editor-* → v4-editor-*)
+    await page.waitForSelector(".v4-editor-code", { timeout: 10_000 });
+    await page.waitForSelector(".v4-editor-preview svg", { timeout: 10_000 });
     // CdlEditor の textarea は時間で hydrate されるため十分待つ
     await page.waitForTimeout(1500);
-    const editorPreview = page.locator(".cdl-editor-preview").first();
+    const editorPreview = page.locator(".v4-editor-preview").first();
     await expect(editorPreview).toHaveScreenshot("editor-preview.png", {
       maxDiffPixelRatio: 0.02,
       animations: "disabled",

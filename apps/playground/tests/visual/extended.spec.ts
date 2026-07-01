@@ -15,7 +15,9 @@ const extended = [
   { slug: "シェア-dsl", label: "pie (シェア DSL)" },
   { slug: "c4-dsl", label: "c4 (C4 DSL)" },
   { slug: "アイデア-dsl", label: "mind (アイデア DSL)" },
-  { slug: "erc-20-transfer", label: "solidity (ERC-20 transfer)" },
+  // textDslCode ("Service call + write + emit") = 旧 solidity (ERC-20 transfer) の後継、
+  // /visual-test-extended page 側 items で code preset として mount される。
+  { slug: "service-call-write-emit", label: "code (Service call + write + emit)" },
 ];
 
 const PAGE_URL = "/visual-test-extended";
