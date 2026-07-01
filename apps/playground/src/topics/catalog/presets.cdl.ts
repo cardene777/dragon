@@ -56,7 +56,7 @@ topo
 topo
   .connect("browser", "alb", { label: "HTTPS", sub: "TLS 1.3" })
   .connect("alb", "ecs", { label: "round-robin" })
-  .connect("ecs", "rds", { label: "TCP 5432", sub: "pgbouncer", tone: "success", labelOffsetX: 150 });
+  .connect("ecs", "rds", { label: "TCP 5432", sub: "pgbouncer", tone: "success" });
 export const presetTopology = topo.build();
 
 // er preset ... ER 図 (User → Order の 1:N 関係)
@@ -88,11 +88,11 @@ export const presetInfrastructure = infrastructure({ id: "infra-demo", topic: "i
   .node({ id: "app", kind: "service", title: "App", col: 2, row: 1 })
   .node({ id: "db", kind: "database", title: "RDS", col: 3, row: 0 })
   .node({ id: "cache", kind: "cache", title: "Redis", col: 3, row: 1 })
-  .connect({ from: "user", to: "cdn", label: "HTTPS" })
-  .connect({ from: "cdn", to: "alb", label: "origin" })
-  .connect({ from: "alb", to: "app", label: "route" })
-  .connect({ from: "app", to: "db", label: "SQL" })
-  .connect({ from: "app", to: "cache", label: "GET/SET" })
+  .connect({ from: "user", to: "cdn", label: "HTTPS", labelOffsetY: -60 })
+  .connect({ from: "cdn", to: "alb", label: "origin", labelOffsetY: -60 })
+  .connect({ from: "alb", to: "app", label: "route", labelOffsetX: 120, labelOffsetY: 0 })
+  .connect({ from: "app", to: "db", label: "SQL", labelOffsetX: 200, labelOffsetY: -50 })
+  .connect({ from: "app", to: "cache", label: "GET/SET", labelOffsetX: 200, labelOffsetY: 60 })
   .build();
 
 // classDiagram preset ... UML クラス図
