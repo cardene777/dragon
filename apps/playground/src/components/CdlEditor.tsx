@@ -482,9 +482,18 @@ export function CdlEditor(): React.JSX.Element {
       } else if (w.axis === "clearance") {
         // 隣接不足 = 更に離す
         cur.offsetY = (cur.offsetY ?? -40) - 40;
+      } else if (w.axis === "edge-label-proximity") {
+        // label が path から離れすぎ、 detail から実 distance を抽出して逆方向に補正
+        const distMatch = w.detail.match(/(\d+)px 離れている/);
+        const dist = distMatch ? parseInt(distMatch[1]!, 10) : 0;
+        if (dist > 0) {
+          // 現 offset を「path 近接方向」 に半分縮める (offsetY 正/負符号は edge 側 default に依存)
+          // 直前の shift 探索で上方に置かれているケースが多いので +dist/2 で下方に寄せる
+          const cur_off = cur.offsetY ?? 0;
+          cur.offsetY = cur_off + Math.floor(dist / 2);
+        }
       }
-      // edge-label-proximity は border case で意味的に既に妥当な位置のことが多い、
-      // 一括反映では触らない (user が手動で調整する余地を残す)
+      // text-readability は node 幅/title の話で label offset で解決しないため skip
       offsetByEdge.set(edgeId, cur);
     }
     if (offsetByEdge.size === 0) return;
