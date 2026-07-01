@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "dev:fresh": "rm -rf node_modules/.vite .astro && astro dev",
     "build": "astro build && pagefind --site dist --output-path dist/_pagefind",
     "preview": "astro preview",
     "typecheck": "astro check && tsc --noEmit",

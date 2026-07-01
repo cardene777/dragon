@@ -14,6 +14,25 @@ export default defineConfig({
     tailwind({ applyBaseStyles: false }),
     sitemap(),
   ],
+  vite: {
+    optimizeDeps: {
+      // React 19 + astro/react の dev server で jsxDEV runtime が pre-bundle されず crash する既知問題。
+      // codemirror 系も dev で "Outdated Optimize Dep" 504 が出るので明示 include する。
+      include: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react-dom/client",
+        "@uiw/react-codemirror",
+        "@codemirror/lang-yaml",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+      ],
+    },
+  },
   markdown: {
     remarkPlugins: [remarkDocTabs],
     // Shiki シンタックスハイライト ... デュアル theme (light / dark) で html.dark 切替に対応。

@@ -509,12 +509,18 @@ html.dark .docs-pagefind-hit-excerpt mark {
   --cdl-shadow-dark: #94a3b8;
 }
 html.dark {
-  --cdl-node-fill: #1f2630;
-  --cdl-stage-bg: #0e1117;
-  --cdl-divider: #475569;
-  --cdl-label-bg: #1f2630;
-  --cdl-shadow-light: #2a3340;
-  --cdl-shadow-dark: #000000;
+  /* v0.8+ dark mode 再設計 (旧 #1f2630 系は node と背景の差別化不足 + 図が暗すぎ問題)
+     - node fill = slate-700 相当 (#334155) で背景 (slate-950) と明確に差別化
+     - stage bg = slate-900 (#1e293b) で「絵の紙」 感、 真っ黒回避
+     - divider = slate-400 (#94a3b8) で dark でも読める明るい灰
+     - label bg = slate-800 (#1e2534) で node より少し暗く label rect が浮く
+     - shadow は uniform-tone、 dark で強すぎる drop-shadow は softly */
+  --cdl-node-fill: #334155;
+  --cdl-stage-bg: #1e293b;
+  --cdl-divider: #94a3b8;
+  --cdl-label-bg: #1e2534;
+  --cdl-shadow-light: #475569;
+  --cdl-shadow-dark: #0f172a;
 }
 /* cdl SVG 内 text の色を theme-aware に (hardcode の旧 ink color を上書き) */
 [data-cdl-node] text {
@@ -540,7 +546,8 @@ html.dark [data-cdl-node] text {
 html.dark [data-cdl-node] > rect[stroke="transparent"],
 html.dark [data-cdl-node] > ellipse[stroke="transparent"],
 html.dark [data-cdl-node] > circle[stroke="transparent"] {
-  stroke: #475569 !important;
+  stroke: #94a3b8 !important;
+  stroke-width: 1.5 !important;
 }
 
 /* ─────────────────────────────────────────────

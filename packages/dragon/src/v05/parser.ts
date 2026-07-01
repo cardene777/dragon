@@ -789,11 +789,55 @@ function parseStepHead(s: string): { name: string; durationMs: number } | null {
 }
 
 function parseFocusList(s: string): string[] {
-  // `[Client, API]` / `Client, API` / `Client API`
+  // `[Client, API]` / `Client, API` / `Client API` / `[Client, API, "Client -> API"]`
+  // quote 内の space / comma / arrow は保護し、 quote 外の comma でのみ split する。
   let body = s.trim();
   if (body.startsWith("[") && body.endsWith("]")) body = body.slice(1, -1);
-  const parts = body.split(/[,\s]+/).map((x) => stripQuotes(x.trim())).filter(Boolean);
-  return parts;
+  const parts: string[] = [];
+  let buf = "";
+  let quote: string | null = null;
+  for (const ch of body) {
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+        continue;
+      }
+      buf += ch;
+      continue;
+    }
+    if (ch === "\"" || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === ",") {
+      const t = buf.trim();
+      if (t) parts.push(t);
+      buf = "";
+      continue;
+    }
+    buf += ch;
+  }
+  const tail = buf.trim();
+  if (tail) parts.push(tail);
+  // "User -> API" のような quote 済 item は「1 item」 として parts に入る。
+  // quote 外 item は依然として space split (旧挙動、 「Client API」 が 2 item として解釈される互換維持)。
+  const out: string[] = [];
+  for (const p of parts) {
+    if (/[→\-][>]?/.test(p) && /\s/.test(p)) {
+      // arrow を含む item は「A -> B」 パターン、 分割せず 1 item として保持
+      out.push(p);
+      continue;
+    }
+    if (/\s/.test(p)) {
+      // space 含み + arrow なし = 旧挙動の「Client API」 → 2 item
+      for (const x of p.split(/\s+/)) {
+        if (x) out.push(x);
+      }
+      continue;
+    }
+    out.push(p);
+  }
+  return out;
 }
 
 function parseTweenLine(s: string, lineNo: number): DslTween | null {
