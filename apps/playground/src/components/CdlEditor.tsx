@@ -189,8 +189,8 @@ actors:
 flow:
   - ユーザー -> 認証: "登録要求"
   - 認証 -> データベース: "ユーザー保存"
-  - 認証 -> メール: "歓迎メール送信"
-  - メール -> ユーザー: "メール到着"
+  - 認証 -> メール: "歓迎メール送信" { labelOffsetY: 160 }
+  - メール -> ユーザー: "メール到着" { labelOffsetY: 160 }
 
 animation:
   - step: "register" 1.4s
@@ -216,8 +216,8 @@ actors:
 
 flow:
   - LB -> Web: "振り分け"
-  - Web -> キャッシュ: "参照"
-  - Web -> データベース: "問い合わせ"
+  - Web -> キャッシュ: "参照" { labelOffsetX: -160 }
+  - Web -> データベース: "問い合わせ" { labelOffsetX: -160 }
 
 animation:
   - step: "ingress" 1.2s
