@@ -160,9 +160,9 @@ actors:
   - デプロイ: { kind: function }
 
 flow:
-  - Push -> ビルド: "トリガー"
-  - ビルド -> テスト: "成果物"
-  - テスト -> デプロイ: "合格" (success)
+  - Push -> ビルド: "トリガー" { labelOffsetX: -140 }
+  - ビルド -> テスト: "成果物" { labelOffsetX: -140 }
+  - テスト -> デプロイ: "合格" (success) { labelOffsetX: -140 }
 
 animation:
   - step: "trigger" 1.2s
@@ -465,53 +465,70 @@ export function CdlEditor(): React.JSX.Element {
    */
   const handleAutoFix = useCallback((): void => {
     if (warnings.length === 0 || !diagram) return;
-    // edge id → 推奨 offset (Y) の map を構築
+    // edge id → 推奨 offset (Y) の map を構築。 warning detail 内の edge id は複数 pattern。
+    // - `edge "e0-user-post" label が path segment から ...` (proximity)
+    // - `node:X ↔ edge-label:e0-user-post overlap=...` (overlap)
+    // - `X:Y ↔ Z:W gap=...` (clearance、 node と edge-label のケース)
     const offsetByEdge = new Map<string, { offsetY?: number; offsetX?: number }>();
     for (const w of warnings) {
-      const m = w.detail.match(/edge[- ]?label:([^\s↔"]+)|edge "([^"]+)"|edge-label:([^\s↔"]+)/);
-      const edgeId = m?.[1] ?? m?.[2] ?? m?.[3];
+      const m1 = w.detail.match(/edge "([^"]+)"/);
+      const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
+      const edgeId = m1?.[1] ?? m2?.[1];
       if (!edgeId) continue;
       const cur = offsetByEdge.get(edgeId) ?? {};
-      // axis 別 補正
       if (w.axis === "edge-label-overlap") {
-        // node × edge-label 想定、 node 上方 (負) or 下方 (正)、 default は上方
-        cur.offsetY = -120;
-      } else if (w.axis === "edge-label-proximity") {
-        cur.offsetY = 0;
-        cur.offsetX = 0;
+        // node × edge-label overlap = label が node 中に埋まる、 上方 shift で回避
+        cur.offsetY = -140;
       } else if (w.axis === "clearance") {
-        cur.offsetY = (cur.offsetY ?? 0) - 40;
+        // 隣接不足 = 更に離す
+        cur.offsetY = (cur.offsetY ?? -40) - 40;
       }
+      // edge-label-proximity は border case で意味的に既に妥当な位置のことが多い、
+      // 一括反映では触らない (user が手動で調整する余地を残す)
       offsetByEdge.set(edgeId, cur);
     }
     if (offsetByEdge.size === 0) return;
-    // edge id → flow 行内の "label" or 記号を対応、 diagram.edges から from/to/label を取り出して DSL 行を書き換える
-    let newSrc = src;
-    for (const e of diagram.edges) {
+
+    // diagram.edges を「順番」 で DSL の flow 行と対応させる (id 直接検索は slugify で難しい)。
+    // v05 parser は flow: 配下 の each item を配列順に edge に変換、 DSL flow 行順 = diagram.edges 順。
+    // 実装 ... 全行 split → "flow:" 出現後の region を「flow-lines」 とみなし、 次の top-level key
+    // (`^\w`) or 文書末までを対象範囲にする。
+    const allLines = src.split("\n");
+    const flowStart = allLines.findIndex((l) => /^\s*flow:\s*$/.test(l));
+    if (flowStart < 0) return;
+    let flowEnd = allLines.length;
+    for (let i = flowStart + 1; i < allLines.length; i++) {
+      if (/^[a-zA-Z]/.test(allLines[i] ?? "")) { flowEnd = i; break; }
+    }
+    let edgeIdx = 0;
+    let changed = false;
+    for (let i = flowStart + 1; i < flowEnd; i++) {
+      const line = allLines[i] ?? "";
+      if (!/^\s*-\s.+->/.test(line)) continue;
+      const e = diagram.edges[edgeIdx];
+      edgeIdx += 1;
+      if (!e) continue;
       const offset = offsetByEdge.get(e.id);
       if (!offset) continue;
-      // flow 行 pattern ... `- {from} -> {to}: "{label}"` (末尾 { ... } 有無)
-      const labelEsc = e.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const fromEsc = e.from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const toEsc = e.to.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const re = new RegExp(
-        `(- ${fromEsc}\\s*->\\s*${toEsc}\\s*:\\s*"${labelEsc}"(?:\\s*\\([^)]*\\))?)(\\s*\\{([^}]*)\\})?`,
-        "u",
-      );
-      const match = newSrc.match(re);
-      if (!match) continue;
+      const braceMatch = line.match(/^(.*?)(\s*\{([^}]*)\})?\s*$/);
+      const prefix = braceMatch?.[1] ?? line;
+      const inner = (braceMatch?.[3] ?? "")
+        .replace(/labelOffset[XY]\s*:\s*-?\d+\s*,?\s*/g, "")
+        .replace(/,\s*,/g, ",")
+        .replace(/^\s*,\s*|\s*,\s*$/g, "")
+        .trim();
       const parts: string[] = [];
-      if (match[3]) {
-        // 既存 { ... } の中身から labelOffsetY/X を除去 + append
-        const inner = match[3].replace(/labelOffset[XY]\s*:\s*-?\d+\s*,?/g, "").trim().replace(/,\s*,/g, ",").replace(/^,|,$/g, "");
-        if (inner) parts.push(inner);
-      }
+      if (inner) parts.push(inner);
       if (offset.offsetY !== undefined) parts.push(`labelOffsetY: ${offset.offsetY}`);
       if (offset.offsetX !== undefined) parts.push(`labelOffsetX: ${offset.offsetX}`);
       const newInline = parts.length > 0 ? ` { ${parts.join(", ")} }` : "";
-      newSrc = newSrc.replace(re, `${match[1]}${newInline}`);
+      const newLine = `${prefix}${newInline}`;
+      if (newLine !== line) {
+        allLines[i] = newLine;
+        changed = true;
+      }
     }
-    if (newSrc !== src) setSrc(newSrc);
+    if (changed) setSrc(allLines.join("\n"));
   }, [warnings, diagram, src]);
 
   // src 変更時 debounce 300ms で parse + render
