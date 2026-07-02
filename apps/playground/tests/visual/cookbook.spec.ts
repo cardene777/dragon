@@ -1,8 +1,9 @@
 /**
- * Visual regression ... cookbook 25 demo の subset 10 件。
+ * Visual regression ... cookbook 25 demo の全網羅。
  *
- * /catalog/cookbook の 5 カテゴリ (API / Auth / Data / Realtime / Job) 各 2 件抜粋し
- * 視覚 regression を担保。 全 25 件は coverage 過剰なので頻出 pattern のみ。
+ * /catalog/cookbook の全 25 diagram を対象に SVG 視覚 regression を担保する。
+ * 他 spec (presets / primitives / patterns) は全網羅方針で運用済、 cookbook のみ
+ * subset だった非対称を解消し refactor 検知精度を最大化。
  *
  * baseline 不一致 = SVG path / fill / stroke / text rendering の崩れ。
  */
@@ -14,16 +15,33 @@ const subset = [
   { slug: "rate-limit", label: "Rate limit" },
   // B. Auth 系
   { slug: "jwt-auth", label: "JWT auth" },
-  { slug: "oauth-flow", label: "OAuth 2.0" },
-  // C. Data 系
+  { slug: "oauth-flow", label: "OAuth code flow" },
+  { slug: "csrf-token", label: "CSRF token" },
+  // C. Data 系 (CRUD / cache / search / sort)
   { slug: "crud-create", label: "CRUD create" },
+  { slug: "pagination", label: "Cursor pagination" },
   { slug: "cache-read", label: "Cache read-through" },
-  // D. Realtime 系
-  { slug: "websocket", label: "WebSocket" },
+  { slug: "search-query", label: "Search full-text" },
+  { slug: "sort-filter", label: "Sort + Filter" },
+  // D. Form / File 系
+  { slug: "form-submit", label: "Form submit" },
+  { slug: "file-upload", label: "File upload" },
+  { slug: "export-data", label: "Export CSV" },
+  { slug: "import-data", label: "Import CSV" },
+  // E. Realtime 系
   { slug: "sse-stream", label: "SSE stream" },
-  // E. Job 系
+  { slug: "websocket", label: "WebSocket" },
+  { slug: "polling", label: "Long polling" },
+  { slug: "notification", label: "Notification" },
+  // F. Job / Task 系
   { slug: "background-job", label: "Background job" },
+  { slug: "retry-backoff", label: "Retry + backoff" },
   { slug: "webhook", label: "Webhook" },
+  { slug: "scheduled-task", label: "Scheduled task" },
+  { slug: "email-notification", label: "Email notification" },
+  // G. Ops 系
+  { slug: "audit-log", label: "Audit log" },
+  { slug: "health-check", label: "Health check" },
 ];
 
 const PAGE_URL = "/catalog/cookbook";
