@@ -531,7 +531,7 @@ export function PresetMap(): React.JSX.Element {
             </div>
             <p className="map-modal-desc">{selected.description}</p>
             <div className="map-modal-preview">
-              <CdlDiagramView diagram={diagram} />
+              <CdlDiagramView diagram={diagram} emitGeometryWarn={import.meta.env.DEV} />
             </div>
             <div className="map-modal-actions">
               <a
