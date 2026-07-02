@@ -1014,7 +1014,7 @@ animation:
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} />
+                <CdlDiagramView diagram={diagram} emitGeometryWarn={import.meta.env.DEV} />
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>

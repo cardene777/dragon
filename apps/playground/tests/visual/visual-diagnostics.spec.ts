@@ -480,15 +480,18 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
   const G7_MIN_LABEL_W_PX = 16;
   for (const l of labels) {
     if (!l.text) continue;
-    // 実 label bbox 幅 vs text char 数 × 最低 char 幅 4px (Inter Bold 22 での i 相当) の下限判定
-    const expectedMinW = l.text.length * 4;
-    if (l.w < Math.max(G7_MIN_LABEL_W_PX, expectedMinW * 0.5)) {
+    // 実 label bbox 幅 vs text char 数 × 最低 char 幅 の下限判定 (改善 = 実効化)。
+    // Inter Bold 22px の実測 char 幅 = 平均 12px、 最も細い "i" / "l" でも 6-7px、 CJK は 22px。
+    // 40% を下限 = 平均 4.8px、 実効判定として 6px/char を下限に設定 (前 2px は緩すぎ実質常時 pass)。
+    const MIN_PX_PER_CHAR = 6;
+    const expectedMinW = l.text.length * MIN_PX_PER_CHAR;
+    if (l.w < Math.max(G7_MIN_LABEL_W_PX, expectedMinW)) {
       out.push({
         gate: "G7-label-char-range",
         diagramId,
-        detail: `label ${l.id} bbox width ${l.w.toFixed(1)}px が text "${l.text}" 実占有下限より狭い`,
+        detail: `label ${l.id} bbox width ${l.w.toFixed(1)}px が text "${l.text}" (${l.text.length}char × ${MIN_PX_PER_CHAR}px 下限) より狭い`,
         metric: Math.round(l.w),
-        threshold: `≥${Math.max(G7_MIN_LABEL_W_PX, Math.round(expectedMinW * 0.5))}px`,
+        threshold: `≥${Math.max(G7_MIN_LABEL_W_PX, expectedMinW)}px`,
       });
     }
   }
@@ -689,7 +692,15 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G10)", () => {
         console.error(`[visual-diagnostics] ${hardReport}`);
       }
       if (softGate.length > 0) {
-        console.warn(`[visual-diagnostics] ${label} ... G5 warn (predicted-vs-actual size 乖離 ${softGate.length} 件、 tolerance 80 world / 実測係数化後の残存許容)`);
+        // soft gate 別集計 (G5 / G7 / G9)
+        const softByGate = new Map<string, number>();
+        for (const d of softGate) {
+          softByGate.set(d.gate, (softByGate.get(d.gate) ?? 0) + 1);
+        }
+        const summary = Array.from(softByGate.entries())
+          .map(([g, n]) => `${g}=${n}`)
+          .join(" ");
+        console.warn(`[visual-diagnostics] ${label} ... soft warn (${summary})`);
       }
       expect(hardGate, hardReport).toEqual([]);
     });
