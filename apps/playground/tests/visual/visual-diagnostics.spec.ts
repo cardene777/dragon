@@ -69,16 +69,16 @@ async function collectDumps(page: Page): Promise<RawDump[]> {
       const rootKey = `${diagramId}#${rootIdx++}`;
       const svg = diag.querySelector("svg");
       const svgRect = svg ? svg.getBoundingClientRect() : null;
-      const ctmObj = svg && "getScreenCTM" in svg ? (svg as SVGSVGElement).getScreenCTM() : null;
+      const ctmObj = svg && "getScreenCTM" in svg ? (svg).getScreenCTM() : null;
       const nodes = Array.from(diag.querySelectorAll("[data-cdl-node]"))
         .map((n) => {
-          const r = (n as Element).getBoundingClientRect();
+          const r = (n).getBoundingClientRect();
           return { id: n.getAttribute("data-cdl-node") ?? "", x: r.left, y: r.top, w: r.width, h: r.height };
         })
         .filter((n) => n.w > 0 && n.h > 0);
       const labels = Array.from(diag.querySelectorAll("[data-cdl-edge-label-for]"))
         .map((l) => {
-          const r = (l as Element).getBoundingClientRect();
+          const r = (l).getBoundingClientRect();
           const text = ((l as HTMLElement).textContent ?? "").trim();
           return {
             id: l.getAttribute("data-cdl-edge-label-for") ?? "",
@@ -124,12 +124,12 @@ function extractPathPoints(d: string): Array<{ x: number; y: number }> {
     if (cmd === "M" || cmd === "L") {
       pts.push({ x: Number(m[2]), y: Number(m[3]) });
     } else if (cmd === "Q") {
-      pts.push({ x: Number(m[2]!), y: Number(m[3]!) });
-      pts.push({ x: Number(m[4]!), y: Number(m[5]!) });
+      pts.push({ x: Number(m[2]), y: Number(m[3]) });
+      pts.push({ x: Number(m[4]), y: Number(m[5]) });
     } else if (cmd === "C") {
-      pts.push({ x: Number(m[2]!), y: Number(m[3]!) });
-      pts.push({ x: Number(m[4]!), y: Number(m[5]!) });
-      pts.push({ x: Number(m[6]!), y: Number(m[7]!) });
+      pts.push({ x: Number(m[2]), y: Number(m[3]) });
+      pts.push({ x: Number(m[4]), y: Number(m[5]) });
+      pts.push({ x: Number(m[6]), y: Number(m[7]) });
     }
   }
   return pts;
@@ -202,8 +202,8 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     const pts = edgePathScreenPoints.get(e.id);
     if (!pts || pts.length < 3) continue;
     // tail (起点直後) = pts[0]→pts[1] と pts[1]→pts[2] の角度
-    const v1a = { x: pts[1]!.x - pts[0]!.x, y: pts[1]!.y - pts[0]!.y };
-    const v2a = { x: pts[2]!.x - pts[1]!.x, y: pts[2]!.y - pts[1]!.y };
+    const v1a = { x: pts[1].x - pts[0].x, y: pts[1].y - pts[0].y };
+    const v2a = { x: pts[2].x - pts[1].x, y: pts[2].y - pts[1].y };
     const angTail = angleDeg(v1a, v2a);
     if (angTail > ARROW_ANGLE_MAX_DEG) {
       out.push({
@@ -217,8 +217,8 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     // head (終点直前) = pts[n-2]→pts[n-1] と 前 segment の角度
     if (pts.length >= 4) {
       const n = pts.length;
-      const v1b = { x: pts[n - 2]!.x - pts[n - 3]!.x, y: pts[n - 2]!.y - pts[n - 3]!.y };
-      const v2b = { x: pts[n - 1]!.x - pts[n - 2]!.x, y: pts[n - 1]!.y - pts[n - 2]!.y };
+      const v1b = { x: pts[n - 2].x - pts[n - 3].x, y: pts[n - 2].y - pts[n - 3].y };
+      const v2b = { x: pts[n - 1].x - pts[n - 2].x, y: pts[n - 1].y - pts[n - 2].y };
       const angHead = angleDeg(v1b, v2b);
       if (angHead > ARROW_ANGLE_MAX_DEG) {
         out.push({
@@ -241,7 +241,7 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     const cy = l.y + l.h / 2;
     let minDist = Infinity;
     for (let i = 0; i < pts.length - 1; i++) {
-      const d = pointToSegmentDist(cx, cy, pts[i]!.x, pts[i]!.y, pts[i + 1]!.x, pts[i + 1]!.y);
+      const d = pointToSegmentDist(cx, cy, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
       if (d < minDist) minDist = d;
     }
     if (minDist < DIST_LABEL_PATH_MIN) {
@@ -290,10 +290,10 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
 
   // G4. label × label 距離
   for (let i = 0; i < labels.length; i++) {
-    const a = labels[i]!;
+    const a = labels[i];
     if (!a.text) continue;
     for (let j = i + 1; j < labels.length; j++) {
-      const b = labels[j]!;
+      const b = labels[j];
       if (!b.text || a.id === b.id) continue;
       const clr = rectRectClearance(a, b);
       if (clr > 0 && clr < CLEARANCE_LABEL_LABEL) {

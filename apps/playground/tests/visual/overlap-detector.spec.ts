@@ -68,7 +68,7 @@ async function collectBoxes(page: Page): Promise<DiagramBox[]> {
       const rootKey = `${diagramId}#${rootIdx++}`;
       const nodes = Array.from(diag.querySelectorAll("[data-cdl-node]"));
       for (const n of nodes) {
-        const r = (n as Element).getBoundingClientRect();
+        const r = (n).getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         out.push({
           diagramRootKey: rootKey,
@@ -83,7 +83,7 @@ async function collectBoxes(page: Page): Promise<DiagramBox[]> {
       }
       const labels = Array.from(diag.querySelectorAll("[data-cdl-edge-label-for]"));
       for (const l of labels) {
-        const r = (l as Element).getBoundingClientRect();
+        const r = (l).getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         out.push({
           diagramRootKey: rootKey,
@@ -125,8 +125,8 @@ function detectOverlaps(boxes: DiagramBox[]): Overlap[] {
     const seenPair = new Set<string>();
     for (let i = 0; i < list.length; i++) {
       for (let j = i + 1; j < list.length; j++) {
-        const a = list[i]!;
-        const b = list[j]!;
+        const a = list[i];
+        const b = list[j];
         if (a.kind === "node" && b.kind === "node") continue;
         if (a.kind === "edge-label" && b.kind === "edge-label" && a.id === b.id) continue;
         // spacer node (id 末尾 "-spacer") は sequence preset の細線 lifeline 用 (w=2 相当)、

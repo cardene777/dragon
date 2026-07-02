@@ -10,6 +10,13 @@
   "references": [
     { "path": "../../packages/dragon" }
   ],
-  "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "astro.config.mjs",
+    "tests/**/*",
+    "playwright.config.ts",
+    "tailwind.config.ts"
+  ],
   "exclude": ["dist"]
 }

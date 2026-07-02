@@ -53,3 +53,6 @@ Thumbs.db
 .ucap.mjs
 **/.shot-*.mjs
 **/.ucap.mjs
+
+# tsc build 副産物 (.cdl.ts source と競合)
+apps/playground/src/topics/**/*.cdl.d.ts

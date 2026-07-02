@@ -388,7 +388,7 @@ function decodeShare(hash: string): string | null {
   try {
     const match = hash.match(/[#&]s=([^&]+)/);
     if (!match) return null;
-    return decodeURIComponent(escape(atob(match[1]!)));
+    return decodeURIComponent(escape(atob(match[1])));
   } catch {
     return null;
   }
@@ -399,12 +399,12 @@ const MAX_SCALE = 8;
 const ZOOM_STEP = 0.2;
 
 export function CdlEditor(): React.JSX.Element {
-  const [src, setSrc] = useState<string>(SAMPLES[0]!.code);
+  const [src, setSrc] = useState<string>(SAMPLES[0].code);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   const [search, setSearch] = useState("");
-  const [activeSample, setActiveSample] = useState(SAMPLES[0]!.label);
+  const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
   const [isDark, setIsDark] = useState(false);
 
   // html.dark の変化を監視して CodeMirror theme を切替
@@ -425,7 +425,7 @@ export function CdlEditor(): React.JSX.Element {
 
   const categorize = (label: string): string => {
     const m = label.match(/\(([^)]+)\)/);
-    return m ? m[1]! : "other";
+    return m ? m[1] : "other";
   };
 
   const groupedSamples = useMemo(() => {
@@ -433,7 +433,7 @@ export function CdlEditor(): React.JSX.Element {
     for (const s of filteredSamples) {
       const cat = categorize(s.label);
       if (!groups[cat]) groups[cat] = [];
-      groups[cat]!.push(s);
+      groups[cat].push(s);
     }
     return groups;
   }, [filteredSamples]);
@@ -485,7 +485,7 @@ export function CdlEditor(): React.JSX.Element {
       } else if (w.axis === "edge-label-proximity") {
         // label が path から離れすぎ、 detail から実 distance を抽出して逆方向に補正
         const distMatch = w.detail.match(/(\d+)px 離れている/);
-        const dist = distMatch ? parseInt(distMatch[1]!, 10) : 0;
+        const dist = distMatch ? parseInt(distMatch[1], 10) : 0;
         if (dist > 0) {
           // 現 offset を「path 近接方向」 に半分縮める (offsetY 正/負符号は edge 側 default に依存)
           // 直前の shift 探索で上方に置かれているケースが多いので +dist/2 で下方に寄せる
@@ -732,7 +732,7 @@ export function CdlEditor(): React.JSX.Element {
 
   const getPreviewSvg = (): SVGSVGElement | null => {
     if (typeof document === "undefined") return null;
-    return document.querySelector(".v4-editor-preview svg") as SVGSVGElement | null;
+    return document.querySelector(".v4-editor-preview svg");
   };
 
   const downloadBlob = (blob: Blob, filename: string): void => {

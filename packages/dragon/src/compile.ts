@@ -53,7 +53,9 @@ export function compileToCdl(doc: DslDocument): CdlDiagram {
       diagram = compileMind(doc);
       break;
     default:
-      throw new Error(`unknown type: ${doc.type}`);
+      // switch case で全 type を網羅済のため default は unreachable、 template expression で
+      // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
+      throw new Error(`unknown type: ${String(doc.type)}`);
   }
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
