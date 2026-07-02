@@ -1,7 +1,17 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { CdlDiagramThumbnail } from "@cardenelabs/cdl";
-import { presetSwimlane, presetFlow, presetSequence, presetTopology, presetEr, presetStateMachine } from "@/topics/catalog/presets.cdl";
+import {
+  presetSwimlane,
+  presetFlow,
+  presetSequence,
+  presetTopology,
+  presetEr,
+  presetStateMachine,
+  presetClassDiagram,
+  presetMindMap,
+  presetFlowchart,
+} from "@/topics/catalog/presets.cdl";
 
 const items = [
   { label: "swimlane preset (3 lane 自動配置 + slug 自動)", d: presetSwimlane, docHref: "/docs/cdl/presets/swimlane" },
@@ -10,6 +20,9 @@ const items = [
   { label: "topology preset (group + container 配置、 構成図 / deployment 風)", d: presetTopology, docHref: "/docs/cdl/presets/topology" },
   { label: "er preset (entity + cardinality、 ER 図 / DB schema 風)", d: presetEr, docHref: "/docs/cdl/presets/er" },
   { label: "stateMachine preset (state + transition trigger、 FSM / workflow 風)", d: presetStateMachine, docHref: "/docs/cdl/presets/state-machine" },
+  { label: "classDiagram preset (class + attribute + relation、 UML クラス図風)", d: presetClassDiagram, docHref: "/docs/cdl/presets/class" },
+  { label: "mindMap preset (root + branch 放射、 idea / brain storm 風)", d: presetMindMap, docHref: "/docs/cdl/presets/mind" },
+  { label: "flowchart preset (2 lane 承認フロー、 approval / rejection 分岐)", d: presetFlowchart, docHref: "/docs/cdl/presets/flowchart" },
 ];
 ---
 
