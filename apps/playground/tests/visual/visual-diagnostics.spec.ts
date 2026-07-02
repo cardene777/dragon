@@ -33,6 +33,10 @@ const PAGES = [
   { url: "/catalog/text-dsl", label: "text-dsl" },
   { url: "/catalog/animation", label: "animation" },
   { url: "/catalog/styles", label: "styles" },
+  // PR #75 で追加 = editor + docs 各 landing でも G1-G10 gate 適用、
+  // 「著者が最初に見る page で geometry OK」 を担保する。 SPA render 済 diagram のみ検査対象。
+  { url: "/editor", label: "editor" },
+  { url: "/docs", label: "docs index" },
 ];
 
 // engine SSOT 定数 (world unit) を import。 v10.3 で COEFF 逆算 (0.02 / 0.12 / 0.35 / 4.0 の
@@ -103,8 +107,8 @@ async function collectDumps(page: Page): Promise<RawDump[]> {
         return {
           id: e.getAttribute("data-cdl-edge") ?? "",
           d: p?.getAttribute("d") ?? "",
-          fromId: e.getAttribute("data-cdl-edge-from") ?? undefined,
-          toId: e.getAttribute("data-cdl-edge-to") ?? undefined,
+          fromId: e.getAttribute("data-cdl-from") ?? undefined,
+          toId: e.getAttribute("data-cdl-to") ?? undefined,
         };
       });
       // viewBox 属性から 4 値抽出。 "-40 68 1820 928" 形式、 parseFloat 4 個。
@@ -198,7 +202,17 @@ function rectRectClearance(
 }
 
 interface Diagnostic {
-  gate: "G1-arrow-angle" | "G2-label-path" | "G3-label-node" | "G4-label-label" | "G5-predicted-vs-actual";
+  gate:
+    | "G1-arrow-angle"
+    | "G2-label-path"
+    | "G3-label-node"
+    | "G4-label-label"
+    | "G5-predicted-vs-actual"
+    | "G6-arrow-endpoint-anchor"
+    | "G7-label-char-range"
+    | "G8-node-overlap"
+    | "G9-edge-crossing"
+    | "G10-edge-node-cross";
   diagramId: string;
   detail: string;
   metric: number;
@@ -405,7 +419,205 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     }
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // G6. arrow endpoint anchoring (edge の始点 / 終点が from / to node bbox の縁付近)
+  //   engine visual-validate Axis 8 と対称。 実 DOM 座標 (px) で判定、 world 換算不要。
+  // ────────────────────────────────────────────────────────────────
+  const G6_ENDPOINT_TOL_PX = 12; // scale 3.7 で world 4 = px 1.1 の実測 tolerance、 12 は余裕
+  const G6_ENDPOINT_FAR_LIMIT_PX = 40;
+  for (const e of edges) {
+    if (!e.d) continue;
+    const worldPts = extractPathPoints(e.d);
+    if (worldPts.length < 2) continue;
+    const screenPts = worldPts.map((p) => applyCtm(p, ctm));
+    const nodeById = new Map(nodes.map((n) => [n.id, n]));
+    const endpoints: Array<{ side: "from" | "to"; pt: { x: number; y: number }; nodeId?: string }> = [];
+    endpoints.push({ side: "from", pt: screenPts[0]!, nodeId: e.fromId });
+    endpoints.push({ side: "to", pt: screenPts[screenPts.length - 1]!, nodeId: e.toId });
+    for (const ep of endpoints) {
+      if (!ep.nodeId) continue;
+      const n = nodeById.get(ep.nodeId);
+      if (!n) continue;
+      // sequence preset の lifeline (w<10) は intentional な細線構造、 endpoint anchor 検証対象外。
+      if (n.w < 10 || n.h < 10) continue;
+      const rect = { x: n.x, y: n.y, w: n.w, h: n.h };
+      const inside = ep.pt.x > rect.x + G6_ENDPOINT_TOL_PX && ep.pt.x < rect.x + rect.w - G6_ENDPOINT_TOL_PX
+        && ep.pt.y > rect.y + G6_ENDPOINT_TOL_PX && ep.pt.y < rect.y + rect.h - G6_ENDPOINT_TOL_PX;
+      if (inside) {
+        const depth = Math.min(ep.pt.x - rect.x, rect.x + rect.w - ep.pt.x, ep.pt.y - rect.y, rect.y + rect.h - ep.pt.y);
+        out.push({
+          gate: "G6-arrow-endpoint-anchor",
+          diagramId,
+          detail: `edge ${e.id} ${ep.side} endpoint が node ${ep.nodeId} 内側に沈み込み depth=${depth.toFixed(1)}px`,
+          metric: Math.round(depth),
+          threshold: `≤${G6_ENDPOINT_TOL_PX}px (inside)`,
+        });
+        continue;
+      }
+      // 外側で縁から遠すぎる場合
+      const dx = Math.max(rect.x - ep.pt.x, 0, ep.pt.x - (rect.x + rect.w));
+      const dy = Math.max(rect.y - ep.pt.y, 0, ep.pt.y - (rect.y + rect.h));
+      const distOut = Math.hypot(dx, dy);
+      if (distOut > G6_ENDPOINT_FAR_LIMIT_PX) {
+        out.push({
+          gate: "G6-arrow-endpoint-anchor",
+          diagramId,
+          detail: `edge ${e.id} ${ep.side} endpoint が node ${ep.nodeId} 縁から dist=${distOut.toFixed(1)}px 離れている`,
+          metric: Math.round(distOut),
+          threshold: `≤${G6_ENDPOINT_FAR_LIMIT_PX}px (outside)`,
+        });
+      }
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // G7. label char range (label bbox が text の実占有幅を最小限含む)
+  //   engine visual-validate Axis 9 と対称。 実 DOM label bbox が「label text をちゃんと包含」
+  //   していない場合 (text 溢れ / 過剰縮小) を検知。 label element の getBoundingClientRect vs
+  //   text element の getBoundingClientRect で判定 (data-cdl-edge-label-for 要素は g、 内部 rect と text)。
+  //   今回は rect (label bbox) w が 0 or 明らかに text 長より狭い場合のみ warn (簡易実装)。
+  // ────────────────────────────────────────────────────────────────
+  const G7_MIN_LABEL_W_PX = 16;
+  for (const l of labels) {
+    if (!l.text) continue;
+    // 実 label bbox 幅 vs text char 数 × 最低 char 幅 4px (Inter Bold 22 での i 相当) の下限判定
+    const expectedMinW = l.text.length * 4;
+    if (l.w < Math.max(G7_MIN_LABEL_W_PX, expectedMinW * 0.5)) {
+      out.push({
+        gate: "G7-label-char-range",
+        diagramId,
+        detail: `label ${l.id} bbox width ${l.w.toFixed(1)}px が text "${l.text}" 実占有下限より狭い`,
+        metric: Math.round(l.w),
+        threshold: `≥${Math.max(G7_MIN_LABEL_W_PX, Math.round(expectedMinW * 0.5))}px`,
+      });
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // G8. node overlap (node bbox 同士が実 DOM で重なり)
+  //   engine visual-validate Axis 10 と対称。 spacer (id endsWith "-spacer" or /^s\d+-/) と
+  //   lifeline (w < 8) は除外。
+  // ────────────────────────────────────────────────────────────────
+  const isSpacer = (n: { id: string; w: number; h: number }): boolean =>
+    n.id.endsWith("-spacer") || /^s\d+-/.test(n.id) || (n.w <= 10 && n.h <= 10);
+  const relevantNodes = nodes.filter((n) => !isSpacer(n));
+  for (let i = 0; i < relevantNodes.length; i++) {
+    const a = relevantNodes[i]!;
+    for (let j = i + 1; j < relevantNodes.length; j++) {
+      const b = relevantNodes[j]!;
+      const dx = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const dy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if (dx > 0 && dy > 0) {
+        out.push({
+          gate: "G8-node-overlap",
+          diagramId,
+          detail: `node ${a.id} ↔ ${b.id} 重なり area=${(dx * dy).toFixed(0)}px²`,
+          metric: Math.round(dx * dy),
+          threshold: `=0px²`,
+        });
+      }
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // G9. edge crossing (edge path 間の実 DOM 上の交差数)
+  //   engine visual-validate Axis 11 と対称。 CROSSING_WARN 4 件で warn。
+  // ────────────────────────────────────────────────────────────────
+  const G9_CROSSING_WARN = 4;
+  let g9Total = 0;
+  const g9Pairs: string[] = [];
+  const edgeScreen: Array<{ id: string; segs: Array<{ x1: number; y1: number; x2: number; y2: number }> }> = [];
+  for (const e of edges) {
+    if (!e.d) continue;
+    const pts = extractPathPoints(e.d).map((p) => applyCtm(p, ctm));
+    const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+    for (let i = 0; i + 1 < pts.length; i++) {
+      segs.push({ x1: pts[i]!.x, y1: pts[i]!.y, x2: pts[i + 1]!.x, y2: pts[i + 1]!.y });
+    }
+    edgeScreen.push({ id: e.id, segs });
+  }
+  for (let i = 0; i < edgeScreen.length; i++) {
+    const a = edgeScreen[i]!;
+    for (let j = i + 1; j < edgeScreen.length; j++) {
+      const b = edgeScreen[j]!;
+      let pairCross = 0;
+      for (const sa of a.segs) {
+        for (const sb of b.segs) {
+          if (segmentsIntersectSpec(sa, sb)) pairCross++;
+        }
+      }
+      if (pairCross > 0) {
+        g9Total += pairCross;
+        g9Pairs.push(`${a.id}×${b.id}(${pairCross})`);
+      }
+    }
+  }
+  if (g9Total >= G9_CROSSING_WARN) {
+    out.push({
+      gate: "G9-edge-crossing",
+      diagramId,
+      detail: `diagram 内 edge 交差 ${g9Total} 件 (pairs: ${g9Pairs.slice(0, 5).join(", ")}${g9Pairs.length > 5 ? " 他" : ""})`,
+      metric: g9Total,
+      threshold: `<${G9_CROSSING_WARN}`,
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // G10. edge-node cross (edge path が「関係ない node」 bbox を貫通)
+  //   engine visual-validate Axis 12 と対称。 spacer 除外、 e.fromId / e.toId 以外の node のみ判定。
+  // ────────────────────────────────────────────────────────────────
+  for (const e of edges) {
+    if (!e.d) continue;
+    const pts = extractPathPoints(e.d).map((p) => applyCtm(p, ctm));
+    if (pts.length < 2) continue;
+    const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+    for (let i = 0; i + 1 < pts.length; i++) {
+      segs.push({ x1: pts[i]!.x, y1: pts[i]!.y, x2: pts[i + 1]!.x, y2: pts[i + 1]!.y });
+    }
+    for (const n of relevantNodes) {
+      if (n.id === e.fromId || n.id === e.toId) continue;
+      if (segsCrossRectSpec(segs, { x: n.x, y: n.y, w: n.w, h: n.h })) {
+        out.push({
+          gate: "G10-edge-node-cross",
+          diagramId,
+          detail: `edge ${e.id} (from=${e.fromId ?? "?"} to=${e.toId ?? "?"}) が関係ない node ${n.id} を貫通`,
+          metric: 1,
+          threshold: `=0 (no crossing)`,
+        });
+      }
+    }
+  }
+
   return out;
+}
+
+function segmentsIntersectSpec(
+  a: { x1: number; y1: number; x2: number; y2: number },
+  b: { x1: number; y1: number; x2: number; y2: number },
+): boolean {
+  const d1 = (b.x2 - b.x1) * (a.y1 - b.y1) - (b.y2 - b.y1) * (a.x1 - b.x1);
+  const d2 = (b.x2 - b.x1) * (a.y2 - b.y1) - (b.y2 - b.y1) * (a.x2 - b.x1);
+  const d3 = (a.x2 - a.x1) * (b.y1 - a.y1) - (a.y2 - a.y1) * (b.x1 - a.x1);
+  const d4 = (a.x2 - a.x1) * (b.y2 - a.y1) - (a.y2 - a.y1) * (b.x2 - a.x1);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+function segsCrossRectSpec(
+  segs: Array<{ x1: number; y1: number; x2: number; y2: number }>,
+  rect: { x: number; y: number; w: number; h: number },
+): boolean {
+  const edges = [
+    { x1: rect.x, y1: rect.y, x2: rect.x + rect.w, y2: rect.y },
+    { x1: rect.x + rect.w, y1: rect.y, x2: rect.x + rect.w, y2: rect.y + rect.h },
+    { x1: rect.x, y1: rect.y + rect.h, x2: rect.x + rect.w, y2: rect.y + rect.h },
+    { x1: rect.x, y1: rect.y, x2: rect.x, y2: rect.y + rect.h },
+  ];
+  for (const s of segs) {
+    for (const re of edges) {
+      if (segmentsIntersectSpec(s, re)) return true;
+    }
+  }
+  return false;
 }
 
 function formatReport(pageLabel: string, diagnostics: Diagnostic[]): string {
@@ -437,9 +649,9 @@ function formatReport(pageLabel: string, diagnostics: Diagnostic[]): string {
   return lines.join("\n");
 }
 
-test.describe("Visual diagnostics (Tier C-1 拡張, G1-G4)", () => {
+test.describe("Visual diagnostics (Tier C-1 拡張, G1-G10)", () => {
   for (const { url, label } of PAGES) {
-    test(`${label} (${url}) は arrow angle / label-path / label-node / label-label の 4 gate 全 pass`, async ({
+    test(`${label} (${url}) は G1-G10 hard gate 全 pass`, async ({
       page,
     }) => {
       await page.goto(url, { waitUntil: "networkidle" });
@@ -449,12 +661,29 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G4)", () => {
       for (const d of dumps) {
         diagnostics.push(...detectDiagnostics(d));
       }
-      // G1-G4 = hard gate (fail 対象)、 G5 = warn only (measureTextWidth 実測係数化後の size 差残存を検知)。
-      // cdl PR #74 で measureTextWidth を Inter Bold @ Chrome 実測係数 (英字 lowercase 0.73 em / CJK 1.08 em /
-      // digits 0.72 em 等) + render 側 boxW も同一 formula に統一、 G5 warn 84 → 10 件 (88% 削減)。
-      // 残 10 件は sub 有無 label の rect boxH 差 (predict 64 vs render 68) と mono sub の tolerance 端。
-      const hardGate = diagnostics.filter((d) => d.gate !== "G5-predicted-vs-actual");
-      const softGate = diagnostics.filter((d) => d.gate === "G5-predicted-vs-actual");
+      // Gate 分類 (cdl PR #75 拡張)。
+      //  hard gate = 視覚破綻を起こすので fail (fail 対象) ... G1 arrow-angle / G2 label-path /
+      //    G3 label-node / G4 label-label / G6 arrow-endpoint-anchor / G8 node-overlap / G10 edge-node-cross。
+      //  soft gate = 視覚上目立たない or 意図的許容 ... G5 predicted-vs-actual (size 端) /
+      //    G7 label-char-range (bbox 実測仕様差) / G9 edge-crossing (4 件超 warn)。
+      const HARD_GATES = new Set([
+        "G1-arrow-angle",
+        "G2-label-path",
+        "G3-label-node",
+        "G4-label-label",
+        "G6-arrow-endpoint-anchor",
+        "G8-node-overlap",
+        "G10-edge-node-cross",
+      ]);
+      // 意図的な pattern (pattern-passthrough / pattern-hook = a→router→c 通過型) の G10 は許容。
+      // engine visual-validate-sweep test 側の isGatingViolation と対称。
+      const INTENTIONAL_G10 = new Set(["pattern-passthrough", "pattern-hook"]);
+      const hardGate = diagnostics.filter((d) => {
+        if (!HARD_GATES.has(d.gate)) return false;
+        if (d.gate === "G10-edge-node-cross" && INTENTIONAL_G10.has(d.diagramId)) return false;
+        return true;
+      });
+      const softGate = diagnostics.filter((d) => !HARD_GATES.has(d.gate));
       const hardReport = formatReport(label, hardGate);
       if (hardGate.length > 0) {
         console.error(`[visual-diagnostics] ${hardReport}`);

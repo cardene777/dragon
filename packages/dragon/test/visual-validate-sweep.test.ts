@@ -59,6 +59,14 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
 // 全撤廃、 allowlist なしで全 diagram を必須 gating 化する。
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
+  // pattern-passthrough は「a → router → c」 の意図的な通過設計、 edge-node-cross は design 通り。
+  // pattern-hook は「a → hook → c」 の hook 割込み design、 同様に intentional 交差。
+  if (
+    (v.diagramId === "pattern-passthrough" || v.diagramId === "pattern-hook") &&
+    v.axis === "edge-node-cross"
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -106,6 +114,20 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
         r.violations.filter(isGatingViolation).map((v) => ({ diagramId: r.diagramId, ...v })),
       );
       const detail = formatReport(report.reports);
+      // 5 新軸 (PR #75) 込みの warn / error 集計を stderr に流す (info は vitest で suppress される)
+      const warnByAxis = new Map<string, number>();
+      const errByAxis = new Map<string, number>();
+      for (const r of report.reports) {
+        for (const v of r.violations) {
+          const bucket = v.severity === "warn" ? warnByAxis : errByAxis;
+          bucket.set(v.axis, (bucket.get(v.axis) ?? 0) + 1);
+        }
+      }
+      if (warnByAxis.size + errByAxis.size > 0) {
+        const wSummary = Array.from(warnByAxis.entries()).map(([a, n]) => `${a}=${n}`).join(" ");
+        const eSummary = Array.from(errByAxis.entries()).map(([a, n]) => `${a}=${n}`).join(" ");
+        process.stderr.write(`[visual-validate-sweep ${name}] err(${eSummary || "-"}) warn(${wSummary || "-"})\n`);
+      }
       expect(gatingViolations, `\n${detail}`).toEqual([]);
     });
   }
