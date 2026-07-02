@@ -303,6 +303,9 @@ export function PresetMap(): React.JSX.Element {
   // node click → diagram render
   useEffect(() => {
     if (!selected) {
+      // selected 変化に derived state (diagram) を同期する legitimate pattern。 [selected]
+      // deps で cascading render なし。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDiagram(null);
       return;
     }

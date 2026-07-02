@@ -75,6 +75,9 @@ export function SearchBar() {
   // debounce search
   useEffect(() => {
     if (!query.trim() || !pagefind) {
+      // query / pagefind 変化に derived state (results / activeIdx) を同期する legitimate
+      // pattern。 空 query 時の即時 reset で cascading render なし。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setActiveIdx(-1);
       return;
