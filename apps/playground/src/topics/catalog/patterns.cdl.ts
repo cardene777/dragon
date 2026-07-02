@@ -169,7 +169,7 @@ export const patternRollback = diagram("pattern-rollback", { topic: "pattern: Ro
   .node("db", { lane: "s", stack: 0, kind: "storage", title: "DB", rows: ["balance: {balance}"] })
   .edge("client", "tx", { id: "e1", label: "BEGIN", tone: "accent", style: "dotted-flow" })
   .edge("tx", "op", { id: "e2", label: "execute", tone: "teal", style: "dotted-flow" })
-  .edge("op", "db", { id: "e3", label: "tentative write", tone: "warning", style: "dotted-flow" })
+  .edge("op", "db", { id: "e3", label: "write", tone: "warning", style: "dotted-flow" })
   .edge("op", "commit", { id: "e4", label: "on error", tone: "error", style: "dotted-flow" })
   .edge("commit", "db", { id: "e5", label: "ROLLBACK", tone: "error", style: "dotted-flow" })
   .phase("begin", { duration: 1500, title: "BEGIN", body: "tx 開始。" }, (p: PhaseBuilder) => p.activate("client", "tx", "e1").badge("BEGIN"))
