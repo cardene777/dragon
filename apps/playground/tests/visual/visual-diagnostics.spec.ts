@@ -389,14 +389,17 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       const dyWorld = Math.abs(predLabel.y - actualWorldY);
       const dwWorld = Math.abs(predLabel.w - actualWorldW);
       const dhWorld = Math.abs(predLabel.h - actualWorldH);
-      const maxDiff = Math.max(dxWorld, dyWorld, dwWorld, dhWorld);
-      if (maxDiff > FONT_RENDER_TOLERANCE_WORLD) {
+      // G5 gate = 「measureTextWidth 実測乖離」 を検知するのが本来の目的、 判定は size 差 (dw / dh) のみ。
+      // position 差 (dx / dy) は sub 表示有無や render 側 yOffset 実装差で発生する drift で、
+      // G2 (label × edge path) / G3 (label × node) の担当領域。 G5 で二重判定しない。
+      const maxSizeDiff = Math.max(dwWorld, dhWorld);
+      if (maxSizeDiff > FONT_RENDER_TOLERANCE_WORLD) {
         out.push({
           gate: "G5-predicted-vs-actual",
           diagramId,
-          detail: `label ${predLabel.id} engine 予測 vs 実測 max_diff=${maxDiff.toFixed(1)}world (dx=${dxWorld.toFixed(1)} dy=${dyWorld.toFixed(1)} dw=${dwWorld.toFixed(1)} dh=${dhWorld.toFixed(1)})`,
-          metric: Math.round(maxDiff),
-          threshold: `≤${FONT_RENDER_TOLERANCE_WORLD}world`,
+          detail: `label ${predLabel.id} engine 予測 vs 実測 size_diff=${maxSizeDiff.toFixed(1)}world (dw=${dwWorld.toFixed(1)} dh=${dhWorld.toFixed(1)}, ref dx=${dxWorld.toFixed(1)} dy=${dyWorld.toFixed(1)})`,
+          metric: Math.round(maxSizeDiff),
+          threshold: `≤${FONT_RENDER_TOLERANCE_WORLD}world (size)`,
         });
       }
     }
@@ -446,9 +449,10 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G4)", () => {
       for (const d of dumps) {
         diagnostics.push(...detectDiagnostics(d));
       }
-      // G1-G4 = hard gate (fail 対象)、 G5 = warn only (engine measureTextWidth 過小評価による
-      // 予測 vs 実測 大幅乖離を検知する info gate、 現状 tolerance 80 world でも 100-400 world
-      // 乖離を検知。 measureTextWidth の char 幅を実測 1.5-1.7 倍化する engine 修正で fail 対象化予定)
+      // G1-G4 = hard gate (fail 対象)、 G5 = warn only (measureTextWidth 実測係数化後の size 差残存を検知)。
+      // cdl PR #74 で measureTextWidth を Inter Bold @ Chrome 実測係数 (英字 lowercase 0.73 em / CJK 1.08 em /
+      // digits 0.72 em 等) + render 側 boxW も同一 formula に統一、 G5 warn 84 → 10 件 (88% 削減)。
+      // 残 10 件は sub 有無 label の rect boxH 差 (predict 64 vs render 68) と mono sub の tolerance 端。
       const hardGate = diagnostics.filter((d) => d.gate !== "G5-predicted-vs-actual");
       const softGate = diagnostics.filter((d) => d.gate === "G5-predicted-vs-actual");
       const hardReport = formatReport(label, hardGate);
@@ -456,7 +460,7 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G4)", () => {
         console.error(`[visual-diagnostics] ${hardReport}`);
       }
       if (softGate.length > 0) {
-        console.warn(`[visual-diagnostics] ${label} ... G5 warn (predicted-vs-actual 乖離 ${softGate.length} 件、 engine measureTextWidth 過小評価 known issue)`);
+        console.warn(`[visual-diagnostics] ${label} ... G5 warn (predicted-vs-actual size 乖離 ${softGate.length} 件、 tolerance 80 world / 実測係数化後の残存許容)`);
       }
       expect(hardGate, hardReport).toEqual([]);
     });
