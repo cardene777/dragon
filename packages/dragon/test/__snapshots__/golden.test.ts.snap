@@ -54,10 +54,10 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -137,10 +137,10 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1630,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -199,10 +199,10 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "states": [],
   "topic": "E03",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -261,10 +261,10 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -323,10 +323,10 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -433,10 +433,10 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 382,
+    "h": 514,
     "w": 2170,
     "x": -30,
-    "y": -44,
+    "y": -114,
   },
 }
 `;
@@ -495,10 +495,10 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "states": [],
   "topic": "E07",
   "viewBox": {
-    "h": 375,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -37,
+    "y": -34,
   },
 }
 `;
@@ -557,7 +557,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "states": [],
   "topic": "E08",
   "viewBox": {
-    "h": 362,
+    "h": 410,
     "w": 1104,
     "x": -44,
     "y": -24,
@@ -604,10 +604,10 @@ exports[`golden: er preset > E09 self-reference 1`] = `
   "states": [],
   "topic": "E09",
   "viewBox": {
-    "h": 372.10835055998655,
+    "h": 394.46903033498444,
     "w": 550,
     "x": -30,
-    "y": -32.10835055998655,
+    "y": -54.46903033498444,
   },
 }
 `;
@@ -729,10 +729,10 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 511.8885438199983,
+    "h": 634,
     "w": 2710,
     "x": -30,
-    "y": -44,
+    "y": -114,
   },
 }
 `;
@@ -2459,10 +2459,10 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "states": [],
   "topic": "X06",
   "viewBox": {
-    "h": 370.54240853799007,
+    "h": 372,
     "w": 1090,
     "x": -30,
-    "y": -32.54240853799007,
+    "y": -34,
   },
 }
 `;
@@ -8482,7 +8482,7 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "states": [],
   "topic": "M03",
   "viewBox": {
-    "h": 484.10835055998655,
+    "h": 576,
     "w": 1780,
     "x": -40,
     "y": -75,
@@ -8831,7 +8831,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   ],
   "topic": "M07",
   "viewBox": {
-    "h": 435,
+    "h": 430,
     "w": 1344,
     "x": -44,
     "y": -24,
@@ -9143,7 +9143,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   ],
   "topic": "M10",
   "viewBox": {
-    "h": 435,
+    "h": 430,
     "w": 1344,
     "x": -44,
     "y": -24,
@@ -9278,7 +9278,7 @@ exports[`golden: swimlane preset > L02 3 lane 1`] = `
   "states": [],
   "topic": "L02",
   "viewBox": {
-    "h": 450,
+    "h": 465,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -9521,7 +9521,7 @@ exports[`golden: swimlane preset > L05 animation focus + badge 1`] = `
   "states": [],
   "topic": "L05",
   "viewBox": {
-    "h": 450,
+    "h": 465,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -9719,7 +9719,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
   "states": [],
   "topic": "L07",
   "viewBox": {
-    "h": 382,
+    "h": 460,
     "w": 1524,
     "x": -44,
     "y": -24,
@@ -9803,10 +9803,10 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
   "states": [],
   "topic": "L08",
   "viewBox": {
-    "h": 456,
+    "h": 526,
     "w": 1464,
     "x": -44,
-    "y": -30,
+    "y": -100,
   },
 }
 `;
@@ -10245,8 +10245,8 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "states": [],
   "topic": "L14",
   "viewBox": {
-    "h": 463.10835055998655,
-    "w": 504,
+    "h": 394,
+    "w": 587,
     "x": -44,
     "y": -24,
   },
@@ -10738,8 +10738,8 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 684,
-    "x": -44,
+    "w": 718,
+    "x": -78,
     "y": 8,
   },
 }
