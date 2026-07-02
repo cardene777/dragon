@@ -7,6 +7,7 @@
  * baseline 不一致 = font / theme color / mask filter / kind shape 等の崩れ regression。
  */
 import { test, expect } from "@playwright/test";
+import { waitForCdlDiagram } from "./helpers/wait-for-cdl";
 
 const presets = [
   { slug: "swim-demo", label: "swimlane preset" },
@@ -24,9 +25,7 @@ test.describe("Visual regression - main presets (/catalog/presets)", () => {
     test(`preset ${slug} (${label}) SVG snapshot`, async ({ page }) => {
       await page.goto(PAGE_URL, { waitUntil: "networkidle" });
       // 各 preset は CdlDiagramThumbnail で render される (data-cdl-diagram=slug + svg)
-      await page.waitForSelector(`[data-cdl-diagram="${slug}"] svg`, { timeout: 10_000 });
-      // animation がある preset (swim-demo 等) は初期 phase 表示まで少し待つ
-      await page.waitForTimeout(800);
+      await waitForCdlDiagram(page, slug);
       // 同一 slug の DOM が SSR + client-hydration で 2 つあるケースあり ... .first() で安定化
       const el = page.locator(`[data-cdl-diagram="${slug}"]`).first();
       await expect(el).toHaveScreenshot(`${slug}.png`, {

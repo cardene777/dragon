@@ -8,6 +8,7 @@
  * baseline 不一致 = SVG path / fill / stroke / text rendering の崩れ。
  */
 import { test, expect } from "@playwright/test";
+import { waitForCdlDiagram } from "./helpers/wait-for-cdl";
 
 const subset = [
   // A. API 系
@@ -50,12 +51,10 @@ test.describe("Visual regression - cookbook subset (/catalog/cookbook)", () => {
   for (const { slug, label } of subset) {
     test(`cookbook ${slug} (${label}) SVG snapshot`, async ({ page }) => {
       await page.goto(PAGE_URL, { waitUntil: "networkidle" });
-      await page.waitForSelector(`[data-cdl-diagram="${slug}"] svg`, { timeout: 10_000 });
-      await page.waitForTimeout(1000);
+      await waitForCdlDiagram(page, slug);
       const el = page.locator(`[data-cdl-diagram="${slug}"]`).first();
       // cookbook の thumbnail を 1 件 scroll into view してから撮影
       await el.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(400);
       await expect(el).toHaveScreenshot(`cookbook-${slug}.png`, {
         maxDiffPixelRatio: 0.01,
         animations: "disabled",

@@ -15,8 +15,18 @@ test.describe("Visual regression - Editor (/editor)", () => {
     // v4 editor で class 名 refactor 済 (cdl-editor-* → v4-editor-*)
     await page.waitForSelector(".v4-editor-code", { timeout: 10_000 });
     await page.waitForSelector(".v4-editor-preview svg", { timeout: 10_000 });
-    // CdlEditor の textarea は時間で hydrate されるため十分待つ
-    await page.waitForTimeout(1500);
+    // hydration + initial render 完了を条件明示で待つ (waitForTimeout の任意 sleep 撤廃)
+    await page.waitForFunction(
+      () => {
+        const svg = document.querySelector(".v4-editor-preview svg");
+        if (!svg) return false;
+        const nodes = svg.querySelectorAll("[data-cdl-node]");
+        return nodes.length > 0;
+      },
+      undefined,
+      { timeout: 10_000 },
+    );
+    await page.evaluate(() => document.fonts.ready);
     const editorPreview = page.locator(".v4-editor-preview").first();
     await expect(editorPreview).toHaveScreenshot("editor-preview.png", {
       maxDiffPixelRatio: 0.02,
