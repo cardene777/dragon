@@ -198,12 +198,31 @@ function rectRectClearance(
 }
 
 interface Diagnostic {
-  gate: "G1-arrow-angle" | "G2-label-path" | "G3-label-node" | "G4-label-label";
+  gate: "G1-arrow-angle" | "G2-label-path" | "G3-label-node" | "G4-label-label" | "G5-predicted-vs-actual";
   diagramId: string;
   detail: string;
   metric: number;
   threshold: string;
 }
+
+// G5 gate 用 = engine 予測 bbox JSON fixture (packages/dragon/test/predict-bbox-fixture.test.ts が生成)。
+// 各 diagram の node / label の world 単位予測 bbox。 Playwright DOM 実測を world に戻して diff。
+interface PredictedBBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+interface PredictedDiagram {
+  diagramId: string;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
+  nodes: Array<{ id: string } & PredictedBBox>;
+  labels: Array<{ id: string; text: string } & PredictedBBox>;
+}
+import predictedBboxesJson from "./__fixtures__/predicted-bboxes.json" with { type: "json" };
+const predictedBboxes = predictedBboxesJson as PredictedDiagram[];
+const predictedById = new Map<string, PredictedDiagram>(predictedBboxes.map((p) => [p.diagramId, p]));
 
 function detectDiagnostics(dump: RawDump): Diagnostic[] {
   const out: Diagnostic[] = [];
@@ -349,6 +368,40 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     }
   }
 
+  // G5. engine 予測 bbox と DOM 実測 bbox の diff (pixel-perfect assertion)
+  // 実測 px → world 変換 → engine 予測 world bbox と diff、 FONT_RENDER_TOLERANCE_WORLD 内なら pass
+  const predicted = predictedById.get(diagramId);
+  if (predicted && dump.svgClientRect && dump.viewBox) {
+    const svgLeftPx = dump.svgClientRect.left;
+    const svgTopPx = dump.svgClientRect.top;
+    // 予測 label と 実測 label の突合 (id ベース)
+    const actualLabelById = new Map<string, { x: number; y: number; w: number; h: number }>();
+    for (const l of labels) actualLabelById.set(l.id, { x: l.x, y: l.y, w: l.w, h: l.h });
+    for (const predLabel of predicted.labels) {
+      const actual = actualLabelById.get(predLabel.id);
+      if (!actual) continue;
+      // 実測 px を SVG offset 引いて viewBox 座標に、 * scale で world 単位に
+      const actualWorldX = (actual.x - svgLeftPx) * scale + dump.viewBox.x;
+      const actualWorldY = (actual.y - svgTopPx) * scale + dump.viewBox.y;
+      const actualWorldW = actual.w * scale;
+      const actualWorldH = actual.h * scale;
+      const dxWorld = Math.abs(predLabel.x - actualWorldX);
+      const dyWorld = Math.abs(predLabel.y - actualWorldY);
+      const dwWorld = Math.abs(predLabel.w - actualWorldW);
+      const dhWorld = Math.abs(predLabel.h - actualWorldH);
+      const maxDiff = Math.max(dxWorld, dyWorld, dwWorld, dhWorld);
+      if (maxDiff > FONT_RENDER_TOLERANCE_WORLD) {
+        out.push({
+          gate: "G5-predicted-vs-actual",
+          diagramId,
+          detail: `label ${predLabel.id} engine 予測 vs 実測 max_diff=${maxDiff.toFixed(1)}world (dx=${dxWorld.toFixed(1)} dy=${dyWorld.toFixed(1)} dw=${dwWorld.toFixed(1)} dh=${dhWorld.toFixed(1)})`,
+          metric: Math.round(maxDiff),
+          threshold: `≤${FONT_RENDER_TOLERANCE_WORLD}world`,
+        });
+      }
+    }
+  }
+
   return out;
 }
 
@@ -393,11 +446,19 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G4)", () => {
       for (const d of dumps) {
         diagnostics.push(...detectDiagnostics(d));
       }
-      const report = formatReport(label, diagnostics);
-      if (diagnostics.length > 0) {
-        console.error(`[visual-diagnostics] ${report}`);
+      // G1-G4 = hard gate (fail 対象)、 G5 = warn only (engine measureTextWidth 過小評価による
+      // 予測 vs 実測 大幅乖離を検知する info gate、 現状 tolerance 80 world でも 100-400 world
+      // 乖離を検知。 measureTextWidth の char 幅を実測 1.5-1.7 倍化する engine 修正で fail 対象化予定)
+      const hardGate = diagnostics.filter((d) => d.gate !== "G5-predicted-vs-actual");
+      const softGate = diagnostics.filter((d) => d.gate === "G5-predicted-vs-actual");
+      const hardReport = formatReport(label, hardGate);
+      if (hardGate.length > 0) {
+        console.error(`[visual-diagnostics] ${hardReport}`);
       }
-      expect(diagnostics, report).toEqual([]);
+      if (softGate.length > 0) {
+        console.warn(`[visual-diagnostics] ${label} ... G5 warn (predicted-vs-actual 乖離 ${softGate.length} 件、 engine measureTextWidth 過小評価 known issue)`);
+      }
+      expect(hardGate, hardReport).toEqual([]);
     });
   }
 });
