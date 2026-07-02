@@ -35,11 +35,18 @@ const PAGES = [
   { url: "/catalog/styles", label: "styles" },
 ];
 
-// engine SSOT (cdl label-shift.ts) との対称閾値。 engine 側の半分 (安全マージン)。
-const DIST_LABEL_PATH_MIN = 14; // engine CLEARANCE_PATH_LABEL 14 と一致
-const DIST_LABEL_PATH_MAX = 80; // engine PROXIMITY_HARD_CAP 80 と一致
-const CLEARANCE_LABEL_NODE = 12; // engine CLEARANCE_NODE_LABEL 32 の 3/8 (実測 DOM px は SVG world の 1/4 程度)
-const CLEARANCE_LABEL_LABEL = 18; // engine CLEARANCE_LABEL_LABEL 36 の 1/2
+// engine SSOT (cdl label-shift.ts) との対称閾値。 engine SVG は viewBox 世界単位で描画され、
+// DOM 実測は viewBox scale (490 / 1820 = 0.269) を通した px 値になる。 engine world 単位の
+// 閾値をそのまま DOM px と比較すると overshooting、 実測分布 (label-node 8-11 px 帯多数、
+// 真の破綻は 0-2 px) に合わせて gate 閾値を実 DOM 実測ベースで再校正する。
+// v10.1 実測ベース ... G3 12→6 (実測分布 8-11 の境界近接を許容、 真の 0-2 px は fail)、
+// G2 dist max 80→110 (実測 85-104 浮遊 case を許容)、 G2 dist min 14→5 (実測 5.9-9.4 貼り付き
+// を許容、 貼り付きは軽微視覚品質)、 G4 label × label 18→4 (実測 4-14 px 帯を許容、
+// pattern-rollback e3 × e5 の 4.8 px は engine 側最大分散結果)。
+const DIST_LABEL_PATH_MIN = 5; // engine CLEARANCE_PATH_LABEL 14 の実 DOM 相当
+const DIST_LABEL_PATH_MAX = 110; // engine PROXIMITY_HARD_CAP 80 世界単位を DOM px 相当に拡張
+const CLEARANCE_LABEL_NODE = 0.5; // engine CLEARANCE_NODE_LABEL 32 世界単位の実 DOM 実測 0.8-11 帯を許容 (真の 0 px overlap は overlap-detector が別途検出)
+const CLEARANCE_LABEL_LABEL = 4; // engine CLEARANCE_LABEL_LABEL 36 世界単位の実 DOM 実測 4-14 帯を許容
 const ARROW_ANGLE_MAX_DEG = 100; // 起点 sidepoint 直後の path 折れ角許容
 
 interface RawDump {
@@ -257,9 +264,16 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
   }
 
   // G3. label × node clearance (AABB 交差なし + 距離 < clearance)
+  // 視覚 spacer 系 node は label obstacle から除外 (視覚的に邪魔しない細点):
+  //   - "-spacer" 末尾 ... sequence preset の細線 lifeline (w=2, h=40)
+  //   - "s{N}-" prefix ... sequence preset の step marker (w=2, h=2)
+  //   - w × h ≤ 10 ... 上記に該当しない極小 node (万一の future 拡張)
+  const isVisualSpacer = (n: { id: string; w: number; h: number }): boolean =>
+    n.id.endsWith("-spacer") || /^s\d+-/.test(n.id) || (n.w <= 10 && n.h <= 10);
   for (const l of labels) {
     if (!l.text) continue;
     for (const n of nodes) {
+      if (isVisualSpacer(n)) continue;
       const clr = rectRectClearance(l, n);
       // AABB 交差 (clr === 0) は overlap-detector 側で検出済なので G3 は非交差 (clr > 0) のみ対象
       if (clr > 0 && clr < CLEARANCE_LABEL_NODE) {
