@@ -259,11 +259,6 @@ actors:
   },
 ];
 
-const CLUSTER_COLOR: Record<PresetNode["cluster"], string> = {
-  basic: "rgba(45,106,143,0.06)",   // teal
-  domain: "rgba(194,65,12,0.08)",   // orange
-  extended: "rgba(109,40,217,0.06)", // purple
-};
 const CLUSTER_STROKE: Record<PresetNode["cluster"], string> = {
   basic: "#2d6a8f",
   domain: "#c2410c",
@@ -314,7 +309,7 @@ export function PresetMap(): React.JSX.Element {
     try {
       const d = textDslToDiagram(selected.sampleDsl);
       setDiagram(d);
-    } catch (e) {
+    } catch {
       setDiagram(null);
     }
   }, [selected]);

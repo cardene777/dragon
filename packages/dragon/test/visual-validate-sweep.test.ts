@@ -36,7 +36,6 @@ function collectDiagrams(mod: ModuleLike, source: string): CdlDiagram[] {
     }
   }
   if (out.length === 0) {
-    // eslint-disable-next-line no-console
     console.warn(`[visual-validate-sweep] ${source} に CdlDiagram export がない`);
   }
   return out;

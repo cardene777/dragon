@@ -53,7 +53,6 @@ import type {
   DslSet,
   DslError,
   PresetType,
-  Position,
   DslLane,
   DslGroup,
   DslViewport,
@@ -140,7 +139,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let title: string | null = null;
   let type: PresetType | null = null;
   let actors: DslActor[] = [];
-  let flow: DslStep[] = [];
+  const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
   let viewport: DslViewport | undefined = undefined;
   let lanesMap: Record<string, DslLane> | undefined = undefined;
@@ -428,7 +427,7 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
   const colonIdx = raw.indexOf(":");
   if (colonIdx < 0) return null;
   const name = raw.slice(0, colonIdx);
-  let rest = raw.slice(colonIdx + 1).trim();
+  const rest = raw.slice(colonIdx + 1).trim();
   if (!rest.startsWith("{")) return null;
   // depth count で対応 brace 探す
   let depth = 0;
@@ -509,7 +508,6 @@ function collectAnimationSteps(lines: Line[], start: number, parentIndent: numbe
   const out: Line[][] = [];
   let i = start;
   let cur: Line[] | null = null;
-  let curBaseIndent = -1;
   while (i < lines.length) {
     const ln = lines[i]!;
     if (!ln.trimmed) {
@@ -520,7 +518,6 @@ function collectAnimationSteps(lines: Line[], start: number, parentIndent: numbe
     if (ln.trimmed.startsWith("- step")) {
       if (cur) out.push(cur);
       cur = [{ ...ln, trimmed: ln.trimmed.slice(2).trim() }];
-      curBaseIndent = ln.indent;
     } else if (cur) {
       // 続く property line (focus / tween / set / badge / description)
       cur.push(ln);
@@ -556,7 +553,7 @@ function parseActor(line: Line): DslActor | null {
       rows: opts.rows
         ? opts.rows
             .replace(/^\[|\]$/g, "")
-            .split(/,(?![^\[]*\])/)
+            .split(/,(?![^[]*\])/)
             .map((x) => stripQuotes(x.trim()))
             .filter(Boolean)
         : undefined,
@@ -588,7 +585,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   // 3. `Client -> API: "deposit" (success)`       ... label + tone tuple
   // 4. `Client -> API: "deposit" { sub: "...", guard: "...", cardinality: "1:N", labelOffsetY: -8 }` ... inline option
   // 5. `Client -> API: "deposit" (success) { guard: "..." }` ... 両方
-  let raw = line.trimmed;
+  const raw = line.trimmed;
   const arrowIdx = raw.indexOf("->");
   if (arrowIdx < 0) return null;
   const from = raw.slice(0, arrowIdx).trim();
@@ -823,7 +820,7 @@ function parseFocusList(s: string): string[] {
   // quote 外 item は依然として space split (旧挙動、 「Client API」 が 2 item として解釈される互換維持)。
   const out: string[] = [];
   for (const p of parts) {
-    if (/[→\-][>]?/.test(p) && /\s/.test(p)) {
+    if (/[-→][>]?/.test(p) && /\s/.test(p)) {
       // arrow を含む item は「A -> B」 パターン、 分割せず 1 item として保持
       out.push(p);
       continue;
