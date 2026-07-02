@@ -43,12 +43,9 @@ const PAGES = [
 
 // cdl engine 側 routing v8 (fan-in / fan-out orthogonal 抜本改良) + label auto shift v5 で
 // border case は全て engine 層で解消済。 allowlist なしで全 diagram を必須 gating 化する。
-// 例外 ... cdl routing v10 (中央 anchor hard 制約 + TARGET_DIST score) の副作用で
-// pattern-rollback e3 が commit 縁と 20 px² 微 overlap する pre-existing regression が
-// 発生している。 別 PR で engine 側 detour Y の clearance 拡張で解消予定 (follow-up 追記予定)。
-const BORDER_CASE_DIAGRAMS = new Set<string>([
-  "pattern-rollback",
-]);
+// routing v10.1 で detour gap 拡張 (44 → 94) により pattern-rollback e3 × commit overlap を
+// engine 側で解消、 allowlist 再撤廃。
+const BORDER_CASE_DIAGRAMS = new Set<string>();
 
 async function collectBoxes(page: Page): Promise<DiagramBox[]> {
   return await page.evaluate(() => {
