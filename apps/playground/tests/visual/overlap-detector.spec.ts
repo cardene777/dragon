@@ -195,7 +195,6 @@ test.describe("Overlap detector (Tier C-1)", () => {
       const overlaps = detectOverlaps(boxes);
       const report = formatReport(label, overlaps);
       if (overlaps.length > 0) {
-        // eslint-disable-next-line no-console
         console.error(`[overlap-detector] ${report}`);
       }
       expect(overlaps, report).toEqual([]);

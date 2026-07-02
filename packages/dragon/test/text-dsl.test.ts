@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTextDsl, compileToCdl, textDslToDiagram } from "@cardenelabs/dragon";
+import { parseTextDsl, textDslToDiagram } from "@cardenelabs/dragon";
 
 describe("Text DSL parser (v0.1)", () => {
   it("最小 sequence ... 日本語 keyword + 矢印 →", () => {

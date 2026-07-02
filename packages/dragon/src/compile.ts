@@ -638,7 +638,7 @@ function resolveHighlight(
   phase: DslPhase,
   doc: DslDocument,
   actorIds: Map<string, string>,
-  stepEdgeIds: string[],
+  _stepEdgeIds: string[],
 ): string[] {
   const out: string[] = [];
   for (const raw of phase.highlight ?? []) {
