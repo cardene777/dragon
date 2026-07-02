@@ -127,6 +127,15 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
         const wSummary = Array.from(warnByAxis.entries()).map(([a, n]) => `${a}=${n}`).join(" ");
         const eSummary = Array.from(errByAxis.entries()).map(([a, n]) => `${a}=${n}`).join(" ");
         process.stderr.write(`[visual-validate-sweep ${name}] err(${eSummary || "-"}) warn(${wSummary || "-"})\n`);
+        // group-boundary-clearance が多い時のサンプル 3 件
+        if (name === "presets" || name === "patterns") {
+          const samples = report.reports
+            .flatMap((r) => r.violations.filter((v) => v.axis === "group-boundary-clearance"))
+            .slice(0, 3);
+          for (const s of samples) {
+            process.stderr.write(`  sample: ${s.detail} (diag=${(s as any).diagramId ?? "?"})\n`);
+          }
+        }
       }
       expect(gatingViolations, `\n${detail}`).toEqual([]);
     });
