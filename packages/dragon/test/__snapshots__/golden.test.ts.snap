@@ -9434,7 +9434,7 @@ exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
   "states": [],
   "topic": "L04",
   "viewBox": {
-    "h": 392,
+    "h": 445,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -9803,7 +9803,7 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
   "states": [],
   "topic": "L08",
   "viewBox": {
-    "h": 526,
+    "h": 541,
     "w": 1464,
     "x": -44,
     "y": -100,
@@ -9860,7 +9860,7 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
   "states": [],
   "topic": "L09",
   "viewBox": {
-    "h": 392,
+    "h": 464,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10246,7 +10246,7 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "topic": "L14",
   "viewBox": {
     "h": 394,
-    "w": 587,
+    "w": 604.5,
     "x": -44,
     "y": -24,
   },
@@ -10323,7 +10323,7 @@ exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
   "states": [],
   "topic": "L15",
   "viewBox": {
-    "h": 392,
+    "h": 445,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -10738,8 +10738,8 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 718,
-    "x": -78,
+    "w": 728.5,
+    "x": -81.5,
     "y": 8,
   },
 }
