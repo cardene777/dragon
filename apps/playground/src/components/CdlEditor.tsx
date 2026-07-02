@@ -449,6 +449,9 @@ export function CdlEditor(): React.JSX.Element {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const restored = decodeShare(window.location.hash);
+    // URL hash 復元は初期化専用 sync pattern、 mount 直後に外部状態 (URL hash) から React state
+    // を同期する legitimate 用途。 cascading render は発生しない ([] deps で 1 度きり)。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (restored) setSrc(restored);
   }, []);
 
@@ -664,7 +667,7 @@ export function CdlEditor(): React.JSX.Element {
 
   const handleMouseUp = (): void => setDragging(false);
 
-  const handleReset = (): void => handleFit();
+  const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
     if (!previewRef.current) {
       setTransform({ tx: 0, ty: 0, scale: 1 });
@@ -710,7 +713,7 @@ export function CdlEditor(): React.JSX.Element {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleFit]);
+  }, [handleReset]);
 
   const handleShare = (): void => {
     if (typeof window === "undefined") return;
