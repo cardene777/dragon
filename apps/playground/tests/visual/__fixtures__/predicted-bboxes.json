@@ -4524,8 +4524,8 @@
   },
   {
     "diagramId": "pattern-hook",
-    "viewBoxWidth": 1940,
-    "viewBoxHeight": 352,
+    "viewBoxWidth": 1540,
+    "viewBoxHeight": 420,
     "nodes": [
       {
         "id": "from",
@@ -4536,14 +4536,14 @@
       },
       {
         "id": "fn",
-        "x": 620,
+        "x": 500,
         "y": 128,
         "w": 380,
         "h": 200
       },
       {
         "id": "hook",
-        "x": 1440,
+        "x": 1040,
         "y": 128,
         "w": 380,
         "h": 200
@@ -4553,16 +4553,16 @@
       {
         "id": "call",
         "text": "call",
-        "x": 446,
-        "y": 110,
+        "x": 386,
+        "y": 65,
         "w": 88,
         "h": 36
       },
       {
         "id": "hook",
         "text": "hook callback",
-        "x": 1121,
-        "y": 96,
+        "x": 861,
+        "y": 28,
         "w": 198,
         "h": 64
       }
