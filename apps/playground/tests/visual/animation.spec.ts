@@ -8,6 +8,7 @@
  *   の regression。
  */
 import { test, expect } from "@playwright/test";
+import { waitForCdlDiagram } from "./helpers/wait-for-cdl";
 
 const cases = [
   { slug: "tween-simple", label: "Tween 単 phase 線形補間" },
@@ -23,8 +24,7 @@ test.describe("Visual regression - animation cases (/catalog/animation)", () => 
   for (const { slug, label } of cases) {
     test(`animation ${slug} (${label}) SVG snapshot`, async ({ page }) => {
       await page.goto(PAGE_URL, { waitUntil: "networkidle" });
-      await page.waitForSelector(`[data-cdl-diagram="${slug}"] svg`, { timeout: 10_000 });
-      await page.waitForTimeout(1000);
+      await waitForCdlDiagram(page, slug);
       const el = page.locator(`[data-cdl-diagram="${slug}"]`).first();
       await expect(el).toHaveScreenshot(`animation-${slug}.png`, {
         maxDiffPixelRatio: 0.02, // animation 系は initial phase render に若干のブレを許容

@@ -16,6 +16,7 @@
  * 1 件でも overlap 検出されたら test fail → verify-passed marker block。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { waitForAllCdlDiagrams } from "./helpers/wait-for-cdl";
 
 interface DiagramBox {
   diagramRootKey: string;
@@ -188,8 +189,8 @@ test.describe("Overlap detector (Tier C-1)", () => {
       page,
     }) => {
       await page.goto(url, { waitUntil: "networkidle" });
-      // SSR + hydration 後の bbox 安定化を待つ
-      await page.waitForTimeout(1200);
+      // SSR + hydration 後の bbox 安定化を条件明示で待つ (waitForTimeout 撤廃)
+      await waitForAllCdlDiagrams(page);
       const boxes = await collectBoxes(page);
       const overlaps = detectOverlaps(boxes);
       const report = formatReport(label, overlaps);
