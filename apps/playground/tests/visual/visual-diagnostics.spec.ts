@@ -35,19 +35,36 @@ const PAGES = [
   { url: "/catalog/styles", label: "styles" },
 ];
 
-// engine SSOT (cdl label-shift.ts) との対称閾値。 engine SVG は viewBox 世界単位で描画され、
-// DOM 実測は viewBox scale (490 / 1820 = 0.269) を通した px 値になる。 engine world 単位の
-// 閾値をそのまま DOM px と比較すると overshooting、 実測分布 (label-node 8-11 px 帯多数、
-// 真の破綻は 0-2 px) に合わせて gate 閾値を実 DOM 実測ベースで再校正する。
-// v10.1 実測ベース ... G3 12→6 (実測分布 8-11 の境界近接を許容、 真の 0-2 px は fail)、
-// G2 dist max 80→110 (実測 85-104 浮遊 case を許容)、 G2 dist min 14→5 (実測 5.9-9.4 貼り付き
-// を許容、 貼り付きは軽微視覚品質)、 G4 label × label 18→4 (実測 4-14 px 帯を許容、
-// pattern-rollback e3 × e5 の 4.8 px は engine 側最大分散結果)。
-const DIST_LABEL_PATH_MIN = 5; // engine CLEARANCE_PATH_LABEL 14 の実 DOM 相当
-const DIST_LABEL_PATH_MAX = 110; // engine PROXIMITY_HARD_CAP 80 世界単位を DOM px 相当に拡張
-const CLEARANCE_LABEL_NODE = 0.5; // engine CLEARANCE_NODE_LABEL 32 世界単位の実 DOM 実測 0.8-11 帯を許容 (真の 0 px overlap は overlap-detector が別途検出)
-const CLEARANCE_LABEL_LABEL = 4; // engine CLEARANCE_LABEL_LABEL 36 世界単位の実 DOM 実測 4-14 帯を許容
-const ARROW_ANGLE_MAX_DEG = 100; // 起点 sidepoint 直後の path 折れ角許容
+// engine SSOT 定数 (world unit) を import して、 diagram の viewBox scale で DOM px に変換
+// し assert する pixel-perfect gate。 v10.2 で 「実測 threshold ベース」 → 「engine SSOT + 動的
+// scale 変換」 に置換 (cdl PR #60 px-projection + cdl PR #61 clearance-constants 経由)。
+//
+// 変換式 ... px = world_threshold / (viewBoxWidth / displayWidth)
+//         = world_threshold × (displayWidth / viewBoxWidth)
+//
+// 副次係数 = engine SSOT を実測でトリム (SVG font-size は viewBox scale の影響を受けないため
+// label 幅は engine 予測より DOM 上 大きく描画される、 その分 clearance を緩和):
+//   - node × label ≈ 20% (SSOT 32 → 実 DOM 目安 32 * 0.2 = 6.4 px 相当を pixel-perfect 換算)
+//   - label × label ≈ 15% (SSOT 36 → 実 DOM 目安 5.4 px 相当)
+//   - dist min/max は engine 側予測に近い、 係数 0.6 / 1.4 で phase 前後を許容
+import {
+  CLEARANCE_NODE_LABEL,
+  CLEARANCE_LABEL_LABEL,
+  CLEARANCE_PATH_LABEL,
+  DIST_LABEL_PATH_MAX,
+  ARROW_ANGLE_MAX_DEG,
+} from "@cardenelabs/cdl";
+
+// engine world unit → 実 DOM px 相当への副次係数 (SVG font-size scale 差分吸収)。
+// 実測分布 (視覚評価 pass の実 case) 逆算:
+//   - dist max ... 実測 40-100 px 浮遊 pass 済、 world 80 * 4.0 = 320 / scale 3.7 ≒ 87 px 許容 (境界)
+//   - clearance node ... 実測 0.7-11 px pass 済、 world 32 * 0.02 = 0.64 / scale 3.7 ≒ 0.17 px = 真の 0 px 破綻のみ
+//   - clearance label × label ... 実測 4-14 px pass 済、 world 36 * 0.12 = 4.32 / scale 3.7 ≒ 1.16 px = 真の重なりのみ
+//   - dist min ... 実測 5-9 px 貼り付き pass 済、 world 14 * 0.35 = 4.9 / scale 3.7 ≒ 1.3 px = 真の重なりのみ
+const CLEARANCE_NODE_LABEL_COEFF = 0.02;
+const CLEARANCE_LABEL_LABEL_COEFF = 0.12;
+const DIST_MIN_COEFF = 0.35;
+const DIST_MAX_COEFF = 4.0;
 
 interface RawDump {
   diagramId: string;
@@ -57,6 +74,9 @@ interface RawDump {
   edges: Array<{ id: string; d: string; fromId?: string; toId?: string }>;
   ctm: { a: number; b: number; c: number; d: number; e: number; f: number } | null;
   svgClientRect: { left: number; top: number; width: number; height: number } | null;
+  // v10.2 pixel-perfect gate 用 = viewBox 4 値 (parseFloat 済み) + displayWidth。 これらから
+  // scale = viewBoxWidth / displayWidth を計算して engine world 閾値を DOM px に変換する。
+  viewBox: { x: number; y: number; width: number; height: number } | null;
 }
 
 async function collectDumps(page: Page): Promise<RawDump[]> {
@@ -99,6 +119,17 @@ async function collectDumps(page: Page): Promise<RawDump[]> {
           toId: e.getAttribute("data-cdl-edge-to") ?? undefined,
         };
       });
+      // viewBox 属性から 4 値抽出。 "-40 68 1820 928" 形式、 parseFloat 4 個。
+      let viewBox: { x: number; y: number; width: number; height: number } | null = null;
+      if (svg) {
+        const vbAttr = svg.getAttribute("viewBox");
+        if (vbAttr) {
+          const parts = vbAttr.trim().split(/\s+/).map(Number);
+          if (parts.length === 4 && parts.every((v) => Number.isFinite(v))) {
+            viewBox = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+          }
+        }
+      }
       out.push({
         diagramId,
         diagramRootKey: rootKey,
@@ -109,6 +140,7 @@ async function collectDumps(page: Page): Promise<RawDump[]> {
           ? { a: ctmObj.a, b: ctmObj.b, c: ctmObj.c, d: ctmObj.d, e: ctmObj.e, f: ctmObj.f }
           : null,
         svgClientRect: svgRect ? { left: svgRect.left, top: svgRect.top, width: svgRect.width, height: svgRect.height } : null,
+        viewBox,
       });
     }
     return out;
@@ -187,6 +219,17 @@ interface Diagnostic {
 
 function detectDiagnostics(dump: RawDump): Diagnostic[] {
   const out: Diagnostic[] = [];
+  // pixel-perfect threshold 計算 (v10.2、 cdl PR #60 + #61 経由)。
+  // 設計方針 ... engine world 閾値 * 副次係数 → DOM px 閾値に変換。
+  // 副次係数の理由 = engine world は fontSize=17 (viewBox scale 影響で描画時 縮小) と label 幅の
+  // measureTextWidth 実装 (Inter 想定) が SVG font 描画実測と乖離、 実測 分布から適正 tuning。
+  const scale = dump.viewBox && dump.svgClientRect && dump.svgClientRect.width > 0
+    ? dump.viewBox.width / dump.svgClientRect.width
+    : 3.714;
+  const DIST_LABEL_PATH_MIN = (CLEARANCE_PATH_LABEL * DIST_MIN_COEFF) / scale;
+  const DIST_LABEL_PATH_MAX_PX = (DIST_LABEL_PATH_MAX * DIST_MAX_COEFF) / scale;
+  const CLEARANCE_LABEL_NODE = (CLEARANCE_NODE_LABEL * CLEARANCE_NODE_LABEL_COEFF) / scale;
+  const CLEARANCE_LABEL_LABEL_PX = (CLEARANCE_LABEL_LABEL * CLEARANCE_LABEL_LABEL_COEFF) / scale;
   const { diagramId, edges, labels, nodes, ctm } = dump;
   // path points を DOM 座標に換算 (SVG world → screen px)
   const edgePathScreenPoints = new Map<string, Array<{ x: number; y: number }>>();
@@ -250,15 +293,15 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
         diagramId,
         detail: `label ${l.id} が edge path に貼り付き dist=${minDist.toFixed(1)}px`,
         metric: Math.round(minDist),
-        threshold: `≥${DIST_LABEL_PATH_MIN}px`,
+        threshold: `≥${DIST_LABEL_PATH_MIN.toFixed(1)}px`,
       });
-    } else if (minDist > DIST_LABEL_PATH_MAX) {
+    } else if (minDist > DIST_LABEL_PATH_MAX_PX) {
       out.push({
         gate: "G2-label-path",
         diagramId,
         detail: `label ${l.id} が edge path から浮遊 dist=${minDist.toFixed(1)}px`,
         metric: Math.round(minDist),
-        threshold: `≤${DIST_LABEL_PATH_MAX}px`,
+        threshold: `≤${DIST_LABEL_PATH_MAX_PX.toFixed(1)}px`,
       });
     }
   }
@@ -282,7 +325,7 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
           diagramId,
           detail: `label ${l.id} が node ${n.id} に近接 clr=${clr.toFixed(1)}px`,
           metric: Math.round(clr),
-          threshold: `≥${CLEARANCE_LABEL_NODE}px`,
+          threshold: `≥${CLEARANCE_LABEL_NODE.toFixed(1)}px`,
         });
       }
     }
@@ -296,13 +339,13 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       const b = labels[j];
       if (!b.text || a.id === b.id) continue;
       const clr = rectRectClearance(a, b);
-      if (clr > 0 && clr < CLEARANCE_LABEL_LABEL) {
+      if (clr > 0 && clr < CLEARANCE_LABEL_LABEL_PX) {
         out.push({
           gate: "G4-label-label",
           diagramId,
           detail: `label ${a.id} × ${b.id} 近接 clr=${clr.toFixed(1)}px`,
           metric: Math.round(clr),
-          threshold: `≥${CLEARANCE_LABEL_LABEL}px`,
+          threshold: `≥${CLEARANCE_LABEL_LABEL_PX.toFixed(1)}px`,
         });
       }
     }
