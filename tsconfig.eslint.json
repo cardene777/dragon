@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/playground" },
+    { "path": "./packages/dragon/tsconfig.test.json" }
+  ],
+  "include": ["vitest.config.ts"]
+}

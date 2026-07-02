@@ -99,7 +99,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
   for (const { name, mod } of sources) {
     it(`${name} ... visualValidate 全 axis error 0 件 (border case allowlist なし)`, () => {
-      const diagrams = collectDiagrams(mod as ModuleLike, name);
+      const diagrams = collectDiagrams(mod, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams);
       const gatingViolations = report.reports.flatMap((r) =>

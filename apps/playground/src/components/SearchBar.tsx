@@ -79,7 +79,8 @@ export function SearchBar() {
       setActiveIdx(-1);
       return;
     }
-    const handle = window.setTimeout(async () => {
+    const handle = window.setTimeout(() => {
+      void (async () => {
       try {
         const search = await pagefind.search(query);
         const hits = await Promise.all(
@@ -90,6 +91,7 @@ export function SearchBar() {
       } catch {
         setResults([]);
       }
+      })();
     }, 150);
     return () => window.clearTimeout(handle);
   }, [query, pagefind]);
