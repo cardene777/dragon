@@ -71,10 +71,13 @@ export const patternEmit = diagram("pattern-emit", { topic: "pattern: Emit Event
   .build();
 
 /** 5. Hook callback ... 受信側 hook で「受け取れますか」 確認 */
+// v10.5 = lane 間 gap を詰めて viewBox 1940 → 1300 相当に (scale 4.0 → 2.7 で label 判読性向上)。
+// 旧配置 (x=0/500/1280) は lane 間 空白 400/400 world で label が実 DOM で 6-7 px に縮小、
+// 新配置 (x=0/380/880) は lane 間 gap 100 world で節間の視覚 flow は維持しつつ全体を圧縮。
 export const patternHook = diagram("pattern-hook", { topic: "pattern: Hook callback" })
   .lane("sender", { x: 0, width: 280 })
-  .lane("token", { x: 500, width: 380 })
-  .lane("recipient", { x: 1280, width: 280 })
+  .lane("token", { x: 380, width: 380 })
+  .lane("recipient", { x: 880, width: 280 })
   .node("from", { lane: "sender", stack: 0, kind: "actor", title: "Sender" })
   .node("fn", { lane: "token", stack: 0, kind: "function", title: "deliver", subtitle: "送付前 hook" })
   .node("hook", { lane: "recipient", stack: 0, kind: "function", title: "onReceive", subtitle: "受信側で実装" })
