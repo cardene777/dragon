@@ -35,36 +35,24 @@ const PAGES = [
   { url: "/catalog/styles", label: "styles" },
 ];
 
-// engine SSOT 定数 (world unit) を import して、 diagram の viewBox scale で DOM px に変換
-// し assert する pixel-perfect gate。 v10.2 で 「実測 threshold ベース」 → 「engine SSOT + 動的
-// scale 変換」 に置換 (cdl PR #60 px-projection + cdl PR #61 clearance-constants 経由)。
+// engine SSOT 定数 (world unit) を import。 v10.3 で COEFF 逆算 (0.02 / 0.12 / 0.35 / 4.0 の
+// magic number 実測分布逆算) を撤廃し、 「実測 px → world 単位に変換 → engine SSOT world 閾値と
+// 直接比較 + FONT_RENDER_TOLERANCE_WORLD 余裕」 の設計に統一。
 //
-// 変換式 ... px = world_threshold / (viewBoxWidth / displayWidth)
-//         = world_threshold × (displayWidth / viewBoxWidth)
+// 変換式 ... world_dist = px_dist × scale
+//   scale = viewBoxWidth / displayWidth (diagram 個別 動的計算)
+//   fail 判定: world_dist が engine SSOT threshold ± tolerance 範囲外
 //
-// 副次係数 = engine SSOT を実測でトリム (SVG font-size は viewBox scale の影響を受けないため
-// label 幅は engine 予測より DOM 上 大きく描画される、 その分 clearance を緩和):
-//   - node × label ≈ 20% (SSOT 32 → 実 DOM 目安 32 * 0.2 = 6.4 px 相当を pixel-perfect 換算)
-//   - label × label ≈ 15% (SSOT 36 → 実 DOM 目安 5.4 px 相当)
-//   - dist min/max は engine 側予測に近い、 係数 0.6 / 1.4 で phase 前後を許容
+// これにより副次係数 magic number は撤廃、 tolerance のみ物理的意味 (SVG font hinting +
+// subpixel rounding = FONT_RENDER_TOLERANCE_WORLD 30 world) で保守側許容。
 import {
   CLEARANCE_NODE_LABEL,
   CLEARANCE_LABEL_LABEL,
   CLEARANCE_PATH_LABEL,
-  DIST_LABEL_PATH_MAX,
   ARROW_ANGLE_MAX_DEG,
+  FONT_RENDER_TOLERANCE_WORLD,
+  computeDistLabelPathMaxWorld,
 } from "@cardenelabs/cdl";
-
-// engine world unit → 実 DOM px 相当への副次係数 (SVG font-size scale 差分吸収)。
-// 実測分布 (視覚評価 pass の実 case) 逆算:
-//   - dist max ... 実測 40-100 px 浮遊 pass 済、 world 80 * 4.0 = 320 / scale 3.7 ≒ 87 px 許容 (境界)
-//   - clearance node ... 実測 0.7-11 px pass 済、 world 32 * 0.02 = 0.64 / scale 3.7 ≒ 0.17 px = 真の 0 px 破綻のみ
-//   - clearance label × label ... 実測 4-14 px pass 済、 world 36 * 0.12 = 4.32 / scale 3.7 ≒ 1.16 px = 真の重なりのみ
-//   - dist min ... 実測 5-9 px 貼り付き pass 済、 world 14 * 0.35 = 4.9 / scale 3.7 ≒ 1.3 px = 真の重なりのみ
-const CLEARANCE_NODE_LABEL_COEFF = 0.02;
-const CLEARANCE_LABEL_LABEL_COEFF = 0.12;
-const DIST_MIN_COEFF = 0.35;
-const DIST_MAX_COEFF = 4.0;
 
 interface RawDump {
   diagramId: string;
@@ -219,17 +207,23 @@ interface Diagnostic {
 
 function detectDiagnostics(dump: RawDump): Diagnostic[] {
   const out: Diagnostic[] = [];
-  // pixel-perfect threshold 計算 (v10.2、 cdl PR #60 + #61 経由)。
-  // 設計方針 ... engine world 閾値 * 副次係数 → DOM px 閾値に変換。
-  // 副次係数の理由 = engine world は fontSize=17 (viewBox scale 影響で描画時 縮小) と label 幅の
-  // measureTextWidth 実装 (Inter 想定) が SVG font 描画実測と乖離、 実測 分布から適正 tuning。
+  // v10.3 = COEFF 逆算撤廃、 「実測 px → world 変換 → engine SSOT world 閾値 ± tolerance」 で判定。
+  // scale = viewBoxWidth / displayWidth (diagram 個別)、 world_dist = px_dist × scale。
+  // 判定式 ... world_dist が engine SSOT world 閾値の (± FONT_RENDER_TOLERANCE_WORLD) 外なら fail。
   const scale = dump.viewBox && dump.svgClientRect && dump.svgClientRect.width > 0
     ? dump.viewBox.width / dump.svgClientRect.width
     : 3.714;
-  const DIST_LABEL_PATH_MIN = (CLEARANCE_PATH_LABEL * DIST_MIN_COEFF) / scale;
-  const DIST_LABEL_PATH_MAX_PX = (DIST_LABEL_PATH_MAX * DIST_MAX_COEFF) / scale;
-  const CLEARANCE_LABEL_NODE = (CLEARANCE_NODE_LABEL * CLEARANCE_NODE_LABEL_COEFF) / scale;
-  const CLEARANCE_LABEL_LABEL_PX = (CLEARANCE_LABEL_LABEL * CLEARANCE_LABEL_LABEL_COEFF) / scale;
+  // engine SSOT world 閾値 (小さい方の許容範囲 = tolerance 引く、 大きい方 = tolerance 足す)。
+  // font hinting / subpixel rounding の物理誤差 (FONT_RENDER_TOLERANCE_WORLD = 30 world) を許容。
+  // dist max は maxNodeDim による dynamic threshold (engine PROXIMITY_HARD_CAP と対称)。
+  const maxNodeDimWorld = dump.nodes.length > 0
+    ? Math.max(...dump.nodes.map((n) => Math.max(n.w * scale, n.h * scale)))
+    : 0;
+  const distMaxWorldEngine = computeDistLabelPathMaxWorld(maxNodeDimWorld);
+  const DIST_MIN_WORLD_ALLOWED = Math.max(0, CLEARANCE_PATH_LABEL - FONT_RENDER_TOLERANCE_WORLD);
+  const DIST_MAX_WORLD_ALLOWED = distMaxWorldEngine + FONT_RENDER_TOLERANCE_WORLD;
+  const CLEARANCE_NODE_LABEL_WORLD_ALLOWED = Math.max(0, CLEARANCE_NODE_LABEL - FONT_RENDER_TOLERANCE_WORLD);
+  const CLEARANCE_LABEL_LABEL_WORLD_ALLOWED = Math.max(0, CLEARANCE_LABEL_LABEL - FONT_RENDER_TOLERANCE_WORLD);
   const { diagramId, edges, labels, nodes, ctm } = dump;
   // path points を DOM 座標に換算 (SVG world → screen px)
   const edgePathScreenPoints = new Map<string, Array<{ x: number; y: number }>>();
@@ -287,21 +281,23 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       const d = pointToSegmentDist(cx, cy, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
       if (d < minDist) minDist = d;
     }
-    if (minDist < DIST_LABEL_PATH_MIN) {
+    // 実測 px → world 変換して engine SSOT world 閾値で判定 (COEFF 撤廃)
+    const minDistWorld = minDist * scale;
+    if (minDistWorld < DIST_MIN_WORLD_ALLOWED) {
       out.push({
         gate: "G2-label-path",
         diagramId,
-        detail: `label ${l.id} が edge path に貼り付き dist=${minDist.toFixed(1)}px`,
-        metric: Math.round(minDist),
-        threshold: `≥${DIST_LABEL_PATH_MIN.toFixed(1)}px`,
+        detail: `label ${l.id} が edge path に貼り付き dist=${minDistWorld.toFixed(1)}world (px=${minDist.toFixed(1)})`,
+        metric: Math.round(minDistWorld),
+        threshold: `≥${DIST_MIN_WORLD_ALLOWED.toFixed(1)}world`,
       });
-    } else if (minDist > DIST_LABEL_PATH_MAX_PX) {
+    } else if (minDistWorld > DIST_MAX_WORLD_ALLOWED) {
       out.push({
         gate: "G2-label-path",
         diagramId,
-        detail: `label ${l.id} が edge path から浮遊 dist=${minDist.toFixed(1)}px`,
-        metric: Math.round(minDist),
-        threshold: `≤${DIST_LABEL_PATH_MAX_PX.toFixed(1)}px`,
+        detail: `label ${l.id} が edge path から浮遊 dist=${minDistWorld.toFixed(1)}world (px=${minDist.toFixed(1)})`,
+        metric: Math.round(minDistWorld),
+        threshold: `≤${DIST_MAX_WORLD_ALLOWED.toFixed(1)}world`,
       });
     }
   }
@@ -319,13 +315,14 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       if (isVisualSpacer(n)) continue;
       const clr = rectRectClearance(l, n);
       // AABB 交差 (clr === 0) は overlap-detector 側で検出済なので G3 は非交差 (clr > 0) のみ対象
-      if (clr > 0 && clr < CLEARANCE_LABEL_NODE) {
+      const clrWorld = clr * scale;
+      if (clr > 0 && clrWorld < CLEARANCE_NODE_LABEL_WORLD_ALLOWED) {
         out.push({
           gate: "G3-label-node",
           diagramId,
-          detail: `label ${l.id} が node ${n.id} に近接 clr=${clr.toFixed(1)}px`,
-          metric: Math.round(clr),
-          threshold: `≥${CLEARANCE_LABEL_NODE.toFixed(1)}px`,
+          detail: `label ${l.id} が node ${n.id} に近接 clr=${clrWorld.toFixed(1)}world (px=${clr.toFixed(1)})`,
+          metric: Math.round(clrWorld),
+          threshold: `≥${CLEARANCE_NODE_LABEL_WORLD_ALLOWED.toFixed(1)}world`,
         });
       }
     }
@@ -339,13 +336,14 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       const b = labels[j];
       if (!b.text || a.id === b.id) continue;
       const clr = rectRectClearance(a, b);
-      if (clr > 0 && clr < CLEARANCE_LABEL_LABEL_PX) {
+      const clrWorld = clr * scale;
+      if (clr > 0 && clrWorld < CLEARANCE_LABEL_LABEL_WORLD_ALLOWED) {
         out.push({
           gate: "G4-label-label",
           diagramId,
-          detail: `label ${a.id} × ${b.id} 近接 clr=${clr.toFixed(1)}px`,
-          metric: Math.round(clr),
-          threshold: `≥${CLEARANCE_LABEL_LABEL_PX.toFixed(1)}px`,
+          detail: `label ${a.id} × ${b.id} 近接 clr=${clrWorld.toFixed(1)}world (px=${clr.toFixed(1)})`,
+          metric: Math.round(clrWorld),
+          threshold: `≥${CLEARANCE_LABEL_LABEL_WORLD_ALLOWED.toFixed(1)}world`,
         });
       }
     }
