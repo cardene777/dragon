@@ -1,5 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import importPlugin from "eslint-plugin-import";
 
 // browser 環境で動く file (React コンポーネント / addInitScript / Playwright helper 等) 用の
 // 共通 globals。 window / document / localStorage / requestAnimationFrame 等を undefined
@@ -66,6 +68,45 @@ export default [
   // no-explicit-any 等)。 projectService: true で v8+ の new mode を有効化、 project references
   // 型の tsconfig でも tsconfig.json を自動探索して型情報を得られる。
   ...tseslint.configs.recommendedTypeChecked,
+  // react-hooks = rules-of-hooks + exhaustive-deps 相当を .tsx / React コンポーネントに強制
+  reactHooks.configs.flat.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      // set-state-in-effect = warn (完全禁止すると legitimate な初期 sync pattern も NG)
+      // 例 = hash 復元 (useEffect 内で URL hash 読取 → 初期 state 反映)、 selected changed
+      // → derived state 再計算、 pagefind 検索結果 → setResults。 これらは cascading renders
+      // 誘発せず 正常な同期 pattern、 完全禁止は false positive。
+      "react-hooks/set-state-in-effect": "warn",
+      // exhaustive-deps = warn 継続 (default) だが真の bug 検知能力あり
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
+  // import = cyclic dependency + import order 検知、 tsx / ts 両方対応
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: {
+      import: importPlugin,
+    },
+    settings: {
+      "import/resolver": {
+        typescript: {
+          alwaysTryTypes: true,
+          project: [
+            "./tsconfig.eslint.json",
+            "./apps/playground/tsconfig.json",
+            "./packages/dragon/tsconfig.test.json",
+          ],
+          noWarnOnMultipleProjects: true,
+        },
+      },
+    },
+    rules: {
+      // no-cycle = import cycle (a → b → a) を検知、 未然の circular import bug を防ぐ。
+      // maxDepth 5 で深い chain も辿る、 dynamic import は false で ES6 module 前提。
+      "import/no-cycle": ["error", { maxDepth: 5, ignoreExternal: true }],
+    },
+  },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
