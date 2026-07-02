@@ -5584,28 +5584,28 @@
   },
   {
     "diagramId": "class-demo",
-    "viewBoxWidth": 2124,
+    "viewBoxWidth": 2544,
     "viewBoxHeight": 820,
     "nodes": [
       {
         "id": "User",
         "x": 20,
         "y": 128,
-        "w": 574,
+        "w": 712,
         "h": 430
       },
       {
         "id": "Admin",
-        "x": 714,
+        "x": 852,
         "y": 128,
-        "w": 596,
+        "w": 740,
         "h": 430
       },
       {
         "id": "Order",
-        "x": 1430,
+        "x": 1712,
         "y": 128,
-        "w": 574,
+        "w": 712,
         "h": 430
       }
     ],
@@ -5613,7 +5613,7 @@
       {
         "id": "cr-0-Admin-User",
         "text": "extends",
-        "x": 590.5,
+        "x": 728.5,
         "y": 605,
         "w": 127,
         "h": 36
@@ -5621,7 +5621,7 @@
       {
         "id": "cr-1-User-Order",
         "text": "aggregates",
-        "x": 929,
+        "x": 1139,
         "y": -59,
         "w": 166,
         "h": 64

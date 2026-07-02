@@ -844,7 +844,7 @@ describe("storage / class rows の column 揃え + width 自動拡張 (DB table 
   });
 
   it("storage rows ... 長い row があれば node.w が必要幅まで自動拡張 (charlie: 999999 超え)", () => {
-    // 18 chars (alice_long_address) + 21 chars (100000000000000000000) = 39 chars × 11px + padding (68) = 497px
+    // v10.4 = ROW_CHAR_WIDTH_PX 11 → 14 (cdl PR #72)、 39 chars × 14 + padding = 614px 目安
     // default 400 から確実に拡張される
     const d = buildDiagram("rows-wide", { topic: "wide rows" })
       .lane("l", { x: 0, width: 400 })
@@ -859,8 +859,8 @@ describe("storage / class rows の column 揃え + width 自動拡張 (DB table 
     const laid = layoutFromSrc(d);
     const node = laid.nodes.find((n) => n.id === "bal");
     expect(node!.w).toBeGreaterThan(400);
-    // 過度な拡張ではない (39 chars × 11 + 68 = 497 程度)
-    expect(node!.w).toBeLessThan(600);
+    // 過度な拡張ではない (39 chars × 14 + 68 = 614px 相当、 上限 700 で余裕確保)
+    expect(node!.w).toBeLessThan(700);
   });
 
   it("storage rows ... 著者が n.w を明示時は尊重 (catalog thumbnail 縮小互換)", () => {
