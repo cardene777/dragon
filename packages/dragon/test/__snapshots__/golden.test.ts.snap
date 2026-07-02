@@ -9434,7 +9434,7 @@ exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
   "states": [],
   "topic": "L04",
   "viewBox": {
-    "h": 445,
+    "h": 465,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -9860,7 +9860,7 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
   "states": [],
   "topic": "L09",
   "viewBox": {
-    "h": 464,
+    "h": 479,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10079,7 +10079,7 @@ exports[`golden: swimlane preset > L11 tone variation 1`] = `
   "states": [],
   "topic": "L11",
   "viewBox": {
-    "h": 392,
+    "h": 445,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -10146,7 +10146,7 @@ exports[`golden: swimlane preset > L12 with state + tween 1`] = `
   ],
   "topic": "L12",
   "viewBox": {
-    "h": 392,
+    "h": 445,
     "w": 984,
     "x": -44,
     "y": -24,
@@ -10246,7 +10246,7 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "topic": "L14",
   "viewBox": {
     "h": 394,
-    "w": 604.5,
+    "w": 605.6600000000001,
     "x": -44,
     "y": -24,
   },
@@ -10323,7 +10323,7 @@ exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
   "states": [],
   "topic": "L15",
   "viewBox": {
-    "h": 445,
+    "h": 450,
     "w": 1464,
     "x": -44,
     "y": -24,
@@ -10738,8 +10738,8 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 728.5,
-    "x": -81.5,
+    "w": 723.8,
+    "x": -79.64,
     "y": 8,
   },
 }
