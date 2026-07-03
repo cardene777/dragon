@@ -881,8 +881,8 @@ body.docs-body .docs-prose pre.astro-code span[style*="--shiki"] {
 
 /* === Dark mode (html.dark) === */
 html.dark body.docs-body {
-  background: #26221e !important;
-  color: #f0f3f8 !important;
+  background: var(--nm-bg) !important;
+  color: var(--nm-text) !important;
 }
 html.dark body.docs-body header.docs-navbar {
   background: rgba(38, 34, 30, 0.92) !important;
