@@ -157,7 +157,17 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
           "seo-metadata-quality",
           "bidi-hyphenation",
           "structured-data-extraction",
+          "diagram-version-semver",
+          "migration-path-consistency",
+          "axis-coverage-meta",
+          "axis-documentation-completeness",
         ]);
+        // Axis 47/48 = SweepReport.metaViolations 経由の meta 判定を stderr dump
+        if (report.metaViolations.length > 0) {
+          for (const m of report.metaViolations.slice(0, 5)) {
+            process.stderr.write(`  meta: ${m.axis} — ${m.detail}\n`);
+          }
+        }
         const samples = report.reports
           .flatMap((r) => r.violations.filter((v) => interestingAxes.has(v.axis)))
           .slice(0, 3);
