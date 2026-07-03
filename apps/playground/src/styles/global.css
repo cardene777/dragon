@@ -507,6 +507,12 @@ html.dark .docs-pagefind-hit-excerpt mark {
   --cdl-label-bg: #ffffff;
   --cdl-shadow-light: #ffffff;
   --cdl-shadow-dark: #94a3b8;
+  /* v0.8+ text color SSOT (cdl render 内で fill=var(--cdl-text) 参照) */
+  --cdl-text: #1a1f2a;
+  --cdl-text-dim: #5a6270;
+  --cdl-text-mute: #8a8678;
+  --cdl-text-accent: #2d6a8f;
+  --cdl-line-mute: #a89d8f;
 }
 html.dark {
   /* v0.8+ dark mode 再設計 (旧 #1f2630 系は node と背景の差別化不足 + 図が暗すぎ問題)
@@ -521,6 +527,12 @@ html.dark {
   --cdl-label-bg: #1e2534;
   --cdl-shadow-light: #475569;
   --cdl-shadow-dark: #0f172a;
+  /* dark theme 用 text color (lane label / state table 等の mute text 可読性確保) */
+  --cdl-text: #f0f3f8;
+  --cdl-text-dim: #cbd5e1;
+  --cdl-text-mute: #b8b3a8;
+  --cdl-text-accent: #5ec4e8;
+  --cdl-line-mute: #6b7785;
 }
 /* cdl SVG 内 text の色を theme-aware に (hardcode の旧 ink color を上書き) */
 [data-cdl-node] text {
