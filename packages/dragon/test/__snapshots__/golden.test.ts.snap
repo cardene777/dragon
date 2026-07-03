@@ -604,10 +604,10 @@ exports[`golden: er preset > E09 self-reference 1`] = `
   "states": [],
   "topic": "E09",
   "viewBox": {
-    "h": 394.46903033498444,
+    "h": 394,
     "w": 550,
     "x": -30,
-    "y": -54.46903033498444,
+    "y": -54,
   },
 }
 `;
@@ -10246,7 +10246,7 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "topic": "L14",
   "viewBox": {
     "h": 394,
-    "w": 605.6600000000001,
+    "w": 605.66,
     "x": -44,
     "y": -24,
   },
