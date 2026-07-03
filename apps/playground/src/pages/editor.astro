@@ -33,10 +33,16 @@ import { CdlEditor } from "@/components/CdlEditor";
   @media (max-width: 900px) {
     .v4-editor {
       grid-template-columns: 220px 1fr;
+      grid-template-rows: minmax(320px, 1fr) minmax(360px, 1fr);
+    }
+    .v4-editor-side {
+      grid-row: 1 / span 2;
     }
     .v4-editor-preview {
-      grid-column: 1 / -1;
+      grid-column: 2 / -1;
+      grid-row: 2;
       border-top: 1px solid var(--v4-line);
+      min-height: 360px;
     }
   }
 
