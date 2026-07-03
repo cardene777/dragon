@@ -422,4 +422,28 @@ const repoUrl = "https://github.com/cardene777/dragon";
   html[lang="en"] .v4-lang-en {
     color: var(--v4-brand);
   }
+
+  /* 900px 以下 responsive = header 幅超過による body 横スクロール解消 */
+  @media (max-width: 900px) {
+    .v4-nav {
+      padding: 0 16px;
+    }
+    .v4-nav-cta { display: none; }
+    .v4-nav-sub { display: none; }
+    .v4-nav-links {
+      gap: 4px;
+    }
+    .v4-nav-link {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+  }
+  @media (max-width: 768px) {
+    .v4-nav-search { display: none; }
+    .v4-nav-links .v4-nav-link:nth-of-type(n+3) { display: none; }
+  }
+  @media (max-width: 640px) {
+    .v4-nav-name { font-size: 14px; }
+    .v4-nav-links { display: none; }
+  }
 </style>
