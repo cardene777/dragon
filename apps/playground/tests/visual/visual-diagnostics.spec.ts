@@ -214,7 +214,10 @@ interface Diagnostic {
     | "G7-label-char-range"
     | "G8-node-overlap"
     | "G9-edge-crossing"
-    | "G10-edge-node-cross";
+    | "G10-edge-node-cross"
+    | "G11-node-vertical-clearance"
+    | "G12-arrow-marker-clearance"
+    | "G13-arrow-marker-far";
   diagramId: string;
   detail: string;
   metric: number;
@@ -596,6 +599,93 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
     }
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // G11. node vertical clearance (engine Axis 18 と対称、 実 DOM 測定)
+  //   node 集合を「重なりのある y 範囲」 でグループ化し、 隣接ペアの垂直 gap を判定。
+  //   NODE_V_CLEAR_PX 実測 = px 単位で 10 world 相当 (scale 3.7 で 37px)、 tolerance 6px。
+  // ────────────────────────────────────────────────────────────────
+  const G11_MIN_GAP_PX = 10;
+  const relevantForG11 = relevantNodes;
+  // 各 node を「同 x 範囲 (cx が水平近似)」 でグループ化 = 実質同 lane と扱う
+  const nodesByColumn: Array<Array<typeof nodes[0]>> = [];
+  for (const n of relevantForG11) {
+    let placed = false;
+    for (const col of nodesByColumn) {
+      const first = col[0]!;
+      const overlap = Math.min(n.x + n.w, first.x + first.w) - Math.max(n.x, first.x);
+      if (overlap > n.w * 0.6) {
+        col.push(n);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) nodesByColumn.push([n]);
+  }
+  for (const col of nodesByColumn) {
+    const sorted = [...col].sort((a, b) => a.y - b.y);
+    for (let i = 0; i + 1 < sorted.length; i++) {
+      const upper = sorted[i]!;
+      const lower = sorted[i + 1]!;
+      const gap = lower.y - (upper.y + upper.h);
+      if (gap < G11_MIN_GAP_PX) {
+        out.push({
+          gate: "G11-node-vertical-clearance",
+          diagramId,
+          detail: `node ${upper.id} ↔ ${lower.id} の垂直 gap ${gap.toFixed(1)}px が下限 ${G11_MIN_GAP_PX}px 未満`,
+          metric: Math.round(gap),
+          threshold: `≥${G11_MIN_GAP_PX}px`,
+        });
+      }
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // G12. arrow marker clearance (engine Axis 20 と対称、 実 DOM 測定)
+  //   edge path 終点 (arrow head) と to node bbox の距離を判定。
+  //   食い込み G12、 離れすぎ G13 に分割。
+  // ────────────────────────────────────────────────────────────────
+  const G12_MARKER_MIN_PX = 2;
+  // arrow marker (SVG marker-end) は node bbox から 8-23px 離れて描画される intentional な
+  // ARROW_TIP_GAP (shrinkPathEnd の効果)、 tolerance を実測 28px に緩めて styles / tone preset の
+  // 大 node (w=224px) との路径離れを許容。 24px 超は「明確に離れすぎ」 として warn。
+  const G13_MARKER_MAX_PX = 28;
+  for (const e of edges) {
+    if (!e.d || !e.toId) continue;
+    const pts = extractPathPoints(e.d).map((p) => applyCtm(p, ctm));
+    if (pts.length < 2) continue;
+    const endPt = pts[pts.length - 1]!;
+    const toNode = nodes.find((n) => n.id === e.toId);
+    if (!toNode) continue;
+    if (toNode.w < 10 || toNode.h < 10) continue;
+    const rect = { x: toNode.x, y: toNode.y, w: toNode.w, h: toNode.h };
+    const inside = endPt.x > rect.x && endPt.x < rect.x + rect.w && endPt.y > rect.y && endPt.y < rect.y + rect.h;
+    if (inside) {
+      const depth = Math.min(endPt.x - rect.x, rect.x + rect.w - endPt.x, endPt.y - rect.y, rect.y + rect.h - endPt.y);
+      if (depth > G12_MARKER_MIN_PX) {
+        out.push({
+          gate: "G12-arrow-marker-clearance",
+          diagramId,
+          detail: `edge ${e.id} arrow head が node ${e.toId} 内側に ${depth.toFixed(1)}px 食い込み`,
+          metric: Math.round(depth),
+          threshold: `≤${G12_MARKER_MIN_PX}px inside`,
+        });
+      }
+    } else {
+      const dx = Math.max(rect.x - endPt.x, 0, endPt.x - (rect.x + rect.w));
+      const dy = Math.max(rect.y - endPt.y, 0, endPt.y - (rect.y + rect.h));
+      const distOut = Math.hypot(dx, dy);
+      if (distOut > G13_MARKER_MAX_PX) {
+        out.push({
+          gate: "G13-arrow-marker-far",
+          diagramId,
+          detail: `edge ${e.id} arrow head が node ${e.toId} 縁から ${distOut.toFixed(1)}px 離れすぎ`,
+          metric: Math.round(distOut),
+          threshold: `≤${G13_MARKER_MAX_PX}px outside`,
+        });
+      }
+    }
+  }
+
   return out;
 }
 
@@ -699,6 +789,11 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G10)", () => {
         const g5Samples = softGate.filter((d) => d.gate === "G5-predicted-vs-actual").slice(0, 3);
         for (const s of g5Samples) {
           console.warn(`  G5 sample: ${s.diagramId} — ${s.detail}`);
+        }
+        // G13 sample 上位 3 件 dump
+        const g13Samples = softGate.filter((d) => d.gate === "G13-arrow-marker-far").slice(0, 3);
+        for (const s of g13Samples) {
+          console.warn(`  G13 sample: ${s.diagramId} — ${s.detail}`);
         }
         // G7 の diagram 別 count 上位 3 件 dump (どの diagram の狭 label が多いか可視化)
         const g7ByDiagram = new Map<string, number>();
