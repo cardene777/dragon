@@ -55,7 +55,9 @@ import {
   CLEARANCE_PATH_LABEL,
   ARROW_ANGLE_MAX_DEG,
   FONT_RENDER_TOLERANCE_WORLD,
+  LABEL_SIZE_TOLERANCE_WORLD,
   computeDistLabelPathMaxWorld,
+  segmentsIntersect,
 } from "@cardenelabs/cdl";
 
 interface RawDump {
@@ -407,13 +409,16 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       // position 差 (dx / dy) は sub 表示有無や render 側 yOffset 実装差で発生する drift で、
       // G2 (label × edge path) / G3 (label × node) の担当領域。 G5 で二重判定しない。
       const maxSizeDiff = Math.max(dwWorld, dhWorld);
-      if (maxSizeDiff > FONT_RENDER_TOLERANCE_WORLD) {
+      // G5 = label bbox size 専用の tolerance (150 world)、 getBoundingClientRect の外接矩形が
+      // 内部 text glyph overhang を含む本質的な測定差を許容 (measureTextWidth の advance width
+      // 集計は rect 内寸なので、 SVG text kerning + letter-spacing 分は必然的に外に出る)。
+      if (maxSizeDiff > LABEL_SIZE_TOLERANCE_WORLD) {
         out.push({
           gate: "G5-predicted-vs-actual",
           diagramId,
           detail: `label ${predLabel.id} engine 予測 vs 実測 size_diff=${maxSizeDiff.toFixed(1)}world (dw=${dwWorld.toFixed(1)} dh=${dhWorld.toFixed(1)}, ref dx=${dxWorld.toFixed(1)} dy=${dyWorld.toFixed(1)})`,
           metric: Math.round(maxSizeDiff),
-          threshold: `≤${FONT_RENDER_TOLERANCE_WORLD}world (size)`,
+          threshold: `≤${LABEL_SIZE_TOLERANCE_WORLD}world (label size)`,
         });
       }
     }
@@ -546,7 +551,7 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
       let pairCross = 0;
       for (const sa of a.segs) {
         for (const sb of b.segs) {
-          if (segmentsIntersectSpec(sa, sb)) pairCross++;
+          if (segmentsIntersect(sa, sb)) pairCross++;
         }
       }
       if (pairCross > 0) {
@@ -594,17 +599,6 @@ function detectDiagnostics(dump: RawDump): Diagnostic[] {
   return out;
 }
 
-function segmentsIntersectSpec(
-  a: { x1: number; y1: number; x2: number; y2: number },
-  b: { x1: number; y1: number; x2: number; y2: number },
-): boolean {
-  const d1 = (b.x2 - b.x1) * (a.y1 - b.y1) - (b.y2 - b.y1) * (a.x1 - b.x1);
-  const d2 = (b.x2 - b.x1) * (a.y2 - b.y1) - (b.y2 - b.y1) * (a.x2 - b.x1);
-  const d3 = (a.x2 - a.x1) * (b.y1 - a.y1) - (a.y2 - a.y1) * (b.x1 - a.x1);
-  const d4 = (a.x2 - a.x1) * (b.y2 - a.y1) - (a.y2 - a.y1) * (b.x2 - a.x1);
-  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
-}
-
 function segsCrossRectSpec(
   segs: Array<{ x1: number; y1: number; x2: number; y2: number }>,
   rect: { x: number; y: number; w: number; h: number },
@@ -617,7 +611,7 @@ function segsCrossRectSpec(
   ];
   for (const s of segs) {
     for (const re of edges) {
-      if (segmentsIntersectSpec(s, re)) return true;
+      if (segmentsIntersect(s, re)) return true;
     }
   }
   return false;
@@ -701,6 +695,22 @@ test.describe("Visual diagnostics (Tier C-1 拡張, G1-G10)", () => {
           .map(([g, n]) => `${g}=${n}`)
           .join(" ");
         console.warn(`[visual-diagnostics] ${label} ... soft warn (${summary})`);
+        // G5 samples を上位 3 件 dump (label position 差の手がかり)
+        const g5Samples = softGate.filter((d) => d.gate === "G5-predicted-vs-actual").slice(0, 3);
+        for (const s of g5Samples) {
+          console.warn(`  G5 sample: ${s.diagramId} — ${s.detail}`);
+        }
+        // G7 の diagram 別 count 上位 3 件 dump (どの diagram の狭 label が多いか可視化)
+        const g7ByDiagram = new Map<string, number>();
+        for (const d of softGate.filter((d) => d.gate === "G7-label-char-range")) {
+          g7ByDiagram.set(d.diagramId, (g7ByDiagram.get(d.diagramId) ?? 0) + 1);
+        }
+        const g7Top = Array.from(g7ByDiagram.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+        for (const [did, n] of g7Top) {
+          console.warn(`  G7 top: ${did} — ${n} 狭 label 検出`);
+        }
       }
       expect(hardGate, hardReport).toEqual([]);
     });
