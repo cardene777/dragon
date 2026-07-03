@@ -52,7 +52,18 @@ function extractCodeBlocks(md: string, file: string): CodeSample[] {
       if (insideFence) {
         const code = buf.join("\n");
         if (/^\s*title:/m.test(code) && /^\s*type:/m.test(code)) {
-          out.push({ file, index: idx++, code });
+          // シンタックス説明用の placeholder block (`<foo>` を含む title / type) は除外。
+          // これらは「動作する完全なコード例」 ではなく docs 用テンプレなので parse 不可が正常。
+          const hasPlaceholder = /<[^>]+>/.test(code);
+          // 最小構造 (title + type だけで actors / flow がない block) も skip。
+          // これも「最小 API 説明」 用で validate 対象外。
+          const hasBody = /^\s*(actors:|nodes:|entities:|states:|flow:|steps:|animation:|relations:|columns:|groups:)/m.test(code);
+          // TypeScript wrapper (`export const ... = textDslToDiagram(...)`) を含む block は
+          // docs migration-guide の TS 混在例で DSL 単体として parse 不可、 skip 対象。
+          const hasTsWrapper = /export\s+const|textDslToDiagram/.test(code);
+          if (!hasPlaceholder && hasBody && !hasTsWrapper) {
+            out.push({ file, index: idx++, code });
+          }
         }
         buf = [];
         insideFence = false;
@@ -126,6 +137,10 @@ describe("cdl-docs code samples geometry gate", () => {
     process.stderr.write(
       `[docs-samples-validate] parsed=${validated.length} parse-failed=${parseFailures.length} total=${allSamples.length}\n`,
     );
+    for (const f of parseFailures.slice(0, 5)) {
+      const relPath = path.relative(contentRoot, f.sample.file);
+      process.stderr.write(`  parse-fail: ${relPath}#${f.sample.index} — ${f.error.slice(0, 200)}\n`);
+    }
     expect(validated.length + parseFailures.length).toBe(allSamples.length);
   });
 });
