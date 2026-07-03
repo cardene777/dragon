@@ -513,6 +513,13 @@ html.dark .docs-pagefind-hit-excerpt mark {
   --cdl-text-mute: #8a8678;
   --cdl-text-accent: #2d6a8f;
   --cdl-line-mute: #a89d8f;
+  /* v0.9+ TONE SSOT (cdl render/tone.ts で var(--cdl-tone-{name}) 参照) */
+  --cdl-tone-accent: #2d6a8f;
+  --cdl-tone-teal: #2f8770;
+  --cdl-tone-success: #4ea36a;
+  --cdl-tone-error: #c15a4a;
+  --cdl-tone-warning: #a67a2e;
+  --cdl-tone-info: #5a8ec1;
 }
 html.dark {
   /* v0.8+ dark mode 再設計 (旧 #1f2630 系は node と背景の差別化不足 + 図が暗すぎ問題)
@@ -533,6 +540,13 @@ html.dark {
   --cdl-text-mute: #b8b3a8;
   --cdl-text-accent: #5ec4e8;
   --cdl-line-mute: #6b7785;
+  /* dark theme 用 TONE (brand accent tone を明るく shift、 brightness > 150 で dark bg 上可読) */
+  --cdl-tone-accent: #5ec4e8;
+  --cdl-tone-teal: #5ed4b8;
+  --cdl-tone-success: #7fc99a;
+  --cdl-tone-error: #e8807d;
+  --cdl-tone-warning: #f0b75e;
+  --cdl-tone-info: #8bb5e8;
 }
 /* cdl SVG 内 text の色を theme-aware に (hardcode の旧 ink color を上書き) */
 [data-cdl-node] text {
