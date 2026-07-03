@@ -145,6 +145,10 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
           "neumorphism-shadow-budget",
           "color-blind-safety",
           "marker-gradient-def-integrity",
+          "subpixel-precision",
+          "dom-complexity-budget",
+          "reduced-motion-compat",
+          "touch-target-size",
         ]);
         const samples = report.reports
           .flatMap((r) => r.violations.filter((v) => interestingAxes.has(v.axis)))
