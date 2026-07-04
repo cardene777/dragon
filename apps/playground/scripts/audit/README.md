@@ -44,6 +44,32 @@ WCAG 基準: AA large=3.0, AA normal=4.5, AAA large=4.5, AAA normal=7.0
 
 ### 実行 audit script
 
+#### `all.mjs` (orchestrator)
+
+全 5 audit script を連続実行して 1 sanity check として使う。
+
+```bash
+cd apps/playground
+pnpm exec node scripts/audit/all.mjs
+```
+
+exit code: 0 (全 script exit 0) / 1 (1 つでも defect 検出) / 2 (1 つでも error)
+
+出力例:
+```
+=== dragon audit all orchestrator (5 scripts) ===
+[a11y] running pages-a11y.mjs...
+[a11y] OK (exit 0, 5s)
+[svg-text-overflow] running editor-svg-text-overflow.mjs...
+[svg-text-overflow] OK (exit 0, 25s)
+...
+=== SUMMARY ===
+  ✓ OK     a11y                 exit=0 time=5s
+  ✓ OK     svg-text-overflow    exit=0 time=25s
+  ...
+total: 5 scripts, 0 with defects, 0 with errors, 200s
+```
+
 #### `editor-svg-text-overflow.mjs`
 
 editor の全 12 sample で SVG 内 text が viewBox 外に飛んでいないか audit。
