@@ -266,3 +266,65 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
     expect(expectedAxes.length).toBe(56);
   });
 });
+
+// ────────────────────────────────────────────────────────────
+// 追加 real defect assertion: catalog sweep で発火する axis を fixture 化
+// visual-validate-sweep で下記 axis が正しく発火する事を dragon test で保証。
+// ────────────────────────────────────────────────────────────
+
+describe("Axis 3 text-readability (catalog real defect assertion)", () => {
+  it("cookbook 内 diagram の 1 つで text-readability > 0 (dark catalog は 96 発火の SSOT)", async () => {
+    const cookbook = await import("../../../apps/playground/src/topics/catalog/cookbook.cdl");
+    const isDiag = (v: unknown): v is CdlDiagram => {
+      return typeof v === "object" && v !== null &&
+        typeof (v as CdlDiagram).id === "string" &&
+        Array.isArray((v as CdlDiagram).nodes);
+    };
+    const diagrams = Object.values(cookbook).filter(isDiag);
+    // cookbook 全体で text-readability >= 1 発火する diagram が少なくとも 1 個ある事を保証
+    let totalCount = 0;
+    for (const d of diagrams) {
+      const r = visualValidate(d);
+      totalCount += r.counts["text-readability"];
+    }
+    expect(totalCount).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("Axis 7 edge-label-proximity (catalog real defect assertion)", () => {
+  it("patterns の diagram で edge-label-proximity >= 1 発火 (SSOT: err(edge-label-proximity=2))", async () => {
+    const patterns = await import("../../../apps/playground/src/topics/catalog/patterns.cdl");
+    const isDiag = (v: unknown): v is CdlDiagram => {
+      return typeof v === "object" && v !== null &&
+        typeof (v as CdlDiagram).id === "string" &&
+        Array.isArray((v as CdlDiagram).nodes);
+    };
+    const diagrams = Object.values(patterns).filter(isDiag);
+    let totalCount = 0;
+    for (const d of diagrams) {
+      const r = visualValidate(d);
+      totalCount += r.counts["edge-label-proximity"];
+    }
+    // visual-validate-sweep patterns SSOT: edge-label-proximity=2
+    expect(totalCount).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("Axis 51 mermaid-parity (catalog real defect assertion)", () => {
+  it("presets の diagram で mermaid-parity >= 1 発火 (SSOT: warn(mermaid-parity=5))", async () => {
+    const presets = await import("../../../apps/playground/src/topics/catalog/presets.cdl");
+    const isDiag = (v: unknown): v is CdlDiagram => {
+      return typeof v === "object" && v !== null &&
+        typeof (v as CdlDiagram).id === "string" &&
+        Array.isArray((v as CdlDiagram).nodes);
+    };
+    const diagrams = Object.values(presets).filter(isDiag);
+    let totalCount = 0;
+    for (const d of diagrams) {
+      const r = visualValidate(d);
+      totalCount += r.counts["mermaid-parity"];
+    }
+    // visual-validate-sweep presets SSOT: mermaid-parity=5 (topo/infra/tree/mind/pie 等 cdl 独自 preset)
+    expect(totalCount).toBeGreaterThanOrEqual(1);
+  });
+});
