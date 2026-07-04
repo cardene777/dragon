@@ -515,6 +515,7 @@ html.dark .docs-pagefind-hit-excerpt mark {
   --cdl-line-mute: #a89d8f;
   /* v0.9+ TONE SSOT (cdl render/tone.ts で var(--cdl-tone-{name}) 参照) */
   --cdl-tone-accent: #2d6a8f;
+  --cdl-tone-accent-deep: #1f4d6e;
   --cdl-tone-teal: #2f8770;
   --cdl-tone-success: #4ea36a;
   --cdl-tone-error: #c15a4a;
@@ -542,6 +543,7 @@ html.dark {
   --cdl-line-mute: #6b7785;
   /* dark theme 用 TONE (brand accent tone を明るく shift、 brightness > 150 で dark bg 上可読) */
   --cdl-tone-accent: #5ec4e8;
+  --cdl-tone-accent-deep: #4e9dc4;
   --cdl-tone-teal: #5ed4b8;
   --cdl-tone-success: #7fc99a;
   --cdl-tone-error: #e8807d;
