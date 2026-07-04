@@ -517,6 +517,8 @@ html.dark .docs-pagefind-hit-excerpt mark {
   --cdl-tone-accent: #2d6a8f;
   --cdl-tone-accent-deep: #1f4d6e;
   --cdl-thumbnail-modal-bg: #ede2d4;
+  --cdl-thumbnail-overlay-bg: rgba(45, 35, 25, 0.78);
+  --cdl-thumbnail-close-bg: rgba(61, 50, 41, 0.12);
   --cdl-tone-teal: #2f8770;
   --cdl-tone-success: #4ea36a;
   --cdl-tone-error: #c15a4a;
@@ -546,6 +548,8 @@ html.dark {
   --cdl-tone-accent: #5ec4e8;
   --cdl-tone-accent-deep: #4e9dc4;
   --cdl-thumbnail-modal-bg: #1e293b;
+  --cdl-thumbnail-overlay-bg: rgba(0, 0, 0, 0.85);
+  --cdl-thumbnail-close-bg: rgba(255, 255, 255, 0.1);
   --cdl-tone-teal: #5ed4b8;
   --cdl-tone-success: #7fc99a;
   --cdl-tone-error: #e8807d;
