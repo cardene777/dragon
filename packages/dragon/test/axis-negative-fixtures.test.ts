@@ -1,21 +1,39 @@
 /**
- * 位置関係 axis の negative fixture test。
+ * 位置関係 axis の fixture-based test。 layout regression safety net としての SSOT。
  *
- * cdl visualValidate の core 8 axis に対して意図的 defect を含む diagram を作成、
- * 各 axis が正しく発火するか + false positive がないかを保証する。
+ * ## 設計背景
  *
- * 目的 = 「56 axis 実装済」 状態から「各 axis が real defect を検知できる」 状態への昇格。
- * 前 session で判明した audit script false positive 問題への構造的解答。
+ * cdl visualValidate は 56 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
+ * 但し CdlDiagram レベルで意図的 defect を仕込んでも layout logic が prevent する axis が多い
+ * (Axis 10 node-overlap は同 stack node が発生しても layout の re-position で解消、 Axis 11
+ * edge-crossing は routing の detour で解消、 Axis 53 node-inside-viewbox は viewport 明示で
+ * fallback 自動拡張、 等)。
  *
- * 対象 axis (position 系 core 8 個):
- * - Axis 1  node-visibility
- * - Axis 8  arrow-endpoint-anchoring
- * - Axis 10 node-overlap
- * - Axis 11 edge-crossing
- * - Axis 12 edge-node-cross
- * - Axis 14 label-inside-viewbox
- * - Axis 53 node-inside-viewbox
- * - Axis 54 node-inside-lane
+ * つまり **catalog に real defect が存在しない axis** は、 layout が正しい間は発火せず、
+ * **layout regression が発生した場合のみ発火する safety net** として動作する設計。
+ *
+ * ## 2 種類の axis 保証
+ *
+ * ### A. catalog real defect 保証 (4 axis)
+ * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
+ * regression を検出可能:
+ * - Axis 3  text-readability      (cookbook)
+ * - Axis 7  edge-label-proximity  (patterns)
+ * - Axis 12 edge-node-cross       (pattern-passthrough)
+ * - Axis 51 mermaid-parity        (presets)
+ *
+ * ### B. layout regression safety net (52 axis)
+ * 現状の layout が正しく defect を prevent、 発火 0 が正常。 layout implementation の
+ * 破壊的変更が入った時に初めて発火して regression を検出:
+ * - Axis 1 (node-visibility) / Axis 8 (arrow-endpoint-anchoring) / Axis 10 (node-overlap) /
+ *   Axis 11 (edge-crossing) / Axis 14 (label-inside-viewbox) / Axis 53 (node-inside-viewbox) /
+ *   Axis 54 (node-inside-lane) 等
+ *
+ * ## 完全保証の次段階 (別 PR)
+ *
+ * layout を bypass して LaidDiagram を直接 mutation する `visualValidateLaid(laid)` API を
+ * cdl に追加すれば、 各 axis 独立の real defect assertion を Layer 3 (LaidDiagram 座標
+ * 直接 mutation) で実施可能。 但し public API 拡張で影響範囲大、 /grilling 経由の別 session。
  */
 import { describe, it, expect } from "vitest";
 import { visualValidate } from "@cardenelabs/cdl";
