@@ -101,7 +101,11 @@ export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "class
   .class({ id: "Admin", title: "Admin", attributes: ["+permissions: string[]"], methods: ["+banUser(): void"] })
   .class({ id: "Order", title: "Order", attributes: ["+id: number", "+total: number"], methods: ["+pay(): void"] })
   .relation({ from: "Admin", to: "User", type: "extends" })
-  .relation({ from: "User", to: "Order", type: "aggregates", cardinality: "1..*" })
+  // CAR-492 SSOT ... aggregates edge を Admin → Order に変更 (旧 User → Order は Admin が
+  // 直線経路を塞ぐため上方 detour Y=78 まで大迂回、 label Y=104 で diagram 全体より上方に浮遊)。
+  // Admin → Order は adjacent 隣接で直接水平 path、 label が edge 中央近傍に密着する。
+  // semantic 的にも Admin が Order を管理する関係の方が UML 表現として妥当。
+  .relation({ from: "Admin", to: "Order", type: "aggregates", cardinality: "1..*" })
   .build();
 
 // tree preset ... 組織図 / file tree / class 階層
