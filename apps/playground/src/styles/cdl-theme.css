@@ -224,199 +224,71 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
- * Isometric (CAR-781 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
- * 意図 = bone #f7f4e8 background + node top face gradient (bone → tan #e0dbc4) +
- *        rust accent #8b3a1f (edge-label) + ink stroke #2c2820 + Söhne Breit heading +
- *        JetBrains Mono edge-label + strong drop shadow で pseudo-3D 立体感演出
- *
- * 妥協案 = 完全 3D projection (30° axonometric cube の top/right/left 3 面分割) は
- * layout engine の isometric projection 実装が必要で本 PR scope 外。 代わりに 2D +
- * top-light gradient + strong drop shadow で「top face から光が当たり右下に影が落ちる」
- * 立体感を演出する。 完全 3D は次段階で対応。
- *
- * CAR-741 Circuit theme と同じ 3 経路を採用:
- *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
- *       fallback を効かせる (最も clean な経路)。 --cdl-node-fill = #f7f4e8 で var 経路の
- *       bone tint fallback を提供、 実 render は (b) 経路で gradient url に上書き。
- *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
- *       rect/path/ellipse/circle を !important + 具体 selector で url(#dragon-iso-top-gradient)
- *       + drop shadow filter に override
- *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
- *       node-kind-icon / lane-* まで網羅
+ * Isometric (3D 立体 metaphor、 top-light gradient + cast shadow)
+ * 意図 = 30° 立体 cube + top-light gradient + cast shadow + 3D pipes
+ * 注 = SVG transform で svg root 全体を skew するのは text 反転を招くため、
+ *      本 CSS では fill / stroke / filter で立体感を演出する経路。 完全 3D 化は
+ *      将来 cdl engine の isometric projection を実装する時に別途対応。
  * ═════════════════════════════════════════════════════════════════════════════ */
-
-/*
- * CSS var 上書き経路 (a)
- * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
- * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
- */
-[data-cdl-theme="isometric"] {
-  --cdl-node-fill: #f7f4e8;
-  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 rust accent と統一 */
-  --cdl-tone-info: #8b3a1f;
-  --cdl-tone-accent: #8b3a1f;
-  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる */
-  --cdl-divider: #d8d1bd;
-  --cdl-text: #2c2820;
-  --cdl-text-dim: #7a7264;
-  --cdl-text-secondary: #7a7264;
-  --cdl-label-bg: #f7f4e8;
-  --cdl-label-text: #8b3a1f;
-  --cdl-edge-stroke: #2c2820;
-}
-
-/*
- * 直接 role selector 経路 (b1)
- * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
- * gradient url + drop shadow で pseudo-3D top-light + cast shadow 立体感を作る。
- */
 [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #2c2820 !important;
-  stroke-width: 0.9 !important;
-  filter: url(#dragon-iso-drop-shadow) !important;
+  stroke: #4a5a7c !important;
+  stroke-width: 1.2 !important;
+  filter: url(#dragon-iso-cast-shadow) !important;
 }
-
-/*
- * 子孫 selector 経路 (b2)
- * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
- * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
- * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
- */
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] rect,
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] > path,
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > path,
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > circle {
-  fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #2c2820 !important;
-  stroke-width: 0.9 !important;
-  filter: url(#dragon-iso-drop-shadow) !important;
-}
-/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] ellipse {
-  fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #2c2820 !important;
-  stroke-width: 0.9 !important;
-}
-
-[data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
-  fill: #2c2820 !important;
-  stroke: none !important;
-  font-family: "Söhne Breit", "Söhne", "Inter", sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 14px !important;
-  letter-spacing: 0.03em !important;
-}
-
-/*
- * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
- * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
- * で specificity を勝たせる (0-3-1 > 0-2-2)。
- */
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-[data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
-  fill: #2c2820 !important;
-  stroke: none !important;
-  opacity: 1 !important;
-}
-
-[data-cdl-theme="isometric"] [data-cdl-role="edge-line"],
-[data-cdl-theme="isometric"] path[data-cdl-role="edge-line"],
-[data-cdl-theme="isometric"] line[data-cdl-role="edge-line"] {
-  stroke: #2c2820 !important;
-  stroke-width: 1.6 !important;
-  stroke-linecap: round !important;
-  fill: none !important;
-  filter: url(#dragon-iso-drop-shadow-sm) !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"],
-[data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #2c2820 !important;
-  stroke: none !important;
-}
-
 [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
-  fill: #f7f4e8 !important;
-  stroke: #2c2820 !important;
+  fill: #ffffff !important;
+  stroke: #4a5a7c !important;
   stroke-width: 1 !important;
-  filter: url(#dragon-iso-drop-shadow-sm) !important;
+  filter: url(#dragon-iso-cast-shadow) !important;
 }
-[data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #8b3a1f !important;
-  stroke: none !important;
-  font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
-  font-weight: 700 !important;
-  font-size: 11px !important;
-}
-
 [data-cdl-theme="isometric"] [data-cdl-role="lane-container"] {
-  fill: rgba(247, 244, 232, 0.6) !important;
-  stroke: rgba(44, 40, 32, 0.25) !important;
-  stroke-width: 1 !important;
-  stroke-dasharray: 3 3 !important;
+  fill: rgba(244, 248, 255, 0.5) !important;
+  stroke: rgba(184, 199, 222, 0.7) !important;
+  stroke-dasharray: 6 4 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(44, 40, 32, 0.4) !important;
+  stroke: rgba(74, 90, 124, 0.55) !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
+  fill: #1a2540 !important;
+  font-weight: 700 !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
+  fill: #1a2540 !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
+  stroke: #4a5a7c !important;
+  stroke-width: 3 !important;
+  filter: url(#dragon-iso-cast-shadow) !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
+  fill: #4a5a7c !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
+  fill: #4a5a7c !important;
+  opacity: 0.9 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-label"] {
-  fill: #7a7264 !important;
-  stroke: none !important;
-  font-family: "Söhne Breit", "Söhne", "Inter", sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  letter-spacing: 0.08em !important;
+  fill: #4a5a7c !important;
 }
-
-/* ─── dark mode variant (dark bg + light iso gradient invert) ─── */
-html.dark [data-cdl-theme="isometric"] {
-  --cdl-node-fill: #2c3448;
-  --cdl-tone-info: #d99a6e;
-  --cdl-tone-accent: #d99a6e;
-  --cdl-text: #d8dde8;
-  --cdl-text-dim: #96a0bb;
-  --cdl-text-secondary: #96a0bb;
-  --cdl-label-bg: #2c3448;
-  --cdl-label-text: #d99a6e;
-  --cdl-edge-stroke: #96a0bb;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"],
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] rect,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] > path,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > path,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > ellipse,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] > g > circle,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] ellipse {
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient-dark) !important;
-  stroke: #96a0bb !important;
+  stroke: #6a7898 !important;
+  filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
   fill: #2c3448 !important;
-  stroke: #96a0bb !important;
+  stroke: #6a7898 !important;
+  filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
-  fill: #d8dde8 !important;
-}
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #d99a6e !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
   fill: #d8dde8 !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"],
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: #96a0bb !important;
-  fill: #96a0bb !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #96a0bb !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="lane-container"] {
-  fill: rgba(44, 52, 72, 0.5) !important;
-  stroke: rgba(150, 160, 187, 0.25) !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="lane-label"] {
   fill: #96a0bb !important;
 }
 
