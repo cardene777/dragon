@@ -51,12 +51,14 @@ export function SvgDefs(): React.ReactElement {
           </feMerge>
         </filter>
 
-        {/* Circuit trace glow (mint neon) */}
-        <filter id="dragon-cir-trace-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.4" result="blur" />
-          <feFlood floodColor="rgba(72, 224, 176, 0.6)" result="glowColor" />
+        {/* Circuit trace glow (mint neon、 stdDeviation 大きめで soft halo) */}
+        <filter id="dragon-cir-trace-glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3.5" result="blur" />
+          <feFlood floodColor="rgba(72, 224, 176, 0.7)" result="glowColor" />
           <feComposite in="glowColor" in2="blur" operator="in" result="glowColored" />
+          <feGaussianBlur in="glowColored" stdDeviation="1.5" result="glowSoft" />
           <feMerge>
+            <feMergeNode in="glowSoft" />
             <feMergeNode in="glowColored" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>

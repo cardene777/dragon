@@ -6,6 +6,32 @@ import { THEME_CONFIGS, type ThemeName } from "@/lib/theme";
 import type { PresetNode } from "@/lib/presets";
 
 /**
+ * Circuit theme = rect の 4 隅に gold solder pad (r=4.5) を配置。
+ */
+function SolderPads({ w, h }: { w: number; h: number }): React.ReactElement {
+  return (
+    <>
+      {[
+        [0, 0],
+        [w, 0],
+        [0, h],
+        [w, h],
+      ].map(([x, y], i) => (
+        <circle
+          key={i}
+          cx={x}
+          cy={y}
+          r={4.5}
+          fill="var(--color-accent)"
+          stroke="none"
+          opacity={1}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
  * 1 node を SVG group で描画。 shape-generator API 経由で
  * theme に応じた path (rough.js or straight) を生成、 text を上乗せする。
  *
@@ -80,6 +106,10 @@ export function DiagramNode({
             strokeLinejoin={p.strokeLinejoin as "round" | "miter" | "bevel" | undefined}
           />
         ))}
+        {/* Circuit theme = 4 隅 solder pad (rect のみ) */}
+        {theme === "circuit" && shape === "rect" && (
+          <SolderPads w={node.w} h={node.h} />
+        )}
       </g>
       {node.eyebrow && (
         <text
