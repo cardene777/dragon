@@ -1,28 +1,21 @@
 ---
 /**
- * Global SVG defs (CAR-N-7 / CAR-649 base、 CAR-N-8 で filter parameter 強化) —
- * cdl SVG に data-cdl-role selector 経由で Neumorphism raised / inset filter を適用するための shared filter 定義。
+ * Global SVG defs (CAR-N-7 / CAR-649 base、 CAR-N-8 で filter parameter 強化、
+ * CAR-708 で 6 theme SVG defs に拡張) —
+ * cdl SVG に `data-cdl-theme` + `data-cdl-role` 2 段 selector 経由で 6 theme の style を適用するための shared SVG defs。
  *
- * cdl scope が geometry only になった (CAR-643) 影響で、 dragon 側で自分の Neumorphism
- * filter を SSOT 化する必要がある。 本 component を BaseLayout / DocsLayout の body 直下に
- * 1 度だけ mount する経路で全 page 共通の filter defs を提供する。 filter selector 経路は
+ * cdl scope が geometry only になった (CAR-643) 影響で、 dragon 側で自分の style
+ * を SSOT 化する必要がある。 本 component を BaseLayout / DocsLayout の body 直下に
+ * 1 度だけ mount する経路で全 page 共通の defs を提供する。 selector 経路は
  * apps/playground/src/styles/cdl-theme.css SSOT。
  *
- * filter 一覧 (light + dark 2 対応、 dragon-nm-*)
- *   - dragon-nm-raised-soft       ... light theme, raised (dual shadow dark + light)
- *   - dragon-nm-inset-soft        ... light theme, inset (subtle recess)
- *   - dragon-nm-raised-soft-dark  ... dark theme, raised (影を dark base に反転)
- *   - dragon-nm-inset-soft-dark   ... dark theme, inset (影を dark base に反転)
- *
- * CAR-N-8 数値変更方針 (Dribbble Neumorphism 相当まで強化) ...
- *   - stdDeviation 1.5 → 3.0 (blur を約 2 倍、 影の広がりを visible に)
- *   - offset dx/dy 2 → 4 (影の距離を拡張、 raised 感を明確化)
- *   - flood-color opacity 0.35 / 0.75 → 0.55 / 0.95 (影の濃さを明確に上げる)
- *   - filter region -20% -20% 140% 140% → -30% -30% 160% 160% (blur 拡大でクリッピング回避)
- *
- * design 数値は apps/playground/src/styles/neumorphism.css の
- *   --nm-shadow-raised-soft / --nm-shadow-inset-soft の CSS shadow を SVG filter で近似 (blur / offset / flood-color)。
- * light theme = 白い高光 + 淡青の落ち影、 dark theme = 白の弱高光 + 黒の濃い落ち影。
+ * defs 一覧 (theme 名 prefix):
+ *   - Neumorphism: `dragon-nm-raised-soft` / `dragon-nm-inset-soft` (+ *-dark) — light/dark 4 filter
+ *   - Isometric:   `dragon-iso-cast-shadow` filter + `dragon-iso-top-gradient` / `dragon-iso-right-shadow-gradient` / `dragon-iso-left-shadow-gradient` linearGradient
+ *   - Circuit:     `dragon-cir-trace-glow` filter + `dragon-cir-board-pattern` pattern (PCB green + solder pad gold)
+ *   - Pinboard:    `dragon-pin-sticky-shadow` filter + `dragon-pin-board-pattern` pattern (kraft board)
+ *   - Blueprint:   `dragon-bp-graticule` pattern (fine grid) + `dragon-bp-arrow-ortho` marker
+ *   - Handdrawn:   `dragon-hd-wobble` turbulence displacement filter
  *
  * a11y = SVG は `aria-hidden` + 0 サイズ + pointer-events none で完全に不可視 + 支援技術 pass-through。
  */
@@ -30,7 +23,7 @@
 
 <svg width="0" height="0" style="position:absolute; pointer-events:none" aria-hidden="true">
   <defs>
-    {/* ─── Light theme: raised (dual shadow — dark bottom-right + light top-left、 CAR-N-8 強化) ─── */}
+    {/* ═════════════════ Neumorphism (CAR-N-7 / CAR-N-8 SSOT、 raised + inset × light/dark) ═════════════════ */}
     <filter id="dragon-nm-raised-soft" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="3" result="blur" />
       <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
@@ -46,7 +39,6 @@
       </feMerge>
     </filter>
 
-    {/* ─── Light theme: inset (subtle recess for lane container、 CAR-N-8 強化) ─── */}
     <filter id="dragon-nm-inset-soft" x="-15%" y="-15%" width="130%" height="130%">
       <feGaussianBlur stdDeviation="1.2" />
       <feOffset dx="3" dy="3" result="offset-dark" />
@@ -56,7 +48,6 @@
       <feComposite in="SourceGraphic" />
     </filter>
 
-    {/* ─── Dark theme: raised (影の色を dark base に反転、 白の弱高光 + 黒の濃い落ち影、 CAR-N-8 強化) ─── */}
     <filter id="dragon-nm-raised-soft-dark" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="3" result="blur" />
       <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
@@ -72,7 +63,6 @@
       </feMerge>
     </filter>
 
-    {/* ─── Dark theme: inset (CAR-N-8 強化) ─── */}
     <filter id="dragon-nm-inset-soft-dark" x="-15%" y="-15%" width="130%" height="130%">
       <feGaussianBlur stdDeviation="1.2" />
       <feOffset dx="3" dy="3" result="offset-dark" />
@@ -80,6 +70,85 @@
       <feFlood flood-color="rgba(0, 0, 0, 0.7)" />
       <feComposite in2="composite-dark" operator="in" />
       <feComposite in="SourceGraphic" />
+    </filter>
+
+    {/* ═════════════════ Isometric (top-light gradient + cast shadow、 3D 立体 metaphor) ═════════════════ */}
+    <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f8ff" />
+      <stop offset="1" stop-color="#b8c7de" />
+    </linearGradient>
+
+    <linearGradient id="dragon-iso-top-gradient-dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a4664" />
+      <stop offset="1" stop-color="#1e2540" />
+    </linearGradient>
+
+    <filter id="dragon-iso-cast-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" />
+      <feOffset dx="6" dy="8" result="offset" />
+      <feFlood flood-color="rgba(48, 62, 96, 0.45)" />
+      <feComposite in2="offset" operator="in" />
+      <feComposite in="SourceGraphic" />
+    </filter>
+
+    <filter id="dragon-iso-cast-shadow-dark" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" />
+      <feOffset dx="6" dy="8" result="offset" />
+      <feFlood flood-color="rgba(0, 0, 0, 0.6)" />
+      <feComposite in2="offset" operator="in" />
+      <feComposite in="SourceGraphic" />
+    </filter>
+
+    {/* ═════════════════ Circuit (PCB 基板 metaphor、 solder pad gold + trace mint + PCB green board) ═════════════════ */}
+    <pattern id="dragon-cir-board-pattern" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="24" height="24" fill="#0a1a12" />
+      <circle cx="4" cy="4" r="0.6" fill="#1a2f22" />
+      <circle cx="20" cy="20" r="0.6" fill="#1a2f22" />
+    </pattern>
+
+    <filter id="dragon-cir-trace-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="glow" />
+      <feFlood flood-color="rgba(72, 224, 176, 0.55)" />
+      <feComposite in2="glow" operator="in" result="glowColored" />
+      <feMerge>
+        <feMergeNode in="glowColored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    {/* ═════════════════ Pinboard (掲示板 metaphor、 sticky note + kraft board) ═════════════════ */}
+    <pattern id="dragon-pin-board-pattern" x="0" y="0" width="36" height="36" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="36" height="36" fill="#c8a475" />
+      <circle cx="12" cy="12" r="0.5" fill="rgba(90, 60, 30, 0.35)" />
+      <circle cx="28" cy="24" r="0.5" fill="rgba(90, 60, 30, 0.35)" />
+      <circle cx="20" cy="30" r="0.4" fill="rgba(90, 60, 30, 0.28)" />
+    </pattern>
+
+    <filter id="dragon-pin-sticky-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" />
+      <feOffset dx="3" dy="5" result="offset" />
+      <feFlood flood-color="rgba(60, 40, 20, 0.4)" />
+      <feComposite in2="offset" operator="in" />
+      <feComposite in="SourceGraphic" />
+    </filter>
+
+    {/* ═════════════════ Blueprint (設計図 metaphor、 graticule pattern + ortho arrow marker) ═════════════════ */}
+    <pattern id="dragon-bp-graticule" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(30, 66, 108, 0.14)" stroke-width="0.6" />
+    </pattern>
+
+    <pattern id="dragon-bp-graticule-dark" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(120, 180, 220, 0.18)" stroke-width="0.6" />
+    </pattern>
+
+    <marker id="dragon-bp-arrow-ortho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 M 0 5 L 8 5" fill="none" stroke="#1e426c" stroke-width="1.2" />
+    </marker>
+
+    {/* ═════════════════ Handdrawn (手描き metaphor、 turbulence displacement + kraft palette) ═════════════════ */}
+    <filter id="dragon-hd-wobble" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
     </filter>
   </defs>
 </svg>

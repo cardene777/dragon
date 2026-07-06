@@ -1,43 +1,165 @@
 /**
- * cdl SVG Neumorphism filter (CAR-N-7 / CAR-649)
+ * cdl SVG 6 theme style (CAR-708、 CAR-N-7 / CAR-649 Neumorphism 拡張)
  *
- * cdl は CAR-643 で geometry only に scope 縮小、 shadow / border effect の filter は
- * cdl SVG 内に持たない。 dragon 側で `[data-cdl-role="..."]` selector 経由に自分の filter
- * を適用する。 本 file は data-cdl-role SSOT に紐付いた Neumorphism raised / inset filter を
- * 全 cdl SVG (catalog / docs / editor 上) に適用する。
+ * cdl は CAR-643 で geometry only に scope 縮小、 shadow / border effect の style は
+ * cdl SVG 内に持たない。 dragon 側で `[data-cdl-theme="<name>"] [data-cdl-role="<role>"]`
+ * selector 経由に自分の style を適用する。
  *
  * 適用 role (packages/cdl/src/render/{stage,edges,nodes}.tsx SSOT):
  *   - node-body       ... 6 shape wrapper (actor / card / event / function / storage / generic)
  *   - edge-label-bg   ... edge label pill 背景 rect
  *   - lane-container  ... lane.contain=true の boundary rect
  *   - lane-lifeline   ... lane.lifeline=true の縦点線 line (影は控えめ)
- *   - lane-label      ... lane 見出し text (通常 filter 対象外、 影不要)
+ *   - lane-label      ... lane 見出し text (通常 style 対象外、 影不要)
  *
- * SVG filter 本体は BaseLayout / DocsLayout に inline <svg><defs> で 1 度だけ inject する
- * (Astro layout SSOT)、 本 CSS は selector 経由の `filter: url(#...)` 適用のみ。
+ * default theme = "blueprint" (CAR-707 cdl 側 fallback SSOT)。 SVG root に
+ * `data-cdl-theme="blueprint"` が明示的に付与されるため、 全 theme rule を明示 selector で書く。
+ *
+ * SVG defs 本体は BaseLayout / DocsLayout に inline `<svg><defs>` で 1 度だけ inject する
+ * (CdlFilterDefs.astro SSOT)、 本 CSS は selector 経由の `filter: url(#...)` / `fill: ...` / etc. 適用のみ。
  */
 
-/* ─── Light theme (default) ─── */
-[data-cdl-role="node-body"],
-[data-cdl-role="edge-label-bg"] {
+/* ═════════════════ Neumorphism (raised + inset、 light/dark 対応) ═════════════════ */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
+[data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
   filter: url(#dragon-nm-raised-soft);
 }
-
-[data-cdl-role="lane-container"] {
+[data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   filter: url(#dragon-nm-inset-soft);
 }
-
-/* ─── Dark theme (html.dark、 dragon 全ページ共通 dark selector) ─── */
-html.dark [data-cdl-role="node-body"],
-html.dark [data-cdl-role="edge-label-bg"] {
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
   filter: url(#dragon-nm-raised-soft-dark);
 }
-
-html.dark [data-cdl-role="lane-container"] {
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   filter: url(#dragon-nm-inset-soft-dark);
 }
 
-/* ─── Reduced motion respect (視差効果減 対応、 filter は動きなしなので無効化不要だが a11y の一貫性のため noop 定義を残す) ─── */
+/* ═════════════════ Isometric (3D 立体 metaphor、 top-light gradient + cast shadow) ═════════════════ */
+[data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
+  fill: url(#dragon-iso-top-gradient);
+  filter: url(#dragon-iso-cast-shadow);
+}
+[data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
+  fill: #ffffff;
+  stroke: #b8c7de;
+  stroke-width: 1;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="lane-container"] {
+  fill: rgba(244, 248, 255, 0.5);
+  stroke: rgba(184, 199, 222, 0.6);
+  stroke-dasharray: 6 4;
+}
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
+  fill: url(#dragon-iso-top-gradient-dark);
+  filter: url(#dragon-iso-cast-shadow-dark);
+}
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
+  fill: #2c3448;
+  stroke: #4a5772;
+  stroke-width: 1;
+}
+
+/* ═════════════════ Circuit (PCB 基板 metaphor、 solder pad gold + trace mint) ═════════════════ */
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] {
+  fill: #0a1a12;
+  stroke: #c8a038;
+  stroke-width: 1.6;
+}
+[data-cdl-theme="circuit"] [data-cdl-role="edge-label-bg"] {
+  fill: #0a1a12;
+  stroke: #48e0b0;
+  stroke-width: 1;
+}
+[data-cdl-theme="circuit"] [data-cdl-role="lane-container"] {
+  fill: url(#dragon-cir-board-pattern);
+  stroke: #48e0b0;
+  stroke-opacity: 0.35;
+  stroke-dasharray: 8 4;
+}
+[data-cdl-theme="circuit"] [data-cdl-role="lane-lifeline"] {
+  stroke: #48e0b0;
+  stroke-opacity: 0.55;
+}
+
+/* ═════════════════ Pinboard (掲示板 metaphor、 sticky note + kraft board、 slight rotation) ═════════════════ */
+[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] {
+  fill: #fdf7d9;
+  stroke: rgba(90, 60, 30, 0.25);
+  stroke-width: 1;
+  filter: url(#dragon-pin-sticky-shadow);
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="edge-label-bg"] {
+  fill: #fffef5;
+  stroke: rgba(90, 60, 30, 0.28);
+  stroke-width: 1;
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="lane-container"] {
+  fill: url(#dragon-pin-board-pattern);
+  stroke: rgba(60, 40, 20, 0.45);
+  stroke-dasharray: 4 3;
+}
+
+/* ═════════════════ Blueprint (default、 設計図 metaphor、 graticule pattern + ortho line) ═════════════════ */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
+  fill: none;
+  stroke: #1e426c;
+  stroke-width: 1.4;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
+  fill: #f6faff;
+  stroke: #1e426c;
+  stroke-width: 0.8;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
+  fill: url(#dragon-bp-graticule);
+  stroke: rgba(30, 66, 108, 0.35);
+  stroke-dasharray: 6 3;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
+  stroke: rgba(30, 66, 108, 0.4);
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
+  stroke: #6ab3d8;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
+  fill: #101a2a;
+  stroke: #6ab3d8;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
+  fill: url(#dragon-bp-graticule-dark);
+  stroke: rgba(120, 180, 220, 0.35);
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
+  stroke: rgba(120, 180, 220, 0.4);
+}
+
+/* ═════════════════ Handdrawn (手描き metaphor、 turbulence displacement + kraft palette) ═════════════════ */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] {
+  fill: #fdf7d9;
+  stroke: #2c2820;
+  stroke-width: 1.6;
+  filter: url(#dragon-hd-wobble);
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="edge-label-bg"] {
+  fill: #fffef5;
+  stroke: #2c2820;
+  stroke-width: 1;
+  filter: url(#dragon-hd-wobble);
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="lane-container"] {
+  fill: #f0e6c8;
+  stroke: #2c2820;
+  stroke-width: 1.2;
+  stroke-dasharray: 5 3;
+  filter: url(#dragon-hd-wobble);
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="lane-lifeline"] {
+  stroke: #5a4830;
+  filter: url(#dragon-hd-wobble);
+}
+
+/* ═════════════════ Reduced motion respect ═════════════════ */
 @media (prefers-reduced-motion: reduce) {
   /* filter は静的なので特別な override 不要 */
 }
