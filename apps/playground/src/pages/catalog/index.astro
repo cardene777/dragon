@@ -95,10 +95,16 @@ const categories = [
 </BaseLayout>
 
 <style>
+  /* Neumorphism catalog hero (CAR-N-6、 Vercel 風 大きめ typography + Stripe 風 spacing 呼吸感) */
   .v4-cat-hero {
     max-width: 1180px;
     margin: 0 auto;
-    padding: 48px 32px 28px;
+    padding: 64px 32px 36px;
+  }
+  @media (max-width: 720px) {
+    .v4-cat-hero {
+      padding: 40px 20px 24px;
+    }
   }
   .v4-crumb {
     display: flex;
@@ -106,7 +112,8 @@ const categories = [
     font-family: var(--v4-mono);
     font-size: 11.5px;
     color: var(--v4-ink-mute);
-    margin-bottom: 18px;
+    margin-bottom: 20px;
+    letter-spacing: 0.02em;
   }
   .v4-crumb a {
     color: var(--v4-ink-dim);
@@ -125,16 +132,24 @@ const categories = [
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--v4-brand);
-    margin-bottom: 14px;
+    background: rgba(45, 106, 143, 0.08);
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 20px;
   }
   .v4-cat-hero h1 {
     font-family: var(--v4-serif);
-    font-size: 42px;
+    font-size: 48px;
     font-weight: 500;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     color: var(--v4-ink);
-    margin-bottom: 14px;
-    line-height: 1.1;
+    margin-bottom: 20px;
+    line-height: 1.08;
+  }
+  @media (min-width: 720px) {
+    .v4-cat-hero h1 {
+      font-size: 56px;
+    }
   }
   .v4-cat-hero h1 em {
     font-style: italic;
@@ -142,10 +157,10 @@ const categories = [
     color: var(--v4-brand-deep);
   }
   .v4-lead {
-    font-size: 15px;
+    font-size: 16.5px;
     color: var(--v4-ink-dim);
     max-width: 720px;
-    line-height: 1.65;
+    line-height: 1.7;
   }
   .v4-lead code {
     font-family: var(--v4-mono);
@@ -162,48 +177,69 @@ const categories = [
     padding: 24px 32px 60px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 24px;
   }
   @media (max-width: 720px) {
     .v4-cat-grid {
       grid-template-columns: 1fr;
+      padding: 20px 20px 48px;
+      gap: 20px;
     }
   }
 
+  /* Neumorphism raised catalog card (CAR-N-6、 Vercel / Linear / Stripe 相当) */
   .v4-cat-card {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 22px 24px 18px;
-    background: var(--v4-surface);
-    border: 1px solid var(--v4-line);
-    border-radius: 14px;
+    gap: 14px;
+    padding: 28px 28px 22px;
+    background: var(--nm-surface, var(--v4-surface));
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    border-radius: var(--nm-radius-card, 16px);
     text-decoration: none;
     color: var(--v4-ink);
-    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+    transition: var(--nm-transition-standard, all 0.24s cubic-bezier(0.4, 0, 0.2, 1));
+    box-shadow: var(
+      --nm-shadow-raised-soft,
+      0 12px 24px -12px rgba(30, 41, 59, 0.12),
+      0 4px 8px -4px rgba(45, 106, 143, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset
+    );
+    position: relative;
   }
   .v4-cat-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--v4-brand);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 18px 40px -22px rgba(45, 106, 143, 0.18);
+    transform: translateY(-4px);
+    border-color: rgba(45, 106, 143, 0.28);
+    box-shadow: var(
+      --nm-shadow-hover,
+      0 32px 64px -20px rgba(30, 41, 59, 0.24),
+      0 16px 32px -12px rgba(45, 106, 143, 0.18),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset
+    );
+  }
+  html.dark .v4-cat-card {
+    border-color: rgba(94, 196, 232, 0.14);
+  }
+  html.dark .v4-cat-card:hover {
+    border-color: rgba(94, 196, 232, 0.35);
   }
 
   .v4-cat-head {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: 14px;
   }
+  /* Linear 風 category tag = uppercase mono + subtle bg pill */
   .v4-cat-tag {
     font-family: var(--v4-mono);
     font-size: 10.5px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    padding: 2px 9px;
-    border-radius: 99px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
     color: var(--v4-brand-deep);
-    background: rgba(45, 106, 143, 0.08);
+    background: rgba(45, 106, 143, 0.09);
   }
   .v4-cat-domain .v4-cat-tag {
     color: var(--v4-accent-domain);
@@ -213,47 +249,63 @@ const categories = [
     color: var(--v4-accent-extended);
     background: rgba(109, 40, 217, 0.1);
   }
+  /* Vercel 風 大型 serif h2 */
   .v4-cat-card h2 {
     font-family: var(--v4-serif);
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 500;
-    letter-spacing: -0.022em;
+    letter-spacing: -0.024em;
     color: var(--v4-ink);
+    line-height: 1.2;
   }
   .v4-cat-card p {
     color: var(--v4-ink-dim);
-    font-size: 13.5px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.65;
   }
   .v4-cat-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 7px;
     margin-top: auto;
   }
+  /* Stripe 風 subtle chip = 淡い bg + subtle border + mono compact */
   .v4-cat-chip {
-    padding: 3px 9px;
-    background: #fcf8ee;
-    border: 1px solid var(--v4-line);
-    border-radius: 99px;
+    padding: 3.5px 10px;
+    background: rgba(252, 248, 238, 0.7);
+    border: 1px solid rgba(224, 217, 200, 0.7);
+    border-radius: 999px;
     font-family: var(--v4-mono);
     font-size: 10.5px;
     color: var(--v4-ink-dim);
+    letter-spacing: 0.01em;
   }
+  html.dark .v4-cat-chip {
+    background: rgba(31, 38, 48, 0.5);
+    border-color: rgba(94, 196, 232, 0.14);
+  }
+  /* Vercel 風 CTA foot = subtle divider + accent color + arrow slide */
   .v4-cat-go {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid var(--v4-line-soft);
+    padding-top: 14px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(241, 245, 249, 0.8);
     font-family: var(--v4-mono);
     font-size: 12px;
+    font-weight: 500;
     color: var(--v4-brand-deep);
+    letter-spacing: -0.01em;
+  }
+  html.dark .v4-cat-go {
+    border-top-color: rgba(94, 196, 232, 0.14);
   }
   .v4-cat-go .arrow {
-    transition: transform 0.15s;
+    transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 400;
   }
   .v4-cat-card:hover .arrow {
-    transform: translateX(4px);
+    transform: translateX(6px);
   }
 </style>
