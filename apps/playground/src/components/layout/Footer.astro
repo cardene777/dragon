@@ -60,14 +60,32 @@ const repoUrl = "https://github.com/cardene777/dragon";
     top: 0;
     left: 32px;
     right: 32px;
-    height: 1px;
+    height: 2px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      var(--v4-line) 20%,
-      var(--v4-line) 80%,
+      rgba(45, 106, 143, 0.35) 25%,
+      rgba(47, 135, 112, 0.35) 75%,
       transparent 100%
     );
+    border-radius: 2px;
+  }
+  html.dark .v4-foot::before {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(74, 144, 208, 0.3) 25%,
+      rgba(75, 176, 144, 0.3) 75%,
+      transparent 100%
+    );
+  }
+  .v4-foot-brand .v4-nav-mark {
+    width: 36px;
+    height: 36px;
+  }
+  .v4-foot-brand .v4-nav-mark svg {
+    width: 34px;
+    height: 34px;
   }
   .v4-foot-brand .v4-nav-name {
     font-size: 18px;

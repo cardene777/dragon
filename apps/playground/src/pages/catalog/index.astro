@@ -5,49 +5,56 @@ const categories = [
   {
     href: "/catalog/presets",
     label: "presets",
-    desc: "図の高位API。sequence / flow / swimlane / topology / er / stateなど、1行宣言でよくある構造を書ける。",
+    eyebrow: "PRESETS / HIGH-LEVEL API",
+    desc: "図の高位 API。 sequence / flow / swimlane / topology / er / state など、 1 行宣言でよくある構造を書ける。",
     items: ["sequence", "flow", "swimlane", "topology", "er", "stateMachine"],
     cluster: "basic",
   },
   {
     href: "/catalog/cookbook",
     label: "cookbook",
-    desc: "現場で使える完全レシピ。API call / 認証 / CRUD / 非同期 / 運用などをコピペで動かせる。",
+    eyebrow: "COOKBOOK / RECIPES",
+    desc: "現場で使える完全レシピ。 API call / 認証 / CRUD / 非同期 / 運用などをコピペで動かせる。",
     items: ["API / Auth", "データ操作", "UI / フォーム", "非同期", "運用"],
     cluster: "basic",
   },
   {
     href: "/catalog/patterns",
     label: "patterns",
-    desc: "汎用の構成パターン集。直結 / 経由 / 分岐 / ループ / Fan-out / Rollbackなど、図の組み立て方の型。",
+    eyebrow: "PATTERNS / COMPOSITION",
+    desc: "汎用の構成パターン集。 直結 / 経由 / 分岐 / ループ / Fan-out / Rollback など、 図の組み立て方の型。",
     items: ["Direct", "Branch", "Loop", "Fan-out", "Rollback", "Schedule"],
     cluster: "basic",
   },
   {
     href: "/catalog/primitives",
     label: "primitives",
-    desc: "図の最小パーツ。actor / function / storageなど基本5種 + 人 / インフラ / アプリ系のNodeKindをまとめて。",
+    eyebrow: "PRIMITIVES / LOW-LEVEL",
+    desc: "図の最小パーツ。 actor / function / storage など基本 5 種 + 人 / インフラ / アプリ系の NodeKind をまとめて。",
     items: ["NodeKind", "Lane", "Stack"],
     cluster: "extended",
   },
   {
     href: "/catalog/text-dsl",
     label: "text-dsl",
-    desc: "5ブロックの箇条書きで書けるdragon DSLの動作確認場。sequence / flow / state / topology / erなどをそのまま試せる。",
+    eyebrow: "TEXT DSL / BLOCK",
+    desc: "5 ブロックの箇条書きで書ける dragon DSL の動作確認場。 sequence / flow / state / topology / er などをそのまま試せる。",
     items: ["sequence", "flow", "swimlane", "state", "topology", "er"],
     cluster: "extended",
   },
   {
     href: "/catalog/animation",
     label: "animation",
-    desc: "phase / state / tween / set / badgeの動作確認。数値補間 / 即時切替 / 連続phase / バッジ切替。",
+    eyebrow: "ANIMATION / PHASE",
+    desc: "phase / state / tween / set / badge の動作確認。 数値補間 / 即時切替 / 連続 phase / バッジ切替。",
     items: ["Tween", "Set", "Badge", "Tween + Set"],
     cluster: "extended",
   },
   {
     href: "/catalog/styles",
     label: "styles",
-    desc: "edge種類 (solid / dotted-flow) とtone 6種 (accent / teal / success / error / warning / info)、active / inactive状態。",
+    eyebrow: "STYLES / TONE",
+    desc: "edge 種類 (solid / dotted-flow) と tone 6 種 (accent / teal / success / error / warning / info)、 active / inactive 状態。",
     items: ["EdgeStyle", "Tone", "Active / Inactive"],
     cluster: "extended",
   },
@@ -55,257 +62,231 @@ const categories = [
 ---
 
 <BaseLayout title="catalog · dragon">
-  <section class="v4-cat-hero">
-    <nav class="v4-crumb" aria-label="パンくず">
+  <section class="nm-hero">
+    <nav aria-label="パンくず" class="nm-crumb">
       <a href="/">overview</a>
-      <span>/</span>
+      <span aria-hidden="true">/</span>
       <span class="cur">catalog</span>
     </nav>
-    <span class="v4-eyebrow">primitives · presets · animation · patterns</span>
-    <h1>
-      すべてのpresetを、<em>動かしながら</em>読む。
+    <span class="nm-eyebrow">CATALOG · primitives · presets · animation · patterns</span>
+    <h1 class="nm-hero-title">
+      Text DSL × <span class="nm-gradient-accent">Animated SVG</span>
     </h1>
-    <p class="v4-lead">
-      dragon DSLのprimitives / styles / animation / patternsを7カテゴリで整理。各カテゴリに小さい図を並べて、1概念ずつ動作確認できる。engine層は<code>@cardenelabs/cdl</code>が担う。
+    <p class="nm-hero-subtitle">
+      dragon DSL の primitives / styles / animation / patterns を 7 カテゴリで整理。 各カテゴリに小さい図を並べて、 1 概念ずつ動作確認できる。 engine 層は <code>@cardenelabs/cdl</code> が担う。
     </p>
+    <div class="nm-hero-actions">
+      <a href="/catalog/presets" class="nm-hero-btn nm-hero-btn-primary">
+        <span>Browse presets</span>
+        <span class="nm-hero-btn-arrow" aria-hidden="true">→</span>
+      </a>
+      <a href="/editor" class="nm-hero-btn nm-hero-btn-secondary">
+        <span>Open editor</span>
+      </a>
+    </div>
   </section>
 
-  <section class="v4-cat-grid">
-    {
-      categories.map((c) => (
-        <a href={c.href} class={`v4-cat-card v4-cat-${c.cluster}`}>
-          <div class="v4-cat-head">
-            <span class="v4-cat-tag">{c.cluster}</span>
-            <h2>{c.label}</h2>
+  <section class="nm-stats" aria-label="dragon catalog stats">
+    <div class="nm-stat">
+      <div class="nm-stat-num">7</div>
+      <div class="nm-stat-label">categories</div>
+    </div>
+    <div class="nm-stat">
+      <div class="nm-stat-num">10</div>
+      <div class="nm-stat-label">presets</div>
+    </div>
+    <div class="nm-stat">
+      <div class="nm-stat-num">507+</div>
+      <div class="nm-stat-label">tests</div>
+    </div>
+    <div class="nm-stat">
+      <div class="nm-stat-num">2</div>
+      <div class="nm-stat-label">theme</div>
+    </div>
+  </section>
+
+  <section class="nm-presets-section" aria-label="category list">
+    <div class="nm-section-head">
+      <h2 class="nm-section-title">
+        Categories <span class="nm-section-count">({categories.length})</span>
+      </h2>
+      <p class="nm-section-desc">
+        各カテゴリはそれぞれ独立したページを持ち、 中で小さい図を並べて 1 概念ずつ動作確認できる。 basic は日常最頻使用、 extended は応用向け。
+      </p>
+    </div>
+    <div class="nm-cat-grid">
+      {categories.map((c) => (
+        <a href={c.href} class={`nm-cat-card nm-cat-${c.cluster}`}>
+          <div class="nm-cat-card-head">
+            <span class="nm-cat-eyebrow">{c.eyebrow}</span>
+            <h3 class="nm-cat-title">{c.label}</h3>
           </div>
-          <p>{c.desc}</p>
-          <div class="v4-cat-chips">
+          <p class="nm-cat-desc">{c.desc}</p>
+          <div class="nm-cat-chips">
             {c.items.map((i) => (
-              <span class="v4-cat-chip">{i}</span>
+              <span class="nm-cat-chip">{i}</span>
             ))}
           </div>
-          <div class="v4-cat-go">
+          <div class="nm-cat-go">
             <span>open</span>
-            <span class="arrow">→</span>
+            <span class="nm-cat-arrow" aria-hidden="true">→</span>
           </div>
         </a>
-      ))
-    }
+      ))}
+    </div>
   </section>
 </BaseLayout>
 
-<style>
-  /* Neumorphism catalog hero (CAR-N-6、 Vercel 風 大きめ typography + Stripe 風 spacing 呼吸感) */
-  .v4-cat-hero {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 64px 32px 36px;
-  }
-  @media (max-width: 720px) {
-    .v4-cat-hero {
-      padding: 40px 20px 24px;
-    }
-  }
-  .v4-crumb {
-    display: flex;
-    gap: 8px;
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
-    color: var(--v4-ink-mute);
-    margin-bottom: 20px;
-    letter-spacing: 0.02em;
-  }
-  .v4-crumb a {
-    color: var(--v4-ink-dim);
-    text-decoration: none;
-  }
-  .v4-crumb a:hover {
-    color: var(--v4-brand-deep);
-  }
-  .v4-crumb .cur {
-    color: var(--v4-ink);
-  }
-  .v4-eyebrow {
-    display: inline-block;
-    font-family: var(--v4-mono);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--v4-brand);
-    background: rgba(45, 106, 143, 0.08);
-    padding: 4px 12px;
-    border-radius: 999px;
-    margin-bottom: 20px;
-  }
-  .v4-cat-hero h1 {
-    font-family: var(--v4-serif);
-    font-size: 48px;
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    color: var(--v4-ink);
-    margin-bottom: 20px;
-    line-height: 1.08;
-  }
-  @media (min-width: 720px) {
-    .v4-cat-hero h1 {
-      font-size: 56px;
-    }
-  }
-  .v4-cat-hero h1 em {
-    font-style: italic;
-    font-weight: 400;
-    color: var(--v4-brand-deep);
-  }
-  .v4-lead {
-    font-size: 16.5px;
-    color: var(--v4-ink-dim);
-    max-width: 720px;
-    line-height: 1.7;
-  }
-  .v4-lead code {
-    font-family: var(--v4-mono);
-    font-size: 13px;
-    background: var(--v4-surface-2);
-    padding: 1px 7px;
-    border-radius: 5px;
-    color: var(--v4-ink);
-  }
-
-  .v4-cat-grid {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 24px 32px 60px;
+<style is:global>
+  /*
+   * Category card (CAR-N-8、 Neumorphism raised + Vercel / Linear typography scale) ────
+   * card = Neumorphism raised 2 段 shadow、 hover で translateY(-6px) + shadow deepen
+   * eyebrow = mono uppercase、 title = 20px semibold、 desc = 14px muted、 chips = pill、 CTA foot = arrow slide
+   */
+  .nm-cat-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
-  @media (max-width: 720px) {
-    .v4-cat-grid {
+  @media (max-width: 900px) {
+    .nm-cat-grid {
       grid-template-columns: 1fr;
-      padding: 20px 20px 48px;
       gap: 20px;
     }
   }
 
-  /* Neumorphism raised catalog card (CAR-N-6、 Vercel / Linear / Stripe 相当) */
-  .v4-cat-card {
+  .nm-cat-card {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 28px 28px 22px;
-    background: var(--nm-surface, var(--v4-surface));
-    border: 1px solid rgba(226, 232, 240, 0.6);
-    border-radius: var(--nm-radius-card, 16px);
+    padding: 28px 26px 22px;
+    background: var(--nm-surface, #f0f3f7);
+    border-radius: var(--nm-radius-card, 20px);
+    box-shadow: var(--nm-shadow-raised-soft);
     text-decoration: none;
     color: var(--v4-ink);
-    transition: var(--nm-transition-standard, all 0.24s cubic-bezier(0.4, 0, 0.2, 1));
-    box-shadow: var(
-      --nm-shadow-raised-soft,
-      0 12px 24px -12px rgba(30, 41, 59, 0.12),
-      0 4px 8px -4px rgba(45, 106, 143, 0.08),
-      0 1px 0 rgba(255, 255, 255, 0.8) inset
-    );
+    transition: var(--nm-transition-standard);
     position: relative;
   }
-  .v4-cat-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(45, 106, 143, 0.28);
-    box-shadow: var(
-      --nm-shadow-hover,
-      0 32px 64px -20px rgba(30, 41, 59, 0.24),
-      0 16px 32px -12px rgba(45, 106, 143, 0.18),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset
-    );
+  .nm-cat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--nm-shadow-hover);
   }
-  html.dark .v4-cat-card {
-    border-color: rgba(94, 196, 232, 0.14);
-  }
-  html.dark .v4-cat-card:hover {
-    border-color: rgba(94, 196, 232, 0.35);
+  html.dark .nm-cat-card {
+    background: var(--nm-surface, #141a24);
   }
 
-  .v4-cat-head {
+  .nm-cat-card-head {
     display: flex;
-    align-items: baseline;
-    gap: 14px;
+    flex-direction: column;
+    gap: 8px;
   }
-  /* Linear 風 category tag = uppercase mono + subtle bg pill */
-  .v4-cat-tag {
-    font-family: var(--v4-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.14em;
+  .nm-cat-eyebrow {
+    font-family: var(--v4-mono, "JetBrains Mono", monospace);
+    font-size: var(--nm-fs-eyebrow, 11px);
+    letter-spacing: var(--nm-ls-eyebrow, 0.14em);
     text-transform: uppercase;
     font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 999px;
-    color: var(--v4-brand-deep);
-    background: rgba(45, 106, 143, 0.09);
+    color: var(--v4-brand, #2d6a8f);
   }
-  .v4-cat-domain .v4-cat-tag {
-    color: var(--v4-accent-domain);
-    background: rgba(194, 65, 12, 0.1);
+  .nm-cat-domain .nm-cat-eyebrow {
+    color: var(--v4-accent-domain, #c2410c);
   }
-  .v4-cat-extended .v4-cat-tag {
-    color: var(--v4-accent-extended);
-    background: rgba(109, 40, 217, 0.1);
+  .nm-cat-extended .nm-cat-eyebrow {
+    color: var(--v4-accent-extended, #6d28d9);
   }
-  /* Vercel 風 大型 serif h2 */
-  .v4-cat-card h2 {
-    font-family: var(--v4-serif);
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: -0.024em;
-    color: var(--v4-ink);
+  html.dark .nm-cat-eyebrow {
+    color: var(--v4-brand, #5ec4e8);
+  }
+  html.dark .nm-cat-extended .nm-cat-eyebrow {
+    color: #a78bfa;
+  }
+  html.dark .nm-cat-domain .nm-cat-eyebrow {
+    color: #fb923c;
+  }
+
+  .nm-cat-title {
+    font-family: var(--v4-sans, "Inter", sans-serif);
+    font-size: var(--nm-fs-h3, 20px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--v4-ink, #1a1f2a);
     line-height: 1.2;
+    margin: 0;
   }
-  .v4-cat-card p {
-    color: var(--v4-ink-dim);
-    font-size: 14px;
-    line-height: 1.65;
+  html.dark .nm-cat-title {
+    color: var(--v4-ink, #f0f3f8);
   }
-  .v4-cat-chips {
+
+  .nm-cat-desc {
+    color: var(--v4-ink-dim, #5a6270);
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  html.dark .nm-cat-desc {
+    color: var(--v4-ink-dim, #99a3b3);
+  }
+
+  .nm-cat-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
     margin-top: auto;
   }
-  /* Stripe 風 subtle chip = 淡い bg + subtle border + mono compact */
-  .v4-cat-chip {
-    padding: 3.5px 10px;
-    background: rgba(252, 248, 238, 0.7);
-    border: 1px solid rgba(224, 217, 200, 0.7);
-    border-radius: 999px;
-    font-family: var(--v4-mono);
+  .nm-cat-chip {
+    padding: 4px 11px;
+    background: rgba(163, 177, 198, 0.15);
+    border-radius: var(--nm-radius-pill, 999px);
+    font-family: var(--v4-mono, "JetBrains Mono", monospace);
     font-size: 10.5px;
-    color: var(--v4-ink-dim);
-    letter-spacing: 0.01em;
+    color: var(--v4-ink-dim, #5a6270);
+    letter-spacing: 0.03em;
+    font-weight: 500;
   }
-  html.dark .v4-cat-chip {
-    background: rgba(31, 38, 48, 0.5);
-    border-color: rgba(94, 196, 232, 0.14);
+  html.dark .nm-cat-chip {
+    background: rgba(94, 196, 232, 0.1);
+    color: var(--v4-ink-dim, #99a3b3);
   }
-  /* Vercel 風 CTA foot = subtle divider + accent color + arrow slide */
-  .v4-cat-go {
+
+  .nm-cat-go {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 14px;
-    margin-top: 4px;
-    border-top: 1px solid rgba(241, 245, 249, 0.8);
-    font-family: var(--v4-mono);
+    padding-top: 16px;
+    margin-top: 6px;
+    border-top: 1px solid rgba(163, 177, 198, 0.2);
+    font-family: var(--v4-mono, "JetBrains Mono", monospace);
     font-size: 12px;
-    font-weight: 500;
-    color: var(--v4-brand-deep);
+    font-weight: 600;
+    color: var(--v4-brand-deep, #1f4d6e);
     letter-spacing: -0.01em;
   }
-  html.dark .v4-cat-go {
+  html.dark .nm-cat-go {
     border-top-color: rgba(94, 196, 232, 0.14);
+    color: var(--v4-brand, #5ec4e8);
   }
-  .v4-cat-go .arrow {
-    transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  .nm-cat-arrow {
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: 400;
   }
-  .v4-cat-card:hover .arrow {
+  .nm-cat-card:hover .nm-cat-arrow {
     transform: translateX(6px);
   }
+
+  /* 既存 code inline (hero 内の <code>@cardenelabs/cdl</code>) */
+  .nm-hero-subtitle code {
+    font-family: var(--v4-mono, "JetBrains Mono", monospace);
+    font-size: 13.5px;
+    padding: 2px 8px;
+    background: rgba(163, 177, 198, 0.15);
+    border-radius: 6px;
+    color: var(--v4-ink, #1a1f2a);
+    font-weight: 500;
+  }
+  html.dark .nm-hero-subtitle code {
+    background: rgba(94, 196, 232, 0.1);
+    color: var(--v4-ink, #f0f3f8);
+  }
 </style>
+</BaseLayout>
