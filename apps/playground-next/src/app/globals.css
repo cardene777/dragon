@@ -1,0 +1,68 @@
+/* fonts (webfont import は最上部で declare 必須、 tailwind 前に置く) */
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap");
+@import "tailwindcss";
+
+/**
+ * dragon playground-next global CSS SSOT
+ *
+ * design tokens SSOT = src/themes/tokens.css (theme 別 CSS var)
+ * theme swap = html[data-theme="handdrawn"] selector で切替
+ *
+ * base layer = neutral surface + text + border、 全 theme で override 可能
+ */
+
+@theme {
+  /* base tokens (Neumorphism light default) */
+  --color-surface: #f0f3f7;
+  --color-surface-2: #e8ecf1;
+  --color-ink: #1a1f2a;
+  --color-ink-dim: #5a6270;
+  --color-ink-mute: #99a3b3;
+  --color-accent: #2d6a8f;
+  --color-accent-alt: #4a8b7f;
+  --color-border: #d4dae2;
+  --color-border-soft: #e2e8f0;
+
+  /* typography */
+  --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", "EB Garamond", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+}
+
+@import "../themes/tokens.css";
+
+html,
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* nudge scrollbar for macOS look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-mute);
+}
