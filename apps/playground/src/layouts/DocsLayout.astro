@@ -158,6 +158,16 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" hreflang="ja" href={`https://dragon-playground.vercel.app/docs/cdl/${currentSlug}`} />
     <link rel="alternate" hreflang="en" href={`https://dragon-playground.vercel.app/docs/en/cdl/${currentSlug}`} />
+    {/*
+      CAR-735 = docs page でも cdl SVG が Handdrawn / Pinboard theme を要求する可能性を考慮し、
+      Caveat + Kalam webfont を BaseLayout と同 spec で load (font-family 適用の SSOT 整合)。
+    */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     {/* OGP */}
     <meta property="og:type" content="article" />
     <meta property="og:title" content={title} />
