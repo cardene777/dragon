@@ -24,6 +24,16 @@ export function AnimatedEdgeStyle(): React.ReactElement {
           animation: none;
           stroke-dasharray: none;
         }
+        /* Pinboard tilt を無効化 (rotation は motion-sensitive) */
+        html[data-theme="pinboard"] svg g[data-node] {
+          transform: none !important;
+        }
+        /* Handdrawn wobble filter 起因の 動き (実際は静的だが安全側) */
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
       }
       /* focus visibility for keyboard nav */
       button:focus-visible,

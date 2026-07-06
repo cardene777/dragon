@@ -93,6 +93,8 @@ export function DiagramNode({
       transform={transform}
       data-node={node.id}
       data-kind={node.kind}
+      role="group"
+      aria-label={`${node.kind} node — ${node.title}${node.subtitle ? " (" + node.subtitle.replace(/\n/g, ", ") + ")" : ""}`}
     >
       <g filter={filterAttr}>
         {shapeResult.paths.map((p, i) => (
