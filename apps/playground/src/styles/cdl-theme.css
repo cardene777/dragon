@@ -40,68 +40,187 @@
  */
 
 /* ═════════════════════════════════════════════════════════════════════════════
- * Neumorphism (淡色平面 + raised bumps、 blueprint 相当の border は完全に消す)
- * 意図 = raised bumps + dual shadow + no border + accent は blue tone のみ
+ * Neumorphism (CAR-748 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
+ * 意図 = soft raised bumps + dual shadow (light TL + dark BR) + no border +
+ *        cool blue accent (#4a7fc8) + Söhne / Inter regular + monolithic surface #e6ebf0
+ *
+ * CAR-741 Circuit theme と同じ 3 経路を採用:
+ *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
+ *       fallback を効かせる (最も clean な経路)
+ *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
+ *       rect/path/ellipse/circle を !important + 具体 selector で override
+ *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
+ *       node-kind-icon / lane-* まで網羅
+ *
+ * dragon-nm-raised = 既存 dragon-nm-raised-soft の alias、 dual shadow を Round 11 意図
+ * (stdDeviation=3, offset ±4, opacity 0.55 dark / 0.95 light) で強化する。
+ * dragon-nm-raised-sm = edge-label pill 背景用の小型 dual shadow (stdDeviation=1.5, offset ±2)。
  * ═════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * CSS var 上書き経路 (a)
+ * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
+ * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
+ */
+[data-cdl-theme="neumorphism"] {
+  --cdl-node-fill: #e6ebf0;
+  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
+  --cdl-tone-info: #4a7fc8;
+  --cdl-tone-accent: #4a7fc8;
+  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる。 border は消したいので transparent */
+  --cdl-divider: transparent;
+  --cdl-text: #3a3d47;
+  --cdl-text-dim: #7a808c;
+  --cdl-text-secondary: #7a808c;
+  --cdl-label-bg: #e6ebf0;
+  --cdl-label-text: #3a3d47;
+  --cdl-edge-stroke: #4a7fc8;
+}
+
+/*
+ * 直接 role selector 経路 (b1)
+ * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
+ */
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] {
   fill: #e6ebf0 !important;
   stroke: none !important;
-  filter: url(#dragon-nm-raised-soft) !important;
+  filter: url(#dragon-nm-raised) !important;
+  rx: 14 !important;
+  ry: 14 !important;
+}
+
+/*
+ * 子孫 selector 経路 (b2)
+ * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
+ * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
+ * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
+ */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle {
+  fill: #e6ebf0 !important;
+  stroke: none !important;
+  filter: url(#dragon-nm-raised) !important;
+  rx: 14 !important;
+  ry: 14 !important;
+}
+/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
+  fill: #e6ebf0 !important;
+  stroke: none !important;
+}
+
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
+  fill: #3a3d47 !important;
+  stroke: none !important;
+  font-family: "Söhne", "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+}
+/*
+ * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
+ * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
+ * で specificity を勝たせる (0-3-1 > 0-2-2)。 !important の source order だけでは
+ * `[node-body] > g > path` (0-2-2) が同 !important レベルで負けるため、 attribute 数で決着させる。
+ */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
+  fill: #4a7fc8 !important;
+  stroke: none !important;
+  opacity: 1 !important;
+}
+[data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
+[data-cdl-theme="neumorphism"] path[data-cdl-role="edge-line"],
+[data-cdl-theme="neumorphism"] line[data-cdl-role="edge-line"] {
+  stroke: #4a7fc8 !important;
+  stroke-width: 1.6 !important;
+  stroke-linecap: round !important;
+  fill: none !important;
+}
+[data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
+  fill: #4a7fc8 !important;
+  stroke: none !important;
+}
+[data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
+  fill: #4a7fc8 !important;
+  stroke: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
   fill: #e6ebf0 !important;
   stroke: none !important;
-  filter: url(#dragon-nm-raised-soft) !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: #e6ebf0 !important;
-  stroke: none !important;
-  filter: url(#dragon-nm-inset-soft) !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="lane-lifeline"] {
-  stroke: #a3b1c6 !important;
-  stroke-opacity: 0.6 !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
-  fill: #3a4664 !important;
-  font-weight: 600 !important;
+  filter: url(#dragon-nm-raised-sm) !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #3a4664 !important;
+  fill: #4a7fc8 !important;
+  stroke: none !important;
+  font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
 }
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"] {
-  stroke: #6a7896 !important;
-  stroke-width: 2.5 !important;
+[data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
+  fill: rgba(230, 235, 240, 0.5) !important;
+  stroke: rgba(74, 127, 200, 0.2) !important;
+  stroke-dasharray: 4 4 !important;
 }
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  fill: #6a7896 !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #5a6ea0 !important;
-  opacity: 0.85 !important;
+[data-cdl-theme="neumorphism"] [data-cdl-role="lane-lifeline"] {
+  stroke: rgba(74, 127, 200, 0.35) !important;
+  stroke-opacity: 0.6 !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-label"] {
-  fill: #7a8aa8 !important;
+  fill: #7a808c !important;
+  stroke: none !important;
+  font-family: "Söhne", "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 12px !important;
+}
+
+/* ─── dark mode variant (raised bumps + dark palette 反転) ─── */
+html.dark [data-cdl-theme="neumorphism"] {
+  --cdl-node-fill: #2c3448;
+  --cdl-tone-info: #6a9fe0;
+  --cdl-tone-accent: #6a9fe0;
+  --cdl-text: #d8dde8;
+  --cdl-text-dim: #96a0bb;
+  --cdl-text-secondary: #96a0bb;
+  --cdl-label-bg: #2c3448;
+  --cdl-label-text: #d8dde8;
+  --cdl-edge-stroke: #6a9fe0;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > path,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
+  fill: #2c3448 !important;
+  filter: url(#dragon-nm-raised-dark) !important;
+}
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
   fill: #2c3448 !important;
-  filter: url(#dragon-nm-raised-soft-dark) !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: #2c3448 !important;
-  filter: url(#dragon-nm-inset-soft-dark) !important;
+  filter: url(#dragon-nm-raised-sm-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
   fill: #d8dde8 !important;
 }
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #d8dde8 !important;
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
+  fill: #6a9fe0 !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #96a0bb !important;
-  fill: #96a0bb !important;
+  stroke: #6a9fe0 !important;
+  fill: #6a9fe0 !important;
+}
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
+  fill: #6a9fe0 !important;
+}
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
+  fill: #6a9fe0 !important;
+}
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
+  fill: rgba(44, 52, 72, 0.5) !important;
+  stroke: rgba(106, 159, 224, 0.25) !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

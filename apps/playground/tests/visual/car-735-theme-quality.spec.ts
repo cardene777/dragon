@@ -91,7 +91,7 @@ test.describe("CAR-735 6 theme visual quality regression", () => {
     expect(result.rectRotated).toBeGreaterThan(0);
   });
 
-  test("軸 3 Neumorphism filter (dragon-nm-raised-soft) が全 node-body に computed filter として適用", async ({
+  test("軸 3 Neumorphism filter (dragon-nm-raised) が全 node-body に computed filter として適用 (CAR-748 Round 11 意図)", async ({
     page,
   }) => {
     await page.goto(`${CATALOG_URL}?theme=neumorphism`, { waitUntil: "networkidle" });
@@ -99,7 +99,8 @@ test.describe("CAR-735 6 theme visual quality regression", () => {
     const result = await page.evaluate(() => {
       const bodies = Array.from(document.querySelectorAll('[data-cdl-role="node-body"]'));
       const filters = bodies.map((el) => getComputedStyle(el).filter);
-      const matched = filters.filter((f) => /url\(["']?#dragon-nm-raised-soft["']?\)/.test(f));
+      // CAR-748 で dragon-nm-raised-soft → dragon-nm-raised に変更 (Round 11 意図の dual shadow filter)
+      const matched = filters.filter((f) => /url\(["']?#dragon-nm-raised(?!-sm)(?!-soft)(?!-dark)["']?\)/.test(f));
       return { total: bodies.length, matched: matched.length };
     });
     // 全 node-body に filter が計算 style として反映
