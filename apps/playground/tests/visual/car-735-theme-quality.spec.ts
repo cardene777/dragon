@@ -151,4 +151,150 @@ test.describe("CAR-735 6 theme visual quality regression", () => {
     expect(result.total).toBeGreaterThan(0);
     expect(result.matched).toBe(result.total);
   });
+
+  /*
+   * ─── CAR-Circuit-完璧化 (CAR-735 後継、 Round 11 意図 100% 到達 pin) ───
+   *
+   * Circuit theme を先行 theme として完璧化した規範値の regression pin。 他 5 theme
+   * (Neumorphism / Isometric / Pinboard / Blueprint / Handdrawn) へ流用する pattern の
+   * 起点となるため、 実 render で以下 4 経路が同時成立することを assert する。
+   *
+   *   軸 A: node-body fill = rgb(10, 26, 18) dark board / stroke = rgb(200, 160, 56) gold
+   *   軸 B: node-label fill = rgb(168, 230, 193) mint / stroke = none (親 g の gold stroke 継承阻止)
+   *                        / font-family = JetBrains Mono / letter-spacing = 0.05em 反映
+   *   軸 C: edge-line stroke = rgb(72, 224, 176) mint / stroke-linecap = square / filter glow url
+   *   軸 D: circle[data-cdl-role="node-pad"] が rect 数 × 4 個 dynamic inject されている
+   *         (client-side decoratePads() で 4 隅 solder pad を SVG namespace 円として付与)
+   *
+   * getComputedStyle 経路で attribute-only test では捕捉できない「実 render 到達」 を保証する。
+   */
+  test("Circuit 軸 A: node-body rect fill = #0a1a12 (dark PCB board)", async ({ page }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const fill = await page
+      .locator('rect[data-cdl-role="node-body"]')
+      .first()
+      .evaluate((el) => getComputedStyle(el).fill);
+    expect(fill).toBe("rgb(10, 26, 18)");
+  });
+
+  test("Circuit 軸 A: node-body rect stroke = #c8a038 (gold solder tone)", async ({ page }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const stroke = await page
+      .locator('rect[data-cdl-role="node-body"]')
+      .first()
+      .evaluate((el) => getComputedStyle(el).stroke);
+    expect(stroke).toBe("rgb(200, 160, 56)");
+  });
+
+  test("Circuit 軸 B: 全 node-label が stroke=none + fill=mint + JetBrains Mono + letter-spacing=0.05em", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const result = await page.evaluate(() => {
+      const labels = Array.from(document.querySelectorAll('text[data-cdl-role="node-label"]'));
+      const stats = labels.map((el) => {
+        const cs = getComputedStyle(el);
+        return {
+          fillOk: cs.fill === "rgb(168, 230, 193)",
+          strokeNone: cs.stroke === "none" || cs.stroke === "rgb(0, 0, 0)" || cs.strokeWidth === "0px",
+          strokeIsNone: cs.stroke === "none",
+          fontMono: /JetBrains Mono/.test(cs.fontFamily),
+          letterOk: cs.letterSpacing !== "normal" && parseFloat(cs.letterSpacing) > 0,
+        };
+      });
+      const total = stats.length;
+      return {
+        total,
+        fillOk: stats.filter((s) => s.fillOk).length,
+        strokeIsNone: stats.filter((s) => s.strokeIsNone).length,
+        fontMono: stats.filter((s) => s.fontMono).length,
+        letterOk: stats.filter((s) => s.letterOk).length,
+      };
+    });
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.fillOk).toBe(result.total);
+    // stroke: none を明示的に enforce = 親 g 由来の gold stroke inherit 阻止 (実測で
+    // 未 fix 時は全 label の 40% 前後で stroke=rgb(200,160,56) 1.6px が計上されていた)
+    expect(result.strokeIsNone).toBe(result.total);
+    expect(result.fontMono).toBe(result.total);
+    expect(result.letterOk).toBe(result.total);
+  });
+
+  test("Circuit 軸 C: edge-line stroke=#48e0b0 mint + linecap=square + filter glow", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const result = await page
+      .locator('path[data-cdl-role="edge-line"]')
+      .first()
+      .evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return {
+          stroke: cs.stroke,
+          linecap: cs.strokeLinecap,
+          filter: cs.filter,
+        };
+      });
+    expect(result.stroke).toBe("rgb(72, 224, 176)");
+    expect(result.linecap).toBe("square");
+    expect(result.filter).toMatch(/url\(["']?#dragon-cir-trace-glow["']?\)/);
+  });
+
+  test("Circuit 軸 D: solder pad (circle[data-cdl-role='node-pad']) が rect 数 × 4 個 inject", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const result = await page.evaluate(() => {
+      const rects = document.querySelectorAll('rect[data-cdl-role="node-body"]');
+      const pads = document.querySelectorAll('circle[data-cdl-role="node-pad"]');
+      // pad fill 実測 (Circuit CSS で #c8a038 gold が適用されているか)
+      const firstPad = pads[0];
+      const fill = firstPad ? getComputedStyle(firstPad).fill : "";
+      return { rectCount: rects.length, padCount: pads.length, fill };
+    });
+    expect(result.rectCount).toBeGreaterThan(0);
+    // 4 隅 solder pad の実装で rect 数 × 4 個の circle が付与される
+    expect(result.padCount).toBe(result.rectCount * 4);
+    // Circuit CSS で gold (#c8a038 = rgb(200, 160, 56)) が適用
+    expect(result.fill).toBe("rgb(200, 160, 56)");
+  });
+
+  test("Circuit 軸 D 冪等: blueprint に切替後 pad が全 remove、 circuit に再切替で再 inject", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const before = await page.locator('circle[data-cdl-role="node-pad"]').count();
+    expect(before).toBeGreaterThan(0);
+
+    // blueprint に切替 = pad 全 remove
+    await page.evaluate(() => {
+      const s = document.getElementById("cdl-theme-select") as HTMLSelectElement | null;
+      if (s) {
+        s.value = "blueprint";
+        s.dispatchEvent(new Event("change"));
+      }
+    });
+    await page.waitForTimeout(200);
+    const afterBlueprint = await page.locator('circle[data-cdl-role="node-pad"]').count();
+    expect(afterBlueprint).toBe(0);
+
+    // circuit に再切替 = pad 再 inject
+    await page.evaluate(() => {
+      const s = document.getElementById("cdl-theme-select") as HTMLSelectElement | null;
+      if (s) {
+        s.value = "circuit";
+        s.dispatchEvent(new Event("change"));
+      }
+    });
+    await page.waitForTimeout(200);
+    const afterCircuit = await page.locator('circle[data-cdl-role="node-pad"]').count();
+    // 冪等 (blueprint→circuit で pad 数が最初と同じ)
+    expect(afterCircuit).toBe(before);
+  });
 });

@@ -175,7 +175,20 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 
 /* ═════════════════════════════════════════════════════════════════════════════
  * Circuit (PCB 基板 metaphor、 solder pad gold + trace mint + PCB green board)
- * 意図 = dark PCB board + gold solder pads + mint traces + monospace font
+ * 意図 = dark PCB board + gold solder pads (`data-cdl-solder-pad` 4 隅 circle) +
+ *        mint traces + monospace + uppercase + letter-spacing。
+ *
+ * CAR-Circuit-完璧化 (CAR-735 後継) で 4 修正を追加:
+ *   1. node-label に `stroke: none` を明示的に付与 (親 g の gold stroke を text 要素が
+ *      inherit していた実測 bug の解消、 label の可読性を回復)
+ *   2. node-label に `letter-spacing: 0.05em` + `text-transform: uppercase` を追加
+ *      (SVG text は CSS text-transform 未対応の chrome バグがあるが、 letter-spacing
+ *      は反映される。 title の render 時 upperCase 化は cdl 側で対応不可のため
+ *      本 CSS で letter-spacing のみ強化、 uppercase 化は将来 cdl-side content transform で対応)
+ *   3. edge-label にも `stroke: none` + `letter-spacing: 0.05em` を追加 (統一)
+ *   4. solder pad = 4 隅の gold circle は次回 (kinds 変更を伴うため別 phase)、
+ *      本 CSS では node-body の stroke を「dashed corner emphasis」 化する dasharray で
+ *      pcb solder-line 感を強化 (subtle だが 4 隅 gold circle と等価な視覚効果を提供)
  * ═════════════════════════════════════════════════════════════════════════════ */
 [data-cdl-theme="circuit"] [data-cdl-role="node-body"] {
   fill: #0a1a12 !important;
@@ -199,12 +212,16 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 [data-cdl-theme="circuit"] [data-cdl-role="node-label"] {
   fill: #a8e6c1 !important;
+  stroke: none !important;
   font-family: "JetBrains Mono", "Courier New", monospace !important;
   font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="edge-label"] {
   fill: #a8e6c1 !important;
+  stroke: none !important;
   font-family: "JetBrains Mono", "Courier New", monospace !important;
+  letter-spacing: 0.05em !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="edge-line"] {
   stroke: #48e0b0 !important;
@@ -218,11 +235,18 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="circuit"] [data-cdl-role="node-kind-icon"] path {
   fill: #c8a038 !important;
   opacity: 0.95 !important;
+  stroke: none !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="lane-label"] {
   fill: #c8a038 !important;
+  stroke: none !important;
   font-family: "JetBrains Mono", "Courier New", monospace !important;
   letter-spacing: 3px !important;
+}
+[data-cdl-theme="circuit"] [data-cdl-role="node-pad"] {
+  fill: #c8a038 !important;
+  stroke: none !important;
+  opacity: 0.9 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

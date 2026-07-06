@@ -200,10 +200,67 @@ const items = [
       const select = document.getElementById("cdl-theme-select");
       if (!(select instanceof HTMLSelectElement)) return;
 
+      // Circuit theme = 4 隅 solder pad の gold circle (r=3) を rect[data-cdl-role="node-body"]
+      // の 4 corner に inject する。 他 theme 選択時は remove、 冪等操作 (重複 inject しない)。
+      // 実装場所は CSS 経路で不可 (SVG 内 rect の 4 corner に円を配置する CSS 表現がない、
+      // pattern fill は tile 単位で個別 rect 座標に合わない)。 client-side JS 経路で
+      // rect ごとに 4 circle を SVG namespace で挿入し、 data-cdl-role="node-pad" を付与、
+      // CSS 側 `[data-cdl-theme="circuit"] [data-cdl-role="node-pad"]` で fill / opacity 適用。
+      const PAD_R = 3.5;
+      const PAD_INSET = 6; // rect 端からの距離 (world units)
+      // MutationObserver 起因の infinite loop 対策 = 冪等 guard。
+      // decoratePads() で SVG に circle を追加すると MO が subtree 変更を検知して apply() を
+      // 再起動 → decoratePads() 再実行 → 再追加、 の loop で `networkidle` が永遠に来ない
+      // 現象を Playwright 30s timeout で観測済 (CAR-Circuit-完璧化 diagnose)。 対策 =
+      // (1) 各 svg で「必要な pad 数 = rect × 4」 を計算、 既に一致するなら早 return
+      // (2) circuit 以外の theme では既存 pad の存在を check して残っていれば全 remove
+      function decoratePads(theme) {
+        const svgs = document.querySelectorAll("svg[data-cdl-theme]");
+        svgs.forEach((svg) => {
+          const existingPads = svg.querySelectorAll('[data-cdl-role="node-pad"]');
+          if (theme !== "circuit") {
+            if (existingPads.length > 0) {
+              existingPads.forEach((n) => n.remove());
+            }
+            return;
+          }
+          const rects = svg.querySelectorAll('rect[data-cdl-role="node-body"]');
+          const targetCount = rects.length * 4;
+          // 既に必要数一致 = idempotent skip (MO 再起動時の loop 回避)
+          if (existingPads.length === targetCount) return;
+          // 数が違う (初回 mount / rect 増減) 時のみ再構築
+          existingPads.forEach((n) => n.remove());
+          rects.forEach((rect) => {
+            const parent = rect.parentNode;
+            if (!parent) return;
+            const x = parseFloat(rect.getAttribute("x") ?? "0");
+            const y = parseFloat(rect.getAttribute("y") ?? "0");
+            const w = parseFloat(rect.getAttribute("width") ?? "0");
+            const h = parseFloat(rect.getAttribute("height") ?? "0");
+            if (!isFinite(w) || !isFinite(h) || w <= 0 || h <= 0) return;
+            const corners = [
+              [x + PAD_INSET, y + PAD_INSET],
+              [x + w - PAD_INSET, y + PAD_INSET],
+              [x + PAD_INSET, y + h - PAD_INSET],
+              [x + w - PAD_INSET, y + h - PAD_INSET],
+            ];
+            corners.forEach(([cx, cy]) => {
+              const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              c.setAttribute("data-cdl-role", "node-pad");
+              c.setAttribute("cx", String(cx));
+              c.setAttribute("cy", String(cy));
+              c.setAttribute("r", String(PAD_R));
+              parent.insertBefore(c, rect.nextSibling);
+            });
+          });
+        });
+      }
+
       function apply(theme) {
         if (!VALID.includes(theme)) theme = "blueprint";
         const roots = document.querySelectorAll("[data-cdl-theme]");
         roots.forEach((el) => el.setAttribute("data-cdl-theme", theme));
+        decoratePads(theme);
         if (select.value !== theme) select.value = theme;
       }
 
