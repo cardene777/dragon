@@ -134,7 +134,7 @@ export function generateShape(opts: ShapeGenOptions): ShapeResult {
       seed,
       fill: "var(--color-surface, #fdf7d9)",
       fillStyle: cfg.fillStyle ?? "hachure",
-      hachureGap: 6,
+      hachureGap: 12, // 6 → 12 に増やして hachure 密度を減らし clean sketch feel
       hachureAngle: -35,
       stroke: "var(--color-ink, #2c2820)",
       strokeWidth,
