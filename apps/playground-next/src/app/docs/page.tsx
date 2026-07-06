@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Github, Rocket, ChevronLeft, BookOpen, Zap, Palette, Code2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
+
+export const metadata: Metadata = {
+  title: "Documentation",
+  description:
+    "dragon の使い方 + 10 preset 一覧 + 6 theme 一覧。 mermaid 感覚で書ける、 動く SVG diagram の tutorial。",
+  openGraph: {
+    title: "Documentation | dragon",
+    description: "10 preset × 6 theme × live editor で 1 分で最初の diagram が完成する。",
+  },
+};
 
 /**
  * /docs page — dragon の使い方 + preset 一覧 + theme 一覧 + API リファレンス。
