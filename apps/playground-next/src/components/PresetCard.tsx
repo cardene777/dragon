@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Maximize2 } from "lucide-react";
+import { X, Maximize2, ExternalLink } from "lucide-react";
 import { DiagramView } from "./DiagramView";
 import type { PresetDoc } from "@/lib/presets";
 import type { ThemeName } from "@/lib/theme";
@@ -25,6 +25,30 @@ export function PresetCard({
   theme: ThemeName;
 }): React.ReactElement {
   const [open, setOpen] = useState(false);
+
+  // URL fragment #preset=<id> で mount 時に自動 open
+  useEffect(() => {
+    const check = (): void => {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      if (hash.get("preset") === preset.id) setOpen(true);
+    };
+    check();
+    window.addEventListener("hashchange", check);
+    return () => window.removeEventListener("hashchange", check);
+  }, [preset.id]);
+
+  // modal open state を URL fragment に sync
+  const onOpenChange = (v: boolean): void => {
+    setOpen(v);
+    if (v) {
+      window.history.replaceState({}, "", `#preset=${preset.id}`);
+    } else {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      if (hash.get("preset") === preset.id) {
+        window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      }
+    }
+  };
 
   return (
     <>
@@ -81,11 +105,11 @@ export function PresetCard({
         </footer>
       </article>
 
-      <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[94vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-[var(--color-surface)] p-8 shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-            <div className="mb-6 flex items-start justify-between">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono">
                   {preset.eyebrow}
@@ -96,16 +120,35 @@ export function PresetCard({
                 <Dialog.Description className="mt-2 max-w-3xl text-[15px] leading-relaxed text-[var(--color-ink-dim)]">
                   {preset.subtitle}
                 </Dialog.Description>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {preset.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-dim)] font-mono"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label="Close"
-                  className="rounded-full p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors"
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/editor#preset=${preset.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-white hover:brightness-110 transition-all"
                 >
-                  <X size={20} />
-                </button>
-              </Dialog.Close>
+                  <ExternalLink size={13} />
+                  Open in editor
+                </a>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    className="rounded-full p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                  >
+                    <X size={20} />
+                  </button>
+                </Dialog.Close>
+              </div>
             </div>
             <div className="rounded-2xl bg-[var(--color-surface-2)] p-6 shadow-inner">
               <DiagramView
