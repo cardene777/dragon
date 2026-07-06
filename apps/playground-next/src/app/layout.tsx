@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SvgDefs } from "@/components/SvgDefs";
+import { AnimatedEdgeStyle } from "@/components/AnimatedEdge";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dragon-playground.vercel.app"),
@@ -77,6 +78,7 @@ export default function RootLayout({
     <html lang="ja" data-theme="neumorphism">
       <body>
         <SvgDefs />
+        <AnimatedEdgeStyle />
         {children}
       </body>
     </html>
