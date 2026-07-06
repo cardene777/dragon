@@ -41,59 +41,98 @@ const repoUrl = "https://github.com/cardene777/dragon";
 </footer>
 
 <style is:global>
+  /* Neumorphism footer (CAR-N-6、 gradient border-top + Stripe 風 呼吸感 spacing + subtle underline anim) */
   .v4-foot {
-    border-top: 1px solid var(--v4-line);
-    padding: 40px 32px;
+    position: relative;
+    padding: 56px 32px 40px;
     max-width: 1180px;
-    margin: 56px auto 0;
+    margin: 72px auto 0;
     display: grid;
     grid-template-columns: 1.5fr 1fr 1fr 1fr;
-    gap: 32px;
+    gap: 40px;
     font-size: 13px;
     font-family: var(--v4-sans);
     color: var(--v4-ink-dim);
+  }
+  .v4-foot::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 32px;
+    right: 32px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--v4-line) 20%,
+      var(--v4-line) 80%,
+      transparent 100%
+    );
   }
   .v4-foot-brand .v4-nav-name {
     font-size: 18px;
   }
   .v4-foot-brand p {
     color: var(--v4-ink-dim);
-    margin-top: 10px;
-    font-size: 12.5px;
-    max-width: 280px;
-    line-height: 1.55;
+    margin-top: 12px;
+    font-size: 13px;
+    max-width: 300px;
+    line-height: 1.65;
   }
   .v4-foot-copy {
     color: var(--v4-ink-mute);
     font-size: 11.5px;
     font-family: var(--v4-mono);
-    margin-top: 8px !important;
+    margin-top: 12px !important;
+    letter-spacing: 0.02em;
   }
   .v4-foot-col h3 {
     font-family: var(--v4-mono);
     font-size: 10.5px;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--v4-ink-mute);
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     font-weight: 600;
   }
   .v4-foot-col a {
-    display: block;
+    display: inline-block;
     color: var(--v4-ink-dim);
-    padding: 3px 0;
+    padding: 4px 0;
     font-size: 13px;
     text-decoration: none;
-    transition: color 0.15s;
+    transition: color 0.18s ease, transform 0.18s ease;
+    position: relative;
+  }
+  .v4-foot-col a::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: currentColor;
+    transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .v4-foot-col a:hover {
     color: var(--v4-ink);
+  }
+  .v4-foot-col a:hover::after {
+    width: 100%;
   }
 
   @media (max-width: 900px) {
     .v4-foot {
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 32px;
+      padding: 48px 24px 32px;
+    }
+  }
+  @media (max-width: 640px) {
+    .v4-foot {
+      grid-template-columns: 1fr;
+      gap: 28px;
+      padding: 40px 20px 32px;
     }
   }
 </style>

@@ -118,6 +118,7 @@ body.docs-body .docs-sidebar-list {
 body.docs-body .docs-sidebar-list li {
   margin: 2px 0;
 }
+/* Neumorphism sidebar link (CAR-N-6、 subtle bg + border-left accent + smooth transition) */
 body.docs-body a.docs-sidebar-link {
   display: block;
   padding: 8px 14px;
@@ -127,17 +128,27 @@ body.docs-body a.docs-sidebar-link {
   text-decoration: none !important;
   border-radius: 6px;
   border-left: 2px solid transparent;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    padding-left 0.18s ease;
 }
 body.docs-body a.docs-sidebar-link:hover {
   color: var(--nm-text) !important;
-  background: rgba(45, 106, 143, 0.08) !important;
+  background: rgba(45, 106, 143, 0.06) !important;
+  padding-left: 16px;
 }
 body.docs-body a.docs-sidebar-link.active {
   color: #2d6a8f !important;
   font-weight: 600;
   border-left-color: #2d6a8f !important;
-  background: rgba(45, 106, 143, 0.12) !important;
+  background: linear-gradient(
+    90deg,
+    rgba(45, 106, 143, 0.14) 0%,
+    rgba(45, 106, 143, 0.05) 100%
+  ) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* 3. Main */
@@ -287,20 +298,41 @@ body.docs-body .docs-pager {
   padding-top: 24px;
   border-top: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 25%, transparent);
 }
+/* Neumorphism pager link (CAR-N-6、 subtle raised + hover deepen) */
 body.docs-body .docs-pager-link {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 18px;
-  border: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 25%, transparent);
-  border-radius: 10px;
+  padding: 18px 22px;
+  background: var(--nm-surface);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 12px;
   text-decoration: none;
   color: var(--nm-text);
-  transition: border-color 0.15s, transform 0.15s;
+  transition:
+    border-color 0.18s ease,
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 12px -6px rgba(30, 41, 59, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 body.docs-body .docs-pager-link:hover {
-  border-color: var(--nm-accent);
-  transform: translateY(-1px);
+  border-color: rgba(45, 106, 143, 0.32);
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 24px -8px rgba(30, 41, 59, 0.14),
+    0 4px 8px -4px rgba(45, 106, 143, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+html.dark body.docs-body .docs-pager-link {
+  border-color: rgba(94, 196, 232, 0.14);
+  box-shadow:
+    0 4px 12px -6px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+html.dark body.docs-body .docs-pager-link:hover {
+  border-color: rgba(94, 196, 232, 0.35);
 }
 body.docs-body .docs-pager-next {
   text-align: right;
@@ -581,16 +613,29 @@ body.docs-body .docs-hero-cta-secondary {
   text-decoration: none;
   transition: transform 0.15s, box-shadow 0.15s;
 }
+/* Neumorphism raised CTA button (CAR-N-6、 Vercel / Linear 風 subtle depth + scale hover) */
 body.docs-body .docs-hero-cta-primary,
 body.docs-body a.docs-hero-cta-primary {
   background: #2d6a8f !important;
   background-color: #2d6a8f !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(45, 106, 143, 0.3);
+  box-shadow:
+    0 4px 12px -2px rgba(45, 106, 143, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.15) inset;
+  transition:
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 body.docs-body .docs-hero-cta-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--nm-accent) 40%, transparent);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 12px 24px -4px rgba(45, 106, 143, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+body.docs-body .docs-hero-cta-primary:active {
+  transform: translateY(0) scale(1);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 body.docs-body .docs-hero-cta-secondary,
 body.docs-body a.docs-hero-cta-secondary {
@@ -598,10 +643,22 @@ body.docs-body a.docs-hero-cta-secondary {
   background-color: var(--nm-surface) !important;
   color: var(--nm-text) !important;
   border: 1px solid rgba(196, 185, 172, 0.5) !important;
+  box-shadow:
+    0 2px 6px -2px rgba(30, 41, 59, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  transition:
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
 body.docs-body .docs-hero-cta-secondary:hover {
-  border-color: var(--nm-accent);
-  color: var(--nm-accent);
+  border-color: var(--nm-accent) !important;
+  color: var(--nm-accent) !important;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 8px 16px -4px rgba(30, 41, 59, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 
 body.docs-body .docs-hero-features {
@@ -610,21 +667,48 @@ body.docs-body .docs-hero-features {
   gap: 16px;
   margin: 64px 0;
 }
+/* Neumorphism raised feature card (CAR-N-6、 catalog card と統一) */
 body.docs-body .docs-feature-card,
 body.docs-body a.docs-feature-card {
   display: block;
-  padding: 24px;
+  padding: 28px;
   background: var(--nm-surface) !important;
   background-color: var(--nm-surface) !important;
-  border: 1px solid var(--nm-border) !important;
-  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.6) !important;
+  border-radius: 16px;
   text-decoration: none !important;
   color: var(--nm-text) !important;
-  transition: border-color 0.15s, transform 0.15s;
+  transition:
+    border-color 0.18s ease,
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 12px 24px -12px rgba(30, 41, 59, 0.1),
+    0 4px 8px -4px rgba(45, 106, 143, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 body.docs-body .docs-feature-card:hover {
-  border-color: var(--nm-accent);
-  transform: translateY(-2px);
+  border-color: rgba(45, 106, 143, 0.28) !important;
+  transform: translateY(-4px);
+  box-shadow:
+    0 24px 48px -20px rgba(30, 41, 59, 0.2),
+    0 12px 24px -12px rgba(45, 106, 143, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+html.dark body.docs-body .docs-feature-card,
+html.dark body.docs-body a.docs-feature-card {
+  border-color: rgba(94, 196, 232, 0.14) !important;
+  box-shadow:
+    0 12px 24px -12px rgba(0, 0, 0, 0.5),
+    0 4px 8px -4px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+html.dark body.docs-body .docs-feature-card:hover {
+  border-color: rgba(94, 196, 232, 0.35) !important;
+  box-shadow:
+    0 24px 48px -20px rgba(0, 0, 0, 0.7),
+    0 12px 24px -12px rgba(94, 196, 232, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 body.docs-body .docs-feature-icon {
   font-size: 28px;

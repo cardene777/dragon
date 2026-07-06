@@ -1,0 +1,157 @@
+/**
+ * Neumorphism SSOT (CAR-646、 CAR-N-6)
+ * dragon apps/playground の catalog / docs / landing 全ページで共有する
+ * Neumorphism raised / inset / soft depth token。
+ *
+ * 設計指針 (Vercel / Linear / Stripe 相当の完成度)
+ * ── Vercel = 大きめ typography、 明確な hierarchy、 muted primary color、 subtle grid overlay
+ * ── Linear = card 内 metadata の compact 配置、 status pill、 keyboard shortcut display
+ * ── Stripe = documentation の code block styling、 spacing の呼吸感、 illustration hover effect
+ *
+ * これらを既存 v4 palette (--v4-canvas / --v4-brand / --v4-ink) の上に Neumorphism accent
+ * (soft gradient bg、 subtle raised shadow 2 段、 hover translateY(-2px) + shadow deepen) を
+ * 追加する形で翻訳。 flat design (Vercel / Linear は基本 flat) の潔さを保ちつつ、
+ * hover / interactive state で立体感を演出する middle ground design system。
+ */
+
+:root {
+  /* ─── background gradient (soft depth、 v4-canvas の平面 flat から subtle depth へ) ─── */
+  --nm-bg-gradient: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 50%, #f5f7fa 100%);
+
+  /* ─── card / surface elevation (light theme) ─── */
+  --nm-shadow-raised-strong:
+    0 24px 48px -20px rgba(30, 41, 59, 0.18),
+    0 12px 24px -12px rgba(45, 106, 143, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --nm-shadow-raised-soft:
+    0 12px 24px -12px rgba(30, 41, 59, 0.12),
+    0 4px 8px -4px rgba(45, 106, 143, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --nm-shadow-hover:
+    0 32px 64px -20px rgba(30, 41, 59, 0.24),
+    0 16px 32px -12px rgba(45, 106, 143, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --nm-shadow-inset-soft:
+    inset 0 2px 4px rgba(30, 41, 59, 0.06),
+    inset 0 1px 2px rgba(45, 106, 143, 0.04);
+  --nm-shadow-flat:
+    0 1px 2px rgba(30, 41, 59, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+
+  /* ─── surface color (subtle brightness variation) ─── */
+  --nm-surface: #ffffff;
+  --nm-surface-elevated: #fefeff;
+  --nm-surface-recessed: #f1f5f9;
+
+  /* ─── header 用 backdrop (blur 前の base) ─── */
+  --nm-header-bg: rgba(248, 250, 252, 0.72);
+  --nm-header-border: rgba(226, 232, 240, 0.6);
+  --nm-header-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 1px 3px rgba(30, 41, 59, 0.04);
+
+  /* ─── interactive state (Linear 風 subtle scale) ─── */
+  --nm-transition-standard: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+  --nm-transition-quick: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+
+  /* ─── typography scale (Stripe / Vercel 準拠、 letter-spacing / line-height 統一) ─── */
+  --nm-fs-eyebrow: 11px;
+  --nm-fs-meta: 12.5px;
+  --nm-fs-body: 14px;
+  --nm-fs-title: 18px;
+  --nm-fs-h2: 24px;
+  --nm-fs-h1: 40px;
+  --nm-ls-eyebrow: 0.14em;
+  --nm-ls-title: -0.015em;
+  --nm-ls-h1: -0.03em;
+
+  /* ─── grid / spacing 呼吸感 (Stripe の spacing scale) ─── */
+  --nm-space-card-padding: 26px;
+  --nm-space-grid-gap: 20px;
+  --nm-radius-card: 16px;
+  --nm-radius-pill: 999px;
+}
+
+html.dark {
+  --nm-bg-gradient: linear-gradient(180deg, #0a0e14 0%, #0e131a 50%, #121820 100%);
+
+  --nm-shadow-raised-strong:
+    0 24px 48px -20px rgba(0, 0, 0, 0.6),
+    0 12px 24px -12px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --nm-shadow-raised-soft:
+    0 12px 24px -12px rgba(0, 0, 0, 0.5),
+    0 4px 8px -4px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --nm-shadow-hover:
+    0 32px 64px -20px rgba(0, 0, 0, 0.7),
+    0 16px 32px -12px rgba(94, 196, 232, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  --nm-shadow-inset-soft:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  --nm-shadow-flat:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+  --nm-surface: #161b22;
+  --nm-surface-elevated: #1a2029;
+  --nm-surface-recessed: #0e1117;
+
+  --nm-header-bg: rgba(10, 14, 20, 0.78);
+  --nm-header-border: rgba(42, 51, 64, 0.7);
+  --nm-header-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * ─── base body gradient (Neumorphism ambient depth) ────────────────
+ * v4-body class を全 page (BaseLayout default) と docs-body class に共通適用。
+ * flat #f8fafc → soft gradient に置換して立体感を演出。
+ */
+body.v4-body,
+body.docs-body {
+  background: var(--nm-bg-gradient) !important;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/*
+ * ─── reduced motion respect (a11y、 macOS 環境設定「視差効果を減らす」 対応) ───
+ * transition / animation を suppress、 hover translateY / scale を無効化。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .catalog-card:hover,
+  .v4-cat-card:hover,
+  .example:hover,
+  .feature:hover,
+  .docs-feature-card:hover,
+  .docs-pager-link:hover {
+    transform: none !important;
+  }
+}
+
+/*
+ * ─── focus-visible (keyboard focus SSOT、 全 interactive 要素で 2px outline) ───
+ */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+.catalog-card:focus-visible,
+.v4-cat-card:focus-visible,
+.example:focus-visible,
+.feature:focus-visible,
+.docs-feature-card:focus-visible {
+  outline: 2px solid var(--v4-brand, #2d6a8f);
+  outline-offset: 3px;
+  border-radius: var(--nm-radius-card);
+}

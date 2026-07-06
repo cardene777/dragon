@@ -587,41 +587,53 @@ html.dark [data-cdl-node] > circle[stroke="transparent"] {
 /* ─────────────────────────────────────────────
  * catalog card SSOT (cookbook / patterns / presets 共通)
  * v0.7+ ... 旧 catalog-thumb-wrap を catalog-card に置換、 hover + 影 + 整った header 付き
- * - card: 白背景、 薄い border、 hover で raise、 dark mode 対応
- * - body: aspect 4:3 (高さ充分、 内部 SVG が読める size)
+ * v0.9+ CAR-N-6 (CAR-646) ... Neumorphism raised design (Vercel / Linear / Stripe 相当) に brushup
+ *   - card: 白背景 + subtle border + raised 2 段 shadow、 hover で translateY(-4px) + shadow deepen
+ *   - body: aspect 4:3 (高さ充分、 内部 SVG が読める size)
+ *   - Vercel / Linear / Stripe 準拠 = flat 主体 + subtle depth + 呼吸感ある spacing + micro-interaction
  * ────────────────────────────────────────────── */
 .catalog-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--nm-surface, #ffffff);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: var(--nm-radius-card, 16px);
   overflow: hidden;
-  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+  transition: var(--nm-transition-standard, all 0.24s cubic-bezier(0.4, 0, 0.2, 1));
   display: flex;
   flex-direction: column;
+  box-shadow: var(
+    --nm-shadow-raised-soft,
+    0 12px 24px -12px rgba(30, 41, 59, 0.12),
+    0 4px 8px -4px rgba(45, 106, 143, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset
+  );
 }
 .catalog-card:hover {
-  border-color: #2d6a8f;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -8px rgba(45, 106, 143, 0.18);
+  border-color: rgba(45, 106, 143, 0.32);
+  transform: translateY(-4px);
+  box-shadow: var(
+    --nm-shadow-hover,
+    0 32px 64px -20px rgba(30, 41, 59, 0.24),
+    0 16px 32px -12px rgba(45, 106, 143, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset
+  );
 }
 html.dark .catalog-card {
-  background: #161b22;
-  border-color: #2a3340;
+  background: var(--nm-surface, #161b22);
+  border-color: rgba(94, 196, 232, 0.14);
 }
 html.dark .catalog-card:hover {
-  border-color: #5ec4e8;
-  box-shadow: 0 12px 28px -8px rgba(94, 196, 232, 0.25);
+  border-color: rgba(94, 196, 232, 0.35);
 }
 .catalog-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(241, 245, 249, 0.7);
 }
 html.dark .catalog-card-head {
-  border-bottom-color: #1f2630;
+  border-bottom-color: rgba(31, 38, 48, 0.7);
 }
 .catalog-card-title-block {
   flex: 1;
@@ -629,15 +641,16 @@ html.dark .catalog-card-head {
 }
 .catalog-card-title {
   font-family: "Inter", sans-serif;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 600;
   color: #1a1f2a;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 html.dark .catalog-card-title {
   color: #f0f3f8;
@@ -652,23 +665,26 @@ html.dark .catalog-card-title {
 html.dark .catalog-card-subtitle {
   color: #94a3b8;
 }
+/* Linear 風 status pill (compact metadata、 monospace + subtle bg + hover deepen) */
 .catalog-card-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: 5px 11px;
   font-family: "JetBrains Mono", monospace;
   font-size: 11.5px;
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: #2d6a8f;
   background: rgba(45, 106, 143, 0.08);
-  border-radius: 6px;
+  border-radius: var(--nm-radius-pill, 999px);
   text-decoration: none;
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: var(--nm-transition-quick, all 0.15s ease);
 }
 .catalog-card-link:hover {
   background: rgba(45, 106, 143, 0.16);
+  color: #1f4d6e;
 }
 html.dark .catalog-card-link {
   color: #5ec4e8;
@@ -676,6 +692,7 @@ html.dark .catalog-card-link {
 }
 html.dark .catalog-card-link:hover {
   background: rgba(94, 196, 232, 0.22);
+  color: #7dc7e8;
 }
 .catalog-card-body {
   width: 100%;
@@ -684,12 +701,13 @@ html.dark .catalog-card-link:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: #fafbfc;
+  padding: 24px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f5f7fa 100%);
   overflow: hidden;
+  box-shadow: var(--nm-shadow-inset-soft, inset 0 2px 4px rgba(30, 41, 59, 0.06));
 }
 html.dark .catalog-card-body {
-  background: #0e1117;
+  background: linear-gradient(180deg, #0e1117 0%, #0a0e14 100%);
 }
 .catalog-card-body > button {
   width: 100%;
