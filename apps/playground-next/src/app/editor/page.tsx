@@ -6,6 +6,7 @@ import { PRESETS, type PresetDoc } from "@/lib/presets";
 import { DiagramView } from "@/components/DiagramView";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { useToast } from "@/components/Toast";
 import { encodeShare, decodeShare } from "@/lib/share-url";
 import { Github, Rocket, Share2, Check, ChevronLeft, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -29,15 +30,20 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((m) => m.
  * top toolbar ... preset dropdown / theme picker / share button / GitHub link
  */
 export default function EditorPage(): React.ReactElement {
+  const { toast } = useToast();
   const [theme, setTheme] = useThemeSync();
   const [preset, setPreset] = useState<PresetDoc>(PRESETS[0]!);
   const [code, setCode] = useState<string>(() => JSON.stringify(PRESETS[0], null, 2));
   const [shareState, setShareState] = useState<"idle" | "copying" | "copied">("idle");
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const parsedPreset = useMemo(() => {
     try {
-      return JSON.parse(code) as PresetDoc;
-    } catch {
+      const p = JSON.parse(code) as PresetDoc;
+      setParseError(null);
+      return p;
+    } catch (e) {
+      setParseError((e as Error).message);
       return preset;
     }
   }, [code, preset]);
@@ -65,13 +71,35 @@ export default function EditorPage(): React.ReactElement {
   }, []);
 
   const onShare = async (): Promise<void> => {
+    if (parseError) {
+      toast({
+        type: "error",
+        title: "Invalid JSON",
+        description: "Fix the JSON syntax before sharing.",
+      });
+      return;
+    }
     setShareState("copying");
-    const hash = await encodeShare(parsedPreset);
-    const url = `${window.location.origin}${window.location.pathname}#${hash}`;
-    await navigator.clipboard.writeText(url);
-    window.history.replaceState({}, "", `${window.location.pathname}#${hash}`);
-    setShareState("copied");
-    setTimeout(() => setShareState("idle"), 2000);
+    try {
+      const hash = await encodeShare(parsedPreset);
+      const url = `${window.location.origin}${window.location.pathname}#${hash}`;
+      await navigator.clipboard.writeText(url);
+      window.history.replaceState({}, "", `${window.location.pathname}#${hash}`);
+      setShareState("copied");
+      toast({
+        type: "success",
+        title: "URL copied",
+        description: "Share URL is now in your clipboard.",
+      });
+      setTimeout(() => setShareState("idle"), 2000);
+    } catch {
+      setShareState("idle");
+      toast({
+        type: "error",
+        title: "Share failed",
+        description: "Could not copy URL to clipboard.",
+      });
+    }
   };
 
   return (
@@ -175,8 +203,13 @@ export default function EditorPage(): React.ReactElement {
           </div>
         </div>
         <div className="flex h-1/2 w-full flex-col md:h-full md:w-1/2">
-          <div className="border-b border-[var(--color-border-soft)] bg-[var(--color-surface-2)] px-4 py-2 text-[11px] font-mono font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
-            Preview · {theme} theme
+          <div className="flex items-center justify-between border-b border-[var(--color-border-soft)] bg-[var(--color-surface-2)] px-4 py-2 text-[11px] font-mono font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
+            <span>Preview · {theme} theme</span>
+            {parseError && (
+              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-red-500 lowercase" title={parseError}>
+                ⚠ parse error
+              </span>
+            )}
           </div>
           <div className="flex-1 overflow-auto p-6">
             <DiagramView preset={parsedPreset} theme={theme} interactive className="w-full h-full" />
