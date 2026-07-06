@@ -140,7 +140,30 @@ test("next: modal ESC close", async ({ page }) => {
   await page.waitForTimeout(500);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(500);
-  // modal が閉じたら再度 click for another preset via URL fragment
   const isClosed = await page.evaluate(() => document.querySelector('[role="dialog"]') === null);
   console.log("Modal closed after ESC:", isClosed);
+});
+
+test("next: keyboard help modal", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.keyboard.press("?");
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "test-results/next-help-modal.png" });
+  // ESC close
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  const isClosed = await page.evaluate(() => document.querySelector('[role="dialog"]') === null);
+  console.log("Help modal closed:", isClosed);
+});
+
+test("next: keyboard theme cycle", async ({ page }) => {
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  // Cycle theme with T key
+  await page.keyboard.press("t");
+  await page.waitForTimeout(300);
+  const themeAttr = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+  console.log("After 't' press, theme:", themeAttr);
 });

@@ -7,6 +7,7 @@ import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
 import { ThemeStrip } from "@/components/ThemeStrip";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { DiagramView } from "@/components/DiagramView";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { Github, Rocket, Search, X } from "lucide-react";
 import type { ThemeName } from "@/lib/theme";
 
@@ -53,6 +54,7 @@ export default function Page(): React.ReactElement {
         <PresetGrid theme={theme} query={query} setQuery={setQuery} filtered={filteredPresets} />
       </main>
       <Footer />
+      <KeyboardShortcuts theme={theme} onThemeChange={setTheme} />
     </div>
   );
 }
