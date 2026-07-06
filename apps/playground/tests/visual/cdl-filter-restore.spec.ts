@@ -42,40 +42,46 @@ async function activateNeumorphism(page: Page): Promise<void> {
 }
 
 test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
-  test("BaseLayout ... 全 page の root に filter#dragon-nm-raised-soft が inject される", async ({
+  test("BaseLayout ... 全 page の root に filter#dragon-nm-raised が inject される (CAR-748 Round 11 意図 filter)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
-    // svg > defs > filter[id="dragon-nm-raised-soft"] が body 直下 CdlFilterDefs component
-    // 経由で DOM に存在。 selector を document 全体で検索 (BaseLayout の svg + cdl 内 svg 両方 hit する可能性あるので getById)
+    // CAR-748 = cdl-theme.css の Neumorphism section は dragon-nm-raised を参照するため
+    // (Round 11 意図の dual shadow 実装済 filter)、 その id が DOM に存在することを検証。
+    // legacy dragon-nm-raised-soft も backward compat のため残っているが、 主 filter は dragon-nm-raised。
     const filterCount = await page.evaluate(() => {
-      return document.querySelectorAll('filter[id="dragon-nm-raised-soft"]').length;
+      return document.querySelectorAll('filter[id="dragon-nm-raised"]').length;
     });
-    // 1 = BaseLayout inject のみ、 2 = cdl SVG 内でも重複 (regression) の兆候
     expect(filterCount).toBeGreaterThanOrEqual(1);
   });
 
-  test("BaseLayout ... 4 種 filter (light raised / inset + dark raised / inset) 全て inject される", async ({
+  test("BaseLayout ... 4 種新 filter (dragon-nm-raised / -sm + dark 各) 全て inject される (CAR-748)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
     const filterIds = await page.evaluate(() => {
       return {
-        lightRaised: document.querySelectorAll('filter[id="dragon-nm-raised-soft"]').length,
-        lightInset: document.querySelectorAll('filter[id="dragon-nm-inset-soft"]').length,
-        darkRaised: document.querySelectorAll('filter[id="dragon-nm-raised-soft-dark"]').length,
-        darkInset: document.querySelectorAll('filter[id="dragon-nm-inset-soft-dark"]').length,
+        lightRaised: document.querySelectorAll('filter[id="dragon-nm-raised"]').length,
+        lightRaisedSm: document.querySelectorAll('filter[id="dragon-nm-raised-sm"]').length,
+        darkRaised: document.querySelectorAll('filter[id="dragon-nm-raised-dark"]').length,
+        darkRaisedSm: document.querySelectorAll('filter[id="dragon-nm-raised-sm-dark"]').length,
+        // legacy backward compat (別 spec が assert しているため残す)
+        legacyRaisedSoft: document.querySelectorAll('filter[id="dragon-nm-raised-soft"]').length,
+        legacyInsetSoft: document.querySelectorAll('filter[id="dragon-nm-inset-soft"]').length,
       };
     });
     expect(filterIds.lightRaised).toBeGreaterThanOrEqual(1);
-    expect(filterIds.lightInset).toBeGreaterThanOrEqual(1);
+    expect(filterIds.lightRaisedSm).toBeGreaterThanOrEqual(1);
     expect(filterIds.darkRaised).toBeGreaterThanOrEqual(1);
-    expect(filterIds.darkInset).toBeGreaterThanOrEqual(1);
+    expect(filterIds.darkRaisedSm).toBeGreaterThanOrEqual(1);
+    // legacy filter も同時 inject 済 (car-735-theme-quality.spec.ts 用)
+    expect(filterIds.legacyRaisedSoft).toBeGreaterThanOrEqual(1);
+    expect(filterIds.legacyInsetSoft).toBeGreaterThanOrEqual(1);
   });
 
-  test("cdl-theme.css ... theme=neumorphism 時に node-body に url(#dragon-nm-raised-soft) filter が適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時に node-body に url(#dragon-nm-raised) filter が適用される (CAR-748)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
@@ -88,11 +94,11 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
       return computed.filter;
     });
     expect(computedFilter).not.toBeNull();
-    // computed filter = `url("#dragon-nm-raised-soft")` (Chrome は quoted、 全 browser で url(...) format)
-    expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-soft["']?\)/);
+    // computed filter = `url("#dragon-nm-raised")` (Round 11 意図の Circuit pattern 準拠)
+    expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised(?!-sm)(?!-soft)(?!-dark)["']?\)/);
   });
 
-  test("cdl-theme.css ... theme=neumorphism 時 edge-label-bg にも同 raised filter が適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時 edge-label-bg に url(#dragon-nm-raised-sm) filter が適用される (CAR-748)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
@@ -106,29 +112,36 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
     });
     // catalog/presets には edge label pill を持つ preset (swimlane / classDiagram etc) がある想定
     if (computedFilter !== null) {
-      expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-soft["']?\)/);
+      // CAR-748 = edge-label-bg は小型 dual shadow (dragon-nm-raised-sm) を使用
+      expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-sm["']?\)/);
     }
   });
 
-  test("cdl-theme.css ... theme=neumorphism 時 lane-container に url(#dragon-nm-inset-soft) filter が適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時 lane-container は dashed stroke で表現 (CAR-748 = filter 削除)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
     await activateNeumorphism(page);
-    const computedFilter = await page.evaluate(() => {
+    const laneStyle = await page.evaluate(() => {
       const el = document.querySelector<SVGElement>('[data-cdl-role="lane-container"]');
       if (!el) return null;
-      const computed = window.getComputedStyle(el);
-      return computed.filter;
+      const cs = window.getComputedStyle(el);
+      return {
+        strokeDasharray: cs.strokeDasharray,
+        stroke: cs.stroke,
+        fill: cs.fill,
+      };
     });
-    // lane.contain=true の preset (swimlane / sequence 等) がある想定
-    if (computedFilter !== null) {
-      expect(computedFilter).toMatch(/url\(["']?#dragon-nm-inset-soft["']?\)/);
+    // CAR-748 では lane-container は soft dashed stroke で表現、 inset filter は使わない
+    if (laneStyle !== null) {
+      expect(laneStyle.strokeDasharray).not.toBe("none");
+      // stroke = rgba(74, 127, 200, 0.2) = cool blue に近い色
+      expect(laneStyle.stroke).toMatch(/rgba?\(74,\s*127,\s*200/);
     }
   });
 
-  test("dark mode ... theme=neumorphism + html.dark で node-body の filter が dark 版 (#dragon-nm-raised-soft-dark) に切替", async ({
+  test("dark mode ... theme=neumorphism + html.dark で node-body の filter が dark 版 (#dragon-nm-raised-dark) に切替 (CAR-748)", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
@@ -145,7 +158,7 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
       return computed.filter;
     });
     expect(computedFilter).not.toBeNull();
-    expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-soft-dark["']?\)/);
+    expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-dark["']?\)/);
   });
 
   test("cdl SVG 内には既に filter defs が無い (cdl scope = geometry only の regression 検知)", async ({

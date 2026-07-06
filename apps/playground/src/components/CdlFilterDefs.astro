@@ -10,7 +10,8 @@
  * apps/playground/src/styles/cdl-theme.css SSOT。
  *
  * defs 一覧 (theme 名 prefix):
- *   - Neumorphism: `dragon-nm-raised-soft` / `dragon-nm-inset-soft` (+ *-dark) — light/dark 4 filter
+ *   - Neumorphism: `dragon-nm-raised` / `dragon-nm-raised-sm` (+ *-dark) — CAR-748 Round 11 意図の dual shadow
+ *                  `dragon-nm-raised-soft` / `dragon-nm-inset-soft` (+ *-dark) — legacy filter (backward compat)
  *   - Isometric:   `dragon-iso-cast-shadow` filter + `dragon-iso-top-gradient` / `dragon-iso-right-shadow-gradient` / `dragon-iso-left-shadow-gradient` linearGradient
  *   - Circuit:     `dragon-cir-trace-glow` filter + `dragon-cir-board-pattern` pattern (PCB green + solder pad gold)
  *   - Pinboard:    `dragon-pin-sticky-shadow` filter + `dragon-pin-board-pattern` pattern (kraft board)
@@ -23,12 +24,81 @@
 
 <svg width="0" height="0" style="position:absolute; pointer-events:none" aria-hidden="true">
   <defs>
-    {/* ═════════════════ Neumorphism (CAR-N-7 / CAR-N-8 / CAR-735 SSOT、 raised + inset × light/dark) ═════════════════ */}
+    {/* ═════════════════ Neumorphism (CAR-N-7 / CAR-N-8 / CAR-735 / CAR-748 SSOT、 raised + inset × light/dark) ═════════════════ */}
     {/*
-      CAR-735 = raised bump 感を強化。 diagnostic で filter は applied 済 (computedFilter 反映)、
-      但し dx/dy=4 + blur=3 + opacity=0.55 の subtle 設定で pillowy 感が視認しづらかった。
-      dx/dy を 6 → dual shadow の距離拡大、 blur=5 → 光がぼんやり広がる感、 opacity=0.75 → 濃度up。
-      light shadow は既に 0.95 で mostly opaque だが、 dx/dy=-6 で上下対称の高低差を出す。
+      CAR-748 = Round 11 意図の dual shadow を厳密再現。 Circuit pattern 流用時の
+      cdl-theme.css は `url(#dragon-nm-raised)` を参照するため、 新 filter を alias 追加する:
+        - dragon-nm-raised    ... node-body 用の dual shadow (stdDeviation=3, offset ±4)
+                                 opacity=0.55 (dark shadow) / 0.95 (light shadow) で
+                                 Round 11 図の柔らかさ (soft bumps) を実現
+        - dragon-nm-raised-sm ... edge-label pill 背景用の小型 dual shadow
+                                 (stdDeviation=1.5, offset ±2、 濃度は same ratio)
+      既存 dragon-nm-raised-soft / dragon-nm-inset-soft は他 spec の backward compat のため残す。
+    */}
+    <filter id="dragon-nm-raised" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
+      <feFlood flood-color="rgba(163, 177, 198, 0.55)" result="darkColor" />
+      <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+      <feOffset in="blur" dx="-4" dy="-4" result="lightShadow" />
+      <feFlood flood-color="rgba(255, 255, 255, 0.95)" result="lightColor" />
+      <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+      <feMerge>
+        <feMergeNode in="darkShadowColored" />
+        <feMergeNode in="lightShadowColored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="dragon-nm-raised-sm" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feOffset in="blur" dx="2" dy="2" result="darkShadow" />
+      <feFlood flood-color="rgba(163, 177, 198, 0.55)" result="darkColor" />
+      <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+      <feOffset in="blur" dx="-2" dy="-2" result="lightShadow" />
+      <feFlood flood-color="rgba(255, 255, 255, 0.95)" result="lightColor" />
+      <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+      <feMerge>
+        <feMergeNode in="darkShadowColored" />
+        <feMergeNode in="lightShadowColored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="dragon-nm-raised-dark" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
+      <feFlood flood-color="rgba(0, 0, 0, 0.9)" result="darkColor" />
+      <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+      <feOffset in="blur" dx="-4" dy="-4" result="lightShadow" />
+      <feFlood flood-color="rgba(255, 255, 255, 0.18)" result="lightColor" />
+      <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+      <feMerge>
+        <feMergeNode in="darkShadowColored" />
+        <feMergeNode in="lightShadowColored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="dragon-nm-raised-sm-dark" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feOffset in="blur" dx="2" dy="2" result="darkShadow" />
+      <feFlood flood-color="rgba(0, 0, 0, 0.9)" result="darkColor" />
+      <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+      <feOffset in="blur" dx="-2" dy="-2" result="lightShadow" />
+      <feFlood flood-color="rgba(255, 255, 255, 0.18)" result="lightColor" />
+      <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+      <feMerge>
+        <feMergeNode in="darkShadowColored" />
+        <feMergeNode in="lightShadowColored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    {/*
+      Legacy filters (dragon-nm-raised-soft / dragon-nm-inset-soft) — CAR-735 で強化した既存 filter を
+      backward compat のため残す。 CAR-748 以降の Neumorphism CSS は dragon-nm-raised / -sm を参照するが、
+      car-735-theme-quality.spec.ts など既存 spec は dragon-nm-raised-soft を assert しているため、 削除しない。
     */}
     <filter id="dragon-nm-raised-soft" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="5" result="blur" />
