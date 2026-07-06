@@ -1,0 +1,43 @@
+/**
+ * cdl SVG Neumorphism filter (CAR-N-7 / CAR-649)
+ *
+ * cdl は CAR-643 で geometry only に scope 縮小、 shadow / border effect の filter は
+ * cdl SVG 内に持たない。 dragon 側で `[data-cdl-role="..."]` selector 経由に自分の filter
+ * を適用する。 本 file は data-cdl-role SSOT に紐付いた Neumorphism raised / inset filter を
+ * 全 cdl SVG (catalog / docs / editor 上) に適用する。
+ *
+ * 適用 role (packages/cdl/src/render/{stage,edges,nodes}.tsx SSOT):
+ *   - node-body       ... 6 shape wrapper (actor / card / event / function / storage / generic)
+ *   - edge-label-bg   ... edge label pill 背景 rect
+ *   - lane-container  ... lane.contain=true の boundary rect
+ *   - lane-lifeline   ... lane.lifeline=true の縦点線 line (影は控えめ)
+ *   - lane-label      ... lane 見出し text (通常 filter 対象外、 影不要)
+ *
+ * SVG filter 本体は BaseLayout / DocsLayout に inline <svg><defs> で 1 度だけ inject する
+ * (Astro layout SSOT)、 本 CSS は selector 経由の `filter: url(#...)` 適用のみ。
+ */
+
+/* ─── Light theme (default) ─── */
+[data-cdl-role="node-body"],
+[data-cdl-role="edge-label-bg"] {
+  filter: url(#dragon-nm-raised-soft);
+}
+
+[data-cdl-role="lane-container"] {
+  filter: url(#dragon-nm-inset-soft);
+}
+
+/* ─── Dark theme (html.dark、 dragon 全ページ共通 dark selector) ─── */
+html.dark [data-cdl-role="node-body"],
+html.dark [data-cdl-role="edge-label-bg"] {
+  filter: url(#dragon-nm-raised-soft-dark);
+}
+
+html.dark [data-cdl-role="lane-container"] {
+  filter: url(#dragon-nm-inset-soft-dark);
+}
+
+/* ─── Reduced motion respect (視差効果減 対応、 filter は動きなしなので無効化不要だが a11y の一貫性のため noop 定義を残す) ─── */
+@media (prefers-reduced-motion: reduce) {
+  /* filter は静的なので特別な override 不要 */
+}

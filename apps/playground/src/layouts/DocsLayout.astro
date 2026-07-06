@@ -17,7 +17,9 @@
 import "../styles/global.css";
 import "../styles/docs-site.css";
 import "../styles/neumorphism.css";
+import "../styles/cdl-theme.css";
 import Header from "../components/layout/Header.astro";
+import CdlFilterDefs from "../components/CdlFilterDefs.astro";
 
 export interface Props {
   title: string;
@@ -186,6 +188,7 @@ const canonicalUrl = `https://dragon-playground.vercel.app${docsPrefix}/${curren
     </script>
   </head>
   <body class="docs-body">
+    <CdlFilterDefs />
     {/* site 共通 Header (search + lang toggle 有効) */}
     <Header showSearch={true} showLangToggle={true} />
 
