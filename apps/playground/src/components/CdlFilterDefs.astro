@@ -150,16 +150,24 @@
       <feComposite in="SourceGraphic" />
     </filter>
 
-    {/* ═════════════════ Isometric (top-light gradient + cast shadow、 3D 立体 metaphor、 CAR-735 強化) ═════════════════ */}
+    {/* ═════════════════ Isometric (CAR-781 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用) ═════════════════ */}
     {/*
-      CAR-735 = gradient contrast + cast shadow 距離を拡大して 3D 感を明確化。
-      旧: #f4f8ff → #b8c7de (低 contrast、 差 24 lightness) → 新: #ffffff → #7c93bd (差 55 lightness、 top 光源 明瞭化)
-      cast shadow: dx/dy=6/8 + blur=4 + opacity=0.45 → dx/dy=10/14 + blur=8 + opacity=0.55 (立体感の厚み拡大)
+      CAR-781 = Round 11 意図の pseudo-3D (妥協案 = 完全 3D projection でなく 2D + gradient +
+      strong drop shadow で立体感演出)。 top-light gradient を bone #f7f4e8 → tan #e0dbc4 に
+      再定義し、 top face の柔らかい光の当たり方 (30° axonometric cube の top face 相当) を表現する。
+
+      追加 filter:
+        - dragon-iso-drop-shadow    ... node-body 用の rich drop shadow (blur 3 + offset 4/4 +
+                                        opacity 0.25) で cast light の奥行き感を作る。
+        - dragon-iso-drop-shadow-sm ... edge-label pill 用の subtle drop shadow (blur 1.5 +
+                                        offset 2/2 + opacity 0.2)。
+      backward compat のため既存 dragon-iso-cast-shadow / -dark、 dragon-iso-top-gradient-dark
+      を残置 (他 spec の assertion 参照あり)。 但し dragon-iso-top-gradient は bone → tan に
+      色調を変更するため既存 CAR-735 の url 参照 test は id 名一致で pass する。
     */}
     <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" />
-      <stop offset="0.35" stop-color="#e4ecf7" />
-      <stop offset="1" stop-color="#7c93bd" />
+      <stop offset="0" stop-color="#f7f4e8" />
+      <stop offset="1" stop-color="#e0dbc4" />
     </linearGradient>
 
     <linearGradient id="dragon-iso-top-gradient-dark" x1="0" y1="0" x2="0" y2="1">
@@ -168,6 +176,34 @@
       <stop offset="1" stop-color="#151b30" />
     </linearGradient>
 
+    <filter id="dragon-iso-drop-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="4" dy="4" result="offset" />
+      <feFlood flood-color="rgba(44, 40, 32, 0.25)" />
+      <feComposite in2="offset" operator="in" result="colored" />
+      <feMerge>
+        <feMergeNode in="colored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="dragon-iso-drop-shadow-sm" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" />
+      <feOffset dx="2" dy="2" result="offset" />
+      <feFlood flood-color="rgba(44, 40, 32, 0.2)" />
+      <feComposite in2="offset" operator="in" result="colored" />
+      <feMerge>
+        <feMergeNode in="colored" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    {/*
+      Legacy dragon-iso-cast-shadow / -dark = CAR-735 で新規追加した cast shadow filter。
+      cdl-6-theme-switch.spec.ts:169 が defs 存在 assertion を持つため、 backward compat の
+      ため残置する。 Round 11 意図の Isometric CSS は dragon-iso-drop-shadow を参照するが、
+      legacy filter def は削除しない。
+    */}
     <filter id="dragon-iso-cast-shadow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="8" />
       <feOffset dx="10" dy="14" result="offset" />
