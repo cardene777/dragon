@@ -68,10 +68,23 @@ export function DiagramNode({
   const centered = shape === "diamond" || shape === "ellipse";
   const textAnchor: "start" | "middle" = centered ? "middle" : "start";
   const textX = centered ? node.w / 2 : 24;
-  const eyebrowY = centered ? node.h / 2 - 32 : 26;
-  const titleY = centered ? node.h / 2 + 8 : 56;
-  const subtitleY = centered ? node.h / 2 + 32 : 82;
   const subtitleLines = node.subtitle?.split("\n") ?? [];
+  // dynamic text Y layout — node height に応じて text stack を center 詰めする
+  const hasEyebrow = Boolean(node.eyebrow);
+  const hasSubtitle = subtitleLines.length > 0;
+  const eyebrowGap = 8;
+  const titleGap = 10;
+  const subtitleGap = 4;
+  const eyebrowH = hasEyebrow ? cfg.fontSize.eyebrow + eyebrowGap : 0;
+  const titleH = cfg.fontSize.title + (hasSubtitle ? titleGap : 0);
+  const subtitleH = hasSubtitle
+    ? subtitleLines.length * cfg.fontSize.subtitle + (subtitleLines.length - 1) * subtitleGap
+    : 0;
+  const totalH = eyebrowH + titleH + subtitleH;
+  const topY = centered ? (node.h - totalH) / 2 : Math.max(20, (node.h - totalH) / 2);
+  const eyebrowY = topY + cfg.fontSize.eyebrow;
+  const titleY = eyebrowY + eyebrowGap + cfg.fontSize.title * 0.4;
+  const subtitleY = titleY + titleGap + cfg.fontSize.subtitle * 0.8;
   const filterAttr = cfg.nodeFilter && shape === "rect" ? cfg.nodeFilter : undefined;
 
   // Pinboard tilt = seed 由来 -3° to +3° rotation で sticky note の pinned 感
@@ -113,39 +126,40 @@ export function DiagramNode({
           <SolderPads w={node.w} h={node.h} />
         )}
       </g>
-      {node.eyebrow && (
+      {hasEyebrow && (
         <text
-          x={textX}
+          x={centered ? node.w / 2 : textX}
           y={eyebrowY}
           fontSize={cfg.fontSize.eyebrow}
           fontWeight={600}
           letterSpacing={1.4}
           fill="var(--color-accent)"
-          textAnchor={textAnchor}
+          textAnchor={centered ? "middle" : textAnchor}
           fontFamily="var(--font-mono, monospace)"
         >
           {node.eyebrow}
         </text>
       )}
       <text
-        x={textX}
+        x={centered ? node.w / 2 : textX}
         y={titleY}
         fontSize={cfg.fontSize.title}
         fontWeight={700}
         fill="var(--color-ink)"
-        textAnchor={textAnchor}
+        textAnchor={centered ? "middle" : textAnchor}
         fontFamily="var(--font-sans)"
+        dominantBaseline="middle"
       >
         {node.title}
       </text>
       {subtitleLines.map((line, i) => (
         <text
           key={i}
-          x={textX}
-          y={subtitleY + i * (cfg.fontSize.subtitle + 4)}
+          x={centered ? node.w / 2 : textX}
+          y={subtitleY + i * (cfg.fontSize.subtitle + subtitleGap)}
           fontSize={cfg.fontSize.subtitle}
           fill="var(--color-ink-dim)"
-          textAnchor={textAnchor}
+          textAnchor={centered ? "middle" : textAnchor}
           fontFamily="var(--font-mono, monospace)"
         >
           {line}
