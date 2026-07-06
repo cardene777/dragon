@@ -161,9 +161,20 @@ test("next: keyboard help modal", async ({ page }) => {
 test("next: keyboard theme cycle", async ({ page }) => {
   await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
   await page.waitForTimeout(2500);
-  // Cycle theme with T key
   await page.keyboard.press("t");
   await page.waitForTimeout(300);
   const themeAttr = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
   console.log("After 't' press, theme:", themeAttr);
+});
+
+test("next: modal arrow nav", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.locator('article button[aria-label*="拡大"]').first().click();
+  await page.waitForTimeout(500);
+  // arrow right = next preset
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "test-results/next-modal-arrow-nav.png" });
 });

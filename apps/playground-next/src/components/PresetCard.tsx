@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Maximize2, ExternalLink } from "lucide-react";
+import { X, Maximize2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { DiagramView } from "./DiagramView";
-import type { PresetDoc } from "@/lib/presets";
+import { PRESETS, type PresetDoc } from "@/lib/presets";
 import type { ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 
@@ -25,26 +25,54 @@ export function PresetCard({
   theme: ThemeName;
 }): React.ReactElement {
   const [open, setOpen] = useState(false);
+  const [displayPreset, setDisplayPreset] = useState<PresetDoc>(preset);
+
+  const currentIdx = PRESETS.findIndex((p) => p.id === displayPreset.id);
+  const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length]!;
+  const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length]!;
 
   // URL fragment #preset=<id> で mount 時に自動 open
   useEffect(() => {
     const check = (): void => {
       const hash = new URLSearchParams(window.location.hash.slice(1));
-      if (hash.get("preset") === preset.id) setOpen(true);
+      const id = hash.get("preset");
+      if (id === preset.id) {
+        setOpen(true);
+        setDisplayPreset(preset);
+      }
     };
     check();
     window.addEventListener("hashchange", check);
     return () => window.removeEventListener("hashchange", check);
-  }, [preset.id]);
+  }, [preset.id, preset]);
+
+  // arrow key navigation while modal open
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setDisplayPreset(prevPreset);
+        window.history.replaceState({}, "", `#preset=${prevPreset.id}`);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setDisplayPreset(nextPreset);
+        window.history.replaceState({}, "", `#preset=${nextPreset.id}`);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, prevPreset, nextPreset]);
 
   // modal open state を URL fragment に sync
   const onOpenChange = (v: boolean): void => {
     setOpen(v);
     if (v) {
+      setDisplayPreset(preset);
       window.history.replaceState({}, "", `#preset=${preset.id}`);
     } else {
       const hash = new URLSearchParams(window.location.hash.slice(1));
-      if (hash.get("preset") === preset.id) {
+      if (hash.get("preset") === displayPreset.id || hash.get("preset") === preset.id) {
         window.history.replaceState({}, "", window.location.pathname + window.location.search);
       }
     }
@@ -112,16 +140,16 @@ export function PresetCard({
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono">
-                  {preset.eyebrow}
+                  {displayPreset.eyebrow}
                 </div>
                 <Dialog.Title className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-ink)]">
-                  {preset.title}
+                  {displayPreset.title}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 max-w-3xl text-[15px] leading-relaxed text-[var(--color-ink-dim)]">
-                  {preset.subtitle}
+                  {displayPreset.subtitle}
                 </Dialog.Description>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {preset.tags.map((t) => (
+                  {displayPreset.tags.map((t) => (
                     <span
                       key={t}
                       className="rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-dim)] font-mono"
@@ -132,8 +160,36 @@ export function PresetCard({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayPreset(prevPreset);
+                    window.history.replaceState({}, "", `#preset=${prevPreset.id}`);
+                  }}
+                  aria-label={`Previous preset (${prevPreset.title})`}
+                  className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                  title={`Previous · ${prevPreset.title}`}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="font-mono text-[11px] text-[var(--color-ink-mute)]">
+                  {currentIdx + 1} / {PRESETS.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayPreset(nextPreset);
+                    window.history.replaceState({}, "", `#preset=${nextPreset.id}`);
+                  }}
+                  aria-label={`Next preset (${nextPreset.title})`}
+                  className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                  title={`Next · ${nextPreset.title}`}
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <div className="h-6 w-px bg-[var(--color-border-soft)] mx-1" />
                 <a
-                  href={`/editor#preset=${preset.id}`}
+                  href={`/editor#preset=${displayPreset.id}`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-white hover:brightness-110 transition-all"
                 >
                   <ExternalLink size={13} />
@@ -152,7 +208,7 @@ export function PresetCard({
             </div>
             <div className="rounded-2xl bg-[var(--color-surface-2)] p-6 shadow-inner">
               <DiagramView
-                preset={preset}
+                preset={displayPreset}
                 theme={theme}
                 interactive
                 className="mx-auto max-h-[70vh] w-full"
