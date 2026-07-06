@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     ...PRESETS.map((p) => ({
-      url: `${base}/?preset=${p.id}`,
+      url: `${base}/preset/${p.id}`,
       lastModified,
       changeFrequency: "monthly" as const,
       priority: 0.7,

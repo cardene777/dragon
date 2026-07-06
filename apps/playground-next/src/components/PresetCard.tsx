@@ -189,6 +189,13 @@ export function PresetCard({
                 </button>
                 <div className="h-6 w-px bg-[var(--color-border-soft)] mx-1" />
                 <a
+                  href={`/preset/${displayPreset.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-surface-2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink)] hover:brightness-95 transition-all"
+                  title="View permalink page"
+                >
+                  Permalink
+                </a>
+                <a
                   href={`/editor#preset=${displayPreset.id}`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-white hover:brightness-110 transition-all"
                 >

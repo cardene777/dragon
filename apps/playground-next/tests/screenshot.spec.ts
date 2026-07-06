@@ -173,8 +173,14 @@ test("next: modal arrow nav", async ({ page }) => {
   await page.waitForTimeout(2500);
   await page.locator('article button[aria-label*="拡大"]').first().click();
   await page.waitForTimeout(500);
-  // arrow right = next preset
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(500);
   await page.screenshot({ path: "test-results/next-modal-arrow-nav.png" });
+});
+
+test("next: preset permalink page", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/preset/topology?theme=circuit", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-permalink-topology.png", fullPage: true });
 });
