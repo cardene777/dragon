@@ -24,7 +24,7 @@ export default function DocsPage(): React.ReactElement {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-[var(--color-border-soft)] bg-[var(--color-surface)]/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1000px] items-center gap-6 px-8 py-4">
+        <div className="mx-auto flex max-w-[1000px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4">
           <Link href="/" className="flex items-center gap-3 font-bold text-[var(--color-ink)]">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)] text-white">
               <Rocket size={15} />
@@ -57,7 +57,7 @@ export default function DocsPage(): React.ReactElement {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1000px] px-8 py-16">
+      <main className="mx-auto max-w-[1000px] px-4 py-10 sm:px-8 sm:py-16">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono shadow-sm">
           <BookOpen size={11} />
           Documentation

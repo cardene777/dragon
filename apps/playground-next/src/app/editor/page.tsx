@@ -149,8 +149,8 @@ export default function EditorPage(): React.ReactElement {
         </div>
       </header>
 
-      <main className="flex flex-1 overflow-hidden">
-        <div className="flex w-1/2 flex-col border-r border-[var(--color-border-soft)]">
+      <main className="flex flex-1 flex-col overflow-hidden md:flex-row">
+        <div className="flex h-1/2 w-full flex-col border-b border-[var(--color-border-soft)] md:h-full md:w-1/2 md:border-b-0 md:border-r">
           <div className="border-b border-[var(--color-border-soft)] bg-[var(--color-surface-2)] px-4 py-2 text-[11px] font-mono font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
             Editor · preset.json
           </div>
@@ -174,7 +174,7 @@ export default function EditorPage(): React.ReactElement {
             />
           </div>
         </div>
-        <div className="flex w-1/2 flex-col">
+        <div className="flex h-1/2 w-full flex-col md:h-full md:w-1/2">
           <div className="border-b border-[var(--color-border-soft)] bg-[var(--color-surface-2)] px-4 py-2 text-[11px] font-mono font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
             Preview · {theme} theme
           </div>

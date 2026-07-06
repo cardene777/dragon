@@ -29,15 +29,18 @@ export function ThemePicker({
       <Select.Root value={value} onValueChange={(v) => onChange(v as ThemeName)}>
         <Select.Trigger
           className={cn(
-            "inline-flex items-center justify-between gap-2 rounded-xl px-4 py-2 text-sm font-medium",
+            "inline-flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-medium sm:px-4",
             "bg-[var(--color-surface)] text-[var(--color-ink)]",
             "shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)]",
-            "min-w-[240px] transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "min-w-[140px] sm:min-w-[240px] transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
           )}
           aria-label="Theme"
         >
           <Select.Value>
-            {THEME_CONFIGS[value].label} <span className="text-[var(--color-ink-dim)]">— {THEME_CONFIGS[value].description.split("、")[0]}</span>
+            <span className="sm:hidden">{THEME_CONFIGS[value].label}</span>
+            <span className="hidden sm:inline">
+              {THEME_CONFIGS[value].label} <span className="text-[var(--color-ink-dim)]">— {THEME_CONFIGS[value].description.split("、")[0]}</span>
+            </span>
           </Select.Value>
           <Select.Icon>
             <ChevronDown size={14} className="text-[var(--color-ink-dim)]" />
