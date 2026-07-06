@@ -269,18 +269,19 @@ test.describe("CAR-Pinboard theme quality regression (Round 11 意図 pin)", () 
     expect(result.visibilityOk).toBe(result.tapeCount);
   });
 
-  test("軸 I-1: default (blueprint) 見た目維持 = blueprint node-body fill = #f6faff", async ({
+  test("軸 I-1: default (blueprint) 見た目維持 = blueprint node-body fill = #ffffff", async ({
     page,
   }) => {
-    // Pinboard CSS 変更が blueprint (default) を巻き込んでいない regression pin
+    // Pinboard CSS 変更が blueprint (default) を巻き込んでいない regression pin。
+    // CAR-769 で blueprint を Round 11 意図 (純白 node) まで更新済、 期待値を #ffffff に追随。
     await page.goto(`${CATALOG_URL}?theme=blueprint`, { waitUntil: "networkidle" });
     await waitStable(page);
     const fill = await page
       .locator('rect[data-cdl-role="node-body"]')
       .first()
       .evaluate((el) => getComputedStyle(el).fill);
-    // blueprint は #f6faff = rgb(246, 250, 255)
-    expect(fill).toBe("rgb(246, 250, 255)");
+    // blueprint は #ffffff = rgb(255, 255, 255) (CAR-769 = Round 11 意図)
+    expect(fill).toBe("rgb(255, 255, 255)");
   });
 
   test("軸 I-2: blueprint theme 時に node-tape が hidden (Pinboard 装飾が他 theme に染み出さない)", async ({

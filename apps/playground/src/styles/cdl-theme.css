@@ -610,49 +610,214 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
- * Blueprint (default、 設計図 metaphor、 graticule pattern + ortho arrow)
- * 意図 = 設計図の graticule + ortho ライン + rev code 相当の落ち着いた青。
+ * Blueprint (CAR-769 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
+ * 意図 = 純白 node #ffffff + navy 1px stroke #1e426c + SVG root に 16px graticule grid +
+ *        Inter 700 label + rust #8b3a1f rev codes label (JetBrains Mono) +
+ *        cream tint lane container + lane-label uppercase 0.14em letter-spacing +
+ *        ortho arrow marker (default triangle 維持、 Blueprint の marker 置換は engine 経路で別 PR 対応)
+ *
+ * CAR-741 Circuit theme と同じ 3 経路を採用:
+ *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
+ *       fallback を効かせる (最も clean な経路)
+ *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
+ *       rect/path/ellipse/circle を !important + 具体 selector で override
+ *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
+ *       node-kind-icon / lane-* まで網羅
+ *
+ * graticule 背景 = SVG root (svg[data-cdl-theme="blueprint"]) に background-image で
+ * linear-gradient 2 段 (縦 + 横) の grid overlay。 lane-container fill は cream tint に変更
+ * (旧: url(#dragon-bp-graticule) pattern から離脱、 SVG root 全域に一貫 grid が乗る経路に統一)。
+ *
+ * text (node-label / edge-label / lane-label) は色 + font-family + font-weight + letter-spacing まで
+ * 明示 override、 web-safe fallback を含めて未 install 環境でも rendering を保証する。
  * ═════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * CSS var 上書き経路 (a)
+ * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
+ * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
+ */
+[data-cdl-theme="blueprint"] {
+  --cdl-node-fill: #ffffff;
+  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 (navy stroke) */
+  --cdl-tone-info: #1e426c;
+  --cdl-tone-accent: #1e426c;
+  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる。 cream mute */
+  --cdl-divider: #cec8b0;
+  --cdl-text: #1e426c;
+  --cdl-text-dim: #4a5460;
+  --cdl-text-secondary: #4a5460;
+  --cdl-label-bg: #ffffff;
+  --cdl-label-text: #8b3a1f;
+  --cdl-edge-stroke: #1e426c;
+}
+
+/*
+ * 直接 role selector 経路 (b1)
+ * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
+ */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #f6faff !important;
+  fill: #ffffff !important;
   stroke: #1e426c !important;
-  stroke-width: 1.4 !important;
+  stroke-width: 1 !important;
 }
+
+/*
+ * 子孫 selector 経路 (b2)
+ * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
+ * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
+ * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
+ */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle {
+  fill: #ffffff !important;
+  stroke: #1e426c !important;
+  stroke-width: 1 !important;
+}
+/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse {
+  fill: #ffffff !important;
+  stroke: #1e426c !important;
+  stroke-width: 1 !important;
+}
+
+/*
+ * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
+ * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
+ * で specificity を勝たせる (0-3-1 > 0-2-2)。
+ */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
+  fill: #1e426c !important;
+  stroke: none !important;
+  opacity: 1 !important;
+}
+
+[data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
+  fill: #1e426c !important;
+  stroke: none !important;
+  font-family: "Inter", "Söhne", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  /* font-size は engine (generic.tsx:302 = 20px) 継承、 CSS 側で override しない
+   * 理由は edge-label と同じ (layout 契約 = engine 側 fontSize + CSS 側 style 分離)。 */
+}
+
+[data-cdl-theme="blueprint"] [data-cdl-role="edge-line"],
+[data-cdl-theme="blueprint"] path[data-cdl-role="edge-line"],
+[data-cdl-theme="blueprint"] line[data-cdl-role="edge-line"] {
+  stroke: #1e426c !important;
+  stroke-width: 1 !important;
+  fill: none !important;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"],
+[data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] path {
+  fill: #1e426c !important;
+  stroke: none !important;
+}
+
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #f6faff !important;
+  fill: #ffffff !important;
   stroke: #1e426c !important;
-  stroke-width: 0.8 !important;
+  stroke-width: 0.6 !important;
 }
+[data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
+  fill: #8b3a1f !important;
+  stroke: none !important;
+  font-weight: 700 !important;
+  /*
+   * font-size / font-family は engine 側 layout (edges.tsx:243 fontSize=22 + Inter 相当) に統一。
+   * monospace font-family CSS override は text advance width を広げ、 catalog/patterns の
+   * pattern-fan-out / pattern-fan-in で node × edge-label overlap を発生させる (overlap-detector
+   * .spec.ts fail、 layout engine が Inter 基準の label 幅で positioning するため)。
+   * rev codes の落ち着き感は fill (#8b3a1f rust) + font-weight (700) で表現し、 font-family +
+   * size は engine layout 契約に統一する。 sub 側は edges.tsx:257 で inline JetBrains Mono
+   * が既に適用されているので、 sub は sans + main の見た目差で rev codes 感を出す経路。
+   */
+}
+
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-bp-graticule) !important;
-  stroke: rgba(30, 66, 108, 0.35) !important;
-  stroke-dasharray: 6 3 !important;
+  fill: rgba(244, 240, 221, 0.5) !important;
+  stroke: rgba(30, 66, 108, 0.25) !important;
+  stroke-width: 1 !important;
+  stroke-dasharray: 4 4 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
   stroke: rgba(30, 66, 108, 0.4) !important;
 }
-[data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  fill: #1e426c !important;
-  font-weight: 600 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #1e426c !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #1e426c !important;
-  stroke-width: 1.6 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: #1e426c !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
-  fill: #1e426c !important;
-  opacity: 0.8 !important;
-}
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #2a5a8c !important;
+  fill: #1e426c !important;
+  stroke: none !important;
+  font-family: "Inter", "Söhne", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  /* font-size は engine (stage.tsx:120 = 20px) 継承。 letter-spacing 0.14em は 20 * 0.14 = 2.8px 相当。 */
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
 }
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
+
+/*
+ * graticule 背景 = SVG root に linear-gradient 2 段で 16px grid overlay (Round 11 意図)。
+ * 旧: lane-container に url(#dragon-bp-graticule) pattern を適用していた経路から
+ * SVG root 全域に一貫 grid が乗る経路に統一。 pattern SVG def は他 test の backward compat のため
+ * dragon-bp-graticule / dragon-bp-graticule-dark を残置 (CdlFilterDefs.astro SSOT)。
+ *
+ * 注 = Chromium は inline `<svg>` element に CSS `background-image` の render 出力があいまい
+ * (spec 上 SVG root で受け入れるが Blink 実装で表示されないケース)。 加えて catalog の
+ * `.nm-preset-preview svg { background: transparent !important; }` (PresetCard.astro) が
+ * SVG 自体の background を強制透過化するため、 blueprint theme 適用 SVG を持つ parent
+ * (`.nm-preset-preview:has(svg[data-cdl-theme="blueprint"])`) と SVG root 両方に graticule
+ * 背景を適用する。 :has は Chromium 105+ で GA、 現在の Playwright chromium 環境 (最新) で
+ * 動作保証あり。 unsupported な古い browser 用の fallback として SVG root 側も残す。
+ */
+svg[data-cdl-theme="blueprint"] {
+  background-color: #f4f0dd !important;
+  background-image:
+    linear-gradient(rgba(30, 66, 108, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 66, 108, 0.05) 1px, transparent 1px) !important;
+  background-size: 16px 16px !important;
+  background-position: 0 0 !important;
+}
+/* parent wrapper 経路 = catalog `.nm-preset-preview` 内 SVG が blueprint theme の時に
+ * wrapper 自体に graticule 背景を適用。 `.nm-preset-preview svg { background: transparent !important }`
+ * の specificity 勝ちに関わらず、 wrapper 背景が graticule として render される。 */
+.nm-preset-preview:has(svg[data-cdl-theme="blueprint"]) {
+  background-color: #f4f0dd !important;
+  background-image:
+    linear-gradient(rgba(30, 66, 108, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 66, 108, 0.05) 1px, transparent 1px) !important;
+  background-size: 16px 16px !important;
+  background-position: 0 0 !important;
+}
+html.dark .nm-preset-preview:has(svg[data-cdl-theme="blueprint"]) {
+  background-color: #0a1220 !important;
+  background-image:
+    linear-gradient(rgba(120, 180, 220, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 180, 220, 0.08) 1px, transparent 1px) !important;
+  background-size: 16px 16px !important;
+  background-position: 0 0 !important;
+}
+
+/* ─── dark mode variant (navy invert + light cyan text) ─── */
+html.dark [data-cdl-theme="blueprint"] {
+  --cdl-node-fill: #101a2a;
+  --cdl-tone-info: #6ab3d8;
+  --cdl-tone-accent: #6ab3d8;
+  --cdl-text: #d0e4ee;
+  --cdl-text-dim: #8aa8b8;
+  --cdl-text-secondary: #8aa8b8;
+  --cdl-label-bg: #101a2a;
+  --cdl-label-text: #d99a6e;
+  --cdl-edge-stroke: #6ab3d8;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"],
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse {
   fill: #101a2a !important;
   stroke: #6ab3d8 !important;
 }
@@ -660,21 +825,41 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #101a2a !important;
   stroke: #6ab3d8 !important;
 }
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(120, 180, 220, 0.35) !important;
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
+  fill: #d0e4ee !important;
 }
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(120, 180, 220, 0.4) !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
+  fill: #d99a6e !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
   fill: #6ab3d8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   stroke: #6ab3d8 !important;
   fill: #6ab3d8 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] path {
+  fill: #6ab3d8 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
+  fill: rgba(16, 26, 42, 0.5) !important;
+  stroke: rgba(106, 179, 216, 0.25) !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
+  stroke: rgba(106, 179, 216, 0.4) !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
+  fill: #6ab3d8 !important;
+}
+html.dark svg[data-cdl-theme="blueprint"] {
+  background-color: #0a1220 !important;
+  background-image:
+    linear-gradient(rgba(120, 180, 220, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 180, 220, 0.08) 1px, transparent 1px) !important;
+  background-size: 16px 16px !important;
+  background-position: 0 0 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
