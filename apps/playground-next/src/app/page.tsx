@@ -49,23 +49,24 @@ function Header({
 }): React.ReactElement {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border-soft)] bg-[var(--color-surface)]/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1280px] items-center gap-8 px-8 py-4">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-5 sm:px-8 sm:py-4 md:gap-8">
         <a href="/" className="flex items-center gap-3 font-bold text-[var(--color-ink)]">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-accent)] text-white shadow-sm">
             <Rocket size={17} />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-bold">dragon</span>
-            <span className="text-[10.5px] font-medium tracking-wide text-[var(--color-ink-dim)] mt-0.5">
+            <span className="hidden sm:inline text-[10.5px] font-medium tracking-wide text-[var(--color-ink-dim)] mt-0.5">
               animated diagram DSL
             </span>
           </div>
         </a>
-        <nav className="flex flex-1 items-center gap-6 text-[14px] font-medium text-[var(--color-ink-dim)]">
+        <nav className="hidden md:flex flex-1 items-center gap-6 text-[14px] font-medium text-[var(--color-ink-dim)]">
           <a href="/" className="text-[var(--color-ink)]">Catalog</a>
           <a href="/editor" className="hover:text-[var(--color-ink)]">Editor</a>
           <a href="/docs" className="hover:text-[var(--color-ink)]">Docs</a>
         </nav>
+        <div className="md:hidden flex-1" />
         <ThemePicker value={theme} onChange={setTheme} />
         <DarkModeToggle />
         <a
@@ -84,11 +85,11 @@ function Header({
 
 function Hero(): React.ReactElement {
   return (
-    <section className="mx-auto max-w-[1280px] px-8 py-16">
+    <section className="mx-auto max-w-[1280px] px-4 py-10 sm:px-8 sm:py-16">
       <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono shadow-sm">
         Catalog / Presets
       </div>
-      <h1 className="text-5xl font-bold tracking-tight text-[var(--color-ink)]">
+      <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[var(--color-ink)]">
         Text DSL <span className="text-[var(--color-accent)]">{PRESETS.length} presets</span>
       </h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--color-ink-dim)]">
@@ -114,14 +115,14 @@ function Hero(): React.ReactElement {
 
 function PresetGrid({ theme }: { theme: import("@/lib/theme").ThemeName }): React.ReactElement {
   return (
-    <section className="mx-auto max-w-[1280px] px-8 pb-24">
-      <div className="mb-6 flex items-baseline justify-between">
+    <section className="mx-auto max-w-[1280px] px-4 pb-16 sm:px-8 sm:pb-24">
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-2xl font-bold text-[var(--color-ink)]">Presets <span className="text-[var(--color-ink-mute)] text-[15px] ml-1 font-medium">({PRESETS.length})</span></h2>
         <p className="text-[13px] text-[var(--color-ink-dim)]">
           クリックで拡大、 theme 切替で全 preset が live 更新。
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         {PRESETS.map((preset) => (
           <PresetCard key={preset.id} preset={preset} theme={theme} />
         ))}

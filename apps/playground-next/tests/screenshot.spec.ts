@@ -124,3 +124,23 @@ test("next: flowchart zoom", async ({ page }) => {
   await page.waitForTimeout(500);
   await flowchart.screenshot({ path: "test-results/next-flowchart-zoom.png" });
 });
+
+test("next: mobile view", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-mobile-neumorphism.png", fullPage: true });
+});
+
+test("next: modal ESC close", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.locator('article button[aria-label*="拡大"]').first().click();
+  await page.waitForTimeout(500);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(500);
+  // modal が閉じたら再度 click for another preset via URL fragment
+  const isClosed = await page.evaluate(() => document.querySelector('[role="dialog"]') === null);
+  console.log("Modal closed after ESC:", isClosed);
+});
