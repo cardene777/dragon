@@ -1,16 +1,13 @@
 /**
- * Behavior + DOM regression ... CAR-N-7 (CAR-649) cdl SVG filter 復元検証。
+ * Behavior + DOM regression ... CAR-N-7 (CAR-649) + CAR-708 6 theme cdl SVG filter 復元検証。
  *
  * 背景 = CAR-643 で cdl から filter 描画を撤去、 全 stylable element に data-cdl-role
- * attribute を付与した。 dragon 側では data-cdl-role selector 経由に自分の Neumorphism
- * filter を CSS + SVG defs で適用する SSOT に切り替えた。 本 spec は以下 3 経路を通じて
- * filter 復元の regression を検出する。
+ * attribute を付与した。 CAR-707 で SVG root に `data-cdl-theme` attribute を pass-through、
+ * dragon 側は `[data-cdl-theme="<name>"] [data-cdl-role="<role>"]` 2 段 selector で
+ * 6 theme (blueprint / neumorphism / isometric / circuit / pinboard / handdrawn) の style を提供する。
  *
- * 1. SVG defs (BaseLayout / DocsLayout の CdlFilterDefs.astro) が全 page の root に inject
- *    されて filter#dragon-nm-raised-soft / filter#dragon-nm-inset-soft が DOM に存在
- * 2. cdl-theme.css が読込まれて `[data-cdl-role="node-body"]` に
- *    `filter: url("#dragon-nm-raised-soft")` が computed style として適用される
- * 3. dark mode (html.dark) で dark 版 filter (#dragon-nm-raised-soft-dark 等) が使われる
+ * 本 spec は Neumorphism theme active state での filter 復元 regression を検出する。
+ * default = blueprint なので、 各 spec 内で明示的に data-cdl-theme="neumorphism" を set。
  *
  * 3 経路の検証で「影なし plain state」 (CAR-643 直後の状態) に regress した場合を検出。
  * 対象 page = /catalog/presets (multiple diagrams で cdl-role 全種 mount 可能な代表 page)。
@@ -27,6 +24,21 @@ const CATALOG_URL = "/catalog/presets";
 async function waitStable(page: Page): Promise<void> {
   await waitForAllCdlDiagrams(page);
   await page.evaluate(() => document.fonts.ready);
+}
+
+/**
+ * CAR-708 default = blueprint 化に伴い、 Neumorphism theme state を明示 activate してから
+ * filter selector を検証する経路に統一する。 activate は DOM 直接書換で catalog page の
+ * MutationObserver とも整合する (dropdown の change event を経由しない simple 経路)。
+ */
+async function activateNeumorphism(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document.querySelectorAll("[data-cdl-theme]").forEach((el) => {
+      el.setAttribute("data-cdl-theme", "neumorphism");
+    });
+    const sel = document.getElementById("cdl-theme-select");
+    if (sel instanceof HTMLSelectElement) sel.value = "neumorphism";
+  });
 }
 
 test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
@@ -63,11 +75,12 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
     expect(filterIds.darkInset).toBeGreaterThanOrEqual(1);
   });
 
-  test("cdl-theme.css ... node-body に url(#dragon-nm-raised-soft) filter が computed style として適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時に node-body に url(#dragon-nm-raised-soft) filter が適用される", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
+    await activateNeumorphism(page);
     const computedFilter = await page.evaluate(() => {
       const el = document.querySelector<SVGElement>('[data-cdl-role="node-body"]');
       if (!el) return null;
@@ -79,11 +92,12 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
     expect(computedFilter).toMatch(/url\(["']?#dragon-nm-raised-soft["']?\)/);
   });
 
-  test("cdl-theme.css ... edge-label-bg にも同 raised filter が computed style として適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時 edge-label-bg にも同 raised filter が適用される", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
+    await activateNeumorphism(page);
     const computedFilter = await page.evaluate(() => {
       const el = document.querySelector<SVGElement>('[data-cdl-role="edge-label-bg"]');
       if (!el) return null;
@@ -96,11 +110,12 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
     }
   });
 
-  test("cdl-theme.css ... lane-container に url(#dragon-nm-inset-soft) filter が適用される", async ({
+  test("cdl-theme.css ... theme=neumorphism 時 lane-container に url(#dragon-nm-inset-soft) filter が適用される", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
     await waitStable(page);
+    await activateNeumorphism(page);
     const computedFilter = await page.evaluate(() => {
       const el = document.querySelector<SVGElement>('[data-cdl-role="lane-container"]');
       if (!el) return null;
@@ -113,7 +128,7 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
     }
   });
 
-  test("dark mode ... html.dark で node-body の filter が dark 版 (#dragon-nm-raised-soft-dark) に切替", async ({
+  test("dark mode ... theme=neumorphism + html.dark で node-body の filter が dark 版 (#dragon-nm-raised-soft-dark) に切替", async ({
     page,
   }) => {
     await page.goto(CATALOG_URL, { waitUntil: "networkidle" });
@@ -122,6 +137,7 @@ test.describe("CAR-N-7 cdl SVG filter 復元 regression", () => {
       document.documentElement.classList.add("dark");
     });
     await waitStable(page);
+    await activateNeumorphism(page);
     const computedFilter = await page.evaluate(() => {
       const el = document.querySelector<SVGElement>('[data-cdl-role="node-body"]');
       if (!el) return null;
