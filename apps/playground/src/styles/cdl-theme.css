@@ -175,29 +175,82 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 
 /* ═════════════════════════════════════════════════════════════════════════════
  * Circuit (PCB 基板 metaphor、 solder pad gold + trace mint + PCB green board)
- * 意図 = dark PCB board + gold solder pads (`data-cdl-solder-pad` 4 隅 circle) +
+ * 意図 = dark PCB board + gold solder pads (`data-cdl-role="node-pad"` 4 隅 circle) +
  *        mint traces + monospace + uppercase + letter-spacing。
  *
- * CAR-Circuit-完璧化 (CAR-735 後継) で 4 修正を追加:
- *   1. node-label に `stroke: none` を明示的に付与 (親 g の gold stroke を text 要素が
- *      inherit していた実測 bug の解消、 label の可読性を回復)
- *   2. node-label に `letter-spacing: 0.05em` + `text-transform: uppercase` を追加
- *      (SVG text は CSS text-transform 未対応の chrome バグがあるが、 letter-spacing
- *      は反映される。 title の render 時 upperCase 化は cdl 側で対応不可のため
- *      本 CSS で letter-spacing のみ強化、 uppercase 化は将来 cdl-side content transform で対応)
- *   3. edge-label にも `stroke: none` + `letter-spacing: 0.05em` を追加 (統一)
- *   4. solder pad = 4 隅の gold circle は次回 (kinds 変更を伴うため別 phase)、
- *      本 CSS では node-body の stroke を「dashed corner emphasis」 化する dasharray で
- *      pcb solder-line 感を強化 (subtle だが 4 隅 gold circle と等価な視覚効果を提供)
+ * CAR-Circuit-DOM-確定 (task #147 実 DOM inspection 反映) 根本解決:
+ *   1. cdl kinds/*.tsx は `<g data-cdl-role="node-body">` 経路 (generic.tsx) と
+ *      `<rect data-cdl-role="node-body">` 経路 (5 kinds) の 2 経路混在。 generic.tsx は
+ *      内部 rect/path/ellipse/circle が inline `fill="var(--cdl-node-fill, #ffffff)"`
+ *      で描画されるため、 親 g への CSS `fill:` は子孫 shape に届かない (fill は
+ *      inheritance するが子の inline attribute が上書きする SVG 仕様)。
+ *   2. 解決策 = 2 経路併用:
+ *      a. `[data-cdl-theme="circuit"]` root に `--cdl-node-fill` / `--cdl-tone-accent` /
+ *         `--cdl-divider` / `--cdl-text` / `--cdl-text-dim` を上書き → kinds/*.tsx の
+ *         inline `var(--cdl-node-fill, ...)` fallback を効かせる (最も clean な経路)
+ *      b. `[data-cdl-role="node-body"] > rect / > path / > ellipse / > circle` の
+ *         子孫 selector で fill / stroke を直接 override (var 経路が届かない edge case
+ *         用の fallback、 かつ `[data-cdl-role="node-body"]` 自身が rect の 5 kinds
+ *         にも重複 hit するので同じ rule で両経路 cover)
+ *   3. solder pad = presets.astro の decoratePads() で `<circle data-cdl-role="node-pad">`
+ *      を 4 隅に inject 済、 CSS で fill=gold + visibility=visible 強制
  * ═════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * CSS var 上書き経路 (a)
+ * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
+ * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
+ */
+[data-cdl-theme="circuit"] {
+  --cdl-node-fill: #0a1a12;
+  --cdl-tone-info: #c8a038;
+  --cdl-tone-accent: #c8a038;
+  --cdl-divider: #c8a038;
+  --cdl-text: #a8e6c1;
+  --cdl-text-dim: #7bb896;
+  --cdl-text-secondary: #7bb896;
+  --cdl-label-bg: #0a1a12;
+  --cdl-label-text: #a8e6c1;
+  --cdl-edge-stroke: #48e0b0;
+}
+
+/*
+ * 直接 role selector 経路 (b1)
+ * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
+ * generic.tsx の g には fill 効かない (g は fill を子に伝えるが子 rect の inline attr が優先)
+ * が、 5 kinds の rect には直接効く。 stroke は g 経由でも子 rect が inherit しない場合
+ * があるため、 g 自体には効きにくい。 下記 (b2) 子孫 selector が真の hammer。
+ */
 [data-cdl-theme="circuit"] [data-cdl-role="node-body"] {
   fill: #0a1a12 !important;
   stroke: #c8a038 !important;
   stroke-width: 1.6 !important;
 }
+
+/*
+ * 子孫 selector 経路 (b2)
+ * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
+ * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
+ * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
+ */
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] rect,
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > circle {
+  fill: #0a1a12 !important;
+  stroke: #c8a038 !important;
+  stroke-width: 1.6 !important;
+}
+/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
+[data-cdl-theme="circuit"] [data-cdl-role="node-body"] ellipse {
+  fill: #0a1a12 !important;
+  stroke: #c8a038 !important;
+}
+
 [data-cdl-theme="circuit"] [data-cdl-role="edge-label-bg"] {
   fill: #0a1a12 !important;
-  stroke: #48e0b0 !important;
+  stroke: #c8a038 !important;
   stroke-width: 1 !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="lane-container"] {
@@ -216,6 +269,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   font-family: "JetBrains Mono", "Courier New", monospace !important;
   font-weight: 700 !important;
   letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="edge-label"] {
   fill: #a8e6c1 !important;
@@ -227,6 +281,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: #48e0b0 !important;
   stroke-width: 2.2 !important;
   stroke-linecap: square !important;
+  fill: none !important;
   filter: url(#dragon-cir-trace-glow) !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="edge-arrowhead"] {
@@ -242,11 +297,13 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: none !important;
   font-family: "JetBrains Mono", "Courier New", monospace !important;
   letter-spacing: 3px !important;
+  text-transform: uppercase !important;
 }
 [data-cdl-theme="circuit"] [data-cdl-role="node-pad"] {
   fill: #c8a038 !important;
   stroke: none !important;
-  opacity: 0.9 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

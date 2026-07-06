@@ -264,6 +264,77 @@ test.describe("CAR-735 6 theme visual quality regression", () => {
     expect(result.fill).toBe("rgb(200, 160, 56)");
   });
 
+  /*
+   * ─── task #147 DOM-確定 fix regression pin ───
+   *
+   * task #147 で判明した根本原因 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
+   * rect/path/ellipse は inline `fill="var(--cdl-node-fill, #ffffff)"` で描画され、 親 g への
+   * CSS `fill:` は届かず fallback white で render されていた。 修正経路 = (a) CSS var
+   * `--cdl-node-fill` を `[data-cdl-theme="circuit"]` root で上書き、 (b) 子孫 selector
+   * `[data-cdl-role="node-body"] rect / > path / > g > path / > g > ellipse / > g > circle`
+   * で fill/stroke を !important 強制。
+   *
+   * 本 test は 2 経路が両方成立することを assert する。 未 fix 時は `pathFill` に
+   * `rgb(255, 255, 255)` (white fallback) が混入していた。
+   */
+  test("Circuit 軸 E (task #147): generic.tsx の g 直下 path/ellipse も PCB dark に override", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const result = await page.evaluate(() => {
+      // <g data-cdl-role="node-body"> 直下 (または g > g 経由) の shape 全てを枚挙
+      const shapes = Array.from(
+        document.querySelectorAll(
+          [
+            'g[data-cdl-role="node-body"] > path',
+            'g[data-cdl-role="node-body"] > g > path',
+            'g[data-cdl-role="node-body"] > g > ellipse',
+            'g[data-cdl-role="node-body"] > g > circle',
+            'g[data-cdl-role="node-body"] > rect',
+          ].join(","),
+        ),
+      );
+      const fills = new Map<string, number>();
+      shapes.forEach((el) => {
+        const f = getComputedStyle(el).fill;
+        fills.set(f, (fills.get(f) ?? 0) + 1);
+      });
+      return {
+        total: shapes.length,
+        fills: Object.fromEntries(fills),
+      };
+    });
+    // shape が 1 個以上 (topology / class / er 等 GenericNode 使用 preset 存在前提)
+    expect(result.total).toBeGreaterThan(0);
+    // 全 shape が PCB dark (fill = #0a1a12 = rgb(10, 26, 18)) で描画
+    // 未 fix 時 = white (rgb(255, 255, 255)) が混入
+    expect(result.fills["rgb(10, 26, 18)"]).toBe(result.total);
+    // white fallback が 1 つも無い
+    expect(result.fills["rgb(255, 255, 255)"]).toBeUndefined();
+  });
+
+  test("Circuit 軸 F (task #147): CSS var --cdl-node-fill / --cdl-text が root に上書き適用", async ({
+    page,
+  }) => {
+    await page.goto(`${CATALOG_URL}?theme=circuit`, { waitUntil: "networkidle" });
+    await waitStable(page);
+    const result = await page.evaluate(() => {
+      const svg = document.querySelector('svg[data-cdl-theme="circuit"]');
+      if (!svg) return null;
+      const cs = getComputedStyle(svg);
+      return {
+        nodeFill: cs.getPropertyValue("--cdl-node-fill").trim(),
+        textColor: cs.getPropertyValue("--cdl-text").trim(),
+        toneAccent: cs.getPropertyValue("--cdl-tone-accent").trim(),
+      };
+    });
+    expect(result).not.toBeNull();
+    expect(result?.nodeFill).toBe("#0a1a12");
+    expect(result?.textColor).toBe("#a8e6c1");
+    expect(result?.toneAccent).toBe("#c8a038");
+  });
+
   test("Circuit 軸 D 冪等: blueprint に切替後 pad が全 remove、 circuit に再切替で再 inject", async ({
     page,
   }) => {

@@ -206,8 +206,11 @@ const items = [
       // pattern fill は tile 単位で個別 rect 座標に合わない)。 client-side JS 経路で
       // rect ごとに 4 circle を SVG namespace で挿入し、 data-cdl-role="node-pad" を付与、
       // CSS 側 `[data-cdl-theme="circuit"] [data-cdl-role="node-pad"]` で fill / opacity 適用。
-      const PAD_R = 3.5;
-      const PAD_INSET = 6; // rect 端からの距離 (world units)
+      // pad center を rect 4 隅の corner 上に配置 (半分 in 半分 out で solder pad 感)。
+      // 旧実装は inset=6 で 6 units 内側に置いており「小さすぎて見えない」 との user feedback。
+      // r=4.5 に拡大、 INSET=0 で corner 直上配置。
+      const PAD_R = 4.5;
+      const PAD_INSET = 0; // rect 端からの距離 (world units、 0 = corner 直上)
       // MutationObserver 起因の infinite loop 対策 = 冪等 guard。
       // decoratePads() で SVG に circle を追加すると MO が subtree 変更を検知して apply() を
       // 再起動 → decoratePads() 再実行 → 再追加、 の loop で `networkidle` が永遠に来ない
