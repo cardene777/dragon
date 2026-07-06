@@ -138,7 +138,6 @@ test.describe("CAR-755 Handdrawn theme quality regression (Round 11 意図 pin)"
     await waitStable(page);
     const result = await page.evaluate(() => {
       const labels = Array.from(document.querySelectorAll('text[data-cdl-role="edge-label"]'));
-      if (labels.length === 0) return null;
       const stats = labels.map((el) => {
         const cs = getComputedStyle(el);
         return {
@@ -152,11 +151,11 @@ test.describe("CAR-755 Handdrawn theme quality regression (Round 11 意図 pin)"
         fontCaveat: stats.filter((s) => s.fontCaveat).length,
       };
     });
-    // catalog/presets に edge label pill を持つ preset が存在する想定
-    if (result !== null && result.total > 0) {
-      expect(result.fillOk).toBe(result.total);
-      expect(result.fontCaveat).toBe(result.total);
-    }
+    // catalog/presets には edge label pill を持つ preset (flow / sequence / classDiagram 等) が
+    // 必ず存在する想定 = 0 件早期 return を許容しない (Codex review MINOR fix、 regression pin 強化)
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.fillOk).toBe(result.total);
+    expect(result.fontCaveat).toBe(result.total);
   });
 
   test("軸 E: generic.tsx の g 直下 path/ellipse/circle も sticky yellow に override (white fallback 検出)", async ({
@@ -223,15 +222,14 @@ test.describe("CAR-755 Handdrawn theme quality regression (Round 11 意図 pin)"
       const icons = Array.from(
         document.querySelectorAll('[data-cdl-role="node-kind-icon"] path'),
       );
-      if (icons.length === 0) return null;
       const fills = icons.map((el) => getComputedStyle(el).fill);
       const matched = fills.filter((f) => f === "rgb(169, 74, 58)").length;
       return { total: icons.length, matched };
     });
-    // GenericNode を使う preset がある想定
-    if (result !== null && result.total > 0) {
-      expect(result.matched).toBe(result.total);
-    }
+    // GenericNode を使う preset (topology / class / er 等) が catalog/presets に必ず存在する想定 =
+    // 0 件早期 return を許容しない (Codex review MINOR fix、 regression pin 強化)
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.matched).toBe(result.total);
   });
 
   test("軸 H: default (blueprint) 見た目維持 = blueprint node-body fill = #f6faff", async ({
