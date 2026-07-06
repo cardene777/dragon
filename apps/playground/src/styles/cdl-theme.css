@@ -614,14 +614,87 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
 
 /* ═════════════════════════════════════════════════════════════════════════════
  * Handdrawn (手描き metaphor、 turbulence displacement + kraft palette)
- * 意図 = wobble stroke (turbulence displacement) + handdrawn font + kraft
+ * 意図 = kraft paper #f7f0dc board + sticky yellow #fdf7d9 fill + wobble stroke
+ *        (turbulence displacement) + Caveat cursive font + marker red #a94a3a
+ *        accent (edge-label / icon) + ink #2c2820 primary text/edge。
+ *
+ * CAR-755 復元 = revert 前 PR #148 で確立した Circuit pattern (CSS var + 子孫
+ * selector + 全 role !important) を再適用。 revert (PR #154) で削除された 5 経路を
+ * 復元する:
+ *   1. root CSS var 上書き経路 (--cdl-node-fill / --cdl-tone-accent / --cdl-text) で
+ *      kinds/*.tsx の inline var fallback を効かせる (edge stroke は cdl 側 render で
+ *      別 var 経路 = TONE / --cdl-line-mute を使うため、 root の --cdl-edge-stroke 上書き
+ *      は fallback 用 marker 意義のみ、 実 stroke override は role selector [edge-line] の
+ *      !important で ink #2c2820 に直接寄せる)
+ *   2. [node-body] > path / rect / circle / ellipse 子孫 selector で generic.tsx の
+ *      inline `fill="var(...)"` を !important で確実に上書き (0-3-1 specificity)
+ *   3. icon path specificity 勝ち経路 [node-body] [node-kind-icon] path (0-3-1) で
+ *      親 [node-body] > g > path (0-2-2) に負けていた bug を解決
+ *   4. edge-label に marker red #a94a3a を割当てて Round 11 意図の accent 表現
+ *   5. lane-container を kraft paper #f7f0dc に統一 (revert 前 #f0e6c8 は暗すぎ)
  * ═════════════════════════════════════════════════════════════════════════════ */
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] {
+
+/*
+ * CSS var 上書き経路 (1)
+ * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
+ */
+[data-cdl-theme="handdrawn"] {
+  --cdl-node-fill: #fdf7d9;
+  --cdl-tone-info: #a94a3a;
+  --cdl-tone-accent: #a94a3a;
+  --cdl-divider: #2c2820;
+  --cdl-text: #2c2820;
+  --cdl-text-dim: #5a4830;
+  --cdl-text-secondary: #5a4830;
+  --cdl-label-bg: #fffef5;
+  --cdl-label-text: #2c2820;
+  --cdl-edge-stroke: #2c2820;
+}
+
+/*
+ * 直接 role selector 経路 (2a) — rect 版 (5 kinds actor/card/event/function/storage) のみ
+ * filter 適用。 g 版 (generic.tsx) は filter を付けず、 shape 子孫 selector 側で個別適用する
+ * (Codex review MAJOR fix = g 全体に filter を掛けると label/icon まで歪む + GPU コスト増)。
+ */
+rect[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"],
+[data-cdl-theme="handdrawn"] rect[data-cdl-role="node-body"] {
   fill: #fdf7d9 !important;
   stroke: #2c2820 !important;
   stroke-width: 1.6 !important;
   filter: url(#dragon-hd-wobble) !important;
 }
+/*
+ * generic.tsx の `<g data-cdl-role="node-body">` 自身は filter を持たない。
+ * label / icon まで歪むのを避けるため、 g タグには fill / stroke のみ適用。
+ */
+[data-cdl-theme="handdrawn"] g[data-cdl-role="node-body"] {
+  fill: #fdf7d9 !important;
+  stroke: #2c2820 !important;
+  stroke-width: 1.6 !important;
+}
+
+/*
+ * 子孫 selector 経路 (2b)
+ * generic.tsx の `<g data-cdl-role="node-body">` 直下 rect/path/ellipse/circle に届く。
+ * 各 shape 個別に filter を適用することで label / icon への波及を防ぐ。
+ */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] rect,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > circle {
+  fill: #fdf7d9 !important;
+  stroke: #2c2820 !important;
+  stroke-width: 1.6 !important;
+  filter: url(#dragon-hd-wobble) !important;
+}
+/* cylinder top ellipse / cloud pass2 stroke 対応 */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] ellipse {
+  fill: #fdf7d9 !important;
+  stroke: #2c2820 !important;
+  filter: url(#dragon-hd-wobble) !important;
+}
+
 [data-cdl-theme="handdrawn"] [data-cdl-role="edge-label-bg"] {
   fill: #fffef5 !important;
   stroke: #2c2820 !important;
@@ -629,7 +702,7 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   filter: url(#dragon-hd-wobble) !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="lane-container"] {
-  fill: #f0e6c8 !important;
+  fill: #f7f0dc !important;
   stroke: #2c2820 !important;
   stroke-width: 1.2 !important;
   stroke-dasharray: 5 3 !important;
@@ -641,29 +714,49 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="node-label"] {
   fill: #2c2820 !important;
+  stroke: none !important;
   font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="edge-label"] {
-  fill: #2c2820 !important;
+  fill: #a94a3a !important;
+  stroke: none !important;
   font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+  font-weight: 700 !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="edge-line"] {
   stroke: #2c2820 !important;
   stroke-width: 2.4 !important;
   stroke-linecap: round !important;
+  fill: none !important;
   filter: url(#dragon-hd-wobble) !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="edge-arrowhead"] {
   fill: #2c2820 !important;
 }
+/*
+ * icon path specificity 勝ち経路 (3)
+ * 親 [node-body] > g > path (0-2-2) より高い specificity (0-3-1) を持つ 2 selector で
+ * icon path の fill を marker red (#a94a3a) に確実に染める。
+ * icon container (g) 自体には filter を掛けず、 icon path の filter も明示 none で
+ * 親 shape の wobble filter が inherit しないよう阻止 (Codex review MAJOR fix)。
+ */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-kind-icon"],
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] {
+  filter: none !important;
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="handdrawn"] [data-cdl-role="node-kind-icon"] path {
-  fill: #2c2820 !important;
-  opacity: 0.85 !important;
+  fill: #a94a3a !important;
+  opacity: 0.95 !important;
+  stroke: none !important;
+  filter: none !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="lane-label"] {
   fill: #2c2820 !important;
+  stroke: none !important;
   font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+  font-weight: 700 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
