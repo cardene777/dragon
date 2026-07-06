@@ -426,187 +426,73 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
- * Pinboard (CAR-Pinboard = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
- * 意図 = kraft board (#e8dcc4) + sticky notes 3 種 (main #fdf7d9 / tan #f0d5aa / peach #f2c4a4)
- *        + tape strip on top (#eab89c 幅 20 高さ 8 の rect) + Söhne Breit heading + Caveat annotation
- *        + marker red accent (#a94a3a) + kraft mute (#7a6a4a) + subtle sticky shadow (blur 1.4 offset 1/2)
- *
- * CAR-741 Circuit theme と同じ 3 経路を採用:
- *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
- *       fallback を効かせる (最も clean な経路)
- *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
- *       rect/path/ellipse/circle を !important + 具体 selector で override
- *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
- *       node-kind-icon / lane-* / node-tape まで網羅
- *
- * 微回転 = pseudo-random で :nth-of-type(3n / 3n+1 / 3n+2) で -1.5deg / +1deg / -0.5deg。
- * layout displacement 0 に保つため rect[data-cdl-role="node-body"] のみに transform 適用
- * (CAR-735 の GenericNode 破綻回避経路と同型)。 g 経路は wrapper が既に translate 済で
- * 内部 rect も同 g 内にあるため、 g > rect には効くが icon / label の座標には触らない。
- *
- * tape strip = presets.astro の decorateTapeStrips() で `<rect data-cdl-role="node-tape">` を
- *              各 rect[data-cdl-role="node-body"] の中央上に inject 済。 CSS で fill / visibility
- *              強制。 他 theme では visibility hidden で描画されない。
+ * Pinboard (掲示板 metaphor、 sticky note + kraft board + slight rotation)
+ * 意図 = sticky notes rotated + kraft handwriting-ish tone
+ * 注 = rotate は CSS transform で個別 node body に適用 (奇数番 -1deg / 偶数番 +1deg で
+ *      lively 感を出す)。 SVG transform-origin は :nth-of-type + center 指定。
  * ═════════════════════════════════════════════════════════════════════════════ */
-
-/*
- * CSS var 上書き経路 (a)
- * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
- * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
- */
-[data-cdl-theme="pinboard"] {
-  --cdl-node-fill: #fdf7d9;
-  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
-  --cdl-tone-info: rgba(92, 74, 52, 0.3);
-  --cdl-tone-accent: #a94a3a;
-  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる */
-  --cdl-divider: #c8b48c;
-  --cdl-text: #3a2818;
-  --cdl-text-dim: #7a6a4a;
-  --cdl-text-secondary: #7a6a4a;
-  --cdl-label-bg: #f0d5aa;
-  --cdl-label-text: #3a2818;
-  --cdl-edge-stroke: #5c4a34;
-}
-
-/*
- * 直接 role selector 経路 (b1)
- * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
- */
 [data-cdl-theme="pinboard"] [data-cdl-role="node-body"] {
   fill: #fdf7d9 !important;
-  stroke: rgba(92, 74, 52, 0.3) !important;
-  stroke-width: 0.8 !important;
-  filter: url(#dragon-pin-shadow) !important;
+  stroke: rgba(90, 60, 30, 0.25) !important;
+  stroke-width: 1 !important;
+  filter: url(#dragon-pin-sticky-shadow) !important;
 }
-
 /*
- * 子孫 selector 経路 (b2)
- * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
- * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
- * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
+ * CAR-735 = rotate は `rect[data-cdl-role="node-body"]` のみに絞る (actor / card / event /
+ * function / storage / cylinder の default rect shape に効く)。 GenericNode 由来の
+ * `<g data-cdl-role="node-body">` 経路は outer group が既に translate 済で、 g に rotate を
+ * 掛けると transform-box=fill-box + child text 座標が破綻し、 node 群が canvas 外に飛ぶ。
+ * rect 単独 rotate は shape 本体のみ回すため、 icon / label と若干ズレるが sticky note の
+ * 「シート紙が斜めに貼られた」 印象は保たれる。 layout displacement は 0。
  */
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] rect,
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] > path,
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] > g > path,
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] > g > circle {
-  fill: #fdf7d9 !important;
-  stroke: rgba(92, 74, 52, 0.3) !important;
-  stroke-width: 0.8 !important;
-  filter: url(#dragon-pin-shadow) !important;
-}
-/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] ellipse {
-  fill: #fdf7d9 !important;
-  stroke: rgba(92, 74, 52, 0.3) !important;
-  stroke-width: 0.8 !important;
-}
-
-/*
- * 微回転 pseudo-random (Round 11 意図 = lively pin 感)。
- * rect[data-cdl-role="node-body"] のみに絞る (GenericNode 破綻回避、 CAR-735 経路と同型)。
- * transform-box: fill-box で rect 自身の center が回転軸になる。
- */
-[data-cdl-theme="pinboard"] rect[data-cdl-role="node-body"]:nth-of-type(3n) {
+[data-cdl-theme="pinboard"] g:nth-of-type(odd) > rect[data-cdl-role="node-body"] {
   transform: rotate(-1.5deg);
   transform-origin: center;
   transform-box: fill-box;
 }
-[data-cdl-theme="pinboard"] rect[data-cdl-role="node-body"]:nth-of-type(3n+1) {
+[data-cdl-theme="pinboard"] g:nth-of-type(even) > rect[data-cdl-role="node-body"] {
   transform: rotate(1deg);
   transform-origin: center;
   transform-box: fill-box;
 }
-[data-cdl-theme="pinboard"] rect[data-cdl-role="node-body"]:nth-of-type(3n+2) {
-  transform: rotate(-0.5deg);
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-/*
- * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
- * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
- * で specificity を勝たせる (0-3-1 > 0-2-2)。
- */
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-[data-cdl-theme="pinboard"] [data-cdl-role="node-kind-icon"] path {
-  fill: #5c4a34 !important;
-  stroke: none !important;
-  opacity: 1 !important;
-}
-
-[data-cdl-theme="pinboard"] [data-cdl-role="node-label"] {
-  fill: #3a2818 !important;
-  stroke: none !important;
-  font-family: "Söhne Breit", "Söhne", "Inter", sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 16px !important;
-  letter-spacing: 0.05em !important;
-}
-
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-line"],
-[data-cdl-theme="pinboard"] path[data-cdl-role="edge-line"],
-[data-cdl-theme="pinboard"] line[data-cdl-role="edge-line"] {
-  stroke: #5c4a34 !important;
-  stroke-width: 1.4 !important;
-  stroke-linecap: round !important;
-  stroke-dasharray: 1 2 !important;
-  opacity: 0.7 !important;
-  fill: none !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-arrowhead"],
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #5c4a34 !important;
-  stroke: none !important;
-}
-
 [data-cdl-theme="pinboard"] [data-cdl-role="edge-label-bg"] {
-  fill: #f0d5aa !important;
-  stroke: rgba(92, 74, 52, 0.3) !important;
+  fill: #fffef5 !important;
+  stroke: rgba(90, 60, 30, 0.28) !important;
   stroke-width: 1 !important;
-  filter: url(#dragon-pin-shadow) !important;
+  filter: url(#dragon-pin-sticky-shadow) !important;
 }
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-label"] {
-  fill: #a94a3a !important;
-  stroke: none !important;
-  font-family: "Caveat", "Bradley Hand", cursive !important;
-  font-weight: 700 !important;
-  font-size: 16px !important;
-}
-
 [data-cdl-theme="pinboard"] [data-cdl-role="lane-container"] {
-  fill: rgba(232, 220, 196, 0.7) !important;
-  stroke: rgba(92, 74, 52, 0.4) !important;
-  stroke-width: 1 !important;
-  stroke-dasharray: 3 3 !important;
+  fill: url(#dragon-pin-board-pattern) !important;
+  stroke: rgba(60, 40, 20, 0.45) !important;
+  stroke-dasharray: 4 3 !important;
 }
 [data-cdl-theme="pinboard"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(92, 74, 52, 0.5) !important;
+  stroke: rgba(90, 60, 30, 0.5) !important;
 }
-[data-cdl-theme="pinboard"] [data-cdl-role="lane-label"] {
-  fill: #5c4a34 !important;
-  stroke: none !important;
-  font-family: "Söhne Breit", "Söhne", "Inter", sans-serif !important;
+[data-cdl-theme="pinboard"] [data-cdl-role="node-label"] {
+  fill: #3a2a10 !important;
+  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
   font-weight: 700 !important;
-  font-size: 14px !important;
-  letter-spacing: 0.08em !important;
 }
-
-/*
- * tape strip visibility 制御。
- * Pinboard theme = visible + peach fill、 他 theme = hidden で描画抑制。
- * decorateTapeStrips() で SVG に <rect data-cdl-role="node-tape"> を inject 済。
- */
-[data-cdl-theme="pinboard"] rect[data-cdl-role="node-tape"] {
-  fill: #eab89c !important;
-  stroke: none !important;
-  visibility: visible !important;
+[data-cdl-theme="pinboard"] [data-cdl-role="edge-label"] {
+  fill: #3a2a10 !important;
+  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="edge-line"] {
+  stroke: #6a4020 !important;
+  stroke-width: 2.4 !important;
+  stroke-linecap: round !important;
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="edge-arrowhead"] {
+  fill: #6a4020 !important;
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="node-kind-icon"] path {
+  fill: #6a4020 !important;
   opacity: 0.85 !important;
 }
-[data-cdl-theme]:not([data-cdl-theme="pinboard"]) rect[data-cdl-role="node-tape"] {
-  visibility: hidden !important;
-  opacity: 0 !important;
+[data-cdl-theme="pinboard"] [data-cdl-role="lane-label"] {
+  fill: #4a2810 !important;
+  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -824,7 +710,7 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
  * pinboard の rotate は装飾なので prefers-reduced-motion で reset。
  * ═════════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  [data-cdl-theme="pinboard"] rect[data-cdl-role="node-body"] {
+  [data-cdl-theme="pinboard"] g > [data-cdl-role="node-body"] {
     transform: none !important;
   }
 }

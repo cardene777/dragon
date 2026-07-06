@@ -14,9 +14,7 @@
  *                  `dragon-nm-raised-soft` / `dragon-nm-inset-soft` (+ *-dark) — legacy filter (backward compat)
  *   - Isometric:   `dragon-iso-cast-shadow` filter + `dragon-iso-top-gradient` / `dragon-iso-right-shadow-gradient` / `dragon-iso-left-shadow-gradient` linearGradient
  *   - Circuit:     `dragon-cir-trace-glow` filter + `dragon-cir-board-pattern` pattern (PCB green + solder pad gold)
- *   - Pinboard:    `dragon-pin-shadow` filter (Round 11 意図 subtle sticky shadow、 blur 1.4 offset 1/2 opacity 0.32) +
- *                  `dragon-pin-sticky-shadow` filter (legacy、 backward compat) +
- *                  `dragon-pin-board-pattern` pattern (kraft board)
+ *   - Pinboard:    `dragon-pin-sticky-shadow` filter + `dragon-pin-board-pattern` pattern (kraft board)
  *   - Blueprint:   `dragon-bp-graticule` pattern (fine grid) + `dragon-bp-arrow-ortho` marker
  *   - Handdrawn:   `dragon-hd-wobble` turbulence displacement filter
  *
@@ -213,20 +211,6 @@
       <feGaussianBlur stdDeviation="2.5" />
       <feOffset dx="3" dy="5" result="offset" />
       <feFlood flood-color="rgba(60, 40, 20, 0.4)" />
-      <feComposite in2="offset" operator="in" />
-      <feComposite in="SourceGraphic" />
-    </filter>
-
-    {/*
-      CAR-Pinboard = Round 11 意図の subtle sticky shadow。
-      blur=1.4 / offset=1,2 / opacity=0.32 で「シート紙が板に軽く貼られた」 印象を再現。
-      dragon-pin-sticky-shadow (legacy blur 2.5 offset 3/5 opacity 0.4) は他 spec の
-      backward compat のため残す。 Pinboard 新 CSS は本 filter を参照する。
-    */}
-    <filter id="dragon-pin-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.4" />
-      <feOffset dx="1" dy="2" result="offset" />
-      <feFlood flood-color="rgba(60, 40, 20, 0.32)" />
       <feComposite in2="offset" operator="in" />
       <feComposite in="SourceGraphic" />
     </filter>

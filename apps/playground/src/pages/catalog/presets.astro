@@ -259,47 +259,11 @@ const items = [
         });
       }
 
-      // Pinboard theme = 各 rect[data-cdl-role="node-body"] の中央上に tape strip (peach
-      // #eab89c 幅 20 高さ 8 の rect) を inject する。 他 theme 時も残置 (CSS visibility で
-      // 制御)、 冪等操作 (重複 inject しない)。 実装方式は decoratePads() と同型で、
-      // MO 起因の infinite loop 対策として「必要な tape 数 = rect 数」 で早 return。
-      // Round 11 意図 = sticky note が masking tape で board に貼り留められた印象。
-      const TAPE_W = 20;
-      const TAPE_H = 8;
-      const TAPE_OFFSET_Y = 4; // rect top から Y 方向にはみ出す距離 (= tape が rect の上に乗る印象)
-      function decorateTapeStrips() {
-        const svgs = document.querySelectorAll("svg[data-cdl-theme]");
-        svgs.forEach((svg) => {
-          const rects = svg.querySelectorAll('rect[data-cdl-role="node-body"]');
-          const existingTapes = svg.querySelectorAll('[data-cdl-role="node-tape"]');
-          const targetCount = rects.length;
-          // 既に必要数一致 = idempotent skip
-          if (existingTapes.length === targetCount) return;
-          existingTapes.forEach((n) => n.remove());
-          rects.forEach((rect) => {
-            const parent = rect.parentNode;
-            if (!parent) return;
-            const x = parseFloat(rect.getAttribute("x") ?? "0");
-            const y = parseFloat(rect.getAttribute("y") ?? "0");
-            const w = parseFloat(rect.getAttribute("width") ?? "0");
-            if (!isFinite(w) || w <= 0) return;
-            const tape = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            tape.setAttribute("data-cdl-role", "node-tape");
-            tape.setAttribute("x", String(x + w / 2 - TAPE_W / 2));
-            tape.setAttribute("y", String(y - TAPE_OFFSET_Y));
-            tape.setAttribute("width", String(TAPE_W));
-            tape.setAttribute("height", String(TAPE_H));
-            parent.insertBefore(tape, rect.nextSibling);
-          });
-        });
-      }
-
       function apply(theme) {
         if (!VALID.includes(theme)) theme = "blueprint";
         const roots = document.querySelectorAll("[data-cdl-theme]");
         roots.forEach((el) => el.setAttribute("data-cdl-theme", theme));
         decoratePads(theme);
-        decorateTapeStrips();
         if (select.value !== theme) select.value = theme;
       }
 
