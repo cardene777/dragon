@@ -130,6 +130,45 @@
   stroke: none !important;
   opacity: 1 !important;
 }
+/*
+ * Neumorphism kind icon badge = Round 11 意図の raised circular badge (24 → 40 world)。
+ *
+ * icon `<g>` は `translate(iconX iconY)` で node 右上に配置される local origin を持つ。
+ * その local 座標系で 24x24 の transparent rect を x=-8 / y=-8 / w=40 / h=40 の
+ * 円形 badge (rx=ry=20) に置換、 `dragon-nm-raised-sm` filter で soft dual shadow を
+ * 適用する。 icon path (0-24 viewBox) は center (12, 12) を基準に 1.67x scale して
+ * 40x40 badge を占めるサイズに拡大、 accent blue (#4a7fc8) fill で可読性を上げる。
+ *
+ * specificity: 4 attribute selector (theme + node-body + node-kind-icon + tag) で
+ * 既存 `[node-body] rect` (3 attr) を上書き。 `> rect` 直接子指定で GenericNode 以外の
+ * shape rect (actor/card/event/function 等の node-body 本体 rect) を巻き込まない。
+ */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: #e6ebf0 !important;
+  stroke: none !important;
+  rx: 20px !important;
+  ry: 20px !important;
+  width: 40px !important;
+  height: 40px !important;
+  x: -8px !important;
+  y: -8px !important;
+  filter: url(#dragon-nm-raised-sm) !important;
+}
+/*
+ * icon glyph 拡大 (24x24 native → 40x40 badge に scale 1.67)。
+ *
+ * SVG transform 順は right-to-left の合成、 `translate(-8 -8) scale(1.67)` は
+ * (1) 各点を scale 1.67x (2) その結果を (-8, -8) に translate。
+ * viewBox center (12, 12) は 1.67*12 - 8 = 12.04 に写像され、
+ * 24x24 → 40x40 に等方拡大しつつ badge 中心と一致する。
+ * transform-box は SVG path で不安定なため、 明示 translate + scale で確実に center 固定する。
+ */
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
+  transform: translate(-8px, -8px) scale(1.67) !important;
+  fill: #4a7fc8 !important;
+}
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] path[data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] line[data-cdl-role="edge-line"] {
@@ -205,6 +244,16 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
+  fill: #6a9fe0 !important;
+}
+/* dark mode kind icon badge (Round 11 意図 raised badge dark variant) */
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: #2c3448 !important;
+  filter: url(#dragon-nm-raised-sm-dark) !important;
+}
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
   fill: #6a9fe0 !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
