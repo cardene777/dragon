@@ -96,11 +96,9 @@ test.describe("CAR-708 cdl 6 theme switch regression", () => {
     expect(stroke).toMatch(/rgb\(200,\s*160,\s*56\)/);
   });
 
-  test("軸 2 theme=pinboard の node-body に filter url(#dragon-pin-shadow) (CAR-Pinboard Round 11 意図)", async ({
+  test("軸 2 theme=pinboard の node-body に filter url(#dragon-pin-sticky-shadow)", async ({
     page,
   }) => {
-    // CAR-Pinboard = Round 11 意図で subtle sticky shadow (blur 1.4 offset 1/2 opacity 0.32)
-    // に切替、 legacy dragon-pin-sticky-shadow は backward compat のため残置。
     await page.goto(`${CATALOG_URL}?theme=pinboard`, { waitUntil: "networkidle" });
     await waitStable(page);
     const filter = await page.evaluate(() => {
@@ -108,7 +106,7 @@ test.describe("CAR-708 cdl 6 theme switch regression", () => {
       if (!el) return null;
       return window.getComputedStyle(el).filter;
     });
-    expect(filter).toMatch(/url\(["']?#dragon-pin-shadow["']?\)/);
+    expect(filter).toMatch(/url\(["']?#dragon-pin-sticky-shadow["']?\)/);
   });
 
   test("軸 2 theme=handdrawn の node-body に filter url(#dragon-hd-wobble)", async ({
@@ -235,11 +233,9 @@ test.describe("CAR-708 cdl 6 theme switch regression", () => {
     expect(fontFamily).toMatch(/Caveat|Bradley Hand|Comic Sans/i);
   });
 
-  test("CAR-Pinboard 軸 A Pinboard node-label に heading font (Söhne Breit / Inter sans-serif 意図)", async ({
+  test("CAR-730 軸 A Pinboard node-label に cursive 系 font (掲示板 font 意図)", async ({
     page,
   }) => {
-    // CAR-Pinboard = Round 11 意図で node-label を Söhne Breit heading (edge-label のみ Caveat annotation)
-    // に切替。 sticky note の title 部分は heading font、 annotation edge-label は cursive で分離。
     await page.goto(`${CATALOG_URL}?theme=pinboard`, { waitUntil: "networkidle" });
     await waitStable(page);
     const fontFamily = await page.evaluate(() => {
@@ -247,16 +243,12 @@ test.describe("CAR-708 cdl 6 theme switch regression", () => {
       if (!el) return null;
       return window.getComputedStyle(el).fontFamily;
     });
-    expect(fontFamily).toMatch(/Söhne|Inter|sans-serif/i);
+    expect(fontFamily).toMatch(/Kalam|Caveat|Comic Sans/i);
   });
 
-  test("CAR-781 軸 A Isometric edge-line に stroke-width 1.6px (Round 11 意図 = pipe 太さ抑制、 3D 感は drop shadow で表現)", async ({
+  test("CAR-730 軸 A Isometric edge-line に stroke-width 3px (立体感の厚み 意図)", async ({
     page,
   }) => {
-    // CAR-781 = Round 11 意図で「edge = 3D pipe (2D line で妥協可、 gradient stroke)」 の
-    // 妥協案として stroke-width を 1.6 に抑え、 drop shadow filter で立体感を演出する経路。
-    // CAR-730 での 3px 想定 (太い立体感の厚み) から Round 11 意図 (Söhne Breit + rust accent +
-    // ink stroke + subtle 立体感) の全体トーンに揃える書き直し。
     await page.goto(`${CATALOG_URL}?theme=isometric`, { waitUntil: "networkidle" });
     await waitStable(page);
     const strokeWidth = await page.evaluate(() => {
@@ -264,8 +256,8 @@ test.describe("CAR-708 cdl 6 theme switch regression", () => {
       if (!el) return null;
       return window.getComputedStyle(el).strokeWidth;
     });
-    // "1.6" or "1.6px" どちらも許容
-    expect(strokeWidth).toMatch(/^1\.6(px)?$/);
+    // "3" or "3px" どちらも許容
+    expect(strokeWidth).toMatch(/^3(px)?$/);
   });
 
   test("CAR-730 軸 A Blueprint edge-arrowhead に fill rgb(30, 66, 108) (SSOT #1e426c)", async ({

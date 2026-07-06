@@ -31,34 +31,27 @@ async function waitStable(page: Page): Promise<void> {
 }
 
 test.describe("CAR-735 6 theme visual quality regression", () => {
-  test("軸 1 Caveat webfont link が BaseLayout に埋め込まれている (Handdrawn / Pinboard の handwriting 描画配線)", async ({
+  test("軸 1 Caveat webfont が document.fonts に load されている (Handdrawn / Pinboard の handwriting 描画)", async ({
     page,
   }) => {
-    // document.fonts.check は preview / dev 環境で外部 Google Fonts がまだ resolve していない
-    // タイミングで false を返す flaky があるため、 link href を直接検証する経路に置換。
-    // Round 11 意図の handwriting 描画は Caveat / Kalam の link 埋込で成立する。
     await page.goto(`${CATALOG_URL}?theme=handdrawn`, { waitUntil: "networkidle" });
     await waitStable(page);
-    const hasLink = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
-      return links.some((l) => l.href.includes("family=") && l.href.includes("Caveat"));
+    const loaded = await page.evaluate(() => {
+      // Caveat 400 (regular) が document.fonts に登録され load 済みか
+      return document.fonts.check('16px "Caveat"');
     });
-    expect(hasLink).toBe(true);
+    expect(loaded).toBe(true);
   });
 
-  test("軸 1 Pinboard 用 webfont link が BaseLayout に埋め込まれている (Caveat annotation 配線)", async ({
+  test("軸 1 Kalam webfont が document.fonts に load されている (Pinboard sticky note handwriting)", async ({
     page,
   }) => {
-    // CAR-Pinboard = Round 11 意図で Söhne Breit heading + Caveat annotation に切替。
-    // Söhne 系は商用フォントで Google Fonts 経由 load できないため配線対象外、
-    // Caveat (annotation edge-label) の link 埋込を pin する (Handdrawn と shared)。
     await page.goto(`${CATALOG_URL}?theme=pinboard`, { waitUntil: "networkidle" });
     await waitStable(page);
-    const hasLink = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
-      return links.some((l) => l.href.includes("family=") && l.href.includes("Caveat"));
+    const loaded = await page.evaluate(() => {
+      return document.fonts.check('16px "Kalam"');
     });
-    expect(hasLink).toBe(true);
+    expect(loaded).toBe(true);
   });
 
   test("軸 2 Pinboard rotate は rect[data-cdl-role='node-body'] のみに適用、 g wrapper には未適用 (layout displacement 回避)", async ({
@@ -145,19 +138,15 @@ test.describe("CAR-735 6 theme visual quality regression", () => {
     expect(result.matched).toBe(result.total);
   });
 
-  test("軸 3 Pinboard sticky filter (dragon-pin-shadow) が全 node-body に computed filter として適用 (CAR-Pinboard Round 11 意図)", async ({
+  test("軸 3 Pinboard sticky filter (dragon-pin-sticky-shadow) が全 node-body に computed filter として適用", async ({
     page,
   }) => {
-    // CAR-Pinboard = Round 11 意図で dragon-pin-sticky-shadow (legacy blur 2.5 offset 3/5) から
-    // dragon-pin-shadow (subtle blur 1.4 offset 1/2 opacity 0.32) に切替、
-    // legacy filter は他 spec の backward compat のため残置。
     await page.goto(`${CATALOG_URL}?theme=pinboard`, { waitUntil: "networkidle" });
     await waitStable(page);
     const result = await page.evaluate(() => {
       const bodies = Array.from(document.querySelectorAll('[data-cdl-role="node-body"]'));
       const filters = bodies.map((el) => getComputedStyle(el).filter);
-      // dragon-pin-shadow (base) だけ match、 dragon-pin-sticky-shadow (legacy) は除外
-      const matched = filters.filter((f) => /url\(["']?#dragon-pin-shadow["']?\)/.test(f));
+      const matched = filters.filter((f) => /url\(["']?#dragon-pin-sticky-shadow["']?\)/.test(f));
       return { total: bodies.length, matched: matched.length };
     });
     expect(result.total).toBeGreaterThan(0);

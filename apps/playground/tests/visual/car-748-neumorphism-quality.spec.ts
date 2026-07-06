@@ -231,7 +231,7 @@ test.describe("CAR-748 Neumorphism theme quality regression (Round 11 意図 pin
     }
   });
 
-  test("軸 H: default (blueprint) 見た目維持 = blueprint node-body fill = #ffffff", async ({
+  test("軸 H: default (blueprint) 見た目維持 = blueprint node-body fill = #f6faff", async ({
     page,
   }) => {
     // Neumorphism CSS 変更が blueprint (default) を巻き込んでいない regression pin
@@ -241,7 +241,7 @@ test.describe("CAR-748 Neumorphism theme quality regression (Round 11 意図 pin
       .locator('rect[data-cdl-role="node-body"]')
       .first()
       .evaluate((el) => getComputedStyle(el).fill);
-    // blueprint は #ffffff = rgb(255, 255, 255) (CAR-769 = Round 11 意図)
-    expect(fill).toBe("rgb(255, 255, 255)");
+    // blueprint は #f6faff = rgb(246, 250, 255)
+    expect(fill).toBe("rgb(246, 250, 255)");
   });
 });
