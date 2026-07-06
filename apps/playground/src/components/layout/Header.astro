@@ -206,6 +206,13 @@ const repoUrl = "https://github.com/cardene777/dragon";
     margin-right: auto;
     color: var(--v4-ink);
     text-decoration: none;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .v4-nav-brand:hover {
+    transform: translateY(-1px);
+  }
+  .v4-nav-brand:hover .v4-nav-mark svg {
+    transform: rotate(-6deg) scale(1.05);
   }
   .v4-nav-mark {
     width: 30px;
@@ -217,6 +224,7 @@ const repoUrl = "https://github.com/cardene777/dragon";
     width: 28px;
     height: 28px;
     display: block;
+    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .v4-nav-name {
     font-family: var(--v4-serif);

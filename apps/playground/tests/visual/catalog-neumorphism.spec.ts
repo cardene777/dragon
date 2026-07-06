@@ -57,11 +57,11 @@ test.describe("CAR-N-6 Neumorphism ブラッシュアップ regression", () => {
     expect(bodyStyle.rootHeaderBg.length).toBeGreaterThan(0);
   });
 
-  test("catalog page ... v4-cat-card が Neumorphism raised shadow を持つ", async ({ page }) => {
+  test("catalog page ... nm-cat-card が Neumorphism raised shadow を持つ (CAR-N-8 で .v4-cat-card から rename)", async ({ page }) => {
     await page.goto("/catalog", { waitUntil: "networkidle" });
     await waitStable(page);
     const cardStyle = await page.evaluate(() => {
-      const card = document.querySelector<HTMLElement>(".v4-cat-card");
+      const card = document.querySelector<HTMLElement>(".nm-cat-card");
       if (!card) return null;
       const c = window.getComputedStyle(card);
       return {
@@ -72,23 +72,23 @@ test.describe("CAR-N-6 Neumorphism ブラッシュアップ regression", () => {
       };
     });
     expect(cardStyle).not.toBeNull();
-    // Neumorphism raised = 3 layer 以上 shadow (offset shadow + soft shadow + inset highlight)
+    // Neumorphism raised = 2 layer 以上 shadow (Dribbble Neumorphism dual shadow)
     expect(cardStyle!.shadowLayers).toBeGreaterThanOrEqual(2);
-    // border-radius が 16px 以上 (neumorphism scale)
+    // border-radius が 16px 以上 (CAR-N-8 では 20px に強化)
     const radius = parseFloat(cardStyle!.borderRadius);
     expect(radius).toBeGreaterThanOrEqual(14);
   });
 
-  test("catalog page ... v4-cat-card hover で shadow が deepen する", async ({ page }) => {
+  test("catalog page ... nm-cat-card hover で shadow が deepen する (CAR-N-8 rename 後)", async ({ page }) => {
     await page.goto("/catalog", { waitUntil: "networkidle" });
     await waitStable(page);
-    const card = page.locator(".v4-cat-card").first();
+    const card = page.locator(".nm-cat-card").first();
     const before = await card.evaluate((el) => window.getComputedStyle(el).boxShadow);
     await card.hover({ force: true });
-    // hover transition 0.24s + settle
-    await page.waitForTimeout(400);
+    // hover transition 0.28s + settle
+    await page.waitForTimeout(500);
     const after = await card.evaluate((el) => window.getComputedStyle(el).boxShadow);
-    // hover 後 shadow が同一ではない = 変化があった、 少なくとも 1 char 以上差分
+    // hover 後 shadow が同一ではない = 変化があった
     expect(after).not.toBe(before);
   });
 
@@ -107,7 +107,7 @@ test.describe("CAR-N-6 Neumorphism ブラッシュアップ regression", () => {
     });
   });
 
-  test("catalog page ... dark mode で raised shadow が反転して機能する", async ({ page }) => {
+  test("catalog page ... dark mode で raised shadow が反転して機能する (CAR-N-8 rename 後)", async ({ page }) => {
     await page.goto("/catalog", { waitUntil: "networkidle" });
     // html.dark を localStorage 経由で強制 (Header の theme toggle 経路と同 SSOT)
     await page.evaluate(() => {
@@ -117,12 +117,12 @@ test.describe("CAR-N-6 Neumorphism ブラッシュアップ regression", () => {
     await page.reload({ waitUntil: "networkidle" });
     await waitStable(page);
     const darkCardShadow = await page.evaluate(() => {
-      const card = document.querySelector<HTMLElement>(".v4-cat-card");
+      const card = document.querySelector<HTMLElement>(".nm-cat-card");
       return card ? window.getComputedStyle(card).boxShadow : "";
     });
     // dark mode でも shadow が空ではない (light と別 SSOT で cascade)
     expect(darkCardShadow.length).toBeGreaterThan(20);
-    // dark shadow は rgba(0, 0, 0, ...) 系を含む (light は rgba(30, 41, 59, ...))
+    // dark shadow は rgba(0, 0, 0, ...) 系を含む (light は rgba(163, 177, 198, ...))
     // shadow 内 "rgba(0" が含まれれば dark 用 shadow が cascade された証拠
     expect(darkCardShadow).toMatch(/rgba\(0,\s*0,\s*0/);
   });
@@ -211,18 +211,18 @@ test.describe("CAR-N-6 Neumorphism ブラッシュアップ regression", () => {
     expect(w).toBeGreaterThanOrEqual(1);
   });
 
-  test("a11y ... prefers-reduced-motion 時に hover translateY が無効化される", async ({ page }) => {
+  test("a11y ... prefers-reduced-motion 時に hover translateY が無効化される (CAR-N-8 rename 後)", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/catalog", { waitUntil: "networkidle" });
     await waitStable(page);
-    const card = page.locator(".v4-cat-card").first();
+    const card = page.locator(".nm-cat-card").first();
     await card.hover({ force: true });
     await page.waitForTimeout(200);
     const transform = await card.evaluate((el) => window.getComputedStyle(el).transform);
-    // reduced motion 時は translateY(-4px) が none (matrix identity or none)
+    // reduced motion 時は translateY(-6px) が none (matrix identity or none)
     // matrix(1, 0, 0, 1, 0, 0) or none = translateY 効かない
     expect(
-      transform === "none" || transform === "matrix(1, 0, 0, 1, 0, 0)" || !transform.includes("-4"),
+      transform === "none" || transform === "matrix(1, 0, 0, 1, 0, 0)" || !transform.includes("-6"),
     ).toBe(true);
   });
 });
