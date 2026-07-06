@@ -67,7 +67,27 @@ function routeOrthogonal(from: PresetNode, to: PresetNode): {
     labelX = (mx + end.x) / 2;
     labelY = end.y - 6;
   }
-  const d = `M ${start.x} ${start.y} L ${mx} ${start.y} L ${mx} ${end.y} L ${end.x} ${end.y}`;
+
+  // rounded corner routing = arc の代わりに quadratic curve で smooth な曲がり角
+  // segment 長 > 20 のときのみ radius=10 を適用、 短い edge は直角維持
+  const r = 10;
+  const canBendStart = segH1 > r * 2 && segV > r * 2;
+  const canBendEnd = segH2 > r * 2 && segV > r * 2;
+  const dyDir = end.y > start.y ? 1 : -1;
+  const dxDir1 = mx > start.x ? 1 : -1;
+  const dxDir2 = end.x > mx ? 1 : -1;
+  let d: string;
+  if (canBendStart && canBendEnd) {
+    d =
+      `M ${start.x} ${start.y}` +
+      ` L ${mx - r * dxDir1} ${start.y}` +
+      ` Q ${mx} ${start.y} ${mx} ${start.y + r * dyDir}` +
+      ` L ${mx} ${end.y - r * dyDir}` +
+      ` Q ${mx} ${end.y} ${mx + r * dxDir2} ${end.y}` +
+      ` L ${end.x} ${end.y}`;
+  } else {
+    d = `M ${start.x} ${start.y} L ${mx} ${start.y} L ${mx} ${end.y} L ${end.x} ${end.y}`;
+  }
   return { d, labelX, labelY, segments: 3, totalLength };
 }
 

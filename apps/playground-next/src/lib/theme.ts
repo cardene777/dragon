@@ -59,7 +59,7 @@ export const THEME_CONFIGS: Record<ThemeName, ThemeConfig> = {
     label: "Neumorphism",
     description: "立体感 soft UI、 raised bumps + dual shadow",
     shapeAdapter: "straight",
-    strokeWidth: { normal: 0, active: 2.0, edge: 2.4 },
+    strokeWidth: { normal: 1.2, active: 2.0, edge: 2.4 },
     fontFamily: {
       sans: '"Söhne", "Inter", -apple-system, sans-serif',
       mono: '"JetBrains Mono", monospace',

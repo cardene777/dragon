@@ -91,6 +91,24 @@ export function SvgDefs(): React.ReactElement {
           <rect width="40" height="40" fill="#0a1a12" />
           <circle cx="20" cy="20" r="1.5" fill="rgba(200, 160, 56, 0.15)" />
         </pattern>
+
+        {/* Isometric top light gradient (top edge) */}
+        <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="rgba(255, 255, 255, 0.35)" />
+          <stop offset="1" stopColor="rgba(255, 255, 255, 0)" />
+        </linearGradient>
+
+        {/* Isometric right shadow gradient (right edge) */}
+        <linearGradient id="dragon-iso-right-shadow" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0" stopColor="rgba(60, 40, 20, 0.28)" />
+          <stop offset="1" stopColor="rgba(60, 40, 20, 0)" />
+        </linearGradient>
+
+        {/* Blueprint sub-tick pattern (24px minor grid、 20% opacity blue tick) */}
+        <pattern id="dragon-bp-tick" width="24" height="24" patternUnits="userSpaceOnUse">
+          <rect width="24" height="24" fill="none" />
+          <circle cx="12" cy="12" r="0.6" fill="rgba(80, 130, 180, 0.35)" />
+        </pattern>
       </defs>
     </svg>
   );

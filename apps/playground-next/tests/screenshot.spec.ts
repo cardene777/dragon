@@ -104,3 +104,23 @@ test("next: dark mode circuit", async ({ page }) => {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: "test-results/next-dark-circuit.png", fullPage: true });
 });
+
+test("next: topology zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  const topology = page.locator('article').filter({ hasText: 'topology' }).first();
+  await topology.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  await topology.screenshot({ path: "test-results/next-topology-zoom.png" });
+});
+
+test("next: flowchart zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=blueprint", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  const flowchart = page.locator('article').filter({ hasText: 'flowchart' }).first();
+  await flowchart.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  await flowchart.screenshot({ path: "test-results/next-flowchart-zoom.png" });
+});

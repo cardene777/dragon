@@ -48,9 +48,23 @@ export function DiagramNode({
   const subtitleLines = node.subtitle?.split("\n") ?? [];
   const filterAttr = cfg.nodeFilter && shape === "rect" ? cfg.nodeFilter : undefined;
 
+  // Pinboard tilt = seed 由来 -3° to +3° rotation で sticky note の pinned 感
+  const tilt = useMemo(() => {
+    if (theme !== "pinboard") return 0;
+    let hash = 0;
+    for (let i = 0; i < node.id.length; i++) {
+      hash = (hash << 5) - hash + node.id.charCodeAt(i);
+      hash |= 0;
+    }
+    return ((Math.abs(hash) % 60) - 30) / 10; // -3.0 ... +3.0
+  }, [theme, node.id]);
+  const transform = tilt
+    ? `translate(${node.x} ${node.y}) rotate(${tilt} ${node.w / 2} ${node.h / 2})`
+    : `translate(${node.x} ${node.y})`;
+
   return (
     <g
-      transform={`translate(${node.x} ${node.y})`}
+      transform={transform}
       data-node={node.id}
       data-kind={node.kind}
     >

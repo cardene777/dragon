@@ -218,7 +218,16 @@ export function generateShape(opts: ShapeGenOptions): ShapeResult {
   const rx = opts.kind === "rect" ? 14 : 0;
   const ry = opts.kind === "rect" ? 14 : 0;
   const fill = "var(--color-surface, #ffffff)";
-  const stroke = cfg.strokeWidth.normal === 0 ? "none" : "var(--color-ink, #1a1f2a)";
+  // Neumorphism も subtle border を持たせる (dark mode の視認性のため、 light mode でも
+  // 過度に目立たない stroke color を使う)、 border が 0 の設定は Circuit 等 filter で立体感を
+  // 出す theme に限定。
+  // Neumorphism は node の視認性のため --color-border variable 経由 (light=透明、 dark=subtle mint)
+  const stroke =
+    cfg.strokeWidth.normal === 0
+      ? "none"
+      : opts.theme === "neumorphism"
+        ? "var(--color-border, transparent)"
+        : "var(--color-ink, #1a1f2a)";
 
   switch (opts.kind) {
     case "rect":
