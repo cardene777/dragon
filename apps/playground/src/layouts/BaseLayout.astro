@@ -51,8 +51,13 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
     <meta name="twitter:image" content={ogImageUrl} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/*
+      CAR-735 = Caveat (Handdrawn theme 用) + Kalam (Pinboard theme 用) を追加 load。
+      cdl-theme.css で font-family として指定するが CSS だけでは webfont は load されないため、
+      link rel=stylesheet で明示 import。 display=swap で font のちらつきを回避、 preconnect 共有。
+    */}
     <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <title>{title}</title>

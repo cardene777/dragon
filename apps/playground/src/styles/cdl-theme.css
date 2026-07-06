@@ -237,12 +237,20 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke-width: 1 !important;
   filter: url(#dragon-pin-sticky-shadow) !important;
 }
-[data-cdl-theme="pinboard"] g:nth-of-type(odd) > [data-cdl-role="node-body"] {
+/*
+ * CAR-735 = rotate は `rect[data-cdl-role="node-body"]` のみに絞る (actor / card / event /
+ * function / storage / cylinder の default rect shape に効く)。 GenericNode 由来の
+ * `<g data-cdl-role="node-body">` 経路は outer group が既に translate 済で、 g に rotate を
+ * 掛けると transform-box=fill-box + child text 座標が破綻し、 node 群が canvas 外に飛ぶ。
+ * rect 単独 rotate は shape 本体のみ回すため、 icon / label と若干ズレるが sticky note の
+ * 「シート紙が斜めに貼られた」 印象は保たれる。 layout displacement は 0。
+ */
+[data-cdl-theme="pinboard"] g:nth-of-type(odd) > rect[data-cdl-role="node-body"] {
   transform: rotate(-1.5deg);
   transform-origin: center;
   transform-box: fill-box;
 }
-[data-cdl-theme="pinboard"] g:nth-of-type(even) > [data-cdl-role="node-body"] {
+[data-cdl-theme="pinboard"] g:nth-of-type(even) > rect[data-cdl-role="node-body"] {
   transform: rotate(1deg);
   transform-origin: center;
   transform-box: fill-box;
