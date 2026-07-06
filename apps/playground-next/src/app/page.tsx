@@ -3,6 +3,7 @@
 import { PRESETS } from "@/lib/presets";
 import { PresetCard } from "@/components/PresetCard";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
+import { ThemeStrip } from "@/components/ThemeStrip";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Github, Rocket } from "lucide-react";
 
@@ -67,6 +68,7 @@ function Header({
           <a href="/docs" className="hover:text-[var(--color-ink)]">Docs</a>
         </nav>
         <div className="md:hidden flex-1" />
+        <ThemeStrip value={theme} onChange={setTheme} className="hidden lg:flex" />
         <ThemePicker value={theme} onChange={setTheme} />
         <DarkModeToggle />
         <a
