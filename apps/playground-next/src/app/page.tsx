@@ -3,6 +3,7 @@
 import { PRESETS } from "@/lib/presets";
 import { PresetCard } from "@/components/PresetCard";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Github, Rocket } from "lucide-react";
 
 /**
@@ -23,9 +24,17 @@ export default function Page(): React.ReactElement {
 
   return (
     <div className="min-h-dvh">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-[var(--color-accent)] focus:px-3 focus:py-2 focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <Header theme={theme} setTheme={setTheme} />
-      <Hero />
-      <PresetGrid theme={theme} />
+      <main id="main-content">
+        <Hero />
+        <PresetGrid theme={theme} />
+      </main>
       <Footer />
     </div>
   );
@@ -58,12 +67,13 @@ function Header({
           <a href="/docs" className="hover:text-[var(--color-ink)]">Docs</a>
         </nav>
         <ThemePicker value={theme} onChange={setTheme} />
+        <DarkModeToggle />
         <a
           href="https://github.com/cardene777/dragon"
           target="_blank"
           rel="noreferrer"
-          className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors"
-          aria-label="GitHub"
+          className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+          aria-label="GitHub repository (opens in new tab)"
         >
           <Github size={17} />
         </a>

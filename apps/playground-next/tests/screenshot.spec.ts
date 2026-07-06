@@ -71,3 +71,36 @@ test("next: modal click open", async ({ page }) => {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: "test-results/next-modal-handdrawn.png" });
 });
+
+test("next: dark mode neumorphism", async ({ page }) => {
+  await page.goto(BASE + "/?theme=neumorphism", { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    localStorage.setItem("dragon-color-mode", "dark");
+    document.documentElement.classList.add("dark");
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-dark-neumorphism.png", fullPage: true });
+});
+
+test("next: dark mode handdrawn", async ({ page }) => {
+  await page.goto(BASE + "/?theme=handdrawn", { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    localStorage.setItem("dragon-color-mode", "dark");
+    document.documentElement.classList.add("dark");
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-dark-handdrawn.png", fullPage: true });
+});
+
+test("next: dark mode circuit", async ({ page }) => {
+  await page.goto(BASE + "/?theme=circuit", { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    localStorage.setItem("dragon-color-mode", "dark");
+    document.documentElement.classList.add("dark");
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-dark-circuit.png", fullPage: true });
+});

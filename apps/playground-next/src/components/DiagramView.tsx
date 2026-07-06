@@ -36,17 +36,30 @@ export function DiagramView({
       preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
       style={{ background: "var(--color-surface)", borderRadius: 16 }}
+      role="img"
+      aria-label={`${preset.title} diagram — ${preset.subtitle}`}
     >
-      {/* Blueprint theme のみ grid overlay */}
+      <title>{preset.title}</title>
+      <desc>{preset.subtitle}</desc>
+      {/* Blueprint theme のみ grid overlay (2 段 major + minor) */}
       {theme === "blueprint" && (
         <>
           <defs>
-            <pattern id="bp-grid" width={20} height={20} patternUnits="userSpaceOnUse">
+            <pattern id="bp-grid-minor" width={24} height={24} patternUnits="userSpaceOnUse">
               <path
-                d="M 20 0 L 0 0 0 20"
+                d="M 24 0 L 0 0 0 24"
                 fill="none"
-                stroke="var(--diagram-grid-color, rgba(120, 180, 220, 0.35))"
-                strokeWidth={0.5}
+                stroke="var(--diagram-grid-color, rgba(80, 130, 180, 0.28))"
+                strokeWidth={0.6}
+              />
+            </pattern>
+            <pattern id="bp-grid-major" width={120} height={120} patternUnits="userSpaceOnUse">
+              <rect width={120} height={120} fill="url(#bp-grid-minor)" />
+              <path
+                d="M 120 0 L 0 0 0 120"
+                fill="none"
+                stroke="var(--diagram-grid-major, rgba(30, 66, 108, 0.14))"
+                strokeWidth={1.2}
               />
             </pattern>
           </defs>
@@ -55,7 +68,7 @@ export function DiagramView({
             y={preset.viewBox.y}
             width={preset.viewBox.w}
             height={preset.viewBox.h}
-            fill="url(#bp-grid)"
+            fill="url(#bp-grid-major)"
           />
         </>
       )}

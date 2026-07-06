@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { PRESETS, type PresetDoc } from "@/lib/presets";
 import { DiagramView } from "@/components/DiagramView";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { encodeShare, decodeShare } from "@/lib/share-url";
 import { Github, Rocket, Share2, Check, ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -97,6 +98,7 @@ export default function EditorPage(): React.ReactElement {
             ))}
           </select>
           <ThemePicker value={theme} onChange={setTheme} />
+          <DarkModeToggle />
           <button
             type="button"
             onClick={onShare}

@@ -31,8 +31,8 @@ export function PresetCard({
       <article
         className={cn(
           "group flex flex-col rounded-2xl p-6 transition-all",
-          "bg-[var(--color-surface)] shadow-[var(--shadow-card,0_1px_3px_rgba(0,0,0,0.08),0_4px_16px_rgba(0,0,0,0.04))]",
-          "hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:-translate-y-1",
+          "bg-[var(--color-surface)] shadow-[var(--shadow-card)]",
+          "hover:shadow-[var(--shadow-card-hover,0_8px_24px_rgba(0,0,0,0.12))] hover:-translate-y-1",
         )}
       >
         <header className="mb-4">
@@ -54,8 +54,9 @@ export function PresetCard({
           className={cn(
             "relative w-full flex-1 min-h-[240px] rounded-xl overflow-hidden cursor-zoom-in",
             "bg-[var(--color-surface-2)] p-4",
-            "shadow-inset shadow-[inset_2px_2px_4px_rgba(0,0,0,0.06),inset_-2px_-2px_4px_rgba(255,255,255,0.4)]",
-            "transition-shadow hover:shadow-[inset_2px_2px_6px_rgba(0,0,0,0.1),inset_-2px_-2px_6px_rgba(255,255,255,0.5)]",
+            "shadow-[var(--shadow-inset)]",
+            "transition-all",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]",
           )}
         >
           <DiagramView preset={preset} theme={theme} className="w-full h-full" />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Github, Rocket, ChevronLeft, BookOpen, Zap, Palette, Code2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 /**
  * /docs page — dragon の使い方 + preset 一覧 + theme 一覧 + API リファレンス。
@@ -28,16 +29,17 @@ export default function DocsPage(): React.ReactElement {
           <div className="flex-1" />
           <Link
             href="/editor"
-            className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-white"
+            className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
           >
             Open editor →
           </Link>
+          <DarkModeToggle />
           <a
             href="https://github.com/cardene777/dragon"
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
-            aria-label="GitHub"
+            className="rounded-lg p-2 text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+            aria-label="GitHub repository (opens in new tab)"
           >
             <Github size={15} />
           </a>
