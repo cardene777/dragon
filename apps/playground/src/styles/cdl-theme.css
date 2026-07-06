@@ -564,57 +564,145 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
- * Handdrawn (手描き metaphor、 turbulence displacement + kraft palette)
- * 意図 = wobble stroke (turbulence displacement) + handdrawn font + kraft
+ * Handdrawn (CAR-755 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
+ * 意図 = wobble stroke (feTurbulence + feDisplacementMap) + sticky yellow fill (#fdf7d9) +
+ *        ink stroke (#2c2820) + Caveat / Bradley Hand cursive + marker red accent (#a94a3a) +
+ *        kraft mute (#7a6a4a) + kraft paper divider (#d0c8a4)
+ *
+ * CAR-741 Circuit theme と同じ 3 経路を採用:
+ *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
+ *       fallback を効かせる (最も clean な経路)
+ *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
+ *       rect/path/ellipse/circle を !important + 具体 selector で override
+ *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
+ *       node-kind-icon / lane-* まで網羅
+ *
+ * text (node-label / edge-label / lane-label) には filter=url(#dragon-hd-wobble) を **適用しない**
+ * = wobble が字体を歪めて可読性を破壊する。 rect / path / line / ellipse のみ wobble 適用。
  * ═════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * CSS var 上書き経路 (a)
+ * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
+ * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
+ */
+[data-cdl-theme="handdrawn"] {
+  --cdl-node-fill: #fdf7d9;
+  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
+  --cdl-tone-info: #a94a3a;
+  --cdl-tone-accent: #a94a3a;
+  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる */
+  --cdl-divider: #d0c8a4;
+  --cdl-text: #2c2820;
+  --cdl-text-dim: #7a6a4a;
+  --cdl-text-secondary: #7a6a4a;
+  --cdl-label-bg: #fdf7d9;
+  --cdl-label-text: #a94a3a;
+  --cdl-edge-stroke: #2c2820;
+}
+
+/*
+ * 直接 role selector 経路 (b1)
+ * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
+ */
 [data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] {
   fill: #fdf7d9 !important;
   stroke: #2c2820 !important;
   stroke-width: 1.6 !important;
+  stroke-linejoin: round !important;
   filter: url(#dragon-hd-wobble) !important;
 }
+
+/*
+ * 子孫 selector 経路 (b2)
+ * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
+ * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
+ * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
+ */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] rect,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] > g > circle {
+  fill: #fdf7d9 !important;
+  stroke: #2c2820 !important;
+  stroke-width: 1.6 !important;
+  stroke-linejoin: round !important;
+  filter: url(#dragon-hd-wobble) !important;
+}
+/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] ellipse {
+  fill: #fdf7d9 !important;
+  stroke: #2c2820 !important;
+  stroke-width: 1.6 !important;
+}
+
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-label"] {
+  fill: #2c2820 !important;
+  stroke: none !important;
+  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+}
+/*
+ * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
+ * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
+ * で specificity を勝たせる (0-3-1 > 0-2-2)。 !important の source order だけでは
+ * `[node-body] > g > path` (0-2-2) が同 !important レベルで負けるため、 attribute 数で決着させる。
+ */
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-kind-icon"] path {
+  fill: #2c2820 !important;
+  stroke: none !important;
+  opacity: 1 !important;
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="edge-line"],
+[data-cdl-theme="handdrawn"] path[data-cdl-role="edge-line"],
+[data-cdl-theme="handdrawn"] line[data-cdl-role="edge-line"] {
+  stroke: #2c2820 !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  fill: none !important;
+  filter: url(#dragon-hd-wobble) !important;
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="edge-arrowhead"] {
+  fill: #2c2820 !important;
+  stroke: none !important;
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="edge-arrowhead"] path {
+  fill: #2c2820 !important;
+  stroke: none !important;
+}
 [data-cdl-theme="handdrawn"] [data-cdl-role="edge-label-bg"] {
-  fill: #fffef5 !important;
+  fill: #fdf7d9 !important;
   stroke: #2c2820 !important;
   stroke-width: 1 !important;
   filter: url(#dragon-hd-wobble) !important;
 }
+[data-cdl-theme="handdrawn"] [data-cdl-role="edge-label"] {
+  fill: #a94a3a !important;
+  stroke: none !important;
+  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
 [data-cdl-theme="handdrawn"] [data-cdl-role="lane-container"] {
-  fill: #f0e6c8 !important;
-  stroke: #2c2820 !important;
+  fill: rgba(247, 240, 220, 0.6) !important;
+  stroke: rgba(44, 40, 32, 0.3) !important;
   stroke-width: 1.2 !important;
   stroke-dasharray: 5 3 !important;
   filter: url(#dragon-hd-wobble) !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="lane-lifeline"] {
-  stroke: #5a4830 !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-label"] {
-  fill: #2c2820 !important;
-  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-label"] {
-  fill: #2c2820 !important;
-  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-line"] {
-  stroke: #2c2820 !important;
-  stroke-width: 2.4 !important;
-  stroke-linecap: round !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-arrowhead"] {
-  fill: #2c2820 !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-kind-icon"] path {
-  fill: #2c2820 !important;
-  opacity: 0.85 !important;
+  stroke: #7a6a4a !important;
+  stroke-opacity: 0.6 !important;
 }
 [data-cdl-theme="handdrawn"] [data-cdl-role="lane-label"] {
   fill: #2c2820 !important;
+  stroke: none !important;
   font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
