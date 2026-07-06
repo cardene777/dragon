@@ -49,3 +49,25 @@ test("next: isometric", async ({ page }) => {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: "test-results/next-isometric.png", fullPage: true });
 });
+
+test("next: editor page", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/editor", { waitUntil: "networkidle" });
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: "test-results/next-editor.png", fullPage: true });
+});
+
+test("next: docs page", async ({ page }) => {
+  await page.goto(BASE + "/docs", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/next-docs.png", fullPage: true });
+});
+
+test("next: modal click open", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/?theme=handdrawn", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.locator('article button[aria-label*="拡大"]').first().click();
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: "test-results/next-modal-handdrawn.png" });
+});
