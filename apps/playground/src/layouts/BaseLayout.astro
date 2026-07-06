@@ -2,8 +2,10 @@
 import Header from "@/components/layout/Header.astro";
 import Footer from "@/components/layout/Footer.astro";
 import ShareDialog from "@/components/ShareDialog.astro";
+import CdlFilterDefs from "@/components/CdlFilterDefs.astro";
 import "@/styles/global.css";
 import "@/styles/neumorphism.css";
+import "@/styles/cdl-theme.css";
 
 type Props = {
   title?: string;
@@ -67,6 +69,7 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
     </script>
   </head>
   <body class={bodyClass}>
+    <CdlFilterDefs />
     <Header showSearch={showSearch} showLangToggle={showLangToggle} />
     <main class="min-h-[calc(100vh-220px)]">
       <slot />
