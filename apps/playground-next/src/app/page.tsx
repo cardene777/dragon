@@ -87,6 +87,16 @@ function Header({
           <a href="/editor" className="hover:text-[var(--color-ink)] transition-colors">Editor</a>
           <a href="/compare" className="hover:text-[var(--color-ink)] transition-colors">Compare</a>
           <a href="/docs" className="hover:text-[var(--color-ink)] transition-colors">Docs</a>
+          <a
+            href="https://github.com/cardene777/cdl"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-[var(--color-ink)] transition-colors inline-flex items-center gap-1"
+            title="CDL core library (別 repo)"
+          >
+            CDL
+            <span className="text-[10px]">↗</span>
+          </a>
         </nav>
         <div className="md:hidden flex-1" />
         <ThemeStrip value={theme} onChange={setTheme} className="hidden lg:flex" />
