@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Github, Rocket, ChevronLeft, ExternalLink, Share2, Copy, Check, LayoutGrid } from "lucide-react";
@@ -10,7 +10,7 @@ import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useToast } from "@/components/Toast";
 import { highlightJson, highlightTypeScript } from "@/lib/highlight";
-import type { PresetDoc } from "@/lib/presets";
+import { PRESETS, type PresetDoc } from "@/lib/presets";
 
 /**
  * /preset/[id] detail page — client component。
@@ -21,6 +21,31 @@ import type { PresetDoc } from "@/lib/presets";
 export function PresetDetailClient({ preset }: { preset: PresetDoc }): React.ReactElement {
   const { toast } = useToast();
   const [theme, setTheme] = useThemeSync();
+
+  const currentIdx = useMemo(() => PRESETS.findIndex((p) => p.id === preset.id), [preset.id]);
+  const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length]!;
+  const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length]!;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        window.location.href = `/preset/${prevPreset.id}`;
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        window.location.href = `/preset/${nextPreset.id}`;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prevPreset.id, nextPreset.id]);
 
   const onShare = async (): Promise<void> => {
     try {
@@ -52,6 +77,25 @@ export function PresetDetailClient({ preset }: { preset: PresetDoc }): React.Rea
             <ChevronLeft size={14} /> Back to catalog
           </Link>
           <div className="flex-1" />
+          <div className="flex items-center gap-1 text-[var(--color-ink-dim)]">
+            <Link
+              href={`/preset/${prevPreset.id}`}
+              className="rounded-lg p-2 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+              aria-label={`Previous (${prevPreset.title})`}
+              title={`Previous · ${prevPreset.title}`}
+            >
+              <ChevronLeft size={14} />
+            </Link>
+            <span className="font-mono text-[11px]">{currentIdx + 1} / {PRESETS.length}</span>
+            <Link
+              href={`/preset/${nextPreset.id}`}
+              className="rounded-lg p-2 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+              aria-label={`Next (${nextPreset.title})`}
+              title={`Next · ${nextPreset.title}`}
+            >
+              <ChevronLeft size={14} className="rotate-180" />
+            </Link>
+          </div>
           <ThemePicker value={theme} onChange={setTheme} />
           <DarkModeToggle />
           <button
