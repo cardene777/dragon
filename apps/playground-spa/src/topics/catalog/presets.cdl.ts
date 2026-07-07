@@ -109,7 +109,7 @@ export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "class
   .build();
 
 // tree preset ... 組織図 / file tree / class 階層
-export const presetTree = tree({ id: "tree-demo", topic: "tree (組織図、 lane 分割で階層表現、 木構造縦階層専用 render 未実装)" })
+export const presetTree = tree({ id: "tree-demo", topic: "tree (組織図、 縦階層 hierarchical layout + parent-child elbow line)" })
   .node({ id: "ceo", title: "CEO" })
   .node({ id: "cto", title: "CTO", parent: "ceo" })
   .node({ id: "cfo", title: "CFO", parent: "ceo" })
@@ -118,7 +118,7 @@ export const presetTree = tree({ id: "tree-demo", topic: "tree (組織図、 lan
   .build();
 
 // userJourney preset ... step + emotion + touchpoint
-export const presetUserJourney = userJourney({ id: "journey-demo", topic: "userJourney (Signup flow、 4 step を lane 分割 + emotion badge で表現、 感情曲線 render 未実装)" })
+export const presetUserJourney = userJourney({ id: "journey-demo", topic: "userJourney (Signup flow、 emotion 5 段階縦軸 + polyline 感情曲線 + touchpoint)" })
   .step({ id: "land", title: "Land on /", emotion: "neutral", touchpoint: "Website" })
   .step({ id: "form", title: "Fill signup form", emotion: "frustrated", touchpoint: "Form", opportunity: "input UX 改善" })
   .step({ id: "verify", title: "Email verify", emotion: "happy", touchpoint: "Email" })
@@ -151,7 +151,7 @@ export const presetMindMapRadial = mindMapRadial({
   .build();
 
 // funnel preset ... Sales / marketing funnel
-export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel (Conversion、 stage を count subtitle 付き card で表現、 逆三角形 funnel render 未実装)" })
+export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel (Conversion、 stage を幅減少 polygon + count + drop rate で描画)" })
   .stage({ id: "visit", title: "Visit", count: 10000 })
   .stage({ id: "signup", title: "Sign up", count: 1500 })
   .stage({ id: "trial", title: "Trial", count: 800 })
@@ -161,7 +161,7 @@ export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel (Conversi
 // quadrant preset ... 2 軸 matrix (4 象限完全配置、 cdl PR #32 で stack 衝突 bug 修正済)
 export const presetQuadrant = quadrant({
   id: "quad-demo",
-  topic: "quadrant (Priority matrix、 2 lane + 4 象限 node grid で表現、 十字軸 2×2 matrix render 未実装)",
+  topic: "quadrant (Priority matrix、 十字軸 + 4 象限 label + item pin で描画)",
   xAxis: { left: "Low effort", right: "High effort" },
   yAxis: { bottom: "Low value", top: "High value" },
 })
