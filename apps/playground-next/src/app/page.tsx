@@ -8,6 +8,7 @@ import { ThemeStrip } from "@/components/ThemeStrip";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { DiagramView } from "@/components/DiagramView";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { CommandPalette } from "@/components/CommandPalette";
 import { Github, Rocket, Search, X } from "lucide-react";
 import type { ThemeName } from "@/lib/theme";
 
@@ -55,6 +56,7 @@ export default function Page(): React.ReactElement {
       </main>
       <Footer />
       <KeyboardShortcuts theme={theme} onThemeChange={setTheme} />
+      <CommandPalette theme={theme} onThemeChange={setTheme} />
     </div>
   );
 }

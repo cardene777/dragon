@@ -184,3 +184,12 @@ test("next: preset permalink page", async ({ page }) => {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: "test-results/next-permalink-topology.png", fullPage: true });
 });
+
+test("next: command palette", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto(BASE + "/", { waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  await page.keyboard.press("Meta+k");
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "test-results/next-cmd-palette.png" });
+});
