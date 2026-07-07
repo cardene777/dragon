@@ -60,7 +60,7 @@ html[data-theme="neumorphism"] {
 html[data-theme="circuit"] {
   --color-surface: #0a1a12;
   --color-surface-2: #142820;
-  --color-ink: #a8e6c1;
+  --color-ink: #b8f0d1;
   --color-ink-dim: #7bb896;
   --color-ink-mute: #4e8060;
   --color-accent: #c8a038;
@@ -73,6 +73,10 @@ html[data-theme="circuit"] {
   --shadow-inset:
     inset 2px 2px 6px rgba(0, 0, 0, 0.5),
     inset -1px -1px 3px rgba(72, 224, 176, 0.08);
+}
+/* Circuit theme SVG text 用の subtle glow (dark background 読みやすさ強化) */
+html[data-theme="circuit"] svg text {
+  filter: drop-shadow(0 0 3px rgba(72, 224, 176, 0.25));
 }
 
 /* ═════════════════ Handdrawn (Excalidraw sketch) ═════════════════ */
