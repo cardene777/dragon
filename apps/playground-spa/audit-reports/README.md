@@ -25,10 +25,21 @@
 
 ### 統合 command
 
-- `pnpm check:all` = typecheck + 層 1 + 層 2 + 層 3 を一括実行 (PR 前 CI)
+- `pnpm check:all` = typecheck + 層 1 + 層 2 + 層 3 (positive + proof) を一括実行 (PR 前 CI)
 - `pnpm check:cdl` = 層 1 のみ (SPA route regression)
 - `pnpm check:dragon` = 層 2 のみ (engine visualValidate sweep)
-- `pnpm check:kind` = 層 3 のみ (kind 描画品質 axis)
+- `pnpm check:kind` = 層 3 全 (positive `test:kind` + negative proof `test:kind:proof`)
+
+### 検知 axis の実効性証明 (dead axis 回帰防止)
+
+**動機** = CAR-1064 で追加した gantt arrow axis が実装バグにより 「見た目 OK だが test は pass する」 dead axis 状態になっていた (batch4 で発見)。
+
+**対策** = 各 axis に対し 「(clean) OK → (DOM mutate) FAIL」 のペアで実効性を CI 保証。
+
+- `pnpm test:kind` = positive test (clean 状態で 8 axis 違反 0)
+- `pnpm test:kind:proof` = negative proof (5 axis に DOM mutation 注入 → 違反 >= 1 を確認)
+
+これで 「axis の検査ロジック自体が壊れて全 pass」 になる dead axis 回帰を構造的に排除。
 
 ### 層 3 が追加された理由
 
@@ -74,7 +85,21 @@ pnpm lint:notation
 
 # auto-fix 可能な rule を適用、 修正版を .lint-fix.json に書出し
 pnpm fix:notation
+
+# 実効性証明 (意図的にバグを注入した fixture で 8 rule 全 detect + autoFix 動作)
+pnpm lint:notation:proof
 ```
+
+### autoFix 挙動
+
+`topic-redundant-implementation-detail` rule に対応する autoFix は topic の先頭 kind 名を判定し、 該当 kind の 「〜 を示す図」 日本語 description に自動置換する。
+
+例:
+- `"chart preset (SVG polyline + tone 別 slice)"` → `"統計チャート を示す図"`
+- `"gantt preset (Release timeline)"` → `"ガントチャート を示す図"`
+- `"mindMap preset (Project ideas)"` → `"マインドマップ を示す図"`
+
+kind 判定 20+ pattern (chart / flow / swimlane / sequence / topology / er / stateMachine / infrastructure / classDiagram / tree / userJourney / mindMap(Radial) / funnel / quadrant / gantt / flowchart / network 等)。
 
 CLI から任意 file を lint する場合:
 
