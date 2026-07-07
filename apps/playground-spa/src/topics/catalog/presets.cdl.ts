@@ -7,7 +7,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  */
 
 // swimlane preset ... 3 lane 自動配置 + laneId(label) で slug 取得
-const swim = swimlane({ id: "swim-demo", topic: "swimlane preset (3 lane 自動)", lanes: ["Client", "Service", "Event"], laneWidth: 520 });
+const swim = swimlane({ id: "swim-demo", topic: "swimlane preset (Client / Service / Event 3 lane 自動配置)", lanes: ["Client", "Service", "Event"], laneWidth: 520 });
 const lSrc = swim.laneId("Client");
 const lCt = swim.laneId("Service");
 const lOut = swim.laneId("Event");
@@ -32,7 +32,7 @@ export const presetFlow = flow({ id: "flow-demo", topic: "flow preset (auth フ�
 // sequence preset ... actor 列 × 時系列 row、 UML sequence diagram 風
 export const presetSequence = sequence({
   id: "seq-demo",
-  topic: "sequence preset (auth fl)",
+  topic: "sequence preset (認証 flow: User → API → DB → 200 JWT)",
   actors: ["User", "API", "DB"],
   defaultTone: "accent",
   defaultStyle: "solid",
@@ -96,7 +96,7 @@ export const presetInfrastructure = infrastructure({ id: "infra-demo", topic: "i
   .build();
 
 // classDiagram preset ... UML クラス図
-export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "classDiagram preset (User domain)" })
+export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "classDiagram preset (User extends Admin, aggregates Order 1..*)" })
   .class({ id: "User", title: "User", attributes: ["+name: string", "+email: string"], methods: ["+login(): void", "+logout(): void"] })
   .class({ id: "Admin", title: "Admin", attributes: ["+permissions: string[]"], methods: ["+banUser(): void"] })
   .class({ id: "Order", title: "Order", attributes: ["+id: number", "+total: number"], methods: ["+pay(): void"] })

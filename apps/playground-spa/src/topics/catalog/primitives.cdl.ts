@@ -11,13 +11,13 @@ const W = 440;
 /** 1. NodeKind 全 5 種 (actor / function / storage / event / card) */
 export const kindActor = diagram("kind-actor", { topic: "kind: actor (外部主体)" })
   .lane("l", { x: 0, width: W })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Client", eyebrow: "外部主体", value: "100" })
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Client", eyebrow: "外部主体", value: "42 users" })
   .phase("p", { duration: 1500, title: "actor", body: "外部主体 (Client / 利用者 等)。 数値 value 表示可。" }, (p: PhaseBuilder) => p.activate("a").badge("active"))
   .build();
 
 export const kindFunction = diagram("kind-function", { topic: "kind: function (関数呼び出し)" })
   .lane("l", { x: 0, width: W })
-  .node("fn", { lane: "l", stack: 0, kind: "function", title: "handler(req)", eyebrow: "関数呼び出し", subtitle: "Service 内の処理" })
+  .node("fn", { lane: "l", stack: 0, kind: "function", title: "handler(req)", eyebrow: "関数呼び出し", subtitle: "-> Result<Order, ValidationError>" })
   .phase("p", { duration: 1500, title: "function", body: "Service の関数。 mono 等幅 title + subtitle で署名表示。" }, (p: PhaseBuilder) => p.activate("fn").badge("active"))
   .build();
 

@@ -31,7 +31,7 @@ function withId(slug: string, diagram: CdlDiagram): CdlDiagram {
 export const apiCall = withId(
   "api-call",
   textDslToDiagram(`
-title: "REST API GET"
+title: "REST API GET (Handler → DB SELECT → 200 JSON)"
 type: sequence
 
 actors:
@@ -62,7 +62,7 @@ animation:
 export const jwtAuth = withId(
   "jwt-auth",
   textDslToDiagram(`
-title: "JWT auth"
+title: "JWT auth (login → JWT issue → Bearer で API アクセス)"
 type: sequence
 
 actors:
@@ -79,13 +79,13 @@ flow:
   - API -> User: "200 data"
 
 animation:
-  - step: "login" 1.5s
+  - step: "credentials-verify" 1.5s
     focus: [User, Login, DB]
     badge: "verify"
-  - step: "token" 1.0s
+  - step: "issue-token" 1.0s
     focus: [Login, User]
     badge: "JWT"
-  - step: "access" 1.5s
+  - step: "bearer-access" 1.5s
     focus: [User, API]
     badge: "200"
 `),

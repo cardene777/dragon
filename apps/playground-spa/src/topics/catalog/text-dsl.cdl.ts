@@ -10,7 +10,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 
 // ─── sequence + animation (API call フロー) ─────
 export const textDslSequence = textDslToDiagram(`
-title: "API call (DSL)"
+title: "API call (Text DSL 6 行で書ける最小 sequence)"
 type: sequence
 
 actors:
@@ -27,14 +27,14 @@ states:
   row_count: 0
 
 animation:
-  - step: "step1" 1.5s
+  - step: "request" 1.5s
     focus: [Client, "API"]
     tween:
       request_count: 0 -> 1
     badge: "request"
     description: "Client が API を呼出"
 
-  - step: "step2" 1.5s
+  - step: "fetch" 1.5s
     focus: ["API", DB]
     tween:
       row_count: 0 -> 20
