@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Select from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronLeft, Rocket } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { InViewMount } from "@/components/InViewMount";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export function ComparePage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,23 +29,11 @@ export function ComparePage(): React.ReactElement {
   }, [presetId, setSearchParams]);
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-[var(--v4-line,#e2e8f0)] bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4">
-          <Link to="/" className="flex items-center gap-3 font-bold text-[var(--v4-ink,#1a1f2a)]">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--v4-brand,#2d6a8f)] text-white">
-              <Rocket size={17} />
-            </div>
-            <span className="text-[15px]">dragon</span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1 text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)] hover:text-[var(--v4-ink,#1a1f2a)]"
-          >
-            <ChevronLeft size={14} /> Back
-          </Link>
-          <div className="flex-1" />
-          <Select.Root value={presetId} onValueChange={setPresetId}>
+    <div>
+      <SiteHeader />
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4 border-b border-[var(--v4-line,#e2e8f0)]">
+        <span className="text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)]">Preset:</span>
+        <Select.Root value={presetId} onValueChange={setPresetId}>
             <Select.Trigger className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-[var(--v4-ink,#1a1f2a)] shadow-sm min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v4-brand,#2d6a8f)]">
               <Select.Value>{preset.title}</Select.Value>
               <Select.Icon>
@@ -79,8 +68,7 @@ export function ComparePage(): React.ReactElement {
               </Select.Content>
             </Select.Portal>
           </Select.Root>
-        </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8 sm:py-12">
         <div className="mb-6">

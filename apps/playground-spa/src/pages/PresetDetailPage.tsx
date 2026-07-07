@@ -1,17 +1,15 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
-import { ChevronLeft, ExternalLink, LayoutGrid, Rocket, Share2 } from "lucide-react";
+import { ChevronLeft, ExternalLink, LayoutGrid, Share2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
-import { ThemePicker } from "@/components/ThemePicker";
-import { useTheme } from "@/lib/useTheme";
+import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
 
 export function PresetDetailPage(): React.ReactElement {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [theme, setTheme] = useTheme();
 
   const preset = PRESETS.find((p) => p.slug === params.id);
 
@@ -64,32 +62,18 @@ export function PresetDetailPage(): React.ReactElement {
   };
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-[var(--v4-line,#e2e8f0)] bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4">
-          <Link to="/" className="flex items-center gap-3 font-bold text-[var(--v4-ink,#1a1f2a)]">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--v4-brand,#2d6a8f)] text-white">
-              <Rocket size={17} />
-            </div>
-            <span className="text-[15px]">dragon</span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1 text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)] hover:text-[var(--v4-ink,#1a1f2a)]"
-          >
-            <ChevronLeft size={14} /> Back
-          </Link>
-          <div className="flex-1" />
-          <ThemePicker value={theme} onChange={setTheme} />
-          <button
-            type="button"
-            onClick={onShare}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--v4-canvas,#f8fafc)] px-3 py-1.5 text-[13px] font-semibold text-[var(--v4-ink,#1a1f2a)]"
-          >
-            <Share2 size={13} /> Share
-          </button>
-        </div>
-      </header>
+    <div>
+      <SiteHeader />
+      <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4 border-b border-[var(--v4-line,#e2e8f0)]">
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onShare}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--v4-canvas,#f8fafc)] px-3 py-1.5 text-[13px] font-semibold text-[var(--v4-ink,#1a1f2a)]"
+        >
+          <Share2 size={13} /> Share
+        </button>
+      </div>
 
       <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8 sm:py-12">
         <div className="mb-6">

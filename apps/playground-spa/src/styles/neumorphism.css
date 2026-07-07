@@ -1,0 +1,209 @@
+/**
+ * Neumorphism SSOT (CAR-646、 CAR-N-6 base、 CAR-N-8 で Dribbble Neumorphism 相当まで強化)
+ * dragon apps/playground の catalog / docs / landing 全ページで共有する
+ * Neumorphism raised / inset / soft depth token。
+ *
+ * CAR-N-8 変更方針
+ *   - box-shadow を Vercel / Linear の subtle depth 系から Dribbble Neumorphism の明確な dual shadow に強化
+ *   - light theme = 白い高光 (top-left) + 淡青の落ち影 (bottom-right) で「浮き上がり」 を明確に演出
+ *   - dark theme = 白の弱高光 + 黒の濃い落ち影で dark でも Neumorphism 立体感を演出
+ *   - --nm-bg-gradient を Neumorphism 基準色 (light: #e8ecf1、 dark: #0a0e14) 系に shift
+ *   - Hero title 用 gradient text 定数 (--nm-accent-start / --nm-accent-end) 追加
+ *
+ * 設計指針 (Dribbble Neumorphism examples + Vercel / Linear / Stripe subtle depth の hybrid)
+ * ── Vercel = 大きめ typography、 明確な hierarchy、 muted primary color、 subtle grid overlay
+ * ── Linear = card 内 metadata の compact 配置、 status pill、 keyboard shortcut display
+ * ── Stripe = documentation の code block styling、 spacing の呼吸感、 illustration hover effect
+ * ── Dribbble Neumorphism = dual shadow (dark bottom-right + light top-left) で「押し出し」 立体感、 raised / inset 明確な hierarchy
+ *
+ * これらを既存 v4 palette (--v4-canvas / --v4-brand / --v4-ink) の上に統合する。
+ * flat design の潔さ (Vercel / Linear) + Neumorphism の立体感 (Dribbble) + Stripe の呼吸感の hybrid。
+ */
+
+:root {
+  /* ─── background gradient (Neumorphism 基準色、 flat #f8fafc から #e8ecf1 depth 基準に) ─── */
+  --nm-bg-gradient: linear-gradient(180deg, #eef1f6 0%, #e8ecf1 50%, #eef1f6 100%);
+  --nm-bg-base: #e8ecf1;
+
+  /* ─── card / surface elevation (light theme、 Dribbble Neumorphism 相当の明確な dual shadow) ─── */
+  --nm-shadow-raised-strong:
+    20px 20px 40px rgba(163, 177, 198, 0.5),
+    -14px -14px 28px rgba(255, 255, 255, 0.9);
+  --nm-shadow-raised-soft:
+    12px 12px 24px rgba(163, 177, 198, 0.4),
+    -8px -8px 20px rgba(255, 255, 255, 0.75);
+  --nm-shadow-hover:
+    24px 24px 48px rgba(163, 177, 198, 0.55),
+    -16px -16px 32px rgba(255, 255, 255, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --nm-shadow-inset-soft:
+    inset 6px 6px 12px rgba(163, 177, 198, 0.35),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.65);
+  --nm-shadow-inset-strong:
+    inset 8px 8px 16px rgba(163, 177, 198, 0.5),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.85);
+  --nm-shadow-flat:
+    0 1px 2px rgba(30, 41, 59, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+  /* ─── surface color (subtle brightness variation、 Neumorphism base より少し明るく浮かせる) ─── */
+  --nm-surface: #f0f3f7;
+  --nm-surface-elevated: #f6f8fc;
+  --nm-surface-recessed: #e0e5ec;
+
+  /* ─── accent gradient (Hero title text 用、 teal 系 brand から一気に緑寄りへ) ─── */
+  --nm-accent-start: #2d6a8f;
+  --nm-accent-end: #2f8770;
+  --nm-accent-gradient: linear-gradient(135deg, var(--nm-accent-start), var(--nm-accent-end));
+
+  /* ─── header 用 backdrop (blur 前の base) ─── */
+  --nm-header-bg: rgba(232, 236, 241, 0.72);
+  --nm-header-border: rgba(179, 189, 205, 0.4);
+  --nm-header-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 12px rgba(163, 177, 198, 0.18);
+
+  /* ─── interactive state (Linear 風 subtle scale + Neumorphism press-in) ─── */
+  --nm-transition-standard: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+  --nm-transition-quick: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+
+  /* ─── typography scale (Vercel / Linear 準拠、 letter-spacing / line-height 統一、 CAR-N-8 で拡大) ─── */
+  --nm-fs-eyebrow: 11px;
+  --nm-fs-meta: 12px;
+  --nm-fs-body: 15px;
+  --nm-fs-title: 17px;
+  --nm-fs-h3: 20px;
+  --nm-fs-h2: 32px;
+  --nm-fs-h1: 56px;
+  --nm-fs-h1-mobile: 40px;
+  --nm-ls-eyebrow: 0.14em;
+  --nm-ls-meta: 0.05em;
+  --nm-ls-title: -0.01em;
+  --nm-ls-h2: -0.015em;
+  --nm-ls-h1: -0.03em;
+  --nm-lh-h1: 1.05;
+  --nm-lh-body: 1.65;
+
+  /* ─── grid / spacing 呼吸感 (Stripe の spacing scale) ─── */
+  --nm-space-card-padding: 26px;
+  --nm-space-grid-gap: 24px;
+  --nm-radius-card: 20px;
+  --nm-radius-btn: 12px;
+  --nm-radius-pill: 999px;
+}
+
+html.dark {
+  --nm-bg-gradient: linear-gradient(180deg, #0a0e14 0%, #0d1219 50%, #0a0e14 100%);
+  --nm-bg-base: #0a0e14;
+
+  /* dark theme dual shadow = 白の弱高光 + 黒の濃い落ち影 (dark base で Neumorphism 立体感) */
+  --nm-shadow-raised-strong:
+    20px 20px 40px rgba(0, 0, 0, 0.7),
+    -14px -14px 28px rgba(38, 48, 66, 0.5);
+  --nm-shadow-raised-soft:
+    12px 12px 24px rgba(0, 0, 0, 0.55),
+    -8px -8px 20px rgba(38, 48, 66, 0.4);
+  --nm-shadow-hover:
+    24px 24px 48px rgba(0, 0, 0, 0.8),
+    -16px -16px 32px rgba(94, 196, 232, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --nm-shadow-inset-soft:
+    inset 6px 6px 12px rgba(0, 0, 0, 0.5),
+    inset -4px -4px 8px rgba(38, 48, 66, 0.35);
+  --nm-shadow-inset-strong:
+    inset 8px 8px 16px rgba(0, 0, 0, 0.65),
+    inset -6px -6px 12px rgba(38, 48, 66, 0.45);
+  --nm-shadow-flat:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+  --nm-surface: #141a24;
+  --nm-surface-elevated: #1a2130;
+  --nm-surface-recessed: #0a0e14;
+
+  --nm-accent-start: #4a90d0;
+  --nm-accent-end: #4bb090;
+
+  --nm-header-bg: rgba(10, 14, 20, 0.72);
+  --nm-header-border: rgba(42, 51, 64, 0.5);
+  --nm-header-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/*
+ * ─── base body gradient (Neumorphism ambient depth) ────────────────
+ * v4-body class を全 page (BaseLayout default) と docs-body class に共通適用。
+ * flat #f8fafc → Neumorphism base gradient に置換して立体感の受け皿を作る。
+ */
+body.v4-body,
+body.docs-body {
+  background: var(--nm-bg-gradient) !important;
+  background-attachment: fixed;
+  background-color: var(--nm-bg-base) !important;
+  min-height: 100vh;
+}
+
+/*
+ * ─── Hero gradient text utility (CAR-N-8、 catalog / presets の h1 で使う) ───
+ * <h1 class="nm-gradient-text">Text DSL × <span class="nm-gradient-accent">Animated SVG</span></h1>
+ */
+.nm-gradient-accent {
+  background: var(--nm-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/*
+ * ─── reduced motion respect (a11y、 macOS 環境設定「視差効果を減らす」 対応) ───
+ * transition / animation を suppress、 hover translateY / scale を無効化。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .catalog-card:hover,
+  .v4-cat-card:hover,
+  .nm-cat-card:hover,
+  .example:hover,
+  .feature:hover,
+  .docs-feature-card:hover,
+  .docs-pager-link:hover,
+  .nm-preset-card:hover,
+  .nm-stat:hover,
+  .nm-hero-btn:hover,
+  .v4-nav-brand:hover,
+  .v4-nav-brand:hover .v4-nav-mark svg {
+    transform: none !important;
+  }
+}
+
+/*
+ * ─── focus-visible (keyboard focus SSOT、 全 interactive 要素で 2px outline) ───
+ */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+.catalog-card:focus-visible,
+.v4-cat-card:focus-visible,
+.nm-cat-card:focus-visible,
+.example:focus-visible,
+.feature:focus-visible,
+.docs-feature-card:focus-visible,
+.nm-preset-card:focus-visible,
+.nm-hero-btn:focus-visible {
+  outline: 2px solid var(--v4-brand, #2d6a8f);
+  outline-offset: 3px;
+  border-radius: var(--nm-radius-card);
+}

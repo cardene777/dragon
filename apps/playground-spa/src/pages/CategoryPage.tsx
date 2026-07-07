@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChevronLeft, ExternalLink, Github, Maximize2, Rocket, Search, X } from "lucide-react";
+import { ExternalLink, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
-import { ThemePicker } from "@/components/ThemePicker";
+import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
-import { useTheme } from "@/lib/useTheme";
 import { cn } from "@/lib/cn";
 
 /**
@@ -16,8 +15,6 @@ import { cn } from "@/lib/cn";
  */
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const [theme, setTheme] = useTheme();
   const [query, setQuery] = useState("");
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
@@ -42,35 +39,8 @@ export function CategoryPage(): React.ReactElement {
   });
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-[var(--v4-line,#e2e8f0)] bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-5 sm:px-8 sm:py-4 md:gap-8">
-          <Link to="/" className="flex items-center gap-3 font-bold text-[var(--v4-ink,#1a1f2a)]">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--v4-brand,#2d6a8f)] text-white shadow-sm">
-              <Rocket size={17} />
-            </div>
-            <span className="text-[15px]">dragon</span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="flex items-center gap-1 text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)] hover:text-[var(--v4-ink,#1a1f2a)]"
-          >
-            <ChevronLeft size={14} /> Back to catalog
-          </button>
-          <div className="flex-1" />
-          <ThemePicker value={theme} onChange={setTheme} />
-          <a
-            href="https://github.com/cardene777/dragon"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg p-2 text-[var(--v4-ink-dim,#5a6270)] hover:bg-[var(--v4-canvas,#f8fafc)] hover:text-[var(--v4-ink,#1a1f2a)]"
-            aria-label="GitHub"
-          >
-            <Github size={17} />
-          </a>
-        </div>
-      </header>
+    <div>
+      <SiteHeader />
 
       <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-8 sm:py-12">
         <nav aria-label="パンくず" className="mb-2 text-[12px] text-[var(--v4-ink-dim,#5a6270)]">
@@ -213,8 +183,8 @@ function ItemCard({
       <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[94vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-3xl bg-white p-6 sm:p-8 shadow-2xl focus:outline-none">
-            <div className="mb-4 flex items-start justify-between gap-4">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex flex-col max-h-[92vh] w-[94vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-white p-6 sm:p-8 shadow-2xl focus:outline-none">
+            <div className="mb-4 flex items-start justify-between gap-4 shrink-0">
               <div>
                 <div className="text-[10.5px] font-mono text-[var(--v4-ink-mute,#8a8678)]">
                   {item.id}
@@ -238,7 +208,7 @@ function ItemCard({
                 </button>
               </Dialog.Close>
             </div>
-            <div className="rounded-2xl bg-[var(--v4-canvas,#f8fafc)] p-6 max-h-[80vh] overflow-auto [&_svg]:max-w-full [&_svg]:h-auto">
+            <div className="flex-1 min-h-0 rounded-2xl bg-[var(--v4-canvas,#f8fafc)] p-4 overflow-hidden flex items-center justify-center [&>*]:w-full [&>*]:h-full [&>*]:flex [&>*]:items-center [&>*]:justify-center [&_svg]:!w-full [&_svg]:!h-full [&_svg]:!block">
               {modalOpen && <CdlDiagramView diagram={item.diagram as never} />}
             </div>
           </Dialog.Content>
