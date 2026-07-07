@@ -6,10 +6,10 @@ import { useTheme } from "@/lib/useTheme";
  * 全 page 共通の header (旧 Astro Header.astro 相当)。
  * dragon brand mark + nav links (overview / editor / catalog / compare / docs / github) + theme picker。
  */
-const LINKS: Array<{ to: string; label: string; external?: boolean }> = [
+const LINKS: Array<{ to: string; label: string }> = [
   { to: "/", label: "overview" },
   { to: "/editor", label: "editor" },
-  { to: "/", label: "catalog" },
+  { to: "/catalog", label: "catalog" },
   { to: "/compare", label: "compare" },
   { to: "/docs", label: "docs" },
 ];
