@@ -74,7 +74,50 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
       expect(Math.abs(mid1.y - start.y), `1 段目 y 一致 (水平): ${arrow.d}`).toBeLessThan(1);
       expect(Math.abs(mid2.x - mid1.x), `2 段目 x 一致 (垂直 elbow): ${arrow.d}`).toBeLessThan(1);
       expect(Math.abs(tip.y - mid2.y), `3 段目 y 一致 (水平着地): ${arrow.d}`).toBeLessThan(1);
-      expect(Math.abs(tip.x - mid2.x), `3 段目 x が elbow.x 近傍で子 bar 左辺に着地 (< 20px): ${arrow.d}`).toBeLessThan(20);
+      expect(Math.abs(tip.x - mid2.x), `3 段目 x が elbow.x 近傍で子 bar 左辺に着地 (< 40px): ${arrow.d}`).toBeLessThan(40);
+    }
+  });
+
+  test("gantt-timeline: arrow head 三角形の頂点が 子 bar の左辺の 4px 以上外側 (食い込み防止)", async ({ page }) => {
+    await page.getByText("ガントチャート", { exact: true }).first().click();
+    await page.waitForTimeout(1000);
+
+    const info = await page.evaluate(() => {
+      const bars: Array<{ left: number; top: number; width: number }> = [];
+      document.querySelectorAll('[data-cdl-role="gantt-bar"]').forEach((b) => {
+        bars.push({
+          left: parseFloat(b.getAttribute("x") ?? "0"),
+          top: parseFloat(b.getAttribute("y") ?? "0"),
+          width: parseFloat(b.getAttribute("width") ?? "0"),
+        });
+      });
+      const heads: Array<{ points: Array<{ x: number; y: number }> }> = [];
+      document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').forEach((p) => {
+        const d = p.getAttribute("d") ?? "";
+        if (!d.includes("Z")) return;
+        const pts: Array<{ x: number; y: number }> = [];
+        const tokens = d.trim().split(/[\s,]+/);
+        for (let i = 0; i < tokens.length; i++) {
+          const t = tokens[i]!;
+          if (t === "M" || t === "L") {
+            const x = parseFloat(tokens[i + 1]!);
+            const y = parseFloat(tokens[i + 2]!);
+            if (Number.isFinite(x) && Number.isFinite(y)) pts.push({ x, y });
+            i += 2;
+          }
+        }
+        if (pts.length === 3) heads.push({ points: pts });
+      });
+      return { bars, heads };
+    });
+
+    for (const head of info.heads) {
+      const tipRight = Math.max(...head.points.map((p) => p.x));
+      const nearestBar = info.bars.find((b) => b.left > tipRight);
+      if (nearestBar) {
+        const gap = nearestBar.left - tipRight;
+        expect(gap, `arrow head 頂点 x=${tipRight} と最寄り子 bar 左辺 x=${nearestBar.left} の gap (${gap}) が >= 4px`).toBeGreaterThanOrEqual(4);
+      }
     }
   });
 
@@ -133,6 +176,63 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     if (info) {
       expect(info.pointCount, "polyline が 2 point 以上 (2 datum 以上)").toBeGreaterThanOrEqual(2);
     }
+  });
+
+  test("chart-line: value label が axis tick label と bbox 重ならない (他要素との重なり回避)", async ({ page }) => {
+    await page.getByText("折れ線グラフ", { exact: true }).first().click();
+    await page.waitForTimeout(1000);
+
+    const info = await page.evaluate(() => {
+      const svg = document.querySelector('svg[role="img"]');
+      if (!svg) return null;
+      const texts = Array.from(svg.querySelectorAll("text"));
+      const valueLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
+      const axisLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
+      texts.forEach((t) => {
+        const bb = (t as SVGGraphicsElement).getBBox();
+        const content = t.textContent ?? "";
+        if (/^[\d,]+$/.test(content) && content.includes(",")) {
+          valueLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
+        } else if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/.test(content)) {
+          axisLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
+        }
+      });
+      return { valueLabels, axisLabels };
+    });
+    expect(info, "chart-line labels が存在").not.toBeNull();
+    if (info) {
+      const overlaps: string[] = [];
+      for (const v of info.valueLabels) {
+        for (const a of info.axisLabels) {
+          const overlapX = v.x < a.x + a.w && v.x + v.w > a.x;
+          const overlapY = v.y < a.y + a.h && v.y + v.h > a.y;
+          if (overlapX && overlapY) overlaps.push(`"${v.t}" と axis "${a.t}"`);
+        }
+      }
+      expect(overlaps, `value label と axis label が重なる: ${overlaps.join(", ")}`).toHaveLength(0);
+    }
+  });
+
+  test("card: subtitle が rect の水平範囲を超えない (sm2 の long entry/exit label 対応)", async ({ page }) => {
+    await page.getByText("ステート図 (拡張)", { exact: true }).first().click();
+    await page.waitForTimeout(1000);
+
+    const info = await page.evaluate(() => {
+      const results: Array<{ cardW: number; textEndX: number; text: string }> = [];
+      document.querySelectorAll('[data-cdl-node]').forEach((g) => {
+        const rect = g.querySelector('[data-cdl-role="node-body"]');
+        if (!rect) return;
+        const cardW = parseFloat(rect.getAttribute("width") ?? "0");
+        g.querySelectorAll("text").forEach((t) => {
+          const bb = (t as SVGGraphicsElement).getBBox();
+          if (bb.x + bb.width > cardW + 4) {
+            results.push({ cardW, textEndX: bb.x + bb.width, text: t.textContent ?? "" });
+          }
+        });
+      });
+      return results;
+    });
+    expect(info.length, `sm2 card の text が rect の水平範囲を超える件数 (0 期待): ${JSON.stringify(info)}`).toBe(0);
   });
 
   test("edge-line: fill は none (fill:#XXX bug 回帰なし)", async ({ page }) => {

@@ -374,9 +374,10 @@ html.dark .catalog-preview-stage {
   justify-content: center;
 }
 .catalog-preview-stage-inner svg {
-  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 640px !important;
+  width: auto !important;
   height: auto !important;
-  max-height: 640px;
   display: block;
   margin: 0 auto;
 }
