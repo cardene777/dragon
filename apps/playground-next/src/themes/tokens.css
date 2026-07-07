@@ -1,0 +1,224 @@
+/**
+ * dragon 6 theme design tokens SSOT
+ *
+ * html[data-theme="<name>"] selector で CSS var を上書き。
+ * base tokens (globals.css @theme block) からの差分だけを列挙する。
+ *
+ * theme 意図 SSOT ...
+ *   - blueprint    ... 技術製図 (青地 + white ink + grid pattern)
+ *   - neumorphism  ... soft UI (raised bumps + dual shadow + cool blue accent)
+ *   - circuit      ... PCB 基板 (dark green board + gold pads + mint traces)
+ *   - handdrawn    ... Excalidraw sketch (kraft palette + rough.js wobble + Caveat font)
+ *   - pinboard     ... 掲示板 (sticky note + kraft board + slight rotation)
+ *   - isometric    ... 3D depth (top-light gradient + cast shadow)
+ */
+
+/* ═════════════════ Blueprint (technical drawing) ═════════════════ */
+html[data-theme="blueprint"] {
+  --color-surface: #f5f9fc;
+  --color-surface-2: #e6eef5;
+  --color-ink: #1e426c;
+  --color-ink-dim: #4a6b8f;
+  --color-ink-mute: #7a9ac1;
+  --color-accent: #1e426c;
+  --color-accent-alt: #5a8ec1;
+  --color-border: #b8c8dc;
+  --color-border-soft: #d4e0ec;
+  --diagram-grid-color: rgba(80, 130, 180, 0.28);
+  --diagram-grid-major: rgba(30, 66, 108, 0.14);
+  --diagram-grid-size: 24px;
+  --shadow-card:
+    0 1px 2px rgba(30, 66, 108, 0.06),
+    0 4px 16px rgba(30, 66, 108, 0.06);
+  --shadow-inset:
+    inset 2px 2px 6px rgba(80, 130, 180, 0.12),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.5);
+}
+
+/* ═════════════════ Neumorphism (raised bumps) ═════════════════ */
+html[data-theme="neumorphism"] {
+  --color-surface: #e8ecf1;
+  --color-surface-2: #dde3ea;
+  --color-ink: #2a2d36;
+  --color-ink-dim: #6c727d;
+  --color-ink-mute: #9098a5;
+  --color-accent: #4a7fc8;
+  --color-accent-alt: #6fa8e0;
+  --color-border: rgba(163, 177, 198, 0.4);
+  --shadow-raised-dark: rgba(163, 177, 198, 0.55);
+  --shadow-raised-light: rgba(255, 255, 255, 0.95);
+  --shadow-card:
+    8px 8px 20px rgba(163, 177, 198, 0.45),
+    -8px -8px 20px rgba(255, 255, 255, 0.95),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.5);
+  --shadow-inset:
+    inset 4px 4px 10px rgba(163, 177, 198, 0.4),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.9);
+}
+
+/* ═════════════════ Circuit (PCB board) ═════════════════ */
+html[data-theme="circuit"] {
+  --color-surface: #0a1a12;
+  --color-surface-2: #142820;
+  --color-ink: #b8f0d1;
+  --color-ink-dim: #7bb896;
+  --color-ink-mute: #4e8060;
+  --color-accent: #c8a038;
+  --color-accent-alt: #48e0b0;
+  --color-border: #c8a038;
+  --color-border-soft: #2a4638;
+  --shadow-card:
+    0 0 20px rgba(72, 224, 176, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-inset:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.5),
+    inset -1px -1px 3px rgba(72, 224, 176, 0.08);
+}
+/* Circuit theme SVG text 用の subtle glow (dark background 読みやすさ強化) */
+html[data-theme="circuit"] svg text {
+  filter: drop-shadow(0 0 3px rgba(72, 224, 176, 0.25));
+}
+
+/* ═════════════════ Handdrawn (Excalidraw sketch) ═════════════════ */
+html[data-theme="handdrawn"] {
+  --color-surface: #fdf7d9;
+  --color-surface-2: #f7f0dc;
+  --color-ink: #2c2820;
+  --color-ink-dim: #5a4830;
+  --color-ink-mute: #8a6c50;
+  --color-accent: #a94a3a;
+  --color-accent-alt: #4a8b7f;
+  --color-border: #2c2820;
+  --color-border-soft: #b8a670;
+  --font-sans: "Caveat", "Bradley Hand", "Comic Sans MS", cursive;
+  --font-mono: "Kalam", "Comic Sans MS", cursive;
+  --diagram-surface-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9' seed='2'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.15 0 0 0 0 0.1 0 0 0 0.08 0'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+  --shadow-card:
+    2px 3px 0 rgba(44, 40, 32, 0.15),
+    0 6px 20px rgba(90, 72, 48, 0.12);
+  --shadow-inset:
+    inset 2px 3px 8px rgba(90, 72, 48, 0.12);
+}
+
+/* ═════════════════ Pinboard (sticky note board) ═════════════════ */
+html[data-theme="pinboard"] {
+  --color-surface: #d4b78a;
+  --color-surface-2: #c4a67a;
+  --color-ink: #3a2818;
+  --color-ink-dim: #6a4a30;
+  --color-ink-mute: #967050;
+  --color-accent: #d94a2a;
+  --color-accent-alt: #f0c040;
+  --color-border: #3a2818;
+  --font-sans: "Kalam", "Comic Sans MS", cursive;
+  --shadow-card:
+    3px 5px 12px rgba(30, 20, 12, 0.28),
+    0 1px 3px rgba(30, 20, 12, 0.15);
+  --shadow-inset:
+    inset 2px 3px 8px rgba(30, 20, 12, 0.14);
+}
+
+/* ═════════════════ Isometric (3D depth) ═════════════════ */
+html[data-theme="isometric"] {
+  --color-surface: #f0eee6;
+  --color-surface-2: #e4e0d0;
+  --color-ink: #2a2820;
+  --color-ink-dim: #5a5040;
+  --color-ink-mute: #8a7c60;
+  --color-accent: #6a4a30;
+  --color-accent-alt: #c9a86b;
+  --color-border: #2a2820;
+  --color-border-soft: #b8a480;
+  --shadow-card:
+    4px 6px 0 rgba(42, 40, 32, 0.15),
+    0 8px 24px rgba(90, 80, 64, 0.15);
+  --shadow-inset:
+    inset 3px 4px 10px rgba(90, 80, 64, 0.15);
+}
+
+/* ═════════════════ Dark mode overrides (全 theme) ═════════════════ */
+html.dark {
+  --color-surface: #0f1420;
+  --color-surface-2: #1a2030;
+  --color-ink: #e8ecf3;
+  --color-ink-dim: #a8b3c3;
+  --color-ink-mute: #6a7a90;
+  --color-accent: #5ec4e8;
+  --color-border: #2a3448;
+  --color-border-soft: #1a2434;
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-inset:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.4),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.03);
+}
+
+html.dark[data-theme="blueprint"] {
+  --color-surface: #0a1a30;
+  --color-surface-2: #142845;
+  --color-ink: #b8d0e8;
+  --color-ink-dim: #7a95b0;
+  --color-accent: #6ab3d8;
+  --color-border: #3a5a80;
+  --diagram-grid-color: rgba(90, 140, 200, 0.24);
+  --diagram-grid-major: rgba(180, 210, 240, 0.14);
+}
+
+html.dark[data-theme="neumorphism"] {
+  --color-surface: #1a1f2a;
+  --color-surface-2: #141824;
+  --color-ink: #d8dce8;
+  --color-ink-dim: #99a3b3;
+  --color-accent: #6fa8e0;
+  /* dark mode = raised bumps を dual shadow で強く表現、 border は subtle mint 提示 */
+  --shadow-raised-dark: rgba(0, 0, 0, 0.9);
+  --shadow-raised-light: rgba(255, 255, 255, 0.15);
+  --shadow-card:
+    10px 10px 24px rgba(0, 0, 0, 0.85),
+    -10px -10px 24px rgba(255, 255, 255, 0.04),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.06);
+  --shadow-inset:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.6),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.03);
+}
+/* dark neumorphism では node に subtle border を追加して視認性を上げる */
+html.dark[data-theme="neumorphism"] svg [data-node] path {
+  vector-effect: non-scaling-stroke;
+}
+
+html.dark[data-theme="circuit"] {
+  /* circuit は元々 dark palette、 変更少なめ */
+  --color-surface: #051510;
+  --color-surface-2: #0a1a12;
+}
+
+html.dark[data-theme="handdrawn"] {
+  --color-surface: #2a2418;
+  --color-surface-2: #22200f;
+  --color-ink: #f0e8c8;
+  --color-ink-dim: #b8a880;
+  --color-accent: #e8664c;
+  --color-border: #f0e8c8;
+}
+
+html.dark[data-theme="pinboard"] {
+  --color-surface: #3a2818;
+  --color-surface-2: #2a1808;
+  --color-ink: #f0dcb0;
+  --color-ink-dim: #b89880;
+  --color-accent: #e8664c;
+  --color-border: #f0dcb0;
+}
+
+html.dark[data-theme="isometric"] {
+  --color-surface: #1a1810;
+  --color-surface-2: #221e14;
+  --color-ink: #e8e0c8;
+  --color-ink-dim: #a89870;
+  --color-accent: #d0a068;
+  --color-border: #d0b090;
+}
