@@ -83,10 +83,10 @@ function Header({
           </div>
         </a>
         <nav className="hidden md:flex flex-1 items-center gap-6 text-[14px] font-medium text-[var(--color-ink-dim)]">
-          <a href="/" className="text-[var(--color-ink)]">Catalog</a>
-          <a href="/editor" className="hover:text-[var(--color-ink)]">Editor</a>
-          <a href="/compare" className="hover:text-[var(--color-ink)]">Compare</a>
-          <a href="/docs" className="hover:text-[var(--color-ink)]">Docs</a>
+          <a href="/" className="text-[var(--color-ink)] relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--color-accent)] after:rounded-full">Catalog</a>
+          <a href="/editor" className="hover:text-[var(--color-ink)] transition-colors">Editor</a>
+          <a href="/compare" className="hover:text-[var(--color-ink)] transition-colors">Compare</a>
+          <a href="/docs" className="hover:text-[var(--color-ink)] transition-colors">Docs</a>
         </nav>
         <div className="md:hidden flex-1" />
         <ThemeStrip value={theme} onChange={setTheme} className="hidden lg:flex" />
