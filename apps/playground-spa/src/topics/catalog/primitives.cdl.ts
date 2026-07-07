@@ -128,3 +128,40 @@ export const shapePerson = diagram("shape-person", { topic: "shape: person (人�
   .node("p", { lane: "l", stack: 0, kind: "shape-person", title: "エンドユーザ", eyebrow: "actor" })
   .phase("p", { duration: 1500, title: "person", body: "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者" }, (p: PhaseBuilder) => p.activate("p").badge("shape"))
   .build();
+
+/** 5. Shape-driven software 6 (CAR-1111 Phase 2-B) ... ソフトウェア開発領域の視覚要素 */
+export const shapeWindow = diagram("shape-window", { topic: "shape: window (OS ウィンドウ、 GUI アプリ表現)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-window", title: "ダッシュボード", eyebrow: "window", subtitle: "GUI アプリ" })
+  .phase("p", { duration: 1500, title: "window", body: "title bar + traffic lights の OS window。 GUI アプリ / desktop app / ブラウザ画面等" }, (p: PhaseBuilder) => p.activate("w").badge("shape"))
+  .build();
+
+export const shapeTerminal = diagram("shape-terminal", { topic: "shape: terminal (端末、 CLI 表現)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-terminal", title: "zsh", eyebrow: "terminal", subtitle: "CLI shell" })
+  .phase("p", { duration: 1500, title: "terminal", body: "黒地 + prompt + cursor の端末。 CLI 実行 / スクリプト起動 / SSH セッション等" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
+  .build();
+
+export const shapeCodeBlock = diagram("shape-code-block", { topic: "shape: code-block (コード editor、 実装 snippet)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-code-block", title: "utils.ts", eyebrow: "code", subtitle: "3 line snippet" })
+  .phase("p", { duration: 1500, title: "code-block", body: "line 番号 gutter + code 行 stub。 実装 / snippet / editor 表示等" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
+  .build();
+
+export const shapeKanbanCard = diagram("shape-kanban-card", { topic: "shape: kanban-card (ticket、 タスク管理)" })
+  .lane("l", { x: 0, width: W })
+  .node("k", { lane: "l", stack: 0, kind: "shape-kanban-card", title: "CAR-1111", eyebrow: "in progress", subtitle: "shape-driven kind" })
+  .phase("p", { duration: 1500, title: "kanban-card", body: "top color bar + 3 stub line の kanban ticket。 タスク / issue / TODO 表現" }, (p: PhaseBuilder) => p.activate("k").badge("shape"))
+  .build();
+
+export const shapeMessageBubble = diagram("shape-message-bubble", { topic: "shape: message-bubble (チャット吹き出し、 会話)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-message-bubble", title: "了解しました", eyebrow: "message" })
+  .phase("p", { duration: 1500, title: "message-bubble", body: "rounded rect + tail のチャット吹き出し。 メッセージ / 通知 / 会話 / commit comment 等" }, (p: PhaseBuilder) => p.activate("m").badge("shape"))
+  .build();
+
+export const shapeGear = diagram("shape-gear", { topic: "shape: gear (歯車、 設定 / 処理エンジン)" })
+  .lane("l", { x: 0, width: W })
+  .node("g", { lane: "l", stack: 0, kind: "shape-gear", title: "Settings", eyebrow: "config", subtitle: "設定 / process engine" })
+  .phase("p", { duration: 1500, title: "gear", body: "8 tooth 歯車 + 中央 hole。 設定 / configuration / 処理エンジン / worker 等" }, (p: PhaseBuilder) => p.activate("g").badge("shape"))
+  .build();
