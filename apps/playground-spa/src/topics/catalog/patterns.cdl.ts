@@ -130,12 +130,12 @@ export const patternFanOut = diagram("pattern-fan-out", { topic: "pattern: Fan-o
   .node("w1", { lane: "w", stack: 0, kind: "function", title: "Worker 1" })
   .node("w2", { lane: "w", stack: 1, kind: "function", title: "Worker 2" })
   .node("w3", { lane: "w", stack: 2, kind: "function", title: "Worker 3" })
-  .edge("client", "dist", { id: "e1", label: "submit", tone: "accent", style: "dotted-flow" })
-  .edge("dist", "w1", { id: "e2", label: "job 1", tone: "teal", style: "dotted-flow" })
-  .edge("dist", "w2", { id: "e3", label: "job 2", tone: "teal", style: "dotted-flow" })
-  .edge("dist", "w3", { id: "e4", label: "job 3", tone: "teal", style: "dotted-flow" })
-  .phase("submit", { duration: 1800, title: "submit", body: "Producer が 1 入力を Dispatcher に submit。" }, (p: PhaseBuilder) => p.activate("client", "dist", "e1").badge("submit"))
-  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 1 job を 3 worker に並列 dispatch (round-robin)、 各 worker が独立処理。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3", "e2", "e3", "e4").badge("fan-out"))
+  .edge("client", "dist", { id: "e1", label: "submit", tone: "accent", style: "solid" })
+  .edge("dist", "w1", { id: "e2", label: "job 1", tone: "teal", style: "solid" })
+  .edge("dist", "w2", { id: "e3", label: "job 2", tone: "teal", style: "solid" })
+  .edge("dist", "w3", { id: "e4", label: "job 3", tone: "teal", style: "solid" })
+  .phase("submit", { duration: 1800, title: "submit", body: "Producer が 1 入力を Dispatcher に submit。" }, (p: PhaseBuilder) => p.activate("client", "dist").badge("submit"))
+  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 1 job を 3 worker に並列 dispatch (round-robin)、 各 worker が独立処理。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3").badge("fan-out"))
   .build();
 
 /** 9. Fan-in (複数 worker → 集約) */
@@ -149,14 +149,14 @@ export const patternFanIn = diagram("pattern-fan-in", { topic: "pattern: Fan-in 
   .node("agg", { lane: "a", stack: 0, kind: "function", title: "Aggregator", subtitle: "集約" })
   .node("store", { lane: "a", stack: 1, kind: "storage", title: "result table" })
   .node("client", { lane: "r", stack: 0, kind: "actor", title: "Consumer" })
-  .edge("w1", "agg", { id: "e1", label: "result 1", tone: "teal", style: "dotted-flow" })
-  .edge("w2", "agg", { id: "e2", label: "result 2", tone: "teal", style: "dotted-flow" })
-  .edge("w3", "agg", { id: "e3", label: "result 3", tone: "teal", style: "dotted-flow" })
-  .edge("agg", "store", { id: "e4", label: "write", tone: "warning", style: "dotted-flow" })
-  .edge("store", "client", { id: "e5", label: "read", tone: "accent", style: "dotted-flow" })
-  .phase("collect", { duration: 1800, title: "collect", body: "3 worker が結果を Aggregator に送る。" }, (p: PhaseBuilder) => p.activate("w1", "w2", "w3", "agg", "e1", "e2", "e3").badge("fan-in"))
-  .phase("write", { duration: 1800, title: "write", body: "Aggregator が集約結果を store に書込。" }, (p: PhaseBuilder) => p.activate("agg", "store", "e4").badge("write"))
-  .phase("read", { duration: 1800, title: "read", body: "Consumer が集約結果を取得。" }, (p: PhaseBuilder) => p.activate("store", "client", "e5").badge("read"))
+  .edge("w1", "agg", { id: "e1", label: "result 1", tone: "teal", style: "solid" })
+  .edge("w2", "agg", { id: "e2", label: "result 2", tone: "teal", style: "solid" })
+  .edge("w3", "agg", { id: "e3", label: "result 3", tone: "teal", style: "solid" })
+  .edge("agg", "store", { id: "e4", label: "write", tone: "warning", style: "solid" })
+  .edge("store", "client", { id: "e5", label: "read", tone: "accent", style: "solid" })
+  .phase("collect", { duration: 1800, title: "collect", body: "3 worker が結果を Aggregator に送る。" }, (p: PhaseBuilder) => p.activate("w1", "w2", "w3", "agg").badge("fan-in"))
+  .phase("write", { duration: 1800, title: "write", body: "Aggregator が集約結果を store に書込。" }, (p: PhaseBuilder) => p.activate("agg", "store").badge("write"))
+  .phase("read", { duration: 1800, title: "read", body: "Consumer が集約結果を取得。" }, (p: PhaseBuilder) => p.activate("store", "client").badge("read"))
   .build();
 
 /** 10. Rollback (失敗時に元の状態へ巻き戻す) */

@@ -268,26 +268,42 @@
     .v4-nav-links { display: none; }
   }
 
-  /* ── html.dark cascade (Neumorphism 撤回、 v4 design 準拠の navy dark) ── */
+  /* ── html.dark cascade (inkly 参考、 深 navy + refined violet accent) ── */
   html.dark {
-    --v4-canvas: #0e1117;
-    --v4-surface: #161b22;
-    --v4-surface-2: #1f2630;
-    --v4-line: #2a3340;
-    --v4-line-soft: #1f2630;
-    --v4-ink: #f0f3f8;
-    --v4-ink-dim: #99a3b3;
-    --v4-ink-mute: #6b7785;
-    --v4-brand: #5ec4e8;
-    --v4-brand-deep: #4e9dc4;
-    --v4-brand-glow: #7dc7e8;
-    --v4-code-bg: #161b22;
+    --v4-canvas: #0a0d14;
+    --v4-surface: #12161f;
+    --v4-surface-2: #1a1f2e;
+    --v4-line: #262e42;
+    --v4-line-soft: #1a1f2e;
+    --v4-ink: #f2f3f7;
+    --v4-ink-dim: #9ca3b8;
+    --v4-ink-mute: #6b7290;
+    --v4-brand: #8b7ffa;
+    --v4-brand-deep: #7c6ffb;
+    --v4-brand-glow: #a394fc;
+    --v4-code-bg: #12161f;
+  }
+  html.dark body {
+    background-color: #0a0d14;
+    /* subtle radial gradient を全体 background に (inkly hero 相当) */
+    background-image:
+      radial-gradient(
+        ellipse 900px 500px at center 40%,
+        rgba(124, 111, 251, 0.06),
+        transparent 60%
+      );
   }
   html.dark .v4-nav {
-    background: rgba(14, 17, 23, 0.85);
-    border-bottom-color: #2a3340;
+    background: rgba(10, 13, 20, 0.85);
+    border-bottom-color: #262e42;
   }
   html.dark .v4-nav-cta {
-    background: #1f2630;
-    color: #f0f3f8;
+    background: linear-gradient(180deg, #7c6ffb, #6a5bfa);
+    color: #ffffff;
+    border: 1px solid #7c6ffb;
+    box-shadow: 0 4px 12px -4px rgba(124, 111, 251, 0.5);
+  }
+  html.dark .v4-nav-cta:hover {
+    background: linear-gradient(180deg, #8b7ffa, #7c6ffb);
+    box-shadow: 0 6px 16px -4px rgba(124, 111, 251, 0.7);
   }

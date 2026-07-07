@@ -738,28 +738,28 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 
 /* ── html.dark cascade (Neumorphism 撤回、 v4 cream palette を navy に shift) ── */
 html.dark {
-  --canvas: #0e1117;
-  --surface: #161b22;
-  --surface-2: #1f2630;
-  --line: #2a3340;
-  --line-soft: #1f2630;
-  --ink: #f0f3f8;
-  --ink-dim: #99a3b3;
-  --ink-mute: #6b7785;
-  --brand: #5ec4e8;
-  --brand-deep: #4e9dc4;
-  --brand-glow: #7dc7e8;
+  --canvas: #0a0d14;
+  --surface: #12161f;
+  --surface-2: #1a1f2e;
+  --line: #262e42;
+  --line-soft: #1a1f2e;
+  --ink: #f2f3f7;
+  --ink-dim: #9ca3b8;
+  --ink-mute: #6b7290;
+  --brand: #8b7ffa;
+  --brand-deep: #7c6ffb;
+  --brand-glow: #a394fc;
 }
 html.dark .canvas-code,
 html.dark .step-code {
-  background: #161b22;
-  color: #f0f3f8;
+  background: #12161f;
+  color: #f2f3f7;
 }
 html.dark .canvas-code .k,
-html.dark .step-code .k { color: #7dc7e8; }
+html.dark .step-code .k { color: #a394fc; }
 html.dark .canvas-code .s,
 html.dark .step-code .s { color: #a3d6a8; }
-html.dark .canvas-code .ln { color: #6b7785; }
+html.dark .canvas-code .ln { color: #6b7290; }
 html.dark .example-thumb {
-  background: #1f2630;
+  background: #1a1f2e;
 }
