@@ -38,7 +38,7 @@ export const patternPassthrough = diagram("pattern-passthrough", { topic: "patte
   .lane("l2", { x: L3_X2, width: L3_W_C, contain: true })
   .lane("l3", { x: L3_X3, width: L3_W_LR })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "Client" })
-  .node("router", { lane: "l2", stack: 0, kind: "function", title: "API Gateway", subtitle: "粒子が貫通" })
+  .node("router", { lane: "l2", stack: 0, kind: "function", title: "API Gateway", subtitle: "Client → Service を relay (proxy pattern)" })
   .node("c", { lane: "l3", stack: 0, kind: "function", title: "Service" })
   .edge("a", "c", { id: "e", label: "Client → Service", sub: "Gateway 経由", tone: "accent", style: "dotted-flow" })
   .phase("p", { duration: 2800, title: "貫通", body: "edge path が Gateway の上を通るため、 cdl が auto 判定で粒子を Gateway 中央まで動かす。" }, (p: PhaseBuilder) => p.activate("a", "router", "c", "e").badge("through"))
@@ -135,7 +135,7 @@ export const patternFanOut = diagram("pattern-fan-out", { topic: "pattern: Fan-o
   .edge("dist", "w2", { id: "e3", label: "job 2", tone: "teal", style: "dotted-flow" })
   .edge("dist", "w3", { id: "e4", label: "job 3", tone: "teal", style: "dotted-flow" })
   .phase("submit", { duration: 1800, title: "submit", body: "Producer が 1 入力を Dispatcher に submit。" }, (p: PhaseBuilder) => p.activate("client", "dist", "e1").badge("submit"))
-  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 3 worker に並列分配。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3", "e2", "e3", "e4").badge("fan-out"))
+  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 1 job を 3 worker に並列 dispatch (round-robin)、 各 worker が独立処理。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3", "e2", "e3", "e4").badge("fan-out"))
   .build();
 
 /** 9. Fan-in (複数 worker → 集約) */
