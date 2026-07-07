@@ -18,6 +18,8 @@ import { EditorPage } from "./pages/EditorPage";
 import { DocsPage } from "./pages/DocsPage";
 import { ComparePage } from "./pages/ComparePage";
 import { PresetDetailPage } from "./pages/PresetDetailPage";
+import { ReleaseNotesPage } from "./pages/ReleaseNotesPage";
+import { ContributePage } from "./pages/ContributePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 createRoot(document.getElementById("root")!).render(
@@ -33,6 +35,8 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/preset/:id" element={<PresetDetailPage />} />
+          <Route path="/release-notes" element={<ReleaseNotesPage />} />
+          <Route path="/contribute" element={<ContributePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </ToastProvider>

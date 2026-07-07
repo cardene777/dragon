@@ -1,33 +1,40 @@
 import { Link } from "react-router";
-import { Rocket, ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 
+/**
+ * 404 page = 旧 apps/playground/src/pages/404.astro 忠実復元。
+ * v4-404 = 大きい 404 code + em 強調 title + 4 CTA (overview / editor / catalog / docs)。
+ * CSS = home.css の .v4-404-* class (旧 404.astro <style> tag 移植)。
+ */
 export function NotFoundPage(): React.ReactElement {
   return (
     <div>
       <SiteHeader />
-      <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center gap-6 p-8 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--v4-brand,#2d6a8f)] text-white">
-        <Rocket size={32} />
-      </div>
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--v4-brand,#2d6a8f)] font-mono">
-          Error 404
-        </div>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-[var(--v4-ink,#1a1f2a)]">
-          Page not found
+      <main className="v4-404">
+        <div className="v4-404-code">404</div>
+        <h1 className="v4-404-title">
+          <em>そこは</em>
+          <span>、 まだ書かれていない。</span>
         </h1>
-        <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--v4-ink-dim,#5a6270)]">
-          この URL に対応する page はありません。 catalog に戻って preset を選んでください。
+        <p className="v4-404-lead">
+          お探しの page は移動 / 削除されたか、 そもそも存在しません。
+          dragon の 4 つの入口から探してみてください。
         </p>
-      </div>
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 rounded-xl bg-[var(--v4-brand,#2d6a8f)] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:shadow-md transition-shadow"
-      >
-        <ArrowLeft size={14} /> Back to catalog
-      </Link>
-      </div>
+        <div className="v4-404-cta">
+          <Link to="/" className="v4-btn-primary">
+            overview →
+          </Link>
+          <Link to="/editor" className="v4-btn-secondary">
+            open editor
+          </Link>
+          <Link to="/catalog" className="v4-btn-secondary">
+            browse catalog
+          </Link>
+          <Link to="/docs" className="v4-btn-secondary">
+            read docs
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }
