@@ -6,9 +6,11 @@ import "./styles/cdl-theme.css";
 import "./styles/neumorphism.css";
 import "./styles/catalog.css";
 import "./styles/header.css";
+import "./styles/home.css";
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { HomePage } from "./pages/HomePage";
+import { CatalogIndexPage } from "./pages/CatalogIndexPage";
 import { CategoryPage } from "./pages/CategoryPage";
 import { EditorPage } from "./pages/EditorPage";
 import { DocsPage } from "./pages/DocsPage";
@@ -23,6 +25,7 @@ createRoot(document.getElementById("root")!).render(
       <ToastProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/catalog" element={<CatalogIndexPage />} />
           <Route path="/catalog/:slug" element={<CategoryPage />} />
           <Route path="/editor" element={<EditorPage />} />
           <Route path="/docs" element={<DocsPage />} />
