@@ -443,3 +443,125 @@
     background: rgba(94, 196, 232, 0.1);
     color: var(--v4-ink, #f0f3f8);
   }
+
+/* ─── modal (Radix Dialog、 theme-aware) ─── */
+.cdl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+.cdl-modal-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  width: 94vw;
+  max-width: 1400px;
+  transform: translate(-50%, -50%);
+  border-radius: 24px;
+  background: var(--v4-surface, #ffffff);
+  color: var(--v4-ink, #1a1f2a);
+  padding: 24px 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  outline: none;
+}
+html.dark .cdl-modal-content {
+  background: #141a24;
+  color: #f0f3f8;
+}
+.cdl-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.cdl-modal-id {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10.5px;
+  color: var(--v4-ink-mute, #8a8678);
+}
+html.dark .cdl-modal-id {
+  color: #8a95a6;
+}
+.cdl-modal-title {
+  margin-top: 2px;
+  font-family: var(--v4-sans, "Inter", sans-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--v4-ink, #1a1f2a);
+  letter-spacing: -0.02em;
+}
+html.dark .cdl-modal-title {
+  color: #f0f3f8;
+}
+.cdl-modal-desc {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--v4-ink-dim, #5a6270);
+}
+html.dark .cdl-modal-desc {
+  color: #99a3b3;
+}
+.cdl-modal-close {
+  padding: 8px;
+  border-radius: 999px;
+  color: var(--v4-ink-dim, #5a6270);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.cdl-modal-close:hover {
+  background: var(--v4-canvas, #f8fafc);
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-modal-close {
+  color: #99a3b3;
+}
+html.dark .cdl-modal-close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f3f8;
+}
+.cdl-modal-body {
+  flex: 1;
+  min-height: 0;
+  border-radius: 16px;
+  background: var(--v4-canvas, #f8fafc);
+  padding: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+html.dark .cdl-modal-body {
+  background: #0e1117;
+}
+.cdl-modal-body > * {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cdl-modal-body > * > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cdl-modal-body svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+}
