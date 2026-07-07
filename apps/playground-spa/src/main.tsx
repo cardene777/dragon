@@ -5,7 +5,8 @@ import "./styles/globals.css";
 import "./styles/cdl-theme.css";
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
-import { CatalogPage } from "./pages/CatalogPage";
+import { HomePage } from "./pages/HomePage";
+import { CategoryPage } from "./pages/CategoryPage";
 import { EditorPage } from "./pages/EditorPage";
 import { DocsPage } from "./pages/DocsPage";
 import { ComparePage } from "./pages/ComparePage";
@@ -18,7 +19,8 @@ createRoot(document.getElementById("root")!).render(
       <SvgDefs />
       <ToastProvider>
         <Routes>
-          <Route path="/" element={<CatalogPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/catalog/:slug" element={<CategoryPage />} />
           <Route path="/editor" element={<EditorPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/compare" element={<ComparePage />} />
