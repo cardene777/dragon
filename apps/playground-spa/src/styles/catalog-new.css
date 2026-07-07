@@ -41,13 +41,13 @@
   font-weight: 600;
 }
 html.dark .catalog-crumb {
-  color: #6b7785;
+  color: #6b7290;
 }
 html.dark .catalog-crumb a {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 html.dark .catalog-crumb .cur {
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 
 .catalog-hero {
@@ -56,7 +56,7 @@ html.dark .catalog-crumb .cur {
   border-bottom: 1px solid var(--v4-line, #e2e8f0);
 }
 html.dark .catalog-hero {
-  border-bottom-color: #2a3340;
+  border-bottom-color: #262e42;
 }
 .catalog-title {
   font-family: var(--v4-serif, "Newsreader", serif);
@@ -68,7 +68,7 @@ html.dark .catalog-hero {
   line-height: 1.15;
 }
 html.dark .catalog-title {
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 .catalog-desc {
   font-size: 15px;
@@ -78,7 +78,7 @@ html.dark .catalog-title {
   max-width: 780px;
 }
 html.dark .catalog-desc {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 .catalog-meta {
   display: flex;
@@ -100,14 +100,14 @@ html.dark .catalog-desc {
   border-color: rgba(45, 106, 143, 0.2);
 }
 html.dark .catalog-count {
-  background: #1f2630;
-  color: #99a3b3;
-  border-color: #2a3340;
+  background: #1a1f2e;
+  color: #9ca3b8;
+  border-color: #262e42;
 }
 html.dark .catalog-count-filter {
-  color: #5ec4e8;
-  background: rgba(94, 196, 232, 0.1);
-  border-color: rgba(94, 196, 232, 0.25);
+  color: #8b7ffa;
+  background: rgba(124, 111, 251, 0.1);
+  border-color: rgba(124, 111, 251, 0.25);
 }
 
 /* ── body = 2 pane (sidebar + preview) ── */
@@ -136,8 +136,8 @@ html.dark .catalog-count-filter {
   flex-direction: column;
 }
 html.dark .catalog-sidebar {
-  background: #161b22;
-  border-color: #2a3340;
+  background: #12161f;
+  border-color: #262e42;
 }
 @media (max-width: 900px) {
   .catalog-sidebar {
@@ -151,7 +151,7 @@ html.dark .catalog-sidebar {
   border-bottom: 1px solid var(--v4-line, #e2e8f0);
 }
 html.dark .catalog-search-wrap {
-  border-bottom-color: #2a3340;
+  border-bottom-color: #262e42;
 }
 .catalog-search-icon {
   position: absolute;
@@ -180,13 +180,13 @@ html.dark .catalog-search-wrap {
   color: var(--v4-ink-mute, #8a8678);
 }
 html.dark .catalog-search {
-  background: #1f2630;
-  border-color: #2a3340;
-  color: #f0f3f8;
+  background: #1a1f2e;
+  border-color: #262e42;
+  color: #f2f3f7;
 }
 html.dark .catalog-search:focus {
-  border-color: #5ec4e8;
-  box-shadow: 0 0 0 3px rgba(94, 196, 232, 0.18);
+  border-color: #8b7ffa;
+  box-shadow: 0 0 0 3px rgba(124, 111, 251, 0.18);
 }
 .catalog-search-clear {
   position: absolute;
@@ -242,8 +242,8 @@ html.dark .catalog-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 html.dark .catalog-list-item.selected {
-  background: rgba(94, 196, 232, 0.14);
-  color: #5ec4e8;
+  background: rgba(124, 111, 251, 0.14);
+  color: #8b7ffa;
 }
 .catalog-list-item-name {
   font-size: 13px;
@@ -255,10 +255,10 @@ html.dark .catalog-list-item.selected {
   color: var(--v4-brand, #2d6a8f);
 }
 html.dark .catalog-list-item-name {
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 html.dark .catalog-list-item.selected .catalog-list-item-name {
-  color: #5ec4e8;
+  color: #8b7ffa;
 }
 .catalog-list-item-id {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -279,8 +279,8 @@ html.dark .catalog-list-item.selected .catalog-list-item-name {
   position: relative;
 }
 html.dark .catalog-preview-card {
-  background: #161b22;
-  border-color: #2a3340;
+  background: #12161f;
+  border-color: #262e42;
 }
 .catalog-preview-head {
   display: flex;
@@ -292,7 +292,7 @@ html.dark .catalog-preview-card {
   position: relative;
 }
 html.dark .catalog-preview-head {
-  border-bottom-color: #2a3340;
+  border-bottom-color: #262e42;
 }
 .catalog-preview-id {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -310,7 +310,7 @@ html.dark .catalog-preview-head {
   line-height: 1.3;
 }
 html.dark .catalog-preview-title {
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 .catalog-preview-sub {
   font-size: 13.5px;
@@ -319,7 +319,7 @@ html.dark .catalog-preview-title {
   line-height: 1.55;
 }
 html.dark .catalog-preview-sub {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 
 /* 拡大 button = 右上絶対配置ではなく preview header 右端に inline 配置 */
@@ -345,14 +345,14 @@ html.dark .catalog-preview-sub {
   color: #ffffff;
 }
 html.dark .catalog-expand-btn {
-  background: #1f2630;
-  border-color: #2a3340;
-  color: #99a3b3;
+  background: #1a1f2e;
+  border-color: #262e42;
+  color: #9ca3b8;
 }
 html.dark .catalog-expand-btn:hover {
-  background: #5ec4e8;
-  border-color: #5ec4e8;
-  color: #0e1117;
+  background: #8b7ffa;
+  border-color: #8b7ffa;
+  color: #0a0d14;
 }
 
 .catalog-preview-stage {
@@ -364,7 +364,7 @@ html.dark .catalog-expand-btn:hover {
   justify-content: center;
 }
 html.dark .catalog-preview-stage {
-  background: #0e1117;
+  background: #0a0d14;
 }
 .catalog-preview-stage-inner {
   width: 100%;
@@ -392,7 +392,7 @@ html.dark .catalog-preview-stage {
   justify-content: flex-end;
 }
 html.dark .catalog-preview-foot {
-  border-top-color: #2a3340;
+  border-top-color: #262e42;
 }
 .catalog-preview-link {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -408,10 +408,10 @@ html.dark .catalog-preview-foot {
   background: rgba(45, 106, 143, 0.08);
 }
 html.dark .catalog-preview-link {
-  color: #5ec4e8;
+  color: #8b7ffa;
 }
 html.dark .catalog-preview-link:hover {
-  background: rgba(94, 196, 232, 0.1);
+  background: rgba(124, 111, 251, 0.1);
 }
 
 .catalog-preview-empty {
@@ -423,8 +423,8 @@ html.dark .catalog-preview-link:hover {
   border-radius: 12px;
 }
 html.dark .catalog-preview-empty {
-  background: #161b22;
-  border-color: #2a3340;
+  background: #12161f;
+  border-color: #262e42;
 }
 
 /* ── modal = SVG max 80vh center fit (V-6 aspect ratio 崩壊 fix) ── */
@@ -453,8 +453,8 @@ html.dark .catalog-preview-empty {
   outline: none;
 }
 html.dark .cdl-modal-content {
-  background: #161b22;
-  color: #f0f3f8;
+  background: #12161f;
+  color: #f2f3f7;
 }
 .cdl-modal-header {
   padding: 20px 28px;
@@ -466,7 +466,7 @@ html.dark .cdl-modal-content {
   flex-shrink: 0;
 }
 html.dark .cdl-modal-header {
-  border-bottom-color: #2a3340;
+  border-bottom-color: #262e42;
 }
 .cdl-modal-id {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -482,7 +482,7 @@ html.dark .cdl-modal-header {
   letter-spacing: -0.015em;
 }
 html.dark .cdl-modal-title {
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 .cdl-modal-desc {
   font-size: 13.5px;
@@ -490,7 +490,7 @@ html.dark .cdl-modal-title {
   margin: 6px 0 0;
 }
 html.dark .cdl-modal-desc {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 .cdl-modal-close {
   padding: 8px;
@@ -508,11 +508,11 @@ html.dark .cdl-modal-desc {
   color: var(--v4-ink, #1a1f2a);
 }
 html.dark .cdl-modal-close {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 html.dark .cdl-modal-close:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #f0f3f8;
+  color: #f2f3f7;
 }
 .cdl-modal-body {
   flex: 1;
@@ -525,7 +525,7 @@ html.dark .cdl-modal-close:hover {
   overflow: hidden;
 }
 html.dark .cdl-modal-body {
-  background: #0e1117;
+  background: #0a0d14;
 }
 .cdl-modal-body > * {
   width: 100%;
@@ -578,13 +578,13 @@ html.dark .cdl-modal-body {
   box-shadow: 0 8px 20px -8px rgba(30, 41, 59, 0.14);
 }
 html.dark .catalog-index-card {
-  background: #161b22;
-  border-color: #2a3340;
-  color: #f0f3f8;
+  background: #12161f;
+  border-color: #262e42;
+  color: #f2f3f7;
 }
 html.dark .catalog-index-card:hover {
-  border-color: #5ec4e8;
-  box-shadow: 0 8px 20px -8px rgba(94, 196, 232, 0.28);
+  border-color: #8b7ffa;
+  box-shadow: 0 8px 20px -8px rgba(124, 111, 251, 0.28);
 }
 .catalog-index-card-head {
   display: flex;
@@ -610,9 +610,9 @@ html.dark .catalog-index-card:hover {
   border: 1px solid var(--v4-line, #e2e8f0);
 }
 html.dark .catalog-index-card-count {
-  background: #1f2630;
-  border-color: #2a3340;
-  color: #99a3b3;
+  background: #1a1f2e;
+  border-color: #262e42;
+  color: #9ca3b8;
 }
 .catalog-index-card-desc {
   font-size: 13.5px;
@@ -621,7 +621,7 @@ html.dark .catalog-index-card-count {
   margin: 0 0 16px;
 }
 html.dark .catalog-index-card-desc {
-  color: #99a3b3;
+  color: #9ca3b8;
 }
 .catalog-index-card-foot {
   display: flex;
@@ -634,5 +634,5 @@ html.dark .catalog-index-card-desc {
   color: var(--v4-brand, #2d6a8f);
 }
 html.dark .catalog-index-card-link {
-  color: #5ec4e8;
+  color: #8b7ffa;
 }
