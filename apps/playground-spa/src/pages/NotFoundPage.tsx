@@ -1,9 +1,12 @@
 import { Link } from "react-router";
 import { Rocket, ArrowLeft } from "lucide-react";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export function NotFoundPage(): React.ReactElement {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 p-8 text-center">
+    <div>
+      <SiteHeader />
+      <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center gap-6 p-8 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--v4-brand,#2d6a8f)] text-white">
         <Rocket size={32} />
       </div>
@@ -24,6 +27,7 @@ export function NotFoundPage(): React.ReactElement {
       >
         <ArrowLeft size={14} /> Back to catalog
       </Link>
+      </div>
     </div>
   );
 }

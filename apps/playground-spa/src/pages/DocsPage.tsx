@@ -1,27 +1,12 @@
 import { Link } from "react-router";
-import { ChevronLeft, Rocket } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export function DocsPage(): React.ReactElement {
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-[var(--v4-line,#e2e8f0)] bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1000px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4">
-          <Link to="/" className="flex items-center gap-3 font-bold text-[var(--v4-ink,#1a1f2a)]">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--v4-brand,#2d6a8f)] text-white">
-              <Rocket size={15} />
-            </div>
-            <span className="text-[14px]">dragon</span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1 text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)] hover:text-[var(--v4-ink,#1a1f2a)]"
-          >
-            <ChevronLeft size={14} /> Back to catalog
-          </Link>
-        </div>
-      </header>
+    <div>
+      <SiteHeader />
       <main className="mx-auto max-w-[1000px] px-4 py-10 sm:px-8 sm:py-16">
         <h1 className="text-4xl font-bold tracking-tight text-[var(--v4-ink,#1a1f2a)]">
           Documentation

@@ -1,0 +1,332 @@
+  @import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+  :root {
+    --v4-canvas: #f8fafc;
+    --v4-surface: #ffffff;
+    --v4-surface-2: #f1f5f9;
+    --v4-line: #e2e8f0;
+    --v4-line-soft: #f1f5f9;
+    --v4-ink: #1a1f2a;
+    --v4-ink-dim: #5a6270;
+    --v4-ink-mute: #8a8678;
+    --v4-brand: #2d6a8f;
+    --v4-brand-deep: #1f4d6e;
+    --v4-brand-glow: #4e9dc4;
+    --v4-accent-domain: #c2410c;
+    --v4-accent-extended: #6d28d9;
+    --v4-serif: "Newsreader", "EB Garamond", Georgia, serif;
+    --v4-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+    --v4-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+    --v4-code-bg: #fcf8ee;
+  }
+
+  /* Neumorphism sticky header (CAR-N-6、 backdrop blur + inset shadow bottom で subtle depth) */
+  .v4-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    height: 60px;
+    background: var(--nm-header-bg, rgba(248, 250, 252, 0.82));
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 1px solid var(--nm-header-border, var(--v4-line));
+    box-shadow: var(
+      --nm-header-shadow,
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 1px 3px rgba(30, 41, 59, 0.04)
+    );
+    font-family: var(--v4-sans);
+  }
+  .v4-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-right: auto;
+    color: var(--v4-ink);
+    text-decoration: none;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .v4-nav-brand:hover {
+    transform: translateY(-1px);
+  }
+  .v4-nav-brand:hover .v4-nav-mark svg {
+    transform: rotate(-6deg) scale(1.05);
+  }
+  .v4-nav-mark {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+  }
+  .v4-nav-mark svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .v4-nav-name {
+    font-family: var(--v4-serif);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    color: var(--v4-ink);
+  }
+  .v4-nav-sub {
+    color: var(--v4-ink-mute);
+    font-weight: 400;
+    margin-left: 8px;
+    font-size: 12.5px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+  }
+  .v4-nav-links {
+    display: flex;
+    gap: 2px;
+  }
+  .v4-nav-link {
+    position: relative;
+    padding: 6px 13px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: var(--v4-ink-dim);
+    transition: color 0.15s, background 0.15s;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .v4-nav-link:hover {
+    color: var(--v4-ink);
+    background: rgba(26, 31, 42, 0.05);
+  }
+  /* active link ... Vercel / Linear 風 = bg pill + underline accent で「今どこ」 を明示 */
+  .v4-nav-link.active {
+    color: var(--v4-brand-deep);
+    background: rgba(45, 106, 143, 0.08);
+    font-weight: 600;
+  }
+  .v4-nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: -14px;
+    left: 13px;
+    right: 13px;
+    height: 2px;
+    background: var(--v4-brand);
+    border-radius: 999px 999px 0 0;
+  }
+  .v4-nav-cta {
+    margin-left: 14px;
+    padding: 8px 18px;
+    border-radius: 9px;
+    background: var(--v4-ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--v4-canvas);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    transition:
+      transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+      background 0.15s,
+      box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    box-shadow:
+      0 1px 2px rgba(30, 41, 59, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  }
+  .v4-nav-cta:hover {
+    transform: translateY(-1px) scale(1.02);
+    background: var(--v4-brand-deep);
+    box-shadow:
+      0 8px 20px -8px rgba(30, 41, 59, 0.32),
+      0 1px 0 rgba(255, 255, 255, 0.15) inset;
+  }
+  .v4-nav-cta:active {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  }
+
+  /* ── theme toggle button ── */
+  .v4-nav-theme-toggle {
+    margin-left: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .v4-nav-theme-toggle:hover {
+    border-color: var(--v4-brand);
+  }
+  .v4-theme-icon-light,
+  .v4-theme-icon-dark {
+    line-height: 1;
+  }
+  /* light mode default ... ☀ 表示、 ☾ 隠す */
+  .v4-theme-icon-dark { display: none; }
+  html.dark .v4-theme-icon-light { display: none; }
+  html.dark .v4-theme-icon-dark { display: inline; }
+
+  /* ── share button (theme toggle と同 size、 余白 8px 確保) ── */
+  .v4-nav-share-btn {
+    margin-left: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+    color: var(--v4-ink-dim);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .v4-nav-share-btn:hover {
+    border-color: var(--v4-brand);
+    color: var(--v4-brand);
+  }
+  html.dark .v4-nav-share-btn {
+    background: var(--v4-surface);
+    color: var(--v4-ink-dim);
+  }
+  html.dark .v4-nav-share-btn:hover {
+    border-color: var(--v4-brand-glow);
+    color: var(--v4-brand-glow);
+  }
+
+  /* ─────── dark mode palette override (全 page 共通) ─────── */
+  html.dark {
+    --v4-canvas: #0e1117;
+    --v4-surface: #161b22;
+    --v4-surface-2: #1f2630;
+    --v4-line: #2a3340;
+    --v4-line-soft: #1f2630;
+    --v4-ink: #f0f3f8;
+    --v4-ink-dim: #99a3b3;
+    --v4-ink-mute: #6b7785;
+    --v4-brand: #5ec4e8;
+    --v4-brand-deep: #4e9dc4;
+    --v4-brand-glow: #7dc7e8;
+    --v4-code-bg: #161b22;
+  }
+
+  /* dark nav */
+  html.dark .v4-nav {
+    background: rgba(14, 17, 23, 0.85);
+    border-bottom-color: var(--v4-line);
+  }
+  html.dark .v4-nav-cta {
+    background: var(--v4-brand);
+    color: #0e1117;
+  }
+  html.dark .v4-nav-cta:hover {
+    background: var(--v4-brand-glow);
+  }
+  html.dark .v4-nav-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  html.dark .v4-nav-link.active {
+    background: rgba(94, 196, 232, 0.12);
+    color: var(--v4-brand);
+  }
+  html.dark .v4-nav-theme-toggle {
+    background: var(--v4-surface);
+    border-color: var(--v4-line);
+  }
+  html.dark .v4-nav-theme-toggle:hover {
+    border-color: var(--v4-brand);
+  }
+
+  /* body / global */
+  html.dark body,
+  html.dark body.v4-body {
+    background: var(--v4-canvas);
+    color: var(--v4-ink);
+  }
+  html.dark .v4-foot {
+    border-top-color: var(--v4-line);
+  }
+  html.dark .v4-foot-brand p,
+  html.dark .v4-foot-col a {
+    color: var(--v4-ink-dim);
+  }
+  html.dark .v4-foot-col a:hover {
+    color: var(--v4-ink);
+  }
+  html.dark .v4-foot-copy {
+    color: var(--v4-ink-mute);
+  }
+
+  /* ── search bar (docs) ── */
+  .v4-nav-search {
+    min-width: 220px;
+  }
+
+  /* ── lang toggle (docs) ── */
+  .v4-nav-lang-toggle {
+    margin-left: 4px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--v4-line);
+    background: var(--v4-surface);
+    color: var(--v4-ink);
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 0.15s;
+  }
+  .v4-nav-lang-toggle:hover {
+    border-color: var(--v4-brand);
+  }
+  /* lang を [lang=...] で切替 */
+  html[lang="ja"] .v4-lang-en,
+  html[lang="en"] .v4-lang-ja {
+    color: var(--v4-ink-mute);
+    opacity: 0.4;
+  }
+  html[lang="ja"] .v4-lang-ja,
+  html[lang="en"] .v4-lang-en {
+    color: var(--v4-brand);
+  }
+
+  /* 900px 以下 responsive = header 幅超過による body 横スクロール解消 */
+  @media (max-width: 900px) {
+    .v4-nav {
+      padding: 0 16px;
+    }
+    .v4-nav-cta { display: none; }
+    .v4-nav-sub { display: none; }
+    .v4-nav-links {
+      gap: 4px;
+    }
+    .v4-nav-link {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+  }
+  @media (max-width: 768px) {
+    .v4-nav-search { display: none; }
+    .v4-nav-links .v4-nav-link:nth-of-type(n+3) { display: none; }
+  }
+  @media (max-width: 640px) {
+    .v4-nav-name { font-size: 14px; }
+    .v4-nav-links { display: none; }
+  }
