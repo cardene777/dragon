@@ -85,6 +85,7 @@ function Header({
         <nav className="hidden md:flex flex-1 items-center gap-6 text-[14px] font-medium text-[var(--color-ink-dim)]">
           <a href="/" className="text-[var(--color-ink)]">Catalog</a>
           <a href="/editor" className="hover:text-[var(--color-ink)]">Editor</a>
+          <a href="/compare" className="hover:text-[var(--color-ink)]">Compare</a>
           <a href="/docs" className="hover:text-[var(--color-ink)]">Docs</a>
         </nav>
         <div className="md:hidden flex-1" />

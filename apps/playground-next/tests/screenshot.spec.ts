@@ -193,3 +193,10 @@ test("next: command palette", async ({ page }) => {
   await page.waitForTimeout(500);
   await page.screenshot({ path: "test-results/next-cmd-palette.png" });
 });
+
+test("next: theme comparison page", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1200 });
+  await page.goto(BASE + "/compare?preset=topology", { waitUntil: "networkidle" });
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: "test-results/next-compare-topology.png", fullPage: true });
+});
