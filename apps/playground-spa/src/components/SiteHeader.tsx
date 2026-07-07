@@ -9,11 +9,11 @@ import { Link, useLocation } from "react-router";
  * v4-nav-* CSS class SSOT = src/styles/header.css。
  */
 const LINKS: Array<{ to: string; label: string }> = [
-  { to: "/", label: "overview" },
-  { to: "/editor", label: "editor" },
-  { to: "/catalog", label: "catalog" },
-  { to: "/compare", label: "compare" },
-  { to: "/docs", label: "docs" },
+  { to: "/", label: "概要" },
+  { to: "/editor", label: "エディタ" },
+  { to: "/catalog", label: "カタログ" },
+  { to: "/compare", label: "テーマ比較" },
+  { to: "/docs", label: "ドキュメント" },
 ];
 
 const REPO_URL = "https://github.com/cardene777/dragon";
@@ -71,7 +71,7 @@ export function SiteHeader(): React.ReactElement {
         {LINKS.map((link) => {
           const active =
             link.to === "/"
-              ? pathname === "/" && link.label === "overview"
+              ? pathname === "/" && link.label === "概要"
               : pathname === link.to || pathname.startsWith(link.to + "/");
           return (
             <Link
@@ -90,7 +90,7 @@ export function SiteHeader(): React.ReactElement {
           target="_blank"
           rel="noopener noreferrer"
         >
-          github ↗
+GitHub ↗
         </a>
       </nav>
       <button
@@ -127,7 +127,7 @@ export function SiteHeader(): React.ReactElement {
         </svg>
       </button>
       <Link className="v4-nav-cta" to="/editor">
-        open editor →
+        エディタを開く →
       </Link>
     </header>
   );
