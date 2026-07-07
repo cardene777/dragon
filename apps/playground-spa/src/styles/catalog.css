@@ -459,6 +459,7 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
+  height: 92vh;
   max-height: 92vh;
   width: 94vw;
   max-width: 1400px;
@@ -543,25 +544,30 @@ html.dark .cdl-modal-close:hover {
 html.dark .cdl-modal-body {
   background: #0e1117;
 }
+/* CdlDiagramView (div > CdlStage div > svg 3 段 nest) を modal body 内に letterbox fit。
+   両 wrapper に w-100 h-100 stretch + padding 0 で container 全体を使わせて、
+   SVG に width/height 100% + preserveAspectRatio meet で aspect 保持 letterbox */
 .cdl-modal-body > * {
   width: 100%;
   height: 100%;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: 0 !important;
 }
 .cdl-modal-body > * > * {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.cdl-modal-body svg {
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 !important;
+}
+.cdl-modal-body svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   display: block;
-  object-fit: contain;
 }
