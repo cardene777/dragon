@@ -1,0 +1,267 @@
+/**
+ * Notation lint (author 向け修正システム)。
+ *
+ * cdl / dragon 記法で書かれた CdlDiagram を rule-based に検査し、
+ * 「もっと良い書き方」 を suggestion として返す純粋関数。 LLM 不要、 rule のみ。
+ *
+ * 検知システム (`check:cdl` / `check:dragon` / `check:kind`) は開発陣向けで
+ * 「実装バグ」 を検出するが、 本 notation-lint は **author 向け** で
+ * 「書き方の癖 / 冗長表現 / 未定義参照 / 空 payload」 等を検出する。
+ *
+ * 使い方:
+ *   import { lintDiagram } from "@cardenelabs/dragon";
+ *   const report = lintDiagram(diagram);
+ *   // report.issues[] = LintIssue[]
+ *   // report.fixed = LintIssue[] のうち自動修正で解消される件
+ *   // report.autoFix(diagram) = 修正済 CdlDiagram
+ *
+ * CLI:
+ *   pnpm dragon-lint apps/playground-spa/src/topics/catalog/presets.cdl.ts
+ */
+import type { CdlDiagram, CdlNode } from "@cardenelabs/cdl";
+
+export type LintSeverity = "warn" | "info";
+
+export type LintIssue = {
+  /** rule 識別子 */
+  rule: string;
+  severity: LintSeverity;
+  /** 該当対象 (node id / edge id / diagram id) */
+  target: string;
+  /** 人間向けメッセージ */
+  message: string;
+  /** 修正案 (自動修正可能なら適用後の値、 手動修正必要なら null) */
+  suggestion?: string;
+  /** autoFix() が本 issue を自動解消できるか */
+  autoFixable: boolean;
+};
+
+export type LintReport = {
+  diagramId: string;
+  issues: LintIssue[];
+  /** autoFix() が実際に解消できる issue の数 */
+  autoFixableCount: number;
+};
+
+const REDUNDANT_TOPIC_PATTERNS: Array<{ pattern: RegExp; hint: string }> = [
+  { pattern: /\bpreset\s*\(/i, hint: "「〜 preset (詳細)」 は実装表現、 「〜 を示す図」 のように読者向け説明に" },
+  { pattern: /render\s*未実装/, hint: "「render 未実装」 は開発者向け内部メモ、 catalog 表示では省く" },
+  { pattern: /SVG\s+(polyline|arc|rect|path)/i, hint: "「SVG polyline / arc / rect / path」 は実装詳細、 「〜 を示す図」 に置換" },
+  { pattern: /\bpolygon\b/i, hint: "「polygon」 は実装用語、 図の意味を説明する自然文に置換" },
+];
+
+/**
+ * 検査対象 diagram の全 rule を実行し LintReport を返す。
+ * 全 rule は純粋 (副作用なし / LLM 呼び出しなし)。
+ */
+export function lintDiagram(d: CdlDiagram): LintReport {
+  const issues: LintIssue[] = [];
+
+  issues.push(...ruleTopicRedundancy(d));
+  issues.push(...ruleEmptyChartData(d));
+  issues.push(...ruleGanttUnknownDependsOn(d));
+  issues.push(...ruleMindMapParentReference(d));
+  issues.push(...ruleTreeParentReference(d));
+  issues.push(...ruleQuadrantMissingItems(d));
+  issues.push(...ruleFunnelMonotonicCount(d));
+
+  return {
+    diagramId: d.id,
+    issues,
+    autoFixableCount: issues.filter((i) => i.autoFixable).length,
+  };
+}
+
+/**
+ * lintDiagram で detected な issue のうち autoFixable=true のものを機械的に適用して
+ * 修正済 CdlDiagram を返す。 手動修正必要な issue は残る (次回 lint 時に再検出)。
+ */
+export function autoFix(d: CdlDiagram): CdlDiagram {
+  const patched: CdlDiagram = {
+    ...d,
+    topic: applyTopicAutoFix(d.topic),
+    nodes: d.nodes.map((n) => ({ ...n })),
+  };
+  return patched;
+}
+
+function applyTopicAutoFix(topic: string): string {
+  let out = topic;
+  for (const { pattern } of REDUNDANT_TOPIC_PATTERNS) {
+    if (pattern.test(out)) {
+      out = out.replace(/\s*\([^)]*(preset|render|SVG|polygon)[^)]*\)/gi, "");
+    }
+  }
+  return out.trim();
+}
+
+function ruleTopicRedundancy(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const { pattern, hint } of REDUNDANT_TOPIC_PATTERNS) {
+    if (pattern.test(d.topic)) {
+      out.push({
+        rule: "topic-redundant-implementation-detail",
+        severity: "warn",
+        target: d.id,
+        message: `topic に実装詳細が含まれる: "${d.topic}"`,
+        suggestion: hint,
+        autoFixable: true,
+      });
+    }
+  }
+  return out;
+}
+
+function ruleEmptyChartData(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if (n.kind === "chart-line" || n.kind === "chart-pie" || n.kind === "chart-bar") {
+      const data = n.chartData ?? [];
+      if (data.length === 0) {
+        out.push({
+          rule: "chart-empty-datum",
+          severity: "warn",
+          target: n.id,
+          message: `chart node "${n.id}" が datum 0 件、 chart は非表示になる`,
+          suggestion: `.datum({ id: ..., label: ..., value: ... }) を 1 件以上追加`,
+          autoFixable: false,
+        });
+      }
+      if (data.length === 1) {
+        out.push({
+          rule: "chart-single-datum",
+          severity: "info",
+          target: n.id,
+          message: `chart node "${n.id}" が datum 1 件、 比較 / 推移として意味が薄い`,
+          suggestion: `2 件以上の datum を推奨 (line 系は 3 件以上で trend が見える)`,
+          autoFixable: false,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if (n.kind === "gantt-timeline") {
+      const tasks = n.ganttData ?? [];
+      const ids = new Set(tasks.map((t) => t.id));
+      for (const t of tasks) {
+        if (t.dependsOn && !ids.has(t.dependsOn)) {
+          out.push({
+            rule: "gantt-unknown-depends-on",
+            severity: "warn",
+            target: t.id,
+            message: `task "${t.id}" が未定義 task "${t.dependsOn}" に dependsOn 参照`,
+            suggestion: `参照先 id を修正 or dependsOn を除去`,
+            autoFixable: false,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if ((n.kind === "mind-map" || n.kind === "mind-radial") && n.mindData) {
+      const known = new Set<string>([n.mindData.rootId]);
+      for (const b of n.mindData.branches) known.add(b.id);
+      for (const b of n.mindData.branches) {
+        if (!known.has(b.parent)) {
+          out.push({
+            rule: "mindmap-unknown-parent",
+            severity: "warn",
+            target: b.id,
+            message: `branch "${b.id}" が未定義 parent "${b.parent}" を参照`,
+            suggestion: `parent を rootId ("${n.mindData.rootId}") または既存 branch id に修正`,
+            autoFixable: false,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function ruleTreeParentReference(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if (n.kind === "tree-hierarchy" && n.treeData) {
+      const ids = new Set(n.treeData.map((t) => t.id));
+      for (const t of n.treeData) {
+        if (t.parent && !ids.has(t.parent)) {
+          out.push({
+            rule: "tree-unknown-parent",
+            severity: "warn",
+            target: t.id,
+            message: `tree node "${t.id}" が未定義 parent "${t.parent}" を参照`,
+            suggestion: `parent id を既存 tree node に修正 or parent 除去 (root にする)`,
+            autoFixable: false,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if (n.kind === "quadrant-matrix" && n.quadrantData) {
+      const items = n.quadrantData.items;
+      if (items.length === 0) {
+        out.push({
+          rule: "quadrant-empty",
+          severity: "warn",
+          target: n.id,
+          message: `quadrant "${n.id}" が item 0 件、 軸のみ表示される`,
+          suggestion: `.item({ id: ..., title: ..., quadrant: "topLeft" | ... }) を 1 件以上追加`,
+          autoFixable: false,
+        });
+      }
+      const bySlot = new Set(items.map((it) => it.quadrant));
+      if (items.length >= 4 && bySlot.size === 1) {
+        out.push({
+          rule: "quadrant-single-quadrant",
+          severity: "info",
+          target: n.id,
+          message: `quadrant "${n.id}" の item が 1 象限に集中、 マトリクスの意味が薄い`,
+          suggestion: `2 象限以上に item を分散 (SWOT / Priority matrix 等は 4 象限 balanced を推奨)`,
+          autoFixable: false,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function ruleFunnelMonotonicCount(d: CdlDiagram): LintIssue[] {
+  const out: LintIssue[] = [];
+  for (const n of d.nodes) {
+    if (n.kind === "funnel-stages" && n.funnelData) {
+      const stages = n.funnelData;
+      for (let i = 1; i < stages.length; i++) {
+        if (stages[i]!.count > stages[i - 1]!.count) {
+          out.push({
+            rule: "funnel-increasing-count",
+            severity: "warn",
+            target: stages[i]!.id,
+            message: `stage "${stages[i]!.id}" (${stages[i]!.count}) が前段 (${stages[i - 1]!.count}) より増加、 funnel は単調減少が期待される`,
+            suggestion: `stage 順を再確認、 増加 pattern なら別 preset (chart-line 等) を検討`,
+            autoFixable: false,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// dev-only import bridging (unused var lint prevention)
+export type { CdlDiagram, CdlNode };

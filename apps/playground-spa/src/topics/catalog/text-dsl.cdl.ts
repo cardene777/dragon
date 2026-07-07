@@ -10,7 +10,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 
 // ─── sequence + animation (API call フロー) ─────
 export const textDslSequence = textDslToDiagram(`
-title: "API call (Text DSL 6 行で書ける最小 sequence)"
+title: "時系列のやり取りを Text DSL で書く例"
 type: sequence
 
 actors:
@@ -174,7 +174,7 @@ animation:
 
 // ─── gantt preset (Q1-Q3 ロードマップ) ─────
 export const textDslGantt = textDslToDiagram(`
-title: "ロードマップ DSL (帯状 timeline + task label + Q1-Q3)"
+title: "四半期ロードマップを Text DSL で書く例"
 type: gantt
 
 actors:
@@ -224,7 +224,7 @@ animation:
 
 // ─── pie preset (シェア円グラフ) ─────
 export const textDslPie = textDslToDiagram(`
-title: "シェア DSL (SVG arc + tone 別 slice + 凡例)"
+title: "内訳の割合を Text DSL で書く例"
 type: pie
 
 actors:

@@ -19,9 +19,13 @@
     "test:sweep": "vitest run visual-validate-sweep",
     "test:playwright": "pnpm --filter dragon-playground-spa exec playwright test",
     "test:audit": "pnpm --filter dragon-playground-spa exec playwright test audit-3vp",
+    "test:kind": "pnpm --filter dragon-playground-spa exec playwright test kind-geometry-check",
     "check:cdl": "pnpm test:playwright",
     "check:dragon": "pnpm test:sweep",
-    "check:all": "pnpm typecheck && pnpm check:cdl && pnpm check:dragon",
+    "check:kind": "pnpm test:kind",
+    "check:all": "pnpm typecheck && pnpm check:cdl && pnpm check:dragon && pnpm check:kind",
+    "lint:notation": "pnpm build:packages && node packages/dragon/scripts/dragon-lint.mjs apps/playground-spa/src/topics/catalog/presets.cdl.ts apps/playground-spa/src/topics/catalog/text-dsl.cdl.ts",
+    "fix:notation": "pnpm build:packages && node packages/dragon/scripts/dragon-lint.mjs --fix apps/playground-spa/src/topics/catalog/presets.cdl.ts",
     "verify": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {

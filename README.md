@@ -46,6 +46,22 @@ pnpm build
 pnpm verify   # typecheck + vitest
 ```
 
+## 検知システム / 修正システム
+
+**役割分離** = 開発陣向け「検知」 と author 向け「修正」 は完全に別、 両方 LLM 不使用の pure rule / geometry ベース。
+
+- **検知システム (開発陣向け)** = 3 層 check 機構
+  - 層 1 = SPA route regression = `pnpm check:cdl`
+  - 層 2 = engine geometry sweep = `pnpm check:dragon`
+  - 層 3 = kind 描画品質 (gantt arrow / funnel polygon / mind-map root / edge fill:none 等) = `pnpm check:kind`
+  - 一括 = `pnpm check:all`
+- **修正システム (author 向け)** = notation lint
+  - `pnpm lint:notation` = 冗長 topic / 未定義参照 / 空 payload / 単調減少違反等を rule-based に指摘
+  - `pnpm fix:notation` = auto-fix 可能な rule を自動適用
+  - プログラム API = `import { lintDiagram, autoFix } from "@cardenelabs/dragon"`
+
+**SSOT ドキュメント** = `apps/playground-spa/audit-reports/README.md`
+
 ## license
 
 MIT
