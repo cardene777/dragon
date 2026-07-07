@@ -11,6 +11,8 @@
 export { parseTextDsl } from "./parser";
 export { compileToCdl } from "./compile";
 export { parseTextDslV05 } from "./v05";
+export { lintDiagram, autoFix } from "./notation-lint";
+export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 export type {
   DslDocument,
   DslActor,
