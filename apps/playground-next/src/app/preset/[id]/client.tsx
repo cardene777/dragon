@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Github, Rocket, ChevronLeft, ExternalLink, Share2, Copy, Check } from "lucide-react";
+import { Github, Rocket, ChevronLeft, ExternalLink, Share2, Copy, Check, LayoutGrid } from "lucide-react";
 import { DiagramView } from "@/components/DiagramView";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
@@ -101,6 +101,13 @@ export function PresetDetailClient({ preset }: { preset: PresetDoc }): React.Rea
             >
               <ExternalLink size={13} />
               Open in editor
+            </a>
+            <a
+              href={`/compare?preset=${preset.id}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-surface-2)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink)] hover:brightness-95 transition-all"
+            >
+              <LayoutGrid size={13} />
+              Compare themes
             </a>
           </div>
         </div>
