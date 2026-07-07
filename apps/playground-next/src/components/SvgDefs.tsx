@@ -1,25 +1,28 @@
 /**
- * dragon SVG defs SSOT (theme filter / pattern / gradient / marker)。
+ * SVG defs SSOT (旧 dragon apps/playground の CdlFilterDefs.astro を React 化)。
+ * cdl の CdlDiagramThumbnail が theme 別 filter / pattern / gradient / marker を参照する。
  *
- * DiagramView が inline defs として mount する。 Astro 版と違って
- * client-side hydrate 不要、 Next.js SSR で server-render される。
+ * 6 theme × 各 filter:
+ *   - Neumorphism : dragon-nm-raised / -sm / -dark / -soft / inset-soft (+ dark)
+ *   - Isometric   : dragon-iso-top-gradient (+ dark) / dragon-iso-cast-shadow (+ dark)
+ *   - Circuit     : dragon-cir-board-pattern / dragon-cir-trace-glow
+ *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
+ *   - Blueprint   : dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
+ *   - Handdrawn   : dragon-hd-wobble (turbulence displacement)
  *
- * theme filter 一覧:
- *   - dragon-nm-raised      ... Neumorphism dual shadow (soft raised bumps)
- *   - dragon-nm-raised-sm   ... small variant (icon badge 用)
- *   - dragon-cir-trace-glow ... Circuit mint trace glow
- *   - dragon-cir-board-pattern ... Circuit PCB dark green pattern
- *   - dragon-pin-sticky-shadow ... Pinboard sticky note shadow
- *   - dragon-iso-cast-shadow ... Isometric cast shadow
- *
- * 全 filter の region = x=-40% y=-40% w=180% h=180% で bbox 拡張、
- * thumbnail 縮小時も clip されない。
+ * SVG は position:absolute + width/height 0 + aria-hidden で完全に不可視、
+ * pointer-events none で下位要素の click を吸わない。
  */
 export function SvgDefs(): React.ReactElement {
   return (
-    <svg width="0" height="0" style={{ position: "absolute", pointerEvents: "none" }} aria-hidden="true">
+    <svg
+      width="0"
+      height="0"
+      style={{ position: "absolute", pointerEvents: "none" }}
+      aria-hidden="true"
+    >
       <defs>
-        {/* Neumorphism dual shadow (raised bumps) */}
+        {/* ═════════════════ Neumorphism ═════════════════ */}
         <filter id="dragon-nm-raised" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
@@ -35,14 +38,13 @@ export function SvgDefs(): React.ReactElement {
           </feMerge>
         </filter>
 
-        {/* Neumorphism raised small (icon badge) */}
         <filter id="dragon-nm-raised-sm" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="1.5" result="blur" />
           <feOffset in="blur" dx="2" dy="2" result="darkShadow" />
-          <feFlood floodColor="rgba(163, 177, 198, 0.5)" result="darkColor" />
+          <feFlood floodColor="rgba(163, 177, 198, 0.55)" result="darkColor" />
           <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
           <feOffset in="blur" dx="-2" dy="-2" result="lightShadow" />
-          <feFlood floodColor="rgba(255, 255, 255, 0.9)" result="lightColor" />
+          <feFlood floodColor="rgba(255, 255, 255, 0.95)" result="lightColor" />
           <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
           <feMerge>
             <feMergeNode in="darkShadowColored" />
@@ -51,66 +53,228 @@ export function SvgDefs(): React.ReactElement {
           </feMerge>
         </filter>
 
-        {/* Circuit trace glow (mint neon、 stdDeviation 大きめで soft halo) */}
-        <filter id="dragon-cir-trace-glow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.5" result="blur" />
-          <feFlood floodColor="rgba(72, 224, 176, 0.7)" result="glowColor" />
-          <feComposite in="glowColor" in2="blur" operator="in" result="glowColored" />
-          <feGaussianBlur in="glowColored" stdDeviation="1.5" result="glowSoft" />
+        <filter id="dragon-nm-raised-dark" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feOffset in="blur" dx="4" dy="4" result="darkShadow" />
+          <feFlood floodColor="rgba(0, 0, 0, 0.9)" result="darkColor" />
+          <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+          <feOffset in="blur" dx="-4" dy="-4" result="lightShadow" />
+          <feFlood floodColor="rgba(255, 255, 255, 0.18)" result="lightColor" />
+          <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
           <feMerge>
-            <feMergeNode in="glowSoft" />
+            <feMergeNode in="darkShadowColored" />
+            <feMergeNode in="lightShadowColored" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="dragon-nm-raised-sm-dark" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feOffset in="blur" dx="2" dy="2" result="darkShadow" />
+          <feFlood floodColor="rgba(0, 0, 0, 0.9)" result="darkColor" />
+          <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+          <feOffset in="blur" dx="-2" dy="-2" result="lightShadow" />
+          <feFlood floodColor="rgba(255, 255, 255, 0.18)" result="lightColor" />
+          <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+          <feMerge>
+            <feMergeNode in="darkShadowColored" />
+            <feMergeNode in="lightShadowColored" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="dragon-nm-raised-soft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feOffset in="blur" dx="6" dy="6" result="darkShadow" />
+          <feFlood floodColor="rgba(163, 177, 198, 0.75)" result="darkColor" />
+          <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+          <feOffset in="blur" dx="-6" dy="-6" result="lightShadow" />
+          <feFlood floodColor="rgba(255, 255, 255, 1.0)" result="lightColor" />
+          <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+          <feMerge>
+            <feMergeNode in="darkShadowColored" />
+            <feMergeNode in="lightShadowColored" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="dragon-nm-inset-soft" x="-15%" y="-15%" width="130%" height="130%">
+          <feGaussianBlur stdDeviation="1.2" />
+          <feOffset dx="3" dy="3" result="offset-dark" />
+          <feComposite in="SourceAlpha" in2="offset-dark" operator="out" result="composite-dark" />
+          <feFlood floodColor="rgba(163, 177, 198, 0.5)" />
+          <feComposite in2="composite-dark" operator="in" />
+          <feComposite in="SourceGraphic" />
+        </filter>
+
+        <filter id="dragon-nm-raised-soft-dark" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feOffset in="blur" dx="6" dy="6" result="darkShadow" />
+          <feFlood floodColor="rgba(0, 0, 0, 0.9)" result="darkColor" />
+          <feComposite in="darkColor" in2="darkShadow" operator="in" result="darkShadowColored" />
+          <feOffset in="blur" dx="-6" dy="-6" result="lightShadow" />
+          <feFlood floodColor="rgba(255, 255, 255, 0.18)" result="lightColor" />
+          <feComposite in="lightColor" in2="lightShadow" operator="in" result="lightShadowColored" />
+          <feMerge>
+            <feMergeNode in="darkShadowColored" />
+            <feMergeNode in="lightShadowColored" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="dragon-nm-inset-soft-dark" x="-15%" y="-15%" width="130%" height="130%">
+          <feGaussianBlur stdDeviation="1.2" />
+          <feOffset dx="3" dy="3" result="offset-dark" />
+          <feComposite in="SourceAlpha" in2="offset-dark" operator="out" result="composite-dark" />
+          <feFlood floodColor="rgba(0, 0, 0, 0.7)" />
+          <feComposite in2="composite-dark" operator="in" />
+          <feComposite in="SourceGraphic" />
+        </filter>
+
+        {/* ═════════════════ Isometric ═════════════════ */}
+        <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.35" stopColor="#e4ecf7" />
+          <stop offset="1" stopColor="#7c93bd" />
+        </linearGradient>
+
+        <linearGradient id="dragon-iso-top-gradient-dark" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#4c5878" />
+          <stop offset="0.35" stopColor="#2f3854" />
+          <stop offset="1" stopColor="#151b30" />
+        </linearGradient>
+
+        <filter id="dragon-iso-cast-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="8" />
+          <feOffset dx="10" dy="14" result="offset" />
+          <feFlood floodColor="rgba(48, 62, 96, 0.55)" />
+          <feComposite in2="offset" operator="in" />
+          <feComposite in="SourceGraphic" />
+        </filter>
+
+        <filter id="dragon-iso-cast-shadow-dark" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="8" />
+          <feOffset dx="10" dy="14" result="offset" />
+          <feFlood floodColor="rgba(0, 0, 0, 0.75)" />
+          <feComposite in2="offset" operator="in" />
+          <feComposite in="SourceGraphic" />
+        </filter>
+
+        {/* ═════════════════ Circuit ═════════════════ */}
+        <pattern
+          id="dragon-cir-board-pattern"
+          x="0"
+          y="0"
+          width="24"
+          height="24"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect x="0" y="0" width="24" height="24" fill="#0a1a12" />
+          <circle cx="4" cy="4" r="0.6" fill="#1a2f22" />
+          <circle cx="20" cy="20" r="0.6" fill="#1a2f22" />
+        </pattern>
+
+        <filter id="dragon-cir-trace-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="glow" />
+          <feFlood floodColor="rgba(72, 224, 176, 0.55)" />
+          <feComposite in2="glow" operator="in" result="glowColored" />
+          <feMerge>
             <feMergeNode in="glowColored" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
 
-        {/* Pinboard sticky shadow (drop shadow slightly rotated) */}
-        <filter id="dragon-pin-sticky-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feOffset in="blur" dx="3" dy="6" result="shadow" />
-          <feFlood floodColor="rgba(30, 20, 12, 0.35)" result="shadowColor" />
-          <feComposite in="shadowColor" in2="shadow" operator="in" result="shadowColored" />
-          <feMerge>
-            <feMergeNode in="shadowColored" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Isometric cast shadow (bottom-right + subtle top-left highlight) */}
-        <filter id="dragon-iso-cast-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="5" result="blur" />
-          <feOffset in="blur" dx="6" dy="8" result="shadow" />
-          <feFlood floodColor="rgba(50, 40, 30, 0.35)" result="shadowColor" />
-          <feComposite in="shadowColor" in2="shadow" operator="in" result="shadowColored" />
-          <feMerge>
-            <feMergeNode in="shadowColored" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Circuit PCB board pattern */}
-        <pattern id="dragon-cir-board-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
-          <rect width="40" height="40" fill="#0a1a12" />
-          <circle cx="20" cy="20" r="1.5" fill="rgba(200, 160, 56, 0.15)" />
+        {/* ═════════════════ Pinboard ═════════════════ */}
+        <pattern
+          id="dragon-pin-board-pattern"
+          x="0"
+          y="0"
+          width="36"
+          height="36"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect x="0" y="0" width="36" height="36" fill="#c8a475" />
+          <circle cx="12" cy="12" r="0.5" fill="rgba(90, 60, 30, 0.35)" />
+          <circle cx="28" cy="24" r="0.5" fill="rgba(90, 60, 30, 0.35)" />
+          <circle cx="20" cy="30" r="0.4" fill="rgba(90, 60, 30, 0.28)" />
         </pattern>
 
-        {/* Isometric top light gradient (top edge) */}
-        <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgba(255, 255, 255, 0.35)" />
-          <stop offset="1" stopColor="rgba(255, 255, 255, 0)" />
-        </linearGradient>
+        <filter id="dragon-pin-sticky-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5" />
+          <feOffset dx="3" dy="5" result="offset" />
+          <feFlood floodColor="rgba(60, 40, 20, 0.4)" />
+          <feComposite in2="offset" operator="in" />
+          <feComposite in="SourceGraphic" />
+        </filter>
 
-        {/* Isometric right shadow gradient (right edge) */}
-        <linearGradient id="dragon-iso-right-shadow" x1="1" y1="0" x2="0" y2="0">
-          <stop offset="0" stopColor="rgba(60, 40, 20, 0.28)" />
-          <stop offset="1" stopColor="rgba(60, 40, 20, 0)" />
-        </linearGradient>
-
-        {/* Blueprint sub-tick pattern (24px minor grid、 20% opacity blue tick) */}
-        <pattern id="dragon-bp-tick" width="24" height="24" patternUnits="userSpaceOnUse">
-          <rect width="24" height="24" fill="none" />
-          <circle cx="12" cy="12" r="0.6" fill="rgba(80, 130, 180, 0.35)" />
+        {/* ═════════════════ Blueprint ═════════════════ */}
+        <pattern
+          id="dragon-bp-graticule"
+          x="0"
+          y="0"
+          width="24"
+          height="24"
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d="M 24 0 L 0 0 0 24"
+            fill="none"
+            stroke="rgba(30, 66, 108, 0.14)"
+            strokeWidth="0.6"
+          />
         </pattern>
+
+        <pattern
+          id="dragon-bp-graticule-dark"
+          x="0"
+          y="0"
+          width="24"
+          height="24"
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d="M 24 0 L 0 0 0 24"
+            fill="none"
+            stroke="rgba(120, 180, 220, 0.18)"
+            strokeWidth="0.6"
+          />
+        </pattern>
+
+        <marker
+          id="dragon-bp-arrow-ortho"
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="12"
+          markerHeight="12"
+          markerUnits="userSpaceOnUse"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M 0 0 L 10 5 L 0 10 M 0 5 L 8 5"
+            fill="none"
+            stroke="#1e426c"
+            strokeWidth="1.2"
+          />
+        </marker>
+
+        {/* ═════════════════ Handdrawn ═════════════════ */}
+        <filter id="dragon-hd-wobble" x="-15%" y="-15%" width="130%" height="130%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.025"
+            numOctaves={2}
+            seed={7}
+            result="noise"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="noise"
+            scale="4.0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
       </defs>
     </svg>
   );
