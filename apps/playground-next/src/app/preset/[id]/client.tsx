@@ -27,6 +27,15 @@ export function PresetDetailClient({ preset }: { preset: PresetDoc }): React.Rea
   const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length]!;
 
   useEffect(() => {
+    // initial URL query に ?theme=<t> があれば apply
+    const url = new URL(window.location.href);
+    const q = url.searchParams.get("theme");
+    if (q && ["blueprint", "neumorphism", "circuit", "handdrawn", "pinboard", "isometric"].includes(q)) {
+      // useThemeSync 側が反映するので、 useEffect は 1 回だけ
+    }
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
       if (
