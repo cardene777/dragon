@@ -85,14 +85,51 @@ export function autoFix(d: CdlDiagram): CdlDiagram {
   return patched;
 }
 
+const KIND_TO_JA: Record<string, string> = {
+  chart: "統計チャート",
+  "line chart": "折れ線グラフ",
+  "pie chart": "円グラフ",
+  "bar chart": "棒グラフ",
+  flow: "処理の流れ",
+  swimlane: "スイムレーン (役割別レーン)",
+  sequence: "時系列のやり取り",
+  topology: "システム構成",
+  er: "テーブル関係 (ER 図)",
+  stateMachine: "状態遷移 (ステート図)",
+  stateMachine2: "拡張ステート図 (階層状態)",
+  infrastructure: "クラウド構成",
+  classDiagram: "UML クラス図",
+  tree: "階層ツリー",
+  userJourney: "ユーザージャーニー",
+  mindMap: "マインドマップ",
+  mindMapRadial: "放射状マインドマップ",
+  funnel: "ファネル (段階別離脱)",
+  quadrant: "四象限マトリクス",
+  gantt: "ガントチャート",
+  flowchart: "分岐フローチャート",
+  network: "ネットワーク構成",
+};
+
 function applyTopicAutoFix(topic: string): string {
-  let out = topic;
-  for (const { pattern } of REDUNDANT_TOPIC_PATTERNS) {
-    if (pattern.test(out)) {
-      out = out.replace(/\s*\([^)]*(preset|render|SVG|polygon)[^)]*\)/gi, "");
+  // 1. 先頭の kind name を検出、 マッチしたら JA description に置換
+  const kindMatch = topic.match(
+    /^\s*(chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap(?:Radial)?|funnel|quadrant|gantt|flowchart|network|line chart|pie chart|bar chart)\b/i,
+  );
+  if (kindMatch) {
+    const kind = kindMatch[1]!.toLowerCase();
+    const canonical = Object.keys(KIND_TO_JA).find((k) => k.toLowerCase() === kind);
+    if (canonical) {
+      return `${KIND_TO_JA[canonical]} を示す図`;
     }
   }
-  return out.trim();
+
+  // 2. kind 名で始まらない場合は括弧内実装詳細のみ除去
+  let out = topic;
+  out = out.replace(/\s*\([^)]*(preset|render|SVG|polygon|polyline|arc|rect|path)[^)]*\)/gi, "");
+  out = out.replace(/\b(preset|render)\b/gi, "");
+  out = out.replace(/\s+/g, " ").trim();
+  if (out.length < 3) return "図の説明";
+  return out;
 }
 
 function ruleTopicRedundancy(d: CdlDiagram): LintIssue[] {

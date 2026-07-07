@@ -83,12 +83,13 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     await page.waitForTimeout(1000);
 
     const info = await page.evaluate(() => {
-      const bars: Array<{ left: number; top: number; width: number }> = [];
+      const bars: Array<{ left: number; top: number; width: number; height: number }> = [];
       document.querySelectorAll('[data-cdl-role="gantt-bar"]').forEach((b) => {
         bars.push({
           left: parseFloat(b.getAttribute("x") ?? "0"),
           top: parseFloat(b.getAttribute("y") ?? "0"),
           width: parseFloat(b.getAttribute("width") ?? "0"),
+          height: parseFloat(b.getAttribute("height") ?? "0"),
         });
       });
       const heads: Array<{ points: Array<{ x: number; y: number }> }> = [];
@@ -113,10 +114,21 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
 
     for (const head of info.heads) {
       const tipRight = Math.max(...head.points.map((p) => p.x));
-      const nearestBar = info.bars.find((b) => b.left > tipRight);
-      if (nearestBar) {
-        const gap = nearestBar.left - tipRight;
-        expect(gap, `arrow head 頂点 x=${tipRight} と最寄り子 bar 左辺 x=${nearestBar.left} の gap (${gap}) が >= 4px`).toBeGreaterThanOrEqual(4);
+      const tipY = head.points.reduce((sum, p) => sum + p.y, 0) / head.points.length;
+      // tip Y と重なる bar (arrow が着地する対象 bar) を検索
+      const targetBar = info.bars.find(
+        (b) => tipY >= b.top && tipY <= b.top + b.height,
+      );
+      expect(
+        targetBar,
+        `arrow tip Y=${tipY} と重なる bar が見つからない (head points: ${JSON.stringify(head.points)})`,
+      ).toBeDefined();
+      if (targetBar) {
+        const gap = targetBar.left - tipRight;
+        expect(
+          gap,
+          `arrow head 頂点右端 x=${tipRight} と 着地対象 bar 左辺 x=${targetBar.left} の gap (${gap}) が >= 4px (負値 = 食い込み)`,
+        ).toBeGreaterThanOrEqual(4);
       }
     }
   });
