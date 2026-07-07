@@ -728,7 +728,7 @@ html.dark .cdl-modal-body {
     color: var(--v4-brand, #5ec4e8);
   }
   html.dark .nm-preset-preview {
-    background: var(--nm-bg-base, #0a0e14);
+    background: #1f2630;
   }
   html.dark .nm-preset-tag {
     color: var(--v4-ink-dim, #99a3b3);
