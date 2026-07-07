@@ -62,6 +62,22 @@ body {
   min-height: 100dvh;
 }
 
+/* syntax highlight classes for code sample */
+.hl-key { color: #4a7fc8; }
+.hl-string { color: #48a860; }
+.hl-number { color: #c48a10; }
+.hl-boolean { color: #a94a3a; font-weight: 500; }
+.hl-null { color: #8a7f68; font-style: italic; }
+.hl-comment { color: var(--color-ink-mute); font-style: italic; }
+.hl-keyword { color: #a94a3a; font-weight: 600; }
+
+html.dark .hl-key { color: #6fa8e0; }
+html.dark .hl-string { color: #7cd88f; }
+html.dark .hl-number { color: #e0b048; }
+html.dark .hl-boolean { color: #e0664c; }
+html.dark .hl-null { color: #a89880; }
+html.dark .hl-keyword { color: #e0664c; }
+
 /* subtle entrance animations for hero content */
 @keyframes fade-up {
   from {

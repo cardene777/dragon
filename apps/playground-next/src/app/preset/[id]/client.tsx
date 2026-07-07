@@ -9,6 +9,7 @@ import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useToast } from "@/components/Toast";
+import { highlightJson, highlightTypeScript } from "@/lib/highlight";
 import type { PresetDoc } from "@/lib/presets";
 
 /**
@@ -195,9 +196,10 @@ export const ${preset.id.replace(/-/g, "_")}Preset: PresetDoc = ${JSON.stringify
         >
           {copied === "JSON" ? <Check size={12} /> : <Copy size={12} />}
         </button>
-        <pre className="overflow-x-auto rounded-b-2xl bg-[var(--color-surface-2)] p-4 text-[12px] font-mono text-[var(--color-ink)] max-h-[400px]">
-          {jsonSample}
-        </pre>
+        <pre
+          className="overflow-x-auto rounded-b-2xl bg-[var(--color-surface-2)] p-4 text-[12px] font-mono text-[var(--color-ink)] max-h-[400px]"
+          dangerouslySetInnerHTML={{ __html: highlightJson(jsonSample) }}
+        />
       </Tabs.Content>
       <Tabs.Content value="ts" className="relative">
         <button
@@ -208,9 +210,10 @@ export const ${preset.id.replace(/-/g, "_")}Preset: PresetDoc = ${JSON.stringify
         >
           {copied === "TypeScript" ? <Check size={12} /> : <Copy size={12} />}
         </button>
-        <pre className="overflow-x-auto rounded-b-2xl bg-[var(--color-surface-2)] p-4 text-[12px] font-mono text-[var(--color-ink)] max-h-[400px]">
-          {tsSample}
-        </pre>
+        <pre
+          className="overflow-x-auto rounded-b-2xl bg-[var(--color-surface-2)] p-4 text-[12px] font-mono text-[var(--color-ink)] max-h-[400px]"
+          dangerouslySetInnerHTML={{ __html: highlightTypeScript(tsSample) }}
+        />
       </Tabs.Content>
     </Tabs.Root>
   );
