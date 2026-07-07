@@ -67,6 +67,34 @@ export default function DocsPage(): React.ReactElement {
           dragon は Text DSL で書ける animated SVG diagram library。 mermaid 感覚で記述して、 rough.js による Excalidraw 風の手描き感 / PCB 基板 / 立体感 Neumorphism など 6 theme を live 切替できる。
         </p>
 
+        <section className="mt-12">
+          <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
+            <BookOpen size={20} className="text-[var(--color-accent)]" />
+            Keyboard shortcuts
+          </h2>
+          <div className="rounded-2xl bg-[var(--color-surface)] p-6 shadow-sm">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[
+                { key: "?", label: "Show shortcuts help" },
+                { key: "T / ⇧T", label: "Cycle themes forward / backward" },
+                { key: "E", label: "Open editor page" },
+                { key: "D", label: "Open docs page" },
+                { key: "/", label: "Focus search" },
+                { key: "⌘K / Ctrl+K", label: "Open command palette" },
+                { key: "← / →", label: "Navigate preset in modal" },
+                { key: "Esc", label: "Close modal / clear search" },
+              ].map((s) => (
+                <div key={s.key} className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-[var(--color-surface-2)]">
+                  <span className="text-[13px] text-[var(--color-ink)]">{s.label}</span>
+                  <kbd className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-ink-dim)]">
+                    {s.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="mt-16">
           <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
             <Zap size={20} className="text-[var(--color-accent)]" />
