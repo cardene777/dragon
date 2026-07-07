@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
@@ -8,6 +8,10 @@ import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { InViewMount } from "@/components/InViewMount";
 import { SiteHeader } from "@/components/SiteHeader";
 
+/**
+ * /compare = 選択した preset を 6 theme で並列表示 (Neumorphism style)。
+ * hero + preset select toolbar + 6 theme grid (data-cdl-theme + CdlDiagramView)。
+ */
 export function ComparePage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialId = searchParams.get("preset") ?? "swimlane";
@@ -31,93 +35,96 @@ export function ComparePage(): React.ReactElement {
   return (
     <div>
       <SiteHeader />
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8 sm:py-4 border-b border-[var(--v4-line,#e2e8f0)]">
-        <span className="text-[13px] font-medium text-[var(--v4-ink-dim,#5a6270)]">Preset:</span>
-        <Select.Root value={presetId} onValueChange={setPresetId}>
-            <Select.Trigger className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-[var(--v4-ink,#1a1f2a)] shadow-sm min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v4-brand,#2d6a8f)]">
-              <Select.Value>{preset.title}</Select.Value>
-              <Select.Icon>
-                <ChevronDown size={14} className="text-[var(--v4-ink-dim,#5a6270)]" />
-              </Select.Icon>
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content
-                position="popper"
-                sideOffset={6}
-                className="z-50 min-w-[240px] overflow-hidden rounded-xl bg-white p-1.5 shadow-2xl"
-              >
-                <Select.Viewport>
-                  {PRESETS.map((p) => (
-                    <Select.Item
-                      key={p.id}
-                      value={p.id}
-                      className="relative flex cursor-pointer items-start rounded-lg px-3 py-2 pr-9 text-sm outline-none data-[highlighted]:bg-[var(--v4-canvas,#f8fafc)]"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{p.title}</div>
-                        <div className="text-[11.5px] text-[var(--v4-ink-dim,#5a6270)]">
-                          {p.eyebrow}
-                        </div>
-                      </div>
-                      <Select.ItemIndicator className="absolute right-2 top-2.5">
-                        <Check size={14} className="text-[var(--v4-brand,#2d6a8f)]" />
-                      </Select.ItemIndicator>
-                    </Select.Item>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
-      </div>
-
-      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8 sm:py-12">
-        <div className="mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--v4-brand,#2d6a8f)] font-mono">
-            Theme comparison
-          </div>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-[var(--v4-ink,#1a1f2a)]">
-            {preset.title} across 6 themes
+      <main>
+        <section className="nm-hero">
+          <nav aria-label="パンくず" className="nm-crumb">
+            <Link to="/">overview</Link>
+            <span aria-hidden="true">/</span>
+            <span className="cur">compare</span>
+          </nav>
+          <span className="nm-eyebrow">THEME COMPARISON · 6 themes</span>
+          <h1 className="nm-hero-title">
+            {preset.title} <span className="nm-gradient-accent">× 6 themes</span>
           </h1>
-          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[var(--v4-ink-dim,#5a6270)]">
-            {preset.subtitle}
+          <p className="nm-hero-subtitle">
+            {preset.subtitle} 選択した preset を Blueprint / Neumorphism / Circuit / Handdrawn / Pinboard / Isometric の 6 テーマで並列表示、 視覚的な差異を確認できる。
           </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {THEMES.map((t) => (
-            <div
-              key={t}
-              data-cdl-theme={t}
-              className="rounded-2xl bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-[var(--v4-brand,#2d6a8f)]">
-                    {THEME_CONFIGS[t].label}
-                  </div>
-                  <div className="text-[11.5px] text-[var(--v4-ink-dim,#5a6270)] mt-0.5">
-                    {THEME_CONFIGS[t].description}
-                  </div>
-                </div>
-              </div>
-              <div
-                className="rounded-xl bg-[var(--v4-canvas,#f8fafc)] p-3"
-                style={{ aspectRatio: "16 / 10" }}
-              >
-                <InViewMount
-                  className="w-full h-full"
-                  placeholder={
-                    <div className="w-full h-full flex items-center justify-center text-[11px] text-[var(--v4-ink-mute,#8a8678)] font-mono">
-                      loading…
-                    </div>
-                  }
-                >
-                  <CdlDiagramView diagram={preset.diagram as never} hideHeader />
-                </InViewMount>
-              </div>
+          <div className="nm-hero-actions">
+            <div className="nm-preset-select-wrap">
+              <Select.Root value={presetId} onValueChange={setPresetId}>
+                <Select.Trigger className="nm-preset-select-trigger" aria-label="Preset を選択">
+                  <Select.Value>{preset.title}</Select.Value>
+                  <Select.Icon>
+                    <ChevronDown size={14} />
+                  </Select.Icon>
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Content
+                    position="popper"
+                    sideOffset={6}
+                    className="nm-preset-select-content"
+                  >
+                    <Select.Viewport>
+                      {PRESETS.map((p) => (
+                        <Select.Item key={p.id} value={p.id} className="nm-preset-select-item">
+                          <div className="flex-1">
+                            <div className="font-medium">{p.title}</div>
+                            <div className="text-[11.5px] opacity-70">{p.eyebrow}</div>
+                          </div>
+                          <Select.ItemIndicator className="ml-2">
+                            <Check size={14} />
+                          </Select.ItemIndicator>
+                        </Select.Item>
+                      ))}
+                    </Select.Viewport>
+                  </Select.Content>
+                </Select.Portal>
+              </Select.Root>
             </div>
-          ))}
-        </div>
+            <Link to="/editor" className="nm-hero-btn nm-hero-btn-secondary">
+              <span>Open editor</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="nm-presets-section" aria-label="theme comparison grid">
+          <div className="nm-section-head">
+            <h2 className="nm-section-title">
+              Themes <span className="nm-section-count">({THEMES.length})</span>
+            </h2>
+            <p className="nm-section-desc">
+              各テーマは data-cdl-theme attribute で切り替わる。 Blueprint = 設計図、 Neumorphism = 立体、 Circuit = PCB、 Handdrawn = 手描き、 Pinboard = 掲示板、 Isometric = 3D。
+            </p>
+          </div>
+          <div className="nm-preset-grid">
+            {THEMES.map((t) => (
+              <article key={t} data-cdl-theme={t} className="nm-preset-card">
+                <header className="nm-preset-card-head">
+                  <span className="nm-preset-eyebrow">{THEME_CONFIGS[t].label}</span>
+                  <h3 className="nm-preset-title">{THEME_CONFIGS[t].label}</h3>
+                  <p className="nm-preset-subtitle">{THEME_CONFIGS[t].description}</p>
+                </header>
+                <div className="nm-preset-preview">
+                  <InViewMount
+                    className="w-full h-full"
+                    placeholder={
+                      <div className="w-full h-full flex items-center justify-center text-[11px] text-[var(--v4-ink-mute,#8a8678)] font-mono">
+                        loading…
+                      </div>
+                    }
+                  >
+                    <CdlDiagramView diagram={preset.diagram as never} hideHeader />
+                  </InViewMount>
+                </div>
+                <footer className="nm-preset-card-foot">
+                  <div className="nm-preset-tags">
+                    <span className="nm-preset-tag">{t}</span>
+                  </div>
+                </footer>
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );
