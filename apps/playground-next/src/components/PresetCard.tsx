@@ -82,9 +82,10 @@ export function PresetCard({
     <>
       <article
         className={cn(
-          "group flex flex-col rounded-2xl p-6 transition-all",
+          "group flex flex-col rounded-2xl p-6 transition-all duration-300",
           "bg-[var(--color-surface)] shadow-[var(--shadow-card)]",
           "hover:shadow-[var(--shadow-card-hover,0_8px_24px_rgba(0,0,0,0.12))] hover:-translate-y-1",
+          "focus-within:ring-2 focus-within:ring-[var(--color-accent)] focus-within:ring-offset-2 focus-within:ring-offset-[color:var(--color-surface-2)]",
         )}
       >
         <header className="mb-4">
