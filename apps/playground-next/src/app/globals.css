@@ -78,6 +78,28 @@ html.dark .hl-boolean { color: #e0664c; }
 html.dark .hl-null { color: #a89880; }
 html.dark .hl-keyword { color: #e0664c; }
 
+/* preset SVG transition on theme swap (smooth fade instead of harsh flash) */
+svg[viewBox] {
+  transition: opacity 0.15s ease;
+}
+svg[viewBox] path,
+svg[viewBox] rect,
+svg[viewBox] ellipse,
+svg[viewBox] circle,
+svg[viewBox] text {
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  svg[viewBox],
+  svg[viewBox] path,
+  svg[viewBox] rect,
+  svg[viewBox] ellipse,
+  svg[viewBox] circle,
+  svg[viewBox] text {
+    transition: none;
+  }
+}
+
 /* subtle entrance animations for hero content */
 @keyframes fade-up {
   from {
