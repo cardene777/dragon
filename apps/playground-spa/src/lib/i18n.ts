@@ -87,6 +87,16 @@ export const ITEM_NAME_JA: Record<string, string> = {
   textDslMind: "マインドマップ (DSL)",
   textDslCode: "コード (DSL)",
 
+  // shape-driven basement 8 (CAR-1099)
+  shapeFile: "ファイル (ドッグイア)",
+  shapeFolder: "フォルダ (tab 付き)",
+  shapeCloud: "クラウド (5 円合成)",
+  shapeCylinder: "円柱 DB",
+  shapeHexagon: "六角形 (component)",
+  shapeDiamond: "ひし形 (判定)",
+  shapeStack: "重ね rect (履歴/layer)",
+  shapePerson: "人型 (actor)",
+
   // primitives
   kindActor: "actor (外部主体)",
   kindFunction: "function (関数呼び出し)",
