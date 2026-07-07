@@ -247,6 +247,13 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   overflow: auto;
   position: relative;
 }
+html.dark .canvas-code {
+  background: #161b22;
+  color: #f0f3f8;
+}
+html.dark .canvas-code .k { color: #7dc7e8; }
+html.dark .canvas-code .s { color: #a3d6a8; }
+html.dark .canvas-code .ln { color: #6b7785; }
 @media (max-width: 720px) {
   .canvas-code { border-right: none; border-bottom: 1px solid var(--line-soft); }
 }
@@ -568,6 +575,12 @@ html.dark .feature:hover {
 }
 .step-code .k { color: var(--brand-deep); }
 .step-code .s { color: #6a8a3a; }
+html.dark .step-code {
+  background: #161b22;
+  color: #f0f3f8;
+}
+html.dark .step-code .k { color: #7dc7e8; }
+html.dark .step-code .s { color: #a3d6a8; }
 
 /* ── examples 3 card ── */
 .examples {
@@ -630,7 +643,7 @@ html.dark .example:hover {
   place-items: center;
 }
 html.dark .example-thumb {
-  background: #0e1117;
+  background: #1f2630;
 }
 .example-thumb > * {
   width: 100%;

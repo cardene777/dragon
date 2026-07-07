@@ -161,15 +161,27 @@
     border-radius: 8px;
     border: 1px solid var(--v4-line);
     background: var(--v4-surface);
+    color: var(--v4-ink);
     cursor: pointer;
     display: grid;
     place-items: center;
     font-size: 15px;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
     position: relative;
   }
   .v4-nav-theme-toggle:hover {
     border-color: var(--v4-brand);
+    color: var(--v4-brand);
+  }
+  html.dark .v4-nav-theme-toggle {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fef3c7;
+  }
+  html.dark .v4-nav-theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fef3c7;
+    color: #fef3c7;
   }
   .v4-theme-icon-light,
   .v4-theme-icon-dark {
