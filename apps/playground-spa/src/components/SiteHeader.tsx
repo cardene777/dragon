@@ -1,19 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { useLocale } from "@/lib/useLocale";
 
 /**
- * 全 page 共通の header (Neumorphism 撤回後版 = v4 design cream + teal + serif 準拠)。
- * dragon brand mark + nav links + dark/light toggle button + share + open editor CTA。
- * light default (v4-theme=light or 未設定) → cream 背景 + navy ink、
- * dark toggle → navy 背景 + light ink cascade で切替。
+ * 全 page 共通の header (v4 design、 dark/light toggle + JA/EN toggle 両方対応)。
  * v4-nav-* CSS class SSOT = src/styles/header.css。
  */
-const LINKS: Array<{ to: string; label: string }> = [
-  { to: "/", label: "概要" },
-  { to: "/editor", label: "エディタ" },
-  { to: "/catalog", label: "カタログ" },
-  { to: "/compare", label: "テーマ比較" },
-  { to: "/docs", label: "ドキュメント" },
+const LINKS: Array<{ to: string; ja: string; en: string }> = [
+  { to: "/", ja: "概要", en: "overview" },
+  { to: "/editor", ja: "エディタ", en: "editor" },
+  { to: "/catalog", ja: "カタログ", en: "catalog" },
+  { to: "/compare", ja: "テーマ比較", en: "compare" },
+  { to: "/docs", ja: "ドキュメント", en: "docs" },
 ];
 
 const REPO_URL = "https://github.com/cardene777/dragon";
@@ -22,6 +20,7 @@ export function SiteHeader(): React.ReactElement {
   const location = useLocation();
   const pathname = location.pathname;
   const [isDark, setIsDark] = useState<boolean>(false);
+  const [locale, setLocale] = useLocale();
 
   useEffect(() => {
     try {
@@ -47,11 +46,27 @@ export function SiteHeader(): React.ReactElement {
     setIsDark(next === "dark");
   };
 
+  const toggleLocale = (): void => {
+    setLocale(locale === "ja" ? "en" : "ja");
+  };
+
   const onShare = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
     } catch {}
   };
+
+  const openEditorLabel = locale === "ja" ? "エディタを開く →" : "open editor →";
+  const shareLabel = locale === "ja" ? "この page を共有" : "Share this page";
+  const themeLabel =
+    locale === "ja"
+      ? isDark
+        ? "light mode に切替"
+        : "dark mode に切替"
+      : isDark
+        ? "Switch to light mode"
+        : "Switch to dark mode";
+  const langLabel = locale === "ja" ? "Switch to English" : "日本語に切替";
 
   return (
     <header className="v4-nav">
@@ -71,16 +86,17 @@ export function SiteHeader(): React.ReactElement {
         {LINKS.map((link) => {
           const active =
             link.to === "/"
-              ? pathname === "/" && link.label === "概要"
+              ? pathname === "/"
               : pathname === link.to || pathname.startsWith(link.to + "/");
+          const label = locale === "ja" ? link.ja : link.en;
           return (
             <Link
-              key={link.label}
+              key={link.to}
               to={link.to}
               aria-current={active ? "page" : undefined}
               className={`v4-nav-link${active ? " active" : ""}`}
             >
-              {link.label}
+              {label}
             </Link>
           );
         })}
@@ -90,15 +106,24 @@ export function SiteHeader(): React.ReactElement {
           target="_blank"
           rel="noopener noreferrer"
         >
-GitHub ↗
+          GitHub ↗
         </a>
       </nav>
       <button
         type="button"
+        className="v4-nav-lang-toggle"
+        onClick={toggleLocale}
+        aria-label={langLabel}
+        title={langLabel}
+      >
+        <span className="v4-lang-current">{locale === "ja" ? "JA" : "EN"}</span>
+      </button>
+      <button
+        type="button"
         className="v4-nav-theme-toggle"
         onClick={toggleTheme}
-        aria-label={isDark ? "light mode に切替" : "dark mode に切替"}
-        title={isDark ? "light mode に切替" : "dark mode に切替"}
+        aria-label={themeLabel}
+        title={themeLabel}
       >
         <span className="v4-theme-icon">{isDark ? "☾" : "☀"}</span>
       </button>
@@ -106,8 +131,8 @@ GitHub ↗
         type="button"
         className="v4-nav-share-btn"
         onClick={onShare}
-        aria-label="共有"
-        title="この page を共有"
+        aria-label={shareLabel}
+        title={shareLabel}
       >
         <svg
           width="18"
@@ -127,7 +152,7 @@ GitHub ↗
         </svg>
       </button>
       <Link className="v4-nav-cta" to="/editor">
-        エディタを開く →
+        {openEditorLabel}
       </Link>
     </header>
   );

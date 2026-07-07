@@ -232,16 +232,23 @@
   }
   .v4-nav-lang-toggle:hover {
     border-color: var(--v4-brand);
-  }
-  /* lang を [lang=...] で切替 */
-  html[lang="ja"] .v4-lang-en,
-  html[lang="en"] .v4-lang-ja {
-    color: var(--v4-ink-mute);
-    opacity: 0.4;
-  }
-  html[lang="ja"] .v4-lang-ja,
-  html[lang="en"] .v4-lang-en {
     color: var(--v4-brand);
+  }
+  html.dark .v4-nav-lang-toggle {
+    background: #12161f;
+    border-color: #262e42;
+    color: #f2f3f7;
+  }
+  html.dark .v4-nav-lang-toggle:hover {
+    border-color: #8b7ffa;
+    color: #8b7ffa;
+  }
+  .v4-lang-current {
+    color: var(--v4-brand);
+    font-weight: 700;
+  }
+  html.dark .v4-lang-current {
+    color: #8b7ffa;
   }
 
   /* 900px 以下 responsive = header 幅超過による body 横スクロール解消 */

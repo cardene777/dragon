@@ -5,6 +5,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
+import { itemNameJa } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
 
@@ -28,9 +30,13 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
 
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
+  const [locale] = useLocale();
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const displayName = (item: CatalogItem): string =>
+    locale === "ja" ? itemNameJa(item.title) : item.title;
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
   const items = params.slug ? CATALOG_ITEMS[params.slug] ?? [] : [];
@@ -128,7 +134,7 @@ export function CategoryPage(): React.ReactElement {
                       role="listitem"
                       aria-current={isSelected ? "true" : undefined}
                     >
-                      <div className="catalog-list-item-name">{item.title}</div>
+                      <div className="catalog-list-item-name">{displayName(item)}</div>
                       <div className="catalog-list-item-id">{item.id}</div>
                     </button>
                   );
@@ -143,7 +149,7 @@ export function CategoryPage(): React.ReactElement {
                 <header className="catalog-preview-head">
                   <div>
                     <div className="catalog-preview-id">{currentItem.id}</div>
-                    <h2 className="catalog-preview-title">{currentItem.title}</h2>
+                    <h2 className="catalog-preview-title">{displayName(currentItem)}</h2>
                     {currentItem.subtitle && (
                       <p className="catalog-preview-sub">{currentItem.subtitle}</p>
                     )}
@@ -151,7 +157,7 @@ export function CategoryPage(): React.ReactElement {
                   <button
                     type="button"
                     onClick={() => setModalItem(currentItem)}
-                    aria-label={`${currentItem.title} を拡大表示`}
+                    aria-label={`${displayName(currentItem)} を拡大表示`}
                     className="catalog-expand-btn"
                   >
                     <Maximize2 size={14} />
@@ -192,7 +198,9 @@ export function CategoryPage(): React.ReactElement {
             <div className="cdl-modal-header">
               <div>
                 <div className="cdl-modal-id">{modalItem?.id}</div>
-                <Dialog.Title className="cdl-modal-title">{modalItem?.title}</Dialog.Title>
+                <Dialog.Title className="cdl-modal-title">
+                  {modalItem ? displayName(modalItem) : ""}
+                </Dialog.Title>
                 {modalItem?.subtitle && (
                   <Dialog.Description className="cdl-modal-desc">
                     {modalItem.subtitle}
