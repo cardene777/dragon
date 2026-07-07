@@ -30,6 +30,20 @@ export interface CatalogItem {
 }
 
 /**
+ * phase 0 の text-dsl は cdl validate で「animation を駆動するための最低 1 phase が必要」 error になる。
+ * static 表示だけしたい diagram のために、 phases が空なら 1 phase を注入して validate 通過させる。
+ */
+function ensurePhase(d: CdlDiagram): CdlDiagram {
+  if (d.phases && d.phases.length > 0) return d;
+  return {
+    ...d,
+    phases: [
+      { id: "p1", duration: 1200, title: "static", body: "", activate: [], tweens: [], sets: [] },
+    ] as CdlDiagram["phases"],
+  };
+}
+
+/**
  * 全 export を CatalogItem 配列化する helper (topic module → items[])。
  * default = key を title、 subtitle = diagram.topic (もしあれば)。
  */
@@ -43,7 +57,7 @@ function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
       id: d.id,
       title: key,
       subtitle: d.topic ?? "",
-      diagram: d,
+      diagram: ensurePhase(d),
     });
   }
   return out;
