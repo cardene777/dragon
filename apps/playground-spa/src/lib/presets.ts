@@ -24,7 +24,7 @@ import {
   presetFlowchart,
   presetNetwork,
   presetStateMachine2,
-} from "@/topics/presets.cdl";
+} from "@/topics/catalog/presets.cdl";
 
 export interface PresetMetadata {
   id: string;
