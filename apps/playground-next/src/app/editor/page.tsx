@@ -6,6 +6,7 @@ import { PRESETS, type PresetDoc } from "@/lib/presets";
 import { DiagramView } from "@/components/DiagramView";
 import { ThemePicker, useThemeSync } from "@/components/ThemePicker";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { CommandPalette } from "@/components/CommandPalette";
 import { useToast } from "@/components/Toast";
 import { encodeShare, decodeShare } from "@/lib/share-url";
 import { Github, Rocket, Share2, Check, ChevronLeft, RotateCcw } from "lucide-react";
@@ -216,6 +217,7 @@ export default function EditorPage(): React.ReactElement {
           </div>
         </div>
       </main>
+      <CommandPalette theme={theme} onThemeChange={setTheme} />
     </div>
   );
 }
