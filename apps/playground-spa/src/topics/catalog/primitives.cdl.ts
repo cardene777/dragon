@@ -128,3 +128,40 @@ export const shapePerson = diagram("shape-person", { topic: "shape: person (人�
   .node("p", { lane: "l", stack: 0, kind: "shape-person", title: "エンドユーザ", eyebrow: "actor" })
   .phase("p", { duration: 1500, title: "person", body: "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者" }, (p: PhaseBuilder) => p.activate("p").badge("shape"))
   .build();
+
+/** 5. Shape-driven hardware 6 (CAR-1111 Phase 2-C) ... ハードウェア / IoT / エッジ領域の視覚要素 */
+export const shapeServerRack = diagram("shape-server-rack", { topic: "shape: server-rack (19 inch rack、 物理サーバ)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-server-rack", title: "web-01", eyebrow: "server", subtitle: "3 U rack mount" })
+  .phase("p", { duration: 1500, title: "server-rack", body: "外枠 + 3 段 slot の rack。 物理サーバ / データセンター / on-prem 機器" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
+  .build();
+
+export const shapeNetworkNode = diagram("shape-network-node", { topic: "shape: network-node (network hub、 router / switch)" })
+  .lane("l", { x: 0, width: W })
+  .node("n", { lane: "l", stack: 0, kind: "shape-network-node", title: "core-router", eyebrow: "network", subtitle: "L3 gateway" })
+  .phase("p", { duration: 1500, title: "network-node", body: "中央 circle + 4 方向 line。 router / switch / hub / L3 gateway 等" }, (p: PhaseBuilder) => p.activate("n").badge("shape"))
+  .build();
+
+export const shapeMobileDevice = diagram("shape-mobile-device", { topic: "shape: mobile-device (スマホ、 モバイル端末)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "iPhone", eyebrow: "mobile", subtitle: "iOS client" })
+  .phase("p", { duration: 1500, title: "mobile-device", body: "speaker + screen + home button のスマホ。 mobile app / client 端末" }, (p: PhaseBuilder) => p.activate("m").badge("shape"))
+  .build();
+
+export const shapeIotSensor = diagram("shape-iot-sensor", { topic: "shape: iot-sensor (IoT beacon、 電波発信)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-iot-sensor", title: "温度センサー", eyebrow: "iot", subtitle: "BLE beacon" })
+  .phase("p", { duration: 1500, title: "iot-sensor", body: "sensor 円 + 3 波紋 arc。 IoT beacon / センサー / ZigBee / LoRa 端末" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
+  .build();
+
+export const shapeRobotArm = diagram("shape-robot-arm", { topic: "shape: robot-arm (ロボアーム、 産業機器)" })
+  .lane("l", { x: 0, width: W })
+  .node("r", { lane: "l", stack: 0, kind: "shape-robot-arm", title: "組立ライン", eyebrow: "robot", subtitle: "6-axis arm" })
+  .phase("p", { duration: 1500, title: "robot-arm", body: "base + 2 関節 + gripper のロボアーム。 産業機器 / 自動化 / 制御対象" }, (p: PhaseBuilder) => p.activate("r").badge("shape"))
+  .build();
+
+export const shapeSatellite = diagram("shape-satellite", { topic: "shape: satellite (人工衛星、 エッジ通信)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-satellite", title: "Starlink", eyebrow: "satellite", subtitle: "LEO 通信衛星" })
+  .phase("p", { duration: 1500, title: "satellite", body: "中央 body + 左右 solar panel + アンテナ。 人工衛星 / 宇宙 / エッジ通信" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
+  .build();
