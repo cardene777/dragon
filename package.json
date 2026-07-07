@@ -16,6 +16,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:sweep": "vitest run visual-validate-sweep",
+    "test:playwright": "pnpm --filter dragon-playground-spa exec playwright test",
+    "test:audit": "pnpm --filter dragon-playground-spa exec playwright test audit-3vp",
+    "check:cdl": "pnpm test:playwright",
+    "check:dragon": "pnpm test:sweep",
+    "check:all": "pnpm typecheck && pnpm check:cdl && pnpm check:dragon",
     "verify": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {
