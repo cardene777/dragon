@@ -126,7 +126,7 @@ export const presetUserJourney = userJourney({ id: "journey-demo", topic: "userJ
   .build();
 
 // mindMap preset ... 中心 + 放射 branch
-export const presetMindMap = mindMap({ id: "mind-demo", topic: "mindMap (Project ideas、 lane 横並び + parent-child edge で階層表現、 中心 + 放射 render 未実装)", rootId: "root", rootTitle: "Project" })
+export const presetMindMap = mindMap({ id: "mind-demo", topic: "mindMap (Project ideas、 中心 root + 放射 branch + curved edge)", rootId: "root", rootTitle: "Project" })
   .branch({ id: "feat", title: "Features", parent: "root" })
   .branch({ id: "ui", title: "UI design", parent: "root" })
   .branch({ id: "launch", title: "Launch", parent: "root" })
@@ -137,7 +137,7 @@ export const presetMindMap = mindMap({ id: "mind-demo", topic: "mindMap (Project
 // mindMapRadial preset ... 中心 node から 8 方向 (45 度間隔) へ放射配置 (mindMap との使い分け demo)
 export const presetMindMapRadial = mindMapRadial({
   id: "mindmap-radial-demo",
-  topic: "mindMapRadial (center + 8 branch、 lane + 縦 stack で表現、 45 度放射 render 未実装)",
+  topic: "mindMapRadial (center + 8 branch、 8 方向 45 度等間隔配置)",
   centerTitle: "Product",
 })
   .branch({ id: "users", title: "Users" })
@@ -172,14 +172,14 @@ export const presetQuadrant = quadrant({
   .build();
 
 // chart preset (pie) ... 統計チャート
-export const presetChartPie = chart({ id: "chart-pie-demo", topic: "pie chart (datum を card + % subtitle 3 件で表現、 円グラフ render 未実装)", type: "pie" })
+export const presetChartPie = chart({ id: "chart-pie-demo", topic: "pie chart (SVG arc + tone 別 slice + 凡例)", type: "pie" })
   .datum({ id: "a", label: "Web", value: 45 })
   .datum({ id: "b", label: "Mobile", value: 35 })
   .datum({ id: "c", label: "API", value: 20 })
   .build();
 
 // chart preset (line) ... 時系列
-export const presetChartLine = chart({ id: "chart-line-demo", topic: "line chart (時系列 datum を card 4 件 + ↑↓ edge で連結、 折れ線グラフ render 未実装)", type: "line" })
+export const presetChartLine = chart({ id: "chart-line-demo", topic: "line chart (SVG polyline + 縦軸目盛 + circle marker + value label)", type: "line" })
   .datum({ id: "jan", label: "Jan", value: 1000 })
   .datum({ id: "feb", label: "Feb", value: 1300 })
   .datum({ id: "mar", label: "Mar", value: 1100 })
@@ -187,7 +187,7 @@ export const presetChartLine = chart({ id: "chart-line-demo", topic: "line chart
   .build();
 
 // gantt preset ... sprint / release timeline
-export const presetGantt = gantt({ id: "gantt-demo", topic: "gantt (Release timeline、 task を lane 分割 + start/end subtitle で表現、 帯状 timeline render 未実装)" })
+export const presetGantt = gantt({ id: "gantt-demo", topic: "gantt (Release timeline、 帯状 timeline + task label + dependsOn arrow)" })
   .task({ id: "design", title: "Design", start: "Q1", end: "Q1", owner: "Designer" })
   .task({ id: "build", title: "Build", start: "Q2", end: "Q2", owner: "Eng", dependsOn: "design" })
   .task({ id: "test", title: "Test", start: "Q3", end: "Q3", owner: "QA", dependsOn: "build" })

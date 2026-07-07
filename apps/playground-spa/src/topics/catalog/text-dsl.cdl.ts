@@ -174,7 +174,7 @@ animation:
 
 // ─── gantt preset (Q1-Q3 ロードマップ) ─────
 export const textDslGantt = textDslToDiagram(`
-title: "ロードマップ DSL (task を card + subtitle Q1-Q3 で表現、 帯状 timeline render 未実装)"
+title: "ロードマップ DSL (帯状 timeline + task label + Q1-Q3)"
 type: gantt
 
 actors:
@@ -224,7 +224,7 @@ animation:
 
 // ─── pie preset (シェア円グラフ) ─────
 export const textDslPie = textDslToDiagram(`
-title: "シェア DSL (割合を card + value 3 件で表現、 円グラフ render 未実装)"
+title: "シェア DSL (SVG arc + tone 別 slice + 凡例)"
 type: pie
 
 actors:
@@ -272,7 +272,7 @@ animation:
 
 // ─── mind preset (放射状 mind map) ─────
 export const textDslMind = textDslToDiagram(`
-title: "アイデア DSL (Core + Idea1-3 を card + edge で表現、 中心 + 放射 render 未実装)"
+title: "アイデア DSL (Core + Idea1-3 中心 + 放射 branch)"
 type: mind
 
 actors:
