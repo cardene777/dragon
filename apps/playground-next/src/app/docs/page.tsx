@@ -67,7 +67,24 @@ export default function DocsPage(): React.ReactElement {
           dragon は Text DSL で書ける animated SVG diagram library。 mermaid 感覚で記述して、 rough.js による Excalidraw 風の手描き感 / PCB 基板 / 立体感 Neumorphism など 6 theme を live 切替できる。
         </p>
 
-        <section className="mt-12">
+        <div className="mt-6 flex flex-wrap gap-2">
+          {[
+            { hash: "#keyboard", label: "Keyboard shortcuts" },
+            { hash: "#quick-start", label: "Quick start" },
+            { hash: "#themes", label: "Themes" },
+            { hash: "#presets", label: "Presets" },
+          ].map((s) => (
+            <a
+              key={s.hash}
+              href={s.hash}
+              className="rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11.5px] font-medium text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors shadow-sm"
+            >
+              {s.label} →
+            </a>
+          ))}
+        </div>
+
+        <section id="keyboard" className="mt-12 scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
             <BookOpen size={20} className="text-[var(--color-accent)]" />
             Keyboard shortcuts
@@ -95,7 +112,7 @@ export default function DocsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="mt-16">
+        <section id="quick-start" className="mt-16 scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
             <Zap size={20} className="text-[var(--color-accent)]" />
             Quick start
@@ -124,7 +141,7 @@ export default function DocsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="mt-16">
+        <section id="themes" className="mt-16 scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
             <Palette size={20} className="text-[var(--color-accent)]" />
             Themes ({THEMES.length})
@@ -148,7 +165,7 @@ export default function DocsPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="mt-16">
+        <section id="presets" className="mt-16 scroll-mt-24">
           <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[var(--color-ink)]">
             <Code2 size={20} className="text-[var(--color-accent)]" />
             Presets ({PRESETS.length})
