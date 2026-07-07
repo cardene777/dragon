@@ -173,12 +173,19 @@
     border-color: var(--v4-brand);
     color: var(--v4-brand);
   }
-  .v4-theme-icon-light,
-  .v4-theme-icon-dark {
-    line-height: 1;
+  html.dark .v4-nav-theme-toggle {
+    background: #161b22;
+    border-color: #2a3340;
+    color: #f0f3f8;
   }
-  /* light mode default ... ☀ 表示、 ☾ 隠す */
-  .v4-theme-icon-dark { display: none; }
+  html.dark .v4-nav-theme-toggle:hover {
+    border-color: #5ec4e8;
+    color: #5ec4e8;
+  }
+  .v4-theme-icon {
+    line-height: 1;
+    font-size: 15px;
+  }
   /* ── share button (theme toggle と同 size、 余白 8px 確保) ── */
   .v4-nav-share-btn {
     margin-left: 8px;
@@ -259,4 +266,28 @@
   @media (max-width: 640px) {
     .v4-nav-name { font-size: 14px; }
     .v4-nav-links { display: none; }
+  }
+
+  /* ── html.dark cascade (Neumorphism 撤回、 v4 design 準拠の navy dark) ── */
+  html.dark {
+    --v4-canvas: #0e1117;
+    --v4-surface: #161b22;
+    --v4-surface-2: #1f2630;
+    --v4-line: #2a3340;
+    --v4-line-soft: #1f2630;
+    --v4-ink: #f0f3f8;
+    --v4-ink-dim: #99a3b3;
+    --v4-ink-mute: #6b7785;
+    --v4-brand: #5ec4e8;
+    --v4-brand-deep: #4e9dc4;
+    --v4-brand-glow: #7dc7e8;
+    --v4-code-bg: #161b22;
+  }
+  html.dark .v4-nav {
+    background: rgba(14, 17, 23, 0.85);
+    border-bottom-color: #2a3340;
+  }
+  html.dark .v4-nav-cta {
+    background: #1f2630;
+    color: #f0f3f8;
   }
