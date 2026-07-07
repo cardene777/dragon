@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router";
 import "./styles/globals.css";
 import "./styles/cdl-theme.css";
-import "./styles/catalog.css";
+import "./styles/catalog-new.css";
 import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";

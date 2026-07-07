@@ -1,112 +1,190 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
 import { SiteHeader } from "@/components/SiteHeader";
-import { NmPresetCard } from "@/components/NmPresetCard";
+import { InViewMount } from "@/components/InViewMount";
 
 /**
- * /catalog/:slug = 旧 apps/playground/src/pages/catalog/presets.astro 忠実復元。
- * hero (breadcrumb + eyebrow + gradient title + subtitle + CTA) + stats (4 個) + preset grid。
- * 拡大 button で Radix Dialog modal 展開、 SVG letterbox center fit。
- * CSS SSOT = catalog.css の .nm-hero / .nm-preset-card / .cdl-modal-* class。
+ * /catalog/:slug — React docs / Storybook 風 2 pane 構成の再設計版。
+ * left = 検索 + item list (sidebar)、 right = 選択 item preview + 詳細。
+ * 拡大 button = card / preview 右上絶対配置、 modal = SVG max 80vh center fit。
+ * UI 全日本語化 (breadcrumb / stat / button / label)。
  */
+
+/** category slug から日本語 label に変換 (SSOT) */
+const CATEGORY_JA_LABEL: Record<string, string> = {
+  presets: "プリセット",
+  cookbook: "レシピ集",
+  patterns: "パターン",
+  primitives: "基本要素",
+  "text-dsl": "テキスト DSL",
+  animation: "アニメーション",
+  styles: "スタイル",
+};
+
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
   const items = params.slug ? CATALOG_ITEMS[params.slug] ?? [] : [];
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return items;
+    const q = query.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.subtitle.toLowerCase().includes(q) ||
+        item.id.toLowerCase().includes(q),
+    );
+  }, [items, query]);
+
+  const currentItem = useMemo(() => {
+    if (selectedId) return items.find((i) => i.id === selectedId) ?? filtered[0] ?? null;
+    return filtered[0] ?? null;
+  }, [filtered, items, selectedId]);
 
   if (!category) {
     return (
       <div>
         <SiteHeader />
         <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-          <p className="text-[15px] text-[var(--v4-ink-dim,#5a6270)]">Category not found</p>
+          <p className="text-[15px] text-[var(--v4-ink-dim,#5a6270)]">カテゴリが見つかりません</p>
         </div>
       </div>
     );
   }
 
-  const capitalizedLabel = category.label.charAt(0).toUpperCase() + category.label.slice(1);
+  const jaLabel = CATEGORY_JA_LABEL[category.slug] ?? category.label;
 
   return (
     <div>
       <SiteHeader />
-      <main>
-        <section className="nm-hero">
-          <nav aria-label="パンくず" className="nm-crumb">
-            <Link to="/">overview</Link>
+      <div className="catalog-page">
+        {/* breadcrumb + hero (簡潔) */}
+        <div className="catalog-hero">
+          <nav aria-label="パンくずリスト" className="catalog-crumb">
+            <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
-            <Link to="/catalog">catalog</Link>
+            <Link to="/catalog">カタログ</Link>
             <span aria-hidden="true">/</span>
-            <span className="cur">{category.label}</span>
+            <span className="cur">{jaLabel}</span>
           </nav>
-          <span className="nm-eyebrow">{category.eyebrow}</span>
-          <h1 className="nm-hero-title">
-            {capitalizedLabel} <span className="nm-gradient-accent">{items.length} items</span>
-          </h1>
-          <p className="nm-hero-subtitle">{category.desc}</p>
-          <div className="nm-hero-actions">
-            <Link to="/editor" className="nm-hero-btn nm-hero-btn-primary">
-              <span>Open editor</span>
-              <span className="nm-hero-btn-arrow" aria-hidden="true">→</span>
-            </Link>
-            <Link to="/catalog" className="nm-hero-btn nm-hero-btn-secondary">
-              <span>Back to catalog</span>
-            </Link>
+          <h1 className="catalog-title">{jaLabel}</h1>
+          <p className="catalog-desc">{category.desc}</p>
+          <div className="catalog-meta">
+            <span className="catalog-count">全 {items.length} 件</span>
+            {filtered.length !== items.length && (
+              <span className="catalog-count catalog-count-filter">
+                {filtered.length} 件 表示中
+              </span>
+            )}
           </div>
-        </section>
+        </div>
 
-        <section className="nm-stats" aria-label={`${category.label} stats`}>
-          <div className="nm-stat">
-            <div className="nm-stat-num">{items.length}</div>
-            <div className="nm-stat-label">items</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">{category.items.length}</div>
-            <div className="nm-stat-label">sub-categories</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">6</div>
-            <div className="nm-stat-label">themes</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">{category.cluster === "basic" ? "basic" : "extended"}</div>
-            <div className="nm-stat-label">cluster</div>
-          </div>
-        </section>
-
-        <section className="nm-presets-section" aria-label={`${category.label} preset list`}>
-          <div className="nm-section-head">
-            <h2 className="nm-section-title">
-              {capitalizedLabel} <span className="nm-section-count">({items.length})</span>
-            </h2>
-            <p className="nm-section-desc">
-              各 item は 1 行の DSL / builder API 呼び出しで node / edge / lane を生成、 build() で PhaseDoc を得る。 拡大 button で phase animation 付きで確認できる。
-            </p>
-          </div>
-          <div className="nm-preset-grid">
-            {items.map((item) => (
-              <NmPresetCard
-                key={item.id}
-                id={item.id}
-                eyebrow={category.eyebrow}
-                title={item.title}
-                subtitle={item.subtitle}
-                tags={category.items.slice(0, 2)}
-                diagram={item.diagram}
-                onOpen={() => setModalItem(item)}
+        {/* 2 pane = sidebar (list) + preview */}
+        <div className="catalog-body">
+          <aside className="catalog-sidebar" aria-label="項目一覧">
+            <div className="catalog-search-wrap">
+              <Search size={14} className="catalog-search-icon" />
+              <input
+                type="text"
+                className="catalog-search"
+                placeholder="検索 (名前 / 説明 / ID)"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="項目を検索"
               />
-            ))}
-          </div>
-        </section>
-      </main>
+              {query && (
+                <button
+                  type="button"
+                  className="catalog-search-clear"
+                  onClick={() => setQuery("")}
+                  aria-label="検索をクリア"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <div className="catalog-list" role="list">
+              {filtered.length === 0 ? (
+                <div className="catalog-list-empty">該当する項目がありません</div>
+              ) : (
+                filtered.map((item) => {
+                  const isSelected = currentItem?.id === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedId(item.id)}
+                      className={`catalog-list-item${isSelected ? " selected" : ""}`}
+                      role="listitem"
+                      aria-current={isSelected ? "true" : undefined}
+                    >
+                      <div className="catalog-list-item-name">{item.title}</div>
+                      <div className="catalog-list-item-id">{item.id}</div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </aside>
 
+          <main className="catalog-preview" aria-label="プレビュー">
+            {currentItem ? (
+              <article className="catalog-preview-card">
+                <header className="catalog-preview-head">
+                  <div>
+                    <div className="catalog-preview-id">{currentItem.id}</div>
+                    <h2 className="catalog-preview-title">{currentItem.title}</h2>
+                    {currentItem.subtitle && (
+                      <p className="catalog-preview-sub">{currentItem.subtitle}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModalItem(currentItem)}
+                    aria-label={`${currentItem.title} を拡大表示`}
+                    className="catalog-expand-btn"
+                  >
+                    <Maximize2 size={14} />
+                    <span>拡大</span>
+                  </button>
+                </header>
+                <div className="catalog-preview-stage">
+                  <InViewMount
+                    className="catalog-preview-stage-inner"
+                    placeholder={
+                      <div className="catalog-preview-loading">読み込み中…</div>
+                    }
+                  >
+                    <CdlDiagramView diagram={currentItem.diagram as never} hideHeader />
+                  </InViewMount>
+                </div>
+                <footer className="catalog-preview-foot">
+                  <Link
+                    to={`/editor#preset=${currentItem.id}`}
+                    className="catalog-preview-link"
+                  >
+                    エディタで開く →
+                  </Link>
+                </footer>
+              </article>
+            ) : (
+              <div className="catalog-preview-empty">項目を選択してください</div>
+            )}
+          </main>
+        </div>
+      </div>
+
+      {/* 拡大 modal = SVG max 80vh center fit */}
       <Dialog.Root open={modalItem !== null} onOpenChange={(open) => !open && setModalItem(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="cdl-modal-overlay" />

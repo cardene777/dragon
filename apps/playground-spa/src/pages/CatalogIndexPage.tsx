@@ -4,102 +4,60 @@ import { CATALOG_ITEMS } from "@/lib/catalog-items";
 import { SiteHeader } from "@/components/SiteHeader";
 
 /**
- * /catalog = 7 category 一覧 (旧 Astro /catalog/index.astro 相当)。
- * nm-hero + nm-stats + nm-cat-grid の 3 section。
- * ページ本体 root `/` は HomePage.tsx (旧 index.astro 相当) 側。
+ * /catalog = 7 カテゴリ一覧 (React docs 風の簡潔な list 構成)。
+ * 各カテゴリ = 日本語ラベル + 説明 + 件数 + open button。
+ * ページ本体 root `/` は HomePage 側。
  */
+
+const CATEGORY_JA_LABEL: Record<string, string> = {
+  presets: "プリセット",
+  cookbook: "レシピ集",
+  patterns: "パターン",
+  primitives: "基本要素",
+  "text-dsl": "テキスト DSL",
+  animation: "アニメーション",
+  styles: "スタイル",
+};
+
 export function CatalogIndexPage(): React.ReactElement {
   const totalItems = Object.values(CATALOG_ITEMS).reduce((sum, arr) => sum + arr.length, 0);
-  const presetsCount = CATALOG_ITEMS.presets?.length ?? 0;
 
   return (
     <div>
       <SiteHeader />
-      <main>
-        <section className="nm-hero">
-          <nav aria-label="パンくず" className="nm-crumb">
-            <Link to="/">overview</Link>
+      <div className="catalog-page">
+        <div className="catalog-hero">
+          <nav aria-label="パンくずリスト" className="catalog-crumb">
+            <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
-            <span className="cur">catalog</span>
+            <span className="cur">カタログ</span>
           </nav>
-          <span className="nm-eyebrow">
-            CATALOG · primitives · presets · animation · patterns
-          </span>
-          <h1 className="nm-hero-title">
-            Text DSL × <span className="nm-gradient-accent">Animated SVG</span>
-          </h1>
-          <p className="nm-hero-subtitle">
-            dragon DSL の primitives / styles / animation / patterns を {CATEGORIES.length} カテゴリで整理。 各カテゴリに小さい図を並べて、 1 概念ずつ動作確認できる。 engine 層は{" "}
-            <code>@cardenelabs/cdl</code> が担う。
+          <h1 className="catalog-title">カタログ</h1>
+          <p className="catalog-desc">
+            dragon DSL の各要素を 7 カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
+            合計 {totalItems} 件の要素 + {CATEGORIES.length} カテゴリ。
           </p>
-          <div className="nm-hero-actions">
-            <Link to="/catalog/presets" className="nm-hero-btn nm-hero-btn-primary">
-              <span>Browse presets</span>
-              <span className="nm-hero-btn-arrow" aria-hidden="true">→</span>
-            </Link>
-            <Link to="/editor" className="nm-hero-btn nm-hero-btn-secondary">
-              <span>Open editor</span>
-            </Link>
-          </div>
-        </section>
+        </div>
 
-        <section className="nm-stats" aria-label="dragon catalog stats">
-          <div className="nm-stat">
-            <div className="nm-stat-num">{CATEGORIES.length}</div>
-            <div className="nm-stat-label">categories</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">{presetsCount}</div>
-            <div className="nm-stat-label">presets</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">{totalItems}</div>
-            <div className="nm-stat-label">items</div>
-          </div>
-          <div className="nm-stat">
-            <div className="nm-stat-num">6</div>
-            <div className="nm-stat-label">themes</div>
-          </div>
-        </section>
-
-        <section className="nm-presets-section" aria-label="category list">
-          <div className="nm-section-head">
-            <h2 className="nm-section-title">
-              Categories{" "}
-              <span className="nm-section-count">({CATEGORIES.length})</span>
-            </h2>
-            <p className="nm-section-desc">
-              各カテゴリはそれぞれ独立したページを持ち、 中で小さい図を並べて 1 概念ずつ動作確認できる。 basic は日常最頻使用、 extended は応用向け。
-            </p>
-          </div>
-          <div className="nm-cat-grid">
-            {CATEGORIES.map((c) => (
-              <Link
-                key={c.slug}
-                to={`/catalog/${c.slug}`}
-                className={`nm-cat-card nm-cat-${c.cluster}`}
-              >
-                <div className="nm-cat-card-head">
-                  <span className="nm-cat-eyebrow">{c.eyebrow}</span>
-                  <h3 className="nm-cat-title">{c.label}</h3>
+        <div className="catalog-index-grid">
+          {CATEGORIES.map((c) => {
+            const jaLabel = CATEGORY_JA_LABEL[c.slug] ?? c.label;
+            const itemCount = CATALOG_ITEMS[c.slug]?.length ?? 0;
+            return (
+              <Link key={c.slug} to={`/catalog/${c.slug}`} className="catalog-index-card">
+                <div className="catalog-index-card-head">
+                  <h2 className="catalog-index-card-title">{jaLabel}</h2>
+                  <span className="catalog-index-card-count">{itemCount} 件</span>
                 </div>
-                <p className="nm-cat-desc">{c.desc}</p>
-                <div className="nm-cat-chips">
-                  {c.items.map((i) => (
-                    <span key={i} className="nm-cat-chip">
-                      {i}
-                    </span>
-                  ))}
-                </div>
-                <div className="nm-cat-go">
-                  <span>open</span>
-                  <span className="nm-cat-arrow" aria-hidden="true">→</span>
+                <p className="catalog-index-card-desc">{c.desc}</p>
+                <div className="catalog-index-card-foot">
+                  <span className="catalog-index-card-link">開く →</span>
                 </div>
               </Link>
-            ))}
-          </div>
-        </section>
-      </main>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
