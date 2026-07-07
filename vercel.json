@@ -1,25 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @cardenelabs/anim build && pnpm --filter @cardenelabs/cdl build && pnpm --filter dragon-playground build",
-  "outputDirectory": "apps/playground/dist",
+  "buildCommand": "pnpm --filter @cardenelabs/dragon build && pnpm --filter dragon-playground-spa build",
+  "outputDirectory": "apps/playground-spa/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
-      "source": "/_pagefind/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {
       "source": "/(.*)\\.svg",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/(.*)\\.(png|jpg|jpeg|webp|woff2|woff)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]

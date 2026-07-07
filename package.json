@@ -7,24 +7,18 @@
     "url": "git+https://github.com/cardene777/dragon.git"
   },
   "scripts": {
-    "dev": "pnpm --filter dragon-playground dev",
-    "dev:fresh": "pnpm --filter dragon-playground dev:fresh",
-    "build": "pnpm build:packages && pnpm --filter dragon-playground build",
+    "dev": "pnpm --filter dragon-playground-spa dev",
+    "build": "pnpm build:packages && pnpm --filter dragon-playground-spa build",
     "build:packages": "pnpm --filter @cardenelabs/dragon build",
-    "preview": "pnpm --filter dragon-playground preview",
+    "preview": "pnpm --filter dragon-playground-spa preview",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "lint:docs-preview": "node scripts/lint-docs-preview.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:overlap": "pnpm --filter dragon-playground exec playwright test tests/visual/overlap-detector.spec.ts",
-    "test:visual:all": "pnpm --filter dragon-playground test:visual",
-    "verify": "pnpm typecheck && pnpm test && pnpm test:overlap"
+    "verify": "pnpm typecheck && pnpm test"
   },
   "devDependencies": {
-    "@astrojs/mdx": "^4.3.0",
-    "@astrojs/react": "^4.3.0",
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -33,7 +27,6 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitest/ui": "^4.1.9",
-    "astro": "^5.10.0",
     "eslint": "^9.29.0",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",

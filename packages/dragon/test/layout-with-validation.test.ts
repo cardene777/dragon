@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { layoutWithValidation, visualValidate } from "@cardenelabs/cdl";
 import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
-import * as patterns from "../../../apps/playground/src/topics/catalog/patterns.cdl";
+import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
 
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;

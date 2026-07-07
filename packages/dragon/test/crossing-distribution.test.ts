@@ -8,14 +8,14 @@
 import { describe, it, expect } from "vitest";
 import { layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import * as cookbook from "../../../apps/playground/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../apps/playground/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../apps/playground/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../apps/playground/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../apps/playground/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground/src/topics/catalog/styles.cdl";
+import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
+import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
+import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
+import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
+import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
+import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
+import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;
