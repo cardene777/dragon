@@ -105,6 +105,38 @@ export const ITEM_NAME_JA: Record<string, string> = {
   shapeRobotArm: "ロボアーム (産業機器)",
   shapeSatellite: "人工衛星 (satellite)",
 
+  // shape-driven blockchain / web3 6 (CAR-1111 Phase 2-D)
+  shapeSmartContract: "スマートコントラクト",
+  shapeBlockchainBlock: "ブロックチェーン block",
+  shapeRpcNode: "RPC ノード",
+  shapeWallet: "ウォレット",
+  shapeNft: "NFT",
+  shapeToken: "トークン (硬貨)",
+
+  // shape-driven finance 6 (CAR-1111 Phase 2-D)
+  shapeBank: "銀行",
+  shapeTrustBank: "信託銀行",
+  shapePaymentProvider: "決済業者 (POS)",
+  shapeBrokerage: "証券会社",
+  shapeExchange: "取引所",
+  shapeAtm: "ATM",
+
+  // shape-driven commerce / web 6 (CAR-1111 Phase 2-D)
+  shapeWebsite: "Web サイト",
+  shapeStorefront: "実店舗",
+  shapeWarehouse: "倉庫",
+  shapeOnlineShop: "オンラインショップ",
+  shapeCdnEdge: "CDN エッジ",
+  shapeApiGateway: "API ゲートウェイ",
+
+  // shape-driven people 6 (CAR-1111 Phase 2-D)
+  shapeAuditor: "監査人",
+  shapeRegulator: "規制当局",
+  shapeNotary: "公証人",
+  shapeLawyer: "弁護士",
+  shapeTrader: "トレーダー",
+  shapeCustomerService: "カスタマーサポート",
+
   // primitives
   kindActor: "actor (外部主体)",
   kindFunction: "function (関数呼び出し)",

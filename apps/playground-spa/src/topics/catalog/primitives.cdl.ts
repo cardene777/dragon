@@ -165,3 +165,151 @@ export const shapeSatellite = diagram("shape-satellite", { topic: "shape: satell
   .node("s", { lane: "l", stack: 0, kind: "shape-satellite", title: "Starlink", eyebrow: "satellite", subtitle: "LEO 通信衛星" })
   .phase("p", { duration: 1500, title: "satellite", body: "中央 body + 左右 solar panel + アンテナ。 人工衛星 / 宇宙 / エッジ通信" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
   .build();
+
+/** 6. Shape-driven blockchain / web3 6 (CAR-1111 Phase 2-D) ... Solidity / EVM 系開発主体 */
+export const shapeSmartContract = diagram("shape-smart-contract", { topic: "shape: smart-contract (契約書 + 歯車 = 自動実行)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-smart-contract", title: "Vault.sol", eyebrow: "contract", subtitle: "0.8.24" })
+  .phase("p", { duration: 1500, title: "smart-contract", body: "文書 + 底に歯車 (自動実行)。 Solidity 契約 / DAO 規約 / 自動 escrow" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
+  .build();
+
+export const shapeBlockchainBlock = diagram("shape-blockchain-block", { topic: "shape: blockchain-block (連結 3 block + hash pointer)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-blockchain-block", title: "Block #421", eyebrow: "chain", subtitle: "0xaf31c9d2..." })
+  .phase("p", { duration: 1500, title: "blockchain-block", body: "縦連結 3 block + hash pointer + tx count。 Ethereum / Bitcoin ブロック" }, (p: PhaseBuilder) => p.activate("b").badge("shape"))
+  .build();
+
+export const shapeRpcNode = diagram("shape-rpc-node", { topic: "shape: rpc-node (JSON-RPC node + 6 peers + sync bar)" })
+  .lane("l", { x: 0, width: W })
+  .node("r", { lane: "l", stack: 0, kind: "shape-rpc-node", title: "Alchemy", eyebrow: "rpc", subtitle: "mainnet endpoint" })
+  .phase("p", { duration: 1500, title: "rpc-node", body: "中央 sphere + 6 peer dot + sync bar。 Infura / Alchemy / node provider" }, (p: PhaseBuilder) => p.activate("r").badge("shape"))
+  .build();
+
+export const shapeWallet = diagram("shape-wallet", { topic: "shape: wallet (財布 + coin + balance display)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-wallet", title: "MetaMask", eyebrow: "wallet", subtitle: "EOA / EIP-4337" })
+  .phase("p", { duration: 1500, title: "wallet", body: "財布 + coin 差し込み + balance。 MetaMask / Ledger / smart wallet" }, (p: PhaseBuilder) => p.activate("w").badge("shape"))
+  .build();
+
+export const shapeNft = diagram("shape-nft", { topic: "shape: nft (額縁 + polygonal art + verified badge)" })
+  .lane("l", { x: 0, width: W })
+  .node("n", { lane: "l", stack: 0, kind: "shape-nft", title: "CryptoPunk", eyebrow: "nft", subtitle: "ERC-721 #1024" })
+  .phase("p", { duration: 1500, title: "nft", body: "額縁 + polygonal art + verified check。 ERC-721 / SBT / collection" }, (p: PhaseBuilder) => p.activate("n").badge("shape"))
+  .build();
+
+export const shapeToken = diagram("shape-token", { topic: "shape: token (硬貨、 fungible currency)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-token", title: "ETH", eyebrow: "token", subtitle: "ERC-20 / native" })
+  .phase("p", { duration: 1500, title: "token", body: "硬貨 + 通貨 symbol Ξ + shine。 ERC-20 / native currency / stablecoin" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
+  .build();
+
+/** 7. Shape-driven finance 6 (CAR-1111 Phase 2-D) ... 銀行 / 決済 / 信託 / 取引所主体 */
+export const shapeBank = diagram("shape-bank", { topic: "shape: bank (Greek facade + 4 columns + $)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-bank", title: "みずほ銀行", eyebrow: "bank", subtitle: "都銀" })
+  .phase("p", { duration: 1500, title: "bank", body: "神殿風 facade (pediment + columns + base)。 都銀 / 地銀 / 銀行本店" }, (p: PhaseBuilder) => p.activate("b").badge("shape"))
+  .build();
+
+export const shapeTrustBank = diagram("shape-trust-bank", { topic: "shape: trust-bank (bank facade + 冠 crown = 受託の信頼)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-trust-bank", title: "三菱 UFJ 信託", eyebrow: "trust-bank", subtitle: "受託業務" })
+  .phase("p", { duration: 1500, title: "trust-bank", body: "冠 + facade + Ⓣ letter。 信託銀行 / 受託業務 / 資産管理" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
+  .build();
+
+export const shapePaymentProvider = diagram("shape-payment-provider", { topic: "shape: payment-provider (POS 端末 + screen + keypad)" })
+  .lane("l", { x: 0, width: W })
+  .node("p", { lane: "l", stack: 0, kind: "shape-payment-provider", title: "Stripe", eyebrow: "payment", subtitle: "card / QR / 電子マネー" })
+  .phase("p", { duration: 1500, title: "payment-provider", body: "POS 端末 + APPROVED 表示 + keypad。 決済業者 / Stripe / 電子決済手段等取引業" }, (p: PhaseBuilder) => p.activate("p").badge("shape"))
+  .build();
+
+export const shapeBrokerage = diagram("shape-brokerage", { topic: "shape: brokerage (証券会社 tower + candle chart + up arrow)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-brokerage", title: "野村證券", eyebrow: "brokerage", subtitle: "証券会社" })
+  .phase("p", { duration: 1500, title: "brokerage", body: "tower + window grid + candle chart + up arrow。 証券会社 / 投資銀行" }, (p: PhaseBuilder) => p.activate("b").badge("shape"))
+  .build();
+
+export const shapeExchange = diagram("shape-exchange", { topic: "shape: exchange (取引所、 $ ⇄ Ξ swap)" })
+  .lane("l", { x: 0, width: W })
+  .node("e", { lane: "l", stack: 0, kind: "shape-exchange", title: "Coinbase", eyebrow: "exchange", subtitle: "spot / derivatives" })
+  .phase("p", { duration: 1500, title: "exchange", body: "2 通貨 coin + 双方向 arrow + rate。 取引所 / DEX / 換金" }, (p: PhaseBuilder) => p.activate("e").badge("shape"))
+  .build();
+
+export const shapeAtm = diagram("shape-atm", { topic: "shape: atm (現金自動預払機、 card slot + cash dispenser)" })
+  .lane("l", { x: 0, width: W })
+  .node("a", { lane: "l", stack: 0, kind: "shape-atm", title: "ATM", eyebrow: "atm", subtitle: "24 h 稼働" })
+  .phase("p", { duration: 1500, title: "atm", body: "screen + button + card slot + dispenser。 銀行 ATM / コンビニ ATM" }, (p: PhaseBuilder) => p.activate("a").badge("shape"))
+  .build();
+
+/** 8. Shape-driven commerce / web 6 (CAR-1111 Phase 2-D) ... web / EC / インフラ主体 */
+export const shapeWebsite = diagram("shape-website", { topic: "shape: website (browser + URL + page layout)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-website", title: "example.com", eyebrow: "website", subtitle: "corporate site" })
+  .phase("p", { duration: 1500, title: "website", body: "browser + URL bar + header + 2 col。 corporate / SaaS LP / blog" }, (p: PhaseBuilder) => p.activate("w").badge("shape"))
+  .build();
+
+export const shapeStorefront = diagram("shape-storefront", { topic: "shape: storefront (実店舗、 awning + door + windows)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-storefront", title: "コンビニ", eyebrow: "store", subtitle: "リアル店舗" })
+  .phase("p", { duration: 1500, title: "storefront", body: "赤白 awning + OPEN sign + door + windows。 リアル店舗 / 小売" }, (p: PhaseBuilder) => p.activate("s").badge("shape"))
+  .build();
+
+export const shapeWarehouse = diagram("shape-warehouse", { topic: "shape: warehouse (倉庫、 roof + shutter + boxes)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-warehouse", title: "FC1", eyebrow: "warehouse", subtitle: "配送 hub" })
+  .phase("p", { duration: 1500, title: "warehouse", body: "roof + shutter door + box stack。 fulfillment center / 倉庫" }, (p: PhaseBuilder) => p.activate("w").badge("shape"))
+  .build();
+
+export const shapeOnlineShop = diagram("shape-online-shop", { topic: "shape: online-shop (browser + cart badge + product grid)" })
+  .lane("l", { x: 0, width: W })
+  .node("o", { lane: "l", stack: 0, kind: "shape-online-shop", title: "Amazon", eyebrow: "online-shop", subtitle: "EC site" })
+  .phase("p", { duration: 1500, title: "online-shop", body: "browser + cart badge (3) + 6 product grid。 EC / online 販売" }, (p: PhaseBuilder) => p.activate("o").badge("shape"))
+  .build();
+
+export const shapeCdnEdge = diagram("shape-cdn-edge", { topic: "shape: cdn-edge (地球儀 + 5 edge nodes + arc)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-cdn-edge", title: "Cloudflare", eyebrow: "cdn", subtitle: "300+ POP" })
+  .phase("p", { duration: 1500, title: "cdn-edge", body: "地球儀 + 5 edge dot + dashed connect。 Cloudflare / Fastly / edge network" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
+  .build();
+
+export const shapeApiGateway = diagram("shape-api-gateway", { topic: "shape: api-gateway (門柱 + arch + traffic arrow)" })
+  .lane("l", { x: 0, width: W })
+  .node("a", { lane: "l", stack: 0, kind: "shape-api-gateway", title: "Kong", eyebrow: "gateway", subtitle: "API 管理" })
+  .phase("p", { duration: 1500, title: "api-gateway", body: "2 柱 + arch + API text + traffic arrow。 Kong / AWS API GW / 門番" }, (p: PhaseBuilder) => p.activate("a").badge("shape"))
+  .build();
+
+/** 9. Shape-driven people 6 (CAR-1111 Phase 2-D) ... 職種別 person 型 */
+export const shapeAuditor = diagram("shape-auditor", { topic: "shape: auditor (監査人 + magnifier + check)" })
+  .lane("l", { x: 0, width: W })
+  .node("a", { lane: "l", stack: 0, kind: "shape-auditor", title: "監査法人", eyebrow: "auditor", subtitle: "内部監査" })
+  .phase("p", { duration: 1500, title: "auditor", body: "人 + tie + magnifier + check icon。 監査人 / 公認会計士 / 内部監査" }, (p: PhaseBuilder) => p.activate("a").badge("shape"))
+  .build();
+
+export const shapeRegulator = diagram("shape-regulator", { topic: "shape: regulator (規制当局 + 冠 crown + 章 badge)" })
+  .lane("l", { x: 0, width: W })
+  .node("r", { lane: "l", stack: 0, kind: "shape-regulator", title: "金融庁", eyebrow: "regulator", subtitle: "監督官庁" })
+  .phase("p", { duration: 1500, title: "regulator", body: "人 + crown + 五芒星 badge。 金融庁 / 消費者庁 / 規制当局" }, (p: PhaseBuilder) => p.activate("r").badge("shape"))
+  .build();
+
+export const shapeNotary = diagram("shape-notary", { topic: "shape: notary (公証人 + 儒学者風 hat + seal 印)" })
+  .lane("l", { x: 0, width: W })
+  .node("n", { lane: "l", stack: 0, kind: "shape-notary", title: "公証役場", eyebrow: "notary", subtitle: "公証人" })
+  .phase("p", { duration: 1500, title: "notary", body: "人 + 儒学者風 hat + 紅印。 公証人 / 認証業務 / 書類認証" }, (p: PhaseBuilder) => p.activate("n").badge("shape"))
+  .build();
+
+export const shapeLawyer = diagram("shape-lawyer", { topic: "shape: lawyer (弁護士 + wig + 天秤)" })
+  .lane("l", { x: 0, width: W })
+  .node("l", { lane: "l", stack: 0, kind: "shape-lawyer", title: "顧問弁護士", eyebrow: "lawyer", subtitle: "法律事務所" })
+  .phase("p", { duration: 1500, title: "lawyer", body: "人 + 髪 + 正義の天秤 icon。 弁護士 / 法務顧問 / 法律事務所" }, (p: PhaseBuilder) => p.activate("l").badge("shape"))
+  .build();
+
+export const shapeTrader = diagram("shape-trader", { topic: "shape: trader (トレーダー + headset + laptop chart)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-trader", title: "デイトレーダー", eyebrow: "trader", subtitle: "algorithmic" })
+  .phase("p", { duration: 1500, title: "trader", body: "人 + headset + laptop with chart。 トレーダー / MM / algo 発注" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
+  .build();
+
+export const shapeCustomerService = diagram("shape-customer-service", { topic: "shape: customer-service (CS + headset + speech bubble + smile)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-customer-service", title: "サポート担当", eyebrow: "support", subtitle: "24h コンタクト" })
+  .phase("p", { duration: 1500, title: "customer-service", body: "人 + headset + speech bubble + name badge。 CS / コールセンター" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
+  .build();
