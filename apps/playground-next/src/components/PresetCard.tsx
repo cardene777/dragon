@@ -113,9 +113,9 @@ export function PresetCard({
           )}
         >
           <DiagramView preset={preset} theme={theme} className="w-full h-full" />
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] px-2 py-1 text-[10px] font-medium text-[var(--color-ink-dim)] shadow-sm">
-              <Maximize2 size={10} /> Expand
+              <Maximize2 size={10} /> Expand · ← →
             </span>
           </div>
         </button>
