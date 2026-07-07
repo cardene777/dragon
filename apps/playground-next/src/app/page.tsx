@@ -112,16 +112,16 @@ function Hero({ theme }: { theme: ThemeName }): React.ReactElement {
     <section className="mx-auto max-w-[1280px] px-4 py-10 sm:px-8 sm:py-16">
       <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
         <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono shadow-sm">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] font-mono shadow-sm fade-up">
             Catalog / Presets
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[var(--color-ink)]">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[var(--color-ink)] fade-up-delay-1">
             Text DSL <span className="text-[var(--color-accent)]">{PRESETS.length} presets</span>
           </h1>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--color-ink-dim)]">
+          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--color-ink-dim)] fade-up-delay-2">
             swimlane / flow / sequence / topology / er / stateMachine / classDiagram / mindMap / flowchart / pubsub。 それぞれ 1 行宣言で複数 lane / node / edge を組み立てる。 低位 API より簡潔、 手書きより早い。 各 preset をクリックで拡大表示、 theme 切替で live preview。
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3 fade-up-delay-3">
             <a
               href="/editor"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
