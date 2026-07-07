@@ -703,3 +703,75 @@ html.dark .example-thumb {
   gap: 12px;
   justify-content: center;
 }
+
+/* ─── 404 page (旧 404.astro <style> tag 移植) ─── */
+  .v4-404 {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 32px 60px;
+    text-align: center;
+  }
+  .v4-404-code {
+    font-family: var(--v4-serif);
+    font-size: 96px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--v4-ink-mute);
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+  .v4-404-title {
+    font-family: var(--v4-serif);
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin-bottom: 14px;
+    color: var(--v4-ink);
+  }
+  .v4-404-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--v4-brand-deep);
+  }
+  .v4-404-lead {
+    color: var(--v4-ink-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    margin-bottom: 32px;
+  }
+  .v4-404-cta {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .v4-btn-primary {
+    padding: 11px 22px;
+    background: var(--v4-ink);
+    color: var(--v4-canvas);
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .v4-btn-primary:hover {
+    background: var(--v4-brand-deep);
+    transform: translateY(-1px);
+  }
+  .v4-btn-secondary {
+    padding: 11px 22px;
+    background: var(--v4-surface);
+    border: 1px solid var(--v4-line);
+    color: var(--v4-ink);
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-family: var(--v4-mono);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    transition: border-color 0.15s;
+  }
+  .v4-btn-secondary:hover {
+    border-color: var(--v4-brand);
+  }
