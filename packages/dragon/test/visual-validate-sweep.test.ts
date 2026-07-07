@@ -16,15 +16,15 @@ import { visualValidateAll, type VisualValidationReport, type Violation } from "
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 // catalog 各 page で render される全 topic を sweep 対象として集約。
-// Astro の `apps/playground/src/topics/catalog` 配下から相対 import。
-import * as cookbook from "../../../apps/playground/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../apps/playground/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../apps/playground/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../apps/playground/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../apps/playground/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground/src/topics/catalog/styles.cdl";
+// Astro の `apps/playground-spa/src/topics/catalog` 配下から相対 import。
+import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
+import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
+import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
+import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
+import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
+import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
+import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 
 type ModuleLike = Record<string, unknown>;
 

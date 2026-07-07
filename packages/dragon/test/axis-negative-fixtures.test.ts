@@ -193,7 +193,7 @@ describe("Axis 14 label-inside-viewbox (真の negative fixture)", () => {
 describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () => {
   it("dragon catalog patterns の pattern-passthrough は edge-node-cross error を保持", async () => {
     // dragon catalog に既存の real defect (intentional) の再現確認
-    const patterns = await import("../../../apps/playground/src/topics/catalog/patterns.cdl");
+    const patterns = await import("../../../apps/playground-spa/src/topics/catalog/patterns.cdl");
     const isDiag = (v: unknown): v is CdlDiagram => {
       return typeof v === "object" && v !== null &&
         typeof (v as CdlDiagram).id === "string" &&
@@ -292,7 +292,7 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
 
 describe("Axis 3 text-readability (catalog real defect assertion)", () => {
   it("cookbook 内 diagram の 1 つで text-readability > 0 (dark catalog は 96 発火の SSOT)", async () => {
-    const cookbook = await import("../../../apps/playground/src/topics/catalog/cookbook.cdl");
+    const cookbook = await import("../../../apps/playground-spa/src/topics/catalog/cookbook.cdl");
     const isDiag = (v: unknown): v is CdlDiagram => {
       return typeof v === "object" && v !== null &&
         typeof (v as CdlDiagram).id === "string" &&
@@ -311,7 +311,7 @@ describe("Axis 3 text-readability (catalog real defect assertion)", () => {
 
 describe("Axis 7 edge-label-proximity (catalog real defect assertion)", () => {
   it("patterns の diagram で edge-label-proximity >= 1 発火 (SSOT: err(edge-label-proximity=2))", async () => {
-    const patterns = await import("../../../apps/playground/src/topics/catalog/patterns.cdl");
+    const patterns = await import("../../../apps/playground-spa/src/topics/catalog/patterns.cdl");
     const isDiag = (v: unknown): v is CdlDiagram => {
       return typeof v === "object" && v !== null &&
         typeof (v as CdlDiagram).id === "string" &&
@@ -330,7 +330,7 @@ describe("Axis 7 edge-label-proximity (catalog real defect assertion)", () => {
 
 describe("Axis 51 mermaid-parity (catalog real defect assertion)", () => {
   it("presets の diagram で mermaid-parity >= 1 発火 (SSOT: warn(mermaid-parity=5))", async () => {
-    const presets = await import("../../../apps/playground/src/topics/catalog/presets.cdl");
+    const presets = await import("../../../apps/playground-spa/src/topics/catalog/presets.cdl");
     const isDiag = (v: unknown): v is CdlDiagram => {
       return typeof v === "object" && v !== null &&
         typeof (v as CdlDiagram).id === "string" &&

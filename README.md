@@ -1,7 +1,7 @@
 # dragon
 
-**Chainome Diagram Language (cdl)** の text DSL + playground + docs site。 YAML-like syntax で
-cdl engine を wrap し、 dev 中の diagram / visual regression / editor UI を提供する。
+**Chainome Diagram Language (cdl)** の text DSL + playground。 YAML-like syntax で
+cdl engine を wrap し、 diagram catalog / editor / theme picker を提供する。
 
 ## 関連 repo (相互リンク SSOT)
 
@@ -10,53 +10,41 @@ cdl engine を wrap し、 dev 中の diagram / visual regression / editor UI �
   - 本 repo が `@cardenelabs/cdl` として consume する engine
 - **dragon** (本 repo)
   - `packages/dragon/` = text DSL parser (`textDslToDiagram`)
-  - `apps/playground/` = Astro docs site + editor + visual regression
+  - `apps/playground-spa/` = Vite + React SPA playground (7 category catalog + editor + compare + docs)
 
 ## 構成
 
 ```
 dragon/
 ├── packages/
-│   └── dragon/          ... text DSL parser (cdl engine wrap)
-│       └── src/         ... YAML-like → CdlDiagram compile
+│   └── dragon/                ... text DSL parser (cdl engine wrap)
+│       └── src/               ... YAML-like → CdlDiagram compile
 ├── apps/
-│   └── playground/      ... Astro site (docs + editor + visual regression)
-│       ├── src/         ... pages + components
-│       └── tests/       ... visual regression (Playwright)
-│           └── visual/  ... G1-G4 gate (pixel-perfect via cdl px-projection)
-├── eslint.config.mjs    ... type-checked + react-hooks + import/no-cycle
-├── tsconfig.eslint.json ... lint 用 solution-style tsconfig
-└── tsconfig.test.json   ... dragon test 用 tsconfig (composite: false)
+│   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
+│       ├── src/
+│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / ComparePage / DocsPage
+│       │   ├── topics/catalog ... 7 category × 100+ diagram (primitives / presets / patterns / cookbook / text-dsl / animation / styles)
+│       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
+│       │   └── components/    ... InViewMount / ThemePicker / SvgDefs / Toast
+│       └── tests/             ... Playwright E2E (home / catalog / editor)
+├── eslint.config.mjs
+└── tsconfig.json              ... solution-style (packages/dragon + apps/playground-spa)
 ```
-
-## visual regression stack
-
-- **overlap-detector.spec.ts** ... AABB overlap 検出 (label × node / label × label)
-- **visual-diagnostics.spec.ts** ... G1-G4 gate (arrow angle / label-path / label-node / label-label)
-  - engine SSOT (world unit) を import + viewBox scale で DOM px 動的計算 = pixel-perfect
-  - engine SSOT ... `@cardenelabs/cdl` から `CLEARANCE_*` / `DIST_LABEL_PATH_MAX` 等を import
-  - px 変換 ... `@cardenelabs/cdl` の px-projection (`computeViewportScale` / `projectNode` 等)
-- **snapshot regression** ... presets / patterns / cookbook / extended / animation の SVG diff
 
 ## 開発
 
 ```sh
-# root で
 pnpm install
 
-# playground 起動
+# playground SPA 起動 (localhost:4323)
 pnpm dev
 
-# 全 test
-pnpm verify   # typecheck + vitest + overlap-detector
-pnpm test     # vitest only
-pnpm test:overlap  # overlap-detector only
-pnpm --filter dragon-playground exec playwright test tests/visual/  # full visual regression
+# build
+pnpm build
+
+# 検証
+pnpm verify   # typecheck + vitest
 ```
-
-## contributing
-
-commit / branch / PR 規約は `docs/` 配下 (未整備、 dev-flow は cdl repo の README 参照)。
 
 ## license
 
