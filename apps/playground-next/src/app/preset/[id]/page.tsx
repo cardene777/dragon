@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { PRESETS } from "@/lib/presets";
+import { PRESET_METAS as PRESETS } from "@/lib/preset-meta";
 import { PresetDetailClient } from "./client";
 
 export async function generateStaticParams(): Promise<{ id: string }[]> {
-  return PRESETS.map((p) => ({ id: p.id }));
+  return PRESETS.map((p) => ({ id: p.slug }));
 }
 
 export async function generateMetadata({
@@ -14,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const preset = PRESETS.find((p) => p.id === id);
+  const preset = PRESETS.find((p) => p.slug === id);
   if (!preset) return { title: "Not found" };
   return {
     title: preset.title,
@@ -33,8 +32,8 @@ export default async function PresetPage({
   params: Promise<{ id: string }>;
 }): Promise<React.ReactElement> {
   const { id } = await params;
-  const preset = PRESETS.find((p) => p.id === id);
-  if (!preset) notFound();
+  const meta = PRESETS.find((p) => p.slug === id);
+  if (!meta) notFound();
 
-  return <PresetDetailClient preset={preset} />;
+  return <PresetDetailClient slug={id} />;
 }

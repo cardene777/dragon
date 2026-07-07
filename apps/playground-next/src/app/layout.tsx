@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/themes/cdl-theme.css";
 import { SvgDefs } from "@/components/SvgDefs";
 import { AnimatedEdgeStyle } from "@/components/AnimatedEdge";
 import { ToastProvider } from "@/components/Toast";

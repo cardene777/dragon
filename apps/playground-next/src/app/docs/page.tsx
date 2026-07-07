@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Github, Rocket, ChevronLeft, BookOpen, Zap, Palette, Code2 } from "lucide-react";
-import { PRESETS } from "@/lib/presets";
+import { PRESET_METAS as PRESETS } from "@/lib/preset-meta";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 
@@ -179,11 +179,6 @@ export default function DocsPage(): React.ReactElement {
                 <p className="text-[12.5px] leading-relaxed text-[var(--color-ink-dim)]">
                   {THEME_CONFIGS[t].description}
                 </p>
-                <div className="mt-2 flex items-center gap-2 text-[10.5px] font-mono text-[var(--color-ink-mute)]">
-                  <span>adapter · {THEME_CONFIGS[t].shapeAdapter}</span>
-                  <span>·</span>
-                  <span>title {THEME_CONFIGS[t].fontSize.title}px</span>
-                </div>
               </div>
             ))}
           </div>

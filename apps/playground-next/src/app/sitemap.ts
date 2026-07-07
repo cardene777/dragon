@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { PRESETS } from "@/lib/presets";
+import { PRESET_METAS as PRESETS } from "@/lib/preset-meta";
 
 /**
  * Sitemap generation — search engine indexing 用。
@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     ...PRESETS.map((p) => ({
-      url: `${base}/preset/${p.id}`,
+      url: `${base}/preset/${p.slug}`,
       lastModified,
       changeFrequency: "monthly" as const,
       priority: 0.7,
