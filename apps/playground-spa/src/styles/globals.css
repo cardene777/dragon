@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* ================================================================
+ * Base color / typography tokens (Neumorphism light default)
+ * theme override は cdl-theme.css SSOT ([data-cdl-theme] selector 経由)
+ * ================================================================ */
+@theme {
+  --color-v4-canvas: #f8fafc;
+  --color-v4-surface: #ffffff;
+  --color-v4-line: #e2e8f0;
+  --color-v4-line-soft: #f1f5f9;
+  --color-v4-ink: #1a1f2a;
+  --color-v4-ink-dim: #5a6270;
+  --color-v4-ink-mute: #8a8678;
+  --color-v4-brand: #2d6a8f;
+  --color-v4-brand-deep: #1f4d6e;
+  --color-v4-brand-glow: #4e9dc4;
+
+  --color-nm-surface: #f0f3f7;
+  --color-nm-bg-base: #e8ecf1;
+
+  --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", "EB Garamond", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+}
+
+html,
+body {
+  background: var(--color-v4-canvas);
+  color: var(--color-v4-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* macOS-like scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-v4-line);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-v4-ink-mute);
+}
+
+/* Skip nav accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
