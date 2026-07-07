@@ -123,7 +123,10 @@ export function CompareClient(): React.ReactElement {
             <div
               key={t}
               data-theme={t}
-              className={cn("rounded-2xl bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]")}
+              className={cn(
+                "group rounded-2xl bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]",
+                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover,0_8px_24px_rgba(0,0,0,0.12))]",
+              )}
             >
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -136,7 +139,7 @@ export function CompareClient(): React.ReactElement {
                 </div>
                 <Link
                   href={`/preset/${preset.id}?theme=${t}`}
-                  className="rounded-lg bg-[var(--color-surface-2)] px-2.5 py-1 text-[10px] font-semibold text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+                  className="rounded-lg bg-[var(--color-surface-2)] px-2.5 py-1 text-[10px] font-semibold text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] opacity-0 group-hover:opacity-100 focus:opacity-100"
                   aria-label={`View ${preset.title} with ${THEME_CONFIGS[t].label} theme in detail`}
                 >
                   View →
