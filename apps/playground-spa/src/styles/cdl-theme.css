@@ -256,7 +256,10 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-r
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
   fill: #6a9fe0 !important;
 }
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"] {
+  stroke: #6a9fe0 !important;
+  fill: none !important;
+}
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
   stroke: #6a9fe0 !important;
   fill: #6a9fe0 !important;
@@ -335,7 +338,10 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
   fill: #d8dde8 !important;
 }
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"],
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
+  stroke: #96a0bb !important;
+  fill: none !important;
+}
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: #96a0bb !important;
   fill: #96a0bb !important;
@@ -592,8 +598,9 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
   stroke: #6ab3d8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #101a2a !important;
-  stroke: #6ab3d8 !important;
+  fill: #0a1020 !important;
+  stroke: rgba(106, 179, 216, 0.55) !important;
+  stroke-width: 1 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
@@ -606,10 +613,34 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #6ab3d8 !important;
 }
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"],
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
+  stroke: #6ab3d8 !important;
+  fill: none !important;
+}
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   stroke: #6ab3d8 !important;
   fill: #6ab3d8 !important;
+}
+/* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
+   閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line
+   自体の彩度・太さで表現する方針に統一 (dark / light 両対応) */
+[data-cdl-role="edge-glow"] {
+  display: none !important;
+}
+
+/* dark mode 時 chart 系 kind (chart-line / chart-pie / chart-bar / gantt / funnel /
+   quadrant / tree / mind-map / mind-radial / journey-map) の text 系 CSS variable を
+   dark 用に上書きして kind 内 SVG text を全部 明るく描画する。
+   node-fill (背景 rect) は kind 内で「文字色に対する背景」 として使われるため
+   dark 時も明色系 (#e8ecf5) を保って rect と text の contrast を維持する。 */
+html.dark {
+  --cdl-text: #e2e8f0;
+  --cdl-text-dim: #b8bfcc;
+  --cdl-text-mute: #8892a6;
+  --cdl-node-fill: #e8ecf5;
+  --cdl-divider: #2a3f5f;
+  --cdl-stage-bg: #0f1626;
+  --cdl-line-mute: #6a7896;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

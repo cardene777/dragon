@@ -16,7 +16,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   presetSequence: "シーケンス",
   presetTopology: "トポロジー",
   presetEr: "ER 図",
-  presetStateMachine: "状態機械",
+  presetStateMachine: "ステート図",
   presetInfrastructure: "インフラ構成",
   presetClassDiagram: "クラス図",
   presetTree: "ツリー",
@@ -30,7 +30,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   presetGantt: "ガントチャート",
   presetFlowchart: "フローチャート",
   presetNetwork: "ネットワーク図",
-  presetStateMachine2: "状態機械 (拡張)",
+  presetStateMachine2: "ステート図 (拡張)",
 
   // patterns
   patternDirect: "直結",
@@ -77,7 +77,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   textDslSequence: "シーケンス (DSL)",
   textDslFlow: "フロー (DSL)",
   textDslSwimlane: "スイムレーン (DSL)",
-  textDslStateMachine: "状態機械 (DSL)",
+  textDslStateMachine: "ステート図 (DSL)",
   textDslTopology: "トポロジー (DSL)",
   textDslEr: "ER 図 (DSL)",
   textDslGantt: "ガント (DSL)",
