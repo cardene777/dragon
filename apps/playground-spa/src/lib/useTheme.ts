@@ -3,10 +3,11 @@ import { THEMES, type ThemeName } from "./theme";
 
 /**
  * html[data-cdl-theme] を制御する hook。
- * URL query `?theme=<name>` > localStorage > default (neumorphism) の順で reconcile。
+ * URL query `?theme=<name>` > localStorage > default (blueprint) の順で reconcile。
+ * default は blueprint (青地 + white ink + graph paper grid、 元々の根本デザイン)。
  */
 export function useTheme(): [ThemeName, (v: ThemeName) => void] {
-  const [theme, setTheme] = useState<ThemeName>("neumorphism");
+  const [theme, setTheme] = useState<ThemeName>("blueprint");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -17,7 +18,7 @@ export function useTheme(): [ThemeName, (v: ThemeName) => void] {
         ? qTheme
         : lsTheme && THEMES.includes(lsTheme)
           ? lsTheme
-          : "neumorphism";
+          : "blueprint";
     setTheme(initial);
     document.documentElement.setAttribute("data-cdl-theme", initial);
   }, []);
@@ -31,7 +32,7 @@ export function useTheme(): [ThemeName, (v: ThemeName) => void] {
       // ignore
     }
     const url = new URL(window.location.href);
-    if (v === "neumorphism") {
+    if (v === "blueprint") {
       url.searchParams.delete("theme");
     } else {
       url.searchParams.set("theme", v);

@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 
 /**
- * 全 page 共通の header (旧 Astro Header.astro 忠実再現)。
- * dragon brand mark + nav links + theme toggle button (light/dark) + share + open editor CTA。
+ * 全 page 共通の header (旧 Astro Header.astro 相当、 Neumorphism 削除後の Blueprint 一本版)。
+ * dragon brand mark + nav links + share + open editor CTA。 theme toggle 削除、 dark theme 廃止。
  * v4-nav-* CSS class SSOT = src/styles/header.css。
  */
 const LINKS: Array<{ to: string; label: string }> = [
@@ -19,31 +18,6 @@ const REPO_URL = "https://github.com/cardene777/dragon";
 export function SiteHeader(): React.ReactElement {
   const location = useLocation();
   const pathname = location.pathname;
-  const [isDark, setIsDark] = useState<boolean>(false);
-
-  useEffect(() => {
-    try {
-      const t = localStorage.getItem("v4-theme");
-      const prefersDark =
-        !t &&
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const dark = t === "dark" || prefersDark;
-      if (dark) document.documentElement.classList.add("dark");
-      setIsDark(dark);
-    } catch {}
-  }, []);
-
-  const toggleTheme = (): void => {
-    const cur = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    const next = cur === "dark" ? "light" : "dark";
-    if (next === "dark") document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-    try {
-      localStorage.setItem("v4-theme", next);
-    } catch {}
-    setIsDark(next === "dark");
-  };
 
   const onShare = async (): Promise<void> => {
     try {
@@ -91,15 +65,6 @@ export function SiteHeader(): React.ReactElement {
           github ↗
         </a>
       </nav>
-      <button
-        type="button"
-        className="v4-nav-theme-toggle"
-        onClick={toggleTheme}
-        aria-label="dark/light 切替"
-        title="dark/light 切替"
-      >
-        <span className="v4-theme-icon-light">{isDark ? "☾" : "☀"}</span>
-      </button>
       <button
         type="button"
         className="v4-nav-share-btn"

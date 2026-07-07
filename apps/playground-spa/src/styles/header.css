@@ -173,25 +173,12 @@
     border-color: var(--v4-brand);
     color: var(--v4-brand);
   }
-  html.dark .v4-nav-theme-toggle {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #fef3c7;
-  }
-  html.dark .v4-nav-theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #fef3c7;
-    color: #fef3c7;
-  }
   .v4-theme-icon-light,
   .v4-theme-icon-dark {
     line-height: 1;
   }
   /* light mode default ... ☀ 表示、 ☾ 隠す */
   .v4-theme-icon-dark { display: none; }
-  html.dark .v4-theme-icon-light { display: none; }
-  html.dark .v4-theme-icon-dark { display: inline; }
-
   /* ── share button (theme toggle と同 size、 余白 8px 確保) ── */
   .v4-nav-share-btn {
     margin-left: 8px;
@@ -210,78 +197,9 @@
     border-color: var(--v4-brand);
     color: var(--v4-brand);
   }
-  html.dark .v4-nav-share-btn {
-    background: var(--v4-surface);
-    color: var(--v4-ink-dim);
-  }
-  html.dark .v4-nav-share-btn:hover {
-    border-color: var(--v4-brand-glow);
-    color: var(--v4-brand-glow);
-  }
-
   /* ─────── dark mode palette override (全 page 共通) ─────── */
-  html.dark {
-    --v4-canvas: #0e1117;
-    --v4-surface: #161b22;
-    --v4-surface-2: #1f2630;
-    --v4-line: #2a3340;
-    --v4-line-soft: #1f2630;
-    --v4-ink: #f0f3f8;
-    --v4-ink-dim: #99a3b3;
-    --v4-ink-mute: #6b7785;
-    --v4-brand: #5ec4e8;
-    --v4-brand-deep: #4e9dc4;
-    --v4-brand-glow: #7dc7e8;
-    --v4-code-bg: #161b22;
-  }
-
   /* dark nav */
-  html.dark .v4-nav {
-    background: rgba(14, 17, 23, 0.85);
-    border-bottom-color: var(--v4-line);
-  }
-  html.dark .v4-nav-cta {
-    background: var(--v4-brand);
-    color: #0e1117;
-  }
-  html.dark .v4-nav-cta:hover {
-    background: var(--v4-brand-glow);
-  }
-  html.dark .v4-nav-link:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-  html.dark .v4-nav-link.active {
-    background: rgba(94, 196, 232, 0.12);
-    color: var(--v4-brand);
-  }
-  html.dark .v4-nav-theme-toggle {
-    background: var(--v4-surface);
-    border-color: var(--v4-line);
-  }
-  html.dark .v4-nav-theme-toggle:hover {
-    border-color: var(--v4-brand);
-  }
-
   /* body / global */
-  html.dark body,
-  html.dark body.v4-body {
-    background: var(--v4-canvas);
-    color: var(--v4-ink);
-  }
-  html.dark .v4-foot {
-    border-top-color: var(--v4-line);
-  }
-  html.dark .v4-foot-brand p,
-  html.dark .v4-foot-col a {
-    color: var(--v4-ink-dim);
-  }
-  html.dark .v4-foot-col a:hover {
-    color: var(--v4-ink);
-  }
-  html.dark .v4-foot-copy {
-    color: var(--v4-ink-mute);
-  }
-
   /* ── search bar (docs) ── */
   .v4-nav-search {
     min-width: 220px;

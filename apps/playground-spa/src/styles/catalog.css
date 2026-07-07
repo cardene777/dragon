@@ -44,10 +44,6 @@
     border-radius: var(--nm-radius-pill, 999px);
     margin-bottom: 24px;
   }
-  html.dark .nm-eyebrow {
-    color: var(--v4-brand);
-    background: rgba(94, 196, 232, 0.12);
-  }
   .nm-hero-title {
     font-family: var(--v4-sans, "Inter", sans-serif);
     font-size: var(--nm-fs-h1-mobile, 40px);
@@ -121,13 +117,6 @@
     box-shadow: var(--nm-shadow-hover);
     color: var(--v4-brand);
   }
-  html.dark .nm-hero-btn-secondary {
-    color: var(--v4-ink);
-    background: var(--nm-surface, #141a24);
-  }
-  html.dark .nm-hero-btn-secondary:hover {
-    color: var(--v4-brand);
-  }
   .nm-hero-btn-arrow {
     transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -165,9 +154,6 @@
   .nm-stat:hover {
     transform: translateY(-2px);
     box-shadow: var(--nm-shadow-raised-strong);
-  }
-  html.dark .nm-stat {
-    background: var(--nm-surface, #141a24);
   }
   .nm-stat-num {
     font-family: var(--v4-sans, "Inter", sans-serif);
@@ -249,9 +235,6 @@
     flex-wrap: wrap;
     max-width: 640px;
   }
-  html.dark .nm-theme-picker {
-    background: var(--nm-surface, #141a24);
-  }
   .nm-theme-picker-label {
     font-family: var(--v4-mono, "JetBrains Mono", monospace);
     font-size: 11.5px;
@@ -270,11 +253,6 @@
     border: 1px solid var(--v4-line, #d5dbe4);
     cursor: pointer;
   }
-  html.dark .nm-theme-picker-select {
-    background: #1c2334;
-    border-color: #2f3a52;
-    color: var(--v4-ink);
-  }
   .nm-theme-picker-desc {
     font-family: var(--v4-sans, "Inter", sans-serif);
     font-size: 12.5px;
@@ -288,11 +266,7 @@
     background: rgba(45, 106, 143, 0.08);
     color: var(--v4-brand);
   }
-  html.dark .nm-theme-picker-desc code {
-    background: rgba(94, 196, 232, 0.12);
-  }
-
-/* ─── category card SSOT (旧 Astro catalog/index.astro 移植) ─── */
+  /* ─── category card SSOT (旧 Astro catalog/index.astro 移植) ─── */
   /*
    * Category card (CAR-N-8、 Neumorphism raised + Vercel / Linear typography scale) ────
    * card = Neumorphism raised 2 段 shadow、 hover で translateY(-6px) + shadow deepen
@@ -327,10 +301,6 @@
     transform: translateY(-6px);
     box-shadow: var(--nm-shadow-hover);
   }
-  html.dark .nm-cat-card {
-    background: var(--nm-surface, #141a24);
-  }
-
   .nm-cat-card-head {
     display: flex;
     flex-direction: column;
@@ -350,16 +320,6 @@
   .nm-cat-extended .nm-cat-eyebrow {
     color: var(--v4-accent-extended, #6d28d9);
   }
-  html.dark .nm-cat-eyebrow {
-    color: var(--v4-brand, #5ec4e8);
-  }
-  html.dark .nm-cat-extended .nm-cat-eyebrow {
-    color: #a78bfa;
-  }
-  html.dark .nm-cat-domain .nm-cat-eyebrow {
-    color: #fb923c;
-  }
-
   .nm-cat-title {
     font-family: var(--v4-sans, "Inter", sans-serif);
     font-size: var(--nm-fs-h3, 20px);
@@ -369,20 +329,12 @@
     line-height: 1.2;
     margin: 0;
   }
-  html.dark .nm-cat-title {
-    color: var(--v4-ink, #f0f3f8);
-  }
-
   .nm-cat-desc {
     color: var(--v4-ink-dim, #5a6270);
     font-size: 14.5px;
     line-height: 1.6;
     margin: 0;
   }
-  html.dark .nm-cat-desc {
-    color: var(--v4-ink-dim, #99a3b3);
-  }
-
   .nm-cat-chips {
     display: flex;
     flex-wrap: wrap;
@@ -399,11 +351,6 @@
     letter-spacing: 0.03em;
     font-weight: 500;
   }
-  html.dark .nm-cat-chip {
-    background: rgba(94, 196, 232, 0.1);
-    color: var(--v4-ink-dim, #99a3b3);
-  }
-
   .nm-cat-go {
     display: flex;
     justify-content: space-between;
@@ -416,10 +363,6 @@
     font-weight: 600;
     color: var(--v4-brand-deep, #1f4d6e);
     letter-spacing: -0.01em;
-  }
-  html.dark .nm-cat-go {
-    border-top-color: rgba(94, 196, 232, 0.14);
-    color: var(--v4-brand, #5ec4e8);
   }
   .nm-cat-arrow {
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -439,12 +382,7 @@
     color: var(--v4-ink, #1a1f2a);
     font-weight: 500;
   }
-  html.dark .nm-hero-subtitle code {
-    background: rgba(94, 196, 232, 0.1);
-    color: var(--v4-ink, #f0f3f8);
-  }
-
-/* ─── modal (Radix Dialog、 theme-aware) ─── */
+  /* ─── modal (Radix Dialog、 theme-aware) ─── */
 .cdl-modal-overlay {
   position: fixed;
   inset: 0;
@@ -471,10 +409,6 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
   outline: none;
 }
-html.dark .cdl-modal-content {
-  background: #141a24;
-  color: #f0f3f8;
-}
 .cdl-modal-header {
   display: flex;
   align-items: flex-start;
@@ -488,9 +422,6 @@ html.dark .cdl-modal-content {
   font-size: 10.5px;
   color: var(--v4-ink-mute, #8a8678);
 }
-html.dark .cdl-modal-id {
-  color: #8a95a6;
-}
 .cdl-modal-title {
   margin-top: 2px;
   font-family: var(--v4-sans, "Inter", sans-serif);
@@ -499,16 +430,10 @@ html.dark .cdl-modal-id {
   color: var(--v4-ink, #1a1f2a);
   letter-spacing: -0.02em;
 }
-html.dark .cdl-modal-title {
-  color: #f0f3f8;
-}
 .cdl-modal-desc {
   margin-top: 4px;
   font-size: 14px;
   color: var(--v4-ink-dim, #5a6270);
-}
-html.dark .cdl-modal-desc {
-  color: #99a3b3;
 }
 .cdl-modal-close {
   padding: 8px;
@@ -523,13 +448,6 @@ html.dark .cdl-modal-desc {
   background: var(--v4-canvas, #f8fafc);
   color: var(--v4-ink, #1a1f2a);
 }
-html.dark .cdl-modal-close {
-  color: #99a3b3;
-}
-html.dark .cdl-modal-close:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #f0f3f8;
-}
 .cdl-modal-body {
   flex: 1;
   min-height: 0;
@@ -540,9 +458,6 @@ html.dark .cdl-modal-close:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-html.dark .cdl-modal-body {
-  background: #0e1117;
 }
 /* CdlDiagramView (div > CdlStage div > svg 3 段 nest) を modal body 内に letterbox fit。
    両 wrapper に w-100 h-100 stretch + padding 0 で container 全体を使わせて、
@@ -715,34 +630,7 @@ html.dark .cdl-modal-body {
     transform: translateX(4px);
   }
 
-  html.dark .nm-preset-card {
-    background: var(--nm-surface, #141a24);
-  }
-  html.dark .nm-preset-title {
-    color: var(--v4-ink, #f0f3f8);
-  }
-  html.dark .nm-preset-subtitle {
-    color: var(--v4-ink-dim, #99a3b3);
-  }
-  html.dark .nm-preset-eyebrow {
-    color: var(--v4-brand, #5ec4e8);
-  }
-  html.dark .nm-preset-preview {
-    background: #1f2630;
-  }
-  html.dark .nm-preset-tag {
-    color: var(--v4-ink-dim, #99a3b3);
-    background: rgba(94, 196, 232, 0.1);
-  }
-  html.dark .nm-preset-docs {
-    color: var(--v4-brand, #5ec4e8);
-  }
-  html.dark .nm-preset-docs:hover {
-    color: var(--v4-brand-glow, #7dc7e8);
-    background: rgba(94, 196, 232, 0.12);
-  }
-
-/* ─── nm-preset-grid + hero refinements (旧 catalog/presets.astro 移植) ─── */
+  /* ─── nm-preset-grid + hero refinements (旧 catalog/presets.astro 移植) ─── */
   /* ─── Hero section (CAR-N-8、 Vercel / Linear 相当の大きめ typography + Neumorphism breathing) ─── */
   .nm-hero {
     max-width: 1180px;
@@ -787,10 +675,6 @@ html.dark .cdl-modal-body {
     padding: 5px 13px;
     border-radius: var(--nm-radius-pill, 999px);
     margin-bottom: 24px;
-  }
-  html.dark .nm-eyebrow {
-    color: var(--v4-brand);
-    background: rgba(94, 196, 232, 0.12);
   }
   .nm-hero-title {
     font-family: var(--v4-sans, "Inter", sans-serif);
@@ -865,13 +749,6 @@ html.dark .cdl-modal-body {
     box-shadow: var(--nm-shadow-hover);
     color: var(--v4-brand);
   }
-  html.dark .nm-hero-btn-secondary {
-    color: var(--v4-ink);
-    background: var(--nm-surface, #141a24);
-  }
-  html.dark .nm-hero-btn-secondary:hover {
-    color: var(--v4-brand);
-  }
   .nm-hero-btn-arrow {
     transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -909,9 +786,6 @@ html.dark .cdl-modal-body {
   .nm-stat:hover {
     transform: translateY(-2px);
     box-shadow: var(--nm-shadow-raised-strong);
-  }
-  html.dark .nm-stat {
-    background: var(--nm-surface, #141a24);
   }
   .nm-stat-num {
     font-family: var(--v4-sans, "Inter", sans-serif);
@@ -993,9 +867,6 @@ html.dark .cdl-modal-body {
     flex-wrap: wrap;
     max-width: 640px;
   }
-  html.dark .nm-theme-picker {
-    background: var(--nm-surface, #141a24);
-  }
   .nm-theme-picker-label {
     font-family: var(--v4-mono, "JetBrains Mono", monospace);
     font-size: 11.5px;
@@ -1014,11 +885,6 @@ html.dark .cdl-modal-body {
     border: 1px solid var(--v4-line, #d5dbe4);
     cursor: pointer;
   }
-  html.dark .nm-theme-picker-select {
-    background: #1c2334;
-    border-color: #2f3a52;
-    color: var(--v4-ink);
-  }
   .nm-theme-picker-desc {
     font-family: var(--v4-sans, "Inter", sans-serif);
     font-size: 12.5px;
@@ -1032,11 +898,7 @@ html.dark .cdl-modal-body {
     background: rgba(45, 106, 143, 0.08);
     color: var(--v4-brand);
   }
-  html.dark .nm-theme-picker-desc code {
-    background: rgba(94, 196, 232, 0.12);
-  }
-
-/* ─── /compare Radix Select trigger (Neumorphism style) ─── */
+  /* ─── /compare Radix Select trigger (Neumorphism style) ─── */
 .nm-preset-select-wrap {
   display: inline-block;
 }
@@ -1064,10 +926,6 @@ html.dark .cdl-modal-body {
   outline: 2px solid var(--v4-brand, #2d6a8f);
   outline-offset: 2px;
 }
-html.dark .nm-preset-select-trigger {
-  background: #141a24;
-  color: #f0f3f8;
-}
 .nm-preset-select-content {
   z-index: 50;
   min-width: 260px;
@@ -1077,10 +935,6 @@ html.dark .nm-preset-select-trigger {
   border-radius: 16px;
   background: var(--v4-surface, #ffffff);
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
-}
-html.dark .nm-preset-select-content {
-  background: #141a24;
-  color: #f0f3f8;
 }
 .nm-preset-select-item {
   display: flex;
@@ -1096,10 +950,6 @@ html.dark .nm-preset-select-content {
 .nm-preset-select-item[data-highlighted] {
   background: rgba(45, 106, 143, 0.08);
 }
-html.dark .nm-preset-select-item[data-highlighted] {
-  background: rgba(94, 196, 232, 0.1);
-}
-
 /* ─── /preset/:slug detail stage (大画面 preview + prev/next) ─── */
 .nm-preset-detail-stage {
   background: var(--nm-surface, #f0f3f7);
@@ -1110,9 +960,6 @@ html.dark .nm-preset-select-item[data-highlighted] {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-html.dark .nm-preset-detail-stage {
-  background: #141a24;
 }
 .nm-preset-detail-stage > * {
   width: 100%;
@@ -1148,11 +995,4 @@ html.dark .nm-preset-detail-stage {
   box-shadow: var(--nm-shadow-hover);
   color: var(--v4-ink, #1a1f2a);
   transform: translateY(-2px);
-}
-html.dark .nm-preset-detail-nav-btn {
-  background: #141a24;
-  color: #99a3b3;
-}
-html.dark .nm-preset-detail-nav-btn:hover {
-  color: #f0f3f8;
 }
