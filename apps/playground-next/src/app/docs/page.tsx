@@ -67,6 +67,30 @@ export default function DocsPage(): React.ReactElement {
           dragon は Text DSL で書ける animated SVG diagram library。 mermaid 感覚で記述して、 rough.js による Excalidraw 風の手描き感 / PCB 基板 / 立体感 Neumorphism など 6 theme を live 切替できる。
         </p>
 
+        <div className="mt-4 rounded-xl bg-[var(--color-surface)] p-4 shadow-sm border-l-4 border-[var(--color-accent)]">
+          <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] mb-1">
+            About the core library
+          </div>
+          <p className="text-[13px] leading-relaxed text-[var(--color-ink)]">
+            dragon は playground app。 diagram rendering の core library は{" "}
+            <a
+              href="https://github.com/cardene777/cdl"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-[var(--color-accent)] underline hover:brightness-110"
+            >
+              CDL (Chainome Diagram Language)
+            </a>{" "}
+            として別 repo に公開。 npm package は{" "}
+            <code className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11.5px]">
+              @cardenelabs/cdl
+            </code>{" "}
+            + <code className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11.5px]">
+              @cardenelabs/anim
+            </code>。
+          </p>
+        </div>
+
         <div className="mt-6 flex flex-wrap gap-2">
           {[
             { hash: "#keyboard", label: "Keyboard shortcuts" },

@@ -105,12 +105,15 @@ export function PresetCard({
           onClick={() => setOpen(true)}
           aria-label={`${preset.title} を拡大表示`}
           className={cn(
-            "relative w-full flex-1 min-h-[240px] rounded-xl overflow-hidden cursor-zoom-in",
+            "relative w-full flex-1 rounded-xl overflow-hidden cursor-zoom-in",
             "bg-[var(--color-surface-2)] p-4",
             "shadow-[var(--shadow-inset)]",
             "transition-all",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]",
           )}
+          style={{
+            aspectRatio: `${preset.viewBox.w} / ${preset.viewBox.h}`,
+          }}
         >
           <DiagramView preset={preset} theme={theme} className="w-full h-full" />
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
