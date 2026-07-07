@@ -107,6 +107,17 @@ export function CommandPalette({
         e.preventDefault();
         setOpen(true);
       }
+      // "/" key = alternative open (mermaid.live / VS Code pattern)
+      // 但し input 内では skip、 typeing 中は search focus に使う
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (e.key === "/" && !isInput && !open) {
+        // 既存 search focus に task を譲る (KeyboardShortcuts で handle)、 palette は open しない
+      }
       if (open) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
