@@ -17,19 +17,6 @@
   --sans: "Inter", -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 }
-html.dark {
-  --canvas: #0e1117;
-  --surface: #161b22;
-  --surface-2: #1f2630;
-  --line: #2a3340;
-  --line-soft: #1f2630;
-  --ink: #f0f3f8;
-  --ink-dim: #99a3b3;
-  --ink-mute: #6b7785;
-  --brand: #5ec4e8;
-  --brand-deep: #4e9dc4;
-  --brand-glow: #7dc7e8;
-}
 /* scope 内で完結、 他 page への影響 (nav / footer 等) は BaseLayout SSOT に委ねる */
 main {
   background: var(--canvas);
@@ -247,13 +234,6 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   overflow: auto;
   position: relative;
 }
-html.dark .canvas-code {
-  background: #161b22;
-  color: #f0f3f8;
-}
-html.dark .canvas-code .k { color: #7dc7e8; }
-html.dark .canvas-code .s { color: #a3d6a8; }
-html.dark .canvas-code .ln { color: #6b7785; }
 @media (max-width: 720px) {
   .canvas-code { border-right: none; border-bottom: 1px solid var(--line-soft); }
 }
@@ -455,17 +435,6 @@ html.dark .canvas-code .ln { color: #6b7785; }
     0 12px 24px -12px rgba(45, 106, 143, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
-html.dark .feature {
-  box-shadow:
-    0 12px 24px -12px rgba(0, 0, 0, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-}
-html.dark .feature:hover {
-  box-shadow:
-    0 24px 48px -20px rgba(0, 0, 0, 0.7),
-    0 12px 24px -12px rgba(94, 196, 232, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
 .feature-icon {
   width: 44px;
   height: 44px;
@@ -575,13 +544,6 @@ html.dark .feature:hover {
 }
 .step-code .k { color: var(--brand-deep); }
 .step-code .s { color: #6a8a3a; }
-html.dark .step-code {
-  background: #161b22;
-  color: #f0f3f8;
-}
-html.dark .step-code .k { color: #7dc7e8; }
-html.dark .step-code .s { color: #a3d6a8; }
-
 /* ── examples 3 card ── */
 .examples {
   max-width: 1180px;
@@ -623,27 +585,12 @@ html.dark .step-code .s { color: #a3d6a8; }
     0 12px 24px -12px rgba(45, 106, 143, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
-html.dark .example {
-  box-shadow:
-    0 12px 24px -12px rgba(0, 0, 0, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-}
-html.dark .example:hover {
-  border-color: rgba(94, 196, 232, 0.35);
-  box-shadow:
-    0 24px 48px -20px rgba(0, 0, 0, 0.7),
-    0 12px 24px -12px rgba(94, 196, 232, 0.18),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
 .example-thumb {
   background: #fafbfc;
   padding: 20px;
   min-height: 240px;
   display: grid;
   place-items: center;
-}
-html.dark .example-thumb {
-  background: #1f2630;
 }
 .example-thumb > * {
   width: 100%;
