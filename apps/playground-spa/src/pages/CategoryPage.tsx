@@ -182,34 +182,28 @@ function ItemCard({
 
       <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex flex-col max-h-[92vh] w-[94vw] max-w-[1400px] -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-white p-6 sm:p-8 shadow-2xl focus:outline-none">
-            <div className="mb-4 flex items-start justify-between gap-4 shrink-0">
+          <Dialog.Overlay className="cdl-modal-overlay" />
+          <Dialog.Content className="cdl-modal-content">
+            <div className="cdl-modal-header">
               <div>
-                <div className="text-[10.5px] font-mono text-[var(--v4-ink-mute,#8a8678)]">
-                  {item.id}
-                </div>
-                <Dialog.Title className="mt-0.5 text-2xl font-bold text-[var(--v4-ink,#1a1f2a)]">
-                  {item.title}
-                </Dialog.Title>
+                <div className="cdl-modal-id">{item.id}</div>
+                <Dialog.Title className="cdl-modal-title">{item.title}</Dialog.Title>
                 {item.subtitle && (
-                  <Dialog.Description className="mt-1 text-[14px] text-[var(--v4-ink-dim,#5a6270)]">
+                  <Dialog.Description className="cdl-modal-desc">
                     {item.subtitle}
                   </Dialog.Description>
                 )}
               </div>
               <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label="閉じる"
-                  className="rounded-full p-2 text-[var(--v4-ink-dim,#5a6270)] hover:bg-[var(--v4-canvas,#f8fafc)] hover:text-[var(--v4-ink,#1a1f2a)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v4-brand,#2d6a8f)]"
-                >
+                <button type="button" aria-label="閉じる" className="cdl-modal-close">
                   <X size={20} />
                 </button>
               </Dialog.Close>
             </div>
-            <div className="flex-1 min-h-0 rounded-2xl bg-[var(--v4-canvas,#f8fafc)] p-4 overflow-hidden flex items-center justify-center [&>*]:w-full [&>*]:h-full [&>*]:flex [&>*]:items-center [&>*]:justify-center [&_svg]:!w-full [&_svg]:!h-full [&_svg]:!block">
-              {modalOpen && <CdlDiagramView diagram={item.diagram as never} />}
+            <div className="cdl-modal-body">
+              {modalOpen && (
+                <CdlDiagramView diagram={item.diagram as never} hideHeader />
+              )}
             </div>
           </Dialog.Content>
         </Dialog.Portal>
