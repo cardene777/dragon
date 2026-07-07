@@ -356,9 +356,9 @@ html.dark .catalog-expand-btn:hover {
 }
 
 .catalog-preview-stage {
-  padding: 24px;
+  padding: 32px;
   background: #fcf8ee;
-  min-height: 380px;
+  min-height: 560px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -368,17 +368,17 @@ html.dark .catalog-preview-stage {
 }
 .catalog-preview-stage-inner {
   width: 100%;
-  max-height: 480px;
+  max-height: 640px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .catalog-preview-stage-inner svg {
-  max-width: 100%;
-  max-height: 480px;
-  width: auto !important;
+  width: 100% !important;
   height: auto !important;
+  max-height: 640px;
   display: block;
+  margin: 0 auto;
 }
 .catalog-preview-loading {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);

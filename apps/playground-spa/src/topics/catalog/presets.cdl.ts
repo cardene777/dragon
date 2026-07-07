@@ -7,7 +7,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  */
 
 // swimlane preset ... 3 lane 自動配置 + laneId(label) で slug 取得
-const swim = swimlane({ id: "swim-demo", topic: "swimlane preset (Client / Service / Event 3 lane 自動配置)", lanes: ["Client", "Service", "Event"], laneWidth: 520 });
+const swim = swimlane({ id: "swim-demo", topic: "処理を役割ごとに縦レーン分けして流れを示す図", lanes: ["Client", "Service", "Event"], laneWidth: 520 });
 const lSrc = swim.laneId("Client");
 const lCt = swim.laneId("Service");
 const lOut = swim.laneId("Event");
@@ -22,7 +22,7 @@ swim
 export const presetSwimlane = swim.build();
 
 // flow preset ... 1 lane に縦 stack、 前 step → 次 step 自動接続
-export const presetFlow = flow({ id: "flow-demo", topic: "flow preset (auth フロー)", laneLabel: "Authentication Flow", defaultTone: "teal" })
+export const presetFlow = flow({ id: "flow-demo", topic: "処理の順番を上から下へ 1 本の流れで示す図", laneLabel: "Authentication Flow", defaultTone: "teal" })
   .step({ id: "user", kind: "person", title: "User", eyebrow: "ユーザー" })
   .step({ id: "api", kind: "api", title: "POST /login", eyebrow: "API" }, "ログイン要求")
   .step({ id: "auth", kind: "service", title: "AuthService", eyebrow: "サービス" }, "認証処理")
@@ -32,7 +32,7 @@ export const presetFlow = flow({ id: "flow-demo", topic: "flow preset (auth フ�
 // sequence preset ... actor 列 × 時系列 row、 UML sequence diagram 風
 export const presetSequence = sequence({
   id: "seq-demo",
-  topic: "sequence preset (認証 flow: User → API → DB → 200 JWT)",
+  topic: "時系列のやり取りを縦の時間軸で並べる図",
   actors: ["User", "API", "DB"],
   defaultTone: "accent",
   defaultStyle: "solid",
@@ -44,7 +44,7 @@ export const presetSequence = sequence({
   .build();
 
 // topology preset ... 構成図 / deployment diagram、 group で container を囲む
-const topo = topology({ id: "topo-demo", topic: "topology preset (AWS deployment)", defaultTone: "teal" });
+const topo = topology({ id: "topo-demo", topic: "システムの構成要素と接続を配置で示す図", defaultTone: "teal" });
 topo
   .group("client", { label: "Client" })
   .add({ id: "browser", kind: "frontend", title: "Browser" });
@@ -60,14 +60,14 @@ topo
 export const presetTopology = topo.build();
 
 // er preset ... ER 図 (User → Order の 1:N 関係)
-export const presetEr = er({ id: "er-demo", topic: "er preset (User-Order schema)", defaultTone: "info" })
+export const presetEr = er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info" })
   .entity({ id: "user", title: "User", rows: ["id: PK", "email: string", "createdAt: timestamp"] })
   .entity({ id: "order", title: "Order", rows: ["id: PK", "userId: FK", "total: number", "status: enum"] })
   .relation({ from: "user", to: "order", cardinality: "1:N", label: "places" })
   .build();
 
 // stateMachine preset ... FSM (Auth フロー、 initial → loading → done/error → retry の workflow)
-export const presetStateMachine = stateMachine({ id: "fsm-demo", topic: "stateMachine preset (Auth FSM)" })
+export const presetStateMachine = stateMachine({ id: "fsm-demo", topic: "状態と遷移条件を示す図" })
   .state({ id: "idle", title: "Idle", initial: true })
   .state({ id: "loading", title: "Loading" })
   .state({ id: "done", title: "Done", final: true })
@@ -81,7 +81,7 @@ export const presetStateMachine = stateMachine({ id: "fsm-demo", topic: "stateMa
 // ───────────── 新図種 12 種 (cdl v0.6+) ─────────────
 
 // infrastructure preset ... cloud / system 構成図 (col + row grid)
-export const presetInfrastructure = infrastructure({ id: "infra-demo", topic: "infrastructure preset (SaaS arch)" })
+export const presetInfrastructure = infrastructure({ id: "infra-demo", topic: "クラウド・ネットワーク構成を階層で示す図" })
   .node({ id: "user", kind: "person", title: "User", col: 0, row: 0 })
   .node({ id: "cdn", kind: "cdn", title: "CloudFront", col: 1, row: 0 })
   .node({ id: "alb", kind: "service", title: "ALB", col: 2, row: 0 })
@@ -96,7 +96,7 @@ export const presetInfrastructure = infrastructure({ id: "infra-demo", topic: "i
   .build();
 
 // classDiagram preset ... UML クラス図
-export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "classDiagram preset (User extends Admin, aggregates Order 1..*)" })
+export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "クラスの継承・保有関係を示す UML 図" })
   .class({ id: "User", title: "User", attributes: ["+name: string", "+email: string"], methods: ["+login(): void", "+logout(): void"] })
   .class({ id: "Admin", title: "Admin", attributes: ["+permissions: string[]"], methods: ["+banUser(): void"] })
   .class({ id: "Order", title: "Order", attributes: ["+id: number", "+total: number"], methods: ["+pay(): void"] })
@@ -109,7 +109,7 @@ export const presetClassDiagram = classDiagram({ id: "class-demo", topic: "class
   .build();
 
 // tree preset ... 組織図 / file tree / class 階層
-export const presetTree = tree({ id: "tree-demo", topic: "tree (組織図、 縦階層 hierarchical layout + parent-child elbow line)" })
+export const presetTree = tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
   .node({ id: "ceo", title: "CEO" })
   .node({ id: "cto", title: "CTO", parent: "ceo" })
   .node({ id: "cfo", title: "CFO", parent: "ceo" })
@@ -118,7 +118,7 @@ export const presetTree = tree({ id: "tree-demo", topic: "tree (組織図、 縦
   .build();
 
 // userJourney preset ... step + emotion + touchpoint
-export const presetUserJourney = userJourney({ id: "journey-demo", topic: "userJourney (Signup flow、 emotion 5 段階縦軸 + polyline 感情曲線 + touchpoint)" })
+export const presetUserJourney = userJourney({ id: "journey-demo", topic: "ユーザー体験の感情変化をステップ順に示す図" })
   .step({ id: "land", title: "Land on /", emotion: "neutral", touchpoint: "Website" })
   .step({ id: "form", title: "Fill signup form", emotion: "frustrated", touchpoint: "Form", opportunity: "input UX 改善" })
   .step({ id: "verify", title: "Email verify", emotion: "happy", touchpoint: "Email" })
@@ -126,7 +126,7 @@ export const presetUserJourney = userJourney({ id: "journey-demo", topic: "userJ
   .build();
 
 // mindMap preset ... 中心 + 放射 branch
-export const presetMindMap = mindMap({ id: "mind-demo", topic: "mindMap (Project ideas、 中心 root + 放射 branch + curved edge)", rootId: "root", rootTitle: "Project" })
+export const presetMindMap = mindMap({ id: "mind-demo", topic: "中心の主題から発想を放射状に広げる図", rootId: "root", rootTitle: "Project" })
   .branch({ id: "feat", title: "Features", parent: "root" })
   .branch({ id: "ui", title: "UI design", parent: "root" })
   .branch({ id: "launch", title: "Launch", parent: "root" })
@@ -137,7 +137,7 @@ export const presetMindMap = mindMap({ id: "mind-demo", topic: "mindMap (Project
 // mindMapRadial preset ... 中心 node から 8 方向 (45 度間隔) へ放射配置 (mindMap との使い分け demo)
 export const presetMindMapRadial = mindMapRadial({
   id: "mindmap-radial-demo",
-  topic: "mindMapRadial (center + 8 branch、 8 方向 45 度等間隔配置)",
+  topic: "中心テーマから 8 方向へ放射状に要素を配置する図",
   centerTitle: "Product",
 })
   .branch({ id: "users", title: "Users" })
@@ -151,7 +151,7 @@ export const presetMindMapRadial = mindMapRadial({
   .build();
 
 // funnel preset ... Sales / marketing funnel
-export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel (Conversion、 stage を幅減少 polygon + count + drop rate で描画)" })
+export const presetFunnel = funnel({ id: "funnel-demo", topic: "各段階での離脱率を示す絞込みの図" })
   .stage({ id: "visit", title: "Visit", count: 10000 })
   .stage({ id: "signup", title: "Sign up", count: 1500 })
   .stage({ id: "trial", title: "Trial", count: 800 })
@@ -161,7 +161,7 @@ export const presetFunnel = funnel({ id: "funnel-demo", topic: "funnel (Conversi
 // quadrant preset ... 2 軸 matrix (4 象限完全配置、 cdl PR #32 で stack 衝突 bug 修正済)
 export const presetQuadrant = quadrant({
   id: "quad-demo",
-  topic: "quadrant (Priority matrix、 十字軸 + 4 象限 label + item pin で描画)",
+  topic: "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
   xAxis: { left: "Low effort", right: "High effort" },
   yAxis: { bottom: "Low value", top: "High value" },
 })
@@ -172,14 +172,14 @@ export const presetQuadrant = quadrant({
   .build();
 
 // chart preset (pie) ... 統計チャート
-export const presetChartPie = chart({ id: "chart-pie-demo", topic: "pie chart (SVG arc + tone 別 slice + 凡例)", type: "pie" })
+export const presetChartPie = chart({ id: "chart-pie-demo", topic: "全体に対する内訳の割合を示す円グラフ", type: "pie" })
   .datum({ id: "a", label: "Web", value: 45 })
   .datum({ id: "b", label: "Mobile", value: 35 })
   .datum({ id: "c", label: "API", value: 20 })
   .build();
 
 // chart preset (line) ... 時系列
-export const presetChartLine = chart({ id: "chart-line-demo", topic: "line chart (SVG polyline + 縦軸目盛 + circle marker + value label)", type: "line" })
+export const presetChartLine = chart({ id: "chart-line-demo", topic: "時系列データの推移を線で示す折れ線グラフ", type: "line" })
   .datum({ id: "jan", label: "Jan", value: 1000 })
   .datum({ id: "feb", label: "Feb", value: 1300 })
   .datum({ id: "mar", label: "Mar", value: 1100 })
@@ -187,7 +187,7 @@ export const presetChartLine = chart({ id: "chart-line-demo", topic: "line chart
   .build();
 
 // gantt preset ... sprint / release timeline
-export const presetGantt = gantt({ id: "gantt-demo", topic: "gantt (Release timeline、 帯状 timeline + task label + dependsOn arrow)" })
+export const presetGantt = gantt({ id: "gantt-demo", topic: "タスクの期間と依存関係を横棒で示す進捗図" })
   .task({ id: "design", title: "Design", start: "Q1", end: "Q1", owner: "Designer" })
   .task({ id: "build", title: "Build", start: "Q2", end: "Q2", owner: "Eng", dependsOn: "design" })
   .task({ id: "test", title: "Test", start: "Q3", end: "Q3", owner: "QA", dependsOn: "build" })
@@ -195,7 +195,7 @@ export const presetGantt = gantt({ id: "gantt-demo", topic: "gantt (Release time
   .build();
 
 // flowchart preset ... swimlane + decision
-export const presetFlowchart = flowchart({ id: "flowchart-demo", topic: "flowchart preset (Approval)", lanes: ["User", "Manager"] })
+export const presetFlowchart = flowchart({ id: "flowchart-demo", topic: "分岐や判定を含む処理の流れを示す図", lanes: ["User", "Manager"] })
   .node({ id: "submit", title: "Submit request", shape: "start", lane: "User" })
   .node({ id: "review", title: "Review", shape: "decision", lane: "Manager" })
   .node({ id: "approve", title: "Approved", shape: "end", lane: "Manager" })
@@ -206,7 +206,7 @@ export const presetFlowchart = flowchart({ id: "flowchart-demo", topic: "flowcha
   .build();
 
 // network preset ... NW topology
-export const presetNetwork = network({ id: "network-demo", topic: "network preset (Office NW)" })
+export const presetNetwork = network({ id: "network-demo", topic: "ネットワーク機器とセグメントの接続関係を示す図" })
   .device({ id: "fw", title: "Firewall", kind: "firewall", col: 0, row: 0, segment: "DMZ" })
   .device({ id: "sw1", title: "Switch A", kind: "switch", col: 1, row: 0, segment: "LAN" })
   .device({ id: "srv", title: "App Server", kind: "server", col: 2, row: 0 })
@@ -217,7 +217,7 @@ export const presetNetwork = network({ id: "network-demo", topic: "network prese
   .build();
 
 // stateMachine2 preset ... 拡張 FSM (nested + action)
-export const presetStateMachine2 = stateMachine2({ id: "sm2-demo", topic: "stateMachine2 preset (Auth FSM 拡張)" })
+export const presetStateMachine2 = stateMachine2({ id: "sm2-demo", topic: "階層状態や遷移アクションを持つ拡張ステート図" })
   .state({ id: "idle", title: "Idle", initial: true, entry: "clearForm" })
   .state({ id: "active", title: "Active" })
   .state({ id: "loading", title: "Loading", parent: "active", entry: "startSpinner", exit: "stopSpinner" })
