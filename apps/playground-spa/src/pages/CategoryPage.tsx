@@ -172,13 +172,10 @@ function ItemCard({
         )}
       </header>
 
-      <div
-        className="relative rounded-xl bg-[var(--v4-canvas,#f8fafc)] p-4 min-h-[220px]"
-        style={{ aspectRatio: "16 / 10" }}
-      >
+      <div className="relative rounded-xl bg-[var(--v4-canvas,#f8fafc)] p-2 h-[280px] overflow-hidden">
         {!modalOpen && (
           <InViewMount
-            className="w-full h-full overflow-hidden [&_svg]:!w-full [&_svg]:!h-full [&_svg]:!max-w-full [&_svg]:!max-h-full"
+            className="w-full h-full flex items-center justify-center [&_svg]:!w-full [&_svg]:!h-full [&_svg]:!block [&_svg]:!object-contain"
             placeholder={
               <div className="w-full h-full flex items-center justify-center text-[11px] text-[var(--v4-ink-mute,#8a8678)] font-mono">
                 loading…
@@ -206,7 +203,7 @@ function ItemCard({
 
       <footer className="mt-4 flex items-center justify-end">
         <Link
-          to={`/editor?category=${categorySlug}&id=${item.id}`}
+          to={`/editor#preset=${item.id}`}
           className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11.5px] font-semibold text-[var(--v4-brand,#2d6a8f)] hover:bg-[var(--v4-canvas,#f8fafc)] transition-colors"
         >
           Editor で開く <ExternalLink size={11} />

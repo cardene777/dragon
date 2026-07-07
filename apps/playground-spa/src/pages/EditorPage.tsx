@@ -1,27 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
+import type { CdlDiagram } from "@cardenelabs/cdl";
 import { ChevronLeft, Rocket, Share2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
+import { CATALOG_ITEMS } from "@/lib/catalog-items";
 import { ThemePicker } from "@/components/ThemePicker";
 import { useTheme } from "@/lib/useTheme";
 import { useToast } from "@/components/Toast";
+
+interface EditorEntry {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  diagram: CdlDiagram;
+}
+
+/**
+ * PRESETS (20) は主軸 preset、 CATALOG_ITEMS の全 diagram (100+) も同じ id で lookup 可能。
+ * hash `#preset=<id>` に対応、 見つからない場合は PRESETS[0] fallback。
+ */
+function lookupDiagram(id: string): EditorEntry | null {
+  const p = PRESETS.find((x) => x.id === id);
+  if (p) return { id: p.id, eyebrow: p.eyebrow, title: p.title, subtitle: p.subtitle, diagram: p.diagram };
+  for (const [slug, items] of Object.entries(CATALOG_ITEMS)) {
+    const hit = items.find((x) => x.id === id);
+    if (hit) return { id: hit.id, eyebrow: slug.toUpperCase(), title: hit.title, subtitle: hit.subtitle, diagram: hit.diagram };
+  }
+  return null;
+}
+
+const FALLBACK: EditorEntry = {
+  id: PRESETS[0]!.id,
+  eyebrow: PRESETS[0]!.eyebrow,
+  title: PRESETS[0]!.title,
+  subtitle: PRESETS[0]!.subtitle,
+  diagram: PRESETS[0]!.diagram,
+};
 
 export function EditorPage(): React.ReactElement {
   const { toast } = useToast();
   const [theme, setTheme] = useTheme();
   const [presetId, setPresetId] = useState<string>(PRESETS[0]!.id);
 
-  const preset = useMemo(
-    () => PRESETS.find((p) => p.id === presetId) ?? PRESETS[0]!,
-    [presetId],
-  );
+  const preset = useMemo(() => lookupDiagram(presetId) ?? FALLBACK, [presetId]);
 
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.startsWith("#preset=")) {
       const id = hash.slice(8);
-      if (PRESETS.some((p) => p.id === id)) setPresetId(id);
+      if (lookupDiagram(id)) setPresetId(id);
     }
   }, []);
 

@@ -206,12 +206,12 @@ animation:
 
 // ─── class preset (UML class diagram 風) ─────
 export const textDslClass = textDslToDiagram(`
-title: "UML (DSL)"
-type: class
+title: "UML class (DSL)"
+type: flow
 
 actors:
-  - User: { kind: card, subtitle: "+name: string", rows: ["+login(): void"] }
-  - Admin: { kind: card, subtitle: "+role: string", rows: ["+delete(): void"] }
+  - User: { kind: card, subtitle: "+name / +login()" }
+  - Admin: { kind: card, subtitle: "+role / +delete()" }
 
 flow:
   - User -> Admin: "extends"
