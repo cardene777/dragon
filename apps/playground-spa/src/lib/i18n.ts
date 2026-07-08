@@ -97,6 +97,14 @@ export const ITEM_NAME_JA: Record<string, string> = {
   shapeStack: "重ね rect (履歴/layer)",
   shapePerson: "人型 (actor)",
 
+  // shape-driven software 6 (CAR-1111 Phase 2-B)
+  shapeWindow: "ウィンドウ (GUI アプリ)",
+  shapeTerminal: "端末 (CLI shell)",
+  shapeCodeBlock: "コード block (snippet)",
+  shapeKanbanCard: "kanban ticket",
+  shapeMessageBubble: "吹き出し (message)",
+  shapeGear: "歯車 (config / process engine)",
+
   // shape-driven hardware 6 (CAR-1111 Phase 2-C)
   shapeServerRack: "サーバラック (19 inch)",
   shapeNetworkNode: "network hub (router)",

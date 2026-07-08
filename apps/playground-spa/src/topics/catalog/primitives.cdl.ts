@@ -129,6 +129,43 @@ export const shapePerson = diagram("shape-person", { topic: "shape: person (人�
   .phase("p", { duration: 1500, title: "person", body: "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者" }, (p: PhaseBuilder) => p.activate("p").badge("shape"))
   .build();
 
+/** 4-b. Shape-driven software 6 (CAR-1111 Phase 2-B) ... OS ウィンドウ / 端末 / コード block / kanban ticket / チャット吹き出し / 歯車 */
+export const shapeWindow = diagram("shape-window", { topic: "shape: window (GUI アプリ、 traffic lights + body)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-window", title: "ダッシュボード", eyebrow: "window", subtitle: "GUI アプリ" })
+  .phase("p", { duration: 1500, title: "window", body: "title bar + traffic lights + body。 GUI アプリ / desktop / ブラウザ画面" }, (p: PhaseBuilder) => p.activate("w").badge("shape"))
+  .build();
+
+export const shapeTerminal = diagram("shape-terminal", { topic: "shape: terminal (CLI shell、 mac bar + prompt)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-terminal", title: "zsh", eyebrow: "terminal", subtitle: "CLI shell" })
+  .phase("p", { duration: 1500, title: "terminal", body: "macOS bar + $ prompt + typing cursor。 CLI shell / SSH / script 実行" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
+  .build();
+
+export const shapeCodeBlock = diagram("shape-code-block", { topic: "shape: code-block (snippet、 editor tab + 4 syntax lines)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-code-block", title: "utils.ts", eyebrow: "code", subtitle: "3 line snippet" })
+  .phase("p", { duration: 1500, title: "code-block", body: "editor tab + gutter + 4 syntax lines。 code snippet / editor / 実装" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
+  .build();
+
+export const shapeKanbanCard = diagram("shape-kanban-card", { topic: "shape: kanban-card (ticket、 priority + status + tags + avatars)" })
+  .lane("l", { x: 0, width: W })
+  .node("k", { lane: "l", stack: 0, kind: "shape-kanban-card", title: "CAR-1111", eyebrow: "in progress", subtitle: "shape-driven kind" })
+  .phase("p", { duration: 1500, title: "kanban-card", body: "priority bar + ID + status pill + title + tags + avatars。 kanban ticket / Issue" }, (p: PhaseBuilder) => p.activate("k").badge("shape"))
+  .build();
+
+export const shapeMessageBubble = diagram("shape-message-bubble", { topic: "shape: message-bubble (吹き出し、 rounded rect + tail)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-message-bubble", title: "了解しました", eyebrow: "message" })
+  .phase("p", { duration: 1500, title: "message-bubble", body: "rounded rect + 左下 tail。 message / commit comment / 通知 / チャット" }, (p: PhaseBuilder) => p.activate("m").badge("shape"))
+  .build();
+
+export const shapeGear = diagram("shape-gear", { topic: "shape: gear (歯車、 設定 / 処理エンジン)" })
+  .lane("l", { x: 0, width: W })
+  .node("g", { lane: "l", stack: 0, kind: "shape-gear", title: "Settings", eyebrow: "config", subtitle: "設定 / process engine" })
+  .phase("p", { duration: 1500, title: "gear", body: "12 teeth 大歯車 + 4 spokes + hub + bolt。 config / process engine / 設定" }, (p: PhaseBuilder) => p.activate("g").badge("shape"))
+  .build();
+
 /** 5. Shape-driven hardware 6 (CAR-1111 Phase 2-C) ... ハードウェア / IoT / エッジ領域の視覚要素 */
 export const shapeServerRack = diagram("shape-server-rack", { topic: "shape: server-rack (19 inch rack、 物理サーバ)" })
   .lane("l", { x: 0, width: W })
