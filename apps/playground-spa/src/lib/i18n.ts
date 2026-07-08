@@ -137,6 +137,13 @@ export const ITEM_NAME_JA: Record<string, string> = {
   shapeTrader: "トレーダー",
   shapeCustomerService: "カスタマーサポート",
 
+  // shape-driven blockchain 4 追加 + credit-card 分離 (CAR-1111 Phase 2-D 追加分)
+  shapeBlockchain: "ブロックチェーン (汎用)",
+  shapeBitcoinChain: "Bitcoin ブロックチェーン",
+  shapeEthereumChain: "Ethereum ブロックチェーン",
+  shapeBlockchainNode: "ブロックチェーンノード",
+  shapeCreditCard: "クレジットカード",
+
   // primitives
   kindActor: "actor (外部主体)",
   kindFunction: "function (関数呼び出し)",

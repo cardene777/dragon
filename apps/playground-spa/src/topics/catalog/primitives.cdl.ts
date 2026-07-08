@@ -313,3 +313,34 @@ export const shapeCustomerService = diagram("shape-customer-service", { topic: "
   .node("c", { lane: "l", stack: 0, kind: "shape-customer-service", title: "サポート担当", eyebrow: "support", subtitle: "24h コンタクト" })
   .phase("p", { duration: 1500, title: "customer-service", body: "人 + headset + speech bubble + name badge。 CS / コールセンター" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
   .build();
+
+/** 10. Phase 2-D 追加分 (blockchain 4 新 + credit-card 分離) */
+export const shapeBlockchain = diagram("shape-blockchain", { topic: "shape: blockchain (5 block linked chain)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-blockchain", title: "ブロックチェーン", eyebrow: "chain", subtitle: "汎用 5 block" })
+  .phase("p", { duration: 1500, title: "blockchain", body: "5 block を hash pointer で横に連結。 汎用 chain / L1 / L2 の抽象" }, (p: PhaseBuilder) => p.activate("b").badge("shape"))
+  .build();
+
+export const shapeBitcoinChain = diagram("shape-bitcoin-chain", { topic: "shape: bitcoin-chain (₿ + PoW + 橙色)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-bitcoin-chain", title: "Bitcoin", eyebrow: "bitcoin", subtitle: "PoW mining" })
+  .phase("p", { duration: 1500, title: "bitcoin-chain", body: "橙 accent + ₿ symbol + PoW mining。 Bitcoin mainnet / testnet" }, (p: PhaseBuilder) => p.activate("b").badge("shape"))
+  .build();
+
+export const shapeEthereumChain = diagram("shape-ethereum-chain", { topic: "shape: ethereum-chain (Ξ + PoS + 紫色)" })
+  .lane("l", { x: 0, width: W })
+  .node("e", { lane: "l", stack: 0, kind: "shape-ethereum-chain", title: "Ethereum", eyebrow: "ethereum", subtitle: "PoS L1" })
+  .phase("p", { duration: 1500, title: "ethereum-chain", body: "紫 accent + Ξ symbol + PoS validator。 Ethereum mainnet / rollup base" }, (p: PhaseBuilder) => p.activate("e").badge("shape"))
+  .build();
+
+export const shapeBlockchainNode = diagram("shape-blockchain-node", { topic: "shape: blockchain-node (P2P hex + 6 peers)" })
+  .lane("l", { x: 0, width: W })
+  .node("n", { lane: "l", stack: 0, kind: "shape-blockchain-node", title: "フルノード", eyebrow: "node", subtitle: "P2P peer" })
+  .phase("p", { duration: 1500, title: "blockchain-node", body: "中央 hex + 6 peer hex + block stack icon。 P2P full / archive / light node" }, (p: PhaseBuilder) => p.activate("n").badge("shape"))
+  .build();
+
+export const shapeCreditCard = diagram("shape-credit-card", { topic: "shape: credit-card (chip + magstripe + brand mark)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-credit-card", title: "クレカ", eyebrow: "card", subtitle: "VISA / Master" })
+  .phase("p", { duration: 1500, title: "credit-card", body: "chip + NFC wave + 番号 + 名義 + 有効期限 + brand mark。 実物クレジットカード" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
+  .build();
