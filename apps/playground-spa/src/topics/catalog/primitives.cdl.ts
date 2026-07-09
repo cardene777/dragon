@@ -830,3 +830,1002 @@ export const sourceJson__sceneNftMint = `{
     { "step": "NFT mint", "duration": 1.5, "focus": ["creator", "ERC-721", "Rare Punk"] }
   ]
 }`;
+
+export const sourceYaml__sceneBankingFlow = `title: "銀行 flow"
+type: topology
+actors:
+  - name: ATM
+    kind: shape-atm
+    subtitle: "cash 出金"
+  - name: みずほ銀行
+    kind: shape-bank
+    subtitle: "都銀"
+  - name: Amazon
+    kind: shape-online-shop
+    subtitle: "EC"
+flow:
+  - ATM -> みずほ銀行: ""
+  - みずほ銀行 -> Amazon: ""
+animation:
+  - step: "銀行 flow" 1.5s
+    focus: [ATM, みずほ銀行, Amazon]
+`;
+
+export const sourceJson__sceneBankingFlow = `{
+  "title": "銀行 flow",
+  "type": "topology",
+  "actors": [
+    { "name": "ATM", "kind": "shape-atm", "subtitle": "cash 出金" },
+    { "name": "みずほ銀行", "kind": "shape-bank", "subtitle": "都銀" },
+    { "name": "Amazon", "kind": "shape-online-shop", "subtitle": "EC" }
+  ],
+  "flow": [
+    { "from": "ATM", "to": "みずほ銀行", "label": "" },
+    { "from": "みずほ銀行", "to": "Amazon", "label": "" }
+  ],
+  "animation": [
+    { "step": "銀行 flow", "duration": 1.5, "focus": ["ATM", "みずほ銀行", "Amazon"] }
+  ]
+}`;
+
+export const sourceYaml__sceneIotOnchain = `title: "IoT オンチェーン"
+type: topology
+actors:
+  - name: 温度計
+    kind: shape-iot-sensor
+    subtitle: "BLE"
+  - name: Infura
+    kind: shape-rpc-node
+    subtitle: "provider"
+  - name: OracleContract
+    kind: shape-smart-contract
+    subtitle: "Solidity"
+flow:
+  - 温度計 -> Infura: ""
+  - Infura -> OracleContract: ""
+animation:
+  - step: "IoT オンチェーン" 1.5s
+    focus: [温度計, Infura, OracleContract]
+`;
+
+export const sourceJson__sceneIotOnchain = `{
+  "title": "IoT オンチェーン",
+  "type": "topology",
+  "actors": [
+    { "name": "温度計", "kind": "shape-iot-sensor", "subtitle": "BLE" },
+    { "name": "Infura", "kind": "shape-rpc-node", "subtitle": "provider" },
+    { "name": "OracleContract", "kind": "shape-smart-contract", "subtitle": "Solidity" }
+  ],
+  "flow": [
+    { "from": "温度計", "to": "Infura", "label": "" },
+    { "from": "Infura", "to": "OracleContract", "label": "" }
+  ],
+  "animation": [
+    { "step": "IoT オンチェーン", "duration": 1.5, "focus": ["温度計", "Infura", "OracleContract"] }
+  ]
+}`;
+
+export const sourceYaml__sceneAuditFlow = `title: "監査 flow"
+type: topology
+actors:
+  - name: 監査法人
+    kind: shape-auditor
+    subtitle: "検査"
+  - name: 会計帳簿
+    kind: shape-file
+    subtitle: "ledger"
+  - name: 金融庁
+    kind: shape-regulator
+    subtitle: "監督"
+flow:
+  - 監査法人 -> 会計帳簿: ""
+  - 会計帳簿 -> 金融庁: ""
+animation:
+  - step: "監査 flow" 1.5s
+    focus: [監査法人, 会計帳簿, 金融庁]
+`;
+
+export const sourceJson__sceneAuditFlow = `{
+  "title": "監査 flow",
+  "type": "topology",
+  "actors": [
+    { "name": "監査法人", "kind": "shape-auditor", "subtitle": "検査" },
+    { "name": "会計帳簿", "kind": "shape-file", "subtitle": "ledger" },
+    { "name": "金融庁", "kind": "shape-regulator", "subtitle": "監督" }
+  ],
+  "flow": [
+    { "from": "監査法人", "to": "会計帳簿", "label": "" },
+    { "from": "会計帳簿", "to": "金融庁", "label": "" }
+  ],
+  "animation": [
+    { "step": "監査 flow", "duration": 1.5, "focus": ["監査法人", "会計帳簿", "金融庁"] }
+  ]
+}`;
+
+export const sourceYaml__sceneStockTrading = `title: "証券取引"
+type: topology
+actors:
+  - name: 個人投資家
+    kind: shape-trader
+    subtitle: "retail"
+  - name: 野村証券
+    kind: shape-brokerage
+    subtitle: "投資銀行"
+  - name: 東証
+    kind: shape-exchange
+    subtitle: "TSE"
+flow:
+  - 個人投資家 -> 野村証券: ""
+  - 野村証券 -> 東証: ""
+animation:
+  - step: "証券取引" 1.5s
+    focus: [個人投資家, 野村証券, 東証]
+`;
+
+export const sourceJson__sceneStockTrading = `{
+  "title": "証券取引",
+  "type": "topology",
+  "actors": [
+    { "name": "個人投資家", "kind": "shape-trader", "subtitle": "retail" },
+    { "name": "野村証券", "kind": "shape-brokerage", "subtitle": "投資銀行" },
+    { "name": "東証", "kind": "shape-exchange", "subtitle": "TSE" }
+  ],
+  "flow": [
+    { "from": "個人投資家", "to": "野村証券", "label": "" },
+    { "from": "野村証券", "to": "東証", "label": "" }
+  ],
+  "animation": [
+    { "step": "証券取引", "duration": 1.5, "focus": ["個人投資家", "野村証券", "東証"] }
+  ]
+}`;
+
+export const sourceYaml__sceneSupportFlow = `title: "問い合わせ flow"
+type: topology
+actors:
+  - name: サポート担当
+    kind: shape-customer-service
+    subtitle: "24H 対応"
+  - name: BUG-1234
+    kind: shape-kanban-card
+    subtitle: "Linear"
+  - name: hotfix.ts
+    kind: shape-code-block
+    subtitle: "fix by dev"
+flow:
+  - サポート担当 -> BUG-1234: ""
+  - BUG-1234 -> hotfix.ts: ""
+animation:
+  - step: "問い合わせ flow" 1.5s
+    focus: [サポート担当, BUG-1234, hotfix.ts]
+`;
+
+export const sourceJson__sceneSupportFlow = `{
+  "title": "問い合わせ flow",
+  "type": "topology",
+  "actors": [
+    { "name": "サポート担当", "kind": "shape-customer-service", "subtitle": "24H 対応" },
+    { "name": "BUG-1234", "kind": "shape-kanban-card", "subtitle": "Linear" },
+    { "name": "hotfix.ts", "kind": "shape-code-block", "subtitle": "fix by dev" }
+  ],
+  "flow": [
+    { "from": "サポート担当", "to": "BUG-1234", "label": "" },
+    { "from": "BUG-1234", "to": "hotfix.ts", "label": "" }
+  ],
+  "animation": [
+    { "step": "問い合わせ flow", "duration": 1.5, "focus": ["サポート担当", "BUG-1234", "hotfix.ts"] }
+  ]
+}`;
+
+export const sourceYaml__scenePaymentSettlement = `title: "決済 flow"
+type: topology
+actors:
+  - name: Stripe
+    kind: shape-payment-provider
+    subtitle: "SaaS"
+  - name: VISA
+    kind: shape-credit-card
+    subtitle: "credit"
+  - name: 発行銀行
+    kind: shape-bank
+    subtitle: "MUFG"
+flow:
+  - Stripe -> VISA: ""
+  - VISA -> 発行銀行: ""
+animation:
+  - step: "決済 flow" 1.5s
+    focus: [Stripe, VISA, 発行銀行]
+`;
+
+export const sourceJson__scenePaymentSettlement = `{
+  "title": "決済 flow",
+  "type": "topology",
+  "actors": [
+    { "name": "Stripe", "kind": "shape-payment-provider", "subtitle": "SaaS" },
+    { "name": "VISA", "kind": "shape-credit-card", "subtitle": "credit" },
+    { "name": "発行銀行", "kind": "shape-bank", "subtitle": "MUFG" }
+  ],
+  "flow": [
+    { "from": "Stripe", "to": "VISA", "label": "" },
+    { "from": "VISA", "to": "発行銀行", "label": "" }
+  ],
+  "animation": [
+    { "step": "決済 flow", "duration": 1.5, "focus": ["Stripe", "VISA", "発行銀行"] }
+  ]
+}`;
+
+export const sourceYaml__sceneWebInfra = `title: "web infra"
+type: topology
+actors:
+  - name: example.com
+    kind: shape-website
+    subtitle: "SPA"
+  - name: Cloudflare
+    kind: shape-cdn-edge
+    subtitle: "edge"
+  - name: origin
+    kind: shape-server-rack
+    subtitle: "AWS"
+flow:
+  - example.com -> Cloudflare: ""
+  - Cloudflare -> origin: ""
+animation:
+  - step: "web infra" 1.5s
+    focus: [example.com, Cloudflare, origin]
+`;
+
+export const sourceJson__sceneWebInfra = `{
+  "title": "web infra",
+  "type": "topology",
+  "actors": [
+    { "name": "example.com", "kind": "shape-website", "subtitle": "SPA" },
+    { "name": "Cloudflare", "kind": "shape-cdn-edge", "subtitle": "edge" },
+    { "name": "origin", "kind": "shape-server-rack", "subtitle": "AWS" }
+  ],
+  "flow": [
+    { "from": "example.com", "to": "Cloudflare", "label": "" },
+    { "from": "Cloudflare", "to": "origin", "label": "" }
+  ],
+  "animation": [
+    { "step": "web infra", "duration": 1.5, "focus": ["example.com", "Cloudflare", "origin"] }
+  ]
+}`;
+
+export const sourceYaml__sceneTokenBridge = `title: "token bridge"
+type: topology
+actors:
+  - name: Ethereum
+    kind: shape-ethereum-chain
+    subtitle: "L1"
+  - name: Bridge
+    kind: shape-smart-contract
+    subtitle: "lock"
+  - name: Arbitrum
+    kind: shape-blockchain
+    subtitle: "L2"
+flow:
+  - Ethereum -> Bridge: ""
+  - Bridge -> Arbitrum: ""
+animation:
+  - step: "token bridge" 1.5s
+    focus: [Ethereum, Bridge, Arbitrum]
+`;
+
+export const sourceJson__sceneTokenBridge = `{
+  "title": "token bridge",
+  "type": "topology",
+  "actors": [
+    { "name": "Ethereum", "kind": "shape-ethereum-chain", "subtitle": "L1" },
+    { "name": "Bridge", "kind": "shape-smart-contract", "subtitle": "lock" },
+    { "name": "Arbitrum", "kind": "shape-blockchain", "subtitle": "L2" }
+  ],
+  "flow": [
+    { "from": "Ethereum", "to": "Bridge", "label": "" },
+    { "from": "Bridge", "to": "Arbitrum", "label": "" }
+  ],
+  "animation": [
+    { "step": "token bridge", "duration": 1.5, "focus": ["Ethereum", "Bridge", "Arbitrum"] }
+  ]
+}`;
+
+export const sourceYaml__sceneDefiLending = `title: "DeFi lending"
+type: topology
+actors:
+  - name: 深度者
+    kind: shape-wallet
+    subtitle: "USDC 供給"
+  - name: Aave v3
+    kind: shape-smart-contract
+    subtitle: "pool"
+  - name: aUSDC
+    kind: shape-token
+    subtitle: "yield-bearing"
+flow:
+  - 深度者 -> Aave v3: ""
+  - Aave v3 -> aUSDC: ""
+animation:
+  - step: "DeFi lending" 1.5s
+    focus: [深度者, Aave v3, aUSDC]
+`;
+
+export const sourceJson__sceneDefiLending = `{
+  "title": "DeFi lending",
+  "type": "topology",
+  "actors": [
+    { "name": "深度者", "kind": "shape-wallet", "subtitle": "USDC 供給" },
+    { "name": "Aave v3", "kind": "shape-smart-contract", "subtitle": "pool" },
+    { "name": "aUSDC", "kind": "shape-token", "subtitle": "yield-bearing" }
+  ],
+  "flow": [
+    { "from": "深度者", "to": "Aave v3", "label": "" },
+    { "from": "Aave v3", "to": "aUSDC", "label": "" }
+  ],
+  "animation": [
+    { "step": "DeFi lending", "duration": 1.5, "focus": ["深度者", "Aave v3", "aUSDC"] }
+  ]
+}`;
+
+export const sourceYaml__sceneBitcoinTx = `title: "bitcoin tx"
+type: topology
+actors:
+  - name: sender
+    kind: shape-wallet
+    subtitle: "Bitcoin Core"
+  - name: BTC mainnet
+    kind: shape-bitcoin-chain
+    subtitle: "PoW"
+  - name: full node
+    kind: shape-blockchain-node
+    subtitle: "validator"
+flow:
+  - sender -> BTC mainnet: ""
+  - BTC mainnet -> full node: ""
+animation:
+  - step: "bitcoin tx" 1.5s
+    focus: [sender, BTC mainnet, full node]
+`;
+
+export const sourceJson__sceneBitcoinTx = `{
+  "title": "bitcoin tx",
+  "type": "topology",
+  "actors": [
+    { "name": "sender", "kind": "shape-wallet", "subtitle": "Bitcoin Core" },
+    { "name": "BTC mainnet", "kind": "shape-bitcoin-chain", "subtitle": "PoW" },
+    { "name": "full node", "kind": "shape-blockchain-node", "subtitle": "validator" }
+  ],
+  "flow": [
+    { "from": "sender", "to": "BTC mainnet", "label": "" },
+    { "from": "BTC mainnet", "to": "full node", "label": "" }
+  ],
+  "animation": [
+    { "step": "bitcoin tx", "duration": 1.5, "focus": ["sender", "BTC mainnet", "full node"] }
+  ]
+}`;
+
+export const sourceYaml__sceneEcOrder = `title: "EC 注文"
+type: topology
+actors:
+  - name: 顧客
+    kind: shape-customer-service
+    subtitle: "注文"
+  - name: Rakuten
+    kind: shape-online-shop
+    subtitle: "EC"
+  - name: 物流倉庫
+    kind: shape-warehouse
+    subtitle: "出荷"
+flow:
+  - 顧客 -> Rakuten: ""
+  - Rakuten -> 物流倉庫: ""
+animation:
+  - step: "EC 注文" 1.5s
+    focus: [顧客, Rakuten, 物流倉庫]
+`;
+
+export const sourceJson__sceneEcOrder = `{
+  "title": "EC 注文",
+  "type": "topology",
+  "actors": [
+    { "name": "顧客", "kind": "shape-customer-service", "subtitle": "注文" },
+    { "name": "Rakuten", "kind": "shape-online-shop", "subtitle": "EC" },
+    { "name": "物流倉庫", "kind": "shape-warehouse", "subtitle": "出荷" }
+  ],
+  "flow": [
+    { "from": "顧客", "to": "Rakuten", "label": "" },
+    { "from": "Rakuten", "to": "物流倉庫", "label": "" }
+  ],
+  "animation": [
+    { "step": "EC 注文", "duration": 1.5, "focus": ["顧客", "Rakuten", "物流倉庫"] }
+  ]
+}`;
+
+export const sourceYaml__sceneMobileApi = `title: "mobile API"
+type: topology
+actors:
+  - name: iOS app
+    kind: shape-mobile-device
+    subtitle: "SwiftUI"
+  - name: GraphQL
+    kind: shape-api-gateway
+    subtitle: "Apollo"
+  - name: backend
+    kind: shape-server-rack
+    subtitle: "K8s"
+flow:
+  - iOS app -> GraphQL: ""
+  - GraphQL -> backend: ""
+animation:
+  - step: "mobile API" 1.5s
+    focus: [iOS app, GraphQL, backend]
+`;
+
+export const sourceJson__sceneMobileApi = `{
+  "title": "mobile API",
+  "type": "topology",
+  "actors": [
+    { "name": "iOS app", "kind": "shape-mobile-device", "subtitle": "SwiftUI" },
+    { "name": "GraphQL", "kind": "shape-api-gateway", "subtitle": "Apollo" },
+    { "name": "backend", "kind": "shape-server-rack", "subtitle": "K8s" }
+  ],
+  "flow": [
+    { "from": "iOS app", "to": "GraphQL", "label": "" },
+    { "from": "GraphQL", "to": "backend", "label": "" }
+  ],
+  "animation": [
+    { "step": "mobile API", "duration": 1.5, "focus": ["iOS app", "GraphQL", "backend"] }
+  ]
+}`;
+
+export const sourceYaml__sceneFactoryLine = `title: "factory line"
+type: topology
+actors:
+  - name: FANUC robot
+    kind: shape-robot-arm
+    subtitle: "組立"
+  - name: 計測 sensor
+    kind: shape-iot-sensor
+    subtitle: "品質"
+  - name: MES DB
+    kind: shape-cylinder
+    subtitle: "traceability"
+flow:
+  - FANUC robot -> 計測 sensor: ""
+  - 計測 sensor -> MES DB: ""
+animation:
+  - step: "factory line" 1.5s
+    focus: [FANUC robot, 計測 sensor, MES DB]
+`;
+
+export const sourceJson__sceneFactoryLine = `{
+  "title": "factory line",
+  "type": "topology",
+  "actors": [
+    { "name": "FANUC robot", "kind": "shape-robot-arm", "subtitle": "組立" },
+    { "name": "計測 sensor", "kind": "shape-iot-sensor", "subtitle": "品質" },
+    { "name": "MES DB", "kind": "shape-cylinder", "subtitle": "traceability" }
+  ],
+  "flow": [
+    { "from": "FANUC robot", "to": "計測 sensor", "label": "" },
+    { "from": "計測 sensor", "to": "MES DB", "label": "" }
+  ],
+  "animation": [
+    { "step": "factory line", "duration": 1.5, "focus": ["FANUC robot", "計測 sensor", "MES DB"] }
+  ]
+}`;
+
+export const sourceYaml__sceneSatelliteChain = `title: "satellite chain"
+type: topology
+actors:
+  - name: Starlink
+    kind: shape-satellite
+    subtitle: "LEO"
+  - name: Alchemy
+    kind: shape-rpc-node
+    subtitle: "endpoint"
+  - name: Solana
+    kind: shape-blockchain
+    subtitle: "high TPS"
+flow:
+  - Starlink -> Alchemy: ""
+  - Alchemy -> Solana: ""
+animation:
+  - step: "satellite chain" 1.5s
+    focus: [Starlink, Alchemy, Solana]
+`;
+
+export const sourceJson__sceneSatelliteChain = `{
+  "title": "satellite chain",
+  "type": "topology",
+  "actors": [
+    { "name": "Starlink", "kind": "shape-satellite", "subtitle": "LEO" },
+    { "name": "Alchemy", "kind": "shape-rpc-node", "subtitle": "endpoint" },
+    { "name": "Solana", "kind": "shape-blockchain", "subtitle": "high TPS" }
+  ],
+  "flow": [
+    { "from": "Starlink", "to": "Alchemy", "label": "" },
+    { "from": "Alchemy", "to": "Solana", "label": "" }
+  ],
+  "animation": [
+    { "step": "satellite chain", "duration": 1.5, "focus": ["Starlink", "Alchemy", "Solana"] }
+  ]
+}`;
+
+export const sourceYaml__sceneDevOps = `title: "DevOps"
+type: topology
+actors:
+  - name: src/
+    kind: shape-code-block
+    subtitle: "TypeScript"
+  - name: GitHub Actions
+    kind: shape-gear
+    subtitle: "build + test"
+  - name: AWS ECS
+    kind: shape-cloud
+    subtitle: "container"
+flow:
+  - src/ -> GitHub Actions: ""
+  - GitHub Actions -> AWS ECS: ""
+animation:
+  - step: "DevOps" 1.5s
+    focus: [src/, GitHub Actions, AWS ECS]
+`;
+
+export const sourceJson__sceneDevOps = `{
+  "title": "DevOps",
+  "type": "topology",
+  "actors": [
+    { "name": "src/", "kind": "shape-code-block", "subtitle": "TypeScript" },
+    { "name": "GitHub Actions", "kind": "shape-gear", "subtitle": "build + test" },
+    { "name": "AWS ECS", "kind": "shape-cloud", "subtitle": "container" }
+  ],
+  "flow": [
+    { "from": "src/", "to": "GitHub Actions", "label": "" },
+    { "from": "GitHub Actions", "to": "AWS ECS", "label": "" }
+  ],
+  "animation": [
+    { "step": "DevOps", "duration": 1.5, "focus": ["src/", "GitHub Actions", "AWS ECS"] }
+  ]
+}`;
+
+export const sourceYaml__sceneTaskFlow = `title: "task flow"
+type: topology
+actors:
+  - name: todo #42
+    kind: shape-kanban-card
+    subtitle: "in progress"
+  - name: $ npm run build
+    kind: shape-terminal
+    subtitle: "shell"
+  - name: build.log
+    kind: shape-file
+    subtitle: "output"
+flow:
+  - todo #42 -> $ npm run build: ""
+  - $ npm run build -> build.log: ""
+animation:
+  - step: "task flow" 1.5s
+    focus: [todo #42, $ npm run build, build.log]
+`;
+
+export const sourceJson__sceneTaskFlow = `{
+  "title": "task flow",
+  "type": "topology",
+  "actors": [
+    { "name": "todo #42", "kind": "shape-kanban-card", "subtitle": "in progress" },
+    { "name": "$ npm run build", "kind": "shape-terminal", "subtitle": "shell" },
+    { "name": "build.log", "kind": "shape-file", "subtitle": "output" }
+  ],
+  "flow": [
+    { "from": "todo #42", "to": "$ npm run build", "label": "" },
+    { "from": "$ npm run build", "to": "build.log", "label": "" }
+  ],
+  "animation": [
+    { "step": "task flow", "duration": 1.5, "focus": ["todo #42", "$ npm run build", "build.log"] }
+  ]
+}`;
+
+export const sourceYaml__sceneNotification = `title: "通知"
+type: topology
+actors:
+  - name: @alice
+    kind: shape-message-bubble
+    subtitle: "Slack"
+  - name: NotifyService
+    kind: shape-hexagon
+    subtitle: "push"
+  - name: デスクトップ通知
+    kind: shape-window
+    subtitle: "OS native"
+flow:
+  - @alice -> NotifyService: ""
+  - NotifyService -> デスクトップ通知: ""
+animation:
+  - step: "通知" 1.5s
+    focus: [@alice, NotifyService, デスクトップ通知]
+`;
+
+export const sourceJson__sceneNotification = `{
+  "title": "通知",
+  "type": "topology",
+  "actors": [
+    { "name": "@alice", "kind": "shape-message-bubble", "subtitle": "Slack" },
+    { "name": "NotifyService", "kind": "shape-hexagon", "subtitle": "push" },
+    { "name": "デスクトップ通知", "kind": "shape-window", "subtitle": "OS native" }
+  ],
+  "flow": [
+    { "from": "@alice", "to": "NotifyService", "label": "" },
+    { "from": "NotifyService", "to": "デスクトップ通知", "label": "" }
+  ],
+  "animation": [
+    { "step": "通知", "duration": 1.5, "focus": ["@alice", "NotifyService", "デスクトップ通知"] }
+  ]
+}`;
+
+export const sourceYaml__sceneTrustAsset = `title: "信託資産"
+type: topology
+actors:
+  - name: 資産運用者
+    kind: shape-trader
+    subtitle: "buy 指示"
+  - name: 三井住友信託
+    kind: shape-trust-bank
+    subtitle: "受託"
+  - name: 運用報告書
+    kind: shape-file
+    subtitle: "月次"
+flow:
+  - 資産運用者 -> 三井住友信託: ""
+  - 三井住友信託 -> 運用報告書: ""
+animation:
+  - step: "信託資産" 1.5s
+    focus: [資産運用者, 三井住友信託, 運用報告書]
+`;
+
+export const sourceJson__sceneTrustAsset = `{
+  "title": "信託資産",
+  "type": "topology",
+  "actors": [
+    { "name": "資産運用者", "kind": "shape-trader", "subtitle": "buy 指示" },
+    { "name": "三井住友信託", "kind": "shape-trust-bank", "subtitle": "受託" },
+    { "name": "運用報告書", "kind": "shape-file", "subtitle": "月次" }
+  ],
+  "flow": [
+    { "from": "資産運用者", "to": "三井住友信託", "label": "" },
+    { "from": "三井住友信託", "to": "運用報告書", "label": "" }
+  ],
+  "animation": [
+    { "step": "信託資産", "duration": 1.5, "focus": ["資産運用者", "三井住友信託", "運用報告書"] }
+  ]
+}`;
+
+export const sourceYaml__sceneConsensus = `title: "consensus"
+type: topology
+actors:
+  - name: validator
+    kind: shape-blockchain-node
+    subtitle: "PoS"
+  - name: block #8123456
+    kind: shape-blockchain-block
+    subtitle: "proposed"
+  - name: canonical chain
+    kind: shape-blockchain
+    subtitle: "finalized"
+flow:
+  - validator -> block #8123456: ""
+  - block #8123456 -> canonical chain: ""
+animation:
+  - step: "consensus" 1.5s
+    focus: [validator, block #8123456, canonical chain]
+`;
+
+export const sourceJson__sceneConsensus = `{
+  "title": "consensus",
+  "type": "topology",
+  "actors": [
+    { "name": "validator", "kind": "shape-blockchain-node", "subtitle": "PoS" },
+    { "name": "block #8123456", "kind": "shape-blockchain-block", "subtitle": "proposed" },
+    { "name": "canonical chain", "kind": "shape-blockchain", "subtitle": "finalized" }
+  ],
+  "flow": [
+    { "from": "validator", "to": "block #8123456", "label": "" },
+    { "from": "block #8123456", "to": "canonical chain", "label": "" }
+  ],
+  "animation": [
+    { "step": "consensus", "duration": 1.5, "focus": ["validator", "block #8123456", "canonical chain"] }
+  ]
+}`;
+
+export const sourceYaml__sceneTokenDeploy = `title: "token deploy"
+type: topology
+actors:
+  - name: deployer
+    kind: shape-lawyer
+    subtitle: "founder"
+  - name: ERC-20
+    kind: shape-smart-contract
+    subtitle: "OpenZeppelin"
+  - name: $KIWA
+    kind: shape-token
+    subtitle: "1B supply"
+flow:
+  - deployer -> ERC-20: ""
+  - ERC-20 -> $KIWA: ""
+animation:
+  - step: "token deploy" 1.5s
+    focus: [deployer, ERC-20, $KIWA]
+`;
+
+export const sourceJson__sceneTokenDeploy = `{
+  "title": "token deploy",
+  "type": "topology",
+  "actors": [
+    { "name": "deployer", "kind": "shape-lawyer", "subtitle": "founder" },
+    { "name": "ERC-20", "kind": "shape-smart-contract", "subtitle": "OpenZeppelin" },
+    { "name": "$KIWA", "kind": "shape-token", "subtitle": "1B supply" }
+  ],
+  "flow": [
+    { "from": "deployer", "to": "ERC-20", "label": "" },
+    { "from": "ERC-20", "to": "$KIWA", "label": "" }
+  ],
+  "animation": [
+    { "step": "token deploy", "duration": 1.5, "focus": ["deployer", "ERC-20", "$KIWA"] }
+  ]
+}`;
+
+export const sourceYaml__sceneCompliance = `title: "compliance"
+type: topology
+actors:
+  - name: 金融庁
+    kind: shape-regulator
+    subtitle: "検査"
+  - name: 取引記録
+    kind: shape-file
+    subtitle: "audit trail"
+  - name: 対象銀行
+    kind: shape-bank
+    subtitle: "検査対象"
+flow:
+  - 金融庁 -> 取引記録: ""
+  - 取引記録 -> 対象銀行: ""
+animation:
+  - step: "compliance" 1.5s
+    focus: [金融庁, 取引記録, 対象銀行]
+`;
+
+export const sourceJson__sceneCompliance = `{
+  "title": "compliance",
+  "type": "topology",
+  "actors": [
+    { "name": "金融庁", "kind": "shape-regulator", "subtitle": "検査" },
+    { "name": "取引記録", "kind": "shape-file", "subtitle": "audit trail" },
+    { "name": "対象銀行", "kind": "shape-bank", "subtitle": "検査対象" }
+  ],
+  "flow": [
+    { "from": "金融庁", "to": "取引記録", "label": "" },
+    { "from": "取引記録", "to": "対象銀行", "label": "" }
+  ],
+  "animation": [
+    { "step": "compliance", "duration": 1.5, "focus": ["金融庁", "取引記録", "対象銀行"] }
+  ]
+}`;
+
+export const sourceYaml__sceneNftMarketplace = `title: "NFT marketplace"
+type: topology
+actors:
+  - name: buyer
+    kind: shape-wallet
+    subtitle: "collector"
+  - name: OpenSea
+    kind: shape-exchange
+    subtitle: "royalty 5%"
+  - name: BAYC #7890
+    kind: shape-nft
+    subtitle: "Bored Ape"
+flow:
+  - buyer -> OpenSea: ""
+  - OpenSea -> BAYC #7890: ""
+animation:
+  - step: "NFT marketplace" 1.5s
+    focus: [buyer, OpenSea, BAYC #7890]
+`;
+
+export const sourceJson__sceneNftMarketplace = `{
+  "title": "NFT marketplace",
+  "type": "topology",
+  "actors": [
+    { "name": "buyer", "kind": "shape-wallet", "subtitle": "collector" },
+    { "name": "OpenSea", "kind": "shape-exchange", "subtitle": "royalty 5%" },
+    { "name": "BAYC #7890", "kind": "shape-nft", "subtitle": "Bored Ape" }
+  ],
+  "flow": [
+    { "from": "buyer", "to": "OpenSea", "label": "" },
+    { "from": "OpenSea", "to": "BAYC #7890", "label": "" }
+  ],
+  "animation": [
+    { "step": "NFT marketplace", "duration": 1.5, "focus": ["buyer", "OpenSea", "BAYC #7890"] }
+  ]
+}`;
+
+export const sourceYaml__sceneNetworkPath = `title: "network path"
+type: topology
+actors:
+  - name: client
+    kind: shape-mobile-device
+    subtitle: "端末"
+  - name: core switch
+    kind: shape-network-node
+    subtitle: "L2/L3"
+  - name: app server
+    kind: shape-server-rack
+    subtitle: "DC"
+flow:
+  - client -> core switch: ""
+  - core switch -> app server: ""
+animation:
+  - step: "network path" 1.5s
+    focus: [client, core switch, app server]
+`;
+
+export const sourceJson__sceneNetworkPath = `{
+  "title": "network path",
+  "type": "topology",
+  "actors": [
+    { "name": "client", "kind": "shape-mobile-device", "subtitle": "端末" },
+    { "name": "core switch", "kind": "shape-network-node", "subtitle": "L2/L3" },
+    { "name": "app server", "kind": "shape-server-rack", "subtitle": "DC" }
+  ],
+  "flow": [
+    { "from": "client", "to": "core switch", "label": "" },
+    { "from": "core switch", "to": "app server", "label": "" }
+  ],
+  "animation": [
+    { "step": "network path", "duration": 1.5, "focus": ["client", "core switch", "app server"] }
+  ]
+}`;
+
+export const sourceYaml__sceneCheckout = `title: "checkout"
+type: topology
+actors:
+  - name: shop.example.com
+    kind: shape-website
+    subtitle: "cart"
+  - name: PayPal
+    kind: shape-payment-provider
+    subtitle: "checkout"
+  - name: MasterCard
+    kind: shape-credit-card
+    subtitle: "credit"
+flow:
+  - shop.example.com -> PayPal: ""
+  - PayPal -> MasterCard: ""
+animation:
+  - step: "checkout" 1.5s
+    focus: [shop.example.com, PayPal, MasterCard]
+`;
+
+export const sourceJson__sceneCheckout = `{
+  "title": "checkout",
+  "type": "topology",
+  "actors": [
+    { "name": "shop.example.com", "kind": "shape-website", "subtitle": "cart" },
+    { "name": "PayPal", "kind": "shape-payment-provider", "subtitle": "checkout" },
+    { "name": "MasterCard", "kind": "shape-credit-card", "subtitle": "credit" }
+  ],
+  "flow": [
+    { "from": "shop.example.com", "to": "PayPal", "label": "" },
+    { "from": "PayPal", "to": "MasterCard", "label": "" }
+  ],
+  "animation": [
+    { "step": "checkout", "duration": 1.5, "focus": ["shop.example.com", "PayPal", "MasterCard"] }
+  ]
+}`;
+
+export const sourceYaml__sceneEdgeCompute = `title: "edge compute"
+type: topology
+actors:
+  - name: Android app
+    kind: shape-mobile-device
+    subtitle: "user"
+  - name: Fastly edge
+    kind: shape-cdn-edge
+    subtitle: "compute@edge"
+  - name: GCP origin
+    kind: shape-cloud
+    subtitle: "fallback"
+flow:
+  - Android app -> Fastly edge: ""
+  - Fastly edge -> GCP origin: ""
+animation:
+  - step: "edge compute" 1.5s
+    focus: [Android app, Fastly edge, GCP origin]
+`;
+
+export const sourceJson__sceneEdgeCompute = `{
+  "title": "edge compute",
+  "type": "topology",
+  "actors": [
+    { "name": "Android app", "kind": "shape-mobile-device", "subtitle": "user" },
+    { "name": "Fastly edge", "kind": "shape-cdn-edge", "subtitle": "compute@edge" },
+    { "name": "GCP origin", "kind": "shape-cloud", "subtitle": "fallback" }
+  ],
+  "flow": [
+    { "from": "Android app", "to": "Fastly edge", "label": "" },
+    { "from": "Fastly edge", "to": "GCP origin", "label": "" }
+  ],
+  "animation": [
+    { "step": "edge compute", "duration": 1.5, "focus": ["Android app", "Fastly edge", "GCP origin"] }
+  ]
+}`;
+
+export const sourceYaml__sceneVersionDeploy = `title: "version deploy"
+type: topology
+actors:
+  - name: release v3.2.0
+    kind: shape-stack
+    subtitle: "tagged"
+  - name: deploy pipeline
+    kind: shape-gear
+    subtitle: "canary"
+  - name: prod.example.com
+    kind: shape-website
+    subtitle: "live"
+flow:
+  - release v3.2.0 -> deploy pipeline: ""
+  - deploy pipeline -> prod.example.com: ""
+animation:
+  - step: "version deploy" 1.5s
+    focus: [release v3.2.0, deploy pipeline, prod.example.com]
+`;
+
+export const sourceJson__sceneVersionDeploy = `{
+  "title": "version deploy",
+  "type": "topology",
+  "actors": [
+    { "name": "release v3.2.0", "kind": "shape-stack", "subtitle": "tagged" },
+    { "name": "deploy pipeline", "kind": "shape-gear", "subtitle": "canary" },
+    { "name": "prod.example.com", "kind": "shape-website", "subtitle": "live" }
+  ],
+  "flow": [
+    { "from": "release v3.2.0", "to": "deploy pipeline", "label": "" },
+    { "from": "deploy pipeline", "to": "prod.example.com", "label": "" }
+  ],
+  "animation": [
+    { "step": "version deploy", "duration": 1.5, "focus": ["release v3.2.0", "deploy pipeline", "prod.example.com"] }
+  ]
+}`;
+
+export const sourceYaml__sceneAuditChain = `title: "audit chain"
+type: topology
+actors:
+  - name: 監査法人
+    kind: shape-auditor
+    subtitle: "PwC"
+  - name: 監査報告書
+    kind: shape-file
+    subtitle: "signed"
+  - name: 金融庁
+    kind: shape-regulator
+    subtitle: "受領"
+flow:
+  - 監査法人 -> 監査報告書: ""
+  - 監査報告書 -> 金融庁: ""
+animation:
+  - step: "audit chain" 1.5s
+    focus: [監査法人, 監査報告書, 金融庁]
+`;
+
+export const sourceJson__sceneAuditChain = `{
+  "title": "audit chain",
+  "type": "topology",
+  "actors": [
+    { "name": "監査法人", "kind": "shape-auditor", "subtitle": "PwC" },
+    { "name": "監査報告書", "kind": "shape-file", "subtitle": "signed" },
+    { "name": "金融庁", "kind": "shape-regulator", "subtitle": "受領" }
+  ],
+  "flow": [
+    { "from": "監査法人", "to": "監査報告書", "label": "" },
+    { "from": "監査報告書", "to": "金融庁", "label": "" }
+  ],
+  "animation": [
+    { "step": "audit chain", "duration": 1.5, "focus": ["監査法人", "監査報告書", "金融庁"] }
+  ]
+}`;
