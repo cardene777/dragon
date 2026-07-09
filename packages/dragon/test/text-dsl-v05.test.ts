@@ -669,11 +669,19 @@ flow:
     expect(d.viewport).toMatchObject({ laneGap: 120, nodeGap: 32, labelMargin: 16 });
   });
 
-  it("viewport.laneGap が layout の lanes 間 horizontal gap に反映される", () => {
+  // laneGap / gap は「下限つき」 の指定である (CAR-470 SSOT)。
+  //
+  // engine は `expandLaneGapsForEdgeLabels` で、 隣接 lane を跨ぐ edge の label が
+  // 両 node に被らないだけの gap (= requiredGap) を先手で確保する。
+  // requiredGap = labelBoxW + CLEARANCE_NODE_LABEL*2 + EDGE_STUB_OUT*2。
+  //
+  // よって author 指定の laneGap は requiredGap を下回れず、 下回る場合は safety 拡張が優先される。
+  // 「laneGap がそのまま反映される」 のは requiredGap 以上を指定した時のみ。
+  it("viewport.laneGap が requiredGap 以上なら lanes 間 horizontal gap にそのまま反映される", () => {
     const r = parseTextDslV05(`
 title: "lane gap"
 type: swimlane
-viewport: { laneGap: 200 }
+viewport: { laneGap: 600 }
 actors:
   - A
   - B
@@ -683,18 +691,58 @@ flow:
     if (!r.ok) throw new Error("parse failed");
     const d = compileToCdl(r.doc);
     const laid = layoutFromSrc(d);
-    // swimlane preset で 2 lane 横並び、 lane.width は engine の expand で確定。
-    // lane[0] 右端 + 200 = lane[1] 左端 になることを検証 (laneGap 200 が auto 配置に反映)。
     const l0 = laid.lanes[0]!;
     const l1 = laid.lanes[1]!;
-    expect(l1.x - (l0.x + l0.width)).toBe(200);
+    // label "msg" の requiredGap (約 236) < 600 なので author 指定がそのまま通る。
+    expect(l1.x - (l0.x + l0.width)).toBe(600);
   });
 
-  it("viewport.gap だけ指定時は laneGap / nodeGap / labelMargin の fallback として使われる", () => {
+  it("viewport.laneGap が requiredGap 未満なら safety 拡張 (label 収納幅) が優先される", () => {
+    const narrow = parseTextDslV05(`
+title: "lane gap narrow"
+type: swimlane
+viewport: { laneGap: 10 }
+actors:
+  - A
+  - B
+flow:
+  - A -> B: "msg"
+`);
+    if (!narrow.ok) throw new Error("parse failed");
+    const laidNarrow = layoutFromSrc(compileToCdl(narrow.doc));
+    const n0 = laidNarrow.lanes[0]!;
+    const n1 = laidNarrow.lanes[1]!;
+    const gapNarrow = n1.x - (n0.x + n0.width);
+
+    // laneGap=10 は requiredGap を大きく下回るため、 10 のままにはならない。
+    expect(gapNarrow).toBeGreaterThan(10);
+
+    // safety 拡張は edge label 幅に依存する。 label を長くすれば gap も広がることで、
+    // 「拡張値が label 収納幅から決まっている」 ことを示す。
+    const longLabel = parseTextDslV05(`
+title: "lane gap long label"
+type: swimlane
+viewport: { laneGap: 10 }
+actors:
+  - A
+  - B
+flow:
+  - A -> B: "a-very-long-edge-label-here"
+`);
+    if (!longLabel.ok) throw new Error("parse failed");
+    const laidLong = layoutFromSrc(compileToCdl(longLabel.doc));
+    const g0 = laidLong.lanes[0]!;
+    const g1 = laidLong.lanes[1]!;
+    const gapLong = g1.x - (g0.x + g0.width);
+
+    expect(gapLong).toBeGreaterThan(gapNarrow);
+  });
+
+  it("viewport.gap だけ指定時は laneGap の fallback として使われる (requiredGap 以上の場合)", () => {
     const r = parseTextDslV05(`
 title: "fallback test"
 type: swimlane
-viewport: { gap: 150 }
+viewport: { gap: 600 }
 actors:
   - A
   - B
@@ -706,8 +754,8 @@ flow:
     const laid = layoutFromSrc(d);
     const l0 = laid.lanes[0]!;
     const l1 = laid.lanes[1]!;
-    // viewport.gap=150 が laneGap の fallback として効くこと
-    expect(l1.x - (l0.x + l0.width)).toBe(150);
+    // viewport.gap=600 が laneGap の fallback として効く (requiredGap を上回るのでそのまま反映)
+    expect(l1.x - (l0.x + l0.width)).toBe(600);
   });
 
   it("block 形式 viewport も laneGap / nodeGap / labelMargin を parse", () => {

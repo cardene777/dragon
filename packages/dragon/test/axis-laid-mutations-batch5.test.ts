@@ -42,13 +42,42 @@ describe("Axis 5 alignment (LaidDiagram mutation で意図発火)", () => {
 });
 
 describe("Axis 6 clearance (LaidDiagram mutation で意図発火)", () => {
+  // cx を絶対値 (400 / 480) で固定しない。
+  //
+  // 1. CAR-470 (lane 間 gap を edge label 収納幅で先手拡張) 以降、 lane の x は
+  //    author 指定値ではなく `max(laneGap, requiredGap)` で決まる。 固定 cx は
+  //    node 幅に対する近接を意味しなくなり、 この test は CAR-470 で fail した。
+  // 2. detectNearCollisions は「重なっている pair」 を除外する (重複は node-overlap axis の担当)。
+  //    そのため cx を近づけすぎると clearance ではなく node-overlap になり発火しない。
+  //
+  // 検証したいのは node × node の near collision なので、
+  // 「重ならず、 かつ required clearance (node|node = 70px) 未満」 の距離を node 幅から作る。
   it("2 node の cx を極端に近づけると near collision で clearance 発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
-    laid.nodes[0].cx = 400;
-    laid.nodes[1].cx = 480;
+    const n0 = laid.nodes[0]!;
+    const n1 = laid.nodes[1]!;
+    // bbox 間 gap = 20px (>0 で重複せず、 node|node の required 70px 未満) になる位置。
+    const halfWidths = (n0.w + n1.w) / 2;
+    n1.cx = n0.cx + halfWidths + 20;
+    n1.cy = n0.cy;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["clearance"]).toBeGreaterThan(0);
+  });
+
+  // 上記 test が「node × node」 を検出していることを固定する。
+  // (元の fixture は cx=400/480 で node × edge-label の clearance を測っており、
+  //  test 名の意図と検出対象がズレていた)
+  it("clearance violation の対象が node × node pair である", () => {
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    const n0 = laid.nodes[0]!;
+    const n1 = laid.nodes[1]!;
+    n1.cx = n0.cx + (n0.w + n1.w) / 2 + 20;
+    n1.cy = n0.cy;
+    const report = visualValidateLaid(laid, diag);
+    const details = report.violations.filter((v) => v.axis === "clearance").map((v) => v.detail);
+    expect(details.some((d) => d.includes("node:n1") && d.includes("node:n2"))).toBe(true);
   });
 });
 

@@ -10,6 +10,20 @@
  * 実 render 側 layer の両方で捉えることで、 cdl bug でも dragon CSS bug でも漏れない。
  *
  * 失敗時は diagram 単位で違反内容 (axis + detail) を出力。
+ *
+ * ---
+ * 【現状 = 既知 fail (5 category)】
+ *
+ * cookbook / patterns / presets / primitives / text-dsl の 5 category が engine の実 defect で fail 中。
+ * 主なもの = lane-border-clearance (edge label が非発着 lane の border を貫通) / row-gap-uniform。
+ *
+ * 例 = diagram "jwt-auth" の edge "e3-user-api" label bbox (651..863) が
+ *      非発着 lane "login" (755..1095) の左 border を 108px 貫通。
+ *
+ * 追跡 = cdl Issue #202 (https://github.com/cardene777/cdl/issues/202)。
+ *
+ * この test は **意図的に skip も budget 緩和もしていない**。 defect を隠すと新規の描画崩れを
+ * 検知できなくなるため、 engine 修正までは fail のまま残す。
  */
 import { describe, it, expect } from "vitest";
 import { visualValidateAll, type VisualValidationReport, type Violation } from "@cardenelabs/cdl";
