@@ -152,7 +152,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   shapeBlockchainNode: "ブロックチェーンノード",
   shapeCreditCard: "クレジットカード",
 
-  // scenes (実シーン 10 例)
+  // scenes (実シーン 30 例)
   sceneCryptoTransfer: "crypto 送金 (wallet → exchange → chain)",
   sceneLegalNotarization: "法務 (弁護士 → 公証人 → 登記)",
   sceneBankingFlow: "銀行送金 (ATM → 銀行 → EC)",
@@ -163,6 +163,26 @@ export const ITEM_NAME_JA: Record<string, string> = {
   scenePaymentSettlement: "決済 (provider → クレカ → 銀行)",
   sceneWebInfra: "web infra (website → CDN → server)",
   sceneNftMint: "NFT mint (wallet → contract → NFT)",
+  sceneTokenBridge: "token bridge (chain A → bridge → chain B)",
+  sceneDefiLending: "DeFi lending (wallet → contract → token)",
+  sceneBitcoinTx: "bitcoin tx (wallet → BTC chain → node)",
+  sceneEcOrder: "EC 注文 (customer → shop → warehouse)",
+  sceneMobileApi: "mobile app (mobile → API gateway → server)",
+  sceneFactoryLine: "工場ライン (robot → sensor → DB)",
+  sceneSatelliteChain: "satellite (satellite → RPC → chain)",
+  sceneDevOps: "DevOps (code → CI → cloud)",
+  sceneTaskFlow: "task flow (kanban → terminal → file)",
+  sceneNotification: "通知 (message → service → app)",
+  sceneTrustAsset: "信託資産 (trader → trust bank → 帳簿)",
+  sceneConsensus: "consensus (node → block → chain)",
+  sceneTokenDeploy: "token deploy (dev → contract → token)",
+  sceneCompliance: "規制対応 (regulator → 帳簿 → bank)",
+  sceneNftMarketplace: "NFT 売買 (buyer → marketplace → NFT)",
+  sceneNetworkPath: "network (router → hub → server)",
+  sceneCheckout: "checkout (site → provider → card)",
+  sceneEdgeCompute: "edge compute (mobile → CDN → cloud)",
+  sceneVersionDeploy: "version deploy (stack → gear → site)",
+  sceneAuditChain: "audit chain (auditor → file → regulator)",
 
   // primitives
   kindActor: "actor (外部主体)",

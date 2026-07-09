@@ -493,3 +493,223 @@ export const sceneNftMint = diagram("scene-nft-mint", { topic: "scene: NFT mint 
   .edge("c", "n", { label: "" })
   .phase("p", { duration: 1500, title: "NFT mint", body: "wallet → ERC-721 contract 呼出 → NFT 発行。 minting の canonical 3-hop" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("scene"))
   .build();
+
+/** S-11. token bridge (chain A → bridge contract → chain B) */
+export const sceneTokenBridge = diagram("scene-token-bridge", { topic: "scene: token bridge (chain A → bridge → chain B)" })
+  .lane("l", { x: 0, width: W })
+  .node("a", { lane: "l", stack: 0, kind: "shape-ethereum-chain", title: "Ethereum", eyebrow: "src chain", subtitle: "L1" })
+  .node("b", { lane: "l", stack: 1, kind: "shape-smart-contract", title: "Bridge", eyebrow: "contract", subtitle: "lock" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "Arbitrum", eyebrow: "dst chain", subtitle: "L2" })
+  .edge("a", "b", { label: "" })
+  .edge("b", "c", { label: "" })
+  .phase("p", { duration: 1500, title: "token bridge", body: "src chain で lock → bridge contract → dst chain で mint。 cross-chain 資産移動" }, (p: PhaseBuilder) => p.activate("a").activate("b").activate("c").badge("scene"))
+  .build();
+
+/** S-12. DeFi lending (wallet → lending contract → interest) */
+export const sceneDefiLending = diagram("scene-defi-lending", { topic: "scene: DeFi lending (wallet → contract → token)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-wallet", title: "深度者", eyebrow: "wallet", subtitle: "USDC 供給" })
+  .node("c", { lane: "l", stack: 1, kind: "shape-smart-contract", title: "Aave v3", eyebrow: "lending", subtitle: "pool" })
+  .node("t", { lane: "l", stack: 2, kind: "shape-token", title: "aUSDC", eyebrow: "token", subtitle: "yield-bearing" })
+  .edge("w", "c", { label: "" })
+  .edge("c", "t", { label: "" })
+  .phase("p", { duration: 1500, title: "DeFi lending", body: "wallet が Aave に USDC を供給 → aUSDC (yield-bearing) を発行受領。 利息付き貸出の canonical flow" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("t").badge("scene"))
+  .build();
+
+/** S-13. bitcoin transaction (wallet → bitcoin chain → node) */
+export const sceneBitcoinTx = diagram("scene-bitcoin-tx", { topic: "scene: bitcoin tx (wallet → BTC chain → node)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-wallet", title: "sender", eyebrow: "wallet", subtitle: "Bitcoin Core" })
+  .node("c", { lane: "l", stack: 1, kind: "shape-bitcoin-chain", title: "BTC mainnet", eyebrow: "chain", subtitle: "PoW" })
+  .node("n", { lane: "l", stack: 2, kind: "shape-blockchain-node", title: "full node", eyebrow: "node", subtitle: "validator" })
+  .edge("w", "c", { label: "" })
+  .edge("c", "n", { label: "" })
+  .phase("p", { duration: 1500, title: "bitcoin tx", body: "wallet で tx 署名 → BTC chain broadcast → full node が承認。 P2P 送金の 3-hop" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("scene"))
+  .build();
+
+/** S-14. e-commerce order (customer → storefront → warehouse) */
+export const sceneEcOrder = diagram("scene-ec-order", { topic: "scene: EC 注文 (customer → shop → warehouse)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-customer-service", title: "顧客", eyebrow: "customer", subtitle: "注文" })
+  .node("s", { lane: "l", stack: 1, kind: "shape-online-shop", title: "Rakuten", eyebrow: "shop", subtitle: "EC" })
+  .node("w", { lane: "l", stack: 2, kind: "shape-warehouse", title: "物流倉庫", eyebrow: "warehouse", subtitle: "出荷" })
+  .edge("c", "s", { label: "" })
+  .edge("s", "w", { label: "" })
+  .phase("p", { duration: 1500, title: "EC 注文", body: "顧客 注文 → EC 受注 → 倉庫 出荷指示。 物販 fulfillment flow" }, (p: PhaseBuilder) => p.activate("c").activate("s").activate("w").badge("scene"))
+  .build();
+
+/** S-15. mobile app (mobile → API gateway → server) */
+export const sceneMobileApi = diagram("scene-mobile-api", { topic: "scene: mobile app (mobile → API gateway → server)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "iOS app", eyebrow: "mobile", subtitle: "SwiftUI" })
+  .node("g", { lane: "l", stack: 1, kind: "shape-api-gateway", title: "GraphQL", eyebrow: "gateway", subtitle: "Apollo" })
+  .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "backend", eyebrow: "server", subtitle: "K8s" })
+  .edge("m", "g", { label: "" })
+  .edge("g", "s", { label: "" })
+  .phase("p", { duration: 1500, title: "mobile API", body: "mobile app request → API gateway auth/route → backend server 処理。 modern mobile stack" }, (p: PhaseBuilder) => p.activate("m").activate("g").activate("s").badge("scene"))
+  .build();
+
+/** S-16. robot arm production (robot → sensor → cylinder db) */
+export const sceneFactoryLine = diagram("scene-factory-line", { topic: "scene: 工場ライン (robot → sensor → DB)" })
+  .lane("l", { x: 0, width: W })
+  .node("r", { lane: "l", stack: 0, kind: "shape-robot-arm", title: "FANUC robot", eyebrow: "robot", subtitle: "組立" })
+  .node("s", { lane: "l", stack: 1, kind: "shape-iot-sensor", title: "計測 sensor", eyebrow: "sensor", subtitle: "品質" })
+  .node("d", { lane: "l", stack: 2, kind: "shape-cylinder", title: "MES DB", eyebrow: "database", subtitle: "traceability" })
+  .edge("r", "s", { label: "" })
+  .edge("s", "d", { label: "" })
+  .phase("p", { duration: 1500, title: "factory line", body: "robot arm 作業 → 計測 sensor が品質確認 → MES DB に記録。 スマート工場の canonical" }, (p: PhaseBuilder) => p.activate("r").activate("s").activate("d").badge("scene"))
+  .build();
+
+/** S-17. satellite communication (satellite → RPC → chain) */
+export const sceneSatelliteChain = diagram("scene-satellite-chain", { topic: "scene: satellite (satellite → RPC → chain)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-satellite", title: "Starlink", eyebrow: "satellite", subtitle: "LEO" })
+  .node("r", { lane: "l", stack: 1, kind: "shape-rpc-node", title: "Alchemy", eyebrow: "rpc", subtitle: "endpoint" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "Solana", eyebrow: "chain", subtitle: "high TPS" })
+  .edge("s", "r", { label: "" })
+  .edge("r", "c", { label: "" })
+  .phase("p", { duration: 1500, title: "satellite chain", body: "衛星 データ → RPC 中継 → chain 記録。 space-to-chain の real-world data 送信" }, (p: PhaseBuilder) => p.activate("s").activate("r").activate("c").badge("scene"))
+  .build();
+
+/** S-18. dev workflow (code block → gear ci → cloud deploy) */
+export const sceneDevOps = diagram("scene-devops", { topic: "scene: DevOps (code → CI → cloud)" })
+  .lane("l", { x: 0, width: W })
+  .node("c", { lane: "l", stack: 0, kind: "shape-code-block", title: "src/", eyebrow: "code", subtitle: "TypeScript" })
+  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "GitHub Actions", eyebrow: "ci", subtitle: "build + test" })
+  .node("d", { lane: "l", stack: 2, kind: "shape-cloud", title: "AWS ECS", eyebrow: "deploy", subtitle: "container" })
+  .edge("c", "g", { label: "" })
+  .edge("g", "d", { label: "" })
+  .phase("p", { duration: 1500, title: "DevOps", body: "code push → CI build/test → cloud deploy。 modern CI/CD の canonical 3-hop" }, (p: PhaseBuilder) => p.activate("c").activate("g").activate("d").badge("scene"))
+  .build();
+
+/** S-19. kanban task (kanban → terminal → file) */
+export const sceneTaskFlow = diagram("scene-task-flow", { topic: "scene: task flow (kanban → terminal → file)" })
+  .lane("l", { x: 0, width: W })
+  .node("k", { lane: "l", stack: 0, kind: "shape-kanban-card", title: "todo #42", eyebrow: "kanban", subtitle: "in progress" })
+  .node("t", { lane: "l", stack: 1, kind: "shape-terminal", title: "$ npm run build", eyebrow: "terminal", subtitle: "shell" })
+  .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "build.log", eyebrow: "file", subtitle: "output" })
+  .edge("k", "t", { label: "" })
+  .edge("t", "f", { label: "" })
+  .phase("p", { duration: 1500, title: "task flow", body: "kanban task 着手 → terminal で作業 → file 出力保存。 開発者の日常 flow" }, (p: PhaseBuilder) => p.activate("k").activate("t").activate("f").badge("scene"))
+  .build();
+
+/** S-20. message notification (message bubble → hexagon → window) */
+export const sceneNotification = diagram("scene-notification", { topic: "scene: 通知 (message → service → app)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-message-bubble", title: "@alice", eyebrow: "message", subtitle: "Slack" })
+  .node("h", { lane: "l", stack: 1, kind: "shape-hexagon", title: "NotifyService", eyebrow: "service", subtitle: "push" })
+  .node("w", { lane: "l", stack: 2, kind: "shape-window", title: "デスクトップ通知", eyebrow: "window", subtitle: "OS native" })
+  .edge("m", "h", { label: "" })
+  .edge("h", "w", { label: "" })
+  .phase("p", { duration: 1500, title: "通知", body: "message 送信 → notify service push → 受信者 desktop 通知表示。 messaging の end-to-end" }, (p: PhaseBuilder) => p.activate("m").activate("h").activate("w").badge("scene"))
+  .build();
+
+/** S-21. trust bank asset (trader → 信託銀行 → 帳簿) */
+export const sceneTrustAsset = diagram("scene-trust-asset", { topic: "scene: 信託資産 (trader → trust bank → 帳簿)" })
+  .lane("l", { x: 0, width: W })
+  .node("t", { lane: "l", stack: 0, kind: "shape-trader", title: "資産運用者", eyebrow: "trader", subtitle: "buy 指示" })
+  .node("b", { lane: "l", stack: 1, kind: "shape-trust-bank", title: "三井住友信託", eyebrow: "trust", subtitle: "受託" })
+  .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "運用報告書", eyebrow: "record", subtitle: "月次" })
+  .edge("t", "b", { label: "" })
+  .edge("b", "f", { label: "" })
+  .phase("p", { duration: 1500, title: "信託資産", body: "運用者 buy 指示 → 信託銀行 受託 → 月次報告書 発行。 institutional 資産管理" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("f").badge("scene"))
+  .build();
+
+/** S-22. blockchain node consensus (blockchain-node → blockchain-block → chain) */
+export const sceneConsensus = diagram("scene-consensus", { topic: "scene: consensus (node → block → chain)" })
+  .lane("l", { x: 0, width: W })
+  .node("n", { lane: "l", stack: 0, kind: "shape-blockchain-node", title: "validator", eyebrow: "node", subtitle: "PoS" })
+  .node("b", { lane: "l", stack: 1, kind: "shape-blockchain-block", title: "block #8123456", eyebrow: "block", subtitle: "proposed" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "canonical chain", eyebrow: "chain", subtitle: "finalized" })
+  .edge("n", "b", { label: "" })
+  .edge("b", "c", { label: "" })
+  .phase("p", { duration: 1500, title: "consensus", body: "validator が block 提案 → attestation 集約 → chain finalize。 PoS consensus の canonical" }, (p: PhaseBuilder) => p.activate("n").activate("b").activate("c").badge("scene"))
+  .build();
+
+/** S-23. token deploy (developer → contract → token) */
+export const sceneTokenDeploy = diagram("scene-token-deploy", { topic: "scene: token deploy (dev → contract → token)" })
+  .lane("l", { x: 0, width: W })
+  .node("d", { lane: "l", stack: 0, kind: "shape-lawyer", title: "deployer", eyebrow: "dev", subtitle: "founder" })
+  .node("c", { lane: "l", stack: 1, kind: "shape-smart-contract", title: "ERC-20", eyebrow: "contract", subtitle: "OpenZeppelin" })
+  .node("t", { lane: "l", stack: 2, kind: "shape-token", title: "$KIWA", eyebrow: "token", subtitle: "1B supply" })
+  .edge("d", "c", { label: "" })
+  .edge("c", "t", { label: "" })
+  .phase("p", { duration: 1500, title: "token deploy", body: "developer が ERC-20 contract deploy → token 発行 → market 供給。 project trickery 開始" }, (p: PhaseBuilder) => p.activate("d").activate("c").activate("t").badge("scene"))
+  .build();
+
+/** S-24. regulator compliance (regulator → 帳簿 → 信託銀行) */
+export const sceneCompliance = diagram("scene-compliance", { topic: "scene: 規制対応 (regulator → 帳簿 → bank)" })
+  .lane("l", { x: 0, width: W })
+  .node("r", { lane: "l", stack: 0, kind: "shape-regulator", title: "金融庁", eyebrow: "regulator", subtitle: "検査" })
+  .node("f", { lane: "l", stack: 1, kind: "shape-file", title: "取引記録", eyebrow: "record", subtitle: "audit trail" })
+  .node("b", { lane: "l", stack: 2, kind: "shape-bank", title: "対象銀行", eyebrow: "bank", subtitle: "検査対象" })
+  .edge("r", "f", { label: "" })
+  .edge("f", "b", { label: "" })
+  .phase("p", { duration: 1500, title: "compliance", body: "規制当局 検査開始 → 帳簿 提出 → 銀行 検査対応。 金融庁 検査の canonical flow" }, (p: PhaseBuilder) => p.activate("r").activate("f").activate("b").badge("scene"))
+  .build();
+
+/** S-25. cross-chain swap (wallet → exchange → NFT) */
+export const sceneNftMarketplace = diagram("scene-nft-marketplace", { topic: "scene: NFT 売買 (buyer → marketplace → NFT)" })
+  .lane("l", { x: 0, width: W })
+  .node("b", { lane: "l", stack: 0, kind: "shape-wallet", title: "buyer", eyebrow: "wallet", subtitle: "collector" })
+  .node("m", { lane: "l", stack: 1, kind: "shape-exchange", title: "OpenSea", eyebrow: "marketplace", subtitle: "royalty 5%" })
+  .node("n", { lane: "l", stack: 2, kind: "shape-nft", title: "BAYC #7890", eyebrow: "nft", subtitle: "Bored Ape" })
+  .edge("b", "m", { label: "" })
+  .edge("m", "n", { label: "" })
+  .phase("p", { duration: 1500, title: "NFT marketplace", body: "buyer が marketplace で bid → contract 実行 → NFT ownership 移転。 secondary market flow" }, (p: PhaseBuilder) => p.activate("b").activate("m").activate("n").badge("scene"))
+  .build();
+
+/** S-26. network topology (router → network node → server) */
+export const sceneNetworkPath = diagram("scene-network-path", { topic: "scene: network (router → hub → server)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "client", eyebrow: "device", subtitle: "端末" })
+  .node("n", { lane: "l", stack: 1, kind: "shape-network-node", title: "core switch", eyebrow: "network", subtitle: "L2/L3" })
+  .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "app server", eyebrow: "server", subtitle: "DC" })
+  .edge("m", "n", { label: "" })
+  .edge("n", "s", { label: "" })
+  .phase("p", { duration: 1500, title: "network path", body: "client 端末 → network core switch 経由 → server 到達。 typical enterprise network 3-hop" }, (p: PhaseBuilder) => p.activate("m").activate("n").activate("s").badge("scene"))
+  .build();
+
+/** S-27. website checkout (website → payment → credit card) */
+export const sceneCheckout = diagram("scene-checkout", { topic: "scene: checkout (site → provider → card)" })
+  .lane("l", { x: 0, width: W })
+  .node("w", { lane: "l", stack: 0, kind: "shape-website", title: "shop.example.com", eyebrow: "site", subtitle: "cart" })
+  .node("p", { lane: "l", stack: 1, kind: "shape-payment-provider", title: "PayPal", eyebrow: "provider", subtitle: "checkout" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-credit-card", title: "MasterCard", eyebrow: "card", subtitle: "credit" })
+  .edge("w", "p", { label: "" })
+  .edge("p", "c", { label: "" })
+  .phase("p", { duration: 1500, title: "checkout", body: "サイトで cart 送信 → 決済 provider 経由 → クレカ authorization。 EC checkout の canonical" }, (p: PhaseBuilder) => p.activate("w").activate("p").activate("c").badge("scene"))
+  .build();
+
+/** S-28. edge computing (mobile → CDN edge → cloud) */
+export const sceneEdgeCompute = diagram("scene-edge-compute", { topic: "scene: edge compute (mobile → CDN → cloud)" })
+  .lane("l", { x: 0, width: W })
+  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "Android app", eyebrow: "mobile", subtitle: "user" })
+  .node("e", { lane: "l", stack: 1, kind: "shape-cdn-edge", title: "Fastly edge", eyebrow: "edge", subtitle: "compute@edge" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-cloud", title: "GCP origin", eyebrow: "cloud", subtitle: "fallback" })
+  .edge("m", "e", { label: "" })
+  .edge("e", "c", { label: "" })
+  .phase("p", { duration: 1500, title: "edge compute", body: "mobile request → CDN edge で compute → origin fallback。 low-latency delivery" }, (p: PhaseBuilder) => p.activate("m").activate("e").activate("c").badge("scene"))
+  .build();
+
+/** S-29. stack version deploy (stack → gear → website) */
+export const sceneVersionDeploy = diagram("scene-version-deploy", { topic: "scene: version deploy (stack → gear → site)" })
+  .lane("l", { x: 0, width: W })
+  .node("s", { lane: "l", stack: 0, kind: "shape-stack", title: "release v3.2.0", eyebrow: "release", subtitle: "tagged" })
+  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "deploy pipeline", eyebrow: "ci", subtitle: "canary" })
+  .node("w", { lane: "l", stack: 2, kind: "shape-website", title: "prod.example.com", eyebrow: "site", subtitle: "live" })
+  .edge("s", "g", { label: "" })
+  .edge("g", "w", { label: "" })
+  .phase("p", { duration: 1500, title: "version deploy", body: "release tag → deploy pipeline canary → production site 反映。 SaaS deploy の standard" }, (p: PhaseBuilder) => p.activate("s").activate("g").activate("w").badge("scene"))
+  .build();
+
+/** S-30. audit compliance chain (auditor → file → regulator) */
+export const sceneAuditChain = diagram("scene-audit-chain", { topic: "scene: audit chain (auditor → file → regulator)" })
+  .lane("l", { x: 0, width: W })
+  .node("a", { lane: "l", stack: 0, kind: "shape-auditor", title: "監査法人", eyebrow: "auditor", subtitle: "PwC" })
+  .node("f", { lane: "l", stack: 1, kind: "shape-file", title: "監査報告書", eyebrow: "report", subtitle: "signed" })
+  .node("r", { lane: "l", stack: 2, kind: "shape-regulator", title: "金融庁", eyebrow: "regulator", subtitle: "受領" })
+  .edge("a", "f", { label: "" })
+  .edge("f", "r", { label: "" })
+  .phase("p", { duration: 1500, title: "audit chain", body: "監査法人 検査 → 報告書 作成 → 規制当局 受領。 上場企業 quarterly audit の canonical" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("scene"))
+  .build();
