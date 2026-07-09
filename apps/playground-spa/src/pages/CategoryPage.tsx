@@ -2,13 +2,78 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Maximize2, Search, X } from "lucide-react";
+import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
 import { itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
+
+/** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
+type SourceTab = "yaml" | "json";
+
+/** copy-to-clipboard button (2 秒間 チェック表示) */
+function CopyButton({ text }: { text: string }): React.ReactElement {
+  const [copied, setCopied] = useState(false);
+  const onClick = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // silent fail (browser permission 拒否等、 clipboard API 不可時)
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={copied ? "コピー完了" : "コードをコピー"}
+      className="catalog-source-copy"
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      <span>{copied ? "コピーしました" : "コピー"}</span>
+    </button>
+  );
+}
+
+/** source 記法 tab section (YAML / JSON 切替、 source なしの場合は表示しない) */
+function SourceTabs({ item }: { item: CatalogItem }): React.ReactElement | null {
+  const [tab, setTab] = useState<SourceTab>("yaml");
+  if (!item.sourceYaml && !item.sourceJson) return null;
+  const activeSource = tab === "yaml" ? item.sourceYaml : item.sourceJson;
+  return (
+    <section className="catalog-source-section" aria-label="この diagram の記法">
+      <div className="catalog-source-tabs" role="tablist">
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "yaml"}
+          className={`catalog-source-tab ${tab === "yaml" ? "is-active" : ""}`}
+          onClick={() => setTab("yaml")}
+          disabled={!item.sourceYaml}
+        >
+          YAML (人向け)
+        </button>
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "json"}
+          className={`catalog-source-tab ${tab === "json" ? "is-active" : ""}`}
+          onClick={() => setTab("json")}
+          disabled={!item.sourceJson}
+        >
+          JSON (LLM 向け)
+        </button>
+        {activeSource && <CopyButton text={activeSource} />}
+      </div>
+      <pre className="catalog-source-code" data-lang={tab}>
+        <code>{activeSource ?? "(この記法の source は未登録です)"}</code>
+      </pre>
+    </section>
+  );
+}
 
 /**
  * /catalog/:slug — React docs / Storybook 風 2 pane 構成の再設計版。
@@ -174,6 +239,7 @@ export function CategoryPage(): React.ReactElement {
                     <CdlDiagramView diagram={currentItem.diagram as never} hideHeader />
                   </InViewMount>
                 </div>
+                <SourceTabs item={currentItem} />
                 <footer className="catalog-preview-foot">
                   <Link
                     to={`/editor#preset=${currentItem.id}`}
