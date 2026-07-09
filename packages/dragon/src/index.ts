@@ -13,6 +13,17 @@ export { compileToCdl } from "./compile";
 export { parseTextDslV05 } from "./v05";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
+
+// LLM 向け JSON DSL (Issue #208)
+export { jsonToDiagram, validateDragonJson } from "./json-parser";
+export { diagramJsonSchema } from "./schema";
+export type {
+  DragonJson,
+  JsonActor,
+  JsonStep,
+  JsonPhase,
+  JsonDslError,
+} from "./json-parser";
 export type {
   DslDocument,
   DslActor,

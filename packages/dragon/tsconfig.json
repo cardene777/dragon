@@ -11,11 +11,12 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
     "rootDir": "src",
     "outDir": "dist",
     "composite": true,
     "declaration": true,
     "emitDeclarationOnly": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/schemas/*.json"]
 }
