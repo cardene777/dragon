@@ -27,6 +27,9 @@ export interface CatalogItem {
   title: string;
   subtitle: string;
   diagram: CdlDiagram;
+  /** 人 / LLM 向け source 記法 (optional、 dragon package の 2 記法を dogfood 提示するため) */
+  sourceYaml?: string;
+  sourceJson?: string;
 }
 
 /**
@@ -49,6 +52,14 @@ function ensurePhase(d: CdlDiagram): CdlDiagram {
  */
 function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
   const out: CatalogItem[] = [];
+  // source 記法は `sourceYaml__<key>` / `sourceJson__<key>` の suffix pair convention で検出
+  const sourceYamlMap = new Map<string, string>();
+  const sourceJsonMap = new Map<string, string>();
+  for (const [k, v] of Object.entries(mod)) {
+    if (typeof v !== "string") continue;
+    if (k.startsWith("sourceYaml__")) sourceYamlMap.set(k.slice("sourceYaml__".length), v);
+    if (k.startsWith("sourceJson__")) sourceJsonMap.set(k.slice("sourceJson__".length), v);
+  }
   for (const [key, value] of Object.entries(mod)) {
     if (!value || typeof value !== "object") continue;
     const d = value as CdlDiagram;
@@ -58,6 +69,8 @@ function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
       title: key,
       subtitle: d.topic ?? "",
       diagram: ensurePhase(d),
+      sourceYaml: sourceYamlMap.get(key),
+      sourceJson: sourceJsonMap.get(key),
     });
   }
   return out;

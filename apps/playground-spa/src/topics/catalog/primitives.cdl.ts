@@ -713,3 +713,120 @@ export const sceneAuditChain = diagram("scene-audit-chain", { topic: "scene: aud
   .edge("f", "r", { label: "" })
   .phase("p", { duration: 1500, title: "audit chain", body: "監査法人 検査 → 報告書 作成 → 規制当局 受領。 上場企業 quarterly audit の canonical" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("scene"))
   .build();
+
+/**
+ * source 記法 sample (人 / LLM が dragon で書く時の記法対応表を catalog UI で表示するため)。
+ * key convention = `sourceYaml__<diagram export key>` / `sourceJson__<diagram export key>`。
+ * catalog-items.ts の moduleToItems がこの suffix を検出して該当 CatalogItem に付与する。
+ */
+
+export const sourceYaml__sceneCryptoTransfer = `title: "crypto 送金"
+type: topology
+actors:
+  - name: 送金者
+    kind: shape-wallet
+    subtitle: "MetaMask EOA"
+  - name: DEX
+    kind: shape-exchange
+    subtitle: "clearing"
+  - name: Ethereum
+    kind: shape-ethereum-chain
+    subtitle: "L1 mainnet"
+flow:
+  - 送金者 -> DEX: ""
+  - DEX -> Ethereum: ""
+animation:
+  - step: "crypto 送金" 1.5s
+    focus: [送金者, DEX, Ethereum]
+`;
+
+export const sourceJson__sceneCryptoTransfer = `{
+  "title": "crypto 送金",
+  "type": "topology",
+  "actors": [
+    { "name": "送金者", "kind": "shape-wallet", "subtitle": "MetaMask EOA" },
+    { "name": "DEX", "kind": "shape-exchange", "subtitle": "clearing" },
+    { "name": "Ethereum", "kind": "shape-ethereum-chain", "subtitle": "L1 mainnet" }
+  ],
+  "flow": [
+    { "from": "送金者", "to": "DEX", "label": "" },
+    { "from": "DEX", "to": "Ethereum", "label": "" }
+  ],
+  "animation": [
+    { "step": "crypto 送金", "duration": 1.5, "focus": ["送金者", "DEX", "Ethereum"] }
+  ]
+}`;
+
+export const sourceYaml__sceneLegalNotarization = `title: "法務 flow"
+type: topology
+actors:
+  - name: 代理人
+    kind: shape-lawyer
+    subtitle: "起草"
+  - name: 公証役場
+    kind: shape-notary
+    subtitle: "認証"
+  - name: 登記簿
+    kind: shape-file
+    subtitle: "official record"
+flow:
+  - 代理人 -> 公証役場: ""
+  - 公証役場 -> 登記簿: ""
+animation:
+  - step: "法務 flow" 1.5s
+    focus: [代理人, 公証役場, 登記簿]
+`;
+
+export const sourceJson__sceneLegalNotarization = `{
+  "title": "法務 flow",
+  "type": "topology",
+  "actors": [
+    { "name": "代理人", "kind": "shape-lawyer", "subtitle": "起草" },
+    { "name": "公証役場", "kind": "shape-notary", "subtitle": "認証" },
+    { "name": "登記簿", "kind": "shape-file", "subtitle": "official record" }
+  ],
+  "flow": [
+    { "from": "代理人", "to": "公証役場", "label": "" },
+    { "from": "公証役場", "to": "登記簿", "label": "" }
+  ],
+  "animation": [
+    { "step": "法務 flow", "duration": 1.5, "focus": ["代理人", "公証役場", "登記簿"] }
+  ]
+}`;
+
+export const sourceYaml__sceneNftMint = `title: "NFT mint"
+type: topology
+actors:
+  - name: creator
+    kind: shape-wallet
+    subtitle: "artist"
+  - name: ERC-721
+    kind: shape-smart-contract
+    subtitle: "OpenSea"
+  - name: Rare Punk
+    kind: shape-nft
+    subtitle: "#42"
+flow:
+  - creator -> ERC-721: ""
+  - ERC-721 -> Rare Punk: ""
+animation:
+  - step: "NFT mint" 1.5s
+    focus: [creator, ERC-721, Rare Punk]
+`;
+
+export const sourceJson__sceneNftMint = `{
+  "title": "NFT mint",
+  "type": "topology",
+  "actors": [
+    { "name": "creator", "kind": "shape-wallet", "subtitle": "artist" },
+    { "name": "ERC-721", "kind": "shape-smart-contract", "subtitle": "OpenSea" },
+    { "name": "Rare Punk", "kind": "shape-nft", "subtitle": "#42" }
+  ],
+  "flow": [
+    { "from": "creator", "to": "ERC-721", "label": "" },
+    { "from": "ERC-721", "to": "Rare Punk", "label": "" }
+  ],
+  "animation": [
+    { "step": "NFT mint", "duration": 1.5, "focus": ["creator", "ERC-721", "Rare Punk"] }
+  ]
+}`;
