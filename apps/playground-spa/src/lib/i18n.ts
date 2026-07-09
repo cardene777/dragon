@@ -152,6 +152,18 @@ export const ITEM_NAME_JA: Record<string, string> = {
   shapeBlockchainNode: "ブロックチェーンノード",
   shapeCreditCard: "クレジットカード",
 
+  // scenes (実シーン 10 例)
+  sceneCryptoTransfer: "crypto 送金 (wallet → exchange → chain)",
+  sceneLegalNotarization: "法務 (弁護士 → 公証人 → 登記)",
+  sceneBankingFlow: "銀行送金 (ATM → 銀行 → EC)",
+  sceneIotOnchain: "IoT オンチェーン (sensor → RPC → contract)",
+  sceneAuditFlow: "監査 (auditor → 帳簿 → regulator)",
+  sceneStockTrading: "証券取引 (trader → 証券会社 → 取引所)",
+  sceneSupportFlow: "問い合わせ (CS → ticket → 開発)",
+  scenePaymentSettlement: "決済 (provider → クレカ → 銀行)",
+  sceneWebInfra: "web infra (website → CDN → server)",
+  sceneNftMint: "NFT mint (wallet → contract → NFT)",
+
   // primitives
   kindActor: "actor (外部主体)",
   kindFunction: "function (関数呼び出し)",
