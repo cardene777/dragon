@@ -1,7 +1,63 @@
 # dragon
 
-**Chainome Diagram Language (cdl)** の text DSL + playground。 YAML-like syntax で
-cdl engine を wrap し、 diagram catalog / editor / theme picker を提供する。
+**Chainome Diagram Language (cdl)** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け、 [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中) を parser し、 裏で cdl engine を呼ぶ。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
+
+## 責任分担 (cdl vs dragon)
+
+人 / LLM が図を書く時は **dragon 記法を書く** のが標準、 cdl は engine として dragon の裏で動く。 dragon が担うのは「書きやすさ」、 cdl が担うのは「描画」。
+
+| 層 | dragon (本 repo) | cdl ([リポジトリ](https://github.com/cardene777/cdl)) |
+|---|---|---|
+| **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
+| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け、 [#208](https://github.com/cardene777/dragon/issues/208)) / catalog 30+ 実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
+| **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
+| **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` / `@cardenelabs/anim` |
+
+**流れ**。
+
+```
+[人が書く YAML]  ─┐
+                  ├─→ dragon parser ─→ cdl builder ─→ SVG (React component)
+[LLM が書く JSON] ─┘
+```
+
+**dragon の SSOT 責任**。
+- **人向け YAML DSL parser** ... `packages/dragon/src/parser.ts` (現行 v0.4 / v0.5)
+- **LLM 向け JSON DSL** ... [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中 (schema + structured output 経路)
+- **compile 層** ... YAML / JSON AST → cdl builder call 変換 (`compile.ts`)
+- **catalog SPA** ... 30+ 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
+- **notation lint** ... 記法 error / 冗長 / 未定義参照 診断 (`notation-lint.ts`)
+
+**cdl 側の SSOT 責任 (dragon は触らない)**。
+- shape 49 kind の SVG 描画 component (`packages/cdl/src/kinds/shape-*.tsx`)
+- DSL builder API (`.diagram(...).lane().node().edge().phase()`)
+- layout engine (lane / stack 座標計算 + routing)
+- animation runtime (phase / tween / set / activate / badge)
+
+記法変更は本 repo の PR、 shape / engine 変更は cdl 側の PR。
+
+## 記法 example (人向け YAML)
+
+```yaml
+title: "ログインAPI"
+type: sequence
+actors:
+  - ユーザー
+  - API
+  - データベース
+flow:
+  - ユーザー -> API: "ログイン要求"
+  - API -> データベース: "ユーザー検索"
+  - データベース -> API: "結果"
+  - API -> ユーザー: "認証成功" (success)
+animation:
+  - step: "call" 1.4s
+    focus: [ユーザー, API, "ユーザー -> API"]
+  - step: "query" 1.4s
+    focus: [API, データベース, "API -> データベース"]
+```
+
+catalog SPA で 30+ 実例を確認可能、 コピペして応用する使い方が標準。
 
 ## 関連 repo (相互リンク SSOT)
 
