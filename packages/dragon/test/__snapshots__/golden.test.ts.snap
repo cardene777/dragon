@@ -10738,7 +10738,7 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "topic": "T06",
   "viewBox": {
     "h": 1208,
-    "w": 597.16,
+    "w": 624.16,
     "x": -44,
     "y": 8,
   },
