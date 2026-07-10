@@ -10690,13 +10690,13 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
       "height": 1096,
       "id": "main",
       "width": 460,
-      "x": -100,
+      "x": 0,
       "y": 60,
     },
   ],
   "nodes": [
     {
-      "cx": 130,
+      "cx": 230,
       "cy": 208,
       "h": 160,
       "id": "gw",
@@ -10704,7 +10704,7 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
       "w": 320,
     },
     {
-      "cx": 130,
+      "cx": 230,
       "cy": 478,
       "h": 180,
       "id": "svc1",
@@ -10712,7 +10712,7 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
       "w": 320,
     },
     {
-      "cx": 130,
+      "cx": 230,
       "cy": 758,
       "h": 180,
       "id": "svc2",
@@ -10720,7 +10720,7 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
       "w": 320,
     },
     {
-      "cx": 130,
+      "cx": 230,
       "cy": 1038,
       "h": 180,
       "id": "svc3",
@@ -10739,7 +10739,7 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "viewBox": {
     "h": 1208,
     "w": 624.16,
-    "x": -144,
+    "x": -44,
     "y": 8,
   },
 }
