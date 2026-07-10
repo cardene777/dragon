@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -50,17 +50,49 @@ const BINARY_ASSET_EXTENSIONS = new Set([
   ".zip",
 ]);
 
+const isSymlink = (p: string): boolean => lstatSync(p).isSymbolicLink();
+
 /**
- * symlink は辿らない。 循環 (ELOOP) と走査対象 dir の外への脱出を防ぐ。
- * link 先が走査対象の中にあれば、 その実体は実 path 側で走査される。
+ * 走査結果。 symlink は辿らずに集めるだけにする。
+ *
+ * 辿れば循環 (ELOOP) と走査対象の外への脱出を招き、 黙って飛ばせば link 先の source が
+ * 無検査のまま残る。 どちらも避けるため、 見つけた symlink は path ごと持ち帰って test で落とす。
  */
-function listFiles(dir: string): string[] {
-  const out: string[] = [];
+type Scan = { files: string[]; symlinks: string[] };
+
+function walk(dir: string): Scan {
+  const out: Scan = { files: [], symlinks: [] };
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isSymbolicLink()) continue;
     const p = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...listFiles(p));
-    else if (entry.isFile()) out.push(p);
+    if (entry.isSymbolicLink()) {
+      out.symlinks.push(p);
+      continue;
+    }
+    if (entry.isDirectory()) {
+      const sub = walk(p);
+      out.files.push(...sub.files);
+      out.symlinks.push(...sub.symlinks);
+    } else if (entry.isFile()) {
+      out.files.push(p);
+    }
+  }
+  return out;
+}
+
+/**
+ * 走査 root は `readdirSync` に渡す前に判定する。 `readdirSync` は引数の symlink を辿るため、
+ * root だけは子と同じ経路では守れない。
+ */
+function scanRoots(roots: readonly string[]): Scan {
+  const out: Scan = { files: [], symlinks: [] };
+  for (const abs of roots) {
+    if (isSymlink(abs)) {
+      out.symlinks.push(abs);
+      continue;
+    }
+    const sub = walk(abs);
+    out.files.push(...sub.files);
+    out.symlinks.push(...sub.symlinks);
   }
   return out;
 }
@@ -68,9 +100,16 @@ function listFiles(dir: string): string[] {
 const isBinaryAsset = (p: string): boolean => BINARY_ASSET_EXTENSIONS.has(extname(p).toLowerCase());
 
 describe("source file は grep から外れない", () => {
-  const files = SCAN_DIRS.flatMap((d) => listFiles(join(ROOT, d)))
-    .filter((abs) => !isBinaryAsset(abs))
-    .map((abs) => [abs.slice(ROOT.length + 1), abs] as const);
+  const scan = scanRoots(SCAN_DIRS.map((d) => join(ROOT, d)));
+  const rel = (abs: string): string => abs.slice(ROOT.length + 1);
+
+  const files = scan.files.filter((abs) => !isBinaryAsset(abs)).map((abs) => [rel(abs), abs] as const);
+
+  // symlink を辿ると走査が package の外へ出る。 黙って飛ばすと link 先が無検査で残る。
+  // 走査 root でも中間 dir でも扱いは同じで、 存在したら path を出して落とす。
+  it("走査対象に symlink が無い", () => {
+    expect(scan.symlinks.map(rel)).toEqual([]);
+  });
 
   it("走査対象が空でない", () => {
     expect(files.length).toBeGreaterThan(0);
