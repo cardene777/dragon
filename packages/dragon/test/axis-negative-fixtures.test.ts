@@ -14,15 +14,17 @@
  *
  * ## 2 種類の axis 保証
  *
- * ### A. catalog real defect 保証 (4 axis)
+ * ### A. catalog real defect 保証 (3 axis)
  * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
  * regression を検出可能:
  * - Axis 3  text-readability      (cookbook)
- * - Axis 7  edge-label-proximity  (patterns)
  * - Axis 12 edge-node-cross       (pattern-passthrough)
  * - Axis 51 mermaid-parity        (presets)
  *
- * ### B. layout regression safety net (52 axis)
+ * Axis 7 (edge-label-proximity) は cdl PR #217 で catalog の defect が解消し class B へ移した。
+ * `visualValidateLaid` で label を path から引き離す fixture で axis 判定 logic の生存を保証する。
+ *
+ * ### B. layout regression safety net (53 axis)
  * 現状の layout が正しく defect を prevent、 発火 0 が正常。 layout implementation の
  * 破壊的変更が入った時に初めて発火して regression を検出:
  * - Axis 1 (node-visibility) / Axis 8 (arrow-endpoint-anchoring) / Axis 10 (node-overlap) /
@@ -36,7 +38,7 @@
  * 直接 mutation) で実施可能。 但し public API 拡張で影響範囲大、 /grilling 経由の別 session。
  */
 import { describe, it, expect } from "vitest";
-import { visualValidate } from "@cardenelabs/cdl";
+import { layout, visualValidate, visualValidateLaid } from "@cardenelabs/cdl";
 import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
@@ -309,22 +311,41 @@ describe("Axis 3 text-readability (catalog real defect assertion)", () => {
   });
 });
 
-describe("Axis 7 edge-label-proximity (catalog real defect assertion)", () => {
-  it("patterns の diagram で edge-label-proximity >= 1 発火 (SSOT: err(edge-label-proximity=2))", async () => {
+/**
+ * Axis 7 は cdl PR #217 で catalog real defect 保証 (class A) から layout regression safety net
+ * (class B) へ移った。
+ *
+ * 発火源だった 2 件は `patterns` の fan-out / fan-in で、 fan の X 分散が label を自 path の
+ * 縦走から 122 / 244 world 引き離していた症状。 pill が自 path の上に載るようになり発火が消えた。
+ *
+ * class B として axis 判定 logic の生存を保証するため、 catalog 依存をやめて
+ * `visualValidateLaid` で label を path から引き離した LaidDiagram を直接与える。
+ */
+describe("Axis 7 edge-label-proximity (layout regression safety net)", () => {
+  const isDiag = (v: unknown): v is CdlDiagram =>
+    typeof v === "object" && v !== null &&
+    typeof (v as CdlDiagram).id === "string" &&
+    Array.isArray((v as CdlDiagram).nodes);
+
+  it("patterns の label は自 path の上に載るため発火しない", async () => {
     const patterns = await import("../../../apps/playground-spa/src/topics/catalog/patterns.cdl");
-    const isDiag = (v: unknown): v is CdlDiagram => {
-      return typeof v === "object" && v !== null &&
-        typeof (v as CdlDiagram).id === "string" &&
-        Array.isArray((v as CdlDiagram).nodes);
-    };
     const diagrams = Object.values(patterns).filter(isDiag);
     let totalCount = 0;
-    for (const d of diagrams) {
-      const r = visualValidate(d);
-      totalCount += r.counts["edge-label-proximity"];
-    }
-    // visual-validate-sweep patterns SSOT: edge-label-proximity=2
-    expect(totalCount).toBeGreaterThanOrEqual(1);
+    for (const d of diagrams) totalCount += visualValidate(d).counts["edge-label-proximity"];
+    expect(totalCount).toBe(0);
+  });
+
+  it("label を自 path から引き離すと発火する (axis 判定 logic の生存確認)", async () => {
+    const patterns = await import("../../../apps/playground-spa/src/topics/catalog/patterns.cdl");
+    const diagram = Object.values(patterns).filter(isDiag).find((d) => d.id === "pattern-fan-out")!;
+    const laid = layout(diagram);
+    // 先頭 edge の label だけを path から 500 world 引き離す。 他は触らない。
+    const mutated = {
+      ...laid,
+      edges: laid.edges.map((e, i) => (i === 0 ? { ...e, labelX: e.labelX + 500 } : e)),
+    };
+    const r = visualValidateLaid(mutated, diagram);
+    expect(r.counts["edge-label-proximity"]).toBeGreaterThanOrEqual(1);
   });
 });
 
