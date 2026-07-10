@@ -50,18 +50,16 @@ const BINARY_ASSET_EXTENSIONS = new Set([
   ".zip",
 ]);
 
-const isSymlink = (p: string): boolean => lstatSync(p).isSymbolicLink();
-
 /**
  * 走査結果。 symlink は辿らずに集めるだけにする。
  *
  * 辿れば循環 (ELOOP) と走査対象の外への脱出を招き、 黙って飛ばせば link 先の source が
  * 無検査のまま残る。 どちらも避けるため、 見つけた symlink は path ごと持ち帰って test で落とす。
  */
-type Scan = { files: string[]; symlinks: string[] };
+type Scan = { files: string[]; symlinks: string[]; missing: string[] };
 
-function walk(dir: string): Scan {
-  const out: Scan = { files: [], symlinks: [] };
+function walk(dir: string): Omit<Scan, "missing"> {
+  const out = { files: [] as string[], symlinks: [] as string[] };
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, entry.name);
     if (entry.isSymbolicLink()) {
@@ -80,17 +78,49 @@ function walk(dir: string): Scan {
 }
 
 /**
- * 走査 root は `readdirSync` に渡す前に判定する。 `readdirSync` は引数の symlink を辿るため、
- * root だけは子と同じ経路では守れない。
+ * `ROOT` から走査 root までの各 segment を上から順に見る。
+ *
+ * `lstatSync` は引数の **最後の** 要素だけを辿らない。 途中の `packages` や `packages/dragon` が
+ * symlink なら黙って解決される。 `readdirSync` も引数の symlink を辿るため、 走査 root とその祖先は
+ * 子と同じ経路 (`entry.isSymbolicLink()`) では守れない。
+ *
+ * segment が存在しない場合は `"missing"` を返す。 `__dirname` は Node が symlink を解決した実 path で、
+ * `packages` 自体が symlink なら `ROOT` は repo の外へ飛ぶ。 その時 `SCAN_DIRS` は解決できない。
+ * 例外を投げると収集ごと落ちて原因が読めないため、 path を持ち帰って test で落とす。
  */
-function scanRoots(roots: readonly string[]): Scan {
-  const out: Scan = { files: [], symlinks: [] };
-  for (const abs of roots) {
-    if (isSymlink(abs)) {
-      out.symlinks.push(abs);
+type SegmentCheck = { kind: "ok" } | { kind: "symlink" | "missing"; path: string };
+
+function checkSegments(root: string, relDir: string): SegmentCheck {
+  let cur = root;
+  for (const part of relDir.split("/")) {
+    cur = join(cur, part);
+    let st;
+    try {
+      st = lstatSync(cur);
+    } catch (e) {
+      // 不在 (ENOENT) だけを missing として持ち帰る。 EACCES / ENOTDIR / ELOOP 等は
+      // 原因が全く違うため、 「存在しない」 に丸めず投げ直して素の error を見せる。
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return { kind: "missing", path: cur };
+      throw e;
+    }
+    if (st.isSymbolicLink()) return { kind: "symlink", path: cur };
+  }
+  return { kind: "ok" };
+}
+
+function scanRoots(relDirs: readonly string[]): Scan {
+  const out: Scan = { files: [], symlinks: [], missing: [] };
+  for (const relDir of relDirs) {
+    const check = checkSegments(ROOT, relDir);
+    if (check.kind === "symlink") {
+      out.symlinks.push(check.path);
       continue;
     }
-    const sub = walk(abs);
+    if (check.kind === "missing") {
+      out.missing.push(check.path);
+      continue;
+    }
+    const sub = walk(join(ROOT, relDir));
     out.files.push(...sub.files);
     out.symlinks.push(...sub.symlinks);
   }
@@ -100,7 +130,7 @@ function scanRoots(roots: readonly string[]): Scan {
 const isBinaryAsset = (p: string): boolean => BINARY_ASSET_EXTENSIONS.has(extname(p).toLowerCase());
 
 describe("source file は grep から外れない", () => {
-  const scan = scanRoots(SCAN_DIRS.map((d) => join(ROOT, d)));
+  const scan = scanRoots(SCAN_DIRS);
   const rel = (abs: string): string => abs.slice(ROOT.length + 1);
 
   const files = scan.files.filter((abs) => !isBinaryAsset(abs)).map((abs) => [rel(abs), abs] as const);
@@ -109,6 +139,12 @@ describe("source file は grep から外れない", () => {
   // 走査 root でも中間 dir でも扱いは同じで、 存在したら path を出して落とす。
   it("走査対象に symlink が無い", () => {
     expect(scan.symlinks.map(rel)).toEqual([]);
+  });
+
+  // `__dirname` は Node が symlink を解決した実 path のため、 `packages` 自体が symlink だと
+  // `ROOT` は repo の外を指し、 `SCAN_DIRS` が解決できなくなる。 その状態を path 付きで落とす。
+  it("走査 root が全て存在する", () => {
+    expect(scan.missing).toEqual([]);
   });
 
   it("走査対象が空でない", () => {
