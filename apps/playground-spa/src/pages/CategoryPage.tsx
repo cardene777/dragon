@@ -16,7 +16,7 @@ type SourceTab = "yaml" | "json";
 /** copy-to-clipboard button (2 秒間 チェック表示) */
 function CopyButton({ text }: { text: string }): React.ReactElement {
   const [copied, setCopied] = useState(false);
-  const onClick = async () => {
+  const doCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -28,7 +28,9 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        void doCopy();
+      }}
       aria-label={copied ? "コピー完了" : "コードをコピー"}
       className="catalog-source-copy"
     >
@@ -236,7 +238,7 @@ export function CategoryPage(): React.ReactElement {
                       <div className="catalog-preview-loading">読み込み中…</div>
                     }
                   >
-                    <CdlDiagramView diagram={currentItem.diagram as never} hideHeader />
+                    <CdlDiagramView diagram={currentItem.diagram} hideHeader />
                   </InViewMount>
                 </div>
                 <SourceTabs item={currentItem} />
@@ -280,7 +282,7 @@ export function CategoryPage(): React.ReactElement {
               </Dialog.Close>
             </div>
             <div className="cdl-modal-body">
-              {modalItem && <CdlDiagramView diagram={modalItem.diagram as never} hideHeader />}
+              {modalItem && <CdlDiagramView diagram={modalItem.diagram} hideHeader />}
             </div>
           </Dialog.Content>
         </Dialog.Portal>

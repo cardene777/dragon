@@ -77,14 +77,14 @@ function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
 }
 
 export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
-  presets: moduleToItems(PresetsMod as Record<string, unknown>),
+  presets: moduleToItems(PresetsMod),
   primitives: [
-    ...moduleToItems(PrimMod as Record<string, unknown>),
-    ...moduleToItems(PrimExtMod as Record<string, unknown>),
+    ...moduleToItems(PrimMod),
+    ...moduleToItems(PrimExtMod),
   ],
-  patterns: moduleToItems(PatMod as Record<string, unknown>),
-  animation: moduleToItems(AnimMod as Record<string, unknown>),
-  styles: moduleToItems(StyMod as Record<string, unknown>),
-  cookbook: moduleToItems(CookMod as Record<string, unknown>),
-  "text-dsl": moduleToItems(TdMod as Record<string, unknown>),
+  patterns: moduleToItems(PatMod),
+  animation: moduleToItems(AnimMod),
+  styles: moduleToItems(StyMod),
+  cookbook: moduleToItems(CookMod),
+  "text-dsl": moduleToItems(TdMod),
 };

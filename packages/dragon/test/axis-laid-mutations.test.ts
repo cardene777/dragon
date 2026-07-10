@@ -11,7 +11,7 @@
  * 不可能だった。 本 PR で完全解消。
  */
 import { describe, it, expect } from "vitest";
-import { visualValidateLaid, layout } from "@cardenelabs/cdl";
+import { visualValidate, visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
@@ -89,7 +89,6 @@ describe("Axis 1 node-visibility (LaidDiagram mutation で意図発火)", () => 
 describe("visualValidate() と visualValidateLaid() の互換性", () => {
   it("valid diagram で両者の counts が一致", () => {
     const diag = baseDiagram();
-    const { visualValidate } = require("@cardenelabs/cdl") as typeof import("@cardenelabs/cdl");
     const reportA = visualValidate(diag);
     const laid = layout(diag);
     const reportB = visualValidateLaid(laid, diag);

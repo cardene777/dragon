@@ -28,10 +28,10 @@ function parsePath(d: string): Array<{ x: number; y: number }> {
   const points: Array<{ x: number; y: number }> = [];
   const tokens = d.trim().split(/[\s,]+/);
   for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i]!;
+    const t = tokens[i];
     if (t === "M" || t === "L") {
-      const x = parseFloat(tokens[i + 1]!);
-      const y = parseFloat(tokens[i + 2]!);
+      const x = parseFloat(tokens[i + 1]);
+      const y = parseFloat(tokens[i + 2]);
       if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y });
       i += 2;
     }
@@ -99,10 +99,10 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
         const pts: Array<{ x: number; y: number }> = [];
         const tokens = d.trim().split(/[\s,]+/);
         for (let i = 0; i < tokens.length; i++) {
-          const t = tokens[i]!;
+          const t = tokens[i];
           if (t === "M" || t === "L") {
-            const x = parseFloat(tokens[i + 1]!);
-            const y = parseFloat(tokens[i + 2]!);
+            const x = parseFloat(tokens[i + 1]);
+            const y = parseFloat(tokens[i + 2]);
             if (Number.isFinite(x) && Number.isFinite(y)) pts.push({ x, y });
             i += 2;
           }
@@ -147,7 +147,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     });
     expect(widths.length, "funnel-stage が 2 件以上").toBeGreaterThanOrEqual(2);
     for (let i = 1; i < widths.length; i++) {
-      expect(widths[i], `stage[${i}] 幅 (${widths[i]}) <= stage[${i - 1}] 幅 (${widths[i - 1]})`).toBeLessThanOrEqual(widths[i - 1]! + 0.5);
+      expect(widths[i], `stage[${i}] 幅 (${widths[i]}) <= stage[${i - 1}] 幅 (${widths[i - 1]})`).toBeLessThanOrEqual(widths[i - 1] + 0.5);
     }
   });
 

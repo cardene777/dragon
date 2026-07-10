@@ -44,7 +44,7 @@ export function NmPresetCard({
             </div>
           }
         >
-          <CdlDiagramView diagram={diagram as never} hideHeader />
+          <CdlDiagramView diagram={diagram} hideHeader />
         </InViewMount>
       </div>
 

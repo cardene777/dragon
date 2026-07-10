@@ -18,5 +18,5 @@
     },
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "vite.config.ts", "tests"]
+  "include": ["src", "vite.config.ts", "tests", "playwright.config.ts"]
 }

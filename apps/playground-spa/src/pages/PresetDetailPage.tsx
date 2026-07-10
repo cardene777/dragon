@@ -20,8 +20,8 @@ export function PresetDetailPage(): React.ReactElement {
   useEffect(() => {
     if (!preset) return;
     const currentIdx = PRESETS.findIndex((p) => p.slug === preset.slug);
-    const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length]!;
-    const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length]!;
+    const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length];
+    const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
 
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
@@ -34,10 +34,10 @@ export function PresetDetailPage(): React.ReactElement {
         return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        navigate(`/preset/${prevPreset.slug}`);
+        void navigate(`/preset/${prevPreset.slug}`);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        navigate(`/preset/${nextPreset.slug}`);
+        void navigate(`/preset/${nextPreset.slug}`);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -56,8 +56,8 @@ export function PresetDetailPage(): React.ReactElement {
   }
 
   const currentIdx = PRESETS.findIndex((p) => p.slug === preset.slug);
-  const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length]!;
-  const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length]!;
+  const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length];
+  const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
 
   const onShare = async (): Promise<void> => {
     try {
@@ -102,7 +102,9 @@ export function PresetDetailPage(): React.ReactElement {
             </Link>
             <button
               type="button"
-              onClick={onShare}
+              onClick={() => {
+                void onShare();
+              }}
               className="nm-hero-btn nm-hero-btn-secondary"
             >
               <span>Share URL</span>
@@ -122,7 +124,7 @@ export function PresetDetailPage(): React.ReactElement {
 
         <section className="nm-presets-section" aria-label={`${preset.title} detail`}>
           <div className="nm-preset-detail-stage">
-            <CdlDiagramView diagram={preset.diagram as never} />
+            <CdlDiagramView diagram={preset.diagram} />
           </div>
           <div className="nm-preset-detail-nav">
             <Link to={`/preset/${prevPreset.slug}`} className="nm-preset-detail-nav-btn">

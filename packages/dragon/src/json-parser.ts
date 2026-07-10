@@ -205,7 +205,7 @@ function jsonToDoc(json: DragonJson): DslDocument {
     }
     return {
       name: a.name,
-      kind: (a.kind ?? "actor") as NodeKind,
+      kind: (a.kind ?? "actor"),
       subtitle: a.subtitle,
       eyebrow: a.eyebrow,
       value: a.value,
