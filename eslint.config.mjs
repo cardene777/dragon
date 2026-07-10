@@ -58,9 +58,12 @@ export default [
       "**/node_modules/**",
       "**/.astro/**",
       "**/.pagefind/**",
+      // `.context/` = 一時 scratch / verify 系 (一発 probe / 手元 shot script)、 lint 対象外。
+      // 追跡外 dir を lint すると tsconfig include に含まれず parsing error になる。
+      ".context/**",
       "apps/web/src/env.d.ts",
       // `.cdl.d.ts` = tsc build 生成の宣言 file、 lint 対象外 (source は `.cdl.ts`)。
-      "apps/playground/src/topics/**/*.cdl.d.ts",
+      "apps/playground-spa/src/topics/**/*.cdl.d.ts",
     ],
   },
   js.configs.recommended,
@@ -94,7 +97,7 @@ export default [
           alwaysTryTypes: true,
           project: [
             "./tsconfig.eslint.json",
-            "./apps/playground/tsconfig.json",
+            "./apps/playground-spa/tsconfig.json",
             "./packages/dragon/tsconfig.test.json",
           ],
           noWarnOnMultipleProjects: true,
@@ -116,7 +119,7 @@ export default [
         // 各 package の tsconfig を全部列挙する古典的方式に統一。
         project: [
           "./tsconfig.eslint.json",
-          "./apps/playground/tsconfig.json",
+          "./apps/playground-spa/tsconfig.json",
           "./packages/dragon/tsconfig.test.json",
         ],
         tsconfigRootDir: import.meta.dirname,

@@ -53,7 +53,7 @@ export function PresetCard({ preset }: { preset: PresetMetadata }): React.ReactE
               </div>
             }
           >
-            <CdlDiagramView diagram={preset.diagram as never} hideHeader />
+            <CdlDiagramView diagram={preset.diagram} hideHeader />
           </InViewMount>
         )}
         {modalOpen && (
@@ -126,7 +126,7 @@ export function PresetCard({ preset }: { preset: PresetMetadata }): React.ReactE
             </div>
             <div className="rounded-2xl bg-[var(--v4-canvas,#f8fafc)] p-6">
               {/* modal 内 = 単一の live view、 card 側は unmount 済 */}
-              {modalOpen && <CdlDiagramView diagram={preset.diagram as never} />}
+              {modalOpen && <CdlDiagramView diagram={preset.diagram} />}
             </div>
           </Dialog.Content>
         </Dialog.Portal>

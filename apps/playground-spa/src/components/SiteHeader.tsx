@@ -32,7 +32,9 @@ export function SiteHeader(): React.ReactElement {
       const dark = t === "dark" || prefersDark;
       if (dark) document.documentElement.classList.add("dark");
       setIsDark(dark);
-    } catch {}
+    } catch {
+      // localStorage / matchMedia 非対応環境では default 値を維持
+    }
   }, []);
 
   const toggleTheme = (): void => {
@@ -42,7 +44,9 @@ export function SiteHeader(): React.ReactElement {
     else document.documentElement.classList.remove("dark");
     try {
       localStorage.setItem("v4-theme", next);
-    } catch {}
+    } catch {
+      // localStorage / matchMedia 非対応環境では default 値を維持
+    }
     setIsDark(next === "dark");
   };
 
@@ -53,7 +57,9 @@ export function SiteHeader(): React.ReactElement {
   const onShare = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-    } catch {}
+    } catch {
+      // localStorage / matchMedia 非対応環境では default 値を維持
+    }
   };
 
   const openEditorLabel = locale === "ja" ? "エディタを開く →" : "open editor →";
@@ -130,7 +136,9 @@ export function SiteHeader(): React.ReactElement {
       <button
         type="button"
         className="v4-nav-share-btn"
-        onClick={onShare}
+        onClick={() => {
+          void onShare();
+        }}
         aria-label={shareLabel}
         title={shareLabel}
       >

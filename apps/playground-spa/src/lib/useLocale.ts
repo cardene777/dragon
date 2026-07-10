@@ -15,13 +15,15 @@ export function useLocale(): [Locale, (v: Locale) => void] {
       const lsLang = localStorage.getItem("dragon-locale");
       const initial: Locale =
         qLang === "en" || qLang === "ja"
-          ? (qLang as Locale)
+          ? (qLang)
           : lsLang === "en" || lsLang === "ja"
-            ? (lsLang as Locale)
+            ? (lsLang)
             : "ja";
       setLocale(initial);
       document.documentElement.setAttribute("lang", initial);
-    } catch {}
+    } catch {
+      // localStorage / URL 解析失敗時は default (ja) を維持
+    }
   }, []);
 
   const update = (v: Locale): void => {
@@ -29,7 +31,9 @@ export function useLocale(): [Locale, (v: Locale) => void] {
     document.documentElement.setAttribute("lang", v);
     try {
       localStorage.setItem("dragon-locale", v);
-    } catch {}
+    } catch {
+      // localStorage / URL 解析失敗時は default (ja) を維持
+    }
   };
 
   return [locale, update];

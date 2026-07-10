@@ -286,7 +286,7 @@ export function HomePage(): React.ReactElement {
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetSequence as never} hideHeader />
+              <CdlDiagramView diagram={presetSequence} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">sequence</span>
@@ -296,7 +296,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetTopology as never} hideHeader />
+              <CdlDiagramView diagram={presetTopology} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">topology</span>
@@ -306,7 +306,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetEr as never} hideHeader />
+              <CdlDiagramView diagram={presetEr} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">er</span>

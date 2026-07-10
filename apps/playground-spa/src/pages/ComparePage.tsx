@@ -18,7 +18,7 @@ export function ComparePage(): React.ReactElement {
   const [presetId, setPresetId] = useState<string>(initialId);
 
   const preset = useMemo(
-    () => PRESETS.find((p) => p.id === presetId) ?? PRESETS[0]!,
+    () => PRESETS.find((p) => p.id === presetId) ?? PRESETS[0],
     [presetId],
   );
 
