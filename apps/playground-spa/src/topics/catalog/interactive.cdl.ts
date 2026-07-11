@@ -3,25 +3,16 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 
 /**
  * Catalog - Interactive ... input widget / reactive state + formula / scroll-driven trigger /
- * event handler の 4 primitive の使い方 tour。 全て抽象例のみで特定分野固有の題材は含まず、
+ * event handler の 4 primitive の使い方 tour + visual binding (signal → node.w/h/opacity で
+ * 実際に図形が動く) + 拡張 widget (xypad / stepper / radio / color) + readout widget
+ * (bar / gauge / stat / sparkline) の 9 例。 全て抽象例のみで特定分野固有の題材は含まず、
  * library は汎用 primitive を提供、 domain 応用は consumer app 側の責務。
- *
- * 各 diagram は CdlDiagramView (render integration) を通して実際に動く:
- *   - inputSliderBar = slider を動かすと node の subtitle が signal 値でリアルタイム更新
- *   - formulaTextBind = number 入力を変えると formula computed が再計算され node subtitle 反映
- *   - scrollNarrative = scroll 位置 → progress signal が SVG 上部の readout に反映
- *   - clickToggle = node click で signal toggle、 subtitle が active / idle 切替
- *
- * state.id と input/formula id を一致させることで、 CdlDiagramView が signal 値で state を
- * override して SVG に反映する経路 (`{state.id}` を node.value / subtitle で参照)。
  */
 
 const W = 480;
 
 /**
  * 1. slider → node value bind (input widget primitive + reactive state)。
- *    signal 'value' を state 'value' と同 id にすることで、 CdlDiagramView が自動 override、
- *    node の subtitle が signal 変化に追随して表示更新される。
  */
 export const inputSliderBar = diagram("interactive-slider-bar", {
   topic: "input.slider を signal に bind、 node subtitle が signal 変化にリアルタイム追随",
@@ -35,8 +26,6 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
 
 /**
  * 2. formula → text bind (formula primitive + reactive computed)。
- *    formula 'doubled' / 'halved' が computed として自動再計算、
- *    state id と一致させて node subtitle に反映される。
  */
 export const formulaTextBind = diagram("interactive-formula-text", {
   topic: "formula (algebraic mini-DSL) で derived value を宣言、 number 入力変化で自動再計算",
@@ -56,8 +45,6 @@ export const formulaTextBind = diagram("interactive-formula-text", {
 
 /**
  * 3. scroll → progress readout (scroll-driven trigger)。
- *    scroll trigger 'intro' の progress が interactive panel 上部の readout として表示、
- *    state id と一致させて node subtitle に反映される。
  */
 export const scrollNarrative = diagram("interactive-scroll-narrative", {
   topic: "scroll 位置に応じて 0..1 progress を signal に反映、 node subtitle が progress を追随",
@@ -73,8 +60,6 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
 
 /**
  * 4. click → toggle (event handler + hover)。
- *    click で state を toggle、 hover で hover state を signal に反映。
- *    consumer が interactiveHandlers prop で handler 関数を渡す前提。
  */
 export const clickToggle = diagram("interactive-click-toggle", {
   topic: "click event → handler → signal toggle → node subtitle 切替",
@@ -86,4 +71,127 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
   .on.hover({ kind: "node", id: "btn" }, "hover-state")
   .phase("p", { duration: 1500, title: "click → handler → signal → SVG update", body: "consumer が 'toggle-active' handler を実装、 button click で active signal を反転、 subtitle が追随。" }, (p: PhaseBuilder) => p.activate("btn").badge("event bind"))
+  .build();
+
+/**
+ * 5. visual binding = slider → node 実 width 変化 (arc-intro 相当の core UX)。
+ * slider を drag すると bar node の SVG width が実際に伸縮、 subtitle だけでなく図形が動く。
+ */
+export const visualBindBar = diagram("interactive-visual-bar", {
+  topic: "wBind template で slider → node 実 width、 図形が伸縮する visual binding",
+})
+  .lane("l", { x: 0, width: W })
+  .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "Bar width" })
+  .state("barW", { initial: 160 })
+  .node("bar", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "Dynamic Bar",
+    subtitle: "w = {barW}px",
+    w: 160,
+    wBind: "{barW}",
+  })
+  .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "Width readout" })
+  .phase("p", { duration: 1500, title: "signal → node.w、 図形が実際に伸縮", body: "slider を動かすと bar node の SVG width 属性が signal 'barW' で書換わる、 subtitle だけでなく実描画が動く。" }, (p: PhaseBuilder) => p.activate("bar").badge("visual bind"))
+  .build();
+
+/**
+ * 6. visual binding = slider → node opacity で fade in/out。
+ */
+export const visualBindOpacity = diagram("interactive-visual-opacity", {
+  topic: "opacity template で 0..1 signal → node fade in/out",
+})
+  .lane("l", { x: 0, width: W })
+  .input.slider("fade", { min: 0, max: 100, defaultValue: 100, label: "Opacity" })
+  .formula("op", "fade / 100")
+  .state("fade", { initial: 100 })
+  .state("op", { initial: 1 })
+  .node("target", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "Target",
+    subtitle: "opacity: {op}",
+    opacity: "{op}",
+  })
+  .node("ref", { lane: "l", stack: 1, kind: "card", title: "Reference", subtitle: "always visible" })
+  .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "Fade %" })
+  .phase("p", { duration: 1500, title: "opacity で fade in/out", body: "slider (0..100) で formula 'op' が 0..1 に、 target node opacity が signal に追随する。" }, (p: PhaseBuilder) => p.activate("target", "ref").badge("opacity bind"))
+  .build();
+
+/**
+ * 7. XY pad = 2 軸選択、 stat readout で x/y を表示。
+ */
+export const xypadNavigate = diagram("interactive-xypad-nav", {
+  topic: "XY pad で 2 軸座標を単一 signal に保持、 stat readout で数値化",
+})
+  .lane("l", { x: 0, width: W })
+  .input.xypad("pos", {
+    xMin: 0, xMax: 100, yMin: 0, yMax: 100,
+    defaultX: 50, defaultY: 50,
+    label: "Position",
+  })
+  .state("pos", { initial: "50,50" })
+  .node("indicator", { lane: "l", stack: 0, kind: "card", title: "Position", subtitle: "{pos}" })
+  .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
+  .phase("p", { duration: 1500, title: "XY pad = 2 軸 pointer 選択", body: "pad 内をクリック / drag すると x,y 座標が単一 signal に保持される、 stat readout に反映。" }, (p: PhaseBuilder) => p.activate("indicator").badge("xypad"))
+  .build();
+
+/**
+ * 8. stepper で phase 相当の値を細かく調整、 bar readout に反映。
+ */
+export const stepperControl = diagram("interactive-stepper", {
+  topic: "stepper で integer 値の細かい増減、 bar readout で可視化",
+})
+  .lane("l", { x: 0, width: W })
+  .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "Count" })
+  .state("count", { initial: 3 })
+  .node("n", { lane: "l", stack: 0, kind: "card", title: "Counter", subtitle: "count = {count}" })
+  .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "Progress" })
+  .readout.stat("countStat", { source: "count", label: "Total", unit: " items" })
+  .phase("p", { duration: 1500, title: "+/- ボタンで 1 ずつ増減", body: "stepper の +/- で integer 値を細かく調整、 bar と stat の 2 readout に同時反映。" }, (p: PhaseBuilder) => p.activate("n").badge("stepper"))
+  .build();
+
+/**
+ * 9. number → sparkline = number 入力の履歴を line chart で。
+ */
+export const numberSparkline = diagram("interactive-number-spark", {
+  topic: "number 入力の変化を sparkline で履歴表示、 直近 15 値を折れ線化",
+})
+  .lane("l", { x: 0, width: W })
+  .input.number("val", { defaultValue: 20, label: "Value" })
+  .state("val", { initial: 20 })
+  .node("m", { lane: "l", stack: 0, kind: "card", title: "Current", subtitle: "val = {val}" })
+  .readout.sparkline("valHist", { source: "val", history: 15, color: "#e57373", label: "History" })
+  .readout.stat("valStat", { source: "val", label: "Latest", caption: "input 履歴の最新" })
+  .phase("p", { duration: 1500, title: "number 変更で sparkline に履歴 push", body: "number 入力を変えると sparkline が直近 15 変化を保持して line 化、 stat が最新値。" }, (p: PhaseBuilder) => p.activate("m").badge("sparkline"))
+  .build();
+
+/**
+ * 9b. radio + stat = 選択肢と現在値。 radio で option 切替、 stat で文字列表示。
+ */
+export const radioSelect = diagram("interactive-radio-select", {
+  topic: "radio で排他選択、 stat readout で選択中の option 表示",
+})
+  .lane("l", { x: 0, width: W })
+  .input.radio("mode", { options: ["low", "mid", "high"], defaultValue: "mid", label: "Mode" })
+  .state("mode", { initial: "mid" })
+  .node("m", { lane: "l", stack: 0, kind: "card", title: "Mode", subtitle: "mode = {mode}" })
+  .readout.stat("modeStat", { source: "mode", label: "Current", caption: "選択中" })
+  .phase("p", { duration: 1500, title: "radio 選択肢を切替", body: "radio button を click すると mode signal が更新、 subtitle と stat readout が追随。" }, (p: PhaseBuilder) => p.activate("m").badge("radio"))
+  .build();
+
+/**
+ * 10. color picker で node stroke を変える (theme 実験)。
+ */
+export const colorPickerTheme = diagram("interactive-color-theme", {
+  topic: "color picker で hex color 選択、 node の視覚に反映 (stat で hex 表示)",
+})
+  .lane("l", { x: 0, width: W })
+  .input.color("accent", { defaultValue: "#2d6a8f", label: "Accent" })
+  .state("accent", { initial: "#2d6a8f" })
+  .node("swatch", { lane: "l", stack: 0, kind: "card", title: "Swatch", subtitle: "hex: {accent}" })
+  .readout.stat("hexReadout", { source: "accent", label: "Selected", caption: "hex color" })
+  .phase("p", { duration: 1500, title: "color picker → hex signal", body: "color picker で色を選ぶと signal に hex が保持、 subtitle と stat readout に表示。" }, (p: PhaseBuilder) => p.activate("swatch").badge("color"))
   .build();
