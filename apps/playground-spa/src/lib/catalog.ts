@@ -73,4 +73,12 @@ export const CATEGORIES: CategoryMeta[] = [
     items: ["EdgeStyle", "Tone", "Active / Inactive"],
     cluster: "extended",
   },
+  {
+    slug: "interactive",
+    label: "interactive",
+    eyebrow: "INTERACTIVE / PRIMITIVES",
+    desc: "interactive / animation 系 core primitive 4 種 (input widget / formula / scroll-driven trigger / event handler) の使い方 tour。 全て抽象例で特定分野固有の題材は含まず、 consumer app が signal / handler を実装して自身の応用先に組込む前提。",
+    items: ["Input Slider", "Formula", "Scroll Narrative", "Click Toggle"],
+    cluster: "extended",
+  },
 ];

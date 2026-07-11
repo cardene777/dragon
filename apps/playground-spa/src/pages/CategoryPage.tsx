@@ -93,6 +93,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   "text-dsl": "テキスト DSL",
   animation: "アニメーション",
   styles: "スタイル",
+  interactive: "インタラクティブ",
 };
 
 export function CategoryPage(): React.ReactElement {

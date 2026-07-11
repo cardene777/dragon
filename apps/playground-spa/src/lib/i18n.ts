@@ -73,6 +73,11 @@ export const ITEM_NAME_JA: Record<string, string> = {
   auditLogQuery: "監査ログ検索",
   sortFilter: "ソート・絞込",
 
+  // interactive (4 generic examples、 domain-neutral、 CAR #231)
+  inputSliderBar: "スライダー → バー幅",
+  formulaTextBind: "計算式 → テキスト",
+  scrollNarrative: "スクロール駆動",
+  clickToggle: "クリック切替",
   // text-dsl
   textDslSequence: "シーケンス (DSL)",
   textDslFlow: "フロー (DSL)",

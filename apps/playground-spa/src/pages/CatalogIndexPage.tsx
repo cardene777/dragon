@@ -4,7 +4,7 @@ import { CATALOG_ITEMS } from "@/lib/catalog-items";
 import { SiteHeader } from "@/components/SiteHeader";
 
 /**
- * /catalog = 7 カテゴリ一覧 (React docs 風の簡潔な list 構成)。
+ * /catalog = 全 カテゴリ一覧 (CATEGORIES SSOT、 React docs 風の簡潔な list 構成)。
  * 各カテゴリ = 日本語ラベル + 説明 + 件数 + open button。
  * ページ本体 root `/` は HomePage 側。
  */
@@ -17,6 +17,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   "text-dsl": "テキスト DSL",
   animation: "アニメーション",
   styles: "スタイル",
+  interactive: "インタラクティブ",
 };
 
 export function CatalogIndexPage(): React.ReactElement {
@@ -34,7 +35,7 @@ export function CatalogIndexPage(): React.ReactElement {
           </nav>
           <h1 className="catalog-title">カタログ</h1>
           <p className="catalog-desc">
-            dragon DSL の各要素を 7 カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
+            dragon DSL の各要素を {CATEGORIES.length} カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
             合計 {totalItems} 件の要素 + {CATEGORIES.length} カテゴリ。
           </p>
         </div>
