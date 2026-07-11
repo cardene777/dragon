@@ -21,6 +21,8 @@ import * as StyMod from "@/topics/catalog/styles.cdl";
 import * as CookMod from "@/topics/catalog/cookbook.cdl";
 // --- category: text-dsl ---
 import * as TdMod from "@/topics/catalog/text-dsl.cdl";
+// --- category: interactive ---
+import * as InteractiveMod from "@/topics/catalog/interactive.cdl";
 
 export interface CatalogItem {
   id: string;
@@ -87,4 +89,5 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   styles: moduleToItems(StyMod),
   cookbook: moduleToItems(CookMod),
   "text-dsl": moduleToItems(TdMod),
+  interactive: moduleToItems(InteractiveMod),
 };
