@@ -3303,3 +3303,127 @@ html.dark .cdl-ip-readout-grade-score {
 .cdl-ip-readout-fuel-bar-svg {
   display: block;
 }
+
+/* metrics-grid readout */
+.cdl-ip-readout-metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-metrics-grid-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cdl-ip-readout-metrics-grid-cell {
+  padding: 8px 10px;
+  background: rgba(148,163,184,0.08);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cdl-ip-readout-metrics-grid-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.cdl-ip-readout-metrics-grid-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v4-mute, #64748b);
+}
+.cdl-ip-readout-metrics-grid-name {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* thermometer readout */
+.cdl-ip-readout-thermometer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 160px;
+}
+.cdl-ip-readout-thermometer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cdl-ip-readout-thermometer-svg {
+  display: block;
+}
+.cdl-ip-readout-thermometer-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.cdl-ip-readout-thermometer-range {
+  font-size: 10px;
+  color: var(--v4-mute, #64748b);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* icon-tile readout */
+.cdl-ip-readout-icon-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-icon-tile-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cdl-ip-readout-icon-tile-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(148,163,184,0.06);
+  border-radius: 6px;
+}
+.cdl-ip-readout-icon-tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.cdl-ip-readout-icon-tile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.cdl-ip-readout-icon-tile-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-icon-tile-value {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-icon-tile-name {
+  font-size: 11px;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

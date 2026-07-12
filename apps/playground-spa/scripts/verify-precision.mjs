@@ -844,6 +844,37 @@ const cases = [
       return { actual: level === "high", expected: true };
     },
   },
+  {
+    diagramId: "interactive-metrics-grid",
+    label: "metrics-grid: 4 cell 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cells = await page.$$eval('[data-cdl-readout="mg"] .cdl-ip-readout-metrics-grid-cell', (els) => els.length);
+      return { actual: cells, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-room-thermometer",
+    label: "thermometer: slider(temp=30) → thermometer value に 30 表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="temp"]');
+      await s.evaluate(eval(setNativeExpr("30")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="th"] .cdl-ip-readout-thermometer-value', (el) => el.textContent ?? "");
+      return { actual: /30/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-kpi-icon-tile",
+    label: "icon-tile: 3 tile cell 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cells = await page.$$eval('[data-cdl-readout="it"] .cdl-ip-readout-icon-tile-cell', (els) => els.length);
+      return { actual: cells, expected: 3 };
+    },
+  },
 ];
 
 async function main() {

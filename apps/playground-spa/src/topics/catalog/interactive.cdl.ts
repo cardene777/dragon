@@ -1460,3 +1460,52 @@ export const deviceBattery = diagram("interactive-device-battery", {
   .readout.fuelBar("fb", { source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level" })
   .phase("p", { duration: 1200, title: "fuel bar", body: "slider で battery % 変化 → 10 segment horizontal bar が filled 数追随 + 3 color band で色切替 (低=red / 中=yellow / 高=green)、 battery / fuel / stamina 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("battery"))
   .build();
+
+/**
+ * 75. metrics-grid = SaaS dashboard の 4 KPI を 2×2 grid 表示。
+ */
+export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
+  topic: "SaaS dashboard の 4 KPI (Users / Revenue / Uptime / Errors) を 2×2 grid で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("kpis", [
+    ["Users", "12.4k"],
+    ["Revenue", "$45k"],
+    ["Uptime", "99.9", "%"],
+    ["Errors", 12],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Dashboard", subtitle: "4 KPI 2×2 grid" })
+  .readout.metricsGrid("mg", { source: "kpis", color: "#2563eb", label: "Metrics" })
+  .phase("p", { duration: 1200, title: "metrics grid", body: "[[name, value, unit?], ...] を 2×2 grid で 4 stat 並列表示、 dashboard header 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("grid"))
+  .build();
+
+/**
+ * 76. thermometer = 室温 24°C を slider で操作 → 縦 bar + 球部 で温度表示。
+ */
+export const roomThermometer = diagram("interactive-room-thermometer", {
+  topic: "室温 24°C を slider で操作 → thermometer readout の 縦 bar + 球部が追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("temp", { min: 0, max: 40, defaultValue: 24, label: "Temp °C" })
+  .state("temp", { initial: 24 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Room temp", subtitle: "{temp}°C" })
+  .readout.thermometer("th", { source: "temp", min: 0, max: 40, viewW: 70, viewH: 180, color: "#ef4444", unit: "°C", label: "Temp" })
+  .phase("p", { duration: 1200, title: "thermometer", body: "slider で 0-40°C 変化 → 縦 bar 上部の fill 位置 + 球部 color、 3 tick marks で目盛表示、 温度計定番。" }, (p: PhaseBuilder) => p.activate("card").badge("temp"))
+  .build();
+
+/**
+ * 77. icon-tile = 3 KPI を emoji icon + label + value tile で表示。
+ */
+export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
+  topic: "3 KPI (Growth / Revenue / Goals) を emoji icon + label + value tile で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("kpis", [
+    ["📈", "Growth", "+15%"],
+    ["💰", "Revenue", "$50k"],
+    ["🎯", "Goals", "8/10"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "KPI overview", subtitle: "3 tile" })
+  .readout.iconTile("it", { source: "kpis", color: "#2563eb", label: "KPIs" })
+  .phase("p", { duration: 1200, title: "icon tile", body: "[[icon, label, value], ...] を colored icon square + value + label の tile で並列表示、 dashboard の visual stat 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tiles"))
+  .build();
