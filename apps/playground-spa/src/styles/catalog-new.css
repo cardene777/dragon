@@ -3123,3 +3123,100 @@ html.dark .cdl-ip-readout-price-tag-new {
 html.dark .cdl-ip-readout-spinner-text {
   color: #f2f3f7;
 }
+
+/* grade readout */
+.cdl-ip-readout-grade {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 160px;
+}
+.cdl-ip-readout-grade-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cdl-ip-readout-grade-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border: 3px solid;
+  border-radius: 50%;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 26px;
+  font-weight: 800;
+}
+.cdl-ip-readout-grade-score {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-grade-score {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-grade-max {
+  color: var(--v4-mute, #64748b);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* stopwatch readout */
+.cdl-ip-readout-stopwatch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-stopwatch-display {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+.cdl-ip-readout-stopwatch-sep {
+  margin: 0 2px;
+}
+.cdl-ip-readout-stopwatch-ms {
+  font-size: 0.6em;
+  color: var(--v4-mute, #64748b);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* confidence-meter readout */
+.cdl-ip-readout-confidence-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-confidence-meter-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.cdl-ip-readout-confidence-meter-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 20px;
+  font-weight: 800;
+}
+.cdl-ip-readout-confidence-meter-band {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cdl-ip-readout-confidence-meter-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

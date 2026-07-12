@@ -786,6 +786,37 @@ const cases = [
       return { actual: status === "done", expected: true };
     },
   },
+  {
+    diagramId: "interactive-exam-grade",
+    label: "grade: slider(score=95) → letter = 'A'",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="score"]');
+      await s.evaluate(eval(setNativeExpr("95")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const letter = await page.$eval('[data-cdl-readout="g"]', (el) => el.getAttribute("data-cdl-letter"));
+      return { actual: letter === "A", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-timer-stopwatch",
+    label: "stopwatch: elapsed=125000ms → MM:SS = 02:05",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="sw"] .cdl-ip-readout-stopwatch-display', (el) => el.textContent ?? "");
+      return { actual: /02.*05/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-ml-confidence",
+    label: "confidence-meter: initial 82% → band = 'high'",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const band = await page.$eval('[data-cdl-readout="cm"]', (el) => el.getAttribute("data-cdl-band"));
+      return { actual: band === "high", expected: true };
+    },
+  },
 ];
 
 async function main() {
