@@ -515,6 +515,34 @@ const cases = [
       return { actual: paths, expected: 1 };
     },
   },
+  {
+    diagramId: "interactive-price-candlestick",
+    label: "candlestick: 8 day → 8 body rect + 8 wick line = 16 shapes",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="chart"] svg rect', (els) => els.length);
+      const lines = await page.$$eval('[data-cdl-readout="chart"] svg line', (els) => els.length);
+      return { actual: rects + lines, expected: 16 };
+    },
+  },
+  {
+    diagramId: "interactive-user-venn",
+    label: "user Venn: 2 circle 描画 (A / B)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const circles = await page.$$eval('[data-cdl-readout="v"] svg circle', (els) => els.length);
+      return { actual: circles, expected: 2 };
+    },
+  },
+  {
+    diagramId: "interactive-score-slope",
+    label: "score slope: 5 student → 5 line + 10 dot (5 before + 5 after)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const dots = await page.$$eval('[data-cdl-readout="s"] svg circle', (els) => els.length);
+      return { actual: dots, expected: 10 };
+    },
+  },
 ];
 
 async function main() {

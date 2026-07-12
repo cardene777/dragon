@@ -2461,3 +2461,47 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   margin-top: 4px;
 }
+
+/* candlestick readout */
+.cdl-ip-readout-candlestick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-candlestick-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+}
+
+/* venn readout */
+.cdl-ip-readout-venn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-venn-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* slope readout */
+.cdl-ip-readout-slope {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-slope-svg {
+  display: block;
+  margin: 0 auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+}

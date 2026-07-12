@@ -955,3 +955,57 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev" })
   .phase("p", { duration: 1200, title: "KPI card", body: "slider で current 変化 → kpi-card の 数字 + delta arrow + sparkline が同時追随、 前月比 % change 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("KPI card"))
   .build();
+
+/**
+ * 45. candlestick chart = 8 日分の OHLC を蝋燭足で表示 (finance chart)。
+ */
+export const priceCandlestick = diagram("interactive-price-candlestick", {
+  topic: "8 day の OHLC array を candlestick chart で表示、 up/down 色分け + wick + body + title tooltip",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("ohlc", [
+    [100, 108, 96, 105],
+    [105, 110, 100, 102],
+    [102, 106, 98, 104],
+    [104, 112, 103, 111],
+    [111, 115, 108, 109],
+    [109, 113, 106, 112],
+    [112, 118, 111, 116],
+    [116, 120, 113, 118],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Price 8d", subtitle: "OHLC candles" })
+  .readout.candlestick("chart", { source: "ohlc", min: 95, max: 122, viewW: 300, viewH: 110, colorUp: "#22c55e", colorDown: "#ef4444", label: "OHLC" })
+  .phase("p", { duration: 1200, title: "candlestick", body: "8 day の OHLC (open, high, low, close) を蝋燭足で描画、 close>=open で緑 / down で赤、 wick で high-low レンジ。" }, (p: PhaseBuilder) => p.activate("card").badge("finance"))
+  .build();
+
+/**
+ * 46. Venn diagram = 2 set (Users / Payers) の intersection を可視化。
+ */
+export const userVenn = diagram("interactive-user-venn", {
+  topic: "2 set (Users 100 / Payers 40 / intersection 25) の Venn diagram、 intersection ratio で 円間隔調整",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("sets", [100, 40, 25])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Overlap", subtitle: "A=100 · B=40 · A∩B=25" })
+  .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap" })
+  .phase("p", { duration: 1200, title: "Venn 2-set", body: "|A|, |B|, |A∩B| の 3-tuple を 2-set Venn で表示、 intersection 比で 円 gap を自動調整。" }, (p: PhaseBuilder) => p.activate("card").badge("Venn"))
+  .build();
+
+/**
+ * 47. slope chart = 5 student の test score before/after 変化を slope で表示。
+ */
+export const scoreSlope = diagram("interactive-score-slope", {
+  topic: "5 student の test score の before → after 変化を slope chart で表示、 up/down 色分け",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("scores", [
+    [65, 82, "Alice"],
+    [70, 68, "Bob"],
+    [55, 78, "Carol"],
+    [80, 88, "Dan"],
+    [60, 55, "Eve"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Test scores", subtitle: "5 students の before/after" })
+  .readout.slope("s", { source: "scores", min: 40, max: 100, viewW: 260, viewH: 160, colorUp: "#22c55e", colorDown: "#ef4444", label: "Score change" })
+  .phase("p", { duration: 1200, title: "slope chart", body: "[before, after, name] tuple array を 2 column slope で表示、 上昇=緑 / 下降=赤、 dot + 学生名 label。" }, (p: PhaseBuilder) => p.activate("card").badge("slope"))
+  .build();
