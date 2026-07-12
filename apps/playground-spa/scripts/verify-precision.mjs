@@ -646,6 +646,43 @@ const cases = [
       return { actual: names[0] === "Alice", expected: true };
     },
   },
+  {
+    diagramId: "interactive-build-traffic-light",
+    label: "traffic-light: 3 circle + 1 background rect が SVG に描画",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const circles = await page.$$eval('[data-cdl-readout="tl"] svg circle', (els) => els.length);
+      const rects = await page.$$eval('[data-cdl-readout="tl"] svg rect', (els) => els.length);
+      return { actual: circles + rects, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-tech-tagcloud",
+    label: "tag-cloud: 8 tag が span 要素で描画",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const tags = await page.$$eval('[data-cdl-readout="tc"] .cdl-ip-readout-tag-cloud-tag', (els) => els.length);
+      return { actual: tags, expected: 8 };
+    },
+  },
+  {
+    diagramId: "interactive-team-activity",
+    label: "activity-feed: 5 event が row 表示",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="af"] .cdl-ip-readout-activity-feed-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-team-activity",
+    label: "activity-feed: 最新 event (row 0) actor = Alice",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const first = await page.$eval('[data-cdl-readout="af"] .cdl-ip-readout-activity-feed-row .cdl-ip-readout-activity-feed-actor', (el) => el.textContent);
+      return { actual: first === "Alice", expected: true };
+    },
+  },
 ];
 
 async function main() {
