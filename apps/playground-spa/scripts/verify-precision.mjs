@@ -938,6 +938,34 @@ const cases = [
       return { actual: avatars === 5 && overflow === 1, expected: true };
     },
   },
+  {
+    diagramId: "interactive-git-commits",
+    label: "commit-list: 5 commit row 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="cl"] .cdl-ip-readout-commit-list-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-audio-player",
+    label: "media-player: 01:05 (65s) 現在時刻表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="mp"] .cdl-ip-readout-media-player-time-current', (el) => el.textContent ?? "");
+      return { actual: /01:05/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-server-event-log",
+    label: "event-log: 5 event row 表示 + severity 属性",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="el"] .cdl-ip-readout-event-log-row', (els) => els.length);
+      const error = await page.$$eval('[data-cdl-readout="el"] [data-cdl-severity="error"]', (els) => els.length);
+      return { actual: rows === 5 && error === 1, expected: true };
+    },
+  },
 ];
 
 async function main() {
