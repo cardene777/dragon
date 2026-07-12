@@ -1773,3 +1773,61 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
   .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance" })
   .phase("p", { duration: 1200, title: "attendance grid", body: "[[day, p1, p2, p3, p4], ...] × [member names] を 2D grid table で表示、 true=● green / false=○ gray、 team 出席表定番。" }, (p: PhaseBuilder) => p.activate("card").badge("attendance"))
   .build();
+
+/**
+ * 93. timezone-clock = 4 city の multi-timezone clock (Tokyo / London / NYC / Sydney)。
+ */
+export const globalTimezoneClock = diagram("interactive-timezone-clock", {
+  topic: "4 city (Tokyo/London/NYC/Sydney) の multi-timezone clock、 city + time + UTC offset 表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("clocks", [
+    ["Tokyo", 9, "22:30"],
+    ["London", 0, "13:30"],
+    ["NYC", -5, "08:30"],
+    ["Sydney", 11, "00:30"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "World clock", subtitle: "4 timezones" })
+  .readout.timezoneClock("tc", { source: "clocks", color: "#2563eb", label: "Cities" })
+  .phase("p", { duration: 1200, title: "world clock", body: "[[city, offsetHours, HH:MM], ...] を 4 column grid で city name + 大 time + UTC±N offset、 global team 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("clock"))
+  .build();
+
+/**
+ * 94. form-summary = signup form の 5 field 送信内容 summary。
+ */
+export const signupFormSummary = diagram("interactive-signup-form", {
+  topic: "signup form の 5 field 送信内容を dl / dt / dd form summary で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("fields", [
+    ["Name", "Alice Wonderland"],
+    ["Email", "alice@example.com"],
+    ["Age", "28"],
+    ["Country", "Japan"],
+    ["Newsletter", "Yes"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Signup summary", subtitle: "5 fields" })
+  .readout.formSummary("fs", { source: "fields", color: "#2563eb", label: "Submission" })
+  .phase("p", { duration: 1200, title: "form summary", body: "[[fieldName, value], ...] を dl / dt (key) / dd (value) semantic markup で 2 column layout 表示、 form confirmation 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("form"))
+  .build();
+
+/**
+ * 95. song-queue = playlist queue 5 song、 stepper で current index。
+ */
+export const playlistSongQueue = diagram("interactive-playlist-queue", {
+  topic: "playlist queue 5 song、 stepper で current index → ▶ icon + highlight 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("cur", { min: 0, max: 4, defaultValue: 1, label: "Current index" })
+  .state("cur", { initial: 1 })
+  .arraySignal("queue", [
+    ["Bohemian Rhapsody", "Queen", "5:55"],
+    ["Hotel California", "Eagles", "6:30"],
+    ["Stairway to Heaven", "Led Zeppelin", "8:02"],
+    ["Sweet Child O' Mine", "Guns N' Roses", "5:56"],
+    ["Imagine", "John Lennon", "3:03"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Now playing", subtitle: "index {cur} of 5" })
+  .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue" })
+  .phase("p", { duration: 1200, title: "song queue", body: "stepper で current index 変化 → 該当 row の icon が ▶ + title 色 + background highlight、 pending row は 番号表示、 playlist 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("music"))
+  .build();

@@ -4111,3 +4111,142 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   font-size: 14px;
   font-weight: 700;
 }
+
+/* timezone-clock readout */
+.cdl-ip-readout-timezone-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.cdl-ip-readout-timezone-clock-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cdl-ip-readout-timezone-clock-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: rgba(148,163,184,0.08);
+  border-radius: 6px;
+  gap: 2px;
+}
+.cdl-ip-readout-timezone-clock-city {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cdl-ip-readout-timezone-clock-time {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.cdl-ip-readout-timezone-clock-offset {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  color: var(--v4-mute, #64748b);
+}
+
+/* form-summary readout */
+.cdl-ip-readout-form-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-form-summary-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-ip-readout-form-summary-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  transition: background 200ms ease;
+}
+.cdl-ip-readout-form-summary-row:hover {
+  background: rgba(148,163,184,0.06);
+}
+.cdl-ip-readout-form-summary-key {
+  margin: 0;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cdl-ip-readout-form-summary-value {
+  margin: 0;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* song-queue readout */
+.cdl-ip-readout-song-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 340px;
+}
+.cdl-ip-readout-song-queue-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cdl-ip-readout-song-queue-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  transition: background 200ms ease;
+}
+.cdl-ip-readout-song-queue-row:hover {
+  background: rgba(148,163,184,0.08);
+}
+.cdl-ip-readout-song-queue-icon {
+  text-align: center;
+  font-weight: 700;
+}
+.cdl-ip-readout-song-queue-title {
+  color: var(--v4-ink, #1a1f2a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.dark .cdl-ip-readout-song-queue-title {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-song-queue-artist {
+  color: var(--v4-mute, #64748b);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.cdl-ip-readout-song-queue-duration {
+  color: var(--v4-mute, #64748b);
+  font-size: 10px;
+}

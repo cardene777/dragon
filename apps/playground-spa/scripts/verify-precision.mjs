@@ -1022,6 +1022,34 @@ const cases = [
       return { actual: cells, expected: 20 };
     },
   },
+  {
+    diagramId: "interactive-timezone-clock",
+    label: "timezone-clock: 4 city cell 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cells = await page.$$eval('[data-cdl-readout="tc"] .cdl-ip-readout-timezone-clock-cell', (els) => els.length);
+      return { actual: cells, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-signup-form",
+    label: "form-summary: 5 field row 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="fs"] .cdl-ip-readout-form-summary-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-playlist-queue",
+    label: "song-queue: 5 song row 表示、 current index = 1",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="sq"] .cdl-ip-readout-song-queue-row', (els) => els.length);
+      const cur = await page.$eval('[data-cdl-readout="sq"]', (el) => el.getAttribute("data-cdl-current"));
+      return { actual: rows === 5 && cur === "1", expected: true };
+    },
+  },
 ];
 
 async function main() {
