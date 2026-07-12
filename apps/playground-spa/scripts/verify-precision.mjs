@@ -909,6 +909,35 @@ const cases = [
       return { actual: priority === "low", expected: true };
     },
   },
+  {
+    diagramId: "interactive-tournament-podium",
+    label: "podium: 3 rect (gold/silver/bronze) + 9 text (name/score/rank × 3)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="pod"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 3 };
+    },
+  },
+  {
+    diagramId: "interactive-feature-poll",
+    label: "poll-bar: 4 option row + winner data-cdl-winner=true",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="pb"] .cdl-ip-readout-poll-bar-row', (els) => els.length);
+      const winner = await page.$$eval('[data-cdl-readout="pb"] [data-cdl-winner="true"]', (els) => els.length);
+      return { actual: rows === 4 && winner === 1, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-reviewer-stack",
+    label: "user-stack: 5 avatar (max) + 1 overflow (+2)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const avatars = await page.$$eval('[data-cdl-readout="us"] .cdl-ip-readout-user-stack-avatar', (els) => els.length);
+      const overflow = await page.$$eval('[data-cdl-readout="us"] .cdl-ip-readout-user-stack-overflow', (els) => els.length);
+      return { actual: avatars === 5 && overflow === 1, expected: true };
+    },
+  },
 ];
 
 async function main() {

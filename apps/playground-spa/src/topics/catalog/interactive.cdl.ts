@@ -1562,3 +1562,51 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority" })
   .phase("p", { duration: 1200, title: "priority badge", body: "dropdown で high/med/low 切替 → badge の 色 (red/yellow/gray) + icon (▲/●/▼) + text がリアルタイム追随、 issue tracker 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("issue"))
   .build();
+
+/**
+ * 81. podium = tournament の 1st/2nd/3rd 表彰台。
+ */
+export const tournamentPodium = diagram("interactive-tournament-podium", {
+  topic: "tournament の 1st/2nd/3rd を表彰台 (gold/silver/bronze) で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("winners", [
+    ["Alice", "1200 pts"],
+    ["Bob", "1050 pts"],
+    ["Carol", "980 pts"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tournament", subtitle: "top 3" })
+  .readout.podium("pod", { source: "winners", viewW: 280, viewH: 180, label: "Podium" })
+  .phase("p", { duration: 1200, title: "podium", body: "[[1st_name, 1st_score], [2nd, 2nd], [3rd, 3rd]] を金/銀/銅の 3 縦 bar 表彰台で表示、 中央=1st の順で配置。" }, (p: PhaseBuilder) => p.activate("card").badge("winners"))
+  .build();
+
+/**
+ * 82. poll-bar = feature poll、 4 option の投票 % 表示、 winner に ★ 装飾。
+ */
+export const featurePoll = diagram("interactive-feature-poll", {
+  topic: "feature poll、 4 option の投票結果を % + winner ★ 装飾で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("options", [
+    ["Dark mode", 42],
+    ["Faster search", 28],
+    ["Better API", 18],
+    ["Nicer UI", 12],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Feature vote", subtitle: "100 votes" })
+  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "Results" })
+  .phase("p", { duration: 1200, title: "poll bar", body: "[[option, count], ...] の 4 選択肢を % + progress bar で表示、 max count の option に ★ + blue winner color。" }, (p: PhaseBuilder) => p.activate("card").badge("poll"))
+  .build();
+
+/**
+ * 83. user-stack = code review reviewer 7 人 (max 5 表示 + overflow +2)。
+ */
+export const reviewerStack = diagram("interactive-reviewer-stack", {
+  topic: "code review reviewer 7 人 を stacked avatars (max 5 + overflow +2) で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("reviewers", ["Alice", "Bob Smith", "Carol", "Dan Kim", "Eve", "Frank Wu", "Grace Lee"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "PR reviewers", subtitle: "7 reviewers、 top 5 表示" })
+  .readout.userStack("us", { source: "reviewers", max: 5, size: 36, label: "Reviewers" })
+  .phase("p", { duration: 1200, title: "user stack", body: "名前 array から initials 抽出 (Alice → A、 Bob Smith → BS) を 6 色 palette で overlap circle、 5 人超過分は +2 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("team"))
+  .build();
