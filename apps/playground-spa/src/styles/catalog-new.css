@@ -2782,3 +2782,106 @@ html.dark .cdl-ip-readout-activity-feed-actor {
   font-size: 10px;
   white-space: nowrap;
 }
+
+/* rating readout */
+.cdl-ip-readout-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 160px;
+}
+.cdl-ip-readout-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cdl-ip-readout-rating-star {
+  display: block;
+}
+.cdl-ip-readout-rating-value {
+  margin-left: 6px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-rating-value {
+  color: #f2f3f7;
+}
+
+/* notification readout */
+.cdl-ip-readout-notification {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-notification-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 3px solid;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.cdl-ip-readout-notification-icon {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cdl-ip-readout-notification-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.cdl-ip-readout-notification-title {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cdl-ip-readout-notification-text {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  color: var(--v4-mute, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* diff-counter readout */
+.cdl-ip-readout-diff-counter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-diff-counter-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.cdl-ip-readout-diff-counter-add,
+.cdl-ip-readout-diff-counter-del {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cdl-ip-readout-diff-counter-bar {
+  height: 6px;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(148,163,184,0.16);
+}
+.cdl-ip-readout-diff-counter-bar-add,
+.cdl-ip-readout-diff-counter-bar-del {
+  display: block;
+  height: 100%;
+  transition: width 300ms ease-out;
+}
