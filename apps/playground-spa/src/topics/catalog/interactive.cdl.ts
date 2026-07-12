@@ -439,3 +439,22 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   ], label: "State" })
   .phase("p", { duration: 1500, title: "readout 系 3 種", body: "heat cell で色 gradient、 badge で pill、 status dot で state 表示。" }, (p: PhaseBuilder) => p.activate("n").badge("readout variety"))
   .build();
+
+/**
+ * 23. event 拡張 = double-click / keydown / focus / blur を network 化。
+ *     signal update は consumer handler 側で実装、 catalog では primitive 存在確認のみ。
+ */
+export const eventVariety = diagram("interactive-event-variety", {
+  topic: "double-click / keydown / focus / blur / longpress の 5 種 event を diagram 内 node に bind",
+})
+  .lane("l", { x: 0, width: 400 })
+  .node("btn1", { lane: "l", stack: 0, kind: "card", title: "Double Click", subtitle: "dblclick 用" })
+  .node("btn2", { lane: "l", stack: 1, kind: "card", title: "Key Focus", subtitle: "focus + keydown 用" })
+  .node("btn3", { lane: "l", stack: 2, kind: "card", title: "Long Press", subtitle: "500ms hold" })
+  .on.doubleClick({ kind: "node", id: "btn1" }, "on-dbl")
+  .on.focus({ kind: "node", id: "btn2" }, "on-focus")
+  .on.blur({ kind: "node", id: "btn2" }, "on-blur")
+  .on.keydown({ kind: "node", id: "btn2" }, "on-key")
+  .on.longPress({ kind: "node", id: "btn3" }, "on-long")
+  .phase("p", { duration: 1500, title: "5 種 event kind を 3 node に bind", body: "consumer が handler map で dbl / focus / blur / keydown / longpress を実装、 signal 更新経由で reactive 反映。" }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
+  .build();
