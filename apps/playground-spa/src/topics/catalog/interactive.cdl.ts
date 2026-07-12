@@ -1363,3 +1363,49 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy" })
   .phase("p", { duration: 1200, title: "spinner", body: "dropdown で 3 state 切替 → running は SMIL 回転 circle、 done は green ✓、 error は red ✕ に icon が変わる、 loading state 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("loading"))
   .build();
+
+/**
+ * 69. grade = exam score を slider で操作 → A/B/C/D/F letter grade + color 追随。
+ */
+export const examGrade = diagram("interactive-exam-grade", {
+  topic: "exam score (0-100) を slider で操作 → letter grade (A/B/C/D/F) + color band 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("score", { min: 0, max: 100, defaultValue: 85, label: "Score" })
+  .state("score", { initial: 85 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Exam grade", subtitle: "score: {score} / 100" })
+  .readout.grade("g", { source: "score", max: 100, label: "Letter grade" })
+  .phase("p", { duration: 1200, title: "letter grade", body: "slider で score 変化 → A(≥90)/B(≥80)/C(≥70)/D(≥60)/F(<60) の 5 color band で letter が動的更新。" }, (p: PhaseBuilder) => p.activate("card").badge("grade"))
+  .build();
+
+/**
+ * 70. stopwatch = ms 数値 (stepper で秒指定) を MM:SS.ms display で表示。
+ */
+export const timerStopwatch = diagram("interactive-timer-stopwatch", {
+  topic: "elapsed ms を stepper で操作 → MM:SS.ms 形式 stopwatch display で表示、 running toggle も",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("sec", { min: 0, max: 3600, step: 5, defaultValue: 125, label: "Elapsed sec" })
+  .input.toggle("running", { defaultValue: true, label: "Running" })
+  .state("sec", { initial: 125 })
+  .state("running", { initial: "true" })
+  .state("elapsed", { initial: 125000 })
+  .formula("elapsed", "sec * 1000")
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Timer", subtitle: "elapsed: {sec}s, running: {running}" })
+  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "Timer" })
+  .phase("p", { duration: 1200, title: "stopwatch", body: "stepper で sec 変化 → formula で ms 変換 → MM:SS.ms display 表示、 running toggle で色が green ↔ dark 切替。" }, (p: PhaseBuilder) => p.activate("card").badge("timer"))
+  .build();
+
+/**
+ * 71. confidence-meter = ML classification confidence を slider で操作 → 3 color band 追随。
+ */
+export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
+  topic: "ML classification confidence 0-100 % を slider で操作 → low/mid/high 3 color band 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("conf", { min: 0, max: 100, defaultValue: 82, label: "Confidence %" })
+  .state("conf", { initial: 82 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "AI prediction", subtitle: "confidence: {conf}%" })
+  .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence" })
+  .phase("p", { duration: 1200, title: "confidence meter", body: "slider で confidence % 変化 → 3 range band (low<40=red / mid=yellow / high≥75=green) で bar 色 + band label が動的更新、 ML/AI 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("ML conf"))
+  .build();
