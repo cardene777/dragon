@@ -3427,3 +3427,108 @@ html.dark .cdl-ip-readout-icon-tile-value {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* token-list readout */
+.cdl-ip-readout-token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 280px;
+}
+.cdl-ip-readout-token-list-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-ip-readout-token-list-row {
+  display: grid;
+  grid-template-columns: 24px 50px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(148,163,184,0.06);
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+}
+.cdl-ip-readout-token-list-icon {
+  font-size: 18px;
+  text-align: center;
+}
+.cdl-ip-readout-token-list-name {
+  font-weight: 700;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-token-list-name {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-token-list-amount {
+  color: var(--v4-mute, #64748b);
+  text-align: right;
+}
+.cdl-ip-readout-token-list-delta {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* map-pin readout */
+.cdl-ip-readout-map-pin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 280px;
+}
+.cdl-ip-readout-map-pin-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+html.dark .cdl-ip-readout-map-pin-svg text {
+  fill: #f2f3f7;
+}
+
+/* priority-badge readout */
+.cdl-ip-readout-priority-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-priority-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cdl-ip-readout-priority-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1.5px solid;
+  border-radius: 4px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.cdl-ip-readout-priority-badge-icon {
+  font-size: 10px;
+}
+.cdl-ip-readout-priority-badge-text {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  color: var(--v4-ink, #1a1f2a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.dark .cdl-ip-readout-priority-badge-text {
+  color: #f2f3f7;
+}

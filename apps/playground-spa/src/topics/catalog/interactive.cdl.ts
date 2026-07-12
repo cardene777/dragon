@@ -1509,3 +1509,56 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
   .readout.iconTile("it", { source: "kpis", color: "#2563eb", label: "KPIs" })
   .phase("p", { duration: 1200, title: "icon tile", body: "[[icon, label, value], ...] を colored icon square + value + label の tile で並列表示、 dashboard の visual stat 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tiles"))
   .build();
+
+/**
+ * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
+ */
+export const cryptoWallet = diagram("interactive-crypto-wallet", {
+  topic: "crypto wallet の 4 token (BTC/ETH/SOL/DOGE) を icon + name + amount + delta% で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("tokens", [
+    ["₿", "BTC", "0.42", 5.3],
+    ["Ξ", "ETH", "12.5", -2.8],
+    ["◎", "SOL", "245", 8.1],
+    ["Ð", "DOGE", "8500", -1.4],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Wallet", subtitle: "4 tokens" })
+  .readout.tokenList("tl", { source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "Portfolio" })
+  .phase("p", { duration: 1200, title: "token list", body: "[[icon, name, amount, deltaPct], ...] を crypto wallet 定番の行表示、 delta が正=green ▲ / 負=red ▼。" }, (p: PhaseBuilder) => p.activate("card").badge("wallet"))
+  .build();
+
+/**
+ * 79. map-pin = world map (地図座標) 上の 5 city を pin 表示。
+ */
+export const worldMapPins = diagram("interactive-world-map", {
+  topic: "world map 座標系 (0-120, 0-80) 上の 5 city を pin + name label で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("cities", [
+    ["Tokyo", 100, 60],
+    ["Paris", 60, 30],
+    ["NYC", 30, 40],
+    ["Sydney", 105, 75],
+    ["Rio", 40, 65],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Cities", subtitle: "5 pins on world map" })
+  .readout.mapPin("mp", { source: "cities", xMin: 0, xMax: 120, yMin: 0, yMax: 80, viewW: 300, viewH: 200, color: "#2563eb", label: "World map" })
+  .phase("p", { duration: 1200, title: "map pin", body: "[[name, x, y], ...] を map (2D coord system) 上に pin として表示、 grid guides + name label + hover tooltip、 mini map 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("map"))
+  .build();
+
+/**
+ * 80. priority-badge = issue priority、 dropdown で high/med/low 切替 → badge + text 追随。
+ */
+export const issuePriorityBadge = diagram("interactive-issue-priority", {
+  topic: "issue priority を dropdown で high/med/low 切替 → badge の色 + icon + label 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.dropdown("prio", { options: ["high", "med", "low"], defaultValue: "high", label: "Priority" })
+  .input.text("desc", { defaultValue: "Fix crash on startup", placeholder: "Issue description", maxLength: 60, label: "Description" })
+  .state("prio", { initial: "high" })
+  .state("desc", { initial: "Fix crash on startup" })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Issue", subtitle: "priority: {prio}" })
+  .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority" })
+  .phase("p", { duration: 1200, title: "priority badge", body: "dropdown で high/med/low 切替 → badge の 色 (red/yellow/gray) + icon (▲/●/▼) + text がリアルタイム追随、 issue tracker 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("issue"))
+  .build();
