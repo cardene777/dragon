@@ -302,3 +302,39 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
   .phase("p", { duration: 1500, title: "polygon が回転 + 半径変化", body: "rot slider で hexagon が回転、 radius slider で大きさ変化。 sides を 3-12 で他形状にも。" }, (p: PhaseBuilder) => p.activate("p").badge("shape.polygon"))
   .build();
+
+/**
+ * 17. repeat + derive chain = N 個の shape を宣言的に生成、 前値参照で連鎖伝搬。
+ *     EIP1559 相当を 数行で書ける、 count を変えれば 3 → 5 → 10 個への拡張が同 template で成立。
+ */
+export const repeatDeriveChain = diagram("interactive-repeat-chain", {
+  topic: "repeatNodes + deriveChain で N 個の rect を宣言的に生成、 前値連鎖で伝搬",
+})
+  .lane("l1", { x: 0, width: 100 })
+  .lane("l2", { x: 120, width: 100 })
+  .lane("l3", { x: 240, width: 100 })
+  .lane("l4", { x: 360, width: 100 })
+  .lane("l5", { x: 480, width: 100 })
+  .input.slider("base", { min: 0, max: 60, defaultValue: 20, label: "Base" })
+  // formula chain: gas1 = base、 gas2 = gas1*1.2、 gas3 = gas2*1.2、 gas4 = gas3*1.2、 gas5 = gas4*1.2
+  .deriveChain("gas", 5, (i, prev) => (i === 0 ? "base" : `${prev} * 1.2`))
+  .state("base", { initial: 20 })
+  .state("gas1", { initial: 20 })
+  .state("gas2", { initial: 24 })
+  .state("gas3", { initial: 28.8 })
+  .state("gas4", { initial: 34.56 })
+  .state("gas5", { initial: 41.472 })
+  // repeat 5 nodes: 各 rect は gas{i+1} を source、 lane l{i+1} に配置
+  .repeatNodes(5, (i) => ({
+    id: `r{i}`,
+    lane: `l{i+1}`,
+    stack: 0,
+    kind: "dyn-rect" as const,
+    title: `Block {i+1}`,
+    subtitle: "gas: {gas{i+1}}",
+    w: 80,
+    h: 220,
+    shape: { kind: "rect" as const, source: "{gas{i+1}}", fillMax: 130, orient: "up" as const, fill: "#2d6a8f" },
+  }))
+  .phase("p", { duration: 1500, title: "repeat + derive で 5 rect が chain 伝搬", body: "count=5、 base を動かすと gas1..gas5 が formula chain で連鎖伝搬、 5 rect の fill が同時追随。" }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3", "r4").badge("repeat + derive"))
+  .build();
