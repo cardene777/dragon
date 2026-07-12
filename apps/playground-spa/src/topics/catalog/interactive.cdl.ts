@@ -1114,3 +1114,53 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
   .readout.stepIndicator("wizard", { source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress" })
   .phase("p", { duration: 1200, title: "step wizard", body: "stepper で current step 変化 → step-indicator の active dot が動く、 各 step name + 番号 label 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("wizard"))
   .build();
+
+/**
+ * 54. bullet-chart = KPI actual vs target + 3 range、 slider で actual 変化 → 3 range のどこにいるか可視化。
+ */
+export const kpiBullet = diagram("interactive-kpi-bullet", {
+  topic: "KPI actual (slider) vs target (fixed) + 3 range (bad/avg/good) の bullet chart",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("actual", { min: 0, max: 100, defaultValue: 55, label: "Actual" })
+  .state("actual", { initial: 55 })
+  .state("target", { initial: 80 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "KPI progress", subtitle: "actual {actual} · target {target}" })
+  .readout.bulletChart("b", { source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#0f172a", label: "Progress" })
+  .readout.stat("targetStat", { source: "target", label: "Target" })
+  .phase("p", { duration: 1200, title: "bullet-chart", body: "actual bar が 3 range (red/yellow/green) のどこにあるかを可視化、 target line と併記、 KPI dashboard 定番 chart。" }, (p: PhaseBuilder) => p.activate("card").badge("KPI"))
+  .build();
+
+/**
+ * 55. number-board = 大 numeric display、 slider で revenue を score board 表示。
+ */
+export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
+  topic: "revenue を 大 numeric display (scoreboard) で表示、 slider で $/M prefix/suffix 付き 動的更新",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("rev", { min: 0, max: 999, defaultValue: 234, label: "Revenue" })
+  .state("rev", { initial: 234 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Q3 revenue", subtitle: "target: $500M" })
+  .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#0f172a", caption: "vs $500M target", label: "Revenue" })
+  .phase("p", { duration: 1200, title: "score board", body: "slider で revenue 変化 → 56px 大 数字 + $ prefix + M suffix + caption で表示、 dashboard header 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("scoreboard"))
+  .build();
+
+/**
+ * 56. leaderboard = 6 player の score ranking を top 5 表示 (medal 色 + bar + value)。
+ */
+export const playerLeaderboard = diagram("interactive-player-leaderboard", {
+  topic: "6 player の score ranking を leaderboard で top 5 表示、 top 3 に medal 色 (gold/silver/bronze)",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("players", [
+    ["Alice", 920],
+    ["Bob", 780],
+    ["Carol", 850],
+    ["Dan", 680],
+    ["Eve", 890],
+    ["Frank", 720],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Player ranking", subtitle: "top 5 of 6" })
+  .readout.leaderboard("lb", { source: "players", max: 5, color: "#2563eb", label: "Ranking" })
+  .phase("p", { duration: 1200, title: "leaderboard", body: "6 player の score を desc sort、 top 5 に rank + name + bar + value を表示、 top 3 に medal 色 (gold/silver/bronze) 装飾。" }, (p: PhaseBuilder) => p.activate("card").badge("leaderboard"))
+  .build();

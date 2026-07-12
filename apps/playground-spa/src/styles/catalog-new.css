@@ -2591,3 +2591,110 @@ html.dark .cdl-ip-readout-kpi-card-value {
   max-width: 100%;
   height: auto;
 }
+
+/* bullet-chart readout */
+.cdl-ip-readout-bullet-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-bullet-chart-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* number-board readout */
+.cdl-ip-readout-number-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 180px;
+}
+.cdl-ip-readout-number-board-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+html.dark .cdl-ip-readout-number-board-value {
+  color: #f2f3f7 !important;
+}
+.cdl-ip-readout-number-board-affix {
+  font-size: 0.5em;
+  font-weight: 600;
+  color: var(--v4-mute, #64748b);
+}
+.cdl-ip-readout-number-board-caption {
+  font-size: 11px;
+  color: var(--v4-mute, #64748b);
+}
+
+/* leaderboard readout */
+.cdl-ip-readout-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-ip-readout-leaderboard-row {
+  display: grid;
+  grid-template-columns: 20px 60px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+}
+.cdl-ip-readout-leaderboard-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+}
+.cdl-ip-readout-leaderboard-name {
+  color: var(--v4-ink, #1a1f2a);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.dark .cdl-ip-readout-leaderboard-name {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-leaderboard-bar {
+  height: 8px;
+  background: rgba(148,163,184,0.16);
+  border-radius: 4px;
+  overflow: hidden;
+  display: block;
+}
+.cdl-ip-readout-leaderboard-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 300ms ease-out;
+}
+.cdl-ip-readout-leaderboard-value {
+  text-align: right;
+  color: var(--v4-mute, #64748b);
+  font-weight: 700;
+}
