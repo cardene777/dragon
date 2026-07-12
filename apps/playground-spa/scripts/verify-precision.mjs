@@ -263,6 +263,33 @@ const cases = [
       return { actual: count, expected: 12 };
     },
   },
+  {
+    diagramId: "interactive-array-line-chart",
+    label: "line-chart: array 10 point → line path が SVG に描画",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const pathCount = await page.$$eval('[data-cdl-readout="chart"] path', (els) => els.length);
+      return { actual: pathCount >= 1, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-array-line-chart",
+    label: "line-chart: array 10 element → 10 point circle",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-readout="chart"] circle', (els) => els.length);
+      return { actual: count, expected: 10 };
+    },
+  },
+  {
+    diagramId: "interactive-array-stacked-bar",
+    label: "stacked-bar: 2 array 5 elem → 5 group × 2 col = 10 col",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-readout="cmp"] .cdl-ip-readout-stacked-bar-col', (els) => els.length);
+      return { actual: count, expected: 10 };
+    },
+  },
 ];
 
 async function main() {

@@ -537,3 +537,45 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "Ring" })
   .phase("p", { duration: 1200, title: "path 上を進行 + 条件表示", body: "pathProgress で SVG path の stroke-dashoffset を signal 追随、 visibleIf で完了時 node 表示。" }, (p: PhaseBuilder) => p.activate("main", "ok").badge("progress + hide"))
   .build();
+
+/**
+ * 27. lineChart readout = array signal を折れ線 chart 表示 (時系列 like)。
+ */
+export const arrayLineChart = diagram("interactive-array-line-chart", {
+  topic: "arraySignal を line chart readout で時系列的に表示、 fill=true で area chart 化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("series", [22, 35, 28, 42, 55, 48, 60, 72, 65, 80])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" })
+  .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Series" })
+  .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "No fill" })
+  .phase("p", { duration: 1200, title: "array → 折れ線", body: "lineChart で array element を x=index / y=value に mapping、 fill=true で area 化。" }, (p: PhaseBuilder) => p.activate("card").badge("line chart"))
+  .build();
+
+/**
+ * 28. stackedBar readout = 2 array を並列 bar 比較、 A/B histogram の per-index 対比。
+ */
+export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
+  topic: "2 arraySignal (A/B) を stackedBar で並列表示、 各 index で A/B を隣接 bar 比較",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("groupA", [40, 55, 30, 65, 45])
+  .arraySignal("groupB", [25, 40, 50, 35, 60])
+  .node("card", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "A vs B",
+    subtitle: "sumA={groupA.sum} · sumB={groupB.sum} · diff={groupA.sum}-{groupB.sum}",
+  })
+  .readout.stackedBar("cmp", {
+    sourceA: "groupA",
+    sourceB: "groupB",
+    min: 0,
+    max: 80,
+    colorA: "#2563eb",
+    colorB: "#f97316",
+    label: "A / B",
+  })
+  .phase("p", { duration: 1200, title: "2 系列 の bar 比較", body: "stackedBar で sourceA / sourceB を並列 bar、 A/B の各 index 比較。" }, (p: PhaseBuilder) => p.activate("card").badge("stacked bar"))
+  .build();
