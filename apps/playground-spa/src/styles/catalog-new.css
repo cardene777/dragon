@@ -3532,3 +3532,110 @@ html.dark .cdl-ip-readout-map-pin-svg text {
 html.dark .cdl-ip-readout-priority-badge-text {
   color: #f2f3f7;
 }
+
+/* podium readout */
+.cdl-ip-readout-podium {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-podium-svg {
+  display: block;
+  margin: 0 auto;
+}
+html.dark .cdl-ip-readout-podium-svg text {
+  fill: #f2f3f7;
+}
+
+/* poll-bar readout */
+.cdl-ip-readout-poll-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-poll-bar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cdl-ip-readout-poll-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cdl-ip-readout-poll-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+}
+.cdl-ip-readout-poll-bar-option {
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-poll-bar-option {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-poll-bar-row.winner .cdl-ip-readout-poll-bar-option {
+  font-weight: 700;
+}
+.cdl-ip-readout-poll-bar-pct {
+  font-weight: 700;
+}
+.cdl-ip-readout-poll-bar-track {
+  height: 6px;
+  background: rgba(148,163,184,0.16);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cdl-ip-readout-poll-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease-out, background 200ms ease;
+}
+
+/* user-stack readout */
+.cdl-ip-readout-user-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-user-stack-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+.cdl-ip-readout-user-stack-avatar,
+.cdl-ip-readout-user-stack-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--v4-bg, #fff);
+  color: #fff;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.cdl-ip-readout-user-stack-overflow {
+  background: rgba(148,163,184,0.7);
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-user-stack-avatar,
+html.dark .cdl-ip-readout-user-stack-overflow {
+  border-color: #0f172a;
+}
+html.dark .cdl-ip-readout-user-stack-overflow {
+  color: #f2f3f7;
+}
