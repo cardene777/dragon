@@ -33,13 +33,14 @@ const OVERLAP_AREA_RATIO_THRESHOLD = 0.05;
 /** 最小 overlap 面積 (px^2)、 これ未満は誤差扱いで無視 */
 const MIN_OVERLAP_AREA_PX = 4;
 
+// interactive panel 内の touchable のみを対象、 sidebar / navbar / catalog-* は対象外
 const TOUCHABLE_SELECTOR = [
-  "input:not([type='hidden'])",
-  "button",
-  "select",
-  "textarea",
-  "[role='button']",
-  "[data-cdl-input]",
+  ".cdl-ip-root input:not([type='hidden'])",
+  ".cdl-ip-root button",
+  ".cdl-ip-root select",
+  ".cdl-ip-root textarea",
+  ".cdl-ip-root [role='button']",
+  ".cdl-ip-root [data-cdl-input]",
   "[data-cdl-node]",
   ".cdl-ip-toggle",
   ".cdl-ip-toggle-slot",
@@ -47,6 +48,9 @@ const TOUCHABLE_SELECTOR = [
   ".cdl-ip-stepper-btn",
   ".cdl-ip-radio-option",
   ".cdl-ip-color-input",
+  ".cdl-ip-tabs-btn",
+  ".cdl-ip-multi-select-chip",
+  ".cdl-ip-timeline-btn",
 ].join(",");
 
 function isAncestor(a, b) {

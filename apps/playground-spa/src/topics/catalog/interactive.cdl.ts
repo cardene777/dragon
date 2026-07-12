@@ -379,3 +379,63 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
   .phase("p", { duration: 1500, title: "timeline signal で shape 駆動", body: "play / pause / scrub / speed で time を制御、 formula 経由で rect fill / arc angle が同時追随。" }, (p: PhaseBuilder) => p.activate("r", "a").badge("timeline"))
   .build();
+
+/**
+ * 20. edge signal binding = 太さ / 色 / dashoffset を signal 追随、 chain の流れを animate。
+ */
+export const edgeFlowBind = diagram("interactive-edge-flow", {
+  topic: "edge の太さ・色・dashoffset を signal で駆動、 chain の流れを animate",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "Flow Width" })
+  .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "Timeline" })
+  .formula("dash", "t * 24")
+  .state("flow", { initial: 5 })
+  .state("t", { initial: 0 })
+  .state("dash", { initial: 0 })
+  .node("a", { lane: "l", stack: 0, kind: "card", title: "Source", subtitle: "from" })
+  .node("b", { lane: "l", stack: 1, kind: "card", title: "Sink", subtitle: "to" })
+  .edge("a", "b", { label: "flow", widthBind: "{flow}", dashOffsetBind: "{dash}" })
+  .phase("p", { duration: 1500, title: "edge が signal で伸縮 + 流れる", body: "flow slider で太さ、 timeline で dashoffset が更新 → 破線が流れる animation。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("edge bind"))
+  .build();
+
+/**
+ * 21. new input widgets = range / multi-select / tabs / text の合わせ技。
+ */
+export const inputVariety = diagram("interactive-input-variety", {
+  topic: "range slider + multi-select + tabs + text で複雑な入力を宣言的に組合わせ",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.range("priceRange", { min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "Price Range" })
+  .input.multiSelect("tags", { options: ["new", "sale", "hot", "featured"], defaultValues: ["new"], label: "Tags" })
+  .input.tabs("view", { options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" })
+  .input.text("query", { defaultValue: "", placeholder: "Search...", maxLength: 50, label: "Query" })
+  .state("priceRange", { initial: "200,700" })
+  .state("tags", { initial: "new" })
+  .state("view", { initial: "grid" })
+  .state("query", { initial: "" })
+  .node("n", { lane: "l", stack: 0, kind: "card", title: "Filter", subtitle: "price {priceRange} / view {view}" })
+  .phase("p", { duration: 1500, title: "input 系 4 種", body: "range / multi-select / tabs / text の複合入力、 全て signal で bind。" }, (p: PhaseBuilder) => p.activate("n").badge("input variety"))
+  .build();
+
+/**
+ * 22. new readouts = heat cell + badge + status dot の合わせ技。
+ */
+export const readoutVariety = diagram("interactive-readout-variety", {
+  topic: "heat cell + badge + status dot で 3 種類の状態表示",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "Temp" })
+  .input.dropdown("state", { options: ["online", "offline", "error"], defaultValue: "online", label: "State" })
+  .state("temp", { initial: 42 })
+  .state("state", { initial: "online" })
+  .node("n", { lane: "l", stack: 0, kind: "card", title: "Server", subtitle: "temp {temp} state {state}" })
+  .readout.heatCell("tempHeat", { source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "Temp" })
+  .readout.badge("tempBadge", { source: "temp", label: "Value" })
+  .readout.statusDot("statusRead", { source: "state", map: [
+    { value: "online", color: "#22c55e", label: "Online" },
+    { value: "offline", color: "#94a3b8", label: "Offline" },
+    { value: "error", color: "#ef4444", label: "Error" },
+  ], label: "State" })
+  .phase("p", { duration: 1500, title: "readout 系 3 種", body: "heat cell で色 gradient、 badge で pill、 status dot で state 表示。" }, (p: PhaseBuilder) => p.activate("n").badge("readout variety"))
+  .build();
