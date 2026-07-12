@@ -1164,3 +1164,58 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
   .readout.leaderboard("lb", { source: "players", max: 5, color: "#2563eb", label: "Ranking" })
   .phase("p", { duration: 1200, title: "leaderboard", body: "6 player の score を desc sort、 top 5 に rank + name + bar + value を表示、 top 3 に medal 色 (gold/silver/bronze) 装飾。" }, (p: PhaseBuilder) => p.activate("card").badge("leaderboard"))
   .build();
+
+/**
+ * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
+ */
+export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
+  topic: "build status を traffic light で表示、 dropdown で red (failed) / yellow (running) / green (passed) 選択",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
+  .state("status", { initial: "green" })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "CI build", subtitle: "current: {status}" })
+  .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status" })
+  .phase("p", { duration: 1200, title: "traffic light", body: "dropdown で red/yellow/green 選択 → 該当色 dot に glow filter、 CI/deploy status の定番 3-color indicator。" }, (p: PhaseBuilder) => p.activate("card").badge("status"))
+  .build();
+
+/**
+ * 58. tag-cloud = tech skill 8 種を weight 比例 font-size で表示。
+ */
+export const techTagCloud = diagram("interactive-tech-tagcloud", {
+  topic: "tech skill 8 種を weight 比例 font-size (12-32px) で並列表示、 色 palette rotate",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("tags", [
+    ["React", 30],
+    ["TypeScript", 28],
+    ["Python", 22],
+    ["Rust", 18],
+    ["Go", 15],
+    ["Svelte", 10],
+    ["Vue", 8],
+    ["Deno", 5],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Skills", subtitle: "8 tech + weight" })
+  .readout.tagCloud("tc", { source: "tags", minSize: 12, maxSize: 32, label: "Tech cloud" })
+  .phase("p", { duration: 1200, title: "tag cloud", body: "[[tag, weight], ...] を weight 比例 font-size で表示、 minSize=12 / maxSize=32 の範囲で正規化、 keyword prominence 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tags"))
+  .build();
+
+/**
+ * 59. activity-feed = team activity 5 event を feed list で表示。
+ */
+export const teamActivityFeed = diagram("interactive-team-activity", {
+  topic: "team activity 5 event を feed list で表示 (actor + action + time)、 recent-first",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("events", [
+    ["Alice", "pushed to main", "2 min ago"],
+    ["Bob", "opened PR #42", "8 min ago"],
+    ["Carol", "reviewed PR #40", "15 min ago"],
+    ["Dan", "merged PR #38", "1 h ago"],
+    ["Eve", "deployed v1.2", "3 h ago"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Team activity", subtitle: "5 recent events" })
+  .readout.activityFeed("af", { source: "events", max: 5, color: "#2563eb", label: "Recent" })
+  .phase("p", { duration: 1200, title: "activity feed", body: "[[actor, action, time], ...] を feed list で表示、 bullet + actor(強調) + action + time の 3 column layout、 team stream 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("feed"))
+  .build();
