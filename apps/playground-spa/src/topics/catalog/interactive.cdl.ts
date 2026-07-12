@@ -895,3 +895,63 @@ export const abTestResult = diagram("interactive-ab-test", {
   .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share" })
   .phase("p", { duration: 1200, title: "A/B test", body: "5 日分の conversion rate を A/B 並列 bar、 traffic split 50/50 と winner share (58%/42%) を 2 donut で並列表示。" }, (p: PhaseBuilder) => p.activate("card").badge("A/B test"))
   .build();
+
+/**
+ * 42. calendar heatmap = 1 年分の日次 commit を GitHub-style で表示 (365 day、 53 週 × 7 日)。
+ */
+function generateCommits(): number[] {
+  const arr: number[] = [];
+  for (let i = 0; i < 371; i++) {
+    // pseudo-random deterministic 分布 (曜日で bias)
+    const day = i % 7;
+    const seed = (i * 31 + day * 17) % 13;
+    arr.push(day === 0 || day === 6 ? Math.max(0, seed - 4) : Math.min(10, seed));
+  }
+  return arr;
+}
+
+export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
+  topic: "365 day array を calendar heatmap で GitHub contribution graph 化、 曜日 bias で week/weekend 分布",
+})
+  .lane("l", { x: 0, width: 620 })
+  .arraySignal("commits", generateCommits())
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Contributions", subtitle: "total {commits.sum} · max {commits.max} · avg {commits.avg}" })
+  .readout.calendarHeatmap("h", { source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 year" })
+  .phase("p", { duration: 1200, title: "1 年 heatmap", body: "365 day の numeric array を 53 週 × 7 日で表示、 GitHub-style の 5 段階 gradient bucket。" }, (p: PhaseBuilder) => p.activate("card").badge("contributions"))
+  .build();
+
+/**
+ * 43. mini-map = 大 canvas 1000×800 上の 400×300 viewport を slider で移動、 mini-map で追従。
+ */
+export const canvasMiniMap = diagram("interactive-canvas-minimap", {
+  topic: "1000×800 canvas 上の viewport rect (400×300) を slider で移動、 mini-map で 縮小表示",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("panX", { min: 0, max: 600, defaultValue: 300, label: "Pan X" })
+  .input.slider("panY", { min: 0, max: 500, defaultValue: 250, label: "Pan Y" })
+  .state("panX", { initial: 300 })
+  .state("panY", { initial: 250 })
+  .arraySignal("viewport", [300, 250, 400, 300])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Canvas overview", subtitle: "pan ({panX}, {panY}) view 400×300" })
+  .readout.miniMap("map", { source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview" })
+  .readout.stat("panXStat", { source: "panX", unit: "px", label: "X" })
+  .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y" })
+  .phase("p", { duration: 1200, title: "canvas mini-map", body: "大 canvas 上の viewport を縮小表示、 slider で座標変化 → mini-map の viewport rect が動く経路。" }, (p: PhaseBuilder) => p.activate("card").badge("mini-map"))
+  .build();
+
+/**
+ * 44. kpi-card = revenue の現在値 + 直前値との delta + 6 point history sparkline を composite。
+ */
+export const revenueKpiCard = diagram("interactive-revenue-kpi", {
+  topic: "revenue KPI を slider で操作、 kpi-card で 現在値 + 前月比 + 6 month sparkline を 1 tile 表示",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" })
+  .state("current", { initial: 180 })
+  .state("prev", { initial: 150 })
+  .arraySignal("history", [120, 135, 148, 152, 165, 170])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Revenue KPI", subtitle: "current {current}k · previous {prev}k" })
+  .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue" })
+  .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev" })
+  .phase("p", { duration: 1200, title: "KPI card", body: "slider で current 変化 → kpi-card の 数字 + delta arrow + sparkline が同時追随、 前月比 % change 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("KPI card"))
+  .build();
