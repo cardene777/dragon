@@ -1,0 +1,267 @@
+#!/usr/bin/env node
+/**
+ * signal → SVG 属性反映の精度検証 script (CAR primitive expansion)。
+ *
+ * Playwright で各 diagram を巡回、 signal (slider / timeline / dropdown) を programmatic に
+ * 変化させて、 対応する SVG 属性 (width / opacity / stroke-width / stroke-dashoffset) が
+ * 期待値に match するかを数値 assertion。 primitive の bind 精度を機械的に保証する。
+ */
+
+import { chromium } from "playwright";
+
+const URL = "http://localhost:4323/catalog/interactive";
+
+const setNativeExpr = (val) => `((el) => {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  setter.call(el, '${val}');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+})`;
+
+const cases = [
+  {
+    diagramId: "interactive-visual-bar",
+    label: "visual-bar: slider(barW=260) → node rect width=260",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="barW"]');
+      await s.evaluate(eval(setNativeExpr("260")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const w = await page.$eval('[data-cdl-node="bar"] rect', (el) => Number(el.getAttribute("width")));
+      return { actual: w, expected: 260, tolerance: 2 };
+    },
+  },
+  {
+    diagramId: "interactive-shape-chain",
+    label: "shape-chain: base(50) → gas1 rect fill = 220 * 50/150 ≈ 73",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="base"]');
+      await s.evaluate(eval(setNativeExpr("50")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      // 3 番目 rect が clip 内の実 fill (1=outer frame、 2=clip、 3=fill)
+      const bar = await page.$eval(
+        '[data-cdl-node="r1"] rect[clip-path]',
+        (el) => Number(el.getAttribute("height")),
+      );
+      return { actual: bar, expected: 220 * (50 / 150), tolerance: 3 };
+    },
+  },
+  {
+    diagramId: "interactive-shape-arc",
+    label: "shape-arc: angle(150) → arc 2 path",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="a"]');
+      await s.evaluate(eval(setNativeExpr("150")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-shape="arc"] path', (els) => els.length);
+      return { actual: count >= 2, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-repeat-chain",
+    label: "repeat-chain: 5 rect が render",
+    setup: async () => {},
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-shape="rect"]', (els) => els.length);
+      return { actual: count, expected: 5, tolerance: 0 };
+    },
+  },
+  {
+    diagramId: "interactive-edge-flow",
+    label: "edge-flow: flow(10) → edge stroke-width=10",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="flow"]');
+      await s.evaluate(eval(setNativeExpr("10")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const sw = await page.$eval(
+        '[data-cdl-edge] path[data-cdl-role="edge-line"]',
+        (el) => Number(el.getAttribute("stroke-width")),
+      );
+      return { actual: sw, expected: 10, tolerance: 0.5 };
+    },
+  },
+  {
+    diagramId: "interactive-visual-opacity",
+    label: "visual-opacity: fade(40) → node opacity=0.4",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="fade"]');
+      await s.evaluate(eval(setNativeExpr("40")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const op = await page.$eval('[data-cdl-node="target"]', (el) => Number(el.getAttribute("opacity")));
+      return { actual: op, expected: 0.4, tolerance: 0.02 };
+    },
+  },
+  {
+    diagramId: "interactive-shape-circle",
+    label: "shape-circle: p(75) → inner circle radius = maxR * 0.75",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="p"]');
+      await s.evaluate(eval(setNativeExpr("75")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const rs = await page.$$eval('[data-cdl-shape="circle"] circle', (els) =>
+        els.map((el) => Number(el.getAttribute("r"))),
+      );
+      const outer = rs[0];
+      const inner = rs[1];
+      return { actual: Math.round((inner / outer) * 100) / 100, expected: 0.75, tolerance: 0.02 };
+    },
+  },
+  {
+    diagramId: "interactive-shape-polygon",
+    label: "shape-polygon: sides=6 で 6 頂点",
+    setup: async () => {},
+    assert: async (page) => {
+      const pts = await page.$eval(
+        '[data-cdl-shape="polygon"] polygon',
+        (el) => (el.getAttribute("points") ?? "").trim().split(/\s+/).length,
+      );
+      return { actual: pts, expected: 6, tolerance: 0 };
+    },
+  },
+  {
+    diagramId: "interactive-input-variety",
+    label: "input-variety: range/multi/tabs/text 4 種 widget",
+    setup: async () => {},
+    assert: async (page) => {
+      const range = await page.$('.cdl-ip-range');
+      const multi = await page.$('.cdl-ip-multi-select');
+      const tabs = await page.$('.cdl-ip-tabs');
+      const text = await page.$('.cdl-ip-text');
+      return { actual: !!range && !!multi && !!tabs && !!text, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-readout-variety",
+    label: "readout-variety: heat/badge/status 3 種 readout",
+    setup: async () => {},
+    assert: async (page) => {
+      const heat = await page.$('[data-cdl-readout="tempHeat"]');
+      const badge = await page.$('[data-cdl-readout="tempBadge"]');
+      const dot = await page.$('[data-cdl-readout="statusRead"]');
+      return { actual: !!heat && !!badge && !!dot, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-slider-bar",
+    label: "slider-bar: value(75) → subtitle = 'value: 75'",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="value"]');
+      await s.evaluate(eval(setNativeExpr("75")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-node="bar-node"]', (el) => el.textContent);
+      return { actual: t.includes("value: 75"), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-formula-text",
+    label: "formula-text: input(25) → subtitle 'input * 2 = 50'",
+    setup: async (page) => {
+      const s = await page.$('input[type="number"][data-cdl-input="input"]');
+      await s.evaluate(eval(setNativeExpr("25")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-node="out1"]', (el) => el.textContent);
+      return { actual: t.includes("input * 2 = 50"), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-dynamic-readouts",
+    label: "dynamic-readouts: rev(400) → countup 数値表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="rev"]');
+      await s.evaluate(eval(setNativeExpr("400")));
+      await page.waitForTimeout(1200);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="revCount"]', (el) => el.textContent);
+      // countup は animation 経由なので "3xx" or "4xx" 近辺
+      const match = t.match(/(\d+)/);
+      const n = match ? Number(match[1]) : 0;
+      return { actual: n > 200, expected: true };
+    },
+  },
+];
+
+async function main() {
+  const browser = await chromium.launch();
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+
+  await page.goto(URL, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500);
+
+  let pass = 0;
+  let fail = 0;
+  const results = [];
+  for (const c of cases) {
+    const btns = await page.$$("button.catalog-list-item");
+    let clicked = false;
+    for (const b of btns) {
+      const idEl = await b.$(".catalog-list-item-id");
+      const t = idEl ? await idEl.textContent() : "";
+      if (t && t.includes(c.diagramId)) {
+        await b.click();
+        clicked = true;
+        break;
+      }
+    }
+    if (!clicked) {
+      console.log(`❌ ${c.label} (sidebar item not found)`);
+      fail++;
+      continue;
+    }
+    await page.waitForTimeout(800);
+    try {
+      await c.setup(page);
+      const { actual, expected, tolerance } = await c.assert(page);
+      let ok = false;
+      if (typeof expected === "boolean") {
+        ok = actual === expected;
+      } else if (typeof expected === "number" && typeof actual === "number") {
+        ok = Math.abs(actual - expected) <= (tolerance ?? 0);
+      }
+      if (ok) {
+        console.log(`✅ ${c.label} (actual=${actual})`);
+        pass++;
+      } else {
+        console.log(`❌ ${c.label} (actual=${actual} expected=${expected}±${tolerance ?? 0})`);
+        fail++;
+      }
+      results.push({ label: c.label, actual, expected, tolerance, ok });
+    } catch (e) {
+      console.log(`❌ ${c.label} (error: ${e.message})`);
+      fail++;
+      results.push({ label: c.label, error: e.message, ok: false });
+    }
+  }
+
+  await browser.close();
+  console.log("");
+  console.log("─".repeat(60));
+  console.log(`total: ${cases.length}, pass: ${pass}, fail: ${fail}`);
+  if (errors.length > 0) {
+    console.log(`page errors: ${errors.length}`);
+    errors.forEach((e) => console.log(`  - ${e}`));
+  }
+  if (fail > 0) process.exit(1);
+}
+
+main().catch((e) => {
+  console.error("fatal:", e);
+  process.exit(2);
+});
