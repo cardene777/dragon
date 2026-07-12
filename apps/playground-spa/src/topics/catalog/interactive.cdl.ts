@@ -786,3 +786,112 @@ export const decisionTree = diagram("interactive-decision-tree", {
     body: "treeNodes(3, 2, 70, 80, tpl) で 7 node の完全 2 分木、 renderOffsetX/Y で正しい 2D 位置に。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
   .build();
+
+/**
+ * 37. radar chart = 5 skill dimensions を spider chart で表示。
+ */
+export const skillRadar = diagram("interactive-skill-radar", {
+  topic: "5 次元 skill を radar (polygon spider chart) で可視化、 labelSource で軸名も同時表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("skills", [8, 5, 7, 3, 9])
+  .arraySignal("skillNames", ["Design", "Impl", "Test", "Docs", "Debug"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Skill profile", subtitle: "avg={skills.avg} · max={skills.max}" })
+  .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 200, viewH: 200, label: "Skills" })
+  .phase("p", { duration: 1200, title: "5-dim skill", body: "radar で 5 次元 array を polygon chart 化、 labelSource で軸名 (Design/Impl/Test/Docs/Debug)。" }, (p: PhaseBuilder) => p.activate("card").badge("radar"))
+  .build();
+
+/**
+ * 38. bubble chart = 3D data (perf / cost / usage) の bubbles、 各点の size で 3 次元目を表現。
+ */
+export const perfBubbleChart = diagram("interactive-perf-bubble", {
+  topic: "perf (x) × cost (y) × usage (bubble size) の 3D data を bubble chart で可視化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("perf", [
+    [50, 20, 5],
+    [70, 40, 8],
+    [90, 60, 10],
+    [30, 80, 3],
+    [60, 50, 7],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Perf vs Cost", subtitle: "5 workloads の 3D data" })
+  .readout.bubbleChart("bubbles", {
+    source: "perf",
+    xMin: 0,
+    xMax: 100,
+    yMin: 0,
+    yMax: 100,
+    rMin: 0,
+    rMax: 10,
+    color: "#2563eb",
+    viewW: 280,
+    viewH: 180,
+    label: "workloads",
+  })
+  .phase("p", { duration: 1200, title: "3D bubble", body: "5 workload の (perf, cost, usage) を bubble chart で可視化、 bubble 半径 = usage 次元。" }, (p: PhaseBuilder) => p.activate("card").badge("3D bubble"))
+  .build();
+
+/**
+ * 39. donut chart = portfolio share (asset allocation) を multi-segment donut 表示。
+ */
+export const portfolioDonut = diagram("interactive-portfolio-donut", {
+  topic: "portfolio allocation を multi-segment donut chart で表示、 6 色 palette で自動着色",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("assets", [45, 30, 15, 10])
+  .arraySignal("assetNames", ["Stocks", "Bonds", "Cash", "Crypto"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Portfolio", subtitle: "total={assets.sum}% · 4 assets" })
+  .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation" })
+  .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
+  .phase("p", { duration: 1200, title: "donut", body: "arraySignal を donut で per-segment 分割、 arrayList で legend も並列表示。" }, (p: PhaseBuilder) => p.activate("card").badge("donut"))
+  .build();
+
+/**
+ * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
+ */
+export const kpiDashboard = diagram("interactive-kpi-dashboard", {
+  topic: "SaaS KPI dashboard = revenue slider → users / churn / NPS 4 KPI が formula chain で追随",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("revenue", { min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" })
+  .state("revenue", { initial: 120 })
+  .formula("users", "revenue * 8")
+  .formula("churn", "50 - revenue / 10")
+  .formula("nps", "revenue / 2 + 20")
+  .state("users", { initial: 960 })
+  .state("churn", { initial: 38 })
+  .state("nps", { initial: 80 })
+  .arraySignal("kpiValues", [120, 960, 38, 80])
+  .arraySignal("kpiNames", ["Revenue", "Users", "Churn", "NPS"])
+  .node("dashboard", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "SaaS KPI",
+    subtitle: "rev {revenue}k · users {users} · churn {churn}% · nps {nps}",
+  })
+  .readout.stat("rev", { source: "revenue", unit: "k", label: "Revenue" })
+  .readout.stat("usr", { source: "users", label: "Users" })
+  .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
+  .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
+  .phase("p", { duration: 1200, title: "KPI dashboard", body: "revenue slider → users (×8) / churn (逆相関) / NPS (正相関) の formula chain で 3 KPI が同時追随。" }, (p: PhaseBuilder) => p.activate("dashboard").badge("KPI"))
+  .build();
+
+/**
+ * 41. domain A/B test result = 2 variant の conversion rate + confidence を並列表示。
+ */
+export const abTestResult = diagram("interactive-ab-test", {
+  topic: "A/B test conversion rate を 2 variant の stacked bar + donut で可視化、 lift 計算 formula",
+})
+  .lane("l", { x: 0, width: 500 })
+  .arraySignal("convA", [40, 45, 42, 48, 44])
+  .arraySignal("convB", [50, 55, 58, 62, 60])
+  .arraySignal("split", [50, 50])
+  .arraySignal("results", [58, 42])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "A/B test", subtitle: "A avg={convA.avg}% · B avg={convB.avg}% · lift = ({convB.avg}-{convA.avg})%" })
+  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "Daily conv %" })
+  .readout.donut("split", { source: "split", innerRatio: 0.5, viewW: 120, viewH: 120, label: "Traffic split" })
+  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share" })
+  .phase("p", { duration: 1200, title: "A/B test", body: "5 日分の conversion rate を A/B 並列 bar、 traffic split 50/50 と winner share (58%/42%) を 2 donut で並列表示。" }, (p: PhaseBuilder) => p.activate("card").badge("A/B test"))
+  .build();

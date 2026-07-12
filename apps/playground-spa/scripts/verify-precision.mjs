@@ -425,6 +425,56 @@ const cases = [
       return { actual: Number(oy), expected: 60, tolerance: 1 };
     },
   },
+  {
+    diagramId: "interactive-skill-radar",
+    label: "radar: 5 dim → 5 point circle + 3 ring guide + 5 axis line",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const circles = await page.$$eval('[data-cdl-readout="radar"] svg circle', (els) => els.length);
+      return { actual: circles, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-perf-bubble",
+    label: "bubble-chart: 5 workload → 5 bubbles (circle)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const bubbles = await page.$$eval('[data-cdl-readout="bubbles"] svg circle', (els) => els.length);
+      return { actual: bubbles, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-portfolio-donut",
+    label: "donut: 4 asset segment → 4 SVG path",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const paths = await page.$$eval('[data-cdl-readout="d"] svg path', (els) => els.length);
+      return { actual: paths, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-kpi-dashboard",
+    label: "KPI dashboard: slider(revenue=200) → users = 200*8 = 1600 が subtitle に反映",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="revenue"]');
+      await s.evaluate(eval(setNativeExpr("200")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-node="dashboard"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
+      return { actual: /users 1600/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-ab-test",
+    label: "A/B test: donut split 2 segment + donut winner 2 segment = 4 SVG path",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const splitPaths = await page.$$eval('[data-cdl-readout="split"] svg path', (els) => els.length);
+      const winnerPaths = await page.$$eval('[data-cdl-readout="winner"] svg path', (els) => els.length);
+      return { actual: splitPaths + winnerPaths, expected: 4 };
+    },
+  },
 ];
 
 async function main() {
