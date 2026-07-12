@@ -1318,3 +1318,48 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
   .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress" })
   .phase("p", { duration: 1200, title: "checklist", body: "[[label, checked], ...] を 6 checkbox + progress% (2/6 = 33%) で表示、 done は green box + checkmark、 unchecked は border only。" }, (p: PhaseBuilder) => p.activate("card").badge("checklist"))
   .build();
+
+/**
+ * 66. circular-gauge = engine RPM を 270° dial で表示、 slider で 0-8000 rpm 制御。
+ */
+export const engineTachometer = diagram("interactive-engine-tachometer", {
+  topic: "engine RPM を 270° circular gauge で表示、 slider で 0-8000 rpm 制御 → needle + arc 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("rpm", { min: 0, max: 8000, defaultValue: 3500, label: "RPM" })
+  .state("rpm", { initial: 3500 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Engine tach", subtitle: "current: {rpm} rpm" })
+  .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer" })
+  .phase("p", { duration: 1200, title: "270° dial", body: "slider で rpm 変化 → 270° arc + needle + center value + unit の全要素が同時追随、 speedometer / tachometer 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tachometer"))
+  .build();
+
+/**
+ * 67. price-tag = e-commerce 商品価格、 stepper で newPrice 変化 → discount % 自動計算。
+ */
+export const productPriceTag = diagram("interactive-product-price-tag", {
+  topic: "e-commerce 商品価格、 stepper で newPrice 変化 → discount % + savings が自動計算追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("newPrice", { min: 0, max: 200, step: 5, defaultValue: 65, label: "New price" })
+  .state("newPrice", { initial: 65 })
+  .state("oldPrice", { initial: 100 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Product", subtitle: "was ${oldPrice}、 now ${newPrice}" })
+  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "Price" })
+  .phase("p", { duration: 1200, title: "price tag", body: "stepper で new price 変化 → 大 数字 (new) + strikethrough (old) + discount % (red badge) + savings text が同時追随、 e-commerce 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("price"))
+  .build();
+
+/**
+ * 68. spinner = deploy status、 dropdown で running/done/error 切替 → icon 変化。
+ */
+export const deploySpinner = diagram("interactive-deploy-spinner", {
+  topic: "deploy status を dropdown で切替、 running=animate spinner / done=green ✓ / error=red ✕ + text",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.dropdown("status", { options: ["running", "done", "error"], defaultValue: "running", label: "Status" })
+  .input.text("msg", { defaultValue: "Building production bundle...", placeholder: "Status message", maxLength: 60, label: "Message" })
+  .state("status", { initial: "running" })
+  .state("msg", { initial: "Building production bundle..." })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Deploy state", subtitle: "{status}: {msg}" })
+  .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy" })
+  .phase("p", { duration: 1200, title: "spinner", body: "dropdown で 3 state 切替 → running は SMIL 回転 circle、 done は green ✓、 error は red ✕ に icon が変わる、 loading state 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("loading"))
+  .build();
