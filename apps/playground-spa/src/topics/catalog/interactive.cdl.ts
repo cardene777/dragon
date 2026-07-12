@@ -1009,3 +1009,59 @@ export const scoreSlope = diagram("interactive-score-slope", {
   .readout.slope("s", { source: "scores", min: 40, max: 100, viewW: 260, viewH: 160, colorUp: "#22c55e", colorDown: "#ef4444", label: "Score change" })
   .phase("p", { duration: 1200, title: "slope chart", body: "[before, after, name] tuple array を 2 column slope で表示、 上昇=緑 / 下降=赤、 dot + 学生名 label。" }, (p: PhaseBuilder) => p.activate("card").badge("slope"))
   .build();
+
+/**
+ * 48. sales funnel = 4 stage の conversion funnel (Visit → Signup → Trial → Paid)。
+ */
+export const salesFunnel = diagram("interactive-sales-funnel", {
+  topic: "sales conversion funnel を 4 stage で可視化、 [stage, count] tuple array を trapezoid で描画",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("stages", [
+    ["Visit", 1000],
+    ["Signup", 400],
+    ["Trial", 150],
+    ["Paid", 40],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sales funnel", subtitle: "Visit → Paid の 4 stage" })
+  .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#94a3b8", label: "Conversion" })
+  .phase("p", { duration: 1200, title: "sales funnel", body: "[[stage, count], ...] を trapezoid で描画、 gradient color で top=blue → bottom=gray に変化、 各 stage の count 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("funnel"))
+  .build();
+
+/**
+ * 49. project gantt = 4 task を 10 day timeline 上に配置。
+ */
+export const projectGantt = diagram("interactive-project-gantt", {
+  topic: "project 4 task (Design/Impl/Test/Ship) を 10 day timeline 上に gantt 表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("tasks", [
+    ["Design", 0, 3],
+    ["Impl", 3, 5],
+    ["Test", 6, 3],
+    ["Ship", 9, 1],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sprint gantt", subtitle: "10 day sprint、 4 task" })
+  .readout.gantt("g", { source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "Timeline" })
+  .phase("p", { duration: 1200, title: "gantt", body: "[[name, start, duration], ...] を横 timeline bar で描画、 start-x / duration-w で position。" }, (p: PhaseBuilder) => p.activate("card").badge("gantt"))
+  .build();
+
+/**
+ * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
+ */
+export const resourceTreemap = diagram("interactive-resource-treemap", {
+  topic: "6 team の budget share を treemap で hierarchical rectangles 表示、 area 比例配置",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("teams", [
+    ["Engineering", 45],
+    ["Sales", 20],
+    ["Marketing", 15],
+    ["Support", 10],
+    ["Ops", 6],
+    ["Legal", 4],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Budget share", subtitle: "6 team の budget を area 比例" })
+  .readout.treemap("t", { source: "teams", viewW: 280, viewH: 200, label: "Budget" })
+  .phase("p", { duration: 1200, title: "treemap", body: "[[name, size], ...] を area 比例配置、 単純 squarified 風 layout で 6 team を 6 色 palette で分割表示。" }, (p: PhaseBuilder) => p.activate("card").badge("treemap"))
+  .build();
