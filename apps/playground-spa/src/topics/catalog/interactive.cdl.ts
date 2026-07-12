@@ -338,3 +338,22 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   }))
   .phase("p", { duration: 1500, title: "repeat + derive で 5 rect が chain 伝搬", body: "count=5、 base を動かすと gas1..gas5 が formula chain で連鎖伝搬、 5 rect の fill が同時追随。" }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3", "r4").badge("repeat + derive"))
   .build();
+
+/**
+ * 18. dynamic readouts = countup / delta / percent-ring / typewriter を組合わせて KPI dashboard。
+ */
+export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
+  topic: "countup / delta / percent-ring / typewriter の 4 新 readout を KPI 風に組合わせ",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("rev", { min: 0, max: 500, defaultValue: 250, label: "Revenue" })
+  .input.dropdown("status", { options: ["active", "pending", "closed"], defaultValue: "active", label: "Status" })
+  .state("rev", { initial: 250 })
+  .state("status", { initial: "active" })
+  .node("n", { lane: "l", stack: 0, kind: "card", title: "Dashboard", subtitle: "revenue: {rev} / status: {status}" })
+  .readout.countup("revCount", { source: "rev", unit: "$", label: "Revenue", durationMs: 700 })
+  .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ" })
+  .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress" })
+  .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status" })
+  .phase("p", { duration: 1500, title: "signal → 4 readout 同時追随", body: "revenue slider で count up + delta ↑↓ + ring 追随、 status dropdown で typewriter reveal。" }, (p: PhaseBuilder) => p.activate("n").badge("dashboard"))
+  .build();
