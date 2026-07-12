@@ -659,3 +659,47 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
   })
   .phase("p", { duration: 1200, title: "reactive 位置", body: "renderOffsetX/Y に signal template、 slider 変化で node が実際に横 / 縦に drift。" }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
   .build();
+
+/**
+ * 32. matrix readout = 4×4 の 2D array を色 gradient で表示 (confusion matrix / heatmap 用)。
+ */
+export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
+  topic: "arraySignal で 4×4 の 2D array を宣言、 matrix readout で色 gradient cell + 数値表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("cm", [
+    [8, 1, 0, 1],
+    [2, 7, 1, 0],
+    [0, 1, 9, 0],
+    [0, 0, 2, 6],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Confusion matrix", subtitle: "4×4 heat cells" })
+  .readout.matrix("m", { source: "cm", min: 0, max: 10, cellSize: 30, showValue: true, colors: ["#f0f4f8", "#0369a1"] as const, label: "Predictions" })
+  .phase("p", { duration: 1200, title: "2D grid state", body: "matrix readout で 2D array を色 gradient で cell 表示、 showValue で数値も出す。" }, (p: PhaseBuilder) => p.activate("card").badge("2D matrix"))
+  .build();
+
+/**
+ * 33. progress-group readout = 4 task の progress を label + bar list で表示。
+ */
+export const taskProgressGroup = diagram("interactive-progress-group", {
+  topic: "arraySignal 2 種 (values + labels) を progress-group で task list として並列表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("progress", [40, 75, 20, 90])
+  .arraySignal("names", ["Design", "Impl", "Test", "Docs"])
+  .node("card", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "Sprint progress",
+    subtitle: "avg={progress.avg}% · max={progress.max}%",
+  })
+  .readout.progressGroup("tasks", {
+    source: "progress",
+    max: 100,
+    labelSource: "names",
+    color: "#2563eb",
+    label: "Tasks",
+  })
+  .phase("p", { duration: 1200, title: "task list", body: "progressGroup で per-row progress bar + label 表示、 2 arraySignal (value / name) を combined 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("task list"))
+  .build();
