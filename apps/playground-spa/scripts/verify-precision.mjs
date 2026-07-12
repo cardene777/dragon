@@ -367,6 +367,64 @@ const cases = [
       return { actual: names.join(",") === "Design,Impl,Test,Docs", expected: true };
     },
   },
+  {
+    diagramId: "interactive-eip1559",
+    label: "EIP-1559: slider(base=100) → block2 = (100+5) * 1.2 = 126",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="baseFee"]');
+      await s.evaluate(eval(setNativeExpr("100")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-node="summary"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
+      return { actual: /block2 126/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-eip1559",
+    label: "EIP-1559: stacked-bar (burned+tips) 3 element × 2 col = 6 col",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const cols = await page.$$eval('[data-cdl-readout="gas"] .cdl-ip-readout-stacked-bar-col', (els) => els.length);
+      return { actual: cols, expected: 6 };
+    },
+  },
+  {
+    diagramId: "interactive-oauth-flow",
+    label: "OAuth flow: sequence timeline に 6 event marker (circle) 描画",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const dots = await page.$$eval('[data-cdl-readout="seq"] svg circle', (els) => els.length);
+      return { actual: dots, expected: 6 };
+    },
+  },
+  {
+    diagramId: "interactive-oauth-flow",
+    label: "OAuth flow: 6 event name label が SVG text で描画 (name + t の 2 text × 6 = 12)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const texts = await page.$$eval('[data-cdl-readout="seq"] svg text', (els) => els.length);
+      return { actual: texts, expected: 12 };
+    },
+  },
+  {
+    diagramId: "interactive-decision-tree",
+    label: "decision-tree: 完全 2 分木 3 level = 7 node、 root offsetY=-100",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-node^="node-"]', (els) => els.length);
+      return { actual: count, expected: 7 };
+    },
+  },
+  {
+    diagramId: "interactive-decision-tree",
+    label: "decision-tree: node-3 (L2 P0) offsetY = 60 (level 2 * 80 - 100)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const oy = await page.$eval('[data-cdl-node="node-3"]', (el) => el.getAttribute("data-cdl-offset-y"));
+      return { actual: Number(oy), expected: 60, tolerance: 1 };
+    },
+  },
 ];
 
 async function main() {
