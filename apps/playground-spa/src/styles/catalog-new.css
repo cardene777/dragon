@@ -2505,3 +2505,46 @@ html.dark .cdl-ip-readout-kpi-card-value {
   background: rgba(148,163,184,0.04);
   border-radius: 4px;
 }
+
+/* funnel readout */
+.cdl-ip-readout-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-funnel-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* gantt readout */
+.cdl-ip-readout-gantt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.cdl-ip-readout-gantt-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+}
+
+/* treemap readout */
+.cdl-ip-readout-treemap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-treemap-svg {
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+}

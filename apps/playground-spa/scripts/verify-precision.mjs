@@ -543,6 +543,33 @@ const cases = [
       return { actual: dots, expected: 10 };
     },
   },
+  {
+    diagramId: "interactive-sales-funnel",
+    label: "sales funnel: 4 stage → 4 path (trapezoid)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const paths = await page.$$eval('[data-cdl-readout="f"] svg path', (els) => els.length);
+      return { actual: paths, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-project-gantt",
+    label: "project gantt: 4 task → 4 rect bar",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="g"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-resource-treemap",
+    label: "resource treemap: 6 team → 6 rect (area 比例)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="t"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 6 };
+    },
+  },
 ];
 
 async function main() {
