@@ -2250,3 +2250,19 @@ html.dark .cdl-ip-readout-array-list-items {
   border-radius: 2px 2px 0 0;
   transition: height 200ms ease-out;
 }
+
+/* waterfall readout */
+.cdl-ip-readout-waterfall {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 180px;
+}
+.cdl-ip-readout-waterfall-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.06);
+  border-radius: 4px;
+}

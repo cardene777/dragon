@@ -579,3 +579,83 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
   })
   .phase("p", { duration: 1200, title: "2 系列 の bar 比較", body: "stackedBar で sourceA / sourceB を並列 bar、 A/B の各 index 比較。" }, (p: PhaseBuilder) => p.activate("card").badge("stacked bar"))
   .build();
+
+/**
+ * 29. radialNodes + renderOffset = hub-and-spoke architecture 図、
+ *     中心 node に対して 6 spoke node を円周上に配置。 layout の stack で並べつつ
+ *     renderOffsetX/Y で見た目上の円周配置に。
+ */
+export const radialHubAndSpoke = diagram("interactive-radial-hub", {
+  topic: "radialNodes(6, 90) で 6 spoke を hub の周りに、 renderOffsetX/Y で実際に円周上に配置",
+})
+  .lane("l", { x: 0, width: 480 })
+  .node("hub", { lane: "l", stack: 0, kind: "card", title: "Hub", subtitle: "center" })
+  .radialNodes(6, 90, (i, angleDeg, ox, oy) => ({
+    id: `spoke-{i}`,
+    lane: "l",
+    stack: i + 1,
+    kind: "card" as const,
+    title: `#{i}`,
+    subtitle: `deg={r}°`,
+    renderOffsetX: ox,
+    renderOffsetY: oy - 40,
+  }))
+  .phase("p", {
+    duration: 1200,
+    title: "hub-and-spoke 6",
+    body: "radialNodes(6, 90, tpl) で hub 周りに 6 spoke を宣言、 renderOffsetX/Y で円周上に見せる。",
+  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3", "spoke-4", "spoke-5").badge("hub-and-spoke"))
+  .build();
+
+/**
+ * 30. waterfall readout = 5 element を左から累積、 正 / 負 で色分け (財務 waterfall chart)。
+ */
+export const arrayWaterfall = diagram("interactive-array-waterfall", {
+  topic: "arraySignal([100,-30,50,-20,40]) を waterfall readout で累積 bar chart 化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("changes", [100, -30, 50, -20, 40])
+  .node("card", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "Waterfall",
+    subtitle: "final = start(0) + sum({changes.sum}) = {changes.sum}",
+  })
+  .readout.waterfall("wf", {
+    source: "changes",
+    min: -30,
+    max: 150,
+    viewW: 280,
+    viewH: 90,
+    colorPos: "#22c55e",
+    colorNeg: "#ef4444",
+    label: "Changes",
+  })
+  .readout.arrayList("items", { source: "changes", itemTemplate: "step {i}: {item}", label: "Steps" })
+  .phase("p", { duration: 1200, title: "累積 bar", body: "waterfall で array を左から累積、 正 / 負 で色分け、 connector line で連続表示。" }, (p: PhaseBuilder) => p.activate("card").badge("waterfall"))
+  .build();
+
+/**
+ * 31. renderOffset signal binding = slider で node が動く、 renderOffsetX/Y に signal template。
+ */
+export const renderOffsetDrift = diagram("interactive-render-offset", {
+  topic: "slider で renderOffsetX の signal を変えると node が横に drift、 signal 変化に追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("dx", { min: -80, max: 80, defaultValue: 0, label: "Drift X" })
+  .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "Drift Y" })
+  .state("dx", { initial: 0 })
+  .state("dy", { initial: 0 })
+  .node("anchor", { lane: "l", stack: 0, kind: "card", title: "Anchor", subtitle: "固定" })
+  .node("floater", {
+    lane: "l",
+    stack: 1,
+    kind: "card",
+    title: "Floater",
+    subtitle: "dx={dx} · dy={dy}",
+    renderOffsetX: "{dx}",
+    renderOffsetY: "{dy}",
+  })
+  .phase("p", { duration: 1200, title: "reactive 位置", body: "renderOffsetX/Y に signal template、 slider 変化で node が実際に横 / 縦に drift。" }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
+  .build();
