@@ -570,6 +570,41 @@ const cases = [
       return { actual: rects, expected: 6 };
     },
   },
+  {
+    diagramId: "interactive-traffic-sankey",
+    label: "sankey: 3 source + 2 target = 5 bar + 6 curve = 5 rect + 6 path",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="s"] svg rect', (els) => els.length);
+      const paths = await page.$$eval('[data-cdl-readout="s"] svg path', (els) => els.length);
+      return { actual: rects + paths, expected: 11 };
+    },
+  },
+  {
+    diagramId: "interactive-activity-polar",
+    label: "polar-area: 7 day → 7 sector path",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const paths = await page.$$eval('[data-cdl-readout="p"] svg path', (els) => els.length);
+      return { actual: paths, expected: 7 };
+    },
+  },
+  {
+    diagramId: "interactive-onboarding-stepper",
+    label: "step-indicator: stepper(current=3) → 5 dot + 4 line 描画",
+    setup: async (page) => {
+      const btns = await page.$$('[data-cdl-input="current"] .cdl-ip-stepper-btn');
+      // 現在の initial=2、 +1 で 3
+      const plusBtn = btns[btns.length - 1];
+      if (plusBtn) await plusBtn.click();
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const circles = await page.$$eval('[data-cdl-readout="wizard"] svg circle', (els) => els.length);
+      const lines = await page.$$eval('[data-cdl-readout="wizard"] svg line', (els) => els.length);
+      return { actual: circles + lines, expected: 9 };
+    },
+  },
 ];
 
 async function main() {

@@ -2548,3 +2548,46 @@ html.dark .cdl-ip-readout-kpi-card-value {
   margin: 0 auto;
   border-radius: 4px;
 }
+
+/* sankey readout */
+.cdl-ip-readout-sankey {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.cdl-ip-readout-sankey-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+}
+
+/* polar-area readout */
+.cdl-ip-readout-polar-area {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-polar-area-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* step-indicator readout */
+.cdl-ip-readout-step-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.cdl-ip-readout-step-indicator-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
