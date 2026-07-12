@@ -475,6 +475,46 @@ const cases = [
       return { actual: splitPaths + winnerPaths, expected: 4 };
     },
   },
+  {
+    diagramId: "interactive-contribution-heatmap",
+    label: "contribution heatmap: 53 週 × 7 日 = 371 cell rect が描画",
+    setup: async (page) => { await page.waitForTimeout(400); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="h"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 371 };
+    },
+  },
+  {
+    diagramId: "interactive-canvas-minimap",
+    label: "canvas mini-map: 背景 rect + viewport rect = 2 rect",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="map"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 2 };
+    },
+  },
+  {
+    diagramId: "interactive-revenue-kpi",
+    label: "revenue KPI: slider(current=200) → kpi-card value に 200 反映",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="current"]');
+      await s.evaluate(eval(setNativeExpr("200")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const v = await page.$eval('[data-cdl-readout="kpi"] .cdl-ip-readout-kpi-card-value', (el) => el.textContent ?? "");
+      return { actual: /200/.test(v), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-revenue-kpi",
+    label: "revenue KPI: sparkline SVG path が描画 (6 history point → 1 line path)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const paths = await page.$$eval('[data-cdl-readout="kpi"] .cdl-ip-readout-kpi-card-spark path', (els) => els.length);
+      return { actual: paths, expected: 1 };
+    },
+  },
 ];
 
 async function main() {

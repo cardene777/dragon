@@ -2394,3 +2394,70 @@ html.dark .cdl-ip-readout-progress-group-name {
   display: block;
   margin: 0 auto;
 }
+
+/* calendar-heatmap readout */
+.cdl-ip-readout-calendar-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 620px;
+  overflow-x: auto;
+}
+.cdl-ip-readout-calendar-heatmap-svg {
+  display: block;
+}
+html.dark .cdl-ip-readout-calendar-heatmap-svg rect {
+  filter: brightness(0.85);
+}
+
+/* mini-map readout */
+.cdl-ip-readout-mini-map {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 180px;
+}
+.cdl-ip-readout-mini-map-svg {
+  display: block;
+  border-radius: 4px;
+}
+
+/* kpi-card readout */
+.cdl-ip-readout-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 140px;
+}
+.cdl-ip-readout-kpi-card-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+}
+.cdl-ip-readout-kpi-card-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-kpi-card-value {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-kpi-card-unit {
+  font-size: 12px;
+  color: var(--v4-mute, #64748b);
+  margin-left: 2px;
+}
+.cdl-ip-readout-kpi-card-delta {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 600;
+}
+.cdl-ip-readout-kpi-card-spark {
+  display: block;
+  margin-top: 4px;
+}
