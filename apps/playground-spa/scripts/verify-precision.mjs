@@ -290,6 +290,47 @@ const cases = [
       return { actual: count, expected: 10 };
     },
   },
+  {
+    diagramId: "interactive-radial-hub",
+    label: "radial-hub: 6 spoke node が renderOffsetX 経由で configured",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const spoke0 = await page.$eval('[data-cdl-node="spoke-0"]', (el) => el.getAttribute("data-cdl-offset-x"));
+      // spoke-0 = angle 0° → cos(0) * 90 = 90
+      return { actual: Number(spoke0), expected: 90, tolerance: 1 };
+    },
+  },
+  {
+    diagramId: "interactive-radial-hub",
+    label: "radial-hub: spoke-3 = angle 180° → offsetX = -90",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const spoke3 = await page.$eval('[data-cdl-node="spoke-3"]', (el) => el.getAttribute("data-cdl-offset-x"));
+      return { actual: Number(spoke3), expected: -90, tolerance: 1 };
+    },
+  },
+  {
+    diagramId: "interactive-array-waterfall",
+    label: "waterfall: 5 element → 5 bar + 4 connector",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const bars = await page.$$eval('[data-cdl-readout="wf"] svg rect', (els) => els.length);
+      return { actual: bars, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-render-offset",
+    label: "render-offset: slider(dx=50) で floater node が offsetX=50",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="dx"]');
+      await s.evaluate(eval(setNativeExpr("50")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const dx = await page.$eval('[data-cdl-node="floater"]', (el) => el.getAttribute("data-cdl-offset-x"));
+      return { actual: Number(dx), expected: 50, tolerance: 1 };
+    },
+  },
 ];
 
 async function main() {
