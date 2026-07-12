@@ -966,6 +966,34 @@ const cases = [
       return { actual: rows === 5 && error === 1, expected: true };
     },
   },
+  {
+    diagramId: "interactive-search-results",
+    label: "search-result: 5 hit row 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="sr"] .cdl-ip-readout-search-result-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-year-roadmap",
+    label: "roadmap: 4 quarter column + 9 total items",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cols = await page.$$eval('[data-cdl-readout="rm"] .cdl-ip-readout-roadmap-column', (els) => els.length);
+      const items = await page.$$eval('[data-cdl-readout="rm"] .cdl-ip-readout-roadmap-item', (els) => els.length);
+      return { actual: cols === 4 && items === 9, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-week-weather",
+    label: "weather-forecast: 5 day column 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const days = await page.$$eval('[data-cdl-readout="wf"] .cdl-ip-readout-weather-forecast-day', (els) => els.length);
+      return { actual: days, expected: 5 };
+    },
+  },
 ];
 
 async function main() {

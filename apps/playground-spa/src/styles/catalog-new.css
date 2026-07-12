@@ -3791,3 +3791,148 @@ html.dark .cdl-ip-readout-media-player-thumb {
 html.dark .cdl-ip-readout-event-log-msg {
   color: #f2f3f7;
 }
+
+/* search-result readout */
+.cdl-ip-readout-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 340px;
+}
+.cdl-ip-readout-search-result-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cdl-ip-readout-search-result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 200ms ease;
+}
+.cdl-ip-readout-search-result-row:hover {
+  background: rgba(148,163,184,0.08);
+}
+.cdl-ip-readout-search-result-title {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cdl-ip-readout-search-result-snippet {
+  font-size: 10px;
+  color: var(--v4-ink, #1a1f2a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.dark .cdl-ip-readout-search-result-snippet {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-search-result-url {
+  font-size: 9px;
+  color: var(--v4-mute, #64748b);
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+}
+
+/* roadmap readout */
+.cdl-ip-readout-roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+}
+.cdl-ip-readout-roadmap-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cdl-ip-readout-roadmap-column {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(148,163,184,0.06);
+}
+.cdl-ip-readout-roadmap-header {
+  padding: 4px 8px;
+  color: #fff;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.cdl-ip-readout-roadmap-items {
+  list-style: none;
+  padding: 6px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-ip-readout-roadmap-item {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-ink, #1a1f2a);
+  padding: 3px 6px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 3px;
+}
+html.dark .cdl-ip-readout-roadmap-item {
+  color: #f2f3f7;
+  background: rgba(30,41,59,0.5);
+}
+
+/* weather-forecast readout */
+.cdl-ip-readout-weather-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 260px;
+}
+.cdl-ip-readout-weather-forecast-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.cdl-ip-readout-weather-forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: rgba(148,163,184,0.06);
+  border-radius: 6px;
+  gap: 2px;
+}
+.cdl-ip-readout-weather-forecast-name {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cdl-ip-readout-weather-forecast-icon {
+  font-size: 24px;
+  line-height: 1;
+  margin: 2px 0;
+}
+.cdl-ip-readout-weather-forecast-high {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-weather-forecast-high {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-weather-forecast-low {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  color: var(--v4-mute, #64748b);
+}

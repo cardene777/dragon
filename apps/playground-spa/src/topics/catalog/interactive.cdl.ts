@@ -1665,3 +1665,59 @@ export const serverEventLog = diagram("interactive-server-event-log", {
   .readout.eventLog("el", { source: "events", max: 10, label: "Events" })
   .phase("p", { duration: 1200, title: "event log", body: "[[timestamp, severity, msg], ...] を info=ℹ (blue) / debug=· (gray) / warn=⚠ (yellow) / error=✕ (red) icon + color で monitoring log 表示、 server 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("monitor"))
   .build();
+
+/**
+ * 87. search-result = 5 search hit を title + snippet + url で表示。
+ */
+export const searchResults = diagram("interactive-search-results", {
+  topic: "search hit 5 rows を title + snippet + url で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("hits", [
+    ["Rust playground", "Interactive code sandbox for Rust programming language", "play.rust-lang.org"],
+    ["MDN Web Docs", "Documentation for web technologies", "developer.mozilla.org"],
+    ["TypeScript Handbook", "Official TS learning guide", "typescriptlang.org/docs"],
+    ["React docs", "React reference documentation", "react.dev"],
+    ["Vite guide", "Frontend build tool guide", "vitejs.dev"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Search results", subtitle: "5 hits" })
+  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results" })
+  .phase("p", { duration: 1200, title: "search hits", body: "[[title, snippet, url], ...] の 5 hit を title (blue link style) + snippet + url の layout で表示、 検索結果 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("search"))
+  .build();
+
+/**
+ * 88. roadmap = 2026 year quarterly plan Q1-Q4。
+ */
+export const yearRoadmap = diagram("interactive-year-roadmap", {
+  topic: "2026 year quarterly roadmap を Q1-Q4 4 column で task list 表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("plan", [
+    ["Q1", ["Design system", "MVP feature A"]],
+    ["Q2", ["Beta launch", "Feature B", "Feedback loop"]],
+    ["Q3", ["Scale infra", "Enterprise deals"]],
+    ["Q4", ["Public GA", "Series A"]],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "2026 roadmap", subtitle: "Q1-Q4 planning" })
+  .readout.roadmap("rm", { source: "plan", viewW: 400, viewH: 200, label: "Roadmap" })
+  .phase("p", { duration: 1200, title: "quarterly roadmap", body: "[[quarter, [items]], ...] を 4 column (Q1 blue / Q2 green / Q3 yellow / Q4 purple) で quarterly task list 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("plan"))
+  .build();
+
+/**
+ * 89. weather-forecast = 5-day weather (Mon-Fri) with icon + high/low temp。
+ */
+export const weekWeather = diagram("interactive-week-weather", {
+  topic: "5-day weather forecast (Mon-Fri) を icon + 高低 temp で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("forecast", [
+    ["Mon", "☀", 24, 18],
+    ["Tue", "☁", 22, 17],
+    ["Wed", "☂", 19, 15],
+    ["Thu", "⚡", 17, 13],
+    ["Fri", "☀", 25, 19],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Weather", subtitle: "5-day forecast" })
+  .readout.weatherForecast("wf", { source: "forecast", label: "Week" })
+  .phase("p", { duration: 1200, title: "5-day forecast", body: "[[day, icon, high, low], ...] を 5 column (day + emoji icon + high° + low°) の weather widget layout で表示。" }, (p: PhaseBuilder) => p.activate("card").badge("weather"))
+  .build();
