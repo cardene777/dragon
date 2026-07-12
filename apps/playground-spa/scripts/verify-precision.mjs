@@ -994,6 +994,34 @@ const cases = [
       return { actual: days, expected: 5 };
     },
   },
+  {
+    diagramId: "interactive-tutorial-videos",
+    label: "video-card: 3 video row 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="vc"] .cdl-ip-readout-video-card-row', (els) => els.length);
+      return { actual: rows, expected: 3 };
+    },
+  },
+  {
+    diagramId: "interactive-shipping-status",
+    label: "order-status: 4 step row 表示、 current step = 2",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="os"] .cdl-ip-readout-order-status-row', (els) => els.length);
+      const step = await page.$eval('[data-cdl-readout="os"]', (el) => el.getAttribute("data-cdl-step"));
+      return { actual: rows === 4 && step === "2", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-team-attendance",
+    label: "attendance-grid: 5 day row + 4 member col = 20 cell",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cells = await page.$$eval('[data-cdl-readout="ag"] .cdl-ip-readout-attendance-grid-cell', (els) => els.length);
+      return { actual: cells, expected: 20 };
+    },
+  },
 ];
 
 async function main() {

@@ -1721,3 +1721,55 @@ export const weekWeather = diagram("interactive-week-weather", {
   .readout.weatherForecast("wf", { source: "forecast", label: "Week" })
   .phase("p", { duration: 1200, title: "5-day forecast", body: "[[day, icon, high, low], ...] を 5 column (day + emoji icon + high° + low°) の weather widget layout で表示。" }, (p: PhaseBuilder) => p.activate("card").badge("weather"))
   .build();
+
+/**
+ * 90. video-card = tutorial video 3 本 (title + duration + views)。
+ */
+export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
+  topic: "tutorial video 3 本 (emoji thumbnail + title + duration + views) を list 表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("videos", [
+    ["🎬", "Rust intro for beginners", "12:45", "24k"],
+    ["🎥", "TypeScript deep dive", "45:20", "82k"],
+    ["📺", "React hooks explained", "18:30", "156k"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tutorials", subtitle: "3 videos" })
+  .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos" })
+  .phase("p", { duration: 1200, title: "video card", body: "[[emoji, title, duration, views], ...] を thumbnail (colored + emoji + duration badge) + title + views 表示、 YouTube 定番 layout。" }, (p: PhaseBuilder) => p.activate("card").badge("video"))
+  .build();
+
+/**
+ * 91. order-status = e-commerce 配送追跡、 stepper で current step 切替 → 4 icon step。
+ */
+export const shippingOrderStatus = diagram("interactive-shipping-status", {
+  topic: "e-commerce 配送追跡、 stepper で current step 切替 → 4 icon (📦→🚚→🏠→✅) step 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("current", { min: 0, max: 3, defaultValue: 2, label: "Step" })
+  .state("current", { initial: 2 })
+  .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Order #12345", subtitle: "current step: {current}" })
+  .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status" })
+  .phase("p", { duration: 1200, title: "order status", body: "stepper で current step 変化 → 4 icon (📦 Packed / 🚚 Shipped / 🏠 Out for delivery / ✅ Delivered) が done/current/pending 状態で色 + opacity + ✓ check。" }, (p: PhaseBuilder) => p.activate("card").badge("tracking"))
+  .build();
+
+/**
+ * 92. attendance-grid = チーム週間 attendance (5 day × 4 member)。
+ */
+export const teamAttendanceGrid = diagram("interactive-team-attendance", {
+  topic: "チーム週間 attendance を 5 day × 4 member の grid で表示、 ● present / ○ absent",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("attendance", [
+    ["Mon", true, true, false, true],
+    ["Tue", true, false, true, true],
+    ["Wed", true, true, true, true],
+    ["Thu", false, true, true, true],
+    ["Fri", true, true, false, true],
+  ] as unknown as (string | number)[])
+  .arraySignal("members", ["Alice", "Bob", "Carol", "Dan"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Week attendance", subtitle: "5 day × 4 member" })
+  .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance" })
+  .phase("p", { duration: 1200, title: "attendance grid", body: "[[day, p1, p2, p3, p4], ...] × [member names] を 2D grid table で表示、 true=● green / false=○ gray、 team 出席表定番。" }, (p: PhaseBuilder) => p.activate("card").badge("attendance"))
+  .build();
