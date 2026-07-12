@@ -357,3 +357,25 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status" })
   .phase("p", { duration: 1500, title: "signal → 4 readout 同時追随", body: "revenue slider で count up + delta ↑↓ + ring 追随、 status dropdown で typewriter reveal。" }, (p: PhaseBuilder) => p.activate("n").badge("dashboard"))
   .build();
+
+/**
+ * 19. timeline = 時間軸を signal 化、 play/pause/scrub/speed で phase 相当を手動制御。
+ *     time signal 経由で dyn-* shape を動的に駆動。
+ */
+export const timelineDrive = diagram("interactive-timeline-drive", {
+  topic: "timeline (play/pause/scrub/speed) で時間軸 signal、 shape を time で駆動",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.timeline("t", { duration: 3000, autoplay: true, loop: true, label: "Timeline" })
+  .formula("bar", "t * 100")
+  .formula("angle", "t * 270")
+  .state("t", { initial: 0 })
+  .state("bar", { initial: 0 })
+  .state("angle", { initial: 0 })
+  .node("r", { lane: "l", stack: 0, kind: "dyn-rect", title: "Bar", w: 60, h: 200,
+    shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#2d6a8f" } })
+  .node("a", { lane: "l", stack: 1, kind: "dyn-arc", title: "Arc", w: 140, h: 140,
+    shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
+  .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
+  .phase("p", { duration: 1500, title: "timeline signal で shape 駆動", body: "play / pause / scrub / speed で time を制御、 formula 経由で rect fill / arc angle が同時追随。" }, (p: PhaseBuilder) => p.activate("r", "a").badge("timeline"))
+  .build();

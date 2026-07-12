@@ -1802,3 +1802,94 @@ html.dark .cdl-ip-formula-value {
   margin-top: -3px;
   margin-bottom: -3px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   timeline widget (play/pause/scrub/speed)
+   ───────────────────────────────────────────────────────────── */
+.cdl-ip-timeline {
+  min-width: 340px;
+  gap: 6px;
+}
+.cdl-ip-timeline-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.cdl-ip-timeline-btn {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--v4-line, #e2e8f0);
+  background: var(--v4-surface, #ffffff);
+  color: var(--v4-brand, #2d6a8f);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cdl-ip-timeline-btn:hover {
+  background: rgba(45, 106, 143, 0.08);
+  border-color: var(--v4-brand, #2d6a8f);
+}
+.cdl-ip-timeline-play {
+  min-width: 36px;
+  font-size: 11px;
+}
+.cdl-ip-timeline-restart {
+  font-size: 15px;
+}
+.cdl-ip-timeline-speed {
+  font-variant-numeric: tabular-nums;
+}
+.cdl-ip-timeline-scrubber {
+  flex: 1;
+  min-width: 100px;
+  height: 4px;
+  background: var(--v4-line, #e2e8f0);
+  border-radius: 999px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.cdl-ip-timeline-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--v4-brand, #2d6a8f);
+  border: 2px solid var(--v4-surface, #ffffff);
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.cdl-ip-timeline-time {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  color: var(--v4-ink-dim, #5a6270);
+  font-variant-numeric: tabular-nums;
+}
+html.dark .cdl-ip-timeline-btn {
+  background: #0f1420;
+  border-color: #262e42;
+  color: #8b7ffa;
+}
+html.dark .cdl-ip-timeline-btn:hover {
+  background: rgba(139, 127, 250, 0.14);
+  border-color: #8b7ffa;
+}
+html.dark .cdl-ip-timeline-scrubber {
+  background: #262e42;
+}
+html.dark .cdl-ip-timeline-scrubber::-webkit-slider-thumb {
+  background: #8b7ffa;
+  border-color: #131a28;
+}
+html.dark .cdl-ip-timeline-time {
+  color: #9ca3b8;
+}
