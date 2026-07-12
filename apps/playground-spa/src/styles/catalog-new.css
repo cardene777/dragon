@@ -2335,3 +2335,19 @@ html.dark .cdl-ip-readout-progress-group-name {
   color: var(--v4-mute, #64748b);
   font-weight: 600;
 }
+
+/* sequence-timeline readout */
+.cdl-ip-readout-sequence-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 220px;
+}
+.cdl-ip-readout-sequence-timeline-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+}

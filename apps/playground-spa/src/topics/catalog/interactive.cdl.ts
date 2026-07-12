@@ -703,3 +703,86 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
   })
   .phase("p", { duration: 1200, title: "task list", body: "progressGroup で per-row progress bar + label 表示、 2 arraySignal (value / name) を combined 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("task list"))
   .build();
+
+/**
+ * 34. domain example = EIP-1559 gas cost model。
+ *     slider で base fee → 3 block の実 gas cost が waterfall + stacked-bar で並列可視化。
+ */
+export const eip1559GasFlow = diagram("interactive-eip1559", {
+  topic: "EIP-1559 gas cost model = base fee slider → 3 block の burned + tip を waterfall / stacked-bar で",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" })
+  .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "Priority tip" })
+  .state("baseFee", { initial: 50 })
+  .state("priority", { initial: 5 })
+  .arraySignal("burned", [50, 60, 72])
+  .arraySignal("tips", [5, 8, 10])
+  .arraySignal("changes", [50, 10, 12])
+  .formula("total1", "baseFee + priority")
+  .formula("total2", "(baseFee + priority) * 12 / 10")
+  .formula("total3", "(baseFee + priority) * 15 / 10")
+  .state("total1", { initial: 55 })
+  .state("total2", { initial: 66 })
+  .state("total3", { initial: 82 })
+  .node("summary", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "EIP-1559 fees",
+    subtitle: "block1 {total1} · block2 {total2} · block3 {total3} gwei",
+  })
+  .readout.stackedBar("gas", { sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip" })
+  .readout.waterfall("delta", { source: "changes", min: 0, max: 200, colorPos: "#f97316", colorNeg: "#94a3b8", label: "Cumulative" })
+  .readout.stat("baseRead", { source: "baseFee", unit: "gwei", label: "Base" })
+  .readout.stat("tipRead", { source: "priority", unit: "gwei", label: "Tip" })
+  .phase("p", { duration: 1200, title: "EIP-1559", body: "slider で base + tip 変化 → 3 block の gas cost が waterfall + stacked-bar で可視化。 formula chain で block2 = 1.2x, block3 = 1.5x の逓増。" }, (p: PhaseBuilder) => p.activate("summary").badge("EIP-1559"))
+  .build();
+
+/**
+ * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
+ */
+export const oauthFlow = diagram("interactive-oauth-flow", {
+  topic: "OAuth 2.0 authorization code flow を 6 event の sequence timeline で表示、 latency は slider 追随",
+})
+  .lane("l", { x: 0, width: 500 })
+  .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" })
+  .state("delay", { initial: 50 })
+  .arraySignal("events", [
+    [0, "click"],
+    [100, "redirect"],
+    [200, "consent"],
+    [350, "code"],
+    [500, "token"],
+    [650, "resp"],
+  ] as unknown as (string | number)[])
+  .node("client", { lane: "l", stack: 0, kind: "card", title: "Client", subtitle: "OAuth requester" })
+  .node("server", { lane: "l", stack: 1, kind: "card", title: "Server", subtitle: "delay {delay}ms" })
+  .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 340, viewH: 60, color: "#2563eb", label: "Timeline" })
+  .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
+  .phase("p", { duration: 1200, title: "OAuth flow", body: "6 event を sequence timeline で並べ、 t=0..700ms の等間隔 marker として表示、 slider で server delay の別表示。" }, (p: PhaseBuilder) => p.activate("client", "server").badge("OAuth"))
+  .build();
+
+/**
+ * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
+ */
+export const decisionTree = diagram("interactive-decision-tree", {
+  topic: "treeNodes(3, 2) で 7 node の完全 2 分木を配置、 各 node に renderOffsetX/Y で正しい tree layout",
+})
+  .lane("l", { x: 0, width: 480 })
+  .treeNodes(3, 2, 70, 80, (level, pos, i, ox, oy) => ({
+    id: `node-{i}`,
+    lane: "l",
+    stack: i,
+    kind: "card" as const,
+    title: `L{r}P{c}`,
+    subtitle: `#{i}`,
+    renderOffsetX: ox,
+    renderOffsetY: oy - 100,
+  }))
+  .phase("p", {
+    duration: 1200,
+    title: "decision tree",
+    body: "treeNodes(3, 2, 70, 80, tpl) で 7 node の完全 2 分木、 renderOffsetX/Y で正しい 2D 位置に。",
+  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
+  .build();
