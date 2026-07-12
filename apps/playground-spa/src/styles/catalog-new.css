@@ -3035,3 +3035,91 @@ html.dark .cdl-ip-readout-avatar-name {
 html.dark .cdl-ip-readout-checklist-label {
   color: #f2f3f7;
 }
+
+/* circular-gauge readout */
+.cdl-ip-readout-circular-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 180px;
+}
+.cdl-ip-readout-circular-gauge-svg {
+  display: block;
+  margin: 0 auto;
+}
+html.dark .cdl-ip-readout-circular-gauge-svg text {
+  fill: #f2f3f7;
+}
+
+/* price-tag readout */
+.cdl-ip-readout-price-tag {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-price-tag-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.cdl-ip-readout-price-tag-new {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 24px;
+  font-weight: 800;
+}
+html.dark .cdl-ip-readout-price-tag-new {
+  color: #f2f3f7 !important;
+}
+.cdl-ip-readout-price-tag-old {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 14px;
+  text-decoration: line-through;
+}
+.cdl-ip-readout-price-tag-discount {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cdl-ip-readout-price-tag-savings {
+  font-size: 11px;
+  color: var(--v4-mute, #64748b);
+  font-style: italic;
+}
+
+/* spinner readout */
+.cdl-ip-readout-spinner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-spinner-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cdl-ip-readout-spinner-svg {
+  display: block;
+}
+.cdl-ip-readout-spinner-icon {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cdl-ip-readout-spinner-text {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  color: var(--v4-ink, #1a1f2a);
+}
+html.dark .cdl-ip-readout-spinner-text {
+  color: #f2f3f7;
+}

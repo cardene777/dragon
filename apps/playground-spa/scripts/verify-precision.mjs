@@ -748,6 +748,44 @@ const cases = [
       return { actual: rows === 6 && checked === 2, expected: true };
     },
   },
+  {
+    diagramId: "interactive-engine-tachometer",
+    label: "circular-gauge: slider(rpm=5000) → center text に 5000 表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="rpm"]');
+      await s.evaluate(eval(setNativeExpr("5000")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="g"] svg text', (el) => el.textContent ?? "");
+      return { actual: /5000/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-product-price-tag",
+    label: "price-tag: newPrice=65 / oldPrice=100 → discount = -35%",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="pt"] .cdl-ip-readout-price-tag-discount', (el) => el.textContent ?? "");
+      return { actual: /-35%/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-deploy-spinner",
+    label: "spinner: dropdown で done → data-cdl-status=done",
+    setup: async (page) => {
+      const sel = await page.$('select[data-cdl-input="status"]');
+      if (sel) {
+        await sel.selectOption("done");
+        await sel.dispatchEvent("change");
+      }
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const status = await page.$eval('[data-cdl-readout="sp"]', (el) => el.getAttribute("data-cdl-status"));
+      return { actual: status === "done", expected: true };
+    },
+  },
 ];
 
 async function main() {
