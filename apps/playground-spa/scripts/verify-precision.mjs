@@ -875,6 +875,40 @@ const cases = [
       return { actual: cells, expected: 3 };
     },
   },
+  {
+    diagramId: "interactive-crypto-wallet",
+    label: "token-list: 4 token row 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="tl"] .cdl-ip-readout-token-list-row', (els) => els.length);
+      return { actual: rows, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-world-map",
+    label: "map-pin: 5 city pin (circle) 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const circles = await page.$$eval('[data-cdl-readout="mp"] svg circle', (els) => els.length);
+      return { actual: circles, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-issue-priority",
+    label: "priority-badge: dropdown で low → data-cdl-priority=low",
+    setup: async (page) => {
+      const sel = await page.$('select[data-cdl-input="prio"]');
+      if (sel) {
+        await sel.selectOption("low");
+        await sel.dispatchEvent("change");
+      }
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const priority = await page.$eval('[data-cdl-readout="pb"]', (el) => el.getAttribute("data-cdl-priority"));
+      return { actual: priority === "low", expected: true };
+    },
+  },
 ];
 
 async function main() {
