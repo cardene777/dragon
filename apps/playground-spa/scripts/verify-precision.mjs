@@ -331,6 +331,42 @@ const cases = [
       return { actual: Number(dx), expected: 50, tolerance: 1 };
     },
   },
+  {
+    diagramId: "interactive-matrix-heatmap",
+    label: "matrix-heatmap: 4×4 = 16 cell rect が SVG に描画",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="m"] svg rect', (els) => els.length);
+      return { actual: rects, expected: 16 };
+    },
+  },
+  {
+    diagramId: "interactive-matrix-heatmap",
+    label: "matrix-heatmap: showValue=true で 16 text label",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const texts = await page.$$eval('[data-cdl-readout="m"] svg text', (els) => els.length);
+      return { actual: texts, expected: 16 };
+    },
+  },
+  {
+    diagramId: "interactive-progress-group",
+    label: "progress-group: 4 element → 4 row + 4 progress fill",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="tasks"] .cdl-ip-readout-progress-group-row', (els) => els.length);
+      return { actual: rows, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-progress-group",
+    label: "progress-group: labelSource で name array から label が反映 (Design/Impl/Test/Docs)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const names = await page.$$eval('[data-cdl-readout="tasks"] .cdl-ip-readout-progress-group-name', (els) => els.map((e) => e.textContent));
+      return { actual: names.join(",") === "Design,Impl,Test,Docs", expected: true };
+    },
+  },
 ];
 
 async function main() {

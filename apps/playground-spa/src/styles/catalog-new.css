@@ -2266,3 +2266,72 @@ html.dark .cdl-ip-readout-array-list-items {
   background: rgba(148,163,184,0.06);
   border-radius: 4px;
 }
+
+/* matrix readout */
+.cdl-ip-readout-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 140px;
+}
+.cdl-ip-readout-matrix-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: rgba(148,163,184,0.04);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+/* progress-group readout */
+.cdl-ip-readout-progress-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 200px;
+}
+.cdl-ip-readout-progress-group-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-ip-readout-progress-group-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+}
+.cdl-ip-readout-progress-group-name {
+  color: var(--v4-ink, #1a1f2a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html.dark .cdl-ip-readout-progress-group-name {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-progress-group-track {
+  height: 8px;
+  background: rgba(148,163,184,0.16);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.cdl-ip-readout-progress-group-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 300ms ease-out;
+}
+.cdl-ip-readout-progress-group-value {
+  text-align: right;
+  color: var(--v4-mute, #64748b);
+  font-weight: 600;
+}
