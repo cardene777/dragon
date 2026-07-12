@@ -1219,3 +1219,49 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
   .readout.activityFeed("af", { source: "events", max: 5, color: "#2563eb", label: "Recent" })
   .phase("p", { duration: 1200, title: "activity feed", body: "[[actor, action, time], ...] を feed list で表示、 bullet + actor(強調) + action + time の 3 column layout、 team stream 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("feed"))
   .build();
+
+/**
+ * 60. rating = 5 star rating を slider (0-5) で表示、 half-star 対応。
+ */
+export const productRating = diagram("interactive-product-rating", {
+  topic: "product rating を slider (0-5) で操作、 star display で half-star 対応表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("score", { min: 0, max: 5, step: 0.5, defaultValue: 3.5, label: "Score" })
+  .state("score", { initial: 3.5 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Product review", subtitle: "current: {score} / 5" })
+  .readout.rating("r", { source: "score", count: 5, color: "#eab308", label: "Rating" })
+  .phase("p", { duration: 1200, title: "star rating", body: "slider で 0.5 刻み score 変化 → star display の 5 star が full/half/empty で表示、 SVG linearGradient で half-star 実装。" }, (p: PhaseBuilder) => p.activate("card").badge("rating"))
+  .build();
+
+/**
+ * 61. notification = alert card、 dropdown で kind (info/warn/error/success) を切替。
+ */
+export const alertNotification = diagram("interactive-alert-notification", {
+  topic: "alert notification card、 dropdown で kind (info/warn/error/success) 切替 → color + icon 変化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.dropdown("kind", { options: ["info", "warn", "error", "success"], defaultValue: "warn", label: "Kind" })
+  .state("kind", { initial: "warn" })
+  .state("title", { initial: "Deploy in progress" })
+  .state("body", { initial: "Building v1.2.3 for production" })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Alert center", subtitle: "kind: {kind}" })
+  .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "Alert" })
+  .phase("p", { duration: 1200, title: "notification", body: "kind 4 種を dropdown で切替 → color + icon (ℹ/⚠/✕/✓) が動的更新、 title + body 2 段表示。" }, (p: PhaseBuilder) => p.activate("card").badge("alert"))
+  .build();
+
+/**
+ * 62. diff-counter = git commit style +N/-N、 stepper で additions / deletions 変化。
+ */
+export const commitDiffCounter = diagram("interactive-commit-diff", {
+  topic: "git commit style +N/-N counter、 stepper で additions/deletions 変化 → 比率 bar 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("add", { min: 0, max: 500, step: 10, defaultValue: 120, label: "Additions" })
+  .input.stepper("del", { min: 0, max: 500, step: 10, defaultValue: 45, label: "Deletions" })
+  .state("add", { initial: 120 })
+  .state("del", { initial: 45 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "PR diff", subtitle: "+{add} / -{del} lines" })
+  .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff" })
+  .phase("p", { duration: 1200, title: "diff counter", body: "stepper で additions/deletions 変化 → +N / -N text + proportion bar が同時追随、 git PR diff 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("diff"))
+  .build();

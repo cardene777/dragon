@@ -683,6 +683,34 @@ const cases = [
       return { actual: first === "Alice", expected: true };
     },
   },
+  {
+    diagramId: "interactive-product-rating",
+    label: "product-rating: 5 star SVG 描画 (5 SVG element)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const stars = await page.$$eval('[data-cdl-readout="r"] .cdl-ip-readout-rating-star', (els) => els.length);
+      return { actual: stars, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-alert-notification",
+    label: "notification: card + title + body 描画 (data-cdl-kind=warn)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const kind = await page.$eval('[data-cdl-readout="nt"]', (el) => el.getAttribute("data-cdl-kind"));
+      return { actual: kind === "warn", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-commit-diff",
+    label: "diff-counter: +120 / -45 が row に表示",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const add = await page.$eval('[data-cdl-readout="dc"] .cdl-ip-readout-diff-counter-add', (el) => el.textContent ?? "");
+      const del = await page.$eval('[data-cdl-readout="dc"] .cdl-ip-readout-diff-counter-del', (el) => el.textContent ?? "");
+      return { actual: add === "+120" && del === "-45", expected: true };
+    },
+  },
 ];
 
 async function main() {
