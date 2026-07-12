@@ -817,6 +817,33 @@ const cases = [
       return { actual: band === "high", expected: true };
     },
   },
+  {
+    diagramId: "interactive-post-reactions",
+    label: "reaction-bar: 4 reaction pill 表示",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const pills = await page.$$eval('[data-cdl-readout="rb"] .cdl-ip-readout-reaction-bar-pill', (els) => els.length);
+      return { actual: pills, expected: 4 };
+    },
+  },
+  {
+    diagramId: "interactive-tech-pills",
+    label: "pill-group: 5 tech pill 表示",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const pills = await page.$$eval('[data-cdl-readout="pg"] .cdl-ip-readout-pill-group-pill', (els) => els.length);
+      return { actual: pills, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-device-battery",
+    label: "fuel-bar: initial 72% → data-cdl-level = 'high'",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const level = await page.$eval('[data-cdl-readout="fb"]', (el) => el.getAttribute("data-cdl-level"));
+      return { actual: level === "high", expected: true };
+    },
+  },
 ];
 
 async function main() {

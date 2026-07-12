@@ -1409,3 +1409,54 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence" })
   .phase("p", { duration: 1200, title: "confidence meter", body: "slider で confidence % 変化 → 3 range band (low<40=red / mid=yellow / high≥75=green) で bar 色 + band label が動的更新、 ML/AI 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("ML conf"))
   .build();
+
+/**
+ * 72. reaction-bar = social post reactions、 4 emoji + count で pill 表示。
+ */
+export const postReactions = diagram("interactive-post-reactions", {
+  topic: "social post reactions を 4 emoji + count の pill list で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("reactions", [
+    ["👍", 24],
+    ["❤️", 12],
+    ["😂", 8],
+    ["🎉", 5],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Post reactions", subtitle: "4 emoji type" })
+  .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "Reactions" })
+  .phase("p", { duration: 1200, title: "reactions", body: "[[emoji, count], ...] を pill (border color) + emoji + count で並列表示、 social media 定番の reaction UI。" }, (p: PhaseBuilder) => p.activate("card").badge("social"))
+  .build();
+
+/**
+ * 73. pill-group = tech skill 色付き pills、 [[label, colorHex], ...] で per-pill color。
+ */
+export const techPills = diagram("interactive-tech-pills", {
+  topic: "tech skill を 色付き pill list で表示、 [[label, colorHex], ...] で per-pill color 制御",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("stack", [
+    ["React", "#61dafb"],
+    ["TypeScript", "#3178c6"],
+    ["Rust", "#dea584"],
+    ["Vite", "#646cff"],
+    ["Bun", "#000000"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tech stack", subtitle: "5 pills" })
+  .readout.pillGroup("pg", { source: "stack", label: "Stack" })
+  .phase("p", { duration: 1200, title: "pill group", body: "[[label, colorHex], ...] の 2-tuple で per-pill color 制御、 tech stack / tag list 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("pills"))
+  .build();
+
+/**
+ * 74. fuel-bar = device battery、 slider で 0-100% 変化 → 10 segment + 3 color band 追随。
+ */
+export const deviceBattery = diagram("interactive-device-battery", {
+  topic: "device battery を slider で操作 → 10 segment fuel bar + 3 color band (red/yellow/green)",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("battery", { min: 0, max: 100, defaultValue: 72, label: "Battery %" })
+  .state("battery", { initial: 72 })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Battery", subtitle: "{battery}%" })
+  .readout.fuelBar("fb", { source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level" })
+  .phase("p", { duration: 1200, title: "fuel bar", body: "slider で battery % 変化 → 10 segment horizontal bar が filled 数追随 + 3 color band で色切替 (低=red / 中=yellow / 高=green)、 battery / fuel / stamina 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("battery"))
+  .build();
