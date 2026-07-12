@@ -1376,3 +1376,429 @@ html.dark .cdl-ip-readout-sparkline-empty {
   border-color: #262e42;
   color: #6b7285;
 }
+
+/* ── countup readout ── */
+.cdl-ip-readout-countup-value {
+  font-family: var(--v4-sans, "Inter", sans-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--v4-brand, #2d6a8f);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 44px;
+  text-align: right;
+}
+.cdl-ip-readout-countup-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--v4-ink-dim, #5a6270);
+}
+html.dark .cdl-ip-readout-countup-value {
+  color: #8b7ffa;
+}
+html.dark .cdl-ip-readout-countup-unit {
+  color: #9ca3b8;
+}
+
+/* ── typewriter readout ── */
+.cdl-ip-readout-typewriter-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 13px;
+  color: var(--v4-brand, #2d6a8f);
+  min-width: 120px;
+}
+.cdl-ip-readout-typewriter-caret {
+  color: var(--v4-brand, #2d6a8f);
+  animation: cdl-caret-blink 800ms infinite;
+  margin-left: 1px;
+}
+@keyframes cdl-caret-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+html.dark .cdl-ip-readout-typewriter-value,
+html.dark .cdl-ip-readout-typewriter-caret {
+  color: #8b7ffa;
+}
+
+/* ── delta readout ── */
+.cdl-ip-readout-delta-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--v4-ink, #1a1f2a);
+  font-variant-numeric: tabular-nums;
+}
+.cdl-ip-readout-delta-unit {
+  font-size: 11px;
+  color: var(--v4-ink-dim, #5a6270);
+  margin-left: 1px;
+}
+.cdl-ip-readout-delta-change {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v4-ink-dim, #5a6270);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--v4-line-soft, #f1f5f9);
+}
+.cdl-ip-delta-up .cdl-ip-readout-delta-change {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+}
+.cdl-ip-delta-down .cdl-ip-readout-delta-change {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+html.dark .cdl-ip-readout-delta-value {
+  color: #f2f3f7;
+}
+html.dark .cdl-ip-readout-delta-change {
+  background: #1a1f2e;
+}
+html.dark .cdl-ip-delta-up .cdl-ip-readout-delta-change {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+html.dark .cdl-ip-delta-down .cdl-ip-readout-delta-change {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+/* ── percent-ring readout ── */
+.cdl-ip-readout-ring-track {
+  stroke: var(--v4-line, #e2e8f0);
+}
+.cdl-ip-readout-ring-fill {
+  stroke: var(--v4-brand, #2d6a8f);
+}
+.cdl-ip-readout-ring-value {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v4-brand, #2d6a8f);
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
+}
+html.dark .cdl-ip-readout-ring-track {
+  stroke: #262e42;
+}
+html.dark .cdl-ip-readout-ring-fill,
+html.dark .cdl-ip-readout-ring-value {
+  stroke: #8b7ffa;
+  color: #8b7ffa;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   input と readout の視覚区別 (input = 触れる chip、 readout = 表示 tile)
+   ───────────────────────────────────────────────────────────── */
+
+/* group に vertical divider を入れて操作/表示を境界化 */
+.cdl-ip-root {
+  gap: 12px;
+}
+.cdl-ip-group {
+  gap: 12px;
+  padding: 4px 0;
+}
+.cdl-ip-group + .cdl-ip-group {
+  border-top: 1px dashed var(--v4-line, #e2e8f0);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+html.dark .cdl-ip-group + .cdl-ip-group {
+  border-top-color: #262e42;
+}
+
+/* readout (bar / gauge / stat / sparkline / countup / delta / percent-ring / typewriter) は
+   flat tile 化、 border と background を外す。 hover state 無し (触れないため)。 */
+.cdl-ip-readout-bar,
+.cdl-ip-readout-gauge,
+.cdl-ip-readout-stat,
+.cdl-ip-readout-sparkline,
+.cdl-ip-readout-countup,
+.cdl-ip-readout-typewriter,
+.cdl-ip-readout-delta,
+.cdl-ip-readout-ring,
+.cdl-ip-formula {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  gap: 8px;
+}
+.cdl-ip-readout-bar:hover,
+.cdl-ip-readout-gauge:hover,
+.cdl-ip-readout-stat:hover,
+.cdl-ip-readout-sparkline:hover,
+.cdl-ip-readout-countup:hover,
+.cdl-ip-readout-typewriter:hover,
+.cdl-ip-readout-delta:hover,
+.cdl-ip-readout-ring:hover,
+.cdl-ip-formula:hover {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+html.dark .cdl-ip-readout-bar,
+html.dark .cdl-ip-readout-gauge,
+html.dark .cdl-ip-readout-stat,
+html.dark .cdl-ip-readout-sparkline,
+html.dark .cdl-ip-readout-countup,
+html.dark .cdl-ip-readout-typewriter,
+html.dark .cdl-ip-readout-delta,
+html.dark .cdl-ip-readout-ring,
+html.dark .cdl-ip-formula {
+  background: transparent;
+  border: none;
+}
+
+/* readout の label を tiny cap 化 (input label と区別、 dashboard 風) */
+.cdl-ip-readout-bar > .cdl-ip-label,
+.cdl-ip-readout-gauge > .cdl-ip-label,
+.cdl-ip-readout-stat > .cdl-ip-label,
+.cdl-ip-readout-sparkline > .cdl-ip-label,
+.cdl-ip-readout-countup > .cdl-ip-label,
+.cdl-ip-readout-typewriter > .cdl-ip-label,
+.cdl-ip-readout-delta > .cdl-ip-label,
+.cdl-ip-readout-ring > .cdl-ip-label,
+.cdl-ip-formula > .cdl-ip-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v4-ink-mute, #8a8678);
+  opacity: 0.8;
+}
+html.dark .cdl-ip-readout-bar > .cdl-ip-label,
+html.dark .cdl-ip-readout-gauge > .cdl-ip-label,
+html.dark .cdl-ip-readout-stat > .cdl-ip-label,
+html.dark .cdl-ip-readout-sparkline > .cdl-ip-label,
+html.dark .cdl-ip-readout-countup > .cdl-ip-label,
+html.dark .cdl-ip-readout-typewriter > .cdl-ip-label,
+html.dark .cdl-ip-readout-delta > .cdl-ip-label,
+html.dark .cdl-ip-readout-ring > .cdl-ip-label,
+html.dark .cdl-ip-formula > .cdl-ip-label {
+  color: #6b7285;
+}
+
+/* input side は chip 維持だが、 hover state はよりはっきり見せる (触れる signal) */
+.cdl-ip-slider,
+.cdl-ip-number,
+.cdl-ip-dropdown,
+.cdl-ip-toggle,
+.cdl-ip-xypad,
+.cdl-ip-stepper,
+.cdl-ip-radio,
+.cdl-ip-color {
+  border: 1px solid var(--v4-line, #e2e8f0);
+  background: var(--v4-surface, #ffffff);
+}
+html.dark .cdl-ip-slider,
+html.dark .cdl-ip-number,
+html.dark .cdl-ip-dropdown,
+html.dark .cdl-ip-toggle,
+html.dark .cdl-ip-xypad,
+html.dark .cdl-ip-stepper,
+html.dark .cdl-ip-radio,
+html.dark .cdl-ip-color {
+  background: #131a28;
+  border-color: #262e42;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   readout の tile 縦積み化 (label 上 / 値 下)、 baseline 揃え
+   ───────────────────────────────────────────────────────────── */
+
+/* readout item は縦 stack (label 上 / 値 下)、 高さを揃える */
+.cdl-ip-readout-bar,
+.cdl-ip-readout-gauge,
+.cdl-ip-readout-stat,
+.cdl-ip-readout-sparkline,
+.cdl-ip-readout-countup,
+.cdl-ip-readout-typewriter,
+.cdl-ip-readout-delta,
+.cdl-ip-readout-ring,
+.cdl-ip-formula {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 80px;
+  padding: 6px 12px;
+  border-right: 1px solid var(--v4-line, #e2e8f0);
+  border-radius: 0;
+}
+.cdl-ip-readout-bar:last-child,
+.cdl-ip-readout-gauge:last-child,
+.cdl-ip-readout-stat:last-child,
+.cdl-ip-readout-sparkline:last-child,
+.cdl-ip-readout-countup:last-child,
+.cdl-ip-readout-typewriter:last-child,
+.cdl-ip-readout-delta:last-child,
+.cdl-ip-readout-ring:last-child,
+.cdl-ip-formula:last-child {
+  border-right: none;
+}
+html.dark .cdl-ip-readout-bar,
+html.dark .cdl-ip-readout-gauge,
+html.dark .cdl-ip-readout-stat,
+html.dark .cdl-ip-readout-sparkline,
+html.dark .cdl-ip-readout-countup,
+html.dark .cdl-ip-readout-typewriter,
+html.dark .cdl-ip-readout-delta,
+html.dark .cdl-ip-readout-ring,
+html.dark .cdl-ip-formula {
+  border-right-color: #262e42;
+}
+
+/* group 内 readout row は align-items: stretch で高さ揃え */
+.cdl-ip-group {
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+/* label は常に上 tiny cap */
+.cdl-ip-readout-bar > .cdl-ip-label,
+.cdl-ip-readout-gauge > .cdl-ip-label,
+.cdl-ip-readout-stat > .cdl-ip-label,
+.cdl-ip-readout-sparkline > .cdl-ip-label,
+.cdl-ip-readout-countup > .cdl-ip-label,
+.cdl-ip-readout-typewriter > .cdl-ip-label,
+.cdl-ip-readout-delta > .cdl-ip-label,
+.cdl-ip-readout-ring > .cdl-ip-label,
+.cdl-ip-formula > .cdl-ip-label {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* value 系を左揃え / 大きめに */
+.cdl-ip-readout-bar-value,
+.cdl-ip-readout-gauge-value,
+.cdl-ip-readout-sparkline-value,
+.cdl-ip-readout-ring-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--v4-brand, #2d6a8f);
+  min-width: unset;
+  text-align: left;
+}
+html.dark .cdl-ip-readout-bar-value,
+html.dark .cdl-ip-readout-gauge-value,
+html.dark .cdl-ip-readout-sparkline-value,
+html.dark .cdl-ip-readout-ring-value {
+  color: #8b7ffa;
+}
+
+/* stat の value は大きめに */
+.cdl-ip-readout-stat-body {
+  align-items: flex-start;
+}
+
+/* bar/scroll track を tile 内で幅 100% に */
+.cdl-ip-readout-bar-track,
+.cdl-ip-scroll-track {
+  width: 100%;
+  min-width: 80px;
+}
+
+/* countup / delta / typewriter の value を label 直下に配置、 unit は inline */
+.cdl-ip-readout-countup-value,
+.cdl-ip-readout-delta-value,
+.cdl-ip-readout-typewriter-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: unset;
+  text-align: left;
+}
+
+/* delta change を value の下に、 少しインデント */
+.cdl-ip-readout-delta {
+  gap: 2px;
+}
+.cdl-ip-readout-delta-change {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 1px 5px;
+  margin-top: 2px;
+}
+
+/* formula の expr を label 直下、 value を右に */
+.cdl-ip-formula-expr {
+  font-size: 10.5px;
+  color: var(--v4-ink-mute, #8a8678);
+  display: block;
+}
+.cdl-ip-formula-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--v4-brand, #2d6a8f);
+}
+html.dark .cdl-ip-formula-expr {
+  color: #6b7285;
+}
+html.dark .cdl-ip-formula-value {
+  color: #8b7ffa;
+}
+
+/* SVG 系 readout の左揃え強制 (gauge / sparkline / ring / bar track) */
+.cdl-ip-readout-gauge-svg,
+.cdl-ip-readout-sparkline-svg,
+.cdl-ip-readout-ring-svg,
+.cdl-ip-readout-bar-track {
+  display: block;
+  margin: 0;
+  align-self: flex-start;
+}
+
+/* value/label/svg 全部 tile の左端に張り付ける */
+.cdl-ip-readout-bar > *,
+.cdl-ip-readout-gauge > *,
+.cdl-ip-readout-stat > *,
+.cdl-ip-readout-sparkline > *,
+.cdl-ip-readout-countup > *,
+.cdl-ip-readout-typewriter > *,
+.cdl-ip-readout-delta > *,
+.cdl-ip-readout-ring > *,
+.cdl-ip-formula > * {
+  align-self: flex-start;
+  text-align: left;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* SVG 内 visible content が中央寄りな gauge / ring は margin-left で左シフト、
+   text baseline と SVG 可視 left edge を揃える */
+.cdl-ip-readout-gauge-svg {
+  margin-left: -11px;  /* arc の可視 left = 11.3px、 tile 左端に合わせる */
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+.cdl-ip-readout-ring-svg {
+  margin-left: -3px;   /* ring の可視 left ≈ 3px */
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+
+/* gauge svg: arc 可視上下端に詰める (arc y range = 6..42、 48 内で上下 6px 余白) */
+.cdl-ip-readout-gauge-svg {
+  margin-top: -6px !important;
+  margin-bottom: -6px !important;
+}
+
+/* ring svg: circle 可視上下 (cy=22, r=18 → y=4..40、 44 内で 4px 余白) */
+.cdl-ip-readout-ring-svg {
+  margin-top: -4px !important;
+  margin-bottom: -4px !important;
+}
+
+/* sparkline svg: line 上下 padding も詰める */
+.cdl-ip-readout-sparkline-svg {
+  margin-top: -3px;
+  margin-bottom: -3px;
+}
