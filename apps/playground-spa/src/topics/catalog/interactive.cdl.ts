@@ -195,3 +195,110 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   .readout.stat("hexReadout", { source: "accent", label: "Selected", caption: "hex color" })
   .phase("p", { duration: 1500, title: "color picker → hex signal", body: "color picker で色を選ぶと signal に hex が保持、 subtitle と stat readout に表示。" }, (p: PhaseBuilder) => p.activate("swatch").badge("color"))
   .build();
+
+/**
+ * 11. shape primitive = rect fill、 signal で内部が実際に伸縮する汎用 container。
+ */
+export const shapeRectFill = diagram("interactive-shape-rect", {
+  topic: "dyn-rect = 汎用 container、 signal 値で内部 fill 高さが変化",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("v", { min: 0, max: 100, defaultValue: 40, label: "Value" })
+  .state("v", { initial: 40 })
+  .node("bar", {
+    lane: "l",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "Bar Fill",
+    w: 100,
+    h: 240,
+    shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#2d6a8f" },
+  })
+  .phase("p", { duration: 1500, title: "rect の中身が signal に追随", body: "slider を動かすと rect 内部の fill 高さが 0..100 に応じて変化。" }, (p: PhaseBuilder) => p.activate("bar").badge("shape.rect"))
+  .build();
+
+/**
+ * 12. chain fill = 3 個の rect を並列、 base 値の伝搬で各 fill が連動 (EIP1559 相当)。
+ */
+export const shapeChainFill = diagram("interactive-shape-chain", {
+  topic: "3 個の dyn-rect を並列、 base slider で各 fill が formula 経由で連動変化",
+})
+  .lane("l1", { x: 0, width: 130 })
+  .lane("l2", { x: 150, width: 130 })
+  .lane("l3", { x: 300, width: 130 })
+  .input.slider("base", { min: 0, max: 100, defaultValue: 30, label: "Base" })
+  .formula("gas1", "base")
+  .formula("gas2", "base * 1.2")
+  .formula("gas3", "base * 1.5")
+  .state("base", { initial: 30 })
+  .state("gas1", { initial: 30 })
+  .state("gas2", { initial: 36 })
+  .state("gas3", { initial: 45 })
+  .node("r1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "Block 1", subtitle: "gas: {gas1}", w: 100, h: 220,
+    shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#2d6a8f" } })
+  .node("r2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "Block 2", subtitle: "gas: {gas2}", w: 100, h: 220,
+    shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" } })
+  .node("r3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "Block 3", subtitle: "gas: {gas3}", w: 100, h: 220,
+    shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" } })
+  .phase("p", { duration: 1500, title: "chain 追随 = 前値が formula で次を駆動", body: "base slider を動かすと gas1 = base、 gas2 = base*1.2、 gas3 = base*1.5 で連動、 3 rect の fill が同時に伸縮。" }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3").badge("chain fill"))
+  .build();
+
+/**
+ * 13. dyn-circle = radius / progress を signal で駆動、 progress ring の汎用版。
+ */
+export const shapeCirclePulse = diagram("interactive-shape-circle", {
+  topic: "dyn-circle = 半径 / fillProgress を signal で駆動、 progress ring / pulse を組める",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "Progress" })
+  .formula("prog", "p / 100")
+  .state("p", { initial: 60 })
+  .state("prog", { initial: 0.6 })
+  .node("c", { lane: "l", stack: 0, kind: "dyn-circle", title: "Ring", subtitle: "{p}%", w: 160, h: 160,
+    shape: { kind: "circle", fillProgress: "{prog}", fill: "#2d6a8f" } })
+  .phase("p", { duration: 1500, title: "circle の中央 fill が progress で伸縮", body: "slider を動かすと inner circle radius が 0..outer に応じて変化。" }, (p: PhaseBuilder) => p.activate("c").badge("shape.circle"))
+  .build();
+
+/**
+ * 14. dyn-arc = 角度で fill sweep、 gauge や circular progress の汎用形。
+ */
+export const shapeArcSweep = diagram("interactive-shape-arc", {
+  topic: "dyn-arc = 角度で fill sweep、 gauge / circular progress を組める",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "Angle" })
+  .state("a", { initial: 180 })
+  .node("g", { lane: "l", stack: 0, kind: "dyn-arc", title: "Arc", subtitle: "{a}°", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#2d6a8f" } })
+  .phase("p", { duration: 1500, title: "arc の sweep が angle 変化", body: "slider の値 (0..270 度) で arc の描画角度が変化、 gauge の汎用形。" }, (p: PhaseBuilder) => p.activate("g").badge("shape.arc"))
+  .build();
+
+/**
+ * 15. dyn-wave = 水位表示、 tank / battery / liquid level の汎用形。
+ */
+export const shapeWaveTank = diagram("interactive-shape-wave", {
+  topic: "dyn-wave = 水位 (0..amplitude) を signal で駆動、 tank / battery を組める",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("lvl", { min: 0, max: 100, defaultValue: 55, label: "Level" })
+  .state("lvl", { initial: 55 })
+  .node("w", { lane: "l", stack: 0, kind: "dyn-wave", title: "Tank", subtitle: "{lvl}%", w: 140, h: 220,
+    shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
+  .phase("p", { duration: 1500, title: "wave の水位が signal で変化", body: "slider を動かすと水位が変化、 波の form は amplitude / frequency / waveHeight で調整可。" }, (p: PhaseBuilder) => p.activate("w").badge("shape.wave"))
+  .build();
+
+/**
+ * 16. dyn-polygon = 頂点数 + 回転を signal で駆動、 badge / medal / spinner の汎用形。
+ */
+export const shapePolyRotate = diagram("interactive-shape-polygon", {
+  topic: "dyn-polygon = 頂点数 3-12 と回転を signal で駆動、 badge / spinner を組める",
+})
+  .lane("l", { x: 0, width: 400 })
+  .input.slider("rot", { min: 0, max: 360, defaultValue: 0, label: "Rotation" })
+  .input.slider("radius", { min: 20, max: 80, defaultValue: 60, label: "Radius" })
+  .state("rot", { initial: 0 })
+  .state("radius", { initial: 60 })
+  .node("p", { lane: "l", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "{rot}°", w: 200, h: 200,
+    shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
+  .phase("p", { duration: 1500, title: "polygon が回転 + 半径変化", body: "rot slider で hexagon が回転、 radius slider で大きさ変化。 sides を 3-12 で他形状にも。" }, (p: PhaseBuilder) => p.activate("p").badge("shape.polygon"))
+  .build();
