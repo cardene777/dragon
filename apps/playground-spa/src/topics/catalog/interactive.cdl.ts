@@ -1265,3 +1265,56 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff" })
   .phase("p", { duration: 1200, title: "diff counter", body: "stepper で additions/deletions 変化 → +N / -N text + proportion bar が同時追随、 git PR diff 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("diff"))
   .build();
+
+/**
+ * 63. chat-bubble = customer support conversation 5 message、 self/other 左右寄せ表示。
+ */
+export const supportChat = diagram("interactive-support-chat", {
+  topic: "customer support conversation 5 message を chat-bubble で左右寄せ表示 (self/other)",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("thread", [
+    ["Alice", "Hi, I need help with my order", false],
+    ["Support", "Sure! What's the order ID?", true],
+    ["Alice", "#12345", false],
+    ["Support", "Checking...", true],
+    ["Support", "Refunded! You'll see it in 3-5 days.", true],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Support chat", subtitle: "5 messages" })
+  .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#e2e8f0", label: "Conversation" })
+  .phase("p", { duration: 1200, title: "chat bubble", body: "[[author, text, isSelf], ...] の 5 message を isSelf=true で右寄せ + blue / false で左寄せ + gray、 chat thread 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("chat"))
+  .build();
+
+/**
+ * 64. avatar = user profile avatar、 text input で name 変化 → initials + color circle 追随。
+ */
+export const userAvatar = diagram("interactive-user-avatar", {
+  topic: "user profile avatar、 text input で name 変化 → initials 2 char + color circle が動的更新",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.text("user", { defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" })
+  .state("user", { initial: "Alice Wonderland" })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Profile", subtitle: "current: {user}" })
+  .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar" })
+  .phase("p", { duration: 1200, title: "avatar", body: "text input で name 変化 → 最初 2 word の頭文字を抽出 (Alice Wonderland → AW)、 colored circle + name text を表示。" }, (p: PhaseBuilder) => p.activate("card").badge("avatar"))
+  .build();
+
+/**
+ * 65. checklist = sprint task list 6 item、 progress% 表示。
+ */
+export const sprintChecklist = diagram("interactive-sprint-checklist", {
+  topic: "sprint 6 task を checklist で表示、 progress% (2/6 = 33%) と併記",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("tasks", [
+    ["Setup CI", true],
+    ["Write tests", true],
+    ["Fix bug #42", false],
+    ["Code review", false],
+    ["Deploy staging", false],
+    ["Post-mortem", false],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sprint tasks", subtitle: "6 items、 2 done" })
+  .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress" })
+  .phase("p", { duration: 1200, title: "checklist", body: "[[label, checked], ...] を 6 checkbox + progress% (2/6 = 33%) で表示、 done は green box + checkmark、 unchecked は border only。" }, (p: PhaseBuilder) => p.activate("card").badge("checklist"))
+  .build();
