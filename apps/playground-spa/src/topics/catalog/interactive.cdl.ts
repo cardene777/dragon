@@ -1831,3 +1831,66 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
   .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue" })
   .phase("p", { duration: 1200, title: "song queue", body: "stepper で current index 変化 → 該当 row の icon が ▶ + title 色 + background highlight、 pending row は 番号表示、 playlist 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("music"))
   .build();
+
+/**
+ * 96. calendar-month = January 2026 calendar with event marks + today highlight。
+ */
+function generateCalendarDays(): (string | number)[] {
+  const days: [number, boolean, boolean][] = [];
+  const events = new Set([3, 8, 12, 17, 22, 26]);
+  const today = 13;
+  for (let d = 1; d <= 31; d++) {
+    days.push([d, events.has(d), d === today]);
+  }
+  return days as unknown as (string | number)[];
+}
+export const monthCalendarView = diagram("interactive-month-calendar", {
+  topic: "January 2026 calendar view、 6 event day + today (13 日) を marker で強調表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("days", generateCalendarDays())
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Calendar", subtitle: "January 2026" })
+  .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view" })
+  .phase("p", { duration: 1200, title: "calendar month", body: "31 day を 7 column grid で表示、 event 6 day は blue dot、 today (13) は blue border + color 強調、 schedule / calendar 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("calendar"))
+  .build();
+
+/**
+ * 97. terminal = CLI session output、 5 command history。
+ */
+export const cliTerminalSession = diagram("interactive-cli-terminal", {
+  topic: "CLI terminal session の 5 command history を prompt + cmd + output で表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("cmds", [
+    ["$", "ls -la", "total 42\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"],
+    ["$", "cd projects", ""],
+    ["$", "git status", "On branch main\nnothing to commit, working tree clean"],
+    ["$", "pnpm test", "Test Files  114 passed\nTests  1649 passed"],
+    ["$", "docker ps", "CONTAINER ID   IMAGE\n8f3a2b1c9d   nginx:latest"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Terminal", subtitle: "5 commands" })
+  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "Session" })
+  .phase("p", { duration: 1200, title: "terminal", body: "[[prompt, cmd, output], ...] を title bar (3 dots) + mono cmdline (green $ + white cmd) + output preformatted の CLI window 表示、 dev tool 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("CLI"))
+  .build();
+
+/**
+ * 98. chess-board = 8×8 chess board with starting position。
+ */
+export const chessStartingBoard = diagram("interactive-chess-board", {
+  topic: "8×8 chess board with 32 pieces starting position (unicode ♔♕♖♗♘♙ / ♚♛♜♝♞♟)",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("pieces", [
+    // Black back rank (rank 8)
+    ["a", 8, "♜"], ["b", 8, "♞"], ["c", 8, "♝"], ["d", 8, "♛"], ["e", 8, "♚"], ["f", 8, "♝"], ["g", 8, "♞"], ["h", 8, "♜"],
+    // Black pawns (rank 7)
+    ["a", 7, "♟"], ["b", 7, "♟"], ["c", 7, "♟"], ["d", 7, "♟"], ["e", 7, "♟"], ["f", 7, "♟"], ["g", 7, "♟"], ["h", 7, "♟"],
+    // White pawns (rank 2)
+    ["a", 2, "♙"], ["b", 2, "♙"], ["c", 2, "♙"], ["d", 2, "♙"], ["e", 2, "♙"], ["f", 2, "♙"], ["g", 2, "♙"], ["h", 2, "♙"],
+    // White back rank (rank 1)
+    ["a", 1, "♖"], ["b", 1, "♘"], ["c", 1, "♗"], ["d", 1, "♕"], ["e", 1, "♔"], ["f", 1, "♗"], ["g", 1, "♘"], ["h", 1, "♖"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Chess board", subtitle: "32 pieces starting position" })
+  .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position" })
+  .phase("p", { duration: 1200, title: "chess board", body: "8×8 square に 32 piece (starting position)、 light (cream) / dark (brown) square + unicode piece、 boardgame 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("chess"))
+  .build();

@@ -4250,3 +4250,155 @@ html.dark .cdl-ip-readout-song-queue-title {
   color: var(--v4-mute, #64748b);
   font-size: 10px;
 }
+
+/* calendar-month readout */
+.cdl-ip-readout-calendar-month {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 280px;
+}
+.cdl-ip-readout-calendar-month-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(148,163,184,0.06);
+  border-radius: 6px;
+  padding: 8px;
+}
+.cdl-ip-readout-calendar-month-header {
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--v4-ink, #1a1f2a);
+  padding-bottom: 4px;
+}
+html.dark .cdl-ip-readout-calendar-month-header {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-calendar-month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cdl-ip-readout-calendar-month-weekday {
+  text-align: center;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--v4-mute, #64748b);
+  text-transform: uppercase;
+}
+.cdl-ip-readout-calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cdl-ip-readout-calendar-month-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: var(--v4-ink, #1a1f2a);
+  transition: background 200ms ease;
+  position: relative;
+  padding: 2px;
+}
+html.dark .cdl-ip-readout-calendar-month-cell {
+  color: #f2f3f7;
+}
+.cdl-ip-readout-calendar-month-cell:hover {
+  background: rgba(148,163,184,0.15);
+}
+.cdl-ip-readout-calendar-month-cell.today {
+  font-weight: 800;
+  background: rgba(37,99,235,0.08);
+}
+.cdl-ip-readout-calendar-month-day {
+  line-height: 1;
+}
+.cdl-ip-readout-calendar-month-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  margin-top: 2px;
+}
+
+/* terminal readout */
+.cdl-ip-readout-terminal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 340px;
+}
+.cdl-ip-readout-terminal-window {
+  border-radius: 6px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.cdl-ip-readout-terminal-titlebar {
+  background: #1e293b;
+  padding: 6px 8px;
+  display: flex;
+  gap: 6px;
+}
+.cdl-ip-readout-terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+}
+.cdl-ip-readout-terminal-body {
+  padding: 8px 10px;
+  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  color: #e2e8f0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.cdl-ip-readout-terminal-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+.cdl-ip-readout-terminal-cmdline {
+  display: flex;
+  gap: 6px;
+}
+.cdl-ip-readout-terminal-prompt {
+  font-weight: 800;
+}
+.cdl-ip-readout-terminal-cmd {
+  color: #f1f5f9;
+}
+.cdl-ip-readout-terminal-output {
+  color: #94a3b8;
+  white-space: pre-wrap;
+  padding-left: 10px;
+}
+
+/* chess-board readout */
+.cdl-ip-readout-chess-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  min-width: 240px;
+}
+.cdl-ip-readout-chess-board-svg {
+  display: block;
+  margin: 0 auto;
+  border: 2px solid #6b4423;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}

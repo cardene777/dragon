@@ -1050,6 +1050,36 @@ const cases = [
       return { actual: rows === 5 && cur === "1", expected: true };
     },
   },
+  {
+    diagramId: "interactive-month-calendar",
+    label: "calendar-month: 31 day cell + 6 event dot + 1 today",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const cells = await page.$$eval('[data-cdl-readout="cm"] .cdl-ip-readout-calendar-month-cell', (els) => els.length);
+      const events = await page.$$eval('[data-cdl-readout="cm"] [data-cdl-event="true"]', (els) => els.length);
+      const today = await page.$$eval('[data-cdl-readout="cm"] [data-cdl-today="true"]', (els) => els.length);
+      return { actual: cells === 31 && events === 6 && today === 1, expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-cli-terminal",
+    label: "terminal: 5 command block + green $ prompt",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const blocks = await page.$$eval('[data-cdl-readout="tm"] .cdl-ip-readout-terminal-block', (els) => els.length);
+      return { actual: blocks, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-chess-board",
+    label: "chess-board: 8×8 = 64 square + 32 piece text",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="cb"] svg rect', (els) => els.length);
+      const texts = await page.$$eval('[data-cdl-readout="cb"] svg text', (els) => els.length);
+      return { actual: rects === 64 && texts === 32, expected: true };
+    },
+  },
 ];
 
 async function main() {
