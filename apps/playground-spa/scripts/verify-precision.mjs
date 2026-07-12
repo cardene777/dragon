@@ -605,6 +605,47 @@ const cases = [
       return { actual: circles + lines, expected: 9 };
     },
   },
+  {
+    diagramId: "interactive-kpi-bullet",
+    label: "bullet-chart: 3 range rect + 1 actual bar + 1 target line = 4 rect + 1 line",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rects = await page.$$eval('[data-cdl-readout="b"] svg rect', (els) => els.length);
+      const lines = await page.$$eval('[data-cdl-readout="b"] svg line', (els) => els.length);
+      return { actual: rects + lines, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-revenue-scoreboard",
+    label: "number-board: slider(rev=500) → 数字 500 が表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="rev"]');
+      await s.evaluate(eval(setNativeExpr("500")));
+      await page.waitForTimeout(500);
+    },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="nb"] .cdl-ip-readout-number-board-value', (el) => el.textContent ?? "");
+      return { actual: /500/.test(t), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-player-leaderboard",
+    label: "leaderboard: 6 player → top 5 row 表示 (max=5)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="lb"] .cdl-ip-readout-leaderboard-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-player-leaderboard",
+    label: "leaderboard: top 1 = Alice (920)、 name column に表示",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const names = await page.$$eval('[data-cdl-readout="lb"] .cdl-ip-readout-leaderboard-name', (els) => els.map((e) => e.textContent));
+      return { actual: names[0] === "Alice", expected: true };
+    },
+  },
 ];
 
 async function main() {
