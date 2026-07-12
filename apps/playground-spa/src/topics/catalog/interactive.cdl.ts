@@ -1610,3 +1610,58 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
   .readout.userStack("us", { source: "reviewers", max: 5, size: 36, label: "Reviewers" })
   .phase("p", { duration: 1200, title: "user stack", body: "名前 array から initials 抽出 (Alice → A、 Bob Smith → BS) を 6 色 palette で overlap circle、 5 人超過分は +2 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("team"))
   .build();
+
+/**
+ * 84. commit-list = recent git commits を 5 rows 表示。
+ */
+export const gitCommitList = diagram("interactive-git-commits", {
+  topic: "recent git commit history 5 rows (sha + msg + author) を表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("commits", [
+    ["a1b2c3d", "feat: add sankey primitive", "Alice"],
+    ["e5f6g7h", "fix: circular gauge angle bug", "Bob"],
+    ["i9j0k1l", "docs: update SKILL.md", "Carol"],
+    ["m3n4o5p", "refactor: extract widget dispatcher", "Dan"],
+    ["q7r8s9t", "test: add builder chain coverage", "Eve"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Recent commits", subtitle: "5 rows" })
+  .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "History" })
+  .phase("p", { duration: 1200, title: "commit list", body: "[[sha, msg, author], ...] の 5 commit を short-sha (blue) + msg + author の 3 column layout で表示、 git log 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("git"))
+  .build();
+
+/**
+ * 85. media-player = audio player、 slider で current time、 toggle で play/pause。
+ */
+export const audioPlayer = diagram("interactive-audio-player", {
+  topic: "audio mini player、 slider で current time + toggle で play/pause、 progress bar 追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("current", { min: 0, max: 240, defaultValue: 65, label: "Current sec" })
+  .input.toggle("playing", { defaultValue: true, label: "Playing" })
+  .state("current", { initial: 65 })
+  .state("duration", { initial: 240 })
+  .state("playing", { initial: "true" })
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Media player", subtitle: "{current}s / 240s" })
+  .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player" })
+  .phase("p", { duration: 1200, title: "media player", body: "slider + toggle で current sec + playing state を制御、 icon (▶/❚❚) + MM:SS current + progress + thumb + MM:SS duration が同時追随。" }, (p: PhaseBuilder) => p.activate("card").badge("media"))
+  .build();
+
+/**
+ * 86. event-log = server monitoring log、 4 severity (info/warn/error/debug) 表示。
+ */
+export const serverEventLog = diagram("interactive-server-event-log", {
+  topic: "server monitoring event log を 4 severity (info/warn/error/debug) 色分け表示",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("events", [
+    ["10:23:45", "info", "Server started on port 3000"],
+    ["10:24:12", "debug", "Loaded config from ~/.env"],
+    ["10:24:58", "warn", "High CPU usage: 82%"],
+    ["10:25:34", "error", "DB connection timeout after 5s"],
+    ["10:26:01", "info", "Retry connection succeeded"],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Server log", subtitle: "5 events, 4 severities" })
+  .readout.eventLog("el", { source: "events", max: 10, label: "Events" })
+  .phase("p", { duration: 1200, title: "event log", body: "[[timestamp, severity, msg], ...] を info=ℹ (blue) / debug=· (gray) / warn=⚠ (yellow) / error=✕ (red) icon + color で monitoring log 表示、 server 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("monitor"))
+  .build();
