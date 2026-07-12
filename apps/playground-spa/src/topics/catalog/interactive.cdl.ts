@@ -1065,3 +1065,52 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
   .readout.treemap("t", { source: "teams", viewW: 280, viewH: 200, label: "Budget" })
   .phase("p", { duration: 1200, title: "treemap", body: "[[name, size], ...] を area 比例配置、 単純 squarified 風 layout で 6 team を 6 色 palette で分割表示。" }, (p: PhaseBuilder) => p.activate("card").badge("treemap"))
   .build();
+
+/**
+ * 51. sankey flow = traffic source → landing → conversion の flow diagram。
+ */
+export const trafficSankey = diagram("interactive-traffic-sankey", {
+  topic: "traffic source → landing → conversion の 2 column flow を sankey で可視化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("flows", [
+    ["Search", "Home", 40],
+    ["Search", "Product", 30],
+    ["Social", "Home", 25],
+    ["Social", "Product", 15],
+    ["Direct", "Home", 20],
+    ["Direct", "Product", 10],
+  ] as unknown as (string | number)[])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Traffic flow", subtitle: "3 source → 2 page の 6 flow" })
+  .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "Sources → Pages" })
+  .phase("p", { duration: 1200, title: "sankey", body: "[[from, to, flow], ...] を 2 column bar + curve で表示、 flow-weighted 高さで左右 group を自動 aggregate。" }, (p: PhaseBuilder) => p.activate("card").badge("sankey"))
+  .build();
+
+/**
+ * 52. polar-area = 7 day activity distribution。
+ */
+export const activityPolar = diagram("interactive-activity-polar", {
+  topic: "1 週間の daily activity を polar-area (nightingale rose) chart で可視化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("hours", [3, 5, 8, 6, 7, 4, 2])
+  .arraySignal("days", ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Weekly hours", subtitle: "total {hours.sum}h · max {hours.max}h" })
+  .readout.polarArea("p", { source: "hours", max: 10, labelSource: "days", viewW: 220, viewH: 220, label: "Hours" })
+  .phase("p", { duration: 1200, title: "polar area", body: "array を極座標 sector で area 比例表示、 各 sector = 1 day、 r=sqrt(v/max)*maxR、 3 ring guide + label。" }, (p: PhaseBuilder) => p.activate("card").badge("polar"))
+  .build();
+
+/**
+ * 53. step-indicator = onboarding 5 step wizard、 slider で current step を切替。
+ */
+export const onboardingStepper = diagram("interactive-onboarding-stepper", {
+  topic: "onboarding 5 step wizard、 slider で current step 変化 → step-indicator の active dot が追随",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("current", { min: 0, max: 4, defaultValue: 2, label: "Current step" })
+  .state("current", { initial: 2 })
+  .arraySignal("steps", ["Sign up", "Profile", "Preferences", "Verify", "Done"])
+  .node("card", { lane: "l", stack: 0, kind: "card", title: "Onboarding wizard", subtitle: "step {current} / 4" })
+  .readout.stepIndicator("wizard", { source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress" })
+  .phase("p", { duration: 1200, title: "step wizard", body: "stepper で current step 変化 → step-indicator の active dot が動く、 各 step name + 番号 label 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("wizard"))
+  .build();
