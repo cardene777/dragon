@@ -711,6 +711,43 @@ const cases = [
       return { actual: add === "+120" && del === "-45", expected: true };
     },
   },
+  {
+    diagramId: "interactive-support-chat",
+    label: "chat-bubble: 5 message row (self=2, other=3)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="cb"] .cdl-ip-readout-chat-bubble-row', (els) => els.length);
+      return { actual: rows, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-support-chat",
+    label: "chat-bubble: 2 message が self (isSelf=true)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const selfCount = await page.$$eval('[data-cdl-readout="cb"] [data-cdl-self="true"]', (els) => els.length);
+      return { actual: selfCount, expected: 3 };
+    },
+  },
+  {
+    diagramId: "interactive-user-avatar",
+    label: "avatar: initials = 'AW' (Alice Wonderland)",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const t = await page.$eval('[data-cdl-readout="av"] .cdl-ip-readout-avatar-circle', (el) => el.textContent ?? "");
+      return { actual: t === "AW", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-sprint-checklist",
+    label: "checklist: 6 item + 2 checked (progress 33%)",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const rows = await page.$$eval('[data-cdl-readout="cl"] .cdl-ip-readout-checklist-row', (els) => els.length);
+      const checked = await page.$$eval('[data-cdl-readout="cl"] [data-cdl-checked="true"]', (els) => els.length);
+      return { actual: rows === 6 && checked === 2, expected: true };
+    },
+  },
 ];
 
 async function main() {
