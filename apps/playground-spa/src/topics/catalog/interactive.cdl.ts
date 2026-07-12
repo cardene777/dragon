@@ -458,3 +458,82 @@ export const eventVariety = diagram("interactive-event-variety", {
   .on.longPress({ kind: "node", id: "btn3" }, "on-long")
   .phase("p", { duration: 1500, title: "5 種 event kind を 3 node に bind", body: "consumer が handler map で dbl / focus / blur / keydown / longpress を実装、 signal 更新経由で reactive 反映。" }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
   .build();
+
+/**
+ * 24. gridNodes = 2D grid layout。 rows × cols の matrix を宣言的に生成、
+ *     signal で個別 cell の hover 状態を bind。
+ */
+export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
+  topic: "gridNodes(3, 4) で 3 行 4 列の cell を宣言的生成、 hover cell の座標 (r, c) を signal で追跡",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.stepper("r", { min: 0, max: 2, defaultValue: 0, label: "Row" })
+  .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "Col" })
+  .state("r", { initial: 0 })
+  .state("c", { initial: 0 })
+  .gridNodes(3, 4, (r, c, i) => ({
+    id: `cell-{r}-{c}`,
+    lane: "l",
+    stack: i,
+    kind: "card" as const,
+    title: `r{r} c{c}`,
+    subtitle: `#${i + 1}`,
+  }))
+  .readout.stat("hover", { source: "r", label: "Row" })
+  .readout.stat("hoverC", { source: "c", label: "Col" })
+  .phase("p", { duration: 1200, title: "3×4 grid、 12 cell 一括宣言", body: "gridNodes(3,4,tpl) で 12 cell を生成、 template `{r}` / `{c}` / `{i}` で id と subtitle 化。" }, (p: PhaseBuilder) => p.activate(
+    "cell-0-0", "cell-0-1", "cell-0-2", "cell-0-3",
+    "cell-1-0", "cell-1-1", "cell-1-2", "cell-1-3",
+    "cell-2-0", "cell-2-1", "cell-2-2", "cell-2-3",
+  ).badge("2D grid"))
+  .build();
+
+/**
+ * 25. arraySignal = array を単一 signal に格納、 template で index / length / sum / avg access。
+ *     readout.arrayBar で histogram、 readout.arrayList で bullet list 表示。
+ */
+export const arraySignalHistogram = diagram("interactive-array-signal", {
+  topic: "arraySignal([12,34,20,45,28]) を bar histogram + bullet list で見せる、 {xs.sum} / {xs.avg} も node subtitle 化",
+})
+  .lane("l", { x: 0, width: 480 })
+  .arraySignal("xs", [12, 34, 20, 45, 28])
+  .input.slider("bump", { min: 0, max: 50, defaultValue: 20, label: "First bar" })
+  .node("summary", {
+    lane: "l",
+    stack: 0,
+    kind: "card",
+    title: "Array signal",
+    subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
+  })
+  .readout.arrayBar("hist", { source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars" })
+  .readout.arrayList("items", { source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items" })
+  .readout.stat("first", { source: "bump", label: "Bump" })
+  .phase("p", { duration: 1200, title: "array を 1 signal で持つ", body: "arraySignal(id, initial) で JSON 格納、 template で `{sig[0]}` / `{sig.length}` / `{sig.sum}` / `{sig.avg}` / `{sig.max}` access。" }, (p: PhaseBuilder) => p.activate("summary").badge("array signal"))
+  .build();
+
+/**
+ * 26. pathProgress readout + visibleIf。 slider で progress、 完了時 badge を visibleIf 経由で表示。
+ */
+export const pathProgressDemo = diagram("interactive-path-progress", {
+  topic: "SVG path 上を signal 0-100 進行 (stroke-dashoffset) + 完了時 badge 表示 (visibleIf)",
+})
+  .lane("l", { x: 0, width: 480 })
+  .input.slider("progress", { min: 0, max: 100, defaultValue: 40, label: "Progress" })
+  .state("progress", { initial: 40 })
+  .state("done", { initial: 0 })
+  .formula("done", "progress >= 100 ? 1 : 0")
+  .node("main", { lane: "l", stack: 0, kind: "card", title: "Task", subtitle: "{progress}% complete" })
+  .node("ok", { lane: "l", stack: 1, kind: "card", title: "Done", subtitle: "全部完了", visibleIf: "{done}" })
+  .readout.pathProgress("pp", {
+    source: "progress",
+    pathD: "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10",
+    viewW: 270,
+    viewH: 40,
+    strokeWidth: 5,
+    color: "#22c55e",
+    max: 100,
+    label: "Path",
+  })
+  .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "Ring" })
+  .phase("p", { duration: 1200, title: "path 上を進行 + 条件表示", body: "pathProgress で SVG path の stroke-dashoffset を signal 追随、 visibleIf で完了時 node 表示。" }, (p: PhaseBuilder) => p.activate("main", "ok").badge("progress + hide"))
+  .build();

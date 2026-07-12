@@ -193,6 +193,76 @@ const cases = [
       return { actual: n > 200, expected: true };
     },
   },
+  {
+    diagramId: "interactive-array-signal",
+    label: "array-signal: initial array の sum (=139) が summary node subtitle に反映",
+    setup: async (page) => { await page.waitForTimeout(300); },
+    assert: async (page) => {
+      const texts = await page.$$eval('[data-cdl-node="summary"] text', (els) => els.map((e) => e.textContent ?? ""));
+      const joined = texts.join(" ");
+      return { actual: /sum 139/.test(joined) && /count 5/.test(joined) && /max 45/.test(joined), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-array-signal",
+    label: "array-signal: array-bar readout で 5 個の bar column 描画",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-readout="hist"] .cdl-ip-readout-array-bar-col', (els) => els.length);
+      return { actual: count, expected: 5 };
+    },
+  },
+  {
+    diagramId: "interactive-path-progress",
+    label: "path-progress: slider(progress=80) → 80% 表示 + stroke-dashoffset > 0",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="progress"]');
+      await s.evaluate(eval(setNativeExpr("80")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const pct = await page.$eval('[data-cdl-readout="pp"] .cdl-ip-readout-path-value', (el) => el.textContent ?? "");
+      const paths = await page.$$eval('[data-cdl-readout="pp"] path', (els) => els.map((el) => Number(el.getAttribute("stroke-dashoffset")) || 0));
+      // pct=80% 表記 + progress path の offset は total * 0.2 で > 0 な有限値
+      return { actual: /80%/.test(pct) && paths.some((v) => v > 0), expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-path-progress",
+    label: "path-progress: progress=100 → visibleIf=1 で `ok` node が表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="progress"]');
+      await s.evaluate(eval(setNativeExpr("100")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const hidden = await page.$eval('[data-cdl-node="ok"]', (el) => el.getAttribute("data-cdl-hidden"));
+      // visibleIf resolves to "1" → shown → no data-cdl-hidden 属性 or "false"
+      return { actual: hidden !== "true", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-path-progress",
+    label: "path-progress: progress=0 → visibleIf=0 で `ok` node が非表示",
+    setup: async (page) => {
+      const s = await page.$('input[type="range"][data-cdl-input="progress"]');
+      await s.evaluate(eval(setNativeExpr("0")));
+      await page.waitForTimeout(400);
+    },
+    assert: async (page) => {
+      const hidden = await page.$eval('[data-cdl-node="ok"]', (el) => el.getAttribute("data-cdl-hidden"));
+      return { actual: hidden === "true", expected: true };
+    },
+  },
+  {
+    diagramId: "interactive-grid-matrix",
+    label: "grid-matrix: 3×4 = 12 cell が SVG に描画",
+    setup: async (page) => { await page.waitForTimeout(200); },
+    assert: async (page) => {
+      const count = await page.$$eval('[data-cdl-node^="cell-"]', (els) => els.length);
+      return { actual: count, expected: 12 };
+    },
+  },
 ];
 
 async function main() {
