@@ -1613,9 +1613,11 @@ export const projectGantt = diagram("interactive-project-gantt", {
  * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
  */
 export const resourceTreemap = diagram("interactive-resource-treemap", {
-  topic: "6 team の budget share を treemap で hierarchical rectangles 表示、 area 比例配置",
+  topic: "6 team budget を 3-lane (Major ≥15% / Mid 5-14% / Minor <5%) size 別分散、 各 team 個別 card、 treemap readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("major", { x: 0, width: 220 })
+  .lane("mid", { x: 260, width: 200 })
+  .lane("minor", { x: 500, width: 200 })
   .arraySignal("teams", [
     ["Engineering", 45],
     ["Sales", 20],
@@ -1624,9 +1626,18 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
     ["Ops", 6],
     ["Legal", 4],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Budget share", subtitle: "6 team の budget を area 比例" })
-  .readout.treemap("t", { source: "teams", viewW: 280, viewH: 200, label: "Budget" })
-  .phase("p", { duration: 1200, title: "treemap", body: "[[name, size], ...] を area 比例配置、 単純 squarified 風 layout で 6 team を 6 色 palette で分割表示。" }, (p: PhaseBuilder) => p.activate("card").badge("treemap"))
+  .node("engNode", { lane: "major", stack: 0, kind: "card", title: "Engineering", subtitle: "45% (dominant)" })
+  .node("salesNode", { lane: "major", stack: 1, kind: "card", title: "Sales", subtitle: "20%" })
+  .node("mktNode", { lane: "major", stack: 2, kind: "card", title: "Marketing", subtitle: "15% (boundary)" })
+  .node("supportNode", { lane: "mid", stack: 0, kind: "card", title: "Support", subtitle: "10%" })
+  .node("opsNode", { lane: "mid", stack: 1, kind: "card", title: "Ops", subtitle: "6%" })
+  .node("legalNode", { lane: "minor", stack: 0, kind: "card", title: "Legal", subtitle: "4% (min)" })
+  .readout.treemap("t", { source: "teams", viewW: 280, viewH: 200, label: "Budget (treemap)" })
+  .phase("p", {
+    duration: 1200,
+    title: "budget size split",
+    body: "3-lane (Major ≥15% = 3 team / Mid 5-14% = 2 team / Minor <5% = 1 team) で 6 team を budget size 別分散、 各 team 個別 card で % 明示、 treemap readout も併存で area 比例 hierarchical 表示、 size 分類と area chart の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("engNode", "salesNode", "mktNode", "supportNode", "opsNode", "legalNode").badge("treemap"))
   .build();
 
 /**
@@ -1755,23 +1766,35 @@ export const kpiBullet = diagram("interactive-kpi-bullet", {
  * 55. number-board = 大 numeric display、 slider で revenue を score board 表示。
  */
 export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
-  topic: "revenue を 大 numeric display (scoreboard) で表示、 slider で $/M prefix/suffix 付き 動的更新",
+  topic: "revenue Q3 status を 3-lane (Current / Target / Gap) + 2 edge、 scoreboard display に加え target との差を可視化",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("current", { x: 0, width: 220 })
+  .lane("target", { x: 260, width: 200 })
+  .lane("gap", { x: 480, width: 220 })
   .input.slider("rev", { min: 0, max: 999, defaultValue: 234, label: "Revenue" })
   .state("rev", { initial: 234 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Q3 revenue", subtitle: "target: $500M" })
-  .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#0f172a", caption: "vs $500M target", label: "Revenue" })
-  .phase("p", { duration: 1200, title: "score board", body: "slider で revenue 変化 → 56px 大 数字 + $ prefix + M suffix + caption で表示、 dashboard header 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("scoreboard"))
+  .node("currentNode", { lane: "current", stack: 0, kind: "card", title: "◆ Current", subtitle: "${rev}M (slider driven)" })
+  .node("targetNode", { lane: "target", stack: 0, kind: "card", title: "Target", subtitle: "$500M (Q3 goal)" })
+  .node("gapNode", { lane: "gap", stack: 0, kind: "card", title: "Gap", subtitle: "target - current (progress toward goal)" })
+  .edge("currentNode", "targetNode", { label: "progress", tone: "info" })
+  .edge("targetNode", "gapNode", { label: "delta", tone: "warning" })
+  .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#0f172a", caption: "vs $500M target", label: "Revenue (scoreboard)" })
+  .phase("p", {
+    duration: 1200,
+    title: "revenue progress flow",
+    body: "3-lane (Current / Target / Gap) で revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。",
+  }, (p: PhaseBuilder) => p.activate("currentNode", "targetNode", "gapNode").badge("scoreboard"))
   .build();
 
 /**
  * 56. leaderboard = 6 player の score ranking を top 5 表示 (medal 色 + bar + value)。
  */
 export const playerLeaderboard = diagram("interactive-player-leaderboard", {
-  topic: "6 player の score ranking を leaderboard で top 5 表示、 top 3 に medal 色 (gold/silver/bronze)",
+  topic: "6 player を 3-lane (Top 3 medals / Middle 2 / Bottom 1 out of top) rank 別分散、 各 player 個別 card、 leaderboard readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("top", { x: 0, width: 260 })
+  .lane("middle", { x: 300, width: 220 })
+  .lane("bottom", { x: 540, width: 200 })
   .arraySignal("players", [
     ["Alice", 920],
     ["Bob", 780],
@@ -1780,9 +1803,18 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
     ["Eve", 890],
     ["Frank", 720],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Player ranking", subtitle: "top 5 of 6" })
-  .readout.leaderboard("lb", { source: "players", max: 5, color: "#2563eb", label: "Ranking" })
-  .phase("p", { duration: 1200, title: "leaderboard", body: "6 player の score を desc sort、 top 5 に rank + name + bar + value を表示、 top 3 に medal 色 (gold/silver/bronze) 装飾。" }, (p: PhaseBuilder) => p.activate("card").badge("leaderboard"))
+  .node("aliceNode", { lane: "top", stack: 0, kind: "card", title: "🥇 1st Alice", subtitle: "920 (gold, max)" })
+  .node("eveNode", { lane: "top", stack: 1, kind: "card", title: "🥈 2nd Eve", subtitle: "890 (silver)" })
+  .node("carolNode", { lane: "top", stack: 2, kind: "card", title: "🥉 3rd Carol", subtitle: "850 (bronze)" })
+  .node("bobNode", { lane: "middle", stack: 0, kind: "card", title: "4th Bob", subtitle: "780" })
+  .node("frankNode", { lane: "middle", stack: 1, kind: "card", title: "5th Frank", subtitle: "720 (last displayed)" })
+  .node("danNode", { lane: "bottom", stack: 0, kind: "card", title: "6th Dan", subtitle: "680 (out of top 5)" })
+  .readout.leaderboard("lb", { source: "players", max: 5, color: "#2563eb", label: "Ranking (top 5 leaderboard)" })
+  .phase("p", {
+    duration: 1200,
+    title: "rank tier split",
+    body: "3-lane (Top 3 medals gold/silver/bronze / Middle 2 rank 4-5 / Bottom 1 out of top) で 6 player を rank tier 別分散、 各 player 個別 card で score 明示、 leaderboard readout も併存で top 5 表示、 rank tier と leaderboard の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("aliceNode", "eveNode", "carolNode", "bobNode", "frankNode", "danNode").badge("leaderboard"))
   .build();
 
 /**
