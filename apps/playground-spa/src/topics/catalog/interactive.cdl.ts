@@ -3313,3 +3313,75 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
     body: "3-lane (Thumbs / Heart / Party) で 3 emoji vote を category 別分散、 winner (thumbs 42) に highlight border、 quickPollEmoji readout も併存で pill 表示、 category split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").badge("poll"))
   .build();
+
+/**
+ * 112. voice-message = voice message playback UI を 3-lane (Sender / Waveform / Playback) dense sequence 分散 + voiceMessage readout 併存。 iteration 7 wave 1、 pattern taxonomy § 7 dense sequence。
+ */
+export const voiceMessagePlayback = diagram("interactive-voice-message-playback", {
+  topic: "voice message (waveform + play + duration) を 3-lane (Sender / Waveform / Playback) dense sequence 分散 + voiceMessage readout 併存",
+})
+  .lane("sender", { x: 0, width: 200 })
+  .lane("wave", { x: 240, width: 260 })
+  .lane("play", { x: 540, width: 220 })
+  .arraySignal("amps", [0.2, 0.4, 0.7, 0.9, 0.6, 0.3, 0.5, 0.8, 0.4, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4])
+  .state("progress", { initial: 0.45 })
+  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice (sender)", subtitle: "0:23 voice memo · 2m ago" })
+  .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "Waveform 15 bars", subtitle: "dense sequence, amp 0.2 → 0.9" })
+  .node("playCard", { lane: "play", stack: 0, kind: "card", title: "▶ Playing", subtitle: "progress 45% · 0:10 / 0:23" })
+  .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "Active bars (7/15)", subtitle: "progressSource overlay で active/idle 区別" })
+  .edge("senderCard", "waveCard", { label: "record", tone: "info" })
+  .edge("waveCard", "playCard", { label: "play", tone: "success" })
+  .readout.voiceMessage("vm", { source: "amps", progressSource: "progress", duration: 23, colorPlay: "#2563eb", colorBar: "#cbd5e1", label: "Voice memo" })
+  .phase("p", {
+    duration: 1200,
+    title: "voice playback dense sequence",
+    body: "3-lane (Sender / Waveform 15 bars / Playback) で voice message playback を dense sequence 分散、 2 edge (record info / play success)、 voiceMessage readout 併存で waveform + play + duration + progress overlay、 dense sequence pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").badge("voice"))
+  .build();
+
+/**
+ * 113. thread-summary = conversation thread summary を 3-lane (Unread / Participants / Activity) category split 分散 + threadSummary readout 併存。 iteration 7 wave 1、 pattern taxonomy § 3 category split。
+ */
+export const teamThreadSummary = diagram("interactive-team-thread-summary", {
+  topic: "team chat thread summary (unread / participants / last author / time) を 3-lane (Unread / Participants / Activity) 分散 + threadSummary readout 併存",
+})
+  .lane("unread", { x: 0, width: 220 })
+  .lane("participants", { x: 260, width: 220 })
+  .lane("activity", { x: 520, width: 260 })
+  .arraySignal("thread", [5, 8, "Alice", "12m ago"] as unknown as (string | number)[])
+  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 5 unread messages", subtitle: "red badge · 12m accumulated" })
+  .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "8 participants", subtitle: "team-eng channel" })
+  .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "Last: Alice", subtitle: "「LGTM 🚀」 · 12m ago" })
+  .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "12m ago", subtitle: "recent activity window" })
+  .edge("unreadCard", "authorCard", { label: "attribute", tone: "info" })
+  .edge("partCard", "authorCard", { label: "member of", tone: "teal" })
+  .readout.threadSummary("ts", { source: "thread", colorUnread: "#ef4444", label: "Thread summary" })
+  .phase("p", {
+    duration: 1200,
+    title: "thread summary category split",
+    body: "3-lane (Unread / Participants / Activity) で thread の 4-tuple を category 別分散、 2 edge (attribute info / member muted)、 threadSummary readout 併存で 1 card に unread badge + participants + last author + time ago 集約、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").badge("thread"))
+  .build();
+
+/**
+ * 114. read-receipt = message read receipt (sent / delivered / read の 3 状態) を 3-lane state-driven visibility 分散 + readReceipt readout 併存。 iteration 7 wave 1、 pattern taxonomy § 2 state-driven visibility。
+ */
+export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
+  topic: "DM read receipt (0=sent / 1=delivered / 2=read) を 3-lane state 分散 + readReceipt readout 併存",
+})
+  .lane("sent", { x: 0, width: 240 })
+  .lane("delivered", { x: 280, width: 240 })
+  .lane("read", { x: 560, width: 240 })
+  .state("status", { initial: 2 })
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "▶ Sent (0)", subtitle: "single check · gray · 09:42" })
+  .node("deliveredCard", { lane: "delivered", stack: 0, kind: "card", title: "▶▶ Delivered (1)", subtitle: "double check · gray · 09:43" })
+  .node("readCard", { lane: "read", stack: 0, kind: "card", title: "◆ Read (2 = current)", subtitle: "double check · blue · 09:45" })
+  .edge("sentCard", "deliveredCard", { label: "delivered_at", tone: "info" })
+  .edge("deliveredCard", "readCard", { label: "read_at", tone: "success" })
+  .readout.readReceipt("rr", { source: "status", colorRead: "#2563eb", colorPending: "#94a3b8", label: "Read status" })
+  .phase("p", {
+    duration: 1200,
+    title: "receipt state-driven visibility",
+    body: "3-lane (Sent / Delivered / Read) で message status 3 状態を state 別分散、 2 edge (delivered_at info / read_at success)、 readReceipt readout 併存で status 2 = 青 double check 表示、 state-driven visibility pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard", "readCard").badge("receipt"))
+  .build();
