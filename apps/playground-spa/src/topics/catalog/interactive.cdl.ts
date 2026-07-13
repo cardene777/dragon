@@ -2330,31 +2330,48 @@ export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
  * 76. thermometer = 室温 24°C を slider で操作 → 縦 bar + 球部 で温度表示。
  */
 export const roomThermometer = diagram("interactive-room-thermometer", {
-  topic: "室温 24°C を slider で操作 → thermometer readout の 縦 bar + 球部が追随",
+  topic: "室温を 3-lane (Cold <15°C / Comfort 15-25°C / Hot ≥25°C) 温度帯別分散 + current indicator、 thermometer readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("cold", { x: 0, width: 200 })
+  .lane("comfort", { x: 240, width: 220 })
+  .lane("hot", { x: 500, width: 200 })
   .input.slider("temp", { min: 0, max: 40, defaultValue: 24, label: "Temp °C" })
   .state("temp", { initial: 24 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Room temp", subtitle: "{temp}°C" })
-  .readout.thermometer("th", { source: "temp", min: 0, max: 40, viewW: 70, viewH: 180, color: "#ef4444", unit: "°C", label: "Temp" })
-  .phase("p", { duration: 1200, title: "thermometer", body: "slider で 0-40°C 変化 → 縦 bar 上部の fill 位置 + 球部 color、 3 tick marks で目盛表示、 温度計定番。" }, (p: PhaseBuilder) => p.activate("card").badge("temp"))
+  .node("coldNode", { lane: "cold", stack: 0, kind: "card", title: "Cold band", subtitle: "< 15°C (blue · heating)" })
+  .node("comfortNode", { lane: "comfort", stack: 0, kind: "card", title: "Comfort band", subtitle: "15-25°C (green · default range)" })
+  .node("hotNode", { lane: "hot", stack: 0, kind: "card", title: "Hot band", subtitle: "≥ 25°C (red · cooling)" })
+  .node("currentTemp", { lane: "comfort", stack: 1, kind: "card", title: "◆ Current", subtitle: "temp = {temp}°C (default 24 → comfort)" })
+  .readout.thermometer("th", { source: "temp", min: 0, max: 40, viewW: 70, viewH: 180, color: "#ef4444", unit: "°C", label: "Temp (vertical bar)" })
+  .phase("p", {
+    duration: 1200,
+    title: "temperature band split",
+    body: "3-lane (Cold <15 / Comfort 15-25 / Hot ≥25) で room 温度を band 別分散、 current indicator (default 24 → comfort lane)、 slider 変化で thermometer readout 縦 bar + 球部 追随、 温度帯分類と thermometer 表示の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("coldNode", "comfortNode", "hotNode", "currentTemp").badge("temp"))
   .build();
 
 /**
  * 77. icon-tile = 3 KPI を emoji icon + label + value tile で表示。
  */
 export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
-  topic: "3 KPI (Growth / Revenue / Goals) を emoji icon + label + value tile で表示",
+  topic: "3 KPI (Growth / Revenue / Goals) を 3-lane 個別 tile 分散、 iconTile readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("growth", { x: 0, width: 220 })
+  .lane("revenue", { x: 260, width: 220 })
+  .lane("goals", { x: 520, width: 220 })
   .arraySignal("kpis", [
     ["📈", "Growth", "+15%"],
     ["💰", "Revenue", "$50k"],
     ["🎯", "Goals", "8/10"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "KPI overview", subtitle: "3 tile" })
-  .readout.iconTile("it", { source: "kpis", color: "#2563eb", label: "KPIs" })
-  .phase("p", { duration: 1200, title: "icon tile", body: "[[icon, label, value], ...] を colored icon square + value + label の tile で並列表示、 dashboard の visual stat 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tiles"))
+  .node("growthNode", { lane: "growth", stack: 0, kind: "card", title: "📈 Growth", subtitle: "+15% MoM" })
+  .node("revenueNode", { lane: "revenue", stack: 0, kind: "card", title: "💰 Revenue", subtitle: "$50k MRR" })
+  .node("goalsNode", { lane: "goals", stack: 0, kind: "card", title: "🎯 Goals", subtitle: "8/10 achieved" })
+  .readout.iconTile("it", { source: "kpis", color: "#2563eb", label: "KPIs (icon tile)" })
+  .phase("p", {
+    duration: 1200,
+    title: "KPI tile split",
+    body: "3-lane (Growth / Revenue / Goals) で 3 KPI を機能別分散、 各 KPI 個別 card で emoji + value 明示、 iconTile readout も併存で colored icon square 表示、 KPI 分類と tile 一覧の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("growthNode", "revenueNode", "goalsNode").badge("tiles"))
   .build();
 
 /**
@@ -2515,9 +2532,13 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
  * 84. commit-list = recent git commits を 5 rows 表示。
  */
 export const gitCommitList = diagram("interactive-git-commits", {
-  topic: "recent git commit history 5 rows (sha + msg + author) を表示",
+  topic: "5 git commit を 5-lane (feat / fix / docs / refactor / test) commit type 別分散、 各 commit 個別 card、 commitList readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("feat", { x: 0, width: 150 })
+  .lane("fix", { x: 170, width: 150 })
+  .lane("docs", { x: 340, width: 150 })
+  .lane("refactor", { x: 510, width: 150 })
+  .lane("test", { x: 680, width: 150 })
   .arraySignal("commits", [
     ["a1b2c3d", "feat: add sankey primitive", "Alice"],
     ["e5f6g7h", "fix: circular gauge angle bug", "Bob"],
@@ -2525,9 +2546,17 @@ export const gitCommitList = diagram("interactive-git-commits", {
     ["m3n4o5p", "refactor: extract widget dispatcher", "Dan"],
     ["q7r8s9t", "test: add builder chain coverage", "Eve"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Recent commits", subtitle: "5 rows" })
-  .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "History" })
-  .phase("p", { duration: 1200, title: "commit list", body: "[[sha, msg, author], ...] の 5 commit を short-sha (blue) + msg + author の 3 column layout で表示、 git log 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("git"))
+  .node("featNode", { lane: "feat", stack: 0, kind: "card", title: "feat", subtitle: "a1b2c3d · Alice · sankey" })
+  .node("fixNode", { lane: "fix", stack: 0, kind: "card", title: "fix", subtitle: "e5f6g7h · Bob · gauge angle" })
+  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "docs", subtitle: "i9j0k1l · Carol · SKILL.md" })
+  .node("refactorNode", { lane: "refactor", stack: 0, kind: "card", title: "refactor", subtitle: "m3n4o5p · Dan · dispatcher" })
+  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "test", subtitle: "q7r8s9t · Eve · builder" })
+  .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "History (git log)" })
+  .phase("p", {
+    duration: 1200,
+    title: "commit type split",
+    body: "5-lane (feat / fix / docs / refactor / test) で 5 commit を type prefix 別分散、 各 commit 個別 card で sha + author + summary 明示、 commitList readout も併存で 3 column layout、 commit 分類と history の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("featNode", "fixNode", "docsNode", "refactorNode", "testNode").badge("git"))
   .build();
 
 /**
