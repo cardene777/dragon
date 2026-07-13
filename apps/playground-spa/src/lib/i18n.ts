@@ -225,6 +225,11 @@ export const ITEM_NAME_JA: Record<string, string> = {
   docsTocNav: "ドキュメント TOC ナビ",
   socialShareButtons: "SNS シェアボタン",
 
+  // iteration 7 catalog redesign § PR-B exemplar (実シナリオ + readout 連動 + 動き付与、 pattern SSOT)
+  exemplarPaymentFlow: "実例: 決済フロー (受付 → 決済 → 完了)",
+  exemplarLoginFlow: "実例: ログイン認証 (要求 → 検証 → セッション発行)",
+  exemplarNotificationFlow: "実例: push 通知配信 (event → 配信 → リトライ)",
+
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
   styleDottedFlow: "dotted-flow スタイル (点線 + 粒子)",
