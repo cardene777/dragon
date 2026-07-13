@@ -2563,17 +2563,27 @@ export const gitCommitList = diagram("interactive-git-commits", {
  * 85. media-player = audio player、 slider で current time、 toggle で play/pause。
  */
 export const audioPlayer = diagram("interactive-audio-player", {
-  topic: "audio mini player、 slider で current time + toggle で play/pause、 progress bar 追随",
+  topic: "audio player を 3-lane (Current time / Play toggle / Duration) + 2 edge、 signal 制御と mediaPlayer readout の bind 関係可視化",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("current", { x: 0, width: 220 })
+  .lane("toggle", { x: 260, width: 200 })
+  .lane("duration", { x: 500, width: 220 })
   .input.slider("current", { min: 0, max: 240, defaultValue: 65, label: "Current sec" })
   .input.toggle("playing", { defaultValue: true, label: "Playing" })
   .state("current", { initial: 65 })
   .state("duration", { initial: 240 })
   .state("playing", { initial: "true" })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Media player", subtitle: "{current}s / 240s" })
-  .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player" })
-  .phase("p", { duration: 1200, title: "media player", body: "slider + toggle で current sec + playing state を制御、 icon (▶/❚❚) + MM:SS current + progress + thumb + MM:SS duration が同時追随。" }, (p: PhaseBuilder) => p.activate("card").badge("media"))
+  .node("currentNode", { lane: "current", stack: 0, kind: "card", title: "Current time", subtitle: "{current}s / 240s (slider driven)" })
+  .node("toggleNode", { lane: "toggle", stack: 0, kind: "card", title: "Play toggle", subtitle: "playing = {playing} (▶/❚❚ icon)" })
+  .node("durationNode", { lane: "duration", stack: 0, kind: "card", title: "Duration", subtitle: "240s total (fixed)" })
+  .edge("currentNode", "durationNode", { label: "progress %", tone: "info" })
+  .edge("toggleNode", "currentNode", { label: "advance/pause", tone: "success" })
+  .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player (icon + progress + MM:SS)" })
+  .phase("p", {
+    duration: 1200,
+    title: "player signal flow",
+    body: "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。",
+  }, (p: PhaseBuilder) => p.activate("currentNode", "toggleNode", "durationNode").badge("media"))
   .build();
 
 /**
@@ -2789,18 +2799,28 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
  * 93. timezone-clock = 4 city の multi-timezone clock (Tokyo / London / NYC / Sydney)。
  */
 export const globalTimezoneClock = diagram("interactive-timezone-clock", {
-  topic: "4 city (Tokyo/London/NYC/Sydney) の multi-timezone clock、 city + time + UTC offset 表示",
+  topic: "4 city timezone を 4-lane (Tokyo / London / NYC / Sydney) 都市別分散、 各 city 個別 card、 timezoneClock readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("tokyo", { x: 0, width: 180 })
+  .lane("london", { x: 200, width: 180 })
+  .lane("nyc", { x: 400, width: 180 })
+  .lane("sydney", { x: 600, width: 180 })
   .arraySignal("clocks", [
     ["Tokyo", 9, "22:30"],
     ["London", 0, "13:30"],
     ["NYC", -5, "08:30"],
     ["Sydney", 11, "00:30"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "World clock", subtitle: "4 timezones" })
-  .readout.timezoneClock("tc", { source: "clocks", color: "#2563eb", label: "Cities" })
-  .phase("p", { duration: 1200, title: "world clock", body: "[[city, offsetHours, HH:MM], ...] を 4 column grid で city name + 大 time + UTC±N offset、 global team 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("clock"))
+  .node("tokyoNode", { lane: "tokyo", stack: 0, kind: "card", title: "Tokyo", subtitle: "22:30 · UTC+9" })
+  .node("londonNode", { lane: "london", stack: 0, kind: "card", title: "London", subtitle: "13:30 · UTC±0" })
+  .node("nycNode", { lane: "nyc", stack: 0, kind: "card", title: "NYC", subtitle: "08:30 · UTC-5" })
+  .node("sydneyNode", { lane: "sydney", stack: 0, kind: "card", title: "Sydney", subtitle: "00:30 · UTC+11" })
+  .readout.timezoneClock("tc", { source: "clocks", color: "#2563eb", label: "Cities (4-column grid)" })
+  .phase("p", {
+    duration: 1200,
+    title: "city timezone split",
+    body: "4-lane (Tokyo UTC+9 / London UTC±0 / NYC UTC-5 / Sydney UTC+11) で 4 city timezone を都市別分散、 各 city 個別 card で time + UTC offset 明示、 timezoneClock readout も併存で 4 column grid 表示、 city 分類と clock 一覧の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("tokyoNode", "londonNode", "nycNode", "sydneyNode").badge("clock"))
   .build();
 
 /**
@@ -2900,9 +2920,11 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
  * 97. terminal = CLI session output、 5 command history。
  */
 export const cliTerminalSession = diagram("interactive-cli-terminal", {
-  topic: "CLI terminal session の 5 command history を prompt + cmd + output で表示",
+  topic: "CLI 5 command を 3-lane (Filesystem / Git / Dev) tool category 別分散、 各 command 個別 card、 terminal readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("fs", { x: 0, width: 220 })
+  .lane("git", { x: 260, width: 220 })
+  .lane("dev", { x: 520, width: 220 })
   .arraySignal("cmds", [
     ["$", "ls -la", "total 42\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"],
     ["$", "cd projects", ""],
@@ -2910,9 +2932,17 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
     ["$", "pnpm test", "Test Files  114 passed\nTests  1649 passed"],
     ["$", "docker ps", "CONTAINER ID   IMAGE\n8f3a2b1c9d   nginx:latest"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Terminal", subtitle: "5 commands" })
-  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "Session" })
-  .phase("p", { duration: 1200, title: "terminal", body: "[[prompt, cmd, output], ...] を title bar (3 dots) + mono cmdline (green $ + white cmd) + output preformatted の CLI window 表示、 dev tool 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("CLI"))
+  .node("lsNode", { lane: "fs", stack: 0, kind: "card", title: "ls -la", subtitle: "filesystem · list files" })
+  .node("cdNode", { lane: "fs", stack: 1, kind: "card", title: "cd projects", subtitle: "filesystem · change dir" })
+  .node("gitStatusNode", { lane: "git", stack: 0, kind: "card", title: "git status", subtitle: "git · branch state" })
+  .node("pnpmNode", { lane: "dev", stack: 0, kind: "card", title: "pnpm test", subtitle: "dev · 114 files · 1649 tests" })
+  .node("dockerNode", { lane: "dev", stack: 1, kind: "card", title: "docker ps", subtitle: "dev · container list" })
+  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "Session (CLI window)" })
+  .phase("p", {
+    duration: 1200,
+    title: "command category split",
+    body: "3-lane (Filesystem ls+cd / Git status / Dev pnpm+docker) で 5 CLI command を tool category 別分散、 各 command 個別 card で用途 + summary 明示、 terminal readout も併存で CLI window 表示、 category 分類と session の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("lsNode", "cdNode", "gitStatusNode", "pnpmNode", "dockerNode").badge("CLI"))
   .build();
 
 /**
