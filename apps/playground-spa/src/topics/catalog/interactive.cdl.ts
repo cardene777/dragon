@@ -375,30 +375,61 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
  * 15. dyn-wave = 水位表示、 tank / battery / liquid level の汎用形。
  */
 export const shapeWaveTank = diagram("interactive-shape-wave", {
-  topic: "dyn-wave = 水位 (0..amplitude) を signal で駆動、 tank / battery を組める",
+  topic: "dyn-wave tank level を 4-lane (Low 25 / Half 50 / High 75 / Interactive slider) 分散、 3 static + 1 reactive tank 並列比較",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("low", { x: 0, width: 160 })
+  .lane("half", { x: 180, width: 160 })
+  .lane("high", { x: 360, width: 160 })
+  .lane("interactive", { x: 540, width: 180 })
   .input.slider("lvl", { min: 0, max: 100, defaultValue: 55, label: "Level" })
   .state("lvl", { initial: 55 })
-  .node("w", { lane: "l", stack: 0, kind: "dyn-wave", title: "Tank", subtitle: "{lvl}%", w: 140, h: 220,
+  .state("lvl25", { initial: 25 })
+  .state("lvl50", { initial: 50 })
+  .state("lvl75", { initial: 75 })
+  .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low 25%", subtitle: "25%", w: 140, h: 220,
+    shape: { kind: "wave", level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#94a3b8" } })
+  .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half 50%", subtitle: "50%", w: 140, h: 220,
+    shape: { kind: "wave", level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" } })
+  .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High 75%", subtitle: "75%", w: 140, h: 220,
+    shape: { kind: "wave", level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" } })
+  .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Slider", subtitle: "{lvl}%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
-  .phase("p", { duration: 1500, title: "wave の水位が signal で変化", body: "slider を動かすと水位が変化、 波の form は amplitude / frequency / waveHeight で調整可。" }, (p: PhaseBuilder) => p.activate("w").badge("shape.wave"))
+  .phase("p", {
+    duration: 1500,
+    title: "tank level compare",
+    body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider teal) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
+  }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
   .build();
 
 /**
  * 16. dyn-polygon = 頂点数 + 回転を signal で駆動、 badge / medal / spinner の汎用形。
  */
 export const shapePolyRotate = diagram("interactive-shape-polygon", {
-  topic: "dyn-polygon = 頂点数 3-12 と回転を signal で駆動、 badge / spinner を組める",
+  topic: "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("triangle", { x: 0, width: 180 })
+  .lane("hexagon", { x: 200, width: 180 })
+  .lane("octagon", { x: 400, width: 180 })
+  .lane("interactive", { x: 600, width: 200 })
   .input.slider("rot", { min: 0, max: 360, defaultValue: 0, label: "Rotation" })
   .input.slider("radius", { min: 20, max: 80, defaultValue: 60, label: "Radius" })
   .state("rot", { initial: 0 })
   .state("radius", { initial: 60 })
-  .node("p", { lane: "l", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "{rot}°", w: 200, h: 200,
+  .state("rot0", { initial: 0 })
+  .state("radius60", { initial: 60 })
+  .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Triangle", subtitle: "sides=3", w: 180, h: 180,
+    shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#94a3b8" } })
+  .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "sides=6", w: 180, h: 180,
+    shape: { kind: "polygon", sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" } })
+  .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Octagon", subtitle: "sides=8", w: 180, h: 180,
+    shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" } })
+  .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon slider", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
-  .phase("p", { duration: 1500, title: "polygon が回転 + 半径変化", body: "rot slider で hexagon が回転、 radius slider で大きさ変化。 sides を 3-12 で他形状にも。" }, (p: PhaseBuilder) => p.activate("p").badge("shape.polygon"))
+  .phase("p", {
+    duration: 1500,
+    title: "polygon sides compare",
+    body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider teal) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
+  }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
   .build();
 
 /**
@@ -645,15 +676,19 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
  * 26. pathProgress readout + visibleIf。 slider で progress、 完了時 badge を visibleIf 経由で表示。
  */
 export const pathProgressDemo = diagram("interactive-path-progress", {
-  topic: "SVG path 上を signal 0-100 進行 (stroke-dashoffset) + 完了時 badge 表示 (visibleIf)",
+  topic: "path progress を 3-lane (State / Path visual / Completion) 分散、 progress state + path readout + 完了 badge を lane 別展開",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("state", { x: 0, width: 200 })
+  .lane("visual", { x: 240, width: 300 })
+  .lane("done", { x: 560, width: 200 })
   .input.slider("progress", { min: 0, max: 100, defaultValue: 40, label: "Progress" })
   .state("progress", { initial: 40 })
   .state("done", { initial: 0 })
   .formula("done", "progress >= 100 ? 1 : 0")
-  .node("main", { lane: "l", stack: 0, kind: "card", title: "Task", subtitle: "{progress}% complete" })
-  .node("ok", { lane: "l", stack: 1, kind: "card", title: "Done", subtitle: "全部完了", visibleIf: "{done}" })
+  .node("main", { lane: "state", stack: 0, kind: "card", title: "Task state", subtitle: "{progress}% complete" })
+  .node("pathNode", { lane: "visual", stack: 0, kind: "card", title: "Path visual", subtitle: "SVG stroke-dashoffset で進行" })
+  .node("ringNode", { lane: "visual", stack: 1, kind: "card", title: "Percent ring", subtitle: "同時追随" })
+  .node("ok", { lane: "done", stack: 0, kind: "card", title: "✓ Done", subtitle: "progress=100% で visibleIf 発動", visibleIf: "{done}" })
   .readout.pathProgress("pp", {
     source: "progress",
     pathD: "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10",
@@ -662,10 +697,14 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
     strokeWidth: 5,
     color: "#22c55e",
     max: 100,
-    label: "Path",
+    label: "Path (zigzag)",
   })
   .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "Ring" })
-  .phase("p", { duration: 1200, title: "path 上を進行 + 条件表示", body: "pathProgress で SVG path の stroke-dashoffset を signal 追随、 visibleIf で完了時 node 表示。" }, (p: PhaseBuilder) => p.activate("main", "ok").badge("progress + hide"))
+  .phase("p", {
+    duration: 1200,
+    title: "progress flow split",
+    body: "3-lane (State / Visual / Completion) で path progress を機能別分散、 state lane に slider driven main、 visual lane に pathProgress + percentRing 2 readout node、 done lane に visibleIf で 100% 時のみ現れる ok badge、 progress signal → path 進行 → 完了 badge の flow を lane 分割で明示。",
+  }, (p: PhaseBuilder) => p.activate("main", "pathNode", "ringNode", "ok").badge("progress + hide"))
   .build();
 
 /**
