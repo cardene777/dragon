@@ -395,19 +395,27 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
  * 20. edge signal binding = 太さ / 色 / dashoffset を signal 追随、 chain の流れを animate。
  */
 export const edgeFlowBind = diagram("interactive-edge-flow", {
-  topic: "edge の太さ・色・dashoffset を signal で駆動、 chain の流れを animate",
+  topic: "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("src", { x: 0, width: 180 })
+  .lane("pipe", { x: 220, width: 180 })
+  .lane("sink", { x: 440, width: 180 })
   .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "Flow Width" })
   .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "Timeline" })
   .formula("dash", "t * 24")
   .state("flow", { initial: 5 })
   .state("t", { initial: 0 })
   .state("dash", { initial: 0 })
-  .node("a", { lane: "l", stack: 0, kind: "card", title: "Source", subtitle: "from" })
-  .node("b", { lane: "l", stack: 1, kind: "card", title: "Sink", subtitle: "to" })
-  .edge("a", "b", { label: "flow", widthBind: "{flow}", dashOffsetBind: "{dash}" })
-  .phase("p", { duration: 1500, title: "edge が signal で伸縮 + 流れる", body: "flow slider で太さ、 timeline で dashoffset が更新 → 破線が流れる animation。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("edge bind"))
+  .node("a", { lane: "src", stack: 0, kind: "card", title: "Source", subtitle: "producer" })
+  .node("pipeNode", { lane: "pipe", stack: 0, kind: "card", title: "Pipe", subtitle: "width={flow} · dash={dash}" })
+  .node("b", { lane: "sink", stack: 0, kind: "card", title: "Sink", subtitle: "consumer" })
+  .edge("a", "pipeNode", { label: "produce", widthBind: "{flow}", dashOffsetBind: "{dash}" })
+  .edge("pipeNode", "b", { label: "consume", widthBind: "{flow}", dashOffsetBind: "{dash}" })
+  .phase("p", {
+    duration: 1500,
+    title: "flow pipeline",
+    body: "3-lane (Source / Pipe / Sink) で dataflow を横並び分散、 2 edge (Source→Pipe / Pipe→Sink) が widthBind + dashOffsetBind で slider/timeline 追随、 flow slider で太さ、 timeline で dashoffset 変化 → 破線が横 lane を流れる animation、 pipeline 構造と edge signal bind を同時可視化。",
+  }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b").badge("edge bind"))
   .build();
 
 /**
@@ -1595,9 +1603,10 @@ export const userAvatar = diagram("interactive-user-avatar", {
  * 65. checklist = sprint task list 6 item、 progress% 表示。
  */
 export const sprintChecklist = diagram("interactive-sprint-checklist", {
-  topic: "sprint 6 task を checklist で表示、 progress% (2/6 = 33%) と併記",
+  topic: "sprint 6 task を 2-lane (Done ✓ / Todo) 状態別分散、 各 task 個別 card、 checklist readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("done", { x: 0, width: 240 })
+  .lane("todo", { x: 300, width: 240 })
   .arraySignal("tasks", [
     ["Setup CI", true],
     ["Write tests", true],
@@ -1606,9 +1615,18 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
     ["Deploy staging", false],
     ["Post-mortem", false],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sprint tasks", subtitle: "6 items、 2 done" })
-  .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress" })
-  .phase("p", { duration: 1200, title: "checklist", body: "[[label, checked], ...] を 6 checkbox + progress% (2/6 = 33%) で表示、 done は green box + checkmark、 unchecked は border only。" }, (p: PhaseBuilder) => p.activate("card").badge("checklist"))
+  .node("t1", { lane: "done", stack: 0, kind: "card", title: "✓ Setup CI", subtitle: "done" })
+  .node("t2", { lane: "done", stack: 1, kind: "card", title: "✓ Write tests", subtitle: "done" })
+  .node("t3", { lane: "todo", stack: 0, kind: "card", title: "Fix bug #42", subtitle: "todo (blocker)" })
+  .node("t4", { lane: "todo", stack: 1, kind: "card", title: "Code review", subtitle: "todo (awaits reviewer)" })
+  .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy staging", subtitle: "todo (depends on review)" })
+  .node("t6", { lane: "todo", stack: 3, kind: "card", title: "Post-mortem", subtitle: "todo (last)" })
+  .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress (2/6 = 33%)" })
+  .phase("p", {
+    duration: 1200,
+    title: "sprint split",
+    body: "2-lane (Done 2 item / Todo 4 item) で 6 sprint task を状態別分散、 各 task 個別 card で進捗 + note 明示、 checklist readout も併存で progress% (2/6 = 33%) 表示、 status 分類と check-list の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("t1", "t2", "t3", "t4", "t5", "t6").badge("checklist"))
   .build();
 
 /**
@@ -2292,13 +2310,24 @@ function generateCalendarDays(): (string | number)[] {
   return days as unknown as (string | number)[];
 }
 export const monthCalendarView = diagram("interactive-month-calendar", {
-  topic: "January 2026 calendar view、 6 event day + today (13 日) を marker で強調表示",
+  topic: "January 2026 calendar を 4-lane (Week 1 / Week 2 / Week 3 / Week 4-5) 週別分散、 各週 summary + calendarMonth readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("w1", { x: 0, width: 150 })
+  .lane("w2", { x: 170, width: 150 })
+  .lane("w3", { x: 340, width: 150 })
+  .lane("w4", { x: 510, width: 200 })
   .arraySignal("days", generateCalendarDays())
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Calendar", subtitle: "January 2026" })
-  .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view" })
-  .phase("p", { duration: 1200, title: "calendar month", body: "31 day を 7 column grid で表示、 event 6 day は blue dot、 today (13) は blue border + color 強調、 schedule / calendar 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("calendar"))
+  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1 (Jan 1-7)", subtitle: "1 event (Jan 3)" })
+  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2 (Jan 8-14)", subtitle: "2 events (Jan 8, 12) + today (13)" })
+  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3 (Jan 15-21)", subtitle: "1 event (Jan 17)" })
+  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5 (Jan 22-31)", subtitle: "2 events (Jan 22, 26)" })
+  .node("monthSummary", { lane: "w4", stack: 1, kind: "card", title: "Month total", subtitle: "31 days · 6 events · today = Jan 13" })
+  .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view (7 column grid)" })
+  .phase("p", {
+    duration: 1200,
+    title: "week split",
+    body: "4-lane (Week 1 / 2 / 3 / 4-5) で January 2026 を週別分散、 各週 event 数 + today 位置 (Week 2 = Jan 13) 明示、 month total summary (Week 4-5 lane 内)、 calendarMonth readout も併存で 7 column grid 表示、 週単位 aggregate と月 grid の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("w1Card", "w2Card", "w3Card", "w4Card", "monthSummary").badge("calendar"))
   .build();
 
 /**
