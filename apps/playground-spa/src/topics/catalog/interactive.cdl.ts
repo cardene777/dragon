@@ -1237,14 +1237,25 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
  * 52. polar-area = 7 day activity distribution。
  */
 export const activityPolar = diagram("interactive-activity-polar", {
-  topic: "1 週間の daily activity を polar-area (nightingale rose) chart で可視化",
+  topic: "weekly activity 7 day を 2-lane (Weekday / Weekend) に分散、 各 day 個別 card + hours、 polarArea readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("weekday", { x: 0, width: 300 })
+  .lane("weekend", { x: 380, width: 220 })
   .arraySignal("hours", [3, 5, 8, 6, 7, 4, 2])
   .arraySignal("days", ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Weekly hours", subtitle: "total {hours.sum}h · max {hours.max}h" })
-  .readout.polarArea("p", { source: "hours", max: 10, labelSource: "days", viewW: 220, viewH: 220, label: "Hours" })
-  .phase("p", { duration: 1200, title: "polar area", body: "array を極座標 sector で area 比例表示、 各 sector = 1 day、 r=sqrt(v/max)*maxR、 3 ring guide + label。" }, (p: PhaseBuilder) => p.activate("card").badge("polar"))
+  .node("monNode", { lane: "weekday", stack: 0, kind: "card", title: "Mon", subtitle: "3h" })
+  .node("tueNode", { lane: "weekday", stack: 1, kind: "card", title: "Tue", subtitle: "5h" })
+  .node("wedNode", { lane: "weekday", stack: 2, kind: "card", title: "Wed", subtitle: "8h (max)" })
+  .node("thuNode", { lane: "weekday", stack: 3, kind: "card", title: "Thu", subtitle: "6h" })
+  .node("friNode", { lane: "weekday", stack: 4, kind: "card", title: "Fri", subtitle: "7h" })
+  .node("satNode", { lane: "weekend", stack: 0, kind: "card", title: "Sat", subtitle: "4h" })
+  .node("sunNode", { lane: "weekend", stack: 1, kind: "card", title: "Sun", subtitle: "2h (min)" })
+  .readout.polarArea("p", { source: "hours", max: 10, labelSource: "days", viewW: 220, viewH: 220, label: "Hours (polar sectors)" })
+  .phase("p", {
+    duration: 1200,
+    title: "weekly split",
+    body: "2-lane (Weekday 5 個 / Weekend 2 個) で 7 day を分散、 各 day 個別 card で hours 明示、 polarArea readout も併存で極座標 sector 表示、 平日/週末の作業量差を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("monNode", "tueNode", "wedNode", "thuNode", "friNode", "satNode", "sunNode").badge("polar"))
   .build();
 
 /**
@@ -1282,16 +1293,27 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
  * 54. bullet-chart = KPI actual vs target + 3 range、 slider で actual 変化 → 3 range のどこにいるか可視化。
  */
 export const kpiBullet = diagram("interactive-kpi-bullet", {
-  topic: "KPI actual (slider) vs target (fixed) + 3 range (bad/avg/good) の bullet chart",
+  topic: "KPI bullet chart を 3-lane (bad / avg / good) range 分散 + actual/target 個別 card、 bulletChart readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("bad", { x: 0, width: 180 })
+  .lane("avg", { x: 220, width: 180 })
+  .lane("good", { x: 440, width: 220 })
   .input.slider("actual", { min: 0, max: 100, defaultValue: 55, label: "Actual" })
   .state("actual", { initial: 55 })
   .state("target", { initial: 80 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "KPI progress", subtitle: "actual {actual} · target {target}" })
-  .readout.bulletChart("b", { source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#0f172a", label: "Progress" })
+  .node("badRange", { lane: "bad", stack: 0, kind: "card", title: "Bad range", subtitle: "0-40 (red)" })
+  .node("avgRange", { lane: "avg", stack: 0, kind: "card", title: "Avg range", subtitle: "40-70 (yellow) · actual {actual} here" })
+  .node("goodRange", { lane: "good", stack: 0, kind: "card", title: "Good range", subtitle: "70-100 (green) · target {target}" })
+  .node("actualNode", { lane: "avg", stack: 1, kind: "card", title: "◆ Actual", subtitle: "{actual}" })
+  .node("targetNode", { lane: "good", stack: 1, kind: "card", title: "▼ Target", subtitle: "{target}" })
+  .edge("actualNode", "targetNode", { label: "gap = target - actual", tone: "warning" })
+  .readout.bulletChart("b", { source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#0f172a", label: "Progress (bullet chart)" })
   .readout.stat("targetStat", { source: "target", label: "Target" })
-  .phase("p", { duration: 1200, title: "bullet-chart", body: "actual bar が 3 range (red/yellow/green) のどこにあるかを可視化、 target line と併記、 KPI dashboard 定番 chart。" }, (p: PhaseBuilder) => p.activate("card").badge("KPI"))
+  .phase("p", {
+    duration: 1200,
+    title: "KPI range map",
+    body: "3-lane (bad 0-40 / avg 40-70 / good 70-100) range 分散、 actual (avg lane) + target (good lane) を個別 card で位置明示、 gap edge (warning tone) で actual→target の差を可視化、 bulletChart readout も併存で従来 chart 表示。",
+  }, (p: PhaseBuilder) => p.activate("badRange", "avgRange", "goodRange", "actualNode", "targetNode").badge("KPI"))
   .build();
 
 /**
@@ -1764,18 +1786,26 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
  * 82. poll-bar = feature poll、 4 option の投票 % 表示、 winner に ★ 装飾。
  */
 export const featurePoll = diagram("interactive-feature-poll", {
-  topic: "feature poll、 4 option の投票結果を % + winner ★ 装飾で表示",
+  topic: "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("winner", { x: 0, width: 220 })
+  .lane("runners", { x: 300, width: 220 })
   .arraySignal("options", [
     ["Dark mode", 42],
     ["Faster search", 28],
     ["Better API", 18],
     ["Nicer UI", 12],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Feature vote", subtitle: "100 votes" })
-  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "Results" })
-  .phase("p", { duration: 1200, title: "poll bar", body: "[[option, count], ...] の 4 選択肢を % + progress bar で表示、 max count の option に ★ + blue winner color。" }, (p: PhaseBuilder) => p.activate("card").badge("poll"))
+  .node("dark", { lane: "winner", stack: 0, kind: "card", title: "★ Dark mode", subtitle: "42 votes (winner)" })
+  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Faster search", subtitle: "28 votes" })
+  .node("api", { lane: "runners", stack: 1, kind: "card", title: "Better API", subtitle: "18 votes" })
+  .node("ui", { lane: "runners", stack: 2, kind: "card", title: "Nicer UI", subtitle: "12 votes" })
+  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "Results (aggregate)" })
+  .phase("p", {
+    duration: 1200,
+    title: "vote split",
+    body: "2-lane (Winner / Runners-up 3 個) で 4 option を投票結果別に分散、 winner lane は 1 位を目立たせる、 pollBar readout で aggregate 一覧も併存、 poll 構造を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("dark", "search", "api", "ui").badge("poll"))
   .build();
 
 /**
