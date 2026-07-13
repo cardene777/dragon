@@ -10,6 +10,7 @@ import "./styles/docs-site.css";
 import "./styles/editor.css";
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
+import { LocaleProvider } from "./lib/useLocale";
 import { HomePage } from "./pages/HomePage";
 import { CatalogIndexPage } from "./pages/CatalogIndexPage";
 import { CategoryPage } from "./pages/CategoryPage";
@@ -25,8 +26,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <SvgDefs />
-      <ToastProvider>
-        <Routes>
+      <LocaleProvider>
+        <ToastProvider>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/catalog" element={<CatalogIndexPage />} />
           <Route path="/catalog/:slug" element={<CategoryPage />} />
@@ -36,9 +38,10 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/preset/:id" element={<PresetDetailPage />} />
           <Route path="/release-notes" element={<ReleaseNotesPage />} />
           <Route path="/contribute" element={<ContributePage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </ToastProvider>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </ToastProvider>
+      </LocaleProvider>
     </BrowserRouter>
   </StrictMode>,
 );
