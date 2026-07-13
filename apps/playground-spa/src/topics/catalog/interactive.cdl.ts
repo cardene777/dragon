@@ -2094,45 +2094,77 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
  * 67. price-tag = e-commerce 商品価格、 stepper で newPrice 変化 → discount % 自動計算。
  */
 export const productPriceTag = diagram("interactive-product-price-tag", {
-  topic: "e-commerce 商品価格、 stepper で newPrice 変化 → discount % + savings が自動計算追随",
+  topic: "e-commerce price tag を 3-lane (Old price / New price / Discount %) + 2 edge、 discount 計算経路可視化、 priceTag readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("old", { x: 0, width: 200 })
+  .lane("new", { x: 240, width: 200 })
+  .lane("discount", { x: 480, width: 200 })
   .input.stepper("newPrice", { min: 0, max: 200, step: 5, defaultValue: 65, label: "New price" })
   .state("newPrice", { initial: 65 })
   .state("oldPrice", { initial: 100 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Product", subtitle: "was ${oldPrice}、 now ${newPrice}" })
-  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "Price" })
-  .phase("p", { duration: 1200, title: "price tag", body: "stepper で new price 変化 → 大 数字 (new) + strikethrough (old) + discount % (red badge) + savings text が同時追随、 e-commerce 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("price"))
+  .node("oldNode", { lane: "old", stack: 0, kind: "card", title: "Old price", subtitle: "${oldPrice} (strikethrough)" })
+  .node("newNode", { lane: "new", stack: 0, kind: "card", title: "New price", subtitle: "${newPrice} (stepper driven)" })
+  .node("discountNode", { lane: "discount", stack: 0, kind: "card", title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
+  .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
+  .edge("newNode", "discountNode", { label: "%", tone: "error" })
+  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "Price (composite tag)" })
+  .phase("p", {
+    duration: 1200,
+    title: "price flow",
+    body: "3-lane (Old / New / Discount) で price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。",
+  }, (p: PhaseBuilder) => p.activate("oldNode", "newNode", "discountNode").badge("price"))
   .build();
 
 /**
  * 68. spinner = deploy status、 dropdown で running/done/error 切替 → icon 変化。
  */
 export const deploySpinner = diagram("interactive-deploy-spinner", {
-  topic: "deploy status を dropdown で切替、 running=animate spinner / done=green ✓ / error=red ✕ + text",
+  topic: "deploy 3 state (running/done/error) を 3-lane 分散 + current indicator、 spinner readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("running", { x: 0, width: 220 })
+  .lane("done", { x: 260, width: 220 })
+  .lane("error", { x: 520, width: 220 })
   .input.dropdown("status", { options: ["running", "done", "error"], defaultValue: "running", label: "Status" })
   .input.text("msg", { defaultValue: "Building production bundle...", placeholder: "Status message", maxLength: 60, label: "Message" })
   .state("status", { initial: "running" })
   .state("msg", { initial: "Building production bundle..." })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Deploy state", subtitle: "{status}: {msg}" })
-  .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy" })
-  .phase("p", { duration: 1200, title: "spinner", body: "dropdown で 3 state 切替 → running は SMIL 回転 circle、 done は green ✓、 error は red ✕ に icon が変わる、 loading state 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("loading"))
+  .node("runningNode", { lane: "running", stack: 0, kind: "card", title: "◐ Running", subtitle: "blue spinner · SMIL 回転 circle" })
+  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "✓ Done", subtitle: "green · deploy success" })
+  .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · deploy failed" })
+  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Current deploy", subtitle: "status: {status} · msg: {msg}" })
+  .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" })
+  .phase("p",  {
+    duration: 1200,
+    title: "deploy state split",
+    body: "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("runningNode", "doneNode", "errorNode", "currentState").badge("loading"))
   .build();
 
 /**
  * 69. grade = exam score を slider で操作 → A/B/C/D/F letter grade + color 追随。
  */
 export const examGrade = diagram("interactive-exam-grade", {
-  topic: "exam score (0-100) を slider で操作 → letter grade (A/B/C/D/F) + color band 追随",
+  topic: "exam grade 5 letter (A/B/C/D/F) を 5-lane band 分散 + current indicator (default=B lane)、 grade readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("A", { x: 0, width: 130 })
+  .lane("B", { x: 150, width: 130 })
+  .lane("C", { x: 300, width: 130 })
+  .lane("D", { x: 450, width: 130 })
+  .lane("F", { x: 600, width: 130 })
   .input.slider("score", { min: 0, max: 100, defaultValue: 85, label: "Score" })
   .state("score", { initial: 85 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Exam grade", subtitle: "score: {score} / 100" })
-  .readout.grade("g", { source: "score", max: 100, label: "Letter grade" })
-  .phase("p", { duration: 1200, title: "letter grade", body: "slider で score 変化 → A(≥90)/B(≥80)/C(≥70)/D(≥60)/F(<60) の 5 color band で letter が動的更新。" }, (p: PhaseBuilder) => p.activate("card").badge("grade"))
+  .node("aNode", { lane: "A", stack: 0, kind: "card", title: "A", subtitle: "≥ 90 (green)" })
+  .node("bNode", { lane: "B", stack: 0, kind: "card", title: "B", subtitle: "80-89 (blue, default here)" })
+  .node("cNode", { lane: "C", stack: 0, kind: "card", title: "C", subtitle: "70-79 (yellow)" })
+  .node("dNode", { lane: "D", stack: 0, kind: "card", title: "D", subtitle: "60-69 (orange)" })
+  .node("fNode", { lane: "F", stack: 0, kind: "card", title: "F", subtitle: "< 60 (red)" })
+  .node("currentGrade", { lane: "B", stack: 1, kind: "card", title: "◆ Current", subtitle: "score = {score} / 100" })
+  .readout.grade("g", { source: "score", max: 100, label: "Letter grade (band)" })
+  .phase("p", {
+    duration: 1200,
+    title: "grade band split",
+    body: "5-lane (A ≥90 / B 80-89 / C 70-79 / D 60-69 / F <60) で 5 letter grade band を分散、 各 band 個別 card + current indicator (default score 85 → B lane)、 slider 変化で grade readout が letter + color 追随、 grade band 分類と current の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("aNode", "bNode", "cNode", "dNode", "fNode", "currentGrade").badge("grade"))
   .build();
 
 /**
