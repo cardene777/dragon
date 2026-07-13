@@ -3865,125 +3865,170 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
   .build();
 
 /**
- * 127. exemplar-payment-flow = 実 payment 処理シナリオ (受付 → 決済処理 → 完了 の 3 phase)、 diagram flow と readout metric が phase 毎に連動して visually 変化する pattern SSOT。
- * iteration 7 catalog redesign § PR-B exemplar 1、 「real scenario + meaningful readout linkage + visible animation」 の設計 pattern。
+ * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
  */
 export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", {
-  topic: "payment 処理シナリオ 実例 = 3 phase (受付 → 決済処理 → 完了) の flow を 4-lane system + gauge/stat/bar readout で live metric 可視化、 tween した数値が readout に直接反映される exemplar",
+  topic: "EC 決済実業務シナリオ = 4 phase (購入 → 3DS 認証 → 銀行確定 → 記帳) の flow を shape-* primitive 8 種で表現 + 4 readout が state を consume して visually 連続変化",
 })
-  .lane("user", { x: 0, width: 180 })
-  .lane("gateway", { x: 200, width: 200 })
-  .lane("provider", { x: 420, width: 200 })
-  .lane("bank", { x: 640, width: 180 })
-  .state("txCount", { initial: 0 })
-  .state("successRate", { initial: 100 })
-  .state("latency", { initial: 50 })
-  .node("userCard", { lane: "user", stack: 0, kind: "actor", title: "顧客", subtitle: "決済 API 呼出 · tx={txCount} 件" })
-  .node("gwCard", { lane: "gateway", stack: 0, kind: "function", title: "API Gateway", subtitle: "認証 + rate limit · latency {latency}ms" })
-  .node("providerCard", { lane: "provider", stack: 0, kind: "function", title: "Stripe (Provider)", subtitle: "card 認証 + 3DS · 成功率 {successRate}%" })
-  .node("bankCard", { lane: "bank", stack: 0, kind: "storage", title: "銀行決済", subtitle: "資金移動 + 記帳" })
-  .edge("userCard", "gwCard", { label: "POST /pay", tone: "info" })
-  .edge("gwCard", "providerCard", { label: "認証転送", tone: "info" })
-  .edge("providerCard", "bankCard", { label: "決済確定", tone: "success" })
-  .readout.gauge("successGauge", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" })
-  .readout.stat("txStat", { source: "txCount", unit: " 件", caption: "処理済 tx 数", label: "累計 tx" })
-  .readout.bar("latencyBar", { source: "latency", min: 0, max: 300, color: "#f97316", label: "latency ms" })
+  .lane("customer", { x: 0, width: 220 })
+  .lane("processor", { x: 240, width: 280 })
+  .lane("bank", { x: 540, width: 220 })
+  .state("amount", { initial: 0 })
+  .state("auth3ds", { initial: 0 })
+  .state("txStatus", { initial: 0 })
+  .state("totalTx", { initial: 1247 })
+  .node("customer", { lane: "customer", stack: 0, kind: "shape-person", title: "田中様", eyebrow: "customer", subtitle: "購入者" })
+  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "iPhone 15", eyebrow: "device", subtitle: "Safari / iOS 17" })
+  .node("card", { lane: "customer", stack: 2, kind: "shape-credit-card", title: "VISA **1234", eyebrow: "card", subtitle: "MUFG 発行" })
+  .node("shop", { lane: "processor", stack: 0, kind: "shape-online-shop", title: "BuyNow.com", eyebrow: "merchant", subtitle: "checkout · ¥{amount}" })
+  .node("gateway", { lane: "processor", stack: 1, kind: "shape-api-gateway", title: "API Gateway", eyebrow: "gateway", subtitle: "認証 + rate limit" })
+  .node("provider", { lane: "processor", stack: 2, kind: "shape-payment-provider", title: "Stripe", eyebrow: "provider", subtitle: "3DS {auth3ds}%" })
+  .node("bankShape", { lane: "bank", stack: 0, kind: "shape-bank", title: "MUFG", eyebrow: "issuer", subtitle: "発行銀行 · 与信照会" })
+  .node("ledger", { lane: "bank", stack: 1, kind: "shape-cylinder", title: "取引台帳", eyebrow: "database", subtitle: "記帳 + 監査 log" })
+  .edge("customer", "mobile", { label: "操作", tone: "info" })
+  .edge("mobile", "shop", { label: "購入", tone: "info" })
+  .edge("shop", "gateway", { label: "POST /pay", tone: "info" })
+  .edge("gateway", "provider", { label: "転送", tone: "info" })
+  .edge("card", "provider", { label: "3DS 認証", tone: "accent" })
+  .edge("provider", "bankShape", { label: "決済要求", tone: "success" })
+  .edge("bankShape", "ledger", { label: "記帳", tone: "success" })
+  .readout.stat("amountStat", { source: "amount", unit: " 円", caption: "決済金額", label: "金額" })
+  .readout.gauge("authGauge", { source: "auth3ds", min: 0, max: 100, color: "#22c55e", label: "3DS 認証 %" })
+  .readout.trafficLight("statusTL", { source: "txStatus", label: "決済 status" })
+  .readout.countup("totalCU", { source: "totalTx", unit: " 件", label: "本日累計 tx", decimals: 0 })
   .phase("p1", {
-    duration: 2000,
-    title: "受付",
-    body: "顧客が決済 API 呼出、 API Gateway が受付、 txCount を 0 → 10 まで tween、 gauge は 100% (成功率初期値)、 latency 50ms (低負荷)。",
-  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard").tween("txCount", 0, 10).tween("latency", 50, 50).badge("受付"))
+    duration: 2200,
+    title: "商品購入",
+    body: "田中様が iPhone で BuyNow.com にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop").tween("amount", 0, 12500).set("txStatus", 0).set("auth3ds", 0).badge("購入"))
   .phase("p2", {
     duration: 2500,
-    title: "決済処理",
-    body: "Provider に転送、 pipeline 全 active、 txCount 10 → 50 tween、 latency 50 → 180ms tween (負荷上昇で bar が伸びる)、 successRate 100 → 95% tween (gauge の緑針が下がる)。",
-  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard", "providerCard").tween("txCount", 10, 50).tween("latency", 50, 180).tween("successRate", 100, 95).badge("処理中"))
+    title: "3DS 認証",
+    body: "gateway 経由で Stripe に転送、 VISA カードの 3D-Secure 認証実行。 txStatus 0 → 1 tween (traffic-light 赤 → 黄)、 auth3ds 0 → 92% tween (gauge 針が緑域まで上昇)。 processor lane 全 activate、 card → provider の accent edge。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop", "gateway", "provider").tween("txStatus", 0, 1).tween("auth3ds", 0, 92).badge("3DS 認証"))
   .phase("p3", {
-    duration: 1500,
-    title: "決済完了",
-    body: "銀行で確定、 4 lane 全 active、 txCount 50 → 100 tween、 latency 180 → 60ms tween (バッファ解消)、 successRate 95 → 98% tween (再試行成功で回復)。",
-  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard", "providerCard", "bankCard").tween("txCount", 50, 100).tween("latency", 180, 60).tween("successRate", 95, 98).badge("完了"))
+    duration: 2000,
+    title: "銀行確定",
+    body: "認証通過、 発行銀行 MUFG に与信照会 + 決済確定。 txStatus 1 → 2 tween (traffic-light 黄 → 緑)、 auth3ds 92 → 98% tween (最終確定)、 bank lane activate。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop", "gateway", "provider", "bankShape").tween("txStatus", 1, 2).tween("auth3ds", 92, 98).badge("銀行確定"))
+  .phase("p4", {
+    duration: 1800,
+    title: "記帳完了",
+    body: "銀行が取引台帳に記帳 + 監査 log 記録、 totalTx 1247 → 1248 tween (countup が +1 加算表示、 800ms かけて動的 count up)、 全 8 shape active、 決済 flow 完遂。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop", "gateway", "provider", "bankShape", "ledger").tween("totalTx", 1247, 1248).set("txStatus", 2).badge("記帳完了"))
   .build();
 
 /**
- * 128. exemplar-login-flow = 実 login 認証シナリオ (要求 → 検証 → セッション発行)、 3 phase の flow と readout (countup / stat / traffic-light) が連動、 authStatus が state で 0→1→2 に遷移して traffic-light readout が視覚変化。
- * iteration 7 catalog redesign § PR-B exemplar 2、 exemplar pattern SSOT 2 個目。
+ * 128. exemplar-login-flow v2 = 実 login 認証 + 2FA + セッション発行シナリオ、 shape-* primitive (mobile-device / person / server-rack / hexagon / diamond / cylinder / cloud) で visual scene 化、 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) + 4 readout (traffic-light / countup / gauge / bar) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 2。
  */
 export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
-  topic: "login 認証シナリオ 実例 = 3 phase (要求 → 検証 → セッション発行) の flow を 4-lane + countup/stat/traffic-light readout で live 認証状態可視化、 authStatus tween で traffic-light が緑/黄/赤 に変化",
+  topic: "login + 2FA 実業務シナリオ = 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
 })
-  .lane("user", { x: 0, width: 180 })
-  .lane("auth", { x: 200, width: 200 })
-  .lane("session", { x: 420, width: 200 })
-  .lane("response", { x: 640, width: 180 })
-  .state("successCount", { initial: 0 })
-  .state("sessionActive", { initial: 0 })
+  .lane("user", { x: 0, width: 200 })
+  .lane("auth", { x: 220, width: 300 })
+  .lane("session", { x: 540, width: 220 })
   .state("authStatus", { initial: 0 })
-  .node("userInput", { lane: "user", stack: 0, kind: "actor", title: "ユーザ入力", subtitle: "email + password 送信" })
-  .node("authApi", { lane: "auth", stack: 0, kind: "function", title: "Auth API", subtitle: "credential 検証 · status {authStatus}" })
-  .node("sessionStore", { lane: "session", stack: 0, kind: "storage", title: "セッション Store", subtitle: "JWT 発行 · active {sessionActive}" })
-  .node("responseCard", { lane: "response", stack: 0, kind: "function", title: "Response", subtitle: "token 返却 · success {successCount}" })
-  .edge("userInput", "authApi", { label: "POST /login", tone: "info" })
-  .edge("authApi", "sessionStore", { label: "検証成功", tone: "success" })
-  .edge("sessionStore", "responseCard", { label: "JWT 発行", tone: "success" })
-  .readout.countup("successCU", { source: "successCount", unit: " 件", label: "認証成功" })
-  .readout.stat("activeStat", { source: "sessionActive", unit: " session", caption: "有効 session 数", label: "active" })
-  .readout.trafficLight("authTL", { source: "authStatus", label: "認証 status (0/1/2)" })
+  .state("successLogin", { initial: 8421 })
+  .state("failRate", { initial: 100 })
+  .state("latency", { initial: 0 })
+  .node("customer", { lane: "user", stack: 0, kind: "shape-person", title: "山田様", eyebrow: "user", subtitle: "email + password 送信" })
+  .node("mobile", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "Pixel 8", eyebrow: "device", subtitle: "Chrome / Android 14" })
+  .node("authApi", { lane: "auth", stack: 0, kind: "shape-server-rack", title: "Auth API", eyebrow: "server", subtitle: "credential 一次検証" })
+  .node("mfaCheck", { lane: "auth", stack: 1, kind: "shape-diamond", title: "2FA 要求?", eyebrow: "decision", subtitle: "TOTP 6 桁 or SMS" })
+  .node("jwtSign", { lane: "auth", stack: 2, kind: "shape-hexagon", title: "JWT 発行器", eyebrow: "signer", subtitle: "RS256 · exp 1h" })
+  .node("session", { lane: "session", stack: 0, kind: "shape-cylinder", title: "Redis Session", eyebrow: "cache", subtitle: "TTL 3600s" })
+  .node("token", { lane: "session", stack: 1, kind: "shape-cloud", title: "JWT token", eyebrow: "response", subtitle: "Bearer · 302 redirect" })
+  .edge("customer", "mobile", { label: "入力", tone: "info" })
+  .edge("mobile", "authApi", { label: "POST /login", tone: "info" })
+  .edge("authApi", "mfaCheck", { label: "一次 OK", tone: "success" })
+  .edge("mfaCheck", "jwtSign", { label: "2FA OK", tone: "success" })
+  .edge("jwtSign", "session", { label: "sid 保存", tone: "success" })
+  .edge("session", "token", { label: "token 発行", tone: "success" })
+  .readout.trafficLight("statusTL", { source: "authStatus", label: "認証 status (0/1/2)" })
+  .readout.countup("successCU", { source: "successLogin", unit: " 回", label: "本日成功ログイン" })
+  .readout.gauge("rateGauge", { source: "failRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" })
+  .readout.bar("latencyBar", { source: "latency", min: 0, max: 500, color: "#f97316", label: "応答時間 ms" })
   .phase("p1", {
     duration: 1500,
     title: "認証要求",
-    body: "ユーザが credential 送信、 User + Auth lane active、 authStatus は 0 (idle) で traffic-light は赤、 successCount + sessionActive は 0。",
-  }, (p: PhaseBuilder) => p.activate("userInput", "authApi").set("authStatus", 0).badge("要求"))
+    body: "山田様が Pixel でログイン画面に credential 送信。 authStatus = 0 (traffic-light 赤 = 未検証)、 latency 0 → 80ms tween (bar 立ち上がり)、 gauge 100%、 countup 保持。 user lane 全 active。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile").set("authStatus", 0).tween("latency", 0, 80).badge("要求"))
   .phase("p2", {
     duration: 2000,
-    title: "検証中",
-    body: "Auth API が credential 照合、 authStatus を 0 → 1 tween で traffic-light が赤 → 黄 に変化、 session lane まだ未 activate、 検証結果待ち。",
-  }, (p: PhaseBuilder) => p.activate("userInput", "authApi").tween("authStatus", 0, 1).badge("検証"))
+    title: "一次検証",
+    body: "Auth API が credential 照合、 hash 比較。 authStatus 0 → 1 tween (traffic-light 赤 → 黄)、 latency 80 → 220ms tween (bcrypt で bar 伸長)、 gauge 100 → 99% tween (失敗も少数計上)。 authApi + mfaCheck lane activate。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "authApi", "mfaCheck").tween("authStatus", 0, 1).tween("latency", 80, 220).tween("failRate", 100, 99).badge("一次検証"))
   .phase("p3", {
-    duration: 1500,
+    duration: 2200,
+    title: "2FA 検証",
+    body: "TOTP 6 桁認証、 認証サーバが time-window 比較。 authStatus 1 → 1 保持 (traffic-light 黄)、 latency 220 → 350ms tween (2FA overhead で bar さらに伸長)、 mfaCheck diamond が pending 状態。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "authApi", "mfaCheck").set("authStatus", 1).tween("latency", 220, 350).badge("2FA"))
+  .phase("p4", {
+    duration: 2000,
     title: "セッション発行",
-    body: "認証成功、 authStatus を 1 → 2 tween で traffic-light が黄 → 緑、 4 lane 全 active、 successCount 0 → 1 tween で countup が動的表示、 sessionActive 0 → 1 tween で stat 更新。",
-  }, (p: PhaseBuilder) => p.activate("userInput", "authApi", "sessionStore", "responseCard").tween("authStatus", 1, 2).tween("successCount", 0, 1).tween("sessionActive", 0, 1).badge("発行"))
+    body: "2FA 通過、 JWT 発行 + Redis に session 保存。 authStatus 1 → 2 tween (traffic-light 黄 → 緑)、 latency 350 → 180ms tween (bar 縮小)、 gauge 99 → 99% 維持、 jwtSign + session lane activate。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "authApi", "mfaCheck", "jwtSign", "session").tween("authStatus", 1, 2).tween("latency", 350, 180).badge("発行"))
+  .phase("p5", {
+    duration: 1800,
+    title: "応答返却",
+    body: "JWT token を Bearer header で返却、 302 redirect。 successLogin 8421 → 8422 tween (countup が +1 加算表示、 900ms かけて動的)、 latency 180 → 50ms tween (最終)、 全 7 shape active。",
+  }, (p: PhaseBuilder) => p.activate("customer", "mobile", "authApi", "mfaCheck", "jwtSign", "session", "token").tween("successLogin", 8421, 8422).tween("latency", 180, 50).set("authStatus", 2).badge("応答"))
   .build();
 
 /**
- * 129. exemplar-notification-flow = 実 push 通知配信シナリオ (event → queue → service → device 配信)、 3 phase の flow と readout (countup / bar / gauge) が連動、 queued/delivered/failed 数を tween で連続変化。
- * iteration 7 catalog redesign § PR-B exemplar 3、 exemplar pattern SSOT 3 個目 (最終)。
+ * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 shape-* primitive (message-bubble / stack / cloud / diamond / mobile-device × 3) で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
  */
 export const exemplarNotificationFlow = diagram("interactive-exemplar-notification-flow", {
-  topic: "push 通知配信シナリオ 実例 = 3 phase (event → 配信 → retry) の flow を 4-lane + countup/bar/gauge readout で配信 metrics 可視化、 queued/delivered/failed を tween で連続変化",
+  topic: "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
 })
-  .lane("event", { x: 0, width: 180 })
-  .lane("queue", { x: 200, width: 200 })
-  .lane("service", { x: 420, width: 200 })
-  .lane("device", { x: 640, width: 180 })
+  .lane("origin", { x: 0, width: 200 })
+  .lane("infra", { x: 220, width: 280 })
+  .lane("devices", { x: 520, width: 240 })
   .state("queued", { initial: 0 })
   .state("delivered", { initial: 0 })
   .state("failed", { initial: 0 })
   .state("deliveryRate", { initial: 0 })
-  .node("eventCard", { lane: "event", stack: 0, kind: "event", title: "◆ event 発火", subtitle: "新着 message · queue 100 件" })
-  .node("queueCard", { lane: "queue", stack: 0, kind: "storage", title: "Kafka Queue", subtitle: "queued {queued} 件 · pending" })
-  .node("serviceCard", { lane: "service", stack: 0, kind: "function", title: "通知サービス (FCM)", subtitle: "配信 {delivered} 件 · 失敗 {failed} 件" })
-  .node("deviceCard", { lane: "device", stack: 0, kind: "actor", title: "ユーザ端末", subtitle: "受信 · retry 対応" })
-  .edge("eventCard", "queueCard", { label: "enqueue", tone: "info" })
-  .edge("queueCard", "serviceCard", { label: "dequeue", tone: "success" })
-  .edge("serviceCard", "deviceCard", { label: "配信", tone: "success" })
-  .readout.countup("deliveredCU", { source: "delivered", unit: " 件", label: "配信済" })
-  .readout.bar("queuedBar", { source: "queued", min: 0, max: 100, color: "#f97316", label: "queue 残" })
+  .node("msg", { lane: "origin", stack: 0, kind: "shape-message-bubble", title: "新着 message", eyebrow: "trigger", subtitle: "\"注文が発送されました\"" })
+  .node("kafka", { lane: "infra", stack: 0, kind: "shape-stack", title: "Kafka キュー", eyebrow: "queue", subtitle: "残 {queued} 件 · TTL 300s" })
+  .node("fcm", { lane: "infra", stack: 1, kind: "shape-cloud", title: "FCM Service", eyebrow: "notification", subtitle: "配信 batch 処理" })
+  .node("retryGate", { lane: "infra", stack: 2, kind: "shape-diamond", title: "retry 判定", eyebrow: "policy", subtitle: "指数 backoff · 最大 3 回" })
+  .node("iphone", { lane: "devices", stack: 0, kind: "shape-mobile-device", title: "iPhone (A)", eyebrow: "device", subtitle: "APNs 経由 · foreground" })
+  .node("pixel", { lane: "devices", stack: 1, kind: "shape-mobile-device", title: "Pixel (B)", eyebrow: "device", subtitle: "FCM 経由 · background" })
+  .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy (C)", eyebrow: "device", subtitle: "圏外 → retry 対象" })
+  .edge("msg", "kafka", { label: "enqueue", tone: "info" })
+  .edge("kafka", "fcm", { label: "dequeue", tone: "info" })
+  .edge("fcm", "iphone", { label: "APNs 配信", tone: "success" })
+  .edge("fcm", "pixel", { label: "FCM 配信", tone: "success" })
+  .edge("fcm", "galaxy", { label: "初回失敗", tone: "error" })
+  .edge("galaxy", "retryGate", { label: "retry 要求", tone: "warning" })
+  .edge("retryGate", "fcm", { label: "再送指示", tone: "warning" })
+  .readout.bar("queuedBar", { source: "queued", min: 0, max: 1000, color: "#f97316", label: "queue 残" })
+  .readout.countup("deliveredCU", { source: "delivered", unit: " 件", label: "配信成功", decimals: 0 })
   .readout.gauge("rateGauge", { source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信成功率 %" })
+  .readout.stat("failedStat", { source: "failed", unit: " 件", caption: "リトライ待ち", label: "失敗" })
   .phase("p1", {
-    duration: 1500,
+    duration: 1800,
     title: "event 発火",
-    body: "新着 event 発生、 Event + Queue lane active、 queued を 0 → 100 tween で bar が最大まで伸びる、 delivered/failed は 0、 deliveryRate 0%。",
-  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard").tween("queued", 0, 100).set("delivered", 0).set("failed", 0).set("deliveryRate", 0).badge("event"))
+    body: "注文発送 event が発生、 message-bubble から Kafka キューに enqueue。 queued 0 → 1000 tween (bar が右に伸長)、 delivered = 0、 failed = 0、 deliveryRate = 0% (gauge 針最下)。 origin + queue が active。",
+  }, (p: PhaseBuilder) => p.activate("msg", "kafka").tween("queued", 0, 1000).set("delivered", 0).set("failed", 0).set("deliveryRate", 0).badge("発火"))
   .phase("p2", {
+    duration: 2000,
+    title: "キューイング",
+    body: "batch 化された 1000 件が処理待ち、 FCM Service が dequeue 開始。 queued 1000 → 800 tween (bar 縮小開始)、 fcm lane activate、 kafka → fcm edge が info tone で信号伝達。",
+  }, (p: PhaseBuilder) => p.activate("msg", "kafka", "fcm").tween("queued", 1000, 800).badge("キュー"))
+  .phase("p3", {
     duration: 2500,
     title: "配信中",
-    body: "通知サービスが処理、 4 lane 全 active、 queued 100 → 8 tween (bar 縮小)、 delivered 0 → 92 tween (countup 加速)、 failed 0 → 8 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。",
-  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard", "serviceCard", "deviceCard").tween("queued", 100, 8).tween("delivered", 0, 92).tween("failed", 0, 8).tween("deliveryRate", 0, 92).badge("配信"))
-  .phase("p3", {
-    duration: 1500,
+    body: "FCM が iPhone / Pixel / Galaxy へ fan-out 配信。 queued 800 → 50 tween (bar 大幅縮小)、 delivered 0 → 920 tween (countup が加速的 count up、 500/s peak)、 failed 0 → 80 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。 3 device 全 activate、 Galaxy は失敗 edge (error tone)。",
+  }, (p: PhaseBuilder) => p.activate("msg", "kafka", "fcm", "iphone", "pixel", "galaxy").tween("queued", 800, 50).tween("delivered", 0, 920).tween("failed", 0, 80).tween("deliveryRate", 0, 92).badge("配信"))
+  .phase("p4", {
+    duration: 1800,
+    title: "初回到達",
+    body: "iPhone + Pixel は成功受信、 Galaxy は圏外で失敗。 queued 50 → 20 tween、 delivered 920 → 950 tween、 failed 80 → 50 tween、 deliveryRate 92 → 95% tween。 全 shape active。",
+  }, (p: PhaseBuilder) => p.activate("msg", "kafka", "fcm", "iphone", "pixel", "galaxy").tween("queued", 50, 20).tween("delivered", 920, 950).tween("failed", 80, 50).tween("deliveryRate", 92, 95).badge("到達"))
+  .phase("p5", {
+    duration: 2000,
     title: "リトライ",
-    body: "失敗 8 件を retry、 device lane 強調、 delivered 92 → 98 tween (retry 成功で加算)、 failed 8 → 2 tween、 queued 8 → 0 tween、 deliveryRate 92 → 98% tween (gauge 針最終)。",
-  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard", "serviceCard", "deviceCard").tween("delivered", 92, 98).tween("failed", 8, 2).tween("queued", 8, 0).tween("deliveryRate", 92, 98).badge("retry"))
+    body: "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。",
+  }, (p: PhaseBuilder) => p.activate("msg", "kafka", "fcm", "retryGate", "iphone", "pixel", "galaxy").tween("queued", 20, 0).tween("delivered", 950, 992).tween("failed", 50, 8).tween("deliveryRate", 95, 99).badge("retry"))
   .build();
