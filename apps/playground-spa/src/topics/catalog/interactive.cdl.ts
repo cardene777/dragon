@@ -1844,9 +1844,11 @@ export const buildStatusTrafficLight = diagram("interactive-build-traffic-light"
  * 58. tag-cloud = tech skill 8 種を weight 比例 font-size で表示。
  */
 export const techTagCloud = diagram("interactive-tech-tagcloud", {
-  topic: "tech skill 8 種を weight 比例 font-size (12-32px) で並列表示、 色 palette rotate",
+  topic: "8 tech skill を 3-lane (High ≥20 / Mid 10-19 / Low <10) weight 別分散、 各 skill 個別 card、 tagCloud readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("high", { x: 0, width: 220 })
+  .lane("mid", { x: 260, width: 220 })
+  .lane("low", { x: 520, width: 220 })
   .arraySignal("tags", [
     ["React", 30],
     ["TypeScript", 28],
@@ -1857,9 +1859,20 @@ export const techTagCloud = diagram("interactive-tech-tagcloud", {
     ["Vue", 8],
     ["Deno", 5],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Skills", subtitle: "8 tech + weight" })
-  .readout.tagCloud("tc", { source: "tags", minSize: 12, maxSize: 32, label: "Tech cloud" })
-  .phase("p", { duration: 1200, title: "tag cloud", body: "[[tag, weight], ...] を weight 比例 font-size で表示、 minSize=12 / maxSize=32 の範囲で正規化、 keyword prominence 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tags"))
+  .node("reactNode", { lane: "high", stack: 0, kind: "card", title: "React", subtitle: "weight=30 (max)" })
+  .node("tsNode", { lane: "high", stack: 1, kind: "card", title: "TypeScript", subtitle: "weight=28" })
+  .node("pyNode", { lane: "high", stack: 2, kind: "card", title: "Python", subtitle: "weight=22" })
+  .node("rustNode", { lane: "mid", stack: 0, kind: "card", title: "Rust", subtitle: "weight=18" })
+  .node("goNode", { lane: "mid", stack: 1, kind: "card", title: "Go", subtitle: "weight=15" })
+  .node("svelteNode", { lane: "mid", stack: 2, kind: "card", title: "Svelte", subtitle: "weight=10" })
+  .node("vueNode", { lane: "low", stack: 0, kind: "card", title: "Vue", subtitle: "weight=8" })
+  .node("denoNode", { lane: "low", stack: 1, kind: "card", title: "Deno", subtitle: "weight=5 (min)" })
+  .readout.tagCloud("tc", { source: "tags", minSize: 12, maxSize: 32, label: "Tech cloud (font-size 比例)" })
+  .phase("p", {
+    duration: 1200,
+    title: "skill weight split",
+    body: "3-lane (High weight ≥20 / Mid 10-19 / Low <10) で 8 tech skill を weight 別分散、 各 skill 個別 card で weight 明示、 tagCloud readout も併存で font-size 比例表示、 weight 分類と cloud 全体観の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "pyNode", "rustNode", "goNode", "svelteNode", "vueNode", "denoNode").badge("tags"))
   .build();
 
 /**
@@ -1901,30 +1914,50 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
  * 60. rating = 5 star rating を slider (0-5) で表示、 half-star 対応。
  */
 export const productRating = diagram("interactive-product-rating", {
-  topic: "product rating を slider (0-5) で操作、 star display で half-star 対応表示",
+  topic: "product rating を 3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) range 別分散 + current indicator、 rating readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("low", { x: 0, width: 220 })
+  .lane("mid", { x: 260, width: 220 })
+  .lane("high", { x: 520, width: 220 })
   .input.slider("score", { min: 0, max: 5, step: 0.5, defaultValue: 3.5, label: "Score" })
   .state("score", { initial: 3.5 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Product review", subtitle: "current: {score} / 5" })
-  .readout.rating("r", { source: "score", count: 5, color: "#eab308", label: "Rating" })
-  .phase("p", { duration: 1200, title: "star rating", body: "slider で 0.5 刻み score 変化 → star display の 5 star が full/half/empty で表示、 SVG linearGradient で half-star 実装。" }, (p: PhaseBuilder) => p.activate("card").badge("rating"))
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "Low range", subtitle: "0-1.5 stars · poor" })
+  .node("midNode", { lane: "mid", stack: 0, kind: "card", title: "Mid range", subtitle: "2-3.5 stars · average · default 3.5 here" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High range", subtitle: "4-5 stars · excellent" })
+  .node("currentNode", { lane: "mid", stack: 1, kind: "card", title: "◆ Current", subtitle: "{score} / 5" })
+  .readout.rating("r", { source: "score", count: 5, color: "#eab308", label: "Rating (star display)" })
+  .phase("p", {
+    duration: 1200,
+    title: "rating range map",
+    body: "3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) で rating range を分散、 default 3.5 の位置 (mid lane) を currentNode で明示、 slider (0.5 刻み) 変化で rating readout 追随 (star display half-star 対応)、 range 分類と star 表示の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentNode").badge("rating"))
   .build();
 
 /**
  * 61. notification = alert card、 dropdown で kind (info/warn/error/success) を切替。
  */
 export const alertNotification = diagram("interactive-alert-notification", {
-  topic: "alert notification card、 dropdown で kind (info/warn/error/success) 切替 → color + icon 変化",
+  topic: "alert kind 4 種 (info/warn/error/success) を 4-lane 分散 + current indicator、 各 kind 個別 card、 notification readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("info", { x: 0, width: 170 })
+  .lane("warn", { x: 190, width: 170 })
+  .lane("error", { x: 380, width: 170 })
+  .lane("success", { x: 570, width: 170 })
   .input.dropdown("kind", { options: ["info", "warn", "error", "success"], defaultValue: "warn", label: "Kind" })
   .state("kind", { initial: "warn" })
   .state("title", { initial: "Deploy in progress" })
   .state("body", { initial: "Building v1.2.3 for production" })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Alert center", subtitle: "kind: {kind}" })
-  .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "Alert" })
-  .phase("p", { duration: 1200, title: "notification", body: "kind 4 種を dropdown で切替 → color + icon (ℹ/⚠/✕/✓) が動的更新、 title + body 2 段表示。" }, (p: PhaseBuilder) => p.activate("card").badge("alert"))
+  .node("infoNode", { lane: "info", stack: 0, kind: "card", title: "ℹ Info", subtitle: "blue · 通知" })
+  .node("warnNode", { lane: "warn", stack: 0, kind: "card", title: "⚠ Warn", subtitle: "yellow · 注意 (default)" })
+  .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · 失敗" })
+  .node("successNode", { lane: "success", stack: 0, kind: "card", title: "✓ Success", subtitle: "green · 成功" })
+  .node("currentAlert", { lane: "warn", stack: 1, kind: "card", title: "◆ Current", subtitle: "kind: {kind}" })
+  .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "Alert (color + icon)" })
+  .phase("p", {
+    duration: 1200,
+    title: "alert kind split",
+    body: "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("infoNode", "warnNode", "errorNode", "successNode", "currentAlert").badge("alert"))
   .build();
 
 /**
