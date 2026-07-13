@@ -1251,15 +1251,31 @@ export const activityPolar = diagram("interactive-activity-polar", {
  * 53. step-indicator = onboarding 5 step wizard、 slider で current step を切替。
  */
 export const onboardingStepper = diagram("interactive-onboarding-stepper", {
-  topic: "onboarding 5 step wizard、 slider で current step 変化 → step-indicator の active dot が追随",
+  topic: "onboarding 5 step wizard を 5-lane pipeline + 4 edge で wizard 遷移を node network 化、 stepIndicator readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("signup", { x: 0, width: 140 })
+  .lane("profile", { x: 160, width: 140 })
+  .lane("prefs", { x: 320, width: 140 })
+  .lane("verify", { x: 480, width: 140 })
+  .lane("done", { x: 640, width: 140 })
   .input.stepper("current", { min: 0, max: 4, defaultValue: 2, label: "Current step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Sign up", "Profile", "Preferences", "Verify", "Done"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Onboarding wizard", subtitle: "step {current} / 4" })
-  .readout.stepIndicator("wizard", { source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress" })
-  .phase("p", { duration: 1200, title: "step wizard", body: "stepper で current step 変化 → step-indicator の active dot が動く、 各 step name + 番号 label 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("wizard"))
+  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Sign up", subtitle: "step 0" })
+  .node("profileNode", { lane: "profile", stack: 0, kind: "card", title: "Profile", subtitle: "step 1" })
+  .node("prefsNode", { lane: "prefs", stack: 0, kind: "card", title: "Preferences", subtitle: "step 2 (current)" })
+  .node("verifyNode", { lane: "verify", stack: 0, kind: "card", title: "Verify", subtitle: "step 3" })
+  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "Done", subtitle: "step 4" })
+  .edge("signupNode", "profileNode", { label: "next", tone: "info" })
+  .edge("profileNode", "prefsNode", { label: "next", tone: "info" })
+  .edge("prefsNode", "verifyNode", { label: "next", tone: "accent" })
+  .edge("verifyNode", "doneNode", { label: "finish", tone: "success" })
+  .readout.stepIndicator("wizard", { source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress (dot strip)" })
+  .phase("p", {
+    duration: 1200,
+    title: "wizard pipeline",
+    body: "5-lane pipeline (Sign up → Profile → Preferences → Verify → Done) + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。",
+  }, (p: PhaseBuilder) => p.activate("signupNode", "profileNode", "prefsNode", "verifyNode", "doneNode").badge("wizard"))
   .build();
 
 /**
@@ -1815,9 +1831,12 @@ export const audioPlayer = diagram("interactive-audio-player", {
  * 86. event-log = server monitoring log、 4 severity (info/warn/error/debug) 表示。
  */
 export const serverEventLog = diagram("interactive-server-event-log", {
-  topic: "server monitoring event log を 4 severity (info/warn/error/debug) 色分け表示",
+  topic: "server monitoring event log 5 event を 4-lane (info / debug / warn / error) severity 別に分散、 eventLog readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("info", { x: 0, width: 160 })
+  .lane("debug", { x: 200, width: 160 })
+  .lane("warn", { x: 400, width: 160 })
+  .lane("error", { x: 600, width: 160 })
   .arraySignal("events", [
     ["10:23:45", "info", "Server started on port 3000"],
     ["10:24:12", "debug", "Loaded config from ~/.env"],
@@ -1825,9 +1844,17 @@ export const serverEventLog = diagram("interactive-server-event-log", {
     ["10:25:34", "error", "DB connection timeout after 5s"],
     ["10:26:01", "info", "Retry connection succeeded"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Server log", subtitle: "5 events, 4 severities" })
-  .readout.eventLog("el", { source: "events", max: 10, label: "Events" })
-  .phase("p", { duration: 1200, title: "event log", body: "[[timestamp, severity, msg], ...] を info=ℹ (blue) / debug=· (gray) / warn=⚠ (yellow) / error=✕ (red) icon + color で monitoring log 表示、 server 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("monitor"))
+  .node("info1", { lane: "info", stack: 0, kind: "card", title: "ℹ 10:23:45", subtitle: "Server started on port 3000" })
+  .node("info2", { lane: "info", stack: 1, kind: "card", title: "ℹ 10:26:01", subtitle: "Retry connection succeeded" })
+  .node("debug1", { lane: "debug", stack: 0, kind: "card", title: "· 10:24:12", subtitle: "Loaded config from ~/.env" })
+  .node("warn1", { lane: "warn", stack: 0, kind: "card", title: "⚠ 10:24:58", subtitle: "High CPU usage: 82%" })
+  .node("error1", { lane: "error", stack: 0, kind: "card", title: "✕ 10:25:34", subtitle: "DB connection timeout after 5s" })
+  .readout.eventLog("el", { source: "events", max: 10, label: "Events (timeline)" })
+  .phase("p", {
+    duration: 1200,
+    title: "severity split",
+    body: "4-lane (info / debug / warn / error) で 5 event を severity 別に分散、 各 event 個別 card で timestamp + msg 明示、 eventLog readout で timeline 一覧も併存、 severity 分類と時系列の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("info1", "info2", "debug1", "warn1", "error1").badge("monitor"))
   .build();
 
 /**
@@ -1907,15 +1934,28 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
  * 91. order-status = e-commerce 配送追跡、 stepper で current step 切替 → 4 icon step。
  */
 export const shippingOrderStatus = diagram("interactive-shipping-status", {
-  topic: "e-commerce 配送追跡、 stepper で current step 切替 → 4 icon (📦→🚚→🏠→✅) step 追随",
+  topic: "e-commerce 配送追跡 4 step (📦→🚚→🏠→✅) を 4-lane pipeline + 3 edge で状態遷移 network 化、 orderStatus readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("packed", { x: 0, width: 160 })
+  .lane("shipped", { x: 200, width: 160 })
+  .lane("delivery", { x: 400, width: 160 })
+  .lane("delivered", { x: 600, width: 160 })
   .input.stepper("current", { min: 0, max: 3, defaultValue: 2, label: "Step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Order #12345", subtitle: "current step: {current}" })
-  .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status" })
-  .phase("p", { duration: 1200, title: "order status", body: "stepper で current step 変化 → 4 icon (📦 Packed / 🚚 Shipped / 🏠 Out for delivery / ✅ Delivered) が done/current/pending 状態で色 + opacity + ✓ check。" }, (p: PhaseBuilder) => p.activate("card").badge("tracking"))
+  .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "step 0" })
+  .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "step 1" })
+  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "step 2 (current)" })
+  .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "step 3" })
+  .edge("packedNode", "shippedNode", { label: "handover", tone: "success" })
+  .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
+  .edge("deliveryNode", "deliveredNode", { label: "arrived", tone: "warning" })
+  .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status (icon strip)" })
+  .phase("p", {
+    duration: 1200,
+    title: "delivery pipeline",
+    body: "4-lane pipeline (Packed / Shipped / Out for delivery / Delivered) + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。",
+  }, (p: PhaseBuilder) => p.activate("packedNode", "shippedNode", "deliveryNode", "deliveredNode").badge("tracking"))
   .build();
 
 /**
