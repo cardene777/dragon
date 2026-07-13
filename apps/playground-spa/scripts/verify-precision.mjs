@@ -118,11 +118,11 @@ const cases = [
   },
   {
     diagramId: "interactive-shape-polygon",
-    label: "shape-polygon: sides=6 で 6 頂点",
+    label: "shape-polygon: sides=6 で 6 頂点 (interactive lane の p node)",
     setup: async () => {},
     assert: async (page) => {
       const pts = await page.$eval(
-        '[data-cdl-shape="polygon"] polygon',
+        '[data-cdl-node="p"] [data-cdl-shape="polygon"] polygon',
         (el) => (el.getAttribute("points") ?? "").trim().split(/\s+/).length,
       );
       return { actual: pts, expected: 6, tolerance: 0 };
