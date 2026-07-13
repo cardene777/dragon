@@ -458,15 +458,15 @@ const cases = [
   },
   {
     diagramId: "interactive-kpi-dashboard",
-    label: "KPI dashboard: slider(revenue=200) → users card subtitle に 1600 反映",
-    setup: async (page) => {
-      const s = await page.$('input[type="range"][data-cdl-input="revenueInput"]');
-      await s.evaluate(eval(setNativeExpr("200")));
-      await page.waitForTimeout(500);
-    },
+    label: "KPI dashboard v2: 6 shape (ceo / mobile / api / dwh / ml / boardroom) 描画",
+    setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const t = await page.$eval('[data-cdl-node="usersCard"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
-      return { actual: /1600/.test(t), expected: true };
+      const ids = ["ceo", "mobile", "api", "dwh", "ml", "boardroom"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {

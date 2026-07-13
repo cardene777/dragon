@@ -49,7 +49,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // cookbook
   apiCall: "API 呼び出し",
   jwtAuth: "JWT 認証",
-  oauthFlow: "OAuth フロー",
+  // oauthFlow: 実例に redesign 済 (iter 8 wave 8-B、 下記 v2 mapping 参照)
   crudCreate: "CRUD 作成",
   crudUpdate: "CRUD 更新",
   crudDelete: "CRUD 削除",
@@ -237,6 +237,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   revenueKpiCard: "実例: SaaS 月次 revenue クロージング (前月 → 当月 → 前年比 → 判断)",
   priceCandlestick: "実例: 個人投資家 日次 trading (寄付 → 上昇 → 押し目 → 引け)",
   productPriceTag: "実例: EC ブラックフライデー ダイナミック プライシング (通常 → セール → 深化 → 在庫連動)",
+  oauthFlow: "実例: Google Sign-In (OAuth 2.0 + PKCE) (click → consent → code → token → API)",
+  kpiDashboard: "実例: 週次 CEO KPI レビュー (表示 → 因果分析 → 目標対比 → 判断)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
