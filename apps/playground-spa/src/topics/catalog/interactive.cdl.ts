@@ -670,18 +670,32 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
  * 32. matrix readout = 4×4 の 2D array を色 gradient で表示 (confusion matrix / heatmap 用)。
  */
 export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
-  topic: "arraySignal で 4×4 の 2D array を宣言、 matrix readout で色 gradient cell + 数値表示",
+  topic: "4×4 confusion matrix を 4-lane (class 0/1/2/3) 分散、 各 class の diagonal (correct) / off-diagonal (wrong) を個別 card 表示、 matrix readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("c0", { x: 0, width: 150 })
+  .lane("c1", { x: 170, width: 150 })
+  .lane("c2", { x: 340, width: 150 })
+  .lane("c3", { x: 510, width: 150 })
   .arraySignal("cm", [
     [8, 1, 0, 1],
     [2, 7, 1, 0],
     [0, 1, 9, 0],
     [0, 0, 2, 6],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Confusion matrix", subtitle: "4×4 heat cells" })
-  .readout.matrix("m", { source: "cm", min: 0, max: 10, cellSize: 30, showValue: true, colors: ["#f0f4f8", "#0369a1"] as const, label: "Predictions" })
-  .phase("p", { duration: 1200, title: "2D grid state", body: "matrix readout で 2D array を色 gradient で cell 表示、 showValue で数値も出す。" }, (p: PhaseBuilder) => p.activate("card").badge("2D matrix"))
+  .node("c0Diag", { lane: "c0", stack: 0, kind: "card", title: "Class 0 ✓", subtitle: "correct = 8 (diagonal)" })
+  .node("c0Wrong", { lane: "c0", stack: 1, kind: "card", title: "Class 0 ✕", subtitle: "wrong = 2 (row sum - diag)" })
+  .node("c1Diag", { lane: "c1", stack: 0, kind: "card", title: "Class 1 ✓", subtitle: "correct = 7 (diagonal)" })
+  .node("c1Wrong", { lane: "c1", stack: 1, kind: "card", title: "Class 1 ✕", subtitle: "wrong = 3 (row sum - diag)" })
+  .node("c2Diag", { lane: "c2", stack: 0, kind: "card", title: "Class 2 ✓", subtitle: "correct = 9 (diagonal)" })
+  .node("c2Wrong", { lane: "c2", stack: 1, kind: "card", title: "Class 2 ✕", subtitle: "wrong = 3 (row sum - diag)" })
+  .node("c3Diag", { lane: "c3", stack: 0, kind: "card", title: "Class 3 ✓", subtitle: "correct = 6 (diagonal)" })
+  .node("c3Wrong", { lane: "c3", stack: 1, kind: "card", title: "Class 3 ✕", subtitle: "wrong = 2 (row sum - diag)" })
+  .readout.matrix("m", { source: "cm", min: 0, max: 10, cellSize: 30, showValue: true, colors: ["#f0f4f8", "#0369a1"] as const, label: "Predictions (4×4)" })
+  .phase("p", {
+    duration: 1200,
+    title: "confusion split",
+    body: "4-lane (Class 0/1/2/3) で 4×4 confusion matrix を class 別に分散、 各 lane 内で correct (diagonal) と wrong (off-diagonal) を個別 card、 matrix readout も併存で色 gradient cell 表示、 class 別精度と 2D 相関の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("c0Diag", "c0Wrong", "c1Diag", "c1Wrong", "c2Diag", "c2Wrong", "c3Diag", "c3Wrong").badge("2D matrix"))
   .build();
 
 /**
@@ -1039,13 +1053,24 @@ function generateCommits(): number[] {
 }
 
 export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
-  topic: "365 day array を calendar heatmap で GitHub contribution graph 化、 曜日 bias で week/weekend 分布",
+  topic: "365 day contribution を 4-lane (Q1/Q2/Q3/Q4 quarter) 分散、 各 quarter summary card + total/max、 calendarHeatmap readout 併存",
 })
-  .lane("l", { x: 0, width: 620 })
+  .lane("q1", { x: 0, width: 160 })
+  .lane("q2", { x: 180, width: 160 })
+  .lane("q3", { x: 360, width: 160 })
+  .lane("q4", { x: 540, width: 160 })
   .arraySignal("commits", generateCommits())
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Contributions", subtitle: "total {commits.sum} · max {commits.max} · avg {commits.avg}" })
-  .readout.calendarHeatmap("h", { source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 year" })
-  .phase("p", { duration: 1200, title: "1 年 heatmap", body: "365 day の numeric array を 53 週 × 7 日で表示、 GitHub-style の 5 段階 gradient bucket。" }, (p: PhaseBuilder) => p.activate("card").badge("contributions"))
+  .node("q1Card", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "90 days · winter" })
+  .node("q2Card", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "91 days · spring" })
+  .node("q3Card", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "92 days · summer" })
+  .node("q4Card", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "92 days · autumn" })
+  .node("totalCard", { lane: "q4", stack: 1, kind: "card", title: "Year total", subtitle: "sum {commits.sum} · max {commits.max} · avg {commits.avg}" })
+  .readout.calendarHeatmap("h", { source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 year (53 週 × 7 日)" })
+  .phase("p", {
+    duration: 1200,
+    title: "quarter split",
+    body: "4-lane (Q1/Q2/Q3/Q4) で 365 day を quarter 別に分散、 各 quarter summary card + year total (Q4 lane 内)、 calendarHeatmap readout も併存で 53 週 × 7 日 gradient 表示、 quarter 単位 aggregate と日単位詳細の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("q1Card", "q2Card", "q3Card", "q4Card", "totalCard").badge("contributions"))
   .build();
 
 /**
@@ -1992,9 +2017,12 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
  * 92. attendance-grid = チーム週間 attendance (5 day × 4 member)。
  */
 export const teamAttendanceGrid = diagram("interactive-team-attendance", {
-  topic: "チーム週間 attendance を 5 day × 4 member の grid で表示、 ● present / ○ absent",
+  topic: "5 day × 4 member attendance を 4-lane (Alice/Bob/Carol/Dan) member 別分散、 各 member weekly summary + attendanceGrid readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("alice", { x: 0, width: 150 })
+  .lane("bob", { x: 170, width: 150 })
+  .lane("carol", { x: 340, width: 150 })
+  .lane("dan", { x: 510, width: 150 })
   .arraySignal("attendance", [
     ["Mon", true, true, false, true],
     ["Tue", true, false, true, true],
@@ -2003,9 +2031,16 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
     ["Fri", true, true, false, true],
   ] as unknown as (string | number)[])
   .arraySignal("members", ["Alice", "Bob", "Carol", "Dan"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Week attendance", subtitle: "5 day × 4 member" })
-  .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance" })
-  .phase("p", { duration: 1200, title: "attendance grid", body: "[[day, p1, p2, p3, p4], ...] × [member names] を 2D grid table で表示、 true=● green / false=○ gray、 team 出席表定番。" }, (p: PhaseBuilder) => p.activate("card").badge("attendance"))
+  .node("aliceCard", { lane: "alice", stack: 0, kind: "card", title: "Alice", subtitle: "4/5 present (Thu absent)" })
+  .node("bobCard", { lane: "bob", stack: 0, kind: "card", title: "Bob", subtitle: "4/5 present (Tue absent)" })
+  .node("carolCard", { lane: "carol", stack: 0, kind: "card", title: "Carol", subtitle: "3/5 present (Mon/Fri absent)" })
+  .node("danCard", { lane: "dan", stack: 0, kind: "card", title: "Dan", subtitle: "5/5 present (perfect)" })
+  .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance (5 day × 4 member grid)" })
+  .phase("p", {
+    duration: 1200,
+    title: "member split",
+    body: "4-lane (Alice/Bob/Carol/Dan) で 5 day × 4 member attendance を member 別に分散、 各 member weekly summary card で present/absent 数明示、 attendanceGrid readout も併存で 2D grid 表示、 member 別 aggregate と day 別詳細の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "carolCard", "danCard").badge("attendance"))
   .build();
 
 /**
