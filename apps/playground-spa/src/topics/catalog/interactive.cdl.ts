@@ -456,18 +456,24 @@ export const readoutVariety = diagram("interactive-readout-variety", {
  *     signal update は consumer handler 側で実装、 catalog では primitive 存在確認のみ。
  */
 export const eventVariety = diagram("interactive-event-variety", {
-  topic: "double-click / keydown / focus / blur / longpress の 5 種 event を diagram 内 node に bind",
+  topic: "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind",
 })
-  .lane("l", { x: 0, width: 400 })
-  .node("btn1", { lane: "l", stack: 0, kind: "card", title: "Double Click", subtitle: "dblclick 用" })
-  .node("btn2", { lane: "l", stack: 1, kind: "card", title: "Key Focus", subtitle: "focus + keydown 用" })
-  .node("btn3", { lane: "l", stack: 2, kind: "card", title: "Long Press", subtitle: "500ms hold" })
+  .lane("pointer", { x: 0, width: 200 })
+  .lane("keyboard", { x: 240, width: 240 })
+  .lane("touch", { x: 500, width: 200 })
+  .node("btn1", { lane: "pointer", stack: 0, kind: "card", title: "Double Click", subtitle: "dblclick event" })
+  .node("btn2", { lane: "keyboard", stack: 0, kind: "card", title: "Key Focus", subtitle: "focus + blur + keydown 3 event" })
+  .node("btn3", { lane: "touch", stack: 0, kind: "card", title: "Long Press", subtitle: "longpress 500ms hold" })
   .on.doubleClick({ kind: "node", id: "btn1" }, "on-dbl")
   .on.focus({ kind: "node", id: "btn2" }, "on-focus")
   .on.blur({ kind: "node", id: "btn2" }, "on-blur")
   .on.keydown({ kind: "node", id: "btn2" }, "on-key")
   .on.longPress({ kind: "node", id: "btn3" }, "on-long")
-  .phase("p", { duration: 1500, title: "5 種 event kind を 3 node に bind", body: "consumer が handler map で dbl / focus / blur / keydown / longpress を実装、 signal 更新経由で reactive 反映。" }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
+  .phase("p", {
+    duration: 1500,
+    title: "event category split",
+    body: "3-lane (Pointer=Double Click / Keyboard=Focus+Blur+Keydown / Touch=Long Press) で 5 event を category 別分散、 3 target node に 5 event bind、 consumer handler map で dbl/focus/blur/keydown/longpress を実装、 event 分類と bind の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
   .build();
 
 /**
@@ -1537,9 +1543,10 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
  * 63. chat-bubble = customer support conversation 5 message、 self/other 左右寄せ表示。
  */
 export const supportChat = diagram("interactive-support-chat", {
-  topic: "customer support conversation 5 message を chat-bubble で左右寄せ表示 (self/other)",
+  topic: "customer support 5 message を 2-lane (Customer / Support) speaker 別分散、 各 message 個別 card、 chatBubble readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("customer", { x: 0, width: 280 })
+  .lane("support", { x: 320, width: 320 })
   .arraySignal("thread", [
     ["Alice", "Hi, I need help with my order", false],
     ["Support", "Sure! What's the order ID?", true],
@@ -1547,23 +1554,41 @@ export const supportChat = diagram("interactive-support-chat", {
     ["Support", "Checking...", true],
     ["Support", "Refunded! You'll see it in 3-5 days.", true],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Support chat", subtitle: "5 messages" })
-  .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#e2e8f0", label: "Conversation" })
-  .phase("p", { duration: 1200, title: "chat bubble", body: "[[author, text, isSelf], ...] の 5 message を isSelf=true で右寄せ + blue / false で左寄せ + gray、 chat thread 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("chat"))
+  .node("cust1", { lane: "customer", stack: 0, kind: "card", title: "Alice #1", subtitle: "Hi, I need help with my order" })
+  .node("cust2", { lane: "customer", stack: 1, kind: "card", title: "Alice #2", subtitle: "#12345" })
+  .node("sup1", { lane: "support", stack: 0, kind: "card", title: "Support #1", subtitle: "Sure! What's the order ID?" })
+  .node("sup2", { lane: "support", stack: 1, kind: "card", title: "Support #2", subtitle: "Checking..." })
+  .node("sup3", { lane: "support", stack: 2, kind: "card", title: "Support #3", subtitle: "Refunded! 3-5 days." })
+  .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#e2e8f0", label: "Conversation (bubbles)" })
+  .phase("p", {
+    duration: 1200,
+    title: "speaker split",
+    body: "2-lane (Customer 2 msg / Support 3 msg) で 5 message を speaker 別分散、 各 message 個別 card で内容明示、 chatBubble readout も併存で左右寄せ表示、 speaker 分類と thread 経路の 2 view。",
+  }, (p: PhaseBuilder) => p.activate("cust1", "cust2", "sup1", "sup2", "sup3").badge("chat"))
   .build();
 
 /**
  * 64. avatar = user profile avatar、 text input で name 変化 → initials + color circle 追随。
  */
 export const userAvatar = diagram("interactive-user-avatar", {
-  topic: "user profile avatar、 text input で name 変化 → initials 2 char + color circle が動的更新",
+  topic: "user avatar generation pipeline を 3-lane (Input name / Initials extract / Circle render) + 2 edge で pipeline network 化、 avatar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("input", { x: 0, width: 240 })
+  .lane("initials", { x: 280, width: 200 })
+  .lane("circle", { x: 520, width: 200 })
   .input.text("user", { defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" })
   .state("user", { initial: "Alice Wonderland" })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Profile", subtitle: "current: {user}" })
-  .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar" })
-  .phase("p", { duration: 1200, title: "avatar", body: "text input で name 変化 → 最初 2 word の頭文字を抽出 (Alice Wonderland → AW)、 colored circle + name text を表示。" }, (p: PhaseBuilder) => p.activate("card").badge("avatar"))
+  .node("inputNode", { lane: "input", stack: 0, kind: "card", title: "Text input", subtitle: "user = {user}" })
+  .node("initialsNode", { lane: "initials", stack: 0, kind: "card", title: "Initials extract", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
+  .node("circleNode", { lane: "circle", stack: 0, kind: "card", title: "Colored circle", subtitle: "size 56 · blue #2563eb + AW text" })
+  .edge("inputNode", "initialsNode", { label: "parse", tone: "info" })
+  .edge("initialsNode", "circleNode", { label: "render", tone: "success" })
+  .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" })
+  .phase("p", {
+    duration: 1200,
+    title: "avatar pipeline",
+    body: "3-lane (Input name / Initials extract / Circle render) で avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。",
+  }, (p: PhaseBuilder) => p.activate("inputNode", "initialsNode", "circleNode").badge("avatar"))
   .build();
 
 /**
