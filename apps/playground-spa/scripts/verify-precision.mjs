@@ -108,7 +108,7 @@ const cases = [
       await page.waitForTimeout(400);
     },
     assert: async (page) => {
-      const rs = await page.$$eval('[data-cdl-shape="circle"] circle', (els) =>
+      const rs = await page.$$eval('[data-cdl-node="c"] [data-cdl-shape="circle"] circle', (els) =>
         els.map((el) => Number(el.getAttribute("r"))),
       );
       const outer = rs[0];
