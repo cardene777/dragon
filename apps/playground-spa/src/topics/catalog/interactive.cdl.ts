@@ -3545,3 +3545,76 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     body: "3-lane (Up / Degraded / Down) で 6 service を status category 別分散、 1 edge (cascade error)、 serviceHealth readout 併存で 3-col grid + status dot (3 green / 2 yellow / 1 red)、 category split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").badge("health"))
   .build();
+
+/**
+ * 121. cart-summary = shopping cart checkout summary を 3-lane (Items / Costs / Total) rank-based split 分散 + cartSummary readout 併存。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
+ */
+export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", {
+  topic: "shopping cart checkout summary (items / subtotal / shipping / total) を 3-lane (Items / Costs / Total) rank 分散 + cartSummary readout 併存",
+})
+  .lane("items", { x: 0, width: 220 })
+  .lane("costs", { x: 260, width: 260 })
+  .lane("total", { x: 560, width: 240 })
+  .arraySignal("cart", [3, 149.85, 8.5, 158.35])
+  .node("itemsCard", { lane: "items", stack: 0, kind: "card", title: "◆ 3 items in cart", subtitle: "Jacket / Book / Cable" })
+  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "Subtotal", subtitle: "$149.85" })
+  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "Shipping", subtitle: "$8.50 · standard 3-day" })
+  .node("totalCard", { lane: "total", stack: 0, kind: "card", title: "▶ Total (bold)", subtitle: "$158.35 · blue color" })
+  .edge("itemsCard", "subtotalCard", { label: "sum", tone: "info" })
+  .edge("subtotalCard", "totalCard", { label: "+shipping", tone: "success" })
+  .edge("shippingCard", "totalCard", { label: "add", tone: "info" })
+  .readout.cartSummary("cs", { source: "cart", currency: "$", colorTotal: "#2563eb", label: "Cart summary" })
+  .phase("p", {
+    duration: 1200,
+    title: "cart rank-based",
+    body: "3-lane (Items / Costs / Total) で cart 4-tuple を rank 順分散、 3 edge (sum info / +shipping success / add info)、 cartSummary readout 併存で 4 row + Total bold + 青色、 rank-based split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").badge("cart"))
+  .build();
+
+/**
+ * 122. pricing-tier = SaaS pricing plan card (3 tier compare) を 3-lane (Starter / Pro / Enterprise) category split 分散 + pricingTier readout 併存 (Pro 表示)。 iteration 7 wave 4、 pattern taxonomy § 3 category split。
+ */
+export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
+  topic: "SaaS pricing 3 tier (Starter / Pro / Enterprise) を 3-lane category 分散 + pricingTier readout 併存 (Pro 表示)",
+})
+  .lane("starter", { x: 0, width: 240 })
+  .lane("pro", { x: 280, width: 240 })
+  .lane("enterprise", { x: 560, width: 260 })
+  .arraySignal("plan", ["Pro", 29, "10 seats", "priority support", "custom domain"] as unknown as (string | number)[])
+  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter · $9/mo", subtitle: "3 seats · community support" })
+  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro · $29/mo (popular)", subtitle: "10 seats · priority support" })
+  .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "▶ Most popular", subtitle: "border highlight" })
+  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise · custom", subtitle: "unlimited · dedicated CSM" })
+  .edge("starterCard", "proCard", { label: "upgrade", tone: "info" })
+  .edge("proCard", "enterpriseCard", { label: "upgrade", tone: "success" })
+  .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro plan" })
+  .phase("p", {
+    duration: 1200,
+    title: "pricing category split",
+    body: "3-lane (Starter / Pro / Enterprise) で 3 tier plan を category 別分散、 2 edge (upgrade info / upgrade success)、 pricingTier readout 併存で Pro card (name + $29 + 3 feature + CTA)、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").badge("pricing"))
+  .build();
+
+/**
+ * 123. coupon-code = checkout coupon apply flow を 3-lane (Empty / Entered / Applied) state-driven visibility 分散 + couponCode readout 併存 (applied 状態)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
+ */
+export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
+  topic: "checkout coupon apply flow (empty → entered → applied) を 3-lane state 分散 + couponCode readout 併存 (applied)",
+})
+  .lane("empty", { x: 0, width: 240 })
+  .lane("entered", { x: 280, width: 240 })
+  .lane("applied", { x: 560, width: 240 })
+  .arraySignal("coupon", ["SAVE20", 20] as unknown as (string | number)[])
+  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "Empty state", subtitle: "dashed border · 'ENTER CODE'" })
+  .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "'SAVE20' entered", subtitle: "solid border · not yet applied" })
+  .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "Apply button", subtitle: "gray → green on click" })
+  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ -20% off applied", subtitle: "green pill · discount active" })
+  .edge("emptyCard", "enteredCard", { label: "type code", tone: "info" })
+  .edge("enteredCard", "appliedCard", { label: "apply", tone: "success" })
+  .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "Coupon" })
+  .phase("p", {
+    duration: 1200,
+    title: "coupon state visibility",
+    body: "3-lane (Empty / Entered / Applied) で coupon apply flow を state-driven 分散、 2 edge (type code info / apply success)、 couponCode readout 併存で applied 状態 (SAVE20 + -20% off green pill)、 state-driven visibility pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").badge("coupon"))
+  .build();
