@@ -229,21 +229,58 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
  * 11. shape primitive = rect fill、 signal で内部が実際に伸縮する汎用 container。
  */
 export const shapeRectFill = diagram("interactive-shape-rect", {
-  topic: "dyn-rect = 汎用 container、 signal 値で内部 fill 高さが変化",
+  topic: "dyn-rect fill を 4-lane (Low 25% / Mid 50% / High 75% / Interactive slider) 分散、 3 static + 1 reactive rect 並列比較",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("low", { x: 0, width: 130 })
+  .lane("mid", { x: 150, width: 130 })
+  .lane("high", { x: 300, width: 130 })
+  .lane("interactive", { x: 450, width: 160 })
   .input.slider("v", { min: 0, max: 100, defaultValue: 40, label: "Value" })
   .state("v", { initial: 40 })
-  .node("bar", {
-    lane: "l",
+  .state("low25", { initial: 25 })
+  .state("mid50", { initial: 50 })
+  .state("high75", { initial: 75 })
+  .node("barLow", {
+    lane: "low",
     stack: 0,
     kind: "dyn-rect",
-    title: "Bar Fill",
+    title: "Low 25%",
+    w: 100,
+    h: 240,
+    shape: { kind: "rect", source: "{low25}", fillMax: 100, orient: "up", fill: "#94a3b8" },
+  })
+  .node("barMid", {
+    lane: "mid",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "Mid 50%",
+    w: 100,
+    h: 240,
+    shape: { kind: "rect", source: "{mid50}", fillMax: 100, orient: "up", fill: "#2563eb" },
+  })
+  .node("barHigh", {
+    lane: "high",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "High 75%",
+    w: 100,
+    h: 240,
+    shape: { kind: "rect", source: "{high75}", fillMax: 100, orient: "up", fill: "#f97316" },
+  })
+  .node("bar", {
+    lane: "interactive",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "Slider ({v}%)",
     w: 100,
     h: 240,
     shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#2d6a8f" },
   })
-  .phase("p", { duration: 1500, title: "rect の中身が signal に追随", body: "slider を動かすと rect 内部の fill 高さが 0..100 に応じて変化。" }, (p: PhaseBuilder) => p.activate("bar").badge("shape.rect"))
+  .phase("p", {
+    duration: 1500,
+    title: "rect fill range compare",
+    body: "4-lane (Low 25% gray / Mid 50% blue / High 75% orange / Interactive slider teal) で dyn-rect fill を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 fill range を横並び比較 view で明示。",
+  }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh", "bar").badge("shape.rect"))
   .build();
 
 /**
@@ -276,30 +313,62 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
  * 13. dyn-circle = radius / progress を signal で駆動、 progress ring の汎用版。
  */
 export const shapeCirclePulse = diagram("interactive-shape-circle", {
-  topic: "dyn-circle = 半径 / fillProgress を signal で駆動、 progress ring / pulse を組める",
+  topic: "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("empty", { x: 0, width: 170 })
+  .lane("third", { x: 180, width: 170 })
+  .lane("twothird", { x: 360, width: 170 })
+  .lane("interactive", { x: 540, width: 180 })
   .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "Progress" })
   .formula("prog", "p / 100")
   .state("p", { initial: 60 })
   .state("prog", { initial: 0.6 })
-  .node("c", { lane: "l", stack: 0, kind: "dyn-circle", title: "Ring", subtitle: "{p}%", w: 160, h: 160,
+  .state("prog0", { initial: 0.0 })
+  .state("prog33", { initial: 0.33 })
+  .state("prog66", { initial: 0.66 })
+  .node("cEmpty", { lane: "empty", stack: 0, kind: "dyn-circle", title: "0%", subtitle: "empty", w: 160, h: 160,
+    shape: { kind: "circle", fillProgress: "{prog0}", fill: "#94a3b8" } })
+  .node("cThird", { lane: "third", stack: 0, kind: "dyn-circle", title: "33%", subtitle: "one-third", w: 160, h: 160,
+    shape: { kind: "circle", fillProgress: "{prog33}", fill: "#2563eb" } })
+  .node("cTwoThird", { lane: "twothird", stack: 0, kind: "dyn-circle", title: "66%", subtitle: "two-third", w: 160, h: 160,
+    shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" } })
+  .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Slider", subtitle: "{p}%", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog}", fill: "#2d6a8f" } })
-  .phase("p", { duration: 1500, title: "circle の中央 fill が progress で伸縮", body: "slider を動かすと inner circle radius が 0..outer に応じて変化。" }, (p: PhaseBuilder) => p.activate("c").badge("shape.circle"))
+  .phase("p", {
+    duration: 1500,
+    title: "circle progress compare",
+    body: "4-lane (0% gray / 33% blue / 66% orange / Interactive slider teal) で dyn-circle progress ring を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 progress ring range を横並び比較 view で明示。",
+  }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird", "c").badge("shape.circle"))
   .build();
 
 /**
  * 14. dyn-arc = 角度で fill sweep、 gauge や circular progress の汎用形。
  */
 export const shapeArcSweep = diagram("interactive-shape-arc", {
-  topic: "dyn-arc = 角度で fill sweep、 gauge / circular progress を組める",
+  topic: "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("min", { x: 0, width: 180 })
+  .lane("quarter", { x: 190, width: 180 })
+  .lane("half", { x: 380, width: 180 })
+  .lane("interactive", { x: 570, width: 200 })
   .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "Angle" })
   .state("a", { initial: 180 })
-  .node("g", { lane: "l", stack: 0, kind: "dyn-arc", title: "Arc", subtitle: "{a}°", w: 180, h: 180,
+  .state("a0", { initial: 0 })
+  .state("a90", { initial: 90 })
+  .state("a180", { initial: 180 })
+  .node("gMin", { lane: "min", stack: 0, kind: "dyn-arc", title: "0°", subtitle: "min", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#94a3b8" } })
+  .node("gQuarter", { lane: "quarter", stack: 0, kind: "dyn-arc", title: "90°", subtitle: "quarter", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" } })
+  .node("gHalf", { lane: "half", stack: 0, kind: "dyn-arc", title: "180°", subtitle: "half", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" } })
+  .node("g", { lane: "interactive", stack: 0, kind: "dyn-arc", title: "Slider", subtitle: "{a}°", w: 180, h: 180,
     shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#2d6a8f" } })
-  .phase("p", { duration: 1500, title: "arc の sweep が angle 変化", body: "slider の値 (0..270 度) で arc の描画角度が変化、 gauge の汎用形。" }, (p: PhaseBuilder) => p.activate("g").badge("shape.arc"))
+  .phase("p", {
+    duration: 1500,
+    title: "arc sweep compare",
+    body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider teal) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
+  }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
   .build();
 
 /**
