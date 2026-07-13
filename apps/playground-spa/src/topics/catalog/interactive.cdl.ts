@@ -3458,3 +3458,90 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     body: "3-lane (Empty / Uploaded / Preview) で file upload state を state-driven 分散、 2 edge (drop info / preview success)、 fileDropzone readout 併存で filename card 表示 (現在 uploaded state)、 state-driven visibility pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").badge("upload"))
   .build();
+
+/**
+ * 118. log-stream = production log tail を 3-lane (Timestamp / Level / Message) dense sequence 分散 + logStream readout 併存。 iteration 7 wave 3、 pattern taxonomy § 7 dense sequence。
+ */
+export const prodLogTail = diagram("interactive-prod-log-tail", {
+  topic: "production log tail (recent 5 lines with level pill) を 3-lane (Timestamp / Level / Message) dense sequence 分散 + logStream readout 併存",
+})
+  .lane("ts", { x: 0, width: 180 })
+  .lane("level", { x: 200, width: 140 })
+  .lane("msg", { x: 360, width: 340 })
+  .arraySignal("logs", [
+    ["09:00:12", 1, "server startup complete"],
+    ["09:00:15", 1, "db connection pool 20"],
+    ["09:01:03", 2, "high mem usage 82%"],
+    ["09:01:47", 3, "worker crash: OOM"],
+    ["09:02:02", 1, "worker restart ok"],
+  ] as unknown as (string | number)[])
+  .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "◆ Timestamps", subtitle: "5 events 2m window" })
+  .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "Level distribution", subtitle: "3 INF / 1 WRN / 1 ERR" })
+  .node("errRow", { lane: "msg", stack: 0, kind: "card", title: "▶ worker crash: OOM", subtitle: "09:01:47 · ERR red pill" })
+  .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "high mem usage 82%", subtitle: "09:01:03 · WRN orange pill" })
+  .node("infoRow", { lane: "msg", stack: 2, kind: "card", title: "worker restart ok", subtitle: "09:02:02 · INF blue pill" })
+  .edge("tsCard", "levelCard", { label: "classify", tone: "info" })
+  .edge("levelCard", "errRow", { label: "highlight", tone: "error" })
+  .readout.logStream("ls", { source: "logs", label: "Log tail" })
+  .phase("p", {
+    duration: 1200,
+    title: "log dense sequence",
+    body: "3-lane (Timestamp / Level / Message) で production log を dense sequence 分散、 2 edge (classify info / highlight error)、 logStream readout 併存で 5 recent row + level pill、 dense sequence pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "errRow", "warnRow", "infoRow").badge("log"))
+  .build();
+
+/**
+ * 119. alert-banner = severity 別 alert banner を 3-lane (Trigger / Severity / Action) state-driven visibility 分散 + alertBanner readout 併存。 iteration 7 wave 3、 pattern taxonomy § 2 state-driven visibility。
+ */
+export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
+  topic: "ops severity alert banner (info/success/warn/error) を 3-lane (Trigger / Severity / Action) state 別分散 + alertBanner readout 併存",
+})
+  .lane("trigger", { x: 0, width: 240 })
+  .lane("severity", { x: 280, width: 240 })
+  .lane("action", { x: 560, width: 220 })
+  .arraySignal("alert", [2, "CPU 92% for 5m — investigate"] as unknown as (string | number)[])
+  .node("triggerCard", { lane: "trigger", stack: 0, kind: "card", title: "◆ CPU threshold hit", subtitle: "prod-web-3 · 92% for 5m" })
+  .node("sevCard", { lane: "severity", stack: 0, kind: "card", title: "▲ severity=warn (2)", subtitle: "orange bg + border" })
+  .node("iconCard", { lane: "severity", stack: 1, kind: "card", title: "⚠ warn icon", subtitle: "banner left icon" })
+  .node("actionCard", { lane: "action", stack: 0, kind: "card", title: "Investigate → Ack", subtitle: "operator action next" })
+  .edge("triggerCard", "sevCard", { label: "classify", tone: "info" })
+  .edge("sevCard", "actionCard", { label: "notify", tone: "warning" })
+  .readout.alertBanner("ab", { source: "alert", label: "Alert" })
+  .phase("p", {
+    duration: 1200,
+    title: "alert state-driven visibility",
+    body: "3-lane (Trigger / Severity / Action) で severity 別 alert flow を state-driven 分散、 2 edge (classify info / notify warning)、 alertBanner readout 併存で warn (severity 2) の orange banner + ⚠ icon、 state-driven visibility pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").badge("alert"))
+  .build();
+
+/**
+ * 120. service-health = microservice health matrix を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存。 iteration 7 wave 3、 pattern taxonomy § 3 category split。
+ */
+export const serviceHealthGrid = diagram("interactive-service-health-grid", {
+  topic: "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存",
+})
+  .lane("up", { x: 0, width: 240 })
+  .lane("deg", { x: 280, width: 240 })
+  .lane("down", { x: 560, width: 240 })
+  .arraySignal("svcs", [
+    ["api", 2],
+    ["web", 2],
+    ["auth", 2],
+    ["db", 1],
+    ["cache", 1],
+    ["queue", 0],
+  ] as unknown as (string | number)[])
+  .node("apiCard", { lane: "up", stack: 0, kind: "card", title: "● api (green)", subtitle: "healthy · p99 45ms" })
+  .node("webCard", { lane: "up", stack: 1, kind: "card", title: "● web (green)", subtitle: "healthy · uptime 99.9%" })
+  .node("authCard", { lane: "up", stack: 2, kind: "card", title: "● auth (green)", subtitle: "healthy · 100 rps" })
+  .node("dbCard", { lane: "deg", stack: 0, kind: "card", title: "● db (yellow)", subtitle: "degraded · replica lag 15s" })
+  .node("cacheCard", { lane: "deg", stack: 1, kind: "card", title: "● cache (yellow)", subtitle: "degraded · eviction rate high" })
+  .node("queueCard", { lane: "down", stack: 0, kind: "card", title: "● queue (red)", subtitle: "◆ down · connection refused" })
+  .edge("dbCard", "queueCard", { label: "cascade", tone: "error" })
+  .readout.serviceHealth("sh", { source: "svcs", label: "Services (6)" })
+  .phase("p", {
+    duration: 1200,
+    title: "service health category split",
+    body: "3-lane (Up / Degraded / Down) で 6 service を status category 別分散、 1 edge (cascade error)、 serviceHealth readout 併存で 3-col grid + status dot (3 green / 2 yellow / 1 red)、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").badge("health"))
+  .build();
