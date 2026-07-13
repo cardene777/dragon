@@ -3008,3 +3008,59 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
     body: "3-lane (Todo / In Progress / Done) で 6 sprint task を state 別分散、 各 column summary card + kanban readout 併存で 3 column task board 表示、 priority color (high red / med yellow / low gray) で task tag、 state-based split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("todoCard", "inprogressCard", "doneCard").badge("kanban"))
   .build();
+
+/**
+ * 101. breadcrumb = navigation path、 4-lane (Home / Docs / API / Reference) pipeline + 3 next edge + breadcrumb readout 併存。
+ * cdl primitive iteration 6 の 2 番目、 pattern taxonomy § 4 pipeline flow と直接共鳴。
+ */
+export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
+  topic: "docs navigation 4 crumb を 4-lane pipeline (Home → Docs → API → Reference) + 3 next edge + breadcrumb readout 併存",
+})
+  .lane("home", { x: 0, width: 170 })
+  .lane("docs", { x: 190, width: 170 })
+  .lane("api", { x: 380, width: 170 })
+  .lane("ref", { x: 570, width: 170 })
+  .arraySignal("path", ["Home", "Docs", "API", "Reference"])
+  .state("cur", { initial: 2 })
+  .node("homeNode", { lane: "home", stack: 0, kind: "card", title: "Home", subtitle: "root · index 0" })
+  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "Docs", subtitle: "index 1" })
+  .node("apiNode", { lane: "api", stack: 0, kind: "card", title: "◆ API", subtitle: "index 2 (current)" })
+  .node("refNode", { lane: "ref", stack: 0, kind: "card", title: "Reference", subtitle: "index 3" })
+  .edge("homeNode", "docsNode", { label: "→", tone: "info" })
+  .edge("docsNode", "apiNode", { label: "→", tone: "accent" })
+  .edge("apiNode", "refNode", { label: "→", tone: "info" })
+  .readout.breadcrumb("bc", { source: "path", currentSource: "cur", color: "#2563eb", label: "Path" })
+  .phase("p", {
+    duration: 1200,
+    title: "navigation pipeline",
+    body: "4-lane (Home / Docs / API / Reference) navigation path を pipeline 分散、 3 next edge (info → accent → info) で遷移経路明示、 breadcrumb readout も併存で `Home › Docs › API › Reference` 表示、 pipeline flow pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("homeNode", "docsNode", "apiNode", "refNode").badge("nav"))
+  .build();
+
+/**
+ * 102. timeline-vertical = day schedule 5 event を縦 timeline で表示、 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存。
+ * cdl primitive iteration 6 の 3 番目、 pattern taxonomy § 7 individual element split と共鳴。
+ */
+export const dayScheduleTimeline = diagram("interactive-day-schedule", {
+  topic: "day schedule 5 event を 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存",
+})
+  .lane("morning", { x: 0, width: 240 })
+  .lane("afternoon", { x: 280, width: 240 })
+  .lane("evening", { x: 560, width: 240 })
+  .arraySignal("events", [
+    ["09:00", "Standup", "team sync"],
+    ["10:30", "Design review", "3 proposals"],
+    ["14:00", "Deploy staging", "v1.2.0"],
+    ["16:00", "1-on-1", "career discussion"],
+    ["19:30", "Retrospective", "sprint 42 close"],
+  ] as unknown as (string | number)[])
+  .node("morningCard", { lane: "morning", stack: 0, kind: "card", title: "Morning", subtitle: "09:00 Standup · 10:30 Design review" })
+  .node("afternoonCard", { lane: "afternoon", stack: 0, kind: "card", title: "Afternoon", subtitle: "14:00 Deploy · 16:00 1-on-1" })
+  .node("eveningCard", { lane: "evening", stack: 0, kind: "card", title: "Evening", subtitle: "19:30 Retrospective" })
+  .readout.timelineVertical("tv", { source: "events", color: "#2563eb", max: 8, label: "Day events" })
+  .phase("p", {
+    duration: 1200,
+    title: "day time band split",
+    body: "3-lane (Morning / Afternoon / Evening) で 5 event を時間帯別分散、 各 lane summary card + timelineVertical readout 併存で dot + line + text の縦 timeline 表示、 individual element split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard", "eveningCard").badge("timeline"))
+  .build();
