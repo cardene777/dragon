@@ -1523,9 +1523,10 @@ export const userVenn = diagram("interactive-user-venn", {
  * 47. slope chart = 5 student の test score before/after 変化を slope で表示。
  */
 export const scoreSlope = diagram("interactive-score-slope", {
-  topic: "5 student の test score の before → after 変化を slope chart で表示、 up/down 色分け",
+  topic: "5 student score change を 2-lane (Improved up ↑ / Declined down ↓) 分散、 各 student 個別 card、 slope readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("up", { x: 0, width: 300 })
+  .lane("down", { x: 340, width: 300 })
   .arraySignal("scores", [
     [65, 82, "Alice"],
     [70, 68, "Bob"],
@@ -1533,45 +1534,79 @@ export const scoreSlope = diagram("interactive-score-slope", {
     [80, 88, "Dan"],
     [60, 55, "Eve"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Test scores", subtitle: "5 students の before/after" })
-  .readout.slope("s", { source: "scores", min: 40, max: 100, viewW: 260, viewH: 160, colorUp: "#22c55e", colorDown: "#ef4444", label: "Score change" })
-  .phase("p", { duration: 1200, title: "slope chart", body: "[before, after, name] tuple array を 2 column slope で表示、 上昇=緑 / 下降=赤、 dot + 学生名 label。" }, (p: PhaseBuilder) => p.activate("card").badge("slope"))
+  .node("aliceNode", { lane: "up", stack: 0, kind: "card", title: "Alice ↑", subtitle: "65 → 82 (+17)" })
+  .node("carolNode", { lane: "up", stack: 1, kind: "card", title: "Carol ↑", subtitle: "55 → 78 (+23, max gain)" })
+  .node("danNode", { lane: "up", stack: 2, kind: "card", title: "Dan ↑", subtitle: "80 → 88 (+8)" })
+  .node("bobNode", { lane: "down", stack: 0, kind: "card", title: "Bob ↓", subtitle: "70 → 68 (-2)" })
+  .node("eveNode", { lane: "down", stack: 1, kind: "card", title: "Eve ↓", subtitle: "60 → 55 (-5)" })
+  .readout.slope("s", { source: "scores", min: 40, max: 100, viewW: 260, viewH: 160, colorUp: "#22c55e", colorDown: "#ef4444", label: "Score change (slope)" })
+  .phase("p", {
+    duration: 1200,
+    title: "score direction split",
+    body: "2-lane (Improved ↑ 3 個 / Declined ↓ 2 個) で 5 student score を変化方向別分散、 各 student 個別 card で before → after + delta 明示、 slope readout も併存で 2 column 折れ線表示、 direction 分類と slope chart の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("aliceNode", "carolNode", "danNode", "bobNode", "eveNode").badge("slope"))
   .build();
 
 /**
  * 48. sales funnel = 4 stage の conversion funnel (Visit → Signup → Trial → Paid)。
  */
 export const salesFunnel = diagram("interactive-sales-funnel", {
-  topic: "sales conversion funnel を 4 stage で可視化、 [stage, count] tuple array を trapezoid で描画",
+  topic: "sales funnel 4 stage を 4-lane pipeline + 3 drop-off edge、 Visit → Signup → Trial → Paid の conversion 遷移 network 化",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("visit", { x: 0, width: 160 })
+  .lane("signup", { x: 180, width: 160 })
+  .lane("trial", { x: 360, width: 160 })
+  .lane("paid", { x: 540, width: 160 })
   .arraySignal("stages", [
     ["Visit", 1000],
     ["Signup", 400],
     ["Trial", 150],
     ["Paid", 40],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sales funnel", subtitle: "Visit → Paid の 4 stage" })
-  .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#94a3b8", label: "Conversion" })
-  .phase("p", { duration: 1200, title: "sales funnel", body: "[[stage, count], ...] を trapezoid で描画、 gradient color で top=blue → bottom=gray に変化、 各 stage の count 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("funnel"))
+  .node("visitNode", { lane: "visit", stack: 0, kind: "card", title: "Visit", subtitle: "1000 (top)" })
+  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Signup", subtitle: "400 (-60%)" })
+  .node("trialNode", { lane: "trial", stack: 0, kind: "card", title: "Trial", subtitle: "150 (-62.5%)" })
+  .node("paidNode", { lane: "paid", stack: 0, kind: "card", title: "Paid", subtitle: "40 (-73%, bottom)" })
+  .edge("visitNode", "signupNode", { label: "40% conv", tone: "info" })
+  .edge("signupNode", "trialNode", { label: "37.5% conv", tone: "warning" })
+  .edge("trialNode", "paidNode", { label: "26.7% conv", tone: "error" })
+  .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#94a3b8", label: "Conversion (trapezoid)" })
+  .phase("p", {
+    duration: 1200,
+    title: "funnel pipeline",
+    body: "4-lane pipeline (Visit / Signup / Trial / Paid) + 3 conversion edge (40% info / 37.5% warning / 26.7% error で drop-off 深化 tone escalate)、 各 stage の count と conversion rate を明示、 funnel readout も併存で trapezoid 表示、 conversion 遷移を dataflow で可視化。",
+  }, (p: PhaseBuilder) => p.activate("visitNode", "signupNode", "trialNode", "paidNode").badge("funnel"))
   .build();
 
 /**
  * 49. project gantt = 4 task を 10 day timeline 上に配置。
  */
 export const projectGantt = diagram("interactive-project-gantt", {
-  topic: "project 4 task (Design/Impl/Test/Ship) を 10 day timeline 上に gantt 表示",
+  topic: "project 4 task を 4-lane (Design / Impl / Test / Ship) task 別分散 + 3 handover edge、 gantt readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("design", { x: 0, width: 160 })
+  .lane("impl", { x: 180, width: 160 })
+  .lane("test", { x: 360, width: 160 })
+  .lane("ship", { x: 540, width: 160 })
   .arraySignal("tasks", [
     ["Design", 0, 3],
     ["Impl", 3, 5],
     ["Test", 6, 3],
     ["Ship", 9, 1],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Sprint gantt", subtitle: "10 day sprint、 4 task" })
-  .readout.gantt("g", { source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "Timeline" })
-  .phase("p", { duration: 1200, title: "gantt", body: "[[name, start, duration], ...] を横 timeline bar で描画、 start-x / duration-w で position。" }, (p: PhaseBuilder) => p.activate("card").badge("gantt"))
+  .node("designNode", { lane: "design", stack: 0, kind: "card", title: "Design", subtitle: "day 0-3 (3 day)" })
+  .node("implNode", { lane: "impl", stack: 0, kind: "card", title: "Impl", subtitle: "day 3-8 (5 day, largest)" })
+  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "Test", subtitle: "day 6-9 (3 day, overlap w/ impl)" })
+  .node("shipNode", { lane: "ship", stack: 0, kind: "card", title: "Ship", subtitle: "day 9-10 (1 day)" })
+  .edge("designNode", "implNode", { label: "handover", tone: "info" })
+  .edge("implNode", "testNode", { label: "test start", tone: "accent" })
+  .edge("testNode", "shipNode", { label: "release", tone: "success" })
+  .readout.gantt("g", { source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "Timeline (gantt)" })
+  .phase("p", {
+    duration: 1200,
+    title: "task pipeline",
+    body: "4-lane (Design / Impl / Test / Ship) で 10 day sprint 4 task を task 別分散 + 3 handover edge (info→accent→success で release 直前 escalate)、 各 task 個別 card で day range 明示、 gantt readout も併存で timeline bar 表示、 task 分類と timeline の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("designNode", "implNode", "testNode", "shipNode").badge("gantt"))
   .build();
 
 /**
