@@ -3618,3 +3618,87 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
     body: "3-lane (Empty / Entered / Applied) で coupon apply flow を state-driven 分散、 2 edge (type code info / apply success)、 couponCode readout 併存で applied 状態 (SAVE20 + -20% off green pill)、 state-driven visibility pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").badge("coupon"))
   .build();
+
+/**
+ * 124. article-preview = blog article preview card を 3-lane (Thumbnail / Content / Meta) category split 分散 + articlePreview readout 併存。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
+ */
+export const blogArticlePreview = diagram("interactive-blog-article-preview", {
+  topic: "blog article preview card (title / excerpt / author / timeAgo) を 3-lane (Thumbnail / Content / Meta) category 分散 + articlePreview readout 併存",
+})
+  .lane("thumb", { x: 0, width: 200 })
+  .lane("content", { x: 220, width: 320 })
+  .lane("meta", { x: 560, width: 220 })
+  .arraySignal("article", ["Getting Started with dragon", "Learn how to build interactive diagrams with dragon", "Alice", "2h ago"] as unknown as (string | number)[])
+  .node("thumbCard", { lane: "thumb", stack: 0, kind: "card", title: "◆ Thumbnail (📄 placeholder)", subtitle: "80×100 · colored bg" })
+  .node("titleCard", { lane: "content", stack: 0, kind: "card", title: "Title (colored accent)", subtitle: "'Getting Started with dragon'" })
+  .node("excerptCard", { lane: "content", stack: 1, kind: "card", title: "Excerpt (2 line)", subtitle: "'Learn how to build interactive diagrams…'" })
+  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "by Alice (author)", subtitle: "gray text · left" })
+  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "2h ago (timeAgo)", subtitle: "muted · right" })
+  .edge("thumbCard", "titleCard", { label: "visual", tone: "info" })
+  .edge("titleCard", "authorCard", { label: "attribute", tone: "success" })
+  .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "Article card" })
+  .phase("p", {
+    duration: 1200,
+    title: "article category split",
+    body: "3-lane (Thumbnail / Content / Meta) で article card の 4 field を category 別分散、 2 edge (visual info / attribute success)、 articlePreview readout 併存で thumbnail + title + excerpt + author/time meta を 1 card 集約、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").badge("article"))
+  .build();
+
+/**
+ * 125. toc-nav = docs page table of contents (nested 3 level with active section) を 3-lane (Level 0 / Level 1 / Level 2) tree depth split 分散 + tocNav readout 併存。 iteration 7 wave 5、 pattern taxonomy § 8 tree depth split。
+ */
+export const docsTocNav = diagram("interactive-docs-toc-nav", {
+  topic: "docs TOC (nested 3 level with active section) を 3-lane (Level 0 / Level 1 / Level 2) tree depth 別分散 + tocNav readout 併存",
+})
+  .lane("lvl0", { x: 0, width: 240 })
+  .lane("lvl1", { x: 280, width: 260 })
+  .lane("lvl2", { x: 560, width: 260 })
+  .arraySignal("toc", [
+    [0, "Introduction", 0],
+    [1, "Getting Started", 1],
+    [2, "Install", 0],
+    [2, "First diagram", 1],
+    [1, "Advanced", 0],
+    [0, "API Reference", 0],
+  ] as unknown as (string | number)[])
+  .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "Introduction (H1)", subtitle: "level 0 · not active" })
+  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API Reference (H1)", subtitle: "level 0 · not active" })
+  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ Getting Started (H2、 active)", subtitle: "level 1 · blue border" })
+  .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "Advanced (H2)", subtitle: "level 1 · not active" })
+  .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "Install (H3)", subtitle: "level 2 · not active" })
+  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ First diagram (H3、 active section)", subtitle: "level 2 · blue text + border" })
+  .edge("introCard", "gsCard", { label: "next", tone: "info" })
+  .edge("gsCard", "installCard", { label: "child", tone: "accent" })
+  .edge("gsCard", "firstCard", { label: "current", tone: "success" })
+  .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "Docs TOC" })
+  .phase("p", {
+    duration: 1200,
+    title: "TOC tree depth split",
+    body: "3-lane (Level 0 / Level 1 / Level 2) で 6 TOC entry を tree depth 別分散、 3 edge (next info / child accent / current success)、 tocNav readout 併存で level 別 indent + active border ('First diagram' current)、 tree depth split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").badge("TOC"))
+  .build();
+
+/**
+ * 126. share-buttons = blog article social share buttons を 3-lane (Twitter / Facebook / LinkedIn) dense sequence 分散 + shareButtons readout 併存。 iteration 7 wave 5、 iteration 完遂。 pattern taxonomy § 7 dense sequence。
+ */
+export const socialShareButtons = diagram("interactive-social-share-buttons", {
+  topic: "blog article social share buttons (Twitter / Facebook / LinkedIn / Reddit) を 3-lane (Twitter / Facebook / LinkedIn) dense sequence 分散 + shareButtons readout 併存",
+})
+  .lane("tw", { x: 0, width: 200 })
+  .lane("fb", { x: 220, width: 200 })
+  .lane("li", { x: 440, width: 200 })
+  .arraySignal("shares", [["tw", 245], ["fb", 89], ["li", 32], ["rd", 18]] as unknown as (string | number)[])
+  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "◆ 𝕏 Twitter", subtitle: "245 shares · sky blue btn" })
+  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "f Facebook", subtitle: "89 shares · deep blue btn" })
+  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "in LinkedIn", subtitle: "32 shares · dark cyan btn" })
+  .node("rdCard", { lane: "li", stack: 1, kind: "card", title: "R Reddit (4th、 wraps)", subtitle: "18 shares · orange btn" })
+  .edge("twCard", "fbCard", { label: "sequence", tone: "info" })
+  .edge("fbCard", "liCard", { label: "sequence", tone: "info" })
+  .edge("liCard", "rdCard", { label: "sequence", tone: "info" })
+  .readout.shareButtons("sb", { source: "shares", label: "Share (384)" })
+  .phase("p", {
+    duration: 1200,
+    title: "share dense sequence",
+    body: "3-lane (Twitter / Facebook / LinkedIn) で 4 social platform button を dense sequence 分散、 3 edge (全 sequence info)、 shareButtons readout 併存で 4 btn horizontal + platform color (sky / navy / dark cyan / orange) + count、 dense sequence pattern の primitive expansion 事例。 iteration 7 完遂 = 15 primitive + 15 catalog、 dragon 111 → 126、 cdl 112 → 127。",
+  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").badge("share"))
+  .build();
