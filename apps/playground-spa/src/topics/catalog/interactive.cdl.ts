@@ -55,30 +55,46 @@ export const formulaTextBind = diagram("interactive-formula-text", {
  * 3. scroll → progress readout (scroll-driven trigger)。
  */
 export const scrollNarrative = diagram("interactive-scroll-narrative", {
-  topic: "scroll 位置に応じて 0..1 progress を signal に反映、 node subtitle が progress を追随",
+  topic: "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("s1", { x: 0, width: 220 })
+  .lane("s2", { x: 260, width: 220 })
+  .lane("s3", { x: 520, width: 220 })
   .animation.scroll("intro", { start: 0.9, end: 0.1, label: "Intro reveal" })
   .state("intro", { initial: 0 })
-  .node("a", { lane: "l", stack: 0, kind: "card", title: "Step 1", subtitle: "progress: {intro}" })
-  .node("b", { lane: "l", stack: 1, kind: "card", title: "Step 2", subtitle: "progress: {intro}" })
-  .node("c", { lane: "l", stack: 2, kind: "card", title: "Step 3", subtitle: "progress: {intro}" })
-  .phase("p", { duration: 1500, title: "scroll → 0..1 progress → node subtitle", body: "wrapper element を scroll すると 'intro' progress が 0→1 に変化、 3 node の subtitle も追随。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("scroll bind"))
+  .node("a", { lane: "s1", stack: 0, kind: "card", title: "Step 1", subtitle: "progress: {intro}" })
+  .node("b", { lane: "s2", stack: 0, kind: "card", title: "Step 2", subtitle: "progress: {intro}" })
+  .node("c", { lane: "s3", stack: 0, kind: "card", title: "Step 3", subtitle: "progress: {intro}" })
+  .phase("p", {
+    duration: 1500,
+    title: "scroll narrative split",
+    body: "3-lane (Step 1 / Step 2 / Step 3) で 3 narrative step を横並び分散、 wrapper element scroll → intro progress 0→1 変化 → 3 node subtitle が同時追随、 narrative 進行を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("scroll bind"))
   .build();
 
 /**
  * 4. click → toggle (event handler + hover)。
  */
 export const clickToggle = diagram("interactive-click-toggle", {
-  topic: "click event → handler → signal toggle → node subtitle 切替",
+  topic: "click event flow を 3-lane (Trigger button / Event handler / Signal state) + 2 edge、 click→handler→signal の 3 step dataflow",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("trigger", { x: 0, width: 200 })
+  .lane("handler", { x: 240, width: 220 })
+  .lane("signal", { x: 480, width: 200 })
   .input.toggle("active", { defaultValue: false, label: "Active" })
   .state("active", { initial: "off" })
-  .node("btn", { lane: "l", stack: 0, kind: "card", title: "Button", subtitle: "state: {active}" })
+  .node("btn", { lane: "trigger", stack: 0, kind: "card", title: "Button", subtitle: "click target" })
+  .node("handlerNode", { lane: "handler", stack: 0, kind: "card", title: "Event handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
+  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal state", subtitle: "active = {active}" })
+  .edge("btn", "handlerNode", { label: "click / hover", tone: "info" })
+  .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
   .on.hover({ kind: "node", id: "btn" }, "hover-state")
-  .phase("p", { duration: 1500, title: "click → handler → signal → SVG update", body: "consumer が 'toggle-active' handler を実装、 button click で active signal を反転、 subtitle が追随。" }, (p: PhaseBuilder) => p.activate("btn").badge("event bind"))
+  .phase("p", {
+    duration: 1500,
+    title: "event flow split",
+    body: "3-lane (Trigger button / Event handler / Signal state) で click event flow の 3 step を分散、 2 edge (click info tone / toggle success tone) で dataflow 明示、 button click → consumer handler → active signal 反転 → signalNode subtitle 追随、 event 伝搬経路を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode").badge("event bind"))
   .build();
 
 /**
@@ -86,22 +102,32 @@ export const clickToggle = diagram("interactive-click-toggle", {
  * slider を drag すると bar node の SVG width が実際に伸縮、 subtitle だけでなく図形が動く。
  */
 export const visualBindBar = diagram("interactive-visual-bar", {
-  topic: "wBind template で slider → node 実 width、 図形が伸縮する visual binding",
+  topic: "wBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 2 edge、 signal → 実 SVG width の反映経路を可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("signal", { x: 0, width: 200 })
+  .lane("bar", { x: 240, width: 340 })
+  .lane("readout", { x: 600, width: 220 })
   .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "Bar width" })
   .state("barW", { initial: 160 })
+  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal source", subtitle: "barW = {barW}" })
   .node("bar", {
-    lane: "l",
+    lane: "bar",
     stack: 0,
     kind: "card",
     title: "Dynamic Bar",
-    subtitle: "w = {barW}px",
+    subtitle: "wBind = {barW}px",
     w: 160,
     wBind: "{barW}",
   })
+  .node("readoutNode", { lane: "readout", stack: 0, kind: "card", title: "Bar readout", subtitle: "readout.bar が signal を同時追随" })
+  .edge("signalNode", "bar", { label: "wBind", tone: "info" })
+  .edge("signalNode", "readoutNode", { label: "readout", tone: "success" })
   .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "Width readout" })
-  .phase("p", { duration: 1500, title: "signal → node.w、 図形が実際に伸縮", body: "slider を動かすと bar node の SVG width 属性が signal 'barW' で書換わる、 subtitle だけでなく実描画が動く。" }, (p: PhaseBuilder) => p.activate("bar").badge("visual bind"))
+  .phase("p", {
+    duration: 1500,
+    title: "visual bind fan-out",
+    body: "3-lane (Signal / Bar / Readout) で wBind visual binding の 3 経路を分散、 2 edge (wBind info / readout success) で signal → 2 target の 1:N 分岐明示、 slider 変化で bar node SVG width + readout.bar が同時追随、 visual binding dataflow を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("signalNode", "bar", "readoutNode").badge("visual bind"))
   .build();
 
 /**
