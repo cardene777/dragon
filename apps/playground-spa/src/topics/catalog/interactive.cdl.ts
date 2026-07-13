@@ -2179,27 +2179,54 @@ export const supportChat = diagram("interactive-support-chat", {
   .build();
 
 /**
- * 64. avatar = user profile avatar、 text input で name 変化 → initials + color circle 追随。
+ * 64. userAvatar v2 = SNS プラットフォーム 新規ユーザー onboarding avatar 選択シナリオ、 shape-person + shape-mobile-device + shape-website + shape-cylinder + shape-cloud + shape-warehouse の 6 shape で visual scene 化、 4 phase (アカウント作成 → デフォルト avatar → カスタム画像 upload → 反映) + 4 readout (avatar / gauge upload 進捗 / countup 新規登録数 / stat active user) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const userAvatar = diagram("interactive-user-avatar", {
-  topic: "user avatar generation pipeline を 3-lane (Input name / Initials extract / Circle render) + 2 edge で pipeline network 化、 avatar readout 併存",
+  topic: "SNS 新規ユーザー onboarding avatar 選択 = 4 phase (作成 → デフォルト → upload → 反映) の flow を shape-* primitive 6 種で表現 + 4 readout (avatar / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("input", { x: 0, width: 240 })
-  .lane("initials", { x: 280, width: 200 })
-  .lane("circle", { x: 520, width: 200 })
-  .input.text("user", { defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" })
-  .state("user", { initial: "Alice Wonderland" })
-  .node("inputNode", { lane: "input", stack: 0, kind: "card", title: "Text input", subtitle: "user = {user}" })
-  .node("initialsNode", { lane: "initials", stack: 0, kind: "card", title: "Initials extract", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
-  .node("circleNode", { lane: "circle", stack: 0, kind: "card", title: "Colored circle", subtitle: "size 56 · blue #2563eb + AW text" })
-  .edge("inputNode", "initialsNode", { label: "parse", tone: "info" })
-  .edge("initialsNode", "circleNode", { label: "render", tone: "success" })
-  .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" })
-  .phase("p", {
-    duration: 1200,
-    title: "avatar pipeline",
-    body: "3-lane (Input name / Initials extract / Circle render) で avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。",
-  }, (p: PhaseBuilder) => p.activate("inputNode", "initialsNode", "circleNode").badge("avatar"))
+  .lane("user", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("delivery", { x: 580, width: 220 })
+  .state("uploadProgress", { initial: 0 })
+  .state("newSignups", { initial: 12483 })
+  .state("activeUsers", { initial: 0 })
+  .state("displayName", { initial: "Alice Wonderland" })
+  .node("newUser", { lane: "user", stack: 0, kind: "shape-person", title: "新規 Alice 様", eyebrow: "signup", subtitle: "アカウント作成中" })
+  .node("mobile", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "iPhone", eyebrow: "device", subtitle: "SNS mobile app" })
+  .node("app", { lane: "system", stack: 0, kind: "shape-website", title: "SNS webapp", eyebrow: "frontend", subtitle: "onboarding wizard · avatar step" })
+  .node("db", { lane: "system", stack: 1, kind: "shape-cylinder", title: "users DB", eyebrow: "database", subtitle: "profile record · display_name + avatar_url" })
+  .node("s3", { lane: "system", stack: 2, kind: "shape-cloud", title: "S3 bucket", eyebrow: "storage", subtitle: "avatar 画像 CDN 配信元" })
+  .node("cdn", { lane: "delivery", stack: 0, kind: "shape-warehouse", title: "CloudFront CDN", eyebrow: "cdn", subtitle: "全世界 avatar 配信" })
+  .edge("newUser", "mobile", { label: "操作", tone: "info" })
+  .edge("mobile", "app", { label: "POST /signup", tone: "info" })
+  .edge("app", "db", { label: "INSERT user", tone: "success" })
+  .edge("app", "s3", { label: "PUT avatar", tone: "accent" })
+  .edge("s3", "cdn", { label: "distribution", tone: "success" })
+  .edge("cdn", "mobile", { label: "GET /avatar.jpg", tone: "success" })
+  .readout.avatar("av", { source: "displayName", size: 72, color: "#2563eb", label: "avatar preview" })
+  .readout.gauge("uploadG", { source: "uploadProgress", min: 0, max: 100, color: "#22c55e", label: "upload 進捗 %" })
+  .readout.countup("signupsCU", { source: "newSignups", unit: " 名", label: "本日新規登録", decimals: 0 })
+  .readout.stat("activeStat", { source: "activeUsers", unit: " 名", caption: "active users", label: "active" })
+  .phase("p1", {
+    duration: 1800,
+    title: "アカウント作成",
+    body: "Alice 様がメール + パスワード登録、 display_name = 'Alice Wonderland' 入力。 uploadProgress 0 (未開始)、 newSignups 12483 → 12484 tween (countup 加算)、 activeUsers 0、 avatar は initials 'AW' の default 青円表示。 user lane active。",
+  }, (p: PhaseBuilder) => p.activate("newUser", "mobile").tween("newSignups", 12483, 12484).set("uploadProgress", 0).set("displayName", "Alice Wonderland").badge("作成"))
+  .phase("p2", {
+    duration: 2000,
+    title: "デフォルト avatar 表示",
+    body: "onboarding wizard の avatar step、 initials 'AW' の default avatar 表示。 uploadProgress 0 (default 選択、 upload なし)、 activeUsers 0 → 1 tween (Alice が active に)、 app + db lane activate。",
+  }, (p: PhaseBuilder) => p.activate("newUser", "mobile", "app", "db").set("uploadProgress", 0).tween("activeUsers", 0, 1).badge("default"))
+  .phase("p3", {
+    duration: 2400,
+    title: "カスタム画像 upload",
+    body: "Alice がプロフィール写真選択 → S3 へ upload。 uploadProgress 0 → 100 tween (gauge 針が動的に上昇して満タンまで)、 s3 lane activate、 PUT 完了時に CDN へ distribution 開始。",
+  }, (p: PhaseBuilder) => p.activate("newUser", "mobile", "app", "db", "s3").tween("uploadProgress", 0, 100).badge("upload"))
+  .phase("p4", {
+    duration: 1800,
+    title: "反映 (CDN 配信)",
+    body: "CloudFront edge cache に配信、 全ユーザーが Alice の新 avatar を閲覧可能。 uploadProgress 100 保持、 activeUsers 1 → 2 tween (Alice + 閲覧者)、 6 shape 全 active、 avatar preview が initials → 実写真表示に切替。",
+  }, (p: PhaseBuilder) => p.activate("newUser", "mobile", "app", "db", "s3", "cdn").set("uploadProgress", 100).tween("activeUsers", 1, 2).badge("反映"))
   .build();
 
 /**
@@ -2990,15 +3017,14 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .build();
 
 /**
- * 92. attendance-grid = チーム週間 attendance (5 day × 4 member)。
+ * 92. teamAttendanceGrid v2 = リモートワークチーム週次出勤集計 シナリオ、 shape-person × 4 + shape-mobile-device + shape-server-rack の 6 shape で visual scene 化、 4 phase (月曜開始 → 中間確認 → 週末集計 → 給与連携) + 4 readout (attendanceGrid / gauge 出勤率 / countup 累計出勤日 / stat 皆勤者数) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const teamAttendanceGrid = diagram("interactive-team-attendance", {
-  topic: "5 day × 4 member attendance を 4-lane (Alice/Bob/Carol/Dan) member 別分散、 各 member weekly summary + attendanceGrid readout 併存",
+  topic: "リモートチーム週次出勤集計 = 4 phase (月曜 → 中間 → 週末 → 給与連携) の flow を shape-* primitive 6 種で表現 + 4 readout (attendanceGrid / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("alice", { x: 0, width: 150 })
-  .lane("bob", { x: 170, width: 150 })
-  .lane("carol", { x: 340, width: 150 })
-  .lane("dan", { x: 510, width: 150 })
+  .lane("members", { x: 0, width: 240 })
+  .lane("system", { x: 260, width: 260 })
+  .lane("finance", { x: 540, width: 260 })
   .arraySignal("attendance", [
     ["Mon", true, true, false, true],
     ["Tue", true, false, true, true],
@@ -3006,17 +3032,45 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
     ["Thu", false, true, true, true],
     ["Fri", true, true, false, true],
   ] as unknown as (string | number)[])
-  .arraySignal("members", ["Alice", "Bob", "Carol", "Dan"])
-  .node("aliceCard", { lane: "alice", stack: 0, kind: "card", title: "Alice", subtitle: "4/5 present (Thu absent)" })
-  .node("bobCard", { lane: "bob", stack: 0, kind: "card", title: "Bob", subtitle: "4/5 present (Tue absent)" })
-  .node("carolCard", { lane: "carol", stack: 0, kind: "card", title: "Carol", subtitle: "3/5 present (Mon/Fri absent)" })
-  .node("danCard", { lane: "dan", stack: 0, kind: "card", title: "Dan", subtitle: "5/5 present (perfect)" })
-  .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance (5 day × 4 member grid)" })
-  .phase("p", {
-    duration: 1200,
-    title: "member split",
-    body: "4-lane (Alice/Bob/Carol/Dan) で 5 day × 4 member attendance を member 別に分散、 各 member weekly summary card で present/absent 数明示、 attendanceGrid readout も併存で 2D grid 表示、 member 別 aggregate と day 別詳細の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "carolCard", "danCard").badge("attendance"))
+  .arraySignal("teamMembers", ["Alice", "Bob", "Carol", "Dan"])
+  .state("rate", { initial: 0 })
+  .state("totalDays", { initial: 0 })
+  .state("perfectCount", { initial: 0 })
+  .node("alice", { lane: "members", stack: 0, kind: "shape-person", title: "Alice (frontend)", eyebrow: "member", subtitle: "Tokyo · 4/5 出勤 (Thu 休)" })
+  .node("bob", { lane: "members", stack: 1, kind: "shape-person", title: "Bob (backend)", eyebrow: "member", subtitle: "Osaka · 4/5 出勤 (Tue 休)" })
+  .node("carol", { lane: "members", stack: 2, kind: "shape-person", title: "Carol (design)", eyebrow: "member", subtitle: "Fukuoka · 3/5 出勤 (Mon/Fri 休)" })
+  .node("dan", { lane: "members", stack: 3, kind: "shape-person", title: "Dan (DevOps)", eyebrow: "member", subtitle: "Sapporo · 5/5 皆勤" })
+  .node("attendanceApp", { lane: "system", stack: 0, kind: "shape-mobile-device", title: "打刻 mobile app", eyebrow: "device", subtitle: "GPS 位置 + timestamp 送信" })
+  .node("payroll", { lane: "finance", stack: 0, kind: "shape-server-rack", title: "給与計算 system", eyebrow: "backend", subtitle: "月次 rollup · 支給額算出" })
+  .edge("alice", "attendanceApp", { label: "打刻", tone: "info" })
+  .edge("bob", "attendanceApp", { label: "打刻", tone: "info" })
+  .edge("carol", "attendanceApp", { label: "打刻", tone: "info" })
+  .edge("dan", "attendanceApp", { label: "打刻", tone: "info" })
+  .edge("attendanceApp", "payroll", { label: "週次 rollup", tone: "success" })
+  .readout.attendanceGrid("ag", { source: "attendance", membersSource: "teamMembers", color: "#22c55e", label: "5 day × 4 member grid" })
+  .readout.gauge("rateG", { source: "rate", min: 0, max: 100, color: "#22c55e", label: "週次出勤率 %" })
+  .readout.countup("daysCU", { source: "totalDays", unit: " 日", label: "累計出勤日", decimals: 0 })
+  .readout.stat("perfectStat", { source: "perfectCount", unit: " 名", caption: "皆勤者", label: "perfect" })
+  .phase("p1", {
+    duration: 1800,
+    title: "月曜開始",
+    body: "月曜 09:00、 4 名中 3 名打刻 (Carol 休)、 grid に緑 3 · 赤 1。 rate 0 → 75 tween (gauge 針が緑域上位)、 totalDays 0 → 3 tween、 perfectCount 0 (途中判定なし)、 members lane full + app active。",
+  }, (p: PhaseBuilder) => p.activate("alice", "bob", "carol", "dan", "attendanceApp").tween("rate", 0, 75).tween("totalDays", 0, 3).badge("Mon"))
+  .phase("p2", {
+    duration: 2200,
+    title: "中間確認 (水)",
+    body: "水曜まで、 Tue: Bob 休、 Wed: 全員出勤で total 累積 3+3+4 = 10 日。 rate 75 → 83 tween、 totalDays 3 → 10 tween (countup 加速)、 perfectCount 0 → 1 tween (Dan 暫定皆勤、 stat 表示)。",
+  }, (p: PhaseBuilder) => p.activate("alice", "bob", "carol", "dan", "attendanceApp").tween("rate", 75, 83).tween("totalDays", 3, 10).tween("perfectCount", 0, 1).badge("Wed"))
+  .phase("p3", {
+    duration: 2200,
+    title: "週末集計 (金)",
+    body: "Thu: Alice 休、 Fri: Carol 休 → 週次確定。 rate 83 → 80 tween (最終 16/20 = 80%)、 totalDays 10 → 16 tween (countup 最終)、 perfectCount 1 保持 (Dan のみ皆勤)、 attendance grid 完成。",
+  }, (p: PhaseBuilder) => p.activate("alice", "bob", "carol", "dan", "attendanceApp").tween("rate", 83, 80).tween("totalDays", 10, 16).badge("Fri"))
+  .phase("p4", {
+    duration: 2000,
+    title: "給与連携",
+    body: "月曜 payroll system に週次 rollup 送信、 皆勤 Dan にボーナス reflect。 rate 保持、 totalDays 保持、 perfectCount 1 保持、 payroll lane activate、 6 shape 全 active、 給与計算完遂。",
+  }, (p: PhaseBuilder) => p.activate("alice", "bob", "carol", "dan", "attendanceApp", "payroll").set("rate", 80).badge("給与"))
   .build();
 
 /**
@@ -3381,25 +3435,54 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
   .build();
 
 /**
- * 105. kpi-comparison = A/B team score 比較を 2-lane 分散 + kpiComparison readout 併存。 iteration 6 wave 3、 pattern taxonomy § 3 category split。
+ * 105. teamKpiComparison v2 = 2 チーム四半期対決 sprint velocity 比較シナリオ (Team A frontend vs Team B backend)、 shape-person × 2 + shape-mobile-device + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (期首計測 → 月次進捗 → 中間 review → 最終比較) + 4 readout (kpiComparison / gauge diff / countup total points / stat winner) が tween で visually 連続変化。 iteration 8 wave 8-C2 redesign。
  */
 export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
-  topic: "Team A vs Team B の score を 2-lane 分散 + kpiComparison readout 併存",
+  topic: "2 チーム四半期 sprint velocity 対決 = 4 phase (期首 → 月次 → 中間 → 最終) の flow を shape-* primitive 6 種で表現 + 4 readout (kpiComparison / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("teamA", { x: 0, width: 340 })
-  .lane("teamB", { x: 380, width: 340 })
-  .arraySignal("teams", [["Team A", 82], ["Team B", 65]] as unknown as (string | number)[])
-  .node("aCard", { lane: "teamA", stack: 0, kind: "card", title: "Team A", subtitle: "82 (winner, blue)" })
-  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "82 story points" })
-  .node("bCard", { lane: "teamB", stack: 0, kind: "card", title: "Team B", subtitle: "65 (orange)" })
-  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "65 story points" })
-  .edge("aCard", "bCard", { label: "diff 17", tone: "warning" })
-  .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
-  .phase("p", {
-    duration: 1200,
-    title: "A vs B compare",
-    body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
-  }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
+  .lane("teamA", { x: 0, width: 260 })
+  .lane("shared", { x: 280, width: 280 })
+  .lane("teamB", { x: 580, width: 260 })
+  .arraySignal("teams", [["Team A frontend", 82], ["Team B backend", 65]] as unknown as (string | number)[])
+  .state("scoreA", { initial: 0 })
+  .state("scoreB", { initial: 0 })
+  .state("diffPct", { initial: 0 })
+  .state("totalPoints", { initial: 0 })
+  .node("leadA", { lane: "teamA", stack: 0, kind: "shape-person", title: "Team A lead 田中様", eyebrow: "frontend", subtitle: "React / Next.js 開発" })
+  .node("appA", { lane: "teamA", stack: 1, kind: "shape-mobile-device", title: "Jira board A", eyebrow: "board", subtitle: "velocity {scoreA} pt/sprint" })
+  .node("jira", { lane: "shared", stack: 0, kind: "shape-server-rack", title: "Jira platform", eyebrow: "system", subtitle: "sprint velocity 集計" })
+  .node("dwh", { lane: "shared", stack: 1, kind: "shape-cylinder", title: "分析 DWH", eyebrow: "warehouse", subtitle: "四半期 rollup · 累計 {totalPoints} pt" })
+  .node("dashboard", { lane: "shared", stack: 2, kind: "shape-cloud", title: "Grafana board", eyebrow: "dashboard", subtitle: "team 対比表示" })
+  .node("leadB", { lane: "teamB", stack: 0, kind: "shape-person", title: "Team B lead 佐藤様", eyebrow: "backend", subtitle: "Go / gRPC 開発" })
+  .edge("leadA", "appA", { label: "operate", tone: "info" })
+  .edge("appA", "jira", { label: "sprint 記録", tone: "info" })
+  .edge("leadB", "jira", { label: "sprint 記録", tone: "info" })
+  .edge("jira", "dwh", { label: "rollup", tone: "success" })
+  .edge("dwh", "dashboard", { label: "対比表示", tone: "accent" })
+  .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "sprint velocity 対比" })
+  .readout.gauge("diffG", { source: "diffPct", min: 0, max: 50, color: "#22c55e", label: "A vs B 差 %" })
+  .readout.countup("totalCU", { source: "totalPoints", unit: " pt", label: "四半期累計 pt", decimals: 0 })
+  .readout.stat("winStat", { source: "scoreA", unit: " pt", caption: "Team A velocity", label: "A" })
+  .phase("p1", {
+    duration: 1800,
+    title: "期首計測",
+    body: "四半期開始、 前期実績値で計測。 scoreA 0 → 62 tween、 scoreB 0 → 55 tween (両 team 立ち上がり)、 diffPct 0 → 13 tween (A リード)、 totalPoints 0 → 117 tween。 team lane full active。",
+  }, (p: PhaseBuilder) => p.activate("leadA", "appA", "leadB").tween("scoreA", 0, 62).tween("scoreB", 0, 55).tween("diffPct", 0, 13).tween("totalPoints", 0, 117).badge("期首"))
+  .phase("p2", {
+    duration: 2200,
+    title: "月次進捗",
+    body: "1 ヶ月経過、 A は新機能着手で加速、 B は refactor 中心で保守。 scoreA 62 → 75 tween、 scoreB 55 → 60 tween、 diffPct 13 → 25 tween、 totalPoints 117 → 252 tween、 jira lane activate。",
+  }, (p: PhaseBuilder) => p.activate("leadA", "appA", "leadB", "jira").tween("scoreA", 62, 75).tween("scoreB", 55, 60).tween("diffPct", 13, 25).tween("totalPoints", 117, 252).badge("月次"))
+  .phase("p3", {
+    duration: 2200,
+    title: "中間 review",
+    body: "2 ヶ月折り返し、 dashboard で対比可視化。 scoreA 75 → 78 tween、 scoreB 60 → 62 tween、 diffPct 25 → 26 tween (A リード継続)、 totalPoints 252 → 392 tween、 dwh + dashboard lane activate。",
+  }, (p: PhaseBuilder) => p.activate("leadA", "appA", "leadB", "jira", "dwh", "dashboard").tween("scoreA", 75, 78).tween("scoreB", 60, 62).tween("diffPct", 25, 26).tween("totalPoints", 252, 392).badge("中間"))
+  .phase("p4", {
+    duration: 2000,
+    title: "最終比較",
+    body: "四半期終了、 Team A 82 pt vs Team B 65 pt で A 圧勝。 scoreA 78 → 82 tween (最終、 gauge 針最上位相当)、 scoreB 62 → 65 tween、 diffPct 26 → 26 tween、 totalPoints 392 → 539 tween (最終累計)、 6 shape 全 active、 kpiComparison が最終値表示。",
+  }, (p: PhaseBuilder) => p.activate("leadA", "appA", "leadB", "jira", "dwh", "dashboard").tween("scoreA", 78, 82).tween("scoreB", 62, 65).tween("totalPoints", 392, 539).badge("最終"))
   .build();
 
 /**
