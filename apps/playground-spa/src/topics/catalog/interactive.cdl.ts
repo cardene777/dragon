@@ -2979,3 +2979,32 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     body: "4-lane (Black back rank 8 / Black pawns rank 7 / White pawns rank 2 / White back rank 1) で 32 piece を rank 別分散、 各 rank 個別 card で piece 明示、 chessBoard readout も併存で 8×8 board 表示、 rank 分類と board 全体観の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("blackBackNode", "blackPawnNode", "whitePawnNode", "whiteBackNode").badge("chess"))
   .build();
+
+/**
+ * 100. kanban-board = sprint task board、 3-lane (Todo / In Progress / Done) state 別分散 + kanban readout 併存。
+ * cdl primitive iteration 6 の最初の readout、 layout diversity pattern taxonomy § 1 state-based split と直接共鳴。
+ */
+export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
+  topic: "sprint 6 task を 3-lane (Todo / In Progress / Done) 状態別分散、 kanban readout 併存",
+})
+  .lane("todo", { x: 0, width: 220 })
+  .lane("inprogress", { x: 260, width: 220 })
+  .lane("done", { x: 520, width: 220 })
+  .arraySignal("tasks", [
+    ["todo", "Design API schema", "high"],
+    ["todo", "Write docs", "low"],
+    ["inprogress", "Impl auth flow", "high"],
+    ["inprogress", "Migration script", "med"],
+    ["done", "Setup CI", "med"],
+    ["done", "Repo bootstrap", "low"],
+  ] as unknown as (string | number)[])
+  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2 tasks)", subtitle: "Design API schema (high) · Write docs (low)" })
+  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress (2)", subtitle: "Impl auth flow (high) · Migration script (med)" })
+  .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "Done (2)", subtitle: "Setup CI (med) · Repo bootstrap (low)" })
+  .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" })
+  .phase("p", {
+    duration: 1200,
+    title: "kanban state split",
+    body: "3-lane (Todo / In Progress / Done) で 6 sprint task を state 別分散、 各 column summary card + kanban readout 併存で 3 column task board 表示、 priority color (high red / med yellow / low gray) で task tag、 state-based split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("todoCard", "inprogressCard", "doneCard").badge("kanban"))
+  .build();
