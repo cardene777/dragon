@@ -3230,3 +3230,86 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
     body: "2-lane (Up 24 / Down 3) で review vote を category 分散、 各 category main + detail card + ratio edge、 ratingThumb readout も併存で ▲/▼ + colored bar 表示、 category split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").badge("rating"))
   .build();
+
+/**
+ * 109. org-chart-mini = 3-level org hierarchy を 3-lane (CEO / VP / IC) tree depth 別分散 + orgChartMini readout 併存。 iteration 6 wave 5、 pattern taxonomy § 8 tree depth split。
+ */
+export const startupOrgChart = diagram("interactive-startup-org", {
+  topic: "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存",
+})
+  .lane("ceo", { x: 0, width: 220 })
+  .lane("vp", { x: 260, width: 220 })
+  .lane("ic", { x: 520, width: 260 })
+  .arraySignal("org", [
+    ["Alice CEO", 0],
+    ["Bob VP Eng", 1],
+    ["Carol VP Sales", 1],
+    ["Dan Eng", 2],
+    ["Eve Eng", 2],
+    ["Frank Sales", 2],
+  ] as unknown as (string | number)[])
+  .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "level 0 (root)" })
+  .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "level 1" })
+  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol VP Sales", subtitle: "level 1" })
+  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "level 2 · under Bob" })
+  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "level 2 · under Bob" })
+  .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "level 2 · under Carol" })
+  .edge("ceoCard", "vpEng", { label: "reports", tone: "info" })
+  .edge("ceoCard", "vpSales", { label: "reports", tone: "info" })
+  .edge("vpEng", "icDan", { label: "manages", tone: "accent" })
+  .edge("vpEng", "icEve", { label: "manages", tone: "accent" })
+  .edge("vpSales", "icFrank", { label: "manages", tone: "accent" })
+  .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "Org hierarchy" })
+  .phase("p", {
+    duration: 1200,
+    title: "org tree depth split",
+    body: "3-lane (CEO 1 / VP 2 / IC 3) tree depth 別に 6 org member 分散、 5 report edge (2 CEO→VP info / 3 VP→IC accent)、 orgChartMini readout も併存で 3 level tree 表示、 tree depth split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank").badge("org"))
+  .build();
+
+/**
+ * 110. kpi-trend-tile = NPS current + delta + sparkline を 3-lane (Current / Delta / History) fan-out + kpiTrendTile readout 併存。 iteration 6 wave 5、 pattern taxonomy § 5 fan-out。
+ */
+export const npsTrendKpi = diagram("interactive-nps-trend", {
+  topic: "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存",
+})
+  .lane("cur", { x: 0, width: 220 })
+  .lane("delta", { x: 260, width: 220 })
+  .lane("hist", { x: 520, width: 260 })
+  .state("cur", { initial: 82 })
+  .state("prev", { initial: 75 })
+  .arraySignal("hist", [60, 65, 70, 75, 80, 82])
+  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current NPS", subtitle: "82 (今月)" })
+  .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "75 (先月)" })
+  .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "▲ Delta", subtitle: "+7 (+9.3%) · green" })
+  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6 month history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
+  .edge("curCard", "prevCard", { label: "compare", tone: "info" })
+  .edge("curCard", "histCard", { label: "spark", tone: "success" })
+  .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" })
+  .phase("p", {
+    duration: 1200,
+    title: "KPI fan-out",
+    body: "3-lane (Current / Delta / History) で 1 KPI を 3 view に fan-out、 2 edge (compare info / spark success)、 kpiTrendTile readout も併存で 1 tile に current + delta arrow + sparkline を集約、 fan-out pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard", "histCard").badge("kpi trend"))
+  .build();
+
+/**
+ * 111. quick-poll-emoji = 3 emoji reaction poll を 3-lane 分散 + quickPollEmoji readout 併存。 iteration 6 wave 5、 pattern taxonomy § 3 category split。
+ */
+export const postReactionPoll = diagram("interactive-post-reaction-poll", {
+  topic: "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存",
+})
+  .lane("thumbs", { x: 0, width: 240 })
+  .lane("heart", { x: 280, width: 240 })
+  .lane("party", { x: 560, width: 240 })
+  .arraySignal("votes", [["👍", 42], ["❤️", 28], ["🎉", 15]] as unknown as (string | number)[])
+  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs (winner)", subtitle: "42 votes · highlight border" })
+  .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "28 votes" })
+  .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "15 votes" })
+  .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
+  .phase("p", {
+    duration: 1200,
+    title: "poll category split",
+    body: "3-lane (Thumbs / Heart / Party) で 3 emoji vote を category 別分散、 winner (thumbs 42) に highlight border、 quickPollEmoji readout も併存で pill 表示、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").badge("poll"))
+  .build();
