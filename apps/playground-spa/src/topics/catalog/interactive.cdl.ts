@@ -186,43 +186,69 @@ export const stepperControl = diagram("interactive-stepper", {
  * 9. number → sparkline = number 入力の履歴を line chart で。
  */
 export const numberSparkline = diagram("interactive-number-spark", {
-  topic: "number 入力の変化を sparkline で履歴表示、 直近 15 値を折れ線化",
+  topic: "number sparkline を 2-lane (Current value / History sparkline) 分散 + push edge、 現在値と履歴の関係を可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("current", { x: 0, width: 220 })
+  .lane("history", { x: 260, width: 320 })
   .input.number("val", { defaultValue: 20, label: "Value" })
   .state("val", { initial: 20 })
-  .node("m", { lane: "l", stack: 0, kind: "card", title: "Current", subtitle: "val = {val}" })
-  .readout.sparkline("valHist", { source: "val", history: 15, color: "#e57373", label: "History" })
+  .node("currentNode", { lane: "current", stack: 0, kind: "card", title: "Current", subtitle: "val = {val}" })
+  .node("historyNode", { lane: "history", stack: 0, kind: "card", title: "History (15)", subtitle: "sparkline で直近 15 push 履歴" })
+  .edge("currentNode", "historyNode", { label: "push", tone: "info" })
+  .readout.sparkline("valHist", { source: "val", history: 15, color: "#e57373", label: "Sparkline history" })
   .readout.stat("valStat", { source: "val", label: "Latest", caption: "input 履歴の最新" })
-  .phase("p", { duration: 1500, title: "number 変更で sparkline に履歴 push", body: "number 入力を変えると sparkline が直近 15 変化を保持して line 化、 stat が最新値。" }, (p: PhaseBuilder) => p.activate("m").badge("sparkline"))
+  .phase("p", {
+    duration: 1500,
+    title: "current → history push",
+    body: "2-lane (Current value / History sparkline 15) で number sparkline を分散、 current → history push edge (info tone) で履歴伝搬明示、 number 入力変化で sparkline に直近 15 履歴 push、 stat が最新値。",
+  }, (p: PhaseBuilder) => p.activate("currentNode", "historyNode").badge("sparkline"))
   .build();
 
 /**
  * 9b. radio + stat = 選択肢と現在値。 radio で option 切替、 stat で文字列表示。
  */
 export const radioSelect = diagram("interactive-radio-select", {
-  topic: "radio で排他選択、 stat readout で選択中の option 表示",
+  topic: "radio 3 option (low/mid/high) を 3-lane 排他分散 + current indicator、 現在選択 mode 位置を明示",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("low", { x: 0, width: 200 })
+  .lane("mid", { x: 240, width: 200 })
+  .lane("high", { x: 480, width: 200 })
   .input.radio("mode", { options: ["low", "mid", "high"], defaultValue: "mid", label: "Mode" })
   .state("mode", { initial: "mid" })
-  .node("m", { lane: "l", stack: 0, kind: "card", title: "Mode", subtitle: "mode = {mode}" })
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "Low mode", subtitle: "option: low" })
+  .node("midNode", { lane: "mid", stack: 0, kind: "card", title: "Mid mode", subtitle: "option: mid (default)" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High mode", subtitle: "option: high" })
+  .node("currentMode", { lane: "mid", stack: 1, kind: "card", title: "◆ Current", subtitle: "mode = {mode}" })
   .readout.stat("modeStat", { source: "mode", label: "Current", caption: "選択中" })
-  .phase("p", { duration: 1500, title: "radio 選択肢を切替", body: "radio button を click すると mode signal が更新、 subtitle と stat readout が追随。" }, (p: PhaseBuilder) => p.activate("m").badge("radio"))
+  .phase("p", {
+    duration: 1500,
+    title: "radio option split",
+    body: "3-lane (Low / Mid / High) で radio 3 option を排他分散、 各 option 個別 card + current indicator (default=mid lane)、 radio click で mode signal 更新 → subtitle と stat readout 追随、 排他選択構造を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentMode").badge("radio"))
   .build();
 
 /**
  * 10. color picker で node stroke を変える (theme 実験)。
  */
 export const colorPickerTheme = diagram("interactive-color-theme", {
-  topic: "color picker で hex color 選択、 node の視覚に反映 (stat で hex 表示)",
+  topic: "color picker pipeline を 3-lane (Picker input / Swatch preview / Hex stat) + 2 edge、 hex signal 生成 dataflow を可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("picker", { x: 0, width: 220 })
+  .lane("swatch", { x: 260, width: 220 })
+  .lane("stat", { x: 520, width: 220 })
   .input.color("accent", { defaultValue: "#2d6a8f", label: "Accent" })
   .state("accent", { initial: "#2d6a8f" })
-  .node("swatch", { lane: "l", stack: 0, kind: "card", title: "Swatch", subtitle: "hex: {accent}" })
+  .node("pickerNode", { lane: "picker", stack: 0, kind: "card", title: "Color picker", subtitle: "input.color widget · default #2d6a8f" })
+  .node("swatch", { lane: "swatch", stack: 0, kind: "card", title: "Swatch preview", subtitle: "hex: {accent}" })
+  .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Hex stat", subtitle: "readout.stat で hex 表示" })
+  .edge("pickerNode", "swatch", { label: "select", tone: "info" })
+  .edge("swatch", "statNode", { label: "display", tone: "success" })
   .readout.stat("hexReadout", { source: "accent", label: "Selected", caption: "hex color" })
-  .phase("p", { duration: 1500, title: "color picker → hex signal", body: "color picker で色を選ぶと signal に hex が保持、 subtitle と stat readout に表示。" }, (p: PhaseBuilder) => p.activate("swatch").badge("color"))
+  .phase("p", {
+    duration: 1500,
+    title: "color pipeline",
+    body: "3-lane (Picker input / Swatch preview / Hex stat) で color 生成 pipeline を分散、 2 edge (select info tone / display success tone) で dataflow 明示、 color picker で hex 選択 → swatch subtitle + stat readout が追随、 color 選択の 3 step 経路を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("pickerNode", "swatch", "statNode").badge("color"))
   .build();
 
 /**
