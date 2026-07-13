@@ -28,19 +28,27 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
  * 2. formula → text bind (formula primitive + reactive computed)。
  */
 export const formulaTextBind = diagram("interactive-formula-text", {
-  topic: "formula (algebraic mini-DSL) で derived value を宣言、 number 入力変化で自動再計算",
+  topic: "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("input", { x: 0, width: 200 })
+  .lane("doubled", { x: 240, width: 200 })
+  .lane("halved", { x: 480, width: 200 })
   .input.number("input", { defaultValue: 10, label: "Input" })
   .formula("doubled", "input * 2")
   .formula("halved", "input / 2")
   .state("input", { initial: 10 })
   .state("doubled", { initial: 20 })
   .state("halved", { initial: 5 })
-  .node("in", { lane: "l", stack: 0, kind: "card", title: "Input", subtitle: "value: {input}" })
-  .node("out1", { lane: "l", stack: 1, kind: "card", title: "Doubled", subtitle: "input * 2 = {doubled}" })
-  .node("out2", { lane: "l", stack: 2, kind: "card", title: "Halved", subtitle: "input / 2 = {halved}" })
-  .phase("p", { duration: 1500, title: "formula は signal 変化で自動再計算", body: "input を変えると formula 'doubled' / 'halved' が computed として reactive に再評価、 node subtitle {doubled} / {halved} も追随。" }, (p: PhaseBuilder) => p.activate("in", "out1", "out2").badge("formula bind"))
+  .node("in", { lane: "input", stack: 0, kind: "card", title: "Input", subtitle: "value = {input}" })
+  .node("out1", { lane: "doubled", stack: 0, kind: "card", title: "Doubled", subtitle: "input * 2 = {doubled}" })
+  .node("out2", { lane: "halved", stack: 0, kind: "card", title: "Halved", subtitle: "input / 2 = {halved}" })
+  .edge("in", "out1", { label: "× 2", tone: "success" })
+  .edge("in", "out2", { label: "÷ 2", tone: "info" })
+  .phase("p", {
+    duration: 1500,
+    title: "formula dataflow",
+    body: "3-lane (Input / Doubled / Halved) で formula chain を分散、 2 edge (× 2 success / ÷ 2 info) で dependency 明示、 input 変化で 2 formula reactive に再計算、 node subtitle {doubled} / {halved} 追随、 formula 依存の 2D dataflow view。",
+  }, (p: PhaseBuilder) => p.activate("in", "out1", "out2").badge("formula bind"))
   .build();
 
 /**
@@ -153,15 +161,25 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
  * 8. stepper で phase 相当の値を細かく調整、 bar readout に反映。
  */
 export const stepperControl = diagram("interactive-stepper", {
-  topic: "stepper で integer 値の細かい増減、 bar readout で可視化",
+  topic: "stepper control を 3-lane (Control input / Bar visualization / Stat readout) 分散 + 2 fan-out edge、 signal → 2 readout の 1:N 経路可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("ctrl", { x: 0, width: 200 })
+  .lane("bar", { x: 240, width: 220 })
+  .lane("stat", { x: 480, width: 200 })
   .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "Count" })
   .state("count", { initial: 3 })
-  .node("n", { lane: "l", stack: 0, kind: "card", title: "Counter", subtitle: "count = {count}" })
-  .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "Progress" })
+  .node("ctrlNode", { lane: "ctrl", stack: 0, kind: "card", title: "Stepper control", subtitle: "count = {count} (0-10 range)" })
+  .node("barNode", { lane: "bar", stack: 0, kind: "card", title: "Bar visual", subtitle: "count 追随 progress bar (readout.bar)" })
+  .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Stat readout", subtitle: "count 追随 number + unit (readout.stat)" })
+  .edge("ctrlNode", "barNode", { label: "→ bar", tone: "info" })
+  .edge("ctrlNode", "statNode", { label: "→ stat", tone: "success" })
+  .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "Progress bar" })
   .readout.stat("countStat", { source: "count", label: "Total", unit: " items" })
-  .phase("p", { duration: 1500, title: "+/- ボタンで 1 ずつ増減", body: "stepper の +/- で integer 値を細かく調整、 bar と stat の 2 readout に同時反映。" }, (p: PhaseBuilder) => p.activate("n").badge("stepper"))
+  .phase("p", {
+    duration: 1500,
+    title: "control → visual fan-out",
+    body: "3-lane (Control / Bar / Stat) で stepper と 2 readout を分散、 2 fan-out edge (→ bar info / → stat success) で 1 signal → N readout の bind 関係明示、 stepper +/- で count 変化 → bar + stat が同時追随、 signal 分岐 dataflow を可視化。",
+  }, (p: PhaseBuilder) => p.activate("ctrlNode", "barNode", "statNode").badge("stepper"))
   .build();
 
 /**
@@ -525,22 +543,33 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
  *     readout.arrayBar で histogram、 readout.arrayList で bullet list 表示。
  */
 export const arraySignalHistogram = diagram("interactive-array-signal", {
-  topic: "arraySignal([12,34,20,45,28]) を bar histogram + bullet list で見せる、 {xs.sum} / {xs.avg} も node subtitle 化",
+  topic: "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("agg", { x: 0, width: 240 })
+  .lane("items", { x: 300, width: 260 })
   .arraySignal("xs", [12, 34, 20, 45, 28])
   .input.slider("bump", { min: 0, max: 50, defaultValue: 20, label: "First bar" })
   .node("summary", {
-    lane: "l",
+    lane: "agg",
     stack: 0,
     kind: "card",
-    title: "Array signal",
+    title: "Array aggregate",
     subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
   })
-  .readout.arrayBar("hist", { source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars" })
-  .readout.arrayList("items", { source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items" })
+  .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "first bar override = {bump}" })
+  .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "xs[0] = 12" })
+  .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "xs[1] = 34" })
+  .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "xs[2] = 20" })
+  .node("i3", { lane: "items", stack: 3, kind: "card", title: "#3", subtitle: "xs[3] = 45 (max)" })
+  .node("i4", { lane: "items", stack: 4, kind: "card", title: "#4", subtitle: "xs[4] = 28" })
+  .readout.arrayBar("hist", { source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars (histogram)" })
+  .readout.arrayList("items", { source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items (bullet list)" })
   .readout.stat("first", { source: "bump", label: "Bump" })
-  .phase("p", { duration: 1200, title: "array を 1 signal で持つ", body: "arraySignal(id, initial) で JSON 格納、 template で `{sig[0]}` / `{sig.length}` / `{sig.sum}` / `{sig.avg}` / `{sig.max}` access。" }, (p: PhaseBuilder) => p.activate("summary").badge("array signal"))
+  .phase("p", {
+    duration: 1200,
+    title: "array aggregate / element split",
+    body: "2-lane (Aggregate stat + Bump control / Individual items 5 個) で arraySignal を集約と要素別に分散、 aggregate lane に summary + bump control、 items lane に 5 個別 element card、 arrayBar + arrayList readout も併存で histogram + bullet 表示、 集約と要素の 2 view。",
+  }, (p: PhaseBuilder) => p.activate("summary", "bumpNode", "i0", "i1", "i2", "i3", "i4").badge("array signal"))
   .build();
 
 /**
