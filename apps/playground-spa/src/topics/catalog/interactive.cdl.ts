@@ -489,24 +489,31 @@ export const eventVariety = diagram("interactive-event-variety", {
  *     signal で個別 cell の hover 状態を bind。
  */
 export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
-  topic: "gridNodes(3, 4) で 3 行 4 列の cell を宣言的生成、 hover cell の座標 (r, c) を signal で追跡",
+  topic: "gridNodes(3, 4) 12 cell を 4-lane (Col 0-3) 列別分散、 gridNodes template で lane 動的割当、 各 lane 3 cell (Row 0-2) stack",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("col0", { x: 0, width: 150 })
+  .lane("col1", { x: 170, width: 150 })
+  .lane("col2", { x: 340, width: 150 })
+  .lane("col3", { x: 510, width: 150 })
   .input.stepper("r", { min: 0, max: 2, defaultValue: 0, label: "Row" })
   .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "Col" })
   .state("r", { initial: 0 })
   .state("c", { initial: 0 })
-  .gridNodes(3, 4, (r, c, i) => ({
+  .gridNodes(3, 4, (r, c) => ({
     id: `cell-{r}-{c}`,
-    lane: "l",
-    stack: i,
+    lane: `col{c}`,
+    stack: r,
     kind: "card" as const,
     title: `r{r} c{c}`,
-    subtitle: `#${i + 1}`,
+    subtitle: `col{c} lane · row{r} stack`,
   }))
   .readout.stat("hover", { source: "r", label: "Row" })
   .readout.stat("hoverC", { source: "c", label: "Col" })
-  .phase("p", { duration: 1200, title: "3×4 grid、 12 cell 一括宣言", body: "gridNodes(3,4,tpl) で 12 cell を生成、 template `{r}` / `{c}` / `{i}` で id と subtitle 化。" }, (p: PhaseBuilder) => p.activate(
+  .phase("p", {
+    duration: 1200,
+    title: "grid split by column",
+    body: "4-lane (Col 0 / Col 1 / Col 2 / Col 3) で 12 cell を列別分散、 gridNodes(3,4,tpl) の template で lane を `col{c}` に動的割当、 各 lane に 3 row (stack 0-2)、 3×4 matrix を実 2D 配置 (col → lane、 row → stack) で明示化、 stat readout で row/col 座標追跡。",
+  }, (p: PhaseBuilder) => p.activate(
     "cell-0-0", "cell-0-1", "cell-0-2", "cell-0-3",
     "cell-1-0", "cell-1-1", "cell-1-2", "cell-1-3",
     "cell-2-0", "cell-2-1", "cell-2-2", "cell-2-3",
@@ -1425,14 +1432,23 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
  * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
  */
 export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
-  topic: "build status を traffic light で表示、 dropdown で red (failed) / yellow (running) / green (passed) 選択",
+  topic: "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("red", { x: 0, width: 200 })
+  .lane("yellow", { x: 240, width: 200 })
+  .lane("green", { x: 480, width: 200 })
   .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
   .state("status", { initial: "green" })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "CI build", subtitle: "current: {status}" })
-  .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status" })
-  .phase("p", { duration: 1200, title: "traffic light", body: "dropdown で red/yellow/green 選択 → 該当色 dot に glow filter、 CI/deploy status の定番 3-color indicator。" }, (p: PhaseBuilder) => p.activate("card").badge("status"))
+  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "build broken · fix required" })
+  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "build in progress · waiting" })
+  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "build ok · ready to deploy" })
+  .node("currentCI", { lane: "green", stack: 1, kind: "card", title: "◆ Current CI", subtitle: "status: {status}" })
+  .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
+  .phase("p", {
+    duration: 1200,
+    title: "status split",
+    body: "3-lane (Red failed / Yellow running / Green passed) で build 3 state を分散、 各 state 個別 card + 現在 CI の位置 (default=green lane) を currentCI card で明示、 trafficLight readout も併存で glow filter 表示、 status 分類と現在 state の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI").badge("status"))
   .build();
 
 /**
@@ -1633,14 +1649,23 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
  * 66. circular-gauge = engine RPM を 270° dial で表示、 slider で 0-8000 rpm 制御。
  */
 export const engineTachometer = diagram("interactive-engine-tachometer", {
-  topic: "engine RPM を 270° circular gauge で表示、 slider で 0-8000 rpm 制御 → needle + arc 追随",
+  topic: "engine RPM を 3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) 領域別分散 + current rpm indicator、 circularGauge readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("idle", { x: 0, width: 200 })
+  .lane("cruise", { x: 240, width: 200 })
+  .lane("redline", { x: 480, width: 200 })
   .input.slider("rpm", { min: 0, max: 8000, defaultValue: 3500, label: "RPM" })
   .state("rpm", { initial: 3500 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Engine tach", subtitle: "current: {rpm} rpm" })
-  .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer" })
-  .phase("p", { duration: 1200, title: "270° dial", body: "slider で rpm 変化 → 270° arc + needle + center value + unit の全要素が同時追随、 speedometer / tachometer 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("tachometer"))
+  .node("idleNode", { lane: "idle", stack: 0, kind: "card", title: "Idle range", subtitle: "0-2000 rpm (green)" })
+  .node("cruiseNode", { lane: "cruise", stack: 0, kind: "card", title: "Cruise range", subtitle: "2000-5000 rpm (yellow) · normal driving" })
+  .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline range", subtitle: "5000-8000 rpm (red) · caution" })
+  .node("currentRpm", { lane: "cruise", stack: 1, kind: "card", title: "◆ Current", subtitle: "{rpm} rpm (default 3500 = cruise)" })
+  .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer (270° dial)" })
+  .phase("p", {
+    duration: 1200,
+    title: "rpm range map",
+    body: "3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) で rpm 範囲を領域別分散、 各 range 個別 card + 現在 rpm indicator (default 3500 = cruise lane)、 circularGauge readout も併存で 270° dial 表示、 range 分類と needle 表示の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("idleNode", "cruiseNode", "redlineNode", "currentRpm").badge("tachometer"))
   .build();
 
 /**
