@@ -9,7 +9,7 @@
 
 import { chromium } from "playwright";
 
-const URL = "http://localhost:4323/catalog/interactive";
+const URL = process.env.CDL_PRECISION_URL || "http://localhost:4323/catalog/interactive";
 
 const setNativeExpr = (val) => `((el) => {
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -470,7 +470,7 @@ const cases = [
     label: "A/B test: donut split 2 segment + donut winner 2 segment = 4 SVG path",
     setup: async (page) => { await page.waitForTimeout(200); },
     assert: async (page) => {
-      const splitPaths = await page.$$eval('[data-cdl-readout="split"] svg path', (els) => els.length);
+      const splitPaths = await page.$$eval('[data-cdl-readout="splitDonut"] svg path', (els) => els.length);
       const winnerPaths = await page.$$eval('[data-cdl-readout="winner"] svg path', (els) => els.length);
       return { actual: splitPaths + winnerPaths, expected: 4 };
     },

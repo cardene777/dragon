@@ -586,7 +586,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
  *     renderOffsetX/Y で見た目上の円周配置に。
  */
 export const radialHubAndSpoke = diagram("interactive-radial-hub", {
-  topic: "radialNodes(6, 90) で 6 spoke を hub の周りに、 renderOffsetX/Y で実際に円周上に配置",
+  topic: "radialNodes(6, 90) で 6 spoke + hub → 6 spoke edge の 真の hub-and-spoke network diagram",
 })
   .lane("l", { x: 0, width: 480 })
   .node("hub", { lane: "l", stack: 0, kind: "card", title: "Hub", subtitle: "center" })
@@ -600,10 +600,16 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
     renderOffsetX: ox,
     renderOffsetY: oy - 40,
   }))
+  .edge("hub", "spoke-0", { label: "0°", tone: "info" })
+  .edge("hub", "spoke-1", { label: "60°", tone: "info" })
+  .edge("hub", "spoke-2", { label: "120°", tone: "info" })
+  .edge("hub", "spoke-3", { label: "180°", tone: "info" })
+  .edge("hub", "spoke-4", { label: "240°", tone: "info" })
+  .edge("hub", "spoke-5", { label: "300°", tone: "info" })
   .phase("p", {
     duration: 1200,
     title: "hub-and-spoke 6",
-    body: "radialNodes(6, 90, tpl) で hub 周りに 6 spoke を宣言、 renderOffsetX/Y で円周上に見せる。",
+    body: "radialNodes(6, 90) + hub → 6 spoke edge の 真の network diagram、 renderOffsetX/Y で spoke を円周上に配置、 6 edge で hub 中心の star topology を表現。",
   }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3", "spoke-4", "spoke-5").badge("hub-and-spoke"))
   .build();
 
@@ -825,7 +831,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "treeNodes(3, 2) で 7 node の完全 2 分木を配置、 各 node に renderOffsetX/Y で正しい tree layout",
+  topic: "treeNodes(3, 2) で 7 node + 6 edge (parent → 2 children × 3 level) の 真の 2 分木 tree diagram",
 })
   .lane("l", { x: 0, width: 480 })
   .treeNodes(3, 2, 70, 80, (level, pos, i, ox, oy) => ({
@@ -838,10 +844,17 @@ export const decisionTree = diagram("interactive-decision-tree", {
     renderOffsetX: ox,
     renderOffsetY: oy - 100,
   }))
+  // completely-binary tree: 0 -> 1,2 / 1 -> 3,4 / 2 -> 5,6
+  .edge("node-0", "node-1", { label: "yes", tone: "success" })
+  .edge("node-0", "node-2", { label: "no", tone: "error" })
+  .edge("node-1", "node-3", { label: "yes", tone: "success" })
+  .edge("node-1", "node-4", { label: "no", tone: "error" })
+  .edge("node-2", "node-5", { label: "yes", tone: "success" })
+  .edge("node-2", "node-6", { label: "no", tone: "error" })
   .phase("p", {
     duration: 1200,
     title: "decision tree",
-    body: "treeNodes(3, 2, 70, 80, tpl) で 7 node の完全 2 分木、 renderOffsetX/Y で正しい 2D 位置に。",
+    body: "treeNodes(3, 2) で 7 node + 6 edge の完全 2 分木、 parent → 2 children × 3 level を yes/no tone (success/error) 装飾で分岐を表現。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
   .build();
 
@@ -969,18 +982,46 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
  * 41. domain A/B test result = 2 variant の conversion rate + confidence を並列表示。
  */
 export const abTestResult = diagram("interactive-ab-test", {
-  topic: "A/B test conversion rate を 2 variant の stacked bar + donut で可視化、 lift 計算 formula",
+  topic: "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("varA", { x: 0, width: 200 })
+  .lane("split", { x: 260, width: 200 })
+  .lane("varB", { x: 520, width: 200 })
   .arraySignal("convA", [40, 45, 42, 48, 44])
   .arraySignal("convB", [50, 55, 58, 62, 60])
-  .arraySignal("split", [50, 50])
+  .arraySignal("splitData", [50, 50])
   .arraySignal("results", [58, 42])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "A/B test", subtitle: "A avg={convA.avg}% · B avg={convB.avg}% · lift = ({convB.avg}-{convA.avg})%" })
-  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "Daily conv %" })
-  .readout.donut("split", { source: "split", innerRatio: 0.5, viewW: 120, viewH: 120, label: "Traffic split" })
-  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share" })
-  .phase("p", { duration: 1200, title: "A/B test", body: "5 日分の conversion rate を A/B 並列 bar、 traffic split 50/50 と winner share (58%/42%) を 2 donut で並列表示。" }, (p: PhaseBuilder) => p.activate("card").badge("A/B test"))
+  .node("controlCard", {
+    lane: "varA",
+    stack: 0,
+    kind: "card",
+    title: "Variant A (Control)",
+    subtitle: "avg {convA.avg}%",
+  })
+  .node("splitCard", {
+    lane: "split",
+    stack: 0,
+    kind: "card",
+    title: "Traffic split",
+    subtitle: "50/50 randomize",
+  })
+  .node("treatmentCard", {
+    lane: "varB",
+    stack: 0,
+    kind: "card",
+    title: "Variant B (Treatment)",
+    subtitle: "avg {convB.avg}%",
+  })
+  .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
+  .edge("splitCard", "treatmentCard", { label: "50%", sub: "treatment", tone: "success" })
+  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "Daily conv % (A vs B)" })
+  .readout.donut("splitDonut", { source: "splitData", innerRatio: 0.5, viewW: 120, viewH: 120, label: "Traffic split" })
+  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share (B=green)" })
+  .phase("p", {
+    duration: 1200,
+    title: "A/B test",
+    body: "3-lane (Variant A / Split / Variant B) + Split → 各 variant への 50/50 edge、 experiment 構造を node network で表現、 stackedBar + 2 donut で結果集約。",
+  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").badge("A/B test"))
   .build();
 
 /**
