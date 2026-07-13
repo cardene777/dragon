@@ -245,6 +245,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   skillRadar: "実例: エンジニア半年 skill 成長 review (初回 → 学習 → 中間 → 成長確認)",
   projectGantt: "実例: モバイル新機能 10 日 sprint (Design → Impl → Test → Ship)",
   sprintKanbanBoard: "実例: 2 週 sprint daily stand-up (start → 3 日目 → 7 日目 → 完了)",
+  userAvatar: "実例: SNS 新規 onboarding avatar (作成 → デフォルト → upload → 反映)",
+  teamAttendanceGrid: "実例: リモートチーム週次出勤 (月曜 → 中間 → 週末 → 給与連携)",
+  teamKpiComparison: "実例: 2 チーム四半期 velocity 対決 (期首 → 月次 → 中間 → 最終)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
