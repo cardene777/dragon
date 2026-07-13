@@ -702,26 +702,28 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
  * 33. progress-group readout = 4 task の progress を label + bar list で表示。
  */
 export const taskProgressGroup = diagram("interactive-progress-group", {
-  topic: "arraySignal 2 種 (values + labels) を progress-group で task list として並列表示",
+  topic: "4 task の progress を 2-lane (Advanced ≥50% / Behind <50%) に分散、 各 task 個別 card + progressGroup readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("advanced", { x: 0, width: 240 })
+  .lane("behind", { x: 300, width: 240 })
   .arraySignal("progress", [40, 75, 20, 90])
   .arraySignal("names", ["Design", "Impl", "Test", "Docs"])
-  .node("card", {
-    lane: "l",
-    stack: 0,
-    kind: "card",
-    title: "Sprint progress",
-    subtitle: "avg={progress.avg}% · max={progress.max}%",
-  })
+  .node("implNode", { lane: "advanced", stack: 0, kind: "card", title: "Impl", subtitle: "75% (advanced)" })
+  .node("docsNode", { lane: "advanced", stack: 1, kind: "card", title: "Docs", subtitle: "90% (advanced)" })
+  .node("designNode", { lane: "behind", stack: 0, kind: "card", title: "Design", subtitle: "40% (behind)" })
+  .node("testNode", { lane: "behind", stack: 1, kind: "card", title: "Test", subtitle: "20% (behind)" })
   .readout.progressGroup("tasks", {
     source: "progress",
     max: 100,
     labelSource: "names",
     color: "#2563eb",
-    label: "Tasks",
+    label: "Tasks (progressGroup)",
   })
-  .phase("p", { duration: 1200, title: "task list", body: "progressGroup で per-row progress bar + label 表示、 2 arraySignal (value / name) を combined 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("task list"))
+  .phase("p", {
+    duration: 1200,
+    title: "sprint split",
+    body: "2-lane (Advanced ≥50% / Behind <50%) で 4 task を進捗率別に分散、 各 task 個別 card で progress % 明示、 progressGroup readout も併存で per-row bar 表示、 sprint 進捗を lane 分割で visual triage。",
+  }, (p: PhaseBuilder) => p.activate("implNode", "docsNode", "designNode", "testNode").badge("task list"))
   .build();
 
 /**
@@ -1096,17 +1098,27 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
  * 44. kpi-card = revenue の現在値 + 直前値との delta + 6 point history sparkline を composite。
  */
 export const revenueKpiCard = diagram("interactive-revenue-kpi", {
-  topic: "revenue KPI を slider で操作、 kpi-card で 現在値 + 前月比 + 6 month sparkline を 1 tile 表示",
+  topic: "revenue KPI を 3-lane (Previous / Current / Trend) 分散 + prev→current delta edge、 kpiCard readout 併存",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("prevLane", { x: 0, width: 180 })
+  .lane("currLane", { x: 220, width: 200 })
+  .lane("trendLane", { x: 460, width: 220 })
   .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" })
   .state("current", { initial: 180 })
   .state("prev", { initial: 150 })
   .arraySignal("history", [120, 135, 148, 152, 165, 170])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Revenue KPI", subtitle: "current {current}k · previous {prev}k" })
-  .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue" })
-  .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev" })
-  .phase("p", { duration: 1200, title: "KPI card", body: "slider で current 変化 → kpi-card の 数字 + delta arrow + sparkline が同時追随、 前月比 % change 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("KPI card"))
+  .node("prevNode", { lane: "prevLane", stack: 0, kind: "card", title: "Previous", subtitle: "{prev}k (baseline)" })
+  .node("currNode", { lane: "currLane", stack: 0, kind: "card", title: "◆ Current", subtitle: "{current}k (slider driven)" })
+  .node("trendNode", { lane: "trendLane", stack: 0, kind: "card", title: "Trend history", subtitle: "6 month sparkline (120-170k)" })
+  .edge("prevNode", "currNode", { label: "delta = current - prev", tone: "success" })
+  .edge("currNode", "trendNode", { label: "sparkline last", tone: "info" })
+  .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" })
+  .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev stat" })
+  .phase("p", {
+    duration: 1200,
+    title: "KPI delta flow",
+    body: "3-lane (Previous / Current / Trend) で revenue KPI 3 component を分散、 prev→current delta edge (success tone) + current→trend sparkline edge (info tone)、 slider 操作で current lane が変化、 kpiCard readout も併存で composite 1 tile 表示。",
+  }, (p: PhaseBuilder) => p.activate("prevNode", "currNode", "trendNode").badge("KPI card"))
   .build();
 
 /**
@@ -1970,18 +1982,39 @@ export const searchResults = diagram("interactive-search-results", {
  * 88. roadmap = 2026 year quarterly plan Q1-Q4。
  */
 export const yearRoadmap = diagram("interactive-year-roadmap", {
-  topic: "2026 year quarterly roadmap を Q1-Q4 4 column で task list 表示",
+  topic: "2026 yearly roadmap を 4-lane (Q1-Q4) 分散、 各 quarter items を stack 分散、 quarterly 遷移 3 edge、 roadmap readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("q1", { x: 0, width: 150 })
+  .lane("q2", { x: 170, width: 150 })
+  .lane("q3", { x: 340, width: 150 })
+  .lane("q4", { x: 510, width: 150 })
   .arraySignal("plan", [
     ["Q1", ["Design system", "MVP feature A"]],
     ["Q2", ["Beta launch", "Feature B", "Feedback loop"]],
     ["Q3", ["Scale infra", "Enterprise deals"]],
     ["Q4", ["Public GA", "Series A"]],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "2026 roadmap", subtitle: "Q1-Q4 planning" })
-  .readout.roadmap("rm", { source: "plan", viewW: 400, viewH: 200, label: "Roadmap" })
-  .phase("p", { duration: 1200, title: "quarterly roadmap", body: "[[quarter, [items]], ...] を 4 column (Q1 blue / Q2 green / Q3 yellow / Q4 purple) で quarterly task list 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("plan"))
+  .node("q1Head", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "Design + MVP" })
+  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design system", subtitle: "foundation" })
+  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature A", subtitle: "prototype" })
+  .node("q2Head", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "Beta + growth" })
+  .node("q2Item1", { lane: "q2", stack: 1, kind: "card", title: "Beta launch", subtitle: "public beta" })
+  .node("q2Item2", { lane: "q2", stack: 2, kind: "card", title: "Feature B", subtitle: "beta scope" })
+  .node("q3Head", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "Scale + enterprise" })
+  .node("q3Item1", { lane: "q3", stack: 1, kind: "card", title: "Scale infra", subtitle: "capacity" })
+  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise deals", subtitle: "B2B revenue" })
+  .node("q4Head", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "GA + funding" })
+  .node("q4Item1", { lane: "q4", stack: 1, kind: "card", title: "Public GA", subtitle: "general available" })
+  .node("q4Item2", { lane: "q4", stack: 2, kind: "card", title: "Series A", subtitle: "growth capital" })
+  .edge("q1Head", "q2Head", { label: "handover", tone: "info" })
+  .edge("q2Head", "q3Head", { label: "scale", tone: "accent" })
+  .edge("q3Head", "q4Head", { label: "GA", tone: "success" })
+  .readout.roadmap("rm", { source: "plan", viewW: 400, viewH: 200, label: "Roadmap (4 column list)" })
+  .phase("p", {
+    duration: 1200,
+    title: "yearly roadmap",
+    body: "4-lane (Q1-Q4) で 12 item を quarterly 分散、 各 quarter に header + 2 item stack、 3 edge で quarterly handover 遷移 (info→accent→success で年後半に向け tone escalate)、 roadmap readout も併存で 4 column 一覧、 quarterly plan の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("q1Head", "q2Head", "q3Head", "q4Head").badge("plan"))
   .build();
 
 /**
