@@ -1158,13 +1158,22 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
  * 46. Venn diagram = 2 set (Users / Payers) の intersection を可視化。
  */
 export const userVenn = diagram("interactive-user-venn", {
-  topic: "2 set (Users 100 / Payers 40 / intersection 25) の Venn diagram、 intersection ratio で 円間隔調整",
+  topic: "2 set Venn を 3-lane (Users only / Both / Payers only) 領域別分散、 各 region 個別 card、 venn readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("usersOnly", { x: 0, width: 220 })
+  .lane("both", { x: 260, width: 200 })
+  .lane("payersOnly", { x: 500, width: 200 })
   .arraySignal("sets", [100, 40, 25])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Overlap", subtitle: "A=100 · B=40 · A∩B=25" })
-  .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap" })
-  .phase("p", { duration: 1200, title: "Venn 2-set", body: "|A|, |B|, |A∩B| の 3-tuple を 2-set Venn で表示、 intersection 比で 円 gap を自動調整。" }, (p: PhaseBuilder) => p.activate("card").badge("Venn"))
+  .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "75 users (A - A∩B)" })
+  .node("bothNode", { lane: "both", stack: 0, kind: "card", title: "Both (A ∩ B)", subtitle: "25 users (intersection)" })
+  .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "15 users (B - A∩B)" })
+  .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Total universe", subtitle: "Users A=100 · Payers B=40" })
+  .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap (2-set Venn)" })
+  .phase("p", {
+    duration: 1200,
+    title: "region split",
+    body: "3-lane (Users only 75 / Both 25 / Payers only 15) で 2 set Venn の 3 領域を分散、 各 region 個別 card で内訳明示、 中央 lane に total universe summary、 venn readout も併存で 円 gap 表示、 領域分類と 図の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("usersOnlyNode", "bothNode", "payersOnlyNode", "totalNode").badge("Venn"))
   .build();
 
 /**
@@ -1503,16 +1512,25 @@ export const alertNotification = diagram("interactive-alert-notification", {
  * 62. diff-counter = git commit style +N/-N、 stepper で additions / deletions 変化。
  */
 export const commitDiffCounter = diagram("interactive-commit-diff", {
-  topic: "git commit style +N/-N counter、 stepper で additions/deletions 変化 → 比率 bar 追随",
+  topic: "git PR diff を 2-lane (Additions +N / Deletions -N) 分散 + net delta edge、 diffCounter readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("adds", { x: 0, width: 260 })
+  .lane("dels", { x: 300, width: 260 })
   .input.stepper("add", { min: 0, max: 500, step: 10, defaultValue: 120, label: "Additions" })
   .input.stepper("del", { min: 0, max: 500, step: 10, defaultValue: 45, label: "Deletions" })
   .state("add", { initial: 120 })
   .state("del", { initial: 45 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "PR diff", subtitle: "+{add} / -{del} lines" })
-  .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff" })
-  .phase("p", { duration: 1200, title: "diff counter", body: "stepper で additions/deletions 変化 → +N / -N text + proportion bar が同時追随、 git PR diff 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("diff"))
+  .node("addCard", { lane: "adds", stack: 0, kind: "card", title: "+ Additions", subtitle: "+{add} lines (green)" })
+  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del ratio", subtitle: "add > del → net growth" })
+  .node("delCard", { lane: "dels", stack: 0, kind: "card", title: "- Deletions", subtitle: "-{del} lines (red)" })
+  .node("delDetail", { lane: "dels", stack: 1, kind: "card", title: "cleanup", subtitle: "remove obsolete code" })
+  .edge("addCard", "delCard", { label: "net = add - del", tone: "info" })
+  .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff (+N/-N bar)" })
+  .phase("p", {
+    duration: 1200,
+    title: "diff split",
+    body: "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("addCard", "addDetail", "delCard", "delDetail").badge("diff"))
   .build();
 
 /**
@@ -2209,9 +2227,11 @@ export const signupFormSummary = diagram("interactive-signup-form", {
  * 95. song-queue = playlist queue 5 song、 stepper で current index。
  */
 export const playlistSongQueue = diagram("interactive-playlist-queue", {
-  topic: "playlist queue 5 song、 stepper で current index → ▶ icon + highlight 追随",
+  topic: "playlist queue 5 song を 3-lane (Played / Now Playing / Up Next) 状態別分散、 各 song 個別 card、 songQueue readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("played", { x: 0, width: 200 })
+  .lane("now", { x: 240, width: 220 })
+  .lane("next", { x: 500, width: 220 })
   .input.stepper("cur", { min: 0, max: 4, defaultValue: 1, label: "Current index" })
   .state("cur", { initial: 1 })
   .arraySignal("queue", [
@@ -2221,9 +2241,17 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
     ["Sweet Child O' Mine", "Guns N' Roses", "5:56"],
     ["Imagine", "John Lennon", "3:03"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Now playing", subtitle: "index {cur} of 5" })
-  .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue" })
-  .phase("p", { duration: 1200, title: "song queue", body: "stepper で current index 変化 → 該当 row の icon が ▶ + title 色 + background highlight、 pending row は 番号表示、 playlist 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("music"))
+  .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian Rhapsody", subtitle: "Queen · 5:55 (played)" })
+  .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel California", subtitle: "Eagles · 6:30 (now playing)" })
+  .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway to Heaven", subtitle: "Led Zeppelin · 8:02" })
+  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child O' Mine", subtitle: "Guns N' Roses · 5:56" })
+  .node("song4", { lane: "next", stack: 2, kind: "card", title: "Imagine", subtitle: "John Lennon · 3:03" })
+  .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue (current highlight)" })
+  .phase("p", {
+    duration: 1200,
+    title: "playback split",
+    body: "3-lane (Played 過去 / Now Playing 現在 / Up Next 未来) で 5 song を playback state 別分散、 default current=1 の状態を lane 配置で明示、 各 song 個別 card、 songQueue readout も併存で highlight 追随、 timeline 状態と queue の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("song0", "song1", "song2", "song3", "song4").badge("music"))
   .build();
 
 /**
