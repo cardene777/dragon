@@ -499,15 +499,15 @@ const cases = [
   },
   {
     diagramId: "interactive-revenue-kpi",
-    label: "revenue KPI: slider(current=200) → kpi-card value に 200 反映",
-    setup: async (page) => {
-      const s = await page.$('input[type="range"][data-cdl-input="current"]');
-      await s.evaluate(eval(setNativeExpr("200")));
-      await page.waitForTimeout(500);
-    },
+    label: "revenue KPI v2: 6 shape (cfo / dashboard / saas / dwh / bi / board) 描画",
+    setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const v = await page.$eval('[data-cdl-readout="kpi"] .cdl-ip-readout-kpi-card-value', (el) => el.textContent ?? "");
-      return { actual: /200/.test(v), expected: true };
+      const ids = ["cfo", "dashboard", "saas", "dwh", "bi", "board"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {
@@ -767,11 +767,15 @@ const cases = [
   },
   {
     diagramId: "interactive-product-price-tag",
-    label: "price-tag: newPrice=65 / oldPrice=100 → discount = -35%",
+    label: "price-tag v2: 6 shape (shopper / mobile / shop / store / db / warehouse) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const t = await page.$eval('[data-cdl-readout="pt"] .cdl-ip-readout-price-tag-discount', (el) => el.textContent ?? "");
-      return { actual: /-35%/.test(t), expected: true };
+      const ids = ["shopper", "mobile", "shop", "store", "db", "warehouse"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {

@@ -1455,40 +1455,65 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
   .build();
 
 /**
- * 44. kpi-card = revenue の現在値 + 直前値との delta + 6 point history sparkline を composite。
+ * 44. revenueKpiCard v2 = SaaS 事業の月次 revenue クロージング 会議シナリオ、 shape-person + shape-mobile-device + shape-online-shop + shape-cylinder + shape-cloud + shape-brokerage の 6 shape で visual scene 化、 4 phase (前月値確認 → 当月確定 → 前年比較 → 経営判断) + 4 readout (kpiCard revenue trend / gauge YoY 成長率 / countup MRR / stat 目標達成率) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const revenueKpiCard = diagram("interactive-revenue-kpi", {
-  topic: "revenue KPI を 3-lane (Previous / Current / Trend) 分散 + prev→current delta edge、 kpiCard readout 併存",
+  topic: "SaaS 月次 revenue クロージング シナリオ = 4 phase (前月 → 当月確定 → 前年比較 → 判断) の flow を shape-* primitive 6 種で表現 + 4 readout (kpiCard / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("prevLane", { x: 0, width: 180 })
-  .lane("currLane", { x: 220, width: 200 })
-  .lane("trendLane", { x: 460, width: 220 })
-  .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" })
-  .state("current", { initial: 180 })
+  .lane("team", { x: 0, width: 220 })
+  .lane("systems", { x: 240, width: 300 })
+  .lane("insights", { x: 560, width: 260 })
+  .state("current", { initial: 150 })
   .state("prev", { initial: 150 })
+  .state("yoy", { initial: 0 })
+  .state("achievement", { initial: 0 })
   .arraySignal("history", [120, 135, 148, 152, 165, 170])
-  .node("prevNode", { lane: "prevLane", stack: 0, kind: "card", title: "Previous", subtitle: "{prev}k (baseline)" })
-  .node("currNode", { lane: "currLane", stack: 0, kind: "card", title: "◆ Current", subtitle: "{current}k (slider driven)" })
-  .node("trendNode", { lane: "trendLane", stack: 0, kind: "card", title: "Trend history", subtitle: "6 month sparkline (120-170k)" })
-  .edge("prevNode", "currNode", { label: "delta = current - prev", tone: "success" })
-  .edge("currNode", "trendNode", { label: "sparkline last", tone: "info" })
-  .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" })
-  .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev stat" })
-  .phase("p", {
-    duration: 1200,
-    title: "KPI delta flow",
-    body: "3-lane (Previous / Current / Trend) で revenue KPI 3 component を分散、 prev→current delta edge (success tone) + current→trend sparkline edge (info tone)、 slider 操作で current lane が変化、 kpiCard readout も併存で composite 1 tile 表示。",
-  }, (p: PhaseBuilder) => p.activate("prevNode", "currNode", "trendNode").badge("KPI card"))
+  .node("cfo", { lane: "team", stack: 0, kind: "shape-person", title: "CFO 佐々木様", eyebrow: "executive", subtitle: "月次締め責任者" })
+  .node("dashboard", { lane: "team", stack: 1, kind: "shape-mobile-device", title: "経営 dashboard", eyebrow: "ui", subtitle: "revenue KPI 表示" })
+  .node("saas", { lane: "systems", stack: 0, kind: "shape-online-shop", title: "SaaS 本体", eyebrow: "product", subtitle: "MRR 集計 · サブスク管理" })
+  .node("dwh", { lane: "systems", stack: 1, kind: "shape-cylinder", title: "DWH (Snowflake)", eyebrow: "warehouse", subtitle: "revenue fact テーブル · 月次 rollup" })
+  .node("bi", { lane: "systems", stack: 2, kind: "shape-cloud", title: "BI (Looker)", eyebrow: "analytics", subtitle: "YoY 比較 · 目標追跡" })
+  .node("board", { lane: "insights", stack: 0, kind: "shape-brokerage", title: "経営会議", eyebrow: "decision", subtitle: "$Current {current}k · 前年 {prev}k · YoY {yoy}%" })
+  .edge("cfo", "dashboard", { label: "確認", tone: "info" })
+  .edge("dashboard", "saas", { label: "MRR query", tone: "info" })
+  .edge("saas", "dwh", { label: "月次 rollup", tone: "success" })
+  .edge("dwh", "bi", { label: "YoY 集計", tone: "accent" })
+  .edge("bi", "board", { label: "insights", tone: "success" })
+  .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k$", colorPos: "#22c55e", colorNeg: "#ef4444", label: "月次 Revenue KPI" })
+  .readout.gauge("yoyG", { source: "yoy", min: -20, max: 60, color: "#22c55e", label: "YoY 成長率 (%)" })
+  .readout.countup("mrrCU", { source: "current", unit: "k$", label: "MRR", decimals: 0 })
+  .readout.stat("achieveStat", { source: "achievement", unit: "%", caption: "目標 200k$ 対", label: "達成率" })
+  .phase("p1", {
+    duration: 2000,
+    title: "前月値確認",
+    body: "CFO 佐々木様が dashboard で前月値 150k を確認。 current = 150 (kpiCard 針動かず)、 yoy = 0 (gauge 針中位)、 achievement 0 (stat 空)、 sparkline 履歴 6 ヶ月表示。 team lane 全 active。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "dashboard").set("current", 150).set("prev", 150).set("yoy", 0).set("achievement", 0).badge("前月"))
+  .phase("p2", {
+    duration: 2400,
+    title: "当月確定",
+    body: "SaaS から DWH に月次 rollup、 current 150 → 195 tween (MRR countup が 45k$ 加算表示)、 kpiCard の spark が上向き変化、 achievement 0 → 97 tween (stat が動的加算、 200k$ 目標に対し 97.5%)、 saas + dwh lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "dashboard", "saas", "dwh").tween("current", 150, 195).tween("achievement", 0, 97).badge("確定"))
+  .phase("p3", {
+    duration: 2200,
+    title: "前年比較 (BI)",
+    body: "Looker で前年同月 130k と比較、 yoy 0 → 50 tween (gauge 針が緑域まで急上昇 = +50% 成長)、 prev を 150 → 130 tween (前年値表示に更新)、 kpiCard 比較値変更で delta arrow 表示、 bi lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "dashboard", "saas", "dwh", "bi").tween("yoy", 0, 50).tween("prev", 150, 130).badge("前年比"))
+  .phase("p4", {
+    duration: 2000,
+    title: "経営判断",
+    body: "経営会議で拡大投資判断、 achievement 97 → 100 tween (最終達成率、 stat 満点表示)、 current 195 → 200 tween (見込み調整で kpiCard 針最終)、 yoy 50 → 54 tween (最終値)、 全 6 shape active。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "dashboard", "saas", "dwh", "bi", "board").tween("achievement", 97, 100).tween("current", 195, 200).tween("yoy", 50, 54).badge("判断"))
   .build();
 
 /**
- * 45. candlestick chart = 8 日分の OHLC を蝋燭足で表示 (finance chart)。
+ * 45. priceCandlestick v2 = 個人投資家の日次 trading シナリオ、 shape-trader + shape-mobile-device + shape-brokerage + shape-exchange + shape-blockchain-node の 5 shape で visual scene 化、 4 phase (寄り付き → 中盤上昇 → 押し目 → 引け高) + 4 readout (candlestick / gauge 値動き幅 / countup 出来高 / stat 現在価格) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const priceCandlestick = diagram("interactive-price-candlestick", {
-  topic: "OHLC 8 day を 2-lane (Up days close≥open / Down days close<open) 分散、 各 day 個別 card + candlestick readout 併存",
+  topic: "個人投資家 日次 trading シナリオ = 4 phase (寄り付き → 中盤 → 押し目 → 引け高) の flow を shape-* primitive 5 種で表現 + 4 readout (candlestick OHLC / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("up", { x: 0, width: 320 })
-  .lane("down", { x: 360, width: 320 })
+  .lane("trader", { x: 0, width: 220 })
+  .lane("markets", { x: 240, width: 340 })
+  .lane("feed", { x: 600, width: 240 })
   .arraySignal("ohlc", [
     [100, 108, 96, 105],
     [105, 110, 100, 102],
@@ -1499,20 +1524,43 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
     [112, 118, 111, 116],
     [116, 120, 113, 118],
   ] as unknown as (string | number)[])
-  .node("d1", { lane: "up", stack: 0, kind: "card", title: "Day 1 ▲", subtitle: "O=100 · C=105 (+5)" })
-  .node("d3", { lane: "up", stack: 1, kind: "card", title: "Day 3 ▲", subtitle: "O=102 · C=104 (+2)" })
-  .node("d4", { lane: "up", stack: 2, kind: "card", title: "Day 4 ▲", subtitle: "O=104 · C=111 (+7)" })
-  .node("d6", { lane: "up", stack: 3, kind: "card", title: "Day 6 ▲", subtitle: "O=109 · C=112 (+3)" })
-  .node("d7", { lane: "up", stack: 4, kind: "card", title: "Day 7 ▲", subtitle: "O=112 · C=116 (+4)" })
-  .node("d8", { lane: "up", stack: 5, kind: "card", title: "Day 8 ▲", subtitle: "O=116 · C=118 (+2)" })
-  .node("d2", { lane: "down", stack: 0, kind: "card", title: "Day 2 ▼", subtitle: "O=105 · C=102 (-3)" })
-  .node("d5", { lane: "down", stack: 1, kind: "card", title: "Day 5 ▼", subtitle: "O=111 · C=109 (-2)" })
-  .readout.candlestick("chart", { source: "ohlc", min: 95, max: 122, viewW: 300, viewH: 110, colorUp: "#22c55e", colorDown: "#ef4444", label: "OHLC (candlestick)" })
-  .phase("p", {
-    duration: 1200,
-    title: "candle direction split",
-    body: "2-lane (Up days ▲ 6 個 / Down days ▼ 2 個) で 8 day OHLC を close vs open 方向別分散、 各 day 個別 card で open/close/delta 明示、 candlestick readout も併存で緑/赤 蝋燭足 + wick 描画、 direction 分類と price chart の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("d1", "d3", "d4", "d6", "d7", "d8", "d2", "d5").badge("finance"))
+  .state("price", { initial: 100 })
+  .state("range", { initial: 0 })
+  .state("volume", { initial: 0 })
+  .node("trader", { lane: "trader", stack: 0, kind: "shape-trader", title: "トレーダー 松本様", eyebrow: "trader", subtitle: "個人 day trader" })
+  .node("mobile", { lane: "trader", stack: 1, kind: "shape-mobile-device", title: "SBI アプリ", eyebrow: "app", subtitle: "chart + 発注 UI" })
+  .node("brokerage", { lane: "markets", stack: 0, kind: "shape-brokerage", title: "SBI 証券", eyebrow: "broker", subtitle: "板寄せ + 執行" })
+  .node("exchange", { lane: "markets", stack: 1, kind: "shape-exchange", title: "東証", eyebrow: "exchange", subtitle: "現物 · continuous" })
+  .node("feed", { lane: "feed", stack: 0, kind: "shape-blockchain-node", title: "quote feed", eyebrow: "data", subtitle: "1s tick · WebSocket · 現在 ¥{price}" })
+  .edge("trader", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "brokerage", { label: "発注", tone: "info" })
+  .edge("brokerage", "exchange", { label: "取次", tone: "success" })
+  .edge("exchange", "feed", { label: "約定 tick", tone: "success" })
+  .edge("feed", "mobile", { label: "quote", tone: "accent" })
+  .readout.candlestick("chart", { source: "ohlc", min: 95, max: 122, viewW: 320, viewH: 130, colorUp: "#22c55e", colorDown: "#ef4444", label: "8 日 OHLC" })
+  .readout.gauge("rangeG", { source: "range", min: 0, max: 30, color: "#f97316", label: "値幅 (%)" })
+  .readout.countup("volCU", { source: "volume", unit: " 万株", label: "出来高", decimals: 0 })
+  .readout.stat("priceStat", { source: "price", unit: " 円", caption: "現在値", label: "株価" })
+  .phase("p1", {
+    duration: 2000,
+    title: "寄り付き",
+    body: "朝 9:00 寄り付き、 前日終値 118 → 寄値 100 (窓開け下落)。 price = 100 (stat 表示)、 range = 0 (gauge 針最下)、 volume 0 → 50 tween (寄り成 50 万株)、 trader + mobile lane active。",
+  }, (p: PhaseBuilder) => p.activate("trader", "mobile").set("price", 100).set("range", 0).tween("volume", 0, 50).badge("寄付"))
+  .phase("p2", {
+    duration: 2400,
+    title: "中盤 上昇",
+    body: "午前中に売り玉こなし + 買い勢い、 price 100 → 111 tween (stat が動的更新)、 range 0 → 15 tween (gauge 針が上昇 = 変動 15%)、 volume 50 → 200 tween (countup が加速)、 brokerage lane activate。",
+  }, (p: PhaseBuilder) => p.activate("trader", "mobile", "brokerage").tween("price", 100, 111).tween("range", 0, 15).tween("volume", 50, 200).badge("上昇"))
+  .phase("p3", {
+    duration: 2200,
+    title: "押し目",
+    body: "午後 short cover 一巡で押し目形成、 price 111 → 109 tween (少し下落、 candlestick で ▼ 表示)、 range 15 → 18 tween (幅拡大)、 volume 200 → 350 tween、 exchange + feed lane activate、 feed tick 反映。",
+  }, (p: PhaseBuilder) => p.activate("trader", "mobile", "brokerage", "exchange", "feed").tween("price", 111, 109).tween("range", 15, 18).tween("volume", 200, 350).badge("押し目"))
+  .phase("p4", {
+    duration: 2000,
+    title: "引け高",
+    body: "大引け 15:00 で引成買い集中、 price 109 → 118 tween (前日並みまで回復、 stat 最終)、 range 18 → 22 tween (最終幅、 gauge 針最高)、 volume 350 → 480 tween、 5 shape 全 active、 前日終値回復。",
+  }, (p: PhaseBuilder) => p.activate("trader", "mobile", "brokerage", "exchange", "feed").tween("price", 109, 118).tween("range", 18, 22).tween("volume", 350, 480).badge("引け"))
   .build();
 
 /**
@@ -2109,28 +2157,54 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
   .build();
 
 /**
- * 67. price-tag = e-commerce 商品価格、 stepper で newPrice 変化 → discount % 自動計算。
+ * 67. productPriceTag v2 = 大手 EC のブラックフライデー ダイナミック プライシング シナリオ、 shape-online-shop + shape-mobile-device + shape-storefront + shape-cylinder + shape-warehouse + shape-person の 6 shape で visual scene 化、 4 phase (通常価格 → セール開始 → 値下げ深化 → 在庫連動最終値) + 4 readout (priceTag / gauge 割引率 / countup 販売数 / bar 在庫残) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const productPriceTag = diagram("interactive-product-price-tag", {
-  topic: "e-commerce price tag を 3-lane (Old price / New price / Discount %) + 2 edge、 discount 計算経路可視化、 priceTag readout 併存",
+  topic: "EC ブラックフライデー ダイナミック プライシング シナリオ = 4 phase (通常 → セール開始 → 深化 → 在庫連動) の flow を shape-* primitive 6 種で表現 + 4 readout (priceTag / gauge / countup / bar) が tween で visually 連続変化",
 })
-  .lane("old", { x: 0, width: 200 })
-  .lane("new", { x: 240, width: 200 })
-  .lane("discount", { x: 480, width: 200 })
-  .input.stepper("newPrice", { min: 0, max: 200, step: 5, defaultValue: 65, label: "New price" })
-  .state("newPrice", { initial: 65 })
+  .lane("customer", { x: 0, width: 200 })
+  .lane("ec", { x: 220, width: 300 })
+  .lane("supply", { x: 540, width: 240 })
+  .state("newPrice", { initial: 100 })
   .state("oldPrice", { initial: 100 })
-  .node("oldNode", { lane: "old", stack: 0, kind: "card", title: "Old price", subtitle: "${oldPrice} (strikethrough)" })
-  .node("newNode", { lane: "new", stack: 0, kind: "card", title: "New price", subtitle: "${newPrice} (stepper driven)" })
-  .node("discountNode", { lane: "discount", stack: 0, kind: "card", title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
-  .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
-  .edge("newNode", "discountNode", { label: "%", tone: "error" })
-  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "Price (composite tag)" })
-  .phase("p", {
-    duration: 1200,
-    title: "price flow",
-    body: "3-lane (Old / New / Discount) で price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。",
-  }, (p: PhaseBuilder) => p.activate("oldNode", "newNode", "discountNode").badge("price"))
+  .state("discount", { initial: 0 })
+  .state("sold", { initial: 0 })
+  .state("stock", { initial: 500 })
+  .node("shopper", { lane: "customer", stack: 0, kind: "shape-person", title: "買い物客 中村様", eyebrow: "customer", subtitle: "セール watcher" })
+  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "Amazon app", eyebrow: "device", subtitle: "商品ページ · 価格 alert" })
+  .node("shop", { lane: "ec", stack: 0, kind: "shape-online-shop", title: "Amazon.co.jp", eyebrow: "ec", subtitle: "商品 「掃除機 X」 · 価格 ¥{newPrice}" })
+  .node("store", { lane: "ec", stack: 1, kind: "shape-storefront", title: "セール会場", eyebrow: "campaign", subtitle: "BF セール · 動的値付け engine" })
+  .node("db", { lane: "ec", stack: 2, kind: "shape-cylinder", title: "価格履歴 DB", eyebrow: "database", subtitle: "1h ごと price snapshot" })
+  .node("warehouse", { lane: "supply", stack: 0, kind: "shape-warehouse", title: "配送センター", eyebrow: "logistics", subtitle: "在庫 {stock} 個 · Fulfilled by Amazon" })
+  .edge("shopper", "mobile", { label: "watch", tone: "info" })
+  .edge("mobile", "shop", { label: "GET /product", tone: "info" })
+  .edge("shop", "store", { label: "セール適用", tone: "warning" })
+  .edge("store", "db", { label: "履歴保存", tone: "accent" })
+  .edge("shop", "warehouse", { label: "在庫照会", tone: "success" })
+  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "¥", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "商品価格" })
+  .readout.gauge("discountG", { source: "discount", min: 0, max: 50, color: "#ef4444", label: "割引率 (%)" })
+  .readout.countup("soldCU", { source: "sold", unit: " 個", label: "販売数", decimals: 0 })
+  .readout.bar("stockBar", { source: "stock", min: 0, max: 500, color: "#22c55e", label: "在庫残" })
+  .phase("p1", {
+    duration: 2000,
+    title: "通常価格",
+    body: "セール前、 掃除機 X は定価 ¥12,800 販売中。 newPrice = 100 相当 (priceTag 定価表示、 割引なし)、 discount = 0 (gauge 針最下)、 sold = 0 (未売却)、 stock 500 (bar 満タン)。 customer + shop lane active。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "shop").set("newPrice", 100).set("oldPrice", 100).set("discount", 0).set("sold", 0).set("stock", 500).badge("通常"))
+  .phase("p2", {
+    duration: 2400,
+    title: "セール開始",
+    body: "BF 00:00 にセール開始、 store の値付け engine が発動。 newPrice 100 → 75 tween (priceTag が赤値下げ表示 + 打消し線)、 oldPrice = 100 (打消し線)、 discount 0 → 25 tween (gauge 針が赤域上昇 = 25% OFF)、 store lane activate。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "shop", "store").tween("newPrice", 100, 75).set("oldPrice", 100).tween("discount", 0, 25).badge("セール"))
+  .phase("p3", {
+    duration: 2200,
+    title: "値下げ深化 (競合対抗)",
+    body: "競合が同時値下げで engine が再値下げ、 newPrice 75 → 65 tween (priceTag 数字が更新)、 discount 25 → 35 tween (gauge 針最高付近、 35% OFF)、 sold 0 → 180 tween (countup 加速 = 買い注文集中)、 stock 500 → 320 tween (bar 縮小)、 db lane activate 履歴保存。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "shop", "store", "db").tween("newPrice", 75, 65).tween("discount", 25, 35).tween("sold", 0, 180).tween("stock", 500, 320).badge("深化"))
+  .phase("p4", {
+    duration: 2000,
+    title: "在庫連動 最終値",
+    body: "在庫 320 → 減少で engine が値上げ (在庫希少シグナル)、 newPrice 65 → 68 tween (少し戻す)、 discount 35 → 32 tween、 sold 180 → 380 tween (販売継続)、 stock 320 → 120 tween (bar 更に縮小)、 warehouse lane activate、 6 shape 全 active、 セール終盤の buy sell 均衡。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "shop", "store", "db", "warehouse").tween("newPrice", 65, 68).tween("discount", 35, 32).tween("sold", 180, 380).tween("stock", 320, 120).badge("在庫連動"))
   .build();
 
 /**
