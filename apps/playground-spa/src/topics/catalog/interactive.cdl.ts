@@ -1034,65 +1034,53 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
   .build();
 
 /**
- * 34. domain example = EIP-1559 gas cost model。
- *     slider で base fee → 3 block の実 gas cost が waterfall + stacked-bar で並列可視化。
+ * 34. eip1559GasFlow v2 = Ethereum L1 で ETH 送金 tx を submit → mempool → 採掘 → 確定する EIP-1559 gas 動的計算シナリオ、 shape-wallet + shape-mobile-device + shape-stack (mempool) + shape-blockchain-block × 2 + shape-blockchain の 6 shape で visual scene 化、 4 phase (署名 → mempool 滞留 → 採掘 → 確定) + 4 readout (gauge baseFee 上昇 / bar totalGwei 伸長 / traffic-light tx status / countup blockNumber) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const eip1559GasFlow = diagram("interactive-eip1559", {
-  topic: "EIP-1559 gas cost model = 4-lane (Sender / Block1 / Block2 / Block3) を edge で gas propagation、 base fee slider で 3 block の total が chain 追随",
+  topic: "Ethereum EIP-1559 gas 動的計算 = 4 phase (署名 → mempool → 採掘 → 確定) の flow を shape-* primitive 6 種で表現 + 4 readout (gauge baseFee / bar totalGwei / traffic-light status / countup block#) が tween で visually 連続変化",
 })
-  .lane("sender", { x: 0, width: 180 })
-  .lane("block1", { x: 260, width: 180 })
-  .lane("block2", { x: 520, width: 180 })
-  .lane("block3", { x: 780, width: 180 })
-  .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" })
-  .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "Priority tip" })
-  .state("baseFee", { initial: 50 })
-  .state("priority", { initial: 5 })
-  .arraySignal("burned", [50, 60, 72])
-  .arraySignal("tips", [5, 8, 10])
-  .formula("total1", "baseFee + priority")
-  .formula("total2", "(baseFee + priority) * 12 / 10")
-  .formula("total3", "(baseFee + priority) * 15 / 10")
-  .state("total1", { initial: 55 })
-  .state("total2", { initial: 66 })
-  .state("total3", { initial: 82 })
-  .node("wallet", {
-    lane: "sender",
-    stack: 0,
-    kind: "card",
-    title: "Sender wallet",
-    subtitle: "base {baseFee} + tip {priority} gwei",
-  })
-  .node("b1", {
-    lane: "block1",
-    stack: 0,
-    kind: "card",
-    title: "Block N",
-    subtitle: "1.0x = {total1} gwei",
-  })
-  .node("b2", {
-    lane: "block2",
-    stack: 0,
-    kind: "card",
-    title: "Block N+1",
-    subtitle: "1.2x = {total2} gwei",
-  })
-  .node("b3", {
-    lane: "block3",
-    stack: 0,
-    kind: "card",
-    title: "Block N+2",
-    subtitle: "1.5x = {total3} gwei",
-  })
-  .edge("wallet", "b1", { label: "tx submit", sub: "base + tip", tone: "info" })
-  .edge("b1", "b2", { label: "next block", sub: "+20% fee", tone: "warning" })
-  .edge("b2", "b3", { label: "next block", sub: "+25% fee", tone: "error" })
-  .readout.stackedBar("gas", { sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip per block" })
-  .phase("p", {
-    duration: 1200,
-    title: "EIP-1559 gas flow",
-    body: "Sender → Block N → N+1 → N+2 の 4 lane、 slider で base + tip 変化 → formula chain で block2/3 の total gwei が逓増追随、 edge tone で cost escalation を可視化。",
-  }, (p: PhaseBuilder) => p.activate("wallet", "b1", "b2", "b3").badge("EIP-1559"))
+  .lane("sender", { x: 0, width: 220 })
+  .lane("mempool", { x: 240, width: 240 })
+  .lane("chain", { x: 500, width: 280 })
+  .state("baseFee", { initial: 30 })
+  .state("totalGwei", { initial: 0 })
+  .state("txStatus", { initial: 0 })
+  .state("blockNumber", { initial: 18543210 })
+  .node("wallet", { lane: "sender", stack: 0, kind: "shape-wallet", title: "MetaMask EOA", eyebrow: "sender", subtitle: "0x742d...5a1f" })
+  .node("mobile", { lane: "sender", stack: 1, kind: "shape-mobile-device", title: "user 端末", eyebrow: "device", subtitle: "0.5 ETH 送金 tx 署名" })
+  .node("pool", { lane: "mempool", stack: 0, kind: "shape-stack", title: "mempool", eyebrow: "queue", subtitle: "pending 128 tx · fee 順 sort" })
+  .node("blockN", { lane: "chain", stack: 0, kind: "shape-blockchain-block", title: "Block N", eyebrow: "block", subtitle: "gas 15M/30M · base {baseFee} gwei" })
+  .node("blockN1", { lane: "chain", stack: 1, kind: "shape-blockchain-block", title: "Block N+1", eyebrow: "block", subtitle: "gas 22M/30M · base×1.05" })
+  .node("chainNode", { lane: "chain", stack: 2, kind: "shape-blockchain", title: "Ethereum L1", eyebrow: "chain", subtitle: "block #{blockNumber} · finality 12+" })
+  .edge("wallet", "mobile", { label: "秘密鍵署名", tone: "info" })
+  .edge("mobile", "pool", { label: "eth_sendRawTransaction", tone: "info" })
+  .edge("pool", "blockN", { label: "採掘 include", tone: "success" })
+  .edge("blockN", "blockN1", { label: "次 block (fee ±12.5%)", tone: "warning" })
+  .edge("blockN1", "chainNode", { label: "finality 確定", tone: "success" })
+  .readout.gauge("baseFeeG", { source: "baseFee", min: 0, max: 100, color: "#f97316", label: "base fee (gwei)" })
+  .readout.bar("totalBar", { source: "totalGwei", min: 0, max: 5000, color: "#22c55e", label: "総 gas コスト (gwei)" })
+  .readout.trafficLight("statusTL", { source: "txStatus", label: "tx status (0=pending / 1=mining / 2=confirmed)" })
+  .readout.countup("blockCU", { source: "blockNumber", unit: "", label: "block #", decimals: 0 })
+  .phase("p1", {
+    duration: 2200,
+    title: "tx 署名 + 送信",
+    body: "MetaMask で 0.5 ETH 送金 tx を秘密鍵署名。 baseFee = 30 gwei (gauge 針中位)、 status 0 = pending (traffic-light 赤)、 totalGwei 0 (bar 空、 未 include)。 sender lane 全 active。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "mobile").set("baseFee", 30).set("txStatus", 0).set("totalGwei", 0).badge("署名"))
+  .phase("p2", {
+    duration: 2400,
+    title: "mempool 滞留",
+    body: "128 pending tx が fee 優先度順にソート、 需要増で baseFee が 30 → 45 gwei tween (gauge 針が橙域まで上昇)、 totalGwei 0 → 940 tween (base×gasUsed 21000 で bar 半分伸長)、 status 0 のまま (traffic-light 赤 継続)。 mempool lane 追加 active。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool").tween("baseFee", 30, 45).tween("totalGwei", 0, 940).badge("mempool"))
+  .phase("p3", {
+    duration: 2200,
+    title: "採掘 (Block N)",
+    body: "Miner が Block N に tx を含める、 gas 15M/30M で採掘実行。 baseFee 45 → 47 tween (供給調整 +5%)、 status 0 → 1 tween (traffic-light 赤 → 黄 = mining)、 totalGwei 940 → 987 tween (base 微増で bar 追随)、 chain lane に blockN activate、 pool → blockN が success tone edge。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "blockN").tween("baseFee", 45, 47).tween("totalGwei", 940, 987).tween("txStatus", 0, 1).badge("採掘"))
+  .phase("p4", {
+    duration: 2000,
+    title: "確定 (Block N+1)",
+    body: "次 block も base ±12.5% 変動、 blockN+1 で 6-block confirmation 達成 → finality。 baseFee 47 → 50 tween (継続需要)、 status 1 → 2 tween (traffic-light 黄 → 緑 = confirmed)、 blockNumber 18543210 → 18543211 tween (countup 動的増加)、 全 6 shape active、 chain 確定 log。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "blockN", "blockN1", "chainNode").tween("baseFee", 47, 50).tween("txStatus", 1, 2).tween("blockNumber", 18543210, 18543211).badge("確定"))
   .build();
 
 /**
@@ -1248,27 +1236,54 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
   .build();
 
 /**
- * 39. donut chart = portfolio share (asset allocation) を multi-segment donut 表示。
+ * 39. portfolioDonut v2 = 個人投資家の四半期リバランス シナリオ、 shape-person + shape-mobile-device + shape-brokerage + shape-trust-bank + shape-cylinder + shape-token の 6 shape で visual scene 化、 4 phase (現状確認 → リバランス判定 → 執行 → 反映) + 4 readout (donut allocation / gauge リスク偏差 / countup 総資産 / stat 執行額) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const portfolioDonut = diagram("interactive-portfolio-donut", {
-  topic: "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存",
+  topic: "四半期 portfolio リバランス シナリオ = 4 phase (現状 → 判定 → 執行 → 反映) の flow を shape-* primitive 6 種で表現 + 4 readout (donut / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("traditional", { x: 0, width: 300 })
-  .lane("alternative", { x: 340, width: 300 })
+  .lane("investor", { x: 0, width: 220 })
+  .lane("advisor", { x: 240, width: 280 })
+  .lane("markets", { x: 540, width: 240 })
   .arraySignal("assets", [45, 30, 15, 10])
-  .arraySignal("assetNames", ["Stocks", "Bonds", "Cash", "Crypto"])
-  .node("stocksNode", { lane: "traditional", stack: 0, kind: "card", title: "Stocks", subtitle: "45% (max)" })
-  .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "30%" })
-  .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "15%" })
-  .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "10% (min)" })
-  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio total", subtitle: "sum = {assets.sum}%" })
-  .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
-  .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
-  .phase("p", {
-    duration: 1200,
-    title: "asset category split",
-    body: "2-lane (Traditional Stocks+Bonds = 75% / Alternative Cash+Crypto = 25%) で 4 asset を category 別分散、 各 asset 個別 card + total summary、 donut readout も併存で multi-segment 円表示、 category 分類と donut 全体観の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode").badge("donut"))
+  .state("riskGap", { initial: 8 })
+  .state("totalValue", { initial: 8250000 })
+  .state("orderAmount", { initial: 0 })
+  .state("phase", { initial: 0 })
+  .node("investor", { lane: "investor", stack: 0, kind: "shape-person", title: "投資家 佐藤様", eyebrow: "client", subtitle: "現金 15% + Alt 10%" })
+  .node("mobile", { lane: "investor", stack: 1, kind: "shape-mobile-device", title: "証券 app", eyebrow: "device", subtitle: "portfolio 確認 · 執行 UI" })
+  .node("advisor", { lane: "advisor", stack: 0, kind: "shape-brokerage", title: "証券会社", eyebrow: "advisor", subtitle: "リスク許容度診断 · 執行" })
+  .node("trust", { lane: "advisor", stack: 1, kind: "shape-trust-bank", title: "信託銀行", eyebrow: "custodian", subtitle: "資産カストディ · 保管証明" })
+  .node("holdings", { lane: "advisor", stack: 2, kind: "shape-cylinder", title: "保有 DB", eyebrow: "database", subtitle: "銘柄 × 数量 × 時価" })
+  .node("token", { lane: "markets", stack: 0, kind: "shape-token", title: "市場価格", eyebrow: "quote", subtitle: "株式 · 債券 · 現金 · 暗号資産" })
+  .edge("investor", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "advisor", { label: "診断 request", tone: "info" })
+  .edge("advisor", "trust", { label: "執行指示", tone: "success" })
+  .edge("trust", "holdings", { label: "残高更新", tone: "success" })
+  .edge("holdings", "token", { label: "時価評価", tone: "accent" })
+  .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 180, viewH: 180, label: "配分 (donut)" })
+  .readout.gauge("riskG", { source: "riskGap", min: 0, max: 20, color: "#ef4444", label: "リスク偏差 (%pt)" })
+  .readout.countup("valueCU", { source: "totalValue", unit: " 円", label: "総資産評価額", decimals: 0 })
+  .readout.stat("orderStat", { source: "orderAmount", unit: " 円", caption: "本日執行額", label: "執行" })
+  .phase("p1", {
+    duration: 2000,
+    title: "現状確認",
+    body: "佐藤様が四半期末に app で portfolio 確認、 Stocks 45% / Bonds 30% / Cash 15% / Crypto 10% を donut で visualize。 riskGap = 8%pt (許容 5% 超過、 gauge 針が橙域)、 totalValue 8,250,000 円 (countup 静止)、 orderAmount 0 (stat 未執行)。 investor lane 全 active。",
+  }, (p: PhaseBuilder) => p.activate("investor", "mobile").set("riskGap", 8).set("orderAmount", 0).badge("現状"))
+  .phase("p2", {
+    duration: 2400,
+    title: "リバランス判定",
+    body: "証券会社が診断、 target 配分 (Stocks 40% / Bonds 35% / Cash 15% / Crypto 10%) との乖離を計算。 riskGap 8 → 12 tween (gauge 針が赤域まで上昇 = リバランス強推奨)、 totalValue 8,250,000 → 8,320,000 tween (再評価で微増)、 advisor + holdings lane 追加 activate。",
+  }, (p: PhaseBuilder) => p.activate("investor", "mobile", "advisor", "holdings").tween("riskGap", 8, 12).tween("totalValue", 8250000, 8320000).badge("判定"))
+  .phase("p3", {
+    duration: 2200,
+    title: "執行",
+    body: "Stocks を 5%pt 売却 (416,000 円) + Bonds を同額買付、 信託銀行がカストディで資産移動。 orderAmount 0 → 416000 tween (stat が動的増加)、 riskGap 12 → 4 tween (gauge 針が緑域まで急減)、 trust lane + token lane activate、 執行 edge が success tone で強調。",
+  }, (p: PhaseBuilder) => p.activate("investor", "mobile", "advisor", "trust", "holdings", "token").tween("orderAmount", 0, 416000).tween("riskGap", 12, 4).badge("執行"))
+  .phase("p4", {
+    duration: 2000,
+    title: "反映",
+    body: "T+2 決済完了、 保有 DB 更新 → 時価再評価。 riskGap 4 → 2 tween (gauge 針最下位、 target 内)、 totalValue 8,320,000 → 8,340,000 tween (countup が動的加算)、 orderAmount 保持、 6 shape 全 active、 四半期リバランス完了。",
+  }, (p: PhaseBuilder) => p.activate("investor", "mobile", "advisor", "trust", "holdings", "token").tween("riskGap", 4, 2).tween("totalValue", 8320000, 8340000).badge("反映"))
   .build();
 
 /**
@@ -2378,29 +2393,62 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
   .build();
 
 /**
- * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
+ * 78. cryptoWallet v2 = 個人 DeFi 保有者の日次 portfolio モニター シナリオ、 shape-wallet + shape-token × 4 + shape-exchange + shape-blockchain-node + shape-ethereum-chain の 7 shape で visual scene 化、 4 phase (portfolio 確認 → 市場更新 → 個別詳細 → 集計) + 4 readout (tokenList / gauge 総資産変動 / bar 24h vol / countup 総評価額) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const cryptoWallet = diagram("interactive-crypto-wallet", {
-  topic: "crypto wallet 4 token を 2-lane (Gainers +% / Losers -%) に分散、 各 token を個別 card、 tokenList readout 併存",
+  topic: "個人 DeFi 保有者 日次 portfolio モニター = 4 phase (確認 → 市場更新 → 詳細 → 集計) の flow を shape-* primitive 7 種で表現 + 4 readout (tokenList / gauge / bar / countup) が tween で visually 連続変化",
 })
-  .lane("gainers", { x: 0, width: 220 })
-  .lane("losers", { x: 300, width: 220 })
+  .lane("holder", { x: 0, width: 200 })
+  .lane("tokens", { x: 220, width: 340 })
+  .lane("infra", { x: 580, width: 240 })
   .arraySignal("tokens", [
     ["₿", "BTC", "0.42", 5.3],
     ["Ξ", "ETH", "12.5", -2.8],
     ["◎", "SOL", "245", 8.1],
     ["Ð", "DOGE", "8500", -1.4],
   ] as unknown as (string | number)[])
-  .node("btc", { lane: "gainers", stack: 0, kind: "card", title: "₿ BTC", subtitle: "0.42 · +5.3%" })
-  .node("sol", { lane: "gainers", stack: 1, kind: "card", title: "◎ SOL", subtitle: "245 · +8.1%" })
-  .node("eth", { lane: "losers", stack: 0, kind: "card", title: "Ξ ETH", subtitle: "12.5 · -2.8%" })
-  .node("doge", { lane: "losers", stack: 1, kind: "card", title: "Ð DOGE", subtitle: "8500 · -1.4%" })
-  .readout.tokenList("tl", { source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "Portfolio (aggregate)" })
-  .phase("p", {
-    duration: 1200,
-    title: "portfolio split",
-    body: "2-lane (Gainers +% / Losers -%) で 4 token を delta 符号別に分散、 各 token を個別 card で並列表示、 tokenList readout で aggregate 一覧も併存、 portfolio 構造を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("btc", "sol", "eth", "doge").badge("wallet"))
+  .state("portfolioValue", { initial: 42580000 })
+  .state("volume24h", { initial: 0 })
+  .state("dailyDelta", { initial: 50 })
+  .node("wallet", { lane: "holder", stack: 0, kind: "shape-wallet", title: "MetaMask", eyebrow: "wallet", subtitle: "0xAbc9...defE · Ledger" })
+  .node("btc", { lane: "tokens", stack: 0, kind: "shape-token", title: "₿ BTC", eyebrow: "token", subtitle: "0.42 BTC · +5.3% 24h" })
+  .node("eth", { lane: "tokens", stack: 1, kind: "shape-token", title: "Ξ ETH", eyebrow: "token", subtitle: "12.5 ETH · -2.8% 24h" })
+  .node("sol", { lane: "tokens", stack: 2, kind: "shape-token", title: "◎ SOL", eyebrow: "token", subtitle: "245 SOL · +8.1% 24h" })
+  .node("doge", { lane: "tokens", stack: 3, kind: "shape-token", title: "Ð DOGE", eyebrow: "token", subtitle: "8500 DOGE · -1.4% 24h" })
+  .node("exchange", { lane: "infra", stack: 0, kind: "shape-exchange", title: "CEX quote", eyebrow: "quote", subtitle: "Binance API · 1s tick" })
+  .node("node", { lane: "infra", stack: 1, kind: "shape-blockchain-node", title: "RPC node", eyebrow: "rpc", subtitle: "Infura · eth_call balance" })
+  .node("chain", { lane: "infra", stack: 2, kind: "shape-ethereum-chain", title: "Ethereum L1", eyebrow: "chain", subtitle: "block #{portfolioValue}" })
+  .edge("wallet", "btc", { label: "holdings", tone: "info" })
+  .edge("wallet", "eth", { label: "holdings", tone: "info" })
+  .edge("wallet", "sol", { label: "holdings", tone: "info" })
+  .edge("wallet", "doge", { label: "holdings", tone: "info" })
+  .edge("btc", "exchange", { label: "price", tone: "success" })
+  .edge("exchange", "node", { label: "USD quote", tone: "accent" })
+  .edge("node", "chain", { label: "balance query", tone: "success" })
+  .readout.tokenList("tl", { source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "Portfolio 詳細" })
+  .readout.gauge("deltaG", { source: "dailyDelta", min: 0, max: 100, color: "#22c55e", label: "24h 変動 (%tile)" })
+  .readout.bar("volBar", { source: "volume24h", min: 0, max: 1000000000, color: "#f97316", label: "24h vol (USD)" })
+  .readout.countup("valueCU", { source: "portfolioValue", unit: " 円", label: "総評価額 (JPY)", decimals: 0 })
+  .phase("p1", {
+    duration: 2000,
+    title: "portfolio 確認",
+    body: "朝 8:00、 wallet で 4 token 保有確認。 portfolioValue 42,580,000 円 (countup 静止)、 dailyDelta = 50 (gauge 針中位、 前日比 flat)、 volume24h = 0 (bar 空)、 tokenList に 4 token 表示。 holder + tokens lane activate。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "btc", "eth", "sol", "doge").set("dailyDelta", 50).set("volume24h", 0).badge("確認"))
+  .phase("p2", {
+    duration: 2400,
+    title: "市場更新 (CEX API)",
+    body: "Binance API から 1s tick で価格更新、 BTC +5.3% / SOL +8.1% / ETH -2.8% / DOGE -1.4%。 dailyDelta 50 → 68 tween (gauge 針が緑域上昇 = 全体+)、 volume24h 0 → 780,000,000 tween (bar が右へ伸長 = 活発化)、 portfolioValue 42580000 → 43420000 tween (countup 加算 84 万円)、 infra lane の exchange 追加 activate。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "btc", "eth", "sol", "doge", "exchange").tween("dailyDelta", 50, 68).tween("volume24h", 0, 780000000).tween("portfolioValue", 42580000, 43420000).badge("市場"))
+  .phase("p3", {
+    duration: 2200,
+    title: "個別詳細 (RPC balance 照会)",
+    body: "Infura RPC で eth_call balance query 実行、 on-chain 残高と wallet 表示を照合。 portfolioValue 43420000 → 43680000 tween (countup 微増 = 手数料調整反映)、 volume24h 780000000 → 920000000 tween (継続活発)、 node lane activate、 exchange → node の accent edge で照合 flow。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "btc", "eth", "sol", "doge", "exchange", "node").tween("portfolioValue", 43420000, 43680000).tween("volume24h", 780000000, 920000000).badge("詳細"))
+  .phase("p4", {
+    duration: 1800,
+    title: "集計完了",
+    body: "chain (Ethereum L1) から最終 block 番号取得、 portfolio 評価完了。 dailyDelta 68 → 72 tween (gauge 針最高値、 +2.85% 上昇)、 portfolioValue 43680000 → 43810000 tween (最終 +230 万円)、 volume24h 920000000 → 985000000 tween (bar 最大付近)、 8 shape 全 active、 全 readout 最終値表示。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "btc", "eth", "sol", "doge", "exchange", "node", "chain").tween("dailyDelta", 68, 72).tween("portfolioValue", 43680000, 43810000).tween("volume24h", 920000000, 985000000).badge("集計"))
   .build();
 
 /**
