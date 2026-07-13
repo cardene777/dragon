@@ -883,14 +883,15 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
  *     renderOffsetX/Y で見た目上の円周配置に。
  */
 export const radialHubAndSpoke = diagram("interactive-radial-hub", {
-  topic: "radialNodes(6, 90) で 6 spoke + hub → 6 spoke edge の 真の hub-and-spoke network diagram",
+  topic: "hub-and-spoke を 2-lane (Hub center / Spokes 周辺 6) 分散、 radialNodes + hub → 6 spoke edge の 真の network diagram",
 })
-  .lane("l", { x: 0, width: 480 })
-  .node("hub", { lane: "l", stack: 0, kind: "card", title: "Hub", subtitle: "center" })
+  .lane("hub", { x: 0, width: 200 })
+  .lane("spokes", { x: 240, width: 480 })
+  .node("hub", { lane: "hub", stack: 0, kind: "card", title: "Hub", subtitle: "center · 6 spoke に fan-out" })
   .radialNodes(6, 90, (i, angleDeg, ox, oy) => ({
     id: `spoke-{i}`,
-    lane: "l",
-    stack: i + 1,
+    lane: "spokes",
+    stack: i,
     kind: "card" as const,
     title: `#{i}`,
     subtitle: `deg={r}°`,
@@ -1153,12 +1154,14 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "treeNodes(3, 2) で 7 node + 6 edge (parent → 2 children × 3 level) の 真の 2 分木 tree diagram",
+  topic: "decision tree 7 node を 3-lane (Root level 0 / Mid level 1 / Leaf level 2) tree depth 別分散、 treeNodes template で lane 動的割当、 6 edge で 2 分木構造明示",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("root", { x: 0, width: 200 })
+  .lane("mid", { x: 240, width: 200 })
+  .lane("leaf", { x: 480, width: 240 })
   .treeNodes(3, 2, 70, 80, (level, pos, i, ox, oy) => ({
     id: `node-{i}`,
-    lane: "l",
+    lane: level === 0 ? "root" : level === 1 ? "mid" : "leaf",
     stack: i,
     kind: "card" as const,
     title: `L{r}P{c}`,
@@ -2949,9 +2952,12 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
  * 98. chess-board = 8×8 chess board with starting position。
  */
 export const chessStartingBoard = diagram("interactive-chess-board", {
-  topic: "8×8 chess board with 32 pieces starting position (unicode ♔♕♖♗♘♙ / ♚♛♜♝♞♟)",
+  topic: "32 chess piece を 4-lane (Black back rank / Black pawns / White pawns / White back rank) rank 別分散、 chessBoard readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("blackBack", { x: 0, width: 180 })
+  .lane("blackPawn", { x: 200, width: 180 })
+  .lane("whitePawn", { x: 400, width: 180 })
+  .lane("whiteBack", { x: 600, width: 180 })
   .arraySignal("pieces", [
     // Black back rank (rank 8)
     ["a", 8, "♜"], ["b", 8, "♞"], ["c", 8, "♝"], ["d", 8, "♛"], ["e", 8, "♚"], ["f", 8, "♝"], ["g", 8, "♞"], ["h", 8, "♜"],
@@ -2962,7 +2968,14 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     // White back rank (rank 1)
     ["a", 1, "♖"], ["b", 1, "♘"], ["c", 1, "♗"], ["d", 1, "♕"], ["e", 1, "♔"], ["f", 1, "♗"], ["g", 1, "♘"], ["h", 1, "♖"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Chess board", subtitle: "32 pieces starting position" })
-  .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position" })
-  .phase("p", { duration: 1200, title: "chess board", body: "8×8 square に 32 piece (starting position)、 light (cream) / dark (brown) square + unicode piece、 boardgame 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("chess"))
+  .node("blackBackNode", { lane: "blackBack", stack: 0, kind: "card", title: "Black back (rank 8)", subtitle: "♜♞♝♛♚♝♞♜ · 8 pieces" })
+  .node("blackPawnNode", { lane: "blackPawn", stack: 0, kind: "card", title: "Black pawns (rank 7)", subtitle: "♟×8" })
+  .node("whitePawnNode", { lane: "whitePawn", stack: 0, kind: "card", title: "White pawns (rank 2)", subtitle: "♙×8" })
+  .node("whiteBackNode", { lane: "whiteBack", stack: 0, kind: "card", title: "White back (rank 1)", subtitle: "♖♘♗♕♔♗♘♖ · 8 pieces" })
+  .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position (8×8 board)" })
+  .phase("p", {
+    duration: 1200,
+    title: "chess rank split",
+    body: "4-lane (Black back rank 8 / Black pawns rank 7 / White pawns rank 2 / White back rank 1) で 32 piece を rank 別分散、 各 rank 個別 card で piece 明示、 chessBoard readout も併存で 8×8 board 表示、 rank 分類と board 全体観の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("blackBackNode", "blackPawnNode", "whitePawnNode", "whiteBackNode").badge("chess"))
   .build();
