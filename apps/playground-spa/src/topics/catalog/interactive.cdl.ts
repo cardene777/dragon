@@ -3863,3 +3863,127 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     body: "totalShares を 300 → 384 まで tween、 Reddit も active、 4 platform 全 highlight、 384 shares で定着。 iteration 7 完遂 = 動き + 日本語の 15 diagram フル対応。",
   }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").tween("totalShares", 300, 384).badge("バズ"))
   .build();
+
+/**
+ * 127. exemplar-payment-flow = 実 payment 処理シナリオ (受付 → 決済処理 → 完了 の 3 phase)、 diagram flow と readout metric が phase 毎に連動して visually 変化する pattern SSOT。
+ * iteration 7 catalog redesign § PR-B exemplar 1、 「real scenario + meaningful readout linkage + visible animation」 の設計 pattern。
+ */
+export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", {
+  topic: "payment 処理シナリオ 実例 = 3 phase (受付 → 決済処理 → 完了) の flow を 4-lane system + gauge/stat/bar readout で live metric 可視化、 tween した数値が readout に直接反映される exemplar",
+})
+  .lane("user", { x: 0, width: 180 })
+  .lane("gateway", { x: 200, width: 200 })
+  .lane("provider", { x: 420, width: 200 })
+  .lane("bank", { x: 640, width: 180 })
+  .state("txCount", { initial: 0 })
+  .state("successRate", { initial: 100 })
+  .state("latency", { initial: 50 })
+  .node("userCard", { lane: "user", stack: 0, kind: "actor", title: "顧客", subtitle: "決済 API 呼出 · tx={txCount} 件" })
+  .node("gwCard", { lane: "gateway", stack: 0, kind: "function", title: "API Gateway", subtitle: "認証 + rate limit · latency {latency}ms" })
+  .node("providerCard", { lane: "provider", stack: 0, kind: "function", title: "Stripe (Provider)", subtitle: "card 認証 + 3DS · 成功率 {successRate}%" })
+  .node("bankCard", { lane: "bank", stack: 0, kind: "storage", title: "銀行決済", subtitle: "資金移動 + 記帳" })
+  .edge("userCard", "gwCard", { label: "POST /pay", tone: "info" })
+  .edge("gwCard", "providerCard", { label: "認証転送", tone: "info" })
+  .edge("providerCard", "bankCard", { label: "決済確定", tone: "success" })
+  .readout.gauge("successGauge", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" })
+  .readout.stat("txStat", { source: "txCount", unit: " 件", caption: "処理済 tx 数", label: "累計 tx" })
+  .readout.bar("latencyBar", { source: "latency", min: 0, max: 300, color: "#f97316", label: "latency ms" })
+  .phase("p1", {
+    duration: 2000,
+    title: "受付",
+    body: "顧客が決済 API 呼出、 API Gateway が受付、 txCount を 0 → 10 まで tween、 gauge は 100% (成功率初期値)、 latency 50ms (低負荷)。",
+  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard").tween("txCount", 0, 10).tween("latency", 50, 50).badge("受付"))
+  .phase("p2", {
+    duration: 2500,
+    title: "決済処理",
+    body: "Provider に転送、 pipeline 全 active、 txCount 10 → 50 tween、 latency 50 → 180ms tween (負荷上昇で bar が伸びる)、 successRate 100 → 95% tween (gauge の緑針が下がる)。",
+  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard", "providerCard").tween("txCount", 10, 50).tween("latency", 50, 180).tween("successRate", 100, 95).badge("処理中"))
+  .phase("p3", {
+    duration: 1500,
+    title: "決済完了",
+    body: "銀行で確定、 4 lane 全 active、 txCount 50 → 100 tween、 latency 180 → 60ms tween (バッファ解消)、 successRate 95 → 98% tween (再試行成功で回復)。",
+  }, (p: PhaseBuilder) => p.activate("userCard", "gwCard", "providerCard", "bankCard").tween("txCount", 50, 100).tween("latency", 180, 60).tween("successRate", 95, 98).badge("完了"))
+  .build();
+
+/**
+ * 128. exemplar-login-flow = 実 login 認証シナリオ (要求 → 検証 → セッション発行)、 3 phase の flow と readout (countup / stat / traffic-light) が連動、 authStatus が state で 0→1→2 に遷移して traffic-light readout が視覚変化。
+ * iteration 7 catalog redesign § PR-B exemplar 2、 exemplar pattern SSOT 2 個目。
+ */
+export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
+  topic: "login 認証シナリオ 実例 = 3 phase (要求 → 検証 → セッション発行) の flow を 4-lane + countup/stat/traffic-light readout で live 認証状態可視化、 authStatus tween で traffic-light が緑/黄/赤 に変化",
+})
+  .lane("user", { x: 0, width: 180 })
+  .lane("auth", { x: 200, width: 200 })
+  .lane("session", { x: 420, width: 200 })
+  .lane("response", { x: 640, width: 180 })
+  .state("successCount", { initial: 0 })
+  .state("sessionActive", { initial: 0 })
+  .state("authStatus", { initial: 0 })
+  .node("userInput", { lane: "user", stack: 0, kind: "actor", title: "ユーザ入力", subtitle: "email + password 送信" })
+  .node("authApi", { lane: "auth", stack: 0, kind: "function", title: "Auth API", subtitle: "credential 検証 · status {authStatus}" })
+  .node("sessionStore", { lane: "session", stack: 0, kind: "storage", title: "セッション Store", subtitle: "JWT 発行 · active {sessionActive}" })
+  .node("responseCard", { lane: "response", stack: 0, kind: "function", title: "Response", subtitle: "token 返却 · success {successCount}" })
+  .edge("userInput", "authApi", { label: "POST /login", tone: "info" })
+  .edge("authApi", "sessionStore", { label: "検証成功", tone: "success" })
+  .edge("sessionStore", "responseCard", { label: "JWT 発行", tone: "success" })
+  .readout.countup("successCU", { source: "successCount", unit: " 件", label: "認証成功" })
+  .readout.stat("activeStat", { source: "sessionActive", unit: " session", caption: "有効 session 数", label: "active" })
+  .readout.trafficLight("authTL", { source: "authStatus", label: "認証 status (0/1/2)" })
+  .phase("p1", {
+    duration: 1500,
+    title: "認証要求",
+    body: "ユーザが credential 送信、 User + Auth lane active、 authStatus は 0 (idle) で traffic-light は赤、 successCount + sessionActive は 0。",
+  }, (p: PhaseBuilder) => p.activate("userInput", "authApi").set("authStatus", 0).badge("要求"))
+  .phase("p2", {
+    duration: 2000,
+    title: "検証中",
+    body: "Auth API が credential 照合、 authStatus を 0 → 1 tween で traffic-light が赤 → 黄 に変化、 session lane まだ未 activate、 検証結果待ち。",
+  }, (p: PhaseBuilder) => p.activate("userInput", "authApi").tween("authStatus", 0, 1).badge("検証"))
+  .phase("p3", {
+    duration: 1500,
+    title: "セッション発行",
+    body: "認証成功、 authStatus を 1 → 2 tween で traffic-light が黄 → 緑、 4 lane 全 active、 successCount 0 → 1 tween で countup が動的表示、 sessionActive 0 → 1 tween で stat 更新。",
+  }, (p: PhaseBuilder) => p.activate("userInput", "authApi", "sessionStore", "responseCard").tween("authStatus", 1, 2).tween("successCount", 0, 1).tween("sessionActive", 0, 1).badge("発行"))
+  .build();
+
+/**
+ * 129. exemplar-notification-flow = 実 push 通知配信シナリオ (event → queue → service → device 配信)、 3 phase の flow と readout (countup / bar / gauge) が連動、 queued/delivered/failed 数を tween で連続変化。
+ * iteration 7 catalog redesign § PR-B exemplar 3、 exemplar pattern SSOT 3 個目 (最終)。
+ */
+export const exemplarNotificationFlow = diagram("interactive-exemplar-notification-flow", {
+  topic: "push 通知配信シナリオ 実例 = 3 phase (event → 配信 → retry) の flow を 4-lane + countup/bar/gauge readout で配信 metrics 可視化、 queued/delivered/failed を tween で連続変化",
+})
+  .lane("event", { x: 0, width: 180 })
+  .lane("queue", { x: 200, width: 200 })
+  .lane("service", { x: 420, width: 200 })
+  .lane("device", { x: 640, width: 180 })
+  .state("queued", { initial: 0 })
+  .state("delivered", { initial: 0 })
+  .state("failed", { initial: 0 })
+  .state("deliveryRate", { initial: 0 })
+  .node("eventCard", { lane: "event", stack: 0, kind: "event", title: "◆ event 発火", subtitle: "新着 message · queue 100 件" })
+  .node("queueCard", { lane: "queue", stack: 0, kind: "storage", title: "Kafka Queue", subtitle: "queued {queued} 件 · pending" })
+  .node("serviceCard", { lane: "service", stack: 0, kind: "function", title: "通知サービス (FCM)", subtitle: "配信 {delivered} 件 · 失敗 {failed} 件" })
+  .node("deviceCard", { lane: "device", stack: 0, kind: "actor", title: "ユーザ端末", subtitle: "受信 · retry 対応" })
+  .edge("eventCard", "queueCard", { label: "enqueue", tone: "info" })
+  .edge("queueCard", "serviceCard", { label: "dequeue", tone: "success" })
+  .edge("serviceCard", "deviceCard", { label: "配信", tone: "success" })
+  .readout.countup("deliveredCU", { source: "delivered", unit: " 件", label: "配信済" })
+  .readout.bar("queuedBar", { source: "queued", min: 0, max: 100, color: "#f97316", label: "queue 残" })
+  .readout.gauge("rateGauge", { source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信成功率 %" })
+  .phase("p1", {
+    duration: 1500,
+    title: "event 発火",
+    body: "新着 event 発生、 Event + Queue lane active、 queued を 0 → 100 tween で bar が最大まで伸びる、 delivered/failed は 0、 deliveryRate 0%。",
+  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard").tween("queued", 0, 100).set("delivered", 0).set("failed", 0).set("deliveryRate", 0).badge("event"))
+  .phase("p2", {
+    duration: 2500,
+    title: "配信中",
+    body: "通知サービスが処理、 4 lane 全 active、 queued 100 → 8 tween (bar 縮小)、 delivered 0 → 92 tween (countup 加速)、 failed 0 → 8 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。",
+  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard", "serviceCard", "deviceCard").tween("queued", 100, 8).tween("delivered", 0, 92).tween("failed", 0, 8).tween("deliveryRate", 0, 92).badge("配信"))
+  .phase("p3", {
+    duration: 1500,
+    title: "リトライ",
+    body: "失敗 8 件を retry、 device lane 強調、 delivered 92 → 98 tween (retry 成功で加算)、 failed 8 → 2 tween、 queued 8 → 0 tween、 deliveryRate 92 → 98% tween (gauge 針最終)。",
+  }, (p: PhaseBuilder) => p.activate("eventCard", "queueCard", "serviceCard", "deviceCard").tween("delivered", 92, 98).tween("failed", 8, 2).tween("queued", 8, 0).tween("deliveryRate", 92, 98).badge("retry"))
+  .build();
