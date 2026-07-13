@@ -502,21 +502,30 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
  *     time signal 経由で dyn-* shape を動的に駆動。
  */
 export const timelineDrive = diagram("interactive-timeline-drive", {
-  topic: "timeline (play/pause/scrub/speed) で時間軸 signal、 shape を time で駆動",
+  topic: "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("time", { x: 0, width: 200 })
+  .lane("bar", { x: 240, width: 180 })
+  .lane("arc", { x: 440, width: 220 })
   .input.timeline("t", { duration: 3000, autoplay: true, loop: true, label: "Timeline" })
   .formula("bar", "t * 100")
   .formula("angle", "t * 270")
   .state("t", { initial: 0 })
   .state("bar", { initial: 0 })
   .state("angle", { initial: 0 })
-  .node("r", { lane: "l", stack: 0, kind: "dyn-rect", title: "Bar", w: 60, h: 200,
+  .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline signal", subtitle: "t (0-1 loop 3s autoplay)" })
+  .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 60, h: 200,
     shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#2d6a8f" } })
-  .node("a", { lane: "l", stack: 1, kind: "dyn-arc", title: "Arc", w: 140, h: 140,
+  .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc (dial)", subtitle: "angle = t * 270", w: 140, h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
+  .edge("timeNode", "r", { label: "t → bar (*100)", tone: "info" })
+  .edge("timeNode", "a", { label: "t → angle (*270)", tone: "accent" })
   .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
-  .phase("p", { duration: 1500, title: "timeline signal で shape 駆動", body: "play / pause / scrub / speed で time を制御、 formula 経由で rect fill / arc angle が同時追随。" }, (p: PhaseBuilder) => p.activate("r", "a").badge("timeline"))
+  .phase("p", {
+    duration: 1500,
+    title: "timeline fan-out",
+    body: "3-lane (Timeline control / Rect shape / Arc shape) で time signal → 2 shape の 1:N fan-out を分散、 2 edge (t→bar info / t→angle accent) で formula dependency 明示、 play/pause/scrub で time 制御、 rect fill + arc angle が同時追随、 timeline dataflow を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a").badge("timeline"))
   .build();
 
 /**
@@ -550,9 +559,12 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
  * 21. new input widgets = range / multi-select / tabs / text の合わせ技。
  */
 export const inputVariety = diagram("interactive-input-variety", {
-  topic: "range slider + multi-select + tabs + text で複雑な入力を宣言的に組合わせ",
+  topic: "4 input widget (range/multiSelect/tabs/text) を 4-lane 分散、 各 widget 個別 lane + input signal 表示",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("range", { x: 0, width: 180 })
+  .lane("multi", { x: 200, width: 180 })
+  .lane("tabs", { x: 400, width: 180 })
+  .lane("text", { x: 600, width: 180 })
   .input.range("priceRange", { min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "Price Range" })
   .input.multiSelect("tags", { options: ["new", "sale", "hot", "featured"], defaultValues: ["new"], label: "Tags" })
   .input.tabs("view", { options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" })
@@ -561,30 +573,45 @@ export const inputVariety = diagram("interactive-input-variety", {
   .state("tags", { initial: "new" })
   .state("view", { initial: "grid" })
   .state("query", { initial: "" })
-  .node("n", { lane: "l", stack: 0, kind: "card", title: "Filter", subtitle: "price {priceRange} / view {view}" })
-  .phase("p", { duration: 1500, title: "input 系 4 種", body: "range / multi-select / tabs / text の複合入力、 全て signal で bind。" }, (p: PhaseBuilder) => p.activate("n").badge("input variety"))
+  .node("rangeNode", { lane: "range", stack: 0, kind: "card", title: "Range slider", subtitle: "price = {priceRange}" })
+  .node("multiNode", { lane: "multi", stack: 0, kind: "card", title: "Multi-select", subtitle: "tags = {tags}" })
+  .node("tabsNode", { lane: "tabs", stack: 0, kind: "card", title: "Tabs", subtitle: "view = {view}" })
+  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Text input", subtitle: "query = {query}" })
+  .phase("p", {
+    duration: 1500,
+    title: "input widget 4-way split",
+    body: "4-lane (Range / MultiSelect / Tabs / Text) で 4 input widget を機能別分散、 各 widget 個別 card で bind signal 明示、 各 input が独立 signal を持つ複合入力構造を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode", "tabsNode", "textNode").badge("input variety"))
   .build();
 
 /**
  * 22. new readouts = heat cell + badge + status dot の合わせ技。
  */
 export const readoutVariety = diagram("interactive-readout-variety", {
-  topic: "heat cell + badge + status dot で 3 種類の状態表示",
+  topic: "3 readout variant (heatCell/badge/statusDot) を 3-lane 分散、 各 readout 個別 lane + temp/state signal 追随",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("heat", { x: 0, width: 220 })
+  .lane("badge", { x: 260, width: 220 })
+  .lane("dot", { x: 520, width: 220 })
   .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "Temp" })
   .input.dropdown("state", { options: ["online", "offline", "error"], defaultValue: "online", label: "State" })
   .state("temp", { initial: 42 })
   .state("state", { initial: "online" })
-  .node("n", { lane: "l", stack: 0, kind: "card", title: "Server", subtitle: "temp {temp} state {state}" })
-  .readout.heatCell("tempHeat", { source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "Temp" })
-  .readout.badge("tempBadge", { source: "temp", label: "Value" })
+  .node("heatNode", { lane: "heat", stack: 0, kind: "card", title: "Heat cell", subtitle: "temp = {temp} · 色 gradient" })
+  .node("badgeNode", { lane: "badge", stack: 0, kind: "card", title: "Badge (pill)", subtitle: "temp = {temp} · number pill" })
+  .node("dotNode", { lane: "dot", stack: 0, kind: "card", title: "Status dot", subtitle: "state = {state} · online/offline/error" })
+  .readout.heatCell("tempHeat", { source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "Temp gradient" })
+  .readout.badge("tempBadge", { source: "temp", label: "Value pill" })
   .readout.statusDot("statusRead", { source: "state", map: [
     { value: "online", color: "#22c55e", label: "Online" },
     { value: "offline", color: "#94a3b8", label: "Offline" },
     { value: "error", color: "#ef4444", label: "Error" },
-  ], label: "State" })
-  .phase("p", { duration: 1500, title: "readout 系 3 種", body: "heat cell で色 gradient、 badge で pill、 status dot で state 表示。" }, (p: PhaseBuilder) => p.activate("n").badge("readout variety"))
+  ], label: "State dot" })
+  .phase("p", {
+    duration: 1500,
+    title: "readout variant split",
+    body: "3-lane (Heat cell / Badge / Status dot) で 3 readout variant を機能別分散、 各 readout 個別 card で signal 明示、 temp slider → heat + badge / state dropdown → dot が追随、 readout 種別を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode").badge("readout variety"))
   .build();
 
 /**
