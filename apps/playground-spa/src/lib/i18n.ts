@@ -230,6 +230,11 @@ export const ITEM_NAME_JA: Record<string, string> = {
   exemplarLoginFlow: "実例: ログイン認証 (要求 → 検証 → セッション発行)",
   exemplarNotificationFlow: "実例: push 通知配信 (event → 配信 → リトライ)",
 
+  // iteration 8 wave 8-A redesign (fintech / crypto 実シナリオ、 exemplar v2 pattern 適用)
+  eip1559GasFlow: "実例: Ethereum EIP-1559 gas 動的計算 (署名 → mempool → 採掘 → 確定)",
+  portfolioDonut: "実例: 四半期 portfolio リバランス (現状 → 判定 → 執行 → 反映)",
+  cryptoWallet: "実例: DeFi wallet 日次モニター (確認 → 市場更新 → 詳細 → 集計)",
+
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
   styleDottedFlow: "dotted-flow スタイル (点線 + 粒子)",
