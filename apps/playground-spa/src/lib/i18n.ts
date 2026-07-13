@@ -234,6 +234,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   eip1559GasFlow: "実例: Ethereum EIP-1559 gas 動的計算 (署名 → mempool → 採掘 → 確定)",
   portfolioDonut: "実例: 四半期 portfolio リバランス (現状 → 判定 → 執行 → 反映)",
   cryptoWallet: "実例: DeFi wallet 日次モニター (確認 → 市場更新 → 詳細 → 集計)",
+  revenueKpiCard: "実例: SaaS 月次 revenue クロージング (前月 → 当月 → 前年比 → 判断)",
+  priceCandlestick: "実例: 個人投資家 日次 trading (寄付 → 上昇 → 押し目 → 引け)",
+  productPriceTag: "実例: EC ブラックフライデー ダイナミック プライシング (通常 → セール → 深化 → 在庫連動)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
