@@ -203,6 +203,28 @@ export const ITEM_NAME_JA: Record<string, string> = {
   mixedTweenSet: "tween + set 併用",
   tweenChain: "tween 連鎖",
 
+  // interactive iteration 7 (15 catalog、 混合 5 テーマ)
+  // wave 1 messaging
+  voiceMessagePlayback: "音声メッセージ再生 (波形 + 進捗)",
+  teamThreadSummary: "チームスレッド概要 (未読 + 参加者)",
+  dmReadReceipt: "DM 既読状態 (送信 → 配信 → 既読)",
+  // wave 2 form
+  formPasswordCheck: "パスワード強度チェック (5 段階)",
+  loginOtpVerify: "OTP ログイン検証 (6 桁入力)",
+  profileAvatarUpload: "プロフィール画像アップロード",
+  // wave 3 monitoring
+  prodLogTail: "本番ログ tail (レベル別)",
+  opsAlertBanner: "運用アラートバナー (重要度切替)",
+  serviceHealthGrid: "サービス健全性グリッド",
+  // wave 4 ecommerce
+  checkoutCartSummary: "カート集計 (小計 + 送料 + 合計)",
+  saasPricingTier: "SaaS 料金プラン比較",
+  checkoutCouponApply: "クーポン適用フロー",
+  // wave 5 editorial
+  blogArticlePreview: "ブログ記事プレビュー",
+  docsTocNav: "ドキュメント TOC ナビ",
+  socialShareButtons: "SNS シェアボタン",
+
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
   styleDottedFlow: "dotted-flow スタイル (点線 + 粒子)",
