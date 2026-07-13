@@ -706,21 +706,28 @@ const cases = [
   },
   {
     diagramId: "interactive-alert-notification",
-    label: "notification: card + title + body 描画 (data-cdl-kind=warn)",
+    label: "alert-notification v2: 6 shape (prod / sensor / pager / slack / onCall / manager) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const kind = await page.$eval('[data-cdl-readout="nt"]', (el) => el.getAttribute("data-cdl-kind"));
-      return { actual: kind === "warn", expected: true };
+      const ids = ["prod", "sensor", "pager", "slack", "onCall", "manager"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {
     diagramId: "interactive-commit-diff",
-    label: "diff-counter: +120 / -45 が row に表示",
+    label: "commit-diff v2: 6 shape (dev / laptop / github / ci / db / checker) 描画",
     setup: async (page) => { await page.waitForTimeout(200); },
     assert: async (page) => {
-      const add = await page.$eval('[data-cdl-readout="dc"] .cdl-ip-readout-diff-counter-add', (el) => el.textContent ?? "");
-      const del = await page.$eval('[data-cdl-readout="dc"] .cdl-ip-readout-diff-counter-del', (el) => el.textContent ?? "");
-      return { actual: add === "+120" && del === "-45", expected: true };
+      const ids = ["dev", "laptop", "github", "ci", "db", "checker"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {
