@@ -124,18 +124,29 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
  * 7. XY pad = 2 軸選択、 stat readout で x/y を表示。
  */
 export const xypadNavigate = diagram("interactive-xypad-nav", {
-  topic: "XY pad で 2 軸座標を単一 signal に保持、 stat readout で数値化",
+  topic: "XY pad 2D 座標を 4-lane quadrant (Q1/Q2/Q3/Q4) 分散、 現在 pos を center indicator + stat readout で数値化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("q2", { x: 0, width: 160 })
+  .lane("q1", { x: 180, width: 160 })
+  .lane("q3", { x: 360, width: 160 })
+  .lane("q4", { x: 540, width: 160 })
   .input.xypad("pos", {
     xMin: 0, xMax: 100, yMin: 0, yMax: 100,
     defaultX: 50, defaultY: 50,
     label: "Position",
   })
   .state("pos", { initial: "50,50" })
-  .node("indicator", { lane: "l", stack: 0, kind: "card", title: "Position", subtitle: "{pos}" })
+  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2 (x<50, y>50)", subtitle: "upper-left" })
+  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1 (x>50, y>50)", subtitle: "upper-right" })
+  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3 (x<50, y<50)", subtitle: "lower-left" })
+  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4 (x>50, y<50)", subtitle: "lower-right" })
+  .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Current pos", subtitle: "{pos} (default center → Q1 boundary)" })
   .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
-  .phase("p", { duration: 1500, title: "XY pad = 2 軸 pointer 選択", body: "pad 内をクリック / drag すると x,y 座標が単一 signal に保持される、 stat readout に反映。" }, (p: PhaseBuilder) => p.activate("indicator").badge("xypad"))
+  .phase("p", {
+    duration: 1500,
+    title: "quadrant map",
+    body: "4-lane (Q2 左上 / Q1 右上 / Q3 左下 / Q4 右下) で 2D 座標空間を quadrant 分散、 各 quadrant 個別 card + 現在 pos indicator (default 50,50 = 中心)、 stat readout で pos 数値化、 座標分類と数値表示の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("q2Node", "q1Node", "q3Node", "q4Node", "indicator").badge("xypad"))
   .build();
 
 /**
@@ -1806,16 +1817,25 @@ export const worldMapPins = diagram("interactive-world-map", {
  * 80. priority-badge = issue priority、 dropdown で high/med/low 切替 → badge + text 追随。
  */
 export const issuePriorityBadge = diagram("interactive-issue-priority", {
-  topic: "issue priority を dropdown で high/med/low 切替 → badge の色 + icon + label 追随",
+  topic: "issue priority を 3-lane (High ▲ / Med ● / Low ▼) 分散、 現在選択 priority を currentIssue node で明示、 priorityBadge readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("high", { x: 0, width: 200 })
+  .lane("med", { x: 240, width: 200 })
+  .lane("low", { x: 480, width: 200 })
   .input.dropdown("prio", { options: ["high", "med", "low"], defaultValue: "high", label: "Priority" })
   .input.text("desc", { defaultValue: "Fix crash on startup", placeholder: "Issue description", maxLength: 60, label: "Description" })
   .state("prio", { initial: "high" })
   .state("desc", { initial: "Fix crash on startup" })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Issue", subtitle: "priority: {prio}" })
-  .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority" })
-  .phase("p", { duration: 1200, title: "priority badge", body: "dropdown で high/med/low 切替 → badge の 色 (red/yellow/gray) + icon (▲/●/▼) + text がリアルタイム追随、 issue tracker 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("issue"))
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "▲ High priority", subtitle: "red · crash / regression" })
+  .node("medNode", { lane: "med", stack: 0, kind: "card", title: "● Med priority", subtitle: "yellow · normal bug" })
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low priority", subtitle: "gray · nice-to-have" })
+  .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current Issue", subtitle: "prio: {prio} · {desc}" })
+  .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority (badge + icon + text)" })
+  .phase("p", {
+    duration: 1200,
+    title: "priority split",
+    body: "3-lane (High red ▲ / Med yellow ● / Low gray ▼) で 3 priority level を分散、 各 level 個別 card + 現在 issue の位置 (default=high lane) を currentIssue card で明示、 priorityBadge readout も併存で dropdown 追随 badge 表示、 priority 分類と現在 state の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("highNode", "medNode", "lowNode", "currentIssue").badge("issue"))
   .build();
 
 /**
@@ -2160,9 +2180,11 @@ export const globalTimezoneClock = diagram("interactive-timezone-clock", {
  * 94. form-summary = signup form の 5 field 送信内容 summary。
  */
 export const signupFormSummary = diagram("interactive-signup-form", {
-  topic: "signup form の 5 field 送信内容を dl / dt / dd form summary で表示",
+  topic: "signup form 5 field を 3-lane (Personal / Contact / Prefs) semantic 分類、 各 field 個別 card、 formSummary readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("personal", { x: 0, width: 220 })
+  .lane("contact", { x: 260, width: 220 })
+  .lane("prefs", { x: 520, width: 200 })
   .arraySignal("fields", [
     ["Name", "Alice Wonderland"],
     ["Email", "alice@example.com"],
@@ -2170,9 +2192,17 @@ export const signupFormSummary = diagram("interactive-signup-form", {
     ["Country", "Japan"],
     ["Newsletter", "Yes"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Signup summary", subtitle: "5 fields" })
-  .readout.formSummary("fs", { source: "fields", color: "#2563eb", label: "Submission" })
-  .phase("p", { duration: 1200, title: "form summary", body: "[[fieldName, value], ...] を dl / dt (key) / dd (value) semantic markup で 2 column layout 表示、 form confirmation 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("form"))
+  .node("nameNode", { lane: "personal", stack: 0, kind: "card", title: "Name", subtitle: "Alice Wonderland" })
+  .node("ageNode", { lane: "personal", stack: 1, kind: "card", title: "Age", subtitle: "28" })
+  .node("emailNode", { lane: "contact", stack: 0, kind: "card", title: "Email", subtitle: "alice@example.com" })
+  .node("countryNode", { lane: "contact", stack: 1, kind: "card", title: "Country", subtitle: "Japan" })
+  .node("newsletterNode", { lane: "prefs", stack: 0, kind: "card", title: "Newsletter", subtitle: "Yes (opt-in)" })
+  .readout.formSummary("fs", { source: "fields", color: "#2563eb", label: "Submission (dl/dt/dd)" })
+  .phase("p", {
+    duration: 1200,
+    title: "form category split",
+    body: "3-lane (Personal Name+Age / Contact Email+Country / Prefs Newsletter) で 5 field を semantic 分類、 各 field 個別 card で key/value 明示、 formSummary readout も併存で dl/dt/dd 表示、 field 分類と summary の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("nameNode", "ageNode", "emailNode", "countryNode", "newsletterNode").badge("form"))
   .build();
 
 /**
