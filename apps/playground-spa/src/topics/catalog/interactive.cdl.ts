@@ -947,24 +947,29 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
  * 31. renderOffset signal binding = slider で node が動く、 renderOffsetX/Y に signal template。
  */
 export const renderOffsetDrift = diagram("interactive-render-offset", {
-  topic: "slider で renderOffsetX の signal を変えると node が横に drift、 signal 変化に追随",
+  topic: "renderOffset bind を 2-lane (Anchor fixed / Floater drift) 分散、 anchor は固定、 floater は renderOffset signal 追随",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("anchor", { x: 0, width: 240 })
+  .lane("floater", { x: 300, width: 300 })
   .input.slider("dx", { min: -80, max: 80, defaultValue: 0, label: "Drift X" })
   .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "Drift Y" })
   .state("dx", { initial: 0 })
   .state("dy", { initial: 0 })
-  .node("anchor", { lane: "l", stack: 0, kind: "card", title: "Anchor", subtitle: "固定" })
+  .node("anchor", { lane: "anchor", stack: 0, kind: "card", title: "Anchor (constant)", subtitle: "固定位置、 signal bind なし" })
   .node("floater", {
-    lane: "l",
-    stack: 1,
+    lane: "floater",
+    stack: 0,
     kind: "card",
-    title: "Floater",
+    title: "Floater (drift)",
     subtitle: "dx={dx} · dy={dy}",
     renderOffsetX: "{dx}",
     renderOffsetY: "{dy}",
   })
-  .phase("p", { duration: 1200, title: "reactive 位置", body: "renderOffsetX/Y に signal template、 slider 変化で node が実際に横 / 縦に drift。" }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
+  .phase("p", {
+    duration: 1200,
+    title: "fixed vs drift",
+    body: "2-lane (Anchor / Floater) で renderOffset bind の有無を対比、 anchor は lane 固定位置、 floater は renderOffsetX/Y に signal template、 slider 変化で floater が実際に横 / 縦 drift、 lane 分割で reactive vs constant を可視化。",
+  }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
   .build();
 
 /**
@@ -1179,23 +1184,34 @@ export const decisionTree = diagram("interactive-decision-tree", {
  * 37. radar chart = 5 skill dimensions を spider chart で表示。
  */
 export const skillRadar = diagram("interactive-skill-radar", {
-  topic: "5 次元 skill を radar (polygon spider chart) で可視化、 labelSource で軸名も同時表示",
+  topic: "5 skill を 3-lane (Strong ≥7 / Middle 5-6 / Weak <5) レベル別分散、 各 skill 個別 card + radar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("strong", { x: 0, width: 220 })
+  .lane("middle", { x: 260, width: 220 })
+  .lane("weak", { x: 520, width: 220 })
   .arraySignal("skills", [8, 5, 7, 3, 9])
   .arraySignal("skillNames", ["Design", "Impl", "Test", "Docs", "Debug"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Skill profile", subtitle: "avg={skills.avg} · max={skills.max}" })
-  .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 200, viewH: 200, label: "Skills" })
-  .phase("p", { duration: 1200, title: "5-dim skill", body: "radar で 5 次元 array を polygon chart 化、 labelSource で軸名 (Design/Impl/Test/Docs/Debug)。" }, (p: PhaseBuilder) => p.activate("card").badge("radar"))
+  .node("designNode", { lane: "strong", stack: 0, kind: "card", title: "Design", subtitle: "8/10 (strong)" })
+  .node("testNode", { lane: "strong", stack: 1, kind: "card", title: "Test", subtitle: "7/10 (strong)" })
+  .node("debugNode", { lane: "strong", stack: 2, kind: "card", title: "Debug", subtitle: "9/10 (max)" })
+  .node("implNode", { lane: "middle", stack: 0, kind: "card", title: "Impl", subtitle: "5/10 (middle)" })
+  .node("docsNode", { lane: "weak", stack: 0, kind: "card", title: "Docs", subtitle: "3/10 (weak, min)" })
+  .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 200, viewH: 200, label: "Skills (polygon spider)" })
+  .phase("p", {
+    duration: 1200,
+    title: "skill level split",
+    body: "3-lane (Strong ≥7 / Middle 5-6 / Weak <5) で 5 skill をレベル別分散、 各 skill 個別 card で数値明示 (Design 8 / Test 7 / Debug 9 / Impl 5 / Docs 3)、 radar readout も併存で 5 次元 polygon 表示、 skill レベル分類と polygon 全体観の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("designNode", "testNode", "debugNode", "implNode", "docsNode").badge("radar"))
   .build();
 
 /**
  * 38. bubble chart = 3D data (perf / cost / usage) の bubbles、 各点の size で 3 次元目を表現。
  */
 export const perfBubbleChart = diagram("interactive-perf-bubble", {
-  topic: "perf (x) × cost (y) × usage (bubble size) の 3D data を bubble chart で可視化",
+  topic: "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("high", { x: 0, width: 300 })
+  .lane("low", { x: 340, width: 300 })
   .arraySignal("perf", [
     [50, 20, 5],
     [70, 40, 8],
@@ -1203,7 +1219,11 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     [30, 80, 3],
     [60, 50, 7],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Perf vs Cost", subtitle: "5 workloads の 3D data" })
+  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "perf 70 · cost 40 · usage 8 (high)" })
+  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "perf 90 · cost 60 · usage 10 (max)" })
+  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "perf 60 · cost 50 · usage 7 (boundary)" })
+  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "perf 50 · cost 20 · usage 5 (low)" })
+  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "perf 30 · cost 80 · usage 3 (min)" })
   .readout.bubbleChart("bubbles", {
     source: "perf",
     xMin: 0,
@@ -1215,9 +1235,13 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     color: "#2563eb",
     viewW: 280,
     viewH: 180,
-    label: "workloads",
+    label: "workloads (3D bubble)",
   })
-  .phase("p", { duration: 1200, title: "3D bubble", body: "5 workload の (perf, cost, usage) を bubble chart で可視化、 bubble 半径 = usage 次元。" }, (p: PhaseBuilder) => p.activate("card").badge("3D bubble"))
+  .phase("p", {
+    duration: 1200,
+    title: "usage size split",
+    body: "2-lane (High usage ≥7 = 3 個 / Low usage <7 = 2 個) で 5 workload を usage 次元別分散、 各 workload 個別 card で (perf, cost, usage) 明示、 bubbleChart readout も併存で 3D bubble 表示、 usage 分類と 3D chart の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("w2", "w3", "w5", "w1", "w4").badge("3D bubble"))
   .build();
 
 /**
