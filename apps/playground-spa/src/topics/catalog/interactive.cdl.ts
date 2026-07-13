@@ -15,13 +15,20 @@ const W = 480;
  * 1. slider → node value bind (input widget primitive + reactive state)。
  */
 export const inputSliderBar = diagram("interactive-slider-bar", {
-  topic: "input.slider を signal に bind、 node subtitle が signal 変化にリアルタイム追随",
+  topic: "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("slider", { x: 0, width: 260 })
+  .lane("output", { x: 300, width: 260 })
   .input.slider("value", { min: 0, max: 100, defaultValue: 50, label: "Value" })
   .state("value", { initial: 50 })
-  .node("bar-node", { lane: "l", stack: 0, kind: "card", title: "Bar", subtitle: "value: {value}" })
-  .phase("p", { duration: 1500, title: "input.slider → signal → node subtitle", body: "slider を動かすと signal 'value' が更新、 node subtitle {value} が追随。" }, (p: PhaseBuilder) => p.activate("bar-node").badge("bind: value"))
+  .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider signal", subtitle: "value = {value}" })
+  .node("bar-node", { lane: "output", stack: 0, kind: "card", title: "Bar", subtitle: "value: {value}" })
+  .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
+  .phase("p", {
+    duration: 1500,
+    title: "signal bind flow",
+    body: "2-lane (Slider signal / Bar output) で input.slider bind の 2 step を分散、 bind edge (info tone) で signal 伝搬明示、 slider 変化で signal `value` 更新 → bar-node subtitle {value} 追随、 primitive signal binding を dataflow 化。",
+  }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node").badge("bind: value"))
   .build();
 
 /**
@@ -134,24 +141,33 @@ export const visualBindBar = diagram("interactive-visual-bar", {
  * 6. visual binding = slider → node opacity で fade in/out。
  */
 export const visualBindOpacity = diagram("interactive-visual-opacity", {
-  topic: "opacity template で 0..1 signal → node fade in/out",
+  topic: "opacity visual bind を 3-lane (Fade control / Target opacity / Reference constant) + 2 edge、 signal 追随 vs 固定の対比可視化",
 })
-  .lane("l", { x: 0, width: W })
+  .lane("control", { x: 0, width: 200 })
+  .lane("target", { x: 240, width: 220 })
+  .lane("ref", { x: 500, width: 200 })
   .input.slider("fade", { min: 0, max: 100, defaultValue: 100, label: "Opacity" })
   .formula("op", "fade / 100")
   .state("fade", { initial: 100 })
   .state("op", { initial: 1 })
+  .node("controlNode", { lane: "control", stack: 0, kind: "card", title: "Fade control", subtitle: "fade = {fade} · op = {op}" })
   .node("target", {
-    lane: "l",
+    lane: "target",
     stack: 0,
     kind: "card",
     title: "Target",
     subtitle: "opacity: {op}",
     opacity: "{op}",
   })
-  .node("ref", { lane: "l", stack: 1, kind: "card", title: "Reference", subtitle: "always visible" })
-  .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "Fade %" })
-  .phase("p", { duration: 1500, title: "opacity で fade in/out", body: "slider (0..100) で formula 'op' が 0..1 に、 target node opacity が signal に追随する。" }, (p: PhaseBuilder) => p.activate("target", "ref").badge("opacity bind"))
+  .node("ref", { lane: "ref", stack: 0, kind: "card", title: "Reference", subtitle: "always visible (opacity=1)" })
+  .edge("controlNode", "target", { label: "op bind", tone: "info" })
+  .edge("controlNode", "ref", { label: "no bind", tone: "warning" })
+  .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "Fade % gauge" })
+  .phase("p", {
+    duration: 1500,
+    title: "opacity bind vs constant",
+    body: "3-lane (Fade control / Target opacity bind / Reference constant) で opacity 追随の有無を対比、 2 edge (op bind info tone / no bind warning tone) で binding 有無を明示、 slider (0..100) 変化 → formula op (0..1) → target node opacity 追随、 ref は無反応 (constant)、 visual binding 効果を lane 対比で可視化。",
+  }, (p: PhaseBuilder) => p.activate("controlNode", "target", "ref").badge("opacity bind"))
   .build();
 
 /**
@@ -898,17 +914,17 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
  * 30. waterfall readout = 5 element を左から累積、 正 / 負 で色分け (財務 waterfall chart)。
  */
 export const arrayWaterfall = diagram("interactive-array-waterfall", {
-  topic: "arraySignal([100,-30,50,-20,40]) を waterfall readout で累積 bar chart 化",
+  topic: "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("pos", { x: 0, width: 300 })
+  .lane("neg", { x: 340, width: 300 })
   .arraySignal("changes", [100, -30, 50, -20, 40])
-  .node("card", {
-    lane: "l",
-    stack: 0,
-    kind: "card",
-    title: "Waterfall",
-    subtitle: "final = start(0) + sum({changes.sum}) = {changes.sum}",
-  })
+  .node("pos1", { lane: "pos", stack: 0, kind: "card", title: "+100", subtitle: "step 0 (initial gain)" })
+  .node("pos2", { lane: "pos", stack: 1, kind: "card", title: "+50", subtitle: "step 2 (recovery)" })
+  .node("pos3", { lane: "pos", stack: 2, kind: "card", title: "+40", subtitle: "step 4 (final gain)" })
+  .node("neg1", { lane: "neg", stack: 0, kind: "card", title: "-30", subtitle: "step 1 (loss)" })
+  .node("neg2", { lane: "neg", stack: 1, kind: "card", title: "-20", subtitle: "step 3 (loss)" })
+  .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall summary", subtitle: "final = sum = {changes.sum}" })
   .readout.waterfall("wf", {
     source: "changes",
     min: -30,
@@ -917,10 +933,14 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     viewH: 90,
     colorPos: "#22c55e",
     colorNeg: "#ef4444",
-    label: "Changes",
+    label: "Changes (waterfall)",
   })
   .readout.arrayList("items", { source: "changes", itemTemplate: "step {i}: {item}", label: "Steps" })
-  .phase("p", { duration: 1200, title: "累積 bar", body: "waterfall で array を左から累積、 正 / 負 で色分け、 connector line で連続表示。" }, (p: PhaseBuilder) => p.activate("card").badge("waterfall"))
+  .phase("p", {
+    duration: 1200,
+    title: "positive vs negative split",
+    body: "2-lane (Positive changes 3 個 / Negative changes 2 個) で 5 waterfall element を符号別分散、 各 element 個別 card + summary card (pos lane 内)、 waterfall readout も併存で累積 bar 表示、 正/負 分類と累積 chart の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("pos1", "pos2", "pos3", "neg1", "neg2", "summary").badge("waterfall"))
   .build();
 
 /**
