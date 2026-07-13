@@ -3385,3 +3385,76 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     body: "3-lane (Sent / Delivered / Read) で message status 3 状態を state 別分散、 2 edge (delivered_at info / read_at success)、 readReceipt readout 併存で status 2 = 青 double check 表示、 state-driven visibility pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard", "readCard").badge("receipt"))
   .build();
+
+/**
+ * 115. password-strength = signup form password 強度 5 level (too weak → strong) を 3-lane (Input / Strength meter / Rules) rank-based split 分散 + passwordStrength readout 併存。 iteration 7 wave 2、 pattern taxonomy § 4 rank-based split。
+ */
+export const formPasswordCheck = diagram("interactive-form-password-check", {
+  topic: "signup form password strength 5 level を 3-lane (Input / Meter / Rules) rank-based 分散 + passwordStrength readout 併存",
+})
+  .lane("input", { x: 0, width: 220 })
+  .lane("meter", { x: 260, width: 260 })
+  .lane("rules", { x: 560, width: 260 })
+  .state("pw", { initial: 3 })
+  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ Password field", subtitle: "12 chars entered · masked" })
+  .node("meterBars", { lane: "meter", stack: 0, kind: "card", title: "4 bar segment meter", subtitle: "level 3 = good · yellow-green" })
+  .node("levelLabel", { lane: "meter", stack: 1, kind: "card", title: "Label: good", subtitle: "text tint = meter color" })
+  .node("rule1", { lane: "rules", stack: 0, kind: "card", title: "✓ ≥ 8 chars", subtitle: "pass · level ≥ 1" })
+  .node("rule2", { lane: "rules", stack: 1, kind: "card", title: "✓ mixed case", subtitle: "pass · level ≥ 2" })
+  .node("rule3", { lane: "rules", stack: 2, kind: "card", title: "✓ digit + symbol", subtitle: "pass · level ≥ 3" })
+  .edge("pwField", "meterBars", { label: "evaluate", tone: "info" })
+  .edge("meterBars", "levelLabel", { label: "annotate", tone: "success" })
+  .readout.passwordStrength("ps", { source: "pw", colorStrong: "#22c55e", colorWeak: "#ef4444", label: "Strength" })
+  .phase("p", {
+    duration: 1200,
+    title: "password rank-based",
+    body: "3-lane (Input / Strength meter / Rules) で password strength を 5 level rank 分散、 2 edge (evaluate info / annotate success)、 passwordStrength readout 併存で 4 segment meter + level label、 rank-based split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("pwField", "meterBars", "levelLabel", "rule1", "rule2", "rule3").badge("password"))
+  .build();
+
+/**
+ * 116. otp-input = login OTP 6-digit verify を 3-lane (Sent / Entry / Verified) dense sequence 分散 + otpInput readout 併存。 iteration 7 wave 2、 pattern taxonomy § 7 dense sequence。
+ */
+export const loginOtpVerify = diagram("interactive-login-otp-verify", {
+  topic: "login OTP 6-digit verify を 3-lane (Sent / Entry / Verified) dense sequence 分散 + otpInput readout 併存",
+})
+  .lane("sent", { x: 0, width: 220 })
+  .lane("entry", { x: 260, width: 260 })
+  .lane("verify", { x: 560, width: 220 })
+  .arraySignal("otp", [4, 8, 2, 1, -1, -1])
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS sent to +81-90-****-1234", subtitle: "code 6 digits · 3m TTL" })
+  .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6-box grid entry", subtitle: "4/6 entered · focus box 5" })
+  .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "Focus box 5 (empty)", subtitle: "blue border highlight" })
+  .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "Verify → login", subtitle: "auto-submit at 6/6" })
+  .edge("sentCard", "entryCard", { label: "user types", tone: "info" })
+  .edge("entryCard", "verifyCard", { label: "auto-submit", tone: "success" })
+  .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "OTP code" })
+  .phase("p", {
+    duration: 1200,
+    title: "OTP dense sequence",
+    body: "3-lane (Sent / Entry / Verified) で OTP 6-digit flow を dense sequence 分散、 2 edge (user types info / auto-submit success)、 otpInput readout 併存で 6 box grid + focus box highlight、 dense sequence pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").badge("otp"))
+  .build();
+
+/**
+ * 117. file-dropzone = profile avatar upload を 3-lane (Empty / Uploaded / Preview) state-driven visibility 分散 + fileDropzone readout 併存。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
+ */
+export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", {
+  topic: "profile avatar upload を 3-lane (Empty / Uploaded / Preview) state-driven visibility 分散 + fileDropzone readout 併存",
+})
+  .lane("empty", { x: 0, width: 240 })
+  .lane("uploaded", { x: 280, width: 240 })
+  .lane("preview", { x: 560, width: 220 })
+  .state("file", { initial: "avatar-2024.png" })
+  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "Empty state", subtitle: "dashed border · '⬆ Drop file here'" })
+  .node("uploadedCard", { lane: "uploaded", stack: 0, kind: "card", title: "◆ avatar-2024.png (245 KB)", subtitle: "solid border · filename card" })
+  .node("previewCard", { lane: "preview", stack: 0, kind: "card", title: "▶ Circle avatar preview", subtitle: "80×80 crop preview" })
+  .edge("emptyCard", "uploadedCard", { label: "drop", tone: "info" })
+  .edge("uploadedCard", "previewCard", { label: "preview", tone: "success" })
+  .readout.fileDropzone("fd", { source: "file", colorActive: "#2563eb", label: "Avatar file" })
+  .phase("p", {
+    duration: 1200,
+    title: "dropzone state visibility",
+    body: "3-lane (Empty / Uploaded / Preview) で file upload state を state-driven 分散、 2 edge (drop info / preview success)、 fileDropzone readout 併存で filename card 表示 (現在 uploaded state)、 state-driven visibility pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").badge("upload"))
+  .build();
