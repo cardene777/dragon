@@ -2171,50 +2171,79 @@ export const examGrade = diagram("interactive-exam-grade", {
  * 70. stopwatch = ms 数値 (stepper で秒指定) を MM:SS.ms display で表示。
  */
 export const timerStopwatch = diagram("interactive-timer-stopwatch", {
-  topic: "elapsed ms を stepper で操作 → MM:SS.ms 形式 stopwatch display で表示、 running toggle も",
+  topic: "stopwatch control を 3-lane (Seconds input / Running toggle / MM:SS.ms display) + 2 edge、 stepper + toggle → display fan-out、 stopwatch readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("input", { x: 0, width: 200 })
+  .lane("toggle", { x: 240, width: 200 })
+  .lane("display", { x: 480, width: 220 })
   .input.stepper("sec", { min: 0, max: 3600, step: 5, defaultValue: 125, label: "Elapsed sec" })
   .input.toggle("running", { defaultValue: true, label: "Running" })
   .state("sec", { initial: 125 })
   .state("running", { initial: "true" })
   .state("elapsed", { initial: 125000 })
   .formula("elapsed", "sec * 1000")
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Timer", subtitle: "elapsed: {sec}s, running: {running}" })
-  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "Timer" })
-  .phase("p", { duration: 1200, title: "stopwatch", body: "stepper で sec 変化 → formula で ms 変換 → MM:SS.ms display 表示、 running toggle で色が green ↔ dark 切替。" }, (p: PhaseBuilder) => p.activate("card").badge("timer"))
+  .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "sec = {sec}s (0-3600)" })
+  .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "Running toggle", subtitle: "running = {running}" })
+  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms display", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
+  .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
+  .edge("runNode", "displayNode", { label: "color", tone: "success" })
+  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "Timer (MM:SS.ms)" })
+  .phase("p", {
+    duration: 1200,
+    title: "timer signal flow",
+    body: "3-lane (Seconds / Running / Display) で stopwatch 3 component を分散、 2 edge (× 1000 info tone / color success tone) で 2 signal → 1 display の fan-in 明示、 stepper + toggle 変化で stopwatch readout の time + color が同時追随。",
+  }, (p: PhaseBuilder) => p.activate("secNode", "runNode", "displayNode").badge("timer"))
   .build();
 
 /**
  * 71. confidence-meter = ML classification confidence を slider で操作 → 3 color band 追随。
  */
 export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
-  topic: "ML classification confidence 0-100 % を slider で操作 → low/mid/high 3 color band 追随",
+  topic: "ML confidence を 3-lane (Low <40 / Mid 40-74 / High ≥75) band 別分散 + current indicator (default=high)、 confidenceMeter readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("low", { x: 0, width: 200 })
+  .lane("mid", { x: 240, width: 200 })
+  .lane("high", { x: 480, width: 220 })
   .input.slider("conf", { min: 0, max: 100, defaultValue: 82, label: "Confidence %" })
   .state("conf", { initial: 82 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "AI prediction", subtitle: "confidence: {conf}%" })
-  .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence" })
-  .phase("p", { duration: 1200, title: "confidence meter", body: "slider で confidence % 変化 → 3 range band (low<40=red / mid=yellow / high≥75=green) で bar 色 + band label が動的更新、 ML/AI 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("ML conf"))
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "Low band", subtitle: "< 40% (red · uncertain)" })
+  .node("midNode", { lane: "mid", stack: 0, kind: "card", title: "Mid band", subtitle: "40-74% (yellow · borderline)" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High band", subtitle: "≥ 75% (green · confident)" })
+  .node("currentConf", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "conf = {conf}% (default 82 → high)" })
+  .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence (3-band bar)" })
+  .phase("p", {
+    duration: 1200,
+    title: "confidence band split",
+    body: "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentConf").badge("ML conf"))
   .build();
 
 /**
  * 72. reaction-bar = social post reactions、 4 emoji + count で pill 表示。
  */
 export const postReactions = diagram("interactive-post-reactions", {
-  topic: "social post reactions を 4 emoji + count の pill list で表示",
+  topic: "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("thumb", { x: 0, width: 160 })
+  .lane("heart", { x: 180, width: 160 })
+  .lane("laugh", { x: 360, width: 160 })
+  .lane("party", { x: 540, width: 160 })
   .arraySignal("reactions", [
     ["👍", 24],
     ["❤️", 12],
     ["😂", 8],
     ["🎉", 5],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Post reactions", subtitle: "4 emoji type" })
-  .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "Reactions" })
-  .phase("p", { duration: 1200, title: "reactions", body: "[[emoji, count], ...] を pill (border color) + emoji + count で並列表示、 social media 定番の reaction UI。" }, (p: PhaseBuilder) => p.activate("card").badge("social"))
+  .node("thumbNode", { lane: "thumb", stack: 0, kind: "card", title: "👍 Thumbs up", subtitle: "24 (max)" })
+  .node("heartNode", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "12" })
+  .node("laughNode", { lane: "laugh", stack: 0, kind: "card", title: "😂 Laugh", subtitle: "8" })
+  .node("partyNode", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "5 (min)" })
+  .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "Reactions (pill list)" })
+  .phase("p", {
+    duration: 1200,
+    title: "reaction emoji split",
+    body: "4-lane (Thumbs / Heart / Laugh / Party) で 4 social reaction を emoji 別分散、 各 reaction 個別 card で count 明示、 reactionBar readout も併存で pill list 表示、 emoji 分類と reaction list の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("thumbNode", "heartNode", "laughNode", "partyNode").badge("social"))
   .build();
 
 /**
