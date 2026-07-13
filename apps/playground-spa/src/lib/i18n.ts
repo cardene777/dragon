@@ -248,6 +248,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   userAvatar: "実例: SNS 新規 onboarding avatar (作成 → デフォルト → upload → 反映)",
   teamAttendanceGrid: "実例: リモートチーム週次出勤 (月曜 → 中間 → 週末 → 給与連携)",
   teamKpiComparison: "実例: 2 チーム四半期 velocity 対決 (期首 → 月次 → 中間 → 最終)",
+  postReactions: "実例: X バズ投稿 24h reaction 時系列 (投稿 → 初動 → バズ → 落ち着き)",
+  techPills: "実例: CTO 技術選定 (要件 → 候補 → PoC → 確定)",
+  reviewerStack: "実例: 大規模 PR code review (PR open → 依頼 → review → merge)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
