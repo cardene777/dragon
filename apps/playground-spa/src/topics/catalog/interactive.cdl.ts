@@ -1963,9 +1963,10 @@ export const serverEventLog = diagram("interactive-server-event-log", {
  * 87. search-result = 5 search hit を title + snippet + url で表示。
  */
 export const searchResults = diagram("interactive-search-results", {
-  topic: "search hit 5 rows を title + snippet + url で表示",
+  topic: "search hit 5 を 2-lane (Docs 4 / Interactive tool 1) 分散、 各 hit 個別 card、 searchResult readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("docs", { x: 0, width: 340 })
+  .lane("tools", { x: 380, width: 300 })
   .arraySignal("hits", [
     ["Rust playground", "Interactive code sandbox for Rust programming language", "play.rust-lang.org"],
     ["MDN Web Docs", "Documentation for web technologies", "developer.mozilla.org"],
@@ -1973,9 +1974,17 @@ export const searchResults = diagram("interactive-search-results", {
     ["React docs", "React reference documentation", "react.dev"],
     ["Vite guide", "Frontend build tool guide", "vitejs.dev"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Search results", subtitle: "5 hits" })
-  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results" })
-  .phase("p", { duration: 1200, title: "search hits", body: "[[title, snippet, url], ...] の 5 hit を title (blue link style) + snippet + url の layout で表示、 検索結果 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("search"))
+  .node("mdnNode", { lane: "docs", stack: 0, kind: "card", title: "MDN Web Docs", subtitle: "developer.mozilla.org" })
+  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TypeScript Handbook", subtitle: "typescriptlang.org/docs" })
+  .node("reactNode", { lane: "docs", stack: 2, kind: "card", title: "React docs", subtitle: "react.dev" })
+  .node("viteNode", { lane: "docs", stack: 3, kind: "card", title: "Vite guide", subtitle: "vitejs.dev" })
+  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust playground", subtitle: "play.rust-lang.org (interactive)" })
+  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results (link + snippet + url)" })
+  .phase("p", {
+    duration: 1200,
+    title: "result category split",
+    body: "2-lane (Docs 4 hit / Interactive tool 1 hit) で 5 search result を category 別分散、 各 hit 個別 card で title + url 明示、 searchResult readout も併存で従来 list 表示、 category 分類と list 一覧の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("mdnNode", "tsNode", "reactNode", "viteNode", "rustNode").badge("search"))
   .build();
 
 /**
@@ -2021,9 +2030,11 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
  * 89. weather-forecast = 5-day weather (Mon-Fri) with icon + high/low temp。
  */
 export const weekWeather = diagram("interactive-week-weather", {
-  topic: "5-day weather forecast (Mon-Fri) を icon + 高低 temp で表示",
+  topic: "5-day weather を 3-lane (Sunny ☀ / Cloudy/Rainy / Thunder ⚡) 天気別分散、 各 day 個別 card、 weatherForecast readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("sunny", { x: 0, width: 220 })
+  .lane("cloudy", { x: 260, width: 220 })
+  .lane("thunder", { x: 520, width: 200 })
   .arraySignal("forecast", [
     ["Mon", "☀", 24, 18],
     ["Tue", "☁", 22, 17],
@@ -2031,26 +2042,42 @@ export const weekWeather = diagram("interactive-week-weather", {
     ["Thu", "⚡", 17, 13],
     ["Fri", "☀", 25, 19],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Weather", subtitle: "5-day forecast" })
-  .readout.weatherForecast("wf", { source: "forecast", label: "Week" })
-  .phase("p", { duration: 1200, title: "5-day forecast", body: "[[day, icon, high, low], ...] を 5 column (day + emoji icon + high° + low°) の weather widget layout で表示。" }, (p: PhaseBuilder) => p.activate("card").badge("weather"))
+  .node("monNode", { lane: "sunny", stack: 0, kind: "card", title: "☀ Mon", subtitle: "24°/18° (sunny)" })
+  .node("friNode", { lane: "sunny", stack: 1, kind: "card", title: "☀ Fri", subtitle: "25°/19° (sunny, week high)" })
+  .node("tueNode", { lane: "cloudy", stack: 0, kind: "card", title: "☁ Tue", subtitle: "22°/17° (cloudy)" })
+  .node("wedNode", { lane: "cloudy", stack: 1, kind: "card", title: "☂ Wed", subtitle: "19°/15° (rainy)" })
+  .node("thuNode", { lane: "thunder", stack: 0, kind: "card", title: "⚡ Thu", subtitle: "17°/13° (thunder, week low)" })
+  .readout.weatherForecast("wf", { source: "forecast", label: "Week (5-day forecast)" })
+  .phase("p", {
+    duration: 1200,
+    title: "weather split",
+    body: "3-lane (Sunny 2 day / Cloudy or Rainy 2 day / Thunder 1 day) で 5-day weather を天気別分散、 各 day 個別 card で icon + 高低 temp 明示、 weatherForecast readout も併存で 5 column widget 表示、 天気分類と日別詳細の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("monNode", "friNode", "tueNode", "wedNode", "thuNode").badge("weather"))
   .build();
 
 /**
  * 90. video-card = tutorial video 3 本 (title + duration + views)。
  */
 export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
-  topic: "tutorial video 3 本 (emoji thumbnail + title + duration + views) を list 表示",
+  topic: "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("rust", { x: 0, width: 220 })
+  .lane("ts", { x: 260, width: 220 })
+  .lane("react", { x: 520, width: 220 })
   .arraySignal("videos", [
     ["🎬", "Rust intro for beginners", "12:45", "24k"],
     ["🎥", "TypeScript deep dive", "45:20", "82k"],
     ["📺", "React hooks explained", "18:30", "156k"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tutorials", subtitle: "3 videos" })
-  .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos" })
-  .phase("p", { duration: 1200, title: "video card", body: "[[emoji, title, duration, views], ...] を thumbnail (colored + emoji + duration badge) + title + views 表示、 YouTube 定番 layout。" }, (p: PhaseBuilder) => p.activate("card").badge("video"))
+  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust intro", subtitle: "12:45 · 24k views" })
+  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TypeScript deep dive", subtitle: "45:20 · 82k views" })
+  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React hooks", subtitle: "18:30 · 156k views (top view)" })
+  .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos (thumbnail list)" })
+  .phase("p", {
+    duration: 1200,
+    title: "video topic split",
+    body: "3-lane (Rust / TypeScript / React) で 3 tutorial video を topic 別分散、 各 video 個別 card で title + duration + views 明示、 videoCard readout も併存で YouTube 定番 layout、 topic 分類と list 一覧の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("rustVideo", "tsVideo", "reactVideo").badge("video"))
   .build();
 
 /**
