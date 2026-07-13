@@ -1148,36 +1148,58 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
   .build();
 
 /**
- * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
+ * 36. decisionTree v2 = 医療 triage システムの臨床決定木 シナリオ (発熱患者を 3 level 判定で ICU/一般病棟/帰宅の 4 経路に振り分け)、 shape-person + shape-mobile-device + shape-diamond × 3 + shape-server-rack + shape-cloud の 7 shape で visual scene 化、 4 phase (受付 → 一次判定 → 二次判定 → 転帰決定) + 4 readout (traffic-light 判定 status / countup 判定件数 / gauge 判定所要時間 / stat リスクスコア) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "decision tree 7 node を 3-lane (Root level 0 / Mid level 1 / Leaf level 2) tree depth 別分散、 treeNodes template で lane 動的割当、 6 edge で 2 分木構造明示",
+  topic: "医療 triage 臨床決定木 シナリオ = 4 phase (受付 → 一次 → 二次 → 転帰) の flow を shape-* primitive 7 種で表現 + 4 readout (traffic-light / countup / gauge / stat) が tween で visually 連続変化",
 })
-  .lane("root", { x: 0, width: 200 })
-  .lane("mid", { x: 240, width: 200 })
-  .lane("leaf", { x: 480, width: 240 })
-  .treeNodes(3, 2, 70, 80, (level, pos, i, ox, oy) => ({
-    id: `node-{i}`,
-    lane: level === 0 ? "root" : level === 1 ? "mid" : "leaf",
-    stack: i,
-    kind: "card" as const,
-    title: `L{r}P{c}`,
-    subtitle: `#{i}`,
-    renderOffsetX: ox,
-    renderOffsetY: oy - 100,
-  }))
-  // completely-binary tree: 0 -> 1,2 / 1 -> 3,4 / 2 -> 5,6
-  .edge("node-0", "node-1", { label: "yes", tone: "success" })
-  .edge("node-0", "node-2", { label: "no", tone: "error" })
-  .edge("node-1", "node-3", { label: "yes", tone: "success" })
-  .edge("node-1", "node-4", { label: "no", tone: "error" })
-  .edge("node-2", "node-5", { label: "yes", tone: "success" })
-  .edge("node-2", "node-6", { label: "no", tone: "error" })
-  .phase("p", {
-    duration: 1200,
-    title: "decision tree",
-    body: "treeNodes(3, 2) で 7 node + 6 edge の完全 2 分木、 parent → 2 children × 3 level を yes/no tone (success/error) 装飾で分岐を表現。",
-  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
+  .lane("intake", { x: 0, width: 220 })
+  .lane("triage", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("phaseStatus", { initial: 0 })
+  .state("caseCount", { initial: 342 })
+  .state("elapsedSec", { initial: 0 })
+  .state("riskScore", { initial: 0 })
+  .node("patient", { lane: "intake", stack: 0, kind: "shape-person", title: "受診者 山田様", eyebrow: "patient", subtitle: "発熱 39.2℃ · 来院時刻 21:14" })
+  .node("nurse", { lane: "intake", stack: 1, kind: "shape-mobile-device", title: "看護師 tablet", eyebrow: "device", subtitle: "electronic triage form" })
+  .node("qFever", { lane: "triage", stack: 0, kind: "shape-diamond", title: "Q1: 熱 ≥ 38℃?", eyebrow: "root", subtitle: "yes → Q2 · no → Q3" })
+  .node("qBreath", { lane: "triage", stack: 1, kind: "shape-diamond", title: "Q2: 呼吸苦?", eyebrow: "mid-yes", subtitle: "yes → ICU · no → 一般病棟" })
+  .node("qBloodTest", { lane: "triage", stack: 2, kind: "shape-diamond", title: "Q3: 血液検査 異常?", eyebrow: "mid-no", subtitle: "yes → 一般病棟 · no → 帰宅" })
+  .node("emr", { lane: "outcome", stack: 0, kind: "shape-server-rack", title: "EMR system", eyebrow: "backend", subtitle: "判定 log 記録 · HL7 送信" })
+  .node("board", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "転帰 board", eyebrow: "assignment", subtitle: "ICU / 一般病棟 / 帰宅 の振り分け" })
+  .edge("patient", "nurse", { label: "問診", tone: "info" })
+  .edge("nurse", "qFever", { label: "root 判定", tone: "info" })
+  .edge("qFever", "qBreath", { label: "yes (発熱)", tone: "warning" })
+  .edge("qFever", "qBloodTest", { label: "no (平熱)", tone: "success" })
+  .edge("qBreath", "board", { label: "yes → ICU", tone: "error" })
+  .edge("qBreath", "board", { label: "no → 一般", tone: "warning" })
+  .edge("qBloodTest", "board", { label: "yes → 一般", tone: "warning" })
+  .edge("qBloodTest", "board", { label: "no → 帰宅", tone: "success" })
+  .edge("board", "emr", { label: "log 記録", tone: "accent" })
+  .readout.trafficLight("statusTL", { source: "phaseStatus", label: "triage 進行状態" })
+  .readout.countup("caseCU", { source: "caseCount", unit: " 件", label: "本日 triage 件数", decimals: 0 })
+  .readout.gauge("timeG", { source: "elapsedSec", min: 0, max: 300, color: "#f97316", label: "所要時間 (秒)" })
+  .readout.stat("riskStat", { source: "riskScore", unit: "/10", caption: "重症度 score", label: "risk" })
+  .phase("p1", {
+    duration: 1800,
+    title: "受付",
+    body: "山田様が来院、 看護師が電子 triage form 開始。 phaseStatus 0 (traffic-light 赤 = 未判定)、 elapsedSec 0 → 30 tween (bar 立上がり)、 riskScore = 0 (未評価)、 caseCount 342 保持。 intake lane full active。",
+  }, (p: PhaseBuilder) => p.activate("patient", "nurse").set("phaseStatus", 0).tween("elapsedSec", 0, 30).set("riskScore", 0).badge("受付"))
+  .phase("p2", {
+    duration: 2200,
+    title: "一次判定 (Q1: 発熱)",
+    body: "root node で熱 39.2℃ 確認 → yes 経路。 phaseStatus 0 → 1 tween (traffic-light 赤 → 黄 = 判定中)、 elapsedSec 30 → 90 tween、 riskScore 0 → 3 tween (中等度リスク表示、 stat が動的加算)、 qFever diamond activate + qFever → qBreath の warning edge highlight。",
+  }, (p: PhaseBuilder) => p.activate("patient", "nurse", "qFever", "qBreath").tween("phaseStatus", 0, 1).tween("elapsedSec", 30, 90).tween("riskScore", 0, 3).badge("Q1"))
+  .phase("p3", {
+    duration: 2200,
+    title: "二次判定 (Q2: 呼吸苦)",
+    body: "呼吸苦の主訴なし → 一般病棟経路。 phaseStatus 1 保持 (traffic-light 黄)、 elapsedSec 90 → 180 tween (gauge 針半分)、 riskScore 3 → 6 tween (中重症、 stat 更新)、 qBloodTest も参照活性化 (対比表示)、 全 3 diamond active。",
+  }, (p: PhaseBuilder) => p.activate("patient", "nurse", "qFever", "qBreath", "qBloodTest").set("phaseStatus", 1).tween("elapsedSec", 90, 180).tween("riskScore", 3, 6).badge("Q2"))
+  .phase("p4", {
+    duration: 2000,
+    title: "転帰決定",
+    body: "一般病棟入院決定、 EMR に log 記録 + 病棟送信。 phaseStatus 1 → 2 tween (traffic-light 黄 → 緑 = 完了)、 elapsedSec 180 → 210 tween (gauge 針最終、 3.5 分)、 riskScore 6 → 7 tween (最終 score)、 caseCount 342 → 343 tween (countup +1 加算)、 7 shape 全 active、 emr + board activate。",
+  }, (p: PhaseBuilder) => p.activate("patient", "nurse", "qFever", "qBreath", "qBloodTest", "emr", "board").tween("phaseStatus", 1, 2).tween("elapsedSec", 180, 210).tween("riskScore", 6, 7).tween("caseCount", 342, 343).badge("転帰"))
   .build();
 
 /**
@@ -1205,13 +1227,14 @@ export const skillRadar = diagram("interactive-skill-radar", {
   .build();
 
 /**
- * 38. bubble chart = 3D data (perf / cost / usage) の bubbles、 各点の size で 3 次元目を表現。
+ * 38. perfBubbleChart v2 = production infra 週次 workload capacity planning シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-iot-sensor + shape-gear の 6 shape で visual scene 化、 4 phase (メトリクス取得 → workload 分析 → 需給判定 → 最適化) + 4 readout (bubbleChart / gauge 平均 CPU / countup total req / stat scaling 提案) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const perfBubbleChart = diagram("interactive-perf-bubble", {
-  topic: "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存",
+  topic: "production infra 週次 capacity planning シナリオ = 4 phase (取得 → 分析 → 判定 → 最適化) の flow を shape-* primitive 6 種で表現 + 4 readout (bubbleChart / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("high", { x: 0, width: 300 })
-  .lane("low", { x: 340, width: 300 })
+  .lane("sre", { x: 0, width: 220 })
+  .lane("infra", { x: 240, width: 320 })
+  .lane("action", { x: 580, width: 240 })
   .arraySignal("perf", [
     [50, 20, 5],
     [70, 40, 8],
@@ -1219,29 +1242,46 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     [30, 80, 3],
     [60, 50, 7],
   ] as unknown as (string | number)[])
-  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "perf 70 · cost 40 · usage 8 (high)" })
-  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "perf 90 · cost 60 · usage 10 (max)" })
-  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "perf 60 · cost 50 · usage 7 (boundary)" })
-  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "perf 50 · cost 20 · usage 5 (low)" })
-  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "perf 30 · cost 80 · usage 3 (min)" })
-  .readout.bubbleChart("bubbles", {
-    source: "perf",
-    xMin: 0,
-    xMax: 100,
-    yMin: 0,
-    yMax: 100,
-    rMin: 0,
-    rMax: 10,
-    color: "#2563eb",
-    viewW: 280,
-    viewH: 180,
-    label: "workloads (3D bubble)",
-  })
-  .phase("p", {
-    duration: 1200,
-    title: "usage size split",
-    body: "2-lane (High usage ≥7 = 3 個 / Low usage <7 = 2 個) で 5 workload を usage 次元別分散、 各 workload 個別 card で (perf, cost, usage) 明示、 bubbleChart readout も併存で 3D bubble 表示、 usage 分類と 3D chart の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("w2", "w3", "w5", "w1", "w4").badge("3D bubble"))
+  .state("avgCpu", { initial: 0 })
+  .state("totalReq", { initial: 0 })
+  .state("scaleAction", { initial: 0 })
+  .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "SRE 森様", eyebrow: "engineer", subtitle: "週次 capacity レビュー担当" })
+  .node("laptop", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "Grafana dashboard", eyebrow: "ui", subtitle: "5 workload observability" })
+  .node("cluster", { lane: "infra", stack: 0, kind: "shape-server-rack", title: "K8s cluster", eyebrow: "compute", subtitle: "3 node · 5 workload · CPU {avgCpu}%" })
+  .node("prometheus", { lane: "infra", stack: 1, kind: "shape-cloud", title: "Prometheus", eyebrow: "metrics", subtitle: "1s scrape · time-series DB" })
+  .node("sensor", { lane: "infra", stack: 2, kind: "shape-iot-sensor", title: "node exporter", eyebrow: "agent", subtitle: "各 workload CPU / mem / req 収集" })
+  .node("autoscaler", { lane: "action", stack: 0, kind: "shape-gear", title: "HPA autoscaler", eyebrow: "engine", subtitle: "target 70% · replicas 動的調整" })
+  .edge("sre", "laptop", { label: "確認", tone: "info" })
+  .edge("laptop", "prometheus", { label: "PromQL query", tone: "info" })
+  .edge("cluster", "sensor", { label: "expose metric", tone: "success" })
+  .edge("sensor", "prometheus", { label: "scrape 1s", tone: "success" })
+  .edge("prometheus", "laptop", { label: "response", tone: "accent" })
+  .edge("laptop", "autoscaler", { label: "scale 指示", tone: "warning" })
+  .edge("autoscaler", "cluster", { label: "replicas ×2", tone: "warning" })
+  .readout.bubbleChart("bubbles", { source: "perf", xMin: 0, xMax: 100, yMin: 0, yMax: 100, rMin: 0, rMax: 10, color: "#2563eb", viewW: 320, viewH: 200, label: "workloads (perf/cost/usage)" })
+  .readout.gauge("cpuG", { source: "avgCpu", min: 0, max: 100, color: "#ef4444", label: "平均 CPU 使用率 %" })
+  .readout.countup("reqCU", { source: "totalReq", unit: " req/s", label: "総 request 数", decimals: 0 })
+  .readout.stat("scaleStat", { source: "scaleAction", unit: " pods", caption: "追加 pod 数", label: "scale" })
+  .phase("p1", {
+    duration: 2000,
+    title: "メトリクス取得",
+    body: "森様が Grafana で 5 workload の週次データ取得。 avgCpu 0 → 40 tween (gauge 針中位)、 totalReq 0 → 2400 tween (countup 加速)、 scaleAction = 0 (未実施)、 bubbleChart で 5 workload の 3 次元 (perf / cost / usage) plot 表示。 sre + prometheus lane active。",
+  }, (p: PhaseBuilder) => p.activate("sre", "laptop", "prometheus").tween("avgCpu", 0, 40).tween("totalReq", 0, 2400).set("scaleAction", 0).badge("取得"))
+  .phase("p2", {
+    duration: 2400,
+    title: "workload 分析",
+    body: "5 workload 中 3 個 (B/C/E) が high usage、 workload C が bubble 最大 (perf 90 / cost 60 / usage 10 = 最上位)。 avgCpu 40 → 72 tween (gauge 針が赤域近くまで上昇 = 過負荷リスク)、 totalReq 2400 → 5800 tween (急増)、 cluster + sensor lane 追加 activate。",
+  }, (p: PhaseBuilder) => p.activate("sre", "laptop", "cluster", "prometheus", "sensor").tween("avgCpu", 40, 72).tween("totalReq", 2400, 5800).badge("分析"))
+  .phase("p3", {
+    duration: 2200,
+    title: "需給判定",
+    body: "target 70% 超過検知、 HPA autoscaler 起動判定。 avgCpu 72 → 85 tween (更に上昇、 gauge 針赤域最深)、 totalReq 5800 → 7200 tween、 scaleAction 0 → 2 tween (stat が 2 pod 追加提案表示、 動的加算)、 autoscaler lane activate。",
+  }, (p: PhaseBuilder) => p.activate("sre", "laptop", "cluster", "prometheus", "sensor", "autoscaler").tween("avgCpu", 72, 85).tween("totalReq", 5800, 7200).tween("scaleAction", 0, 2).badge("判定"))
+  .phase("p4", {
+    duration: 2000,
+    title: "最適化 (scale out)",
+    body: "HPA が cluster に replicas +2 適用、 workload B/C/E の負荷分散。 avgCpu 85 → 55 tween (gauge 針が緑域まで急降下 = 過負荷解消)、 totalReq 7200 → 7500 tween (捌ける)、 scaleAction 2 → 4 tween (更に 2 pod 追加で最終 4 pod)、 6 shape 全 active、 capacity 最適化完了。",
+  }, (p: PhaseBuilder) => p.activate("sre", "laptop", "cluster", "prometheus", "sensor", "autoscaler").tween("avgCpu", 85, 55).tween("totalReq", 7200, 7500).tween("scaleAction", 2, 4).badge("最適化"))
   .build();
 
 /**
@@ -1347,49 +1387,57 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .build();
 
 /**
- * 41. domain A/B test result = 2 variant の conversion rate + confidence を並列表示。
+ * 41. abTestResult v2 = EC checkout button 色変更 A/B test の 4 週実験シナリオ、 shape-online-shop + shape-diamond (split) + shape-cloud (analytics) + shape-cylinder (log) + shape-mobile-device × 2 + shape-brokerage (判定) の 7 shape で visual scene 化、 4 phase (実験開始 → traffic split → 中間集計 → 有意判定) + 4 readout (stackedBar convA/B / donut split / donut winner / gauge 有意水準) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const abTestResult = diagram("interactive-ab-test", {
-  topic: "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化",
+  topic: "EC checkout A/B test 4 週実験 = 4 phase (開始 → split → 集計 → 有意判定) の flow を shape-* primitive 7 種で表現 + 4 readout (stackedBar / donut × 2 / gauge) が tween で visually 連続変化",
 })
-  .lane("varA", { x: 0, width: 200 })
-  .lane("split", { x: 260, width: 200 })
-  .lane("varB", { x: 520, width: 200 })
+  .lane("users", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 340 })
+  .lane("decision", { x: 600, width: 220 })
   .arraySignal("convA", [40, 45, 42, 48, 44])
   .arraySignal("convB", [50, 55, 58, 62, 60])
   .arraySignal("splitData", [50, 50])
   .arraySignal("results", [58, 42])
-  .node("controlCard", {
-    lane: "varA",
-    stack: 0,
-    kind: "card",
-    title: "Variant A (Control)",
-    subtitle: "avg {convA.avg}%",
-  })
-  .node("splitCard", {
-    lane: "split",
-    stack: 0,
-    kind: "card",
-    title: "Traffic split",
-    subtitle: "50/50 randomize",
-  })
-  .node("treatmentCard", {
-    lane: "varB",
-    stack: 0,
-    kind: "card",
-    title: "Variant B (Treatment)",
-    subtitle: "avg {convB.avg}%",
-  })
-  .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
-  .edge("splitCard", "treatmentCard", { label: "50%", sub: "treatment", tone: "success" })
-  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "Daily conv % (A vs B)" })
-  .readout.donut("splitDonut", { source: "splitData", innerRatio: 0.5, viewW: 120, viewH: 120, label: "Traffic split" })
-  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share (B=green)" })
-  .phase("p", {
-    duration: 1200,
-    title: "A/B test",
-    body: "3-lane (Variant A / Split / Variant B) + Split → 各 variant への 50/50 edge、 experiment 構造を node network で表現、 stackedBar + 2 donut で結果集約。",
-  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").badge("A/B test"))
+  .state("pValue", { initial: 100 })
+  .state("visitorCount", { initial: 0 })
+  .node("visitorA", { lane: "users", stack: 0, kind: "shape-mobile-device", title: "訪問者 (Variant A)", eyebrow: "control", subtitle: "青ボタン · 現行版" })
+  .node("visitorB", { lane: "users", stack: 1, kind: "shape-mobile-device", title: "訪問者 (Variant B)", eyebrow: "treatment", subtitle: "橙ボタン · 実験版" })
+  .node("shop", { lane: "system", stack: 0, kind: "shape-online-shop", title: "EC checkout", eyebrow: "product", subtitle: "button color 実験" })
+  .node("router", { lane: "system", stack: 1, kind: "shape-diamond", title: "traffic split", eyebrow: "router", subtitle: "user hash % 2 == 0 → A" })
+  .node("analytics", { lane: "system", stack: 2, kind: "shape-cloud", title: "Amplitude", eyebrow: "analytics", subtitle: "conv event 収集" })
+  .node("log", { lane: "system", stack: 3, kind: "shape-cylinder", title: "実験 log DB", eyebrow: "storage", subtitle: "27,000 events" })
+  .node("committee", { lane: "decision", stack: 0, kind: "shape-brokerage", title: "実験判定会議", eyebrow: "review", subtitle: "有意水準 p<0.05" })
+  .edge("visitorA", "shop", { label: "control 訪問", tone: "info" })
+  .edge("visitorB", "shop", { label: "treatment 訪問", tone: "accent" })
+  .edge("shop", "router", { label: "user hash 判定", tone: "info" })
+  .edge("router", "analytics", { label: "purchase event", tone: "success" })
+  .edge("analytics", "log", { label: "永続化", tone: "success" })
+  .edge("log", "committee", { label: "集計結果", tone: "accent" })
+  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "日次 conv % (A=灰 / B=緑)" })
+  .readout.donut("splitDonut", { source: "splitData", innerRatio: 0.5, viewW: 130, viewH: 130, label: "トラフィック split" })
+  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 130, viewH: 130, colors: ["#22c55e", "#94a3b8"] as const, label: "winner share (B=緑)" })
+  .readout.gauge("pG", { source: "pValue", min: 0, max: 100, color: "#ef4444", label: "p-value ×100 (低いほど有意)" })
+  .phase("p1", {
+    duration: 2000,
+    title: "実験開始",
+    body: "checkout button 色を A (青) / B (橙) で 4 週実験開始。 pValue = 100 (gauge 針最上位、 未判定)、 visitorCount 0 → 5000 tween (countup 加速)、 splitDonut 50/50、 users lane + shop + router active。",
+  }, (p: PhaseBuilder) => p.activate("visitorA", "visitorB", "shop", "router").set("pValue", 100).tween("visitorCount", 0, 5000).badge("開始"))
+  .phase("p2", {
+    duration: 2400,
+    title: "traffic 分割",
+    body: "user hash mod 2 で公平分割、 A: 2493 人 / B: 2507 人。 pValue 100 → 60 tween (gauge 針中位、 収束開始)、 visitorCount 5000 → 15000 tween (加速)、 analytics lane activate、 event 収集加速。",
+  }, (p: PhaseBuilder) => p.activate("visitorA", "visitorB", "shop", "router", "analytics").tween("pValue", 100, 60).tween("visitorCount", 5000, 15000).badge("split"))
+  .phase("p3", {
+    duration: 2200,
+    title: "中間集計",
+    body: "Variant A avg conv 43.8% / Variant B avg conv 57.0% (+30% relative)。 pValue 60 → 15 tween (gauge 針急降下 = 有意近く)、 visitorCount 15000 → 24000 tween、 winner donut は暫定 B 優位 (58/42)、 log lane activate。",
+  }, (p: PhaseBuilder) => p.activate("visitorA", "visitorB", "shop", "router", "analytics", "log").tween("pValue", 60, 15).tween("visitorCount", 15000, 24000).badge("集計"))
+  .phase("p4", {
+    duration: 2000,
+    title: "有意判定",
+    body: "p<0.05 到達で有意差確定、 実験判定会議で Variant B 採用決定。 pValue 15 → 3 tween (gauge 針最下、 高有意)、 visitorCount 24000 → 27000 tween (最終)、 全 7 shape active、 committee lane で最終判断。",
+  }, (p: PhaseBuilder) => p.activate("visitorA", "visitorB", "shop", "router", "analytics", "log", "committee").tween("pValue", 15, 3).tween("visitorCount", 24000, 27000).badge("有意"))
   .build();
 
 /**

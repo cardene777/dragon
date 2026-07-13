@@ -239,6 +239,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   productPriceTag: "実例: EC ブラックフライデー ダイナミック プライシング (通常 → セール → 深化 → 在庫連動)",
   oauthFlow: "実例: Google Sign-In (OAuth 2.0 + PKCE) (click → consent → code → token → API)",
   kpiDashboard: "実例: 週次 CEO KPI レビュー (表示 → 因果分析 → 目標対比 → 判断)",
+  decisionTree: "実例: 医療 triage 臨床決定木 (受付 → 一次 → 二次 → 転帰)",
+  perfBubbleChart: "実例: production infra 週次 capacity planning (取得 → 分析 → 判定 → 最適化)",
+  abTestResult: "実例: EC checkout A/B test 4 週実験 (開始 → split → 集計 → 有意判定)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
