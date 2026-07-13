@@ -2437,42 +2437,70 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .build();
 
 /**
- * 72. reaction-bar = social post reactions、 4 emoji + count で pill 表示。
+ * 72. postReactions v2 = X (旧 Twitter) バズ投稿の 24 時間 reaction 時系列シナリオ、 shape-person + shape-mobile-device + shape-message-bubble + shape-cloud + shape-cylinder + shape-warehouse の 6 shape で visual scene 化、 4 phase (投稿直後 → 初動拡散 → バズ → 落ち着き) + 4 readout (reactionBar / gauge engagement / countup 総 reaction / stat impression) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const postReactions = diagram("interactive-post-reactions", {
-  topic: "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存",
+  topic: "X バズ投稿 24h reaction 時系列 = 4 phase (投稿 → 初動 → バズ → 落ち着き) の flow を shape-* primitive 6 種で表現 + 4 readout (reactionBar / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("thumb", { x: 0, width: 160 })
-  .lane("heart", { x: 180, width: 160 })
-  .lane("laugh", { x: 360, width: 160 })
-  .lane("party", { x: 540, width: 160 })
+  .lane("author", { x: 0, width: 220 })
+  .lane("platform", { x: 240, width: 300 })
+  .lane("audience", { x: 560, width: 240 })
   .arraySignal("reactions", [
     ["👍", 24],
     ["❤️", 12],
     ["😂", 8],
     ["🎉", 5],
   ] as unknown as (string | number)[])
-  .node("thumbNode", { lane: "thumb", stack: 0, kind: "card", title: "👍 Thumbs up", subtitle: "24 (max)" })
-  .node("heartNode", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "12" })
-  .node("laughNode", { lane: "laugh", stack: 0, kind: "card", title: "😂 Laugh", subtitle: "8" })
-  .node("partyNode", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "5 (min)" })
-  .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "Reactions (pill list)" })
-  .phase("p", {
-    duration: 1200,
-    title: "reaction emoji split",
-    body: "4-lane (Thumbs / Heart / Laugh / Party) で 4 social reaction を emoji 別分散、 各 reaction 個別 card で count 明示、 reactionBar readout も併存で pill list 表示、 emoji 分類と reaction list の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("thumbNode", "heartNode", "laughNode", "partyNode").badge("social"))
+  .state("engagement", { initial: 0 })
+  .state("totalReactions", { initial: 0 })
+  .state("impressions", { initial: 0 })
+  .node("author", { lane: "author", stack: 0, kind: "shape-person", title: "投稿者 木村様", eyebrow: "creator", subtitle: "@kimura_dev · 3.2k followers" })
+  .node("mobile", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "X app", eyebrow: "device", subtitle: "投稿作成 + reaction 確認" })
+  .node("post", { lane: "platform", stack: 0, kind: "shape-message-bubble", title: "投稿 (140 字)", eyebrow: "content", subtitle: "'iOS 18 の新機能まとめ 🚀'" })
+  .node("timeline", { lane: "platform", stack: 1, kind: "shape-cloud", title: "X timeline", eyebrow: "distribution", subtitle: "algorithm ranking + trending 判定" })
+  .node("analytics", { lane: "platform", stack: 2, kind: "shape-cylinder", title: "X analytics DB", eyebrow: "database", subtitle: "engagement 集計 · reaction rollup" })
+  .node("audience", { lane: "audience", stack: 0, kind: "shape-warehouse", title: "全世界 audience", eyebrow: "readers", subtitle: "impression {impressions} 名到達" })
+  .edge("author", "mobile", { label: "投稿", tone: "info" })
+  .edge("mobile", "post", { label: "publish", tone: "info" })
+  .edge("post", "timeline", { label: "配信", tone: "success" })
+  .edge("timeline", "audience", { label: "expose", tone: "success" })
+  .edge("audience", "analytics", { label: "reaction event", tone: "accent" })
+  .edge("analytics", "mobile", { label: "notif 通知", tone: "warning" })
+  .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "reaction pill list" })
+  .readout.gauge("engG", { source: "engagement", min: 0, max: 100, color: "#22c55e", label: "engagement rate %" })
+  .readout.countup("reactCU", { source: "totalReactions", unit: " 件", label: "累計 reactions", decimals: 0 })
+  .readout.stat("impStat", { source: "impressions", unit: " 名", caption: "到達数", label: "impressions" })
+  .phase("p1", {
+    duration: 1800,
+    title: "投稿直後 (0-1h)",
+    body: "木村様が iOS 18 まとめ post を publish、 follower に配信開始。 engagement 0 → 3 tween、 totalReactions 0 → 15 tween (countup 加算、 初動 reaction)、 impressions 0 → 800 tween、 author + post lane active。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "post").tween("engagement", 0, 3).tween("totalReactions", 0, 15).tween("impressions", 0, 800).badge("投稿"))
+  .phase("p2", {
+    duration: 2200,
+    title: "初動拡散 (1-4h)",
+    body: "algorithm ranking で trending 候補入り、 timeline 露出増。 engagement 3 → 12 tween、 totalReactions 15 → 240 tween (加速、 リプライ + retweet 混合)、 impressions 800 → 15000 tween、 timeline + audience lane activate。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "post", "timeline", "audience").tween("engagement", 3, 12).tween("totalReactions", 15, 240).tween("impressions", 800, 15000).badge("初動"))
+  .phase("p3", {
+    duration: 2400,
+    title: "バズ (4-12h)",
+    body: "influencer 拡散でバズ、 trending topic 入り。 engagement 12 → 28 tween (gauge 針最上位)、 totalReactions 240 → 1850 tween (加速 max、 countup dramatic)、 impressions 15000 → 240000 tween (爆発的到達)、 analytics lane activate、 木村様 notif で盛り上がり通知。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "post", "timeline", "audience", "analytics").tween("engagement", 12, 28).tween("totalReactions", 240, 1850).tween("impressions", 15000, 240000).badge("バズ"))
+  .phase("p4", {
+    duration: 2000,
+    title: "落ち着き (12-24h)",
+    body: "24h 経過で reaction 頻度低下、 累計は継続増加。 engagement 28 → 18 tween (時間経過で低下)、 totalReactions 1850 → 2450 tween (最終)、 impressions 240000 → 380000 tween (継続露出)、 6 shape 全 active、 24h 累計固定。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "post", "timeline", "audience", "analytics").tween("engagement", 28, 18).tween("totalReactions", 1850, 2450).tween("impressions", 240000, 380000).badge("24h"))
   .build();
 
 /**
- * 73. pill-group = tech skill 色付き pills、 [[label, colorHex], ...] で per-pill color。
+ * 73. techPills v2 = スタートアップ CTO 技術選定 4 phase 判断シナリオ (SaaS project の tech stack 決定)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (要件整理 → 候補比較 → PoC 検証 → 選定確定) + 4 readout (pillGroup / gauge 適合度 / countup PoC 時間 / stat 採用数) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const techPills = diagram("interactive-tech-pills", {
-  topic: "tech stack 5 pill を 3-lane (Frontend / Systems / Build) category 別分散、 各 tool 個別 card、 pillGroup readout 併存",
+  topic: "CTO 技術選定 4 phase = (要件 → 候補 → PoC → 確定) の flow を shape-* primitive 6 種で表現 + 4 readout (pillGroup / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("frontend", { x: 0, width: 220 })
-  .lane("systems", { x: 260, width: 200 })
-  .lane("build", { x: 480, width: 220 })
+  .lane("cto", { x: 0, width: 220 })
+  .lane("review", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 220 })
   .arraySignal("stack", [
     ["React", "#61dafb"],
     ["TypeScript", "#3178c6"],
@@ -2480,17 +2508,44 @@ export const techPills = diagram("interactive-tech-pills", {
     ["Vite", "#646cff"],
     ["Bun", "#000000"],
   ] as unknown as (string | number)[])
-  .node("reactNode", { lane: "frontend", stack: 0, kind: "card", title: "React", subtitle: "UI library · #61dafb" })
-  .node("tsNode", { lane: "frontend", stack: 1, kind: "card", title: "TypeScript", subtitle: "typed JS · #3178c6" })
-  .node("rustNode", { lane: "systems", stack: 0, kind: "card", title: "Rust", subtitle: "systems lang · #dea584" })
-  .node("viteNode", { lane: "build", stack: 0, kind: "card", title: "Vite", subtitle: "dev server · #646cff" })
-  .node("bunNode", { lane: "build", stack: 1, kind: "card", title: "Bun", subtitle: "runtime · #000000" })
-  .readout.pillGroup("pg", { source: "stack", label: "Stack (pill group)" })
-  .phase("p", {
-    duration: 1200,
-    title: "tech category split",
-    body: "3-lane (Frontend React+TS / Systems Rust / Build Vite+Bun) で 5 tech tool を category 別分散、 各 tool 個別 card で用途 + hex 明示、 pillGroup readout も併存で per-pill color 表示、 tech 分類と pill list の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "rustNode", "viteNode", "bunNode").badge("pills"))
+  .state("fitScore", { initial: 0 })
+  .state("pocHours", { initial: 0 })
+  .state("adoptedCount", { initial: 0 })
+  .node("cto", { lane: "cto", stack: 0, kind: "shape-person", title: "CTO 高山様", eyebrow: "engineer", subtitle: "SaaS 立上げ技術判断責任" })
+  .node("laptop", { lane: "cto", stack: 1, kind: "shape-mobile-device", title: "評価 sheet", eyebrow: "device", subtitle: "候補 tech 5 個 × 4 軸評価" })
+  .node("docs", { lane: "review", stack: 0, kind: "shape-website", title: "docs / benchmark", eyebrow: "reference", subtitle: "公式 docs + community 記事" })
+  .node("pocServer", { lane: "review", stack: 1, kind: "shape-server-rack", title: "PoC 環境", eyebrow: "sandbox", subtitle: "検証 branch · CI 実行" })
+  .node("advisor", { lane: "review", stack: 2, kind: "shape-hexagon", title: "technical advisor", eyebrow: "consultant", subtitle: "元 Google engineer 評価" })
+  .node("finalStack", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "確定 tech stack", eyebrow: "decision", subtitle: "本番採用 · チーム展開" })
+  .edge("cto", "laptop", { label: "評価", tone: "info" })
+  .edge("laptop", "docs", { label: "調査", tone: "info" })
+  .edge("laptop", "pocServer", { label: "PoC 実装", tone: "accent" })
+  .edge("pocServer", "advisor", { label: "評価依頼", tone: "warning" })
+  .edge("advisor", "finalStack", { label: "推奨", tone: "success" })
+  .readout.pillGroup("pg", { source: "stack", label: "候補 tech stack (5)" })
+  .readout.gauge("fitG", { source: "fitScore", min: 0, max: 100, color: "#22c55e", label: "要件適合度 %" })
+  .readout.countup("hoursCU", { source: "pocHours", unit: " h", label: "PoC 累計時間", decimals: 0 })
+  .readout.stat("adoptStat", { source: "adoptedCount", unit: "/5", caption: "採用決定", label: "選定" })
+  .phase("p1", {
+    duration: 2000,
+    title: "要件整理",
+    body: "SaaS の性能 + 開発効率 + community 3 軸で要件定義。 fitScore 0 → 20 tween、 pocHours 0、 adoptedCount 0、 pillGroup で 5 候補列挙。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop").tween("fitScore", 0, 20).badge("要件"))
+  .phase("p2", {
+    duration: 2400,
+    title: "候補比較",
+    body: "docs + benchmark で 5 候補の pros/cons 整理。 fitScore 20 → 45 tween、 pocHours 0 → 8 tween、 adoptedCount 0 → 2 tween (React + TS 即決)、 docs lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "docs").tween("fitScore", 20, 45).tween("pocHours", 0, 8).tween("adoptedCount", 0, 2).badge("候補"))
+  .phase("p3", {
+    duration: 2400,
+    title: "PoC 検証",
+    body: "残 3 候補 (Rust / Vite / Bun) を CI で PoC。 fitScore 45 → 78 tween、 pocHours 8 → 32 tween (24h 追加)、 adoptedCount 2 → 4 tween (Vite / Bun 追加)、 pocServer + advisor lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "docs", "pocServer", "advisor").tween("fitScore", 45, 78).tween("pocHours", 8, 32).tween("adoptedCount", 2, 4).badge("PoC"))
+  .phase("p4", {
+    duration: 2000,
+    title: "選定確定",
+    body: "advisor 推薦で Rust も採用、 5/5 全 tech 確定。 fitScore 78 → 92 tween (gauge 最上位)、 pocHours 32 → 40 tween、 adoptedCount 4 → 5 tween、 finalStack lane activate、 6 shape 全 active。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "docs", "pocServer", "advisor", "finalStack").tween("fitScore", 78, 92).tween("pocHours", 32, 40).tween("adoptedCount", 4, 5).badge("確定"))
   .build();
 
 /**
@@ -2756,27 +2811,54 @@ export const featurePoll = diagram("interactive-feature-poll", {
   .build();
 
 /**
- * 83. user-stack = code review reviewer 7 人 (max 5 表示 + overflow +2)。
+ * 83. reviewerStack v2 = 大規模 PR (500 行変更) の code review 依頼シナリオ、 shape-person + shape-website (GitHub) + shape-cloud (notif) + shape-mobile-device + shape-server-rack + shape-cylinder の 6 shape で visual scene 化、 4 phase (PR open → reviewer 依頼 → review 進行 → approve merge) + 4 readout (userStack / gauge review 完了率 / countup 累計コメント数 / stat approve 数) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const reviewerStack = diagram("interactive-reviewer-stack", {
-  topic: "code review reviewer 7 人 を 2-lane (Displayed 5 / Overflow 2) 分散、 各 reviewer 個別 card、 userStack readout 併存",
+  topic: "大規模 PR code review 依頼シナリオ = 4 phase (PR open → 依頼 → review → merge) の flow を shape-* primitive 6 種で表現 + 4 readout (userStack / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("displayed", { x: 0, width: 340 })
-  .lane("overflow", { x: 380, width: 200 })
+  .lane("author", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("reviewers", { x: 580, width: 260 })
   .arraySignal("reviewers", ["Alice", "Bob Smith", "Carol", "Dan Kim", "Eve", "Frank Wu", "Grace Lee"])
-  .node("r1", { lane: "displayed", stack: 0, kind: "card", title: "Alice", subtitle: "initials A · shown" })
-  .node("r2", { lane: "displayed", stack: 1, kind: "card", title: "Bob Smith", subtitle: "initials BS · shown" })
-  .node("r3", { lane: "displayed", stack: 2, kind: "card", title: "Carol", subtitle: "initials C · shown" })
-  .node("r4", { lane: "displayed", stack: 3, kind: "card", title: "Dan Kim", subtitle: "initials DK · shown" })
-  .node("r5", { lane: "displayed", stack: 4, kind: "card", title: "Eve", subtitle: "initials E · shown" })
-  .node("r6", { lane: "overflow", stack: 0, kind: "card", title: "Frank Wu", subtitle: "initials FW · +2 overflow" })
-  .node("r7", { lane: "overflow", stack: 1, kind: "card", title: "Grace Lee", subtitle: "initials GL · +2 overflow" })
-  .readout.userStack("us", { source: "reviewers", max: 5, size: 36, label: "Reviewers (stacked avatars)" })
-  .phase("p", {
-    duration: 1200,
-    title: "reviewer split",
-    body: "2-lane (Displayed 5 avatar 表示分 / Overflow 2 +2 表示分) で 7 reviewer を max=5 境界別に分散、 各 reviewer 個別 card で initials + status 明示、 userStack readout も併存で overlap circle 表示、 表示 5 人と溢れ 2 人の構造を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "r5", "r6", "r7").badge("team"))
+  .state("completionRate", { initial: 0 })
+  .state("commentCount", { initial: 0 })
+  .state("approveCount", { initial: 0 })
+  .node("author", { lane: "author", stack: 0, kind: "shape-person", title: "PR author 高橋様", eyebrow: "author", subtitle: "500 行変更 · feature/checkout-v2" })
+  .node("laptop", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "GitHub mobile", eyebrow: "device", subtitle: "PR 状態確認 + 返信" })
+  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHub PR page", eyebrow: "vcs", subtitle: "PR #1247 · 7 reviewer 割当" })
+  .node("api", { lane: "system", stack: 1, kind: "shape-server-rack", title: "GitHub API", eyebrow: "backend", subtitle: "review event 処理" })
+  .node("db", { lane: "system", stack: 2, kind: "shape-cylinder", title: "review DB", eyebrow: "database", subtitle: "コメント + approve 記録" })
+  .node("notif", { lane: "reviewers", stack: 0, kind: "shape-cloud", title: "Slack #team-eng", eyebrow: "notification", subtitle: "7 reviewer への PR 通知" })
+  .edge("author", "laptop", { label: "PR open", tone: "info" })
+  .edge("laptop", "github", { label: "POST /pulls", tone: "info" })
+  .edge("github", "api", { label: "webhook", tone: "success" })
+  .edge("api", "notif", { label: "reviewer 通知", tone: "warning" })
+  .edge("notif", "db", { label: "review 提出", tone: "success" })
+  .edge("db", "github", { label: "状態更新", tone: "accent" })
+  .readout.userStack("us", { source: "reviewers", max: 5, size: 40, label: "reviewer 7 名 (5 表示 + +2 overflow)" })
+  .readout.gauge("compG", { source: "completionRate", min: 0, max: 100, color: "#22c55e", label: "review 完了率 %" })
+  .readout.countup("commCU", { source: "commentCount", unit: " 件", label: "累計コメント", decimals: 0 })
+  .readout.stat("approveStat", { source: "approveCount", unit: "/7", caption: "approve 数", label: "approve" })
+  .phase("p1", {
+    duration: 1800,
+    title: "PR open",
+    body: "高橋様が feature/checkout-v2 の PR open、 500 行変更。 completionRate 0 (gauge 針最下)、 commentCount 0、 approveCount 0、 userStack で 7 名列挙。 author lane active。",
+  }, (p: PhaseBuilder) => p.activate("author", "laptop").set("completionRate", 0).set("commentCount", 0).set("approveCount", 0).badge("PR open"))
+  .phase("p2", {
+    duration: 2200,
+    title: "reviewer 依頼",
+    body: "GitHub が 7 reviewer 割当、 Slack で通知。 completionRate 0 → 15 tween、 commentCount 0 → 5 tween (初期質問)、 approveCount 0、 github + api + notif lane activate。",
+  }, (p: PhaseBuilder) => p.activate("author", "laptop", "github", "api", "notif").tween("completionRate", 0, 15).tween("commentCount", 0, 5).badge("依頼"))
+  .phase("p3", {
+    duration: 2400,
+    title: "review 進行",
+    body: "Alice + Bob + Carol が詳細 review、 Dan/Eve が軽 review。 completionRate 15 → 70 tween (gauge 針が緑域中位まで急上昇)、 commentCount 5 → 42 tween (countup 加速 = 白熱討議)、 approveCount 0 → 3 tween (stat 3 名承認)、 db lane activate。",
+  }, (p: PhaseBuilder) => p.activate("author", "laptop", "github", "api", "notif", "db").tween("completionRate", 15, 70).tween("commentCount", 5, 42).tween("approveCount", 0, 3).badge("review"))
+  .phase("p4", {
+    duration: 2000,
+    title: "approve + merge",
+    body: "残 Frank + Grace + Eve も approve、 全 7 名 sign-off で main merge。 completionRate 70 → 100 tween (gauge 最上位)、 commentCount 42 → 58 tween (最終 rollup)、 approveCount 3 → 7 tween (stat 満点)、 6 shape 全 active、 PR merged 到達。",
+  }, (p: PhaseBuilder) => p.activate("author", "laptop", "github", "api", "notif", "db").tween("completionRate", 70, 100).tween("commentCount", 42, 58).tween("approveCount", 3, 7).badge("merge"))
   .build();
 
 /**
