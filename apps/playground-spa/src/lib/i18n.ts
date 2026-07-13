@@ -251,6 +251,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   postReactions: "実例: X バズ投稿 24h reaction 時系列 (投稿 → 初動 → バズ → 落ち着き)",
   techPills: "実例: CTO 技術選定 (要件 → 候補 → PoC → 確定)",
   reviewerStack: "実例: 大規模 PR code review (PR open → 依頼 → review → merge)",
+  alertNotification: "実例: 本番 deploy 障害検知 escalation (開始 → 警告 → 障害 → 復旧)",
+  commitDiffCounter: "実例: PR diff サイズ推移 (初期 → 拡張 → refactor → 最終)",
+  featurePoll: "実例: SaaS 機能要望投票 (開始 → 拡散 → 中間 → 最終)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",

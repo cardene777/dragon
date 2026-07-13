@@ -2099,55 +2099,106 @@ export const productRating = diagram("interactive-product-rating", {
   .build();
 
 /**
- * 61. notification = alert card、 dropdown で kind (info/warn/error/success) を切替。
+ * 61. alertNotification v2 = 本番 deploy 障害検知 → escalation 4 phase シナリオ、 shape-server-rack + shape-mobile-device + shape-iot-sensor + shape-cloud + shape-person × 2 の 6 shape で visual scene 化、 4 phase (deploy 開始 → 警告検知 → 障害エスカレ → 復旧成功) + 4 readout (notification / gauge severity / countup alert 数 / stat 対応時間) が tween で visually 連続変化。 iteration 8 wave 8-D2 redesign。
  */
 export const alertNotification = diagram("interactive-alert-notification", {
-  topic: "alert kind 4 種 (info/warn/error/success) を 4-lane 分散 + current indicator、 各 kind 個別 card、 notification readout 併存",
+  topic: "本番 deploy 障害検知 escalation = 4 phase (開始 → 警告 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (notification / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("info", { x: 0, width: 170 })
-  .lane("warn", { x: 190, width: 170 })
-  .lane("error", { x: 380, width: 170 })
-  .lane("success", { x: 570, width: 170 })
-  .input.dropdown("kind", { options: ["info", "warn", "error", "success"], defaultValue: "warn", label: "Kind" })
-  .state("kind", { initial: "warn" })
-  .state("title", { initial: "Deploy in progress" })
-  .state("body", { initial: "Building v1.2.3 for production" })
-  .node("infoNode", { lane: "info", stack: 0, kind: "card", title: "ℹ Info", subtitle: "blue · 通知" })
-  .node("warnNode", { lane: "warn", stack: 0, kind: "card", title: "⚠ Warn", subtitle: "yellow · 注意 (default)" })
-  .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · 失敗" })
-  .node("successNode", { lane: "success", stack: 0, kind: "card", title: "✓ Success", subtitle: "green · 成功" })
-  .node("currentAlert", { lane: "warn", stack: 1, kind: "card", title: "◆ Current", subtitle: "kind: {kind}" })
-  .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "Alert (color + icon)" })
-  .phase("p", {
-    duration: 1200,
-    title: "alert kind split",
-    body: "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("infoNode", "warnNode", "errorNode", "successNode", "currentAlert").badge("alert"))
+  .lane("infra", { x: 0, width: 260 })
+  .lane("channel", { x: 280, width: 280 })
+  .lane("responders", { x: 580, width: 240 })
+  .state("kind", { initial: "info" })
+  .state("title", { initial: "Deploy v1.2.3 in progress" })
+  .state("body", { initial: "Building production bundle" })
+  .state("severity", { initial: 10 })
+  .state("alertCount", { initial: 0 })
+  .state("mttrMin", { initial: 0 })
+  .node("prod", { lane: "infra", stack: 0, kind: "shape-server-rack", title: "prod cluster", eyebrow: "k8s", subtitle: "3 node · deploy v1.2.3 進行中" })
+  .node("sensor", { lane: "infra", stack: 1, kind: "shape-iot-sensor", title: "監視 agent", eyebrow: "monitoring", subtitle: "1s scrape · CPU / mem / p99" })
+  .node("pager", { lane: "channel", stack: 0, kind: "shape-cloud", title: "PagerDuty", eyebrow: "notification", subtitle: "severity 別 escalation policy" })
+  .node("slack", { lane: "channel", stack: 1, kind: "shape-mobile-device", title: "Slack #alerts", eyebrow: "channel", subtitle: "on-call 通知 + reply" })
+  .node("onCall", { lane: "responders", stack: 0, kind: "shape-person", title: "on-call 佐藤様", eyebrow: "sre", subtitle: "primary responder" })
+  .node("manager", { lane: "responders", stack: 1, kind: "shape-person", title: "SRE lead 田中様", eyebrow: "escalation", subtitle: "secondary · 30 分以内対応" })
+  .edge("prod", "sensor", { label: "expose metric", tone: "success" })
+  .edge("sensor", "pager", { label: "threshold 超過", tone: "warning" })
+  .edge("pager", "slack", { label: "notify", tone: "warning" })
+  .edge("slack", "onCall", { label: "primary page", tone: "error" })
+  .edge("onCall", "manager", { label: "escalate", tone: "error" })
+  .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "現在 alert" })
+  .readout.gauge("sevG", { source: "severity", min: 0, max: 100, color: "#ef4444", label: "severity score" })
+  .readout.countup("alertCU", { source: "alertCount", unit: " 件", label: "累計 alert", decimals: 0 })
+  .readout.stat("mttrStat", { source: "mttrMin", unit: " 分", caption: "対応時間", label: "MTTR" })
+  .phase("p1", {
+    duration: 1800,
+    title: "deploy 開始",
+    body: "v1.2.3 rolling deploy 開始、 canary 20%。 kind = info (青)、 title 'Deploy in progress'、 severity 0 → 15 tween、 alertCount 0 (info は count 外)、 mttrMin 0。 infra lane active。",
+  }, (p: PhaseBuilder) => p.activate("prod", "sensor").set("kind", "info").set("title", "Deploy v1.2.3 in progress").set("body", "Canary 20% rolling out").tween("severity", 0, 15).badge("開始"))
+  .phase("p2", {
+    duration: 2200,
+    title: "警告検知",
+    body: "canary で p99 latency 上昇検知、 warn threshold 超過。 kind = warn (橙)、 title 'p99 latency 620ms'、 severity 15 → 45 tween (gauge 針が橙域)、 alertCount 0 → 1 tween、 pager + slack lane activate。",
+  }, (p: PhaseBuilder) => p.activate("prod", "sensor", "pager", "slack").set("kind", "warn").set("title", "⚠ p99 latency 620ms").set("body", "canary node-2 mem 90%").tween("severity", 15, 45).tween("alertCount", 0, 1).badge("警告"))
+  .phase("p3", {
+    duration: 2400,
+    title: "障害エスカレ",
+    body: "error rate 5% 超過、 primary page 発火。 kind = error (赤)、 title 'error rate 5.2% CRITICAL'、 severity 45 → 82 tween (gauge 針最上位、 深刻)、 alertCount 1 → 4 tween (加速)、 mttrMin 0 → 8 tween、 responders lane activate。",
+  }, (p: PhaseBuilder) => p.activate("prod", "sensor", "pager", "slack", "onCall", "manager").set("kind", "error").set("title", "✕ error rate 5.2% CRITICAL").set("body", "canary rollback required").tween("severity", 45, 82).tween("alertCount", 1, 4).tween("mttrMin", 0, 8).badge("障害"))
+  .phase("p4", {
+    duration: 2000,
+    title: "復旧成功",
+    body: "佐藤様が canary rollback 実行、 metric 正常化。 kind = success (緑)、 title 'canary rollback OK'、 severity 82 → 12 tween (gauge 針が急降下)、 alertCount 4 → 5 tween (resolved event 記録)、 mttrMin 8 → 14 tween (最終)、 6 shape 全 active、 復旧完遂。",
+  }, (p: PhaseBuilder) => p.activate("prod", "sensor", "pager", "slack", "onCall", "manager").set("kind", "success").set("title", "✓ canary rollback OK").set("body", "metric back to normal · v1.2.2 stable").tween("severity", 82, 12).tween("alertCount", 4, 5).tween("mttrMin", 8, 14).badge("復旧"))
   .build();
 
 /**
- * 62. diff-counter = git commit style +N/-N、 stepper で additions / deletions 変化。
+ * 62. commitDiffCounter v2 = feature branch の開発進行に伴う PR diff サイズ推移 4 phase シナリオ、 shape-person + shape-mobile-device + shape-website (GitHub) + shape-server-rack (CI) + shape-cylinder + shape-hexagon の 6 shape で visual scene 化、 4 phase (初期実装 → 拡張 → refactor → 最終整理) + 4 readout (diffCounter / gauge PR サイズ健全性 / countup commit 数 / stat net delta) が tween で visually 連続変化。 iteration 8 wave 8-D2 redesign。
  */
 export const commitDiffCounter = diagram("interactive-commit-diff", {
-  topic: "git PR diff を 2-lane (Additions +N / Deletions -N) 分散 + net delta edge、 diffCounter readout 併存",
+  topic: "PR diff サイズ推移 4 phase = (初期 → 拡張 → refactor → 最終) の flow を shape-* primitive 6 種で表現 + 4 readout (diffCounter / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("adds", { x: 0, width: 260 })
-  .lane("dels", { x: 300, width: 260 })
-  .input.stepper("add", { min: 0, max: 500, step: 10, defaultValue: 120, label: "Additions" })
-  .input.stepper("del", { min: 0, max: 500, step: 10, defaultValue: 45, label: "Deletions" })
-  .state("add", { initial: 120 })
-  .state("del", { initial: 45 })
-  .node("addCard", { lane: "adds", stack: 0, kind: "card", title: "+ Additions", subtitle: "+{add} lines (green)" })
-  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del ratio", subtitle: "add > del → net growth" })
-  .node("delCard", { lane: "dels", stack: 0, kind: "card", title: "- Deletions", subtitle: "-{del} lines (red)" })
-  .node("delDetail", { lane: "dels", stack: 1, kind: "card", title: "cleanup", subtitle: "remove obsolete code" })
-  .edge("addCard", "delCard", { label: "net = add - del", tone: "info" })
-  .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff (+N/-N bar)" })
-  .phase("p", {
-    duration: 1200,
-    title: "diff split",
-    body: "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("addCard", "addDetail", "delCard", "delDetail").badge("diff"))
+  .lane("dev", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("review", { x: 580, width: 240 })
+  .state("add", { initial: 0 })
+  .state("del", { initial: 0 })
+  .state("healthScore", { initial: 100 })
+  .state("commitCount", { initial: 0 })
+  .state("netDelta", { initial: 0 })
+  .node("dev", { lane: "dev", stack: 0, kind: "shape-person", title: "開発者 藤田様", eyebrow: "author", subtitle: "feature/refactor-cart 担当" })
+  .node("laptop", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "VS Code + Git", eyebrow: "device", subtitle: "commit → push loop" })
+  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHub PR", eyebrow: "vcs", subtitle: "+{add} / -{del} lines diff" })
+  .node("ci", { lane: "system", stack: 1, kind: "shape-server-rack", title: "CI (Actions)", eyebrow: "build", subtitle: "PR ごとに test + lint" })
+  .node("db", { lane: "system", stack: 2, kind: "shape-cylinder", title: "commit history DB", eyebrow: "history", subtitle: "commit log + diff メタ" })
+  .node("checker", { lane: "review", stack: 0, kind: "shape-hexagon", title: "PR size checker", eyebrow: "policy", subtitle: "500 行超で warning · 800 で block" })
+  .edge("dev", "laptop", { label: "code", tone: "info" })
+  .edge("laptop", "github", { label: "git push", tone: "info" })
+  .edge("github", "ci", { label: "trigger", tone: "success" })
+  .edge("github", "db", { label: "log", tone: "accent" })
+  .edge("db", "checker", { label: "size check", tone: "warning" })
+  .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "PR diff (+/-)" })
+  .readout.gauge("healthG", { source: "healthScore", min: 0, max: 100, color: "#22c55e", label: "PR サイズ健全性 %" })
+  .readout.countup("commCU", { source: "commitCount", unit: " 件", label: "累計 commit", decimals: 0 })
+  .readout.stat("netStat", { source: "netDelta", unit: " line", caption: "net delta", label: "net" })
+  .phase("p1", {
+    duration: 1800,
+    title: "初期実装",
+    body: "藤田様が checkout refactor 開始、 skeleton 実装。 add 0 → 80 tween、 del 0 → 20 tween、 healthScore 100 (small PR)、 commitCount 0 → 3 tween、 netDelta 0 → 60 tween。 dev + github lane active。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github").tween("add", 0, 80).tween("del", 0, 20).tween("commitCount", 0, 3).tween("netDelta", 0, 60).badge("初期"))
+  .phase("p2", {
+    duration: 2200,
+    title: "拡張実装",
+    body: "追加機能実装で diff 膨張。 add 80 → 320 tween、 del 20 → 45 tween、 healthScore 100 → 70 tween (gauge 針が黄域降下 = size 警告)、 commitCount 3 → 8 tween、 netDelta 60 → 275 tween、 ci lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci").tween("add", 80, 320).tween("del", 20, 45).tween("healthScore", 100, 70).tween("commitCount", 3, 8).tween("netDelta", 60, 275).badge("拡張"))
+  .phase("p3", {
+    duration: 2200,
+    title: "refactor (削除多)",
+    body: "重複コード削除 + 抽象化。 add 320 → 380 tween (微増)、 del 45 → 180 tween (大量削除)、 healthScore 70 → 80 tween (health 回復)、 commitCount 8 → 14 tween、 netDelta 275 → 200 tween (削減効果)、 db + checker lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci", "db", "checker").tween("add", 320, 380).tween("del", 45, 180).tween("healthScore", 70, 80).tween("commitCount", 8, 14).tween("netDelta", 275, 200).badge("refactor"))
+  .phase("p4", {
+    duration: 2000,
+    title: "最終整理",
+    body: "test + docs 追加、 dead code cleanup。 add 380 → 420 tween、 del 180 → 220 tween、 healthScore 80 → 88 tween (最終、 gauge 針が緑域に戻る)、 commitCount 14 → 18 tween、 netDelta 200 → 200 保持 (バランス)、 6 shape 全 active、 PR ready for review。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci", "db", "checker").tween("add", 380, 420).tween("del", 180, 220).tween("healthScore", 80, 88).tween("commitCount", 14, 18).badge("整理"))
   .build();
 
 /**
@@ -2785,29 +2836,59 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
   .build();
 
 /**
- * 82. poll-bar = feature poll、 4 option の投票 % 表示、 winner に ★ 装飾。
+ * 82. featurePoll v2 = SaaS product manager によるユーザー機能要望投票キャンペーン 4 phase シナリオ、 shape-person + shape-mobile-device + shape-online-shop + shape-cylinder + shape-cloud + shape-warehouse の 6 shape で visual scene 化、 4 phase (投票開始 → 拡散 → 中間集計 → 最終集計) + 4 readout (pollBar / gauge 参加率 / countup 投票数 / stat 差) が tween で visually 連続変化。 iteration 8 wave 8-D2 redesign。
  */
 export const featurePoll = diagram("interactive-feature-poll", {
-  topic: "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存",
+  topic: "SaaS ユーザー機能要望投票 4 phase = (開始 → 拡散 → 中間 → 最終) の flow を shape-* primitive 6 種で表現 + 4 readout (pollBar / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("winner", { x: 0, width: 220 })
-  .lane("runners", { x: 300, width: 220 })
+  .lane("pm", { x: 0, width: 220 })
+  .lane("platform", { x: 240, width: 320 })
+  .lane("users", { x: 580, width: 240 })
   .arraySignal("options", [
     ["Dark mode", 42],
     ["Faster search", 28],
     ["Better API", 18],
     ["Nicer UI", 12],
   ] as unknown as (string | number)[])
-  .node("dark", { lane: "winner", stack: 0, kind: "card", title: "★ Dark mode", subtitle: "42 votes (winner)" })
-  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Faster search", subtitle: "28 votes" })
-  .node("api", { lane: "runners", stack: 1, kind: "card", title: "Better API", subtitle: "18 votes" })
-  .node("ui", { lane: "runners", stack: 2, kind: "card", title: "Nicer UI", subtitle: "12 votes" })
-  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "Results (aggregate)" })
-  .phase("p", {
-    duration: 1200,
-    title: "vote split",
-    body: "2-lane (Winner / Runners-up 3 個) で 4 option を投票結果別に分散、 winner lane は 1 位を目立たせる、 pollBar readout で aggregate 一覧も併存、 poll 構造を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("dark", "search", "api", "ui").badge("poll"))
+  .state("participation", { initial: 0 })
+  .state("totalVotes", { initial: 0 })
+  .state("leadGap", { initial: 0 })
+  .node("pm", { lane: "pm", stack: 0, kind: "shape-person", title: "PM 中野様", eyebrow: "product", subtitle: "Q3 roadmap 決定担当" })
+  .node("dashboard", { lane: "pm", stack: 1, kind: "shape-mobile-device", title: "PM 分析画面", eyebrow: "device", subtitle: "リアルタイム集計 view" })
+  .node("app", { lane: "platform", stack: 0, kind: "shape-online-shop", title: "SaaS product", eyebrow: "product", subtitle: "in-app feature poll banner" })
+  .node("db", { lane: "platform", stack: 1, kind: "shape-cylinder", title: "vote DB", eyebrow: "database", subtitle: "1 user 1 vote · unique 制約" })
+  .node("email", { lane: "platform", stack: 2, kind: "shape-cloud", title: "email campaign", eyebrow: "outreach", subtitle: "既存ユーザーへ告知メール" })
+  .node("users", { lane: "users", stack: 0, kind: "shape-warehouse", title: "全ユーザー 8500 名", eyebrow: "audience", subtitle: "投票対象母集団" })
+  .edge("pm", "dashboard", { label: "モニター", tone: "info" })
+  .edge("dashboard", "app", { label: "poll 起動", tone: "info" })
+  .edge("app", "email", { label: "告知", tone: "warning" })
+  .edge("email", "users", { label: "拡散", tone: "success" })
+  .edge("users", "db", { label: "投票", tone: "accent" })
+  .edge("db", "dashboard", { label: "集計", tone: "success" })
+  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "投票結果" })
+  .readout.gauge("partG", { source: "participation", min: 0, max: 100, color: "#22c55e", label: "参加率 %" })
+  .readout.countup("voteCU", { source: "totalVotes", unit: " 票", label: "累計投票", decimals: 0 })
+  .readout.stat("gapStat", { source: "leadGap", unit: " 票", caption: "1 位 vs 2 位", label: "gap" })
+  .phase("p1", {
+    duration: 1800,
+    title: "投票開始",
+    body: "PM 中野様が Q3 feature poll を app 内でスタート、 4 option 提示。 participation 0 → 5 tween、 totalVotes 0 → 120 tween、 leadGap 0 → 8 tween、 pm + app lane active。",
+  }, (p: PhaseBuilder) => p.activate("pm", "dashboard", "app").tween("participation", 0, 5).tween("totalVotes", 0, 120).tween("leadGap", 0, 8).badge("開始"))
+  .phase("p2", {
+    duration: 2200,
+    title: "拡散 (email 告知)",
+    body: "既存 8500 ユーザーへ告知メール送信、 参加率上昇。 participation 5 → 25 tween、 totalVotes 120 → 850 tween (countup 加速)、 leadGap 8 → 22 tween (Dark mode リード拡大)、 email + users lane activate。",
+  }, (p: PhaseBuilder) => p.activate("pm", "dashboard", "app", "email", "users").tween("participation", 5, 25).tween("totalVotes", 120, 850).tween("leadGap", 8, 22).badge("拡散"))
+  .phase("p3", {
+    duration: 2400,
+    title: "中間集計",
+    body: "1 週間経過、 3000 票達成。 participation 25 → 45 tween、 totalVotes 850 → 2400 tween、 leadGap 22 → 45 tween (Dark mode 圧倒的リード)、 db lane activate、 集計 dashboard に速報。",
+  }, (p: PhaseBuilder) => p.activate("pm", "dashboard", "app", "email", "users", "db").tween("participation", 25, 45).tween("totalVotes", 850, 2400).tween("leadGap", 22, 45).badge("中間"))
+  .phase("p4", {
+    duration: 2000,
+    title: "最終集計 (winner 確定)",
+    body: "2 週後 poll 終了、 Dark mode が winner。 participation 45 → 68 tween (gauge 針最上位)、 totalVotes 2400 → 5780 tween (最終)、 leadGap 45 → 63 tween (Dark 42% vs 2 位 28%)、 6 shape 全 active、 Q3 開発優先度確定。",
+  }, (p: PhaseBuilder) => p.activate("pm", "dashboard", "app", "email", "users", "db").tween("participation", 45, 68).tween("totalVotes", 2400, 5780).tween("leadGap", 45, 63).badge("確定"))
   .build();
 
 /**
