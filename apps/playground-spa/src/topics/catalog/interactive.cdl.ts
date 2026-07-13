@@ -1248,15 +1248,24 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
  * 39. donut chart = portfolio share (asset allocation) を multi-segment donut 表示。
  */
 export const portfolioDonut = diagram("interactive-portfolio-donut", {
-  topic: "portfolio allocation を multi-segment donut chart で表示、 6 色 palette で自動着色",
+  topic: "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("traditional", { x: 0, width: 300 })
+  .lane("alternative", { x: 340, width: 300 })
   .arraySignal("assets", [45, 30, 15, 10])
   .arraySignal("assetNames", ["Stocks", "Bonds", "Cash", "Crypto"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Portfolio", subtitle: "total={assets.sum}% · 4 assets" })
-  .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation" })
+  .node("stocksNode", { lane: "traditional", stack: 0, kind: "card", title: "Stocks", subtitle: "45% (max)" })
+  .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "30%" })
+  .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "15%" })
+  .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "10% (min)" })
+  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio total", subtitle: "sum = {assets.sum}%" })
+  .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
   .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
-  .phase("p", { duration: 1200, title: "donut", body: "arraySignal を donut で per-segment 分割、 arrayList で legend も並列表示。" }, (p: PhaseBuilder) => p.activate("card").badge("donut"))
+  .phase("p", {
+    duration: 1200,
+    title: "asset category split",
+    body: "2-lane (Traditional Stocks+Bonds = 75% / Alternative Cash+Crypto = 25%) で 4 asset を category 別分散、 各 asset 個別 card + total summary、 donut readout も併存で multi-segment 円表示、 category 分類と donut 全体観の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode").badge("donut"))
   .build();
 
 /**
@@ -1404,19 +1413,27 @@ export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
  * 43. mini-map = 大 canvas 1000×800 上の 400×300 viewport を slider で移動、 mini-map で追従。
  */
 export const canvasMiniMap = diagram("interactive-canvas-minimap", {
-  topic: "1000×800 canvas 上の viewport rect (400×300) を slider で移動、 mini-map で 縮小表示",
+  topic: "canvas mini-map を 3-lane (X pan / Y pan / Mini-map viewport) 分散、 axis 別 control + viewport 集約、 miniMap readout 併存",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("xpan", { x: 0, width: 200 })
+  .lane("ypan", { x: 240, width: 200 })
+  .lane("map", { x: 480, width: 260 })
   .input.slider("panX", { min: 0, max: 600, defaultValue: 300, label: "Pan X" })
   .input.slider("panY", { min: 0, max: 500, defaultValue: 250, label: "Pan Y" })
   .state("panX", { initial: 300 })
   .state("panY", { initial: 250 })
   .arraySignal("viewport", [300, 250, 400, 300])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Canvas overview", subtitle: "pan ({panX}, {panY}) view 400×300" })
-  .readout.miniMap("map", { source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview" })
-  .readout.stat("panXStat", { source: "panX", unit: "px", label: "X" })
-  .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y" })
-  .phase("p", { duration: 1200, title: "canvas mini-map", body: "大 canvas 上の viewport を縮小表示、 slider で座標変化 → mini-map の viewport rect が動く経路。" }, (p: PhaseBuilder) => p.activate("card").badge("mini-map"))
+  .node("xNode", { lane: "xpan", stack: 0, kind: "card", title: "Pan X control", subtitle: "panX = {panX}px (0-600)" })
+  .node("yNode", { lane: "ypan", stack: 0, kind: "card", title: "Pan Y control", subtitle: "panY = {panY}px (0-500)" })
+  .node("mapNode", { lane: "map", stack: 0, kind: "card", title: "Mini-map viewport", subtitle: "pan ({panX}, {panY}) view 400×300" })
+  .readout.miniMap("map", { source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview (mini-map)" })
+  .readout.stat("panXStat", { source: "panX", unit: "px", label: "X stat" })
+  .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y stat" })
+  .phase("p", {
+    duration: 1200,
+    title: "axis split + viewport",
+    body: "3-lane (X pan / Y pan / Mini-map viewport) で canvas 制御を axis 別分散、 X/Y 独立 slider control + viewport 集約 card、 miniMap readout も併存で 1000×800 canvas 縮小表示、 slider 変化で mini-map viewport rect が実座標追随、 axis 分離と全体 view の 2 経路。",
+  }, (p: PhaseBuilder) => p.activate("xNode", "yNode", "mapNode").badge("mini-map"))
   .build();
 
 /**
@@ -1450,9 +1467,10 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
  * 45. candlestick chart = 8 日分の OHLC を蝋燭足で表示 (finance chart)。
  */
 export const priceCandlestick = diagram("interactive-price-candlestick", {
-  topic: "8 day の OHLC array を candlestick chart で表示、 up/down 色分け + wick + body + title tooltip",
+  topic: "OHLC 8 day を 2-lane (Up days close≥open / Down days close<open) 分散、 各 day 個別 card + candlestick readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("up", { x: 0, width: 320 })
+  .lane("down", { x: 360, width: 320 })
   .arraySignal("ohlc", [
     [100, 108, 96, 105],
     [105, 110, 100, 102],
@@ -1463,9 +1481,20 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
     [112, 118, 111, 116],
     [116, 120, 113, 118],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Price 8d", subtitle: "OHLC candles" })
-  .readout.candlestick("chart", { source: "ohlc", min: 95, max: 122, viewW: 300, viewH: 110, colorUp: "#22c55e", colorDown: "#ef4444", label: "OHLC" })
-  .phase("p", { duration: 1200, title: "candlestick", body: "8 day の OHLC (open, high, low, close) を蝋燭足で描画、 close>=open で緑 / down で赤、 wick で high-low レンジ。" }, (p: PhaseBuilder) => p.activate("card").badge("finance"))
+  .node("d1", { lane: "up", stack: 0, kind: "card", title: "Day 1 ▲", subtitle: "O=100 · C=105 (+5)" })
+  .node("d3", { lane: "up", stack: 1, kind: "card", title: "Day 3 ▲", subtitle: "O=102 · C=104 (+2)" })
+  .node("d4", { lane: "up", stack: 2, kind: "card", title: "Day 4 ▲", subtitle: "O=104 · C=111 (+7)" })
+  .node("d6", { lane: "up", stack: 3, kind: "card", title: "Day 6 ▲", subtitle: "O=109 · C=112 (+3)" })
+  .node("d7", { lane: "up", stack: 4, kind: "card", title: "Day 7 ▲", subtitle: "O=112 · C=116 (+4)" })
+  .node("d8", { lane: "up", stack: 5, kind: "card", title: "Day 8 ▲", subtitle: "O=116 · C=118 (+2)" })
+  .node("d2", { lane: "down", stack: 0, kind: "card", title: "Day 2 ▼", subtitle: "O=105 · C=102 (-3)" })
+  .node("d5", { lane: "down", stack: 1, kind: "card", title: "Day 5 ▼", subtitle: "O=111 · C=109 (-2)" })
+  .readout.candlestick("chart", { source: "ohlc", min: 95, max: 122, viewW: 300, viewH: 110, colorUp: "#22c55e", colorDown: "#ef4444", label: "OHLC (candlestick)" })
+  .phase("p", {
+    duration: 1200,
+    title: "candle direction split",
+    body: "2-lane (Up days ▲ 6 個 / Down days ▼ 2 個) で 8 day OHLC を close vs open 方向別分散、 各 day 個別 card で open/close/delta 明示、 candlestick readout も併存で緑/赤 蝋燭足 + wick 描画、 direction 分類と price chart の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("d1", "d3", "d4", "d6", "d7", "d8", "d2", "d5").badge("finance"))
   .build();
 
 /**
