@@ -413,20 +413,28 @@ const cases = [
   },
   {
     diagramId: "interactive-decision-tree",
-    label: "decision-tree: 完全 2 分木 3 level = 7 node、 root offsetY=-100",
+    label: "decision-tree v2: 7 shape (patient / nurse / qFever / qBreath / qBloodTest / emr / board) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const count = await page.$$eval('[data-cdl-node^="node-"]', (els) => els.length);
-      return { actual: count, expected: 7 };
+      const ids = ["patient", "nurse", "qFever", "qBreath", "qBloodTest", "emr", "board"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 7 };
     },
   },
   {
     diagramId: "interactive-decision-tree",
-    label: "decision-tree: node-3 (L2 P0) offsetY = 60 (level 2 * 80 - 100)",
+    label: "decision-tree v2: 4 readout (statusTL / caseCU / timeG / riskStat) 描画",
     setup: async (page) => { await page.waitForTimeout(200); },
     assert: async (page) => {
-      const oy = await page.$eval('[data-cdl-node="node-3"]', (el) => el.getAttribute("data-cdl-offset-y"));
-      return { actual: Number(oy), expected: 60, tolerance: 1 };
+      const ids = ["statusTL", "caseCU", "timeG", "riskStat"];
+      const found = await page.$$eval("[data-cdl-readout]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-readout")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 4 };
     },
   },
   {
