@@ -2250,9 +2250,11 @@ export const postReactions = diagram("interactive-post-reactions", {
  * 73. pill-group = tech skill 色付き pills、 [[label, colorHex], ...] で per-pill color。
  */
 export const techPills = diagram("interactive-tech-pills", {
-  topic: "tech skill を 色付き pill list で表示、 [[label, colorHex], ...] で per-pill color 制御",
+  topic: "tech stack 5 pill を 3-lane (Frontend / Systems / Build) category 別分散、 各 tool 個別 card、 pillGroup readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("frontend", { x: 0, width: 220 })
+  .lane("systems", { x: 260, width: 200 })
+  .lane("build", { x: 480, width: 220 })
   .arraySignal("stack", [
     ["React", "#61dafb"],
     ["TypeScript", "#3178c6"],
@@ -2260,41 +2262,68 @@ export const techPills = diagram("interactive-tech-pills", {
     ["Vite", "#646cff"],
     ["Bun", "#000000"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tech stack", subtitle: "5 pills" })
-  .readout.pillGroup("pg", { source: "stack", label: "Stack" })
-  .phase("p", { duration: 1200, title: "pill group", body: "[[label, colorHex], ...] の 2-tuple で per-pill color 制御、 tech stack / tag list 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("pills"))
+  .node("reactNode", { lane: "frontend", stack: 0, kind: "card", title: "React", subtitle: "UI library · #61dafb" })
+  .node("tsNode", { lane: "frontend", stack: 1, kind: "card", title: "TypeScript", subtitle: "typed JS · #3178c6" })
+  .node("rustNode", { lane: "systems", stack: 0, kind: "card", title: "Rust", subtitle: "systems lang · #dea584" })
+  .node("viteNode", { lane: "build", stack: 0, kind: "card", title: "Vite", subtitle: "dev server · #646cff" })
+  .node("bunNode", { lane: "build", stack: 1, kind: "card", title: "Bun", subtitle: "runtime · #000000" })
+  .readout.pillGroup("pg", { source: "stack", label: "Stack (pill group)" })
+  .phase("p", {
+    duration: 1200,
+    title: "tech category split",
+    body: "3-lane (Frontend React+TS / Systems Rust / Build Vite+Bun) で 5 tech tool を category 別分散、 各 tool 個別 card で用途 + hex 明示、 pillGroup readout も併存で per-pill color 表示、 tech 分類と pill list の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "rustNode", "viteNode", "bunNode").badge("pills"))
   .build();
 
 /**
  * 74. fuel-bar = device battery、 slider で 0-100% 変化 → 10 segment + 3 color band 追随。
  */
 export const deviceBattery = diagram("interactive-device-battery", {
-  topic: "device battery を slider で操作 → 10 segment fuel bar + 3 color band (red/yellow/green)",
+  topic: "battery level を 3-lane (Low <20 / Mid 20-60 / High ≥60) band 別分散 + current indicator (default=high)、 fuelBar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("low", { x: 0, width: 200 })
+  .lane("mid", { x: 240, width: 200 })
+  .lane("high", { x: 480, width: 220 })
   .input.slider("battery", { min: 0, max: 100, defaultValue: 72, label: "Battery %" })
   .state("battery", { initial: 72 })
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Battery", subtitle: "{battery}%" })
-  .readout.fuelBar("fb", { source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level" })
-  .phase("p", { duration: 1200, title: "fuel bar", body: "slider で battery % 変化 → 10 segment horizontal bar が filled 数追随 + 3 color band で色切替 (低=red / 中=yellow / 高=green)、 battery / fuel / stamina 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("battery"))
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "Low band", subtitle: "< 20% (red · critical)" })
+  .node("midNode", { lane: "mid", stack: 0, kind: "card", title: "Mid band", subtitle: "20-60% (yellow · charge soon)" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High band", subtitle: "≥ 60% (green · healthy)" })
+  .node("currentBattery", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "battery = {battery}% (default 72 → high)" })
+  .readout.fuelBar("fb", { source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level (10 segment bar)" })
+  .phase("p", {
+    duration: 1200,
+    title: "battery band split",
+    body: "3-lane (Low <20 red / Mid 20-60 yellow / High ≥60 green) で battery 3 band を分散、 current indicator (default 72 → high lane)、 slider 変化で fuelBar readout の filled 数 + color 追随、 battery / fuel / stamina 状態を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentBattery").badge("battery"))
   .build();
 
 /**
  * 75. metrics-grid = SaaS dashboard の 4 KPI を 2×2 grid 表示。
  */
 export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
-  topic: "SaaS dashboard の 4 KPI (Users / Revenue / Uptime / Errors) を 2×2 grid で表示",
+  topic: "SaaS 4 KPI を 4-lane (Users / Revenue / Uptime / Errors) 分散、 各 KPI 個別 card、 metricsGrid readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("users", { x: 0, width: 180 })
+  .lane("revenue", { x: 200, width: 180 })
+  .lane("uptime", { x: 400, width: 180 })
+  .lane("errors", { x: 600, width: 180 })
   .arraySignal("kpis", [
     ["Users", "12.4k"],
     ["Revenue", "$45k"],
     ["Uptime", "99.9", "%"],
     ["Errors", 12],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Dashboard", subtitle: "4 KPI 2×2 grid" })
-  .readout.metricsGrid("mg", { source: "kpis", color: "#2563eb", label: "Metrics" })
-  .phase("p", { duration: 1200, title: "metrics grid", body: "[[name, value, unit?], ...] を 2×2 grid で 4 stat 並列表示、 dashboard header 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("grid"))
+  .node("usersNode", { lane: "users", stack: 0, kind: "card", title: "Users", subtitle: "12.4k (active MAU)" })
+  .node("revenueNode", { lane: "revenue", stack: 0, kind: "card", title: "Revenue", subtitle: "$45k (MRR)" })
+  .node("uptimeNode", { lane: "uptime", stack: 0, kind: "card", title: "Uptime", subtitle: "99.9% (SLA)" })
+  .node("errorsNode", { lane: "errors", stack: 0, kind: "card", title: "Errors", subtitle: "12 (last 24h)" })
+  .readout.metricsGrid("mg", { source: "kpis", color: "#2563eb", label: "Metrics (2×2 grid)" })
+  .phase("p", {
+    duration: 1200,
+    title: "KPI 4-way split",
+    body: "4-lane (Users / Revenue / Uptime / Errors) で SaaS 4 KPI を機能別分散、 各 KPI 個別 card で value + context 明示、 metricsGrid readout も併存で 2×2 grid 表示、 KPI 分類と dashboard 全体の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("usersNode", "revenueNode", "uptimeNode", "errorsNode").badge("grid"))
   .build();
 
 /**
