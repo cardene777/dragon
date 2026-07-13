@@ -242,6 +242,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   decisionTree: "実例: 医療 triage 臨床決定木 (受付 → 一次 → 二次 → 転帰)",
   perfBubbleChart: "実例: production infra 週次 capacity planning (取得 → 分析 → 判定 → 最適化)",
   abTestResult: "実例: EC checkout A/B test 4 週実験 (開始 → split → 集計 → 有意判定)",
+  skillRadar: "実例: エンジニア半年 skill 成長 review (初回 → 学習 → 中間 → 成長確認)",
+  projectGantt: "実例: モバイル新機能 10 日 sprint (Design → Impl → Test → Ship)",
+  sprintKanbanBoard: "実例: 2 週 sprint daily stand-up (start → 3 日目 → 7 日目 → 完了)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",

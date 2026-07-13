@@ -1203,27 +1203,54 @@ export const decisionTree = diagram("interactive-decision-tree", {
   .build();
 
 /**
- * 37. radar chart = 5 skill dimensions を spider chart で表示。
+ * 37. skillRadar v2 = ソフトウェアエンジニア半年 skill 成長 review シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (初回査定 → 学習投資 → 中間確認 → 成長確認) + 4 readout (radar 5 次元 / gauge 総合スコア / countup 学習時間 / stat 成長ポイント) が tween で visually 連続変化。 iteration 8 wave 8-C redesign。
  */
 export const skillRadar = diagram("interactive-skill-radar", {
-  topic: "5 skill を 3-lane (Strong ≥7 / Middle 5-6 / Weak <5) レベル別分散、 各 skill 個別 card + radar readout 併存",
+  topic: "エンジニア半年 skill 成長 review シナリオ = 4 phase (初回 → 学習 → 中間 → 成長確認) の flow を shape-* primitive 6 種で表現 + 4 readout (radar / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("strong", { x: 0, width: 220 })
-  .lane("middle", { x: 260, width: 220 })
-  .lane("weak", { x: 520, width: 220 })
-  .arraySignal("skills", [8, 5, 7, 3, 9])
+  .lane("engineer", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("review", { x: 580, width: 220 })
+  .arraySignal("skills", [3, 3, 3, 3, 3])
   .arraySignal("skillNames", ["Design", "Impl", "Test", "Docs", "Debug"])
-  .node("designNode", { lane: "strong", stack: 0, kind: "card", title: "Design", subtitle: "8/10 (strong)" })
-  .node("testNode", { lane: "strong", stack: 1, kind: "card", title: "Test", subtitle: "7/10 (strong)" })
-  .node("debugNode", { lane: "strong", stack: 2, kind: "card", title: "Debug", subtitle: "9/10 (max)" })
-  .node("implNode", { lane: "middle", stack: 0, kind: "card", title: "Impl", subtitle: "5/10 (middle)" })
-  .node("docsNode", { lane: "weak", stack: 0, kind: "card", title: "Docs", subtitle: "3/10 (weak, min)" })
-  .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 200, viewH: 200, label: "Skills (polygon spider)" })
-  .phase("p", {
-    duration: 1200,
-    title: "skill level split",
-    body: "3-lane (Strong ≥7 / Middle 5-6 / Weak <5) で 5 skill をレベル別分散、 各 skill 個別 card で数値明示 (Design 8 / Test 7 / Debug 9 / Impl 5 / Docs 3)、 radar readout も併存で 5 次元 polygon 表示、 skill レベル分類と polygon 全体観の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("designNode", "testNode", "debugNode", "implNode", "docsNode").badge("radar"))
+  .state("overallScore", { initial: 30 })
+  .state("learningHours", { initial: 0 })
+  .state("gainedPoints", { initial: 0 })
+  .node("engineer", { lane: "engineer", stack: 0, kind: "shape-person", title: "エンジニア 中山様", eyebrow: "engineer", subtitle: "半年 review 対象" })
+  .node("laptop", { lane: "engineer", stack: 1, kind: "shape-mobile-device", title: "1on1 tablet", eyebrow: "device", subtitle: "skill assessment form" })
+  .node("lms", { lane: "system", stack: 0, kind: "shape-server-rack", title: "LMS platform", eyebrow: "learning", subtitle: "オンライン講座 · 学習時間 tracking" })
+  .node("skillDb", { lane: "system", stack: 1, kind: "shape-cylinder", title: "skill matrix DB", eyebrow: "database", subtitle: "5 次元評価履歴" })
+  .node("badge", { lane: "system", stack: 2, kind: "shape-hexagon", title: "skill badge 発行", eyebrow: "certificate", subtitle: "レベル達成で自動発行" })
+  .node("manager", { lane: "review", stack: 0, kind: "shape-cloud", title: "マネージャー review", eyebrow: "supervisor", subtitle: "成長 sign-off · キャリア判定" })
+  .edge("engineer", "laptop", { label: "自己申告", tone: "info" })
+  .edge("laptop", "lms", { label: "受講", tone: "success" })
+  .edge("lms", "skillDb", { label: "評価反映", tone: "success" })
+  .edge("skillDb", "badge", { label: "レベル判定", tone: "accent" })
+  .edge("badge", "manager", { label: "承認要求", tone: "success" })
+  .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 220, viewH: 220, label: "5 次元 skill radar" })
+  .readout.gauge("scoreG", { source: "overallScore", min: 0, max: 100, color: "#22c55e", label: "総合スコア" })
+  .readout.countup("hoursCU", { source: "learningHours", unit: " h", label: "累計学習時間", decimals: 0 })
+  .readout.stat("gainStat", { source: "gainedPoints", unit: " pt", caption: "半年獲得 point", label: "成長" })
+  .phase("p1", {
+    duration: 2000,
+    title: "初回査定",
+    body: "中山様の 4 月時点 skill = 全 5 次元 3/10 (radar 星形が中心近く)。 overallScore 30 (gauge 針最下位 30%)、 learningHours 0 (未開始)、 gainedPoints 0。 engineer lane active。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop").set("overallScore", 30).set("learningHours", 0).set("gainedPoints", 0).badge("初回"))
+  .phase("p2", {
+    duration: 2400,
+    title: "学習投資",
+    body: "LMS で React / TDD / Docs 講座受講、 skillDb に progress 記録。 overallScore 30 → 50 tween (gauge 針中位)、 learningHours 0 → 60 tween (countup 加速)、 gainedPoints 0 → 8 tween (stat 動的加算)、 lms + skillDb lane 追加 activate。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "lms", "skillDb").tween("overallScore", 30, 50).tween("learningHours", 0, 60).tween("gainedPoints", 0, 8).badge("学習"))
+  .phase("p3", {
+    duration: 2200,
+    title: "中間確認",
+    body: "8 月中間 review、 Design 3→5 / Impl 3→5 / Test 3→6 の伸びを確認 (radar 星形が外周へ拡大方向)。 overallScore 50 → 70 tween、 learningHours 60 → 120 tween、 gainedPoints 8 → 15 tween、 badge lane activate で認定 badge 発行。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "lms", "skillDb", "badge").tween("overallScore", 50, 70).tween("learningHours", 60, 120).tween("gainedPoints", 8, 15).badge("中間"))
+  .phase("p4", {
+    duration: 2000,
+    title: "成長確認",
+    body: "10 月 final review、 全 5 次元 6-9 に成長 (radar 星形が最終形)。 overallScore 70 → 88 tween (gauge 針最終、 88%)、 learningHours 120 → 180 tween (countup 最終)、 gainedPoints 15 → 22 tween、 manager review + キャリア昇格判定、 6 shape 全 active。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "lms", "skillDb", "badge", "manager").tween("overallScore", 70, 88).tween("learningHours", 120, 180).tween("gainedPoints", 15, 22).badge("成長"))
   .build();
 
 /**
@@ -1693,34 +1720,58 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
   .build();
 
 /**
- * 49. project gantt = 4 task を 10 day timeline 上に配置。
+ * 49. projectGantt v2 = モバイルアプリ新機能開発 10 日 sprint シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (Design → Impl → Test → Ship) + 4 readout (gantt / gauge 進捗率 / countup 経過日数 / stat 完了タスク) が tween で visually 連続変化。 iteration 8 wave 8-C redesign。
  */
 export const projectGantt = diagram("interactive-project-gantt", {
-  topic: "project 4 task を 4-lane (Design / Impl / Test / Ship) task 別分散 + 3 handover edge、 gantt readout 併存",
+  topic: "モバイル新機能 10 日 sprint シナリオ = 4 phase (Design → Impl → Test → Ship) の flow を shape-* primitive 6 種で表現 + 4 readout (gantt / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("design", { x: 0, width: 160 })
-  .lane("impl", { x: 180, width: 160 })
-  .lane("test", { x: 360, width: 160 })
-  .lane("ship", { x: 540, width: 160 })
+  .lane("team", { x: 0, width: 220 })
+  .lane("work", { x: 240, width: 320 })
+  .lane("release", { x: 580, width: 220 })
   .arraySignal("tasks", [
     ["Design", 0, 3],
     ["Impl", 3, 5],
     ["Test", 6, 3],
     ["Ship", 9, 1],
   ] as unknown as (string | number)[])
-  .node("designNode", { lane: "design", stack: 0, kind: "card", title: "Design", subtitle: "day 0-3 (3 day)" })
-  .node("implNode", { lane: "impl", stack: 0, kind: "card", title: "Impl", subtitle: "day 3-8 (5 day, largest)" })
-  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "Test", subtitle: "day 6-9 (3 day, overlap w/ impl)" })
-  .node("shipNode", { lane: "ship", stack: 0, kind: "card", title: "Ship", subtitle: "day 9-10 (1 day)" })
-  .edge("designNode", "implNode", { label: "handover", tone: "info" })
-  .edge("implNode", "testNode", { label: "test start", tone: "accent" })
-  .edge("testNode", "shipNode", { label: "release", tone: "success" })
-  .readout.gantt("g", { source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "Timeline (gantt)" })
-  .phase("p", {
-    duration: 1200,
-    title: "task pipeline",
-    body: "4-lane (Design / Impl / Test / Ship) で 10 day sprint 4 task を task 別分散 + 3 handover edge (info→accent→success で release 直前 escalate)、 各 task 個別 card で day range 明示、 gantt readout も併存で timeline bar 表示、 task 分類と timeline の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("designNode", "implNode", "testNode", "shipNode").badge("gantt"))
+  .state("progress", { initial: 0 })
+  .state("elapsedDay", { initial: 0 })
+  .state("completedTasks", { initial: 0 })
+  .node("designer", { lane: "team", stack: 0, kind: "shape-person", title: "デザイナー 松原様", eyebrow: "role", subtitle: "Figma で UI 設計" })
+  .node("dev", { lane: "team", stack: 1, kind: "shape-mobile-device", title: "iOS 開発端末", eyebrow: "device", subtitle: "Xcode + SwiftUI" })
+  .node("repo", { lane: "work", stack: 0, kind: "shape-website", title: "GitHub repo", eyebrow: "vcs", subtitle: "feature/new-checkout branch" })
+  .node("ci", { lane: "work", stack: 1, kind: "shape-server-rack", title: "CI (GitHub Actions)", eyebrow: "build", subtitle: "PR ごとに build + test" })
+  .node("qa", { lane: "work", stack: 2, kind: "shape-hexagon", title: "QA test", eyebrow: "verify", subtitle: "Playwright e2e + 手動 QA" })
+  .node("appstore", { lane: "release", stack: 0, kind: "shape-cloud", title: "App Store Connect", eyebrow: "distribution", subtitle: "TestFlight → production 配信" })
+  .edge("designer", "dev", { label: "handover", tone: "info" })
+  .edge("dev", "repo", { label: "commit", tone: "success" })
+  .edge("repo", "ci", { label: "build", tone: "accent" })
+  .edge("ci", "qa", { label: "test 配布", tone: "accent" })
+  .edge("qa", "appstore", { label: "release", tone: "success" })
+  .readout.gantt("g", { source: "tasks", min: 0, max: 10, viewW: 340, viewH: 140, color: "#2563eb", label: "10 日 timeline (gantt)" })
+  .readout.gauge("progressG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "sprint 進捗率" })
+  .readout.countup("dayCU", { source: "elapsedDay", unit: " 日", label: "経過日数", decimals: 0 })
+  .readout.stat("doneStat", { source: "completedTasks", unit: "/4", caption: "完了タスク", label: "done" })
+  .phase("p1", {
+    duration: 2000,
+    title: "Design (day 0-3)",
+    body: "デザイナー松原様が Figma で UI 設計、 checkout flow の wireframe 完成。 progress 0 → 30 tween (gauge 針上昇)、 elapsedDay 0 → 3 tween (countup)、 completedTasks 0 → 1 tween (Design 完了)、 team lane active。",
+  }, (p: PhaseBuilder) => p.activate("designer", "dev").tween("progress", 0, 30).tween("elapsedDay", 0, 3).tween("completedTasks", 0, 1).badge("Design"))
+  .phase("p2", {
+    duration: 2400,
+    title: "Impl (day 3-8)",
+    body: "SwiftUI で実装 5 日、 daily commit。 progress 30 → 60 tween、 elapsedDay 3 → 8 tween、 completedTasks 1 → 2 tween、 repo + ci lane 追加 activate、 PR ごとに build 実行。",
+  }, (p: PhaseBuilder) => p.activate("designer", "dev", "repo", "ci").tween("progress", 30, 60).tween("elapsedDay", 3, 8).tween("completedTasks", 1, 2).badge("Impl"))
+  .phase("p3", {
+    duration: 2200,
+    title: "Test (day 6-9、 Impl と overlap)",
+    body: "QA が Playwright e2e + 手動 test。 progress 60 → 85 tween、 elapsedDay 8 → 9 tween、 completedTasks 2 → 3 tween、 qa lane activate、 bug 修正 loop で ci と往復。",
+  }, (p: PhaseBuilder) => p.activate("designer", "dev", "repo", "ci", "qa").tween("progress", 60, 85).tween("elapsedDay", 8, 9).tween("completedTasks", 2, 3).badge("Test"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Ship (day 9-10)",
+    body: "TestFlight → production 配信、 App Store 審査 pass。 progress 85 → 100 tween (gauge 針最終)、 elapsedDay 9 → 10 tween (countup 10 日目)、 completedTasks 3 → 4 tween (全 4 task 完了)、 appstore lane activate、 6 shape 全 active、 リリース完遂。",
+  }, (p: PhaseBuilder) => p.activate("designer", "dev", "repo", "ci", "qa", "appstore").tween("progress", 85, 100).tween("elapsedDay", 9, 10).tween("completedTasks", 3, 4).badge("Ship"))
   .build();
 
 /**
@@ -3151,15 +3202,14 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
   .build();
 
 /**
- * 100. kanban-board = sprint task board、 3-lane (Todo / In Progress / Done) state 別分散 + kanban readout 併存。
- * cdl primitive iteration 6 の最初の readout、 layout diversity pattern taxonomy § 1 state-based split と直接共鳴。
+ * 100. sprintKanbanBoard v2 = 2 週 sprint daily stand-up シナリオ、 shape-person + shape-mobile-device + shape-kanban-card × 3 + shape-server-rack の 6 shape で visual scene 化、 4 phase (sprint start → daily 3 日目 → 7 日目 → sprint 完了) + 4 readout (kanbanBoard / gauge burndown 消化率 / countup done タスク / stat velocity) が tween で visually 連続変化。 iteration 8 wave 8-C redesign。
  */
 export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
-  topic: "sprint 6 task を 3-lane (Todo / In Progress / Done) 状態別分散、 kanban readout 併存",
+  topic: "2 週 sprint daily stand-up シナリオ = 4 phase (start → 3 日目 → 7 日目 → 完了) の flow を shape-* primitive 6 種で表現 + 4 readout (kanbanBoard / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("todo", { x: 0, width: 220 })
-  .lane("inprogress", { x: 260, width: 220 })
-  .lane("done", { x: 520, width: 220 })
+  .lane("team", { x: 0, width: 220 })
+  .lane("board", { x: 240, width: 340 })
+  .lane("metrics", { x: 600, width: 220 })
   .arraySignal("tasks", [
     ["todo", "Design API schema", "high"],
     ["todo", "Write docs", "low"],
@@ -3168,15 +3218,44 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
     ["done", "Setup CI", "med"],
     ["done", "Repo bootstrap", "low"],
   ] as unknown as (string | number)[])
-  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2 tasks)", subtitle: "Design API schema (high) · Write docs (low)" })
-  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress (2)", subtitle: "Impl auth flow (high) · Migration script (med)" })
-  .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "Done (2)", subtitle: "Setup CI (med) · Repo bootstrap (low)" })
-  .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" })
-  .phase("p", {
-    duration: 1200,
-    title: "kanban state split",
-    body: "3-lane (Todo / In Progress / Done) で 6 sprint task を state 別分散、 各 column summary card + kanban readout 併存で 3 column task board 表示、 priority color (high red / med yellow / low gray) で task tag、 state-based split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("todoCard", "inprogressCard", "doneCard").badge("kanban"))
+  .state("burndown", { initial: 0 })
+  .state("doneCount", { initial: 0 })
+  .state("velocity", { initial: 0 })
+  .node("scrum", { lane: "team", stack: 0, kind: "shape-person", title: "スクラムマスター 井上様", eyebrow: "role", subtitle: "daily stand-up 主催" })
+  .node("tablet", { lane: "team", stack: 1, kind: "shape-mobile-device", title: "Jira mobile", eyebrow: "device", subtitle: "sprint board 確認" })
+  .node("todoStack", { lane: "board", stack: 0, kind: "shape-kanban-card", title: "Todo column", eyebrow: "state", subtitle: "backlog · 2 task 残" })
+  .node("progressStack", { lane: "board", stack: 1, kind: "shape-kanban-card", title: "In Progress", eyebrow: "state", subtitle: "WIP limit 3 · 2 task 進行中" })
+  .node("doneStack", { lane: "board", stack: 2, kind: "shape-kanban-card", title: "Done column", eyebrow: "state", subtitle: "完了 {doneCount} task" })
+  .node("api", { lane: "metrics", stack: 0, kind: "shape-server-rack", title: "Jira API", eyebrow: "backend", subtitle: "burndown chart 生成 · velocity 集計" })
+  .edge("scrum", "tablet", { label: "確認", tone: "info" })
+  .edge("tablet", "api", { label: "GET /sprint", tone: "info" })
+  .edge("todoStack", "progressStack", { label: "pull", tone: "warning" })
+  .edge("progressStack", "doneStack", { label: "complete", tone: "success" })
+  .edge("doneStack", "api", { label: "velocity 記録", tone: "accent" })
+  .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 150, max: 5, label: "sprint kanban 3 列" })
+  .readout.gauge("burndownG", { source: "burndown", min: 0, max: 100, color: "#22c55e", label: "消化率 %" })
+  .readout.countup("doneCU", { source: "doneCount", unit: " task", label: "完了 task", decimals: 0 })
+  .readout.stat("velStat", { source: "velocity", unit: " pt/wk", caption: "velocity", label: "velocity" })
+  .phase("p1", {
+    duration: 2000,
+    title: "sprint start (day 1)",
+    body: "sprint planning 完了、 6 task backlog に投入、 うち 2 task done (bootstrap)。 burndown 0 → 33 tween (gauge 針が緑域下位)、 doneCount 0 → 2 tween (setup 完了分)、 velocity 0 (初日未算出)、 team + Todo column active。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "tablet", "todoStack").tween("burndown", 0, 33).tween("doneCount", 0, 2).badge("start"))
+  .phase("p2", {
+    duration: 2400,
+    title: "daily (day 3)",
+    body: "daily stand-up、 Impl auth flow / Migration script を In Progress へ pull。 burndown 33 → 50 tween、 doneCount 2 → 2 保持 (WIP 中)、 velocity 0 → 6 tween (stat 表示)、 progressStack lane activate。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "tablet", "todoStack", "progressStack").tween("burndown", 33, 50).tween("velocity", 0, 6).badge("day 3"))
+  .phase("p3", {
+    duration: 2200,
+    title: "daily (day 7)",
+    body: "折り返し review、 Impl auth flow 完了で Done に move。 burndown 50 → 75 tween、 doneCount 2 → 3 tween (countup 加算)、 velocity 6 → 9 tween、 doneStack lane activate、 api 経由 metric 集計。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "tablet", "todoStack", "progressStack", "doneStack", "api").tween("burndown", 50, 75).tween("doneCount", 2, 3).tween("velocity", 6, 9).badge("day 7"))
+  .phase("p4", {
+    duration: 2000,
+    title: "sprint 完了 (day 14)",
+    body: "全 6 task 完遂、 sprint retro 実施。 burndown 75 → 100 tween (gauge 針最上位)、 doneCount 3 → 6 tween (countup 最終、 全 task done)、 velocity 9 → 12 tween、 6 shape 全 active、 next sprint plan へ。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "tablet", "todoStack", "progressStack", "doneStack", "api").tween("burndown", 75, 100).tween("doneCount", 3, 6).tween("velocity", 9, 12).badge("完了"))
   .build();
 
 /**
