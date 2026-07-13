@@ -1084,58 +1084,67 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .build();
 
 /**
- * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
+ * 36. oauthFlow v2 = 実 Google Sign-In (OAuth 2.0 Authorization Code + PKCE) シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 5 phase (login click → consent → code exchange → token 発行 → API call) + 4 readout (sequenceTimeline / gauge latency / countup token 発行数 / traffic-light state) が tween で visually 連続変化。 iteration 8 wave 8-B redesign。
  */
 export const oauthFlow = diagram("interactive-oauth-flow", {
-  topic: "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随",
+  topic: "実 OAuth 2.0 Authorization Code + PKCE (Google Sign-In) シナリオ = 5 phase (click → consent → code exchange → token → API) の flow を shape-* primitive 6 種で表現 + 4 readout (sequenceTimeline / gauge latency / countup / traffic-light) が tween で visually 連続変化",
 })
   .lane("user", { x: 0, width: 220 })
-  .lane("auth", { x: 320, width: 220 })
-  .lane("resource", { x: 640, width: 220 })
-  .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" })
-  .state("delay", { initial: 50 })
+  .lane("app", { x: 240, width: 260 })
+  .lane("google", { x: 520, width: 280 })
+  .state("latency", { initial: 0 })
+  .state("tokenCount", { initial: 45238 })
+  .state("flowState", { initial: 0 })
   .arraySignal("events", [
     [0, "click"],
-    [100, "redirect"],
-    [200, "consent"],
-    [350, "code"],
-    [500, "token"],
-    [650, "resp"],
+    [80, "redirect"],
+    [220, "consent"],
+    [400, "code"],
+    [550, "token"],
+    [700, "api"],
   ] as unknown as (string | number)[])
-  .node("client", {
-    lane: "user",
-    stack: 0,
-    kind: "card",
-    title: "Client browser",
-    subtitle: "user agent",
-  })
-  .node("consent", {
-    lane: "auth",
-    stack: 0,
-    kind: "card",
-    title: "Auth server",
-    subtitle: "delay {delay}ms",
-  })
-  .node("api", {
-    lane: "resource",
-    stack: 0,
-    kind: "card",
-    title: "Resource server",
-    subtitle: "API endpoint",
-  })
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info" })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left" })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent" })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left" })
-  .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
-  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "left" })
-  .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
-  .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
-  .phase("p", {
-    duration: 1200,
-    title: "OAuth flow",
-    body: "3-lane (User / Auth / Resource) + 6 event edge で OAuth 2.0 code flow を node network 化、 sequence timeline と併記で時間軸 + 空間軸を dual 可視化。",
-  }, (p: PhaseBuilder) => p.activate("client", "consent", "api").badge("OAuth"))
+  .node("shopper", { lane: "user", stack: 0, kind: "shape-person", title: "田中様", eyebrow: "user", subtitle: "Google Sign-In クリック" })
+  .node("mobile", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "iPhone Safari", eyebrow: "device", subtitle: "PKCE code_verifier 保管" })
+  .node("app", { lane: "app", stack: 0, kind: "shape-website", title: "MyApp SPA", eyebrow: "client", subtitle: "React app · client_id 公開" })
+  .node("authServer", { lane: "google", stack: 0, kind: "shape-server-rack", title: "accounts.google.com", eyebrow: "authz-server", subtitle: "consent + code 発行 · latency {latency}ms" })
+  .node("tokenEndpoint", { lane: "google", stack: 1, kind: "shape-hexagon", title: "token endpoint", eyebrow: "signer", subtitle: "RS256 · access + id_token" })
+  .node("apiResource", { lane: "google", stack: 2, kind: "shape-cloud", title: "Gmail API", eyebrow: "resource", subtitle: "scope=gmail.readonly" })
+  .edge("shopper", "mobile", { label: "1. click", tone: "info" })
+  .edge("mobile", "app", { label: "2. PKCE gen", tone: "info" })
+  .edge("app", "authServer", { label: "3. authorize", tone: "info" })
+  .edge("authServer", "app", { label: "4. code + state", tone: "success", side: "left" })
+  .edge("app", "tokenEndpoint", { label: "5. code exchange (with verifier)", tone: "accent" })
+  .edge("tokenEndpoint", "app", { label: "6. tokens", tone: "success", side: "left" })
+  .edge("app", "apiResource", { label: "7. GET (Bearer)", tone: "success" })
+  .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 800, viewW: 400, viewH: 70, color: "#2563eb", label: "OAuth timeline" })
+  .readout.gauge("latencyG", { source: "latency", min: 0, max: 500, color: "#f97316", label: "server latency (ms)" })
+  .readout.countup("tokenCU", { source: "tokenCount", unit: " 件", label: "本日 token 発行数", decimals: 0 })
+  .readout.trafficLight("stateTL", { source: "flowState", label: "flow state" })
+  .phase("p1", {
+    duration: 1800,
+    title: "click → redirect",
+    body: "田中様が MyApp で Google Sign-In クリック、 PKCE code_verifier 生成 → code_challenge 送信。 latency 0 → 60ms tween、 flowState = 0 (traffic-light 赤)、 tokenCount 保持。 user + app lane active。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "app").tween("latency", 0, 60).set("flowState", 0).badge("click"))
+  .phase("p2", {
+    duration: 2200,
+    title: "consent (Google)",
+    body: "Google accounts で consent 画面表示、 田中様が gmail.readonly scope 承認。 latency 60 → 180ms tween (gauge 針上昇、 対話 UI 表示時間)、 flowState 0 → 1 tween (traffic-light 赤 → 黄 = 認証中)、 authServer lane activate。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "app", "authServer").tween("latency", 60, 180).tween("flowState", 0, 1).badge("consent"))
+  .phase("p3", {
+    duration: 2200,
+    title: "code exchange (PKCE)",
+    body: "authorization code を token endpoint に POST、 code_verifier を PKCE 検証。 latency 180 → 240ms tween、 tokenEndpoint lane activate、 hexagon shape が signer role で強調。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "app", "authServer", "tokenEndpoint").tween("latency", 180, 240).badge("code"))
+  .phase("p4", {
+    duration: 2000,
+    title: "token 発行",
+    body: "access_token + id_token 発行 (RS256 署名)。 latency 240 → 120ms tween (bar 収縮)、 flowState 1 → 2 tween (traffic-light 黄 → 緑 = 認証済)、 tokenCount 45238 → 45239 tween (countup 加算 = 本日 1 件目)。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "app", "authServer", "tokenEndpoint").tween("latency", 240, 120).tween("flowState", 1, 2).tween("tokenCount", 45238, 45239).badge("token"))
+  .phase("p5", {
+    duration: 1800,
+    title: "API call (Gmail)",
+    body: "Bearer token で Gmail API に GET /me/messages、 protected data 取得。 latency 120 → 90ms tween、 apiResource lane activate、 6 shape 全 active、 SSO flow 完遂。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "app", "authServer", "tokenEndpoint", "apiResource").tween("latency", 120, 90).badge("API"))
   .build();
 
 /**
@@ -1287,63 +1296,54 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .build();
 
 /**
- * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
+ * 40. kpiDashboard v2 = 週次 CEO KPI dashboard レビュー シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-cloud + shape-brokerage の 6 shape で visual scene 化、 4 phase (dashboard 表示 → 因果分析 → 目標対比 → 判断) + 4 readout (stat revenue / percentRing NPS / gauge Churn / countup users) が formula chain 経由 tween で visually 連続変化。 iteration 8 wave 8-B redesign。
  */
 export const kpiDashboard = diagram("interactive-kpi-dashboard", {
-  topic: "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随",
+  topic: "週次 CEO KPI レビュー シナリオ = 4 phase (表示 → 因果 → 目標対比 → 判断) の flow を shape-* primitive 6 種で表現 + 4 readout (stat / percentRing / gauge / countup) が tween で visually 連続変化",
 })
-  .lane("revenue", { x: 0, width: 200 })
-  .lane("users", { x: 260, width: 200 })
-  .lane("churn", { x: 520, width: 200 })
-  .lane("nps", { x: 780, width: 200 })
-  .input.slider("revenueInput", { min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" })
-  .state("revenueInput", { initial: 120 })
-  .formula("users", "revenueInput * 8")
-  .formula("churn", "50 - revenueInput / 10")
-  .formula("nps", "revenueInput / 2 + 20")
+  .lane("ceo", { x: 0, width: 220 })
+  .lane("data", { x: 240, width: 320 })
+  .lane("decision", { x: 580, width: 240 })
+  .state("revenue", { initial: 120 })
   .state("users", { initial: 960 })
   .state("churn", { initial: 38 })
-  .state("nps", { initial: 80 })
-  .node("revCard", {
-    lane: "revenue",
-    stack: 0,
-    kind: "card",
-    title: "Revenue",
-    subtitle: "${revenueInput}k / month",
-  })
-  .node("usersCard", {
-    lane: "users",
-    stack: 0,
-    kind: "card",
-    title: "Users",
-    subtitle: "{users} active",
-  })
-  .node("churnCard", {
-    lane: "churn",
-    stack: 0,
-    kind: "card",
-    title: "Churn",
-    subtitle: "{churn}% / month",
-  })
-  .node("npsCard", {
-    lane: "nps",
-    stack: 0,
-    kind: "card",
-    title: "NPS",
-    subtitle: "{nps} score",
-  })
-  .edge("revCard", "usersCard", { label: "×8", sub: "acquisition", tone: "info" })
-  .edge("revCard", "churnCard", { label: "inverse", sub: "50 − rev/10", tone: "error" })
-  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success" })
-  .readout.stat("rev", { source: "revenueInput", unit: "k", label: "Revenue" })
-  .readout.stat("usr", { source: "users", label: "Users" })
-  .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
-  .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
-  .phase("p", {
-    duration: 1200,
-    title: "KPI dashboard",
-    body: "4-lane で Revenue driver + 3 downstream KPI を node grid、 因果関係を edge tone (info=acquisition / error=inverse churn / success=NPS correlate) で表現、 formula chain で 3 KPI 同時追随。",
-  }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard").badge("KPI"))
+  .state("nps", { initial: 60 })
+  .node("ceo", { lane: "ceo", stack: 0, kind: "shape-person", title: "CEO 高橋様", eyebrow: "executive", subtitle: "週次 KPI レビュー会議" })
+  .node("mobile", { lane: "ceo", stack: 1, kind: "shape-mobile-device", title: "KPI dashboard", eyebrow: "ui", subtitle: "Looker mobile view" })
+  .node("api", { lane: "data", stack: 0, kind: "shape-server-rack", title: "Analytics API", eyebrow: "server", subtitle: "revenue = ${revenue}k / mo" })
+  .node("dwh", { lane: "data", stack: 1, kind: "shape-cylinder", title: "Snowflake DWH", eyebrow: "warehouse", subtitle: "fact_events × 20B rows" })
+  .node("ml", { lane: "data", stack: 2, kind: "shape-cloud", title: "ML model", eyebrow: "prediction", subtitle: "revenue → users/churn/nps 因果推論" })
+  .node("boardroom", { lane: "decision", stack: 0, kind: "shape-brokerage", title: "経営会議", eyebrow: "review", subtitle: "投資判断 · 予算配分" })
+  .edge("ceo", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "api", { label: "GET /kpi", tone: "info" })
+  .edge("api", "dwh", { label: "SELECT", tone: "success" })
+  .edge("dwh", "ml", { label: "特徴量", tone: "accent" })
+  .edge("ml", "api", { label: "予測反映", tone: "accent" })
+  .edge("api", "boardroom", { label: "insights", tone: "success" })
+  .readout.stat("revStat", { source: "revenue", unit: "k$", caption: "月次 revenue", label: "Revenue" })
+  .readout.percentRing("npsRing", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
+  .readout.gauge("churnG", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn % (低いほど良)" })
+  .readout.countup("usersCU", { source: "users", unit: " 名", label: "Active users", decimals: 0 })
+  .phase("p1", {
+    duration: 2000,
+    title: "dashboard 表示",
+    body: "月曜朝、 高橋様が KPI dashboard 確認。 revenue $120k (stat 表示)、 NPS 60 (percentRing 針が緑域中位)、 churn 38% (gauge 針が赤域 = 悪化)、 users 960 名 (countup 静止)。 CEO + mobile lane active。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "mobile").set("revenue", 120).set("nps", 60).set("churn", 38).set("users", 960).badge("表示"))
+  .phase("p2", {
+    duration: 2400,
+    title: "因果分析 (ML)",
+    body: "ML model が revenue 上昇 → users 増 + churn 減 + NPS 増の因果を予測。 revenue 120 → 180 tween (前週比 +50%)、 users 960 → 1440 tween (countup が加速的増加 = ×8 formula 相当)、 churn 38 → 32 tween (gauge 針が赤 → 橙域降下)、 nps 60 → 65 tween (percentRing 針上昇)、 data lane 全 activate。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "mobile", "api", "dwh", "ml").tween("revenue", 120, 180).tween("users", 960, 1440).tween("churn", 38, 32).tween("nps", 60, 65).badge("因果"))
+  .phase("p3", {
+    duration: 2200,
+    title: "目標対比",
+    body: "四半期目標 (revenue $200k / churn <30% / NPS >70) と比較、 まだ gap あり。 revenue 180 → 200 tween (目標到達)、 churn 32 → 28 tween (gauge 針最終、 目標内)、 nps 65 → 72 tween (percentRing 針最高、 目標超過)、 users 1440 → 1600 tween。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "mobile", "api", "dwh", "ml").tween("revenue", 180, 200).tween("churn", 32, 28).tween("nps", 65, 72).tween("users", 1440, 1600).badge("目標"))
+  .phase("p4", {
+    duration: 2000,
+    title: "判断",
+    body: "経営会議で来週の投資判断、 marketing 予算 +20% で全 KPI 押し上げ判断。 revenue 200 → 210 tween (見込み)、 users 1600 → 1680 tween、 churn 28 → 25 tween、 nps 72 → 75 tween、 6 shape 全 active、 boardroom 承認。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "mobile", "api", "dwh", "ml", "boardroom").tween("revenue", 200, 210).tween("users", 1600, 1680).tween("churn", 28, 25).tween("nps", 72, 75).badge("判断"))
   .build();
 
 /**
