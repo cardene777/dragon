@@ -369,15 +369,15 @@ const cases = [
   },
   {
     diagramId: "interactive-eip1559",
-    label: "EIP-1559: slider(base=100) → block2 = (100+5) * 1.2 = 126",
+    label: "EIP-1559: slider(base=100) → block2 subtitle = 1.2x = 126 gwei",
     setup: async (page) => {
       const s = await page.$('input[type="range"][data-cdl-input="baseFee"]');
       await s.evaluate(eval(setNativeExpr("100")));
       await page.waitForTimeout(500);
     },
     assert: async (page) => {
-      const t = await page.$eval('[data-cdl-node="summary"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
-      return { actual: /block2 126/.test(t), expected: true };
+      const t = await page.$eval('[data-cdl-node="b2"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
+      return { actual: /126/.test(t), expected: true };
     },
   },
   {
@@ -454,15 +454,15 @@ const cases = [
   },
   {
     diagramId: "interactive-kpi-dashboard",
-    label: "KPI dashboard: slider(revenue=200) → users = 200*8 = 1600 が subtitle に反映",
+    label: "KPI dashboard: slider(revenue=200) → users card subtitle に 1600 反映",
     setup: async (page) => {
-      const s = await page.$('input[type="range"][data-cdl-input="revenue"]');
+      const s = await page.$('input[type="range"][data-cdl-input="revenueInput"]');
       await s.evaluate(eval(setNativeExpr("200")));
       await page.waitForTimeout(500);
     },
     assert: async (page) => {
-      const t = await page.$eval('[data-cdl-node="dashboard"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
-      return { actual: /users 1600/.test(t), expected: true };
+      const t = await page.$eval('[data-cdl-node="usersCard"]', (el) => el.getAttribute("data-cdl-subtitle") ?? "");
+      return { actual: /1600/.test(t), expected: true };
     },
   },
   {
