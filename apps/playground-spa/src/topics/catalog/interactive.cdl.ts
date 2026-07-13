@@ -3064,3 +3064,91 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
     body: "3-lane (Morning / Afternoon / Evening) で 5 event を時間帯別分散、 各 lane summary card + timelineVertical readout 併存で dot + line + text の縦 timeline 表示、 individual element split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard", "eveningCard").badge("timeline"))
   .build();
+
+/**
+ * 103. status-timeline = server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存。
+ * iteration 6 wave 3、 pattern taxonomy § 4 pipeline flow + § 1 state-based split。
+ */
+export const serverUptimeStatus = diagram("interactive-server-uptime", {
+  topic: "server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存",
+})
+  .lane("active", { x: 0, width: 240 })
+  .lane("idle", { x: 280, width: 240 })
+  .lane("error", { x: 560, width: 240 })
+  .arraySignal("events", [
+    ["09:00", "active"],
+    ["09:15", "active"],
+    ["10:30", "idle"],
+    ["11:00", "error"],
+    ["11:15", "active"],
+    ["12:00", "active"],
+  ] as unknown as (string | number)[])
+  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4 events)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
+  .node("idleCard", { lane: "idle", stack: 0, kind: "card", title: "Idle (1)", subtitle: "10:30 · gray" })
+  .node("errorCard", { lane: "error", stack: 0, kind: "card", title: "Error (1)", subtitle: "11:00 · red" })
+  .readout.statusTimeline("st", { source: "events", max: 8, label: "Server status" })
+  .phase("p", {
+    duration: 1200,
+    title: "server status split",
+    body: "3-lane (Active / Idle / Error) で 6 event を status 別分散、 statusTimeline readout も併存で strip 表示、 uptime monitoring 定番の pattern taxonomy 交差事例。",
+  }, (p: PhaseBuilder) => p.activate("activeCard", "idleCard", "errorCard").badge("uptime"))
+  .build();
+
+/**
+ * 104. calendar-week = 週間 mini calendar、 7-lane 分散 + calendarWeek readout 併存。 iteration 6 wave 3、 pattern taxonomy § 7 individual element split。
+ */
+export const weekCalendarView = diagram("interactive-week-calendar", {
+  topic: "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存",
+})
+  .lane("mon", { x: 0, width: 100 })
+  .lane("tue", { x: 110, width: 100 })
+  .lane("wed", { x: 220, width: 100 })
+  .lane("thu", { x: 330, width: 100 })
+  .lane("fri", { x: 440, width: 100 })
+  .lane("sat", { x: 550, width: 100 })
+  .lane("sun", { x: 660, width: 100 })
+  .arraySignal("week", [
+    ["Mon", true, false],
+    ["Tue", false, false],
+    ["Wed", true, true],
+    ["Thu", false, false],
+    ["Fri", true, false],
+    ["Sat", false, false],
+    ["Sun", false, false],
+  ] as unknown as (string | number)[])
+  .node("monNode", { lane: "mon", stack: 0, kind: "card", title: "Mon", subtitle: "event" })
+  .node("tueNode", { lane: "tue", stack: 0, kind: "card", title: "Tue", subtitle: "-" })
+  .node("wedNode", { lane: "wed", stack: 0, kind: "card", title: "◆ Wed (today)", subtitle: "event" })
+  .node("thuNode", { lane: "thu", stack: 0, kind: "card", title: "Thu", subtitle: "-" })
+  .node("friNode", { lane: "fri", stack: 0, kind: "card", title: "Fri", subtitle: "event" })
+  .node("satNode", { lane: "sat", stack: 0, kind: "card", title: "Sat", subtitle: "-" })
+  .node("sunNode", { lane: "sun", stack: 0, kind: "card", title: "Sun", subtitle: "-" })
+  .readout.calendarWeek("cw", { source: "week", cellSize: 40, color: "#2563eb", label: "This week" })
+  .phase("p", {
+    duration: 1200,
+    title: "week day split",
+    body: "7-lane で 7-day を個別 day 分散、 各 day 個別 card、 calendarWeek readout も併存で 7-cell strip 表示、 week dashboard 定番。",
+  }, (p: PhaseBuilder) => p.activate("monNode", "tueNode", "wedNode", "thuNode", "friNode", "satNode", "sunNode").badge("week"))
+  .build();
+
+/**
+ * 105. kpi-comparison = A/B team score 比較を 2-lane 分散 + kpiComparison readout 併存。 iteration 6 wave 3、 pattern taxonomy § 3 category split。
+ */
+export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
+  topic: "Team A vs Team B の score を 2-lane 分散 + kpiComparison readout 併存",
+})
+  .lane("teamA", { x: 0, width: 340 })
+  .lane("teamB", { x: 380, width: 340 })
+  .arraySignal("teams", [["Team A", 82], ["Team B", 65]] as unknown as (string | number)[])
+  .node("aCard", { lane: "teamA", stack: 0, kind: "card", title: "Team A", subtitle: "82 (winner, blue)" })
+  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "82 story points" })
+  .node("bCard", { lane: "teamB", stack: 0, kind: "card", title: "Team B", subtitle: "65 (orange)" })
+  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "65 story points" })
+  .edge("aCard", "bCard", { label: "diff 17", tone: "warning" })
+  .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
+  .phase("p", {
+    duration: 1200,
+    title: "A vs B compare",
+    body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
+  }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
+  .build();
