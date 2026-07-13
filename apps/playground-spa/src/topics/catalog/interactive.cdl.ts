@@ -1415,9 +1415,13 @@ export const techTagCloud = diagram("interactive-tech-tagcloud", {
  * 59. activity-feed = team activity 5 event を feed list で表示。
  */
 export const teamActivityFeed = diagram("interactive-team-activity", {
-  topic: "team activity 5 event を feed list で表示 (actor + action + time)、 recent-first",
+  topic: "team activity 5 event を 5-lane timeline (recent → old) で個別 card 分散、 activityFeed readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("t1", { x: 0, width: 140 })
+  .lane("t2", { x: 160, width: 140 })
+  .lane("t3", { x: 320, width: 140 })
+  .lane("t4", { x: 480, width: 140 })
+  .lane("t5", { x: 640, width: 140 })
   .arraySignal("events", [
     ["Alice", "pushed to main", "2 min ago"],
     ["Bob", "opened PR #42", "8 min ago"],
@@ -1425,9 +1429,21 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
     ["Dan", "merged PR #38", "1 h ago"],
     ["Eve", "deployed v1.2", "3 h ago"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Team activity", subtitle: "5 recent events" })
-  .readout.activityFeed("af", { source: "events", max: 5, color: "#2563eb", label: "Recent" })
-  .phase("p", { duration: 1200, title: "activity feed", body: "[[actor, action, time], ...] を feed list で表示、 bullet + actor(強調) + action + time の 3 column layout、 team stream 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("feed"))
+  .node("e1", { lane: "t1", stack: 0, kind: "card", title: "Alice", subtitle: "pushed to main · 2 min ago" })
+  .node("e2", { lane: "t2", stack: 0, kind: "card", title: "Bob", subtitle: "opened PR #42 · 8 min ago" })
+  .node("e3", { lane: "t3", stack: 0, kind: "card", title: "Carol", subtitle: "reviewed PR #40 · 15 min ago" })
+  .node("e4", { lane: "t4", stack: 0, kind: "card", title: "Dan", subtitle: "merged PR #38 · 1 h ago" })
+  .node("e5", { lane: "t5", stack: 0, kind: "card", title: "Eve", subtitle: "deployed v1.2 · 3 h ago" })
+  .edge("e1", "e2", { label: "→", tone: "info" })
+  .edge("e2", "e3", { label: "→", tone: "info" })
+  .edge("e3", "e4", { label: "→", tone: "accent" })
+  .edge("e4", "e5", { label: "→", tone: "accent" })
+  .readout.activityFeed("af", { source: "events", max: 5, color: "#2563eb", label: "Recent (feed list)" })
+  .phase("p", {
+    duration: 1200,
+    title: "activity timeline",
+    body: "5-lane timeline (recent → old) で 5 event を横並び node network 化、 4 edge (時系列連結、 tone info/accent で新旧分類)、 activityFeed readout も併存で feed list 表示、 timeline 構造と feed 一覧の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("e1", "e2", "e3", "e4", "e5").badge("feed"))
   .build();
 
 /**
@@ -1794,17 +1810,25 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
  * 81. podium = tournament の 1st/2nd/3rd 表彰台。
  */
 export const tournamentPodium = diagram("interactive-tournament-podium", {
-  topic: "tournament の 1st/2nd/3rd を表彰台 (gold/silver/bronze) で表示",
+  topic: "tournament 1st/2nd/3rd を 3-lane (Silver/Gold/Bronze、 中央=Gold の podium 配列) 分散、 各 winner 個別 card、 podium readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("silver", { x: 0, width: 200 })
+  .lane("gold", { x: 220, width: 220 })
+  .lane("bronze", { x: 460, width: 200 })
   .arraySignal("winners", [
     ["Alice", "1200 pts"],
     ["Bob", "1050 pts"],
     ["Carol", "980 pts"],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Tournament", subtitle: "top 3" })
-  .readout.podium("pod", { source: "winners", viewW: 280, viewH: 180, label: "Podium" })
-  .phase("p", { duration: 1200, title: "podium", body: "[[1st_name, 1st_score], [2nd, 2nd], [3rd, 3rd]] を金/銀/銅の 3 縦 bar 表彰台で表示、 中央=1st の順で配置。" }, (p: PhaseBuilder) => p.activate("card").badge("winners"))
+  .node("silverNode", { lane: "silver", stack: 0, kind: "card", title: "🥈 2nd — Bob", subtitle: "1050 pts (silver)" })
+  .node("goldNode", { lane: "gold", stack: 0, kind: "card", title: "🥇 1st — Alice", subtitle: "1200 pts (gold champion)" })
+  .node("bronzeNode", { lane: "bronze", stack: 0, kind: "card", title: "🥉 3rd — Carol", subtitle: "980 pts (bronze)" })
+  .readout.podium("pod", { source: "winners", viewW: 280, viewH: 180, label: "Podium (3 縦 bar 表彰台)" })
+  .phase("p", {
+    duration: 1200,
+    title: "podium split",
+    body: "3-lane (Silver 左 / Gold 中央 / Bronze 右) で 3 winner を podium 実配置模倣、 中央=1 位を目立たせ、 各 winner 個別 card で名前 + score 明示、 podium readout も併存で従来 3 縦 bar 表示。",
+  }, (p: PhaseBuilder) => p.activate("silverNode", "goldNode", "bronzeNode").badge("winners"))
   .build();
 
 /**
@@ -1837,13 +1861,24 @@ export const featurePoll = diagram("interactive-feature-poll", {
  * 83. user-stack = code review reviewer 7 人 (max 5 表示 + overflow +2)。
  */
 export const reviewerStack = diagram("interactive-reviewer-stack", {
-  topic: "code review reviewer 7 人 を stacked avatars (max 5 + overflow +2) で表示",
+  topic: "code review reviewer 7 人 を 2-lane (Displayed 5 / Overflow 2) 分散、 各 reviewer 個別 card、 userStack readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("displayed", { x: 0, width: 340 })
+  .lane("overflow", { x: 380, width: 200 })
   .arraySignal("reviewers", ["Alice", "Bob Smith", "Carol", "Dan Kim", "Eve", "Frank Wu", "Grace Lee"])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "PR reviewers", subtitle: "7 reviewers、 top 5 表示" })
-  .readout.userStack("us", { source: "reviewers", max: 5, size: 36, label: "Reviewers" })
-  .phase("p", { duration: 1200, title: "user stack", body: "名前 array から initials 抽出 (Alice → A、 Bob Smith → BS) を 6 色 palette で overlap circle、 5 人超過分は +2 表示。" }, (p: PhaseBuilder) => p.activate("card").badge("team"))
+  .node("r1", { lane: "displayed", stack: 0, kind: "card", title: "Alice", subtitle: "initials A · shown" })
+  .node("r2", { lane: "displayed", stack: 1, kind: "card", title: "Bob Smith", subtitle: "initials BS · shown" })
+  .node("r3", { lane: "displayed", stack: 2, kind: "card", title: "Carol", subtitle: "initials C · shown" })
+  .node("r4", { lane: "displayed", stack: 3, kind: "card", title: "Dan Kim", subtitle: "initials DK · shown" })
+  .node("r5", { lane: "displayed", stack: 4, kind: "card", title: "Eve", subtitle: "initials E · shown" })
+  .node("r6", { lane: "overflow", stack: 0, kind: "card", title: "Frank Wu", subtitle: "initials FW · +2 overflow" })
+  .node("r7", { lane: "overflow", stack: 1, kind: "card", title: "Grace Lee", subtitle: "initials GL · +2 overflow" })
+  .readout.userStack("us", { source: "reviewers", max: 5, size: 36, label: "Reviewers (stacked avatars)" })
+  .phase("p", {
+    duration: 1200,
+    title: "reviewer split",
+    body: "2-lane (Displayed 5 avatar 表示分 / Overflow 2 +2 表示分) で 7 reviewer を max=5 境界別に分散、 各 reviewer 個別 card で initials + status 明示、 userStack readout も併存で overlap circle 表示、 表示 5 人と溢れ 2 人の構造を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "r5", "r6", "r7").badge("team"))
   .build();
 
 /**
