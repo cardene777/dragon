@@ -1198,9 +1198,11 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
  * 51. sankey flow = traffic source → landing → conversion の flow diagram。
  */
 export const trafficSankey = diagram("interactive-traffic-sankey", {
-  topic: "traffic source → landing → conversion の 2 column flow を sankey で可視化",
+  topic: "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("src", { x: 0, width: 180 })
+  .lane("land", { x: 260, width: 180 })
+  .lane("cv", { x: 520, width: 180 })
   .arraySignal("flows", [
     ["Search", "Home", 40],
     ["Search", "Product", 30],
@@ -1209,9 +1211,26 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
     ["Direct", "Home", 20],
     ["Direct", "Product", 10],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Traffic flow", subtitle: "3 source → 2 page の 6 flow" })
-  .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "Sources → Pages" })
-  .phase("p", { duration: 1200, title: "sankey", body: "[[from, to, flow], ...] を 2 column bar + curve で表示、 flow-weighted 高さで左右 group を自動 aggregate。" }, (p: PhaseBuilder) => p.activate("card").badge("sankey"))
+  .node("search", { lane: "src", stack: 0, kind: "card", title: "Search", subtitle: "40 + 30 = 70" })
+  .node("social", { lane: "src", stack: 1, kind: "card", title: "Social", subtitle: "25 + 15 = 40" })
+  .node("direct", { lane: "src", stack: 2, kind: "card", title: "Direct", subtitle: "20 + 10 = 30" })
+  .node("home", { lane: "land", stack: 0, kind: "card", title: "Home", subtitle: "40 + 25 + 20 = 85" })
+  .node("product", { lane: "land", stack: 1, kind: "card", title: "Product", subtitle: "30 + 15 + 10 = 55" })
+  .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "conversion = 140" })
+  .edge("search", "home", { label: "40", tone: "success" })
+  .edge("search", "product", { label: "30", tone: "success" })
+  .edge("social", "home", { label: "25", tone: "info" })
+  .edge("social", "product", { label: "15", tone: "info" })
+  .edge("direct", "home", { label: "20", tone: "accent" })
+  .edge("direct", "product", { label: "10", tone: "accent" })
+  .edge("home", "checkout", { label: "85", tone: "warning" })
+  .edge("product", "checkout", { label: "55", tone: "warning" })
+  .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "Sources → Pages (sankey)" })
+  .phase("p", {
+    duration: 1200,
+    title: "traffic funnel",
+    body: "3-lane (Sources / Landings / Checkout) + 8 edge (source→landing 6 + landing→CV 2) で funnel 構造を node network 化、 tone で source 由来を分類 (success=Search / info=Social / accent=Direct / warning=to CV)、 sankey readout も併存。",
+  }, (p: PhaseBuilder) => p.activate("search", "social", "direct", "home", "product", "checkout").badge("funnel"))
   .build();
 
 /**
@@ -1642,27 +1661,36 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
  * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
  */
 export const cryptoWallet = diagram("interactive-crypto-wallet", {
-  topic: "crypto wallet の 4 token (BTC/ETH/SOL/DOGE) を icon + name + amount + delta% で表示",
+  topic: "crypto wallet 4 token を 2-lane (Gainers +% / Losers -%) に分散、 各 token を個別 card、 tokenList readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("gainers", { x: 0, width: 220 })
+  .lane("losers", { x: 300, width: 220 })
   .arraySignal("tokens", [
     ["₿", "BTC", "0.42", 5.3],
     ["Ξ", "ETH", "12.5", -2.8],
     ["◎", "SOL", "245", 8.1],
     ["Ð", "DOGE", "8500", -1.4],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Wallet", subtitle: "4 tokens" })
-  .readout.tokenList("tl", { source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "Portfolio" })
-  .phase("p", { duration: 1200, title: "token list", body: "[[icon, name, amount, deltaPct], ...] を crypto wallet 定番の行表示、 delta が正=green ▲ / 負=red ▼。" }, (p: PhaseBuilder) => p.activate("card").badge("wallet"))
+  .node("btc", { lane: "gainers", stack: 0, kind: "card", title: "₿ BTC", subtitle: "0.42 · +5.3%" })
+  .node("sol", { lane: "gainers", stack: 1, kind: "card", title: "◎ SOL", subtitle: "245 · +8.1%" })
+  .node("eth", { lane: "losers", stack: 0, kind: "card", title: "Ξ ETH", subtitle: "12.5 · -2.8%" })
+  .node("doge", { lane: "losers", stack: 1, kind: "card", title: "Ð DOGE", subtitle: "8500 · -1.4%" })
+  .readout.tokenList("tl", { source: "tokens", colorUp: "#22c55e", colorDown: "#ef4444", label: "Portfolio (aggregate)" })
+  .phase("p", {
+    duration: 1200,
+    title: "portfolio split",
+    body: "2-lane (Gainers +% / Losers -%) で 4 token を delta 符号別に分散、 各 token を個別 card で並列表示、 tokenList readout で aggregate 一覧も併存、 portfolio 構造を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("btc", "sol", "eth", "doge").badge("wallet"))
   .build();
 
 /**
  * 79. map-pin = world map (地図座標) 上の 5 city を pin 表示。
  */
 export const worldMapPins = diagram("interactive-world-map", {
-  topic: "world map 座標系 (0-120, 0-80) 上の 5 city を pin + name label で表示",
+  topic: "world map 5 city を 2-lane (Asia-Pacific / America-Europe) に分散、 各 city 個別 node + 座標表記、 mapPin readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("apac", { x: 0, width: 220 })
+  .lane("amea", { x: 300, width: 220 })
   .arraySignal("cities", [
     ["Tokyo", 100, 60],
     ["Paris", 60, 30],
@@ -1670,9 +1698,17 @@ export const worldMapPins = diagram("interactive-world-map", {
     ["Sydney", 105, 75],
     ["Rio", 40, 65],
   ] as unknown as (string | number)[])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Cities", subtitle: "5 pins on world map" })
-  .readout.mapPin("mp", { source: "cities", xMin: 0, xMax: 120, yMin: 0, yMax: 80, viewW: 300, viewH: 200, color: "#2563eb", label: "World map" })
-  .phase("p", { duration: 1200, title: "map pin", body: "[[name, x, y], ...] を map (2D coord system) 上に pin として表示、 grid guides + name label + hover tooltip、 mini map 定番。" }, (p: PhaseBuilder) => p.activate("card").badge("map"))
+  .node("tokyo", { lane: "apac", stack: 0, kind: "card", title: "Tokyo", subtitle: "(100, 60)" })
+  .node("sydney", { lane: "apac", stack: 1, kind: "card", title: "Sydney", subtitle: "(105, 75)" })
+  .node("nyc", { lane: "amea", stack: 0, kind: "card", title: "NYC", subtitle: "(30, 40)" })
+  .node("paris", { lane: "amea", stack: 1, kind: "card", title: "Paris", subtitle: "(60, 30)" })
+  .node("rio", { lane: "amea", stack: 2, kind: "card", title: "Rio", subtitle: "(40, 65)" })
+  .readout.mapPin("mp", { source: "cities", xMin: 0, xMax: 120, yMin: 0, yMax: 80, viewW: 300, viewH: 200, color: "#2563eb", label: "World map (2D coord)" })
+  .phase("p", {
+    duration: 1200,
+    title: "city split",
+    body: "2-lane (Asia-Pacific / America-Europe) で 5 city を地域別に分散、 各 city 個別 card + (x,y) 座標明示、 mapPin readout で 2D 地理配置も併存、 region 分類と地理位置の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("tokyo", "sydney", "nyc", "paris", "rio").badge("map"))
   .build();
 
 /**
