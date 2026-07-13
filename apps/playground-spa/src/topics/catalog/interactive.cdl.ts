@@ -472,19 +472,29 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
  * 18. dynamic readouts = countup / delta / percent-ring / typewriter を組合わせて KPI dashboard。
  */
 export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
-  topic: "countup / delta / percent-ring / typewriter の 4 新 readout を KPI 風に組合わせ",
+  topic: "4 dynamic readout (countup/delta/percent-ring/typewriter) を 4-lane 分散、 各 readout 個別 lane、 signal → 4 readout の 1:N 経路可視化",
 })
-  .lane("l", { x: 0, width: 400 })
+  .lane("count", { x: 0, width: 180 })
+  .lane("delta", { x: 200, width: 180 })
+  .lane("ring", { x: 400, width: 180 })
+  .lane("text", { x: 600, width: 180 })
   .input.slider("rev", { min: 0, max: 500, defaultValue: 250, label: "Revenue" })
   .input.dropdown("status", { options: ["active", "pending", "closed"], defaultValue: "active", label: "Status" })
   .state("rev", { initial: 250 })
   .state("status", { initial: "active" })
-  .node("n", { lane: "l", stack: 0, kind: "card", title: "Dashboard", subtitle: "revenue: {rev} / status: {status}" })
-  .readout.countup("revCount", { source: "rev", unit: "$", label: "Revenue", durationMs: 700 })
-  .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ" })
-  .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress" })
-  .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status" })
-  .phase("p", { duration: 1500, title: "signal → 4 readout 同時追随", body: "revenue slider で count up + delta ↑↓ + ring 追随、 status dropdown で typewriter reveal。" }, (p: PhaseBuilder) => p.activate("n").badge("dashboard"))
+  .node("countNode", { lane: "count", stack: 0, kind: "card", title: "Countup", subtitle: "rev={rev} · animated $ counter" })
+  .node("deltaNode", { lane: "delta", stack: 0, kind: "card", title: "Delta", subtitle: "rev={rev} · ↑↓ arrow" })
+  .node("ringNode", { lane: "ring", stack: 0, kind: "card", title: "Percent ring", subtitle: "rev/500 = {rev} progress" })
+  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Typewriter", subtitle: "status={status} · char reveal" })
+  .readout.countup("revCount", { source: "rev", unit: "$", label: "Revenue count" })
+  .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ delta" })
+  .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress ring" })
+  .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status text" })
+  .phase("p", {
+    duration: 1500,
+    title: "readout 4-way split",
+    body: "4-lane (Countup / Delta / Percent ring / Typewriter) で 4 dynamic readout を機能別分散、 各 readout 個別 card + 対応 readout node、 revenue slider → 3 readout 追随 (countup/delta/ring)、 status dropdown → typewriter reveal、 1 signal → N readout の bind 関係を lane 分割で可視化。",
+  }, (p: PhaseBuilder) => p.activate("countNode", "deltaNode", "ringNode", "textNode").badge("dashboard"))
   .build();
 
 /**
@@ -711,32 +721,51 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
  * 27. lineChart readout = array signal を折れ線 chart 表示 (時系列 like)。
  */
 export const arrayLineChart = diagram("interactive-array-line-chart", {
-  topic: "arraySignal を line chart readout で時系列的に表示、 fill=true で area chart 化",
+  topic: "arraySignal line chart を 3-lane (Data source / Area chart fill / Line chart no-fill) 分散、 chart variant 別 lane 展開、 lineChart 2 種類併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("data", { x: 0, width: 200 })
+  .lane("area", { x: 240, width: 280 })
+  .lane("line", { x: 540, width: 280 })
   .arraySignal("series", [22, 35, 28, 42, 55, 48, 60, 72, 65, 80])
-  .node("card", { lane: "l", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" })
-  .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Series" })
-  .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "No fill" })
-  .phase("p", { duration: 1200, title: "array → 折れ線", body: "lineChart で array element を x=index / y=value に mapping、 fill=true で area 化。" }, (p: PhaseBuilder) => p.activate("card").badge("line chart"))
+  .node("dataCard", { lane: "data", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" })
+  .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Area chart (fill=true)", subtitle: "blue #2563eb · viewH=70" })
+  .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Line chart (fill=false)", subtitle: "orange #f97316 · viewH=50" })
+  .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Area chart" })
+  .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" })
+  .phase("p", {
+    duration: 1200,
+    title: "chart variant compare",
+    body: "3-lane (Data source / Area chart fill=true / Line chart fill=false) で 10 point time series を chart variant 別分散、 同 data source を 2 種 lineChart readout (area/line) で並列比較、 fill option 差異を横並び view で明示。",
+  }, (p: PhaseBuilder) => p.activate("dataCard", "areaCard", "lineCard").badge("line chart"))
   .build();
 
 /**
  * 28. stackedBar readout = 2 array を並列 bar 比較、 A/B histogram の per-index 対比。
  */
 export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
-  topic: "2 arraySignal (A/B) を stackedBar で並列表示、 各 index で A/B を隣接 bar 比較",
+  topic: "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存",
 })
-  .lane("l", { x: 0, width: 480 })
+  .lane("groupA", { x: 0, width: 300 })
+  .lane("groupB", { x: 340, width: 300 })
   .arraySignal("groupA", [40, 55, 30, 65, 45])
   .arraySignal("groupB", [25, 40, 50, 35, 60])
-  .node("card", {
-    lane: "l",
+  .node("aCard", {
+    lane: "groupA",
     stack: 0,
     kind: "card",
-    title: "A vs B",
-    subtitle: "sumA={groupA.sum} · sumB={groupB.sum} · diff={groupA.sum}-{groupB.sum}",
+    title: "Group A (blue)",
+    subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}",
   })
+  .node("aDetail", { lane: "groupA", stack: 1, kind: "card", title: "A 5 element", subtitle: "[40, 55, 30, 65, 45]" })
+  .node("bCard", {
+    lane: "groupB",
+    stack: 0,
+    kind: "card",
+    title: "Group B (orange)",
+    subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}",
+  })
+  .node("bDetail", { lane: "groupB", stack: 1, kind: "card", title: "B 5 element", subtitle: "[25, 40, 50, 35, 60]" })
+  .edge("aCard", "bCard", { label: "A vs B diff", tone: "warning" })
   .readout.stackedBar("cmp", {
     sourceA: "groupA",
     sourceB: "groupB",
@@ -744,9 +773,13 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     max: 80,
     colorA: "#2563eb",
     colorB: "#f97316",
-    label: "A / B",
+    label: "A / B (side-by-side bar)",
   })
-  .phase("p", { duration: 1200, title: "2 系列 の bar 比較", body: "stackedBar で sourceA / sourceB を並列 bar、 A/B の各 index 比較。" }, (p: PhaseBuilder) => p.activate("card").badge("stacked bar"))
+  .phase("p", {
+    duration: 1200,
+    title: "group split",
+    body: "2-lane (Group A blue / Group B orange) で 2 arraySignal を group 別分散、 各 group に main card + detail element list、 comparison edge (warning tone) で A vs B diff 明示、 stackedBar readout も併存で per-index 隣接 bar 比較、 group 分類と bar 比較の 2 経路 view。",
+  }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("stacked bar"))
   .build();
 
 /**
