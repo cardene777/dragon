@@ -3152,3 +3152,81 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
     body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
   .build();
+
+/**
+ * 106. step-progress = 4 step wizard を 4-lane pipeline + 3 next edge + stepProgress readout 併存。 iteration 6 wave 4、 pattern taxonomy § 4 pipeline flow + § 5 fan-out。
+ */
+export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
+  topic: "content publish workflow 4 step を 4-lane pipeline + 3 next edge + stepProgress readout 併存",
+})
+  .lane("draft", { x: 0, width: 170 })
+  .lane("review", { x: 190, width: 170 })
+  .lane("approve", { x: 380, width: 170 })
+  .lane("publish", { x: 570, width: 170 })
+  .arraySignal("steps", ["Draft", "Review", "Approve", "Publish"])
+  .state("cur", { initial: 2 })
+  .node("draftNode", { lane: "draft", stack: 0, kind: "card", title: "Draft", subtitle: "index 0 · done" })
+  .node("reviewNode", { lane: "review", stack: 0, kind: "card", title: "Review", subtitle: "index 1 · done" })
+  .node("approveNode", { lane: "approve", stack: 0, kind: "card", title: "◆ Approve", subtitle: "index 2 (current)" })
+  .node("publishNode", { lane: "publish", stack: 0, kind: "card", title: "Publish", subtitle: "index 3 · pending" })
+  .edge("draftNode", "reviewNode", { label: "submit", tone: "success" })
+  .edge("reviewNode", "approveNode", { label: "reviewed", tone: "info" })
+  .edge("approveNode", "publishNode", { label: "publish", tone: "accent" })
+  .readout.stepProgress("sp", { source: "cur", stepsSource: "steps", color: "#2563eb", label: "Workflow" })
+  .phase("p", {
+    duration: 1200,
+    title: "workflow pipeline",
+    body: "4-lane (Draft / Review / Approve / Publish) で content workflow 4 step を pipeline 分散、 3 next edge、 stepProgress readout も併存で numbered dot + progress line 表示、 pipeline flow pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("draftNode", "reviewNode", "approveNode", "publishNode").badge("workflow"))
+  .build();
+
+/**
+ * 107. user-presence = 5 team member を 3-lane (Online / Away / Offline) + userPresence readout 併存。 iteration 6 wave 4、 pattern taxonomy § 1 state-based split。
+ */
+export const teamPresenceStatus = diagram("interactive-team-presence", {
+  topic: "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存",
+})
+  .lane("online", { x: 0, width: 240 })
+  .lane("away", { x: 280, width: 240 })
+  .lane("offline", { x: 560, width: 240 })
+  .arraySignal("team", [
+    ["Alice", "online"],
+    ["Bob", "away"],
+    ["Carol", "online"],
+    ["Dan", "offline"],
+    ["Eve", "online"],
+  ] as unknown as (string | number)[])
+  .node("aliceCard", { lane: "online", stack: 0, kind: "card", title: "● Alice", subtitle: "online · green dot" })
+  .node("carolCard", { lane: "online", stack: 1, kind: "card", title: "● Carol", subtitle: "online" })
+  .node("eveCard", { lane: "online", stack: 2, kind: "card", title: "● Eve", subtitle: "online" })
+  .node("bobCard", { lane: "away", stack: 0, kind: "card", title: "● Bob", subtitle: "away · yellow dot" })
+  .node("danCard", { lane: "offline", stack: 0, kind: "card", title: "● Dan", subtitle: "offline · gray dot" })
+  .readout.userPresence("up", { source: "team", max: 6, label: "Team status" })
+  .phase("p", {
+    duration: 1200,
+    title: "presence state split",
+    body: "3-lane (Online 3 / Away 1 / Offline 1) で 5 team member を presence status 別分散、 userPresence readout も併存で dot + name list 表示、 state-based split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").badge("presence"))
+  .build();
+
+/**
+ * 108. rating-thumb = review vote 2 category (up / down) を 2-lane + ratingThumb readout 併存。 iteration 6 wave 4、 pattern taxonomy § 3 category split。
+ */
+export const feedbackThumbRating = diagram("interactive-feedback-rating", {
+  topic: "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存",
+})
+  .lane("up", { x: 0, width: 340 })
+  .lane("down", { x: 380, width: 340 })
+  .arraySignal("votes", [24, 3])
+  .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "24 (89%)" })
+  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive feedback", subtitle: "green tone" })
+  .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "3 (11%)" })
+  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative feedback", subtitle: "red tone" })
+  .edge("upCard", "downCard", { label: "ratio 24 vs 3", tone: "warning" })
+  .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" })
+  .phase("p", {
+    duration: 1200,
+    title: "vote category split",
+    body: "2-lane (Up 24 / Down 3) で review vote を category 分散、 各 category main + detail card + ratio edge、 ratingThumb readout も併存で ▲/▼ + colored bar 表示、 category split pattern の primitive expansion 事例。",
+  }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").badge("rating"))
+  .build();
