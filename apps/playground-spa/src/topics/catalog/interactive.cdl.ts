@@ -709,43 +709,72 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
  *     slider で base fee → 3 block の実 gas cost が waterfall + stacked-bar で並列可視化。
  */
 export const eip1559GasFlow = diagram("interactive-eip1559", {
-  topic: "EIP-1559 gas cost model = base fee slider → 3 block の burned + tip を waterfall / stacked-bar で",
+  topic: "EIP-1559 gas cost model = 4-lane (Sender / Block1 / Block2 / Block3) を edge で gas propagation、 base fee slider で 3 block の total が chain 追随",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("sender", { x: 0, width: 180 })
+  .lane("block1", { x: 260, width: 180 })
+  .lane("block2", { x: 520, width: 180 })
+  .lane("block3", { x: 780, width: 180 })
   .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" })
   .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "Priority tip" })
   .state("baseFee", { initial: 50 })
   .state("priority", { initial: 5 })
   .arraySignal("burned", [50, 60, 72])
   .arraySignal("tips", [5, 8, 10])
-  .arraySignal("changes", [50, 10, 12])
   .formula("total1", "baseFee + priority")
   .formula("total2", "(baseFee + priority) * 12 / 10")
   .formula("total3", "(baseFee + priority) * 15 / 10")
   .state("total1", { initial: 55 })
   .state("total2", { initial: 66 })
   .state("total3", { initial: 82 })
-  .node("summary", {
-    lane: "l",
+  .node("wallet", {
+    lane: "sender",
     stack: 0,
     kind: "card",
-    title: "EIP-1559 fees",
-    subtitle: "block1 {total1} · block2 {total2} · block3 {total3} gwei",
+    title: "Sender wallet",
+    subtitle: "base {baseFee} + tip {priority} gwei",
   })
-  .readout.stackedBar("gas", { sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip" })
-  .readout.waterfall("delta", { source: "changes", min: 0, max: 200, colorPos: "#f97316", colorNeg: "#94a3b8", label: "Cumulative" })
-  .readout.stat("baseRead", { source: "baseFee", unit: "gwei", label: "Base" })
-  .readout.stat("tipRead", { source: "priority", unit: "gwei", label: "Tip" })
-  .phase("p", { duration: 1200, title: "EIP-1559", body: "slider で base + tip 変化 → 3 block の gas cost が waterfall + stacked-bar で可視化。 formula chain で block2 = 1.2x, block3 = 1.5x の逓増。" }, (p: PhaseBuilder) => p.activate("summary").badge("EIP-1559"))
+  .node("b1", {
+    lane: "block1",
+    stack: 0,
+    kind: "card",
+    title: "Block N",
+    subtitle: "1.0x = {total1} gwei",
+  })
+  .node("b2", {
+    lane: "block2",
+    stack: 0,
+    kind: "card",
+    title: "Block N+1",
+    subtitle: "1.2x = {total2} gwei",
+  })
+  .node("b3", {
+    lane: "block3",
+    stack: 0,
+    kind: "card",
+    title: "Block N+2",
+    subtitle: "1.5x = {total3} gwei",
+  })
+  .edge("wallet", "b1", { label: "tx submit", sub: "base + tip", tone: "info" })
+  .edge("b1", "b2", { label: "next block", sub: "+20% fee", tone: "warning" })
+  .edge("b2", "b3", { label: "next block", sub: "+25% fee", tone: "error" })
+  .readout.stackedBar("gas", { sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip per block" })
+  .phase("p", {
+    duration: 1200,
+    title: "EIP-1559 gas flow",
+    body: "Sender → Block N → N+1 → N+2 の 4 lane、 slider で base + tip 変化 → formula chain で block2/3 の total gwei が逓増追随、 edge tone で cost escalation を可視化。",
+  }, (p: PhaseBuilder) => p.activate("wallet", "b1", "b2", "b3").badge("EIP-1559"))
   .build();
 
 /**
  * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
  */
 export const oauthFlow = diagram("interactive-oauth-flow", {
-  topic: "OAuth 2.0 authorization code flow を 6 event の sequence timeline で表示、 latency は slider 追随",
+  topic: "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随",
 })
-  .lane("l", { x: 0, width: 500 })
+  .lane("user", { x: 0, width: 220 })
+  .lane("auth", { x: 320, width: 220 })
+  .lane("resource", { x: 640, width: 220 })
   .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" })
   .state("delay", { initial: 50 })
   .arraySignal("events", [
@@ -756,11 +785,40 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     [500, "token"],
     [650, "resp"],
   ] as unknown as (string | number)[])
-  .node("client", { lane: "l", stack: 0, kind: "card", title: "Client", subtitle: "OAuth requester" })
-  .node("server", { lane: "l", stack: 1, kind: "card", title: "Server", subtitle: "delay {delay}ms" })
-  .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 340, viewH: 60, color: "#2563eb", label: "Timeline" })
+  .node("client", {
+    lane: "user",
+    stack: 0,
+    kind: "card",
+    title: "Client browser",
+    subtitle: "user agent",
+  })
+  .node("consent", {
+    lane: "auth",
+    stack: 0,
+    kind: "card",
+    title: "Auth server",
+    subtitle: "delay {delay}ms",
+  })
+  .node("api", {
+    lane: "resource",
+    stack: 0,
+    kind: "card",
+    title: "Resource server",
+    subtitle: "API endpoint",
+  })
+  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info" })
+  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left" })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent" })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left" })
+  .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
+  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "left" })
+  .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
   .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
-  .phase("p", { duration: 1200, title: "OAuth flow", body: "6 event を sequence timeline で並べ、 t=0..700ms の等間隔 marker として表示、 slider で server delay の別表示。" }, (p: PhaseBuilder) => p.activate("client", "server").badge("OAuth"))
+  .phase("p", {
+    duration: 1200,
+    title: "OAuth flow",
+    body: "3-lane (User / Auth / Resource) + 6 event edge で OAuth 2.0 code flow を node network 化、 sequence timeline と併記で時間軸 + 空間軸を dual 可視化。",
+  }, (p: PhaseBuilder) => p.activate("client", "consent", "api").badge("OAuth"))
   .build();
 
 /**
@@ -851,31 +909,60 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
  * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
  */
 export const kpiDashboard = diagram("interactive-kpi-dashboard", {
-  topic: "SaaS KPI dashboard = revenue slider → users / churn / NPS 4 KPI が formula chain で追随",
+  topic: "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随",
 })
-  .lane("l", { x: 0, width: 500 })
-  .input.slider("revenue", { min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" })
-  .state("revenue", { initial: 120 })
-  .formula("users", "revenue * 8")
-  .formula("churn", "50 - revenue / 10")
-  .formula("nps", "revenue / 2 + 20")
+  .lane("revenue", { x: 0, width: 200 })
+  .lane("users", { x: 260, width: 200 })
+  .lane("churn", { x: 520, width: 200 })
+  .lane("nps", { x: 780, width: 200 })
+  .input.slider("revenueInput", { min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" })
+  .state("revenueInput", { initial: 120 })
+  .formula("users", "revenueInput * 8")
+  .formula("churn", "50 - revenueInput / 10")
+  .formula("nps", "revenueInput / 2 + 20")
   .state("users", { initial: 960 })
   .state("churn", { initial: 38 })
   .state("nps", { initial: 80 })
-  .arraySignal("kpiValues", [120, 960, 38, 80])
-  .arraySignal("kpiNames", ["Revenue", "Users", "Churn", "NPS"])
-  .node("dashboard", {
-    lane: "l",
+  .node("revCard", {
+    lane: "revenue",
     stack: 0,
     kind: "card",
-    title: "SaaS KPI",
-    subtitle: "rev {revenue}k · users {users} · churn {churn}% · nps {nps}",
+    title: "Revenue",
+    subtitle: "${revenueInput}k / month",
   })
-  .readout.stat("rev", { source: "revenue", unit: "k", label: "Revenue" })
+  .node("usersCard", {
+    lane: "users",
+    stack: 0,
+    kind: "card",
+    title: "Users",
+    subtitle: "{users} active",
+  })
+  .node("churnCard", {
+    lane: "churn",
+    stack: 0,
+    kind: "card",
+    title: "Churn",
+    subtitle: "{churn}% / month",
+  })
+  .node("npsCard", {
+    lane: "nps",
+    stack: 0,
+    kind: "card",
+    title: "NPS",
+    subtitle: "{nps} score",
+  })
+  .edge("revCard", "usersCard", { label: "×8", sub: "acquisition", tone: "info" })
+  .edge("revCard", "churnCard", { label: "inverse", sub: "50 − rev/10", tone: "error" })
+  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success" })
+  .readout.stat("rev", { source: "revenueInput", unit: "k", label: "Revenue" })
   .readout.stat("usr", { source: "users", label: "Users" })
   .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
   .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
-  .phase("p", { duration: 1200, title: "KPI dashboard", body: "revenue slider → users (×8) / churn (逆相関) / NPS (正相関) の formula chain で 3 KPI が同時追随。" }, (p: PhaseBuilder) => p.activate("dashboard").badge("KPI"))
+  .phase("p", {
+    duration: 1200,
+    title: "KPI dashboard",
+    body: "4-lane で Revenue driver + 3 downstream KPI を node grid、 因果関係を edge tone (info=acquisition / error=inverse churn / success=NPS correlate) で表現、 formula chain で 3 KPI 同時追随。",
+  }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard").badge("KPI"))
   .build();
 
 /**
