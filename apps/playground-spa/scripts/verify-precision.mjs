@@ -830,11 +830,15 @@ const cases = [
   },
   {
     diagramId: "interactive-ml-confidence",
-    label: "confidence-meter: initial 82% → band = 'high'",
+    label: "ml-confidence v2: 6 shape (patient / device / gpu / model / db / doctor) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const band = await page.$eval('[data-cdl-readout="cm"]', (el) => el.getAttribute("data-cdl-band"));
-      return { actual: band === "high", expected: true };
+      const ids = ["patient", "device", "gpu", "model", "db", "doctor"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {

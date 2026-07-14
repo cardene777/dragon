@@ -260,6 +260,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   weekWeather: "実例: 屋外イベント週次天気モニター (予測 → 悪化 → 中止 → 再開)",
   shippingOrderStatus: "実例: EC 家具配送追跡 (梱包 → 出荷 → 配達中 → 完了)",
   monthCalendarView: "実例: PM 月次スケジューリング Q1 launch 前月 (計画 → 中間 → 週次 → 振返り)",
+  resourceTreemap: "実例: CFO 年間予算配分レビュー (期初 → Q1 → 中期 → 期末)",
+  trafficSankey: "実例: D2C EC marketing 施策 (開始 → 集客 → CVR → ROI)",
+  mlConfidenceMeter: "実例: 医療画像診断 AI (撮影 → 推論 → 医師確認 → 診断確定)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
