@@ -4108,81 +4108,160 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .build();
 
 /**
- * 106. step-progress = 4 step wizard を 4-lane pipeline + 3 next edge + stepProgress readout 併存。 iteration 6 wave 4、 pattern taxonomy § 4 pipeline flow + § 5 fan-out。
+ * 106. publishWorkflowSteps v2 = マーケティング team 週次 blog 記事 publish workflow 4 phase シナリオ (writer 下書き → editor レビュー → lead 承認 → CDN 配信)、 shape-person × 2 (writer / editor) + shape-mobile-device + shape-website + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Draft → Review → Approve → Publish) + 4 readout (stepProgress / gauge 完成度 / countup 累計配信数 / stat 経過分) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
-  topic: "content publish workflow 4 step を 4-lane pipeline + 3 next edge + stepProgress readout 併存",
+  topic: "マーケティング team blog 記事 publish workflow 4 phase = (Draft → Review → Approve → Publish) の flow を shape-* primitive 6 種で表現 + 4 readout (stepProgress / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("draft", { x: 0, width: 170 })
-  .lane("review", { x: 190, width: 170 })
-  .lane("approve", { x: 380, width: 170 })
-  .lane("publish", { x: 570, width: 170 })
+  .lane("author", { x: 0, width: 220 })
+  .lane("cms", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("steps", ["Draft", "Review", "Approve", "Publish"])
-  .state("cur", { initial: 2 })
-  .node("draftNode", { lane: "draft", stack: 0, kind: "card", title: "Draft", subtitle: "index 0 · done" })
-  .node("reviewNode", { lane: "review", stack: 0, kind: "card", title: "Review", subtitle: "index 1 · done" })
-  .node("approveNode", { lane: "approve", stack: 0, kind: "card", title: "◆ Approve", subtitle: "index 2 (current)" })
-  .node("publishNode", { lane: "publish", stack: 0, kind: "card", title: "Publish", subtitle: "index 3 · pending" })
-  .edge("draftNode", "reviewNode", { label: "submit", tone: "success" })
-  .edge("reviewNode", "approveNode", { label: "reviewed", tone: "info" })
-  .edge("approveNode", "publishNode", { label: "publish", tone: "accent" })
+  .state("cur", { initial: 0 })
+  .state("progress", { initial: 0 })
+  .state("publishedCount", { initial: 12 })
+  .state("elapsedMin", { initial: 0 })
+  .node("writer", { lane: "author", stack: 0, kind: "shape-person", title: "writer 岸田様", eyebrow: "author", subtitle: "週次 blog 担当 · SEO 記事" })
+  .node("laptop", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "Notion draft", eyebrow: "device", subtitle: "見出し + 本文 + reference 準備" })
+  .node("cmsSite", { lane: "cms", stack: 0, kind: "shape-website", title: "CMS (WordPress)", eyebrow: "cms", subtitle: "draft slot + reviewer assign" })
+  .node("editor", { lane: "cms", stack: 1, kind: "shape-person", title: "editor 山田様", eyebrow: "reviewer", subtitle: "fact-check + tone 統一 + 校正" })
+  .node("cdn", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "CloudFront CDN", eyebrow: "cdn", subtitle: "全国 edge cache + SEO index" })
+  .node("archive", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "記事 archive DB", eyebrow: "storage", subtitle: "public URL + タグ + 統計連携" })
+  .edge("writer", "laptop", { label: "書く", tone: "info" })
+  .edge("laptop", "cmsSite", { label: "submit", tone: "success" })
+  .edge("cmsSite", "editor", { label: "assign", tone: "info" })
+  .edge("editor", "cdn", { label: "approve → deploy", tone: "accent" })
+  .edge("cdn", "archive", { label: "index", tone: "success" })
   .readout.stepProgress("sp", { source: "cur", stepsSource: "steps", color: "#2563eb", label: "Workflow" })
-  .phase("p", {
-    duration: 1200,
-    title: "workflow pipeline",
-    body: "4-lane (Draft / Review / Approve / Publish) で content workflow 4 step を pipeline 分散、 3 next edge、 stepProgress readout も併存で numbered dot + progress line 表示、 pipeline flow pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("draftNode", "reviewNode", "approveNode", "publishNode").badge("workflow"))
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "完成度 %" })
+  .readout.countup("pubCU", { source: "publishedCount", unit: " 件", label: "累計配信", decimals: 0 })
+  .readout.stat("timeStat", { source: "elapsedMin", unit: " 分", caption: "経過時間", label: "elapsed" })
+  .phase("p1", {
+    duration: 1800,
+    title: "Draft 作成",
+    body: "岸田様が Notion で下書き執筆、 見出し + 本文 + 引用 refs 揃える。 cur = 0 (Draft)、 progress 0 → 30 tween、 publishedCount 12 keep、 elapsedMin 0 → 25 tween、 writer + laptop lane active。",
+  }, (p: PhaseBuilder) => p.activate("writer", "laptop").set("cur", 0).tween("progress", 0, 30).tween("elapsedMin", 0, 25).badge("Draft"))
+  .phase("p2", {
+    duration: 2200,
+    title: "Review + fact-check",
+    body: "CMS submit → 山田様アサイン、 fact-check + tone 統一 + 校正 3 pass。 cur 0 → 1 tween (Review)、 progress 30 → 60 tween、 elapsedMin 25 → 55 tween、 cmsSite + editor lane activate。",
+  }, (p: PhaseBuilder) => p.activate("writer", "laptop", "cmsSite", "editor").tween("cur", 0, 1).tween("progress", 30, 60).tween("elapsedMin", 25, 55).badge("Review"))
+  .phase("p3", {
+    duration: 2000,
+    title: "Approve + SEO 最適化",
+    body: "lead 承認 + SEO tag 追加、 title / description / OG 画像 fix。 cur 1 → 2 tween (Approve)、 progress 60 → 85 tween (gauge 針上振れ)、 elapsedMin 55 → 68 tween、 CMS lane で最終調整。",
+  }, (p: PhaseBuilder) => p.activate("writer", "laptop", "cmsSite", "editor").tween("cur", 1, 2).tween("progress", 60, 85).tween("elapsedMin", 55, 68).badge("Approve"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Publish + CDN 配信",
+    body: "CMS → CDN deploy、 全国 edge cache + 記事 archive に URL + tag 登録、 SEO index キック。 cur 2 → 3 tween (Publish)、 progress 85 → 100 tween (gauge 針最上位)、 publishedCount 12 → 13 tween (累計 +1)、 elapsedMin 68 → 75 tween、 cdn + archive lane activate、 6 shape 全 active、 記事公開完遂。",
+  }, (p: PhaseBuilder) => p.activate("writer", "laptop", "cmsSite", "editor", "cdn", "archive").tween("cur", 2, 3).tween("progress", 85, 100).tween("publishedCount", 12, 13).tween("elapsedMin", 68, 75).badge("Publish"))
   .build();
 
 /**
- * 107. user-presence = 5 team member を 3-lane (Online / Away / Offline) + userPresence readout 併存。 iteration 6 wave 4、 pattern taxonomy § 1 state-based split。
+ * 107. teamPresenceStatus v2 = リモート 5 名 team 1 日 presence 変化 4 phase シナリオ (朝 offline → 業務 online → 昼 away → 夕方 退勤)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-cylinder + shape-website の 6 shape で visual scene 化、 4 phase (09:00 出社 → 11:00 全員 online → 12:30 昼 away → 17:00 退勤) + 4 readout (userPresence / gauge online 率 / countup msg 数 / stat active 時間) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const teamPresenceStatus = diagram("interactive-team-presence", {
-  topic: "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存",
+  topic: "リモート 5 名 team 1 日 presence 変化 4 phase = (朝 09:00 → 昼前 11:00 → 昼 12:30 → 夕方 17:00) の flow を shape-* primitive 6 種で表現 + 4 readout (userPresence / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("online", { x: 0, width: 240 })
-  .lane("away", { x: 280, width: 240 })
-  .lane("offline", { x: 560, width: 240 })
+  .lane("member", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("team", [
-    ["Alice", "online"],
-    ["Bob", "away"],
+    ["Alice", "away"],
+    ["Bob", "offline"],
     ["Carol", "online"],
     ["Dan", "offline"],
     ["Eve", "online"],
   ] as unknown as (string | number)[])
-  .node("aliceCard", { lane: "online", stack: 0, kind: "card", title: "● Alice", subtitle: "online · green dot" })
-  .node("carolCard", { lane: "online", stack: 1, kind: "card", title: "● Carol", subtitle: "online" })
-  .node("eveCard", { lane: "online", stack: 2, kind: "card", title: "● Eve", subtitle: "online" })
-  .node("bobCard", { lane: "away", stack: 0, kind: "card", title: "● Bob", subtitle: "away · yellow dot" })
-  .node("danCard", { lane: "offline", stack: 0, kind: "card", title: "● Dan", subtitle: "offline · gray dot" })
+  .state("onlineRate", { initial: 0 })
+  .state("msgCount", { initial: 0 })
+  .state("activeHours", { initial: 0 })
+  .node("lead", { lane: "member", stack: 0, kind: "shape-person", title: "team lead Alice 様", eyebrow: "lead", subtitle: "5 名リモート team 主宰" })
+  .node("slack", { lane: "member", stack: 1, kind: "shape-mobile-device", title: "Slack app", eyebrow: "device", subtitle: "presence 送信 + msg 受信" })
+  .node("slackBackend", { lane: "service", stack: 0, kind: "shape-cloud", title: "Slack backend", eyebrow: "cloud", subtitle: "全 member presence event 集約" })
+  .node("presenceSvr", { lane: "service", stack: 1, kind: "shape-server-rack", title: "presence server", eyebrow: "backend", subtitle: "WebSocket + heartbeat 30s" })
+  .node("dashboard", { lane: "outcome", stack: 0, kind: "shape-website", title: "presence dashboard", eyebrow: "ui", subtitle: "team 一覧 dot 表示" })
+  .node("auditLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "audit log DB", eyebrow: "storage", subtitle: "1 日の presence 履歴保存" })
+  .edge("lead", "slack", { label: "起動", tone: "info" })
+  .edge("slack", "slackBackend", { label: "presence", tone: "info" })
+  .edge("slackBackend", "presenceSvr", { label: "route", tone: "accent" })
+  .edge("presenceSvr", "dashboard", { label: "broadcast", tone: "success" })
+  .edge("presenceSvr", "auditLog", { label: "persist", tone: "success" })
   .readout.userPresence("up", { source: "team", max: 6, label: "Team status" })
-  .phase("p", {
-    duration: 1200,
-    title: "presence state split",
-    body: "3-lane (Online 3 / Away 1 / Offline 1) で 5 team member を presence status 別分散、 userPresence readout も併存で dot + name list 表示、 state-based split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").badge("presence"))
+  .readout.gauge("onlineG", { source: "onlineRate", min: 0, max: 100, color: "#22c55e", label: "online 率 %" })
+  .readout.countup("msgCU", { source: "msgCount", unit: " msg", label: "1 日 msg", decimals: 0 })
+  .readout.stat("actStat", { source: "activeHours", unit: " h", caption: "active 時間", label: "active" })
+  .phase("p1", {
+    duration: 1800,
+    title: "朝 09:00 出社",
+    body: "team member 順次 Slack 起動、 Alice → Bob → Carol → Dan → Eve の順に online 遷移。 onlineRate 0 → 20 tween、 msgCount 0 → 5 tween、 activeHours 0 → 1 tween、 lead + slack lane active。",
+  }, (p: PhaseBuilder) => p.activate("lead", "slack").tween("onlineRate", 0, 20).tween("msgCount", 0, 5).tween("activeHours", 0, 1).badge("09:00"))
+  .phase("p2", {
+    duration: 2200,
+    title: "11:00 全員 online",
+    body: "10:00 台に全員 slack 起動、 全員 online 到達、 presence server broadcast 全端末に反映。 onlineRate 20 → 100 tween (gauge 針最上位)、 msgCount 5 → 32 tween、 activeHours 1 → 3 tween、 slackBackend + presenceSvr + dashboard lane activate。",
+  }, (p: PhaseBuilder) => p.activate("lead", "slack", "slackBackend", "presenceSvr", "dashboard").tween("onlineRate", 20, 100).tween("msgCount", 5, 32).tween("activeHours", 1, 3).badge("11:00"))
+  .phase("p3", {
+    duration: 2000,
+    title: "12:30 昼休憩 away",
+    body: "Alice + Bob 昼休憩で away、 Carol / Dan / Eve は集中作業で online 継続。 onlineRate 100 → 60 tween (下降)、 msgCount 32 → 40 tween、 activeHours 3 → 4 tween、 dashboard 反映。",
+  }, (p: PhaseBuilder) => p.activate("lead", "slack", "slackBackend", "presenceSvr", "dashboard").tween("onlineRate", 100, 60).tween("msgCount", 32, 40).tween("activeHours", 3, 4).badge("12:30"))
+  .phase("p4", {
+    duration: 2000,
+    title: "17:00 退勤 mix",
+    body: "Bob + Dan 退勤で offline、 Alice + Carol 業務終盤 away、 Eve 残業 online 継続。 team = [Alice away, Bob offline, Carol online, Dan offline, Eve online] スナップショット。 onlineRate 60 → 20 tween、 msgCount 40 → 58 tween (最終)、 activeHours 4 → 8 tween、 auditLog activate、 6 shape 全 active、 1 日 presence 履歴 flush。",
+  }, (p: PhaseBuilder) => p.activate("lead", "slack", "slackBackend", "presenceSvr", "dashboard", "auditLog").tween("onlineRate", 60, 20).tween("msgCount", 40, 58).tween("activeHours", 4, 8).badge("17:00"))
   .build();
 
 /**
- * 108. rating-thumb = review vote 2 category (up / down) を 2-lane + ratingThumb readout 併存。 iteration 6 wave 4、 pattern taxonomy § 3 category split。
+ * 108. feedbackThumbRating v2 = SaaS 新機能 launch 1 週間 vote 集計 4 phase シナリオ (launch → 1 日目急増 → 3 日目 bug 発生 → 1 週間 fix 後安定)、 shape-person + shape-mobile-device + shape-website + shape-cylinder + shape-cloud + shape-server-rack の 6 shape で visual scene 化、 4 phase (launch 直後 → 1 日目 → 3 日目 down 発生 → 1 週間安定) + 4 readout (ratingThumb / gauge positive 率 / countup total votes / stat final score) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const feedbackThumbRating = diagram("interactive-feedback-rating", {
-  topic: "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存",
+  topic: "SaaS 新機能 launch 1 週間 vote 集計 4 phase = (launch → 1 日目 → 3 日目 → 1 週間) の flow を shape-* primitive 6 種で表現 + 4 readout (ratingThumb / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("up", { x: 0, width: 340 })
-  .lane("down", { x: 380, width: 340 })
-  .arraySignal("votes", [24, 3])
-  .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "24 (89%)" })
-  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive feedback", subtitle: "green tone" })
-  .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "3 (11%)" })
-  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative feedback", subtitle: "red tone" })
-  .edge("upCard", "downCard", { label: "ratio 24 vs 3", tone: "warning" })
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("votes", [128, 27])
+  .state("positiveRate", { initial: 0 })
+  .state("totalVotes", { initial: 0 })
+  .state("finalScore", { initial: 0 })
+  .node("user", { lane: "user", stack: 0, kind: "shape-person", title: "早期利用者", eyebrow: "user", subtitle: "SaaS 新機能を試すアーリーアダプター" })
+  .node("app", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "SaaS mobile app", eyebrow: "device", subtitle: "新機能を利用 + feedback ボタン" })
+  .node("form", { lane: "service", stack: 0, kind: "shape-website", title: "feedback form", eyebrow: "form", subtitle: "▲ Good / ▼ Bad + free text" })
+  .node("backend", { lane: "service", stack: 1, kind: "shape-server-rack", title: "vote API", eyebrow: "backend", subtitle: "vote count + score 計算" })
+  .node("analytics", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "analytics", eyebrow: "analytics", subtitle: "vote 集計 + ダッシュボード配信" })
+  .node("voteDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "vote history DB", eyebrow: "storage", subtitle: "user 別 vote 記録 + audit" })
+  .edge("user", "app", { label: "起動", tone: "info" })
+  .edge("app", "form", { label: "▲ / ▼", tone: "info" })
+  .edge("form", "backend", { label: "submit", tone: "success" })
+  .edge("backend", "voteDb", { label: "persist", tone: "success" })
+  .edge("backend", "analytics", { label: "aggregate", tone: "accent" })
   .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" })
-  .phase("p", {
-    duration: 1200,
-    title: "vote category split",
-    body: "2-lane (Up 24 / Down 3) で review vote を category 分散、 各 category main + detail card + ratio edge、 ratingThumb readout も併存で ▲/▼ + colored bar 表示、 category split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").badge("rating"))
+  .readout.gauge("posG", { source: "positiveRate", min: 0, max: 100, color: "#22c55e", label: "positive 率 %" })
+  .readout.countup("totCU", { source: "totalVotes", unit: " 件", label: "累計 vote", decimals: 0 })
+  .readout.stat("scoreStat", { source: "finalScore", unit: " pt", caption: "score", label: "score" })
+  .phase("p1", {
+    duration: 1800,
+    title: "launch 直後 (Day 0)",
+    body: "新機能 release 直後、 まず一握りのアーリーが試して feedback 送信。 positiveRate 0 → 83 tween、 totalVotes 0 → 6 tween、 finalScore 0 → 65 tween、 user + app + form lane active。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "form").tween("positiveRate", 0, 83).tween("totalVotes", 0, 6).tween("finalScore", 0, 65).badge("Day 0"))
+  .phase("p2", {
+    duration: 2200,
+    title: "1 日目 up vote 急増",
+    body: "SNS シェアで爆発的に up vote 増加、 backend + voteDb で永続化キック。 positiveRate 83 → 93 tween (高値定着)、 totalVotes 6 → 45 tween、 finalScore 65 → 88 tween、 backend + voteDb + analytics activate。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "form", "backend", "voteDb", "analytics").tween("positiveRate", 83, 93).tween("totalVotes", 6, 45).tween("finalScore", 65, 88).badge("Day 1"))
+  .phase("p3", {
+    duration: 2200,
+    title: "3 日目 edge case bug 発生",
+    body: "特定 iOS 端末で bug 発火、 down vote 相次ぐ。 positiveRate 93 → 72 tween (下降、 gauge 針落ち)、 totalVotes 45 → 80 tween、 finalScore 88 → 65 tween、 analytics で alert 発報。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "form", "backend", "voteDb", "analytics").tween("positiveRate", 93, 72).tween("totalVotes", 45, 80).tween("finalScore", 88, 65).badge("Day 3"))
+  .phase("p4", {
+    duration: 2000,
+    title: "1 週間 fix 後安定",
+    body: "hotfix release → down vote 収束、 up vote が再び伸長、 最終 stable score に到達。 votes = [128, 27] スナップショット。 positiveRate 72 → 83 tween (回復)、 totalVotes 80 → 155 tween、 finalScore 65 → 82 tween、 6 shape 全 active、 1 週間集計完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "form", "backend", "voteDb", "analytics").tween("positiveRate", 72, 83).tween("totalVotes", 80, 155).tween("finalScore", 65, 82).badge("Day 7"))
   .build();
 
 /**
