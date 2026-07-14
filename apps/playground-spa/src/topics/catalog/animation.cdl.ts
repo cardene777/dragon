@@ -50,3 +50,75 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
   .phase("p1", { duration: 2400, title: "init → loading + 0 → 50", body: "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。" }, (p: PhaseBuilder) => p.activate("a").tween("amount", 0, 50).set("phase", "loading").badge("loading"))
   .phase("p2", { duration: 2400, title: "loading → done + 50 → 100", body: "次 phase で完了状態へ。" }, (p: PhaseBuilder) => p.activate("a").tween("amount", 50, 100).set("phase", "done").badge("done"))
   .build();
+
+/**
+ * 6. animationLayeredPipeline v1 = iter 9 wave 9-C pilot = rich layered animation exemplar。
+ * user 教示「1〜5 まで手順、 矢印が 1〜5 の順番で色付き、 それに合わせて長方形の枠を光らせたり、 長方形の中を波のなかさで数値示したり」 の実現 pilot。
+ *
+ * 5 layer 同時発火 (rich judgment 5/5 pass):
+ * - layer 1 = arrow が step 1-5 順に色付き (edge activate 連鎖)
+ * - layer 2 = rectangle border が光る (node activate で strokeWidth 3 + accent)
+ * - layer 3 = rectangle 内 wave 高さで各 step 進捗% を表示 (dyn-wave level tween)
+ * - layer 4 = 全体進捗 (readout.percentRing で 0 → 100%)
+ * - layer 5 = badge phase 名切替 (validate → transform → enrich → dedupe → commit)
+ *
+ * theme = 「5 step CSV batch import pipeline (100 record 処理) の進捗 rich 表示」。
+ * mermaid では静止 5 rectangle + 5 arrow しか描けない、 dragon はこの 5 layer 同時発火で「見てて楽しい + 理解しやすい」 を両立する。
+ */
+export const animationLayeredPipeline = diagram("animation-layered-pipeline", {
+  topic: "5段階CSV取込パイプラインのリッチ進捗 (arrow色付き + rect border光 + 内部wave数値 + progress ring + badge の5 layer同時発火)",
+})
+  .lane("l1", { x: 0, width: 160 })
+  .lane("l2", { x: 180, width: 160 })
+  .lane("l3", { x: 360, width: 160 })
+  .lane("l4", { x: 540, width: 160 })
+  .lane("l5", { x: 720, width: 160 })
+  .state("s1", { initial: 0 })
+  .state("s2", { initial: 0 })
+  .state("s3", { initial: 0 })
+  .state("s4", { initial: 0 })
+  .state("s5", { initial: 0 })
+  .state("total", { initial: 0 })
+  .state("processed", { initial: 0 })
+  .node("r1", { lane: "l1", stack: 0, kind: "dyn-wave", title: "① 検証", subtitle: "{s1}%", w: 140, h: 200,
+    shape: { kind: "wave", level: "{s1}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
+  .node("r2", { lane: "l2", stack: 0, kind: "dyn-wave", title: "② 変換", subtitle: "{s2}%", w: 140, h: 200,
+    shape: { kind: "wave", level: "{s2}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
+  .node("r3", { lane: "l3", stack: 0, kind: "dyn-wave", title: "③ 加工", subtitle: "{s3}%", w: 140, h: 200,
+    shape: { kind: "wave", level: "{s3}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
+  .node("r4", { lane: "l4", stack: 0, kind: "dyn-wave", title: "④ 重複排除", subtitle: "{s4}%", w: 140, h: 200,
+    shape: { kind: "wave", level: "{s4}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
+  .node("r5", { lane: "l5", stack: 0, kind: "dyn-wave", title: "⑤ 保存", subtitle: "{s5}%", w: 140, h: 200,
+    shape: { kind: "wave", level: "{s5}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#22c55e" } })
+  .edge("r1", "r2", { id: "e12", label: "変換", tone: "info" })
+  .edge("r2", "r3", { id: "e23", label: "加工", tone: "info" })
+  .edge("r3", "r4", { id: "e34", label: "排除", tone: "info" })
+  .edge("r4", "r5", { id: "e45", label: "確定", tone: "success" })
+  .readout.percentRing("overallRing", { source: "total", max: 500, label: "全体進捗 %" })
+  .readout.countup("processedCU", { source: "processed", unit: " 行", label: "処理済 record", decimals: 0 })
+  .phase("p1", {
+    duration: 1500,
+    title: "① 検証中",
+    body: "検証 step が 100 record を validate、 rectangle 内 wave が 0 → 100% 上昇 (dyn-wave level tween)。 rectangle border が accent 色 + strokeWidth 3 に切替 (layer 2)。 まだ edge 発火なし、 total 0 → 100 tween、 processed 0 → 100 tween、 badge「検証」。",
+  }, (p: PhaseBuilder) => p.activate("r1").tween("s1", 0, 100).tween("total", 0, 100).tween("processed", 0, 100).badge("① 検証"))
+  .phase("p2", {
+    duration: 1500,
+    title: "② 変換中",
+    body: "変換 step が activate、 e12 edge (r1 → r2) が info 色で発火 (arrow 順番色付き = layer 1)。 rectangle r2 border 光る + 内部 wave 上昇 (layer 2+3)。 total 100 → 200 tween、 processed 100 → 200 tween、 badge「変換」。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "e12").set("s1", 100).tween("s2", 0, 100).tween("total", 100, 200).tween("processed", 100, 200).badge("② 変換"))
+  .phase("p3", {
+    duration: 1500,
+    title: "③ 加工中",
+    body: "加工 step が activate、 e23 edge (r2 → r3) が info 色で追加発火。 累積 2 edges + 3 rectangles active、 r3 内 wave が上昇。 total 200 → 300 tween、 processed 200 → 300 tween、 badge「加工」。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "e12", "e23").set("s1", 100).set("s2", 100).tween("s3", 0, 100).tween("total", 200, 300).tween("processed", 200, 300).badge("③ 加工"))
+  .phase("p4", {
+    duration: 1500,
+    title: "④ 重複排除中",
+    body: "重複排除 step が activate、 e34 edge が発火。 4 edges + 4 rectangles active、 r4 wave 上昇。 total 300 → 400 tween、 processed 300 → 380 tween (重複 20 件検出で少数減)、 badge「重複排除」。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "e12", "e23", "e34").set("s1", 100).set("s2", 100).set("s3", 100).tween("s4", 0, 100).tween("total", 300, 400).tween("processed", 300, 380).badge("④ 重複排除"))
+  .phase("p5", {
+    duration: 1800,
+    title: "⑤ 保存完遂",
+    body: "保存 step が activate、 e45 edge が success 色 (green) で発火 (commit 完遂の視覚表現)。 全 5 rectangle + 全 5 edge active、 r5 wave 上昇 + fill が green で完遂示唆、 overallRing 100% 到達、 processedCU 380 record 表示、 badge「⑤ 保存」。 5 layer 同時発火の rich 表現完成。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "r5", "e12", "e23", "e34", "e45").set("s1", 100).set("s2", 100).set("s3", 100).set("s4", 100).tween("s5", 0, 100).tween("total", 400, 500).set("processed", 380).badge("⑤ 保存"))
+  .build();
