@@ -4265,14 +4265,14 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
   .build();
 
 /**
- * 109. org-chart-mini = 3-level org hierarchy を 3-lane (CEO / VP / IC) tree depth 別分散 + orgChartMini readout 併存。 iteration 6 wave 5、 pattern taxonomy § 8 tree depth split。
+ * 109. startupOrgChart v2 = seed → Series A 直前 startup の 6 ヶ月成長 4 phase シナリオ (CEO 単独 → 2 VP 採用 → 3 IC 採用 → 業務体制)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-server-rack の 6 shape で visual scene 化、 4 phase (Seed → VP 採用 → IC 採用 → 業務体制) + 4 readout (orgChartMini / gauge 採用充足率 / countup headcount / stat monthly burn) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const startupOrgChart = diagram("interactive-startup-org", {
-  topic: "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存",
+  topic: "startup 6 ヶ月成長 4 phase = (Seed CEO 単独 → 2 VP 採用 → 3 IC 採用 → 業務体制) の flow を shape-* primitive 6 種で表現 + 4 readout (orgChartMini / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("ceo", { x: 0, width: 220 })
-  .lane("vp", { x: 260, width: 220 })
-  .lane("ic", { x: 520, width: 260 })
+  .lane("founder", { x: 0, width: 220 })
+  .lane("hr", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("org", [
     ["Alice CEO", 0],
     ["Bob VP Eng", 1],
@@ -4281,70 +4281,146 @@ export const startupOrgChart = diagram("interactive-startup-org", {
     ["Eve Eng", 2],
     ["Frank Sales", 2],
   ] as unknown as (string | number)[])
-  .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "level 0 (root)" })
-  .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "level 1" })
-  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol VP Sales", subtitle: "level 1" })
-  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "level 2 · under Bob" })
-  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "level 2 · under Bob" })
-  .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "level 2 · under Carol" })
-  .edge("ceoCard", "vpEng", { label: "reports", tone: "info" })
-  .edge("ceoCard", "vpSales", { label: "reports", tone: "info" })
-  .edge("vpEng", "icDan", { label: "manages", tone: "accent" })
-  .edge("vpEng", "icEve", { label: "manages", tone: "accent" })
-  .edge("vpSales", "icFrank", { label: "manages", tone: "accent" })
+  .state("hireRate", { initial: 0 })
+  .state("headcount", { initial: 1 })
+  .state("monthlyBurn", { initial: 100 })
+  .node("ceo", { lane: "founder", stack: 0, kind: "shape-person", title: "founder Alice", eyebrow: "CEO", subtitle: "seed 資金調達 + 6 名採用計画" })
+  .node("hrTool", { lane: "founder", stack: 1, kind: "shape-mobile-device", title: "Notion HR + Slack", eyebrow: "device", subtitle: "採用管理 + 社内コミュニケーション" })
+  .node("jobBoard", { lane: "hr", stack: 0, kind: "shape-website", title: "LinkedIn 求人", eyebrow: "board", subtitle: "engineer / sales 6 slot 公開" })
+  .node("hris", { lane: "hr", stack: 1, kind: "shape-cloud", title: "HRIS (Deel)", eyebrow: "hr", subtitle: "契約 + payroll + 労務" })
+  .node("orgDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "org チャート DB", eyebrow: "storage", subtitle: "reporting line + level 履歴" })
+  .node("dashboard", { lane: "outcome", stack: 1, kind: "shape-server-rack", title: "経営 dashboard", eyebrow: "board", subtitle: "headcount / burn rate / runway" })
+  .edge("ceo", "hrTool", { label: "planning", tone: "info" })
+  .edge("hrTool", "jobBoard", { label: "post", tone: "info" })
+  .edge("jobBoard", "hris", { label: "hire", tone: "success" })
+  .edge("hris", "orgDb", { label: "onboard", tone: "success" })
+  .edge("hris", "dashboard", { label: "report", tone: "accent" })
   .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "Org hierarchy" })
-  .phase("p", {
-    duration: 1200,
-    title: "org tree depth split",
-    body: "3-lane (CEO 1 / VP 2 / IC 3) tree depth 別に 6 org member 分散、 5 report edge (2 CEO→VP info / 3 VP→IC accent)、 orgChartMini readout も併存で 3 level tree 表示、 tree depth split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank").badge("org"))
+  .readout.gauge("hireG", { source: "hireRate", min: 0, max: 100, color: "#22c55e", label: "採用充足率 %" })
+  .readout.countup("hcCU", { source: "headcount", unit: " 名", label: "headcount", decimals: 0 })
+  .readout.stat("burnStat", { source: "monthlyBurn", unit: " 万円", caption: "月次 burn", label: "burn" })
+  .phase("p1", {
+    duration: 1800,
+    title: "Seed 期 (CEO 単独)",
+    body: "Alice が seed round 完了、 まず 1 名で会社立ち上げ。 hireRate 0 → 17 tween、 headcount 1 keep、 monthlyBurn 100 → 150 tween、 ceo + hrTool lane active。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "hrTool").tween("hireRate", 0, 17).tween("monthlyBurn", 100, 150).badge("Seed"))
+  .phase("p2", {
+    duration: 2200,
+    title: "2 VP 採用",
+    body: "LinkedIn 求人 → Bob VP Eng + Carol VP Sales 採用、 HRIS 契約完了。 hireRate 17 → 50 tween、 headcount 1 → 3 tween、 monthlyBurn 150 → 400 tween、 jobBoard + hris lane activate。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "hrTool", "jobBoard", "hris").tween("hireRate", 17, 50).tween("headcount", 1, 3).tween("monthlyBurn", 150, 400).badge("VP"))
+  .phase("p3", {
+    duration: 2200,
+    title: "3 IC 採用",
+    body: "Bob + Carol が Dan / Eve / Frank を集中採用、 各 team に IC 配属。 hireRate 50 → 100 tween (gauge 針最上位)、 headcount 3 → 6 tween、 monthlyBurn 400 → 720 tween、 orgDb activate。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "hrTool", "jobBoard", "hris", "orgDb").tween("hireRate", 50, 100).tween("headcount", 3, 6).tween("monthlyBurn", 400, 720).badge("IC"))
+  .phase("p4", {
+    duration: 2000,
+    title: "業務体制確立",
+    body: "6 名で reporting line 整備、 経営 dashboard に headcount / burn rate 反映、 Series A 準備開始。 hireRate 100 keep (充足)、 headcount 6 keep、 monthlyBurn 720 → 800 tween (安定期)、 dashboard activate、 6 shape 全 active、 業務体制完遂。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "hrTool", "jobBoard", "hris", "orgDb", "dashboard").tween("monthlyBurn", 720, 800).badge("体制"))
   .build();
 
 /**
- * 110. kpi-trend-tile = NPS current + delta + sparkline を 3-lane (Current / Delta / History) fan-out + kpiTrendTile readout 併存。 iteration 6 wave 5、 pattern taxonomy § 5 fan-out。
+ * 110. npsTrendKpi v2 = SaaS CS チーム 半年 NPS 追跡 4 phase シナリオ (Q1 開始 → UX 改善リリース → 障害復旧 → 施策安定化)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-server-rack の 6 shape で visual scene 化、 4 phase (Q1 60 → Q2 70 → Q3 82 → Q4 82) + 4 readout (kpiTrendTile / gauge NPS ゾーン / countup 回答数 / stat delta) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const npsTrendKpi = diagram("interactive-nps-trend", {
-  topic: "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存",
+  topic: "SaaS CS チーム半年 NPS 追跡 4 phase = (Q1 60 → Q2 UX 改善 70 → Q3 障害復旧 82 → Q4 施策安定 82) の flow を shape-* primitive 6 種で表現 + 4 readout (kpiTrendTile / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("cur", { x: 0, width: 220 })
-  .lane("delta", { x: 260, width: 220 })
-  .lane("hist", { x: 520, width: 260 })
-  .state("cur", { initial: 82 })
-  .state("prev", { initial: 75 })
-  .arraySignal("hist", [60, 65, 70, 75, 80, 82])
-  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current NPS", subtitle: "82 (今月)" })
-  .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "75 (先月)" })
-  .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "▲ Delta", subtitle: "+7 (+9.3%) · green" })
-  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6 month history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
-  .edge("curCard", "prevCard", { label: "compare", tone: "info" })
-  .edge("curCard", "histCard", { label: "spark", tone: "success" })
+  .lane("csLead", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("cur", { initial: 60 })
+  .state("prev", { initial: 55 })
+  .arraySignal("hist", [55, 60, 65, 70, 75, 82])
+  .state("npsGauge", { initial: 60 })
+  .state("respondents", { initial: 100 })
+  .state("delta", { initial: 0 })
+  .node("csLead", { lane: "csLead", stack: 0, kind: "shape-person", title: "CS lead 篠原様", eyebrow: "customer success", subtitle: "NPS 主管 + 週次 review" })
+  .node("surveyApp", { lane: "csLead", stack: 1, kind: "shape-mobile-device", title: "survey app", eyebrow: "device", subtitle: "四半期 email 配信 + 回答収集" })
+  .node("feedbackForm", { lane: "service", stack: 0, kind: "shape-website", title: "feedback form", eyebrow: "form", subtitle: "10 段階 + 自由記述" })
+  .node("analytics", { lane: "service", stack: 1, kind: "shape-cloud", title: "NPS analytics", eyebrow: "analytics", subtitle: "促進 - 批判 = NPS 計算" })
+  .node("kpiDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "KPI history DB", eyebrow: "storage", subtitle: "6 ヶ月 trend 保存" })
+  .node("execBoard", { lane: "outcome", stack: 1, kind: "shape-server-rack", title: "経営 board", eyebrow: "board", subtitle: "四半期報告 + 目標対比" })
+  .edge("csLead", "surveyApp", { label: "配信", tone: "info" })
+  .edge("surveyApp", "feedbackForm", { label: "回答", tone: "info" })
+  .edge("feedbackForm", "analytics", { label: "集計", tone: "success" })
+  .edge("analytics", "kpiDb", { label: "persist", tone: "success" })
+  .edge("analytics", "execBoard", { label: "report", tone: "accent" })
   .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" })
-  .phase("p", {
-    duration: 1200,
-    title: "KPI fan-out",
-    body: "3-lane (Current / Delta / History) で 1 KPI を 3 view に fan-out、 2 edge (compare info / spark success)、 kpiTrendTile readout も併存で 1 tile に current + delta arrow + sparkline を集約、 fan-out pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard", "histCard").badge("kpi trend"))
+  .readout.gauge("npsG", { source: "npsGauge", min: 0, max: 100, color: "#22c55e", label: "NPS ゾーン" })
+  .readout.countup("respCU", { source: "respondents", unit: " 件", label: "回答数", decimals: 0 })
+  .readout.stat("delStat", { source: "delta", unit: " pt", caption: "前四半期 delta", label: "delta" })
+  .phase("p1", {
+    duration: 1800,
+    title: "Q1 開始 (NPS 60)",
+    body: "1 月 email 配信、 Q1 初回計測。 cur 60 keep、 prev 55 keep、 npsGauge 0 → 60 tween、 respondents 0 → 100 tween、 delta 0 → 5 tween、 csLead + surveyApp lane active。",
+  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp").tween("npsGauge", 0, 60).tween("respondents", 0, 100).tween("delta", 0, 5).badge("Q1 60"))
+  .phase("p2", {
+    duration: 2200,
+    title: "Q2 UX 改善リリース (NPS 70)",
+    body: "大型 UX 改善リリース → 回答 upvote 増。 cur 60 → 70 tween、 prev 60 keep、 npsGauge 60 → 70 tween、 respondents 100 → 250 tween、 delta 5 → 10 tween、 feedbackForm + analytics lane activate。",
+  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics").tween("cur", 60, 70).tween("npsGauge", 60, 70).tween("respondents", 100, 250).tween("delta", 5, 10).badge("Q2 70"))
+  .phase("p3", {
+    duration: 2200,
+    title: "Q3 障害復旧 (NPS 82)",
+    body: "6 月本番障害 → hotfix + 補償 → 顧客信頼回復で NPS 急伸。 cur 70 → 82 tween、 prev 70 keep、 npsGauge 70 → 82 tween、 respondents 250 → 400 tween、 delta 10 → 12 tween、 kpiDb activate。",
+  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics", "kpiDb").tween("cur", 70, 82).tween("npsGauge", 70, 82).tween("respondents", 250, 400).tween("delta", 10, 12).badge("Q3 82"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Q4 施策安定化 (NPS 82)",
+    body: "Q4 で NPS 82 定着、 経営 board で年次 review、 目標 80 超え達成。 cur 82 keep、 prev 82 tween (更新)、 npsGauge 82 keep、 respondents 400 → 500 tween、 delta 12 → 7 tween、 execBoard activate、 6 shape 全 active、 半年 review 完遂。",
+  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics", "kpiDb", "execBoard").tween("prev", 75, 82).tween("respondents", 400, 500).tween("delta", 12, 7).badge("Q4 82"))
   .build();
 
 /**
- * 111. quick-poll-emoji = 3 emoji reaction poll を 3-lane 分散 + quickPollEmoji readout 併存。 iteration 6 wave 5、 pattern taxonomy § 3 category split。
+ * 111. postReactionPoll v2 = SNS 投稿 1 週間 reaction 集計 4 phase シナリオ (投稿直後 → 拡散 → エンゲージ → 週末 total)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (投稿 → viral → engage → 週末集計) + 4 readout (quickPollEmoji / gauge viral 度 / countup total reactions / stat top emoji) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const postReactionPoll = diagram("interactive-post-reaction-poll", {
-  topic: "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存",
+  topic: "SNS 投稿 1 週間 reaction 集計 4 phase = (投稿直後 → 拡散 → engagement → 週末 total) の flow を shape-* primitive 6 種で表現 + 4 readout (quickPollEmoji / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("thumbs", { x: 0, width: 240 })
-  .lane("heart", { x: 280, width: 240 })
-  .lane("party", { x: 560, width: 240 })
+  .lane("poster", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("votes", [["👍", 42], ["❤️", 28], ["🎉", 15]] as unknown as (string | number)[])
-  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs (winner)", subtitle: "42 votes · highlight border" })
-  .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "28 votes" })
-  .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "15 votes" })
+  .state("viralRate", { initial: 0 })
+  .state("totalReactions", { initial: 0 })
+  .state("topCount", { initial: 0 })
+  .node("poster", { lane: "poster", stack: 0, kind: "shape-person", title: "post 投稿者 岩本様", eyebrow: "author", subtitle: "フォロワー 3000 名 · 週次投稿" })
+  .node("app", { lane: "poster", stack: 1, kind: "shape-mobile-device", title: "SNS mobile app", eyebrow: "device", subtitle: "投稿作成 + reaction 通知受信" })
+  .node("feed", { lane: "service", stack: 0, kind: "shape-website", title: "SNS feed", eyebrow: "feed", subtitle: "タイムライン + reaction UI" })
+  .node("backend", { lane: "service", stack: 1, kind: "shape-cloud", title: "feed backend", eyebrow: "cloud", subtitle: "reaction aggregate + notify" })
+  .node("reactDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "reaction DB", eyebrow: "storage", subtitle: "user 別 emoji vote 履歴" })
+  .node("cdn", { lane: "outcome", stack: 1, kind: "shape-cdn-edge", title: "feed CDN edge", eyebrow: "cdn", subtitle: "画像 + reaction pill 配信" })
+  .edge("poster", "app", { label: "投稿", tone: "info" })
+  .edge("app", "feed", { label: "publish", tone: "info" })
+  .edge("feed", "backend", { label: "reaction", tone: "success" })
+  .edge("backend", "reactDb", { label: "persist", tone: "success" })
+  .edge("backend", "cdn", { label: "broadcast", tone: "accent" })
   .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
-  .phase("p", {
-    duration: 1200,
-    title: "poll category split",
-    body: "3-lane (Thumbs / Heart / Party) で 3 emoji vote を category 別分散、 winner (thumbs 42) に highlight border、 quickPollEmoji readout も併存で pill 表示、 category split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").badge("poll"))
+  .readout.gauge("viralG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral 度 %" })
+  .readout.countup("totCU", { source: "totalReactions", unit: " 件", label: "総 reaction", decimals: 0 })
+  .readout.stat("topStat", { source: "topCount", unit: " 👍", caption: "top emoji", label: "top" })
+  .phase("p1", {
+    duration: 1800,
+    title: "投稿直後 (Day 0)",
+    body: "岩本様が投稿、 フォロワーの一部が即 reaction。 viralRate 0 → 10 tween、 totalReactions 0 → 8 tween、 topCount 0 → 5 tween、 poster + app + feed lane active。",
+  }, (p: PhaseBuilder) => p.activate("poster", "app", "feed").tween("viralRate", 0, 10).tween("totalReactions", 0, 8).tween("topCount", 0, 5).badge("Day 0"))
+  .phase("p2", {
+    duration: 2200,
+    title: "拡散 (Day 1)",
+    body: "フォロワーの拡散で 👍 急増、 backend + reactDb で永続化キック。 viralRate 10 → 55 tween、 totalReactions 8 → 45 tween、 topCount 5 → 25 tween、 backend + reactDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("poster", "app", "feed", "backend", "reactDb").tween("viralRate", 10, 55).tween("totalReactions", 8, 45).tween("topCount", 5, 25).badge("Day 1"))
+  .phase("p3", {
+    duration: 2200,
+    title: "エンゲージ (Day 3)",
+    body: "深いエンゲージメントで ❤️ + 🎉 増加、 CDN edge で全リージョン配信。 viralRate 55 → 82 tween、 totalReactions 45 → 78 tween、 topCount 25 → 40 tween、 cdn activate。",
+  }, (p: PhaseBuilder) => p.activate("poster", "app", "feed", "backend", "reactDb", "cdn").tween("viralRate", 55, 82).tween("totalReactions", 45, 78).tween("topCount", 25, 40).badge("Day 3"))
+  .phase("p4", {
+    duration: 2000,
+    title: "週末 total (Day 7)",
+    body: "週末に集計完了、 votes = [👍 42, ❤️ 28, 🎉 15] スナップショット。 viralRate 82 → 95 tween (バズ)、 totalReactions 78 → 85 tween、 topCount 40 → 42 tween、 6 shape 全 active、 1 週間集計完遂。",
+  }, (p: PhaseBuilder) => p.activate("poster", "app", "feed", "backend", "reactDb", "cdn").tween("viralRate", 82, 95).tween("totalReactions", 78, 85).tween("topCount", 40, 42).badge("Day 7"))
   .build();
 
 /**
