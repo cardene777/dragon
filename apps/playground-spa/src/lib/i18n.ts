@@ -49,6 +49,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   patternDirectCheckout: "直結 (EC 決済)",
   patternPassthroughApiGateway: "貫通 (API Gateway)",
   patternCallRwUserProfile: "呼出 → 読取 → 書込 (プロフィール更新)",
+  // wave 8-S business scenario 拡張
+  patternEmitOrderCreated: "イベント発火 (OrderCreated)",
+  patternHookWebhook: "フック (Webhook 配信)",
+  patternBranchAuthzCheck: "分岐 (認可判定)",
 
   // cookbook
   apiCall: "API 呼び出し",
