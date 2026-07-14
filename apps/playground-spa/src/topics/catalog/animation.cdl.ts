@@ -175,7 +175,7 @@ export const animationBuildStatus = diagram("animation-build-status", {
   .edge("phone", "gh", { label: "trigger", tone: "info" })
   .edge("gh", "runner", { label: "dispatch", tone: "success" })
   .edge("runner", "deployTarget", { label: "deploy", tone: "accent" })
-  .edge("runner", "buildDb", { label: "log", tone: "success" })
+  .edge("deployTarget", "buildDb", { label: "log", tone: "success" })
   .readout.gauge("bpG", { source: "buildPct", min: 0, max: 100, color: "#22c55e", label: "build %" })
   .readout.countup("bdCU", { source: "buildCount", unit: " 回", label: "累計 build", decimals: 0 })
   .readout.stat("durStat", { source: "durationSec", unit: " 秒", caption: "duration", label: "dur" })

@@ -121,7 +121,7 @@ export const stateInactiveMonitor = diagram("state-inactive-monitor", {
   .edge("dashboard", "scheduler", { label: "poll", tone: "info" })
   .edge("scheduler", "worker", { label: "trigger", tone: "accent" })
   .edge("worker", "healthProbe", { label: "probe", tone: "success" })
-  .edge("worker", "jobLog", { label: "log", tone: "success" })
+  .edge("healthProbe", "jobLog", { label: "log", tone: "success" })
   .readout.gauge("utG", { source: "utilization", min: 0, max: 100, color: "#22c55e", label: "utilization %" })
   .readout.countup("rcCU", { source: "runCount", unit: " 回", label: "累計 run", decimals: 0 })
   .readout.stat("avgStat", { source: "avgSec", unit: " 秒", caption: "平均", label: "avg" })
