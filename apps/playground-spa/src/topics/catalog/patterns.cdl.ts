@@ -56,8 +56,8 @@ export const patternCallReadWrite = diagram("pattern-call-rw", { topic: "pattern
   .edge("fn", "storage", { id: "read", label: "read", tone: "teal", style: "dotted-flow" })
   .edge("fn", "storage", { id: "write", label: "write", tone: "accent", style: "dotted-flow" })
   .phase("call", { duration: 1800, title: "call", body: "外部から関数呼び出し。" }, (p: PhaseBuilder) => p.activate("user", "fn", "call").badge("call"))
-  .phase("read", { duration: 1800, title: "read", body: "storage から現在値を読む。" }, (p: PhaseBuilder) => p.activate("fn", "storage", "read").badge("read"))
-  .phase("write", { duration: 1800, title: "write", body: "storage を更新。" }, (p: PhaseBuilder) => p.activate("fn", "storage", "write").tween("count", 100, 90).badge("write"))
+  .phase("read", { duration: 1800, title: "read", body: "storage から現在値を読む。" }, (p: PhaseBuilder) => p.activate("fn", "storage", "read", "write").badge("read"))
+  .phase("write", { duration: 1800, title: "write", body: "storage を更新。" }, (p: PhaseBuilder) => p.activate("fn", "storage", "write", "read").tween("count", 100, 90).badge("write"))
   .build();
 
 /** 4. emit event (外部通知) */
@@ -134,8 +134,8 @@ export const patternFanOut = diagram("pattern-fan-out", { topic: "pattern: Fan-o
   .edge("dist", "w1", { id: "e2", label: "job 1", tone: "teal", style: "solid" })
   .edge("dist", "w2", { id: "e3", label: "job 2", tone: "teal", style: "solid" })
   .edge("dist", "w3", { id: "e4", label: "job 3", tone: "teal", style: "solid" })
-  .phase("submit", { duration: 1800, title: "submit", body: "Producer が 1 入力を Dispatcher に submit。" }, (p: PhaseBuilder) => p.activate("client", "dist").badge("submit"))
-  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 1 job を 3 worker に並列 dispatch (round-robin)、 各 worker が独立処理。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3").badge("fan-out"))
+  .phase("submit", { duration: 1800, title: "submit", body: "Producer が 1 入力を Dispatcher に submit。" }, (p: PhaseBuilder) => p.activate("client", "dist", "e1").badge("submit"))
+  .phase("fanout", { duration: 1800, title: "fan-out", body: "Dispatcher が 1 job を 3 worker に並列 dispatch (round-robin)、 各 worker が独立処理。" }, (p: PhaseBuilder) => p.activate("dist", "w1", "w2", "w3", "e2", "e3", "e4").badge("fan-out"))
   .build();
 
 /** 9. Fan-in (複数 worker → 集約) */
@@ -154,9 +154,9 @@ export const patternFanIn = diagram("pattern-fan-in", { topic: "pattern: Fan-in 
   .edge("w3", "agg", { id: "e3", label: "result 3", tone: "teal", style: "solid" })
   .edge("agg", "store", { id: "e4", label: "write", tone: "warning", style: "solid" })
   .edge("store", "client", { id: "e5", label: "read", tone: "accent", style: "solid" })
-  .phase("collect", { duration: 1800, title: "collect", body: "3 worker が結果を Aggregator に送る。" }, (p: PhaseBuilder) => p.activate("w1", "w2", "w3", "agg").badge("fan-in"))
-  .phase("write", { duration: 1800, title: "write", body: "Aggregator が集約結果を store に書込。" }, (p: PhaseBuilder) => p.activate("agg", "store").badge("write"))
-  .phase("read", { duration: 1800, title: "read", body: "Consumer が集約結果を取得。" }, (p: PhaseBuilder) => p.activate("store", "client").badge("read"))
+  .phase("collect", { duration: 1800, title: "collect", body: "3 worker が結果を Aggregator に送る。" }, (p: PhaseBuilder) => p.activate("w1", "w2", "w3", "agg", "e1", "e2", "e3").badge("fan-in"))
+  .phase("write", { duration: 1800, title: "write", body: "Aggregator が集約結果を store に書込。" }, (p: PhaseBuilder) => p.activate("agg", "store", "e4").badge("write"))
+  .phase("read", { duration: 1800, title: "read", body: "Consumer が集約結果を取得。" }, (p: PhaseBuilder) => p.activate("store", "client", "e5").badge("read"))
   .build();
 
 /** 10. Rollback (失敗時に元の状態へ巻き戻す) */
@@ -177,7 +177,7 @@ export const patternRollback = diagram("pattern-rollback", { topic: "pattern: Ro
   .edge("commit", "db", { id: "e5", label: "ROLLBACK", tone: "error", style: "dotted-flow" })
   .phase("begin", { duration: 1500, title: "BEGIN", body: "tx 開始。" }, (p: PhaseBuilder) => p.activate("client", "tx", "e1").badge("BEGIN"))
   .phase("write", { duration: 1500, title: "tentative write", body: "operation 内で DB を仮更新。" }, (p: PhaseBuilder) => p.activate("tx", "op", "db", "e2", "e3").tween("balance", 100, 80).badge("write"))
-  .phase("rollback", { duration: 1500, title: "ROLLBACK", body: "失敗検知で元の値に巻き戻し。" }, (p: PhaseBuilder) => p.activate("op", "commit", "db", "e4", "e5").tween("balance", 80, 100).badge("ROLLBACK"))
+  .phase("rollback", { duration: 1500, title: "ROLLBACK", body: "失敗検知で元の値に巻き戻し。" }, (p: PhaseBuilder) => p.activate("op", "commit", "db", "e4", "e5", "e3").tween("balance", 80, 100).badge("ROLLBACK"))
   .build();
 
 /** 11. Schedule (定期実行) */
@@ -251,22 +251,22 @@ export const patternDirectCheckout = diagram("pattern-direct-checkout", {
     duration: 1500,
     title: "商品選択",
     body: "岸様が EC app 起動、 商品 3 点をカート追加。 progress 0 → 20 tween、 orderCount 452 keep、 amount 0 → 15800 tween、 procSec 0 → 2 tween、 buyer + phone + shop lane active。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("progress", 0, 20).tween("amount", 0, 15800).tween("procSec", 0, 2).tween("curStep", 0, 1).badge("選択"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "buyer-phone", "phone-shop").tween("progress", 0, 20).tween("amount", 0, 15800).tween("procSec", 0, 2).tween("curStep", 0, 1).badge("選択"))
   .phase("p2", {
     duration: 1800,
     title: "checkout",
     body: "shop で送料 + 消費税計算、 決済 gateway 情報入力欄表示。 progress 20 → 50 tween、 amount 15800 → 17380 tween、 procSec 2 → 5 tween、 shop lane 継続 active。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("progress", 20, 50).tween("amount", 15800, 17380).tween("procSec", 2, 5).tween("curStep", 1, 2).badge("checkout"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "buyer-phone", "phone-shop").tween("progress", 20, 50).tween("amount", 15800, 17380).tween("procSec", 2, 5).tween("curStep", 1, 2).badge("checkout"))
   .phase("p3", {
     duration: 2000,
     title: "決済送信 (直結)",
     body: "shop → payGateway 直結で charge、 中継 node なし (Direct pattern)、 Stripe 側で tokenize + settle。 progress 50 → 85 tween、 procSec 5 → 8 tween、 payGateway lane activate、 直結 edge accent 発火。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway").tween("progress", 50, 85).tween("procSec", 5, 8).tween("curStep", 2, 3).badge("charge"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway", "buyer-phone", "phone-shop", "shop-payGateway").tween("progress", 50, 85).tween("procSec", 5, 8).tween("curStep", 2, 3).badge("charge"))
   .phase("p4", {
     duration: 2000,
     title: "確定",
     body: "決済 OK で orderDb 保存 + notify service で受注確認メール送信。 progress 85 → 100 tween (gauge 針最上位)、 orderCount 452 → 453 tween、 procSec 8 → 10 tween、 orderDb + notify lane activate、 6 shape 全 active、 決済完遂。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway", "orderDb", "notify").tween("progress", 85, 100).tween("orderCount", 452, 453).tween("procSec", 8, 10).set("curStep", 3).badge("確定"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway", "orderDb", "notify", "buyer-phone", "phone-shop", "shop-payGateway", "payGateway-orderDb", "orderDb-notify").tween("progress", 85, 100).tween("orderCount", 452, 453).tween("procSec", 8, 10).set("curStep", 3).badge("確定"))
   .build();
 
 /**
@@ -303,22 +303,22 @@ export const patternPassthroughApiGateway = diagram("pattern-passthrough-api-gat
     duration: 1500,
     title: "Client request",
     body: "開発者が curl で GET /api/v1/orders 送信。 latencyMs 0 → 15 tween、 reqPerSec 850 → 900 tween、 p99Ms 45 keep、 errorRate 0 keep、 apiUser + cliTool lane active。",
-  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool").tween("latencyMs", 0, 15).tween("reqPerSec", 850, 900).tween("curStep", 0, 1).badge("request"))
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiUser-cliTool").tween("latencyMs", 0, 15).tween("reqPerSec", 850, 900).tween("curStep", 0, 1).badge("request"))
   .phase("p2", {
     duration: 1800,
     title: "Gateway route (Passthrough)",
     body: "API Gateway で JWT auth + rate limit check + route table 引き、 orderSvc に relay。 latencyMs 15 → 45 tween、 reqPerSec 900 → 950 tween、 p99Ms 45 → 60 tween、 apiGw lane activate、 Passthrough edge 発火。",
-  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw").tween("latencyMs", 15, 45).tween("reqPerSec", 900, 950).tween("p99Ms", 45, 60).tween("curStep", 1, 2).badge("route"))
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "apiUser-cliTool", "cliTool-apiGw").tween("latencyMs", 15, 45).tween("reqPerSec", 900, 950).tween("p99Ms", 45, 60).tween("curStep", 1, 2).badge("route"))
   .phase("p3", {
     duration: 2000,
     title: "Service 処理",
     body: "order microservice で SQL query 実行 + business logic 適用、 APM で trace 送信。 latencyMs 45 → 120 tween、 p99Ms 60 → 145 tween、 errorRate 0 → 0.3 tween (微小)、 orderSvc + apm lane activate。",
-  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm").tween("latencyMs", 45, 120).tween("p99Ms", 60, 145).tween("errorRate", 0, 0.3).tween("curStep", 2, 3).badge("処理"))
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm", "apiUser-cliTool", "cliTool-apiGw", "apiGw-orderSvc", "orderSvc-apm").tween("latencyMs", 45, 120).tween("p99Ms", 60, 145).tween("errorRate", 0, 0.3).tween("curStep", 2, 3).badge("処理"))
   .phase("p4", {
     duration: 2000,
     title: "Response 返却",
     body: "Service → Gateway → Client の逆経路 (Passthrough 貫通)、 log 永続化。 latencyMs 120 → 155 tween (最終)、 reqPerSec 950 → 1020 tween、 errorRate 0.3 → 0.5 tween、 logStore activate、 6 shape 全 active、 API cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm", "logStore").tween("latencyMs", 120, 155).tween("reqPerSec", 950, 1020).tween("errorRate", 0.3, 0.5).set("curStep", 3).badge("response"))
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm", "logStore", "apiUser-cliTool", "cliTool-apiGw", "apiGw-orderSvc", "orderSvc-apm", "apm-logStore").tween("latencyMs", 120, 155).tween("reqPerSec", 950, 1020).tween("errorRate", 0.3, 0.5).set("curStep", 3).badge("response"))
   .build();
 
 /**
@@ -355,22 +355,22 @@ export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", 
     duration: 1500,
     title: "Call (PUT request)",
     body: "相川様が profile 編集 → Save button tap、 app が PUT /users/{id}/profile 送信。 writeProgress 0 → 15 tween、 updateCount 2431 keep、 procSec 0 → 1 tween、 cacheHit 95 keep、 user + app + apiSvc lane active。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc").tween("writeProgress", 0, 15).tween("procSec", 0, 1).tween("curStep", 0, 1).badge("call"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "user-app", "app-apiSvc").tween("writeProgress", 0, 15).tween("procSec", 0, 1).tween("curStep", 0, 1).badge("call"))
   .phase("p2", {
     duration: 1800,
     title: "Read (既存 profile 取得)",
     body: "profileSvc が既存 profile を Postgres から read、 conflict check + diff 算出。 writeProgress 15 → 45 tween、 procSec 1 → 3 tween、 cacheHit 95 → 82 tween (miss で DB fallback)、 profileSvc + profileDb lane activate。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb").tween("writeProgress", 15, 45).tween("procSec", 1, 3).tween("cacheHit", 95, 82).tween("curStep", 1, 2).badge("read"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "user-app", "app-apiSvc", "apiSvc-profileSvc", "profileSvc-profileDb").tween("writeProgress", 15, 45).tween("procSec", 1, 3).tween("cacheHit", 95, 82).tween("curStep", 1, 2).badge("read"))
   .phase("p3", {
     duration: 2000,
     title: "Write (更新 commit)",
     body: "diff 適用済 profile を Postgres に write + Redis cache invalidate。 writeProgress 45 → 85 tween、 updateCount 2431 → 2432 tween、 procSec 3 → 6 tween、 cache lane activate、 cache 無効化 flush。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache").tween("writeProgress", 45, 85).tween("updateCount", 2431, 2432).tween("procSec", 3, 6).tween("curStep", 2, 3).badge("write"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache", "user-app", "app-apiSvc", "apiSvc-profileSvc", "profileSvc-profileDb", "profileSvc-cache").tween("writeProgress", 45, 85).tween("updateCount", 2431, 2432).tween("procSec", 3, 6).tween("curStep", 2, 3).badge("write"))
   .phase("p4", {
     duration: 1800,
     title: "Confirm (200 OK 返却)",
     body: "profileSvc が 200 OK + 更新後 profile を Client に返却、 app UI に反映。 writeProgress 85 → 100 tween (gauge 針最上位)、 procSec 6 → 7 tween、 cacheHit 82 → 88 tween (再 populate)、 6 shape 全 active、 profile 更新 cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache").tween("writeProgress", 85, 100).tween("procSec", 6, 7).tween("cacheHit", 82, 88).set("curStep", 3).badge("confirm"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache", "user-app", "app-apiSvc", "apiSvc-profileSvc", "profileSvc-profileDb", "profileSvc-cache").tween("writeProgress", 85, 100).tween("procSec", 6, 7).tween("cacheHit", 82, 88).set("curStep", 3).badge("confirm"))
   .build();
 
 /**
@@ -407,22 +407,22 @@ export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
     duration: 1500,
     title: "注文確定",
     body: "桂様が checkout 完了、 shop で processOrder() 実行 (order DB 保存 + event 発火準備)。 deliveryRate 0 keep、 eventCount 8642 keep、 subCount 3 keep、 latency 0 → 2 tween、 buyer + phone + shop lane active。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("latency", 0, 2).tween("curStep", 0, 1).badge("確定"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "buyer-phone", "phone-shop").tween("latency", 0, 2).tween("curStep", 0, 1).badge("確定"))
   .phase("p2", {
     duration: 1800,
     title: "event emit",
     body: "shop が OrderCreated event を bus に emit、 orderId + userId + total を payload に含む。 deliveryRate 0 → 30 tween、 eventCount 8642 → 8643 tween、 latency 2 → 5 tween、 bus lane activate。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus").tween("deliveryRate", 0, 30).tween("eventCount", 8642, 8643).tween("latency", 2, 5).tween("curStep", 1, 2).badge("emit"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "buyer-phone", "phone-shop", "shop-bus").tween("deliveryRate", 0, 30).tween("eventCount", 8642, 8643).tween("latency", 2, 5).tween("curStep", 1, 2).badge("emit"))
   .phase("p3", {
     duration: 2000,
     title: "bus 中継 + fan-out",
     body: "Kafka bus が OrderCreated topic を 3 subscriber (email / inventory / analytics) に fan-out。 deliveryRate 30 → 90 tween、 latency 5 → 12 tween、 subscribers lane activate、 3 並列配信。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers").tween("deliveryRate", 30, 90).tween("latency", 5, 12).tween("curStep", 2, 3).badge("fan-out"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers", "buyer-phone", "phone-shop", "shop-bus", "bus-subscribers").tween("deliveryRate", 30, 90).tween("latency", 5, 12).tween("curStep", 2, 3).badge("fan-out"))
   .phase("p4", {
     duration: 2000,
     title: "subscriber 処理 + log",
     body: "各 subscriber が独立処理 (メール送信 / 在庫減算 / 分析集計)、 eventLog に event 履歴永続化。 deliveryRate 90 → 100 tween (gauge 針最上位)、 latency 12 → 18 tween、 eventLog lane activate、 6 shape 全 active、 event 配信 cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers", "eventLog").tween("deliveryRate", 90, 100).tween("latency", 12, 18).set("curStep", 3).badge("処理"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers", "eventLog", "buyer-phone", "phone-shop", "shop-bus", "bus-subscribers", "subscribers-eventLog").tween("deliveryRate", 90, 100).tween("latency", 12, 18).set("curStep", 3).badge("処理"))
   .build();
 
 /**
@@ -459,22 +459,22 @@ export const patternHookWebhook = diagram("pattern-hook-webhook", {
     duration: 1500,
     title: "delivery 準備",
     body: "SaaS 側で顧客向け notification 発生、 scheduler に queue 投入 + retry policy 適用。 successRate 0 keep、 deliveryCount 15234 keep、 retryNum 0 keep、 ackMs 0 keep、 saasSvr + scheduler lane active。",
-  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler").tween("curStep", 0, 1).badge("準備"))
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "saasSvr-scheduler").tween("curStep", 0, 1).badge("準備"))
   .phase("p2", {
     duration: 1800,
     title: "hook 送信",
     body: "scheduler → outbound gateway → 顧客 endpoint に POST + signature 署名、 healthCheck で事前可用性確認。 successRate 0 → 40 tween、 deliveryCount 15234 → 15235 tween、 ackMs 0 → 80 tween、 egress + healthCheck lane activate。",
-  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck").tween("successRate", 0, 40).tween("deliveryCount", 15234, 15235).tween("ackMs", 0, 80).tween("curStep", 1, 2).badge("送信"))
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "saasSvr-scheduler", "scheduler-egress").tween("successRate", 0, 40).tween("deliveryCount", 15234, 15235).tween("ackMs", 0, 80).tween("curStep", 1, 2).badge("送信"))
   .phase("p3", {
     duration: 2000,
     title: "顧客側検証",
     body: "顧客 webhook endpoint (onReceive hook) が signature 検証 + 受信可否判定、 一時的な 5xx で 1 回 retry 発火。 successRate 40 → 75 tween、 retryNum 0 → 1 tween、 ackMs 80 → 220 tween、 customerEp lane activate。",
-  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp").tween("successRate", 40, 75).tween("retryNum", 0, 1).tween("ackMs", 80, 220).tween("curStep", 2, 3).badge("検証"))
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp", "saasSvr-scheduler", "scheduler-egress", "egress-customerEp", "healthCheck-customerEp").tween("successRate", 40, 75).tween("retryNum", 0, 1).tween("ackMs", 80, 220).tween("curStep", 2, 3).badge("検証"))
   .phase("p4", {
     duration: 2000,
     title: "受信確定 + log",
     body: "retry で 2xx ack 受信、 deliveryLog に成功記録、 SaaS 側 delivery status 更新。 successRate 75 → 98 tween (gauge 針最上位)、 retryNum 1 keep、 ackMs 220 → 250 tween、 deliveryLog lane activate、 6 shape 全 active、 webhook delivery cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp", "deliveryLog").tween("successRate", 75, 98).tween("ackMs", 220, 250).set("curStep", 3).badge("受信"))
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp", "deliveryLog", "saasSvr-scheduler", "scheduler-egress", "egress-customerEp", "healthCheck-customerEp", "egress-deliveryLog").tween("successRate", 75, 98).tween("ackMs", 220, 250).set("curStep", 3).badge("受信"))
   .build();
 
 /**
@@ -511,22 +511,22 @@ export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
     duration: 1500,
     title: "request",
     body: "三宅様が DELETE /projects/42 実行、 authz middleware に到達。 allowRate 100 keep、 denyCount 87 keep、 checkMs 0 → 2 tween、 auditLogs 12451 → 12452 tween、 user + app + authz lane active。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "authz").tween("checkMs", 0, 2).tween("auditLogs", 12451, 12452).tween("curStep", 0, 1).badge("request"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "user-app", "app-authz").tween("checkMs", 0, 2).tween("auditLogs", 12451, 12452).tween("curStep", 0, 1).badge("request"))
   .phase("p2", {
     duration: 1800,
     title: "role check",
     body: "authz が policyDb を lookup、 三宅様の role (editor) と DELETE action の grant を評価。 allowRate 100 → 88 tween (editor DELETE 不可判定)、 checkMs 2 → 6 tween、 policyDb lane activate。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb").tween("allowRate", 100, 88).tween("checkMs", 2, 6).tween("curStep", 1, 2).badge("check"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "user-app", "app-authz", "authz-policyDb").tween("allowRate", 100, 88).tween("checkMs", 2, 6).tween("curStep", 1, 2).badge("check"))
   .phase("p3", {
     duration: 2000,
     title: "deny 経路",
     body: "policy 評価結果 = deny (editor は DELETE 権限なし)、 apiSvc は呼ばず 403 Forbidden 即座返却。 allowRate 88 keep (denied で分岐)、 denyCount 87 → 88 tween、 checkMs 6 → 9 tween、 分岐 edge error 発火。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb").tween("denyCount", 87, 88).tween("checkMs", 6, 9).tween("curStep", 2, 3).badge("deny"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "user-app", "app-authz", "authz-policyDb").tween("denyCount", 87, 88).tween("checkMs", 6, 9).tween("curStep", 2, 3).badge("deny"))
   .phase("p4", {
     duration: 2000,
     title: "audit log + notify",
     body: "auditSink に deny event 記録 + SecOps に高頻度 deny alert 通知、 apiSvc は不動作 (safe)。 allowRate 88 keep、 denyCount 88 keep、 checkMs 9 → 10 tween、 auditLogs 12452 → 12453 tween、 auditSink + apiSvc lane activate (apiSvc は inactive 表示)、 6 shape 全 active、 authz cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "apiSvc", "auditSink").tween("checkMs", 9, 10).tween("auditLogs", 12452, 12453).set("curStep", 3).badge("audit"))
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "apiSvc", "auditSink", "user-app", "app-authz", "authz-policyDb", "authz-apiSvc", "authz-auditSink").tween("checkMs", 9, 10).tween("auditLogs", 12452, 12453).set("curStep", 3).badge("audit"))
   .build();
 
 /**
@@ -563,22 +563,22 @@ export const patternLoopBatchImport = diagram("pattern-loop-batch-import", {
     duration: 1500,
     title: "start (行 0)",
     body: "中森様が admin console から batch job 起動、 worker が CSV parse + validate 準備。 progress 0 → 5 tween、 processed 0 keep、 errRows 0 keep、 avgMs 0 → 8 tween、 admin + laptop + worker lane active。",
-  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker").tween("progress", 0, 5).tween("avgMs", 0, 8).tween("curStep", 0, 1).badge("start"))
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "admin-laptop", "laptop-worker").tween("progress", 0, 5).tween("avgMs", 0, 8).tween("curStep", 0, 1).badge("start"))
   .phase("p2", {
     duration: 2000,
     title: "進行中 33% (行 33)",
     body: "for loop で行 1-33 を validate + insert、 1 行 fail (encoding error)。 progress 5 → 33 tween、 processed 0 → 33 tween、 errRows 0 → 1 tween、 avgMs 8 → 12 tween、 progressSensor + db lane activate。",
-  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db").tween("progress", 5, 33).tween("processed", 0, 33).tween("errRows", 0, 1).tween("avgMs", 8, 12).tween("curStep", 1, 2).badge("33%"))
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db", "admin-laptop", "laptop-worker", "worker-progressSensor", "worker-db").tween("progress", 5, 33).tween("processed", 0, 33).tween("errRows", 0, 1).tween("avgMs", 8, 12).tween("curStep", 1, 2).badge("33%"))
   .phase("p3", {
     duration: 2000,
     title: "進行中 66% (行 66)",
     body: "行 34-66 継続処理、 2 行 fail (duplicate key)。 progress 33 → 66 tween、 processed 33 → 66 tween、 errRows 1 → 3 tween、 avgMs 12 → 15 tween、 DB transaction commit 継続。",
-  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db").tween("progress", 33, 66).tween("processed", 33, 66).tween("errRows", 1, 3).tween("avgMs", 12, 15).tween("curStep", 2, 3).badge("66%"))
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db", "admin-laptop", "laptop-worker", "worker-progressSensor", "worker-db").tween("progress", 33, 66).tween("processed", 33, 66).tween("errRows", 1, 3).tween("avgMs", 12, 15).tween("curStep", 2, 3).badge("66%"))
   .phase("p4", {
     duration: 2000,
     title: "完了 (行 100)",
     body: "残り 34 行完了、 notify で email + Slack 通知送信、 error log は別出力。 progress 66 → 100 tween (gauge 針最上位)、 processed 66 → 100 tween、 errRows 3 keep、 avgMs 15 → 14 tween (安定)、 notify lane activate、 6 shape 全 active、 batch import cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db", "notify").tween("progress", 66, 100).tween("processed", 66, 100).tween("avgMs", 15, 14).set("curStep", 3).badge("100%"))
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db", "notify", "admin-laptop", "laptop-worker", "worker-progressSensor", "worker-db", "worker-notify").tween("progress", 66, 100).tween("processed", 66, 100).tween("avgMs", 15, 14).set("curStep", 3).badge("100%"))
   .build();
 
 /**
@@ -615,22 +615,22 @@ export const patternFanOutVideoTranscode = diagram("pattern-fanout-video-transco
     duration: 1500,
     title: "upload",
     body: "川島様が iPhone で録画完了、 300 MB 原本を dispatcher に upload。 completionRate 0 → 15 tween、 videoCount 3821 keep、 totalSec 0 → 20 tween、 avgMb 0 → 300 tween、 creator + phone + dispatcher lane active。",
-  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher").tween("completionRate", 0, 15).tween("totalSec", 0, 20).tween("avgMb", 0, 300).tween("curStep", 0, 1).badge("upload"))
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "creator-phone", "phone-dispatcher").tween("completionRate", 0, 15).tween("totalSec", 0, 20).tween("avgMb", 0, 300).tween("curStep", 0, 1).badge("upload"))
   .phase("p2", {
     duration: 1800,
     title: "dispatch (fan-out 3)",
     body: "dispatcher が 1 原本を 3 worker に並列 job 投入 (480p / 720p / 1080p 各 1 worker)。 completionRate 15 → 35 tween、 totalSec 20 → 35 tween、 workers lane activate、 3 並列 job kick。",
-  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers").tween("completionRate", 15, 35).tween("totalSec", 20, 35).tween("curStep", 1, 2).badge("dispatch"))
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "creator-phone", "phone-dispatcher", "dispatcher-workers").tween("completionRate", 15, 35).tween("totalSec", 20, 35).tween("curStep", 1, 2).badge("dispatch"))
   .phase("p3", {
     duration: 2200,
     title: "3 並列 transcode",
     body: "3 worker が独立に H.264 transcode 実行、 完了順に CDN publish 済、 mediaDb に URL 登録。 completionRate 35 → 90 tween、 totalSec 35 → 120 tween、 avgMb 300 → 180 tween (圧縮効果)、 cdn + mediaDb lane activate。",
-  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb").tween("completionRate", 35, 90).tween("totalSec", 35, 120).tween("avgMb", 300, 180).tween("curStep", 2, 3).badge("transcode"))
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb", "creator-phone", "phone-dispatcher", "dispatcher-workers", "workers-cdn", "cdn-mediaDb").tween("completionRate", 35, 90).tween("totalSec", 35, 120).tween("avgMb", 300, 180).tween("curStep", 2, 3).badge("transcode"))
   .phase("p4", {
     duration: 2000,
     title: "全解像度公開",
     body: "3 解像度全 publish 完了、 川島様に通知 + CDN 全 edge に伝播完了。 completionRate 90 → 100 tween (gauge 針最上位)、 videoCount 3821 → 3822 tween、 totalSec 120 → 135 tween、 avgMb 180 keep、 6 shape 全 active、 動画公開 cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb").tween("completionRate", 90, 100).tween("videoCount", 3821, 3822).tween("totalSec", 120, 135).set("curStep", 3).badge("公開"))
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb", "creator-phone", "phone-dispatcher", "dispatcher-workers", "workers-cdn", "cdn-mediaDb").tween("completionRate", 90, 100).tween("videoCount", 3821, 3822).tween("totalSec", 120, 135).set("curStep", 3).badge("公開"))
   .build();
 
 /**
@@ -667,22 +667,22 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
     duration: 1500,
     title: "shard 起動",
     body: "3 region shard cluster に集計 job 投入、 各 shard が独立 read + map phase 準備。 aggPct 0 → 10 tween、 jobCount 214 keep、 totalRecs 0 → 1 tween、 elapsedSec 0 → 8 tween、 shardCluster + shardStorage lane active。",
-  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage").tween("aggPct", 0, 10).tween("totalRecs", 0, 1).tween("elapsedSec", 0, 8).tween("curStep", 0, 1).badge("起動"))
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "shardStorage-shardCluster").tween("aggPct", 0, 10).tween("totalRecs", 0, 1).tween("elapsedSec", 0, 8).tween("curStep", 0, 1).badge("起動"))
   .phase("p2", {
     duration: 2000,
     title: "並列 map",
     body: "3 shard が独立に map 実行 (各 1M record)、 中間結果を aggregator に send。 aggPct 10 → 55 tween、 totalRecs 1 → 3 tween、 elapsedSec 8 → 45 tween、 aggSvc lane activate、 fan-in edge 発火。",
-  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc").tween("aggPct", 10, 55).tween("totalRecs", 1, 3).tween("elapsedSec", 8, 45).tween("curStep", 1, 2).badge("map"))
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "shardCluster-aggSvc", "shardStorage-shardCluster").tween("aggPct", 10, 55).tween("totalRecs", 1, 3).tween("elapsedSec", 8, 45).tween("curStep", 1, 2).badge("map"))
   .phase("p3", {
     duration: 2000,
     title: "aggregator fan-in + reduce",
     body: "aggregator が 3 shard 結果を集約 + reduce 実行、 compute pool で並列 processing。 aggPct 55 → 90 tween、 jobCount 214 → 215 tween、 elapsedSec 45 → 75 tween、 aggCloud lane activate。",
-  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud").tween("aggPct", 55, 90).tween("jobCount", 214, 215).tween("elapsedSec", 45, 75).tween("curStep", 2, 3).badge("reduce"))
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud", "shardCluster-aggSvc", "shardStorage-shardCluster", "aggSvc-aggCloud").tween("aggPct", 55, 90).tween("jobCount", 214, 215).tween("elapsedSec", 45, 75).tween("curStep", 2, 3).badge("reduce"))
   .phase("p4", {
     duration: 2000,
     title: "結果配信",
     body: "集計結果を BI dashboard に publish、 川口様がグラフ review + Slack 共有。 aggPct 90 → 100 tween (gauge 針最上位)、 totalRecs 3 keep、 elapsedSec 75 → 85 tween、 dashboard + analyst lane activate、 6 shape 全 active、 MapReduce cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud", "dashboard", "analyst").tween("aggPct", 90, 100).tween("elapsedSec", 75, 85).set("curStep", 3).badge("配信"))
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud", "dashboard", "analyst", "shardCluster-aggSvc", "shardStorage-shardCluster", "aggSvc-aggCloud", "aggSvc-dashboard", "dashboard-analyst").tween("aggPct", 90, 100).tween("elapsedSec", 75, 85).set("curStep", 3).badge("配信"))
   .build();
 
 /**
@@ -719,22 +719,22 @@ export const patternRollbackBankTransfer = diagram("pattern-rollback-bank-transf
     duration: 1500,
     title: "BEGIN tx",
     body: "田代様が 20万送金 confirm、 bank が tx orchestrator に BEGIN 発行。 txProgress 0 → 20 tween、 txCount 52341 keep、 rollbackCount 128 keep、 avgMs 0 → 15 tween、 sender + mobile + issuer + txSvc lane active。",
-  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc").tween("txProgress", 0, 20).tween("avgMs", 0, 15).tween("curStep", 0, 1).badge("BEGIN"))
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "sender-mobile", "mobile-issuer", "issuer-txSvc").tween("txProgress", 0, 20).tween("avgMs", 0, 15).tween("curStep", 0, 1).badge("BEGIN"))
   .phase("p2", {
     duration: 2000,
     title: "debit + credit (tentative)",
     body: "元帳 DB で送信元 debit (-20万) + 受信側 credit (+20万) を tentative write、 COMMIT 前の中間状態。 txProgress 20 → 65 tween、 avgMs 15 → 65 tween、 ledger lane activate、 debit / credit 2 edge 発火。",
-  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger").tween("txProgress", 20, 65).tween("avgMs", 15, 65).tween("curStep", 1, 2).badge("debit/credit"))
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger", "sender-mobile", "mobile-issuer", "issuer-txSvc", "txSvc-ledger").tween("txProgress", 20, 65).tween("avgMs", 15, 65).tween("curStep", 1, 2).badge("debit/credit"))
   .phase("p3", {
     duration: 2000,
     title: "検証 fail 検知",
     body: "受信側口座で AML check fail (制裁国口座)、 tx orchestrator が ROLLBACK 判定。 txProgress 65 → 45 tween (下降)、 avgMs 65 → 120 tween、 error 分岐発火、 SecOps 通知準備。",
-  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger").tween("txProgress", 65, 45).tween("avgMs", 65, 120).tween("curStep", 2, 3).badge("fail"))
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger", "sender-mobile", "mobile-issuer", "issuer-txSvc", "txSvc-ledger").tween("txProgress", 65, 45).tween("avgMs", 65, 120).tween("curStep", 2, 3).badge("fail"))
   .phase("p4", {
     duration: 2000,
     title: "ROLLBACK + audit",
     body: "元帳を debit / credit 前の残高に完全巻き戻し、 alerting で SecOps 通知 + tx log 記録。 txProgress 45 → 0 tween (全ゼロ復帰)、 txCount 52341 → 52342 tween (試行として count)、 rollbackCount 128 → 129 tween、 avgMs 120 → 180 tween (最終)、 alerting lane activate、 6 shape 全 active、 rollback cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger", "alerting").tween("txProgress", 45, 0).tween("txCount", 52341, 52342).tween("rollbackCount", 128, 129).tween("avgMs", 120, 180).set("curStep", 3).badge("ROLLBACK"))
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger", "alerting", "sender-mobile", "mobile-issuer", "issuer-txSvc", "txSvc-ledger", "ledger-alerting").tween("txProgress", 45, 0).tween("txCount", 52341, 52342).tween("rollbackCount", 128, 129).tween("avgMs", 120, 180).set("curStep", 3).badge("ROLLBACK"))
   .build();
 
 /**
@@ -771,22 +771,22 @@ export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
     duration: 1500,
     title: "Cron tick",
     body: "Cron が */5 minute の tick 発火、 scheduler service に job 起動要求。 jobProgress 0 → 10 tween、 runCount 8721 keep、 avgSec 0 → 2 tween、 nextMin 5 → 5 keep、 cron + schedulerSvc lane active。",
-  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc").tween("jobProgress", 0, 10).tween("avgSec", 0, 2).tween("curStep", 0, 1).badge("tick"))
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "cron-schedulerSvc").tween("jobProgress", 0, 10).tween("avgSec", 0, 2).tween("curStep", 0, 1).badge("tick"))
   .phase("p2", {
     duration: 1800,
     title: "scheduler trigger",
     body: "scheduler service が job queue 確認 + concurrency 判定 → worker に trigger 送信。 jobProgress 10 → 30 tween、 avgSec 2 → 5 tween、 worker lane activate。",
-  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker").tween("jobProgress", 10, 30).tween("avgSec", 2, 5).tween("curStep", 1, 2).badge("trigger"))
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "cron-schedulerSvc", "schedulerSvc-worker").tween("jobProgress", 10, 30).tween("avgSec", 2, 5).tween("curStep", 1, 2).badge("trigger"))
   .phase("p3", {
     duration: 2000,
     title: "job 実行 (compute)",
     body: "worker が BigQuery 経由で週次 revenue + users + churn を aggregate、 PDF report 生成。 jobProgress 30 → 85 tween、 runCount 8721 → 8722 tween、 avgSec 5 → 42 tween、 compute + reportStore lane activate。",
-  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore").tween("jobProgress", 30, 85).tween("runCount", 8721, 8722).tween("avgSec", 5, 42).tween("curStep", 2, 3).badge("実行"))
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore", "cron-schedulerSvc", "schedulerSvc-worker", "worker-compute", "worker-reportStore").tween("jobProgress", 30, 85).tween("runCount", 8721, 8722).tween("avgSec", 5, 42).tween("curStep", 2, 3).badge("実行"))
   .phase("p4", {
     duration: 2000,
     title: "report 配信",
     body: "reportStore が PDF を Slack + Notion で岩田様に配信、 next tick 準備。 jobProgress 85 → 100 tween (gauge 針最上位)、 avgSec 42 → 48 tween、 nextMin 5 → 4 tween (減少開始)、 stakeholder lane activate、 6 shape 全 active、 scheduled report cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore", "stakeholder").tween("jobProgress", 85, 100).tween("avgSec", 42, 48).tween("nextMin", 5, 4).set("curStep", 3).badge("配信"))
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore", "stakeholder", "cron-schedulerSvc", "schedulerSvc-worker", "worker-compute", "worker-reportStore", "reportStore-stakeholder").tween("jobProgress", 85, 100).tween("avgSec", 42, 48).tween("nextMin", 5, 4).set("curStep", 3).badge("配信"))
   .build();
 
 /**
@@ -823,20 +823,20 @@ export const patternValidateProcessOrderSubmit = diagram("pattern-validate-proce
     duration: 1500,
     title: "submit",
     body: "平川様がカート confirm、 EC app が POST /orders 送信 (cart items + shipping address + payment ref)。 successRate 0 keep、 submitCount 15678 keep、 ngCount 423 keep、 avgMs 0 → 8 tween、 buyer + phone + submitApi lane active。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi").tween("avgMs", 0, 8).tween("curStep", 0, 1).badge("submit"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "buyer-phone", "phone-submitApi").tween("avgMs", 0, 8).tween("curStep", 0, 1).badge("submit"))
   .phase("p2", {
     duration: 1800,
     title: "validate",
     body: "validator (zod) が schema check + 在庫確認 + 送料計算 + shipping address 検証。 successRate 0 → 92 tween (95% pass 想定)、 submitCount 15678 → 15679 tween、 avgMs 8 → 25 tween、 validator lane activate。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator").tween("successRate", 0, 92).tween("submitCount", 15678, 15679).tween("avgMs", 8, 25).tween("curStep", 1, 2).badge("validate"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "buyer-phone", "phone-submitApi", "submitApi-validator").tween("successRate", 0, 92).tween("submitCount", 15678, 15679).tween("avgMs", 8, 25).tween("curStep", 1, 2).badge("validate"))
   .phase("p3", {
     duration: 2000,
     title: "OK 経路 (process)",
     body: "validate pass → orderDb に注文 commit + 受注確認番号発行。 successRate 92 keep、 avgMs 25 → 48 tween、 orderDb lane activate、 success 分岐 edge 発火、 buyer に confirmation 準備。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb").tween("avgMs", 25, 48).tween("curStep", 2, 3).badge("process"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb", "buyer-phone", "phone-submitApi", "submitApi-validator", "validator-orderDb").tween("avgMs", 25, 48).tween("curStep", 2, 3).badge("process"))
   .phase("p4", {
     duration: 2000,
     title: "NG 経路 (error 別 flow)",
     body: "並行で NG case (在庫不足 / address 不正) を error 分岐で表現、 errorSink に ValidationError 記録 + パターン集計。 successRate 92 keep (両経路併存)、 ngCount 423 → 424 tween、 avgMs 48 → 55 tween、 errorSink lane activate、 6 shape 全 active、 validate-process cycle 完遂。 patterns.cdl.ts business scenario 12/12 完遂。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb", "errorSink").tween("ngCount", 423, 424).tween("avgMs", 48, 55).set("curStep", 3).badge("error"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb", "errorSink", "buyer-phone", "phone-submitApi", "submitApi-validator", "validator-orderDb", "validator-errorSink").tween("ngCount", 423, 424).tween("avgMs", 48, 55).set("curStep", 3).badge("error"))
   .build();
