@@ -55,7 +55,7 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
  * 6. animationCounterViewCount v2 = tweenSimple の business scenario 拡張 (video 配信サービスで 1 動画の view count が 0 → 10000 まで tween で急伸)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (公開直後 → 拡散 → engagement peak → 定着) + 4 readout (gauge viral 度 / countup view count / stat share 数 / stat 平均滞在秒) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 tweenSimple 抽象 tween demo と並置。
  */
 export const animationCounterViewCount = diagram("animation-counter-view-count", {
-  topic: "動画配信サービスで view count が公開直後の 0 から 10000 まで急伸する軌跡",
+  topic: "動画公開直後から1週間で再生数がゼロから1万まで急伸する軌跡",
 })
   .lane("viewer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -105,7 +105,7 @@ export const animationCounterViewCount = diagram("animation-counter-view-count",
  * 7. animationSprintProgress v2 = tweenChain の business scenario 拡張 (エンジニア team の 2 週 sprint 進捗、 3 phase で 0 → 100% まで累積 tween)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (計画 → design → impl → ship) + 4 readout (gauge 進捗 / countup 消化 story point / stat 残 task / stat velocity) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 tweenChain 抽象 chain demo と並置。
  */
 export const animationSprintProgress = diagram("animation-sprint-progress", {
-  topic: "8 名開発チームが 2 週スプリントで 20 SP 消化する Design → Impl → Test → Ship",
+  topic: "8名開発チームが2週間スプリントで設計から実装、テスト、リリースまで消化",
 })
   .lane("team", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -155,7 +155,7 @@ export const animationSprintProgress = diagram("animation-sprint-progress", {
  * 8. animationBuildStatus v2 = setSwitch の business scenario 拡張 (CI/CD pipeline で build status を queued → running → tests → deployed に即時切替)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (queued → running → tests → deployed) + 4 readout (gauge build 進捗 / countup 累計 build / stat 直近 duration / stat エラー率) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 setSwitch 抽象 set demo と並置。
  */
 export const animationBuildStatus = diagram("animation-build-status", {
-  topic: "CI/CD の build status が queued → running → tests → deployed に遷移",
+  topic: "CI/CDのビルド状態がキュー投入から実行、テスト、デプロイ完了まで遷移",
 })
   .lane("dev", { x: 0, width: 220 })
   .lane("cicd", { x: 240, width: 320 })
@@ -208,7 +208,7 @@ export const animationBuildStatus = diagram("animation-build-status", {
  * 9. animationDeployBadge v2 = badgePerPhase の business scenario 拡張 (production deploy pipeline で badge を preparing → deploying → validating → live に切替)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (preparing → deploying → validating → live) + 4 readout (gauge deploy 進捗 / countup 累計 deploy / stat rollout 秒 / stat health check pass 数) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 badgePerPhase 抽象 badge demo と並置。
  */
 export const animationDeployBadge = diagram("animation-deploy-badge", {
-  topic: "production deploy パイプラインが preparing → deploying → validating → live",
+  topic: "本番デプロイのパイプラインが準備、デプロイ、検証、稼働開始と進行",
 })
   .lane("sre", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -260,7 +260,7 @@ export const animationDeployBadge = diagram("animation-deploy-badge", {
  * 10. animationOrderProgress v2 = mixedTweenSet の business scenario 拡張 (EC 注文処理で amount tween + phase set 併用)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-warehouse + shape-cylinder の 6 shape で visual scene 化、 4 phase (init → charging → shipping → delivered) + 4 readout (gauge 進捗 / countup 累計 orders / stat 金額 / stat 配送日) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 mixedTweenSet 抽象 mixed demo と並置。
  */
 export const animationOrderProgress = diagram("animation-order-progress", {
-  topic: "EC 注文が init → charging → shipping → delivered の 4 状態を経て購入完了",
+  topic: "EC注文が受付から決済、配送、到着完了まで4段階の状態を経て購入完了",
 })
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })

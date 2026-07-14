@@ -52,7 +52,7 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 
  * 3. stateActiveConnection v2 = stateActive の business scenario 拡張 (SaaS realtime chat で WebSocket connection が active、 messages が流れる)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (接続前 → handshake → active messaging → keepalive) + 4 readout (gauge connection 健康度 / countup msg 数 / stat 平均 latency / stat active session) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 stateActive 抽象 edge state demo と並置。
  */
 export const stateActiveConnection = diagram("state-active-connection", {
-  topic: "リアルタイム chat の WebSocket が接続前 → handshake → active messaging → keepalive",
+  topic: "リアルタイムチャットのWebSocketが接続前から握手、通信中、維持通信まで遷移",
 })
   .lane("client", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -104,7 +104,7 @@ export const stateActiveConnection = diagram("state-active-connection", {
  * 4. stateInactiveMonitor v2 = stateInactive の business scenario 拡張 (SaaS batch job monitor で inactive job → active job の遷移、 idle → running → active に visible 化)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-iot-sensor + shape-cylinder の 6 shape で visual scene 化、 4 phase (idle 監視 → job trigger → active 実行 → 完了 idle 復帰) + 4 readout (gauge job utilization / countup 累計 run / stat 平均秒 / stat idle 分) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 stateInactive 抽象 inactive demo と並置。
  */
 export const stateInactiveMonitor = diagram("state-inactive-monitor", {
-  topic: "batch job monitor で idle → trigger → active 実行 → 完了 idle 復帰の状態遷移",
+  topic: "バッチジョブ監視でアイドルからトリガー、実行中、完了後アイドル復帰の状態遷移",
 })
   .lane("ops", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
