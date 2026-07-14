@@ -218,6 +218,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   badgePerPhase: "badge (フェーズごと切替)",
   mixedTweenSet: "tween + set 併用",
   tweenChain: "tween 連鎖",
+  // wave 8-V business scenario 拡張
+  animationCounterViewCount: "tween 実業務例 (動画 view count 急伸)",
+  animationSprintProgress: "tween chain 実業務例 (2 週 sprint 進捗)",
+  animationBuildStatus: "set 実業務例 (CI/CD build status 切替)",
 
   // interactive iteration 7 (15 catalog、 混合 5 テーマ)
   // wave 1 messaging

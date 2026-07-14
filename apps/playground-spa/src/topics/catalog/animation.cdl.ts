@@ -50,3 +50,154 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
   .phase("p1", { duration: 2400, title: "init → loading + 0 → 50", body: "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。" }, (p: PhaseBuilder) => p.activate("a").tween("amount", 0, 50).set("phase", "loading").badge("loading"))
   .phase("p2", { duration: 2400, title: "loading → done + 50 → 100", body: "次 phase で完了状態へ。" }, (p: PhaseBuilder) => p.activate("a").tween("amount", 50, 100).set("phase", "done").badge("done"))
   .build();
+
+/**
+ * 6. animationCounterViewCount v2 = tweenSimple の business scenario 拡張 (video 配信サービスで 1 動画の view count が 0 → 10000 まで tween で急伸)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (公開直後 → 拡散 → engagement peak → 定着) + 4 readout (gauge viral 度 / countup view count / stat share 数 / stat 平均滞在秒) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 tweenSimple 抽象 tween demo と並置。
+ */
+export const animationCounterViewCount = diagram("animation-counter-view-count", {
+  topic: "tween 実業務例 = 動画 view count 急伸 4 phase (公開 → 拡散 → peak → 定着) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("viewer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("viralRate", { initial: 0 })
+  .state("viewCount", { initial: 0 })
+  .state("shareCount", { initial: 0 })
+  .state("avgSec", { initial: 0 })
+  .node("viewer", { lane: "viewer", stack: 0, kind: "shape-person", title: "視聴者 平方様", eyebrow: "viewer", subtitle: "動画発見 → 視聴 → シェア" })
+  .node("phone", { lane: "viewer", stack: 1, kind: "shape-mobile-device", title: "iPhone video app", eyebrow: "device", subtitle: "feed + player + share UI" })
+  .node("videoSvc", { lane: "service", stack: 0, kind: "shape-website", title: "video 配信サービス", eyebrow: "service", subtitle: "動画 feed + recommendation" })
+  .node("cdn", { lane: "service", stack: 1, kind: "shape-cdn-edge", title: "video CDN edge", eyebrow: "cdn", subtitle: "低遅延 stream + adaptive bitrate" })
+  .node("analytics", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "view analytics", eyebrow: "analytics", subtitle: "view + engagement + retention 集計" })
+  .node("viewDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "view 履歴 DB", eyebrow: "storage", subtitle: "user 別視聴履歴 + like" })
+  .edge("viewer", "phone", { label: "起動", tone: "info" })
+  .edge("phone", "videoSvc", { label: "GET", tone: "info" })
+  .edge("videoSvc", "cdn", { label: "stream", tone: "success" })
+  .edge("videoSvc", "analytics", { label: "track", tone: "accent" })
+  .edge("analytics", "viewDb", { label: "persist", tone: "success" })
+  .readout.gauge("virG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral 度 %" })
+  .readout.countup("vcCU", { source: "viewCount", unit: " view", label: "累計 view", decimals: 0 })
+  .readout.stat("shrStat", { source: "shareCount", unit: " share", caption: "share", label: "share" })
+  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均滞在", label: "sec" })
+  .phase("p1", {
+    duration: 1800,
+    title: "公開直後 (Day 0)",
+    body: "動画公開、 platform recommendation 初回配信、 平方様含む初期視聴者が視聴開始。 viralRate 0 → 15 tween、 viewCount 0 → 250 tween、 shareCount 0 → 5 tween、 avgSec 0 → 45 tween、 viewer + phone + videoSvc + cdn lane active。",
+  }, (p: PhaseBuilder) => p.activate("viewer", "phone", "videoSvc", "cdn").tween("viralRate", 0, 15).tween("viewCount", 0, 250).tween("shareCount", 0, 5).tween("avgSec", 0, 45).badge("Day 0"))
+  .phase("p2", {
+    duration: 2200,
+    title: "拡散 (Day 1)",
+    body: "SNS シェアで拡散加速、 recommendation algorithm がさらに露出増加。 viralRate 15 → 55 tween、 viewCount 250 → 3500 tween、 shareCount 5 → 42 tween、 avgSec 45 → 68 tween、 analytics + viewDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("viewer", "phone", "videoSvc", "cdn", "analytics", "viewDb").tween("viralRate", 15, 55).tween("viewCount", 250, 3500).tween("shareCount", 5, 42).tween("avgSec", 45, 68).badge("Day 1"))
+  .phase("p3", {
+    duration: 2200,
+    title: "engagement peak (Day 3)",
+    body: "エンジニアリング界隈でバズ、 like + comment 急増、 平均滞在秒も伸長。 viralRate 55 → 85 tween (gauge 針最上位近く)、 viewCount 3500 → 7800 tween、 shareCount 42 → 128 tween、 avgSec 68 → 92 tween、 CDN edge cache HIT 率 UP。",
+  }, (p: PhaseBuilder) => p.activate("viewer", "phone", "videoSvc", "cdn", "analytics", "viewDb").tween("viralRate", 55, 85).tween("viewCount", 3500, 7800).tween("shareCount", 42, 128).tween("avgSec", 68, 92).badge("peak"))
+  .phase("p4", {
+    duration: 2000,
+    title: "定着 (Day 7)",
+    body: "1 週間経過で拡散収束、 定着 view + 継続的 tail 視聴、 view count 10000 到達。 viralRate 85 → 92 keep (バズ定着)、 viewCount 7800 → 10000 tween (大台到達)、 shareCount 128 → 158 tween、 avgSec 92 → 88 tween (若干下降で安定)、 6 shape 全 active、 動画 lifetime cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("viewer", "phone", "videoSvc", "cdn", "analytics", "viewDb").tween("viralRate", 85, 92).tween("viewCount", 7800, 10000).tween("shareCount", 128, 158).tween("avgSec", 92, 88).badge("Day 7"))
+  .build();
+
+/**
+ * 7. animationSprintProgress v2 = tweenChain の business scenario 拡張 (エンジニア team の 2 週 sprint 進捗、 3 phase で 0 → 100% まで累積 tween)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (計画 → design → impl → ship) + 4 readout (gauge 進捗 / countup 消化 story point / stat 残 task / stat velocity) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 tweenChain 抽象 chain demo と並置。
+ */
+export const animationSprintProgress = diagram("animation-sprint-progress", {
+  topic: "tween chain 実業務例 = 2 週 sprint 進捗 4 phase (計画 → design → impl → ship) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("team", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("progress", { initial: 0 })
+  .state("spDone", { initial: 0 })
+  .state("taskRemain", { initial: 12 })
+  .state("velocity", { initial: 0 })
+  .node("scrum", { lane: "team", stack: 0, kind: "shape-person", title: "scrum master 松本様", eyebrow: "scrum", subtitle: "8 名 team 主宰 · 2 週 sprint" })
+  .node("laptop", { lane: "team", stack: 1, kind: "shape-mobile-device", title: "Slack + Jira mobile", eyebrow: "device", subtitle: "daily standup + burndown 追跡" })
+  .node("jira", { lane: "service", stack: 0, kind: "shape-website", title: "Jira scrum board", eyebrow: "board", subtitle: "backlog + sprint 20 SP + card 12 枚" })
+  .node("cicd", { lane: "service", stack: 1, kind: "shape-server-rack", title: "CI / CD pipeline", eyebrow: "cicd", subtitle: "PR merge → staging → production" })
+  .node("sprintDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "sprint metric DB", eyebrow: "storage", subtitle: "velocity + burndown 履歴保存" })
+  .node("retro", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "retro board", eyebrow: "retro", subtitle: "sprint 42 振返り + action item" })
+  .edge("scrum", "laptop", { label: "monitor", tone: "info" })
+  .edge("laptop", "jira", { label: "update", tone: "info" })
+  .edge("jira", "cicd", { label: "trigger", tone: "success" })
+  .edge("cicd", "sprintDb", { label: "log", tone: "accent" })
+  .edge("sprintDb", "retro", { label: "aggregate", tone: "success" })
+  .readout.gauge("prG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "sprint 進捗 %" })
+  .readout.countup("spCU", { source: "spDone", unit: " SP", label: "消化 story point", decimals: 0 })
+  .readout.stat("remStat", { source: "taskRemain", unit: " task", caption: "残 task", label: "rem" })
+  .readout.stat("velStat", { source: "velocity", unit: " SP/日", caption: "velocity", label: "vel" })
+  .phase("p1", {
+    duration: 1800,
+    title: "計画 (Day 1)",
+    body: "松本様がスプリント計画会議主催、 backlog から 20 SP 選定 + 8 名で担当割当。 progress 0 → 10 tween、 spDone 0 → 2 tween、 taskRemain 12 keep、 velocity 0 → 2 tween、 scrum + laptop + jira lane active。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira").tween("progress", 0, 10).tween("spDone", 0, 2).tween("velocity", 0, 2).badge("計画"))
+  .phase("p2", {
+    duration: 2200,
+    title: "design (Day 4)",
+    body: "設計 review + プロトタイプ完成 + 実装着手、 SP 7 消化。 progress 10 → 40 tween、 spDone 2 → 8 tween、 taskRemain 12 → 8 tween、 velocity 2 → 3 tween、 cicd lane activate。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd").tween("progress", 10, 40).tween("spDone", 2, 8).tween("taskRemain", 12, 8).tween("velocity", 2, 3).badge("design"))
+  .phase("p3", {
+    duration: 2200,
+    title: "impl (Day 8)",
+    body: "実装 phase 佳境、 PR merge 続々、 staging deploy 開始。 progress 40 → 80 tween、 spDone 8 → 16 tween、 taskRemain 8 → 3 tween、 velocity 3 → 4 tween、 sprintDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd", "sprintDb").tween("progress", 40, 80).tween("spDone", 8, 16).tween("taskRemain", 8, 3).tween("velocity", 3, 4).badge("impl"))
+  .phase("p4", {
+    duration: 2000,
+    title: "ship + retro (Day 14)",
+    body: "全 task 完遂、 production deploy 成功、 retro で action item 抽出。 progress 80 → 100 tween (gauge 針最上位)、 spDone 16 → 20 tween、 taskRemain 3 → 0 tween、 velocity 4 → 3 tween (平均化)、 retro lane activate、 6 shape 全 active、 sprint 42 完遂。",
+  }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd", "sprintDb", "retro").tween("progress", 80, 100).tween("spDone", 16, 20).tween("taskRemain", 3, 0).tween("velocity", 4, 3).badge("ship"))
+  .build();
+
+/**
+ * 8. animationBuildStatus v2 = setSwitch の business scenario 拡張 (CI/CD pipeline で build status を queued → running → tests → deployed に即時切替)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (queued → running → tests → deployed) + 4 readout (gauge build 進捗 / countup 累計 build / stat 直近 duration / stat エラー率) が tween で visually 連続変化。 iteration 8 wave 8-V redesign。 setSwitch 抽象 set demo と並置。
+ */
+export const animationBuildStatus = diagram("animation-build-status", {
+  topic: "set 実業務例 = CI/CD build status 即時切替 4 phase (queued → running → tests → deployed) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("dev", { x: 0, width: 220 })
+  .lane("cicd", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("status", { initial: "queued" })
+  .state("buildPct", { initial: 0 })
+  .state("buildCount", { initial: 8721 })
+  .state("durationSec", { initial: 0 })
+  .state("errRate", { initial: 0 })
+  .node("dev", { lane: "dev", stack: 0, kind: "shape-person", title: "developer 北野様", eyebrow: "dev", subtitle: "PR #4231 push 直後 · CI 監視中" })
+  .node("phone", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "GitHub mobile app", eyebrow: "device", subtitle: "PR status + push 通知" })
+  .node("gh", { lane: "cicd", stack: 0, kind: "shape-website", title: "GitHub Actions", eyebrow: "ci", subtitle: "workflow trigger + status page" })
+  .node("runner", { lane: "cicd", stack: 1, kind: "shape-server-rack", title: "self-hosted runner", eyebrow: "runner", subtitle: "build + test + deploy 実行" })
+  .node("deployTarget", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "prod cluster", eyebrow: "deploy", subtitle: "GKE cluster + rolling update" })
+  .node("buildDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "build 履歴 DB", eyebrow: "storage", subtitle: "全 build log + artifact + status" })
+  .edge("dev", "phone", { label: "push", tone: "info" })
+  .edge("phone", "gh", { label: "trigger", tone: "info" })
+  .edge("gh", "runner", { label: "dispatch", tone: "success" })
+  .edge("runner", "deployTarget", { label: "deploy", tone: "accent" })
+  .edge("runner", "buildDb", { label: "log", tone: "success" })
+  .readout.gauge("bpG", { source: "buildPct", min: 0, max: 100, color: "#22c55e", label: "build %" })
+  .readout.countup("bdCU", { source: "buildCount", unit: " 回", label: "累計 build", decimals: 0 })
+  .readout.stat("durStat", { source: "durationSec", unit: " 秒", caption: "duration", label: "dur" })
+  .readout.stat("errStat", { source: "errRate", unit: " %", caption: "error 率", label: "err" })
+  .phase("p1", {
+    duration: 1500,
+    title: "queued",
+    body: "北野様が PR push、 GitHub Actions が workflow queue 投入 status = 'queued'。 buildPct 0 → 10 tween、 buildCount 8721 keep、 durationSec 0 → 3 tween、 errRate 0 keep、 dev + phone + gh lane active。",
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh").set("status", "queued").tween("buildPct", 0, 10).tween("durationSec", 0, 3).badge("queued"))
+  .phase("p2", {
+    duration: 2000,
+    title: "running",
+    body: "runner が build 開始、 status = 'running' 即時切替、 コンパイル + lint 実行。 buildPct 10 → 45 tween、 buildCount 8721 → 8722 tween、 durationSec 3 → 25 tween、 runner lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner").set("status", "running").tween("buildPct", 10, 45).tween("buildCount", 8721, 8722).tween("durationSec", 3, 25).badge("running"))
+  .phase("p3", {
+    duration: 2200,
+    title: "tests",
+    body: "unit test + integration test 実行、 status = 'tests' 即時切替、 一部 flaky test で errRate 微増。 buildPct 45 → 85 tween、 durationSec 25 → 65 tween、 errRate 0 → 2 tween、 buildDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb").set("status", "tests").tween("buildPct", 45, 85).tween("durationSec", 25, 65).tween("errRate", 0, 2).badge("tests"))
+  .phase("p4", {
+    duration: 2000,
+    title: "deployed",
+    body: "全 pass → prod cluster に rolling update、 status = 'deployed' 即時切替、 北野様に完了通知。 buildPct 85 → 100 tween (gauge 針最上位)、 durationSec 65 → 78 tween (最終)、 errRate 2 keep、 deployTarget lane activate、 6 shape 全 active、 CI/CD cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb", "deployTarget").set("status", "deployed").tween("buildPct", 85, 100).tween("durationSec", 65, 78).badge("deployed"))
+  .build();
