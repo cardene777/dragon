@@ -76,9 +76,9 @@ export const animationCounterViewCount = diagram("animation-counter-view-count",
   .edge("videoSvc", "analytics", { label: "追跡", tone: "accent" })
   .edge("analytics", "viewDb", { label: "persist", tone: "success" })
   .readout.gauge("virG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral度 %" })
-  .readout.countup("vcCU", { source: "viewCount", unit: " view", label: "累計 表示", decimals: 0 })
-  .readout.stat("shrStat", { source: "shareCount", unit: " share", caption: "share", label: "共有" })
-  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均滞在", label: "sec" })
+  .readout.countup("vcCU", { source: "viewCount", unit: " 表示", label: "累計 表示", decimals: 0 })
+  .readout.stat("shrStat", { source: "shareCount", unit: " 共有", caption: "共有", label: "共有" })
+  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均滞在", label: "秒" })
   .phase("p1", {
     duration: 1800,
     title: "公開直後(Day 0)",
@@ -127,8 +127,8 @@ export const animationSprintProgress = diagram("animation-sprint-progress", {
   .edge("sprintDb", "retro", { label: "aggregate", tone: "success" })
   .readout.gauge("prG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "スプリント 進捗 %" })
   .readout.countup("spCU", { source: "spDone", unit: " SP", label: "消化story point", decimals: 0 })
-  .readout.stat("remStat", { source: "taskRemain", unit: " task", caption: "残 task", label: "rem" })
-  .readout.stat("velStat", { source: "velocity", unit: " SP/日", caption: "velocity", label: "vel" })
+  .readout.stat("remStat", { source: "taskRemain", unit: " タスク", caption: "残 タスク", label: "残" })
+  .readout.stat("velStat", { source: "velocity", unit: " SP/日", caption: "速度", label: "速度" })
   .phase("p1", {
     duration: 1800,
     title: "計画(Day 1)",
@@ -284,7 +284,7 @@ export const animationOrderProgress = diagram("animation-order-progress", {
   .edge("warehouse", "orderDb", { label: "persist", tone: "success" })
   .readout.gauge("prG", { source: "curStep", min: 0, max: 3, color: "#22c55e", label: "進捗 ステップ" })
   .readout.countup("ocCU", { source: "orderCount", unit: " 件", label: "累計 注文", decimals: 0 })
-  .readout.stat("amtStat", { source: "amount", unit: " %", caption: "amount", label: "amt" })
+  .readout.stat("amtStat", { source: "amount", unit: " %", caption: "金額", label: "amt" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,

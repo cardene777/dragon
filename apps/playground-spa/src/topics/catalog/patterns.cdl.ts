@@ -115,9 +115,9 @@ export const patternLoop = diagram("pattern-loop", { topic: "pattern: Loop (繰�
   .edge("client", "iter", { id: "e1", label: "run", tone: "accent", style: "dotted-flow" })
   .edge("iter", "body", { id: "e2", label: "each項目", tone: "teal", style: "dotted-flow" })
   .phase("start", { duration: 1500, title: "開始", body: "クライアント が一括実行を呼ぶ。" }, (p: PhaseBuilder) => p.activate("client", "iter", "e1").badge("start"))
-  .phase("iter1", { duration: 1500, title: "iter 1", body: "1 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 0, 1).badge("i=1"))
-  .phase("iter2", { duration: 1500, title: "iter 2", body: "2 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 1, 2).badge("i=2"))
-  .phase("iter3", { duration: 1500, title: "iter 3", body: "3 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 2, 3).badge("i=3"))
+  .phase("iter1", { duration: 1500, title: "反復1", body: "1 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 0, 1).badge("i=1"))
+  .phase("iter2", { duration: 1500, title: "反復2", body: "2 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 1, 2).badge("i=2"))
+  .phase("iter3", { duration: 1500, title: "反復3", body: "3 件目を処理。" }, (p: PhaseBuilder) => p.activate("iter", "body", "e2").tween("i", 2, 3).badge("i=3"))
   .build();
 
 /** 8. Fan-out (1 入力 → 複数 worker) */
@@ -297,7 +297,7 @@ export const patternPassthroughApiGateway = diagram("pattern-passthrough-api-gat
   .edge("apm", "logStore", { label: "persist", tone: "accent" })
   .readout.gauge("latG", { source: "latencyMs", min: 0, max: 500, color: "#22c55e", label: "レイテンシms" })
   .readout.countup("rpsCU", { source: "reqPerSec", unit: " req/s", label: "req/s", decimals: 0 })
-  .readout.stat("p99Stat", { source: "p99Ms", unit: " ms", caption: "p99 遅延", label: "p99" })
+  .readout.stat("p99Stat", { source: "p99Ms", unit: " ミリ秒", caption: "p99遅延", label: "p99" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -349,7 +349,7 @@ export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", 
   .edge("profileSvc", "cache", { label: "無効化", tone: "warning" })
   .readout.gauge("wpG", { source: "writeProgress", min: 0, max: 100, color: "#22c55e", label: "書込 進捗 %" })
   .readout.countup("upCU", { source: "updateCount", unit: " 回", label: "累計更新", decimals: 0 })
-  .readout.stat("secStat", { source: "procSec", unit: " 秒", caption: "処理秒", label: "sec" })
+  .readout.stat("secStat", { source: "procSec", unit: " 秒", caption: "処理秒", label: "秒" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -401,7 +401,7 @@ export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
   .edge("subscribers", "eventLog", { label: "persist", tone: "success" })
   .readout.gauge("delG", { source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信率 %" })
   .readout.countup("evCU", { source: "eventCount", unit: " 件", label: "累計 イベント", decimals: 0 })
-  .readout.stat("subStat", { source: "subCount", unit: " sub", caption: "subscriber", label: "sub" })
+  .readout.stat("subStat", { source: "subCount", unit: " sub", caption: "購読者", label: "sub" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -453,7 +453,7 @@ export const patternHookWebhook = diagram("pattern-hook-webhook", {
   .edge("egress", "deliveryLog", { label: "ログack", tone: "success" })
   .readout.gauge("sucG", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "成功 率 %" })
   .readout.countup("delCU", { source: "deliveryCount", unit: " 件", label: "累計配信", decimals: 0 })
-  .readout.stat("retryStat", { source: "retryNum", unit: " 回", caption: "retry", label: "再試行" })
+  .readout.stat("retryStat", { source: "retryNum", unit: " 回", caption: "再試行", label: "再試行" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -505,7 +505,7 @@ export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
   .edge("authz", "auditSink", { label: "deny (偽) + ログ", tone: "error" })
   .readout.gauge("alwG", { source: "allowRate", min: 0, max: 100, color: "#22c55e", label: "allow率 %" })
   .readout.countup("denyCU", { source: "denyCount", unit: " 件", label: "deny累計", decimals: 0 })
-  .readout.stat("chStat", { source: "checkMs", unit: " ms", caption: "判定時間", label: "チェック" })
+  .readout.stat("chStat", { source: "checkMs", unit: " ミリ秒", caption: "判定時間", label: "チェック" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -556,8 +556,8 @@ export const patternLoopBatchImport = diagram("pattern-loop-batch-import", {
   .edge("worker", "db", { label: "挿入(loop)", tone: "accent" })
   .edge("worker", "notify", { label: "complete", tone: "success" })
   .readout.gauge("prgG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "進捗 %" })
-  .readout.countup("procCU", { source: "processed", unit: " row", label: "処理済", decimals: 0 })
-  .readout.stat("errStat", { source: "errRows", unit: " row", caption: "error 行", label: "err" })
+  .readout.countup("procCU", { source: "processed", unit: " 行", label: "処理済", decimals: 0 })
+  .readout.stat("errStat", { source: "errRows", unit: " 行", caption: "エラー 行", label: "err" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -609,7 +609,7 @@ export const patternFanOutVideoTranscode = diagram("pattern-fanout-video-transco
   .edge("cdn", "mediaDb", { label: "URL登録", tone: "success" })
   .readout.gauge("comG", { source: "completionRate", min: 0, max: 100, color: "#22c55e", label: "完了率 %" })
   .readout.countup("vidCU", { source: "videoCount", unit: " 本", label: "累計動画", decimals: 0 })
-  .readout.stat("secStat", { source: "totalSec", unit: " 秒", caption: "総処理", label: "sec" })
+  .readout.stat("secStat", { source: "totalSec", unit: " 秒", caption: "総処理", label: "秒" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -648,7 +648,7 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
   .state("totalRecs", { initial: 0 })
   .state("elapsedSec", { initial: 0 })
   .state("curStep", { initial: 0 })
-  .node("shardCluster", { lane: "shards", stack: 0, kind: "shape-server-rack", title: "3シャード クラスター", eyebrow: "shards", subtitle: "us-東 / eu-西 / ap-南" })
+  .node("shardCluster", { lane: "shards", stack: 0, kind: "shape-server-rack", title: "3シャード クラスター", eyebrow: "shards", subtitle: "マイクロ秒-東 / eu-西 / ap-南" })
   .node("shardStorage", { lane: "shards", stack: 1, kind: "shape-cylinder", title: "3シャードDB", eyebrow: "保存", subtitle: "各shard = 1M record保持" })
   .node("aggSvc", { lane: "aggregator", stack: 0, kind: "shape-gear", title: "集約器 サービス", eyebrow: "集約器", subtitle: "3シャードresultを集約 + reduce" })
   .node("aggCloud", { lane: "aggregator", stack: 1, kind: "shape-cloud", title: "compute pool", eyebrow: "compute", subtitle: "reduce phaseのcompute割当" })
@@ -660,8 +660,8 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
   .edge("aggSvc", "dashboard", { label: "発行", tone: "success" })
   .edge("dashboard", "analyst", { label: "レビュー", tone: "info" })
   .readout.gauge("agG", { source: "aggPct", min: 0, max: 100, color: "#22c55e", label: "aggregate %" })
-  .readout.countup("jobCU", { source: "jobCount", unit: " job", label: "集計 ジョブ 累計", decimals: 0 })
-  .readout.stat("recStat", { source: "totalRecs", unit: " M", caption: "総 record", label: "recs" })
+  .readout.countup("jobCU", { source: "jobCount", unit: " ジョブ", label: "集計 ジョブ 累計", decimals: 0 })
+  .readout.stat("recStat", { source: "totalRecs", unit: " M", caption: "総 記録", label: "recs" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -765,7 +765,7 @@ export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
   .edge("reportStore", "stakeholder", { label: "配信", tone: "info" })
   .readout.gauge("jpG", { source: "jobProgress", min: 0, max: 100, color: "#22c55e", label: "ジョブ 進捗 %" })
   .readout.countup("runCU", { source: "runCount", unit: " 回", label: "累計実行", decimals: 0 })
-  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均", label: "sec" })
+  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均", label: "秒" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -817,7 +817,7 @@ export const patternValidateProcessOrderSubmit = diagram("pattern-validate-proce
   .edge("validator", "errorSink", { label: "NGログ", tone: "error" })
   .readout.gauge("sucG", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" })
   .readout.countup("subCU", { source: "submitCount", unit: " 件", label: "送信 累計", decimals: 0 })
-  .readout.stat("ngStat", { source: "ngCount", unit: " 件", caption: "NG 件数", label: "NG" })
+  .readout.stat("ngStat", { source: "ngCount", unit: " 件", caption: "NG件数", label: "NG" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
