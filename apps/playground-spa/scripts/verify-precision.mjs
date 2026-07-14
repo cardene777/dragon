@@ -1025,12 +1025,15 @@ const cases = [
   },
   {
     diagramId: "interactive-shipping-status",
-    label: "order-status: 4 step row 表示、 current step = 2",
+    label: "shipping-status v2: 6 shape (warehouse / dispatcher / truck / gps / customerApp / customer) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const rows = await page.$$eval('[data-cdl-readout="os"] .cdl-ip-readout-order-status-row', (els) => els.length);
-      const step = await page.$eval('[data-cdl-readout="os"]', (el) => el.getAttribute("data-cdl-step"));
-      return { actual: rows === 4 && step === "2", expected: true };
+      const ids = ["warehouse", "dispatcher", "truck", "gps", "customerApp", "customer"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {

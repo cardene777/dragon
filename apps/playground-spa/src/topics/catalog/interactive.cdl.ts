@@ -3177,14 +3177,14 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
   .build();
 
 /**
- * 89. weather-forecast = 5-day weather (Mon-Fri) with icon + high/low temp。
+ * 89. weekWeather v2 = 屋外イベント運営者の週次天気モニター判断シナリオ (週初め予測 → 悪化 → 中止判断 → 再開)、 shape-person + shape-mobile-device + shape-satellite + shape-cloud + shape-website + shape-warehouse の 6 shape で visual scene 化、 4 phase (週初 予測 → 週半ば悪化 → 木曜中止判断 → 金曜再開) + 4 readout (weatherForecast / gauge 降水確率 / countup 参加者予定 / stat 気温平均) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
  */
 export const weekWeather = diagram("interactive-week-weather", {
-  topic: "5-day weather を 3-lane (Sunny ☀ / Cloudy/Rainy / Thunder ⚡) 天気別分散、 各 day 個別 card、 weatherForecast readout 併存",
+  topic: "屋外イベント週次天気モニター 4 phase = (予測 → 悪化 → 中止 → 再開) の flow を shape-* primitive 6 種で表現 + 4 readout (weatherForecast / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("sunny", { x: 0, width: 220 })
-  .lane("cloudy", { x: 260, width: 220 })
-  .lane("thunder", { x: 520, width: 200 })
+  .lane("organizer", { x: 0, width: 220 })
+  .lane("data", { x: 240, width: 320 })
+  .lane("venue", { x: 580, width: 220 })
   .arraySignal("forecast", [
     ["Mon", "☀", 24, 18],
     ["Tue", "☁", 22, 17],
@@ -3192,17 +3192,44 @@ export const weekWeather = diagram("interactive-week-weather", {
     ["Thu", "⚡", 17, 13],
     ["Fri", "☀", 25, 19],
   ] as unknown as (string | number)[])
-  .node("monNode", { lane: "sunny", stack: 0, kind: "card", title: "☀ Mon", subtitle: "24°/18° (sunny)" })
-  .node("friNode", { lane: "sunny", stack: 1, kind: "card", title: "☀ Fri", subtitle: "25°/19° (sunny, week high)" })
-  .node("tueNode", { lane: "cloudy", stack: 0, kind: "card", title: "☁ Tue", subtitle: "22°/17° (cloudy)" })
-  .node("wedNode", { lane: "cloudy", stack: 1, kind: "card", title: "☂ Wed", subtitle: "19°/15° (rainy)" })
-  .node("thuNode", { lane: "thunder", stack: 0, kind: "card", title: "⚡ Thu", subtitle: "17°/13° (thunder, week low)" })
-  .readout.weatherForecast("wf", { source: "forecast", label: "Week (5-day forecast)" })
-  .phase("p", {
-    duration: 1200,
-    title: "weather split",
-    body: "3-lane (Sunny 2 day / Cloudy or Rainy 2 day / Thunder 1 day) で 5-day weather を天気別分散、 各 day 個別 card で icon + 高低 temp 明示、 weatherForecast readout も併存で 5 column widget 表示、 天気分類と日別詳細の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("monNode", "friNode", "tueNode", "wedNode", "thuNode").badge("weather"))
+  .state("rainPct", { initial: 20 })
+  .state("attendees", { initial: 0 })
+  .state("avgTemp", { initial: 21 })
+  .node("organizer", { lane: "organizer", stack: 0, kind: "shape-person", title: "運営 木村様", eyebrow: "planner", subtitle: "屋外音楽 fes 主催者" })
+  .node("mobile", { lane: "organizer", stack: 1, kind: "shape-mobile-device", title: "天気 app", eyebrow: "device", subtitle: "気象庁 API + 予測 push" })
+  .node("satellite", { lane: "data", stack: 0, kind: "shape-satellite", title: "気象衛星", eyebrow: "satellite", subtitle: "MTSAT · 10 分間隔観測" })
+  .node("jma", { lane: "data", stack: 1, kind: "shape-cloud", title: "気象庁 API", eyebrow: "provider", subtitle: "週間予報 · 降水確率" })
+  .node("eventSite", { lane: "data", stack: 2, kind: "shape-website", title: "event 予約サイト", eyebrow: "web", subtitle: "オンライン申込 · キャンセル対応" })
+  .node("venue", { lane: "venue", stack: 0, kind: "shape-warehouse", title: "会場 (代々木公園)", eyebrow: "physical", subtitle: "屋外野外広場 · 5000 名収容" })
+  .edge("organizer", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "jma", { label: "GET forecast", tone: "info" })
+  .edge("satellite", "jma", { label: "観測 data", tone: "success" })
+  .edge("jma", "eventSite", { label: "予報反映", tone: "accent" })
+  .edge("eventSite", "venue", { label: "運営指示", tone: "warning" })
+  .readout.weatherForecast("wf", { source: "forecast", label: "5 日予報" })
+  .readout.gauge("rainG", { source: "rainPct", min: 0, max: 100, color: "#2563eb", label: "降水確率 %" })
+  .readout.countup("attCU", { source: "attendees", unit: " 名", label: "参加予定者", decimals: 0 })
+  .readout.stat("tempStat", { source: "avgTemp", unit: " °C", caption: "週間平均気温", label: "平均" })
+  .phase("p1", {
+    duration: 1800,
+    title: "週初 予測",
+    body: "月曜朝、 木村様が週間予報確認 (Mon 晴 → Fri 晴)。 rainPct 20 (gauge 針最下)、 attendees 0 → 3200 tween (申込加速)、 avgTemp 21 → 21 保持、 organizer + mobile lane active。",
+  }, (p: PhaseBuilder) => p.activate("organizer", "mobile").set("rainPct", 20).tween("attendees", 0, 3200).badge("週初"))
+  .phase("p2", {
+    duration: 2200,
+    title: "水曜悪化 (雨予報)",
+    body: "気象衛星から雨雲接近 detect、 週末雨予報。 rainPct 20 → 65 tween (gauge 針急上昇 = 高降水確率)、 attendees 3200 → 3800 tween (継続申込)、 avgTemp 21 → 19 tween、 satellite + jma lane activate。",
+  }, (p: PhaseBuilder) => p.activate("organizer", "mobile", "satellite", "jma").tween("rainPct", 20, 65).tween("attendees", 3200, 3800).tween("avgTemp", 21, 19).badge("悪化"))
+  .phase("p3", {
+    duration: 2400,
+    title: "木曜中止判断 (雷雨)",
+    body: "木曜 ⚡ 雷雨予報、 event 中止判断 → 予約サイトで告知。 rainPct 65 → 90 tween (gauge 針最上位、 危険)、 attendees 3800 → 2100 tween (半数キャンセル)、 avgTemp 19 → 15 tween、 eventSite lane activate、 全員へ返金 process。",
+  }, (p: PhaseBuilder) => p.activate("organizer", "mobile", "satellite", "jma", "eventSite").tween("rainPct", 65, 90).tween("attendees", 3800, 2100).tween("avgTemp", 19, 15).badge("中止"))
+  .phase("p4", {
+    duration: 2000,
+    title: "金曜再開 (晴)",
+    body: "金曜朝 ☀ 晴予報、 短縮版 event 再開 (規模半減)。 rainPct 90 → 15 tween (gauge 針急降下)、 attendees 2100 → 2400 tween (前日 walk-in 追加)、 avgTemp 15 → 22 tween、 venue lane activate、 6 shape 全 active、 event 再稼働。",
+  }, (p: PhaseBuilder) => p.activate("organizer", "mobile", "satellite", "jma", "eventSite", "venue").tween("rainPct", 90, 15).tween("attendees", 2100, 2400).tween("avgTemp", 15, 22).badge("再開"))
   .build();
 
 /**
@@ -3231,31 +3258,55 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
   .build();
 
 /**
- * 91. order-status = e-commerce 配送追跡、 stepper で current step 切替 → 4 icon step。
+ * 91. shippingOrderStatus v2 = EC 家具通販 (大型商品) の配送追跡 4 phase シナリオ (梱包 → 出荷 → 配達中 → 完了)、 shape-person + shape-mobile-device + shape-warehouse + shape-storefront + shape-satellite + shape-cloud の 6 shape で visual scene 化、 4 phase (梱包完了 → 出荷 → 配達中 → 配達完了) + 4 readout (orderStatus / gauge 進捗率 / countup 距離 km / stat ETA 分) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
  */
 export const shippingOrderStatus = diagram("interactive-shipping-status", {
-  topic: "e-commerce 配送追跡 4 step (📦→🚚→🏠→✅) を 4-lane pipeline + 3 edge で状態遷移 network 化、 orderStatus readout 併存",
+  topic: "EC 家具大型商品配送追跡 4 phase = (梱包 → 出荷 → 配達中 → 完了) の flow を shape-* primitive 6 種で表現 + 4 readout (orderStatus / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("packed", { x: 0, width: 160 })
-  .lane("shipped", { x: 200, width: 160 })
-  .lane("delivery", { x: 400, width: 160 })
-  .lane("delivered", { x: 600, width: 160 })
-  .input.stepper("current", { min: 0, max: 3, defaultValue: 2, label: "Step" })
-  .state("current", { initial: 2 })
+  .lane("origin", { x: 0, width: 240 })
+  .lane("transit", { x: 260, width: 320 })
+  .lane("destination", { x: 600, width: 240 })
   .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
-  .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "step 0" })
-  .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "step 1" })
-  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "step 2 (current)" })
-  .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "step 3" })
-  .edge("packedNode", "shippedNode", { label: "handover", tone: "success" })
-  .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
-  .edge("deliveryNode", "deliveredNode", { label: "arrived", tone: "warning" })
-  .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status (icon strip)" })
-  .phase("p", {
-    duration: 1200,
-    title: "delivery pipeline",
-    body: "4-lane pipeline (Packed / Shipped / Out for delivery / Delivered) + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。",
-  }, (p: PhaseBuilder) => p.activate("packedNode", "shippedNode", "deliveryNode", "deliveredNode").badge("tracking"))
+  .state("current", { initial: 0 })
+  .state("progress", { initial: 0 })
+  .state("distanceKm", { initial: 0 })
+  .state("etaMin", { initial: 0 })
+  .node("warehouse", { lane: "origin", stack: 0, kind: "shape-warehouse", title: "配送 センター (川崎)", eyebrow: "origin", subtitle: "IKEA 大型家具在庫" })
+  .node("dispatcher", { lane: "origin", stack: 1, kind: "shape-mobile-device", title: "配送指示 tablet", eyebrow: "device", subtitle: "route planner + 追跡" })
+  .node("truck", { lane: "transit", stack: 0, kind: "shape-storefront", title: "配送トラック", eyebrow: "vehicle", subtitle: "route: 川崎 → 世田谷 (32 km)" })
+  .node("gps", { lane: "transit", stack: 1, kind: "shape-satellite", title: "GPS tracking", eyebrow: "gps", subtitle: "1 分間隔位置更新" })
+  .node("customerApp", { lane: "transit", stack: 2, kind: "shape-cloud", title: "顧客通知 (LINE)", eyebrow: "notification", subtitle: "step 遷移で自動通知" })
+  .node("customer", { lane: "destination", stack: 0, kind: "shape-person", title: "顧客 中村様", eyebrow: "recipient", subtitle: "在宅受取 · サイン必要" })
+  .edge("warehouse", "dispatcher", { label: "梱包完了", tone: "success" })
+  .edge("dispatcher", "truck", { label: "load", tone: "info" })
+  .edge("truck", "gps", { label: "expose 位置", tone: "success" })
+  .edge("gps", "customerApp", { label: "位置 push", tone: "accent" })
+  .edge("customerApp", "customer", { label: "到着通知", tone: "warning" })
+  .edge("truck", "customer", { label: "配達", tone: "success" })
+  .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "配達 status (4 step)" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "配達進捗 %" })
+  .readout.countup("distCU", { source: "distanceKm", unit: " km", label: "走行距離", decimals: 1 })
+  .readout.stat("etaStat", { source: "etaMin", unit: " 分", caption: "到着まで", label: "ETA" })
+  .phase("p1", {
+    duration: 1800,
+    title: "梱包完了",
+    body: "配送センターで大型家具 (ソファ) 梱包完了、 出荷準備。 current = 0 (Packed)、 progress 0 → 10 tween、 distanceKm 0 tween 保持、 etaMin 0 → 90 tween (初期 ETA 表示)。 warehouse + dispatcher lane active。",
+  }, (p: PhaseBuilder) => p.activate("warehouse", "dispatcher").set("current", 0).tween("progress", 0, 10).tween("etaMin", 0, 90).badge("梱包"))
+  .phase("p2", {
+    duration: 2200,
+    title: "出荷 (truck 積載)",
+    body: "trucks が家具を積載 → 発車。 current 0 → 1 tween (Packed → Shipped)、 progress 10 → 35 tween (gauge 針中位)、 distanceKm 0 → 8 tween (発進 8 km)、 etaMin 90 → 60 tween、 truck + gps lane activate。",
+  }, (p: PhaseBuilder) => p.activate("warehouse", "dispatcher", "truck", "gps").tween("current", 0, 1).tween("progress", 10, 35).tween("distanceKm", 0, 8).tween("etaMin", 90, 60).badge("出荷"))
+  .phase("p3", {
+    duration: 2400,
+    title: "配達中",
+    body: "首都高速経由で世田谷へ向かう。 current 1 → 2 tween (Shipped → Out for delivery)、 progress 35 → 80 tween、 distanceKm 8 → 28 tween、 etaMin 60 → 12 tween (急接近)、 customerApp lane activate で「到着 15 分前通知」 push。",
+  }, (p: PhaseBuilder) => p.activate("warehouse", "dispatcher", "truck", "gps", "customerApp").tween("current", 1, 2).tween("progress", 35, 80).tween("distanceKm", 8, 28).tween("etaMin", 60, 12).badge("配達中"))
+  .phase("p4", {
+    duration: 2000,
+    title: "配達完了",
+    body: "中村様宅到着、 玄関受取 + サイン。 current 2 → 3 tween (Out for delivery → Delivered)、 progress 80 → 100 tween (最終)、 distanceKm 28 → 32 tween (最終)、 etaMin 12 → 0 tween、 customer lane activate、 6 shape 全 active、 配達完了。",
+  }, (p: PhaseBuilder) => p.activate("warehouse", "dispatcher", "truck", "gps", "customerApp", "customer").tween("current", 2, 3).tween("progress", 80, 100).tween("distanceKm", 28, 32).tween("etaMin", 12, 0).badge("完了"))
   .build();
 
 /**
@@ -3415,25 +3466,54 @@ function generateCalendarDays(): (string | number)[] {
   }
   return days as unknown as (string | number)[];
 }
+/**
+ * 96. monthCalendarView v2 = プロジェクトマネージャー月次スケジューリング シナリオ (Q1 launch 前月の管理)、 shape-person + shape-mobile-device + shape-cloud (Google Calendar) + shape-cylinder + shape-server-rack + shape-hexagon の 6 shape で visual scene 化、 4 phase (月初計画 → 中間確認 → 週次 review → 月末振返り) + 4 readout (calendarMonth / gauge 埋まり率 / countup 完了 event / stat 残 event) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
+ */
 export const monthCalendarView = diagram("interactive-month-calendar", {
-  topic: "January 2026 calendar を 4-lane (Week 1 / Week 2 / Week 3 / Week 4-5) 週別分散、 各週 summary + calendarMonth readout 併存",
+  topic: "PM 月次スケジューリング (Q1 launch 前月) 4 phase = (計画 → 中間 → 週次 → 振返り) の flow を shape-* primitive 6 種で表現 + 4 readout (calendarMonth / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("w1", { x: 0, width: 150 })
-  .lane("w2", { x: 170, width: 150 })
-  .lane("w3", { x: 340, width: 150 })
-  .lane("w4", { x: 510, width: 200 })
+  .lane("pm", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("delivery", { x: 580, width: 220 })
   .arraySignal("days", generateCalendarDays())
-  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1 (Jan 1-7)", subtitle: "1 event (Jan 3)" })
-  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2 (Jan 8-14)", subtitle: "2 events (Jan 8, 12) + today (13)" })
-  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3 (Jan 15-21)", subtitle: "1 event (Jan 17)" })
-  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5 (Jan 22-31)", subtitle: "2 events (Jan 22, 26)" })
-  .node("monthSummary", { lane: "w4", stack: 1, kind: "card", title: "Month total", subtitle: "31 days · 6 events · today = Jan 13" })
-  .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view (7 column grid)" })
-  .phase("p", {
-    duration: 1200,
-    title: "week split",
-    body: "4-lane (Week 1 / 2 / 3 / 4-5) で January 2026 を週別分散、 各週 event 数 + today 位置 (Week 2 = Jan 13) 明示、 month total summary (Week 4-5 lane 内)、 calendarMonth readout も併存で 7 column grid 表示、 週単位 aggregate と月 grid の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("w1Card", "w2Card", "w3Card", "w4Card", "monthSummary").badge("calendar"))
+  .state("fillRate", { initial: 0 })
+  .state("doneEvents", { initial: 0 })
+  .state("remainingEvents", { initial: 6 })
+  .node("pm", { lane: "pm", stack: 0, kind: "shape-person", title: "PM 佐藤様", eyebrow: "manager", subtitle: "Q1 SaaS launch 前月" })
+  .node("mobile", { lane: "pm", stack: 1, kind: "shape-mobile-device", title: "Calendar app", eyebrow: "device", subtitle: "予定確認 + reschedule" })
+  .node("gcal", { lane: "system", stack: 0, kind: "shape-cloud", title: "Google Calendar", eyebrow: "calendar", subtitle: "team 予定 sync · 招待自動" })
+  .node("db", { lane: "system", stack: 1, kind: "shape-cylinder", title: "event DB", eyebrow: "storage", subtitle: "milestone + review 記録" })
+  .node("gateway", { lane: "system", stack: 2, kind: "shape-server-rack", title: "Zapier hub", eyebrow: "integration", subtitle: "Slack + Jira 連動" })
+  .node("release", { lane: "delivery", stack: 0, kind: "shape-hexagon", title: "Q1 launch", eyebrow: "milestone", subtitle: "1/31 予定 · 全 event 集約" })
+  .edge("pm", "mobile", { label: "予定管理", tone: "info" })
+  .edge("mobile", "gcal", { label: "sync", tone: "info" })
+  .edge("gcal", "db", { label: "永続化", tone: "success" })
+  .edge("db", "gateway", { label: "trigger", tone: "accent" })
+  .edge("gateway", "release", { label: "launch 準備", tone: "warning" })
+  .readout.calendarMonth("cm", { source: "days", monthName: "2026 年 1 月", color: "#2563eb", label: "月間予定 view" })
+  .readout.gauge("fillG", { source: "fillRate", min: 0, max: 100, color: "#22c55e", label: "予定埋まり率 %" })
+  .readout.countup("doneCU", { source: "doneEvents", unit: " 件", label: "完了 event", decimals: 0 })
+  .readout.stat("remStat", { source: "remainingEvents", unit: " 件", caption: "残 event", label: "残" })
+  .phase("p1", {
+    duration: 1800,
+    title: "月初計画",
+    body: "1/1 佐藤様が 1 月の event 6 件を Google Calendar に登録 (Jan 3/8/12/17/22/26)。 fillRate 0 → 25 tween、 doneEvents 0、 remainingEvents 6 保持、 pm + gcal lane active。",
+  }, (p: PhaseBuilder) => p.activate("pm", "mobile", "gcal").tween("fillRate", 0, 25).set("doneEvents", 0).set("remainingEvents", 6).badge("計画"))
+  .phase("p2", {
+    duration: 2200,
+    title: "中間確認 (1/13 today)",
+    body: "月中旬に進捗確認、 2 件完了 (Jan 3, 8)。 fillRate 25 → 50 tween、 doneEvents 0 → 2 tween (countup 加算)、 remainingEvents 6 → 4 tween (stat 減少)、 db lane activate、 calendar に today (13 日) highlight。",
+  }, (p: PhaseBuilder) => p.activate("pm", "mobile", "gcal", "db").tween("fillRate", 25, 50).tween("doneEvents", 0, 2).tween("remainingEvents", 6, 4).badge("中間"))
+  .phase("p3", {
+    duration: 2200,
+    title: "週次 review (1/22)",
+    body: "第 3 週 review、 Jan 12/17 追加完了で 4 件済。 fillRate 50 → 75 tween、 doneEvents 2 → 4 tween、 remainingEvents 4 → 2 tween (Jan 22/26 のみ残)、 gateway lane activate、 Slack / Jira 連動。",
+  }, (p: PhaseBuilder) => p.activate("pm", "mobile", "gcal", "db", "gateway").tween("fillRate", 50, 75).tween("doneEvents", 2, 4).tween("remainingEvents", 4, 2).badge("週次"))
+  .phase("p4", {
+    duration: 2000,
+    title: "月末振返り (1/31 launch)",
+    body: "1/31 に全 6 event 完遂 → Q1 launch。 fillRate 75 → 100 tween (gauge 針最上位)、 doneEvents 4 → 6 tween (countup 最終)、 remainingEvents 2 → 0 tween (stat 空)、 release lane activate、 6 shape 全 active、 launch 到達。",
+  }, (p: PhaseBuilder) => p.activate("pm", "mobile", "gcal", "db", "gateway", "release").tween("fillRate", 75, 100).tween("doneEvents", 4, 6).tween("remainingEvents", 2, 0).badge("振返り"))
   .build();
 
 /**
