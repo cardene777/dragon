@@ -973,11 +973,15 @@ const cases = [
   },
   {
     diagramId: "interactive-audio-player",
-    label: "media-player: 01:05 (65s) 現在時刻表示",
+    label: "audio-player v2: 6 shape (listener / phone / spotify / cdn / adNet / analytics) 描画",
     setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const t = await page.$eval('[data-cdl-readout="mp"] .cdl-ip-readout-media-player-time-current', (el) => el.textContent ?? "");
-      return { actual: /01:05/.test(t), expected: true };
+      const ids = ["listener", "phone", "spotify", "cdn", "adNet", "analytics"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {
