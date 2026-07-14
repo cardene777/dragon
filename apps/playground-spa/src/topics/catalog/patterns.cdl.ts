@@ -366,3 +366,153 @@ export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", 
     body: "profileSvc が 200 OK + 更新後 profile を Client に返却、 app UI に反映。 writeProgress 85 → 100 tween (gauge 針最上位)、 procSec 6 → 7 tween、 cacheHit 82 → 88 tween (再 populate)、 6 shape 全 active、 profile 更新 cycle 完遂。",
   }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache").tween("writeProgress", 85, 100).tween("procSec", 6, 7).tween("cacheHit", 82, 88).badge("confirm"))
   .build();
+
+/**
+ * 16. patternEmitOrderCreated v2 = pattern 4 Emit Event の business scenario 拡張 (EC 注文確定で OrderCreated event を emit → 複数 subscriber (メール / 在庫 / 分析) に fan-out)、 shape-person + shape-mobile-device + shape-online-shop + shape-stack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (注文確定 → event emit → bus 中継 → subscriber 処理) + 4 readout (gauge 配信率 / countup 累計 event / stat subscriber 数 / stat latency ms) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 4 の抽象 patternEmit と並置。
+ */
+export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
+  topic: "pattern 4 Emit Event business scenario = EC 注文確定で OrderCreated event を emit → subscribers に fan-out する 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("client", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("deliveryRate", { initial: 0 })
+  .state("eventCount", { initial: 8642 })
+  .state("subCount", { initial: 3 })
+  .state("latency", { initial: 0 })
+  .node("buyer", { lane: "client", stack: 0, kind: "shape-person", title: "buyer 桂様", eyebrow: "customer", subtitle: "商品購入者" })
+  .node("phone", { lane: "client", stack: 1, kind: "shape-mobile-device", title: "iPhone EC app", eyebrow: "device", subtitle: "checkout 完了 → OrderCreated" })
+  .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC service", eyebrow: "shop", subtitle: "processOrder() で event emit" })
+  .node("bus", { lane: "service", stack: 1, kind: "shape-stack", title: "event bus (Kafka)", eyebrow: "bus", subtitle: "OrderCreated topic + 3 subscriber" })
+  .node("subscribers", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "3 subscriber", eyebrow: "sub", subtitle: "email / inventory / analytics" })
+  .node("eventLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "event log DB", eyebrow: "storage", subtitle: "全 event 履歴 + audit" })
+  .edge("buyer", "phone", { label: "checkout", tone: "info" })
+  .edge("phone", "shop", { label: "commit", tone: "info" })
+  .edge("shop", "bus", { label: "emit", tone: "success" })
+  .edge("bus", "subscribers", { label: "fan-out", tone: "accent" })
+  .edge("bus", "eventLog", { label: "persist", tone: "success" })
+  .readout.gauge("delG", { source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信率 %" })
+  .readout.countup("evCU", { source: "eventCount", unit: " 件", label: "累計 event", decimals: 0 })
+  .readout.stat("subStat", { source: "subCount", unit: " sub", caption: "subscriber", label: "sub" })
+  .readout.stat("latStat", { source: "latency", unit: " ms", caption: "latency", label: "latency" })
+  .phase("p1", {
+    duration: 1500,
+    title: "注文確定",
+    body: "桂様が checkout 完了、 shop で processOrder() 実行 (order DB 保存 + event 発火準備)。 deliveryRate 0 keep、 eventCount 8642 keep、 subCount 3 keep、 latency 0 → 2 tween、 buyer + phone + shop lane active。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("latency", 0, 2).badge("確定"))
+  .phase("p2", {
+    duration: 1800,
+    title: "event emit",
+    body: "shop が OrderCreated event を bus に emit、 orderId + userId + total を payload に含む。 deliveryRate 0 → 30 tween、 eventCount 8642 → 8643 tween、 latency 2 → 5 tween、 bus lane activate。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus").tween("deliveryRate", 0, 30).tween("eventCount", 8642, 8643).tween("latency", 2, 5).badge("emit"))
+  .phase("p3", {
+    duration: 2000,
+    title: "bus 中継 + fan-out",
+    body: "Kafka bus が OrderCreated topic を 3 subscriber (email / inventory / analytics) に fan-out。 deliveryRate 30 → 90 tween、 latency 5 → 12 tween、 subscribers lane activate、 3 並列配信。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers").tween("deliveryRate", 30, 90).tween("latency", 5, 12).badge("fan-out"))
+  .phase("p4", {
+    duration: 2000,
+    title: "subscriber 処理 + log",
+    body: "各 subscriber が独立処理 (メール送信 / 在庫減算 / 分析集計)、 eventLog に event 履歴永続化。 deliveryRate 90 → 100 tween (gauge 針最上位)、 latency 12 → 18 tween、 eventLog lane activate、 6 shape 全 active、 event 配信 cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "bus", "subscribers", "eventLog").tween("deliveryRate", 90, 100).tween("latency", 12, 18).badge("処理"))
+  .build();
+
+/**
+ * 17. patternHookWebhook v2 = pattern 5 Hook callback の business scenario 拡張 (SaaS 側で顧客の webhook endpoint に受信可否を確認しながら delivery)、 shape-server-rack + shape-cloud + shape-api-gateway + shape-website + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (delivery 準備 → hook 送信 → 顧客側検証 → 受信確定) + 4 readout (gauge success 率 / countup 累計 delivery / stat retry 回数 / stat 平均 ack ms) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 5 の抽象 patternHook と並置。
+ */
+export const patternHookWebhook = diagram("pattern-hook-webhook", {
+  topic: "pattern 5 Hook callback business scenario = SaaS が顧客 webhook endpoint に受信確認しながら deliver する 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("saas", { x: 0, width: 220 })
+  .lane("bridge", { x: 240, width: 320 })
+  .lane("customer", { x: 580, width: 240 })
+  .state("successRate", { initial: 0 })
+  .state("deliveryCount", { initial: 15234 })
+  .state("retryNum", { initial: 0 })
+  .state("ackMs", { initial: 0 })
+  .node("saasSvr", { lane: "saas", stack: 0, kind: "shape-server-rack", title: "SaaS notification svc", eyebrow: "saas", subtitle: "顧客 webhook subscribers 管理" })
+  .node("scheduler", { lane: "saas", stack: 1, kind: "shape-cloud", title: "delivery scheduler", eyebrow: "scheduler", subtitle: "retry policy + backoff" })
+  .node("egress", { lane: "bridge", stack: 0, kind: "shape-api-gateway", title: "outbound gateway", eyebrow: "egress", subtitle: "HTTPS + signature 署名" })
+  .node("healthCheck", { lane: "bridge", stack: 1, kind: "shape-iot-sensor", title: "endpoint health probe", eyebrow: "probe", subtitle: "顧客 endpoint 可用性 15s check" })
+  .node("customerEp", { lane: "customer", stack: 0, kind: "shape-website", title: "customer webhook endpoint", eyebrow: "endpoint", subtitle: "POST /hooks/order (顧客側実装)" })
+  .node("deliveryLog", { lane: "customer", stack: 1, kind: "shape-cylinder", title: "delivery log", eyebrow: "storage", subtitle: "顧客別 delivery + ack 履歴" })
+  .edge("saasSvr", "scheduler", { label: "queue", tone: "info" })
+  .edge("scheduler", "egress", { label: "dispatch", tone: "info" })
+  .edge("egress", "customerEp", { label: "POST + hook", tone: "accent" })
+  .edge("healthCheck", "customerEp", { label: "health probe", tone: "info" })
+  .edge("egress", "deliveryLog", { label: "log ack", tone: "success" })
+  .readout.gauge("sucG", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "success 率 %" })
+  .readout.countup("delCU", { source: "deliveryCount", unit: " 件", label: "累計配信", decimals: 0 })
+  .readout.stat("retryStat", { source: "retryNum", unit: " 回", caption: "retry", label: "retry" })
+  .readout.stat("ackStat", { source: "ackMs", unit: " ms", caption: "平均 ack", label: "ack" })
+  .phase("p1", {
+    duration: 1500,
+    title: "delivery 準備",
+    body: "SaaS 側で顧客向け notification 発生、 scheduler に queue 投入 + retry policy 適用。 successRate 0 keep、 deliveryCount 15234 keep、 retryNum 0 keep、 ackMs 0 keep、 saasSvr + scheduler lane active。",
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler").badge("準備"))
+  .phase("p2", {
+    duration: 1800,
+    title: "hook 送信",
+    body: "scheduler → outbound gateway → 顧客 endpoint に POST + signature 署名、 healthCheck で事前可用性確認。 successRate 0 → 40 tween、 deliveryCount 15234 → 15235 tween、 ackMs 0 → 80 tween、 egress + healthCheck lane activate。",
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck").tween("successRate", 0, 40).tween("deliveryCount", 15234, 15235).tween("ackMs", 0, 80).badge("送信"))
+  .phase("p3", {
+    duration: 2000,
+    title: "顧客側検証",
+    body: "顧客 webhook endpoint (onReceive hook) が signature 検証 + 受信可否判定、 一時的な 5xx で 1 回 retry 発火。 successRate 40 → 75 tween、 retryNum 0 → 1 tween、 ackMs 80 → 220 tween、 customerEp lane activate。",
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp").tween("successRate", 40, 75).tween("retryNum", 0, 1).tween("ackMs", 80, 220).badge("検証"))
+  .phase("p4", {
+    duration: 2000,
+    title: "受信確定 + log",
+    body: "retry で 2xx ack 受信、 deliveryLog に成功記録、 SaaS 側 delivery status 更新。 successRate 75 → 98 tween (gauge 針最上位)、 retryNum 1 keep、 ackMs 220 → 250 tween、 deliveryLog lane activate、 6 shape 全 active、 webhook delivery cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("saasSvr", "scheduler", "egress", "healthCheck", "customerEp", "deliveryLog").tween("successRate", 75, 98).tween("ackMs", 220, 250).badge("受信"))
+  .build();
+
+/**
+ * 18. patternBranchAuthzCheck v2 = pattern 6 Branch (条件分岐) の business scenario 拡張 (SaaS 認可判定 = role check → allow / deny 分岐)、 shape-person + shape-mobile-device + shape-api-gateway + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (request → role check → allow 経路 → deny + audit) + 4 readout (gauge allow 率 / countup deny 累計 / stat 平均判定 ms / stat 監査 log 件数) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 6 の抽象 patternBranch と並置。
+ */
+export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
+  topic: "pattern 6 Branch business scenario = SaaS 認可判定 (role check → allow / deny 分岐) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("allowRate", { initial: 100 })
+  .state("denyCount", { initial: 87 })
+  .state("checkMs", { initial: 0 })
+  .state("auditLogs", { initial: 12451 })
+  .node("user", { lane: "user", stack: 0, kind: "shape-person", title: "SaaS user 三宅様", eyebrow: "user", subtitle: "role: editor · admin 権限なし" })
+  .node("app", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "SaaS web app", eyebrow: "device", subtitle: "DELETE /projects/{id} 実行" })
+  .node("authz", { lane: "service", stack: 0, kind: "shape-api-gateway", title: "authz middleware", eyebrow: "authz", subtitle: "role + policy 評価" })
+  .node("apiSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "project API", eyebrow: "api", subtitle: "allow 時のみ実行 / deny 時 403" })
+  .node("policyDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "policy DB", eyebrow: "policy", subtitle: "role → resource → action grant map" })
+  .node("auditSink", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "audit log sink", eyebrow: "audit", subtitle: "allow / deny 全 event 記録" })
+  .edge("user", "app", { label: "DELETE 試行", tone: "info" })
+  .edge("app", "authz", { label: "role check", tone: "info" })
+  .edge("authz", "policyDb", { label: "lookup", tone: "success" })
+  .edge("authz", "apiSvc", { label: "allow (true)", tone: "success" })
+  .edge("authz", "auditSink", { label: "deny (false) + log", tone: "error" })
+  .readout.gauge("alwG", { source: "allowRate", min: 0, max: 100, color: "#22c55e", label: "allow 率 %" })
+  .readout.countup("denyCU", { source: "denyCount", unit: " 件", label: "deny 累計", decimals: 0 })
+  .readout.stat("chStat", { source: "checkMs", unit: " ms", caption: "判定時間", label: "check" })
+  .readout.stat("audStat", { source: "auditLogs", unit: " 件", caption: "監査 log", label: "audit" })
+  .phase("p1", {
+    duration: 1500,
+    title: "request",
+    body: "三宅様が DELETE /projects/42 実行、 authz middleware に到達。 allowRate 100 keep、 denyCount 87 keep、 checkMs 0 → 2 tween、 auditLogs 12451 → 12452 tween、 user + app + authz lane active。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz").tween("checkMs", 0, 2).tween("auditLogs", 12451, 12452).badge("request"))
+  .phase("p2", {
+    duration: 1800,
+    title: "role check",
+    body: "authz が policyDb を lookup、 三宅様の role (editor) と DELETE action の grant を評価。 allowRate 100 → 88 tween (editor DELETE 不可判定)、 checkMs 2 → 6 tween、 policyDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb").tween("allowRate", 100, 88).tween("checkMs", 2, 6).badge("check"))
+  .phase("p3", {
+    duration: 2000,
+    title: "deny 経路",
+    body: "policy 評価結果 = deny (editor は DELETE 権限なし)、 apiSvc は呼ばず 403 Forbidden 即座返却。 allowRate 88 keep (denied で分岐)、 denyCount 87 → 88 tween、 checkMs 6 → 9 tween、 分岐 edge error 発火。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb").tween("denyCount", 87, 88).tween("checkMs", 6, 9).badge("deny"))
+  .phase("p4", {
+    duration: 2000,
+    title: "audit log + notify",
+    body: "auditSink に deny event 記録 + SecOps に高頻度 deny alert 通知、 apiSvc は不動作 (safe)。 allowRate 88 keep、 denyCount 88 keep、 checkMs 9 → 10 tween、 auditLogs 12452 → 12453 tween、 auditSink + apiSvc lane activate (apiSvc は inactive 表示)、 6 shape 全 active、 authz cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "apiSvc", "auditSink").tween("checkMs", 9, 10).tween("auditLogs", 12452, 12453).badge("audit"))
+  .build();
