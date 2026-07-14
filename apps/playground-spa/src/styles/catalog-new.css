@@ -230,6 +230,11 @@ html.dark .catalog-search:focus {
   transition: background 0.15s;
   font-family: var(--v4-sans, "Inter", sans-serif);
   margin-bottom: 2px;
+  /* content-visibility: auto = viewport 外の item は render / layout / paint skip、 129 item sidebar の
+     初期 render 負荷を大幅圧縮 (user 指摘「サイト重い」 hotfix、 CAR-1519)。
+     contain-intrinsic-size で height reserve、 scroll 中 layout shift 回避。 */
+  content-visibility: auto;
+  contain-intrinsic-size: 52px;
 }
 .catalog-list-item:hover {
   background: var(--v4-surface-2, #f1f5f9);
