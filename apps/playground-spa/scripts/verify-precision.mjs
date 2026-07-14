@@ -795,18 +795,15 @@ const cases = [
   },
   {
     diagramId: "interactive-deploy-spinner",
-    label: "spinner: dropdown で done → data-cdl-status=done",
-    setup: async (page) => {
-      const sel = await page.$('select[data-cdl-input="status"]');
-      if (sel) {
-        await sel.selectOption("done");
-        await sel.dispatchEvent("change");
-      }
-      await page.waitForTimeout(500);
-    },
+    label: "deploy-spinner v2: 6 shape (engineer / laptop / cluster / registry / cdn / slack) 描画",
+    setup: async (page) => { await page.waitForTimeout(300); },
     assert: async (page) => {
-      const status = await page.$eval('[data-cdl-readout="sp"]', (el) => el.getAttribute("data-cdl-status"));
-      return { actual: status === "done", expected: true };
+      const ids = ["engineer", "laptop", "cluster", "registry", "cdn", "slack"];
+      const found = await page.$$eval("[data-cdl-node]", (els, ids) => {
+        const seen = new Set(els.map((e) => e.getAttribute("data-cdl-node")));
+        return ids.filter((id) => seen.has(id)).length;
+      }, ids);
+      return { actual: found, expected: 6 };
     },
   },
   {
