@@ -223,7 +223,6 @@ export const ITEM_NAME_JA: Record<string, string> = {
   mixedTweenSet: "補間と切替の併用",
   tweenChain: "連続補間",
   // === iter 9 wave 9-C incremental debug ===
-  richPipelineDemo: "リッチ演出パイプラインデモ",
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",
   animationSprintProgress: "2週間スプリントの進捗",
