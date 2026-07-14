@@ -3068,16 +3068,14 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
   .build();
 
 /**
- * 84. commit-list = recent git commits を 5 rows 表示。
+ * 84. gitCommitList v2 = OSS プロジェクト 週次リリース 直前の commit review 4 phase シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-hexagon の 6 shape で visual scene 化、 4 phase (週初 commit 発生 → 中盤集約 → release 直前 review → tag 発行) + 4 readout (commitList / gauge リリース準備度 / countup commit 数 / stat contributor 数) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const gitCommitList = diagram("interactive-git-commits", {
-  topic: "5 git commit を 5-lane (feat / fix / docs / refactor / test) commit type 別分散、 各 commit 個別 card、 commitList readout 併存",
+  topic: "OSS 週次リリース commit review 4 phase = (発生 → 集約 → review → tag) の flow を shape-* primitive 6 種で表現 + 4 readout (commitList / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("feat", { x: 0, width: 150 })
-  .lane("fix", { x: 170, width: 150 })
-  .lane("docs", { x: 340, width: 150 })
-  .lane("refactor", { x: 510, width: 150 })
-  .lane("test", { x: 680, width: 150 })
+  .lane("dev", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("release", { x: 580, width: 220 })
   .arraySignal("commits", [
     ["a1b2c3d", "feat: add sankey primitive", "Alice"],
     ["e5f6g7h", "fix: circular gauge angle bug", "Bob"],
@@ -3085,44 +3083,98 @@ export const gitCommitList = diagram("interactive-git-commits", {
     ["m3n4o5p", "refactor: extract widget dispatcher", "Dan"],
     ["q7r8s9t", "test: add builder chain coverage", "Eve"],
   ] as unknown as (string | number)[])
-  .node("featNode", { lane: "feat", stack: 0, kind: "card", title: "feat", subtitle: "a1b2c3d · Alice · sankey" })
-  .node("fixNode", { lane: "fix", stack: 0, kind: "card", title: "fix", subtitle: "e5f6g7h · Bob · gauge angle" })
-  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "docs", subtitle: "i9j0k1l · Carol · SKILL.md" })
-  .node("refactorNode", { lane: "refactor", stack: 0, kind: "card", title: "refactor", subtitle: "m3n4o5p · Dan · dispatcher" })
-  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "test", subtitle: "q7r8s9t · Eve · builder" })
-  .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "History (git log)" })
-  .phase("p", {
-    duration: 1200,
-    title: "commit type split",
-    body: "5-lane (feat / fix / docs / refactor / test) で 5 commit を type prefix 別分散、 各 commit 個別 card で sha + author + summary 明示、 commitList readout も併存で 3 column layout、 commit 分類と history の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("featNode", "fixNode", "docsNode", "refactorNode", "testNode").badge("git"))
+  .state("readiness", { initial: 0 })
+  .state("commitCount", { initial: 0 })
+  .state("contributors", { initial: 0 })
+  .node("maintainer", { lane: "dev", stack: 0, kind: "shape-person", title: "maintainer 田村様", eyebrow: "lead", subtitle: "週次 release 責任者" })
+  .node("laptop", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "GitHub CLI", eyebrow: "device", subtitle: "gh pr list + review" })
+  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHub repo", eyebrow: "vcs", subtitle: "PR 一覧 + commit history" })
+  .node("ci", { lane: "system", stack: 1, kind: "shape-server-rack", title: "CI (Actions)", eyebrow: "build", subtitle: "全 PR で verify chain 実行" })
+  .node("log", { lane: "system", stack: 2, kind: "shape-cylinder", title: "commit log DB", eyebrow: "storage", subtitle: "conventional commits 分類" })
+  .node("release", { lane: "release", stack: 0, kind: "shape-hexagon", title: "release tag", eyebrow: "milestone", subtitle: "v0.42.0 tag 発行" })
+  .edge("maintainer", "laptop", { label: "review", tone: "info" })
+  .edge("laptop", "github", { label: "gh pr", tone: "info" })
+  .edge("github", "ci", { label: "trigger", tone: "success" })
+  .edge("ci", "log", { label: "分類記録", tone: "accent" })
+  .edge("log", "release", { label: "changelog 生成", tone: "warning" })
+  .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "recent commits 5 件" })
+  .readout.gauge("readyG", { source: "readiness", min: 0, max: 100, color: "#22c55e", label: "release 準備度 %" })
+  .readout.countup("commCU", { source: "commitCount", unit: " 件", label: "本週 commit 数", decimals: 0 })
+  .readout.stat("contribStat", { source: "contributors", unit: " 名", caption: "contributor 数", label: "貢献" })
+  .phase("p1", {
+    duration: 1800,
+    title: "週初 commit 発生 (月)",
+    body: "月曜 8 名の contributor が feat / fix commit を push。 readiness 0 → 20 tween、 commitCount 0 → 12 tween (countup 加算)、 contributors 0 → 4 tween、 dev + github lane active。",
+  }, (p: PhaseBuilder) => p.activate("maintainer", "laptop", "github").tween("readiness", 0, 20).tween("commitCount", 0, 12).tween("contributors", 0, 4).badge("週初"))
+  .phase("p2", {
+    duration: 2200,
+    title: "中盤集約 (水)",
+    body: "水曜 CI が全 PR verify chain 実行、 rebase + squash 完了。 readiness 20 → 55 tween、 commitCount 12 → 28 tween、 contributors 4 → 7 tween、 ci lane activate、 test + docs commit 集約。",
+  }, (p: PhaseBuilder) => p.activate("maintainer", "laptop", "github", "ci").tween("readiness", 20, 55).tween("commitCount", 12, 28).tween("contributors", 4, 7).badge("集約"))
+  .phase("p3", {
+    duration: 2400,
+    title: "release 直前 review (金)",
+    body: "田村様が 5 recent commit を conventional commits 分類、 changelog draft 生成。 readiness 55 → 85 tween、 commitCount 28 → 42 tween、 contributors 7 → 8 tween、 log lane activate、 feat/fix/docs/refactor/test の 5 分類確定。",
+  }, (p: PhaseBuilder) => p.activate("maintainer", "laptop", "github", "ci", "log").tween("readiness", 55, 85).tween("commitCount", 28, 42).tween("contributors", 7, 8).badge("review"))
+  .phase("p4", {
+    duration: 2000,
+    title: "tag 発行 (金曜夜)",
+    body: "全 verify 通過 → v0.42.0 tag 発行 + release note 公開。 readiness 85 → 100 tween (gauge 針最上位、 release ready)、 commitCount 42 → 45 tween (最終)、 contributors 8 → 8 保持、 release lane activate、 6 shape 全 active、 週次 release 完遂。",
+  }, (p: PhaseBuilder) => p.activate("maintainer", "laptop", "github", "ci", "log", "release").tween("readiness", 85, 100).tween("commitCount", 42, 45).badge("tag"))
   .build();
 
 /**
- * 85. media-player = audio player、 slider で current time、 toggle で play/pause。
+ * 85. audioPlayer v2 = ポッドキャスト リスナーの朝の通勤時間 4 phase 聴取シナリオ (播放 → CM insert → skip → 完聴)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-warehouse + shape-hexagon の 6 shape で visual scene 化、 4 phase (再生開始 → CM 挿入 → 続き再生 → 完聴保存) + 4 readout (mediaPlayer / gauge 再生進捗 / countup total minutes / stat skip 数) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const audioPlayer = diagram("interactive-audio-player", {
-  topic: "audio player を 3-lane (Current time / Play toggle / Duration) + 2 edge、 signal 制御と mediaPlayer readout の bind 関係可視化",
+  topic: "ポッドキャスト通勤聴取 4 phase = (再生 → CM → skip → 完聴) の flow を shape-* primitive 6 種で表現 + 4 readout (mediaPlayer / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("current", { x: 0, width: 220 })
-  .lane("toggle", { x: 260, width: 200 })
-  .lane("duration", { x: 500, width: 220 })
-  .input.slider("current", { min: 0, max: 240, defaultValue: 65, label: "Current sec" })
-  .input.toggle("playing", { defaultValue: true, label: "Playing" })
-  .state("current", { initial: 65 })
+  .lane("listener", { x: 0, width: 220 })
+  .lane("platform", { x: 240, width: 320 })
+  .lane("data", { x: 580, width: 220 })
+  .state("current", { initial: 0 })
   .state("duration", { initial: 240 })
   .state("playing", { initial: "true" })
-  .node("currentNode", { lane: "current", stack: 0, kind: "card", title: "Current time", subtitle: "{current}s / 240s (slider driven)" })
-  .node("toggleNode", { lane: "toggle", stack: 0, kind: "card", title: "Play toggle", subtitle: "playing = {playing} (▶/❚❚ icon)" })
-  .node("durationNode", { lane: "duration", stack: 0, kind: "card", title: "Duration", subtitle: "240s total (fixed)" })
-  .edge("currentNode", "durationNode", { label: "progress %", tone: "info" })
-  .edge("toggleNode", "currentNode", { label: "advance/pause", tone: "success" })
-  .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player (icon + progress + MM:SS)" })
-  .phase("p", {
-    duration: 1200,
-    title: "player signal flow",
-    body: "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。",
-  }, (p: PhaseBuilder) => p.activate("currentNode", "toggleNode", "durationNode").badge("media"))
+  .state("progressPct", { initial: 0 })
+  .state("totalMin", { initial: 4820 })
+  .state("skipCount", { initial: 0 })
+  .node("listener", { lane: "listener", stack: 0, kind: "shape-person", title: "リスナー 齋藤様", eyebrow: "user", subtitle: "朝の通勤中に聴取" })
+  .node("phone", { lane: "listener", stack: 1, kind: "shape-mobile-device", title: "iPhone Spotify", eyebrow: "device", subtitle: "streaming + offline" })
+  .node("spotify", { lane: "platform", stack: 0, kind: "shape-cloud", title: "Spotify service", eyebrow: "streaming", subtitle: "podcast catalog + player API" })
+  .node("cdn", { lane: "platform", stack: 1, kind: "shape-server-rack", title: "audio CDN", eyebrow: "cdn", subtitle: "AAC 128k stream 配信" })
+  .node("adNet", { lane: "platform", stack: 2, kind: "shape-warehouse", title: "広告 network", eyebrow: "ad", subtitle: "dynamic CM 挿入 · 30s spot" })
+  .node("analytics", { lane: "data", stack: 0, kind: "shape-hexagon", title: "listener analytics", eyebrow: "tracking", subtitle: "再生履歴 + skip 集計" })
+  .edge("listener", "phone", { label: "操作", tone: "info" })
+  .edge("phone", "spotify", { label: "GET stream", tone: "info" })
+  .edge("spotify", "cdn", { label: "audio 配信", tone: "success" })
+  .edge("spotify", "adNet", { label: "CM 要求", tone: "warning" })
+  .edge("adNet", "cdn", { label: "CM insert", tone: "warning" })
+  .edge("cdn", "phone", { label: "audio stream", tone: "success" })
+  .edge("phone", "analytics", { label: "event 送信", tone: "accent" })
+  .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 340, label: "podcast player" })
+  .readout.gauge("progG", { source: "progressPct", min: 0, max: 100, color: "#22c55e", label: "再生進捗 %" })
+  .readout.countup("minCU", { source: "totalMin", unit: " 分", label: "累計聴取時間", decimals: 0 })
+  .readout.stat("skipStat", { source: "skipCount", unit: " 回", caption: "本 episode skip", label: "skip" })
+  .phase("p1", {
+    duration: 1800,
+    title: "再生開始 (0-60s)",
+    body: "齋藤様が iPhone で 4 分の podcast episode 再生開始。 current 0 → 60 tween、 progressPct 0 → 25 tween (gauge 針上昇)、 totalMin 4820 → 4821 tween (countup 加算)、 skipCount 0、 listener + phone + spotify + cdn lane active。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "spotify", "cdn").set("playing", "true").tween("current", 0, 60).tween("progressPct", 0, 25).tween("totalMin", 4820, 4821).badge("再生"))
+  .phase("p2", {
+    duration: 2200,
+    title: "CM 挿入 (60-90s)",
+    body: "60s で dynamic CM 30s 挿入、 listener やや不快。 current 60 → 90 tween、 progressPct 25 → 37 tween (CM 部分含む)、 totalMin 4821 保持、 skipCount 0、 adNet lane activate。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "spotify", "cdn", "adNet").tween("current", 60, 90).tween("progressPct", 25, 37).badge("CM"))
+  .phase("p3", {
+    duration: 2400,
+    title: "続き再生 + skip (90-180s)",
+    body: "CM 終了 → 本編再開、 途中で興味薄い部分 15s skip。 current 90 → 180 tween、 progressPct 37 → 75 tween、 totalMin 4821 → 4823 tween (2 min 追加)、 skipCount 0 → 1 tween (stat 加算)、 analytics lane activate。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "spotify", "cdn", "adNet", "analytics").tween("current", 90, 180).tween("progressPct", 37, 75).tween("totalMin", 4821, 4823).tween("skipCount", 0, 1).badge("skip"))
+  .phase("p4", {
+    duration: 2000,
+    title: "完聴 (180-240s)",
+    body: "残 60s 完聴、 episode 完了で lock screen 通知。 current 180 → 240 tween (mediaPlayer 100%)、 progressPct 75 → 100 tween (gauge 針最上位)、 playing = 'false' (再生停止)、 totalMin 4823 → 4824 tween (最終)、 skipCount 1 保持、 6 shape 全 active、 完聴 event 記録。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "spotify", "cdn", "adNet", "analytics").set("playing", "false").tween("current", 180, 240).tween("progressPct", 75, 100).tween("totalMin", 4823, 4824).badge("完聴"))
   .build();
 
 /**
@@ -3589,14 +3641,14 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   .build();
 
 /**
- * 97. terminal = CLI session output、 5 command history。
+ * 97. cliTerminalSession v2 = 開発者 朝の start-up ritual 4 phase シナリオ (repo 更新 → status 確認 → test 実行 → container 起動)、 shape-person + shape-mobile-device + shape-terminal + shape-server-rack + shape-gear + shape-cloud の 6 shape で visual scene 化、 4 phase (repo 更新 → git status → pnpm test → docker up) + 4 readout (terminal / gauge 環境準備度 / countup 実行 cmd 数 / stat 起動時間) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const cliTerminalSession = diagram("interactive-cli-terminal", {
-  topic: "CLI 5 command を 3-lane (Filesystem / Git / Dev) tool category 別分散、 各 command 個別 card、 terminal readout 併存",
+  topic: "開発者朝 CLI ritual 4 phase = (repo 更新 → status → test → docker) の flow を shape-* primitive 6 種で表現 + 4 readout (terminal / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("fs", { x: 0, width: 220 })
-  .lane("git", { x: 260, width: 220 })
-  .lane("dev", { x: 520, width: 220 })
+  .lane("dev", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 340 })
+  .lane("service", { x: 600, width: 220 })
   .arraySignal("cmds", [
     ["$", "ls -la", "total 42\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"],
     ["$", "cd projects", ""],
@@ -3604,17 +3656,44 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
     ["$", "pnpm test", "Test Files  114 passed\nTests  1649 passed"],
     ["$", "docker ps", "CONTAINER ID   IMAGE\n8f3a2b1c9d   nginx:latest"],
   ] as unknown as (string | number)[])
-  .node("lsNode", { lane: "fs", stack: 0, kind: "card", title: "ls -la", subtitle: "filesystem · list files" })
-  .node("cdNode", { lane: "fs", stack: 1, kind: "card", title: "cd projects", subtitle: "filesystem · change dir" })
-  .node("gitStatusNode", { lane: "git", stack: 0, kind: "card", title: "git status", subtitle: "git · branch state" })
-  .node("pnpmNode", { lane: "dev", stack: 0, kind: "card", title: "pnpm test", subtitle: "dev · 114 files · 1649 tests" })
-  .node("dockerNode", { lane: "dev", stack: 1, kind: "card", title: "docker ps", subtitle: "dev · container list" })
-  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "Session (CLI window)" })
-  .phase("p", {
-    duration: 1200,
-    title: "command category split",
-    body: "3-lane (Filesystem ls+cd / Git status / Dev pnpm+docker) で 5 CLI command を tool category 別分散、 各 command 個別 card で用途 + summary 明示、 terminal readout も併存で CLI window 表示、 category 分類と session の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("lsNode", "cdNode", "gitStatusNode", "pnpmNode", "dockerNode").badge("CLI"))
+  .state("readiness", { initial: 0 })
+  .state("cmdCount", { initial: 0 })
+  .state("elapsedSec", { initial: 0 })
+  .node("dev", { lane: "dev", stack: 0, kind: "shape-person", title: "developer 塩見様", eyebrow: "engineer", subtitle: "09:00 開発準備開始" })
+  .node("laptop", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "MacBook Pro", eyebrow: "device", subtitle: "M3 Max · macOS Sonoma" })
+  .node("terminal", { lane: "system", stack: 0, kind: "shape-terminal", title: "iTerm2 session", eyebrow: "shell", subtitle: "zsh + Oh My Zsh" })
+  .node("repoServer", { lane: "system", stack: 1, kind: "shape-server-rack", title: "GitHub SSH", eyebrow: "vcs", subtitle: "git pull で最新反映" })
+  .node("engine", { lane: "system", stack: 2, kind: "shape-gear", title: "pnpm engine", eyebrow: "runtime", subtitle: "workspace 依存解決" })
+  .node("docker", { lane: "service", stack: 0, kind: "shape-cloud", title: "Docker Desktop", eyebrow: "container", subtitle: "local 開発 stack 3 container" })
+  .edge("dev", "laptop", { label: "操作", tone: "info" })
+  .edge("laptop", "terminal", { label: "shell 起動", tone: "info" })
+  .edge("terminal", "repoServer", { label: "git pull", tone: "success" })
+  .edge("terminal", "engine", { label: "pnpm exec", tone: "accent" })
+  .edge("terminal", "docker", { label: "docker up", tone: "success" })
+  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "shell session (CLI)" })
+  .readout.gauge("readyG", { source: "readiness", min: 0, max: 100, color: "#22c55e", label: "環境準備度 %" })
+  .readout.countup("cmdCU", { source: "cmdCount", unit: " 件", label: "実行 cmd", decimals: 0 })
+  .readout.stat("timeStat", { source: "elapsedSec", unit: " 秒", caption: "起動から", label: "elapsed" })
+  .phase("p1", {
+    duration: 1800,
+    title: "repo 更新 (ls + cd)",
+    body: "塩見様が terminal 起動 → 作業 dir 移動。 readiness 0 → 15 tween、 cmdCount 0 → 2 tween (ls + cd)、 elapsedSec 0 → 5 tween、 dev + laptop + terminal lane active。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "terminal").tween("readiness", 0, 15).tween("cmdCount", 0, 2).tween("elapsedSec", 0, 5).badge("repo"))
+  .phase("p2", {
+    duration: 2200,
+    title: "git status (clean 確認)",
+    body: "git status で main branch clean 確認、 SSH 経由で GitHub から latest 反映。 readiness 15 → 45 tween、 cmdCount 2 → 3 tween、 elapsedSec 5 → 15 tween、 repoServer lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "terminal", "repoServer").tween("readiness", 15, 45).tween("cmdCount", 2, 3).tween("elapsedSec", 5, 15).badge("git"))
+  .phase("p3", {
+    duration: 2400,
+    title: "pnpm test (verify 走行)",
+    body: "全 114 test file 実行、 1649 test pass。 readiness 45 → 75 tween、 cmdCount 3 → 4 tween、 elapsedSec 15 → 90 tween (verify に 75s)、 engine lane activate、 pnpm workspace 依存解決。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "terminal", "repoServer", "engine").tween("readiness", 45, 75).tween("cmdCount", 3, 4).tween("elapsedSec", 15, 90).badge("test"))
+  .phase("p4", {
+    duration: 2000,
+    title: "docker up (local stack)",
+    body: "docker-compose up で local stack 起動、 3 container ready。 readiness 75 → 100 tween (gauge 針最上位、 開発可能)、 cmdCount 4 → 5 tween (最終)、 elapsedSec 90 → 130 tween、 docker lane activate、 6 shape 全 active、 開発環境 ready。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "terminal", "repoServer", "engine", "docker").tween("readiness", 75, 100).tween("cmdCount", 4, 5).tween("elapsedSec", 90, 130).badge("docker"))
   .build();
 
 /**

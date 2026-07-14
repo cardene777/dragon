@@ -263,6 +263,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   resourceTreemap: "実例: CFO 年間予算配分レビュー (期初 → Q1 → 中期 → 期末)",
   trafficSankey: "実例: D2C EC marketing 施策 (開始 → 集客 → CVR → ROI)",
   mlConfidenceMeter: "実例: 医療画像診断 AI (撮影 → 推論 → 医師確認 → 診断確定)",
+  gitCommitList: "実例: OSS 週次リリース commit review (発生 → 集約 → review → tag)",
+  audioPlayer: "実例: ポッドキャスト通勤聴取 (再生 → CM → skip → 完聴)",
+  cliTerminalSession: "実例: 開発者朝 CLI ritual (repo → git → test → docker)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
