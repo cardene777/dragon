@@ -76,7 +76,7 @@ export const stateActiveConnection = diagram("state-active-connection", {
   .edge("chatSvc", "msgDb", { label: "persist", tone: "success" })
   .readout.gauge("hpG", { source: "healthPct", min: 0, max: 100, color: "#22c55e", label: "connection健康度 %" })
   .readout.countup("mcCU", { source: "msgCount", unit: " msg", label: "累計msg", decimals: 0 })
-  .readout.stat("latStat", { source: "latency", unit: " ms", caption: "平均 latency", label: "lat" })
+  .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "lat" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,

@@ -191,7 +191,7 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
   .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3 (x<50, y<50)", subtitle: "lower-左" })
   .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4 (x>50, y<50)", subtitle: "lower-右" })
   .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Current pos", subtitle: "{pos} (default中央 → Q1 boundary)" })
-  .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
+  .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y内0..100" })
   .phase("p", {
     duration: 1500,
     title: "quadrant地図",
@@ -216,11 +216,11 @@ export const stepperControl = diagram("interactive-stepper", {
   .edge("ctrlNode", "barNode", { label: "→ bar", tone: "info" })
   .edge("ctrlNode", "statNode", { label: "→ stat", tone: "success" })
   .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "Progress bar" })
-  .readout.stat("countStat", { source: "count", label: "合計", unit: " items" })
+  .readout.stat("countStat", { source: "count", label: "合計", unit: " 項目" })
   .phase("p", {
     duration: 1500,
     title: "control → visual fan-外",
-    body: "3-lane (Control / Bar / Stat)でstepperと2 readoutを分散、 2 fan-外edge (→ bar情報 / → stat成功)で1 signal → N readoutのbind関係明示、 stepper +/- で 数 変化 → bar + statが同時追随、 signal分岐dataflowを可視化。",
+    body: "3-lane (Control / Bar / Stat)でstepperと2 readoutを分散、 2 fan-外edge (→ bar情報 / → stat成功)で1 signal → 数readoutのbind関係明示、 stepper +/- で 数 変化 → bar + statが同時追随、 signal分岐dataflowを可視化。",
   }, (p: PhaseBuilder) => p.activate("ctrlNode", "barNode", "statNode", "ctrlNode-barNode", "ctrlNode-statNode").badge("stepper"))
   .build();
 
@@ -238,7 +238,7 @@ export const numberSparkline = diagram("interactive-number-spark", {
   .node("historyNode", { lane: "history", stack: 0, kind: "card", title: "履歴(15)", subtitle: "sparklineで直近15 push履歴" })
   .edge("currentNode", "historyNode", { label: "プッシュ", tone: "info" })
   .readout.sparkline("valHist", { source: "val", history: 15, color: "#e57373", label: "スパークライン 履歴" })
-  .readout.stat("valStat", { source: "val", label: "Latest", caption: "input 履歴の最新" })
+  .readout.stat("valStat", { source: "val", label: "Latest", caption: "入力 履歴の最新" })
   .phase("p", {
     duration: 1500,
     title: "current → 履歴push",
@@ -553,7 +553,7 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   .node("countNode", { lane: "count", stack: 0, kind: "card", title: "Countup", subtitle: "rev={rev} · animated $ カウンター" })
   .node("deltaNode", { lane: "delta", stack: 0, kind: "card", title: "変化量", subtitle: "rev={rev} · ↑↓ arrow" })
   .node("ringNode", { lane: "ring", stack: 0, kind: "card", title: "パーセントring", subtitle: "rev/500 = {rev} progress" })
-  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Typewriter", subtitle: "状態={状態} · char reveal" })
+  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Typewriter", subtitle: "状態={状態} · 文字reveal" })
   .readout.countup("revCount", { source: "rev", unit: "$", label: "売上 数" })
   .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ 変化量" })
   .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress ring" })
@@ -561,7 +561,7 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   .phase("p", {
     duration: 1500,
     title: "readout 4-way split",
-    body: "4-lane (Countup / 変化量 / パーセントring / Typewriter)で4 dynamic readoutを機能別分散、 各readout個別 カード + 対応readout node、 売上slider → 3 readout追随(countup/変化量/ring)、 状態dropdown → typewriter reveal、 1 signal → N readoutのbind関係をlane分割で可視化。",
+    body: "4-lane (Countup / 変化量 / パーセントring / Typewriter)で4 dynamic readoutを機能別分散、 各readout個別 カード + 対応readout node、 売上slider → 3 readout追随(countup/変化量/ring)、 状態dropdown → typewriter reveal、 1 signal → 数readoutのbind関係をlane分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("countNode", "deltaNode", "ringNode", "textNode").badge("dashboard"))
   .build();
 
@@ -592,7 +592,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .phase("p", {
     duration: 1500,
     title: "timeline fan-外",
-    body: "3-lane (Timeline control / Rect shape / Arc shape)でtime signal → 2 shapeの1:N fan-外 を分散、 2 edge (t→bar情報 / t→angle accent)でformula dependency明示、 play/一時停止/scrubでtime制御、 rect fill + arc angleが同時追随、 timeline dataflowをlane分割で可視化。",
+    body: "3-lane (Timeline control / Rect shape / Arc shape)でtime signal → 2 shapeの1:数fan-外 を分散、 2 edge (t→bar情報 / t→angle accent)でformula dependency明示、 play/一時停止/scrubでtime制御、 rect fill + arc angleが同時追随、 timeline dataflowをlane分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a", "timeNode-r", "timeNode-a").badge("timeline"))
   .build();
 
@@ -822,7 +822,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   .lane("area", { x: 240, width: 280 })
   .lane("line", { x: 540, width: 280 })
   .arraySignal("series", [22, 35, 28, 42, 55, 48, 60, 72, 65, 80])
-  .node("dataCard", { lane: "data", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · 合計={series.合計} · 平均={series.平均}" })
+  .node("dataCard", { lane: "data", stack: 0, kind: "card", title: "Time series", subtitle: "数={series.length} · 合計={series.合計} · 平均={series.平均}" })
   .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Areaチャート(fill=真)", subtitle: "blue #2563eb · viewH=70" })
   .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Lineチャート(fill=偽)", subtitle: "orange #f97316 · viewH=50" })
   .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Areaチャート" })
@@ -830,7 +830,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   .phase("p", {
     duration: 1200,
     title: "チャートvariant compare",
-    body: "3-lane (Data source / Areaチャートfill=真 / Lineチャートfill=偽)で10 point time seriesを チャートvariant別分散、 同data sourceを2種lineChart readout (area/line)で並列比較、 fill option差異を横並び 表示 で明示。",
+    body: "3-lane (Data source / Areaチャートfill=真 / Lineチャートfill=偽)で10 point time seriesを チャートvariant別分散、 同data sourceを2種lineChart readout (area/行)で並列比較、 fill option差異を横並び 表示 で明示。",
   }, (p: PhaseBuilder) => p.activate("dataCard", "areaCard", "lineCard").badge("line chart"))
   .build();
 
@@ -1049,8 +1049,8 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .node("wallet", { lane: "sender", stack: 0, kind: "shape-wallet", title: "MetaMask EOA", eyebrow: "送信者", subtitle: "0x742d...5a1f" })
   .node("mobile", { lane: "sender", stack: 1, kind: "shape-mobile-device", title: "利用者 端末", eyebrow: "端末", subtitle: "0.5 ETH送金tx署名" })
   .node("pool", { lane: "mempool", stack: 0, kind: "shape-stack", title: "mempool", eyebrow: "キュー", subtitle: "保留128 tx · fee順sort" })
-  .node("blockN", { lane: "chain", stack: 0, kind: "shape-blockchain-block", title: "Block N", eyebrow: "block", subtitle: "gas 15M/30M · base {baseFee} gwei" })
-  .node("blockN1", { lane: "chain", stack: 1, kind: "shape-blockchain-block", title: "Block N+1", eyebrow: "block", subtitle: "gas 22M/30M · base×1.05" })
+  .node("blockN", { lane: "chain", stack: 0, kind: "shape-blockchain-block", title: "Block数", eyebrow: "block", subtitle: "gas 15M/30M · base {baseFee} gwei" })
+  .node("blockN1", { lane: "chain", stack: 1, kind: "shape-blockchain-block", title: "Block数+1", eyebrow: "block", subtitle: "gas 22M/30M · base×1.05" })
   .node("chainNode", { lane: "chain", stack: 2, kind: "shape-blockchain", title: "Ethereum L1", eyebrow: "chain", subtitle: "block #{blockNumber} · finality 12+" })
   .edge("wallet", "mobile", { label: "秘密鍵署名", tone: "info" })
   .edge("mobile", "pool", { label: "eth_sendRawTransaction", tone: "info" })
@@ -1073,12 +1073,12 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "wallet-mobile", "mobile-pool").tween("baseFee", 30, 45).tween("totalGwei", 0, 940).badge("mempool"))
   .phase("p3", {
     duration: 2200,
-    title: "採掘(Block N)",
+    title: "採掘(Block数)",
     body: "MinerがBlock Nにtxを含める、 gas 15M/30Mで採掘実行。 baseFee 45 → 47 tween (供給調整 +5%)、 状態0 → 1 tween (トラフィック-light赤 → 黄 = mining)、 totalGwei 940 → 987 tween (base微増でbar追随)、 chain laneにblockN activate、 pool → blockNが 成功tone edge。",
   }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "blockN", "wallet-mobile", "mobile-pool", "pool-blockN").tween("baseFee", 45, 47).tween("totalGwei", 940, 987).tween("txStatus", 0, 1).badge("採掘"))
   .phase("p4", {
     duration: 2000,
-    title: "確定(Block N+1)",
+    title: "確定(Block数+1)",
     body: "次blockもbase ±12.5% 変動、 blockN+1で6-block confirmation達成 → finality。 baseFee 47 → 50 tween (継続需要)、 状態1 → 2 tween (トラフィック-light黄 → 緑 = confirmed)、 blockNumber 18543210 → 18543211 tween (countup動的増加)、 全6 shape active、 chain確定 ログ。",
   }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "blockN", "blockN1", "chainNode", "wallet-mobile", "mobile-pool", "pool-blockN", "blockN-blockN1", "blockN1-chainNode").tween("baseFee", 47, 50).tween("txStatus", 1, 2).tween("blockNumber", 18543210, 18543211).badge("確定"))
   .build();
@@ -1106,7 +1106,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
   .node("shopper", { lane: "user", stack: 0, kind: "shape-person", title: "田中様", eyebrow: "利用者", subtitle: "Google署名-Inクリック" })
   .node("mobile", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "iPhone Safari", eyebrow: "端末", subtitle: "PKCE code_verifier保管" })
   .node("app", { lane: "app", stack: 0, kind: "shape-website", title: "MyApp SPA", eyebrow: "クライアント", subtitle: "Reactアプリ · client_id公開" })
-  .node("authServer", { lane: "google", stack: 0, kind: "shape-server-rack", title: "accounts.google.com", eyebrow: "認可-サーバー", subtitle: "consent + code発行 · latency {latency}ms" })
+  .node("authServer", { lane: "google", stack: 0, kind: "shape-server-rack", title: "accounts.google.com", eyebrow: "認可-サーバー", subtitle: "consent + code発行 · latency {latency}ミリ秒" })
   .node("tokenEndpoint", { lane: "google", stack: 1, kind: "shape-hexagon", title: "tokenエンドポイント", eyebrow: "signer", subtitle: "RS256 · access + id_token" })
   .node("apiResource", { lane: "google", stack: 2, kind: "shape-cloud", title: "Gmail API", eyebrow: "resource", subtitle: "scope=gmail.readonly" })
   .edge("shopper", "mobile", { label: "1. クリック", tone: "info" })
@@ -1117,7 +1117,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
   .edge("tokenEndpoint", "app", { label: "6. tokens", tone: "success", side: "left" })
   .edge("app", "apiResource", { label: "7. 取得(Bearer)", tone: "success" })
   .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 800, viewW: 400, viewH: 70, color: "#2563eb", label: "OAuth timeline" })
-  .readout.gauge("latencyG", { source: "latency", min: 0, max: 500, color: "#f97316", label: "サーバー latency (ms)" })
+  .readout.gauge("latencyG", { source: "latency", min: 0, max: 500, color: "#f97316", label: "サーバー latency (ミリ秒)" })
   .readout.countup("tokenCU", { source: "tokenCount", unit: " 件", label: "本日 トークン 発行数", decimals: 0 })
   .readout.trafficLight("stateTL", { source: "flowState", label: "フロー 状態" })
   .phase("p1", {
@@ -1179,7 +1179,7 @@ export const decisionTree = diagram("interactive-decision-tree", {
   .readout.trafficLight("statusTL", { source: "phaseStatus", label: "triage進行状態" })
   .readout.countup("caseCU", { source: "caseCount", unit: " 件", label: "本日triage件数", decimals: 0 })
   .readout.gauge("timeG", { source: "elapsedSec", min: 0, max: 300, color: "#f97316", label: "所要時間 (秒)" })
-  .readout.stat("riskStat", { source: "riskScore", unit: "/10", caption: "重症度 score", label: "risk" })
+  .readout.stat("riskStat", { source: "riskScore", unit: "/10", caption: "重症度 スコア", label: "risk" })
   .phase("p1", {
     duration: 1800,
     title: "受付",
@@ -1230,7 +1230,7 @@ export const skillRadar = diagram("interactive-skill-radar", {
   .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 220, viewH: 220, label: "5次元skillレーダー" })
   .readout.gauge("scoreG", { source: "overallScore", min: 0, max: 100, color: "#22c55e", label: "総合スコア" })
   .readout.countup("hoursCU", { source: "learningHours", unit: " h", label: "累計学習時間", decimals: 0 })
-  .readout.stat("gainStat", { source: "gainedPoints", unit: " pt", caption: "半年獲得 point", label: "成長" })
+  .readout.stat("gainStat", { source: "gainedPoints", unit: " pt", caption: "半年獲得point", label: "成長" })
   .phase("p1", {
     duration: 2000,
     title: "初回査定",
@@ -1288,7 +1288,7 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
   .readout.bubbleChart("bubbles", { source: "perf", xMin: 0, xMax: 100, yMin: 0, yMax: 100, rMin: 0, rMax: 10, color: "#2563eb", viewW: 320, viewH: 200, label: "workloads (perf/コスト/usage)" })
   .readout.gauge("cpuG", { source: "avgCpu", min: 0, max: 100, color: "#ef4444", label: "平均CPU使用率 %" })
   .readout.countup("reqCU", { source: "totalReq", unit: " req/s", label: "総 要求 数", decimals: 0 })
-  .readout.stat("scaleStat", { source: "scaleAction", unit: " pods", caption: "追加 pod 数", label: "scale" })
+  .readout.stat("scaleStat", { source: "scaleAction", unit: " pods", caption: "追加Pod数", label: "scale" })
   .phase("p1", {
     duration: 2000,
     title: "メトリクス取得",
@@ -1378,7 +1378,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .node("ceo", { lane: "ceo", stack: 0, kind: "shape-person", title: "CEO高橋様", eyebrow: "executive", subtitle: "週次KPIレビュー会議" })
   .node("mobile", { lane: "ceo", stack: 1, kind: "shape-mobile-device", title: "KPIダッシュボード", eyebrow: "UI", subtitle: "Lookerモバイルview" })
   .node("api", { lane: "data", stack: 0, kind: "shape-server-rack", title: "分析API", eyebrow: "サーバー", subtitle: "売上 = ${売上}k / mo" })
-  .node("dwh", { lane: "data", stack: 1, kind: "shape-cylinder", title: "Snowflake DWH", eyebrow: "warehouse", subtitle: "fact_events × 20B rows" })
+  .node("dwh", { lane: "data", stack: 1, kind: "shape-cylinder", title: "Snowflake DWH", eyebrow: "warehouse", subtitle: "fact_events × 20B行" })
   .node("ml", { lane: "data", stack: 2, kind: "shape-cloud", title: "ML model", eyebrow: "prediction", subtitle: "売上 → users/churn/nps因果推論" })
   .node("boardroom", { lane: "decision", stack: 0, kind: "shape-brokerage", title: "経営会議", eyebrow: "レビュー", subtitle: "投資判断 · 予算配分" })
   .edge("ceo", "mobile", { label: "確認", tone: "info" })
@@ -1387,7 +1387,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .edge("dwh", "ml", { label: "特徴量", tone: "accent" })
   .edge("ml", "api", { label: "予測反映", tone: "accent" })
   .edge("api", "boardroom", { label: "insights", tone: "success" })
-  .readout.stat("revStat", { source: "revenue", unit: "k$", caption: "月次 revenue", label: "売上" })
+  .readout.stat("revStat", { source: "revenue", unit: "k$", caption: "月次 売上", label: "売上" })
   .readout.percentRing("npsRing", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
   .readout.gauge("churnG", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn % (低いほど良)" })
   .readout.countup("usersCU", { source: "users", unit: " 名", label: "Active users", decimals: 0 })
@@ -1557,7 +1557,7 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k$", colorPos: "#22c55e", colorNeg: "#ef4444", label: "月次 売上KPI" })
   .readout.gauge("yoyG", { source: "yoy", min: -20, max: 60, color: "#22c55e", label: "YoY成長率(%)" })
   .readout.countup("mrrCU", { source: "current", unit: "k$", label: "MRR", decimals: 0 })
-  .readout.stat("achieveStat", { source: "achievement", unit: "%", caption: "目標 200k$ 対", label: "達成率" })
+  .readout.stat("achieveStat", { source: "achievement", unit: "%", caption: "目標200k$ 対", label: "達成率" })
   .phase("p1", {
     duration: 2000,
     title: "前月値確認",
@@ -1822,7 +1822,7 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
   .phase("p3", {
     duration: 2400,
     title: "中期見直し (10/1)",
-    body: "半期経過、 Eng部門超過傾向 + Legal余剰、 予算再配分検討。 consumptionPct 28 → 62 tween、 spentMm 140 → 310 tween、 remainingMm 360 → 190 tween、 erp lane activate、 SAPに配分修正反映。",
+    body: "半期経過、 Eng部門超過傾向 + Legal余剰、 予算再配分検討。 consumptionPct 28 → 62 tween、 spentMm 140 → 310 tween、 remainingMm 360 → 190 tween、 ERP lane activate、 SAPに配分修正反映。",
   }, (p: PhaseBuilder) => p.activate("cfo", "mobile", "finance", "ledger", "erp", "cfo-mobile", "mobile-finance", "finance-ledger", "ledger-erp").tween("consumptionPct", 28, 62).tween("spentMm", 140, 310).tween("remainingMm", 360, 190).badge("中期"))
   .phase("p4", {
     duration: 2000,
@@ -1853,7 +1853,7 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .state("cac", { initial: 0 })
   .node("cmo", { lane: "marketer", stack: 0, kind: "shape-person", title: "CMO池田様", eyebrow: "marketer", subtitle: "月次marketing責任者" })
   .node("mobile", { lane: "marketer", stack: 1, kind: "shape-mobile-device", title: "GA4ダッシュボード", eyebrow: "端末", subtitle: "traffic分析 + CV追跡" })
-  .node("landing", { lane: "traffic", stack: 0, kind: "shape-website", title: "landing page", eyebrow: "Web", subtitle: "productページ + Home" })
+  .node("landing", { lane: "traffic", stack: 0, kind: "shape-website", title: "landingページ", eyebrow: "Web", subtitle: "productページ + Home" })
   .node("cdn", { lane: "traffic", stack: 1, kind: "shape-cdn-edge", title: "Cloudflare CDN", eyebrow: "CDN", subtitle: "全世界edge配信 + WAF" })
   .node("attribution", { lane: "traffic", stack: 2, kind: "shape-cloud", title: "GA4 attribution", eyebrow: "分析", subtitle: "source → CV帰属分析" })
   .node("cvDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "CVデータベース", eyebrow: "保存", subtitle: "checkout完了event蓄積" })
@@ -1865,7 +1865,7 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "トラフィック 由来(サンキー)" })
   .readout.gauge("cvrG", { source: "cvr", min: 0, max: 10, color: "#22c55e", label: "CVR %" })
   .readout.countup("visCU", { source: "visitors", unit: " 訪問", label: "総訪問数", decimals: 0 })
-  .readout.stat("cacStat", { source: "cac", unit: " 円", caption: "平均 CAC", label: "CAC" })
+  .readout.stat("cacStat", { source: "cac", unit: " 円", caption: "平均CAC", label: "CAC" })
   .phase("p1", {
     duration: 1800,
     title: "施策開始 (月初)",
@@ -2249,7 +2249,7 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "PR差分(+/-)" })
   .readout.gauge("healthG", { source: "healthScore", min: 0, max: 100, color: "#22c55e", label: "PRサイズ健全性 %" })
   .readout.countup("commCU", { source: "commitCount", unit: " 件", label: "累計 コミット", decimals: 0 })
-  .readout.stat("netStat", { source: "netDelta", unit: " line", caption: "net delta", label: "net" })
+  .readout.stat("netStat", { source: "netDelta", unit: " 行", caption: "net変化量", label: "net" })
   .phase("p1", {
     duration: 1800,
     title: "初期実装",
@@ -2542,18 +2542,18 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .lane("input", { x: 0, width: 200 })
   .lane("toggle", { x: 240, width: 200 })
   .lane("display", { x: 480, width: 220 })
-  .input.stepper("sec", { min: 0, max: 3600, step: 5, defaultValue: 125, label: "Elapsed sec" })
+  .input.stepper("sec", { min: 0, max: 3600, step: 5, defaultValue: 125, label: "Elapsed秒" })
   .input.toggle("running", { defaultValue: true, label: "実行中" })
   .state("sec", { initial: 125 })
   .state("running", { initial: "true" })
   .state("elapsed", { initial: 125000 })
   .formula("elapsed", "sec * 1000")
-  .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "sec = {sec}s (0-3600)" })
+  .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "秒 = {秒}s (0-3600)" })
   .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "実行中 切替", subtitle: "実行中 = {実行中}" })
-  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms display", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
+  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ミリ秒display", subtitle: "elapsed = 秒 × 1000 = {elapsed}ミリ秒" })
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "color", tone: "success" })
-  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "タイマー (MM:SS.ms)" })
+  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "タイマー (MM:SS.ミリ秒)" })
   .phase("p", {
     duration: 1200,
     title: "タイマー signalフロー",
@@ -2577,7 +2577,7 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .node("patient", { lane: "clinic", stack: 0, kind: "shape-person", title: "患者 木下様", eyebrow: "patient", subtitle: "胸部X線撮影対象" })
   .node("device", { lane: "clinic", stack: 1, kind: "shape-mobile-device", title: "撮影機tablet UI", eyebrow: "端末", subtitle: "DICOM画像取得" })
   .node("gpu", { lane: "ai", stack: 0, kind: "shape-server-rack", title: "GPU推論サーバ", eyebrow: "compute", subtitle: "NVIDIA A100 × 4 · TensorRT" })
-  .node("model", { lane: "ai", stack: 1, kind: "shape-hexagon", title: "診断model", eyebrow: "ml", subtitle: "ResNet-50 · 12分類 · 上位-1 conf" })
+  .node("model", { lane: "ai", stack: 1, kind: "shape-hexagon", title: "診断model", eyebrow: "ML", subtitle: "ResNet-50 · 12分類 · 上位-1 conf" })
   .node("db", { lane: "ai", stack: 2, kind: "shape-cylinder", title: "電子カルテDB", eyebrow: "保存", subtitle: "推論結果 + 医師override保存" })
   .node("doctor", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "放射線科医", eyebrow: "expert", subtitle: "AI補助 → 最終診断確定" })
   .edge("patient", "device", { label: "撮影", tone: "info" })
@@ -2589,7 +2589,7 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 320, viewH: 40, label: "AI推論confidence" })
   .readout.gauge("probG", { source: "probability", min: 0, max: 100, color: "#22c55e", label: "上位-1予測確率 %" })
   .readout.countup("imgCU", { source: "processedImg", unit: " 枚", label: "本日推論画像", decimals: 0 })
-  .readout.stat("errStat", { source: "errorRate", unit: " %", caption: "AI 誤判定率", label: "err" })
+  .readout.stat("errStat", { source: "errorRate", unit: " %", caption: "AI誤判定率", label: "err" })
   .phase("p1", {
     duration: 1800,
     title: "X線撮影",
@@ -2598,7 +2598,7 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .phase("p2", {
     duration: 2400,
     title: "AI推論(ResNet-50)",
-    body: "GPUサーバでinference、 12病名 分類の 上位-1 = '正常' 推論。 conf 0 → 68 tween (confidenceMeterが黄域に移動)、 probability 0 → 78 tween (ゲージ 針上昇)、 processedImg 12483 → 12484 tween (countup +1)、 gpu + model lane activate。",
+    body: "GPUサーバでinference、 12病名 分類の 上位-1 = '正常' 推論。 conf 0 → 68 tween (confidenceMeterが黄域に移動)、 probability 0 → 78 tween (ゲージ 針上昇)、 processedImg 12483 → 12484 tween (countup +1)、 GPU + model lane activate。",
   }, (p: PhaseBuilder) => p.activate("patient", "device", "gpu", "model", "patient-device", "device-gpu", "gpu-model").tween("conf", 0, 68).tween("probability", 0, 78).tween("processedImg", 12483, 12484).badge("推論"))
   .phase("p3", {
     duration: 2200,
@@ -2993,7 +2993,7 @@ export const featurePoll = diagram("interactive-feature-poll", {
   .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "投票結果" })
   .readout.gauge("partG", { source: "participation", min: 0, max: 100, color: "#22c55e", label: "参加率 %" })
   .readout.countup("voteCU", { source: "totalVotes", unit: " 票", label: "累計投票", decimals: 0 })
-  .readout.stat("gapStat", { source: "leadGap", unit: " 票", caption: "1 位 vs 2 位", label: "gap" })
+  .readout.stat("gapStat", { source: "leadGap", unit: " 票", caption: "1位vs 2位", label: "gap" })
   .phase("p1", {
     duration: 1800,
     title: "投票開始",
@@ -3031,7 +3031,7 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
   .state("approveCount", { initial: 0 })
   .node("author", { lane: "author", stack: 0, kind: "shape-person", title: "PR author高橋様", eyebrow: "author", subtitle: "500行変更 · feature/チェックアウト-v2" })
   .node("laptop", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "GitHubモバイル", eyebrow: "端末", subtitle: "PR状態確認 + 返信" })
-  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHubのPR page", eyebrow: "vcs", subtitle: "PR #1247 · 7レビュアー 割当" })
+  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHubのPRページ", eyebrow: "vcs", subtitle: "PR #1247 · 7レビュアー 割当" })
   .node("api", { lane: "system", stack: 1, kind: "shape-server-rack", title: "GitHub API", eyebrow: "バックエンド", subtitle: "レビュー event処理" })
   .node("db", { lane: "system", stack: 2, kind: "shape-cylinder", title: "レビュー DB", eyebrow: "データベース", subtitle: "コメント + approve記録" })
   .node("notif", { lane: "reviewers", stack: 0, kind: "shape-cloud", title: "Slack #チーム-eng", eyebrow: "通知", subtitle: "7レビュアー へのPR通知" })
@@ -3044,7 +3044,7 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
   .readout.userStack("us", { source: "reviewers", max: 5, size: 40, label: "レビュアー 7名(5表示 + +2 overflow)" })
   .readout.gauge("compG", { source: "completionRate", min: 0, max: 100, color: "#22c55e", label: "レビュー 完了率 %" })
   .readout.countup("commCU", { source: "commentCount", unit: " 件", label: "累計コメント", decimals: 0 })
-  .readout.stat("approveStat", { source: "approveCount", unit: "/7", caption: "approve 数", label: "承認" })
+  .readout.stat("approveStat", { source: "approveCount", unit: "/7", caption: "承認 数", label: "承認" })
   .phase("p1", {
     duration: 1800,
     title: "PR開く",
@@ -3100,7 +3100,7 @@ export const gitCommitList = diagram("interactive-git-commits", {
   .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "recentコミット5件" })
   .readout.gauge("readyG", { source: "readiness", min: 0, max: 100, color: "#22c55e", label: "リリース 準備度 %" })
   .readout.countup("commCU", { source: "commitCount", unit: " 件", label: "本週 コミット 数", decimals: 0 })
-  .readout.stat("contribStat", { source: "contributors", unit: " 名", caption: "contributor 数", label: "貢献" })
+  .readout.stat("contribStat", { source: "contributors", unit: " 名", caption: "contributor数", label: "貢献" })
   .phase("p1", {
     duration: 1800,
     title: "週初commit発生(月)",
@@ -3154,7 +3154,7 @@ export const audioPlayer = diagram("interactive-audio-player", {
   .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 340, label: "ポッドキャスト プレイヤー" })
   .readout.gauge("progG", { source: "progressPct", min: 0, max: 100, color: "#22c55e", label: "再生進捗 %" })
   .readout.countup("minCU", { source: "totalMin", unit: " 分", label: "累計聴取時間", decimals: 0 })
-  .readout.stat("skipStat", { source: "skipCount", unit: " 回", caption: "本 episode skip", label: "skip" })
+  .readout.stat("skipStat", { source: "skipCount", unit: " 回", caption: "本 エピソードskip", label: "skip" })
   .phase("p1", {
     duration: 1800,
     title: "再生開始(0-60s)",
@@ -3210,7 +3210,7 @@ export const serverEventLog = diagram("interactive-server-event-log", {
   .readout.eventLog("el", { source: "events", max: 10, label: "recent events (5件)" })
   .readout.gauge("sevG", { source: "severity", min: 0, max: 100, color: "#ef4444", label: "システム 深刻度" })
   .readout.countup("errCU", { source: "errorCount", unit: " 件", label: "エラー イベント 累計", decimals: 0 })
-  .readout.stat("p99Stat", { source: "p99Ms", unit: " ms", caption: "p99 latency", label: "p99" })
+  .readout.stat("p99Stat", { source: "p99Ms", unit: " ミリ秒", caption: "p99 latency", label: "p99" })
   .phase("p1", {
     duration: 1800,
     title: "通常運転",
@@ -3264,10 +3264,10 @@ export const searchResults = diagram("interactive-search-results", {
   .edge("index", "google", { label: "results", tone: "success" })
   .edge("google", "docSite", { label: "クリック", tone: "accent" })
   .edge("docSite", "playground", { label: "試行", tone: "warning" })
-  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "検索結果5 hit" })
+  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "検索結果5ヒット" })
   .readout.gauge("relG", { source: "relevance", min: 0, max: 100, color: "#22c55e", label: "関連度 %" })
   .readout.countup("qryCU", { source: "queryCount", unit: " 回", label: "累計 クエリ", decimals: 0 })
-  .readout.stat("clickStat", { source: "clickCount", unit: " 件", caption: "click 数", label: "クリック" })
+  .readout.stat("clickStat", { source: "clickCount", unit: " 件", caption: "クリック 数", label: "クリック" })
   .phase("p1", {
     duration: 1800,
     title: "初回検索",
@@ -3433,27 +3433,27 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
   .edge("analytics", "youtube", { label: "順位 反映", tone: "warning" })
   .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "投稿動画 3 本" })
   .readout.gauge("ctrG", { source: "ctr", min: 0, max: 20, color: "#22c55e", label: "CTR %" })
-  .readout.countup("viewCU", { source: "views", unit: " views", label: "動画views", decimals: 0 })
+  .readout.countup("viewCU", { source: "views", unit: " 表示", label: "動画views", decimals: 0 })
   .readout.stat("subStat", { source: "subDelta", unit: " 名", caption: "登録者増加", label: "sub Δ" })
   .phase("p1", {
     duration: 1800,
     title: "企画",
-    body: "石田様が 'React hooks explained' 動画企画、 台本作成。 ctr 0、 views 0、 subDelta 0、 creator + スマホlane active。",
+    body: "石田様が 'React hooks explained' 動画企画、 台本作成。 ctr 0、 表示0、 subDelta 0、 creator + スマホlane active。",
   }, (p: PhaseBuilder) => p.activate("creator", "phone", "creator-phone").set("ctr", 0).set("views", 0).set("subDelta", 0).badge("企画"))
   .phase("p2", {
     duration: 2000,
     title: "撮影 + 編集",
-    body: "18分の動画撮影 → 編集 → thumbnail作成。 ctr 0、 views 0、 subDelta 0保持、 フェーズ 進行のみ(公開前は数値0)。",
+    body: "18分の動画撮影 → 編集 → thumbnail作成。 ctr 0、 表示0、 subDelta 0保持、 フェーズ 進行のみ(公開前は数値0)。",
   }, (p: PhaseBuilder) => p.activate("creator", "phone", "creator-phone").badge("撮影"))
   .phase("p3", {
     duration: 2200,
     title: "公開(24h)",
-    body: "YouTubeに 発行、 推薦algorithmに載る。 ctr 0 → 8 tween (ゲージ 針中位)、 views 0 → 25000 tween (countup加速)、 subDelta 0 → 320 tween、 youtube + CDN + viewers lane activate。",
+    body: "YouTubeに 発行、 推薦algorithmに載る。 ctr 0 → 8 tween (ゲージ 針中位)、 表示0 → 25000 tween (countup加速)、 subDelta 0 → 320 tween、 youtube + CDN + viewers lane activate。",
   }, (p: PhaseBuilder) => p.activate("creator", "phone", "youtube", "cdn", "viewers", "creator-phone", "phone-youtube", "youtube-cdn", "cdn-viewers").tween("ctr", 0, 8).tween("views", 0, 25000).tween("subDelta", 0, 320).badge("公開"))
   .phase("p4", {
     duration: 2000,
     title: "viral拡散(1週間)",
-    body: "trending入りでviews急増、 登録者急伸。 ctr 8 → 14 tween (ゲージ 針最上位近く、 高CTR)、 views 25000 → 156000 tween (countup dramatic)、 subDelta 320 → 1800 tween (1800名登録)、 分析lane activate、 6 shape全active、 viral到達。",
+    body: "trending入りでviews急増、 登録者急伸。 ctr 8 → 14 tween (ゲージ 針最上位近く、 高CTR)、 表示25000 → 156000 tween (countup dramatic)、 subDelta 320 → 1800 tween (1800名登録)、 分析lane activate、 6 shape全active、 viral到達。",
   }, (p: PhaseBuilder) => p.activate("creator", "phone", "youtube", "cdn", "viewers", "analytics", "creator-phone", "phone-youtube", "youtube-cdn", "cdn-viewers", "viewers-analytics", "analytics-youtube").tween("ctr", 8, 14).tween("views", 25000, 156000).tween("subDelta", 320, 1800).badge("viral"))
   .build();
 
@@ -3475,7 +3475,7 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .node("dispatcher", { lane: "origin", stack: 1, kind: "shape-mobile-device", title: "配送指示tablet", eyebrow: "端末", subtitle: "経路planner + 追跡" })
   .node("truck", { lane: "transit", stack: 0, kind: "shape-storefront", title: "配送トラック", eyebrow: "vehicle", subtitle: "経路: 川崎 → 世田谷(32 km)" })
   .node("gps", { lane: "transit", stack: 1, kind: "shape-satellite", title: "GPS追跡", eyebrow: "gps", subtitle: "1 分間隔位置更新" })
-  .node("customerApp", { lane: "transit", stack: 2, kind: "shape-cloud", title: "顧客通知(LINE)", eyebrow: "通知", subtitle: "step遷移で自動通知" })
+  .node("customerApp", { lane: "transit", stack: 2, kind: "shape-cloud", title: "顧客通知(行)", eyebrow: "通知", subtitle: "step遷移で自動通知" })
   .node("customer", { lane: "destination", stack: 0, kind: "shape-person", title: "顧客 中村様", eyebrow: "recipient", subtitle: "在宅受取 · サイン必要" })
   .edge("warehouse", "dispatcher", { label: "梱包完了", tone: "success" })
   .edge("dispatcher", "truck", { label: "読込", tone: "info" })
@@ -3644,7 +3644,7 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
   .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian Rhapsody", subtitle: "Queen · 5:55 (played)" })
   .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel California", subtitle: "Eagles · 6:30 (now playing)" })
   .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway to Heaven", subtitle: "Led Zeppelin · 8:02" })
-  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child O' Mine", subtitle: "Guns N' Roses · 5:56" })
+  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child O' Mine", subtitle: "Guns数' Roses · 5:56" })
   .node("song4", { lane: "next", stack: 2, kind: "card", title: "Imagine", subtitle: "John Lennon · 3:03" })
   .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "キュー (current highlight)" })
   .phase("p", {
@@ -3693,7 +3693,7 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   .readout.calendarMonth("cm", { source: "days", monthName: "2026 年 1 月", color: "#2563eb", label: "月間予定 表示" })
   .readout.gauge("fillG", { source: "fillRate", min: 0, max: 100, color: "#22c55e", label: "予定埋まり率 %" })
   .readout.countup("doneCU", { source: "doneEvents", unit: " 件", label: "完了 イベント", decimals: 0 })
-  .readout.stat("remStat", { source: "remainingEvents", unit: " 件", caption: "残 event", label: "残" })
+  .readout.stat("remStat", { source: "remainingEvents", unit: " 件", caption: "残 イベント", label: "残" })
   .phase("p1", {
     duration: 1800,
     title: "月初計画",
@@ -3837,8 +3837,8 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
   .edge("doneStack", "api", { label: "ベロシティ 記録", tone: "accent" })
   .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 150, max: 5, label: "スプリント かんばん3列" })
   .readout.gauge("burndownG", { source: "burndown", min: 0, max: 100, color: "#22c55e", label: "消化率 %" })
-  .readout.countup("doneCU", { source: "doneCount", unit: " task", label: "完了 タスク", decimals: 0 })
-  .readout.stat("velStat", { source: "velocity", unit: " pt/wk", caption: "velocity", label: "ベロシティ" })
+  .readout.countup("doneCU", { source: "doneCount", unit: " タスク", label: "完了 タスク", decimals: 0 })
+  .readout.stat("velStat", { source: "velocity", unit: " pt/wk", caption: "速度", label: "ベロシティ" })
   .phase("p1", {
     duration: 2000,
     title: "スプリントstart (day 1)",
@@ -3888,7 +3888,7 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .edge("apiPage", "bookmarks", { label: "★ 保存", tone: "success" })
   .readout.breadcrumb("bc", { source: "path", currentSource: "cur", color: "#2563eb", label: "navigation breadcrumb" })
   .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "学習進度 %" })
-  .readout.countup("pageCU", { source: "pageCount", unit: " page", label: "訪問page", decimals: 0 })
+  .readout.countup("pageCU", { source: "pageCount", unit: " ページ", label: "訪問page", decimals: 0 })
   .readout.stat("dwellStat", { source: "dwellMin", unit: " 分", caption: "滞在時間", label: "dwell" })
   .phase("p1", {
     duration: 1800,
@@ -3945,7 +3945,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
   .readout.timelineVertical("tv", { source: "events", color: "#2563eb", max: 8, label: "1日5イベント" })
   .readout.gauge("progG", { source: "taskDone", min: 0, max: 100, color: "#22c55e", label: "タスク 消化率 %" })
   .readout.countup("meetCU", { source: "meetingCount", unit: " 件", label: "参加会議", decimals: 0 })
-  .readout.stat("remStat", { source: "taskRemain", unit: " 件", caption: "残 task", label: "残" })
+  .readout.stat("remStat", { source: "taskRemain", unit: " 件", caption: "残 タスク", label: "残" })
   .phase("p1", {
     duration: 1800,
     title: "Morningスタンドアップ(09:00)",
@@ -4112,7 +4112,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "スプリント ベロシティ 対比" })
   .readout.gauge("diffG", { source: "diffPct", min: 0, max: 50, color: "#22c55e", label: "A vs B差 %" })
   .readout.countup("totalCU", { source: "totalPoints", unit: " pt", label: "四半期累計pt", decimals: 0 })
-  .readout.stat("winStat", { source: "scoreA", unit: " pt", caption: "Team A velocity", label: "A" })
+  .readout.stat("winStat", { source: "scoreA", unit: " pt", caption: "チームA速度", label: "A" })
   .phase("p1", {
     duration: 1800,
     title: "期首計測",
@@ -4151,7 +4151,7 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .state("elapsedMin", { initial: 0 })
   .node("writer", { lane: "author", stack: 0, kind: "shape-person", title: "writer岸田様", eyebrow: "author", subtitle: "週次blog担当 · SEO記事" })
   .node("laptop", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "Notion draft", eyebrow: "端末", subtitle: "見出し + 本文 + reference準備" })
-  .node("cmsSite", { lane: "cms", stack: 0, kind: "shape-website", title: "CMS (WordPress)", eyebrow: "cms", subtitle: "draft slot + レビュアー assign" })
+  .node("cmsSite", { lane: "cms", stack: 0, kind: "shape-website", title: "CMS (WordPress)", eyebrow: "CMS", subtitle: "draft slot + レビュアー assign" })
   .node("editor", { lane: "cms", stack: 1, kind: "shape-person", title: "編集者 山田様", eyebrow: "レビュアー", subtitle: "fact-チェック + tone統一 + 校正" })
   .node("cdn", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "CloudFront CDN", eyebrow: "CDN", subtitle: "全国edgeキャッシュ + SEOインデックス" })
   .node("archive", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "記事archive DB", eyebrow: "保存", subtitle: "public URL + タグ + 統計連携" })
@@ -4219,7 +4219,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
   .readout.userPresence("up", { source: "team", max: 6, label: "チーム 状態" })
   .readout.gauge("onlineG", { source: "onlineRate", min: 0, max: 100, color: "#22c55e", label: "online率 %" })
   .readout.countup("msgCU", { source: "msgCount", unit: " msg", label: "1日msg", decimals: 0 })
-  .readout.stat("actStat", { source: "activeHours", unit: " h", caption: "active 時間", label: "active" })
+  .readout.stat("actStat", { source: "activeHours", unit: " h", caption: "active時間", label: "active" })
   .phase("p1", {
     duration: 1800,
     title: "朝 09:00 出社",
@@ -4269,7 +4269,7 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
   .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "レビュー スコア" })
   .readout.gauge("posG", { source: "positiveRate", min: 0, max: 100, color: "#22c55e", label: "positive率 %" })
   .readout.countup("totCU", { source: "totalVotes", unit: " 件", label: "累計vote", decimals: 0 })
-  .readout.stat("scoreStat", { source: "finalScore", unit: " pt", caption: "score", label: "スコア" })
+  .readout.stat("scoreStat", { source: "finalScore", unit: " pt", caption: "スコア", label: "スコア" })
   .phase("p1", {
     duration: 1800,
     title: "launch直後(Day 0)",
@@ -4315,8 +4315,8 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   .node("ceo", { lane: "founder", stack: 0, kind: "shape-person", title: "founder Alice", eyebrow: "CEO", subtitle: "seed資金調達 + 6名採用計画" })
   .node("hrTool", { lane: "founder", stack: 1, kind: "shape-mobile-device", title: "Notion HR + Slack", eyebrow: "端末", subtitle: "採用管理 + 社内コミュニケーション" })
   .node("jobBoard", { lane: "hr", stack: 0, kind: "shape-website", title: "LinkedIn求人", eyebrow: "ボード", subtitle: "エンジニア / sales 6 slot公開" })
-  .node("hris", { lane: "hr", stack: 1, kind: "shape-cloud", title: "HRIS (Deel)", eyebrow: "hr", subtitle: "契約 + payroll + 労務" })
-  .node("orgDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "orgチャートDB", eyebrow: "保存", subtitle: "reporting line + level履歴" })
+  .node("hris", { lane: "hr", stack: 1, kind: "shape-cloud", title: "HRIS (Deel)", eyebrow: "HR", subtitle: "契約 + payroll + 労務" })
+  .node("orgDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "orgチャートDB", eyebrow: "保存", subtitle: "reporting行 + level履歴" })
   .node("dashboard", { lane: "outcome", stack: 1, kind: "shape-server-rack", title: "経営dashboard", eyebrow: "ボード", subtitle: "headcount / burn rate / runway" })
   .edge("ceo", "hrTool", { label: "計画", tone: "info" })
   .edge("hrTool", "jobBoard", { label: "投稿", tone: "info" })
@@ -4326,7 +4326,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "Org hierarchy" })
   .readout.gauge("hireG", { source: "hireRate", min: 0, max: 100, color: "#22c55e", label: "採用充足率 %" })
   .readout.countup("hcCU", { source: "headcount", unit: " 名", label: "headcount", decimals: 0 })
-  .readout.stat("burnStat", { source: "monthlyBurn", unit: " 万円", caption: "月次 burn", label: "burn" })
+  .readout.stat("burnStat", { source: "monthlyBurn", unit: " 万円", caption: "月次burn", label: "burn" })
   .phase("p1", {
     duration: 1800,
     title: "Seed期(CEO単独)",
@@ -4378,7 +4378,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS傾向" })
   .readout.gauge("npsG", { source: "npsGauge", min: 0, max: 100, color: "#22c55e", label: "NPSゾーン" })
   .readout.countup("respCU", { source: "respondents", unit: " 件", label: "回答数", decimals: 0 })
-  .readout.stat("delStat", { source: "delta", unit: " pt", caption: "前四半期 delta", label: "変化量" })
+  .readout.stat("delStat", { source: "delta", unit: " pt", caption: "前四半期 変化量", label: "変化量" })
   .phase("p1", {
     duration: 1800,
     title: "Q1開始(NPS 60)",
@@ -4428,7 +4428,7 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
   .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
   .readout.gauge("viralG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral度 %" })
   .readout.countup("totCU", { source: "totalReactions", unit: " 件", label: "総reaction", decimals: 0 })
-  .readout.stat("topStat", { source: "topCount", unit: " 👍", caption: "top emoji", label: "上位" })
+  .readout.stat("topStat", { source: "topCount", unit: " 👍", caption: "上位emoji", label: "上位" })
   .phase("p1", {
     duration: 1800,
     title: "投稿直後(Day 0)",
@@ -4479,7 +4479,7 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
   .readout.voiceMessage("vm", { source: "amps", progressSource: "progress", duration: 23, colorPlay: "#2563eb", colorBar: "#cbd5e1", label: "音声メモ" })
   .readout.gauge("playG", { source: "playRate", min: 0, max: 100, color: "#22c55e", label: "再生率 %" })
   .readout.countup("msgCU", { source: "msgCount", unit: " 件", label: "累計msg", decimals: 0 })
-  .readout.stat("secStat", { source: "playSec", unit: " 秒", caption: "再生 秒", label: "sec" })
+  .readout.stat("secStat", { source: "playSec", unit: " 秒", caption: "再生 秒", label: "秒" })
   .phase("p1", {
     duration: 1800,
     title: "受信 (電車内)",
@@ -4680,7 +4680,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
   .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "OTPコード" })
   .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "入力進捗 %" })
   .readout.countup("sucCU", { source: "successCount", unit: " 回", label: "累計成功", decimals: 0 })
-  .readout.stat("verStat", { source: "verifySec", unit: " 秒", caption: "検証所要", label: "sec" })
+  .readout.stat("verStat", { source: "verifySec", unit: " 秒", caption: "検証所要", label: "秒" })
   .phase("p1", {
     duration: 1500,
     title: "SMS送信",
@@ -4730,7 +4730,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   .readout.fileDropzone("fd", { source: "file", colorActive: "#2563eb", label: "アバター ファイル" })
   .readout.gauge("upG", { source: "uploadPct", min: 0, max: 100, color: "#22c55e", label: "upload %" })
   .readout.countup("sizeCU", { source: "fileSize", unit: " KB", label: "ファイルサイズ", decimals: 0 })
-  .readout.stat("procStat", { source: "procSec", unit: " 秒", caption: "処理時間", label: "sec" })
+  .readout.stat("procStat", { source: "procSec", unit: " 秒", caption: "処理時間", label: "秒" })
   .phase("p1", {
     duration: 1500,
     title: "未選択",
@@ -4785,7 +4785,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   .edge("logSink", "logArchive", { label: "persist", tone: "accent" })
   .readout.logStream("ls", { source: "logs", label: "ログtail" })
   .readout.gauge("sevG", { source: "severity", min: 0, max: 3, color: "#ef4444", label: "重篤度" })
-  .readout.countup("lpmCU", { source: "logsPerMin", unit: " /min", label: "ログ/最小", decimals: 0 })
+  .readout.countup("lpmCU", { source: "logsPerMin", unit: " /分", label: "ログ/最小", decimals: 0 })
   .readout.stat("mttrStat", { source: "mttr", unit: " 分", caption: "MTTR", label: "mttr" })
   .phase("p1", {
     duration: 1800,
@@ -4983,7 +4983,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   .state("annualFee", { initial: 108 })
   .node("cto", { lane: "cto", stack: 0, kind: "shape-person", title: "startup CTO千葉様", eyebrow: "CTO", subtitle: "20名engチーム + growth中" })
   .node("laptop", { lane: "cto", stack: 1, kind: "shape-mobile-device", title: "MacBook + Notion", eyebrow: "端末", subtitle: "SaaSベンダー比較表" })
-  .node("pricingPage", { lane: "service", stack: 0, kind: "shape-website", title: "SaaS pricing page", eyebrow: "pricing", subtitle: "3 tier + 機能比較 + 見積フォーム" })
+  .node("pricingPage", { lane: "service", stack: 0, kind: "shape-website", title: "SaaS pricingページ", eyebrow: "pricing", subtitle: "3 tier + 機能比較 + 見積フォーム" })
   .node("billing", { lane: "service", stack: 1, kind: "shape-brokerage", title: "billingサービス", eyebrow: "billing", subtitle: "月次課金 + プロレート計算" })
   .node("invoiceMail", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "請求書email", eyebrow: "email", subtitle: "受領書 + 契約書pdf送付" })
   .node("contractDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "契約DB", eyebrow: "保存", subtitle: "顧客別subscription + 履歴" })
@@ -5095,7 +5095,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   .edge("analytics", "readerDb", { label: "persist", tone: "success" })
   .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事 カード" })
   .readout.gauge("engG", { source: "engagement", min: 0, max: 100, color: "#22c55e", label: "エンゲージメント %" })
-  .readout.countup("viewCU", { source: "viewCount", unit: " view", label: "累計閲覧", decimals: 0 })
+  .readout.countup("viewCU", { source: "viewCount", unit: " 表示", label: "累計閲覧", decimals: 0 })
   .readout.stat("dwellStat", { source: "dwellSec", unit: " 秒", caption: "滞在時間", label: "dwell" })
   .phase("p1", {
     duration: 1500,
@@ -5153,7 +5153,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
   .edge("learnAnalytics", "progressDb", { label: "persist", tone: "success" })
   .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "docs TOC" })
   .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "学習進捗 %" })
-  .readout.countup("visCU", { source: "visitedCount", unit: " section", label: "訪問数", decimals: 0 })
+  .readout.countup("visCU", { source: "visitedCount", unit: " 節", label: "訪問数", decimals: 0 })
   .readout.stat("learnStat", { source: "learnMin", unit: " 分", caption: "学習時間", label: "最小" })
   .phase("p1", {
     duration: 1500,
@@ -5203,7 +5203,7 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
   .edge("socialGraph", "statsDb", { label: "persist", tone: "success" })
   .readout.shareButtons("sb", { source: "shares", label: "シェア 累計" })
   .readout.gauge("virG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral度 %" })
-  .readout.countup("totCU", { source: "totalShares", unit: " shares", label: "総shares", decimals: 0 })
+  .readout.countup("totCU", { source: "totalShares", unit: " 共有", label: "総shares", decimals: 0 })
   .readout.stat("reachStat", { source: "reachTenK", unit: " 万人", caption: "reach", label: "reach" })
   .phase("p1", {
     duration: 1500,
