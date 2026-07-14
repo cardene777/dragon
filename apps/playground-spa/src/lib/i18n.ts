@@ -53,6 +53,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   patternEmitOrderCreated: "イベント発火 (OrderCreated)",
   patternHookWebhook: "フック (Webhook 配信)",
   patternBranchAuthzCheck: "分岐 (認可判定)",
+  // wave 8-T business scenario 拡張
+  patternLoopBatchImport: "ループ (CSV batch import)",
+  patternFanOutVideoTranscode: "ファンアウト (動画 3 解像度 transcode)",
+  patternFanInMapReduce: "ファンイン (MapReduce 集計)",
 
   // cookbook
   apiCall: "API 呼び出し",

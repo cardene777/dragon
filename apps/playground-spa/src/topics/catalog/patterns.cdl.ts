@@ -516,3 +516,153 @@ export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
     body: "auditSink に deny event 記録 + SecOps に高頻度 deny alert 通知、 apiSvc は不動作 (safe)。 allowRate 88 keep、 denyCount 88 keep、 checkMs 9 → 10 tween、 auditLogs 12452 → 12453 tween、 auditSink + apiSvc lane activate (apiSvc は inactive 表示)、 6 shape 全 active、 authz cycle 完遂。",
   }, (p: PhaseBuilder) => p.activate("user", "app", "authz", "policyDb", "apiSvc", "auditSink").tween("checkMs", 9, 10).tween("auditLogs", 12452, 12453).badge("audit"))
   .build();
+
+/**
+ * 19. patternLoopBatchImport v2 = pattern 7 Loop の business scenario 拡張 (CSV 100 行を 1 行ずつ import + validate + DB 挿入する batch job)、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-cloud + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (start → 進行中 33% → 進行中 66% → 完了) + 4 readout (gauge 進捗 / countup 処理行 / stat エラー行 / stat 平均 ms/row) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 7 の抽象 patternLoop と並置。
+ */
+export const patternLoopBatchImport = diagram("pattern-loop-batch-import", {
+  topic: "pattern 7 Loop business scenario = CSV 100 行 batch import 4 phase (start → 33% → 66% → 100%) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("admin", { x: 0, width: 220 })
+  .lane("worker", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("progress", { initial: 0 })
+  .state("processed", { initial: 0 })
+  .state("errRows", { initial: 0 })
+  .state("avgMs", { initial: 0 })
+  .node("admin", { lane: "admin", stack: 0, kind: "shape-person", title: "admin 中森様", eyebrow: "admin", subtitle: "CSV batch import 実行者" })
+  .node("laptop", { lane: "admin", stack: 1, kind: "shape-mobile-device", title: "admin console", eyebrow: "device", subtitle: "batch job 起動 + 進捗 monitoring" })
+  .node("worker", { lane: "worker", stack: 0, kind: "shape-server-rack", title: "batch worker", eyebrow: "worker", subtitle: "for row in csv: validate + insert" })
+  .node("progressSensor", { lane: "worker", stack: 1, kind: "shape-iot-sensor", title: "progress sensor", eyebrow: "sensor", subtitle: "per-row status emit + WebSocket 送信" })
+  .node("db", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "target DB", eyebrow: "storage", subtitle: "insert 100 row + transaction 100 batch" })
+  .node("notify", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "notify service", eyebrow: "notify", subtitle: "完了時 email + Slack 通知" })
+  .edge("admin", "laptop", { label: "start", tone: "info" })
+  .edge("laptop", "worker", { label: "run job", tone: "info" })
+  .edge("worker", "progressSensor", { label: "emit tick", tone: "success" })
+  .edge("worker", "db", { label: "insert (loop)", tone: "accent" })
+  .edge("worker", "notify", { label: "complete", tone: "success" })
+  .readout.gauge("prgG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "進捗 %" })
+  .readout.countup("procCU", { source: "processed", unit: " row", label: "処理済", decimals: 0 })
+  .readout.stat("errStat", { source: "errRows", unit: " row", caption: "error 行", label: "err" })
+  .readout.stat("msStat", { source: "avgMs", unit: " ms", caption: "平均 ms/row", label: "ms" })
+  .phase("p1", {
+    duration: 1500,
+    title: "start (行 0)",
+    body: "中森様が admin console から batch job 起動、 worker が CSV parse + validate 準備。 progress 0 → 5 tween、 processed 0 keep、 errRows 0 keep、 avgMs 0 → 8 tween、 admin + laptop + worker lane active。",
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker").tween("progress", 0, 5).tween("avgMs", 0, 8).badge("start"))
+  .phase("p2", {
+    duration: 2000,
+    title: "進行中 33% (行 33)",
+    body: "for loop で行 1-33 を validate + insert、 1 行 fail (encoding error)。 progress 5 → 33 tween、 processed 0 → 33 tween、 errRows 0 → 1 tween、 avgMs 8 → 12 tween、 progressSensor + db lane activate。",
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db").tween("progress", 5, 33).tween("processed", 0, 33).tween("errRows", 0, 1).tween("avgMs", 8, 12).badge("33%"))
+  .phase("p3", {
+    duration: 2000,
+    title: "進行中 66% (行 66)",
+    body: "行 34-66 継続処理、 2 行 fail (duplicate key)。 progress 33 → 66 tween、 processed 33 → 66 tween、 errRows 1 → 3 tween、 avgMs 12 → 15 tween、 DB transaction commit 継続。",
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db").tween("progress", 33, 66).tween("processed", 33, 66).tween("errRows", 1, 3).tween("avgMs", 12, 15).badge("66%"))
+  .phase("p4", {
+    duration: 2000,
+    title: "完了 (行 100)",
+    body: "残り 34 行完了、 notify で email + Slack 通知送信、 error log は別出力。 progress 66 → 100 tween (gauge 針最上位)、 processed 66 → 100 tween、 errRows 3 keep、 avgMs 15 → 14 tween (安定)、 notify lane activate、 6 shape 全 active、 batch import cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("admin", "laptop", "worker", "progressSensor", "db", "notify").tween("progress", 66, 100).tween("processed", 66, 100).tween("avgMs", 15, 14).badge("100%"))
+  .build();
+
+/**
+ * 20. patternFanOutVideoTranscode v2 = pattern 8 Fan-out の business scenario 拡張 (動画 upload 1 本を 3 解像度 (480p/720p/1080p) に並列 transcode)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-cdn-edge + shape-cylinder の 6 shape で visual scene 化、 4 phase (upload → dispatch → 3 並列 transcode → 全解像度公開) + 4 readout (gauge 完了率 / countup 累計動画 / stat 総処理秒 / stat 平均 MB) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 8 の抽象 patternFanOut と並置。
+ */
+export const patternFanOutVideoTranscode = diagram("pattern-fanout-video-transcode", {
+  topic: "pattern 8 Fan-out business scenario = 動画 upload → 3 解像度並列 transcode 4 phase (upload → dispatch → 並列 → 公開) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("creator", { x: 0, width: 220 })
+  .lane("cluster", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("completionRate", { initial: 0 })
+  .state("videoCount", { initial: 3821 })
+  .state("totalSec", { initial: 0 })
+  .state("avgMb", { initial: 0 })
+  .node("creator", { lane: "creator", stack: 0, kind: "shape-person", title: "creator 川島様", eyebrow: "creator", subtitle: "video 配信サービスの動画投稿者" })
+  .node("phone", { lane: "creator", stack: 1, kind: "shape-mobile-device", title: "iPhone + video app", eyebrow: "device", subtitle: "録画 + upload UI + 進捗 monitor" })
+  .node("dispatcher", { lane: "cluster", stack: 0, kind: "shape-cloud", title: "transcode dispatcher", eyebrow: "dispatcher", subtitle: "1 job を 3 worker に fan-out" })
+  .node("workers", { lane: "cluster", stack: 1, kind: "shape-server-rack", title: "3 transcode worker", eyebrow: "worker", subtitle: "worker 1 = 480p / 2 = 720p / 3 = 1080p" })
+  .node("cdn", { lane: "outcome", stack: 0, kind: "shape-cdn-edge", title: "video CDN edge", eyebrow: "cdn", subtitle: "全 3 解像度配信 + edge cache" })
+  .node("mediaDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "media DB", eyebrow: "storage", subtitle: "video_id → 3 resolution URL map" })
+  .edge("creator", "phone", { label: "録画", tone: "info" })
+  .edge("phone", "dispatcher", { label: "upload", tone: "info" })
+  .edge("dispatcher", "workers", { label: "fan-out (3 並列)", tone: "accent" })
+  .edge("workers", "cdn", { label: "publish", tone: "success" })
+  .edge("workers", "mediaDb", { label: "URL 登録", tone: "success" })
+  .readout.gauge("comG", { source: "completionRate", min: 0, max: 100, color: "#22c55e", label: "完了率 %" })
+  .readout.countup("vidCU", { source: "videoCount", unit: " 本", label: "累計動画", decimals: 0 })
+  .readout.stat("secStat", { source: "totalSec", unit: " 秒", caption: "総処理", label: "sec" })
+  .readout.stat("mbStat", { source: "avgMb", unit: " MB", caption: "平均容量", label: "mb" })
+  .phase("p1", {
+    duration: 1500,
+    title: "upload",
+    body: "川島様が iPhone で録画完了、 300 MB 原本を dispatcher に upload。 completionRate 0 → 15 tween、 videoCount 3821 keep、 totalSec 0 → 20 tween、 avgMb 0 → 300 tween、 creator + phone + dispatcher lane active。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher").tween("completionRate", 0, 15).tween("totalSec", 0, 20).tween("avgMb", 0, 300).badge("upload"))
+  .phase("p2", {
+    duration: 1800,
+    title: "dispatch (fan-out 3)",
+    body: "dispatcher が 1 原本を 3 worker に並列 job 投入 (480p / 720p / 1080p 各 1 worker)。 completionRate 15 → 35 tween、 totalSec 20 → 35 tween、 workers lane activate、 3 並列 job kick。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers").tween("completionRate", 15, 35).tween("totalSec", 20, 35).badge("dispatch"))
+  .phase("p3", {
+    duration: 2200,
+    title: "3 並列 transcode",
+    body: "3 worker が独立に H.264 transcode 実行、 完了順に CDN publish 済、 mediaDb に URL 登録。 completionRate 35 → 90 tween、 totalSec 35 → 120 tween、 avgMb 300 → 180 tween (圧縮効果)、 cdn + mediaDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb").tween("completionRate", 35, 90).tween("totalSec", 35, 120).tween("avgMb", 300, 180).badge("transcode"))
+  .phase("p4", {
+    duration: 2000,
+    title: "全解像度公開",
+    body: "3 解像度全 publish 完了、 川島様に通知 + CDN 全 edge に伝播完了。 completionRate 90 → 100 tween (gauge 針最上位)、 videoCount 3821 → 3822 tween、 totalSec 120 → 135 tween、 avgMb 180 keep、 6 shape 全 active、 動画公開 cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "dispatcher", "workers", "cdn", "mediaDb").tween("completionRate", 90, 100).tween("videoCount", 3821, 3822).tween("totalSec", 120, 135).badge("公開"))
+  .build();
+
+/**
+ * 21. patternFanInMapReduce v2 = pattern 9 Fan-in の business scenario 拡張 (3 shard から集計結果を 1 aggregator に fan-in する MapReduce 風 集計 job)、 shape-server-rack + shape-cloud + shape-cylinder + shape-brokerage + shape-mobile-device + shape-person の 6 shape で visual scene 化、 4 phase (shard 起動 → 並列 map → aggregator fan-in → 結果配信) + 4 readout (gauge aggregate 進捗 / countup 集計 job / stat total records / stat 全体秒) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 9 の抽象 patternFanIn と並置。
+ */
+export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
+  topic: "pattern 9 Fan-in business scenario = 3 shard 集計 → 1 aggregator fan-in の MapReduce 集計 4 phase (起動 → map → fan-in → 配信) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("shards", { x: 0, width: 220 })
+  .lane("aggregator", { x: 240, width: 320 })
+  .lane("consumer", { x: 580, width: 240 })
+  .state("aggPct", { initial: 0 })
+  .state("jobCount", { initial: 214 })
+  .state("totalRecs", { initial: 0 })
+  .state("elapsedSec", { initial: 0 })
+  .node("shardCluster", { lane: "shards", stack: 0, kind: "shape-server-rack", title: "3 shard cluster", eyebrow: "shards", subtitle: "us-east / eu-west / ap-south" })
+  .node("shardStorage", { lane: "shards", stack: 1, kind: "shape-cylinder", title: "3 shard DB", eyebrow: "storage", subtitle: "各 shard = 1M record 保持" })
+  .node("aggSvc", { lane: "aggregator", stack: 0, kind: "shape-brokerage", title: "aggregator service", eyebrow: "aggregator", subtitle: "3 shard result を集約 + reduce" })
+  .node("aggCloud", { lane: "aggregator", stack: 1, kind: "shape-cloud", title: "compute pool", eyebrow: "compute", subtitle: "reduce phase の compute 割当" })
+  .node("analyst", { lane: "consumer", stack: 0, kind: "shape-person", title: "analyst 川口様", eyebrow: "analyst", subtitle: "集計結果 review + Slack 共有" })
+  .node("dashboard", { lane: "consumer", stack: 1, kind: "shape-mobile-device", title: "BI dashboard", eyebrow: "device", subtitle: "集計 KPI + 時系列 chart" })
+  .edge("shardCluster", "aggSvc", { label: "map result", tone: "success" })
+  .edge("shardStorage", "shardCluster", { label: "read", tone: "info" })
+  .edge("aggSvc", "aggCloud", { label: "compute", tone: "accent" })
+  .edge("aggSvc", "dashboard", { label: "publish", tone: "success" })
+  .edge("dashboard", "analyst", { label: "review", tone: "info" })
+  .readout.gauge("agG", { source: "aggPct", min: 0, max: 100, color: "#22c55e", label: "aggregate %" })
+  .readout.countup("jobCU", { source: "jobCount", unit: " job", label: "集計 job 累計", decimals: 0 })
+  .readout.stat("recStat", { source: "totalRecs", unit: " M", caption: "総 record", label: "recs" })
+  .readout.stat("elpStat", { source: "elapsedSec", unit: " 秒", caption: "全体", label: "elp" })
+  .phase("p1", {
+    duration: 1500,
+    title: "shard 起動",
+    body: "3 region shard cluster に集計 job 投入、 各 shard が独立 read + map phase 準備。 aggPct 0 → 10 tween、 jobCount 214 keep、 totalRecs 0 → 1 tween、 elapsedSec 0 → 8 tween、 shardCluster + shardStorage lane active。",
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage").tween("aggPct", 0, 10).tween("totalRecs", 0, 1).tween("elapsedSec", 0, 8).badge("起動"))
+  .phase("p2", {
+    duration: 2000,
+    title: "並列 map",
+    body: "3 shard が独立に map 実行 (各 1M record)、 中間結果を aggregator に send。 aggPct 10 → 55 tween、 totalRecs 1 → 3 tween、 elapsedSec 8 → 45 tween、 aggSvc lane activate、 fan-in edge 発火。",
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc").tween("aggPct", 10, 55).tween("totalRecs", 1, 3).tween("elapsedSec", 8, 45).badge("map"))
+  .phase("p3", {
+    duration: 2000,
+    title: "aggregator fan-in + reduce",
+    body: "aggregator が 3 shard 結果を集約 + reduce 実行、 compute pool で並列 processing。 aggPct 55 → 90 tween、 jobCount 214 → 215 tween、 elapsedSec 45 → 75 tween、 aggCloud lane activate。",
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud").tween("aggPct", 55, 90).tween("jobCount", 214, 215).tween("elapsedSec", 45, 75).badge("reduce"))
+  .phase("p4", {
+    duration: 2000,
+    title: "結果配信",
+    body: "集計結果を BI dashboard に publish、 川口様がグラフ review + Slack 共有。 aggPct 90 → 100 tween (gauge 針最上位)、 totalRecs 3 keep、 elapsedSec 75 → 85 tween、 dashboard + analyst lane activate、 6 shape 全 active、 MapReduce cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud", "dashboard", "analyst").tween("aggPct", 90, 100).tween("elapsedSec", 75, 85).badge("配信"))
+  .build();
