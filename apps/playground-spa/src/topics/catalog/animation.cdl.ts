@@ -160,11 +160,13 @@ export const animationBuildStatus = diagram("animation-build-status", {
   .lane("dev", { x: 0, width: 220 })
   .lane("cicd", { x: 240, width: 320 })
   .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("stepLabels", ["p1", "p2", "p3", "p4"])
   .state("status", { initial: "queued" })
   .state("buildPct", { initial: 0 })
   .state("buildCount", { initial: 8721 })
   .state("durationSec", { initial: 0 })
   .state("errRate", { initial: 0 })
+  .state("curStep", { initial: 0 })
   .node("dev", { lane: "dev", stack: 0, kind: "shape-person", title: "developer 北野様", eyebrow: "dev", subtitle: "PR #4231 push 直後 · CI 監視中" })
   .node("phone", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "GitHub mobile app", eyebrow: "device", subtitle: "PR status + push 通知" })
   .node("gh", { lane: "cicd", stack: 0, kind: "shape-website", title: "GitHub Actions", eyebrow: "ci", subtitle: "workflow trigger + status page" })
@@ -179,27 +181,27 @@ export const animationBuildStatus = diagram("animation-build-status", {
   .readout.gauge("bpG", { source: "buildPct", min: 0, max: 100, color: "#22c55e", label: "build %" })
   .readout.countup("bdCU", { source: "buildCount", unit: " 回", label: "累計 build", decimals: 0 })
   .readout.stat("durStat", { source: "durationSec", unit: " 秒", caption: "duration", label: "dur" })
-  .readout.stat("errStat", { source: "errRate", unit: " %", caption: "error 率", label: "err" })
+  .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "phase step" })
   .phase("p1", {
     duration: 1500,
     title: "queued",
     body: "北野様が PR push、 GitHub Actions が workflow queue 投入 status = 'queued'。 buildPct 0 → 10 tween、 buildCount 8721 keep、 durationSec 0 → 3 tween、 errRate 0 keep、 dev + phone + gh lane active。",
-  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh").set("status", "queued").tween("buildPct", 0, 10).tween("durationSec", 0, 3).badge("queued"))
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh").set("status", "queued").tween("buildPct", 0, 10).tween("durationSec", 0, 3).tween("curStep", 0, 1).badge("queued"))
   .phase("p2", {
     duration: 2000,
     title: "running",
     body: "runner が build 開始、 status = 'running' 即時切替、 コンパイル + lint 実行。 buildPct 10 → 45 tween、 buildCount 8721 → 8722 tween、 durationSec 3 → 25 tween、 runner lane activate。",
-  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner").set("status", "running").tween("buildPct", 10, 45).tween("buildCount", 8721, 8722).tween("durationSec", 3, 25).badge("running"))
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner").set("status", "running").tween("buildPct", 10, 45).tween("buildCount", 8721, 8722).tween("durationSec", 3, 25).tween("curStep", 1, 2).badge("running"))
   .phase("p3", {
     duration: 2200,
     title: "tests",
     body: "unit test + integration test 実行、 status = 'tests' 即時切替、 一部 flaky test で errRate 微増。 buildPct 45 → 85 tween、 durationSec 25 → 65 tween、 errRate 0 → 2 tween、 buildDb lane activate。",
-  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb").set("status", "tests").tween("buildPct", 45, 85).tween("durationSec", 25, 65).tween("errRate", 0, 2).badge("tests"))
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb").set("status", "tests").tween("buildPct", 45, 85).tween("durationSec", 25, 65).tween("errRate", 0, 2).tween("curStep", 2, 3).badge("tests"))
   .phase("p4", {
     duration: 2000,
     title: "deployed",
     body: "全 pass → prod cluster に rolling update、 status = 'deployed' 即時切替、 北野様に完了通知。 buildPct 85 → 100 tween (gauge 針最上位)、 durationSec 65 → 78 tween (最終)、 errRate 2 keep、 deployTarget lane activate、 6 shape 全 active、 CI/CD cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb", "deployTarget").set("status", "deployed").tween("buildPct", 85, 100).tween("durationSec", 65, 78).badge("deployed"))
+  }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb", "deployTarget").set("status", "deployed").tween("buildPct", 85, 100).tween("durationSec", 65, 78).set("curStep", 3).badge("deployed"))
   .build();
 
 /**
@@ -211,10 +213,12 @@ export const animationDeployBadge = diagram("animation-deploy-badge", {
   .lane("sre", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
   .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("stepLabels", ["p1", "p2", "p3", "p4"])
   .state("deployPct", { initial: 0 })
   .state("deployCount", { initial: 4521 })
   .state("rolloutSec", { initial: 0 })
   .state("healthPass", { initial: 0 })
+  .state("curStep", { initial: 0 })
   .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "release engineer 山内様", eyebrow: "release", subtitle: "金曜夕方の production deploy 担当" })
   .node("dashboard", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "deploy dashboard", eyebrow: "device", subtitle: "phase badge + progress bar" })
   .node("cluster", { lane: "service", stack: 0, kind: "shape-server-rack", title: "prod k8s cluster", eyebrow: "prod", subtitle: "10 pod rolling update target" })
@@ -229,27 +233,27 @@ export const animationDeployBadge = diagram("animation-deploy-badge", {
   .readout.gauge("dpG", { source: "deployPct", min: 0, max: 100, color: "#22c55e", label: "deploy %" })
   .readout.countup("dcCU", { source: "deployCount", unit: " 回", label: "累計 deploy", decimals: 0 })
   .readout.stat("rolStat", { source: "rolloutSec", unit: " 秒", caption: "rollout", label: "roll" })
-  .readout.stat("hpStat", { source: "healthPass", unit: " 件", caption: "health OK", label: "hp" })
+  .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "phase step" })
   .phase("p1", {
     duration: 1500,
     title: "preparing",
     body: "山内様が deploy dashboard で trigger、 orchestrator が preparing badge 表示、 事前 rollback backup 作成。 deployPct 0 → 15 tween、 deployCount 4521 keep、 rolloutSec 0 → 8 tween、 healthPass 0 keep、 sre + dashboard + orchestrator lane active。",
-  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator").tween("deployPct", 0, 15).tween("rolloutSec", 0, 8).badge("preparing"))
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator").tween("deployPct", 0, 15).tween("rolloutSec", 0, 8).tween("curStep", 0, 1).badge("preparing"))
   .phase("p2", {
     duration: 2000,
     title: "deploying",
     body: "orchestrator が k8s cluster に rolling update kick、 badge = 'deploying'、 5 pod 順次 replace。 deployPct 15 → 55 tween、 deployCount 4521 → 4522 tween、 rolloutSec 8 → 40 tween、 cluster lane activate。",
-  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster").tween("deployPct", 15, 55).tween("deployCount", 4521, 4522).tween("rolloutSec", 8, 40).badge("deploying"))
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster").tween("deployPct", 15, 55).tween("deployCount", 4521, 4522).tween("rolloutSec", 8, 40).tween("curStep", 1, 2).badge("deploying"))
   .phase("p3", {
     duration: 2000,
     title: "validating",
     body: "全 pod up 後 healthProbe が /healthz 判定、 badge = 'validating'、 10 pod × 3 check = 30 判定。 deployPct 55 → 90 tween、 rolloutSec 40 → 70 tween、 healthPass 0 → 28 tween、 healthProbe lane activate。",
-  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe").tween("deployPct", 55, 90).tween("rolloutSec", 40, 70).tween("healthPass", 0, 28).badge("validating"))
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe").tween("deployPct", 55, 90).tween("rolloutSec", 40, 70).tween("healthPass", 0, 28).tween("curStep", 2, 3).badge("validating"))
   .phase("p4", {
     duration: 2000,
     title: "live",
     body: "全 health check pass、 badge = 'live'、 deployLog に成功記録、 山内様 Slack 完了報告。 deployPct 90 → 100 tween (gauge 針最上位)、 rolloutSec 70 → 78 tween (最終)、 healthPass 28 → 30 tween、 deployLog lane activate、 6 shape 全 active、 deploy pipeline cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe", "deployLog").tween("deployPct", 90, 100).tween("rolloutSec", 70, 78).tween("healthPass", 28, 30).badge("live"))
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe", "deployLog").tween("deployPct", 90, 100).tween("rolloutSec", 70, 78).tween("healthPass", 28, 30).set("curStep", 3).badge("live"))
   .build();
 
 /**
@@ -261,10 +265,12 @@ export const animationOrderProgress = diagram("animation-order-progress", {
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
   .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("stepLabels", ["p1", "p2", "p3", "p4"])
   .state("phase", { initial: "init" })
   .state("amount", { initial: 0 })
   .state("orderCount", { initial: 12451 })
   .state("dayCount", { initial: 0 })
+  .state("curStep", { initial: 0 })
   .node("buyer", { lane: "buyer", stack: 0, kind: "shape-person", title: "buyer 藤本様", eyebrow: "buyer", subtitle: "商品注文 → 配送追跡者" })
   .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "EC mobile app", eyebrow: "device", subtitle: "注文 + 決済 + 配送 status" })
   .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC service", eyebrow: "shop", subtitle: "注文管理 + phase state 更新" })
@@ -276,28 +282,28 @@ export const animationOrderProgress = diagram("animation-order-progress", {
   .edge("shop", "payment", { label: "charge", tone: "success" })
   .edge("shop", "warehouse", { label: "picking", tone: "accent" })
   .edge("warehouse", "orderDb", { label: "persist", tone: "success" })
-  .readout.gauge("prG", { source: "amount", min: 0, max: 100, color: "#22c55e", label: "進捗 %" })
+  .readout.gauge("prG", { source: "curStep", min: 0, max: 3, color: "#22c55e", label: "進捗 step" })
   .readout.countup("ocCU", { source: "orderCount", unit: " 件", label: "累計 orders", decimals: 0 })
   .readout.stat("amtStat", { source: "amount", unit: " %", caption: "amount", label: "amt" })
-  .readout.stat("dayStat", { source: "dayCount", unit: " 日", caption: "経過日", label: "day" })
+  .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "phase step" })
   .phase("p1", {
     duration: 1500,
     title: "init",
     body: "藤本様が注文 confirm、 shop が phase = 'init' set、 amount 0 で待機。 amount 0 → 15 tween、 orderCount 12451 keep、 dayCount 0 keep、 buyer + phone + shop lane active。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").set("phase", "init").tween("amount", 0, 15).badge("init"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").set("phase", "init").tween("amount", 0, 15).tween("curStep", 0, 1).badge("init"))
   .phase("p2", {
     duration: 2000,
     title: "charging",
     body: "phase = 'charging' set、 payment gateway が Stripe charge 実行、 amount progress 更新。 amount 15 → 45 tween、 orderCount 12451 → 12452 tween、 payment lane activate。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment").set("phase", "charging").tween("amount", 15, 45).tween("orderCount", 12451, 12452).badge("charging"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment").set("phase", "charging").tween("amount", 15, 45).tween("orderCount", 12451, 12452).tween("curStep", 1, 2).badge("charging"))
   .phase("p3", {
     duration: 2200,
     title: "shipping",
     body: "phase = 'shipping' set、 warehouse が picking + packing + 配送業者 pickup、 amount 継続進捗。 amount 45 → 85 tween、 dayCount 0 → 1 tween、 warehouse lane activate。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse").set("phase", "shipping").tween("amount", 45, 85).tween("dayCount", 0, 1).badge("shipping"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse").set("phase", "shipping").tween("amount", 45, 85).tween("dayCount", 0, 1).tween("curStep", 2, 3).badge("shipping"))
   .phase("p4", {
     duration: 2000,
     title: "delivered",
     body: "phase = 'delivered' set、 藤本様手元到着、 orderDb に final state 記録。 amount 85 → 100 tween (gauge 針最上位)、 dayCount 1 → 3 tween (最終)、 orderDb lane activate、 6 shape 全 active、 EC 注文 cycle 完遂。",
-  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse", "orderDb").set("phase", "delivered").tween("amount", 85, 100).tween("dayCount", 1, 3).badge("delivered"))
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse", "orderDb").set("phase", "delivered").tween("amount", 85, 100).tween("dayCount", 1, 3).set("curStep", 3).badge("delivered"))
   .build();
