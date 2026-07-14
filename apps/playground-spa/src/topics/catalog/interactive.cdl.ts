@@ -1606,7 +1606,7 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
   .node("mobile", { lane: "trader", stack: 1, kind: "shape-mobile-device", title: "SBIアプリ", eyebrow: "アプリ", subtitle: "チャート + 発注UI" })
   .node("brokerage", { lane: "markets", stack: 0, kind: "shape-brokerage", title: "SBI証券", eyebrow: "broker", subtitle: "板寄せ + 執行" })
   .node("exchange", { lane: "markets", stack: 1, kind: "shape-exchange", title: "東証", eyebrow: "exchange", subtitle: "現物 · continuous" })
-  .node("feed", { lane: "feed", stack: 0, kind: "shape-blockchain-node", title: "quoteフィード", eyebrow: "data", subtitle: "1s tick · WebSocket · 現在 ¥{価格}" })
+  .node("feed", { lane: "feed", stack: 0, kind: "shape-blockchain-node", title: "quoteフィード", eyebrow: "data", subtitle: "1s拍動 · WebSocket · 現在 ¥{価格}" })
   .edge("trader", "mobile", { label: "確認", tone: "info" })
   .edge("mobile", "brokerage", { label: "発注", tone: "info" })
   .edge("brokerage", "exchange", { label: "取次", tone: "success" })
@@ -2846,7 +2846,7 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
   .node("eth", { lane: "tokens", stack: 1, kind: "shape-token", title: "Ξ ETH", eyebrow: "トークン", subtitle: "12.5 ETH · -2.8% 24h" })
   .node("sol", { lane: "tokens", stack: 2, kind: "shape-token", title: "◎ SOL", eyebrow: "トークン", subtitle: "245 SOL · +8.1% 24h" })
   .node("doge", { lane: "tokens", stack: 3, kind: "shape-token", title: "Ð DOGE", eyebrow: "トークン", subtitle: "8500 DOGE · -1.4% 24h" })
-  .node("exchange", { lane: "infra", stack: 0, kind: "shape-exchange", title: "CEX見積", eyebrow: "見積", subtitle: "Binance API · 1s tick" })
+  .node("exchange", { lane: "infra", stack: 0, kind: "shape-exchange", title: "CEX見積", eyebrow: "見積", subtitle: "Binance API · 1s拍動" })
   .node("node", { lane: "infra", stack: 1, kind: "shape-blockchain-node", title: "RPC node", eyebrow: "RPC", subtitle: "Infura · eth_call balance" })
   .node("chain", { lane: "infra", stack: 2, kind: "shape-ethereum-chain", title: "Ethereum L1", eyebrow: "chain", subtitle: "遮断 #{portfolioValue}" })
   .edge("wallet", "btc", { label: "保有", tone: "info" })
@@ -3434,7 +3434,7 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
   .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "投稿動画 3 本" })
   .readout.gauge("ctrG", { source: "ctr", min: 0, max: 20, color: "#22c55e", label: "CTR %" })
   .readout.countup("viewCU", { source: "views", unit: " 表示", label: "動画views", decimals: 0 })
-  .readout.stat("subStat", { source: "subDelta", unit: " 名", caption: "登録者増加", label: "sub Δ" })
+  .readout.stat("subStat", { source: "subDelta", unit: " 名", caption: "登録者増加", label: "購読 Δ" })
   .phase("p1", {
     duration: 1800,
     title: "企画",

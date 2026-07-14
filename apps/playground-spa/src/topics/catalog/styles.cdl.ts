@@ -44,7 +44,7 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 
   .lane("l2", { x: 600, width: 280 })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
-  .edge("a", "b", { id: "e", label: "inactive", tone: "accent", style: "solid" })
+  .edge("a", "b", { id: "e", label: "無効", tone: "accent", style: "solid" })
   .phase("p", { duration: 1800, title: "inactive状態", body: "activateされていないedgeは薄い灰色 + dashで静的表示。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("edge は inactive"))
   .build();
 
@@ -76,7 +76,7 @@ export const stateActiveConnection = diagram("state-active-connection", {
   .edge("chatSvc", "msgDb", { label: "永続化", tone: "success" })
   .readout.gauge("hpG", { source: "healthPct", min: 0, max: 100, color: "#22c55e", label: "connection健康度 %" })
   .readout.countup("mcCU", { source: "msgCount", unit: " メッセージ", label: "累計msg", decimals: 0 })
-  .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "lat" })
+  .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "遅延" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -138,7 +138,7 @@ export const stateInactiveMonitor = diagram("state-inactive-monitor", {
   .phase("p2", {
     duration: 1800,
     title: "ジョブtrigger",
-    body: "schedulerのCron発火、 ワーカー に 起動 送信、 inactive edgeがactive edgeに切替。 utilization 5 → 45 tween、 runCount 234 → 235 tween、 avgSec 0 → 8 tween、 idleMin 60 → 0 tween (idle状態解除)。",
+    body: "schedulerのCron発火、 ワーカー に 起動 送信、 無効edgeがactive edgeに切替。 utilization 5 → 45 tween、 runCount 234 → 235 tween、 avgSec 0 → 8 tween、 idleMin 60 → 0 tween (idle状態解除)。",
   }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "ops-dashboard", "dashboard-scheduler", "scheduler-worker").tween("utilization", 5, 45).tween("runCount", 234, 235).tween("avgSec", 0, 8).tween("idleMin", 60, 0).tween("curStep", 1, 2).badge("trigger"))
   .phase("p3", {
     duration: 2000,

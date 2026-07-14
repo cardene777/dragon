@@ -189,10 +189,10 @@ export const patternSchedule = diagram("pattern-schedule", { topic: "pattern: Sc
   .node("scheduler", { lane: "j", stack: 0, kind: "function", title: "Scheduler", subtitle: "起動判定" })
   .node("job", { lane: "j", stack: 1, kind: "function", title: "ジョブ.実行()" })
   .node("target", { lane: "t", stack: 0, kind: "function", title: "Targetサービス" })
-  .edge("cron", "scheduler", { id: "e1", label: "tick", tone: "info", style: "dotted-flow" })
+  .edge("cron", "scheduler", { id: "e1", label: "拍動", tone: "info", style: "dotted-flow" })
   .edge("scheduler", "job", { id: "e2", label: "起動", tone: "accent", style: "dotted-flow" })
   .edge("job", "target", { id: "e3", label: "呼出", tone: "teal", style: "dotted-flow" })
-  .phase("tick", { duration: 1800, title: "tick", body: "Cronが5分ごとにtick。" }, (p: PhaseBuilder) => p.activate("cron", "scheduler", "e1").badge("tick"))
+  .phase("tick", { duration: 1800, title: "拍動", body: "Cronが5分ごとにtick。" }, (p: PhaseBuilder) => p.activate("cron", "scheduler", "e1").badge("tick"))
   .phase("trigger", { duration: 1800, title: "起動", body: "Schedulerが ジョブ を起動。" }, (p: PhaseBuilder) => p.activate("scheduler", "job", "e2").badge("trigger"))
   .phase("invoke", { duration: 1800, title: "呼出", body: "ジョブ がTargetを呼ぶ。" }, (p: PhaseBuilder) => p.activate("job", "target", "e3").badge("invoke"))
   .build();
@@ -392,7 +392,7 @@ export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
   .node("phone", { lane: "client", stack: 1, kind: "shape-mobile-device", title: "iPhoneのECアプリ", eyebrow: "端末", subtitle: "checkout完了 → OrderCreated" })
   .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "ECサービス", eyebrow: "ショップ", subtitle: "processOrder()でevent発火" })
   .node("bus", { lane: "service", stack: 1, kind: "shape-stack", title: "イベントbus (Kafka)", eyebrow: "bus", subtitle: "OrderCreated topic + 3購読者" })
-  .node("subscribers", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "3購読者", eyebrow: "sub", subtitle: "メール / 在庫 / 分析" })
+  .node("subscribers", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "3購読者", eyebrow: "購読", subtitle: "メール / 在庫 / 分析" })
   .node("eventLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "eventログDB", eyebrow: "保存", subtitle: "全event履歴 + 監査" })
   .edge("buyer", "phone", { label: "注文", tone: "info" })
   .edge("phone", "shop", { label: "確定", tone: "info" })
@@ -401,7 +401,7 @@ export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
   .edge("subscribers", "eventLog", { label: "保存", tone: "success" })
   .readout.gauge("delG", { source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信率 %" })
   .readout.countup("evCU", { source: "eventCount", unit: " 件", label: "累計 イベント", decimals: 0 })
-  .readout.stat("subStat", { source: "subCount", unit: " sub", caption: "購読者", label: "sub" })
+  .readout.stat("subStat", { source: "subCount", unit: " 購読", caption: "購読者", label: "購読" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -661,7 +661,7 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
   .edge("dashboard", "analyst", { label: "レビュー", tone: "info" })
   .readout.gauge("agG", { source: "aggPct", min: 0, max: 100, color: "#22c55e", label: "集約 %" })
   .readout.countup("jobCU", { source: "jobCount", unit: " ジョブ", label: "集計 ジョブ 累計", decimals: 0 })
-  .readout.stat("recStat", { source: "totalRecs", unit: " M", caption: "総 記録", label: "recs" })
+  .readout.stat("recStat", { source: "totalRecs", unit: " M", caption: "総 記録", label: "件数" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -713,7 +713,7 @@ export const patternRollbackBankTransfer = diagram("pattern-rollback-bank-transf
   .edge("ledger", "alerting", { label: "ROLLBACK通知", tone: "error" })
   .readout.gauge("txG", { source: "txProgress", min: 0, max: 100, color: "#22c55e", label: "tx進捗 %" })
   .readout.countup("txCU", { source: "txCount", unit: " 件", label: "累計tx", decimals: 0 })
-  .readout.stat("rlbStat", { source: "rollbackCount", unit: " 件", caption: "戻し", label: "rlb" })
+  .readout.stat("rlbStat", { source: "rollbackCount", unit: " 件", caption: "戻し", label: "戻し" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
@@ -758,7 +758,7 @@ export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
   .node("compute", { lane: "job", stack: 1, kind: "shape-gear", title: "計算engine", eyebrow: "計算", subtitle: "BigQuery + 集約function" })
   .node("reportStore", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "報告store", eyebrow: "保存", subtitle: "週次report履歴 + PDF生成" })
   .node("stakeholder", { lane: "outcome", stack: 1, kind: "shape-person", title: "stakeholder岩田様", eyebrow: "reader", subtitle: "経営会議でreportレビュー" })
-  .edge("cron", "schedulerSvc", { label: "tick", tone: "info" })
+  .edge("cron", "schedulerSvc", { label: "拍動", tone: "info" })
   .edge("schedulerSvc", "worker", { label: "起動", tone: "accent" })
   .edge("worker", "compute", { label: "集約", tone: "success" })
   .edge("worker", "reportStore", { label: "保存", tone: "success" })
@@ -769,7 +769,7 @@ export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
-    title: "Cron tick",
+    title: "Cron拍動",
     body: "Cronが */5 minuteのtick発火、 schedulerサービス に ジョブ 起動要求。 jobProgress 0 → 10 tween、 runCount 8721 keep、 avgSec 0 → 2 tween、 nextMin 5 → 5 keep、 Cron + schedulerSvc lane有効。",
   }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "cron-schedulerSvc").tween("jobProgress", 0, 10).tween("avgSec", 0, 2).tween("curStep", 0, 1).badge("tick"))
   .phase("p2", {
