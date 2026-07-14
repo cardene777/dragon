@@ -1775,14 +1775,14 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .build();
 
 /**
- * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
+ * 50. resourceTreemap v2 = 会社 CFO の年間予算配分レビュー シナリオ (期初計画 → Q1 実績 → 中期見直し → 期末着地)、 shape-person + shape-mobile-device + shape-brokerage + shape-cylinder + shape-server-rack + shape-cloud の 6 shape で visual scene 化、 4 phase (期初計画 → Q1 実績 → 中期見直し → 期末着地) + 4 readout (treemap / gauge 予算消化率 / countup 支出額 / stat 残予算) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const resourceTreemap = diagram("interactive-resource-treemap", {
-  topic: "6 team budget を 3-lane (Major ≥15% / Mid 5-14% / Minor <5%) size 別分散、 各 team 個別 card、 treemap readout 併存",
+  topic: "会社 CFO 年間予算配分レビュー 4 phase = (期初 → Q1 → 中期 → 期末) の flow を shape-* primitive 6 種で表現 + 4 readout (treemap / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("major", { x: 0, width: 220 })
-  .lane("mid", { x: 260, width: 200 })
-  .lane("minor", { x: 500, width: 200 })
+  .lane("cfo", { x: 0, width: 220 })
+  .lane("data", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 220 })
   .arraySignal("teams", [
     ["Engineering", 45],
     ["Sales", 20],
@@ -1791,29 +1791,55 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
     ["Ops", 6],
     ["Legal", 4],
   ] as unknown as (string | number)[])
-  .node("engNode", { lane: "major", stack: 0, kind: "card", title: "Engineering", subtitle: "45% (dominant)" })
-  .node("salesNode", { lane: "major", stack: 1, kind: "card", title: "Sales", subtitle: "20%" })
-  .node("mktNode", { lane: "major", stack: 2, kind: "card", title: "Marketing", subtitle: "15% (boundary)" })
-  .node("supportNode", { lane: "mid", stack: 0, kind: "card", title: "Support", subtitle: "10%" })
-  .node("opsNode", { lane: "mid", stack: 1, kind: "card", title: "Ops", subtitle: "6%" })
-  .node("legalNode", { lane: "minor", stack: 0, kind: "card", title: "Legal", subtitle: "4% (min)" })
-  .readout.treemap("t", { source: "teams", viewW: 280, viewH: 200, label: "Budget (treemap)" })
-  .phase("p", {
-    duration: 1200,
-    title: "budget size split",
-    body: "3-lane (Major ≥15% = 3 team / Mid 5-14% = 2 team / Minor <5% = 1 team) で 6 team を budget size 別分散、 各 team 個別 card で % 明示、 treemap readout も併存で area 比例 hierarchical 表示、 size 分類と area chart の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("engNode", "salesNode", "mktNode", "supportNode", "opsNode", "legalNode").badge("treemap"))
+  .state("consumptionPct", { initial: 0 })
+  .state("spentMm", { initial: 0 })
+  .state("remainingMm", { initial: 500 })
+  .node("cfo", { lane: "cfo", stack: 0, kind: "shape-person", title: "CFO 森本様", eyebrow: "executive", subtitle: "年間 500M 予算責任" })
+  .node("mobile", { lane: "cfo", stack: 1, kind: "shape-mobile-device", title: "予算 dashboard", eyebrow: "device", subtitle: "team 別配分 view + drilldown" })
+  .node("finance", { lane: "data", stack: 0, kind: "shape-brokerage", title: "経理部門", eyebrow: "accounting", subtitle: "月次 rollup + 実績集計" })
+  .node("ledger", { lane: "data", stack: 1, kind: "shape-cylinder", title: "General Ledger", eyebrow: "database", subtitle: "team × 費目 × 月次 fact table" })
+  .node("erp", { lane: "data", stack: 2, kind: "shape-server-rack", title: "ERP system", eyebrow: "system", subtitle: "SAP · 会計仕訳集約" })
+  .node("committee", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "経営委員会", eyebrow: "decision", subtitle: "配分再調整 · 承認判断" })
+  .edge("cfo", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "finance", { label: "実績 query", tone: "info" })
+  .edge("finance", "ledger", { label: "集計", tone: "success" })
+  .edge("ledger", "erp", { label: "同期", tone: "accent" })
+  .edge("erp", "committee", { label: "予算再検討", tone: "warning" })
+  .readout.treemap("t", { source: "teams", viewW: 300, viewH: 200, label: "team 別予算 (treemap)" })
+  .readout.gauge("consG", { source: "consumptionPct", min: 0, max: 100, color: "#f97316", label: "予算消化率 %" })
+  .readout.countup("spentCU", { source: "spentMm", unit: " M円", label: "支出累計", decimals: 0 })
+  .readout.stat("remStat", { source: "remainingMm", unit: " M円", caption: "残予算", label: "残" })
+  .phase("p1", {
+    duration: 1800,
+    title: "期初計画 (4/1)",
+    body: "森本様が Q1 期初に 6 team 予算配分決定 (Eng 45% / Sales 20% / Mkt 15% / etc)。 consumptionPct 0、 spentMm 0、 remainingMm 500 保持、 cfo + mobile lane active。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "mobile").set("consumptionPct", 0).set("spentMm", 0).set("remainingMm", 500).badge("期初"))
+  .phase("p2", {
+    duration: 2200,
+    title: "Q1 実績 (7/1)",
+    body: "3 ヶ月経過、 経理部門から実績集計。 consumptionPct 0 → 28 tween、 spentMm 0 → 140 tween (countup 加算)、 remainingMm 500 → 360 tween (stat 減少)、 finance + ledger lane activate、 順調 pace。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "mobile", "finance", "ledger").tween("consumptionPct", 0, 28).tween("spentMm", 0, 140).tween("remainingMm", 500, 360).badge("Q1"))
+  .phase("p3", {
+    duration: 2400,
+    title: "中期見直し (10/1)",
+    body: "半期経過、 Eng 部門超過傾向 + Legal 余剰、 予算再配分検討。 consumptionPct 28 → 62 tween、 spentMm 140 → 310 tween、 remainingMm 360 → 190 tween、 erp lane activate、 SAP に配分修正反映。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "mobile", "finance", "ledger", "erp").tween("consumptionPct", 28, 62).tween("spentMm", 140, 310).tween("remainingMm", 360, 190).badge("中期"))
+  .phase("p4", {
+    duration: 2000,
+    title: "期末着地 (3/31)",
+    body: "1 年経過、 経営委員会に最終報告。 consumptionPct 62 → 98 tween (gauge 針最上位、 予定通り 98%)、 spentMm 310 → 490 tween (最終)、 remainingMm 190 → 10 tween (ほぼゼロ)、 committee lane activate、 6 shape 全 active、 期末着地。",
+  }, (p: PhaseBuilder) => p.activate("cfo", "mobile", "finance", "ledger", "erp", "committee").tween("consumptionPct", 62, 98).tween("spentMm", 310, 490).tween("remainingMm", 190, 10).badge("期末"))
   .build();
 
 /**
- * 51. sankey flow = traffic source → landing → conversion の flow diagram。
+ * 51. trafficSankey v2 = D2C EC の marketing 4 phase 施策 sankey (集客 → LP → conversion)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (施策開始 → 集客増 → CVR 上昇 → ROI 判定) + 4 readout (sankey / gauge CVR / countup 総訪問数 / stat 平均 CAC) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const trafficSankey = diagram("interactive-traffic-sankey", {
-  topic: "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存",
+  topic: "D2C EC marketing 4 phase 施策 sankey = (開始 → 集客 → CVR → ROI) の flow を shape-* primitive 6 種で表現 + 4 readout (sankey / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("src", { x: 0, width: 180 })
-  .lane("land", { x: 260, width: 180 })
-  .lane("cv", { x: 520, width: 180 })
+  .lane("marketer", { x: 0, width: 220 })
+  .lane("traffic", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 220 })
   .arraySignal("flows", [
     ["Search", "Home", 40],
     ["Search", "Product", 30],
@@ -1822,26 +1848,44 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
     ["Direct", "Home", 20],
     ["Direct", "Product", 10],
   ] as unknown as (string | number)[])
-  .node("search", { lane: "src", stack: 0, kind: "card", title: "Search", subtitle: "40 + 30 = 70" })
-  .node("social", { lane: "src", stack: 1, kind: "card", title: "Social", subtitle: "25 + 15 = 40" })
-  .node("direct", { lane: "src", stack: 2, kind: "card", title: "Direct", subtitle: "20 + 10 = 30" })
-  .node("home", { lane: "land", stack: 0, kind: "card", title: "Home", subtitle: "40 + 25 + 20 = 85" })
-  .node("product", { lane: "land", stack: 1, kind: "card", title: "Product", subtitle: "30 + 15 + 10 = 55" })
-  .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "conversion = 140" })
-  .edge("search", "home", { label: "40", tone: "success" })
-  .edge("search", "product", { label: "30", tone: "success" })
-  .edge("social", "home", { label: "25", tone: "info" })
-  .edge("social", "product", { label: "15", tone: "info" })
-  .edge("direct", "home", { label: "20", tone: "accent" })
-  .edge("direct", "product", { label: "10", tone: "accent" })
-  .edge("home", "checkout", { label: "85", tone: "warning" })
-  .edge("product", "checkout", { label: "55", tone: "warning" })
-  .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "Sources → Pages (sankey)" })
-  .phase("p", {
-    duration: 1200,
-    title: "traffic funnel",
-    body: "3-lane (Sources / Landings / Checkout) + 8 edge (source→landing 6 + landing→CV 2) で funnel 構造を node network 化、 tone で source 由来を分類 (success=Search / info=Social / accent=Direct / warning=to CV)、 sankey readout も併存。",
-  }, (p: PhaseBuilder) => p.activate("search", "social", "direct", "home", "product", "checkout").badge("funnel"))
+  .state("cvr", { initial: 0 })
+  .state("visitors", { initial: 0 })
+  .state("cac", { initial: 0 })
+  .node("cmo", { lane: "marketer", stack: 0, kind: "shape-person", title: "CMO 池田様", eyebrow: "marketer", subtitle: "月次 marketing 責任者" })
+  .node("mobile", { lane: "marketer", stack: 1, kind: "shape-mobile-device", title: "GA4 dashboard", eyebrow: "device", subtitle: "traffic 分析 + CV 追跡" })
+  .node("landing", { lane: "traffic", stack: 0, kind: "shape-website", title: "landing page", eyebrow: "web", subtitle: "product ページ + Home" })
+  .node("cdn", { lane: "traffic", stack: 1, kind: "shape-cdn-edge", title: "Cloudflare CDN", eyebrow: "cdn", subtitle: "全世界 edge 配信 + WAF" })
+  .node("attribution", { lane: "traffic", stack: 2, kind: "shape-cloud", title: "GA4 attribution", eyebrow: "analytics", subtitle: "source → CV 帰属分析" })
+  .node("cvDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "CV database", eyebrow: "storage", subtitle: "checkout 完了 event 蓄積" })
+  .edge("cmo", "mobile", { label: "確認", tone: "info" })
+  .edge("mobile", "attribution", { label: "分析", tone: "info" })
+  .edge("landing", "cdn", { label: "配信", tone: "success" })
+  .edge("cdn", "attribution", { label: "log 送信", tone: "success" })
+  .edge("attribution", "cvDb", { label: "CV 記録", tone: "warning" })
+  .readout.sankey("s", { source: "flows", viewW: 340, viewH: 220, label: "traffic 由来 (sankey)" })
+  .readout.gauge("cvrG", { source: "cvr", min: 0, max: 10, color: "#22c55e", label: "CVR %" })
+  .readout.countup("visCU", { source: "visitors", unit: " 訪問", label: "総訪問数", decimals: 0 })
+  .readout.stat("cacStat", { source: "cac", unit: " 円", caption: "平均 CAC", label: "CAC" })
+  .phase("p1", {
+    duration: 1800,
+    title: "施策開始 (月初)",
+    body: "池田様が新規 marketing 施策開始 (Google Ads + LP 改善)。 cvr 0 → 0.8 tween、 visitors 0 → 5000 tween (countup 加速)、 cac 0 → 3200 tween、 marketer lane active。",
+  }, (p: PhaseBuilder) => p.activate("cmo", "mobile").tween("cvr", 0, 0.8).tween("visitors", 0, 5000).tween("cac", 0, 3200).badge("開始"))
+  .phase("p2", {
+    duration: 2200,
+    title: "集客増 (第 2 週)",
+    body: "landing page 最適化で bounce rate 低下、 訪問数急増。 cvr 0.8 → 2.1 tween、 visitors 5000 → 22000 tween (countup dramatic)、 cac 3200 → 2400 tween (効率化)、 landing + cdn lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cmo", "mobile", "landing", "cdn").tween("cvr", 0.8, 2.1).tween("visitors", 5000, 22000).tween("cac", 3200, 2400).badge("集客"))
+  .phase("p3", {
+    duration: 2400,
+    title: "CVR 上昇 (第 3 週)",
+    body: "GA4 attribution で CVR 高い流入源特定、 予算再配分。 cvr 2.1 → 4.5 tween (gauge 針最上位)、 visitors 22000 → 42000 tween、 cac 2400 → 1800 tween、 attribution lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cmo", "mobile", "landing", "cdn", "attribution").tween("cvr", 2.1, 4.5).tween("visitors", 22000, 42000).tween("cac", 2400, 1800).badge("CVR"))
+  .phase("p4", {
+    duration: 2000,
+    title: "ROI 判定 (月末)",
+    body: "月末に CV database 集計、 ROI 320% 達成。 cvr 4.5 → 5.2 tween (最終)、 visitors 42000 → 58000 tween (最終)、 cac 1800 → 1450 tween (最終、 stat 更新)、 cvDb lane activate、 6 shape 全 active。",
+  }, (p: PhaseBuilder) => p.activate("cmo", "mobile", "landing", "cdn", "attribution", "cvDb").tween("cvr", 4.5, 5.2).tween("visitors", 42000, 58000).tween("cac", 1800, 1450).badge("ROI"))
   .build();
 
 /**
@@ -2518,26 +2562,54 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .build();
 
 /**
- * 71. confidence-meter = ML classification confidence を slider で操作 → 3 color band 追随。
+ * 71. mlConfidenceMeter v2 = 医療画像診断 AI の推論 confidence 判定 4 phase シナリオ (X線画像 → AI 推論 → 医師確認 → 診断確定)、 shape-person + shape-mobile-device + shape-server-rack + shape-hexagon + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (X 線撮影 → AI 推論 → 医師レビュー → 診断確定) + 4 readout (confidenceMeter / gauge 予測確率 / countup 処理画像数 / stat 誤判定率) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
-  topic: "ML confidence を 3-lane (Low <40 / Mid 40-74 / High ≥75) band 別分散 + current indicator (default=high)、 confidenceMeter readout 併存",
+  topic: "医療画像診断 AI 4 phase シナリオ = (撮影 → AI 推論 → 医師確認 → 診断確定) の flow を shape-* primitive 6 種で表現 + 4 readout (confidenceMeter / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("low", { x: 0, width: 200 })
-  .lane("mid", { x: 240, width: 200 })
-  .lane("high", { x: 480, width: 220 })
-  .input.slider("conf", { min: 0, max: 100, defaultValue: 82, label: "Confidence %" })
-  .state("conf", { initial: 82 })
-  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "Low band", subtitle: "< 40% (red · uncertain)" })
-  .node("midNode", { lane: "mid", stack: 0, kind: "card", title: "Mid band", subtitle: "40-74% (yellow · borderline)" })
-  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High band", subtitle: "≥ 75% (green · confident)" })
-  .node("currentConf", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "conf = {conf}% (default 82 → high)" })
-  .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence (3-band bar)" })
-  .phase("p", {
-    duration: 1200,
-    title: "confidence band split",
-    body: "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentConf").badge("ML conf"))
+  .lane("clinic", { x: 0, width: 240 })
+  .lane("ai", { x: 260, width: 300 })
+  .lane("outcome", { x: 580, width: 220 })
+  .state("conf", { initial: 0 })
+  .state("probability", { initial: 0 })
+  .state("processedImg", { initial: 12483 })
+  .state("errorRate", { initial: 0 })
+  .node("patient", { lane: "clinic", stack: 0, kind: "shape-person", title: "患者 木下様", eyebrow: "patient", subtitle: "胸部 X線撮影対象" })
+  .node("device", { lane: "clinic", stack: 1, kind: "shape-mobile-device", title: "撮影機 tablet UI", eyebrow: "device", subtitle: "DICOM 画像取得" })
+  .node("gpu", { lane: "ai", stack: 0, kind: "shape-server-rack", title: "GPU 推論サーバ", eyebrow: "compute", subtitle: "NVIDIA A100 × 4 · TensorRT" })
+  .node("model", { lane: "ai", stack: 1, kind: "shape-hexagon", title: "診断 model", eyebrow: "ml", subtitle: "ResNet-50 · 12 分類 · Top-1 conf" })
+  .node("db", { lane: "ai", stack: 2, kind: "shape-cylinder", title: "電子カルテ DB", eyebrow: "storage", subtitle: "推論結果 + 医師 override 保存" })
+  .node("doctor", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "放射線科医", eyebrow: "expert", subtitle: "AI 補助 → 最終診断確定" })
+  .edge("patient", "device", { label: "撮影", tone: "info" })
+  .edge("device", "gpu", { label: "画像送信", tone: "info" })
+  .edge("gpu", "model", { label: "inference", tone: "accent" })
+  .edge("model", "db", { label: "推論結果", tone: "success" })
+  .edge("db", "doctor", { label: "レビュー要求", tone: "warning" })
+  .edge("doctor", "db", { label: "最終診断", tone: "success" })
+  .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 320, viewH: 40, label: "AI 推論 confidence" })
+  .readout.gauge("probG", { source: "probability", min: 0, max: 100, color: "#22c55e", label: "top-1 予測確率 %" })
+  .readout.countup("imgCU", { source: "processedImg", unit: " 枚", label: "本日推論画像", decimals: 0 })
+  .readout.stat("errStat", { source: "errorRate", unit: " %", caption: "AI 誤判定率", label: "err" })
+  .phase("p1", {
+    duration: 1800,
+    title: "X 線撮影",
+    body: "木下様の胸部 X 線撮影、 DICOM 形式で送信。 conf 0 (未推論)、 probability 0、 processedImg 12483 保持、 errorRate 0。 patient + device lane active。",
+  }, (p: PhaseBuilder) => p.activate("patient", "device").set("conf", 0).set("probability", 0).badge("撮影"))
+  .phase("p2", {
+    duration: 2400,
+    title: "AI 推論 (ResNet-50)",
+    body: "GPU サーバで inference、 12 病名 分類の top-1 = '正常' 推論。 conf 0 → 68 tween (confidenceMeter が黄域に移動)、 probability 0 → 78 tween (gauge 針上昇)、 processedImg 12483 → 12484 tween (countup +1)、 gpu + model lane activate。",
+  }, (p: PhaseBuilder) => p.activate("patient", "device", "gpu", "model").tween("conf", 0, 68).tween("probability", 0, 78).tween("processedImg", 12483, 12484).badge("推論"))
+  .phase("p3", {
+    duration: 2200,
+    title: "医師レビュー",
+    body: "放射線科医が AI 推論結果を確認、 追加所見 (軽微な影) を加味。 conf 68 → 82 tween (confidenceMeter が緑域へ)、 probability 78 → 92 tween (医師 override で高精度化)、 errorRate 0 → 2 tween (誤判定率 sample 表示)、 db + doctor lane activate。",
+  }, (p: PhaseBuilder) => p.activate("patient", "device", "gpu", "model", "db", "doctor").tween("conf", 68, 82).tween("probability", 78, 92).tween("errorRate", 0, 2).badge("医師"))
+  .phase("p4", {
+    duration: 2000,
+    title: "診断確定",
+    body: "最終診断 = '軽度肺炎'、 電子カルテに記録 + 木下様に説明。 conf 82 → 95 tween (confidenceMeter 最上位、 高信頼)、 probability 92 → 97 tween (gauge 最終)、 processedImg 12484 → 12485 tween、 errorRate 2 保持、 6 shape 全 active、 診断確定。",
+  }, (p: PhaseBuilder) => p.activate("patient", "device", "gpu", "model", "db", "doctor").tween("conf", 82, 95).tween("probability", 92, 97).tween("processedImg", 12484, 12485).badge("確定"))
   .build();
 
 /**
