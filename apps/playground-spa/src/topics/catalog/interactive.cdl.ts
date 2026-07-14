@@ -4726,14 +4726,14 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   .build();
 
 /**
- * 118. log-stream = 本番ログ tail を 3-lane (時刻 / レベル / メッセージ) dense sequence 分散 + logStream readout 併存 + 3 phase 動き (通常 → 警告 tween → 障害)。 iteration 7 wave 3、 pattern taxonomy § 7 dense sequence。
+ * 118. prodLogTail v2 = SRE on-call 深夜 production 障害対応 4 phase シナリオ (通常運転 → 警告検知 → 障害発火 → 復旧完了)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (通常 → 警告 → 障害 → 復旧) + 4 readout (logStream / gauge 重篤度 / countup log/min / stat MTTR 分) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const prodLogTail = diagram("interactive-prod-log-tail", {
-  topic: "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 tween → 障害の重篤度昇華を可視化",
+  topic: "SRE on-call 深夜 production 障害対応 4 phase = (通常 → 警告 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (logStream / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("ts", { x: 0, width: 180 })
-  .lane("level", { x: 200, width: 140 })
-  .lane("msg", { x: 360, width: 340 })
+  .lane("sre", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("logs", [
     ["09:00:12", 1, "server 起動完了"],
     ["09:00:15", 1, "db connection pool 20"],
@@ -4742,75 +4742,104 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
     ["09:02:02", 1, "worker 再起動 ok"],
   ] as unknown as (string | number)[])
   .state("severity", { initial: 0 })
-  .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "◆ 時刻列", subtitle: "5 event 2 分幅" })
-  .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "レベル分布", subtitle: "現在 severity {severity}" })
-  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動 ok", subtitle: "09:02:02 · INF 青 pill" })
-  .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "メモリ使用率 82%", subtitle: "09:01:03 · WRN 橙 pill" })
-  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker crash: OOM", subtitle: "09:01:47 · ERR 赤 pill" })
-  .edge("tsCard", "levelCard", { label: "分類", tone: "info" })
-  .edge("levelCard", "errRow", { label: "重篤化", tone: "error" })
+  .state("logsPerMin", { initial: 200 })
+  .state("mttr", { initial: 0 })
+  .node("oncall", { lane: "sre", stack: 0, kind: "shape-person", title: "on-call SRE 中野様", eyebrow: "SRE", subtitle: "深夜対応 · 2 週交代" })
+  .node("pager", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "PagerDuty + Terminal", eyebrow: "device", subtitle: "SSH + kubectl + log tail" })
+  .node("prodCluster", { lane: "service", stack: 0, kind: "shape-server-rack", title: "prod k8s cluster", eyebrow: "prod", subtitle: "worker pod × 20 + web × 8" })
+  .node("logForwarder", { lane: "service", stack: 1, kind: "shape-iot-sensor", title: "log forwarder", eyebrow: "sensor", subtitle: "全 pod log 集約 + level 判定" })
+  .node("logSink", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "log SaaS (Datadog)", eyebrow: "sink", subtitle: "tail 画面 + alert 発報" })
+  .node("logArchive", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "log archive (S3)", eyebrow: "storage", subtitle: "30 日保持 + 分析クエリ" })
+  .edge("oncall", "pager", { label: "受信", tone: "info" })
+  .edge("pager", "prodCluster", { label: "SSH", tone: "info" })
+  .edge("prodCluster", "logForwarder", { label: "stream", tone: "info" })
+  .edge("logForwarder", "logSink", { label: "route", tone: "success" })
+  .edge("logSink", "logArchive", { label: "persist", tone: "accent" })
   .readout.logStream("ls", { source: "logs", label: "ログ tail" })
+  .readout.gauge("sevG", { source: "severity", min: 0, max: 3, color: "#ef4444", label: "重篤度" })
+  .readout.countup("lpmCU", { source: "logsPerMin", unit: " /min", label: "log/min", decimals: 0 })
+  .readout.stat("mttrStat", { source: "mttr", unit: " 分", caption: "MTTR", label: "mttr" })
   .phase("p1", {
     duration: 1800,
-    title: "通常運転",
-    body: "severity = 0、 INF レベルログのみ流れる、 時刻 + レベル + info 行 lane が active、 平常観測状態。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow").set("severity", 0).badge("通常"))
+    title: "通常運転 (23:00)",
+    body: "中野様は待機状態、 prod cluster が INF ログのみ流す。 severity 0 keep、 logsPerMin 200 keep、 mttr 0 keep、 prodCluster + logForwarder + logSink lane active。",
+  }, (p: PhaseBuilder) => p.activate("prodCluster", "logForwarder", "logSink").set("severity", 0).badge("通常"))
   .phase("p2", {
-    duration: 1800,
-    title: "警告発生",
-    body: "メモリ 82% 検知、 severity を 0 → 2 まで tween、 WRN 橙 pill 行が追加 activate、 監視強化トリガ。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow").tween("severity", 0, 2).badge("警告"))
+    duration: 2000,
+    title: "警告発生 (01:03)",
+    body: "メモリ 82% 継続で WRN 発報、 中野様 PagerDuty で起床。 severity 0 → 2 tween、 logsPerMin 200 → 450 tween、 mttr 0 → 2 tween、 oncall + pager lane activate。",
+  }, (p: PhaseBuilder) => p.activate("oncall", "pager", "prodCluster", "logForwarder", "logSink").tween("severity", 0, 2).tween("logsPerMin", 200, 450).tween("mttr", 0, 2).badge("警告"))
   .phase("p3", {
-    duration: 1800,
-    title: "障害検知",
-    body: "worker が OOM で crash、 severity を 2 → 3 まで tween、 ERR 赤 pill 行が highlight、 全 5 node active、 障害対応フロー起動。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow").tween("severity", 2, 3).badge("障害"))
+    duration: 2200,
+    title: "障害発火 (01:47)",
+    body: "worker OOM で ERR 発生、 中野様 SSH で状況確認 + hotfix rollout。 severity 2 → 3 tween、 logsPerMin 450 → 850 tween、 mttr 2 → 10 tween、 logArchive activate、 全 lane full active。",
+  }, (p: PhaseBuilder) => p.activate("oncall", "pager", "prodCluster", "logForwarder", "logSink", "logArchive").tween("severity", 2, 3).tween("logsPerMin", 450, 850).tween("mttr", 2, 10).badge("障害"))
+  .phase("p4", {
+    duration: 2000,
+    title: "復旧完了 (02:02)",
+    body: "worker 再起動 + memory limit 引き上げ、 INF ログに戻る。 severity 3 → 0 tween (グリーン復帰)、 logsPerMin 850 → 220 tween、 mttr 10 → 15 tween (最終)、 6 shape 全 active、 postmortem 起票。",
+  }, (p: PhaseBuilder) => p.activate("oncall", "pager", "prodCluster", "logForwarder", "logSink", "logArchive").tween("severity", 3, 0).tween("logsPerMin", 850, 220).tween("mttr", 10, 15).badge("復旧"))
   .build();
 
 /**
- * 119. alert-banner = 重要度別 alert banner を 3-lane (トリガー / 重要度 / アクション) state-driven visibility 分散 + alertBanner readout 併存 + 3 phase 動き (info → warn tween → error エスカレーション)。 iteration 7 wave 3、 pattern taxonomy § 2 state-driven visibility。
+ * 119. opsAlertBanner v2 = SaaS 運用 CPU 継続超過 alert エスカレ 4 phase シナリオ (info 検知 → warn 継続 → error 逸脱 → 対応済み)、 shape-person + shape-mobile-device + shape-iot-sensor + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (info → warn → error → 対応済) + 4 readout (alertBanner / gauge 重要度 / countup Ack 数 / stat 対応秒) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
-  topic: "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn tween → error のエスカレーションを可視化",
+  topic: "SaaS 運用 CPU 継続超過 alert エスカレ 4 phase = (info → warn → error → 対応済) の flow を shape-* primitive 6 種で表現 + 4 readout (alertBanner / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("trigger", { x: 0, width: 240 })
-  .lane("severity", { x: 280, width: 240 })
-  .lane("action", { x: 560, width: 220 })
-  .arraySignal("alert", [2, "CPU 92% を 5 分継続 — 調査要"] as unknown as (string | number)[])
+  .lane("operator", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("alert", [3, "CPU 92% を 5 分継続 — 調査要"] as unknown as (string | number)[])
   .state("sev", { initial: 0 })
-  .node("triggerCard", { lane: "trigger", stack: 0, kind: "card", title: "◆ CPU 閾値超過", subtitle: "prod-web-3 · 92% を 5 分継続" })
-  .node("sevCard", { lane: "severity", stack: 0, kind: "card", title: "重要度 = {sev}", subtitle: "0=info / 2=warn / 3=error" })
-  .node("iconCard", { lane: "severity", stack: 1, kind: "card", title: "重要度別アイコン", subtitle: "ℹ → ⚠ → ✕" })
-  .node("actionCard", { lane: "action", stack: 0, kind: "card", title: "調査 → Ack", subtitle: "オペレータ対応待ち" })
-  .edge("triggerCard", "sevCard", { label: "分類", tone: "info" })
-  .edge("sevCard", "actionCard", { label: "通知", tone: "warning" })
+  .state("ackCount", { initial: 0 })
+  .state("responseSec", { initial: 0 })
+  .node("opsUser", { lane: "operator", stack: 0, kind: "shape-person", title: "運用 大野様", eyebrow: "ops", subtitle: "日勤当番 + PagerDuty 受信" })
+  .node("phone", { lane: "operator", stack: 1, kind: "shape-mobile-device", title: "PagerDuty app", eyebrow: "device", subtitle: "banner 表示 + Ack ボタン" })
+  .node("sensor", { lane: "service", stack: 0, kind: "shape-iot-sensor", title: "Prometheus exporter", eyebrow: "sensor", subtitle: "CPU / mem / disk 15s scrape" })
+  .node("prodWeb", { lane: "service", stack: 1, kind: "shape-server-rack", title: "prod-web-3", eyebrow: "prod", subtitle: "対象 pod · CPU 逼迫中" })
+  .node("alertMgr", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "AlertManager", eyebrow: "alert", subtitle: "sev エスカレ + Slack 通知" })
+  .node("incDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "incident DB", eyebrow: "storage", subtitle: "履歴 + MTTA / MTTR 追跡" })
+  .edge("opsUser", "phone", { label: "受信", tone: "info" })
+  .edge("phone", "alertMgr", { label: "Ack", tone: "info" })
+  .edge("sensor", "prodWeb", { label: "scrape", tone: "info" })
+  .edge("sensor", "alertMgr", { label: "fire", tone: "warning" })
+  .edge("alertMgr", "incDb", { label: "persist", tone: "accent" })
   .readout.alertBanner("ab", { source: "alert", label: "アラート" })
+  .readout.gauge("sevG", { source: "sev", min: 0, max: 3, color: "#ef4444", label: "重要度" })
+  .readout.countup("ackCU", { source: "ackCount", unit: " 件", label: "Ack 累計", decimals: 0 })
+  .readout.stat("resStat", { source: "responseSec", unit: " 秒", caption: "対応時間", label: "res" })
   .phase("p1", {
     duration: 1500,
-    title: "軽微 (info)",
-    body: "sev = 0、 トリガー + 重要度 lane active、 banner は info 青枠 + ℹ アイコン、 監視のみ。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard").set("sev", 0).badge("info"))
+    title: "info 検知",
+    body: "sensor で CPU 85% 検知、 alertMgr が info 発報、 大野様 dashboard で確認。 sev 0 keep、 ackCount 0 → 1 tween、 responseSec 0 → 5 tween、 sensor + prodWeb + alertMgr lane active。",
+  }, (p: PhaseBuilder) => p.activate("sensor", "prodWeb", "alertMgr").set("sev", 0).tween("ackCount", 0, 1).tween("responseSec", 0, 5).badge("info"))
   .phase("p2", {
     duration: 1800,
-    title: "警告エスカレーション",
-    body: "CPU 継続超過、 sev を 0 → 2 まで tween、 banner が青 → 橙に連続変化、 icon lane 追加 activate、 ⚠ アイコン表示。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard").tween("sev", 0, 2).badge("warn"))
+    title: "warn 継続",
+    body: "CPU 92% で 5 分継続、 alertMgr が warn エスカレ、 大野様 PagerDuty banner 受信。 sev 0 → 2 tween、 ackCount 1 → 2 tween、 responseSec 5 → 30 tween、 opsUser + phone lane activate。",
+  }, (p: PhaseBuilder) => p.activate("opsUser", "phone", "sensor", "prodWeb", "alertMgr").tween("sev", 0, 2).tween("ackCount", 1, 2).tween("responseSec", 5, 30).badge("warn"))
   .phase("p3", {
-    duration: 1500,
-    title: "重大 (error)",
-    body: "対応期限超過、 sev を 2 → 3 まで tween、 banner が橙 → 赤に、 ✕ アイコン + アクション lane activate、 オペレータ緊急対応。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").tween("sev", 2, 3).badge("error"))
+    duration: 2000,
+    title: "error 逸脱",
+    body: "対応期限 15 分超過で error エスカレ、 上長召集 + hotfix 準備。 sev 2 → 3 tween、 ackCount 2 → 3 tween、 responseSec 30 → 120 tween、 incDb activate、 全 lane full。",
+  }, (p: PhaseBuilder) => p.activate("opsUser", "phone", "sensor", "prodWeb", "alertMgr", "incDb").tween("sev", 2, 3).tween("ackCount", 2, 3).tween("responseSec", 30, 120).badge("error"))
+  .phase("p4", {
+    duration: 2000,
+    title: "対応済み",
+    body: "auto-scale 発火 + hotfix rollout、 CPU 65% に落着き alert 解除。 sev 3 → 0 tween (グリーン復帰)、 ackCount 3 → 4 tween、 responseSec 120 → 180 tween (最終)、 6 shape 全 active、 postmortem 予約。",
+  }, (p: PhaseBuilder) => p.activate("opsUser", "phone", "sensor", "prodWeb", "alertMgr", "incDb").tween("sev", 3, 0).tween("ackCount", 3, 4).tween("responseSec", 120, 180).badge("対応済"))
   .build();
 
 /**
- * 120. service-health = microservice health matrix を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存。 iteration 7 wave 3、 pattern taxonomy § 3 category split。
+ * 120. serviceHealthGrid v2 = SaaS platform 6 microservice health matrix 4 phase シナリオ (全稼働 → db 劣化 → queue 障害 → 復旧)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (全稼働 → 劣化 → 障害 → 復旧) + 4 readout (serviceHealth / gauge healthy 率 / countup incident 数 / stat uptime %) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const serviceHealthGrid = diagram("interactive-service-health-grid", {
-  topic: "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存",
+  topic: "SaaS platform 6 microservice health matrix 4 phase = (全稼働 → 劣化 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (serviceHealth / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("up", { x: 0, width: 240 })
-  .lane("deg", { x: 280, width: 240 })
-  .lane("down", { x: 560, width: 240 })
+  .lane("sre", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("svcs", [
     ["api", 2],
     ["web", 2],
@@ -4820,29 +4849,43 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     ["queue", 0],
   ] as unknown as (string | number)[])
   .state("healthy", { initial: 6 })
-  .node("apiCard", { lane: "up", stack: 0, kind: "card", title: "● api (緑)", subtitle: "healthy · p99 45ms" })
-  .node("webCard", { lane: "up", stack: 1, kind: "card", title: "● web (緑)", subtitle: "healthy · uptime 99.9%" })
-  .node("authCard", { lane: "up", stack: 2, kind: "card", title: "● auth (緑)", subtitle: "healthy · 100 rps" })
-  .node("dbCard", { lane: "deg", stack: 0, kind: "card", title: "● db (黄)", subtitle: "degraded · レプリカ遅延 15s" })
-  .node("cacheCard", { lane: "deg", stack: 1, kind: "card", title: "● cache (黄)", subtitle: "degraded · eviction 頻発" })
-  .node("queueCard", { lane: "down", stack: 0, kind: "card", title: "● queue (赤)", subtitle: "◆ down · 接続拒否" })
-  .edge("dbCard", "queueCard", { label: "波及", tone: "error" })
+  .state("incidentCount", { initial: 0 })
+  .state("uptime", { initial: 100 })
+  .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "SRE リーダー 江口様", eyebrow: "SRE", subtitle: "6 svc 監視 + on-call rotate" })
+  .node("dash", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "status dashboard", eyebrow: "device", subtitle: "6 svc grid + health signal" })
+  .node("cluster", { lane: "service", stack: 0, kind: "shape-server-rack", title: "prod k8s cluster", eyebrow: "prod", subtitle: "6 microservice deploy + ingress" })
+  .node("healthSensor", { lane: "service", stack: 1, kind: "shape-iot-sensor", title: "healthcheck sensor", eyebrow: "sensor", subtitle: "各 svc /healthz 15s 判定" })
+  .node("statusPage", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "public status page", eyebrow: "status", subtitle: "顧客向け uptime 表示" })
+  .node("slaDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "SLA 履歴 DB", eyebrow: "storage", subtitle: "incident + downtime 集計" })
+  .edge("sre", "dash", { label: "監視", tone: "info" })
+  .edge("dash", "healthSensor", { label: "poll", tone: "info" })
+  .edge("healthSensor", "cluster", { label: "probe", tone: "info" })
+  .edge("healthSensor", "statusPage", { label: "publish", tone: "success" })
+  .edge("healthSensor", "slaDb", { label: "log", tone: "accent" })
   .readout.serviceHealth("sh", { source: "svcs", label: "サービス (6)" })
+  .readout.gauge("healthG", { source: "healthy", min: 0, max: 6, color: "#22c55e", label: "healthy 数" })
+  .readout.countup("incCU", { source: "incidentCount", unit: " 件", label: "incident 累計", decimals: 0 })
+  .readout.stat("uptStat", { source: "uptime", unit: " %", caption: "uptime", label: "up" })
   .phase("p1", {
     duration: 1500,
-    title: "全稼働 (6/6)",
-    body: "healthy = 6、 上段 3 サービス (api / web / auth) が active、 grid は全マス緑、 平常運転。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard").set("healthy", 6).badge("全稼働"))
+    title: "全稼働 (6/6 healthy)",
+    body: "全 svc up、 status page green、 江口様待機。 healthy 6 keep、 incidentCount 0 keep、 uptime 100 keep、 sre + dash + cluster + healthSensor + statusPage lane active。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "cluster", "healthSensor", "statusPage").badge("全稼働"))
   .phase("p2", {
     duration: 1800,
-    title: "劣化 (6 → 4)",
-    body: "db + cache が degraded に、 healthy を 6 → 4 まで tween、 中段 lane 追加 activate、 grid に黄マス出現。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard").tween("healthy", 6, 4).badge("劣化"))
+    title: "db + cache 劣化",
+    body: "db レプリカ遅延 + cache eviction 頻発、 2 svc が degraded。 healthy 6 → 4 tween、 incidentCount 0 → 1 tween、 uptime 100 → 99.5 tween、 status page yellow warning。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "cluster", "healthSensor", "statusPage").tween("healthy", 6, 4).tween("incidentCount", 0, 1).tween("uptime", 100, 99.5).badge("劣化"))
   .phase("p3", {
-    duration: 1500,
-    title: "障害 (4 → 3)",
-    body: "queue が down、 healthy を 4 → 3 まで tween、 下段 lane 追加 activate、 grid に赤マス、 cascade edge 発火、 6 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").tween("healthy", 4, 3).badge("障害"))
+    duration: 2000,
+    title: "queue 障害 (cascade)",
+    body: "queue 完全 down、 db との cascade で status page red。 healthy 4 → 3 tween、 incidentCount 1 → 2 tween、 uptime 99.5 → 98 tween、 slaDb activate、 全 lane full。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "cluster", "healthSensor", "statusPage", "slaDb").tween("healthy", 4, 3).tween("incidentCount", 1, 2).tween("uptime", 99.5, 98).badge("障害"))
+  .phase("p4", {
+    duration: 2000,
+    title: "全復旧",
+    body: "hotfix rollout + queue 再起動で全 svc up、 status page green 復帰。 healthy 3 → 6 tween、 incidentCount 2 keep、 uptime 98 → 99.7 tween (下方修正)、 6 shape 全 active、 SLA report 生成。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "cluster", "healthSensor", "statusPage", "slaDb").tween("healthy", 3, 6).tween("uptime", 98, 99.7).badge("復旧"))
   .build();
 
 /**
