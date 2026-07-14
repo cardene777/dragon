@@ -1983,26 +1983,53 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
   .build();
 
 /**
- * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
+ * 57. buildStatusTrafficLight v2 = feature branch の CI build 進行 4 phase シナリオ (main merge 直前まで)、 shape-person + shape-mobile-device + shape-website (GitHub) + shape-server-rack (CI) + shape-hexagon (test runner) + shape-cloud の 6 shape で visual scene 化、 4 phase (commit → 実行中 → test 失敗 → 修正 pass) + 4 readout (trafficLight status / gauge coverage / countup build 試行数 / stat 実行時間) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
-  topic: "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存",
+  topic: "CI build 進行 4 phase シナリオ = (commit → 実行 → 失敗 → 修正 pass) の flow を shape-* primitive 6 種で表現 + 4 readout (trafficLight / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("red", { x: 0, width: 200 })
-  .lane("yellow", { x: 240, width: 200 })
-  .lane("green", { x: 480, width: 200 })
-  .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
-  .state("status", { initial: "green" })
-  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "build broken · fix required" })
-  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "build in progress · waiting" })
-  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "build ok · ready to deploy" })
-  .node("currentCI", { lane: "green", stack: 1, kind: "card", title: "◆ Current CI", subtitle: "status: {status}" })
-  .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
-  .phase("p", {
-    duration: 1200,
-    title: "status split",
-    body: "3-lane (Red failed / Yellow running / Green passed) で build 3 state を分散、 各 state 個別 card + 現在 CI の位置 (default=green lane) を currentCI card で明示、 trafficLight readout も併存で glow filter 表示、 status 分類と現在 state の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI").badge("status"))
+  .lane("dev", { x: 0, width: 220 })
+  .lane("system", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 220 })
+  .state("statusNum", { initial: 0 })
+  .state("coverage", { initial: 0 })
+  .state("buildCount", { initial: 0 })
+  .state("elapsedSec", { initial: 0 })
+  .node("dev", { lane: "dev", stack: 0, kind: "shape-person", title: "開発者 加藤様", eyebrow: "author", subtitle: "feature/api-v3 修正中" })
+  .node("laptop", { lane: "dev", stack: 1, kind: "shape-mobile-device", title: "IDE + git", eyebrow: "device", subtitle: "commit + push → CI 起動" })
+  .node("github", { lane: "system", stack: 0, kind: "shape-website", title: "GitHub", eyebrow: "vcs", subtitle: "PR #482 · CI trigger" })
+  .node("ci", { lane: "system", stack: 1, kind: "shape-server-rack", title: "CI runner", eyebrow: "compute", subtitle: "3 stage: lint / test / build" })
+  .node("testRunner", { lane: "system", stack: 2, kind: "shape-hexagon", title: "test runner", eyebrow: "verify", subtitle: "Vitest 384 test suite" })
+  .node("deploy", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "deploy candidate", eyebrow: "release", subtitle: "green build のみ deploy 可" })
+  .edge("dev", "laptop", { label: "code", tone: "info" })
+  .edge("laptop", "github", { label: "git push", tone: "info" })
+  .edge("github", "ci", { label: "trigger", tone: "accent" })
+  .edge("ci", "testRunner", { label: "run test", tone: "warning" })
+  .edge("testRunner", "deploy", { label: "green → deploy", tone: "success" })
+  .readout.trafficLight("tl", { source: "statusNum", viewW: 80, viewH: 180, label: "build status" })
+  .readout.gauge("covG", { source: "coverage", min: 0, max: 100, color: "#22c55e", label: "test coverage %" })
+  .readout.countup("buildCU", { source: "buildCount", unit: " 回", label: "build 試行", decimals: 0 })
+  .readout.stat("elapsedStat", { source: "elapsedSec", unit: " s", caption: "実行時間", label: "elapsed" })
+  .phase("p1", {
+    duration: 1800,
+    title: "commit → CI 起動",
+    body: "加藤様が feature branch に commit + push、 CI trigger。 statusNum 0 = yellow (waiting、 traffic-light 黄)、 coverage 0 → 20 tween、 buildCount 0 → 1 tween、 elapsedSec 0 → 15 tween。 dev + github lane active。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github").set("statusNum", 0).tween("coverage", 0, 20).tween("buildCount", 0, 1).tween("elapsedSec", 0, 15).badge("commit"))
+  .phase("p2", {
+    duration: 2200,
+    title: "実行中 (lint + test)",
+    body: "CI runner が lint pass → test 実行開始。 statusNum 0 → 1 tween (yellow → yellow 継続、 running 進行中)、 coverage 20 → 65 tween (gauge 針中位)、 buildCount 1 保持、 elapsedSec 15 → 90 tween、 ci + testRunner lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci", "testRunner").set("statusNum", 1).tween("coverage", 20, 65).tween("elapsedSec", 15, 90).badge("実行"))
+  .phase("p3", {
+    duration: 2400,
+    title: "test 失敗",
+    body: "384 test 中 3 test 失敗、 build 赤に。 statusNum 1 → 2 tween (traffic-light 黄 → 赤)、 coverage 65 → 78 tween (test 実行分は上昇)、 buildCount 1 → 2 tween (retry)、 elapsedSec 90 → 165 tween、 加藤様は再修正。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci", "testRunner").tween("statusNum", 1, 2).tween("coverage", 65, 78).tween("buildCount", 1, 2).tween("elapsedSec", 90, 165).badge("失敗"))
+  .phase("p4", {
+    duration: 2000,
+    title: "修正 pass",
+    body: "3 失敗を修正 commit、 CI 再実行で全 test pass。 statusNum 2 → 0 tween (traffic-light 赤 → 緑 相当、 status 表示切替)、 coverage 78 → 92 tween (gauge 針最上位)、 buildCount 2 → 3 tween、 elapsedSec 165 → 220 tween (合計)、 deploy lane activate、 6 shape 全 active、 green build 到達で deploy candidate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "laptop", "github", "ci", "testRunner", "deploy").set("statusNum", 0).tween("coverage", 78, 92).tween("buildCount", 2, 3).tween("elapsedSec", 165, 220).badge("pass"))
   .build();
 
 /**
@@ -2385,28 +2412,54 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
   .build();
 
 /**
- * 68. spinner = deploy status、 dropdown で running/done/error 切替 → icon 変化。
+ * 68. deploySpinner v2 = 金曜夜 production deploy 4 phase シナリオ (canary rollout → 全体展開)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-warehouse + shape-hexagon の 6 shape で visual scene 化、 4 phase (build 完了 → canary 20% → 全体 100% → 完了通知) + 4 readout (spinner / gauge rollout % / countup pod 数 / stat 経過時間) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const deploySpinner = diagram("interactive-deploy-spinner", {
-  topic: "deploy 3 state (running/done/error) を 3-lane 分散 + current indicator、 spinner readout 併存",
+  topic: "金曜夜 production deploy 4 phase シナリオ = (build → canary → 全体 → 完了) の flow を shape-* primitive 6 種で表現 + 4 readout (spinner / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("running", { x: 0, width: 220 })
-  .lane("done", { x: 260, width: 220 })
-  .lane("error", { x: 520, width: 220 })
-  .input.dropdown("status", { options: ["running", "done", "error"], defaultValue: "running", label: "Status" })
-  .input.text("msg", { defaultValue: "Building production bundle...", placeholder: "Status message", maxLength: 60, label: "Message" })
+  .lane("engineer", { x: 0, width: 220 })
+  .lane("infra", { x: 240, width: 320 })
+  .lane("notify", { x: 580, width: 240 })
   .state("status", { initial: "running" })
-  .state("msg", { initial: "Building production bundle..." })
-  .node("runningNode", { lane: "running", stack: 0, kind: "card", title: "◐ Running", subtitle: "blue spinner · SMIL 回転 circle" })
-  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "✓ Done", subtitle: "green · deploy success" })
-  .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · deploy failed" })
-  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Current deploy", subtitle: "status: {status} · msg: {msg}" })
-  .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" })
-  .phase("p",  {
-    duration: 1200,
-    title: "deploy state split",
-    body: "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("runningNode", "doneNode", "errorNode", "currentState").badge("loading"))
+  .state("msg", { initial: "Building production bundle" })
+  .state("rolloutPct", { initial: 0 })
+  .state("readyPods", { initial: 0 })
+  .state("elapsedMin", { initial: 0 })
+  .node("engineer", { lane: "engineer", stack: 0, kind: "shape-person", title: "release engineer 岡田様", eyebrow: "engineer", subtitle: "金曜夜 21:00 deploy 担当" })
+  .node("laptop", { lane: "engineer", stack: 1, kind: "shape-mobile-device", title: "kubectl + ArgoCD", eyebrow: "device", subtitle: "deploy コマンド + 進捗 watch" })
+  .node("cluster", { lane: "infra", stack: 0, kind: "shape-server-rack", title: "prod K8s cluster", eyebrow: "compute", subtitle: "30 pod target · rolling update" })
+  .node("registry", { lane: "infra", stack: 1, kind: "shape-cloud", title: "container registry", eyebrow: "artifact", subtitle: "v2.5.0 image pull" })
+  .node("cdn", { lane: "infra", stack: 2, kind: "shape-hexagon", title: "CDN cache invalidate", eyebrow: "purge", subtitle: "global edge purge · TTL 300s" })
+  .node("slack", { lane: "notify", stack: 0, kind: "shape-warehouse", title: "Slack #release", eyebrow: "channel", subtitle: "deploy status 通知配信" })
+  .edge("engineer", "laptop", { label: "kubectl apply", tone: "info" })
+  .edge("laptop", "cluster", { label: "rollout start", tone: "warning" })
+  .edge("cluster", "registry", { label: "image pull", tone: "info" })
+  .edge("cluster", "cdn", { label: "purge", tone: "accent" })
+  .edge("cluster", "slack", { label: "status 通知", tone: "success" })
+  .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "deploy 進捗" })
+  .readout.gauge("rolloutG", { source: "rolloutPct", min: 0, max: 100, color: "#22c55e", label: "rollout %" })
+  .readout.countup("podsCU", { source: "readyPods", unit: "/30", label: "ready pods", decimals: 0 })
+  .readout.stat("timeStat", { source: "elapsedMin", unit: " 分", caption: "経過時間", label: "elapsed" })
+  .phase("p1", {
+    duration: 2000,
+    title: "build 完了",
+    body: "岡田様が deploy コマンド実行、 registry から image pull 開始。 status = 'running' (spinner blue)、 msg = 'Pulling v2.5.0 image'、 rolloutPct 0 → 5 tween、 readyPods 0、 elapsedMin 0 → 2 tween。 engineer lane active。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "registry").set("status", "running").set("msg", "Pulling v2.5.0 image").tween("rolloutPct", 0, 5).tween("elapsedMin", 0, 2).badge("build"))
+  .phase("p2", {
+    duration: 2400,
+    title: "canary rollout (20%)",
+    body: "3 pod (10%) → 6 pod (20%) と canary 展開、 metric 監視。 status = 'running' 継続、 msg = 'Canary 20% healthy'、 rolloutPct 5 → 20 tween、 readyPods 0 → 6 tween (countup 加算)、 elapsedMin 2 → 8 tween、 cluster lane activate。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "cluster", "registry").set("status", "running").set("msg", "Canary 20% healthy").tween("rolloutPct", 5, 20).tween("readyPods", 0, 6).tween("elapsedMin", 2, 8).badge("canary"))
+  .phase("p3", {
+    duration: 2400,
+    title: "全体展開 (100%)",
+    body: "canary 正常確認 → 残 24 pod を rolling update。 status = 'running' 継続、 msg = 'Full rollout 60% → 100%'、 rolloutPct 20 → 100 tween (gauge 針最上位まで急上昇)、 readyPods 6 → 30 tween (countup dramatic)、 elapsedMin 8 → 18 tween、 cdn lane activate。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "cluster", "registry", "cdn").set("msg", "Full rollout in progress").tween("rolloutPct", 20, 100).tween("readyPods", 6, 30).tween("elapsedMin", 8, 18).badge("展開"))
+  .phase("p4", {
+    duration: 1800,
+    title: "完了通知",
+    body: "全 30 pod v2.5.0 起動、 CDN purge 完了。 status = 'done' (spinner が緑 ✓ に変化)、 msg = 'Deploy complete v2.5.0'、 rolloutPct 100 保持、 readyPods 30 保持、 elapsedMin 18 → 22 tween、 slack lane activate で完了通知配信、 6 shape 全 active。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "cluster", "registry", "cdn", "slack").set("status", "done").set("msg", "Deploy complete v2.5.0").tween("elapsedMin", 18, 22).badge("完了"))
   .build();
 
 /**
@@ -3001,15 +3054,14 @@ export const audioPlayer = diagram("interactive-audio-player", {
   .build();
 
 /**
- * 86. event-log = server monitoring log、 4 severity (info/warn/error/debug) 表示。
+ * 86. serverEventLog v2 = production API サーバの朝ピーク時 incident 検知 4 phase シナリオ、 shape-server-rack + shape-cylinder + shape-iot-sensor + shape-cloud + shape-mobile-device + shape-person の 6 shape で visual scene 化、 4 phase (通常運転 → CPU 上昇 → DB エラー → 復旧) + 4 readout (eventLog / gauge severity / countup error 件数 / stat p99 latency) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const serverEventLog = diagram("interactive-server-event-log", {
-  topic: "server monitoring event log 5 event を 4-lane (info / debug / warn / error) severity 別に分散、 eventLog readout 併存",
+  topic: "production API 朝ピーク incident 検知 4 phase = (通常 → CPU 上昇 → DB エラー → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (eventLog / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("info", { x: 0, width: 160 })
-  .lane("debug", { x: 200, width: 160 })
-  .lane("warn", { x: 400, width: 160 })
-  .lane("error", { x: 600, width: 160 })
+  .lane("infra", { x: 0, width: 280 })
+  .lane("stream", { x: 300, width: 300 })
+  .lane("oncall", { x: 620, width: 220 })
   .arraySignal("events", [
     ["10:23:45", "info", "Server started on port 3000"],
     ["10:24:12", "debug", "Loaded config from ~/.env"],
@@ -3017,17 +3069,44 @@ export const serverEventLog = diagram("interactive-server-event-log", {
     ["10:25:34", "error", "DB connection timeout after 5s"],
     ["10:26:01", "info", "Retry connection succeeded"],
   ] as unknown as (string | number)[])
-  .node("info1", { lane: "info", stack: 0, kind: "card", title: "ℹ 10:23:45", subtitle: "Server started on port 3000" })
-  .node("info2", { lane: "info", stack: 1, kind: "card", title: "ℹ 10:26:01", subtitle: "Retry connection succeeded" })
-  .node("debug1", { lane: "debug", stack: 0, kind: "card", title: "· 10:24:12", subtitle: "Loaded config from ~/.env" })
-  .node("warn1", { lane: "warn", stack: 0, kind: "card", title: "⚠ 10:24:58", subtitle: "High CPU usage: 82%" })
-  .node("error1", { lane: "error", stack: 0, kind: "card", title: "✕ 10:25:34", subtitle: "DB connection timeout after 5s" })
-  .readout.eventLog("el", { source: "events", max: 10, label: "Events (timeline)" })
-  .phase("p", {
-    duration: 1200,
-    title: "severity split",
-    body: "4-lane (info / debug / warn / error) で 5 event を severity 別に分散、 各 event 個別 card で timestamp + msg 明示、 eventLog readout で timeline 一覧も併存、 severity 分類と時系列の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("info1", "info2", "debug1", "warn1", "error1").badge("monitor"))
+  .state("severity", { initial: 0 })
+  .state("errorCount", { initial: 0 })
+  .state("p99Ms", { initial: 50 })
+  .node("api", { lane: "infra", stack: 0, kind: "shape-server-rack", title: "API server (prod-api-3)", eyebrow: "compute", subtitle: "Node.js 18 · 8 core · 32GB" })
+  .node("db", { lane: "infra", stack: 1, kind: "shape-cylinder", title: "PostgreSQL", eyebrow: "database", subtitle: "primary + 2 replica" })
+  .node("sensor", { lane: "infra", stack: 2, kind: "shape-iot-sensor", title: "監視 agent", eyebrow: "monitoring", subtitle: "1s scrape metric + log tail" })
+  .node("logStream", { lane: "stream", stack: 0, kind: "shape-cloud", title: "log aggregator", eyebrow: "aggregation", subtitle: "Elasticsearch + Kibana" })
+  .node("oncallDevice", { lane: "oncall", stack: 0, kind: "shape-mobile-device", title: "on-call スマホ", eyebrow: "device", subtitle: "PagerDuty push notif" })
+  .node("engineer", { lane: "oncall", stack: 1, kind: "shape-person", title: "on-call 高橋様", eyebrow: "sre", subtitle: "prod incident response" })
+  .edge("api", "sensor", { label: "expose", tone: "info" })
+  .edge("db", "sensor", { label: "expose", tone: "info" })
+  .edge("sensor", "logStream", { label: "log 送信", tone: "success" })
+  .edge("logStream", "oncallDevice", { label: "alert push", tone: "error" })
+  .edge("oncallDevice", "engineer", { label: "notify", tone: "warning" })
+  .readout.eventLog("el", { source: "events", max: 10, label: "recent events (5 件)" })
+  .readout.gauge("sevG", { source: "severity", min: 0, max: 100, color: "#ef4444", label: "システム severity" })
+  .readout.countup("errCU", { source: "errorCount", unit: " 件", label: "error event 累計", decimals: 0 })
+  .readout.stat("p99Stat", { source: "p99Ms", unit: " ms", caption: "p99 latency", label: "p99" })
+  .phase("p1", {
+    duration: 1800,
+    title: "通常運転",
+    body: "朝 10:23 API server 起動、 通常負荷。 severity 0 → 10 tween、 errorCount 0、 p99Ms 50 tween 保持、 eventLog に info + debug 表示。 infra lane active。",
+  }, (p: PhaseBuilder) => p.activate("api", "db", "sensor").tween("severity", 0, 10).set("p99Ms", 50).badge("通常"))
+  .phase("p2", {
+    duration: 2200,
+    title: "CPU 上昇 (warn)",
+    body: "朝ピーク 10:24 でリクエスト急増、 CPU 82% 到達。 severity 10 → 45 tween (gauge 針が橙域上昇)、 errorCount 0 → 1 tween (最初の error は近い、 count 前提として 1 加算)、 p99Ms 50 → 180 tween (stat 動的上昇)、 logStream lane activate。",
+  }, (p: PhaseBuilder) => p.activate("api", "db", "sensor", "logStream").tween("severity", 10, 45).tween("errorCount", 0, 1).tween("p99Ms", 50, 180).badge("警告"))
+  .phase("p3", {
+    duration: 2400,
+    title: "DB エラー",
+    body: "10:25 DB connection timeout 発生、 error alert 発火。 severity 45 → 88 tween (gauge 針最上位近く、 critical)、 errorCount 1 → 5 tween (連続 error、 countup 加速)、 p99Ms 180 → 420 tween (激しく上昇)、 oncallDevice + engineer lane activate、 on-call ページング。",
+  }, (p: PhaseBuilder) => p.activate("api", "db", "sensor", "logStream", "oncallDevice", "engineer").tween("severity", 45, 88).tween("errorCount", 1, 5).tween("p99Ms", 180, 420).badge("DB error"))
+  .phase("p4", {
+    duration: 2000,
+    title: "復旧",
+    body: "10:26 高橋様が DB pool size 拡張 → 復旧、 retry 成功 log。 severity 88 → 20 tween (gauge 針が緑域に戻る)、 errorCount 5 → 5 保持 (resolved、 追加なし)、 p99Ms 420 → 80 tween (最終、 stat 正常値)、 6 shape 全 active、 復旧完遂 log 記録。",
+  }, (p: PhaseBuilder) => p.activate("api", "db", "sensor", "logStream", "oncallDevice", "engineer").tween("severity", 88, 20).tween("p99Ms", 420, 80).badge("復旧"))
   .build();
 
 /**

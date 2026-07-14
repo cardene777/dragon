@@ -254,6 +254,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   alertNotification: "実例: 本番 deploy 障害検知 escalation (開始 → 警告 → 障害 → 復旧)",
   commitDiffCounter: "実例: PR diff サイズ推移 (初期 → 拡張 → refactor → 最終)",
   featurePoll: "実例: SaaS 機能要望投票 (開始 → 拡散 → 中間 → 最終)",
+  buildStatusTrafficLight: "実例: CI build 進行 (commit → 実行 → 失敗 → 修正 pass)",
+  deploySpinner: "実例: 金曜夜 production deploy (build → canary → 全体 → 完了)",
+  serverEventLog: "実例: 朝ピーク incident 検知 (通常 → CPU 上昇 → DB error → 復旧)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
