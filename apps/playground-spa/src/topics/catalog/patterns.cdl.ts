@@ -221,7 +221,7 @@ export const patternValidateProcess = diagram("pattern-validate-process", { topi
  * 13. patternDirectCheckout v2 = pattern 1 Direct の business scenario 拡張 (EC 決済で顧客 → payment service 直結)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (商品選択 → checkout → 決済送信 → 確定) + 4 readout (gauge 決済進捗 / countup 累計注文 / stat 金額 / stat 平均処理秒) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 1 の抽象 patternDirect と並置、 diff-additive で教育資料保全。
  */
 export const patternDirectCheckout = diagram("pattern-direct-checkout", {
-  topic: "pattern 1 Direct business scenario = EC 決済で顧客 → payment service 直結 4 phase (商品選択 → checkout → 決済送信 → 確定) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+  topic: "顧客がスマホから商品を選び、 決済 gateway 経由で注文確定する EC 決済",
 })
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -273,7 +273,7 @@ export const patternDirectCheckout = diagram("pattern-direct-checkout", {
  * 14. patternPassthroughApiGateway v2 = pattern 2 Passthrough の business scenario 拡張 (SaaS API request を API Gateway 経由で microservice に relay)、 shape-person + shape-mobile-device + shape-api-gateway + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Client request → Gateway route → Service 処理 → Response) + 4 readout (gauge レイテンシ / countup req/s / stat p99 ms / stat error 率) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 2 の抽象 patternPassthrough と並置。
  */
 export const patternPassthroughApiGateway = diagram("pattern-passthrough-api-gateway", {
-  topic: "pattern 2 Passthrough business scenario = SaaS API request を API Gateway 経由で microservice に relay する 4 phase (request → route → 処理 → response) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+  topic: "API リクエストが Gateway を貫通して microservice に到達、 レスポンスを返すフロー",
 })
   .lane("client", { x: 0, width: 220 })
   .lane("gateway", { x: 240, width: 320 })
@@ -325,7 +325,7 @@ export const patternPassthroughApiGateway = diagram("pattern-passthrough-api-gat
  * 15. patternCallRwUserProfile v2 = pattern 3 Call → Read → Write の business scenario 拡張 (SNS user プロフィール更新 = client call → 既存値 read → 更新値 write)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (client call → read profile → write update → confirm) + 4 readout (gauge write 進捗 / countup 更新回数 / stat 処理秒 / stat cache hit %) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 3 の抽象 patternCallReadWrite と並置。
  */
 export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", {
-  topic: "pattern 3 Call-Read-Write business scenario = SNS user プロフィール更新 4 phase (call → read → write → confirm) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+  topic: "SNS プロフィール更新 = call → 既存 read → 更新 write → confirm の 4 ステップ",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -377,7 +377,7 @@ export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", 
  * 16. patternEmitOrderCreated v2 = pattern 4 Emit Event の business scenario 拡張 (EC 注文確定で OrderCreated event を emit → 複数 subscriber (メール / 在庫 / 分析) に fan-out)、 shape-person + shape-mobile-device + shape-online-shop + shape-stack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (注文確定 → event emit → bus 中継 → subscriber 処理) + 4 readout (gauge 配信率 / countup 累計 event / stat subscriber 数 / stat latency ms) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 4 の抽象 patternEmit と並置。
  */
 export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
-  topic: "pattern 4 Emit Event business scenario = EC 注文確定で OrderCreated event を emit → subscribers に fan-out する 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "EC 注文確定で OrderCreated イベントを発火、 メール / 在庫 / 分析 に fan-out する",
 })
   .lane("client", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -429,7 +429,7 @@ export const patternEmitOrderCreated = diagram("pattern-emit-order-created", {
  * 17. patternHookWebhook v2 = pattern 5 Hook callback の business scenario 拡張 (SaaS 側で顧客の webhook endpoint に受信可否を確認しながら delivery)、 shape-server-rack + shape-cloud + shape-api-gateway + shape-website + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (delivery 準備 → hook 送信 → 顧客側検証 → 受信確定) + 4 readout (gauge success 率 / countup 累計 delivery / stat retry 回数 / stat 平均 ack ms) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 5 の抽象 patternHook と並置。
  */
 export const patternHookWebhook = diagram("pattern-hook-webhook", {
-  topic: "pattern 5 Hook callback business scenario = SaaS が顧客 webhook endpoint に受信確認しながら deliver する 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "SaaS が顧客の webhook endpoint に配信、 受信可否確認 → retry → 完了する流れ",
 })
   .lane("saas", { x: 0, width: 220 })
   .lane("bridge", { x: 240, width: 320 })
@@ -481,7 +481,7 @@ export const patternHookWebhook = diagram("pattern-hook-webhook", {
  * 18. patternBranchAuthzCheck v2 = pattern 6 Branch (条件分岐) の business scenario 拡張 (SaaS 認可判定 = role check → allow / deny 分岐)、 shape-person + shape-mobile-device + shape-api-gateway + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (request → role check → allow 経路 → deny + audit) + 4 readout (gauge allow 率 / countup deny 累計 / stat 平均判定 ms / stat 監査 log 件数) が tween で visually 連続変化。 iteration 8 wave 8-S redesign。 pattern 6 の抽象 patternBranch と並置。
  */
 export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
-  topic: "pattern 6 Branch business scenario = SaaS 認可判定 (role check → allow / deny 分岐) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "SaaS 認可判定 = 権限確認 → allow なら実行 / deny なら 403 + 監査記録",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -533,7 +533,7 @@ export const patternBranchAuthzCheck = diagram("pattern-branch-authz-check", {
  * 19. patternLoopBatchImport v2 = pattern 7 Loop の business scenario 拡張 (CSV 100 行を 1 行ずつ import + validate + DB 挿入する batch job)、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-cloud + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (start → 進行中 33% → 進行中 66% → 完了) + 4 readout (gauge 進捗 / countup 処理行 / stat エラー行 / stat 平均 ms/row) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 7 の抽象 patternLoop と並置。
  */
 export const patternLoopBatchImport = diagram("pattern-loop-batch-import", {
-  topic: "pattern 7 Loop business scenario = CSV 100 行 batch import 4 phase (start → 33% → 66% → 100%) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "CSV 100 行を 1 行ずつ validate + DB 挿入する batch job の進捗",
 })
   .lane("admin", { x: 0, width: 220 })
   .lane("worker", { x: 240, width: 320 })
@@ -585,7 +585,7 @@ export const patternLoopBatchImport = diagram("pattern-loop-batch-import", {
  * 20. patternFanOutVideoTranscode v2 = pattern 8 Fan-out の business scenario 拡張 (動画 upload 1 本を 3 解像度 (480p/720p/1080p) に並列 transcode)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-cdn-edge + shape-cylinder の 6 shape で visual scene 化、 4 phase (upload → dispatch → 3 並列 transcode → 全解像度公開) + 4 readout (gauge 完了率 / countup 累計動画 / stat 総処理秒 / stat 平均 MB) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 8 の抽象 patternFanOut と並置。
  */
 export const patternFanOutVideoTranscode = diagram("pattern-fanout-video-transcode", {
-  topic: "pattern 8 Fan-out business scenario = 動画 upload → 3 解像度並列 transcode 4 phase (upload → dispatch → 並列 → 公開) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "動画 upload 1 本を 480p/720p/1080p の 3 解像度に並列変換して CDN 配信",
 })
   .lane("creator", { x: 0, width: 220 })
   .lane("cluster", { x: 240, width: 320 })
@@ -637,7 +637,7 @@ export const patternFanOutVideoTranscode = diagram("pattern-fanout-video-transco
  * 21. patternFanInMapReduce v2 = pattern 9 Fan-in の business scenario 拡張 (3 shard から集計結果を 1 aggregator に fan-in する MapReduce 風 集計 job)、 shape-server-rack + shape-cloud + shape-cylinder + shape-brokerage + shape-mobile-device + shape-person の 6 shape で visual scene 化、 4 phase (shard 起動 → 並列 map → aggregator fan-in → 結果配信) + 4 readout (gauge aggregate 進捗 / countup 集計 job / stat total records / stat 全体秒) が tween で visually 連続変化。 iteration 8 wave 8-T redesign。 pattern 9 の抽象 patternFanIn と並置。
  */
 export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
-  topic: "pattern 9 Fan-in business scenario = 3 shard 集計 → 1 aggregator fan-in の MapReduce 集計 4 phase (起動 → map → fan-in → 配信) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "3 shard から集計結果を 1 aggregator に集約する MapReduce 処理",
 })
   .lane("shards", { x: 0, width: 220 })
   .lane("aggregator", { x: 240, width: 320 })
@@ -689,7 +689,7 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
  * 22. patternRollbackBankTransfer v2 = pattern 10 Rollback の business scenario 拡張 (銀行送金 tx で送信側 debit + 受信側 credit の atomic 更新、 失敗時 rollback)、 shape-person + shape-mobile-device + shape-bank + shape-brokerage + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (BEGIN → debit + credit → 検証 fail → ROLLBACK) + 4 readout (gauge tx 進捗 / countup 累計 tx / stat rollback 件数 / stat 平均 ms) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 10 の抽象 patternRollback と並置。
  */
 export const patternRollbackBankTransfer = diagram("pattern-rollback-bank-transfer", {
-  topic: "pattern 10 Rollback business scenario = 銀行送金 tx (debit + credit atomic、 fail 時 rollback) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "銀行送金 tx で debit/credit を atomic 更新、 失敗時に rollback して安全に戻す",
 })
   .lane("sender", { x: 0, width: 220 })
   .lane("bank", { x: 240, width: 320 })
@@ -741,7 +741,7 @@ export const patternRollbackBankTransfer = diagram("pattern-rollback-bank-transf
  * 23. patternScheduleReportJob v2 = pattern 11 Schedule の business scenario 拡張 (Cron 5 分毎に定期実行される週次 KPI report 集計 job)、 shape-iot-sensor + shape-cloud + shape-server-rack + shape-brokerage + shape-cylinder + shape-person の 6 shape で visual scene 化、 4 phase (tick → scheduler trigger → job 実行 → report 配信) + 4 readout (gauge job 進捗 / countup 累計実行 / stat 平均秒 / stat next tick 分) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 11 の抽象 patternSchedule と並置。
  */
 export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
-  topic: "pattern 11 Schedule business scenario = Cron 週次 KPI report 集計 job 4 phase (tick → trigger → 実行 → 配信) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "Cron が 5 分ごとに tick、 週次 KPI レポート集計 job を trigger → 配信",
 })
   .lane("scheduler", { x: 0, width: 220 })
   .lane("job", { x: 240, width: 320 })
@@ -793,7 +793,7 @@ export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
  * 24. patternValidateProcessOrderSubmit v2 = pattern 12 Validate → Process の business scenario 拡張 (EC 注文 submit で cart validate → OK なら process、 fail なら ValidationError 返却)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (submit → validate → OK 経路 process → NG 経路 error) + 4 readout (gauge 成功率 / countup submit 累計 / stat NG 件数 / stat 平均 ms) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 12 の抽象 patternValidateProcess と並置。 patterns.cdl.ts business scenario 完遂 (12/12 wave 8-R 〜 8-U)。
  */
 export const patternValidateProcessOrderSubmit = diagram("pattern-validate-process-order-submit", {
-  topic: "pattern 12 Validate-Process business scenario = EC 注文 submit (validate → OK 時 process / NG 時 ValidationError) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+  topic: "EC 注文 submit で cart を検証 → OK なら DB commit / NG なら error emit",
 })
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
