@@ -222,6 +222,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   badgePerPhase: "フェーズごとのバッジ切替",
   mixedTweenSet: "補間と切替の併用",
   tweenChain: "連続補間",
+  // === iter 9 wave 9-D rich pilot (visual 拡張版) ===
+  richPipelineDemo: "5段階CSVパイプラインのリッチ進捗デモ",
   // === iter 9 wave 9-C incremental debug ===
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",
