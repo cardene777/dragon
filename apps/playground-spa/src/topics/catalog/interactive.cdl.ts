@@ -3969,15 +3969,14 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
   .build();
 
 /**
- * 103. status-timeline = server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存。
- * iteration 6 wave 3、 pattern taxonomy § 4 pipeline flow + § 1 state-based split。
+ * 103. serverUptimeStatus v2 = production web サーバー 3 時間 (09:00 - 12:00) uptime 監視 4 phase シナリオ (通常運転 → idle 検知 → error 発生 → 復旧安定)、 shape-person + shape-mobile-device + shape-server-rack + shape-iot-sensor + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Active → Idle → Error → 復旧) + 4 readout (statusTimeline / gauge availability % / countup incident 数 / stat MTTR 分) が tween で visually 連続変化。 iteration 8 wave 8-Q redesign、 iter 6 wave 3 完遂。
  */
 export const serverUptimeStatus = diagram("interactive-server-uptime", {
-  topic: "server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存",
+  topic: "production web サーバー 3 時間 uptime 監視 4 phase = (Active → Idle → Error → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (statusTimeline / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("active", { x: 0, width: 240 })
-  .lane("idle", { x: 280, width: 240 })
-  .lane("error", { x: 560, width: 240 })
+  .lane("sre", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("events", [
     ["09:00", "active"],
     ["09:15", "active"],
@@ -3986,15 +3985,44 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     ["11:15", "active"],
     ["12:00", "active"],
   ] as unknown as (string | number)[])
-  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4 events)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
-  .node("idleCard", { lane: "idle", stack: 0, kind: "card", title: "Idle (1)", subtitle: "10:30 · gray" })
-  .node("errorCard", { lane: "error", stack: 0, kind: "card", title: "Error (1)", subtitle: "11:00 · red" })
+  .state("availability", { initial: 100 })
+  .state("incidentCount", { initial: 0 })
+  .state("mttr", { initial: 0 })
+  .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "SRE 平岡様", eyebrow: "SRE", subtitle: "日勤当番 · uptime 責任者" })
+  .node("dash", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "status dashboard", eyebrow: "device", subtitle: "3 lane status timeline + alert" })
+  .node("webSvr", { lane: "service", stack: 0, kind: "shape-server-rack", title: "prod-web-1", eyebrow: "prod", subtitle: "アクセス受付 + business logic" })
+  .node("healthCheck", { lane: "service", stack: 1, kind: "shape-iot-sensor", title: "health check probe", eyebrow: "sensor", subtitle: "/healthz 15s 判定 + status event" })
+  .node("statusPage", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "public status page", eyebrow: "status", subtitle: "顧客向け uptime + 現在 status" })
+  .node("uptimeDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "uptime DB", eyebrow: "storage", subtitle: "24h event 履歴 + SLA 集計" })
+  .edge("sre", "dash", { label: "監視", tone: "info" })
+  .edge("dash", "webSvr", { label: "SSH", tone: "info" })
+  .edge("healthCheck", "webSvr", { label: "probe", tone: "info" })
+  .edge("healthCheck", "statusPage", { label: "publish", tone: "success" })
+  .edge("healthCheck", "uptimeDb", { label: "log", tone: "accent" })
   .readout.statusTimeline("st", { source: "events", max: 8, label: "Server status" })
-  .phase("p", {
-    duration: 1200,
-    title: "server status split",
-    body: "3-lane (Active / Idle / Error) で 6 event を status 別分散、 statusTimeline readout も併存で strip 表示、 uptime monitoring 定番の pattern taxonomy 交差事例。",
-  }, (p: PhaseBuilder) => p.activate("activeCard", "idleCard", "errorCard").badge("uptime"))
+  .readout.gauge("avG", { source: "availability", min: 0, max: 100, color: "#22c55e", label: "availability %" })
+  .readout.countup("incCU", { source: "incidentCount", unit: " 件", label: "incident 累計", decimals: 0 })
+  .readout.stat("mttrStat", { source: "mttr", unit: " 分", caption: "MTTR", label: "mttr" })
+  .phase("p1", {
+    duration: 1500,
+    title: "09:00 通常運転 (active)",
+    body: "全 request 正常応答、 healthy 状態、 平岡様待機。 availability 100 keep、 incidentCount 0 keep、 mttr 0 keep、 webSvr + healthCheck + statusPage lane active。",
+  }, (p: PhaseBuilder) => p.activate("webSvr", "healthCheck", "statusPage").badge("Active"))
+  .phase("p2", {
+    duration: 2000,
+    title: "10:30 idle 検知",
+    body: "アクセス減少で idle 状態、 status timeline に gray event。 availability 100 → 96 tween、 incidentCount 0 → 1 tween、 mttr 0 → 3 tween、 sre + dash lane activate、 統計 anomaly 検知。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "webSvr", "healthCheck", "statusPage").tween("availability", 100, 96).tween("incidentCount", 0, 1).tween("mttr", 0, 3).badge("Idle"))
+  .phase("p3", {
+    duration: 2200,
+    title: "11:00 error 発生",
+    body: "web server 一時応答不能、 timeline に赤 event、 平岡様が SSH で状況確認。 availability 96 → 82 tween、 incidentCount 1 → 2 tween、 mttr 3 → 8 tween、 uptimeDb lane activate、 全 lane full。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "webSvr", "healthCheck", "statusPage", "uptimeDb").tween("availability", 96, 82).tween("incidentCount", 1, 2).tween("mttr", 3, 8).badge("Error"))
+  .phase("p4", {
+    duration: 2000,
+    title: "11:15 復旧 → 12:00 安定",
+    body: "hotfix rollout + auto-restart で active 状態に戻る、 uptimeDb で 3 時間 SLA 集計。 availability 82 → 98 tween、 incidentCount 2 keep、 mttr 8 → 15 tween (最終)、 6 shape 全 active、 postmortem 起票 + status page 復帰。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dash", "webSvr", "healthCheck", "statusPage", "uptimeDb").tween("availability", 82, 98).tween("mttr", 8, 15).badge("復旧"))
   .build();
 
 /**
