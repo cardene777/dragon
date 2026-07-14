@@ -224,6 +224,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   tweenChain: "連続補間",
   // === iter 9 wave 9-D rich pilot (visual 拡張版) ===
   richPipelineDemo: "5段階CSVパイプラインのリッチ進捗デモ",
+  richServerLoadDashboard: "4台サーバーCPU負荷ダッシュボード",
+  richOrderStatusFlow: "EC注文状態遷移フロー",
+  richScoreLeaderboard: "4プレイヤースコア推移",
   // === iter 9 wave 9-C incremental debug ===
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",
