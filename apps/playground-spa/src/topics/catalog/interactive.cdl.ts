@@ -92,7 +92,7 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .state("active", { initial: "off" })
   .node("btn", { lane: "trigger", stack: 0, kind: "card", title: "ボタン", subtitle: "クリックtarget" })
   .node("handlerNode", { lane: "handler", stack: 0, kind: "card", title: "Eventハンドラ", subtitle: "切替-有効 + hover-状態(消費者 実装)" })
-  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal状態", subtitle: "有効 = {有効}" })
+  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal状態", subtitle: "有効 = {active}" })
   .edge("btn", "handlerNode", { label: "クリック / hover", tone: "info" })
   .edge("handlerNode", "signalNode", { label: "切替", tone: "success" })
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
@@ -368,11 +368,11 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
   .state("gas1", { initial: 30 })
   .state("gas2", { initial: 36 })
   .state("gas3", { initial: 45 })
-  .node("r1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "遮断1", subtitle: "gas: {gas1}", w: 100, h: 220,
+  .node("r1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "ブロック1", subtitle: "gas: {gas1}", w: 100, h: 220,
     shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#2d6a8f" } })
-  .node("r2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "遮断2", subtitle: "gas: {gas2}", w: 100, h: 220,
+  .node("r2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "ブロック2", subtitle: "gas: {gas2}", w: 100, h: 220,
     shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" } })
-  .node("r3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "遮断3", subtitle: "gas: {gas3}", w: 100, h: 220,
+  .node("r3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "ブロック3", subtitle: "gas: {gas3}", w: 100, h: 220,
     shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" } })
   .phase("p", { duration: 1500, title: "chain追随 = 前値がformulaで次を駆動", body: "base sliderを動かすとgas1 = base、 gas2 = base*1.2、 gas3 = base*1.5で連動、 3 rectのfillが同時に伸縮。" }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3").badge("chain fill"))
   .build();
@@ -790,7 +790,7 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   .state("progress", { initial: 40 })
   .state("done", { initial: 0 })
   .formula("done", "progress >= 100 ? 1 : 0")
-  .node("main", { lane: "state", stack: 0, kind: "card", title: "タスク 状態", subtitle: "{進捗}% 完了" })
+  .node("main", { lane: "state", stack: 0, kind: "card", title: "タスク状態", subtitle: "{progress}% 完了" })
   .node("pathNode", { lane: "visual", stack: 0, kind: "card", title: "パスvisual", subtitle: "SVG stroke-dashoffsetで進行" })
   .node("ringNode", { lane: "visual", stack: 1, kind: "card", title: "パーセントring", subtitle: "同時追随" })
   .node("ok", { lane: "done", stack: 0, kind: "card", title: "✓ 完了", subtitle: "進捗=100% でvisibleIf発動", visibleIf: "{done}" })
@@ -1049,9 +1049,9 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .node("wallet", { lane: "sender", stack: 0, kind: "shape-wallet", title: "MetaMask EOA", eyebrow: "送信者", subtitle: "0x742d...5a1f" })
   .node("mobile", { lane: "sender", stack: 1, kind: "shape-mobile-device", title: "利用者 端末", eyebrow: "端末", subtitle: "0.5 ETH送金tx署名" })
   .node("pool", { lane: "mempool", stack: 0, kind: "shape-stack", title: "mempool", eyebrow: "キュー", subtitle: "保留128 tx · fee順sort" })
-  .node("blockN", { lane: "chain", stack: 0, kind: "shape-blockchain-block", title: "Block数", eyebrow: "遮断", subtitle: "gas 15M/30M · base {baseFee} gwei" })
-  .node("blockN1", { lane: "chain", stack: 1, kind: "shape-blockchain-block", title: "Block数+1", eyebrow: "遮断", subtitle: "gas 22M/30M · base×1.05" })
-  .node("chainNode", { lane: "chain", stack: 2, kind: "shape-blockchain", title: "Ethereum L1", eyebrow: "chain", subtitle: "遮断 #{blockNumber} · finality 12+" })
+  .node("blockN", { lane: "chain", stack: 0, kind: "shape-blockchain-block", title: "Block数", eyebrow: "ブロック", subtitle: "gas 15M/30M · base {baseFee} gwei" })
+  .node("blockN1", { lane: "chain", stack: 1, kind: "shape-blockchain-block", title: "Block数+1", eyebrow: "ブロック", subtitle: "gas 22M/30M · base×1.05" })
+  .node("chainNode", { lane: "chain", stack: 2, kind: "shape-blockchain", title: "Ethereum L1", eyebrow: "chain", subtitle: "ブロック #{blockNumber} · finality 12+" })
   .edge("wallet", "mobile", { label: "秘密鍵署名", tone: "info" })
   .edge("mobile", "pool", { label: "eth_sendRawTransaction", tone: "info" })
   .edge("pool", "blockN", { label: "採掘include", tone: "success" })
@@ -1060,7 +1060,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .readout.gauge("baseFeeG", { source: "baseFee", min: 0, max: 100, color: "#f97316", label: "base fee (gwei)" })
   .readout.bar("totalBar", { source: "totalGwei", min: 0, max: 5000, color: "#22c55e", label: "総gasコスト(gwei)" })
   .readout.trafficLight("statusTL", { source: "txStatus", label: "tx状態(0=保留 / 1=mining / 2=confirmed)" })
-  .readout.countup("blockCU", { source: "blockNumber", unit: "", label: "遮断 #", decimals: 0 })
+  .readout.countup("blockCU", { source: "blockNumber", unit: "", label: "ブロック #", decimals: 0 })
   .phase("p1", {
     duration: 2200,
     title: "tx署名 + 送信",
@@ -1079,7 +1079,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .phase("p4", {
     duration: 2000,
     title: "確定(Block数+1)",
-    body: "次blockもbase ±12.5% 変動、 blockN+1で6-遮断confirmation達成 → finality。 baseFee 47 → 50 tween (継続需要)、 状態1 → 2 tween (トラフィック-light黄 → 緑 = confirmed)、 blockNumber 18543210 → 18543211 tween (countup動的増加)、 全6 shape有効、 chain確定 ログ。",
+    body: "次blockもbase ±12.5% 変動、 blockN+1で6ブロックconfirmation達成 → finality。 baseFee 47 → 50 tween (継続需要)、 状態1 → 2 tween (トラフィック-light黄 → 緑 = confirmed)、 blockNumber 18543210 → 18543211 tween (countup動的増加)、 全6 shape有効、 chain確定 ログ。",
   }, (p: PhaseBuilder) => p.activate("wallet", "mobile", "pool", "blockN", "blockN1", "chainNode", "wallet-mobile", "mobile-pool", "pool-blockN", "blockN-blockN1", "blockN1-chainNode").tween("baseFee", 47, 50).tween("txStatus", 1, 2).tween("blockNumber", 18543210, 18543211).badge("確定"))
   .build();
 
@@ -1439,7 +1439,7 @@ export const abTestResult = diagram("interactive-ab-test", {
   .edge("visitorB", "shop", { label: "treatment訪問", tone: "accent" })
   .edge("shop", "router", { label: "利用者 ハッシュ 判定", tone: "info" })
   .edge("router", "analytics", { label: "purchaseイベント", tone: "success" })
-  .edge("analytics", "log", { label: "永続化", tone: "success" })
+  .edge("analytics", "log", { label: "保存", tone: "success" })
   .edge("log", "committee", { label: "集計結果", tone: "accent" })
   .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "日次conv % (A=灰 / B=緑)" })
   .readout.donut("splitDonut", { source: "splitData", innerRatio: 0.5, viewW: 130, viewH: 130, label: "トラフィックsplit" })
@@ -2550,7 +2550,7 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .formula("elapsed", "sec * 1000")
   .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "秒 = {秒}s (0-3600)" })
   .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "実行中 切替", subtitle: "実行中 = {実行中}" })
-  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ミリ秒display", subtitle: "経過 = 秒 × 1000 = {経過}ミリ秒" })
+  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ミリ秒表示", subtitle: "経過 = 秒 × 1000 = {elapsed}ミリ秒" })
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "色", tone: "success" })
   .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "タイマー (MM:SS.ミリ秒)" })
@@ -2635,7 +2635,7 @@ export const postReactions = diagram("interactive-post-reactions", {
   .node("post", { lane: "platform", stack: 0, kind: "shape-message-bubble", title: "投稿 (140 字)", eyebrow: "content", subtitle: "'iOS 18の新機能まとめ 🚀'" })
   .node("timeline", { lane: "platform", stack: 1, kind: "shape-cloud", title: "X timeline", eyebrow: "配分", subtitle: "algorithm順位 + trending判定" })
   .node("analytics", { lane: "platform", stack: 2, kind: "shape-cylinder", title: "X分析DB", eyebrow: "データベース", subtitle: "engagement集計 · 反応rollup" })
-  .node("audience", { lane: "audience", stack: 0, kind: "shape-warehouse", title: "全世界audience", eyebrow: "readers", subtitle: "impression {表示回数} 名到達" })
+  .node("audience", { lane: "audience", stack: 0, kind: "shape-warehouse", title: "全世界読者", eyebrow: "読者", subtitle: "到達 {impressions} 名" })
   .edge("author", "mobile", { label: "投稿", tone: "info" })
   .edge("mobile", "post", { label: "発行", tone: "info" })
   .edge("post", "timeline", { label: "配信", tone: "success" })
@@ -2848,7 +2848,7 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
   .node("doge", { lane: "tokens", stack: 3, kind: "shape-token", title: "Ð DOGE", eyebrow: "トークン", subtitle: "8500 DOGE · -1.4% 24h" })
   .node("exchange", { lane: "infra", stack: 0, kind: "shape-exchange", title: "CEX見積", eyebrow: "見積", subtitle: "Binance API · 1s拍動" })
   .node("node", { lane: "infra", stack: 1, kind: "shape-blockchain-node", title: "RPC node", eyebrow: "RPC", subtitle: "Infura · eth_call balance" })
-  .node("chain", { lane: "infra", stack: 2, kind: "shape-ethereum-chain", title: "Ethereum L1", eyebrow: "chain", subtitle: "遮断 #{portfolioValue}" })
+  .node("chain", { lane: "infra", stack: 2, kind: "shape-ethereum-chain", title: "Ethereum L1", eyebrow: "chain", subtitle: "ブロック #{portfolioValue}" })
   .edge("wallet", "btc", { label: "保有", tone: "info" })
   .edge("wallet", "eth", { label: "保有", tone: "info" })
   .edge("wallet", "sol", { label: "保有", tone: "info" })
@@ -3687,7 +3687,7 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   .node("release", { lane: "delivery", stack: 0, kind: "shape-hexagon", title: "Q1 launch", eyebrow: "マイルストーン", subtitle: "1/31予定 · 全event集約" })
   .edge("pm", "mobile", { label: "予定管理", tone: "info" })
   .edge("mobile", "gcal", { label: "同期", tone: "info" })
-  .edge("gcal", "db", { label: "永続化", tone: "success" })
+  .edge("gcal", "db", { label: "保存", tone: "success" })
   .edge("db", "gateway", { label: "起動", tone: "accent" })
   .edge("gateway", "release", { label: "launch準備", tone: "warning" })
   .readout.calendarMonth("cm", { source: "days", monthName: "2026 年 1 月", color: "#2563eb", label: "月間予定 表示" })
@@ -4723,7 +4723,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   .node("imgCdn", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "画像CDN (S3 + CloudFront)", eyebrow: "CDN", subtitle: "80×80 / 200×200 / 512×512 3 size配信" })
   .node("profileDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "プロフィールDB", eyebrow: "保存", subtitle: "user_id → avatar_url地図 + 履歴" })
   .edge("user", "laptop", { label: "選択", tone: "info" })
-  .edge("laptop", "uploadPage", { label: "低下", tone: "info" })
+  .edge("laptop", "uploadPage", { label: "ドロップ", tone: "info" })
   .edge("uploadPage", "uploadSvc", { label: "投稿", tone: "success" })
   .edge("uploadSvc", "imgCdn", { label: "発行", tone: "accent" })
   .edge("uploadSvc", "profileDb", { label: "保存URL", tone: "success" })

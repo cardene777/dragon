@@ -73,7 +73,7 @@ export const stateActiveConnection = diagram("state-active-connection", {
   .edge("app", "wsGateway", { label: "接続(有効)", tone: "accent" })
   .edge("wsGateway", "chatSvc", { label: "経路", tone: "success" })
   .edge("chatSvc", "presenceSvc", { label: "生存確認", tone: "info" })
-  .edge("chatSvc", "msgDb", { label: "永続化", tone: "success" })
+  .edge("chatSvc", "msgDb", { label: "保存", tone: "success" })
   .readout.gauge("hpG", { source: "healthPct", min: 0, max: 100, color: "#22c55e", label: "connection健康度 %" })
   .readout.countup("mcCU", { source: "msgCount", unit: " メッセージ", label: "累計msg", decimals: 0 })
   .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "遅延" })
