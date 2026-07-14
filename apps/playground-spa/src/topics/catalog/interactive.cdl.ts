@@ -748,7 +748,7 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
  *     readout.arrayBar で histogram、 readout.arrayList で bullet list 表示。
  */
 export const arraySignalHistogram = diagram("interactive-array-signal", {
-  topic: "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存",
+  topic: "5 要素の配列を棒グラフで表示、 sum/avg/max を自動集計する arraySignal の使い方",
 })
   .lane("agg", { x: 0, width: 240 })
   .lane("items", { x: 300, width: 260 })
@@ -816,7 +816,7 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
  * 27. lineChart readout = array signal を折れ線 chart 表示 (時系列 like)。
  */
 export const arrayLineChart = diagram("interactive-array-line-chart", {
-  topic: "arraySignal line chart を 3-lane (Data source / Area chart fill / Line chart no-fill) 分散、 chart variant 別 lane 展開、 lineChart 2 種類併存",
+  topic: "配列 signal を折れ線 chart で時系列可視化する使い方",
 })
   .lane("data", { x: 0, width: 200 })
   .lane("area", { x: 240, width: 280 })
@@ -838,7 +838,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
  * 28. stackedBar readout = 2 array を並列 bar 比較、 A/B histogram の per-index 対比。
  */
 export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
-  topic: "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存",
+  topic: "2 配列を並列 bar で A/B histogram 比較する使い方",
 })
   .lane("groupA", { x: 0, width: 300 })
   .lane("groupB", { x: 340, width: 300 })
@@ -915,7 +915,7 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
  * 30. waterfall readout = 5 element を左から累積、 正 / 負 で色分け (財務 waterfall chart)。
  */
 export const arrayWaterfall = diagram("interactive-array-waterfall", {
-  topic: "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存",
+  topic: "5 要素の増減を左から累積、 正負で色分けする waterfall chart",
 })
   .lane("pos", { x: 0, width: 300 })
   .lane("neg", { x: 340, width: 300 })
@@ -977,7 +977,7 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
  * 32. matrix readout = 4×4 の 2D array を色 gradient で表示 (confusion matrix / heatmap 用)。
  */
 export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
-  topic: "4×4 confusion matrix を 4-lane (class 0/1/2/3) 分散、 各 class の diagonal (correct) / off-diagonal (wrong) を個別 card 表示、 matrix readout 併存",
+  topic: "4×4 confusion matrix を色 gradient で heatmap 表示する使い方",
 })
   .lane("c0", { x: 0, width: 150 })
   .lane("c1", { x: 170, width: 150 })
@@ -1037,7 +1037,7 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
  * 34. eip1559GasFlow v2 = Ethereum L1 で ETH 送金 tx を submit → mempool → 採掘 → 確定する EIP-1559 gas 動的計算シナリオ、 shape-wallet + shape-mobile-device + shape-stack (mempool) + shape-blockchain-block × 2 + shape-blockchain の 6 shape で visual scene 化、 4 phase (署名 → mempool 滞留 → 採掘 → 確定) + 4 readout (gauge baseFee 上昇 / bar totalGwei 伸長 / traffic-light tx status / countup blockNumber) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const eip1559GasFlow = diagram("interactive-eip1559", {
-  topic: "Ethereum EIP-1559 gas 動的計算 = 4 phase (署名 → mempool → 採掘 → 確定) の flow を shape-* primitive 6 種で表現 + 4 readout (gauge baseFee / bar totalGwei / traffic-light status / countup block#) が tween で visually 連続変化",
+  topic: "Ethereum で ETH 送金 tx が署名 → mempool → 採掘 → 確定する EIP-1559 gas 計算",
 })
   .lane("sender", { x: 0, width: 220 })
   .lane("mempool", { x: 240, width: 240 })
@@ -1087,7 +1087,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
  * 36. oauthFlow v2 = 実 Google Sign-In (OAuth 2.0 Authorization Code + PKCE) シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 5 phase (login click → consent → code exchange → token 発行 → API call) + 4 readout (sequenceTimeline / gauge latency / countup token 発行数 / traffic-light state) が tween で visually 連続変化。 iteration 8 wave 8-B redesign。
  */
 export const oauthFlow = diagram("interactive-oauth-flow", {
-  topic: "実 OAuth 2.0 Authorization Code + PKCE (Google Sign-In) シナリオ = 5 phase (click → consent → code exchange → token → API) の flow を shape-* primitive 6 種で表現 + 4 readout (sequenceTimeline / gauge latency / countup / traffic-light) が tween で visually 連続変化",
+  topic: "Google Sign-In で ログイン click → consent → code exchange → token 発行 → API call",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("app", { x: 240, width: 260 })
@@ -1151,7 +1151,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
  * 36. decisionTree v2 = 医療 triage システムの臨床決定木 シナリオ (発熱患者を 3 level 判定で ICU/一般病棟/帰宅の 4 経路に振り分け)、 shape-person + shape-mobile-device + shape-diamond × 3 + shape-server-rack + shape-cloud の 7 shape で visual scene 化、 4 phase (受付 → 一次判定 → 二次判定 → 転帰決定) + 4 readout (traffic-light 判定 status / countup 判定件数 / gauge 判定所要時間 / stat リスクスコア) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "医療 triage 臨床決定木 シナリオ = 4 phase (受付 → 一次 → 二次 → 転帰) の flow を shape-* primitive 7 種で表現 + 4 readout (traffic-light / countup / gauge / stat) が tween で visually 連続変化",
+  topic: "医療 triage で 発熱患者を 3 段階判定して ICU/一般病棟/帰宅に振り分ける",
 })
   .lane("intake", { x: 0, width: 220 })
   .lane("triage", { x: 240, width: 320 })
@@ -1206,7 +1206,7 @@ export const decisionTree = diagram("interactive-decision-tree", {
  * 37. skillRadar v2 = ソフトウェアエンジニア半年 skill 成長 review シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (初回査定 → 学習投資 → 中間確認 → 成長確認) + 4 readout (radar 5 次元 / gauge 総合スコア / countup 学習時間 / stat 成長ポイント) が tween で visually 連続変化。 iteration 8 wave 8-C redesign。
  */
 export const skillRadar = diagram("interactive-skill-radar", {
-  topic: "エンジニア半年 skill 成長 review シナリオ = 4 phase (初回 → 学習 → 中間 → 成長確認) の flow を shape-* primitive 6 種で表現 + 4 readout (radar / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "エンジニアの半年間 skill 成長 review (初回査定 → 学習投資 → 中間確認 → 成長確認)",
 })
   .lane("engineer", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -1257,7 +1257,7 @@ export const skillRadar = diagram("interactive-skill-radar", {
  * 38. perfBubbleChart v2 = production infra 週次 workload capacity planning シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-iot-sensor + shape-gear の 6 shape で visual scene 化、 4 phase (メトリクス取得 → workload 分析 → 需給判定 → 最適化) + 4 readout (bubbleChart / gauge 平均 CPU / countup total req / stat scaling 提案) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const perfBubbleChart = diagram("interactive-perf-bubble", {
-  topic: "production infra 週次 capacity planning シナリオ = 4 phase (取得 → 分析 → 判定 → 最適化) の flow を shape-* primitive 6 種で表現 + 4 readout (bubbleChart / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "production infra 週次 workload capacity planning (取得 → 分析 → 判定 → 最適化)",
 })
   .lane("sre", { x: 0, width: 220 })
   .lane("infra", { x: 240, width: 320 })
@@ -1315,7 +1315,7 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
  * 39. portfolioDonut v2 = 個人投資家の四半期リバランス シナリオ、 shape-person + shape-mobile-device + shape-brokerage + shape-trust-bank + shape-cylinder + shape-token の 6 shape で visual scene 化、 4 phase (現状確認 → リバランス判定 → 執行 → 反映) + 4 readout (donut allocation / gauge リスク偏差 / countup 総資産 / stat 執行額) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const portfolioDonut = diagram("interactive-portfolio-donut", {
-  topic: "四半期 portfolio リバランス シナリオ = 4 phase (現状 → 判定 → 執行 → 反映) の flow を shape-* primitive 6 種で表現 + 4 readout (donut / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "個人投資家の四半期リバランス = 現状確認 → リバランス判定 → 執行 → 反映",
 })
   .lane("investor", { x: 0, width: 220 })
   .lane("advisor", { x: 240, width: 280 })
@@ -1366,7 +1366,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
  * 40. kpiDashboard v2 = 週次 CEO KPI dashboard レビュー シナリオ、 shape-person + shape-mobile-device + shape-server-rack + shape-cylinder + shape-cloud + shape-brokerage の 6 shape で visual scene 化、 4 phase (dashboard 表示 → 因果分析 → 目標対比 → 判断) + 4 readout (stat revenue / percentRing NPS / gauge Churn / countup users) が formula chain 経由 tween で visually 連続変化。 iteration 8 wave 8-B redesign。
  */
 export const kpiDashboard = diagram("interactive-kpi-dashboard", {
-  topic: "週次 CEO KPI レビュー シナリオ = 4 phase (表示 → 因果 → 目標対比 → 判断) の flow を shape-* primitive 6 種で表現 + 4 readout (stat / percentRing / gauge / countup) が tween で visually 連続変化",
+  topic: "週次 CEO KPI dashboard レビュー (表示 → 因果分析 → 目標対比 → 判断)",
 })
   .lane("ceo", { x: 0, width: 220 })
   .lane("data", { x: 240, width: 320 })
@@ -1417,7 +1417,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
  * 41. abTestResult v2 = EC checkout button 色変更 A/B test の 4 週実験シナリオ、 shape-online-shop + shape-diamond (split) + shape-cloud (analytics) + shape-cylinder (log) + shape-mobile-device × 2 + shape-brokerage (判定) の 7 shape で visual scene 化、 4 phase (実験開始 → traffic split → 中間集計 → 有意判定) + 4 readout (stackedBar convA/B / donut split / donut winner / gauge 有意水準) が tween で visually 連続変化。 iteration 8 wave 8-B2 redesign。
  */
 export const abTestResult = diagram("interactive-ab-test", {
-  topic: "EC checkout A/B test 4 週実験 = 4 phase (開始 → split → 集計 → 有意判定) の flow を shape-* primitive 7 種で表現 + 4 readout (stackedBar / donut × 2 / gauge) が tween で visually 連続変化",
+  topic: "EC checkout ボタン色変更 A/B test の 4 週実験 (開始 → split → 中間集計 → 有意判定)",
 })
   .lane("users", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 340 })
@@ -1533,7 +1533,7 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
  * 44. revenueKpiCard v2 = SaaS 事業の月次 revenue クロージング 会議シナリオ、 shape-person + shape-mobile-device + shape-online-shop + shape-cylinder + shape-cloud + shape-brokerage の 6 shape で visual scene 化、 4 phase (前月値確認 → 当月確定 → 前年比較 → 経営判断) + 4 readout (kpiCard revenue trend / gauge YoY 成長率 / countup MRR / stat 目標達成率) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const revenueKpiCard = diagram("interactive-revenue-kpi", {
-  topic: "SaaS 月次 revenue クロージング シナリオ = 4 phase (前月 → 当月確定 → 前年比較 → 判断) の flow を shape-* primitive 6 種で表現 + 4 readout (kpiCard / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SaaS 事業の月次 revenue クロージング 会議 = 前月確認 → 当月確定 → 前年比較 → 経営判断",
 })
   .lane("team", { x: 0, width: 220 })
   .lane("systems", { x: 240, width: 300 })
@@ -1584,7 +1584,7 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
  * 45. priceCandlestick v2 = 個人投資家の日次 trading シナリオ、 shape-trader + shape-mobile-device + shape-brokerage + shape-exchange + shape-blockchain-node の 5 shape で visual scene 化、 4 phase (寄り付き → 中盤上昇 → 押し目 → 引け高) + 4 readout (candlestick / gauge 値動き幅 / countup 出来高 / stat 現在価格) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const priceCandlestick = diagram("interactive-price-candlestick", {
-  topic: "個人投資家 日次 trading シナリオ = 4 phase (寄り付き → 中盤 → 押し目 → 引け高) の flow を shape-* primitive 5 種で表現 + 4 readout (candlestick OHLC / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "個人投資家の日次トレード = 寄付 → 中盤上昇 → 押し目 → 引け高",
 })
   .lane("trader", { x: 0, width: 220 })
   .lane("markets", { x: 240, width: 340 })
@@ -1723,7 +1723,7 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
  * 49. projectGantt v2 = モバイルアプリ新機能開発 10 日 sprint シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (Design → Impl → Test → Ship) + 4 readout (gantt / gauge 進捗率 / countup 経過日数 / stat 完了タスク) が tween で visually 連続変化。 iteration 8 wave 8-C redesign。
  */
 export const projectGantt = diagram("interactive-project-gantt", {
-  topic: "モバイル新機能 10 日 sprint シナリオ = 4 phase (Design → Impl → Test → Ship) の flow を shape-* primitive 6 種で表現 + 4 readout (gantt / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "モバイル新機能開発 10 日 sprint (Design → Impl → Test → Ship)",
 })
   .lane("team", { x: 0, width: 220 })
   .lane("work", { x: 240, width: 320 })
@@ -1778,7 +1778,7 @@ export const projectGantt = diagram("interactive-project-gantt", {
  * 50. resourceTreemap v2 = 会社 CFO の年間予算配分レビュー シナリオ (期初計画 → Q1 実績 → 中期見直し → 期末着地)、 shape-person + shape-mobile-device + shape-brokerage + shape-cylinder + shape-server-rack + shape-cloud の 6 shape で visual scene 化、 4 phase (期初計画 → Q1 実績 → 中期見直し → 期末着地) + 4 readout (treemap / gauge 予算消化率 / countup 支出額 / stat 残予算) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const resourceTreemap = diagram("interactive-resource-treemap", {
-  topic: "会社 CFO 年間予算配分レビュー 4 phase = (期初 → Q1 → 中期 → 期末) の flow を shape-* primitive 6 種で表現 + 4 readout (treemap / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "CFO の年間予算配分レビュー (期初計画 → Q1 → 中期見直し → 期末着地)",
 })
   .lane("cfo", { x: 0, width: 220 })
   .lane("data", { x: 240, width: 320 })
@@ -1835,7 +1835,7 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
  * 51. trafficSankey v2 = D2C EC の marketing 4 phase 施策 sankey (集客 → LP → conversion)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (施策開始 → 集客増 → CVR 上昇 → ROI 判定) + 4 readout (sankey / gauge CVR / countup 総訪問数 / stat 平均 CAC) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const trafficSankey = diagram("interactive-traffic-sankey", {
-  topic: "D2C EC marketing 4 phase 施策 sankey = (開始 → 集客 → CVR → ROI) の flow を shape-* primitive 6 種で表現 + 4 readout (sankey / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "D2C EC の marketing 4 phase 施策 sankey (集客 → LP → conversion)",
 })
   .lane("marketer", { x: 0, width: 220 })
   .lane("traffic", { x: 240, width: 320 })
@@ -2030,7 +2030,7 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
  * 57. buildStatusTrafficLight v2 = feature branch の CI build 進行 4 phase シナリオ (main merge 直前まで)、 shape-person + shape-mobile-device + shape-website (GitHub) + shape-server-rack (CI) + shape-hexagon (test runner) + shape-cloud の 6 shape で visual scene 化、 4 phase (commit → 実行中 → test 失敗 → 修正 pass) + 4 readout (trafficLight status / gauge coverage / countup build 試行数 / stat 実行時間) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
-  topic: "CI build 進行 4 phase シナリオ = (commit → 実行 → 失敗 → 修正 pass) の flow を shape-* primitive 6 種で表現 + 4 readout (trafficLight / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "feature branch の CI build 進行 (commit → 実行中 → test 失敗 → 修正 pass)",
 })
   .lane("dev", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -2173,7 +2173,7 @@ export const productRating = diagram("interactive-product-rating", {
  * 61. alertNotification v2 = 本番 deploy 障害検知 → escalation 4 phase シナリオ、 shape-server-rack + shape-mobile-device + shape-iot-sensor + shape-cloud + shape-person × 2 の 6 shape で visual scene 化、 4 phase (deploy 開始 → 警告検知 → 障害エスカレ → 復旧成功) + 4 readout (notification / gauge severity / countup alert 数 / stat 対応時間) が tween で visually 連続変化。 iteration 8 wave 8-D2 redesign。
  */
 export const alertNotification = diagram("interactive-alert-notification", {
-  topic: "本番 deploy 障害検知 escalation = 4 phase (開始 → 警告 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (notification / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "本番 deploy 障害検知 escalation (deploy 開始 → 警告検知 → 障害エスカレ → 復旧)",
 })
   .lane("infra", { x: 0, width: 260 })
   .lane("channel", { x: 280, width: 280 })
@@ -2225,7 +2225,7 @@ export const alertNotification = diagram("interactive-alert-notification", {
  * 62. commitDiffCounter v2 = feature branch の開発進行に伴う PR diff サイズ推移 4 phase シナリオ、 shape-person + shape-mobile-device + shape-website (GitHub) + shape-server-rack (CI) + shape-cylinder + shape-hexagon の 6 shape で visual scene 化、 4 phase (初期実装 → 拡張 → refactor → 最終整理) + 4 readout (diffCounter / gauge PR サイズ健全性 / countup commit 数 / stat net delta) が tween で visually 連続変化。 iteration 8 wave 8-D2 redesign。
  */
 export const commitDiffCounter = diagram("interactive-commit-diff", {
-  topic: "PR diff サイズ推移 4 phase = (初期 → 拡張 → refactor → 最終) の flow を shape-* primitive 6 種で表現 + 4 readout (diffCounter / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "feature branch の PR diff サイズ推移 (初期実装 → 拡張 → refactor → 最終整理)",
 })
   .lane("dev", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -2304,7 +2304,7 @@ export const supportChat = diagram("interactive-support-chat", {
  * 64. userAvatar v2 = SNS プラットフォーム 新規ユーザー onboarding avatar 選択シナリオ、 shape-person + shape-mobile-device + shape-website + shape-cylinder + shape-cloud + shape-warehouse の 6 shape で visual scene 化、 4 phase (アカウント作成 → デフォルト avatar → カスタム画像 upload → 反映) + 4 readout (avatar / gauge upload 進捗 / countup 新規登録数 / stat active user) が tween で visually 連続変化。 iteration 8 wave 8-D redesign。
  */
 export const userAvatar = diagram("interactive-user-avatar", {
-  topic: "SNS 新規ユーザー onboarding avatar 選択 = 4 phase (作成 → デフォルト → upload → 反映) の flow を shape-* primitive 6 種で表現 + 4 readout (avatar / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SNS 新規ユーザー onboarding avatar 選択 (作成 → デフォルト → upload → 反映)",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -2408,7 +2408,7 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
  * 67. productPriceTag v2 = 大手 EC のブラックフライデー ダイナミック プライシング シナリオ、 shape-online-shop + shape-mobile-device + shape-storefront + shape-cylinder + shape-warehouse + shape-person の 6 shape で visual scene 化、 4 phase (通常価格 → セール開始 → 値下げ深化 → 在庫連動最終値) + 4 readout (priceTag / gauge 割引率 / countup 販売数 / bar 在庫残) が tween で visually 連続変化。 iteration 8 wave 8-A2 redesign。
  */
 export const productPriceTag = diagram("interactive-product-price-tag", {
-  topic: "EC ブラックフライデー ダイナミック プライシング シナリオ = 4 phase (通常 → セール開始 → 深化 → 在庫連動) の flow を shape-* primitive 6 種で表現 + 4 readout (priceTag / gauge / countup / bar) が tween で visually 連続変化",
+  topic: "EC ブラックフライデーで ダイナミック プライシング (通常 → セール → 深化 → 在庫連動)",
 })
   .lane("customer", { x: 0, width: 200 })
   .lane("ec", { x: 220, width: 300 })
@@ -2459,7 +2459,7 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
  * 68. deploySpinner v2 = 金曜夜 production deploy 4 phase シナリオ (canary rollout → 全体展開)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-warehouse + shape-hexagon の 6 shape で visual scene 化、 4 phase (build 完了 → canary 20% → 全体 100% → 完了通知) + 4 readout (spinner / gauge rollout % / countup pod 数 / stat 経過時間) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const deploySpinner = diagram("interactive-deploy-spinner", {
-  topic: "金曜夜 production deploy 4 phase シナリオ = (build → canary → 全体 → 完了) の flow を shape-* primitive 6 種で表現 + 4 readout (spinner / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "金曜夜 production deploy (build 完了 → canary 20% → 全体 100% → 完了通知)",
 })
   .lane("engineer", { x: 0, width: 220 })
   .lane("infra", { x: 240, width: 320 })
@@ -2565,7 +2565,7 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
  * 71. mlConfidenceMeter v2 = 医療画像診断 AI の推論 confidence 判定 4 phase シナリオ (X線画像 → AI 推論 → 医師確認 → 診断確定)、 shape-person + shape-mobile-device + shape-server-rack + shape-hexagon + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (X 線撮影 → AI 推論 → 医師レビュー → 診断確定) + 4 readout (confidenceMeter / gauge 予測確率 / countup 処理画像数 / stat 誤判定率) が tween で visually 連続変化。 iteration 8 wave 8-F redesign。
  */
 export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
-  topic: "医療画像診断 AI 4 phase シナリオ = (撮影 → AI 推論 → 医師確認 → 診断確定) の flow を shape-* primitive 6 種で表現 + 4 readout (confidenceMeter / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "医療画像診断 AI (X線 → AI 推論 → 医師レビュー → 診断確定)",
 })
   .lane("clinic", { x: 0, width: 240 })
   .lane("ai", { x: 260, width: 300 })
@@ -2827,7 +2827,7 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
  * 78. cryptoWallet v2 = 個人 DeFi 保有者の日次 portfolio モニター シナリオ、 shape-wallet + shape-token × 4 + shape-exchange + shape-blockchain-node + shape-ethereum-chain の 7 shape で visual scene 化、 4 phase (portfolio 確認 → 市場更新 → 個別詳細 → 集計) + 4 readout (tokenList / gauge 総資産変動 / bar 24h vol / countup 総評価額) が tween で visually 連続変化する高品質 pattern。 iteration 8 wave 8-A redesign。
  */
 export const cryptoWallet = diagram("interactive-crypto-wallet", {
-  topic: "個人 DeFi 保有者 日次 portfolio モニター = 4 phase (確認 → 市場更新 → 詳細 → 集計) の flow を shape-* primitive 7 種で表現 + 4 readout (tokenList / gauge / bar / countup) が tween で visually 連続変化",
+  topic: "個人 DeFi 保有者の日次 portfolio モニター (確認 → 市場更新 → 詳細 → 集計)",
 })
   .lane("holder", { x: 0, width: 200 })
   .lane("tokens", { x: 220, width: 340 })
@@ -3071,7 +3071,7 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
  * 84. gitCommitList v2 = OSS プロジェクト 週次リリース 直前の commit review 4 phase シナリオ、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-hexagon の 6 shape で visual scene 化、 4 phase (週初 commit 発生 → 中盤集約 → release 直前 review → tag 発行) + 4 readout (commitList / gauge リリース準備度 / countup commit 数 / stat contributor 数) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const gitCommitList = diagram("interactive-git-commits", {
-  topic: "OSS 週次リリース commit review 4 phase = (発生 → 集約 → review → tag) の flow を shape-* primitive 6 種で表現 + 4 readout (commitList / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "OSS 週次リリース commit review (発生 → 集約 → review → tag)",
 })
   .lane("dev", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -3127,7 +3127,7 @@ export const gitCommitList = diagram("interactive-git-commits", {
  * 85. audioPlayer v2 = ポッドキャスト リスナーの朝の通勤時間 4 phase 聴取シナリオ (播放 → CM insert → skip → 完聴)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-warehouse + shape-hexagon の 6 shape で visual scene 化、 4 phase (再生開始 → CM 挿入 → 続き再生 → 完聴保存) + 4 readout (mediaPlayer / gauge 再生進捗 / countup total minutes / stat skip 数) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const audioPlayer = diagram("interactive-audio-player", {
-  topic: "ポッドキャスト通勤聴取 4 phase = (再生 → CM → skip → 完聴) の flow を shape-* primitive 6 種で表現 + 4 readout (mediaPlayer / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "ポッドキャスト通勤聴取 (再生 → CM → skip → 完聴)",
 })
   .lane("listener", { x: 0, width: 220 })
   .lane("platform", { x: 240, width: 320 })
@@ -3181,7 +3181,7 @@ export const audioPlayer = diagram("interactive-audio-player", {
  * 86. serverEventLog v2 = production API サーバの朝ピーク時 incident 検知 4 phase シナリオ、 shape-server-rack + shape-cylinder + shape-iot-sensor + shape-cloud + shape-mobile-device + shape-person の 6 shape で visual scene 化、 4 phase (通常運転 → CPU 上昇 → DB エラー → 復旧) + 4 readout (eventLog / gauge severity / countup error 件数 / stat p99 latency) が tween で visually 連続変化。 iteration 8 wave 8-D3 redesign。
  */
 export const serverEventLog = diagram("interactive-server-event-log", {
-  topic: "production API 朝ピーク incident 検知 4 phase = (通常 → CPU 上昇 → DB エラー → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (eventLog / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "朝ピーク incident 検知 (通常 → CPU 上昇 → DB error → 復旧)",
 })
   .lane("infra", { x: 0, width: 280 })
   .lane("stream", { x: 300, width: 300 })
@@ -3237,7 +3237,7 @@ export const serverEventLog = diagram("interactive-server-event-log", {
  * 87. searchResults v2 = エンジニア技術調査 4 phase シナリオ (Rust 学習調査 → 絞込 → 深掘り → 実行)、 shape-person + shape-mobile-device + shape-website × 2 + shape-cloud + shape-hexagon の 6 shape で visual scene 化、 4 phase (初回検索 → 絞込 → 深掘り選定 → 実装着手) + 4 readout (searchResult / gauge 関連度 / countup query 数 / stat click 数) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const searchResults = diagram("interactive-search-results", {
-  topic: "エンジニア技術調査 4 phase = (初回 → 絞込 → 深掘り → 実行) の flow を shape-* primitive 6 種で表現 + 4 readout (searchResult / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "エンジニアの技術調査 (初回検索 → 絞込 → 深掘り → 実行)",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("engine", { x: 240, width: 320 })
@@ -3294,7 +3294,7 @@ export const searchResults = diagram("interactive-search-results", {
  * 88. yearRoadmap v2 = スタートアップ CEO の 2026 年 4 phase 事業展開シナリオ (Q1 設計 → Q2 β → Q3 拡大 → Q4 GA + Series A)、 shape-person + shape-mobile-device + shape-brokerage + shape-online-shop + shape-warehouse + shape-cloud の 6 shape で visual scene 化、 4 phase (Q1 → Q2 → Q3 → Q4) + 4 readout (roadmap / gauge 進捗率 / countup 累計 MRR / stat funding 額) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const yearRoadmap = diagram("interactive-year-roadmap", {
-  topic: "スタートアップ 2026 年事業展開 4 phase = (Q1 → Q2 → Q3 → Q4) の flow を shape-* primitive 6 種で表現 + 4 readout (roadmap / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "スタートアップ 2026 年事業展開 (Q1 → Q2 → Q3 → Q4)",
 })
   .lane("ceo", { x: 0, width: 220 })
   .lane("execution", { x: 240, width: 340 })
@@ -3350,7 +3350,7 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
  * 89. weekWeather v2 = 屋外イベント運営者の週次天気モニター判断シナリオ (週初め予測 → 悪化 → 中止判断 → 再開)、 shape-person + shape-mobile-device + shape-satellite + shape-cloud + shape-website + shape-warehouse の 6 shape で visual scene 化、 4 phase (週初 予測 → 週半ば悪化 → 木曜中止判断 → 金曜再開) + 4 readout (weatherForecast / gauge 降水確率 / countup 参加者予定 / stat 気温平均) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
  */
 export const weekWeather = diagram("interactive-week-weather", {
-  topic: "屋外イベント週次天気モニター 4 phase = (予測 → 悪化 → 中止 → 再開) の flow を shape-* primitive 6 種で表現 + 4 readout (weatherForecast / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "屋外イベント週次天気モニター (予測 → 悪化 → 中止 → 再開)",
 })
   .lane("organizer", { x: 0, width: 220 })
   .lane("data", { x: 240, width: 320 })
@@ -3406,7 +3406,7 @@ export const weekWeather = diagram("interactive-week-weather", {
  * 90. tutorialVideoCards v2 = YouTube educational クリエイター 4 phase 動画公開シナリオ (企画 → 撮影 → 公開 → viral)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-warehouse の 6 shape で visual scene 化、 4 phase (企画 → 撮影編集 → 公開 → viral 拡散) + 4 readout (videoCard / gauge CTR / countup views / stat sub 増数) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
-  topic: "YouTube 教育クリエイター動画公開 4 phase = (企画 → 撮影 → 公開 → viral) の flow を shape-* primitive 6 種で表現 + 4 readout (videoCard / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "YouTube 教育クリエイター動画公開 (企画 → 撮影 → 公開 → viral)",
 })
   .lane("creator", { x: 0, width: 220 })
   .lane("platform", { x: 240, width: 320 })
@@ -3461,7 +3461,7 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
  * 91. shippingOrderStatus v2 = EC 家具通販 (大型商品) の配送追跡 4 phase シナリオ (梱包 → 出荷 → 配達中 → 完了)、 shape-person + shape-mobile-device + shape-warehouse + shape-storefront + shape-satellite + shape-cloud の 6 shape で visual scene 化、 4 phase (梱包完了 → 出荷 → 配達中 → 配達完了) + 4 readout (orderStatus / gauge 進捗率 / countup 距離 km / stat ETA 分) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
  */
 export const shippingOrderStatus = diagram("interactive-shipping-status", {
-  topic: "EC 家具大型商品配送追跡 4 phase = (梱包 → 出荷 → 配達中 → 完了) の flow を shape-* primitive 6 種で表現 + 4 readout (orderStatus / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "EC 家具配送追跡 (梱包 → 出荷 → 配達中 → 完了)",
 })
   .lane("origin", { x: 0, width: 240 })
   .lane("transit", { x: 260, width: 320 })
@@ -3670,7 +3670,7 @@ function generateCalendarDays(): (string | number)[] {
  * 96. monthCalendarView v2 = プロジェクトマネージャー月次スケジューリング シナリオ (Q1 launch 前月の管理)、 shape-person + shape-mobile-device + shape-cloud (Google Calendar) + shape-cylinder + shape-server-rack + shape-hexagon の 6 shape で visual scene 化、 4 phase (月初計画 → 中間確認 → 週次 review → 月末振返り) + 4 readout (calendarMonth / gauge 埋まり率 / countup 完了 event / stat 残 event) が tween で visually 連続変化。 iteration 8 wave 8-E redesign。
  */
 export const monthCalendarView = diagram("interactive-month-calendar", {
-  topic: "PM 月次スケジューリング (Q1 launch 前月) 4 phase = (計画 → 中間 → 週次 → 振返り) の flow を shape-* primitive 6 種で表現 + 4 readout (calendarMonth / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "PM の月次スケジューリング Q1 launch 前月 (計画 → 中間 → 週次 → 振返り)",
 })
   .lane("pm", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 320 })
@@ -3720,7 +3720,7 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
  * 97. cliTerminalSession v2 = 開発者 朝の start-up ritual 4 phase シナリオ (repo 更新 → status 確認 → test 実行 → container 起動)、 shape-person + shape-mobile-device + shape-terminal + shape-server-rack + shape-gear + shape-cloud の 6 shape で visual scene 化、 4 phase (repo 更新 → git status → pnpm test → docker up) + 4 readout (terminal / gauge 環境準備度 / countup 実行 cmd 数 / stat 起動時間) が tween で visually 連続変化。 iteration 8 wave 8-G redesign。
  */
 export const cliTerminalSession = diagram("interactive-cli-terminal", {
-  topic: "開発者朝 CLI ritual 4 phase = (repo 更新 → status → test → docker) の flow を shape-* primitive 6 種で表現 + 4 readout (terminal / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "開発者朝の CLI ritual (repo → git → test → docker)",
 })
   .lane("dev", { x: 0, width: 220 })
   .lane("system", { x: 240, width: 340 })
@@ -3865,7 +3865,7 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
  * 101. docsBreadcrumb v2 = 新人エンジニア OSS docs 学習 4 phase シナリオ (入口 → docs 一覧 → API 詳細 → Reference 深掘り)、 shape-person + shape-mobile-device + shape-website × 2 + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Home 到着 → docs section → API page → Reference 深掘り) + 4 readout (breadcrumb / gauge 学習進度 / countup 訪問 page 数 / stat 滞在分) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
-  topic: "新人 OSS docs 学習 4 phase = (Home → Docs → API → Reference) の flow を shape-* primitive 6 種で表現 + 4 readout (breadcrumb / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "新人エンジニアが OSS docs を Home → Docs → API → Reference と深掘り学習",
 })
   .lane("newbie", { x: 0, width: 220 })
   .lane("docsSite", { x: 240, width: 320 })
@@ -3916,7 +3916,7 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
  * 102. dayScheduleTimeline v2 = エンジニアリング マネージャー 1 日 4 phase シナリオ (朝の standup → 設計 review → deploy → 夜の retro)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (Morning standup → Afternoon deploy → 1-on-1 → Evening retro) + 4 readout (timelineVertical / gauge task 消化率 / countup 参加会議数 / stat 残 task) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const dayScheduleTimeline = diagram("interactive-day-schedule", {
-  topic: "エンジニアリング マネージャー 1 日 4 phase = (朝 standup → 設計 → deploy → 夜 retro) の flow を shape-* primitive 6 種で表現 + 4 readout (timelineVertical / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "エンジニアリング マネージャーの 1 日 (朝 standup → 昼 deploy → 1-on-1 → 夜 retro)",
 })
   .lane("manager", { x: 0, width: 220 })
   .lane("work", { x: 240, width: 320 })
@@ -3972,7 +3972,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
  * 103. serverUptimeStatus v2 = production web サーバー 3 時間 (09:00 - 12:00) uptime 監視 4 phase シナリオ (通常運転 → idle 検知 → error 発生 → 復旧安定)、 shape-person + shape-mobile-device + shape-server-rack + shape-iot-sensor + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Active → Idle → Error → 復旧) + 4 readout (statusTimeline / gauge availability % / countup incident 数 / stat MTTR 分) が tween で visually 連続変化。 iteration 8 wave 8-Q redesign、 iter 6 wave 3 完遂。
  */
 export const serverUptimeStatus = diagram("interactive-server-uptime", {
-  topic: "production web サーバー 3 時間 uptime 監視 4 phase = (Active → Idle → Error → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (statusTimeline / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "web サーバーの 3 時間監視で active → idle → error → 復旧の状態遷移",
 })
   .lane("sre", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4029,7 +4029,7 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
  * 104. weekCalendarView v2 = フリーランス デザイナーの週次予定管理 4 phase シナリオ (月曜計画 → 中盤商談 → 週末納品 → 集計)、 shape-person + shape-mobile-device + shape-online-shop + shape-website + shape-brokerage + shape-cylinder の 6 shape で visual scene 化、 4 phase (月曜計画 → 水曜商談 → 金曜納品 → 土日集計) + 4 readout (calendarWeek / gauge 稼働率 / countup work hours / stat 週次収入) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const weekCalendarView = diagram("interactive-week-calendar", {
-  topic: "フリーランス デザイナー週次予定管理 4 phase = (月曜 → 水曜 → 金曜 → 土日) の flow を shape-* primitive 6 種で表現 + 4 readout (calendarWeek / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "フリーランス デザイナーの週次予定管理 (月曜計画 → 水曜商談 → 金曜納品 → 土日集計)",
 })
   .lane("freelancer", { x: 0, width: 220 })
   .lane("clients", { x: 240, width: 320 })
@@ -4139,7 +4139,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
  * 106. publishWorkflowSteps v2 = マーケティング team 週次 blog 記事 publish workflow 4 phase シナリオ (writer 下書き → editor レビュー → lead 承認 → CDN 配信)、 shape-person × 2 (writer / editor) + shape-mobile-device + shape-website + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Draft → Review → Approve → Publish) + 4 readout (stepProgress / gauge 完成度 / countup 累計配信数 / stat 経過分) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
-  topic: "マーケティング team blog 記事 publish workflow 4 phase = (Draft → Review → Approve → Publish) の flow を shape-* primitive 6 種で表現 + 4 readout (stepProgress / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "マーケチームのブログ記事が下書きから公開されるまでの 4 ステップ workflow",
 })
   .lane("author", { x: 0, width: 220 })
   .lane("cms", { x: 240, width: 320 })
@@ -4190,7 +4190,7 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
  * 107. teamPresenceStatus v2 = リモート 5 名 team 1 日 presence 変化 4 phase シナリオ (朝 offline → 業務 online → 昼 away → 夕方 退勤)、 shape-person + shape-mobile-device + shape-cloud + shape-server-rack + shape-cylinder + shape-website の 6 shape で visual scene 化、 4 phase (09:00 出社 → 11:00 全員 online → 12:30 昼 away → 17:00 退勤) + 4 readout (userPresence / gauge online 率 / countup msg 数 / stat active 時間) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const teamPresenceStatus = diagram("interactive-team-presence", {
-  topic: "リモート 5 名 team 1 日 presence 変化 4 phase = (朝 09:00 → 昼前 11:00 → 昼 12:30 → 夕方 17:00) の flow を shape-* primitive 6 種で表現 + 4 readout (userPresence / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "リモートワーク 5 名チームの 1 日の presence 状態変化",
 })
   .lane("member", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4246,7 +4246,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
  * 108. feedbackThumbRating v2 = SaaS 新機能 launch 1 週間 vote 集計 4 phase シナリオ (launch → 1 日目急増 → 3 日目 bug 発生 → 1 週間 fix 後安定)、 shape-person + shape-mobile-device + shape-website + shape-cylinder + shape-cloud + shape-server-rack の 6 shape で visual scene 化、 4 phase (launch 直後 → 1 日目 → 3 日目 down 発生 → 1 週間安定) + 4 readout (ratingThumb / gauge positive 率 / countup total votes / stat final score) が tween で visually 連続変化。 iteration 8 wave 8-J redesign。
  */
 export const feedbackThumbRating = diagram("interactive-feedback-rating", {
-  topic: "SaaS 新機能 launch 1 週間 vote 集計 4 phase = (launch → 1 日目 → 3 日目 → 1 週間) の flow を shape-* primitive 6 種で表現 + 4 readout (ratingThumb / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SaaS 新機能リリース後 1 週間の up/down 投票集計の推移",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4296,7 +4296,7 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
  * 109. startupOrgChart v2 = seed → Series A 直前 startup の 6 ヶ月成長 4 phase シナリオ (CEO 単独 → 2 VP 採用 → 3 IC 採用 → 業務体制)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-server-rack の 6 shape で visual scene 化、 4 phase (Seed → VP 採用 → IC 採用 → 業務体制) + 4 readout (orgChartMini / gauge 採用充足率 / countup headcount / stat monthly burn) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const startupOrgChart = diagram("interactive-startup-org", {
-  topic: "startup 6 ヶ月成長 4 phase = (Seed CEO 単独 → 2 VP 採用 → 3 IC 採用 → 業務体制) の flow を shape-* primitive 6 種で表現 + 4 readout (orgChartMini / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "seed 期スタートアップが 6 ヶ月で CEO 単独から 6 名体制まで拡大する過程",
 })
   .lane("founder", { x: 0, width: 220 })
   .lane("hr", { x: 240, width: 320 })
@@ -4353,7 +4353,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
  * 110. npsTrendKpi v2 = SaaS CS チーム 半年 NPS 追跡 4 phase シナリオ (Q1 開始 → UX 改善リリース → 障害復旧 → 施策安定化)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-server-rack の 6 shape で visual scene 化、 4 phase (Q1 60 → Q2 70 → Q3 82 → Q4 82) + 4 readout (kpiTrendTile / gauge NPS ゾーン / countup 回答数 / stat delta) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const npsTrendKpi = diagram("interactive-nps-trend", {
-  topic: "SaaS CS チーム半年 NPS 追跡 4 phase = (Q1 60 → Q2 UX 改善 70 → Q3 障害復旧 82 → Q4 施策安定 82) の flow を shape-* primitive 6 種で表現 + 4 readout (kpiTrendTile / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SaaS カスタマーサクセスチームが半年間で NPS を 60 → 82 に改善する軌跡",
 })
   .lane("csLead", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4405,7 +4405,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
  * 111. postReactionPoll v2 = SNS 投稿 1 週間 reaction 集計 4 phase シナリオ (投稿直後 → 拡散 → エンゲージ → 週末 total)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (投稿 → viral → engage → 週末集計) + 4 readout (quickPollEmoji / gauge viral 度 / countup total reactions / stat top emoji) が tween で visually 連続変化。 iteration 8 wave 8-K redesign。
  */
 export const postReactionPoll = diagram("interactive-post-reaction-poll", {
-  topic: "SNS 投稿 1 週間 reaction 集計 4 phase = (投稿直後 → 拡散 → engagement → 週末 total) の flow を shape-* primitive 6 種で表現 + 4 readout (quickPollEmoji / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SNS 投稿の 1 週間 reaction 集計 (拡散 → engagement → 週末 total)",
 })
   .lane("poster", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4455,7 +4455,7 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
  * 112. voiceMessagePlayback v2 = 通勤中の音声メモ受信 → 再生 4 phase シナリオ (電車内で通知 → 再生 → 巻戻し → 完了 + reply)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (受信 → 再生 → 巻戻し → 完了) + 4 readout (voiceMessage / gauge 再生率 / countup 累計 msg 数 / stat 再生秒) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const voiceMessagePlayback = diagram("interactive-voice-message-playback", {
-  topic: "通勤中の音声メモ受信 → 再生 4 phase = (電車内通知 → 再生 → 巻戻し → 完了 + reply) の flow を shape-* primitive 6 種で表現 + 4 readout (voiceMessage / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "通勤中に受信した音声メモを聞いて返信するまでの 4 ステップ",
 })
   .lane("commuter", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4506,7 +4506,7 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
  * 113. teamThreadSummary v2 = engineering team Slack チャンネル 1 日 会話量 4 phase シナリオ (朝静か → 昼のインシデント → 夕方の議論 → 夜の retro 引継)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (静か → インシデント → 議論 → retro 引継) + 4 readout (threadSummary / gauge burst 率 / countup 未読数 / stat 参加人数) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const teamThreadSummary = diagram("interactive-team-thread-summary", {
-  topic: "eng team Slack チャンネル 1 日会話量 4 phase = (朝静か → 昼インシデント → 夕方議論 → 夜 retro) の flow を shape-* primitive 6 種で表現 + 4 readout (threadSummary / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "engineering チーム Slack の 1 日の会話量変化 (静か → インシデント → 議論 → retro)",
 })
   .lane("member", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4556,7 +4556,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
  * 114. dmReadReceipt v2 = 商談 DM 既読 workflow 4 phase シナリオ (営業送信 → 配信 → 顧客既読 → reply)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (送信 → 配信 → 既読 → reply) + 4 readout (readReceipt / gauge 応答率 / countup 送信数 / stat 未読時間 min) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
-  topic: "商談 DM 既読 workflow 4 phase = (営業送信 → 配信 → 既読 → reply) の flow を shape-* primitive 6 種で表現 + 4 readout (readReceipt / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "営業担当が顧客に一斉 DM を送信、 顧客の既読と reply が返るまでのフロー",
 })
   .lane("sender", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4606,7 +4606,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
  * 115. formPasswordCheck v2 = SaaS 新規サインアップの password 強化 4 phase シナリオ (弱 pw 入力 → 大小混合 → 数字追加 → 記号で 4 段階完成)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (弱 1 → 中 2 → 強 3 → 最強 4) + 4 readout (passwordStrength / gauge 強度 / countup 満たしたルール数 / stat 予想解読時間) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const formPasswordCheck = diagram("interactive-form-password-check", {
-  topic: "SaaS 新規サインアップ password 強化 4 phase = (弱 1 → 中 2 → 強 3 → 最強 4) の flow を shape-* primitive 6 種で表現 + 4 readout (passwordStrength / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "サインアップフォームでパスワード強度が段階的に上がる 4 レベル遷移",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4656,7 +4656,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
  * 116. loginOtpVerify v2 = 銀行アプリ 2 段階認証 OTP ログイン 4 phase シナリオ (SMS 送信 → ユーザ入力 → 検証 → ログイン成功)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-server-rack + shape-cylinder の 6 shape で visual scene 化、 4 phase (SMS 送信 → 入力 → 検証 → 成功) + 4 readout (otpInput / gauge 入力進捗 / countup 累計成功回数 / stat 検証秒) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const loginOtpVerify = diagram("interactive-login-otp-verify", {
-  topic: "銀行アプリ 2 段階認証 OTP ログイン 4 phase = (SMS 送信 → 入力 → 検証 → 成功) の flow を shape-* primitive 6 種で表現 + 4 readout (otpInput / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "銀行アプリの 2 段階認証で SMS OTP を受信 → 入力 → 検証してログイン成功",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4707,7 +4707,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
  * 117. profileAvatarUpload v2 = SaaS profile 設定でアバター画像 upload 4 phase シナリオ (未選択 → ファイル選択 → upload → プレビュー確定)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (未選択 → 選択 → upload → プレビュー) + 4 readout (fileDropzone / gauge upload % / countup ファイルサイズ KB / stat 処理秒) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", {
-  topic: "SaaS profile アバター画像 upload 4 phase = (未選択 → 選択 → upload → プレビュー確定) の flow を shape-* primitive 6 種で表現 + 4 readout (fileDropzone / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SaaS プロフィール画像をドロップ → upload → CDN 配信 → プレビュー確定",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4757,7 +4757,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
  * 118. prodLogTail v2 = SRE on-call 深夜 production 障害対応 4 phase シナリオ (通常運転 → 警告検知 → 障害発火 → 復旧完了)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (通常 → 警告 → 障害 → 復旧) + 4 readout (logStream / gauge 重篤度 / countup log/min / stat MTTR 分) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const prodLogTail = diagram("interactive-prod-log-tail", {
-  topic: "SRE on-call 深夜 production 障害対応 4 phase = (通常 → 警告 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (logStream / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SRE 深夜対応でプロダクション障害のログを追跡する 4 段階 (通常 → 警告 → 障害 → 復旧)",
 })
   .lane("sre", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4813,7 +4813,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
  * 119. opsAlertBanner v2 = SaaS 運用 CPU 継続超過 alert エスカレ 4 phase シナリオ (info 検知 → warn 継続 → error 逸脱 → 対応済み)、 shape-person + shape-mobile-device + shape-iot-sensor + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (info → warn → error → 対応済) + 4 readout (alertBanner / gauge 重要度 / countup Ack 数 / stat 対応秒) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
-  topic: "SaaS 運用 CPU 継続超過 alert エスカレ 4 phase = (info → warn → error → 対応済) の flow を shape-* primitive 6 種で表現 + 4 readout (alertBanner / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "SaaS の CPU 継続超過が info → warn → error にエスカレする対応フロー",
 })
   .lane("operator", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4863,7 +4863,7 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
  * 120. serviceHealthGrid v2 = SaaS platform 6 microservice health matrix 4 phase シナリオ (全稼働 → db 劣化 → queue 障害 → 復旧)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (全稼働 → 劣化 → 障害 → 復旧) + 4 readout (serviceHealth / gauge healthy 率 / countup incident 数 / stat uptime %) が tween で visually 連続変化。 iteration 8 wave 8-N redesign。
  */
 export const serviceHealthGrid = diagram("interactive-service-health-grid", {
-  topic: "SaaS platform 6 microservice health matrix 4 phase = (全稼働 → 劣化 → 障害 → 復旧) の flow を shape-* primitive 6 種で表現 + 4 readout (serviceHealth / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "6 つのマイクロサービスの健全性が劣化 → 障害 → 復旧する変化を可視化",
 })
   .lane("sre", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4920,7 +4920,7 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
  * 121. checkoutCartSummary v2 = EC ショッピングカート checkout 4 phase シナリオ (商品追加 → 送料計算 → クーポン → 決済確定)、 shape-person + shape-mobile-device + shape-online-shop + shape-warehouse + shape-brokerage + shape-cylinder の 6 shape で visual scene 化、 4 phase (商品追加 → 送料 → クーポン → 決済) + 4 readout (cartSummary / gauge 予算消費率 / countup 商品点数 / stat 節約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
  */
 export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", {
-  topic: "EC ショッピングカート checkout 4 phase = (商品追加 → 送料 → クーポン → 決済) の flow を shape-* primitive 6 種で表現 + 4 readout (cartSummary / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "EC ショッピングカートに商品を追加、 送料計算、 クーポン適用、 決済確定までの 4 ステップ",
 })
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -4971,7 +4971,7 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
  * 122. saasPricingTier v2 = 中規模 startup CTO の SaaS プラン選定 4 phase シナリオ (Starter 検討 → チーム拡大 → Pro upgrade → Enterprise 見積)、 shape-person + shape-mobile-device + shape-website + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Starter → 拡大 → Pro → Enterprise) + 4 readout (pricingTier / gauge 席数消化 / countup 月額 / stat 年間契約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
  */
 export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
-  topic: "startup CTO の SaaS プラン選定 4 phase = (Starter → 拡大 → Pro → Enterprise) の flow を shape-* primitive 6 種で表現 + 4 readout (pricingTier / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "スタートアップ CTO が Starter → Pro → Enterprise とプラン選定する 4 段階",
 })
   .lane("cto", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -5022,7 +5022,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
  * 123. checkoutCouponApply v2 = EC ホリデー セール クーポン適用 4 phase シナリオ (キャンペーンメール → コード入力 → 適用 → 決済)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (メール受信 → 入力 → 適用 → 決済) + 4 readout (couponCode / gauge 割引 % / countup 適用回数 / stat 節約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
  */
 export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
-  topic: "EC ホリデー セール クーポン適用 4 phase = (メール受信 → 入力 → 適用 → 決済) の flow を shape-* primitive 6 種で表現 + 4 readout (couponCode / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "EC ホリデーセールでクーポンコードを入力から適用、 決済完了までのフロー",
 })
   .lane("buyer", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -5072,7 +5072,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
  * 124. blogArticlePreview v2 = 週末読書中の tech blog 閲覧 4 phase シナリオ (feed 一覧 → hover 興味 → クリック閲覧 → シェア)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (feed → hover → 閲覧 → シェア) + 4 readout (articlePreview / gauge engagement / countup 閲覧数 / stat 平均滞在秒) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。
  */
 export const blogArticlePreview = diagram("interactive-blog-article-preview", {
-  topic: "週末 tech blog 閲覧 4 phase = (feed → hover → 閲覧 → シェア) の flow を shape-* primitive 6 種で表現 + 4 readout (articlePreview / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "週末に tech blog を閲覧するユーザーの feed → hover → 閲覧 → シェアの体験",
 })
   .lane("reader", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -5123,7 +5123,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
  * 125. docsTocNav v2 = 新人エンジニア docs 深掘り学習 4 phase シナリオ (Intro → GS → Install → First diagram)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (H1 Intro → H2 GS → H3 Install → H3 First) + 4 readout (tocNav / gauge 学習進捗 / countup 訪問セクション / stat 学習分) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。
  */
 export const docsTocNav = diagram("interactive-docs-toc-nav", {
-  topic: "新人エンジニア docs 深掘り学習 4 phase = (Intro → GS → Install → First) の flow を shape-* primitive 6 種で表現 + 4 readout (tocNav / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "新人エンジニアが docs を Intro → GS → Install → First diagram と学ぶナビゲーション",
 })
   .lane("learner", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -5181,7 +5181,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
  * 126. socialShareButtons v2 = tech blog 記事シェア 1 週間拡散 4 phase シナリオ (投稿直後 → X 拡散 → FB / LinkedIn 追随 → Reddit バズ定着)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Day 0 → Day 1 → Day 3 → Day 7) + 4 readout (shareButtons / gauge viral / countup total shares / stat reach 万人) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。 iteration 7 完遂。
  */
 export const socialShareButtons = diagram("interactive-social-share-buttons", {
-  topic: "tech blog 記事シェア 1 週間拡散 4 phase = (Day 0 → Day 1 → Day 3 → Day 7) の flow を shape-* primitive 6 種で表現 + 4 readout (shareButtons / gauge / countup / stat) が tween で visually 連続変化",
+  topic: "tech blog 記事が投稿 → X 拡散 → FB/LinkedIn → Reddit で 1 週間拡散する軌跡",
 })
   .lane("author", { x: 0, width: 220 })
   .lane("service", { x: 240, width: 320 })
@@ -5231,7 +5231,7 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
  * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
  */
 export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", {
-  topic: "EC 決済実業務シナリオ = 4 phase (購入 → 3DS 認証 → 銀行確定 → 記帳) の flow を shape-* primitive 8 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "EC 決済実業務シナリオ = 商品購入 → 3DS 認証 → 銀行確定 → 記帳",
 })
   .lane("customer", { x: 0, width: 220 })
   .lane("processor", { x: 240, width: 280 })
@@ -5285,7 +5285,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
  * 128. exemplar-login-flow v2 = 実 login 認証 + 2FA + セッション発行シナリオ、 shape-* primitive (mobile-device / person / server-rack / hexagon / diamond / cylinder / cloud) で visual scene 化、 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) + 4 readout (traffic-light / countup / gauge / bar) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 2。
  */
 export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
-  topic: "login + 2FA 実業務シナリオ = 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "ログイン + 2FA 実業務 = 要求 → 一次検証 → 2FA → セッション発行 → 応答",
 })
   .lane("user", { x: 0, width: 200 })
   .lane("auth", { x: 220, width: 300 })
@@ -5342,7 +5342,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
  * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 shape-* primitive (message-bubble / stack / cloud / diamond / mobile-device × 3) で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
  */
 export const exemplarNotificationFlow = diagram("interactive-exemplar-notification-flow", {
-  topic: "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "push 通知配信 = event 発火 → キュー → 配信 → 到達 → retry",
 })
   .lane("origin", { x: 0, width: 200 })
   .lane("infra", { x: 220, width: 280 })
