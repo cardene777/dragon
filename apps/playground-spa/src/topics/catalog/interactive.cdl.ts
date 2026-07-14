@@ -4889,109 +4889,155 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
   .build();
 
 /**
- * 121. cart-summary = ショッピングカート小計を 3-lane (商品 / 内訳 / 合計) rank-based split 分散 + cartSummary readout 併存 + 3 phase 動き (商品追加 tween → 送料計算 → 合計確定)。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
+ * 121. checkoutCartSummary v2 = EC ショッピングカート checkout 4 phase シナリオ (商品追加 → 送料計算 → クーポン → 決済確定)、 shape-person + shape-mobile-device + shape-online-shop + shape-warehouse + shape-brokerage + shape-cylinder の 6 shape で visual scene 化、 4 phase (商品追加 → 送料 → クーポン → 決済) + 4 readout (cartSummary / gauge 予算消費率 / countup 商品点数 / stat 節約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
  */
 export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", {
-  topic: "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で商品追加 tween → 送料計算 → 合計確定の連続動作を可視化",
+  topic: "EC ショッピングカート checkout 4 phase = (商品追加 → 送料 → クーポン → 決済) の flow を shape-* primitive 6 種で表現 + 4 readout (cartSummary / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("items", { x: 0, width: 220 })
-  .lane("costs", { x: 260, width: 260 })
-  .lane("total", { x: 560, width: 240 })
+  .lane("buyer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("cart", [3, 149.85, 8.5, 158.35])
   .state("total", { initial: 0 })
-  .node("itemsCard", { lane: "items", stack: 0, kind: "card", title: "◆ カート 3 商品", subtitle: "ジャケット / 書籍 / ケーブル" })
-  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "小計", subtitle: "$149.85" })
-  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "送料", subtitle: "$8.50 · 標準 3 日" })
-  .node("totalCard", { lane: "total", stack: 0, kind: "card", title: "▶ 合計 (太字)", subtitle: "累積 {total} · 青色" })
-  .edge("itemsCard", "subtotalCard", { label: "集計", tone: "info" })
-  .edge("subtotalCard", "totalCard", { label: "+送料", tone: "success" })
-  .edge("shippingCard", "totalCard", { label: "加算", tone: "info" })
+  .state("budgetPct", { initial: 0 })
+  .state("itemCount", { initial: 0 })
+  .state("savedAmt", { initial: 0 })
+  .node("shopper", { lane: "buyer", stack: 0, kind: "shape-person", title: "shopper 木崎様", eyebrow: "buyer", subtitle: "夜のオンライン買い物中" })
+  .node("mobile", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "iPhone EC app", eyebrow: "device", subtitle: "カート + 決済 UI" })
+  .node("ecSite", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC サイト", eyebrow: "shop", subtitle: "商品追加 + カート更新" })
+  .node("warehouse", { lane: "service", stack: 1, kind: "shape-warehouse", title: "配送センター", eyebrow: "warehouse", subtitle: "在庫確認 + 送料計算" })
+  .node("payment", { lane: "outcome", stack: 0, kind: "shape-brokerage", title: "決済 gateway", eyebrow: "payment", subtitle: "Stripe / PayPay / カード" })
+  .node("orderDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "注文 DB", eyebrow: "storage", subtitle: "確定注文 + 履歴保存" })
+  .edge("shopper", "mobile", { label: "選ぶ", tone: "info" })
+  .edge("mobile", "ecSite", { label: "add to cart", tone: "info" })
+  .edge("ecSite", "warehouse", { label: "送料確認", tone: "success" })
+  .edge("ecSite", "payment", { label: "決済", tone: "accent" })
+  .edge("payment", "orderDb", { label: "confirm", tone: "success" })
   .readout.cartSummary("cs", { source: "cart", currency: "$", colorTotal: "#2563eb", label: "カート合計" })
+  .readout.gauge("budG", { source: "budgetPct", min: 0, max: 100, color: "#22c55e", label: "予算消費率" })
+  .readout.countup("itemCU", { source: "itemCount", unit: " 点", label: "商品点数", decimals: 0 })
+  .readout.stat("savStat", { source: "savedAmt", unit: " $", caption: "節約額", label: "saved" })
   .phase("p1", {
-    duration: 1500,
-    title: "商品追加",
-    body: "商品 lane active、 total を 0 → 149.85 まで tween、 小計行が累積して表示、 subtotalCard 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard").tween("total", 0, 149.85).badge("小計"))
+    duration: 1800,
+    title: "商品追加 (3 点 $149.85)",
+    body: "木崎様がジャケット + 書籍 + ケーブルをカート追加、 EC サイトで小計反映。 total 0 → 149.85 tween、 budgetPct 0 → 75 tween、 itemCount 0 → 3 tween、 savedAmt 0 keep、 shopper + mobile + ecSite lane active。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "ecSite").tween("total", 0, 149.85).tween("budgetPct", 0, 75).tween("itemCount", 0, 3).badge("追加"))
   .phase("p2", {
-    duration: 1500,
-    title: "送料計算",
-    body: "送料計算、 total を 149.85 → 158.35 まで tween、 shippingCard 追加 activate、 送料行が加算表示。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard").tween("total", 149.85, 158.35).badge("送料"))
-  .phase("p3", {
-    duration: 1500,
-    title: "合計確定",
-    body: "合計 lane 追加 activate、 total = 158.35 で totalCard が太字 + 青色ハイライト、 4 node 全 highlight、 チェックアウト準備完了。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").set("total", 158.35).badge("合計"))
-  .build();
-
-/**
- * 122. pricing-tier = SaaS 料金プラン (3 tier 比較) を 3-lane (Starter / Pro / Enterprise) category split 分散 + pricingTier readout 併存 + 3 phase 動き (Starter → Pro tween → Enterprise 検討)。 iteration 7 wave 4、 pattern taxonomy § 3 category split。
- */
-export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
-  topic: "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter 検討 → Pro 選択 tween → 比較完了の動きを可視化",
-})
-  .lane("starter", { x: 0, width: 240 })
-  .lane("pro", { x: 280, width: 240 })
-  .lane("enterprise", { x: 560, width: 260 })
-  .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (string | number)[])
-  .state("selected", { initial: 0 })
-  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter · $9/月", subtitle: "3 席 · コミュニティサポート" })
-  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro · $29/月 (人気)", subtitle: "10 席 · 優先サポート" })
-  .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "▶ 一番人気", subtitle: "枠 highlight · 選択中 = {selected}" })
-  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise · 見積", subtitle: "無制限 · 専任 CSM" })
-  .edge("starterCard", "proCard", { label: "アップグレード", tone: "info" })
-  .edge("proCard", "enterpriseCard", { label: "アップグレード", tone: "success" })
-  .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro プラン" })
-  .phase("p1", {
-    duration: 1500,
-    title: "Starter 検討",
-    body: "selected = 0、 Starter lane のみ active、 小規模チーム向けの最安 tier を初期検討。",
-  }, (p: PhaseBuilder) => p.activate("starterCard").set("selected", 0).badge("Starter"))
-  .phase("p2", {
-    duration: 2000,
-    title: "Pro 選択",
-    body: "team 拡大で機能不足、 selected を 0 → 1 まで tween、 Pro lane 追加 activate、 proBadge の '一番人気' が highlight、 card 詳細表示。",
-  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge").tween("selected", 0, 1).badge("Pro"))
-  .phase("p3", {
-    duration: 1500,
-    title: "Enterprise 比較",
-    body: "selected = 2 に切替、 Enterprise lane 追加 activate、 3 tier 並列比較で意思決定、 4 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").set("selected", 2).badge("比較"))
-  .build();
-
-/**
- * 123. coupon-code = チェックアウト クーポン適用フローを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
- */
-export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
-  topic: "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で discount 0 → 20% tween を可視化",
-})
-  .lane("empty", { x: 0, width: 240 })
-  .lane("entered", { x: 280, width: 240 })
-  .lane("applied", { x: 560, width: 240 })
-  .arraySignal("coupon", ["SAVE20", 20] as unknown as (string | number)[])
-  .state("discount", { initial: 0 })
-  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未入力", subtitle: "破線枠 · 'コード入力'" })
-  .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "'SAVE20' 入力済", subtitle: "実線枠 · 未適用 · discount = {discount}" })
-  .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "適用ボタン", subtitle: "灰 → 緑にクリックで変化" })
-  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ -{discount}% 適用済", subtitle: "緑 pill · 割引アクティブ" })
-  .edge("emptyCard", "enteredCard", { label: "コード入力", tone: "info" })
-  .edge("enteredCard", "appliedCard", { label: "適用", tone: "success" })
-  .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "クーポン" })
-  .phase("p1", {
-    duration: 1500,
-    title: "未入力",
-    body: "discount = 0、 未入力 lane のみ active、 dropzone は破線 + 'コード入力' プロンプト、 適用前状態。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard").set("discount", 0).badge("未入力"))
-  .phase("p2", {
-    duration: 1500,
-    title: "コード入力",
-    body: "'SAVE20' 入力、 入力済 lane + 適用ボタン追加 activate、 discount はまだ 0 (適用前)、 dropzone が実線に変化。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn").set("discount", 0).badge("入力済"))
+    duration: 1800,
+    title: "送料計算 (+$8.50)",
+    body: "配送センター在庫確認 → 標準 3 日配送 $8.50 適用。 total 149.85 → 158.35 tween、 budgetPct 75 → 79 tween、 warehouse lane activate。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "ecSite", "warehouse").tween("total", 149.85, 158.35).tween("budgetPct", 75, 79).badge("送料"))
   .phase("p3", {
     duration: 1800,
-    title: "適用完了",
-    body: "適用ボタンクリック、 discount を 0 → 20 まで tween、 適用済 lane 追加 activate、 -20% off の緑 pill 表示、 4 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").tween("discount", 0, 20).badge("適用"))
+    title: "クーポン (-$15)",
+    body: "'SAVE15' クーポン適用、 割引反映。 total 158.35 → 143.35 tween、 budgetPct 79 → 72 tween、 savedAmt 0 → 15 tween、 割引効果 visible。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "ecSite", "warehouse").tween("total", 158.35, 143.35).tween("budgetPct", 79, 72).tween("savedAmt", 0, 15).badge("クーポン"))
+  .phase("p4", {
+    duration: 2000,
+    title: "決済確定",
+    body: "決済 gateway で Stripe 決済 → 注文 DB に確定注文 flush。 total 143.35 keep、 budgetPct 72 keep、 itemCount 3 keep、 savedAmt 15 keep、 payment + orderDb lane activate、 6 shape 全 active、 注文完遂。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "mobile", "ecSite", "warehouse", "payment", "orderDb").badge("決済"))
+  .build();
+
+/**
+ * 122. saasPricingTier v2 = 中規模 startup CTO の SaaS プラン選定 4 phase シナリオ (Starter 検討 → チーム拡大 → Pro upgrade → Enterprise 見積)、 shape-person + shape-mobile-device + shape-website + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Starter → 拡大 → Pro → Enterprise) + 4 readout (pricingTier / gauge 席数消化 / countup 月額 / stat 年間契約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
+ */
+export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
+  topic: "startup CTO の SaaS プラン選定 4 phase = (Starter → 拡大 → Pro → Enterprise) の flow を shape-* primitive 6 種で表現 + 4 readout (pricingTier / gauge / countup / stat) が tween で visually 連続変化",
+})
+  .lane("cto", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (string | number)[])
+  .state("selected", { initial: 0 })
+  .state("seatUsage", { initial: 0 })
+  .state("monthlyFee", { initial: 9 })
+  .state("annualFee", { initial: 108 })
+  .node("cto", { lane: "cto", stack: 0, kind: "shape-person", title: "startup CTO 千葉様", eyebrow: "cto", subtitle: "20 名 eng team + growth 中" })
+  .node("laptop", { lane: "cto", stack: 1, kind: "shape-mobile-device", title: "MacBook + Notion", eyebrow: "device", subtitle: "SaaS ベンダー比較表" })
+  .node("pricingPage", { lane: "service", stack: 0, kind: "shape-website", title: "SaaS pricing page", eyebrow: "pricing", subtitle: "3 tier + 機能比較 + 見積フォーム" })
+  .node("billing", { lane: "service", stack: 1, kind: "shape-brokerage", title: "billing service", eyebrow: "billing", subtitle: "月次課金 + プロレート計算" })
+  .node("invoiceMail", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "invoice email", eyebrow: "email", subtitle: "受領書 + 契約書 pdf 送付" })
+  .node("contractDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "契約 DB", eyebrow: "storage", subtitle: "顧客別 subscription + 履歴" })
+  .edge("cto", "laptop", { label: "調査", tone: "info" })
+  .edge("laptop", "pricingPage", { label: "比較", tone: "info" })
+  .edge("pricingPage", "billing", { label: "subscribe", tone: "success" })
+  .edge("billing", "invoiceMail", { label: "receipt", tone: "info" })
+  .edge("billing", "contractDb", { label: "persist", tone: "accent" })
+  .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro プラン" })
+  .readout.gauge("seatG", { source: "seatUsage", min: 0, max: 100, color: "#22c55e", label: "席数消化 %" })
+  .readout.countup("feeCU", { source: "monthlyFee", unit: " $/月", label: "月額", decimals: 0 })
+  .readout.stat("annStat", { source: "annualFee", unit: " $", caption: "年額", label: "annual" })
+  .phase("p1", {
+    duration: 1500,
+    title: "Starter 検討 (3 席)",
+    body: "team 3 名で Starter プラン ($9/月) 検討、 pricing page で機能表示確認。 selected 0 keep、 seatUsage 0 → 100 tween (3/3 満)、 monthlyFee 9 keep、 annualFee 108 keep、 cto + laptop + pricingPage lane active。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "pricingPage").tween("seatUsage", 0, 100).badge("Starter"))
+  .phase("p2", {
+    duration: 2000,
+    title: "チーム拡大 (席不足)",
+    body: "採用で team 8 名に、 Starter 3 席では不足発生。 seatUsage 100 → 265 tween (超過)、 monthlyFee 9 keep、 alert 発報で upgrade 検討。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "pricingPage").tween("seatUsage", 100, 265).badge("拡大"))
+  .phase("p3", {
+    duration: 2000,
+    title: "Pro upgrade ($29/月)",
+    body: "Pro plan (10 席 + 優先サポート) に upgrade、 billing で月次課金 + プロレート適用。 selected 0 → 1 tween、 seatUsage 265 → 80 tween (8/10)、 monthlyFee 9 → 29 tween、 annualFee 108 → 348 tween、 billing + invoiceMail lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "pricingPage", "billing", "invoiceMail").tween("selected", 0, 1).tween("seatUsage", 265, 80).tween("monthlyFee", 9, 29).tween("annualFee", 108, 348).badge("Pro"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Enterprise 見積",
+    body: "翌年 team 20 名到達で Enterprise 見積依頼、 CSM 経由でカスタム契約。 selected 1 → 2 tween、 seatUsage 80 → 100 tween、 monthlyFee 29 → 200 tween、 annualFee 348 → 2400 tween、 contractDb activate、 6 shape 全 active、 契約更新完遂。",
+  }, (p: PhaseBuilder) => p.activate("cto", "laptop", "pricingPage", "billing", "invoiceMail", "contractDb").tween("selected", 1, 2).tween("seatUsage", 80, 100).tween("monthlyFee", 29, 200).tween("annualFee", 348, 2400).badge("Enterprise"))
+  .build();
+
+/**
+ * 123. checkoutCouponApply v2 = EC ホリデー セール クーポン適用 4 phase シナリオ (キャンペーンメール → コード入力 → 適用 → 決済)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (メール受信 → 入力 → 適用 → 決済) + 4 readout (couponCode / gauge 割引 % / countup 適用回数 / stat 節約額) が tween で visually 連続変化。 iteration 8 wave 8-O redesign。
+ */
+export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
+  topic: "EC ホリデー セール クーポン適用 4 phase = (メール受信 → 入力 → 適用 → 決済) の flow を shape-* primitive 6 種で表現 + 4 readout (couponCode / gauge / countup / stat) が tween で visually 連続変化",
+})
+  .lane("buyer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("coupon", ["SAVE20", 20] as unknown as (string | number)[])
+  .state("discount", { initial: 0 })
+  .state("usageCount", { initial: 1245 })
+  .state("savedAmt", { initial: 0 })
+  .node("shopper", { lane: "buyer", stack: 0, kind: "shape-person", title: "shopper 藤田様", eyebrow: "buyer", subtitle: "ホリデーセール参加者" })
+  .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "iPhone + Gmail", eyebrow: "device", subtitle: "キャンペーンメール受信" })
+  .node("ecSite", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC checkout", eyebrow: "checkout", subtitle: "クーポンコード入力欄 + 割引反映" })
+  .node("couponSvc", { lane: "service", stack: 1, kind: "shape-brokerage", title: "coupon 検証 svc", eyebrow: "coupon", subtitle: "有効期限 + 上限 + 割引率判定" })
+  .node("marketing", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "marketing analytics", eyebrow: "analytics", subtitle: "usage 集計 + ROI 分析" })
+  .node("couponDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "coupon DB", eyebrow: "storage", subtitle: "コード + 使用履歴 + 顧客別" })
+  .edge("shopper", "phone", { label: "確認", tone: "info" })
+  .edge("phone", "ecSite", { label: "適用", tone: "info" })
+  .edge("ecSite", "couponSvc", { label: "検証", tone: "success" })
+  .edge("couponSvc", "couponDb", { label: "persist", tone: "accent" })
+  .edge("couponSvc", "marketing", { label: "aggregate", tone: "accent" })
+  .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "クーポン" })
+  .readout.gauge("discG", { source: "discount", min: 0, max: 30, color: "#22c55e", label: "割引 %" })
+  .readout.countup("usaCU", { source: "usageCount", unit: " 件", label: "累計適用", decimals: 0 })
+  .readout.stat("savStat", { source: "savedAmt", unit: " $", caption: "節約額", label: "saved" })
+  .phase("p1", {
+    duration: 1500,
+    title: "メール受信",
+    body: "藤田様に SAVE20 キャンペーンメール到着。 discount 0 keep、 usageCount 1245 keep、 savedAmt 0 keep、 shopper + phone lane active、 checkout 未到達。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "phone").badge("メール"))
+  .phase("p2", {
+    duration: 1800,
+    title: "コード入力",
+    body: "EC 画面 checkout でコード欄に 'SAVE20' 入力、 適用ボタン待機。 discount 0 keep、 ecSite lane activate、 dropzone 実線化。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "phone", "ecSite").badge("入力"))
+  .phase("p3", {
+    duration: 2000,
+    title: "適用",
+    body: "coupon 検証 svc で有効期限 + 上限確認 → 20% 適用。 discount 0 → 20 tween (gauge 針上振れ)、 usageCount 1245 → 1246 tween、 savedAmt 0 → 32 tween、 couponSvc + couponDb + marketing lane activate。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "phone", "ecSite", "couponSvc", "couponDb", "marketing").tween("discount", 0, 20).tween("usageCount", 1245, 1246).tween("savedAmt", 0, 32).badge("適用"))
+  .phase("p4", {
+    duration: 1800,
+    title: "決済確定",
+    body: "割引反映後の合計で決済実行、 marketing analytics に用途 log 反映。 discount 20 keep、 usageCount 1246 keep、 savedAmt 32 keep、 6 shape 全 active、 clip 完了 + 顧客満足。",
+  }, (p: PhaseBuilder) => p.activate("shopper", "phone", "ecSite", "couponSvc", "couponDb", "marketing").badge("決済"))
   .build();
 
 /**
