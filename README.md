@@ -2,6 +2,57 @@
 
 **Chainome Diagram Language (cdl)** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け、 [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中) を parser し、 裏で cdl engine を呼ぶ。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
 
+## 思想 (dragon の存在理由)
+
+dragon の value proposition = **「見てて楽しくて理解しやすい」 図を作れる DSL**。 mermaid が持たない **rich layered animation** で「見てて楽しい」 を、 情報伝達目的の設計原則で「理解しやすい」 を両立する。
+
+### 中心規範
+
+1. **見てて楽しい (fun to watch)** = viewer が「もう 1 回見たい」「面白い」 と感じる rich layered animation
+2. **理解しやすい (easy to understand)** = 見た瞬間に何が起きているか読める情報伝達目的の設計
+3. **両立が dragon の強み** = mermaid は静的で理解しやすいが楽しくない、 D3 は楽しいが書くのが難しい、 dragon は「書きやすさ + 楽しさ + 理解しやすさ」 の 3 拍子
+
+### rich layered animation とは
+
+単一 animation (edge の色付けだけ / phase.tween だけ) は poor。 dragon 記法の真価は **複数 visual layer を同時発火** することにある:
+
+- layer 1 = arrow が順番に色付き (edge activate 連鎖)
+- layer 2 = rectangle border が光る (glow / pulse)
+- layer 3 = rectangle 内部で wave 高さが数値を示す (dyn-wave 内包)
+- layer 4 = readout 数値が変化 (countup / gauge / stat)
+- layer 5 = badge state 遷移
+
+この layer 組合せで rectangle 1 個の情報密度が数倍になり、 「rectangle だらけ」 の静的な図が「見てて楽しい」 rich な図に変わる。
+
+### 設計原則 5 (P0-P4)
+
+- **P0 = 見てて楽しい + 理解しやすい を両立** = dragon の value proposition、 どちらか片方だけの図は作らない
+- **P1 = 情報伝達が目的** = 図を作る前に「何を伝えるか」 を 1 文で書く、 topic 必須明記
+- **P2 = 逆算設計 (parts の使用機会が先)** = 「bar が必要な状況」 「gauge が必要な状況」 「dyn-wave が必要な状況」 を先に enumerate、 それに対応する図を作る。 primitive audit から始めない
+- **P3 = animation は積極活用、 layer 組合せで rich に** = 「animation を消しても情報伝わる」 = YES でも animation は残す、 但し layer 組合せで rich にする、 単純 4 phase tween template は禁止
+- **P4 = 長方形一律の呪縛から脱出** = rectangle + line は表現手段の 1 つ、 情報要求に応じて containment / heat / spatial / matrix / 比喩 / dyn-wave / dyn-arc / dyn-polygon 等を frank に組み合わせる、 shape 40+ の primitive を使いこなす
+
+### mermaid との差別化 (dragon の勝負所)
+
+| 観点 | mermaid | dragon |
+|---|---|---|
+| 書きやすさ | ○ (テキスト DSL) | ○ (YAML / JSON DSL) |
+| 静的な理解しやすさ | ○ | ○ |
+| **rich layered animation** | ✕ (static のみ) | **◎ (複数 layer 同時発火)** |
+| **見てて楽しい** | ✕ | **◎ (arrow + glow + wave + readout + badge)** |
+| shape 表現力 | △ (基本形状のみ) | ◎ (49 kind + dyn-* / matrix / heatmap) |
+| 情報密度 / 単位面積 | 低 (rectangle + line) | 高 (layered animation で数倍) |
+
+dragon が mermaid に勝つのは「rich layered animation で情報密度と楽しさを両立」 する 1 点、 ここに全リソースを集中する。
+
+### 廃止した過去 SSOT
+
+- **v2 pattern SSOT (「6 shape + 4 phase + 4 readout tween」 template)** = 2026-07-14 に廃止 (76 例全 revert)。 template 均一化で「見てて楽しくない」 rectangle 並列を量産していた。 layer 組合せで rich にする方針に置換
+- **「animation 必要性テスト = 消しても伝われば削除」 方針** = 廃止。 animation は積極活用、 layer 組合せで rich にする方針が正解
+
+detail は `~/.claude/skills/dragon-review/references/information-transmission-first.md` SSOT。
+
+
 ## 責任分担 (cdl vs dragon)
 
 人 / LLM が図を書く時は **dragon 記法を書く** のが標準、 cdl は engine として dragon の裏で動く。 dragon が担うのは「書きやすさ」、 cdl が担うのは「描画」。
