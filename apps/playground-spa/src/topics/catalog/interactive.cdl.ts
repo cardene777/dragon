@@ -4575,107 +4575,154 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
   .build();
 
 /**
- * 115. password-strength = パスワード強度 5 段階を 3-lane (入力 / メーター / ルール) rank-based split 分散 + passwordStrength readout 併存 + 3 phase 動き (弱 → tween → 強)。 iteration 7 wave 2、 pattern taxonomy § 4 rank-based split。
+ * 115. formPasswordCheck v2 = SaaS 新規サインアップの password 強化 4 phase シナリオ (弱 pw 入力 → 大小混合 → 数字追加 → 記号で 4 段階完成)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (弱 1 → 中 2 → 強 3 → 最強 4) + 4 readout (passwordStrength / gauge 強度 / countup 満たしたルール数 / stat 予想解読時間) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const formPasswordCheck = diagram("interactive-form-password-check", {
-  topic: "サインアップ画面の password 強度 5 段階を 3-lane 分散 + passwordStrength readout 併存、 3 phase で弱 → 中 tween → 強の連続改善を可視化",
+  topic: "SaaS 新規サインアップ password 強化 4 phase = (弱 1 → 中 2 → 強 3 → 最強 4) の flow を shape-* primitive 6 種で表現 + 4 readout (passwordStrength / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("input", { x: 0, width: 220 })
-  .lane("meter", { x: 260, width: 260 })
-  .lane("rules", { x: 560, width: 260 })
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .state("pw", { initial: 1 })
-  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ password 入力欄", subtitle: "現在 level {pw} · マスク表示" })
-  .node("meterBars", { lane: "meter", stack: 0, kind: "card", title: "4 セグメント メーター", subtitle: "level {pw} 分だけ着色" })
-  .node("levelLabel", { lane: "meter", stack: 1, kind: "card", title: "level ラベル", subtitle: "メーター色と同色 tint" })
-  .node("rule1", { lane: "rules", stack: 0, kind: "card", title: "✓ 8 文字以上", subtitle: "level ≥ 1 で pass" })
-  .node("rule2", { lane: "rules", stack: 1, kind: "card", title: "✓ 大小混合", subtitle: "level ≥ 2 で pass" })
-  .node("rule3", { lane: "rules", stack: 2, kind: "card", title: "✓ 数字 + 記号", subtitle: "level ≥ 3 で pass" })
-  .edge("pwField", "meterBars", { label: "評価", tone: "info" })
-  .edge("meterBars", "levelLabel", { label: "注釈", tone: "success" })
+  .state("strengthScore", { initial: 25 })
+  .state("rulesPassed", { initial: 1 })
+  .state("crackDays", { initial: 0 })
+  .node("newuser", { lane: "user", stack: 0, kind: "shape-person", title: "新規登録者 山田様", eyebrow: "user", subtitle: "SaaS trial 登録中" })
+  .node("browser", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "browser + 1Password", eyebrow: "device", subtitle: "signup form + 自動生成候補" })
+  .node("signupPage", { lane: "service", stack: 0, kind: "shape-website", title: "サインアップ画面", eyebrow: "form", subtitle: "password 入力 + 強度メーター表示" })
+  .node("authSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "認証 backend", eyebrow: "auth", subtitle: "強度評価 + bcrypt hash" })
+  .node("secOps", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "SecOps 監視", eyebrow: "security", subtitle: "弱 password リスト照合 + 通知" })
+  .node("userDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "user DB", eyebrow: "storage", subtitle: "hash + salt + 強度 metadata" })
+  .edge("newuser", "browser", { label: "入力", tone: "info" })
+  .edge("browser", "signupPage", { label: "submit", tone: "info" })
+  .edge("signupPage", "authSvc", { label: "評価", tone: "success" })
+  .edge("authSvc", "secOps", { label: "check", tone: "accent" })
+  .edge("authSvc", "userDb", { label: "persist", tone: "success" })
   .readout.passwordStrength("ps", { source: "pw", colorStrong: "#22c55e", colorWeak: "#ef4444", label: "強度" })
+  .readout.gauge("scoreG", { source: "strengthScore", min: 0, max: 100, color: "#22c55e", label: "強度スコア" })
+  .readout.countup("rulesCU", { source: "rulesPassed", unit: " ルール", label: "満たしたルール", decimals: 0 })
+  .readout.stat("crackStat", { source: "crackDays", unit: " 日", caption: "予想解読", label: "crack" })
   .phase("p1", {
     duration: 1500,
-    title: "弱い (level 1)",
-    body: "初期入力、 pw = 1、 meter 1 セグメント赤、 rule1 のみ pass、 入力 + メーター lane が active。",
-  }, (p: PhaseBuilder) => p.activate("pwField", "meterBars", "rule1").set("pw", 1).badge("弱い"))
+    title: "弱 pw 入力 (level 1)",
+    body: "山田様が短い pw 入力、 メーター 1 セグメント赤。 pw = 1、 strengthScore 25 keep、 rulesPassed 1 → 1 keep、 crackDays 0 → 1 tween (実質 秒 order)、 newuser + browser + signupPage lane active。",
+  }, (p: PhaseBuilder) => p.activate("newuser", "browser", "signupPage").set("pw", 1).tween("crackDays", 0, 1).badge("弱 1"))
   .phase("p2", {
     duration: 2000,
-    title: "改善中 (level 1 → 3)",
-    body: "文字追加 + 大小混合、 pw を 1 → 3 まで tween、 meter が赤 → 橙 → 黄 → 黄緑と連続変化、 rule2 + rule3 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("pwField", "meterBars", "levelLabel", "rule1", "rule2", "rule3").tween("pw", 1, 3).badge("改善中"))
+    title: "大小混合 (level 2)",
+    body: "大小混合追加、 pw = 2、 メーター 2 セグメント橙。 strengthScore 25 → 50 tween、 rulesPassed 1 → 2 tween、 crackDays 1 → 30 tween、 authSvc lane activate、 強度評価 API call。",
+  }, (p: PhaseBuilder) => p.activate("newuser", "browser", "signupPage", "authSvc").tween("pw", 1, 2).tween("strengthScore", 25, 50).tween("rulesPassed", 1, 2).tween("crackDays", 1, 30).badge("中 2"))
   .phase("p3", {
-    duration: 1500,
-    title: "強い (level 4)",
-    body: "数字 + 記号追加で pw = 4、 meter 全 4 セグメント緑、 全 rule pass、 6 node 全 active。",
-  }, (p: PhaseBuilder) => p.activate("pwField", "meterBars", "levelLabel", "rule1", "rule2", "rule3").set("pw", 4).badge("強い"))
+    duration: 2000,
+    title: "数字追加 (level 3)",
+    body: "数字混入、 pw = 3、 メーター 3 セグメント黄緑。 strengthScore 50 → 75 tween、 rulesPassed 2 → 3 tween、 crackDays 30 → 365 tween、 secOps activate、 弱 password リスト照合 pass。",
+  }, (p: PhaseBuilder) => p.activate("newuser", "browser", "signupPage", "authSvc", "secOps").tween("pw", 2, 3).tween("strengthScore", 50, 75).tween("rulesPassed", 2, 3).tween("crackDays", 30, 365).badge("強 3"))
+  .phase("p4", {
+    duration: 2000,
+    title: "記号追加 (level 4 最強)",
+    body: "記号混入、 pw = 4、 メーター 4 セグメント全緑。 strengthScore 75 → 100 tween (gauge 針最上位)、 rulesPassed 3 → 4 tween、 crackDays 365 → 10000 tween、 userDb activate、 bcrypt hash 保存完了、 6 shape 全 active、 signup 完遂。",
+  }, (p: PhaseBuilder) => p.activate("newuser", "browser", "signupPage", "authSvc", "secOps", "userDb").tween("pw", 3, 4).tween("strengthScore", 75, 100).tween("rulesPassed", 3, 4).tween("crackDays", 365, 10000).badge("最強 4"))
   .build();
 
 /**
- * 116. otp-input = ログイン OTP 6 桁検証を 3-lane (SMS / 入力 / 検証) dense sequence 分散 + otpInput readout 併存 + 3 phase 動き (送信 → 入力 tween → 検証)。 iteration 7 wave 2、 pattern taxonomy § 7 dense sequence。
+ * 116. loginOtpVerify v2 = 銀行アプリ 2 段階認証 OTP ログイン 4 phase シナリオ (SMS 送信 → ユーザ入力 → 検証 → ログイン成功)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-server-rack + shape-cylinder の 6 shape で visual scene 化、 4 phase (SMS 送信 → 入力 → 検証 → 成功) + 4 readout (otpInput / gauge 入力進捗 / countup 累計成功回数 / stat 検証秒) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const loginOtpVerify = diagram("interactive-login-otp-verify", {
-  topic: "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で SMS 送信 → 入力 tween → 自動送信の連続動作を可視化",
+  topic: "銀行アプリ 2 段階認証 OTP ログイン 4 phase = (SMS 送信 → 入力 → 検証 → 成功) の flow を shape-* primitive 6 種で表現 + 4 readout (otpInput / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("sent", { x: 0, width: 220 })
-  .lane("entry", { x: 260, width: 260 })
-  .lane("verify", { x: 560, width: 220 })
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("otp", [4, 8, 2, 1, 5, 7])
   .state("entered", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信 +81-90-****-1234", subtitle: "6 桁コード · 3 分 TTL" })
-  .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6 ボックス グリッド", subtitle: "入力済 {entered}/6" })
-  .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "フォーカス ボックス", subtitle: "青枠でハイライト" })
-  .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "検証 → ログイン", subtitle: "6/6 で自動送信" })
-  .edge("sentCard", "entryCard", { label: "ユーザ入力", tone: "info" })
-  .edge("entryCard", "verifyCard", { label: "自動送信", tone: "success" })
+  .state("progress", { initial: 0 })
+  .state("successCount", { initial: 145 })
+  .state("verifySec", { initial: 0 })
+  .node("customer", { lane: "user", stack: 0, kind: "shape-person", title: "銀行 online 利用者 森様", eyebrow: "customer", subtitle: "週次残高照会 + 送金" })
+  .node("smartphone", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "iPhone banking app", eyebrow: "device", subtitle: "SMS 受信 + 6 桁入力 UI" })
+  .node("bankApp", { lane: "service", stack: 0, kind: "shape-website", title: "banking app", eyebrow: "app", subtitle: "OTP 入力欄 + 2 段階検証" })
+  .node("smsGateway", { lane: "service", stack: 1, kind: "shape-cloud", title: "SMS gateway", eyebrow: "sms", subtitle: "TTL 3 min + 送信履歴" })
+  .node("authSvc", { lane: "outcome", stack: 0, kind: "shape-server-rack", title: "認証 backend", eyebrow: "auth", subtitle: "OTP 照合 + session token 発行" })
+  .node("auditLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "監査 log", eyebrow: "audit", subtitle: "login 履歴 + 不審行動 flag" })
+  .edge("customer", "smartphone", { label: "起動", tone: "info" })
+  .edge("smartphone", "bankApp", { label: "login", tone: "info" })
+  .edge("bankApp", "smsGateway", { label: "送信", tone: "info" })
+  .edge("bankApp", "authSvc", { label: "検証", tone: "success" })
+  .edge("authSvc", "auditLog", { label: "log", tone: "accent" })
   .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "OTP コード" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "入力進捗 %" })
+  .readout.countup("sucCU", { source: "successCount", unit: " 回", label: "累計成功", decimals: 0 })
+  .readout.stat("verStat", { source: "verifySec", unit: " 秒", caption: "検証所要", label: "sec" })
   .phase("p1", {
     duration: 1500,
     title: "SMS 送信",
-    body: "OTP を SMS 送信、 entered = 0、 SMS lane のみ active、 6 ボックス全て空 (灰枠)。",
-  }, (p: PhaseBuilder) => p.activate("sentCard").set("entered", 0).badge("送信"))
+    body: "森様が login 開始、 銀行アプリが SMS gateway 経由で 6 桁 OTP 送信。 entered 0 keep、 progress 0 → 10 tween、 successCount 145 keep、 verifySec 0 → 3 tween、 customer + smartphone + bankApp + smsGateway lane active。",
+  }, (p: PhaseBuilder) => p.activate("customer", "smartphone", "bankApp", "smsGateway").tween("progress", 0, 10).tween("verifySec", 0, 3).badge("送信"))
   .phase("p2", {
-    duration: 2500,
-    title: "入力中 (0 → 6 桁)",
-    body: "ユーザが 1 桁ずつ入力、 entered を 0 → 6 まで tween、 各 phase で focus ボックスが右へ移動、 入力 lane 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint").tween("entered", 0, 6).badge("入力中"))
+    duration: 2200,
+    title: "入力中",
+    body: "SMS 到着 → 森様が 1 桁ずつ入力、 focus ボックス右移動。 entered 0 → 6 tween、 progress 10 → 90 tween、 verifySec 3 → 12 tween、 入力 UI で visible 進行。",
+  }, (p: PhaseBuilder) => p.activate("customer", "smartphone", "bankApp", "smsGateway").tween("entered", 0, 6).tween("progress", 10, 90).tween("verifySec", 3, 12).badge("入力"))
   .phase("p3", {
-    duration: 1500,
-    title: "検証完了",
-    body: "6 桁揃った瞬間に自動送信、 検証 lane 追加 activate、 4 node 全 highlight、 login 成功後の次画面待機。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").set("entered", 6).badge("検証完了"))
+    duration: 1800,
+    title: "検証",
+    body: "6 桁揃い自動送信、 authSvc で OTP 照合 + session token 発行。 progress 90 → 100 tween、 successCount 145 → 146 tween、 verifySec 12 → 14 tween、 authSvc lane activate。",
+  }, (p: PhaseBuilder) => p.activate("customer", "smartphone", "bankApp", "smsGateway", "authSvc").tween("progress", 90, 100).tween("successCount", 145, 146).tween("verifySec", 12, 14).badge("検証"))
+  .phase("p4", {
+    duration: 2000,
+    title: "ログイン成功",
+    body: "session token 発行、 認証済状態で残高画面遷移、 監査 log 記録。 entered 6 keep、 progress 100 keep、 successCount 146 keep、 verifySec 14 → 15 tween、 auditLog lane activate、 6 shape 全 active、 2FA login 完遂。",
+  }, (p: PhaseBuilder) => p.activate("customer", "smartphone", "bankApp", "smsGateway", "authSvc", "auditLog").tween("verifySec", 14, 15).badge("成功"))
   .build();
 
 /**
- * 117. file-dropzone = プロフィール画像アップロードを 3-lane (未選択 / アップロード / プレビュー) state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
+ * 117. profileAvatarUpload v2 = SaaS profile 設定でアバター画像 upload 4 phase シナリオ (未選択 → ファイル選択 → upload → プレビュー確定)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (未選択 → 選択 → upload → プレビュー) + 4 readout (fileDropzone / gauge upload % / countup ファイルサイズ KB / stat 処理秒) が tween で visually 連続変化。 iteration 8 wave 8-M redesign。
  */
 export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", {
-  topic: "プロフィール画像アップロードを 3-lane 分散 + fileDropzone readout 併存、 3 phase で未選択 → drop → プレビュー表示の状態遷移を可視化",
+  topic: "SaaS profile アバター画像 upload 4 phase = (未選択 → 選択 → upload → プレビュー確定) の flow を shape-* primitive 6 種で表現 + 4 readout (fileDropzone / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("empty", { x: 0, width: 240 })
-  .lane("uploaded", { x: 280, width: 240 })
-  .lane("preview", { x: 560, width: 220 })
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .state("file", { initial: "" })
-  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未選択", subtitle: "破線枠 · '⬆ ここにドロップ'" })
-  .node("uploadedCard", { lane: "uploaded", stack: 0, kind: "card", title: "◆ avatar-2024.png (245 KB)", subtitle: "実線枠 · ファイル名カード" })
-  .node("previewCard", { lane: "preview", stack: 0, kind: "card", title: "▶ 円形アバター プレビュー", subtitle: "80×80 クロップ表示" })
-  .edge("emptyCard", "uploadedCard", { label: "drop", tone: "info" })
-  .edge("uploadedCard", "previewCard", { label: "プレビュー", tone: "success" })
+  .state("uploadPct", { initial: 0 })
+  .state("fileSize", { initial: 0 })
+  .state("procSec", { initial: 0 })
+  .node("user", { lane: "user", stack: 0, kind: "shape-person", title: "profile 更新者 花田様", eyebrow: "user", subtitle: "SaaS profile アバター更新中" })
+  .node("laptop", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "MacBook + Finder", eyebrow: "device", subtitle: "avatar-2024.png (245 KB) 選択" })
+  .node("uploadPage", { lane: "service", stack: 0, kind: "shape-website", title: "profile settings", eyebrow: "form", subtitle: "dropzone + 80×80 プレビュー" })
+  .node("uploadSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "upload backend", eyebrow: "backend", subtitle: "resize + crop + AV scan" })
+  .node("imgCdn", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "画像 CDN (S3 + CloudFront)", eyebrow: "cdn", subtitle: "80×80 / 200×200 / 512×512 3 size 配信" })
+  .node("profileDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "profile DB", eyebrow: "storage", subtitle: "user_id → avatar_url map + 履歴" })
+  .edge("user", "laptop", { label: "選択", tone: "info" })
+  .edge("laptop", "uploadPage", { label: "drop", tone: "info" })
+  .edge("uploadPage", "uploadSvc", { label: "POST", tone: "success" })
+  .edge("uploadSvc", "imgCdn", { label: "publish", tone: "accent" })
+  .edge("uploadSvc", "profileDb", { label: "persist url", tone: "success" })
   .readout.fileDropzone("fd", { source: "file", colorActive: "#2563eb", label: "アバター ファイル" })
+  .readout.gauge("upG", { source: "uploadPct", min: 0, max: 100, color: "#22c55e", label: "upload %" })
+  .readout.countup("sizeCU", { source: "fileSize", unit: " KB", label: "ファイルサイズ", decimals: 0 })
+  .readout.stat("procStat", { source: "procSec", unit: " 秒", caption: "処理時間", label: "sec" })
   .phase("p1", {
     duration: 1500,
     title: "未選択",
-    body: "file = ''、 未選択 lane のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard").set("file", "").badge("未選択"))
+    body: "花田様が profile 設定画面へ、 dropzone が破線枠 + '⬆ ここにドロップ' 表示。 file = ''、 uploadPct 0 keep、 fileSize 0 keep、 procSec 0 keep、 user + laptop + uploadPage lane active。",
+  }, (p: PhaseBuilder) => p.activate("user", "laptop", "uploadPage").set("file", "").badge("未選択"))
   .phase("p2", {
-    duration: 2000,
-    title: "ドロップ受信",
-    body: "file を空 → 'avatar-2024.png' に切替、 アップロード lane 追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard").set("file", "avatar-2024.png").badge("アップロード"))
+    duration: 1800,
+    title: "ファイル選択",
+    body: "Finder から avatar-2024.png ドラッグ、 dropzone が青枠 + ファイル名カード表示。 file → 'avatar-2024.png'、 uploadPct 0 → 15 tween、 fileSize 0 → 245 tween、 procSec 0 → 1 tween。",
+  }, (p: PhaseBuilder) => p.activate("user", "laptop", "uploadPage").set("file", "avatar-2024.png").tween("uploadPct", 0, 15).tween("fileSize", 0, 245).tween("procSec", 0, 1).badge("選択"))
   .phase("p3", {
-    duration: 1500,
-    title: "プレビュー表示",
-    body: "アップロード完了、 プレビュー lane 追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").set("file", "avatar-2024.png").badge("完了"))
+    duration: 2200,
+    title: "upload 中",
+    body: "uploadSvc へ POST、 AV scan + resize (80/200/512) 実行、 CDN へ publish キック。 uploadPct 15 → 90 tween、 procSec 1 → 4 tween、 uploadSvc + imgCdn lane activate。",
+  }, (p: PhaseBuilder) => p.activate("user", "laptop", "uploadPage", "uploadSvc", "imgCdn").tween("uploadPct", 15, 90).tween("procSec", 1, 4).badge("upload"))
+  .phase("p4", {
+    duration: 2000,
+    title: "プレビュー確定",
+    body: "CDN 配信済、 profileDb に avatar_url 保存、 profile 画面に円形プレビュー表示。 uploadPct 90 → 100 tween (gauge 針最上位)、 procSec 4 → 5 tween、 profileDb lane activate、 6 shape 全 active、 アバター更新完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "laptop", "uploadPage", "uploadSvc", "imgCdn", "profileDb").tween("uploadPct", 90, 100).tween("procSec", 4, 5).badge("確定"))
   .build();
 
 /**
