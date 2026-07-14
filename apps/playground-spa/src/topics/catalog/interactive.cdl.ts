@@ -4424,106 +4424,154 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
   .build();
 
 /**
- * 112. voice-message = 音声メッセージ再生 UI を 3-lane (送信者 / 波形 / 再生) dense sequence 分散 + voiceMessage readout 併存 + 3 phase 動き (受信 → 再生中 tween → 完了)。 iteration 7 wave 1、 pattern taxonomy § 7 dense sequence。
+ * 112. voiceMessagePlayback v2 = 通勤中の音声メモ受信 → 再生 4 phase シナリオ (電車内で通知 → 再生 → 巻戻し → 完了 + reply)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-cdn-edge の 6 shape で visual scene 化、 4 phase (受信 → 再生 → 巻戻し → 完了) + 4 readout (voiceMessage / gauge 再生率 / countup 累計 msg 数 / stat 再生秒) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const voiceMessagePlayback = diagram("interactive-voice-message-playback", {
-  topic: "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 再生中 tween → 完了の動きを可視化",
+  topic: "通勤中の音声メモ受信 → 再生 4 phase = (電車内通知 → 再生 → 巻戻し → 完了 + reply) の flow を shape-* primitive 6 種で表現 + 4 readout (voiceMessage / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("sender", { x: 0, width: 200 })
-  .lane("wave", { x: 240, width: 260 })
-  .lane("play", { x: 540, width: 220 })
+  .lane("commuter", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("amps", [0.2, 0.4, 0.7, 0.9, 0.6, 0.3, 0.5, 0.8, 0.4, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4])
   .state("progress", { initial: 0 })
-  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice (送信者)", subtitle: "0:23 音声メモ · 2 分前" })
-  .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "波形 15 バー", subtitle: "amp 0.2 → 0.9 の dense sequence" })
-  .node("playCard", { lane: "play", stack: 0, kind: "card", title: "▶ 再生", subtitle: "progress で active バー左から色付く" })
-  .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "アクティブ バー", subtitle: "progressSource で active/idle 区別" })
-  .edge("senderCard", "waveCard", { label: "録音", tone: "info" })
-  .edge("waveCard", "playCard", { label: "再生", tone: "success" })
+  .state("playRate", { initial: 0 })
+  .state("msgCount", { initial: 12 })
+  .state("playSec", { initial: 0 })
+  .node("listener", { lane: "commuter", stack: 0, kind: "shape-person", title: "通勤者 池永様", eyebrow: "listener", subtitle: "電車内で音声メモ受信" })
+  .node("phone", { lane: "commuter", stack: 1, kind: "shape-mobile-device", title: "iPhone + イヤホン", eyebrow: "device", subtitle: "受信通知 + 波形再生 UI" })
+  .node("chatApp", { lane: "service", stack: 0, kind: "shape-website", title: "チャット app", eyebrow: "app", subtitle: "音声波形 15 バー + 再生 progress" })
+  .node("audioBackend", { lane: "service", stack: 1, kind: "shape-cloud", title: "音声配信 backend", eyebrow: "cloud", subtitle: "波形解析 + streaming 配信" })
+  .node("msgDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "message archive", eyebrow: "storage", subtitle: "音声 msg + 波形 + 既読 履歴" })
+  .node("edge", { lane: "outcome", stack: 1, kind: "shape-cdn-edge", title: "音声 CDN edge", eyebrow: "cdn", subtitle: "近い基地局 cache + 低遅延" })
+  .edge("listener", "phone", { label: "受信", tone: "info" })
+  .edge("phone", "chatApp", { label: "起動", tone: "info" })
+  .edge("chatApp", "audioBackend", { label: "stream", tone: "success" })
+  .edge("audioBackend", "edge", { label: "cache", tone: "accent" })
+  .edge("audioBackend", "msgDb", { label: "persist", tone: "success" })
   .readout.voiceMessage("vm", { source: "amps", progressSource: "progress", duration: 23, colorPlay: "#2563eb", colorBar: "#cbd5e1", label: "音声メモ" })
+  .readout.gauge("playG", { source: "playRate", min: 0, max: 100, color: "#22c55e", label: "再生率 %" })
+  .readout.countup("msgCU", { source: "msgCount", unit: " 件", label: "累計 msg", decimals: 0 })
+  .readout.stat("secStat", { source: "playSec", unit: " 秒", caption: "再生 秒", label: "sec" })
   .phase("p1", {
-    duration: 2000,
-    title: "受信",
-    body: "Alice からの音声メモが着信、 送信者 + 波形 lane が active、 再生前で progress = 0、 全バー idle 色 (灰)。",
-  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard").set("progress", 0).badge("受信"))
+    duration: 1800,
+    title: "受信 (電車内)",
+    body: "山手線内で Alice から音声メモ着信、 iPhone 通知バナー表示。 progress 0 keep、 playRate 0 keep、 msgCount 12 → 13 tween、 playSec 0 keep、 listener + phone lane active。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone").tween("msgCount", 12, 13).badge("受信"))
   .phase("p2", {
-    duration: 2500,
-    title: "再生中",
-    body: "再生開始、 progress を 0 → 1 まで tween で連続変化、 波形バーが左から順に active 色 (青) に切替、 再生 lane 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").tween("progress", 0, 1).badge("再生中"))
+    duration: 2400,
+    title: "再生開始",
+    body: "イヤホン装着で再生タップ、 chatApp + audioBackend + edge で低遅延 stream 配信、 波形 15 バーが左から青くなっていく。 progress 0 → 0.7 tween、 playRate 0 → 70 tween、 playSec 0 → 16 tween、 chatApp + audioBackend + edge lane activate。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "chatApp", "audioBackend", "edge").tween("progress", 0, 0.7).tween("playRate", 0, 70).tween("playSec", 0, 16).badge("再生"))
   .phase("p3", {
-    duration: 1500,
-    title: "再生完了",
-    body: "再生終了、 progress = 1 で 15 バー全 active、 4 card 全 highlight、 次アクション待機状態。",
-  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").set("progress", 1).badge("完了"))
+    duration: 2000,
+    title: "巻戻し (聞き直し)",
+    body: "重要ポイント聞き直しで progress 0.7 → 0.4 に巻戻し、 再生率一時的に下降、 波形の一部が再度 idle 色に。 playRate 70 → 40 tween、 playSec 16 → 9 tween。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "chatApp", "audioBackend", "edge").tween("progress", 0.7, 0.4).tween("playRate", 70, 40).tween("playSec", 16, 9).badge("巻戻し"))
+  .phase("p4", {
+    duration: 2000,
+    title: "再生完了 + 履歴保存",
+    body: "最後まで再生、 msgDb に既読 flag + 波形 履歴保存。 progress 0.4 → 1 tween、 playRate 40 → 100 tween (gauge 針最上位)、 playSec 9 → 23 tween、 msgDb activate、 6 shape 全 active、 音声再生完遂。",
+  }, (p: PhaseBuilder) => p.activate("listener", "phone", "chatApp", "audioBackend", "edge", "msgDb").tween("progress", 0.4, 1).tween("playRate", 40, 100).tween("playSec", 9, 23).badge("完了"))
   .build();
 
 /**
- * 113. thread-summary = 会話スレッド概要を 3-lane (未読 / 参加者 / 直近) category split 分散 + threadSummary readout 併存 + 3 phase 動き (静か → 新着 tween → 混雑)。 iteration 7 wave 1、 pattern taxonomy § 3 category split。
+ * 113. teamThreadSummary v2 = engineering team Slack チャンネル 1 日 会話量 4 phase シナリオ (朝静か → 昼のインシデント → 夕方の議論 → 夜の retro 引継)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (静か → インシデント → 議論 → retro 引継) + 4 readout (threadSummary / gauge burst 率 / countup 未読数 / stat 参加人数) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const teamThreadSummary = diagram("interactive-team-thread-summary", {
-  topic: "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 tween → 混雑の動きを可視化",
+  topic: "eng team Slack チャンネル 1 日会話量 4 phase = (朝静か → 昼インシデント → 夕方議論 → 夜 retro) の flow を shape-* primitive 6 種で表現 + 4 readout (threadSummary / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("unread", { x: 0, width: 220 })
-  .lane("participants", { x: 260, width: 220 })
-  .lane("activity", { x: 520, width: 260 })
-  .arraySignal("thread", [5, 8, "Alice", "12 分前"] as unknown as (string | number)[])
+  .lane("member", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .arraySignal("thread", [42, 12, "Bob", "5 分前"] as unknown as (string | number)[])
   .state("unreadCount", { initial: 0 })
-  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読 {unreadCount} 件", subtitle: "赤バッジ · 累積表示" })
-  .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "参加者 8 名", subtitle: "team-eng チャンネル" })
-  .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "直近: Alice", subtitle: "「LGTM 🚀」 · 12 分前" })
-  .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "12 分前", subtitle: "直近アクティビティ" })
-  .edge("unreadCard", "authorCard", { label: "帰属", tone: "info" })
-  .edge("partCard", "authorCard", { label: "所属", tone: "teal" })
+  .state("burstRate", { initial: 0 })
+  .state("participants", { initial: 0 })
+  .node("dev", { lane: "member", stack: 0, kind: "shape-person", title: "eng team 12 名", eyebrow: "team", subtitle: "team-eng チャンネル参加者" })
+  .node("slackApp", { lane: "member", stack: 1, kind: "shape-mobile-device", title: "Slack app", eyebrow: "device", subtitle: "通知 + 未読 badge + reply UI" })
+  .node("channel", { lane: "service", stack: 0, kind: "shape-website", title: "team-eng channel", eyebrow: "channel", subtitle: "engineering 主戦場 · 12 名 subscribe" })
+  .node("workerFleet", { lane: "service", stack: 1, kind: "shape-server-rack", title: "Slack worker fleet", eyebrow: "backend", subtitle: "msg fan-out + 通知 push" })
+  .node("indexer", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "search indexer", eyebrow: "search", subtitle: "履歴 index + retro 用検索" })
+  .node("archive", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "channel archive", eyebrow: "storage", subtitle: "全 msg + thread ツリー保存" })
+  .edge("dev", "slackApp", { label: "投稿", tone: "info" })
+  .edge("slackApp", "channel", { label: "publish", tone: "info" })
+  .edge("channel", "workerFleet", { label: "fan-out", tone: "success" })
+  .edge("workerFleet", "archive", { label: "persist", tone: "success" })
+  .edge("workerFleet", "indexer", { label: "index", tone: "accent" })
   .readout.threadSummary("ts", { source: "thread", colorUnread: "#ef4444", label: "スレッド概要" })
+  .readout.gauge("burstG", { source: "burstRate", min: 0, max: 100, color: "#ef4444", label: "burst 率 %" })
+  .readout.countup("unrCU", { source: "unreadCount", unit: " 未読", label: "未読数", decimals: 0 })
+  .readout.stat("partStat", { source: "participants", unit: " 名", caption: "参加者", label: "part" })
   .phase("p1", {
     duration: 1500,
-    title: "静かなスレッド",
-    body: "未読なし (unreadCount = 0)、 参加者 lane のみ active、 通常の観測状態。",
-  }, (p: PhaseBuilder) => p.activate("partCard").set("unreadCount", 0).badge("静か"))
+    title: "朝 静か",
+    body: "朝 09:00、 team ゆっくり出社。 unreadCount 0 → 2 tween、 burstRate 0 → 10 tween、 participants 0 → 3 tween、 dev + slackApp lane active。",
+  }, (p: PhaseBuilder) => p.activate("dev", "slackApp").tween("unreadCount", 0, 2).tween("burstRate", 0, 10).tween("participants", 0, 3).badge("朝"))
   .phase("p2", {
-    duration: 2000,
-    title: "新着 3 件",
-    body: "新規メッセージ着信、 unreadCount を 0 → 3 まで tween、 未読 + 直近 lane 追加 activate、 authorCard に最新発言者表示。",
-  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard").tween("unreadCount", 0, 3).badge("新着"))
+    duration: 2200,
+    title: "昼 インシデント発生",
+    body: "13:00 本番障害検知、 team-eng 一斉招集、 msg 急増。 unreadCount 2 → 28 tween、 burstRate 10 → 85 tween (gauge 針上振れ、 赤ゾーン)、 participants 3 → 9 tween、 channel + workerFleet lane activate。",
+  }, (p: PhaseBuilder) => p.activate("dev", "slackApp", "channel", "workerFleet").tween("unreadCount", 2, 28).tween("burstRate", 10, 85).tween("participants", 3, 9).badge("障害"))
   .phase("p3", {
+    duration: 2200,
+    title: "夕方 議論継続",
+    body: "hotfix 後 root cause 議論継続、 thread が長く伸長。 unreadCount 28 → 42 tween、 burstRate 85 → 60 tween、 participants 9 → 12 tween、 indexer + archive lane activate、 履歴 index キック。",
+  }, (p: PhaseBuilder) => p.activate("dev", "slackApp", "channel", "workerFleet", "indexer", "archive").tween("unreadCount", 28, 42).tween("burstRate", 85, 60).tween("participants", 9, 12).badge("議論"))
+  .phase("p4", {
     duration: 2000,
-    title: "混雑",
-    body: "追加着信、 unreadCount を 3 → 5 まで tween、 全 4 card active、 unreadCard の赤バッジが視覚的に主張。",
-  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").tween("unreadCount", 3, 5).badge("混雑"))
+    title: "夜 retro 引継ぎ",
+    body: "20:00 retro チャンネルに要点 pin、 明日の action item リストアップ。 unreadCount 42 keep (retro 用に残置)、 burstRate 60 → 25 tween (収束)、 participants 12 keep、 6 shape 全 active、 1 日会話履歴 flush。",
+  }, (p: PhaseBuilder) => p.activate("dev", "slackApp", "channel", "workerFleet", "indexer", "archive").tween("burstRate", 60, 25).badge("retro"))
   .build();
 
 /**
- * 114. read-receipt = message 既読状態遷移を 3-lane (送信 / 配信 / 既読) state-driven visibility 分散 + readReceipt readout 併存 + 3 phase 動き (送信 → 配信 → 既読 の状態切替)。 iteration 7 wave 1、 pattern taxonomy § 2 state-driven visibility。
+ * 114. dmReadReceipt v2 = 商談 DM 既読 workflow 4 phase シナリオ (営業送信 → 配信 → 顧客既読 → reply)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (送信 → 配信 → 既読 → reply) + 4 readout (readReceipt / gauge 応答率 / countup 送信数 / stat 未読時間 min) が tween で visually 連続変化。 iteration 8 wave 8-L redesign。
  */
 export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
-  topic: "DM 既読状態 (0=送信 / 1=配信 / 2=既読) を 3-lane state 別分散 + readReceipt readout 併存、 3 phase で状態遷移の動きを可視化",
+  topic: "商談 DM 既読 workflow 4 phase = (営業送信 → 配信 → 既読 → reply) の flow を shape-* primitive 6 種で表現 + 4 readout (readReceipt / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("sent", { x: 0, width: 240 })
-  .lane("delivered", { x: 280, width: 240 })
-  .lane("read", { x: 560, width: 240 })
+  .lane("sender", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .state("status", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "▶ 送信 (0)", subtitle: "単チェック · 灰 · 09:42" })
-  .node("deliveredCard", { lane: "delivered", stack: 0, kind: "card", title: "▶▶ 配信 (1)", subtitle: "二重チェック · 灰 · 09:43" })
-  .node("readCard", { lane: "read", stack: 0, kind: "card", title: "◆ 既読 (2)", subtitle: "二重チェック · 青 · 09:45" })
-  .edge("sentCard", "deliveredCard", { label: "配信完了", tone: "info" })
-  .edge("deliveredCard", "readCard", { label: "既読", tone: "success" })
+  .state("responseRate", { initial: 0 })
+  .state("sentCount", { initial: 0 })
+  .state("unreadMin", { initial: 0 })
+  .node("salesRep", { lane: "sender", stack: 0, kind: "shape-person", title: "営業 佐藤様", eyebrow: "sales", subtitle: "week 15 件顧客 DM 予定" })
+  .node("crmMobile", { lane: "sender", stack: 1, kind: "shape-mobile-device", title: "CRM mobile app", eyebrow: "device", subtitle: "顧客リスト + DM 一括送信" })
+  .node("chatSvc", { lane: "service", stack: 0, kind: "shape-website", title: "WhatsApp Business", eyebrow: "service", subtitle: "商談 DM 配信 + 既読フック" })
+  .node("dmRouter", { lane: "service", stack: 1, kind: "shape-server-rack", title: "DM router", eyebrow: "backend", subtitle: "receipt event 集約 + 顧客 status" })
+  .node("crmDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "CRM DB", eyebrow: "storage", subtitle: "顧客別 DM + receipt 履歴" })
+  .node("insights", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "insights", eyebrow: "analytics", subtitle: "既読率 + reply 率 dashboard" })
+  .edge("salesRep", "crmMobile", { label: "送信", tone: "info" })
+  .edge("crmMobile", "chatSvc", { label: "publish", tone: "info" })
+  .edge("chatSvc", "dmRouter", { label: "receipt", tone: "success" })
+  .edge("dmRouter", "crmDb", { label: "persist", tone: "success" })
+  .edge("dmRouter", "insights", { label: "aggregate", tone: "accent" })
   .readout.readReceipt("rr", { source: "status", colorRead: "#2563eb", colorPending: "#94a3b8", label: "既読状態" })
+  .readout.gauge("resG", { source: "responseRate", min: 0, max: 100, color: "#22c55e", label: "応答率 %" })
+  .readout.countup("sntCU", { source: "sentCount", unit: " 件", label: "送信数", decimals: 0 })
+  .readout.stat("unrStat", { source: "unreadMin", unit: " 分", caption: "未読滞留", label: "unread" })
   .phase("p1", {
     duration: 1500,
-    title: "送信",
-    body: "status = 0、 送信 lane のみ active、 readout に灰の単チェック表示 (送信済 but 未配信)。",
-  }, (p: PhaseBuilder) => p.activate("sentCard").set("status", 0).badge("送信"))
+    title: "09:42 送信",
+    body: "佐藤様 15 件顧客に DM 一括送信、 status = 0 (単チェック 灰)。 responseRate 0 keep、 sentCount 0 → 15 tween、 unreadMin 0 keep、 salesRep + crmMobile lane active。",
+  }, (p: PhaseBuilder) => p.activate("salesRep", "crmMobile").set("status", 0).tween("sentCount", 0, 15).badge("送信"))
   .phase("p2", {
-    duration: 1500,
-    title: "配信完了",
-    body: "status = 1 に切替、 配信 lane 追加 activate、 readout が灰の二重チェックに変化 (配信 but 未読)。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard").set("status", 1).badge("配信"))
+    duration: 1800,
+    title: "09:43 配信完了",
+    body: "chatSvc + dmRouter で全 15 件配信、 status = 1 (二重チェック 灰)、 未読状態継続。 responseRate 0 keep、 unreadMin 0 → 15 tween、 chatSvc + dmRouter lane activate。",
+  }, (p: PhaseBuilder) => p.activate("salesRep", "crmMobile", "chatSvc", "dmRouter").set("status", 1).tween("unreadMin", 0, 15).badge("配信"))
   .phase("p3", {
-    duration: 1500,
-    title: "既読",
-    body: "status = 2 に切替、 既読 lane 追加 activate、 readout の二重チェックが青に変化 (既読確認)。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard", "readCard").set("status", 2).badge("既読"))
+    duration: 2000,
+    title: "09:45 顧客既読",
+    body: "顧客 12 名が既読、 status = 2 (二重チェック 青)、 receipt event が CRM DB に集約。 responseRate 0 → 80 tween、 unreadMin 15 → 3 tween、 crmDb + insights lane activate。",
+  }, (p: PhaseBuilder) => p.activate("salesRep", "crmMobile", "chatSvc", "dmRouter", "crmDb", "insights").set("status", 2).tween("responseRate", 0, 80).tween("unreadMin", 15, 3).badge("既読"))
+  .phase("p4", {
+    duration: 2000,
+    title: "10:00 reply 受信",
+    body: "顧客 8 名から reply、 insights で応答率グラフ更新、 佐藤様が次アクション決定。 status 2 keep、 responseRate 80 → 53 tween (reply 実数 8/15)、 sentCount 15 keep、 unreadMin 3 → 0 tween、 6 shape 全 active、 商談 DM cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("salesRep", "crmMobile", "chatSvc", "dmRouter", "crmDb", "insights").tween("responseRate", 80, 53).tween("unreadMin", 3, 0).badge("reply"))
   .build();
 
 /**
