@@ -57,6 +57,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   patternLoopBatchImport: "ループ (CSV batch import)",
   patternFanOutVideoTranscode: "ファンアウト (動画 3 解像度 transcode)",
   patternFanInMapReduce: "ファンイン (MapReduce 集計)",
+  // wave 8-U business scenario 拡張 (patterns 完遂)
+  patternRollbackBankTransfer: "ロールバック (銀行送金 tx)",
+  patternScheduleReportJob: "スケジューリング (週次 report job)",
+  patternValidateProcessOrderSubmit: "検証 → 処理 (EC 注文 submit)",
 
   // cookbook
   apiCall: "API 呼び出し",

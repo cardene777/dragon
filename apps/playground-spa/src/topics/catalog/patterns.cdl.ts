@@ -666,3 +666,153 @@ export const patternFanInMapReduce = diagram("pattern-fanin-mapreduce", {
     body: "集計結果を BI dashboard に publish、 川口様がグラフ review + Slack 共有。 aggPct 90 → 100 tween (gauge 針最上位)、 totalRecs 3 keep、 elapsedSec 75 → 85 tween、 dashboard + analyst lane activate、 6 shape 全 active、 MapReduce cycle 完遂。",
   }, (p: PhaseBuilder) => p.activate("shardCluster", "shardStorage", "aggSvc", "aggCloud", "dashboard", "analyst").tween("aggPct", 90, 100).tween("elapsedSec", 75, 85).badge("配信"))
   .build();
+
+/**
+ * 22. patternRollbackBankTransfer v2 = pattern 10 Rollback の business scenario 拡張 (銀行送金 tx で送信側 debit + 受信側 credit の atomic 更新、 失敗時 rollback)、 shape-person + shape-mobile-device + shape-bank + shape-brokerage + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (BEGIN → debit + credit → 検証 fail → ROLLBACK) + 4 readout (gauge tx 進捗 / countup 累計 tx / stat rollback 件数 / stat 平均 ms) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 10 の抽象 patternRollback と並置。
+ */
+export const patternRollbackBankTransfer = diagram("pattern-rollback-bank-transfer", {
+  topic: "pattern 10 Rollback business scenario = 銀行送金 tx (debit + credit atomic、 fail 時 rollback) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("sender", { x: 0, width: 220 })
+  .lane("bank", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("txProgress", { initial: 0 })
+  .state("txCount", { initial: 52341 })
+  .state("rollbackCount", { initial: 128 })
+  .state("avgMs", { initial: 0 })
+  .node("sender", { lane: "sender", stack: 0, kind: "shape-person", title: "送金者 田代様", eyebrow: "sender", subtitle: "口座残高 100万 → 20万送金試行" })
+  .node("mobile", { lane: "sender", stack: 1, kind: "shape-mobile-device", title: "銀行 mobile app", eyebrow: "device", subtitle: "送金 form + confirmation UI" })
+  .node("issuer", { lane: "bank", stack: 0, kind: "shape-bank", title: "送信元 bank (MUFG)", eyebrow: "issuer", subtitle: "debit 実行 + tx logging" })
+  .node("txSvc", { lane: "bank", stack: 1, kind: "shape-brokerage", title: "tx orchestrator", eyebrow: "tx", subtitle: "BEGIN / COMMIT / ROLLBACK 制御" })
+  .node("ledger", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "元帳 DB", eyebrow: "ledger", subtitle: "atomic 更新 or 完全巻き戻し" })
+  .node("alerting", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "SecOps alerting", eyebrow: "alert", subtitle: "rollback event 通知 + 監査" })
+  .edge("sender", "mobile", { label: "送金操作", tone: "info" })
+  .edge("mobile", "issuer", { label: "commit request", tone: "info" })
+  .edge("issuer", "txSvc", { label: "BEGIN tx", tone: "accent" })
+  .edge("txSvc", "ledger", { label: "debit / credit", tone: "warning" })
+  .edge("txSvc", "alerting", { label: "ROLLBACK notify", tone: "error" })
+  .readout.gauge("txG", { source: "txProgress", min: 0, max: 100, color: "#22c55e", label: "tx 進捗 %" })
+  .readout.countup("txCU", { source: "txCount", unit: " 件", label: "累計 tx", decimals: 0 })
+  .readout.stat("rlbStat", { source: "rollbackCount", unit: " 件", caption: "rollback", label: "rlb" })
+  .readout.stat("msStat", { source: "avgMs", unit: " ms", caption: "平均 ms", label: "ms" })
+  .phase("p1", {
+    duration: 1500,
+    title: "BEGIN tx",
+    body: "田代様が 20万送金 confirm、 bank が tx orchestrator に BEGIN 発行。 txProgress 0 → 20 tween、 txCount 52341 keep、 rollbackCount 128 keep、 avgMs 0 → 15 tween、 sender + mobile + issuer + txSvc lane active。",
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc").tween("txProgress", 0, 20).tween("avgMs", 0, 15).badge("BEGIN"))
+  .phase("p2", {
+    duration: 2000,
+    title: "debit + credit (tentative)",
+    body: "元帳 DB で送信元 debit (-20万) + 受信側 credit (+20万) を tentative write、 COMMIT 前の中間状態。 txProgress 20 → 65 tween、 avgMs 15 → 65 tween、 ledger lane activate、 debit / credit 2 edge 発火。",
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger").tween("txProgress", 20, 65).tween("avgMs", 15, 65).badge("debit/credit"))
+  .phase("p3", {
+    duration: 2000,
+    title: "検証 fail 検知",
+    body: "受信側口座で AML check fail (制裁国口座)、 tx orchestrator が ROLLBACK 判定。 txProgress 65 → 45 tween (下降)、 avgMs 65 → 120 tween、 error 分岐発火、 SecOps 通知準備。",
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger").tween("txProgress", 65, 45).tween("avgMs", 65, 120).badge("fail"))
+  .phase("p4", {
+    duration: 2000,
+    title: "ROLLBACK + audit",
+    body: "元帳を debit / credit 前の残高に完全巻き戻し、 alerting で SecOps 通知 + tx log 記録。 txProgress 45 → 0 tween (全ゼロ復帰)、 txCount 52341 → 52342 tween (試行として count)、 rollbackCount 128 → 129 tween、 avgMs 120 → 180 tween (最終)、 alerting lane activate、 6 shape 全 active、 rollback cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("sender", "mobile", "issuer", "txSvc", "ledger", "alerting").tween("txProgress", 45, 0).tween("txCount", 52341, 52342).tween("rollbackCount", 128, 129).tween("avgMs", 120, 180).badge("ROLLBACK"))
+  .build();
+
+/**
+ * 23. patternScheduleReportJob v2 = pattern 11 Schedule の business scenario 拡張 (Cron 5 分毎に定期実行される週次 KPI report 集計 job)、 shape-iot-sensor + shape-cloud + shape-server-rack + shape-brokerage + shape-cylinder + shape-person の 6 shape で visual scene 化、 4 phase (tick → scheduler trigger → job 実行 → report 配信) + 4 readout (gauge job 進捗 / countup 累計実行 / stat 平均秒 / stat next tick 分) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 11 の抽象 patternSchedule と並置。
+ */
+export const patternScheduleReportJob = diagram("pattern-schedule-report-job", {
+  topic: "pattern 11 Schedule business scenario = Cron 週次 KPI report 集計 job 4 phase (tick → trigger → 実行 → 配信) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("scheduler", { x: 0, width: 220 })
+  .lane("job", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("jobProgress", { initial: 0 })
+  .state("runCount", { initial: 8721 })
+  .state("avgSec", { initial: 0 })
+  .state("nextMin", { initial: 5 })
+  .node("cron", { lane: "scheduler", stack: 0, kind: "shape-iot-sensor", title: "Cron */5 * * * *", eyebrow: "cron", subtitle: "5 分毎 tick 発火 + drift 監視" })
+  .node("schedulerSvc", { lane: "scheduler", stack: 1, kind: "shape-cloud", title: "scheduler service", eyebrow: "scheduler", subtitle: "job queue + concurrency 制御" })
+  .node("worker", { lane: "job", stack: 0, kind: "shape-server-rack", title: "report worker", eyebrow: "worker", subtitle: "週次 KPI 集計 (revenue / users / churn)" })
+  .node("compute", { lane: "job", stack: 1, kind: "shape-brokerage", title: "compute engine", eyebrow: "compute", subtitle: "BigQuery + aggregate function" })
+  .node("reportStore", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "report store", eyebrow: "storage", subtitle: "週次 report 履歴 + PDF 生成" })
+  .node("stakeholder", { lane: "outcome", stack: 1, kind: "shape-person", title: "stakeholder 岩田様", eyebrow: "reader", subtitle: "経営会議で report review" })
+  .edge("cron", "schedulerSvc", { label: "tick", tone: "info" })
+  .edge("schedulerSvc", "worker", { label: "trigger", tone: "accent" })
+  .edge("worker", "compute", { label: "aggregate", tone: "success" })
+  .edge("worker", "reportStore", { label: "persist", tone: "success" })
+  .edge("reportStore", "stakeholder", { label: "配信", tone: "info" })
+  .readout.gauge("jpG", { source: "jobProgress", min: 0, max: 100, color: "#22c55e", label: "job 進捗 %" })
+  .readout.countup("runCU", { source: "runCount", unit: " 回", label: "累計実行", decimals: 0 })
+  .readout.stat("secStat", { source: "avgSec", unit: " 秒", caption: "平均", label: "sec" })
+  .readout.stat("nxtStat", { source: "nextMin", unit: " 分", caption: "next tick", label: "next" })
+  .phase("p1", {
+    duration: 1500,
+    title: "Cron tick",
+    body: "Cron が */5 minute の tick 発火、 scheduler service に job 起動要求。 jobProgress 0 → 10 tween、 runCount 8721 keep、 avgSec 0 → 2 tween、 nextMin 5 → 5 keep、 cron + schedulerSvc lane active。",
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc").tween("jobProgress", 0, 10).tween("avgSec", 0, 2).badge("tick"))
+  .phase("p2", {
+    duration: 1800,
+    title: "scheduler trigger",
+    body: "scheduler service が job queue 確認 + concurrency 判定 → worker に trigger 送信。 jobProgress 10 → 30 tween、 avgSec 2 → 5 tween、 worker lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker").tween("jobProgress", 10, 30).tween("avgSec", 2, 5).badge("trigger"))
+  .phase("p3", {
+    duration: 2000,
+    title: "job 実行 (compute)",
+    body: "worker が BigQuery 経由で週次 revenue + users + churn を aggregate、 PDF report 生成。 jobProgress 30 → 85 tween、 runCount 8721 → 8722 tween、 avgSec 5 → 42 tween、 compute + reportStore lane activate。",
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore").tween("jobProgress", 30, 85).tween("runCount", 8721, 8722).tween("avgSec", 5, 42).badge("実行"))
+  .phase("p4", {
+    duration: 2000,
+    title: "report 配信",
+    body: "reportStore が PDF を Slack + Notion で岩田様に配信、 next tick 準備。 jobProgress 85 → 100 tween (gauge 針最上位)、 avgSec 42 → 48 tween、 nextMin 5 → 4 tween (減少開始)、 stakeholder lane activate、 6 shape 全 active、 scheduled report cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("cron", "schedulerSvc", "worker", "compute", "reportStore", "stakeholder").tween("jobProgress", 85, 100).tween("avgSec", 42, 48).tween("nextMin", 5, 4).badge("配信"))
+  .build();
+
+/**
+ * 24. patternValidateProcessOrderSubmit v2 = pattern 12 Validate → Process の business scenario 拡張 (EC 注文 submit で cart validate → OK なら process、 fail なら ValidationError 返却)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (submit → validate → OK 経路 process → NG 経路 error) + 4 readout (gauge 成功率 / countup submit 累計 / stat NG 件数 / stat 平均 ms) が tween で visually 連続変化。 iteration 8 wave 8-U redesign。 pattern 12 の抽象 patternValidateProcess と並置。 patterns.cdl.ts business scenario 完遂 (12/12 wave 8-R 〜 8-U)。
+ */
+export const patternValidateProcessOrderSubmit = diagram("pattern-validate-process-order-submit", {
+  topic: "pattern 12 Validate-Process business scenario = EC 注文 submit (validate → OK 時 process / NG 時 ValidationError) 4 phase の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("buyer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("successRate", { initial: 0 })
+  .state("submitCount", { initial: 15678 })
+  .state("ngCount", { initial: 423 })
+  .state("avgMs", { initial: 0 })
+  .node("buyer", { lane: "buyer", stack: 0, kind: "shape-person", title: "buyer 平川様", eyebrow: "buyer", subtitle: "EC 注文 submit 試行者" })
+  .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "iPhone EC app", eyebrow: "device", subtitle: "cart + submit button + error 表示" })
+  .node("submitApi", { lane: "service", stack: 0, kind: "shape-website", title: "order submit API", eyebrow: "api", subtitle: "POST /orders + validation middleware" })
+  .node("validator", { lane: "service", stack: 1, kind: "shape-server-rack", title: "validator (zod)", eyebrow: "validator", subtitle: "schema check + business rule 判定" })
+  .node("orderDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "order DB", eyebrow: "storage", subtitle: "OK 時のみ commit 保存" })
+  .node("errorSink", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "error tracking (Sentry)", eyebrow: "error", subtitle: "NG event 記録 + パターン分析" })
+  .edge("buyer", "phone", { label: "submit", tone: "info" })
+  .edge("phone", "submitApi", { label: "POST", tone: "info" })
+  .edge("submitApi", "validator", { label: "check", tone: "success" })
+  .edge("validator", "orderDb", { label: "OK: process", tone: "success" })
+  .edge("validator", "errorSink", { label: "NG: emit error", tone: "error" })
+  .readout.gauge("sucG", { source: "successRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" })
+  .readout.countup("subCU", { source: "submitCount", unit: " 件", label: "submit 累計", decimals: 0 })
+  .readout.stat("ngStat", { source: "ngCount", unit: " 件", caption: "NG 件数", label: "ng" })
+  .readout.stat("msStat", { source: "avgMs", unit: " ms", caption: "平均 ms", label: "ms" })
+  .phase("p1", {
+    duration: 1500,
+    title: "submit",
+    body: "平川様がカート confirm、 EC app が POST /orders 送信 (cart items + shipping address + payment ref)。 successRate 0 keep、 submitCount 15678 keep、 ngCount 423 keep、 avgMs 0 → 8 tween、 buyer + phone + submitApi lane active。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi").tween("avgMs", 0, 8).badge("submit"))
+  .phase("p2", {
+    duration: 1800,
+    title: "validate",
+    body: "validator (zod) が schema check + 在庫確認 + 送料計算 + shipping address 検証。 successRate 0 → 92 tween (95% pass 想定)、 submitCount 15678 → 15679 tween、 avgMs 8 → 25 tween、 validator lane activate。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator").tween("successRate", 0, 92).tween("submitCount", 15678, 15679).tween("avgMs", 8, 25).badge("validate"))
+  .phase("p3", {
+    duration: 2000,
+    title: "OK 経路 (process)",
+    body: "validate pass → orderDb に注文 commit + 受注確認番号発行。 successRate 92 keep、 avgMs 25 → 48 tween、 orderDb lane activate、 success 分岐 edge 発火、 buyer に confirmation 準備。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb").tween("avgMs", 25, 48).badge("process"))
+  .phase("p4", {
+    duration: 2000,
+    title: "NG 経路 (error 別 flow)",
+    body: "並行で NG case (在庫不足 / address 不正) を error 分岐で表現、 errorSink に ValidationError 記録 + パターン集計。 successRate 92 keep (両経路併存)、 ngCount 423 → 424 tween、 avgMs 48 → 55 tween、 errorSink lane activate、 6 shape 全 active、 validate-process cycle 完遂。 patterns.cdl.ts business scenario 12/12 完遂。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "submitApi", "validator", "orderDb", "errorSink").tween("ngCount", 423, 424).tween("avgMs", 48, 55).badge("error"))
+  .build();
