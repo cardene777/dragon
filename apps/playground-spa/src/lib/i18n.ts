@@ -222,6 +222,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   animationCounterViewCount: "tween 実業務例 (動画 view count 急伸)",
   animationSprintProgress: "tween chain 実業務例 (2 週 sprint 進捗)",
   animationBuildStatus: "set 実業務例 (CI/CD build status 切替)",
+  // wave 8-W business scenario 拡張 (animation 完遂)
+  animationDeployBadge: "badge 実業務例 (deploy pipeline badge 切替)",
+  animationOrderProgress: "tween + set 併用 実業務例 (EC 注文処理)",
 
   // interactive iteration 7 (15 catalog、 混合 5 テーマ)
   // wave 1 messaging
@@ -304,6 +307,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   toneInfo: "info トーン (水色)",
   stateActive: "active 状態",
   stateInactive: "inactive 状態",
+  // wave 8-W business scenario 拡張 (styles 完遂)
+  stateActiveConnection: "edge active 実業務例 (WebSocket realtime chat)",
+  stateInactiveMonitor: "edge inactive 実業務例 (batch job idle → active)",
 };
 
 /**
