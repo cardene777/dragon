@@ -47,3 +47,103 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 
   .edge("a", "b", { id: "e", label: "inactive", tone: "accent", style: "solid" })
   .phase("p", { duration: 1800, title: "inactive 状態", body: "activate されていない edge は薄い灰色 + dash で静的表示。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("edge は inactive"))
   .build();
+
+/**
+ * 3. stateActiveConnection v2 = stateActive の business scenario 拡張 (SaaS realtime chat で WebSocket connection が active、 messages が流れる)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (接続前 → handshake → active messaging → keepalive) + 4 readout (gauge connection 健康度 / countup msg 数 / stat 平均 latency / stat active session) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 stateActive 抽象 edge state demo と並置。
+ */
+export const stateActiveConnection = diagram("state-active-connection", {
+  topic: "edge active 実業務例 = SaaS realtime chat WebSocket 4 phase (接続前 → handshake → active messaging → keepalive) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("client", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("healthPct", { initial: 0 })
+  .state("msgCount", { initial: 0 })
+  .state("latency", { initial: 0 })
+  .state("activeSessions", { initial: 8541 })
+  .node("user", { lane: "client", stack: 0, kind: "shape-person", title: "chat user 上野様", eyebrow: "user", subtitle: "realtime chat 利用中" })
+  .node("app", { lane: "client", stack: 1, kind: "shape-mobile-device", title: "chat mobile app", eyebrow: "device", subtitle: "WebSocket 接続 + msg 送受信" })
+  .node("wsGateway", { lane: "service", stack: 0, kind: "shape-website", title: "WebSocket gateway", eyebrow: "gateway", subtitle: "接続 upgrade + auth + routing" })
+  .node("chatSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "chat service", eyebrow: "chat", subtitle: "msg broadcast + presence 管理" })
+  .node("presenceSvc", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "presence service", eyebrow: "presence", subtitle: "全 session 監視 + heartbeat" })
+  .node("msgDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "msg 履歴 DB", eyebrow: "storage", subtitle: "全 msg 保存 + search index" })
+  .edge("user", "app", { label: "起動", tone: "info" })
+  .edge("app", "wsGateway", { label: "connect (active)", tone: "accent" })
+  .edge("wsGateway", "chatSvc", { label: "route", tone: "success" })
+  .edge("chatSvc", "presenceSvc", { label: "heartbeat", tone: "info" })
+  .edge("chatSvc", "msgDb", { label: "persist", tone: "success" })
+  .readout.gauge("hpG", { source: "healthPct", min: 0, max: 100, color: "#22c55e", label: "connection 健康度 %" })
+  .readout.countup("mcCU", { source: "msgCount", unit: " msg", label: "累計 msg", decimals: 0 })
+  .readout.stat("latStat", { source: "latency", unit: " ms", caption: "平均 latency", label: "lat" })
+  .readout.stat("asStat", { source: "activeSessions", unit: " sess", caption: "active", label: "act" })
+  .phase("p1", {
+    duration: 1500,
+    title: "接続前",
+    body: "上野様が chat app 起動、 WebSocket 接続まだ確立していない。 healthPct 0 keep、 msgCount 0 keep、 latency 0 keep、 activeSessions 8541 keep、 user + app lane active。",
+  }, (p: PhaseBuilder) => p.activate("user", "app").badge("接続前"))
+  .phase("p2", {
+    duration: 1800,
+    title: "handshake",
+    body: "WebSocket upgrade handshake + auth token 検証、 wsGateway で接続 establish。 healthPct 0 → 55 tween、 latency 0 → 45 tween、 activeSessions 8541 → 8542 tween、 wsGateway lane activate、 active edge 発火。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway").tween("healthPct", 0, 55).tween("latency", 0, 45).tween("activeSessions", 8541, 8542).badge("handshake"))
+  .phase("p3", {
+    duration: 2200,
+    title: "active messaging",
+    body: "上野様が chat msg 送信、 chatSvc が broadcast + msgDb persist、 active connection 上で双方向 msg。 healthPct 55 → 95 tween (gauge 針上振れ)、 msgCount 0 → 24 tween、 latency 45 → 32 tween (低遅延安定)、 chatSvc + msgDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "chatSvc", "msgDb").tween("healthPct", 55, 95).tween("msgCount", 0, 24).tween("latency", 45, 32).badge("messaging"))
+  .phase("p4", {
+    duration: 2000,
+    title: "keepalive",
+    body: "idle 状態で presenceSvc が heartbeat ping、 接続維持 + session 追跡。 healthPct 95 → 100 tween (最高値)、 msgCount 24 → 30 tween、 latency 32 → 28 tween、 activeSessions 8542 keep、 presenceSvc lane activate、 6 shape 全 active、 realtime chat cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "chatSvc", "msgDb", "presenceSvc").tween("healthPct", 95, 100).tween("msgCount", 24, 30).tween("latency", 32, 28).badge("keepalive"))
+  .build();
+
+/**
+ * 4. stateInactiveMonitor v2 = stateInactive の business scenario 拡張 (SaaS batch job monitor で inactive job → active job の遷移、 idle → running → active に visible 化)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-iot-sensor + shape-cylinder の 6 shape で visual scene 化、 4 phase (idle 監視 → job trigger → active 実行 → 完了 idle 復帰) + 4 readout (gauge job utilization / countup 累計 run / stat 平均秒 / stat idle 分) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 stateInactive 抽象 inactive demo と並置。
+ */
+export const stateInactiveMonitor = diagram("state-inactive-monitor", {
+  topic: "edge inactive 実業務例 = SaaS batch job monitor 4 phase (idle → trigger → active → 完了 idle) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("ops", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("utilization", { initial: 5 })
+  .state("runCount", { initial: 234 })
+  .state("avgSec", { initial: 0 })
+  .state("idleMin", { initial: 55 })
+  .node("ops", { lane: "ops", stack: 0, kind: "shape-person", title: "ops 高瀬様", eyebrow: "ops", subtitle: "batch job 稼働監視" })
+  .node("dashboard", { lane: "ops", stack: 1, kind: "shape-mobile-device", title: "batch dashboard", eyebrow: "device", subtitle: "job status + 履歴 view" })
+  .node("scheduler", { lane: "service", stack: 0, kind: "shape-cloud", title: "job scheduler", eyebrow: "scheduler", subtitle: "cron trigger + concurrency 制御" })
+  .node("worker", { lane: "service", stack: 1, kind: "shape-server-rack", title: "batch worker", eyebrow: "worker", subtitle: "現在 idle · 次 trigger 待機" })
+  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health probe", eyebrow: "probe", subtitle: "worker liveness + resource 監視" })
+  .node("jobLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "job 履歴 DB", eyebrow: "storage", subtitle: "全 run + duration + status 保存" })
+  .edge("ops", "dashboard", { label: "監視", tone: "info" })
+  .edge("dashboard", "scheduler", { label: "poll", tone: "info" })
+  .edge("scheduler", "worker", { label: "trigger", tone: "accent" })
+  .edge("worker", "healthProbe", { label: "probe", tone: "success" })
+  .edge("worker", "jobLog", { label: "log", tone: "success" })
+  .readout.gauge("utG", { source: "utilization", min: 0, max: 100, color: "#22c55e", label: "utilization %" })
+  .readout.countup("rcCU", { source: "runCount", unit: " 回", label: "累計 run", decimals: 0 })
+  .readout.stat("avgStat", { source: "avgSec", unit: " 秒", caption: "平均", label: "avg" })
+  .readout.stat("idleStat", { source: "idleMin", unit: " 分", caption: "idle", label: "idle" })
+  .phase("p1", {
+    duration: 1500,
+    title: "idle 監視",
+    body: "worker は idle、 高瀬様が dashboard で稼働状況確認。 scheduler → worker edge は inactive 表示 (灰色 + dashed)、 直近 trigger なし。 utilization 5 keep、 idleMin 55 → 60 tween、 avgSec 0 keep、 ops + dashboard + scheduler + worker lane active (worker は idle 表示)。",
+  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker").tween("idleMin", 55, 60).badge("idle"))
+  .phase("p2", {
+    duration: 1800,
+    title: "job trigger",
+    body: "scheduler の cron 発火、 worker に trigger 送信、 inactive edge が active edge に切替。 utilization 5 → 45 tween、 runCount 234 → 235 tween、 avgSec 0 → 8 tween、 idleMin 60 → 0 tween (idle 状態解除)。",
+  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker").tween("utilization", 5, 45).tween("runCount", 234, 235).tween("avgSec", 0, 8).tween("idleMin", 60, 0).badge("trigger"))
+  .phase("p3", {
+    duration: 2000,
+    title: "active 実行",
+    body: "worker が実処理実行、 healthProbe で resource 監視 + jobLog に progress 記録。 utilization 45 → 95 tween (gauge 針上振れ)、 avgSec 8 → 45 tween、 healthProbe + jobLog lane activate。",
+  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "healthProbe", "jobLog").tween("utilization", 45, 95).tween("avgSec", 8, 45).badge("active"))
+  .phase("p4", {
+    duration: 2000,
+    title: "完了 idle 復帰",
+    body: "job 完了、 worker が再度 idle 状態に戻る、 edge も inactive 表示に戻る。 utilization 95 → 8 tween (急降下、 idle 復帰)、 avgSec 45 → 48 tween (最終)、 idleMin 0 → 3 tween、 6 shape 全 active、 batch job cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "healthProbe", "jobLog").tween("utilization", 95, 8).tween("avgSec", 45, 48).tween("idleMin", 0, 3).badge("完了 idle"))
+  .build();

@@ -201,3 +201,103 @@ export const animationBuildStatus = diagram("animation-build-status", {
     body: "全 pass → prod cluster に rolling update、 status = 'deployed' 即時切替、 北野様に完了通知。 buildPct 85 → 100 tween (gauge 針最上位)、 durationSec 65 → 78 tween (最終)、 errRate 2 keep、 deployTarget lane activate、 6 shape 全 active、 CI/CD cycle 完遂。",
   }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "runner", "buildDb", "deployTarget").set("status", "deployed").tween("buildPct", 85, 100).tween("durationSec", 65, 78).badge("deployed"))
   .build();
+
+/**
+ * 9. animationDeployBadge v2 = badgePerPhase の business scenario 拡張 (production deploy pipeline で badge を preparing → deploying → validating → live に切替)、 shape-person + shape-mobile-device + shape-server-rack + shape-cloud + shape-cylinder + shape-iot-sensor の 6 shape で visual scene 化、 4 phase (preparing → deploying → validating → live) + 4 readout (gauge deploy 進捗 / countup 累計 deploy / stat rollout 秒 / stat health check pass 数) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 badgePerPhase 抽象 badge demo と並置。
+ */
+export const animationDeployBadge = diagram("animation-deploy-badge", {
+  topic: "badge 実業務例 = production deploy pipeline 4 phase (preparing → deploying → validating → live) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("sre", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("deployPct", { initial: 0 })
+  .state("deployCount", { initial: 4521 })
+  .state("rolloutSec", { initial: 0 })
+  .state("healthPass", { initial: 0 })
+  .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "release engineer 山内様", eyebrow: "release", subtitle: "金曜夕方の production deploy 担当" })
+  .node("dashboard", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "deploy dashboard", eyebrow: "device", subtitle: "phase badge + progress bar" })
+  .node("cluster", { lane: "service", stack: 0, kind: "shape-server-rack", title: "prod k8s cluster", eyebrow: "prod", subtitle: "10 pod rolling update target" })
+  .node("orchestrator", { lane: "service", stack: 1, kind: "shape-cloud", title: "deploy orchestrator", eyebrow: "orchestrator", subtitle: "canary → 100% + rollback safety" })
+  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health probe", eyebrow: "probe", subtitle: "各 pod /healthz + metric 監視" })
+  .node("deployLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "deploy 履歴 DB", eyebrow: "storage", subtitle: "全 phase + rollout 秒 + status 保存" })
+  .edge("sre", "dashboard", { label: "trigger", tone: "info" })
+  .edge("dashboard", "orchestrator", { label: "start", tone: "info" })
+  .edge("orchestrator", "cluster", { label: "rolling update", tone: "accent" })
+  .edge("cluster", "healthProbe", { label: "probe", tone: "success" })
+  .edge("healthProbe", "deployLog", { label: "log", tone: "success" })
+  .readout.gauge("dpG", { source: "deployPct", min: 0, max: 100, color: "#22c55e", label: "deploy %" })
+  .readout.countup("dcCU", { source: "deployCount", unit: " 回", label: "累計 deploy", decimals: 0 })
+  .readout.stat("rolStat", { source: "rolloutSec", unit: " 秒", caption: "rollout", label: "roll" })
+  .readout.stat("hpStat", { source: "healthPass", unit: " 件", caption: "health OK", label: "hp" })
+  .phase("p1", {
+    duration: 1500,
+    title: "preparing",
+    body: "山内様が deploy dashboard で trigger、 orchestrator が preparing badge 表示、 事前 rollback backup 作成。 deployPct 0 → 15 tween、 deployCount 4521 keep、 rolloutSec 0 → 8 tween、 healthPass 0 keep、 sre + dashboard + orchestrator lane active。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator").tween("deployPct", 0, 15).tween("rolloutSec", 0, 8).badge("preparing"))
+  .phase("p2", {
+    duration: 2000,
+    title: "deploying",
+    body: "orchestrator が k8s cluster に rolling update kick、 badge = 'deploying'、 5 pod 順次 replace。 deployPct 15 → 55 tween、 deployCount 4521 → 4522 tween、 rolloutSec 8 → 40 tween、 cluster lane activate。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster").tween("deployPct", 15, 55).tween("deployCount", 4521, 4522).tween("rolloutSec", 8, 40).badge("deploying"))
+  .phase("p3", {
+    duration: 2000,
+    title: "validating",
+    body: "全 pod up 後 healthProbe が /healthz 判定、 badge = 'validating'、 10 pod × 3 check = 30 判定。 deployPct 55 → 90 tween、 rolloutSec 40 → 70 tween、 healthPass 0 → 28 tween、 healthProbe lane activate。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe").tween("deployPct", 55, 90).tween("rolloutSec", 40, 70).tween("healthPass", 0, 28).badge("validating"))
+  .phase("p4", {
+    duration: 2000,
+    title: "live",
+    body: "全 health check pass、 badge = 'live'、 deployLog に成功記録、 山内様 Slack 完了報告。 deployPct 90 → 100 tween (gauge 針最上位)、 rolloutSec 70 → 78 tween (最終)、 healthPass 28 → 30 tween、 deployLog lane activate、 6 shape 全 active、 deploy pipeline cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "cluster", "healthProbe", "deployLog").tween("deployPct", 90, 100).tween("rolloutSec", 70, 78).tween("healthPass", 28, 30).badge("live"))
+  .build();
+
+/**
+ * 10. animationOrderProgress v2 = mixedTweenSet の business scenario 拡張 (EC 注文処理で amount tween + phase set 併用)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-warehouse + shape-cylinder の 6 shape で visual scene 化、 4 phase (init → charging → shipping → delivered) + 4 readout (gauge 進捗 / countup 累計 orders / stat 金額 / stat 配送日) が tween で visually 連続変化。 iteration 8 wave 8-W redesign。 mixedTweenSet 抽象 mixed demo と並置。
+ */
+export const animationOrderProgress = diagram("animation-order-progress", {
+  topic: "tween + set 併用 実業務例 = EC 注文処理 4 phase (init → charging → shipping → delivered) の flow を shape-* primitive 6 種で表現 + 4 readout tween",
+})
+  .lane("buyer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("phase", { initial: "init" })
+  .state("amount", { initial: 0 })
+  .state("orderCount", { initial: 12451 })
+  .state("dayCount", { initial: 0 })
+  .node("buyer", { lane: "buyer", stack: 0, kind: "shape-person", title: "buyer 藤本様", eyebrow: "buyer", subtitle: "商品注文 → 配送追跡者" })
+  .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "EC mobile app", eyebrow: "device", subtitle: "注文 + 決済 + 配送 status" })
+  .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC service", eyebrow: "shop", subtitle: "注文管理 + phase state 更新" })
+  .node("payment", { lane: "service", stack: 1, kind: "shape-brokerage", title: "payment gateway", eyebrow: "payment", subtitle: "Stripe charge + settlement" })
+  .node("warehouse", { lane: "outcome", stack: 0, kind: "shape-warehouse", title: "配送センター", eyebrow: "warehouse", subtitle: "picking + packing + shipping" })
+  .node("orderDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "注文 DB", eyebrow: "storage", subtitle: "全 phase transition + timestamp" })
+  .edge("buyer", "phone", { label: "注文", tone: "info" })
+  .edge("phone", "shop", { label: "commit", tone: "info" })
+  .edge("shop", "payment", { label: "charge", tone: "success" })
+  .edge("shop", "warehouse", { label: "picking", tone: "accent" })
+  .edge("warehouse", "orderDb", { label: "persist", tone: "success" })
+  .readout.gauge("prG", { source: "amount", min: 0, max: 100, color: "#22c55e", label: "進捗 %" })
+  .readout.countup("ocCU", { source: "orderCount", unit: " 件", label: "累計 orders", decimals: 0 })
+  .readout.stat("amtStat", { source: "amount", unit: " %", caption: "amount", label: "amt" })
+  .readout.stat("dayStat", { source: "dayCount", unit: " 日", caption: "経過日", label: "day" })
+  .phase("p1", {
+    duration: 1500,
+    title: "init",
+    body: "藤本様が注文 confirm、 shop が phase = 'init' set、 amount 0 で待機。 amount 0 → 15 tween、 orderCount 12451 keep、 dayCount 0 keep、 buyer + phone + shop lane active。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").set("phase", "init").tween("amount", 0, 15).badge("init"))
+  .phase("p2", {
+    duration: 2000,
+    title: "charging",
+    body: "phase = 'charging' set、 payment gateway が Stripe charge 実行、 amount progress 更新。 amount 15 → 45 tween、 orderCount 12451 → 12452 tween、 payment lane activate。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment").set("phase", "charging").tween("amount", 15, 45).tween("orderCount", 12451, 12452).badge("charging"))
+  .phase("p3", {
+    duration: 2200,
+    title: "shipping",
+    body: "phase = 'shipping' set、 warehouse が picking + packing + 配送業者 pickup、 amount 継続進捗。 amount 45 → 85 tween、 dayCount 0 → 1 tween、 warehouse lane activate。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse").set("phase", "shipping").tween("amount", 45, 85).tween("dayCount", 0, 1).badge("shipping"))
+  .phase("p4", {
+    duration: 2000,
+    title: "delivered",
+    body: "phase = 'delivered' set、 藤本様手元到着、 orderDb に final state 記録。 amount 85 → 100 tween (gauge 針最上位)、 dayCount 1 → 3 tween (最終)、 orderDb lane activate、 6 shape 全 active、 EC 注文 cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payment", "warehouse", "orderDb").set("phase", "delivered").tween("amount", 85, 100).tween("dayCount", 1, 3).badge("delivered"))
+  .build();
