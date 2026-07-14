@@ -28,7 +28,7 @@ export const setSwitch = diagram("set-switch", { topic: "set: 即時切替 (lerp
   .lane("l", { x: 0, width: 500 })
   .state("status", { initial: "idle" })
   .node("a", { lane: "l", stack: 0, kind: "function", title: "処理", subtitle: "状態: {状態}" })
-  .phase("p1", { duration: 2000, title: "idle → 実行中", body: "setで文字列 状態 を即時切替。 フェーズ 開始の瞬間に値が変わる。" }, (p: PhaseBuilder) => p.activate("a").set("status", "running").badge("running"))
+  .phase("p1", { duration: 2000, title: "アイドル → 実行中", body: "setで文字列状態を即時切替。 フェーズ開始の瞬間に値が変わる。" }, (p: PhaseBuilder) => p.activate("a").set("status", "running").badge("実行中"))
   .phase("p2", { duration: 2000, title: "実行中 → 完了", body: "次 フェーズ で 完了 に切替。 tweenと違い段階的でなく瞬間遷移。" }, (p: PhaseBuilder) => p.activate("a").set("status", "done").badge("done"))
   .build();
 
@@ -74,7 +74,7 @@ export const animationCounterViewCount = diagram("animation-counter-view-count",
   .edge("phone", "videoSvc", { label: "取得", tone: "info" })
   .edge("videoSvc", "cdn", { label: "ストリーム", tone: "success" })
   .edge("videoSvc", "analytics", { label: "追跡", tone: "accent" })
-  .edge("analytics", "viewDb", { label: "persist", tone: "success" })
+  .edge("analytics", "viewDb", { label: "保存", tone: "success" })
   .readout.gauge("virG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral度 %" })
   .readout.countup("vcCU", { source: "viewCount", unit: " 表示", label: "累計 表示", decimals: 0 })
   .readout.stat("shrStat", { source: "shareCount", unit: " 共有", caption: "共有", label: "共有" })
@@ -82,7 +82,7 @@ export const animationCounterViewCount = diagram("animation-counter-view-count",
   .phase("p1", {
     duration: 1800,
     title: "公開直後(Day 0)",
-    body: "動画公開、 platform推薦 初回配信、 平方様含む初期視聴者が視聴開始。 viralRate 0 → 15 tween、 viewCount 0 → 250 tween、 shareCount 0 → 5 tween、 avgSec 0 → 45 tween、 視聴者 + スマホ + videoSvc + CDN lane active。",
+    body: "動画公開、 platform推薦 初回配信、 平方様含む初期視聴者が視聴開始。 viralRate 0 → 15 tween、 viewCount 0 → 250 tween、 shareCount 0 → 5 tween、 avgSec 0 → 45 tween、 視聴者 + スマホ + videoSvc + CDN lane有効。",
   }, (p: PhaseBuilder) => p.activate("viewer", "phone", "videoSvc", "cdn", "viewer-phone", "phone-videoSvc", "videoSvc-cdn").tween("viralRate", 0, 15).tween("viewCount", 0, 250).tween("shareCount", 0, 5).tween("avgSec", 0, 45).badge("Day 0"))
   .phase("p2", {
     duration: 2200,
@@ -124,7 +124,7 @@ export const animationSprintProgress = diagram("animation-sprint-progress", {
   .edge("laptop", "jira", { label: "更新", tone: "info" })
   .edge("jira", "cicd", { label: "起動", tone: "success" })
   .edge("cicd", "sprintDb", { label: "ログ", tone: "accent" })
-  .edge("sprintDb", "retro", { label: "aggregate", tone: "success" })
+  .edge("sprintDb", "retro", { label: "集約", tone: "success" })
   .readout.gauge("prG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "スプリント 進捗 %" })
   .readout.countup("spCU", { source: "spDone", unit: " SP", label: "消化story point", decimals: 0 })
   .readout.stat("remStat", { source: "taskRemain", unit: " タスク", caption: "残 タスク", label: "残" })
@@ -132,22 +132,22 @@ export const animationSprintProgress = diagram("animation-sprint-progress", {
   .phase("p1", {
     duration: 1800,
     title: "計画(Day 1)",
-    body: "松本様がスプリント計画会議主催、 バックログ から20 SP選定 + 8名で担当割当。 progress 0 → 10 tween、 spDone 0 → 2 tween、 taskRemain 12 keep、 ベロシティ0 → 2 tween、 スクラム + ノートPC + jira lane active。",
+    body: "松本様がスプリント計画会議主催、 バックログ から20 SP選定 + 8名で担当割当。 進捗0 → 10 tween、 spDone 0 → 2 tween、 taskRemain 12 keep、 ベロシティ0 → 2 tween、 スクラム + ノートPC + jira lane有効。",
   }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "scrum-laptop", "laptop-jira").tween("progress", 0, 10).tween("spDone", 0, 2).tween("velocity", 0, 2).badge("計画"))
   .phase("p2", {
     duration: 2200,
     title: "design (Day 4)",
-    body: "設計 レビュー + プロトタイプ完成 + 実装着手、 SP 7消化。 progress 10 → 40 tween、 spDone 2 → 8 tween、 taskRemain 12 → 8 tween、 ベロシティ2 → 3 tween、 CI/CD lane activate。",
+    body: "設計 レビュー + プロトタイプ完成 + 実装着手、 SP 7消化。 進捗10 → 40 tween、 spDone 2 → 8 tween、 taskRemain 12 → 8 tween、 ベロシティ2 → 3 tween、 CI/CD lane activate。",
   }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd", "scrum-laptop", "laptop-jira", "jira-cicd").tween("progress", 10, 40).tween("spDone", 2, 8).tween("taskRemain", 12, 8).tween("velocity", 2, 3).badge("design"))
   .phase("p3", {
     duration: 2200,
     title: "impl (Day 8)",
-    body: "実装 フェーズ 佳境、 PRマージ 続々、 ステージング デプロイ 開始。 progress 40 → 80 tween、 spDone 8 → 16 tween、 taskRemain 8 → 3 tween、 ベロシティ3 → 4 tween、 sprintDb lane activate。",
+    body: "実装 フェーズ 佳境、 PRマージ 続々、 ステージング デプロイ 開始。 進捗40 → 80 tween、 spDone 8 → 16 tween、 taskRemain 8 → 3 tween、 ベロシティ3 → 4 tween、 sprintDb lane activate。",
   }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd", "sprintDb", "scrum-laptop", "laptop-jira", "jira-cicd", "cicd-sprintDb").tween("progress", 40, 80).tween("spDone", 8, 16).tween("taskRemain", 8, 3).tween("velocity", 3, 4).badge("impl"))
   .phase("p4", {
     duration: 2000,
     title: "ship + ふりかえり(Day 14)",
-    body: "全 タスク 完遂、 productionデプロイ 成功、 ふりかえり で アクション項目 抽出。 progress 80 → 100 tween (ゲージ 針最上位)、 spDone 16 → 20 tween、 taskRemain 3 → 0 tween、 ベロシティ4 → 3 tween (平均化)、 ふりかえりlane activate、 6 shape全active、 スプリント42完遂。",
+    body: "全 タスク 完遂、 productionデプロイ 成功、 ふりかえり で アクション項目 抽出。 進捗80 → 100 tween (ゲージ 針最上位)、 spDone 16 → 20 tween、 taskRemain 3 → 0 tween、 ベロシティ4 → 3 tween (平均化)、 ふりかえりlane activate、 6 shape全active、 スプリント42完遂。",
   }, (p: PhaseBuilder) => p.activate("scrum", "laptop", "jira", "cicd", "sprintDb", "retro", "scrum-laptop", "laptop-jira", "jira-cicd", "cicd-sprintDb", "sprintDb-retro").tween("progress", 80, 100).tween("spDone", 16, 20).tween("taskRemain", 3, 0).tween("velocity", 4, 3).badge("ship"))
   .build();
 
@@ -180,12 +180,12 @@ export const animationBuildStatus = diagram("animation-build-status", {
   .edge("deployTarget", "buildDb", { label: "ログ", tone: "success" })
   .readout.gauge("bpG", { source: "buildPct", min: 0, max: 100, color: "#22c55e", label: "ビルド %" })
   .readout.countup("bdCU", { source: "buildCount", unit: " 回", label: "累計 ビルド", decimals: 0 })
-  .readout.stat("durStat", { source: "durationSec", unit: " 秒", caption: "duration", label: "dur" })
+  .readout.stat("durStat", { source: "durationSec", unit: " 秒", caption: "所要時間", label: "時間" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
     title: "キュー投入",
-    body: "北野様がPRプッシュ、 GitHub Actionsが ワークフロー キュー 投入 状態 = 'キュー投入'。 buildPct 0 → 10 tween、 buildCount 8721 keep、 durationSec 0 → 3 tween、 errRate 0 keep、 開発 + スマホ + gh lane active。",
+    body: "北野様がPRプッシュ、 GitHub Actionsが ワークフロー キュー 投入 状態 = 'キュー投入'。 buildPct 0 → 10 tween、 buildCount 8721 keep、 durationSec 0 → 3 tween、 errRate 0 keep、 開発 + スマホ + gh lane有効。",
   }, (p: PhaseBuilder) => p.activate("dev", "phone", "gh", "dev-phone", "phone-gh").set("status", "queued").tween("buildPct", 0, 10).tween("durationSec", 0, 3).tween("curStep", 0, 1).badge("queued"))
   .phase("p2", {
     duration: 2000,
@@ -220,24 +220,24 @@ export const animationDeployBadge = diagram("animation-deploy-badge", {
   .state("healthPass", { initial: 0 })
   .state("curStep", { initial: 0 })
   .node("sre", { lane: "sre", stack: 0, kind: "shape-person", title: "releaseエンジニア 山内様", eyebrow: "リリース", subtitle: "金曜夕方のproduction deploy担当" })
-  .node("dashboard", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "デプロイ ダッシュボード", eyebrow: "端末", subtitle: "フェーズ バッジ + progress bar" })
+  .node("dashboard", { lane: "sre", stack: 1, kind: "shape-mobile-device", title: "デプロイ ダッシュボード", eyebrow: "端末", subtitle: "フェーズ バッジ + 進捗bar" })
   .node("cluster", { lane: "service", stack: 0, kind: "shape-server-rack", title: "本番K8sクラスター", eyebrow: "本番", subtitle: "10 podローリング更新target" })
-  .node("orchestrator", { lane: "service", stack: 1, kind: "shape-cloud", title: "deploy編成器", eyebrow: "編成器", subtitle: "カナリア → 100% + rollback safety" })
-  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health probe", eyebrow: "probe", subtitle: "各pod /healthz + metric監視" })
+  .node("orchestrator", { lane: "service", stack: 1, kind: "shape-cloud", title: "deploy編成器", eyebrow: "編成器", subtitle: "カナリア → 100% + 戻しsafety" })
+  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health探査", eyebrow: "探査", subtitle: "各pod /healthz + metric監視" })
   .node("deployLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "deploy履歴DB", eyebrow: "保存", subtitle: "全phase + rollout秒 + status保存" })
   .edge("sre", "dashboard", { label: "起動", tone: "info" })
   .edge("dashboard", "orchestrator", { label: "開始", tone: "info" })
   .edge("orchestrator", "cluster", { label: "ローリング更新", tone: "accent" })
-  .edge("cluster", "healthProbe", { label: "probe", tone: "success" })
+  .edge("cluster", "healthProbe", { label: "探査", tone: "success" })
   .edge("healthProbe", "deployLog", { label: "ログ", tone: "success" })
   .readout.gauge("dpG", { source: "deployPct", min: 0, max: 100, color: "#22c55e", label: "デプロイ %" })
   .readout.countup("dcCU", { source: "deployCount", unit: " 回", label: "累計 デプロイ", decimals: 0 })
-  .readout.stat("rolStat", { source: "rolloutSec", unit: " 秒", caption: "rollout", label: "roll" })
+  .readout.stat("rolStat", { source: "rolloutSec", unit: " 秒", caption: "展開", label: "巻" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
     title: "preparing",
-    body: "山内様が デプロイ ダッシュボード で 起動、 編成器 がpreparingバッジ 表示、 事前rollbackバックアップ 作成。 deployPct 0 → 15 tween、 deployCount 4521 keep、 rolloutSec 0 → 8 tween、 healthPass 0 keep、 SRE + ダッシュボード + 編成器lane active。",
+    body: "山内様が デプロイ ダッシュボード で 起動、 編成器 がpreparingバッジ 表示、 事前rollbackバックアップ 作成。 deployPct 0 → 15 tween、 deployCount 4521 keep、 rolloutSec 0 → 8 tween、 healthPass 0 keep、 SRE + ダッシュボード + 編成器lane有効。",
   }, (p: PhaseBuilder) => p.activate("sre", "dashboard", "orchestrator", "sre-dashboard", "dashboard-orchestrator").tween("deployPct", 0, 15).tween("rolloutSec", 0, 8).tween("curStep", 0, 1).badge("preparing"))
   .phase("p2", {
     duration: 2000,
@@ -274,22 +274,22 @@ export const animationOrderProgress = diagram("animation-order-progress", {
   .node("buyer", { lane: "buyer", stack: 0, kind: "shape-person", title: "購入者 藤本様", eyebrow: "購入者", subtitle: "商品注文 → 配送追跡者" })
   .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "ECモバイル アプリ", eyebrow: "端末", subtitle: "注文 + 決済 + 配送status" })
   .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "ECサービス", eyebrow: "ショップ", subtitle: "注文管理 + フェーズstate更新" })
-  .node("payment", { lane: "service", stack: 1, kind: "shape-brokerage", title: "決済ゲートウェイ", eyebrow: "決済", subtitle: "Stripe charge + settlement" })
-  .node("warehouse", { lane: "outcome", stack: 0, kind: "shape-warehouse", title: "配送センター", eyebrow: "warehouse", subtitle: "picking + packing + 配送" })
+  .node("payment", { lane: "service", stack: 1, kind: "shape-brokerage", title: "決済ゲートウェイ", eyebrow: "決済", subtitle: "Stripe課金 + settlement" })
+  .node("warehouse", { lane: "outcome", stack: 0, kind: "shape-warehouse", title: "配送センター", eyebrow: "warehouse", subtitle: "選定 + packing + 配送" })
   .node("orderDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "注文DB", eyebrow: "保存", subtitle: "全phase transition + timestamp" })
   .edge("buyer", "phone", { label: "注文", tone: "info" })
   .edge("phone", "shop", { label: "コミット", tone: "info" })
-  .edge("shop", "payment", { label: "charge", tone: "success" })
-  .edge("shop", "warehouse", { label: "picking", tone: "accent" })
-  .edge("warehouse", "orderDb", { label: "persist", tone: "success" })
+  .edge("shop", "payment", { label: "課金", tone: "success" })
+  .edge("shop", "warehouse", { label: "選定", tone: "accent" })
+  .edge("warehouse", "orderDb", { label: "保存", tone: "success" })
   .readout.gauge("prG", { source: "curStep", min: 0, max: 3, color: "#22c55e", label: "進捗 ステップ" })
   .readout.countup("ocCU", { source: "orderCount", unit: " 件", label: "累計 注文", decimals: 0 })
-  .readout.stat("amtStat", { source: "amount", unit: " %", caption: "金額", label: "amt" })
+  .readout.stat("amtStat", { source: "amount", unit: " %", caption: "金額", label: "額" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
     title: "init",
-    body: "藤本様が注文 確認、 ショップ が フェーズ = 'init' set、 金額0で待機。 金額0 → 15 tween、 orderCount 12451 keep、 dayCount 0 keep、 購入者 + スマホ + ショップlane active。",
+    body: "藤本様が注文 確認、 ショップ が フェーズ = 'init' set、 金額0で待機。 金額0 → 15 tween、 orderCount 12451 keep、 dayCount 0 keep、 購入者 + スマホ + ショップlane有効。",
   }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "buyer-phone", "phone-shop").set("phase", "init").tween("amount", 0, 15).tween("curStep", 0, 1).badge("init"))
   .phase("p2", {
     duration: 2000,

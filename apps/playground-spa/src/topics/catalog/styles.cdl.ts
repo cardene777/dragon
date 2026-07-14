@@ -35,7 +35,7 @@ export const stateActive = diagram("state-active", { topic: "edge: active 状態
   .lane("l2", { x: 600, width: 280 })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
-  .edge("a", "b", { id: "e", label: "active", tone: "accent", style: "solid" })
+  .edge("a", "b", { id: "e", label: "有効", tone: "accent", style: "solid" })
   .phase("p", { duration: 1800, title: "active状態", body: "フェーズ でactivateされたedgeは太く + 色付きでvisible。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("active"))
   .build();
 
@@ -44,7 +44,7 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 
   .lane("l2", { x: 600, width: 280 })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
-  .edge("a", "b", { id: "e", label: "inactive", tone: "accent", style: "solid" })
+  .edge("a", "b", { id: "e", label: "無効", tone: "accent", style: "solid" })
   .phase("p", { duration: 1800, title: "inactive状態", body: "activateされていないedgeは薄い灰色 + dashで静的表示。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("edge は inactive"))
   .build();
 
@@ -66,38 +66,38 @@ export const stateActiveConnection = diagram("state-active-connection", {
   .node("user", { lane: "client", stack: 0, kind: "shape-person", title: "chat利用者 上野様", eyebrow: "利用者", subtitle: "realtime chat利用中" })
   .node("app", { lane: "client", stack: 1, kind: "shape-mobile-device", title: "chatモバイル アプリ", eyebrow: "端末", subtitle: "WebSocket接続 + msg送受信" })
   .node("wsGateway", { lane: "service", stack: 0, kind: "shape-website", title: "WebSocketゲートウェイ", eyebrow: "ゲートウェイ", subtitle: "接続upgrade + 認証 + routing" })
-  .node("chatSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "chatサービス", eyebrow: "chat", subtitle: "msg broadcast + presence管理" })
-  .node("presenceSvc", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "presenceサービス", eyebrow: "presence", subtitle: "全 セッション 監視 + ハートビート" })
+  .node("chatSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "chatサービス", eyebrow: "チャット", subtitle: "メッセージ 配信 + presence管理" })
+  .node("presenceSvc", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "presenceサービス", eyebrow: "在席", subtitle: "全 セッション 監視 + ハートビート" })
   .node("msgDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "msg履歴DB", eyebrow: "保存", subtitle: "全msg保存 + 検索 インデックス" })
   .edge("user", "app", { label: "起動", tone: "info" })
-  .edge("app", "wsGateway", { label: "connect (active)", tone: "accent" })
+  .edge("app", "wsGateway", { label: "接続(有効)", tone: "accent" })
   .edge("wsGateway", "chatSvc", { label: "経路", tone: "success" })
   .edge("chatSvc", "presenceSvc", { label: "生存確認", tone: "info" })
-  .edge("chatSvc", "msgDb", { label: "persist", tone: "success" })
+  .edge("chatSvc", "msgDb", { label: "永続化", tone: "success" })
   .readout.gauge("hpG", { source: "healthPct", min: 0, max: 100, color: "#22c55e", label: "connection健康度 %" })
-  .readout.countup("mcCU", { source: "msgCount", unit: " msg", label: "累計msg", decimals: 0 })
-  .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "lat" })
+  .readout.countup("mcCU", { source: "msgCount", unit: " メッセージ", label: "累計msg", decimals: 0 })
+  .readout.stat("latStat", { source: "latency", unit: " ミリ秒", caption: "平均latency", label: "遅延" })
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
     title: "接続前",
-    body: "上野様がchatアプリ 起動、 WebSocket接続まだ確立していない。 healthPct 0 keep、 msgCount 0 keep、 latency 0 keep、 activeSessions 8541 keep、 利用者 + アプリlane active。",
+    body: "上野様がchatアプリ 起動、 WebSocket接続まだ確立していない。 healthPct 0 keep、 msgCount 0 keep、 latency 0 keep、 activeSessions 8541 keep、 利用者 + アプリlane有効。",
   }, (p: PhaseBuilder) => p.activate("user", "app", "user-app").tween("curStep", 0, 1).badge("接続前"))
   .phase("p2", {
     duration: 1800,
     title: "ハンドシェイク",
-    body: "WebSocket upgradeハンドシェイク + 認証 トークン 検証、 wsGatewayで接続establish。 healthPct 0 → 55 tween、 latency 0 → 45 tween、 activeSessions 8541 → 8542 tween、 wsGateway lane activate、 active edge発火。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "user-app", "app-wsGateway").tween("healthPct", 0, 55).tween("latency", 0, 45).tween("activeSessions", 8541, 8542).tween("curStep", 1, 2).badge("handshake"))
+    body: "WebSocket upgradeハンドシェイク + 認証 トークン 検証、 wsGatewayで接続establish。 healthPct 0 → 55 tween、 latency 0 → 45 tween、 activeSessions 8541 → 8542 tween、 wsGateway lane activate、 有効edge発火。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "user-app", "app-wsGateway").tween("healthPct", 0, 55).tween("latency", 0, 45).tween("activeSessions", 8541, 8542).tween("curStep", 1, 2).badge("握手"))
   .phase("p3", {
     duration: 2200,
-    title: "active messaging",
-    body: "上野様がchat msg送信、 chatSvcがbroadcast + msgDb persist、 active connection上で双方向msg。 healthPct 55 → 95 tween (ゲージ 針上振れ)、 msgCount 0 → 24 tween、 latency 45 → 32 tween (低遅延安定)、 chatSvc + msgDb lane activate。",
+    title: "有効messaging",
+    body: "上野様がchat msg送信、 chatSvcがbroadcast + msgDb保存、 有効connection上で双方向msg。 healthPct 55 → 95 tween (ゲージ 針上振れ)、 msgCount 0 → 24 tween、 latency 45 → 32 tween (低遅延安定)、 chatSvc + msgDb lane activate。",
   }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "chatSvc", "msgDb", "user-app", "app-wsGateway", "wsGateway-chatSvc", "chatSvc-msgDb").tween("healthPct", 55, 95).tween("msgCount", 0, 24).tween("latency", 45, 32).tween("curStep", 2, 3).badge("messaging"))
   .phase("p4", {
     duration: 2000,
     title: "維持通信",
-    body: "idle状態でpresenceSvcが ハートビートping、 接続維持 + セッション 追跡。 healthPct 95 → 100 tween (最高値)、 msgCount 24 → 30 tween、 latency 32 → 28 tween、 activeSessions 8542 keep、 presenceSvc lane activate、 6 shape全active、 realtime chat cycle完遂。",
-  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "chatSvc", "msgDb", "presenceSvc", "user-app", "app-wsGateway", "wsGateway-chatSvc", "chatSvc-presenceSvc", "chatSvc-msgDb").tween("healthPct", 95, 100).tween("msgCount", 24, 30).tween("latency", 32, 28).set("curStep", 3).badge("keepalive"))
+    body: "idle状態でpresenceSvcが ハートビートping、 接続維持 + セッション 追跡。 healthPct 95 → 100 tween (最高値)、 msgCount 24 → 30 tween、 latency 32 → 28 tween、 activeSessions 8542 keep、 presenceSvc lane activate、 6 shape全active、 realtimeチャットcycle完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "wsGateway", "chatSvc", "msgDb", "presenceSvc", "user-app", "app-wsGateway", "wsGateway-chatSvc", "chatSvc-presenceSvc", "chatSvc-msgDb").tween("healthPct", 95, 100).tween("msgCount", 24, 30).tween("latency", 32, 28).set("curStep", 3).badge("維持通信"))
   .build();
 
 /**
@@ -119,12 +119,12 @@ export const stateInactiveMonitor = diagram("state-inactive-monitor", {
   .node("dashboard", { lane: "ops", stack: 1, kind: "shape-mobile-device", title: "バッチdashboard", eyebrow: "端末", subtitle: "ジョブstatus + 履歴view" })
   .node("scheduler", { lane: "service", stack: 0, kind: "shape-cloud", title: "ジョブscheduler", eyebrow: "scheduler", subtitle: "Cron起動 + concurrency制御" })
   .node("worker", { lane: "service", stack: 1, kind: "shape-server-rack", title: "バッチ ワーカー", eyebrow: "ワーカー", subtitle: "現在idle · 次trigger待機" })
-  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health probe", eyebrow: "probe", subtitle: "ワーカー liveness + resource監視" })
-  .node("jobLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "ジョブ 履歴DB", eyebrow: "保存", subtitle: "全run + duration + status保存" })
+  .node("healthProbe", { lane: "outcome", stack: 0, kind: "shape-iot-sensor", title: "health探査", eyebrow: "探査", subtitle: "ワーカー liveness + resource監視" })
+  .node("jobLog", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "ジョブ 履歴DB", eyebrow: "保存", subtitle: "全run + 所要時間 + status保存" })
   .edge("ops", "dashboard", { label: "監視", tone: "info" })
   .edge("dashboard", "scheduler", { label: "ポーリング", tone: "info" })
   .edge("scheduler", "worker", { label: "起動", tone: "accent" })
-  .edge("worker", "healthProbe", { label: "probe", tone: "success" })
+  .edge("worker", "healthProbe", { label: "探査", tone: "success" })
   .edge("healthProbe", "jobLog", { label: "ログ", tone: "success" })
   .readout.gauge("utG", { source: "utilization", min: 0, max: 100, color: "#22c55e", label: "utilization %" })
   .readout.countup("rcCU", { source: "runCount", unit: " 回", label: "累計run", decimals: 0 })
@@ -132,13 +132,13 @@ export const stateInactiveMonitor = diagram("state-inactive-monitor", {
   .readout.stepProgress("stepSp", { source: "curStep", stepsSource: "stepLabels", color: "#2563eb", label: "フェーズステップ" })
   .phase("p1", {
     duration: 1500,
-    title: "idle監視",
-    body: "ワーカー はidle、 高瀬様が ダッシュボード で稼働状況確認。 scheduler → ワーカー edgeはinactive表示(灰色 + dashed)、 直近 起動 なし。 utilization 5 keep、 idleMin 55 → 60 tween、 avgSec 0 keep、 運用 + ダッシュボード + scheduler + ワーカー lane active (ワーカー はidle表示)。",
-  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "ops-dashboard", "dashboard-scheduler", "scheduler-worker").tween("idleMin", 55, 60).tween("curStep", 0, 1).badge("idle"))
+    title: "アイドル監視",
+    body: "ワーカー はidle、 高瀬様が ダッシュボード で稼働状況確認。 scheduler → ワーカー edgeはinactive表示(灰色 + dashed)、 直近 起動 なし。 utilization 5 keep、 idleMin 55 → 60 tween、 avgSec 0 keep、 運用 + ダッシュボード + scheduler + ワーカー lane有効(ワーカー はidle表示)。",
+  }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "ops-dashboard", "dashboard-scheduler", "scheduler-worker").tween("idleMin", 55, 60).tween("curStep", 0, 1).badge("アイドル"))
   .phase("p2", {
     duration: 1800,
     title: "ジョブtrigger",
-    body: "schedulerのCron発火、 ワーカー に 起動 送信、 inactive edgeがactive edgeに切替。 utilization 5 → 45 tween、 runCount 234 → 235 tween、 avgSec 0 → 8 tween、 idleMin 60 → 0 tween (idle状態解除)。",
+    body: "schedulerのCron発火、 ワーカー に 起動 送信、 無効edgeがactive edgeに切替。 utilization 5 → 45 tween、 runCount 234 → 235 tween、 avgSec 0 → 8 tween、 idleMin 60 → 0 tween (idle状態解除)。",
   }, (p: PhaseBuilder) => p.activate("ops", "dashboard", "scheduler", "worker", "ops-dashboard", "dashboard-scheduler", "scheduler-worker").tween("utilization", 5, 45).tween("runCount", 234, 235).tween("avgSec", 0, 8).tween("idleMin", 60, 0).tween("curStep", 1, 2).badge("trigger"))
   .phase("p3", {
     duration: 2000,
