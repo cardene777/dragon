@@ -45,6 +45,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   patternSchedule: "スケジューリング",
   patternHook: "フック",
   patternEmit: "イベント発火",
+  // wave 8-R business scenario 拡張
+  patternDirectCheckout: "直結 (EC 決済)",
+  patternPassthroughApiGateway: "貫通 (API Gateway)",
+  patternCallRwUserProfile: "呼出 → 読取 → 書込 (プロフィール更新)",
 
   // cookbook
   apiCall: "API 呼び出し",

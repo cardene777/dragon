@@ -216,3 +216,153 @@ export const patternValidateProcess = diagram("pattern-validate-process", { topi
   .phase("ok", { duration: 1500, title: "ok", body: "検証成功で process。" }, (p: PhaseBuilder) => p.activate("validate", "process", "e3").badge("ok"))
   .phase("ng", { duration: 1500, title: "ng", body: "失敗時は ValidationError emit。" }, (p: PhaseBuilder) => p.activate("validate", "err", "e4").badge("ng"))
   .build();
+
+/**
+ * 13. patternDirectCheckout v2 = pattern 1 Direct の business scenario 拡張 (EC 決済で顧客 → payment service 直結)、 shape-person + shape-mobile-device + shape-online-shop + shape-brokerage + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (商品選択 → checkout → 決済送信 → 確定) + 4 readout (gauge 決済進捗 / countup 累計注文 / stat 金額 / stat 平均処理秒) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 1 の抽象 patternDirect と並置、 diff-additive で教育資料保全。
+ */
+export const patternDirectCheckout = diagram("pattern-direct-checkout", {
+  topic: "pattern 1 Direct business scenario = EC 決済で顧客 → payment service 直結 4 phase (商品選択 → checkout → 決済送信 → 確定) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+})
+  .lane("buyer", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("progress", { initial: 0 })
+  .state("orderCount", { initial: 452 })
+  .state("amount", { initial: 0 })
+  .state("procSec", { initial: 0 })
+  .node("buyer", { lane: "buyer", stack: 0, kind: "shape-person", title: "buyer 岸様", eyebrow: "customer", subtitle: "夜のオンライン買い物" })
+  .node("phone", { lane: "buyer", stack: 1, kind: "shape-mobile-device", title: "iPhone EC app", eyebrow: "device", subtitle: "商品閲覧 + カート + 決済 UI" })
+  .node("shop", { lane: "service", stack: 0, kind: "shape-online-shop", title: "EC checkout", eyebrow: "shop", subtitle: "商品明細 + 送料 + 合計計算" })
+  .node("payGateway", { lane: "service", stack: 1, kind: "shape-brokerage", title: "決済 gateway (Stripe)", eyebrow: "payment", subtitle: "card 検証 + tokenize + settle" })
+  .node("notify", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "通知 service", eyebrow: "notify", subtitle: "受注確認メール + push" })
+  .node("orderDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "注文 DB", eyebrow: "storage", subtitle: "確定注文 + 決済 ref 保存" })
+  .edge("buyer", "phone", { label: "選ぶ", tone: "info" })
+  .edge("phone", "shop", { label: "checkout", tone: "info" })
+  .edge("shop", "payGateway", { label: "charge (直結)", tone: "accent" })
+  .edge("payGateway", "orderDb", { label: "confirm", tone: "success" })
+  .edge("payGateway", "notify", { label: "notify", tone: "success" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "決済進捗 %" })
+  .readout.countup("ordCU", { source: "orderCount", unit: " 件", label: "累計注文", decimals: 0 })
+  .readout.stat("amtStat", { source: "amount", unit: " ¥", caption: "決済額", label: "amount" })
+  .readout.stat("secStat", { source: "procSec", unit: " 秒", caption: "処理秒", label: "sec" })
+  .phase("p1", {
+    duration: 1500,
+    title: "商品選択",
+    body: "岸様が EC app 起動、 商品 3 点をカート追加。 progress 0 → 20 tween、 orderCount 452 keep、 amount 0 → 15800 tween、 procSec 0 → 2 tween、 buyer + phone + shop lane active。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("progress", 0, 20).tween("amount", 0, 15800).tween("procSec", 0, 2).badge("選択"))
+  .phase("p2", {
+    duration: 1800,
+    title: "checkout",
+    body: "shop で送料 + 消費税計算、 決済 gateway 情報入力欄表示。 progress 20 → 50 tween、 amount 15800 → 17380 tween、 procSec 2 → 5 tween、 shop lane 継続 active。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop").tween("progress", 20, 50).tween("amount", 15800, 17380).tween("procSec", 2, 5).badge("checkout"))
+  .phase("p3", {
+    duration: 2000,
+    title: "決済送信 (直結)",
+    body: "shop → payGateway 直結で charge、 中継 node なし (Direct pattern)、 Stripe 側で tokenize + settle。 progress 50 → 85 tween、 procSec 5 → 8 tween、 payGateway lane activate、 直結 edge accent 発火。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway").tween("progress", 50, 85).tween("procSec", 5, 8).badge("charge"))
+  .phase("p4", {
+    duration: 2000,
+    title: "確定",
+    body: "決済 OK で orderDb 保存 + notify service で受注確認メール送信。 progress 85 → 100 tween (gauge 針最上位)、 orderCount 452 → 453 tween、 procSec 8 → 10 tween、 orderDb + notify lane activate、 6 shape 全 active、 決済完遂。",
+  }, (p: PhaseBuilder) => p.activate("buyer", "phone", "shop", "payGateway", "orderDb", "notify").tween("progress", 85, 100).tween("orderCount", 452, 453).tween("procSec", 8, 10).badge("確定"))
+  .build();
+
+/**
+ * 14. patternPassthroughApiGateway v2 = pattern 2 Passthrough の business scenario 拡張 (SaaS API request を API Gateway 経由で microservice に relay)、 shape-person + shape-mobile-device + shape-api-gateway + shape-server-rack + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Client request → Gateway route → Service 処理 → Response) + 4 readout (gauge レイテンシ / countup req/s / stat p99 ms / stat error 率) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 2 の抽象 patternPassthrough と並置。
+ */
+export const patternPassthroughApiGateway = diagram("pattern-passthrough-api-gateway", {
+  topic: "pattern 2 Passthrough business scenario = SaaS API request を API Gateway 経由で microservice に relay する 4 phase (request → route → 処理 → response) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+})
+  .lane("client", { x: 0, width: 220 })
+  .lane("gateway", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("latencyMs", { initial: 0 })
+  .state("reqPerSec", { initial: 850 })
+  .state("p99Ms", { initial: 45 })
+  .state("errorRate", { initial: 0 })
+  .node("apiUser", { lane: "client", stack: 0, kind: "shape-person", title: "API 利用者 開発者", eyebrow: "developer", subtitle: "自社 app から REST API call" })
+  .node("cliTool", { lane: "client", stack: 1, kind: "shape-mobile-device", title: "curl + Postman", eyebrow: "device", subtitle: "GET /api/v1/orders" })
+  .node("apiGw", { lane: "gateway", stack: 0, kind: "shape-api-gateway", title: "API Gateway (Kong)", eyebrow: "gateway", subtitle: "auth + rate limit + route (Passthrough)" })
+  .node("orderSvc", { lane: "gateway", stack: 1, kind: "shape-server-rack", title: "order microservice", eyebrow: "service", subtitle: "実業務ロジック実行 + DB query" })
+  .node("apm", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "Datadog APM", eyebrow: "apm", subtitle: "trace + metric + alert" })
+  .node("logStore", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "log storage", eyebrow: "storage", subtitle: "request/response log 30 日保持" })
+  .edge("apiUser", "cliTool", { label: "実行", tone: "info" })
+  .edge("cliTool", "apiGw", { label: "GET /api", tone: "info" })
+  .edge("apiGw", "orderSvc", { label: "route (Passthrough)", tone: "accent" })
+  .edge("orderSvc", "apm", { label: "trace", tone: "success" })
+  .edge("orderSvc", "logStore", { label: "persist", tone: "accent" })
+  .readout.gauge("latG", { source: "latencyMs", min: 0, max: 500, color: "#22c55e", label: "レイテンシ ms" })
+  .readout.countup("rpsCU", { source: "reqPerSec", unit: " req/s", label: "req/s", decimals: 0 })
+  .readout.stat("p99Stat", { source: "p99Ms", unit: " ms", caption: "p99 遅延", label: "p99" })
+  .readout.stat("errStat", { source: "errorRate", unit: " %", caption: "error 率", label: "err" })
+  .phase("p1", {
+    duration: 1500,
+    title: "Client request",
+    body: "開発者が curl で GET /api/v1/orders 送信。 latencyMs 0 → 15 tween、 reqPerSec 850 → 900 tween、 p99Ms 45 keep、 errorRate 0 keep、 apiUser + cliTool lane active。",
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool").tween("latencyMs", 0, 15).tween("reqPerSec", 850, 900).badge("request"))
+  .phase("p2", {
+    duration: 1800,
+    title: "Gateway route (Passthrough)",
+    body: "API Gateway で JWT auth + rate limit check + route table 引き、 orderSvc に relay。 latencyMs 15 → 45 tween、 reqPerSec 900 → 950 tween、 p99Ms 45 → 60 tween、 apiGw lane activate、 Passthrough edge 発火。",
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw").tween("latencyMs", 15, 45).tween("reqPerSec", 900, 950).tween("p99Ms", 45, 60).badge("route"))
+  .phase("p3", {
+    duration: 2000,
+    title: "Service 処理",
+    body: "order microservice で SQL query 実行 + business logic 適用、 APM で trace 送信。 latencyMs 45 → 120 tween、 p99Ms 60 → 145 tween、 errorRate 0 → 0.3 tween (微小)、 orderSvc + apm lane activate。",
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm").tween("latencyMs", 45, 120).tween("p99Ms", 60, 145).tween("errorRate", 0, 0.3).badge("処理"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Response 返却",
+    body: "Service → Gateway → Client の逆経路 (Passthrough 貫通)、 log 永続化。 latencyMs 120 → 155 tween (最終)、 reqPerSec 950 → 1020 tween、 errorRate 0.3 → 0.5 tween、 logStore activate、 6 shape 全 active、 API cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("apiUser", "cliTool", "apiGw", "orderSvc", "apm", "logStore").tween("latencyMs", 120, 155).tween("reqPerSec", 950, 1020).tween("errorRate", 0.3, 0.5).badge("response"))
+  .build();
+
+/**
+ * 15. patternCallRwUserProfile v2 = pattern 3 Call → Read → Write の business scenario 拡張 (SNS user プロフィール更新 = client call → 既存値 read → 更新値 write)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-cylinder + shape-cloud の 6 shape で visual scene 化、 4 phase (client call → read profile → write update → confirm) + 4 readout (gauge write 進捗 / countup 更新回数 / stat 処理秒 / stat cache hit %) が tween で visually 連続変化。 iteration 8 wave 8-R redesign。 pattern 3 の抽象 patternCallReadWrite と並置。
+ */
+export const patternCallRwUserProfile = diagram("pattern-call-rw-user-profile", {
+  topic: "pattern 3 Call-Read-Write business scenario = SNS user プロフィール更新 4 phase (call → read → write → confirm) の flow を shape-* primitive 6 種で表現 + 4 readout tween で visually 連続変化",
+})
+  .lane("user", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
+  .state("writeProgress", { initial: 0 })
+  .state("updateCount", { initial: 2431 })
+  .state("procSec", { initial: 0 })
+  .state("cacheHit", { initial: 95 })
+  .node("user", { lane: "user", stack: 0, kind: "shape-person", title: "SNS user 相川様", eyebrow: "user", subtitle: "自身のプロフィール編集中" })
+  .node("app", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "SNS app profile UI", eyebrow: "device", subtitle: "編集 form + Save button" })
+  .node("apiSvc", { lane: "service", stack: 0, kind: "shape-website", title: "profile API", eyebrow: "api", subtitle: "PUT /users/{id}/profile" })
+  .node("profileSvc", { lane: "service", stack: 1, kind: "shape-server-rack", title: "profile service", eyebrow: "service", subtitle: "read + write logic 実行" })
+  .node("profileDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "profile DB (Postgres)", eyebrow: "storage", subtitle: "users table + profile jsonb" })
+  .node("cache", { lane: "outcome", stack: 1, kind: "shape-cloud", title: "Redis cache", eyebrow: "cache", subtitle: "profile snapshot 5 min TTL" })
+  .edge("user", "app", { label: "編集", tone: "info" })
+  .edge("app", "apiSvc", { label: "call PUT", tone: "info" })
+  .edge("apiSvc", "profileSvc", { label: "forward", tone: "success" })
+  .edge("profileSvc", "profileDb", { label: "read + write", tone: "accent" })
+  .edge("profileSvc", "cache", { label: "invalidate", tone: "warning" })
+  .readout.gauge("wpG", { source: "writeProgress", min: 0, max: 100, color: "#22c55e", label: "write 進捗 %" })
+  .readout.countup("upCU", { source: "updateCount", unit: " 回", label: "累計更新", decimals: 0 })
+  .readout.stat("secStat", { source: "procSec", unit: " 秒", caption: "処理秒", label: "sec" })
+  .readout.stat("chStat", { source: "cacheHit", unit: " %", caption: "cache hit", label: "cache" })
+  .phase("p1", {
+    duration: 1500,
+    title: "Call (PUT request)",
+    body: "相川様が profile 編集 → Save button tap、 app が PUT /users/{id}/profile 送信。 writeProgress 0 → 15 tween、 updateCount 2431 keep、 procSec 0 → 1 tween、 cacheHit 95 keep、 user + app + apiSvc lane active。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc").tween("writeProgress", 0, 15).tween("procSec", 0, 1).badge("call"))
+  .phase("p2", {
+    duration: 1800,
+    title: "Read (既存 profile 取得)",
+    body: "profileSvc が既存 profile を Postgres から read、 conflict check + diff 算出。 writeProgress 15 → 45 tween、 procSec 1 → 3 tween、 cacheHit 95 → 82 tween (miss で DB fallback)、 profileSvc + profileDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb").tween("writeProgress", 15, 45).tween("procSec", 1, 3).tween("cacheHit", 95, 82).badge("read"))
+  .phase("p3", {
+    duration: 2000,
+    title: "Write (更新 commit)",
+    body: "diff 適用済 profile を Postgres に write + Redis cache invalidate。 writeProgress 45 → 85 tween、 updateCount 2431 → 2432 tween、 procSec 3 → 6 tween、 cache lane activate、 cache 無効化 flush。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache").tween("writeProgress", 45, 85).tween("updateCount", 2431, 2432).tween("procSec", 3, 6).badge("write"))
+  .phase("p4", {
+    duration: 1800,
+    title: "Confirm (200 OK 返却)",
+    body: "profileSvc が 200 OK + 更新後 profile を Client に返却、 app UI に反映。 writeProgress 85 → 100 tween (gauge 針最上位)、 procSec 6 → 7 tween、 cacheHit 82 → 88 tween (再 populate)、 6 shape 全 active、 profile 更新 cycle 完遂。",
+  }, (p: PhaseBuilder) => p.activate("user", "app", "apiSvc", "profileSvc", "profileDb", "cache").tween("writeProgress", 85, 100).tween("procSec", 6, 7).tween("cacheHit", 82, 88).badge("confirm"))
+  .build();
