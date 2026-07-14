@@ -266,6 +266,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   gitCommitList: "実例: OSS 週次リリース commit review (発生 → 集約 → review → tag)",
   audioPlayer: "実例: ポッドキャスト通勤聴取 (再生 → CM → skip → 完聴)",
   cliTerminalSession: "実例: 開発者朝 CLI ritual (repo → git → test → docker)",
+  searchResults: "実例: エンジニア技術調査 (初回 → 絞込 → 深掘り → 実行)",
+  yearRoadmap: "実例: スタートアップ 2026 年事業展開 (Q1 → Q2 → Q3 → Q4)",
+  tutorialVideoCards: "実例: YouTube 教育クリエイター動画公開 (企画 → 撮影 → 公開 → viral)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",

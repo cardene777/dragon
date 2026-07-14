@@ -3234,13 +3234,14 @@ export const serverEventLog = diagram("interactive-server-event-log", {
   .build();
 
 /**
- * 87. search-result = 5 search hit を title + snippet + url で表示。
+ * 87. searchResults v2 = エンジニア技術調査 4 phase シナリオ (Rust 学習調査 → 絞込 → 深掘り → 実行)、 shape-person + shape-mobile-device + shape-website × 2 + shape-cloud + shape-hexagon の 6 shape で visual scene 化、 4 phase (初回検索 → 絞込 → 深掘り選定 → 実装着手) + 4 readout (searchResult / gauge 関連度 / countup query 数 / stat click 数) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const searchResults = diagram("interactive-search-results", {
-  topic: "search hit 5 を 2-lane (Docs 4 / Interactive tool 1) 分散、 各 hit 個別 card、 searchResult readout 併存",
+  topic: "エンジニア技術調査 4 phase = (初回 → 絞込 → 深掘り → 実行) の flow を shape-* primitive 6 種で表現 + 4 readout (searchResult / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("docs", { x: 0, width: 340 })
-  .lane("tools", { x: 380, width: 300 })
+  .lane("user", { x: 0, width: 220 })
+  .lane("engine", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 220 })
   .arraySignal("hits", [
     ["Rust playground", "Interactive code sandbox for Rust programming language", "play.rust-lang.org"],
     ["MDN Web Docs", "Documentation for web technologies", "developer.mozilla.org"],
@@ -3248,56 +3249,101 @@ export const searchResults = diagram("interactive-search-results", {
     ["React docs", "React reference documentation", "react.dev"],
     ["Vite guide", "Frontend build tool guide", "vitejs.dev"],
   ] as unknown as (string | number)[])
-  .node("mdnNode", { lane: "docs", stack: 0, kind: "card", title: "MDN Web Docs", subtitle: "developer.mozilla.org" })
-  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TypeScript Handbook", subtitle: "typescriptlang.org/docs" })
-  .node("reactNode", { lane: "docs", stack: 2, kind: "card", title: "React docs", subtitle: "react.dev" })
-  .node("viteNode", { lane: "docs", stack: 3, kind: "card", title: "Vite guide", subtitle: "vitejs.dev" })
-  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust playground", subtitle: "play.rust-lang.org (interactive)" })
-  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results (link + snippet + url)" })
-  .phase("p", {
-    duration: 1200,
-    title: "result category split",
-    body: "2-lane (Docs 4 hit / Interactive tool 1 hit) で 5 search result を category 別分散、 各 hit 個別 card で title + url 明示、 searchResult readout も併存で従来 list 表示、 category 分類と list 一覧の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("mdnNode", "tsNode", "reactNode", "viteNode", "rustNode").badge("search"))
+  .state("relevance", { initial: 0 })
+  .state("queryCount", { initial: 0 })
+  .state("clickCount", { initial: 0 })
+  .node("engineer", { lane: "user", stack: 0, kind: "shape-person", title: "engineer 藤井様", eyebrow: "developer", subtitle: "Rust 新規学習開始" })
+  .node("laptop", { lane: "user", stack: 1, kind: "shape-mobile-device", title: "Chrome browser", eyebrow: "device", subtitle: "検索 tab · 履歴保存" })
+  .node("google", { lane: "engine", stack: 0, kind: "shape-website", title: "Google search", eyebrow: "engine", subtitle: "web search + snippet 表示" })
+  .node("index", { lane: "engine", stack: 1, kind: "shape-cloud", title: "search index", eyebrow: "index", subtitle: "billions 経路 crawl + ranking" })
+  .node("docSite", { lane: "engine", stack: 2, kind: "shape-website", title: "MDN / Rust docs", eyebrow: "reference", subtitle: "公式 doc site 群" })
+  .node("playground", { lane: "outcome", stack: 0, kind: "shape-hexagon", title: "Rust playground", eyebrow: "sandbox", subtitle: "実装 + 実行 · online IDE" })
+  .edge("engineer", "laptop", { label: "検索", tone: "info" })
+  .edge("laptop", "google", { label: "GET /search", tone: "info" })
+  .edge("google", "index", { label: "query", tone: "success" })
+  .edge("index", "google", { label: "results", tone: "success" })
+  .edge("google", "docSite", { label: "クリック", tone: "accent" })
+  .edge("docSite", "playground", { label: "試行", tone: "warning" })
+  .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "検索結果 5 hit" })
+  .readout.gauge("relG", { source: "relevance", min: 0, max: 100, color: "#22c55e", label: "関連度 %" })
+  .readout.countup("qryCU", { source: "queryCount", unit: " 回", label: "累計 query", decimals: 0 })
+  .readout.stat("clickStat", { source: "clickCount", unit: " 件", caption: "click 数", label: "click" })
+  .phase("p1", {
+    duration: 1800,
+    title: "初回検索",
+    body: "藤井様が 'Rust tutorial' で検索、 5 hit 表示。 relevance 0 → 40 tween、 queryCount 0 → 1 tween、 clickCount 0、 user + google + index lane active。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "google", "index").tween("relevance", 0, 40).tween("queryCount", 0, 1).badge("初回"))
+  .phase("p2", {
+    duration: 2200,
+    title: "絞込 (2 回目 query)",
+    body: "'Rust ownership tutorial' で絞込、 関連度上昇。 relevance 40 → 68 tween、 queryCount 1 → 3 tween、 clickCount 0 → 2 tween (docs 2 hit click)、 docSite lane activate。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "google", "index", "docSite").tween("relevance", 40, 68).tween("queryCount", 1, 3).tween("clickCount", 0, 2).badge("絞込"))
+  .phase("p3", {
+    duration: 2200,
+    title: "深掘り選定",
+    body: "MDN + Rust docs で ownership 概念習得、 更に detail 確認。 relevance 68 → 85 tween (gauge 針最上位近く)、 queryCount 3 → 5 tween、 clickCount 2 → 4 tween、 docSite で深く閲覧。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "google", "index", "docSite").tween("relevance", 68, 85).tween("queryCount", 3, 5).tween("clickCount", 2, 4).badge("深掘り"))
+  .phase("p4", {
+    duration: 2000,
+    title: "実装着手 (playground)",
+    body: "Rust playground で ownership sample 実装、 動作確認。 relevance 85 → 92 tween (最終、 gauge 針最上位)、 queryCount 5 → 6 tween、 clickCount 4 → 5 tween、 playground lane activate、 6 shape 全 active、 学習 loop 完成。",
+  }, (p: PhaseBuilder) => p.activate("engineer", "laptop", "google", "index", "docSite", "playground").tween("relevance", 85, 92).tween("queryCount", 5, 6).tween("clickCount", 4, 5).badge("実装"))
   .build();
 
 /**
- * 88. roadmap = 2026 year quarterly plan Q1-Q4。
+ * 88. yearRoadmap v2 = スタートアップ CEO の 2026 年 4 phase 事業展開シナリオ (Q1 設計 → Q2 β → Q3 拡大 → Q4 GA + Series A)、 shape-person + shape-mobile-device + shape-brokerage + shape-online-shop + shape-warehouse + shape-cloud の 6 shape で visual scene 化、 4 phase (Q1 → Q2 → Q3 → Q4) + 4 readout (roadmap / gauge 進捗率 / countup 累計 MRR / stat funding 額) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const yearRoadmap = diagram("interactive-year-roadmap", {
-  topic: "2026 yearly roadmap を 4-lane (Q1-Q4) 分散、 各 quarter items を stack 分散、 quarterly 遷移 3 edge、 roadmap readout 併存",
+  topic: "スタートアップ 2026 年事業展開 4 phase = (Q1 → Q2 → Q3 → Q4) の flow を shape-* primitive 6 種で表現 + 4 readout (roadmap / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("q1", { x: 0, width: 150 })
-  .lane("q2", { x: 170, width: 150 })
-  .lane("q3", { x: 340, width: 150 })
-  .lane("q4", { x: 510, width: 150 })
+  .lane("ceo", { x: 0, width: 220 })
+  .lane("execution", { x: 240, width: 340 })
+  .lane("outcome", { x: 600, width: 240 })
   .arraySignal("plan", [
     ["Q1", ["Design system", "MVP feature A"]],
     ["Q2", ["Beta launch", "Feature B", "Feedback loop"]],
     ["Q3", ["Scale infra", "Enterprise deals"]],
     ["Q4", ["Public GA", "Series A"]],
   ] as unknown as (string | number)[])
-  .node("q1Head", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "Design + MVP" })
-  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design system", subtitle: "foundation" })
-  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature A", subtitle: "prototype" })
-  .node("q2Head", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "Beta + growth" })
-  .node("q2Item1", { lane: "q2", stack: 1, kind: "card", title: "Beta launch", subtitle: "public beta" })
-  .node("q2Item2", { lane: "q2", stack: 2, kind: "card", title: "Feature B", subtitle: "beta scope" })
-  .node("q3Head", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "Scale + enterprise" })
-  .node("q3Item1", { lane: "q3", stack: 1, kind: "card", title: "Scale infra", subtitle: "capacity" })
-  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise deals", subtitle: "B2B revenue" })
-  .node("q4Head", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "GA + funding" })
-  .node("q4Item1", { lane: "q4", stack: 1, kind: "card", title: "Public GA", subtitle: "general available" })
-  .node("q4Item2", { lane: "q4", stack: 2, kind: "card", title: "Series A", subtitle: "growth capital" })
-  .edge("q1Head", "q2Head", { label: "handover", tone: "info" })
-  .edge("q2Head", "q3Head", { label: "scale", tone: "accent" })
-  .edge("q3Head", "q4Head", { label: "GA", tone: "success" })
-  .readout.roadmap("rm", { source: "plan", viewW: 400, viewH: 200, label: "Roadmap (4 column list)" })
-  .phase("p", {
-    duration: 1200,
-    title: "yearly roadmap",
-    body: "4-lane (Q1-Q4) で 12 item を quarterly 分散、 各 quarter に header + 2 item stack、 3 edge で quarterly handover 遷移 (info→accent→success で年後半に向け tone escalate)、 roadmap readout も併存で 4 column 一覧、 quarterly plan の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("q1Head", "q2Head", "q3Head", "q4Head").badge("plan"))
+  .state("progress", { initial: 0 })
+  .state("mrrK", { initial: 0 })
+  .state("fundingM", { initial: 0 })
+  .node("ceo", { lane: "ceo", stack: 0, kind: "shape-person", title: "CEO 神谷様", eyebrow: "founder", subtitle: "SaaS スタートアップ創業者" })
+  .node("laptop", { lane: "ceo", stack: 1, kind: "shape-mobile-device", title: "OKR dashboard", eyebrow: "device", subtitle: "四半期 milestone tracking" })
+  .node("product", { lane: "execution", stack: 0, kind: "shape-online-shop", title: "SaaS product", eyebrow: "product", subtitle: "MVP → Beta → GA へ進化" })
+  .node("customers", { lane: "execution", stack: 1, kind: "shape-warehouse", title: "顧客基盤", eyebrow: "customers", subtitle: "MVP 10 名 → GA 500 名" })
+  .node("infra", { lane: "execution", stack: 2, kind: "shape-cloud", title: "cloud infra", eyebrow: "infra", subtitle: "AWS · scale-up 段階" })
+  .node("investors", { lane: "outcome", stack: 0, kind: "shape-brokerage", title: "VC 投資家", eyebrow: "capital", subtitle: "Seed → Series A へ" })
+  .edge("ceo", "laptop", { label: "OKR", tone: "info" })
+  .edge("laptop", "product", { label: "実装指示", tone: "info" })
+  .edge("product", "customers", { label: "販売", tone: "success" })
+  .edge("customers", "infra", { label: "負荷増", tone: "warning" })
+  .edge("customers", "investors", { label: "traction 実績", tone: "success" })
+  .edge("investors", "ceo", { label: "funding", tone: "accent" })
+  .readout.roadmap("rm", { source: "plan", viewW: 420, viewH: 220, label: "2026 年 roadmap" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "年間進捗率 %" })
+  .readout.countup("mrrCU", { source: "mrrK", unit: "k$ MRR", label: "月次売上", decimals: 0 })
+  .readout.stat("fundStat", { source: "fundingM", unit: " M$", caption: "累計調達額", label: "funding" })
+  .phase("p1", {
+    duration: 2000,
+    title: "Q1 (1-3 月) Design + MVP",
+    body: "神谷様が Q1 に design system + MVP feature A 実装。 progress 0 → 25 tween、 mrrK 0 → 5 tween (α 顧客数名)、 fundingM 0 → 2 tween (Seed 200 万$)、 ceo + product lane active。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "laptop", "product").tween("progress", 0, 25).tween("mrrK", 0, 5).tween("fundingM", 0, 2).badge("Q1"))
+  .phase("p2", {
+    duration: 2200,
+    title: "Q2 (4-6 月) Beta launch",
+    body: "Q2 に public beta launch、 feature B 追加、 feedback loop 確立。 progress 25 → 50 tween、 mrrK 5 → 25 tween (countup 加速)、 fundingM 2 保持、 customers lane activate、 β user 50 名獲得。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "laptop", "product", "customers").tween("progress", 25, 50).tween("mrrK", 5, 25).badge("Q2"))
+  .phase("p3", {
+    duration: 2200,
+    title: "Q3 (7-9 月) Scale + Enterprise",
+    body: "infra 拡張 + B2B enterprise deals。 progress 50 → 75 tween、 mrrK 25 → 80 tween (enterprise で急増)、 fundingM 2 保持、 infra lane activate、 顧客 200 名到達。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "laptop", "product", "customers", "infra").tween("progress", 50, 75).tween("mrrK", 25, 80).badge("Q3"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Q4 (10-12 月) GA + Series A",
+    body: "public GA release + Series A 調達 15M$。 progress 75 → 100 tween (gauge 針最上位)、 mrrK 80 → 150 tween (最終、 countup 最大)、 fundingM 2 → 17 tween (stat 大幅増、 Series A 15M$ 追加)、 investors lane activate、 6 shape 全 active、 事業展開完遂。",
+  }, (p: PhaseBuilder) => p.activate("ceo", "laptop", "product", "customers", "infra", "investors").tween("progress", 75, 100).tween("mrrK", 80, 150).tween("fundingM", 2, 17).badge("Q4"))
   .build();
 
 /**
@@ -3357,28 +3403,58 @@ export const weekWeather = diagram("interactive-week-weather", {
   .build();
 
 /**
- * 90. video-card = tutorial video 3 本 (title + duration + views)。
+ * 90. tutorialVideoCards v2 = YouTube educational クリエイター 4 phase 動画公開シナリオ (企画 → 撮影 → 公開 → viral)、 shape-person + shape-mobile-device + shape-website + shape-cloud + shape-cylinder + shape-warehouse の 6 shape で visual scene 化、 4 phase (企画 → 撮影編集 → 公開 → viral 拡散) + 4 readout (videoCard / gauge CTR / countup views / stat sub 増数) が tween で visually 連続変化。 iteration 8 wave 8-H redesign。
  */
 export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
-  topic: "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存",
+  topic: "YouTube 教育クリエイター動画公開 4 phase = (企画 → 撮影 → 公開 → viral) の flow を shape-* primitive 6 種で表現 + 4 readout (videoCard / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("rust", { x: 0, width: 220 })
-  .lane("ts", { x: 260, width: 220 })
-  .lane("react", { x: 520, width: 220 })
+  .lane("creator", { x: 0, width: 220 })
+  .lane("platform", { x: 240, width: 320 })
+  .lane("audience", { x: 580, width: 240 })
   .arraySignal("videos", [
     ["🎬", "Rust intro for beginners", "12:45", "24k"],
     ["🎥", "TypeScript deep dive", "45:20", "82k"],
     ["📺", "React hooks explained", "18:30", "156k"],
   ] as unknown as (string | number)[])
-  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust intro", subtitle: "12:45 · 24k views" })
-  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TypeScript deep dive", subtitle: "45:20 · 82k views" })
-  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React hooks", subtitle: "18:30 · 156k views (top view)" })
-  .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos (thumbnail list)" })
-  .phase("p", {
-    duration: 1200,
-    title: "video topic split",
-    body: "3-lane (Rust / TypeScript / React) で 3 tutorial video を topic 別分散、 各 video 個別 card で title + duration + views 明示、 videoCard readout も併存で YouTube 定番 layout、 topic 分類と list 一覧の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("rustVideo", "tsVideo", "reactVideo").badge("video"))
+  .state("ctr", { initial: 0 })
+  .state("views", { initial: 0 })
+  .state("subDelta", { initial: 0 })
+  .node("creator", { lane: "creator", stack: 0, kind: "shape-person", title: "クリエイター 石田様", eyebrow: "youtuber", subtitle: "登録者 32k · 週次投稿" })
+  .node("phone", { lane: "creator", stack: 1, kind: "shape-mobile-device", title: "YouTube Studio", eyebrow: "device", subtitle: "投稿 + 分析" })
+  .node("youtube", { lane: "platform", stack: 0, kind: "shape-website", title: "YouTube platform", eyebrow: "distribution", subtitle: "algorithm ranking + 推薦" })
+  .node("cdn", { lane: "platform", stack: 1, kind: "shape-cloud", title: "video CDN", eyebrow: "cdn", subtitle: "H.264/H.265 配信 · 全世界 edge" })
+  .node("analytics", { lane: "platform", stack: 2, kind: "shape-cylinder", title: "YT analytics", eyebrow: "database", subtitle: "impression + click + watch time" })
+  .node("viewers", { lane: "audience", stack: 0, kind: "shape-warehouse", title: "全世界視聴者", eyebrow: "audience", subtitle: "Rust / TS / React 学習者" })
+  .edge("creator", "phone", { label: "アップロード", tone: "info" })
+  .edge("phone", "youtube", { label: "publish", tone: "info" })
+  .edge("youtube", "cdn", { label: "encode + 配信", tone: "success" })
+  .edge("cdn", "viewers", { label: "stream", tone: "success" })
+  .edge("viewers", "analytics", { label: "event", tone: "accent" })
+  .edge("analytics", "youtube", { label: "ranking 反映", tone: "warning" })
+  .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "投稿動画 3 本" })
+  .readout.gauge("ctrG", { source: "ctr", min: 0, max: 20, color: "#22c55e", label: "CTR %" })
+  .readout.countup("viewCU", { source: "views", unit: " views", label: "動画 views", decimals: 0 })
+  .readout.stat("subStat", { source: "subDelta", unit: " 名", caption: "登録者増加", label: "sub Δ" })
+  .phase("p1", {
+    duration: 1800,
+    title: "企画",
+    body: "石田様が 'React hooks explained' 動画企画、 台本作成。 ctr 0、 views 0、 subDelta 0、 creator + phone lane active。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone").set("ctr", 0).set("views", 0).set("subDelta", 0).badge("企画"))
+  .phase("p2", {
+    duration: 2000,
+    title: "撮影 + 編集",
+    body: "18 分の動画撮影 → 編集 → thumbnail 作成。 ctr 0、 views 0、 subDelta 0 保持、 phase 進行のみ (公開前は数値 0)。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone").badge("撮影"))
+  .phase("p3", {
+    duration: 2200,
+    title: "公開 (24h)",
+    body: "YouTube に publish、 推薦 algorithm に載る。 ctr 0 → 8 tween (gauge 針中位)、 views 0 → 25000 tween (countup 加速)、 subDelta 0 → 320 tween、 youtube + cdn + viewers lane activate。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "youtube", "cdn", "viewers").tween("ctr", 0, 8).tween("views", 0, 25000).tween("subDelta", 0, 320).badge("公開"))
+  .phase("p4", {
+    duration: 2000,
+    title: "viral 拡散 (1 週間)",
+    body: "trending 入りで views 急増、 登録者急伸。 ctr 8 → 14 tween (gauge 針最上位近く、 高 CTR)、 views 25000 → 156000 tween (countup dramatic)、 subDelta 320 → 1800 tween (1800 名登録)、 analytics lane activate、 6 shape 全 active、 viral 到達。",
+  }, (p: PhaseBuilder) => p.activate("creator", "phone", "youtube", "cdn", "viewers", "analytics").tween("ctr", 8, 14).tween("views", 25000, 156000).tween("subDelta", 320, 1800).badge("viral"))
   .build();
 
 /**
