@@ -103,3 +103,138 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
   .phase("p4", { duration: 1500, title: "排除中", body: "" }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "e12", "e23", "e34").tween("s4", 0, 100).tween("total", 300, 400).tween("processed", 300, 400).badge("排除"))
   .phase("p5", { duration: 1500, title: "保存完遂", body: "" }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "r5", "e12", "e23", "e34", "e45").tween("s5", 0, 100).tween("total", 400, 500).tween("processed", 400, 500).badge("保存"))
   .build();
+
+/**
+ * 7. richServerLoadDashboard = 「サーバー負荷 dashboard」 rich exemplar (iter 9 wave 9-E)。
+ *
+ * theme = 「4 台のサーバーの CPU 使用率が朝ピーク → 昼安定 → 夜スケールダウン と変化する時系列」。
+ * dyn-arc gauge を parts の使用機会 (「割合 / 目標達成率 / 針で示す状態変化」) 逆算で選定 = 使用率 % を扇形 sweep で表現。
+ *
+ * 5 layer 同時発火:
+ * - layer 1 = 4 arc gauge が並列に 0-100% で sweep (angle tween)
+ * - layer 2 = 各 server node の active/inactive (負荷高い server は active border)
+ * - layer 3 = 平均負荷 readout.gauge (0-100)
+ * - layer 4 = alert badge (低 = 平常運転 / 中 = 警戒 / 高 = 危険 / 復旧 = 通常)
+ * - layer 5 = 稼働 hour readout.countup
+ */
+export const richServerLoadDashboard = diagram("animation-rich-server-load-dashboard", {
+  topic: "4台サーバーCPU負荷ダッシュボード (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)",
+})
+  .lane("l1", { x: 0, width: 200 })
+  .lane("l2", { x: 260, width: 200 })
+  .lane("l3", { x: 520, width: 200 })
+  .lane("l4", { x: 780, width: 200 })
+  .state("cpu1", { initial: 0 })
+  .state("cpu2", { initial: 0 })
+  .state("cpu3", { initial: 0 })
+  .state("cpu4", { initial: 0 })
+  .state("avgLoad", { initial: 0 })
+  .state("uptimeHour", { initial: 0 })
+  .node("srv1", { lane: "l1", stack: 0, kind: "dyn-arc", title: "srv-1", subtitle: "{cpu1}%", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{cpu1}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } })
+  .node("srv2", { lane: "l2", stack: 0, kind: "dyn-arc", title: "srv-2", subtitle: "{cpu2}%", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{cpu2}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } })
+  .node("srv3", { lane: "l3", stack: 0, kind: "dyn-arc", title: "srv-3", subtitle: "{cpu3}%", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{cpu3}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#f97316" } })
+  .node("srv4", { lane: "l4", stack: 0, kind: "dyn-arc", title: "srv-4", subtitle: "{cpu4}%", w: 180, h: 180,
+    shape: { kind: "arc", angle: "{cpu4}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#22c55e" } })
+  .readout.gauge("avgG", { source: "avgLoad", min: 0, max: 100, color: "#f97316", label: "平均負荷 %" })
+  .readout.countup("uptimeCU", { source: "uptimeHour", unit: " 時", label: "稼働時間", decimals: 0 })
+  .phase("p1", { duration: 2000, title: "朝ピーク (7:00)", body: "" }, (p: PhaseBuilder) => p.activate("srv1", "srv2", "srv3", "srv4").tween("cpu1", 0, 85).tween("cpu2", 0, 88).tween("cpu3", 0, 92).tween("cpu4", 0, 78).tween("avgLoad", 0, 86).tween("uptimeHour", 0, 7).badge("朝ピーク"))
+  .phase("p2", { duration: 2000, title: "昼安定 (12:00)", body: "" }, (p: PhaseBuilder) => p.activate("srv1", "srv2", "srv3", "srv4").tween("cpu1", 85, 55).tween("cpu2", 88, 58).tween("cpu3", 92, 62).tween("cpu4", 78, 48).tween("avgLoad", 86, 55).tween("uptimeHour", 7, 12).badge("昼安定"))
+  .phase("p3", { duration: 2000, title: "夜スケールダウン (20:00)", body: "" }, (p: PhaseBuilder) => p.activate("srv1", "srv2", "srv3", "srv4").tween("cpu1", 55, 30).tween("cpu2", 58, 32).tween("cpu3", 62, 35).tween("cpu4", 48, 22).tween("avgLoad", 55, 30).tween("uptimeHour", 12, 20).badge("スケールダウン"))
+  .phase("p4", { duration: 2000, title: "深夜アイドル (2:00)", body: "" }, (p: PhaseBuilder) => p.activate("srv1", "srv2", "srv3", "srv4").tween("cpu1", 30, 8).tween("cpu2", 32, 10).tween("cpu3", 35, 12).tween("cpu4", 22, 5).tween("avgLoad", 30, 9).tween("uptimeHour", 20, 26).badge("アイドル"))
+  .build();
+
+/**
+ * 8. richOrderStatusFlow = 「EC 注文の状態遷移」 rich exemplar (iter 9 wave 9-E)。
+ *
+ * theme = 「1 件の EC 注文が受注 → 決済 → 発送 → 配達 → 完了 の 5 状態を経る process」。
+ * dyn-rect を parts の使用機会 (「fill 率で完了度を表現」) 逆算で選定 = 各状態の完了率を rect 縦 fill で表現。
+ *
+ * 5 layer 同時発火:
+ * - layer 1 = 5 rectangle 縦 fill (状態別完了率、 arrow で fill 伝搬)
+ * - layer 2 = 状態遷移の edge activate 連鎖 (arrow 順次色付き)
+ * - layer 3 = 進捗 readout.percentRing (0-100%)
+ * - layer 4 = 経過時間 readout.countup (時)
+ * - layer 5 = 状態 badge (受注 → 決済 → 発送 → 配達 → 完了)
+ */
+export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
+  topic: "EC注文状態遷移 (受注→決済→発送→配達→完了)",
+})
+  .lane("l1", { x: 0, width: 140 })
+  .lane("l2", { x: 160, width: 140 })
+  .lane("l3", { x: 320, width: 140 })
+  .lane("l4", { x: 480, width: 140 })
+  .lane("l5", { x: 640, width: 140 })
+  .state("f1", { initial: 0 })
+  .state("f2", { initial: 0 })
+  .state("f3", { initial: 0 })
+  .state("f4", { initial: 0 })
+  .state("f5", { initial: 0 })
+  .state("progress", { initial: 0 })
+  .state("elapsedHour", { initial: 0 })
+  .node("st1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "受注", subtitle: "{f1}%", w: 120, h: 200,
+    shape: { kind: "rect", source: "{f1}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
+  .node("st2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "決済", subtitle: "{f2}%", w: 120, h: 200,
+    shape: { kind: "rect", source: "{f2}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
+  .node("st3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "発送", subtitle: "{f3}%", w: 120, h: 200,
+    shape: { kind: "rect", source: "{f3}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
+  .node("st4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "配達", subtitle: "{f4}%", w: 120, h: 200,
+    shape: { kind: "rect", source: "{f4}", fillMax: 100, orient: "up", fill: "#f97316" } })
+  .node("st5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "完了", subtitle: "{f5}%", w: 120, h: 200,
+    shape: { kind: "rect", source: "{f5}", fillMax: 100, orient: "up", fill: "#22c55e" } })
+  .edge("st1", "st2", { id: "e12", label: "決済へ", tone: "info" })
+  .edge("st2", "st3", { id: "e23", label: "発送へ", tone: "info" })
+  .edge("st3", "st4", { id: "e34", label: "配達へ", tone: "info" })
+  .edge("st4", "st5", { id: "e45", label: "完了", tone: "success" })
+  .readout.percentRing("progRing", { source: "progress", max: 100, label: "進捗" })
+  .readout.countup("elapsedCU", { source: "elapsedHour", unit: " 時", label: "経過", decimals: 0 })
+  .phase("p1", { duration: 1500, title: "受注中", body: "" }, (p: PhaseBuilder) => p.activate("st1").tween("f1", 0, 100).tween("progress", 0, 20).tween("elapsedHour", 0, 1).badge("受注"))
+  .phase("p2", { duration: 1500, title: "決済中", body: "" }, (p: PhaseBuilder) => p.activate("st1", "st2", "e12").tween("f2", 0, 100).tween("progress", 20, 40).tween("elapsedHour", 1, 2).badge("決済"))
+  .phase("p3", { duration: 1500, title: "発送中", body: "" }, (p: PhaseBuilder) => p.activate("st1", "st2", "st3", "e12", "e23").tween("f3", 0, 100).tween("progress", 40, 60).tween("elapsedHour", 2, 8).badge("発送"))
+  .phase("p4", { duration: 1500, title: "配達中", body: "" }, (p: PhaseBuilder) => p.activate("st1", "st2", "st3", "st4", "e12", "e23", "e34").tween("f4", 0, 100).tween("progress", 60, 85).tween("elapsedHour", 8, 24).badge("配達"))
+  .phase("p5", { duration: 1500, title: "完了", body: "" }, (p: PhaseBuilder) => p.activate("st1", "st2", "st3", "st4", "st5", "e12", "e23", "e34", "e45").tween("f5", 0, 100).tween("progress", 85, 100).tween("elapsedHour", 24, 28).badge("完了"))
+  .build();
+
+/**
+ * 9. richScoreLeaderboard = 「4 プレイヤーのスコア推移」 rich exemplar (iter 9 wave 9-E)。
+ *
+ * theme = 「オンラインゲーム大会で 4 人のプレイヤーが 4 round プレイして score が変動する」。
+ * dyn-circle radius を parts の使用機会 (「大きさ変化で強弱を表現」) 逆算で選定 = score に応じた radius の大小。
+ *
+ * 5 layer 同時発火:
+ * - layer 1 = 4 circle radius 変化 (score 追随、 大きい = 強い)
+ * - layer 2 = badge = 現在 leader プレイヤー名
+ * - layer 3 = readout.countup 累計 total kill
+ * - layer 4 = readout.gauge 平均 accuracy
+ * - layer 5 = round 進行 (badge に round 番号)
+ */
+export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", {
+  topic: "4プレイヤースコア推移 (4ラウンドで順位変動、 円の大きさが強さを表す)",
+})
+  .lane("l1", { x: 0, width: 180 })
+  .lane("l2", { x: 240, width: 180 })
+  .lane("l3", { x: 480, width: 180 })
+  .lane("l4", { x: 720, width: 180 })
+  .state("p1", { initial: 20 })
+  .state("p2", { initial: 20 })
+  .state("p3", { initial: 20 })
+  .state("p4", { initial: 20 })
+  .state("totalKill", { initial: 0 })
+  .state("avgAcc", { initial: 40 })
+  .node("pl1", { lane: "l1", stack: 0, kind: "dyn-circle", title: "岸田様", subtitle: "score {p1}", w: 160, h: 180,
+    shape: { kind: "circle", radius: "{p1}", fill: "#4e9dc4" } })
+  .node("pl2", { lane: "l2", stack: 0, kind: "dyn-circle", title: "山田様", subtitle: "score {p2}", w: 160, h: 180,
+    shape: { kind: "circle", radius: "{p2}", fill: "#f97316" } })
+  .node("pl3", { lane: "l3", stack: 0, kind: "dyn-circle", title: "佐藤様", subtitle: "score {p3}", w: 160, h: 180,
+    shape: { kind: "circle", radius: "{p3}", fill: "#22c55e" } })
+  .node("pl4", { lane: "l4", stack: 0, kind: "dyn-circle", title: "森様", subtitle: "score {p4}", w: 160, h: 180,
+    shape: { kind: "circle", radius: "{p4}", fill: "#8b7ffa" } })
+  .readout.countup("killCU", { source: "totalKill", unit: " kill", label: "累計 kill", decimals: 0 })
+  .readout.gauge("accG", { source: "avgAcc", min: 0, max: 100, color: "#22c55e", label: "平均命中率 %" })
+  .phase("r1", { duration: 2000, title: "Round 1 (拮抗)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 20, 35).tween("p2", 20, 38).tween("p3", 20, 32).tween("p4", 20, 30).tween("totalKill", 0, 12).tween("avgAcc", 40, 52).badge("R1 拮抗"))
+  .phase("r2", { duration: 2000, title: "Round 2 (山田様 lead)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 35, 48).tween("p2", 38, 65).tween("p3", 32, 42).tween("p4", 30, 40).tween("totalKill", 12, 28).tween("avgAcc", 52, 58).badge("R2 山田様 lead"))
+  .phase("r3", { duration: 2000, title: "Round 3 (佐藤様 追い上げ)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 48, 55).tween("p2", 65, 68).tween("p3", 42, 72).tween("p4", 40, 45).tween("totalKill", 28, 48).tween("avgAcc", 58, 64).badge("R3 佐藤様 追上げ"))
+  .phase("r4", { duration: 2000, title: "Round 4 (佐藤様 優勝)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 55, 62).tween("p2", 68, 74).tween("p3", 72, 80).tween("p4", 45, 50).tween("totalKill", 48, 72).tween("avgAcc", 64, 68).badge("R4 佐藤様 優勝"))
+  .build();
