@@ -4364,13 +4364,13 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .state("npsGauge", { initial: 60 })
   .state("respondents", { initial: 100 })
   .state("delta", { initial: 0 })
-  .node("csLead", { lane: "csLead", stack: 0, kind: "shape-person", title: "CS lead 篠原様", eyebrow: "customer success", subtitle: "NPS 主管 + 週次 review" })
+  .node("csLeadPerson", { lane: "csLead", stack: 0, kind: "shape-person", title: "CS lead 篠原様", eyebrow: "customer success", subtitle: "NPS 主管 + 週次 review" })
   .node("surveyApp", { lane: "csLead", stack: 1, kind: "shape-mobile-device", title: "survey app", eyebrow: "device", subtitle: "四半期 email 配信 + 回答収集" })
   .node("feedbackForm", { lane: "service", stack: 0, kind: "shape-website", title: "feedback form", eyebrow: "form", subtitle: "10 段階 + 自由記述" })
   .node("analytics", { lane: "service", stack: 1, kind: "shape-cloud", title: "NPS analytics", eyebrow: "analytics", subtitle: "促進 - 批判 = NPS 計算" })
   .node("kpiDb", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "KPI history DB", eyebrow: "storage", subtitle: "6 ヶ月 trend 保存" })
   .node("execBoard", { lane: "outcome", stack: 1, kind: "shape-server-rack", title: "経営 board", eyebrow: "board", subtitle: "四半期報告 + 目標対比" })
-  .edge("csLead", "surveyApp", { label: "配信", tone: "info" })
+  .edge("csLeadPerson", "surveyApp", { label: "配信", tone: "info" })
   .edge("surveyApp", "feedbackForm", { label: "回答", tone: "info" })
   .edge("feedbackForm", "analytics", { label: "集計", tone: "success" })
   .edge("analytics", "kpiDb", { label: "persist", tone: "success" })
@@ -4383,22 +4383,22 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
     duration: 1800,
     title: "Q1 開始 (NPS 60)",
     body: "1 月 email 配信、 Q1 初回計測。 cur 60 keep、 prev 55 keep、 npsGauge 0 → 60 tween、 respondents 0 → 100 tween、 delta 0 → 5 tween、 csLead + surveyApp lane active。",
-  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp").tween("npsGauge", 0, 60).tween("respondents", 0, 100).tween("delta", 0, 5).badge("Q1 60"))
+  }, (p: PhaseBuilder) => p.activate("csLeadPerson", "surveyApp").tween("npsGauge", 0, 60).tween("respondents", 0, 100).tween("delta", 0, 5).badge("Q1 60"))
   .phase("p2", {
     duration: 2200,
     title: "Q2 UX 改善リリース (NPS 70)",
     body: "大型 UX 改善リリース → 回答 upvote 増。 cur 60 → 70 tween、 prev 60 keep、 npsGauge 60 → 70 tween、 respondents 100 → 250 tween、 delta 5 → 10 tween、 feedbackForm + analytics lane activate。",
-  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics").tween("cur", 60, 70).tween("npsGauge", 60, 70).tween("respondents", 100, 250).tween("delta", 5, 10).badge("Q2 70"))
+  }, (p: PhaseBuilder) => p.activate("csLeadPerson", "surveyApp", "feedbackForm", "analytics").tween("cur", 60, 70).tween("npsGauge", 60, 70).tween("respondents", 100, 250).tween("delta", 5, 10).badge("Q2 70"))
   .phase("p3", {
     duration: 2200,
     title: "Q3 障害復旧 (NPS 82)",
     body: "6 月本番障害 → hotfix + 補償 → 顧客信頼回復で NPS 急伸。 cur 70 → 82 tween、 prev 70 keep、 npsGauge 70 → 82 tween、 respondents 250 → 400 tween、 delta 10 → 12 tween、 kpiDb activate。",
-  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics", "kpiDb").tween("cur", 70, 82).tween("npsGauge", 70, 82).tween("respondents", 250, 400).tween("delta", 10, 12).badge("Q3 82"))
+  }, (p: PhaseBuilder) => p.activate("csLeadPerson", "surveyApp", "feedbackForm", "analytics", "kpiDb").tween("cur", 70, 82).tween("npsGauge", 70, 82).tween("respondents", 250, 400).tween("delta", 10, 12).badge("Q3 82"))
   .phase("p4", {
     duration: 2000,
     title: "Q4 施策安定化 (NPS 82)",
     body: "Q4 で NPS 82 定着、 経営 board で年次 review、 目標 80 超え達成。 cur 82 keep、 prev 82 tween (更新)、 npsGauge 82 keep、 respondents 400 → 500 tween、 delta 12 → 7 tween、 execBoard activate、 6 shape 全 active、 半年 review 完遂。",
-  }, (p: PhaseBuilder) => p.activate("csLead", "surveyApp", "feedbackForm", "analytics", "kpiDb", "execBoard").tween("prev", 75, 82).tween("respondents", 400, 500).tween("delta", 12, 7).badge("Q4 82"))
+  }, (p: PhaseBuilder) => p.activate("csLeadPerson", "surveyApp", "feedbackForm", "analytics", "kpiDb", "execBoard").tween("prev", 75, 82).tween("respondents", 400, 500).tween("delta", 12, 7).badge("Q4 82"))
   .build();
 
 /**
