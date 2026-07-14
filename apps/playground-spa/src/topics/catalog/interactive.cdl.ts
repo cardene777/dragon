@@ -5041,50 +5041,65 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .build();
 
 /**
- * 124. article-preview = ブログ記事プレビュー card を 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
+ * 124. blogArticlePreview v2 = 週末読書中の tech blog 閲覧 4 phase シナリオ (feed 一覧 → hover 興味 → クリック閲覧 → シェア)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (feed → hover → 閲覧 → シェア) + 4 readout (articlePreview / gauge engagement / countup 閲覧数 / stat 平均滞在秒) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。
  */
 export const blogArticlePreview = diagram("interactive-blog-article-preview", {
-  topic: "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で初期 → hover tween → 続きを読むの動きを可視化",
+  topic: "週末 tech blog 閲覧 4 phase = (feed → hover → 閲覧 → シェア) の flow を shape-* primitive 6 種で表現 + 4 readout (articlePreview / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("thumb", { x: 0, width: 200 })
-  .lane("content", { x: 220, width: 320 })
-  .lane("meta", { x: 560, width: 220 })
+  .lane("reader", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("article", ["dragon 入門", "dragon で interactive diagram を作る方法を解説", "Alice", "2 時間前"] as unknown as (string | number)[])
   .state("hovered", { initial: 0 })
-  .node("thumbCard", { lane: "thumb", stack: 0, kind: "card", title: "◆ サムネイル (📄)", subtitle: "80×100 · 単色背景" })
-  .node("titleCard", { lane: "content", stack: 0, kind: "card", title: "タイトル", subtitle: "'dragon 入門' · アクセント色 · hover = {hovered}" })
-  .node("excerptCard", { lane: "content", stack: 1, kind: "card", title: "抜粋 (2 行)", subtitle: "'dragon で interactive diagram を…'" })
-  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "著者 Alice", subtitle: "灰色テキスト · 左寄せ" })
-  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "2 時間前", subtitle: "淡色 · 右寄せ" })
-  .edge("thumbCard", "titleCard", { label: "視線", tone: "info" })
-  .edge("titleCard", "authorCard", { label: "帰属", tone: "success" })
+  .state("engagement", { initial: 0 })
+  .state("viewCount", { initial: 128 })
+  .state("dwellSec", { initial: 0 })
+  .node("reader", { lane: "reader", stack: 0, kind: "shape-person", title: "週末 reader 森本様", eyebrow: "reader", subtitle: "tech blog subscribe user" })
+  .node("laptop", { lane: "reader", stack: 1, kind: "shape-mobile-device", title: "iPad browser", eyebrow: "device", subtitle: "feed reader + tab 複数" })
+  .node("blog", { lane: "service", stack: 0, kind: "shape-website", title: "tech blog (Zenn 系)", eyebrow: "blog", subtitle: "記事 card feed + タグ検索" })
+  .node("cdnEdge", { lane: "service", stack: 1, kind: "shape-cdn-edge", title: "blog CDN edge", eyebrow: "cdn", subtitle: "近い edge から画像 + 本文配信" })
+  .node("analytics", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "GA4 analytics", eyebrow: "analytics", subtitle: "view + engagement + dwell 集計" })
+  .node("readerDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "reader DB", eyebrow: "storage", subtitle: "閲覧履歴 + like + save" })
+  .edge("reader", "laptop", { label: "起動", tone: "info" })
+  .edge("laptop", "blog", { label: "GET", tone: "info" })
+  .edge("blog", "cdnEdge", { label: "cache", tone: "success" })
+  .edge("blog", "analytics", { label: "track", tone: "accent" })
+  .edge("analytics", "readerDb", { label: "persist", tone: "success" })
   .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事 card" })
+  .readout.gauge("engG", { source: "engagement", min: 0, max: 100, color: "#22c55e", label: "engagement %" })
+  .readout.countup("viewCU", { source: "viewCount", unit: " view", label: "累計閲覧", decimals: 0 })
+  .readout.stat("dwellStat", { source: "dwellSec", unit: " 秒", caption: "滞在時間", label: "dwell" })
   .phase("p1", {
     duration: 1500,
-    title: "初期表示",
-    body: "hovered = 0、 サムネ lane のみ active、 record 一覧表示中の閲覧前状態、 title 色は通常。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard").set("hovered", 0).badge("初期"))
+    title: "feed 一覧 (初期表示)",
+    body: "森本様が blog feed を開き、 記事 card 3 件が表示。 hovered 0 keep、 engagement 0 → 10 tween、 viewCount 128 keep、 dwellSec 0 → 2 tween、 reader + laptop + blog + cdnEdge lane active。",
+  }, (p: PhaseBuilder) => p.activate("reader", "laptop", "blog", "cdnEdge").tween("engagement", 0, 10).tween("dwellSec", 0, 2).badge("feed"))
   .phase("p2", {
     duration: 1800,
-    title: "hover",
-    body: "マウス hover で hovered を 0 → 1 まで tween、 本文 lane 追加 activate、 title が濃青に、 excerpt が視認可能に。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard").tween("hovered", 0, 1).badge("hover"))
+    title: "hover (興味湧く)",
+    body: "'dragon 入門' の card にマウス hover、 excerpt 拡大表示 + title 濃青。 hovered 0 → 1 tween、 engagement 10 → 35 tween、 dwellSec 2 → 8 tween、 analytics で hover event 記録。",
+  }, (p: PhaseBuilder) => p.activate("reader", "laptop", "blog", "cdnEdge", "analytics").tween("hovered", 0, 1).tween("engagement", 10, 35).tween("dwellSec", 2, 8).badge("hover"))
   .phase("p3", {
-    duration: 1500,
-    title: "続きを読む",
-    body: "クリック直前、 メタ lane 追加 activate、 著者 + 経過時間表示、 5 node 全 highlight、 詳細画面遷移待機。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").set("hovered", 1).badge("click"))
+    duration: 2200,
+    title: "クリック閲覧",
+    body: "click で記事詳細ページ、 本文 + 図読解、 スクロール完読。 hovered 1 keep、 engagement 35 → 75 tween、 viewCount 128 → 129 tween、 dwellSec 8 → 120 tween、 readerDb 反映。",
+  }, (p: PhaseBuilder) => p.activate("reader", "laptop", "blog", "cdnEdge", "analytics", "readerDb").tween("engagement", 35, 75).tween("viewCount", 128, 129).tween("dwellSec", 8, 120).badge("閲覧"))
+  .phase("p4", {
+    duration: 2000,
+    title: "シェア (共感)",
+    body: "内容良かったので X + Slack でシェア、 engagement 高値到達。 engagement 75 → 92 tween、 viewCount 129 → 130 tween、 dwellSec 120 → 135 tween、 6 shape 全 active、 blog engagement loop 完遂。",
+  }, (p: PhaseBuilder) => p.activate("reader", "laptop", "blog", "cdnEdge", "analytics", "readerDb").tween("engagement", 75, 92).tween("viewCount", 129, 130).tween("dwellSec", 120, 135).badge("シェア"))
   .build();
 
 /**
- * 125. toc-nav = ドキュメント TOC (階層 3 段 + アクティブセクション) を 3-lane (H1 / H2 / H3) tree depth split 分散 + tocNav readout 併存 + 3 phase 動き (Intro → GS → First tween スクロール)。 iteration 7 wave 5、 pattern taxonomy § 8 tree depth split。
+ * 125. docsTocNav v2 = 新人エンジニア docs 深掘り学習 4 phase シナリオ (Intro → GS → Install → First diagram)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (H1 Intro → H2 GS → H3 Install → H3 First) + 4 readout (tocNav / gauge 学習進捗 / countup 訪問セクション / stat 学習分) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。
  */
 export const docsTocNav = diagram("interactive-docs-toc-nav", {
-  topic: "docs TOC (階層 3 段 + アクティブセクション) を 3-lane 分散 + tocNav readout 併存、 3 phase でスクロール進行によるアクティブセクション遷移を可視化",
+  topic: "新人エンジニア docs 深掘り学習 4 phase = (Intro → GS → Install → First) の flow を shape-* primitive 6 種で表現 + 4 readout (tocNav / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("lvl0", { x: 0, width: 240 })
-  .lane("lvl1", { x: 280, width: 260 })
-  .lane("lvl2", { x: 560, width: 260 })
+  .lane("learner", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("toc", [
     [0, "はじめに", 0],
     [1, "スタートガイド", 1],
@@ -5094,67 +5109,94 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
     [0, "API リファレンス", 0],
   ] as unknown as (string | number)[])
   .state("activeIdx", { initial: 0 })
-  .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "はじめに (H1)", subtitle: "level 0 · idx {activeIdx}" })
-  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス (H1)", subtitle: "level 0" })
-  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド (H2)", subtitle: "level 1 · 青枠" })
-  .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "高度な使い方 (H2)", subtitle: "level 1" })
-  .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "インストール (H3)", subtitle: "level 2" })
-  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の diagram (H3)", subtitle: "level 2 · 青文字 + 枠" })
-  .edge("introCard", "gsCard", { label: "次へ", tone: "info" })
-  .edge("gsCard", "installCard", { label: "子", tone: "accent" })
-  .edge("gsCard", "firstCard", { label: "現在", tone: "success" })
-  .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "ドキュメント TOC" })
+  .state("progress", { initial: 0 })
+  .state("visitedCount", { initial: 0 })
+  .state("learnMin", { initial: 0 })
+  .node("newbie", { lane: "learner", stack: 0, kind: "shape-person", title: "新人 エンジニア山根様", eyebrow: "learner", subtitle: "dragon 初触り 学習中" })
+  .node("browser", { lane: "learner", stack: 1, kind: "shape-mobile-device", title: "browser + タブ複数", eyebrow: "device", subtitle: "docs 検索 + サンプルコード試行" })
+  .node("docsPage", { lane: "service", stack: 0, kind: "shape-website", title: "docs (dragon.dev)", eyebrow: "docs", subtitle: "階層 3 段 + アクティブ section 表示" })
+  .node("cdnEdge", { lane: "service", stack: 1, kind: "shape-cdn-edge", title: "docs CDN edge", eyebrow: "cdn", subtitle: "MDX ビルド後 + edge cache" })
+  .node("learnAnalytics", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "learning analytics", eyebrow: "analytics", subtitle: "user 別進捗 + 完了率追跡" })
+  .node("progressDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "progress DB", eyebrow: "storage", subtitle: "user_id → 訪問セクション + timestamp" })
+  .edge("newbie", "browser", { label: "検索", tone: "info" })
+  .edge("browser", "docsPage", { label: "GET", tone: "info" })
+  .edge("docsPage", "cdnEdge", { label: "cache", tone: "success" })
+  .edge("docsPage", "learnAnalytics", { label: "track", tone: "accent" })
+  .edge("learnAnalytics", "progressDb", { label: "persist", tone: "success" })
+  .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "docs TOC" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "学習進捗 %" })
+  .readout.countup("visCU", { source: "visitedCount", unit: " section", label: "訪問数", decimals: 0 })
+  .readout.stat("learnStat", { source: "learnMin", unit: " 分", caption: "学習時間", label: "min" })
   .phase("p1", {
     duration: 1500,
-    title: "H1 現在",
-    body: "activeIdx = 0、 lvl0 lane のみ active、 'はじめに' が現在セクション、 introCard の subtitle が idx 0 を表示。",
-  }, (p: PhaseBuilder) => p.activate("introCard").set("activeIdx", 0).badge("Intro"))
+    title: "Intro (H1)",
+    body: "山根様が dragon docs Home 到達、 'はじめに' 読解。 activeIdx 0 keep、 progress 0 → 20 tween、 visitedCount 0 → 1 tween、 learnMin 0 → 5 tween、 newbie + browser + docsPage + cdnEdge lane active。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "browser", "docsPage", "cdnEdge").tween("progress", 0, 20).tween("visitedCount", 0, 1).tween("learnMin", 0, 5).badge("Intro"))
   .phase("p2", {
-    duration: 1800,
-    title: "H2 移動",
-    body: "スクロールで下位セクションへ、 activeIdx を 0 → 1 まで tween、 lvl1 lane 追加 activate、 'スタートガイド' が青枠でハイライト。",
-  }, (p: PhaseBuilder) => p.activate("introCard", "gsCard").tween("activeIdx", 0, 1).badge("GS"))
+    duration: 2000,
+    title: "GS (H2)",
+    body: "スタートガイドへ移動、 概要 + 前提知識確認。 activeIdx 0 → 1 tween、 progress 20 → 45 tween、 visitedCount 1 → 2 tween、 learnMin 5 → 18 tween、 learnAnalytics + progressDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "browser", "docsPage", "cdnEdge", "learnAnalytics", "progressDb").tween("activeIdx", 0, 1).tween("progress", 20, 45).tween("visitedCount", 1, 2).tween("learnMin", 5, 18).badge("GS"))
   .phase("p3", {
-    duration: 1500,
-    title: "H3 詳細",
-    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の diagram' が青文字 + 枠、 全 6 node 展開状態。",
-  }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").tween("activeIdx", 1, 3).badge("First"))
+    duration: 2000,
+    title: "Install (H3)",
+    body: "GS 内 'インストール' サブセクションへ、 pnpm install + config 実行。 activeIdx 1 → 2 tween、 progress 45 → 72 tween、 visitedCount 2 → 3 tween、 learnMin 18 → 32 tween、 実サンプル動作確認。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "browser", "docsPage", "cdnEdge", "learnAnalytics", "progressDb").tween("activeIdx", 1, 2).tween("progress", 45, 72).tween("visitedCount", 2, 3).tween("learnMin", 18, 32).badge("Install"))
+  .phase("p4", {
+    duration: 2200,
+    title: "First diagram (H3)",
+    body: "'最初の diagram' で実際に code 書いて動作確認、 progressDb に完了 flag 記録。 activeIdx 2 → 3 tween、 progress 72 → 95 tween (gauge 針最上位近く)、 visitedCount 3 → 4 tween、 learnMin 32 → 55 tween、 6 shape 全 active、 学習ゴール到達。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "browser", "docsPage", "cdnEdge", "learnAnalytics", "progressDb").tween("activeIdx", 2, 3).tween("progress", 72, 95).tween("visitedCount", 3, 4).tween("learnMin", 32, 55).badge("First"))
   .build();
 
 /**
- * 126. share-buttons = ブログ記事 SNS シェアボタンを 3-lane (Twitter / Facebook / LinkedIn) dense sequence 分散 + shareButtons readout 併存 + 3 phase 動き (投稿直後 → 拡散 tween → バズ)。 iteration 7 wave 5、 iteration 完遂。 pattern taxonomy § 7 dense sequence。
+ * 126. socialShareButtons v2 = tech blog 記事シェア 1 週間拡散 4 phase シナリオ (投稿直後 → X 拡散 → FB / LinkedIn 追随 → Reddit バズ定着)、 shape-person + shape-mobile-device + shape-website + shape-cdn-edge + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Day 0 → Day 1 → Day 3 → Day 7) + 4 readout (shareButtons / gauge viral / countup total shares / stat reach 万人) が tween で visually 連続変化。 iteration 8 wave 8-P redesign。 iteration 7 完遂。
  */
 export const socialShareButtons = diagram("interactive-social-share-buttons", {
-  topic: "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で拡散カウント 0 → 384 tween を可視化",
+  topic: "tech blog 記事シェア 1 週間拡散 4 phase = (Day 0 → Day 1 → Day 3 → Day 7) の flow を shape-* primitive 6 種で表現 + 4 readout (shareButtons / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("tw", { x: 0, width: 200 })
-  .lane("fb", { x: 220, width: 200 })
-  .lane("li", { x: 440, width: 200 })
+  .lane("author", { x: 0, width: 220 })
+  .lane("service", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("shares", [["tw", 245], ["fb", 89], ["li", 32], ["rd", 18]] as unknown as (string | number)[])
   .state("totalShares", { initial: 0 })
-  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "◆ 𝕏 Twitter", subtitle: "245 shares · 空色ボタン" })
-  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "f Facebook", subtitle: "89 shares · 濃青ボタン" })
-  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "in LinkedIn", subtitle: "32 shares · 暗青ボタン" })
-  .node("rdCard", { lane: "li", stack: 1, kind: "card", title: "R Reddit", subtitle: "18 shares · 橙ボタン" })
-  .edge("twCard", "fbCard", { label: "拡散", tone: "info" })
-  .edge("fbCard", "liCard", { label: "拡散", tone: "info" })
-  .edge("liCard", "rdCard", { label: "拡散", tone: "info" })
-  .readout.shareButtons("sb", { source: "shares", label: "シェア 累計 {totalShares}" })
+  .state("viralRate", { initial: 0 })
+  .state("reachTenK", { initial: 0 })
+  .node("author", { lane: "author", stack: 0, kind: "shape-person", title: "tech blogger 綾瀬様", eyebrow: "author", subtitle: "月次 1 本 tech 記事執筆" })
+  .node("mobile", { lane: "author", stack: 1, kind: "shape-mobile-device", title: "iPhone SNS + 通知", eyebrow: "device", subtitle: "share 通知 + 反応追跡" })
+  .node("blog", { lane: "service", stack: 0, kind: "shape-website", title: "blog + share widget", eyebrow: "blog", subtitle: "4 SNS ボタン + OGP 画像" })
+  .node("cdnEdge", { lane: "service", stack: 1, kind: "shape-cdn-edge", title: "OGP CDN edge", eyebrow: "cdn", subtitle: "OGP 画像 + snippet 配信" })
+  .node("socialGraph", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "social graph API", eyebrow: "graph", subtitle: "SNS 各 platform share count 集計" })
+  .node("statsDb", { lane: "outcome", stack: 1, kind: "shape-cylinder", title: "share stats DB", eyebrow: "storage", subtitle: "時系列 share 履歴 + platform 別" })
+  .edge("author", "mobile", { label: "投稿", tone: "info" })
+  .edge("mobile", "blog", { label: "publish", tone: "info" })
+  .edge("blog", "cdnEdge", { label: "OGP", tone: "success" })
+  .edge("blog", "socialGraph", { label: "poll", tone: "accent" })
+  .edge("socialGraph", "statsDb", { label: "persist", tone: "success" })
+  .readout.shareButtons("sb", { source: "shares", label: "シェア 累計" })
+  .readout.gauge("virG", { source: "viralRate", min: 0, max: 100, color: "#22c55e", label: "viral 度 %" })
+  .readout.countup("totCU", { source: "totalShares", unit: " shares", label: "総 shares", decimals: 0 })
+  .readout.stat("reachStat", { source: "reachTenK", unit: " 万人", caption: "reach", label: "reach" })
   .phase("p1", {
     duration: 1500,
-    title: "投稿直後",
-    body: "totalShares を 0 → 50 まで tween、 Twitter lane のみ active、 初期反応で早期拡散の観測。",
-  }, (p: PhaseBuilder) => p.activate("twCard").tween("totalShares", 0, 50).badge("開始"))
+    title: "Day 0 投稿直後",
+    body: "綾瀬様が記事公開、 blog に share widget 表示、 まず自分の X で share。 totalShares 0 → 50 tween、 viralRate 0 → 15 tween、 reachTenK 0 → 1 tween、 author + mobile + blog + cdnEdge lane active。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "blog", "cdnEdge").tween("totalShares", 0, 50).tween("viralRate", 0, 15).tween("reachTenK", 0, 1).badge("Day 0"))
   .phase("p2", {
     duration: 2000,
-    title: "拡散中",
-    body: "totalShares を 50 → 300 まで tween、 Facebook + LinkedIn lane 追加 activate、 SNS 間で拡散連鎖。",
-  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard").tween("totalShares", 50, 300).badge("拡散"))
+    title: "Day 1 X 拡散",
+    body: "有名エンジニアが RT、 X で急速拡散。 totalShares 50 → 200 tween、 viralRate 15 → 55 tween、 reachTenK 1 → 5 tween、 socialGraph + statsDb lane activate。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "blog", "cdnEdge", "socialGraph", "statsDb").tween("totalShares", 50, 200).tween("viralRate", 15, 55).tween("reachTenK", 1, 5).badge("Day 1"))
   .phase("p3", {
-    duration: 1500,
-    title: "バズ定着",
-    body: "totalShares を 300 → 384 まで tween、 Reddit も active、 4 platform 全 highlight、 384 shares で定着。 iteration 7 完遂 = 動き + 日本語の 15 diagram フル対応。",
-  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").tween("totalShares", 300, 384).badge("バズ"))
+    duration: 2000,
+    title: "Day 3 FB / LinkedIn 追随",
+    body: "エンジニア界隈で FB + LinkedIn share 追随、 プロ層に拡がる。 totalShares 200 → 330 tween、 viralRate 55 → 78 tween、 reachTenK 5 → 12 tween、 statsDb で platform 別集計蓄積。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "blog", "cdnEdge", "socialGraph", "statsDb").tween("totalShares", 200, 330).tween("viralRate", 55, 78).tween("reachTenK", 5, 12).badge("Day 3"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Day 7 Reddit バズ定着",
+    body: "Reddit r/programming に投稿されバズ、 週末に拡散が国際化。 totalShares 330 → 384 tween、 viralRate 78 → 92 tween (gauge 針最上位近く)、 reachTenK 12 → 20 tween、 6 shape 全 active、 1 週間拡散 完遂。",
+  }, (p: PhaseBuilder) => p.activate("author", "mobile", "blog", "cdnEdge", "socialGraph", "statsDb").tween("totalShares", 330, 384).tween("viralRate", 78, 92).tween("reachTenK", 12, 20).badge("Day 7"))
   .build();
 
 /**
