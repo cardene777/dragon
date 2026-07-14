@@ -3862,43 +3862,65 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
   .build();
 
 /**
- * 101. breadcrumb = navigation path、 4-lane (Home / Docs / API / Reference) pipeline + 3 next edge + breadcrumb readout 併存。
- * cdl primitive iteration 6 の 2 番目、 pattern taxonomy § 4 pipeline flow と直接共鳴。
+ * 101. docsBreadcrumb v2 = 新人エンジニア OSS docs 学習 4 phase シナリオ (入口 → docs 一覧 → API 詳細 → Reference 深掘り)、 shape-person + shape-mobile-device + shape-website × 2 + shape-cloud + shape-cylinder の 6 shape で visual scene 化、 4 phase (Home 到着 → docs section → API page → Reference 深掘り) + 4 readout (breadcrumb / gauge 学習進度 / countup 訪問 page 数 / stat 滞在分) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
-  topic: "docs navigation 4 crumb を 4-lane pipeline (Home → Docs → API → Reference) + 3 next edge + breadcrumb readout 併存",
+  topic: "新人 OSS docs 学習 4 phase = (Home → Docs → API → Reference) の flow を shape-* primitive 6 種で表現 + 4 readout (breadcrumb / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("home", { x: 0, width: 170 })
-  .lane("docs", { x: 190, width: 170 })
-  .lane("api", { x: 380, width: 170 })
-  .lane("ref", { x: 570, width: 170 })
+  .lane("newbie", { x: 0, width: 220 })
+  .lane("docsSite", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("path", ["Home", "Docs", "API", "Reference"])
-  .state("cur", { initial: 2 })
-  .node("homeNode", { lane: "home", stack: 0, kind: "card", title: "Home", subtitle: "root · index 0" })
-  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "Docs", subtitle: "index 1" })
-  .node("apiNode", { lane: "api", stack: 0, kind: "card", title: "◆ API", subtitle: "index 2 (current)" })
-  .node("refNode", { lane: "ref", stack: 0, kind: "card", title: "Reference", subtitle: "index 3" })
-  .edge("homeNode", "docsNode", { label: "→", tone: "info" })
-  .edge("docsNode", "apiNode", { label: "→", tone: "accent" })
-  .edge("apiNode", "refNode", { label: "→", tone: "info" })
-  .readout.breadcrumb("bc", { source: "path", currentSource: "cur", color: "#2563eb", label: "Path" })
-  .phase("p", {
-    duration: 1200,
-    title: "navigation pipeline",
-    body: "4-lane (Home / Docs / API / Reference) navigation path を pipeline 分散、 3 next edge (info → accent → info) で遷移経路明示、 breadcrumb readout も併存で `Home › Docs › API › Reference` 表示、 pipeline flow pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("homeNode", "docsNode", "apiNode", "refNode").badge("nav"))
+  .state("cur", { initial: 0 })
+  .state("progress", { initial: 0 })
+  .state("pageCount", { initial: 0 })
+  .state("dwellMin", { initial: 0 })
+  .node("newbie", { lane: "newbie", stack: 0, kind: "shape-person", title: "新人 岸田様", eyebrow: "learner", subtitle: "OSS 初触りエンジニア" })
+  .node("laptop", { lane: "newbie", stack: 1, kind: "shape-mobile-device", title: "Chrome browser", eyebrow: "device", subtitle: "docs tab 複数開き + 履歴" })
+  .node("home", { lane: "docsSite", stack: 0, kind: "shape-website", title: "docs Home", eyebrow: "landing", subtitle: "product overview + Getting Started" })
+  .node("apiPage", { lane: "docsSite", stack: 1, kind: "shape-website", title: "API リファレンス page", eyebrow: "api", subtitle: "endpoint 一覧 + interactive playground" })
+  .node("cdn", { lane: "docsSite", stack: 2, kind: "shape-cloud", title: "docs CDN", eyebrow: "cdn", subtitle: "Vercel edge 配信 · caching" })
+  .node("bookmarks", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "browser bookmark", eyebrow: "storage", subtitle: "頻用 page 保存 · 学習資産" })
+  .edge("newbie", "laptop", { label: "検索", tone: "info" })
+  .edge("laptop", "home", { label: "GET /", tone: "info" })
+  .edge("home", "apiPage", { label: "navigate", tone: "success" })
+  .edge("apiPage", "cdn", { label: "asset load", tone: "accent" })
+  .edge("apiPage", "bookmarks", { label: "★ 保存", tone: "success" })
+  .readout.breadcrumb("bc", { source: "path", currentSource: "cur", color: "#2563eb", label: "navigation breadcrumb" })
+  .readout.gauge("progG", { source: "progress", min: 0, max: 100, color: "#22c55e", label: "学習進度 %" })
+  .readout.countup("pageCU", { source: "pageCount", unit: " page", label: "訪問 page", decimals: 0 })
+  .readout.stat("dwellStat", { source: "dwellMin", unit: " 分", caption: "滞在時間", label: "dwell" })
+  .phase("p1", {
+    duration: 1800,
+    title: "Home 到着",
+    body: "岸田様が Google 検索から docs Home 到着。 cur = 0 (Home)、 progress 0 → 15 tween、 pageCount 0 → 1 tween、 dwellMin 0 → 3 tween、 newbie + laptop + home lane active。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "laptop", "home").set("cur", 0).tween("progress", 0, 15).tween("pageCount", 0, 1).tween("dwellMin", 0, 3).badge("Home"))
+  .phase("p2", {
+    duration: 2200,
+    title: "docs section 移動",
+    body: "Getting Started 読了 → Docs section へ。 cur 0 → 1 tween (breadcrumb 更新)、 progress 15 → 40 tween、 pageCount 1 → 5 tween、 dwellMin 3 → 12 tween、 引き続き docsSite lane 内で滞在。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "laptop", "home").tween("cur", 0, 1).tween("progress", 15, 40).tween("pageCount", 1, 5).tween("dwellMin", 3, 12).badge("Docs"))
+  .phase("p3", {
+    duration: 2200,
+    title: "API page 到達",
+    body: "API リファレンス到達、 endpoint 一覧確認 + interactive playground 試行。 cur 1 → 2 tween、 progress 40 → 68 tween、 pageCount 5 → 12 tween、 dwellMin 12 → 28 tween、 apiPage + cdn lane activate。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "laptop", "home", "apiPage", "cdn").tween("cur", 1, 2).tween("progress", 40, 68).tween("pageCount", 5, 12).tween("dwellMin", 12, 28).badge("API"))
+  .phase("p4", {
+    duration: 2000,
+    title: "Reference 深掘り + bookmark",
+    body: "Reference で全 endpoint 詳細確認 + 頻用 page 5 個 bookmark。 cur 2 → 3 tween (Reference)、 progress 68 → 92 tween (gauge 針最上位近く)、 pageCount 12 → 18 tween、 dwellMin 28 → 45 tween、 bookmarks lane activate、 6 shape 全 active、 学習資産構築。",
+  }, (p: PhaseBuilder) => p.activate("newbie", "laptop", "home", "apiPage", "cdn", "bookmarks").tween("cur", 2, 3).tween("progress", 68, 92).tween("pageCount", 12, 18).tween("dwellMin", 28, 45).badge("Reference"))
   .build();
 
 /**
- * 102. timeline-vertical = day schedule 5 event を縦 timeline で表示、 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存。
- * cdl primitive iteration 6 の 3 番目、 pattern taxonomy § 7 individual element split と共鳴。
+ * 102. dayScheduleTimeline v2 = エンジニアリング マネージャー 1 日 4 phase シナリオ (朝の standup → 設計 review → deploy → 夜の retro)、 shape-person + shape-mobile-device + shape-website + shape-server-rack + shape-hexagon + shape-cloud の 6 shape で visual scene 化、 4 phase (Morning standup → Afternoon deploy → 1-on-1 → Evening retro) + 4 readout (timelineVertical / gauge task 消化率 / countup 参加会議数 / stat 残 task) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const dayScheduleTimeline = diagram("interactive-day-schedule", {
-  topic: "day schedule 5 event を 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存",
+  topic: "エンジニアリング マネージャー 1 日 4 phase = (朝 standup → 設計 → deploy → 夜 retro) の flow を shape-* primitive 6 種で表現 + 4 readout (timelineVertical / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("morning", { x: 0, width: 240 })
-  .lane("afternoon", { x: 280, width: 240 })
-  .lane("evening", { x: 560, width: 240 })
+  .lane("manager", { x: 0, width: 220 })
+  .lane("work", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("events", [
     ["09:00", "Standup", "team sync"],
     ["10:30", "Design review", "3 proposals"],
@@ -3906,15 +3928,44 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
     ["16:00", "1-on-1", "career discussion"],
     ["19:30", "Retrospective", "sprint 42 close"],
   ] as unknown as (string | number)[])
-  .node("morningCard", { lane: "morning", stack: 0, kind: "card", title: "Morning", subtitle: "09:00 Standup · 10:30 Design review" })
-  .node("afternoonCard", { lane: "afternoon", stack: 0, kind: "card", title: "Afternoon", subtitle: "14:00 Deploy · 16:00 1-on-1" })
-  .node("eveningCard", { lane: "evening", stack: 0, kind: "card", title: "Evening", subtitle: "19:30 Retrospective" })
-  .readout.timelineVertical("tv", { source: "events", color: "#2563eb", max: 8, label: "Day events" })
-  .phase("p", {
-    duration: 1200,
-    title: "day time band split",
-    body: "3-lane (Morning / Afternoon / Evening) で 5 event を時間帯別分散、 各 lane summary card + timelineVertical readout 併存で dot + line + text の縦 timeline 表示、 individual element split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard", "eveningCard").badge("timeline"))
+  .state("taskDone", { initial: 0 })
+  .state("meetingCount", { initial: 0 })
+  .state("taskRemain", { initial: 5 })
+  .node("manager", { lane: "manager", stack: 0, kind: "shape-person", title: "EM 大西様", eyebrow: "manager", subtitle: "8 名チームリード" })
+  .node("laptop", { lane: "manager", stack: 1, kind: "shape-mobile-device", title: "MacBook + Google Cal", eyebrow: "device", subtitle: "5 event 予定 + Slack" })
+  .node("meetingRoom", { lane: "work", stack: 0, kind: "shape-website", title: "Zoom / meeting room", eyebrow: "meeting", subtitle: "standup + design review + 1-on-1" })
+  .node("staging", { lane: "work", stack: 1, kind: "shape-server-rack", title: "staging deploy", eyebrow: "ops", subtitle: "v1.2.0 rollout · pre-production" })
+  .node("retroBoard", { lane: "work", stack: 2, kind: "shape-hexagon", title: "Miro retro board", eyebrow: "retro", subtitle: "sprint 42 振返り + アクション" })
+  .node("summary", { lane: "outcome", stack: 0, kind: "shape-cloud", title: "日次 summary", eyebrow: "log", subtitle: "Notion に成果 + 課題記録" })
+  .edge("manager", "laptop", { label: "予定確認", tone: "info" })
+  .edge("laptop", "meetingRoom", { label: "参加", tone: "info" })
+  .edge("meetingRoom", "staging", { label: "承認 → deploy", tone: "success" })
+  .edge("staging", "retroBoard", { label: "review", tone: "accent" })
+  .edge("retroBoard", "summary", { label: "記録", tone: "success" })
+  .readout.timelineVertical("tv", { source: "events", color: "#2563eb", max: 8, label: "1 日 5 event" })
+  .readout.gauge("progG", { source: "taskDone", min: 0, max: 100, color: "#22c55e", label: "task 消化率 %" })
+  .readout.countup("meetCU", { source: "meetingCount", unit: " 件", label: "参加会議", decimals: 0 })
+  .readout.stat("remStat", { source: "taskRemain", unit: " 件", caption: "残 task", label: "残" })
+  .phase("p1", {
+    duration: 1800,
+    title: "Morning standup (09:00)",
+    body: "大西様が Zoom standup 主催、 8 名で 15 分 sync。 taskDone 0 → 20 tween、 meetingCount 0 → 1 tween、 taskRemain 5 → 4 tween、 manager + meetingRoom lane active。",
+  }, (p: PhaseBuilder) => p.activate("manager", "laptop", "meetingRoom").tween("taskDone", 0, 20).tween("meetingCount", 0, 1).tween("taskRemain", 5, 4).badge("Standup"))
+  .phase("p2", {
+    duration: 2200,
+    title: "Design review + Deploy (10:30-14:00)",
+    body: "3 proposals review → 承認 → v1.2.0 staging deploy。 taskDone 20 → 55 tween、 meetingCount 1 → 2 tween、 taskRemain 4 → 2 tween、 staging lane activate。",
+  }, (p: PhaseBuilder) => p.activate("manager", "laptop", "meetingRoom", "staging").tween("taskDone", 20, 55).tween("meetingCount", 1, 2).tween("taskRemain", 4, 2).badge("Deploy"))
+  .phase("p3", {
+    duration: 2200,
+    title: "1-on-1 + Retro (16:00-19:30)",
+    body: "member との career 1-on-1 → sprint 42 retro 主催。 taskDone 55 → 85 tween、 meetingCount 2 → 4 tween、 taskRemain 2 → 1 tween、 retroBoard lane activate、 Miro で振返り。",
+  }, (p: PhaseBuilder) => p.activate("manager", "laptop", "meetingRoom", "staging", "retroBoard").tween("taskDone", 55, 85).tween("meetingCount", 2, 4).tween("taskRemain", 2, 1).badge("Retro"))
+  .phase("p4", {
+    duration: 2000,
+    title: "日次 summary 記録",
+    body: "22:00 帰宅前に Notion で 1 日成果 + 明日 task 準備。 taskDone 85 → 100 tween (gauge 針最上位)、 meetingCount 4 → 5 tween (最終)、 taskRemain 1 → 0 tween (stat 空)、 summary lane activate、 6 shape 全 active、 1 日完遂。",
+  }, (p: PhaseBuilder) => p.activate("manager", "laptop", "meetingRoom", "staging", "retroBoard", "summary").tween("taskDone", 85, 100).tween("meetingCount", 4, 5).tween("taskRemain", 1, 0).badge("summary"))
   .build();
 
 /**
@@ -3947,18 +3998,14 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
   .build();
 
 /**
- * 104. calendar-week = 週間 mini calendar、 7-lane 分散 + calendarWeek readout 併存。 iteration 6 wave 3、 pattern taxonomy § 7 individual element split。
+ * 104. weekCalendarView v2 = フリーランス デザイナーの週次予定管理 4 phase シナリオ (月曜計画 → 中盤商談 → 週末納品 → 集計)、 shape-person + shape-mobile-device + shape-online-shop + shape-website + shape-brokerage + shape-cylinder の 6 shape で visual scene 化、 4 phase (月曜計画 → 水曜商談 → 金曜納品 → 土日集計) + 4 readout (calendarWeek / gauge 稼働率 / countup work hours / stat 週次収入) が tween で visually 連続変化。 iteration 8 wave 8-I redesign。
  */
 export const weekCalendarView = diagram("interactive-week-calendar", {
-  topic: "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存",
+  topic: "フリーランス デザイナー週次予定管理 4 phase = (月曜 → 水曜 → 金曜 → 土日) の flow を shape-* primitive 6 種で表現 + 4 readout (calendarWeek / gauge / countup / stat) が tween で visually 連続変化",
 })
-  .lane("mon", { x: 0, width: 100 })
-  .lane("tue", { x: 110, width: 100 })
-  .lane("wed", { x: 220, width: 100 })
-  .lane("thu", { x: 330, width: 100 })
-  .lane("fri", { x: 440, width: 100 })
-  .lane("sat", { x: 550, width: 100 })
-  .lane("sun", { x: 660, width: 100 })
+  .lane("freelancer", { x: 0, width: 220 })
+  .lane("clients", { x: 240, width: 320 })
+  .lane("outcome", { x: 580, width: 240 })
   .arraySignal("week", [
     ["Mon", true, false],
     ["Tue", false, false],
@@ -3968,19 +4015,45 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     ["Sat", false, false],
     ["Sun", false, false],
   ] as unknown as (string | number)[])
-  .node("monNode", { lane: "mon", stack: 0, kind: "card", title: "Mon", subtitle: "event" })
-  .node("tueNode", { lane: "tue", stack: 0, kind: "card", title: "Tue", subtitle: "-" })
-  .node("wedNode", { lane: "wed", stack: 0, kind: "card", title: "◆ Wed (today)", subtitle: "event" })
-  .node("thuNode", { lane: "thu", stack: 0, kind: "card", title: "Thu", subtitle: "-" })
-  .node("friNode", { lane: "fri", stack: 0, kind: "card", title: "Fri", subtitle: "event" })
-  .node("satNode", { lane: "sat", stack: 0, kind: "card", title: "Sat", subtitle: "-" })
-  .node("sunNode", { lane: "sun", stack: 0, kind: "card", title: "Sun", subtitle: "-" })
-  .readout.calendarWeek("cw", { source: "week", cellSize: 40, color: "#2563eb", label: "This week" })
-  .phase("p", {
-    duration: 1200,
-    title: "week day split",
-    body: "7-lane で 7-day を個別 day 分散、 各 day 個別 card、 calendarWeek readout も併存で 7-cell strip 表示、 week dashboard 定番。",
-  }, (p: PhaseBuilder) => p.activate("monNode", "tueNode", "wedNode", "thuNode", "friNode", "satNode", "sunNode").badge("week"))
+  .state("workRate", { initial: 0 })
+  .state("workHours", { initial: 0 })
+  .state("revenue", { initial: 0 })
+  .node("designer", { lane: "freelancer", stack: 0, kind: "shape-person", title: "デザイナー 早見様", eyebrow: "freelance", subtitle: "UI/UX 個人事業主" })
+  .node("phone", { lane: "freelancer", stack: 1, kind: "shape-mobile-device", title: "iCloud Calendar", eyebrow: "device", subtitle: "予定管理 + 請求書 draft" })
+  .node("clientA", { lane: "clients", stack: 0, kind: "shape-online-shop", title: "client A (SaaS)", eyebrow: "b2b", subtitle: "月曜 kickoff MTG · project 開始" })
+  .node("clientB", { lane: "clients", stack: 1, kind: "shape-website", title: "client B (EC)", eyebrow: "b2b", subtitle: "水曜商談 + 金曜納品" })
+  .node("agency", { lane: "clients", stack: 2, kind: "shape-brokerage", title: "紹介 agency", eyebrow: "broker", subtitle: "新規案件紹介元" })
+  .node("invoice", { lane: "outcome", stack: 0, kind: "shape-cylinder", title: "請求書 DB", eyebrow: "invoicing", subtitle: "月末請求書生成用データ蓄積" })
+  .edge("designer", "phone", { label: "予定確認", tone: "info" })
+  .edge("phone", "clientA", { label: "月曜 MTG", tone: "success" })
+  .edge("phone", "clientB", { label: "水曜商談", tone: "success" })
+  .edge("agency", "designer", { label: "新規案件", tone: "accent" })
+  .edge("clientA", "invoice", { label: "作業 log", tone: "success" })
+  .edge("clientB", "invoice", { label: "納品 log", tone: "success" })
+  .readout.calendarWeek("cw", { source: "week", cellSize: 40, color: "#2563eb", label: "今週予定" })
+  .readout.gauge("rateG", { source: "workRate", min: 0, max: 100, color: "#22c55e", label: "週次稼働率 %" })
+  .readout.countup("hoursCU", { source: "workHours", unit: " h", label: "作業時間", decimals: 0 })
+  .readout.stat("revStat", { source: "revenue", unit: "k$", caption: "週次収入", label: "収入" })
+  .phase("p1", {
+    duration: 1800,
+    title: "月曜計画 + kickoff",
+    body: "早見様が iCloud で今週予定確認、 client A の kickoff MTG 参加。 workRate 0 → 15 tween、 workHours 0 → 4 tween、 revenue 0 → 8 tween、 freelancer + clientA lane active。",
+  }, (p: PhaseBuilder) => p.activate("designer", "phone", "clientA").tween("workRate", 0, 15).tween("workHours", 0, 4).tween("revenue", 0, 8).badge("月曜"))
+  .phase("p2", {
+    duration: 2200,
+    title: "水曜商談 + 集中作業",
+    body: "水曜 client B と商談 + Figma 集中作業。 workRate 15 → 55 tween、 workHours 4 → 22 tween (countup 加速)、 revenue 8 → 28 tween、 clientB lane activate。",
+  }, (p: PhaseBuilder) => p.activate("designer", "phone", "clientA", "clientB").tween("workRate", 15, 55).tween("workHours", 4, 22).tween("revenue", 8, 28).badge("商談"))
+  .phase("p3", {
+    duration: 2200,
+    title: "金曜納品",
+    body: "client B に UI 最終納品、 検収完了。 workRate 55 → 82 tween、 workHours 22 → 38 tween、 revenue 28 → 52 tween (納品完了で入金確定)、 agency lane activate、 新規案件も紹介入り。",
+  }, (p: PhaseBuilder) => p.activate("designer", "phone", "clientA", "clientB", "agency").tween("workRate", 55, 82).tween("workHours", 22, 38).tween("revenue", 28, 52).badge("納品"))
+  .phase("p4", {
+    duration: 2000,
+    title: "土日集計 + 請求書 draft",
+    body: "土日で作業 log 集計 + 請求書 draft、 来週準備。 workRate 82 → 95 tween (gauge 針最上位)、 workHours 38 → 42 tween、 revenue 52 → 58 tween (最終)、 invoice lane activate、 6 shape 全 active、 週次完遂。",
+  }, (p: PhaseBuilder) => p.activate("designer", "phone", "clientA", "clientB", "agency", "invoice").tween("workRate", 82, 95).tween("workHours", 38, 42).tween("revenue", 52, 58).badge("集計"))
   .build();
 
 /**

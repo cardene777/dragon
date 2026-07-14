@@ -269,6 +269,9 @@ export const ITEM_NAME_JA: Record<string, string> = {
   searchResults: "実例: エンジニア技術調査 (初回 → 絞込 → 深掘り → 実行)",
   yearRoadmap: "実例: スタートアップ 2026 年事業展開 (Q1 → Q2 → Q3 → Q4)",
   tutorialVideoCards: "実例: YouTube 教育クリエイター動画公開 (企画 → 撮影 → 公開 → viral)",
+  docsBreadcrumb: "実例: 新人 OSS docs 学習 (Home → Docs → API → Reference)",
+  dayScheduleTimeline: "実例: EM 1 日 (standup → deploy → 1-on-1 → retro)",
+  weekCalendarView: "実例: フリーランス デザイナー週次 (月曜 → 水曜 → 金曜 → 土日)",
 
   // styles
   styleSolid: "solid スタイル (実線 + 矢頭)",
