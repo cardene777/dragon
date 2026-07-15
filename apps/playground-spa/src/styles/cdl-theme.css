@@ -42,7 +42,7 @@
 /* ═════════════════════════════════════════════════════════════════════════════
  * Neumorphism (CAR-748 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
  * 意図 = soft raised bumps + dual shadow (light TL + dark BR) + no border +
- *        cool blue accent (#4a7fc8) + Söhne / Inter regular + monolithic surface #e6ebf0
+ *        cool blue accent (#a66a3d) + Söhne / Inter regular + monolithic surface #e6ebf0
  *
  * CAR-741 Circuit theme と同じ 3 経路を採用:
  *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
@@ -65,8 +65,8 @@
 [data-cdl-theme="neumorphism"] {
   --cdl-node-fill: #e6ebf0;
   /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
-  --cdl-tone-info: #4a7fc8;
-  --cdl-tone-accent: #4a7fc8;
+  --cdl-tone-info: #a66a3d;
+  --cdl-tone-accent: #a66a3d;
   /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる。 border は消したいので transparent */
   --cdl-divider: transparent;
   --cdl-text: #3a3d47;
@@ -74,7 +74,7 @@
   --cdl-text-secondary: #7a808c;
   --cdl-label-bg: #e6ebf0;
   --cdl-label-text: #3a3d47;
-  --cdl-edge-stroke: #4a7fc8;
+  --cdl-edge-stroke: #a66a3d;
 }
 
 /*
@@ -126,7 +126,7 @@
  */
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
   opacity: 1 !important;
 }
@@ -137,7 +137,7 @@
  * その local 座標系で 24x24 の transparent rect を x=-8 / y=-8 / w=40 / h=40 の
  * 円形 badge (rx=ry=20) に置換、 `dragon-nm-raised-sm` filter で soft dual shadow を
  * 適用する。 icon path (0-24 viewBox) は center (12, 12) を基準に 1.67x scale して
- * 40x40 badge を占めるサイズに拡大、 accent blue (#4a7fc8) fill で可読性を上げる。
+ * 40x40 badge を占めるサイズに拡大、 accent blue (#a66a3d) fill で可読性を上げる。
  *
  * specificity: 4 attribute selector (theme + node-body + node-kind-icon + tag) で
  * 既存 `[node-body] rect` (3 attr) を上書き。 `> rect` 直接子指定で GenericNode 以外の
@@ -167,22 +167,22 @@
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
   transform: translate(-8px, -8px) scale(1.67) !important;
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] path[data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] line[data-cdl-role="edge-line"] {
-  stroke: #4a7fc8 !important;
+  stroke: #a66a3d !important;
   stroke-width: 1.6 !important;
   stroke-linecap: round !important;
   fill: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
@@ -191,7 +191,7 @@
   filter: url(#dragon-nm-raised-sm) !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
   font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
   font-weight: 700 !important;
@@ -271,8 +271,8 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
   fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: rgba(44, 52, 72, 0.5) !important;
-  stroke: rgba(106, 159, 224, 0.25) !important;
+  fill: rgba(36, 28, 20, 0.5) !important;
+  stroke: rgba(212, 160, 74, 0.25) !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -300,7 +300,7 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   stroke-dasharray: 6 4 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(74, 90, 124, 0.55) !important;
+  stroke: rgba(122, 96, 68, 0.55) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
   fill: #1a1408 !important;

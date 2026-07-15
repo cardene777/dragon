@@ -4400,7 +4400,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 .cdl-ip-readout-terminal-window {
   border-radius: 6px;
   overflow: hidden;
-  background: #241c14;
+  background: #1a1408;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .cdl-ip-readout-terminal-titlebar {

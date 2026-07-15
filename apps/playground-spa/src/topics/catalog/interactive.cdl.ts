@@ -347,7 +347,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
   .phase("p", {
     duration: 1500,
     title: "rect fill range compare",
-    body: "4-lane (Low 25% gray / Mid 50% blue / High 75% orange / Interactive slider teal) で dyn-rect fill を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 fill range を横並び比較 view で明示。",
+    body: "4-lane (Low 25% gray / Mid 50% blue / High 75% orange / Interactive slider gold) で dyn-rect fill を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 fill range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh", "bar").badge("shape.rect"))
   .build();
 
@@ -405,7 +405,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   .phase("p", {
     duration: 1500,
     title: "circle progress compare",
-    body: "4-lane (0% gray / 33% blue / 66% orange / Interactive slider teal) で dyn-circle progress ring を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 progress ring range を横並び比較 view で明示。",
+    body: "4-lane (0% gray / 33% blue / 66% orange / Interactive slider gold) で dyn-circle progress ring を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 progress ring range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird", "c").badge("shape.circle"))
   .build();
 
@@ -435,7 +435,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
   .phase("p", {
     duration: 1500,
     title: "3 static (0° / 90° / 180°) + slider 追随",
-    body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider teal) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
+    body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider gold) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
   .build();
 
@@ -465,7 +465,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   .phase("p", {
     duration: 1500,
     title: "3 水位 (25% / 50% / 75%) + slider 追随",
-    body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider teal) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
+    body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider gold) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
   .build();
 
@@ -496,7 +496,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .phase("p", {
     duration: 1500,
     title: "3 頂点数 (△3 / ⬡6 / ⯃8) + slider 追随",
-    body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider teal) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
+    body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider gold) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
   .build();
 
@@ -1756,7 +1756,7 @@ export const kpiBullet = diagram("interactive-kpi-bullet", {
   .node("actualNode", { lane: "avg", stack: 1, kind: "card", title: "◆ Actual", subtitle: "{actual}" })
   .node("targetNode", { lane: "good", stack: 1, kind: "card", title: "▼ Target", subtitle: "{target}" })
   .edge("actualNode", "targetNode", { label: "gap = target - actual", tone: "warning" })
-  .readout.bulletChart("b", { source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#0f172a", label: "Progress (bullet chart)" })
+  .readout.bulletChart("b", { source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#241c14", label: "Progress (bullet chart)" })
   .readout.stat("targetStat", { source: "target", label: "Target" })
   .phase("p", {
     duration: 1200,
@@ -1781,7 +1781,7 @@ export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
   .node("gapNode", { lane: "gap", stack: 0, kind: "card", title: "Gap", subtitle: "target - current (progress toward goal)" })
   .edge("currentNode", "targetNode", { label: "progress", tone: "info" })
   .edge("targetNode", "gapNode", { label: "delta", tone: "warning" })
-  .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#0f172a", caption: "vs $500M target", label: "Revenue (scoreboard)" })
+  .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#241c14", caption: "vs $500M target", label: "Revenue (scoreboard)" })
   .phase("p", {
     duration: 1200,
     title: "revenue progress flow",
@@ -2008,7 +2008,7 @@ export const supportChat = diagram("interactive-support-chat", {
   .node("sup1", { lane: "support", stack: 0, kind: "card", title: "Support #1", subtitle: "Sure! What's the order ID?" })
   .node("sup2", { lane: "support", stack: 1, kind: "card", title: "Support #2", subtitle: "Checking..." })
   .node("sup3", { lane: "support", stack: 2, kind: "card", title: "Support #3", subtitle: "Refunded! 3-5 days." })
-  .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#e2e8f0", label: "Conversation (bubbles)" })
+  .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#f0e0b8", label: "Conversation (bubbles)" })
   .phase("p", {
     duration: 1200,
     title: "speaker split",
@@ -2110,7 +2110,7 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
   .node("discountNode", { lane: "discount", stack: 0, kind: "card", title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
   .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
   .edge("newNode", "discountNode", { label: "%", tone: "error" })
-  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" })
+  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#241c14", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" })
   .phase("p", {
     duration: 1200,
     title: "price flow",
@@ -2190,7 +2190,7 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms display", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "color", tone: "success" })
-  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#0f172a", label: "Timer (MM:SS.ms)" })
+  .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "Timer (MM:SS.ms)" })
   .phase("p", {
     duration: 1200,
     title: "timer signal flow",
