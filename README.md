@@ -3,11 +3,10 @@
 > Mermaid 感覚で書く **animated SVG diagram の Text DSL**。
 > 人 / LLM が YAML / JSON で書き、 内部で cdl engine が SVG 描画。
 
-[![npm @cardenelabs/dragon](https://img.shields.io/npm/v/@cardenelabs/dragon.svg)](https://www.npmjs.com/package/@cardenelabs/dragon)
-[![license](https://img.shields.io/npm/l/@cardenelabs/dragon.svg)](LICENSE)
+[![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![types](https://img.shields.io/badge/types-TypeScript-blue.svg)](https://www.typescriptlang.org/)
 
-**Chainome Diagram Language (cdl)** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け、 [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中) を parser し、 裏で cdl engine を呼ぶ。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
+**cdl (`@cardenelabs/cdl`) engine** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け) を parser し、 裏で cdl engine が SVG 描画を担う。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
 
 ## 60 秒で動かす
 
@@ -16,7 +15,8 @@ pnpm add @cardenelabs/dragon @cardenelabs/cdl react react-dom
 ```
 
 ```tsx
-import { compileText, CdlDiagramView } from "@cardenelabs/dragon";
+import { textDslToDiagram } from "@cardenelabs/dragon";
+import { CdlDiagramView } from "@cardenelabs/cdl";
 
 const dsl = `
 タイトル: User Login
@@ -29,7 +29,7 @@ const dsl = `
   - API → User: 200 OK (成功)
 `;
 
-const diagram = compileText(dsl);
+const diagram = textDslToDiagram(dsl);
 
 export default function Demo() {
   return <CdlDiagramView diagram={diagram} />;
@@ -41,7 +41,8 @@ export default function Demo() {
 ## LLM から使う (JSON DSL)
 
 ```tsx
-import { compileJson, CdlDiagramView } from "@cardenelabs/dragon";
+import { jsonToDiagram } from "@cardenelabs/dragon";
+import { CdlDiagramView } from "@cardenelabs/cdl";
 
 // LLM (Claude / GPT 等) が structured output で吐き出す JSON
 const json = {
@@ -57,13 +58,13 @@ const json = {
   ],
 };
 
-const diagram = compileJson(json);
+const diagram = jsonToDiagram(json);
 return <CdlDiagramView diagram={diagram} />;
 ```
 
 ## catalog SPA (実例集)
 
-`https://dragon.cardene.dev/catalog` で 300+ の実例を閲覧。 9 カテゴリ (プリセット / レシピ集 / パターン / 基本要素 / テキスト DSL / アニメーション / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。
+playground SPA (本 repo `apps/playground-spa/`) で 380+ の実例を閲覧。 9 カテゴリ (プリセット / レシピ集 / パターン / 基本要素 / テキスト DSL / アニメーション / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
 
 ## 思想 (dragon の存在理由)
 
@@ -123,7 +124,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 | 層 | dragon (本 repo) | cdl ([リポジトリ](https://github.com/cardene777/cdl)) |
 |---|---|---|
 | **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
-| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け、 [#208](https://github.com/cardene777/dragon/issues/208)) / catalog 30+ 実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
+| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog 380+ 実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
 | **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
 | **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` / `@cardenelabs/anim` |
 
@@ -139,7 +140,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 - **人向け YAML DSL parser** ... `packages/dragon/src/parser.ts` (現行 v0.4 / v0.5)
 - **LLM 向け JSON DSL** ... [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中 (schema + structured output 経路)
 - **compile 層** ... YAML / JSON AST → cdl builder call 変換 (`compile.ts`)
-- **catalog SPA** ... 30+ 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
+- **catalog SPA** ... 380+ 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
 - **notation lint** ... 記法 error / 冗長 / 未定義参照 診断 (`notation-lint.ts`)
 
 **cdl 側の SSOT 責任 (dragon は触らない)**。
@@ -171,7 +172,7 @@ animation:
     focus: [API, データベース, "API -> データベース"]
 ```
 
-catalog SPA で 30+ 実例を確認可能、 コピペして応用する使い方が標準。
+catalog SPA で 380+ 実例を確認可能、 コピペして応用する使い方が標準。
 
 ## 関連 repo (相互リンク SSOT)
 
@@ -193,7 +194,7 @@ dragon/
 │   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
 │       ├── src/
 │       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
-│       │   ├── topics/catalog ... 7 category × 100+ diagram (primitives / presets / patterns / cookbook / text-dsl / animation / styles)
+│       │   ├── topics/catalog ... 9 category × 380+ diagram (presets / cookbook / patterns / primitives / text-dsl / animation / parts / styles / interactive)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
 │       │   └── components/    ... CdlEditor / InViewMount / SiteHeader / SvgDefs / Toast
 │       └── tests/             ... Playwright E2E (home / catalog / editor)

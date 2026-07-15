@@ -5,7 +5,35 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-予定 ... feedback を反映した patch / minor。
+予定 ... npm publish (`@cardenelabs/dragon` / `@cardenelabs/cdl`) + GitHub Pages 公開後の feedback を反映した patch / minor。
+
+## [0.7.0] - 2026-07-15
+
+### Added
+
+- **龍鱗ゴールド palette** = site 全 chrome を parchment (light) + obsidian (dark) + copper / amber / ember の 3-color system に redesign。 dragon = 「財宝を守る西洋龍」 metaphor、 dev tool の boring UI からの離脱。 light = illuminated manuscript vibe、 dark = dragon's hoard vibe (2 光源 radial glow: amber 75% 30% + ember 15% 90%) (#367-#375 の 5 PR で段階実装、 #373 が palette 全面差替 SSOT)
+- **parts catalog** (20 parts、 rich exemplar 合成用 reusable atoms) を lazy dynamic import で分離、 non-parts route の TTI 改善 (#371)
+- **breadcrumb aria-label locale 対応** (SiteHeader / ThemePicker / Toast + 6 page breadcrumb を useLocale で JA/EN 切替) (#370)
+- **editor URL hash `#preset=<slug>`** で catalog / preset detail から直接 sample load、 SPA navigation でも SAMPLES へ即遷移 + slug 未登録時 toast 通知 (#367)
+- **editor 「一括反映」 button** = fixable warning count で disabled 制御 + count 表示 (#367)
+- **GitHub Pages deploy setup** = 手動 build + gh-pages branch push 経路 (`pnpm run deploy` = `pnpm build:pages && gh-pages -d dist`)、 CI 未使用 (#376)
+
+### Changed
+
+- **UI 全面日本語化** = Compare / Contribute / Release Notes / Preset Detail / Docs / Editor の 6 page 全 h1 / breadcrumb / button / aria-label (#367)
+- **dark mode invisible text hotfix** = globals.css の html.dark base override 追加、 blueprint SVG viewer stage は cream paper (#fcf8ee) 維持で navy 描画明瞭 (#372)
+- **preset detail nm-* class CSS 補完** + hideHeader で 01 badge / phase title overlap 解消 (#367)
+
+### Removed
+
+- **`/compare` page (テーマ比較)** = site palette を龍鱗ゴールド 単一に committed した文脈で 6 テーマ選択 UI は decision fatigue、 route + nav link + preset detail button + component + test entry 全削除 (cdl の 6 テーマ機能自体は `data-cdl-theme` 属性経路継続) (#374)
+- **dead component 4 削除** = NmPresetCard / ThemePicker / PresetCard / shot-events.mjs = 0 参照 verified、 src/components/ 8 → 5 file (37.5% dead code 削減) (#375)
+
+### Fixed
+
+- CategoryPage 検索 filter の日本語 label 対応 (#367)
+- editor `handleAutoFix` axis whitelist 統一で count drift 防止 (#367)
+- Preset Detail の `preset.slug` URL 統一で 20 preset 全 hash 経由到達可 (#367)
 
 ## [0.6.0] - 2026-06-30
 

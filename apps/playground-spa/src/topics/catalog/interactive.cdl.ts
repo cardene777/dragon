@@ -1831,9 +1831,9 @@ export const buildStatusTrafficLight = diagram("interactive-build-traffic-light"
   .lane("green", { x: 480, width: 200 })
   .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
   .state("status", { initial: "green" })
-  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "build broken · fix required" })
-  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "build in progress · waiting" })
-  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "build ok · ready to deploy" })
+  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "ビルド失敗 · 要修正" })
+  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "ビルド実行中 · 待機" })
+  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "ビルド成功 · deploy 可" })
   .node("currentCI", { lane: "green", stack: 1, kind: "card", title: "◆ Current CI", subtitle: "status: {status}" })
   .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
   .phase("p", {

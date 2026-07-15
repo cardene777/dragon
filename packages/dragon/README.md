@@ -44,15 +44,17 @@ flow:
 ## API
 
 **Text DSL (人向け YAML)**
-- `textDslToDiagram(src: string): CdlDiagram` ... 一発変換 (v0.4 / v0.5 auto-detect)
+- `textDslToDiagram(src: string): CdlDiagram` ... 一発変換 (v0.4 / v0.5 auto-detect、 recommended entry)
 - `parseTextDslV05(src: string): V05ParseResult` ... v0.5 parser を直接呼出 (error 詳細取得)
-- `parseTextDsl(src: string): ParseResult` ... v0.4 parser (deprecated)
 - `compileToCdl(doc: DslDocument): CdlDiagram` ... AST → CdlDiagram
 
-**JSON DSL (LLM 向け、 Issue #208)**
+**JSON DSL (LLM 向け)**
 - `jsonToDiagram(json: unknown): CdlDiagram` ... JSON DSL → CdlDiagram、 validation error は throw
 - `validateDragonJson(json: unknown): { ok, data | errors }` ... compile なしで validation のみ
 - `diagramJsonSchema` ... JSON Schema (Draft 7)、 LLM の tool schema にそのまま注入可能
+
+**Deprecated (2026-12-31 削除予定)**
+- `parseTextDsl(src: string): ParseResult` ... v0.4 parser、 `textDslToDiagram` に移行推奨
 
 ## LLM 向け JSON DSL
 

@@ -19,7 +19,7 @@
     "animation",
     "text-dsl",
     "mermaid-alternative",
-    "solidity"
+    "svg-animation"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
