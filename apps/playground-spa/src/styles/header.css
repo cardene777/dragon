@@ -9,9 +9,9 @@
     --v4-ink: #1a1f2a;
     --v4-ink-dim: #5a6270;
     --v4-ink-mute: #8a8678;
-    --v4-brand: #2d6a8f;
-    --v4-brand-deep: #1f4d6e;
-    --v4-brand-glow: #4e9dc4;
+    --v4-brand: #a66a3d;
+    --v4-brand-deep: #8a5a2a;
+    --v4-brand-glow: #b8862a;
     --v4-accent-domain: #c2410c;
     --v4-accent-extended: #6d28d9;
     --v4-serif: "Newsreader", "EB Garamond", Georgia, serif;
@@ -104,7 +104,7 @@
   /* active link ... Vercel / Linear 風 = bg pill + underline accent で「今どこ」 を明示 */
   .v4-nav-link.active {
     color: var(--v4-brand-deep);
-    background: rgba(45, 106, 143, 0.08);
+    background: rgba(166, 106, 61, 0.08);
     font-weight: 600;
   }
   .v4-nav-link.active::after {
@@ -174,13 +174,13 @@
     color: var(--v4-brand);
   }
   html.dark .v4-nav-theme-toggle {
-    background: #161b22;
-    border-color: #2a3340;
-    color: #f0f3f8;
+    background: #241c14;
+    border-color: #3d322a;
+    color: #f8ecd0;
   }
   html.dark .v4-nav-theme-toggle:hover {
-    border-color: #5ec4e8;
-    color: #5ec4e8;
+    border-color: #f0b840;
+    color: #f0b840;
   }
   .v4-theme-icon {
     line-height: 1;
@@ -235,20 +235,20 @@
     color: var(--v4-brand);
   }
   html.dark .v4-nav-lang-toggle {
-    background: #12161f;
-    border-color: #262e42;
-    color: #f2f3f7;
+    background: #241c14;
+    border-color: #3d322a;
+    color: #f8ecd0;
   }
   html.dark .v4-nav-lang-toggle:hover {
-    border-color: #8b7ffa;
-    color: #8b7ffa;
+    border-color: #f0b840;
+    color: #f0b840;
   }
   .v4-lang-current {
     color: var(--v4-brand);
     font-weight: 700;
   }
   html.dark .v4-lang-current {
-    color: #8b7ffa;
+    color: #f0b840;
   }
 
   /* 900px 以下 responsive = header 幅超過による body 横スクロール解消 */
@@ -275,42 +275,48 @@
     .v4-nav-links { display: none; }
   }
 
-  /* ── html.dark cascade (inkly 参考、 深 navy + refined violet accent) ── */
+  /* ── html.dark cascade (龍鱗ゴールド dark = obsidian + amber + ember) ── */
   html.dark {
-    --v4-canvas: #0a0d14;
-    --v4-surface: #12161f;
-    --v4-surface-2: #1a1f2e;
-    --v4-line: #262e42;
-    --v4-line-soft: #1a1f2e;
-    --v4-ink: #f2f3f7;
-    --v4-ink-dim: #9ca3b8;
-    --v4-ink-mute: #6b7290;
-    --v4-brand: #8b7ffa;
-    --v4-brand-deep: #7c6ffb;
-    --v4-brand-glow: #a394fc;
-    --v4-code-bg: #12161f;
+    --v4-canvas: #1a1410;
+    --v4-surface: #241c14;
+    --v4-surface-2: #2e2418;
+    --v4-line: #3d322a;
+    --v4-line-soft: #241c14;
+    --v4-ink: #f8ecd0;
+    --v4-ink-dim: #d0c0a5;
+    --v4-ink-mute: #a08870;
+    --v4-brand: #f0b840;
+    --v4-brand-deep: #d4a032;
+    --v4-brand-glow: #f56b45;
+    --v4-brand-hi: #f56b45;
+    --v4-code-bg: #241c14;
   }
   html.dark body {
-    background-color: #0a0d14;
-    /* subtle radial gradient を全体 background に (inkly hero 相当) */
+    background-color: #1a1410;
+    /* dragon の宝の光 = radial gold + ember glow (両側) */
     background-image:
       radial-gradient(
-        ellipse 900px 500px at center 40%,
-        rgba(124, 111, 251, 0.06),
+        ellipse 900px 500px at 75% 30%,
+        rgba(240, 184, 64, 0.10),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 700px 400px at 15% 90%,
+        rgba(245, 107, 69, 0.06),
         transparent 60%
       );
   }
   html.dark .v4-nav {
-    background: rgba(10, 13, 20, 0.85);
-    border-bottom-color: #262e42;
+    background: rgba(26, 20, 16, 0.88);
+    border-bottom-color: #3d322a;
   }
   html.dark .v4-nav-cta {
-    background: linear-gradient(180deg, #7c6ffb, #6a5bfa);
-    color: #ffffff;
-    border: 1px solid #7c6ffb;
-    box-shadow: 0 4px 12px -4px rgba(124, 111, 251, 0.5);
+    background: linear-gradient(180deg, #f0b840, #d4a032);
+    color: #1a1410;
+    border: 1px solid #f0b840;
+    box-shadow: 0 4px 16px -4px rgba(240, 184, 64, 0.55);
   }
   html.dark .v4-nav-cta:hover {
-    background: linear-gradient(180deg, #8b7ffa, #7c6ffb);
-    box-shadow: 0 6px 16px -4px rgba(124, 111, 251, 0.7);
+    background: linear-gradient(180deg, #f8c858, #f0b840);
+    box-shadow: 0 6px 24px -4px rgba(240, 184, 64, 0.75);
   }

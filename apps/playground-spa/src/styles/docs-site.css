@@ -10,7 +10,7 @@ body.docs-body {
   --nm-text: #1a1f2a;
   --nm-text-secondary: #5a6270;
   --nm-text-muted: #8a8678;
-  --nm-accent: #2d6a8f;
+  --nm-accent: #a66a3d;
   --nm-border: #e0d9c8;
   --docs-nav-h: 60px;
   --docs-sidebar-w: 260px;
@@ -23,13 +23,13 @@ body.docs-body {
   margin: 0;
 }
 html.dark body.docs-body {
-  --nm-bg: #0e1117;
-  --nm-surface: #161b22;
-  --nm-text: #f0f3f8;
-  --nm-text-secondary: #99a3b3;
-  --nm-text-muted: #6b7785;
-  --nm-accent: #5ec4e8;
-  --nm-border: rgba(255, 255, 255, 0.08);
+  --nm-bg: #1a1410;
+  --nm-surface: #241c14;
+  --nm-text: #f8ecd0;
+  --nm-text-secondary: #d0c0a5;
+  --nm-text-muted: #a08870;
+  --nm-accent: #b8862a;
+  --nm-border: rgba(248, 236, 208, 0.08);
 }
 body.docs-body .site-header,
 body.docs-body footer.site-footer {
@@ -82,8 +82,8 @@ body.docs-body summary.docs-sidebar-section-title::marker {
   display: none;
 }
 body.docs-body summary.docs-sidebar-section-title:hover {
-  background: rgba(45, 106, 143, 0.1);
-  color: #2d6a8f;
+  background: rgba(166, 106, 61, 0.1);
+  color: #a66a3d;
 }
 body.docs-body .docs-sidebar-section-caret {
   display: inline-grid;
@@ -98,13 +98,13 @@ body.docs-body .docs-sidebar-section-caret {
   line-height: 1;
 }
 body.docs-body details.docs-sidebar-section[open] .docs-sidebar-section-caret {
-  color: #2d6a8f;
+  color: #a66a3d;
 }
 body.docs-body details.docs-sidebar-section[open] .docs-sidebar-section-caret {
   transform: rotate(90deg);
 }
 body.docs-body summary.docs-sidebar-section-title:hover .docs-sidebar-section-caret {
-  color: #2d6a8f;
+  color: #a66a3d;
 }
 body.docs-body details.docs-sidebar-section ul.docs-sidebar-list {
   margin-top: 6px;
@@ -136,17 +136,17 @@ body.docs-body a.docs-sidebar-link {
 }
 body.docs-body a.docs-sidebar-link:hover {
   color: var(--nm-text) !important;
-  background: rgba(45, 106, 143, 0.06) !important;
+  background: rgba(166, 106, 61, 0.06) !important;
   padding-left: 16px;
 }
 body.docs-body a.docs-sidebar-link.active {
-  color: #2d6a8f !important;
+  color: #a66a3d !important;
   font-weight: 600;
-  border-left-color: #2d6a8f !important;
+  border-left-color: #a66a3d !important;
   background: linear-gradient(
     90deg,
-    rgba(45, 106, 143, 0.14) 0%,
-    rgba(45, 106, 143, 0.05) 100%
+    rgba(166, 106, 61, 0.14) 0%,
+    rgba(166, 106, 61, 0.05) 100%
   ) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -318,11 +318,11 @@ body.docs-body .docs-pager-link {
     0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 body.docs-body .docs-pager-link:hover {
-  border-color: rgba(45, 106, 143, 0.32);
+  border-color: rgba(166, 106, 61, 0.32);
   transform: translateY(-2px);
   box-shadow:
     0 12px 24px -8px rgba(30, 41, 59, 0.14),
-    0 4px 8px -4px rgba(45, 106, 143, 0.08),
+    0 4px 8px -4px rgba(166, 106, 61, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 html.dark body.docs-body .docs-pager-link {
@@ -522,8 +522,8 @@ body.docs-body .docs-aside-toc-h3 a {
 }
 /* === i18n untranslated banner === */
 body.docs-body .docs-i18n-banner {
-  background: rgba(45, 106, 143, 0.12) !important;
-  border: 1px solid rgba(45, 106, 143, 0.35) !important;
+  background: rgba(166, 106, 61, 0.12) !important;
+  border: 1px solid rgba(166, 106, 61, 0.35) !important;
   border-radius: 8px;
   padding: 12px 16px;
   margin: 0 0 24px;
@@ -535,16 +535,16 @@ body.docs-body .docs-i18n-banner strong {
   margin-bottom: 4px;
 }
 body.docs-body .docs-i18n-banner a {
-  color: #2d6a8f !important;
+  color: #a66a3d !important;
   text-decoration: underline;
 }
 html.dark body.docs-body .docs-i18n-banner {
   background: rgba(212, 165, 116, 0.12) !important;
   border-color: rgba(212, 165, 116, 0.35) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-i18n-banner a {
-  color: #4e9dc4 !important;
+  color: #b8862a !important;
 }
 
 @media (min-width: 901px) {
@@ -616,11 +616,11 @@ body.docs-body .docs-hero-cta-secondary {
 /* Neumorphism raised CTA button (CAR-N-6、 Vercel / Linear 風 subtle depth + scale hover) */
 body.docs-body .docs-hero-cta-primary,
 body.docs-body a.docs-hero-cta-primary {
-  background: #2d6a8f !important;
-  background-color: #2d6a8f !important;
+  background: #a66a3d !important;
+  background-color: #a66a3d !important;
   color: #ffffff !important;
   box-shadow:
-    0 4px 12px -2px rgba(45, 106, 143, 0.35),
+    0 4px 12px -2px rgba(166, 106, 61, 0.35),
     0 1px 0 rgba(255, 255, 255, 0.15) inset;
   transition:
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
@@ -629,7 +629,7 @@ body.docs-body a.docs-hero-cta-primary {
 body.docs-body .docs-hero-cta-primary:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow:
-    0 12px 24px -4px rgba(45, 106, 143, 0.45),
+    0 12px 24px -4px rgba(166, 106, 61, 0.45),
     0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 body.docs-body .docs-hero-cta-primary:active {
@@ -684,15 +684,15 @@ body.docs-body a.docs-feature-card {
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 12px 24px -12px rgba(30, 41, 59, 0.1),
-    0 4px 8px -4px rgba(45, 106, 143, 0.06),
+    0 4px 8px -4px rgba(166, 106, 61, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 body.docs-body .docs-feature-card:hover {
-  border-color: rgba(45, 106, 143, 0.28) !important;
+  border-color: rgba(166, 106, 61, 0.28) !important;
   transform: translateY(-4px);
   box-shadow:
     0 24px 48px -20px rgba(30, 41, 59, 0.2),
-    0 12px 24px -12px rgba(45, 106, 143, 0.14),
+    0 12px 24px -12px rgba(166, 106, 61, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 html.dark body.docs-body .docs-feature-card,
@@ -803,7 +803,7 @@ body.docs-body .docs-prose pre:hover button.docs-code-copy {
   opacity: 1;
 }
 body.docs-body button.docs-code-copy:hover {
-  background: rgba(45, 106, 143, 0.85) !important;
+  background: rgba(166, 106, 61, 0.85) !important;
 }
 body.docs-body button.docs-code-copy .docs-code-copy-done {
   display: none;
@@ -832,8 +832,8 @@ body.docs-body button.docs-navbar-theme-toggle {
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 body.docs-body button.docs-navbar-theme-toggle:hover {
-  background: rgba(45, 106, 143, 0.1) !important;
-  border-color: rgba(45, 106, 143, 0.4) !important;
+  background: rgba(166, 106, 61, 0.1) !important;
+  border-color: rgba(166, 106, 61, 0.4) !important;
   transform: scale(1.05);
 }
 body.docs-body button.docs-navbar-theme-toggle .docs-theme-icon-dark {
@@ -865,8 +865,8 @@ body.docs-body button.docs-navbar-lang-toggle {
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 body.docs-body button.docs-navbar-lang-toggle:hover {
-  background: rgba(45, 106, 143, 0.1) !important;
-  border-color: rgba(45, 106, 143, 0.4) !important;
+  background: rgba(166, 106, 61, 0.1) !important;
+  border-color: rgba(166, 106, 61, 0.4) !important;
   transform: scale(1.05);
 }
 body.docs-body button.docs-navbar-lang-toggle .docs-lang-en {
@@ -881,7 +881,7 @@ html[lang="en"] body.docs-body button.docs-navbar-lang-toggle .docs-lang-en {
 
 /* === Search keyboard navigation active state === */
 body.docs-body .docs-search-result.active {
-  background: rgba(45, 106, 143, 0.12) !important;
+  background: rgba(166, 106, 61, 0.12) !important;
 }
 body.docs-body .docs-search-result-preview {
   font-size: 12px;
@@ -890,7 +890,7 @@ body.docs-body .docs-search-result-preview {
   line-height: 1.4;
 }
 body.docs-body .docs-search-result-preview mark {
-  background: rgba(45, 106, 143, 0.25);
+  background: rgba(166, 106, 61, 0.25);
   color: var(--nm-text);
   padding: 0 2px;
   border-radius: 2px;
@@ -970,7 +970,7 @@ html.dark body.docs-body {
 }
 html.dark body.docs-body header.docs-navbar {
   background: rgba(38, 34, 30, 0.92) !important;
-  border-bottom-color: rgba(45, 106, 143, 0.2) !important;
+  border-bottom-color: rgba(166, 106, 61, 0.2) !important;
 }
 html.dark body.docs-body .docs-navbar-brand,
 html.dark body.docs-body .docs-navbar-link,
@@ -978,12 +978,12 @@ html.dark body.docs-body .docs-navbar-title-sub {
   color: #d4c4b0 !important;
 }
 html.dark body.docs-body .docs-navbar-link.active {
-  color: #4e9dc4 !important;
-  border-bottom-color: #4e9dc4 !important;
+  color: #b8862a !important;
+  border-bottom-color: #b8862a !important;
 }
 html.dark body.docs-body .docs-navbar-search-input {
   background: #25292f !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
   border-color: rgba(212, 165, 116, 0.2) !important;
 }
 html.dark body.docs-body .docs-navbar-search-results {
@@ -998,11 +998,11 @@ html.dark body.docs-body a.docs-sidebar-link {
 }
 html.dark body.docs-body a.docs-sidebar-link:hover {
   background: rgba(212, 165, 116, 0.08) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body a.docs-sidebar-link.active {
-  color: #4e9dc4 !important;
-  border-left-color: #4e9dc4 !important;
+  color: #b8862a !important;
+  border-left-color: #b8862a !important;
   background: rgba(212, 165, 116, 0.15) !important;
 }
 html.dark body.docs-body .docs-sidebar-section-title,
@@ -1014,17 +1014,17 @@ html.dark body.docs-body .docs-prose h2,
 html.dark body.docs-body .docs-prose h3,
 html.dark body.docs-body .docs-prose p,
 html.dark body.docs-body .docs-prose li {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose h2 {
   border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 html.dark body.docs-body .docs-prose code {
   background: rgba(255, 255, 255, 0.08) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose a {
-  color: #4e9dc4 !important;
+  color: #b8862a !important;
 }
 html.dark body.docs-body .docs-prose th {
   background: rgba(255, 255, 255, 0.05) !important;
@@ -1037,15 +1037,15 @@ html.dark body.docs-body .docs-pager-link {
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 html.dark body.docs-body .docs-pager-link:hover {
-  border-color: #4e9dc4 !important;
+  border-color: #b8862a !important;
 }
 html.dark body.docs-body .docs-pager-title {
-  color: #4e9dc4 !important;
+  color: #b8862a !important;
 }
 html.dark body.docs-body button.docs-navbar-theme-toggle,
 html.dark body.docs-body button.docs-navbar-lang-toggle {
   border-color: rgba(212, 165, 116, 0.3) !important;
-  color: #4e9dc4 !important;
+  color: #b8862a !important;
 }
 html.dark body.docs-body button.docs-navbar-theme-toggle:hover,
 html.dark body.docs-body button.docs-navbar-lang-toggle:hover {
@@ -1056,8 +1056,8 @@ html.dark body.docs-body .docs-aside-toc-item a {
   color: #8a8073 !important;
 }
 html.dark body.docs-body .docs-aside-toc-item a.active {
-  color: #4e9dc4 !important;
-  border-left-color: #4e9dc4 !important;
+  color: #b8862a !important;
+  border-left-color: #b8862a !important;
 }
 html.dark body.docs-body .docs-breadcrumb a,
 html.dark body.docs-body .docs-breadcrumb .current {
@@ -1078,7 +1078,7 @@ body.docs-body .docs-404 {
 body.docs-body .docs-404-code {
   font-size: 96px;
   font-weight: 900;
-  color: #2d6a8f;
+  color: #a66a3d;
   line-height: 1;
   letter-spacing: -0.05em;
   margin-bottom: 16px;
@@ -1106,9 +1106,9 @@ body.docs-body .docs-404-suggest {
   text-align: left;
   margin-top: 48px;
   padding: 24px 28px;
-  background: rgba(45, 106, 143, 0.05) !important;
+  background: rgba(166, 106, 61, 0.05) !important;
   border-radius: 12px;
-  border: 1px solid rgba(45, 106, 143, 0.15);
+  border: 1px solid rgba(166, 106, 61, 0.15);
 }
 body.docs-body .docs-404-suggest h3 {
   margin: 0 0 12px;
@@ -1125,14 +1125,14 @@ body.docs-body .docs-404-suggest li {
   margin: 6px 0;
 }
 body.docs-body .docs-404-suggest a {
-  color: #2d6a8f !important;
+  color: #a66a3d !important;
   text-decoration: none !important;
 }
 body.docs-body .docs-404-suggest a:hover {
   text-decoration: underline !important;
 }
 html.dark body.docs-body .docs-404-title {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-404-lead {
   color: #b0a596 !important;
@@ -1142,10 +1142,10 @@ html.dark body.docs-body .docs-404-suggest {
   border-color: rgba(212, 165, 116, 0.2) !important;
 }
 html.dark body.docs-body .docs-404-suggest h3 {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-404-suggest a {
-  color: #4e9dc4 !important;
+  color: #b8862a !important;
 }
 
 /* === Dark mode の code block (Shiki astro-code 含む) === */
@@ -1155,31 +1155,31 @@ html.dark body.docs-body .docs-prose pre[style],
 html.dark body.docs-body .docs-hero-snippet pre {
   background: #1f1c18 !important;
   background-color: #1f1c18 !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
   border-color: rgba(212, 165, 116, 0.18) !important;
   box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 /* Shiki dual theme ... dark mode は --shiki-dark token color を採用 (light の黒文字を上書き) */
 html.dark body.docs-body .docs-prose pre.astro-code,
 html.dark body.docs-body .docs-prose pre.astro-code span {
-  color: var(--shiki-dark, #f0f3f8) !important;
+  color: var(--shiki-dark, #f8ecd0) !important;
   background-color: var(--shiki-dark-bg, transparent) !important;
   text-decoration: none !important;
 }
 html.dark body.docs-body .docs-prose pre.astro-code .line,
 html.dark body.docs-body .docs-prose pre.astro-code .line span {
-  color: var(--shiki-dark, #f0f3f8) !important;
+  color: var(--shiki-dark, #f8ecd0) !important;
   text-decoration: none !important;
 }
 html.dark body.docs-body .docs-hero-snippet pre code,
 html.dark body.docs-body .docs-hero-snippet pre code * {
   background: transparent !important;
   background-color: transparent !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose code:not(pre code) {
   background: rgba(212, 165, 116, 0.18) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 
 /* === Live cdl preview embed === */
@@ -1195,7 +1195,7 @@ body.docs-body .docs-live-preview-header {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: rgba(45, 106, 143, 0.08);
+  background: rgba(166, 106, 61, 0.08);
   border-bottom: 1px solid rgba(196, 185, 172, 0.4);
 }
 body.docs-body .docs-live-preview-eyebrow {
@@ -1203,12 +1203,12 @@ body.docs-body .docs-live-preview-eyebrow {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #2d6a8f;
+  color: #a66a3d;
 }
 body.docs-body .docs-live-preview-link {
   font-size: 12px;
   font-weight: 500;
-  color: #2d6a8f !important;
+  color: #a66a3d !important;
   text-decoration: none !important;
 }
 body.docs-body .docs-live-preview-link:hover {
@@ -1224,7 +1224,7 @@ body.docs-body .docs-live-preview-frame {
   display: flex;
   justify-content: center;
   padding: 24px 16px;
-  background: #f0f3f8;
+  background: #f8ecd0;
 }
 body.docs-body .docs-live-preview-frame svg {
   max-width: 100%;
@@ -1244,11 +1244,11 @@ html.dark body.docs-body .docs-live-preview-header {
  * dark mode のライブプレビュー frame ... catalog SVG (ベージュ palette) を
  * そのまま透過させて表示する。 SVG の fill は inline attribute なので CSS で
  * 上書き不可能、 filter invert を使うと text が読みにくくなる。
- * frame の bg をベージュ寄り (#f0f3f8) にして light テーマの一部のように見せ、
+ * frame の bg をベージュ寄り (#f8ecd0) にして light テーマの一部のように見せ、
  * dark UI の中に「light な図のショウケース」 を埋め込む形にする。
  */
 html.dark body.docs-body .docs-live-preview-frame {
-  background: #f0f3f8 !important;
+  background: #f8ecd0 !important;
 }
 
 /* === Doc Tabs (人向け + LLM 向け の切替) === */
@@ -1279,13 +1279,13 @@ body.docs-body .docs-tab-btn {
   margin-bottom: -1px;
 }
 body.docs-body .docs-tab-btn:hover {
-  color: #2d6a8f;
-  background: rgba(45, 106, 143, 0.05);
+  color: #a66a3d;
+  background: rgba(166, 106, 61, 0.05);
 }
 body.docs-body .docs-tab-btn.active {
-  color: #2d6a8f;
-  border-bottom-color: #2d6a8f;
-  background: rgba(45, 106, 143, 0.08);
+  color: #a66a3d;
+  border-bottom-color: #a66a3d;
+  background: rgba(166, 106, 61, 0.08);
 }
 body.docs-body .docs-tab-panel {
   display: none;
@@ -1314,12 +1314,12 @@ html.dark body.docs-body .docs-tab-btn {
   color: #b8a994;
 }
 html.dark body.docs-body .docs-tab-btn:hover {
-  color: #4e9dc4;
+  color: #b8862a;
   background: rgba(212, 165, 116, 0.08);
 }
 html.dark body.docs-body .docs-tab-btn.active {
-  color: #4e9dc4;
-  border-bottom-color: #4e9dc4;
+  color: #b8862a;
+  border-bottom-color: #b8862a;
   background: rgba(212, 165, 116, 0.1);
 }
 

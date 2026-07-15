@@ -7,9 +7,9 @@
   --ink: #1a1f2a;
   --ink-dim: #5a6270;
   --ink-mute: #8a8678;
-  --brand: #2d6a8f;
-  --brand-deep: #1f4d6e;
-  --brand-glow: #4e9dc4;
+  --brand: #a66a3d;
+  --brand-deep: #8a5a2a;
+  --brand-glow: #b8862a;
   --accent-extended: #6d28d9;
   --radius: 12px;
   --radius-lg: 18px;
@@ -147,7 +147,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   color: var(--canvas);
   border-color: var(--brand-deep);
   box-shadow:
-    0 8px 16px -4px rgba(45, 106, 143, 0.32),
+    0 8px 16px -4px rgba(166, 106, 61, 0.32),
     0 1px 0 rgba(255, 255, 255, 0.15) inset;
 }
 .btn-secondary:active {
@@ -386,7 +386,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brand);
-  background: rgba(45, 106, 143, 0.1);
+  background: rgba(166, 106, 61, 0.1);
   padding: 3px 12px;
   border-radius: 99px;
   margin-bottom: 14px;
@@ -424,22 +424,22 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 12px 24px -12px rgba(30, 41, 59, 0.1),
-    0 4px 8px -4px rgba(45, 106, 143, 0.06),
+    0 4px 8px -4px rgba(166, 106, 61, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 .feature:hover {
-  border-color: rgba(45, 106, 143, 0.32);
+  border-color: rgba(166, 106, 61, 0.32);
   transform: translateY(-4px);
   box-shadow:
     0 24px 48px -20px rgba(30, 41, 59, 0.18),
-    0 12px 24px -12px rgba(45, 106, 143, 0.14),
+    0 12px 24px -12px rgba(166, 106, 61, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 .feature-icon {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: rgba(45, 106, 143, 0.1);
+  background: rgba(166, 106, 61, 0.1);
   color: var(--brand-deep);
   display: grid;
   place-items: center;
@@ -490,11 +490,11 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 .step:hover {
-  border-color: rgba(45, 106, 143, 0.24);
+  border-color: rgba(166, 106, 61, 0.24);
   transform: translateY(-2px);
   box-shadow:
     0 12px 24px -12px rgba(30, 41, 59, 0.12),
-    0 4px 8px -4px rgba(45, 106, 143, 0.08),
+    0 4px 8px -4px rgba(166, 106, 61, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 .step-num {
@@ -574,15 +574,15 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 12px 24px -12px rgba(30, 41, 59, 0.1),
-    0 4px 8px -4px rgba(45, 106, 143, 0.06),
+    0 4px 8px -4px rgba(166, 106, 61, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.8) inset;
 }
 .example:hover {
-  border-color: rgba(45, 106, 143, 0.32);
+  border-color: rgba(166, 106, 61, 0.32);
   transform: translateY(-4px);
   box-shadow:
     0 24px 48px -20px rgba(30, 41, 59, 0.2),
-    0 12px 24px -12px rgba(45, 106, 143, 0.16),
+    0 12px 24px -12px rgba(166, 106, 61, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 .example-thumb {
@@ -611,7 +611,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   font-size: 11px;
   font-weight: 600;
   color: var(--brand-deep);
-  background: rgba(45, 106, 143, 0.1);
+  background: rgba(166, 106, 61, 0.1);
   padding: 3px 10px;
   border-radius: 99px;
   margin-bottom: 10px;
@@ -738,28 +738,28 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 
 /* ── html.dark cascade (Neumorphism 撤回、 v4 cream palette を navy に shift) ── */
 html.dark {
-  --canvas: #0a0d14;
-  --surface: #12161f;
-  --surface-2: #1a1f2e;
-  --line: #262e42;
-  --line-soft: #1a1f2e;
-  --ink: #f2f3f7;
-  --ink-dim: #9ca3b8;
-  --ink-mute: #6b7290;
-  --brand: #8b7ffa;
-  --brand-deep: #7c6ffb;
-  --brand-glow: #a394fc;
+  --canvas: #1a1410;
+  --surface: #241c14;
+  --surface-2: #2e2418;
+  --line: #3d322a;
+  --line-soft: #2e2418;
+  --ink: #f8ecd0;
+  --ink-dim: #d0c0a5;
+  --ink-mute: #a08870;
+  --brand: #f0b840;
+  --brand-deep: #d4a032;
+  --brand-glow: #f56b45;
 }
 html.dark .canvas-code,
 html.dark .step-code {
-  background: #12161f;
-  color: #f2f3f7;
+  background: #241c14;
+  color: #f8ecd0;
 }
 html.dark .canvas-code .k,
-html.dark .step-code .k { color: #a394fc; }
+html.dark .step-code .k { color: #f56b45; }
 html.dark .canvas-code .s,
 html.dark .step-code .s { color: #a3d6a8; }
-html.dark .canvas-code .ln { color: #6b7290; }
+html.dark .canvas-code .ln { color: #a08870; }
 html.dark .example-thumb {
-  background: #1a1f2e;
+  background: #2e2418;
 }
