@@ -78,8 +78,8 @@ export function SiteHeader(): React.ReactElement {
       <Link to="/" className="v4-nav-brand">
         <div className="v4-nav-mark">
           <svg viewBox="0 0 28 28" fill="none">
-            <path d="M4 24 L24 4 L24 24 Z" fill="#1a1f2a" />
-            <path d="M4 24 L14 14 L24 24 Z" fill="#2d6a8f" opacity="0.85" />
+            <path d="M4 24 L24 4 L24 24 Z" fill="var(--v4-brand-deep, #8a5a2a)" />
+            <path d="M4 24 L14 14 L24 24 Z" fill="var(--v4-brand-glow, #b8862a)" opacity="0.85" />
           </svg>
         </div>
         <div>

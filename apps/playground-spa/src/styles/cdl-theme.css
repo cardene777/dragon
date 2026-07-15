@@ -594,38 +594,38 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   fill: #2a5a8c !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #1a2a44 !important;
-  stroke: #a8d4ee !important;
+  fill: #2a1f14 !important;
+  stroke: #d4a04a !important;
   stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #1a2a44 !important;
-  stroke: rgba(168, 212, 238, 0.75) !important;
+  fill: #2a1f14 !important;
+  stroke: rgba(212, 160, 74, 0.75) !important;
   stroke-width: 1.2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(168, 212, 238, 0.55) !important;
+  stroke: rgba(212, 160, 74, 0.55) !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(168, 212, 238, 0.6) !important;
+  stroke: rgba(212, 160, 74, 0.6) !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #d4e8f5 !important;
+  fill: #f0e0b8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #a8d4ee !important;
+  stroke: #d4a04a !important;
   fill: none !important;
   stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #a8d4ee !important;
-  fill: #a8d4ee !important;
+  stroke: #d4a04a !important;
+  fill: #d4a04a !important;
   stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #d4e8f5 !important;
+  fill: #f0e0b8 !important;
   font-weight: 600 !important;
   font-size: 14px !important;
 }
@@ -648,15 +648,22 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
    quadrant / tree / mind-map / mind-radial / journey-map) の text 系 CSS variable を
    dark 用に上書きして kind 内 SVG text を全部 明るく描画する。
    node-fill (背景 rect) は kind 内で「文字色に対する背景」 として使われるため
-   dark 時も明色系 (#e8ecf5) を保って rect と text の contrast を維持する。 */
-html.dark {
-  --cdl-text: #e2e8f0;
-  --cdl-text-dim: #b8bfcc;
-  --cdl-text-mute: #8892a6;
-  --cdl-node-fill: #e8ecf5;
-  --cdl-divider: #2a3f5f;
-  --cdl-stage-bg: #0f1626;
-  --cdl-line-mute: #6a7896;
+   dark 時も明色系 (--cdl-node-fill = #f5ecd0 warm cream) を保って rect と text の contrast を維持する。 */
+/* blueprint theme (default) scope で warm tone を注入する。
+   他 theme (neumorphism / isometric / circuit / handdrawn / pinboard) は個別に
+   完成した color scheme を持つため global override すると theme 混在で色が濁る
+   (codex review 指摘 major #3、 CAR-880 follow-up)。
+   同一要素 selector (`html.dark[data-cdl-theme]`) に限定する - descendant selector
+   だと nested CDL SVG が持つ default `data-cdl-theme="blueprint"` に page-level
+   theme (neumorphism / isometric) 選択時も一致して leak する (Round 2 major #1)。 */
+html.dark[data-cdl-theme="blueprint"] {
+  --cdl-text: #f0e0b8;
+  --cdl-text-dim: #d4c4a0;
+  --cdl-text-mute: #a89880;
+  --cdl-node-fill: #f5ecd0;
+  --cdl-divider: #4a3820;
+  --cdl-stage-bg: #1a1408;
+  --cdl-line-mute: #8a7050;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
