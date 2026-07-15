@@ -431,6 +431,16 @@
   .v4-editor-stage:active {
     cursor: grabbing;
   }
+  /* dark mode = blueprint theme SVG は light bg 前提設計 (navy text / navy stroke)、
+     dark mode で editor stage を dark にすると text 埋没 = 見えない。
+     stage は常に light bg (cream paper) を維持して、 SVG diagram を light bg 上に描画する。
+     (user 目視で「ダークモードで見えない」 defect の hotfix、 2026-07-15) */
+  html.dark .v4-editor-stage {
+    background: #fcf8ee;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(45, 106, 143, 0.08) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(45, 106, 143, 0.08) 23px 24px);
+  }
   .v4-editor-pan {
     will-change: transform;
     display: block;

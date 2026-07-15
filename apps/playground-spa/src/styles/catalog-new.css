@@ -371,8 +371,10 @@ html.dark .catalog-expand-btn:hover {
 /* interactive panel を含む diagram では、 stage 内の content 全体が縦方向に大きくなるため
    center 揃えだと content が stage を超えて header 領域 (subtitle) と重なる。 flex-start で
    top 揃えにして stage 上部から content を配置する。 */
+/* dark mode = blueprint theme SVG は light bg 前提設計 (navy text)、 dark bg で埋没する。
+   stage は常に blueprint paper bg 維持で SVG diagram を light bg 上に描画する。 */
 html.dark .catalog-preview-stage {
-  background: #0a0d14;
+  background: #fcf8ee;
 }
 .catalog-preview-stage-inner {
   width: 100%;
@@ -666,8 +668,9 @@ html.dark .cdl-modal-close:hover {
   justify-content: center;
   overflow: hidden;
 }
+/* blueprint SVG は light bg 前提設計、 modal body も dark mode で cream paper 維持 */
 html.dark .cdl-modal-body {
-  background: #0a0d14;
+  background: #fcf8ee;
 }
 .cdl-modal-body > * {
   width: 100%;

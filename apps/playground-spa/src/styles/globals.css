@@ -43,6 +43,21 @@ body {
   min-height: 100dvh;
 }
 
+/* dark mode = html.dark class toggle 経路の SSOT override
+ * (docs-site.css / editor.css / compare.css で個別 html.dark 定義済だが、 base html/body は
+ * globals.css で override しないと body text が light mode の dark navy のまま = 黒字を黒背景に描画で見えない) */
+html.dark,
+html.dark body {
+  background: #0a0d14;
+  color: #f0f3f8;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #262e42;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3a4560;
+}
+
 /* macOS-like scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
