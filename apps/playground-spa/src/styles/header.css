@@ -104,7 +104,7 @@
   }
   .v4-nav-link:hover {
     color: var(--v4-ink);
-    background: rgba(26, 31, 42, 0.05);
+    background: rgba(26, 20, 16, 0.05);
   }
   /* active link ... Vercel / Linear 風 = bg pill + underline accent で「今どこ」 を明示 */
   .v4-nav-link.active {

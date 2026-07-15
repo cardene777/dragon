@@ -797,9 +797,9 @@ html.dark .canvas-code .ln { color: #a08870; }
 html.dark .example-thumb {
   background: #2e2418;
 }
-/* dark mode feature card ... 暗背景での elevation を出すため 3 層 shadow の設計を
+/* dark mode feature card ... 暗背景での elevation を出すため 4 層 shadow の設計を
    全面 rewrite。 base card は subtle gradient で glass 感、 hover で深い gold glow。
-   border は warm gold 微光 (rgba 184 134 42 0.15) で card を line として認識させる。 */
+   border は warm gold 微光 (rgba 184 134 42 0.18) で card を line として認識させる。 */
 html.dark .feature {
   background: linear-gradient(180deg, #2e2418 0%, #241c14 100%);
   border-color: rgba(184, 134, 42, 0.18);

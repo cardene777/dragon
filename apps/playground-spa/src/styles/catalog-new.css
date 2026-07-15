@@ -3692,7 +3692,7 @@ html.dark .cdl-ip-readout-poll-bar-option {
 }
 html.dark .cdl-ip-readout-user-stack-avatar,
 html.dark .cdl-ip-readout-user-stack-overflow {
-  border-color: #0f172a;
+  border-color: #241c14;
 }
 html.dark .cdl-ip-readout-user-stack-overflow {
   color: #f8ecd0;
@@ -3799,7 +3799,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
   transition: left 200ms ease;
 }
 html.dark .cdl-ip-readout-media-player-thumb {
-  border-color: #0f172a;
+  border-color: #241c14;
 }
 
 /* event-log readout */
@@ -4400,7 +4400,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 .cdl-ip-readout-terminal-window {
   border-radius: 6px;
   overflow: hidden;
-  background: #0f172a;
+  background: #241c14;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .cdl-ip-readout-terminal-titlebar {
@@ -4419,7 +4419,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   padding: 8px 10px;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 10px;
-  color: #e2e8f0;
+  color: #f0e0b8;
   max-height: 240px;
   overflow-y: auto;
 }
@@ -4437,10 +4437,10 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   font-weight: 800;
 }
 .cdl-ip-readout-terminal-cmd {
-  color: #f1f5f9;
+  color: #f0e8d4;
 }
 .cdl-ip-readout-terminal-output {
-  color: #94a3b8;
+  color: #a08870;
   white-space: pre-wrap;
   padding-left: 10px;
 }

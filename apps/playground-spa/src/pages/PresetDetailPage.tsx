@@ -57,7 +57,7 @@ export function PresetDetailPage(): React.ReactElement {
           </p>
           <Link
             to="/catalog/presets"
-            className="text-[14px] text-[var(--v4-brand,#2d6a8f)] underline"
+            className="text-[14px] text-[var(--v4-brand,#8a5a2a)] underline"
           >
             プリセット一覧に戻る →
           </Link>

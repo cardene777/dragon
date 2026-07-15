@@ -147,7 +147,7 @@ export function SvgDefs(): React.ReactElement {
         <filter id="dragon-iso-cast-shadow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="8" />
           <feOffset dx="10" dy="14" result="offset" />
-          <feFlood floodColor="rgba(48, 62, 96, 0.55)" />
+          <feFlood floodColor="rgba(74, 56, 32, 0.55)" />
           <feComposite in2="offset" operator="in" />
           <feComposite in="SourceGraphic" />
         </filter>

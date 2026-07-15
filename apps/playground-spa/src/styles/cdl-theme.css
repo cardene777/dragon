@@ -215,15 +215,15 @@
 
 /* ─── dark mode variant (raised bumps + dark palette 反転) ─── */
 html.dark [data-cdl-theme="neumorphism"] {
-  --cdl-node-fill: #2c3448;
-  --cdl-tone-info: #6a9fe0;
-  --cdl-tone-accent: #6a9fe0;
+  --cdl-node-fill: #241c14;
+  --cdl-tone-info: #d4a04a;
+  --cdl-tone-accent: #d4a04a;
   --cdl-text: #d8dde8;
-  --cdl-text-dim: #96a0bb;
-  --cdl-text-secondary: #96a0bb;
-  --cdl-label-bg: #2c3448;
+  --cdl-text-dim: #a08870;
+  --cdl-text-secondary: #a08870;
+  --cdl-label-bg: #241c14;
   --cdl-label-text: #d8dde8;
-  --cdl-edge-stroke: #6a9fe0;
+  --cdl-edge-stroke: #d4a04a;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
@@ -232,11 +232,11 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-sm-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
@@ -244,31 +244,31 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 /* dark mode kind icon badge (Round 11 意図 raised badge dark variant) */
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-sm-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"] {
-  stroke: #6a9fe0 !important;
+  stroke: #d4a04a !important;
   fill: none !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #6a9fe0 !important;
-  fill: #6a9fe0 !important;
+  stroke: #d4a04a !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   fill: rgba(44, 52, 72, 0.5) !important;
@@ -284,13 +284,13 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
  * ═════════════════════════════════════════════════════════════════════════════ */
 [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 1.2 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
   fill: #ffffff !important;
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 1 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
@@ -303,35 +303,35 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   stroke: rgba(74, 90, 124, 0.55) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
-  fill: #1a2540 !important;
+  fill: #1a1408 !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #1a2540 !important;
+  fill: #1a1408 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 3 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
   opacity: 0.9 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-label"] {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient-dark) !important;
-  stroke: #6a7898 !important;
+  stroke: #a08870 !important;
   filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
-  fill: #2c3448 !important;
-  stroke: #6a7898 !important;
+  fill: #241c14 !important;
+  stroke: #a08870 !important;
   filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"],
@@ -339,12 +339,12 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
   fill: #d8dde8 !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #96a0bb !important;
+  stroke: #a08870 !important;
   fill: none !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #96a0bb !important;
-  fill: #96a0bb !important;
+  stroke: #a08870 !important;
+  fill: #a08870 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

@@ -22,7 +22,7 @@ const v4HighlightLight = HighlightStyle.define([
 const v4HighlightDark = HighlightStyle.define([
   { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#f0b840", fontWeight: "500" },
   { tag: [t.string, t.special(t.string)], color: "#93e0a1" },
-  { tag: [t.number, t.integer, t.float], color: "#f0b75e" },
+  { tag: [t.number, t.integer, t.float], color: "#ff8c42" },
   { tag: [t.comment, t.lineComment, t.blockComment], color: "#a08870", fontStyle: "italic" },
   { tag: [t.operator, t.punctuation, t.separator], color: "#c0a880" },
   { tag: [t.invalid], color: "#e8807d" },

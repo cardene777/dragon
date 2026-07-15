@@ -45,7 +45,7 @@ export const partsStackedLayer = diagram("parts-stacked-layer", {
   .state("mid", { initial: 15 })
   .state("bot", { initial: 40 })
   .node("topL", { lane: "l", stack: 0, kind: "dyn-rect", title: "上層", subtitle: "+{top}", w: 300, h: 120,
-    shape: { kind: "rect", source: "{top}", fillMax: 60, orient: "up", fill: "#94a3b8", radius: 4 } })
+    shape: { kind: "rect", source: "{top}", fillMax: 60, orient: "up", fill: "#a08870", radius: 4 } })
   .node("midL", { lane: "l", stack: 1, kind: "dyn-rect", title: "中層", subtitle: "+{mid}", w: 300, h: 120,
     shape: { kind: "rect", source: "{mid}", fillMax: 60, orient: "up", fill: "#22c55e", radius: 4 } })
   .node("botL", { lane: "l", stack: 2, kind: "dyn-rect", title: "底層", subtitle: "{bot}", w: 300, h: 180,
@@ -143,11 +143,11 @@ export const partsCircleSizeRace = diagram("parts-circle-size-race", {
   .state("sb", { initial: 20 })
   .state("sc", { initial: 20 })
   .node("cA", { lane: "a", stack: 0, kind: "dyn-circle", title: "A", subtitle: "score {sa}", w: 160, h: 200,
-    shape: { kind: "circle", radius: "{sa}", fill: "#94a3b8" } })
+    shape: { kind: "circle", radius: "{sa}", fill: "#a08870" } })
   .node("cB", { lane: "b", stack: 0, kind: "dyn-circle", title: "B", subtitle: "score {sb}", w: 160, h: 200,
     shape: { kind: "circle", radius: "{sb}", fill: "#22c55e" } })
   .node("cC", { lane: "c", stack: 0, kind: "dyn-circle", title: "C", subtitle: "score {sc}", w: 160, h: 200,
-    shape: { kind: "circle", radius: "{sc}", fill: "#94a3b8" } })
+    shape: { kind: "circle", radius: "{sc}", fill: "#a08870" } })
   .phase("p", { duration: 3500, title: "競争", body: "" }, (p: PhaseBuilder) =>
     p.activate("cA", "cB", "cC")
       .tween("sa", 20, 50).tween("sb", 20, 75).tween("sc", 20, 45))
@@ -289,7 +289,7 @@ export const partsStatusDot = diagram("parts-status-dot", {
   .readout.statusDot("dot", { source: "st", map: [
     { value: "online", color: "#22c55e", label: "オンライン" },
     { value: "away", color: "#f59e0b", label: "離席" },
-    { value: "offline", color: "#94a3b8", label: "オフライン" },
+    { value: "offline", color: "#a08870", label: "オフライン" },
   ] as const, label: "status dot" })
   .phase("p", { duration: 3000, title: "state 表示", body: "" }, (p: PhaseBuilder) =>
     p.set("st", "online"))

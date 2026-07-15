@@ -278,9 +278,9 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   .lane("picker", { x: 0, width: 220 })
   .lane("swatch", { x: 260, width: 220 })
   .lane("stat", { x: 520, width: 220 })
-  .input.color("accent", { defaultValue: "#2d6a8f", label: "Accent" })
-  .state("accent", { initial: "#2d6a8f" })
-  .node("pickerNode", { lane: "picker", stack: 0, kind: "card", title: "Color picker", subtitle: "input.color widget · default #2d6a8f" })
+  .input.color("accent", { defaultValue: "#8a5a2a", label: "Accent" })
+  .state("accent", { initial: "#8a5a2a" })
+  .node("pickerNode", { lane: "picker", stack: 0, kind: "card", title: "Color picker", subtitle: "input.color widget · default #8a5a2a" })
   .node("swatch", { lane: "swatch", stack: 0, kind: "card", title: "Swatch preview", subtitle: "hex: {accent}" })
   .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Hex stat", subtitle: "readout.stat で hex 表示" })
   .edge("pickerNode", "swatch", { label: "select", tone: "info" })
@@ -315,7 +315,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     title: "Low 25%",
     w: 100,
     h: 240,
-    shape: { kind: "rect", source: "{low25}", fillMax: 100, orient: "up", fill: "#94a3b8" },
+    shape: { kind: "rect", source: "{low25}", fillMax: 100, orient: "up", fill: "#a08870" },
   })
   .node("barMid", {
     lane: "mid",
@@ -342,7 +342,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     title: "Slider ({v}%)",
     w: 100,
     h: 240,
-    shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#2d6a8f" },
+    shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" },
   })
   .phase("p", {
     duration: 1500,
@@ -369,7 +369,7 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
   .state("gas2", { initial: 36 })
   .state("gas3", { initial: 45 })
   .node("r1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "Block 1", subtitle: "gas: {gas1}", w: 100, h: 220,
-    shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#2d6a8f" } })
+    shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" } })
   .node("r2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "Block 2", subtitle: "gas: {gas2}", w: 100, h: 220,
     shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" } })
   .node("r3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "Block 3", subtitle: "gas: {gas3}", w: 100, h: 220,
@@ -395,13 +395,13 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   .state("prog33", { initial: 0.33 })
   .state("prog66", { initial: 0.66 })
   .node("cEmpty", { lane: "empty", stack: 0, kind: "dyn-circle", title: "0%", subtitle: "empty", w: 160, h: 160,
-    shape: { kind: "circle", fillProgress: "{prog0}", fill: "#94a3b8" } })
+    shape: { kind: "circle", fillProgress: "{prog0}", fill: "#a08870" } })
   .node("cThird", { lane: "third", stack: 0, kind: "dyn-circle", title: "33%", subtitle: "one-third", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog33}", fill: "#2563eb" } })
   .node("cTwoThird", { lane: "twothird", stack: 0, kind: "dyn-circle", title: "66%", subtitle: "two-third", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" } })
   .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Slider", subtitle: "{p}%", w: 160, h: 160,
-    shape: { kind: "circle", fillProgress: "{prog}", fill: "#2d6a8f" } })
+    shape: { kind: "circle", fillProgress: "{prog}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
     title: "circle progress compare",
@@ -425,13 +425,13 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
   .state("a90", { initial: 90 })
   .state("a180", { initial: 180 })
   .node("gMin", { lane: "min", stack: 0, kind: "dyn-arc", title: "0°", subtitle: "min", w: 180, h: 180,
-    shape: { kind: "arc", angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#94a3b8" } })
+    shape: { kind: "arc", angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#a08870" } })
   .node("gQuarter", { lane: "quarter", stack: 0, kind: "dyn-arc", title: "90°", subtitle: "quarter", w: 180, h: 180,
     shape: { kind: "arc", angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" } })
   .node("gHalf", { lane: "half", stack: 0, kind: "dyn-arc", title: "180°", subtitle: "half", w: 180, h: 180,
     shape: { kind: "arc", angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" } })
   .node("g", { lane: "interactive", stack: 0, kind: "dyn-arc", title: "Slider", subtitle: "{a}°", w: 180, h: 180,
-    shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#2d6a8f" } })
+    shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
     title: "3 static (0° / 90° / 180°) + slider 追随",
@@ -455,7 +455,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   .state("lvl50", { initial: 50 })
   .state("lvl75", { initial: 75 })
   .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low 25%", subtitle: "25%", w: 140, h: 220,
-    shape: { kind: "wave", level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#94a3b8" } })
+    shape: { kind: "wave", level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" } })
   .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half 50%", subtitle: "50%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" } })
   .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High 75%", subtitle: "75%", w: 140, h: 220,
@@ -486,13 +486,13 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .state("rot0", { initial: 0 })
   .state("radius60", { initial: 60 })
   .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Triangle", subtitle: "sides=3", w: 180, h: 180,
-    shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#94a3b8" } })
+    shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" } })
   .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "sides=6", w: 180, h: 180,
     shape: { kind: "polygon", sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" } })
   .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Octagon", subtitle: "sides=8", w: 180, h: 180,
     shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" } })
   .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon slider", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
-    shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
+    shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
     title: "3 頂点数 (△3 / ⬡6 / ⯃8) + slider 追随",
@@ -531,7 +531,7 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
     subtitle: "gas: {gas{i+1}}",
     w: 80,
     h: 220,
-    shape: { kind: "rect" as const, source: "{gas{i+1}}", fillMax: 130, orient: "up" as const, fill: "#2d6a8f" },
+    shape: { kind: "rect" as const, source: "{gas{i+1}}", fillMax: 130, orient: "up" as const, fill: "#8a5a2a" },
   }))
   .phase("p", { duration: 1500, title: "repeat + derive で 5 rect が chain 伝搬", body: "count=5、 base を動かすと gas1..gas5 が formula chain で連鎖伝搬、 5 rect の fill が同時追随。" }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3", "r4").badge("repeat + derive"))
   .build();
@@ -583,7 +583,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .state("angle", { initial: 0 })
   .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline signal", subtitle: "t (0-1 loop 3s autoplay)" })
   .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 60, h: 200,
-    shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#2d6a8f" } })
+    shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" } })
   .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc (dial)", subtitle: "angle = t * 270", w: 140, h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
   .edge("timeNode", "r", { label: "t → bar (*100)", tone: "info" })
@@ -672,7 +672,7 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   .readout.badge("tempBadge", { source: "temp", label: "Value pill" })
   .readout.statusDot("statusRead", { source: "state", map: [
     { value: "online", color: "#22c55e", label: "Online" },
-    { value: "offline", color: "#94a3b8", label: "Offline" },
+    { value: "offline", color: "#a08870", label: "Offline" },
     { value: "error", color: "#ef4444", label: "Error" },
   ], label: "State dot" })
   .phase("p", {
@@ -1367,9 +1367,9 @@ export const abTestResult = diagram("interactive-ab-test", {
   })
   .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
   .edge("splitCard", "treatmentCard", { label: "50%", sub: "treatment", tone: "success" })
-  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#94a3b8", colorB: "#22c55e", label: "Daily conv % (A vs B)" })
+  .readout.stackedBar("conv", { sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#a08870", colorB: "#22c55e", label: "Daily conv % (A vs B)" })
   .readout.donut("splitDonut", { source: "splitData", innerRatio: 0.5, viewW: 120, viewH: 120, label: "Traffic split" })
-  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share (B=green)" })
+  .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#a08870"] as const, label: "Winner share (B=green)" })
   .phase("p", {
     duration: 1200,
     title: "A/B test = Control (Variant A) vs Treatment (Variant B) を 50/50 split で avg 収束率比較",
@@ -1573,7 +1573,7 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
   .edge("visitNode", "signupNode", { label: "40% conv", tone: "info" })
   .edge("signupNode", "trialNode", { label: "37.5% conv", tone: "warning" })
   .edge("trialNode", "paidNode", { label: "26.7% conv", tone: "error" })
-  .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#94a3b8", label: "Conversion (trapezoid)" })
+  .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#a08870", label: "Conversion (trapezoid)" })
   .phase("p", {
     duration: 1200,
     title: "funnel pipeline",
@@ -2110,7 +2110,7 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
   .node("discountNode", { lane: "discount", stack: 0, kind: "card", title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
   .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
   .edge("newNode", "discountNode", { label: "%", tone: "error" })
-  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#94a3b8", colorDiscount: "#ef4444", label: "Price (composite tag)" })
+  .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#0f172a", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" })
   .phase("p", {
     duration: 1200,
     title: "price flow",
@@ -2499,7 +2499,7 @@ export const featurePoll = diagram("interactive-feature-poll", {
   .node("search", { lane: "runners", stack: 0, kind: "card", title: "Faster search", subtitle: "28 votes" })
   .node("api", { lane: "runners", stack: 1, kind: "card", title: "Better API", subtitle: "18 votes" })
   .node("ui", { lane: "runners", stack: 2, kind: "card", title: "Nicer UI", subtitle: "12 votes" })
-  .readout.pollBar("pb", { source: "options", color: "#94a3b8", colorWinner: "#2563eb", label: "Results (aggregate)" })
+  .readout.pollBar("pb", { source: "options", color: "#a08870", colorWinner: "#2563eb", label: "Results (aggregate)" })
   .phase("p", {
     duration: 1200,
     title: "vote split",
@@ -3399,7 +3399,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
   .node("readCard", { lane: "read", stack: 0, kind: "card", title: "◆ 既読 (2)", subtitle: "二重チェック · 青 · 09:45" })
   .edge("sentCard", "deliveredCard", { label: "配信完了", tone: "info" })
   .edge("deliveredCard", "readCard", { label: "既読", tone: "success" })
-  .readout.readReceipt("rr", { source: "status", colorRead: "#2563eb", colorPending: "#94a3b8", label: "既読状態" })
+  .readout.readReceipt("rr", { source: "status", colorRead: "#2563eb", colorPending: "#a08870", label: "既読状態" })
   .phase("p1", {
     duration: 1500,
     title: "送信",
