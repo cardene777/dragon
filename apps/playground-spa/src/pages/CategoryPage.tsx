@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
-import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
+import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -108,7 +108,21 @@ export function CategoryPage(): React.ReactElement {
     locale === "ja" ? itemNameJa(item.title) : item.title;
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
-  const items = params.slug ? CATALOG_ITEMS[params.slug] ?? [] : [];
+  // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
+  const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
+  useEffect(() => {
+    if (params.slug !== "parts") return;
+    let cancelled = false;
+    void loadPartsItems().then((loaded) => {
+      if (!cancelled) setPartsItems(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.slug]);
+  const items = params.slug === "parts"
+    ? partsItems
+    : (params.slug ? CATALOG_ITEMS[params.slug] ?? [] : []);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
