@@ -134,14 +134,14 @@ export function SvgDefs(): React.ReactElement {
         {/* ═════════════════ Isometric ═════════════════ */}
         <linearGradient id="dragon-iso-top-gradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffffff" />
-          <stop offset="0.35" stopColor="#e4ecf7" />
-          <stop offset="1" stopColor="#7c93bd" />
+          <stop offset="0.35" stopColor="#f5e8c8" />
+          <stop offset="1" stopColor="#b89c68" />
         </linearGradient>
 
         <linearGradient id="dragon-iso-top-gradient-dark" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4c5878" />
-          <stop offset="0.35" stopColor="#2f3854" />
-          <stop offset="1" stopColor="#151b30" />
+          <stop offset="0" stopColor="#5a4830" />
+          <stop offset="0.35" stopColor="#3d2f1c" />
+          <stop offset="1" stopColor="#1a1408" />
         </linearGradient>
 
         <filter id="dragon-iso-cast-shadow" x="-30%" y="-30%" width="160%" height="160%">

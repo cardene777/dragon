@@ -200,8 +200,8 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   overflow: hidden;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.6) inset,
-    0 30px 60px -30px rgba(26,31,42,0.18),
-    0 18px 36px -18px rgba(45,106,143,0.15);
+    0 30px 60px -30px rgba(26,20,16,0.18),
+    0 18px 36px -18px rgba(184,134,42,0.15);
 }
 .canvas-bar {
   height: 40px;
@@ -292,15 +292,15 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 .canvas-code .hl-2 { animation: hl2 5.6s steps(1) infinite; }
 .canvas-code .hl-3 { animation: hl3 5.6s steps(1) infinite; }
 .canvas-code .hl-4 { animation: hl4 5.6s steps(1) infinite; }
-@keyframes hl1 { 0%, 25% { background: rgba(45,106,143,0.15); } 25.01%, 100% { background: transparent; } }
-@keyframes hl2 { 0%, 25% { background: transparent; } 25.01%, 50% { background: rgba(45,106,143,0.15); } 50.01%, 100% { background: transparent; } }
+@keyframes hl1 { 0%, 25% { background: rgba(184,134,42,0.15); } 25.01%, 100% { background: transparent; } }
+@keyframes hl2 { 0%, 25% { background: transparent; } 25.01%, 50% { background: rgba(184,134,42,0.15); } 50.01%, 100% { background: transparent; } }
 @keyframes hl3 { 0%, 50% { background: transparent; } 50.01%, 75% { background: rgba(167,139,255,0.18); } 75.01%, 100% { background: transparent; } }
 @keyframes hl4 { 0%, 75% { background: transparent; } 75.01%, 100% { background: rgba(94,212,140,0.2); } }
 
 .canvas-stage {
   background:
-    repeating-linear-gradient(0deg, transparent 0 23px, rgba(26,31,42,0.04) 23px 24px),
-    repeating-linear-gradient(90deg, transparent 0 23px, rgba(26,31,42,0.04) 23px 24px),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(26,20,16,0.04) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(26,20,16,0.04) 23px 24px),
     #fcf8ee;
   display: grid;
   place-items: center;
@@ -310,7 +310,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 .canvas-stage svg { width: 100%; height: 100%; padding: 18px; }
 
 /* sequence actor lifelines + msgs */
-.lifeline { stroke: rgba(45,106,143,0.4); stroke-width: 1; stroke-dasharray: 4 3; }
+.lifeline { stroke: rgba(184,134,42,0.4); stroke-width: 1; stroke-dasharray: 4 3; }
 .actor-box { fill: var(--surface); stroke: var(--brand); stroke-width: 1.5; }
 .actor-label { fill: var(--ink); font-weight: 600; font-size: 14px; }
 
@@ -344,8 +344,8 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 .actor-focus-user { animation: focus-user 5.6s steps(1) infinite; }
 .actor-focus-api { animation: focus-api 5.6s steps(1) infinite; }
 .actor-focus-db { animation: focus-db 5.6s steps(1) infinite; }
-@keyframes focus-user { 0%, 25% { stroke: var(--brand); stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(45,106,143,0.3)); } 25.01%, 75% { stroke: var(--line); stroke-width: 1.5; filter: none; } 75.01%, 100% { stroke: #4ea36a; stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(78,163,106,0.3)); } }
-@keyframes focus-api { 0%, 25% { stroke: var(--line); stroke-width: 1.5; filter: none; } 25.01%, 75% { stroke: var(--brand); stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(45,106,143,0.3)); } 75.01%, 100% { stroke: var(--line); stroke-width: 1.5; filter: none; } }
+@keyframes focus-user { 0%, 25% { stroke: var(--brand); stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(184,134,42,0.3)); } 25.01%, 75% { stroke: var(--line); stroke-width: 1.5; filter: none; } 75.01%, 100% { stroke: #4ea36a; stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(78,163,106,0.3)); } }
+@keyframes focus-api { 0%, 25% { stroke: var(--line); stroke-width: 1.5; filter: none; } 25.01%, 75% { stroke: var(--brand); stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(184,134,42,0.3)); } 75.01%, 100% { stroke: var(--line); stroke-width: 1.5; filter: none; } }
 @keyframes focus-db { 0%, 50% { stroke: var(--line); stroke-width: 1.5; filter: none; } 50.01%, 75% { stroke: var(--accent-extended); stroke-width: 3; filter: drop-shadow(0 4px 10px rgba(167,139,255,0.3)); } 75.01%, 100% { stroke: var(--line); stroke-width: 1.5; filter: none; } }
 
 .phase-text {
@@ -446,7 +446,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   .feature-grid { grid-template-columns: 1fr; }
 }
 .feature {
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 32px 28px;
@@ -455,17 +455,19 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 12px 24px -12px rgba(26, 20, 16, 0.1),
-    0 4px 8px -4px rgba(166, 106, 61, 0.06),
-    0 1px 0 rgba(248, 236, 208, 0.5) inset;
+    0 16px 32px -12px rgba(26, 20, 16, 0.14),
+    0 6px 12px -6px rgba(166, 106, 61, 0.10),
+    0 0 0 1px rgba(184, 134, 42, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.55) inset;
 }
 .feature:hover {
-  border-color: rgba(166, 106, 61, 0.32);
+  border-color: rgba(184, 134, 42, 0.45);
   transform: translateY(-4px);
   box-shadow:
-    0 24px 48px -20px rgba(26, 20, 16, 0.18),
-    0 12px 24px -12px rgba(166, 106, 61, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    0 28px 56px -18px rgba(26, 20, 16, 0.22),
+    0 14px 28px -10px rgba(184, 134, 42, 0.20),
+    0 0 0 1px rgba(184, 134, 42, 0.18) inset,
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
 }
 .feature-icon {
   width: 44px;
@@ -794,6 +796,34 @@ html.dark .step-code .s { color: #a3d6a8; }
 html.dark .canvas-code .ln { color: #a08870; }
 html.dark .example-thumb {
   background: #2e2418;
+}
+/* dark mode feature card ... 暗背景での elevation を出すため 3 層 shadow の設計を
+   全面 rewrite。 base card は subtle gradient で glass 感、 hover で深い gold glow。
+   border は warm gold 微光 (rgba 184 134 42 0.15) で card を line として認識させる。 */
+html.dark .feature {
+  background: linear-gradient(180deg, #2e2418 0%, #241c14 100%);
+  border-color: rgba(184, 134, 42, 0.18);
+  box-shadow:
+    0 24px 48px -16px rgba(0, 0, 0, 0.55),
+    0 8px 16px -8px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(184, 134, 42, 0.05) inset,
+    0 1px 0 rgba(240, 184, 64, 0.06) inset;
+}
+html.dark .feature:hover {
+  border-color: rgba(240, 184, 64, 0.4);
+  transform: translateY(-4px);
+  box-shadow:
+    0 32px 64px -20px rgba(0, 0, 0, 0.65),
+    0 16px 32px -12px rgba(184, 134, 42, 0.22),
+    0 0 0 1px rgba(240, 184, 64, 0.18) inset,
+    0 1px 0 rgba(240, 184, 64, 0.12) inset;
+}
+html.dark .feature-icon {
+  background: rgba(184, 134, 42, 0.14);
+  color: #f0b840;
+  box-shadow:
+    0 0 0 1px rgba(184, 134, 42, 0.22) inset,
+    0 4px 12px -2px rgba(184, 134, 42, 0.18);
 }
 /* dark mode の hero radial glow ... 暗背景での visibility を上げるため
    base の 0.16 → 0.20 (中心) + 0.10 (中間) に intensity boost + brand-glow 系 warm tone */

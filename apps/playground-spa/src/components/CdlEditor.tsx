@@ -8,23 +8,23 @@ import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
-// v4 syntax highlight (light) ... yaml key teal, string olive-green, number orange, comment muted
+// v4 syntax highlight (light) ... yaml key warm-brown, string olive-green, number orange, comment muted
 const v4HighlightLight = HighlightStyle.define([
-  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#1f4d6e", fontWeight: "500" },
+  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#8a5a2a", fontWeight: "500" },
   { tag: [t.string, t.special(t.string)], color: "#6a8a3a" },
   { tag: [t.number, t.integer, t.float], color: "#c2410c" },
   { tag: [t.comment, t.lineComment, t.blockComment], color: "#8a8678", fontStyle: "italic" },
-  { tag: [t.operator, t.punctuation, t.separator], color: "#5a6270" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "#6d5a3a" },
   { tag: [t.invalid], color: "#c15a4a" },
 ]);
 
-// v4 syntax highlight (dark) ... teal-glow / mint / amber-glow
+// v4 syntax highlight (dark) ... gold-glow / mint / amber-glow (龍鱗ゴールド warm palette)
 const v4HighlightDark = HighlightStyle.define([
-  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#7dc7e8", fontWeight: "500" },
+  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#f0b840", fontWeight: "500" },
   { tag: [t.string, t.special(t.string)], color: "#93e0a1" },
   { tag: [t.number, t.integer, t.float], color: "#f0b75e" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#6b7785", fontStyle: "italic" },
-  { tag: [t.operator, t.punctuation, t.separator], color: "#99a3b3" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "#a08870", fontStyle: "italic" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "#c0a880" },
   { tag: [t.invalid], color: "#e8807d" },
 ]);
 
@@ -38,8 +38,8 @@ const v4EditorThemeLight = EditorView.theme(
       fontSize: "13px",
       height: "100%",
     },
-    ".cm-content": { padding: "18px 14px", caretColor: "#2d6a8f" },
-    ".cm-cursor": { borderLeftColor: "#2d6a8f" },
+    ".cm-content": { padding: "18px 14px", caretColor: "#8a5a2a" },
+    ".cm-cursor": { borderLeftColor: "#8a5a2a" },
     ".cm-line": { padding: "0 4px" },
     ".cm-gutters": {
       backgroundColor: "#fcf8ee",
@@ -48,9 +48,9 @@ const v4EditorThemeLight = EditorView.theme(
       borderRight: "1px solid #e0d9c8",
       fontFamily: "'JetBrains Mono', monospace",
     },
-    ".cm-activeLineGutter": { backgroundColor: "rgba(45,106,143,0.06)", color: "#2d6a8f" },
-    ".cm-activeLine": { backgroundColor: "rgba(45,106,143,0.04)" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(45,106,143,0.18) !important" },
+    ".cm-activeLineGutter": { backgroundColor: "rgba(184,134,42,0.06)", color: "#8a5a2a" },
+    ".cm-activeLine": { backgroundColor: "rgba(184,134,42,0.04)" },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(184,134,42,0.18) !important" },
     "&.cm-focused": { outline: "none" },
   },
   { dark: false }
@@ -59,25 +59,25 @@ const v4EditorThemeLight = EditorView.theme(
 const v4EditorThemeDark = EditorView.theme(
   {
     "&": {
-      backgroundColor: "#161b22",
-      color: "#f0f3f8",
+      backgroundColor: "#1a1408",
+      color: "#f0e0b8",
       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
       fontSize: "13px",
       height: "100%",
     },
-    ".cm-content": { padding: "18px 14px", caretColor: "#5ec4e8" },
-    ".cm-cursor": { borderLeftColor: "#5ec4e8" },
+    ".cm-content": { padding: "18px 14px", caretColor: "#f0b840" },
+    ".cm-cursor": { borderLeftColor: "#f0b840" },
     ".cm-line": { padding: "0 4px" },
     ".cm-gutters": {
-      backgroundColor: "#161b22",
-      color: "#6b7785",
+      backgroundColor: "#1a1408",
+      color: "#a08870",
       border: "none",
-      borderRight: "1px solid #2a3340",
+      borderRight: "1px solid #3d322a",
       fontFamily: "'JetBrains Mono', monospace",
     },
-    ".cm-activeLineGutter": { backgroundColor: "rgba(94,196,232,0.1)", color: "#5ec4e8" },
-    ".cm-activeLine": { backgroundColor: "rgba(94,196,232,0.06)" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(94,196,232,0.25) !important" },
+    ".cm-activeLineGutter": { backgroundColor: "rgba(240,184,64,0.1)", color: "#f0b840" },
+    ".cm-activeLine": { backgroundColor: "rgba(240,184,64,0.06)" },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(240,184,64,0.25) !important" },
     "&.cm-focused": { outline: "none" },
   },
   { dark: true }
@@ -903,7 +903,7 @@ export function CdlEditor(): React.JSX.Element {
     }
     // dark mode 対応 = 現在の theme に応じた stage bg を塗る
     const isDark = document.documentElement.classList.contains("dark");
-    ctx.fillStyle = isDark ? "#1e293b" : "#f1f5f9";
+    ctx.fillStyle = isDark ? "#241c14" : "#f0e8d4";
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
     URL.revokeObjectURL(svgUrl);

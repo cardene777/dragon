@@ -1104,7 +1104,7 @@ html.dark .cdl-ip-scroll .cdl-ip-scroll-value {
   position: relative;
   width: 140px;
   height: 140px;
-  background: linear-gradient(180deg, rgba(45,106,143,0.08), rgba(45,106,143,0.03));
+  background: linear-gradient(180deg, rgba(184,134,42,0.08), rgba(184,134,42,0.03));
   border: 1.5px solid var(--v4-brand);
   border-radius: 8px;
   cursor: crosshair;
@@ -4404,7 +4404,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .cdl-ip-readout-terminal-titlebar {
-  background: #1e293b;
+  background: #241c14;
   padding: 6px 8px;
   display: flex;
   gap: 6px;

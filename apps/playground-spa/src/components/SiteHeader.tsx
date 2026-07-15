@@ -7,7 +7,7 @@ import { useLocale } from "@/lib/useLocale";
  * v4-nav-* CSS class SSOT = src/styles/header.css。
  */
 const LINKS: Array<{ to: string; ja: string; en: string }> = [
-  { to: "/", ja: "概要", en: "overview" },
+  { to: "/", ja: "Home", en: "home" },
   { to: "/editor", ja: "エディタ", en: "editor" },
   { to: "/catalog", ja: "カタログ", en: "catalog" },
   { to: "/docs", ja: "ドキュメント", en: "docs" },
