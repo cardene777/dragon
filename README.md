@@ -192,7 +192,7 @@ dragon/
 ├── apps/
 │   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
 │       ├── src/
-│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / ComparePage / DocsPage
+│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
 │       │   ├── topics/catalog ... 7 category × 100+ diagram (primitives / presets / patterns / cookbook / text-dsl / animation / styles)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
 │       │   └── components/    ... InViewMount / ThemePicker / SvgDefs / Toast
