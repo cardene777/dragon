@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { presetSequence, presetTopology, presetEr } from "@/topics/catalog/presets.cdl";
 import { SiteHeader } from "@/components/SiteHeader";
+import { useLocale } from "@/lib/useLocale";
 
 /**
  * dragon top page = 旧 apps/playground/src/pages/index.astro の忠実再現。
@@ -10,6 +11,8 @@ import { SiteHeader } from "@/components/SiteHeader";
  * CSS SSOT = src/styles/home.css (旧 index.astro <style> tag 706 line)。
  */
 export function HomePage(): React.ReactElement {
+  const [locale] = useLocale();
+  const isJa = locale === "ja";
   return (
     <div>
       <SiteHeader />
@@ -21,17 +24,23 @@ export function HomePage(): React.ReactElement {
             <span>text dsl × svg animation</span>
           </div>
           <h1>
-            書くと、<em>動く</em>。
+            {isJa ? (
+              <>書くと、<em>動く</em>。</>
+            ) : (
+              <>Write. <em>Watch it move</em>.</>
+            )}
           </h1>
           <p className="lead">
-            YAML風の1ファイルに登場人物と流れを書くだけで、phaseごとに動くSVG図が手に入る。インストール不要、ブラウザで開いて1分で走り出す。
+            {isJa
+              ? "YAML風の1ファイルに登場人物と流れを書くだけで、phaseごとに動くSVG図が手に入る。インストール不要、ブラウザで開いて1分で走り出す。"
+              : "Declare actors and flow in a single YAML-like file, and get an animated SVG diagram driven by phases. No install, opens in your browser, runs in a minute."}
           </p>
           <div className="hero-cta">
             <Link className="btn-primary" to="/editor">
-              エディタを開く →
+              {isJa ? "エディタを開く →" : "Open the editor →"}
             </Link>
             <Link className="btn-secondary" to="/docs">
-              ドキュメントを読む
+              {isJa ? "ドキュメントを読む" : "Read the docs"}
             </Link>
           </div>
         </div>
