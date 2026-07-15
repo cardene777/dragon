@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import { useLocale } from "@/lib/useLocale";
 import "@/styles/compare.css";
 
 /**
@@ -7,12 +8,13 @@ import "@/styles/compare.css";
  * markdown 変換、 SPA では GitHub 上の CONTRIBUTING.md 直リンクで代替。
  */
 export function ContributePage(): React.ReactElement {
+  const [locale] = useLocale();
   return (
     <div>
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくずリスト" className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
             <span className="cur">コントリビュート</span>
