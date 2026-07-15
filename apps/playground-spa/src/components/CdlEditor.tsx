@@ -33,7 +33,7 @@ const v4EditorThemeLight = EditorView.theme(
   {
     "&": {
       backgroundColor: "#fcf8ee",
-      color: "#1a1f2a",
+      color: "#1a1410",
       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
       fontSize: "13px",
       height: "100%",

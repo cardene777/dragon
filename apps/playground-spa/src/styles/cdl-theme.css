@@ -42,7 +42,7 @@
 /* ═════════════════════════════════════════════════════════════════════════════
  * Neumorphism (CAR-748 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
  * 意図 = soft raised bumps + dual shadow (light TL + dark BR) + no border +
- *        cool blue accent (#a66a3d) + Söhne / Inter regular + monolithic surface #e6ebf0
+ *        warm copper accent (#a66a3d) + Söhne / Inter regular + monolithic surface #e6ebf0
  *
  * CAR-741 Circuit theme と同じ 3 経路を採用:
  *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
@@ -137,7 +137,7 @@
  * その local 座標系で 24x24 の transparent rect を x=-8 / y=-8 / w=40 / h=40 の
  * 円形 badge (rx=ry=20) に置換、 `dragon-nm-raised-sm` filter で soft dual shadow を
  * 適用する。 icon path (0-24 viewBox) は center (12, 12) を基準に 1.67x scale して
- * 40x40 badge を占めるサイズに拡大、 accent blue (#a66a3d) fill で可読性を上げる。
+ * 40x40 badge を占めるサイズに拡大、 accent copper (#a66a3d) fill で可読性を上げる。
  *
  * specificity: 4 attribute selector (theme + node-body + node-kind-icon + tag) で
  * 既存 `[node-body] rect` (3 attr) を上書き。 `> rect` 直接子指定で GenericNode 以外の
@@ -199,11 +199,11 @@
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   fill: rgba(230, 235, 240, 0.5) !important;
-  stroke: rgba(74, 127, 200, 0.2) !important;
+  stroke: rgba(166, 106, 61, 0.2) !important;
   stroke-dasharray: 4 4 !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(74, 127, 200, 0.35) !important;
+  stroke: rgba(166, 106, 61, 0.35) !important;
   stroke-opacity: 0.6 !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-label"] {
