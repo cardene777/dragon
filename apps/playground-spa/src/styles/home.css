@@ -112,51 +112,54 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
 /* ── 共通 button ── */
 /* Neumorphism raised primary CTA (CAR-N-6、 scale hover + shadow deepen + active press) */
 .btn-primary {
-  padding: 14px 26px;
-  background: var(--ink);
+  padding: 15px 28px;
+  background: linear-gradient(180deg, #2a1f14 0%, var(--ink) 100%);
   color: var(--canvas);
-  border-radius: 9px;
+  border-radius: 10px;
   font-size: 14px;
   font-family: var(--mono);
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid rgba(184, 134, 42, 0.5);
+  border: 1.5px solid rgba(184, 134, 42, 0.65);
   transition:
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.18s ease,
     color 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-  /* gold rim glow = 龍鱗ゴールド brand artifact、 border + inset gold ring + outer soft glow の 3 層 shadow */
+  /* gold rim + deep elevation = 5 層 shadow、
+     内側 gold ring 2 段 + outer glow + drop shadow + top-highlight で高品質 CTA */
   box-shadow:
-    0 4px 12px -2px rgba(26, 20, 16, 0.25),
-    0 0 0 1px rgba(184, 134, 42, 0.3) inset,
-    0 0 20px -4px rgba(184, 134, 42, 0.35),
-    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+    0 8px 20px -4px rgba(26, 20, 16, 0.4),
+    0 4px 8px -2px rgba(184, 134, 42, 0.28),
+    0 0 24px -6px rgba(184, 134, 42, 0.45),
+    0 0 0 1px rgba(184, 134, 42, 0.4) inset,
+    0 1px 0 rgba(255, 255, 255, 0.14) inset;
 }
 .btn-primary:hover {
   transform: translateY(-2px) scale(1.02);
-  background: var(--brand-deep);
+  background: linear-gradient(180deg, var(--brand-deep) 0%, #6a3f1a 100%);
   color: var(--canvas);
-  border-color: rgba(184, 134, 42, 0.85);
+  border-color: rgba(240, 184, 64, 0.95);
   box-shadow:
-    0 12px 24px -4px rgba(26, 20, 16, 0.35),
-    0 0 0 1px rgba(184, 134, 42, 0.55) inset,
-    0 0 32px -4px rgba(184, 134, 42, 0.6),
-    0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    0 20px 40px -8px rgba(26, 20, 16, 0.5),
+    0 12px 24px -6px rgba(184, 134, 42, 0.45),
+    0 0 40px -6px rgba(240, 184, 64, 0.65),
+    0 0 0 1px rgba(240, 184, 64, 0.75) inset,
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 .btn-primary:active {
   transform: translateY(0) scale(1);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 .btn-secondary {
-  padding: 14px 26px;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  padding: 15px 28px;
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface) 100%);
+  border: 1.5px solid rgba(184, 134, 42, 0.4);
   color: var(--ink);
-  border-radius: 9px;
+  border-radius: 10px;
   font-size: 14px;
   font-family: var(--mono);
   letter-spacing: -0.02em;
@@ -169,18 +172,23 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     color 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 4 層 shadow で elevated card 感 */
   box-shadow:
-    0 2px 6px -2px rgba(26, 20, 16, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+    0 6px 14px -4px rgba(26, 20, 16, 0.14),
+    0 2px 6px -2px rgba(184, 134, 42, 0.12),
+    0 0 0 1px rgba(184, 134, 42, 0.15) inset,
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 .btn-secondary:hover {
   transform: translateY(-2px) scale(1.02);
-  background: var(--brand-deep);
+  background: linear-gradient(180deg, var(--brand-deep) 0%, #6a3f1a 100%);
   color: var(--canvas);
-  border-color: var(--brand-deep);
+  border-color: rgba(184, 134, 42, 0.85);
   box-shadow:
-    0 8px 16px -4px rgba(166, 106, 61, 0.32),
-    0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    0 16px 32px -8px rgba(166, 106, 61, 0.4),
+    0 8px 16px -4px rgba(184, 134, 42, 0.3),
+    0 0 0 1px rgba(240, 184, 64, 0.55) inset,
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 .btn-secondary:active {
   transform: translateY(0) scale(1);
@@ -194,14 +202,18 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   padding: 16px 32px 64px;
 }
 .canvas {
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1.5px solid rgba(184, 134, 42, 0.28);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* elevated hero canvas ... 5 層 shadow で floating card 感、
+     内側の gold rim + 外側の drop + warm ambient で深い立体感 */
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.6) inset,
-    0 30px 60px -30px rgba(26,20,16,0.18),
-    0 18px 36px -18px rgba(184,134,42,0.15);
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 0 0 1px rgba(184, 134, 42, 0.12) inset,
+    0 40px 80px -32px rgba(26, 20, 16, 0.32),
+    0 24px 48px -16px rgba(184, 134, 42, 0.25),
+    0 8px 16px -8px rgba(26, 20, 16, 0.14);
 }
 .canvas-bar {
   height: 40px;
@@ -797,6 +809,22 @@ html.dark .canvas-code .ln { color: #a08870; }
 html.dark .example-thumb {
   background: #2e2418;
 }
+/* dark mode canvas ... 暗背景で elevation を強調するため 5 層 shadow 全面 rewrite。
+   linear-gradient bg + gold rim + deep drop shadow で floating card 感 */
+html.dark .canvas {
+  background: linear-gradient(180deg, #2e2418 0%, #241c14 100%);
+  border-color: rgba(240, 184, 64, 0.35);
+  box-shadow:
+    0 1px 0 rgba(240, 184, 64, 0.08) inset,
+    0 0 0 1px rgba(240, 184, 64, 0.18) inset,
+    0 40px 80px -32px rgba(0, 0, 0, 0.75),
+    0 24px 48px -16px rgba(240, 184, 64, 0.28),
+    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+}
+html.dark .canvas-bar {
+  background: #241c14;
+  border-bottom-color: rgba(240, 184, 64, 0.15);
+}
 /* dark mode feature card ... 暗背景での elevation を出すため 4 層 shadow の設計を
    全面 rewrite。 base card は subtle gradient で glass 感、 hover で深い gold glow。
    border は warm gold 微光 (rgba 184 134 42 0.18) で card を line として認識させる。 */
@@ -835,22 +863,54 @@ html.dark .hero::before {
     transparent 70%
   );
 }
-/* dark mode の btn-primary ... gold rim を dark 背景で更に発光させる */
+/* dark mode の btn-primary ... 5 層 shadow で vocabulary 統一、
+   bg gradient も dark 専用 (深 gold → mid brown) で light と反転せず、
+   text は cream で contrast 保持 (CTA として最高 contrast) */
 html.dark .btn-primary {
-  border-color: rgba(240, 184, 64, 0.6);
+  background: linear-gradient(180deg, #241c14 0%, #1a1408 100%);
+  color: #f8ecd0;
+  border-color: rgba(240, 184, 64, 0.7);
   box-shadow:
-    0 4px 12px -2px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(240, 184, 64, 0.35) inset,
-    0 0 24px -4px rgba(240, 184, 64, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    0 8px 20px -4px rgba(0, 0, 0, 0.5),
+    0 4px 8px -2px rgba(240, 184, 64, 0.3),
+    0 0 28px -6px rgba(240, 184, 64, 0.55),
+    0 0 0 1px rgba(240, 184, 64, 0.45) inset,
+    0 1px 0 rgba(240, 184, 64, 0.15) inset;
 }
 html.dark .btn-primary:hover {
-  border-color: rgba(240, 184, 64, 0.95);
+  background: linear-gradient(180deg, #3d2f1c 0%, #241c14 100%);
+  color: #f8ecd0;
+  border-color: rgba(240, 184, 64, 1);
   box-shadow:
-    0 12px 24px -4px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(240, 184, 64, 0.65) inset,
-    0 0 40px -4px rgba(240, 184, 64, 0.75),
-    0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    0 20px 40px -8px rgba(0, 0, 0, 0.65),
+    0 12px 24px -6px rgba(240, 184, 64, 0.4),
+    0 0 48px -6px rgba(240, 184, 64, 0.75),
+    0 0 0 1px rgba(240, 184, 64, 0.85) inset,
+    0 1px 0 rgba(240, 184, 64, 0.25) inset;
+}
+/* dark mode の btn-secondary ... 5 層 shadow + dark 専用 gradient で
+   dark bg (dark warm brown) 上に cream text で contrast 保持 (7:1 以上) */
+html.dark .btn-secondary {
+  background: linear-gradient(180deg, #2e2418 0%, #241c14 100%);
+  color: #f8ecd0;
+  border-color: rgba(240, 184, 64, 0.4);
+  box-shadow:
+    0 6px 14px -4px rgba(0, 0, 0, 0.5),
+    0 2px 6px -2px rgba(240, 184, 64, 0.15),
+    0 0 20px -6px rgba(240, 184, 64, 0.2),
+    0 0 0 1px rgba(240, 184, 64, 0.18) inset,
+    0 1px 0 rgba(240, 184, 64, 0.08) inset;
+}
+html.dark .btn-secondary:hover {
+  background: linear-gradient(180deg, #3d2f1c 0%, #241c14 100%);
+  color: #f8ecd0;
+  border-color: rgba(240, 184, 64, 0.85);
+  box-shadow:
+    0 16px 32px -8px rgba(0, 0, 0, 0.6),
+    0 8px 16px -4px rgba(240, 184, 64, 0.28),
+    0 0 32px -6px rgba(240, 184, 64, 0.4),
+    0 0 0 1px rgba(240, 184, 64, 0.55) inset,
+    0 1px 0 rgba(240, 184, 64, 0.15) inset;
 }
 /* dark mode 用 :active override ... light mode の `.btn-primary:active` inset shadow は
    `html.dark .btn-primary` / `:hover` の高 specificity rule に上書きされて press 状態が
@@ -860,4 +920,13 @@ html.dark .btn-primary:active {
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(240, 184, 64, 0.5) inset;
+}
+/* dark mode 用 .btn-secondary:active override ... light 側 (line 193-196、 0-2-0) は
+   dark base rule (0-2-1) に負けて press feedback が消失するため、 dark 専用の press
+   inset shadow を明示 (btn-primary と対称) */
+html.dark .btn-secondary:active {
+  transform: translateY(0) scale(1);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(240, 184, 64, 0.35) inset;
 }

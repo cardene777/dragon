@@ -555,87 +555,149 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
  * 意図 = 設計図の graticule + ortho ライン + rev code 相当の落ち着いた青。
  * ═════════════════════════════════════════════════════════════════════════════ */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #f6faff !important;
-  stroke: #1e426c !important;
-  stroke-width: 1.4 !important;
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.5 !important;
+}
+/* generic node の子 shape 経路にも light palette を明示配線 (dark と対称、
+   codex critical fix) */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #f6faff !important;
-  stroke: #1e426c !important;
-  stroke-width: 0.8 !important;
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 1.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule) !important;
-  stroke: rgba(30, 66, 108, 0.35) !important;
+  stroke: rgba(109, 63, 24, 0.4) !important;
+  stroke-width: 1.5 !important;
   stroke-dasharray: 6 3 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(30, 66, 108, 0.4) !important;
+  stroke: rgba(109, 63, 24, 0.55) !important;
+  stroke-width: 1.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  fill: #1e426c !important;
-  font-weight: 600 !important;
+  fill: #4a2810 !important;
+  font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #1e426c !important;
+  fill: #4a2810 !important;
+  font-weight: 600 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #1e426c !important;
-  stroke-width: 1.6 !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.8 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: #1e426c !important;
+  fill: #6d3f18 !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2 !important;
 }
+/* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
+   上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
+   併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
+   `> rect` の transparent-force 追加 */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
-  fill: #1e426c !important;
-  opacity: 0.8 !important;
+  fill: #6d3f18 !important;
+  stroke: none !important;
+  opacity: 0.85 !important;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: transparent !important;
+  stroke: none !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #2a5a8c !important;
+  fill: #8a5a2a !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
   fill: #2a1f14 !important;
-  stroke: #d4a04a !important;
-  stroke-width: 2 !important;
+  stroke: #f0b840 !important;
+  stroke-width: 3 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #2a1f14 !important;
-  stroke: rgba(212, 160, 74, 0.75) !important;
-  stroke-width: 1.2 !important;
+  stroke: rgba(240, 184, 64, 0.85) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(212, 160, 74, 0.55) !important;
+  stroke: rgba(240, 184, 64, 0.5) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(212, 160, 74, 0.6) !important;
+  stroke: rgba(240, 184, 64, 0.6) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #f0e0b8 !important;
+  fill: #f8ecd0 !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #d4a04a !important;
+  stroke: #f0b840 !important;
   fill: none !important;
-  stroke-width: 2 !important;
+  stroke-width: 3 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #d4a04a !important;
-  fill: #d4a04a !important;
-  stroke-width: 2 !important;
+  stroke: #f0b840 !important;
+  fill: #f0b840 !important;
+  stroke-width: 2.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #f0e0b8 !important;
-  font-weight: 600 !important;
+  fill: #f8ecd0 !important;
+  font-weight: 700 !important;
   font-size: 14px !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   font-size: 14px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
+}
+/* generic node の子 shape (rect / circle / path 等) は node-body 親要素の
+   fill/stroke を上書きしてしまうため、 明示的な子 selector で dark palette を配線する。
+   codex critical fix: 実描画で子 rect の #f5ecd0 と label の #f8ecd0 が contrast 1.17:1 = 消失 */
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
+  fill: #2a1f14 !important;
+  stroke: #f0b840 !important;
+  stroke-width: 3 !important;
+}
+/* dark node-kind-icon fill を gold に上書き、 3-attribute pattern で child override
+   (`> g > path` 0-3-3) を上書きする specificity 0-4-2 を確保 */
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
+  fill: #f0b840 !important;
+  stroke: none !important;
+  opacity: 0.9 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: transparent !important;
+  stroke: none !important;
 }
 /* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
    閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line

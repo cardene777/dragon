@@ -32,8 +32,8 @@ export function HomePage(): React.ReactElement {
           </h1>
           <p className="lead">
             {isJa
-              ? "YAML風の1ファイルに登場人物と流れを書くだけで、phaseごとに動くSVG図が手に入る。インストール不要、ブラウザで開いて1分で走り出す。"
-              : "Declare actors and flow in a single YAML-like file, and get an animated SVG diagram driven by phases. No install, opens in your browser, runs in a minute."}
+              ? "登場人物と流れをYAMLに1行ずつ並べる。それだけで、時間を持つSVG図が立ち上がる。静止画では届かなかった順序と因果を、動きで伝える。"
+              : "Lay actors and flow into YAML, one line at a time. What appears is an SVG that carries time—delivering order and causality that stills could never reach."}
           </p>
           <div className="hero-cta">
             <Link className="btn-primary" to="/editor">

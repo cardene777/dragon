@@ -431,15 +431,15 @@
   .v4-editor-stage:active {
     cursor: grabbing;
   }
-  /* dark mode = blueprint theme SVG は light bg 前提設計 (navy text / navy stroke)、
-     dark mode で editor stage を dark にすると text 埋没 = 見えない。
-     stage は常に light bg (cream paper) を維持して、 SVG diagram を light bg 上に描画する。
-     (user 目視で「ダークモードで見えない」 defect の hotfix、 2026-07-15) */
+  /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
+     warm cream text (#f8ecd0) + gold stroke (#f0b840) を使用するため、 stage も dark
+     bg で対比を最大化できる。 graticule grid は warm gold rgba(240, 184, 64) で subtle 維持。
+     旧仕様 (light cream bg 強制) は 2026-07-15 の palette 移行前の暫定対応、 現在は撤去。 */
   html.dark .v4-editor-stage {
-    background: #fcf8ee;
+    background: #1a1408;
     background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(166, 106, 61, 0.08) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(166, 106, 61, 0.08) 23px 24px);
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(240, 184, 64, 0.08) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(240, 184, 64, 0.08) 23px 24px);
   }
   .v4-editor-pan {
     will-change: transform;
