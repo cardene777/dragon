@@ -105,7 +105,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     color 0.18s ease,
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 4px 12px -2px rgba(30, 41, 59, 0.25),
+    0 4px 12px -2px rgba(26, 20, 16, 0.25),
     0 1px 0 rgba(255, 255, 255, 0.1) inset;
 }
 .btn-primary:hover {
@@ -113,7 +113,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
   background: var(--brand-deep);
   color: var(--canvas);
   box-shadow:
-    0 12px 24px -4px rgba(30, 41, 59, 0.35),
+    0 12px 24px -4px rgba(26, 20, 16, 0.35),
     0 1px 0 rgba(255, 255, 255, 0.15) inset;
 }
 .btn-primary:active {
@@ -139,7 +139,7 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     border-color 0.18s ease,
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 2px 6px -2px rgba(30, 41, 59, 0.06),
+    0 2px 6px -2px rgba(26, 20, 16, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 .btn-secondary:hover {
@@ -424,15 +424,15 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 12px 24px -12px rgba(30, 41, 59, 0.1),
+    0 12px 24px -12px rgba(26, 20, 16, 0.1),
     0 4px 8px -4px rgba(166, 106, 61, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    0 1px 0 rgba(248, 236, 208, 0.5) inset;
 }
 .feature:hover {
   border-color: rgba(166, 106, 61, 0.32);
   transform: translateY(-4px);
   box-shadow:
-    0 24px 48px -20px rgba(30, 41, 59, 0.18),
+    0 24px 48px -20px rgba(26, 20, 16, 0.18),
     0 12px 24px -12px rgba(166, 106, 61, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
@@ -487,16 +487,16 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 4px 12px -6px rgba(30, 41, 59, 0.06),
+    0 4px 12px -6px rgba(26, 20, 16, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 .step:hover {
   border-color: rgba(166, 106, 61, 0.24);
   transform: translateY(-2px);
   box-shadow:
-    0 12px 24px -12px rgba(30, 41, 59, 0.12),
+    0 12px 24px -12px rgba(26, 20, 16, 0.12),
     0 4px 8px -4px rgba(166, 106, 61, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    0 1px 0 rgba(248, 236, 208, 0.5) inset;
 }
 .step-num {
   width: 40px;
@@ -574,15 +574,15 @@ main h3 { font-weight: 500; letter-spacing: -0.015em; }
     transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
-    0 12px 24px -12px rgba(30, 41, 59, 0.1),
+    0 12px 24px -12px rgba(26, 20, 16, 0.1),
     0 4px 8px -4px rgba(166, 106, 61, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    0 1px 0 rgba(248, 236, 208, 0.5) inset;
 }
 .example:hover {
   border-color: rgba(166, 106, 61, 0.32);
   transform: translateY(-4px);
   box-shadow:
-    0 24px 48px -20px rgba(30, 41, 59, 0.2),
+    0 24px 48px -20px rgba(26, 20, 16, 0.2),
     0 12px 24px -12px rgba(166, 106, 61, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
