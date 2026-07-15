@@ -138,7 +138,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 
 **dragon の SSOT 責任**。
 - **人向け YAML DSL parser** ... `packages/dragon/src/parser.ts` (現行 v0.4 / v0.5)
-- **LLM 向け JSON DSL** ... [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中 (schema + structured output 経路)
+- **LLM 向け JSON DSL** ... `jsonToDiagram` / `validateDragonJson` / `diagramJsonSchema` (JSON Schema Draft 7) を提供、 Claude / GPT の structured output で確実に diagram を生成できる
 - **compile 層** ... YAML / JSON AST → cdl builder call 変換 (`compile.ts`)
 - **catalog SPA** ... 380+ 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
 - **notation lint** ... 記法 error / 冗長 / 未定義参照 診断 (`notation-lint.ts`)
