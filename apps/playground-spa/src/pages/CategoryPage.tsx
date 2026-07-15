@@ -109,13 +109,31 @@ export function CategoryPage(): React.ReactElement {
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
   // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
+  // loadState = idle / loading / loaded / error の 4 状態、 chunk fetch 失敗を可視化する
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
+  const [partsLoadState, setPartsLoadState] = useState<"idle" | "loading" | "loaded" | "error">(
+    "idle",
+  );
   useEffect(() => {
     if (params.slug !== "parts") return;
     let cancelled = false;
-    void loadPartsItems().then((loaded) => {
-      if (!cancelled) setPartsItems(loaded);
-    });
+    setPartsLoadState("loading");
+    loadPartsItems()
+      .then((loaded) => {
+        if (!cancelled) {
+          setPartsItems(loaded);
+          setPartsLoadState("loaded");
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          // chunk fetch 失敗 (ネットワーク瞬断 / ad blocker / cache 古い tab 等) を可視化
+          // console にも残す = user が devtools で原因把握できる
+          // eslint-disable-next-line no-console
+          console.error("[CAR-1613] parts.cdl chunk fetch failed", err);
+          setPartsLoadState("error");
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -206,7 +224,13 @@ export function CategoryPage(): React.ReactElement {
               )}
             </div>
             <div className="catalog-list" role="list">
-              {filtered.length === 0 ? (
+              {params.slug === "parts" && partsLoadState === "loading" ? (
+                <div className="catalog-list-empty">読み込み中…</div>
+              ) : params.slug === "parts" && partsLoadState === "error" ? (
+                <div className="catalog-list-empty">
+                  読み込みに失敗しました。 ページを再読込してください。
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="catalog-list-empty">該当する項目がありません</div>
               ) : (
                 filtered.map((item) => {

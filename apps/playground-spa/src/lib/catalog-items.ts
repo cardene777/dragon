@@ -104,5 +104,10 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
   return moduleToItems(mod);
 }
 
-/** CatalogIndexPage の totalItems 集計で parts を加算するための概算値 (実 loading せず表示だけ)。 */
+/** CatalogIndexPage の totalItems 集計で parts を加算するための概算値 (実 loading せず表示だけ)。
+ *
+ * ⚠️ SYNC REQUIRED = parts.cdl.ts の top-level export diagram 数と手動同期必須。
+ * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
+ * itemCount 誤表示 + total 集計もズレる)。 現時点 = 20 個 (2026-07-15 CAR-1613 時点)。
+ */
 export const PARTS_COUNT_ESTIMATE = 20;

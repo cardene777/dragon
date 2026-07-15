@@ -4,6 +4,10 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 /**
  * Catalog - Parts ... rich exemplar 合成用 reusable な small parts library。
  *
+ * ⚠️ SYNC REQUIRED = 本 file の top-level export diagram 数を変更する時は
+ * `apps/playground-spa/src/lib/catalog-items.ts` の `PARTS_COUNT_ESTIMATE` も同期更新する。
+ * drift すると CatalogIndexPage で itemCount 誤表示 + total 集計もズレる (CAR-1613)。
+ *
  * 位置付け:
  *   - primitives = cdl kind 単体 demo (教育目的、 kind とは何か)
  *   - parts = 「composite exemplar を組立てる完成 visual unit」 (実用、 使い回す部品)
