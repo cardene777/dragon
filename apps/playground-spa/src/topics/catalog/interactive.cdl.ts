@@ -26,7 +26,7 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
   .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
   .phase("p", {
     duration: 1500,
-    title: "signal bind flow",
+    title: "Slider → Bar 追随 (数値変化を bar が同期表示)",
     body: "2-lane (Slider signal / Bar output) で input.slider bind の 2 step を分散、 bind edge (info tone) で signal 伝搬明示、 slider 変化で signal `value` 更新 → bar-node subtitle {value} 追随、 primitive signal binding を dataflow 化。",
   }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node").badge("bind: value"))
   .build();
@@ -53,7 +53,7 @@ export const formulaTextBind = diagram("interactive-formula-text", {
   .edge("in", "out2", { label: "÷ 2", tone: "info" })
   .phase("p", {
     duration: 1500,
-    title: "formula dataflow",
+    title: "Input × 2 → 派生 → 半分派生 (数式連鎖の可視化)",
     body: "3-lane (Input / Doubled / Halved) で formula chain を分散、 2 edge (× 2 success / ÷ 2 info) で dependency 明示、 input 変化で 2 formula reactive に再計算、 node subtitle {doubled} / {halved} 追随、 formula 依存の 2D dataflow view。",
   }, (p: PhaseBuilder) => p.activate("in", "out1", "out2").badge("formula bind"))
   .build();
@@ -99,7 +99,7 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .on.hover({ kind: "node", id: "btn" }, "hover-state")
   .phase("p", {
     duration: 1500,
-    title: "event flow split",
+    title: "Click → Handler → State (3 段 event flow)",
     body: "3-lane (Trigger button / Event handler / Signal state) で click event flow の 3 step を分散、 2 edge (click info tone / toggle success tone) で dataflow 明示、 button click → consumer handler → active signal 反転 → signalNode subtitle 追随、 event 伝搬経路を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode").badge("event bind"))
   .build();
@@ -434,7 +434,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#2d6a8f" } })
   .phase("p", {
     duration: 1500,
-    title: "arc sweep compare",
+    title: "3 モード比較 (0° / 90° / 180° / 追随)",
     body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider teal) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
   .build();
@@ -464,7 +464,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
   .phase("p", {
     duration: 1500,
-    title: "tank level compare",
+    title: "水位対比 3 段 (25% / 50% / 75% / 追随)",
     body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider teal) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
   .build();
@@ -495,7 +495,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
   .phase("p", {
     duration: 1500,
-    title: "polygon sides compare",
+    title: "頂点数対比 (△3 / ⬡6 / ⯃8 / 追随)",
     body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider teal) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
   .build();
@@ -618,7 +618,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   .edge("pipeNode", "b", { label: "consume", widthBind: "{flow}", dashOffsetBind: "{dash}" })
   .phase("p", {
     duration: 1500,
-    title: "flow pipeline",
+    title: "Source → Pipe → Sink (流量 slider で edge 太さ + 破線 flow)",
     body: "3-lane (Source / Pipe / Sink) で dataflow を横並び分散、 2 edge (Source→Pipe / Pipe→Sink) が widthBind + dashOffsetBind で slider/timeline 追随、 flow slider で太さ、 timeline で dashoffset 変化 → 破線が横 lane を流れる animation、 pipeline 構造と edge signal bind を同時可視化。",
   }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b").badge("edge bind"))
   .build();
@@ -677,7 +677,7 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   ], label: "State dot" })
   .phase("p", {
     duration: 1500,
-    title: "readout variant split",
+    title: "Heat / Badge / Dot 3 表示比較",
     body: "3-lane (Heat cell / Badge / Status dot) で 3 readout variant を機能別分散、 各 readout 個別 card で signal 明示、 temp slider → heat + badge / state dropdown → dot が追随、 readout 種別を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode").badge("readout variety"))
   .build();
@@ -829,7 +829,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" })
   .phase("p", {
     duration: 1200,
-    title: "chart variant compare",
+    title: "4 chart 表示 (line / area / bar / dot 比較)",
     body: "3-lane (Data source / Area chart fill=true / Line chart fill=false) で 10 point time series を chart variant 別分散、 同 data source を 2 種 lineChart readout (area/line) で並列比較、 fill option 差異を横並び view で明示。",
   }, (p: PhaseBuilder) => p.activate("dataCard", "areaCard", "lineCard").badge("line chart"))
   .build();
@@ -920,11 +920,11 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
   .lane("pos", { x: 0, width: 300 })
   .lane("neg", { x: 340, width: 300 })
   .arraySignal("changes", [100, -30, 50, -20, 40])
-  .node("pos1", { lane: "pos", stack: 0, kind: "card", title: "+100", subtitle: "step 0 (initial gain)" })
-  .node("pos2", { lane: "pos", stack: 1, kind: "card", title: "+50", subtitle: "step 2 (recovery)" })
-  .node("pos3", { lane: "pos", stack: 2, kind: "card", title: "+40", subtitle: "step 4 (final gain)" })
-  .node("neg1", { lane: "neg", stack: 0, kind: "card", title: "-30", subtitle: "step 1 (loss)" })
-  .node("neg2", { lane: "neg", stack: 1, kind: "card", title: "-20", subtitle: "step 3 (loss)" })
+  .node("pos1", { lane: "pos", stack: 0, kind: "card", title: "+100", subtitle: "初期上昇" })
+  .node("pos2", { lane: "pos", stack: 1, kind: "card", title: "+50", subtitle: "回復" })
+  .node("pos3", { lane: "pos", stack: 2, kind: "card", title: "+40", subtitle: "最終利益" })
+  .node("neg1", { lane: "neg", stack: 0, kind: "card", title: "-30", subtitle: "小損失" })
+  .node("neg2", { lane: "neg", stack: 1, kind: "card", title: "-20", subtitle: "追加損失" })
   .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall summary", subtitle: "final = sum = {changes.sum}" })
   .readout.waterfall("wf", {
     source: "changes",
@@ -1372,7 +1372,7 @@ export const abTestResult = diagram("interactive-ab-test", {
   .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share (B=green)" })
   .phase("p", {
     duration: 1200,
-    title: "A/B test",
+    title: "A/B test = variant A (投稿ボタン) vs variant B (カード表示) 比較",
     body: "3-lane (Variant A / Split / Variant B) + Split → 各 variant への 50/50 edge、 experiment 構造を node network で表現、 stackedBar + 2 donut で結果集約。",
   }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").badge("A/B test"))
   .build();
@@ -1721,11 +1721,11 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
   .input.stepper("current", { min: 0, max: 4, defaultValue: 2, label: "Current step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Sign up", "Profile", "Preferences", "Verify", "Done"])
-  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Sign up", subtitle: "step 0" })
-  .node("profileNode", { lane: "profile", stack: 0, kind: "card", title: "Profile", subtitle: "step 1" })
-  .node("prefsNode", { lane: "prefs", stack: 0, kind: "card", title: "Preferences", subtitle: "step 2 (current)" })
-  .node("verifyNode", { lane: "verify", stack: 0, kind: "card", title: "Verify", subtitle: "step 3" })
-  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "Done", subtitle: "step 4" })
+  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Sign up", subtitle: "アカウント作成" })
+  .node("profileNode", { lane: "profile", stack: 0, kind: "card", title: "Profile", subtitle: "プロフィール記入" })
+  .node("prefsNode", { lane: "prefs", stack: 0, kind: "card", title: "Preferences", subtitle: "設定選択 (現在地)" })
+  .node("verifyNode", { lane: "verify", stack: 0, kind: "card", title: "Verify", subtitle: "認証確認" })
+  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "Done", subtitle: "完了" })
   .edge("signupNode", "profileNode", { label: "next", tone: "info" })
   .edge("profileNode", "prefsNode", { label: "next", tone: "info" })
   .edge("prefsNode", "verifyNode", { label: "next", tone: "accent" })
@@ -2753,10 +2753,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .input.stepper("current", { min: 0, max: 3, defaultValue: 2, label: "Step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
-  .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "step 0" })
-  .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "step 1" })
-  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "step 2 (current)" })
-  .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "step 3" })
+  .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "梱包完了" })
+  .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "配送開始" })
+  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "配達中 (現在地)" })
+  .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "配達完了" })
   .edge("packedNode", "shippedNode", { label: "handover", tone: "success" })
   .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
   .edge("deliveryNode", "deliveredNode", { label: "arrived", tone: "warning" })
@@ -3148,7 +3148,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
   .phase("p", {
     duration: 1200,
-    title: "A vs B compare",
+    title: "A team 82 vs B team 76 の 4 KPI 対比",
     body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
   .build();
