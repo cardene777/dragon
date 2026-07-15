@@ -328,8 +328,9 @@ html.dark .nm-preset-card-foot {
 html.dark .nm-preset-card-foot {
   background: #0f1420;
 }
+/* blueprint SVG は light bg 前提設計、 dark mode でも preview は cream paper 維持 */
 html.dark .nm-preset-preview {
-  background: #0a0d14;
+  background: #fcf8ee;
 }
 html.dark .nm-preset-tag {
   background: #131a28;
@@ -374,7 +375,8 @@ html.dark .nm-section-head {
   border-color: #262e42;
 }
 html.dark .nm-preset-detail-stage {
-  background: #131a28;
+  /* blueprint SVG は light bg 前提設計、 dark mode でも cream paper 維持 */
+  background: #fcf8ee;
   border-color: #262e42;
 }
 html.dark .nm-preset-detail-nav {
