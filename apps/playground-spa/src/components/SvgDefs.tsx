@@ -235,7 +235,7 @@ export function SvgDefs(): React.ReactElement {
           <path
             d="M 24 0 L 0 0 0 24"
             fill="none"
-            stroke="rgba(120, 180, 220, 0.18)"
+            stroke="rgba(212, 160, 74, 0.18)"
             strokeWidth="0.6"
           />
         </pattern>
