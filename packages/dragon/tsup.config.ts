@@ -12,7 +12,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ["@cardenelabs/cdl", "@cardenelabs/anim", "react", "react-dom"],
+  external: ["@cardenelabs/cdl", "react", "react-dom"],
   outDir: "dist",
   target: "es2022",
 });

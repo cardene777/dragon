@@ -35,9 +35,13 @@ function RouteLoading(): React.ReactElement {
   );
 }
 
+// vite の base ("/" in dev, "/dragon/" in GH Pages build) を React Router basename に渡す。
+// import.meta.env.BASE_URL は末尾 slash 付きだが react-router 側で許容する (`/dragon/` → `/dragon`)。
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <SvgDefs />
       <LocaleProvider>
         <ToastProvider>

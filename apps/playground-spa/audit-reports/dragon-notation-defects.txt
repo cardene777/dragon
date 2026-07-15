@@ -1,6 +1,0 @@
-[visual-validate-sweep cookbook] err(row-gap-uniform=34 lane-border-clearance=8) warn(text-readability=96 subpixel-precision=262)
-[visual-validate-sweep patterns] err(edge-node-cross=1 row-gap-uniform=5 clearance=5 row-alignment=4 edge-label-overlap=7 edge-label-clearance=1 column-gap-uniform=1) warn(subpixel-precision=60 lane-cx-consistency=1 group-boundary-clearance=1 text-readability=4 edge-label-proximity=2)
-[visual-validate-sweep presets] err(clearance=7 row-gap-uniform=6 edge-label-clearance=6 edge-stubout-min=2 lane-border-clearance=1 edge-label-overlap=1 row-alignment=2) warn(subpixel-precision=121 edge-label-proximity=2 mermaid-parity=5 text-readability=6 responsive-viewport=1)
-[visual-validate-sweep primitives-extra] err(-) warn(text-readability=3)
-[visual-validate-sweep text-dsl] err(row-gap-uniform=5 clearance=5 edge-stubout-min=1 edge-label-clearance=1 lane-border-clearance=1) warn(text-readability=8 subpixel-precision=58)
-[visual-validate-sweep styles] err(-) warn(subpixel-precision=1)
