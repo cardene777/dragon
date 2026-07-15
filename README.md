@@ -195,7 +195,7 @@ dragon/
 │       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
 │       │   ├── topics/catalog ... 7 category × 100+ diagram (primitives / presets / patterns / cookbook / text-dsl / animation / styles)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
-│       │   └── components/    ... InViewMount / ThemePicker / SvgDefs / Toast
+│       │   └── components/    ... CdlEditor / InViewMount / SiteHeader / SvgDefs / Toast
 │       └── tests/             ... Playwright E2E (home / catalog / editor)
 ├── eslint.config.mjs
 └── tsconfig.json              ... solution-style (packages/dragon + apps/playground-spa)

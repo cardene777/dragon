@@ -2,7 +2,7 @@
  * 各 catalog category の diagram を lazy-load する SSOT。
  *
  * 各 category ごとに import + metadata。 CatalogPage で category に応じて
- * 該当 items 配列を PresetCard grid で表示。
+ * 該当 items 配列を CategoryPage の 2 pane grid で表示。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
