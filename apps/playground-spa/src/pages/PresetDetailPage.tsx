@@ -5,6 +5,7 @@ import { ChevronLeft, ExternalLink, LayoutGrid, Share2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
+import { useLocale } from "@/lib/useLocale";
 import "@/styles/compare.css";
 
 /**
@@ -15,6 +16,7 @@ export function PresetDetailPage(): React.ReactElement {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [locale] = useLocale();
 
   const preset = PRESETS.find((p) => p.slug === params.id);
 
@@ -82,7 +84,7 @@ export function PresetDetailPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくずリスト" className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
             <Link to="/catalog">カタログ</Link>
