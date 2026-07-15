@@ -141,7 +141,7 @@ export function HomePage(): React.ReactElement {
               <svg viewBox="0 0 600 380" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,0 L10,5 L0,10 z" fill="#1f4d6e" />
+                    <path d="M0,0 L10,5 L0,10 z" fill="#8a5a2a" />
                   </marker>
                   <marker id="ar-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                     <path d="M0,0 L10,5 L0,10 z" fill="#6d28d9" />
@@ -187,10 +187,10 @@ export function HomePage(): React.ReactElement {
                   200 OK
                 </text>
 
-                <text className="phase-text phase-1" x="300" y="30" fill="#1f4d6e">
+                <text className="phase-text phase-1" x="300" y="30" fill="#8a5a2a">
                   phase 1 · call · 1.4s
                 </text>
-                <text className="phase-text phase-2" x="300" y="30" fill="#1f4d6e">
+                <text className="phase-text phase-2" x="300" y="30" fill="#8a5a2a">
                   phase 2 · query · 1.4s
                 </text>
                 <text className="phase-text phase-3" x="300" y="30" fill="#6d28d9">

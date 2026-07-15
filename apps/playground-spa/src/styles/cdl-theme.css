@@ -42,7 +42,7 @@
 /* ═════════════════════════════════════════════════════════════════════════════
  * Neumorphism (CAR-748 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
  * 意図 = soft raised bumps + dual shadow (light TL + dark BR) + no border +
- *        cool blue accent (#4a7fc8) + Söhne / Inter regular + monolithic surface #e6ebf0
+ *        warm copper accent (#a66a3d) + Söhne / Inter regular + monolithic surface #e6ebf0
  *
  * CAR-741 Circuit theme と同じ 3 経路を採用:
  *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
@@ -65,8 +65,8 @@
 [data-cdl-theme="neumorphism"] {
   --cdl-node-fill: #e6ebf0;
   /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
-  --cdl-tone-info: #4a7fc8;
-  --cdl-tone-accent: #4a7fc8;
+  --cdl-tone-info: #a66a3d;
+  --cdl-tone-accent: #a66a3d;
   /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる。 border は消したいので transparent */
   --cdl-divider: transparent;
   --cdl-text: #3a3d47;
@@ -74,7 +74,7 @@
   --cdl-text-secondary: #7a808c;
   --cdl-label-bg: #e6ebf0;
   --cdl-label-text: #3a3d47;
-  --cdl-edge-stroke: #4a7fc8;
+  --cdl-edge-stroke: #a66a3d;
 }
 
 /*
@@ -126,7 +126,7 @@
  */
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
   opacity: 1 !important;
 }
@@ -137,7 +137,7 @@
  * その local 座標系で 24x24 の transparent rect を x=-8 / y=-8 / w=40 / h=40 の
  * 円形 badge (rx=ry=20) に置換、 `dragon-nm-raised-sm` filter で soft dual shadow を
  * 適用する。 icon path (0-24 viewBox) は center (12, 12) を基準に 1.67x scale して
- * 40x40 badge を占めるサイズに拡大、 accent blue (#4a7fc8) fill で可読性を上げる。
+ * 40x40 badge を占めるサイズに拡大、 accent copper (#a66a3d) fill で可読性を上げる。
  *
  * specificity: 4 attribute selector (theme + node-body + node-kind-icon + tag) で
  * 既存 `[node-body] rect` (3 attr) を上書き。 `> rect` 直接子指定で GenericNode 以外の
@@ -167,22 +167,22 @@
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
 [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
   transform: translate(-8px, -8px) scale(1.67) !important;
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] path[data-cdl-role="edge-line"],
 [data-cdl-theme="neumorphism"] line[data-cdl-role="edge-line"] {
-  stroke: #4a7fc8 !important;
+  stroke: #a66a3d !important;
   stroke-width: 1.6 !important;
   stroke-linecap: round !important;
   fill: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
@@ -191,7 +191,7 @@
   filter: url(#dragon-nm-raised-sm) !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #4a7fc8 !important;
+  fill: #a66a3d !important;
   stroke: none !important;
   font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
   font-weight: 700 !important;
@@ -199,11 +199,11 @@
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   fill: rgba(230, 235, 240, 0.5) !important;
-  stroke: rgba(74, 127, 200, 0.2) !important;
+  stroke: rgba(166, 106, 61, 0.2) !important;
   stroke-dasharray: 4 4 !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(74, 127, 200, 0.35) !important;
+  stroke: rgba(166, 106, 61, 0.35) !important;
   stroke-opacity: 0.6 !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-label"] {
@@ -215,15 +215,15 @@
 
 /* ─── dark mode variant (raised bumps + dark palette 反転) ─── */
 html.dark [data-cdl-theme="neumorphism"] {
-  --cdl-node-fill: #2c3448;
-  --cdl-tone-info: #6a9fe0;
-  --cdl-tone-accent: #6a9fe0;
+  --cdl-node-fill: #241c14;
+  --cdl-tone-info: #d4a04a;
+  --cdl-tone-accent: #d4a04a;
   --cdl-text: #d8dde8;
-  --cdl-text-dim: #96a0bb;
-  --cdl-text-secondary: #96a0bb;
-  --cdl-label-bg: #2c3448;
+  --cdl-text-dim: #a08870;
+  --cdl-text-secondary: #a08870;
+  --cdl-label-bg: #241c14;
   --cdl-label-text: #d8dde8;
-  --cdl-edge-stroke: #6a9fe0;
+  --cdl-edge-stroke: #d4a04a;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
@@ -232,11 +232,11 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-sm-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
@@ -244,35 +244,35 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 /* dark mode kind icon badge (Round 11 意図 raised badge dark variant) */
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
-  fill: #2c3448 !important;
+  fill: #241c14 !important;
   filter: url(#dragon-nm-raised-sm-dark) !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"] {
-  stroke: #6a9fe0 !important;
+  stroke: #d4a04a !important;
   fill: none !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #6a9fe0 !important;
-  fill: #6a9fe0 !important;
+  stroke: #d4a04a !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #6a9fe0 !important;
+  fill: #d4a04a !important;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: rgba(44, 52, 72, 0.5) !important;
-  stroke: rgba(106, 159, 224, 0.25) !important;
+  fill: rgba(36, 28, 20, 0.5) !important;
+  stroke: rgba(212, 160, 74, 0.25) !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -284,13 +284,13 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
  * ═════════════════════════════════════════════════════════════════════════════ */
 [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 1.2 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
   fill: #ffffff !important;
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 1 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
@@ -300,38 +300,38 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   stroke-dasharray: 6 4 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(74, 90, 124, 0.55) !important;
+  stroke: rgba(122, 96, 68, 0.55) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
-  fill: #1a2540 !important;
+  fill: #1a1408 !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #1a2540 !important;
+  fill: #1a1408 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #4a5a7c !important;
+  stroke: #8a7050 !important;
   stroke-width: 3 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
   opacity: 0.9 !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="lane-label"] {
-  fill: #4a5a7c !important;
+  fill: #8a7050 !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
   fill: url(#dragon-iso-top-gradient-dark) !important;
-  stroke: #6a7898 !important;
+  stroke: #a08870 !important;
   filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
-  fill: #2c3448 !important;
-  stroke: #6a7898 !important;
+  fill: #241c14 !important;
+  stroke: #a08870 !important;
   filter: url(#dragon-iso-cast-shadow-dark) !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"],
@@ -339,12 +339,12 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
   fill: #d8dde8 !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #96a0bb !important;
+  stroke: #a08870 !important;
   fill: none !important;
 }
 html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #96a0bb !important;
-  fill: #96a0bb !important;
+  stroke: #a08870 !important;
+  fill: #a08870 !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

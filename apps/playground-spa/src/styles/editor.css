@@ -95,7 +95,7 @@
     display: none;
   }
   .v4-editor-side-samples-summary:hover {
-    background: rgba(26, 31, 42, 0.04);
+    background: rgba(26, 20, 16, 0.04);
   }
   .v4-editor-side-samples-label {
     font-family: var(--v4-mono);
@@ -178,7 +178,7 @@
     margin-bottom: 1px;
   }
   .v4-editor-side-item:hover {
-    background: rgba(26, 31, 42, 0.05);
+    background: rgba(26, 20, 16, 0.05);
     color: var(--v4-ink);
   }
   .v4-editor-side-item.active {
@@ -218,7 +218,7 @@
     transition: background 0.15s, color 0.15s;
   }
   .v4-editor-bar-btn:hover {
-    background: rgba(26, 31, 42, 0.05);
+    background: rgba(26, 20, 16, 0.05);
     color: var(--v4-ink);
   }
   .v4-editor-bar-btn-primary {
@@ -423,8 +423,8 @@
     position: relative;
     background: var(--v4-surface);
     background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 31, 42, 0.04) 23px 24px);
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 20, 16, 0.04) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 20, 16, 0.04) 23px 24px);
     cursor: grab;
     user-select: none;
   }

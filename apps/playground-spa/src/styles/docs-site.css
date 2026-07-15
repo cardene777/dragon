@@ -305,7 +305,7 @@ body.docs-body .docs-pager-link {
   gap: 4px;
   padding: 18px 22px;
   background: var(--nm-surface);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  border: 1px solid rgba(240, 224, 184, 0.6);
   border-radius: 12px;
   text-decoration: none;
   color: var(--nm-text);
@@ -326,13 +326,13 @@ body.docs-body .docs-pager-link:hover {
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 html.dark body.docs-body .docs-pager-link {
-  border-color: rgba(94, 196, 232, 0.14);
+  border-color: rgba(240, 184, 64, 0.14);
   box-shadow:
     0 4px 12px -6px rgba(0, 0, 0, 0.4),
     0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 html.dark body.docs-body .docs-pager-link:hover {
-  border-color: rgba(94, 196, 232, 0.35);
+  border-color: rgba(240, 184, 64, 0.35);
 }
 body.docs-body .docs-pager-next {
   text-align: right;
@@ -674,7 +674,7 @@ body.docs-body a.docs-feature-card {
   padding: 28px;
   background: var(--nm-surface) !important;
   background-color: var(--nm-surface) !important;
-  border: 1px solid rgba(226, 232, 240, 0.6) !important;
+  border: 1px solid rgba(240, 224, 184, 0.6) !important;
   border-radius: 16px;
   text-decoration: none !important;
   color: var(--nm-text) !important;
@@ -697,17 +697,17 @@ body.docs-body .docs-feature-card:hover {
 }
 html.dark body.docs-body .docs-feature-card,
 html.dark body.docs-body a.docs-feature-card {
-  border-color: rgba(94, 196, 232, 0.14) !important;
+  border-color: rgba(240, 184, 64, 0.14) !important;
   box-shadow:
     0 12px 24px -12px rgba(0, 0, 0, 0.5),
     0 4px 8px -4px rgba(0, 0, 0, 0.3),
     0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 html.dark body.docs-body .docs-feature-card:hover {
-  border-color: rgba(94, 196, 232, 0.35) !important;
+  border-color: rgba(240, 184, 64, 0.35) !important;
   box-shadow:
     0 24px 48px -20px rgba(0, 0, 0, 0.7),
-    0 12px 24px -12px rgba(94, 196, 232, 0.16),
+    0 12px 24px -12px rgba(240, 184, 64, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 body.docs-body .docs-feature-icon {

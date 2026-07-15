@@ -262,7 +262,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
   .state("effectiveGwei", { initial: 12 })
   .state("congestion", { initial: 15 })
   .node("capL", { lane: "bar", stack: 0, kind: "dyn-rect", title: "max cap", subtitle: "+{capFee} gwei", w: 300, h: 140,
-    shape: { kind: "rect", source: "{capFee}", fillMax: 60, orient: "up", fill: "#94a3b8", radius: 4 } })
+    shape: { kind: "rect", source: "{capFee}", fillMax: 60, orient: "up", fill: "#a08870", radius: 4 } })
   .node("tipL", { lane: "bar", stack: 1, kind: "dyn-rect", title: "priority tip", subtitle: "+{tipFee} gwei", w: 300, h: 100,
     shape: { kind: "rect", source: "{tipFee}", fillMax: 50, orient: "up", fill: "#22c55e", radius: 4 } })
   .node("baseL", { lane: "bar", stack: 2, kind: "dyn-rect", title: "base fee (burn)", subtitle: "{baseFee} gwei", w: 300, h: 180,

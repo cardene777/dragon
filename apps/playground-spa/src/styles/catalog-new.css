@@ -1104,7 +1104,7 @@ html.dark .cdl-ip-scroll .cdl-ip-scroll-value {
   position: relative;
   width: 140px;
   height: 140px;
-  background: linear-gradient(180deg, rgba(45,106,143,0.08), rgba(45,106,143,0.03));
+  background: linear-gradient(180deg, rgba(184,134,42,0.08), rgba(184,134,42,0.03));
   border: 1.5px solid var(--v4-brand);
   border-radius: 8px;
   cursor: crosshair;
@@ -2245,7 +2245,7 @@ html.dark .cdl-ip-readout-array-list-items {
   gap: 3px;
   height: 42px;
   padding: 2px;
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
   border-radius: 4px;
 }
 .cdl-ip-readout-array-bar-col {
@@ -2274,7 +2274,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 4px;
 }
 
@@ -2292,7 +2292,7 @@ html.dark .cdl-ip-readout-array-list-items {
   gap: 6px;
   height: 48px;
   padding: 2px;
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
   border-radius: 4px;
 }
 .cdl-ip-readout-stacked-bar-group {
@@ -2321,7 +2321,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 4px;
 }
 
@@ -2337,7 +2337,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
   padding: 4px;
 }
@@ -2377,7 +2377,7 @@ html.dark .cdl-ip-readout-progress-group-name {
 }
 .cdl-ip-readout-progress-group-track {
   height: 8px;
-  background: rgba(148,163,184,0.16);
+  background: rgba(160,136,112,0.16);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -2406,7 +2406,7 @@ html.dark .cdl-ip-readout-progress-group-name {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2435,7 +2435,7 @@ html.dark .cdl-ip-readout-progress-group-name {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2532,7 +2532,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2560,7 +2560,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
 .cdl-ip-readout-slope-svg {
   display: block;
   margin: 0 auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2589,7 +2589,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2619,7 +2619,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(148,163,184,0.04);
+  background: rgba(160,136,112,0.04);
   border-radius: 4px;
 }
 
@@ -2740,7 +2740,7 @@ html.dark .cdl-ip-readout-leaderboard-name {
 }
 .cdl-ip-readout-leaderboard-bar {
   height: 8px;
-  background: rgba(148,163,184,0.16);
+  background: rgba(160,136,112,0.16);
   border-radius: 4px;
   overflow: hidden;
   display: block;
@@ -2935,7 +2935,7 @@ html.dark .cdl-ip-readout-rating-value {
   display: flex;
   border-radius: 3px;
   overflow: hidden;
-  background: rgba(148,163,184,0.16);
+  background: rgba(160,136,112,0.16);
 }
 .cdl-ip-readout-diff-counter-bar-add,
 .cdl-ip-readout-diff-counter-bar-del {
@@ -2959,7 +2959,7 @@ html.dark .cdl-ip-readout-rating-value {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 6px;
   max-height: 260px;
   overflow-y: auto;
@@ -3045,7 +3045,7 @@ html.dark .cdl-ip-readout-avatar-name {
 }
 .cdl-ip-readout-checklist-progress-bar {
   height: 4px;
-  background: rgba(148,163,184,0.16);
+  background: rgba(160,136,112,0.16);
   border-radius: 2px;
   overflow: hidden;
   display: block;
@@ -3299,14 +3299,14 @@ html.dark .cdl-ip-readout-grade-score {
   padding: 3px 8px;
   border: 1.5px solid;
   border-radius: 12px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
   transition: transform 200ms ease, background 200ms ease;
 }
 .cdl-ip-readout-reaction-bar-pill:hover {
   transform: scale(1.05);
-  background: rgba(148,163,184,0.15);
+  background: rgba(160,136,112,0.15);
 }
 .cdl-ip-readout-reaction-bar-emoji {
   font-size: 14px;
@@ -3377,7 +3377,7 @@ html.dark .cdl-ip-readout-grade-score {
 }
 .cdl-ip-readout-metrics-grid-cell {
   padding: 8px 10px;
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -3452,7 +3452,7 @@ html.dark .cdl-ip-readout-grade-score {
   align-items: center;
   gap: 10px;
   padding: 6px 8px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 6px;
 }
 .cdl-ip-readout-icon-tile-icon {
@@ -3509,7 +3509,7 @@ html.dark .cdl-ip-readout-icon-tile-value {
   gap: 8px;
   padding: 4px 6px;
   border-radius: 4px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
 }
@@ -3649,7 +3649,7 @@ html.dark .cdl-ip-readout-poll-bar-option {
 }
 .cdl-ip-readout-poll-bar-track {
   height: 6px;
-  background: rgba(148,163,184,0.16);
+  background: rgba(160,136,112,0.16);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -3687,12 +3687,12 @@ html.dark .cdl-ip-readout-poll-bar-option {
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 .cdl-ip-readout-user-stack-overflow {
-  background: rgba(148,163,184,0.7);
+  background: rgba(160,136,112,0.7);
   color: var(--v4-ink);
 }
 html.dark .cdl-ip-readout-user-stack-avatar,
 html.dark .cdl-ip-readout-user-stack-overflow {
-  border-color: #0f172a;
+  border-color: #241c14;
 }
 html.dark .cdl-ip-readout-user-stack-overflow {
   color: #f8ecd0;
@@ -3725,7 +3725,7 @@ html.dark .cdl-ip-readout-user-stack-overflow {
   border-radius: 3px;
 }
 .cdl-ip-readout-commit-list-row:hover {
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
 }
 .cdl-ip-readout-commit-list-sha {
   font-weight: 700;
@@ -3757,7 +3757,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
   border-radius: 6px;
 }
 .cdl-ip-readout-media-player-icon {
@@ -3777,7 +3777,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
 .cdl-ip-readout-media-player-track {
   flex: 1;
   height: 4px;
-  background: rgba(148,163,184,0.25);
+  background: rgba(160,136,112,0.25);
   border-radius: 2px;
   position: relative;
 }
@@ -3799,7 +3799,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
   transition: left 200ms ease;
 }
 html.dark .cdl-ip-readout-media-player-thumb {
-  border-color: #0f172a;
+  border-color: #241c14;
 }
 
 /* event-log readout */
@@ -3829,7 +3829,7 @@ html.dark .cdl-ip-readout-media-player-thumb {
   font-size: 11px;
 }
 .cdl-ip-readout-event-log-row:hover {
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
 }
 .cdl-ip-readout-event-log-icon {
   font-size: 12px;
@@ -3875,7 +3875,7 @@ html.dark .cdl-ip-readout-event-log-msg {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-search-result-row:hover {
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
 }
 .cdl-ip-readout-search-result-title {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -3915,7 +3915,7 @@ html.dark .cdl-ip-readout-search-result-snippet {
   flex-direction: column;
   border-radius: 6px;
   overflow: hidden;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
 }
 .cdl-ip-readout-roadmap-header {
   padding: 4px 8px;
@@ -3964,7 +3964,7 @@ html.dark .cdl-ip-readout-roadmap-item {
   flex-direction: column;
   align-items: center;
   padding: 6px 4px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 6px;
   gap: 2px;
 }
@@ -4020,7 +4020,7 @@ html.dark .cdl-ip-readout-weather-forecast-high {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-video-card-row:hover {
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
 }
 .cdl-ip-readout-video-card-thumb {
   position: relative;
@@ -4156,7 +4156,7 @@ html.dark .cdl-ip-readout-order-status-name {
   color: var(--v4-ink);
   text-align: left;
   padding-right: 8px;
-  border-right: 1px solid rgba(148,163,184,0.2);
+  border-right: 1px solid rgba(160,136,112,0.2);
 }
 html.dark .cdl-ip-readout-attendance-grid-day {
   color: #f8ecd0;
@@ -4188,7 +4188,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   flex-direction: column;
   align-items: center;
   padding: 6px 4px;
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
   border-radius: 6px;
   gap: 2px;
 }
@@ -4236,7 +4236,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-form-summary-row:hover {
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
 }
 .cdl-ip-readout-form-summary-key {
   margin: 0;
@@ -4284,7 +4284,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-song-queue-row:hover {
-  background: rgba(148,163,184,0.08);
+  background: rgba(160,136,112,0.08);
 }
 .cdl-ip-readout-song-queue-icon {
   text-align: center;
@@ -4321,7 +4321,7 @@ html.dark .cdl-ip-readout-song-queue-title {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(148,163,184,0.06);
+  background: rgba(160,136,112,0.06);
   border-radius: 6px;
   padding: 8px;
 }
@@ -4373,7 +4373,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   color: #f8ecd0;
 }
 .cdl-ip-readout-calendar-month-cell:hover {
-  background: rgba(148,163,184,0.15);
+  background: rgba(160,136,112,0.15);
 }
 .cdl-ip-readout-calendar-month-cell.today {
   font-weight: 800;
@@ -4400,11 +4400,11 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 .cdl-ip-readout-terminal-window {
   border-radius: 6px;
   overflow: hidden;
-  background: #0f172a;
+  background: #1a1408;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .cdl-ip-readout-terminal-titlebar {
-  background: #1e293b;
+  background: #241c14;
   padding: 6px 8px;
   display: flex;
   gap: 6px;
@@ -4419,7 +4419,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   padding: 8px 10px;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 10px;
-  color: #e2e8f0;
+  color: #f0e0b8;
   max-height: 240px;
   overflow-y: auto;
 }
@@ -4437,10 +4437,10 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   font-weight: 800;
 }
 .cdl-ip-readout-terminal-cmd {
-  color: #f1f5f9;
+  color: #f0e8d4;
 }
 .cdl-ip-readout-terminal-output {
-  color: #94a3b8;
+  color: #a08870;
   white-space: pre-wrap;
   padding-left: 10px;
 }
