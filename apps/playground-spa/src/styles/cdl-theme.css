@@ -559,6 +559,20 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: #6d3f18 !important;
   stroke-width: 2.5 !important;
 }
+/* generic node の子 shape 経路にも light palette を明示配線 (dark と対称、
+   codex critical fix) */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.5 !important;
+}
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #fdf8ec !important;
   stroke: #6d3f18 !important;
@@ -588,6 +602,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   fill: #6d3f18 !important;
+  stroke: #6d3f18 !important;
   stroke-width: 2 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
@@ -633,17 +648,37 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   stroke-width: 2.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #f0e0b8 !important;
-  font-weight: 600 !important;
+  fill: #f8ecd0 !important;
+  font-weight: 700 !important;
   font-size: 14px !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   font-size: 14px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
+}
+/* generic node の子 shape (rect / circle / path 等) は node-body 親要素の
+   fill/stroke を上書きしてしまうため、 明示的な子 selector で dark palette を配線する。
+   codex critical fix: 実描画で子 rect の #f5ecd0 と label の #f8ecd0 が contrast 1.17:1 = 消失 */
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
+  fill: #2a1f14 !important;
+  stroke: #f0b840 !important;
+  stroke-width: 3 !important;
+}
+/* dark node-kind-icon fill を gold に上書き (light は warm brown、 dark は 明色 gold) */
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
+  fill: #f0b840 !important;
+  opacity: 0.9 !important;
 }
 /* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
    閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line

@@ -432,8 +432,8 @@
     cursor: grabbing;
   }
   /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
-     warm cream text (#f0e0b8) + gold stroke (#d4a04a) を使用するため、 stage も dark
-     bg で対比を最大化できる。 graticule grid は warm gold rgba で subtle に維持。
+     warm cream text (#f8ecd0) + gold stroke (#f0b840) を使用するため、 stage も dark
+     bg で対比を最大化できる。 graticule grid は warm gold rgba(240, 184, 64) で subtle 維持。
      旧仕様 (light cream bg 強制) は 2026-07-15 の palette 移行前の暫定対応、 現在は撤去。 */
   html.dark .v4-editor-stage {
     background: #1a1408;
