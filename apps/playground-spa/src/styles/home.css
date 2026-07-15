@@ -921,3 +921,12 @@ html.dark .btn-primary:active {
     inset 0 2px 4px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(240, 184, 64, 0.5) inset;
 }
+/* dark mode 用 .btn-secondary:active override ... light 側 (line 193-196、 0-2-0) は
+   dark base rule (0-2-1) に負けて press feedback が消失するため、 dark 専用の press
+   inset shadow を明示 (btn-primary と対称) */
+html.dark .btn-secondary:active {
+  transform: translateY(0) scale(1);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(240, 184, 64, 0.35) inset;
+}

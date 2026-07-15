@@ -605,9 +605,19 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke: #6d3f18 !important;
   stroke-width: 2 !important;
 }
+/* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
+   上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
+   併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
+   `> rect` の transparent-force 追加 */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
   fill: #6d3f18 !important;
   opacity: 0.85 !important;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: transparent !important;
+  stroke: none !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #8a5a2a !important;
@@ -675,10 +685,17 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
   stroke: #f0b840 !important;
   stroke-width: 3 !important;
 }
-/* dark node-kind-icon fill を gold に上書き (light は warm brown、 dark は 明色 gold) */
+/* dark node-kind-icon fill を gold に上書き、 3-attribute pattern で child override
+   (`> g > path` 0-3-3) を上書きする specificity 0-4-2 を確保 */
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
   fill: #f0b840 !important;
   opacity: 0.9 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
+  fill: transparent !important;
+  stroke: none !important;
 }
 /* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
    閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line
