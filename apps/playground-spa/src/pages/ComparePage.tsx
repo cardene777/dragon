@@ -7,6 +7,7 @@ import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { InViewMount } from "@/components/InViewMount";
 import { SiteHeader } from "@/components/SiteHeader";
+import { useLocale } from "@/lib/useLocale";
 import "@/styles/compare.css";
 
 /**
@@ -14,6 +15,7 @@ import "@/styles/compare.css";
  * hero + preset select toolbar + 6 theme grid (data-cdl-theme + CdlDiagramView)。
  */
 export function ComparePage(): React.ReactElement {
+  const [locale] = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSlug = searchParams.get("preset") ?? "swimlane";
   const [presetSlug, setPresetSlug] = useState<string>(initialSlug);
@@ -38,7 +40,7 @@ export function ComparePage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくずリスト" className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
             <span className="cur">テーマ比較</span>

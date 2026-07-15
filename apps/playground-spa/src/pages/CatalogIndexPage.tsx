@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS } from "@/lib/catalog-items";
 import { SiteHeader } from "@/components/SiteHeader";
+import { useLocale } from "@/lib/useLocale";
 
 /**
  * /catalog = 全 カテゴリ一覧 (CATEGORIES SSOT、 React docs 風の簡潔な list 構成)。
@@ -22,6 +23,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
 };
 
 export function CatalogIndexPage(): React.ReactElement {
+  const [locale] = useLocale();
   const totalItems = Object.values(CATALOG_ITEMS).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
@@ -29,7 +31,7 @@ export function CatalogIndexPage(): React.ReactElement {
       <SiteHeader />
       <div className="catalog-page">
         <div className="catalog-hero">
-          <nav aria-label="パンくずリスト" className="catalog-crumb">
+          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
             <span className="cur">カタログ</span>

@@ -148,7 +148,7 @@ export function CategoryPage(): React.ReactElement {
       <div className="catalog-page">
         {/* breadcrumb + hero (簡潔) */}
         <div className="catalog-hero">
-          <nav aria-label="パンくずリスト" className="catalog-crumb">
+          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
             <Link to="/catalog">カタログ</Link>
