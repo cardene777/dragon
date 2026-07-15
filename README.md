@@ -180,7 +180,7 @@ catalog SPA で 30+ 実例を確認可能、 コピペして応用する使い�
   - 本 repo が `@cardenelabs/cdl` として consume する engine
 - **dragon** (本 repo)
   - `packages/dragon/` = text DSL parser (`textDslToDiagram`)
-  - `apps/playground-spa/` = Vite + React SPA playground (7 category catalog + editor + compare + docs)
+  - `apps/playground-spa/` = Vite + React SPA playground (9 category catalog + editor + preset detail + docs)
 
 ## 構成
 
