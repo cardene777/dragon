@@ -3,6 +3,7 @@
   :root {
     /* 龍鱗ゴールド light palette (globals.css @theme と整合) */
     --v4-canvas: #f0e8d4;
+    --v4-canvas-dim: #ebe0c4;
     --v4-surface: #f8ecd8;
     --v4-surface-2: #ebe0c4;
     --v4-line: #d8c8a8;
@@ -280,6 +281,7 @@
   /* ── html.dark cascade (龍鱗ゴールド dark = obsidian + amber + ember) ── */
   html.dark {
     --v4-canvas: #1a1410;
+    --v4-canvas-dim: #241c14;
     --v4-surface: #241c14;
     --v4-surface-2: #2e2418;
     --v4-line: #3d322a;
