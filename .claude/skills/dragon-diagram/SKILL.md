@@ -199,11 +199,11 @@ user に以下 report:
 - **parts catalog** = `apps/playground-spa/src/topics/catalog/parts.cdl.ts` (現 20 parts)
 - **composite 置場** = `apps/playground-spa/src/topics/catalog/animation.cdl.ts`
 - **i18n** = `apps/playground-spa/src/lib/i18n.ts`
-- **情報伝達第一主義** = `agent-configs/rules/information-transmission-first.md § V/V-R/V-C/P6`
+- **情報伝達第一主義** = 「見た目 rich かつ意味明確」 の設計原則 (V/V-R/V-C/P6 = visual richness / visual reasoning / visual clarity / P6 逆算設計) を各 parts / composite で遵守する
 - **dyn-wave 規約** = parts.cdl.ts header comment (「rectangle 内 gauge は wave 型 default」)
 - **narrative title 規約** = parts.cdl.ts header comment (「data 値排除、 story 局面名で」)
 - **日本語 label 規約** = i18n.ts 記述例
-- **GitHub API rate limit 対策** = `~/.claude/rules/git-workflow.md § GitHub API rate limit対策` (REST 経路必須)
+- **GitHub API rate limit 対策** = `gh pr create` / `gh issue create` 等 GraphQL 5000/hr 超過時は REST 経路 (`gh api -X POST repos/{owner}/{repo}/...`) に切替、 core rate limit (5000/hr、 独立 counter) を利用
 
 ## 品質保証 principle
 

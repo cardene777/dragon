@@ -113,7 +113,7 @@ dragon が mermaid に勝つのは「rich layered animation で情報密度と�
 - **v2 pattern SSOT (「6 shape + 4 phase + 4 readout tween」 template)** = 2026-07-14 に廃止 (76 例全 revert)。 template 均一化で「見てて楽しくない」 rectangle 並列を量産していた。 layer 組合せで rich にする方針に置換
 - **「animation 必要性テスト = 消しても伝われば削除」 方針** = 廃止。 animation は積極活用、 layer 組合せで rich にする方針が正解
 
-detail は `~/.claude/skills/dragon-review/references/information-transmission-first.md` SSOT。
+detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference (clarity-gate.md / high-quality-diagram-process.md / review-rubrics.md 等) を参照。
 
 
 ## 責任分担 (cdl vs dragon)
