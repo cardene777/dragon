@@ -4,14 +4,14 @@
  */
 
 body.docs-body {
-  /* v4 design palette (light default、 dark mode は html.dark で override) */
-  --nm-bg: #f5f1e8;
-  --nm-surface: #fffdf7;
-  --nm-text: #1a1f2a;
-  --nm-text-secondary: #5a6270;
-  --nm-text-muted: #8a8678;
+  /* 龍鱗ゴールド light palette (globals.css @theme + header.css / home.css :root と整合、 dark は html.dark で override) */
+  --nm-bg: #f0e8d4;
+  --nm-surface: #f8ecd8;
+  --nm-text: #1a1410;
+  --nm-text-secondary: #3a2a10;
+  --nm-text-muted: #6d5a3a;
   --nm-accent: #a66a3d;
-  --nm-border: #e0d9c8;
+  --nm-border: #d8c8a8;
   --docs-nav-h: 60px;
   --docs-sidebar-w: 260px;
   --docs-aside-w: 220px;

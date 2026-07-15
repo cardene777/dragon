@@ -1,16 +1,17 @@
 :root {
-  --canvas: #f5f1e8;
-  --surface: #fffdf7;
-  --surface-2: #ede5d2;
-  --line: #e0d9c8;
-  --line-soft: #ece4d0;
-  --ink: #1a1f2a;
-  --ink-dim: #5a6270;
-  --ink-mute: #8a8678;
+  /* 龍鱗ゴールド light palette (globals.css @theme + header.css :root と整合) */
+  --canvas: #f0e8d4;
+  --surface: #f8ecd8;
+  --surface-2: #ebe0c4;
+  --line: #d8c8a8;
+  --line-soft: #e8dfc8;
+  --ink: #1a1410;
+  --ink-dim: #3a2a10;
+  --ink-mute: #6d5a3a;
   --brand: #a66a3d;
   --brand-deep: #8a5a2a;
   --brand-glow: #b8862a;
-  --accent-extended: #6d28d9;
+  --accent-extended: #a66a3d;
   --radius: 12px;
   --radius-lg: 18px;
   --serif: "Newsreader", "EB Garamond", Georgia, serif;

@@ -1,19 +1,21 @@
   @import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
   :root {
-    --v4-canvas: #f8fafc;
-    --v4-surface: #ffffff;
-    --v4-surface-2: #f1f5f9;
-    --v4-line: #e2e8f0;
-    --v4-line-soft: #f1f5f9;
-    --v4-ink: #1a1f2a;
-    --v4-ink-dim: #5a6270;
-    --v4-ink-mute: #8a8678;
+    /* 龍鱗ゴールド light palette (globals.css @theme と整合) */
+    --v4-canvas: #f0e8d4;
+    --v4-surface: #f8ecd8;
+    --v4-surface-2: #ebe0c4;
+    --v4-line: #d8c8a8;
+    --v4-line-soft: #e8dfc8;
+    --v4-ink: #1a1410;
+    --v4-ink-dim: #3a2a10;
+    --v4-ink-mute: #6d5a3a;
     --v4-brand: #a66a3d;
     --v4-brand-deep: #8a5a2a;
     --v4-brand-glow: #b8862a;
+    --v4-brand-hi: #b8862a;
     --v4-accent-domain: #c2410c;
-    --v4-accent-extended: #6d28d9;
+    --v4-accent-extended: #a66a3d;
     --v4-serif: "Newsreader", "EB Garamond", Georgia, serif;
     --v4-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
     --v4-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
