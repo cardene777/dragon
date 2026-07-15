@@ -111,8 +111,9 @@ export function CategoryPage(): React.ReactElement {
   // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
   // loadState = idle / loading / loaded / error の 4 状態、 chunk fetch 失敗を可視化する
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
+  // lazy initializer で初回 render から "loading" にして empty state flash (1 frame) を排除
   const [partsLoadState, setPartsLoadState] = useState<"idle" | "loading" | "loaded" | "error">(
-    "idle",
+    () => (params.slug === "parts" ? "loading" : "idle"),
   );
   useEffect(() => {
     if (params.slug !== "parts") return;
