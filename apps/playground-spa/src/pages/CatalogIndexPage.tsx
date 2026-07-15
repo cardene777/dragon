@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { CATEGORIES } from "@/lib/catalog";
-import { CATALOG_ITEMS } from "@/lib/catalog-items";
+import { CATALOG_ITEMS, PARTS_COUNT_ESTIMATE } from "@/lib/catalog-items";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 
@@ -24,7 +24,10 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
 
 export function CatalogIndexPage(): React.ReactElement {
   const [locale] = useLocale();
-  const totalItems = Object.values(CATALOG_ITEMS).reduce((sum, arr) => sum + arr.length, 0);
+  // parts は CATALOG_ITEMS で空 placeholder (CAR-1613 dynamic import)、 集計時に estimate を加算
+  const totalItems =
+    Object.values(CATALOG_ITEMS).reduce((sum, arr) => sum + arr.length, 0) +
+    PARTS_COUNT_ESTIMATE;
 
   return (
     <div>
@@ -46,7 +49,11 @@ export function CatalogIndexPage(): React.ReactElement {
         <div className="catalog-index-grid">
           {CATEGORIES.map((c) => {
             const jaLabel = CATEGORY_JA_LABEL[c.slug] ?? c.label;
-            const itemCount = CATALOG_ITEMS[c.slug]?.length ?? 0;
+            // parts は dynamic import で空 placeholder、 index page では estimate 表示
+            const itemCount =
+              c.slug === "parts"
+                ? PARTS_COUNT_ESTIMATE
+                : CATALOG_ITEMS[c.slug]?.length ?? 0;
             return (
               <Link key={c.slug} to={`/catalog/${c.slug}`} className="catalog-index-card">
                 <div className="catalog-index-card-head">

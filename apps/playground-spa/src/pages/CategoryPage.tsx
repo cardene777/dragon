@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
-import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
+import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -108,7 +108,40 @@ export function CategoryPage(): React.ReactElement {
     locale === "ja" ? itemNameJa(item.title) : item.title;
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
-  const items = params.slug ? CATALOG_ITEMS[params.slug] ?? [] : [];
+  // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
+  // loadState = idle / loading / loaded / error の 4 状態、 chunk fetch 失敗を可視化する
+  const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
+  // lazy initializer で初回 render から "loading" にして empty state flash (1 frame) を排除
+  const [partsLoadState, setPartsLoadState] = useState<"idle" | "loading" | "loaded" | "error">(
+    () => (params.slug === "parts" ? "loading" : "idle"),
+  );
+  useEffect(() => {
+    if (params.slug !== "parts") return;
+    let cancelled = false;
+    setPartsLoadState("loading");
+    loadPartsItems()
+      .then((loaded) => {
+        if (!cancelled) {
+          setPartsItems(loaded);
+          setPartsLoadState("loaded");
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          // chunk fetch 失敗 (ネットワーク瞬断 / ad blocker / cache 古い tab 等) を可視化
+          // console にも残す = user が devtools で原因把握できる
+          // eslint-disable-next-line no-console
+          console.error("[CAR-1613] parts.cdl chunk fetch failed", err);
+          setPartsLoadState("error");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.slug]);
+  const items = params.slug === "parts"
+    ? partsItems
+    : (params.slug ? CATALOG_ITEMS[params.slug] ?? [] : []);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
@@ -192,7 +225,13 @@ export function CategoryPage(): React.ReactElement {
               )}
             </div>
             <div className="catalog-list" role="list">
-              {filtered.length === 0 ? (
+              {params.slug === "parts" && partsLoadState === "loading" ? (
+                <div className="catalog-list-empty">読み込み中…</div>
+              ) : params.slug === "parts" && partsLoadState === "error" ? (
+                <div className="catalog-list-empty">
+                  読み込みに失敗しました。 ページを再読込してください。
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="catalog-list-empty">該当する項目がありません</div>
               ) : (
                 filtered.map((item) => {

@@ -16,7 +16,9 @@ import * as PatMod from "@/topics/catalog/patterns.cdl";
 // --- category: animation ---
 import * as AnimMod from "@/topics/catalog/animation.cdl";
 // --- category: parts (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ---
-import * as PartsMod from "@/topics/catalog/parts.cdl";
+// 20 個の diagram(...).build() が top-level で走るため、 dynamic import で lazy-load して
+// 初期 catalog-items chunk (348 kB gzip) からは除外する (CAR-1613)。 CategoryPage が params.slug === "parts"
+// 時のみ loadPartsItems() を呼び、 State に populate する経路。
 // --- category: styles ---
 import * as StyMod from "@/topics/catalog/styles.cdl";
 // --- category: cookbook ---
@@ -88,9 +90,24 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   ],
   patterns: moduleToItems(PatMod),
   animation: moduleToItems(AnimMod),
-  parts: moduleToItems(PartsMod),
+  // parts は dynamic import で lazy-load、 初期表示は空 = CategoryPage が useEffect で populate する
+  parts: [],
   styles: moduleToItems(StyMod),
   cookbook: moduleToItems(CookMod),
   "text-dsl": moduleToItems(TdMod),
   interactive: moduleToItems(InteractiveMod),
 };
+
+/** parts.cdl.ts の 20 diagram を lazy-load する。 CategoryPage で params.slug === "parts" 時のみ発火。 */
+export async function loadPartsItems(): Promise<CatalogItem[]> {
+  const mod = await import("@/topics/catalog/parts.cdl");
+  return moduleToItems(mod);
+}
+
+/** CatalogIndexPage の totalItems 集計で parts を加算するための概算値 (実 loading せず表示だけ)。
+ *
+ * ⚠️ SYNC REQUIRED = parts.cdl.ts の top-level export diagram 数と手動同期必須。
+ * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
+ * itemCount 誤表示 + total 集計もズレる)。 現時点 = 20 個 (2026-07-15 CAR-1613 時点)。
+ */
+export const PARTS_COUNT_ESTIMATE = 20;
