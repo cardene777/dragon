@@ -124,7 +124,7 @@ body.docs-body a.docs-sidebar-link {
   padding: 8px 14px;
   font-size: 14px;
   line-height: 1.45;
-  color: #5a6270 !important;
+  color: var(--nm-text-secondary) !important;
   text-decoration: none !important;
   border-radius: 6px;
   border-left: 2px solid transparent;
@@ -934,7 +934,7 @@ body.docs-body .docs-prose .callout-note {
  *   <span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF">
  * を出力する。 CSS variable で light / dark を切替。
  *
- * pre 自体の背景は light = #fffdf7 (ベージュ neumorphism)、 dark = #1f1c18 (暖色 dark)。
+ * pre 自体の背景は light = var(--nm-surface) #f8ecd8 (龍鱗ゴールド parchment)、 dark = #241c14 (obsidian)。
  * pre 内 token color は light scope では --shiki-light、 dark scope では --shiki-dark を優先。
  */
 body.docs-body .docs-prose pre.astro-code,
