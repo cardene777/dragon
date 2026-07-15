@@ -652,8 +652,11 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
 /* blueprint theme (default) scope で warm tone を注入する。
    他 theme (neumorphism / isometric / circuit / handdrawn / pinboard) は個別に
    完成した color scheme を持つため global override すると theme 混在で色が濁る
-   (codex review 指摘 major #3、 CAR-880 follow-up)。 */
-html.dark [data-cdl-theme="blueprint"] {
+   (codex review 指摘 major #3、 CAR-880 follow-up)。
+   同一要素 selector (`html.dark[data-cdl-theme]`) に限定する - descendant selector
+   だと nested CDL SVG が持つ default `data-cdl-theme="blueprint"` に page-level
+   theme (neumorphism / isometric) 選択時も一致して leak する (Round 2 major #1)。 */
+html.dark[data-cdl-theme="blueprint"] {
   --cdl-text: #f0e0b8;
   --cdl-text-dim: #d4c4a0;
   --cdl-text-mute: #a89880;
