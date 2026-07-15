@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>複数図で見るデザインテーマ24案</title>
+    <style>
+      :root {
+        --page: #e7ecef;
+        --ink: #101418;
+        --muted: #66727d;
+        --line: #d1d9dd;
+        --jp: "Hiragino Sans", "Yu Gothic", "Yu Gothic UI", "Avenir Next", sans-serif;
+        --mono: "SF Mono", "Menlo", "Consolas", monospace;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .page {
+        width: min(1500px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 34px 0 84px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 470px);
+        gap: 38px;
+        align-items: end;
+        padding: 8px 2px 28px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 1120px;
+        font-size: clamp(38px, 6vw, 82px);
+        line-height: .96;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.8;
+        font-size: 15px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      .theme {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(20, 28, 34, .10);
+      }
+
+      .theme-head {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid rgba(18, 24, 29, .10);
+      }
+
+      .num {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #fff;
+        background: #10161c;
+        font: 800 12px var(--mono);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 2.3vw, 33px);
+        line-height: 1.08;
+      }
+
+      .caption {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .swatches {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding-top: 2px;
+      }
+
+      .swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,.14);
+      }
+
+      .samples {
+        display: grid;
+        grid-template-columns: 1.15fr .92fr .92fr;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .sample {
+        overflow: hidden;
+        border: 1px solid rgba(16, 22, 28, .10);
+        border-radius: 8px;
+        background: #f7f9f8;
+      }
+
+      .sample-title {
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 9px 10px 8px;
+        color: #4f5a63;
+        border-bottom: 1px solid rgba(16, 22, 28, .10);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .sample svg {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+      }
+
+      svg text {
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .dark {
+        color: #eff7f9;
+        background: #070b0f;
+        border-color: #17232c;
+      }
+
+      .dark .theme-head {
+        border-color: rgba(255,255,255,.12);
+      }
+
+      .dark .caption {
+        color: #a8b6c0;
+      }
+
+      .dark .num {
+        color: #071014;
+        background: #e7f8fb;
+      }
+
+      .dark .sample {
+        border-color: rgba(255,255,255,.12);
+        background: #0b1117;
+      }
+
+      .dark .sample-title {
+        color: #aec0ca;
+        border-color: rgba(255,255,255,.12);
+      }
+
+      @media (max-width: 1120px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 760px) {
+        header {
+          grid-template-columns: 1fr;
+        }
+        .theme-head {
+          grid-template-columns: 42px minmax(0, 1fr);
+        }
+        .swatches {
+          grid-column: 2;
+        }
+        .samples {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 540px) {
+        .page {
+          width: min(100% - 16px, 1500px);
+          padding-top: 22px;
+        }
+        .theme-head {
+          padding: 16px;
+        }
+        .samples {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>複数図で見る<br />デザインテーマ24案</h1>
+        <p class="lead">同じテーマで複数種類の図を作った時に成立するかを見るため、各テーマに Flow / Stack / Fee の3サンプルを入れています。図法ではなく、色味・質感・線・面・タイポのテーマ比較です。</p>
+      </header>
+      <main class="grid" id="themes"></main>
+    </div>
+
+    <script>
+      const themes = [
+        { name: "Mathematical Noir", note: "黒板、余白、抑えた発光。Manim/3Blue1Brown寄り。", dark: true, bg:"#070b0f", panel:"#0a1117", ink:"#eef8fb", muted:"#7f929e", line:"#1c2a33", a:"#5ad7e8", b:"#62c78f", c:"#b99cff", r:10, w:4 },
+        { name: "Editorial Ivory", note: "白〜アイボリー、紙面、控えめな線。記事・Docs向け。", bg:"#fffdf7", panel:"#ffffff", ink:"#111416", muted:"#67717a", line:"#e4dac8", a:"#3c7dd9", b:"#d69a3a", c:"#111416", r:10, w:4 },
+        { name: "Swiss Precision", note: "赤黒、罫線、角ばった面。仕様書・規格解説の硬さ。", bg:"#f8f8f3", panel:"#ffffff", ink:"#111416", muted:"#69717a", line:"#dfe2dc", a:"#d94d43", b:"#111416", c:"#ffffff", r:0, w:4 },
+        { name: "Blueprint Cyan", note: "青い設計図、白線、測量感。アーキテクチャ向け。", dark:true, bg:"#092033", panel:"#0b2a40", ink:"#d7f5ff", muted:"#8cb7c6", line:"#17405b", a:"#5ad7e8", b:"#d7f5ff", c:"#092033", r:2, w:3 },
+        { name: "Terminal OLED", note: "黒いUI、緑とシアン、数値ラベル。開発者向け。", dark:true, bg:"#05080b", panel:"#0b1117", ink:"#f2fbff", muted:"#788a96", line:"#1e2b35", a:"#59c9da", b:"#4fb985", c:"#111a22", r:10, w:3 },
+        { name: "Bright Flat", note: "明るい色面、太い形、黒い輪郭。初学者向け。", bg:"#fff4dc", panel:"#ffffff", ink:"#161b1f", muted:"#59646d", line:"#161b1f", a:"#f08a43", b:"#58cfd9", c:"#66c98f", r:16, w:4 },
+        { name: "Museum Sepia", note: "セピア、展示ラベル、標本感。落ち着いた長文解説。", bg:"#f3eadb", panel:"#fffaf0", ink:"#111416", muted:"#6c6254", line:"#d6c6ad", a:"#8b7a61", b:"#111416", c:"#fff4e5", r:6, w:3 },
+        { name: "Minimal Mono", note: "白黒、線だけ、極端に静か。論文・仕様書の挿絵。", bg:"#ffffff", panel:"#ffffff", ink:"#111416", muted:"#66717d", line:"#111416", a:"#111416", b:"#ffffff", c:"#f7f7f7", r:0, w:2 },
+        { name: "Premium Product", note: "淡いグレー、白面、控えめアクセント。アプリ内パーツ向け。", bg:"#eef3f1", panel:"#ffffff", ink:"#111416", muted:"#66717d", line:"#d8e0de", a:"#58c7d9", b:"#df9d3c", c:"#111416", r:18, w:3 },
+        { name: "Clay Soft", note: "粘土のような柔らかい面と低彩度。教育アプリ向け。", bg:"#efe8dc", panel:"#f8f0e5", ink:"#2b2824", muted:"#7b6e61", line:"#d9c3a7", a:"#f49a58", b:"#69c8d1", c:"#74c989", r:24, w:5 },
+        { name: "Glass Lab", note: "透明な板、薄い境界、冷たい研究室感。未来的で軽い。", dark:true, bg:"#0c2430", panel:"#10202a", ink:"#eef9fb", muted:"#a9bdc6", line:"#b7edf5", a:"#59c9da", b:"#8b7dde", c:"#d9fbff", r:18, w:3 },
+        { name: "Sumi Ink", note: "和紙、墨、筆のような黒線。静かで記憶に残る。", bg:"#f5f0e4", panel:"#fbf6eb", ink:"#191713", muted:"#675f54", line:"#191713", a:"#191713", b:"#f5f0e4", c:"#d9cdb8", r:2, w:5 },
+        { name: "Luxury Obsidian", note: "黒と金、強い余白、高級感。重要概念の強調向け。", dark:true, bg:"#070706", panel:"#0e0d0b", ink:"#f8f2df", muted:"#b7aa89", line:"#6f5b2a", a:"#b99b44", b:"#f8f2df", c:"#161410", r:2, w:3 },
+        { name: "Retro CRT", note: "ブラウン管、緑文字、走査線。ハッカー感・古い端末感。", dark:true, bg:"#030806", panel:"#07120c", ink:"#9cffb9", muted:"#4e8d63", line:"#0c2418", a:"#63d983", b:"#9cffb9", c:"#030806", r:0, w:3 },
+        { name: "Industrial Safety", note: "黄黒、警告ラベル、工業UI。リスク・検証向け。", bg:"#f1c232", panel:"#f7f0d4", ink:"#141414", muted:"#4b432f", line:"#141414", a:"#f1c232", b:"#141414", c:"#ffffff", r:0, w:5 },
+        { name: "Scientific Journal", note: "薄い罫線、淡色、図版番号感。研究ノート向け。", bg:"#ffffff", panel:"#f7fafc", ink:"#1b1f23", muted:"#6b747c", line:"#b9c5cc", a:"#7b93a1", b:"#e8f0f4", c:"#ffffff", r:4, w:2 },
+        { name: "Playful Blocks", note: "玩具っぽいブロック、強い色、影。ワークショップ向け。", bg:"#f6fbff", panel:"#ffffff", ink:"#18212a", muted:"#65717d", line:"#18212a", a:"#ff9f43", b:"#4dd0e1", c:"#65d38c", r:14, w:4 },
+        { name: "Magazine Pop", note: "雑誌の見出し、強い面、派手な色。SNS・スライド表紙。", bg:"#fff1ea", panel:"#141414", ink:"#ffffff", muted:"#f7c9bd", line:"#ffffff", a:"#ef4e45", b:"#58c7d9", c:"#fff1ea", r:0, w:5 },
+        { name: "Deep Space", note: "宇宙感、点光源、静かな深さ。抽象概念・ネットワーク向け。", dark:true, bg:"#050711", panel:"#090e1f", ink:"#f1f6ff", muted:"#8998b7", line:"#1c2a47", a:"#7aa7ff", b:"#8ef0c0", c:"#c5a7ff", r:18, w:3 },
+        { name: "Neon Cyan", note: "シアン単色の強い発光。クールで技術感が強いネオン。", dark:true, bg:"#050b10", panel:"#08131b", ink:"#e9fbff", muted:"#7aa2ad", line:"#12323d", a:"#00e5ff", b:"#7efcff", c:"#10242d", r:10, w:5 },
+        { name: "Neon Magenta", note: "マゼンタと紫の夜景感。イベント・動画向けの派手さ。", dark:true, bg:"#100514", panel:"#18091f", ink:"#fff0ff", muted:"#bf94c6", line:"#3a1945", a:"#ff3df2", b:"#9f7cff", c:"#23112b", r:12, w:5 },
+        { name: "Acid Lime", note: "ライムと黒、攻撃的で実験的。強い印象を作る。", dark:true, bg:"#060806", panel:"#0d130b", ink:"#efffe8", muted:"#9fbd91", line:"#26361d", a:"#b6ff2e", b:"#49f2a1", c:"#111b0d", r:4, w:5 },
+        { name: "Vaporwave", note: "紫、ピンク、シアン。レトロ未来・遊びの強いテーマ。", dark:true, bg:"#160f2d", panel:"#21133f", ink:"#fff3ff", muted:"#c8a9dd", line:"#4b2c70", a:"#ff72d2", b:"#68e1ff", c:"#ffd166", r:14, w:4 },
+        { name: "Aurora Gradient", note: "寒色のオーロラ、柔らかい発光。暗いが上品に見せる。", dark:true, bg:"#071016", panel:"#0b1720", ink:"#eef8f3", muted:"#9cb2ad", line:"#1b3a42", a:"#5df2c2", b:"#67a7ff", c:"#b693ff", r:18, w:4 },
+      ];
+
+      const grid = document.getElementById("themes");
+
+      function esc(v) {
+        return String(v).replace(/[&<>"']/g, s => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[s]));
+      }
+
+      function flow(t) {
+        const shadow = t.dark ? "rgba(0,0,0,.35)" : "rgba(16,24,32,.10)";
+        return `
+          <svg viewBox="0 0 520 320" aria-label="${esc(t.name)} flow sample">
+            <rect width="520" height="320" fill="${t.bg}"/>
+            <rect x="24" y="24" width="472" height="272" rx="${Math.max(8, t.r)}" fill="${t.panel}" stroke="${t.line}" opacity=".98"/>
+            <text x="46" y="68" fill="${t.ink}" font-size="24" font-weight="900">State Transition</text>
+            <text x="46" y="94" fill="${t.muted}" font-size="13">tx -> execute -> root</text>
+            <path d="M104 178 C190 108 330 108 416 178" fill="none" stroke="${t.a}" stroke-width="${t.w}" stroke-linecap="round"/>
+            <path d="M416 196 C330 254 190 254 104 196" fill="none" stroke="${t.b}" stroke-width="${t.w}" stroke-linecap="round"/>
+            <rect x="66" y="156" width="76" height="48" rx="${t.r}" fill="${t.c}" stroke="${t.line}" filter="drop-shadow(0 10px 18px ${shadow})"/>
+            <rect x="226" y="130" width="84" height="82" rx="${t.r}" fill="${t.dark ? t.panel : t.ink}" stroke="${t.a}" filter="drop-shadow(0 10px 18px ${shadow})"/>
+            <rect x="378" y="156" width="76" height="48" rx="${t.r}" fill="${t.c}" stroke="${t.line}" filter="drop-shadow(0 10px 18px ${shadow})"/>
+            <text x="104" y="187" fill="${t.dark ? t.ink : t.ink}" font-size="18" font-weight="900" text-anchor="middle">tx</text>
+            <text x="268" y="180" fill="${t.dark ? t.ink : t.bg}" font-size="18" font-weight="900" text-anchor="middle">exec</text>
+            <text x="416" y="187" fill="${t.dark ? t.ink : t.ink}" font-size="18" font-weight="900" text-anchor="middle">root</text>
+          </svg>`;
+      }
+
+      function stack(t) {
+        const txt = t.dark ? t.ink : t.ink;
+        return `
+          <svg viewBox="0 0 420 320" aria-label="${esc(t.name)} stack sample">
+            <rect width="420" height="320" fill="${t.bg}"/>
+            <rect x="22" y="22" width="376" height="276" rx="${Math.max(8, t.r)}" fill="${t.panel}" stroke="${t.line}"/>
+            <text x="42" y="62" fill="${txt}" font-size="22" font-weight="900">Layer Stack</text>
+            <text x="42" y="88" fill="${t.muted}" font-size="12">CL / EL / State</text>
+            <g transform="translate(58 92)">
+              <polygon points="20,132 152,66 284,132 152,198" fill="${t.dark ? "#111820" : "#ffffff"}" stroke="${t.line}" stroke-width="${Math.max(2, t.w - 1)}"/>
+              <polygon points="20,98 152,32 284,98 152,164" fill="${t.a}" opacity=".92"/>
+              <polygon points="20,64 152,-2 284,64 152,130" fill="${t.b}" opacity=".92"/>
+              <polygon points="20,30 152,-36 284,30 152,96" fill="${t.c}" stroke="${t.line}" stroke-width="2"/>
+              <text x="152" y="36" fill="${t.dark ? t.ink : t.ink}" font-size="17" font-weight="900" text-anchor="middle">consensus</text>
+              <text x="152" y="76" fill="${t.dark ? t.ink : t.ink}" font-size="17" font-weight="900" text-anchor="middle">execution</text>
+              <text x="152" y="116" fill="${t.dark ? t.ink : t.ink}" font-size="17" font-weight="900" text-anchor="middle">state</text>
+            </g>
+          </svg>`;
+      }
+
+      function fee(t) {
+        return `
+          <svg viewBox="0 0 420 320" aria-label="${esc(t.name)} fee sample">
+            <rect width="420" height="320" fill="${t.bg}"/>
+            <rect x="22" y="22" width="376" height="276" rx="${Math.max(8, t.r)}" fill="${t.panel}" stroke="${t.line}"/>
+            <text x="42" y="62" fill="${t.ink}" font-size="22" font-weight="900">Fee Split</text>
+            <text x="42" y="88" fill="${t.muted}" font-size="12">burn / tip / refund</text>
+            <rect x="44" y="138" width="76" height="72" rx="${t.r}" fill="${t.dark ? t.c : t.ink}" stroke="${t.line}"/>
+            <text x="82" y="181" fill="${t.dark ? t.ink : t.bg}" font-size="18" font-weight="900" text-anchor="middle">fee</text>
+            <path d="M120 154 C190 96 252 100 318 124" fill="none" stroke="${t.a}" stroke-width="22" stroke-linecap="round" opacity=".9"/>
+            <path d="M120 174 C198 174 250 182 318 178" fill="none" stroke="${t.b}" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+            <path d="M120 194 C190 250 252 248 318 230" fill="none" stroke="${t.c}" stroke-width="12" stroke-linecap="round" opacity=".9"/>
+            <rect x="318" y="104" width="62" height="40" rx="${t.r}" fill="${t.a}"/>
+            <rect x="318" y="160" width="62" height="40" rx="${t.r}" fill="${t.b}"/>
+            <rect x="318" y="214" width="62" height="40" rx="${t.r}" fill="${t.c}" stroke="${t.line}"/>
+            <text x="349" y="130" fill="${t.ink}" font-size="14" font-weight="900" text-anchor="middle">burn</text>
+            <text x="349" y="186" fill="${t.ink}" font-size="14" font-weight="900" text-anchor="middle">tip</text>
+            <text x="349" y="240" fill="${t.ink}" font-size="14" font-weight="900" text-anchor="middle">back</text>
+          </svg>`;
+      }
+
+      grid.innerHTML = themes.map((t, index) => `
+        <section class="theme ${t.dark ? "dark" : ""}">
+          <div class="theme-head">
+            <div class="num">${String(index + 1).padStart(2, "0")}</div>
+            <div>
+              <h2>${esc(t.name)}</h2>
+              <p class="caption">${esc(t.note)}</p>
+            </div>
+            <div class="swatches" aria-label="palette">
+              <span class="swatch" style="background:${t.bg}"></span>
+              <span class="swatch" style="background:${t.panel}"></span>
+              <span class="swatch" style="background:${t.a}"></span>
+              <span class="swatch" style="background:${t.b}"></span>
+              <span class="swatch" style="background:${t.c}"></span>
+            </div>
+          </div>
+          <div class="samples">
+            <div class="sample"><div class="sample-title">Flow</div>${flow(t)}</div>
+            <div class="sample"><div class="sample-title">Stack</div>${stack(t)}</div>
+            <div class="sample"><div class="sample-title">Fee</div>${fee(t)}</div>
+          </div>
+        </section>
+      `).join("");
+    </script>
+  </body>
+</html>

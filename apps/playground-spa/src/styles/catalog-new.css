@@ -390,6 +390,45 @@ html.dark .catalog-preview-stage {
   display: block;
   margin: 0 auto;
 }
+/* parts catalog は readout 中心で content が短い、 stage 内で上下中央に配置 */
+.catalog-preview-stage:has([data-cdl-diagram^="parts-"]) {
+  align-items: center;
+}
+.catalog-preview-stage-inner:has([data-cdl-diagram^="parts-"]) {
+  justify-content: center;
+  min-height: 496px;
+}
+/* parts diagram wrapper = readout / svg / bottom indicator を 3 領域で構成、
+   readout 領域が flex-grow で残り空間を吸収 + 内部で center 揃え、
+   phase indicator は自然に bottom */
+[data-cdl-diagram^="parts-"] {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 496px;
+}
+[data-cdl-diagram^="parts-"] .cdl-ip-root {
+  flex: 1 !important;
+  justify-content: center !important;
+}
+[data-cdl-diagram^="parts-"] svg {
+  margin: 0 auto;
+}
+/* readout-only parts (SVG は hidden 1x1 node のみ) は CdlStage を非表示にして
+   readout が canvas 中央を占有できるようにする。 SVG-based parts (wave gauge / bucket / arc /
+   circle race / traffic light / edge chain / state indicator / horizontal bar / stacked layer /
+   counter actor) は SVG が主役なので該当なし。 */
+[data-cdl-diagram="parts-donut"] > div.px-3.py-3,
+[data-cdl-diagram="parts-radar"] > div.px-3.py-3,
+[data-cdl-diagram="parts-sparkline"] > div.px-3.py-3,
+[data-cdl-diagram="parts-step-progress"] > div.px-3.py-3,
+[data-cdl-diagram="parts-status-dot"] > div.px-3.py-3,
+[data-cdl-diagram="parts-notification"] > div.px-3.py-3,
+[data-cdl-diagram="parts-kpi-card"] > div.px-3.py-3,
+[data-cdl-diagram="parts-timeline-strip"] > div.px-3.py-3,
+[data-cdl-diagram="parts-percent-ring"] > div.px-3.py-3,
+[data-cdl-diagram="parts-countup"] > div.px-3.py-3 {
+  display: none;
+}
 .catalog-preview-loading {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 12px;
@@ -748,22 +787,23 @@ html.dark .catalog-index-card-link {
   flex-direction: column;
   gap: 10px;
   padding: 14px 18px;
-  background: var(--v4-surface, #ffffff);
-  border-bottom: 1px solid var(--v4-line, #e2e8f0);
+  background: transparent;
   font-family: var(--v4-sans, "Inter", sans-serif);
   font-size: 13px;
   color: var(--v4-ink, #1a1f2a);
+  align-items: center;
 }
 html.dark .cdl-ip-root {
-  background: #0f1420;
-  border-bottom-color: #1e2536;
+  background: transparent;
   color: #f2f3f7;
 }
 .cdl-ip-group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
 }
 .cdl-ip-item {
   display: inline-flex;
@@ -774,6 +814,16 @@ html.dark .cdl-ip-root {
   border: 1px solid var(--v4-line, #e2e8f0);
   border-radius: 10px;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+/* readout widgets = canvas beige と統合、 white card frame を排除 */
+.cdl-ip-item[class*="cdl-ip-readout-"] {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+html.dark .cdl-ip-item[class*="cdl-ip-readout-"] {
+  background: transparent;
+  border: none;
 }
 .cdl-ip-item:hover {
   border-color: var(--v4-brand, #2d6a8f);

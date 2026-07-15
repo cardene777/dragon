@@ -1,6 +1,69 @@
 # dragon
 
+> Mermaid 感覚で書く **animated SVG diagram の Text DSL**。
+> 人 / LLM が YAML / JSON で書き、 内部で cdl engine が SVG 描画。
+
+[![npm @cardenelabs/dragon](https://img.shields.io/npm/v/@cardenelabs/dragon.svg)](https://www.npmjs.com/package/@cardenelabs/dragon)
+[![license](https://img.shields.io/npm/l/@cardenelabs/dragon.svg)](LICENSE)
+[![types](https://img.shields.io/badge/types-TypeScript-blue.svg)](https://www.typescriptlang.org/)
+
 **Chainome Diagram Language (cdl)** の **人 / LLM 向け記法層**。 YAML DSL (人向け) と JSON DSL (LLM 向け、 [Issue #208](https://github.com/cardene777/dragon/issues/208) で対応中) を parser し、 裏で cdl engine を呼ぶ。 加えて記法 catalog SPA を提供して「どう書けば何が描けるか」 の見本を並べる。
+
+## 60 秒で動かす
+
+```bash
+pnpm add @cardenelabs/dragon @cardenelabs/cdl react react-dom
+```
+
+```tsx
+import { compileText, CdlDiagramView } from "@cardenelabs/dragon";
+
+const dsl = `
+タイトル: User Login
+種類: シーケンス
+登場人物: User, API, DB
+流れ:
+  - User → API: POST /login
+  - API → DB: SELECT credentials
+  - DB → API: rows (成功)
+  - API → User: 200 OK (成功)
+`;
+
+const diagram = compileText(dsl);
+
+export default function Demo() {
+  return <CdlDiagramView diagram={diagram} />;
+}
+```
+
+これで browser に animated sequence diagram が表示される。 phase 切替 / edge glow / 進行点 wave まで自動。
+
+## LLM から使う (JSON DSL)
+
+```tsx
+import { compileJson, CdlDiagramView } from "@cardenelabs/dragon";
+
+// LLM (Claude / GPT 等) が structured output で吐き出す JSON
+const json = {
+  id: "auth",
+  topic: "User Login",
+  kind: "sequence",
+  actors: ["User", "API", "DB"],
+  steps: [
+    { from: "User", to: "API", label: "POST /login" },
+    { from: "API", to: "DB", label: "SELECT credentials" },
+    { from: "DB", to: "API", label: "rows", tone: "success" },
+    { from: "API", to: "User", label: "200 OK", tone: "success" },
+  ],
+};
+
+const diagram = compileJson(json);
+return <CdlDiagramView diagram={diagram} />;
+```
+
+## catalog SPA (実例集)
+
+`https://dragon.cardene.dev/catalog` で 300+ の実例を閲覧。 9 カテゴリ (プリセット / レシピ集 / パターン / 基本要素 / テキスト DSL / アニメーション / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。
 
 ## 思想 (dragon の存在理由)
 

@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dragon Diagram Forge - 20 technical diagrams</title>
+    <style>
+      :root {
+        --bg: #f6f8f8;
+        --paper: #ffffff;
+        --ink: #17212b;
+        --muted: #62707d;
+        --line: #d7e0e6;
+        --blue: #176b8f;
+        --green: #2d8464;
+        --amber: #b46b1c;
+        --red: #b84a44;
+        --violet: #6d5aa8;
+        --cyan: #3194a6;
+        --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+      }
+      header.hero {
+        min-height: 48vh;
+        padding: 40px clamp(20px, 6vw, 80px) 32px;
+        display: grid;
+        align-items: end;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(49, 148, 166, .16), transparent 28%),
+          linear-gradient(135deg, #f9fbfb 0%, #eef4f5 58%, #f9f6ef 100%);
+        border-bottom: 1px solid var(--line);
+      }
+      .hero-inner { max-width: 1180px; }
+      h1 {
+        margin: 0;
+        max-width: 980px;
+        font-size: clamp(36px, 5vw, 72px);
+        line-height: .98;
+        letter-spacing: 0;
+      }
+      .lead {
+        margin: 18px 0 0;
+        max-width: 860px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.8;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 10px clamp(12px, 4vw, 48px);
+        background: rgba(246, 248, 248, .92);
+        backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--line);
+      }
+      .toolbar a {
+        flex: 0 0 auto;
+        color: var(--ink);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        padding: 8px 12px;
+        font: 800 12px var(--mono);
+      }
+      main {
+        width: min(1280px, calc(100vw - 24px));
+        margin: 28px auto 80px;
+        display: grid;
+        gap: 22px;
+      }
+      article.diagram {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        box-shadow: 0 18px 50px rgba(30, 45, 58, .08);
+      }
+      .diagram-head {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 16px;
+        padding: 20px 22px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      .num {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: white;
+        background: var(--ink);
+        font: 900 17px var(--mono);
+      }
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 2.4vw, 34px);
+        letter-spacing: 0;
+      }
+      .mis {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .viz {
+        position: relative;
+        background:
+          linear-gradient(rgba(23, 33, 43, .035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(23, 33, 43, .035) 1px, transparent 1px),
+          #fbfcfc;
+        background-size: 28px 28px;
+        overflow: auto;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        min-width: 900px;
+        height: auto;
+      }
+      .caption {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 16px 22px 20px;
+        color: #344554;
+        line-height: 1.65;
+      }
+      .caption b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--ink);
+        font: 900 12px var(--mono);
+        text-transform: uppercase;
+      }
+      .ui-panel {
+        display: grid;
+        gap: 12px;
+        padding: 16px 22px 20px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfd;
+      }
+      input[type="range"] { width: min(540px, 100%); accent-color: var(--blue); }
+      .meter-readout {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font: 900 12px var(--mono);
+      }
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        padding: 7px 10px;
+      }
+      text {
+        font-family: var(--sans);
+        fill: var(--ink);
+      }
+      .mono { font-family: var(--mono); font-weight: 800; }
+      .label { font-weight: 900; font-size: 18px; }
+      .small { font: 800 12px var(--mono); fill: var(--muted); }
+      .tiny { font: 800 10px var(--mono); fill: var(--muted); }
+      .panel { fill: #fff; stroke: var(--line); stroke-width: 1.4; }
+      .dark { fill: #17212b; }
+      .soft { fill: #eef5f5; }
+      .blue { fill: var(--blue); }
+      .green { fill: var(--green); }
+      .amber { fill: var(--amber); }
+      .red { fill: var(--red); }
+      .violet { fill: var(--violet); }
+      .cyan { fill: var(--cyan); }
+      .line { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      .dash { stroke-dasharray: 8 9; }
+      .thin { stroke-width: 1.2; }
+      .flow {
+        stroke-dasharray: 9 11;
+        animation: dash 1.9s linear infinite;
+      }
+      .pulse { animation: pulse 1.8s ease-in-out infinite; transform-origin: center; }
+      .spin { animation: spin 12s linear infinite; transform-origin: center; }
+      .float { animation: float 3.6s ease-in-out infinite; }
+      @keyframes dash { to { stroke-dashoffset: -40; } }
+      @keyframes pulse { 50% { opacity: .45; transform: scale(.96); } }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes float { 50% { transform: translateY(-8px); } }
+      @media (max-width: 760px) {
+        .diagram-head { grid-template-columns: 1fr; }
+        .caption { grid-template-columns: 1fr; }
+        .toolbar { position: relative; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <h1>Dragon Diagram Forge: 技術メカニズムを見せる20図</h1>
+        <p class="lead">横に箱を並べるだけの図を避け、状態・証明・手数料・root・nonce・slot など、エンジニアが実装や検証で使うデータを図の中に残すための参照ギャラリー。</p>
+      </div>
+    </header>
+    <nav class="toolbar" aria-label="diagram navigation">
+      <a href="#d1">01 Block</a><a href="#d2">02 Tx path</a><a href="#d3">03 EIP-1559</a><a href="#d4">04 Anatomy</a><a href="#d5">05 EL/CL</a><a href="#d6">06 Trie</a><a href="#d7">07 ERC20</a><a href="#d8">08 Allowance</a><a href="#d9">09 Logs</a><a href="#d10">10 Bridge</a><a href="#d11">11 Release</a><a href="#d12">12 Light client</a><a href="#d13">13 Optimistic</a><a href="#d14">14 Batch</a><a href="#d15">15 ZK</a><a href="#d16">16 MEV</a><a href="#d17">17 AMM</a><a href="#d18">18 Staking</a><a href="#d19">19 Reorg</a><a href="#d20">20 TLS/TCP</a>
+    </nav>
+    <main id="gallery"></main>
+    <script>
+      const diagrams = [
+        {
+          id: 1,
+          title: "Ethereum ブロック生成: slot 内で何が起きるか",
+          misconception: "単に tx を集めて block を足すのではなく、slot、proposer、execution payload、attestation、fork choice が別々の役割を持つ。",
+          focus: "12秒 slot の中で proposer 選出、builder/relay payload、EL 検証、beacon block gossip、attestation が進み、finality は後続 epoch の投票で決まる。",
+          data: "slot=12s / epoch=32 slots / proposer / payload / attestation / head / finalized",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="Ethereum block production slot timeline">
+            <rect class="soft" x="28" y="28" width="904" height="484" rx="22"/>
+            <g transform="translate(118 124)">
+              <circle r="78" fill="#fff" stroke="#d7e0e6" stroke-width="2"/>
+              <circle r="54" fill="none" stroke="#d7e0e6" stroke-width="9"/>
+              <path d="M0 -54 A54 54 0 0 1 50 20" fill="none" stroke="#176b8f" stroke-width="9"/>
+              <path d="M50 20 A54 54 0 0 1 -34 42" fill="none" stroke="#b46b1c" stroke-width="9"/>
+              <path d="M-34 42 A54 54 0 0 1 0 -54" fill="none" stroke="#2d8464" stroke-width="9"/>
+              <g class="spin"><line class="line" x1="0" y1="0" x2="0" y2="-48"/><circle class="blue" r="6"/></g>
+              <text class="small" y="-4" text-anchor="middle">12秒 slot</text>
+              <text class="tiny" y="18" text-anchor="middle">epoch=32</text>
+            </g>
+            <g transform="translate(236 78)">
+              <line x1="0" y1="64" x2="626" y2="64" stroke="#17212b" stroke-width="3"/>
+              ${[0,2,4,8,10,12].map((s,i)=>`<g transform="translate(${s/12*626} 64)"><line y1="-14" y2="14" stroke="#17212b" stroke-width="2"/><text class="tiny" y="-24" text-anchor="middle">t+${s}s</text></g>`).join("")}
+              ${[
+                ["proposer\\n選出",18,104,"#176b8f"],
+                ["builder/relay\\npayload",142,104,"#b46b1c"],
+                ["EL 検証\\nnewPayload",282,104,"#2d8464"],
+                ["beacon block\\ngossip",418,104,"#6d5aa8"],
+                ["attestation\\n重み投票",548,104,"#3194a6"]
+              ].map(([t,x,y,c])=>`<g transform="translate(${x} ${y})"><rect width="118" height="72" rx="10" fill="${c}" opacity=".14" stroke="${c}" stroke-width="2"/><text class="small" x="59" y="28" text-anchor="middle">${t.split("\\n")[0]}</text><text class="tiny" x="59" y="50" text-anchor="middle">${t.split("\\n")[1]}</text></g>`).join("")}
+              <path class="line flow" d="M72 140 H142 M260 140 H282 M400 140 H418 M536 140 H548" stroke="#176b8f" stroke-width="4"/>
+            </g>
+            <g transform="translate(92 314)">
+              <rect class="panel" width="360" height="124" rx="12"/>
+              <text class="label" x="180" y="34" text-anchor="middle">execution payload の中身</text>
+              <text class="small" x="34" y="68">transactions[]</text><text class="small" x="184" y="68">stateRoot</text><text class="small" x="294" y="68">gasUsed</text>
+              <text class="small" x="34" y="98">receiptsRoot</text><text class="small" x="184" y="98">baseFee</text><text class="small" x="294" y="98">logsBloom</text>
+            </g>
+            <g transform="translate(548 304)">
+              <rect class="panel" width="320" height="146" rx="12"/>
+              <text class="label" x="160" y="34" text-anchor="middle">finality は別レーン</text>
+              <text class="small" x="160" y="68" text-anchor="middle">slot 内の inclusion != finalized</text>
+              <line x1="42" y1="104" x2="278" y2="104" stroke="#d7e0e6" stroke-width="14" stroke-linecap="round"/>
+              <circle cx="92" cy="104" r="15" fill="#6d5aa8"/><text class="tiny" x="92" y="132" text-anchor="middle">justified</text>
+              <circle cx="218" cy="104" r="15" fill="#17212b"/><text class="tiny" x="218" y="132" text-anchor="middle">finalized</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 2,
+          title: "トランザクションがブロックに入るまで: 経路と tx passport",
+          misconception: "mempool は単一の世界共有キューではなく、各 node の local state と伝播、選別、packing を経て block に入る。",
+          focus: "signed tx のフィールドが RPC、複数 node の local mempool、builder/proposer の各地点で何に使われるか。",
+          data: "nonce / chainId / to / value / calldata / maxFeePerGas / maxPriorityFeePerGas / signature",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="transaction route map">
+            <rect x="26" y="26" width="908" height="488" rx="22" fill="#f9fbfb" stroke="#d7e0e6"/>
+            <path d="M112 410 C118 288 228 298 252 198 C288 74 438 112 498 196 C556 278 668 202 730 286 C784 360 838 314 866 188" fill="none" stroke="#d6b47a" stroke-width="34" stroke-linecap="round"/>
+            <path class="line flow" d="M112 410 C118 288 228 298 252 198 C288 74 438 112 498 196 C556 278 668 202 730 286 C784 360 838 314 866 188" stroke="#176b8f" stroke-width="5"/>
+            ${[
+              ["Wallet",112,410,"署名"],["RPC",252,198,"送信"],["local mempool",498,196,"検証"],["builder",730,286,"packing"],["proposer",866,188,"slot"]
+            ].map(([name,x,y,note]) => `<g><circle cx="${x}" cy="${y}" r="36" fill="#fff" stroke="#17212b" stroke-width="2"/><text class="small" x="${x}" y="${y-2}" text-anchor="middle">${name}</text><text class="tiny" x="${x}" y="${y+17}" text-anchor="middle">${note}</text></g>`).join("")}
+            <g transform="translate(68 66)">
+              <rect class="panel" width="268" height="166" rx="12"/>
+              <text class="label" x="20" y="32">tx passport</text>
+              <text class="small" x="20" y="62">nonce: 42</text>
+              <text class="small" x="20" y="84">chainId: 1</text>
+              <text class="small" x="20" y="106">tx.to: 0xToken</text>
+              <text class="small" x="146" y="62">maxFee: 38 gwei</text>
+              <text class="small" x="146" y="84">tip: 2 gwei</text>
+              <text class="small" x="146" y="106">sig: v,r,s</text>
+              <rect x="20" y="126" width="226" height="22" rx="5" fill="#eef5f5"/><text class="tiny" x="133" y="141" text-anchor="middle">calldata: 0xa9059cbb...</text>
+            </g>
+            <g transform="translate(590 64)">
+              <rect class="panel" width="250" height="118" rx="12"/>
+              <text class="label" x="22" y="32">packing 条件</text>
+              <text class="small" x="22" y="60">署名 + nonce が有効</text>
+              <text class="small" x="22" y="82">gas limit が入る</text>
+              <text class="small" x="22" y="104">priority fee / MEV value</text>
+            </g>
+            <g transform="translate(408 306)">
+              <rect class="panel" width="218" height="126" rx="12"/>
+              <text class="label" x="109" y="34" text-anchor="middle">local mempool は複数</text>
+              <text class="small" x="28" y="66">node A: pending</text>
+              <text class="small" x="28" y="90">node B: queued nonce 43</text>
+              <text class="small" x="28" y="114">同 nonce replacement</text>
+            </g>
+            <path class="line dash" d="M498 232 C462 278 460 300 494 306" stroke="#b46b1c"/>
+            <path class="line dash" d="M586 196 C646 178 684 184 724 230" stroke="#b84a44"/>
+            <text class="tiny" x="660" y="172" text-anchor="middle">builder が見ない場合もある</text>
+          </svg>`
+        },
+        {
+          id: 3,
+          title: "EIP-1559: gasUsed が次ブロックの baseFee を動かす",
+          misconception: "gas fee は1つの金額ではなく、base fee は burn、priority fee は proposer reward、余りは refund される。",
+          focus: "次ブロックから見た parent は現在ブロック。現在ブロックの baseFee と gasUsed が、次ブロックの baseFee を最大 ±12.5% の範囲で変える。",
+          data: "targetGas=15M / gasLimit=30M / baseFee / priorityFee / maxFee / burn / tip / refund",
+          svg: `<svg id="eip1559Svg" viewBox="0 0 960 540" role="img" aria-label="EIP-1559 three block base fee simulator">
+            <rect x="26" y="26" width="908" height="488" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g id="blocks">
+              <g transform="translate(70 86)">
+                <rect class="panel" width="230" height="312" rx="14"/>
+                <text class="label" x="115" y="36" text-anchor="middle">親ブロック</text>
+                <text class="small" x="115" y="66" text-anchor="middle">baseFee = 30.0 gwei</text>
+                <rect x="48" y="92" width="134" height="224" rx="12" fill="#eef3f5"/>
+                <rect id="parentGas" x="48" y="204" width="134" height="112" rx="12" fill="#7eb19b"/>
+                <line x1="34" y1="204" x2="196" y2="204" stroke="#17212b" stroke-width="2" stroke-dasharray="7 7"/>
+                <text class="tiny" x="115" y="335" text-anchor="middle">gasUsed=15M / target=15M</text>
+              </g>
+              <g transform="translate(365 86)">
+                <rect class="panel" width="230" height="312" rx="14"/>
+                <text class="label" x="115" y="36" text-anchor="middle">現在ブロック</text>
+                <text class="tiny" x="115" y="62" text-anchor="middle">baseFee = 30.0 gwei</text>
+                <text id="currentGasLabel" class="small" x="115" y="80" text-anchor="middle">gasUsed = 22.5M</text>
+                <rect x="48" y="92" width="134" height="224" rx="12" fill="#eef3f5"/>
+                <rect id="currentGas" x="48" y="148" width="134" height="168" rx="12" fill="#b46b1c"/>
+                <line x1="34" y1="204" x2="196" y2="204" stroke="#17212b" stroke-width="2" stroke-dasharray="7 7"/>
+                <text class="tiny" x="115" y="335" text-anchor="middle">この block が next の parent</text>
+              </g>
+              <g transform="translate(660 86)">
+                <rect class="panel" width="230" height="312" rx="14"/>
+                <text class="label" x="115" y="36" text-anchor="middle">次ブロック</text>
+                <text id="nextBaseFee" class="small" x="115" y="66" text-anchor="middle">baseFee = 31.9 gwei</text>
+                <circle cx="115" cy="184" r="78" fill="#f7efe5" stroke="#d8bc8f" stroke-width="14"/>
+                <path id="feeArc" d="M115 106 A78 78 0 0 1 184 220" fill="none" stroke="#b46b1c" stroke-width="14" stroke-linecap="round"/>
+                <text id="feeDelta" class="label" x="115" y="188" text-anchor="middle">+6.3%</text>
+                <text class="tiny" x="115" y="335" text-anchor="middle">最大変化 = ±12.5%</text>
+              </g>
+            </g>
+            <path class="line flow" d="M300 244 H365" stroke="#176b8f" stroke-width="5"/>
+            <path class="line flow" d="M595 244 H660" stroke="#176b8f" stroke-width="5"/>
+            <g transform="translate(90 422)">
+              <rect class="panel" width="780" height="70" rx="12"/>
+              <text class="small" x="28" y="26">effectiveGasPrice = min(maxFee, baseFee + priorityFee)</text>
+              <text class="tiny" x="28" y="52">maxFee &lt; baseFee なら inclusion 不可</text>
+              <path d="M392 34 H500" stroke="#b84a44" stroke-width="14" stroke-linecap="round"/><text class="tiny" x="446" y="58" text-anchor="middle">burn</text>
+              <path d="M532 34 H612" stroke="#2d8464" stroke-width="14" stroke-linecap="round"/><text class="tiny" x="572" y="58" text-anchor="middle">tip</text>
+              <path d="M644 34 H742" stroke="#176b8f" stroke-width="14" stroke-linecap="round"/><text class="tiny" x="693" y="58" text-anchor="middle">refund</text>
+            </g>
+          </svg>`,
+          control: true
+        },
+        {
+          id: 4,
+          title: "ブロック内部構造: header/body/receipts/state transition",
+          misconception: "ブロックは transaction list だけではなく、検証用 root と実行結果が結びついた構造体。",
+          focus: "body の tx 実行が stateRoot と receiptsRoot を変え、header がそれをコミットする。",
+          data: "parentHash / stateRoot / transactionsRoot / receiptsRoot / logsBloom / gasUsed / baseFeePerGas",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="block anatomy">
+            <rect x="34" y="36" width="892" height="468" rx="22" fill="#f8faf9" stroke="#d7e0e6"/>
+            <g transform="translate(92 78)">
+              <path d="M0 0 H776 L720 340 H56 Z" fill="#fff" stroke="#17212b" stroke-width="2"/>
+              <path d="M34 48 H742 L716 112 H60 Z" fill="#eaf2f7" stroke="#b9ced9"/>
+              <path d="M60 134 H716 L686 224 H90 Z" fill="#f7efe5" stroke="#dfc39b"/>
+              <path d="M90 248 H686 L650 322 H126 Z" fill="#edf5ef" stroke="#bfd6c7"/>
+              <text class="label" x="388" y="78" text-anchor="middle">header</text>
+              <text class="small" x="388" y="154" text-anchor="middle">body: transactions[]</text>
+              <text class="small" x="388" y="274" text-anchor="middle">receipts + logs</text>
+              <text class="tiny" x="94" y="100">parentHash</text><text class="tiny" x="205" y="100">stateRoot</text><text class="tiny" x="308" y="100">txRoot</text><text class="tiny" x="410" y="100">receiptsRoot</text><text class="tiny" x="540" y="100">logsBloom</text><text class="tiny" x="650" y="100">gasUsed/baseFeePerGas</text>
+              <g transform="translate(142 168)"><rect width="90" height="34" rx="6" fill="#fff"/><text class="tiny" x="45" y="22" text-anchor="middle">tx0</text></g>
+              <g transform="translate(342 168)"><rect width="90" height="34" rx="6" fill="#fff"/><text class="tiny" x="45" y="22" text-anchor="middle">tx1</text></g>
+              <g transform="translate(542 168)"><rect width="90" height="34" rx="6" fill="#fff"/><text class="tiny" x="45" y="22" text-anchor="middle">tx2</text></g>
+              <path class="line flow" d="M188 202 C238 236 238 250 296 262" stroke="#176b8f"/>
+              <path class="line flow" d="M388 202 V248" stroke="#2d8464"/>
+              <path class="line flow" d="M588 202 C536 236 538 250 480 262" stroke="#b46b1c"/>
+              <path class="line dash" d="M296 248 C272 180 250 134 205 112" stroke="#2d8464"/>
+              <path class="line dash" d="M388 248 C406 178 424 134 410 112" stroke="#176b8f"/>
+              <path class="line dash" d="M480 248 C526 178 548 134 540 112" stroke="#b46b1c"/>
+              <text class="small" x="388" y="360" text-anchor="middle">実行結果が root と bloom に圧縮され header に戻る</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 5,
+          title: "Execution layer と Consensus layer: Engine API の責務分離",
+          misconception: "Ethereum node は1つの箱ではなく、CL が合意、EL が実行と state transition を担当する。",
+          focus: "CL が forkchoiceUpdated/newPayload を EL に渡し、EL が payload validity と execution result を返す。",
+          data: "beacon block / execution payload / forkchoiceUpdated / newPayload / EL client / CL client",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="execution consensus layers">
+            <rect x="32" y="32" width="896" height="476" rx="22" fill="#f9fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(96 82)">
+              <rect x="0" y="0" width="768" height="150" rx="16" fill="#eaf2f7" stroke="#aac6d5"/>
+              <rect x="0" y="224" width="768" height="150" rx="16" fill="#f7efe5" stroke="#dfc39b"/>
+              <text class="label" x="32" y="42">Consensus layer</text>
+              <text class="small" x="32" y="72">slot / proposer / attestation / fork choice / finality</text>
+              <text class="label" x="32" y="266">Execution layer</text>
+              <text class="small" x="32" y="296">EVM 実行 / state transition / receipts / payload 検証</text>
+              <g transform="translate(478 30)"><rect class="panel" width="230" height="86" rx="10"/><text class="small" x="115" y="34" text-anchor="middle">beacon block</text><text class="tiny" x="115" y="58" text-anchor="middle">execution payload を含む</text></g>
+              <g transform="translate(478 258)"><rect class="panel" width="230" height="86" rx="10"/><text class="small" x="115" y="34" text-anchor="middle">payload 実行</text><text class="tiny" x="115" y="58" text-anchor="middle">stateRoot / receiptsRoot</text></g>
+              <path class="line flow" d="M322 150 V224" stroke="#176b8f" stroke-width="5"/>
+              <path class="line flow" d="M384 150 V224" stroke="#176b8f" stroke-width="5"/>
+              <path class="line flow" d="M454 224 V150" stroke="#2d8464" stroke-width="5"/>
+              <rect x="282" y="162" width="204" height="50" rx="25" fill="#17212b"/>
+              <text x="384" y="192" fill="#fff" font-size="13" font-weight="900" text-anchor="middle">Engine API</text>
+              <text class="tiny" x="244" y="180" text-anchor="end">engine_newPayload</text>
+              <text class="tiny" x="244" y="210" text-anchor="end">forkchoiceUpdated</text>
+              <text class="tiny" x="518" y="196">payloadStatus / payloadId</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 6,
+          title: "Account / Storage / Trie: stateRoot まで潜る",
+          misconception: "account は平らな JSON ではなく、account fields と storage trie が root にコミットされる。",
+          focus: "address から account node、storageRoot、slot key/value、stateRoot へ潜る地下断面。",
+          data: "address / nonce / balance / codeHash / storageRoot / slot key / storage value / stateRoot",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="account storage trie underground">
+            <rect x="24" y="24" width="912" height="492" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <rect x="44" y="120" width="872" height="56" fill="#d7c19b"/>
+            <text class="label" x="82" y="106">address 層</text>
+            <g transform="translate(118 198)">
+              <path d="M0 0 C50 34 96 34 146 0 V210 H0 Z" fill="#eef5f5" stroke="#b5cbd2"/>
+              <text class="small" x="73" y="36" text-anchor="middle">account</text>
+              <text class="tiny" x="73" y="68" text-anchor="middle">nonce: 42</text>
+              <text class="tiny" x="73" y="90" text-anchor="middle">balance</text>
+              <text class="tiny" x="73" y="112" text-anchor="middle">codeHash</text>
+              <text class="tiny" x="73" y="134" text-anchor="middle">storageRoot</text>
+            </g>
+            <path class="line flow" d="M264 300 C372 278 388 220 492 234" stroke="#176b8f"/>
+            <g transform="translate(430 194)">
+              <circle cx="70" cy="54" r="52" fill="#fff" stroke="#17212b" stroke-width="2"/>
+              <text class="small" x="70" y="50" text-anchor="middle">storage trie</text>
+              <text class="tiny" x="70" y="72" text-anchor="middle">nibble path</text>
+              <circle cx="206" cy="38" r="28" fill="#eaf2f7" stroke="#aac6d5"/><text class="tiny" x="206" y="42" text-anchor="middle">branch</text>
+              <circle cx="208" cy="126" r="28" fill="#f7efe5" stroke="#dfc39b"/><text class="tiny" x="208" y="130" text-anchor="middle">leaf</text>
+              <path class="line" d="M120 54 L178 38 M120 64 L180 126"/>
+            </g>
+            <g transform="translate(700 246)">
+              <rect class="panel" width="154" height="102" rx="10"/>
+              <text class="small" x="77" y="28" text-anchor="middle">storage slot</text>
+              <text class="tiny" x="77" y="52" text-anchor="middle">raw key: 0x04</text>
+              <text class="tiny" x="77" y="72" text-anchor="middle">mapping: keccak(k,p)</text>
+              <text class="tiny" x="77" y="92" text-anchor="middle">value = 0x...</text>
+            </g>
+            <path class="line dash" d="M560 238 C620 150 666 118 768 114" stroke="#2d8464"/>
+            <g transform="translate(668 86)">
+              <rect width="200" height="54" rx="27" fill="#17212b"/><text x="100" y="35" fill="#fff" font-size="13" font-weight="900" text-anchor="middle">stateRoot が全体を commit</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 7,
+          title: "ERC-20 transfer: 残高は token contract の storage が変わる",
+          misconception: "token が wallet から wallet へ飛ぶのではなく、contract storage の balanceOf が更新される。",
+          focus: "calldata が transfer(to,amount) に入り、balanceOf[from/to] が before/after で変わり、Transfer event が receipt に出る。",
+          data: "signed tx / transfer(to, amount) / balanceOf[from] / balanceOf[to] / Transfer event / revert condition",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="ERC20 transfer contract cutaway">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(64 124)">
+              <rect class="panel" width="190" height="260" rx="12"/><text class="label" x="95" y="38" text-anchor="middle">signed tx</text>
+              <text class="small" x="28" y="78">from: 0xA</text><text class="small" x="28" y="104">tx.to: Token contract</text><text class="small" x="28" y="130">selector: a9059cbb</text><text class="small" x="28" y="156">recipient: 0xB</text><text class="small" x="28" y="182">amount: 25</text><text class="small" x="28" y="208">sig: v,r,s</text>
+            </g>
+            <path class="line flow" d="M254 254 C300 254 310 254 354 254" stroke="#176b8f" stroke-width="5"/>
+            <g transform="translate(354 74)">
+              <rect x="0" y="0" width="360" height="384" rx="16" fill="#17212b"/>
+              <text x="180" y="38" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">Token contract boundary</text>
+              <rect x="46" y="72" width="268" height="50" rx="10" fill="#eaf2f7"/><text class="small" x="180" y="102" text-anchor="middle">transfer(recipient=0xB, amount=25)</text>
+              <rect x="74" y="136" width="212" height="30" rx="15" fill="#b84a44"/><text x="180" y="156" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">先に残高チェック</text>
+              <path d="M180 166 V186" stroke="#fff" stroke-width="3" stroke-dasharray="8 8"/>
+              <rect x="42" y="186" width="276" height="122" rx="10" fill="#fff"/>
+              <text class="small" x="180" y="214" text-anchor="middle">balanceOf mapping</text>
+              <rect x="72" y="236" width="92" height="42" rx="7" fill="#f7efe5"/><text class="tiny" x="118" y="253" text-anchor="middle">0xA</text><text class="small" x="118" y="271" text-anchor="middle">100→75</text>
+              <rect x="196" y="236" width="92" height="42" rx="7" fill="#edf5ef"/><text class="tiny" x="242" y="253" text-anchor="middle">0xB</text><text class="small" x="242" y="271" text-anchor="middle">10→35</text>
+              <text x="180" y="348" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">storage 書き換え後に event</text>
+            </g>
+            <path class="line flow" d="M714 254 C764 254 786 254 830 254" stroke="#2d8464" stroke-width="5"/>
+            <g transform="translate(784 178)">
+              <rect class="panel" width="126" height="154" rx="12"/><text class="label" x="63" y="38" text-anchor="middle">receipt</text><text class="small" x="63" y="72" text-anchor="middle">Transfer</text><text class="tiny" x="63" y="98" text-anchor="middle">from indexed</text><text class="tiny" x="63" y="118" text-anchor="middle">to indexed</text><text class="tiny" x="63" y="138" text-anchor="middle">value data</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 8,
+          title: "ERC-20 approve / transferFrom: allowance は支出権限",
+          misconception: "approve は token を送る操作ではなく、spender が後で transferFrom できる上限を storage に書く。",
+          focus: "owner/spender の allowance テーブルと msg.sender の違いを見せる。",
+          data: "owner / spender / allowance[owner][spender] / approve / transferFrom / remaining allowance / race condition",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="ERC20 allowance authority table">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(74 92)">
+              <rect class="panel" width="266" height="330" rx="12"/>
+              <text class="label" x="133" y="38" text-anchor="middle">caller spotlight</text>
+              <circle cx="84" cy="116" r="44" fill="#eaf2f7" stroke="#aac6d5"/><text class="small" x="84" y="112" text-anchor="middle">owner</text><text class="tiny" x="84" y="132" text-anchor="middle">0xA</text>
+              <circle cx="182" cy="214" r="44" fill="#f7efe5" stroke="#dfc39b"/><text class="small" x="182" y="210" text-anchor="middle">spender</text><text class="tiny" x="182" y="230" text-anchor="middle">0xDEX</text>
+              <path class="line flow" d="M108 142 C142 158 158 176 168 186" stroke="#176b8f"/>
+              <text class="small" x="133" y="294" text-anchor="middle">approve(spender, 80)</text>
+            </g>
+            <g transform="translate(414 82)">
+              <rect x="0" y="0" width="420" height="348" rx="16" fill="#17212b"/>
+              <text x="210" y="38" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">allowance table in contract</text>
+              <rect x="54" y="76" width="312" height="210" rx="8" fill="#fff"/>
+              <line x1="54" y1="126" x2="366" y2="126" stroke="#d7e0e6"/><line x1="158" y1="76" x2="158" y2="286" stroke="#d7e0e6"/><line x1="262" y1="76" x2="262" y2="286" stroke="#d7e0e6"/>
+              <text class="tiny" x="106" y="106" text-anchor="middle">owner/spender</text><text class="small" x="210" y="106" text-anchor="middle">0xDEX</text><text class="small" x="314" y="106" text-anchor="middle">0xGame</text>
+              <text class="small" x="106" y="174" text-anchor="middle">0xA</text><text class="label" x="210" y="178" text-anchor="middle">80→55</text><text class="small" x="314" y="178" text-anchor="middle">0</text>
+              <text class="small" x="106" y="244" text-anchor="middle">0xB</text><text class="small" x="210" y="244" text-anchor="middle">12</text><text class="small" x="314" y="244" text-anchor="middle">4</text>
+              <rect x="82" y="306" width="256" height="26" rx="13" fill="#b84a44"/><text x="210" y="324" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">変更 race に注意: 0 にしてから再設定</text>
+            </g>
+            <g transform="translate(108 396)">
+              <rect class="panel" width="722" height="72" rx="12"/>
+              <text class="small" x="30" y="30">第二段: spender が msg.sender として transferFrom(owner=0xA, recipient=0xC, 25)</text>
+              <text class="tiny" x="30" y="54">allowance[0xA][0xDEX] 80→55 / balanceOf[0xA] 減少 / balanceOf[0xC] 増加 / Transfer event</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 9,
+          title: "Event log と indexer: receipt を観測して UI が変わる",
+          misconception: "event は state そのものではなく、receipt/logs と bloom を通じて観測・検索される。",
+          focus: "topics/data が receipt に入り、indexer が confirmations を待って UI 用 DB を更新する。",
+          data: "topics / data / indexed params / blockNumber / txHash / logIndex / receipt / confirmations",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="event log indexer observation">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(92 92)">
+              <path d="M0 0 H210 L178 320 H32 Z" fill="#fff" stroke="#17212b" stroke-width="2"/>
+              <text class="label" x="105" y="40" text-anchor="middle">receipt prism</text>
+              <rect x="42" y="76" width="126" height="38" rx="7" fill="#eaf2f7"/><text class="tiny" x="105" y="99" text-anchor="middle">txHash</text>
+              <rect x="42" y="132" width="126" height="38" rx="7" fill="#f7efe5"/><text class="tiny" x="105" y="155" text-anchor="middle">topics[0..3]</text>
+              <rect x="42" y="188" width="126" height="38" rx="7" fill="#edf5ef"/><text class="tiny" x="105" y="211" text-anchor="middle">data</text>
+              <rect x="42" y="244" width="126" height="38" rx="7" fill="#f3eef9"/><text class="tiny" x="105" y="267" text-anchor="middle">blockNumber/logIndex</text>
+            </g>
+            <path class="line flow" d="M304 250 C414 180 508 180 612 250" stroke="#176b8f" stroke-width="5"/>
+            <g transform="translate(390 86)">
+              <rect class="panel" width="188" height="92" rx="12"/><text class="label" x="94" y="36" text-anchor="middle">logsBloom</text><text class="small" x="94" y="64" text-anchor="middle">candidate filter</text>
+            </g>
+            <g transform="translate(624 92)">
+              <rect class="panel" width="248" height="296" rx="12"/><text class="label" x="124" y="40" text-anchor="middle">indexer</text>
+              <path d="M54 86 H194 M54 128 H194 M54 170 H194 M54 212 H194" stroke="#d7e0e6" stroke-width="14" stroke-linecap="round"/>
+              <circle class="green pulse" cx="54" cy="86" r="12"/><circle class="green pulse" cx="194" cy="128" r="12"/><circle class="amber pulse" cx="124" cy="170" r="12"/>
+              <text class="small" x="124" y="250" text-anchor="middle">confirmations: 12</text>
+              <rect x="42" y="264" width="164" height="24" rx="12" fill="#2d8464"/><text x="124" y="281" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">N 未満は pending</text>
+              <text class="tiny" x="124" y="306" text-anchor="middle">reorg 後に差し戻し可能</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 10,
+          title: "Bridge lock/mint: 資産は teleport せず、証明をまたぐ",
+          misconception: "bridge は asset を送る矢印ではなく、source の lock と destination の mint を proof と finality がつなぐ。",
+          focus: "escrow に lock、event/proof、finality gate、destination contract mint の循環。",
+          data: "source tx / lock event / relayer / proof / destination contract / mint / finality delay",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="bridge lock mint proof circuit">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <circle cx="270" cy="270" r="150" fill="#eaf2f7" stroke="#aac6d5" stroke-width="2"/>
+            <circle cx="690" cy="270" r="150" fill="#f7efe5" stroke="#dfc39b" stroke-width="2"/>
+            <text class="label" x="270" y="128" text-anchor="middle">source chain</text><text class="label" x="690" y="128" text-anchor="middle">destination chain</text>
+            <rect x="196" y="218" width="148" height="78" rx="10" fill="#fff" stroke="#17212b"/><text class="small" x="270" y="248" text-anchor="middle">escrow lock</text><text class="tiny" x="270" y="272" text-anchor="middle">LockEvent(nonce)</text>
+            <rect x="618" y="218" width="144" height="78" rx="10" fill="#fff" stroke="#17212b"/><text class="small" x="690" y="248" text-anchor="middle">wrapped mint</text><text class="tiny" x="690" y="272" text-anchor="middle">proof 後のみ</text>
+            <path class="line flow" d="M346 257 H420" stroke="#176b8f" stroke-width="5"/>
+            <path class="line flow" d="M540 257 H618" stroke="#176b8f" stroke-width="5"/>
+            <g transform="translate(402 196)"><rect class="panel" width="156" height="52" rx="12"/><text class="small" x="78" y="22" text-anchor="middle">finalized event</text><text class="tiny" x="78" y="42" text-anchor="middle">reorg 待ち</text></g>
+            <g transform="translate(414 276)"><rect width="132" height="46" rx="23" fill="#17212b"/><text x="66" y="29" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">proof verify</text></g>
+            <path class="line flow" d="M480 248 V276" stroke="#2d8464" stroke-width="5"/>
+          </svg>`
+        },
+        {
+          id: 11,
+          title: "Bridge burn/release: exit は replay protection 付き状態機械",
+          misconception: "burn すれば即 release ではなく、message/proof/nonce の検証で二重実行を防ぐ。",
+          focus: "wrapped burn から source escrow release までの state を一度だけ進める。",
+          data: "wrapped token burn / message / proof / escrow / release / nonce / replay protection",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="bridge burn release state machine">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(480 270)">
+              ${[
+                ["dest chain\\nburn", -250, -58, "#b84a44"],["message\\nnonce=88", -94, -58, "#b46b1c"],["proof\\nverified", 62, -58, "#176b8f"],["source chain\\nescrow release", 218, -58, "#2d8464"],["nonce spent\\nterminal", 218, 92, "#6d5aa8"]
+              ].map(([t,x,y,c]) => `<g transform="translate(${x} ${y})"><rect x="-62" y="-36" width="124" height="72" rx="12" fill="${c}" opacity=".14" stroke="${c}" stroke-width="3"/><text class="small" text-anchor="middle" y="-4">${t.split("\\n")[0]}</text><text class="tiny" text-anchor="middle" y="18">${t.split("\\n")[1] || ""}</text></g>`).join("")}
+              <path class="line flow" d="M-188 -58 H-156 M-32 -58 H0 M124 -58 H156 M218 -22 V56" stroke="#17212b"/>
+              <text class="label" text-anchor="middle" y="-142">終端のある state machine</text>
+            </g>
+            <g transform="translate(78 88)"><rect class="panel" width="252" height="116" rx="12"/><text class="label" x="126" y="36" text-anchor="middle">guard</text><text class="small" x="126" y="66" text-anchor="middle">usedMessages[nonce] == false</text><text class="small" x="126" y="92" text-anchor="middle">then mark true</text></g>
+          </svg>`
+        },
+        {
+          id: 12,
+          title: "Light-client bridge: header と proof を相手チェーンで検証する",
+          misconception: "relayer を信じるのではなく、header/root/proof/validator set を destination contract が検証する。",
+          focus: "receipt proof が block header の root に接続し、その header 自体も validator/sync committee で検証される。",
+          data: "block header / state root / receipt root / Merkle proof / validator set / signature or sync committee",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="light client bridge proof verification">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(72 86)">
+              <rect class="panel" width="244" height="330" rx="12"/><text class="label" x="122" y="38" text-anchor="middle">source header</text>
+              <text class="small" x="38" y="84">parentHash</text><text class="small" x="38" y="116">stateRoot</text><text class="small" x="38" y="148">receiptsRoot</text><text class="small" x="38" y="180">finalized header</text>
+              <rect x="38" y="212" width="168" height="38" rx="8" fill="#eef5f5"/><text class="small" x="122" y="236" text-anchor="middle">sync committee sig</text>
+              <rect x="38" y="266" width="168" height="34" rx="17" fill="#17212b"/><text x="122" y="288" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">hash(header)</text>
+            </g>
+            <g transform="translate(388 92)">
+              <path d="M0 250 L90 42 L180 250 Z" fill="#fff" stroke="#17212b" stroke-width="2"/>
+              <circle cx="90" cy="78" r="22" fill="#176b8f"/><circle cx="54" cy="150" r="22" fill="#b46b1c"/><circle cx="126" cy="150" r="22" fill="#2d8464"/><circle cx="36" cy="222" r="22" fill="#eef5f5" stroke="#aac6d5"/><circle cx="90" cy="222" r="22" fill="#eef5f5" stroke="#aac6d5"/><circle cx="144" cy="222" r="22" fill="#eef5f5" stroke="#aac6d5"/>
+              <path class="line" d="M90 100 L54 128 M90 100 L126 128 M54 172 L36 200 M54 172 L90 200 M126 172 L144 200"/>
+              <text class="small" x="90" y="310" text-anchor="middle">receipt proof -> receiptsRoot</text>
+            </g>
+            <path class="line flow" d="M316 250 C360 250 358 250 388 250" stroke="#176b8f"/>
+            <path class="line flow" d="M568 250 C628 250 640 250 690 250" stroke="#2d8464"/>
+            <g transform="translate(690 130)">
+              <rect x="0" y="0" width="194" height="232" rx="14" fill="#17212b"/>
+              <text x="97" y="38" fill="#fff" font-size="18" font-weight="900" text-anchor="middle">destination verifier</text>
+              <text x="97" y="82" fill="#d9e6ec" font-size="12" font-weight="800" text-anchor="middle">1. header finalized</text>
+              <text x="97" y="116" fill="#d9e6ec" font-size="12" font-weight="800" text-anchor="middle">2. proof matches root</text>
+              <text x="97" y="150" fill="#d9e6ec" font-size="12" font-weight="800" text-anchor="middle">3. event exists</text>
+              <rect x="34" y="178" width="126" height="28" rx="14" fill="#2d8464"/><text x="97" y="197" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">accept message</text>
+            </g>
+          </svg>`
+        },
+        {
+          id: 13,
+          title: "Optimistic bridge: challenge window の砂時計",
+          misconception: "optimistic な claim は即確定ではなく、watcher が fraud proof を出せる時間窓を通過する。",
+          focus: "assertion が challenge period を通り、異議がなければ finalize、異議があれば fraud proof で巻き戻る。",
+          data: "assertion / challenge period / fraud proof / watcher / finalize / withdrawal delay",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="optimistic bridge hourglass">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(480 88)">
+              <path d="M-145 0 H145 C88 116 56 154 0 184 C56 214 88 252 145 368 H-145 C-88 252 -56 214 0 184 C-56 154 -88 116 -145 0 Z" fill="#fff" stroke="#17212b" stroke-width="2"/>
+              <path class="flow" d="M-82 42 C-44 112 -22 142 0 184 C22 226 44 260 82 326" fill="none" stroke="#b46b1c" stroke-width="8" stroke-linecap="round"/>
+              <text class="label" y="84" text-anchor="middle">assertion</text>
+              <text class="label" y="192" text-anchor="middle">challenge window</text>
+              <text class="label" y="304" text-anchor="middle">no challenge -> finalize</text>
+            </g>
+            <g transform="translate(112 190)"><rect class="panel" width="210" height="124" rx="12"/><text class="label" x="105" y="36" text-anchor="middle">watcher</text><text class="small" x="105" y="70" text-anchor="middle">re-executes claim</text><text class="small" x="105" y="96" text-anchor="middle">can submit fraud proof</text></g>
+            <path class="line flow" d="M322 250 C376 220 388 218 420 214" stroke="#b84a44" stroke-width="5"/>
+            <g transform="translate(672 190)"><rect class="panel" width="190" height="124" rx="12"/><text class="label" x="95" y="36" text-anchor="middle">challenge 発生</text><text class="small" x="95" y="70" text-anchor="middle">fraud proof</text><text class="small" x="95" y="96" text-anchor="middle">reject output</text></g>
+            <path class="line flow" d="M618 250 H672" stroke="#b84a44" stroke-width="5"/>
+          </svg>`
+        },
+        {
+          id: 14,
+          title: "Rollup batch 投稿: L2 txs を L1 commitment に圧縮する",
+          misconception: "rollup は単に L2 から L1 に矢印を引くものではなく、batch data と state root を L1 にコミットする。",
+          focus: "sequencer の L2 txs が batch にまとめられ、calldata/blob と output root として L1 contract に入る。",
+          data: "sequencer / L2 txs / batch / state root / calldata or blob / L1 contract / batch index",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="rollup batch compression funnel">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(82 92)">
+              <text class="label" x="108" y="24" text-anchor="middle">L2 tx pool</text>
+              ${Array.from({length: 20}, (_, i) => `<rect x="${(i%5)*44}" y="${54+Math.floor(i/5)*42}" width="34" height="24" rx="5" fill="${i%3===0?"#eaf2f7":i%3===1?"#f7efe5":"#edf5ef"}" stroke="#cbd6df"/><text class="tiny" x="${17+(i%5)*44}" y="${70+Math.floor(i/5)*42}" text-anchor="middle">tx</text>`).join("")}
+            </g>
+            <path d="M330 108 L600 206 L330 404 Z" fill="#fff" stroke="#17212b" stroke-width="2"/>
+            <path class="line flow" d="M292 250 H418" stroke="#176b8f" stroke-width="5"/>
+            <text class="label" x="462" y="238" text-anchor="middle">batch</text><text class="small" x="462" y="266" text-anchor="middle">sequencer が順序化</text>
+            <g transform="translate(624 88)"><rect class="panel" width="236" height="202" rx="12"/><text class="label" x="118" y="38" text-anchor="middle">L1 inbox call</text><text class="small" x="38" y="78">batchIndex: 812</text><text class="small" x="38" y="108">commitment</text><text class="small" x="38" y="138">prevStateRoot</text><text class="small" x="38" y="168">outputRoot</text></g>
+            <g transform="translate(650 320)"><rect class="panel" width="184" height="72" rx="12"/><text class="small" x="92" y="30" text-anchor="middle">blob DA sidecar</text><text class="tiny" x="92" y="52" text-anchor="middle">tx data availability</text></g>
+            <path class="line flow" d="M600 250 H624" stroke="#2d8464" stroke-width="5"/>
+          </svg>`
+        },
+        {
+          id: 15,
+          title: "ZK Rollup proof: 計算を proof に折り畳む",
+          misconception: "L1 は全 L2 tx を再実行せず、public inputs と validity proof を verifier contract で検証する。",
+          focus: "execution trace と witness が prover 内で制約を満たし、短い proof と new stateRoot が出る。",
+          data: "execution trace / witness / prover / validity proof / verifier contract / public inputs / state root",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="zk rollup proof funnel">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(84 100)">
+              <rect class="panel" width="210" height="300" rx="12"/><text class="label" x="105" y="38" text-anchor="middle">実行 trace</text>
+              ${Array.from({length: 8}, (_, i) => `<rect x="42" y="${68+i*24}" width="126" height="14" rx="4" fill="${i%2?"#eef5f5":"#f7efe5"}"/><text class="tiny" x="184" y="${80+i*24}">op${i}</text>`).join("")}
+              <text class="small" x="105" y="276" text-anchor="middle">witness は proof から復元不可</text>
+            </g>
+            <g transform="translate(386 80)">
+              <rect x="0" y="0" width="250" height="340" rx="18" fill="#17212b"/>
+              <text x="125" y="40" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">prover 回路</text>
+              ${Array.from({length: 6}, (_, r) => Array.from({length: 5}, (_, c) => `<circle cx="${52+c*36}" cy="${86+r*34}" r="9" fill="${(r+c)%3===0?"#3194a6":(r+c)%3===1?"#b46b1c":"#2d8464"}" opacity=".82"/>`).join("")).join("")}
+              <text x="125" y="312" fill="#d9e6ec" font-size="12" font-weight="800" text-anchor="middle">constraints satisfied</text>
+            </g>
+            <path class="line flow" d="M294 250 H386" stroke="#176b8f" stroke-width="5"/>
+            <path class="line flow" d="M636 250 H728" stroke="#2d8464" stroke-width="5"/>
+            <g transform="translate(712 126)"><rect class="panel" width="188" height="248" rx="12"/><text class="label" x="94" y="36" text-anchor="middle">verifier</text><circle cx="94" cy="88" r="38" fill="#eef5f5" stroke="#176b8f" stroke-width="10"/><text class="small" x="94" y="93" text-anchor="middle">proof</text><text class="tiny" x="94" y="142" text-anchor="middle">verification key</text><text class="tiny" x="94" y="164" text-anchor="middle">oldStateRoot</text><text class="tiny" x="94" y="186" text-anchor="middle">newStateRoot</text><text class="tiny" x="94" y="208" text-anchor="middle">public inputs</text></g>
+          </svg>`
+        },
+        {
+          id: 16,
+          title: "MEV / PBS: block content は市場で組み立てられる",
+          misconception: "proposer が全部の tx を自分で最適化するとは限らず、searcher/builder/relay/proposer の市場構造がある。",
+          focus: "bundle が builder に集まり、relay が bid を比較し、proposer が最も価値の高い block を選ぶ。",
+          data: "bundle / bid / block value / relay / proposer payment / inclusion risk",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="MEV PBS auction floor">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <path d="M128 420 H832 L742 128 H218 Z" fill="#f7efe5" stroke="#dfc39b" stroke-width="2"/>
+            <text class="label" x="480" y="104" text-anchor="middle">block オークション市場</text>
+            ${[160,260,360].map((x,i)=>`<g transform="translate(${x} 302)"><circle r="38" fill="#eaf2f7" stroke="#aac6d5"/><text class="small" y="-3" text-anchor="middle">searcher</text><text class="tiny" y="17" text-anchor="middle">bundle ${i+1}</text></g>`).join("")}
+            ${[[476,214,"builder A","3.8 ETH"],[476,342,"builder B","3.4 ETH"]].map(([x,y,n,b])=>`<g transform="translate(${x} ${y})"><rect class="panel" width="156" height="86" rx="12"/><text class="small" x="78" y="30" text-anchor="middle">${n}</text><text class="tiny" x="78" y="56" text-anchor="middle">bid ${b}</text></g>`).join("")}
+            <g transform="translate(690 208)"><rect class="panel" width="130" height="156" rx="12"/><text class="label" x="65" y="36" text-anchor="middle">relay</text><text class="small" x="65" y="76" text-anchor="middle">bid 比較</text><text class="small" x="65" y="108" text-anchor="middle">blinded block</text><text class="tiny" x="65" y="132" text-anchor="middle">署名後 reveal</text></g>
+            <g transform="translate(770 92)"><circle r="48" fill="#17212b"/><text y="-3" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">proposer</text><text y="18" fill="#d9e6ec" font-size="10" font-weight="800" text-anchor="middle">最高 bid を署名</text></g>
+            <path class="line flow" d="M360 302 C420 278 438 254 476 246 M632 258 H690 M632 374 C674 346 682 312 690 286 M744 208 C754 168 764 140 770 124" stroke="#176b8f" stroke-width="5"/>
+          </svg>`
+        },
+        {
+          id: 17,
+          title: "AMM swap: x*y=k の曲線上で価格が動く",
+          misconception: "AMM は注文板ではなく、reserve 比率と不変式で amountOut と price impact が決まる。",
+          focus: "amountIn が reserve0 を増やし reserve1 を減らし、曲線上の点が移動する。",
+          data: "x*y=k / reserve0 / reserve1 / amountIn / amountOut / fee / price impact / slippage",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="AMM curve reserve ledger">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(90 78)">
+              <rect class="panel" width="500" height="360" rx="12"/>
+              <line x1="64" y1="302" x2="440" y2="302" stroke="#17212b" stroke-width="2"/><line x1="64" y1="302" x2="64" y2="54" stroke="#17212b" stroke-width="2"/>
+              <path d="M82 78 C130 90 178 124 230 178 C284 234 350 278 430 292" fill="none" stroke="#176b8f" stroke-width="5"/>
+              <circle cx="204" cy="154" r="13" fill="#2d8464"/><circle class="pulse" cx="288" cy="232" r="13" fill="#b46b1c"/>
+              <path class="line flow" d="M204 154 C230 178 252 206 288 232" stroke="#b46b1c"/>
+              <text class="label" x="252" y="42" text-anchor="middle">x * y = k</text>
+              <text class="small" x="92" y="332">reserve0 増加 -></text><text class="small" x="24" y="70" transform="rotate(-90 24 70)">reserve1 減少</text>
+            </g>
+            <g transform="translate(650 112)"><rect class="panel" width="220" height="286" rx="12"/><text class="label" x="110" y="38" text-anchor="middle">reserve 台帳</text><text class="small" x="34" y="78">reserve0: 1,000→1,100</text><text class="small" x="34" y="112">reserve1: 1,000→909</text><text class="small" x="34" y="146">amountIn: 100</text><text class="small" x="34" y="180">fee後 input: 99.7</text><text class="small" x="34" y="214">amountOut: 90.7</text><text class="small" x="34" y="248">impact: 17.3%</text></g>
+          </svg>`
+        },
+        {
+          id: 18,
+          title: "Staking / Slashing: validator lifecycle と罰則",
+          misconception: "staking は預けて増えるだけではなく、参加義務、activation/exit queue、slashing risk がある。",
+          focus: "32 ETH deposit から activation、attestation/proposal、inactivity leak/slashing、exit までの lifecycle。",
+          data: "deposit 32 ETH / activation queue / attestation / proposal / inactivity leak / slashing condition / exit",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="staking lifecycle map">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <path d="M128 286 H310 H492 H674 H822" fill="none" stroke="#d6b47a" stroke-width="28" stroke-linecap="round"/>
+            <path class="line flow" d="M128 286 H310 H492 H674 H822" stroke="#176b8f" stroke-width="5"/>
+            ${[
+              ["deposit\\n32 ETH",128,286],["activation\\nqueue",310,286],["attest\\n+ propose",492,286],["exit\\nqueue",674,286],["withdraw",822,286]
+            ].map(([t,x,y])=>`<g transform="translate(${x} ${y})"><circle r="46" fill="#fff" stroke="#17212b" stroke-width="2"/><text class="small" text-anchor="middle" y="-4">${t.split("\\n")[0]}</text><text class="tiny" text-anchor="middle" y="18">${t.split("\\n")[1]||""}</text></g>`).join("")}
+            <g transform="translate(430 370)"><path d="M0 0 L224 0 L112 82 Z" fill="#b84a44"/><text x="112" y="28" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">penalty branch</text><text x="112" y="52" fill="#fff" font-size="10" font-weight="800" text-anchor="middle">double vote / surround vote / inactivity leak</text></g>
+            <path class="line dash" d="M492 332 C494 354 504 366 542 370" stroke="#b84a44"/>
+            <text class="label" x="480" y="78" text-anchor="middle">validator lifecycle は戻らない一方向</text>
+          </svg>`
+        },
+        {
+          id: 19,
+          title: "Reorg / Finality: head は動くが finalized は固定される",
+          misconception: "最新 head と finalized block は同じ確度ではなく、fork choice は attestation weight で動く。",
+          focus: "branch の attestation weight で head は変わり得るが、finalized checkpoint は通常の fork choice では戻らず、戻るなら安全性破綻と penalty の領域。",
+          data: "head / safe block / finalized block / fork choice / justified checkpoint / reorg depth",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="reorg finality branch anchors">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(92 272)">
+              <path class="line" d="M0 0 H170 H310 H450 H590"/>
+              <path class="line" d="M310 0 C388 -76 486 -92 620 -80"/>
+              <path class="line" d="M310 0 C398 80 506 104 682 92"/>
+              ${[[0,0,"finalized","#17212b"],[170,0,"safe","#2d8464"],[310,0,"justified","#6d5aa8"],[450,0,"old head","#b46b1c"],[620,-80,"new head","#176b8f"],[682,92,"orphan","#b84a44"]].map(([x,y,t,c])=>`<g transform="translate(${x} ${y})"><rect x="-42" y="-24" width="84" height="48" rx="9" fill="${c}" opacity=".95"/><text y="4" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">${t}</text></g>`).join("")}
+              <g transform="translate(474 -160)"><rect class="panel" width="268" height="84" rx="12"/><text class="small" x="134" y="28" text-anchor="middle">attestation weight</text><text class="tiny" x="134" y="52" text-anchor="middle">branch A: 38% / branch B: 62%</text><text class="tiny" x="134" y="72" text-anchor="middle">reorg depth: 2 slots</text></g>
+            </g>
+            <rect x="82" y="382" width="260" height="34" rx="17" fill="#17212b"/><text x="212" y="404" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">finalized は通常 fork choice で戻らない</text>
+          </svg>`
+        },
+        {
+          id: 20,
+          title: "TLS 1.3 と TCP/IP: 鍵生成とカプセル化を混ぜない",
+          misconception: "証明書が通信内容を直接暗号化するのではなく、TLS は key schedule、TCP/IP はカプセル化の層で働く。",
+          focus: "TLS 1.3 の ECDHE/transcript から traffic keys が派生し、TCP/IP は payload を port/IP/MAC で包む。",
+          data: "ClientHello / ServerHello / ECDHE / transcript hash / traffic keys / TCP port / IP / MAC / checksum",
+          svg: `<svg viewBox="0 0 960 540" role="img" aria-label="TLS key schedule and TCP IP envelopes">
+            <rect x="30" y="30" width="900" height="480" rx="22" fill="#fbfcfc" stroke="#d7e0e6"/>
+            <g transform="translate(78 86)">
+              <rect class="panel" width="372" height="348" rx="12"/><text class="label" x="186" y="38" text-anchor="middle">TLS 1.3 key schedule</text>
+              <path class="line flow" d="M70 92 C126 146 154 190 186 244 M302 92 C246 146 218 190 186 244" stroke="#176b8f"/>
+              <rect x="34" y="64" width="106" height="48" rx="8" fill="#eaf2f7"/><text class="tiny" x="87" y="93" text-anchor="middle">ClientHello</text>
+              <rect x="232" y="64" width="106" height="48" rx="8" fill="#f7efe5"/><text class="tiny" x="285" y="93" text-anchor="middle">ServerHello</text>
+              <circle cx="186" cy="214" r="48" fill="#edf5ef" stroke="#2d8464" stroke-width="3"/><text class="small" x="186" y="210" text-anchor="middle">ECDHE</text><text class="tiny" x="186" y="232" text-anchor="middle">共有 secret</text>
+              <rect x="64" y="264" width="244" height="26" rx="13" fill="#f3eef9" stroke="#cfc0e4"/><text class="tiny" x="186" y="282" text-anchor="middle">transcript hash + certificate auth</text>
+              <rect x="88" y="304" width="196" height="30" rx="15" fill="#17212b"/><text x="186" y="324" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">HKDF -> 通信用 key</text>
+              <text class="tiny" x="186" y="356" text-anchor="middle">Finished で transcript を確認</text>
+            </g>
+            <g transform="translate(536 110)">
+              <rect class="panel" width="330" height="300" rx="12"/><text class="label" x="165" y="38" text-anchor="middle">TCP/IP カプセル化</text>
+              <rect x="42" y="78" width="246" height="176" rx="14" fill="#eef5f5" stroke="#aac6d5"/><text class="small" x="165" y="104" text-anchor="middle">Ethernet frame: MAC</text>
+              <rect x="68" y="118" width="194" height="104" rx="12" fill="#eaf2f7" stroke="#aac6d5"/><text class="small" x="165" y="144" text-anchor="middle">IP packet: src/dst IP</text>
+              <rect x="94" y="158" width="142" height="66" rx="10" fill="#f7efe5" stroke="#dfc39b"/><text class="tiny" x="165" y="182" text-anchor="middle">TCP segment: ports</text><rect x="116" y="194" width="98" height="18" rx="6" fill="#fff"/><text class="tiny" x="165" y="207" text-anchor="middle">TLS record</text>
+              <text class="tiny" x="165" y="278" text-anchor="middle">checksum / MTU / decapsulation</text>
+            </g>
+          </svg>`
+        }
+      ];
+
+      const gallery = document.querySelector("#gallery");
+      gallery.innerHTML = diagrams.map((d) => `
+        <article class="diagram" id="d${d.id}">
+          <div class="diagram-head">
+            <div class="num">${String(d.id).padStart(2, "0")}</div>
+            <div>
+              <h2>${d.title}</h2>
+              <p class="mis">${d.misconception}</p>
+            </div>
+          </div>
+          <div class="viz">${d.svg}</div>
+          ${d.control ? `
+            <div class="ui-panel">
+              <label class="mono" for="gasUsedRange">現在ブロック gasUsed: <span id="gasUsedText">22.5M</span></label>
+              <input id="gasUsedRange" type="range" min="0" max="30000000" step="500000" value="22500000" />
+              <div class="meter-readout">
+                <span class="pill">現在 block baseFee: 30.0 gwei</span>
+                <span class="pill" id="deltaPill">変化率: +6.25%</span>
+                <span class="pill" id="nextPill">次 baseFee: 31.9 gwei</span>
+              </div>
+            </div>` : ""}
+          <div class="caption">
+            <div><b>Mechanism / 仕組み</b>${d.focus}</div>
+            <div><b>Data / データ</b>${d.data}</div>
+          </div>
+        </article>
+      `).join("");
+
+      function updateEip1559() {
+        const input = document.querySelector("#gasUsedRange");
+        if (!input) return;
+        const gasUsed = Number(input.value);
+        const target = 15000000;
+        const limit = 30000000;
+        const currentBaseFee = 30;
+        const rawDelta = (gasUsed - target) / target / 8;
+        const delta = Math.max(-0.125, Math.min(0.125, rawDelta));
+        const next = currentBaseFee * (1 + delta);
+        const h = Math.max(0, Math.min(224, gasUsed / limit * 224));
+        const y = 316 - h;
+        const fill = gasUsed > target ? "#b46b1c" : gasUsed < target ? "#2d8464" : "#7eb19b";
+        document.querySelector("#currentGas").setAttribute("y", y.toFixed(1));
+        document.querySelector("#currentGas").setAttribute("height", h.toFixed(1));
+        document.querySelector("#currentGas").setAttribute("fill", fill);
+        document.querySelector("#currentGasLabel").textContent = `gasUsed = ${(gasUsed / 1000000).toFixed(1)}M`;
+        document.querySelector("#gasUsedText").textContent = `${(gasUsed / 1000000).toFixed(1)}M`;
+        document.querySelector("#nextBaseFee").textContent = `baseFee = ${next.toFixed(1)} gwei`;
+        document.querySelector("#feeDelta").textContent = `${delta >= 0 ? "+" : ""}${(delta * 100).toFixed(2)}%`;
+        document.querySelector("#deltaPill").textContent = `変化率: ${delta >= 0 ? "+" : ""}${(delta * 100).toFixed(2)}%`;
+        document.querySelector("#nextPill").textContent = `次 baseFee: ${next.toFixed(1)} gwei`;
+        const sweep = Math.max(0.05, Math.min(0.95, 0.5 + delta * 3.2));
+        const angle = -90 + sweep * 260;
+        const x = 115 + Math.cos(angle * Math.PI / 180) * 78;
+        const yy = 184 + Math.sin(angle * Math.PI / 180) * 78;
+        const large = sweep > 0.7 ? 1 : 0;
+        document.querySelector("#feeArc").setAttribute("d", `M115 106 A78 78 0 ${large} 1 ${x.toFixed(1)} ${yy.toFixed(1)}`);
+      }
+      document.addEventListener("input", (event) => {
+        if (event.target && event.target.id === "gasUsedRange") updateEip1559();
+      });
+      updateEip1559();
+    </script>
+  </body>
+</html>

@@ -227,6 +227,32 @@ export const ITEM_NAME_JA: Record<string, string> = {
   richServerLoadDashboard: "4台サーバーCPU負荷ダッシュボード",
   richOrderStatusFlow: "EC注文状態遷移フロー",
   richScoreLeaderboard: "4プレイヤースコア推移",
+  // === iter 9 wave 9-F v4-v7 は revert 済 (parts-first 経路へ切替、 2026-07-15) ===
+
+  // === composite exemplar (dragon-diagram skill 生成) ===
+  richLayeredPriorityFee: "3層優先度手数料",
+
+  // === parts catalog (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ===
+  partsWaveGauge: "波打つ矩形ゲージ",
+  partsStackedLayer: "縦積み層バー",
+  partsStateIndicator: "状態インジケーター",
+  partsHorizontalBar: "横進捗バー",
+  partsArcGauge: "アークゲージ",
+  partsCounterActor: "カウンタ表示",
+  partsTrafficLightStack: "3灯シグナル",
+  partsCircleSizeRace: "円サイズ競争",
+  partsPercentRing: "パーセントリング",
+  partsCountup: "カウントアップ",
+  partsEdgeChain: "エッジ連鎖",
+  partsBucketReservoir: "バケット貯留",
+  partsSparkline: "スパークライン",
+  partsDonut: "ドーナツチャート",
+  partsRadar: "レーダーポリゴン",
+  partsStepProgress: "ステップ進捗",
+  partsStatusDot: "ステータスドット",
+  partsNotification: "通知カード",
+  partsKpiCard: "KPIカード",
+  partsTimelineStrip: "タイムライン帯",
   // === iter 9 wave 9-C incremental debug ===
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",

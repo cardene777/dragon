@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ethereumブロック生成 - slot, payload, attestations, finality</title>
+    <style>
+      :root {
+        --bg: #f5f7f8;
+        --paper: #ffffff;
+        --ink: #17212b;
+        --muted: #64717f;
+        --line: #d7e0e6;
+        --blue: #176b8f;
+        --green: #2d8464;
+        --amber: #b46b1c;
+        --red: #b84a44;
+        --violet: #6d5aa8;
+        --cyan: #3194a6;
+        --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+      }
+      .app {
+        width: min(1220px, calc(100vw - 24px));
+        margin: 20px auto 48px;
+        display: grid;
+        gap: 14px;
+      }
+      header {
+        min-height: 140px;
+        display: grid;
+        align-content: end;
+        padding: 22px 4px;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 5vw, 58px);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+      .lead {
+        margin: 12px 0 0;
+        max-width: 940px;
+        color: var(--muted);
+        line-height: 1.75;
+        font-size: 16px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        gap: 14px;
+      }
+      .rail, .panel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        box-shadow: 0 18px 48px rgba(23, 33, 43, .08);
+      }
+      .rail {
+        padding: 14px;
+        align-self: start;
+        position: sticky;
+        top: 12px;
+      }
+      .step-btn {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 10px;
+        align-items: start;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--ink);
+        text-align: left;
+        padding: 10px;
+        cursor: pointer;
+        font: inherit;
+      }
+      .step-btn + .step-btn { margin-top: 6px; }
+      .step-btn span:first-child {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #edf2f4;
+        font: 900 12px var(--mono);
+      }
+      .step-btn strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .step-btn small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font: 800 10px var(--mono);
+      }
+      .step-btn[aria-selected="true"] {
+        border-color: #afc7d5;
+        background: #f1f7f8;
+      }
+      .step-btn[aria-selected="true"] span:first-child {
+        background: var(--ink);
+        color: #fff;
+      }
+      .panel {
+        overflow: hidden;
+      }
+      .stage-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: end;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 3vw, 34px);
+        letter-spacing: 0;
+      }
+      .phase-note {
+        margin: 7px 0 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .status-pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 10px;
+        background: #fbfcfd;
+        font: 900 12px var(--mono);
+        white-space: nowrap;
+      }
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 260px;
+        gap: 0;
+      }
+      .viz {
+        min-height: 600px;
+        overflow: auto;
+        background:
+          linear-gradient(rgba(23,33,43,.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(23,33,43,.035) 1px, transparent 1px),
+          #fbfcfc;
+        background-size: 28px 28px;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .inspector {
+        border-left: 1px solid var(--line);
+        padding: 16px;
+        background: #fcfdfd;
+      }
+      .inspector h3 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .kv {
+        display: grid;
+        gap: 8px;
+      }
+      .kv div {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: #fff;
+      }
+      .kv b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font: 800 10px var(--mono);
+      }
+      .kv span {
+        font: 900 12px var(--mono);
+      }
+      .explain {
+        border-top: 1px solid var(--line);
+        padding: 16px 20px 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        line-height: 1.7;
+      }
+      .explain b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font: 900 12px var(--mono);
+      }
+      text { font-family: var(--sans); fill: var(--ink); }
+      .label { font-weight: 900; font-size: 18px; }
+      .small { font: 800 12px var(--mono); fill: var(--muted); }
+      .tiny { font: 800 10px var(--mono); fill: var(--muted); }
+      .white { fill: #fff; }
+      .panel-rect { fill: #fff; stroke: var(--line); stroke-width: 1.4; }
+      .soft { fill: #eef5f5; }
+      .line { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      .quiet { opacity: .28; }
+      .active-path {
+        fill: none;
+        stroke: var(--blue);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 10 12;
+        animation: dash 1.4s linear infinite;
+      }
+      .pulse {
+        transform-origin: center;
+        animation: pulse 1.7s ease-in-out infinite;
+      }
+      .sweep {
+        transform-origin: 112px 112px;
+        animation: sweep 12s linear infinite;
+      }
+      @keyframes dash { to { stroke-dashoffset: -44; } }
+      @keyframes pulse { 50% { opacity: .46; transform: scale(.96); } }
+      @keyframes sweep { to { transform: rotate(360deg); } }
+      @media (max-width: 920px) {
+        .layout { grid-template-columns: 1fr; }
+        .rail { position: static; }
+        .stage { grid-template-columns: 1fr; }
+        .viz { min-height: 0; }
+        .inspector { border-left: 0; border-top: 1px solid var(--line); }
+        .explain { grid-template-columns: 1fr; }
+        .stage-head { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Ethereumブロック生成</h1>
+        <p class="lead">12秒の slot で起きる proposer / execution payload / gossip / attestation と、epoch 単位で進む finality を分けて見る。単なる tx -> block -> chain ではなく、どの層で何が検証され、どの状態が変わるかを追う。</p>
+      </header>
+      <div class="layout">
+        <nav class="rail" aria-label="scene navigation" id="nav"></nav>
+        <section class="panel" aria-live="polite">
+          <div class="stage-head">
+            <div>
+              <h2 id="sceneTitle"></h2>
+              <p class="phase-note" id="sceneNote"></p>
+            </div>
+            <div class="status-pill" id="sceneStatus"></div>
+          </div>
+          <div class="stage">
+            <div class="viz" id="viz"></div>
+            <aside class="inspector">
+              <h3>Current data</h3>
+              <div class="kv" id="kv"></div>
+            </aside>
+          </div>
+          <div class="explain">
+            <div><b>What changes</b><span id="delta"></span></div>
+            <div><b>Output</b><span id="output"></span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const scenes = [
+        {
+          title: "1. Slot clock と proposer 選出",
+          note: "slot N は 12 秒。validator set の中から、この slot の proposer だけが beacon block を提案する役割を持つ。",
+          status: "slot = 12s / epoch = 32 slots",
+          delta: "slot N が empty から proposer-assigned へ変わる。まだ block は提案されていない。",
+          output: "proposer assignment: validator #1842",
+          kv: [
+            ["slot", "N"],
+            ["epoch", "floor(N / 32)"],
+            ["proposer", "validator #1842"],
+            ["inactive validators", "attestation phase まで待機"]
+          ],
+          svg: `<svg viewBox="0 0 820 600" role="img" aria-label="slot clock and proposer selection">
+            <rect x="24" y="24" width="772" height="552" rx="22" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(54 64)">
+              <circle cx="116" cy="116" r="96" fill="#fff" stroke="#d7e0e6" stroke-width="2"/>
+              <circle cx="116" cy="116" r="68" fill="none" stroke="#d7e0e6" stroke-width="10"/>
+              <path d="M116 48 A68 68 0 0 1 175 150" fill="none" stroke="#176b8f" stroke-width="10"/>
+              <path d="M175 150 A68 68 0 0 1 57 150" fill="none" stroke="#b46b1c" stroke-width="10"/>
+              <path d="M57 150 A68 68 0 0 1 116 48" fill="none" stroke="#2d8464" stroke-width="10"/>
+              <g class="sweep"><line class="line" x1="116" y1="116" x2="116" y2="58"/><circle cx="116" cy="116" r="7" fill="#176b8f"/></g>
+              <text class="label" x="116" y="112" text-anchor="middle">12秒 slot</text>
+              <text class="small" x="116" y="136" text-anchor="middle">epoch = 32 slots</text>
+            </g>
+            <g transform="translate(346 86)">
+              <text class="label" x="158" y="0" text-anchor="middle">validator set</text>
+              ${Array.from({length: 8}, (_, i) => {
+                const row = Math.floor(i / 4);
+                const col = i % 4;
+                const x = col * 78;
+                const y = 52 + row * 88;
+                const active = i === 5;
+                return `<g transform="translate(${x} ${y})"><circle r="${active ? 30 : 23}" fill="${active ? "#176b8f" : "#fff"}" stroke="${active ? "#176b8f" : "#aebfc9"}" stroke-width="2"/><text ${active ? 'fill="#fff"' : ''} font-size="11" font-weight="900" text-anchor="middle" y="4">v${i}</text></g>`;
+              }).join("")}
+              <g transform="translate(28 242)">
+                <rect class="panel-rect" width="260" height="72" rx="12"/>
+                <text class="small" x="130" y="28" text-anchor="middle">selected proposer</text>
+                <text class="label" x="130" y="56" text-anchor="middle">validator #1842</text>
+              </g>
+            </g>
+            <path class="active-path" d="M278 184 C334 160 354 166 386 206"/>
+            <g transform="translate(118 464)">
+              <rect class="panel-rect" width="584" height="48" rx="12"/>
+              <text class="small" x="292" y="30" text-anchor="middle">他の validator は attestation phase まで quiet</text>
+            </g>
+          </svg>`
+          ,
+          mobileSvg: `<svg viewBox="0 0 390 560" role="img" aria-label="slot clock and proposer selection mobile">
+            <rect x="12" y="12" width="366" height="536" rx="18" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <text class="label" x="195" y="44" text-anchor="middle">slot N: proposer 選出</text>
+            <g transform="translate(106 66)">
+              <circle cx="88" cy="88" r="78" fill="#fff" stroke="#d7e0e6" stroke-width="2"/>
+              <circle cx="88" cy="88" r="54" fill="none" stroke="#d7e0e6" stroke-width="9"/>
+              <path d="M88 34 A54 54 0 0 1 135 115" fill="none" stroke="#176b8f" stroke-width="9"/>
+              <path d="M135 115 A54 54 0 0 1 41 115" fill="none" stroke="#b46b1c" stroke-width="9"/>
+              <path d="M41 115 A54 54 0 0 1 88 34" fill="none" stroke="#2d8464" stroke-width="9"/>
+              <g class="sweep"><line class="line" x1="88" y1="88" x2="88" y2="42"/><circle cx="88" cy="88" r="6" fill="#176b8f"/></g>
+              <text x="88" y="84" font-size="17" font-weight="900" text-anchor="middle">12秒 slot</text>
+              <text x="88" y="106" font-size="12" font-weight="800" text-anchor="middle" fill="#64717f">epoch = 32 slots</text>
+            </g>
+            <path class="active-path" d="M194 232 C194 250 194 262 194 282"/>
+            <g transform="translate(60 286)">
+              <text x="135" y="0" font-size="17" font-weight="900" text-anchor="middle">validator set</text>
+              ${Array.from({length: 8}, (_, i) => {
+                const row = Math.floor(i / 4);
+                const col = i % 4;
+                const x = 30 + col * 70;
+                const y = 38 + row * 62;
+                const active = i === 5;
+                return `<g transform="translate(${x} ${y})"><circle r="${active ? 24 : 20}" fill="${active ? "#176b8f" : "#fff"}" stroke="${active ? "#176b8f" : "#aebfc9"}" stroke-width="2"/><text ${active ? 'fill="#fff"' : ''} font-size="12" font-weight="900" text-anchor="middle" y="4">v${i}</text></g>`;
+              }).join("")}
+            </g>
+            <g transform="translate(56 440)">
+              <rect class="panel-rect" width="278" height="56" rx="12"/>
+              <text x="139" y="23" font-size="12" font-weight="800" text-anchor="middle" fill="#64717f">selected proposer</text>
+              <text x="139" y="44" font-size="18" font-weight="900" text-anchor="middle">validator #1842</text>
+            </g>
+            <text x="195" y="526" font-size="12" font-weight="800" text-anchor="middle" fill="#64717f">他の validator は attestation phase まで quiet</text>
+          </svg>`
+        },
+        {
+          title: "2. Execution payload assembly",
+          note: "proposer CL が Engine API 経由で EL に payload build を依頼し、EL が tx を実行して stateRoot / receiptsRoot / gasUsed を持つ execution payload を返す。",
+          status: "CL -> EL -> CL",
+          delta: "old stateRoot から new stateRoot / receiptsRoot へ変わり、payload が proposer CL に戻る。",
+          output: "execution payload: transactions[], stateRoot, receiptsRoot, gasUsed, baseFeePerGas",
+          kv: [
+            ["Engine API", "engine_forkchoiceUpdated"],
+            ["build", "payload build request"],
+            ["retrieve", "engine_getPayload / payload retrieval"],
+            ["commitments", "stateRoot / receiptsRoot"]
+          ],
+          svg: `<svg viewBox="0 0 820 600" role="img" aria-label="execution payload assembly">
+            <rect x="24" y="24" width="772" height="552" rx="22" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(70 92)">
+              <rect class="panel-rect" width="178" height="128" rx="12"/>
+              <text class="label" x="89" y="34" text-anchor="middle">Proposer CL</text>
+              <text class="small" x="89" y="66" text-anchor="middle">slot N</text>
+              <text class="tiny" x="89" y="92" text-anchor="middle">fork-choice state</text>
+            </g>
+            <g transform="translate(310 62)">
+              <rect x="0" y="0" width="318" height="302" rx="16" fill="#17212b"/>
+              <text x="159" y="38" fill="#fff" font-size="21" font-weight="900" text-anchor="middle">Execution layer</text>
+              <rect x="42" y="72" width="104" height="52" rx="8" fill="#eaf2f7"/><text class="small" x="94" y="103" text-anchor="middle">mempool txs</text>
+              <rect x="172" y="72" width="104" height="52" rx="8" fill="#f7efe5"/><text class="small" x="224" y="103" text-anchor="middle">EVM実行</text>
+              <path class="active-path" d="M146 98 H172" stroke="#fff"/>
+              <rect x="42" y="160" width="234" height="92" rx="10" fill="#fff"/>
+              <text class="small" x="159" y="188" text-anchor="middle">payload commitments</text>
+              <text class="tiny" x="82" y="218">stateRoot: 0xnew</text>
+              <text class="tiny" x="82" y="238">receiptsRoot: 0xrcpt</text>
+              <text class="tiny" x="196" y="218">gasUsed</text>
+              <text class="tiny" x="196" y="238">baseFeePerGas</text>
+            </g>
+            <g transform="translate(566 394)">
+              <rect class="panel-rect" width="182" height="92" rx="12"/>
+              <text class="label" x="91" y="34" text-anchor="middle">payload capsule</text>
+              <text class="tiny" x="91" y="60" text-anchor="middle">transactions[] + roots</text>
+            </g>
+            <path class="active-path" d="M248 128 C282 108 294 100 310 102"/>
+            <text class="tiny" x="272" y="80" text-anchor="middle">engine_forkchoiceUpdated</text>
+            <path class="active-path" d="M246 184 C286 222 300 244 310 258"/>
+            <text class="tiny" x="276" y="238" text-anchor="middle">payload build request</text>
+            <path class="active-path" d="M628 276 C700 316 706 362 657 394"/>
+            <text class="tiny" x="700" y="344" text-anchor="middle">engine_getPayload / retrieval</text>
+          </svg>`
+        },
+        {
+          title: "3. Beacon block proposal と gossip",
+          note: "execution payload は beacon block に包まれ、proposer signature と一緒に consensus gossip へ流れる。peer は受け取るだけでなく、次の scene で検証する。",
+          status: "signed beacon block",
+          delta: "peer nodes が slot N の candidate beacon block を持つ状態になる。",
+          output: "beacon block on consensus gossip",
+          kv: [
+            ["block", "beacon block"],
+            ["payload", "execution payload included"],
+            ["parent", "parent block root"],
+            ["signature", "proposer signature"]
+          ],
+          svg: `<svg viewBox="0 0 820 600" role="img" aria-label="beacon block gossip">
+            <rect x="24" y="24" width="772" height="552" rx="22" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(98 204)">
+              <rect class="panel-rect" width="194" height="134" rx="14"/>
+              <text class="label" x="97" y="38" text-anchor="middle">proposer node</text>
+              <rect x="32" y="62" width="130" height="42" rx="8" fill="#17212b"/>
+              <text x="97" y="88" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">signed beacon block</text>
+            </g>
+            <g transform="translate(470 290)">
+              ${Array.from({length: 9}, (_, i) => {
+                const a = Math.PI * 2 * i / 9;
+                const x = Math.cos(a) * 142;
+                const y = Math.sin(a) * 118;
+                return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="28" fill="#fff" stroke="#aebfc9" stroke-width="2"/><text class="tiny" text-anchor="middle" y="4">peer</text></g>`;
+              }).join("")}
+              <circle r="52" fill="#eaf2f7" stroke="#176b8f" stroke-width="3"/>
+              <text class="small" text-anchor="middle" y="-4">consensus</text>
+              <text class="tiny" text-anchor="middle" y="18">gossip</text>
+            </g>
+            <path class="active-path" d="M292 270 C362 244 400 252 470 290"/>
+            <path class="active-path" d="M470 290 C526 220 568 188 610 172"/>
+            <path class="active-path" d="M470 290 C552 304 590 344 624 392"/>
+            <path class="active-path" d="M470 290 C414 368 372 396 326 414"/>
+            <g transform="translate(322 76)">
+              <rect class="panel-rect" width="210" height="96" rx="12"/>
+              <text class="small" x="105" y="34" text-anchor="middle">beacon block fields</text>
+              <text class="tiny" x="105" y="58" text-anchor="middle">parent root / payload / signature</text>
+              <text class="tiny" x="105" y="78" text-anchor="middle">slot N / proposer index</text>
+            </g>
+          </svg>`
+        },
+        {
+          title: "4. Validation, attestation, fork-choice head",
+          note: "peer CL は beacon block の payload を EL に渡し、EL の VALID を確認する。その後 validator committee の attestations が branch weight を増やし、fork-choice head に効く。",
+          status: "engine_newPayload -> VALID -> attestation",
+          delta: "payloadStatus が VALID になり、提案ブロックを含む branch の head weight が増える。",
+          output: "attestations + updated fork-choice head",
+          kv: [
+            ["validation", "engine_newPayload"],
+            ["payloadStatus", "VALID"],
+            ["fork choice", "engine_forkchoiceUpdated"],
+            ["vote", "attestation head vote"]
+          ],
+          svg: `<svg viewBox="0 0 820 600" role="img" aria-label="validation attestation fork choice">
+            <rect x="24" y="24" width="772" height="552" rx="22" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(78 106)">
+              <rect class="panel-rect" width="188" height="116" rx="12"/>
+              <text class="label" x="94" y="36" text-anchor="middle">Peer CL</text>
+              <text class="tiny" x="94" y="66" text-anchor="middle">received beacon block</text>
+            </g>
+            <g transform="translate(322 80)">
+              <rect x="0" y="0" width="176" height="172" rx="14" fill="#17212b"/>
+              <text x="88" y="36" fill="#fff" font-size="18" font-weight="900" text-anchor="middle">Peer EL</text>
+              <rect x="34" y="66" width="108" height="38" rx="8" fill="#fff"/>
+              <text class="small" x="88" y="90" text-anchor="middle">newPayload</text>
+              <rect x="44" y="124" width="88" height="26" rx="13" fill="#2d8464"/>
+              <text x="88" y="142" fill="#fff" font-size="12" font-weight="900" text-anchor="middle">VALID</text>
+            </g>
+            <path class="active-path" d="M266 164 H322"/>
+            <text class="tiny" x="294" y="142" text-anchor="middle">engine_newPayload</text>
+            <path class="active-path" d="M410 252 C418 302 424 332 440 366"/>
+            <text class="tiny" x="486" y="306">engine_forkchoiceUpdated</text>
+            <g transform="translate(184 390)">
+              <text class="label" x="0" y="-42">attestation ring</text>
+              ${Array.from({length: 10}, (_, i) => {
+                const x = i * 42;
+                const fill = i < 7 ? "#2d8464" : "#eef5f5";
+                return `<g transform="translate(${x} 0)"><circle r="17" fill="${fill}" stroke="#9fb8c5"/><text class="tiny" text-anchor="middle" y="4">v</text></g>`;
+              }).join("")}
+            </g>
+            <g transform="translate(530 332)">
+              <rect class="panel-rect" width="196" height="126" rx="12"/>
+              <text class="label" x="98" y="34" text-anchor="middle">head weight</text>
+              <line x1="34" y1="74" x2="162" y2="74" stroke="#d7e0e6" stroke-width="18" stroke-linecap="round"/>
+              <line x1="34" y1="74" x2="130" y2="74" stroke="#176b8f" stroke-width="18" stroke-linecap="round"/>
+              <text class="tiny" x="98" y="110" text-anchor="middle">branch with slot N block wins</text>
+            </g>
+            <path class="active-path" d="M602 332 C560 280 504 260 448 252"/>
+          </svg>`
+        },
+        {
+          title: "5. Epoch checkpoints と finality",
+          note: "finality は 12秒 slot 内では完結しない。epoch をまたいだ source/target checkpoint vote が 2/3 stake を超えると justified/finalized が進む。",
+          status: "2/3 stake threshold",
+          delta: "target checkpoint が justified になり、前の justified checkpoint が finalized になる。",
+          output: "finalized checkpoint: 通常 fork choice では戻らない",
+          kv: [
+            ["epoch", "E"],
+            ["checkpoint", "source -> target"],
+            ["threshold", "2/3 stake"],
+            ["result", "justified / finalized"]
+          ],
+          svg: `<svg viewBox="0 0 820 600" role="img" aria-label="checkpoint finality">
+            <rect x="24" y="24" width="772" height="552" rx="22" fill="#f8fbfb" stroke="#d7e0e6"/>
+            <g transform="translate(80 156)">
+              <line x1="0" y1="164" x2="640" y2="164" stroke="#d7e0e6" stroke-width="18" stroke-linecap="round"/>
+              ${[0,160,320,480,640].map((x,i)=>`<g transform="translate(${x} 164)"><circle r="34" fill="${i===1?"#17212b":i===2?"#6d5aa8":i===3?"#2d8464":"#fff"}" stroke="#17212b" stroke-width="2"/><text ${i>0&&i<4?'fill="#fff"':''} font-size="11" font-weight="900" text-anchor="middle" y="-2">epoch</text><text ${i>0&&i<4?'fill="#fff"':''} font-size="10" font-weight="800" text-anchor="middle" y="16">${i}</text></g>`).join("")}
+              <text class="small" x="160" y="226" text-anchor="middle">finalized</text>
+              <text class="small" x="320" y="226" text-anchor="middle">justified</text>
+              <text class="small" x="480" y="226" text-anchor="middle">target</text>
+              <path class="active-path" d="M320 104 C376 42 438 42 480 104"/>
+              <text class="small" x="400" y="34" text-anchor="middle">source/target vote link</text>
+            </g>
+            <g transform="translate(236 88)">
+              <rect class="panel-rect" width="348" height="84" rx="12"/>
+              <text class="label" x="174" y="34" text-anchor="middle">attestation-derived checkpoint votes</text>
+              <line x1="56" y1="58" x2="292" y2="58" stroke="#d7e0e6" stroke-width="16" stroke-linecap="round"/>
+              <line x1="56" y1="58" x2="224" y2="58" stroke="#2d8464" stroke-width="16" stroke-linecap="round"/>
+              <text class="tiny" x="174" y="78" text-anchor="middle">2/3 stake threshold crossed</text>
+            </g>
+            <g transform="translate(284 430)">
+              <rect x="0" y="0" width="252" height="48" rx="24" fill="#17212b"/>
+              <text x="126" y="30" fill="#fff" font-size="13" font-weight="900" text-anchor="middle">finality は slot とは別タイムスケール</text>
+            </g>
+          </svg>`
+        }
+      ];
+
+      let current = 0;
+      const nav = document.querySelector("#nav");
+      const title = document.querySelector("#sceneTitle");
+      const note = document.querySelector("#sceneNote");
+      const status = document.querySelector("#sceneStatus");
+      const viz = document.querySelector("#viz");
+      const kv = document.querySelector("#kv");
+      const delta = document.querySelector("#delta");
+      const output = document.querySelector("#output");
+
+      nav.innerHTML = scenes.map((scene, index) => `
+        <button class="step-btn" type="button" data-index="${index}" aria-selected="${index === 0}">
+          <span>${index + 1}</span>
+          <span><strong>${scene.title.replace(/^[0-9]+\\.\\s*/, "")}</strong><small>${scene.status}</small></span>
+        </button>
+      `).join("");
+
+      function render(index) {
+        current = index;
+        const scene = scenes[index];
+        title.textContent = scene.title;
+        note.textContent = scene.note;
+        status.textContent = scene.status;
+        const isMobile = window.matchMedia ? window.matchMedia("(max-width: 920px)").matches : window.innerWidth <= 920;
+        const useMobileSvg = isMobile && scene.mobileSvg;
+        viz.innerHTML = useMobileSvg ? scene.mobileSvg : scene.svg;
+        kv.innerHTML = scene.kv.map(([key, value]) => `<div><b>${key}</b><span>${value}</span></div>`).join("");
+        delta.textContent = scene.delta;
+        output.textContent = scene.output;
+        document.querySelectorAll(".step-btn").forEach((button, i) => {
+          button.setAttribute("aria-selected", String(i === index));
+        });
+      }
+
+      nav.addEventListener("click", (event) => {
+        const button = event.target.closest(".step-btn");
+        if (!button) return;
+        render(Number(button.dataset.index));
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight") render((current + 1) % scenes.length);
+        if (event.key === "ArrowLeft") render((current - 1 + scenes.length) % scenes.length);
+      });
+      window.addEventListener("resize", () => render(current));
+
+      render(0);
+    </script>
+  </body>
+</html>

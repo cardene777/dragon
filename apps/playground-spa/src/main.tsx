@@ -8,6 +8,8 @@ import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";
 import "./styles/editor.css";
+// compare.css は ComparePage / PresetDetailPage の nm-* class 用、 両 page とも React.lazy で code-split
+// されているため、 該当 page 側で import して chunk に同梱する (main 初期 bundle から除外)。
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";

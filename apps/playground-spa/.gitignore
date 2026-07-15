@@ -4,3 +4,14 @@ test-results
 *.log
 .DS_Store
 tsconfig.tsbuildinfo
+
+# ad-hoc debug / diagnosis / screenshot scripts (`/auto` session temporary output)
+scripts/anim-*.mjs
+scripts/check-*.mjs
+scripts/debug-*.mjs
+scripts/diag-*.mjs
+scripts/exact-*.mjs
+scripts/hard-*.mjs
+scripts/live-*.mjs
+scripts/measure-*.mjs
+scripts/shot-*.mjs

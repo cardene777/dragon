@@ -594,32 +594,48 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   fill: #2a5a8c !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #101a2a !important;
-  stroke: #6ab3d8 !important;
+  fill: #1a2a44 !important;
+  stroke: #a8d4ee !important;
+  stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #0a1020 !important;
-  stroke: rgba(106, 179, 216, 0.55) !important;
-  stroke-width: 1 !important;
+  fill: #1a2a44 !important;
+  stroke: rgba(168, 212, 238, 0.75) !important;
+  stroke-width: 1.2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(120, 180, 220, 0.35) !important;
+  stroke: rgba(168, 212, 238, 0.55) !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(120, 180, 220, 0.4) !important;
+  stroke: rgba(168, 212, 238, 0.6) !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #6ab3d8 !important;
+  fill: #d4e8f5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #6ab3d8 !important;
+  stroke: #a8d4ee !important;
   fill: none !important;
+  stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #6ab3d8 !important;
-  fill: #6ab3d8 !important;
+  stroke: #a8d4ee !important;
+  fill: #a8d4ee !important;
+  stroke-width: 2 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
+  fill: #d4e8f5 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
+  font-size: 13px !important;
+  font-weight: 500 !important;
 }
 /* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
    閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line

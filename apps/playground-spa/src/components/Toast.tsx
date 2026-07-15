@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 import * as Toast from "@radix-ui/react-toast";
 import { X, Check, AlertCircle, Info } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useLocale } from "@/lib/useLocale";
 
 /**
  * Toast context — Radix Toast wrapper。
@@ -31,6 +32,8 @@ let seq = 0;
 
 export function ToastProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const [locale] = useLocale();
+  const closeLabel = locale === "ja" ? "通知を閉じる" : "Close notification";
 
   const toast = useCallback((input: Omit<ToastItem, "id">) => {
     const id = `t-${++seq}`;
@@ -78,7 +81,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
               <button
                 type="button"
                 className="rounded-full p-1 text-[var(--color-ink-mute)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]"
-                aria-label="Close notification"
+                aria-label={closeLabel}
               >
                 <X size={14} />
               </button>

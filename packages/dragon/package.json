@@ -36,15 +36,24 @@
   "files": [
     "dist",
     "src",
+    "examples",
     "README.md"
   ],
   "publishConfig": {
     "access": "public"
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "cd ../.. && vitest run packages/dragon",
+    "test:watch": "cd ../.. && vitest packages/dragon",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
     "@cardenelabs/cdl": "link:../../../cdl/packages/cdl"

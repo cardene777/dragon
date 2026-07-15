@@ -92,6 +92,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   primitives: "基本要素",
   "text-dsl": "テキスト DSL",
   animation: "アニメーション",
+  parts: "パーツ",
   styles: "スタイル",
   interactive: "インタラクティブ",
 };
@@ -112,12 +113,15 @@ export function CategoryPage(): React.ReactElement {
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
     const q = query.toLowerCase();
-    return items.filter(
-      (item) =>
+    return items.filter((item) => {
+      const jaName = itemNameJa(item.title).toLowerCase();
+      return (
         item.title.toLowerCase().includes(q) ||
         item.subtitle.toLowerCase().includes(q) ||
-        item.id.toLowerCase().includes(q),
-    );
+        item.id.toLowerCase().includes(q) ||
+        jaName.includes(q)
+      );
+    });
   }, [items, query]);
 
   const currentItem = useMemo(() => {

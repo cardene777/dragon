@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>高品質説明UI デザイン案 v2</title>
+    <style>
+      :root {
+        --ink: #111416;
+        --muted: #69737d;
+        --hair: #dbe1e4;
+        --paper: #f7f5ef;
+        --white: #ffffff;
+        --night: #080d12;
+        --night-2: #101820;
+        --night-3: #17222b;
+        --blue: #3c7dd9;
+        --cyan: #59c9da;
+        --green: #4fb985;
+        --amber: #d69a3a;
+        --red: #cf625b;
+        --violet: #8b7dde;
+        --jp: "Hiragino Sans", "Yu Gothic", "Yu Gothic UI", "Avenir Next", sans-serif;
+        --mono: "SF Mono", "Menlo", "Consolas", monospace;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #e9edf0;
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+      .page {
+        width: min(1480px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 34px 0 80px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 28px;
+        align-items: end;
+        padding: 12px 2px 28px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 1120px;
+        font-size: clamp(36px, 6vw, 78px);
+        line-height: .98;
+        letter-spacing: 0;
+      }
+      .hero p {
+        margin: 0;
+        color: #56616a;
+        line-height: 1.8;
+        font-size: 15px;
+      }
+      .stack {
+        display: grid;
+        gap: 26px;
+      }
+      .direction {
+        overflow: hidden;
+        border: 1px solid #ced6da;
+        border-radius: 10px;
+        background: var(--white);
+        box-shadow: 0 20px 54px rgba(23, 31, 36, .10);
+      }
+      .direction-head {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) minmax(260px, 380px);
+        gap: 18px;
+        align-items: start;
+        padding: 22px 26px;
+        border-bottom: 1px solid var(--hair);
+      }
+      .num {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #fff;
+        background: #10161c;
+        font: 800 13px var(--mono);
+      }
+      h2 {
+        margin: 0;
+        font-size: clamp(25px, 3vw, 42px);
+        line-height: 1.08;
+      }
+      .desc {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+      .notes {
+        border-left: 3px solid var(--amber);
+        padding-left: 14px;
+        color: #505a63;
+        line-height: 1.6;
+        font-size: 13px;
+      }
+      .mock {
+        min-height: 680px;
+        padding: 22px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        padding: 0 10px;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-weight: 700;
+      }
+      .tiny {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .label {
+        color: #65717b;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .panel {
+        border: 1px solid var(--hair);
+        border-radius: 8px;
+        background: var(--white);
+      }
+      .dark .panel {
+        border-color: rgba(255,255,255,.12);
+        background: rgba(255,255,255,.045);
+      }
+      .diagram {
+        position: relative;
+        overflow: hidden;
+        min-height: 430px;
+        border-radius: 8px;
+      }
+      .node {
+        position: absolute;
+        display: grid;
+        align-content: center;
+        justify-items: start;
+        min-width: 124px;
+        min-height: 58px;
+        border-radius: 7px;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid #d7dee2;
+        box-shadow: 0 12px 26px rgba(15, 23, 32, .10);
+      }
+      .node strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+      .node span {
+        display: block;
+        margin-top: 5px;
+        color: #65717b;
+        font: 700 10px var(--mono);
+      }
+      .node.dark-node {
+        color: #fff;
+        background: #111922;
+        border-color: rgba(255,255,255,.16);
+      }
+      .node.dark-node span { color: #a9bac5; }
+      svg.lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .line {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+      .soft-grid {
+        background:
+          linear-gradient(rgba(10,18,24,.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(10,18,24,.045) 1px, transparent 1px),
+          #fbfcfb;
+        background-size: 30px 30px;
+      }
+      .night-grid {
+        background:
+          linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px),
+          #081017;
+        background-size: 30px 30px;
+      }
+
+      /* 01 */
+      .cinema {
+        color: #edf5f7;
+        background: #05090d;
+        border-color: #17222b;
+      }
+      .cinema .direction-head {
+        border-color: rgba(255,255,255,.12);
+      }
+      .cinema .desc,
+      .cinema .notes { color: #aab8c2; }
+      .cinema .num { background: #eaf7f9; color: #071014; }
+      .cinema-screen {
+        min-height: 680px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        grid-template-rows: minmax(0, 1fr) 104px;
+        gap: 14px;
+      }
+      .cinema-stage {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 9px;
+        background:
+          linear-gradient(150deg, rgba(89,201,218,.09), transparent 34%),
+          linear-gradient(20deg, rgba(79,185,133,.08), transparent 42%),
+          #081017;
+      }
+      .cinema-side,
+      .cinema-time {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 9px;
+        background: #0c1319;
+      }
+      .cinema-side {
+        padding: 18px;
+      }
+      .cinema-side h3 {
+        margin: 18px 0 10px;
+        font-size: 22px;
+        line-height: 1.18;
+      }
+      .chapter {
+        display: grid;
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .chapter div {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 9px;
+        align-items: start;
+        color: #91a1ad;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .chapter b { color: #eaf7f9; font-family: var(--mono); }
+      .chapter .current { color: #fff; }
+      .cinema-time {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 100px 1fr 142px;
+        align-items: center;
+        gap: 18px;
+        padding: 18px;
+      }
+      .play-mark {
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        color: #051014;
+        background: var(--cyan);
+        font-weight: 900;
+      }
+      .progress {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+      }
+      .progress i {
+        display: block;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--green));
+      }
+      .legend-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+      .legend-row span {
+        border: 1px solid rgba(255,255,255,.13);
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: #c1d0d8;
+        font-size: 11px;
+      }
+
+      /* 02 */
+      .atelier {
+        background: #f7f3e8;
+      }
+      .atelier-work {
+        min-height: 680px;
+        display: grid;
+        grid-template-columns: 420px minmax(0, 1fr);
+        gap: 24px;
+      }
+      .article-column {
+        padding: 8px 8px 8px 2px;
+      }
+      .article-column h3 {
+        margin: 18px 0 12px;
+        font-size: 37px;
+        line-height: 1.06;
+      }
+      .article-column p {
+        margin: 0;
+        color: #555f67;
+        line-height: 1.85;
+        font-size: 15px;
+      }
+      .article-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .article-list div {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid #d8d1c2;
+      }
+      .article-list b {
+        color: var(--amber);
+        font-family: var(--mono);
+      }
+      .article-figure {
+        border: 1px solid #d7d0c1;
+        border-radius: 9px;
+        background: #fffdf7;
+        padding: 18px;
+      }
+      .figure-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding-bottom: 14px;
+      }
+      .figure-title {
+        margin: 0;
+        font-size: 18px;
+      }
+      .figure-stage {
+        min-height: 520px;
+        border: 1px solid #e2dccc;
+        border-radius: 8px;
+      }
+
+      /* 03 */
+      .workbench {
+        color: #eaf2f6;
+        background: #081017;
+        border-color: #17222b;
+      }
+      .workbench .direction-head {
+        border-color: rgba(255,255,255,.12);
+      }
+      .workbench .desc,
+      .workbench .notes { color: #a8b6c0; }
+      .studio-work {
+        min-height: 680px;
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr) 330px;
+        gap: 14px;
+      }
+      .phase-rail,
+      .inspector {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 9px;
+        background: #0c141b;
+      }
+      .phase-rail {
+        padding: 14px;
+      }
+      .phase {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+        color: #8fa0ac;
+      }
+      .phase b {
+        color: #dbe8ee;
+        font-family: var(--mono);
+      }
+      .phase strong {
+        display: block;
+        color: #eaf4f8;
+        font-size: 13px;
+      }
+      .phase small {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .protocol-stage {
+        position: relative;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 9px;
+      }
+      .inspector {
+        padding: 16px;
+      }
+      .metric-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .metric {
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 7px;
+        padding: 10px;
+        background: rgba(255,255,255,.04);
+      }
+      .metric span {
+        display: block;
+        color: #8fa0ac;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        color: #fff;
+        font: 800 17px var(--mono);
+      }
+      .log {
+        display: grid;
+        gap: 9px;
+        margin-top: 18px;
+      }
+      .log div {
+        display: grid;
+        grid-template-columns: 54px 1fr;
+        gap: 10px;
+        color: #a8b6c0;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .log b {
+        color: var(--green);
+        font-family: var(--mono);
+      }
+
+      /* 04 */
+      .deck {
+        background: #f6f7f4;
+      }
+      .deck-work {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) 128px;
+        gap: 16px;
+        min-height: 680px;
+      }
+      .deck-stage {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #090b0e;
+        color: #fff;
+        min-height: 510px;
+      }
+      .deck-stage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(125deg, rgba(60,125,217,.12), transparent 38%),
+          linear-gradient(25deg, rgba(214,154,58,.12), transparent 48%);
+      }
+      .deck-title {
+        position: absolute;
+        left: 38px;
+        top: 32px;
+        z-index: 2;
+        margin: 0;
+        max-width: 720px;
+        font-size: clamp(48px, 7vw, 104px);
+        line-height: .9;
+        letter-spacing: 0;
+      }
+      .deck-caption {
+        position: absolute;
+        right: 34px;
+        bottom: 32px;
+        z-index: 2;
+        width: min(390px, calc(100% - 68px));
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 8px;
+        padding: 18px;
+        color: #dce7ec;
+        background: rgba(8,12,16,.72);
+        line-height: 1.7;
+      }
+      .deck-strip {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .slide-thumb {
+        border: 1px solid #d5dde0;
+        border-radius: 8px;
+        padding: 14px;
+        background: #fff;
+      }
+      .slide-thumb strong {
+        display: block;
+        font-size: 13px;
+      }
+      .slide-thumb span {
+        display: block;
+        margin-top: 8px;
+        color: #6b757e;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .slide-thumb.active {
+        color: #fff;
+        background: #111820;
+        border-color: #111820;
+      }
+      .slide-thumb.active span { color: #b8c6cf; }
+
+      @media (max-width: 1100px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+        .direction-head {
+          grid-template-columns: 48px minmax(0, 1fr);
+        }
+        .notes {
+          grid-column: 2;
+        }
+        .cinema-screen,
+        .atelier-work,
+        .studio-work {
+          grid-template-columns: 1fr;
+        }
+        .cinema-screen {
+          grid-template-rows: minmax(430px, 1fr) auto 96px;
+        }
+        .cinema-time {
+          grid-column: auto;
+        }
+        .studio-work {
+          grid-template-rows: auto minmax(470px, 1fr) auto;
+        }
+      }
+      @media (max-width: 620px) {
+        .page {
+          width: min(100% - 16px, 1480px);
+          padding-top: 22px;
+        }
+        .direction-head {
+          grid-template-columns: 1fr;
+          padding: 18px;
+        }
+        .notes {
+          grid-column: auto;
+        }
+        .mock {
+          min-height: 0;
+          padding: 10px;
+        }
+        .cinema-screen {
+          grid-template-rows: 380px auto auto;
+        }
+        .cinema-time {
+          grid-template-columns: 70px 1fr;
+        }
+        .cinema-time .mono:last-child {
+          display: none;
+        }
+        .article-column h3 {
+          font-size: 30px;
+        }
+        .figure-stage,
+        .protocol-stage {
+          min-height: 360px;
+        }
+        .node {
+          min-width: 92px;
+          min-height: 48px;
+          padding: 8px;
+        }
+        .node strong {
+          font-size: 11px;
+        }
+        .deck-work {
+          grid-template-rows: minmax(430px, 1fr) auto;
+        }
+        .deck-title {
+          left: 22px;
+          top: 24px;
+          font-size: 44px;
+        }
+        .deck-caption {
+          left: 20px;
+          right: 20px;
+          bottom: 20px;
+          width: auto;
+        }
+        .deck-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <h1>説明アニメーションUIの<br />デザイン案</h1>
+        <p>今回はアニメーションを抜き、静止画として成立するUIだけを比較します。題材は Ethereum ブロック生成で固定し、画面の余白、情報密度、視線誘導、タイポグラフィを見ます。</p>
+      </header>
+
+      <main class="stack">
+        <section class="direction cinema dark">
+          <div class="direction-head">
+            <div class="num">01</div>
+            <div>
+              <h2>シネマ教材UI</h2>
+              <p class="desc">大きな黒い舞台に図を置き、右側に現在シーン、下に再生情報を置く。Manim/3Blue1Brown 系の説明動画をHTMLで見せる器。</p>
+            </div>
+            <div class="notes">一番本命。ブロック生成、EVM実行、Merkle proof のような「順番に理解させる」題材に向いている。</div>
+          </div>
+          <div class="mock cinema-screen">
+            <div class="cinema-stage">
+              <div class="node dark-node" style="left:8%;top:43%;"><strong>mempool</strong><span>pending tx</span></div>
+              <div class="node dark-node" style="left:38%;top:22%;outline:2px solid rgba(89,201,218,.75);"><strong>payload builder</strong><span>order + simulate</span></div>
+              <div class="node dark-node" style="right:8%;top:43%;"><strong>execution payload</strong><span>block body</span></div>
+              <div class="node dark-node" style="left:40%;bottom:14%;"><strong>state root</strong><span>post-state</span></div>
+              <svg class="lines" viewBox="0 0 900 520" preserveAspectRatio="none">
+                <path class="line" d="M160 270 C310 150 455 120 600 230" style="color:#59c9da" />
+                <path class="line" d="M610 290 C520 390 395 405 300 335" style="color:#4fb985" />
+              </svg>
+            </div>
+            <aside class="cinema-side">
+              <span class="pill" style="color:#59c9da;">Scene 02</span>
+              <h3>候補トランザクションを並べ替える</h3>
+              <p class="tiny">proposer は EL に payload 構築を依頼する。tx は順序を持ち、実行後の state root が block の検証対象になる。</p>
+              <div class="legend-row">
+                <span>tx order</span>
+                <span>execution</span>
+                <span>state root</span>
+              </div>
+              <div class="chapter">
+                <div><b>01</b><span>slot 開始</span></div>
+                <div class="current"><b>02</b><span>payload 構築</span></div>
+                <div><b>03</b><span>実行結果を返す</span></div>
+                <div><b>04</b><span>署名して伝播</span></div>
+              </div>
+            </aside>
+            <div class="cinema-time">
+              <div class="play-mark">再生</div>
+              <div class="progress"><i></i></div>
+              <div class="mono">00:38 / 02:10</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="direction atelier">
+          <div class="direction-head">
+            <div class="num">02</div>
+            <div>
+              <h2>記事固定図UI</h2>
+              <p class="desc">左に説明本文、右に大きな固定図。技術記事やドキュメント内で、文章と図を同期させる前提のUI。</p>
+            </div>
+            <div class="notes">Qiita/Zenn/Docs 向け。動画らしさより、読者が止まりながら理解できることを優先する。</div>
+          </div>
+          <div class="mock atelier-work">
+            <div class="article-column">
+              <span class="pill" style="color:#ad6b24;">Article mode</span>
+              <h3>ブロックは箱ではなく、状態遷移の証拠です。</h3>
+              <p>Ethereum の block production では、Consensus Layer がタイミングと合意を扱い、Execution Layer が tx を実行して state root を返します。</p>
+              <div class="article-list">
+                <div><b>01</b><span><strong>slot</strong><br /><span class="tiny">proposer が選ばれる。</span></span></div>
+                <div><b>02</b><span><strong>payload</strong><br /><span class="tiny">EL が tx を実行し、結果を組み立てる。</span></span></div>
+                <div><b>03</b><span><strong>attestation</strong><br /><span class="tiny">validator が見た block に重みを与える。</span></span></div>
+              </div>
+            </div>
+            <div class="article-figure">
+              <div class="figure-toolbar">
+                <h3 class="figure-title">CL と EL の分担</h3>
+                <span class="pill" style="color:#3c7dd9;">Step 2 / 5</span>
+              </div>
+              <div class="diagram figure-stage soft-grid">
+                <div class="node" style="left:8%;top:16%;"><strong>Consensus Layer</strong><span>slot / fork choice</span></div>
+                <div class="node dark-node" style="left:40%;top:39%;"><strong>Execution Layer</strong><span>execute tx</span></div>
+                <div class="node" style="right:8%;top:16%;"><strong>Block</strong><span>header + body</span></div>
+                <div class="node" style="left:40%;bottom:13%;"><strong>state root</strong><span>post-state</span></div>
+                <svg class="lines" viewBox="0 0 900 540" preserveAspectRatio="none">
+                  <path class="line" d="M170 125 C295 160 365 240 425 270" style="color:#3c7dd9" />
+                  <path class="line" d="M510 285 C630 245 700 170 760 125" style="color:#d69a3a" />
+                  <path class="line" d="M470 324 C470 385 470 430 470 475" style="color:#4fb985" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="direction workbench dark">
+          <div class="direction-head">
+            <div class="num">03</div>
+            <div>
+              <h2>プロトコル作業台UI</h2>
+              <p class="desc">左にフェーズ、中央に図、右に状態値とログ。エンジニアが「いま何が起きているか」を追うためのUI。</p>
+            </div>
+            <div class="notes">EIP-1559、mempool、fork choice、P2P伝播など、数値とイベントログを同時に見せる題材に強い。</div>
+          </div>
+          <div class="mock studio-work">
+            <aside class="phase-rail">
+              <span class="pill" style="color:#59c9da;">Timeline</span>
+              <div class="phase"><b>01</b><span><strong>slot</strong><small>proposer selected</small></span></div>
+              <div class="phase"><b>02</b><span><strong>payload</strong><small>engine API call</small></span></div>
+              <div class="phase"><b>03</b><span><strong>execute</strong><small>state transition</small></span></div>
+              <div class="phase"><b>04</b><span><strong>broadcast</strong><small>peer propagation</small></span></div>
+            </aside>
+            <div class="diagram protocol-stage night-grid">
+              <div class="node dark-node" style="left:8%;top:15%;"><strong>peer A</strong><span>gossip</span></div>
+              <div class="node dark-node" style="right:8%;top:15%;"><strong>peer B</strong><span>gossip</span></div>
+              <div class="node dark-node" style="left:39%;top:38%;outline:2px solid rgba(89,201,218,.7);"><strong>proposer</strong><span>slot owner</span></div>
+              <div class="node dark-node" style="left:16%;bottom:14%;"><strong>attester</strong><span>vote</span></div>
+              <div class="node dark-node" style="right:16%;bottom:14%;"><strong>fork choice</strong><span>head update</span></div>
+              <svg class="lines" viewBox="0 0 900 540" preserveAspectRatio="none">
+                <path class="line" d="M170 125 C290 180 360 230 430 280" style="color:#59c9da" />
+                <path class="line" d="M735 125 C625 180 555 230 490 280" style="color:#8b7dde" />
+                <path class="line" d="M450 325 C370 420 300 455 235 470" style="color:#4fb985" />
+                <path class="line" d="M500 325 C585 410 650 450 718 470" style="color:#d69a3a" />
+              </svg>
+            </div>
+            <aside class="inspector">
+              <span class="pill" style="color:#4fb985;">Inspector</span>
+              <div class="metric-grid">
+                <div class="metric"><span>slot</span><strong>984221</strong></div>
+                <div class="metric"><span>gas used</span><strong>18.2M</strong></div>
+                <div class="metric"><span>base fee</span><strong>31.9</strong></div>
+                <div class="metric"><span>tx count</span><strong>162</strong></div>
+              </div>
+              <div class="log">
+                <div><b>+0.0</b><span>slot start</span></div>
+                <div><b>+0.4</b><span>forkchoiceUpdated</span></div>
+                <div><b>+1.1</b><span>payload attributes</span></div>
+                <div><b>+2.7</b><span>newPayload broadcast</span></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="direction deck">
+          <div class="direction-head">
+            <div class="num">04</div>
+            <div>
+              <h2>プレゼン映像UI</h2>
+              <p class="desc">講座や動画の1シーンとして見せるUI。大きなタイトル、少ない部品、下部のシーン一覧で構成する。</p>
+            </div>
+            <div class="notes">Kurzgesagt の完全再現ではなく、発表・動画化しやすい高コントラストな説明スライドとして使う。</div>
+          </div>
+          <div class="mock deck-work">
+            <div class="deck-stage">
+              <h3 class="deck-title">Block<br />Production</h3>
+              <div class="node dark-node" style="left:39%;top:47%;z-index:2;"><strong>payload</strong><span>execute tx</span></div>
+              <div class="node dark-node" style="left:19%;top:65%;z-index:2;"><strong>tx</strong><span>ordered</span></div>
+              <div class="node dark-node" style="right:17%;top:25%;z-index:2;"><strong>validator</strong><span>sign</span></div>
+              <svg class="lines" viewBox="0 0 1100 560" preserveAspectRatio="none">
+                <path class="line" d="M300 378 C420 305 510 285 610 285" style="color:#59c9da" />
+                <path class="line" d="M720 260 C805 215 845 180 910 145" style="color:#d69a3a" />
+              </svg>
+              <div class="deck-caption">1シーンに1メッセージだけ置く。細部は次のカットで見せ、ここでは「tx が payload になり、validator が署名する」ことだけを見せる。</div>
+            </div>
+            <div class="deck-strip">
+              <div class="slide-thumb active"><strong>01 slot</strong><span>proposer が選ばれる</span></div>
+              <div class="slide-thumb"><strong>02 payload</strong><span>tx を実行する</span></div>
+              <div class="slide-thumb"><strong>03 state</strong><span>root を計算する</span></div>
+              <div class="slide-thumb"><strong>04 sign</strong><span>block に署名</span></div>
+              <div class="slide-thumb"><strong>05 gossip</strong><span>peer に伝播</span></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

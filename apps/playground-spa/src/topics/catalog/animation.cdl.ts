@@ -238,3 +238,56 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
   .phase("r3", { duration: 2000, title: "Round 3 (佐藤様 追い上げ)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 48, 55).tween("p2", 65, 68).tween("p3", 42, 72).tween("p4", 40, 45).tween("totalKill", 28, 48).tween("avgAcc", 58, 64).badge("R3 佐藤様 追上げ"))
   .phase("r4", { duration: 2000, title: "Round 4 (佐藤様 優勝)", body: "" }, (p: PhaseBuilder) => p.activate("pl1", "pl2", "pl3", "pl4").tween("p1", 55, 62).tween("p2", 68, 74).tween("p3", 72, 80).tween("p4", 45, 50).tween("totalKill", 48, 72).tween("avgAcc", 64, 68).badge("R4 佐藤様 優勝"))
   .build();
+
+/**
+ * 10. richLayeredPriorityFee = 「3 層優先度手数料」 composite exemplar (dragon-diagram skill pilot、 2026-07-15)。
+ *
+ * theme = Ethereum EIP-1559 gas fee の 3 層構成 (base burn / priority tip / max cap) を混雑度で追跡。
+ *
+ * uses parts:
+ *   - 縦積み層バー (partsStackedLayer 経路) = 3 dyn-rect stacked layer で「重ね張り」 metaphor
+ *   - カウンタ表示 (partsCounterActor 経路) = actor + subtitle template で有効総額 gwei
+ *   - アークゲージ (partsArcGauge 経路) = dyn-arc で混雑度 %
+ *
+ * story arc = 空 block → 平常 → 混雑 → 極混雑 の 4 phase で 3 層が同時変動。
+ */
+export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-fee", {
+  topic: "3層優先度手数料 — 混雑度で base / tip / cap が同時に動く",
+})
+  .lane("bar", { x: 0, width: 320 })
+  .lane("stat", { x: 380, width: 320 })
+  .state("baseFee", { initial: 10 })
+  .state("tipFee", { initial: 2 })
+  .state("capFee", { initial: 8 })
+  .state("effectiveGwei", { initial: 12 })
+  .state("congestion", { initial: 15 })
+  .node("capL", { lane: "bar", stack: 0, kind: "dyn-rect", title: "max cap", subtitle: "+{capFee} gwei", w: 300, h: 140,
+    shape: { kind: "rect", source: "{capFee}", fillMax: 60, orient: "up", fill: "#94a3b8", radius: 4 } })
+  .node("tipL", { lane: "bar", stack: 1, kind: "dyn-rect", title: "priority tip", subtitle: "+{tipFee} gwei", w: 300, h: 100,
+    shape: { kind: "rect", source: "{tipFee}", fillMax: 50, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("baseL", { lane: "bar", stack: 2, kind: "dyn-rect", title: "base fee (burn)", subtitle: "{baseFee} gwei", w: 300, h: 180,
+    shape: { kind: "rect", source: "{baseFee}", fillMax: 160, orient: "up", fill: "#dc2626", radius: 4 } })
+  .node("effC", { lane: "stat", stack: 0, kind: "actor", title: "有効総額", subtitle: "{effectiveGwei} gwei", w: 280, h: 180 })
+  .node("congA", { lane: "stat", stack: 1, kind: "dyn-arc", title: "混雑度", subtitle: "{congestion}%", w: 280, h: 220,
+    shape: { kind: "arc", angle: "{congestion}", sweepMax: 100, outerRadius: 90, innerRadius: 62, fill: "#f97316" } })
+  .phase("p1", { duration: 1800, title: "空 block", body: "" }, (p: PhaseBuilder) =>
+    p.activate("capL", "tipL", "baseL", "effC", "congA")
+      .tween("baseFee", 10, 15).tween("tipFee", 2, 3).tween("capFee", 8, 12)
+      .tween("effectiveGwei", 12, 18).tween("congestion", 15, 28)
+      .badge("空 block"))
+  .phase("p2", { duration: 1800, title: "平常", body: "" }, (p: PhaseBuilder) =>
+    p.activate("capL", "tipL", "baseL", "effC", "congA")
+      .tween("baseFee", 15, 45).tween("tipFee", 3, 6).tween("capFee", 12, 20)
+      .tween("effectiveGwei", 18, 51).tween("congestion", 28, 58)
+      .badge("平常"))
+  .phase("p3", { duration: 1800, title: "混雑", body: "" }, (p: PhaseBuilder) =>
+    p.activate("capL", "tipL", "baseL", "effC", "congA")
+      .tween("baseFee", 45, 95).tween("tipFee", 6, 18).tween("capFee", 20, 35)
+      .tween("effectiveGwei", 51, 113).tween("congestion", 58, 88)
+      .badge("混雑"))
+  .phase("p4", { duration: 1800, title: "極混雑", body: "" }, (p: PhaseBuilder) =>
+    p.activate("capL", "tipL", "baseL", "effC", "congA")
+      .tween("baseFee", 95, 140).tween("tipFee", 18, 42).tween("capFee", 35, 55)
+      .tween("effectiveGwei", 113, 182).tween("congestion", 88, 96)
+      .badge("極混雑"))
+  .build();

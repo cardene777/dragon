@@ -15,6 +15,8 @@ import * as PrimExtMod from "@/topics/catalog/primitives-extra.cdl";
 import * as PatMod from "@/topics/catalog/patterns.cdl";
 // --- category: animation ---
 import * as AnimMod from "@/topics/catalog/animation.cdl";
+// --- category: parts (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ---
+import * as PartsMod from "@/topics/catalog/parts.cdl";
 // --- category: styles ---
 import * as StyMod from "@/topics/catalog/styles.cdl";
 // --- category: cookbook ---
@@ -86,6 +88,7 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   ],
   patterns: moduleToItems(PatMod),
   animation: moduleToItems(AnimMod),
+  parts: moduleToItems(PartsMod),
   styles: moduleToItems(StyMod),
   cookbook: moduleToItems(CookMod),
   "text-dsl": moduleToItems(TdMod),
