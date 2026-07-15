@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>同じ図で見るデザインテーマ10案</title>
+    <style>
+      :root {
+        --page: #e8edf0;
+        --ink: #101418;
+        --muted: #64707a;
+        --line: #d3dadd;
+        --jp: "Hiragino Sans", "Yu Gothic", "Yu Gothic UI", "Avenir Next", sans-serif;
+        --mono: "SF Mono", "Menlo", "Consolas", monospace;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .page {
+        width: min(1460px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 34px 0 82px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+        gap: 36px;
+        align-items: end;
+        padding: 8px 2px 28px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 1080px;
+        font-size: clamp(38px, 6vw, 82px);
+        line-height: .96;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.8;
+        font-size: 15px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      .card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(20, 28, 34, .10);
+      }
+
+      .head {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid rgba(18, 24, 29, .10);
+      }
+
+      .num {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #fff;
+        background: #10161c;
+        font: 800 12px var(--mono);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 2.4vw, 34px);
+        line-height: 1.08;
+      }
+
+      .caption {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      figure {
+        margin: 0;
+        padding: 18px;
+      }
+
+      .canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        border-radius: 8px;
+      }
+
+      svg text {
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .dark {
+        color: #edf6f8;
+        background: #070b0f;
+        border-color: #17232c;
+      }
+
+      .dark .head { border-color: rgba(255,255,255,.12); }
+      .dark .caption { color: #a7b4bd; }
+      .dark .num { color: #071014; background: #e7f8fb; }
+
+      @media (max-width: 980px) {
+        header,
+        .grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 540px) {
+        .page {
+          width: min(100% - 16px, 1460px);
+          padding-top: 22px;
+        }
+        .head { padding: 16px; }
+        figure { padding: 10px; }
+        .canvas { aspect-ratio: 4 / 3; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>同じ図で見る<br />デザインテーマ10案</h1>
+        <p class="lead">ここでは図法を変えません。全案で同じ `tx -> execute -> state root` の構造を使い、色味・雰囲気・線・面・タイポだけを変えています。選ぶべきなのは「見た目の方向性」です。</p>
+      </header>
+
+      <main class="grid">
+        <section class="card dark">
+          <div class="head">
+            <div class="num">01</div>
+            <div>
+              <h2>Mathematical Noir</h2>
+              <p class="caption">黒背景、発光しすぎない線、余白多め。Manim/3Blue1Brown寄り。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Mathematical Noir theme">
+              <rect width="720" height="450" fill="#070b0f"/>
+              <rect x="36" y="34" width="648" height="382" rx="18" fill="#0a1117" stroke="#1c2a33"/>
+              <text x="68" y="84" fill="#eef8fb" font-size="30" font-weight="900">State Transition</text>
+              <text x="68" y="116" fill="#7f929e" font-size="16">静かな黒板に、因果だけを浮かせる。</text>
+              <path d="M146 240 C255 145 454 145 574 240" fill="none" stroke="#5ad7e8" stroke-width="4" stroke-linecap="round"/>
+              <path d="M574 262 C460 338 276 338 146 262" fill="none" stroke="#62c78f" stroke-width="4" stroke-linecap="round"/>
+              <rect x="88" y="218" width="116" height="62" rx="9" fill="#111a22" stroke="#2a3b46"/>
+              <rect x="304" y="182" width="112" height="92" rx="10" fill="#101820" stroke="#5ad7e8"/>
+              <rect x="516" y="218" width="116" height="62" rx="9" fill="#111a22" stroke="#2a3b46"/>
+              <text x="146" y="256" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="235" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">execute</text>
+              <text x="574" y="256" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">root</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">02</div>
+            <div>
+              <h2>Editorial Ivory</h2>
+              <p class="caption">白〜アイボリー、紙面感、控えめな線。技術記事やDocsに馴染む。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Editorial Ivory theme">
+              <rect width="720" height="450" fill="#fffdf7"/>
+              <path d="M0 92 H720" stroke="#e8dfcf"/>
+              <text x="46" y="58" fill="#111416" font-size="30" font-weight="900">tx から state root へ</text>
+              <text x="46" y="124" fill="#67717a" font-size="16">本文と一緒に読ませる、落ち着いた説明図。</text>
+              <rect x="84" y="204" width="122" height="68" rx="10" fill="#fff" stroke="#d9d1c2"/>
+              <rect x="300" y="178" width="120" height="120" rx="12" fill="#111416"/>
+              <rect x="514" y="204" width="122" height="68" rx="10" fill="#fff" stroke="#d9d1c2"/>
+              <path d="M206 238 H300" stroke="#3c7dd9" stroke-width="4"/>
+              <path d="M420 238 H514" stroke="#d69a3a" stroke-width="4"/>
+              <circle cx="253" cy="238" r="6" fill="#3c7dd9"/>
+              <circle cx="467" cy="238" r="6" fill="#d69a3a"/>
+              <text x="145" y="246" fill="#111416" font-size="24" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="229" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">実行</text>
+              <text x="360" y="258" fill="#bdc7ce" font-size="14" text-anchor="middle">EVM</text>
+              <text x="575" y="246" fill="#111416" font-size="24" font-weight="900" text-anchor="middle">root</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">03</div>
+            <div>
+              <h2>Swiss Precision</h2>
+              <p class="caption">赤黒、グリッド、角ばった面。仕様書・プロトコル解説の硬さ。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Swiss Precision theme">
+              <rect width="720" height="450" fill="#f8f8f3"/>
+              <g stroke="#e0e2dc" stroke-width="1">
+                <path d="M60 0 V450"/><path d="M180 0 V450"/><path d="M300 0 V450"/><path d="M420 0 V450"/><path d="M540 0 V450"/><path d="M660 0 V450"/>
+                <path d="M0 75 H720"/><path d="M0 150 H720"/><path d="M0 225 H720"/><path d="M0 300 H720"/><path d="M0 375 H720"/>
+              </g>
+              <rect x="48" y="42" width="78" height="48" fill="#111416"/>
+              <text x="87" y="74" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">ETH</text>
+              <text x="150" y="74" fill="#111416" font-size="28" font-weight="900">Execution Rule</text>
+              <rect x="84" y="196" width="120" height="72" fill="#fff" stroke="#111416" stroke-width="2"/>
+              <rect x="300" y="166" width="120" height="132" fill="#111416"/>
+              <rect x="516" y="196" width="120" height="72" fill="#fff" stroke="#111416" stroke-width="2"/>
+              <path d="M204 232 H300 M420 232 H516" stroke="#d94d43" stroke-width="5"/>
+              <text x="144" y="240" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">TX</text>
+              <text x="360" y="228" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">EXEC</text>
+              <text x="576" y="240" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">ROOT</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">04</div>
+            <div>
+              <h2>Blueprint Cyan</h2>
+              <p class="caption">青い設計図、白線、測量感。内部構造やアーキテクチャ向き。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Blueprint Cyan theme">
+              <rect width="720" height="450" fill="#092033"/>
+              <g stroke="#163a52" stroke-width="1">
+                <path d="M0 30 H720"/><path d="M0 60 H720"/><path d="M0 90 H720"/><path d="M0 120 H720"/><path d="M0 150 H720"/><path d="M0 180 H720"/><path d="M0 210 H720"/><path d="M0 240 H720"/><path d="M0 270 H720"/><path d="M0 300 H720"/><path d="M0 330 H720"/><path d="M0 360 H720"/><path d="M0 390 H720"/><path d="M0 420 H720"/>
+                <path d="M30 0 V450"/><path d="M60 0 V450"/><path d="M90 0 V450"/><path d="M120 0 V450"/><path d="M150 0 V450"/><path d="M180 0 V450"/><path d="M210 0 V450"/><path d="M240 0 V450"/><path d="M270 0 V450"/><path d="M300 0 V450"/><path d="M330 0 V450"/><path d="M360 0 V450"/><path d="M390 0 V450"/><path d="M420 0 V450"/><path d="M450 0 V450"/><path d="M480 0 V450"/><path d="M510 0 V450"/><path d="M540 0 V450"/><path d="M570 0 V450"/><path d="M600 0 V450"/><path d="M630 0 V450"/><path d="M660 0 V450"/><path d="M690 0 V450"/>
+              </g>
+              <text x="46" y="60" fill="#d7f5ff" font-size="30" font-weight="900">Execution Blueprint</text>
+              <rect x="96" y="190" width="118" height="72" fill="none" stroke="#d7f5ff" stroke-width="3"/>
+              <rect x="302" y="154" width="116" height="144" fill="none" stroke="#5ad7e8" stroke-width="4"/>
+              <rect x="506" y="190" width="118" height="72" fill="none" stroke="#d7f5ff" stroke-width="3"/>
+              <path d="M214 226 H302 M418 226 H506" stroke="#d7f5ff" stroke-width="3"/>
+              <text x="155" y="236" fill="#d7f5ff" font-size="21" font-weight="900" text-anchor="middle">input</text>
+              <text x="360" y="236" fill="#5ad7e8" font-size="21" font-weight="900" text-anchor="middle">machine</text>
+              <text x="565" y="236" fill="#d7f5ff" font-size="21" font-weight="900" text-anchor="middle">output</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">05</div>
+            <div>
+              <h2>Terminal OLED</h2>
+              <p class="caption">黒いUI、緑とシアン、数値ラベル。開発者向けの実行画面感。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Terminal OLED theme">
+              <rect width="720" height="450" fill="#05080b"/>
+              <rect x="42" y="42" width="636" height="366" rx="16" fill="#0b1117" stroke="#1e2b35"/>
+              <text x="68" y="84" fill="#f2fbff" font-size="29" font-weight="900">Runtime</text>
+              <text x="68" y="114" fill="#788a96" font-size="16">diagram + small state values</text>
+              <rect x="88" y="188" width="116" height="72" rx="10" fill="#111a22" stroke="#243440"/>
+              <rect x="302" y="160" width="116" height="128" rx="12" fill="#102027" stroke="#59c9da"/>
+              <rect x="516" y="188" width="116" height="72" rx="10" fill="#111a22" stroke="#243440"/>
+              <path d="M204 224 H302 M418 224 H516" stroke="#59c9da" stroke-width="4"/>
+              <text x="146" y="232" fill="#fff" font-size="23" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="232" fill="#fff" font-size="23" font-weight="900" text-anchor="middle">execute</text>
+              <text x="574" y="232" fill="#fff" font-size="23" font-weight="900" text-anchor="middle">root</text>
+              <rect x="88" y="326" width="544" height="46" rx="8" fill="#0f171f" stroke="#1f303c"/>
+              <text x="112" y="355" fill="#4fb985" font-size="17" font-family="SF Mono, Menlo, monospace" font-weight="800">gasUsed 18.2M</text>
+              <text x="314" y="355" fill="#59c9da" font-size="17" font-family="SF Mono, Menlo, monospace" font-weight="800">stateRoot 0x91f4</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">06</div>
+            <div>
+              <h2>Bright Flat</h2>
+              <p class="caption">明るい色面、太い形、黒い輪郭。初学者向けの親しみやすい教材感。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Bright Flat theme">
+              <rect width="720" height="450" fill="#fff4dc"/>
+              <circle cx="604" cy="96" r="56" fill="#58cfd9"/>
+              <circle cx="112" cy="350" r="72" fill="#f08a43"/>
+              <rect x="82" y="126" width="556" height="252" rx="28" fill="#fff" stroke="#161b1f" stroke-width="3"/>
+              <rect x="126" y="214" width="120" height="72" rx="14" fill="#f08a43"/>
+              <rect x="300" y="190" width="120" height="120" rx="16" fill="#58cfd9"/>
+              <rect x="474" y="214" width="120" height="72" rx="14" fill="#66c98f"/>
+              <path d="M246 250 H300 M420 250 H474" stroke="#161b1f" stroke-width="4"/>
+              <text x="186" y="258" fill="#161b1f" font-size="24" font-weight="900" text-anchor="middle">取引</text>
+              <text x="360" y="258" fill="#161b1f" font-size="24" font-weight="900" text-anchor="middle">実行</text>
+              <text x="534" y="258" fill="#161b1f" font-size="24" font-weight="900" text-anchor="middle">状態</text>
+              <text x="116" y="172" fill="#161b1f" font-size="30" font-weight="900">まず直感を作る</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">07</div>
+            <div>
+              <h2>Museum Sepia</h2>
+              <p class="caption">セピア、展示ラベル、標本感。落ち着いた長文解説と相性が良い。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Museum Sepia theme">
+              <rect width="720" height="450" fill="#f3eadb"/>
+              <rect x="50" y="42" width="620" height="366" rx="8" fill="#fffaf0" stroke="#d6c6ad"/>
+              <text x="76" y="84" fill="#111416" font-size="29" font-weight="900">Specimen: State Change</text>
+              <text x="76" y="114" fill="#6c6254" font-size="16">静かな展示物として読む。</text>
+              <rect x="116" y="190" width="110" height="72" rx="10" fill="#fff4e5" stroke="#111416"/>
+              <rect x="306" y="162" width="108" height="128" rx="12" fill="#111416"/>
+              <rect x="496" y="190" width="110" height="72" rx="10" fill="#fff4e5" stroke="#111416"/>
+              <path d="M226 226 H306 M414 226 H496" stroke="#8b7a61" stroke-width="4"/>
+              <text x="171" y="236" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="236" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">execute</text>
+              <text x="551" y="236" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">root</text>
+              <rect x="110" y="326" width="500" height="42" rx="7" fill="#f3eadb" stroke="#d6c6ad"/>
+              <text x="360" y="352" fill="#554a3d" font-size="16" font-weight="900" text-anchor="middle">ラベルを添えて、じっくり読ませるテーマ</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">08</div>
+            <div>
+              <h2>Neon Graphite</h2>
+              <p class="caption">暗いグラファイト、強いネオン線、SF寄り。印象は強いが使い所を選ぶ。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Neon Graphite theme">
+              <rect width="720" height="450" fill="#0d0f14"/>
+              <path d="M0 360 L720 160 V450 H0 Z" fill="#151821"/>
+              <text x="46" y="64" fill="#f5f7ff" font-size="30" font-weight="900">Neon Execution</text>
+              <text x="46" y="96" fill="#8f9aa8" font-size="16">暗い背景に、情報の流れだけを強く光らせる。</text>
+              <path d="M154 236 H306 H414 H568" fill="none" stroke="#00e5ff" stroke-width="6" stroke-linecap="round"/>
+              <path d="M154 236 H306 H414 H568" fill="none" stroke="#00e5ff" stroke-width="18" stroke-linecap="round" opacity=".12"/>
+              <rect x="94" y="202" width="120" height="68" rx="12" fill="#141923" stroke="#00e5ff"/>
+              <rect x="304" y="168" width="112" height="136" rx="14" fill="#10141d" stroke="#ffcc4d"/>
+              <rect x="508" y="202" width="120" height="68" rx="12" fill="#141923" stroke="#7cffb2"/>
+              <text x="154" y="244" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="244" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">execute</text>
+              <text x="568" y="244" fill="#fff" font-size="24" font-weight="900" text-anchor="middle">root</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">09</div>
+            <div>
+              <h2>Minimal Mono</h2>
+              <p class="caption">白黒、線だけ、極端に静か。論文・仕様書の挿絵に向く。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Minimal Mono theme">
+              <rect width="720" height="450" fill="#ffffff"/>
+              <text x="48" y="64" fill="#111416" font-size="30" font-weight="900">Execution</text>
+              <text x="48" y="96" fill="#66717d" font-size="16">装飾を削り、構造だけを残す。</text>
+              <rect x="96" y="204" width="120" height="68" fill="#fff" stroke="#111416" stroke-width="2"/>
+              <rect x="300" y="178" width="120" height="120" fill="#fff" stroke="#111416" stroke-width="2"/>
+              <rect x="504" y="204" width="120" height="68" fill="#fff" stroke="#111416" stroke-width="2"/>
+              <path d="M216 238 H300 M420 238 H504" stroke="#111416" stroke-width="2"/>
+              <path d="M286 228 L300 238 L286 248 M490 228 L504 238 L490 248" fill="none" stroke="#111416" stroke-width="2"/>
+              <text x="156" y="246" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">tx</text>
+              <text x="360" y="246" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">execute</text>
+              <text x="564" y="246" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">root</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">10</div>
+            <div>
+              <h2>Premium Product</h2>
+              <p class="caption">アプリ内コンポーネントっぽい白面、淡いグレー、控えめなアクセント。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Premium Product theme">
+              <rect width="720" height="450" fill="#eef3f1"/>
+              <rect x="46" y="40" width="628" height="370" rx="22" fill="#ffffff" stroke="#d8e0de"/>
+              <text x="80" y="86" fill="#111416" font-size="29" font-weight="900">Transaction Flow</text>
+              <text x="80" y="116" fill="#66717d" font-size="16">再利用パーツとしてアプリに載せやすいテーマ。</text>
+              <rect x="102" y="194" width="124" height="84" rx="16" fill="#f4f7f6" stroke="#dce4e2"/>
+              <rect x="298" y="164" width="124" height="144" rx="18" fill="#111416"/>
+              <rect x="494" y="194" width="124" height="84" rx="16" fill="#f4f7f6" stroke="#dce4e2"/>
+              <path d="M226 236 H298 M422 236 H494" stroke="#111416" stroke-width="4"/>
+              <rect x="326" y="204" width="68" height="22" rx="6" fill="#58c7d9"/>
+              <rect x="326" y="246" width="68" height="22" rx="6" fill="#df9d3c"/>
+              <text x="164" y="242" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">入力</text>
+              <text x="360" y="148" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">実行</text>
+              <text x="556" y="242" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">結果</text>
+            </svg>
+          </figure>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

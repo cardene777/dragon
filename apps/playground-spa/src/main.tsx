@@ -8,6 +8,7 @@ import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";
 import "./styles/editor.css";
+import "./styles/compare.css";
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";

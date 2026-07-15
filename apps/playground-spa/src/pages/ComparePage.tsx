@@ -37,22 +37,22 @@ export function ComparePage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくず" className="nm-crumb">
-            <Link to="/">overview</Link>
+          <nav aria-label="パンくずリスト" className="nm-crumb">
+            <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
-            <span className="cur">compare</span>
+            <span className="cur">テーマ比較</span>
           </nav>
-          <span className="nm-eyebrow">THEME COMPARISON · 6 themes</span>
+          <span className="nm-eyebrow">THEME COMPARISON · 6 THEMES</span>
           <h1 className="nm-hero-title">
-            {preset.title} <span className="nm-gradient-accent">× 6 themes</span>
+            {preset.title} <span className="nm-gradient-accent">× 6 テーマ</span>
           </h1>
           <p className="nm-hero-subtitle">
-            {preset.subtitle} 選択した preset を Blueprint / Neumorphism / Circuit / Handdrawn / Pinboard / Isometric の 6 テーマで並列表示、 視覚的な差異を確認できる。
+            {preset.subtitle} 選択したプリセットを Blueprint / Neumorphism / Circuit / Handdrawn / Pinboard / Isometric の 6 テーマで並列表示、 視覚的な差異を確認できる。
           </p>
           <div className="nm-hero-actions">
             <div className="nm-preset-select-wrap">
               <Select.Root value={presetId} onValueChange={setPresetId}>
-                <Select.Trigger className="nm-preset-select-trigger" aria-label="Preset を選択">
+                <Select.Trigger className="nm-preset-select-trigger" aria-label="プリセットを選択">
                   <Select.Value>{preset.title}</Select.Value>
                   <Select.Icon>
                     <ChevronDown size={14} />
@@ -82,18 +82,18 @@ export function ComparePage(): React.ReactElement {
               </Select.Root>
             </div>
             <Link to="/editor" className="nm-hero-btn nm-hero-btn-secondary">
-              <span>Open editor</span>
+              <span>エディタで開く</span>
             </Link>
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label="theme comparison grid">
+        <section className="nm-presets-section" aria-label="テーマ比較グリッド">
           <div className="nm-section-head">
             <h2 className="nm-section-title">
-              Themes <span className="nm-section-count">({THEMES.length})</span>
+              テーマ <span className="nm-section-count">({THEMES.length})</span>
             </h2>
             <p className="nm-section-desc">
-              各テーマは data-cdl-theme attribute で切り替わる。 Blueprint = 設計図、 Neumorphism = 立体、 Circuit = PCB、 Handdrawn = 手描き、 Pinboard = 掲示板、 Isometric = 3D。
+              各テーマは <code>data-cdl-theme</code> 属性で切り替わる。 Blueprint = 設計図、 Neumorphism = 立体、 Circuit = PCB、 Handdrawn = 手描き、 Pinboard = 掲示板、 Isometric = 3D。
             </p>
           </div>
           <div className="nm-preset-grid">
@@ -109,7 +109,7 @@ export function ComparePage(): React.ReactElement {
                     className="w-full h-full"
                     placeholder={
                       <div className="w-full h-full flex items-center justify-center text-[11px] text-[var(--v4-ink-mute,#8a8678)] font-mono">
-                        loading…
+                        読み込み中…
                       </div>
                     }
                   >

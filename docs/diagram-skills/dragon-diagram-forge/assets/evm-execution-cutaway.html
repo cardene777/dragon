@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EVM Execution Cutaway Part</title>
+    <style>
+      :root {
+        --ink: #17202a;
+        --muted: #647180;
+        --line: #d7e0e7;
+        --bg: #f4f8f6;
+        --dark: #17202a;
+        --blue: #246f97;
+        --amber: #b86d16;
+        --green: #2f8a68;
+        --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f5f7f9;
+        color: var(--ink);
+        font-family: var(--sans);
+      }
+      main {
+        width: min(1120px, calc(100vw - 32px));
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+      }
+      header {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      svg {
+        width: 100%;
+        display: block;
+        background:
+          linear-gradient(rgba(255,255,255,.62) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.62) 1px, transparent 1px),
+          var(--bg);
+        background-size: 28px 28px;
+      }
+      .label { font: 900 18px var(--sans); fill: var(--ink); }
+      .sub { font: 800 12px var(--mono); fill: var(--muted); }
+      .small { font: 800 11px var(--mono); fill: var(--muted); }
+      .path {
+        fill: none;
+        stroke: var(--blue);
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-dasharray: 8 12;
+      }
+      .card {
+        fill: #fff;
+        stroke: #d0dbe4;
+        stroke-width: 1.4;
+        filter: url(#shadow);
+      }
+      .core {
+        fill: var(--dark);
+        stroke: var(--dark);
+        filter: url(#shadow);
+      }
+      .hot {
+        stroke: var(--blue);
+        stroke-width: 3;
+      }
+      .packet {
+        fill: var(--amber);
+        stroke: #fff;
+        stroke-width: 4;
+        filter: url(#glow);
+      }
+      .state-cell {
+        fill: #f8fbfc;
+      }
+      .gas-bg {
+        fill: #e6edf2;
+      }
+      .gas-used {
+        fill: url(#greenAmber);
+      }
+      footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 18px 20px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfd;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--muted);
+        font-family: var(--mono);
+        text-transform: uppercase;
+      }
+      ul {
+        margin: 0;
+        padding-left: 18px;
+        color: #33414f;
+        line-height: 1.65;
+      }
+      @media (max-width: 760px) {
+        footer { grid-template-columns: 1fr; }
+        main { width: calc(100vw - 20px); }
+        svg { min-width: 900px; }
+        .scroll { overflow-x: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>EVM実行断面パーツ</h1>
+        <p>説明としては未完成。再利用候補として、tx入力、EVM実行核、state/storage/logs/gas、root出力の配置だけを保存する。</p>
+      </header>
+      <div class="scroll">
+        <svg viewBox="0 0 1120 560" role="img" aria-label="EVM execution cutaway">
+          <defs>
+            <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+              <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1b2b3a" flood-opacity=".14" />
+            </filter>
+            <filter id="glow" x="-90%" y="-90%" width="280%" height="280%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <linearGradient id="greenAmber" x1="0" x2="1">
+              <stop offset="0" stop-color="#2f8a68" />
+              <stop offset=".62" stop-color="#7f8436" />
+              <stop offset="1" stop-color="#b86d16" />
+            </linearGradient>
+          </defs>
+
+          <rect x="34" y="42" width="1052" height="472" rx="24" fill="#eef7f4" stroke="#cfdbe4" />
+
+          <path class="path" d="M94 150 H330 C398 150 398 224 462 224" />
+          <path class="path" d="M94 246 H330 C398 246 398 300 462 300" />
+          <path class="path" d="M94 342 H330 C398 342 398 376 462 376" />
+
+          <rect class="card" x="92" y="120" width="170" height="60" rx="8" />
+          <rect class="card" x="92" y="216" width="170" height="60" rx="8" />
+          <rect class="card" x="92" y="312" width="170" height="60" rx="8" />
+          <text class="sub" x="177" y="154" text-anchor="middle">tx1 swap()</text>
+          <text class="sub" x="177" y="250" text-anchor="middle">tx2 transfer()</text>
+          <text class="sub" x="177" y="346" text-anchor="middle">tx3 settle()</text>
+
+          <rect class="core" x="454" y="112" width="300" height="336" rx="10" />
+          <text x="604" y="160" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">EVM実行核</text>
+          <text x="604" y="188" fill="#cbd6df" font-family="monospace" font-size="12" font-weight="800" text-anchor="middle">account / storage / logs / gas</text>
+
+          <rect class="state-cell" x="504" y="242" width="58" height="54" rx="8" />
+          <rect class="state-cell" x="576" y="242" width="58" height="54" rx="8" />
+          <rect class="state-cell" x="648" y="242" width="58" height="54" rx="8" />
+          <text class="small" x="533" y="318" text-anchor="middle">account</text>
+          <text class="small" x="605" y="318" text-anchor="middle">storage</text>
+          <text class="small" x="677" y="318" text-anchor="middle">logs</text>
+
+          <rect class="gas-bg" x="504" y="354" width="200" height="18" rx="9" />
+          <rect class="gas-used" x="504" y="354" width="128" height="18" rx="9" />
+          <text x="604" y="402" fill="#cbd6df" font-family="monospace" font-size="12" font-weight="800" text-anchor="middle">gasUsed accumulates</text>
+
+          <circle class="packet" cx="462" cy="300" r="14" />
+
+          <path class="path" d="M754 232 C824 196 862 196 928 232" />
+          <path class="path" d="M754 348 C824 390 862 390 928 348" />
+          <rect class="card hot" x="878" y="174" width="196" height="116" rx="8" />
+          <rect class="card hot" x="878" y="322" width="196" height="116" rx="8" />
+          <text class="label" x="976" y="218" text-anchor="middle">stateRoot</text>
+          <text class="sub" x="976" y="246" text-anchor="middle">0xnew</text>
+          <text class="label" x="976" y="366" text-anchor="middle">receiptsRoot</text>
+          <text class="sub" x="976" y="394" text-anchor="middle">0xrcpt</text>
+        </svg>
+      </div>
+      <footer>
+        <section>
+          <h2>使えるかもしれない点</h2>
+          <ul>
+            <li>入力tx、EVM核、状態セル、root出力の空間分離</li>
+            <li>gasUsedを横ゲージとして見せる部品</li>
+            <li>stateRoot / receiptsRoot を別出力として置く構造</li>
+          </ul>
+        </section>
+        <section>
+          <h2>まだダメな点</h2>
+          <ul>
+            <li>初学者向け説明として因果が足りない</li>
+            <li>storage before/after がない</li>
+            <li>receipt/log と root の関係が直感的でない</li>
+          </ul>
+        </section>
+      </footer>
+    </main>
+  </body>
+</html>

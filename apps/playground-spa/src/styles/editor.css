@@ -338,6 +338,24 @@
     border-color: var(--v4-brand-deep);
     transform: translateY(-1px);
   }
+  .v4-editor-warnings-apply:disabled {
+    background: transparent;
+    border-color: var(--v4-line);
+    color: var(--v4-ink-dim);
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.65;
+  }
+  .v4-editor-warnings-apply:disabled:hover {
+    background: transparent;
+    border-color: var(--v4-line);
+    transform: none;
+  }
+  html.dark .v4-editor-warnings-apply:disabled {
+    background: transparent;
+    border-color: var(--v4-line);
+    color: var(--v4-ink-dim);
+  }
   html.dark .v4-editor-warnings-apply {
     background: var(--v4-brand);
     color: #0e1117;

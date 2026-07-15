@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useLocation } from "react-router";
 import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
@@ -399,10 +400,27 @@ const MAX_SCALE = 8;
 const ZOOM_STEP = 0.2;
 
 export function CdlEditor(): React.JSX.Element {
+  const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
+  const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
+
+  /** 対応可 warning 数 (edge-label offset で fix 可能な 3 axis のみ)、 button state 制御用 */
+  const fixableWarningCount = useMemo(() => {
+    return warnings.filter((w) => {
+      const m1 = w.detail.match(/edge "([^"]+)"/);
+      const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
+      const edgeId = m1?.[1] ?? m2?.[1];
+      if (!edgeId) return false;
+      return (
+        w.axis === "edge-label-overlap" ||
+        w.axis === "clearance" ||
+        w.axis === "edge-label-proximity"
+      );
+    }).length;
+  }, [warnings]);
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
   const [isDark, setIsDark] = useState(false);
@@ -447,15 +465,32 @@ export function CdlEditor(): React.JSX.Element {
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
-  // URL hash から復元 (起動時 1 回のみ)
+  // URL hash から復元。 2 pattern を処理する。
+  // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
+  // 2. #preset=<slug> = catalog / preset detail からの sample 直接 open
+  //    SPA navigation で hash 変更した場合も反映するため location.hash を deps に含める
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const restored = decodeShare(window.location.hash);
-    // URL hash 復元は初期化専用 sync pattern、 mount 直後に外部状態 (URL hash) から React state
-    // を同期する legitimate 用途。 cascading render は発生しない ([] deps で 1 度きり)。
+    const hash = location.hash;
+
+    const presetMatch = hash.match(/^#preset=(.+)$/);
+    if (presetMatch) {
+      const targetSlug = decodeURIComponent(presetMatch[1]);
+      const sample = SAMPLES.find((s) => {
+        const typeMatch = s.label.match(/\(([^)]+)\)\s*$/);
+        return typeMatch !== null && typeMatch[1] === targetSlug;
+      });
+      if (sample) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSrc(sample.code);
+        return;
+      }
+    }
+
+    const restored = decodeShare(hash);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (restored) setSrc(restored);
-  }, []);
+  }, [location.hash]);
 
   /**
    * warning 群から DSL を自動修正する。
@@ -501,7 +536,16 @@ export function CdlEditor(): React.JSX.Element {
       // text-readability は node 幅/title の話で label offset で解決しないため skip
       offsetByEdge.set(edgeId, cur);
     }
-    if (offsetByEdge.size === 0) return;
+    if (offsetByEdge.size === 0) {
+      // user feedback: 対応可能な warning がない、 inline banner で表示 (alert は browser 依存)
+      const unsupportedAxes = Array.from(new Set(warnings.map((w) => w.axis))).join(", ");
+      setAutoFixMessage(`自動修正対応外 = ${unsupportedAxes}。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 text-readability は DSL で title 短縮、 subpixel-precision は非致命 (無視可能)。`);
+      window.setTimeout(() => setAutoFixMessage(null), 10000);
+      return;
+    }
+    // 成功時も message
+    setAutoFixMessage(`${offsetByEdge.size} 件の edge-label offset を DSL に反映しました。`);
+    window.setTimeout(() => setAutoFixMessage(null), 6000);
 
     // diagram.edges を「順番」 で DSL の flow 行と対応させる (id 直接検索は slugify で難しい)。
     // v05 parser は flow: 配下 の each item を配列順に edge に変換、 DSL flow 行順 = diagram.edges 順。
@@ -870,11 +914,11 @@ animation:
           onClick={handleNewFile}
         >
           <span className="v4-editor-side-new-plus">+</span>
-          <span>new file</span>
+          <span>新規ファイル</span>
         </button>
         <details className="v4-editor-side-samples" open={false}>
           <summary className="v4-editor-side-samples-summary">
-            <span className="v4-editor-side-samples-label">samples</span>
+            <span className="v4-editor-side-samples-label">サンプル</span>
             <span className="v4-editor-side-samples-count">{filteredSamples.length}</span>
             <span className="v4-editor-side-samples-caret">›</span>
           </summary>
@@ -882,7 +926,7 @@ animation:
             <input
               className="v4-editor-search"
               type="text"
-              placeholder="🔍 search..."
+              placeholder="🔍 検索…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -917,20 +961,20 @@ animation:
           </button>
           <div className="v4-editor-export">
             <button type="button" className="v4-editor-bar-btn v4-editor-bar-btn-primary" disabled={!diagram}>
-              export ↓
+              エクスポート ↓
             </button>
             <div className="v4-editor-export-menu">
               <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
-                <strong>animated SVG</strong>
-                <span>単一fileで動く / GitHub README / Notion</span>
+                <strong>アニメーション SVG</strong>
+                <span>単一ファイルで動く / GitHub README / Notion</span>
               </button>
               <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
-                <strong>static SVG</strong>
-                <span>現phaseの静止1frame / Keynote / PDF</span>
+                <strong>静止 SVG</strong>
+                <span>現 phase の静止 1 frame / Keynote / PDF</span>
               </button>
               <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
                 <strong>PNG</strong>
-                <span>ラスター2x DPR / Slack / Twitter</span>
+                <span>ラスター 2x DPR / Slack / Twitter</span>
               </button>
             </div>
           </div>
@@ -962,16 +1006,41 @@ animation:
                   ? "位置関係NG"
                   : `位置関係の警告 ${warnings.length}件`}
               </span>
-              <span className="v4-editor-warnings-hint">DSLの labelOffsetX/Y でnodeとの位置を調整できます</span>
+              <span className="v4-editor-warnings-hint">
+                {fixableWarningCount > 0
+                  ? `DSLの labelOffsetX/Y でnodeとの位置を調整できます (対応可 ${fixableWarningCount} 件)`
+                  : "対応可 0 件 (text-readability = DSLで title 短縮、 subpixel-precision = 非致命)"}
+              </span>
               <button
                 type="button"
                 className="v4-editor-warnings-apply"
                 onClick={handleAutoFix}
-                title="全 warning に対して推奨 offset を DSL に一括反映"
+                disabled={fixableWarningCount === 0}
+                title={
+                  fixableWarningCount > 0
+                    ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
+                    : "対応可 warning がありません"
+                }
               >
-                一括反映 ✨
+                {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "対応可なし"}
               </button>
             </div>
+            {autoFixMessage && (
+              <div
+                role="status"
+                style={{
+                  padding: "8px 12px",
+                  marginTop: "8px",
+                  borderRadius: "6px",
+                  background: "var(--v4-brand-soft, #dbeafe)",
+                  color: "var(--v4-brand, #1e40af)",
+                  fontSize: "12px",
+                  lineHeight: 1.5,
+                }}
+              >
+                {autoFixMessage}
+              </div>
+            )}
             <ul className="v4-editor-warnings-list">
               {warnings.slice(0, 6).map((w, i) => (
                 <li key={i} className={`v4-editor-warning-item v4-editor-warning-${w.severity}`}>
@@ -991,22 +1060,49 @@ animation:
       <section className="v4-editor-preview">
         <header className="v4-editor-bar">
           <span className="v4-editor-bar-file">
-            <span className="v4-editor-live" /> live preview
+            <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
-          <button type="button" className="v4-editor-bar-btn" onClick={handleFit}>
-            fit
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleFit}
+            title="表示を preview 領域に合わせる"
+          >
+            フィット
           </button>
-          <button type="button" className="v4-editor-bar-btn" onClick={handleReset}>
-            reset
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleReset}
+            title="表示を初期状態に戻す (Esc)"
+          >
+            リセット
           </button>
-          <button type="button" className="v4-editor-bar-btn" onClick={handle100}>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handle100}
+            title="等倍表示"
+          >
             100%
           </button>
-          <button type="button" className="v4-editor-bar-btn" onClick={handleZoomOut}>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleZoomOut}
+            title="縮小"
+            aria-label="縮小"
+          >
             −
           </button>
-          <button type="button" className="v4-editor-bar-btn" onClick={handleZoomIn}>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleZoomIn}
+            title="拡大"
+            aria-label="拡大"
+          >
             +
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
@@ -1029,7 +1125,7 @@ animation:
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} emitGeometryWarn={import.meta.env.DEV} />
+                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>

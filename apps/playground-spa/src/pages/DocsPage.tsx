@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -5,8 +6,13 @@ import { SiteHeader } from "@/components/SiteHeader";
  * dragon docs top = 旧 apps/playground/src/pages/docs/index.astro の忠実再現。
  * docs-hero + docs-hero-features (6 feature card) + docs-hero-snippet (code snippet)。
  * CSS SSOT = src/styles/docs-site.css (旧 apps/playground/src/styles/docs-site.css 移植)。
+ * CSS selectors は `body.docs-body` を前提とするため、 mount 時に document.body に class 付与。
  */
 export function DocsPage(): React.ReactElement {
+  useEffect(() => {
+    document.body.classList.add("docs-body");
+    return () => document.body.classList.remove("docs-body");
+  }, []);
   return (
     <div className="docs-body">
       <SiteHeader />
@@ -46,23 +52,23 @@ export function DocsPage(): React.ReactElement {
           </Link>
           <Link to="/catalog/primitives" className="docs-feature-card">
             <div className="docs-feature-icon">🧱</div>
-            <h2>5 Primitives</h2>
+            <h2>5 つの基本要素</h2>
             <p>lane / node / edge / state / phase で任意の図を組み立て。</p>
           </Link>
           <Link to="/catalog/presets" className="docs-feature-card">
             <div className="docs-feature-icon">🎁</div>
-            <h2>6 高位 API</h2>
+            <h2>6 種類の高位 API</h2>
             <p>swimlane / flow / sequence / topology / er / stateMachine。 mermaid 同等。</p>
           </Link>
           <Link to="/catalog" className="docs-feature-card">
             <div className="docs-feature-icon">🔄</div>
-            <h2>Mermaid Migration</h2>
+            <h2>Mermaid からの移行</h2>
             <p>sequenceDiagram / erDiagram / stateDiagram-v2 の 1:1 対応表。</p>
           </Link>
           <Link to="/catalog/animation" className="docs-feature-card">
             <div className="docs-feature-icon">👁</div>
-            <h2>「目」 Verifier</h2>
-            <p>書いた declaration が画面に出ているかを engine が自動検証 (LLM 不要)。</p>
+            <h2>「目」 による自動検証</h2>
+            <p>書いた宣言が画面に出ているかを engine が自動検証 (LLM 不要)。</p>
           </Link>
         </section>
 

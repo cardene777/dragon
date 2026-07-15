@@ -23,7 +23,7 @@ export function ThemePicker({
             "bg-white text-[var(--v4-ink,#1a1f2a)] shadow-sm hover:shadow transition-shadow",
             "min-w-[140px] sm:min-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v4-brand,#2d6a8f)]",
           )}
-          aria-label="Theme"
+          aria-label="テーマ切替"
         >
           <Select.Value>
             <span className="sm:hidden">{THEME_CONFIGS[value].label}</span>

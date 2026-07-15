@@ -11,17 +11,17 @@ export function ReleaseNotesPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくず" className="nm-crumb">
-            <Link to="/">overview</Link>
+          <nav aria-label="パンくずリスト" className="nm-crumb">
+            <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
-            <span className="cur">release notes</span>
+            <span className="cur">リリースノート</span>
           </nav>
           <span className="nm-eyebrow">RELEASE · v0.5 CURRENT</span>
           <h1 className="nm-hero-title">
-            Release <span className="nm-gradient-accent">Notes</span>
+            リリース<span className="nm-gradient-accent">ノート</span>
           </h1>
           <p className="nm-hero-subtitle">
-            dragon DSL の release ごとの主要変更を要約表示。 詳細な release note は GitHub 上の CHANGELOG.md を参照。
+            dragon DSL のリリースごとの主要変更を要約表示。 詳細なリリースノートは GitHub 上の CHANGELOG.md を参照。
           </p>
           <div className="nm-hero-actions">
             <a
@@ -30,7 +30,7 @@ export function ReleaseNotesPage(): React.ReactElement {
               rel="noopener noreferrer"
               className="nm-hero-btn nm-hero-btn-primary"
             >
-              <span>CHANGELOG on GitHub</span>
+              <span>CHANGELOG を GitHub で見る</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">↗</span>
             </a>
             <a
@@ -39,41 +39,41 @@ export function ReleaseNotesPage(): React.ReactElement {
               rel="noopener noreferrer"
               className="nm-hero-btn nm-hero-btn-secondary"
             >
-              <span>GitHub Releases</span>
+              <span>GitHub リリース一覧</span>
             </a>
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label="latest release summary">
+        <section className="nm-presets-section" aria-label="最新リリース概要">
           <div className="nm-section-head">
-            <h2 className="nm-section-title">Latest release</h2>
+            <h2 className="nm-section-title">最新リリース</h2>
             <p className="nm-section-desc">
-              現時点の最新 release は v0.5 (Text DSL × SVG animation)。 個別 release note は GitHub 経由で参照する。
+              現時点の最新リリースは v0.5 (Text DSL × SVG アニメーション)。 個別リリースノートは GitHub 経由で参照する。
             </p>
           </div>
           <article className="nm-preset-card">
             <header className="nm-preset-card-head">
               <div className="nm-preset-id">v0.5</div>
               <span className="nm-preset-eyebrow">TEXT DSL × SVG ANIMATION</span>
-              <h3 className="nm-preset-title">v0.5 (current)</h3>
+              <h3 className="nm-preset-title">v0.5 (最新)</h3>
               <p className="nm-preset-subtitle">
-                Text DSL parser + 12 preset (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 6 theme (blueprint / neumorphism / circuit / handdrawn / pinboard / isometric)。
+                Text DSL parser + 12 プリセット (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 6 テーマ (blueprint / neumorphism / circuit / handdrawn / pinboard / isometric)。
               </p>
             </header>
             <footer className="nm-preset-card-foot">
               <div className="nm-preset-tags">
                 <span className="nm-preset-tag">v0.5</span>
-                <span className="nm-preset-tag">12 presets</span>
-                <span className="nm-preset-tag">6 themes</span>
+                <span className="nm-preset-tag">12 プリセット</span>
+                <span className="nm-preset-tag">6 テーマ</span>
               </div>
               <a
                 href="https://github.com/cardene777/dragon/blob/main/CHANGELOG.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="nm-preset-docs"
-                aria-label="v0.5 の changelog を GitHub で読む"
+                aria-label="v0.5 の CHANGELOG を GitHub で読む"
               >
-                <span>Read on GitHub</span>
+                <span>GitHub で読む</span>
                 <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>
               </a>
             </footer>

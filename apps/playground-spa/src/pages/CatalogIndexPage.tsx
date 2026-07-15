@@ -16,6 +16,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   primitives: "基本要素",
   "text-dsl": "テキスト DSL",
   animation: "アニメーション",
+  parts: "パーツ",
   styles: "スタイル",
   interactive: "インタラクティブ",
 };

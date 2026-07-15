@@ -11,17 +11,17 @@ export function ContributePage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label="パンくず" className="nm-crumb">
-            <Link to="/">overview</Link>
+          <nav aria-label="パンくずリスト" className="nm-crumb">
+            <Link to="/">概要</Link>
             <span aria-hidden="true">/</span>
-            <span className="cur">contribute</span>
+            <span className="cur">コントリビュート</span>
           </nav>
           <span className="nm-eyebrow">CONTRIBUTE · OPEN SOURCE</span>
           <h1 className="nm-hero-title">
-            Contribute to <span className="nm-gradient-accent">dragon</span>
+            <span className="nm-gradient-accent">dragon</span> にコントリビュートする
           </h1>
           <p className="nm-hero-subtitle">
-            dragon は MIT License の OSS プロジェクト。 bug 報告 / feature 提案 / PR は GitHub Issues と Pull Request 経由で歓迎する。 開発ガイドライン (test / commit / branch / review) は CONTRIBUTING.md で SSOT。
+            dragon は MIT License の OSS プロジェクト。 バグ報告 / 機能提案 / PR は GitHub Issues と Pull Request 経由で歓迎する。 開発ガイドライン (test / commit / branch / review) は CONTRIBUTING.md で SSOT。
           </p>
           <div className="nm-hero-actions">
             <a
@@ -30,7 +30,7 @@ export function ContributePage(): React.ReactElement {
               rel="noopener noreferrer"
               className="nm-hero-btn nm-hero-btn-primary"
             >
-              <span>Read CONTRIBUTING.md</span>
+              <span>CONTRIBUTING.md を読む</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">↗</span>
             </a>
             <a
@@ -39,16 +39,16 @@ export function ContributePage(): React.ReactElement {
               rel="noopener noreferrer"
               className="nm-hero-btn nm-hero-btn-secondary"
             >
-              <span>Open an issue</span>
+              <span>Issue を起票</span>
             </a>
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label="how to contribute">
+        <section className="nm-presets-section" aria-label="コントリビュート方法">
           <div className="nm-section-head">
-            <h2 className="nm-section-title">How to contribute</h2>
+            <h2 className="nm-section-title">コントリビュート方法</h2>
             <p className="nm-section-desc">
-              3 経路で貢献可能 (bug 報告 / feature 提案 / PR)。 詳細は CONTRIBUTING.md SSOT を参照。
+              3 経路で貢献可能 (バグ報告 / 機能提案 / PR)。 詳細は CONTRIBUTING.md SSOT を参照。
             </p>
           </div>
           <div className="nm-preset-grid">
@@ -56,9 +56,9 @@ export function ContributePage(): React.ReactElement {
               <header className="nm-preset-card-head">
                 <div className="nm-preset-id">1. bug</div>
                 <span className="nm-preset-eyebrow">BUG REPORT</span>
-                <h3 className="nm-preset-title">Bug 報告</h3>
+                <h3 className="nm-preset-title">バグ報告</h3>
                 <p className="nm-preset-subtitle">
-                  再現手順 + 期待動作 + 実際の挙動 を GitHub Issue (bug template) で起票。 minimal reproduction が付いていれば maintainer は素早く対応できる。
+                  再現手順 + 期待動作 + 実際の挙動 を GitHub Issue (bug template) で起票。 最小再現コードが付いていれば maintainer は素早く対応できる。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -72,7 +72,7 @@ export function ContributePage(): React.ReactElement {
                   rel="noopener noreferrer"
                   className="nm-preset-docs"
                 >
-                  <span>File bug</span>
+                  <span>バグを起票</span>
                   <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>
                 </a>
               </footer>
@@ -82,9 +82,9 @@ export function ContributePage(): React.ReactElement {
               <header className="nm-preset-card-head">
                 <div className="nm-preset-id">2. feature</div>
                 <span className="nm-preset-eyebrow">FEATURE REQUEST</span>
-                <h3 className="nm-preset-title">Feature 提案</h3>
+                <h3 className="nm-preset-title">機能提案</h3>
                 <p className="nm-preset-subtitle">
-                  新 DSL syntax / new preset / animation 機能などの提案。 use case + 期待動作を feature template で提出。 議論 →合意 → 実装 → PR の順で進む。
+                  新 DSL 構文 / 新プリセット / アニメーション機能などの提案。 用途 + 期待動作を feature template で提出。 議論 → 合意 → 実装 → PR の順で進む。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -98,7 +98,7 @@ export function ContributePage(): React.ReactElement {
                   rel="noopener noreferrer"
                   className="nm-preset-docs"
                 >
-                  <span>Propose feature</span>
+                  <span>機能を提案</span>
                   <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>
                 </a>
               </footer>
@@ -110,7 +110,7 @@ export function ContributePage(): React.ReactElement {
                 <span className="nm-preset-eyebrow">PULL REQUEST</span>
                 <h3 className="nm-preset-title">Pull Request</h3>
                 <p className="nm-preset-subtitle">
-                  test 先行 (TDD 推奨、 動作証明なし PR は merge 対象外) + typecheck / build 緑必須 + 1 PR = 1 concern。 詳細は CONTRIBUTING.md § Pull request SSOT。
+                  テスト先行 (TDD 推奨、 動作証明なし PR は merge 対象外) + typecheck / build 緑必須 + 1 PR = 1 concern。 詳細は CONTRIBUTING.md § Pull request SSOT。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -124,7 +124,7 @@ export function ContributePage(): React.ReactElement {
                   rel="noopener noreferrer"
                   className="nm-preset-docs"
                 >
-                  <span>Open PR</span>
+                  <span>PR を作成</span>
                   <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>
                 </a>
               </footer>

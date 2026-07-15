@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>説明図スタイル 追加10案</title>
+    <style>
+      :root {
+        --bg: #e9edf0;
+        --ink: #101316;
+        --muted: #606b75;
+        --line: #d3dadd;
+        --jp: "Hiragino Sans", "Yu Gothic", "Yu Gothic UI", "Avenir Next", sans-serif;
+        --mono: "SF Mono", "Menlo", "Consolas", monospace;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .page {
+        width: min(1460px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 34px 0 82px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+        gap: 36px;
+        align-items: end;
+        padding: 8px 2px 28px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 1080px;
+        font-size: clamp(38px, 6vw, 82px);
+        line-height: .96;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.8;
+        font-size: 15px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      .card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(20, 28, 34, .10);
+      }
+
+      .head {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid rgba(18, 24, 29, .10);
+      }
+
+      .num {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #fff;
+        background: #10161c;
+        font: 800 12px var(--mono);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(22px, 2.4vw, 34px);
+        line-height: 1.08;
+      }
+
+      .caption {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      figure {
+        margin: 0;
+        padding: 18px;
+      }
+
+      .canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        border-radius: 8px;
+      }
+
+      svg text {
+        font-family: var(--jp);
+        letter-spacing: 0;
+      }
+
+      .dark {
+        color: #edf6f8;
+        background: #070b0f;
+        border-color: #17232c;
+      }
+
+      .dark .head {
+        border-color: rgba(255,255,255,.12);
+      }
+
+      .dark .caption {
+        color: #a7b4bd;
+      }
+
+      .dark .num {
+        color: #071014;
+        background: #e7f8fb;
+      }
+
+      @media (max-width: 980px) {
+        header,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 540px) {
+        .page {
+          width: min(100% - 16px, 1460px);
+          padding-top: 22px;
+        }
+        .head { padding: 16px; }
+        figure { padding: 10px; }
+        .canvas { aspect-ratio: 4 / 3; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>別観点の<br />説明図10案</h1>
+        <p class="lead">v3 は残したまま、追加で全く違う構図の10案を作っています。今回は「矢印で流す」以外の見せ方を中心に、図の雰囲気を選ぶための静止サンプルです。</p>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <div class="head">
+            <div class="num">11</div>
+            <div>
+              <h2>Anatomy Cutaway</h2>
+              <p class="caption">ブロックを断面図として見せる。中身の層や責務分担を説明しやすい。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Anatomy Cutaway style">
+              <rect width="720" height="450" fill="#f8f4eb"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">Block Anatomy</text>
+              <text x="44" y="88" fill="#66717d" font-size="16">外側から順に、何が入っているかを見る。</text>
+              <g transform="translate(136 125)">
+                <path d="M70 0 H420 L470 48 V260 H20 V48 Z" fill="#fff" stroke="#222a31" stroke-width="3"/>
+                <path d="M70 0 L20 48 H470 L420 0 Z" fill="#e6eef1" stroke="#222a31" stroke-width="3"/>
+                <rect x="64" y="78" width="360" height="42" rx="6" fill="#111416"/>
+                <rect x="64" y="140" width="360" height="42" rx="6" fill="#58c7d9"/>
+                <rect x="64" y="202" width="360" height="42" rx="6" fill="#df9d3c"/>
+                <text x="244" y="106" fill="#fff" font-size="21" font-weight="900" text-anchor="middle">header</text>
+                <text x="244" y="168" fill="#111416" font-size="21" font-weight="900" text-anchor="middle">transactions</text>
+                <text x="244" y="230" fill="#111416" font-size="21" font-weight="900" text-anchor="middle">execution result</text>
+              </g>
+              <path d="M542 204 H606" stroke="#222a31" stroke-width="3"/>
+              <text x="616" y="210" fill="#222a31" font-size="17" font-weight="900">root</text>
+              <path d="M542 268 H606" stroke="#222a31" stroke-width="3"/>
+              <text x="616" y="274" fill="#222a31" font-size="17" font-weight="900">gas</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">12</div>
+            <div>
+              <h2>Sankey Flow</h2>
+              <p class="caption">流量を幅で表す。gas、手数料、tx分類の説明に向く。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Sankey Flow style">
+              <rect width="720" height="450" fill="#fbfcfb"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">Fee Split</text>
+              <text x="44" y="88" fill="#66717d" font-size="16">何がどこへ分配されるかを、線の太さで見せる。</text>
+              <rect x="64" y="176" width="118" height="96" rx="12" fill="#111416"/>
+              <text x="123" y="230" fill="#fff" font-size="21" font-weight="900" text-anchor="middle">fee</text>
+              <rect x="542" y="118" width="116" height="62" rx="10" fill="#e85d55"/>
+              <rect x="542" y="212" width="116" height="62" rx="10" fill="#58c98d"/>
+              <rect x="542" y="306" width="116" height="62" rx="10" fill="#5ac7dc"/>
+              <text x="600" y="155" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">burn</text>
+              <text x="600" y="249" fill="#102017" font-size="20" font-weight="900" text-anchor="middle">tip</text>
+              <text x="600" y="343" fill="#102017" font-size="20" font-weight="900" text-anchor="middle">refund</text>
+              <path d="M182 198 C314 110 430 115 542 145" fill="none" stroke="#e85d55" stroke-width="34" stroke-linecap="round" opacity=".9"/>
+              <path d="M182 224 C316 222 418 236 542 243" fill="none" stroke="#58c98d" stroke-width="22" stroke-linecap="round" opacity=".92"/>
+              <path d="M182 252 C308 340 424 350 542 337" fill="none" stroke="#5ac7dc" stroke-width="18" stroke-linecap="round" opacity=".92"/>
+              <text x="310" y="136" fill="#7a2b27" font-size="16" font-weight="900">baseFee</text>
+              <text x="316" y="224" fill="#1e6a4a" font-size="16" font-weight="900">priorityFee</text>
+              <text x="314" y="342" fill="#1e6570" font-size="16" font-weight="900">unused</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">13</div>
+            <div>
+              <h2>Circuit Trace</h2>
+              <p class="caption">回路図のように、入力信号が部品を通って出力に変わる構図。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Circuit Trace style">
+              <rect width="720" height="450" fill="#071017"/>
+              <g stroke="#15303a" stroke-width="1">
+                <path d="M0 45 H720"/><path d="M0 90 H720"/><path d="M0 135 H720"/><path d="M0 180 H720"/><path d="M0 225 H720"/><path d="M0 270 H720"/><path d="M0 315 H720"/><path d="M0 360 H720"/><path d="M0 405 H720"/>
+                <path d="M45 0 V450"/><path d="M90 0 V450"/><path d="M135 0 V450"/><path d="M180 0 V450"/><path d="M225 0 V450"/><path d="M270 0 V450"/><path d="M315 0 V450"/><path d="M360 0 V450"/><path d="M405 0 V450"/><path d="M450 0 V450"/><path d="M495 0 V450"/><path d="M540 0 V450"/><path d="M585 0 V450"/><path d="M630 0 V450"/><path d="M675 0 V450"/>
+              </g>
+              <text x="44" y="58" fill="#eff9fb" font-size="31" font-weight="900">Execution Circuit</text>
+              <path d="M78 236 H188 V142 H336 V236 H468 V164 H628" fill="none" stroke="#5ad7e8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M188 236 H298 V316 H468" fill="none" stroke="#62c78f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="84" y="204" width="92" height="64" rx="8" fill="#111b22" stroke="#2c4654"/>
+              <rect x="304" y="108" width="116" height="70" rx="8" fill="#12252d" stroke="#5ad7e8"/>
+              <rect x="476" y="132" width="112" height="64" rx="8" fill="#111b22" stroke="#2c4654"/>
+              <rect x="476" y="284" width="112" height="64" rx="8" fill="#111b22" stroke="#2c4654"/>
+              <text x="130" y="243" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">tx</text>
+              <text x="362" y="150" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">EVM</text>
+              <text x="532" y="170" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">root</text>
+              <text x="532" y="322" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">logs</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">14</div>
+            <div>
+              <h2>Topographic State</h2>
+              <p class="caption">状態空間を地形のように見せる。探索、最適化、fork choice の比喩に向く。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Topographic State style">
+              <rect width="720" height="450" fill="#f4f2e8"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">State Landscape</text>
+              <text x="44" y="88" fill="#66717d" font-size="16">ブロック候補を地形上の位置として見る。</text>
+              <g fill="none" stroke="#c9c2ae" stroke-width="2">
+                <path d="M120 290 C130 210 236 162 334 190 C438 220 508 158 590 190 C660 218 650 322 580 356 C480 405 372 330 292 356 C206 384 108 360 120 290Z"/>
+                <path d="M176 286 C184 232 256 204 334 224 C430 250 484 204 558 222 C610 236 606 308 552 328 C470 358 384 304 310 326 C244 346 168 330 176 286Z"/>
+                <path d="M238 282 C250 250 288 246 338 252 C404 262 448 238 506 250 C546 258 542 294 506 306 C446 324 396 290 330 302 C282 310 228 306 238 282Z"/>
+              </g>
+              <path d="M146 330 C244 286 314 286 396 258 C486 226 548 214 610 238" fill="none" stroke="#111416" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="146" cy="330" r="14" fill="#3c7dd9"/>
+              <circle cx="396" cy="258" r="14" fill="#d69a3a"/>
+              <circle cx="610" cy="238" r="14" fill="#58c98d"/>
+              <rect x="452" y="72" width="188" height="76" rx="10" fill="#fff" stroke="#d6d2c4"/>
+              <text x="546" y="114" fill="#111416" font-size="20" font-weight="900" text-anchor="middle">head candidate</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">15</div>
+            <div>
+              <h2>Museum Exhibit</h2>
+              <p class="caption">対象物を標本のように置き、ラベルで説明する。落ち着いた解説記事に合う。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Museum Exhibit style">
+              <rect width="720" height="450" fill="#f3eadb"/>
+              <rect x="40" y="38" width="640" height="374" rx="8" fill="#fffaf0" stroke="#d6c6ad"/>
+              <text x="70" y="82" fill="#111416" font-size="29" font-weight="900">Specimen: Ethereum Block</text>
+              <text x="70" y="112" fill="#6c6254" font-size="16">分類して、眺められる形にする。</text>
+              <g transform="translate(254 138)">
+                <rect x="0" y="0" width="212" height="180" rx="18" fill="#111416"/>
+                <rect x="24" y="30" width="164" height="34" rx="6" fill="#f3eadb"/>
+                <rect x="24" y="82" width="164" height="34" rx="6" fill="#58c7d9"/>
+                <rect x="24" y="134" width="164" height="34" rx="6" fill="#df9d3c"/>
+              </g>
+              <path d="M466 178 H602" stroke="#111416" stroke-width="2"/>
+              <text x="610" y="184" fill="#111416" font-size="16" font-weight="900">header</text>
+              <path d="M466 230 H602" stroke="#111416" stroke-width="2"/>
+              <text x="610" y="236" fill="#111416" font-size="16" font-weight="900">tx list</text>
+              <path d="M466 282 H602" stroke="#111416" stroke-width="2"/>
+              <text x="610" y="288" fill="#111416" font-size="16" font-weight="900">state</text>
+              <rect x="82" y="330" width="556" height="48" rx="8" fill="#f3eadb" stroke="#d6c6ad"/>
+              <text x="360" y="360" fill="#554a3d" font-size="17" font-weight="900" text-anchor="middle">構造を美術館の展示ラベルのように読む</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">16</div>
+            <div>
+              <h2>Filmstrip Sequence</h2>
+              <p class="caption">1枚で流れを見せず、コマ割りで段階を見せる。短い教材に向く。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Filmstrip Sequence style">
+              <rect width="720" height="450" fill="#080b0f"/>
+              <text x="44" y="58" fill="#fff" font-size="31" font-weight="900">Five Frames</text>
+              <text x="44" y="88" fill="#8d9ba5" font-size="16">1コマ1メッセージで、説明の順番を固定する。</text>
+              <g transform="translate(44 136)">
+                <rect x="0" y="0" width="120" height="180" rx="6" fill="#111820" stroke="#2b3742"/>
+                <rect x="128" y="0" width="120" height="180" rx="6" fill="#111820" stroke="#2b3742"/>
+                <rect x="256" y="0" width="120" height="180" rx="6" fill="#111820" stroke="#59c9da" stroke-width="3"/>
+                <rect x="384" y="0" width="120" height="180" rx="6" fill="#111820" stroke="#2b3742"/>
+                <rect x="512" y="0" width="120" height="180" rx="6" fill="#111820" stroke="#2b3742"/>
+                <text x="60" y="42" fill="#fff" font-size="19" font-weight="900" text-anchor="middle">slot</text>
+                <text x="188" y="42" fill="#fff" font-size="19" font-weight="900" text-anchor="middle">tx</text>
+                <text x="316" y="42" fill="#fff" font-size="19" font-weight="900" text-anchor="middle">exec</text>
+                <text x="444" y="42" fill="#fff" font-size="19" font-weight="900" text-anchor="middle">root</text>
+                <text x="572" y="42" fill="#fff" font-size="19" font-weight="900" text-anchor="middle">vote</text>
+                <circle cx="60" cy="108" r="24" fill="#3c7dd9"/>
+                <rect x="166" y="88" width="44" height="40" rx="8" fill="#df9d3c"/>
+                <path d="M292 120 L316 78 L340 120 Z" fill="#59c9da"/>
+                <rect x="424" y="88" width="40" height="40" rx="4" fill="#58c98d"/>
+                <circle cx="572" cy="108" r="24" fill="#8b7dde"/>
+              </g>
+              <rect x="44" y="350" width="632" height="48" rx="8" fill="#111820" stroke="#2b3742"/>
+              <text x="360" y="381" fill="#dce8ee" font-size="17" font-weight="900" text-anchor="middle">現在のコマだけを大きく、前後は文脈として見せる</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">17</div>
+            <div>
+              <h2>Annotated Spec</h2>
+              <p class="caption">図そのものに注釈番号を置き、説明は外側に逃がす。文字潰れに強い。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Annotated Spec style">
+              <rect width="720" height="450" fill="#fbfbf7"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">Annotated Execution</text>
+              <rect x="64" y="140" width="390" height="230" rx="12" fill="#fff" stroke="#d8dddc"/>
+              <rect x="100" y="206" width="84" height="58" rx="8" fill="#eef2f1" stroke="#cad3d1"/>
+              <rect x="236" y="180" width="92" height="110" rx="8" fill="#111416"/>
+              <rect x="374" y="206" width="84" height="58" rx="8" fill="#eef2f1" stroke="#cad3d1"/>
+              <path d="M184 235 H236 M328 235 H374" stroke="#3c7dd9" stroke-width="4"/>
+              <text x="142" y="241" fill="#111416" font-size="20" font-weight="900" text-anchor="middle">tx</text>
+              <text x="282" y="241" fill="#fff" font-size="20" font-weight="900" text-anchor="middle">EVM</text>
+              <text x="416" y="241" fill="#111416" font-size="20" font-weight="900" text-anchor="middle">root</text>
+              <circle cx="100" cy="206" r="16" fill="#111416"/><text x="100" y="212" fill="#fff" font-size="14" font-weight="900" text-anchor="middle">1</text>
+              <circle cx="236" cy="180" r="16" fill="#111416"/><text x="236" y="186" fill="#fff" font-size="14" font-weight="900" text-anchor="middle">2</text>
+              <circle cx="374" cy="206" r="16" fill="#111416"/><text x="374" y="212" fill="#fff" font-size="14" font-weight="900" text-anchor="middle">3</text>
+              <rect x="500" y="140" width="154" height="230" rx="12" fill="#f1f4f3"/>
+              <text x="524" y="184" fill="#111416" font-size="17" font-weight="900">1. 入力</text>
+              <text x="524" y="226" fill="#111416" font-size="17" font-weight="900">2. 実行</text>
+              <text x="524" y="268" fill="#111416" font-size="17" font-weight="900">3. 出力</text>
+              <text x="524" y="320" fill="#66717d" font-size="14">図の中は番号だけ。</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">18</div>
+            <div>
+              <h2>Isometric Stack</h2>
+              <p class="caption">レイヤー構造を斜めの積層で見せる。CL/EL/Stateなどに向く。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Isometric Stack style">
+              <rect width="720" height="450" fill="#f6f7f4"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">Layered Stack</text>
+              <g transform="translate(170 114)">
+                <polygon points="0,150 210,44 420,150 210,256" fill="#111416"/>
+                <polygon points="0,112 210,6 420,112 210,218" fill="#58c7d9"/>
+                <polygon points="0,74 210,-32 420,74 210,180" fill="#df9d3c"/>
+                <polygon points="0,36 210,-70 420,36 210,142" fill="#fff" stroke="#222a31" stroke-width="3"/>
+                <text x="210" y="50" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">Consensus</text>
+                <text x="210" y="92" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">Execution</text>
+                <text x="210" y="134" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">State</text>
+              </g>
+              <text x="44" y="392" fill="#66717d" font-size="17">上下関係や依存関係を、矢印ではなく積層で見せる。</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card dark">
+          <div class="head">
+            <div class="num">19</div>
+            <div>
+              <h2>Radar Scope</h2>
+              <p class="caption">mempoolやP2Pを観測画面として見せる。時間と距離の感覚が出る。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Radar Scope style">
+              <rect width="720" height="450" fill="#06100d"/>
+              <text x="44" y="58" fill="#e7fff4" font-size="31" font-weight="900">Mempool Radar</text>
+              <g transform="translate(360 238)" fill="none" stroke="#1f4b3a">
+                <circle r="64"/><circle r="118"/><circle r="172"/>
+                <path d="M-190 0 H190 M0 -190 V190"/>
+              </g>
+              <path d="M360 238 L526 148" stroke="#58c98d" stroke-width="44" opacity=".13"/>
+              <circle cx="360" cy="238" r="12" fill="#e7fff4"/>
+              <circle cx="232" cy="190" r="10" fill="#58c98d"/>
+              <circle cx="496" cy="174" r="10" fill="#58c98d"/>
+              <circle cx="448" cy="330" r="10" fill="#d69a3a"/>
+              <circle cx="284" cy="318" r="10" fill="#5ad7e8"/>
+              <rect x="512" y="318" width="130" height="54" rx="8" fill="#0e1b17" stroke="#24553f"/>
+              <text x="577" y="351" fill="#e7fff4" font-size="17" font-weight="900" text-anchor="middle">pending tx</text>
+              <text x="44" y="92" fill="#84aa97" font-size="16">集まってくる対象を、中心からの距離で見る。</text>
+            </svg>
+          </figure>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <div class="num">20</div>
+            <div>
+              <h2>Card Deconstruction</h2>
+              <p class="caption">1つの概念をカード部品に分解する。アプリ内パーツとして再利用しやすい。</p>
+            </div>
+          </div>
+          <figure>
+            <svg class="canvas" viewBox="0 0 720 450" role="img" aria-label="Card Deconstruction style">
+              <rect width="720" height="450" fill="#eef3f1"/>
+              <text x="44" y="58" fill="#111416" font-size="31" font-weight="900">Composable Cards</text>
+              <text x="44" y="88" fill="#66717d" font-size="16">説明の部品を、カード単位で差し替えられる。</text>
+              <rect x="70" y="142" width="180" height="178" rx="16" fill="#fff" stroke="#d4dcda"/>
+              <rect x="270" y="114" width="180" height="234" rx="16" fill="#111416"/>
+              <rect x="470" y="142" width="180" height="178" rx="16" fill="#fff" stroke="#d4dcda"/>
+              <text x="160" y="184" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">入力</text>
+              <text x="360" y="164" fill="#fff" font-size="22" font-weight="900" text-anchor="middle">実行</text>
+              <text x="560" y="184" fill="#111416" font-size="22" font-weight="900" text-anchor="middle">結果</text>
+              <rect x="102" y="224" width="116" height="40" rx="8" fill="#eef3f1"/>
+              <rect x="302" y="204" width="116" height="40" rx="8" fill="#58c7d9"/>
+              <rect x="302" y="262" width="116" height="40" rx="8" fill="#df9d3c"/>
+              <rect x="502" y="224" width="116" height="40" rx="8" fill="#eef3f1"/>
+              <path d="M250 231 H270 M450 231 H470" stroke="#111416" stroke-width="4"/>
+              <text x="160" y="392" fill="#66717d" font-size="17">カードを増減して、ERC20 / bridge / block生成に展開する。</text>
+            </svg>
+          </figure>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
