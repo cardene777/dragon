@@ -358,7 +358,7 @@
   }
   html.dark .v4-editor-warnings-apply {
     background: var(--v4-brand);
-    color: #0e1117;
+    color: #1a1410;
   }
   html.dark .v4-editor-warnings-apply:hover {
     background: var(--v4-brand-glow);

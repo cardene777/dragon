@@ -23,13 +23,13 @@ body.docs-body {
   margin: 0;
 }
 html.dark body.docs-body {
-  --nm-bg: #0e1117;
-  --nm-surface: #161b22;
-  --nm-text: #f0f3f8;
-  --nm-text-secondary: #99a3b3;
-  --nm-text-muted: #6b7785;
-  --nm-accent: #5ec4e8;
-  --nm-border: rgba(255, 255, 255, 0.08);
+  --nm-bg: #1a1410;
+  --nm-surface: #241c14;
+  --nm-text: #f8ecd0;
+  --nm-text-secondary: #d0c0a5;
+  --nm-text-muted: #a08870;
+  --nm-accent: #b8862a;
+  --nm-border: rgba(248, 236, 208, 0.08);
 }
 body.docs-body .site-header,
 body.docs-body footer.site-footer {
@@ -541,7 +541,7 @@ body.docs-body .docs-i18n-banner a {
 html.dark body.docs-body .docs-i18n-banner {
   background: rgba(212, 165, 116, 0.12) !important;
   border-color: rgba(212, 165, 116, 0.35) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-i18n-banner a {
   color: #b8862a !important;
@@ -983,7 +983,7 @@ html.dark body.docs-body .docs-navbar-link.active {
 }
 html.dark body.docs-body .docs-navbar-search-input {
   background: #25292f !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
   border-color: rgba(212, 165, 116, 0.2) !important;
 }
 html.dark body.docs-body .docs-navbar-search-results {
@@ -998,7 +998,7 @@ html.dark body.docs-body a.docs-sidebar-link {
 }
 html.dark body.docs-body a.docs-sidebar-link:hover {
   background: rgba(212, 165, 116, 0.08) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body a.docs-sidebar-link.active {
   color: #b8862a !important;
@@ -1014,14 +1014,14 @@ html.dark body.docs-body .docs-prose h2,
 html.dark body.docs-body .docs-prose h3,
 html.dark body.docs-body .docs-prose p,
 html.dark body.docs-body .docs-prose li {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose h2 {
   border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 html.dark body.docs-body .docs-prose code {
   background: rgba(255, 255, 255, 0.08) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose a {
   color: #b8862a !important;
@@ -1132,7 +1132,7 @@ body.docs-body .docs-404-suggest a:hover {
   text-decoration: underline !important;
 }
 html.dark body.docs-body .docs-404-title {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-404-lead {
   color: #b0a596 !important;
@@ -1142,7 +1142,7 @@ html.dark body.docs-body .docs-404-suggest {
   border-color: rgba(212, 165, 116, 0.2) !important;
 }
 html.dark body.docs-body .docs-404-suggest h3 {
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-404-suggest a {
   color: #b8862a !important;
@@ -1155,31 +1155,31 @@ html.dark body.docs-body .docs-prose pre[style],
 html.dark body.docs-body .docs-hero-snippet pre {
   background: #1f1c18 !important;
   background-color: #1f1c18 !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
   border-color: rgba(212, 165, 116, 0.18) !important;
   box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 /* Shiki dual theme ... dark mode は --shiki-dark token color を採用 (light の黒文字を上書き) */
 html.dark body.docs-body .docs-prose pre.astro-code,
 html.dark body.docs-body .docs-prose pre.astro-code span {
-  color: var(--shiki-dark, #f0f3f8) !important;
+  color: var(--shiki-dark, #f8ecd0) !important;
   background-color: var(--shiki-dark-bg, transparent) !important;
   text-decoration: none !important;
 }
 html.dark body.docs-body .docs-prose pre.astro-code .line,
 html.dark body.docs-body .docs-prose pre.astro-code .line span {
-  color: var(--shiki-dark, #f0f3f8) !important;
+  color: var(--shiki-dark, #f8ecd0) !important;
   text-decoration: none !important;
 }
 html.dark body.docs-body .docs-hero-snippet pre code,
 html.dark body.docs-body .docs-hero-snippet pre code * {
   background: transparent !important;
   background-color: transparent !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 html.dark body.docs-body .docs-prose code:not(pre code) {
   background: rgba(212, 165, 116, 0.18) !important;
-  color: #f0f3f8 !important;
+  color: #f8ecd0 !important;
 }
 
 /* === Live cdl preview embed === */
@@ -1224,7 +1224,7 @@ body.docs-body .docs-live-preview-frame {
   display: flex;
   justify-content: center;
   padding: 24px 16px;
-  background: #f0f3f8;
+  background: #f8ecd0;
 }
 body.docs-body .docs-live-preview-frame svg {
   max-width: 100%;
@@ -1244,11 +1244,11 @@ html.dark body.docs-body .docs-live-preview-header {
  * dark mode のライブプレビュー frame ... catalog SVG (ベージュ palette) を
  * そのまま透過させて表示する。 SVG の fill は inline attribute なので CSS で
  * 上書き不可能、 filter invert を使うと text が読みにくくなる。
- * frame の bg をベージュ寄り (#f0f3f8) にして light テーマの一部のように見せ、
+ * frame の bg をベージュ寄り (#f8ecd0) にして light テーマの一部のように見せ、
  * dark UI の中に「light な図のショウケース」 を埋め込む形にする。
  */
 html.dark body.docs-body .docs-live-preview-frame {
-  background: #f0f3f8 !important;
+  background: #f8ecd0 !important;
 }
 
 /* === Doc Tabs (人向け + LLM 向け の切替) === */

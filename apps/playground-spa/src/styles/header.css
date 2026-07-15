@@ -174,13 +174,13 @@
     color: var(--v4-brand);
   }
   html.dark .v4-nav-theme-toggle {
-    background: #161b22;
-    border-color: #2a3340;
-    color: #f0f3f8;
+    background: #241c14;
+    border-color: #3d322a;
+    color: #f8ecd0;
   }
   html.dark .v4-nav-theme-toggle:hover {
-    border-color: #5ec4e8;
-    color: #5ec4e8;
+    border-color: #f0b840;
+    color: #f0b840;
   }
   .v4-theme-icon {
     line-height: 1;
