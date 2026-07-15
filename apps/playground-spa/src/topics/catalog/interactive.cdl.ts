@@ -434,7 +434,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#2d6a8f" } })
   .phase("p", {
     duration: 1500,
-    title: "3 モード比較 (0° / 90° / 180° / 追随)",
+    title: "3 static (0° / 90° / 180°) + slider 追随",
     body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider teal) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
   .build();
@@ -464,7 +464,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
   .phase("p", {
     duration: 1500,
-    title: "水位対比 3 段 (25% / 50% / 75% / 追随)",
+    title: "3 水位 (25% / 50% / 75%) + slider 追随",
     body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider teal) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
   .build();
@@ -495,7 +495,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#2d6a8f" } })
   .phase("p", {
     duration: 1500,
-    title: "頂点数対比 (△3 / ⬡6 / ⯃8 / 追随)",
+    title: "3 頂点数 (△3 / ⬡6 / ⯃8) + slider 追随",
     body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider teal) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
   .build();
@@ -829,7 +829,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" })
   .phase("p", {
     duration: 1200,
-    title: "4 chart 表示 (line / area / bar / dot 比較)",
+    title: "同 data を area (fill=true) / line (fill=false) の 2 variant で並列比較",
     body: "3-lane (Data source / Area chart fill=true / Line chart fill=false) で 10 point time series を chart variant 別分散、 同 data source を 2 種 lineChart readout (area/line) で並列比較、 fill option 差異を横並び view で明示。",
   }, (p: PhaseBuilder) => p.activate("dataCard", "areaCard", "lineCard").badge("line chart"))
   .build();
@@ -1372,7 +1372,7 @@ export const abTestResult = diagram("interactive-ab-test", {
   .readout.donut("winner", { source: "results", innerRatio: 0.6, viewW: 120, viewH: 120, colors: ["#22c55e", "#94a3b8"] as const, label: "Winner share (B=green)" })
   .phase("p", {
     duration: 1200,
-    title: "A/B test = variant A (投稿ボタン) vs variant B (カード表示) 比較",
+    title: "A/B test = Control (Variant A) vs Treatment (Variant B) を 50/50 split で avg 収束率比較",
     body: "3-lane (Variant A / Split / Variant B) + Split → 各 variant への 50/50 edge、 experiment 構造を node network で表現、 stackedBar + 2 donut で結果集約。",
   }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").badge("A/B test"))
   .build();
@@ -3148,7 +3148,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
   .phase("p", {
     duration: 1200,
-    title: "A team 82 vs B team 76 の 4 KPI 対比",
+    title: "Team A 82 vs Team B 65 (Sprint velocity 差 17)",
     body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
   .build();
