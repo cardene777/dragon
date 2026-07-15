@@ -1,23 +1,32 @@
 @import "tailwindcss";
 
 /* ================================================================
- * Base color / typography tokens (Neumorphism light default)
- * theme override は cdl-theme.css SSOT ([data-cdl-theme] selector 経由)
+ * Base color / typography tokens (龍鱗ゴールド light default、 CAR palette 2026-07-15)
+ *
+ * palette 起源:
+ *   dragon = 財宝を守る西洋龍 metaphor、 dev tool の boring UI からの離脱。
+ *   light = parchment (#f0e8d4) + copper (#a66a3d) + amber (#b8862a) + obsidian ink
+ *   dark  = obsidian (#1a1410) + amber (#f0b840) + ember (#f56b45) + parchment ink
+ *   dark override は header.css の html.dark { --v4-* } SSOT で設定 (base 側で light default)
+ *
+ * theme override は cdl-theme.css SSOT ([data-cdl-theme] selector 経由、
+ * 個別 diagram theme は本 palette と独立、 blueprint theme は default で navy+cream 維持)
  * ================================================================ */
 @theme {
-  --color-v4-canvas: #f8fafc;
-  --color-v4-surface: #ffffff;
-  --color-v4-line: #e2e8f0;
-  --color-v4-line-soft: #f1f5f9;
-  --color-v4-ink: #1a1f2a;
-  --color-v4-ink-dim: #5a6270;
-  --color-v4-ink-mute: #8a8678;
-  --color-v4-brand: #2d6a8f;
-  --color-v4-brand-deep: #1f4d6e;
-  --color-v4-brand-glow: #4e9dc4;
+  --color-v4-canvas: #f0e8d4;
+  --color-v4-surface: #f8ecd8;
+  --color-v4-line: #d8c8a8;
+  --color-v4-line-soft: #e8dfc8;
+  --color-v4-ink: #1a1410;
+  --color-v4-ink-dim: #3a2a10;
+  --color-v4-ink-mute: #6d5a3a;
+  --color-v4-brand: #a66a3d;
+  --color-v4-brand-deep: #8a5a2a;
+  --color-v4-brand-glow: #b8862a;
+  --color-v4-brand-hi: #b8862a;
 
-  --color-nm-surface: #f0f3f7;
-  --color-nm-bg-base: #e8ecf1;
+  --color-nm-surface: #f5ecd8;
+  --color-nm-bg-base: #ebe0c4;
 
   --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Newsreader", "EB Garamond", Georgia, serif;
@@ -43,19 +52,19 @@ body {
   min-height: 100dvh;
 }
 
-/* dark mode = html.dark class toggle 経路の SSOT override
- * (docs-site.css / editor.css / compare.css で個別 html.dark 定義済だが、 base html/body は
- * globals.css で override しないと body text が light mode の dark navy のまま = 黒字を黒背景に描画で見えない) */
+/* dark mode = html.dark class toggle 経路の SSOT override (龍鱗ゴールド obsidian palette)
+ * base html/body の背景 / 前景を dark obsidian + parchment ink に切替、
+ * 個別 component の dark 挙動は header.css / editor.css / catalog-new.css 等の html.dark 経路 SSOT。 */
 html.dark,
 html.dark body {
-  background: #0a0d14;
-  color: #f0f3f8;
+  background: #1a1410;
+  color: #f8ecd0;
 }
 html.dark ::-webkit-scrollbar-thumb {
-  background: #262e42;
+  background: #3d322a;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #3a4560;
+  background: #5a4838;
 }
 
 /* macOS-like scrollbar */

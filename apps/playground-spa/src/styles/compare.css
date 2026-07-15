@@ -25,7 +25,7 @@
   text-decoration: none;
 }
 .nm-crumb a:hover {
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
 }
 .nm-crumb .cur {
   color: var(--v4-ink, #1a1f2a);
@@ -37,7 +37,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -51,7 +51,7 @@
   line-height: 1.15;
 }
 .nm-gradient-accent {
-  background: linear-gradient(90deg, var(--v4-brand, #2d6a8f) 0%, #8b7ffa 100%);
+  background: linear-gradient(90deg, var(--v4-brand, #a66a3d) 0%, #f0b840 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -87,8 +87,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .nm-preset-select-trigger:hover {
-  border-color: var(--v4-brand, #2d6a8f);
-  box-shadow: 0 0 0 3px rgba(45, 106, 143, 0.08);
+  border-color: var(--v4-brand, #a66a3d);
+  box-shadow: 0 0 0 3px rgba(166, 106, 61, 0.08);
 }
 .nm-preset-select-content {
   background: var(--v4-surface, #ffffff);
@@ -110,7 +110,7 @@
 }
 .nm-preset-select-item[data-highlighted] {
   background: var(--v4-canvas-dim, #f8fafc);
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
 }
 .nm-hero-btn {
   display: inline-flex;
@@ -127,22 +127,22 @@
   font-family: var(--v4-sans, "Inter", sans-serif);
 }
 .nm-hero-btn-primary {
-  background: var(--v4-brand, #2d6a8f);
+  background: var(--v4-brand, #a66a3d);
   color: #fff;
-  border-color: var(--v4-brand, #2d6a8f);
+  border-color: var(--v4-brand, #a66a3d);
 }
 .nm-hero-btn-primary:hover {
-  background: var(--v4-brand-deep, #1f4d6e);
-  border-color: var(--v4-brand-deep, #1f4d6e);
+  background: var(--v4-brand-deep, #8a5a2a);
+  border-color: var(--v4-brand-deep, #8a5a2a);
 }
 .nm-hero-btn-secondary {
   background: var(--v4-canvas-dim, #f8fafc);
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
   border-color: var(--v4-line, #e2e8f0);
 }
 .nm-hero-btn-secondary:hover {
   background: var(--v4-surface, #ffffff);
-  border-color: var(--v4-brand, #2d6a8f);
+  border-color: var(--v4-brand, #a66a3d);
 }
 .nm-hero-btn-arrow {
   display: inline-flex;
@@ -188,7 +188,7 @@
 }
 .nm-preset-detail-nav-btn:hover {
   background: var(--v4-surface, #fff);
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
 }
 
 /* ── section ── */
@@ -235,8 +235,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .nm-preset-card:hover {
-  border-color: var(--v4-brand, #2d6a8f);
-  box-shadow: 0 4px 16px rgba(45, 106, 143, 0.06);
+  border-color: var(--v4-brand, #a66a3d);
+  box-shadow: 0 4px 16px rgba(166, 106, 61, 0.06);
 }
 .nm-preset-card-head {
   padding: 16px 20px;
@@ -248,7 +248,7 @@
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: var(--v4-brand, #2d6a8f);
+  color: var(--v4-brand, #a66a3d);
   text-transform: uppercase;
   margin-bottom: 4px;
 }
@@ -298,95 +298,95 @@ html.dark .nm-hero,
 html.dark .nm-hero-title,
 html.dark .nm-section-title,
 html.dark .nm-preset-title {
-  color: #f2f3f7;
+  color: #f8ecd0;
 }
 html.dark .nm-hero-subtitle,
 html.dark .nm-section-desc,
 html.dark .nm-preset-subtitle {
-  color: #9ca3b8;
+  color: #d0c0a5;
 }
 html.dark .nm-crumb {
-  color: #6b7290;
+  color: #a08870;
 }
 html.dark .nm-crumb a {
-  color: #9ca3b8;
+  color: #d0c0a5;
 }
 html.dark .nm-crumb .cur {
-  color: #f2f3f7;
+  color: #f8ecd0;
 }
 html.dark .nm-preset-card {
-  background: #131a28;
-  border-color: #262e42;
+  background: #241c14;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-card:hover {
-  border-color: #8b7ffa;
+  border-color: #f0b840;
 }
 html.dark .nm-preset-card-head,
 html.dark .nm-preset-card-foot {
-  border-color: #262e42;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-card-foot {
-  background: #0f1420;
+  background: #14100c;
 }
 /* blueprint SVG は light bg 前提設計、 dark mode でも preview は cream paper 維持 */
 html.dark .nm-preset-preview {
   background: #fcf8ee;
 }
 html.dark .nm-preset-tag {
-  background: #131a28;
-  border-color: #262e42;
+  background: #241c14;
+  border-color: #3d322a;
   color: #b8bfcc;
 }
 html.dark .nm-preset-select-trigger {
-  background: #131a28;
-  border-color: #262e42;
-  color: #f2f3f7;
+  background: #241c14;
+  border-color: #3d322a;
+  color: #f8ecd0;
 }
 html.dark .nm-preset-select-content {
-  background: #131a28;
-  border-color: #262e42;
+  background: #241c14;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-select-item {
-  color: #f2f3f7;
+  color: #f8ecd0;
 }
 html.dark .nm-preset-select-item[data-highlighted] {
-  background: #1e2536;
-  color: #8b7ffa;
+  background: #2e2418;
+  color: #f0b840;
 }
 html.dark .nm-hero-btn-secondary {
-  background: #131a28;
-  border-color: #262e42;
-  color: #8b7ffa;
+  background: #241c14;
+  border-color: #3d322a;
+  color: #f0b840;
 }
 html.dark .nm-hero-btn-secondary:hover {
-  background: #1e2536;
-  border-color: #8b7ffa;
+  background: #2e2418;
+  border-color: #f0b840;
 }
 html.dark .nm-hero-btn-primary {
-  background: #8b7ffa;
-  color: #0a0d14;
-  border-color: #8b7ffa;
+  background: #f0b840;
+  color: #1a1410;
+  border-color: #f0b840;
 }
 html.dark .nm-hero-btn-primary:hover {
   background: #a595fc;
   border-color: #a595fc;
 }
 html.dark .nm-section-head {
-  border-color: #262e42;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-detail-stage {
   /* blueprint SVG は light bg 前提設計、 dark mode でも cream paper 維持 */
   background: #fcf8ee;
-  border-color: #262e42;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-detail-nav {
-  background: #0f1420;
-  border-color: #262e42;
+  background: #14100c;
+  border-color: #3d322a;
 }
 html.dark .nm-preset-detail-nav-btn {
-  color: #f2f3f7;
+  color: #f8ecd0;
 }
 html.dark .nm-preset-detail-nav-btn:hover {
-  background: #1e2536;
-  color: #8b7ffa;
+  background: #2e2418;
+  color: #f0b840;
 }
