@@ -612,6 +612,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
   fill: #6d3f18 !important;
+  stroke: none !important;
   opacity: 0.85 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
@@ -690,6 +691,7 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
   fill: #f0b840 !important;
+  stroke: none !important;
   opacity: 0.9 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
