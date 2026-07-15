@@ -720,7 +720,7 @@ html.dark .cdl-modal-body {
 .catalog-index-card:hover {
   border-color: var(--v4-brand);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px -8px rgba(30, 41, 59, 0.14);
+  box-shadow: 0 8px 20px -8px rgba(26, 20, 16, 0.14);
 }
 html.dark .catalog-index-card {
   background: #241c14;
