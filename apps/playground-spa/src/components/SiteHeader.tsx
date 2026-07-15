@@ -10,7 +10,6 @@ const LINKS: Array<{ to: string; ja: string; en: string }> = [
   { to: "/", ja: "概要", en: "overview" },
   { to: "/editor", ja: "エディタ", en: "editor" },
   { to: "/catalog", ja: "カタログ", en: "catalog" },
-  { to: "/compare", ja: "テーマ比較", en: "compare" },
   { to: "/docs", ja: "ドキュメント", en: "docs" },
 ];
 

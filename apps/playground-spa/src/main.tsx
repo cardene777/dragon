@@ -8,8 +8,7 @@ import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";
 import "./styles/editor.css";
-// compare.css は ComparePage / PresetDetailPage の nm-* class 用、 両 page とも React.lazy で code-split
-// されているため、 該当 page 側で import して chunk に同梱する (main 初期 bundle から除外)。
+// compare.css は PresetDetailPage / ContributePage / ReleaseNotesPage の nm-* class 用、 各 lazy page 側で import。
 import { SvgDefs } from "./components/SvgDefs";
 import { ToastProvider } from "./components/Toast";
 import { LocaleProvider } from "./lib/useLocale";
@@ -22,7 +21,6 @@ const CatalogIndexPage = lazy(() => import("./pages/CatalogIndexPage").then((m) 
 const CategoryPage = lazy(() => import("./pages/CategoryPage").then((m) => ({ default: m.CategoryPage })));
 const EditorPage = lazy(() => import("./pages/EditorPage").then((m) => ({ default: m.EditorPage })));
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
-const ComparePage = lazy(() => import("./pages/ComparePage").then((m) => ({ default: m.ComparePage })));
 const PresetDetailPage = lazy(() => import("./pages/PresetDetailPage").then((m) => ({ default: m.PresetDetailPage })));
 const ReleaseNotesPage = lazy(() => import("./pages/ReleaseNotesPage").then((m) => ({ default: m.ReleaseNotesPage })));
 const ContributePage = lazy(() => import("./pages/ContributePage").then((m) => ({ default: m.ContributePage })));
@@ -50,7 +48,6 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/catalog/:slug" element={<CategoryPage />} />
               <Route path="/editor" element={<EditorPage />} />
               <Route path="/docs" element={<DocsPage />} />
-              <Route path="/compare" element={<ComparePage />} />
               <Route path="/preset/:id" element={<PresetDetailPage />} />
               <Route path="/release-notes" element={<ReleaseNotesPage />} />
               <Route path="/contribute" element={<ContributePage />} />

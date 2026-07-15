@@ -180,7 +180,7 @@ catalog SPA で 30+ 実例を確認可能、 コピペして応用する使い�
   - 本 repo が `@cardenelabs/cdl` として consume する engine
 - **dragon** (本 repo)
   - `packages/dragon/` = text DSL parser (`textDslToDiagram`)
-  - `apps/playground-spa/` = Vite + React SPA playground (7 category catalog + editor + compare + docs)
+  - `apps/playground-spa/` = Vite + React SPA playground (9 category catalog + editor + preset detail + docs)
 
 ## 構成
 
@@ -192,7 +192,7 @@ dragon/
 ├── apps/
 │   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
 │       ├── src/
-│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / ComparePage / DocsPage
+│       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
 │       │   ├── topics/catalog ... 7 category × 100+ diagram (primitives / presets / patterns / cookbook / text-dsl / animation / styles)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
 │       │   └── components/    ... InViewMount / ThemePicker / SvgDefs / Toast

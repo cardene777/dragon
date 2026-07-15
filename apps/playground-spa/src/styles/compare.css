@@ -1,6 +1,8 @@
-/* compare page nm-* class 定義 (2026-07-15 復元)
- * ComparePage.tsx が nm-hero / nm-preset-grid 等を参照するが CSS 欠落していた defect fix。
- * design = catalog-new と同系の light navy + cream palette、 6 theme grid を並列表示する card grid。
+/* shared nm-* class 定義 (PR #374 で ComparePage 削除後の共有 stylesheet)
+ * reader = ReleaseNotesPage / PresetDetailPage / ContributePage の 3 page が
+ * nm-hero / nm-preset-grid / nm-preset-card 等を参照する共有 stylesheet。
+ * design = 龍鱗ゴールド palette (parchment + copper + amber、 PR #373 で全 tokenized)。
+ * 将来 rename 候補 = shared-nm.css (別 PR scope)。
  */
 
 /* ── layout root ── */

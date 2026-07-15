@@ -17,7 +17,6 @@ const ROUTES: Array<{ path: string; slug: string; expectSelector?: string }> = [
   { path: "/catalog/animation", slug: "catalog-animation", expectSelector: "h1" },
   { path: "/catalog/styles", slug: "catalog-styles", expectSelector: "h1" },
   { path: "/catalog/text-dsl", slug: "catalog-text-dsl", expectSelector: "h1" },
-  { path: "/compare", slug: "compare", expectSelector: "h1" },
   { path: "/preset/swimlane", slug: "preset-swimlane", expectSelector: "h1" },
   { path: "/release-notes", slug: "release-notes", expectSelector: "h1" },
   { path: "/contribute", slug: "contribute", expectSelector: "h1" },

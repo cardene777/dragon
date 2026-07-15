@@ -13,7 +13,6 @@ const ROUTES = [
   { path: "/catalog/presets", slug: "cat-presets" },
   { path: "/catalog/text-dsl", slug: "cat-text-dsl" },
   { path: "/catalog/primitives", slug: "cat-primitives" },
-  { path: "/compare", slug: "compare" },
   { path: "/preset/swimlane", slug: "preset-swim" },
   { path: "/release-notes", slug: "release" },
   { path: "/contribute", slug: "contribute" },
