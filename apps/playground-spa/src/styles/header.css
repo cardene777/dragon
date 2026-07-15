@@ -13,6 +13,7 @@
     --v4-ink-mute: #6d5a3a;
     --v4-brand: #a66a3d;
     --v4-brand-deep: #8a5a2a;
+    --v4-brand-soft: #f8ecd8;
     --v4-brand-glow: #b8862a;
     --v4-brand-hi: #b8862a;
     --v4-display: "Cinzel", var(--v4-serif);
@@ -293,6 +294,7 @@
     --v4-ink-mute: #a08870;
     --v4-brand: #f0b840;
     --v4-brand-deep: #d4a032;
+    --v4-brand-soft: #2e2418;
     --v4-brand-glow: #f56b45;
     --v4-brand-hi: #f56b45;
     --v4-code-bg: #241c14;

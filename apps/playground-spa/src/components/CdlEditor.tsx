@@ -1066,8 +1066,8 @@ animation:
                   padding: "8px 12px",
                   marginTop: "8px",
                   borderRadius: "6px",
-                  background: "var(--v4-brand-soft, #dbeafe)",
-                  color: "var(--v4-brand, #1e40af)",
+                  background: "var(--v4-brand-soft, #f8ecd8)",
+                  color: "var(--v4-brand-deep, #8a5a2a)",
                   fontSize: "12px",
                   lineHeight: 1.5,
                 }}
