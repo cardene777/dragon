@@ -2,6 +2,7 @@ import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown, Palette } from "lucide-react";
 import { THEMES, THEME_CONFIGS, type ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/cn";
+import { useLocale } from "@/lib/useLocale";
 
 export function ThemePicker({
   value,
@@ -10,6 +11,7 @@ export function ThemePicker({
   value: ThemeName;
   onChange: (v: ThemeName) => void;
 }): React.ReactElement {
+  const [locale] = useLocale();
   return (
     <div className="flex items-center gap-3">
       <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--v4-ink-dim,#5a6270)] font-mono">
@@ -23,7 +25,7 @@ export function ThemePicker({
             "bg-white text-[var(--v4-ink,#1a1f2a)] shadow-sm hover:shadow transition-shadow",
             "min-w-[140px] sm:min-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--v4-brand,#2d6a8f)]",
           )}
-          aria-label="テーマ切替"
+          aria-label={locale === "ja" ? "テーマ切替" : "Theme"}
         >
           <Select.Value>
             <span className="sm:hidden">{THEME_CONFIGS[value].label}</span>

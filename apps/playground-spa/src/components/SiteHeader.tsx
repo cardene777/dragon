@@ -88,7 +88,7 @@ export function SiteHeader(): React.ReactElement {
           <span className="v4-nav-sub">— animated diagram dsl</span>
         </div>
       </Link>
-      <nav className="v4-nav-links" aria-label="メインナビゲーション">
+      <nav className="v4-nav-links" aria-label={locale === "ja" ? "メインナビゲーション" : "Main navigation"}>
         {LINKS.map((link) => {
           const active =
             link.to === "/"

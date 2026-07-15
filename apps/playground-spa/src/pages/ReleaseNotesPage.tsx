@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import "@/styles/compare.css";
 
 /**
  * /release-notes = 旧 release-notes.astro placeholder。 旧版は CHANGELOG.md parse で

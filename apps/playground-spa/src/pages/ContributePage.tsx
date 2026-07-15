@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import "@/styles/compare.css";
 
 /**
  * /contribute = 旧 contribute.astro placeholder。 旧版は build 時に CONTRIBUTING.md を fs.read で

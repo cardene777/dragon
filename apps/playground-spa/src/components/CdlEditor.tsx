@@ -97,9 +97,13 @@ const v4EditorThemeDark = EditorView.theme(
  * - pan/zoom ... wheel zoom (cursor 中心、 0.25-8x)、 drag pan、 Fit/Reset/100%/+/- toolbar
  */
 
-const SAMPLES: { label: string; code: string }[] = [
+/** SAMPLES の各 sample に slug (kebab-case) を持たせて、 PresetDetail の `#preset=<slug>` と一致検索する。
+ *  slug は PRESETS.slug 命名規約 (kebab-case、 `lib/presets.ts` SSOT) と揃える。 複数 sample が同 slug を共有する場合
+ *  (例 sequence 系 2 件) は SAMPLES 配列先頭の sample が hash match で優先される (最初の find が勝つ)。 */
+const SAMPLES: { label: string; slug: string; code: string }[] = [
   {
     label: "ログインAPI呼び出し (sequence)",
+    slug: "sequence",
     code: `title: "ログインAPI"
 type: sequence
 
@@ -127,6 +131,7 @@ animation:
   },
   {
     label: "注文チェックアウト (sequence)",
+    slug: "sequence",
     code: `title: "注文チェックアウト"
 type: sequence
 
@@ -151,6 +156,7 @@ animation:
   },
   {
     label: "CIパイプライン (flow)",
+    slug: "flow",
     code: `title: "CIパイプライン"
 type: flow
 
@@ -178,6 +184,7 @@ animation:
   },
   {
     label: "ユーザー登録 (swimlane)",
+    slug: "swimlane",
     code: `title: "ユーザー登録"
 type: swimlane
 
@@ -206,6 +213,7 @@ animation:
   },
   {
     label: "システム構成 (topology)",
+    slug: "topology",
     code: `title: "システム構成"
 type: topology
 
@@ -231,6 +239,7 @@ animation:
   },
   {
     label: "ユーザーと投稿のスキーマ (er)",
+    slug: "er",
     code: `title: "ユーザー投稿スキーマ"
 type: er
 
@@ -250,6 +259,7 @@ animation:
   },
   {
     label: "認証状態遷移 (state-machine)",
+    slug: "state-machine",
     code: `title: "認証状態遷移"
 type: state
 
@@ -278,6 +288,7 @@ animation:
   },
   {
     label: "OOP クラス階層 (class)",
+    slug: "class",
     code: `title: "動物クラス階層"
 type: class
 
@@ -297,6 +308,7 @@ animation:
   },
   {
     label: "スプリントロードマップ (gantt)",
+    slug: "gantt",
     code: `title: "Q1-Q4ロードマップ"
 type: gantt
 
@@ -319,6 +331,7 @@ animation:
   },
   {
     label: "プロジェクト構想 (mind)",
+    slug: "mind",
     code: `title: "プロジェクト構想"
 type: mind
 
@@ -336,6 +349,7 @@ animation:
   },
   {
     label: "言語シェア (pie)",
+    slug: "pie",
     code: `title: "言語シェア"
 type: pie
 
@@ -352,6 +366,7 @@ animation:
   },
   {
     label: "C4コンテキスト (c4)",
+    slug: "c4",
     code: `title: "C4コンテキストモデル"
 type: c4
 
@@ -399,6 +414,13 @@ const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;
 const ZOOM_STEP = 0.2;
 
+/** handleAutoFix と fixableWarningCount で共有する axis whitelist (drift 防止 SSOT) */
+const FIXABLE_WARNING_AXES = new Set([
+  "edge-label-overlap",
+  "clearance",
+  "edge-label-proximity",
+]);
+
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
@@ -410,15 +432,11 @@ export function CdlEditor(): React.JSX.Element {
   /** 対応可 warning 数 (edge-label offset で fix 可能な 3 axis のみ)、 button state 制御用 */
   const fixableWarningCount = useMemo(() => {
     return warnings.filter((w) => {
+      if (!FIXABLE_WARNING_AXES.has(w.axis)) return false;
       const m1 = w.detail.match(/edge "([^"]+)"/);
       const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
       const edgeId = m1?.[1] ?? m2?.[1];
-      if (!edgeId) return false;
-      return (
-        w.axis === "edge-label-overlap" ||
-        w.axis === "clearance" ||
-        w.axis === "edge-label-proximity"
-      );
+      return edgeId !== undefined;
     }).length;
   }, [warnings]);
   const [search, setSearch] = useState("");
@@ -469,27 +487,41 @@ export function CdlEditor(): React.JSX.Element {
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
   // 2. #preset=<slug> = catalog / preset detail からの sample 直接 open
   //    SPA navigation で hash 変更した場合も反映するため location.hash を deps に含める
+  //    slug 一致がない場合は toast で通知して default sample のまま維持 (silently load 防止)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = location.hash;
 
-    const presetMatch = hash.match(/^#preset=(.+)$/);
-    if (presetMatch) {
-      const targetSlug = decodeURIComponent(presetMatch[1]);
-      const sample = SAMPLES.find((s) => {
-        const typeMatch = s.label.match(/\(([^)]+)\)\s*$/);
-        return typeMatch !== null && typeMatch[1] === targetSlug;
-      });
-      if (sample) {
+    try {
+      const presetMatch = hash.match(/^#preset=(.+)$/);
+      if (presetMatch) {
+        const targetSlug = decodeURIComponent(presetMatch[1]);
+        const sample = SAMPLES.find((s) => s.slug === targetSlug);
+        if (sample) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setSrc(sample.code);
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setActiveSample(sample.label);
+          return;
+        }
+        // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSrc(sample.code);
-        return;
+        setAutoFixMessage(
+          `プリセット「${targetSlug}」 に対応する編集可能サンプルは未登録です。 default サンプル (${SAMPLES[0].label}) で開きます。`,
+        );
+        window.setTimeout(() => setAutoFixMessage(null), 8000);
       }
+    } catch {
+      // decodeURIComponent が malformed URI で throw する可能性、 fall through で decodeShare を試す
     }
 
     const restored = decodeShare(hash);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (restored) setSrc(restored);
+    if (restored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSrc(restored);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveSample("共有URL");
+    }
   }, [location.hash]);
 
   /**
@@ -510,7 +542,9 @@ export function CdlEditor(): React.JSX.Element {
     // - `node:X ↔ edge-label:e0-user-post overlap=...` (overlap)
     // - `X:Y ↔ Z:W gap=...` (clearance、 node と edge-label のケース)
     const offsetByEdge = new Map<string, { offsetY?: number; offsetX?: number }>();
+    // axis whitelist は module scope の FIXABLE_WARNING_AXES を共有 (fixableWarningCount と drift 防止 SSOT)。
     for (const w of warnings) {
+      if (!FIXABLE_WARNING_AXES.has(w.axis)) continue;
       const m1 = w.detail.match(/edge "([^"]+)"/);
       const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
       const edgeId = m1?.[1] ?? m2?.[1];

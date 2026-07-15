@@ -7,6 +7,7 @@ import { PRESETS } from "@/lib/presets";
 import { THEMES, THEME_CONFIGS } from "@/lib/theme";
 import { InViewMount } from "@/components/InViewMount";
 import { SiteHeader } from "@/components/SiteHeader";
+import "@/styles/compare.css";
 
 /**
  * /compare = 選択した preset を 6 theme で並列表示 (Neumorphism style)。
@@ -14,23 +15,23 @@ import { SiteHeader } from "@/components/SiteHeader";
  */
 export function ComparePage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialId = searchParams.get("preset") ?? "swimlane";
-  const [presetId, setPresetId] = useState<string>(initialId);
+  const initialSlug = searchParams.get("preset") ?? "swimlane";
+  const [presetSlug, setPresetSlug] = useState<string>(initialSlug);
 
   const preset = useMemo(
-    () => PRESETS.find((p) => p.id === presetId) ?? PRESETS[0],
-    [presetId],
+    () => PRESETS.find((p) => p.slug === presetSlug) ?? PRESETS[0],
+    [presetSlug],
   );
 
   useEffect(() => {
     setSearchParams(
       (params) => {
-        params.set("preset", presetId);
+        params.set("preset", presetSlug);
         return params;
       },
       { replace: true },
     );
-  }, [presetId, setSearchParams]);
+  }, [presetSlug, setSearchParams]);
 
   return (
     <div>
@@ -51,7 +52,7 @@ export function ComparePage(): React.ReactElement {
           </p>
           <div className="nm-hero-actions">
             <div className="nm-preset-select-wrap">
-              <Select.Root value={presetId} onValueChange={setPresetId}>
+              <Select.Root value={presetSlug} onValueChange={setPresetSlug}>
                 <Select.Trigger className="nm-preset-select-trigger" aria-label="プリセットを選択">
                   <Select.Value>{preset.title}</Select.Value>
                   <Select.Icon>
@@ -66,7 +67,7 @@ export function ComparePage(): React.ReactElement {
                   >
                     <Select.Viewport>
                       {PRESETS.map((p) => (
-                        <Select.Item key={p.id} value={p.id} className="nm-preset-select-item">
+                        <Select.Item key={p.slug} value={p.slug} className="nm-preset-select-item">
                           <div className="flex-1">
                             <div className="font-medium">{p.title}</div>
                             <div className="text-[11.5px] opacity-70">{p.eyebrow}</div>
