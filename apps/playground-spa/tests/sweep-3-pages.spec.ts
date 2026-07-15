@@ -6,7 +6,6 @@ mkdirSync(OUT, { recursive: true });
 
 const PAGES: Array<{ path: string; slug: string }> = [
   { path: "/editor", slug: "editor" },
-  { path: "/compare", slug: "compare" },
   { path: "/docs", slug: "docs" },
 ];
 

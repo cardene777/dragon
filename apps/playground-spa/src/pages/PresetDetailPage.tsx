@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
-import { ChevronLeft, ExternalLink, LayoutGrid, Share2 } from "lucide-react";
+import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
@@ -103,12 +103,6 @@ export function PresetDetailPage(): React.ReactElement {
               <span>エディタで開く</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">
                 <ExternalLink size={14} />
-              </span>
-            </Link>
-            <Link to={`/compare?preset=${preset.slug}`} className="nm-hero-btn nm-hero-btn-secondary">
-              <span>6 テーマで比較</span>
-              <span className="nm-hero-btn-arrow" aria-hidden="true">
-                <LayoutGrid size={14} />
               </span>
             </Link>
             <button
