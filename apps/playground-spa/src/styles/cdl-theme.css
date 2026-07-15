@@ -555,74 +555,82 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
  * 意図 = 設計図の graticule + ortho ライン + rev code 相当の落ち着いた青。
  * ═════════════════════════════════════════════════════════════════════════════ */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #f6faff !important;
-  stroke: #1e426c !important;
-  stroke-width: 1.4 !important;
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #f6faff !important;
-  stroke: #1e426c !important;
-  stroke-width: 0.8 !important;
+  fill: #fdf8ec !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 1.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule) !important;
-  stroke: rgba(30, 66, 108, 0.35) !important;
+  stroke: rgba(109, 63, 24, 0.4) !important;
+  stroke-width: 1.5 !important;
   stroke-dasharray: 6 3 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(30, 66, 108, 0.4) !important;
+  stroke: rgba(109, 63, 24, 0.55) !important;
+  stroke-width: 1.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  fill: #1e426c !important;
-  font-weight: 600 !important;
+  fill: #4a2810 !important;
+  font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #1e426c !important;
+  fill: #4a2810 !important;
+  font-weight: 600 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #1e426c !important;
-  stroke-width: 1.6 !important;
+  stroke: #6d3f18 !important;
+  stroke-width: 2.8 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: #1e426c !important;
+  fill: #6d3f18 !important;
+  stroke-width: 2 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
-  fill: #1e426c !important;
-  opacity: 0.8 !important;
+  fill: #6d3f18 !important;
+  opacity: 0.85 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #2a5a8c !important;
+  fill: #8a5a2a !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
   fill: #2a1f14 !important;
-  stroke: #d4a04a !important;
-  stroke-width: 2 !important;
+  stroke: #f0b840 !important;
+  stroke-width: 3 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #2a1f14 !important;
-  stroke: rgba(212, 160, 74, 0.75) !important;
-  stroke-width: 1.2 !important;
+  stroke: rgba(240, 184, 64, 0.85) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(212, 160, 74, 0.55) !important;
+  stroke: rgba(240, 184, 64, 0.5) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(212, 160, 74, 0.6) !important;
+  stroke: rgba(240, 184, 64, 0.6) !important;
+  stroke-width: 1.8 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #f0e0b8 !important;
+  fill: #f8ecd0 !important;
+  font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #d4a04a !important;
+  stroke: #f0b840 !important;
   fill: none !important;
-  stroke-width: 2 !important;
+  stroke-width: 3 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #d4a04a !important;
-  fill: #d4a04a !important;
-  stroke-width: 2 !important;
+  stroke: #f0b840 !important;
+  fill: #f0b840 !important;
+  stroke-width: 2.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f0e0b8 !important;

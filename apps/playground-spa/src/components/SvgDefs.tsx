@@ -219,8 +219,8 @@ export function SvgDefs(): React.ReactElement {
           <path
             d="M 24 0 L 0 0 0 24"
             fill="none"
-            stroke="rgba(30, 66, 108, 0.14)"
-            strokeWidth="0.6"
+            stroke="rgba(109, 63, 24, 0.18)"
+            strokeWidth="1"
           />
         </pattern>
 
@@ -236,7 +236,7 @@ export function SvgDefs(): React.ReactElement {
             d="M 24 0 L 0 0 0 24"
             fill="none"
             stroke="rgba(212, 160, 74, 0.18)"
-            strokeWidth="0.6"
+            strokeWidth="1"
           />
         </pattern>
 
@@ -253,8 +253,8 @@ export function SvgDefs(): React.ReactElement {
           <path
             d="M 0 0 L 10 5 L 0 10 M 0 5 L 8 5"
             fill="none"
-            stroke="#1e426c"
-            strokeWidth="1.2"
+            stroke="#6d3f18"
+            strokeWidth="2"
           />
         </marker>
 
