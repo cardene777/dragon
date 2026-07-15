@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "pnpm --filter dragon-playground-spa dev",
     "build": "pnpm build:packages && pnpm --filter dragon-playground-spa build",
+    "build:pages": "pnpm build:packages && pnpm --filter dragon-playground-spa build:pages",
+    "deploy": "pnpm --filter dragon-playground-spa deploy",
     "build:packages": "pnpm --filter @cardenelabs/dragon build",
     "preview": "pnpm --filter dragon-playground-spa preview",
     "lint": "eslint .",
