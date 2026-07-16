@@ -506,3 +506,245 @@ export const partsGaugeCluster = diagram("parts-gauge-cluster", {
     p.activate("gCpu", "gMem", "gNet")
       .tween("cpu", 20, 75).tween("mem", 40, 85).tween("net", 15, 60))
   .build();
+
+// ============================================================
+// parts 31: デジタル時計 (countup HH:MM 表示)
+// ============================================================
+export const partsDigitalClock = diagram("parts-digital-clock", {
+  topic: "デジタル時計 — HH:MM 数値 live",
+})
+  .lane("l", { x: 0, width: 500 })
+  .state("hh", { initial: 12 })
+  .state("mm", { initial: 30 })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.countup("clock", { source: "hh", unit: ":30", label: "12:30", decimals: 0 })
+  .phase("p", { duration: 4000, title: "時刻更新", body: "" }, (p: PhaseBuilder) =>
+    p.tween("hh", 12, 18))
+  .build();
+
+// ============================================================
+// parts 32: カウントダウン (dyn-arc 円弧が減少)
+// ============================================================
+export const partsCountdown = diagram("parts-countdown", {
+  topic: "カウントダウン — 残り時間の円弧",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("sec", { initial: 60 })
+  .node("timer", { lane: "l", stack: 0, kind: "dyn-arc", title: "残り", subtitle: "{sec} 秒", w: 380, h: 380,
+    shape: { kind: "arc", angle: "{sec}", sweepMax: 60, outerRadius: 150, innerRadius: 110, fill: "#f59e0b" } })
+  .phase("p", { duration: 5000, title: "時間経過", body: "" }, (p: PhaseBuilder) =>
+    p.activate("timer").tween("sec", 60, 0))
+  .build();
+
+// ============================================================
+// parts 33: メッセージ吹き出し (dyn-rect + subtitle)
+// ============================================================
+export const partsMessageBubble = diagram("parts-message-bubble", {
+  topic: "メッセージ吹き出し — chat bubble",
+})
+  .lane("l", { x: 0, width: 500 })
+  .node("bubble", { lane: "l", stack: 0, kind: "dyn-rect", title: "Hi there!", subtitle: "10:30 AM", w: 460, h: 200,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 24 } })
+  .phase("p", { duration: 3000, title: "メッセージ受信", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bubble"))
+  .build();
+
+// ============================================================
+// parts 34: ユーザーアバター (大 dyn-circle)
+// ============================================================
+export const partsUserAvatar = diagram("parts-user-avatar", {
+  topic: "ユーザーアバター — 大円で user icon",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#4e9dc4" })
+  .node("avatar", { lane: "l", stack: 0, kind: "dyn-circle", title: "JD", subtitle: "John Doe", w: 340, h: 340,
+    shape: { kind: "circle", radius: 150, fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "avatar 表示", body: "" }, (p: PhaseBuilder) =>
+    p.activate("avatar"))
+  .build();
+
+// ============================================================
+// parts 35: 料金カード (KPI card variant with unit)
+// ============================================================
+export const partsPriceCard = diagram("parts-price-card", {
+  topic: "料金カード — 価格 + 単位",
+})
+  .lane("l", { x: 0, width: 500 })
+  .state("price", { initial: 980 })
+  .state("prev", { initial: 1200 })
+  .state("hist", { initial: 1200 })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.kpiCard("pc", { source: "price", historySource: "hist", comparisonSource: "prev", unit: " 円/月", label: "Basic プラン" })
+  .phase("p", { duration: 3500, title: "料金表示", body: "" }, (p: PhaseBuilder) =>
+    p.tween("price", 980, 980).tween("hist", 1200, 980).set("prev", 1200))
+  .build();
+
+// ============================================================
+// parts 36: ディスク使用率 (arc + %)
+// ============================================================
+export const partsDiskUsage = diagram("parts-disk-usage", {
+  topic: "ディスク使用率 — 使用量の弧",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("used", { initial: 30 })
+  .node("disk", { lane: "l", stack: 0, kind: "dyn-arc", title: "SSD", subtitle: "{used}% 使用中", w: 380, h: 380,
+    shape: { kind: "arc", angle: "{used}", sweepMax: 100, outerRadius: 150, innerRadius: 100, fill: "#8b5cf6" } })
+  .phase("p", { duration: 4000, title: "使用量増加", body: "" }, (p: PhaseBuilder) =>
+    p.activate("disk").tween("used", 30, 78))
+  .build();
+
+// ============================================================
+// parts 37: 上下帯域 (2 dyn-rect で up/down 速度)
+// ============================================================
+export const partsBandwidthMeter = diagram("parts-bandwidth-meter", {
+  topic: "上下帯域 — up/down 速度メーター",
+})
+  .lane("la", { x: 0, width: 240 })
+  .lane("lb", { x: 280, width: 240 })
+  .state("up", { initial: 20 })
+  .state("dn", { initial: 30 })
+  .node("upBar", { lane: "la", stack: 0, kind: "dyn-rect", title: "UP", subtitle: "{up} Mbps", w: 220, h: 340,
+    shape: { kind: "rect", source: "{up}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 6 } })
+  .node("dnBar", { lane: "lb", stack: 0, kind: "dyn-rect", title: "DOWN", subtitle: "{dn} Mbps", w: 220, h: 340,
+    shape: { kind: "rect", source: "{dn}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 6 } })
+  .phase("p", { duration: 4000, title: "帯域変動", body: "" }, (p: PhaseBuilder) =>
+    p.activate("upBar", "dnBar").tween("up", 20, 65).tween("dn", 30, 90))
+  .build();
+
+// ============================================================
+// parts 38: 天気アイコン (色付き大 circle で状態表現)
+// ============================================================
+export const partsWeatherIcon = diagram("parts-weather-icon", {
+  topic: "天気アイコン — 天気状態を色で表現",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#f59e0b" })
+  .node("sun", { lane: "l", stack: 0, kind: "dyn-circle", title: "晴れ", subtitle: "☀ 24°C", w: 340, h: 340,
+    shape: { kind: "circle", radius: 140, fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "天気表示", body: "" }, (p: PhaseBuilder) =>
+    p.activate("sun"))
+  .build();
+
+// ============================================================
+// parts 39: 波形 3 連 (3 sparkline 同時、 CPU/MEM/NET trend)
+// ============================================================
+export const partsMultiSparkline = diagram("parts-multi-sparkline", {
+  topic: "波形 3 連 — 3 指標の trend 同時表示",
+})
+  .lane("l", { x: 0, width: 600 })
+  .state("cpu", { initial: 20 })
+  .state("mem", { initial: 40 })
+  .state("net", { initial: 15 })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.sparkline("sc", { source: "cpu", history: 30, color: "#dc2626", label: "CPU trend" })
+  .readout.sparkline("sm", { source: "mem", history: 30, color: "#22c55e", label: "MEM trend" })
+  .readout.sparkline("sn", { source: "net", history: 30, color: "#4e9dc4", label: "NET trend" })
+  .phase("p", { duration: 4500, title: "3 指標推移", body: "" }, (p: PhaseBuilder) =>
+    p.tween("cpu", 20, 78).tween("mem", 40, 65).tween("net", 15, 88))
+  .build();
+
+// ============================================================
+// parts 40: 進捗ドット (3 dot で完了 stage 表示)
+// ============================================================
+export const partsProgressDots = diagram("parts-progress-dots", {
+  topic: "進捗ドット — 3 段階完了表示",
+})
+  .lane("la", { x: 0, width: 160 })
+  .lane("lb", { x: 200, width: 160 })
+  .lane("lc", { x: 400, width: 160 })
+  .state("d1", { initial: "#22c55e" })
+  .state("d2", { initial: "#22c55e" })
+  .state("d3", { initial: "#f5e6b8" })
+  .node("dot1", { lane: "la", stack: 0, kind: "dyn-circle", title: "1", subtitle: "受注", w: 140, h: 140,
+    shape: { kind: "circle", radius: 55, fill: "{d1}" } })
+  .node("dot2", { lane: "lb", stack: 0, kind: "dyn-circle", title: "2", subtitle: "処理中", w: 140, h: 140,
+    shape: { kind: "circle", radius: 55, fill: "{d2}" } })
+  .node("dot3", { lane: "lc", stack: 0, kind: "dyn-circle", title: "3", subtitle: "配送", w: 140, h: 140,
+    shape: { kind: "circle", radius: 55, fill: "{d3}" } })
+  .phase("p", { duration: 3000, title: "進捗", body: "" }, (p: PhaseBuilder) =>
+    p.activate("dot1", "dot2", "dot3"))
+  .build();
+
+// ============================================================
+// parts 41: 音量メーター (dyn-wave で音量 metaphor)
+// ============================================================
+export const partsVolumeMeter = diagram("parts-volume-meter", {
+  topic: "音量メーター — 音量 metaphor",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("vol", { initial: 30 })
+  .node("volw", { lane: "l", stack: 0, kind: "dyn-wave", title: "音量", subtitle: "{vol}", w: 380, h: 380,
+    shape: { kind: "wave", level: "{vol}", amplitude: 80, frequency: 4, waveHeight: 20, fill: "#8b5cf6" } })
+  .phase("p", { duration: 4500, title: "音量変化", body: "" }, (p: PhaseBuilder) =>
+    p.activate("volw").tween("vol", 30, 95))
+  .build();
+
+// ============================================================
+// parts 42: 進捗 6 段階 (step progress 6 stage)
+// ============================================================
+export const partsProgressLong = diagram("parts-progress-long", {
+  topic: "進捗 6 段階 — 長い wizard flow",
+})
+  .lane("l", { x: 0, width: 700 })
+  .state("cur", { initial: 3 })
+  .state("steps", { initial: '["受付", "審査", "承認", "処理", "配送", "完了"]' })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.stepProgress("stp", { source: "cur", stepsSource: "steps", color: "#22c55e", label: "6 stage wizard" })
+  .phase("p", { duration: 4000, title: "step 進行", body: "" }, (p: PhaseBuilder) =>
+    p.tween("cur", 3, 6))
+  .build();
+
+// ============================================================
+// parts 43: 予算残り (dyn-rect + subtitle percent)
+// ============================================================
+export const partsBudgetRemaining = diagram("parts-budget-remaining", {
+  topic: "予算残り — 残り金額の visual",
+})
+  .lane("l", { x: 0, width: 500 })
+  .state("used", { initial: 40 })
+  .node("budget", { lane: "l", stack: 0, kind: "dyn-rect", title: "予算消化", subtitle: "{used}% 使用", w: 480, h: 200,
+    shape: { kind: "rect", source: "{used}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 8 } })
+  .phase("p", { duration: 4000, title: "予算消化", body: "" }, (p: PhaseBuilder) =>
+    p.activate("budget").tween("used", 40, 82))
+  .build();
+
+// ============================================================
+// parts 44: ステータス timeline (statusTimeline readout)
+// ============================================================
+export const partsStatusTimelineWeek = diagram("parts-status-timeline-week", {
+  topic: "週間 status timeline — 7 日分の状態帯",
+})
+  .lane("l", { x: 0, width: 700 })
+  .state("evt", { initial: '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]' })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.statusTimeline("stl", { source: "evt", max: 8, label: "7 day status" })
+  .phase("p", { duration: 3000, title: "週間表示", body: "" }, (p: PhaseBuilder) =>
+    p.set("evt", '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]'))
+  .build();
+
+// ============================================================
+// parts 45: レインボーゲージ (5 stack rect で 5 tone tier)
+// ============================================================
+export const partsRainbowStack = diagram("parts-rainbow-stack", {
+  topic: "レインボーゲージ — 5 tone tier stack",
+})
+  .lane("l", { x: 0, width: 340 })
+  .state("t1", { initial: 20 })
+  .state("t2", { initial: 20 })
+  .state("t3", { initial: 20 })
+  .state("t4", { initial: 20 })
+  .state("t5", { initial: 20 })
+  .node("tier1", { lane: "l", stack: 0, kind: "dyn-rect", title: "Tier 1", subtitle: "S", w: 320, h: 90,
+    shape: { kind: "rect", source: "{t1}", fillMax: 30, orient: "up", fill: "#dc2626", radius: 4 } })
+  .node("tier2", { lane: "l", stack: 1, kind: "dyn-rect", title: "Tier 2", subtitle: "A", w: 320, h: 90,
+    shape: { kind: "rect", source: "{t2}", fillMax: 30, orient: "up", fill: "#f59e0b", radius: 4 } })
+  .node("tier3", { lane: "l", stack: 2, kind: "dyn-rect", title: "Tier 3", subtitle: "B", w: 320, h: 90,
+    shape: { kind: "rect", source: "{t3}", fillMax: 30, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("tier4", { lane: "l", stack: 3, kind: "dyn-rect", title: "Tier 4", subtitle: "C", w: 320, h: 90,
+    shape: { kind: "rect", source: "{t4}", fillMax: 30, orient: "up", fill: "#4e9dc4", radius: 4 } })
+  .node("tier5", { lane: "l", stack: 4, kind: "dyn-rect", title: "Tier 5", subtitle: "D", w: 320, h: 90,
+    shape: { kind: "rect", source: "{t5}", fillMax: 30, orient: "up", fill: "#8b5cf6", radius: 4 } })
+  .phase("p", { duration: 4000, title: "全 tier active", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tier1", "tier2", "tier3", "tier4", "tier5")
+      .tween("t1", 20, 28).tween("t2", 20, 28).tween("t3", 20, 28).tween("t4", 20, 28).tween("t5", 20, 28))
+  .build();
