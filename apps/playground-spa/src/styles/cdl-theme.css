@@ -557,7 +557,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
   fill: #fdf8ec !important;
   stroke: #6d3f18 !important;
-  stroke-width: 2.5 !important;
+  stroke-width: 3.5 !important;
 }
 /* generic node の子 shape 経路にも light palette を明示配線 (dark と対称、
    codex critical fix) */
@@ -571,34 +571,41 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
   fill: #fdf8ec !important;
   stroke: #6d3f18 !important;
-  stroke-width: 2.5 !important;
+  stroke-width: 3.5 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #fdf8ec !important;
   stroke: #6d3f18 !important;
-  stroke-width: 1.5 !important;
+  stroke-width: 2 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule) !important;
-  stroke: rgba(109, 63, 24, 0.4) !important;
-  stroke-width: 1.5 !important;
-  stroke-dasharray: 6 3 !important;
+  stroke: rgba(109, 63, 24, 0.55) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 8 4 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(109, 63, 24, 0.55) !important;
-  stroke-width: 1.5 !important;
+  stroke: rgba(109, 63, 24, 0.65) !important;
+  stroke-width: 2.5 !important;
+  stroke-dasharray: 8 5 !important;
 }
+/* font-size は renderer 側 SSOT (generic 20 / actor 32 / edge main 22 / edge sub 19 / lane 20)
+   を尊重、 CSS 側は fill + font-weight のみ override (codex major #1 fix、
+   `!important` font-size で renderer default を「縮小」 する regression 撤去) */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   fill: #4a2810 !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #4a2810 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+}
+[data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
+  font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
   stroke: #6d3f18 !important;
-  stroke-width: 2.8 !important;
+  stroke-width: 4 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   fill: #6d3f18 !important;
@@ -627,21 +634,23 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
   fill: #2a1f14 !important;
   stroke: #f0b840 !important;
-  stroke-width: 3 !important;
+  stroke-width: 3.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   fill: #2a1f14 !important;
   stroke: rgba(240, 184, 64, 0.85) !important;
-  stroke-width: 1.8 !important;
+  stroke-width: 2.2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(240, 184, 64, 0.5) !important;
-  stroke-width: 1.8 !important;
+  stroke: rgba(240, 184, 64, 0.6) !important;
+  stroke-width: 2.2 !important;
+  stroke-dasharray: 8 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(240, 184, 64, 0.6) !important;
-  stroke-width: 1.8 !important;
+  stroke: rgba(240, 184, 64, 0.7) !important;
+  stroke-width: 2.8 !important;
+  stroke-dasharray: 8 5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
@@ -651,24 +660,21 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
   stroke: #f0b840 !important;
   fill: none !important;
-  stroke-width: 3 !important;
+  stroke-width: 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   stroke: #f0b840 !important;
   fill: #f0b840 !important;
-  stroke-width: 2.5 !important;
+  stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
-  font-size: 14px !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  font-size: 14px !important;
   font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  font-size: 13px !important;
   font-weight: 700 !important;
 }
 /* generic node の子 shape (rect / circle / path 等) は node-body 親要素の
@@ -684,7 +690,7 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
   fill: #2a1f14 !important;
   stroke: #f0b840 !important;
-  stroke-width: 3 !important;
+  stroke-width: 3.5 !important;
 }
 /* dark node-kind-icon fill を gold に上書き、 3-attribute pattern で child override
    (`> g > path` 0-3-3) を上書きする specificity 0-4-2 を確保 */

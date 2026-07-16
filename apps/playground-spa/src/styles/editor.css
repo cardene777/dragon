@@ -289,8 +289,17 @@
     background: rgba(201, 162, 62, 0.06);
     max-height: 180px;
     overflow-y: auto;
-    padding: 10px 14px;
-    font-size: 12px;
+    padding: 14px 18px;
+    font-size: 15px;
+  }
+  /* 900px 以下 responsive = 2 段 editor layout で warning panel が code editor を圧迫、
+     max-height を 120px に絞って CodeMirror body を最低 160px 予約する (codex critical fix) */
+  @media (max-width: 900px), (max-height: 720px) {
+    .v4-editor-warnings {
+      max-height: 120px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
   }
   html.dark .v4-editor-warnings {
     background: rgba(201, 162, 62, 0.10);
@@ -304,13 +313,13 @@
   }
   .v4-editor-warnings-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 4px 12px;
     border-radius: 99px;
     background: rgba(201, 162, 62, 0.25);
     color: #7a5c1a;
     font-family: var(--v4-mono);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
   }
   html.dark .v4-editor-warnings-badge {
     background: rgba(240, 183, 94, 0.35);
@@ -318,18 +327,18 @@
   }
   .v4-editor-warnings-hint {
     color: var(--v4-ink-dim);
-    font-size: 11.5px;
+    font-size: 14px;
     flex: 1;
   }
   .v4-editor-warnings-apply {
-    padding: 5px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--v4-brand);
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1.5px solid var(--v4-brand);
     background: var(--v4-brand);
     color: var(--v4-canvas);
     font-family: var(--v4-mono);
-    font-size: 11.5px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s, transform 0.15s;
   }
@@ -388,27 +397,27 @@
   }
   .v4-editor-warning-axis {
     flex: 0 0 auto;
-    padding: 1px 7px;
+    padding: 3px 10px;
     border-radius: 99px;
     background: var(--v4-surface-2);
     color: var(--v4-ink-dim);
-    font-size: 10.5px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: 0.02em;
   }
   .v4-editor-warning-detail {
     color: var(--v4-ink-dim);
-    font-size: 11.5px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.55;
   }
   html.dark .v4-editor-warning-detail {
     color: var(--v4-ink);
   }
   .v4-editor-warning-more {
     color: var(--v4-ink-mute);
-    font-size: 11px;
+    font-size: 13px;
     font-style: italic;
-    padding: 2px 6px;
+    padding: 4px 8px;
   }
 
   /* ── 右 preview ── */
