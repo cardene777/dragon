@@ -412,10 +412,9 @@ html.dark .catalog-preview-stage {
   justify-content: center;
   min-height: 496px;
 }
-/* parts diagram は compact widget 設計 (100x300 viewBox 等)、 上記 svg min-width 1200px から除外。
-   codex MAJOR fix = parts scope で readable 経路を無効化、 コンパクト表示を保持。 */
+/* parts diagram は compact widget 設計 (100x300 viewBox 等)、 max-content でも natural compact
+   だが container width cap の保険として max-width: 100% を明示、 SVG が意図せず親幅を上回るのを防ぐ。 */
 .catalog-preview-stage-inner svg[data-cdl-diagram^="parts-"] {
-  min-width: 0 !important;
   max-width: 100% !important;
 }
 /* parts diagram wrapper = readout / svg / bottom indicator を 3 領域で構成、
