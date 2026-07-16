@@ -3,6 +3,8 @@ import { useLocation } from "react-router";
 import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
+import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import { deserializePart, isPartsMarker, PARTS_MARKER, serializePart } from "@/lib/parts-serializer";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -494,6 +496,40 @@ export function CdlEditor(): React.JSX.Element {
   const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
   const [isDark, setIsDark] = useState(false);
 
+  /**
+   * sidebar tab (SAMPLES vs parts、 CAR-1646)。 default = "samples" で従来 UX 維持、
+   * user が "parts" tab に切替えると loadPartsItems() が dynamic import で発火し、
+   * 60 parts (CdlDiagram AST) が sidebar に populate される。 drag source として
+   * draggable=true を付け、 canvas 側 onDrop で parts-serializer 経由で src 置換する。
+   */
+  const [sidebarTab, setSidebarTab] = useState<"samples" | "parts">("samples");
+  const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
+  const [partsLoading, setPartsLoading] = useState(false);
+  const [dropOver, setDropOver] = useState(false);
+  const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
+
+  // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)
+  useEffect(() => {
+    if (sidebarTab !== "parts" || partsItems.length > 0 || partsLoading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPartsLoading(true);
+    loadPartsItems()
+      .then((items) => setPartsItems(items))
+      .catch((e) => {
+        // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す
+        console.error("[CdlEditor] parts load failed", e);
+        setDropHintMessage("parts の load に失敗しました。 開発コンソールを確認してください。");
+        window.setTimeout(() => setDropHintMessage(null), 8000);
+      })
+      .finally(() => setPartsLoading(false));
+  }, [sidebarTab, partsItems.length, partsLoading]);
+
+  const filteredParts = useMemo(() => {
+    if (!search.trim()) return partsItems;
+    const q = search.toLowerCase();
+    return partsItems.filter((p) => p.title.toLowerCase().includes(q) || p.subtitle.toLowerCase().includes(q));
+  }, [partsItems, search]);
+
   // html.dark の変化を監視して CodeMirror theme を切替
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -688,6 +724,27 @@ export function CdlEditor(): React.JSX.Element {
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       try {
+        // parts JSON escape hatch = 先頭 #!parts marker を検出したら JSON.parse に切替、
+        // textDslToDiagram を bypass して CdlDiagram を直接 setDiagram に渡す
+        // (decision-log 2026-07-16-dragon-editor-parts-json-escape-hatch)。
+        // parts (cdl builder AST) は dragon text DSL で round-trip 不可能な shape / dyn-* field
+        // を含むため、 escape hatch がないと editor で render できない。
+        if (isPartsMarker(src)) {
+          const part = deserializePart(src);
+          if (!part) {
+            setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
+            return;
+          }
+          setDiagram(part);
+          setError(null);
+          try {
+            const report = visualValidate(part);
+            setWarnings(report.violations.filter((v) => !HIDDEN_WARNING_AXES.has(v.axis)));
+          } catch {
+            setWarnings([]);
+          }
+          return;
+        }
         const d = textDslToDiagram(src);
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
         compile(d);
@@ -998,9 +1055,56 @@ animation:
     setActiveSample("new");
   };
 
+  /**
+   * sidebar parts item を drag 開始した時に partId (CdlDiagram.id) を dataTransfer に載せる。
+   * native HTML5 drag events を採用 (dnd-kit 30KB 依存追加を避けた、
+   * decision-log 2026-07-16-dragon-editor-drag-patch-strategy-and-lib)。
+   * MIME は独自 `application/dragon-part` + text/plain fallback で Safari 互換を担保する。
+   */
+  const handleDragStartPart = useCallback((partId: string) => (e: React.DragEvent<HTMLButtonElement>): void => {
+    e.dataTransfer.setData("application/dragon-part", partId);
+    e.dataTransfer.setData("text/plain", partId);
+    e.dataTransfer.effectAllowed = "copy";
+  }, []);
+
+  const handlePreviewDragOver = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    // preventDefault しないと onDrop が発火しない (native drag API 仕様)
+    if (e.dataTransfer.types.includes("application/dragon-part") || e.dataTransfer.types.includes("text/plain")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (!dropOver) setDropOver(true);
+    }
+  }, [dropOver]);
+
+  const handlePreviewDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    // drag 元 element の入れ子で dragleave が誤発火するため、 currentTarget 外にした時のみ off
+    const rel = e.relatedTarget as Node | null;
+    if (rel && (e.currentTarget as Node).contains(rel)) return;
+    setDropOver(false);
+  }, []);
+
+  const handlePreviewDrop = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    setDropOver(false);
+    const partId = e.dataTransfer.getData("application/dragon-part") || e.dataTransfer.getData("text/plain");
+    if (!partId) return;
+    const item = partsItems.find((p) => p.id === partId);
+    if (!item) {
+      setDropHintMessage(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`);
+      window.setTimeout(() => setDropHintMessage(null), 6000);
+      return;
+    }
+    // REPLACE semantic = editor 内容を丸ごと parts JSON escape hatch text で置換する
+    // (decision-log 2026-07-16-dragon-editor-drop-semantic-replace)。 MERGE は別 Issue で後続。
+    setSrc(serializePart(item.diagram));
+    setActiveSample(item.title);
+    setDropHintMessage(`parts "${item.title}" を editor に読み込みました (drop で置換)。 元に戻すには Cmd+Z。`);
+    window.setTimeout(() => setDropHintMessage(null), 6000);
+  }, [partsItems]);
+
   return (
     <div className="v4-editor">
-      {/* ── 左 sidebar (new file 主体) ── */}
+      {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
       <aside className="v4-editor-side">
         <button
           type="button"
@@ -1010,12 +1114,28 @@ animation:
           <span className="v4-editor-side-new-plus">+</span>
           <span>新規ファイル</span>
         </button>
-        <details className="v4-editor-side-samples" open={false}>
-          <summary className="v4-editor-side-samples-summary">
-            <span className="v4-editor-side-samples-label">サンプル</span>
-            <span className="v4-editor-side-samples-count">{filteredSamples.length}</span>
-            <span className="v4-editor-side-samples-caret">›</span>
-          </summary>
+        <div className="v4-editor-side-tabs" role="tablist" aria-label="sidebar tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === "samples"}
+            className={`v4-editor-side-tab ${sidebarTab === "samples" ? "active" : ""}`}
+            onClick={() => setSidebarTab("samples")}
+          >
+            サンプル
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === "parts"}
+            className={`v4-editor-side-tab ${sidebarTab === "parts" ? "active" : ""}`}
+            onClick={() => setSidebarTab("parts")}
+            data-testid="editor-parts-tab"
+          >
+            パーツ
+          </button>
+        </div>
+        {sidebarTab === "samples" && (
           <div className="v4-editor-side-samples-body">
             <input
               className="v4-editor-search"
@@ -1042,7 +1162,50 @@ animation:
               ))}
             </div>
           </div>
-        </details>
+        )}
+        {sidebarTab === "parts" && (
+          <div className="v4-editor-side-samples-body" data-testid="editor-parts-panel">
+            <input
+              className="v4-editor-search"
+              type="text"
+              placeholder="🔍 検索…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {partsLoading && <div className="v4-editor-side-loading">読み込み中… ({filteredParts.length} 件)</div>}
+            {!partsLoading && filteredParts.length === 0 && (
+              <div className="v4-editor-side-loading">
+                {partsItems.length === 0
+                  ? "初回 load 待ち…"
+                  : "検索条件に一致するパーツがありません。"}
+              </div>
+            )}
+            <div className="v4-editor-side-list">
+              {filteredParts.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  draggable
+                  onDragStart={handleDragStartPart(p.id)}
+                  className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
+                  data-testid={`editor-part-item-${p.id}`}
+                  data-part-id={p.id}
+                  title={`${p.subtitle} (drag してプレビューに drop)`}
+                  onClick={() => {
+                    // click = drag が使いづらい環境向け fallback、 drop と同じ REPLACE semantic
+                    setSrc(serializePart(p.diagram));
+                    setActiveSample(p.title);
+                  }}
+                >
+                  {p.title.replace(/^parts/, "").replace(/([A-Z])/g, " $1").trim() || p.id}
+                </button>
+              ))}
+            </div>
+            <div className="v4-editor-side-hint">
+              パーツを右のプレビューに drag するか、 クリックで読み込みます (現在の編集内容は置換されます)。
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* ── 中央 DSL editor (CodeMirror) ── */}
@@ -1202,14 +1365,26 @@ animation:
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
         <div
-          className="v4-editor-stage"
+          className={`v4-editor-stage ${dropOver ? "drop-over" : ""}`}
           ref={previewRef}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onDragOver={handlePreviewDragOver}
+          onDragLeave={handlePreviewDragLeave}
+          onDrop={handlePreviewDrop}
+          data-testid="editor-preview-stage"
         >
+          {dropOver && (
+            <div className="v4-editor-drop-overlay" aria-hidden>
+              ここにドロップして読み込む
+            </div>
+          )}
+          {dropHintMessage && (
+            <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
+          )}
           <div
             className="v4-editor-pan"
             style={{
