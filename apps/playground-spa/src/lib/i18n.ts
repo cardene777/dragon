@@ -253,6 +253,17 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsNotification: "通知カード",
   partsKpiCard: "KPIカード",
   partsTimelineStrip: "タイムライン帯",
+  // === parts catalog Round 2 (10 追加 widget、 CAR-1560 2026-07-16) ===
+  partsBatteryLevel: "バッテリー残量",
+  partsThermometer: "温度計",
+  partsHeartbeat: "心拍波形",
+  partsRatingStars: "評価スター",
+  partsComparisonBars: "対比バー",
+  partsToggleSwitch: "トグルスイッチ",
+  partsSpeedometer: "スピードメーター",
+  partsBadgeCount: "バッジカウント",
+  partsPulseIndicator: "パルス指標",
+  partsGaugeCluster: "ゲージ3連",
   // === iter 9 wave 9-C incremental debug ===
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",
