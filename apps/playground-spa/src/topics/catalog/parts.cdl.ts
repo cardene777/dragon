@@ -340,3 +340,169 @@ export const partsTimelineStrip = diagram("parts-timeline-strip", {
   .phase("p", { duration: 3000, title: "timeline 表示", body: "" }, (p: PhaseBuilder) =>
     p.set("evt", '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'))
   .build();
+
+// ============================================================
+// parts 21: バッテリー残量 (dyn-rect + subtitle live)
+// ============================================================
+export const partsBatteryLevel = diagram("parts-battery-level", {
+  topic: "バッテリー残量 — 縦 fill で残量 metaphor",
+})
+  .lane("l", { x: 0, width: 300 })
+  .state("bat", { initial: 20 })
+  .node("cell", { lane: "l", stack: 0, kind: "dyn-rect", title: "バッテリー", subtitle: "{bat}%", w: 240, h: 380,
+    shape: { kind: "rect", source: "{bat}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 8 } })
+  .phase("p", { duration: 4000, title: "充電中", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cell").tween("bat", 20, 95))
+  .build();
+
+// ============================================================
+// parts 22: 温度計 (dyn-rect vertical + 単位表示)
+// ============================================================
+export const partsThermometer = diagram("parts-thermometer", {
+  topic: "温度計 — 縦棒温度で連続値 metaphor",
+})
+  .lane("l", { x: 0, width: 260 })
+  .state("temp", { initial: 12 })
+  .node("mercury", { lane: "l", stack: 0, kind: "dyn-rect", title: "気温", subtitle: "{temp}°C", w: 220, h: 400,
+    shape: { kind: "rect", source: "{temp}", fillMax: 40, orient: "up", fill: "#dc2626", radius: 12 } })
+  .phase("p", { duration: 4500, title: "気温上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("mercury").tween("temp", 12, 32))
+  .build();
+
+// ============================================================
+// parts 23: 心拍波形 (readout sparkline + 単位)
+// ============================================================
+export const partsHeartbeat = diagram("parts-heartbeat", {
+  topic: "心拍波形 — sparkline で pulse 表現",
+})
+  .lane("l", { x: 0, width: 500 })
+  .state("bpm", { initial: 72 })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.sparkline("hb", { source: "bpm", history: 30, color: "#dc2626", label: "heart beat" })
+  .readout.countup("v", { source: "bpm", unit: " bpm", label: "現在の心拍", decimals: 0 })
+  .phase("p", { duration: 4000, title: "心拍推移", body: "" }, (p: PhaseBuilder) =>
+    p.tween("bpm", 72, 118))
+  .build();
+
+// ============================================================
+// parts 24: 評価スター (3 dyn-circle で 5 段階中 3)
+// ============================================================
+export const partsRatingStars = diagram("parts-rating-stars", {
+  topic: "評価スター — 5 段階中 fill 表示",
+})
+  .lane("l", { x: 0, width: 600 })
+  .state("s1", { initial: "#f59e0b" })
+  .state("s2", { initial: "#f59e0b" })
+  .state("s3", { initial: "#f59e0b" })
+  .state("s4", { initial: "#f5e6b8" })
+  .state("s5", { initial: "#f5e6b8" })
+  .node("st1", { lane: "l", stack: 0, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
+    shape: { kind: "circle", radius: 40, fill: "{s1}" } })
+  .node("st2", { lane: "l", stack: 1, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
+    shape: { kind: "circle", radius: 40, fill: "{s2}" } })
+  .node("st3", { lane: "l", stack: 2, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
+    shape: { kind: "circle", radius: 40, fill: "{s3}" } })
+  .node("st4", { lane: "l", stack: 3, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
+    shape: { kind: "circle", radius: 40, fill: "{s4}" } })
+  .node("st5", { lane: "l", stack: 4, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
+    shape: { kind: "circle", radius: 40, fill: "{s5}" } })
+  .phase("p", { duration: 3000, title: "3/5 表示", body: "" }, (p: PhaseBuilder) =>
+    p.activate("st1", "st2", "st3", "st4", "st5"))
+  .build();
+
+// ============================================================
+// parts 25: 対比バー (A vs B、 2 dyn-rect 横並び)
+// ============================================================
+export const partsComparisonBars = diagram("parts-comparison-bars", {
+  topic: "対比バー — A vs B の数値比較",
+})
+  .lane("la", { x: 0, width: 260 })
+  .lane("lb", { x: 300, width: 260 })
+  .state("va", { initial: 30 })
+  .state("vb", { initial: 20 })
+  .node("barA", { lane: "la", stack: 0, kind: "dyn-rect", title: "A", subtitle: "{va}", w: 240, h: 360,
+    shape: { kind: "rect", source: "{va}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 6 } })
+  .node("barB", { lane: "lb", stack: 0, kind: "dyn-rect", title: "B", subtitle: "{vb}", w: 240, h: 360,
+    shape: { kind: "rect", source: "{vb}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 6 } })
+  .phase("p", { duration: 4000, title: "対比", body: "" }, (p: PhaseBuilder) =>
+    p.activate("barA", "barB").tween("va", 30, 85).tween("vb", 20, 60))
+  .build();
+
+// ============================================================
+// parts 26: トグルスイッチ (2 state 色 + 位置 metaphor)
+// ============================================================
+export const partsToggleSwitch = diagram("parts-toggle-switch", {
+  topic: "トグルスイッチ — on/off 状態表示",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("bg", { initial: "#22c55e" })
+  .node("track", { lane: "l", stack: 0, kind: "dyn-rect", title: "", subtitle: "ON", w: 320, h: 160,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "{bg}", radius: 80 } })
+  .phase("p", { duration: 3000, title: "on 状態", body: "" }, (p: PhaseBuilder) =>
+    p.activate("track"))
+  .build();
+
+// ============================================================
+// parts 27: スピードメーター (dyn-arc で 0-180 km/h)
+// ============================================================
+export const partsSpeedometer = diagram("parts-speedometer", {
+  topic: "スピードメーター — 円弧針で速度表示",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("kph", { initial: 30 })
+  .node("meter", { lane: "l", stack: 0, kind: "dyn-arc", title: "速度", subtitle: "{kph} km/h", w: 380, h: 380,
+    shape: { kind: "arc", angle: "{kph}", sweepMax: 180, outerRadius: 150, innerRadius: 110, fill: "#dc2626" } })
+  .phase("p", { duration: 4500, title: "加速", body: "" }, (p: PhaseBuilder) =>
+    p.activate("meter").tween("kph", 30, 165))
+  .build();
+
+// ============================================================
+// parts 28: バッジカウント (countup + 通知強調)
+// ============================================================
+export const partsBadgeCount = diagram("parts-badge-count", {
+  topic: "バッジカウント — 未読数の visual 強調",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("cnt", { initial: 0 })
+  .node("dot", { lane: "l", stack: 0, kind: "dyn-circle", title: "受信", subtitle: "{cnt} 通", w: 340, h: 340,
+    shape: { kind: "circle", radius: 130, fill: "#dc2626" } })
+  .phase("p", { duration: 3500, title: "受信増加", body: "" }, (p: PhaseBuilder) =>
+    p.activate("dot").tween("cnt", 0, 42))
+  .build();
+
+// ============================================================
+// parts 29: パルス指標 (rate の visual 表現)
+// ============================================================
+export const partsPulseIndicator = diagram("parts-pulse-indicator", {
+  topic: "パルス指標 — レート visualization",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("rate", { initial: 5 })
+  .node("pulse", { lane: "l", stack: 0, kind: "dyn-wave", title: "レート", subtitle: "{rate} req/s", w: 380, h: 380,
+    shape: { kind: "wave", level: "{rate}", amplitude: 50, frequency: 3, waveHeight: 15, fill: "#8b5cf6" } })
+  .phase("p", { duration: 4000, title: "rate 上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("pulse").tween("rate", 5, 85))
+  .build();
+
+// ============================================================
+// parts 30: ゲージ 3 連 (3 mini gauge cluster)
+// ============================================================
+export const partsGaugeCluster = diagram("parts-gauge-cluster", {
+  topic: "ゲージ 3 連 — 複数指標の同時表示",
+})
+  .lane("la", { x: 0, width: 220 })
+  .lane("lb", { x: 260, width: 220 })
+  .lane("lc", { x: 520, width: 220 })
+  .state("cpu", { initial: 20 })
+  .state("mem", { initial: 40 })
+  .state("net", { initial: 15 })
+  .node("gCpu", { lane: "la", stack: 0, kind: "dyn-arc", title: "CPU", subtitle: "{cpu}%", w: 200, h: 200,
+    shape: { kind: "arc", angle: "{cpu}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#4e9dc4" } })
+  .node("gMem", { lane: "lb", stack: 0, kind: "dyn-arc", title: "MEM", subtitle: "{mem}%", w: 200, h: 200,
+    shape: { kind: "arc", angle: "{mem}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#22c55e" } })
+  .node("gNet", { lane: "lc", stack: 0, kind: "dyn-arc", title: "NET", subtitle: "{net}%", w: 200, h: 200,
+    shape: { kind: "arc", angle: "{net}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#f59e0b" } })
+  .phase("p", { duration: 4000, title: "負荷変動", body: "" }, (p: PhaseBuilder) =>
+    p.activate("gCpu", "gMem", "gNet")
+      .tween("cpu", 20, 75).tween("mem", 40, 85).tween("net", 15, 60))
+  .build();

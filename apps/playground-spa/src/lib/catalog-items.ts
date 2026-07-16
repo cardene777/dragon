@@ -110,4 +110,4 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
  * itemCount 誤表示 + total 集計もズレる)。 現時点 = 20 個 (2026-07-15 CAR-1613 時点)。
  */
-export const PARTS_COUNT_ESTIMATE = 20;
+export const PARTS_COUNT_ESTIMATE = 30;
