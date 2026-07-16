@@ -711,4 +711,84 @@ test.describe("CAR-1646 editor drag-drop parts full spec", () => {
       expect(contrast).toBeGreaterThan(3.0);
     });
   });
+
+  // ============================================================
+  // 観点 13: CAR-1659 codex fix lock = REPLACE 前 confirm dialog の実効 assert
+  // ============================================================
+  test.describe("観点 13: CAR-1659 CRITICAL fix (dirty judge) lock", () => {
+    // 本 describe は default beforeEach の auto-accept dialog handler を off にして
+    // 個別 test で dialog 挙動を細かく制御する。
+    test.beforeEach(async ({ page }) => {
+      // remove all listeners so individual tests can register their own
+      page.removeAllListeners("dialog");
+    });
+
+    test("TC-054 未編集 = confirm 未発火 で silent replace (dirty=false 経路)", async ({ page }) => {
+      let dialogFired = false;
+      page.on("dialog", (d) => { dialogFired = true; void d.accept(); });
+      // parts tab open + click (未編集状態、 lastLoadedSrcRef と src が完全一致)
+      await page.getByTestId("editor-parts-tab").click();
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).click();
+      await page.waitForTimeout(500);
+      expect(dialogFired).toBe(false); // 未編集で silent replace = OK
+      const text = await getEditorText(page);
+      expect(text.trim().startsWith(PARTS_MARKER)).toBe(true);
+    });
+
+    test("TC-055 編集済 (1 文字追加) = confirm 発火 + accept で REPLACE (dirty=true accept 経路)", async ({ page }) => {
+      let dialogFired = false;
+      page.on("dialog", (d) => { dialogFired = true; void d.accept(); });
+      // 1 文字追加で dirty 化
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("End");
+      await page.keyboard.type("#");
+      await page.waitForTimeout(200);
+      // parts tab open + click で REPLACE trigger
+      await page.getByTestId("editor-parts-tab").click();
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).click();
+      await page.waitForTimeout(500);
+      expect(dialogFired).toBe(true); // dirty で confirm 発火
+      const text = await getEditorText(page);
+      expect(text.trim().startsWith(PARTS_MARKER)).toBe(true); // accept で REPLACE 完了
+    });
+
+    test("TC-056 編集済 + cancel = REPLACE 中止で編集内容保持 (dirty=true dismiss 経路)", async ({ page }) => {
+      let dialogFired = false;
+      page.on("dialog", (d) => { dialogFired = true; void d.dismiss(); });
+      // 1 文字追加で dirty 化 + 特徴的な marker 文字列を含める
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("End");
+      await page.keyboard.type("\n# EDIT-MARKER-CANCEL-TEST");
+      await page.waitForTimeout(200);
+      const before = await getEditorText(page);
+      expect(before).toContain("EDIT-MARKER-CANCEL-TEST");
+      // parts tab open + click で REPLACE trigger
+      await page.getByTestId("editor-parts-tab").click();
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).click();
+      await page.waitForTimeout(500);
+      expect(dialogFired).toBe(true); // dirty で confirm 発火
+      const after = await getEditorText(page);
+      expect(after).toContain("EDIT-MARKER-CANCEL-TEST"); // cancel で編集保持
+      expect(after.trim().startsWith(PARTS_MARKER)).toBe(false); // REPLACE 未実行
+    });
+
+    test("TC-057 短い削除 (5 文字未満) でも dirty 判定 + confirm 発火 (length>20 guard 削除の実効)", async ({ page }) => {
+      let dialogFired = false;
+      page.on("dialog", (d) => { dialogFired = true; void d.accept(); });
+      // 1 文字削除 = codex CRITICAL fix 前は「length > 20」 guard で silent replace されていた
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("End");
+      await page.keyboard.press("Backspace"); // 1 文字削除
+      await page.waitForTimeout(200);
+      // parts click で REPLACE trigger
+      await page.getByTestId("editor-parts-tab").click();
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).click();
+      await page.waitForTimeout(500);
+      expect(dialogFired).toBe(true); // 1 文字修正でも dirty 判定 = codex CRITICAL fix の実効 lock
+    });
+  });
 });
