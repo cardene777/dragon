@@ -23,12 +23,15 @@ export function serializePart(diagram: CdlDiagram): string {
 }
 
 /**
- * text buffer が parts escape hatch (先頭に marker あり) かを判定する。
+ * text buffer が parts escape hatch (先頭 1 行が marker) かを判定する。
  * 前後 whitespace は許容、 marker より後の内容は問わない。
+ * codex-review PR #413 MINOR fix = 完全一致判定に切替、 `#!parts-draft` 等 prefix 拡張を
+ * 誤って escape hatch 経路に奪わないようにする (先頭行完全一致のみ)。
  */
 export function isPartsMarker(src: string): boolean {
   const trimmed = src.trimStart();
-  return trimmed.startsWith(PARTS_MARKER);
+  const firstLine = trimmed.split(/\r?\n/, 1)[0] ?? "";
+  return firstLine === PARTS_MARKER;
 }
 
 /**

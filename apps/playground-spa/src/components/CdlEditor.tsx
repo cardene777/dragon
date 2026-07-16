@@ -505,24 +505,63 @@ export function CdlEditor(): React.JSX.Element {
   const [sidebarTab, setSidebarTab] = useState<"samples" | "parts">("samples");
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
+  const [partsLoadFailed, setPartsLoadFailed] = useState(false);
   const [dropOver, setDropOver] = useState(false);
   const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
+  const dropHintTimerRef = useRef<number | null>(null);
 
-  // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)
+  /**
+   * drop hint message を単一 timer で表示、 直前 timer は必ず clear する。
+   * codex-review PR #413 MINOR = 6 秒以内に 2 回 drop で旧 timer が新 message を早期に消す競合を回避。
+   */
+  const setDropHintWithReset = useCallback((msg: string | null, ttlMs = 6000): void => {
+    if (dropHintTimerRef.current !== null) {
+      window.clearTimeout(dropHintTimerRef.current);
+      dropHintTimerRef.current = null;
+    }
+    setDropHintMessage(msg);
+    if (msg !== null && ttlMs > 0) {
+      dropHintTimerRef.current = window.setTimeout(() => {
+        setDropHintMessage(null);
+        dropHintTimerRef.current = null;
+      }, ttlMs);
+    }
+  }, []);
+
   useEffect(() => {
-    if (sidebarTab !== "parts" || partsItems.length > 0 || partsLoading) return;
+    return () => {
+      if (dropHintTimerRef.current !== null) {
+        window.clearTimeout(dropHintTimerRef.current);
+      }
+    };
+  }, []);
+
+  // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)。
+  // codex-review PR #413 MAJOR fix = partsLoadFailed で終了状態を保持、 失敗後は明示的な reset
+  // (samples tab に切替) までは自動再試行しない。 無限 retry loop を防ぐ。
+  // cancelled guard は使わない ... dep 変化で cleanup 発火 → promise callback が cancelled=true 判定
+  // で setPartsItems 呼ばない React footgun を回避するため、 単純に partsLoadFailed flag のみで制御。
+  useEffect(() => {
+    if (sidebarTab !== "parts" || partsItems.length > 0 || partsLoading || partsLoadFailed) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPartsLoading(true);
     loadPartsItems()
       .then((items) => setPartsItems(items))
       .catch((e) => {
-        // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す
+        // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す + 失敗 flag を立てて再試行禁止
         console.error("[CdlEditor] parts load failed", e);
-        setDropHintMessage("parts の load に失敗しました。 開発コンソールを確認してください。");
-        window.setTimeout(() => setDropHintMessage(null), 8000);
+        setPartsLoadFailed(true);
+        setDropHintWithReset("parts の load に失敗しました。 samples tab に切替後 parts tab を再表示すると再試行します。", 8000);
       })
       .finally(() => setPartsLoading(false));
-  }, [sidebarTab, partsItems.length, partsLoading]);
+  }, [sidebarTab, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
+
+  // samples tab に切替時 = 次に parts tab に戻った時の再試行を許可する経路 (partsLoadFailed をリセット)
+  useEffect(() => {
+    if (sidebarTab === "samples" && partsLoadFailed) {
+      setPartsLoadFailed(false);
+    }
+  }, [sidebarTab, partsLoadFailed]);
 
   const filteredParts = useMemo(() => {
     if (!search.trim()) return partsItems;
@@ -742,6 +781,12 @@ export function CdlEditor(): React.JSX.Element {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
+          // codex-review PR #413 CRITICAL fix = deserializePart の shape check (id + nodes array) は
+          // 最低限で、 lanes / phases 等 CdlDiagramView が触る field は未検証。 手編集で
+          // `#!parts\n{"id":"x","nodes":[]}` 等を書くと CdlDiagramView → compile() 内 lanes.length
+          // で throw、 Error Boundary なしで editor 全体 unmount する。 setDiagram(part) 前に
+          // compile() で完全 validation を通し、 throw は外側 catch で error 表示に落とす。
+          compile(part);
           setDiagram(part);
           setError(null);
           try {
@@ -1097,17 +1142,15 @@ animation:
     if (!partId) return;
     const item = partsItems.find((p) => p.id === partId);
     if (!item) {
-      setDropHintMessage(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`);
-      window.setTimeout(() => setDropHintMessage(null), 6000);
+      setDropHintWithReset(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`, 6000);
       return;
     }
     // REPLACE semantic = editor 内容を丸ごと parts JSON escape hatch text で置換する
     // (decision-log 2026-07-16-dragon-editor-drop-semantic-replace)。 MERGE は別 Issue で後続。
     setSrc(serializePart(item.diagram));
     setActiveSample(item.title);
-    setDropHintMessage(`parts "${item.title}" を editor に読み込みました (drop で置換)。 元に戻すには Cmd+Z。`);
-    window.setTimeout(() => setDropHintMessage(null), 6000);
-  }, [partsItems]);
+    setDropHintWithReset(`parts "${item.title}" を editor に読み込みました (drop で置換)。 元に戻すには Cmd+Z。`, 6000);
+  }, [partsItems, setDropHintWithReset]);
 
   return (
     <div className="v4-editor">
