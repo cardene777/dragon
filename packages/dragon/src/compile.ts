@@ -552,7 +552,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     b.lane(id, { width: laneW, label: a.name, lifeline: true });
     const headerId = `${id}-header`;
     // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
-    // CJK 22px/char + 40px padding、 min 140 で従来 sample 互換維持。
+    // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
     const actorW = Math.max(140, a.name.length * 22 + 52);
     b.node(headerId, { lane: id, stack: 0, kind: "card", title: a.name, w: actorW, h: 72 });
     headerNodeIds.push(headerId);
