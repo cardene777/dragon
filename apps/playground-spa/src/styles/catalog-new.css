@@ -121,6 +121,12 @@ html.dark .catalog-count-filter {
   .catalog-body {
     grid-template-columns: 1fr;
   }
+  /* mobile viewport では min-width: 1200px の readable size 保証を緩和して常時 horizontal scroll 抑制。
+     codex minor fix = mobile は tap 中心 UX で scroll bar 認識弱く「切れて表示」 誤認 risk。
+     desktop only で readable text 保証、 mobile は container fit の standard 挙動に fallback。 */
+  .catalog-preview-stage-inner svg {
+    min-width: 100% !important;
+  }
 }
 
 /* ── sidebar (検索 + list) ── */
@@ -363,7 +369,7 @@ html.dark .catalog-expand-btn:hover {
 .catalog-preview-stage {
   padding: 32px;
   background: #fcf8ee;
-  min-height: 560px;
+  min-height: 720px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -378,15 +384,21 @@ html.dark .catalog-preview-stage {
 }
 .catalog-preview-stage-inner {
   width: 100%;
-  max-height: 640px;
+  max-height: 800px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
+  overflow: auto;
 }
+/* SVG diagram の readable size 保証 (user report 「文字小さすぎ、 なぜこんな小さく？」 対応、 CAR-1560)。
+   従来 = max-width 100% で container 幅に SVG 縮小、 wide aspect diagram で文字 12-14px screen 相当。
+   新設計 = intrinsic size + horizontal scroll、 SVG viewBox 通り native scale で font-size 20-32px world
+   unit がそのまま screen px に近い比率で描画される (container 縮小率が 1:1 に近づく)。 */
 .catalog-preview-stage-inner svg {
-  max-width: 100% !important;
-  max-height: 640px !important;
+  min-width: max(100%, 1200px) !important;
+  max-width: none !important;
+  max-height: 800px !important;
   width: auto !important;
   height: auto !important;
   display: block;
@@ -399,6 +411,12 @@ html.dark .catalog-preview-stage {
 .catalog-preview-stage-inner:has([data-cdl-diagram^="parts-"]) {
   justify-content: center;
   min-height: 496px;
+}
+/* parts diagram は compact widget 設計 (100x300 viewBox 等)、 上記 svg min-width 1200px から除外。
+   codex MAJOR fix = parts scope で readable 経路を無効化、 コンパクト表示を保持。 */
+.catalog-preview-stage-inner svg[data-cdl-diagram^="parts-"] {
+  min-width: 0 !important;
+  max-width: 100% !important;
 }
 /* parts diagram wrapper = readout / svg / bottom indicator を 3 領域で構成、
    readout 領域が flex-grow で残り空間を吸収 + 内部で center 揃え、
