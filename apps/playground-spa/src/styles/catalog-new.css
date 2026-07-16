@@ -121,11 +121,10 @@ html.dark .catalog-count-filter {
   .catalog-body {
     grid-template-columns: 1fr;
   }
-  /* mobile viewport では min-width: 1200px の readable size 保証を緩和して常時 horizontal scroll 抑制。
-     codex minor fix = mobile は tap 中心 UX で scroll bar 認識弱く「切れて表示」 誤認 risk。
-     desktop only で readable text 保証、 mobile は container fit の standard 挙動に fallback。 */
+  /* mobile viewport = max-content の horizontal scroll を抑制、 container fit fallback。 */
   .catalog-preview-stage-inner svg {
-    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
@@ -391,15 +390,16 @@ html.dark .catalog-preview-stage {
   justify-content: flex-start;
   overflow: auto;
 }
-/* SVG diagram の readable size 保証 (user report 「文字小さすぎ、 なぜこんな小さく？」 対応、 CAR-1560)。
-   従来 = max-width 100% で container 幅に SVG 縮小、 wide aspect diagram で文字 12-14px screen 相当。
-   新設計 = intrinsic size + horizontal scroll、 SVG viewBox 通り native scale で font-size 20-32px world
-   unit がそのまま screen px に近い比率で描画される (container 縮小率が 1:1 に近づく)。 */
+/* SVG diagram の intrinsic size + horizontal scroll (user report 「文字小さすぎ、 なぜこんな小さく？」
+   対応、 CAR-1560、 revision 2 = full-page sweep で narrow diagram (styles / parts / animation)
+   の over-scale bug 修正)。
+   width: max-content で SVG viewBox 通り natural size 描画 = narrow diagram は compact、 wide
+   diagram は container 超過で horizontal scroll、 font-size world unit がそのまま screen px 近似で描画。 */
 .catalog-preview-stage-inner svg {
-  min-width: max(100%, 1200px) !important;
+  width: max-content !important;
   max-width: none !important;
+  min-width: 0 !important;
   max-height: 800px !important;
-  width: auto !important;
   height: auto !important;
   display: block;
   margin: 0 auto;
@@ -412,10 +412,9 @@ html.dark .catalog-preview-stage {
   justify-content: center;
   min-height: 496px;
 }
-/* parts diagram は compact widget 設計 (100x300 viewBox 等)、 上記 svg min-width 1200px から除外。
-   codex MAJOR fix = parts scope で readable 経路を無効化、 コンパクト表示を保持。 */
+/* parts diagram は compact widget 設計 (100x300 viewBox 等)、 max-content でも natural compact
+   だが container width cap の保険として max-width: 100% を明示、 SVG が意図せず親幅を上回るのを防ぐ。 */
 .catalog-preview-stage-inner svg[data-cdl-diagram^="parts-"] {
-  min-width: 0 !important;
   max-width: 100% !important;
 }
 /* parts diagram wrapper = readout / svg / bottom indicator を 3 領域で構成、
