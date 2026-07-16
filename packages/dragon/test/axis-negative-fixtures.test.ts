@@ -14,10 +14,10 @@
  *
  * ## 2 種類の axis 保証
  *
- * ### A. catalog real defect 保証 (3 axis)
+ * ### A. catalog real defect 保証 (2 axis)
  * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
- * regression を検出可能:
- * - Axis 3  text-readability      (cookbook)
+ * regression を検出可能。 Axis 3 は PR #392 (sequence actor auto-size) 以降 catalog real defect
+ * が消えたため、 manual defect injection fixture に移行 (下記 Axis 3 describe block 参照):
  * - Axis 12 edge-node-cross       (pattern-passthrough)
  * - Axis 51 mermaid-parity        (presets)
  *
@@ -302,7 +302,7 @@ describe("Axis 3 text-readability (defect injection via manual fixture)", () => 
       topic: "text-readability defect injection",
       viewBox: { x: 0, y: 0, w: 400, h: 200 },
       nodes: [
-        // title 21 char で expected width = 21*22+52 = 514、 node w=100 で defect 発火
+        // title 48 char で expected width = 48*22+52 = 1108px、 node w=100 で defect 発火
         { id: "n1", kind: "card" as const, title: "This Is A Very Long Node Title Overflowing Width", cx: 100, cy: 100, w: 100, h: 40, lane: "L" },
       ],
       edges: [],
