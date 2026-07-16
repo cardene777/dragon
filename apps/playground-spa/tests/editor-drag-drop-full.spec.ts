@@ -80,6 +80,8 @@ async function forceSetSrc(page: Page, newSrc: string): Promise<void> {
 
 test.describe("CAR-1646 editor drag-drop parts full spec", () => {
   test.beforeEach(async ({ page }) => {
+    // CAR-1657 = REPLACE 前に window.confirm dialog (user 編集検出時) を自動 accept して test 継続
+    page.on("dialog", (d) => { void d.accept(); });
     await page.goto("/editor", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
   });
