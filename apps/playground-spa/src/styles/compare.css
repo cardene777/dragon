@@ -169,23 +169,19 @@
   justify-content: flex-start;
   overflow: auto;
 }
-/* preset detail SVG の readable size 保証 (user 継続報告 「文字小さすぎ」 対応、 CAR-1560、
-   catalog PR #406 と同 approach)。 SVG は container 幅に強制縮小されず native scale で描画、
-   wide diagram は horizontal scroll。 parts / interactive compact は元 size 保持 (svg 側 selector で除外)。 */
+/* preset detail SVG intrinsic size + horizontal scroll (user 継続報告 「文字小さすぎ」 対応、 CAR-1560
+   revision 2 = catalog-new.css と同 approach、 width: max-content で narrow diagram は compact / wide は scroll)。 */
 .nm-preset-detail-stage svg {
-  min-width: max(100%, 1200px) !important;
+  width: max-content !important;
   max-width: none !important;
-  width: auto !important;
+  min-width: 0 !important;
   height: auto !important;
   max-height: 800px !important;
 }
-.nm-preset-detail-stage svg[data-cdl-diagram^="parts-"] {
-  min-width: 0 !important;
-  max-width: 100% !important;
-}
 @media (max-width: 900px) {
   .nm-preset-detail-stage svg {
-    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 .nm-preset-detail-nav {
