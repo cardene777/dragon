@@ -23,18 +23,19 @@ type ItemResult = {
 async function main() {
   const results: ItemResult[] = [];
   const axisCounts = new Map<string, { errors: number; warns: number }>();
+  let compileErrorCount = 0;
 
-  const staticCategories = Object.entries(CATALOG_ITEMS);
+  // CATALOG_ITEMS.parts は lazy-load 前提の空 stub なので静的 iterate から除外、
+  // dynamic loadPartsItems() で実データ 20 item を append する (codex MAJOR fix)。
+  // 除外しないと seen guard で dynamic 側が silent skip され、 script 名 408 vs 実 sweep 328 の乖離が発生する。
+  const staticCategories = Object.entries(CATALOG_ITEMS).filter(([k]) => k !== "parts");
   const partsItems = await loadPartsItems();
   const allCategories: [string, typeof partsItems][] = [
     ...staticCategories.map(([k, v]) => [k, v] as [string, typeof partsItems]),
     ["parts", partsItems],
   ];
 
-  const seen = new Set<string>();
   for (const [category, items] of allCategories) {
-    if (seen.has(category)) continue;
-    seen.add(category);
     for (const item of items) {
       try {
         const laid = compile(item.diagram);
@@ -56,6 +57,7 @@ async function main() {
           axisCounts.set(v.axis, cur);
         }
       } catch (e) {
+        compileErrorCount++;
         console.error(`[compile-error] ${category}/${item.id}: ${(e as Error).message}`);
       }
     }
@@ -68,9 +70,11 @@ async function main() {
 
   console.log(`\n=== catalog sweep summary ===`);
   console.log(`total items: ${totalItems}`);
-  console.log(`clean: ${cleanItems.length} (${((cleanItems.length / totalItems) * 100).toFixed(1)}%)`);
+  const cleanRatio = totalItems > 0 ? ((cleanItems.length / totalItems) * 100).toFixed(1) : "0.0";
+  console.log(`clean: ${cleanItems.length} (${cleanRatio}%)`);
   console.log(`error items: ${errorItems.length}`);
   console.log(`warn-only items: ${warnItems.length}`);
+  console.log(`compile errors: ${compileErrorCount}`);
 
   console.log(`\n=== axis distribution ===`);
   const sorted = Array.from(axisCounts.entries()).sort(
