@@ -461,6 +461,13 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       }
     }
   }
+  // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
+  // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
+  // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。
+  // doc に phase 指定があって diagram.phases が空なら、 preset 由来 lane/node/edge に対して generic phase を注入する。
+  if (doc.animate && doc.animate.phases.length > 0 && diagram.phases.length === 0) {
+    injectPhasesFallback(diagram, doc);
+  }
   // top-level lanes section → lane merge
   if (doc.lanes) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
@@ -503,6 +510,68 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
     };
   }
   return diagram;
+}
+
+/**
+ * v0.5+ animation phase 後段 fallback 注入 (CAR-1657)。
+ *
+ * class / pie / c4 / mind / gantt preset は独自 layout を持ち、 compileGenericWithAnimate 経路に
+ * 乗らないため、 doc.animate.phases があっても diagram.phases が空になる。
+ * 本 helper が applyV05Extensions から呼ばれて post-hoc に phase を差込む、 lane/node/edge は
+ * 既存 preset 出力を保持したまま animation だけ追加する。
+ *
+ * highlight resolution = actor 名 = slugify → diagram.nodes.id 対応、 edge の "A -> B" は
+ * from/to の slug で 1:1 対応する edge を検索。 preset 由来 edge id は各種 (`e-{from}-{to}` /
+ * `e{idx}-{fromId}-{toId}` 等) 揺れがあるため、 (edge.from === slug(A) && edge.to === slug(B))
+ * で辞書 lookup せず走査で解決する。
+ */
+function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
+  if (!doc.animate) return;
+
+  // states 反映 (未登録なら追加、 既存は上書きしない)。 CdlState は id field (name ではない)。
+  const existingStateIds = new Set(diagram.states.map((s) => s.id));
+  for (const st of doc.animate.states) {
+    if (!existingStateIds.has(st.name)) {
+      diagram.states.push({ id: st.name, initial: st.initial });
+    }
+  }
+
+  // highlight 解決関数 = actor 名 or "A -> B" / "A → B" を node.id / edge.id に変換。
+  // codex-review CAR-1659 MAJOR fix = 全角矢印 `→` を対応 (generic 経路との互換)、
+  // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
+  const resolveIds = (highlight: readonly string[]): string[] => {
+    const out: string[] = [];
+    for (const h of highlight) {
+      const arrowMatch = h.match(/^(.+?)\s*(?:->|→)\s*(.+?)$/);
+      if (arrowMatch) {
+        const fromSlug = slugify((arrowMatch[1] ?? "").trim());
+        const toSlug = slugify((arrowMatch[2] ?? "").trim());
+        for (const e of diagram.edges) {
+          if (e.from === fromSlug && e.to === toSlug) out.push(e.id);
+        }
+        continue;
+      }
+      const nodeSlug = slugify(h.trim());
+      const node = diagram.nodes.find((n) => n.id === nodeSlug || n.id === `${nodeSlug}-header`);
+      if (node) out.push(node.id);
+    }
+    return out;
+  };
+
+  // phase 注入。 CdlPhase.tweens[].stateId / sets[].stateId で state 参照 (state ではない)。
+  for (const p of doc.animate.phases) {
+    const activateIds: string[] = [...resolveIds(p.highlight ?? [])];
+    diagram.phases.push({
+      id: slugify(p.name) || p.name,
+      duration: p.durationMs,
+      title: p.name,
+      body: p.body ?? "",
+      activate: activateIds,
+      tweens: (p.tweens ?? []).map((t) => ({ stateId: t.state, from: t.from, to: t.to })),
+      sets: (p.sets ?? []).map((s) => ({ stateId: s.state, value: s.value })),
+      ...(p.badge ? { badge: p.badge } : {}),
+    });
+  }
 }
 
 function compileSequence(doc: DslDocument): CdlDiagram {

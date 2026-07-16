@@ -5,6 +5,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER, serializePart } from "@/lib/parts-serializer";
+import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -101,300 +102,10 @@ const v4EditorThemeDark = EditorView.theme(
 
 /** SAMPLES の各 sample に slug (kebab-case) を持たせて、 PresetDetail の `#preset=<slug>` と一致検索する。
  *  slug は PRESETS.slug 命名規約 (kebab-case、 `lib/presets.ts` SSOT) と揃える。 複数 sample が同 slug を共有する場合
- *  (例 sequence 系 2 件) は SAMPLES 配列先頭の sample が hash match で優先される (最初の find が勝つ)。 */
-const SAMPLES: { label: string; slug: string; code: string }[] = [
-  {
-    label: "ログインAPI呼び出し (sequence)",
-    slug: "sequence",
-    code: `title: "ログインAPI"
-type: sequence
-
-actors:
-  - ユーザー
-  - API
-  - データベース
-
-flow:
-  - ユーザー -> API: "ログイン要求"
-  - API -> データベース: "ユーザー検索"
-  - データベース -> API: "結果"
-  - API -> ユーザー: "認証成功" (success)
-
-animation:
-  - step: "call" 1.4s
-    focus: [ユーザー, API, "ユーザー -> API"]
-  - step: "query" 1.4s
-    focus: [API, データベース, "API -> データベース"]
-  - step: "return" 1.4s
-    focus: [API, データベース, "データベース -> API"]
-  - step: "ok" 1.4s
-    focus: [ユーザー, API, "API -> ユーザー"]
-`,
-  },
-  {
-    label: "注文チェックアウト (sequence)",
-    slug: "sequence",
-    code: `title: "注文チェックアウト"
-type: sequence
-
-actors:
-  - ユーザー
-  - カート
-  - 決済
-
-flow:
-  - ユーザー -> カート: "商品追加"
-  - カート -> 決済: "課金"
-  - 決済 -> ユーザー: "領収書" (success)
-
-animation:
-  - step: "add" 1.2s
-    focus: [ユーザー, カート, "ユーザー -> カート"]
-  - step: "charge" 1.5s
-    focus: [カート, 決済, "カート -> 決済"]
-  - step: "receipt" 1.2s
-    focus: [ユーザー, 決済, "決済 -> ユーザー"]
-`,
-  },
-  {
-    label: "CIパイプライン (flow)",
-    slug: "flow",
-    code: `title: "CIパイプライン"
-type: flow
-
-actors:
-  - Push: { kind: event }
-  - ビルド: { kind: function }
-  - テスト: { kind: function }
-  - デプロイ: { kind: function }
-
-flow:
-  - Push -> ビルド: "トリガー"
-  - ビルド -> テスト: "成果物"
-  - テスト -> デプロイ: "合格" (success)
-
-animation:
-  - step: "trigger" 1.2s
-    focus: [Push, ビルド, "Push -> ビルド"]
-  - step: "build" 1.5s
-    focus: [ビルド, テスト, "ビルド -> テスト"]
-  - step: "test" 1.5s
-    focus: [テスト, デプロイ, "テスト -> デプロイ"]
-  - step: "deploy" 1.2s
-    focus: [デプロイ]
-`,
-  },
-  {
-    label: "ユーザー登録 (swimlane)",
-    slug: "swimlane",
-    code: `title: "ユーザー登録"
-type: swimlane
-
-actors:
-  - ユーザー
-  - 認証: { kind: service }
-  - データベース: { kind: database }
-  - メール: { kind: service }
-
-flow:
-  - ユーザー -> 認証: "登録要求"
-  - 認証 -> データベース: "ユーザー保存"
-  - 認証 -> メール: "歓迎メール送信"
-  - メール -> ユーザー: "メール到着"
-
-animation:
-  - step: "register" 1.4s
-    focus: [ユーザー, 認証, "ユーザー -> 認証"]
-  - step: "persist" 1.4s
-    focus: [認証, データベース, "認証 -> データベース"]
-  - step: "notify" 1.4s
-    focus: [認証, メール, "認証 -> メール"]
-  - step: "deliver" 1.4s
-    focus: [メール, ユーザー, "メール -> ユーザー"]
-`,
-  },
-  {
-    label: "システム構成 (topology)",
-    slug: "topology",
-    code: `title: "システム構成"
-type: topology
-
-actors:
-  - LB: { kind: cloud, subtitle: "ロードバランサー" }
-  - Web: { kind: service, subtitle: "APIサーバー" }
-  - キャッシュ: { kind: cache, subtitle: "Redis" }
-  - データベース: { kind: database, subtitle: "Postgres" }
-
-flow:
-  - LB -> Web: "振り分け"
-  - Web -> キャッシュ: "参照"
-  - Web -> データベース: "問い合わせ"
-
-animation:
-  - step: "ingress" 1.2s
-    focus: [LB, Web, "LB -> Web"]
-  - step: "cache" 1.2s
-    focus: [Web, キャッシュ, "Web -> キャッシュ"]
-  - step: "fallback" 1.5s
-    focus: [Web, データベース, "Web -> データベース"]
-`,
-  },
-  {
-    label: "ユーザーと投稿のスキーマ (er)",
-    slug: "er",
-    code: `title: "ユーザー投稿スキーマ"
-type: er
-
-actors:
-  - ユーザー: { kind: storage, rows: ["id: PK", "email: string", "name: string"] }
-  - 投稿: { kind: storage, rows: ["id: PK", "userId: FK", "title: string", "body: text"] }
-  - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
-
-flow:
-  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N" }
-  - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
-
-animation:
-  - step: "reveal" 2.0s
-    focus: [ユーザー, 投稿, コメント, "ユーザー -> 投稿", "投稿 -> コメント"]
-`,
-  },
-  {
-    label: "認証状態遷移 (state-machine)",
-    slug: "state-machine",
-    code: `title: "認証状態遷移"
-type: state
-
-viewport: { height: 420 }
-
-actors:
-  - 待機: { kind: card }
-  - 検証中: { kind: card }
-  - 完了: { kind: card }
-  - 失敗: { kind: card }
-
-flow:
-  - 待機 -> 検証中: "送信"
-  - 検証中 -> 完了: "認証成功" (success)
-  - 検証中 -> 失敗: "認証失敗"
-  - 失敗 -> 待機: "再試行"
-
-animation:
-  - step: "idle" 1.0s
-    focus: [待機]
-  - step: "submit" 1.2s
-    focus: [検証中, "待機 -> 検証中"]
-  - step: "success" 1.0s
-    focus: [完了, "検証中 -> 完了"]
-  - step: "fail" 1.0s
-    focus: [失敗, "検証中 -> 失敗"]
-`,
-  },
-  {
-    label: "OOP クラス階層 (class)",
-    slug: "class",
-    code: `title: "動物クラス階層"
-type: class
-
-actors:
-  - 動物: { kind: storage, rows: ["+name: string", "+age: int", "+speak(): void"] }
-  - 犬: { kind: storage, rows: ["+breed: string", "+bark(): void"] }
-  - 猫: { kind: storage, rows: ["+indoor: boolean", "+meow(): void"] }
-
-flow:
-  - 犬 -> 動物: "extends"
-  - 猫 -> 動物: "extends"
-
-animation:
-  - step: "reveal" 2.0s
-    focus: [動物, 犬, 猫, "犬 -> 動物", "猫 -> 動物"]
-`,
-  },
-  {
-    label: "スプリントロードマップ (gantt)",
-    slug: "gantt",
-    code: `title: "Q1-Q4ロードマップ"
-type: gantt
-
-actors:
-  - 設計: { subtitle: "Q1" }
-  - 実装: { subtitle: "Q2" }
-  - テスト: { subtitle: "Q3" }
-  - リリース: { subtitle: "Q4" }
-
-animation:
-  - step: "Q1" 1.0s
-    focus: [設計]
-  - step: "Q2" 1.0s
-    focus: [実装]
-  - step: "Q3" 1.0s
-    focus: [テスト]
-  - step: "Q4" 1.0s
-    focus: [リリース]
-`,
-  },
-  {
-    label: "プロジェクト構想 (mind)",
-    slug: "mind",
-    code: `title: "プロジェクト構想"
-type: mind
-
-actors:
-  - root: { title: "新プロジェクト" }
-  - features: { title: "機能" }
-  - design: { title: "デザイン" }
-  - launch: { title: "リリース" }
-  - market: { title: "マーケット" }
-
-animation:
-  - step: "reveal" 2.0s
-    focus: [root, features, design, launch, market]
-`,
-  },
-  {
-    label: "言語シェア (pie)",
-    slug: "pie",
-    code: `title: "言語シェア"
-type: pie
-
-actors:
-  - TypeScript: { value: "45%" }
-  - Python: { value: "30%" }
-  - Rust: { value: "15%" }
-  - Go: { value: "10%" }
-
-animation:
-  - step: "reveal" 2.0s
-    focus: [TypeScript, Python, Rust, Go]
-`,
-  },
-  {
-    label: "C4コンテキスト (c4)",
-    slug: "c4",
-    code: `title: "C4コンテキストモデル"
-type: c4
-
-actors:
-  - ユーザー: { kind: person, subtitle: "L1" }
-  - システム: { kind: service, subtitle: "L1: system" }
-  - API: { kind: service, subtitle: "L2: container" }
-  - データベース: { kind: database, subtitle: "L2: container" }
-
-flow:
-  - ユーザー -> システム: "利用"
-  - システム -> API: "要求"
-  - API -> データベース: "問い合わせ"
-
-animation:
-  - step: "use" 1.2s
-    focus: [ユーザー, システム, "ユーザー -> システム"]
-  - step: "request" 1.2s
-    focus: [システム, API, "システム -> API"]
-  - step: "query" 1.2s
-    focus: [API, データベース, "API -> データベース"]
-`,
-  },
-];
+ *  (例 sequence 系 2 件) は SAMPLES 配列先頭の sample が hash match で優先される (最初の find が勝つ)。
+ *
+ *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
+const SAMPLES = EDITOR_SAMPLES;
 
 function encodeShare(src: string): string {
   try {
@@ -536,6 +247,25 @@ export function CdlEditor(): React.JSX.Element {
     };
   }, []);
 
+  /**
+   * REPLACE 経路 (parts drop / click / samples click / hash preset) 前に user 確認する guard。
+   * user report (CAR-1657) = drag drop で前の編集内容が予告なく消える surprise。
+   * lastLoadedSrcRef で「最後に programmatic に load した src」 を追跡、 current src が異なる = user
+   * 編集済と判定して window.confirm を出す。 一致 = user 未編集で silent replace 継続。
+   */
+  const lastLoadedSrcRef = useRef<string>(SAMPLES[0].code);
+  const confirmReplaceIfDirty = useCallback((newSrcPreviewLabel: string): boolean => {
+    // codex-review CAR-1659 CRITICAL fix = length > 20 guard 削除、 strict 比較のみで dirty 判定。
+    // 短い編集 (削除 / 部分修正) でも user 意図した変更なら必ず confirm すべき、 length 閾値は
+    // silent data loss の抜け穴。
+    const userEdited = src.trim() !== (lastLoadedSrcRef.current ?? "").trim();
+    if (!userEdited) return true;
+    const ok = window.confirm(
+      `編集中の内容が「${newSrcPreviewLabel}」 に置き換わります。 元に戻すには Cmd+Z で undo 可能。\n\n続けますか？`,
+    );
+    return ok;
+  }, [src]);
+
   // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)。
   // codex-review PR #413 MAJOR fix = partsLoadFailed で終了状態を保持、 失敗後は明示的な reset
   // (samples tab に切替) までは自動再試行しない。 無限 retry loop を防ぐ。
@@ -624,8 +354,10 @@ export function CdlEditor(): React.JSX.Element {
         const targetSlug = decodeURIComponent(presetMatch[1]);
         const sample = SAMPLES.find((s) => s.slug === targetSlug);
         if (sample) {
+          // hash 経路 = URL 遷移 = user 意図確定と扱い confirm skip、 lastLoadedSrcRef のみ更新
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setSrc(sample.code);
+          lastLoadedSrcRef.current = sample.code;
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setActiveSample(sample.label);
           return;
@@ -645,6 +377,7 @@ export function CdlEditor(): React.JSX.Element {
     if (restored) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(restored);
+      lastLoadedSrcRef.current = restored;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveSample("共有URL");
     }
@@ -1084,7 +817,10 @@ export function CdlEditor(): React.JSX.Element {
   const scaleDisplay = useMemo(() => `${Math.round(transform.scale * 100)}%`, [transform.scale]);
 
   const handleSelectSample = (s: { label: string; code: string }): void => {
+    // CAR-1657 = user 編集中は confirm、 SAMPLES click も REPLACE 経路の 1 種として同 guard 適用
+    if (!confirmReplaceIfDirty(s.label)) return;
     setSrc(s.code);
+    lastLoadedSrcRef.current = s.code;
     setActiveSample(s.label);
   };
 
@@ -1103,7 +839,9 @@ animation:
   - step: "step 1" 1.2s
     focus: [A, B]
 `;
+    if (!confirmReplaceIfDirty("新規ファイル")) return;
     setSrc(blank);
+    lastLoadedSrcRef.current = blank;
     setActiveSample("new");
   };
 
@@ -1147,10 +885,17 @@ animation:
     }
     // REPLACE semantic = editor 内容を丸ごと parts JSON escape hatch text で置換する
     // (decision-log 2026-07-16-dragon-editor-drop-semantic-replace)。 MERGE は別 Issue で後続。
-    setSrc(serializePart(item.diagram));
+    // user 編集中の内容がある場合は confirm dialog で確認 (CAR-1657 user report 対応)。
+    if (!confirmReplaceIfDirty(item.title)) {
+      setDropHintWithReset("drop をキャンセルしました。 編集内容は保持されています。", 4000);
+      return;
+    }
+    const newSrc = serializePart(item.diagram);
+    setSrc(newSrc);
+    lastLoadedSrcRef.current = newSrc;
     setActiveSample(item.title);
     setDropHintWithReset(`parts "${item.title}" を editor に読み込みました (drop で置換)。 元に戻すには Cmd+Z。`, 6000);
-  }, [partsItems, setDropHintWithReset]);
+  }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty]);
 
   return (
     <div className="v4-editor">
@@ -1243,7 +988,10 @@ animation:
                   title={`${p.subtitle} (drag してプレビューに drop)`}
                   onClick={() => {
                     // click = drag が使いづらい環境向け fallback、 drop と同じ REPLACE semantic
-                    setSrc(serializePart(p.diagram));
+                    if (!confirmReplaceIfDirty(p.title)) return;
+                    const newSrc = serializePart(p.diagram);
+                    setSrc(newSrc);
+                    lastLoadedSrcRef.current = newSrc;
                     setActiveSample(p.title);
                   }}
                 >
@@ -1252,7 +1000,7 @@ animation:
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              パーツを右のプレビューに drag するか、 クリックで読み込みます (現在の編集内容は置換されます)。
+              パーツを右のプレビューに drag するか、 クリックで読み込みます。 編集中の内容がある場合は置換前に確認 dialog が表示されます (Cmd+Z で undo 可)。
             </div>
           </div>
         )}
