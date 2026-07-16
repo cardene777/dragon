@@ -440,17 +440,20 @@
   .v4-editor-stage:active {
     cursor: grabbing;
   }
-  /* editor 内 CdlDiagramView は hideHeader=true で main header を隠しているが、
+  /* CdlDiagramView は hideHeader=true で main header を隠しているが、
      cdl 側 render.tsx:175 で hideHeader + phases > 1 時に自動追加される mini phase
-     indicator (bottom 「call」 dot 列 + phase title + badge) は editor 経路では
-     DSL に phase 名が visible なので冗長、 CSS で非表示にする (dragon-only fix)。
+     indicator (bottom 「call」 dot 列 + phase title + badge) は dragon 側 UI 経路で
+     DSL / phase 名が既に visible なので冗長、 CSS で非表示にする (dragon-only fix)。
      cdl side が Tailwind arbitrary values (`border-t border-[var(--cdl-divider,...)]`) で
      class 名を合成しているため、 stable な組合せ 5 attribute (border-t + flex + text-xs
      + px-3 + py-2) の AND 結合で mini indicator の div を狙い撃つ。
      SVG stage は `px-3 py-3`、 interactive panel は `.cdl-ip-root`、 CdlHeader は
      `border-b` なので現行 cdl 実装で誤 hit なし。 semantic hook (cdl `hideMiniPhaseIndicator`
-     prop) 追加は upstream cdl PR 必要のため follow-up Issue で対応。 */
-  .v4-editor-preview [data-cdl-diagram] > div.border-t.flex.text-xs.px-3.py-2 {
+     prop) 追加は upstream cdl PR 必要のため follow-up Issue で対応。
+     scope = editor (.v4-editor-preview) + catalog (.catalog-preview-stage-inner) +
+     preset (.preset-detail-preview) の 3 経路、 CAR-1560 で catalog / preset 経路も
+     カバー拡張 (user 報告 「insert INSERT」 表示 root cause fix)。 */
+  [data-cdl-diagram] > div.border-t.flex.text-xs.px-3.py-2 {
     display: none !important;
   }
   /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
