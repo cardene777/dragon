@@ -617,24 +617,17 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
    `!important` font-size で renderer default を「縮小」 する regression 撤去) */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   fill: #4a2810 !important;
-  stroke: none !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #4a2810 !important;
-  stroke: none !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  stroke: none !important;
   font-weight: 700 !important;
 }
-/* node-body 内の全 text 継承 stroke 除去 (kind-specific title 等 data-cdl-role 未付与
-   text が親 node-body の stroke #6d3f18 3.5px を継承して bloated 表示になる root cause fix)。
-   text は必ず stroke:none で、 fill 色は各 kind 側で決まる。 */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] text {
-  stroke: none !important;
-}
+/* stroke: none は file 先頭 universal rule (theme prefix なし) で 全 theme 対応済、
+   blueprint 個別 stroke rule は削除 (SSOT 一本化、 drift 予防、 CAR-1560)。 */
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
   stroke: #6d3f18 !important;
   stroke-width: 4 !important;
