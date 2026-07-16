@@ -187,6 +187,96 @@
     font-weight: 500;
   }
 
+  /* ── sidebar tabs (samples / parts、 CAR-1646) ── */
+  .v4-editor-side-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--v4-line);
+    margin-bottom: 8px;
+    padding: 12px 0 0;
+  }
+  .v4-editor-side-tab {
+    flex: 1;
+    padding: 8px 6px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--v4-ink-mute);
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .v4-editor-side-tab:hover {
+    color: var(--v4-ink);
+  }
+  .v4-editor-side-tab.active {
+    color: var(--v4-brand-deep);
+    border-bottom-color: var(--v4-brand);
+  }
+  .v4-editor-side-part {
+    cursor: grab;
+  }
+  .v4-editor-side-part:active {
+    cursor: grabbing;
+  }
+  .v4-editor-side-loading {
+    padding: 8px 10px;
+    font-family: var(--v4-mono);
+    font-size: 11.5px;
+    color: var(--v4-ink-mute);
+  }
+  .v4-editor-side-hint {
+    padding: 8px 10px;
+    margin-top: 6px;
+    font-family: var(--v4-sans);
+    font-size: 11px;
+    color: var(--v4-ink-mute);
+    line-height: 1.5;
+    border-top: 1px dashed var(--v4-line);
+  }
+
+  /* ── drop overlay / hint on preview stage (CAR-1646) ── */
+  .v4-editor-stage.drop-over {
+    outline: 2px dashed var(--v4-brand, #a66a3d);
+    outline-offset: -6px;
+  }
+  .v4-editor-drop-overlay {
+    position: absolute;
+    inset: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 232, 212, 0.85);
+    color: var(--v4-brand-deep, #8a5a2a);
+    font-family: var(--v4-sans);
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .v4-editor-drop-hint {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    background: rgba(26, 20, 8, 0.88);
+    color: #f8ecd8;
+    font-family: var(--v4-sans);
+    font-size: 12.5px;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    z-index: 4;
+    pointer-events: none;
+    max-width: 80%;
+    text-align: center;
+  }
+
   /* ── 中央 + 右共通 bar ── */
   .v4-editor-bar {
     height: 40px;

@@ -965,3 +965,359 @@ export const partsWifiSignal = diagram("parts-wifi-signal", {
   .phase("p", { duration: 3000, title: "信号 3/5", body: "" }, (p: PhaseBuilder) =>
     p.activate("b1", "b2", "b3", "b4", "b5"))
   .build();
+
+// ============================================================
+// Round 5 追加 = state bind pattern demo 20 個 (parts 61-80、 CAR-1646)
+// ------------------------------------------------------------
+// 目的 = 60 parts が state + tween を持ちつつ pattern は「1 state 単純 tween」 に偏る中、
+// state bind の応用形 (multi-state relation / template chain / conditional / cascade /
+// tween chain) を demo として並列可視化する。 editor drag-drop 導線と併せ、 user が
+// 「state bind の書き方」 を検索的に見つけられるよう title を pattern 名で命名する。
+// ============================================================
+
+// parts 61: bind pattern = counter to circle radius (counter 0 → 100 で半径拡大)
+export const partsBindCounterRadius = diagram("parts-bind-counter-radius", {
+  topic: "bind: counter → 半径 — 1 state を shape.radius に直接 bind",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("count", { initial: 30 })
+  .node("circ", { lane: "l", stack: 0, kind: "dyn-circle", title: "counter", subtitle: "半径 {count}", w: 380, h: 380,
+    shape: { kind: "circle", radius: "{count}", fill: "#4e9dc4" } })
+  .phase("p", { duration: 4000, title: "半径拡大", body: "" }, (p: PhaseBuilder) =>
+    p.activate("circ").tween("count", 30, 150))
+  .build();
+
+// parts 62: bind pattern = 2 state mirror (state 独立、 同じ target に反映)
+export const partsBind2StateMirror = diagram("parts-bind-2state-mirror", {
+  topic: "bind: 2 state mirror — 独立 state を左右 gauge に並列 bind",
+})
+  .lane("la", { x: 0, width: 300 })
+  .lane("lb", { x: 320, width: 300 })
+  .state("l", { initial: 0 })
+  .state("r", { initial: 0 })
+  .node("gL", { lane: "la", stack: 0, kind: "dyn-rect", title: "左 gauge", subtitle: "{l}%", w: 280, h: 380,
+    shape: { kind: "rect", source: "{l}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 8 } })
+  .node("gR", { lane: "lb", stack: 0, kind: "dyn-rect", title: "右 gauge", subtitle: "{r}%", w: 280, h: 380,
+    shape: { kind: "rect", source: "{r}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 8 } })
+  .phase("p", { duration: 4000, title: "同期上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("gL", "gR").tween("l", 0, 90).tween("r", 0, 90))
+  .build();
+
+// parts 63: bind pattern = cascade 3 states (state1 → state2 → state3 順次 tween)
+export const partsBindCascade3 = diagram("parts-bind-cascade-3", {
+  topic: "bind: cascade 3 states — phase 分割で state chain 順次進行",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("s1", { initial: 0 })
+  .state("s2", { initial: 0 })
+  .state("s3", { initial: 0 })
+  .node("a", { lane: "l", stack: 0, kind: "dyn-rect", title: "step 1", subtitle: "{s1}%", w: 380, h: 100,
+    shape: { kind: "rect", source: "{s1}", fillMax: 100, orient: "right", fill: "#f59e0b", radius: 4 } })
+  .node("b", { lane: "l", stack: 1, kind: "dyn-rect", title: "step 2", subtitle: "{s2}%", w: 380, h: 100,
+    shape: { kind: "rect", source: "{s2}", fillMax: 100, orient: "right", fill: "#a66a3d", radius: 4 } })
+  .node("c", { lane: "l", stack: 2, kind: "dyn-rect", title: "step 3", subtitle: "{s3}%", w: 380, h: 100,
+    shape: { kind: "rect", source: "{s3}", fillMax: 100, orient: "right", fill: "#22c55e", radius: 4 } })
+  .phase("p1", { duration: 1500, title: "s1 進行", body: "" }, (p: PhaseBuilder) =>
+    p.activate("a", "b", "c").tween("s1", 0, 100))
+  .phase("p2", { duration: 1500, title: "s2 進行", body: "" }, (p: PhaseBuilder) =>
+    p.activate("a", "b", "c").tween("s2", 0, 100))
+  .phase("p3", { duration: 1500, title: "s3 進行", body: "" }, (p: PhaseBuilder) =>
+    p.activate("a", "b", "c").tween("s3", 0, 100))
+  .build();
+
+// parts 64: bind pattern = template chain (state 値を title / subtitle に埋込)
+export const partsBindTemplateChain = diagram("parts-bind-template-chain", {
+  topic: "bind: template chain — {state} を title と subtitle 両方に埋込",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("rate", { initial: 42 })
+  .node("card", { lane: "l", stack: 0, kind: "dyn-rect", title: "成長率 {rate}%", subtitle: "現在 {rate}", w: 380, h: 300,
+    shape: { kind: "rect", source: "{rate}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 12 } })
+  .phase("p", { duration: 4000, title: "template 更新", body: "" }, (p: PhaseBuilder) =>
+    p.activate("card").tween("rate", 42, 88))
+  .build();
+
+// parts 65: bind pattern = pulse cycle (0 → 100 → 0 の 2 tween で 1 パルス)
+export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", {
+  topic: "bind: pulse cycle — 上下 tween chain で心拍表現",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("pulse", { initial: 0 })
+  .node("dot", { lane: "l", stack: 0, kind: "dyn-circle", title: "pulse", subtitle: "{pulse}", w: 340, h: 340,
+    shape: { kind: "circle", radius: "{pulse}", fill: "#dc2626" } })
+  .phase("p1", { duration: 800, title: "膨張", body: "" }, (p: PhaseBuilder) =>
+    p.activate("dot").tween("pulse", 20, 150))
+  .phase("p2", { duration: 800, title: "収縮", body: "" }, (p: PhaseBuilder) =>
+    p.activate("dot").tween("pulse", 150, 20))
+  .build();
+
+// parts 66: bind pattern = wave level 2-phase (満ちて引く 2 phase の水位変化)
+export const partsBindWaveLevel2Phase = diagram("parts-bind-wave-level-2phase", {
+  topic: "bind: wave level 2-phase — 水位を満ち→引きの 2 phase で bind",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("lvl", { initial: 20 })
+  .node("sea", { lane: "l", stack: 0, kind: "dyn-wave", title: "海面", subtitle: "水位 {lvl}%", w: 380, h: 380,
+    shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2.2, waveHeight: 12, fill: "#4e9dc4" } })
+  .phase("p1", { duration: 2200, title: "満潮", body: "" }, (p: PhaseBuilder) =>
+    p.activate("sea").tween("lvl", 20, 90))
+  .phase("p2", { duration: 2200, title: "引き潮", body: "" }, (p: PhaseBuilder) =>
+    p.activate("sea").tween("lvl", 90, 20))
+  .build();
+
+// parts 67: bind pattern = 4 state independent grid (4 state → 2x2 grid tile 独立)
+export const partsBindGrid4 = diagram("parts-bind-grid-4", {
+  topic: "bind: 2x2 grid 4 state — lane × stack で独立 state 4 tile",
+})
+  .lane("la", { x: 0, width: 200 })
+  .lane("lb", { x: 220, width: 200 })
+  .state("q1", { initial: 20 })
+  .state("q2", { initial: 40 })
+  .state("q3", { initial: 60 })
+  .state("q4", { initial: 80 })
+  .node("t1", { lane: "la", stack: 0, kind: "dyn-rect", title: "Q1", subtitle: "{q1}", w: 180, h: 180,
+    shape: { kind: "rect", source: "{q1}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 8 } })
+  .node("t2", { lane: "lb", stack: 0, kind: "dyn-rect", title: "Q2", subtitle: "{q2}", w: 180, h: 180,
+    shape: { kind: "rect", source: "{q2}", fillMax: 100, orient: "up", fill: "#a66a3d", radius: 8 } })
+  .node("t3", { lane: "la", stack: 1, kind: "dyn-rect", title: "Q3", subtitle: "{q3}", w: 180, h: 180,
+    shape: { kind: "rect", source: "{q3}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 8 } })
+  .node("t4", { lane: "lb", stack: 1, kind: "dyn-rect", title: "Q4", subtitle: "{q4}", w: 180, h: 180,
+    shape: { kind: "rect", source: "{q4}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 8 } })
+  .phase("p", { duration: 4000, title: "全 tile 同時", body: "" }, (p: PhaseBuilder) =>
+    p.activate("t1", "t2", "t3", "t4").tween("q1", 20, 95).tween("q2", 40, 85).tween("q3", 60, 75).tween("q4", 80, 65))
+  .build();
+
+// parts 68: bind pattern = countdown (state 高値 → 低値、 subtitle で残数表示)
+export const partsBindCountdown = diagram("parts-bind-countdown", {
+  topic: "bind: countdown — state を高 → 低へ tween、 残り時間 subtitle",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("sec", { initial: 60 })
+  .node("clock", { lane: "l", stack: 0, kind: "dyn-arc", title: "残り", subtitle: "{sec} 秒", w: 340, h: 340,
+    shape: { kind: "arc", angle: "{sec}", sweepMax: 60, outerRadius: 140, innerRadius: 95, fill: "#dc2626" } })
+  .phase("p", { duration: 5000, title: "countdown", body: "" }, (p: PhaseBuilder) =>
+    p.activate("clock").tween("sec", 60, 0))
+  .build();
+
+// parts 69: bind pattern = arc angle sweep (0 → 360 で 1 周)
+export const partsBindArcSweep = diagram("parts-bind-arc-sweep", {
+  topic: "bind: arc sweep — state 0 → 360 で 1 周 loading",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("deg", { initial: 0 })
+  .node("spin", { lane: "l", stack: 0, kind: "dyn-arc", title: "loading", subtitle: "{deg}°", w: 340, h: 340,
+    shape: { kind: "arc", angle: "{deg}", sweepMax: 360, outerRadius: 140, innerRadius: 100, fill: "#f59e0b" } })
+  .phase("p", { duration: 3000, title: "1 周", body: "" }, (p: PhaseBuilder) =>
+    p.activate("spin").tween("deg", 0, 360))
+  .build();
+
+// parts 70: bind pattern = split fill (2 state で 1 rect を上下分割)
+export const partsBindSplitFill = diagram("parts-bind-split-fill", {
+  topic: "bind: split fill — 2 state 相補で 1 領域を上下分割",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("up", { initial: 40 })
+  .state("dn", { initial: 60 })
+  .node("upBar", { lane: "l", stack: 0, kind: "dyn-rect", title: "上 zone", subtitle: "{up}%", w: 380, h: 180,
+    shape: { kind: "rect", source: "{up}", fillMax: 100, orient: "down", fill: "#22c55e", radius: 4 } })
+  .node("dnBar", { lane: "l", stack: 1, kind: "dyn-rect", title: "下 zone", subtitle: "{dn}%", w: 380, h: 180,
+    shape: { kind: "rect", source: "{dn}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 4 } })
+  .phase("p", { duration: 4000, title: "上下逆転", body: "" }, (p: PhaseBuilder) =>
+    p.activate("upBar", "dnBar").tween("up", 40, 80).tween("dn", 60, 20))
+  .build();
+
+// parts 71: bind pattern = 5 bar equalizer (5 state 独立 tween、 音楽 EQ 見立て)
+export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
+  topic: "bind: 5 bar equalizer — 独立 state 5 で音楽 EQ 見立て",
+})
+  .lane("l1", { x: 0, width: 80 })
+  .lane("l2", { x: 100, width: 80 })
+  .lane("l3", { x: 200, width: 80 })
+  .lane("l4", { x: 300, width: 80 })
+  .lane("l5", { x: 400, width: 80 })
+  .state("e1", { initial: 30 })
+  .state("e2", { initial: 60 })
+  .state("e3", { initial: 90 })
+  .state("e4", { initial: 60 })
+  .state("e5", { initial: 30 })
+  .node("bar1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+    shape: { kind: "rect", source: "{e1}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 4 } })
+  .node("bar2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+    shape: { kind: "rect", source: "{e2}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("bar3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+    shape: { kind: "rect", source: "{e3}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 4 } })
+  .node("bar4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+    shape: { kind: "rect", source: "{e4}", fillMax: 100, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .node("bar5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+    shape: { kind: "rect", source: "{e5}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 4 } })
+  .phase("p", { duration: 3500, title: "EQ 波", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar1", "bar2", "bar3", "bar4", "bar5")
+      .tween("e1", 30, 80).tween("e2", 60, 40).tween("e3", 90, 20).tween("e4", 60, 70).tween("e5", 30, 95))
+  .build();
+
+// parts 72: bind pattern = string state (色 palette を state で切替、 fill: "{color}")
+export const partsBindColorState = diagram("parts-bind-color-state", {
+  topic: "bind: color state — 文字列 state で fill 直接切替",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#22c55e" })
+  .node("tile", { lane: "l", stack: 0, kind: "dyn-rect", title: "status", subtitle: "healthy", w: 340, h: 340,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "{bg}", radius: 12 } })
+  .phase("p1", { duration: 1500, title: "warning", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tile").set("bg", "#f59e0b"))
+  .phase("p2", { duration: 1500, title: "critical", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tile").set("bg", "#dc2626"))
+  .phase("p3", { duration: 1500, title: "back to ok", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tile").set("bg", "#22c55e"))
+  .build();
+
+// parts 73: bind pattern = level + fill color combo (2 state で level + fill 色同時 bind)
+export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", {
+  topic: "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("lvl", { initial: 30 })
+  .state("hue", { initial: "#4e9dc4" })
+  .node("tank", { lane: "l", stack: 0, kind: "dyn-wave", title: "tank", subtitle: "{lvl}%", w: 380, h: 380,
+    shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 10, fill: "{hue}" } })
+  .phase("p1", { duration: 2000, title: "水位上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tank").tween("lvl", 30, 85))
+  .phase("p2", { duration: 2000, title: "警告色", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tank").set("hue", "#dc2626"))
+  .build();
+
+// parts 74: bind pattern = 3 phase escalation (state 段階昇順、 各 phase で set)
+export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
+  topic: "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("level", { initial: 1 })
+  .state("bg", { initial: "#22c55e" })
+  .node("badge", { lane: "l", stack: 0, kind: "dyn-rect", title: "Alert Lv {level}", subtitle: "level: {level}", w: 340, h: 340,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "{bg}", radius: 8 } })
+  .phase("p1", { duration: 1500, title: "L1 = 平常", body: "" }, (p: PhaseBuilder) =>
+    p.activate("badge").set("level", 1).set("bg", "#22c55e"))
+  .phase("p2", { duration: 1500, title: "L2 = 注意", body: "" }, (p: PhaseBuilder) =>
+    p.activate("badge").set("level", 2).set("bg", "#f59e0b"))
+  .phase("p3", { duration: 1500, title: "L3 = 危険", body: "" }, (p: PhaseBuilder) =>
+    p.activate("badge").set("level", 3).set("bg", "#dc2626"))
+  .build();
+
+// parts 75: bind pattern = tween chain 4-hop (0→25→50→75→100 の 4 phase)
+export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", {
+  topic: "bind: tween chain 4-hop — 4 phase で 25% ずつ chain tween",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("v", { initial: 0 })
+  .node("bar", { lane: "l", stack: 0, kind: "dyn-rect", title: "progress", subtitle: "{v}%", w: 380, h: 200,
+    shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "right", fill: "#4e9dc4", radius: 4 } })
+  .phase("p1", { duration: 1000, title: "0 → 25", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("v", 0, 25))
+  .phase("p2", { duration: 1000, title: "25 → 50", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("v", 25, 50))
+  .phase("p3", { duration: 1000, title: "50 → 75", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("v", 50, 75))
+  .phase("p4", { duration: 1000, title: "75 → 100", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("v", 75, 100))
+  .build();
+
+// parts 76: bind pattern = ring counter (arc 内 counter を state で bind)
+export const partsBindRingCounter = diagram("parts-bind-ring-counter", {
+  topic: "bind: ring counter — arc + 中央 counter を同 state で表現",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("k", { initial: 250 })
+  .node("ring", { lane: "l", stack: 0, kind: "dyn-arc", title: "requests", subtitle: "{k}k / 1000k", w: 380, h: 380,
+    shape: { kind: "arc", angle: "{k}", sweepMax: 1000, outerRadius: 150, innerRadius: 100, fill: "#22c55e" } })
+  .phase("p", { duration: 4000, title: "1k 到達", body: "" }, (p: PhaseBuilder) =>
+    p.activate("ring").tween("k", 250, 980))
+  .build();
+
+// parts 77: bind pattern = 2 mode toggle (bg + label を同時 set で mode 切替)
+export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
+  topic: "bind: mode toggle — 2 state 同時 set で light/dark toggle",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#fcf8ee" })
+  .state("txt", { initial: "light mode" })
+  .node("card", { lane: "l", stack: 0, kind: "dyn-rect", title: "theme", subtitle: "{txt}", w: 340, h: 340,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "{bg}", radius: 12 } })
+  .phase("p1", { duration: 1500, title: "→ dark", body: "" }, (p: PhaseBuilder) =>
+    p.activate("card").set("bg", "#1a1408").set("txt", "dark mode"))
+  .phase("p2", { duration: 1500, title: "→ light", body: "" }, (p: PhaseBuilder) =>
+    p.activate("card").set("bg", "#fcf8ee").set("txt", "light mode"))
+  .build();
+
+// parts 78: bind pattern = seven-segment digit (5 state で 5 桁の counter 分解)
+export const partsBind5DigitCounter = diagram("parts-bind-5-digit-counter", {
+  topic: "bind: 5-digit counter — 5 state で桁ごと独立 tween",
+})
+  .lane("l1", { x: 0, width: 100 })
+  .lane("l2", { x: 120, width: 100 })
+  .lane("l3", { x: 240, width: 100 })
+  .lane("l4", { x: 360, width: 100 })
+  .lane("l5", { x: 480, width: 100 })
+  .state("d1", { initial: 0 })
+  .state("d2", { initial: 0 })
+  .state("d3", { initial: 0 })
+  .state("d4", { initial: 0 })
+  .state("d5", { initial: 0 })
+  .node("n1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "{d1}", subtitle: "万", w: 90, h: 200,
+    shape: { kind: "rect", source: "{d1}", fillMax: 9, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .node("n2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "{d2}", subtitle: "千", w: 90, h: 200,
+    shape: { kind: "rect", source: "{d2}", fillMax: 9, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .node("n3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "{d3}", subtitle: "百", w: 90, h: 200,
+    shape: { kind: "rect", source: "{d3}", fillMax: 9, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .node("n4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "{d4}", subtitle: "十", w: 90, h: 200,
+    shape: { kind: "rect", source: "{d4}", fillMax: 9, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .node("n5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "{d5}", subtitle: "一", w: 90, h: 200,
+    shape: { kind: "rect", source: "{d5}", fillMax: 9, orient: "up", fill: "#a66a3d", radius: 4 } })
+  .phase("p", { duration: 4000, title: "12345 到達", body: "" }, (p: PhaseBuilder) =>
+    p.activate("n1", "n2", "n3", "n4", "n5").tween("d1", 0, 1).tween("d2", 0, 2).tween("d3", 0, 3).tween("d4", 0, 4).tween("d5", 0, 5))
+  .build();
+
+// parts 79: bind pattern = growth+shrink combo (成長 → 縮小の反対方向 chain)
+export const partsBindGrowShrink = diagram("parts-bind-grow-shrink", {
+  topic: "bind: grow+shrink — 上昇 → 下降の逆向 chain (呼吸)",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("r", { initial: 40 })
+  .node("breath", { lane: "l", stack: 0, kind: "dyn-circle", title: "breath", subtitle: "半径 {r}", w: 340, h: 340,
+    shape: { kind: "circle", radius: "{r}", fill: "#4e9dc4" } })
+  .phase("p1", { duration: 1800, title: "吸う", body: "" }, (p: PhaseBuilder) =>
+    p.activate("breath").tween("r", 40, 150))
+  .phase("p2", { duration: 1800, title: "吐く", body: "" }, (p: PhaseBuilder) =>
+    p.activate("breath").tween("r", 150, 40))
+  .build();
+
+// parts 80: bind pattern = comprehensive multi-state story (7 state 5 phase 合成)
+export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
+  topic: "bind: 総合 story — 7 state 5 phase を 3 shape に bind した完成形 demo",
+})
+  .lane("la", { x: 0, width: 260 })
+  .lane("lb", { x: 280, width: 260 })
+  .lane("lc", { x: 560, width: 260 })
+  .state("cpu", { initial: 15 })
+  .state("mem", { initial: 30 })
+  .state("net", { initial: 5 })
+  .state("cpuC", { initial: "#22c55e" })
+  .state("memC", { initial: "#22c55e" })
+  .state("netC", { initial: "#22c55e" })
+  .state("status", { initial: "healthy" })
+  .node("cpuG", { lane: "la", stack: 0, kind: "dyn-rect", title: "CPU", subtitle: "{cpu}% ({status})", w: 240, h: 380,
+    shape: { kind: "rect", source: "{cpu}", fillMax: 100, orient: "up", fill: "{cpuC}", radius: 8 } })
+  .node("memG", { lane: "lb", stack: 0, kind: "dyn-rect", title: "MEM", subtitle: "{mem}%", w: 240, h: 380,
+    shape: { kind: "rect", source: "{mem}", fillMax: 100, orient: "up", fill: "{memC}", radius: 8 } })
+  .node("netG", { lane: "lc", stack: 0, kind: "dyn-rect", title: "NET", subtitle: "{net} Mbps", w: 240, h: 380,
+    shape: { kind: "rect", source: "{net}", fillMax: 100, orient: "up", fill: "{netC}", radius: 8 } })
+  .phase("p1", { duration: 1200, title: "load 上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cpuG", "memG", "netG").tween("cpu", 15, 60).tween("mem", 30, 55).tween("net", 5, 40))
+  .phase("p2", { duration: 1200, title: "warning", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cpuG", "memG", "netG").tween("cpu", 60, 82).set("cpuC", "#f59e0b").set("status", "warning"))
+  .phase("p3", { duration: 1200, title: "critical", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cpuG", "memG", "netG").tween("cpu", 82, 95).set("cpuC", "#dc2626").set("memC", "#f59e0b").set("status", "critical"))
+  .phase("p4", { duration: 1200, title: "回復開始", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cpuG", "memG", "netG").tween("cpu", 95, 40).tween("mem", 55, 35).set("cpuC", "#22c55e").set("memC", "#22c55e").set("status", "recovering"))
+  .phase("p5", { duration: 1200, title: "平常復帰", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cpuG", "memG", "netG").set("status", "healthy"))
+  .build();
