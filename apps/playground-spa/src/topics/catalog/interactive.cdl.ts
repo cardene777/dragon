@@ -883,32 +883,25 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
  *     renderOffsetX/Y で見た目上の円周配置に。
  */
 export const radialHubAndSpoke = diagram("interactive-radial-hub", {
-  topic: "hub-and-spoke を 2-lane (Hub center / Spokes 周辺 6) 分散、 radialNodes + hub → 6 spoke edge の 真の network diagram",
+  topic: "hub-and-spoke を 3-lane (Spokes 上 / Hub center / Spokes 下) 分散、 4 spoke を上下 lane に振り分けて edge-node-cross を回避、 hub → 4 spoke edge の star topology",
 })
+  .lane("spokesTop", { x: -300, width: 200 })
   .lane("hub", { x: 0, width: 200 })
-  .lane("spokes", { x: 240, width: 480 })
-  .node("hub", { lane: "hub", stack: 0, kind: "card", title: "Hub", subtitle: "center · 6 spoke に fan-out" })
-  .radialNodes(6, 90, (i, angleDeg, ox, oy) => ({
-    id: `spoke-{i}`,
-    lane: "spokes",
-    stack: i,
-    kind: "card" as const,
-    title: `#{i}`,
-    subtitle: `deg={r}°`,
-    renderOffsetX: ox,
-    renderOffsetY: oy - 40,
-  }))
+  .lane("spokesBottom", { x: 300, width: 200 })
+  .node("hub", { lane: "hub", stack: 0, kind: "card", title: "Hub", subtitle: "center · 4 spoke に fan-out" })
+  .node("spoke-0", { lane: "spokesTop", stack: 0, kind: "card", title: "#0", subtitle: "0°" })
+  .node("spoke-1", { lane: "spokesTop", stack: 1, kind: "card", title: "#1", subtitle: "90°" })
+  .node("spoke-2", { lane: "spokesBottom", stack: 0, kind: "card", title: "#2", subtitle: "180°" })
+  .node("spoke-3", { lane: "spokesBottom", stack: 1, kind: "card", title: "#3", subtitle: "270°" })
   .edge("hub", "spoke-0", { label: "0°", tone: "info" })
-  .edge("hub", "spoke-1", { label: "60°", tone: "info" })
-  .edge("hub", "spoke-2", { label: "120°", tone: "info" })
-  .edge("hub", "spoke-3", { label: "180°", tone: "info" })
-  .edge("hub", "spoke-4", { label: "240°", tone: "info" })
-  .edge("hub", "spoke-5", { label: "300°", tone: "info" })
+  .edge("hub", "spoke-1", { label: "90°", tone: "info" })
+  .edge("hub", "spoke-2", { label: "180°", tone: "info" })
+  .edge("hub", "spoke-3", { label: "270°", tone: "info" })
   .phase("p", {
     duration: 1200,
-    title: "hub-and-spoke 6",
-    body: "radialNodes(6, 90) + hub → 6 spoke edge の 真の network diagram、 renderOffsetX/Y で spoke を円周上に配置、 6 edge で hub 中心の star topology を表現。",
-  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3", "spoke-4", "spoke-5").badge("hub-and-spoke"))
+    title: "hub-and-spoke 4",
+    body: "3-lane (spokesTop / hub / spokesBottom) 分散で 4 spoke edge の edge-node-cross を回避、 hub 中心の star topology を lane 構造で明示 (CAR-1560 catalog sweep fix)。",
+  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3").badge("hub-and-spoke"))
   .build();
 
 /**
@@ -1135,10 +1128,10 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     title: "Resource server",
     subtitle: "API endpoint",
   })
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info" })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left" })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent" })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left" })
+  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetY: -90 })
+  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetY: -30 })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetY: 30 })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetY: 90 })
   .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
   .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "left" })
   .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
@@ -1154,21 +1147,18 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "decision tree 7 node を 3-lane (Root level 0 / Mid level 1 / Leaf level 2) tree depth 別分散、 treeNodes template で lane 動的割当、 6 edge で 2 分木構造明示",
+  topic: "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示",
 })
   .lane("root", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
   .lane("leaf", { x: 480, width: 240 })
-  .treeNodes(3, 2, 70, 80, (level, pos, i, ox, oy) => ({
-    id: `node-{i}`,
-    lane: level === 0 ? "root" : level === 1 ? "mid" : "leaf",
-    stack: i,
-    kind: "card" as const,
-    title: `L{r}P{c}`,
-    subtitle: `#{i}`,
-    renderOffsetX: ox,
-    renderOffsetY: oy - 100,
-  }))
+  .node("node-0", { lane: "root", stack: 1, kind: "card", title: "L0P0", subtitle: "#0 (root)" })
+  .node("node-1", { lane: "mid", stack: 0, kind: "card", title: "L1P0", subtitle: "#1" })
+  .node("node-2", { lane: "mid", stack: 2, kind: "card", title: "L1P1", subtitle: "#2" })
+  .node("node-3", { lane: "leaf", stack: 0, kind: "card", title: "L2P0", subtitle: "#3" })
+  .node("node-4", { lane: "leaf", stack: 1, kind: "card", title: "L2P1", subtitle: "#4" })
+  .node("node-5", { lane: "leaf", stack: 2, kind: "card", title: "L2P2", subtitle: "#5" })
+  .node("node-6", { lane: "leaf", stack: 3, kind: "card", title: "L2P3", subtitle: "#6" })
   // completely-binary tree: 0 -> 1,2 / 1 -> 3,4 / 2 -> 5,6
   .edge("node-0", "node-1", { label: "yes", tone: "success" })
   .edge("node-0", "node-2", { label: "no", tone: "error" })
@@ -1179,7 +1169,7 @@ export const decisionTree = diagram("interactive-decision-tree", {
   .phase("p", {
     duration: 1200,
     title: "decision tree",
-    body: "treeNodes(3, 2) で 7 node + 6 edge の完全 2 分木、 parent → 2 children × 3 level を yes/no tone (success/error) 装飾で分岐を表現。",
+    body: "3-lane (root / mid / leaf) tree depth 分散 + 明示 stack (root=1 / mid=0,2 / leaf=0,1,2,3) で parent-child alignment、 6 edge の 2 分木 (0→1,2 / 1→3,4 / 2→5,6) を edge-node-cross なしで表現 (CAR-1560 catalog sweep fix)。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
   .build();
 
