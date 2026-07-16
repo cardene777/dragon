@@ -511,13 +511,12 @@ export const partsGaugeCluster = diagram("parts-gauge-cluster", {
 // parts 31: デジタル時計 (countup HH:MM 表示)
 // ============================================================
 export const partsDigitalClock = diagram("parts-digital-clock", {
-  topic: "デジタル時計 — HH:MM 数値 live",
+  topic: "デジタル時計 — 時分の数値 live 表示",
 })
   .lane("l", { x: 0, width: 500 })
   .state("hh", { initial: 12 })
-  .state("mm", { initial: 30 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.countup("clock", { source: "hh", unit: ":30", label: "12:30", decimals: 0 })
+  .readout.countup("hour", { source: "hh", unit: " 時", label: "現在時刻 (時)", decimals: 0 })
   .phase("p", { duration: 4000, title: "時刻更新", body: "" }, (p: PhaseBuilder) =>
     p.tween("hh", 12, 18))
   .build();
@@ -576,7 +575,7 @@ export const partsPriceCard = diagram("parts-price-card", {
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
   .readout.kpiCard("pc", { source: "price", historySource: "hist", comparisonSource: "prev", unit: " 円/月", label: "Basic プラン" })
   .phase("p", { duration: 3500, title: "料金表示", body: "" }, (p: PhaseBuilder) =>
-    p.tween("price", 980, 980).tween("hist", 1200, 980).set("prev", 1200))
+    p.tween("hist", 1200, 980).set("prev", 1200))
   .build();
 
 // ============================================================
@@ -697,8 +696,8 @@ export const partsProgressLong = diagram("parts-progress-long", {
 // ============================================================
 // parts 43: 予算残り (dyn-rect + subtitle percent)
 // ============================================================
-export const partsBudgetRemaining = diagram("parts-budget-remaining", {
-  topic: "予算残り — 残り金額の visual",
+export const partsBudgetUsage = diagram("parts-budget-usage", {
+  topic: "予算消化率 — 使用量の visual",
 })
   .lane("l", { x: 0, width: 500 })
   .state("used", { initial: 40 })

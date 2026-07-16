@@ -277,7 +277,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsProgressDots: "進捗ドット",
   partsVolumeMeter: "音量メーター",
   partsProgressLong: "進捗6段階",
-  partsBudgetRemaining: "予算残り",
+  partsBudgetUsage: "予算消化率",
   partsStatusTimelineWeek: "週間タイムライン",
   partsRainbowStack: "レインボーティア",
   // === iter 9 wave 9-C incremental debug ===
