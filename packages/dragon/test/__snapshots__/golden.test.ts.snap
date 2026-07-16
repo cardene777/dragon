@@ -1999,7 +1999,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "h": 72,
       "id": "meter-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -2015,7 +2015,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "h": 72,
       "id": "sensor-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 751,
@@ -2047,7 +2047,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "h": 72,
       "id": "meter-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 751,
@@ -2055,7 +2055,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "h": 72,
       "id": "sensor-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
   ],
   "phases": [
@@ -3180,7 +3180,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -3204,7 +3204,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
   ],
   "phases": [
@@ -3258,7 +3258,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -3306,7 +3306,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 757,
@@ -3381,7 +3381,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -3397,7 +3397,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "h": 72,
       "id": "vault-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 791,
@@ -3461,7 +3461,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 791,
@@ -3469,7 +3469,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "h": 72,
       "id": "vault-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1413,
@@ -3544,7 +3544,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -3560,7 +3560,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "h": 72,
       "id": "vault-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 791,
@@ -3624,7 +3624,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 791,
@@ -3632,7 +3632,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "h": 72,
       "id": "vault-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1413,
@@ -3707,7 +3707,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -3755,7 +3755,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 735,
@@ -3817,7 +3817,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "h": 72,
       "id": "counter-header",
       "kind": "card",
-      "w": 140,
+      "w": 206,
     },
     {
       "cx": 170,
@@ -3865,7 +3865,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "h": 72,
       "id": "counter-footer",
       "kind": "card",
-      "w": 140,
+      "w": 206,
     },
     {
       "cx": 829,
@@ -4161,7 +4161,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "h": 72,
       "id": "client-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 170,
@@ -4177,7 +4177,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "h": 72,
       "id": "server-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 764,
@@ -4257,7 +4257,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "h": 72,
       "id": "client-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 764,
@@ -4265,7 +4265,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "h": 72,
       "id": "server-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
   ],
   "phases": [
@@ -4451,7 +4451,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -4467,7 +4467,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "h": 72,
       "id": "balances-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 762,
@@ -4531,7 +4531,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 762,
@@ -4539,7 +4539,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 1353,
@@ -5481,7 +5481,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -5497,7 +5497,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "token-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 920,
@@ -5513,7 +5513,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "transfer-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 1671,
@@ -5561,7 +5561,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 920,
@@ -5569,7 +5569,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "token-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1671,
@@ -5577,7 +5577,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "h": 72,
       "id": "transfer-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
   ],
   "phases": [
@@ -5644,7 +5644,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -5660,7 +5660,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "token-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 800,
@@ -5676,7 +5676,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "balances-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 1430,
@@ -5724,7 +5724,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 800,
@@ -5732,7 +5732,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "token-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1430,
@@ -5740,7 +5740,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
   ],
   "phases": [
@@ -5820,7 +5820,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -5852,7 +5852,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "receiver-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 2206,
@@ -5868,7 +5868,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "transfer-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 3224,
@@ -5932,7 +5932,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1188,
@@ -5948,7 +5948,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "receiver-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 3224,
@@ -5956,7 +5956,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "h": 72,
       "id": "transfer-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
   ],
   "phases": [
@@ -6036,7 +6036,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "h": 72,
       "id": "trader-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 170,
@@ -6052,7 +6052,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "h": 72,
       "id": "router-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1079,
@@ -6148,7 +6148,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "h": 72,
       "id": "trader-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1079,
@@ -6156,7 +6156,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "h": 72,
       "id": "router-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1988,
@@ -6252,7 +6252,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "owner1-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 170,
@@ -6268,7 +6268,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "owner2-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 915,
@@ -6300,7 +6300,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "target-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 2405,
@@ -6364,7 +6364,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "owner1-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 915,
@@ -6372,7 +6372,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "owner2-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1660,
@@ -6388,7 +6388,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "h": 72,
       "id": "target-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
   ],
   "phases": [
@@ -6471,7 +6471,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "h": 72,
       "id": "proxy-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 857,
@@ -6543,7 +6543,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "h": 72,
       "id": "proxy-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1543,
@@ -6634,7 +6634,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "h": 72,
       "id": "vault-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 843,
@@ -6650,7 +6650,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "h": 72,
       "id": "safemath-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 1517,
@@ -6706,7 +6706,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "h": 72,
       "id": "vault-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1517,
@@ -6714,7 +6714,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "h": 72,
       "id": "safemath-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
   ],
   "phases": [
@@ -6781,7 +6781,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "caller-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 170,
@@ -6797,7 +6797,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "ierc20-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1172,
@@ -6813,7 +6813,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "token-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 2174,
@@ -6861,7 +6861,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "caller-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1172,
@@ -6869,7 +6869,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "ierc20-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 2174,
@@ -6877,7 +6877,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "h": 72,
       "id": "token-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
   ],
   "phases": [
@@ -6964,7 +6964,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -6996,7 +6996,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "token-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1671,
@@ -7012,7 +7012,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "balances-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 2421,
@@ -7028,7 +7028,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "transfer-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 3171,
@@ -7092,7 +7092,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 920,
@@ -7108,7 +7108,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "token-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 2421,
@@ -7116,7 +7116,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 3171,
@@ -7124,7 +7124,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
       "h": 72,
       "id": "transfer-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
   ],
   "phases": [
@@ -7220,7 +7220,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "attacker-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 170,
@@ -7236,7 +7236,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "vault-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 947,
@@ -7252,7 +7252,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "drain-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1723,
@@ -7332,7 +7332,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "attacker-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 947,
@@ -7340,7 +7340,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "vault-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1723,
@@ -7348,7 +7348,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "h": 72,
       "id": "drain-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
   ],
   "phases": [
@@ -7403,8 +7403,8 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
     {
       "height": 716,
       "id": "transferbatch",
-      "width": 340,
-      "x": 1688.12,
+      "width": 378,
+      "x": 1669.12,
       "y": 28,
     },
   ],
@@ -7415,7 +7415,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -7431,7 +7431,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "token-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1014,
@@ -7447,7 +7447,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "transferbatch-header",
       "kind": "card",
-      "w": 140,
+      "w": 338,
     },
     {
       "cx": 1858,
@@ -7495,7 +7495,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1014,
@@ -7503,7 +7503,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "token-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 1858,
@@ -7511,7 +7511,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "h": 72,
       "id": "transferbatch-footer",
       "kind": "card",
-      "w": 140,
+      "w": 338,
     },
   ],
   "phases": [
@@ -7524,7 +7524,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
   "topic": "Y11",
   "viewBox": {
     "h": 828,
-    "w": 2132.12,
+    "w": 2151.12,
     "x": -44,
     "y": -24,
   },
@@ -7578,7 +7578,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "caller-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 170,
@@ -7594,7 +7594,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "contract-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 811,
@@ -7610,7 +7610,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "revert-header",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 1453,
@@ -7658,7 +7658,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "caller-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
     {
       "cx": 811,
@@ -7666,7 +7666,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "contract-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 1453,
@@ -7674,7 +7674,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "h": 72,
       "id": "revert-footer",
       "kind": "card",
-      "w": 140,
+      "w": 184,
     },
   ],
   "phases": [
@@ -7907,7 +7907,7 @@ exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`]
       "h": 72,
       "id": "counter-header",
       "kind": "card",
-      "w": 140,
+      "w": 206,
     },
     {
       "cx": 829,
@@ -7947,7 +7947,7 @@ exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`]
       "h": 72,
       "id": "counter-footer",
       "kind": "card",
-      "w": 140,
+      "w": 206,
     },
   ],
   "phases": [
@@ -8045,7 +8045,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "h": 72,
       "id": "alice-header",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 170,
@@ -8093,7 +8093,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "h": 72,
       "id": "safemath-header",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 2061,
@@ -8189,7 +8189,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
-      "w": 140,
+      "w": 162,
     },
     {
       "cx": 800,
@@ -8213,7 +8213,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "h": 72,
       "id": "safemath-footer",
       "kind": "card",
-      "w": 140,
+      "w": 228,
     },
     {
       "cx": 2691,

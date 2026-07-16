@@ -14,10 +14,10 @@
  *
  * ## 2 種類の axis 保証
  *
- * ### A. catalog real defect 保証 (3 axis)
+ * ### A. catalog real defect 保証 (2 axis)
  * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
- * regression を検出可能:
- * - Axis 3  text-readability      (cookbook)
+ * regression を検出可能。 Axis 3 は PR #392 (sequence actor auto-size) 以降 catalog real defect
+ * が消えたため、 manual defect injection fixture に移行 (下記 Axis 3 describe block 参照):
  * - Axis 12 edge-node-cross       (pattern-passthrough)
  * - Axis 51 mermaid-parity        (presets)
  *
@@ -292,22 +292,30 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
 // visual-validate-sweep で下記 axis が正しく発火する事を dragon test で保証。
 // ────────────────────────────────────────────────────────────
 
-describe("Axis 3 text-readability (catalog real defect assertion)", () => {
-  it("cookbook 内 diagram の 1 つで text-readability > 0 (dark catalog は 96 発火の SSOT)", async () => {
-    const cookbook = await import("../../../apps/playground-spa/src/topics/catalog/cookbook.cdl");
-    const isDiag = (v: unknown): v is CdlDiagram => {
-      return typeof v === "object" && v !== null &&
-        typeof (v as CdlDiagram).id === "string" &&
-        Array.isArray((v as CdlDiagram).nodes);
-    };
-    const diagrams = Object.values(cookbook).filter(isDiag);
-    // cookbook 全体で text-readability >= 1 発火する diagram が少なくとも 1 個ある事を保証
-    let totalCount = 0;
-    for (const d of diagrams) {
-      const r = visualValidate(d);
-      totalCount += r.counts["text-readability"];
-    }
-    expect(totalCount).toBeGreaterThanOrEqual(1);
+describe("Axis 3 text-readability (defect injection via manual fixture)", () => {
+  it("width が title 超過の inject fixture で text-readability > 0 発火", async () => {
+    // 従来 = cookbook 内の real defect を asset で使い >= 1 を保証していたが、
+    // PR #392 (sequence actor auto-size) で cookbook の real defect が消えた (改善) ため、
+    // 意図的 defect injection fixture で visualValidate 検知能力を保証する経路に切替。
+    const injectDiag = {
+      id: "text-readability-inject",
+      topic: "text-readability defect injection",
+      viewBox: { x: 0, y: 0, w: 400, h: 200 },
+      nodes: [
+        // title 48 char で expected width = 48*22+52 = 1108px、 node w=100 で defect 発火
+        { id: "n1", kind: "card" as const, title: "This Is A Very Long Node Title Overflowing Width", cx: 100, cy: 100, w: 100, h: 40, lane: "L" },
+      ],
+      edges: [],
+      lanes: [{ id: "L", x: 0, y: 0, width: 400, height: 200 }],
+      phases: [],
+      states: [],
+      bboxes: [],
+      collisions: [],
+      nearCollisions: [],
+      violations: [],
+    } as unknown as CdlDiagram;
+    const r = visualValidate(injectDiag);
+    expect(r.counts["text-readability"]).toBeGreaterThanOrEqual(1);
   });
 });
 
