@@ -1,3 +1,26 @@
+/*
+ * ═════════════════════════════════════════════════════════════════════════════
+ * Universal SVG text stroke inheritance guard (theme 横断 root cause fix)
+ * ═════════════════════════════════════════════════════════════════════════════
+ *
+ * SVG は stroke を child text 要素に inherit する仕様、 node-body 等 shape rule
+ * で設定した stroke-width が glyph に適用されて double-strike / bloated 表示 bug
+ * となる。 全 theme で SVG text は fill のみで描画すべき、 stroke は shape 側限定。
+ *
+ * 影響 theme (stroke-width あり) = isometric (1.2) / circuit (1.6) / pinboard (1) /
+ * handdrawn (1.6) / blueprint (3.5、 既に個別 fix 済)。 neumorphism は stroke: none で影響なし。
+ *
+ * 経緯 = blueprint theme で user 報告 「ライトモード文字がバグ」 → 3.5px stroke が
+ * font-size 17-20px glyph に double-strike 効果 → 個別 fix (PR #403) → 他 theme も
+ * 同 pattern 潜在 risk と判明、 universal 経路で予防。
+ */
+[data-cdl-role="node-body"] text,
+[data-cdl-role="node-label"],
+[data-cdl-role="edge-label"],
+[data-cdl-role="lane-label"] {
+  stroke: none !important;
+}
+
 /**
  * cdl SVG 6 theme override SSOT (CAR-730 = 全 role !important 完全 override 化)
  *
@@ -594,24 +617,17 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
    `!important` font-size で renderer default を「縮小」 する regression 撤去) */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   fill: #4a2810 !important;
-  stroke: none !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #4a2810 !important;
-  stroke: none !important;
   font-weight: 700 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  stroke: none !important;
   font-weight: 700 !important;
 }
-/* node-body 内の全 text 継承 stroke 除去 (kind-specific title 等 data-cdl-role 未付与
-   text が親 node-body の stroke #6d3f18 3.5px を継承して bloated 表示になる root cause fix)。
-   text は必ず stroke:none で、 fill 色は各 kind 側で決まる。 */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] text {
-  stroke: none !important;
-}
+/* stroke: none は file 先頭 universal rule (theme prefix なし) で 全 theme 対応済、
+   blueprint 個別 stroke rule は削除 (SSOT 一本化、 drift 予防、 CAR-1560)。 */
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
   stroke: #6d3f18 !important;
   stroke-width: 4 !important;
