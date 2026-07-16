@@ -551,7 +551,10 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     actorIds.set(id, id);
     b.lane(id, { width: laneW, label: a.name, lifeline: true });
     const headerId = `${id}-header`;
-    b.node(headerId, { lane: id, stack: 0, kind: "card", title: a.name, w: 140, h: 72 });
+    // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
+    // CJK 22px/char + 40px padding、 min 140 で従来 sample 互換維持。
+    const actorW = Math.max(140, a.name.length * 24 + 40);
+    b.node(headerId, { lane: id, stack: 0, kind: "card", title: a.name, w: actorW, h: 72 });
     headerNodeIds.push(headerId);
     const spacerId = `${id}-spacer`;
     b.node(spacerId, { lane: id, stack: 1, kind: "card", title: "", w: 2, h: 40 });
@@ -590,7 +593,8 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
   doc.actors.forEach((a) => {
     const laneId = actorIds.get(a.name) ?? slugify(a.name);
     const footerId = `${laneId}-footer`;
-    b.node(footerId, { lane: laneId, stack: footerStack, kind: "card", title: a.name, w: 140, h: 72 });
+    const actorW = Math.max(140, a.name.length * 24 + 40);
+    b.node(footerId, { lane: laneId, stack: footerStack, kind: "card", title: a.name, w: actorW, h: 72 });
   });
 
   // state を builder に登録
