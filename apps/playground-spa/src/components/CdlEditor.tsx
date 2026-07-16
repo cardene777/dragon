@@ -719,6 +719,13 @@ export function CdlEditor(): React.JSX.Element {
     if (changed) setSrc(allLines.join("\n"));
   }, [warnings, diagram, src]);
 
+  // test 用 side channel = src の full text を window mirror に同期 (E2E で CodeMirror virtual
+  // scrolling を bypass して full buffer 検証する経路、 CAR-1646、 production では読み手なし)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __cdlEditorSrc?: string }).__cdlEditorSrc = src;
+  }, [src]);
+
   // src 変更時 debounce 300ms で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
