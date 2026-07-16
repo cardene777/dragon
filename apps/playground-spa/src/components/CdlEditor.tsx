@@ -263,6 +263,8 @@ animation:
     code: `title: "認証状態遷移"
 type: state
 
+viewport: { height: 420 }
+
 actors:
   - 待機: { kind: card }
   - 検証中: { kind: card }
