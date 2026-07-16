@@ -421,6 +421,17 @@ const FIXABLE_WARNING_AXES = new Set([
   "edge-label-proximity",
 ]);
 
+/**
+ * UI 表示から除外する非致命 axis。
+ * subpixel-precision = 座標小数点 (e.g. 832.56) の subpixel blur risk 検知、 実描画で
+ * browser 側 anti-alias 済で人間の目視には影響ゼロ、 auto-fix logic も未実装。
+ * 「修正できない warning を出すのは論外」 という UX 原則で silent 化する。
+ * validate output 自体は残し、 golden test / benchmark 用途は継続利用可能。
+ */
+const HIDDEN_WARNING_AXES = new Set([
+  "subpixel-precision",
+]);
+
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
@@ -573,7 +584,7 @@ export function CdlEditor(): React.JSX.Element {
     if (offsetByEdge.size === 0) {
       // user feedback: 対応可能な warning がない、 inline banner で表示 (alert は browser 依存)
       const unsupportedAxes = Array.from(new Set(warnings.map((w) => w.axis))).join(", ");
-      setAutoFixMessage(`自動修正対応外 = ${unsupportedAxes}。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 text-readability は DSL で title 短縮、 subpixel-precision は非致命 (無視可能)。`);
+      setAutoFixMessage(`自動修正対応外 = ${unsupportedAxes}。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 text-readability は DSL で title 短縮してください。`);
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
@@ -637,7 +648,7 @@ export function CdlEditor(): React.JSX.Element {
         // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
         try {
           const report = visualValidate(d);
-          setWarnings(report.violations);
+          setWarnings(report.violations.filter((v) => !HIDDEN_WARNING_AXES.has(v.axis)));
         } catch {
           setWarnings([]);
         }
@@ -1043,7 +1054,7 @@ animation:
               <span className="v4-editor-warnings-hint">
                 {fixableWarningCount > 0
                   ? `DSLの labelOffsetX/Y でnodeとの位置を調整できます (対応可 ${fixableWarningCount} 件)`
-                  : "対応可 0 件 (text-readability = DSLで title 短縮、 subpixel-precision = 非致命)"}
+                  : "対応可 0 件 (text-readability = DSL で title 短縮してください)"}
               </span>
               <button
                 type="button"
