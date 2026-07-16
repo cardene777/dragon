@@ -433,9 +433,15 @@ const HIDDEN_WARNING_AXES = new Set([
 ]);
 
 /**
+ * 未 register axis の default action guidance (SSOT 統一のため module-scope const 化)。
+ * unfixableAxisHint / handleAutoFix message の 2 箇所で同一値を参照する。
+ */
+const UNFIXABLE_AXIS_FALLBACK = "DSL 側で調整";
+
+/**
  * 非 auto-fix axis 向けの action guidance (hint text 生成用)。
  * key = axis 名、 value = 「対応可 0 件」 時に user に示す 1 文の action guidance。
- * 未 register axis は default「DSL の layout hint / coord を調整してください」 に fallback。
+ * 未 register axis は UNFIXABLE_AXIS_FALLBACK に fallback。
  * fan-origin-single-point 等 layout auto-fix 対象は別 Issue で解消予定、 現状は DSL 調整 or
  * layout engine 側 fix 待ち guidance を明示する。
  */
@@ -477,7 +483,7 @@ export function CdlEditor(): React.JSX.Element {
     );
     if (unfixableAxes.length === 0) return "対応可 0 件";
     const parts = unfixableAxes.map((ax) => {
-      const action = UNFIXABLE_AXIS_HINT[ax] ?? "DSL 側で調整";
+      const action = UNFIXABLE_AXIS_HINT[ax] ?? UNFIXABLE_AXIS_FALLBACK;
       return `${ax} = ${action}`;
     });
     return `対応可 0 件 (${parts.join("、 ")})`;
@@ -615,12 +621,17 @@ export function CdlEditor(): React.JSX.Element {
     }
     if (offsetByEdge.size === 0) {
       // user feedback: 対応可能な warning がない、 inline banner で表示 (alert は browser 依存)
-      const unsupportedAxes = Array.from(new Set(warnings.map((w) => w.axis)));
+      // unfixableAxisHint と同じ filter (非 fixable のみ列挙) で対称性を担保、 fixable axis の
+      // regex mismatch は別 UI で表出させる (misleading message 回避)。
+      const unsupportedAxes = Array.from(
+        new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis)),
+      );
       const actions = unsupportedAxes.map((ax) => {
-        const action = UNFIXABLE_AXIS_HINT[ax] ?? "DSL 側で調整";
+        const action = UNFIXABLE_AXIS_HINT[ax] ?? UNFIXABLE_AXIS_FALLBACK;
         return `${ax} = ${action}`;
       });
-      setAutoFixMessage(`自動修正対応外です。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 他 axis は DSL 側対応が必要 (${actions.join("、 ")})。`);
+      const suffix = actions.length > 0 ? ` (${actions.join("、 ")})` : "";
+      setAutoFixMessage(`自動修正対応外です。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 他 axis は DSL 側対応が必要${suffix}。`);
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
