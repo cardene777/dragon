@@ -220,7 +220,7 @@ export function SvgDefs(): React.ReactElement {
             d="M 24 0 L 0 0 0 24"
             fill="none"
             stroke="rgba(109, 63, 24, 0.18)"
-            strokeWidth="1"
+            strokeWidth="1.5"
           />
         </pattern>
 
@@ -236,7 +236,7 @@ export function SvgDefs(): React.ReactElement {
             d="M 24 0 L 0 0 0 24"
             fill="none"
             stroke="rgba(240, 184, 64, 0.22)"
-            strokeWidth="1"
+            strokeWidth="1.5"
           />
         </pattern>
 
@@ -254,7 +254,7 @@ export function SvgDefs(): React.ReactElement {
             d="M 0 0 L 10 5 L 0 10 M 0 5 L 8 5"
             fill="none"
             stroke="#6d3f18"
-            strokeWidth="2"
+            strokeWidth="2.5"
           />
         </marker>
 
