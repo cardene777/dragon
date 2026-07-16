@@ -280,6 +280,22 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsBudgetUsage: "予算消化率",
   partsStatusTimelineWeek: "週間タイムライン",
   partsRainbowStack: "レインボーティア",
+  // === parts catalog Round 4 (15 追加 daily UI widget、 CAR-1560 2026-07-16) ===
+  partsShoppingCart: "ショッピングカート",
+  partsMailInbox: "メール受信箱",
+  partsLocationPin: "位置ピン",
+  partsBellNotification: "通知ベル",
+  partsSearchBar: "検索バー",
+  partsLikeButton: "いいねボタン",
+  partsBookmark: "ブックマーク",
+  partsCoinBalance: "コイン残高",
+  partsExpBar: "経験値バー",
+  partsAchievement: "実績トロフィー",
+  partsSaleTag: "セールタグ",
+  partsPlayButton: "再生ボタン",
+  partsCloudSync: "クラウド同期",
+  partsAlarmClock: "目覚まし時計",
+  partsWifiSignal: "Wi-Fi信号",
   // === iter 9 wave 9-C incremental debug ===
   // === animation 実業務シナリオ ===
   animationCounterViewCount: "動画再生数の急伸",

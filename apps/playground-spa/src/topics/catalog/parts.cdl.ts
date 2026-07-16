@@ -747,3 +747,221 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     p.activate("tier1", "tier2", "tier3", "tier4", "tier5")
       .tween("t1", 20, 28).tween("t2", 20, 28).tween("t3", 20, 28).tween("t4", 20, 28).tween("t5", 20, 28))
   .build();
+
+// ============================================================
+// parts 46: ショッピングカート (数量 subtitle live)
+// ============================================================
+export const partsShoppingCart = diagram("parts-shopping-cart", {
+  topic: "ショッピングカート — 商品数 live",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("cnt", { initial: 0 })
+  .node("cart", { lane: "l", stack: 0, kind: "dyn-rect", title: "カート", subtitle: "{cnt} 点", w: 360, h: 300,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 16 } })
+  .phase("p", { duration: 3500, title: "商品追加", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cart").tween("cnt", 0, 12))
+  .build();
+
+// ============================================================
+// parts 47: メール受信箱 (未読 badge)
+// ============================================================
+export const partsMailInbox = diagram("parts-mail-inbox", {
+  topic: "メール受信箱 — 未読 badge",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("unread", { initial: 0 })
+  .node("inbox", { lane: "l", stack: 0, kind: "dyn-circle", title: "受信箱", subtitle: "未読 {unread} 通", w: 340, h: 340,
+    shape: { kind: "circle", radius: 140, fill: "#dc2626" } })
+  .phase("p", { duration: 4000, title: "受信増加", body: "" }, (p: PhaseBuilder) =>
+    p.activate("inbox").tween("unread", 0, 27))
+  .build();
+
+// ============================================================
+// parts 48: 位置ピン (map pin metaphor)
+// ============================================================
+export const partsLocationPin = diagram("parts-location-pin", {
+  topic: "位置ピン — 現在位置 metaphor",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#dc2626" })
+  .node("pin", { lane: "l", stack: 0, kind: "dyn-circle", title: "現在地", subtitle: "東京駅", w: 340, h: 340,
+    shape: { kind: "circle", radius: 130, fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "位置表示", body: "" }, (p: PhaseBuilder) =>
+    p.activate("pin"))
+  .build();
+
+// ============================================================
+// parts 49: 通知ベル (alert badge with pulse)
+// ============================================================
+export const partsBellNotification = diagram("parts-bell-notification", {
+  topic: "通知ベル — 新着 alert",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("alerts", { initial: 0 })
+  .node("bell", { lane: "l", stack: 0, kind: "dyn-circle", title: "🔔 通知", subtitle: "{alerts} 件", w: 360, h: 360,
+    shape: { kind: "circle", radius: 140, fill: "#f59e0b" } })
+  .phase("p", { duration: 3500, title: "通知増加", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bell").tween("alerts", 0, 15))
+  .build();
+
+// ============================================================
+// parts 50: 検索バー (horizontal rect)
+// ============================================================
+export const partsSearchBar = diagram("parts-search-bar", {
+  topic: "検索バー — 入力域 metaphor",
+})
+  .lane("l", { x: 0, width: 700 })
+  .node("bar", { lane: "l", stack: 0, kind: "dyn-rect", title: "🔍 検索", subtitle: "keyword を入力", w: 680, h: 140,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 70 } })
+  .phase("p", { duration: 3000, title: "検索フォーム", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar"))
+  .build();
+
+// ============================================================
+// parts 51: いいねボタン (like count + heart)
+// ============================================================
+export const partsLikeButton = diagram("parts-like-button", {
+  topic: "いいねボタン — count live",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("likes", { initial: 42 })
+  .node("heart", { lane: "l", stack: 0, kind: "dyn-circle", title: "♥", subtitle: "{likes} いいね", w: 340, h: 340,
+    shape: { kind: "circle", radius: 140, fill: "#dc2626" } })
+  .phase("p", { duration: 4000, title: "いいね急増", body: "" }, (p: PhaseBuilder) =>
+    p.activate("heart").tween("likes", 42, 158))
+  .build();
+
+// ============================================================
+// parts 52: ブックマーク (縦 fill)
+// ============================================================
+export const partsBookmark = diagram("parts-bookmark", {
+  topic: "ブックマーク — 保存済み metaphor",
+})
+  .lane("l", { x: 0, width: 300 })
+  .node("bm", { lane: "l", stack: 0, kind: "dyn-rect", title: "🔖", subtitle: "保存済み", w: 240, h: 400,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 8 } })
+  .phase("p", { duration: 3000, title: "bookmark", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bm"))
+  .build();
+
+// ============================================================
+// parts 53: コイン残高 (currency countup)
+// ============================================================
+export const partsCoinBalance = diagram("parts-coin-balance", {
+  topic: "コイン残高 — currency live",
+})
+  .lane("l", { x: 0, width: 500 })
+  .state("coin", { initial: 1000 })
+  .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
+  .readout.countup("cb", { source: "coin", unit: " G", label: "所持ゴールド", decimals: 0 })
+  .phase("p", { duration: 4000, title: "収入", body: "" }, (p: PhaseBuilder) =>
+    p.tween("coin", 1000, 8500))
+  .build();
+
+// ============================================================
+// parts 54: 経験値バー (EXP progression)
+// ============================================================
+export const partsExpBar = diagram("parts-exp-bar", {
+  topic: "経験値バー — XP progression",
+})
+  .lane("l", { x: 0, width: 700 })
+  .state("xp", { initial: 20 })
+  .node("bar", { lane: "l", stack: 0, kind: "dyn-rect", title: "EXP Lv.12", subtitle: "{xp}/100 to Lv.13", w: 680, h: 120,
+    shape: { kind: "rect", source: "{xp}", fillMax: 100, orient: "up", fill: "#8b5cf6", radius: 60 } })
+  .phase("p", { duration: 4500, title: "XP 上昇", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("xp", 20, 95))
+  .build();
+
+// ============================================================
+// parts 55: 実績トロフィー (achievement)
+// ============================================================
+export const partsAchievement = diagram("parts-achievement", {
+  topic: "実績トロフィー — achievement 解放",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("bg", { initial: "#f59e0b" })
+  .node("trophy", { lane: "l", stack: 0, kind: "dyn-circle", title: "🏆", subtitle: "初回達成", w: 380, h: 380,
+    shape: { kind: "circle", radius: 150, fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "trophy 表示", body: "" }, (p: PhaseBuilder) =>
+    p.activate("trophy"))
+  .build();
+
+// ============================================================
+// parts 56: セールタグ (割引 badge)
+// ============================================================
+export const partsSaleTag = diagram("parts-sale-tag", {
+  topic: "セールタグ — 割引率 badge",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("off", { initial: 30 })
+  .node("tag", { lane: "l", stack: 0, kind: "dyn-rect", title: "SALE", subtitle: "{off}% OFF", w: 360, h: 200,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#dc2626", radius: 12 } })
+  .phase("p", { duration: 4000, title: "割引拡大", body: "" }, (p: PhaseBuilder) =>
+    p.activate("tag").tween("off", 30, 70))
+  .build();
+
+// ============================================================
+// parts 57: 再生ボタン (play triangle)
+// ============================================================
+export const partsPlayButton = diagram("parts-play-button", {
+  topic: "再生ボタン — media play",
+})
+  .lane("l", { x: 0, width: 380 })
+  .state("bg", { initial: "#22c55e" })
+  .node("play", { lane: "l", stack: 0, kind: "dyn-circle", title: "▶", subtitle: "再生", w: 340, h: 340,
+    shape: { kind: "circle", radius: 140, fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "play", body: "" }, (p: PhaseBuilder) =>
+    p.activate("play"))
+  .build();
+
+// ============================================================
+// parts 58: クラウド同期 (sync progress arc)
+// ============================================================
+export const partsCloudSync = diagram("parts-cloud-sync", {
+  topic: "クラウド同期 — sync 進捗",
+})
+  .lane("l", { x: 0, width: 400 })
+  .state("sync", { initial: 15 })
+  .node("cloud", { lane: "l", stack: 0, kind: "dyn-arc", title: "☁ 同期", subtitle: "{sync}%", w: 380, h: 380,
+    shape: { kind: "arc", angle: "{sync}", sweepMax: 100, outerRadius: 150, innerRadius: 105, fill: "#4e9dc4" } })
+  .phase("p", { duration: 4500, title: "同期進行", body: "" }, (p: PhaseBuilder) =>
+    p.activate("cloud").tween("sync", 15, 100))
+  .build();
+
+// ============================================================
+// parts 59: 目覚まし時計 (alarm circle)
+// ============================================================
+export const partsAlarmClock = diagram("parts-alarm-clock", {
+  topic: "目覚まし時計 — alarm 表示",
+})
+  .lane("l", { x: 0, width: 380 })
+  .node("alarm", { lane: "l", stack: 0, kind: "dyn-circle", title: "⏰", subtitle: "07:00", w: 340, h: 340,
+    shape: { kind: "circle", radius: 140, fill: "#f59e0b" } })
+  .phase("p", { duration: 3000, title: "alarm 設定", body: "" }, (p: PhaseBuilder) =>
+    p.activate("alarm"))
+  .build();
+
+// ============================================================
+// parts 60: Wi-Fi 信号 (5 段階 signal strength)
+// ============================================================
+export const partsWifiSignal = diagram("parts-wifi-signal", {
+  topic: "Wi-Fi 信号 — 5 段階強度",
+})
+  .lane("la", { x: 0, width: 120 })
+  .lane("lb", { x: 140, width: 120 })
+  .lane("lc", { x: 280, width: 120 })
+  .lane("ld", { x: 420, width: 120 })
+  .lane("le", { x: 560, width: 120 })
+  .node("b1", { lane: "la", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 100,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("b2", { lane: "lb", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 160,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("b3", { lane: "lc", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 220,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+  .node("b4", { lane: "ld", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 280,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
+  .node("b5", { lane: "le", stack: 0, kind: "dyn-rect", title: "", subtitle: "5/5 有り", w: 100, h: 340,
+    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
+  .phase("p", { duration: 3000, title: "信号 3/5", body: "" }, (p: PhaseBuilder) =>
+    p.activate("b1", "b2", "b3", "b4", "b5"))
+  .build();
