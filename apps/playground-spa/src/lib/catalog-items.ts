@@ -16,7 +16,7 @@ import * as PatMod from "@/topics/catalog/patterns.cdl";
 // --- category: animation ---
 import * as AnimMod from "@/topics/catalog/animation.cdl";
 // --- category: parts (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ---
-// N 個の diagram(...).build() が top-level で走るため (現時点 = 30 個、 PARTS_COUNT_ESTIMATE 参照)、
+// N 個の diagram(...).build() が top-level で走るため (現時点 = 45 個、 PARTS_COUNT_ESTIMATE 参照)、
 // dynamic import で lazy-load して初期 catalog-items chunk (348 kB gzip) からは除外する (CAR-1613)。
 // CategoryPage が params.slug === "parts" 時のみ loadPartsItems() を呼び、 State に populate する経路。
 // --- category: styles ---
@@ -108,6 +108,6 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  *
  * ⚠️ SYNC REQUIRED = parts.cdl.ts の top-level export diagram 数と手動同期必須。
  * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
- * itemCount 誤表示 + total 集計もズレる)。 現時点 = 30 個 (2026-07-16 CAR-1560 Round 2 で 20 → 30)。
+ * itemCount 誤表示 + total 集計もズレる)。 現時点 = 45 個 (2026-07-16 CAR-1560 Round 2 で 20 → 45)。
  */
-export const PARTS_COUNT_ESTIMATE = 30;
+export const PARTS_COUNT_ESTIMATE = 45;
