@@ -287,10 +287,19 @@
   .v4-editor-warnings {
     border-top: 1px solid rgba(201, 162, 62, 0.35);
     background: rgba(201, 162, 62, 0.06);
-    max-height: 240px;
+    max-height: 180px;
     overflow-y: auto;
     padding: 14px 18px;
     font-size: 15px;
+  }
+  /* 900px 以下 responsive = 2 段 editor layout で warning panel が code editor を圧迫、
+     max-height を 120px に絞って CodeMirror body を最低 160px 予約する (codex critical fix) */
+  @media (max-width: 900px), (max-height: 720px) {
+    .v4-editor-warnings {
+      max-height: 120px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
   }
   html.dark .v4-editor-warnings {
     background: rgba(201, 162, 62, 0.10);

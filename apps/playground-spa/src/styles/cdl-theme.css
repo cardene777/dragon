@@ -311,7 +311,7 @@ html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
   stroke: #8a7050 !important;
-  stroke-width: 3.5 !important;
+  stroke-width: 3 !important;
   filter: url(#dragon-iso-cast-shadow) !important;
 }
 [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
@@ -589,19 +589,19 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   stroke-width: 2.5 !important;
   stroke-dasharray: 8 5 !important;
 }
+/* font-size は renderer 側 SSOT (generic 20 / actor 32 / edge main 22 / edge sub 19 / lane 20)
+   を尊重、 CSS 側は fill + font-weight のみ override (codex major #1 fix、
+   `!important` font-size で renderer default を「縮小」 する regression 撤去) */
 [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
   fill: #4a2810 !important;
   font-weight: 700 !important;
-  font-size: 18px !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #4a2810 !important;
   font-weight: 700 !important;
-  font-size: 16px !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   font-weight: 700 !important;
-  font-size: 18px !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
   stroke: #6d3f18 !important;
@@ -610,7 +610,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   fill: #6d3f18 !important;
   stroke: #6d3f18 !important;
-  stroke-width: 3.5 !important;
+  stroke-width: 2 !important;
 }
 /* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
    上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
@@ -665,19 +665,16 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   stroke: #f0b840 !important;
   fill: #f0b840 !important;
-  stroke-width: 3.5 !important;
+  stroke-width: 2 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
-  font-size: 18px !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  font-size: 18px !important;
   font-weight: 700 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  font-size: 16px !important;
   font-weight: 700 !important;
 }
 /* generic node の子 shape (rect / circle / path 等) は node-body 親要素の
