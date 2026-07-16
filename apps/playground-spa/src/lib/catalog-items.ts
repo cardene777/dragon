@@ -108,6 +108,6 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  *
  * ⚠️ SYNC REQUIRED = parts.cdl.ts の top-level export diagram 数と手動同期必須。
  * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
- * itemCount 誤表示 + total 集計もズレる)。 現時点 = 60 個 (2026-07-16 CAR-1560 Round 2 で 20 → 60)。
+ * itemCount 誤表示 + total 集計もズレる)。 現時点 = 60 個 (2026-07-16 CAR-1560 Round 2-4 累積で 20 → 60)。
  */
 export const PARTS_COUNT_ESTIMATE = 60;
