@@ -385,7 +385,7 @@ export const partsHeartbeat = diagram("parts-heartbeat", {
   .build();
 
 // ============================================================
-// parts 24: 評価スター (3 dyn-circle で 5 段階中 3)
+// parts 24: 評価スター (5 dyn-circle で 5 段階中 3 fill)
 // ============================================================
 export const partsRatingStars = diagram("parts-rating-stars", {
   topic: "評価スター — 5 段階中 fill 表示",
