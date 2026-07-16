@@ -161,10 +161,32 @@
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
-  min-height: 480px;
+  min-height: 720px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* CAR-1560 codex MAJOR fix = flex center + overflow: auto で 900-1200px 域の scroll clip 回避、
+     PR #406 と同 flex-start approach で SVG は左上起点、 wide diagram の horizontal scroll 完全対応。 */
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: auto;
+}
+/* preset detail SVG の readable size 保証 (user 継続報告 「文字小さすぎ」 対応、 CAR-1560、
+   catalog PR #406 と同 approach)。 SVG は container 幅に強制縮小されず native scale で描画、
+   wide diagram は horizontal scroll。 parts / interactive compact は元 size 保持 (svg 側 selector で除外)。 */
+.nm-preset-detail-stage svg {
+  min-width: max(100%, 1200px) !important;
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: 800px !important;
+}
+.nm-preset-detail-stage svg[data-cdl-diagram^="parts-"] {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+@media (max-width: 900px) {
+  .nm-preset-detail-stage svg {
+    min-width: 100% !important;
+  }
 }
 .nm-preset-detail-nav {
   display: flex;
