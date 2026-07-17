@@ -974,6 +974,7 @@ export function CdlEditor(): React.JSX.Element {
     if (!svg) return;
     const aliasToSlug = extractActorAliases(src);
     const slug = aliasToSlug.get(alias) ?? slugifyActor(alias);
+    // sequence actor 相当 (partId なし) は compile 側で pos 反映されないため CSS で X も Y も apply。
     const selectors = [
       `[data-cdl-node="${slug}"]`,
       `[data-cdl-node="${slug}-header"]`,
@@ -985,9 +986,10 @@ export function CdlEditor(): React.JSX.Element {
       const el = svg.querySelector(sel) as SVGGraphicsElement | null;
       if (el) el.style.transform = `translate(${x}px, ${y}px)`;
     }
-    // parts merge の prefix (`{alias}__*`) と sequence step anchor (`s{N}-{slug}`) を prefix match で
+    // canvas pivot 追加 fix = parts merge の prefix (`{alias}__*`) は compile 側で lane.x を
+    // posX 加算済 = CSS は Y のみ apply する。 double-apply 回避。
     svg.querySelectorAll(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`).forEach((el) => {
-      (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
+      (el as SVGGraphicsElement).style.transform = `translate(0px, ${y}px)`;
     });
     svg.querySelectorAll(`[data-cdl-node]`).forEach((el) => {
       const nid = el.getAttribute("data-cdl-node") ?? "";

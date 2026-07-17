@@ -153,7 +153,11 @@ function mergePartsFromActors(
     // parts を既存 lane に merge する経路 (mergePartIntoDiagram の targetLaneId 経路) は本 filter
     // 対象外 (aliasSlug lane はそもそも生成されないため)。
     target.lanes = target.lanes.filter((l) => l.id !== aliasSlug);
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
+    // canvas pivot 追加 fix = parts 内部座標 (parts spec の .lane("l", { x: 0, ... })) を
+    // drop 位置 (actor.posX) で translate する。 従来 parts は internal x=0-400 の絶対座標で
+    // merge され sequence の ユーザー lifeline (x=0) と重なって見切れる問題があった。
+    // actor.posX 指定時のみ shift、 未指定なら parts 内部座標そのまま (backward compat)。
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX);
   }
   return target;
 }
@@ -170,8 +174,12 @@ function mergePartIntoDiagram(
   alias: string,
   stateOverride: Record<string, number | string | boolean>,
   laneMapping: string | undefined,
+  posXOffset?: number,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
+  // canvas pivot 追加 fix = parts 内部座標を drop 位置で translate。 posXOffset undefined なら 0
+  // (backward compat = 従来通り parts 内部座標そのまま)。
+  const xShift = posXOffset ?? 0;
   const stateIdSet = new Set(part.states.map((s) => s.id));
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
@@ -200,6 +208,9 @@ function mergePartIntoDiagram(
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label,
+        // canvas pivot 追加 fix = parts internal lane.x に drop 位置 (posX) を加算、
+        // sequence 側 lifeline との重複を回避 (見切れ / overlap の根本解消)。
+        x: (laneOrig.x ?? 0) + xShift,
       });
     }
   }
