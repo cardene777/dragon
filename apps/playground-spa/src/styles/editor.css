@@ -352,9 +352,15 @@
   .v4-editor-svg-wrap [data-cdl-role="lane-label"] {
     display: none;
   }
-  /* canvas pivot parts binding = 各 parts の右上「⚡」 icon overlay */
-  .v4-editor-bind-icon {
+  /* canvas pivot parts binding = 各 parts の右上「⚡」 icon overlay + ✕ 削除 button 群 */
+  .v4-editor-bind-icon-group {
     position: absolute;
+    display: flex;
+    gap: 4px;
+    z-index: 15;
+    pointer-events: auto;
+  }
+  .v4-editor-bind-icon {
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -393,6 +399,28 @@
   }
   .v4-editor-bind-icon-bound:hover {
     background: var(--v4-brand);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-delete-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(220, 38, 38, 0.6);
+    background: var(--v4-canvas);
+    color: #dc2626;
+    font-size: 13px;
+    font-family: var(--v4-mono);
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(26, 20, 16, 0.16);
+    transition: transform 0.12s, background 0.12s;
+  }
+  .v4-editor-delete-icon:hover {
+    transform: scale(1.15);
+    background: #dc2626;
     color: var(--v4-canvas);
   }
   /* canvas pivot parts binding = 現在の連動一覧 (popup Step 1 前段) */

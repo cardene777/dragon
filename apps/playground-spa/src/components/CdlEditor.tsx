@@ -978,44 +978,39 @@ export function CdlEditor(): React.JSX.Element {
   } | null>(null);
 
   /**
-   * canvas pivot magnet zone (CAR-1697) = drag / drop 完了時の client 座標から、 他 actor lane の
-   * bounding rect 中心までの最短距離を計算し、 threshold 以内なら「snap 対象」 alias を返す。
-   * 自分自身の lane (excludeAlias) は candidate から除外。 threshold 未満に他 lane がなければ null。
-   * Command キー押しなら caller 側で本関数を skip する (bypass = 自由配置)。
+   * canvas pivot magnet zone (user 明示指定 2026-07-18) = 「他 element より 1-8px 高さがズレてる時の
+   * 微調整だけ」。 threshold を 8px に縮小、 対象 = 他 element の Y 座標 (横並び揃え) のみ。
+   * X 座標 (別 lane に吸い寄せる) は完全撤廃 = user が drop / drag 場所を尊重する Miro 風挙動。
+   * Command キー押しで snap 完全 bypass。
    */
-  const MAGNET_THRESHOLD_PX = 100;
-  const findNearestLaneForSnap = (clientX: number, clientY: number, excludeAlias: string): string | null => {
+  const MAGNET_ALIGN_THRESHOLD_PX = 8;
+  const findNearestLaneForSnap = (_clientX: number, _clientY: number, _excludeAlias: string): string | null => {
+    // 別 lane 吸い寄せ経路廃止 (user 「変にはじっこにもってかれたりする」 の対応)、 常に自由配置。
+    return null;
+  };
+  // 保持する Y align only snap = drag end 時に他 element の Y と 8px 以内なら Y だけ揃える
+  const findYAlignSnap = (clientY: number, excludeAlias: string): number | null => {
     const svg = previewRef.current?.querySelector("svg");
-    if (!svg) return null;
+    // user 明示 「1px 高さがズレてる時の微調整」 = 他 element の header top Y に対して
+    // 8px 以内なら Y を揃える (X は自由)。 それ以外は自由配置。
+    const svgEl = previewRef.current?.querySelector("svg");
+    if (!svgEl) return null;
     const aliasToSlug = extractActorAliases(src);
-    let bestAlias: string | null = null;
-    let bestDist = MAGNET_THRESHOLD_PX;
+    let bestY: number | null = null;
+    let bestDist = MAGNET_ALIGN_THRESHOLD_PX;
     for (const [alias, slug] of aliasToSlug.entries()) {
       if (alias === excludeAlias) continue;
-      // header rect を基準に magnet 判定 (lane 全体は縦長で中心が y 方向にズレるため。
-      // header が無ければ lane rect 上端 center で fallback)。
-      const headerEl = svg.querySelector(`[data-cdl-node="${slug}-header"]`) as SVGGraphicsElement | null;
-      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-      let cx: number, cy: number;
-      if (headerEl) {
-        const r = headerEl.getBoundingClientRect();
-        cx = r.left + r.width / 2;
-        cy = r.top + r.height / 2;
-      } else if (laneEl) {
-        const r = laneEl.getBoundingClientRect();
-        cx = r.left + r.width / 2;
-        cy = r.top + 20;
-      } else continue;
-      // magnet は 2D Euclidean 距離、 header center からの実距離で判定。
-      // sequence lane は縦長だが header は上部のみのため、 下方向大移動は snap 対象外になる
-      // (user 期待 = 「他 element 近くに置いた時だけ揃える」 と一致)。
-      const dist = Math.hypot(clientX - cx, clientY - cy);
+      const el = svgEl.querySelector(`[data-cdl-node="${slug}-header"], [data-cdl-node^="${slug}__"]`) as SVGGraphicsElement | null;
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      const targetY = r.top + r.height / 2;
+      const dist = Math.abs(clientY - targetY);
       if (dist < bestDist) {
         bestDist = dist;
-        bestAlias = alias;
+        bestY = targetY;
       }
     }
-    return bestAlias;
+    return bestY;
   };
 
   /**
@@ -1075,16 +1070,19 @@ export function CdlEditor(): React.JSX.Element {
       // click 相当 = 位置更新 skip
       return true;
     }
-    // canvas pivot magnet zone = Command キー押しでなければ、 他 lane 近傍 (80px 以内) に drop
-    // した場合 auto layout に snap back (pos: 消去)。 押しなら自由配置 (pos: 書込)。
-    const nearAlias = e.metaKey ? null : findNearestLaneForSnap(e.clientX, e.clientY, st.alias);
-    if (nearAlias) {
-      setSrc((prev) => clearActorPosition(prev, st.alias));
-      setDropHintWithReset(`"${st.alias}" を "${nearAlias}" の近くに snap しました (auto layout 復帰、 Cmd 押しで自由配置)。 Cmd+Z で元へ。`, 4500);
-    } else {
-      setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
-      setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に自由配置しました。 Cmd+Z で元へ。`, 4000);
+    // user 明示 「他要素より 1px 高さがズレてる時の 1px 調整」 のみを実施。
+    // Command 押してなければ Y align snap を試み、 見つかれば Y だけ揃える (X は自由)。
+    // 別 lane 吸い寄せ / auto layout 復帰は全て廃止。
+    let finalY = newY;
+    if (!e.metaKey) {
+      const alignY = findYAlignSnap(e.clientY, st.alias);
+      if (alignY !== null) {
+        const dyAdjust = (alignY - e.clientY) / st.scale;
+        finalY = newY + dyAdjust;
+      }
     }
+    setSrc((prev) => updateActorPosition(prev, st.alias, newX, finalY));
+    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(finalY)}) に配置。 Cmd+Z で元へ。`, 3500);
     return true;
   };
 
@@ -1427,29 +1425,25 @@ animation:
     // 従来 drop 位置を無視して actors: 末尾 append する挙動 (user 実使いフィードバック
     // 「ドロップした位置に入ってない」) を修正。 preview stage の client rect と現行 transform
     // (pan/zoom) を考慮して SVG 座標系の相対 offset を計算する。
-    // canvas pivot magnet zone = Command 押しでなければ、 drop 位置が他 lane 近傍 (80px 以内)
-    // にあれば pos 書込を skip して auto layout に snap = 「近くは揃える、 離れたら自由配置」
-    // 共存 spec。
-    const useMagnetSnap = !e.metaKey && findNearestLaneForSnap(e.clientX, e.clientY, "") !== null;
+    // user 明示 「クリックしたら図の邪魔にならない箇所に追加」 = drop 位置無視で
+    // 既存要素と重ならない empty 領域 (現状 diagram の下方) に配置。 drag drop の HTML5 event
+    // 経路は user が明示的に drop 位置を選んだので使う、 button click 経由の追加時は auto-place。
     let dropOffsetX = 0;
     let dropOffsetY = 0;
-    if (!useMagnetSnap) {
-      const stageEl = previewRef.current;
-      const svgEl = stageEl?.querySelector("svg");
-      if (stageEl && svgEl) {
-        const stageRect = stageEl.getBoundingClientRect();
-        const svgRect = svgEl.getBoundingClientRect();
-        const dropClientX = e.clientX;
-        const dropClientY = e.clientY;
-        const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
-        const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
-        const svgX = ((dropClientX - svgRect.left) / svgRect.width) * svgW;
-        const svgY = ((dropClientY - svgRect.top) / svgRect.height) * svgH;
-        const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
-        const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
-        dropOffsetX = Math.round(svgX - stageCenterSvgX);
-        dropOffsetY = Math.round(svgY - stageCenterSvgY);
-      }
+    const stageEl = previewRef.current;
+    const svgEl = stageEl?.querySelector("svg");
+    if (stageEl && svgEl && e.clientX > 0 && e.clientY > 0) {
+      // 実 drag drop (client 座標あり) の場合は drop 位置尊重
+      const stageRect = stageEl.getBoundingClientRect();
+      const svgRect = svgEl.getBoundingClientRect();
+      const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
+      const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
+      const svgX = ((e.clientX - svgRect.left) / svgRect.width) * svgW;
+      const svgY = ((e.clientY - svgRect.top) / svgRect.height) * svgH;
+      const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
+      const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
+      dropOffsetX = Math.round(svgX - stageCenterSvgX);
+      dropOffsetY = Math.round(svgY - stageCenterSvgY);
     }
     // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
     // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
@@ -1604,7 +1598,30 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+                    // user 明示 「クリックしたら図の邪魔にならない箇所に追加」 = 既存 element の
+                    // 下方に auto-place。 現 preview の SVG 高さから既存要素の bottom を計算、
+                    // その下 100px offset で配置。 SVG 未 render 時は default y=+400 (下寄せ)。
+                    let autoPosX = 0;
+                    let autoPosY = 400;
+                    const svgAuto = previewRef.current?.querySelector("svg");
+                    if (svgAuto) {
+                      const nodes = Array.from(svgAuto.querySelectorAll("[data-cdl-node]"));
+                      let maxBottom = 0;
+                      for (const n of nodes) {
+                        const r = n.getBoundingClientRect();
+                        if (r.bottom > maxBottom) maxBottom = r.bottom;
+                      }
+                      if (maxBottom > 0 && previewRef.current) {
+                        const stageRect = previewRef.current.getBoundingClientRect();
+                        const svgRect = svgAuto.getBoundingClientRect();
+                        const svgH = svgAuto.viewBox.baseVal.height || svgRect.height;
+                        // maxBottom は viewport 座標、 SVG viewBox 座標に変換
+                        const svgY = ((maxBottom - svgRect.top) / svgRect.height) * svgH;
+                        const centerY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
+                        autoPosY = Math.round(svgY - centerY + 80);
+                      }
+                    }
+                    const inlineFields = [`kind: ${kindValue}`, ...stateInits, `posX: ${autoPosX}`, `posY: ${autoPosY}`].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
@@ -1833,25 +1850,47 @@ ${newActorLine}
               「右上らへんにアイコン」)。 click で popup open + source parts を pre-select (source role)、
               sink role の parts は「連動元一覧」 の逆引き popup を open する経路 (現状は source only)。 */}
           {bindIconOverlays.map((ov) => (
-            <button
+            <div
               key={`bindicon-${ov.alias}`}
-              type="button"
-              className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}${ov.boundTo ? " v4-editor-bind-icon-bound" : ""}`}
-              style={{ left: `${ov.x - 24}px`, top: `${ov.y - 8}px` }}
-              title={ov.boundTo
-                ? `${getBindingDef(ov.kind).label} (${ov.alias}) は "${ov.boundTo}" と連動中。 click で解除 / 変更`
-                : `${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setBindPopupOpen(true);
-                if (ov.role === "source") {
-                  setBindSelectedSource({ alias: ov.alias, kind: ov.kind });
-                } else {
-                  setBindSelectedSource(null);
-                }
-              }}
-              data-testid={`bind-icon-${ov.alias}`}
-            >{ov.boundTo ? "⛓" : "⚡"}</button>
+              className="v4-editor-bind-icon-group"
+              style={{ left: `${ov.x - 60}px`, top: `${ov.y - 8}px` }}
+            >
+              {/* 連動 icon */}
+              <button
+                type="button"
+                className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}${ov.boundTo ? " v4-editor-bind-icon-bound" : ""}`}
+                title={ov.boundTo
+                  ? `${getBindingDef(ov.kind).label} (${ov.alias}) は "${ov.boundTo}" と連動中。 click で解除 / 変更`
+                  : `${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBindPopupOpen(true);
+                  if (ov.role === "source") {
+                    setBindSelectedSource({ alias: ov.alias, kind: ov.kind });
+                  } else {
+                    setBindSelectedSource(null);
+                  }
+                }}
+                data-testid={`bind-icon-${ov.alias}`}
+              >{ov.boundTo ? "⛓" : "⚡"}</button>
+              {/* 削除 button (user 明示 「削除もできるようにして」) */}
+              <button
+                type="button"
+                className="v4-editor-delete-icon"
+                title={`${ov.alias} を削除`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const lines = src.split("\n");
+                  const filtered = lines.filter((l) => {
+                    const m = l.match(/^\s*-\s*(\S+?)\s*[:{]/);
+                    return !(m && m[1] === ov.alias);
+                  });
+                  setSrc(filtered.join("\n"));
+                  setDropHintWithReset(`"${ov.alias}" を削除しました。 Cmd+Z で元へ。`, 3500);
+                }}
+                data-testid={`delete-icon-${ov.alias}`}
+              >✕</button>
+            </div>
           ))}
           {bindPopupOpen && (
             <div className="v4-editor-bind-popup" data-testid="editor-bind-popup" role="dialog" aria-label="parts binding">
@@ -1915,7 +1954,10 @@ ${newActorLine}
                         onClick={() => setBindSelectedSource(a)}
                         data-testid={`bind-source-${a.alias}`}
                       >
-                        <b>{a.alias}</b> <span>{getBindingDef(a.kind).label}</span>
+                        <span className="v4-editor-bind-sink-icon">⚡</span>
+                        <span className="v4-editor-bind-sink-info">
+                          <b>{a.alias}</b> <span>{getBindingDef(a.kind).label}</span>
+                        </span>
                       </button>
                     ));
                   })()}
