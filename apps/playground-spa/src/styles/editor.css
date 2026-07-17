@@ -319,6 +319,17 @@
     background: var(--v4-brand-deep);
     color: var(--v4-canvas);
   }
+  /* canvas pivot 追加 fix = SVG viewBox 外の element も描画する。 parts drop で
+     posX/posY が viewBox 外 (auto 計算 range) に出ても clip されず可視。
+     dragon は sequence 内容基準で viewBox を tight に計算するため、 parts overlay の
+     free positioning とは相性が悪い、 overflow visible で clip 無効化して Miro 風の
+     自由 canvas 感覚を実現する。 preview stage container が最終 clip 境界になる。 */
+  .v4-editor-svg-wrap {
+    overflow: visible !important;
+  }
+  .v4-editor-svg-wrap svg {
+    overflow: visible !important;
+  }
   /* canvas pivot Phase 6 = layout toggle segmented control */
   .v4-editor-layout-toggle {
     display: inline-flex;
