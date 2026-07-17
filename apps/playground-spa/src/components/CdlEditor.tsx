@@ -983,35 +983,9 @@ export function CdlEditor(): React.JSX.Element {
    * X 座標 (別 lane に吸い寄せる) は完全撤廃 = user が drop / drag 場所を尊重する Miro 風挙動。
    * Command キー押しで snap 完全 bypass。
    */
-  const MAGNET_ALIGN_THRESHOLD_PX = 8;
-  const findNearestLaneForSnap = (_clientX: number, _clientY: number, _excludeAlias: string): string | null => {
-    // 別 lane 吸い寄せ経路廃止 (user 「変にはじっこにもってかれたりする」 の対応)、 常に自由配置。
-    return null;
-  };
-  // 保持する Y align only snap = drag end 時に他 element の Y と 8px 以内なら Y だけ揃える
-  const findYAlignSnap = (clientY: number, excludeAlias: string): number | null => {
-    const svg = previewRef.current?.querySelector("svg");
-    // user 明示 「1px 高さがズレてる時の微調整」 = 他 element の header top Y に対して
-    // 8px 以内なら Y を揃える (X は自由)。 それ以外は自由配置。
-    const svgEl = previewRef.current?.querySelector("svg");
-    if (!svgEl) return null;
-    const aliasToSlug = extractActorAliases(src);
-    let bestY: number | null = null;
-    let bestDist = MAGNET_ALIGN_THRESHOLD_PX;
-    for (const [alias, slug] of aliasToSlug.entries()) {
-      if (alias === excludeAlias) continue;
-      const el = svgEl.querySelector(`[data-cdl-node="${slug}-header"], [data-cdl-node^="${slug}__"]`) as SVGGraphicsElement | null;
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      const targetY = r.top + r.height / 2;
-      const dist = Math.abs(clientY - targetY);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestY = targetY;
-      }
-    }
-    return bestY;
-  };
+  // user 明示 2026-07-18 = 「Miro のように完全自由 drag、 snap は他要素側が間を開ける方向のみ」。
+  // drag 対象の snap 経路は全廃止 = 常に自由配置。
+  const findNearestLaneForSnap = (_a: number, _b: number, _c: string): string | null => null;
 
   /**
    * pointerdown 対象を検査し、 element drag の対象になるか判定する。 対象なら drag state を
@@ -1070,19 +1044,11 @@ export function CdlEditor(): React.JSX.Element {
       // click 相当 = 位置更新 skip
       return true;
     }
-    // user 明示 「他要素より 1px 高さがズレてる時の 1px 調整」 のみを実施。
-    // Command 押してなければ Y align snap を試み、 見つかれば Y だけ揃える (X は自由)。
-    // 別 lane 吸い寄せ / auto layout 復帰は全て廃止。
-    let finalY = newY;
-    if (!e.metaKey) {
-      const alignY = findYAlignSnap(e.clientY, st.alias);
-      if (alignY !== null) {
-        const dyAdjust = (alignY - e.clientY) / st.scale;
-        finalY = newY + dyAdjust;
-      }
-    }
-    setSrc((prev) => updateActorPosition(prev, st.alias, newX, finalY));
-    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(finalY)}) に配置。 Cmd+Z で元へ。`, 3500);
+    // user 明示 2026-07-18 = 「Miro のように完全自由、 snap は要素の 5px 範囲で他要素側が
+    // 間を開ける (collision 時の周辺 shift) だけ」。 drag 対象自体の snap は全廃止、
+    // drop 位置 (newX, newY) をそのまま尊重する。
+    setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
+    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に配置。 Cmd+Z で元へ。`, 3500);
     return true;
   };
 
