@@ -163,6 +163,46 @@ function extractActorParts(src: string): Array<{ alias: string; kind: string }> 
 }
 
 /**
+ * DSL text から指定 alias の bind field を削除する (unbind = 連動解除)。
+ * inline mapping (`- alias: { kind: X, bind: c.n }`) の場合 bind: を除去、
+ * 全 field 除去後は inline 自体削除 → short/bare form 復帰。 sink parts の
+ * standalone 動作に戻る (自 phase の tween が復活する動作は次回 render で反映)。
+ */
+function clearActorBinding(src: string, alias: string): string {
+  const lines = src.split("\n");
+  const nextLines = lines.map((line) => {
+    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
+    if (!inlineMatch || inlineMatch[2] !== alias) return line;
+    const [, prefix, name, sep, inner, suffix] = inlineMatch;
+    const cleaned = inner!
+      .split(",")
+      .map((seg) => seg.trim())
+      .filter((seg) => seg && !seg.match(/^bind\s*:/))
+      .join(", ");
+    if (cleaned === "") return `${prefix}${name}${suffix}`;
+    // inline mapping form を維持 (short form / bare form 復帰は kind lookup が壊れる可能性があるため
+    // "- alias: { kind: X }" 形を保持する = render 安定性優先)。
+    return `${prefix}${name}${sep}{ ${cleaned} }${suffix}`;
+  });
+  return nextLines.join("\n");
+}
+
+/**
+ * actor alias の現行 bind 値 (source alias.state) を parse して返す。 UI 表示用。
+ */
+function extractActorBind(src: string, alias: string): string | null {
+  const lines = src.split("\n");
+  for (const line of lines) {
+    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
+    if (!inlineMatch || inlineMatch[2] !== alias) continue;
+    const inner = inlineMatch[4]!;
+    const bindMatch = inner.match(/bind\s*:\s*([a-zA-Z_][\w-]*\.[a-zA-Z_][\w]*)/);
+    if (bindMatch) return bindMatch[1]!;
+  }
+  return null;
+}
+
+/**
  * DSL text の actors: block 末尾に「連動する新規 sink parts」 を append する。
  * form = `- {sinkAlias}: { kind: {sinkKind}, bind: {sourceAlias}.{sourceState} }`
  * source alias.state は binding catalog から自動決定する。
@@ -488,7 +528,7 @@ export function CdlEditor(): React.JSX.Element {
   const [bindSelectedSource, setBindSelectedSource] = useState<{ alias: string; kind: string } | null>(null);
   // canvas pivot parts binding = 個別 parts の右上 icon overlay position。
   // SVG element の bounding rect を preview stage 相対座標に変換して absolute 表示する。
-  const [bindIconOverlays, setBindIconOverlays] = useState<Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink" }>>([]);
+  const [bindIconOverlays, setBindIconOverlays] = useState<Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink"; boundTo: string | null }>>([]);
   const dropHintTimerRef = useRef<number | null>(null);
 
   /**
@@ -1136,7 +1176,7 @@ export function CdlEditor(): React.JSX.Element {
       const svg = stage.querySelector("svg") as SVGSVGElement | null;
       if (!svg) return;
       const parts = extractActorParts(src);
-      const overlays: Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink" }> = [];
+      const overlays: Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink"; boundTo: string | null }> = [];
       for (const { alias, kind } of parts) {
         const def = getBindingDef(kind);
         if (def.role === "standalone") continue;
@@ -1147,7 +1187,8 @@ export function CdlEditor(): React.JSX.Element {
         // 右上位置 = element の (right, top)、 stage 相対座標に変換
         const x = rect.right - stageRect.left;
         const y = rect.top - stageRect.top;
-        overlays.push({ alias, kind, x, y, role: def.role });
+        const boundTo = def.role === "sink" ? extractActorBind(src, alias) : null;
+        overlays.push({ alias, kind, x, y, role: def.role, boundTo });
       }
       setBindIconOverlays(overlays);
     });
@@ -1193,14 +1234,21 @@ export function CdlEditor(): React.JSX.Element {
   const handleZoomIn = (): void => zoomAtCenter(ZOOM_STEP);
   const handleZoomOut = (): void => zoomAtCenter(-ZOOM_STEP);
 
-  // Esc で Reset
+  // Esc で Reset + bind popup close (a11y)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") handleReset();
+      if (e.key === "Escape") {
+        if (bindPopupOpen) {
+          setBindPopupOpen(false);
+          setBindSelectedSource(null);
+        } else {
+          handleReset();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleReset]);
+  }, [handleReset, bindPopupOpen]);
 
   const handleShare = (): void => {
     if (typeof window === "undefined") return;
@@ -1788,9 +1836,11 @@ ${newActorLine}
             <button
               key={`bindicon-${ov.alias}`}
               type="button"
-              className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}`}
+              className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}${ov.boundTo ? " v4-editor-bind-icon-bound" : ""}`}
               style={{ left: `${ov.x - 24}px`, top: `${ov.y - 8}px` }}
-              title={`${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
+              title={ov.boundTo
+                ? `${getBindingDef(ov.kind).label} (${ov.alias}) は "${ov.boundTo}" と連動中。 click で解除 / 変更`
+                : `${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
               onClick={(e) => {
                 e.stopPropagation();
                 setBindPopupOpen(true);
@@ -1801,7 +1851,7 @@ ${newActorLine}
                 }
               }}
               data-testid={`bind-icon-${ov.alias}`}
-            >⚡</button>
+            >{ov.boundTo ? "⛓" : "⚡"}</button>
           ))}
           {bindPopupOpen && (
             <div className="v4-editor-bind-popup" data-testid="editor-bind-popup" role="dialog" aria-label="parts binding">
@@ -1816,7 +1866,39 @@ ${newActorLine}
               </div>
               {!bindSelectedSource ? (
                 <div className="v4-editor-bind-popup-body">
-                  <div className="v4-editor-bind-popup-title">Step 1 — 連動元 (value を出す parts) を選択</div>
+                  {(() => {
+                    const boundSinks = extractActorParts(src)
+                      .filter((a) => getBindingDef(a.kind).role === "sink")
+                      .map((a) => ({ ...a, bind: extractActorBind(src, a.alias) }))
+                      .filter((a) => a.bind);
+                    if (boundSinks.length === 0) return null;
+                    return (
+                      <>
+                        <div className="v4-editor-bind-popup-title">現在の連動一覧 (⛓ 解除は右の × から)</div>
+                        {boundSinks.map((b) => (
+                          <div key={`bound-${b.alias}`} className="v4-editor-bind-bound-row" data-testid={`bind-existing-${b.alias}`}>
+                            <span>
+                              <b>{b.alias}</b> ({getBindingDef(b.kind).label}) ← <b>{b.bind}</b>
+                            </span>
+                            <button
+                              type="button"
+                              className="v4-editor-bind-unbind-btn"
+                              onClick={() => {
+                                setSrc((prev) => clearActorBinding(prev, b.alias));
+                                setDropHintWithReset(`"${b.alias}" の連動を解除しました。 Cmd+Z で元へ。`, 4000);
+                              }}
+                              data-testid={`bind-unbind-${b.alias}`}
+                              title="連動解除"
+                            >×</button>
+                          </div>
+                        ))}
+                        <div className="v4-editor-bind-popup-title" style={{ marginTop: "10px" }}>新規連動追加 — Step 1: 連動元選択</div>
+                      </>
+                    );
+                  })()}
+                  {extractActorParts(src).filter((a) => getBindingDef(a.kind).role === "sink").filter((a) => extractActorBind(src, a.alias)).length === 0 && (
+                    <div className="v4-editor-bind-popup-title">Step 1 — 連動元 (value を出す parts) を選択</div>
+                  )}
                   {(() => {
                     const parts = extractActorParts(src).filter((a) => getBindingDef(a.kind).role === "source");
                     if (parts.length === 0) {
@@ -1843,26 +1925,36 @@ ${newActorLine}
                   <div className="v4-editor-bind-popup-title">
                     Step 2 — <b>{bindSelectedSource.alias}</b> の value を受ける sink parts を選択
                   </div>
-                  {listBindableSinks(bindSelectedSource.kind).map((sink) => (
-                    <button
-                      key={sink.kind}
-                      type="button"
-                      className="v4-editor-bind-popup-item"
-                      onClick={() => {
-                        const existing = new Set(extractActorParts(src).map((a) => a.alias));
-                        const newSrc = appendBoundActorLine(src, bindSelectedSource.alias, bindSelectedSource.kind, sink.kind, existing);
-                        if (newSrc) {
-                          setSrc(newSrc);
-                          setDropHintWithReset(`"${bindSelectedSource.alias}" (source) と "${sink.label}" (sink) を連動しました。 Cmd+Z で元へ。`, 5000);
-                        }
-                        setBindPopupOpen(false);
-                        setBindSelectedSource(null);
-                      }}
-                      data-testid={`bind-sink-${sink.kind}`}
-                    >
-                      <b>{sink.label}</b> <span>state: {sink.bindableState}</span>
-                    </button>
-                  ))}
+                  {listBindableSinks(bindSelectedSource.kind).map((sink) => {
+                    const iconMap: Record<string, string> = {
+                      "arc-gauge": "◠", "percent-ring": "◯",
+                      "horizontal-bar": "▬", "wave-gauge": "≈",
+                      "bucket-reservoir": "◫",
+                    };
+                    return (
+                      <button
+                        key={sink.kind}
+                        type="button"
+                        className="v4-editor-bind-popup-item"
+                        onClick={() => {
+                          const existing = new Set(extractActorParts(src).map((a) => a.alias));
+                          const newSrc = appendBoundActorLine(src, bindSelectedSource.alias, bindSelectedSource.kind, sink.kind, existing);
+                          if (newSrc) {
+                            setSrc(newSrc);
+                            setDropHintWithReset(`"${bindSelectedSource.alias}" (source) と "${sink.label}" (sink) を連動しました。 Cmd+Z で元へ。`, 5000);
+                          }
+                          setBindPopupOpen(false);
+                          setBindSelectedSource(null);
+                        }}
+                        data-testid={`bind-sink-${sink.kind}`}
+                      >
+                        <span className="v4-editor-bind-sink-icon">{iconMap[sink.kind] ?? "◇"}</span>
+                        <span className="v4-editor-bind-sink-info">
+                          <b>{sink.label}</b> <span>state: {sink.bindableState}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                   <button
                     type="button"
                     className="v4-editor-bind-popup-back"

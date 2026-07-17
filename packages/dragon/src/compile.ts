@@ -30,6 +30,8 @@ export interface CompileToCdlOpts {
  * (実測 root cause = counter 5000 tween で arc 0-100 clip = 動かない、 2026-07-18)
  */
 function clampSourceTweensForBinding(target: CdlDiagram, doc: DslDocument): void {
+  // 存在する alias set を作成 (dangling bind 検知用)
+  const aliasSet = new Set(doc.actors.map((a) => a.name));
   // sink actor から binding target と sink valueRange (現状 default 0-100) を集計
   const sinkClamps = new Map<string, number>();  // sourceState -> clamp max
   for (const actor of doc.actors) {
@@ -37,6 +39,14 @@ function clampSourceTweensForBinding(target: CdlDiagram, doc: DslDocument): void
     const m = actor.bind.match(/^([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w]*)$/);
     if (!m) continue;
     const sourceAlias = m[1]!, sourceState = m[2]!;
+    // canvas pivot parts binding error handling = source alias が存在しない (source parts 削除
+    // 済 or typo) 時 warn。 sink の render 側は state 未存在で auto-init 0 fallback、 壊さない。
+    if (!aliasSet.has(sourceAlias)) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] parts binding: source actor "${sourceAlias}" (referenced by "${actor.name}.bind = ${actor.bind}") not found in actors list. Sink will render with state initial (0). Add "${sourceAlias}" back to actors: or unbind the sink.`);
+      }
+      continue;
+    }
     // sink parts は現状 sweepMax=100 前提の gauge/ring/bar 系、 default clamp = 100
     const sourceStateId = `${sourceAlias}__${sourceState}`;
     const prev = sinkClamps.get(sourceStateId) ?? Infinity;
