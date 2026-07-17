@@ -352,6 +352,41 @@
   .v4-editor-svg-wrap [data-cdl-role="lane-label"] {
     display: none;
   }
+  /* canvas pivot parts binding = 各 parts の右上「⚡」 icon overlay */
+  .v4-editor-bind-icon {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--v4-brand-deep);
+    background: var(--v4-canvas);
+    color: var(--v4-brand-deep);
+    font-size: 14px;
+    font-family: var(--v4-mono);
+    line-height: 1;
+    cursor: pointer;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(26, 20, 16, 0.16);
+    transition: transform 0.12s, background 0.12s;
+    pointer-events: auto;
+  }
+  .v4-editor-bind-icon:hover {
+    transform: scale(1.15);
+    background: var(--v4-brand-deep);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-bind-icon-source {
+    border-color: #c2410c;
+    color: #c2410c;
+  }
+  .v4-editor-bind-icon-source:hover {
+    background: #c2410c;
+    color: var(--v4-canvas);
+  }
+
   /* canvas pivot parts binding = popup UI */
   .v4-editor-bind-popup {
     position: absolute;

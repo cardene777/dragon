@@ -486,6 +486,9 @@ export function CdlEditor(): React.JSX.Element {
   // canvas pivot parts binding = popup state。 selectedSourceAlias 選択後 sink 一覧を表示。
   const [bindPopupOpen, setBindPopupOpen] = useState(false);
   const [bindSelectedSource, setBindSelectedSource] = useState<{ alias: string; kind: string } | null>(null);
+  // canvas pivot parts binding = 個別 parts の右上 icon overlay position。
+  // SVG element の bounding rect を preview stage 相対座標に変換して absolute 表示する。
+  const [bindIconOverlays, setBindIconOverlays] = useState<Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink" }>>([]);
   const dropHintTimerRef = useRef<number | null>(null);
 
   /**
@@ -1120,6 +1123,37 @@ export function CdlEditor(): React.JSX.Element {
     return () => cancelAnimationFrame(raf);
   }, [src, diagram, applyActorTransform]);
 
+  // canvas pivot parts binding = 各 parts の右上に「⚡」 icon overlay を表示する position を
+  // post-render で計算する (src / diagram / transform 変化毎に再計算)。
+  // SVG element (data-cdl-node = alias slug で header / alias__* 経由) の bounding rect を
+  // preview stage 相対座標に変換して icon の absolute position に反映する。
+  useEffect(() => {
+    if (!diagram) { setBindIconOverlays([]); return; }
+    const stage = previewRef.current;
+    if (!stage) return;
+    const raf = requestAnimationFrame(() => {
+      const stageRect = stage.getBoundingClientRect();
+      const svg = stage.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      const parts = extractActorParts(src);
+      const overlays: Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink" }> = [];
+      for (const { alias, kind } of parts) {
+        const def = getBindingDef(kind);
+        if (def.role === "standalone") continue;
+        // parts の代表 element 探索 = {alias}__* prefix (parts merge 経由の internal node)
+        const el = svg.querySelector(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`) as SVGGraphicsElement | null;
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        // 右上位置 = element の (right, top)、 stage 相対座標に変換
+        const x = rect.right - stageRect.left;
+        const y = rect.top - stageRect.top;
+        overlays.push({ alias, kind, x, y, role: def.role });
+      }
+      setBindIconOverlays(overlays);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [src, diagram, transform]);
+
   const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
     if (!previewRef.current) {
@@ -1747,6 +1781,28 @@ ${newActorLine}
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
           )}
+          {/* canvas pivot parts binding = 個別 parts の右上に「⚡」 icon overlay を表示 (user 指定
+              「右上らへんにアイコン」)。 click で popup open + source parts を pre-select (source role)、
+              sink role の parts は「連動元一覧」 の逆引き popup を open する経路 (現状は source only)。 */}
+          {bindIconOverlays.map((ov) => (
+            <button
+              key={`bindicon-${ov.alias}`}
+              type="button"
+              className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}`}
+              style={{ left: `${ov.x - 24}px`, top: `${ov.y - 8}px` }}
+              title={`${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setBindPopupOpen(true);
+                if (ov.role === "source") {
+                  setBindSelectedSource({ alias: ov.alias, kind: ov.kind });
+                } else {
+                  setBindSelectedSource(null);
+                }
+              }}
+              data-testid={`bind-icon-${ov.alias}`}
+            >⚡</button>
+          ))}
           {bindPopupOpen && (
             <div className="v4-editor-bind-popup" data-testid="editor-bind-popup" role="dialog" aria-label="parts binding">
               <div className="v4-editor-bind-popup-header">
