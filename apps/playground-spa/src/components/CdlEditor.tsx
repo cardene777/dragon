@@ -6,6 +6,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
+import { yamlToDiagram, formatYamlError, type YamlAdapterError } from "@/lib/yaml-adapter";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -209,9 +210,53 @@ function appendActorLine(src: string, newLine: string): string | null {
   return [...before, newLine, ...after].join("\n");
 }
 
-export function CdlEditor(): React.JSX.Element {
+/**
+ * CAR-1678 = YAML tab の初期 buffer (multi-line YAML DSL、 dragon JSON schema と 1:1 対応)。
+ * SAMPLES[0] と対等な UX を YAML 派 user にも提供、 title / actors / flow / animation の 4 block 揃え、
+ * confirmReplaceIfDirty の初期比較 (yamlLastLoadedRef) にも同 default を使う。
+ */
+const DEFAULT_YAML_SRC = `title: "YAML tab demo"
+type: sequence
+actors:
+  - User
+  - API
+flow:
+  - from: User
+    to: API
+    label: login
+  - from: API
+    to: User
+    label: ok
+animation:
+  - step: request
+    duration: 1.2
+    focus:
+      - User
+      - API
+`;
+
+/**
+ * CAR-1678 = CdlEditor が accept する initial tab hint。
+ * EditorPage が URL param `?format=yaml` or 拡張子 `.yml` を検知して "yaml" を渡す。
+ * 未指定 (undefined) or "cdl" なら従来通り CDL tab active で起動する。
+ */
+export interface CdlEditorProps {
+  initialTab?: "cdl" | "yaml";
+}
+
+export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
+  /**
+   * CAR-1678 = 編集 tab (CDL 従来経路 / YAML 新経路)。
+   * initialTab prop (EditorPage 側で URL param + 拡張子から決定) を初期値に採用、
+   * user が UI 経由で切替えた後は自前 state で管理する (prop 変化に追随はしない = URL param は起動 1 回のみ有効)。
+   */
+  const [activeTab, setActiveTab] = useState<"cdl" | "yaml">(props.initialTab ?? "cdl");
+  /** CAR-1678 = YAML tab の source buffer、 CDL 側 `src` と分離。 双方向 sync なし (spec 反例 2)。 */
+  const [yamlSrc, setYamlSrc] = useState<string>(DEFAULT_YAML_SRC);
+  /** CAR-1678 = YAML parse / validation error、 preview 上部の error banner に表示、 null = 正常 */
+  const [yamlError, setYamlError] = useState<YamlAdapterError | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
@@ -296,6 +341,12 @@ export function CdlEditor(): React.JSX.Element {
    * 編集済と判定して window.confirm を出す。 一致 = user 未編集で silent replace 継続。
    */
   const lastLoadedSrcRef = useRef<string>(SAMPLES[0].code);
+  /**
+   * CAR-1678 = YAML tab 側の「最後に programmatic に load した src」 追跡。
+   * tab 切替時の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim()) で使う。
+   * default = DEFAULT_YAML_SRC、 URL 経由の share 復元経路は本 PR 対象外 (spec § out)。
+   */
+  const yamlLastLoadedSrcRef = useRef<string>(DEFAULT_YAML_SRC);
   const confirmReplaceIfDirty = useCallback((newSrcPreviewLabel: string): boolean => {
     // codex-review CAR-1659 CRITICAL fix = length > 20 guard 削除、 strict 比較のみで dirty 判定。
     // 短い編集 (削除 / 部分修正) でも user 意図した変更なら必ず confirm すべき、 length 閾値は
@@ -307,6 +358,35 @@ export function CdlEditor(): React.JSX.Element {
     );
     return ok;
   }, [src]);
+
+  /**
+   * CAR-1678 = YAML tab の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim())。
+   * CDL 側 confirmReplaceIfDirty と対称、 tab 切替時のみ使うので独立 callback にせず inline 呼出でも可、
+   * ただし CDL / YAML 両方向で同じ「Unsaved changes will be lost. Continue?」 message を出したいので
+   * 共通化しやすい形に括り出す (spec AC 2 の form SSOT)。
+   */
+  const confirmTabSwitchIfDirty = useCallback((): boolean => {
+    const cdlDirty = src.trim() !== (lastLoadedSrcRef.current ?? "").trim();
+    const yamlDirty = yamlSrc.trim() !== (yamlLastLoadedSrcRef.current ?? "").trim();
+    // 切替元 tab の dirty 判定に基づき confirm を出す (切替後 tab の buffer は保持される)。
+    const sourceDirty = activeTab === "cdl" ? cdlDirty : yamlDirty;
+    if (!sourceDirty) return true;
+    // spec AC 2 = `Unsaved changes will be lost. Continue?` の文言 SSOT。
+    // native confirm dialog なので Playwright test は page.on("dialog") で捕捉する。
+    return window.confirm("Unsaved changes will be lost. Continue?");
+  }, [activeTab, src, yamlSrc]);
+
+  const handleTabSwitch = useCallback((next: "cdl" | "yaml"): void => {
+    if (next === activeTab) return;
+    if (!confirmTabSwitchIfDirty()) return;
+    setActiveTab(next);
+    // 切替後 tab の error banner はリセットして clean state で再 render に入る
+    if (next === "yaml") {
+      setError(null);
+    } else {
+      setYamlError(null);
+    }
+  }, [activeTab, confirmTabSwitchIfDirty]);
 
   // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)。
   // codex-review PR #413 MAJOR fix = partsLoadFailed で終了状態を保持、 失敗後は明示的な reset
@@ -540,6 +620,13 @@ export function CdlEditor(): React.JSX.Element {
     (window as unknown as { __cdlEditorSrc?: string }).__cdlEditorSrc = src;
   }, [src]);
 
+  // CAR-1678 = YAML tab 側の window mirror + active tab の露出 (E2E 検証用 side channel、 production では読み手なし)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __cdlEditorYamlSrc?: string }).__cdlEditorYamlSrc = yamlSrc;
+    (window as unknown as { __cdlEditorActiveTab?: string }).__cdlEditorActiveTab = activeTab;
+  }, [yamlSrc, activeTab]);
+
   // CAR-1657 = parts catalog を CdlEditor 側で load、 textDslToDiagram に inject する経路。
   // parts identifier (arc-gauge / wave-gauge 等) を kind field で書ける unified syntax の compile 時
   // lookup 用。 loadPartsItems が partsItems state を populate する useEffect と同 tab 切替 trigger 利用。
@@ -555,10 +642,44 @@ export function CdlEditor(): React.JSX.Element {
     return map;
   }, [partsItems]);
 
-  // src 変更時 debounce 300ms で parse + render
+  // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    const debounceMs = activeTab === "yaml" ? 500 : 300;
     timerRef.current = window.setTimeout(() => {
+      if (activeTab === "yaml") {
+        // CAR-1678 = YAML tab は yaml-adapter.ts (js-yaml.load → jsonToDiagram) 経由で bridge。
+        // parse / validation error は preview 上部の error banner (yamlError state) に表示、
+        // 前回 render (diagram) は消さない (spec AC 4 = 「前回 render は消えず維持」)。
+        const result = yamlToDiagram(yamlSrc, { partsCatalog });
+        if (result.ok) {
+          try {
+            compile(result.diagram);
+            setDiagram(result.diagram);
+            setYamlError(null);
+            setError(null);
+            try {
+              const report = visualValidate(result.diagram);
+              setWarnings(report.violations.filter((v) => !HIDDEN_WARNING_AXES.has(v.axis)));
+            } catch {
+              setWarnings([]);
+            }
+          } catch (e) {
+            // compile 側 throw = validation kind に丸め (jsonToDiagram 通過後の layout error)、
+            // 前回 diagram は残す (spec AC 4 の spirit を compile error にも適用)。
+            setYamlError({
+              kind: "validation",
+              line: null,
+              message: e instanceof Error ? e.message : String(e),
+              reason: null,
+            });
+          }
+        } else {
+          // parse or validation error = banner 更新、 diagram は残す (前回 render 保持)
+          setYamlError(result.error);
+        }
+        return;
+      }
       try {
         // CAR-1657 = 旧 #!parts JSON escape hatch は backward compat 経路 (deprecated、 auto-convert 前提)。
         // 既 share URL / user が保存した buffer に marker が残っている可能性があり、 open 時は
@@ -599,11 +720,11 @@ export function CdlEditor(): React.JSX.Element {
         setError((e as Error).message);
         setWarnings([]);
       }
-    }, 300);
+    }, debounceMs);
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [src]);
+  }, [src, yamlSrc, activeTab, partsCatalog]);
 
   // Fit handler ... preview 領域に SVG の bounding を合わせる。
   // SVG が render される度 + sample 切替時に自動 Fit。
@@ -1114,7 +1235,32 @@ ${newActorLine}
       {/* ── 中央 DSL editor (CodeMirror) ── */}
       <section className="v4-editor-code">
         <header className="v4-editor-bar">
-          <span className="v4-editor-bar-file">▲ {activeSample}.dragon</span>
+          {/* CAR-1678 = CDL / YAML tab 切替 (2 tab のみ、 spec § in scope の 2 tab semantics) */}
+          <div className="v4-editor-tabs" role="tablist" aria-label="editor format tabs">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "cdl"}
+              className={`v4-editor-tab ${activeTab === "cdl" ? "active" : ""}`}
+              onClick={() => handleTabSwitch("cdl")}
+              data-testid="editor-tab-cdl"
+            >
+              CDL
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "yaml"}
+              className={`v4-editor-tab ${activeTab === "yaml" ? "active" : ""}`}
+              onClick={() => handleTabSwitch("yaml")}
+              data-testid="editor-tab-yaml"
+            >
+              YAML
+            </button>
+          </div>
+          <span className="v4-editor-bar-file">
+            {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
+          </span>
           <span className="v4-editor-bar-gap" />
           <button type="button" className="v4-editor-bar-btn" onClick={handleShare}>
             共有URL
@@ -1139,12 +1285,12 @@ ${newActorLine}
             </div>
           </div>
         </header>
-        <div className="v4-editor-code-body">
+        <div className="v4-editor-code-body" data-testid={`editor-code-body-${activeTab}`}>
           <CodeMirror
-            value={src}
+            value={activeTab === "yaml" ? yamlSrc : src}
             theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
             extensions={[yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]}
-            onChange={(v) => setSrc(v)}
+            onChange={(v) => (activeTab === "yaml" ? setYamlSrc(v) : setSrc(v))}
             height="100%"
             basicSetup={{
               lineNumbers: true,
@@ -1157,8 +1303,13 @@ ${newActorLine}
             }}
           />
         </div>
-        {error && <pre className="v4-editor-error">{error}</pre>}
-        {!error && warnings.length > 0 && (
+        {activeTab === "yaml" && yamlError && (
+          <pre className="v4-editor-error" data-testid="editor-yaml-error">
+            {formatYamlError(yamlError)}
+          </pre>
+        )}
+        {activeTab === "cdl" && error && <pre className="v4-editor-error">{error}</pre>}
+        {activeTab === "cdl" && !error && warnings.length > 0 && (
           <div className="v4-editor-warnings">
             <div className="v4-editor-warnings-head">
               <span className="v4-editor-warnings-badge">
