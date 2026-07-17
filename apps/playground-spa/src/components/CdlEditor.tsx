@@ -113,60 +113,26 @@ function resolveActorFromElementId(id: string, aliasToSlug: Map<string, string>)
 }
 
 /**
- * DSL text から全 actor の posX / posY / pos: field を削除する (Auto 復帰用)。
- * inline mapping (`- alias: { kind: X, posX: 40, posY: -20 }`) の場合 posX/posY を除去、
- * 全 field 除去後に空 inline (`{ }`) になる時は inline 自体を削除して short form
- * (`- alias: kind`) or bare form (`- alias`) に戻す。
+ * DSL text から指定 alias の posX / posY / pos: field のみ削除する (magnet snap 時)。
+ * inline mapping 内 posX / posY を除去、 全 field 除去後は inline 自体削除 → short/bare form 復帰。
  */
-function clearActorPositions(src: string): string {
+function clearActorPosition(src: string, alias: string): string {
   const lines = src.split("\n");
   const nextLines = lines.map((line) => {
     const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (!inlineMatch) return line;
+    if (!inlineMatch || inlineMatch[2] !== alias) return line;
     const [, prefix, name, sep, inner, suffix] = inlineMatch;
     const cleaned = inner!
       .split(",")
       .map((seg) => seg.trim())
       .filter((seg) => seg && !seg.match(/^posX\s*:/) && !seg.match(/^posY\s*:/) && !seg.match(/^pos\s*:/))
       .join(", ");
-    if (cleaned === "") {
-      return `${prefix}${name}${suffix}`;
-    }
+    if (cleaned === "") return `${prefix}${name}${suffix}`;
     const kindMatch = cleaned.match(/^kind\s*:\s*([^,]+)$/);
-    if (kindMatch) {
-      return `${prefix}${name}${sep}${kindMatch[1]!.trim()}`;
-    }
+    if (kindMatch) return `${prefix}${name}${sep}${kindMatch[1]!.trim()}`;
     return `${prefix}${name}${sep}{ ${cleaned} }${suffix}`;
   });
   return nextLines.join("\n");
-}
-
-/**
- * DSL text から現行 layout mode ("auto" or "manual") を抽出する。 top-level `layout: auto|manual`
- * 行が無ければ default = "auto" を返す。
- */
-function detectLayoutMode(src: string): "auto" | "manual" {
-  const m = src.match(/^layout\s*:\s*(auto|manual)\s*$/m);
-  if (m && m[1] === "manual") return "manual";
-  return "auto";
-}
-
-/**
- * DSL text の top-level に `layout: auto | manual` 行を set / update する。 既存 layout: 行が
- * あれば置換、 無ければ type: 行の直後に挿入する (無ければ先頭)。
- */
-function setLayoutMode(src: string, mode: "auto" | "manual"): string {
-  const existingRe = /^layout\s*:\s*(auto|manual)\s*$/m;
-  if (existingRe.test(src)) {
-    return src.replace(existingRe, `layout: ${mode}`);
-  }
-  const lines = src.split("\n");
-  const typeIdx = lines.findIndex((l) => /^type\s*:/.test(l));
-  if (typeIdx >= 0) {
-    lines.splice(typeIdx + 1, 0, `layout: ${mode}`);
-    return lines.join("\n");
-  }
-  return `layout: ${mode}\n${src}`;
 }
 
 /**
@@ -903,6 +869,48 @@ export function CdlEditor(): React.JSX.Element {
   } | null>(null);
 
   /**
+   * canvas pivot magnet zone (CAR-1697) = drag / drop 完了時の client 座標から、 他 actor lane の
+   * bounding rect 中心までの最短距離を計算し、 threshold 以内なら「snap 対象」 alias を返す。
+   * 自分自身の lane (excludeAlias) は candidate から除外。 threshold 未満に他 lane がなければ null。
+   * Command キー押しなら caller 側で本関数を skip する (bypass = 自由配置)。
+   */
+  const MAGNET_THRESHOLD_PX = 100;
+  const findNearestLaneForSnap = (clientX: number, clientY: number, excludeAlias: string): string | null => {
+    const svg = previewRef.current?.querySelector("svg");
+    if (!svg) return null;
+    const aliasToSlug = extractActorAliases(src);
+    let bestAlias: string | null = null;
+    let bestDist = MAGNET_THRESHOLD_PX;
+    for (const [alias, slug] of aliasToSlug.entries()) {
+      if (alias === excludeAlias) continue;
+      // header rect を基準に magnet 判定 (lane 全体は縦長で中心が y 方向にズレるため。
+      // header が無ければ lane rect 上端 center で fallback)。
+      const headerEl = svg.querySelector(`[data-cdl-node="${slug}-header"]`) as SVGGraphicsElement | null;
+      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
+      let cx: number, cy: number;
+      if (headerEl) {
+        const r = headerEl.getBoundingClientRect();
+        cx = r.left + r.width / 2;
+        cy = r.top + r.height / 2;
+      } else if (laneEl) {
+        const r = laneEl.getBoundingClientRect();
+        cx = r.left + r.width / 2;
+        cy = r.top + 20;
+      } else continue;
+      // sequence diagram では lane は縦 column、 magnet は X 方向を重視する。
+      // X 距離 < threshold なら Y に関係なく snap 対象、 純 2D 距離 fallback 併用。
+      const dx = Math.abs(clientX - cx);
+      const dy = Math.abs(clientY - cy);
+      const dist = dx < MAGNET_THRESHOLD_PX ? dx : Math.hypot(dx, dy);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestAlias = alias;
+      }
+    }
+    return bestAlias;
+  };
+
+  /**
    * pointerdown 対象を検査し、 element drag の対象になるか判定する。 対象なら drag state を
    * 初期化して true を返す (呼出側 pan は skip)。 非対象なら false (呼出側 pan に fallback)。
    */
@@ -959,8 +967,16 @@ export function CdlEditor(): React.JSX.Element {
       // click 相当 = 位置更新 skip
       return true;
     }
-    setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
-    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に移動しました。 元に戻すには Cmd+Z。`, 4000);
+    // canvas pivot magnet zone = Command キー押しでなければ、 他 lane 近傍 (80px 以内) に drop
+    // した場合 auto layout に snap back (pos: 消去)。 押しなら自由配置 (pos: 書込)。
+    const nearAlias = e.metaKey ? null : findNearestLaneForSnap(e.clientX, e.clientY, st.alias);
+    if (nearAlias) {
+      setSrc((prev) => clearActorPosition(prev, st.alias));
+      setDropHintWithReset(`"${st.alias}" を "${nearAlias}" の近くに snap しました (auto layout 復帰、 Cmd 押しで自由配置)。 Cmd+Z で元へ。`, 4500);
+    } else {
+      setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
+      setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に自由配置しました。 Cmd+Z で元へ。`, 4000);
+    }
     return true;
   };
 
@@ -1264,25 +1280,29 @@ animation:
     // 従来 drop 位置を無視して actors: 末尾 append する挙動 (user 実使いフィードバック
     // 「ドロップした位置に入ってない」) を修正。 preview stage の client rect と現行 transform
     // (pan/zoom) を考慮して SVG 座標系の相対 offset を計算する。
+    // canvas pivot magnet zone = Command 押しでなければ、 drop 位置が他 lane 近傍 (80px 以内)
+    // にあれば pos 書込を skip して auto layout に snap = 「近くは揃える、 離れたら自由配置」
+    // 共存 spec。
+    const useMagnetSnap = !e.metaKey && findNearestLaneForSnap(e.clientX, e.clientY, "") !== null;
     let dropOffsetX = 0;
     let dropOffsetY = 0;
-    const stageEl = previewRef.current;
-    const svgEl = stageEl?.querySelector("svg");
-    if (stageEl && svgEl) {
-      const stageRect = stageEl.getBoundingClientRect();
-      const svgRect = svgEl.getBoundingClientRect();
-      // client 座標 → SVG viewBox 座標変換 (transform 経由の pan/zoom を吸収)
-      const dropClientX = e.clientX;
-      const dropClientY = e.clientY;
-      const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
-      const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
-      const svgX = ((dropClientX - svgRect.left) / svgRect.width) * svgW;
-      const svgY = ((dropClientY - svgRect.top) / svgRect.height) * svgH;
-      // stage 中心を auto layout position の base とし、 相対 offset として posX/posY 保存
-      const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
-      const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
-      dropOffsetX = Math.round(svgX - stageCenterSvgX);
-      dropOffsetY = Math.round(svgY - stageCenterSvgY);
+    if (!useMagnetSnap) {
+      const stageEl = previewRef.current;
+      const svgEl = stageEl?.querySelector("svg");
+      if (stageEl && svgEl) {
+        const stageRect = stageEl.getBoundingClientRect();
+        const svgRect = svgEl.getBoundingClientRect();
+        const dropClientX = e.clientX;
+        const dropClientY = e.clientY;
+        const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
+        const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
+        const svgX = ((dropClientX - svgRect.left) / svgRect.width) * svgW;
+        const svgY = ((dropClientY - svgRect.top) / svgRect.height) * svgH;
+        const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
+        const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
+        dropOffsetX = Math.round(svgX - stageCenterSvgX);
+        dropOffsetY = Math.round(svgY - stageCenterSvgY);
+      }
     }
     // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
     // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
@@ -1578,40 +1598,10 @@ ${newActorLine}
             <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
-          {/* canvas pivot Phase 6 (CAR-1698) = layout mode toggle。 Auto = 全 element auto layout に snap 戻し
-              (posX/posY 消去)、 Manual = drag 位置を保存 (default 挙動)。 */}
-          <div className="v4-editor-layout-toggle" role="tablist" aria-label="layout mode">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={detectLayoutMode(src) === "auto"}
-              className={`v4-editor-bar-btn ${detectLayoutMode(src) === "auto" ? "v4-editor-bar-btn-active" : ""}`}
-              onClick={() => {
-                // Auto = 全 element の posX/posY を消去 + layout: auto を DSL 先頭に set
-                const cleared = clearActorPositions(src);
-                const withMode = setLayoutMode(cleared, "auto");
-                setSrc(withMode);
-                setDropHintWithReset("layout mode を Auto に戻しました。 全 element auto layout に snap しました。 元に戻すには Cmd+Z。", 4000);
-              }}
-              title="全 element を auto layout に snap 戻す (posX/posY 消去)"
-            >
-              Auto
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={detectLayoutMode(src) === "manual"}
-              className={`v4-editor-bar-btn ${detectLayoutMode(src) === "manual" ? "v4-editor-bar-btn-active" : ""}`}
-              onClick={() => {
-                // Manual = layout: manual を DSL 先頭に set (以降の drag は pos を保存)
-                setSrc(setLayoutMode(src, "manual"));
-                setDropHintWithReset("layout mode を Manual に切替えました。 drag した位置が保存されます。", 4000);
-              }}
-              title="Manual = drag 位置を保存 (auto layout 上書き)"
-            >
-              Manual
-            </button>
-          </div>
+          {/* canvas pivot = magnet zone hint (Command 押しで snap 無効) */}
+          <span className="v4-editor-bar-hint" title="drag / drop で他 element の近く (magnet 範囲内) は auto snap、 Command キー押しながらで snap 無効化して自由配置">
+            ⌘ 押しで自由配置
+          </span>
           <button
             type="button"
             className="v4-editor-bar-btn"
