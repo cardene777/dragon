@@ -136,6 +136,68 @@ function clearActorPosition(src: string, alias: string): string {
 }
 
 /**
+ * canvas pivot parts binding = actors: block から `- {alias}: { kind: {partId}, ... }` の
+ * alias と partId を抽出、 [{alias, kind}, ...] を返す。 binding popup UI で「連動可能 parts 一覧」
+ * を build する時に使う (source 判定 = getBindingDef(kind).role === 'source')。
+ */
+function extractActorParts(src: string): Array<{ alias: string; kind: string }> {
+  const out: Array<{ alias: string; kind: string }> = [];
+  const lines = src.split("\n");
+  let inActors = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "actors:") { inActors = true; continue; }
+    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
+      inActors = false;
+    }
+    if (!inActors) continue;
+    const m = line.match(/^\s*-\s*(\S+?)\s*:\s*\{([^}]*)\}\s*$/);
+    if (!m) continue;
+    const alias = m[1]!;
+    const inner = m[2]!;
+    const kindMatch = inner.match(/kind\s*:\s*([a-zA-Z_][\w-]*)/);
+    if (!kindMatch) continue;
+    out.push({ alias, kind: kindMatch[1]! });
+  }
+  return out;
+}
+
+/**
+ * DSL text の actors: block 末尾に「連動する新規 sink parts」 を append する。
+ * form = `- {sinkAlias}: { kind: {sinkKind}, bind: {sourceAlias}.{sourceState} }`
+ * source alias.state は binding catalog から自動決定する。
+ */
+function appendBoundActorLine(src: string, sourceAlias: string, sourceKind: string, sinkKind: string, existingAliases: Set<string>): string | null {
+  const sinkDef = getBindingDef(sinkKind);
+  const sourceDef = getBindingDef(sourceKind);
+  if (sourceDef.role !== "source" || !sourceDef.bindableState) return null;
+  if (sinkDef.role !== "sink" || !sinkDef.bindableState) return null;
+  // sink alias = kind base 名 + 連番 (arc1 / arc2 / ...)
+  const aliasBase = sinkKind.replace(/[^a-zA-Z0-9]/g, "");
+  let alias = `${aliasBase}1`;
+  for (let i = 1; i <= 1000 && existingAliases.has(alias); i++) {
+    alias = `${aliasBase}${i + 1}`;
+  }
+  const newLine = `  - ${alias}: { kind: ${sinkKind}, bind: ${sourceAlias}.${sourceDef.bindableState} }`;
+  const lines = src.split("\n");
+  // actors: block 末尾を検索
+  let inActors = false;
+  let lastActorIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const trimmed = line.trim();
+    if (trimmed === "actors:") { inActors = true; continue; }
+    if (inActors) {
+      if (trimmed.startsWith("- ")) lastActorIdx = i;
+      else if (trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t")) break;
+    }
+  }
+  if (lastActorIdx < 0) return null;
+  lines.splice(lastActorIdx + 1, 0, newLine);
+  return lines.join("\n");
+}
+
+/**
  * DSL text から actors: block の alias 一覧を抽出、 alias -> slug の Map を返す。
  * SVG 上 element の data-cdl-* id → actor 逆解決に使う。
  */
@@ -164,6 +226,7 @@ function extractActorAliases(src: string): Map<string, string> {
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
+import { getBindingDef, listBindableSinks, listBindableSources, PARTS_BINDING_CATALOG } from "@/lib/parts-binding-catalog";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -420,6 +483,9 @@ export function CdlEditor(): React.JSX.Element {
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
   const [dropOver, setDropOver] = useState(false);
   const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
+  // canvas pivot parts binding = popup state。 selectedSourceAlias 選択後 sink 一覧を表示。
+  const [bindPopupOpen, setBindPopupOpen] = useState(false);
+  const [bindSelectedSource, setBindSelectedSource] = useState<{ alias: string; kind: string } | null>(null);
   const dropHintTimerRef = useRef<number | null>(null);
 
   /**
@@ -1601,6 +1667,21 @@ ${newActorLine}
           <span className="v4-editor-bar-hint" title="drag / drop で他 element の近く (magnet 範囲内) は auto snap、 Command キー押しながらで snap 無効化して自由配置">
             ⌘ 押しで自由配置
           </span>
+          {/* canvas pivot parts binding = 「⚡ 連動」 button で popup open。
+              現 diagram の source parts (counter / countup 等) を選択 → 連動可能 sink parts
+              (arc-gauge / percent-ring / etc) を選択 → sink parts を actors: に append + bind wire。 */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={() => {
+              setBindPopupOpen((v) => !v);
+              setBindSelectedSource(null);
+            }}
+            title="連動できるパーツを追加 (カウンタ + ゲージ 等)"
+            data-testid="editor-bind-toggle"
+          >
+            ⚡ 連動
+          </button>
           <button
             type="button"
             className="v4-editor-bar-btn"
@@ -1665,6 +1746,75 @@ ${newActorLine}
           )}
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
+          )}
+          {bindPopupOpen && (
+            <div className="v4-editor-bind-popup" data-testid="editor-bind-popup" role="dialog" aria-label="parts binding">
+              <div className="v4-editor-bind-popup-header">
+                <span>⚡ 連動パーツ追加</span>
+                <button
+                  type="button"
+                  className="v4-editor-bind-popup-close"
+                  onClick={() => { setBindPopupOpen(false); setBindSelectedSource(null); }}
+                  aria-label="close"
+                >×</button>
+              </div>
+              {!bindSelectedSource ? (
+                <div className="v4-editor-bind-popup-body">
+                  <div className="v4-editor-bind-popup-title">Step 1 — 連動元 (value を出す parts) を選択</div>
+                  {(() => {
+                    const parts = extractActorParts(src).filter((a) => getBindingDef(a.kind).role === "source");
+                    if (parts.length === 0) {
+                      return <div className="v4-editor-bind-popup-empty">
+                        現在の diagram に source parts (カウンタ / カウントアップ) がありません。<br />
+                        先に左 sidebar から <b>Counter Actor</b> or <b>Countup</b> を drop してください。
+                      </div>;
+                    }
+                    return parts.map((a) => (
+                      <button
+                        key={a.alias}
+                        type="button"
+                        className="v4-editor-bind-popup-item"
+                        onClick={() => setBindSelectedSource(a)}
+                        data-testid={`bind-source-${a.alias}`}
+                      >
+                        <b>{a.alias}</b> <span>{getBindingDef(a.kind).label}</span>
+                      </button>
+                    ));
+                  })()}
+                </div>
+              ) : (
+                <div className="v4-editor-bind-popup-body">
+                  <div className="v4-editor-bind-popup-title">
+                    Step 2 — <b>{bindSelectedSource.alias}</b> の value を受ける sink parts を選択
+                  </div>
+                  {listBindableSinks(bindSelectedSource.kind).map((sink) => (
+                    <button
+                      key={sink.kind}
+                      type="button"
+                      className="v4-editor-bind-popup-item"
+                      onClick={() => {
+                        const existing = new Set(extractActorParts(src).map((a) => a.alias));
+                        const newSrc = appendBoundActorLine(src, bindSelectedSource.alias, bindSelectedSource.kind, sink.kind, existing);
+                        if (newSrc) {
+                          setSrc(newSrc);
+                          setDropHintWithReset(`"${bindSelectedSource.alias}" (source) と "${sink.label}" (sink) を連動しました。 Cmd+Z で元へ。`, 5000);
+                        }
+                        setBindPopupOpen(false);
+                        setBindSelectedSource(null);
+                      }}
+                      data-testid={`bind-sink-${sink.kind}`}
+                    >
+                      <b>{sink.label}</b> <span>state: {sink.bindableState}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="v4-editor-bind-popup-back"
+                    onClick={() => setBindSelectedSource(null)}
+                  >← Step 1 に戻る</button>
+                </div>
+              )}
+            </div>
           )}
           <div
             className="v4-editor-pan"

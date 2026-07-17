@@ -157,7 +157,19 @@ function mergePartsFromActors(
     // drop 位置 (actor.posX) で translate する。 従来 parts は internal x=0-400 の絶対座標で
     // merge され sequence の ユーザー lifeline (x=0) と重なって見切れる問題があった。
     // actor.posX 指定時のみ shift、 未指定なら parts 内部座標そのまま (backward compat)。
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX);
+    // canvas pivot parts binding (CAR-1697+) = actor.bind ("counter1.n" 形式) を parse して
+    // { sourceAlias, sourceState } を mergePartIntoDiagram に渡す。 mergePart 側で
+    // 該当 alias の bindableState を source state と同名 rename → cdl state 共有で連動。
+    let bindSpec: { sourceAlias: string; sourceState: string } | undefined;
+    if (actor.bind && typeof actor.bind === "string") {
+      const m = actor.bind.match(/^([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w]*)$/);
+      if (m) {
+        bindSpec = { sourceAlias: m[1]!, sourceState: m[2]! };
+      } else if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] invalid bind format for actor "${actor.name}": "${actor.bind}" (expected "alias.state")`);
+      }
+    }
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, bindSpec);
   }
   return target;
 }
@@ -175,16 +187,36 @@ function mergePartIntoDiagram(
   stateOverride: Record<string, number | string | boolean>,
   laneMapping: string | undefined,
   posXOffset?: number,
+  bindSpec?: { sourceAlias: string; sourceState: string },
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   // canvas pivot 追加 fix = parts 内部座標を drop 位置で translate。 posXOffset undefined なら 0
   // (backward compat = 従来通り parts 内部座標そのまま)。
   const xShift = posXOffset ?? 0;
   const stateIdSet = new Set(part.states.map((s) => s.id));
+  // canvas pivot parts binding (CAR-1697+) = bind spec 有 の時、 parts の全 state から binding 対象を
+  // 決定。 現状の spec = 「単一 numeric state を持つ parts」 が binding target = 最初の numeric-like
+  // state (initial が number) を binding state と決定する。 該当 state の prefix を skip して
+  // `{sourceAlias}__{sourceState}` に rename、 これで cdl diagram-level state を共有する。
+  let bindTargetStateId: string | undefined;
+  if (bindSpec) {
+    for (const st of part.states) {
+      if (typeof st.initial === "number") { bindTargetStateId = st.id; break; }
+    }
+    if (bindTargetStateId === undefined && typeof console !== "undefined" && console.warn) {
+      console.warn(`[dragon] bind target state not found in parts for actor "${alias}" (no numeric state)`);
+    }
+  }
+  const boundPrefix = (id: string): string => {
+    if (bindSpec && bindTargetStateId && id === bindTargetStateId) {
+      return `${bindSpec.sourceAlias}__${bindSpec.sourceState}`;
+    }
+    return prefix(id);
+  };
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
     return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
-      return stateIdSet.has(name) ? `{${prefix(name)}}` : m;
+      return stateIdSet.has(name) ? `{${boundPrefix(name)}}` : m;
     });
   };
 
@@ -235,10 +267,16 @@ function mergePartIntoDiagram(
   }
 
   // state merge = id prefix + initial override
+  // canvas pivot parts binding = binding target state は source alias.state に unify するため
+  // 本 alias 側では state を追加せず skip (source 側 state を共有)。 target.states 内に既に
+  // 該当 id があるかを事前 check して重複追加を防ぐ (binding 経路以外は従来通り prefix push)。
   for (const stateOrig of part.states) {
     const overrideVal = stateOverride[stateOrig.id];
+    const targetId = boundPrefix(stateOrig.id);
+    // binding 経路で source 側 state と同 id になった場合、 既に source 側で登録済 → skip
+    if (target.states.some((s) => s.id === targetId)) continue;
     target.states.push({
-      id: prefix(stateOrig.id),
+      id: targetId,
       initial: overrideVal !== undefined ? (overrideVal as number | string) : stateOrig.initial,
     });
   }
@@ -282,8 +320,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   } else {
@@ -297,8 +335,8 @@ function mergePartIntoDiagram(
       const partPhase = part.phases[i]!;
       targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
       targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
-      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) }))];
-      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) }))];
+      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) }))];
+      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) }))];
     }
     // parts phase 余剰は append (target より parts が長い場合)
     for (let i = commonLen; i < partsLen; i++) {
@@ -307,8 +345,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   }

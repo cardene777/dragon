@@ -548,6 +548,8 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   // canvas pivot Phase 1 (CAR-1693) = posX / posY を parts state override から除外する
   "posX",
   "posY",
+  // canvas pivot binding (CAR-1697+) = bind field (source alias.state 参照) を state override から除外
+  "bind",
 ]);
 
 function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
@@ -623,6 +625,8 @@ function parseActor(line: Line): DslActor | null {
       // canvas pivot Phase 1 (CAR-1693) = posX / posY inline option を parse
       posX: numberOrUndef(opts.posX),
       posY: numberOrUndef(opts.posY),
+      // canvas pivot binding (CAR-1697+) = bind field parse (source alias.state 参照文字列)
+      bind: opts.bind || undefined,
       pos: { line: line.no },
     };
   }

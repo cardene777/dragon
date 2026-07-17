@@ -352,6 +352,95 @@
   .v4-editor-svg-wrap [data-cdl-role="lane-label"] {
     display: none;
   }
+  /* canvas pivot parts binding = popup UI */
+  .v4-editor-bind-popup {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--v4-canvas);
+    border: 1px solid rgba(26, 20, 16, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(26, 20, 16, 0.14);
+    padding: 14px 16px 18px;
+    min-width: 320px;
+    max-width: 380px;
+    z-index: 20;
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    color: var(--v4-ink);
+    pointer-events: auto;
+  }
+  .v4-editor-bind-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(26, 20, 16, 0.1);
+    padding-bottom: 8px;
+  }
+  .v4-editor-bind-popup-close {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--v4-ink-dim);
+    padding: 0 4px;
+  }
+  .v4-editor-bind-popup-close:hover { color: var(--v4-ink); }
+  .v4-editor-bind-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .v4-editor-bind-popup-title {
+    font-size: 11px;
+    color: var(--v4-ink-dim);
+    margin-bottom: 4px;
+  }
+  .v4-editor-bind-popup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid rgba(26, 20, 16, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: inherit;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .v4-editor-bind-popup-item:hover {
+    background: rgba(26, 20, 16, 0.04);
+    border-color: rgba(26, 20, 16, 0.25);
+  }
+  .v4-editor-bind-popup-item b { font-weight: 600; }
+  .v4-editor-bind-popup-item span { color: var(--v4-ink-dim); font-size: 11px; }
+  .v4-editor-bind-popup-empty {
+    padding: 12px;
+    background: rgba(26, 20, 16, 0.04);
+    border-radius: 6px;
+    line-height: 1.5;
+    color: var(--v4-ink-dim);
+  }
+  .v4-editor-bind-popup-empty b { color: var(--v4-ink); }
+  .v4-editor-bind-popup-back {
+    margin-top: 6px;
+    background: transparent;
+    border: none;
+    color: var(--v4-ink-dim);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 4px;
+    text-align: left;
+  }
+  .v4-editor-bind-popup-back:hover { color: var(--v4-ink); }
+
   /* canvas pivot = magnet zone hint text */
   .v4-editor-bar-hint {
     font-family: var(--v4-mono);

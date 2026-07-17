@@ -71,6 +71,13 @@ export type DslActor = {
    */
   posX?: number;
   posY?: number;
+  /**
+   * canvas pivot parts binding (CAR-1697+) = 「他 alias.state 参照」 の連動 spec。
+   * form = "{sourceAlias}.{stateName}" (例 "counter1.n")、 compile 時に本 actor の
+   * bindableState を source alias.state と同名に rename して cdl diagram-level state 共有で連動する。
+   * source alias 未登場 / 無効 form の時 warn + skip (壊さない設計)。
+   */
+  bind?: string;
   pos: Position;
 };
 
