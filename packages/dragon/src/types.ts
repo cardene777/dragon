@@ -51,6 +51,18 @@ export type DslActor = {
   stack?: number;
   initial?: boolean;
   final?: boolean;
+  /**
+   * CAR-1657 parts unified syntax = kind が既存 NODE_KIND_VALID に無い値 (parts identifier 候補)
+   * だった時、 parser は partId に格納して compile 側に委譲する。 compile 時に partsCatalog から
+   * 対応する CdlDiagram を lookup + merge する経路。 partId set 時は kind = "actor" (default) fallback。
+   */
+  partId?: string;
+  /**
+   * parts state override (partId set 時のみ有効)。 kind + 既存 reserved fields を除いた
+   * inline option の残り (`v: 50` / `count: 100` 等) を state 名 → initial 値 map として保持。
+   * compile 時に parts.states[i].initial を上書きする。
+   */
+  stateOverride?: Record<string, number | string | boolean>;
   pos: Position;
 };
 

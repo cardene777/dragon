@@ -63,7 +63,12 @@ export interface DragonJson {
 
 export interface JsonActor {
   name: string;
-  kind?: NodeKind;
+  /**
+   * CAR-1657 unified syntax = 既存 NodeKind (28 個) に加えて parts identifier (arc-gauge 等) を
+   * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
+   * LLM structured output の typing 制約を緩めるため union に string 追加。
+   */
+  kind?: NodeKind | string;
   subtitle?: string;
   eyebrow?: string;
   value?: string;
@@ -72,6 +77,13 @@ export interface JsonActor {
   stack?: number;
   initial?: boolean;
   final?: boolean;
+  /**
+   * CAR-1657 parts state override (kind = parts identifier 時のみ有効)。
+   * LLM JSON DSL では nested 明示 = `{ "state": { "v": 50 } }` が natural、 human 側の
+   * inline 拡散 pattern (`- arc1: { kind: arc-gauge, v: 50 }`) とは記述形式が分岐する
+   * (spec § 2.3 分岐設計、 human = YAML 手書き最適 / LLM = JSON structured 最適)。
+   */
+  state?: Record<string, number | string | boolean>;
 }
 
 export interface JsonStep {
@@ -108,6 +120,18 @@ export interface JsonDslError {
   message: string;
   hint?: string;
 }
+
+/**
+ * CAR-1657 = 既存 NodeKind list (v05/parser.ts の NODE_KIND_VALID と揃える必要あり)。
+ * 未知 kind 値は parts identifier 候補として partId に格納する経路の判定基準。
+ * v05 parser との drift 防止のため、 別 PR で共通化検討 (`packages/dragon/src/kinds.ts` etc)。
+ */
+const VALID_KIND_SET: ReadonlySet<string> = new Set([
+  "actor", "function", "storage", "event", "cdn", "service", "database",
+  "cache", "queue", "api", "person", "entity", "state", "container", "card",
+  "lambda", "kms", "secret", "alb", "ecs", "rds", "s3", "iam", "user", "browser",
+  "contract", "eoa", "multisig", "proxy", "library", "interface",
+]);
 
 const VALID_PRESETS: readonly PresetType[] = [
   "sequence",
@@ -158,6 +182,28 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
       if (typeof ao.name !== "string" || ao.name.length === 0) {
         errors.push({ path: `$.actors[${i}].name`, message: "actor.name must be a non-empty string" });
       }
+      // CAR-1657 (+ codex-review MAJOR fix) = kind の validation、 non-empty string 必須。
+      // parts identifier or existing NodeKind のどちらかを想定、 空文字 or 非 string は reject。
+      if (ao.kind !== undefined && (typeof ao.kind !== "string" || ao.kind.length === 0)) {
+        errors.push({ path: `$.actors[${i}].kind`, message: "actor.kind must be a non-empty string" });
+      }
+      // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
+      // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
+      if (ao.state !== undefined) {
+        if (!ao.state || typeof ao.state !== "object" || Array.isArray(ao.state)) {
+          errors.push({ path: `$.actors[${i}].state`, message: "actor.state must be a plain object" });
+        } else {
+          for (const [sk, sv] of Object.entries(ao.state as Record<string, unknown>)) {
+            const svType = typeof sv;
+            if (svType !== "number" && svType !== "string" && svType !== "boolean") {
+              errors.push({
+                path: `$.actors[${i}].state.${sk}`,
+                message: `actor.state.${sk} must be number / string / boolean (got ${sv === null ? "null" : svType})`,
+              });
+            }
+          }
+        }
+      }
     });
   }
   if (!Array.isArray(j.flow)) {
@@ -203,9 +249,12 @@ function jsonToDoc(json: DragonJson): DslDocument {
     if (typeof a === "string") {
       return { name: a, kind: "actor" as NodeKind, pos: p0 };
     }
+    // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
+    const kindStr = (a.kind ?? "actor") as string;
+    const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
     return {
       name: a.name,
-      kind: (a.kind ?? "actor"),
+      kind: isPart ? "actor" as NodeKind : (a.kind ?? "actor") as NodeKind,
       subtitle: a.subtitle,
       eyebrow: a.eyebrow,
       value: a.value,
@@ -214,6 +263,8 @@ function jsonToDoc(json: DragonJson): DslDocument {
       stack: a.stack,
       initial: a.initial,
       final: a.final,
+      partId: isPart ? kindStr : undefined,
+      stateOverride: isPart ? a.state : undefined,
       pos: p0,
     };
   });
@@ -285,14 +336,17 @@ function jsonToDoc(json: DragonJson): DslDocument {
  *   ],
  * });
  */
-export function jsonToDiagram(json: unknown): CdlDiagram {
+export function jsonToDiagram(
+  json: unknown,
+  opts?: { partsCatalog?: Record<string, CdlDiagram> },
+): CdlDiagram {
   const v = validateJson(json);
   if (!v.ok) {
     const msg = v.errors.map((e) => `  ${e.path}: ${e.message}${e.hint ? ` (${e.hint})` : ""}`).join("\n");
     throw new Error(`Dragon JSON DSL validation error:\n${msg}`);
   }
   const doc = jsonToDoc(v.data);
-  return compileToCdl(doc);
+  return compileToCdl(doc, opts);
 }
 
 /**

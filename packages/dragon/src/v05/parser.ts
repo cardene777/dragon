@@ -528,22 +528,76 @@ function collectAnimationSteps(lines: Line[], start: number, parentIndent: numbe
   return { items: out, next: i };
 }
 
+/**
+ * inline option の残 field (kind + 既存 reserved 除外後) を parts state override として抽出する。
+ * CAR-1657 unified syntax = `- arc1: { kind: arc-gauge, v: 50, count: 100 }` の `v` / `count` を
+ * `{ v: 50, count: 100 }` state override map に集約する経路。
+ * 予約語衝突時は `state: { v: 50 }` 明示 fallback を使う (別 field で処理)。
+ */
+const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
+  "kind",
+  "subtitle",
+  "eyebrow",
+  "value",
+  "rows",
+  "lane",
+  "stack",
+  "initial",
+  "final",
+  "state",
+]);
+
+function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
+  const out: Record<string, number | string | boolean> = {};
+  let count = 0;
+  // 明示 `state: {...}` fallback がある場合はそちらを優先 (nested map parse)
+  const explicit = opts.state;
+  if (explicit && explicit.startsWith("{") && explicit.endsWith("}")) {
+    const inner = parseInlineMapping(explicit.slice(1, -1));
+    for (const [k, v] of Object.entries(inner)) {
+      out[k] = coerceStateValue(v);
+      count += 1;
+    }
+  }
+  // inline 拡散 = 予約語以外を state override として拾う (explicit と併用時は明示 wins)
+  for (const [k, v] of Object.entries(opts)) {
+    if (ACTOR_RESERVED_FIELDS.has(k)) continue;
+    if (k in out) continue; // explicit で set 済 skip
+    out[k] = coerceStateValue(v);
+    count += 1;
+  }
+  return count > 0 ? out : undefined;
+}
+
+function coerceStateValue(raw: string): number | string | boolean {
+  const stripped = stripQuotes(raw);
+  if (stripped === "true") return true;
+  if (stripped === "false") return false;
+  const n = Number(stripped);
+  if (Number.isFinite(n) && stripped !== "" && !isNaN(n)) return n;
+  return stripped;
+}
+
 function parseActor(line: Line): DslActor | null {
-  // 4 形式 サポート:
+  // 5 形式 サポート:
   // 1. `Client`                              ... name のみ、 kind=actor default
   // 2. `Client: storage`                     ... name + kind 略記
-  // 3. `Client: { kind: actor, subtitle: "送信元", value: "{x}" }` ... name + inline option mapping
+  // 3. `Client: { kind: actor, subtitle: "..." }` ... name + inline option mapping
   // 4. `"画面"` / `"画面": event`           ... 日本語 quote
+  // 5. `arc1: { kind: arc-gauge, v: 50 }`   ... CAR-1657 parts kind (partId + stateOverride)
   const raw = line.trimmed.trim();
   if (!raw) return null;
-  // 3. inline mapping check (`Client: { ... }`)、 nested { } を depth count で正しく抽出
+  // 3 / 5. inline mapping check (`Client: { ... }`)、 nested { } を depth count で正しく抽出
   const mapMatch = matchActorInlineMapping(raw);
   if (mapMatch) {
     const namePart = stripQuotes(mapMatch.name.trim());
     if (!namePart) return null;
     const opts = parseInlineMapping(mapMatch.inner);
     const kindRaw = (opts.kind ?? "").toLowerCase();
-    const kind = NODE_KIND_VALID.has(kindRaw) ? (kindRaw as NodeKind) : NODE_KIND_DEFAULT;
+    // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
+    // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
+    const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
+    const kind = isPart ? NODE_KIND_DEFAULT : ((NODE_KIND_VALID.has(kindRaw) ? kindRaw : NODE_KIND_DEFAULT) as NodeKind);
     return {
       name: namePart,
       kind,
@@ -561,6 +615,8 @@ function parseActor(line: Line): DslActor | null {
       stack: numberOrUndef(opts.stack),
       initial: boolOrUndef(opts.initial),
       final: boolOrUndef(opts.final),
+      partId: isPart ? kindRaw : undefined,
+      stateOverride: isPart ? extractStateOverride(opts) : undefined,
       pos: { line: line.no },
     };
   }
@@ -570,8 +626,15 @@ function parseActor(line: Line): DslActor | null {
     const namePart = stripQuotes(raw.slice(0, idx).trim());
     const kindPart = raw.slice(idx + 1).trim().toLowerCase();
     if (!namePart) return null;
-    const kind = NODE_KIND_VALID.has(kindPart) ? (kindPart as NodeKind) : NODE_KIND_DEFAULT;
-    return { name: namePart, kind, pos: { line: line.no } };
+    // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
+    const isPart = kindPart !== "" && !NODE_KIND_VALID.has(kindPart);
+    const kind = isPart ? NODE_KIND_DEFAULT : ((NODE_KIND_VALID.has(kindPart) ? kindPart : NODE_KIND_DEFAULT) as NodeKind);
+    return {
+      name: namePart,
+      kind,
+      partId: isPart ? kindPart : undefined,
+      pos: { line: line.no },
+    };
   }
   const namePart = stripQuotes(raw);
   if (!namePart) return null;
