@@ -22,6 +22,37 @@ export interface CompileToCdlOpts {
   partsCatalog?: Record<string, CdlDiagram>;
 }
 
+/**
+ * canvas pivot parts binding = source tween を sink の valueRange に自動 clamp する post-process。
+ * counter parts は「n を 0 → 5000 tween」 のような display 用 large value を持つが、
+ * sink parts (arc / ring / bar 等) の shape は sweepMax=100 前提のため、 100 を超えると飽和する。
+ * binding 経路では source tween の to を sink の想定 range に auto-clamp する経路で共存させる。
+ * (実測 root cause = counter 5000 tween で arc 0-100 clip = 動かない、 2026-07-18)
+ */
+function clampSourceTweensForBinding(target: CdlDiagram, doc: DslDocument): void {
+  // sink actor から binding target と sink valueRange (現状 default 0-100) を集計
+  const sinkClamps = new Map<string, number>();  // sourceState -> clamp max
+  for (const actor of doc.actors) {
+    if (!actor.bind) continue;
+    const m = actor.bind.match(/^([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w]*)$/);
+    if (!m) continue;
+    const sourceAlias = m[1]!, sourceState = m[2]!;
+    // sink parts は現状 sweepMax=100 前提の gauge/ring/bar 系、 default clamp = 100
+    const sourceStateId = `${sourceAlias}__${sourceState}`;
+    const prev = sinkClamps.get(sourceStateId) ?? Infinity;
+    sinkClamps.set(sourceStateId, Math.min(prev, 100));
+  }
+  if (sinkClamps.size === 0) return;
+  // target.phases の全 tween を再走査、 sink clamp 対象なら to を clamp
+  for (const phase of target.phases) {
+    phase.tweens = phase.tweens.map((t) => {
+      const clampMax = sinkClamps.get(t.stateId);
+      if (clampMax === undefined) return t;
+      return { ...t, to: Math.min(t.to, clampMax) };
+    });
+  }
+}
+
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
   // canvas pivot Phase 3+4 (CAR-1695/1696) = parts actor を preset (sequence/flow/等) 経路から除外する。
   // 従来 parts actor は preset の actors: に含まれ、 sequence 側で 1 lane 分の horizontal 領域を確保
@@ -81,7 +112,10 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // v05 extensions は元 doc (parts 含む) で処理、 parts actor の inline option (posX/posY 等) も一貫参照
   const extended = applyV05Extensions(diagram, doc);
   // parts merge は元 doc.actors (parts 含む) で処理、 parts diagram の lane / node を target に overlay
-  return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  const merged = mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  // canvas pivot parts binding = source tween を sink valueRange に auto-clamp
+  clampSourceTweensForBinding(merged, doc);
+  return merged;
 }
 
 /**
@@ -313,6 +347,14 @@ function mergePartIntoDiagram(
   if (phaseOptOut) {
     return; // parts phase を破棄、 activate / tweens / sets の rewrite 不要
   }
+  // canvas pivot parts binding = sink parts (bindSpec ある side) の bindableState を drive する
+  // tween / sets は source alias 側で既に定義済のため、 sink 側からは除外する。 これを除外しないと
+  // 同 stateId に 2 tween が存在して cdl timeline で conflict → animation 発火せず全 sample で不変になる
+  // (2026-07-18 実測 root cause)。
+  const filterBoundTweens = <T extends { stateId: string }>(items: T[]): T[] => {
+    if (!bindSpec || !bindTargetStateId) return items;
+    return items.filter((t) => t.stateId !== bindTargetStateId);
+  };
   if (target.phases.length === 0) {
     // target に phase なし = parts phase をそのまま追加 (prefix 付き)
     for (const phaseOrig of part.phases) {
@@ -320,8 +362,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
+        tweens: filterBoundTweens(phaseOrig.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: filterBoundTweens(phaseOrig.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   } else {
@@ -335,8 +377,8 @@ function mergePartIntoDiagram(
       const partPhase = part.phases[i]!;
       targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
       targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
-      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) }))];
-      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) }))];
+      targetPhase.tweens = [...targetPhase.tweens, ...filterBoundTweens(partPhase.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) }))];
+      targetPhase.sets = [...targetPhase.sets, ...filterBoundTweens(partPhase.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) }))];
     }
     // parts phase 余剰は append (target より parts が長い場合)
     for (let i = commonLen; i < partsLen; i++) {
@@ -345,8 +387,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
+        tweens: filterBoundTweens(phaseOrig.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: filterBoundTweens(phaseOrig.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   }
