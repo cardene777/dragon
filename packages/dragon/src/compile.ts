@@ -23,53 +23,64 @@ export interface CompileToCdlOpts {
 }
 
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
+  // canvas pivot Phase 3+4 (CAR-1695/1696) = parts actor を preset (sequence/flow/等) 経路から除外する。
+  // 従来 parts actor は preset の actors: に含まれ、 sequence 側で 1 lane 分の horizontal 領域を確保
+  // していたため既存 actor の位置が shift (「間に挟まる」 表示、 2026-07-17 user 実使い verify 発見)。
+  // Miro 風の overlay drop を実現するため、 preset は parts 抜き actor list で layout を計算、
+  // parts merge (mergePartsFromActors) は元 doc.actors で処理して parts diagram を absolute
+  // 座標 (parts 側 .lane("l", { x: 0, ... })) で target に overlay する。
+  const docForPreset: DslDocument = {
+    ...doc,
+    actors: doc.actors.filter((a) => a.partId === undefined),
+  };
   let diagram: CdlDiagram;
-  switch (doc.type) {
+  switch (docForPreset.type) {
     case "sequence":
-      diagram = compileSequence(doc);
+      diagram = compileSequence(docForPreset);
       break;
     case "flow":
-      diagram = compileFlow(doc);
+      diagram = compileFlow(docForPreset);
       break;
     case "swimlane":
-      diagram = compileSwimlane(doc);
+      diagram = compileSwimlane(docForPreset);
       break;
     case "er":
-      diagram = compileEr(doc);
+      diagram = compileEr(docForPreset);
       break;
     case "state":
-      diagram = compileState(doc);
+      diagram = compileState(docForPreset);
       break;
     case "topology":
-      diagram = compileTopology(doc);
+      diagram = compileTopology(docForPreset);
       break;
     case "solidity":
-      diagram = compileSolidity(doc);
+      diagram = compileSolidity(docForPreset);
       break;
     case "gantt":
-      diagram = compileGantt(doc);
+      diagram = compileGantt(docForPreset);
       break;
     case "class":
-      diagram = compileClass(doc);
+      diagram = compileClass(docForPreset);
       break;
     case "pie":
-      diagram = compilePie(doc);
+      diagram = compilePie(docForPreset);
       break;
     case "c4":
-      diagram = compileC4(doc);
+      diagram = compileC4(docForPreset);
       break;
     case "mind":
-      diagram = compileMind(doc);
+      diagram = compileMind(docForPreset);
       break;
     default:
       // switch case で全 type を網羅済のため default は unreachable、 template expression で
       // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
-      throw new Error(`unknown type: ${String(doc.type)}`);
+      throw new Error(`unknown type: ${String(docForPreset.type)}`);
   }
-  applyEdgeInlineOptions(diagram, doc);
-  applyGroupContainers(diagram, doc);
-  // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
+  applyEdgeInlineOptions(diagram, docForPreset);
+  applyGroupContainers(diagram, docForPreset);
+  // v05 extensions は元 doc (parts 含む) で処理、 parts actor の inline option (posX/posY 等) も一貫参照
   const extended = applyV05Extensions(diagram, doc);
+  // parts merge は元 doc.actors (parts 含む) で処理、 parts diagram の lane / node を target に overlay
   return mergePartsFromActors(extended, doc, opts?.partsCatalog);
 }
 
