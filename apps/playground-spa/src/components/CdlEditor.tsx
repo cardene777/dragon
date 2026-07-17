@@ -2,6 +2,142 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
 import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
+
+// canvas pivot Phase 1/3/4 (CAR-1693/1695/1696) = actor 個別位置管理の helper 群。
+// DSL text から posX/posY inline option を regex 抽出 + 更新するため、 dragon 側 parser の
+// 完全な再走を挟まず editor 内で light-weight 経路で扱う。
+// alias slug は dragon の slugify (compile.ts:1352) と同一 logic を local に持つ。
+
+function slugifyActor(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .normalize("NFKC")
+      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 64) || "n"
+  );
+}
+
+type ActorPos = { x: number; y: number };
+type ActorPosMap = Map<string, ActorPos>;
+
+/**
+ * DSL text から actors: block 中の inline mapping 内 posX / posY を alias 別に抽出する。
+ * 対応 pattern = `  - alias: { kind: X, posX: 40, posY: -20 }` / `- alias: { posX: 100 }` 等。
+ * alias -> {x, y} の Map を返す (どちらか片方の値のみでも 0 fill で return)。
+ */
+function parseActorPositions(src: string): ActorPosMap {
+  const out: ActorPosMap = new Map();
+  const lineRegex = /^\s*-\s*([a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_\-぀-ゟ゠-ヿ一-鿿]*)\s*:\s*\{([^}]*)\}\s*$/;
+  const lines = src.split("\n");
+  let inActors = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "actors:") {
+      inActors = true;
+      continue;
+    }
+    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
+      inActors = false;
+    }
+    if (!inActors) continue;
+    const m = line.match(lineRegex);
+    if (!m) continue;
+    const alias = m[1]!;
+    const inner = m[2]!;
+    const posXMatch = inner.match(/posX\s*:\s*(-?\d+(?:\.\d+)?)/);
+    const posYMatch = inner.match(/posY\s*:\s*(-?\d+(?:\.\d+)?)/);
+    if (!posXMatch && !posYMatch) continue;
+    const x = posXMatch ? Number(posXMatch[1]) : 0;
+    const y = posYMatch ? Number(posYMatch[1]) : 0;
+    out.set(alias, { x, y });
+  }
+  return out;
+}
+
+/**
+ * DSL text 内の指定 alias 行に posX/posY field を挿入 or 更新する。 inline mapping form
+ * (`- alias: { ... }`) の場合 { ... } 内の posX/posY を更新、 short form (`- alias: kind`)
+ * の場合は inline mapping に格上げする。 該当 alias 行が無い時は src 無変更で返す。
+ */
+function updateActorPosition(src: string, alias: string, x: number, y: number): string {
+  const lines = src.split("\n");
+  const nextLines = lines.map((line) => {
+    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
+    if (inlineMatch && inlineMatch[2] === alias) {
+      const [, prefix, name, sep, inner, suffix] = inlineMatch;
+      const cleaned = inner!
+        .split(",")
+        .map((seg) => seg.trim())
+        .filter((seg) => seg && !seg.match(/^posX\s*:/) && !seg.match(/^posY\s*:/))
+        .join(", ");
+      const newInner = [cleaned, `posX: ${Math.round(x)}`, `posY: ${Math.round(y)}`].filter(Boolean).join(", ");
+      return `${prefix}${name}${sep}{ ${newInner} }${suffix}`;
+    }
+    const shortMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
+    if (shortMatch && shortMatch[2] === alias) {
+      const [, prefix, name, sep, kind] = shortMatch;
+      return `${prefix}${name}${sep}{ kind: ${kind!.trim()}, posX: ${Math.round(x)}, posY: ${Math.round(y)} }`;
+    }
+    const bareMatch = line.match(/^(\s*-\s*)(\S+)\s*$/);
+    if (bareMatch && bareMatch[2] === alias) {
+      const [, prefix, name] = bareMatch;
+      return `${prefix}${name}: { posX: ${Math.round(x)}, posY: ${Math.round(y)} }`;
+    }
+    return line;
+  });
+  return nextLines.join("\n");
+}
+
+/**
+ * DOM 上の SVG element (data-cdl-node / data-cdl-lane / data-cdl-edge) の id から
+ * どの actor alias に属するかを推定する。 sequence preset の header/spacer/footer 命名規則
+ * (`{slug}-header` / `{slug}-footer` / `s{N}-{slug}` / `e{N}-{from}-{to}`) と、
+ * parts merge の prefix 規則 (`{alias}__{origId}`) の両方に対応する。
+ */
+function resolveActorFromElementId(id: string, aliasToSlug: Map<string, string>): string | null {
+  const partsMatch = id.match(/^([^_]+)__/);
+  if (partsMatch) {
+    const aliasCandidate = partsMatch[1]!;
+    if (aliasToSlug.has(aliasCandidate)) return aliasCandidate;
+  }
+  for (const [alias, slug] of aliasToSlug.entries()) {
+    if (id === slug) return alias;
+    if (id === `${slug}-header` || id === `${slug}-footer` || id === `${slug}-spacer`) return alias;
+    if (id.startsWith(`${slug}__`)) return alias;
+    const stepMatch = id.match(/^s\d+-(.+)$/);
+    if (stepMatch && stepMatch[1] === slug) return alias;
+  }
+  return null;
+}
+
+/**
+ * DSL text から actors: block の alias 一覧を抽出、 alias -> slug の Map を返す。
+ * SVG 上 element の data-cdl-* id → actor 逆解決に使う。
+ */
+function extractActorAliases(src: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const lines = src.split("\n");
+  let inActors = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "actors:") {
+      inActors = true;
+      continue;
+    }
+    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
+      inActors = false;
+    }
+    if (!inActors) continue;
+    const m = trimmed.match(/^-\s*("?)([^"\s:]+)\1\s*(?::|$)/);
+    if (m) {
+      const alias = m[2]!;
+      out.set(alias, slugifyActor(alias));
+    }
+  }
+  return out;
+}
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
@@ -696,14 +832,126 @@ export function CdlEditor(): React.JSX.Element {
     });
   };
 
+  // canvas pivot Phase 4 (CAR-1696) = individual element drag state。
+  // pointerdown 対象が [data-cdl-node] / [data-cdl-lane] 内なら pan せず element drag に分岐。
+  // drag 中は該当 actor に属する全 SVG element に CSS translate を live 適用、 pointerup 時に
+  // DSL text の posX / posY field を surgical text patch で更新する。
+  const actorDragStart = useRef<{
+    alias: string;
+    startClientX: number;
+    startClientY: number;
+    initPosX: number;
+    initPosY: number;
+    scale: number;
+  } | null>(null);
+
+  /**
+   * pointerdown 対象を検査し、 element drag の対象になるか判定する。 対象なら drag state を
+   * 初期化して true を返す (呼出側 pan は skip)。 非対象なら false (呼出側 pan に fallback)。
+   */
+  const tryStartElementDrag = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const target = e.target as HTMLElement;
+    const nodeEl = target.closest("[data-cdl-node], [data-cdl-lane]");
+    if (!nodeEl) return false;
+    const nodeId = nodeEl.getAttribute("data-cdl-node") ?? nodeEl.getAttribute("data-cdl-lane") ?? "";
+    const aliasToSlug = extractActorAliases(src);
+    const alias = resolveActorFromElementId(nodeId, aliasToSlug);
+    if (!alias) return false;
+    const positions = parseActorPositions(src);
+    const currentPos = positions.get(alias) ?? { x: 0, y: 0 };
+    actorDragStart.current = {
+      alias,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      initPosX: currentPos.x,
+      initPosY: currentPos.y,
+      scale: transform.scale,
+    };
+    document.body.style.cursor = "grabbing";
+    return true;
+  };
+
+  /**
+   * drag 中の pointermove。 CSS transform で該当 actor の全 SVG element を live 更新する
+   * (DSL 書換は pointerup で 1 回のみ、 大量 setState を避ける)。
+   */
+  const updateElementDragVisual = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const st = actorDragStart.current;
+    if (!st) return false;
+    const dx = (e.clientX - st.startClientX) / st.scale;
+    const dy = (e.clientY - st.startClientY) / st.scale;
+    const newX = st.initPosX + dx;
+    const newY = st.initPosY + dy;
+    applyActorTransform(st.alias, newX, newY);
+    return true;
+  };
+
+  /**
+   * drag 終了時、 最終位置を DSL に posX/posY field で書込。
+   */
+  const finalizeElementDrag = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const st = actorDragStart.current;
+    if (!st) return false;
+    document.body.style.cursor = "";
+    const dx = (e.clientX - st.startClientX) / st.scale;
+    const dy = (e.clientY - st.startClientY) / st.scale;
+    const newX = st.initPosX + dx;
+    const newY = st.initPosY + dy;
+    actorDragStart.current = null;
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
+      // click 相当 = 位置更新 skip
+      return true;
+    }
+    setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
+    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に移動しました。 元に戻すには Cmd+Z。`, 4000);
+    return true;
+  };
+
+  /**
+   * 現在 render 済 SVG から該当 actor の全 element (node / lane / edge の prefix match) を
+   * 選び、 CSS translate を適用する。 useEffect による post-render pass と drag 中 live 更新の
+   * 両方から呼ばれる。
+   */
+  const applyActorTransform = useCallback((alias: string, x: number, y: number): void => {
+    const svg = previewRef.current?.querySelector("svg");
+    if (!svg) return;
+    const aliasToSlug = extractActorAliases(src);
+    const slug = aliasToSlug.get(alias) ?? slugifyActor(alias);
+    const selectors = [
+      `[data-cdl-node="${slug}"]`,
+      `[data-cdl-node="${slug}-header"]`,
+      `[data-cdl-node="${slug}-footer"]`,
+      `[data-cdl-node="${slug}-spacer"]`,
+      `[data-cdl-lane="${slug}"]`,
+    ];
+    for (const sel of selectors) {
+      const el = svg.querySelector(sel) as SVGGraphicsElement | null;
+      if (el) el.style.transform = `translate(${x}px, ${y}px)`;
+    }
+    // parts merge の prefix (`{alias}__*`) と sequence step anchor (`s{N}-{slug}`) を prefix match で
+    svg.querySelectorAll(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`).forEach((el) => {
+      (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
+    });
+    svg.querySelectorAll(`[data-cdl-node]`).forEach((el) => {
+      const nid = el.getAttribute("data-cdl-node") ?? "";
+      const stepMatch = nid.match(/^s\d+-(.+)$/);
+      if (stepMatch && stepMatch[1] === slug) {
+        (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
+      }
+    });
+  }, [src]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
+    // canvas pivot Phase 4 = SVG element 上の pointerdown なら element drag、 それ以外は pan
+    if (tryStartElementDrag(e)) return;
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    if (updateElementDragVisual(e)) return;
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -712,7 +960,25 @@ export function CdlEditor(): React.JSX.Element {
     }));
   };
 
-  const handleMouseUp = (): void => setDragging(false);
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
+    if (finalizeElementDrag(e)) return;
+    setDragging(false);
+  };
+
+  // canvas pivot Phase 1/4 = DSL 中の posX/posY field を post-render CSS transform で適用する。
+  // src 変更 (drag 完了後 DSL 書換 or user 手編集) 毎に SVG DOM を walk して該当 actor の
+  // 全 element に translate を再適用する。
+  useEffect(() => {
+    if (!diagram) return;
+    const positions = parseActorPositions(src);
+    // requestAnimationFrame で render 完了後 1 tick 待って apply (React の commit phase 後)
+    const raf = requestAnimationFrame(() => {
+      positions.forEach((pos, alias) => {
+        applyActorTransform(alias, pos.x, pos.y);
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [src, diagram, applyActorTransform]);
 
   const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
@@ -935,6 +1201,30 @@ animation:
       setDropHintWithReset(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`, 6000);
       return;
     }
+    // canvas pivot Phase 3 (CAR-1695) = drop 位置を SVG viewport 座標に変換して pos: field で書込。
+    // 従来 drop 位置を無視して actors: 末尾 append する挙動 (user 実使いフィードバック
+    // 「ドロップした位置に入ってない」) を修正。 preview stage の client rect と現行 transform
+    // (pan/zoom) を考慮して SVG 座標系の相対 offset を計算する。
+    let dropOffsetX = 0;
+    let dropOffsetY = 0;
+    const stageEl = previewRef.current;
+    const svgEl = stageEl?.querySelector("svg");
+    if (stageEl && svgEl) {
+      const stageRect = stageEl.getBoundingClientRect();
+      const svgRect = svgEl.getBoundingClientRect();
+      // client 座標 → SVG viewBox 座標変換 (transform 経由の pan/zoom を吸収)
+      const dropClientX = e.clientX;
+      const dropClientY = e.clientY;
+      const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
+      const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
+      const svgX = ((dropClientX - svgRect.left) / svgRect.width) * svgW;
+      const svgY = ((dropClientY - svgRect.top) / svgRect.height) * svgH;
+      // stage 中心を auto layout position の base とし、 相対 offset として posX/posY 保存
+      const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
+      const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
+      dropOffsetX = Math.round(svgX - stageCenterSvgX);
+      dropOffsetY = Math.round(svgY - stageCenterSvgY);
+    }
     // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
     // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
     // alias は既 actor 名衝突回避で連番生成 ('arc1' → 'arc2')、 lane 指定は default なし (compile 側で内部 lane 生成)。
@@ -951,7 +1241,13 @@ animation:
       const rendered = typeof v === "string" ? `"${v}"` : String(v);
       return `${s.id}: ${rendered}`;
     });
-    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+    // canvas pivot Phase 3 (CAR-1695) = drop 位置 offset を posX/posY として同一 line inline map に含める。
+    // 0/0 の時は省略 (auto layout そのまま、 DSL diff 最小)。
+    const posFields: string[] = [];
+    if (dropOffsetX !== 0 || dropOffsetY !== 0) {
+      posFields.push(`posX: ${dropOffsetX}`, `posY: ${dropOffsetY}`);
+    }
+    const inlineFields = [`kind: ${kindValue}`, ...stateInits, ...posFields].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
     const newSrc = appendActorLine(src, newActorLine);
     if (newSrc === null) {

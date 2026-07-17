@@ -63,6 +63,14 @@ export type DslActor = {
    * compile 時に parts.states[i].initial を上書きする。
    */
   stateOverride?: Record<string, number | string | boolean>;
+  /**
+   * canvas pivot Phase 1 (CAR-1693) = per-element auto layout offset。
+   * drop / drag で mouse 位置に置いた時の auto 計算位置からの pixel offset を保存する。
+   * (posX, posY) が undefined = auto layout そのまま render (現状 catalog 100+ 互換)、
+   * set 済 = renderer 側で CSS transform で offset 適用する。
+   */
+  posX?: number;
+  posY?: number;
   pos: Position;
 };
 
