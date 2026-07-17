@@ -113,6 +113,63 @@ function resolveActorFromElementId(id: string, aliasToSlug: Map<string, string>)
 }
 
 /**
+ * DSL text から全 actor の posX / posY / pos: field を削除する (Auto 復帰用)。
+ * inline mapping (`- alias: { kind: X, posX: 40, posY: -20 }`) の場合 posX/posY を除去、
+ * 全 field 除去後に空 inline (`{ }`) になる時は inline 自体を削除して short form
+ * (`- alias: kind`) or bare form (`- alias`) に戻す。
+ */
+function clearActorPositions(src: string): string {
+  const lines = src.split("\n");
+  const nextLines = lines.map((line) => {
+    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
+    if (!inlineMatch) return line;
+    const [, prefix, name, sep, inner, suffix] = inlineMatch;
+    const cleaned = inner!
+      .split(",")
+      .map((seg) => seg.trim())
+      .filter((seg) => seg && !seg.match(/^posX\s*:/) && !seg.match(/^posY\s*:/) && !seg.match(/^pos\s*:/))
+      .join(", ");
+    if (cleaned === "") {
+      return `${prefix}${name}${suffix}`;
+    }
+    const kindMatch = cleaned.match(/^kind\s*:\s*([^,]+)$/);
+    if (kindMatch) {
+      return `${prefix}${name}${sep}${kindMatch[1]!.trim()}`;
+    }
+    return `${prefix}${name}${sep}{ ${cleaned} }${suffix}`;
+  });
+  return nextLines.join("\n");
+}
+
+/**
+ * DSL text から現行 layout mode ("auto" or "manual") を抽出する。 top-level `layout: auto|manual`
+ * 行が無ければ default = "auto" を返す。
+ */
+function detectLayoutMode(src: string): "auto" | "manual" {
+  const m = src.match(/^layout\s*:\s*(auto|manual)\s*$/m);
+  if (m && m[1] === "manual") return "manual";
+  return "auto";
+}
+
+/**
+ * DSL text の top-level に `layout: auto | manual` 行を set / update する。 既存 layout: 行が
+ * あれば置換、 無ければ type: 行の直後に挿入する (無ければ先頭)。
+ */
+function setLayoutMode(src: string, mode: "auto" | "manual"): string {
+  const existingRe = /^layout\s*:\s*(auto|manual)\s*$/m;
+  if (existingRe.test(src)) {
+    return src.replace(existingRe, `layout: ${mode}`);
+  }
+  const lines = src.split("\n");
+  const typeIdx = lines.findIndex((l) => /^type\s*:/.test(l));
+  if (typeIdx >= 0) {
+    lines.splice(typeIdx + 1, 0, `layout: ${mode}`);
+    return lines.join("\n");
+  }
+  return `layout: ${mode}\n${src}`;
+}
+
+/**
  * DSL text から actors: block の alias 一覧を抽出、 alias -> slug の Map を返す。
  * SVG 上 element の data-cdl-* id → actor 逆解決に使う。
  */
@@ -1519,6 +1576,40 @@ ${newActorLine}
             <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
+          {/* canvas pivot Phase 6 (CAR-1698) = layout mode toggle。 Auto = 全 element auto layout に snap 戻し
+              (posX/posY 消去)、 Manual = drag 位置を保存 (default 挙動)。 */}
+          <div className="v4-editor-layout-toggle" role="tablist" aria-label="layout mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={detectLayoutMode(src) === "auto"}
+              className={`v4-editor-bar-btn ${detectLayoutMode(src) === "auto" ? "v4-editor-bar-btn-active" : ""}`}
+              onClick={() => {
+                // Auto = 全 element の posX/posY を消去 + layout: auto を DSL 先頭に set
+                const cleared = clearActorPositions(src);
+                const withMode = setLayoutMode(cleared, "auto");
+                setSrc(withMode);
+                setDropHintWithReset("layout mode を Auto に戻しました。 全 element auto layout に snap しました。 元に戻すには Cmd+Z。", 4000);
+              }}
+              title="全 element を auto layout に snap 戻す (posX/posY 消去)"
+            >
+              Auto
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={detectLayoutMode(src) === "manual"}
+              className={`v4-editor-bar-btn ${detectLayoutMode(src) === "manual" ? "v4-editor-bar-btn-active" : ""}`}
+              onClick={() => {
+                // Manual = layout: manual を DSL 先頭に set (以降の drag は pos を保存)
+                setSrc(setLayoutMode(src, "manual"));
+                setDropHintWithReset("layout mode を Manual に切替えました。 drag した位置が保存されます。", 4000);
+              }}
+              title="Manual = drag 位置を保存 (auto layout 上書き)"
+            >
+              Manual
+            </button>
+          </div>
           <button
             type="button"
             className="v4-editor-bar-btn"
