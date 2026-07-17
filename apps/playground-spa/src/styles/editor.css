@@ -329,6 +329,19 @@
   }
   .v4-editor-svg-wrap svg {
     overflow: visible !important;
+    pointer-events: auto;
+  }
+  /* canvas pivot 追加 fix = CdlDiagramView が SVG 上に重ねる HTML overlay (phase controls
+     / status 等の DIV) が click を intercept して individual element drag が動かない問題を
+     解消する。 wrap 内の全 DIV は pointer-events: none、 SVG のみ通す。
+     元 layout / interaction (Fit / Reset button 等 toolbar 経由の click) は
+     .v4-editor-bar 側で処理するため overlay 経由 click 不要。 */
+  .v4-editor-svg-wrap div {
+    pointer-events: none;
+  }
+  .v4-editor-svg-wrap svg,
+  .v4-editor-svg-wrap svg * {
+    pointer-events: auto;
   }
   /* canvas pivot Phase 6 = layout toggle segmented control */
   .v4-editor-layout-toggle {
