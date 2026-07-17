@@ -1,88 +1,84 @@
 /**
- * canvas pivot parts binding catalog。
- * user 「パーツ同士を連動できるように、 カウンターの値でゲージが貯まる」 の実装 SSOT。
- *
- * ## 設計
- *
- * - **source** = 値を発行する parts (counter / countup 系、 単一 numeric state を持つ)
- * - **sink** = 値を受け取って visual 表現する parts (gauge / bar / ring / wave 等の 0-100% 系)
- * - **binding 経路** = drop 時に sink parts の binding target state を source parts の state と
- *   同名に rename → cdl compile 側で diagram-level state を共有 → source の value が sink に流れる
+ * canvas pivot parts binding catalog (full = 36 entries)。
+ * user 「連動の組み合わせちゃんと満たしてる？漏れない？」 の対応 2026-07-18。
+ * parts.cdl.ts の全 80 parts から binding 対応可能な 36 個 (source 8 + sink 28) を登録。
+ * heuristic 分類 = source (押される/増える累積 numeric) + sink (描画型 numeric)。
+ * standalone (色 state / 配列 state / 状態遷移) = binding scope 外 28 個。
+ * multi-sink (numeric 複数 state 持ち) = 16 個、 現状 default state で単一 bindable として扱い。
  *
  * ## 動作例
  *
- * 1. user が `partsCounterActor` を drop = actors: に `- counter1: { kind: counter-actor }` 追加
- * 2. counter1 の右上「⚡」 icon click → 連動可能 parts 一覧 (arc-gauge / percent-ring / etc)
- * 3. `partsArcGauge` を選択 → actors: に
- *    `- arc1: { kind: arc-gauge, bind: counter1.n }` 追加
- *    (bind field は「counter1 alias の state n を参照」)
- * 4. compile 側で arc1 の state `v` (default) を counter1 の state `n` と共有する経路に rename
- * 5. counter1 の n が 0→50 に animate すると arc1 も自動追従
+ * 1. `partsCounterActor` (source) を drop
+ * 2. counter1 右上「⚡」 click → 連動可能 sink (28 種) 一覧表示
+ * 3. `partsArcGauge` (sink) を選択 → `- arc1: { kind: arc-gauge, bind: counter1.n }` 追加
+ * 4. compile 側で arc の state `v` を counter1 の state `n` と同名 rename、 cdl 側 state 共有で連動
  */
 
 export type PartsRole = "source" | "sink" | "standalone";
 
 export interface PartsBindingDef {
-  /** parts identifier (parts-{name} prefix なし、 例 "arc-gauge") */
   kind: string;
-  /** parts の role = source / sink / standalone (連動不可) */
   role: PartsRole;
-  /**
-   * source 側 = 発行 state 名 (単一)。 例 counter-actor の "n"。
-   * sink 側 = binding 受信 state 名 (単一、 sink parts の visual を drive する主 state)。 例 arc-gauge の "v"。
-   * standalone は null。
-   */
   bindableState: string | null;
-  /** 値域 (source / sink 互換性判定用)、 numeric 0-100 が既定 */
   valueRange: { min: number; max: number };
-  /** UI 表示用の日本語 label */
   label: string;
 }
 
-/**
- * 全 parts の binding role 定義。 sink parts の bindableState を drop 時に
- * source parts の bindableState 名に rename する経路の SSOT。
- */
+/** 全 parts の binding role 定義 (36 entries、 2026-07-18 full audit)。 */
 export const PARTS_BINDING_CATALOG: Record<string, PartsBindingDef> = {
-  // source parts (numeric state 発行)
+  // === source (8) = 押される / 増える 累積 numeric parts ===
   "counter-actor": { kind: "counter-actor", role: "source", bindableState: "n", valueRange: { min: 0, max: 100 }, label: "カウンタ" },
   "countup": { kind: "countup", role: "source", bindableState: "n", valueRange: { min: 0, max: 100 }, label: "カウントアップ" },
+  "like-button": { kind: "like-button", role: "source", bindableState: "likes", valueRange: { min: 0, max: 100 }, label: "いいね" },
+  "shopping-cart": { kind: "shopping-cart", role: "source", bindableState: "cnt", valueRange: { min: 0, max: 100 }, label: "カート数" },
+  "mail-inbox": { kind: "mail-inbox", role: "source", bindableState: "unread", valueRange: { min: 0, max: 100 }, label: "未読メール" },
+  "coin-balance": { kind: "coin-balance", role: "source", bindableState: "coin", valueRange: { min: 0, max: 100 }, label: "コイン残高" },
+  "exp-bar": { kind: "exp-bar", role: "source", bindableState: "xp", valueRange: { min: 0, max: 100 }, label: "経験値" },
+  "bell-notification": { kind: "bell-notification", role: "source", bindableState: "alerts", valueRange: { min: 0, max: 100 }, label: "通知ベル" },
 
-  // sink parts (visual 0-100% を drive する parts)
+  // === sink (28) = 描画型 numeric parts ===
   "arc-gauge": { kind: "arc-gauge", role: "sink", bindableState: "v", valueRange: { min: 0, max: 100 }, label: "アークゲージ" },
   "percent-ring": { kind: "percent-ring", role: "sink", bindableState: "v", valueRange: { min: 0, max: 100 }, label: "パーセントリング" },
   "horizontal-bar": { kind: "horizontal-bar", role: "sink", bindableState: "pv", valueRange: { min: 0, max: 100 }, label: "横進捗バー" },
-  "wave-gauge": { kind: "wave-gauge", role: "sink", bindableState: "lv", valueRange: { min: 0, max: 100 }, label: "波打つ矩形ゲージ" },
+  "wave-gauge": { kind: "wave-gauge", role: "sink", bindableState: "lv", valueRange: { min: 0, max: 100 }, label: "波打つゲージ" },
   "bucket-reservoir": { kind: "bucket-reservoir", role: "sink", bindableState: "water", valueRange: { min: 0, max: 100 }, label: "バケット貯留" },
+  "thermometer": { kind: "thermometer", role: "sink", bindableState: "temp", valueRange: { min: 0, max: 100 }, label: "温度計" },
+  "speedometer": { kind: "speedometer", role: "sink", bindableState: "kph", valueRange: { min: 0, max: 100 }, label: "スピードメーター" },
+  "volume-meter": { kind: "volume-meter", role: "sink", bindableState: "vol", valueRange: { min: 0, max: 100 }, label: "音量メーター" },
+  "disk-usage": { kind: "disk-usage", role: "sink", bindableState: "used", valueRange: { min: 0, max: 100 }, label: "ディスク使用率" },
+  "budget-usage": { kind: "budget-usage", role: "sink", bindableState: "used", valueRange: { min: 0, max: 100 }, label: "予算消化率" },
+  "battery-level": { kind: "battery-level", role: "sink", bindableState: "bat", valueRange: { min: 0, max: 100 }, label: "バッテリー残量" },
+  "sparkline": { kind: "sparkline", role: "sink", bindableState: "v", valueRange: { min: 0, max: 100 }, label: "スパークライン" },
+  "pulse-indicator": { kind: "pulse-indicator", role: "sink", bindableState: "rate", valueRange: { min: 0, max: 100 }, label: "パルス指標" },
+  "heartbeat": { kind: "heartbeat", role: "sink", bindableState: "bpm", valueRange: { min: 0, max: 100 }, label: "心拍波形" },
+  "cloud-sync": { kind: "cloud-sync", role: "sink", bindableState: "sync", valueRange: { min: 0, max: 100 }, label: "クラウド同期" },
+  "sale-tag": { kind: "sale-tag", role: "sink", bindableState: "off", valueRange: { min: 0, max: 100 }, label: "セール割引率" },
+  "digital-clock": { kind: "digital-clock", role: "sink", bindableState: "hh", valueRange: { min: 0, max: 100 }, label: "デジタル時計" },
+  "badge-count": { kind: "badge-count", role: "sink", bindableState: "cnt", valueRange: { min: 0, max: 100 }, label: "バッジカウント" },
+  "countdown": { kind: "countdown", role: "sink", bindableState: "sec", valueRange: { min: 0, max: 100 }, label: "カウントダウン" },
+  "bind-arc-sweep": { kind: "bind-arc-sweep", role: "sink", bindableState: "deg", valueRange: { min: 0, max: 100 }, label: "arc sweep" },
+  "bind-countdown": { kind: "bind-countdown", role: "sink", bindableState: "sec", valueRange: { min: 0, max: 100 }, label: "bind countdown" },
+  "bind-counter-radius": { kind: "bind-counter-radius", role: "sink", bindableState: "count", valueRange: { min: 0, max: 100 }, label: "counter radius" },
+  "bind-grow-shrink": { kind: "bind-grow-shrink", role: "sink", bindableState: "r", valueRange: { min: 0, max: 100 }, label: "grow shrink" },
+  "bind-pulse-cycle": { kind: "bind-pulse-cycle", role: "sink", bindableState: "pulse", valueRange: { min: 0, max: 100 }, label: "pulse cycle" },
+  "bind-ring-counter": { kind: "bind-ring-counter", role: "sink", bindableState: "k", valueRange: { min: 0, max: 100 }, label: "ring counter" },
+  "bind-template-chain": { kind: "bind-template-chain", role: "sink", bindableState: "rate", valueRange: { min: 0, max: 100 }, label: "template chain" },
+  "bind-tween-chain-4": { kind: "bind-tween-chain-4", role: "sink", bindableState: "v", valueRange: { min: 0, max: 100 }, label: "tween chain 4" },
+  "bind-wave-level-2phase": { kind: "bind-wave-level-2phase", role: "sink", bindableState: "lvl", valueRange: { min: 0, max: 100 }, label: "wave level" },
 };
 
-/**
- * 指定 kind の binding role を返す。 未登録 kind は standalone として扱う (連動不可)。
- */
 export function getBindingDef(kind: string): PartsBindingDef {
   return PARTS_BINDING_CATALOG[kind] ?? {
-    kind,
-    role: "standalone",
-    bindableState: null,
-    valueRange: { min: 0, max: 100 },
-    label: kind,
+    kind, role: "standalone", bindableState: null, valueRange: { min: 0, max: 100 }, label: kind,
   };
 }
 
-/**
- * source parts に対して連動可能な sink parts の一覧を返す (UI popup 用)。
- * 現状は「全 sink parts が全 source parts と互換」 の単純 mapping (valueRange 統一)。
- * 将来 valueRange 制約が厳密化されたら本関数で filter する。
- */
 export function listBindableSinks(sourceKind: string): PartsBindingDef[] {
   const source = getBindingDef(sourceKind);
   if (source.role !== "source") return [];
   return Object.values(PARTS_BINDING_CATALOG).filter((p) => p.role === "sink");
 }
 
-/**
- * 逆方向 = sink parts に対して 対応可能な source parts 一覧を返す (「この gauge を何と連動するか」 逆引き用)。
- */
 export function listBindableSources(sinkKind: string): PartsBindingDef[] {
   const sink = getBindingDef(sinkKind);
   if (sink.role !== "sink") return [];
