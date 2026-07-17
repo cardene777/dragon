@@ -13,7 +13,16 @@ import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
 import { sequence, flow, swimlane, er, stateMachine, topology, diagram } from "@cardenelabs/cdl";
 
-export function compileToCdl(doc: DslDocument): CdlDiagram {
+export interface CompileToCdlOpts {
+  /**
+   * CAR-1657 = parts identifier lookup catalog、 caller (CdlEditor / test) が inject。
+   * DslActor.partId が set された actor を検出したら partsCatalog[partId] から CdlDiagram を
+   * lookup + mergePartIntoDiagram で target に統合。 未渡し時は parts kind actor を skip + warn。
+   */
+  partsCatalog?: Record<string, CdlDiagram>;
+}
+
+export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
   let diagram: CdlDiagram;
   switch (doc.type) {
     case "sequence":
@@ -59,7 +68,239 @@ export function compileToCdl(doc: DslDocument): CdlDiagram {
   }
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
-  return applyV05Extensions(diagram, doc);
+  // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
+  const extended = applyV05Extensions(diagram, doc);
+  return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+}
+
+/**
+ * CAR-1657 = doc.actors 中の partId set actor を検出、 partsCatalog から CdlDiagram を lookup、
+ * mergePartIntoDiagram で target に prefix 付き統合する。 partsCatalog 未渡し or 該当 partId
+ * 未登録なら warn を残して skip、 diagram render は継続 (壊さない設計)。
+ */
+function mergePartsFromActors(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog?: Record<string, CdlDiagram>,
+): CdlDiagram {
+  const partsActors = doc.actors.filter((a) => a.partId !== undefined);
+  if (partsActors.length === 0) return target;
+  if (!partsCatalog) {
+    if (typeof console !== "undefined" && console.warn) {
+      const names = partsActors.map((a) => `${a.name} (kind: ${a.partId ?? "?"})`).join(", ");
+      console.warn(`[dragon] parts kind actors detected but no partsCatalog provided: ${names}`);
+    }
+    return target;
+  }
+  for (const actor of partsActors) {
+    const partId = actor.partId;
+    // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
+    // inherited property (`__proto__` 等) を除外する prototype pollution 対策。 `parts-` prefix 経路も
+    // Object.hasOwn 経由で確認する。
+    if (typeof partId !== "string" || partId.length === 0) continue;
+    let part: CdlDiagram | undefined;
+    if (Object.hasOwn(partsCatalog, partId)) {
+      part = partsCatalog[partId];
+    } else if (Object.hasOwn(partsCatalog, `parts-${partId}`)) {
+      part = partsCatalog[`parts-${partId}`];
+    }
+    if (!part) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`);
+      }
+      continue;
+    }
+    // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
+    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slugify(alias)}-header /
+    // -spacer / -footer / s{N}-{slugify(alias)}` を生成、 alias slug prefix match で全 sweep。
+    const aliasSlug = slugify(actor.name);
+    target.nodes = target.nodes.filter((n) => {
+      if (n.id === aliasSlug) return false;
+      if (n.id.startsWith(`${aliasSlug}-`)) return false;
+      // sequence step anchor = `s{N}-{aliasSlug}` pattern
+      if (/^s\d+-/.test(n.id) && n.id.endsWith(`-${aliasSlug}`)) return false;
+      return true;
+    });
+    // edge も同 alias prefix / suffix 経由で削除 (parts actor に接続していた flow を除去、
+    // parts merge 後の flow は user が別途書く経路になる)
+    target.edges = target.edges.filter((e) => {
+      const relatedToAlias = (id: string) => id === aliasSlug || id.startsWith(`${aliasSlug}-`) || (id.startsWith("s") && id.endsWith(`-${aliasSlug}`));
+      return !relatedToAlias(e.from) && !relatedToAlias(e.to);
+    });
+    // 削除された nodes を activate 参照している既存 phase の cleanup
+    for (const phase of target.phases) {
+      phase.activate = phase.activate.filter((id) => {
+        if (id === aliasSlug) return false;
+        if (id.startsWith(`${aliasSlug}-`)) return false;
+        return true;
+      });
+    }
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
+  }
+  return target;
+}
+
+/**
+ * CAR-1657 = parts CdlDiagram (単一 part 内容) を target CdlDiagram に prefix 付きで merge する。
+ * alias = user が書く actor 名 ('arc1')、 全 id を '{alias}__{origId}' で prefix、 lane 参照 rename、
+ * state initial は stateOverride で上書き可、 shape / subtitle / value 内の '{stateName}' template も
+ * '{alias__stateName}' に rewrite する。 phase parallel merge (activate / tweens / sets の id 参照 rename)。
+ */
+function mergePartIntoDiagram(
+  target: CdlDiagram,
+  part: CdlDiagram,
+  alias: string,
+  stateOverride: Record<string, number | string | boolean>,
+  laneMapping: string | undefined,
+): void {
+  const prefix = (id: string): string => `${alias}__${id}`;
+  const stateIdSet = new Set(part.states.map((s) => s.id));
+  const rewriteTemplate = (s: string | undefined): string | undefined => {
+    if (!s) return s;
+    return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
+      return stateIdSet.has(name) ? `{${prefix(name)}}` : m;
+    });
+  };
+
+  // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
+  const targetLaneId = laneMapping;
+  const laneIdMap = new Map<string, string>();
+  for (const laneOrig of part.lanes) {
+    if (targetLaneId) {
+      laneIdMap.set(laneOrig.id, targetLaneId);
+    } else {
+      const newLaneId = prefix(laneOrig.id);
+      laneIdMap.set(laneOrig.id, newLaneId);
+      // parts 独自 lane が target に追加される (target 側 lane と衝突しない)
+      target.lanes.push({
+        ...laneOrig,
+        id: newLaneId,
+        label: laneOrig.label ?? alias,
+      });
+    }
+  }
+
+  // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
+  for (const nodeOrig of part.nodes) {
+    const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
+    // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
+    // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
+    const newShape = nodeOrig.shape
+      ? deepRewriteStrings(nodeOrig.shape as unknown, rewriteTemplate)
+      : undefined;
+    target.nodes.push({
+      ...nodeOrig,
+      id: prefix(nodeOrig.id),
+      lane: mappedLane,
+      title: rewriteTemplate(nodeOrig.title) ?? nodeOrig.title,
+      subtitle: rewriteTemplate(nodeOrig.subtitle),
+      value: rewriteTemplate(nodeOrig.value),
+      ...(newShape ? { shape: newShape as CdlDiagram["nodes"][number]["shape"] } : {}),
+    });
+  }
+
+  // state merge = id prefix + initial override
+  for (const stateOrig of part.states) {
+    const overrideVal = stateOverride[stateOrig.id];
+    target.states.push({
+      id: prefix(stateOrig.id),
+      initial: overrideVal !== undefined ? (overrideVal as number | string) : stateOrig.initial,
+    });
+  }
+
+  // edge merge = id / from / to prefix (parts 内 edge は稀だが対応)
+  for (const edgeOrig of part.edges) {
+    target.edges.push({
+      ...edgeOrig,
+      id: prefix(edgeOrig.id),
+      from: prefix(edgeOrig.from),
+      to: prefix(edgeOrig.to),
+    });
+  }
+
+  // codex-review CRITICAL fix (§ readouts merge) = readout 系 parts (percent-ring / sparkline /
+  // donut / KPI 等) は node/state だけでは render されず、 readouts field が必須。 全 readout の
+  // id prefix + source / historySource / *Source field の state template rewrite で対応。
+  if (part.readouts && part.readouts.length > 0) {
+    if (!target.readouts) target.readouts = [];
+    for (const readoutOrig of part.readouts) {
+      const rewritten = deepRewriteStrings(readoutOrig as unknown, rewriteTemplate) as CdlDiagram["readouts"] extends readonly (infer R)[] ? R : never;
+      // id は shape 全 walk で rewrite されないので個別に prefix
+      target.readouts.push({
+        ...(rewritten as { id: string }),
+        id: prefix((rewritten as { id: string }).id),
+      } as CdlDiagram["readouts"] extends readonly (infer R)[] ? R : never);
+    }
+  }
+
+  // codex-review MAJOR fix (§ phase parallel merge) = 前実装は append (sequential)、 spec は parallel
+  // default = parts phase を target 側 phase 個別に merge、 duration は max、 activate / tweens / sets
+  // は union。 stateOverride.phase === false 時は parts phase 破棄 (opt-out)。
+  const phaseOptOut = stateOverride["phase"] === false;
+  if (phaseOptOut) {
+    return; // parts phase を破棄、 activate / tweens / sets の rewrite 不要
+  }
+  if (target.phases.length === 0) {
+    // target に phase なし = parts phase をそのまま追加 (prefix 付き)
+    for (const phaseOrig of part.phases) {
+      target.phases.push({
+        ...phaseOrig,
+        id: prefix(phaseOrig.id),
+        activate: phaseOrig.activate.map(prefix),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+      });
+    }
+  } else {
+    // parallel merge = 各 target phase に対応する parts phase を index-wise で合成 (min の phase 数まで)、
+    // 残 parts phase は追加 append (target より parts phase 数が多い場合)
+    const targetLen = target.phases.length;
+    const partsLen = part.phases.length;
+    const commonLen = Math.min(targetLen, partsLen);
+    for (let i = 0; i < commonLen; i++) {
+      const targetPhase = target.phases[i]!;
+      const partPhase = part.phases[i]!;
+      targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
+      targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
+      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) }))];
+      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) }))];
+    }
+    // parts phase 余剰は append (target より parts が長い場合)
+    for (let i = commonLen; i < partsLen; i++) {
+      const phaseOrig = part.phases[i]!;
+      target.phases.push({
+        ...phaseOrig,
+        id: prefix(phaseOrig.id),
+        activate: phaseOrig.activate.map(prefix),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+      });
+    }
+  }
+}
+
+/**
+ * codex-review MAJOR fix = shape / readout の nested object / array 内 string leaf を全て
+ * rewrite 関数に通す再帰 walk。 非 string leaf (number / boolean / null) は保持、
+ * 循環参照は Set で防御 (現状 shape / readout は tree 構造で cycle なし想定、 defensive)。
+ */
+function deepRewriteStrings(
+  value: unknown,
+  rewrite: (s: string | undefined) => string | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
+  if (typeof value === "string") return rewrite(value) ?? value;
+  if (value === null || typeof value !== "object") return value;
+  if (seen.has(value as object)) return value;
+  seen.add(value as object);
+  if (Array.isArray(value)) {
+    return value.map((v) => deepRewriteStrings(v, rewrite, seen));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = deepRewriteStrings(v, rewrite, seen);
+  }
+  return out;
 }
 
 /**

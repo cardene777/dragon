@@ -4,7 +4,7 @@ import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violatio
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
-import { deserializePart, isPartsMarker, PARTS_MARKER, serializePart } from "@/lib/parts-serializer";
+import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -166,6 +166,48 @@ const UNFIXABLE_AXIS_HINT: Record<string, string> = {
   "marker-gradient-def-integrity": "edge tone を TONE_COLORS 定義済 value に修正",
   "dom-complexity-budget": "diagram を分割 or 不要 node/edge 削減",
 };
+
+/**
+ * CAR-1657 = src YAML の actors: block から既存 actor 名を全 collect する helper。
+ * drop 時の alias 連番生成 (`arc1` → `arc2`) で衝突回避に使う。
+ */
+function collectActorNamesFromSrc(src: string): Set<string> {
+  const names = new Set<string>();
+  const lines = src.split("\n");
+  let inActors = false;
+  for (const ln of lines) {
+    if (/^actors\s*:\s*$/.test(ln)) { inActors = true; continue; }
+    if (inActors) {
+      if (/^[a-zA-Z]/.test(ln)) { inActors = false; continue; }
+      const m = ln.match(/^\s*-\s+"?([^\s":{}]+)"?/);
+      if (m) names.add(m[1]!);
+    }
+  }
+  return names;
+}
+
+/**
+ * CAR-1657 = src YAML の actors: block 末尾に 1 line append する helper。
+ * actors: block が見つからない場合は null 返却 (caller が REPLACE fallback で新規 diagram を作る経路)。
+ */
+function appendActorLine(src: string, newLine: string): string | null {
+  const lines = src.split("\n");
+  const actorsIdx = lines.findIndex((l) => /^actors\s*:\s*$/.test(l));
+  if (actorsIdx < 0) return null;
+  let insertIdx = lines.length;
+  for (let i = actorsIdx + 1; i < lines.length; i++) {
+    if (/^[a-zA-Z]/.test(lines[i] ?? "")) {
+      insertIdx = i;
+      break;
+    }
+  }
+  while (insertIdx > actorsIdx + 1 && (lines[insertIdx - 1] ?? "").trim() === "") {
+    insertIdx -= 1;
+  }
+  const before = lines.slice(0, insertIdx);
+  const after = lines.slice(insertIdx);
+  return [...before, newLine, ...after].join("\n");
+}
 
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
@@ -498,27 +540,36 @@ export function CdlEditor(): React.JSX.Element {
     (window as unknown as { __cdlEditorSrc?: string }).__cdlEditorSrc = src;
   }, [src]);
 
+  // CAR-1657 = parts catalog を CdlEditor 側で load、 textDslToDiagram に inject する経路。
+  // parts identifier (arc-gauge / wave-gauge 等) を kind field で書ける unified syntax の compile 時
+  // lookup 用。 loadPartsItems が partsItems state を populate する useEffect と同 tab 切替 trigger 利用。
+  const partsCatalog = useMemo(() => {
+    const map: Record<string, CdlDiagram> = {};
+    for (const item of partsItems) {
+      // parts.cdl.ts の id = 'parts-arc-gauge'、 user が syntax で書く時は prefix なし ('arc-gauge')。
+      // 両方を key で登録して parser 側の任意判定に対応。
+      map[item.id] = item.diagram;
+      const stripped = item.id.startsWith("parts-") ? item.id.slice(6) : item.id;
+      map[stripped] = item.diagram;
+    }
+    return map;
+  }, [partsItems]);
+
   // src 変更時 debounce 300ms で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       try {
-        // parts JSON escape hatch = 先頭 #!parts marker を検出したら JSON.parse に切替、
-        // textDslToDiagram を bypass して CdlDiagram を直接 setDiagram に渡す
-        // (decision-log 2026-07-16-dragon-editor-parts-json-escape-hatch)。
-        // parts (cdl builder AST) は dragon text DSL で round-trip 不可能な shape / dyn-* field
-        // を含むため、 escape hatch がないと editor で render できない。
+        // CAR-1657 = 旧 #!parts JSON escape hatch は backward compat 経路 (deprecated、 auto-convert 前提)。
+        // 既 share URL / user が保存した buffer に marker が残っている可能性があり、 open 時は
+        // 従来通り render 継続する (次回 drop で actors syntax に置換される)。
+        // 新規 drop は parts kind syntax (actors: に kind = parts identifier) を使う。
         if (isPartsMarker(src)) {
           const part = deserializePart(src);
           if (!part) {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
-          // codex-review PR #413 CRITICAL fix = deserializePart の shape check (id + nodes array) は
-          // 最低限で、 lanes / phases 等 CdlDiagramView が触る field は未検証。 手編集で
-          // `#!parts\n{"id":"x","nodes":[]}` 等を書くと CdlDiagramView → compile() 内 lanes.length
-          // で throw、 Error Boundary なしで editor 全体 unmount する。 setDiagram(part) 前に
-          // compile() で完全 validation を通し、 throw は外側 catch で error 表示に落とす。
           compile(part);
           setDiagram(part);
           setError(null);
@@ -530,7 +581,8 @@ export function CdlEditor(): React.JSX.Element {
           }
           return;
         }
-        const d = textDslToDiagram(src);
+        // CAR-1657 = partsCatalog を渡して parts kind actor を merge 展開させる経路
+        const d = textDslToDiagram(src, { partsCatalog });
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
         compile(d);
         setDiagram(d);
@@ -883,19 +935,48 @@ animation:
       setDropHintWithReset(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`, 6000);
       return;
     }
-    // REPLACE semantic = editor 内容を丸ごと parts JSON escape hatch text で置換する
-    // (decision-log 2026-07-16-dragon-editor-drop-semantic-replace)。 MERGE は別 Issue で後続。
-    // user 編集中の内容がある場合は confirm dialog で確認 (CAR-1657 user report 対応)。
-    if (!confirmReplaceIfDirty(item.title)) {
-      setDropHintWithReset("drop をキャンセルしました。 編集内容は保持されています。", 4000);
+    // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
+    // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
+    // alias は既 actor 名衝突回避で連番生成 ('arc1' → 'arc2')、 lane 指定は default なし (compile 側で内部 lane 生成)。
+    const kindValue = item.id.startsWith("parts-") ? item.id.slice(6) : item.id;
+    const aliasBase = kindValue.replace(/[^a-zA-Z0-9]/g, "");
+    const existingActorNames = collectActorNamesFromSrc(src);
+    let alias = `${aliasBase}1`;
+    for (let i = 1; i <= 1000 && existingActorNames.has(alias); i++) {
+      alias = `${aliasBase}${i + 1}`;
+    }
+    // parts state の initial 値を inline state override として展開 (parts に state 0 個ならなし)
+    const stateInits: string[] = item.diagram.states.map((s) => {
+      const v = s.initial;
+      const rendered = typeof v === "string" ? `"${v}"` : String(v);
+      return `${s.id}: ${rendered}`;
+    });
+    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+    const newActorLine = `  - ${alias}: { ${inlineFields} }`;
+    const newSrc = appendActorLine(src, newActorLine);
+    if (newSrc === null) {
+      // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
+      if (!confirmReplaceIfDirty(item.title)) {
+        setDropHintWithReset("drop をキャンセルしました。 編集内容は保持されています。", 4000);
+        return;
+      }
+      const replaceSrc = `title: "${item.title}"
+type: sequence
+
+actors:
+${newActorLine}
+`;
+      setSrc(replaceSrc);
+      lastLoadedSrcRef.current = replaceSrc;
+      setActiveSample(item.title);
+      setDropHintWithReset(`parts "${item.title}" を新規 diagram として読み込みました。 元に戻すには Cmd+Z。`, 6000);
       return;
     }
-    const newSrc = serializePart(item.diagram);
+    // additive path = 既存 diagram に append、 confirm dialog 不要 (destructive でない)
     setSrc(newSrc);
     lastLoadedSrcRef.current = newSrc;
-    setActiveSample(item.title);
-    setDropHintWithReset(`parts "${item.title}" を editor に読み込みました (drop で置換)。 元に戻すには Cmd+Z。`, 6000);
-  }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty]);
+    setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。 元に戻すには Cmd+Z。`, 6000);
+  }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty, src]);
 
   return (
     <div className="v4-editor">
@@ -987,12 +1068,36 @@ animation:
                   data-part-id={p.id}
                   title={`${p.subtitle} (drag してプレビューに drop)`}
                   onClick={() => {
-                    // click = drag が使いづらい環境向け fallback、 drop と同じ REPLACE semantic
-                    if (!confirmReplaceIfDirty(p.title)) return;
-                    const newSrc = serializePart(p.diagram);
-                    setSrc(newSrc);
-                    lastLoadedSrcRef.current = newSrc;
-                    setActiveSample(p.title);
+                    // CAR-1657 click = drop と同 semantic = actors: append (additive)。
+                    // actors: block なし = REPLACE fallback (新規 diagram 作成、 confirm dialog 経由)
+                    const kindValue = p.id.startsWith("parts-") ? p.id.slice(6) : p.id;
+                    const aliasBase = kindValue.replace(/[^a-zA-Z0-9]/g, "");
+                    const existingNames = collectActorNamesFromSrc(src);
+                    let alias = `${aliasBase}1`;
+                    for (let i = 1; i <= 1000 && existingNames.has(alias); i++) {
+                      alias = `${aliasBase}${i + 1}`;
+                    }
+                    const stateInits: string[] = p.diagram.states.map((s) => {
+                      const v = s.initial;
+                      const rendered = typeof v === "string" ? `"${v}"` : String(v);
+                      return `${s.id}: ${rendered}`;
+                    });
+                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+                    const newActorLine = `  - ${alias}: { ${inlineFields} }`;
+                    const appended = appendActorLine(src, newActorLine);
+                    if (appended !== null) {
+                      setSrc(appended);
+                      lastLoadedSrcRef.current = appended;
+                      setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。`, 4000);
+                    } else {
+                      // REPLACE fallback with confirm
+                      if (!confirmReplaceIfDirty(p.title)) return;
+                      const replaceSrc = `title: "${p.title}"\ntype: sequence\n\nactors:\n${newActorLine}\n`;
+                      setSrc(replaceSrc);
+                      lastLoadedSrcRef.current = replaceSrc;
+                      setActiveSample(p.title);
+                      setDropHintWithReset(`parts "${p.title}" を新規 diagram として読み込みました。`, 4000);
+                    }
                   }}
                 >
                   {p.title.replace(/^parts/, "").replace(/([A-Z])/g, " $1").trim() || p.id}
@@ -1000,7 +1105,7 @@ animation:
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              パーツを右のプレビューに drag するか、 クリックで読み込みます。 編集中の内容がある場合は置換前に確認 dialog が表示されます (Cmd+Z で undo 可)。
+              パーツを右のプレビューに drag するか、 クリックで既存 diagram の actors: に追加します。 Cmd+Z で undo 可、 既存内容は消えません。
             </div>
           </div>
         )}
