@@ -897,11 +897,10 @@ export function CdlEditor(): React.JSX.Element {
         cx = r.left + r.width / 2;
         cy = r.top + 20;
       } else continue;
-      // sequence diagram では lane は縦 column、 magnet は X 方向を重視する。
-      // X 距離 < threshold なら Y に関係なく snap 対象、 純 2D 距離 fallback 併用。
-      const dx = Math.abs(clientX - cx);
-      const dy = Math.abs(clientY - cy);
-      const dist = dx < MAGNET_THRESHOLD_PX ? dx : Math.hypot(dx, dy);
+      // magnet は 2D Euclidean 距離、 header center からの実距離で判定。
+      // sequence lane は縦長だが header は上部のみのため、 下方向大移動は snap 対象外になる
+      // (user 期待 = 「他 element 近くに置いた時だけ揃える」 と一致)。
+      const dist = Math.hypot(clientX - cx, clientY - cy);
       if (dist < bestDist) {
         bestDist = dist;
         bestAlias = alias;
