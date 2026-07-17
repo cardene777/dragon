@@ -343,6 +343,15 @@
   .v4-editor-svg-wrap svg * {
     pointer-events: auto;
   }
+  /* canvas pivot 追加 fix = sequence lane 上部の float lane-label text を hide。
+     header box (rounded rect with text) が同 actor 名を表示するため重複表示になり、
+     user 実使い verify で 「文字だけのユーザー」 として混乱源になっていた。
+     data-cdl-role="lane-label" は cdl stage.tsx の lane render で発行、 CSS で display:none
+     すれば dragon 側から compile 変更なしに hide できる。 元 lane label が必要な用途
+     (別 diagram context) では別 override で復活可能な CSS-only 経路。 */
+  .v4-editor-svg-wrap [data-cdl-role="lane-label"] {
+    display: none;
+  }
   /* canvas pivot = magnet zone hint text */
   .v4-editor-bar-hint {
     font-family: var(--v4-mono);
