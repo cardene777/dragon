@@ -135,6 +135,13 @@ function mergePartsFromActors(
         return true;
       });
     }
+    // canvas pivot Phase 5 core fix (CAR-1697) = sequence preset が actor 1 個につき生成する lane も
+    // 削除する。 parts actor は parts 側で独自 lane を持つため、 sequence 生成 lane (id = aliasSlug、
+    // label = actor.name) は不要で orphan label 源になる (2026-07-17 user 実使い verify で
+    // 「上に文字だけのもの (achievement)」 として検知)。 user が actor.lane 明示指定で
+    // parts を既存 lane に merge する経路 (mergePartIntoDiagram の targetLaneId 経路) は本 filter
+    // 対象外 (aliasSlug lane はそもそも生成されないため)。
+    target.lanes = target.lanes.filter((l) => l.id !== aliasSlug);
     mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
   }
   return target;
@@ -172,10 +179,16 @@ function mergePartIntoDiagram(
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
       // parts 独自 lane が target に追加される (target 側 lane と衝突しない)
+      // canvas pivot Phase 5 core fix (CAR-1697) = parts 側 laneOrig.label が undefined の時
+      // alias fallback しない (undefined 継承)。 従来 alias fallback = "achievement1" 等の
+      // orphan lane label が top に表示される bug 源で、 sequence preset が既に生成する
+      // alias 名 lane と重複していた。 parts は自前で node title / subtitle 描画するため
+      // lane label は不要。 cdl renderer が undefined を skip する前提 ("" 空文字は
+      // lane.id を fallback にして "achievement1__l" 表示される bug で確認済)。
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
-        label: laneOrig.label ?? alias,
+        label: laneOrig.label,
       });
     }
   }
