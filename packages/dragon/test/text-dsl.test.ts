@@ -158,7 +158,7 @@ describe("Text DSL compiler (v0.1, sequence preset)", () => {
   });
 
   it("compile: 不正 DSL → throw", () => {
-    expect(() => textDslToDiagram("invalid")).toThrow(/Dragon DSL parse error/);
+    expect(() => textDslToDiagram("invalid")).toThrow(/Dragon DSL (v0\.5 )?parse error/);
   });
 });
 
