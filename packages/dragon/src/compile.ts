@@ -83,25 +83,49 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
  */
 function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void {
   for (const actor of doc.actors) {
-    if (actor.posX === undefined || actor.posY === undefined) continue;
     if (actor.partId !== undefined) continue; // parts actor は別経路 (mergePartsFromActors) で処理
     const aliasSlug = slugify(actor.name);
-    // lane 対応 = lane.id が actor slug or actor name と一致
-    for (const lane of diagram.lanes) {
-      if (lane.id === aliasSlug || lane.id === actor.name) {
-        lane.posX = actor.posX;
-        lane.posY = actor.posY;
-        if (actor.posW !== undefined) lane.posW = actor.posW;
-        if (actor.posH !== undefined) lane.posH = actor.posH;
+    // actor 全体 posX/Y = lane と単一 node に一括反映 (従来経路)
+    if (actor.posX !== undefined && actor.posY !== undefined) {
+      for (const lane of diagram.lanes) {
+        if (lane.id === aliasSlug || lane.id === actor.name) {
+          lane.posX = actor.posX;
+          lane.posY = actor.posY;
+          if (actor.posW !== undefined) lane.posW = actor.posW;
+          if (actor.posH !== undefined) lane.posH = actor.posH;
+        }
+      }
+      for (const node of diagram.nodes) {
+        if (node.id === aliasSlug || node.id === actor.name) {
+          node.posX = actor.posX;
+          node.posY = actor.posY;
+          if (actor.posW !== undefined) node.posW = actor.posW;
+          if (actor.posH !== undefined) node.posH = actor.posH;
+        }
       }
     }
-    // node 対応 = node.id が actor slug or actor name と一致 (単一 node preset = flow / class / pie 等)
-    for (const node of diagram.nodes) {
-      if (node.id === aliasSlug || node.id === actor.name) {
-        node.posX = actor.posX;
-        node.posY = actor.posY;
-        if (actor.posW !== undefined) node.posW = actor.posW;
-        if (actor.posH !== undefined) node.posH = actor.posH;
+    // canvas pivot UX 修正 (B1) = actor.nodes[subKey] を対応 CDL node に個別反映。
+    // sub-node id pattern を actor scope 限定の 2 経路に絞る (subagent review MAJOR-1 対応、 CAR-canvas-pivot):
+    //   1. `{aliasSlug}-{subKey}` = header / footer / spacer 等 suffix
+    //   2. `{subKey}-{aliasSlug}` = sequence step box `s{N}-{aliasSlug}` 等 prefix
+    // 旧 `node.id === subKey` 完全一致 fallback は actor scope を持たず cross-actor pollution risk
+    // (別 actor が保有する同名 id node に座標が漏れる silent bug) のため削除。 全 sub-node は必ず
+    // aliasSlug を接頭 / 接尾に含む形式で生成されるため、 2 経路で網羅済。
+    // lane 側は触らない = 他 sub-node の auto layout 経路を保持 (B1 独立性の SSOT)。
+    if (actor.nodes) {
+      for (const [subKey, override] of Object.entries(actor.nodes)) {
+        if (override.posX === undefined || override.posY === undefined) continue;
+        for (const node of diagram.nodes) {
+          if (
+            node.id === `${aliasSlug}-${subKey}` ||
+            node.id === `${subKey}-${aliasSlug}`
+          ) {
+            node.posX = override.posX;
+            node.posY = override.posY;
+            if (override.posW !== undefined) node.posW = override.posW;
+            if (override.posH !== undefined) node.posH = override.posH;
+          }
+        }
       }
     }
   }

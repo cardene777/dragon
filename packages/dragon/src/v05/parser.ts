@@ -45,6 +45,7 @@ import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type {
   DslDocument,
   DslActor,
+  DslActorNodeOverride,
   DslStep,
   DslAnimate,
   DslState,
@@ -550,6 +551,8 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "posY",
   "posW",
   "posH",
+  // canvas pivot UX 修正 (B1) = sub-node 単位 override map (nested `nodes: { header: {...} }`)
+  "nodes",
 ]);
 
 function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
@@ -572,6 +575,53 @@ function extractStateOverride(opts: Record<string, string>): Record<string, numb
     count += 1;
   }
   return count > 0 ? out : undefined;
+}
+
+/**
+ * canvas pivot UX 修正 (B1) = actor entry の inline map から `nodes: { header: { posX: ..., ... }, ... }`
+ * 形式の nested override を抽出する。 outer parseInlineMapping が opts.nodes を string としてそのまま
+ * 保持 (value 内 nested `{ }` は depth-aware で保護済) しているので、 本 fn で「outer `{...}` を剥がして
+ * key: sub-map ペアに再 split → 各 sub-map を parseInlineMapping で解いて posX/Y/W/H に coerce」 する。
+ * 未 field or 空 object なら undefined 返し (caller は actor.nodes を set しない)。
+ */
+function parseActorNodesField(raw: string | undefined): Record<string, DslActorNodeOverride> | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return undefined;
+  const inner = trimmed.slice(1, -1).trim();
+  if (!inner) return undefined;
+  // depth-aware split (parseInlineMapping と同じ logic を local reuse、 nested `{ }` / `[ ]` 保護)
+  const parts: string[] = [];
+  let depth = 0;
+  let buf = "";
+  for (let i = 0; i < inner.length; i += 1) {
+    const c = inner[i]!;
+    if (c === "[" || c === "{") depth += 1;
+    else if (c === "]" || c === "}") depth -= 1;
+    if (c === "," && depth === 0) {
+      parts.push(buf);
+      buf = "";
+      continue;
+    }
+    buf += c;
+  }
+  if (buf.trim()) parts.push(buf);
+  const out: Record<string, DslActorNodeOverride> = {};
+  for (const p of parts) {
+    const colonIdx = p.indexOf(":");
+    if (colonIdx < 0) continue;
+    const key = p.slice(0, colonIdx).trim();
+    const val = p.slice(colonIdx + 1).trim();
+    if (!key || !val.startsWith("{") || !val.endsWith("}")) continue;
+    const nodeOpts = parseInlineMapping(val.slice(1, -1));
+    out[key] = {
+      posX: numberOrUndef(nodeOpts.posX),
+      posY: numberOrUndef(nodeOpts.posY),
+      posW: numberOrUndef(nodeOpts.posW),
+      posH: numberOrUndef(nodeOpts.posH),
+    };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function coerceStateValue(raw: string): number | string | boolean {
@@ -627,6 +677,8 @@ function parseActor(line: Line): DslActor | null {
       posY: numberOrUndef(opts.posY),
       posW: numberOrUndef(opts.posW),
       posH: numberOrUndef(opts.posH),
+      // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
+      nodes: parseActorNodesField(opts.nodes),
       pos: { line: line.no },
     };
   }
