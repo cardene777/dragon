@@ -68,9 +68,43 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   }
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
+  // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
+  applyCanvasPivotPositions(diagram, doc);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, doc);
   return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+}
+
+/**
+ * canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y/W/H を CDL 側 lane / node に伝播。
+ * preset builder が生成した diagram に対して、 doc.actors の 4 field を絶対座標として反映する。
+ * slugify で actor 名 → lane id / node id の逆引き、 posX/Y set 済 actor に対応する lane / node に
+ * 座標を書込む。 未指定 actor は従来 auto layout 経路そのまま。
+ */
+function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void {
+  for (const actor of doc.actors) {
+    if (actor.posX === undefined || actor.posY === undefined) continue;
+    if (actor.partId !== undefined) continue; // parts actor は別経路 (mergePartsFromActors) で処理
+    const aliasSlug = slugify(actor.name);
+    // lane 対応 = lane.id が actor slug or actor name と一致
+    for (const lane of diagram.lanes) {
+      if (lane.id === aliasSlug || lane.id === actor.name) {
+        lane.posX = actor.posX;
+        lane.posY = actor.posY;
+        if (actor.posW !== undefined) lane.posW = actor.posW;
+        if (actor.posH !== undefined) lane.posH = actor.posH;
+      }
+    }
+    // node 対応 = node.id が actor slug or actor name と一致 (単一 node preset = flow / class / pie 等)
+    for (const node of diagram.nodes) {
+      if (node.id === aliasSlug || node.id === actor.name) {
+        node.posX = actor.posX;
+        node.posY = actor.posY;
+        if (actor.posW !== undefined) node.posW = actor.posW;
+        if (actor.posH !== undefined) node.posH = actor.posH;
+      }
+    }
+  }
 }
 
 /**
