@@ -63,6 +63,16 @@ export type DslActor = {
    * compile 時に parts.states[i].initial を上書きする。
    */
   stateOverride?: Record<string, number | string | boolean>;
+  /**
+   * canvas pivot 新 spec (dragon canvas pivot spec §layout-role-conversion)。
+   * user drag / resize で明示的に固定した絶対座標 / サイズ。 4 field set 済なら CDL layout が
+   * 該当 actor 由来 lane / node の位置計算を skip、 posX / posY / posW / posH をそのまま採用する。
+   * 未指定なら従来の auto layout (catalog 100+ backward compat 保証)。
+   */
+  posX?: number;
+  posY?: number;
+  posW?: number;
+  posH?: number;
   pos: Position;
 };
 

@@ -859,7 +859,16 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     const id = slugify(a.name) || `actor-${i}`;
     actorIds.set(a.name, id);
     actorIds.set(id, id);
-    b.lane(id, { width: laneW, label: a.name, lifeline: true });
+    // canvas pivot 新 spec = actor.posX/posY set 済なら CDL layout skip 経路に流す。
+    // sequence preset の lane はここで生成、 posW/posH は lane 全体の rect を上書き。
+    const laneOpts: Parameters<typeof b.lane>[1] = { width: laneW, label: a.name, lifeline: true };
+    if (a.posX !== undefined && a.posY !== undefined) {
+      laneOpts.posX = a.posX;
+      laneOpts.posY = a.posY;
+      if (a.posW !== undefined) laneOpts.posW = a.posW;
+      if (a.posH !== undefined) laneOpts.posH = a.posH;
+    }
+    b.lane(id, laneOpts);
     const headerId = `${id}-header`;
     // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
     // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
