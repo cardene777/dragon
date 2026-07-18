@@ -17,6 +17,7 @@ import {
   type ResizeCorner,
 } from "@/lib/canvas-pivot-interaction";
 import { computeCollisionShift, type PresetType } from "@/lib/canvas-pivot-auto-adjust";
+import { detectGuidelines, type Guideline } from "@/lib/canvas-pivot-guideline";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -712,6 +713,7 @@ export function CdlEditor(): React.JSX.Element {
   // pan せず該当 element の位置 / サイズを DSL の posX/Y/W/H field に書き戻す。
   const elementDrag = useRef<DragState | null>(null);
   const [hoveredHandle, setHoveredHandle] = useState<{ id: string; rect: DOMRect } | null>(null);
+  const [activeGuidelines, setActiveGuidelines] = useState<Guideline[]>([]);
 
   const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
@@ -799,6 +801,8 @@ export function CdlEditor(): React.JSX.Element {
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
       // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
       applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
+      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -883,6 +887,8 @@ export function CdlEditor(): React.JSX.Element {
     clearLiveTransform(st.targetName);
     // auto-adjust transient shift も全 clear (drop で消える spec §4)
     if (svg) clearAutoAdjustShifts(svg);
+    // guideline も全 clear
+    setActiveGuidelines([]);
     return true;
   };
 
@@ -950,6 +956,49 @@ export function CdlEditor(): React.JSX.Element {
       el.style.transform = "";
       el.removeAttribute("data-auto-adjust-shift");
     });
+  }, []);
+
+  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+    if (commandBypass) {
+      setActiveGuidelines([]);
+      return;
+    }
+    const draggedSlug = slugifyActorName(draggedName);
+    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"]`);
+    if (draggedEls.length === 0) {
+      setActiveGuidelines([]);
+      return;
+    }
+    const dragBB = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
+    const targets: Array<{ id: string; rect: DOMRect }> = [];
+    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane]").forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || "";
+      if (id === draggedSlug || id === draggedName) return;
+      targets.push({ id, rect: el.getBoundingClientRect() });
+    });
+    const stageRect = previewRef.current?.getBoundingClientRect();
+    if (!stageRect) {
+      setActiveGuidelines([]);
+      return;
+    }
+    // stage 相対座標に変換
+    const dragBBRel = {
+      x: dragBB.left - stageRect.left,
+      y: dragBB.top - stageRect.top,
+      width: dragBB.width,
+      height: dragBB.height,
+    };
+    const targetsRel = targets.map((t) => ({
+      id: t.id,
+      rect: {
+        x: t.rect.left - stageRect.left,
+        y: t.rect.top - stageRect.top,
+        width: t.rect.width,
+        height: t.rect.height,
+      },
+    }));
+    const guides = detectGuidelines(dragBBRel, targetsRel);
+    setActiveGuidelines(guides);
   }, []);
 
   const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
@@ -1628,6 +1677,46 @@ ${newActorLine}
               <div className="v4-editor-empty">読み込み中...</div>
             )}
           </div>
+          {activeGuidelines.length > 0 && (() => {
+            const stageRect = previewRef.current?.getBoundingClientRect();
+            if (!stageRect) return null;
+            return activeGuidelines.map((g, i) => {
+              if (g.axis === "horizontal") {
+                return (
+                  <div
+                    key={`gl-h-${i}`}
+                    data-guideline="horizontal"
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: `${g.coord}px`,
+                      height: "0px",
+                      borderTop: "1px dashed #d97706",
+                      pointerEvents: "none",
+                      zIndex: 105,
+                    }}
+                  />
+                );
+              }
+              return (
+                <div
+                  key={`gl-v-${i}`}
+                  data-guideline="vertical"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: `${g.coord}px`,
+                    width: "0px",
+                    borderLeft: "1px dashed #d97706",
+                    pointerEvents: "none",
+                    zIndex: 105,
+                  }}
+                />
+              );
+            });
+          })()}
           {hoveredHandle && (() => {
             // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
             const stageRect = previewRef.current?.getBoundingClientRect();
