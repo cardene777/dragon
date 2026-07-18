@@ -263,9 +263,9 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
   .state("congestion", { initial: 15 })
   .node("capL", { lane: "bar", stack: 0, kind: "dyn-rect", title: "max cap", subtitle: "+{capFee} gwei", w: 300, h: 140,
     shape: { kind: "rect", source: "{capFee}", fillMax: 60, orient: "up", fill: "#a08870", radius: 4 } })
-  .node("tipL", { lane: "bar", stack: 1, kind: "dyn-rect", title: "priority tip", subtitle: "+{tipFee} gwei", w: 300, h: 100,
+  .node("tipL", { lane: "bar", stack: 1, kind: "dyn-rect", title: "priority tip", subtitle: "+{tipFee} gwei", w: 316, h: 100,
     shape: { kind: "rect", source: "{tipFee}", fillMax: 50, orient: "up", fill: "#22c55e", radius: 4 } })
-  .node("baseL", { lane: "bar", stack: 2, kind: "dyn-rect", title: "base fee (burn)", subtitle: "{baseFee} gwei", w: 300, h: 180,
+  .node("baseL", { lane: "bar", stack: 2, kind: "dyn-rect", title: "base fee (burn)", subtitle: "{baseFee} gwei", w: 382, h: 180,
     shape: { kind: "rect", source: "{baseFee}", fillMax: 160, orient: "up", fill: "#dc2626", radius: 4 } })
   .node("effC", { lane: "stat", stack: 0, kind: "actor", title: "有効総額", subtitle: "{effectiveGwei} gwei", w: 280, h: 180 })
   .node("congA", { lane: "stat", stack: 1, kind: "dyn-arc", title: "混雑度", subtitle: "{congestion}%", w: 280, h: 220,

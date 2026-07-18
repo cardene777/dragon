@@ -83,7 +83,7 @@ export const stackTriple = diagram("stack-triple", { topic: "stack: 縦 3 段" }
 /** 4. Shape-driven basement 8 (CAR-1099) ... 要素形状自体が意味を持つ SVG path node */
 export const shapeFile = diagram("shape-file", { topic: "shape: file (ドッグイア rect、 ファイル / document 表現)" })
   .lane("l", { x: 0, width: W })
-  .node("f", { lane: "l", stack: 0, kind: "shape-file", title: "report.pdf", eyebrow: "file", subtitle: "PDF 1.2 MB" })
+  .node("f", { lane: "l", stack: 0, kind: "shape-file", title: "report.pdf", eyebrow: "file", subtitle: "PDF 1.2 MB", w: 272 })
   .phase("p", { duration: 1500, title: "file", body: "右上がドッグイアで折り返された rect。 ファイル / 文書 / レポート等" }, (p: PhaseBuilder) => p.activate("f").badge("shape"))
   .build();
 
@@ -101,13 +101,13 @@ export const shapeCloud = diagram("shape-cloud", { topic: "shape: cloud (5 円 �
 
 export const shapeCylinder = diagram("shape-cylinder", { topic: "shape: cylinder (円柱、 DB / storage 表現)" })
   .lane("l", { x: 0, width: W })
-  .node("c", { lane: "l", stack: 0, kind: "shape-cylinder", title: "PostgreSQL", eyebrow: "database", subtitle: "500 GB SSD" })
+  .node("c", { lane: "l", stack: 0, kind: "shape-cylinder", title: "PostgreSQL", eyebrow: "database", subtitle: "500 GB SSD", w: 272 })
   .phase("p", { duration: 1500, title: "cylinder", body: "円柱 (top + side + bottom ellipse)。 DB / 永続 storage / volume 等" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
   .build();
 
 export const shapeHexagon = diagram("shape-hexagon", { topic: "shape: hexagon (六角形、 component / service)" })
   .lane("l", { x: 0, width: W })
-  .node("h", { lane: "l", stack: 0, kind: "shape-hexagon", title: "AuthService", eyebrow: "component" })
+  .node("h", { lane: "l", stack: 0, kind: "shape-hexagon", title: "AuthService", eyebrow: "component", w: 294 })
   .phase("p", { duration: 1500, title: "hexagon", body: "六角形。 microservice / ドメインコンポーネント / モジュール表現" }, (p: PhaseBuilder) => p.activate("h").badge("shape"))
   .build();
 
@@ -148,7 +148,7 @@ export const shapeCodeBlock = diagram("shape-code-block", { topic: "shape: code-
   .phase("p", { duration: 1500, title: "code-block", body: "editor tab + gutter + 4 syntax lines。 code snippet / editor / 実装" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
   .build();
 
-export const shapeKanbanCard = diagram("shape-kanban-card", { topic: "shape: kanban-card (ticket、 priority + status + tags + avatars)" })
+export const shapeKanbanCard = diagram("shape-kanban-card", { topic: "shape: kanban-card (ticket + priority + tags)" })
   .lane("l", { x: 0, width: W })
   .node("k", { lane: "l", stack: 0, kind: "shape-kanban-card", title: "CAR-1111", eyebrow: "in progress", subtitle: "shape-driven kind" })
   .phase("p", { duration: 1500, title: "kanban-card", body: "priority bar + ID + status pill + title + tags + avatars。 kanban ticket / Issue" }, (p: PhaseBuilder) => p.activate("k").badge("shape"))
@@ -230,7 +230,7 @@ export const shapeWallet = diagram("shape-wallet", { topic: "shape: wallet (財�
 
 export const shapeNft = diagram("shape-nft", { topic: "shape: nft (額縁 + polygonal art + verified badge)" })
   .lane("l", { x: 0, width: W })
-  .node("n", { lane: "l", stack: 0, kind: "shape-nft", title: "CryptoPunk", eyebrow: "nft", subtitle: "ERC-721 #1024" })
+  .node("n", { lane: "l", stack: 0, kind: "shape-nft", title: "CryptoPunk", eyebrow: "nft", subtitle: "ERC-721 #1024", w: 272 })
   .phase("p", { duration: 1500, title: "nft", body: "額縁 + polygonal art + verified check。 ERC-721 / SBT / collection" }, (p: PhaseBuilder) => p.activate("n").badge("shape"))
   .build();
 
@@ -345,7 +345,7 @@ export const shapeTrader = diagram("shape-trader", { topic: "shape: trader (ト�
   .phase("p", { duration: 1500, title: "trader", body: "人 + headset + laptop with chart。 トレーダー / MM / algo 発注" }, (p: PhaseBuilder) => p.activate("t").badge("shape"))
   .build();
 
-export const shapeCustomerService = diagram("shape-customer-service", { topic: "shape: customer-service (CS + headset + speech bubble + smile)" })
+export const shapeCustomerService = diagram("shape-customer-service", { topic: "shape: customer-service (CS + headset + bubble)" })
   .lane("l", { x: 0, width: W })
   .node("c", { lane: "l", stack: 0, kind: "shape-customer-service", title: "サポート担当", eyebrow: "support", subtitle: "24h コンタクト" })
   .phase("p", { duration: 1500, title: "customer-service", body: "人 + headset + speech bubble + name badge。 CS / コールセンター" }, (p: PhaseBuilder) => p.activate("c").badge("shape"))
@@ -422,7 +422,7 @@ export const sceneIotOnchain = diagram("scene-iot-onchain", { topic: "scene: IoT
   .lane("l", { x: 0, width: W })
   .node("s", { lane: "l", stack: 0, kind: "shape-iot-sensor", title: "温度計", eyebrow: "sensor", subtitle: "BLE" })
   .node("r", { lane: "l", stack: 1, kind: "shape-rpc-node", title: "Infura", eyebrow: "rpc", subtitle: "provider" })
-  .node("c", { lane: "l", stack: 2, kind: "shape-smart-contract", title: "OracleContract", eyebrow: "contract", subtitle: "Solidity" })
+  .node("c", { lane: "l", stack: 2, kind: "shape-smart-contract", title: "OracleContract", eyebrow: "contract", subtitle: "Solidity", w: 360 })
   .edge("s", "r", { label: "" })
   .edge("r", "c", { label: "" })
   .phase("p", { duration: 1500, title: "IoT オンチェーン", body: "IoT センサー → RPC → smart contract。 real-world data を Chainlink Oracle 経由で on-chain 記録" }, (p: PhaseBuilder) => p.activate("s").activate("r").activate("c").badge("scene"))
@@ -552,7 +552,7 @@ export const sceneMobileApi = diagram("scene-mobile-api", { topic: "scene: mobil
 /** S-16. robot arm production (robot → sensor → cylinder db) */
 export const sceneFactoryLine = diagram("scene-factory-line", { topic: "scene: 工場ライン (robot → sensor → DB)" })
   .lane("l", { x: 0, width: W })
-  .node("r", { lane: "l", stack: 0, kind: "shape-robot-arm", title: "FANUC robot", eyebrow: "robot", subtitle: "組立" })
+  .node("r", { lane: "l", stack: 0, kind: "shape-robot-arm", title: "FANUC robot", eyebrow: "robot", subtitle: "組立", w: 294 })
   .node("s", { lane: "l", stack: 1, kind: "shape-iot-sensor", title: "計測 sensor", eyebrow: "sensor", subtitle: "品質" })
   .node("d", { lane: "l", stack: 2, kind: "shape-cylinder", title: "MES DB", eyebrow: "database", subtitle: "traceability" })
   .edge("r", "s", { label: "" })
@@ -575,7 +575,7 @@ export const sceneSatelliteChain = diagram("scene-satellite-chain", { topic: "sc
 export const sceneDevOps = diagram("scene-devops", { topic: "scene: DevOps (code → CI → cloud)" })
   .lane("l", { x: 0, width: W })
   .node("c", { lane: "l", stack: 0, kind: "shape-code-block", title: "src/", eyebrow: "code", subtitle: "TypeScript" })
-  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "GitHub Actions", eyebrow: "ci", subtitle: "build + test" })
+  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "GitHub Actions", eyebrow: "ci", subtitle: "build + test", w: 360 })
   .node("d", { lane: "l", stack: 2, kind: "shape-cloud", title: "AWS ECS", eyebrow: "deploy", subtitle: "container" })
   .edge("c", "g", { label: "" })
   .edge("g", "d", { label: "" })
@@ -586,7 +586,7 @@ export const sceneDevOps = diagram("scene-devops", { topic: "scene: DevOps (code
 export const sceneTaskFlow = diagram("scene-task-flow", { topic: "scene: task flow (kanban → terminal → file)" })
   .lane("l", { x: 0, width: W })
   .node("k", { lane: "l", stack: 0, kind: "shape-kanban-card", title: "todo #42", eyebrow: "kanban", subtitle: "in progress" })
-  .node("t", { lane: "l", stack: 1, kind: "shape-terminal", title: "$ npm run build", eyebrow: "terminal", subtitle: "shell" })
+  .node("t", { lane: "l", stack: 1, kind: "shape-terminal", title: "$ npm run build", eyebrow: "terminal", subtitle: "shell", w: 382 })
   .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "build.log", eyebrow: "file", subtitle: "output" })
   .edge("k", "t", { label: "" })
   .edge("t", "f", { label: "" })
@@ -597,7 +597,7 @@ export const sceneTaskFlow = diagram("scene-task-flow", { topic: "scene: task fl
 export const sceneNotification = diagram("scene-notification", { topic: "scene: 通知 (message → service → app)" })
   .lane("l", { x: 0, width: W })
   .node("m", { lane: "l", stack: 0, kind: "shape-message-bubble", title: "@alice", eyebrow: "message", subtitle: "Slack" })
-  .node("h", { lane: "l", stack: 1, kind: "shape-hexagon", title: "NotifyService", eyebrow: "service", subtitle: "push" })
+  .node("h", { lane: "l", stack: 1, kind: "shape-hexagon", title: "NotifyService", eyebrow: "service", subtitle: "push", w: 338 })
   .node("w", { lane: "l", stack: 2, kind: "shape-window", title: "デスクトップ通知", eyebrow: "window", subtitle: "OS native" })
   .edge("m", "h", { label: "" })
   .edge("h", "w", { label: "" })
@@ -619,7 +619,7 @@ export const sceneTrustAsset = diagram("scene-trust-asset", { topic: "scene: 信
 export const sceneConsensus = diagram("scene-consensus", { topic: "scene: consensus (node → block → chain)" })
   .lane("l", { x: 0, width: W })
   .node("n", { lane: "l", stack: 0, kind: "shape-blockchain-node", title: "validator", eyebrow: "node", subtitle: "PoS" })
-  .node("b", { lane: "l", stack: 1, kind: "shape-blockchain-block", title: "block #8123456", eyebrow: "block", subtitle: "proposed" })
+  .node("b", { lane: "l", stack: 1, kind: "shape-blockchain-block", title: "block #8123456", eyebrow: "block", subtitle: "proposed", w: 360 })
   .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "canonical chain", eyebrow: "chain", subtitle: "finalized" })
   .edge("n", "b", { label: "" })
   .edge("b", "c", { label: "" })
@@ -653,7 +653,7 @@ export const sceneNftMarketplace = diagram("scene-nft-marketplace", { topic: "sc
   .lane("l", { x: 0, width: W })
   .node("b", { lane: "l", stack: 0, kind: "shape-wallet", title: "buyer", eyebrow: "wallet", subtitle: "collector" })
   .node("m", { lane: "l", stack: 1, kind: "shape-exchange", title: "OpenSea", eyebrow: "marketplace", subtitle: "royalty 5%" })
-  .node("n", { lane: "l", stack: 2, kind: "shape-nft", title: "BAYC #7890", eyebrow: "nft", subtitle: "Bored Ape" })
+  .node("n", { lane: "l", stack: 2, kind: "shape-nft", title: "BAYC #7890", eyebrow: "nft", subtitle: "Bored Ape", w: 272 })
   .edge("b", "m", { label: "" })
   .edge("m", "n", { label: "" })
   .phase("p", { duration: 1500, title: "NFT marketplace", body: "buyer が marketplace で bid → contract 実行 → NFT ownership 移転。 secondary market flow" }, (p: PhaseBuilder) => p.activate("b").activate("m").activate("n").badge("scene"))
@@ -664,7 +664,7 @@ export const sceneNetworkPath = diagram("scene-network-path", { topic: "scene: n
   .lane("l", { x: 0, width: W })
   .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "client", eyebrow: "device", subtitle: "端末" })
   .node("n", { lane: "l", stack: 1, kind: "shape-network-node", title: "core switch", eyebrow: "network", subtitle: "L2/L3" })
-  .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "app server", eyebrow: "server", subtitle: "DC" })
+  .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "app server", eyebrow: "server", subtitle: "DC", w: 272 })
   .edge("m", "n", { label: "" })
   .edge("n", "s", { label: "" })
   .phase("p", { duration: 1500, title: "network path", body: "client 端末 → network core switch 経由 → server 到達。 typical enterprise network 3-hop" }, (p: PhaseBuilder) => p.activate("m").activate("n").activate("s").badge("scene"))
@@ -673,7 +673,7 @@ export const sceneNetworkPath = diagram("scene-network-path", { topic: "scene: n
 /** S-27. website checkout (website → payment → credit card) */
 export const sceneCheckout = diagram("scene-checkout", { topic: "scene: checkout (site → provider → card)" })
   .lane("l", { x: 0, width: W })
-  .node("w", { lane: "l", stack: 0, kind: "shape-website", title: "shop.example.com", eyebrow: "site", subtitle: "cart" })
+  .node("w", { lane: "l", stack: 0, kind: "shape-website", title: "shop.example.com", eyebrow: "site", subtitle: "cart", w: 404 })
   .node("p", { lane: "l", stack: 1, kind: "shape-payment-provider", title: "PayPal", eyebrow: "provider", subtitle: "checkout" })
   .node("c", { lane: "l", stack: 2, kind: "shape-credit-card", title: "MasterCard", eyebrow: "card", subtitle: "credit" })
   .edge("w", "p", { label: "" })
@@ -684,7 +684,7 @@ export const sceneCheckout = diagram("scene-checkout", { topic: "scene: checkout
 /** S-28. edge computing (mobile → CDN edge → cloud) */
 export const sceneEdgeCompute = diagram("scene-edge-compute", { topic: "scene: edge compute (mobile → CDN → cloud)" })
   .lane("l", { x: 0, width: W })
-  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "Android app", eyebrow: "mobile", subtitle: "user" })
+  .node("m", { lane: "l", stack: 0, kind: "shape-mobile-device", title: "Android app", eyebrow: "mobile", subtitle: "user", w: 294 })
   .node("e", { lane: "l", stack: 1, kind: "shape-cdn-edge", title: "Fastly edge", eyebrow: "edge", subtitle: "compute@edge" })
   .node("c", { lane: "l", stack: 2, kind: "shape-cloud", title: "GCP origin", eyebrow: "cloud", subtitle: "fallback" })
   .edge("m", "e", { label: "" })
@@ -695,9 +695,9 @@ export const sceneEdgeCompute = diagram("scene-edge-compute", { topic: "scene: e
 /** S-29. stack version deploy (stack → gear → website) */
 export const sceneVersionDeploy = diagram("scene-version-deploy", { topic: "scene: version deploy (stack → gear → site)" })
   .lane("l", { x: 0, width: W })
-  .node("s", { lane: "l", stack: 0, kind: "shape-stack", title: "release v3.2.0", eyebrow: "release", subtitle: "tagged" })
-  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "deploy pipeline", eyebrow: "ci", subtitle: "canary" })
-  .node("w", { lane: "l", stack: 2, kind: "shape-website", title: "prod.example.com", eyebrow: "site", subtitle: "live" })
+  .node("s", { lane: "l", stack: 0, kind: "shape-stack", title: "release v3.2.0", eyebrow: "release", subtitle: "tagged", w: 360 })
+  .node("g", { lane: "l", stack: 1, kind: "shape-gear", title: "deploy pipeline", eyebrow: "ci", subtitle: "canary", w: 382 })
+  .node("w", { lane: "l", stack: 2, kind: "shape-website", title: "prod.example.com", eyebrow: "site", subtitle: "live", w: 404 })
   .edge("s", "g", { label: "" })
   .edge("g", "w", { label: "" })
   .phase("p", { duration: 1500, title: "version deploy", body: "release tag → deploy pipeline canary → production site 反映。 SaaS deploy の standard" }, (p: PhaseBuilder) => p.activate("s").activate("g").activate("w").badge("scene"))
