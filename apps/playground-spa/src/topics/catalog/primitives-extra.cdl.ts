@@ -8,10 +8,10 @@ import type { NodeKind, PhaseBuilder } from "@cardenelabs/cdl";
 
 const W = 440;
 
-function single(id: string, kind: NodeKind, eyebrow: string, title: string, subtitle?: string) {
+function single(id: string, kind: NodeKind, eyebrow: string, title: string, subtitle?: string, nodeW?: number) {
   return diagram(id, { topic: `kind: ${kind}` })
     .lane("l", { x: 0, width: W })
-    .node("n", { lane: "l", stack: 0, kind, title, eyebrow, ...(subtitle ? { subtitle } : {}) })
+    .node("n", { lane: "l", stack: 0, kind, title, eyebrow, ...(subtitle ? { subtitle } : {}), ...(nodeW ? { w: nodeW } : {}) })
     .phase("p", { duration: 1500, title: kind, body: `${kind} kind の見た目。` }, (p: PhaseBuilder) => p.activate("n").badge("active"))
     .build();
 }
@@ -36,11 +36,11 @@ export const kService = single("k-service", "service", "サービス", "AuthServ
 export const kApi = single("k-api", "api", "API", "POST /users", "REST endpoint");
 export const kFrontend = single("k-frontend", "frontend", "フロント", "Next.js App", "browser UI");
 export const kBackend = single("k-backend", "backend", "バックエンド", "Express", "server runtime");
-export const kWebhook = single("k-webhook", "webhook", "Webhook", "POST callback", "incoming event");
-export const kMicroservice = single("k-microservice", "microservice", "マイクロサービス", "Order Service", "1 機能 1 サービス");
+export const kWebhook = single("k-webhook", "webhook", "Webhook", "POST callback", "incoming event", 338);
+export const kMicroservice = single("k-microservice", "microservice", "マイクロサービス", "Order Service", "1 機能 1 サービス", 338);
 
 // データ / 判定 4
 export const kSigner = single("k-signer", "signer", "署名者", "Signer", "HMAC / 公開鍵署名");
-export const kOracle = single("k-oracle", "oracle", "Oracle", "Feature flag service", "外部設定の取込");
+export const kOracle = single("k-oracle", "oracle", "Oracle", "Feature flag service", "外部設定の取込", 492);
 export const kMerkleTree = single("k-merkle-tree", "merkle-tree", "Merkle Tree", "Hash tree", "ハッシュ二分木");
 export const kDecision = single("k-decision", "decision", "判定分岐", "if/else", "条件分岐");
