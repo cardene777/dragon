@@ -54,6 +54,13 @@ export interface DragState {
    * mode='resize' で hover した実 element を単一で resize するために保持 (parent lane 全体を bulk 拡大しない)。
    */
   hoveredSelector?: string;
+  /**
+   * canvas pivot UX 修正 (B1 individual node isolation) = 対象 sub-node key (`header` / `footer` /
+   * `spacer` / `s0` 等)。 set 時 (findDragTarget が data-cdl-node の suffix / prefix pattern から抽出)
+   * は updateActorNodePosition (nested `nodes: { subKey: {...} }` 書出し) 経路、 未 set 時は actor 全体
+   * updateActorPosition 経路。 lane 全体を触らず個別 sub-node のみ固定する SSOT。
+   */
+  subNodeKey?: string;
 }
 
 /**
@@ -109,8 +116,15 @@ export function slugify(s: string): string {
  * SVG element を親から辿り、 canvas pivot の drag target になり得るか判定する。
  * data-cdl-lane / data-cdl-node / data-cdl-edge のいずれかを持つ祖先を探す。
  * DSL 側の全 actor 名を渡して、 data-* 属性値 (slug 済み) を DSL 名に逆引きする。
+ *
+ * canvas pivot UX 修正 (B1) = data-cdl-node hit 時、 sub-node key (`header` / `footer` / `spacer` /
+ * `s0` 等) を抽出して返す。 caller は subNodeKey 有無で「actor 全体」 vs 「個別 sub-node」 の 2 段判定を行う。
+ * subNodeKey 未検出 = actor 単独 node (flow / class / pie 等の単一 node preset)、 caller は actor 全体経路。
  */
-export function findDragTarget(el: Element | null, actorNames: string[]): { name: string; kind: PartKind } | null {
+export function findDragTarget(
+  el: Element | null,
+  actorNames: string[],
+): { name: string; kind: PartKind; subNodeKey?: string } | null {
   const slugToName = new Map<string, string>();
   for (const name of actorNames) {
     slugToName.set(slugify(name), name);
@@ -118,18 +132,22 @@ export function findDragTarget(el: Element | null, actorNames: string[]): { name
   }
   let cur: Element | null = el;
   while (cur) {
+    // canvas pivot UX 修正 (B1) = node → edge → lane の順で判定 (specific → generic)。
+    // 旧実装は lane を先に判定し、 node の親 lane 属性を先に hit して subNodeKey なしで return する
+    // bug があった (SVG DOM は lane group が node group を包含するため parent traversal で lane が先に来る)。
+    // hover 中の handle overlay の elementSelector 生成経路も node → edge → lane 優先で対称化済。
+    const node = cur.getAttribute?.("data-cdl-node");
+    if (node) {
+      const resolved = resolveDslNameWithSubKey(node, slugToName);
+      if (resolved) return { name: resolved.name, kind: "node", subNodeKey: resolved.subNodeKey };
+    }
+    const edge = cur.getAttribute?.("data-cdl-edge");
+    if (edge) return { name: edge, kind: "edge" };
     const lane = cur.getAttribute?.("data-cdl-lane");
     if (lane) {
       const dslName = resolveDslName(lane, slugToName);
       if (dslName) return { name: dslName, kind: "lane" };
     }
-    const node = cur.getAttribute?.("data-cdl-node");
-    if (node) {
-      const dslName = resolveDslName(node, slugToName);
-      if (dslName) return { name: dslName, kind: "node" };
-    }
-    const edge = cur.getAttribute?.("data-cdl-edge");
-    if (edge) return { name: edge, kind: "edge" };
     cur = cur.parentElement;
   }
   return null;
@@ -146,6 +164,35 @@ function resolveDslName(rawId: string, slugToName: Map<string, string>): string 
     .replace(/-spacer$/, "")
     .replace(/^s\d+-/, "");
   return slugToName.get(stripped) ?? null;
+}
+
+/**
+ * data-cdl-node 値から actor 名 + sub-node key を抽出。
+ * pattern:
+ *   - `{slug}-header` / `{slug}-footer` / `{slug}-spacer` → subNodeKey = `header` / `footer` / `spacer`
+ *   - `s{N}-{slug}` (sequence step box) → subNodeKey = `s{N}`
+ *   - `{slug}` (単独 node) → subNodeKey = undefined (actor 全体経路)
+ * hit した slug が長いほうを優先することで、 短い slug が別 actor と誤 match することを防ぐ。
+ */
+function resolveDslNameWithSubKey(
+  rawId: string,
+  slugToName: Map<string, string>,
+): { name: string; subNodeKey?: string } | null {
+  // slug を長さ降順で試行 (`ユ-ザ` と `ユ` が両方存在するケースで長い slug 優先)
+  const slugs = Array.from(slugToName.keys()).sort((a, b) => b.length - a.length);
+  for (const slug of slugs) {
+    if (rawId === slug) return { name: slugToName.get(slug)! };
+    if (rawId.startsWith(`${slug}-`)) {
+      const suffix = rawId.slice(slug.length + 1);
+      return { name: slugToName.get(slug)!, subNodeKey: suffix };
+    }
+    if (rawId.endsWith(`-${slug}`)) {
+      const prefix = rawId.slice(0, rawId.length - slug.length - 1);
+      // step box pattern `s{N}-{slug}` = prefix が `s\d+` に限定 (別 preset の任意 prefix と衝突回避)
+      if (/^s\d+$/.test(prefix)) return { name: slugToName.get(slug)!, subNodeKey: prefix };
+    }
+  }
+  return null;
 }
 
 /**
@@ -204,29 +251,29 @@ export function updateActorPosition(
   if (roundedH !== undefined) extraFields.push(`posH: ${roundedH}`);
 
   const nextLines = lines.map((line) => {
-    // (3) inline mapping
-    const inlineMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (inlineMatch && stripQuotes(inlineMatch[2]) === targetName) {
-      const [, prefix, name, sep, inner, suffix] = inlineMatch;
-      const cleaned = inner!
-        .split(",")
-        .map((seg) => seg.trim())
-        .filter((seg) => seg && !seg.match(/^pos[XYWH]\s*:/))
-        .join(", ");
-      const newInner = [cleaned, ...extraFields].filter(Boolean).join(", ");
+    // (3) inline mapping (depth-aware = nested `nodes: {...}` を含む inner も正確に切出す)
+    const extract = extractActorInlineMapLine(line, targetName);
+    if (extract) {
+      const { prefix, name, sep, inner, suffix } = extract;
+      // 既存 top-level pos[XYWH] field を除去、 新 extraFields を末尾に追加
+      const parts = splitDepthAwareCommas(inner);
+      const kept = parts
+        .map((s) => s.trim())
+        .filter((s) => s && !/^pos[XYWH]\s*:/.test(s));
+      const newInner = [...kept, ...extraFields].filter(Boolean).join(", ");
       return `${prefix}${name}${sep}{ ${newInner} }${suffix}`;
     }
     // (2) short form
     const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
-    if (shortMatch && stripQuotes(shortMatch[2]) === targetName) {
-      const [, prefix, name, sep, kind] = shortMatch;
-      return `${prefix}${name}${sep}{ kind: ${kind!.trim()}, ${extraFields.join(", ")} }`;
+    if (shortMatch && stripQuotes(shortMatch[2]!) === targetName) {
+      const [, sPrefix, sName, sSep, kind] = shortMatch;
+      return `${sPrefix}${sName}${sSep}{ kind: ${kind!.trim()}, ${extraFields.join(", ")} }`;
     }
     // (1) bare
     const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
-    if (bareMatch && stripQuotes(bareMatch[2]) === targetName) {
-      const [, prefix, name] = bareMatch;
-      return `${prefix}${name}: { ${extraFields.join(", ")} }`;
+    if (bareMatch && stripQuotes(bareMatch[2]!) === targetName) {
+      const [, bPrefix, bName] = bareMatch;
+      return `${bPrefix}${bName}: { ${extraFields.join(", ")} }`;
     }
     return line;
   });
@@ -262,23 +309,242 @@ export function scaleDiagramPositions(
 }
 
 /**
- * DSL src から actor 名の posX/posY/posW/posH を抽出。
+ * canvas pivot UX 修正 (B1) = actor entry の inline map に nested `nodes: { subKey: { posX/Y/W/H } }`
+ * を追加 or 更新する。 sub-node 単位で「絶対座標 / サイズ」 を固定、 lane 全体を触らないため
+ * 同 actor の他 sub-node (spacer / footer / s{N} 等) の auto layout が保持される。
+ *
+ * 対応 pattern (updateActorPosition と同じ 3 形式に対応):
+ *   1. `  - name`                    → `  - name: { nodes: { {subKey}: { posX:..., ... } } }`
+ *   2. `  - name: kind`              → `  - name: { kind: kind, nodes: { {subKey}: { ... } } }`
+ *   3. `  - name: { existing... }`   → depth-aware で inner から nodes field を検出し merge (nested subKey 上書き)
+ *
+ * `updateActorPosition` (actor 全体 posX/Y 書出し) とは補完関係、 caller は subNodeKey 有無で使い分ける。
  */
-export function extractActorPosition(src: string, targetName: string): { posX: number; posY: number; posW?: number; posH?: number } | null {
+export function updateActorNodePosition(
+  src: string,
+  targetName: string,
+  subNodeKey: string,
+  posX: number,
+  posY: number,
+  posW?: number,
+  posH?: number,
+): string {
+  const roundedX = Math.round(posX);
+  const roundedY = Math.round(posY);
+  const roundedW = posW !== undefined ? Math.round(posW) : undefined;
+  const roundedH = posH !== undefined ? Math.round(posH) : undefined;
+  const subFields: string[] = [`posX: ${roundedX}`, `posY: ${roundedY}`];
+  if (roundedW !== undefined) subFields.push(`posW: ${roundedW}`);
+  if (roundedH !== undefined) subFields.push(`posH: ${roundedH}`);
+  const subMapText = `{ ${subFields.join(", ")} }`;
+
+  const lines = src.split("\n");
+  const nextLines = lines.map((line) => {
+    // (3) inline mapping (depth-aware = nested { } を含む値も抽出、 outer brace を正確に切出す)
+    const inlineExtract = extractActorInlineMapLine(line, targetName);
+    if (inlineExtract) {
+      const { prefix, name, sep, inner, suffix } = inlineExtract;
+      const rewrittenInner = mergeNodesFieldInInner(inner, subNodeKey, subMapText);
+      return `${prefix}${name}${sep}{ ${rewrittenInner} }${suffix}`;
+    }
+    // (2) short form: `- name: kind`
+    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
+    if (shortMatch && stripQuotes(shortMatch[2]!) === targetName) {
+      const [, sPrefix, sName, sSep, kind] = shortMatch;
+      return `${sPrefix}${sName}${sSep}{ kind: ${kind!.trim()}, nodes: { ${subNodeKey}: ${subMapText} } }`;
+    }
+    // (1) bare: `- name`
+    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
+    if (bareMatch && stripQuotes(bareMatch[2]!) === targetName) {
+      const [, bPrefix, bName] = bareMatch;
+      return `${bPrefix}${bName}: { nodes: { ${subNodeKey}: ${subMapText} } }`;
+    }
+    return line;
+  });
+  return nextLines.join("\n");
+}
+
+/**
+ * 対象 actor 行の inline mapping を depth-aware に抽出する (nested `{ }` 値も正確に切出す)。
+ * updateActorPosition の regex 版 (`\{([^}]*)\}` の flat brace) と違い、 本 fn は brace depth を数えて
+ * nested `{ }` を含む inner を1件の inner として返す。 `nodes: { header: { posX: 10 } }` のような
+ * ネスト構造を含む actor entry に対応するために必要。
+ */
+function extractActorInlineMapLine(
+  line: string,
+  targetName: string,
+): { prefix: string; name: string; sep: string; inner: string; suffix: string } | null {
+  const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{/);
+  if (!headMatch) return null;
+  if (stripQuotes(headMatch[2]!) !== targetName) return null;
+  const [, prefix, name, sep] = headMatch;
+  const braceStart = headMatch[0]!.length - 1; // '{' の位置
+  let depth = 0;
+  let endIdx = -1;
+  for (let i = braceStart; i < line.length; i += 1) {
+    const c = line[i]!;
+    if (c === "{") depth += 1;
+    else if (c === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        endIdx = i;
+        break;
+      }
+    }
+  }
+  if (endIdx < 0) return null;
+  const inner = line.slice(braceStart + 1, endIdx);
+  const suffix = line.slice(endIdx + 1);
+  return { prefix: prefix!, name: name!, sep: sep!, inner, suffix };
+}
+
+/**
+ * actor entry inline map の inner 文字列内で `nodes: { ... }` field を検出、
+ * 指定 subKey を「新規追加 / 既存 subKey 上書き」 で merge する。 nodes field 未存在なら append。
+ * その他既存 field (kind / subtitle / posX 等) は保持。
+ */
+function mergeNodesFieldInInner(inner: string, subNodeKey: string, subMapText: string): string {
+  const parts = splitDepthAwareCommas(inner);
+  let nodesIdx = -1;
+  let existingNodesInner = "";
+  for (let i = 0; i < parts.length; i += 1) {
+    const p = parts[i]!;
+    const colonIdx = p.indexOf(":");
+    if (colonIdx < 0) continue;
+    const key = p.slice(0, colonIdx).trim();
+    const val = p.slice(colonIdx + 1).trim();
+    if (key === "nodes" && val.startsWith("{") && val.endsWith("}")) {
+      nodesIdx = i;
+      existingNodesInner = val.slice(1, -1).trim();
+      break;
+    }
+  }
+  const mergedNodesInner = upsertSubKey(existingNodesInner, subNodeKey, subMapText);
+  const nodesField = `nodes: { ${mergedNodesInner} }`;
+  if (nodesIdx >= 0) {
+    parts[nodesIdx] = nodesField;
+  } else {
+    parts.push(nodesField);
+  }
+  return parts.map((p) => p.trim()).filter(Boolean).join(", ");
+}
+
+/**
+ * `nodes: { ... }` inner の各 subKey ペアから対象 subKey を上書き or 追加。
+ * 他 subKey は元のまま保持。
+ */
+function upsertSubKey(existingInner: string, subNodeKey: string, subMapText: string): string {
+  const parts = splitDepthAwareCommas(existingInner);
+  let replaced = false;
+  const outParts: string[] = [];
+  for (const p of parts) {
+    const colonIdx = p.indexOf(":");
+    if (colonIdx < 0) {
+      outParts.push(p);
+      continue;
+    }
+    const key = p.slice(0, colonIdx).trim();
+    if (key === subNodeKey) {
+      outParts.push(`${subNodeKey}: ${subMapText}`);
+      replaced = true;
+      continue;
+    }
+    outParts.push(p.trim());
+  }
+  if (!replaced) outParts.push(`${subNodeKey}: ${subMapText}`);
+  return outParts.filter(Boolean).join(", ");
+}
+
+/**
+ * comma split で nested `[ ]` / `{ }` 内の comma を無視する depth-aware split。
+ * parseInlineMapping の logic を local reuse。
+ */
+function splitDepthAwareCommas(s: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let buf = "";
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s[i]!;
+    if (c === "[" || c === "{") depth += 1;
+    else if (c === "]" || c === "}") depth -= 1;
+    if (c === "," && depth === 0) {
+      parts.push(buf);
+      buf = "";
+      continue;
+    }
+    buf += c;
+  }
+  if (buf.trim()) parts.push(buf);
+  return parts;
+}
+
+/**
+ * DSL src から actor 名の nested `nodes: { subKey: { posX/Y/W/H } }` を抽出。
+ * 該当 actor entry の inner から nodes field を depth-aware に切出、 各 subKey の 4 field を返す。
+ * subKey 単位で resize handler の init 値 (drag delta の起点) 用途。
+ */
+export function extractActorNodePosition(
+  src: string,
+  targetName: string,
+  subNodeKey: string,
+): { posX: number; posY: number; posW?: number; posH?: number } | null {
   for (const line of src.split("\n")) {
-    const inlineMatch = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{([^}]*)\}\s*$/);
-    if (!inlineMatch || stripQuotes(inlineMatch[1]) !== targetName) continue;
-    const inner = inlineMatch[2]!;
-    const px = inner.match(/posX\s*:\s*(-?\d+(?:\.\d+)?)/);
-    const py = inner.match(/posY\s*:\s*(-?\d+(?:\.\d+)?)/);
-    const pw = inner.match(/posW\s*:\s*(-?\d+(?:\.\d+)?)/);
-    const ph = inner.match(/posH\s*:\s*(-?\d+(?:\.\d+)?)/);
+    const extract = extractActorInlineMapLine(line, targetName);
+    if (!extract) continue;
+    const nodesField = findFieldValue(extract.inner, "nodes");
+    if (!nodesField || !nodesField.startsWith("{") || !nodesField.endsWith("}")) return null;
+    const subInner = nodesField.slice(1, -1).trim();
+    const subMap = findFieldValue(subInner, subNodeKey);
+    if (!subMap || !subMap.startsWith("{") || !subMap.endsWith("}")) return null;
+    const nodeInner = subMap.slice(1, -1);
+    const px = nodeInner.match(/posX\s*:\s*(-?\d+(?:\.\d+)?)/);
+    const py = nodeInner.match(/posY\s*:\s*(-?\d+(?:\.\d+)?)/);
+    const pw = nodeInner.match(/posW\s*:\s*(-?\d+(?:\.\d+)?)/);
+    const ph = nodeInner.match(/posH\s*:\s*(-?\d+(?:\.\d+)?)/);
     if (!px || !py) return null;
     return {
       posX: parseFloat(px[1]!),
       posY: parseFloat(py[1]!),
       posW: pw ? parseFloat(pw[1]!) : undefined,
       posH: ph ? parseFloat(ph[1]!) : undefined,
+    };
+  }
+  return null;
+}
+
+function findFieldValue(inner: string, key: string): string | null {
+  const parts = splitDepthAwareCommas(inner);
+  for (const p of parts) {
+    const colonIdx = p.indexOf(":");
+    if (colonIdx < 0) continue;
+    if (p.slice(0, colonIdx).trim() === key) return p.slice(colonIdx + 1).trim();
+  }
+  return null;
+}
+
+/**
+ * DSL src から actor 名の posX/posY/posW/posH を抽出。
+ * canvas pivot UX 修正 (B1) 対応 = actor entry が nested `nodes: {...}` を含む場合も depth-aware で
+ * outer brace を正確に切出し、 top-level の posX/Y/W/H (actor 全体座標) だけを取り出す。
+ */
+export function extractActorPosition(src: string, targetName: string): { posX: number; posY: number; posW?: number; posH?: number } | null {
+  for (const line of src.split("\n")) {
+    const extract = extractActorInlineMapLine(line, targetName);
+    if (!extract) continue;
+    // top-level field のみから posX/Y を拾う (nested nodes: { header: { posX } } を誤検出しない)
+    const px = findFieldValue(extract.inner, "posX");
+    const py = findFieldValue(extract.inner, "posY");
+    const pw = findFieldValue(extract.inner, "posW");
+    const ph = findFieldValue(extract.inner, "posH");
+    if (px === null || py === null) return null;
+    const nx = parseFloat(px);
+    const ny = parseFloat(py);
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return null;
+    return {
+      posX: nx,
+      posY: ny,
+      posW: pw !== null && Number.isFinite(parseFloat(pw)) ? parseFloat(pw) : undefined,
+      posH: ph !== null && Number.isFinite(parseFloat(ph)) ? parseFloat(ph) : undefined,
     };
   }
   return null;

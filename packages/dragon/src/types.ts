@@ -73,7 +73,27 @@ export type DslActor = {
   posY?: number;
   posW?: number;
   posH?: number;
+  /**
+   * canvas pivot UX 修正 (B1 individual node isolation)。 actor 1 件が生成する複数 sub-node
+   * (sequence の header / spacer / footer / s{N} 等) の中で「特定 sub-node だけを固定 / resize」
+   * するための nested override map。 key = sub-node id 相当の short key (`header` / `footer` /
+   * `spacer` / `s0` 等)、 value = posX/Y/W/H の 4 field。 compile 側は対応 CDL node に単独反映、
+   * 同 actor の他 sub-node は影響を受けない (lane 全体 posX とは独立経路)。
+   */
+  nodes?: Record<string, DslActorNodeOverride>;
   pos: Position;
+};
+
+/**
+ * canvas pivot UX 修正 (B1) = actor 内 sub-node 単位で「絶対座標 / サイズ」 を固定するための
+ * override 値。 全 field optional、 posX / posY が両方 set 済なら CDL 側で該当 sub-node の
+ * auto layout を skip、 明示座標をそのまま採用する。 posW / posH は width / height の上書き。
+ */
+export type DslActorNodeOverride = {
+  posX?: number;
+  posY?: number;
+  posW?: number;
+  posH?: number;
 };
 
 /** 流れ (1 行 = 1 step) (v0.5+ ... inline option 拡張) */
