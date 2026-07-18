@@ -545,6 +545,11 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "initial",
   "final",
   "state",
+  // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
+  "posX",
+  "posY",
+  "posW",
+  "posH",
 ]);
 
 function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
@@ -617,6 +622,11 @@ function parseActor(line: Line): DslActor | null {
       final: boolOrUndef(opts.final),
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
+      // canvas pivot 新 spec = 絶対座標 field を actor に格納、 compile 経由で CDL に受け渡す
+      posX: numberOrUndef(opts.posX),
+      posY: numberOrUndef(opts.posY),
+      posW: numberOrUndef(opts.posW),
+      posH: numberOrUndef(opts.posH),
       pos: { line: line.no },
     };
   }

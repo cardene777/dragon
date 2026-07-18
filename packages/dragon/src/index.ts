@@ -13,6 +13,13 @@ export { compileToCdl } from "./compile";
 export { parseTextDslV05 } from "./v05";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
+// canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)
+export {
+  computeDiagramBoundingBox,
+  rectsOverlap,
+  DIAGRAM_BOUNDARY_PADDING,
+} from "./canvas-bounds";
+export type { DiagramBoundingBox } from "./canvas-bounds";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
