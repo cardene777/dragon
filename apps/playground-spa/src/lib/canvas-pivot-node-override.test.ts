@@ -55,6 +55,24 @@ describe("findDragTarget (sub-node key 抽出)", () => {
     const r = findDragTarget(el, ["api"]);
     expect(r).toEqual({ name: "api", kind: "node", subNodeKey: "spacer" });
   });
+
+  it("subagent review MAJOR-2 = actor 名 `s0` + `x` の step-box collision で `x` を actor と判定 (`s0` は subKey)", () => {
+    // state-machine 系 diagram で actor 名 `s0` / `s1` を使う場合、 rawId=`s0-x` は
+    // step-box 0 for actor `x` = { name: "x", subNodeKey: "s0" } が正解。
+    // 旧実装は startsWith(`s0-`) で { name: "s0", subNodeKey: "x" } に誤 hit する silent bug、
+    // startsWith 分岐で `/^s\d+$/` guard を追加して endsWith 分岐を優先させる修正の regression 防止。
+    const el = mkEl({ "data-cdl-node": "s0-x" });
+    const r = findDragTarget(el, ["s0", "x"]);
+    expect(r).toEqual({ name: "x", kind: "node", subNodeKey: "s0" });
+  });
+
+  it("actor 名 `s0` 単独 hit は subNodeKey なしで actor 全体判定 (exact match は許容)", () => {
+    // rawId === slug の exact match 経路は sN pattern でも actor 判定を許容
+    // (単独 node preset で actor 名 `s0` が hit した場合)
+    const el = mkEl({ "data-cdl-node": "s0" });
+    const r = findDragTarget(el, ["s0"]);
+    expect(r).toEqual({ name: "s0", kind: "node" });
+  });
 });
 
 describe("updateActorNodePosition (nested nodes 書出し)", () => {

@@ -127,6 +127,27 @@ flow:
       expect(userLane!.posY).toBeUndefined();
     });
 
+    it("subagent review MAJOR-1 = 別 actor が保有する同名 id node に座標が漏れない (cross-actor pollution 防止)", () => {
+      // actor A に nodes: { orders: {...} } を書いた時、 別 actor B が保有する id=orders の CDL node に
+      // A の座標が漏れる silent bug の regression 防止。 pattern は `{aliasSlug}-{subKey}` /
+      // `{subKey}-{aliasSlug}` の 2 経路に限定、 完全 id 一致 fallback は削除済 (compile.ts §
+      // applyCanvasPivotPositions)。
+      const src = `title: "test"
+type: flow
+
+actors:
+  - orders: storage
+  - user: { nodes: { orders: { posX: 999, posY: 888, posW: 100, posH: 50 } } }
+`;
+      const diagram = textDslToDiagram(src);
+      // flow preset で actor "orders" が生成する node の id
+      const ordersNode = diagram.nodes.find((n) => n.id === "orders");
+      expect(ordersNode, `orders node が存在 (nodes=${diagram.nodes.map((n) => n.id).join(",")})`).toBeDefined();
+      // user actor の nodes.orders は user-orders / orders-user pattern に該当しないため反映されない
+      expect(ordersNode!.posX, "actor 'orders' の CDL node は user.nodes.orders の影響を受けない").toBeUndefined();
+      expect(ordersNode!.posY).toBeUndefined();
+    });
+
     it("nodes.header 個別 resize しても spacer / footer の auto layout は不変", () => {
       const srcA = `title: "test"
 type: sequence

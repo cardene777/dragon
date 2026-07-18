@@ -105,8 +105,12 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
       }
     }
     // canvas pivot UX 修正 (B1) = actor.nodes[subKey] を対応 CDL node に個別反映。
-    // sub-node id pattern = `{slug}-{subKey}` (header/footer/spacer 等 suffix) or
-    // `{subKey}-{slug}` (sequence step box `s{N}-{slug}` 等 prefix)、 完全 id 指定 fallback も対応。
+    // sub-node id pattern を actor scope 限定の 2 経路に絞る (subagent review MAJOR-1 対応、 CAR-canvas-pivot):
+    //   1. `{aliasSlug}-{subKey}` = header / footer / spacer 等 suffix
+    //   2. `{subKey}-{aliasSlug}` = sequence step box `s{N}-{aliasSlug}` 等 prefix
+    // 旧 `node.id === subKey` 完全一致 fallback は actor scope を持たず cross-actor pollution risk
+    // (別 actor が保有する同名 id node に座標が漏れる silent bug) のため削除。 全 sub-node は必ず
+    // aliasSlug を接頭 / 接尾に含む形式で生成されるため、 2 経路で網羅済。
     // lane 側は触らない = 他 sub-node の auto layout 経路を保持 (B1 独立性の SSOT)。
     if (actor.nodes) {
       for (const [subKey, override] of Object.entries(actor.nodes)) {
@@ -114,8 +118,7 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
         for (const node of diagram.nodes) {
           if (
             node.id === `${aliasSlug}-${subKey}` ||
-            node.id === `${subKey}-${aliasSlug}` ||
-            node.id === subKey
+            node.id === `${subKey}-${aliasSlug}`
           ) {
             node.posX = override.posX;
             node.posY = override.posY;

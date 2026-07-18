@@ -182,7 +182,12 @@ function resolveDslNameWithSubKey(
   const slugs = Array.from(slugToName.keys()).sort((a, b) => b.length - a.length);
   for (const slug of slugs) {
     if (rawId === slug) return { name: slugToName.get(slug)! };
-    if (rawId.startsWith(`${slug}-`)) {
+    // subagent review MAJOR-2 対応 = slug 自体が `s\d+` pattern (state-machine actor 名 `s0` / `s1` 等)
+    // の場合、 startsWith 経路を skip する。 例 actor 名 = [`s0`, `x`]、 rawId = `s0-x` (step-box 0 for x)
+    // は endsWith 経路で `{ name: "x", subNodeKey: "s0" }` が正解、 startsWith(`s0-`) 経路を先に取ると
+    // `{ name: "s0", subNodeKey: "x" }` に誤 hit する silent bug。 endsWith 分岐 (下 `/^s\d+$/` guard)
+    // と対称化して step-box 命名規約を優先する。
+    if (rawId.startsWith(`${slug}-`) && !/^s\d+$/.test(slug)) {
       const suffix = rawId.slice(slug.length + 1);
       return { name: slugToName.get(slug)!, subNodeKey: suffix };
     }
