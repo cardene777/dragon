@@ -5,6 +5,17 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
+import {
+  findDragTarget,
+  clientToSvg,
+  hitResizeHandle,
+  updateActorPosition,
+  extractActorPosition,
+  extractAllActorNames,
+  slugify as slugifyActorName,
+  type DragState,
+  type ResizeCorner,
+} from "@/lib/canvas-pivot-interaction";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -696,14 +707,279 @@ export function CdlEditor(): React.JSX.Element {
     });
   };
 
+  // canvas pivot 新 spec PR-B = element drag / resize state。 SVG 上の element を drag 時は
+  // pan せず該当 element の位置 / サイズを DSL の posX/Y/W/H field に書き戻す。
+  const elementDrag = useRef<DragState | null>(null);
+  const [hoveredHandle, setHoveredHandle] = useState<{ id: string; rect: DOMRect } | null>(null);
+
+  const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return false;
+    const target = e.target as Element;
+
+    // hover 中 handle への hit test を先に判定 (element より優先)
+    if (hoveredHandle) {
+      const corner = hitResizeHandle(e.clientX, e.clientY, hoveredHandle.rect);
+      if (corner) {
+        const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+        const cur = extractActorPosition(src, hoveredHandle.id);
+        elementDrag.current = {
+          mode: "resize",
+          targetName: hoveredHandle.id,
+          startClientX: e.clientX,
+          startClientY: e.clientY,
+          startSvgX: svgPt.x,
+          startSvgY: svgPt.y,
+          initPosX: cur?.posX ?? svgPt.x,
+          initPosY: cur?.posY ?? svgPt.y,
+          initPosW: cur?.posW,
+          initPosH: cur?.posH,
+          corner,
+          svgScale: svgPt.scale,
+          commandBypass: e.metaKey || e.ctrlKey,
+        };
+        document.body.style.cursor = cornerToCursor(corner);
+        return true;
+      }
+    }
+
+    const dragInfo = findDragTarget(target, extractAllActorNames(src));
+    if (!dragInfo) return false;
+    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    const cur = extractActorPosition(src, dragInfo.name);
+    // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
+    // CdlLane の semantic = posX/posY は lane 左上 corner の絶対座標 (SVG unit)、 lane 中心ではない。
+    let initPosX = cur?.posX;
+    let initPosY = cur?.posY;
+    if (initPosX === undefined || initPosY === undefined) {
+      const slug = slugifyActorName(dragInfo.name);
+      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
+      if (laneEl) {
+        // data-cdl-lane-x / data-cdl-lane-y attribute で「left-top corner の SVG unit 座標」 が取れる (CDL render 経由)
+        const rawX = laneEl.getAttribute("data-cdl-lane-x");
+        const rawY = laneEl.getAttribute("data-cdl-lane-y");
+        initPosX = rawX ? parseFloat(rawX) : svgPt.x;
+        initPosY = rawY ? parseFloat(rawY) : svgPt.y;
+      } else {
+        initPosX = svgPt.x;
+        initPosY = svgPt.y;
+      }
+    }
+    elementDrag.current = {
+      mode: "drag",
+      targetName: dragInfo.name,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startSvgX: svgPt.x,
+      startSvgY: svgPt.y,
+      initPosX,
+      initPosY,
+      initPosW: cur?.posW,
+      initPosH: cur?.posH,
+      svgScale: svgPt.scale,
+      commandBypass: e.metaKey || e.ctrlKey,
+    };
+    document.body.style.cursor = "grabbing";
+    return true;
+  };
+
+  const updateElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const st = elementDrag.current;
+    if (!st) return false;
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return false;
+    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    const dx = svgPt.x - st.startSvgX;
+    const dy = svgPt.y - st.startSvgY;
+
+    if (st.mode === "drag") {
+      const newX = st.initPosX + dx;
+      const newY = st.initPosY + dy;
+      applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
+    } else if (st.mode === "resize" && st.corner) {
+      const initW = st.initPosW ?? 100;
+      const initH = st.initPosH ?? 100;
+      // aspect 固定 = corner drag delta の大きい方に合わせる
+      let signX = 1;
+      let signY = 1;
+      if (st.corner === "nw") { signX = -1; signY = -1; }
+      if (st.corner === "ne") { signX = 1; signY = -1; }
+      if (st.corner === "sw") { signX = -1; signY = 1; }
+      const dW = dx * signX;
+      const dH = dy * signY;
+      const delta = Math.max(dW, dH);
+      const newW = Math.max(20, initW + delta);
+      const newH = Math.max(20, initH * (newW / initW));
+      // NW = 左上を掴んで拡大縮小 = 右下固定、 SE = 逆
+      let anchorX = st.initPosX;
+      let anchorY = st.initPosY;
+      if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
+      if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
+      applyLiveResize(st.targetName, anchorX - st.initPosX, anchorY - st.initPosY, newW / initW, newH / initH);
+    }
+    return true;
+  };
+
+  const finalizeElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
+    const st = elementDrag.current;
+    if (!st) return false;
+    document.body.style.cursor = "";
+    elementDrag.current = null;
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return true;
+    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    const dx = svgPt.x - st.startSvgX;
+    const dy = svgPt.y - st.startSvgY;
+    if (st.mode === "drag") {
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
+      const newX = st.initPosX + dx;
+      const newY = st.initPosY + dy;
+      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
+      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
+      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
+      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      setSrc((prev) => {
+        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
+        if (svgEl) {
+          for (const name of extractAllActorNames(prev)) {
+            if (name === st.targetName) continue;
+            const cur2 = extractActorPosition(next, name);
+            if (cur2) continue; // 既に固定済 skip
+            const slug2 = slugifyActorName(name);
+            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
+            if (!el2) continue;
+            const rx = el2.getAttribute("data-cdl-lane-x");
+            const ry = el2.getAttribute("data-cdl-lane-y");
+            if (rx && ry) {
+              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
+            }
+          }
+        }
+        return next;
+      });
+    } else if (st.mode === "resize" && st.corner) {
+      const initW = st.initPosW ?? 100;
+      const initH = st.initPosH ?? 100;
+      let signX = 1;
+      let signY = 1;
+      if (st.corner === "nw") { signX = -1; signY = -1; }
+      if (st.corner === "ne") { signX = 1; signY = -1; }
+      if (st.corner === "sw") { signX = -1; signY = 1; }
+      const dW = dx * signX;
+      const dH = dy * signY;
+      const delta = Math.max(dW, dH);
+      const newW = Math.max(20, initW + delta);
+      const newH = Math.max(20, initH * (newW / initW));
+      let anchorX = st.initPosX;
+      let anchorY = st.initPosY;
+      if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
+      if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
+      setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
+    }
+    // live CSS transform を clear (post-render で真の DSL 値が適用される)
+    clearLiveTransform(st.targetName);
+    return true;
+  };
+
+  const targetBelongsTo = (id: string, targetName: string): boolean => {
+    const slug = slugifyActorName(targetName);
+    // 空 slug (日本語 only 等で英数字ゼロ) は startsWith が全 match するため raw name match のみに絞る
+    if (!slug) {
+      return (
+        id === targetName ||
+        id.startsWith(`${targetName}-`) ||
+        id.startsWith(`${targetName}__`)
+      );
+    }
+    return (
+      id === targetName ||
+      id === slug ||
+      id.startsWith(`${targetName}-`) ||
+      id.startsWith(`${slug}-`) ||
+      id.startsWith(`${targetName}__`) ||
+      id.startsWith(`${slug}__`) ||
+      (/^s\d+-/.test(id) && (id.endsWith(`-${targetName}`) || id.endsWith(`-${slug}`)))
+    );
+  };
+
+  const applyLiveTransform = (targetName: string, dx: number, dy: number): void => {
+    const svg = previewRef.current?.querySelector("svg");
+    if (!svg) return;
+    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
+      if (targetBelongsTo(id, targetName)) {
+        (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    });
+  };
+
+  const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
+    const svg = previewRef.current?.querySelector("svg");
+    if (!svg) return;
+    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
+      if (targetBelongsTo(id, targetName)) {
+        (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+      }
+    });
+  };
+
+  const clearLiveTransform = (targetName: string): void => {
+    const svg = previewRef.current?.querySelector("svg");
+    if (!svg) return;
+    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
+      if (targetBelongsTo(id, targetName)) {
+        (el as SVGGraphicsElement).style.transform = "";
+      }
+    });
+  };
+
+  const cornerToCursor = (corner: ResizeCorner): string => {
+    if (corner === "nw" || corner === "se") return "nwse-resize";
+    return "nesw-resize";
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
+    // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
+    if (startElementInteraction(e)) return;
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // element drag / resize 中は pan せず interaction pass に流す
+    if (updateElementInteraction(e)) return;
+    // hover 中の element を追跡して handle 表示用 state 更新
+    if (!elementDrag.current) {
+      const target = e.target as Element;
+      const dragInfo = findDragTarget(target, extractAllActorNames(src));
+      if (dragInfo) {
+        // slugify した名前で data-cdl-lane を検索
+        const slug = slugifyActorName(dragInfo.name);
+        let cur: Element | null = target;
+        while (cur) {
+          const laneAttr = cur.getAttribute?.("data-cdl-lane");
+          const nodeAttr = cur.getAttribute?.("data-cdl-node");
+          if (laneAttr === slug || laneAttr === dragInfo.name) break;
+          if (nodeAttr === slug || nodeAttr?.startsWith(`${slug}-`)) break;
+          cur = cur.parentElement;
+        }
+        const rect = cur ? (cur as Element).getBoundingClientRect() : null;
+        if (rect) {
+          setHoveredHandle({ id: dragInfo.name, rect });
+        }
+      } else if (hoveredHandle) {
+        // element 外に mouse が出たら handle を消す (only if outside the rect + some buffer)
+        const r = hoveredHandle.rect;
+        const buffer = 16;
+        if (e.clientX < r.left - buffer || e.clientX > r.right + buffer || e.clientY < r.top - buffer || e.clientY > r.bottom + buffer) {
+          setHoveredHandle(null);
+        }
+      }
+    }
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -712,7 +988,10 @@ export function CdlEditor(): React.JSX.Element {
     }));
   };
 
-  const handleMouseUp = (): void => setDragging(false);
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
+    if (finalizeElementInteraction(e)) return;
+    setDragging(false);
+  };
 
   const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
@@ -1303,6 +1582,48 @@ ${newActorLine}
               <div className="v4-editor-empty">読み込み中...</div>
             )}
           </div>
+          {hoveredHandle && (() => {
+            // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
+            const stageRect = previewRef.current?.getBoundingClientRect();
+            if (!stageRect) return null;
+            const r = hoveredHandle.rect;
+            const left = r.left - stageRect.left;
+            const top = r.top - stageRect.top;
+            const HANDLE = 10;
+            const style = (x: number, y: number, cursor: string) => ({
+              position: "absolute" as const,
+              left: `${x - HANDLE / 2}px`,
+              top: `${y - HANDLE / 2}px`,
+              width: `${HANDLE}px`,
+              height: `${HANDLE}px`,
+              background: "#fff",
+              border: "1.5px solid #8a5a2a",
+              borderRadius: "2px",
+              cursor,
+              zIndex: 100,
+              pointerEvents: "none" as const,
+            });
+            return (
+              <>
+                <div style={style(left, top, "nwse-resize")} data-corner="nw" />
+                <div style={style(left + r.width, top, "nesw-resize")} data-corner="ne" />
+                <div style={style(left, top + r.height, "nesw-resize")} data-corner="sw" />
+                <div style={style(left + r.width, top + r.height, "nwse-resize")} data-corner="se" />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    width: `${r.width}px`,
+                    height: `${r.height}px`,
+                    border: "1.5px dashed rgba(138, 90, 42, 0.5)",
+                    pointerEvents: "none",
+                    zIndex: 99,
+                  }}
+                />
+              </>
+            );
+          })()}
         </div>
       </section>
     </div>

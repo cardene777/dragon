@@ -572,10 +572,19 @@
      viewBox の w / h を CSS variable で受けて実 pixel 幅を明示する。 */
   .v4-editor-svg-wrap svg {
     display: block;
-    pointer-events: none;
+    /* canvas pivot 新 spec = SVG 内 element で drag interaction を受けるため pointer-events all
+       (旧 pointer-events: none は HTML overlay 干渉回避の historical fix、 現状は不要) */
+    pointer-events: auto;
     width: var(--cdl-svg-w, 800px) !important;
     height: var(--cdl-svg-h, 600px) !important;
     max-width: none !important;
+  }
+  /* SVG 内 lane / node / edge element で drag / hover を受ける */
+  .v4-editor-svg-wrap svg [data-cdl-lane],
+  .v4-editor-svg-wrap svg [data-cdl-node],
+  .v4-editor-svg-wrap svg [data-cdl-edge] {
+    pointer-events: auto;
+    cursor: grab;
   }
   .v4-editor-empty {
     color: var(--v4-ink-mute);
