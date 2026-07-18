@@ -10,7 +10,15 @@ export default defineConfig({
       "apps/**/src/**/*.test.tsx",
     ],
     // bench.test.ts は bench() のみ含み regular test mode で `bench is only available in benchmark mode` を起こすため除外。
-    exclude: ["**/node_modules/**", "**/test/bench.test.ts"],
+    // apps/playground-spa/tests/**/*.spec.ts は Playwright e2e 経路、 vitest v4 の default include
+    // (`**/*.{test,spec}.?(c|m)[jt]s?(x)`) と merge されて拾われると
+    // `Playwright Test did not expect test() to be called here` で崩れるため明示除外。
+    exclude: [
+      "**/node_modules/**",
+      "**/test/bench.test.ts",
+      "**/tests/**/*.spec.ts",
+      "**/tests/**/*.spec.tsx",
+    ],
     environment: "node",
     globals: false,
     environmentMatchGlobs: [
