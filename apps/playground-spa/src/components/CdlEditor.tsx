@@ -1024,6 +1024,8 @@ export function CdlEditor(): React.JSX.Element {
     const dy = (e.clientY - st.startClientY) / st.scale;
     const newX = st.initPosX + dx;
     const newY = st.initPosY + dy;
+    // 座標一本化後 = compile 側は posX bake なし、 CSS translate 一本で応用。
+    // interactive drag / post-render 両経路とも (newX, newY) をそのまま渡せば OK。
     applyActorTransform(st.alias, newX, newY);
     return true;
   };
@@ -1074,10 +1076,11 @@ export function CdlEditor(): React.JSX.Element {
       const el = svg.querySelector(sel) as SVGGraphicsElement | null;
       if (el) el.style.transform = `translate(${x}px, ${y}px)`;
     }
-    // canvas pivot 追加 fix = parts merge の prefix (`{alias}__*`) は compile 側で lane.x を
-    // posX 加算済 = CSS は Y のみ apply する。 double-apply 回避。
+    // parts merge の prefix (`{alias}__*`) は compile 側で lane.x に posX を bake しない設計に統一 (compile.ts § canvas pivot 座標一本化)。
+    // CSS translate で X/Y 両方応用、 post-render / interactive drag 両経路とも target (x, y) をそのまま適用する。
+    // これで drop 直後の compile 非同期 + useEffect リセット race による「元位置戻り」 「二重適用 flash」 「勝手に飛ぶ」 bug を根絶する。
     svg.querySelectorAll(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`).forEach((el) => {
-      (el as SVGGraphicsElement).style.transform = `translate(0px, ${y}px)`;
+      (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
     });
     svg.querySelectorAll(`[data-cdl-node]`).forEach((el) => {
       const nid = el.getAttribute("data-cdl-node") ?? "";

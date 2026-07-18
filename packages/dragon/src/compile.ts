@@ -284,9 +284,12 @@ function mergePartIntoDiagram(
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label,
-        // canvas pivot 追加 fix = parts internal lane.x に drop 位置 (posX) を加算、
-        // sequence 側 lifeline との重複を回避 (見切れ / overlap の根本解消)。
-        x: (laneOrig.x ?? 0) + xShift,
+        // canvas pivot 座標一本化 = compile 側で lane.x に posX を bake せず、 CSS translate 一本で
+        // X/Y 両方応用する経路に統一。 drop 直後の compile 非同期 + useEffect リセットの race で
+        // 「元位置戻り」 or 「二重適用」 の flash が発生していた bug の直接対応。
+        // xShift 経路は spec-canvas-pivot-adjustment.md の overlay layer 移行で恒久廃止予定、
+        // 本 change は暫定 fix (parts internal x=0 のまま target に merge)。
+        x: laneOrig.x ?? 0,
       });
     }
   }
