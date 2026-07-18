@@ -2,271 +2,9 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
 import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-
-// canvas pivot Phase 1/3/4 (CAR-1693/1695/1696) = actor 個別位置管理の helper 群。
-// DSL text から posX/posY inline option を regex 抽出 + 更新するため、 dragon 側 parser の
-// 完全な再走を挟まず editor 内で light-weight 経路で扱う。
-// alias slug は dragon の slugify (compile.ts:1352) と同一 logic を local に持つ。
-
-function slugifyActor(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 64) || "n"
-  );
-}
-
-type ActorPos = { x: number; y: number };
-type ActorPosMap = Map<string, ActorPos>;
-
-/**
- * DSL text から actors: block 中の inline mapping 内 posX / posY を alias 別に抽出する。
- * 対応 pattern = `  - alias: { kind: X, posX: 40, posY: -20 }` / `- alias: { posX: 100 }` 等。
- * alias -> {x, y} の Map を返す (どちらか片方の値のみでも 0 fill で return)。
- */
-function parseActorPositions(src: string): ActorPosMap {
-  const out: ActorPosMap = new Map();
-  const lineRegex = /^\s*-\s*([a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_\-぀-ゟ゠-ヿ一-鿿]*)\s*:\s*\{([^}]*)\}\s*$/;
-  const lines = src.split("\n");
-  let inActors = false;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed === "actors:") {
-      inActors = true;
-      continue;
-    }
-    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
-      inActors = false;
-    }
-    if (!inActors) continue;
-    const m = line.match(lineRegex);
-    if (!m) continue;
-    const alias = m[1]!;
-    const inner = m[2]!;
-    const posXMatch = inner.match(/posX\s*:\s*(-?\d+(?:\.\d+)?)/);
-    const posYMatch = inner.match(/posY\s*:\s*(-?\d+(?:\.\d+)?)/);
-    if (!posXMatch && !posYMatch) continue;
-    const x = posXMatch ? Number(posXMatch[1]) : 0;
-    const y = posYMatch ? Number(posYMatch[1]) : 0;
-    out.set(alias, { x, y });
-  }
-  return out;
-}
-
-/**
- * DSL text 内の指定 alias 行に posX/posY field を挿入 or 更新する。 inline mapping form
- * (`- alias: { ... }`) の場合 { ... } 内の posX/posY を更新、 short form (`- alias: kind`)
- * の場合は inline mapping に格上げする。 該当 alias 行が無い時は src 無変更で返す。
- */
-function updateActorPosition(src: string, alias: string, x: number, y: number): string {
-  const lines = src.split("\n");
-  const nextLines = lines.map((line) => {
-    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (inlineMatch && inlineMatch[2] === alias) {
-      const [, prefix, name, sep, inner, suffix] = inlineMatch;
-      const cleaned = inner!
-        .split(",")
-        .map((seg) => seg.trim())
-        .filter((seg) => seg && !seg.match(/^posX\s*:/) && !seg.match(/^posY\s*:/))
-        .join(", ");
-      const newInner = [cleaned, `posX: ${Math.round(x)}`, `posY: ${Math.round(y)}`].filter(Boolean).join(", ");
-      return `${prefix}${name}${sep}{ ${newInner} }${suffix}`;
-    }
-    const shortMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
-    if (shortMatch && shortMatch[2] === alias) {
-      const [, prefix, name, sep, kind] = shortMatch;
-      return `${prefix}${name}${sep}{ kind: ${kind!.trim()}, posX: ${Math.round(x)}, posY: ${Math.round(y)} }`;
-    }
-    const bareMatch = line.match(/^(\s*-\s*)(\S+)\s*$/);
-    if (bareMatch && bareMatch[2] === alias) {
-      const [, prefix, name] = bareMatch;
-      return `${prefix}${name}: { posX: ${Math.round(x)}, posY: ${Math.round(y)} }`;
-    }
-    return line;
-  });
-  return nextLines.join("\n");
-}
-
-/**
- * DOM 上の SVG element (data-cdl-node / data-cdl-lane / data-cdl-edge) の id から
- * どの actor alias に属するかを推定する。 sequence preset の header/spacer/footer 命名規則
- * (`{slug}-header` / `{slug}-footer` / `s{N}-{slug}` / `e{N}-{from}-{to}`) と、
- * parts merge の prefix 規則 (`{alias}__{origId}`) の両方に対応する。
- */
-function resolveActorFromElementId(id: string, aliasToSlug: Map<string, string>): string | null {
-  const partsMatch = id.match(/^([^_]+)__/);
-  if (partsMatch) {
-    const aliasCandidate = partsMatch[1]!;
-    if (aliasToSlug.has(aliasCandidate)) return aliasCandidate;
-  }
-  for (const [alias, slug] of aliasToSlug.entries()) {
-    if (id === slug) return alias;
-    if (id === `${slug}-header` || id === `${slug}-footer` || id === `${slug}-spacer`) return alias;
-    if (id.startsWith(`${slug}__`)) return alias;
-    const stepMatch = id.match(/^s\d+-(.+)$/);
-    if (stepMatch && stepMatch[1] === slug) return alias;
-  }
-  return null;
-}
-
-/**
- * DSL text から指定 alias の posX / posY / pos: field のみ削除する (magnet snap 時)。
- * inline mapping 内 posX / posY を除去、 全 field 除去後は inline 自体削除 → short/bare form 復帰。
- */
-function clearActorPosition(src: string, alias: string): string {
-  const lines = src.split("\n");
-  const nextLines = lines.map((line) => {
-    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (!inlineMatch || inlineMatch[2] !== alias) return line;
-    const [, prefix, name, sep, inner, suffix] = inlineMatch;
-    const cleaned = inner!
-      .split(",")
-      .map((seg) => seg.trim())
-      .filter((seg) => seg && !seg.match(/^posX\s*:/) && !seg.match(/^posY\s*:/) && !seg.match(/^pos\s*:/))
-      .join(", ");
-    if (cleaned === "") return `${prefix}${name}${suffix}`;
-    const kindMatch = cleaned.match(/^kind\s*:\s*([^,]+)$/);
-    if (kindMatch) return `${prefix}${name}${sep}${kindMatch[1]!.trim()}`;
-    return `${prefix}${name}${sep}{ ${cleaned} }${suffix}`;
-  });
-  return nextLines.join("\n");
-}
-
-/**
- * canvas pivot parts binding = actors: block から `- {alias}: { kind: {partId}, ... }` の
- * alias と partId を抽出、 [{alias, kind}, ...] を返す。 binding popup UI で「連動可能 parts 一覧」
- * を build する時に使う (source 判定 = getBindingDef(kind).role === 'source')。
- */
-function extractActorParts(src: string): Array<{ alias: string; kind: string }> {
-  const out: Array<{ alias: string; kind: string }> = [];
-  const lines = src.split("\n");
-  let inActors = false;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed === "actors:") { inActors = true; continue; }
-    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
-      inActors = false;
-    }
-    if (!inActors) continue;
-    const m = line.match(/^\s*-\s*(\S+?)\s*:\s*\{([^}]*)\}\s*$/);
-    if (!m) continue;
-    const alias = m[1]!;
-    const inner = m[2]!;
-    const kindMatch = inner.match(/kind\s*:\s*([a-zA-Z_][\w-]*)/);
-    if (!kindMatch) continue;
-    out.push({ alias, kind: kindMatch[1]! });
-  }
-  return out;
-}
-
-/**
- * DSL text から指定 alias の bind field を削除する (unbind = 連動解除)。
- * inline mapping (`- alias: { kind: X, bind: c.n }`) の場合 bind: を除去、
- * 全 field 除去後は inline 自体削除 → short/bare form 復帰。 sink parts の
- * standalone 動作に戻る (自 phase の tween が復活する動作は次回 render で反映)。
- */
-function clearActorBinding(src: string, alias: string): string {
-  const lines = src.split("\n");
-  const nextLines = lines.map((line) => {
-    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (!inlineMatch || inlineMatch[2] !== alias) return line;
-    const [, prefix, name, sep, inner, suffix] = inlineMatch;
-    const cleaned = inner!
-      .split(",")
-      .map((seg) => seg.trim())
-      .filter((seg) => seg && !seg.match(/^bind\s*:/))
-      .join(", ");
-    if (cleaned === "") return `${prefix}${name}${suffix}`;
-    // inline mapping form を維持 (short form / bare form 復帰は kind lookup が壊れる可能性があるため
-    // "- alias: { kind: X }" 形を保持する = render 安定性優先)。
-    return `${prefix}${name}${sep}{ ${cleaned} }${suffix}`;
-  });
-  return nextLines.join("\n");
-}
-
-/**
- * actor alias の現行 bind 値 (source alias.state) を parse して返す。 UI 表示用。
- */
-function extractActorBind(src: string, alias: string): string | null {
-  const lines = src.split("\n");
-  for (const line of lines) {
-    const inlineMatch = line.match(/^(\s*-\s*)(\S+?)(\s*:\s*)\{([^}]*)\}(\s*)$/);
-    if (!inlineMatch || inlineMatch[2] !== alias) continue;
-    const inner = inlineMatch[4]!;
-    const bindMatch = inner.match(/bind\s*:\s*([a-zA-Z_][\w-]*\.[a-zA-Z_][\w]*)/);
-    if (bindMatch) return bindMatch[1]!;
-  }
-  return null;
-}
-
-/**
- * DSL text の actors: block 末尾に「連動する新規 sink parts」 を append する。
- * form = `- {sinkAlias}: { kind: {sinkKind}, bind: {sourceAlias}.{sourceState} }`
- * source alias.state は binding catalog から自動決定する。
- */
-function appendBoundActorLine(src: string, sourceAlias: string, sourceKind: string, sinkKind: string, existingAliases: Set<string>): string | null {
-  const sinkDef = getBindingDef(sinkKind);
-  const sourceDef = getBindingDef(sourceKind);
-  if (sourceDef.role !== "source" || !sourceDef.bindableState) return null;
-  if (sinkDef.role !== "sink" || !sinkDef.bindableState) return null;
-  // sink alias = kind base 名 + 連番 (arc1 / arc2 / ...)
-  const aliasBase = sinkKind.replace(/[^a-zA-Z0-9]/g, "");
-  let alias = `${aliasBase}1`;
-  for (let i = 1; i <= 1000 && existingAliases.has(alias); i++) {
-    alias = `${aliasBase}${i + 1}`;
-  }
-  const newLine = `  - ${alias}: { kind: ${sinkKind}, bind: ${sourceAlias}.${sourceDef.bindableState} }`;
-  const lines = src.split("\n");
-  // actors: block 末尾を検索
-  let inActors = false;
-  let lastActorIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
-    const trimmed = line.trim();
-    if (trimmed === "actors:") { inActors = true; continue; }
-    if (inActors) {
-      if (trimmed.startsWith("- ")) lastActorIdx = i;
-      else if (trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t")) break;
-    }
-  }
-  if (lastActorIdx < 0) return null;
-  lines.splice(lastActorIdx + 1, 0, newLine);
-  return lines.join("\n");
-}
-
-/**
- * DSL text から actors: block の alias 一覧を抽出、 alias -> slug の Map を返す。
- * SVG 上 element の data-cdl-* id → actor 逆解決に使う。
- */
-function extractActorAliases(src: string): Map<string, string> {
-  const out = new Map<string, string>();
-  const lines = src.split("\n");
-  let inActors = false;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed === "actors:") {
-      inActors = true;
-      continue;
-    }
-    if (inActors && trimmed !== "" && !line.startsWith(" ") && !line.startsWith("\t") && !trimmed.startsWith("- ")) {
-      inActors = false;
-    }
-    if (!inActors) continue;
-    const m = trimmed.match(/^-\s*("?)([^"\s:]+)\1\s*(?::|$)/);
-    if (m) {
-      const alias = m[2]!;
-      out.set(alias, slugifyActor(alias));
-    }
-  }
-  return out;
-}
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
-import { getBindingDef, listBindableSinks, listBindableSources, PARTS_BINDING_CATALOG } from "@/lib/parts-binding-catalog";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -523,12 +261,6 @@ export function CdlEditor(): React.JSX.Element {
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
   const [dropOver, setDropOver] = useState(false);
   const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
-  // canvas pivot parts binding = popup state。 selectedSourceAlias 選択後 sink 一覧を表示。
-  const [bindPopupOpen, setBindPopupOpen] = useState(false);
-  const [bindSelectedSource, setBindSelectedSource] = useState<{ alias: string; kind: string } | null>(null);
-  // canvas pivot parts binding = 個別 parts の右上 icon overlay position。
-  // SVG element の bounding rect を preview stage 相対座標に変換して absolute 表示する。
-  const [bindIconOverlays, setBindIconOverlays] = useState<Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink"; boundTo: string | null }>>([]);
   const dropHintTimerRef = useRef<number | null>(null);
 
   /**
@@ -964,144 +696,14 @@ export function CdlEditor(): React.JSX.Element {
     });
   };
 
-  // canvas pivot Phase 4 (CAR-1696) = individual element drag state。
-  // pointerdown 対象が [data-cdl-node] / [data-cdl-lane] 内なら pan せず element drag に分岐。
-  // drag 中は該当 actor に属する全 SVG element に CSS translate を live 適用、 pointerup 時に
-  // DSL text の posX / posY field を surgical text patch で更新する。
-  const actorDragStart = useRef<{
-    alias: string;
-    startClientX: number;
-    startClientY: number;
-    initPosX: number;
-    initPosY: number;
-    scale: number;
-  } | null>(null);
-
-  /**
-   * canvas pivot magnet zone (user 明示指定 2026-07-18) = 「他 element より 1-8px 高さがズレてる時の
-   * 微調整だけ」。 threshold を 8px に縮小、 対象 = 他 element の Y 座標 (横並び揃え) のみ。
-   * X 座標 (別 lane に吸い寄せる) は完全撤廃 = user が drop / drag 場所を尊重する Miro 風挙動。
-   * Command キー押しで snap 完全 bypass。
-   */
-  // user 明示 2026-07-18 = 「Miro のように完全自由 drag、 snap は他要素側が間を開ける方向のみ」。
-  // drag 対象の snap 経路は全廃止 = 常に自由配置。
-  const findNearestLaneForSnap = (_a: number, _b: number, _c: string): string | null => null;
-
-  /**
-   * pointerdown 対象を検査し、 element drag の対象になるか判定する。 対象なら drag state を
-   * 初期化して true を返す (呼出側 pan は skip)。 非対象なら false (呼出側 pan に fallback)。
-   */
-  const tryStartElementDrag = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const target = e.target as HTMLElement;
-    const nodeEl = target.closest("[data-cdl-node], [data-cdl-lane]");
-    if (!nodeEl) return false;
-    const nodeId = nodeEl.getAttribute("data-cdl-node") ?? nodeEl.getAttribute("data-cdl-lane") ?? "";
-    const aliasToSlug = extractActorAliases(src);
-    const alias = resolveActorFromElementId(nodeId, aliasToSlug);
-    if (!alias) return false;
-    const positions = parseActorPositions(src);
-    const currentPos = positions.get(alias) ?? { x: 0, y: 0 };
-    actorDragStart.current = {
-      alias,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      initPosX: currentPos.x,
-      initPosY: currentPos.y,
-      scale: transform.scale,
-    };
-    document.body.style.cursor = "grabbing";
-    return true;
-  };
-
-  /**
-   * drag 中の pointermove。 CSS transform で該当 actor の全 SVG element を live 更新する
-   * (DSL 書換は pointerup で 1 回のみ、 大量 setState を避ける)。
-   */
-  const updateElementDragVisual = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const st = actorDragStart.current;
-    if (!st) return false;
-    const dx = (e.clientX - st.startClientX) / st.scale;
-    const dy = (e.clientY - st.startClientY) / st.scale;
-    const newX = st.initPosX + dx;
-    const newY = st.initPosY + dy;
-    // 座標一本化後 = compile 側は posX bake なし、 CSS translate 一本で応用。
-    // interactive drag / post-render 両経路とも (newX, newY) をそのまま渡せば OK。
-    applyActorTransform(st.alias, newX, newY);
-    return true;
-  };
-
-  /**
-   * drag 終了時、 最終位置を DSL に posX/posY field で書込。
-   */
-  const finalizeElementDrag = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const st = actorDragStart.current;
-    if (!st) return false;
-    document.body.style.cursor = "";
-    const dx = (e.clientX - st.startClientX) / st.scale;
-    const dy = (e.clientY - st.startClientY) / st.scale;
-    const newX = st.initPosX + dx;
-    const newY = st.initPosY + dy;
-    actorDragStart.current = null;
-    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
-      // click 相当 = 位置更新 skip
-      return true;
-    }
-    // user 明示 2026-07-18 = 「Miro のように完全自由、 snap は要素の 5px 範囲で他要素側が
-    // 間を開ける (collision 時の周辺 shift) だけ」。 drag 対象自体の snap は全廃止、
-    // drop 位置 (newX, newY) をそのまま尊重する。
-    setSrc((prev) => updateActorPosition(prev, st.alias, newX, newY));
-    setDropHintWithReset(`"${st.alias}" を (${Math.round(newX)}, ${Math.round(newY)}) に配置。 Cmd+Z で元へ。`, 3500);
-    return true;
-  };
-
-  /**
-   * 現在 render 済 SVG から該当 actor の全 element (node / lane / edge の prefix match) を
-   * 選び、 CSS translate を適用する。 useEffect による post-render pass と drag 中 live 更新の
-   * 両方から呼ばれる。
-   */
-  const applyActorTransform = useCallback((alias: string, x: number, y: number): void => {
-    const svg = previewRef.current?.querySelector("svg");
-    if (!svg) return;
-    const aliasToSlug = extractActorAliases(src);
-    const slug = aliasToSlug.get(alias) ?? slugifyActor(alias);
-    // sequence actor 相当 (partId なし) は compile 側で pos 反映されないため CSS で X も Y も apply。
-    const selectors = [
-      `[data-cdl-node="${slug}"]`,
-      `[data-cdl-node="${slug}-header"]`,
-      `[data-cdl-node="${slug}-footer"]`,
-      `[data-cdl-node="${slug}-spacer"]`,
-      `[data-cdl-lane="${slug}"]`,
-    ];
-    for (const sel of selectors) {
-      const el = svg.querySelector(sel) as SVGGraphicsElement | null;
-      if (el) el.style.transform = `translate(${x}px, ${y}px)`;
-    }
-    // parts merge の prefix (`{alias}__*`) は compile 側で lane.x に posX を bake しない設計に統一 (compile.ts § canvas pivot 座標一本化)。
-    // CSS translate で X/Y 両方応用、 post-render / interactive drag 両経路とも target (x, y) をそのまま適用する。
-    // これで drop 直後の compile 非同期 + useEffect リセット race による「元位置戻り」 「二重適用 flash」 「勝手に飛ぶ」 bug を根絶する。
-    svg.querySelectorAll(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`).forEach((el) => {
-      (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
-    });
-    svg.querySelectorAll(`[data-cdl-node]`).forEach((el) => {
-      const nid = el.getAttribute("data-cdl-node") ?? "";
-      const stepMatch = nid.match(/^s\d+-(.+)$/);
-      if (stepMatch && stepMatch[1] === slug) {
-        (el as SVGGraphicsElement).style.transform = `translate(${x}px, ${y}px)`;
-      }
-    });
-  }, [src]);
-
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
-    // canvas pivot Phase 4 = SVG element 上の pointerdown なら element drag、 それ以外は pan
-    if (tryStartElementDrag(e)) return;
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
-    if (updateElementDragVisual(e)) return;
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -1110,57 +712,7 @@ export function CdlEditor(): React.JSX.Element {
     }));
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
-    if (finalizeElementDrag(e)) return;
-    setDragging(false);
-  };
-
-  // canvas pivot Phase 1/4 = DSL 中の posX/posY field を post-render CSS transform で適用する。
-  // src 変更 (drag 完了後 DSL 書換 or user 手編集) 毎に SVG DOM を walk して該当 actor の
-  // 全 element に translate を再適用する。
-  useEffect(() => {
-    if (!diagram) return;
-    const positions = parseActorPositions(src);
-    // requestAnimationFrame で render 完了後 1 tick 待って apply (React の commit phase 後)
-    const raf = requestAnimationFrame(() => {
-      positions.forEach((pos, alias) => {
-        applyActorTransform(alias, pos.x, pos.y);
-      });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [src, diagram, applyActorTransform]);
-
-  // canvas pivot parts binding = 各 parts の右上に「⚡」 icon overlay を表示する position を
-  // post-render で計算する (src / diagram / transform 変化毎に再計算)。
-  // SVG element (data-cdl-node = alias slug で header / alias__* 経由) の bounding rect を
-  // preview stage 相対座標に変換して icon の absolute position に反映する。
-  useEffect(() => {
-    if (!diagram) { setBindIconOverlays([]); return; }
-    const stage = previewRef.current;
-    if (!stage) return;
-    const raf = requestAnimationFrame(() => {
-      const stageRect = stage.getBoundingClientRect();
-      const svg = stage.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      const parts = extractActorParts(src);
-      const overlays: Array<{ alias: string; kind: string; x: number; y: number; role: "source" | "sink"; boundTo: string | null }> = [];
-      for (const { alias, kind } of parts) {
-        const def = getBindingDef(kind);
-        if (def.role === "standalone") continue;
-        // parts の代表 element 探索 = {alias}__* prefix (parts merge 経由の internal node)
-        const el = svg.querySelector(`[data-cdl-node^="${alias}__"], [data-cdl-lane^="${alias}__"]`) as SVGGraphicsElement | null;
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        // 右上位置 = element の (right, top)、 stage 相対座標に変換
-        const x = rect.right - stageRect.left;
-        const y = rect.top - stageRect.top;
-        const boundTo = def.role === "sink" ? extractActorBind(src, alias) : null;
-        overlays.push({ alias, kind, x, y, role: def.role, boundTo });
-      }
-      setBindIconOverlays(overlays);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [src, diagram, transform]);
+  const handleMouseUp = (): void => setDragging(false);
 
   const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
@@ -1201,21 +753,14 @@ export function CdlEditor(): React.JSX.Element {
   const handleZoomIn = (): void => zoomAtCenter(ZOOM_STEP);
   const handleZoomOut = (): void => zoomAtCenter(-ZOOM_STEP);
 
-  // Esc で Reset + bind popup close (a11y)
+  // Esc で Reset
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
-        if (bindPopupOpen) {
-          setBindPopupOpen(false);
-          setBindSelectedSource(null);
-        } else {
-          handleReset();
-        }
-      }
+      if (e.key === "Escape") handleReset();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleReset, bindPopupOpen]);
+  }, [handleReset]);
 
   const handleShare = (): void => {
     if (typeof window === "undefined") return;
@@ -1390,30 +935,6 @@ animation:
       setDropHintWithReset(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`, 6000);
       return;
     }
-    // canvas pivot Phase 3 (CAR-1695) = drop 位置を SVG viewport 座標に変換して pos: field で書込。
-    // 従来 drop 位置を無視して actors: 末尾 append する挙動 (user 実使いフィードバック
-    // 「ドロップした位置に入ってない」) を修正。 preview stage の client rect と現行 transform
-    // (pan/zoom) を考慮して SVG 座標系の相対 offset を計算する。
-    // user 明示 「クリックしたら図の邪魔にならない箇所に追加」 = drop 位置無視で
-    // 既存要素と重ならない empty 領域 (現状 diagram の下方) に配置。 drag drop の HTML5 event
-    // 経路は user が明示的に drop 位置を選んだので使う、 button click 経由の追加時は auto-place。
-    let dropOffsetX = 0;
-    let dropOffsetY = 0;
-    const stageEl = previewRef.current;
-    const svgEl = stageEl?.querySelector("svg");
-    if (stageEl && svgEl && e.clientX > 0 && e.clientY > 0) {
-      // 実 drag drop (client 座標あり) の場合は drop 位置尊重
-      const stageRect = stageEl.getBoundingClientRect();
-      const svgRect = svgEl.getBoundingClientRect();
-      const svgW = svgEl.viewBox.baseVal.width || svgRect.width;
-      const svgH = svgEl.viewBox.baseVal.height || svgRect.height;
-      const svgX = ((e.clientX - svgRect.left) / svgRect.width) * svgW;
-      const svgY = ((e.clientY - svgRect.top) / svgRect.height) * svgH;
-      const stageCenterSvgX = ((stageRect.left + stageRect.width / 2 - svgRect.left) / svgRect.width) * svgW;
-      const stageCenterSvgY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
-      dropOffsetX = Math.round(svgX - stageCenterSvgX);
-      dropOffsetY = Math.round(svgY - stageCenterSvgY);
-    }
     // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
     // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
     // alias は既 actor 名衝突回避で連番生成 ('arc1' → 'arc2')、 lane 指定は default なし (compile 側で内部 lane 生成)。
@@ -1430,13 +951,7 @@ animation:
       const rendered = typeof v === "string" ? `"${v}"` : String(v);
       return `${s.id}: ${rendered}`;
     });
-    // canvas pivot Phase 3 (CAR-1695) = drop 位置 offset を posX/posY として同一 line inline map に含める。
-    // 0/0 の時は省略 (auto layout そのまま、 DSL diff 最小)。
-    const posFields: string[] = [];
-    if (dropOffsetX !== 0 || dropOffsetY !== 0) {
-      posFields.push(`posX: ${dropOffsetX}`, `posY: ${dropOffsetY}`);
-    }
-    const inlineFields = [`kind: ${kindValue}`, ...stateInits, ...posFields].join(", ");
+    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
     const newSrc = appendActorLine(src, newActorLine);
     if (newSrc === null) {
@@ -1567,30 +1082,7 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    // user 明示 「クリックしたら図の邪魔にならない箇所に追加」 = 既存 element の
-                    // 下方に auto-place。 現 preview の SVG 高さから既存要素の bottom を計算、
-                    // その下 100px offset で配置。 SVG 未 render 時は default y=+400 (下寄せ)。
-                    let autoPosX = 0;
-                    let autoPosY = 400;
-                    const svgAuto = previewRef.current?.querySelector("svg");
-                    if (svgAuto) {
-                      const nodes = Array.from(svgAuto.querySelectorAll("[data-cdl-node]"));
-                      let maxBottom = 0;
-                      for (const n of nodes) {
-                        const r = n.getBoundingClientRect();
-                        if (r.bottom > maxBottom) maxBottom = r.bottom;
-                      }
-                      if (maxBottom > 0 && previewRef.current) {
-                        const stageRect = previewRef.current.getBoundingClientRect();
-                        const svgRect = svgAuto.getBoundingClientRect();
-                        const svgH = svgAuto.viewBox.baseVal.height || svgRect.height;
-                        // maxBottom は viewport 座標、 SVG viewBox 座標に変換
-                        const svgY = ((maxBottom - svgRect.top) / svgRect.height) * svgH;
-                        const centerY = ((stageRect.top + stageRect.height / 2 - svgRect.top) / svgRect.height) * svgH;
-                        autoPosY = Math.round(svgY - centerY + 80);
-                      }
-                    }
-                    const inlineFields = [`kind: ${kindValue}`, ...stateInits, `posX: ${autoPosX}`, `posY: ${autoPosY}`].join(", ");
+                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
@@ -1731,25 +1223,6 @@ ${newActorLine}
             <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
-          {/* canvas pivot = magnet zone hint (Command 押しで snap 無効) */}
-          <span className="v4-editor-bar-hint" title="drag / drop で他 element の近く (magnet 範囲内) は auto snap、 Command キー押しながらで snap 無効化して自由配置">
-            ⌘ 押しで自由配置
-          </span>
-          {/* canvas pivot parts binding = 「⚡ 連動」 button で popup open。
-              現 diagram の source parts (counter / countup 等) を選択 → 連動可能 sink parts
-              (arc-gauge / percent-ring / etc) を選択 → sink parts を actors: に append + bind wire。 */}
-          <button
-            type="button"
-            className="v4-editor-bar-btn"
-            onClick={() => {
-              setBindPopupOpen((v) => !v);
-              setBindSelectedSource(null);
-            }}
-            title="連動できるパーツを追加 (カウンタ + ゲージ 等)"
-            data-testid="editor-bind-toggle"
-          >
-            ⚡ 連動
-          </button>
           <button
             type="button"
             className="v4-editor-bar-btn"
@@ -1814,166 +1287,6 @@ ${newActorLine}
           )}
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
-          )}
-          {/* canvas pivot parts binding = 個別 parts の右上に「⚡」 icon overlay を表示 (user 指定
-              「右上らへんにアイコン」)。 click で popup open + source parts を pre-select (source role)、
-              sink role の parts は「連動元一覧」 の逆引き popup を open する経路 (現状は source only)。 */}
-          {bindIconOverlays.map((ov) => (
-            <div
-              key={`bindicon-${ov.alias}`}
-              className="v4-editor-bind-icon-group"
-              style={{ left: `${ov.x - 60}px`, top: `${ov.y - 8}px` }}
-            >
-              {/* 連動 icon */}
-              <button
-                type="button"
-                className={`v4-editor-bind-icon v4-editor-bind-icon-${ov.role}${ov.boundTo ? " v4-editor-bind-icon-bound" : ""}`}
-                title={ov.boundTo
-                  ? `${getBindingDef(ov.kind).label} (${ov.alias}) は "${ov.boundTo}" と連動中。 click で解除 / 変更`
-                  : `${getBindingDef(ov.kind).label} (${ov.alias}) と連動 parts を追加`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setBindPopupOpen(true);
-                  if (ov.role === "source") {
-                    setBindSelectedSource({ alias: ov.alias, kind: ov.kind });
-                  } else {
-                    setBindSelectedSource(null);
-                  }
-                }}
-                data-testid={`bind-icon-${ov.alias}`}
-              >{ov.boundTo ? "⛓" : "⚡"}</button>
-              {/* 削除 button (user 明示 「削除もできるようにして」) */}
-              <button
-                type="button"
-                className="v4-editor-delete-icon"
-                title={`${ov.alias} を削除`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const lines = src.split("\n");
-                  const filtered = lines.filter((l) => {
-                    const m = l.match(/^\s*-\s*(\S+?)\s*[:{]/);
-                    return !(m && m[1] === ov.alias);
-                  });
-                  setSrc(filtered.join("\n"));
-                  setDropHintWithReset(`"${ov.alias}" を削除しました。 Cmd+Z で元へ。`, 3500);
-                }}
-                data-testid={`delete-icon-${ov.alias}`}
-              >✕</button>
-            </div>
-          ))}
-          {bindPopupOpen && (
-            <div className="v4-editor-bind-popup" data-testid="editor-bind-popup" role="dialog" aria-label="parts binding">
-              <div className="v4-editor-bind-popup-header">
-                <span>⚡ 連動パーツ追加</span>
-                <button
-                  type="button"
-                  className="v4-editor-bind-popup-close"
-                  onClick={() => { setBindPopupOpen(false); setBindSelectedSource(null); }}
-                  aria-label="close"
-                >×</button>
-              </div>
-              {!bindSelectedSource ? (
-                <div className="v4-editor-bind-popup-body">
-                  {(() => {
-                    const boundSinks = extractActorParts(src)
-                      .filter((a) => getBindingDef(a.kind).role === "sink")
-                      .map((a) => ({ ...a, bind: extractActorBind(src, a.alias) }))
-                      .filter((a) => a.bind);
-                    if (boundSinks.length === 0) return null;
-                    return (
-                      <>
-                        <div className="v4-editor-bind-popup-title">現在の連動一覧 (⛓ 解除は右の × から)</div>
-                        {boundSinks.map((b) => (
-                          <div key={`bound-${b.alias}`} className="v4-editor-bind-bound-row" data-testid={`bind-existing-${b.alias}`}>
-                            <span>
-                              <b>{b.alias}</b> ({getBindingDef(b.kind).label}) ← <b>{b.bind}</b>
-                            </span>
-                            <button
-                              type="button"
-                              className="v4-editor-bind-unbind-btn"
-                              onClick={() => {
-                                setSrc((prev) => clearActorBinding(prev, b.alias));
-                                setDropHintWithReset(`"${b.alias}" の連動を解除しました。 Cmd+Z で元へ。`, 4000);
-                              }}
-                              data-testid={`bind-unbind-${b.alias}`}
-                              title="連動解除"
-                            >×</button>
-                          </div>
-                        ))}
-                        <div className="v4-editor-bind-popup-title" style={{ marginTop: "10px" }}>新規連動追加 — Step 1: 連動元選択</div>
-                      </>
-                    );
-                  })()}
-                  {extractActorParts(src).filter((a) => getBindingDef(a.kind).role === "sink").filter((a) => extractActorBind(src, a.alias)).length === 0 && (
-                    <div className="v4-editor-bind-popup-title">Step 1 — 連動元 (value を出す parts) を選択</div>
-                  )}
-                  {(() => {
-                    const parts = extractActorParts(src).filter((a) => getBindingDef(a.kind).role === "source");
-                    if (parts.length === 0) {
-                      return <div className="v4-editor-bind-popup-empty">
-                        現在の diagram に source parts (カウンタ / カウントアップ) がありません。<br />
-                        先に左 sidebar から <b>Counter Actor</b> or <b>Countup</b> を drop してください。
-                      </div>;
-                    }
-                    return parts.map((a) => (
-                      <button
-                        key={a.alias}
-                        type="button"
-                        className="v4-editor-bind-popup-item"
-                        onClick={() => setBindSelectedSource(a)}
-                        data-testid={`bind-source-${a.alias}`}
-                      >
-                        <span className="v4-editor-bind-sink-icon">⚡</span>
-                        <span className="v4-editor-bind-sink-info">
-                          <b>{a.alias}</b> <span>{getBindingDef(a.kind).label}</span>
-                        </span>
-                      </button>
-                    ));
-                  })()}
-                </div>
-              ) : (
-                <div className="v4-editor-bind-popup-body">
-                  <div className="v4-editor-bind-popup-title">
-                    Step 2 — <b>{bindSelectedSource.alias}</b> の value を受ける sink parts を選択
-                  </div>
-                  {listBindableSinks(bindSelectedSource.kind).map((sink) => {
-                    const iconMap: Record<string, string> = {
-                      "arc-gauge": "◠", "percent-ring": "◯",
-                      "horizontal-bar": "▬", "wave-gauge": "≈",
-                      "bucket-reservoir": "◫",
-                    };
-                    return (
-                      <button
-                        key={sink.kind}
-                        type="button"
-                        className="v4-editor-bind-popup-item"
-                        onClick={() => {
-                          const existing = new Set(extractActorParts(src).map((a) => a.alias));
-                          const newSrc = appendBoundActorLine(src, bindSelectedSource.alias, bindSelectedSource.kind, sink.kind, existing);
-                          if (newSrc) {
-                            setSrc(newSrc);
-                            setDropHintWithReset(`"${bindSelectedSource.alias}" (source) と "${sink.label}" (sink) を連動しました。 Cmd+Z で元へ。`, 5000);
-                          }
-                          setBindPopupOpen(false);
-                          setBindSelectedSource(null);
-                        }}
-                        data-testid={`bind-sink-${sink.kind}`}
-                      >
-                        <span className="v4-editor-bind-sink-icon">{iconMap[sink.kind] ?? "◇"}</span>
-                        <span className="v4-editor-bind-sink-info">
-                          <b>{sink.label}</b> <span>state: {sink.bindableState}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="v4-editor-bind-popup-back"
-                    onClick={() => setBindSelectedSource(null)}
-                  >← Step 1 に戻る</button>
-                </div>
-              )}
-            </div>
           )}
           <div
             className="v4-editor-pan"
