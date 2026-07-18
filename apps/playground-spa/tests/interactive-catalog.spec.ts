@@ -16,8 +16,9 @@ test.describe("interactive catalog category (CAR #231)", () => {
   test("interactive category が catalog top に表示される", async ({ page }) => {
     await page.goto(`${SPA_URL}/catalog`, { waitUntil: "networkidle" });
     await page.waitForTimeout(500);
-    // interactive category card
-    const link = page.getByRole("link", { name: /interactive/i }).first();
+    // interactive category card は JA label 「インタラクティブ」 (`src/lib/catalog.ts § CATEGORIES`
+    // + `pages/CatalogIndexPage.tsx § category name`)、 URL 経路で確実に hit
+    const link = page.locator('a[href*="/catalog/interactive"]').first();
     await expect(link).toBeVisible();
   });
 
@@ -25,7 +26,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     // 4 diagram の title 相当 label が表示 (JA)
-    for (const label of ["スライダー → バー幅", "計算式 → テキスト", "スクロール駆動", "クリック切替"]) {
+    for (const label of ["スライダー入力でバーの幅が変化", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"]) {
       await expect(page.getByText(label).first()).toBeVisible();
     }
   });
@@ -35,7 +36,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.waitForTimeout(800);
 
     // 各 example を sidebar で選択して preview area の SVG を verify する
-    const examples = ["スライダー → バー幅", "計算式 → テキスト", "スクロール駆動", "クリック切替"];
+    const examples = ["スライダー入力でバーの幅が変化", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"];
     const preview = page.locator("main.catalog-preview");
     for (const label of examples) {
       // sidebar 側の該当 item を click

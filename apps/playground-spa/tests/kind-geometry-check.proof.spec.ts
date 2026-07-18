@@ -88,7 +88,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] funnel monotonic 幅減少 axis = 逆順に並替えると検知される", async ({ page }) => {
-    await page.getByText("ファネル", { exact: true }).first().click();
+    await page.getByText("ファネル図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const checkMonotonic = async () => {
@@ -186,7 +186,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] card text overflow axis = subtitle を極端に長く設定すると検知される", async ({ page }) => {
-    await page.getByText("ステート図 (拡張)", { exact: true }).first().click();
+    await page.getByText("拡張ステート図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const checkOverflow = async () => {
