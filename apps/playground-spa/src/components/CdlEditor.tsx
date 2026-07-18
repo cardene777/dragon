@@ -16,6 +16,7 @@ import {
   type DragState,
   type ResizeCorner,
 } from "@/lib/canvas-pivot-interaction";
+import { computeCollisionShift, type PresetType } from "@/lib/canvas-pivot-auto-adjust";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -796,6 +797,8 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
+      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
+      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -878,6 +881,8 @@ export function CdlEditor(): React.JSX.Element {
     }
     // live CSS transform を clear (post-render で真の DSL 値が適用される)
     clearLiveTransform(st.targetName);
+    // auto-adjust transient shift も全 clear (drop で消える spec §4)
+    if (svg) clearAutoAdjustShifts(svg);
     return true;
   };
 
@@ -939,6 +944,47 @@ export function CdlEditor(): React.JSX.Element {
     if (corner === "nw" || corner === "se") return "nwse-resize";
     return "nesw-resize";
   };
+
+  const clearAutoAdjustShifts = useCallback((svg: SVGSVGElement): void => {
+    svg.querySelectorAll<SVGGraphicsElement>('[data-auto-adjust-shift="1"]').forEach((el) => {
+      el.style.transform = "";
+      el.removeAttribute("data-auto-adjust-shift");
+    });
+  }, []);
+
+  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+    // preset type を DSL の type: 行から抽出
+    const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
+    const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
+    // まず前回 tick の shift を全 clear
+    clearAutoAdjustShifts(svg);
+    if (commandBypass) return; // Command bypass = 何もしない
+
+    // drag 対象の rect を取得
+    const draggedSlug = slugifyActorName(draggedName);
+    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"], [data-cdl-node="${draggedSlug}"]`);
+    if (draggedEls.length === 0) return;
+    const draggedRect = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
+
+    // 他 lane / node に対して collision shift を計算 + CSS transform 適用
+    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane], [data-cdl-node]").forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
+      // drag 対象パーツは対象外 (自分自身を shift しない)
+      if (id === draggedSlug || id === draggedName || id.startsWith(`${draggedSlug}-`) || id.startsWith(`${draggedName}-`)) return;
+      const rect = el.getBoundingClientRect();
+      const shift = computeCollisionShift(
+        { x: draggedRect.left, y: draggedRect.top, width: draggedRect.width, height: draggedRect.height },
+        { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+        preset,
+        false,
+      );
+      if (shift.dx !== 0 || shift.dy !== 0) {
+        el.style.transform = `translate(${shift.dx}px, ${shift.dy}px)`;
+        el.style.transition = "transform 200ms ease-out";
+        el.setAttribute("data-auto-adjust-shift", "1");
+      }
+    });
+  }, [src, clearAutoAdjustShifts]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
