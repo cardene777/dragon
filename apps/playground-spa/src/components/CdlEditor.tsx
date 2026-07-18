@@ -712,7 +712,11 @@ export function CdlEditor(): React.JSX.Element {
   // canvas pivot 新 spec PR-B = element drag / resize state。 SVG 上の element を drag 時は
   // pan せず該当 element の位置 / サイズを DSL の posX/Y/W/H field に書き戻す。
   const elementDrag = useRef<DragState | null>(null);
-  const [hoveredHandle, setHoveredHandle] = useState<{ id: string; rect: DOMRect } | null>(null);
+  // hoveredHandle = hover 中パーツの「実 SVG element」 の rect と DSL actor 名。
+  // id = DSL 書出し用 actor 名 (lane hover なら actor 名、 node hover でも該当 actor 名 = lane / node は同じ actor に紐づく)。
+  // elementSelector = 実 target SVG element の CSS selector (individual element 判定用)。
+  // rect = element bounding rect (client coord、 outline 描画用 SSOT)。
+  const [hoveredHandle, setHoveredHandle] = useState<{ id: string; elementSelector: string; rect: DOMRect } | null>(null);
   const [activeGuidelines, setActiveGuidelines] = useState<Guideline[]>([]);
 
   const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
@@ -740,6 +744,9 @@ export function CdlEditor(): React.JSX.Element {
           corner,
           svgScale: svgPt.scale,
           commandBypass: e.metaKey || e.ctrlKey,
+          // canvas pivot UX 修正 = resize は hover した individual element 単一のみに適用するため
+          // hoveredHandle.elementSelector を DragState に転写する
+          hoveredSelector: hoveredHandle.elementSelector,
         };
         document.body.style.cursor = cornerToCursor(corner);
         return true;
@@ -927,17 +934,32 @@ export function CdlEditor(): React.JSX.Element {
   const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
     const svg = previewRef.current?.querySelector("svg");
     if (!svg) return;
-    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
-      if (targetBelongsTo(id, targetName)) {
-        (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    // canvas pivot UX 修正 = resize は hover した individual element 単一のみに適用 (bug 1 root cause 修正)。
+    // 旧実装は「target 名 prefix / suffix にマッチする全 element に scale 適用」 で lane 全体が拡大していた。
+    // hoveredHandle.elementSelector は「実 hit した SVG element」 の selector なので個別 element を掴む。
+    void targetName;
+    const selector = elementDrag.current?.hoveredSelector;
+    if (selector) {
+      const el = svg.querySelector(selector) as SVGGraphicsElement | null;
+      if (el) {
+        el.style.transformOrigin = "0 0";
+        el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
       }
-    });
+    }
   };
 
   const clearLiveTransform = (targetName: string): void => {
     const svg = previewRef.current?.querySelector("svg");
     if (!svg) return;
+    // resize 経路の individual element selector も clear + drag 経路の bulk 経路も clear (両対応)
+    const selector = elementDrag.current?.hoveredSelector;
+    if (selector) {
+      const el = svg.querySelector(selector) as SVGGraphicsElement | null;
+      if (el) {
+        el.style.transform = "";
+        el.style.transformOrigin = "";
+      }
+    }
     svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
       const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
       if (targetBelongsTo(id, targetName)) {
@@ -1052,19 +1074,31 @@ export function CdlEditor(): React.JSX.Element {
       const target = e.target as Element;
       const dragInfo = findDragTarget(target, extractAllActorNames(src));
       if (dragInfo) {
-        // slugify した名前で data-cdl-lane を検索
-        const slug = slugifyActorName(dragInfo.name);
+        // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
+        // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
+        let elementSelector = "";
         let cur: Element | null = target;
         while (cur) {
           const laneAttr = cur.getAttribute?.("data-cdl-lane");
           const nodeAttr = cur.getAttribute?.("data-cdl-node");
-          if (laneAttr === slug || laneAttr === dragInfo.name) break;
-          if (nodeAttr === slug || nodeAttr?.startsWith(`${slug}-`)) break;
+          const edgeAttr = cur.getAttribute?.("data-cdl-edge");
+          if (nodeAttr) {
+            elementSelector = `[data-cdl-node="${nodeAttr}"]`;
+            break;
+          }
+          if (edgeAttr) {
+            elementSelector = `[data-cdl-edge="${edgeAttr}"]`;
+            break;
+          }
+          if (laneAttr) {
+            elementSelector = `[data-cdl-lane="${laneAttr}"]`;
+            break;
+          }
           cur = cur.parentElement;
         }
         const rect = cur ? (cur as Element).getBoundingClientRect() : null;
-        if (rect) {
-          setHoveredHandle({ id: dragInfo.name, rect });
+        if (rect && elementSelector) {
+          setHoveredHandle({ id: dragInfo.name, elementSelector, rect });
         }
       } else if (hoveredHandle) {
         // element 外に mouse が出たら handle を消す (only if outside the rect + some buffer)

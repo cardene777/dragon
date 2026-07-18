@@ -49,6 +49,11 @@ export interface DragState {
   svgScale: number;
   /** commandBypass = Cmd キー押下フラグ (PR-C で自動調整無効化に利用) */
   commandBypass: boolean;
+  /**
+   * canvas pivot UX 修正 = resize 対象の individual SVG element の CSS selector。
+   * mode='resize' で hover した実 element を単一で resize するために保持 (parent lane 全体を bulk 拡大しない)。
+   */
+  hoveredSelector?: string;
 }
 
 /**
