@@ -745,14 +745,14 @@ exports[`golden: flow preset > F01 minimal 1 step 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 410,
+      "width": 400,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 205,
+      "cx": 200,
       "cy": 228,
       "h": 200,
       "id": "start",
@@ -770,8 +770,8 @@ exports[`golden: flow preset > F01 minimal 1 step 1`] = `
   "topic": "F01",
   "viewBox": {
     "h": 320,
-    "w": 505,
-    "x": -35,
+    "w": 500,
+    "x": -40,
     "y": 68,
   },
 }
@@ -792,14 +792,14 @@ exports[`golden: flow preset > F02 2 step 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 410,
+      "width": 400,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 205,
+      "cx": 200,
       "cy": 228,
       "h": 200,
       "id": "start",
@@ -807,7 +807,7 @@ exports[`golden: flow preset > F02 2 step 1`] = `
       "w": 360,
     },
     {
-      "cx": 205,
+      "cx": 200,
       "cy": 528,
       "h": 200,
       "id": "end",
@@ -825,8 +825,8 @@ exports[`golden: flow preset > F02 2 step 1`] = `
   "topic": "F02",
   "viewBox": {
     "h": 620,
-    "w": 505,
-    "x": -35,
+    "w": 500,
+    "x": -40,
     "y": 68,
   },
 }
@@ -859,14 +859,14 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 228,
       "h": 200,
       "id": "start",
@@ -874,7 +874,7 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
       "w": 360,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 513,
       "h": 170,
       "id": "verify",
@@ -882,7 +882,7 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 783,
       "h": 170,
       "id": "save",
@@ -890,7 +890,7 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1068,
       "h": 200,
       "id": "done",
@@ -908,8 +908,8 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
   "topic": "F03",
   "viewBox": {
     "h": 1160,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -954,14 +954,14 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
     {
       "height": 40,
       "id": "main",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 228,
       "h": 200,
       "id": "s0",
@@ -969,7 +969,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
       "w": 360,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 513,
       "h": 170,
       "id": "s1",
@@ -977,7 +977,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 783,
       "h": 170,
       "id": "s2",
@@ -985,7 +985,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1053,
       "h": 170,
       "id": "s3",
@@ -993,7 +993,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1323,
       "h": 170,
       "id": "s4",
@@ -1001,7 +1001,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1608,
       "h": 200,
       "id": "s5",
@@ -1024,7 +1024,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
   "topic": "F04",
   "viewBox": {
     "h": 1792,
-    "w": 534,
+    "w": 524,
     "x": -44,
     "y": -24,
   },
@@ -1058,14 +1058,14 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "a",
@@ -1073,7 +1073,7 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "b",
@@ -1081,7 +1081,7 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 753,
       "h": 170,
       "id": "c",
@@ -1089,7 +1089,7 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1023,
       "h": 170,
       "id": "d",
@@ -1107,8 +1107,8 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
   "topic": "F05",
   "viewBox": {
     "h": 1100,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1135,14 +1135,14 @@ exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 228,
       "h": 200,
       "id": "input",
@@ -1150,7 +1150,7 @@ exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
       "w": 360,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 513,
       "h": 170,
       "id": "path1",
@@ -1158,7 +1158,7 @@ exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 783,
       "h": 170,
       "id": "path2",
@@ -1176,8 +1176,8 @@ exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
   "topic": "F06",
   "viewBox": {
     "h": 860,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1204,14 +1204,14 @@ exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "a",
@@ -1219,7 +1219,7 @@ exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "b",
@@ -1227,7 +1227,7 @@ exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 768,
       "h": 200,
       "id": "sink",
@@ -1245,8 +1245,8 @@ exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
   "topic": "F07",
   "viewBox": {
     "h": 860,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1273,14 +1273,14 @@ exports[`golden: flow preset > F08 step with guard 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "check",
@@ -1288,7 +1288,7 @@ exports[`golden: flow preset > F08 step with guard 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 498,
       "h": 200,
       "id": "go",
@@ -1296,7 +1296,7 @@ exports[`golden: flow preset > F08 step with guard 1`] = `
       "w": 360,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 798,
       "h": 200,
       "id": "stop",
@@ -1314,8 +1314,8 @@ exports[`golden: flow preset > F08 step with guard 1`] = `
   "topic": "F08",
   "viewBox": {
     "h": 890,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1336,14 +1336,14 @@ exports[`golden: flow preset > F09 inline option mix 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "login",
@@ -1351,7 +1351,7 @@ exports[`golden: flow preset > F09 inline option mix 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "profile",
@@ -1369,8 +1369,8 @@ exports[`golden: flow preset > F09 inline option mix 1`] = `
   "topic": "F09",
   "viewBox": {
     "h": 560,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1397,14 +1397,14 @@ exports[`golden: flow preset > F10 multi-phase with set 1`] = `
     {
       "height": 40,
       "id": "main",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 228,
       "h": 200,
       "id": "boot",
@@ -1412,7 +1412,7 @@ exports[`golden: flow preset > F10 multi-phase with set 1`] = `
       "w": 360,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 513,
       "h": 170,
       "id": "run",
@@ -1420,7 +1420,7 @@ exports[`golden: flow preset > F10 multi-phase with set 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 798,
       "h": 200,
       "id": "halt",
@@ -1447,7 +1447,7 @@ exports[`golden: flow preset > F10 multi-phase with set 1`] = `
   "topic": "F10",
   "viewBox": {
     "h": 982,
-    "w": 534,
+    "w": 524,
     "x": -44,
     "y": -24,
   },
@@ -1505,14 +1505,14 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "n1",
@@ -1520,7 +1520,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "n2",
@@ -1528,7 +1528,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 753,
       "h": 170,
       "id": "n3",
@@ -1536,7 +1536,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1023,
       "h": 170,
       "id": "n4",
@@ -1544,7 +1544,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1293,
       "h": 170,
       "id": "n5",
@@ -1552,7 +1552,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1563,
       "h": 170,
       "id": "n6",
@@ -1560,7 +1560,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 1833,
       "h": 170,
       "id": "n7",
@@ -1568,7 +1568,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 2103,
       "h": 170,
       "id": "n8",
@@ -1586,8 +1586,8 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
   "topic": "F11",
   "viewBox": {
     "h": 2180,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1614,14 +1614,14 @@ exports[`golden: flow preset > F12 viewport with gap override 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "a",
@@ -1629,7 +1629,7 @@ exports[`golden: flow preset > F12 viewport with gap override 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 579,
       "h": 170,
       "id": "b",
@@ -1637,7 +1637,7 @@ exports[`golden: flow preset > F12 viewport with gap override 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 945,
       "h": 170,
       "id": "c",
@@ -1656,7 +1656,7 @@ exports[`golden: flow preset > F12 viewport with gap override 1`] = `
   "viewBox": {
     "h": 1022,
     "w": 1800,
-    "x": -35,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1683,14 +1683,14 @@ exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "a",
@@ -1698,7 +1698,7 @@ exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "b",
@@ -1706,7 +1706,7 @@ exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 753,
       "h": 170,
       "id": "c",
@@ -1724,8 +1724,8 @@ exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
   "topic": "F13",
   "viewBox": {
     "h": 830,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1746,14 +1746,14 @@ exports[`golden: flow preset > F14 single edge with all tones 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 430,
+      "width": 420,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 213,
       "h": 170,
       "id": "x",
@@ -1761,7 +1761,7 @@ exports[`golden: flow preset > F14 single edge with all tones 1`] = `
       "w": 380,
     },
     {
-      "cx": 215,
+      "cx": 210,
       "cy": 483,
       "h": 170,
       "id": "y",
@@ -1779,8 +1779,8 @@ exports[`golden: flow preset > F14 single edge with all tones 1`] = `
   "topic": "F14",
   "viewBox": {
     "h": 560,
-    "w": 525,
-    "x": -35,
+    "w": 520,
+    "x": -40,
     "y": 68,
   },
 }
@@ -1807,14 +1807,14 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
     {
       "height": 40,
       "id": "flow",
-      "width": 450,
+      "width": 440,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 225,
+      "cx": 220,
       "cy": 228,
       "h": 200,
       "id": "in",
@@ -1822,7 +1822,7 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
       "w": 360,
     },
     {
-      "cx": 225,
+      "cx": 220,
       "cy": 548,
       "h": 240,
       "id": "mid",
@@ -1830,7 +1830,7 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
       "w": 400,
     },
     {
-      "cx": 225,
+      "cx": 220,
       "cy": 868,
       "h": 200,
       "id": "out",
@@ -1848,8 +1848,8 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
   "topic": "F15",
   "viewBox": {
     "h": 960,
-    "w": 545,
-    "x": -35,
+    "w": 540,
+    "x": -40,
     "y": 68,
   },
 }
@@ -7403,8 +7403,8 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
     {
       "height": 716,
       "id": "transferbatch",
-      "width": 388,
-      "x": 1664.12,
+      "width": 378,
+      "x": 1669.12,
       "y": 28,
     },
   ],
@@ -7524,7 +7524,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
   "topic": "Y11",
   "viewBox": {
     "h": 828,
-    "w": 2156.12,
+    "w": 2151.12,
     "x": -44,
     "y": -24,
   },
@@ -8256,21 +8256,21 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-done",
-      "width": 370,
-      "x": 583.44,
+      "width": 360,
+      "x": 573.44,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -8278,7 +8278,7 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
       "w": 320,
     },
     {
-      "cx": 768,
+      "cx": 753,
       "cy": 203,
       "h": 150,
       "id": "done",
@@ -8296,8 +8296,8 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
   "topic": "M01",
   "viewBox": {
     "h": 270,
-    "w": 1048.44,
-    "x": -35,
+    "w": 1033.44,
+    "x": -40,
     "y": 68,
   },
 }
@@ -8324,28 +8324,28 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-loading",
-      "width": 370,
-      "x": 643.94,
+      "width": 360,
+      "x": 633.94,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-done",
-      "width": 370,
-      "x": 1287.88,
+      "width": 360,
+      "x": 1267.88,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -8353,7 +8353,7 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
       "w": 320,
     },
     {
-      "cx": 829,
+      "cx": 814,
       "cy": 203,
       "h": 150,
       "id": "loading",
@@ -8361,7 +8361,7 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
       "w": 320,
     },
     {
-      "cx": 1473,
+      "cx": 1448,
       "cy": 203,
       "h": 150,
       "id": "done",
@@ -8379,8 +8379,8 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
   "topic": "M02",
   "viewBox": {
     "h": 270,
-    "w": 1752.88,
-    "x": -35,
+    "w": 1727.88,
+    "x": -40,
     "y": 68,
   },
 }
@@ -8413,35 +8413,35 @@ exports[`golden: state preset > M03 with error path 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-loading",
-      "width": 370,
-      "x": 655.8199999999999,
+      "width": 360,
+      "x": 645.8199999999999,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-done",
-      "width": 370,
-      "x": 1311.6399999999999,
+      "width": 360,
+      "x": 1291.6399999999999,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-error",
-      "width": 370,
-      "x": 1967.46,
+      "width": 360,
+      "x": 1937.46,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -8449,7 +8449,7 @@ exports[`golden: state preset > M03 with error path 1`] = `
       "w": 320,
     },
     {
-      "cx": 841,
+      "cx": 826,
       "cy": 203,
       "h": 150,
       "id": "loading",
@@ -8457,7 +8457,7 @@ exports[`golden: state preset > M03 with error path 1`] = `
       "w": 320,
     },
     {
-      "cx": 1497,
+      "cx": 1472,
       "cy": 203,
       "h": 150,
       "id": "done",
@@ -8465,7 +8465,7 @@ exports[`golden: state preset > M03 with error path 1`] = `
       "w": 320,
     },
     {
-      "cx": 2152,
+      "cx": 2117,
       "cy": 203,
       "h": 150,
       "id": "error",
@@ -8483,8 +8483,8 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "topic": "M03",
   "viewBox": {
     "h": 372,
-    "w": 2432.46,
-    "x": -35,
+    "w": 2397.46,
+    "x": -40,
     "y": -34,
   },
 }
@@ -8511,28 +8511,28 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-auth",
-      "width": 370,
-      "x": 662.2,
+      "width": 360,
+      "x": 652.2,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-denied",
-      "width": 370,
-      "x": 1324.4,
+      "width": 360,
+      "x": 1304.4,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -8540,7 +8540,7 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
       "w": 320,
     },
     {
-      "cx": 847,
+      "cx": 832,
       "cy": 203,
       "h": 150,
       "id": "auth",
@@ -8548,7 +8548,7 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
       "w": 320,
     },
     {
-      "cx": 1509,
+      "cx": 1484,
       "cy": 203,
       "h": 150,
       "id": "denied",
@@ -8566,8 +8566,8 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "topic": "M04",
   "viewBox": {
     "h": 404,
-    "w": 1789.4,
-    "x": -35,
+    "w": 1764.4,
+    "x": -40,
     "y": -66,
   },
 }
@@ -8594,21 +8594,21 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
     {
       "height": 40,
       "id": "lane-on",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-off",
-      "width": 370,
-      "x": 636.6800000000001,
+      "width": 360,
+      "x": 626.6800000000001,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "on",
@@ -8616,7 +8616,7 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
       "w": 320,
     },
     {
-      "cx": 822,
+      "cx": 807,
       "cy": 203,
       "h": 150,
       "id": "off",
@@ -8634,8 +8634,8 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
   "topic": "M05",
   "viewBox": {
     "h": 422,
-    "w": 1101.68,
-    "x": -35,
+    "w": 1086.68,
+    "x": -40,
     "y": -84,
   },
 }
@@ -8674,35 +8674,35 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
     {
       "height": 40,
       "id": "lane-start",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-a",
-      "width": 370,
-      "x": 616,
+      "width": 360,
+      "x": 606,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-b",
-      "width": 370,
-      "x": 1232,
+      "width": 360,
+      "x": 1212,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-end",
-      "width": 370,
-      "x": 1848,
+      "width": 360,
+      "x": 1818,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "start",
@@ -8710,7 +8710,7 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
       "w": 320,
     },
     {
-      "cx": 801,
+      "cx": 786,
       "cy": 203,
       "h": 150,
       "id": "a",
@@ -8718,7 +8718,7 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
       "w": 320,
     },
     {
-      "cx": 1417,
+      "cx": 1392,
       "cy": 203,
       "h": 150,
       "id": "b",
@@ -8726,7 +8726,7 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
       "w": 320,
     },
     {
-      "cx": 2033,
+      "cx": 1998,
       "cy": 203,
       "h": 150,
       "id": "end",
@@ -8744,8 +8744,8 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "topic": "M06",
   "viewBox": {
     "h": 372,
-    "w": 2313,
-    "x": -35,
+    "w": 2278,
+    "x": -40,
     "y": -34,
   },
 }
@@ -8772,28 +8772,28 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-run",
-      "width": 370,
-      "x": 616,
+      "width": 360,
+      "x": 606,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-done",
-      "width": 370,
-      "x": 1232,
+      "width": 360,
+      "x": 1212,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -8801,7 +8801,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
       "w": 320,
     },
     {
-      "cx": 801,
+      "cx": 786,
       "cy": 203,
       "h": 150,
       "id": "run",
@@ -8809,7 +8809,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
       "w": 320,
     },
     {
-      "cx": 1417,
+      "cx": 1392,
       "cy": 203,
       "h": 150,
       "id": "done",
@@ -8832,7 +8832,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   "topic": "M07",
   "viewBox": {
     "h": 362,
-    "w": 1706,
+    "w": 1676,
     "x": -44,
     "y": -24,
   },
@@ -8878,42 +8878,42 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
     {
       "height": 40,
       "id": "lane-s0",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-l",
-      "width": 370,
-      "x": 617.1,
+      "width": 360,
+      "x": 607.1,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-r",
-      "width": 370,
-      "x": 1234.2,
+      "width": 360,
+      "x": 1214.2,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-merge",
-      "width": 370,
-      "x": 1851.3000000000002,
+      "width": 360,
+      "x": 1821.3000000000002,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-end",
-      "width": 370,
-      "x": 2468.4,
+      "width": 360,
+      "x": 2428.4,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "s0",
@@ -8921,7 +8921,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
       "w": 320,
     },
     {
-      "cx": 802,
+      "cx": 787,
       "cy": 203,
       "h": 150,
       "id": "l",
@@ -8929,7 +8929,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
       "w": 320,
     },
     {
-      "cx": 1419,
+      "cx": 1394,
       "cy": 203,
       "h": 150,
       "id": "r",
@@ -8937,7 +8937,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
       "w": 320,
     },
     {
-      "cx": 2036,
+      "cx": 2001,
       "cy": 203,
       "h": 150,
       "id": "merge",
@@ -8945,7 +8945,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
       "w": 320,
     },
     {
-      "cx": 2653,
+      "cx": 2608,
       "cy": 203,
       "h": 150,
       "id": "end",
@@ -8963,8 +8963,8 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "topic": "M08",
   "viewBox": {
     "h": 372,
-    "w": 2933.4,
-    "x": -35,
+    "w": 2888.4,
+    "x": -40,
     "y": -34,
   },
 }
@@ -8997,28 +8997,28 @@ exports[`golden: state preset > M09 self-loop 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-wait",
-      "width": 370,
-      "x": 622.8199999999999,
+      "width": 360,
+      "x": 612.8199999999999,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-done",
-      "width": 370,
-      "x": 1245.6399999999999,
+      "width": 360,
+      "x": 1225.6399999999999,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -9026,7 +9026,7 @@ exports[`golden: state preset > M09 self-loop 1`] = `
       "w": 320,
     },
     {
-      "cx": 808,
+      "cx": 793,
       "cy": 203,
       "h": 150,
       "id": "wait",
@@ -9034,7 +9034,7 @@ exports[`golden: state preset > M09 self-loop 1`] = `
       "w": 320,
     },
     {
-      "cx": 1431,
+      "cx": 1406,
       "cy": 203,
       "h": 150,
       "id": "done",
@@ -9052,8 +9052,8 @@ exports[`golden: state preset > M09 self-loop 1`] = `
   "topic": "M09",
   "viewBox": {
     "h": 315,
-    "w": 1710.6399999999999,
-    "x": -35,
+    "w": 1685.6399999999999,
+    "x": -40,
     "y": 66,
   },
 }
@@ -9080,28 +9080,28 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
     {
       "height": 40,
       "id": "lane-idle",
-      "width": 370,
+      "width": 360,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-active",
-      "width": 370,
-      "x": 609.84,
+      "width": 360,
+      "x": 599.84,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-off",
-      "width": 370,
-      "x": 1219.68,
+      "width": 360,
+      "x": 1199.68,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 185,
+      "cx": 180,
       "cy": 203,
       "h": 150,
       "id": "idle",
@@ -9109,7 +9109,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
       "w": 320,
     },
     {
-      "cx": 795,
+      "cx": 780,
       "cy": 203,
       "h": 150,
       "id": "active",
@@ -9117,7 +9117,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
       "w": 320,
     },
     {
-      "cx": 1405,
+      "cx": 1380,
       "cy": 203,
       "h": 150,
       "id": "off",
@@ -9144,7 +9144,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   "topic": "M10",
   "viewBox": {
     "h": 362,
-    "w": 1693.68,
+    "w": 1663.68,
     "x": -44,
     "y": -24,
   },
@@ -9677,15 +9677,15 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
     {
       "height": 40,
       "id": "worker",
-      "width": 430,
+      "width": 420,
       "x": 695.94,
       "y": 28,
     },
     {
       "height": 40,
       "id": "storage",
-      "width": 450,
-      "x": 1396.88,
+      "width": 440,
+      "x": 1391.88,
       "y": 28,
     },
   ],
@@ -9699,7 +9699,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
       "w": 320,
     },
     {
-      "cx": 911,
+      "cx": 906,
       "cy": 213,
       "h": 170,
       "id": "worker",
@@ -9707,7 +9707,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
       "w": 380,
     },
     {
-      "cx": 1622,
+      "cx": 1612,
       "cy": 213,
       "h": 170,
       "id": "storage",
@@ -9720,7 +9720,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
   "topic": "L07",
   "viewBox": {
     "h": 382,
-    "w": 1950.88,
+    "w": 1935.88,
     "x": -44,
     "y": -24,
   },
