@@ -22,55 +22,110 @@ export interface CompileToCdlOpts {
   partsCatalog?: Record<string, CdlDiagram>;
 }
 
+/**
+ * canvas pivot parts binding = source tween を sink の valueRange に自動 clamp する post-process。
+ * counter parts は「n を 0 → 5000 tween」 のような display 用 large value を持つが、
+ * sink parts (arc / ring / bar 等) の shape は sweepMax=100 前提のため、 100 を超えると飽和する。
+ * binding 経路では source tween の to を sink の想定 range に auto-clamp する経路で共存させる。
+ * (実測 root cause = counter 5000 tween で arc 0-100 clip = 動かない、 2026-07-18)
+ */
+function clampSourceTweensForBinding(target: CdlDiagram, doc: DslDocument): void {
+  // 存在する alias set を作成 (dangling bind 検知用)
+  const aliasSet = new Set(doc.actors.map((a) => a.name));
+  // sink actor から binding target と sink valueRange (現状 default 0-100) を集計
+  const sinkClamps = new Map<string, number>();  // sourceState -> clamp max
+  for (const actor of doc.actors) {
+    if (!actor.bind) continue;
+    const m = actor.bind.match(/^([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w]*)$/);
+    if (!m) continue;
+    const sourceAlias = m[1]!, sourceState = m[2]!;
+    // canvas pivot parts binding error handling = source alias が存在しない (source parts 削除
+    // 済 or typo) 時 warn。 sink の render 側は state 未存在で auto-init 0 fallback、 壊さない。
+    if (!aliasSet.has(sourceAlias)) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] parts binding: source actor "${sourceAlias}" (referenced by "${actor.name}.bind = ${actor.bind}") not found in actors list. Sink will render with state initial (0). Add "${sourceAlias}" back to actors: or unbind the sink.`);
+      }
+      continue;
+    }
+    // sink parts は現状 sweepMax=100 前提の gauge/ring/bar 系、 default clamp = 100
+    const sourceStateId = `${sourceAlias}__${sourceState}`;
+    const prev = sinkClamps.get(sourceStateId) ?? Infinity;
+    sinkClamps.set(sourceStateId, Math.min(prev, 100));
+  }
+  if (sinkClamps.size === 0) return;
+  // target.phases の全 tween を再走査、 sink clamp 対象なら to を clamp
+  for (const phase of target.phases) {
+    phase.tweens = phase.tweens.map((t) => {
+      const clampMax = sinkClamps.get(t.stateId);
+      if (clampMax === undefined) return t;
+      return { ...t, to: Math.min(t.to, clampMax) };
+    });
+  }
+}
+
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
+  // canvas pivot Phase 3+4 (CAR-1695/1696) = parts actor を preset (sequence/flow/等) 経路から除外する。
+  // 従来 parts actor は preset の actors: に含まれ、 sequence 側で 1 lane 分の horizontal 領域を確保
+  // していたため既存 actor の位置が shift (「間に挟まる」 表示、 2026-07-17 user 実使い verify 発見)。
+  // Miro 風の overlay drop を実現するため、 preset は parts 抜き actor list で layout を計算、
+  // parts merge (mergePartsFromActors) は元 doc.actors で処理して parts diagram を absolute
+  // 座標 (parts 側 .lane("l", { x: 0, ... })) で target に overlay する。
+  const docForPreset: DslDocument = {
+    ...doc,
+    actors: doc.actors.filter((a) => a.partId === undefined),
+  };
   let diagram: CdlDiagram;
-  switch (doc.type) {
+  switch (docForPreset.type) {
     case "sequence":
-      diagram = compileSequence(doc);
+      diagram = compileSequence(docForPreset);
       break;
     case "flow":
-      diagram = compileFlow(doc);
+      diagram = compileFlow(docForPreset);
       break;
     case "swimlane":
-      diagram = compileSwimlane(doc);
+      diagram = compileSwimlane(docForPreset);
       break;
     case "er":
-      diagram = compileEr(doc);
+      diagram = compileEr(docForPreset);
       break;
     case "state":
-      diagram = compileState(doc);
+      diagram = compileState(docForPreset);
       break;
     case "topology":
-      diagram = compileTopology(doc);
+      diagram = compileTopology(docForPreset);
       break;
     case "solidity":
-      diagram = compileSolidity(doc);
+      diagram = compileSolidity(docForPreset);
       break;
     case "gantt":
-      diagram = compileGantt(doc);
+      diagram = compileGantt(docForPreset);
       break;
     case "class":
-      diagram = compileClass(doc);
+      diagram = compileClass(docForPreset);
       break;
     case "pie":
-      diagram = compilePie(doc);
+      diagram = compilePie(docForPreset);
       break;
     case "c4":
-      diagram = compileC4(doc);
+      diagram = compileC4(docForPreset);
       break;
     case "mind":
-      diagram = compileMind(doc);
+      diagram = compileMind(docForPreset);
       break;
     default:
       // switch case で全 type を網羅済のため default は unreachable、 template expression で
       // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
-      throw new Error(`unknown type: ${String(doc.type)}`);
+      throw new Error(`unknown type: ${String(docForPreset.type)}`);
   }
-  applyEdgeInlineOptions(diagram, doc);
-  applyGroupContainers(diagram, doc);
-  // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
+  applyEdgeInlineOptions(diagram, docForPreset);
+  applyGroupContainers(diagram, docForPreset);
+  // v05 extensions は元 doc (parts 含む) で処理、 parts actor の inline option (posX/posY 等) も一貫参照
   const extended = applyV05Extensions(diagram, doc);
-  return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  // parts merge は元 doc.actors (parts 含む) で処理、 parts diagram の lane / node を target に overlay
+  const merged = mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  // canvas pivot parts binding = source tween を sink valueRange に auto-clamp
+  clampSourceTweensForBinding(merged, doc);
+  return merged;
 }
 
 /**
@@ -135,7 +190,30 @@ function mergePartsFromActors(
         return true;
       });
     }
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
+    // canvas pivot Phase 5 core fix (CAR-1697) = sequence preset が actor 1 個につき生成する lane も
+    // 削除する。 parts actor は parts 側で独自 lane を持つため、 sequence 生成 lane (id = aliasSlug、
+    // label = actor.name) は不要で orphan label 源になる (2026-07-17 user 実使い verify で
+    // 「上に文字だけのもの (achievement)」 として検知)。 user が actor.lane 明示指定で
+    // parts を既存 lane に merge する経路 (mergePartIntoDiagram の targetLaneId 経路) は本 filter
+    // 対象外 (aliasSlug lane はそもそも生成されないため)。
+    target.lanes = target.lanes.filter((l) => l.id !== aliasSlug);
+    // canvas pivot 追加 fix = parts 内部座標 (parts spec の .lane("l", { x: 0, ... })) を
+    // drop 位置 (actor.posX) で translate する。 従来 parts は internal x=0-400 の絶対座標で
+    // merge され sequence の ユーザー lifeline (x=0) と重なって見切れる問題があった。
+    // actor.posX 指定時のみ shift、 未指定なら parts 内部座標そのまま (backward compat)。
+    // canvas pivot parts binding (CAR-1697+) = actor.bind ("counter1.n" 形式) を parse して
+    // { sourceAlias, sourceState } を mergePartIntoDiagram に渡す。 mergePart 側で
+    // 該当 alias の bindableState を source state と同名 rename → cdl state 共有で連動。
+    let bindSpec: { sourceAlias: string; sourceState: string } | undefined;
+    if (actor.bind && typeof actor.bind === "string") {
+      const m = actor.bind.match(/^([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w]*)$/);
+      if (m) {
+        bindSpec = { sourceAlias: m[1]!, sourceState: m[2]! };
+      } else if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] invalid bind format for actor "${actor.name}": "${actor.bind}" (expected "alias.state")`);
+      }
+    }
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, bindSpec);
   }
   return target;
 }
@@ -152,13 +230,37 @@ function mergePartIntoDiagram(
   alias: string,
   stateOverride: Record<string, number | string | boolean>,
   laneMapping: string | undefined,
+  posXOffset?: number,
+  bindSpec?: { sourceAlias: string; sourceState: string },
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
+  // canvas pivot 追加 fix = parts 内部座標を drop 位置で translate。 posXOffset undefined なら 0
+  // (backward compat = 従来通り parts 内部座標そのまま)。
+  const xShift = posXOffset ?? 0;
   const stateIdSet = new Set(part.states.map((s) => s.id));
+  // canvas pivot parts binding (CAR-1697+) = bind spec 有 の時、 parts の全 state から binding 対象を
+  // 決定。 現状の spec = 「単一 numeric state を持つ parts」 が binding target = 最初の numeric-like
+  // state (initial が number) を binding state と決定する。 該当 state の prefix を skip して
+  // `{sourceAlias}__{sourceState}` に rename、 これで cdl diagram-level state を共有する。
+  let bindTargetStateId: string | undefined;
+  if (bindSpec) {
+    for (const st of part.states) {
+      if (typeof st.initial === "number") { bindTargetStateId = st.id; break; }
+    }
+    if (bindTargetStateId === undefined && typeof console !== "undefined" && console.warn) {
+      console.warn(`[dragon] bind target state not found in parts for actor "${alias}" (no numeric state)`);
+    }
+  }
+  const boundPrefix = (id: string): string => {
+    if (bindSpec && bindTargetStateId && id === bindTargetStateId) {
+      return `${bindSpec.sourceAlias}__${bindSpec.sourceState}`;
+    }
+    return prefix(id);
+  };
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
     return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
-      return stateIdSet.has(name) ? `{${prefix(name)}}` : m;
+      return stateIdSet.has(name) ? `{${boundPrefix(name)}}` : m;
     });
   };
 
@@ -172,10 +274,24 @@ function mergePartIntoDiagram(
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
       // parts 独自 lane が target に追加される (target 側 lane と衝突しない)
+      // canvas pivot Phase 5 core fix (CAR-1697) = parts 側 laneOrig.label が undefined の時
+      // alias fallback しない (undefined 継承)。 従来 alias fallback = "achievement1" 等の
+      // orphan lane label が top に表示される bug 源で、 sequence preset が既に生成する
+      // alias 名 lane と重複していた。 parts は自前で node title / subtitle 描画するため
+      // lane label は不要。 cdl renderer が undefined を skip する前提 ("" 空文字は
+      // lane.id を fallback にして "achievement1__l" 表示される bug で確認済)。
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
-        label: laneOrig.label ?? alias,
+        label: laneOrig.label,
+        // canvas pivot 座標一本化 = compile 側で lane.x に posX を bake せず、 CSS translate 一本で
+        // X/Y 両方応用する経路に統一。 drop 直後の compile 非同期 + useEffect リセットの race で
+        // 「元位置戻り」 or 「二重適用」 の flash が発生していた bug の直接対応。
+        x: laneOrig.x ?? 0,
+        // canvas pivot 座標一本化 = parts lane を CDL の pitch uniform 化 (expandLaneGapsForEdgeLabels)
+        // と cumulative shift (expandLanesForNodes) から除外。 これで parts drop 時に sequence lane
+        // の間が広がる bug (spec §2 root cause) を構造的に根絶する。
+        standalone: true,
       });
     }
   }
@@ -200,10 +316,16 @@ function mergePartIntoDiagram(
   }
 
   // state merge = id prefix + initial override
+  // canvas pivot parts binding = binding target state は source alias.state に unify するため
+  // 本 alias 側では state を追加せず skip (source 側 state を共有)。 target.states 内に既に
+  // 該当 id があるかを事前 check して重複追加を防ぐ (binding 経路以外は従来通り prefix push)。
   for (const stateOrig of part.states) {
     const overrideVal = stateOverride[stateOrig.id];
+    const targetId = boundPrefix(stateOrig.id);
+    // binding 経路で source 側 state と同 id になった場合、 既に source 側で登録済 → skip
+    if (target.states.some((s) => s.id === targetId)) continue;
     target.states.push({
-      id: prefix(stateOrig.id),
+      id: targetId,
       initial: overrideVal !== undefined ? (overrideVal as number | string) : stateOrig.initial,
     });
   }
@@ -240,6 +362,14 @@ function mergePartIntoDiagram(
   if (phaseOptOut) {
     return; // parts phase を破棄、 activate / tweens / sets の rewrite 不要
   }
+  // canvas pivot parts binding = sink parts (bindSpec ある side) の bindableState を drive する
+  // tween / sets は source alias 側で既に定義済のため、 sink 側からは除外する。 これを除外しないと
+  // 同 stateId に 2 tween が存在して cdl timeline で conflict → animation 発火せず全 sample で不変になる
+  // (2026-07-18 実測 root cause)。
+  const filterBoundTweens = <T extends { stateId: string }>(items: T[]): T[] => {
+    if (!bindSpec || !bindTargetStateId) return items;
+    return items.filter((t) => t.stateId !== bindTargetStateId);
+  };
   if (target.phases.length === 0) {
     // target に phase なし = parts phase をそのまま追加 (prefix 付き)
     for (const phaseOrig of part.phases) {
@@ -247,8 +377,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: filterBoundTweens(phaseOrig.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: filterBoundTweens(phaseOrig.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   } else {
@@ -262,8 +392,8 @@ function mergePartIntoDiagram(
       const partPhase = part.phases[i]!;
       targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
       targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
-      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) }))];
-      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) }))];
+      targetPhase.tweens = [...targetPhase.tweens, ...filterBoundTweens(partPhase.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) }))];
+      targetPhase.sets = [...targetPhase.sets, ...filterBoundTweens(partPhase.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) }))];
     }
     // parts phase 余剰は append (target より parts が長い場合)
     for (let i = commonLen; i < partsLen; i++) {
@@ -272,8 +402,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: filterBoundTweens(phaseOrig.tweens).map((t) => ({ ...t, stateId: boundPrefix(t.stateId) })),
+        sets: filterBoundTweens(phaseOrig.sets).map((s) => ({ ...s, stateId: boundPrefix(s.stateId) })),
       });
     }
   }

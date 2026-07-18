@@ -319,6 +319,267 @@
     background: var(--v4-brand-deep);
     color: var(--v4-canvas);
   }
+  /* canvas pivot 追加 fix = SVG viewBox 外の element も描画する。 parts drop で
+     posX/posY が viewBox 外 (auto 計算 range) に出ても clip されず可視。
+     dragon は sequence 内容基準で viewBox を tight に計算するため、 parts overlay の
+     free positioning とは相性が悪い、 overflow visible で clip 無効化して Miro 風の
+     自由 canvas 感覚を実現する。 preview stage container が最終 clip 境界になる。 */
+  .v4-editor-svg-wrap {
+    overflow: visible !important;
+  }
+  .v4-editor-svg-wrap svg {
+    overflow: visible !important;
+    pointer-events: auto;
+  }
+  /* canvas pivot 追加 fix = CdlDiagramView が SVG 上に重ねる HTML overlay (phase controls
+     / status 等の DIV) が click を intercept して individual element drag が動かない問題を
+     解消する。 wrap 内の全 DIV は pointer-events: none、 SVG のみ通す。
+     元 layout / interaction (Fit / Reset button 等 toolbar 経由の click) は
+     .v4-editor-bar 側で処理するため overlay 経由 click 不要。 */
+  .v4-editor-svg-wrap div {
+    pointer-events: none;
+  }
+  .v4-editor-svg-wrap svg,
+  .v4-editor-svg-wrap svg * {
+    pointer-events: auto;
+  }
+  /* canvas pivot 追加 fix = sequence lane 上部の float lane-label text を hide。
+     header box (rounded rect with text) が同 actor 名を表示するため重複表示になり、
+     user 実使い verify で 「文字だけのユーザー」 として混乱源になっていた。
+     data-cdl-role="lane-label" は cdl stage.tsx の lane render で発行、 CSS で display:none
+     すれば dragon 側から compile 変更なしに hide できる。 元 lane label が必要な用途
+     (別 diagram context) では別 override で復活可能な CSS-only 経路。 */
+  .v4-editor-svg-wrap [data-cdl-role="lane-label"] {
+    display: none;
+  }
+  /* canvas pivot parts binding = 各 parts の右上「⚡」 icon overlay + ✕ 削除 button 群 */
+  .v4-editor-bind-icon-group {
+    position: absolute;
+    display: flex;
+    gap: 4px;
+    z-index: 15;
+    pointer-events: auto;
+  }
+  .v4-editor-bind-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--v4-brand-deep);
+    background: var(--v4-canvas);
+    color: var(--v4-brand-deep);
+    font-size: 14px;
+    font-family: var(--v4-mono);
+    line-height: 1;
+    cursor: pointer;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(26, 20, 16, 0.16);
+    transition: transform 0.12s, background 0.12s;
+    pointer-events: auto;
+  }
+  .v4-editor-bind-icon:hover {
+    transform: scale(1.15);
+    background: var(--v4-brand-deep);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-bind-icon-source {
+    border-color: #c2410c;
+    color: #c2410c;
+  }
+  .v4-editor-bind-icon-source:hover {
+    background: #c2410c;
+    color: var(--v4-canvas);
+  }
+  .v4-editor-bind-icon-bound {
+    background: var(--v4-brand-deep);
+    color: var(--v4-canvas);
+    border-color: var(--v4-brand-deep);
+  }
+  .v4-editor-bind-icon-bound:hover {
+    background: var(--v4-brand);
+    color: var(--v4-canvas);
+  }
+  .v4-editor-delete-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(220, 38, 38, 0.6);
+    background: var(--v4-canvas);
+    color: #dc2626;
+    font-size: 13px;
+    font-family: var(--v4-mono);
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(26, 20, 16, 0.16);
+    transition: transform 0.12s, background 0.12s;
+  }
+  .v4-editor-delete-icon:hover {
+    transform: scale(1.15);
+    background: #dc2626;
+    color: var(--v4-canvas);
+  }
+  /* canvas pivot parts binding = 現在の連動一覧 (popup Step 1 前段) */
+  .v4-editor-bind-bound-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(var(--v4-brand-rgb, 122, 89, 42), 0.06);
+    border: 1px solid rgba(var(--v4-brand-rgb, 122, 89, 42), 0.2);
+    border-radius: 6px;
+    font-size: 11.5px;
+  }
+  .v4-editor-bind-bound-row b { font-weight: 600; }
+  .v4-editor-bind-unbind-btn {
+    background: transparent;
+    border: 1px solid rgba(26, 20, 16, 0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--v4-ink-dim);
+    line-height: 1;
+    transition: background 0.12s, color 0.12s;
+  }
+  .v4-editor-bind-unbind-btn:hover {
+    background: #dc2626;
+    color: var(--v4-canvas);
+    border-color: #dc2626;
+  }
+
+  /* canvas pivot parts binding = popup UI */
+  .v4-editor-bind-popup {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--v4-canvas);
+    border: 1px solid rgba(26, 20, 16, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(26, 20, 16, 0.14);
+    padding: 14px 16px 18px;
+    min-width: 320px;
+    max-width: 380px;
+    z-index: 20;
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    color: var(--v4-ink);
+    pointer-events: auto;
+  }
+  .v4-editor-bind-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(26, 20, 16, 0.1);
+    padding-bottom: 8px;
+  }
+  .v4-editor-bind-popup-close {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--v4-ink-dim);
+    padding: 0 4px;
+  }
+  .v4-editor-bind-popup-close:hover { color: var(--v4-ink); }
+  .v4-editor-bind-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .v4-editor-bind-popup-title {
+    font-size: 11px;
+    color: var(--v4-ink-dim);
+    margin-bottom: 4px;
+  }
+  .v4-editor-bind-popup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid rgba(26, 20, 16, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: inherit;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .v4-editor-bind-popup-item:hover {
+    background: rgba(26, 20, 16, 0.04);
+    border-color: rgba(26, 20, 16, 0.25);
+  }
+  .v4-editor-bind-popup-item b { font-weight: 600; }
+  .v4-editor-bind-popup-item span { color: var(--v4-ink-dim); font-size: 11px; }
+  /* sink parts の icon preview (item #4) */
+  .v4-editor-bind-sink-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+    color: var(--v4-brand-deep);
+    background: rgba(122, 89, 42, 0.08);
+    border-radius: 6px;
+    margin-right: 10px;
+    line-height: 1;
+    font-family: system-ui, serif;
+  }
+  .v4-editor-bind-sink-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+  .v4-editor-bind-sink-info b {
+    font-family: var(--v4-mono);
+    font-size: 12px;
+  }
+  .v4-editor-bind-sink-info span {
+    font-size: 10.5px !important;
+  }
+  .v4-editor-bind-popup-empty {
+    padding: 12px;
+    background: rgba(26, 20, 16, 0.04);
+    border-radius: 6px;
+    line-height: 1.5;
+    color: var(--v4-ink-dim);
+  }
+  .v4-editor-bind-popup-empty b { color: var(--v4-ink); }
+  .v4-editor-bind-popup-back {
+    margin-top: 6px;
+    background: transparent;
+    border: none;
+    color: var(--v4-ink-dim);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 4px;
+    text-align: left;
+  }
+  .v4-editor-bind-popup-back:hover { color: var(--v4-ink); }
+
+  /* canvas pivot = magnet zone hint text */
+  .v4-editor-bar-hint {
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    color: var(--v4-ink-dim);
+    padding: 4px 8px;
+    margin-right: 6px;
+    background: rgba(26, 20, 16, 0.04);
+    border-radius: 4px;
+  }
   .v4-editor-bar-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
