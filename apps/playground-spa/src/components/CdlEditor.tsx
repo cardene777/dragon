@@ -1403,6 +1403,8 @@ ${newActorLine}
                       key={s.label}
                       type="button"
                       className={`v4-editor-side-item ${activeSample === s.label ? "active" : ""}`}
+                      data-testid={`editor-sample-${s.slug}`}
+                      data-sample-label={s.label}
                       onClick={() => handleSelectSample(s)}
                     >
                       {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
