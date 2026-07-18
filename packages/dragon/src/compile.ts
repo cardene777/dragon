@@ -287,9 +287,11 @@ function mergePartIntoDiagram(
         // canvas pivot 座標一本化 = compile 側で lane.x に posX を bake せず、 CSS translate 一本で
         // X/Y 両方応用する経路に統一。 drop 直後の compile 非同期 + useEffect リセットの race で
         // 「元位置戻り」 or 「二重適用」 の flash が発生していた bug の直接対応。
-        // xShift 経路は spec-canvas-pivot-adjustment.md の overlay layer 移行で恒久廃止予定、
-        // 本 change は暫定 fix (parts internal x=0 のまま target に merge)。
         x: laneOrig.x ?? 0,
+        // canvas pivot 座標一本化 = parts lane を CDL の pitch uniform 化 (expandLaneGapsForEdgeLabels)
+        // と cumulative shift (expandLanesForNodes) から除外。 これで parts drop 時に sequence lane
+        // の間が広がる bug (spec §2 root cause) を構造的に根絶する。
+        standalone: true,
       });
     }
   }
