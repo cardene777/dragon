@@ -839,6 +839,39 @@ export function CdlEditor(): React.JSX.Element {
     // pattern から抽出、 undefined なら actor 全体経路 = 単一 node preset / lane hover)。
     subNodeKey?: string;
   } | null>(null);
+  // zoom / pan 変更時に hoveredHandle.rect を re-query (transform 変更で図が scale されるが outline は
+  // client px absolute で pan/scale の外側に描画されるため、 rect が古いままだと図と outline が乖離する
+  // = user 目視 bug 「点線の四角の囲いは拡大しない」 の root fix)。 rect 変化が閾値以上なら update、
+  // 微小変化 (float 誤差) は無視して無限 loop 回避。
+  useEffect(() => {
+    if (!hoveredHandle || !previewRef.current) return;
+    // parts 用の union bbox 経路 = elementSelector が prefix match `^=` 形式なら全 sub-node の union
+    const isPartsPrefixSelector = hoveredHandle.elementSelector.includes('^="');
+    let rect: DOMRect;
+    if (isPartsPrefixSelector) {
+      const els = previewRef.current.querySelectorAll(hoveredHandle.elementSelector);
+      if (els.length === 0) return;
+      let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+      for (const el of Array.from(els)) {
+        const r = (el as SVGGraphicsElement).getBoundingClientRect();
+        if (r.left < minL) minL = r.left;
+        if (r.top < minT) minT = r.top;
+        if (r.right > maxR) maxR = r.right;
+        if (r.bottom > maxB) maxB = r.bottom;
+      }
+      rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
+    } else {
+      const el = previewRef.current.querySelector(hoveredHandle.elementSelector) as SVGGraphicsElement | null;
+      if (!el) return;
+      rect = el.getBoundingClientRect();
+    }
+    const old = hoveredHandle.rect;
+    const diff = Math.abs(rect.left - old.left) + Math.abs(rect.top - old.top) + Math.abs(rect.width - old.width) + Math.abs(rect.height - old.height);
+    if (diff > 0.5) {
+      setHoveredHandle({ ...hoveredHandle, rect });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transform.scale, transform.tx, transform.ty]);
   const [activeGuidelines, setActiveGuidelines] = useState<Guideline[]>([]);
 
   const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
@@ -1222,6 +1255,11 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // element drag / resize 中は pan せず interaction pass に流す
     if (updateElementInteraction(e)) return;
+    // zoom toolbar / share / export 等の UI 上 mouse.move は hover 状態を保持 (I3 forensic fix)。
+    // toolbar 上 mouse.move で hoveredHandle が rect 外 buffer 判定で null 化すると zoom 直後に
+    // outline が消える bug になる。 UI element は data-preserve-hover attribute or 特定 class で判定。
+    const targetEl = e.target as HTMLElement;
+    if (targetEl.closest?.(".cdl-editor-zoom-toolbar, .v4-editor-bar, .v4-editor-side, .v4-editor-code")) return;
     // hover 中の element を追跡して handle 表示用 state 更新
     if (!elementDrag.current) {
       // canvas pivot UX 修正 (B1) = 既存 hoveredHandle の handle 4 隅境界 + buffer 内なら hover 更新を
@@ -1272,8 +1310,37 @@ export function CdlEditor(): React.JSX.Element {
           }
           cur = cur.parentElement;
         }
-        const rect = cur ? (cur as Element).getBoundingClientRect() : null;
+        // parts sub-node 判定 = data-cdl-node id が `{alias}__{subId}` 形式 (CAR-1657 unified syntax、
+        // parts merge 経路で prefix された node) の場合、 hover rect と elementSelector を
+        // parts 全 sub-node の union に置換 = user が hover した時に parts 全体が「1 unit」 として
+        // 点線 outline + 4 隅 handle で示される (Miro 相当の UX)。 sub-node 個別を掴む挙動は禁止、
+        // 一体として drag / resize する仕様。
+        let rect: DOMRect | null = cur ? (cur as Element).getBoundingClientRect() : null;
+        const nodeIdForCur = cur?.getAttribute?.("data-cdl-node") ?? "";
+        const isPartsSubNode = nodeIdForCur.includes("__");
+        if (isPartsSubNode && previewRef.current) {
+          const alias = nodeIdForCur.split("__")[0]!;
+          const partsEls = previewRef.current.querySelectorAll(`[data-cdl-node^="${alias}__"]`);
+          if (partsEls.length > 0) {
+            // union bbox 計算 = 全 parts sub-node の (left / top / right / bottom) 最大範囲
+            let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+            for (const el of Array.from(partsEls)) {
+              const r = (el as SVGGraphicsElement).getBoundingClientRect();
+              if (r.left < minL) minL = r.left;
+              if (r.top < minT) minT = r.top;
+              if (r.right > maxR) maxR = r.right;
+              if (r.bottom > maxB) maxB = r.bottom;
+            }
+            rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
+            elementSelector = `[data-cdl-node^="${alias}__"]`; // 全 parts sub-node
+          }
+        }
         if (rect && elementSelector) {
+          // parts (isPartsSubNode) なら subNodeKey を undefined に強制 = actor 全体経路
+          // (updateActorPosition で actor.posX/posY/posW/posH 書出し、 compile 側で parts 全 sub-node に scale 反映)
+          if (isPartsSubNode) {
+            dragInfo.subNodeKey = undefined;
+          }
           // canvas pivot UX 修正 (B1) = data-cdl-node の subNodeKey (`header` / `footer` / `spacer` / `s0` 等)
           // を hoveredHandle に転写、 startElementInteraction で subNodeKey 経由 individual sub-node 経路に流す。
           // subNodeKey undefined 時 (findDragTarget が親 lane / raw actor を返した場合) は前回の subNodeKey を
@@ -1284,9 +1351,11 @@ export function CdlEditor(): React.JSX.Element {
           setHoveredHandle({ id: dragInfo.name, elementSelector, rect, subNodeKey: inheritedSubKey });
         }
       } else if (hoveredHandle) {
-        // element 外に mouse が出たら handle を消す (only if outside the rect + some buffer)
+        // element 外に mouse が出ても hoveredHandle は維持 (I3 fix、 zoom button 移動時の軌跡で
+        // preview 内空き area 通過しても outline 消えない大 buffer 経路)。 100 px buffer で
+        // user が明示的に別 element hover しない限り hover 維持する Miro 相当の粘着 UX。
         const r = hoveredHandle.rect;
-        const buffer = 16;
+        const buffer = 100;
         if (e.clientX < r.left - buffer || e.clientX > r.right + buffer || e.clientY < r.top - buffer || e.clientY > r.bottom + buffer) {
           setHoveredHandle(null);
         }

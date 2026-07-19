@@ -193,7 +193,7 @@ function mergePartsFromActors(
         return true;
       });
     }
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY);
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
   }
   return target;
 }
@@ -217,6 +217,14 @@ function mergePartIntoDiagram(
    */
   offsetX?: number,
   offsetY?: number,
+  /**
+   * parts 全体 resize 対応 (I2 forensic) = parts を Miro 相当の「1 unit」 として扱い、
+   * user が SE handle drag で拡大すると actor.posW/posH が書出される。 compile で受け取り、
+   * parts 全 sub-node の w / h と cx / cy 相対位置に scale 係数を適用して等比拡大する。
+   * 未指定 = 従来の parts 原寸 で描画 (scale なし)。
+   */
+  targetW?: number,
+  targetH?: number,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   const stateIdSet = new Set(part.states.map((s) => s.id));
@@ -278,6 +286,12 @@ function mergePartIntoDiagram(
     ? Math.max(...target.nodes.map((n) => n.stack ?? 0))
     : 0;
   const stackShiftBase = shouldForcePos ? targetMaxStack + STACK_ISOLATION_OFFSET : 0;
+  // parts 全体 resize scale (I2 forensic 対応): targetW / targetH 指定時、 parts の元 total size
+  // に対する比率 = scale 係数、 全 sub-node の w / h + cx / cy 相対位置に scale 反映。
+  const partOrigW = part.lanes[0]?.width ?? 320;
+  const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
+  const scaleX = targetW !== undefined && targetW > 0 ? targetW / partOrigW : 1;
+  const scaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const nodeOrig of part.nodes) {
@@ -294,17 +308,27 @@ function mergePartIntoDiagram(
     let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + (offsetX ?? 0) : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
-      // parts lane 中央 (auto layout の cx 相当) + offsetX
+      // parts lane 中央 (auto layout の cx 相当) + offsetX (scale 適用)
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
       const laneX = partLane?.x ?? 0;
       const laneW = partLane?.width ?? 320;
-      nodePosX = laneX + laneW / 2 + (offsetX ?? 0);
+      const partOrigCx = laneX + laneW / 2;
+      const partCenterX = partOrigW / 2;
+      nodePosX = (partOrigCx - partCenterX) * scaleX + (offsetX ?? 0);
     }
     if (shouldForcePos && nodePosY === undefined) {
-      // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整
+      // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
+      // scaleY で拡大縮小反映
       const stack = nodeOrig.stack ?? 0;
-      nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX + (offsetY ?? 0);
+      nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX * scaleY + (offsetY ?? 0);
     }
+    // parts sub-node の w / h に scale 適用 (I2 forensic 対応、 targetW/H 指定時のみ)
+    const nodeW = nodeOrig.w !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? nodeOrig.w * scaleX
+      : nodeOrig.w;
+    const nodeH = nodeOrig.h !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? nodeOrig.h * scaleY
+      : nodeOrig.h;
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),
@@ -317,6 +341,8 @@ function mergePartIntoDiagram(
       ...(newShape ? { shape: newShape as CdlDiagram["nodes"][number]["shape"] } : {}),
       ...(nodePosX !== undefined ? { posX: nodePosX } : {}),
       ...(nodePosY !== undefined ? { posY: nodePosY } : {}),
+      ...(nodeW !== undefined ? { w: nodeW } : {}),
+      ...(nodeH !== undefined ? { h: nodeH } : {}),
     });
   }
 
