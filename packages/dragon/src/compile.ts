@@ -238,6 +238,24 @@ function mergePartIntoDiagram(
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
   const targetLaneId = laneMapping;
   const laneIdMap = new Map<string, string>();
+  // parts 用 lane を「既存 sequence lane の右端 + gap」 に強制配置する (physically 外側配置)。
+  // offset (drop 座標) 指定時は max(offsetX, existingMax + gap) で drop 位置尊重 + 重複回避。
+  // 未指定 (click default) 時は existingMax + gap で確実に右外配置。 これで parts が sequence lane
+  // bbox に飛び込む user 目視 bug (Phase 2 forensic) を root 解消。
+  const PARTS_LANE_GAP = 300;
+  const existingLaneMaxX = target.lanes.length > 0
+    ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
+    : 0;
+  const partsLaneStartX = offsetX !== undefined
+    ? Math.max(offsetX, existingLaneMaxX + PARTS_LANE_GAP)
+    : existingLaneMaxX + PARTS_LANE_GAP;
+  const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
+  // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
+  // lane.width は「元 parts.width × scaleX」 に拡張して viewBox が parts サイズを含むように。
+  // これで viewport auto-fit で全体縮小されても parts の相対サイズは変わらない。
+  const partsLaneW = part.lanes[0]?.width ?? 400;
+  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
+
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
       laneIdMap.set(laneOrig.id, targetLaneId);
@@ -245,16 +263,15 @@ function mergePartIntoDiagram(
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
       // parts 独自 lane が target に追加される (target 側 lane と衝突しない)。
-      // offsetX / offsetY 指定時は parts 内部 lane の x/y に加算 = drop 座標に描画される
-      // (D1 forensic root fix、 従来は lane.x=0 baked-in で canvas 左端に描画されていた)。
-      // CdlLane に y field はなく (lane y は cdl layout が HEADER_RESERVE 起点で auto 算出)、
-      // parts 縦位置は node.posY 側で表現する (compile pipeline 側で lane.y = HEADER_RESERVE 固定
-      // 、 lane 内 node の cy が posY で絶対配置 skip される経路で drop 座標尊重を実現)。
+      // effectiveOffsetX = 既存 lane 右端 + gap or drop 座標の大きい方、 lane.x = laneOrig.x + effectiveOffsetX
+      // で確実に既存 lane bbox 外に配置。
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
-        x: (laneOrig.x ?? 0) + (offsetX ?? 0),
+        x: (laneOrig.x ?? 0) + effectiveOffsetX,
+        // resize 時 lane 幅も拡張 = parts sub-node の cx が lane 中央基準で計算されるため
+        width: laneOrig.width * laneScaleX,
       });
     }
   }
@@ -298,23 +315,47 @@ function mergePartIntoDiagram(
     const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
     // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
     // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
-    const newShape = nodeOrig.shape
+    let newShape = nodeOrig.shape
       ? deepRewriteStrings(nodeOrig.shape as unknown, rewriteTemplate)
       : undefined;
+    // parts 全体 resize (I2 forensic): shape 内 radius / outerRadius / innerRadius / thickness に
+    // scale 反映 = user が SE handle drag で拡大すると shape の見た目も比例拡大される。 scaleX を採用
+    // (等比 scale 相当、 縦方向 scaleY と乖離する場合は近似)、 shape 内数値 field のうち幾何寸法系
+    // のみ scale 適用 (fill / stroke 色 field 等 non-numeric は影響なし)。
+    if (newShape && (scaleX !== 1 || scaleY !== 1)) {
+      const shapeScale = Math.min(scaleX, scaleY); // 等比 scale で circle 崩れ回避
+      const geomKeys = new Set(["radius", "outerRadius", "innerRadius", "thickness"]);
+      const scaleGeom = (obj: unknown): unknown => {
+        if (obj === null || typeof obj !== "object") return obj;
+        if (Array.isArray(obj)) return obj.map(scaleGeom);
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+          if (geomKeys.has(k) && typeof v === "number") {
+            out[k] = v * shapeScale;
+          } else if (typeof v === "object" && v !== null) {
+            out[k] = scaleGeom(v);
+          } else {
+            out[k] = v;
+          }
+        }
+        return out;
+      };
+      newShape = scaleGeom(newShape) as typeof newShape;
+    }
     // parts drop 位置 offset 反映:
-    //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら offset 加算のみ
+    //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら effectiveOffsetX 加算
     //   - offsetX/Y 指定時 (drop 経路) は全 node に posX/posY を明示 set (rowH 分離)
     //   - offset なし (従来経路) は auto layout 継続
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + (offsetX ?? 0) : undefined;
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + effectiveOffsetX : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
-      // parts lane 中央 (auto layout の cx 相当) + offsetX (scale 適用)
+      // parts lane 中央 (auto layout の cx 相当) + effectiveOffsetX (scale 適用)
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
       const laneX = partLane?.x ?? 0;
       const laneW = partLane?.width ?? 320;
       const partOrigCx = laneX + laneW / 2;
       const partCenterX = partOrigW / 2;
-      nodePosX = (partOrigCx - partCenterX) * scaleX + (offsetX ?? 0);
+      nodePosX = (partOrigCx - partCenterX) * scaleX + partsLaneStartX + laneW / 2;
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、

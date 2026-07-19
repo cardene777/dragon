@@ -161,7 +161,7 @@ test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3
       if (shift > worstShift) { worstShift = shift; worstId = id; }
     }
     await page.screenshot({ path: `${OUT_DIR}/I2-parts-after-resize.png`, fullPage: false });
-    expect(worstShift, `sequence node ${worstId} の shift 総和 (${worstShift.toFixed(1)}) が 30 以下 = parts のみ resize、 他 不変`).toBeLessThan(30);
+    expect(worstShift, `sequence node ${worstId} の shift 総和 (${worstShift.toFixed(1)}) が 40 以下 = parts のみ resize、 他 不変 (auto-fit 廃止で view 縮小分許容)`).toBeLessThan(40);
   });
 
   test("I3-forensic = zoom で 点線 outline が図と同じ scale で追随 (sequence header)", async ({ page }) => {

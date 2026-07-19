@@ -777,7 +777,11 @@ export function CdlEditor(): React.JSX.Element {
     setTransform({ tx, ty, scale });
   }, []);
 
-  // diagram 切替時 / stage リサイズ時に自動 Fit
+  // 初回 diagram load 時のみ自動 Fit、 以降の diagram 変化 (drag / resize / drop) では
+  // viewport 維持 = user 編集動作が正しく viewport に反映される (拡大したら拡大される)。
+  // = user 目視 bug 「拡大したら図がぐっちゃぐちゃ = auto fit で全体縮小」 の root fix。
+  // sample 切替 (activeSample 変化) では明示的に fit 再実行、 それ以外は user 編集動作を尊重。
+  const initialFitDoneRef = useRef(false);
   useEffect(() => {
     if (!diagram || !previewRef.current) return;
     let cancelled = false;
@@ -785,28 +789,39 @@ export function CdlEditor(): React.JSX.Element {
     const runFit = () => {
       if (cancelled) return;
       const now = Date.now();
-      if (now - lastFitAt < 50) return; // 50ms rate limit
+      if (now - lastFitAt < 50) return;
       lastFitAt = now;
       handleFit();
+      initialFitDoneRef.current = true;
     };
-    // 初回 rAF + 100ms fallback で SVG layout 反映を待つ
-    const r1 = window.requestAnimationFrame(() => {
-      if (cancelled) return;
-      window.requestAnimationFrame(runFit);
-    });
-    const t1 = window.setTimeout(runFit, 100);
-    const t2 = window.setTimeout(runFit, 400); // hydration 遅延 fallback
-    // stage リサイズを検知して再 fit (window resize / sidebar 折畳等)
-    const ro = new ResizeObserver(() => runFit());
-    ro.observe(previewRef.current);
-    return () => {
-      cancelled = true;
-      window.cancelAnimationFrame(r1);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      ro.disconnect();
-    };
+    // 初回 diagram load or sample 切替時のみ fit、 以降の diagram 変化 (drag / resize / drop) は skip
+    if (!initialFitDoneRef.current) {
+      const r1 = window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        window.requestAnimationFrame(runFit);
+      });
+      const t1 = window.setTimeout(runFit, 100);
+      const t2 = window.setTimeout(runFit, 400);
+      // stage リサイズ (window resize / sidebar 折畳) でも fit する (viewport 追随)
+      const ro = new ResizeObserver(() => {
+        if (initialFitDoneRef.current) return; // 初回 fit 後は stage リサイズでも fit しない
+        runFit();
+      });
+      ro.observe(previewRef.current);
+      return () => {
+        cancelled = true;
+        window.cancelAnimationFrame(r1);
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+        ro.disconnect();
+      };
+    }
+    return () => { cancelled = true; };
   }, [diagram, handleFit]);
+  // activeSample 変化 (sample 切替) 時に initialFitDoneRef をリセットして次 diagram load で fit
+  useEffect(() => {
+    initialFitDoneRef.current = false;
+  }, [activeSample]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -890,21 +905,25 @@ export function CdlEditor(): React.JSX.Element {
         const cur = subKey
           ? extractActorNodePosition(src, hoveredHandle.id, subKey)
           : extractActorPosition(src, hoveredHandle.id);
-        // sub-node init 座標が DSL 未書出しなら hover 中 rect の SVG 座標系変換で拾う
+        // sub-node init 座標が DSL 未書出しなら hover 中 rect の SVG 座標系変換で拾う。
+        // initW / initH は必ず SVG world 単位で計測する (client px → world 変換必須)、
+        // client 単位のまま書出すと zoom 縮小で actor.posW が client 74px 相当の小 world 値 (~370)
+        // になり compile 側で parts が縮小されて描画される bug (I2-forensic の Phase 4 検出済)。
         let initX = cur?.posX;
         let initY = cur?.posY;
         let initW = cur?.posW;
         let initH = cur?.posH;
-        if (initX === undefined || initY === undefined) {
-          // hover rect (client coord) → SVG viewBox 座標変換で個別 element の cx / cy / w / h を抽出
+        {
           const rect = hoveredHandle.rect;
           const tlPt = clientToSvg(svg, rect.left, rect.top);
           const brPt = clientToSvg(svg, rect.right, rect.bottom);
           const wSvg = brPt.x - tlPt.x;
           const hSvg = brPt.y - tlPt.y;
-          // sub-node の posX/posY は「node 中心」 (CDL 側の cx / cy に直行) として書出す
-          initX = tlPt.x + wSvg / 2;
-          initY = tlPt.y + hSvg / 2;
+          if (initX === undefined || initY === undefined) {
+            initX = tlPt.x + wSvg / 2;
+            initY = tlPt.y + hSvg / 2;
+          }
+          // initW / initH は DSL 未書出しなら world 単位の hover rect size を使う
           initW = initW ?? wSvg;
           initH = initH ?? hSvg;
         }
@@ -1757,17 +1776,16 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    // parts click 追加 = 既存 lane の world bbox 下側に配置 = 確実に lane bbox 外側
-                    // (D1-click forensic 対応、 CDL の expandLaneGapsForEdgeLabels で横方向 lane が
-                    // 拡張されても影響を受けない縦方向の空きエリア)。 svg element の CTM inverse で
-                    // lane element の client rect を world 座標系に変換し、 最大 y (下端) を計算して
-                    // default posY = maxY + 200 で下外へ、 posX は lane 中央付近で見やすい位置。
+                    // parts click 追加 = 既存 lane の world bbox 右外側 + 中段に配置 = 確実に lane bbox 外
+                    // (I2-forensic 対応、 render 上の物理的 overlap ゼロを保証)。 svg element の CTM inverse
+                    // で lane element の client rect を world 座標系に変換し、 最大 x (右端) を計算して
+                    // default posX = maxX + 600 (parts w~400 + margin) で右外へ、 posY は lane 中央付近。
                     const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
                     let posFields: string[] = [];
                     if (svgElClick) {
                       const laneEls = svgElClick.querySelectorAll('[data-cdl-lane]');
-                      let maxLaneYWorld = 0;
-                      let midXWorld = 400;
+                      let maxLaneXWorld = 0;
+                      let midYWorld = 400;
                       const ctm = svgElClick.getScreenCTM();
                       if (ctm && laneEls.length > 0) {
                         const inv = ctm.inverse();
@@ -1777,24 +1795,23 @@ ${newActorLine}
                           pt.y = cy;
                           return pt.matrixTransform(inv);
                         };
-                        const xs: number[] = [];
+                        const ys: number[] = [];
                         for (const el of Array.from(laneEls)) {
                           const r = (el as SVGGraphicsElement).getBoundingClientRect();
                           const br = toWorld(r.right, r.bottom);
                           const tl = toWorld(r.x, r.y);
-                          if (br.y > maxLaneYWorld) maxLaneYWorld = br.y;
-                          xs.push(tl.x, br.x);
+                          if (br.x > maxLaneXWorld) maxLaneXWorld = br.x;
+                          ys.push(tl.y, br.y);
                         }
-                        midXWorld = xs.length > 0 ? (Math.min(...xs) + Math.max(...xs)) / 2 : 400;
+                        midYWorld = ys.length > 0 ? (Math.min(...ys) + Math.max(...ys)) / 2 : 400;
                       } else {
                         const vb = svgElClick.viewBox.baseVal;
-                        maxLaneYWorld = vb.y + vb.height;
-                        midXWorld = vb.x + vb.width * 0.5;
+                        maxLaneXWorld = vb.x + vb.width;
+                        midYWorld = vb.y + vb.height * 0.5;
                       }
-                      const defaultX = Math.round(midXWorld);
-                      // + 500 = parts の高さ (typical 200-400) + 100 margin、 lane が parts 側に
-                      // 拡張されても bbox 外側を維持できる buffer
-                      const defaultY = Math.round(maxLaneYWorld + 500);
+                      // + 600 = parts w (~400) + margin (200)、 lane が parts 側に拡張されても外側維持
+                      const defaultX = Math.round(maxLaneXWorld + 600);
+                      const defaultY = Math.round(midYWorld);
                       posFields = [
                         `posX: ${defaultX}`,
                         `posY: ${defaultY}`,
