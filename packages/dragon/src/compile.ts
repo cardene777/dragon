@@ -193,7 +193,7 @@ function mergePartsFromActors(
         return true;
       });
     }
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
+    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY);
   }
   return target;
 }
@@ -210,6 +210,13 @@ function mergePartIntoDiagram(
   alias: string,
   stateOverride: Record<string, number | string | boolean>,
   laneMapping: string | undefined,
+  /**
+   * parts drop 位置 (drag-and-drop or click 追加時に呼出側が SVG viewBox 座標を書出す)。
+   * 未指定 = 従来 (lane.x = 0 baked-in で canvas 左端に描画)、 指定時 = parts 内部 lane の
+   * x / y に加算して drop 座標付近に描画。 D1 forensic (drop 座標乖離) の core fix。
+   */
+  offsetX?: number,
+  offsetY?: number,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   const stateIdSet = new Set(part.states.map((s) => s.id));
@@ -229,14 +236,48 @@ function mergePartIntoDiagram(
     } else {
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
-      // parts 独自 lane が target に追加される (target 側 lane と衝突しない)
+      // parts 独自 lane が target に追加される (target 側 lane と衝突しない)。
+      // offsetX / offsetY 指定時は parts 内部 lane の x/y に加算 = drop 座標に描画される
+      // (D1 forensic root fix、 従来は lane.x=0 baked-in で canvas 左端に描画されていた)。
+      // CdlLane に y field はなく (lane y は cdl layout が HEADER_RESERVE 起点で auto 算出)、
+      // parts 縦位置は node.posY 側で表現する (compile pipeline 側で lane.y = HEADER_RESERVE 固定
+      // 、 lane 内 node の cy が posY で絶対配置 skip される経路で drop 座標尊重を実現)。
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
+        x: (laneOrig.x ?? 0) + (offsetX ?? 0),
       });
     }
   }
+
+  // parts drop 位置 fix (D1 + D2 root fix):
+  //   D2 = parts の stack 番号 (0/1/2/…) が target sequence の stack と衝突すると
+  //        CDL layout の rowH 計算で全 lane の同 row cy が拡張、 sequence footer 等が縦 shift。
+  //        → 2 段防御 で分離する:
+  //             (1) 全 parts node に posX/posY 明示 set (CDL layout の絶対配置経路 = stack 計算 skip)
+  //             (2) parts の stack 番号を target 側 max stack + STACK_ISOLATION_OFFSET (1000) に shift
+  //                 = 万一 layout が rowH で参照しても sequence stack と重ならず影響 0 化
+  //   D1 = drop 座標尊重の縦方向 = parts の元 stack (0..N) から近似 pitch で cy を組み立て、
+  //        offsetY を加算して drop 座標付近に描画。 lane.x + lane.width/2 + offsetX で横位置。
+  //
+  // parts 内部 stack 別の垂直 pitch (world unit) = STACK_PITCH_APPROX。 CDL layout の実 stackGap
+  // (~100) + 標準 node h (~140-200) の合計相当。 これは parts の cy を厳密に再現しないが、
+  // drop 座標 (dropX, dropY) 付近に parts が中心配置される見た目に十分な近似。
+  const STACK_PITCH_APPROX = 220;
+  const STACK_ISOLATION_OFFSET = 1000;
+  // parts の全 node の中心を drop 座標に合わせるため、 stack 範囲を計算して中心を offsetY に一致させる。
+  const partStacks = part.nodes.map((n) => n.stack ?? 0);
+  const minStack = partStacks.length > 0 ? Math.min(...partStacks) : 0;
+  const maxStack = partStacks.length > 0 ? Math.max(...partStacks) : 0;
+  const partCenterStack = (minStack + maxStack) / 2;
+  const shouldForcePos = offsetX !== undefined || offsetY !== undefined;
+  // target 側の現在 max stack + isolation offset で parts node の stack を shift、
+  // sequence の rowH 計算と完全分離 (D2 fix、 posX/posY 明示との 2 段防御)。
+  const targetMaxStack = shouldForcePos && target.nodes.length > 0
+    ? Math.max(...target.nodes.map((n) => n.stack ?? 0))
+    : 0;
+  const stackShiftBase = shouldForcePos ? targetMaxStack + STACK_ISOLATION_OFFSET : 0;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const nodeOrig of part.nodes) {
@@ -246,6 +287,24 @@ function mergePartIntoDiagram(
     const newShape = nodeOrig.shape
       ? deepRewriteStrings(nodeOrig.shape as unknown, rewriteTemplate)
       : undefined;
+    // parts drop 位置 offset 反映:
+    //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら offset 加算のみ
+    //   - offsetX/Y 指定時 (drop 経路) は全 node に posX/posY を明示 set (rowH 分離)
+    //   - offset なし (従来経路) は auto layout 継続
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + (offsetX ?? 0) : undefined;
+    let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
+    if (shouldForcePos && nodePosX === undefined) {
+      // parts lane 中央 (auto layout の cx 相当) + offsetX
+      const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
+      const laneX = partLane?.x ?? 0;
+      const laneW = partLane?.width ?? 320;
+      nodePosX = laneX + laneW / 2 + (offsetX ?? 0);
+    }
+    if (shouldForcePos && nodePosY === undefined) {
+      // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整
+      const stack = nodeOrig.stack ?? 0;
+      nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX + (offsetY ?? 0);
+    }
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),
@@ -253,7 +312,11 @@ function mergePartIntoDiagram(
       title: rewriteTemplate(nodeOrig.title) ?? nodeOrig.title,
       subtitle: rewriteTemplate(nodeOrig.subtitle),
       value: rewriteTemplate(nodeOrig.value),
+      // parts stack を target 側と分離 (D2 fix、 posX/posY 明示との 2 段防御)
+      stack: (nodeOrig.stack ?? 0) + stackShiftBase,
       ...(newShape ? { shape: newShape as CdlDiagram["nodes"][number]["shape"] } : {}),
+      ...(nodePosX !== undefined ? { posX: nodePosX } : {}),
+      ...(nodePosY !== undefined ? { posY: nodePosY } : {}),
     });
   }
 
