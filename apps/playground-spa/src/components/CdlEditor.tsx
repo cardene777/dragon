@@ -1542,11 +1542,20 @@ animation:
       const rendered = typeof v === "string" ? `"${v}"` : String(v);
       return `${s.id}: ${rendered}`;
     });
-    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+    // parts drop 位置 fix (D1 forensic 対応) = drop 座標を SVG viewBox に変換し posX/posY 明示。
+    // compile 側 (mergePartIntoDiagram) が offsetX/Y として parts の lane / node に反映、 drop 位置
+    // に parts が中心配置される。 座標変換 = clientToSvg (getCTM inverse) で client → SVG world unit。
+    const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    const dropSvg = svgEl ? clientToSvg(svgEl, e.clientX, e.clientY) : null;
+    const posFields: string[] = [];
+    if (dropSvg) {
+      posFields.push(`posX: ${Math.round(dropSvg.x)}`);
+      posFields.push(`posY: ${Math.round(dropSvg.y)}`);
+    }
+    const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
     // canvas pivot UX 修正 (B2) = parts 追加前に既存 actors の現 lane 位置を pinning、
     // 全 lane 再配置による既存 header shift を防ぐ
-    const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
     const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
     const newSrc = appendActorLine(pinnedSrc, newActorLine);
     if (newSrc === null) {
@@ -1679,10 +1688,52 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
+                    // parts click 追加 = 既存 lane の world bbox 下側に配置 = 確実に lane bbox 外側
+                    // (D1-click forensic 対応、 CDL の expandLaneGapsForEdgeLabels で横方向 lane が
+                    // 拡張されても影響を受けない縦方向の空きエリア)。 svg element の CTM inverse で
+                    // lane element の client rect を world 座標系に変換し、 最大 y (下端) を計算して
+                    // default posY = maxY + 200 で下外へ、 posX は lane 中央付近で見やすい位置。
+                    const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+                    let posFields: string[] = [];
+                    if (svgElClick) {
+                      const laneEls = svgElClick.querySelectorAll('[data-cdl-lane]');
+                      let maxLaneYWorld = 0;
+                      let midXWorld = 400;
+                      const ctm = svgElClick.getScreenCTM();
+                      if (ctm && laneEls.length > 0) {
+                        const inv = ctm.inverse();
+                        const toWorld = (cx: number, cy: number) => {
+                          const pt = svgElClick.createSVGPoint();
+                          pt.x = cx;
+                          pt.y = cy;
+                          return pt.matrixTransform(inv);
+                        };
+                        const xs: number[] = [];
+                        for (const el of Array.from(laneEls)) {
+                          const r = (el as SVGGraphicsElement).getBoundingClientRect();
+                          const br = toWorld(r.right, r.bottom);
+                          const tl = toWorld(r.x, r.y);
+                          if (br.y > maxLaneYWorld) maxLaneYWorld = br.y;
+                          xs.push(tl.x, br.x);
+                        }
+                        midXWorld = xs.length > 0 ? (Math.min(...xs) + Math.max(...xs)) / 2 : 400;
+                      } else {
+                        const vb = svgElClick.viewBox.baseVal;
+                        maxLaneYWorld = vb.y + vb.height;
+                        midXWorld = vb.x + vb.width * 0.5;
+                      }
+                      const defaultX = Math.round(midXWorld);
+                      // + 500 = parts の高さ (typical 200-400) + 100 margin、 lane が parts 側に
+                      // 拡張されても bbox 外側を維持できる buffer
+                      const defaultY = Math.round(maxLaneYWorld + 500);
+                      posFields = [
+                        `posX: ${defaultX}`,
+                        `posY: ${defaultY}`,
+                      ];
+                    }
+                    const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
                     // canvas pivot UX 修正 (B2) = parts click 追加前に既存 actors の現 lane 位置を pinning
-                    const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
                     const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
                     const appended = appendActorLine(pinnedSrcClick, newActorLine);
                     if (appended !== null) {
