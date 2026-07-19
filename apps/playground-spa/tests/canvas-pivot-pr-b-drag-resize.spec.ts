@@ -66,7 +66,7 @@ test.describe("canvas pivot PR-B drag / resize", () => {
 
     // 全 actor に posX/Y が pinning されていることを DSL で確認 = SVG unit 座標保護 SSOT
     const dsl = await getEditorText(page);
-    const actorEntries = ["ユーザー", "API", "データベース"];
+    const actorEntries = ["Client", "API", "DB"];
     for (const name of actorEntries) {
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const re = new RegExp(`${escaped}\\s*:\\s*\\{[^}]*posX\\s*:`);

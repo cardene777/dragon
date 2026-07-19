@@ -22,25 +22,25 @@ export const EDITOR_SAMPLES: EditorSample[] = [
 type: sequence
 
 actors:
-  - ユーザー
+  - Client
   - API
-  - データベース
+  - DB
 
 flow:
-  - ユーザー -> API: "ログイン要求"
-  - API -> データベース: "ユーザー検索"
-  - データベース -> API: "結果"
-  - API -> ユーザー: "認証成功" (success)
+  - Client -> API: "ログイン要求"
+  - API -> DB: "Client検索"
+  - DB -> API: "結果"
+  - API -> Client: "認証成功" (success)
 
 animation:
   - step: "call" 1.4s
-    focus: [ユーザー, API, "ユーザー -> API"]
+    focus: [Client, API, "Client -> API"]
   - step: "query" 1.4s
-    focus: [API, データベース, "API -> データベース"]
+    focus: [API, DB, "API -> DB"]
   - step: "return" 1.4s
-    focus: [API, データベース, "データベース -> API"]
+    focus: [API, DB, "DB -> API"]
   - step: "ok" 1.4s
-    focus: [ユーザー, API, "API -> ユーザー"]
+    focus: [Client, API, "API -> Client"]
 `,
   },
   {
@@ -50,22 +50,22 @@ animation:
 type: sequence
 
 actors:
-  - ユーザー
-  - カート
-  - 決済
+  - Client
+  - Cart
+  - Payment
 
 flow:
-  - ユーザー -> カート: "商品追加"
-  - カート -> 決済: "課金"
-  - 決済 -> ユーザー: "領収書" (success)
+  - Client -> Cart: "商品追加"
+  - Cart -> Payment: "課金"
+  - Payment -> Client: "領収書" (success)
 
 animation:
   - step: "add" 1.2s
-    focus: [ユーザー, カート, "ユーザー -> カート"]
+    focus: [Client, Cart, "Client -> Cart"]
   - step: "charge" 1.5s
-    focus: [カート, 決済, "カート -> 決済"]
+    focus: [Cart, Payment, "Cart -> Payment"]
   - step: "receipt" 1.2s
-    focus: [ユーザー, 決済, "決済 -> ユーザー"]
+    focus: [Client, Payment, "Payment -> Client"]
 `,
   },
   {
@@ -97,32 +97,32 @@ animation:
 `,
   },
   {
-    label: "ユーザー登録 (swimlane)",
+    label: "Client登録 (swimlane)",
     slug: "swimlane",
-    code: `title: "ユーザー登録"
+    code: `title: "Client登録"
 type: swimlane
 
 actors:
-  - ユーザー
+  - Client
   - 認証: { kind: service }
-  - データベース: { kind: database }
+  - DB: { kind: database }
   - メール: { kind: service }
 
 flow:
-  - ユーザー -> 認証: "登録要求"
-  - 認証 -> データベース: "ユーザー保存"
+  - Client -> 認証: "登録要求"
+  - 認証 -> DB: "Client保存"
   - 認証 -> メール: "歓迎メール送信"
-  - メール -> ユーザー: "メール到着"
+  - メール -> Client: "メール到着"
 
 animation:
   - step: "register" 1.4s
-    focus: [ユーザー, 認証, "ユーザー -> 認証"]
+    focus: [Client, 認証, "Client -> 認証"]
   - step: "persist" 1.4s
-    focus: [認証, データベース, "認証 -> データベース"]
+    focus: [認証, DB, "認証 -> DB"]
   - step: "notify" 1.4s
     focus: [認証, メール, "認証 -> メール"]
   - step: "deliver" 1.4s
-    focus: [メール, ユーザー, "メール -> ユーザー"]
+    focus: [メール, Client, "メール -> Client"]
 `,
   },
   {
@@ -135,12 +135,12 @@ actors:
   - LB: { kind: cloud, subtitle: "ロードバランサー" }
   - Web: { kind: service, subtitle: "APIサーバー" }
   - キャッシュ: { kind: cache, subtitle: "Redis" }
-  - データベース: { kind: database, subtitle: "Postgres" }
+  - DB: { kind: database, subtitle: "Postgres" }
 
 flow:
   - LB -> Web: "振り分け"
   - Web -> キャッシュ: "参照"
-  - Web -> データベース: "問い合わせ"
+  - Web -> DB: "問い合わせ"
 
 animation:
   - step: "ingress" 1.2s
@@ -148,27 +148,27 @@ animation:
   - step: "cache" 1.2s
     focus: [Web, キャッシュ, "Web -> キャッシュ"]
   - step: "fallback" 1.5s
-    focus: [Web, データベース, "Web -> データベース"]
+    focus: [Web, DB, "Web -> DB"]
 `,
   },
   {
-    label: "ユーザーと投稿のスキーマ (er)",
+    label: "Clientと投稿のスキーマ (er)",
     slug: "er",
-    code: `title: "ユーザー投稿スキーマ"
+    code: `title: "Client投稿スキーマ"
 type: er
 
 actors:
-  - ユーザー: { kind: storage, rows: ["id: PK", "email: string", "name: string"] }
+  - Client: { kind: storage, rows: ["id: PK", "email: string", "name: string"] }
   - 投稿: { kind: storage, rows: ["id: PK", "userId: FK", "title: string", "body: text"] }
   - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
 
 flow:
-  - ユーザー -> 投稿: "投稿する" { cardinality: "1:N" }
+  - Client -> 投稿: "投稿する" { cardinality: "1:N" }
   - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
 
 animation:
   - step: "reveal" 2.0s
-    focus: [ユーザー, 投稿, コメント, "ユーザー -> 投稿", "投稿 -> コメント"]
+    focus: [Client, 投稿, コメント, "Client -> 投稿", "投稿 -> コメント"]
 `,
   },
   {
@@ -287,23 +287,23 @@ animation:
 type: c4
 
 actors:
-  - ユーザー: { kind: person, subtitle: "L1" }
+  - Client: { kind: person, subtitle: "L1" }
   - システム: { kind: service, subtitle: "L1: system" }
   - API: { kind: service, subtitle: "L2: container" }
-  - データベース: { kind: database, subtitle: "L2: container" }
+  - DB: { kind: database, subtitle: "L2: container" }
 
 flow:
-  - ユーザー -> システム: "利用"
+  - Client -> システム: "利用"
   - システム -> API: "要求"
-  - API -> データベース: "問い合わせ"
+  - API -> DB: "問い合わせ"
 
 animation:
   - step: "use" 1.2s
-    focus: [ユーザー, システム, "ユーザー -> システム"]
+    focus: [Client, システム, "Client -> システム"]
   - step: "request" 1.2s
     focus: [システム, API, "システム -> API"]
   - step: "query" 1.2s
-    focus: [API, データベース, "API -> データベース"]
+    focus: [API, DB, "API -> DB"]
 `,
   },
 ];

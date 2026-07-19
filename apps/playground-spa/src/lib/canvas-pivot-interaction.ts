@@ -182,6 +182,13 @@ function resolveDslNameWithSubKey(
   const slugs = Array.from(slugToName.keys()).sort((a, b) => b.length - a.length);
   for (const slug of slugs) {
     if (rawId === slug) return { name: slugToName.get(slug)! };
+    // parts merge 系 = `{alias}__{subId}` pattern (CAR-1657 unified syntax の parts 内部 node、
+    // 例 achievement1__arc / achievement1__ring)、 `__` 区切りで alias 抽出 + subKey 保持。
+    // 前実装は `-` 区切りしか認識せず parts sub-node が hover 対象として認識されなかった bug の fix。
+    if (rawId.startsWith(`${slug}__`)) {
+      const suffix = rawId.slice(slug.length + 2);
+      return { name: slugToName.get(slug)!, subNodeKey: suffix };
+    }
     // subagent review MAJOR-2 対応 = slug 自体が `s\d+` pattern (state-machine actor 名 `s0` / `s1` 等)
     // の場合、 startsWith 経路を skip する。 例 actor 名 = [`s0`, `x`]、 rawId = `s0-x` (step-box 0 for x)
     // は endsWith 経路で `{ name: "x", subNodeKey: "s0" }` が正解、 startsWith(`s0-`) 経路を先に取ると
