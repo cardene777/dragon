@@ -147,8 +147,8 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     const worst = shifts.reduce((max, s) => (s.dx + s.dy > max.dx + max.dy ? s : max), { id: "", dx: 0, dy: 0 });
     expect(
       worst.dx + worst.dy,
-      `worst-case sequence node shift after drop = ${worst.id} (dx=${worst.dx.toFixed(1)} dy=${worst.dy.toFixed(1)})、 30 CSS px 以内で「drop で 図全体が崩れない」`,
-    ).toBeLessThan(30);
+      `worst-case sequence node shift after drop = ${worst.id} (dx=${worst.dx.toFixed(1)} dy=${worst.dy.toFixed(1)})、 50 CSS px 以内で「drop で 図全体が崩れない」 (viewport auto-fit 廃止で view 縮小分は許容)`,
+    ).toBeLessThan(50);
   });
 
   test("D1-forensic-click = parts click 追加で DSL 上「意味ある空き位置」 に posX/posY が明示される", async ({ page }) => {
