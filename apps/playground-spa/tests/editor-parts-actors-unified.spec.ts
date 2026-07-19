@@ -56,7 +56,7 @@ test.describe("CAR-1657 editor parts unified actors: syntax", () => {
     test("click で parts が既存 actors: に kind field 追加される", async ({ page }) => {
       const before = await getEditorText(page);
       expect(before).toContain("actors:");
-      expect(before).toContain("ユーザー"); // SAMPLES[0] 既存 actor
+      expect(before).toContain("Client"); // SAMPLES[0] 既存 actor
       await openPartsTab(page);
       await page.getByTestId(`editor-part-item-${PART_ID_BASIC}`).click();
       await page.waitForTimeout(400);
@@ -64,7 +64,7 @@ test.describe("CAR-1657 editor parts unified actors: syntax", () => {
       // parts が kind field で追加、 prefix なし ('parts-wave-gauge' → 'wave-gauge')
       expect(after).toContain("kind: wave-gauge");
       // 既存 actor が保存されている
-      expect(after).toContain("ユーザー");
+      expect(after).toContain("Client");
       expect(after).toContain("API");
       // flow: block も保存
       expect(after).toContain("flow:");
@@ -77,7 +77,7 @@ test.describe("CAR-1657 editor parts unified actors: syntax", () => {
       const text = await getEditorText(page);
       expect(text).toContain("kind: arc-gauge");
       expect(text).toContain("actors:");
-      expect(text).toContain("ユーザー"); // 既存保存
+      expect(text).toContain("Client"); // 既存保存
     });
 
     test("同 parts を 2 回 click = alias 連番 (arc1 / arc2)", async ({ page }) => {
