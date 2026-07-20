@@ -1,6 +1,10 @@
 # dependencies
 node_modules/
 
+# mutation testing (Stryker) artifacts
+reports/
+.stryker-tmp/
+
 # build artifacts
 dist/
 **/dist/
