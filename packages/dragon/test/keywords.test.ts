@@ -40,6 +40,13 @@ describe("parseDuration — 期間文字列を ms に変換", () => {
   it("単位なし数値 → null", () => { expect(parseDuration("1500")).toBeNull(); });
   it("非数値 → null", () => { expect(parseDuration("abc")).toBeNull(); });
   it("空文字 → null", () => { expect(parseDuration("")).toBeNull(); });
+  // mutation testing (Stryker) で regex anchor 未検証と判明 → 前後 garbage を reject するか固定
+  it("先頭 garbage 付き (x2秒) → null (^ anchor)", () => { expect(parseDuration("x2秒")).toBeNull(); });
+  it("末尾 garbage 付き (2秒x) → null ($ anchor)", () => { expect(parseDuration("2秒x")).toBeNull(); });
+  it("先頭 garbage 付き (foo1500ms) → null", () => { expect(parseDuration("foo1500ms")).toBeNull(); });
+  it("末尾 garbage 付き (2s!) → null", () => { expect(parseDuration("2s!")).toBeNull(); });
+  it("単位前の空白 (1.5 s) は許容", () => { expect(parseDuration("1.5 s")).toBe(1500); });
+  it("数字内の非空白混入 (1x5s) → null (\\s* を \\S* に壊すと通る mutant を kill)", () => { expect(parseDuration("1x5s")).toBeNull(); });
 });
 
 describe("resolveHeader — header alias を canonical に解決", () => {
