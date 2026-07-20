@@ -58,6 +58,13 @@ export default [
       "**/node_modules/**",
       "**/.astro/**",
       "**/.pagefind/**",
+      // `.stryker-tmp/` = Stryker mutation testing の sandbox (実行中に生成、 gitignore 済)。
+      // sandbox 内 file は tsconfig include 外で type-aware rule が parser service を得られず
+      // eslint が crash するため lint 対象から除外する。
+      "**/.stryker-tmp/**",
+      // `.mts` script (apps/playground-spa/scripts/*.mts) = tsconfig include 外の開発 script。
+      // type-aware rule (await-thenable 等) が parser service を得られず eslint が crash するため除外。
+      "**/*.mts",
       // `.context/` = 一時 scratch / verify 系 (一発 probe / 手元 shot script)、 lint 対象外。
       // 追跡外 dir を lint すると tsconfig include に含まれず parsing error になる。
       ".context/**",

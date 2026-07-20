@@ -8,7 +8,7 @@
     "configFile": "vitest.config.ts"
   },
   "coverageAnalysis": "perTest",
-  "mutate": ["packages/dragon/src/keywords.ts"],
+  "mutate": ["packages/dragon/src/keywords.ts", "packages/dragon/src/parser.ts"],
   "reporters": ["clear-text", "progress", "json"],
   "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
   "concurrency": 4,
