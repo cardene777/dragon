@@ -40,6 +40,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.9",
     "eslint": "^9.29.0",
     "eslint-import-resolver-typescript": "^4.4.5",
