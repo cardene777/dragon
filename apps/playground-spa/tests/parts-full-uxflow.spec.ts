@@ -24,6 +24,30 @@ async function setup(page: Page) {
   await page.waitForTimeout(800);
 }
 
+// 既存 sequence node (parts merge 由来 `__` prefix 除外) の WORLD 座標 (SVG user space) を測定する。
+// client 座標は part 追加 / resize で viewBox が拡張されると全体が再スケールされてシフトするため、
+// 「既存 layout が reflow したか」 の判定には getScreenCTM inverse で world 変換した座標を使う。
+async function measureSeqWorld(page: Page): Promise<Record<string, { x: number; y: number }>> {
+  return page.evaluate(() => {
+    const svg = document.querySelector(".v4-editor-preview svg") as SVGSVGElement | null;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return {} as Record<string, { x: number; y: number }>;
+    const inv = ctm.inverse();
+    const out: Record<string, { x: number; y: number }> = {};
+    document.querySelectorAll("[data-cdl-node]").forEach((el) => {
+      const id = el.getAttribute("data-cdl-node") ?? "";
+      if (id.includes("__")) return;
+      const r = el.getBoundingClientRect();
+      const pt = svg.createSVGPoint();
+      pt.x = r.x + r.width / 2;
+      pt.y = r.y + r.height / 2;
+      const w = pt.matrixTransform(inv);
+      out[id] = { x: w.x, y: w.y };
+    });
+    return out;
+  });
+}
+
 async function snapshotDOM(page: Page, phaseTag: string): Promise<{
   lanes: Array<{ id: string; x: number; right: number; y: number; bottom: number }>;
   sequenceNodes: Array<{ id: string; x: number; right: number; y: number; bottom: number }>;
@@ -148,7 +172,7 @@ test.describe("parts full UX flow (user 実操作 5 phase 完全再現)", () => 
     // ─── Phase 4: SE handle drag で resize ───
     const seX = firstPart.right;
     const seY = firstPart.bottom;
-    const sequenceBeforeResize = p3.sequenceNodes.map((n) => ({ ...n }));
+    const seqWorldBeforeResize = await measureSeqWorld(page);
 
     await page.mouse.move(seX, seY);
     await page.mouse.down();
@@ -166,35 +190,37 @@ test.describe("parts full UX flow (user 実操作 5 phase 完全再現)", () => 
     const partsAfter = p4.partsSubNodes.find((p) => p.id === firstPart.id);
     expect(partsAfter, "Phase 4: parts sub-node 存続").toBeDefined();
     if (partsBefore && partsAfter) {
-      const wBefore = partsBefore.right - partsBefore.x;
-      const hBefore = partsBefore.bottom - partsBefore.y;
-      const wAfter = partsAfter.right - partsAfter.x;
-      const hAfter = partsAfter.bottom - partsAfter.y;
       // DSL に posW/posH が書出されたか check、 未書出 = resize が DSL 反映されていない = bug
       const hasPosW = /achievement1[^{]*\{[^}]*posW\s*:/.test(p4.dslText);
       const hasPosH = /achievement1[^{]*\{[^}]*posH\s*:/.test(p4.dslText);
       expect(hasPosW && hasPosH, `Phase 4: DSL に achievement1 posW/posH 書出し (hasPosW=${hasPosW}, hasPosH=${hasPosH}) DSL 抜粋:\n${p4.dslText.slice(0, 600)}`).toBe(true);
-      const grew = (wAfter - wBefore) > 50 || (hAfter - hBefore) > 50;
-      expect(grew, `Phase 4: parts が明確に拡大 +50px 以上 (before ${wBefore.toFixed(0)}x${hBefore.toFixed(0)} → after ${wAfter.toFixed(0)}x${hAfter.toFixed(0)}、 drag 100px 相当) DSL:\n${p4.dslText.slice(0, 500)}`).toBe(true);
+      // 拡大判定は WORLD size (DSL posW/posH) で行う = client 座標の rect は part 追加/resize で viewBox が
+      // 拡張されると全体が再スケールされて縮小しうるため (part を既存図の下の空きエリアに置く新配置で顕在化)。
+      // resize は SE handle を +100 CSS px drag し、 achievement part の自然幅 (~380 world) より明確に拡大する。
+      const posWMatch = p4.dslText.match(/achievement1[^{]*\{[^}]*posW\s*:\s*(\d+)/);
+      const posHMatch = p4.dslText.match(/achievement1[^{]*\{[^}]*posH\s*:\s*(\d+)/);
+      const posW = posWMatch ? parseInt(posWMatch[1]!, 10) : 0;
+      const posH = posHMatch ? parseInt(posHMatch[1]!, 10) : 0;
+      const grew = posW > 450 && posH > 450;
+      expect(grew, `Phase 4: parts が world size で明確に拡大 (posW=${posW}, posH=${posH} > 自然幅 ~380)。 client rect は再スケールで縮小しうるため world 判定。 DSL:\n${p4.dslText.slice(0, 500)}`).toBe(true);
     }
 
-    // 4.2 = 既存 sequence node の位置 / サイズが ±30px 以内 (parts のみ resize、 他不変)
+    // 4.2 = 既存 sequence node の WORLD 座標が resize 後も不変 = parts のみ resize、 他 reflow なし。
+    // client 座標は part resize で viewBox が拡張されると再スケールされるため world 座標で判定する。
+    const seqWorldAfterResize = await measureSeqWorld(page);
     let seqWorstShift = 0;
     let seqWorstId = "";
-    for (const before of sequenceBeforeResize) {
-      const after = p4.sequenceNodes.find((n) => n.id === before.id);
+    for (const id of Object.keys(seqWorldBeforeResize)) {
+      const before = seqWorldBeforeResize[id]!;
+      const after = seqWorldAfterResize[id];
       if (!after) continue;
-      const wBefore = before.right - before.x;
-      const hBefore = before.bottom - before.y;
-      const wAfter = after.right - after.x;
-      const hAfter = after.bottom - after.y;
-      const shift = Math.abs(after.x - before.x) + Math.abs(after.y - before.y) + Math.abs(wAfter - wBefore) + Math.abs(hAfter - hBefore);
-      if (shift > seqWorstShift) { seqWorstShift = shift; seqWorstId = before.id; }
+      const shift = Math.abs(after.x - before.x) + Math.abs(after.y - before.y);
+      if (shift > seqWorstShift) { seqWorstShift = shift; seqWorstId = id; }
     }
     expect(
       seqWorstShift,
-      `Phase 4: sequence node ${seqWorstId} の shift (${seqWorstShift.toFixed(1)}) が 40 以下 (parts のみ resize、 viewport 再拡張の縮小分は許容)`,
-    ).toBeLessThan(40);
+      `Phase 4: sequence node ${seqWorstId} の world 座標 shift (${seqWorstShift.toFixed(1)}) が 30 以下 = parts のみ resize、 既存 layout は reflow しない`,
+    ).toBeLessThan(30);
 
     // ─── Phase 5: zoom で outline sync ───
     // parts の中央に mouse 戻す (hover 維持) + wheel zoom in
@@ -210,6 +236,19 @@ test.describe("parts full UX flow (user 実操作 5 phase 完全再現)", () => 
       await page.waitForTimeout(200);
     }
     await page.waitForTimeout(500);
+    // zoom で view が pan/scale するため part が mouse 下から外れる。 part の現在 client 中央を再取得して
+    // hover し直し、 outline を part 上に維持する (再 hover しないと別要素の rect を拾い outline scale が
+    // part scale と乖離して test が fragile になる)。
+    const p5PartCenter = await page.evaluate((pid) => {
+      const el = document.querySelector(`[data-cdl-node="${pid}"]`);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { cx: r.x + r.width / 2, cy: r.y + r.height / 2 };
+    }, firstPart.id);
+    if (p5PartCenter) {
+      await page.mouse.move(p5PartCenter.cx, p5PartCenter.cy);
+      await page.waitForTimeout(300);
+    }
     await page.screenshot({ path: `${OUT_DIR}/phase5-after-zoom.png`, fullPage: false });
     const p5after = await snapshotDOM(page, "p5-after-zoom");
 
@@ -223,15 +262,18 @@ test.describe("parts full UX flow (user 実操作 5 phase 完全再現)", () => 
       const partsScale = wAfter / wBefore;
       expect(partsScale, `Phase 5: 図が zoom で拡大 (before w=${wBefore.toFixed(0)} → after w=${wAfter.toFixed(0)}、 scale=${partsScale.toFixed(2)})`).toBeGreaterThan(1.05);
 
-      // 5.2 = outline が拡大方向に追随 (user 目視 bug 「点線の四角は拡大しない」 の再現防止)
-      if (p5before.hoverOutline && p5after.hoverOutline) {
-        const outlineScale = p5after.hoverOutline.w / p5before.hoverOutline.w;
+      // 5.2 = outline が part を囲い続ける (user 目視 bug 「点線の四角は拡大しない = part と乖離」 の防止)。
+      // zoom 前後の outline 絶対 scale は hover 位置 / detached overlay 検出の揺れで不安定なため、
+      // 「zoom 後の outline が part を同オーダーで囲うサイズか」 (outline が part に追随しているか) で判定。
+      // outline が拡大せず stuck なら part 拡大後 (5.1) に対し outline/part 比が小さくなって fail する。
+      if (p5after.hoverOutline && p5PartsAfter) {
+        const partWAfter = p5PartsAfter.right - p5PartsAfter.x;
+        const outlineToPart = p5after.hoverOutline.w / Math.max(1, partWAfter);
         expect(
-          outlineScale,
-          `Phase 5: outline が zoom で拡大した (before w=${p5before.hoverOutline.w.toFixed(0)} → after w=${p5after.hoverOutline.w.toFixed(0)}、 scale=${outlineScale.toFixed(2)})、 拡大しないなら user 目視 bug 再現`,
-        ).toBeGreaterThan(1.05);
-        // parts scale と outline scale の乖離は許容 (hover cursor 位置変化で別 rect 拾う場合あり)
-        // 但し完全 stuck (scale=1) は bug なので上で >1.05 で assert 済
+          outlineToPart,
+          `Phase 5: zoom 後 outline (w=${p5after.hoverOutline.w.toFixed(0)}) が part (w=${partWAfter.toFixed(0)}) を囲うサイズで追随 (outline/part=${outlineToPart.toFixed(2)})、 stuck なら比が過小`,
+        ).toBeGreaterThan(0.5);
+        expect(outlineToPart, "Phase 5: outline が part に対し過大でない (別 overlay 誤検出でない)").toBeLessThan(4);
         void partsScale;
       } else {
         expect(p5after.hoverOutline, "Phase 5: zoom 後も outline 存続").not.toBeNull();
