@@ -15,8 +15,11 @@ import {
   extractActorNodePosition,
   extractAllActorNames,
   slugify as slugifyActorName,
+  resolveClickPlacement,
+  toWorldOrNull,
   type DragState,
   type ResizeCorner,
+  type WorldRect,
 } from "@/lib/canvas-pivot-interaction";
 import { computeCollisionShift, type PresetType } from "@/lib/canvas-pivot-auto-adjust";
 import { detectGuidelines, type Guideline } from "@/lib/canvas-pivot-guideline";
@@ -1633,10 +1636,10 @@ animation:
     // parts drop 位置 fix (D1 forensic 対応) = drop 座標を SVG viewBox に変換し posX/posY 明示。
     // compile 側 (mergePartIntoDiagram) が offsetX/Y として parts の lane / node に反映、 drop 位置
     // に parts が中心配置される。 座標変換 = clientToSvg (getCTM inverse) で client → SVG world unit。
-    // getScreenCTM null (SVG 非表示) 時は clientToSvg が raw client 座標を返すため posX/posY を書かず
-    // compile 側 fallback に委ねる (world 変換不能な座標の永続化を防ぐ)。
+    // getScreenCTM null (SVG 非表示 / detached) 時は toWorldOrNull が null を返す = posX/posY を書かず
+    // compile 側 fallback に委ねる (world 変換不能な raw client 座標の永続化を防ぐ、 #876)。
     const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    const dropSvg = svgEl && svgEl.getScreenCTM() ? clientToSvg(svgEl, e.clientX, e.clientY) : null;
+    const dropSvg = svgEl ? toWorldOrNull(svgEl, e.clientX, e.clientY) : null;
     const posFields: string[] = [];
     if (dropSvg) {
       posFields.push(`posX: ${Math.round(dropSvg.x)}`);
@@ -1786,46 +1789,36 @@ ${newActorLine}
                     // 600)」 は画面外に飛んで見つけにくいため廃止済。
                     const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
                     let posFields: string[] = [];
-                    // getScreenCTM null (SVG 非表示) 時は world 変換不能なため posX/posY を書かず compile
-                    // 側 fallback に委ねる (raw client 座標の永続化を防ぐ)。
-                    const clickCtm = svgElClick?.getScreenCTM();
-                    if (svgElClick && previewRef.current && clickCtm) {
-                      const inv = clickCtm.inverse();
-                      const toWorld = (cx: number, cy: number) => {
-                        const pt = svgElClick.createSVGPoint();
-                        pt.x = cx;
-                        pt.y = cy;
-                        return pt.matrixTransform(inv);
-                      };
-                      // 既存 content (parts merge 由来 `__` prefix は除外) の world bbox を集計
-                      let minX = Infinity;
-                      let maxX = -Infinity;
-                      let maxY = -Infinity;
-                      for (const el of Array.from(svgElClick.querySelectorAll("[data-cdl-node], [data-cdl-lane]"))) {
-                        const id = el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "";
-                        if (id.includes("__")) continue;
-                        const r = (el as SVGGraphicsElement).getBoundingClientRect();
-                        const tl = toWorld(r.left, r.top);
-                        const br = toWorld(r.right, r.bottom);
-                        minX = Math.min(minX, tl.x);
-                        maxX = Math.max(maxX, br.x);
-                        maxY = Math.max(maxY, br.y);
-                      }
+                    if (svgElClick && previewRef.current) {
                       const containerRect = previewRef.current.getBoundingClientRect();
-                      const center = clientToSvg(svgElClick, containerRect.left + containerRect.width / 2, containerRect.top + containerRect.height / 2);
-                      const hasContent = Number.isFinite(minX);
-                      // 横 = viewport 中央 X を content 範囲に clamp (content があれば中央付近を維持)
-                      const posX = hasContent ? Math.max(minX, Math.min(maxX, center.x)) : center.x;
-                      // 縦 = content 下端 + part の world 半分高さ + margin = 既存図の下の空きエリア。
-                      // part world 高さ ≈ stack span × STACK_PITCH_APPROX (compile と同係数 220)。
-                      const stacks = p.diagram.nodes.map((n) => n.stack ?? 0);
-                      const partSpan = stacks.length > 0 ? Math.max(...stacks) - Math.min(...stacks) + 1 : 1;
-                      const partHalfH = (partSpan * 220) / 2;
-                      const posY = hasContent ? maxY + partHalfH + 120 : center.y;
-                      posFields = [
-                        `posX: ${Math.round(posX)}`,
-                        `posY: ${Math.round(posY)}`,
-                      ];
+                      // getScreenCTM null (SVG 非表示 / detached) 時は toWorldOrNull が null を返す =
+                      // posX/posY を書かず compile 側 fallback に委ねる (raw client 座標の永続化を防ぐ)。
+                      const center = toWorldOrNull(
+                        svgElClick,
+                        containerRect.left + containerRect.width / 2,
+                        containerRect.top + containerRect.height / 2,
+                      );
+                      if (center) {
+                        // 描画済 element の world bbox 列を集める。 parts merge 由来 (`__` 付き) も含める =
+                        // parts-only diagram で 2 個目以降を既存 parts の下に積んで重なりを避ける (#876)。
+                        const rects: WorldRect[] = [];
+                        for (const el of Array.from(svgElClick.querySelectorAll("[data-cdl-node], [data-cdl-lane]"))) {
+                          const id = el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "";
+                          const r = (el as SVGGraphicsElement).getBoundingClientRect();
+                          const tl = toWorldOrNull(svgElClick, r.left, r.top);
+                          const br = toWorldOrNull(svgElClick, r.right, r.bottom);
+                          if (!tl || !br) continue;
+                          rects.push({ id, minX: tl.x, maxX: br.x, maxY: br.y });
+                        }
+                        // part の world 高さ ≈ stack span × STACK_PITCH_APPROX (compile と同係数 220)
+                        const stacks = p.diagram.nodes.map((n) => n.stack ?? 0);
+                        const partSpan = stacks.length > 0 ? Math.max(...stacks) - Math.min(...stacks) + 1 : 1;
+                        const placement = resolveClickPlacement(rects, center, partSpan * 220);
+                        posFields = [
+                          `posX: ${Math.round(placement.x)}`,
+                          `posY: ${Math.round(placement.y)}`,
+                        ];
+                      }
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;

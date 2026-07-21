@@ -221,6 +221,83 @@ export function clientToSvg(svg: SVGSVGElement, clientX: number, clientY: number
 }
 
 /**
+ * parts 追加時の world 配置座標を決める pure function 群。
+ *
+ * 設計 = SVG / DOM への依存を「client → world 変換」 と「描画済 element の rect 列」 の 2 入力に絞り、
+ * 座標決定 logic を DOM 非依存で unit test できる形にする (CdlEditor から呼ばれる)。
+ */
+
+/** 描画済 element 1 個の world bbox (呼出側が client rect を world 変換して渡す)。 */
+export interface WorldRect {
+  id: string;
+  minX: number;
+  maxX: number;
+  maxY: number;
+}
+
+/** parts 配置座標。 world 変換不能時は null (呼出側は posX/posY を書かず compile 側 fallback に委ねる)。 */
+export interface PartPlacement {
+  x: number;
+  y: number;
+}
+
+/**
+ * click 追加時の配置座標 = 「今見えている viewport 中央付近の空いた場所」。
+ *
+ * 縦は既存 content の下端の下に置いて重なりを避ける (中央に既存 sequence があると重なり、 resize
+ * handle も occlude されるため)。 横は viewport 中央 X を content 範囲に clamp して中央付近を保つ。
+ * content が 1 つも無い (空 diagram) 場合は viewport 中央そのものを使う。
+ *
+ * `rects` には parts merge 由来 (`__` を含む id) も含めて渡す = parts-only diagram で 2 個目以降を
+ * 追加する時、 既存 parts の下に積んで重なりを避けるため (#876)。
+ *
+ * @param rects       描画済 element の world bbox 列 (空なら content なし扱い)
+ * @param center      viewport 中央の world 座標
+ * @param partSpanH   追加する part の world 高さ (stack span × pitch)
+ * @param margin      content 下端からの余白 (world unit)
+ */
+export function resolveClickPlacement(
+  rects: readonly WorldRect[],
+  center: PartPlacement,
+  partSpanH: number,
+  margin = 120,
+): PartPlacement {
+  if (rects.length === 0) return { x: center.x, y: center.y };
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const r of rects) {
+    minX = Math.min(minX, r.minX);
+    maxX = Math.max(maxX, r.maxX);
+    maxY = Math.max(maxY, r.maxY);
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return { x: center.x, y: center.y };
+  }
+  return {
+    x: Math.max(minX, Math.min(maxX, center.x)),
+    y: maxY + partSpanH / 2 + margin,
+  };
+}
+
+/**
+ * SVG から world 座標を引く経路の guard = getScreenCTM が null (SVG 非表示 / detached) なら null を返す。
+ *
+ * `clientToSvg` は CTM 不在時に raw client 座標をそのまま返す fail-open 仕様のため、 呼出側でそのまま
+ * 使うと world 変換されていない座標が DSL に永続化され parts が意図しない位置に飛ぶ。 本関数は
+ * 「変換できたか」 を呼出側が判定できるよう null を返す (#876)。
+ */
+export function toWorldOrNull(svg: SVGSVGElement, clientX: number, clientY: number): PartPlacement | null {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = svg.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  const w = pt.matrixTransform(ctm.inverse());
+  return { x: w.x, y: w.y };
+}
+
+/**
  * hit test = client 座標が rect の四隅 handle (半径 8px CSS) に触れているか判定。
  * touched なら該当 corner を返す、 それ以外は null。
  */
