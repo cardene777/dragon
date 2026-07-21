@@ -1776,45 +1776,20 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    // parts click 追加 = 既存 lane の world bbox 右外側 + 中段に配置 = 確実に lane bbox 外
-                    // (I2-forensic 対応、 render 上の物理的 overlap ゼロを保証)。 svg element の CTM inverse
-                    // で lane element の client rect を world 座標系に変換し、 最大 x (右端) を計算して
-                    // default posX = maxX + 600 (parts w~400 + margin) で右外へ、 posY は lane 中央付近。
+                    // parts click 追加 = カーソル位置が無いため、 今見えている viewport の中央に配置する
+                    // (2026-07-21 user 決定)。 preview container の中心 client 座標を clientToSvg (getCTM
+                    // inverse) で world 座標に逆変換 = 現在の zoom / pan 状態で画面中央に見える world 点。
+                    // 従来の「図の右外 (maxLaneX + 600)」 は parts が画面外に飛んで見つけにくいため廃止。
                     const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
                     let posFields: string[] = [];
-                    if (svgElClick) {
-                      const laneEls = svgElClick.querySelectorAll('[data-cdl-lane]');
-                      let maxLaneXWorld = 0;
-                      let midYWorld = 400;
-                      const ctm = svgElClick.getScreenCTM();
-                      if (ctm && laneEls.length > 0) {
-                        const inv = ctm.inverse();
-                        const toWorld = (cx: number, cy: number) => {
-                          const pt = svgElClick.createSVGPoint();
-                          pt.x = cx;
-                          pt.y = cy;
-                          return pt.matrixTransform(inv);
-                        };
-                        const ys: number[] = [];
-                        for (const el of Array.from(laneEls)) {
-                          const r = (el as SVGGraphicsElement).getBoundingClientRect();
-                          const br = toWorld(r.right, r.bottom);
-                          const tl = toWorld(r.x, r.y);
-                          if (br.x > maxLaneXWorld) maxLaneXWorld = br.x;
-                          ys.push(tl.y, br.y);
-                        }
-                        midYWorld = ys.length > 0 ? (Math.min(...ys) + Math.max(...ys)) / 2 : 400;
-                      } else {
-                        const vb = svgElClick.viewBox.baseVal;
-                        maxLaneXWorld = vb.x + vb.width;
-                        midYWorld = vb.y + vb.height * 0.5;
-                      }
-                      // + 600 = parts w (~400) + margin (200)、 lane が parts 側に拡張されても外側維持
-                      const defaultX = Math.round(maxLaneXWorld + 600);
-                      const defaultY = Math.round(midYWorld);
+                    if (svgElClick && previewRef.current) {
+                      const containerRect = previewRef.current.getBoundingClientRect();
+                      const centerClientX = containerRect.left + containerRect.width / 2;
+                      const centerClientY = containerRect.top + containerRect.height / 2;
+                      const center = clientToSvg(svgElClick, centerClientX, centerClientY);
                       posFields = [
-                        `posX: ${defaultX}`,
-                        `posY: ${defaultY}`,
+                        `posX: ${Math.round(center.x)}`,
+                        `posY: ${Math.round(center.y)}`,
                       ];
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");

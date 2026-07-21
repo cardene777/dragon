@@ -360,6 +360,32 @@ actors:
       expect(aliasLabelLanes.length).toBeLessThanOrEqual(1);
     });
 
+    it("drop 座標尊重 = posX 指定時は既存 lane 右端に強制せず posX 位置に配置 (auto-adjust 廃止)", () => {
+      // 2026-07-21 user 決定 = parts は drop / click した位置にそのまま配置し、 既存 lane 右端 + gap への
+      // 強制右寄せ (auto-adjust) を廃止する。 posX が既存 lane 右端より左でも offsetX をそのまま使う。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - API
+  - arc1: { kind: arc-gauge, posX: 100, posY: 50, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      const partLane = diagram.lanes.find((l) => l.id.startsWith("arc1__"));
+      expect(partLane).toBeDefined();
+      // 前提 = 既存 lane (ユーザー / API) の右端は posX (100) より右に広がる
+      const existingMaxRight = Math.max(
+        ...diagram.lanes
+          .filter((l) => !l.id.startsWith("arc1__"))
+          .map((l) => (l.x ?? 0) + l.width),
+      );
+      expect(existingMaxRight).toBeGreaterThan(100);
+      // auto-adjust 廃止 = part lane.x は posX (100) 基準 (part 内部 lane.x=0 → lane.x=100)。
+      // 従来は Math.max(100, existingMaxRight + 300) で右へクランプされていた。
+      expect(partLane!.x).toBe(100);
+    });
+
     it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
       // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
       // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、

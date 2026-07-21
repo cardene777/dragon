@@ -262,16 +262,17 @@ function mergePartIntoDiagram(
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
   const targetLaneId = laneMapping;
   const laneIdMap = new Map<string, string>();
-  // parts 用 lane を「既存 sequence lane の右端 + gap」 に強制配置する (physically 外側配置)。
-  // offset (drop 座標) 指定時は max(offsetX, existingMax + gap) で drop 位置尊重 + 重複回避。
-  // 未指定 (click default) 時は existingMax + gap で確実に右外配置。 これで parts が sequence lane
-  // bbox に飛び込む user 目視 bug (Phase 2 forensic) を root 解消。
+  // parts lane の横位置。
+  //   offset (drop / click 座標) 指定時 = offsetX をそのまま使う = user が置いた位置に配置する。
+  //     従来の auto-adjust (max(offsetX, existingMax + gap) で既存 lane 右端へ強制右寄せ) は user
+  //     directive で廃止 (2026-07-21)。 重なりは user の意図位置を優先し、 手動移動で回避する経路。
+  //   未指定 (座標なし fallback) 時のみ existingMax + gap で右外配置 (通常経路は drop/click で座標を渡す)。
   const PARTS_LANE_GAP = 300;
   const existingLaneMaxX = target.lanes.length > 0
     ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
     : 0;
   const partsLaneStartX = offsetX !== undefined
-    ? Math.max(offsetX, existingLaneMaxX + PARTS_LANE_GAP)
+    ? offsetX
     : existingLaneMaxX + PARTS_LANE_GAP;
   const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
   // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
