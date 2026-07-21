@@ -10,11 +10,13 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 出力値 (node kind / title / w / h / lane / stack / eyebrow, edge label / tone / sub / style,
  * lane x / width / contain, sort 順序, 座標計算, cardinality) を精密 assert して mutant を kill する。
  *
- * この test 追加で compile.ts の mutation score は 27.49% → 43.60% に上昇した (第1弾)。
- * compile.ts は 1546 mutant で parser.ts (475) の約 3.3 倍規模、 残存 872 の大半は
- * mergePartIntoDiagram の drag&drop 座標/scale 経路 (233)、 animate 系 (resolveHighlight /
- * injectPhasesFallback / compileSequenceWithAnimate の細部、 291)、 各関数の網羅性不足。
- * 85% までの段階拡大は follow-up Issue で継続する (per-file 段階拡大の第1弾)。
+ * この test 追加で compile.ts の mutation score は 27.49% → 52.65% に上昇した (第1-3弾)。
+ * 第1弾 = 型別 compiler + post-process の主要ロジック (→44.37%)、 第2弾 = animate/edge 系の値検証
+ * (→50.45%)、 第3弾 = swimlane / 型別 edge 伝播 / 小関数 (→52.65%)。
+ * compile.ts は 1546 mutant で parser.ts (475) の約 3.3 倍規模、 残存 732 の大半は
+ * mergePartIntoDiagram の drag&drop 座標/scale 経路 (233、 ConditionalExpression + ArithmeticOperator の
+ * 複雑計算)、 parts merge (mergeParts 65)、 animate 系 / 各関数の ConditionalExpression 分岐両方向。
+ * 改善が第2弾 +94 → 第3弾 +34 と鈍化 (ROI 逓減点) したため、 85% までは follow-up #868 で段階継続する。
  */
 
 function actor(name: string, over: Partial<DslActor> = {}): DslActor {
@@ -453,5 +455,209 @@ describe("applyEdgeInlineOptions er cardinality label", () => {
   it("er で step.cardinality を label に (1:N) 形式で併記 (完全一致)", () => {
     const d = compile("er", { flow: [step("A", "B", { cardinality: "1:N", label: "owns" })] });
     expect(d.edges[0]!.label).toBe("owns (1:N)");
+  });
+});
+
+// ── compileSequenceWithAnimate: sequence + animate の全構造 (第1弾は header 寸法のみ) ──
+const SEQ_ANIM_FULL = {
+  states: [{ name: "bal", initial: 100, pos: { line: 1 } }],
+  phases: [
+    { name: "送金", durationMs: 1500, highlight: ["A"], tweens: [{ state: "bal", from: 100, to: 90, pos: { line: 1 } }], sets: [{ state: "bal", value: 0, pos: { line: 1 } }], body: "説明", badge: "NEW", pos: { line: 1 } },
+    { name: "確認", durationMs: 1000, highlight: ["A→B"], pos: { line: 1 } },
+  ],
+  pos: { line: 1 },
+} as unknown as DslDocument["animate"];
+
+function seqAnimDoc(): CdlDiagram {
+  return compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM_FULL, actors: [actor("A"), actor("B")], flow: [step("A", "B")] }));
+}
+
+describe("compileSequenceWithAnimate 構造", () => {
+  it("header / spacer / step box / footer node を生成", () => {
+    const ids = seqAnimDoc().nodes.map((n) => n.id);
+    for (const id of ["a-header", "a-spacer", "s0-a", "s0-b", "a-footer", "b-footer"]) {
+      expect(ids).toContain(id);
+    }
+  });
+  it("spacer は kind card / w 2 / h 40", () => {
+    const n = node(seqAnimDoc(), "a-spacer");
+    expect(n.kind).toBe("card");
+    expect(n.w).toBe(2);
+    expect(n.h).toBe(40);
+  });
+  it("phase の id / duration / title / body / badge", () => {
+    const p = seqAnimDoc().phases[0]!;
+    expect(p.id).toBe("送金");
+    expect(p.duration).toBe(1500);
+    expect(p.title).toBe("送金");
+    expect(p.body).toBe("説明");
+    expect(p.badge).toBe("NEW");
+  });
+  it("state id / initial", () => {
+    expect(seqAnimDoc().states.find((s) => s.id === "bal")?.initial).toBe(100);
+  });
+  it("tween stateId/from/to + set stateId/value", () => {
+    const p = seqAnimDoc().phases[0]!;
+    expect(p.tweens?.[0]).toMatchObject({ stateId: "bal", from: 100, to: 90 });
+    expect(p.sets?.[0]).toMatchObject({ stateId: "bal", value: 0 });
+  });
+});
+
+// ── resolveHighlight (sequence): actor 名 / 矢印記法の focus id 解決 ──
+describe("resolveHighlight (sequence)", () => {
+  it("actor 名 highlight → header / footer / step box を activate", () => {
+    expect(seqAnimDoc().phases[0]!.activate).toEqual(["a-header", "a-footer", "s0-a"]);
+  });
+  it("矢印記法 A→B highlight → edge + 両端 step box を activate", () => {
+    expect(seqAnimDoc().phases[1]!.activate).toEqual(["e0-a-b", "s0-a", "s0-b"]);
+  });
+});
+
+// ── compileGenericWithAnimate 網羅 (er/state/swimlane + animate) ──
+const GEN_ANIM = {
+  states: [{ name: "s", initial: 5, pos: { line: 1 } }],
+  phases: [{ name: "p", durationMs: 800, highlight: ["A→B"], tweens: [{ state: "s", from: 5, to: 3, pos: { line: 1 } }], sets: [{ state: "s", value: 1, pos: { line: 1 } }], badge: "B", pos: { line: 1 } }],
+  pos: { line: 1 },
+} as unknown as DslDocument["animate"];
+
+describe("compileGenericWithAnimate 網羅", () => {
+  it("er + animate: cardinality を label に (1:N) 併記", () => {
+    const d = compileToCdl(makeDoc("er", { animate: GEN_ANIM, flow: [step("A", "B", { cardinality: "1:N", label: "rel" })] }));
+    const e = d.edges.find((x) => x.id === "e0-a-b")!;
+    expect(e.label).toBe("rel (1:N)");
+  });
+  it("state + animate: initial/final eyebrow", () => {
+    const d = compileToCdl(makeDoc("state", { animate: GEN_ANIM, actors: [actor("A"), actor("B"), actor("C")], flow: [step("A", "B"), step("B", "C")] }));
+    expect(node(d, "a").eyebrow).toBe("初期");
+    expect(node(d, "c").eyebrow).toBe("最終");
+  });
+  it("edge id は e{idx}-{from}-{to} / label / tone 保持", () => {
+    const d = compileToCdl(makeDoc("swimlane", { animate: GEN_ANIM, flow: [step("A", "B", { label: "msg", tone: "success" })] }));
+    const e = d.edges.find((x) => x.id === "e0-a-b")!;
+    expect(e.label).toBe("msg");
+    expect(e.tone).toBe("success");
+  });
+  it("state initial / tween / set / badge を保持", () => {
+    const d = compileToCdl(makeDoc("swimlane", { animate: GEN_ANIM }));
+    const p = d.phases[0]!;
+    expect(d.states.find((s) => s.id === "s")?.initial).toBe(5);
+    expect(p.tweens?.[0]).toMatchObject({ stateId: "s", from: 5, to: 3 });
+    expect(p.sets?.[0]).toMatchObject({ stateId: "s", value: 1 });
+    expect(p.badge).toBe("B");
+  });
+});
+
+// ── resolveHighlightGeneric: generic preset の focus id 解決 ──
+describe("resolveHighlightGeneric", () => {
+  it("矢印記法 A→B → edge id e0-a-b を activate", () => {
+    const d = compileToCdl(makeDoc("swimlane", { animate: GEN_ANIM }));
+    expect(d.phases[0]!.activate).toContain("e0-a-b");
+  });
+  it("actor 名 → node id を activate", () => {
+    const d = compileToCdl(makeDoc("swimlane", {
+      animate: { states: [], phases: [{ name: "p", durationMs: 500, highlight: ["A"], pos: { line: 1 } }], pos: { line: 1 } } as unknown as DslDocument["animate"],
+    }));
+    expect(d.phases[0]!.activate).toContain("a");
+  });
+});
+
+// ── injectPhasesFallback 網羅 (独自 layout preset 各種) ──
+describe("injectPhasesFallback 網羅", () => {
+  for (const t of ["class", "pie", "c4", "mind", "gantt"] as PresetType[]) {
+    it(`${t} + animate で phase 注入 (duration 800)`, () => {
+      const d = compileToCdl(makeDoc(t, { animate: GEN_ANIM }));
+      expect(d.phases.length).toBeGreaterThan(0);
+      expect(d.phases[0]!.duration).toBe(800);
+    });
+  }
+});
+
+// ── compileMind lane 座標 (LEAF_W 280 / ROOT_W 320 / gap 80) ──
+describe("compileMind lane 座標", () => {
+  it("lane x = left 0 / center 360 / right 760", () => {
+    const d = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
+    expect(lane(d, "mind-left").x).toBe(0);
+    expect(lane(d, "mind-center").x).toBe(360);
+    expect(lane(d, "mind-right").x).toBe(760);
+  });
+});
+
+// ── applyEdgeInlineOptions 網羅: sequence (isSeqLike) の edge 検索 ──
+describe("applyEdgeInlineOptions isSeqLike", () => {
+  it("sequence (isSeqLike) で labelOffset を e0-a-b edge に反映", () => {
+    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM_FULL, actors: [actor("A"), actor("B")], flow: [step("A", "B", { labelOffsetX: 7, labelOffsetY: -3 })] }));
+    const e = d.edges.find((x) => x.id === "e0-a-b")!;
+    expect(e.labelOffsetX).toBe(7);
+    expect(e.labelOffsetY).toBe(-3);
+  });
+});
+
+// ── compileSwimlane 網羅: edge option + node stack + edge id ──
+describe("compileSwimlane 網羅", () => {
+  it("edge は sub / tone / style / guard / cardinality / labelOffset を保持", () => {
+    const d = compile("swimlane", { flow: [step("A", "B", { sub: "note", tone: "success", style: "dashed", guard: "g", cardinality: "1:N", labelOffsetX: 3, labelOffsetY: 4 })] });
+    const e = d.edges[0]!;
+    expect(e.sub).toBe("note");
+    expect(e.tone).toBe("success");
+    expect(e.style).toBe("dashed");
+    expect(e.guard).toBe("g");
+    expect(e.cardinality).toBe("1:N");
+    expect(e.labelOffsetX).toBe(3);
+    expect(e.labelOffsetY).toBe(4);
+  });
+  it("edge id は e{idx}-{from}-{to}", () => {
+    const d = compile("swimlane", { flow: [step("A", "B")] });
+    expect(d.edges[0]!.id).toBe("e0-a-b");
+  });
+});
+
+// ── 型別 compiler の edge option 伝播 (sub/tone/style を spread する preset) ──
+// flow は edge に label のみ渡す (sub/tone/style 非対応) ため除外。
+describe("型別 compiler edge option 伝播", () => {
+  for (const t of ["gantt", "class", "c4", "topology"] as PresetType[]) {
+    it(`${t} edge は sub / tone / style を保持`, () => {
+      const d = compile(t, { flow: [step("A", "B", { sub: "n", tone: "warning", style: "dashed" })] });
+      const e = d.edges[0]!;
+      expect(e.sub).toBe("n");
+      expect(e.tone).toBe("warning");
+      expect(e.style).toBe("dashed");
+    });
+  }
+});
+
+// ── compileState transition: trigger (label) / tone ──
+describe("compileState transition", () => {
+  it("transition は trigger=label / tone を保持", () => {
+    const d = compile("state", { flow: [step("A", "B", { label: "trig", tone: "error" })] });
+    const e = d.edges[0]!;
+    expect(e.label).toBe("trig");
+    expect(e.tone).toBe("error");
+  });
+});
+
+// ── slugify 網羅: 64 文字切り詰め / 記号のみ fallback ──
+describe("slugify 網羅", () => {
+  it("64 文字で切り詰め", () => {
+    const long = "a".repeat(100);
+    const d = compile("flow", { actors: [actor(long), actor("B")], flow: [step(long, "B")] });
+    expect(d.nodes.some((n) => n.id === "a".repeat(64))).toBe(true);
+  });
+  it("記号のみ actor 名は n に fallback", () => {
+    const d = compile("flow", { actors: [actor("!!!"), actor("B")], flow: [step("!!!", "B")] });
+    expect(d.nodes.some((n) => n.id === "n")).toBe(true);
+  });
+});
+
+// ── parseCardinalityFromLabel / stripCardinality 網羅 (er 経由) ──
+describe("cardinality parse / strip 網羅", () => {
+  for (const [label, card] of [["1:1 rel", "1:1"], ["N:1 rel", "N:1"], ["N:M rel", "N:M"], ["0..1 rel", "0..1"], ["1..* rel", "1..*"]] as [string, string][]) {
+    it(`"${label}" → sub ${card}`, () => {
+      const d = compile("er", { flow: [step("A", "B", { label })] });
+      expect(d.edges[0]!.sub).toBe(card);
+    });
+  }
+  it("stripCardinality: cardinality を除去した label", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "1:N owns" })] });
+    expect(d.edges[0]!.label).toBe("owns");
   });
 });
