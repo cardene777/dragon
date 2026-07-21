@@ -2437,15 +2437,21 @@ describe("applyGroupContainers: container lane 生成と重複回避", () => {
 });
 
 describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
-  it("先頭の括弧と空白を落とす (^[(\\s]+ 側)", () => {
-    // 除去は「先頭の ( と空白」「末尾の ) と空白」 のみで、 中間に残る ) は保持される。
+  it("前置き括弧つき cardinality を除去して片括弧を残さない", () => {
+    // "(1:N) owns" → cardinality 除去で "() owns" になり、 空括弧を落として "owns"。
+    // 空括弧除去が無いと ") owns" と片括弧が label に残り user に見える。
     const d = compile("er", { flow: [step("A", "B", { label: "(1:N) owns" })] });
-    expect(d.edges[0]!.label).toBe(") owns");
+    expect(d.edges[0]!.label).toBe("owns");
   });
 
-  it("末尾の括弧と空白を落とす ([)\\s]+$ 側)", () => {
+  it("後置き括弧つき cardinality を除去して片括弧を残さない", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "owns (1:N)" })] });
-    expect(d.edges[0]!.label).toBe("owns (");
+    expect(d.edges[0]!.label).toBe("owns");
+  });
+
+  it("括弧内に空白がある形式 ( 1:N ) も除去できる", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "owns ( 1:N )" })] });
+    expect(d.edges[0]!.label).toBe("owns");
   });
 
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
@@ -2522,5 +2528,265 @@ describe("mergePartIntoDiagram: target が空の diagram への merge", () => {
     const s = node(d, "p1__n").shape as { items?: unknown[] };
     expect(s.items?.[0]).toBeNull();
     expect((s.items?.[1] as { radius?: number }).radius).toBeGreaterThan(10);
+  });
+});
+
+// ── 第 4 弾 (j): cc-codex #879 review 指摘への対応 ──
+// MAJOR 2 = scale 時の lane 中心 / node 中心の複合不変量
+// MAJOR 3 = 等価と誤判定していた 4 種を実際に kill する test
+// MINOR 4-5 = 弱い assertion の強化 + part edge merge の未検証経路
+
+describe("mergePartIntoDiagram: scale 時も lane 中心と node 中心が drop 座標に一致する", () => {
+  it("posW 指定時 lane は拡張後の幅で drop 座標に中心합わせされる", () => {
+    // partsLaneW=400、 posW=800 → laneScaleX=2 → 拡張後幅 800
+    // lane.x = posX - 800/2 = 600、 lane 中心 = 600 + 400 = 1000 = posX
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 });
+    const l = lane(d, "p1__l");
+    expect(l.x).toBe(600);
+    expect(l.width).toBe(800);
+    expect(l.x! + l.width / 2).toBe(1000);
+  });
+
+  it("posW 指定時も node 中心は drop 座標に一致する (lane 中心と同値)", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 });
+    const l = lane(d, "p1__l");
+    expect(node(d, "p1__top").posX).toBe(1000);
+    // 複合不変量 = lane 中心 === node 中心 === drop 座標
+    expect(node(d, "p1__top").posX).toBe(l.x! + l.width / 2);
+  });
+
+  it("scale 無しでも lane 中心 === node 中心 === drop 座標", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500 });
+    const l = lane(d, "p1__l");
+    expect(l.x).toBe(800);
+    expect(l.x! + l.width / 2).toBe(1000);
+    expect(node(d, "p1__top").posX).toBe(1000);
+  });
+
+  it("縮小 scale (posW < 元幅) でも中心が保たれる", () => {
+    // posW=200 → laneScaleX=0.5 → 幅 200、 lane.x = 1000 - 100 = 900
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 200, posH: 220 });
+    const l = lane(d, "p1__l");
+    expect(l.x).toBe(900);
+    expect(l.width).toBe(200);
+    expect(node(d, "p1__top").posX).toBe(1000);
+  });
+});
+
+describe("applyV05Extensions: actor slug が -header 終端でも他 actor に漏れない", () => {
+  it("actor 名 \"A Header\" の option が actor \"A\" の node に漏れない", () => {
+    // slugify("A Header") = "a-header"。 旧実装の第 3 項 (actorId.replace(/-header$/,"")) は
+    // "a" に一致して actor "A" の node に option を書込む cross-actor leak を起こしていた。
+    const d = compile("swimlane", {
+      actors: [actor("A"), actor("A Header", { subtitle: "leak?" })],
+      flow: [step("A", "A Header")],
+    });
+    expect(node(d, "a").subtitle).toBeUndefined();
+    expect(node(d, "a-header").subtitle).toBe("leak?");
+  });
+
+  it("actor 名 \"A Header\" 自身の node には正しく反映される", () => {
+    const d = compile("swimlane", {
+      actors: [actor("A"), actor("A Header", { eyebrow: "eb", value: "v" })],
+      flow: [step("A", "A Header")],
+    });
+    expect(node(d, "a-header").eyebrow).toBe("eb");
+    expect(node(d, "a-header").value).toBe("v");
+    expect(node(d, "a").eyebrow).toBeUndefined();
+  });
+});
+
+describe("mergePartsFromActors: actor.lane 指定時は slug fallback 経路に入る", () => {
+  const PART = (): CdlDiagram => ({
+    id: "parts-sa", topic: "t",
+    lanes: [{ id: "l", x: 0, width: 400 }],
+    nodes: [{ id: "n", lane: "l", stack: 0, kind: "actor", title: "N" }] as CdlDiagram["nodes"],
+    edges: [], states: [], phases: [] as CdlDiagram["phases"],
+  });
+
+  it("sequence + actor.lane === 自身 slug で step anchor (s{N}-{slug}) が削除される", () => {
+    // actor.lane 指定で自身の lane が ownedLaneIds から除外され、 exact set 経路ではなく
+    // matchesAliasSlug fallback を通る。 その時 step anchor 判定が実際に効く。
+    const d = compileToCdl(
+      makeDoc("sequence", {
+        actors: [actor("A"), actor("p1", { partId: "sa", lane: "p1" })],
+        flow: [step("A", "p1")],
+      }),
+      { partsCatalog: { sa: PART() } },
+    );
+    expect(d.nodes.some((n) => n.id === "s0-p1")).toBe(false);
+    expect(d.nodes.some((n) => n.id === "p1-header")).toBe(false);
+    expect(d.nodes.some((n) => n.id === "p1__n")).toBe(true);
+  });
+
+  it("同経路で通常 actor の step anchor は保持される", () => {
+    const d = compileToCdl(
+      makeDoc("sequence", {
+        actors: [actor("A"), actor("p1", { partId: "sa", lane: "p1" })],
+        flow: [step("A", "p1")],
+      }),
+      { partsCatalog: { sa: PART() } },
+    );
+    expect(d.nodes.some((n) => n.id === "s0-a")).toBe(true);
+    expect(d.nodes.some((n) => n.id === "a-header")).toBe(true);
+  });
+});
+
+describe("矢印 regex: 複数文字 actor 名で 1 文字 match に縮退しない", () => {
+  it("resolveHighlight は複数文字 actor 名を丸ごと from として扱う", () => {
+    // (.+?) → (.) に縮退すると from が 1 文字目だけになり edge を引き当てられない。
+    const d = compileToCdl(makeDoc("sequence", {
+      animate: animOf(["Alpha→Beta"]),
+      actors: [actor("Alpha"), actor("Beta")],
+      flow: [step("Alpha", "Beta")],
+    }));
+    expect(d.phases[0]!.activate).toContain("e0-alpha-beta");
+  });
+
+  it("resolveHighlightGeneric も複数文字 actor 名を扱える", () => {
+    const d = compileToCdl(makeDoc("flow", {
+      animate: animOf(["Alpha→Beta"]),
+      actors: [actor("Alpha"), actor("Beta")],
+      flow: [step("Alpha", "Beta")],
+    }));
+    expect(d.phases[0]!.activate.some((id) => id.includes("-alpha-beta"))).toBe(true);
+  });
+
+  it("injectPhasesFallback も複数文字 actor 名を扱える", () => {
+    const d = compileToCdl(makeDoc("class", {
+      animate: animOf(["Alpha→Beta"]),
+      actors: [actor("Alpha"), actor("Beta")],
+      flow: [step("Alpha", "Beta")],
+    }));
+    const target = d.edges.find((e) => e.from === "alpha" && e.to === "beta");
+    expect(target).toBeDefined();
+    expect(d.phases[0]!.activate).toContain(target!.id);
+  });
+});
+
+describe("mergePartIntoDiagram: part edge の merge (prefix 付与)", () => {
+  /** edge を持つ part = merge 時に id / from / to が alias prefix される経路。 */
+  function partWithEdge(): CdlDiagram {
+    return {
+      id: "parts-pe", topic: "t",
+      lanes: [{ id: "l", x: 0, width: 400 }],
+      nodes: [
+        { id: "n1", lane: "l", stack: 0, kind: "actor", title: "N1" },
+        { id: "n2", lane: "l", stack: 1, kind: "actor", title: "N2" },
+      ] as CdlDiagram["nodes"],
+      edges: [{ id: "pe0", from: "n1", to: "n2", label: "inner", tone: "accent" }] as CdlDiagram["edges"],
+      states: [], phases: [] as CdlDiagram["phases"],
+    };
+  }
+
+  it("part edge は alias prefix 付きで target に追加される", () => {
+    const d = compileWithPart({}, partWithEdge());
+    const e = d.edges.find((x) => x.id === "p1__pe0");
+    expect(e).toBeDefined();
+    expect(e!.from).toBe("p1__n1");
+    expect(e!.to).toBe("p1__n2");
+  });
+
+  it("part edge の label / tone は保持される", () => {
+    const d = compileWithPart({}, partWithEdge());
+    const e = d.edges.find((x) => x.id === "p1__pe0")!;
+    expect(e.label).toBe("inner");
+    expect(e.tone).toBe("accent");
+  });
+
+  it("edge を持たない part では edge が増えない", () => {
+    const withEdge = compileWithPart({}, partWithEdge()).edges.length;
+    const withoutEdge = compileWithPart().edges.length;
+    expect(withEdge).toBe(withoutEdge + 1);
+  });
+
+  it("part edge も drop 座標指定時に追加される (座標経路と独立)", () => {
+    const d = compileWithPart({ posX: 900, posY: 400 }, partWithEdge());
+    expect(d.edges.some((x) => x.id === "p1__pe0")).toBe(true);
+  });
+});
+
+describe("mergePartsFromActors: partsCatalog の継承 property を拾わない", () => {
+  it("Object.prototype 由来の property は part として解決しない", () => {
+    const warn = console.warn;
+    const logs: string[] = [];
+    console.warn = (m: string) => logs.push(String(m));
+    try {
+      const d = compileToCdl(
+        makeDoc("sequence", {
+          actors: [actor("A"), actor("p1", { partId: "toString" })],
+          flow: [step("A", "A")],
+        }),
+        { partsCatalog: {} },
+      );
+      // 継承 property (toString) を part として使わず warn + skip する
+      expect(d.nodes.some((n) => n.id.startsWith("p1__"))).toBe(false);
+      expect(logs.some((l) => l.includes("toString"))).toBe(true);
+    } finally {
+      console.warn = warn;
+    }
+  });
+
+  it("constructor / __proto__ も同様に解決しない", () => {
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+      for (const bad of ["constructor", "__proto__", "valueOf"]) {
+        const d = compileToCdl(
+          makeDoc("sequence", { actors: [actor("A"), actor("p1", { partId: bad })], flow: [step("A", "A")] }),
+          { partsCatalog: {} },
+        );
+        expect(d.nodes.some((n) => n.id.startsWith("p1__")), `${bad} は解決されない`).toBe(false);
+      }
+    } finally {
+      console.warn = warn;
+    }
+  });
+});
+
+describe("state preset: initial / final marker の実値検証 (assertion 強化)", () => {
+  it("先頭 actor と末尾 actor で marker 属性が異なる", () => {
+    const d = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+      flow: [step("A", "B"), step("B", "C")],
+    }));
+    const first = node(d, "a");
+    const mid = node(d, "b");
+    const last = node(d, "c");
+    // 中間 actor は initial / final どちらの marker も持たない基準点になる
+    const keysOf = (n: typeof first) => Object.keys(n).sort().join(",");
+    expect(keysOf(first) !== keysOf(mid) || keysOf(last) !== keysOf(mid)).toBe(true);
+  });
+
+  it("actor 1 個なら initial のみで final は付かない", () => {
+    const single = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A")], flow: [],
+    }));
+    const pair = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A"), actor("B")], flow: [step("A", "B")],
+    }));
+    // 2 actor 時の末尾 node と 1 actor 時の node は marker 構成が異なる
+    expect(JSON.stringify(node(single, "a")) !== JSON.stringify(node(pair, "b"))).toBe(true);
+  });
+});
+
+describe("mergePartIntoDiagram: readouts の有無で target.readouts が切り替わる (assertion 強化)", () => {
+  it("readouts を持たない part では target.readouts が生えない", () => {
+    const d = compileWithPart();
+    expect(d.readouts).toBeUndefined();
+  });
+
+  it("readouts を持つ part では長さ 1 の配列が生える", () => {
+    const part = makeTestPart();
+    part.readouts = [{ id: "r1", kind: "gauge", source: "{v}", nodeId: "top" }] as CdlDiagram["readouts"];
+    const d = compileWithPart({}, part);
+    expect(d.readouts?.length).toBe(1);
+  });
+
+  it("readouts が空配列の part でも readouts は生えない", () => {
+    const part = makeTestPart();
+    part.readouts = [] as CdlDiagram["readouts"];
+    const d = compileWithPart({}, part);
+    expect(d.readouts).toBeUndefined();
   });
 });

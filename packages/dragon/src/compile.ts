@@ -306,11 +306,14 @@ function mergePartIntoDiagram(
   // lane.width は「元 parts.width × scaleX」 に拡張して viewBox が parts サイズを含むように。
   // これで viewport auto-fit で全体縮小されても parts の相対サイズは変わらない。
   const partsLaneW = part.lanes[0]?.width ?? 400;
+  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
+  // 中心補正は「scale 後の幅」 で行う = posW 指定で lane が拡張された時、 拡張後 lane の中心が
+  // offsetX に来る。 元幅で補正すると lane 中心が offsetX + (拡張分/2) にずれ、 node 中心 (offsetX)
+  // と乖離する (cc-codex #879 MAJOR 指摘)。
   const partsLaneStartX = offsetX !== undefined
-    ? offsetX - partsLaneW / 2
+    ? offsetX - (partsLaneW * laneScaleX) / 2
     : existingLaneMaxX + PARTS_LANE_GAP;
   const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
-  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
 
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
@@ -411,7 +414,9 @@ function mergePartIntoDiagram(
       const laneW = partLane?.width ?? 320;
       const partOrigCx = laneX + laneW / 2;
       const partCenterX = partOrigW / 2;
-      nodePosX = (partOrigCx - partCenterX) * scaleX + partsLaneStartX + laneW / 2;
+      // lane 内 offset も scale 後の幅で加算する = lane 側の中心補正 (scale 後幅) と対称にし、
+      // posW 指定時に node 中心と lane 中心が共に offsetX に一致する (cc-codex #879 MAJOR 指摘)。
+      nodePosX = (partOrigCx - partCenterX) * scaleX + partsLaneStartX + (laneW * scaleX) / 2;
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
@@ -938,7 +943,12 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
     const actorId = slugify(a.name);
     // 該当 actor の主要 node (header / single node) を見つけて option を merge
     for (const node of diagram.nodes) {
-      if (node.id === actorId || node.id === `${actorId}-header` || node.id === actorId.replace(/-header$/, "")) {
+      // 一致は「node id == actor slug」 と「node id == {actor slug}-header」 の 2 経路のみ。
+      // 旧実装は `actorId.replace(/-header$/, "")` の第 3 項を持っていたが、 actor 名が
+      // "A Header" 等で slug が `-header` 終端になると別 actor "A" の node "a" に一致し、
+      // subtitle / eyebrow / value / rows が他 actor に漏れる (cc-codex #879 MAJOR 指摘)。
+      // 自身の node は第 1-2 項で必ず捕捉できるため第 3 項は不要かつ有害。
+      if (node.id === actorId || node.id === `${actorId}-header`) {
         if (a.subtitle !== undefined) node.subtitle = a.subtitle;
         if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
         if (a.value !== undefined) node.value = a.value;
@@ -1621,5 +1631,9 @@ function stripCardinality(label: string): string {
   for (const [pattern] of CARDINALITY_PATTERNS) {
     r = r.replace(pattern, "").trim();
   }
+  // cardinality token を抜いた結果 中身が空になった括弧 "()" / "( )" を落とす。
+  // これを行わないと `owns (1:N)` → `owns (` / `(1:N) owns` → `) owns` のように
+  // 片方の括弧だけが label に残って user に見える (cc-codex #879 MAJOR 指摘)。
+  r = r.replace(/\(\s*\)/g, "").trim();
   return r.replace(/^[(\s]+|[)\s]+$/g, "") || label;
 }
