@@ -190,20 +190,23 @@ function mergePartsFromActors(
     // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
     //
     // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
-    // 1 actor = 1 lane (lane.id === slugify(actor.name) === aliasSlug) の生成規則が成立し、 parts
-    // actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数 actor が
-    // 共有 lane (id = "main" 等) を参照するため、 aliasSlug 一致 lane を消すと通常 actor の node が
+    // 1 actor = 1 lane (lane.label === actor.name、 lane.id は actor 名の slug) の生成規則が成立し、
+    // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
+    // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
     // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
     //
-    // 一致は exact match のみ = seq-like の lane id は slugify(actor.name) と完全一致し、 lane に
-    // `${aliasSlug}-` suffix 形式 (header / footer 等) は存在しないため。 prefix match は aliasSlug="arc"
-    // が "arch-*" lane を誤削除する false match risk を持つため付けない (node 側 filter は header 等の
-    // `${aliasSlug}-` node を消す必要があり prefix 必須、 lane 側は不要という非対称)。
+    // leftover lane の特定は lane.label === actor.name を第一に使う。 seq-like preset は非 animate 経路
+    // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
+    // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
+    // は両経路とも actor.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
+    // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
     if (doc.type === "sequence" || doc.type === "solidity") {
       target.lanes = target.lanes.filter((l) => {
         // 明示 lane mapping (actor.lane) 先は part の張替え先なので保持する。
         if (actor.lane !== undefined && l.id === actor.lane) return true;
-        return l.id !== aliasSlug;
+        if (l.label === actor.name) return false;
+        if (l.id === aliasSlug) return false;
+        return true;
       });
     }
     // 削除された nodes を activate 参照している既存 phase の cleanup
