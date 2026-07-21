@@ -185,6 +185,16 @@ function mergePartsFromActors(
       const relatedToAlias = (id: string) => id === aliasSlug || id.startsWith(`${aliasSlug}-`) || (id.startsWith("s") && id.endsWith(`-${aliasSlug}`));
       return !relatedToAlias(e.from) && !relatedToAlias(e.to);
     });
+    // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
+    // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
+    // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
+    // 明示 lane mapping (actor.lane) 先の lane は part の張替え先なので保持する。
+    target.lanes = target.lanes.filter((l) => {
+      if (actor.lane !== undefined && l.id === actor.lane) return true;
+      if (l.id === aliasSlug) return false;
+      if (l.id.startsWith(`${aliasSlug}-`)) return false;
+      return true;
+    });
     // 削除された nodes を activate 参照している既存 phase の cleanup
     for (const phase of target.phases) {
       phase.activate = phase.activate.filter((id) => {

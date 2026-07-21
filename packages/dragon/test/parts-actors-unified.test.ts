@@ -338,6 +338,28 @@ actors:
       expect(partsNodes.length).toBeGreaterThan(0);
     });
 
+    it("actor label 二重表示 fix = parts actor 由来の sequence lane も削除される", () => {
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - arc1: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // sequence preset が生成した parts actor 用 lane (id = aliasSlug "arc1") は削除される。
+      // 残っていると part 側 lane (arc1__l、 label = alias "arc1") と 2 本が同じ label を
+      // lane-label として描画し二重表示 (alarmclock1 が右下で重なる bug の root cause)。
+      const leftoverLane = diagram.lanes.filter((l) => l.id === "arc1" || l.id.startsWith("arc1-"));
+      expect(leftoverLane.length).toBe(0);
+      // part 由来 lane (arc1__ prefix) は 1 本だけ存在する
+      const partsLanes = diagram.lanes.filter((l) => l.id.startsWith("arc1__"));
+      expect(partsLanes.length).toBe(1);
+      // alias "arc1" を label に持つ lane は高々 1 本 (part lane のみ、 二重表示なし)
+      const aliasLabelLanes = diagram.lanes.filter((l) => l.label === "arc1");
+      expect(aliasLabelLanes.length).toBeLessThanOrEqual(1);
+    });
+
     it("MAJOR fix = phase parallel merge (append ではなく既存 phase に union)", () => {
       const src = `title: "test"
 type: sequence
