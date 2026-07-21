@@ -31,7 +31,7 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     await setup(page);
   });
 
-  test("D1-forensic = drop 座標に近い位置に parts が描画される (現 impl では fail expected)", async ({ page }) => {
+  test("D1-forensic = drop 座標に近い位置に parts が描画される (auto-adjust 廃止で cursor 位置尊重)", async ({ page }) => {
     // parts tab open
     await page.click('[data-testid="editor-parts-tab"]');
     await page.waitForTimeout(600);
@@ -91,19 +91,33 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     ).toBeLessThan(150);
   });
 
-  test("D2-forensic = drop 後に既存 sequence 全 node の絶対位置が保たれる (± 30px)", async ({ page }) => {
-    // drop 前に全 sequence node の rect を map で記録 (id → rect)
-    const beforeMap = await page.evaluate(() => {
-      const out: Record<string, { x: number; y: number; w: number; h: number }> = {};
-      document.querySelectorAll('[data-cdl-node]').forEach((el) => {
-        const id = el.getAttribute("data-cdl-node") ?? "";
-        // parts の merge 前だから prefix なし
-        if (id.includes("__")) return;
-        const r = el.getBoundingClientRect();
-        out[id] = { x: r.x, y: r.y, w: r.width, h: r.height };
+  test("D2-forensic = drop 後に既存 sequence 全 node の world 座標が保たれる (reflow なし)", async ({ page }) => {
+    // 既存 node の WORLD 座標 (SVG user space) を測定する = client 座標 (getBoundingClientRect) は
+    // part 追加で viewBox が拡張されると再スケールで全体がシフトするため、 client 測定では「reflow」 と
+    // 「view 再スケール」 を区別できない。 getScreenCTM inverse で client → world 変換すれば viewBox
+    // 変化を打ち消し、 純粋に「既存 layout が reflow したか」 だけを検出できる (auto-adjust 廃止で part
+    // が既存 lane 付近に置かれても、 既存 actor は pin されて world 座標が動かないことを保証する)。
+    const measureWorld = () =>
+      page.evaluate(() => {
+        const svg = document.querySelector(".v4-editor-preview svg") as SVGSVGElement | null;
+        const ctm = svg?.getScreenCTM();
+        if (!svg || !ctm) return {} as Record<string, { x: number; y: number }>;
+        const inv = ctm.inverse();
+        const out: Record<string, { x: number; y: number }> = {};
+        document.querySelectorAll('[data-cdl-node]').forEach((el) => {
+          const id = el.getAttribute("data-cdl-node") ?? "";
+          if (id.includes("__")) return; // parts merge 由来 (prefix 付き) は除外
+          const r = el.getBoundingClientRect();
+          const pt = svg.createSVGPoint();
+          pt.x = r.x + r.width / 2;
+          pt.y = r.y + r.height / 2;
+          const w = pt.matrixTransform(inv);
+          out[id] = { x: w.x, y: w.y };
+        });
+        return out;
       });
-      return out;
-    });
+
+    const beforeMap = await measureWorld();
     expect(Object.keys(beforeMap).length, "sequence の nodes が initial に存在").toBeGreaterThan(3);
 
     // parts drop
@@ -117,25 +131,13 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     });
     await page.waitForTimeout(1500);
 
-    // drop 後、 同 id の rect を再計測 (parts 由来の new node は skip、 既存 sequence node のみ)
-    const afterMap = await page.evaluate(() => {
-      const out: Record<string, { x: number; y: number; w: number; h: number }> = {};
-      document.querySelectorAll('[data-cdl-node]').forEach((el) => {
-        const id = el.getAttribute("data-cdl-node") ?? "";
-        if (id.includes("__")) return;
-        const r = el.getBoundingClientRect();
-        out[id] = { x: r.x, y: r.y, w: r.width, h: r.height };
-      });
-      return out;
-    });
-
+    const afterMap = await measureWorld();
     await page.screenshot({ path: `${OUT_DIR}/D2-after-drop.png`, fullPage: false });
 
-    // 全 sequence 既存 node の shift を assert = ± 30 CSS px 以内
+    // 全 sequence 既存 node の world 座標 shift を assert = reflow していないこと (± 30 world unit)。
     const shifts: Array<{ id: string; dx: number; dy: number }> = [];
     for (const id of Object.keys(beforeMap)) {
       if (!(id in afterMap)) {
-        // drop 後に消えた node はカウントしないが警告扱いで push
         shifts.push({ id, dx: 9999, dy: 9999 });
         continue;
       }
@@ -147,16 +149,43 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     const worst = shifts.reduce((max, s) => (s.dx + s.dy > max.dx + max.dy ? s : max), { id: "", dx: 0, dy: 0 });
     expect(
       worst.dx + worst.dy,
-      `worst-case sequence node shift after drop = ${worst.id} (dx=${worst.dx.toFixed(1)} dy=${worst.dy.toFixed(1)})、 50 CSS px 以内で「drop で 図全体が崩れない」 (viewport auto-fit 廃止で view 縮小分は許容)`,
-    ).toBeLessThan(50);
+      `worst-case sequence node world shift after drop = ${worst.id} (dx=${worst.dx.toFixed(1)} dy=${worst.dy.toFixed(1)})、 30 world unit 以内で「既存 layout が reflow しない」 (client 座標の view 再スケール分は world 変換で除外)`,
+    ).toBeLessThan(30);
   });
 
-  test("D1-forensic-click = parts click 追加で DSL 上「意味ある空き位置」 に posX/posY が明示される", async ({ page }) => {
-    // click 経路は drop 座標なしだが、 DSL レベルで parts.posX/posY が既存 actor と重ならない
-    // 「意味ある空きエリア」 に配置される期待。 SVG render 上の lane bbox は parts merge で
-    // 動的拡張されるため判定不能、 DSL の宣言座標で assert する方が安定 (root logic の verify)。
+  test("D1-forensic-click = parts click 追加で 中央付近の空きエリア (既存図の下) に posX/posY が明示される", async ({ page }) => {
+    // click 経路は drop 座標なしのため、 viewport 中央付近の「空いた場所」 に配置する
+    // (2026-07-21 挙動変更 = 旧「既存 actor から 500 以上離れた空きエリア」→ 新「横は viewport 中央付近、
+    // 縦は既存 content 下端の下 = 中央にある sequence に重ならない空きエリア」)。 DSL の宣言座標で assert。
     await page.click('[data-testid="editor-parts-tab"]');
     await page.waitForTimeout(600);
+
+    // click 前に (a) viewport 中央 X (b) 既存 content 下端 world Y を捕捉する = part 追加後は viewBox が
+    // 変わるため、 click 時点 (part 配置座標が決まる瞬間) の値を基準にする。
+    const beforeGeom = await page.evaluate(() => {
+      const container = document.querySelector(".v4-editor-preview");
+      const svg = container?.querySelector("svg") as SVGSVGElement | null;
+      const ctm = svg?.getScreenCTM();
+      if (!container || !svg || !ctm) return null;
+      const inv = ctm.inverse();
+      const toWorld = (cx: number, cy: number) => {
+        const pt = svg.createSVGPoint();
+        pt.x = cx;
+        pt.y = cy;
+        return pt.matrixTransform(inv);
+      };
+      let contentBottom = -Infinity;
+      svg.querySelectorAll("[data-cdl-node], [data-cdl-lane]").forEach((el) => {
+        const id = el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "";
+        if (id.includes("__")) return;
+        const r = (el as SVGGraphicsElement).getBoundingClientRect();
+        contentBottom = Math.max(contentBottom, toWorld(r.right, r.bottom).y);
+      });
+      const cr = container.getBoundingClientRect();
+      const center = toWorld(cr.left + cr.width / 2, cr.top + cr.height / 2);
+      return { centerX: center.x, contentBottom };
+    });
+    expect(beforeGeom, "viewport 中央 X + content 下端 world 座標が取得できる").not.toBeNull();
 
     await page.click('[data-part-id="parts-achievement"]');
     await page.waitForTimeout(1500);
@@ -189,19 +218,17 @@ test.describe("parts drop 位置 forensic (D1 drop 位置乖離 + D2 図崩れ)"
     expect(partsActor, `parts actor が posX/posY 明示で DSL に追加される (現状 DSL:\n${dslDump.slice(0, 600)})`).toBeDefined();
     expect(existingActors.length, "既存 sequence actor が pinning されて posX/posY 明示").toBeGreaterThan(0);
 
-    // 判定 = parts.posX/posY が既存 actor いずれかから 500 world 以上離れている = 「意味ある空きエリア」
-    let minDistance = Infinity;
-    let closestName = "";
-    for (const a of existingActors) {
-      const dx = partsActor!.posX - a.posX;
-      const dy = partsActor!.posY - a.posY;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < minDistance) { minDistance = d; closestName = a.name; }
-    }
-
+    // 判定 (2026-07-21 挙動変更) = click 追加は「横 = viewport 中央付近」「縦 = 既存 content 下端の下」
+    // の空きエリアに配置される (中央にある sequence に重ならない)。 旧「既存 actor から 500 以上離れる」
+    // 契約は廃止。
+    const dxCenter = Math.abs(partsActor!.posX - beforeGeom!.centerX);
     expect(
-      minDistance,
-      `parts actor ${partsActor!.name} (posX=${partsActor!.posX}, posY=${partsActor!.posY}) と最近接 actor ${closestName} との距離 (${minDistance.toFixed(0)}) が 500 world 以上 = 「意味ある空きエリア」 に配置される。 DSL:\n${dslDump.slice(0, 600)}`,
-    ).toBeGreaterThan(500);
+      dxCenter,
+      `parts actor ${partsActor!.name} posX=${partsActor!.posX} が viewport 中央 X (${beforeGeom!.centerX.toFixed(0)}) 近傍 (横位置は中央付近)。 DSL:\n${dslDump.slice(0, 600)}`,
+    ).toBeLessThan(500);
+    expect(
+      partsActor!.posY,
+      `parts actor ${partsActor!.name} posY=${partsActor!.posY} が既存 content 下端 (${beforeGeom!.contentBottom.toFixed(0)}) より下 = 既存図に重ならない空きエリア`,
+    ).toBeGreaterThan(beforeGeom!.contentBottom);
   });
 });

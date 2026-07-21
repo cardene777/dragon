@@ -1633,8 +1633,10 @@ animation:
     // parts drop 位置 fix (D1 forensic 対応) = drop 座標を SVG viewBox に変換し posX/posY 明示。
     // compile 側 (mergePartIntoDiagram) が offsetX/Y として parts の lane / node に反映、 drop 位置
     // に parts が中心配置される。 座標変換 = clientToSvg (getCTM inverse) で client → SVG world unit。
+    // getScreenCTM null (SVG 非表示) 時は clientToSvg が raw client 座標を返すため posX/posY を書かず
+    // compile 側 fallback に委ねる (world 変換不能な座標の永続化を防ぐ)。
     const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    const dropSvg = svgEl ? clientToSvg(svgEl, e.clientX, e.clientY) : null;
+    const dropSvg = svgEl && svgEl.getScreenCTM() ? clientToSvg(svgEl, e.clientX, e.clientY) : null;
     const posFields: string[] = [];
     if (dropSvg) {
       posFields.push(`posX: ${Math.round(dropSvg.x)}`);
@@ -1776,20 +1778,53 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    // parts click 追加 = カーソル位置が無いため、 今見えている viewport の中央に配置する
-                    // (2026-07-21 user 決定)。 preview container の中心 client 座標を clientToSvg (getCTM
-                    // inverse) で world 座標に逆変換 = 現在の zoom / pan 状態で画面中央に見える world 点。
-                    // 従来の「図の右外 (maxLaneX + 600)」 は parts が画面外に飛んで見つけにくいため廃止。
+                    // parts click 追加 = カーソル位置が無いため、 viewport 中央付近の「空いた場所」 に
+                    // 配置する (2026-07-21 user 決定)。 素朴に viewport 中央へ置くと中央にある既存 sequence
+                    // (Client/API/DB) の上に重なり、 過去報告の「図の上に parts が重なる」 目視 bug を再現し
+                    // resize handle も occlude されるため、 既存 content の world bbox 下端の下 (横は viewport
+                    // 中央 X を content 範囲に clamp) に置いて重なりを回避する。 従来の「図の右外 (maxLaneX +
+                    // 600)」 は画面外に飛んで見つけにくいため廃止済。
                     const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
                     let posFields: string[] = [];
-                    if (svgElClick && previewRef.current) {
+                    // getScreenCTM null (SVG 非表示) 時は world 変換不能なため posX/posY を書かず compile
+                    // 側 fallback に委ねる (raw client 座標の永続化を防ぐ)。
+                    const clickCtm = svgElClick?.getScreenCTM();
+                    if (svgElClick && previewRef.current && clickCtm) {
+                      const inv = clickCtm.inverse();
+                      const toWorld = (cx: number, cy: number) => {
+                        const pt = svgElClick.createSVGPoint();
+                        pt.x = cx;
+                        pt.y = cy;
+                        return pt.matrixTransform(inv);
+                      };
+                      // 既存 content (parts merge 由来 `__` prefix は除外) の world bbox を集計
+                      let minX = Infinity;
+                      let maxX = -Infinity;
+                      let maxY = -Infinity;
+                      for (const el of Array.from(svgElClick.querySelectorAll("[data-cdl-node], [data-cdl-lane]"))) {
+                        const id = el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "";
+                        if (id.includes("__")) continue;
+                        const r = (el as SVGGraphicsElement).getBoundingClientRect();
+                        const tl = toWorld(r.left, r.top);
+                        const br = toWorld(r.right, r.bottom);
+                        minX = Math.min(minX, tl.x);
+                        maxX = Math.max(maxX, br.x);
+                        maxY = Math.max(maxY, br.y);
+                      }
                       const containerRect = previewRef.current.getBoundingClientRect();
-                      const centerClientX = containerRect.left + containerRect.width / 2;
-                      const centerClientY = containerRect.top + containerRect.height / 2;
-                      const center = clientToSvg(svgElClick, centerClientX, centerClientY);
+                      const center = clientToSvg(svgElClick, containerRect.left + containerRect.width / 2, containerRect.top + containerRect.height / 2);
+                      const hasContent = Number.isFinite(minX);
+                      // 横 = viewport 中央 X を content 範囲に clamp (content があれば中央付近を維持)
+                      const posX = hasContent ? Math.max(minX, Math.min(maxX, center.x)) : center.x;
+                      // 縦 = content 下端 + part の world 半分高さ + margin = 既存図の下の空きエリア。
+                      // part world 高さ ≈ stack span × STACK_PITCH_APPROX (compile と同係数 220)。
+                      const stacks = p.diagram.nodes.map((n) => n.stack ?? 0);
+                      const partSpan = stacks.length > 0 ? Math.max(...stacks) - Math.min(...stacks) + 1 : 1;
+                      const partHalfH = (partSpan * 220) / 2;
+                      const posY = hasContent ? maxY + partHalfH + 120 : center.y;
                       posFields = [
-                        `posX: ${Math.round(center.x)}`,
-                        `posY: ${Math.round(center.y)}`,
+                        `posX: ${Math.round(posX)}`,
+                        `posY: ${Math.round(posY)}`,
                       ];
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");

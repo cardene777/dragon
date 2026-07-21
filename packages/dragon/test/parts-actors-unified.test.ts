@@ -372,8 +372,8 @@ actors:
   - arc1: { kind: arc-gauge, posX: 100, posY: 50, v: 50 }
 `;
       const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
-      const partLane = diagram.lanes.find((l) => l.id.startsWith("arc1__"));
-      expect(partLane).toBeDefined();
+      const partNode = diagram.nodes.find((n) => n.id === "arc1__arc");
+      expect(partNode).toBeDefined();
       // 前提 = 既存 lane (ユーザー / API) の右端は posX (100) より右に広がる
       const existingMaxRight = Math.max(
         ...diagram.lanes
@@ -381,9 +381,9 @@ actors:
           .map((l) => (l.x ?? 0) + l.width),
       );
       expect(existingMaxRight).toBeGreaterThan(100);
-      // auto-adjust 廃止 = part lane.x は posX (100) 基準 (part 内部 lane.x=0 → lane.x=100)。
-      // 従来は Math.max(100, existingMaxRight + 300) で右へクランプされていた。
-      expect(partLane!.x).toBe(100);
+      // auto-adjust 廃止 + 中心補正 = part node 中心 (posX) が offsetX (100) に一致 = 置いた位置に
+      // parts 中心が来る。 従来は Math.max(100, existingMaxRight + 300) で右へクランプされ posX >> 100。
+      expect(partNode!.posX).toBe(100);
     });
 
     it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {

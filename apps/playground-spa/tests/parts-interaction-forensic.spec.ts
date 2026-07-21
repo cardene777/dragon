@@ -48,6 +48,31 @@ async function addPartsAndGetSubNode(page: Page): Promise<{ id: string; cx: numb
   return info;
 }
 
+// 既存 sequence node (parts merge 由来 `__` prefix 除外) の WORLD 座標 (SVG user space) を測定する。
+// client 座標 (getBoundingClientRect) は part 追加 / resize で viewBox が拡張されると全体が再スケール
+// されてシフトするため、 「既存 layout が reflow したか」 の判定には getScreenCTM inverse で client →
+// world 変換した座標を使う (viewBox 変化を打ち消す)。
+async function measureSeqWorld(page: Page): Promise<Record<string, { x: number; y: number }>> {
+  return page.evaluate(() => {
+    const svg = document.querySelector(".v4-editor-preview svg") as SVGSVGElement | null;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return {} as Record<string, { x: number; y: number }>;
+    const inv = ctm.inverse();
+    const out: Record<string, { x: number; y: number }> = {};
+    document.querySelectorAll("[data-cdl-node]").forEach((el) => {
+      const id = el.getAttribute("data-cdl-node") ?? "";
+      if (id.includes("__")) return;
+      const r = el.getBoundingClientRect();
+      const pt = svg.createSVGPoint();
+      pt.x = r.x + r.width / 2;
+      pt.y = r.y + r.height / 2;
+      const w = pt.matrixTransform(inv);
+      out[id] = { x: w.x, y: w.y };
+    });
+    return out;
+  });
+}
+
 test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3 zoom sync)", () => {
   test.beforeEach(async ({ page }) => {
     await setup(page);
@@ -104,17 +129,8 @@ test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3
     });
     expect(cornerCount, "hover で 4 隅 handle (data-corner nw/ne/sw/se) が表示").toBe(4);
 
-    // 既存 sequence 全 node の rect を記録 (drag 前)
-    const beforeMap = await page.evaluate(() => {
-      const out: Record<string, { x: number; y: number; w: number; h: number }> = {};
-      document.querySelectorAll('[data-cdl-node]').forEach((el) => {
-        const id = el.getAttribute("data-cdl-node") ?? "";
-        if (id.includes("__")) return;
-        const r = el.getBoundingClientRect();
-        out[id] = { x: r.x, y: r.y, w: r.width, h: r.height };
-      });
-      return out;
-    });
+    // 既存 sequence 全 node の WORLD 座標を記録 (drag 前)
+    const beforeMap = await measureSeqWorld(page);
 
     // SE handle drag = parts の右下 corner を +100/+100 CSS px 移動 → parts のみ拡大される期待
     const seX = parts.cx + parts.w / 2;
@@ -128,7 +144,7 @@ test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3
     await page.mouse.up();
     await page.waitForTimeout(800);
 
-    // parts sub-node が拡大した (幅 or 高さが +50px 以上)
+    // parts sub-node が存続すること (client rect の存在確認)
     const partsAfter = await page.evaluate((partsId) => {
       const el = document.querySelector(`[data-cdl-node="${partsId}"]`);
       if (!el) return null;
@@ -136,20 +152,20 @@ test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3
       return { w: r.width, h: r.height };
     }, parts.id);
     expect(partsAfter, "parts sub-node が存続").not.toBeNull();
-    const grew = (partsAfter!.w - parts.w) > 30 || (partsAfter!.h - parts.h) > 30;
-    expect(grew, `parts が resize で拡大 (before w=${parts.w.toFixed(0)} h=${parts.h.toFixed(0)} → after w=${partsAfter!.w.toFixed(0)} h=${partsAfter!.h.toFixed(0)})`).toBe(true);
+    // 拡大判定は WORLD size (DSL posW/posH) で = client rect は part 追加/resize で viewBox が拡張されると
+    // 全体が再スケールされて縮小しうるため (part を既存図の下の空きエリアに置く新配置で顕在化)。 SE handle
+    // を +100 CSS px drag し achievement part の自然幅 (~380 world) より明確に拡大する。
+    const dslText = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+    const posWMatch = dslText.match(/achievement1[^{]*\{[^}]*posW\s*:\s*(\d+)/);
+    const posHMatch = dslText.match(/achievement1[^{]*\{[^}]*posH\s*:\s*(\d+)/);
+    const posW = posWMatch ? parseInt(posWMatch[1]!, 10) : 0;
+    const posH = posHMatch ? parseInt(posHMatch[1]!, 10) : 0;
+    const grew = posW > 450 && posH > 450;
+    expect(grew, `parts が world size で拡大 (posW=${posW}, posH=${posH} > 自然幅 ~380)。 client rect は再スケールで縮小しうるため world 判定。 DSL:\n${dslText.slice(0, 500)}`).toBe(true);
 
-    // 既存 sequence node の shift は ± 30 CSS px 以内 (parts のみ resize、 他不変)
-    const afterMap = await page.evaluate(() => {
-      const out: Record<string, { x: number; y: number; w: number; h: number }> = {};
-      document.querySelectorAll('[data-cdl-node]').forEach((el) => {
-        const id = el.getAttribute("data-cdl-node") ?? "";
-        if (id.includes("__")) return;
-        const r = el.getBoundingClientRect();
-        out[id] = { x: r.x, y: r.y, w: r.width, h: r.height };
-      });
-      return out;
-    });
+    // 既存 sequence node の WORLD 座標が resize 後も不変 = parts のみ resize、 他 reflow なし (± 30 world)。
+    // client 座標は part resize で viewBox が拡張されると再スケールされるため world 座標で判定する。
+    const afterMap = await measureSeqWorld(page);
 
     let worstShift = 0;
     let worstId = "";
@@ -157,11 +173,11 @@ test.describe("parts 実 UX forensic (I1 click hover / I2 individual resize / I3
       if (!(id in afterMap)) continue;
       const b = beforeMap[id]!;
       const a = afterMap[id]!;
-      const shift = Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.w - b.w) + Math.abs(a.h - b.h);
+      const shift = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
       if (shift > worstShift) { worstShift = shift; worstId = id; }
     }
     await page.screenshot({ path: `${OUT_DIR}/I2-parts-after-resize.png`, fullPage: false });
-    expect(worstShift, `sequence node ${worstId} の shift 総和 (${worstShift.toFixed(1)}) が 40 以下 = parts のみ resize、 他 不変 (auto-fit 廃止で view 縮小分許容)`).toBeLessThan(40);
+    expect(worstShift, `sequence node ${worstId} の world 座標 shift (${worstShift.toFixed(1)}) が 30 以下 = parts のみ resize、 既存 layout は reflow しない`).toBeLessThan(30);
   });
 
   test("I3-forensic = zoom で 点線 outline が図と同じ scale で追随 (sequence header)", async ({ page }) => {

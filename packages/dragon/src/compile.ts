@@ -263,7 +263,10 @@ function mergePartIntoDiagram(
   const targetLaneId = laneMapping;
   const laneIdMap = new Map<string, string>();
   // parts lane の横位置。
-  //   offset (drop / click 座標) 指定時 = offsetX をそのまま使う = user が置いた位置に配置する。
+  //   offset (drop / click 座標) 指定時 = part 中心を offsetX に合わせる = user が置いた位置に
+  //     parts の中心が来る。 node は lane 中心 (lane.x + laneW/2) に描画されるため、 lane 左端を
+  //     offsetX - laneW/2 に置くと node 中心 = offsetX となり cursor / viewport 中央に一致する
+  //     (縦方向 offsetY と対称、 offsetY 側は partCenterStack で既に中心合わせ済)。
   //     従来の auto-adjust (max(offsetX, existingMax + gap) で既存 lane 右端へ強制右寄せ) は user
   //     directive で廃止 (2026-07-21)。 重なりは user の意図位置を優先し、 手動移動で回避する経路。
   //   未指定 (座標なし fallback) 時のみ existingMax + gap で右外配置 (通常経路は drop/click で座標を渡す)。
@@ -271,14 +274,14 @@ function mergePartIntoDiagram(
   const existingLaneMaxX = target.lanes.length > 0
     ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
     : 0;
-  const partsLaneStartX = offsetX !== undefined
-    ? offsetX
-    : existingLaneMaxX + PARTS_LANE_GAP;
-  const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
   // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
   // lane.width は「元 parts.width × scaleX」 に拡張して viewBox が parts サイズを含むように。
   // これで viewport auto-fit で全体縮小されても parts の相対サイズは変わらない。
   const partsLaneW = part.lanes[0]?.width ?? 400;
+  const partsLaneStartX = offsetX !== undefined
+    ? offsetX - partsLaneW / 2
+    : existingLaneMaxX + PARTS_LANE_GAP;
+  const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
   const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
 
   for (const laneOrig of part.lanes) {
