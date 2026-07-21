@@ -402,28 +402,29 @@ function mergePartIntoDiagram(
       newShape = scaleGeom(newShape) as typeof newShape;
     }
     // parts drop 位置 offset 反映:
-    //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら effectiveOffsetX 加算
-    //   - offsetX/Y 指定時 (drop 経路) は全 node に posX/posY を明示 set (rowH 分離)
-    //   - offset なし (従来経路) は auto layout 継続
-    // 明示 posX を持つ node も part 中心基準で scale する = 単純加算だと scale 時に
-    // 「part 中心からの距離」 が拡大されず、 lane 中心 (scale 後幅で補正済) と乖離する
-    // (cc-codex #879 Round 2 MAJOR 指摘)。 scaleX = 1 の時は従来の単純加算と同値になる。
+    //   - node.posX set 済 (parts が絶対座標を持つ) = その posX を part 中心基準で scale 変換
+    //   - offsetX 指定時 (drop 経路) で posX 未設定 = node が属する lane 中央を同じ式で変換
+    //   - offset なし (従来経路) は auto layout 継続 (posX undefined)
+    //
+    // 明示 posX と auto-layout の両経路を「元 part world 座標 X → drop 中心基準の scale 変換」 の
+    // 単一式 mapPartX に統一する (cc-codex #879 Round 2/3 MAJOR 指摘)。 両経路が別式だと lane.x != 0 で
+    // 明示 posX node と auto-layout node が乖離し、 lane.x == 0 の test だけすり抜けていた。
+    //   dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2  (= scale 後 lane 中心 = drop 座標)
+    //   partOrigCenterX = part world の中心 X (part.lanes[0].x + partOrigW/2)
+    //   mapPartX(x) = (x - partOrigCenterX) * scaleX + dropCenterX
+    // scaleX = 1 の時は x - partOrigCenterX + dropCenterX = x + effectiveOffsetX と一致 (従来同値)。
     const partOrigLaneX = part.lanes[0]?.x ?? 0;
     const partOrigCenterX = partOrigLaneX + partOrigW / 2;
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined
-      ? (nodeOrig.posX - partOrigCenterX) * scaleX + partsLaneStartX + (partOrigW * scaleX) / 2
-      : undefined;
+    const dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2;
+    const mapPartX = (x: number): number => (x - partOrigCenterX) * scaleX + dropCenterX;
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapPartX(nodeOrig.posX) : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
-      // parts lane 中央 (auto layout の cx 相当) + effectiveOffsetX (scale 適用)
+      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapPartX で変換する。
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
       const laneX = partLane?.x ?? 0;
       const laneW = partLane?.width ?? 320;
-      const partOrigCx = laneX + laneW / 2;
-      const partCenterX = partOrigW / 2;
-      // lane 内 offset も scale 後の幅で加算する = lane 側の中心補正 (scale 後幅) と対称にし、
-      // posW 指定時に node 中心と lane 中心が共に offsetX に一致する (cc-codex #879 MAJOR 指摘)。
-      nodePosX = (partOrigCx - partCenterX) * scaleX + partsLaneStartX + (laneW * scaleX) / 2;
+      nodePosX = mapPartX(laneX + laneW / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
@@ -945,31 +946,23 @@ function compileMind(doc: DslDocument): CdlDiagram {
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
-  // `{slug}-header` が「slug 本人の header node」 かを構造で判定する helper。
-  // sequence 系 preset は header と footer を対で生成するため、 `{slug}-footer` の存在をもって
-  // header と確定する。 header/footer を持たない preset (swimlane 等) では undefined を返し、
-  // 呼出側は従来の id 一致判定に落とす。
-  const footerIds = new Set(diagram.nodes.map((n) => n.id).filter((id) => id.endsWith("-footer")));
-  const headerOwnerSlug = (nodeId: string): string | undefined => {
-    if (!nodeId.endsWith("-header")) return undefined;
-    const slug = nodeId.slice(0, -"-header".length);
-    return footerIds.has(`${slug}-footer`) ? slug : undefined;
-  };
+  // actor の主要 node id を preset 種別で決める。 sequence / solidity のみ header/footer を対で
+  // 生成する preset で、 主要 node は `{slug}-header`。 それ以外の preset は actor 名 slug が
+  // そのまま node id になる。
+  //
+  // これを「node id が {slug}-header か」 の文字列判定で行うと、 actor 名 "A Header" の slug
+  // `a-header` が actor "A" の header node id と衝突して option が漏れる (cc-codex #879 cross-actor
+  // leak)。 footer の存在推測 (Round 2 修正) も actor "A Footer" 共存で `a-footer` が生まれると
+  // 誤爆する (Round 3 指摘)。 preset 種別は actor 名に依存しないため、 これらの衝突を構造的に断つ。
+  const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
   // actor inline option → node merge
   for (const a of doc.actors) {
     const actorId = slugify(a.name);
+    const primaryNodeId = isSeqLike ? `${actorId}-header` : actorId;
     // 該当 actor の主要 node (header / single node) を見つけて option を merge
     for (const node of diagram.nodes) {
-      // 一致は「node id == actor slug」 と「node id == {actor slug}-header」 の 2 経路。
-      // ただし id 文字列だけで判定すると actor 名 "A Header" (slug = `a-header`) が actor "A" の
-      // header node `a-header` と衝突し、 subtitle / eyebrow / value / rows が他 actor に漏れる
-      // (cc-codex #879 の cross-actor leak)。 そこで「header node かどうか」 を構造で判定する =
-      // sequence 系 preset は header と footer を対で生成するため、 `{slug}-footer` の存在を
-      // もって `{slug}-header` を slug の header と確定し、 その node は slug 本人にのみ一致させる。
-      // header/footer を持たない preset (swimlane 等) では従来通り id 一致で判定する。
-      const owner = headerOwnerSlug(node.id);
-      const matched = owner !== undefined ? owner === actorId : node.id === actorId;
-      if (matched) {
+      // preset 種別で確定した primaryNodeId と exact 一致する node にのみ option を merge する。
+      if (node.id === primaryNodeId) {
         if (a.subtitle !== undefined) node.subtitle = a.subtitle;
         if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
         if (a.value !== undefined) node.value = a.value;

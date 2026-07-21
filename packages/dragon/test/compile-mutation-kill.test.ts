@@ -10,11 +10,11 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 出力値 (node kind / title / w / h / lane / stack / eyebrow, edge label / tone / sub / style,
  * lane x / width / contain, sort 順序, 座標計算, cardinality) を精密 assert して mutant を kill する。
  *
- * この test 追加で compile.ts の mutation score は 27.49% → 76.48% に上昇した (第1-4弾)。
+ * この test 追加で compile.ts の mutation score は 27.49% → 76.94% に上昇した (第1-4弾)。
  * 第1弾 = 型別 compiler + post-process の主要ロジック (→44.37%)、 第2弾 = animate/edge 系の値検証
  * (→50.45%)、 第3弾 = swimlane / 型別 edge 伝播 / 小関数 (→52.65%)、
  * 第4弾 (#868) = parts merge 座標/scale の両分岐 + animate guard + regex 非貪欲性 + option 漏れ検証
- * (→76.48%、 test 82 → 317 件)。
+ * (→76.94%、 test 82 → 339 件)。
  *
  * ── 第4弾で発見して修正した実装バグ (cc-codex PR #879 review) ────────────────
  *
@@ -1328,10 +1328,11 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
     part.nodes = [
       { id: "orphan", lane: "missing", stack: 0, kind: "actor", title: "O" },
     ] as CdlDiagram["nodes"];
-    // partLane 見つからず → laneX 0 / laneW 320、 partOrigW = lanes[0].width = 400
-    // posX = (0 + 320/2 - 400/2) * 1 + 800 + 320/2 = (160-200) + 800 + 160 = 920
+    // partLane 見つからず → laneX 0 / laneW 320 → lane 中央 160。 統一式 mapPartX で変換する。
+    // partOrigCenterX = 0 + 400/2 = 200、 scaleX = 1、 dropCenterX = 800 + 400/2 = 1000
+    // posX = (160 - 200) * 1 + 1000 = 960
     const d = compileWithPart({ posX: 1000, posY: 500 }, part);
-    expect(node(d, "p1__orphan").posX).toBe(920);
+    expect(node(d, "p1__orphan").posX).toBe(960);
   });
 
   it("part.nodes が空なら stack 集計は 0 基準 (length > 0 の false 側)", () => {
@@ -2948,5 +2949,91 @@ describe("state preset: initial / final marker の eyebrow 実値検証", () => 
     }));
     expect(node(d, "a").eyebrow).toBeUndefined();
     expect(node(d, "b").eyebrow).toBeUndefined();
+  });
+});
+
+// ── 第 4 弾 (l): cc-codex #879 Round 3 指摘への対応 (座標統一 + header 帰属を preset 種別で) ──
+
+describe("mergePartIntoDiagram: lane.x != 0 でも明示 posX と auto-layout が一致する", () => {
+  /** lane.x を 0 以外に持ち、 posX 明示 node と posX 無し node を併存させる part。 */
+  function partLaneXNonZero(): CdlDiagram {
+    return {
+      id: "parts-lx", topic: "t",
+      lanes: [{ id: "l", x: 100, width: 400 }],
+      nodes: [
+        { id: "explicit", lane: "l", stack: 0, kind: "actor", title: "E", posX: 300, w: 80, h: 40 },
+        { id: "auto", lane: "l", stack: 0, kind: "actor", title: "A", w: 80, h: 40 },
+      ] as CdlDiagram["nodes"],
+      edges: [], states: [], phases: [] as CdlDiagram["phases"],
+    };
+  }
+
+  it("lane.x=100 / scaleX=2 で明示 posX (part 中心) と auto-layout が同じ drop 座標に来る", () => {
+    // part 中心 X = lane.x(100) + width/2(200) = 300。 explicit node は posX 300 = 中心。
+    // auto node の lane 中央も 300。 両方 scale しても drop 座標 1000 に一致すべき。
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partLaneXNonZero());
+    expect(node(d, "p1__explicit").posX).toBe(1000);
+    expect(node(d, "p1__auto").posX).toBe(1000);
+    // 明示 posX と auto-layout が乖離しない (Round 3 Finding 2)
+    expect(node(d, "p1__explicit").posX).toBe(node(d, "p1__auto").posX);
+  });
+
+  it("lane.x=100 / scaleX=1 でも両経路が一致する", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500 }, partLaneXNonZero());
+    expect(node(d, "p1__explicit").posX).toBe(1000);
+    expect(node(d, "p1__auto").posX).toBe(1000);
+  });
+
+  it("lane.x != 0 でも lane 中心 === node 中心 === drop 座標 (複合不変量)", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partLaneXNonZero());
+    const l = lane(d, "p1__l");
+    expect(node(d, "p1__explicit").posX).toBe(l.x! + l.width / 2);
+  });
+});
+
+describe("applyV05Extensions: actor 'A Footer' 共存でも header 帰属が誤爆しない", () => {
+  it("sequence で actor 'A' / 'A Header' / 'A Footer' 共存でも option が正しい node に付く", () => {
+    // "A Footer" の slug = a-footer は actor "A" の footer node id と衝突しうる。
+    // preset 種別 (seq-like) で primaryNodeId を {slug}-header に固定するため、 footer 存在に依存しない。
+    const d = compileToCdl(makeDoc("sequence", {
+      animate: animOf(),
+      actors: [
+        actor("A", { subtitle: "sub-A" }),
+        actor("A Header", { subtitle: "sub-AH" }),
+        actor("A Footer", { subtitle: "sub-AF" }),
+      ],
+      flow: [step("A", "A Header"), step("A Header", "A Footer")],
+    }));
+    expect(node(d, "a-header").subtitle).toBe("sub-A");
+    expect(node(d, "a-header-header").subtitle).toBe("sub-AH");
+    expect(node(d, "a-footer-header").subtitle).toBe("sub-AF");
+  });
+
+  it("非 sequence preset (swimlane) で 'A' / 'A Footer' 共存でも漏れない", () => {
+    // swimlane は header/footer を持たず node id = slug。 "A Footer" の a-footer は
+    // actor "A" の node "a" と別 id なので衝突しない (preset 種別で id 一致に統一)。
+    const d = compile("swimlane", {
+      actors: [actor("A", { subtitle: "own-A" }), actor("A Footer", { subtitle: "own-AF" })],
+      flow: [step("A", "A Footer")],
+    });
+    expect(node(d, "a").subtitle).toBe("own-A");
+    expect(node(d, "a-footer").subtitle).toBe("own-AF");
+  });
+
+  it("class preset (footer 無し) でも actor option が自身の node に付く", () => {
+    const d = compileToCdl(makeDoc("class", {
+      animate: animOf(), actors: [actor("A", { eyebrow: "eb-A" }), actor("B")],
+    }));
+    expect(node(d, "a").eyebrow).toBe("eb-A");
+    expect(node(d, "b").eyebrow).toBeUndefined();
+  });
+
+  it("solidity も seq-like として {slug}-header に merge する", () => {
+    const d = compileToCdl(makeDoc("solidity", {
+      animate: animOf(),
+      actors: [actor("A", { kind: "eoa", subtitle: "sol-A" }), actor("B", { kind: "contract" })],
+      flow: [step("A", "B")],
+    }));
+    expect(node(d, "a-header").subtitle).toBe("sol-A");
   });
 });
