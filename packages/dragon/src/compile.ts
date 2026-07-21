@@ -405,7 +405,14 @@ function mergePartIntoDiagram(
     //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら effectiveOffsetX 加算
     //   - offsetX/Y 指定時 (drop 経路) は全 node に posX/posY を明示 set (rowH 分離)
     //   - offset なし (従来経路) は auto layout 継続
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + effectiveOffsetX : undefined;
+    // 明示 posX を持つ node も part 中心基準で scale する = 単純加算だと scale 時に
+    // 「part 中心からの距離」 が拡大されず、 lane 中心 (scale 後幅で補正済) と乖離する
+    // (cc-codex #879 Round 2 MAJOR 指摘)。 scaleX = 1 の時は従来の単純加算と同値になる。
+    const partOrigLaneX = part.lanes[0]?.x ?? 0;
+    const partOrigCenterX = partOrigLaneX + partOrigW / 2;
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined
+      ? (nodeOrig.posX - partOrigCenterX) * scaleX + partsLaneStartX + (partOrigW * scaleX) / 2
+      : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
       // parts lane 中央 (auto layout の cx 相当) + effectiveOffsetX (scale 適用)
@@ -938,17 +945,31 @@ function compileMind(doc: DslDocument): CdlDiagram {
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
+  // `{slug}-header` が「slug 本人の header node」 かを構造で判定する helper。
+  // sequence 系 preset は header と footer を対で生成するため、 `{slug}-footer` の存在をもって
+  // header と確定する。 header/footer を持たない preset (swimlane 等) では undefined を返し、
+  // 呼出側は従来の id 一致判定に落とす。
+  const footerIds = new Set(diagram.nodes.map((n) => n.id).filter((id) => id.endsWith("-footer")));
+  const headerOwnerSlug = (nodeId: string): string | undefined => {
+    if (!nodeId.endsWith("-header")) return undefined;
+    const slug = nodeId.slice(0, -"-header".length);
+    return footerIds.has(`${slug}-footer`) ? slug : undefined;
+  };
   // actor inline option → node merge
   for (const a of doc.actors) {
     const actorId = slugify(a.name);
     // 該当 actor の主要 node (header / single node) を見つけて option を merge
     for (const node of diagram.nodes) {
-      // 一致は「node id == actor slug」 と「node id == {actor slug}-header」 の 2 経路のみ。
-      // 旧実装は `actorId.replace(/-header$/, "")` の第 3 項を持っていたが、 actor 名が
-      // "A Header" 等で slug が `-header` 終端になると別 actor "A" の node "a" に一致し、
-      // subtitle / eyebrow / value / rows が他 actor に漏れる (cc-codex #879 MAJOR 指摘)。
-      // 自身の node は第 1-2 項で必ず捕捉できるため第 3 項は不要かつ有害。
-      if (node.id === actorId || node.id === `${actorId}-header`) {
+      // 一致は「node id == actor slug」 と「node id == {actor slug}-header」 の 2 経路。
+      // ただし id 文字列だけで判定すると actor 名 "A Header" (slug = `a-header`) が actor "A" の
+      // header node `a-header` と衝突し、 subtitle / eyebrow / value / rows が他 actor に漏れる
+      // (cc-codex #879 の cross-actor leak)。 そこで「header node かどうか」 を構造で判定する =
+      // sequence 系 preset は header と footer を対で生成するため、 `{slug}-footer` の存在を
+      // もって `{slug}-header` を slug の header と確定し、 その node は slug 本人にのみ一致させる。
+      // header/footer を持たない preset (swimlane 等) では従来通り id 一致で判定する。
+      const owner = headerOwnerSlug(node.id);
+      const matched = owner !== undefined ? owner === actorId : node.id === actorId;
+      if (matched) {
         if (a.subtitle !== undefined) node.subtitle = a.subtitle;
         if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
         if (a.value !== undefined) node.value = a.value;

@@ -38,17 +38,22 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  *   到達不能な条件のため変異が観測できない。
  * - `mergePartIntoDiagram` の `newShape && (scaleX !== 1 || scaleY !== 1)` の true 側変異
  *   = shape 不在時に block へ入っても `scaleGeom(undefined)` が undefined を返すため出力同一。
- * - `mergePartIntoDiagram` の `partStacks.length > 0` (minStack / maxStack)
- *   = part.nodes が空の時のみ差が出るが、 空なら node が 1 件も push されず値が出力に現れない。
+ * - `console.warn` guard `typeof console !== "undefined" && console.warn`
+ *   = vitest 環境では `console` も `console.warn` も常に存在するため、 条件を変異させても
+ *   warn 呼出の有無が変わらない。 kill するには `globalThis.console` を消す test が要るが、
+ *   test runner 自体の出力経路を壊すため採用しない (実行環境依存の変異で、 production の
+ *   振る舞いを検証する価値が無い)。
  *
- * 当初は上記に加えて 4 種 (applyV05Extensions 第 3 項 / step anchor 判定 / console guard /
- * 矢印 regex の貪欲化) も等価と判定していたが、 review で kill 可能と指摘され実際に kill した
- * (第 3 項は実装バグでもあったため削除、 step anchor は `actor.lane === 自身 slug` で fallback 経路に
- * 入れて到達、 regex は複数文字 actor 名で差が出る)。
+ * 当初は上記に加えて 3 種 (applyV05Extensions 第 3 項 / step anchor 判定 / 矢印 regex の貪欲化) も
+ * 等価と判定していたが、 review で kill 可能と指摘され実際に kill した (第 3 項は cross-actor leak の
+ * 実装バグでもあったため削除、 step anchor は `actor.lane === 自身 slug` で fallback 経路に入れて到達、
+ * regex は複数文字 actor 名で差が出る)。 また `partStacks.length > 0` は当初「空 part でしか差が出ない」
+ * と誤判定していたが、 stack が 0 始まりでない part (stack 2/3) で minStack が潰れると中心が
+ * ずれるため kill 可能で、 本 file の「stack が 0 始まりでない part の中心合わせ」 で kill 済。
  *
- * 残存 336 件により 85% (Stryker high threshold) には到達しない。 残存の主因は到達不能分岐と
- * ObjectLiteral / StringLiteral 系の出力に現れない変異で、 引き上げるなら実装側の冗長性削除が
- * 必要になる。 それは本 Issue の scope (test 追加) の外。
+ * 85% (Stryker high threshold) には到達しない。 残存の主因は到達不能分岐と ObjectLiteral /
+ * StringLiteral 系の出力に現れない変異で、 引き上げるなら実装側の冗長性削除が必要になる。
+ * それは本 Issue の scope (test 追加) の外。
  */
 
 function actor(name: string, over: Partial<DslActor> = {}): DslActor {
@@ -2793,5 +2798,155 @@ describe("mergePartIntoDiagram: readouts の有無で target.readouts が切り�
     part.readouts = [] as CdlDiagram["readouts"];
     const d = compileWithPart({}, part);
     expect(d.readouts).toBeUndefined();
+  });
+});
+
+// ── 第 4 弾 (k): cc-codex #879 Round 2 指摘への対応 ──
+
+describe("mergePartIntoDiagram: 明示 posX を持つ node も scale 時に中心が保たれる", () => {
+  /** node が絶対座標 (posX) を持つ part。 */
+  function partWithExplicitPosX(): CdlDiagram {
+    const p = makeTestPart();
+    p.nodes = [
+      { id: "c", lane: "l", stack: 0, kind: "actor", title: "C", posX: 200, w: 100, h: 50 },
+      { id: "l1", lane: "l", stack: 0, kind: "actor", title: "L", posX: 100, w: 100, h: 50 },
+    ] as CdlDiagram["nodes"];
+    return p;
+  }
+
+  it("part 中心にある node は scale しても drop 座標に一致する", () => {
+    // partOrigW=400 → 中心 200。 node "c" は posX 200 = part 中心。
+    // posW 800 (scaleX 2) でも中心は drop 座標 1000 のまま。
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partWithExplicitPosX());
+    expect(node(d, "p1__c").posX).toBe(1000);
+  });
+
+  it("中心から離れた node は距離が scale 倍される", () => {
+    // node "l1" は part 中心から 100 左 → scaleX 2 で 200 左 → 1000 - 200 = 800
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partWithExplicitPosX());
+    expect(node(d, "p1__l1").posX).toBe(800);
+  });
+
+  it("明示 posX でも lane 中心 === 中心 node の posX (複合不変量)", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partWithExplicitPosX());
+    const l = lane(d, "p1__l");
+    expect(node(d, "p1__c").posX).toBe(l.x! + l.width / 2);
+  });
+
+  it("scale 無しなら従来の単純加算と同値", () => {
+    // partsLaneStartX = 1000 - 200 = 800、 node "c" posX 200 → 200 + 800 = 1000
+    const d = compileWithPart({ posX: 1000, posY: 500 }, partWithExplicitPosX());
+    expect(node(d, "p1__c").posX).toBe(1000);
+    expect(node(d, "p1__l1").posX).toBe(900);
+  });
+});
+
+describe("applyV05Extensions: sequence でも actor slug と別 actor header が衝突しない", () => {
+  it("actor \"A Header\" の option が actor \"A\" の header に漏れない (sequence)", () => {
+    // slugify("A Header") = "a-header" は actor "A" の header node id と同一。
+    // header 帰属を footer の対存在で判定することで本人にのみ merge される。
+    const d = compileToCdl(makeDoc("sequence", {
+      animate: animOf(),
+      actors: [actor("A"), actor("A Header", { subtitle: "leak?" })],
+      flow: [step("A", "A Header")],
+    }));
+    expect(node(d, "a-header").subtitle).toBeUndefined();
+    expect(node(d, "a-header-header").subtitle).toBe("leak?");
+  });
+
+  it("非 animate sequence でも同様に漏れない", () => {
+    const d = compile("sequence", {
+      actors: [actor("A"), actor("A Header", { eyebrow: "eb" })],
+      flow: [step("A", "A Header")],
+    });
+    expect(node(d, "a-header").eyebrow).toBeUndefined();
+    expect(node(d, "a-header-header").eyebrow).toBe("eb");
+  });
+
+  it("通常 actor の option は自身の header に正しく付く", () => {
+    const d = compileToCdl(makeDoc("sequence", {
+      animate: animOf(), actors: [actor("A", { subtitle: "mine" }), actor("B")],
+    }));
+    expect(node(d, "a-header").subtitle).toBe("mine");
+    expect(node(d, "b-header").subtitle).toBeUndefined();
+  });
+
+  it("header/footer を持たない preset (swimlane) では id 一致で判定する", () => {
+    const d = compile("swimlane", {
+      actors: [actor("A"), actor("A Header", { subtitle: "own" })],
+      flow: [step("A", "A Header")],
+    });
+    expect(node(d, "a-header").subtitle).toBe("own");
+    expect(node(d, "a").subtitle).toBeUndefined();
+  });
+});
+
+describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合わせ", () => {
+  /** stack 2/3 の part = minStack > 0 で partCenterStack が 0 にならない。 */
+  function partStackFrom2(): CdlDiagram {
+    const p = makeTestPart();
+    p.nodes = [
+      { id: "s2", lane: "l", stack: 2, kind: "actor", title: "S2", w: 100, h: 50 },
+      { id: "s3", lane: "l", stack: 3, kind: "actor", title: "S3", w: 100, h: 50 },
+    ] as CdlDiagram["nodes"];
+    return p;
+  }
+
+  it("minStack / maxStack が実 stack 範囲から算出され中心が drop 座標に来る", () => {
+    // minStack=2 / maxStack=3 → partCenterStack=2.5
+    // s2 = (2 - 2.5) * 220 + 500 = 390、 s3 = (3 - 2.5) * 220 + 500 = 610
+    // stack 集計が 0 固定に潰れると s2 = 2*220+500 = 940 になり中心がずれる。
+    const d = compileWithPart({ posX: 1000, posY: 500 }, partStackFrom2());
+    expect(node(d, "p1__s2").posY).toBe(390);
+    expect(node(d, "p1__s3").posY).toBe(610);
+  });
+
+  it("node 群の縦中心が drop 座標に一致する", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500 }, partStackFrom2());
+    const top = node(d, "p1__s2").posY!;
+    const bottom = node(d, "p1__s3").posY!;
+    expect((top + bottom) / 2).toBe(500);
+  });
+
+  it("partOrigH も実 stack 範囲で算出される (scaleY に反映)", () => {
+    // maxStack-minStack+1 = 2 → partOrigH = 440、 posH 880 で scaleY = 2
+    // s2 = (2 - 2.5) * 220 * 2 + 500 = 280
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partStackFrom2());
+    expect(node(d, "p1__s2").posY).toBe(280);
+    expect(node(d, "p1__s3").posY).toBe(720);
+  });
+});
+
+describe("state preset: initial / final marker の eyebrow 実値検証", () => {
+  it("先頭 actor に eyebrow 初期、 末尾 actor に eyebrow 最終が付く", () => {
+    const d = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+      flow: [step("A", "B"), step("B", "C")],
+    }));
+    expect(node(d, "a").eyebrow).toBe("初期");
+    expect(node(d, "c").eyebrow).toBe("最終");
+  });
+
+  it("中間 actor には marker eyebrow が付かない", () => {
+    const d = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+      flow: [step("A", "B"), step("B", "C")],
+    }));
+    expect(node(d, "b").eyebrow).toBeUndefined();
+  });
+
+  it("actor 1 個なら初期のみで最終は付かない (length > 1 条件)", () => {
+    const d = compileToCdl(makeDoc("state", {
+      animate: animOf(), actors: [actor("A")], flow: [],
+    }));
+    expect(node(d, "a").eyebrow).toBe("初期");
+  });
+
+  it("state 以外の preset では marker eyebrow が付かない", () => {
+    const d = compileToCdl(makeDoc("swimlane", {
+      animate: animOf(), actors: [actor("A"), actor("B")], flow: [step("A", "B")],
+    }));
+    expect(node(d, "a").eyebrow).toBeUndefined();
+    expect(node(d, "b").eyebrow).toBeUndefined();
   });
 });
