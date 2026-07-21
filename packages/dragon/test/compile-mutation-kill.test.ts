@@ -10,11 +10,11 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 出力値 (node kind / title / w / h / lane / stack / eyebrow, edge label / tone / sub / style,
  * lane x / width / contain, sort 順序, 座標計算, cardinality) を精密 assert して mutant を kill する。
  *
- * この test 追加で compile.ts の mutation score は 27.49% → 76.94% に上昇した (第1-4弾)。
+ * この test 追加で compile.ts の mutation score は 27.49% → 77.04% に上昇した (第1-4弾)。
  * 第1弾 = 型別 compiler + post-process の主要ロジック (→44.37%)、 第2弾 = animate/edge 系の値検証
  * (→50.45%)、 第3弾 = swimlane / 型別 edge 伝播 / 小関数 (→52.65%)、
  * 第4弾 (#868) = parts merge 座標/scale の両分岐 + animate guard + regex 非貪欲性 + option 漏れ検証
- * (→76.94%、 test 82 → 339 件)。
+ * (→77.04%、 test 82 → 339 件)。
  *
  * ── 第4弾で発見して修正した実装バグ (cc-codex PR #879 review) ────────────────
  *
