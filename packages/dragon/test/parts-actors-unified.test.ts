@@ -426,6 +426,45 @@ actors:
       expect(diagram.lanes.filter((l) => l.label === "ゲージ１").length).toBeLessThanOrEqual(1);
     });
 
+    it("slug が prefix 関係にある別 actor を巻き込まない (cc-codex MAJOR fix、 a_b vs a-b-c)", () => {
+      // parts actor `a_b` の lane id は `a-b` (cdl slug)。 prefix match で sweep すると通常 actor
+      // `a-b-c` の `a-b-c-header` / `-footer` / step anchor / edge まで誤削除し、 activate に dangling
+      // 参照が残る。 exact set (node.lane 由来) 方式で巻き込みゼロを保証する。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - Client
+  - a_b: { kind: arc-gauge, v: 50 }
+  - a-b-c
+
+flow:
+  - Client -> a-b-c: "呼出"
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // 通常 actor a-b-c の node が全て残る (header / spacer / footer)
+      const abcNodes = diagram.nodes.filter((n) => n.lane === "a-b-c");
+      expect(abcNodes.length).toBeGreaterThan(0);
+      expect(diagram.nodes.some((n) => n.id === "a-b-c-header")).toBe(true);
+      expect(diagram.nodes.some((n) => n.id === "a-b-c-footer")).toBe(true);
+      // a-b-c lane も残る
+      expect(diagram.lanes.some((l) => l.id === "a-b-c")).toBe(true);
+      // Client -> a-b-c の edge が残る (parts actor と無関係な flow)
+      expect(diagram.edges.some((e) => e.from.endsWith("-client") && e.to.endsWith("-a-b-c"))).toBe(true);
+      // parts actor a_b 由来 node は削除される
+      expect(diagram.nodes.some((n) => n.id === "a-b-header" || n.id === "a-b-footer")).toBe(false);
+      // phase.activate に存在しない id (dangling) が残らない
+      const validIds = new Set<string>([
+        ...diagram.nodes.map((n) => n.id),
+        ...diagram.edges.map((e) => e.id),
+      ]);
+      for (const phase of diagram.phases) {
+        for (const id of phase.activate) {
+          expect(validIds.has(id), `activate id "${id}" が存在する node/edge を指す`).toBe(true);
+        }
+      }
+    });
+
     it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
       // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
       // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、

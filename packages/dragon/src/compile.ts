@@ -177,31 +177,45 @@ function mergePartsFromActors(
     // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
     // footer (title = actor 名) が残って actor 名が多重表示される。
     //
-    // 権威 slug は「生成された lane の id」 から回収する = seq-like preset は 1 actor = 1 lane で
-    // lane.label === actor.name / lane.id === その preset が実際に使った slug のため、 lane を消す前に
-    // label 一致 lane の id を拾えば slug 実装差に依存せず正しい prefix が得られる。
+    // seq-like preset は「actor 専用 lane に属する node」 を exact set で特定する経路を使う。
+    // lane.label === actor.name で lane を引き当て (label は両 slug 経路とも actor.name 生値)、 その
+    // lane に属する node (header / spacer / footer / step anchor は全て actor lane 所属) を node.lane で
+    // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
+    // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
+    // の両方を同時に排除する。
     const aliasSlug = slugify(actor.name);
-    const sweepSlugs = new Set<string>([aliasSlug]);
+    const ownedLaneIds = new Set<string>();
     if (doc.type === "sequence" || doc.type === "solidity") {
       for (const l of target.lanes) {
         // 明示 lane mapping (actor.lane) 先は part の張替え先で actor 専用 lane ではないため除外
         if (actor.lane !== undefined && l.id === actor.lane) continue;
-        if (l.label === actor.name) sweepSlugs.add(l.id);
+        if (l.label === actor.name) ownedLaneIds.add(l.id);
       }
     }
-    const relatedToActor = (id: string): boolean => {
-      for (const slug of sweepSlugs) {
-        if (id === slug) return true;
-        if (id.startsWith(`${slug}-`)) return true;
-        // sequence step anchor = `s{N}-{slug}` pattern
-        if (/^s\d+-/.test(id) && id.endsWith(`-${slug}`)) return true;
-      }
+    const ownedNodeIds = new Set<string>();
+    for (const n of target.nodes) {
+      if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
+    }
+    // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
+    // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
+    const matchesAliasSlug = (id: string): boolean => {
+      if (id === aliasSlug) return true;
+      if (id.startsWith(`${aliasSlug}-`)) return true;
+      // sequence step anchor = `s{N}-{aliasSlug}` pattern
+      if (/^s\d+-/.test(id) && id.endsWith(`-${aliasSlug}`)) return true;
       return false;
     };
+    const relatedToActor = (id: string): boolean =>
+      ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
     target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
     // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
-    // 別途書く経路になる)
-    target.edges = target.edges.filter((e) => !relatedToActor(e.from) && !relatedToActor(e.to));
+    // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
+    const removedEdgeIds = new Set<string>();
+    target.edges = target.edges.filter((e) => {
+      const drop = relatedToActor(e.from) || relatedToActor(e.to);
+      if (drop) removedEdgeIds.add(e.id);
+      return !drop;
+    });
     // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
     // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
     // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
@@ -226,10 +240,10 @@ function mergePartsFromActors(
         return true;
       });
     }
-    // 削除された nodes を activate 参照している既存 phase の cleanup (node 削除と同じ sweepSlugs 経路
-    // = slug 実装差で取りこぼすと存在しない node id が activate に残る、 #873)
+    // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
+    // = 取りこぼすと存在しない id が activate に残り dangling 参照になる、 #873)
     for (const phase of target.phases) {
-      phase.activate = phase.activate.filter((id) => !relatedToActor(id));
+      phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
     }
     mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
   }
