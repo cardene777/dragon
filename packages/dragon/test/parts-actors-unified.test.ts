@@ -360,6 +360,29 @@ actors:
       expect(aliasLabelLanes.length).toBeLessThanOrEqual(1);
     });
 
+    it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
+      // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
+      // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、
+      // 消すと通常 actor "other" の node が削除済 lane を参照する不正 diagram になる。
+      const src = `title: "flow test"
+type: flow
+
+actors:
+  - flow: { kind: arc-gauge, v: 50 }
+  - other
+
+flow:
+  - flow -> other: "go"
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // 共有 lane "flow" は parts actor 名と一致するが seq-like でないので保持される
+      const sharedLane = diagram.lanes.find((l) => l.id === "flow");
+      expect(sharedLane).toBeDefined();
+      // 通常 actor "other" の node は共有 lane "flow" を参照し続ける (orphan 化しない)
+      const otherNode = diagram.nodes.find((n) => n.id === "other");
+      expect(otherNode?.lane).toBe("flow");
+    });
+
     it("MAJOR fix = phase parallel merge (append ではなく既存 phase に union)", () => {
       const src = `title: "test"
 type: sequence

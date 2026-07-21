@@ -188,13 +188,24 @@ function mergePartsFromActors(
     // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
     // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
     // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
-    // 明示 lane mapping (actor.lane) 先の lane は part の張替え先なので保持する。
-    target.lanes = target.lanes.filter((l) => {
-      if (actor.lane !== undefined && l.id === actor.lane) return true;
-      if (l.id === aliasSlug) return false;
-      if (l.id.startsWith(`${aliasSlug}-`)) return false;
-      return true;
-    });
+    //
+    // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
+    // 1 actor = 1 lane (lane.id === slugify(actor.name) === aliasSlug) の生成規則が成立し、 parts
+    // actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数 actor が
+    // 共有 lane (id = "main" 等) を参照するため、 aliasSlug 一致 lane を消すと通常 actor の node が
+    // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
+    //
+    // 一致は exact match のみ = seq-like の lane id は slugify(actor.name) と完全一致し、 lane に
+    // `${aliasSlug}-` suffix 形式 (header / footer 等) は存在しないため。 prefix match は aliasSlug="arc"
+    // が "arch-*" lane を誤削除する false match risk を持つため付けない (node 側 filter は header 等の
+    // `${aliasSlug}-` node を消す必要があり prefix 必須、 lane 側は不要という非対称)。
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      target.lanes = target.lanes.filter((l) => {
+        // 明示 lane mapping (actor.lane) 先は part の張替え先なので保持する。
+        if (actor.lane !== undefined && l.id === actor.lane) return true;
+        return l.id !== aliasSlug;
+      });
+    }
     // 削除された nodes を activate 参照している既存 phase の cleanup
     for (const phase of target.phases) {
       phase.activate = phase.activate.filter((id) => {
