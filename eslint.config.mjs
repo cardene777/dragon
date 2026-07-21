@@ -90,6 +90,17 @@ export default [
       "react-hooks/set-state-in-effect": "warn",
       // exhaustive-deps = warn 継続 (default) だが真の bug 検知能力あり
       "react-hooks/exhaustive-deps": "warn",
+      // no-unnecessary-type-assertion は warn 降格 (#865): eslint の tsconfig.eslint.json と tsc の
+      // tsconfig で DOM 型推論が不一致で、 tsc が必要とする assertion (svg.querySelector(sel).style の
+      // as HTMLElement 等) を eslint が unnecessary と誤判定する。 --fix で誤削除すると typecheck が
+      // 壊れるため error にしない。 type-aware rule なので ts/tsx 限定 (mjs はクラッシュ回避で除外)。
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
+      // React Compiler 系 rule は warn 降格 (#865): immutability / refs / preserve-manual-memoization は
+      // 既存 CdlEditor.tsx で動作している code に対する React Compiler の厳格検出で、 実バグでなく最適化の
+      // hint。 set-state-in-effect / exhaustive-deps (既に warn) と同じ扱い。
+      "react-hooks/immutability": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
   // import = cyclic dependency + import order 検知、 tsx / ts 両方対応
@@ -147,14 +158,15 @@ export default [
         console: "readonly",
         process: "readonly",
         URL: "readonly",
+        Buffer: "readonly",
       },
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       // unsafe-* は any 使用箇所の副次違反。 no-explicit-any=off で any を許容している以上、
       // 派生する unsafe-{member-access, call, assignment, return, argument} も off で整合。
-      // 真の bug detection (no-unnecessary-type-assertion / restrict-template / no-misused-promises)
-      // は type checked recommended の default (error) で有効。
+      // 真の bug detection (restrict-template / no-misused-promises) は type checked recommended の
+      // default (error) で有効。
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
@@ -180,6 +192,14 @@ export default [
     ],
     languageOptions: {
       globals: browserGlobals,
+    },
+  },
+  {
+    // 制御文字を正規表現で検出する test (samples-node-invariants 等) の no-control-regex を off (#865)。
+    // \x00 / \x1f 等の制御文字を「壊れた入力」 として検出する意図的な test のため error にしない。
+    files: ["**/*.{test,spec}.{ts,tsx}"],
+    rules: {
+      "no-control-regex": "off",
     },
   },
 ];

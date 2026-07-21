@@ -293,7 +293,7 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
 // ────────────────────────────────────────────────────────────
 
 describe("Axis 3 text-readability (defect injection via manual fixture)", () => {
-  it("width が title 超過の inject fixture で text-readability > 0 発火", async () => {
+  it("width が title 超過の inject fixture で text-readability > 0 発火", () => {
     // 従来 = cookbook 内の real defect を asset で使い >= 1 を保証していたが、
     // PR #392 (sequence actor auto-size) で cookbook の real defect が消えた (改善) ため、
     // 意図的 defect injection fixture で visualValidate 検知能力を保証する経路に切替。

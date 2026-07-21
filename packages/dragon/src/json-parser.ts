@@ -68,6 +68,7 @@ export interface JsonActor {
    * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
    * LLM structured output の typing 制約を緩めるため union に string 追加。
    */
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- NodeKind の候補を IDE 補完で提示しつつ任意 string も許容する意図的な union (JSON 入力の柔軟性、 #865)
   kind?: NodeKind | string;
   subtitle?: string;
   eyebrow?: string;

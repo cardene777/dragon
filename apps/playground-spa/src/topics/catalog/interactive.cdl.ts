@@ -9,8 +9,6 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  * library は汎用 primitive を提供、 domain 応用は consumer app 側の責務。
  */
 
-const W = 480;
-
 /**
  * 1. slider → node value bind (input widget primitive + reactive state)。
  */
@@ -522,7 +520,7 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   .state("gas4", { initial: 34.56 })
   .state("gas5", { initial: 41.472 })
   // repeat 5 nodes: 各 rect は gas{i+1} を source、 lane l{i+1} に配置
-  .repeatNodes(5, (i) => ({
+  .repeatNodes(5, (_i) => ({
     id: `r{i}`,
     lane: `l{i+1}`,
     stack: 0,
@@ -722,7 +720,7 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
   .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "Col" })
   .state("r", { initial: 0 })
   .state("c", { initial: 0 })
-  .gridNodes(3, 4, (r, c) => ({
+  .gridNodes(3, 4, (r, _c) => ({
     id: `cell-{r}-{c}`,
     lane: `col{c}`,
     stack: r,

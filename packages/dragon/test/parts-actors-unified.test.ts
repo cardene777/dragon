@@ -9,7 +9,6 @@
  */
 import { describe, it, expect } from "vitest";
 import { parseTextDslV05 } from "../src/v05/parser";
-import { compileToCdl } from "../src/compile";
 import { textDslToDiagram, jsonToDiagram } from "../src/index";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
