@@ -53,11 +53,6 @@ const TOUCHABLE_SELECTOR = [
   ".cdl-ip-timeline-btn",
 ].join(",");
 
-function isAncestor(a, b) {
-  // a が b の ancestor か (a が b を含むか)。 DOM API では contains() を使う。
-  return a !== b && a.contains && a.contains(b);
-}
-
 async function detectForDiagram(page, diagramId) {
   // sidebar の item を click して切替
   const btns = await page.$$("button.catalog-list-item");

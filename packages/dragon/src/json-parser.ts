@@ -67,8 +67,10 @@ export interface JsonActor {
    * CAR-1657 unified syntax = 既存 NodeKind (28 個) に加えて parts identifier (arc-gauge 等) を
    * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
    * LLM structured output の typing 制約を緩めるため union に string 追加。
+   * `string & {}` = NodeKind の候補を IDE 補完で提示しつつ任意 string も許容する idiom。
+   * 素の `NodeKind | string` は no-redundant-type-constituents に抵触し補完も潰れる (#865)。
    */
-  kind?: NodeKind | string;
+  kind?: NodeKind | (string & {});
   subtitle?: string;
   eyebrow?: string;
   value?: string;

@@ -7,7 +7,7 @@
  *
  * baseURL 4323、 dev-server 起動必要。
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 test.describe("canvas pivot PR-C auto adjust", () => {
   test.beforeEach(async ({ page }) => {

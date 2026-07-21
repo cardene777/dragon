@@ -90,6 +90,11 @@ export default [
       "react-hooks/set-state-in-effect": "warn",
       // exhaustive-deps = warn 継続 (default) だが真の bug 検知能力あり
       "react-hooks/exhaustive-deps": "warn",
+      // no-unnecessary-type-assertion は warn 降格 (#865): eslint の tsconfig.eslint.json と tsc の
+      // tsconfig で DOM 型推論が不一致で、 tsc が必要とする assertion (svg.querySelector(sel).style の
+      // as HTMLElement 等) を eslint が unnecessary と誤判定する。 --fix で誤削除すると typecheck が
+      // 壊れるため error にしない。 type-aware rule なので ts/tsx 限定 (mjs はクラッシュ回避で除外)。
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
     },
   },
   // import = cyclic dependency + import order 検知、 tsx / ts 両方対応
@@ -153,8 +158,8 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
       // unsafe-* は any 使用箇所の副次違反。 no-explicit-any=off で any を許容している以上、
       // 派生する unsafe-{member-access, call, assignment, return, argument} も off で整合。
-      // 真の bug detection (no-unnecessary-type-assertion / restrict-template / no-misused-promises)
-      // は type checked recommended の default (error) で有効。
+      // 真の bug detection (restrict-template / no-misused-promises) は type checked recommended の
+      // default (error) で有効。
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
@@ -180,6 +185,40 @@ export default [
     ],
     languageOptions: {
       globals: browserGlobals,
+    },
+  },
+  {
+    // 制御文字を正規表現で検出する test (samples-node-invariants 等) の no-control-regex を off (#865)。
+    // \x00 / \x1f 等の制御文字を「壊れた入力」 として検出する意図的な test のため error にしない。
+    files: ["**/*.{test,spec}.{ts,tsx}"],
+    rules: {
+      "no-control-regex": "off",
+    },
+  },
+  {
+    // React Compiler 系 rule (immutability / refs / preserve-manual-memoization) は他 file では
+    // error 維持し新規 correctness regression を検出する。 CdlEditor.tsx のみ warn 降格 (#865):
+    // canvas の imperative 操作 (document.body.style.cursor 代入 / previewRef.current 読取り) が
+    // 本質的に必要で React Compiler が false positive を出す。 全体 warn 降格ではなく本 file 限定に
+    // することで、 他 component の render 中 ref 読取り / props mutation は error で捕捉し続ける。
+    // React Compiler の diagnostic は閉じ括弧など不正確な行を報告するため per-line disable より
+    // file scoped override が堅牢。
+    files: ["apps/playground-spa/src/components/CdlEditor.tsx"],
+    rules: {
+      "react-hooks/immutability": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
+    },
+  },
+  {
+    // Buffer は Node 実行 context (dev script + Node test) のみで使用、 browser code には無い (#865)。
+    // 全 file に global 付与すると browser component への誤混入時に no-undef が検出できず実行時
+    // ReferenceError を招くため、 Node context の file に限定する。
+    files: ["**/scripts/**/*.{js,mjs,cjs,ts,tsx}", "**/*.{test,spec}.{ts,tsx}"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+      },
     },
   },
 ];

@@ -106,13 +106,10 @@ test.describe("複数 parts / share URL / undo / zoom 極値 網羅", () => {
 
     // 共有 URL 生成 (clipboard 経由なので URL bar から取得は不能 = window.location.hash を setSrc 後に更新するか確認)
     // 実装 = navigator.clipboard.writeText で URL を copy、 直接 encodeShare 経由で URL 生成
-    const shareUrl = await page.evaluate(async () => {
+    const shareUrl = await page.evaluate(() => {
       // handleShare 関数を直接呼ぶ (button click は clipboard permission 制約回避)
       const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.includes("共有URL"));
       if (!btn) return null;
-      // 現状の src を base64 encode して URL を作る (encodeShare と同 logic)
-      const cm = document.querySelector('.cm-content');
-      const src = cm?.textContent?.replace(/([a-zA-Z0-9])(\s+[a-zA-Z0-9])/g, "$1\n$2") ?? "";
       // 実 encodeShare 経路は base64 → hash、 test では単純に current URL hash を検出できないため URL 生成の代替判定
       return `${window.location.origin}${window.location.pathname}#s=<encoded>`;
     });

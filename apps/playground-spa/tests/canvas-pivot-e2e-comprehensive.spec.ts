@@ -17,7 +17,7 @@
  *
  * baseURL 4323、 dev-server 起動必要。
  */
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 interface PresetSpec {
   slug: string;
