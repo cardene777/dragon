@@ -10,40 +10,45 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 出力値 (node kind / title / w / h / lane / stack / eyebrow, edge label / tone / sub / style,
  * lane x / width / contain, sort 順序, 座標計算, cardinality) を精密 assert して mutant を kill する。
  *
- * この test 追加で compile.ts の mutation score は 27.49% → 74.97% に上昇した (第1-4弾)。
+ * この test 追加で compile.ts の mutation score は 27.49% → 76.48% に上昇した (第1-4弾)。
  * 第1弾 = 型別 compiler + post-process の主要ロジック (→44.37%)、 第2弾 = animate/edge 系の値検証
  * (→50.45%)、 第3弾 = swimlane / 型別 edge 伝播 / 小関数 (→52.65%)、
  * 第4弾 (#868) = parts merge 座標/scale の両分岐 + animate guard + regex 非貪欲性 + option 漏れ検証
- * (→74.97%、 test 82 → 294 件)。
+ * (→76.48%、 test 82 → 317 件)。
  *
- * ── 第4弾で kill 不能と判定した等価 mutant (Issue #868 AC 記録) ────────────────
+ * ── 第4弾で発見して修正した実装バグ (cc-codex PR #879 review) ────────────────
  *
- * 以下は「変異させても出力が変わらない」 ため test では kill 不能 (等価 mutant)。 実測で
- * 出力差が出ないことを確認済で、 kill するには実装側の冗長性を削る必要がある。
+ * 当初は以下 3 件を「実装がこう動くから」 と test 側で追認していたが、 review で実装の誤りと判明し
+ * 実装を修正した。 test で誤挙動を固定するのは規約違反 (rules/quality.md § test 変更 diff 厳格チェック)。
  *
- * - `applyV05Extensions` の node 一致条件 第 3 項 `node.id === actorId.replace(/-header$/, "")`
- *   = actorId は slugify(actor 名) で通常 `-header` 終端にならず、 なっても第 1 項が先に一致する。
- *   第 1-2 項と同一結果になる冗長条件のため変異が観測できない。
+ * - `stripCardinality` = cardinality token を抜いた後の空括弧を落とさず `owns (` / `) owns` と
+ *   片括弧が ER 図 edge label に残っていた。 空括弧除去を追加。
+ * - `mergePartIntoDiagram` の中心補正 = posW 指定 (scale) 時に lane を元幅で中心補正していたため
+ *   lane 中心が node 中心 (drop 座標) から拡張分の半分ずれていた。 双方を scale 後の幅で補正。
+ * - `applyV05Extensions` の node 一致条件 第 3 項 = actor 名 "A Header" の slug が `a-header` に
+ *   なると別 actor "A" の node `a` に一致し option が漏れる cross-actor leak。 第 3 項を削除。
+ *
+ * ── kill 不能と判定した等価 mutant (Issue #868 AC 記録) ────────────────
+ *
+ * 以下は「変異させても出力が変わらない」 ため test では kill 不能 (等価 mutant)。 実測で出力差が
+ * 出ないことを確認済、 cc-codex review でも等価判定が妥当と支持された 3 種。
+ *
  * - `applyEdgeInlineOptions` の seq-like 分岐 第 2 項 `e.from === fromId`
  *   = sequence/solidity の edge.from は必ず `s{idx}-{slug}` 形式で plain slug と一致しない。
  *   到達不能な条件のため変異が観測できない。
- * - `mergePartsFromActors` の `matchesAliasSlug` 内 step anchor 判定 `/^s\d+-/ && endsWith(-slug)`
- *   = 本 fallback は「actor 専用 lane を引き当てられない preset」 (flow / topology 等) でのみ通り、
- *   それらは step anchor node (`s{N}-{slug}`) を生成しない。 seq-like は lane 由来 exact set 経路に
- *   入るため本判定を通らず、 両経路とも到達しない。
  * - `mergePartIntoDiagram` の `newShape && (scaleX !== 1 || scaleY !== 1)` の true 側変異
  *   = shape 不在時に block へ入っても `scaleGeom(undefined)` が undefined を返すため出力同一。
  * - `mergePartIntoDiagram` の `partStacks.length > 0` (minStack / maxStack)
  *   = part.nodes が空の時のみ差が出るが、 空なら node が 1 件も push されず値が出力に現れない。
- * - `console.warn` guard `typeof console !== "undefined" && console.warn`
- *   = test 環境では常に両項 true で、 変異させても warn 呼出の有無が変わらない。
- * - 矢印 regex の一部変異 (`(.+?)` の貪欲化等)
- *   = 矢印 1 個の入力では貪欲/非貪欲が同一 match を返す。 2 個以上の入力 (A→B→C) で差が出る分は
- *   本 file の「矢印 regex の非貪欲性」 describe で kill 済、 残りは入力形状に関わらず同一。
  *
- * 上記により 85% (Stryker high threshold) には到達しない。 残存の主因は実装側の冗長条件と
- * 到達不能分岐であり、 test 追加では解消できない。 引き上げるなら冗長条件の削除 (実装 refactor) が
- * 必要で、 それは本 Issue の scope (test 追加) の外。
+ * 当初は上記に加えて 4 種 (applyV05Extensions 第 3 項 / step anchor 判定 / console guard /
+ * 矢印 regex の貪欲化) も等価と判定していたが、 review で kill 可能と指摘され実際に kill した
+ * (第 3 項は実装バグでもあったため削除、 step anchor は `actor.lane === 自身 slug` で fallback 経路に
+ * 入れて到達、 regex は複数文字 actor 名で差が出る)。
+ *
+ * 残存 336 件により 85% (Stryker high threshold) には到達しない。 残存の主因は到達不能分岐と
+ * ObjectLiteral / StringLiteral 系の出力に現れない変異で、 引き上げるなら実装側の冗長性削除が
+ * 必要になる。 それは本 Issue の scope (test 追加) の外。
  */
 
 function actor(name: string, over: Partial<DslActor> = {}): DslActor {
