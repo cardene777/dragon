@@ -185,6 +185,30 @@ function mergePartsFromActors(
       const relatedToAlias = (id: string) => id === aliasSlug || id.startsWith(`${aliasSlug}-`) || (id.startsWith("s") && id.endsWith(`-${aliasSlug}`));
       return !relatedToAlias(e.from) && !relatedToAlias(e.to);
     });
+    // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
+    // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
+    // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
+    //
+    // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
+    // 1 actor = 1 lane (lane.label === actor.name、 lane.id は actor 名の slug) の生成規則が成立し、
+    // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
+    // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
+    // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
+    //
+    // leftover lane の特定は lane.label === actor.name を第一に使う。 seq-like preset は非 animate 経路
+    // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
+    // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
+    // は両経路とも actor.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
+    // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      target.lanes = target.lanes.filter((l) => {
+        // 明示 lane mapping (actor.lane) 先は part の張替え先なので保持する。
+        if (actor.lane !== undefined && l.id === actor.lane) return true;
+        if (l.label === actor.name) return false;
+        if (l.id === aliasSlug) return false;
+        return true;
+      });
+    }
     // 削除された nodes を activate 参照している既存 phase の cleanup
     for (const phase of target.phases) {
       phase.activate = phase.activate.filter((id) => {
