@@ -169,22 +169,39 @@ function mergePartsFromActors(
       continue;
     }
     // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
-    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slugify(alias)}-header /
-    // -spacer / -footer / s{N}-{slugify(alias)}` を生成、 alias slug prefix match で全 sweep。
+    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slug}-header / -spacer /
+    // -footer / s{N}-{slug}` を生成、 slug prefix match で全 sweep。
+    //
+    // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
+    // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
+    // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
+    // footer (title = actor 名) が残って actor 名が多重表示される。
+    //
+    // 権威 slug は「生成された lane の id」 から回収する = seq-like preset は 1 actor = 1 lane で
+    // lane.label === actor.name / lane.id === その preset が実際に使った slug のため、 lane を消す前に
+    // label 一致 lane の id を拾えば slug 実装差に依存せず正しい prefix が得られる。
     const aliasSlug = slugify(actor.name);
-    target.nodes = target.nodes.filter((n) => {
-      if (n.id === aliasSlug) return false;
-      if (n.id.startsWith(`${aliasSlug}-`)) return false;
-      // sequence step anchor = `s{N}-{aliasSlug}` pattern
-      if (/^s\d+-/.test(n.id) && n.id.endsWith(`-${aliasSlug}`)) return false;
-      return true;
-    });
-    // edge も同 alias prefix / suffix 経由で削除 (parts actor に接続していた flow を除去、
-    // parts merge 後の flow は user が別途書く経路になる)
-    target.edges = target.edges.filter((e) => {
-      const relatedToAlias = (id: string) => id === aliasSlug || id.startsWith(`${aliasSlug}-`) || (id.startsWith("s") && id.endsWith(`-${aliasSlug}`));
-      return !relatedToAlias(e.from) && !relatedToAlias(e.to);
-    });
+    const sweepSlugs = new Set<string>([aliasSlug]);
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      for (const l of target.lanes) {
+        // 明示 lane mapping (actor.lane) 先は part の張替え先で actor 専用 lane ではないため除外
+        if (actor.lane !== undefined && l.id === actor.lane) continue;
+        if (l.label === actor.name) sweepSlugs.add(l.id);
+      }
+    }
+    const relatedToActor = (id: string): boolean => {
+      for (const slug of sweepSlugs) {
+        if (id === slug) return true;
+        if (id.startsWith(`${slug}-`)) return true;
+        // sequence step anchor = `s{N}-{slug}` pattern
+        if (/^s\d+-/.test(id) && id.endsWith(`-${slug}`)) return true;
+      }
+      return false;
+    };
+    target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
+    // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
+    // 別途書く経路になる)
+    target.edges = target.edges.filter((e) => !relatedToActor(e.from) && !relatedToActor(e.to));
     // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
     // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
     // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
@@ -209,13 +226,10 @@ function mergePartsFromActors(
         return true;
       });
     }
-    // 削除された nodes を activate 参照している既存 phase の cleanup
+    // 削除された nodes を activate 参照している既存 phase の cleanup (node 削除と同じ sweepSlugs 経路
+    // = slug 実装差で取りこぼすと存在しない node id が activate に残る、 #873)
     for (const phase of target.phases) {
-      phase.activate = phase.activate.filter((id) => {
-        if (id === aliasSlug) return false;
-        if (id.startsWith(`${aliasSlug}-`)) return false;
-        return true;
-      });
+      phase.activate = phase.activate.filter((id) => !relatedToActor(id));
     }
     mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
   }

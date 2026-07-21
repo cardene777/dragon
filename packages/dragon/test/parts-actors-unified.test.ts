@@ -386,6 +386,46 @@ actors:
       expect(partNode!.posX).toBe(100);
     });
 
+    it("underscore を含む parts actor 名でも header/footer/spacer が消し残らない (#873 slug 不一致)", () => {
+      // dragon slugify は `_` を保持 (arc_one)、 cdl preset slugify は `-` に置換 (arc-one) するため、
+      // dragon 側 aliasSlug と実 node id (arc-one-header 等) が不一致で sweep を取りこぼしていた。
+      // header / footer は title = actor 名を描画するため、 消し残ると actor 名が多重表示される。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - arc_one: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // parts actor 由来の sequence node (header / footer / spacer / step) が 0 件
+      const leftover = diagram.nodes.filter(
+        (n) => n.id === "arc-one" || n.id.startsWith("arc-one-") || n.id === "arc_one" || n.id.startsWith("arc_one-"),
+      );
+      expect(leftover.map((n) => n.id)).toEqual([]);
+      // actor 名 (arc_one) を title に持つ node は part merge 由来のみ = 多重表示なし
+      const titled = diagram.nodes.filter((n) => n.title === "arc_one");
+      expect(titled.length).toBeLessThanOrEqual(1);
+      // part merge 由来 node は存在する (削除しすぎていない)
+      expect(diagram.nodes.some((n) => n.id.startsWith("arc_one__"))).toBe(true);
+    });
+
+    it("全角を含む parts actor 名でも header/footer/spacer が消し残らない (#873 slug 不一致)", () => {
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - ゲージ１: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // actor 名を title に持つ node は part merge 由来のみ (header / footer が消し残ると 2 件以上)
+      const titled = diagram.nodes.filter((n) => n.title === "ゲージ１");
+      expect(titled.length).toBeLessThanOrEqual(1);
+      // 残存 lane も 0 (label 特定経路)
+      expect(diagram.lanes.filter((l) => l.label === "ゲージ１").length).toBeLessThanOrEqual(1);
+    });
+
     it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
       // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
       // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、
