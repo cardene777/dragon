@@ -580,12 +580,14 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .state("bar", { initial: 0 })
   .state("angle", { initial: 0 })
   .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline", subtitle: "t (0-1 loop 3s autoplay)" })
-  .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 60, h: 200,
+  .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 80, h: 200,
     shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" } })
   .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc", subtitle: "angle = t * 270", w: 140, h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
-  .edge("timeNode", "r", { label: "t → bar (*100)", tone: "info" })
-  .edge("timeNode", "a", { label: "t → angle (*270)", tone: "accent" })
+  .edge("timeNode", "r", { label: "→ bar", tone: "info" })
+  // timeNode→a は bar lane を跨ぐ長い edge。 label を bar lane 中央へ寄せて左右余白を確保し、
+  // 非発着 lane bar の border 貫通 (lane-border-clearance) を font metric 変動にも耐える形で防ぐ。
+  .edge("timeNode", "a", { label: "→ angle", tone: "accent", labelOffsetX: -45 })
   .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
   .phase("p", {
     duration: 1500,
