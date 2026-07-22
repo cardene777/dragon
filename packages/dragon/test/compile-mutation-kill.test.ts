@@ -3234,8 +3234,9 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
       const l2 = d.lanes.find((l) => l.id === "p1__l2")!;
       return (l2.x! + l2.width / 2) - (l1.x! + l1.width / 2);
     };
-    // scaleX 2 で lane 間距離が約 2 倍になる (translate-only なら不変で fail)
-    expect(gap(scaled)).toBeGreaterThan(gap(noScale) * 1.5);
+    // scaleX 2 で lane 間中心距離がちょうど 2 倍になる (500→1000)。 translate-only なら不変、
+    // 1.6〜1.9 倍の中途半端な誤 scale も toBe で pin して落とす (cc-codex MINOR 2 対応)。
+    expect(gap(scaled)).toBe(gap(noScale) * 2);
   });
 
   it("scale 時に node.w も part bbox 幅基準の scaleX で厳密に拡張される", () => {

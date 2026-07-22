@@ -312,7 +312,11 @@ function mergePartIntoDiagram(
   const partMaxLaneRight = part.lanes.length > 0
     ? Math.max(...part.lanes.map((l) => (l.x ?? 0) + l.width))
     : 400;
-  const partsBboxW = Math.max(1, partMaxLaneRight - partMinLaneX);
+  // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
+  // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
+  // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
+  const rawBboxW = partMaxLaneRight - partMinLaneX;
+  const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
   const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
   // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
   // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
