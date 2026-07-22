@@ -2549,6 +2549,30 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("and");
   });
 
+  it("default-ignorable 不可視文字 (variation selector / Hangul filler / Mongolian VS) のみ残る label は fallback する (cc-codex #879 Round 9)", () => {
+    // Cf/Cc/White_Space に入らない不可視文字 (Mn の VS、 Lo の filler) も \p{Default_Ignorable_Code_Point}
+    // で捕捉して fallback する。 Braille blank U+2800 は不可視でないため content 維持。
+    const ignorables = ["\uFE0F", "\uFE00", "\u3164", "\u115F", "\u180B"];
+    for (const ch of ignorables) {
+      const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
+      expect(d.edges[0]!.label).toBe(`1:N${ch}`);
+    }
+    // Braille blank は content 扱い = 除去後も残る (fallback しない)
+    const braille = compile("er", { flow: [step("A", "B", { label: "\u2800 1:N" })] });
+    expect(braille.edges[0]!.label).toBe("\u2800");
+  });
+
+  it("cardinality token に隣接する数字 (timestamp / ratio) を over-removal しない (cc-codex #879 Round 9)", () => {
+    // 裸 token 除去を global にする際、 前後に数字が隣接しない境界を付けて timestamp や比率の
+    // 部分文字列を消さない。
+    const ts = compile("er", { flow: [step("A", "B", { label: "1:1 at 10:11:12" })] });
+    expect(ts.edges[0]!.label).toBe("at 10:11:12");
+    const time2 = compile("er", { flow: [step("A", "B", { label: "call at 12:11:10" })] });
+    expect(time2.edges[0]!.label).toBe("call at 12:11:10");
+    const ratio = compile("er", { flow: [step("A", "B", { label: "scale 10:11" })] });
+    expect(ratio.edges[0]!.label).toBe("scale 10:11");
+  });
+
   it("不可視文字が content と混在する場合は保持する (Cf 単独でなければ意味あり)", () => {
     // BOM が content 文字と混在していれば visible content ありと判定して保持する。
     const d = compile("er", { flow: [step("A", "B", { label: `x\uFEFFy (1:N)` })] });

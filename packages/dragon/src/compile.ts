@@ -1661,9 +1661,11 @@ function stripCardinality(label: string): string {
     const flags = pattern.flags.includes("i") ? "gi" : "g";
     const before = r;
     r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
-    // 裸 token 除去も global にする = 同一 token が複数回出る label (`1:N and 1:N`) で 2 個目が
-    // 残るのを防ぐ (cc-codex #879 Round 8 指摘)。 pattern が i flag を持つ場合も維持する。
-    r = r.replace(new RegExp(src, flags), "");
+    // 裸 token 除去 = 同一 token が複数回出る label (`1:N and 1:N`) で全て消すため global にするが、
+    // token の前後に数字が隣接しない境界を付ける。 単純 global 化は `1:1 at 10:11:12` の timestamp
+    // 部分文字列まで消す over-removal を起こす (cc-codex #879 Round 8/9)。 前後が数字でない
+    // (先頭/末尾含む) 場合のみ除去する lookbehind/lookahead で cardinality token だけに限定する。
+    r = r.replace(new RegExp(`(?<![0-9])(?:${src})(?![0-9])`, flags), "");
     if (r !== before) removed = true;
   }
   // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
@@ -1681,10 +1683,15 @@ function stripCardinality(label: string): string {
   // (Round 6 Finding 1 = 除去後に空白/不可視文字だけ残ると不可視 label になるのを防ぐ)。
   //
   // 「意味のある文字」 の判定は個別の空白/不可視文字を列挙 (denylist) すると際限が無く、
-  // Round 7 で `\s` → `\p{White_Space}` に変えたら NEL は拾えたが BOM (U+FEFF) を落とす等の
-  // いたちごっこになった (cc-codex #879 Round 7/8)。 そこで Unicode カテゴリで構造的に判定する =
-  // 「White_Space (全空白) でも Cf (Format: BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER 等) でも
-  // Cc (Control) でもない可視文字」 が 1 つでもあれば意味あり。 個別文字を追わずカテゴリで閉じる。
-  const hasVisible = /[^\p{White_Space}\p{Cf}\p{Cc}]/u.test(r);
+  // Round 7 で `\s` → `\p{White_Space}` に変えたら NEL は拾えたが BOM を落とす等のいたちごっこに
+  // なった (cc-codex #879 Round 7/8/9)。 そこで Unicode の「見えない文字」 を 4 カテゴリで構造的に
+  // 判定する = 以下のいずれでもない可視文字が 1 つでもあれば意味あり。
+  //   - White_Space ... 全空白 (space / tab / NBSP / NEL / 全角空白 / 各種 Unicode space / 改行系)
+  //   - Cf (Format) ... BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER / soft hyphen 等
+  //   - Cc (Control) ... 制御文字
+  //   - Default_Ignorable_Code_Point ... variation selector (Mn) / Hangul filler (Lo) 等、 Cf に
+  //     入らない不可視文字 (Cf/Cc/White_Space だけでは取りこぼすと Round 9 で判明)
+  // 4 カテゴリで Unicode の非表示文字を網羅する (Braille blank U+2800 や通常文字は content 維持)。
+  const hasVisible = /[^\p{White_Space}\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/u.test(r);
   return hasVisible ? r : label;
 }
