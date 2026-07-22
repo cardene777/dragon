@@ -1,0 +1,231 @@
+import { describe, it, expect } from "vitest";
+import { validateDragonJson, jsonToDiagram, jsonToDoc, type DragonJson } from "../src/json-parser";
+
+/**
+ * CAR-1693 (dragon canvas pivot Phase 1) の behavior test。
+ *
+ * DSL 表面 `pos: {x, y}` (auto layout の offset dx, dy) と diagram-level `layout: auto | manual`
+ * field の parse + AST の `layoutPos:` mapping を検証する。 内部 AST の既存 `pos: Position`
+ * (source location) と naming collision しないこと、 未指定 element は auto fallback で render 挙動が
+ * 現状維持 (catalog 100+ backward compat) であることを固定する。
+ *
+ * scope = JSON parse path (json-parser.ts) を対象。 CDL text parser (parser.ts) と yaml-adapter
+ * (PR #421 で追加予定) の pos: accept は本 Phase 1 の scope 外、 別 issue で追加する (Issue 側 T003 /
+ * T005 note)。
+ */
+
+const validDoc: DragonJson = {
+  title: "test",
+  type: "sequence",
+  actors: [{ name: "A" }, { name: "B" }],
+  flow: [{ from: "A", to: "B", label: "call" }],
+};
+
+describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
+  describe("validation", () => {
+    it("actor.pos は {x, y} 形式で accept される", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        actors: [{ name: "A", pos: { x: 40, y: -20 } }, { name: "B" }],
+      });
+      expect(r.ok).toBe(true);
+    });
+
+    it("actor.pos が NaN なら reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        actors: [{ name: "A", pos: { x: Number.NaN, y: 10 } }, { name: "B" }],
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.actors[0].pos.x")).toBe(true);
+      }
+    });
+
+    it("actor.pos が Infinity なら reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        actors: [{ name: "A", pos: { x: 10, y: Number.POSITIVE_INFINITY } }, { name: "B" }],
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.actors[0].pos.y")).toBe(true);
+      }
+    });
+
+    it("actor.pos が非 object なら reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        actors: [{ name: "A", pos: "invalid" as unknown as { x: number; y: number } }, { name: "B" }],
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.actors[0].pos")).toBe(true);
+      }
+    });
+
+    it("step.pos は {x, y} 形式で accept される", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        flow: [{ from: "A", to: "B", label: "call", pos: { x: 15, y: 25 } }],
+      });
+      expect(r.ok).toBe(true);
+    });
+
+    it("step.pos が非 finite なら reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        flow: [{ from: "A", to: "B", label: "call", pos: { x: 10, y: Number.NaN } }],
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.flow[0].pos.y")).toBe(true);
+      }
+    });
+
+    it("lanes.<id>.pos は {x, y} 形式で accept される", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        lanes: { l1: { width: 200, pos: { x: 100, y: 0 } } },
+      });
+      expect(r.ok).toBe(true);
+    });
+
+    it("lanes.<id>.pos が非 finite なら reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        lanes: { l1: { width: 200, pos: { x: Number.NaN, y: 0 } } },
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.lanes.l1.pos.x")).toBe(true);
+      }
+    });
+
+    it("layout は 'auto' / 'manual' 以外を reject", () => {
+      const r = validateDragonJson({
+        ...validDoc,
+        layout: "invalid" as "auto" | "manual",
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.errors.some((e) => e.path === "$.layout")).toBe(true);
+      }
+    });
+
+    it("layout が 'auto' なら accept される", () => {
+      const r = validateDragonJson({ ...validDoc, layout: "auto" });
+      expect(r.ok).toBe(true);
+    });
+
+    it("layout が 'manual' なら accept される", () => {
+      const r = validateDragonJson({ ...validDoc, layout: "manual" });
+      expect(r.ok).toBe(true);
+    });
+
+    it("layout / pos とも未指定なら backward compat で accept (catalog 100+ 互換)", () => {
+      const r = validateDragonJson(validDoc);
+      expect(r.ok).toBe(true);
+    });
+  });
+
+  describe("AST mapping (DSL 表面 pos → 内部 AST layoutPos、 jsonToDoc 実 execute)", () => {
+    // cc-codex review MAJOR fix = jsonToDoc を実 call して mapping logic を execute する。
+    // 従来 DslDocument を直接組み立てる shortcut で mapping を bypass していたため、 json-parser
+    // 側 mapping を削除しても silent regression する経路が open だった。 本 test で mapping を実 exercise
+    // することで Phase 2 (applyPosOffset) が依存する pos → layoutPos の引き渡しを gate する。
+
+    it("actor.pos が jsonToDoc で AST layoutPos に mapping され、 既存 pos: Position (source loc) と並存する", () => {
+      const input: DragonJson = {
+        ...validDoc,
+        actors: [{ name: "A", pos: { x: 40, y: -20 } }, { name: "B" }],
+      };
+      const r = validateDragonJson(input);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const doc = jsonToDoc(r.data);
+      // DSL 表面 pos → AST layoutPos に rename されている (2 層設計)
+      expect(doc.actors[0]?.layoutPos).toEqual({ x: 40, y: -20 });
+      // pos 未指定 actor B の layoutPos は undefined (auto fallback 保証)
+      expect(doc.actors[1]?.layoutPos).toBeUndefined();
+      // 既存 pos: Position (source location) は separate field で並存 (naming collision 回避)
+      expect(doc.actors[0]?.pos).toEqual({ line: 0 });
+      expect(doc.actors[1]?.pos).toEqual({ line: 0 });
+    });
+
+    it("step.pos が jsonToDoc で AST layoutPos に mapping される", () => {
+      const input: DragonJson = {
+        ...validDoc,
+        flow: [{ from: "A", to: "B", label: "call", pos: { x: 15, y: 25 } }],
+      };
+      const r = validateDragonJson(input);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const doc = jsonToDoc(r.data);
+      expect(doc.flow[0]?.layoutPos).toEqual({ x: 15, y: 25 });
+      // source location と並存
+      expect(doc.flow[0]?.pos).toEqual({ line: 0 });
+    });
+
+    it("lanes.<id>.pos が jsonToDoc で AST layoutPos に mapping され、 既存 x/width と分離される", () => {
+      const input: DragonJson = {
+        ...validDoc,
+        lanes: { l1: { width: 200, x: 50, pos: { x: 100, y: 0 } } },
+      };
+      const r = validateDragonJson(input);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const doc = jsonToDoc(r.data);
+      // DSL 表面 pos → AST layoutPos に rename、 既存 x/width は残る (destructure 漏れ防止)
+      expect(doc.lanes?.l1?.layoutPos).toEqual({ x: 100, y: 0 });
+      expect(doc.lanes?.l1?.x).toBe(50);
+      expect(doc.lanes?.l1?.width).toBe(200);
+      // source location と並存
+      expect(doc.lanes?.l1?.pos).toEqual({ line: 0 });
+    });
+
+    it("layout: 'manual' が DslDocument.layout に mapping される", () => {
+      const r = validateDragonJson({ ...validDoc, layout: "manual" });
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const doc = jsonToDoc(r.data);
+      expect(doc.layout).toBe("manual");
+    });
+
+    it("layout / pos とも未指定なら AST の layoutPos / layout は undefined (backward compat)", () => {
+      const r = validateDragonJson(validDoc);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const doc = jsonToDoc(r.data);
+      expect(doc.actors[0]?.layoutPos).toBeUndefined();
+      expect(doc.flow[0]?.layoutPos).toBeUndefined();
+      expect(doc.layout).toBeUndefined();
+    });
+  });
+
+  describe("compile (Phase 1 = pass-through、 render は現状維持)", () => {
+    it("pos 指定なしで既存 render と byte-identical (catalog 100+ backward compat)", () => {
+      const d = jsonToDiagram(validDoc);
+      expect(d.nodes.length).toBeGreaterThan(0);
+      // Phase 1 では pos 指定なし = 既存 auto layout が動く。 実 render の byte-identical 確認は
+      // catalog 全 sweep (visual-validate-sweep.test.ts) 側で保証済。
+    });
+
+    it("pos 指定ありでも Phase 1 では render 崩れない (Phase 2 の applyPosOffset 実装前)", () => {
+      // Phase 1 は types + parser の 2 層基盤のみ。 layoutPos → CdlDiagram 反映は Phase 2 で追加。
+      // Phase 1 の時点では layoutPos が AST に載っても compile.ts は無視するため既存 render と同じ。
+      const d = jsonToDiagram({
+        ...validDoc,
+        actors: [{ name: "A", pos: { x: 40, y: -20 } }, { name: "B" }],
+      });
+      expect(d.nodes.length).toBeGreaterThan(0);
+      // Phase 2 実装後は node の posX/Y に (auto + offset) が反映される予定、 本 test はそれまで
+      // 「pos 指定でも既存 render を壊さない」 の regression guard として機能する。
+    });
+
+    it("layout: 'manual' でも Phase 1 では render 崩れない (Phase 4 で本格反映)", () => {
+      const d = jsonToDiagram({ ...validDoc, layout: "manual" });
+      expect(d.nodes.length).toBeGreaterThan(0);
+    });
+  });
+});

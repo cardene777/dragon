@@ -24,6 +24,27 @@ export type Position = {
   column?: number;
 };
 
+/**
+ * canvas pivot (CAR-1693 Phase 1) の DSL 表面 `pos: {x, y}` を保持する型。
+ * auto layout の compute value からの offset (dx, dy) を表す。 element の `layoutPos:` が
+ * undefined なら auto layout の値をそのまま採用 (catalog 100+ backward compat)、 set 済なら
+ * Phase 2 の applyPosOffset pass が offset として適用する。
+ *
+ * naming = DSL 表面 syntax は user 提案 wording (`pos:`) を維持、 内部 AST は既存 `pos: Position`
+ * (source line/column) との collision 回避のため `layoutPos:` に rename する 2 層設計。
+ */
+export type LayoutPos = {
+  x: number;
+  y: number;
+};
+
+/**
+ * diagram-level layout mode (CAR-1693 Phase 1)。 未指定は "auto" default で catalog 100+ は
+ * byte-identical 動作。 "manual" は Phase 4 で drag interaction が「auto layout を skip して
+ * pos: 値をそのまま採用する」 mode として使う予定。
+ */
+export type LayoutMode = "auto" | "manual";
+
 /** トップレベル AST */
 export type DslDocument = {
   title: string;
@@ -35,6 +56,11 @@ export type DslDocument = {
   viewport?: DslViewport;
   lanes?: Record<string, DslLane>;
   groups?: Record<string, DslGroup>;
+  /**
+   * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 未指定は "auto" default で
+   * catalog 100+ backward compat。 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode。
+   */
+  layout?: LayoutMode;
   pos: Position;
 };
 
@@ -81,6 +107,13 @@ export type DslActor = {
    * 同 actor の他 sub-node は影響を受けない (lane 全体 posX とは独立経路)。
    */
   nodes?: Record<string, DslActorNodeOverride>;
+  /**
+   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 未指定は auto
+   * layout の compute value そのまま (backward compat)、 set 済なら Phase 2 の applyPosOffset で
+   * (auto x + layoutPos.x, auto y + layoutPos.y) に shift される。 既存 posX/posY (絶対座標) は
+   * 別 mechanism で、 layoutPos は auto layout からの nudge (dx, dy)。
+   */
+  layoutPos?: LayoutPos;
   pos: Position;
 };
 
@@ -110,6 +143,11 @@ export type DslStep = {
   cardinality?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /**
+   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 step の edge
+   * label 位置を auto layout compute から (dx, dy) shift する。 未指定は auto、 set 済は Phase 2 で適用。
+   */
+  layoutPos?: LayoutPos;
   pos: Position;
 };
 
@@ -121,6 +159,11 @@ export type DslLane = {
   label?: string;
   contain?: boolean;
   lifeline?: boolean;
+  /**
+   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 lane の x 座標を
+   * auto layout compute から (dx, dy) shift する。 未指定は auto、 set 済は Phase 2 で適用。
+   */
+  layoutPos?: LayoutPos;
   pos: Position;
 };
 
