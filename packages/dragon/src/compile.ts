@@ -975,8 +975,13 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       );
       // lane.label で actor 専用 lane を引けた場合はその lane の header node を回収する。 引けない
       // (label 未設定等の) preset は従来どおり dragon slug の `{slug}-header` 決め打ちに fallback する。
+      //
+      // header node id は `{laneId}-header` の構造。 `endsWith("-header")` で判定すると step box
+      // `s{idx}-{laneId}` が actor 名末尾 "Header" (slug `...-header`) で誤マッチし、 option が invisible
+      // な step anchor にも copy される (cc-codex #883 MAJOR)。 lane id との構造 exact 一致で header だけを
+      // 引くことで step box / spacer / footer を排除する。
       primaryNodes = ownedLaneIds.size > 0
-        ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id.endsWith("-header"))
+        ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id === `${n.lane}-header`)
         : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
     } else {
       // 非 seq preset は 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。

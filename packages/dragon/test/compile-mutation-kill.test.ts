@@ -1158,6 +1158,20 @@ describe("applyV05Extensions: underscore/全角 actor 名でも inline option �
     expect(node(d, "a-b-header").subtitle).toBe("onlyAB");
     expect(node(d, "c-d-header").subtitle).toBeUndefined();
   });
+
+  it("actor 名末尾が Header でも option が step box に漏れず header だけに付く (cc-codex #883 MAJOR)", () => {
+    // "Auth Header" は slug `auth-header`。 step box `s0-auth-header` も `-header` で終わるため
+    // endsWith 判定では誤マッチしていた。 header node id `{lane}-header` の構造 exact 一致で防ぐ。
+    const d = compile("sequence", {
+      actors: [actor("Auth Header", { subtitle: "onlyHdr" }), actor("C")],
+      flow: [step("Auth Header", "C")],
+    });
+    expect(node(d, "auth-header-header").subtitle).toBe("onlyHdr");
+    // step box (invisible 2x2 anchor) には漏れない
+    expect(node(d, "s0-auth-header").subtitle).toBeUndefined();
+    expect(node(d, "auth-header-spacer").subtitle).toBeUndefined();
+    expect(node(d, "auth-header-footer").subtitle).toBeUndefined();
+  });
 });
 
 describe("applyV05Extensions: lanes section", () => {
