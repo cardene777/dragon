@@ -19,7 +19,7 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
   .lane("output", { x: 300, width: 260 })
   .input.slider("value", { min: 0, max: 100, defaultValue: 50, label: "Value" })
   .state("value", { initial: 50 })
-  .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider signal", subtitle: "value = {value}" })
+  .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider", subtitle: "value = {value}" })
   .node("bar-node", { lane: "output", stack: 0, kind: "card", title: "Bar", subtitle: "value: {value}" })
   .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
   .phase("p", {
@@ -89,7 +89,7 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .input.toggle("active", { defaultValue: false, label: "Active" })
   .state("active", { initial: "off" })
   .node("btn", { lane: "trigger", stack: 0, kind: "card", title: "Button", subtitle: "click target" })
-  .node("handlerNode", { lane: "handler", stack: 0, kind: "card", title: "Event handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
+  .node("handlerNode", { lane: "handler", stack: 0, kind: "card", title: "Handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
   .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal state", subtitle: "active = {active}" })
   .edge("btn", "handlerNode", { label: "click / hover", tone: "info" })
   .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
@@ -114,12 +114,12 @@ export const visualBindBar = diagram("interactive-visual-bar", {
   .lane("readout", { x: 600, width: 220 })
   .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "Bar width" })
   .state("barW", { initial: 160 })
-  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal source", subtitle: "barW = {barW}" })
+  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal", subtitle: "barW = {barW}" })
   .node("bar", {
     lane: "bar",
     stack: 0,
     kind: "card",
-    title: "Dynamic Bar",
+    title: "Bar",
     subtitle: "wBind = {barW}px",
     w: 160,
     wBind: "{barW}",
@@ -184,11 +184,11 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
     label: "Position",
   })
   .state("pos", { initial: "50,50" })
-  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2 (x<50, y>50)", subtitle: "upper-left" })
-  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1 (x>50, y>50)", subtitle: "upper-right" })
-  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3 (x<50, y<50)", subtitle: "lower-left" })
-  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4 (x>50, y<50)", subtitle: "lower-right" })
-  .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Current pos", subtitle: "{pos} (default center → Q1 boundary)" })
+  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2", subtitle: "upper-left" })
+  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1", subtitle: "upper-right" })
+  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3", subtitle: "lower-left" })
+  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4", subtitle: "lower-right" })
+  .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Position", subtitle: "{pos} (default center → Q1 boundary)" })
   .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
   .phase("p", {
     duration: 1500,
@@ -208,7 +208,7 @@ export const stepperControl = diagram("interactive-stepper", {
   .lane("stat", { x: 480, width: 200 })
   .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "Count" })
   .state("count", { initial: 3 })
-  .node("ctrlNode", { lane: "ctrl", stack: 0, kind: "card", title: "Stepper control", subtitle: "count = {count} (0-10 range)" })
+  .node("ctrlNode", { lane: "ctrl", stack: 0, kind: "card", title: "Stepper", subtitle: "count = {count} (0-10 range)" })
   .node("barNode", { lane: "bar", stack: 0, kind: "card", title: "Bar visual", subtitle: "count 追随 progress bar (readout.bar)" })
   .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Stat readout", subtitle: "count 追随 number + unit (readout.stat)" })
   .edge("ctrlNode", "barNode", { label: "→ bar", tone: "info" })
@@ -279,7 +279,7 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   .input.color("accent", { defaultValue: "#8a5a2a", label: "Accent" })
   .state("accent", { initial: "#8a5a2a" })
   .node("pickerNode", { lane: "picker", stack: 0, kind: "card", title: "Color picker", subtitle: "input.color widget · default #8a5a2a" })
-  .node("swatch", { lane: "swatch", stack: 0, kind: "card", title: "Swatch preview", subtitle: "hex: {accent}" })
+  .node("swatch", { lane: "swatch", stack: 0, kind: "card", title: "Swatch", subtitle: "hex: {accent}" })
   .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Hex stat", subtitle: "readout.stat で hex 表示" })
   .edge("pickerNode", "swatch", { label: "select", tone: "info" })
   .edge("swatch", "statNode", { label: "display", tone: "success" })
@@ -398,7 +398,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     shape: { kind: "circle", fillProgress: "{prog33}", fill: "#2563eb" } })
   .node("cTwoThird", { lane: "twothird", stack: 0, kind: "dyn-circle", title: "66%", subtitle: "two-third", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" } })
-  .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Slider", subtitle: "{p}%", w: 160, h: 160,
+  .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Ring", subtitle: "{p}%", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
@@ -452,13 +452,13 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   .state("lvl25", { initial: 25 })
   .state("lvl50", { initial: 50 })
   .state("lvl75", { initial: 75 })
-  .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low 25%", subtitle: "25%", w: 140, h: 220,
+  .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low", subtitle: "25%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" } })
-  .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half 50%", subtitle: "50%", w: 140, h: 220,
+  .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half", subtitle: "50%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" } })
-  .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High 75%", subtitle: "75%", w: 140, h: 220,
+  .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High", subtitle: "75%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" } })
-  .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Slider", subtitle: "{lvl}%", w: 140, h: 220,
+  .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Wave", subtitle: "{lvl}%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
   .phase("p", {
     duration: 1500,
@@ -483,13 +483,13 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .state("radius", { initial: 60 })
   .state("rot0", { initial: 0 })
   .state("radius60", { initial: 60 })
-  .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Triangle", subtitle: "sides=3", w: 180, h: 180,
+  .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Tri", subtitle: "sides=3", w: 180, h: 180,
     shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" } })
-  .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "sides=6", w: 180, h: 180,
+  .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hex", subtitle: "sides=6", w: 180, h: 180,
     shape: { kind: "polygon", sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" } })
-  .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Octagon", subtitle: "sides=8", w: 180, h: 180,
+  .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Oct", subtitle: "sides=8", w: 180, h: 180,
     shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" } })
-  .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon slider", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
+  .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
@@ -579,10 +579,10 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .state("t", { initial: 0 })
   .state("bar", { initial: 0 })
   .state("angle", { initial: 0 })
-  .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline signal", subtitle: "t (0-1 loop 3s autoplay)" })
+  .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline", subtitle: "t (0-1 loop 3s autoplay)" })
   .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 60, h: 200,
     shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" } })
-  .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc (dial)", subtitle: "angle = t * 270", w: 140, h: 140,
+  .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc", subtitle: "angle = t * 270", w: 140, h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
   .edge("timeNode", "r", { label: "t → bar (*100)", tone: "info" })
   .edge("timeNode", "a", { label: "t → angle (*270)", tone: "accent" })
@@ -756,7 +756,7 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
     lane: "agg",
     stack: 0,
     kind: "card",
-    title: "Array aggregate",
+    title: "Aggregate",
     subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
   })
   .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "first bar override = {bump}" })
@@ -821,8 +821,8 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   .lane("line", { x: 540, width: 280 })
   .arraySignal("series", [22, 35, 28, 42, 55, 48, 60, 72, 65, 80])
   .node("dataCard", { lane: "data", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" })
-  .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Area chart (fill=true)", subtitle: "blue #2563eb · viewH=70" })
-  .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Line chart (fill=false)", subtitle: "orange #f97316 · viewH=50" })
+  .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Area chart", subtitle: "blue #2563eb · viewH=70" })
+  .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Line chart", subtitle: "orange #f97316 · viewH=50" })
   .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Area chart" })
   .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" })
   .phase("p", {
@@ -846,7 +846,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     lane: "groupA",
     stack: 0,
     kind: "card",
-    title: "Group A (blue)",
+    title: "Group A",
     subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}",
   })
   .node("aDetail", { lane: "groupA", stack: 1, kind: "card", title: "A 5 element", subtitle: "[40, 55, 30, 65, 45]" })
@@ -854,7 +854,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     lane: "groupB",
     stack: 0,
     kind: "card",
-    title: "Group B (orange)",
+    title: "Group B",
     subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}",
   })
   .node("bDetail", { lane: "groupB", stack: 1, kind: "card", title: "B 5 element", subtitle: "[25, 40, 50, 35, 60]" })
@@ -916,7 +916,7 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
   .node("pos3", { lane: "pos", stack: 2, kind: "card", title: "+40", subtitle: "最終利益" })
   .node("neg1", { lane: "neg", stack: 0, kind: "card", title: "-30", subtitle: "小損失" })
   .node("neg2", { lane: "neg", stack: 1, kind: "card", title: "-20", subtitle: "追加損失" })
-  .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall summary", subtitle: "final = sum = {changes.sum}" })
+  .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall", subtitle: "final = sum = {changes.sum}" })
   .readout.waterfall("wf", {
     source: "changes",
     min: -30,
@@ -947,12 +947,12 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
   .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "Drift Y" })
   .state("dx", { initial: 0 })
   .state("dy", { initial: 0 })
-  .node("anchor", { lane: "anchor", stack: 0, kind: "card", title: "Anchor (constant)", subtitle: "固定位置、 signal bind なし" })
+  .node("anchor", { lane: "anchor", stack: 0, kind: "card", title: "Anchor", subtitle: "固定位置、 signal bind なし" })
   .node("floater", {
     lane: "floater",
     stack: 0,
     kind: "card",
-    title: "Floater (drift)",
+    title: "Floater",
     subtitle: "dx={dx} · dy={dy}",
     renderOffsetX: "{dx}",
     renderOffsetY: "{dy}",
@@ -1051,7 +1051,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
     lane: "sender",
     stack: 0,
     kind: "card",
-    title: "Sender wallet",
+    title: "Wallet",
     subtitle: "base {baseFee} + tip {priority} gwei",
   })
   .node("b1", {
@@ -1109,7 +1109,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     lane: "user",
     stack: 0,
     kind: "card",
-    title: "Client browser",
+    title: "Browser",
     subtitle: "user agent",
   })
   .node("consent", {
@@ -1123,7 +1123,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     lane: "resource",
     stack: 0,
     kind: "card",
-    title: "Resource server",
+    title: "Resource",
     subtitle: "API endpoint",
   })
   .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetY: -90 })
@@ -1249,7 +1249,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "30%" })
   .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "15%" })
   .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "10% (min)" })
-  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio total", subtitle: "sum = {assets.sum}%" })
+  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio", subtitle: "sum = {assets.sum}%" })
   .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
   .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
   .phase("p", {
@@ -1336,21 +1336,21 @@ export const abTestResult = diagram("interactive-ab-test", {
     lane: "varA",
     stack: 0,
     kind: "card",
-    title: "Variant A (Control)",
+    title: "Variant A",
     subtitle: "avg {convA.avg}%",
   })
   .node("splitCard", {
     lane: "split",
     stack: 0,
     kind: "card",
-    title: "Traffic split",
+    title: "Split",
     subtitle: "50/50 randomize",
   })
   .node("treatmentCard", {
     lane: "varB",
     stack: 0,
     kind: "card",
-    title: "Variant B (Treatment)",
+    title: "Variant B",
     subtitle: "avg {convB.avg}%",
   })
   .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
@@ -1414,9 +1414,9 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
   .state("panX", { initial: 300 })
   .state("panY", { initial: 250 })
   .arraySignal("viewport", [300, 250, 400, 300])
-  .node("xNode", { lane: "xpan", stack: 0, kind: "card", title: "Pan X control", subtitle: "panX = {panX}px (0-600)" })
-  .node("yNode", { lane: "ypan", stack: 0, kind: "card", title: "Pan Y control", subtitle: "panY = {panY}px (0-500)" })
-  .node("mapNode", { lane: "map", stack: 0, kind: "card", title: "Mini-map viewport", subtitle: "pan ({panX}, {panY}) view 400×300" })
+  .node("xNode", { lane: "xpan", stack: 0, kind: "card", title: "Pan X", subtitle: "panX = {panX}px (0-600)" })
+  .node("yNode", { lane: "ypan", stack: 0, kind: "card", title: "Pan Y", subtitle: "panY = {panY}px (0-500)" })
+  .node("mapNode", { lane: "map", stack: 0, kind: "card", title: "Mini-map", subtitle: "pan ({panX}, {panY}) view 400×300" })
   .readout.miniMap("map", { source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview (mini-map)" })
   .readout.stat("panXStat", { source: "panX", unit: "px", label: "X stat" })
   .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y stat" })
@@ -1442,7 +1442,7 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   .arraySignal("history", [120, 135, 148, 152, 165, 170])
   .node("prevNode", { lane: "prevLane", stack: 0, kind: "card", title: "Previous", subtitle: "{prev}k (baseline)" })
   .node("currNode", { lane: "currLane", stack: 0, kind: "card", title: "◆ Current", subtitle: "{current}k (slider driven)" })
-  .node("trendNode", { lane: "trendLane", stack: 0, kind: "card", title: "Trend history", subtitle: "6 month sparkline (120-170k)" })
+  .node("trendNode", { lane: "trendLane", stack: 0, kind: "card", title: "Trend", subtitle: "6 month sparkline (120-170k)" })
   .edge("prevNode", "currNode", { label: "delta = current - prev", tone: "success" })
   .edge("currNode", "trendNode", { label: "sparkline last", tone: "info" })
   .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" })
@@ -1501,7 +1501,7 @@ export const userVenn = diagram("interactive-user-venn", {
   .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "75 users (A - A∩B)" })
   .node("bothNode", { lane: "both", stack: 0, kind: "card", title: "Both (A ∩ B)", subtitle: "25 users (intersection)" })
   .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "15 users (B - A∩B)" })
-  .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Total universe", subtitle: "Users A=100 · Payers B=40" })
+  .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Universe", subtitle: "Users A=100 · Payers B=40" })
   .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap (2-set Venn)" })
   .phase("p", {
     duration: 1200,
@@ -1819,9 +1819,9 @@ export const buildStatusTrafficLight = diagram("interactive-build-traffic-light"
   .lane("green", { x: 480, width: 200 })
   .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
   .state("status", { initial: "green" })
-  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "ビルド失敗 · 要修正" })
-  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "ビルド実行中 · 待機" })
-  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "ビルド成功 · deploy 可" })
+  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red", subtitle: "ビルド失敗 · 要修正" })
+  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow", subtitle: "ビルド実行中 · 待機" })
+  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green", subtitle: "ビルド成功 · deploy 可" })
   .node("currentCI", { lane: "green", stack: 1, kind: "card", title: "◆ Current CI", subtitle: "status: {status}" })
   .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
   .phase("p", {
@@ -1964,7 +1964,7 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   .state("add", { initial: 120 })
   .state("del", { initial: 45 })
   .node("addCard", { lane: "adds", stack: 0, kind: "card", title: "+ Additions", subtitle: "+{add} lines (green)" })
-  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del ratio", subtitle: "add > del → net growth" })
+  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del", subtitle: "add > del → net growth" })
   .node("delCard", { lane: "dels", stack: 0, kind: "card", title: "- Deletions", subtitle: "-{del} lines (red)" })
   .node("delDetail", { lane: "dels", stack: 1, kind: "card", title: "cleanup", subtitle: "remove obsolete code" })
   .edge("addCard", "delCard", { label: "net = add - del", tone: "info" })
@@ -2016,8 +2016,8 @@ export const userAvatar = diagram("interactive-user-avatar", {
   .input.text("user", { defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" })
   .state("user", { initial: "Alice Wonderland" })
   .node("inputNode", { lane: "input", stack: 0, kind: "card", title: "Text input", subtitle: "user = {user}" })
-  .node("initialsNode", { lane: "initials", stack: 0, kind: "card", title: "Initials extract", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
-  .node("circleNode", { lane: "circle", stack: 0, kind: "card", title: "Colored circle", subtitle: "size 56 · blue #2563eb + AW text" })
+  .node("initialsNode", { lane: "initials", stack: 0, kind: "card", title: "Initials", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
+  .node("circleNode", { lane: "circle", stack: 0, kind: "card", title: "Circle", subtitle: "size 56 · blue #2563eb + AW text" })
   .edge("inputNode", "initialsNode", { label: "parse", tone: "info" })
   .edge("initialsNode", "circleNode", { label: "render", tone: "success" })
   .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" })
@@ -2045,10 +2045,10 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
     ["Post-mortem", false],
   ] as unknown as (string | number)[])
   .node("t1", { lane: "done", stack: 0, kind: "card", title: "✓ Setup CI", subtitle: "done" })
-  .node("t2", { lane: "done", stack: 1, kind: "card", title: "✓ Write tests", subtitle: "done" })
+  .node("t2", { lane: "done", stack: 1, kind: "card", title: "✓ Tests", subtitle: "done" })
   .node("t3", { lane: "todo", stack: 0, kind: "card", title: "Fix bug #42", subtitle: "todo (blocker)" })
   .node("t4", { lane: "todo", stack: 1, kind: "card", title: "Code review", subtitle: "todo (awaits reviewer)" })
-  .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy staging", subtitle: "todo (depends on review)" })
+  .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy", subtitle: "todo (depends on review)" })
   .node("t6", { lane: "todo", stack: 3, kind: "card", title: "Post-mortem", subtitle: "todo (last)" })
   .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress (2/6 = 33%)" })
   .phase("p", {
@@ -2071,7 +2071,7 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
   .state("rpm", { initial: 3500 })
   .node("idleNode", { lane: "idle", stack: 0, kind: "card", title: "Idle range", subtitle: "0-2000 rpm (green)" })
   .node("cruiseNode", { lane: "cruise", stack: 0, kind: "card", title: "Cruise range", subtitle: "2000-5000 rpm (yellow) · normal driving" })
-  .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline range", subtitle: "5000-8000 rpm (red) · caution" })
+  .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline", subtitle: "5000-8000 rpm (red) · caution" })
   .node("currentRpm", { lane: "cruise", stack: 1, kind: "card", title: "◆ Current", subtitle: "{rpm} rpm (default 3500 = cruise)" })
   .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer (270° dial)" })
   .phase("p", {
@@ -2122,7 +2122,7 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   .node("runningNode", { lane: "running", stack: 0, kind: "card", title: "◐ Running", subtitle: "blue spinner · SMIL 回転 circle" })
   .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "✓ Done", subtitle: "green · deploy success" })
   .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · deploy failed" })
-  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Current deploy", subtitle: "status: {status} · msg: {msg}" })
+  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Deploy", subtitle: "status: {status} · msg: {msg}" })
   .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" })
   .phase("p",  {
     duration: 1200,
@@ -2174,8 +2174,8 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .state("elapsed", { initial: 125000 })
   .formula("elapsed", "sec * 1000")
   .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "sec = {sec}s (0-3600)" })
-  .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "Running toggle", subtitle: "running = {running}" })
-  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms display", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
+  .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "Running", subtitle: "running = {running}" })
+  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "color", tone: "success" })
   .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "Timer (MM:SS.ms)" })
@@ -2432,10 +2432,10 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   .input.text("desc", { defaultValue: "Fix crash on startup", placeholder: "Issue description", maxLength: 60, label: "Description" })
   .state("prio", { initial: "high" })
   .state("desc", { initial: "Fix crash on startup" })
-  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "▲ High priority", subtitle: "red · crash / regression" })
-  .node("medNode", { lane: "med", stack: 0, kind: "card", title: "● Med priority", subtitle: "yellow · normal bug" })
-  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low priority", subtitle: "gray · nice-to-have" })
-  .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current Issue", subtitle: "prio: {prio} · {desc}" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "▲ High", subtitle: "red · crash / regression" })
+  .node("medNode", { lane: "med", stack: 0, kind: "card", title: "● Med", subtitle: "yellow · normal bug" })
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low", subtitle: "gray · nice-to-have" })
+  .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "prio: {prio} · {desc}" })
   .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority (badge + icon + text)" })
   .phase("p", {
     duration: 1200,
@@ -2458,9 +2458,9 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
     ["Bob", "1050 pts"],
     ["Carol", "980 pts"],
   ] as unknown as (string | number)[])
-  .node("silverNode", { lane: "silver", stack: 0, kind: "card", title: "🥈 2nd — Bob", subtitle: "1050 pts (silver)" })
-  .node("goldNode", { lane: "gold", stack: 0, kind: "card", title: "🥇 1st — Alice", subtitle: "1200 pts (gold champion)" })
-  .node("bronzeNode", { lane: "bronze", stack: 0, kind: "card", title: "🥉 3rd — Carol", subtitle: "980 pts (bronze)" })
+  .node("silverNode", { lane: "silver", stack: 0, kind: "card", title: "🥈 2nd Bob", subtitle: "1050 pts (silver)" })
+  .node("goldNode", { lane: "gold", stack: 0, kind: "card", title: "🥇 1st Alice", subtitle: "1200 pts (gold champion)" })
+  .node("bronzeNode", { lane: "bronze", stack: 0, kind: "card", title: "🥉 3rd Carol", subtitle: "980 pts (bronze)" })
   .readout.podium("pod", { source: "winners", viewW: 280, viewH: 180, label: "Podium (3 縦 bar 表彰台)" })
   .phase("p", {
     duration: 1200,
@@ -2484,7 +2484,7 @@ export const featurePoll = diagram("interactive-feature-poll", {
     ["Nicer UI", 12],
   ] as unknown as (string | number)[])
   .node("dark", { lane: "winner", stack: 0, kind: "card", title: "★ Dark mode", subtitle: "42 votes (winner)" })
-  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Faster search", subtitle: "28 votes" })
+  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Search", subtitle: "28 votes" })
   .node("api", { lane: "runners", stack: 1, kind: "card", title: "Better API", subtitle: "18 votes" })
   .node("ui", { lane: "runners", stack: 2, kind: "card", title: "Nicer UI", subtitle: "12 votes" })
   .readout.pollBar("pb", { source: "options", color: "#a08870", colorWinner: "#2563eb", label: "Results (aggregate)" })
@@ -2623,10 +2623,10 @@ export const searchResults = diagram("interactive-search-results", {
     ["Vite guide", "Frontend build tool guide", "vitejs.dev"],
   ] as unknown as (string | number)[])
   .node("mdnNode", { lane: "docs", stack: 0, kind: "card", title: "MDN Web Docs", subtitle: "developer.mozilla.org" })
-  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TypeScript Handbook", subtitle: "typescriptlang.org/docs" })
+  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TS Handbook", subtitle: "typescriptlang.org/docs" })
   .node("reactNode", { lane: "docs", stack: 2, kind: "card", title: "React docs", subtitle: "react.dev" })
   .node("viteNode", { lane: "docs", stack: 3, kind: "card", title: "Vite guide", subtitle: "vitejs.dev" })
-  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust playground", subtitle: "play.rust-lang.org (interactive)" })
+  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust", subtitle: "play.rust-lang.org (interactive)" })
   .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results (link + snippet + url)" })
   .phase("p", {
     duration: 1200,
@@ -2652,14 +2652,14 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
     ["Q4", ["Public GA", "Series A"]],
   ] as unknown as (string | number)[])
   .node("q1Head", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "Design + MVP" })
-  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design system", subtitle: "foundation" })
-  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature A", subtitle: "prototype" })
+  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design", subtitle: "foundation" })
+  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature", subtitle: "prototype" })
   .node("q2Head", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "Beta + growth" })
   .node("q2Item1", { lane: "q2", stack: 1, kind: "card", title: "Beta launch", subtitle: "public beta" })
   .node("q2Item2", { lane: "q2", stack: 2, kind: "card", title: "Feature B", subtitle: "beta scope" })
   .node("q3Head", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "Scale + enterprise" })
   .node("q3Item1", { lane: "q3", stack: 1, kind: "card", title: "Scale infra", subtitle: "capacity" })
-  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise deals", subtitle: "B2B revenue" })
+  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise", subtitle: "B2B revenue" })
   .node("q4Head", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "GA + funding" })
   .node("q4Item1", { lane: "q4", stack: 1, kind: "card", title: "Public GA", subtitle: "general available" })
   .node("q4Item2", { lane: "q4", stack: 2, kind: "card", title: "Series A", subtitle: "growth capital" })
@@ -2717,9 +2717,9 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
     ["🎥", "TypeScript deep dive", "45:20", "82k"],
     ["📺", "React hooks explained", "18:30", "156k"],
   ] as unknown as (string | number)[])
-  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust intro", subtitle: "12:45 · 24k views" })
-  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TypeScript deep dive", subtitle: "45:20 · 82k views" })
-  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React hooks", subtitle: "18:30 · 156k views (top view)" })
+  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust", subtitle: "12:45 · 24k views" })
+  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TS deep", subtitle: "45:20 · 82k views" })
+  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React", subtitle: "18:30 · 156k views (top view)" })
   .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos (thumbnail list)" })
   .phase("p", {
     duration: 1200,
@@ -2743,7 +2743,7 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
   .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "梱包完了" })
   .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "配送開始" })
-  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "配達中 (現在地)" })
+  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Delivery", subtitle: "配達中 (現在地)" })
   .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "配達完了" })
   .edge("packedNode", "shippedNode", { label: "handover", tone: "success" })
   .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
@@ -2861,10 +2861,10 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
     ["Sweet Child O' Mine", "Guns N' Roses", "5:56"],
     ["Imagine", "John Lennon", "3:03"],
   ] as unknown as (string | number)[])
-  .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian Rhapsody", subtitle: "Queen · 5:55 (played)" })
-  .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel California", subtitle: "Eagles · 6:30 (now playing)" })
-  .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway to Heaven", subtitle: "Led Zeppelin · 8:02" })
-  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child O' Mine", subtitle: "Guns N' Roses · 5:56" })
+  .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian", subtitle: "Queen · 5:55 (played)" })
+  .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel", subtitle: "Eagles · 6:30 (now playing)" })
+  .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway", subtitle: "Led Zeppelin · 8:02" })
+  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child", subtitle: "Guns N' Roses · 5:56" })
   .node("song4", { lane: "next", stack: 2, kind: "card", title: "Imagine", subtitle: "John Lennon · 3:03" })
   .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue (current highlight)" })
   .phase("p", {
@@ -2894,10 +2894,10 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   .lane("w3", { x: 340, width: 150 })
   .lane("w4", { x: 510, width: 200 })
   .arraySignal("days", generateCalendarDays())
-  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1 (Jan 1-7)", subtitle: "1 event (Jan 3)" })
-  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2 (Jan 8-14)", subtitle: "2 events (Jan 8, 12) + today (13)" })
-  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3 (Jan 15-21)", subtitle: "1 event (Jan 17)" })
-  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5 (Jan 22-31)", subtitle: "2 events (Jan 22, 26)" })
+  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1", subtitle: "1 event (Jan 3)" })
+  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2", subtitle: "2 events (Jan 8, 12) + today (13)" })
+  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3", subtitle: "1 event (Jan 17)" })
+  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5", subtitle: "2 events (Jan 22, 26)" })
   .node("monthSummary", { lane: "w4", stack: 1, kind: "card", title: "Month total", subtitle: "31 days · 6 events · today = Jan 13" })
   .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view (7 column grid)" })
   .phase("p", {
@@ -2956,10 +2956,10 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     // White back rank (rank 1)
     ["a", 1, "♖"], ["b", 1, "♘"], ["c", 1, "♗"], ["d", 1, "♕"], ["e", 1, "♔"], ["f", 1, "♗"], ["g", 1, "♘"], ["h", 1, "♖"],
   ] as unknown as (string | number)[])
-  .node("blackBackNode", { lane: "blackBack", stack: 0, kind: "card", title: "Black back (rank 8)", subtitle: "♜♞♝♛♚♝♞♜ · 8 pieces" })
-  .node("blackPawnNode", { lane: "blackPawn", stack: 0, kind: "card", title: "Black pawns (rank 7)", subtitle: "♟×8" })
-  .node("whitePawnNode", { lane: "whitePawn", stack: 0, kind: "card", title: "White pawns (rank 2)", subtitle: "♙×8" })
-  .node("whiteBackNode", { lane: "whiteBack", stack: 0, kind: "card", title: "White back (rank 1)", subtitle: "♖♘♗♕♔♗♘♖ · 8 pieces" })
+  .node("blackBackNode", { lane: "blackBack", stack: 0, kind: "card", title: "Black back", subtitle: "♜♞♝♛♚♝♞♜ · 8 pieces" })
+  .node("blackPawnNode", { lane: "blackPawn", stack: 0, kind: "card", title: "Black pawns", subtitle: "♟×8" })
+  .node("whitePawnNode", { lane: "whitePawn", stack: 0, kind: "card", title: "White pawns", subtitle: "♙×8" })
+  .node("whiteBackNode", { lane: "whiteBack", stack: 0, kind: "card", title: "White back", subtitle: "♖♘♗♕♔♗♘♖ · 8 pieces" })
   .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position (8×8 board)" })
   .phase("p", {
     duration: 1200,
@@ -2986,8 +2986,8 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
     ["done", "Setup CI", "med"],
     ["done", "Repo bootstrap", "low"],
   ] as unknown as (string | number)[])
-  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2 tasks)", subtitle: "Design API schema (high) · Write docs (low)" })
-  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress (2)", subtitle: "Impl auth flow (high) · Migration script (med)" })
+  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2)", subtitle: "Design API schema (high) · Write docs (low)" })
+  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress", subtitle: "Impl auth flow (high) · Migration script (med)" })
   .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "Done (2)", subtitle: "Setup CI (med) · Repo bootstrap (low)" })
   .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" })
   .phase("p", {
@@ -3071,7 +3071,7 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     ["11:15", "active"],
     ["12:00", "active"],
   ] as unknown as (string | number)[])
-  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4 events)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
+  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
   .node("idleCard", { lane: "idle", stack: 0, kind: "card", title: "Idle (1)", subtitle: "10:30 · gray" })
   .node("errorCard", { lane: "error", stack: 0, kind: "card", title: "Error (1)", subtitle: "11:00 · red" })
   .readout.statusTimeline("st", { source: "events", max: 8, label: "Server status" })
@@ -3106,7 +3106,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
   ] as unknown as (string | number)[])
   .node("monNode", { lane: "mon", stack: 0, kind: "card", title: "Mon", subtitle: "event" })
   .node("tueNode", { lane: "tue", stack: 0, kind: "card", title: "Tue", subtitle: "-" })
-  .node("wedNode", { lane: "wed", stack: 0, kind: "card", title: "◆ Wed (today)", subtitle: "event" })
+  .node("wedNode", { lane: "wed", stack: 0, kind: "card", title: "◆ Wed", subtitle: "event" })
   .node("thuNode", { lane: "thu", stack: 0, kind: "card", title: "Thu", subtitle: "-" })
   .node("friNode", { lane: "fri", stack: 0, kind: "card", title: "Fri", subtitle: "event" })
   .node("satNode", { lane: "sat", stack: 0, kind: "card", title: "Sat", subtitle: "-" })
@@ -3129,9 +3129,9 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .lane("teamB", { x: 380, width: 340 })
   .arraySignal("teams", [["Team A", 82], ["Team B", 65]] as unknown as (string | number)[])
   .node("aCard", { lane: "teamA", stack: 0, kind: "card", title: "Team A", subtitle: "82 (winner, blue)" })
-  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "82 story points" })
+  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Velocity", subtitle: "82 story points" })
   .node("bCard", { lane: "teamB", stack: 0, kind: "card", title: "Team B", subtitle: "65 (orange)" })
-  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "65 story points" })
+  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Velocity", subtitle: "65 story points" })
   .edge("aCard", "bCard", { label: "diff 17", tone: "warning" })
   .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
   .phase("p", {
@@ -3207,9 +3207,9 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
   .lane("down", { x: 380, width: 340 })
   .arraySignal("votes", [24, 3])
   .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "24 (89%)" })
-  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive feedback", subtitle: "green tone" })
+  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive", subtitle: "green tone" })
   .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "3 (11%)" })
-  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative feedback", subtitle: "red tone" })
+  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative", subtitle: "red tone" })
   .edge("upCard", "downCard", { label: "ratio 24 vs 3", tone: "warning" })
   .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" })
   .phase("p", {
@@ -3238,7 +3238,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   ] as unknown as (string | number)[])
   .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "level 0 (root)" })
   .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "level 1" })
-  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol VP Sales", subtitle: "level 1" })
+  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol Sales", subtitle: "level 1" })
   .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "level 2 · under Bob" })
   .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "level 2 · under Bob" })
   .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "level 2 · under Carol" })
@@ -3267,10 +3267,10 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .state("cur", { initial: 82 })
   .state("prev", { initial: 75 })
   .arraySignal("hist", [60, 65, 70, 75, 80, 82])
-  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current NPS", subtitle: "82 (今月)" })
+  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current", subtitle: "82 (今月)" })
   .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "75 (先月)" })
   .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "▲ Delta", subtitle: "+7 (+9.3%) · green" })
-  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6 month history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
+  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6mo history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
   .edge("curCard", "prevCard", { label: "compare", tone: "info" })
   .edge("curCard", "histCard", { label: "spark", tone: "success" })
   .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" })
@@ -3291,7 +3291,7 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
   .lane("heart", { x: 280, width: 240 })
   .lane("party", { x: 560, width: 240 })
   .arraySignal("votes", [["👍", 42], ["❤️", 28], ["🎉", 15]] as unknown as (string | number)[])
-  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs (winner)", subtitle: "42 votes · highlight border" })
+  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs", subtitle: "42 votes · highlight border" })
   .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "28 votes" })
   .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "15 votes" })
   .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
@@ -3313,7 +3313,7 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
   .lane("play", { x: 540, width: 220 })
   .arraySignal("amps", [0.2, 0.4, 0.7, 0.9, 0.6, 0.3, 0.5, 0.8, 0.4, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4])
   .state("progress", { initial: 0 })
-  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice (送信者)", subtitle: "0:23 音声メモ · 2 分前" })
+  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice", subtitle: "0:23 音声メモ · 2 分前" })
   .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "波形 15 バー", subtitle: "amp 0.2 → 0.9 の dense sequence" })
   .node("playCard", { lane: "play", stack: 0, kind: "card", title: "▶ 再生", subtitle: "progress で active バー左から色付く" })
   .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "アクティブ バー", subtitle: "progressSource で active/idle 区別" })
@@ -3348,7 +3348,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   .lane("activity", { x: 520, width: 260 })
   .arraySignal("thread", [5, 8, "Alice", "12 分前"] as unknown as (string | number)[])
   .state("unreadCount", { initial: 0 })
-  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読 {unreadCount} 件", subtitle: "赤バッジ · 累積表示" })
+  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読", subtitle: "{unreadCount} 件 · 赤バッジ" })
   .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "参加者 8 名", subtitle: "team-eng チャンネル" })
   .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "直近: Alice", subtitle: "「LGTM 🚀」 · 12 分前" })
   .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "12 分前", subtitle: "直近アクティビティ" })
@@ -3415,7 +3415,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
   .lane("meter", { x: 260, width: 260 })
   .lane("rules", { x: 560, width: 260 })
   .state("pw", { initial: 1 })
-  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ password 入力欄", subtitle: "現在 level {pw} · マスク表示" })
+  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ password", subtitle: "現在 level {pw} · マスク表示" })
   .node("meterBars", { lane: "meter", stack: 0, kind: "card", title: "4 セグメント メーター", subtitle: "level {pw} 分だけ着色" })
   .node("levelLabel", { lane: "meter", stack: 1, kind: "card", title: "level ラベル", subtitle: "メーター色と同色 tint" })
   .node("rule1", { lane: "rules", stack: 0, kind: "card", title: "✓ 8 文字以上", subtitle: "level ≥ 1 で pass" })
@@ -3452,7 +3452,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
   .lane("verify", { x: 560, width: 220 })
   .arraySignal("otp", [4, 8, 2, 1, 5, 7])
   .state("entered", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信 +81-90-****-1234", subtitle: "6 桁コード · 3 分 TTL" })
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信", subtitle: "6 桁コード · 3 分 TTL" })
   .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6 ボックス グリッド", subtitle: "入力済 {entered}/6" })
   .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "フォーカス ボックス", subtitle: "青枠でハイライト" })
   .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "検証 → ログイン", subtitle: "6/6 で自動送信" })
@@ -3487,8 +3487,8 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   .lane("preview", { x: 560, width: 220 })
   .state("file", { initial: "" })
   .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未選択", subtitle: "破線枠 · '⬆ ここにドロップ'" })
-  .node("uploadedCard", { lane: "uploaded", stack: 0, kind: "card", title: "◆ avatar-2024.png (245 KB)", subtitle: "実線枠 · ファイル名カード" })
-  .node("previewCard", { lane: "preview", stack: 0, kind: "card", title: "▶ 円形アバター プレビュー", subtitle: "80×80 クロップ表示" })
+  .node("uploadedCard", { lane: "uploaded", stack: 0, kind: "card", title: "◆ avatar.png", subtitle: "実線枠 · ファイル名カード" })
+  .node("previewCard", { lane: "preview", stack: 0, kind: "card", title: "▶ 円形アバター", subtitle: "80×80 クロップ表示" })
   .edge("emptyCard", "uploadedCard", { label: "drop", tone: "info" })
   .edge("uploadedCard", "previewCard", { label: "プレビュー", tone: "success" })
   .readout.fileDropzone("fd", { source: "file", colorActive: "#2563eb", label: "アバター ファイル" })
@@ -3500,13 +3500,13 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   .phase("p2", {
     duration: 2000,
     title: "ドロップ受信",
-    body: "file を空 → 'avatar-2024.png' に切替、 アップロード lane 追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard").set("file", "avatar-2024.png").badge("アップロード"))
+    body: "file を空 → 'avatar.png' に切替、 アップロード lane 追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard").set("file", "avatar.png").badge("アップロード"))
   .phase("p3", {
     duration: 1500,
     title: "プレビュー表示",
     body: "アップロード完了、 プレビュー lane 追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").set("file", "avatar-2024.png").badge("完了"))
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").set("file", "avatar.png").badge("完了"))
   .build();
 
 /**
@@ -3528,9 +3528,9 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   .state("severity", { initial: 0 })
   .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "◆ 時刻列", subtitle: "5 event 2 分幅" })
   .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "レベル分布", subtitle: "現在 severity {severity}" })
-  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動 ok", subtitle: "09:02:02 · INF 青 pill" })
+  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動", subtitle: "09:02:02 · INF 青 pill" })
   .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "メモリ使用率 82%", subtitle: "09:01:03 · WRN 橙 pill" })
-  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker crash: OOM", subtitle: "09:01:47 · ERR 赤 pill" })
+  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker OOM", subtitle: "09:01:47 · ERR 赤 pill" })
   .edge("tsCard", "levelCard", { label: "分類", tone: "info" })
   .edge("levelCard", "errRow", { label: "重篤化", tone: "error" })
   .readout.logStream("ls", { source: "logs", label: "ログ tail" })
@@ -3676,10 +3676,10 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   .lane("enterprise", { x: 560, width: 260 })
   .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (string | number)[])
   .state("selected", { initial: 0 })
-  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter · $9/月", subtitle: "3 席 · コミュニティサポート" })
-  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro · $29/月 (人気)", subtitle: "10 席 · 優先サポート" })
+  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter $9/月", subtitle: "3 席 · コミュニティサポート" })
+  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro $29/月", subtitle: "10 席 · 優先サポート" })
   .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "▶ 一番人気", subtitle: "枠 highlight · 選択中 = {selected}" })
-  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise · 見積", subtitle: "無制限 · 専任 CSM" })
+  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise", subtitle: "要見積 · 無制限 · 専任 CSM" })
   .edge("starterCard", "proCard", { label: "アップグレード", tone: "info" })
   .edge("proCard", "enterpriseCard", { label: "アップグレード", tone: "success" })
   .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro プラン" })
@@ -3714,7 +3714,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未入力", subtitle: "破線枠 · 'コード入力'" })
   .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "'SAVE20' 入力済", subtitle: "実線枠 · 未適用 · discount = {discount}" })
   .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "適用ボタン", subtitle: "灰 → 緑にクリックで変化" })
-  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ -{discount}% 適用済", subtitle: "緑 pill · 割引アクティブ" })
+  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ 適用済", subtitle: "-{discount}% · 緑 pill" })
   .edge("emptyCard", "enteredCard", { label: "コード入力", tone: "info" })
   .edge("enteredCard", "appliedCard", { label: "適用", tone: "success" })
   .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "クーポン" })
@@ -3784,17 +3784,17 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
     [0, "はじめに", 0],
     [1, "スタートガイド", 1],
     [2, "インストール", 0],
-    [2, "最初の diagram", 1],
+    [2, "最初の図", 1],
     [1, "高度な使い方", 0],
     [0, "API リファレンス", 0],
   ] as unknown as (string | number)[])
   .state("activeIdx", { initial: 0 })
   .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "はじめに (H1)", subtitle: "level 0 · idx {activeIdx}" })
-  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス (H1)", subtitle: "level 0" })
-  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド (H2)", subtitle: "level 1 · 青枠" })
+  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス", subtitle: "level 0" })
+  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド", subtitle: "level 1 · 青枠" })
   .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "高度な使い方 (H2)", subtitle: "level 1" })
   .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "インストール (H3)", subtitle: "level 2" })
-  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の diagram (H3)", subtitle: "level 2 · 青文字 + 枠" })
+  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の図", subtitle: "level 2 · 青文字 + 枠" })
   .edge("introCard", "gsCard", { label: "次へ", tone: "info" })
   .edge("gsCard", "installCard", { label: "子", tone: "accent" })
   .edge("gsCard", "firstCard", { label: "現在", tone: "success" })
@@ -3812,7 +3812,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
   .phase("p3", {
     duration: 1500,
     title: "H3 詳細",
-    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の diagram' が青文字 + 枠、 全 6 node 展開状態。",
+    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の図' が青文字 + 枠、 全 6 node 展開状態。",
   }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").tween("activeIdx", 1, 3).badge("First"))
   .build();
 
@@ -3866,9 +3866,9 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .state("txStatus", { initial: 0 })
   .state("totalTx", { initial: 1247 })
   .node("customer", { lane: "customer", stack: 0, kind: "shape-person", title: "田中様", eyebrow: "customer", subtitle: "購入者" })
-  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "iPhone 15", eyebrow: "device", subtitle: "Safari / iOS 17" })
+  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "iPhone", eyebrow: "device", subtitle: "Safari / iOS 17" })
   .node("card", { lane: "customer", stack: 2, kind: "shape-credit-card", title: "VISA **1234", eyebrow: "card", subtitle: "MUFG 発行" })
-  .node("shop", { lane: "processor", stack: 0, kind: "shape-online-shop", title: "BuyNow.com", eyebrow: "merchant", subtitle: "checkout · ¥{amount}" })
+  .node("shop", { lane: "processor", stack: 0, kind: "shape-online-shop", title: "BuyNow", eyebrow: "merchant", subtitle: "checkout · ¥{amount}" })
   .node("gateway", { lane: "processor", stack: 1, kind: "shape-api-gateway", title: "API Gateway", eyebrow: "gateway", subtitle: "認証 + rate limit" })
   .node("provider", { lane: "processor", stack: 2, kind: "shape-payment-provider", title: "Stripe", eyebrow: "provider", subtitle: "3DS {auth3ds}%" })
   .node("bankShape", { lane: "bank", stack: 0, kind: "shape-bank", title: "MUFG", eyebrow: "issuer", subtitle: "発行銀行 · 与信照会" })
@@ -3887,7 +3887,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .phase("p1", {
     duration: 2200,
     title: "商品購入",
-    body: "田中様が iPhone で BuyNow.com にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
+    body: "田中様が iPhone で BuyNow にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
   }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop").tween("amount", 0, 12500).set("txStatus", 0).set("auth3ds", 0).badge("購入"))
   .phase("p2", {
     duration: 2500,
@@ -3924,7 +3924,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
   .node("authApi", { lane: "auth", stack: 0, kind: "shape-server-rack", title: "Auth API", eyebrow: "server", subtitle: "credential 一次検証" })
   .node("mfaCheck", { lane: "auth", stack: 1, kind: "shape-diamond", title: "2FA 要求?", eyebrow: "decision", subtitle: "TOTP 6 桁 or SMS" })
   .node("jwtSign", { lane: "auth", stack: 2, kind: "shape-hexagon", title: "JWT 発行器", eyebrow: "signer", subtitle: "RS256 · exp 1h" })
-  .node("session", { lane: "session", stack: 0, kind: "shape-cylinder", title: "Redis Session", eyebrow: "cache", subtitle: "TTL 3600s" })
+  .node("session", { lane: "session", stack: 0, kind: "shape-cylinder", title: "Redis", eyebrow: "cache", subtitle: "TTL 3600s" })
   .node("token", { lane: "session", stack: 1, kind: "shape-cloud", title: "JWT token", eyebrow: "response", subtitle: "Bearer · 302 redirect" })
   .edge("customer", "mobile", { label: "入力", tone: "info" })
   .edge("mobile", "authApi", { label: "POST /login", tone: "info" })
@@ -3980,9 +3980,9 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   .node("kafka", { lane: "infra", stack: 0, kind: "shape-stack", title: "Kafka キュー", eyebrow: "queue", subtitle: "残 {queued} 件 · TTL 300s" })
   .node("fcm", { lane: "infra", stack: 1, kind: "shape-cloud", title: "FCM Service", eyebrow: "notification", subtitle: "配信 batch 処理" })
   .node("retryGate", { lane: "infra", stack: 2, kind: "shape-diamond", title: "retry 判定", eyebrow: "policy", subtitle: "指数 backoff · 最大 3 回" })
-  .node("iphone", { lane: "devices", stack: 0, kind: "shape-mobile-device", title: "iPhone (A)", eyebrow: "device", subtitle: "APNs 経由 · foreground" })
-  .node("pixel", { lane: "devices", stack: 1, kind: "shape-mobile-device", title: "Pixel (B)", eyebrow: "device", subtitle: "FCM 経由 · background" })
-  .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy (C)", eyebrow: "device", subtitle: "圏外 → retry 対象" })
+  .node("iphone", { lane: "devices", stack: 0, kind: "shape-mobile-device", title: "iPhone", eyebrow: "device", subtitle: "APNs 経由 · foreground" })
+  .node("pixel", { lane: "devices", stack: 1, kind: "shape-mobile-device", title: "Pixel", eyebrow: "device", subtitle: "FCM 経由 · background" })
+  .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy", eyebrow: "device", subtitle: "圏外 → retry 対象" })
   .edge("msg", "kafka", { label: "enqueue", tone: "info" })
   .edge("kafka", "fcm", { label: "dequeue", tone: "info" })
   .edge("fcm", "iphone", { label: "APNs 配信", tone: "success" })
