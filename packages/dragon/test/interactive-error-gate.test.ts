@@ -10,8 +10,16 @@ import { timelineDrive, kpiDashboard } from "../../../apps/playground-spa/src/to
  * diagram を error-0 で gating する」 と再 scope した。 error のみが sweep gate を fail させる (warn は
  * block しない) ため、 本 gate は error 0 を段階的に固定する。
  *
- * 本 file は解消済 diagram を列挙して error 0 を assert する。 全 error 解消後に対象を全 interactive
- * diagram へ拡張して #401 を close する。
+ * 本 file は解消済 diagram を列挙して error 0 を assert する。
+ *
+ * #401 は機械修正 (timeline-drive + kpi-dashboard、 interactive error 14→11) の scope で完了し、
+ * 残件は #892 に分離する (本 PR の merge で `Closes #401` を発火、 2026-07-23 判断)。 3 exemplar は
+ * いずれも edge-label 過密だが原因は個別に異なり、 labelOffset tuning では error-0 に収束しない
+ * (oauth で 8 iteration 検証、 6→1〜3 で oscillation) fundamental layout redesign が必要な別 class:
+ *   - oauth-flow = 3 node + 6 edge (client↔consent の 4 bidirectional labeled edge が中間帯に集中)
+ *   - traffic-sankey = 6 node + 8 一方向 edge (funnel の合流で label が sub-path に重なる)
+ *   - notification-flow = 7 node + 7 edge (fcm hub への fan-out 集中で label が hub 周辺に密集)
+ * #892 完了時に FIXED へ 3 exemplar を追加して gate を拡張する。
  *
  * stage 1 = interactive-timeline-drive。
  *   - node "r" (dyn-rect bar) を w:60 → 80 に拡張して node-visibility error (最小 80x40 未満) を解消。
