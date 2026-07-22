@@ -21,8 +21,9 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 当初は以下 3 件を「実装がこう動くから」 と test 側で追認していたが、 review で実装の誤りと判明し
  * 実装を修正した。 test で誤挙動を固定するのは規約違反 (rules/quality.md § test 変更 diff 厳格チェック)。
  *
- * - `stripCardinality` = cardinality token を抜いた後の空括弧を落とさず `owns (` / `) owns` と
- *   片括弧が ER 図 edge label に残っていた。 空括弧除去を追加。
+ * - `stripCardinality` = cardinality token を抜いた後に片括弧が ER 図 edge label に残っていた
+ *   (`owns (1:N)` → `owns (`)。 token を囲む括弧ごと 1 単位で除去する方式にして、 label 中の
+ *   正当な括弧 (`fn() now` の `()`) を壊さずに cardinality の括弧だけ消す。
  * - `mergePartIntoDiagram` の中心補正 = posW 指定 (scale) 時に lane を元幅で中心補正していたため
  *   lane 中心が node 中心 (drop 座標) から拡張分の半分ずれていた。 双方を scale 後の幅で補正。
  * - `applyV05Extensions` の node 一致条件 第 3 項 = actor 名 "A Header" の slug が `a-header` に
@@ -2465,6 +2466,24 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("owns");
   });
 
+  it("cardinality と無関係な正当な括弧は保持する (cc-codex #879 Round 4)", () => {
+    // token を囲む括弧ごと除去することで、 label 中の正当な () を壊さない。
+    // 旧実装 (空括弧の全域除去) は "do() now" → "do now" と正当な括弧を壊していた。
+    const d = compile("er", { flow: [step("A", "B", { label: "do() now" })] });
+    expect(d.edges[0]!.label).toBe("do() now");
+  });
+
+  it("method-call の括弧と cardinality の括弧を区別する", () => {
+    // "fn() (1:N)" は method-call の "()" を残し cardinality の "(1:N)" だけ除去して "fn()"。
+    const d = compile("er", { flow: [step("A", "B", { label: "fn() (1:N)" })] });
+    expect(d.edges[0]!.label).toBe("fn()");
+  });
+
+  it("中間の cardinality token 除去で連続空白を残さない", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "A 1:N B" })] });
+    expect(d.edges[0]!.label).toBe("A B");
+  });
+
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
     // 除去すると空になるため元 label を維持する
@@ -2476,9 +2495,11 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("plain");
   });
 
-  it("前後の空白と閉じ括弧が除去される", () => {
+  it("前後の空白を trim しつつ token を囲まない裸の括弧は保持する", () => {
+    // token を囲む括弧のみ除去する方針のため、 cardinality を包まない裸の ")" は
+    // user が意図的に書いた括弧として保持する (前後の空白のみ trim)。
     const d = compile("er", { flow: [step("A", "B", { label: "  owns 1:1 )" })] });
-    expect(d.edges[0]!.label).toBe("owns");
+    expect(d.edges[0]!.label).toBe("owns )");
   });
 });
 

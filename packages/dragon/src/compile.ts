@@ -1643,11 +1643,16 @@ function parseCardinalityFromLabel(label: string): ErRelationCardinality | null 
 function stripCardinality(label: string): string {
   let r = label;
   for (const [pattern] of CARDINALITY_PATTERNS) {
+    // cardinality token を「それを囲む括弧ごと 1 単位」 で除去する。
+    // まず `(1:N)` のように token を直接包む括弧つき形を除去し、 次に裸の token を除去する。
+    // 括弧を token 単位で消すことで、 label 中の cardinality と無関係な正当な括弧 (例
+    // `fn() now` の `()`) を壊さない (cc-codex #879 Round 4 指摘 = 空括弧の全域除去は過剰)。
+    const src = pattern.source;
+    const flags = pattern.flags.includes("i") ? "gi" : "g";
+    r = r.replace(new RegExp(`\\(\\s*${src}\\s*\\)`, flags), "").trim();
     r = r.replace(pattern, "").trim();
   }
-  // cardinality token を抜いた結果 中身が空になった括弧 "()" / "( )" を落とす。
-  // これを行わないと `owns (1:N)` → `owns (` / `(1:N) owns` → `) owns` のように
-  // 片方の括弧だけが label に残って user に見える (cc-codex #879 MAJOR 指摘)。
-  r = r.replace(/\(\s*\)/g, "").trim();
-  return r.replace(/^[(\s]+|[)\s]+$/g, "") || label;
+  // 中間 token 除去で生じた連続空白を単一化する (例 "A 1:N B" → "A  B" → "A B")。
+  r = r.replace(/\s{2,}/g, " ").trim();
+  return r || label;
 }
