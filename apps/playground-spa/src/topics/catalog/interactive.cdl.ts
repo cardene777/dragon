@@ -1309,7 +1309,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   })
   .edge("revCard", "usersCard", { label: "×8", sub: "acquisition", tone: "info" })
   .edge("revCard", "churnCard", { label: "inverse", sub: "50 − rev/10", tone: "error" })
-  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success" })
+  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success", side: "bottom" })
   .readout.stat("rev", { source: "revenueInput", unit: "k", label: "Revenue" })
   .readout.stat("usr", { source: "users", label: "Users" })
   .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
