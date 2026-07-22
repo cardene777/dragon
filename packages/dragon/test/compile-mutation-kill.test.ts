@@ -2581,6 +2581,13 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(embed.edges[0]!.label).toBe("x1:Ny");
   });
 
+  it("CJK 隣接の cardinality token は境界成立して認識される (ASCII identifier 外、 Round 12)", () => {
+    // 境界クラスは ASCII identifier (`[A-Za-z0-9_]`) のみ。 CJK は境界外なので token を認識して除去する。
+    const d = compile("er", { flow: [step("A", "B", { label: "注文1:N明細" })] });
+    expect(d.edges[0]!.label).toBe("注文明細");
+    expect(d.edges[0]!.sub).toBe("1:N");
+  });
+
   it("snake_case (アンダースコア隣接) の token を over-removal / 誤認しない (cc-codex #879 Round 11)", () => {
     // 境界クラスに `_` を含めることで、 DB schema 由来の snake_case label (`field_1:N` 等) を壊さない。
     const f1 = compile("er", { flow: [step("A", "B", { label: "field_1:N" })] });
