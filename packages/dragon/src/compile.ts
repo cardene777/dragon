@@ -951,28 +951,42 @@ function compileMind(doc: DslDocument): CdlDiagram {
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
-  // actor の主要 node id を preset 種別で決める。 sequence / solidity のみ header/footer を対で
-  // 生成する preset で、 主要 node は `{slug}-header`。 それ以外の preset は actor 名 slug が
-  // そのまま node id になる。
+  // actor の主要 node を preset 種別で回収する。 sequence / solidity は header/footer を対で生成する
+  // preset で主要 node は header、 それ以外の preset は actor 名 slug がそのまま node id になる。
   //
-  // これを「node id が {slug}-header か」 の文字列判定で行うと、 actor 名 "A Header" の slug
-  // `a-header` が actor "A" の header node id と衝突して option が漏れる (cc-codex #879 cross-actor
-  // leak)。 footer の存在推測 (Round 2 修正) も actor "A Footer" 共存で `a-footer` が生まれると
-  // 誤爆する (Round 3 指摘)。 preset 種別は actor 名に依存しないため、 これらの衝突を構造的に断つ。
+  // seq-like の非 animate 経路は実 node id を CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
+  // 生成する。 dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと、 actor `A_B` の
+  // primaryNodeId `a_b-header` が実 node `a-b-header` と食い違い、 inline option (subtitle / eyebrow /
+  // value / rows) が drop する (#881、 #873 / #877 と同根の dragon⇔CDL slug 不一致)。 lane.label は
+  // 両 slug 経路とも actor.name の生値なので (#877)、 actor 専用 lane を label 一致で引き当て、 その
+  // lane 内の `-header` node を権威 primary として回収する。 slug 決め打ちを廃して実装差を構造的に吸収。
+  //
+  // 経路を preset 種別 (isSeqLike) で分け、 かつ lane.label / node id を actor.name の exact 一致で
+  // 引くことで、 actor 名 "A Header" の slug `a-header` が actor "A" の node に漏れる cross-actor leak
+  // (#879) も同時に断つ。
   const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
   // actor inline option → node merge
   for (const a of doc.actors) {
-    const actorId = slugify(a.name);
-    const primaryNodeId = isSeqLike ? `${actorId}-header` : actorId;
-    // 該当 actor の主要 node (header / single node) を見つけて option を merge
-    for (const node of diagram.nodes) {
-      // preset 種別で確定した primaryNodeId と exact 一致する node にのみ option を merge する。
-      if (node.id === primaryNodeId) {
-        if (a.subtitle !== undefined) node.subtitle = a.subtitle;
-        if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
-        if (a.value !== undefined) node.value = a.value;
-        if (a.rows !== undefined) node.rows = a.rows;
-      }
+    const dragonSlug = slugify(a.name);
+    let primaryNodes: CdlDiagram["nodes"];
+    if (isSeqLike) {
+      const ownedLaneIds = new Set(
+        diagram.lanes.filter((l) => l.label === a.name).map((l) => l.id),
+      );
+      // lane.label で actor 専用 lane を引けた場合はその lane の header node を回収する。 引けない
+      // (label 未設定等の) preset は従来どおり dragon slug の `{slug}-header` 決め打ちに fallback する。
+      primaryNodes = ownedLaneIds.size > 0
+        ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id.endsWith("-header"))
+        : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
+    } else {
+      // 非 seq preset は 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。
+      primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
+    }
+    for (const node of primaryNodes) {
+      if (a.subtitle !== undefined) node.subtitle = a.subtitle;
+      if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
+      if (a.value !== undefined) node.value = a.value;
+      if (a.rows !== undefined) node.rows = a.rows;
     }
   }
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
