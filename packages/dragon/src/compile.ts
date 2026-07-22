@@ -306,11 +306,14 @@ function mergePartIntoDiagram(
   // lane.width は「元 parts.width × scaleX」 に拡張して viewBox が parts サイズを含むように。
   // これで viewport auto-fit で全体縮小されても parts の相対サイズは変わらない。
   const partsLaneW = part.lanes[0]?.width ?? 400;
+  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
+  // 中心補正は「scale 後の幅」 で行う = posW 指定で lane が拡張された時、 拡張後 lane の中心が
+  // offsetX に来る。 元幅で補正すると lane 中心が offsetX + (拡張分/2) にずれ、 node 中心 (offsetX)
+  // と乖離する (cc-codex #879 MAJOR 指摘)。
   const partsLaneStartX = offsetX !== undefined
-    ? offsetX - partsLaneW / 2
+    ? offsetX - (partsLaneW * laneScaleX) / 2
     : existingLaneMaxX + PARTS_LANE_GAP;
   const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
-  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
 
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
@@ -399,19 +402,29 @@ function mergePartIntoDiagram(
       newShape = scaleGeom(newShape) as typeof newShape;
     }
     // parts drop 位置 offset 反映:
-    //   - node.posX / posY set 済 (parts が絶対座標を持つ) なら effectiveOffsetX 加算
-    //   - offsetX/Y 指定時 (drop 経路) は全 node に posX/posY を明示 set (rowH 分離)
-    //   - offset なし (従来経路) は auto layout 継続
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? nodeOrig.posX + effectiveOffsetX : undefined;
+    //   - node.posX set 済 (parts が絶対座標を持つ) = その posX を part 中心基準で scale 変換
+    //   - offsetX 指定時 (drop 経路) で posX 未設定 = node が属する lane 中央を同じ式で変換
+    //   - offset なし (従来経路) は auto layout 継続 (posX undefined)
+    //
+    // 明示 posX と auto-layout の両経路を「元 part world 座標 X → drop 中心基準の scale 変換」 の
+    // 単一式 mapPartX に統一する (cc-codex #879 Round 2/3 MAJOR 指摘)。 両経路が別式だと lane.x != 0 で
+    // 明示 posX node と auto-layout node が乖離し、 lane.x == 0 の test だけすり抜けていた。
+    //   dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2  (= scale 後 lane 中心 = drop 座標)
+    //   partOrigCenterX = part world の中心 X (part.lanes[0].x + partOrigW/2)
+    //   mapPartX(x) = (x - partOrigCenterX) * scaleX + dropCenterX
+    // scaleX = 1 の時は x - partOrigCenterX + dropCenterX = x + effectiveOffsetX と一致 (従来同値)。
+    const partOrigLaneX = part.lanes[0]?.x ?? 0;
+    const partOrigCenterX = partOrigLaneX + partOrigW / 2;
+    const dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2;
+    const mapPartX = (x: number): number => (x - partOrigCenterX) * scaleX + dropCenterX;
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapPartX(nodeOrig.posX) : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
-      // parts lane 中央 (auto layout の cx 相当) + effectiveOffsetX (scale 適用)
+      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapPartX で変換する。
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
       const laneX = partLane?.x ?? 0;
       const laneW = partLane?.width ?? 320;
-      const partOrigCx = laneX + laneW / 2;
-      const partCenterX = partOrigW / 2;
-      nodePosX = (partOrigCx - partCenterX) * scaleX + partsLaneStartX + laneW / 2;
+      nodePosX = mapPartX(laneX + laneW / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
@@ -933,12 +946,23 @@ function compileMind(doc: DslDocument): CdlDiagram {
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
+  // actor の主要 node id を preset 種別で決める。 sequence / solidity のみ header/footer を対で
+  // 生成する preset で、 主要 node は `{slug}-header`。 それ以外の preset は actor 名 slug が
+  // そのまま node id になる。
+  //
+  // これを「node id が {slug}-header か」 の文字列判定で行うと、 actor 名 "A Header" の slug
+  // `a-header` が actor "A" の header node id と衝突して option が漏れる (cc-codex #879 cross-actor
+  // leak)。 footer の存在推測 (Round 2 修正) も actor "A Footer" 共存で `a-footer` が生まれると
+  // 誤爆する (Round 3 指摘)。 preset 種別は actor 名に依存しないため、 これらの衝突を構造的に断つ。
+  const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
   // actor inline option → node merge
   for (const a of doc.actors) {
     const actorId = slugify(a.name);
+    const primaryNodeId = isSeqLike ? `${actorId}-header` : actorId;
     // 該当 actor の主要 node (header / single node) を見つけて option を merge
     for (const node of diagram.nodes) {
-      if (node.id === actorId || node.id === `${actorId}-header` || node.id === actorId.replace(/-header$/, "")) {
+      // preset 種別で確定した primaryNodeId と exact 一致する node にのみ option を merge する。
+      if (node.id === primaryNodeId) {
         if (a.subtitle !== undefined) node.subtitle = a.subtitle;
         if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
         if (a.value !== undefined) node.value = a.value;
@@ -1609,17 +1633,77 @@ const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
   [/1\.\.\*/, "1..*"],
 ];
 
+// cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
+// 前後が identifier 文字 (英数字 + アンダースコア) なら token とみなさない = `column:Metadata` の `n:M` /
+// `10:11:12` の `1:1` / `field_1:N` の `1:N` を cardinality と誤認して壊すのを防ぐ
+// (cc-codex #879 Round 9/10/11)。 `_` を含むのは ER label が DB schema 由来で snake_case 命名が多く、
+// `_` 直後に cardinality 様の部分列が来る label が現実的に起こるため (`field_1:N` / `parent_N:M_child`)。
+// strip と parse で別々に pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
+function boundedCardinalityRegExp(pattern: RegExp, extraFlags = ""): RegExp {
+  const base = pattern.flags.includes("i") ? "i" : "";
+  return new RegExp(`(?<![A-Za-z0-9_])(?:${pattern.source})(?![A-Za-z0-9_])`, base + extraFlags);
+}
+
 function parseCardinalityFromLabel(label: string): ErRelationCardinality | null {
   for (const [pattern, card] of CARDINALITY_PATTERNS) {
-    if (pattern.test(label)) return card;
+    if (boundedCardinalityRegExp(pattern).test(label)) return card;
   }
   return null;
 }
 
+// stripCardinality が「水平空白」 として畳んでよい文字を明示列挙する (space / tab / 全角空白 U+3000)。
+// 改行系 (LF / CR / U+2028 line separator / U+2029 paragraph separator / vertical tab / form feed) は
+// 含めない = これらは label の行構造として保持する (cc-codex #879 Round 5/6 指摘 = `\s` / `[^\S\r\n]`
+// では Unicode 行区切りや CRLF を誤って畳んでしまう)。 括弧除去側と正規化側で同じ class を共有する。
+const HORIZONTAL_WS = " \\t\\u3000";
+const HWS = `[${HORIZONTAL_WS}]`;
+
 function stripCardinality(label: string): string {
   let r = label;
+  let removed = false;
   for (const [pattern] of CARDINALITY_PATTERNS) {
-    r = r.replace(pattern, "").trim();
+    // cardinality token を「それを囲む括弧ごと 1 単位」 で除去する。
+    // まず `(1:N)` のように token を直接包む括弧つき形を除去し、 次に裸の token を除去する。
+    // 括弧を token 単位で消すことで、 label 中の cardinality と無関係な正当な括弧 (例
+    // `fn() now` の `()`) を壊さない (cc-codex #879 Round 4 指摘 = 空括弧の全域除去は過剰)。
+    // 括弧と token の間は水平空白のみ許容し、 改行を挟む形 (`(\n1:N\n)`) は括弧除去の対象外にする
+    // (改行を消費して行構造を壊すのを防ぐ、 Round 6 Finding 2)。
+    const src = pattern.source;
+    const flags = pattern.flags.includes("i") ? "gi" : "g";
+    const before = r;
+    r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
+    // 裸 token 除去 = parse と同じ単語境界付き matcher (boundedCardinalityRegExp) を global で適用する。
+    // 前後が英数字なら token とみなさないため、 timestamp (`10:11:12`) / 比率 (`10:11`) / alphabet 埋め込み
+    // (`column:Metadata`) を壊さず、 同一 token の複数出現 (`1:N and 1:N`) は全て消す。 parse 側と境界規則を
+    // 単一 SSOT にすることで strip/parse の乖離 (strip は消すが parse は残す等) を構造的に防ぐ
+    // (cc-codex #879 Round 9/10 = 数字境界だけ / strip 側だけの修正では 2 経路 drift + alphabet 埋め込み穴)。
+    r = r.replace(boundedCardinalityRegExp(pattern, "g"), "");
+    if (r !== before) removed = true;
   }
-  return r.replace(/^[(\s]+|[)\s]+$/g, "") || label;
+  // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
+  // cc-codex #879 Round 5 指摘 = 無条件正規化は改行を含む label を破壊した)。
+  if (!removed) return label;
+  // 除去で生じた水平空白 (space / tab / 全角空白) のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
+  // 改行系は HWS に含めないため保持される。
+  //   - 各行内の連続水平空白を単一化
+  //   - 改行 (LF / CR) の前後の水平空白を除去 (改行直前の trailing 空白も落とす)
+  r = r
+    .replace(new RegExp(`${HWS}{2,}`, "g"), " ")
+    .replace(new RegExp(`${HWS}*([\\r\\n])${HWS}*`, "g"), "$1")
+    .replace(new RegExp(`^${HWS}+|${HWS}+$`, "g"), "");
+  // fallback = cardinality 除去後に「視覚的に意味のある文字」 が残らない場合は元 label を返す
+  // (Round 6 Finding 1 = 除去後に空白/不可視文字だけ残ると不可視 label になるのを防ぐ)。
+  //
+  // 「意味のある文字」 の判定は個別の空白/不可視文字を列挙 (denylist) すると際限が無く、
+  // Round 7 で `\s` → `\p{White_Space}` に変えたら NEL は拾えたが BOM を落とす等のいたちごっこに
+  // なった (cc-codex #879 Round 7/8/9)。 そこで Unicode の「見えない文字」 を 4 カテゴリで構造的に
+  // 判定する = 以下のいずれでもない可視文字が 1 つでもあれば意味あり。
+  //   - White_Space ... 全空白 (space / tab / NBSP / NEL / 全角空白 / 各種 Unicode space / 改行系)
+  //   - Cf (Format) ... BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER / soft hyphen 等
+  //   - Cc (Control) ... 制御文字
+  //   - Default_Ignorable_Code_Point ... variation selector (Mn) / Hangul filler (Lo) 等、 Cf に
+  //     入らない不可視文字 (Cf/Cc/White_Space だけでは取りこぼすと Round 9 で判明)
+  // 4 カテゴリで Unicode の非表示文字を網羅する (Braille blank U+2800 や通常文字は content 維持)。
+  const hasVisible = /[^\p{White_Space}\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/u.test(r);
+  return hasVisible ? r : label;
 }
