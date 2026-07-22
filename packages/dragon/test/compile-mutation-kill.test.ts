@@ -2500,6 +2500,18 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("desc\nmore");
   });
 
+  it("cardinality 除去時に CRLF の \\r を落とさない", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "x (1:N)\r\ny" })] });
+    expect(d.edges[0]!.label).toBe("x\r\ny");
+  });
+
+  it("cardinality を含まない label のタブ / 全角空白を破壊しない", () => {
+    const tab = compile("er", { flow: [step("A", "B", { label: "a\tb" })] });
+    expect(tab.edges[0]!.label).toBe("a\tb");
+    const wide = compile("er", { flow: [step("A", "B", { label: "A　B" })] });
+    expect(wide.edges[0]!.label).toBe("A　B");
+  });
+
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
     // 除去すると空になるため元 label を維持する

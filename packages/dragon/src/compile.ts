@@ -1659,12 +1659,13 @@ function stripCardinality(label: string): string {
   // cc-codex #879 Round 5 指摘 = `\s{2,}` の無条件正規化は改行を含む label を破壊した)。
   if (!removed) return label;
   // 除去で生じた「改行を含まない連続空白」 のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
-  // 改行は保持するため `\s` ではなく `[^\S\n]` (改行以外の空白) を対象にする。
+  // 改行 (LF / CR) は保持するため `\s` ではなく `[^\S\r\n]` (改行以外の空白) を対象にする。
+  // これで CRLF (`\r\n`) の `\r` も落とさず改行構造を保つ。
   //   - 各行内の連続水平空白を単一化
-  //   - 各行の行頭 / 行末の水平空白を除去 (改行直前の trailing 空白も落とす)
+  //   - 改行 (LF / CR) の前後の水平空白を除去 (改行直前の trailing 空白も落とす)
   r = r
-    .replace(/[^\S\n]{2,}/g, " ")
-    .replace(/[^\S\n]*\n[^\S\n]*/g, "\n")
-    .replace(/^[^\S\n]+|[^\S\n]+$/g, "");
+    .replace(/[^\S\r\n]{2,}/g, " ")
+    .replace(/[^\S\r\n]*([\r\n])[^\S\r\n]*/g, "$1")
+    .replace(/^[^\S\r\n]+|[^\S\r\n]+$/g, "");
   return r || label;
 }
