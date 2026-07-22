@@ -3237,4 +3237,13 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
     // scaleX 2 で lane 間距離が約 2 倍になる (translate-only なら不変で fail)
     expect(gap(scaled)).toBeGreaterThan(gap(noScale) * 1.5);
   });
+
+  it("scale 時に node.w も part bbox 幅基準の scaleX で厳密に拡張される", () => {
+    // node.w は scaleX (=laneScaleX) 経路。 posW=1800 / bboxW=900 → scaleX=2。
+    // `scaleX = laneScaleX` を別値 (例 1 や lane[0] 幅基準) に mutate すると node.w が 2 倍にならず fail。
+    const scaled = compileWithPart({ posX: 1000, posY: 500, posW: 1800, posH: 880 }, multiLanePart());
+    // 元 w=80 × scaleX 2 = 160 を両 lane の node で厳密 assert (非先頭 lane も同じ scaleX)
+    expect(node(scaled, "p1__n1").w).toBe(160);
+    expect(node(scaled, "p1__n2").w).toBe(160);
+  });
 })
