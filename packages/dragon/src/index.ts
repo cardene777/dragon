@@ -45,6 +45,9 @@ export type {
   DslLane,
   DslGroup,
   DslViewport,
+  // CAR-1693 Phase 1: canvas pivot DSL 表面 pos + layout mode の public 型
+  LayoutPos,
+  LayoutMode,
 } from "./types";
 
 import { parseTextDsl } from "./parser";
