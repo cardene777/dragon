@@ -303,17 +303,29 @@ function mergePartIntoDiagram(
     ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
     : 0;
   // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
-  // lane.width は「元 parts.width × scaleX」 に拡張して viewBox が parts サイズを含むように。
-  // これで viewport auto-fit で全体縮小されても parts の相対サイズは変わらない。
-  const partsLaneW = part.lanes[0]?.width ?? 400;
-  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsLaneW : 1;
-  // 中心補正は「scale 後の幅」 で行う = posW 指定で lane が拡張された時、 拡張後 lane の中心が
-  // offsetX に来る。 元幅で補正すると lane 中心が offsetX + (拡張分/2) にずれ、 node 中心 (offsetX)
-  // と乖離する (cc-codex #879 MAJOR 指摘)。
-  const partsLaneStartX = offsetX !== undefined
-    ? offsetX - (partsLaneW * laneScaleX) / 2
-    : existingLaneMaxX + PARTS_LANE_GAP;
-  const effectiveOffsetX = partsLaneStartX - (part.lanes[0]?.x ?? 0);
+  // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
+  // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
+  // 中心からずれる (#880)。
+  const partMinLaneX = part.lanes.length > 0
+    ? Math.min(...part.lanes.map((l) => l.x ?? 0))
+    : 0;
+  const partMaxLaneRight = part.lanes.length > 0
+    ? Math.max(...part.lanes.map((l) => (l.x ?? 0) + l.width))
+    : 400;
+  // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
+  // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
+  // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
+  const rawBboxW = partMaxLaneRight - partMinLaneX;
+  const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
+  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
+  // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
+  // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
+  const partOrigBboxCenterX = partMinLaneX + partsBboxW / 2;
+  const dropCenterX = offsetX !== undefined
+    ? offsetX
+    : existingLaneMaxX + PARTS_LANE_GAP + (partsBboxW * laneScaleX) / 2;
+  const mapLaneX = (x: number): number => (x - partOrigBboxCenterX) * laneScaleX + dropCenterX;
 
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
@@ -321,15 +333,14 @@ function mergePartIntoDiagram(
     } else {
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
-      // parts 独自 lane が target に追加される (target 側 lane と衝突しない)。
-      // effectiveOffsetX = 既存 lane 右端 + gap or drop 座標の大きい方、 lane.x = laneOrig.x + effectiveOffsetX
-      // で確実に既存 lane bbox 外に配置。
+      // lane の左端を mapLaneX で変換 = 元 lane 左端 (x) を scale 変換後の位置に置く。 lane 幅も
+      // scale して lane 中心が mapLaneX(元 lane 中心) に一致する。 これで multi-lane でも各 lane が
+      // part 全体の scale 変換に沿って配置される。
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
-        x: (laneOrig.x ?? 0) + effectiveOffsetX,
-        // resize 時 lane 幅も拡張 = parts sub-node の cx が lane 中央基準で計算されるため
+        x: mapLaneX(laneOrig.x ?? 0),
         width: laneOrig.width * laneScaleX,
       });
     }
@@ -364,9 +375,10 @@ function mergePartIntoDiagram(
   const stackShiftBase = shouldForcePos ? targetMaxStack + STACK_ISOLATION_OFFSET : 0;
   // parts 全体 resize scale (I2 forensic 対応): targetW / targetH 指定時、 parts の元 total size
   // に対する比率 = scale 係数、 全 sub-node の w / h + cx / cy 相対位置に scale 反映。
-  const partOrigW = part.lanes[0]?.width ?? 320;
+  // scaleX は lane push と同じ part bbox 幅基準 (laneScaleX) を使う = multi-lane で lane と node の
+  // scale 係数が一致する (#880、 lane[0] 幅基準だと非先頭 lane の node がずれる)。
   const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
-  const scaleX = targetW !== undefined && targetW > 0 ? targetW / partOrigW : 1;
+  const scaleX = laneScaleX;
   const scaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
@@ -406,25 +418,18 @@ function mergePartIntoDiagram(
     //   - offsetX 指定時 (drop 経路) で posX 未設定 = node が属する lane 中央を同じ式で変換
     //   - offset なし (従来経路) は auto layout 継続 (posX undefined)
     //
-    // 明示 posX と auto-layout の両経路を「元 part world 座標 X → drop 中心基準の scale 変換」 の
-    // 単一式 mapPartX に統一する (cc-codex #879 Round 2/3 MAJOR 指摘)。 両経路が別式だと lane.x != 0 で
-    // 明示 posX node と auto-layout node が乖離し、 lane.x == 0 の test だけすり抜けていた。
-    //   dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2  (= scale 後 lane 中心 = drop 座標)
-    //   partOrigCenterX = part world の中心 X (part.lanes[0].x + partOrigW/2)
-    //   mapPartX(x) = (x - partOrigCenterX) * scaleX + dropCenterX
-    // scaleX = 1 の時は x - partOrigCenterX + dropCenterX = x + effectiveOffsetX と一致 (従来同値)。
-    const partOrigLaneX = part.lanes[0]?.x ?? 0;
-    const partOrigCenterX = partOrigLaneX + partOrigW / 2;
-    const dropCenterX = partsLaneStartX + (partOrigW * scaleX) / 2;
-    const mapPartX = (x: number): number => (x - partOrigCenterX) * scaleX + dropCenterX;
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapPartX(nodeOrig.posX) : undefined;
+    // 明示 posX と auto-layout の両経路を、 lane push と同じ単一式 mapLaneX で変換する
+    // (cc-codex #879 Round 2/3 MAJOR + #880)。 mapLaneX は part bbox 中心 → drop 座標の scale 変換で、
+    // lane / node / 明示 posX / auto-layout の全経路がこの 1 式を共有するため、 lane.x != 0 でも
+    // multi-lane でも node 中心と自 lane 中心が一致する。
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapLaneX(nodeOrig.posX) : undefined;
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
-      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapPartX で変換する。
+      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
       const laneX = partLane?.x ?? 0;
       const laneW = partLane?.width ?? 320;
-      nodePosX = mapPartX(laneX + laneW / 2);
+      nodePosX = mapLaneX(laneX + laneW / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、

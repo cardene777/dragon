@@ -3191,3 +3191,60 @@ describe("applyV05Extensions: actor 'A Footer' 共存でも header 帰属が誤�
     expect(node(d, "a-header").subtitle).toBe("sol-A");
   });
 });
+
+// ── #880: multi-lane part を scale した時に非先頭 lane の node 中心がずれる ──
+
+describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node が自 lane 中心に乗る (#880)", () => {
+  /** 2 lane part = l1 (x 0-400) / l2 (x 500-900)、 各 lane に node 1 個。 part x 範囲 0..900。 */
+  function multiLanePart(): CdlDiagram {
+    return {
+      id: "parts-ml", topic: "t",
+      lanes: [{ id: "l1", x: 0, width: 400 }, { id: "l2", x: 500, width: 400 }],
+      nodes: [
+        { id: "n1", lane: "l1", stack: 0, kind: "actor", title: "N1", w: 80, h: 40 },
+        { id: "n2", lane: "l2", stack: 0, kind: "actor", title: "N2", w: 80, h: 40 },
+      ] as CdlDiagram["nodes"],
+      edges: [], states: [], phases: [] as CdlDiagram["phases"],
+    };
+  }
+
+  it("scale 無しでは全 lane の node が自 lane 中心に乗る", () => {
+    const d = compileWithPart({ posX: 1000, posY: 500 }, multiLanePart());
+    const l1 = lane(d, "p1__l1");
+    const l2 = lane(d, "p1__l2");
+    expect(node(d, "p1__n1").posX).toBe(l1.x! + l1.width / 2);
+    expect(node(d, "p1__n2").posX).toBe(l2.x! + l2.width / 2);
+  });
+
+  it("posW 指定 (scaleX 2) で非先頭 lane の node も自 lane 中心に乗る", () => {
+    // part total width = 900 (l2 右端)。 posW=1800 → scaleX = 1800/900 相当。
+    const d = compileWithPart({ posX: 1000, posY: 500, posW: 1800, posH: 880 }, multiLanePart());
+    const l1 = lane(d, "p1__l1");
+    const l2 = lane(d, "p1__l2");
+    // node 中心 === 自 lane 中心 (非先頭 lane で乖離しない)
+    expect(node(d, "p1__n1").posX).toBe(l1.x! + l1.width / 2);
+    expect(node(d, "p1__n2").posX).toBe(l2.x! + l2.width / 2);
+  });
+
+  it("scale 時に lane 間距離も拡張される (translate-only ではない)", () => {
+    const noScale = compileWithPart({ posX: 1000, posY: 500 }, multiLanePart());
+    const scaled = compileWithPart({ posX: 1000, posY: 500, posW: 1800, posH: 880 }, multiLanePart());
+    const gap = (d: typeof noScale) => {
+      const l1 = d.lanes.find((l) => l.id === "p1__l1")!;
+      const l2 = d.lanes.find((l) => l.id === "p1__l2")!;
+      return (l2.x! + l2.width / 2) - (l1.x! + l1.width / 2);
+    };
+    // scaleX 2 で lane 間中心距離がちょうど 2 倍になる (500→1000)。 translate-only なら不変、
+    // 1.6〜1.9 倍の中途半端な誤 scale も toBe で pin して落とす (cc-codex MINOR 2 対応)。
+    expect(gap(scaled)).toBe(gap(noScale) * 2);
+  });
+
+  it("scale 時に node.w も part bbox 幅基準の scaleX で厳密に拡張される", () => {
+    // node.w は scaleX (=laneScaleX) 経路。 posW=1800 / bboxW=900 → scaleX=2。
+    // `scaleX = laneScaleX` を別値 (例 1 や lane[0] 幅基準) に mutate すると node.w が 2 倍にならず fail。
+    const scaled = compileWithPart({ posX: 1000, posY: 500, posW: 1800, posH: 880 }, multiLanePart());
+    // 元 w=80 × scaleX 2 = 160 を両 lane の node で厳密 assert (非先頭 lane も同じ scaleX)
+    expect(node(scaled, "p1__n1").w).toBe(160);
+    expect(node(scaled, "p1__n2").w).toBe(160);
+  });
+})
