@@ -382,9 +382,9 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   topic: "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較",
 })
   .lane("empty", { x: 0, width: 170 })
-  .lane("third", { x: 180, width: 170 })
-  .lane("twothird", { x: 360, width: 170 })
-  .lane("interactive", { x: 540, width: 180 })
+  .lane("third", { x: 195, width: 170 })
+  .lane("twothird", { x: 390, width: 170 })
+  .lane("interactive", { x: 585, width: 180 })
   .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "Progress" })
   .formula("prog", "p / 100")
   .state("p", { initial: 60 })
@@ -414,9 +414,9 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
   topic: "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較",
 })
   .lane("min", { x: 0, width: 180 })
-  .lane("quarter", { x: 190, width: 180 })
-  .lane("half", { x: 380, width: 180 })
-  .lane("interactive", { x: 570, width: 200 })
+  .lane("quarter", { x: 205, width: 180 })
+  .lane("half", { x: 410, width: 180 })
+  .lane("interactive", { x: 615, width: 200 })
   .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "Angle" })
   .state("a", { initial: 180 })
   .state("a0", { initial: 0 })
@@ -3089,12 +3089,12 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
   topic: "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存",
 })
   .lane("mon", { x: 0, width: 100 })
-  .lane("tue", { x: 110, width: 100 })
-  .lane("wed", { x: 220, width: 100 })
-  .lane("thu", { x: 330, width: 100 })
-  .lane("fri", { x: 440, width: 100 })
-  .lane("sat", { x: 550, width: 100 })
-  .lane("sun", { x: 660, width: 100 })
+  .lane("tue", { x: 125, width: 100 })
+  .lane("wed", { x: 250, width: 100 })
+  .lane("thu", { x: 375, width: 100 })
+  .lane("fri", { x: 500, width: 100 })
+  .lane("sat", { x: 625, width: 100 })
+  .lane("sun", { x: 750, width: 100 })
   .arraySignal("week", [
     ["Mon", true, false],
     ["Tue", false, false],
