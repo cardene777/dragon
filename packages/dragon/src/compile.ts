@@ -1634,12 +1634,14 @@ const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
 ];
 
 // cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
-// 前後が英数字なら token とみなさない = `column:Metadata` の `n:M` や `10:11:12` の `1:1`、 `x1:Ny` の
-// `1:N` を cardinality と誤認して壊すのを防ぐ (cc-codex #879 Round 9/10)。 strip と parse で別々に
-// pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
+// 前後が identifier 文字 (英数字 + アンダースコア) なら token とみなさない = `column:Metadata` の `n:M` /
+// `10:11:12` の `1:1` / `field_1:N` の `1:N` を cardinality と誤認して壊すのを防ぐ
+// (cc-codex #879 Round 9/10/11)。 `_` を含むのは ER label が DB schema 由来で snake_case 命名が多く、
+// `_` 直後に cardinality 様の部分列が来る label が現実的に起こるため (`field_1:N` / `parent_N:M_child`)。
+// strip と parse で別々に pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
 function boundedCardinalityRegExp(pattern: RegExp, extraFlags = ""): RegExp {
   const base = pattern.flags.includes("i") ? "i" : "";
-  return new RegExp(`(?<![A-Za-z0-9])(?:${pattern.source})(?![A-Za-z0-9])`, base + extraFlags);
+  return new RegExp(`(?<![A-Za-z0-9_])(?:${pattern.source})(?![A-Za-z0-9_])`, base + extraFlags);
 }
 
 function parseCardinalityFromLabel(label: string): ErRelationCardinality | null {

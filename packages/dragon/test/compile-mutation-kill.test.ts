@@ -2581,6 +2581,17 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(embed.edges[0]!.label).toBe("x1:Ny");
   });
 
+  it("snake_case (アンダースコア隣接) の token を over-removal / 誤認しない (cc-codex #879 Round 11)", () => {
+    // 境界クラスに `_` を含めることで、 DB schema 由来の snake_case label (`field_1:N` 等) を壊さない。
+    const f1 = compile("er", { flow: [step("A", "B", { label: "field_1:N" })] });
+    expect(f1.edges[0]!.label).toBe("field_1:N");
+    expect(f1.edges[0]!.sub).toBe("1:N"); // cardinality 誤認せず default
+    const f2 = compile("er", { flow: [step("A", "B", { label: "parent_N:M_child" })] });
+    expect(f2.edges[0]!.label).toBe("parent_N:M_child");
+    const f3 = compile("er", { flow: [step("A", "B", { label: "maps_to_1:N" })] });
+    expect(f3.edges[0]!.label).toBe("maps_to_1:N");
+  });
+
   it("alphabet 埋め込み token は cardinality としても認識されない (strip/parse の境界一致、 Round 10)", () => {
     // parse (sub 反映) と strip (label 除去) が同じ単語境界 matcher を共有するため乖離しない。
     // `column:Metadata` は cardinality と誤認しないので sub に cardinality が入らない。
