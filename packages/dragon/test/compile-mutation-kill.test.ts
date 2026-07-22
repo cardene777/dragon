@@ -1110,6 +1110,70 @@ describe("applyV05Extensions: actor inline option の node merge", () => {
   });
 });
 
+// ── #881: underscore / 全角 actor 名で sequence の inline option が drop する ──
+//
+// 非 animate sequence/solidity の実 node id は CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
+// 生成されるが、 applyV05Extensions が dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと
+// primaryNodeId が実 node id と食い違い option が drop していた。 lane.label 一致で actor 専用 lane を
+// 引き当て、 その lane の `-header` node を権威 primary として回収する fix を検証する。
+describe("applyV05Extensions: underscore/全角 actor 名でも inline option が正しい node に merge (#881)", () => {
+  it("非 animate sequence の underscore actor `A_B` の subtitle/eyebrow/value/rows が実 node a-b-header に merge", () => {
+    const d = compile("sequence", {
+      actors: [actor("A_B", { subtitle: "sub", eyebrow: "eye", value: "val", rows: ["r1", "r2"] }), actor("C")],
+      flow: [step("A_B", "C")],
+    });
+    // 実 node id は CDL slug (`_` → `-`) 経路の `a-b-header`。 dragon slug 決め打ち `a_b-header` では drop した。
+    const n = node(d, "a-b-header");
+    expect(n.subtitle).toBe("sub");
+    expect(n.eyebrow).toBe("eye");
+    expect(n.value).toBe("val");
+    expect(n.rows).toEqual(["r1", "r2"]);
+  });
+
+  it("全角 actor `ゲージ` の eyebrow/value/rows が実 node ゲージ-header に merge", () => {
+    const d = compile("sequence", {
+      actors: [actor("ゲージ", { eyebrow: "全角eye", value: "80%", rows: ["a"] }), actor("C")],
+      flow: [step("ゲージ", "C")],
+    });
+    const n = node(d, "ゲージ-header");
+    expect(n.eyebrow).toBe("全角eye");
+    expect(n.value).toBe("80%");
+    expect(n.rows).toEqual(["a"]);
+  });
+
+  it("ASCII actor 名の header merge は従来どおり (regression 維持)", () => {
+    const d = compile("sequence", {
+      actors: [actor("A", { subtitle: "hdrA" }), actor("B")],
+      flow: [step("A", "B")],
+    });
+    expect(node(d, "a-header").subtitle).toBe("hdrA");
+    expect(node(d, "b-header").subtitle).toBeUndefined();
+  });
+
+  it("underscore actor の option が別 actor の header に漏れない (cross-actor leak 防止 #879 維持)", () => {
+    const d = compile("sequence", {
+      actors: [actor("A_B", { subtitle: "onlyAB" }), actor("C_D")],
+      flow: [step("A_B", "C_D")],
+    });
+    expect(node(d, "a-b-header").subtitle).toBe("onlyAB");
+    expect(node(d, "c-d-header").subtitle).toBeUndefined();
+  });
+
+  it("actor 名末尾が Header でも option が step box に漏れず header だけに付く (cc-codex #883 MAJOR)", () => {
+    // "Auth Header" は slug `auth-header`。 step box `s0-auth-header` も `-header` で終わるため
+    // endsWith 判定では誤マッチしていた。 header node id `{lane}-header` の構造 exact 一致で防ぐ。
+    const d = compile("sequence", {
+      actors: [actor("Auth Header", { subtitle: "onlyHdr" }), actor("C")],
+      flow: [step("Auth Header", "C")],
+    });
+    expect(node(d, "auth-header-header").subtitle).toBe("onlyHdr");
+    // step box (invisible 2x2 anchor) には漏れない
+    expect(node(d, "s0-auth-header").subtitle).toBeUndefined();
+    expect(node(d, "auth-header-spacer").subtitle).toBeUndefined();
+    expect(node(d, "auth-header-footer").subtitle).toBeUndefined();
+  });
+});
+
 describe("applyV05Extensions: lanes section", () => {
   it("既存 lane の x / width / label / contain / lifeline を上書き", () => {
     const d = compile("swimlane", {
