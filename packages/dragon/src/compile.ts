@@ -1661,7 +1661,9 @@ function stripCardinality(label: string): string {
     const flags = pattern.flags.includes("i") ? "gi" : "g";
     const before = r;
     r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
-    r = r.replace(pattern, "");
+    // 裸 token 除去も global にする = 同一 token が複数回出る label (`1:N and 1:N`) で 2 個目が
+    // 残るのを防ぐ (cc-codex #879 Round 8 指摘)。 pattern が i flag を持つ場合も維持する。
+    r = r.replace(new RegExp(src, flags), "");
     if (r !== before) removed = true;
   }
   // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
@@ -1675,9 +1677,14 @@ function stripCardinality(label: string): string {
     .replace(new RegExp(`${HWS}{2,}`, "g"), " ")
     .replace(new RegExp(`${HWS}*([\\r\\n])${HWS}*`, "g"), "$1")
     .replace(new RegExp(`^${HWS}+|${HWS}+$`, "g"), "");
-  // fallback = cardinality 除去後に「意味のある文字」 が残らない (空 or 空白/改行のみ) 場合は元 label を
-  // 返す (Round 6 Finding 1 = `"1:N\n"` → `"\n"` の不可視 label 化を防ぐ)。 判定は改行含む全空白を除いて
-  // 行う。 JS の `\s` は NEL (U+0085) を含まないため、 Unicode 全空白 `\p{White_Space}` を使う
-  // (cc-codex #879 Round 7 指摘 = NEL のみ残る label が意味文字判定を誤る)。
-  return r.replace(/\p{White_Space}/gu, "").length > 0 ? r : label;
+  // fallback = cardinality 除去後に「視覚的に意味のある文字」 が残らない場合は元 label を返す
+  // (Round 6 Finding 1 = 除去後に空白/不可視文字だけ残ると不可視 label になるのを防ぐ)。
+  //
+  // 「意味のある文字」 の判定は個別の空白/不可視文字を列挙 (denylist) すると際限が無く、
+  // Round 7 で `\s` → `\p{White_Space}` に変えたら NEL は拾えたが BOM (U+FEFF) を落とす等の
+  // いたちごっこになった (cc-codex #879 Round 7/8)。 そこで Unicode カテゴリで構造的に判定する =
+  // 「White_Space (全空白) でも Cf (Format: BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER 等) でも
+  // Cc (Control) でもない可視文字」 が 1 つでもあれば意味あり。 個別文字を追わずカテゴリで閉じる。
+  const hasVisible = /[^\p{White_Space}\p{Cf}\p{Cc}]/u.test(r);
+  return hasVisible ? r : label;
 }

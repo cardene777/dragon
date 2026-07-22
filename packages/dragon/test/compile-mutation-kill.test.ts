@@ -2533,11 +2533,26 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     }
   });
 
-  it("NEL (U+0085) のみ残る cardinality label は元 label に fallback する (cc-codex #879 Round 7)", () => {
-    // JS の `\s` は NEL を含まないため、 fallback 判定を `\p{White_Space}` にして NEL のみ残る
-    // label を不可視 label にしないことを検証する。
-    const nel = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
-    expect(nel.edges[0]!.label).toBe("1:N");
+  it("不可視文字 (NEL / BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER) のみ残る cardinality label は元 label に fallback する (cc-codex #879 Round 7/8)", () => {
+    // fallback 判定を Unicode カテゴリ (White_Space + Cf + Cc を除く可視文字判定) にすることで、
+    // 個別の不可視文字を列挙せず構造的に「除去後に視覚的な内容が残らない」 ケースを塞ぐ。
+    const invisibles = ["", "﻿", "​", "\u200c", "\u200d", "\u2060"];
+    for (const ch of invisibles) {
+      const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
+      expect(d.edges[0]!.label).toBe(`1:N${ch}`);
+    }
+  });
+
+  it("同一 cardinality token が複数回出る label で全て除去される (cc-codex #879 Round 8)", () => {
+    // 裸 token 除去を global にしたことで、 2 個目以降の同一 token も消える。
+    const d = compile("er", { flow: [step("A", "B", { label: "1:N and 1:N" })] });
+    expect(d.edges[0]!.label).toBe("and");
+  });
+
+  it("不可視文字が content と混在する場合は保持する (Cf 単独でなければ意味あり)", () => {
+    // BOM が content 文字と混在していれば visible content ありと判定して保持する。
+    const d = compile("er", { flow: [step("A", "B", { label: `x\uFEFFy (1:N)` })] });
+    expect(d.edges[0]!.label).toBe(`x\uFEFFy`);
   });
 
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
