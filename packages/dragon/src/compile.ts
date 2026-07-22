@@ -1676,6 +1676,8 @@ function stripCardinality(label: string): string {
     .replace(new RegExp(`${HWS}*([\\r\\n])${HWS}*`, "g"), "$1")
     .replace(new RegExp(`^${HWS}+|${HWS}+$`, "g"), "");
   // fallback = cardinality 除去後に「意味のある文字」 が残らない (空 or 空白/改行のみ) 場合は元 label を
-  // 返す (Round 6 Finding 1 = `"1:N\n"` → `"\n"` の不可視 label 化を防ぐ)。 判定は改行含む全空白を除いて行う。
-  return r.replace(/\s/g, "").length > 0 ? r : label;
+  // 返す (Round 6 Finding 1 = `"1:N\n"` → `"\n"` の不可視 label 化を防ぐ)。 判定は改行含む全空白を除いて
+  // 行う。 JS の `\s` は NEL (U+0085) を含まないため、 Unicode 全空白 `\p{White_Space}` を使う
+  // (cc-codex #879 Round 7 指摘 = NEL のみ残る label が意味文字判定を誤る)。
+  return r.replace(/\p{White_Space}/gu, "").length > 0 ? r : label;
 }

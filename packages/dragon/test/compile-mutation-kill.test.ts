@@ -2522,8 +2522,8 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(spaced.edges[0]!.label).toBe("  1:N  ");
   });
 
-  it("Unicode 行区切り (U+2028/U+2029) / vertical tab / form feed は改行系として保持する", () => {
-    for (const nl of [" ", " ", "\v", "\f"]) {
+  it("Unicode 行区切り (U+2028/U+2029) / vertical tab / form feed / NEL は改行系として保持する", () => {
+    for (const nl of [" ", " ", "\v", "\f", ""]) {
       // cardinality 無 = 完全保持
       const noCard = compile("er", { flow: [step("A", "B", { label: `a${nl}b` })] });
       expect(noCard.edges[0]!.label).toBe(`a${nl}b`);
@@ -2531,6 +2531,13 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
       const withCard = compile("er", { flow: [step("A", "B", { label: `x (1:N)${nl}y` })] });
       expect(withCard.edges[0]!.label.includes(nl)).toBe(true);
     }
+  });
+
+  it("NEL (U+0085) のみ残る cardinality label は元 label に fallback する (cc-codex #879 Round 7)", () => {
+    // JS の `\s` は NEL を含まないため、 fallback 判定を `\p{White_Space}` にして NEL のみ残る
+    // label を不可視 label にしないことを検証する。
+    const nel = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
+    expect(nel.edges[0]!.label).toBe("1:N");
   });
 
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
