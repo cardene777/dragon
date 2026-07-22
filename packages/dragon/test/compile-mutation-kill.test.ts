@@ -2512,6 +2512,27 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(wide.edges[0]!.label).toBe("A　B");
   });
 
+  it("cardinality-only + 改行 は元 label に fallback する (cc-codex #879 Round 6)", () => {
+    // 除去後に改行しか残らない場合、 不可視 label にせず元 label を維持する。
+    const nl = compile("er", { flow: [step("A", "B", { label: "1:N\n" })] });
+    expect(nl.edges[0]!.label).toBe("1:N\n");
+    const wrap = compile("er", { flow: [step("A", "B", { label: "\n1:N\n" })] });
+    expect(wrap.edges[0]!.label).toBe("\n1:N\n");
+    const spaced = compile("er", { flow: [step("A", "B", { label: "  1:N  " })] });
+    expect(spaced.edges[0]!.label).toBe("  1:N  ");
+  });
+
+  it("Unicode 行区切り (U+2028/U+2029) / vertical tab / form feed は改行系として保持する", () => {
+    for (const nl of [" ", " ", "\v", "\f"]) {
+      // cardinality 無 = 完全保持
+      const noCard = compile("er", { flow: [step("A", "B", { label: `a${nl}b` })] });
+      expect(noCard.edges[0]!.label).toBe(`a${nl}b`);
+      // cardinality 有 = 改行系は保持、 水平空白のみ畳む
+      const withCard = compile("er", { flow: [step("A", "B", { label: `x (1:N)${nl}y` })] });
+      expect(withCard.edges[0]!.label.includes(nl)).toBe(true);
+    }
+  });
+
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
     // 除去すると空になるため元 label を維持する

@@ -1640,6 +1640,13 @@ function parseCardinalityFromLabel(label: string): ErRelationCardinality | null 
   return null;
 }
 
+// stripCardinality が「水平空白」 として畳んでよい文字を明示列挙する (space / tab / 全角空白 U+3000)。
+// 改行系 (LF / CR / U+2028 line separator / U+2029 paragraph separator / vertical tab / form feed) は
+// 含めない = これらは label の行構造として保持する (cc-codex #879 Round 5/6 指摘 = `\s` / `[^\S\r\n]`
+// では Unicode 行区切りや CRLF を誤って畳んでしまう)。 括弧除去側と正規化側で同じ class を共有する。
+const HORIZONTAL_WS = " \\t\\u3000";
+const HWS = `[${HORIZONTAL_WS}]`;
+
 function stripCardinality(label: string): string {
   let r = label;
   let removed = false;
@@ -1648,24 +1655,27 @@ function stripCardinality(label: string): string {
     // まず `(1:N)` のように token を直接包む括弧つき形を除去し、 次に裸の token を除去する。
     // 括弧を token 単位で消すことで、 label 中の cardinality と無関係な正当な括弧 (例
     // `fn() now` の `()`) を壊さない (cc-codex #879 Round 4 指摘 = 空括弧の全域除去は過剰)。
+    // 括弧と token の間は水平空白のみ許容し、 改行を挟む形 (`(\n1:N\n)`) は括弧除去の対象外にする
+    // (改行を消費して行構造を壊すのを防ぐ、 Round 6 Finding 2)。
     const src = pattern.source;
     const flags = pattern.flags.includes("i") ? "gi" : "g";
     const before = r;
-    r = r.replace(new RegExp(`\\(\\s*${src}\\s*\\)`, flags), "");
+    r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
     r = r.replace(pattern, "");
     if (r !== before) removed = true;
   }
   // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
-  // cc-codex #879 Round 5 指摘 = `\s{2,}` の無条件正規化は改行を含む label を破壊した)。
+  // cc-codex #879 Round 5 指摘 = 無条件正規化は改行を含む label を破壊した)。
   if (!removed) return label;
-  // 除去で生じた「改行を含まない連続空白」 のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
-  // 改行 (LF / CR) は保持するため `\s` ではなく `[^\S\r\n]` (改行以外の空白) を対象にする。
-  // これで CRLF (`\r\n`) の `\r` も落とさず改行構造を保つ。
+  // 除去で生じた水平空白 (space / tab / 全角空白) のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
+  // 改行系は HWS に含めないため保持される。
   //   - 各行内の連続水平空白を単一化
   //   - 改行 (LF / CR) の前後の水平空白を除去 (改行直前の trailing 空白も落とす)
   r = r
-    .replace(/[^\S\r\n]{2,}/g, " ")
-    .replace(/[^\S\r\n]*([\r\n])[^\S\r\n]*/g, "$1")
-    .replace(/^[^\S\r\n]+|[^\S\r\n]+$/g, "");
-  return r || label;
+    .replace(new RegExp(`${HWS}{2,}`, "g"), " ")
+    .replace(new RegExp(`${HWS}*([\\r\\n])${HWS}*`, "g"), "$1")
+    .replace(new RegExp(`^${HWS}+|${HWS}+$`, "g"), "");
+  // fallback = cardinality 除去後に「意味のある文字」 が残らない (空 or 空白/改行のみ) 場合は元 label を
+  // 返す (Round 6 Finding 1 = `"1:N\n"` → `"\n"` の不可視 label 化を防ぐ)。 判定は改行含む全空白を除いて行う。
+  return r.replace(/\s/g, "").length > 0 ? r : label;
 }
