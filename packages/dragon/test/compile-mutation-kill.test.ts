@@ -2573,6 +2573,26 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(ratio.edges[0]!.label).toBe("scale 10:11");
   });
 
+  it("cardinality token に隣接する英字 (alphabet 埋め込み) を over-removal しない (cc-codex #879 Round 10)", () => {
+    // 単語境界を英数字にすることで、 label 中に token が語中で現れても壊さない。
+    const col = compile("er", { flow: [step("A", "B", { label: "column:Metadata" })] });
+    expect(col.edges[0]!.label).toBe("column:Metadata");
+    const embed = compile("er", { flow: [step("A", "B", { label: "x1:Ny" })] });
+    expect(embed.edges[0]!.label).toBe("x1:Ny");
+  });
+
+  it("alphabet 埋め込み token は cardinality としても認識されない (strip/parse の境界一致、 Round 10)", () => {
+    // parse (sub 反映) と strip (label 除去) が同じ単語境界 matcher を共有するため乖離しない。
+    // `column:Metadata` は cardinality と誤認しないので sub に cardinality が入らない。
+    const col = compile("er", { flow: [step("A", "B", { label: "column:Metadata" })] });
+    // sub は cardinality 由来。 token 誤認しなければ default "1:N" が入る (ER preset の既定)。
+    expect(col.edges[0]!.sub).toBe("1:N");
+    // 正当な cardinality は認識される (対照)
+    const real = compile("er", { flow: [step("A", "B", { label: "owns (0..1)" })] });
+    expect(real.edges[0]!.sub).toBe("0..1");
+    expect(real.edges[0]!.label).toBe("owns");
+  });
+
   it("不可視文字が content と混在する場合は保持する (Cf 単独でなければ意味あり)", () => {
     // BOM が content 文字と混在していれば visible content ありと判定して保持する。
     const d = compile("er", { flow: [step("A", "B", { label: `x\uFEFFy (1:N)` })] });

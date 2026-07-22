@@ -1633,9 +1633,18 @@ const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
   [/1\.\.\*/, "1..*"],
 ];
 
+// cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
+// 前後が英数字なら token とみなさない = `column:Metadata` の `n:M` や `10:11:12` の `1:1`、 `x1:Ny` の
+// `1:N` を cardinality と誤認して壊すのを防ぐ (cc-codex #879 Round 9/10)。 strip と parse で別々に
+// pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
+function boundedCardinalityRegExp(pattern: RegExp, extraFlags = ""): RegExp {
+  const base = pattern.flags.includes("i") ? "i" : "";
+  return new RegExp(`(?<![A-Za-z0-9])(?:${pattern.source})(?![A-Za-z0-9])`, base + extraFlags);
+}
+
 function parseCardinalityFromLabel(label: string): ErRelationCardinality | null {
   for (const [pattern, card] of CARDINALITY_PATTERNS) {
-    if (pattern.test(label)) return card;
+    if (boundedCardinalityRegExp(pattern).test(label)) return card;
   }
   return null;
 }
@@ -1661,11 +1670,12 @@ function stripCardinality(label: string): string {
     const flags = pattern.flags.includes("i") ? "gi" : "g";
     const before = r;
     r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
-    // 裸 token 除去 = 同一 token が複数回出る label (`1:N and 1:N`) で全て消すため global にするが、
-    // token の前後に数字が隣接しない境界を付ける。 単純 global 化は `1:1 at 10:11:12` の timestamp
-    // 部分文字列まで消す over-removal を起こす (cc-codex #879 Round 8/9)。 前後が数字でない
-    // (先頭/末尾含む) 場合のみ除去する lookbehind/lookahead で cardinality token だけに限定する。
-    r = r.replace(new RegExp(`(?<![0-9])(?:${src})(?![0-9])`, flags), "");
+    // 裸 token 除去 = parse と同じ単語境界付き matcher (boundedCardinalityRegExp) を global で適用する。
+    // 前後が英数字なら token とみなさないため、 timestamp (`10:11:12`) / 比率 (`10:11`) / alphabet 埋め込み
+    // (`column:Metadata`) を壊さず、 同一 token の複数出現 (`1:N and 1:N`) は全て消す。 parse 側と境界規則を
+    // 単一 SSOT にすることで strip/parse の乖離 (strip は消すが parse は残す等) を構造的に防ぐ
+    // (cc-codex #879 Round 9/10 = 数字境界だけ / strip 側だけの修正では 2 経路 drift + alphabet 埋め込み穴)。
+    r = r.replace(boundedCardinalityRegExp(pattern, "g"), "");
     if (r !== before) removed = true;
   }
   // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
