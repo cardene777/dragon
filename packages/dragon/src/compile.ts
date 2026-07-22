@@ -1642,6 +1642,7 @@ function parseCardinalityFromLabel(label: string): ErRelationCardinality | null 
 
 function stripCardinality(label: string): string {
   let r = label;
+  let removed = false;
   for (const [pattern] of CARDINALITY_PATTERNS) {
     // cardinality token を「それを囲む括弧ごと 1 単位」 で除去する。
     // まず `(1:N)` のように token を直接包む括弧つき形を除去し、 次に裸の token を除去する。
@@ -1649,10 +1650,21 @@ function stripCardinality(label: string): string {
     // `fn() now` の `()`) を壊さない (cc-codex #879 Round 4 指摘 = 空括弧の全域除去は過剰)。
     const src = pattern.source;
     const flags = pattern.flags.includes("i") ? "gi" : "g";
-    r = r.replace(new RegExp(`\\(\\s*${src}\\s*\\)`, flags), "").trim();
-    r = r.replace(pattern, "").trim();
+    const before = r;
+    r = r.replace(new RegExp(`\\(\\s*${src}\\s*\\)`, flags), "");
+    r = r.replace(pattern, "");
+    if (r !== before) removed = true;
   }
-  // 中間 token 除去で生じた連続空白を単一化する (例 "A 1:N B" → "A  B" → "A B")。
-  r = r.replace(/\s{2,}/g, " ").trim();
+  // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
+  // cc-codex #879 Round 5 指摘 = `\s{2,}` の無条件正規化は改行を含む label を破壊した)。
+  if (!removed) return label;
+  // 除去で生じた「改行を含まない連続空白」 のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
+  // 改行は保持するため `\s` ではなく `[^\S\n]` (改行以外の空白) を対象にする。
+  //   - 各行内の連続水平空白を単一化
+  //   - 各行の行頭 / 行末の水平空白を除去 (改行直前の trailing 空白も落とす)
+  r = r
+    .replace(/[^\S\n]{2,}/g, " ")
+    .replace(/[^\S\n]*\n[^\S\n]*/g, "\n")
+    .replace(/^[^\S\n]+|[^\S\n]+$/g, "");
   return r || label;
 }

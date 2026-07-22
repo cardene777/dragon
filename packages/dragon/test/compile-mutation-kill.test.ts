@@ -2484,6 +2484,22 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("A B");
   });
 
+  it("cardinality を含まない label の複数空白を破壊しない (cc-codex #879 Round 5)", () => {
+    // token を除去しない label は空白を一切いじらない (無条件正規化は改行/複数空白を破壊した)。
+    const d = compile("er", { flow: [step("A", "B", { label: "line1  line2" })] });
+    expect(d.edges[0]!.label).toBe("line1  line2");
+  });
+
+  it("cardinality を含まない label の改行を破壊しない", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "line1\n\nline2" })] });
+    expect(d.edges[0]!.label).toBe("line1\n\nline2");
+  });
+
+  it("cardinality 除去時も label 内の改行は保持する", () => {
+    const d = compile("er", { flow: [step("A", "B", { label: "desc (1:N)\nmore" })] });
+    expect(d.edges[0]!.label).toBe("desc\nmore");
+  });
+
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
     // 除去すると空になるため元 label を維持する
