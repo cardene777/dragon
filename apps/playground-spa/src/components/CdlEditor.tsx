@@ -750,8 +750,11 @@ export function CdlEditor(): React.JSX.Element {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
-          compile(part);
+          // CAR-1947 Round 2 F5 refinement = parts marker 経路でも HTML canvas mode 時は laid SSOT を更新。
+          // これで parts-only diagram 切替時に子側が旧 lane を表示する false positive を防止。
+          const laidPart = compile(part);
           setDiagram(part);
+          if (useHtmlCanvas) setLaid(laidPart);
           setError(null);
           try {
             const report = visualValidate(part);

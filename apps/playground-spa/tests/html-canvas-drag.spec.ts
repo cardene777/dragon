@@ -268,14 +268,15 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
         expect(Math.abs(during.y - before.y), `${lane.slug} drag 中 y shift`).toBeLessThanOrEqual(5);
       }
     }
-    // F6 = release 前 rect 基準で 300ms window 内の非対象 lane flicker 検証 (5px 以内)
+    // F6 = release 前 rect 基準で 300ms window 内の非対象 lane flicker 検証 (5px 以内、
+    // false negative 防止 = lane 消失フレームも明示 fail、 continue で skip しない)
     for (const snap of rectsFlickerWindow) {
       for (const lane of nonTargetLanes) {
         const atRelease = rectsAtRelease[lane.slug]!;
         const during = snap[lane.slug];
-        if (!during) continue;
-        expect(Math.abs(during.x - atRelease.x), `${lane.slug} release 300ms window x flicker (F6)`).toBeLessThanOrEqual(5);
-        expect(Math.abs(during.y - atRelease.y), `${lane.slug} release 300ms window y flicker (F6)`).toBeLessThanOrEqual(5);
+        expect(during, `${lane.slug} が release 300ms window 内で消失していない`).toBeDefined();
+        expect(Math.abs(during!.x - atRelease.x), `${lane.slug} release 300ms window x flicker (F6)`).toBeLessThanOrEqual(5);
+        expect(Math.abs(during!.y - atRelease.y), `${lane.slug} release 300ms window y flicker (F6)`).toBeLessThanOrEqual(5);
       }
     }
     // release 完了後の対象外 lane rect shift 検証 (F1 = 前 session user report「API/DB が飛ぶ」 の再現防止)
