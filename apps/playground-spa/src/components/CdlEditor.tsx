@@ -975,7 +975,17 @@ export function CdlEditor(): React.JSX.Element {
     // cursor に snap する bug、 CAR-1935 root cause の 1 つとして排除。
     const slug = slugifyActorName(dragInfo.name);
     const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-    const targetEl = (target.closest(`[data-cdl-node], [data-cdl-lane]`) ?? laneEl) as SVGGraphicsElement | null;
+    // CAR-Issue #903 = targetEl 選択を lane element 優先に統一する。
+    //
+    // 旧経路 (closest node 優先) は node bbox 基準で grabOffset を計算していたが、
+    // finalize は updateActorPosition で lane.posX/posY を書き出す = 基準 (node bbox)
+    // と write 対象 (lane bbox) の mismatch で lane bbox と node bbox の左上差分だけ
+    // 系統的 shift が発生していた (実測 26-33px、 = lane.width/2 - node.width/2 差の world scale)。
+    //
+    // 新経路 (lane 優先) は grabOffset を lane bbox 左上基準で計算、 write 対象と一致するため
+    // 「掴んだ点 = release cursor 位置」 invariant が完全成立する。 node bbox fallback は
+    // lane element 不在 case (parts sub-node 等) の safety fallback として保持。
+    const targetEl = (laneEl ?? target.closest(`[data-cdl-node]`)) as SVGGraphicsElement | null;
     let initPosX = cur?.posX;
     let initPosY = cur?.posY;
     if (initPosX === undefined || initPosY === undefined) {
