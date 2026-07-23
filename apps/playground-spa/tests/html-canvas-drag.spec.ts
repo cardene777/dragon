@@ -100,16 +100,23 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
     }
   });
 
-  test("T2 = 掴んだ点 = 置いた点 (release 座標 delta < 1px、 3 条件 1/3)", async ({ page }) => {
+  test("T2 = 掴んだ点 = 置いた点 (CAR-1965 bounding rect 経由の実 CSS pixel verify、 3 条件 1/3)", async ({ page }) => {
+    // CAR-1965 = 自己参照除去 = mirror.worldX ではなく getBoundingClientRect() で drag 前後の
+    // 実 rendered CSS pixel 差分を検証。 user が screen で見る移動距離と drag delta の一致を verify。
     const mirror0 = await readCanvasState(page);
     expect(mirror0).not.toBeNull();
     const firstLane = mirror0!.lanes[0]!;
-    const scale = mirror0!.viewportTransform.scale;
-    const start = await getLaneCenter(page, firstLane.slug);
     const clientDeltaX = 150;
     const clientDeltaY = 40;
-    const expectedWorldDeltaX = clientDeltaX / scale;
-    const expectedWorldDeltaY = clientDeltaY / scale;
+    // drag 前の実 rendered bounding rect
+    const rectBefore = await page.evaluate((slug) => {
+      const el = document.querySelector(`[data-html-canvas-lane="${slug}"]`) as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    }, firstLane.slug);
+    expect(rectBefore).not.toBeNull();
+    const start = { x: rectBefore!.left + rectBefore!.width / 2, y: rectBefore!.top + rectBefore!.height / 2 };
     const targetX = start.x + clientDeltaX;
     const targetY = start.y + clientDeltaY;
     await page.mouse.move(start.x, start.y);
@@ -121,56 +128,76 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
     await page.mouse.move(targetX, targetY);
     await page.mouse.up();
     await page.waitForTimeout(600);
-    const mirror1 = await readCanvasState(page);
-    expect(mirror1).not.toBeNull();
-    const updatedLane = mirror1!.lanes.find((l) => l.slug === firstLane.slug);
-    expect(updatedLane).toBeDefined();
-    const deltaX = updatedLane!.worldX - firstLane.worldX;
-    const deltaY = updatedLane!.worldY - firstLane.worldY;
-    expect(Math.abs(deltaX - expectedWorldDeltaX)).toBeLessThanOrEqual(1);
-    expect(Math.abs(deltaY - expectedWorldDeltaY)).toBeLessThanOrEqual(1);
+    // drag 後の実 rendered bounding rect
+    const rectAfter = await page.evaluate((slug) => {
+      const el = document.querySelector(`[data-html-canvas-lane="${slug}"]`) as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    }, firstLane.slug);
+    expect(rectAfter).not.toBeNull();
+    // 実 screen pixel 移動距離が drag pointer delta と 2px 以内一致 (Math.round による ±0.5 CSS pixel 誤差 +
+    // scale round trip での ±0.5 CSS pixel 誤差 = 合計 ±1、 buffer 込みで 2px 許容)
+    const cssDeltaX = rectAfter!.left - rectBefore!.left;
+    const cssDeltaY = rectAfter!.top - rectBefore!.top;
+    expect(Math.abs(cssDeltaX - clientDeltaX), `CSS pixel deltaX ${cssDeltaX} vs pointer ${clientDeltaX}`).toBeLessThanOrEqual(2);
+    expect(Math.abs(cssDeltaY - clientDeltaY), `CSS pixel deltaY ${cssDeltaY} vs pointer ${clientDeltaY}`).toBeLessThanOrEqual(2);
+    // DSL 側にも posX/posY が反映されていることを確認 (副次的、 一致性 sanity check)
     const dsl = await getEditorText(page);
     expect(/posX\s*:\s*-?\d+/.test(dsl)).toBe(true);
     expect(/posY\s*:\s*-?\d+/.test(dsl)).toBe(true);
   });
 
-  test("T3 = drag 中 smooth 追従 (RAF sample 経路で線形逸脱 < 4px world、 3 条件 2/3)", async ({ page }) => {
+  test("T3 = drag 中 smooth 追従 (CAR-1965 bounding rect 経由の実 CSS pixel sample、 3 条件 2/3)", async ({ page }) => {
+    // CAR-1965 = 自己参照除去 = element.style.transform 文字列 parse ではなく、 各 frame での
+    // getBoundingClientRect() を sample。 実 rendered CSS pixel 進行が pointer 進行に線形追随することを verify。
     const mirror0 = await readCanvasState(page);
     expect(mirror0).not.toBeNull();
     const firstLane = mirror0!.lanes[0]!;
-    const scale = mirror0!.viewportTransform.scale;
-    const start = await getLaneCenter(page, firstLane.slug);
+    const rectBefore = await page.evaluate((slug) => {
+      const el = document.querySelector(`[data-html-canvas-lane="${slug}"]`) as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    }, firstLane.slug);
+    expect(rectBefore).not.toBeNull();
+    const start = { x: rectBefore!.left + rectBefore!.width / 2, y: rectBefore!.top + rectBefore!.height / 2 };
     const totalDeltaX = 200;
     const totalDeltaY = 60;
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    const samples: Array<{ pointerX: number; pointerY: number; worldX: number; worldY: number }> = [];
+    const samples: Array<{ pointerX: number; pointerY: number; cssLeft: number; cssTop: number }> = [];
     for (let i = 1; i <= 20; i++) {
       const px = start.x + (totalDeltaX * i) / 20;
       const py = start.y + (totalDeltaY * i) / 20;
       await page.mouse.move(px, py);
+      // 2 rAF 待って transform + compositor commit を保証
       await page.evaluate(() => new Promise<void>((r) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => r()))));
-      const t = await page.evaluate((s) => {
-        const el = document.querySelector(`[data-html-canvas-lane="${s}"]`) as HTMLElement | null;
-        return el?.style.transform ?? "";
+      const r = await page.evaluate((slug) => {
+        const el = document.querySelector(`[data-html-canvas-lane="${slug}"]`) as HTMLElement | null;
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        return { left: rect.left, top: rect.top };
       }, firstLane.slug);
-      const parsed = parseTranslate3d(t);
-      if (parsed) {
-        samples.push({ pointerX: px, pointerY: py, worldX: parsed.x, worldY: parsed.y });
-      }
+      if (r) samples.push({ pointerX: px, pointerY: py, cssLeft: r.left, cssTop: r.top });
     }
     await page.mouse.up();
     await page.waitForTimeout(300);
+    // 各 sample で pointer 進行と lane rendered 位置の delta が線形一致 (CSS pixel 単位)
     expect(samples.length).toBeGreaterThanOrEqual(10);
     let maxDeviation = 0;
     for (const s of samples) {
-      const expectedWorldX = firstLane.worldX + (s.pointerX - start.x) / scale;
-      const expectedWorldY = firstLane.worldY + (s.pointerY - start.y) / scale;
-      const devX = Math.abs(s.worldX - expectedWorldX);
-      const devY = Math.abs(s.worldY - expectedWorldY);
+      // pointer が (px - start.x, py - start.y) 動いた時、 lane も同じ pixel 分動くはず
+      const cssDeltaX = s.cssLeft - rectBefore!.left;
+      const cssDeltaY = s.cssTop - rectBefore!.top;
+      const pointerDeltaX = s.pointerX - start.x;
+      const pointerDeltaY = s.pointerY - start.y;
+      const devX = Math.abs(cssDeltaX - pointerDeltaX);
+      const devY = Math.abs(cssDeltaY - pointerDeltaY);
       maxDeviation = Math.max(maxDeviation, devX, devY);
     }
-    expect(maxDeviation, `max deviation ${maxDeviation}px world`).toBeLessThanOrEqual(4);
+    // CSS pixel 単位で 3px 以内逸脱 (Playwright mouse.move 精度 + rAF 1 frame lag + compositor commit tick を考慮)
+    expect(maxDeviation, `max CSS pixel deviation ${maxDeviation}, samples=${JSON.stringify(samples.slice(0, 3))}`).toBeLessThanOrEqual(3);
   });
 
   test("T4 = release 前 rect 基準で 300ms 全 frame shift < 5px (Round 2 F6 対応、 flicker ゼロ 3 条件 3/3)", async ({ page }) => {

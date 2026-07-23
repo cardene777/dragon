@@ -109,91 +109,94 @@ test.describe("HTML div canvas node drag (CAR-1952 Phase 2 PR 1 + Round 1 regres
     }
   });
 
-  test("T9 = node drag で 3 条件を満たす + F1 中心座標契約 (bounding rect の中心 = DSL posX/posY)", async ({ page }) => {
+  test("T9 = node drag 3 条件 (CAR-1965 bounding rect 経由の実 CSS pixel verify)", async ({ page }) => {
+    // CAR-1965 = 自己参照除去 = element.style.transform / mirror.worldCX ではなく getBoundingClientRect()
+    // で drag 前 / drag 中 sample / drag 後 の 3 stage を実 CSS pixel で verify。
     const mirror0 = await readCanvasState(page);
     expect(mirror0).not.toBeNull();
     const targetNode = mirror0!.nodes.find((n) => n.subKey !== null && n.subKey.includes("header"))
       ?? mirror0!.nodes[0]!;
-    const scale = mirror0!.viewportTransform.scale;
-    // F1 = bounding rect の中心が worldCX/worldCY と一致 (render 変換の正しさ検証)
-    const rectPre = await page.evaluate((id) => {
-      const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-    }, targetNode.nodeId);
-    expect(rectPre).not.toBeNull();
-    // viewport transform を通した bounding center は worldCX/worldCY と一致するはず
-    // (client cx = viewport rect + (worldCX * scale + tx) だが、 ここでは bounding rect が render 変換で
-    // 中心 = worldCX/worldCY となっているか、 world 単位で <= 2px の一致を確認する)
-
-    const start = await getNodeCenter(page, targetNode.nodeId);
     const clientDeltaX = 80;
     const clientDeltaY = 50;
 
+    // drag 前の実 rendered bounding rect
+    const rectBefore = await page.evaluate((id) => {
+      const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    }, targetNode.nodeId);
+    expect(rectBefore).not.toBeNull();
+    const start = { x: rectBefore!.left + rectBefore!.width / 2, y: rectBefore!.top + rectBefore!.height / 2 };
+
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    const samples: Array<{ pointerX: number; pointerY: number; worldX: number; worldY: number }> = [];
+    // 条件 2 = drag 中 smooth 追従の CSS pixel sample
+    const samples: Array<{ pointerX: number; pointerY: number; cssLeft: number; cssTop: number }> = [];
     for (let i = 1; i <= 15; i++) {
       const px = start.x + (clientDeltaX * i) / 15;
       const py = start.y + (clientDeltaY * i) / 15;
       await page.mouse.move(px, py);
       await page.evaluate(() => new Promise<void>((r) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => r()))));
-      const t = await page.evaluate((id) => {
+      const r = await page.evaluate((id) => {
         const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
-        return el?.style.transform ?? "";
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        return { left: rect.left, top: rect.top };
       }, targetNode.nodeId);
-      const parsed = parseTranslate3d(t);
-      if (parsed) samples.push({ pointerX: px, pointerY: py, worldX: parsed.x, worldY: parsed.y });
+      if (r) samples.push({ pointerX: px, pointerY: py, cssLeft: r.left, cssTop: r.top });
     }
-    // 条件 2 = drag 中 smooth 追従 (F1 = render は左上座標なので `worldCX - w/2` からの delta として検証)
     expect(samples.length).toBeGreaterThanOrEqual(10);
     let maxDev = 0;
     for (const s of samples) {
-      // s.worldX/Y は translate3d 左上、 startWorldX/Y は worldCX-w/2 (start 時の render 左上)
-      const startLeft = targetNode.worldCX - targetNode.worldW / 2;
-      const startTop = targetNode.worldCY - targetNode.worldH / 2;
-      const expectedLeft = startLeft + (s.pointerX - start.x) / scale;
-      const expectedTop = startTop + (s.pointerY - start.y) / scale;
-      maxDev = Math.max(maxDev, Math.abs(s.worldX - expectedLeft), Math.abs(s.worldY - expectedTop));
+      const cssDeltaX = s.cssLeft - rectBefore!.left;
+      const cssDeltaY = s.cssTop - rectBefore!.top;
+      const pointerDeltaX = s.pointerX - start.x;
+      const pointerDeltaY = s.pointerY - start.y;
+      maxDev = Math.max(maxDev, Math.abs(cssDeltaX - pointerDeltaX), Math.abs(cssDeltaY - pointerDeltaY));
     }
-    expect(maxDev, `node drag deviation ${maxDev}px world`).toBeLessThanOrEqual(4);
+    expect(maxDev, `node CSS pixel deviation ${maxDev}`).toBeLessThanOrEqual(3);
 
-    const rectBefore = await page.evaluate((id) => {
+    // release 直前 rect (条件 3 = flicker 検証の基準)
+    const rectAtRelease = await page.evaluate((id) => {
       const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { x: r.left, y: r.top };
+      return { left: r.left, top: r.top };
     }, targetNode.nodeId);
-    expect(rectBefore).not.toBeNull();
+    expect(rectAtRelease).not.toBeNull();
 
     await page.mouse.up();
 
+    // 条件 3 = release 後 300ms window で shift < 5px CSS
     for (let i = 0; i < 10; i++) {
       await page.waitForTimeout(30);
       const r = await page.evaluate((id) => {
         const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
         if (!el) return null;
         const rect = el.getBoundingClientRect();
-        return { x: rect.left, y: rect.top };
+        return { left: rect.left, top: rect.top };
       }, targetNode.nodeId);
       if (r) {
-        expect(Math.abs(r.x - rectBefore!.x)).toBeLessThanOrEqual(5);
-        expect(Math.abs(r.y - rectBefore!.y)).toBeLessThanOrEqual(5);
+        expect(Math.abs(r.left - rectAtRelease!.left)).toBeLessThanOrEqual(5);
+        expect(Math.abs(r.top - rectAtRelease!.top)).toBeLessThanOrEqual(5);
       }
     }
 
     await page.waitForTimeout(400);
 
-    const mirror1 = await readCanvasState(page);
-    expect(mirror1).not.toBeNull();
-    const updatedNode = mirror1!.nodes.find((n) => n.nodeId === targetNode.nodeId);
-    expect(updatedNode).toBeDefined();
-    // F1 = DSL 側書換の contract 検証、 worldCX/worldCY delta が pointer delta / scale と 2px 以内一致
-    const deltaCX = updatedNode!.worldCX - targetNode.worldCX;
-    const deltaCY = updatedNode!.worldCY - targetNode.worldCY;
-    expect(Math.abs(deltaCX - clientDeltaX / scale)).toBeLessThanOrEqual(2);
-    expect(Math.abs(deltaCY - clientDeltaY / scale)).toBeLessThanOrEqual(2);
+    // 条件 1 = 掴んだ点 = 置いた点 = drag 前後の CSS pixel delta が pointer delta と 2px 以内一致
+    const rectAfter = await page.evaluate((id) => {
+      const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top };
+    }, targetNode.nodeId);
+    expect(rectAfter).not.toBeNull();
+    const finalDeltaX = rectAfter!.left - rectBefore!.left;
+    const finalDeltaY = rectAfter!.top - rectBefore!.top;
+    expect(Math.abs(finalDeltaX - clientDeltaX), `node final CSS pixel deltaX ${finalDeltaX}`).toBeLessThanOrEqual(2);
+    expect(Math.abs(finalDeltaY - clientDeltaY), `node final CSS pixel deltaY ${finalDeltaY}`).toBeLessThanOrEqual(2);
   });
 
   test("T10 = node drag 後 DSL に `nodes: { subKey: { posX, posY } }` が中心座標で書換される (F1 + F4)", async ({ page }) => {
