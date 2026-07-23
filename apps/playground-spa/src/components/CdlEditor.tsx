@@ -5,6 +5,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
+import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
   clientToSvg,
@@ -343,6 +344,9 @@ function appendActorLine(src: string, newLine: string): string | null {
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
+  // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
+  // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
+  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
@@ -2058,6 +2062,14 @@ ${newActorLine}
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
+        {useHtmlCanvas ? (
+          <HtmlDivCanvasEditor
+            src={src}
+            onSrcChange={setSrc}
+            partsCatalog={partsCatalog}
+            testId="editor-preview-stage"
+          />
+        ) : (
         <div
           className={`v4-editor-stage ${dropOver ? "drop-over" : ""}`}
           ref={previewRef}
@@ -2177,6 +2189,7 @@ ${newActorLine}
             );
           })()}
         </div>
+        )}
       </section>
     </div>
   );
