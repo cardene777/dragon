@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
-import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
+import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
+import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
   clientToSvg,
@@ -343,7 +344,14 @@ function appendActorLine(src: string, newLine: string): string | null {
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
+  // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
+  // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
+  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
+  const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
+  // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
+  // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
+  const [laid, setLaid] = useState<LaidDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
@@ -742,8 +750,11 @@ export function CdlEditor(): React.JSX.Element {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
-          compile(part);
+          // CAR-1947 Round 2 F5 refinement = parts marker 経路でも HTML canvas mode 時は laid SSOT を更新。
+          // これで parts-only diagram 切替時に子側が旧 lane を表示する false positive を防止。
+          const laidPart = compile(part);
           setDiagram(part);
+          if (useHtmlCanvas) setLaid(laidPart);
           setError(null);
           try {
             const report = visualValidate(part);
@@ -756,8 +767,11 @@ export function CdlEditor(): React.JSX.Element {
         // CAR-1657 = partsCatalog を渡して parts kind actor を merge 展開させる経路
         const d = textDslToDiagram(src, { partsCatalog });
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
-        compile(d);
+        // CAR-1947 Round 2 F5 = HTML canvas mode 時は compile 結果 (LaidDiagram) を SSOT として保持、
+        // 子側の重複 compile を排除。 SVG mode 時は compile 結果を捨てて既存挙動維持 (setLaid 呼ばず)。
+        const laidResult = compile(d);
         setDiagram(d);
+        if (useHtmlCanvas) setLaid(laidResult);
         setError(null);
         // visualValidate で位置関係を機械検証、 warn / error を editor 上部に表示。
         // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
@@ -2017,7 +2031,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={handleFit}
+            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.fit() : handleFit}
             title="表示を preview 領域に合わせる"
           >
             フィット
@@ -2025,7 +2039,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={handleReset}
+            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.reset() : handleReset}
             title="表示を初期状態に戻す (Esc)"
           >
             リセット
@@ -2034,7 +2048,8 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handle100}
-            title="等倍表示"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "等倍表示"}
+            disabled={useHtmlCanvas}
           >
             100%
           </button>
@@ -2042,8 +2057,9 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomOut}
-            title="縮小"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "縮小"}
             aria-label="縮小"
+            disabled={useHtmlCanvas}
           >
             −
           </button>
@@ -2051,13 +2067,23 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomIn}
-            title="拡大"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "拡大"}
             aria-label="拡大"
+            disabled={useHtmlCanvas}
           >
             +
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
+        {useHtmlCanvas ? (
+          <HtmlDivCanvasEditor
+            ref={htmlCanvasRef}
+            src={src}
+            onSrcChange={setSrc}
+            laid={laid}
+            testId="editor-preview-stage"
+          />
+        ) : (
         <div
           className={`v4-editor-stage ${dropOver ? "drop-over" : ""}`}
           ref={previewRef}
@@ -2177,6 +2203,7 @@ ${newActorLine}
             );
           })()}
         </div>
+        )}
       </section>
     </div>
   );
