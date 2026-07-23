@@ -546,6 +546,15 @@
   [data-cdl-diagram] > div.border-t.flex.text-xs.px-3.py-2 {
     display: none !important;
   }
+  /* editor では lane label (sequence preset の各 lane 上部に float する actor 名 text =
+     「Client」「alarmclock1」「API」「DB」 等) を非表示にする。 user から複数回の指摘あり
+     (「常にこの文字ある」 = 掴む対象 (actor header box) が既に actor 名を大きく表示済のため
+     lane label が視覚 noise + 重複表示)。 CdlDiagramView 側に hideLaneLabel prop が無いため
+     CSS で hide、 catalog 側 (.catalog-preview-*) は残す = catalog は spec を正確に render する場所。
+     scope = editor stage 内の [data-cdl-role="lane-label"] のみ。 */
+  .v4-editor-preview [data-cdl-role="lane-label"] {
+    display: none !important;
+  }
   /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
      warm cream text (#f8ecd0) + gold stroke (#f0b840) を使用するため、 stage も dark
      bg で対比を最大化できる。 graticule grid は warm gold rgba(240, 184, 64) で subtle 維持。
