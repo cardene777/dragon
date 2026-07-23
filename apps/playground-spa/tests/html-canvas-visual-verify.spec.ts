@@ -30,7 +30,7 @@ async function getLaneCenter(page: Page, slug: string): Promise<{ x: number; y: 
 test.describe("HTML div canvas visual verify (CAR-1947 Phase 1)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
-    await page.goto("/editor", { waitUntil: "networkidle" });
+    await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
     await page.waitForSelector(LANE_SELECTOR, { timeout: 10000 });
     await page.waitForTimeout(400);
   });
