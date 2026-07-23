@@ -346,7 +346,8 @@ export function CdlEditor(): React.JSX.Element {
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
   // CAR-1990 = /editor default 化。 `useHtmlCanvas` は常時 true 固定、 SVG stage 経路は unreachable code
   // として残置 (dead code cleanup は CAR-1963 で継続)。 `?canvas=html` URL param は互換 no-op、
-  // `canvasHtmlFeatureFlag` import は type 保持のため残す (実 flag 判定は使わない)。
+  // SVG opt-out flag は追加しない。 `canvasHtmlFeatureFlag` import は将来 flag 復活時の再結線 point
+  // として value import で残す (実 flag 判定は本 PR では使わない、 void で unused-warning 抑止)。
   const useHtmlCanvas = true;
   void canvasHtmlFeatureFlag;
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
@@ -1927,19 +1928,29 @@ ${newActorLine}
             共有URL
           </button>
           <div className="v4-editor-export">
-            <button type="button" className="v4-editor-bar-btn v4-editor-bar-btn-primary" disabled={!diagram}>
+            {/*
+              CAR-1990 = HTML canvas default 化により SVG element が存在せず、 export handler は
+              silent no-op になる。 CAR-1963 で HTML canvas → SVG export 実装または menu 撤去まで
+              の暫定対応として全 export 経路を disabled + title で理由明示。
+            */}
+            <button
+              type="button"
+              className="v4-editor-bar-btn v4-editor-bar-btn-primary"
+              disabled
+              title="HTML canvas mode では export 未対応 (CAR-1963 で実装予定)"
+            >
               エクスポート ↓
             </button>
             <div className="v4-editor-export-menu">
-              <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
+              <button type="button" onClick={handleExportAnimatedSvg} disabled title="HTML canvas mode では未対応 (CAR-1963)">
                 <strong>アニメーション SVG</strong>
                 <span>単一ファイルで動く / GitHub README / Notion</span>
               </button>
-              <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
+              <button type="button" onClick={handleExportStaticSvg} disabled title="HTML canvas mode では未対応 (CAR-1963)">
                 <strong>静止 SVG</strong>
                 <span>現 phase の静止 1 frame / Keynote / PDF</span>
               </button>
-              <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
+              <button type="button" onClick={() => void handleExportPng()} disabled title="HTML canvas mode では未対応 (CAR-1963)">
                 <strong>PNG</strong>
                 <span>ラスター 2x DPR / Slack / Twitter</span>
               </button>
