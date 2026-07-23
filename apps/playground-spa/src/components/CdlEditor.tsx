@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
-import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
+import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
@@ -349,6 +349,9 @@ export function CdlEditor(): React.JSX.Element {
   const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
+  // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
+  // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
+  const [laid, setLaid] = useState<LaidDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
@@ -761,8 +764,11 @@ export function CdlEditor(): React.JSX.Element {
         // CAR-1657 = partsCatalog を渡して parts kind actor を merge 展開させる経路
         const d = textDslToDiagram(src, { partsCatalog });
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
-        compile(d);
+        // CAR-1947 Round 2 F5 = HTML canvas mode 時は compile 結果 (LaidDiagram) を SSOT として保持、
+        // 子側の重複 compile を排除。 SVG mode 時は compile 結果を捨てて既存挙動維持 (setLaid 呼ばず)。
+        const laidResult = compile(d);
         setDiagram(d);
+        if (useHtmlCanvas) setLaid(laidResult);
         setError(null);
         // visualValidate で位置関係を機械検証、 warn / error を editor 上部に表示。
         // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
@@ -2071,7 +2077,7 @@ ${newActorLine}
             ref={htmlCanvasRef}
             src={src}
             onSrcChange={setSrc}
-            diagram={diagram}
+            laid={laid}
             testId="editor-preview-stage"
           />
         ) : (

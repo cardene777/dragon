@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from "react";
-import { compile, type CdlDiagram, type LaidDiagram } from "@cardenelabs/cdl";
+import type { LaidDiagram } from "@cardenelabs/cdl";
 import {
   updateActorPosition,
   extractActorPosition,
@@ -41,10 +41,10 @@ interface HtmlDivCanvasEditorProps {
   /** drag end で書換された src を親 (CdlEditor) に通知、 CodeMirror へ双方向 sync */
   onSrcChange: (next: string) => void;
   /**
-   * F5 対応 = 親側で parse 済 CdlDiagram を渡す (親の 300ms debounce と 1:1、 子 render 内 parse 廃止)。
-   * 未指定 (`null`) 時は fallback 経路で `src` から自前 parse (下位互換、 story 単体等 stand-alone 用途)。
+   * Round 2 F5 対応 = 親側で compile 済 LaidDiagram を SSOT として受け取る (compile 重複を完全排除)。
+   * 未指定 (`null`) 時は空 canvas を描画 (親の compile pipeline 未 settle の初回 render 用)。
    */
-  diagram?: CdlDiagram | null;
+  laid?: LaidDiagram | null;
   /** test 用 = window mirror に internal state を公開する経路 (e2e 検証用、 production では読み手なし) */
   testId?: string;
 }
@@ -172,20 +172,11 @@ export interface HtmlDivCanvasEditorHandle {
  */
 export const HtmlDivCanvasEditor = forwardRef<HtmlDivCanvasEditorHandle, HtmlDivCanvasEditorProps>(
   function HtmlDivCanvasEditor(
-    { src, onSrcChange, diagram, testId }: HtmlDivCanvasEditorProps,
+    { src, onSrcChange, laid: laidProp, testId }: HtmlDivCanvasEditorProps,
     ref,
   ): React.ReactElement {
-    // F5 対応 = 親から diagram を受取り、 子は compile のみ。 fallback (未指定) は stand-alone 用途で
-    // memoize + try/catch で parse 失敗を握る (親経路が主軸)。
-    const laid = useMemo<LaidDiagram | null>(() => {
-      if (!diagram) return null;
-      try {
-        return compile(diagram);
-      } catch {
-        return null;
-      }
-    }, [diagram]);
-
+    // Round 2 F5 対応 = 親から LaidDiagram を受取り、 子で compile 呼ばない (SSOT 一本化)。
+    const laid: LaidDiagram | null = laidProp ?? null;
     const lanes = useMemo(() => (laid ? buildLaneVisuals(src, laid) : []), [src, laid]);
 
     // 3. viewport 座標 (fit only、 Phase 1 は pan / zoom 未実装、 F3 = toolbar は親側で disabled)

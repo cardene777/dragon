@@ -219,7 +219,7 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
       .toBeLessThanOrEqual(5);
   });
 
-  test("T5 = 対象外 lane が drag 中 / release 後に飛ばない (Round 2 F1 対応)", async ({ page }) => {
+  test("T5 = 対象外 lane が drag 中 / release 300ms window / release 後全て飛ばない (Round 2 F1 + F6 対応)", async ({ page }) => {
     const mirror0 = await readCanvasState(page);
     expect(mirror0).not.toBeNull();
     expect(mirror0!.lanes.length).toBeGreaterThanOrEqual(3);
@@ -242,8 +242,21 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
       }
       rectsMidDrag.push(nonTargetSnap);
     }
+    // release 直前の非対象 lane rect を基準として保存 (F6 = release 前基準)
+    const rectsAtRelease = await getAllLaneRects(page);
     await page.mouse.up();
-    await page.waitForTimeout(600);
+    // release 後 300ms window で 15 sample (20ms 間隔) を collect (F6 = 全 frame check)
+    const rectsFlickerWindow: Record<string, { x: number; y: number }>[] = [];
+    for (let i = 0; i < 15; i++) {
+      await page.waitForTimeout(20);
+      const snap = await getAllLaneRects(page);
+      const nonTargetSnap: Record<string, { x: number; y: number }> = {};
+      for (const slug of Object.keys(snap)) {
+        if (slug === targetLane.slug) continue;
+        nonTargetSnap[slug] = { x: snap[slug]!.x, y: snap[slug]!.y };
+      }
+      rectsFlickerWindow.push(nonTargetSnap);
+    }
     const rectsAfter = await getAllLaneRects(page);
     // 対象外 lane の drag 中 rect shift 検証 (5px 以内、 auto-adjust なし)
     for (const snap of rectsMidDrag) {
@@ -255,8 +268,17 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
         expect(Math.abs(during.y - before.y), `${lane.slug} drag 中 y shift`).toBeLessThanOrEqual(5);
       }
     }
-    // release 後の対象外 lane rect shift 検証 (F1 = 前 session user report「API/DB が飛ぶ」 の再現防止)
-    // 対象 lane 位置変化に伴う viewport 再 fit 補正で全 lane が少しずつずれる可能性を考慮して 20px 許容
+    // F6 = release 前 rect 基準で 300ms window 内の非対象 lane flicker 検証 (5px 以内)
+    for (const snap of rectsFlickerWindow) {
+      for (const lane of nonTargetLanes) {
+        const atRelease = rectsAtRelease[lane.slug]!;
+        const during = snap[lane.slug];
+        if (!during) continue;
+        expect(Math.abs(during.x - atRelease.x), `${lane.slug} release 300ms window x flicker (F6)`).toBeLessThanOrEqual(5);
+        expect(Math.abs(during.y - atRelease.y), `${lane.slug} release 300ms window y flicker (F6)`).toBeLessThanOrEqual(5);
+      }
+    }
+    // release 完了後の対象外 lane rect shift 検証 (F1 = 前 session user report「API/DB が飛ぶ」 の再現防止)
     for (const lane of nonTargetLanes) {
       const before = rectsBefore[lane.slug]!;
       const after = rectsAfter[lane.slug];

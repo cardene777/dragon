@@ -58,7 +58,7 @@ test.describe("HTML div canvas visual verify (CAR-1947 Phase 1)", () => {
     await page.mouse.up();
   });
 
-  test("V-3 = release 直後の viewport screenshot", async ({ page }) => {
+  test("V-3 = release 前 / release 直後 / release+300ms の 3 stage screenshot (Round 2 F6 対応)", async ({ page }) => {
     const slug = await page.evaluate(() => {
       const el = document.querySelector("[data-html-canvas-lane]") as HTMLElement | null;
       return el?.getAttribute("data-html-canvas-lane") ?? "";
@@ -70,11 +70,14 @@ test.describe("HTML div canvas visual verify (CAR-1947 Phase 1)", () => {
       await page.mouse.move(start.x + (180 * i) / 10, start.y + (50 * i) / 10);
       await page.waitForTimeout(15);
     }
+    // F6 対応 = release 前 = mouse.up 前の drag end 状態 (掴んでいる最終位置)
+    await page.screenshot({ path: path.join(OUT_DIR, "03-pre-release.png"), fullPage: false });
     await page.mouse.up();
-    // release 直後 (0ms、 DSL write back 直前想定)
-    await page.screenshot({ path: path.join(OUT_DIR, "03-release-immediate.png"), fullPage: false });
-    // 300ms 後 (flicker window)
+    // release 直後 = DSL write back + React 再 render 経路の直後
+    await page.waitForTimeout(16); // 1 frame
+    await page.screenshot({ path: path.join(OUT_DIR, "04-release-immediate.png"), fullPage: false });
+    // 300ms 後 (flicker window 後、 完全 settle 状態)
     await page.waitForTimeout(300);
-    await page.screenshot({ path: path.join(OUT_DIR, "04-release-plus-300ms.png"), fullPage: false });
+    await page.screenshot({ path: path.join(OUT_DIR, "05-release-plus-300ms.png"), fullPage: false });
   });
 });
