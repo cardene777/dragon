@@ -160,8 +160,13 @@ function buildNodeVisuals(laid: LaidDiagram, index: DslIndex): NodeVisual[] {
     const resolved = resolveDslNameWithSubKey(node.id, index.slugToName);
     if (!resolved) continue;
     const subKey = resolved.subNodeKey ?? null;
-    const overrideKey = subKey !== null ? `${resolved.name}::${subKey}` : null;
-    const explicitPos = overrideKey ? index.nodeOverrides.get(overrideKey) : undefined;
+    // Round 2 F1/F4 fix = 単一 node (subKey === null) は actor 直下の posX/posY (laneOverrides) を SSOT にする、
+    // sub-node は nested nodes.{subKey} の posX/posY (nodeOverrides) 経路。 単一 node で explicitPos が
+    // undefined になり origPosW/H の write-back が消える regression を防止。
+    const explicitPos =
+      subKey !== null
+        ? index.nodeOverrides.get(`${resolved.name}::${subKey}`)
+        : index.laneOverrides.get(resolved.name);
     // F1 = 中心座標を SSOT に保持 (worldCX/worldCY = DSL posX/posY と一致する契約)
     const worldCX = explicitPos?.posX ?? node.cx;
     const worldCY = explicitPos?.posY ?? node.cy;

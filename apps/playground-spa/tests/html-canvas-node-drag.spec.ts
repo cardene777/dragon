@@ -18,7 +18,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
 const NODE_SELECTOR = "[data-html-canvas-node]";
-const LANE_SELECTOR = "[data-html-canvas-lane]";
 const CANVAS_TEST_MIRROR_KEY = "__htmlCanvasState";
 
 interface NodeMirror {
