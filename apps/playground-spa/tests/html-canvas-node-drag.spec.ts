@@ -144,9 +144,11 @@ test.describe("HTML div canvas node drag (CAR-1952 Phase 2 PR 1 + Round 1 regres
         const rect = el.getBoundingClientRect();
         return { left: rect.left, top: rect.top };
       }, targetNode.nodeId);
-      if (r) samples.push({ pointerX: px, pointerY: py, cssLeft: r.left, cssTop: r.top });
+      // Round 1 F3 対応 = 要素消失 frame は即 fail、 sample 数完全一致を assert
+      expect(r, `node ${targetNode.nodeId} が drag iter ${i} で消失していない`).not.toBeNull();
+      samples.push({ pointerX: px, pointerY: py, cssLeft: r!.left, cssTop: r!.top });
     }
-    expect(samples.length).toBeGreaterThanOrEqual(10);
+    expect(samples.length, `sample 数完全一致 (F3 skip 検出)`).toBe(15);
     let maxDev = 0;
     for (const s of samples) {
       const cssDeltaX = s.cssLeft - rectBefore!.left;
@@ -168,7 +170,7 @@ test.describe("HTML div canvas node drag (CAR-1952 Phase 2 PR 1 + Round 1 regres
 
     await page.mouse.up();
 
-    // 条件 3 = release 後 300ms window で shift < 5px CSS
+    // 条件 3 = release 後 300ms window で shift < 5px CSS (F3 = 消失 frame は即 fail)
     for (let i = 0; i < 10; i++) {
       await page.waitForTimeout(30);
       const r = await page.evaluate((id) => {
@@ -177,10 +179,9 @@ test.describe("HTML div canvas node drag (CAR-1952 Phase 2 PR 1 + Round 1 regres
         const rect = el.getBoundingClientRect();
         return { left: rect.left, top: rect.top };
       }, targetNode.nodeId);
-      if (r) {
-        expect(Math.abs(r.left - rectAtRelease!.left)).toBeLessThanOrEqual(5);
-        expect(Math.abs(r.top - rectAtRelease!.top)).toBeLessThanOrEqual(5);
-      }
+      expect(r, `release window iter ${i} で node ${targetNode.nodeId} が消失していない`).not.toBeNull();
+      expect(Math.abs(r!.left - rectAtRelease!.left)).toBeLessThanOrEqual(5);
+      expect(Math.abs(r!.top - rectAtRelease!.top)).toBeLessThanOrEqual(5);
     }
 
     await page.waitForTimeout(400);

@@ -5,11 +5,15 @@
  * html-canvas-drag.spec / html-canvas-node-drag.spec の T2/T3/T9 は mirror + element.style.transform
  * に依存した自己参照的 test だったため、 本 spec で以下 2 経路の独立検証を追加。
  *
- * - T14 = @cardenelabs/cdl の compile() を独立 oracle として呼出し、 期待 world 座標と DOM 実 rendered
- *   位置の一致を linear transform 経由で検証。 canvas が cdl.compile() 出力を忠実に描画しているかを
- *   自作 code の mirror に依存せず verify する経路。
- * - T15 = DSL を CodeMirror 経由で書換 → canvas 更新の bidirectional sync を検証。 sample 切替 button を
- *   使って別 preset を load、 canvas の DOM 構造が新 sample に応じて更新されることを verify。
+ * - T14 = @cardenelabs/cdl の compile() を独立 oracle として呼出し、 viewport rect + laid.viewBox から
+ *   期待 scale/tx/ty を canonical fit formula (PADDING_RATIO=0.04) で直接算出、 全 lane の
+ *   left/top/width/height + 全 node の中心座標 (F1 F1 中心座標契約) / w / h を予測位置と比較。
+ *   ID set の完全一致も先に assert して DOM 欠落を検出できる強い oracle。
+ * - T15 = 特定 sample (「注文チェックアウト (sequence)」) を targeted click → expect.poll で DSL 変化
+ *   + lane set 変化を待機 → 新 DSL の cdl oracle と DOM 一致を verify。 bidirectional sync 経路の canvas 側。
+ *
+ * Round 1 Codex adversarial review 4 findings (F1 fit 逆算 / F2 continue skip / F3 sample skip /
+ * F4 曖昧 sample) 全対応済。
  *
  * baseURL = 4323 (vite dev)。
  */
@@ -19,11 +23,9 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 
 const LANE_SELECTOR = "[data-html-canvas-lane]";
 const NODE_SELECTOR = "[data-html-canvas-node]";
+const VIEWPORT_SELECTOR = "[data-testid='editor-preview-stage']";
+const FIT_PADDING_RATIO = 0.04; // HtmlDivCanvasEditor.doFit の canonical 定数と同期
 
-/**
- * CodeMirror の DSL 内容を行区切り付きで取得。 `.cm-content` textContent は line 間の改行を落とすため、
- * `.cm-line` の各要素を newline join で連結する経路を使う (cdl parse に line 情報必須のため)。
- */
 async function getEditorText(page: Page): Promise<string> {
   return page.evaluate(() => {
     const lines = document.querySelectorAll(".cm-content .cm-line");
@@ -71,37 +73,91 @@ async function getDomNodeRects(page: Page): Promise<DomNodeRect[]> {
   }, NODE_SELECTOR);
 }
 
+async function getViewportRect(page: Page): Promise<{ left: number; top: number; width: number; height: number }> {
+  const r = await page.evaluate((sel) => {
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  }, VIEWPORT_SELECTOR);
+  if (!r) throw new Error(`viewport element ${VIEWPORT_SELECTOR} not found`);
+  return r;
+}
+
 /**
- * cdl compile 出力の laid.lanes から、 world 座標 → CSS pixel 座標 の linear transform を fit する。
- * 2 点 (最左 / 最右 の lane) を基準にして scale + offset を計算、 他 lane を fit して逸脱を verify。
+ * viewport rect + laid.viewBox から canonical fit formula で期待 transform (scale / tx / ty) を直接算出。
+ * HtmlDivCanvasEditor.doFit と同じ formula を独立に実装、 2 点 fit の自己 fit を回避して true independent oracle にする。
+ * tx / ty は viewport の client 起点 (getBoundingClientRect 系) に変換済 = world_x * scale + tx = CSS left の関係。
  */
-function fitWorldToCssTransform(
-  laidLanes: LaidDiagram["lanes"],
-  domRects: DomLaneRect[],
-): { scale: number; offsetLeft: number; offsetTop: number; sampleCount: number } {
-  // world 座標昇順で 2 点選ぶ (fit 精度を上げるため対角に近い pair を使う)
-  const pairs: Array<{ laid: LaidDiagram["lanes"][number]; dom: DomLaneRect }> = [];
-  for (const l of laidLanes) {
-    const d = domRects.find((r) => r.slug === l.id);
-    if (d) pairs.push({ laid: l, dom: d });
+function computeExpectedFitTransform(
+  viewportRect: { left: number; top: number; width: number; height: number },
+  viewBox: LaidDiagram["viewBox"],
+): { scale: number; tx: number; ty: number } {
+  const availW = viewportRect.width * (1 - FIT_PADDING_RATIO * 2);
+  const availH = viewportRect.height * (1 - FIT_PADDING_RATIO * 2);
+  const scale = Math.min(availW / viewBox.w, availH / viewBox.h);
+  const tx = viewportRect.left + (viewportRect.width - viewBox.w * scale) / 2 - viewBox.x * scale;
+  const ty = viewportRect.top + (viewportRect.height - viewBox.h * scale) / 2 - viewBox.y * scale;
+  return { scale, tx, ty };
+}
+
+/**
+ * lane / node の期待 CSS 位置 / サイズと DOM 実 rendered 位置を全件比較。
+ * F1 対応 = 2 点 fit ではなく viewport + viewBox から直接算出した transform で予測、 全 lane の
+ * width/height も verify。 F2 対応 = ID set 完全一致を先に assert、 lookup 不成立は即 fail。
+ */
+function assertCdlOracleAgainstDom(
+  laid: LaidDiagram,
+  laneRects: DomLaneRect[],
+  nodeRects: DomNodeRect[],
+  transform: { scale: number; tx: number; ty: number },
+  tolerancePx: { lane: number; node: number },
+): { maxLaneDev: number; maxNodeDev: number } {
+  // F2 対応 = expected ID set vs DOM ID set の完全一致 (欠落 / 余剰即 fail)
+  const expectedLaneIds = new Set(laid.lanes.map((l) => l.id));
+  const domLaneIds = new Set(laneRects.map((r) => r.slug));
+  expect(domLaneIds, `lane ID set が cdl expected と一致`).toEqual(expectedLaneIds);
+  // node は parts (`__` 含) を skip して比較 (F3 CAR-1952 契約)
+  const expectedNodeIds = new Set(laid.nodes.filter((n) => !n.id.includes("__")).map((n) => n.id));
+  const domNodeIds = new Set(nodeRects.map((r) => r.nodeId));
+  expect(domNodeIds, `node ID set が cdl expected と一致 (parts skip 込)`).toEqual(expectedNodeIds);
+  expect(expectedNodeIds.size, `期待 node 数 >= 1 (test fixture sanity)`).toBeGreaterThanOrEqual(1);
+  // F1 対応 = 全 lane の left/top/width/height を canonical transform 経由で予測 → DOM と比較
+  let maxLaneDev = 0;
+  for (const lane of laid.lanes) {
+    const dom = laneRects.find((r) => r.slug === lane.id);
+    expect(dom, `lane ${lane.id} rect found`).toBeDefined();
+    const predictedLeft = lane.x * transform.scale + transform.tx;
+    const predictedTop = lane.y * transform.scale + transform.ty;
+    const predictedW = lane.width * transform.scale;
+    const predictedH = lane.height * transform.scale;
+    const devL = Math.abs(dom!.left - predictedLeft);
+    const devT = Math.abs(dom!.top - predictedTop);
+    const devW = Math.abs(dom!.width - predictedW);
+    const devH = Math.abs(dom!.height - predictedH);
+    maxLaneDev = Math.max(maxLaneDev, devL, devT, devW, devH);
   }
-  if (pairs.length < 2) {
-    return { scale: NaN, offsetLeft: NaN, offsetTop: NaN, sampleCount: pairs.length };
+  expect(maxLaneDev, `lane oracle vs DOM max deviation ${maxLaneDev}px CSS`).toBeLessThanOrEqual(tolerancePx.lane);
+  // node は中心座標契約 (CAR-1952 F1)、 render 左上 = cx - w/2 * scale
+  let maxNodeDev = 0;
+  for (const node of laid.nodes) {
+    if (node.id.includes("__")) continue;
+    const dom = nodeRects.find((r) => r.nodeId === node.id);
+    expect(dom, `node ${node.id} rect found (parts でない)`).toBeDefined();
+    const predictedCenterX = node.cx * transform.scale + transform.tx;
+    const predictedCenterY = node.cy * transform.scale + transform.ty;
+    const predictedW = node.w * transform.scale;
+    const predictedH = node.h * transform.scale;
+    const actualCenterX = dom!.left + dom!.width / 2;
+    const actualCenterY = dom!.top + dom!.height / 2;
+    const devCX = Math.abs(actualCenterX - predictedCenterX);
+    const devCY = Math.abs(actualCenterY - predictedCenterY);
+    const devW = Math.abs(dom!.width - predictedW);
+    const devH = Math.abs(dom!.height - predictedH);
+    maxNodeDev = Math.max(maxNodeDev, devCX, devCY, devW, devH);
   }
-  // sort by world x ascending
-  pairs.sort((a, b) => a.laid.x - b.laid.x);
-  const leftmost = pairs[0]!;
-  const rightmost = pairs[pairs.length - 1]!;
-  const worldDx = rightmost.laid.x - leftmost.laid.x;
-  if (worldDx === 0) {
-    return { scale: NaN, offsetLeft: NaN, offsetTop: NaN, sampleCount: pairs.length };
-  }
-  const cssDx = rightmost.dom.left - leftmost.dom.left;
-  const scale = cssDx / worldDx;
-  // offset は左端の lane で算出、 world_x * scale + offset = css_left の関係
-  const offsetLeft = leftmost.dom.left - leftmost.laid.x * scale;
-  const offsetTop = leftmost.dom.top - leftmost.laid.y * scale;
-  return { scale, offsetLeft, offsetTop, sampleCount: pairs.length };
+  expect(maxNodeDev, `node oracle vs DOM max deviation ${maxNodeDev}px CSS`).toBeLessThanOrEqual(tolerancePx.node);
+  return { maxLaneDev, maxNodeDev };
 }
 
 test.describe("HTML div canvas independent oracle (CAR-1965 test 品質改善)", () => {
@@ -112,7 +168,7 @@ test.describe("HTML div canvas independent oracle (CAR-1965 test 品質改善)",
     await page.waitForTimeout(500);
   });
 
-  test("T14 = cdl compile 独立 oracle と DOM 実 rendered 位置が linear transform で一致 (canvas 描画忠実性)", async ({ page }) => {
+  test("T14 = cdl compile 独立 oracle と DOM 実 rendered 位置が canonical fit transform で全件一致 (canvas 描画忠実性)", async ({ page }) => {
     // 1. CodeMirror から現在の DSL を読取
     const dsl = await getEditorText(page);
     expect(dsl.length).toBeGreaterThan(50);
@@ -120,87 +176,56 @@ test.describe("HTML div canvas independent oracle (CAR-1965 test 品質改善)",
     const diagram = textDslToDiagram(dsl);
     const laid = compile(diagram);
     expect(laid.lanes.length).toBeGreaterThanOrEqual(2);
-    // 3. DOM 側の実 rendered 位置を測定
-    const domRects = await getDomLaneRects(page);
-    expect(domRects.length).toBe(laid.lanes.length);
-    // 4. 世界座標 → CSS pixel の linear transform を fit
-    const transform = fitWorldToCssTransform(laid.lanes, domRects);
-    expect(transform.sampleCount).toBeGreaterThanOrEqual(2);
+    // 3. DOM 側 viewport rect + lane rect + node rect を測定
+    const viewportRect = await getViewportRect(page);
+    const laneRects = await getDomLaneRects(page);
+    const nodeRects = await getDomNodeRects(page);
+    // 4. viewport + viewBox から canonical fit transform を直接算出 (2 点 fit ではない)
+    const transform = computeExpectedFitTransform(viewportRect, laid.viewBox);
     expect(Number.isFinite(transform.scale)).toBe(true);
-    expect(transform.scale, `scale ${transform.scale} > 0`).toBeGreaterThan(0);
-    // 5. 全 lane について transform の予測位置と DOM 実位置が 3px 以内一致 (実 rendered 忠実性)
-    let maxDev = 0;
-    for (const lane of laid.lanes) {
-      const dom = domRects.find((r) => r.slug === lane.id);
-      if (!dom) continue;
-      const predictedCssLeft = lane.x * transform.scale + transform.offsetLeft;
-      const predictedCssTop = lane.y * transform.scale + transform.offsetTop;
-      const devX = Math.abs(dom.left - predictedCssLeft);
-      const devY = Math.abs(dom.top - predictedCssTop);
-      maxDev = Math.max(maxDev, devX, devY);
-    }
-    expect(maxDev, `cdl oracle vs DOM max deviation ${maxDev}px CSS`).toBeLessThanOrEqual(3);
-    // 6. node 側も同じ transform で予測位置と DOM 実位置が 5px 以内一致
-    //    (node は cx/cy 中心座標 + w/h、 render で cx - w/2 補正あり、 buffer 5px)
-    const domNodes = await getDomNodeRects(page);
-    let nodeMaxDev = 0;
-    for (const node of laid.nodes) {
-      if (node.id.includes("__")) continue; // parts skip (Round 1 F3)
-      const dom = domNodes.find((r) => r.nodeId === node.id);
-      if (!dom) continue;
-      // predicted CSS center = (cx * scale + offsetLeft, cy * scale + offsetTop)
-      const predictedCssCX = node.cx * transform.scale + transform.offsetLeft;
-      const predictedCssCY = node.cy * transform.scale + transform.offsetTop;
-      const actualCssCX = dom.left + dom.width / 2;
-      const actualCssCY = dom.top + dom.height / 2;
-      const devX = Math.abs(actualCssCX - predictedCssCX);
-      const devY = Math.abs(actualCssCY - predictedCssCY);
-      nodeMaxDev = Math.max(nodeMaxDev, devX, devY);
-    }
-    expect(nodeMaxDev, `cdl node oracle vs DOM max deviation ${nodeMaxDev}px CSS`).toBeLessThanOrEqual(5);
+    expect(transform.scale, `scale > 0`).toBeGreaterThan(0);
+    // 5. 全 lane / 全 node について予測位置 + サイズ と DOM 実位置の一致を verify (ID set 完全一致含む)
+    //    tolerance = lane 3px CSS (rendered position + width/height 一致)、 node 8px CSS
+    //    (中心座標契約 + w/h、 CSS 装飾 padding/border が bounding rect 経由で微差を生むため 5→8 buffer)
+    assertCdlOracleAgainstDom(laid, laneRects, nodeRects, transform, { lane: 3, node: 8 });
   });
 
-  test("T15 = sample 切替で canvas が新 DSL に応じて更新される (bidirectional sync の canvas 側)", async ({ page }) => {
-    // 1. 初期 DSL + canvas 状態を capture
+  test("T15 = 「注文チェックアウト」 sample click → DSL 変化 + canvas oracle 一致 (bidirectional sync canvas 側)", async ({ page }) => {
+    // 1. 初期 DSL + lane 集合を capture
     const dslBefore = await getEditorText(page);
     const rectsBefore = await getDomLaneRects(page);
     const laneNamesBefore = new Set(rectsBefore.map((r) => r.slug));
-    // 2. 別 sample (「注文チェックアウト」 = Client / Cart / Payment、 default の Client/API/DB と違う actor)
-    //    をクリック
-    const nextSample = await page.$('[data-testid^="editor-sample-"]:not(.active)');
-    if (!nextSample) {
-      // sample 切替 button が active でない別 sample が見つからない = skip (fixture 依存)
-      test.skip();
-      return;
-    }
-    await nextSample.click();
-    // 3. debounce (300ms) + rAF settle を待つ
-    await page.waitForTimeout(700);
-    // 4. DSL が変わったこと
+    // 2. 特定 sample を targeted click (F4 = 曖昧 sample 選択回避)
+    //    「注文チェックアウト」 = Client / Cart / Payment、 default の Client/API/DB と全 actor 名が異なる
+    const targetLabel = "注文チェックアウト (sequence)";
+    const nextSample = await page.$(`[data-sample-label="${targetLabel}"]`);
+    expect(nextSample, `sample button "${targetLabel}" が存在する (fixture sanity)`).not.toBeNull();
+    await nextSample!.click();
+    // 3. expect.poll で DSL 変化 + lane 集合変化を待機 (F4 = 固定 sleep 廃止、 flaky 抑制)
+    await expect.poll(
+      async () => {
+        const dsl = await getEditorText(page);
+        const rects = await getDomLaneRects(page);
+        const laneNames = new Set(rects.map((r) => r.slug));
+        return { dslChanged: dsl !== dslBefore, laneSetChanged: !setsEqual(laneNames, laneNamesBefore) };
+      },
+      { timeout: 5000, message: "sample 切替後 DSL と canvas lane 集合が更新されるまで待機" },
+    ).toEqual({ dslChanged: true, laneSetChanged: true });
+    // 4. 新 DSL でも cdl oracle と DOM 実位置が一致すること (T14 相当を新 sample にも適用)
     const dslAfter = await getEditorText(page);
-    expect(dslAfter).not.toBe(dslBefore);
-    // 5. canvas 側 lane 構成が更新されたこと (異なる actor 名 or 数)
-    const rectsAfter = await getDomLaneRects(page);
-    const laneNamesAfter = new Set(rectsAfter.map((r) => r.slug));
-    // 集合として異なる (追加 / 削除 / 名前変化)
-    const same =
-      laneNamesBefore.size === laneNamesAfter.size &&
-      Array.from(laneNamesBefore).every((n) => laneNamesAfter.has(n));
-    expect(same, `lane set が sample 切替で変わる before=${JSON.stringify([...laneNamesBefore])} after=${JSON.stringify([...laneNamesAfter])}`).toBe(false);
-    // 6. 新 DSL でも cdl oracle と DOM が一致すること (T14 相当を新 sample にも適用)
     const diagramAfter = textDslToDiagram(dslAfter);
     const laidAfter = compile(diagramAfter);
-    const transformAfter = fitWorldToCssTransform(laidAfter.lanes, rectsAfter);
-    expect(transformAfter.sampleCount).toBeGreaterThanOrEqual(2);
+    const viewportRectAfter = await getViewportRect(page);
+    const laneRectsAfter = await getDomLaneRects(page);
+    const nodeRectsAfter = await getDomNodeRects(page);
+    const transformAfter = computeExpectedFitTransform(viewportRectAfter, laidAfter.viewBox);
     expect(Number.isFinite(transformAfter.scale)).toBe(true);
-    let maxDevAfter = 0;
-    for (const lane of laidAfter.lanes) {
-      const dom = rectsAfter.find((r) => r.slug === lane.id);
-      if (!dom) continue;
-      const predictedCssLeft = lane.x * transformAfter.scale + transformAfter.offsetLeft;
-      const predictedCssTop = lane.y * transformAfter.scale + transformAfter.offsetTop;
-      maxDevAfter = Math.max(maxDevAfter, Math.abs(dom.left - predictedCssLeft), Math.abs(dom.top - predictedCssTop));
-    }
-    expect(maxDevAfter, `sample 切替後 cdl vs DOM ${maxDevAfter}px CSS`).toBeLessThanOrEqual(3);
+    assertCdlOracleAgainstDom(laidAfter, laneRectsAfter, nodeRectsAfter, transformAfter, { lane: 3, node: 8 });
   });
 });
+
+function setsEqual<T>(a: Set<T>, b: Set<T>): boolean {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}

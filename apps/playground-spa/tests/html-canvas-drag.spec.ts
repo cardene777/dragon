@@ -179,12 +179,14 @@ test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", ()
         const rect = el.getBoundingClientRect();
         return { left: rect.left, top: rect.top };
       }, firstLane.slug);
-      if (r) samples.push({ pointerX: px, pointerY: py, cssLeft: r.left, cssTop: r.top });
+      // Round 1 F3 対応 = 要素が消失した frame を skip せず即 fail、 sample 数完全一致を assert
+      expect(r, `lane ${firstLane.slug} が drag iter ${i} で消失していない`).not.toBeNull();
+      samples.push({ pointerX: px, pointerY: py, cssLeft: r!.left, cssTop: r!.top });
     }
     await page.mouse.up();
     await page.waitForTimeout(300);
     // 各 sample で pointer 進行と lane rendered 位置の delta が線形一致 (CSS pixel 単位)
-    expect(samples.length).toBeGreaterThanOrEqual(10);
+    expect(samples.length, `sample 数完全一致 (F3 skip 検出)`).toBe(20);
     let maxDeviation = 0;
     for (const s of samples) {
       // pointer が (px - start.x, py - start.y) 動いた時、 lane も同じ pixel 分動くはず
