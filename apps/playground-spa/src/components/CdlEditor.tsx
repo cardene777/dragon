@@ -1048,10 +1048,10 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // 旧 §4 auto-adjust (他 lane を CSS transform で 押し出し) と §6 整列補助線は disable。
+      // user report 「勝手に別の場所に移動」 = drag 中に他 lane が visual 移動して user 直感と乖離。
+      // Miro は「掴んだ 1 つだけが動く、 他は不動」 が唯一の semantics。 pin logic (finalize 側) は保持
+      // し、 drag 対象以外の DSL 位置を確定させて layout 再計算での引きずり shift は防ぐ (別問題)。
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1155,6 +1155,8 @@ export function CdlEditor(): React.JSX.Element {
     if (svg) clearAutoAdjustShifts(svg);
     // guideline も全 clear
     setActiveGuidelines([]);
+    // 「幽霊枠」 対策 = drop 後 hover outline を必ず clear (user report 「枠がその場に残ってる」)
+    setHoveredHandle(null);
     return true;
   };
 
@@ -1239,7 +1241,7 @@ export function CdlEditor(): React.JSX.Element {
     });
   }, []);
 
-  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const _applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     if (commandBypass) {
       setActiveGuidelines([]);
       return;
@@ -1282,7 +1284,7 @@ export function CdlEditor(): React.JSX.Element {
     setActiveGuidelines(guides);
   }, []);
 
-  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const _applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     // preset type を DSL の type: 行から抽出
     const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
     const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
