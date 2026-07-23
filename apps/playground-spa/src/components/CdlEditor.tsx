@@ -511,6 +511,47 @@ export function CdlEditor(): React.JSX.Element {
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  /**
+   * drag / drop finalize 時の viewBox re-fit 補償 ref。
+   *
+   * cdl auto-fit viewBox は content bounding box + padding に合わせて毎 render 再計算する。
+   * user が element を drag → posX 書出し → 再 render で viewBox が re-fit → SVG の CTM (screen 変換)
+   * が shift → user 目には「drop した位置と違うところに snap back した」 に見える (実測 = 190 CSS px
+   * drag → 95 CSS px snap back = viewBox min-x が世界座標 467 unit shift = 95 CSS px 分の CTM.e shift)。
+   *
+   * 対策 = finalize 前に SVG CTM を capture、 setSrc 後の useEffect + rAF で新 CTM を測定、 delta を
+   * pan container の tx / ty に inverse で加算して「viewBox shift を pan で打ち消す」 = user 視覚位置は
+   * release 直後に保持される (真の Miro 相当の smooth drag)。
+   */
+  const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
+  /**
+   * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
+   *
+   * 動作 = viewBoxCompensationRef.current に finalize 前の CTM (screen 変換の e/f = translate 成分)
+   * が set 済なら、 rAF で render 完了を待ち、 新 CTM との delta を測って pan transform.tx / ty に
+   * inverse 加算する。 viewBox re-fit で CTM.e が -Δ 変化 → transform.tx += +Δ で相殺 → user 視覚
+   * 位置が release 直後に保持される (真の Miro 相当の smooth drag)。 delta が 0.5px 未満なら無視
+   * (measurement noise 抑制)。
+   */
+  // trigger は diagram (compile 済 CdlDiagram)、 src ではない = src → diagram は 300ms debounce
+  // (line 739 参照)、 src 即時 trigger だと viewBox re-fit 前の古い CTM を測ってしまう。 diagram
+  // 更新のタイミングで rAF measurement すれば新 CTM を捕捉できる。
+  useEffect(() => {
+    const comp = viewBoxCompensationRef.current;
+    if (!comp) return;
+    viewBoxCompensationRef.current = null;
+    const raf = requestAnimationFrame(() => {
+      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const deltaX = comp.ctmE - ctm.e;
+      const deltaY = comp.ctmF - ctm.f;
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
+      setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [diagram]);
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -1049,6 +1090,11 @@ export function CdlEditor(): React.JSX.Element {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
+      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
+      const preCtm = svg.getScreenCTM();
+      if (preCtm) {
+        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
+      }
       // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
       // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
       // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
@@ -1089,6 +1135,11 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
+      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
+      const preCtm = svg.getScreenCTM();
+      if (preCtm) {
+        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
+      }
       // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
       // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
       // auto layout 保持で spacer / footer 等が引きずられない。
