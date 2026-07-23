@@ -511,47 +511,8 @@ export function CdlEditor(): React.JSX.Element {
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  /**
-   * drag / drop finalize 時の viewBox re-fit 補償 ref。
-   *
-   * cdl auto-fit viewBox は content bounding box + padding に合わせて毎 render 再計算する。
-   * user が element を drag → posX 書出し → 再 render で viewBox が re-fit → SVG の CTM (screen 変換)
-   * が shift → user 目には「drop した位置と違うところに snap back した」 に見える (実測 = 190 CSS px
-   * drag → 95 CSS px snap back = viewBox min-x が世界座標 467 unit shift = 95 CSS px 分の CTM.e shift)。
-   *
-   * 対策 = finalize 前に SVG CTM を capture、 setSrc 後の useEffect + rAF で新 CTM を測定、 delta を
-   * pan container の tx / ty に inverse で加算して「viewBox shift を pan で打ち消す」 = user 視覚位置は
-   * release 直後に保持される (真の Miro 相当の smooth drag)。
-   */
-  const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
-  /**
-   * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
-   *
-   * 動作 = viewBoxCompensationRef.current に finalize 前の CTM (screen 変換の e/f = translate 成分)
-   * が set 済なら、 rAF で render 完了を待ち、 新 CTM との delta を測って pan transform.tx / ty に
-   * inverse 加算する。 viewBox re-fit で CTM.e が -Δ 変化 → transform.tx += +Δ で相殺 → user 視覚
-   * 位置が release 直後に保持される (真の Miro 相当の smooth drag)。 delta が 0.5px 未満なら無視
-   * (measurement noise 抑制)。
-   */
-  // trigger は diagram (compile 済 CdlDiagram)、 src ではない = src → diagram は 300ms debounce
-  // (line 739 参照)、 src 即時 trigger だと viewBox re-fit 前の古い CTM を測ってしまう。 diagram
-  // 更新のタイミングで rAF measurement すれば新 CTM を捕捉できる。
-  useEffect(() => {
-    const comp = viewBoxCompensationRef.current;
-    if (!comp) return;
-    viewBoxCompensationRef.current = null;
-    const raf = requestAnimationFrame(() => {
-      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      const deltaX = comp.ctmE - ctm.e;
-      const deltaY = comp.ctmF - ctm.f;
-      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
-      setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [diagram]);
+  // 旧 viewBox re-fit 補償 (PR #896) は user 明示要求 (2026-07-23 「一旦自動調整全部外して」) で全 disable。
+  // finalize は target 1 個の posX/posY だけ DSL に書出し、 pan/viewBox は cdl 側の auto-fit に委ねる。
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -1048,10 +1009,10 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // 旧 §4 auto-adjust (他 lane を CSS transform で 押し出し) と §6 整列補助線は disable。
+      // user report 「勝手に別の場所に移動」 = drag 中に他 lane が visual 移動して user 直感と乖離。
+      // Miro は「掴んだ 1 つだけが動く、 他は不動」 が唯一の semantics。 pin logic (finalize 側) は保持
+      // し、 drag 対象以外の DSL 位置を確定させて layout 再計算での引きずり shift は防ぐ (別問題)。
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1090,34 +1051,11 @@ export function CdlEditor(): React.JSX.Element {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
-      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
-      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
-      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
-      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue; // 既に固定済 skip
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
+      // user 明示要求 (2026-07-23) = 「一旦自動調整全部外して。 好きな場所に移動してドロップできるように」。
+      // 旧 viewBox re-fit 補償 (pan で inverse 相殺) + 旧 pin logic (drag 対象以外の全 lane を
+      // data-cdl-lane-x から posX 書出し) は全 disable。 target 1 個の posX/posY だけ DSL に書出す
+      // 最小実装。 副作用 = 他 lane が cdl 再 layout で shift する可能性あり (user が明示 accept)。
+      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1135,11 +1073,7 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
+      // resize 経路も viewBox 補償を全 disable (user 明示要求、 drag 経路と同じ方針)。
       // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
       // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
       // auto layout 保持で spacer / footer 等が引きずられない。
@@ -1155,6 +1089,8 @@ export function CdlEditor(): React.JSX.Element {
     if (svg) clearAutoAdjustShifts(svg);
     // guideline も全 clear
     setActiveGuidelines([]);
+    // 「幽霊枠」 対策 = drop 後 hover outline を必ず clear (user report 「枠がその場に残ってる」)
+    setHoveredHandle(null);
     return true;
   };
 
@@ -1239,7 +1175,7 @@ export function CdlEditor(): React.JSX.Element {
     });
   }, []);
 
-  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const _applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     if (commandBypass) {
       setActiveGuidelines([]);
       return;
@@ -1282,7 +1218,7 @@ export function CdlEditor(): React.JSX.Element {
     setActiveGuidelines(guides);
   }, []);
 
-  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const _applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     // preset type を DSL の type: 行から抽出
     const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
     const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
@@ -2088,7 +2024,7 @@ ${newActorLine}
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} disableAutoFit />
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
