@@ -511,8 +511,47 @@ export function CdlEditor(): React.JSX.Element {
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  // 旧 viewBox re-fit 補償 (PR #896) は user 明示要求 (2026-07-23 「一旦自動調整全部外して」) で全 disable。
-  // finalize は target 1 個の posX/posY だけ DSL に書出し、 pan/viewBox は cdl 側の auto-fit に委ねる。
+  /**
+   * drag / drop finalize 時の viewBox re-fit 補償 ref。
+   *
+   * cdl auto-fit viewBox は content bounding box + padding に合わせて毎 render 再計算する。
+   * user が element を drag → posX 書出し → 再 render で viewBox が re-fit → SVG の CTM (screen 変換)
+   * が shift → user 目には「drop した位置と違うところに snap back した」 に見える (実測 = 190 CSS px
+   * drag → 95 CSS px snap back = viewBox min-x が世界座標 467 unit shift = 95 CSS px 分の CTM.e shift)。
+   *
+   * 対策 = finalize 前に SVG CTM を capture、 setSrc 後の useEffect + rAF で新 CTM を測定、 delta を
+   * pan container の tx / ty に inverse で加算して「viewBox shift を pan で打ち消す」 = user 視覚位置は
+   * release 直後に保持される (真の Miro 相当の smooth drag)。
+   */
+  const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
+  /**
+   * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
+   *
+   * 動作 = viewBoxCompensationRef.current に finalize 前の CTM (screen 変換の e/f = translate 成分)
+   * が set 済なら、 rAF で render 完了を待ち、 新 CTM との delta を測って pan transform.tx / ty に
+   * inverse 加算する。 viewBox re-fit で CTM.e が -Δ 変化 → transform.tx += +Δ で相殺 → user 視覚
+   * 位置が release 直後に保持される (真の Miro 相当の smooth drag)。 delta が 0.5px 未満なら無視
+   * (measurement noise 抑制)。
+   */
+  // trigger は diagram (compile 済 CdlDiagram)、 src ではない = src → diagram は 300ms debounce
+  // (line 739 参照)、 src 即時 trigger だと viewBox re-fit 前の古い CTM を測ってしまう。 diagram
+  // 更新のタイミングで rAF measurement すれば新 CTM を捕捉できる。
+  useEffect(() => {
+    const comp = viewBoxCompensationRef.current;
+    if (!comp) return;
+    viewBoxCompensationRef.current = null;
+    const raf = requestAnimationFrame(() => {
+      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const deltaX = comp.ctmE - ctm.e;
+      const deltaY = comp.ctmF - ctm.f;
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
+      setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [diagram]);
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -756,14 +795,12 @@ export function CdlEditor(): React.JSX.Element {
     svg.style.setProperty("width", `${vb.width}px`, "important");
     svg.style.setProperty("height", `${vb.height}px`, "important");
     svg.style.setProperty("max-width", "none", "important");
-    // preview stage の 100% を使う (padding 撤廃、 CAR-1932 #899)。
-    // 旧 4% 余白 (PADDING_RATIO=0.04) は右下 drop で 33px + 26px clip を発生させていた根本原因、
-    // cdl PR #328 の SVG root overflow=visible と併用して 4 隅まで clip なく利用可能にする。
+    // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
     // 追加 = CdlDiagramView は SVG の上に CdlHeader (phase progress / topic) を並べて描画するため、
     // pan 内の高さは (SVG 高) + (Header 高)。 SVG element の外に兄弟 element がある場合、
     // svg 単独の scale で fit しても header 分が overflow する。 wrap element の unscaled 高さと
     // svg unscaled 高さの差分を header 分として availableH から差し引く。
-    const PADDING_RATIO = 0;
+    const PADDING_RATIO = 0.04;
     const wrap = previewRef.current.querySelector(".v4-editor-svg-wrap");
     // wrap の実 pixel 高さ (transform 後) を測り、 現行 scale (直前 setTransform 値) で
     // 逆算して unscaled 高さを推定。 初回 render 時 transform.scale = 1 で不正確でも、
@@ -962,63 +999,23 @@ export function CdlEditor(): React.JSX.Element {
     if (!dragInfo) return false;
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
-    // CAR-1935 drag pipeline rewrite = initPosX / initPosY を「対象 element の bounding rect 左上 world 座標」
-    // に統一する。 旧経路 (svgPt.x fallback = cursor 位置基準) を全廃、 対象 element の実描画位置を絶対値で拾う。
-    //
-    // 参照優先順位:
-    //   (1) DSL の posX / posY (author が明示指定済、 最も信頼できる)
-    //   (2) data-cdl-lane-x / data-cdl-lane-y (cdl layout engine が set した lane 左上 world 座標)
-    //   (3) 対象 element の getBoundingClientRect → clientToSvg 変換 (fallback、 attribute 未 set 系)
-    //
-    // (3) は data-cdl-node 系 (parts sub-node 等) で lane attribute が無い case をカバー。
-    // 旧 svgPt.x fallback は「cursor 位置 = 初期位置」 で drag delta 0 スタート = 掴む前から node が
-    // cursor に snap する bug、 CAR-1935 root cause の 1 つとして排除。
-    const slug = slugifyActorName(dragInfo.name);
-    const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-    // CAR-Issue #903 = targetEl 選択を lane element 優先に統一する。
-    //
-    // 旧経路 (closest node 優先) は node bbox 基準で grabOffset を計算していたが、
-    // finalize は updateActorPosition で lane.posX/posY を書き出す = 基準 (node bbox)
-    // と write 対象 (lane bbox) の mismatch で lane bbox と node bbox の左上差分だけ
-    // 系統的 shift が発生していた (実測 26-33px、 = lane.width/2 - node.width/2 差の world scale)。
-    //
-    // 新経路 (lane 優先) は grabOffset を lane bbox 左上基準で計算、 write 対象と一致するため
-    // 「掴んだ点 = release cursor 位置」 invariant が完全成立する。 node bbox fallback は
-    // lane element 不在 case (parts sub-node 等) の safety fallback として保持。
-    const targetEl = (laneEl ?? target.closest(`[data-cdl-node]`)) as SVGGraphicsElement | null;
+    // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
+    // CdlLane の semantic = posX/posY は lane 左上 corner の絶対座標 (SVG unit)、 lane 中心ではない。
     let initPosX = cur?.posX;
     let initPosY = cur?.posY;
     if (initPosX === undefined || initPosY === undefined) {
-      const rawX = laneEl?.getAttribute("data-cdl-lane-x");
-      const rawY = laneEl?.getAttribute("data-cdl-lane-y");
-      if (rawX && rawY) {
-        initPosX = parseFloat(rawX);
-        initPosY = parseFloat(rawY);
-      } else if (targetEl) {
-        // fallback = 対象 element の実 bbox 左上を world 座標で取得
-        const rect = targetEl.getBoundingClientRect();
-        const tlPt = clientToSvg(svg, rect.left, rect.top);
-        initPosX = tlPt.x;
-        initPosY = tlPt.y;
+      const slug = slugifyActorName(dragInfo.name);
+      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
+      if (laneEl) {
+        // data-cdl-lane-x / data-cdl-lane-y attribute で「left-top corner の SVG unit 座標」 が取れる (CDL render 経由)
+        const rawX = laneEl.getAttribute("data-cdl-lane-x");
+        const rawY = laneEl.getAttribute("data-cdl-lane-y");
+        initPosX = rawX ? parseFloat(rawX) : svgPt.x;
+        initPosY = rawY ? parseFloat(rawY) : svgPt.y;
       } else {
-        // safety fallback = svgPt (旧経路)、 通常到達しない
         initPosX = svgPt.x;
         initPosY = svgPt.y;
       }
-    }
-    // CAR-1935 grab point offset = 「掴んだ点」 と「対象 element 左上」 の world 単位 relative 距離。
-    // drop finalize で `newLaneLeftX = svgPt.x - grabOffsetX` として使い、 「掴んだ点 = release cursor 位置」
-    // invariant を成立させる (Miro / Figma 相当の drag semantics)。
-    //
-    // 対象 element の bounding rect が取れない case (lane / node 属性なし = 通常発生しない) は
-    // grabOffset 0 で fallback (旧 initPosX + dx 相当の挙動)。
-    let grabOffsetX = 0;
-    let grabOffsetY = 0;
-    if (targetEl) {
-      const rect = targetEl.getBoundingClientRect();
-      const tlPt = clientToSvg(svg, rect.left, rect.top);
-      grabOffsetX = svgPt.x - tlPt.x;
-      grabOffsetY = svgPt.y - tlPt.y;
     }
     elementDrag.current = {
       mode: "drag",
@@ -1033,8 +1030,6 @@ export function CdlEditor(): React.JSX.Element {
       initPosH: cur?.posH,
       svgScale: svgPt.scale,
       commandBypass: e.metaKey || e.ctrlKey,
-      grabOffsetX,
-      grabOffsetY,
     };
     document.body.style.cursor = "grabbing";
     return true;
@@ -1053,10 +1048,10 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // 旧 §4 auto-adjust (他 lane を CSS transform で 押し出し) と §6 整列補助線は disable。
-      // user report 「勝手に別の場所に移動」 = drag 中に他 lane が visual 移動して user 直感と乖離。
-      // Miro は「掴んだ 1 つだけが動く、 他は不動」 が唯一の semantics。 pin logic (finalize 側) は保持
-      // し、 drag 対象以外の DSL 位置を確定させて layout 再計算での引きずり shift は防ぐ (別問題)。
+      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
+      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
+      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1093,22 +1088,36 @@ export function CdlEditor(): React.JSX.Element {
     const dy = svgPt.y - st.startSvgY;
     if (st.mode === "drag") {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
-      // CAR-1935 drag pipeline rewrite = 「掴んだ点 = release cursor 位置」 invariant で書出し。
-      //
-      // grabOffset (drag start 時に capture) = svgPt - targetLeftTop、 「掴んだ点」 が対象 element 左上から
-      // どれだけ離れているかを world 単位で保持。 release 時 svgPt を対象 element の新左上に変換するには
-      // svgPt - grabOffset を計算する。 これが新 posX / posY として DSL 書出しされる。
-      //
-      // 旧経路 (`newX = initPosX + dx`) は「lane 左上が cursor delta 分ずれる」 semantic で、 「掴んだ点」
-      // が lane 左上と異なる位置 (user が node 中央や右端を掴んだ場合) に systematic な grabOffset 分の
-      // 配置ずれが発生していた bug の fix。 user 発言「配置した場所と違う場所に飛ばされる」 の root cause。
-      //
-      // grabOffset が未 set (targetEl 取得失敗 case) は 0 fallback = 旧挙動と等価、 破壊的変更なし。
-      const grabX = st.grabOffsetX ?? 0;
-      const grabY = st.grabOffsetY ?? 0;
-      const newX = svgPt.x - grabX;
-      const newY = svgPt.y - grabY;
-      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
+      const newX = st.initPosX + dx;
+      const newY = st.initPosY + dy;
+      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
+      const preCtm = svg.getScreenCTM();
+      if (preCtm) {
+        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
+      }
+      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
+      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
+      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
+      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      setSrc((prev) => {
+        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
+        if (svgEl) {
+          for (const name of extractAllActorNames(prev)) {
+            if (name === st.targetName) continue;
+            const cur2 = extractActorPosition(next, name);
+            if (cur2) continue; // 既に固定済 skip
+            const slug2 = slugifyActorName(name);
+            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
+            if (!el2) continue;
+            const rx = el2.getAttribute("data-cdl-lane-x");
+            const ry = el2.getAttribute("data-cdl-lane-y");
+            if (rx && ry) {
+              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
+            }
+          }
+        }
+        return next;
+      });
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1126,7 +1135,11 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // resize 経路も viewBox 補償を全 disable (user 明示要求、 drag 経路と同じ方針)。
+      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
+      const preCtm = svg.getScreenCTM();
+      if (preCtm) {
+        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
+      }
       // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
       // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
       // auto layout 保持で spacer / footer 等が引きずられない。
@@ -1142,8 +1155,6 @@ export function CdlEditor(): React.JSX.Element {
     if (svg) clearAutoAdjustShifts(svg);
     // guideline も全 clear
     setActiveGuidelines([]);
-    // 「幽霊枠」 対策 = drop 後 hover outline を必ず clear (user report 「枠がその場に残ってる」)
-    setHoveredHandle(null);
     return true;
   };
 
@@ -1228,7 +1239,7 @@ export function CdlEditor(): React.JSX.Element {
     });
   }, []);
 
-  const _applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     if (commandBypass) {
       setActiveGuidelines([]);
       return;
@@ -1271,7 +1282,7 @@ export function CdlEditor(): React.JSX.Element {
     setActiveGuidelines(guides);
   }, []);
 
-  const _applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
+  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
     // preset type を DSL の type: 行から抽出
     const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
     const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
@@ -2077,7 +2088,7 @@ ${newActorLine}
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} disableAutoFit />
+                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
