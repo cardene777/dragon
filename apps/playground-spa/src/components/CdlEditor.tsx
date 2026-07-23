@@ -756,12 +756,14 @@ export function CdlEditor(): React.JSX.Element {
     svg.style.setProperty("width", `${vb.width}px`, "important");
     svg.style.setProperty("height", `${vb.height}px`, "important");
     svg.style.setProperty("max-width", "none", "important");
-    // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
+    // preview stage の 100% を使う (padding 撤廃、 CAR-1932 #899)。
+    // 旧 4% 余白 (PADDING_RATIO=0.04) は右下 drop で 33px + 26px clip を発生させていた根本原因、
+    // cdl PR #328 の SVG root overflow=visible と併用して 4 隅まで clip なく利用可能にする。
     // 追加 = CdlDiagramView は SVG の上に CdlHeader (phase progress / topic) を並べて描画するため、
     // pan 内の高さは (SVG 高) + (Header 高)。 SVG element の外に兄弟 element がある場合、
     // svg 単独の scale で fit しても header 分が overflow する。 wrap element の unscaled 高さと
     // svg unscaled 高さの差分を header 分として availableH から差し引く。
-    const PADDING_RATIO = 0.04;
+    const PADDING_RATIO = 0;
     const wrap = previewRef.current.querySelector(".v4-editor-svg-wrap");
     // wrap の実 pixel 高さ (transform 後) を測り、 現行 scale (直前 setTransform 値) で
     // 逆算して unscaled 高さを推定。 初回 render 時 transform.scale = 1 で不正確でも、
