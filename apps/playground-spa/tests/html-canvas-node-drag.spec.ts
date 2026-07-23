@@ -82,7 +82,7 @@ async function getNodeCenter(page: Page, nodeId: string): Promise<{ x: number; y
 test.describe("HTML div canvas node drag (CAR-1952 Phase 2 PR 1 + Round 1 regression)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
-    await page.goto("/editor", { waitUntil: "networkidle" });
+    await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
     await page.waitForSelector(NODE_SELECTOR, { timeout: 10000 });
     await page.waitForTimeout(500);
   });
