@@ -5,7 +5,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
-import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag } from "@/components/HtmlDivCanvasEditor";
+import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
   clientToSvg,
@@ -347,6 +347,7 @@ export function CdlEditor(): React.JSX.Element {
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
+  const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
@@ -2021,7 +2022,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={handleFit}
+            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.fit() : handleFit}
             title="表示を preview 領域に合わせる"
           >
             フィット
@@ -2029,7 +2030,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={handleReset}
+            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.reset() : handleReset}
             title="表示を初期状態に戻す (Esc)"
           >
             リセット
@@ -2038,7 +2039,8 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handle100}
-            title="等倍表示"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "等倍表示"}
+            disabled={useHtmlCanvas}
           >
             100%
           </button>
@@ -2046,8 +2048,9 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomOut}
-            title="縮小"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "縮小"}
             aria-label="縮小"
+            disabled={useHtmlCanvas}
           >
             −
           </button>
@@ -2055,8 +2058,9 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomIn}
-            title="拡大"
+            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "拡大"}
             aria-label="拡大"
+            disabled={useHtmlCanvas}
           >
             +
           </button>
@@ -2064,9 +2068,10 @@ ${newActorLine}
         </header>
         {useHtmlCanvas ? (
           <HtmlDivCanvasEditor
+            ref={htmlCanvasRef}
             src={src}
             onSrcChange={setSrc}
-            partsCatalog={partsCatalog}
+            diagram={diagram}
             testId="editor-preview-stage"
           />
         ) : (

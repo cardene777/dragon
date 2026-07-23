@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { compile, type CdlDiagram, type LaidDiagram, type LaidLane, type LaidNode } from "@cardenelabs/cdl";
-import { textDslToDiagram } from "@cardenelabs/dragon";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from "react";
+import { compile, type CdlDiagram, type LaidDiagram } from "@cardenelabs/cdl";
 import {
   updateActorPosition,
   extractActorPosition,
@@ -28,15 +27,24 @@ import {
  * - drag 中 smooth 追従 (pointer move → ref update → RAF で 1 回だけ transform 書換、 setState 経由なし)
  * - release 後 flicker ゼロ (transform 直接書換で先に visual 確定 → DSL write back で React 再 render 時
  *   に同座標に settle するため画面上の差分なし)
+ *
+ * Round 2 fix (Codex adversarial review 6 MAJOR 対応):
+ * - F1 = drag write-back で対象外 lane も現在座標で pin し、 posW/posH も保持
+ * - F2 = fit 計算で viewBox 原点 (vb.x/vb.y、 通常負) を補正
+ * - F4 = pointer cleanup 経路 (multi-pointer 排他 / pointercancel / lostpointercapture / blur / unmount)
+ * - F5 = parse 経路を親から受取り、 子は compile のみ (parse 重複を除去、 親 debounce と 1:1)
  */
 
 interface HtmlDivCanvasEditorProps {
-  /** dragon DSL YAML source (CdlEditor 側で state 保持) */
+  /** dragon DSL YAML source (CdlEditor 側で state 保持、 drag end write back の SSOT) */
   src: string;
   /** drag end で書換された src を親 (CdlEditor) に通知、 CodeMirror へ双方向 sync */
   onSrcChange: (next: string) => void;
-  /** parts catalog (CAR-1657 unified syntax、 partsCatalog 経由で kind = parts identifier を展開) */
-  partsCatalog?: Record<string, CdlDiagram>;
+  /**
+   * F5 対応 = 親側で parse 済 CdlDiagram を渡す (親の 300ms debounce と 1:1、 子 render 内 parse 廃止)。
+   * 未指定 (`null`) 時は fallback 経路で `src` から自前 parse (下位互換、 story 単体等 stand-alone 用途)。
+   */
+  diagram?: CdlDiagram | null;
   /** test 用 = window mirror に internal state を公開する経路 (e2e 検証用、 production では読み手なし) */
   testId?: string;
 }
@@ -51,6 +59,9 @@ interface LaneVisual {
   worldY: number;
   worldW: number;
   worldH: number;
+  /** F1 = drag write-back で pin 用の元 posW/posH (DSL 明示済なら保持、 未指定なら world から拾う) */
+  origPosW?: number;
+  origPosH?: number;
   /** lane に紐づく nodes (Phase 2 で実描画拡張、 Phase 1 では count のみ visualize) */
   nodeCount: number;
 }
@@ -86,8 +97,6 @@ function buildLaneVisuals(src: string, laid: LaidDiagram): LaneVisual[] {
   const out: LaneVisual[] = [];
   for (const lane of laid.lanes) {
     const dslName = slugToName.get(lane.id) ?? lane.id;
-    // updateActorPosition が posX/posY 書換済なら DSL の値を優先 (cdl auto layout の x が同一値だが
-    // guard で明示、 DSL 側書換 → laid → visual の変換 pipeline の可読性向上)。
     const dslPos = extractActorPosition(src, dslName);
     const worldX = dslPos?.posX ?? lane.x;
     const worldY = dslPos?.posY ?? lane.y;
@@ -98,8 +107,38 @@ function buildLaneVisuals(src: string, laid: LaidDiagram): LaneVisual[] {
       worldY,
       worldW: dslPos?.posW ?? lane.width,
       worldH: dslPos?.posH ?? lane.height,
+      origPosW: dslPos?.posW,
+      origPosH: dslPos?.posH,
       nodeCount: nodeCountByLane.get(lane.id) ?? 0,
     });
+  }
+  return out;
+}
+
+/**
+ * F1 対応 = drag 対象 lane の write back に加えて、 対象外 lane も現座標 (posX/posY) で pin する。
+ * 対象外 lane の posW/posH は元 DSL に明示済なら保持、 未指定なら書出さない (undefined → updateActorPosition の
+ * optional path)。 これで sequence preset の auto layout が「Client 移動時に API/DB が飛ぶ」 現象を防ぐ。
+ */
+function writeBackDragEndSrc(
+  srcBase: string,
+  lanes: LaneVisual[],
+  targetName: string,
+  targetX: number,
+  targetY: number,
+): string {
+  let out = srcBase;
+  // まず対象 lane を明示座標で write back (posW/posH を保持)
+  const target = lanes.find((l) => l.name === targetName);
+  if (target) {
+    out = updateActorPosition(out, targetName, targetX, targetY, target.origPosW, target.origPosH);
+  } else {
+    out = updateActorPosition(out, targetName, targetX, targetY);
+  }
+  // 対象外 lane も現座標で pin (F1 の再配置回帰防止)
+  for (const lane of lanes) {
+    if (lane.name === targetName) continue;
+    out = updateActorPosition(out, lane.name, lane.worldX, lane.worldY, lane.origPosW, lane.origPosH);
   }
   return out;
 }
@@ -116,242 +155,319 @@ interface DragRef {
   scale: number;
   pointerId: number;
   rafScheduled: boolean;
-  /** flicker ゼロ検証用 = drag end 直後の visual 位置を保持 (再 render 前) */
+  rafHandle: number | null;
   finalWorldX: number;
   finalWorldY: number;
 }
 
+export interface HtmlDivCanvasEditorHandle {
+  /** F3 対応 = 親 toolbar の Fit ボタンから呼ぶ imperative handle。 現在 viewBox に対して再 fit する。 */
+  fit(): void;
+  /** F3 対応 = 親 toolbar の Reset ボタンから呼ぶ imperative handle。 fit + drag state clear。 */
+  reset(): void;
+}
+
 /**
- * HtmlDivCanvasEditor 本体。
- *
- * 使い方 (CdlEditor.tsx 側):
- * ```
- * {canvasHtmlFeatureFlag.isEnabled() ? (
- *   <HtmlDivCanvasEditor src={src} onSrcChange={setSrc} partsCatalog={partsCatalog} />
- * ) : (
- *   <CdlDiagramView diagram={diagram} disableAutoFit />
- * )}
- * ```
+ * HtmlDivCanvasEditor 本体。 CdlEditor 側で feature flag ON 時に render される。
  */
-export function HtmlDivCanvasEditor({ src, onSrcChange, partsCatalog, testId }: HtmlDivCanvasEditorProps): React.ReactElement {
-  // 1. DSL → CdlDiagram (parse) → LaidDiagram (layout 計算)
-  const laid = useMemo<LaidDiagram | null>(() => {
-    try {
-      const d = textDslToDiagram(src, { partsCatalog });
-      return compile(d);
-    } catch {
-      return null;
-    }
-  }, [src, partsCatalog]);
+export const HtmlDivCanvasEditor = forwardRef<HtmlDivCanvasEditorHandle, HtmlDivCanvasEditorProps>(
+  function HtmlDivCanvasEditor(
+    { src, onSrcChange, diagram, testId }: HtmlDivCanvasEditorProps,
+    ref,
+  ): React.ReactElement {
+    // F5 対応 = 親から diagram を受取り、 子は compile のみ。 fallback (未指定) は stand-alone 用途で
+    // memoize + try/catch で parse 失敗を握る (親経路が主軸)。
+    const laid = useMemo<LaidDiagram | null>(() => {
+      if (!diagram) return null;
+      try {
+        return compile(diagram);
+      } catch {
+        return null;
+      }
+    }, [diagram]);
 
-  // 2. LaneVisual[] 生成
-  const lanes = useMemo(() => (laid ? buildLaneVisuals(src, laid) : []), [src, laid]);
+    const lanes = useMemo(() => (laid ? buildLaneVisuals(src, laid) : []), [src, laid]);
 
-  // 3. viewport 座標 (pan / zoom は今回 fit 固定、 Phase 2 以降で拡張)
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [viewportTransform, setViewportTransform] = useState({ tx: 0, ty: 0, scale: 1 });
-  const viewportScaleRef = useRef(1);
-  useEffect(() => {
-    viewportScaleRef.current = viewportTransform.scale;
-  }, [viewportTransform.scale]);
+    // 3. viewport 座標 (fit only、 Phase 1 は pan / zoom 未実装、 F3 = toolbar は親側で disabled)
+    const viewportRef = useRef<HTMLDivElement>(null);
+    const [viewportTransform, setViewportTransform] = useState({ tx: 0, ty: 0, scale: 1 });
+    const viewportScaleRef = useRef(1);
+    useEffect(() => {
+      viewportScaleRef.current = viewportTransform.scale;
+    }, [viewportTransform.scale]);
 
-  // 4. 初回 fit (viewBox が viewport にちょうど収まる scale + center 配置)
-  const initialFitDoneRef = useRef(false);
-  useEffect(() => {
-    if (!laid || !viewportRef.current || initialFitDoneRef.current) return;
-    const rect = viewportRef.current.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    const vb = laid.viewBox;
-    if (vb.w === 0 || vb.h === 0) return;
-    const PADDING_RATIO = 0.04;
-    const availableW = rect.width * (1 - PADDING_RATIO * 2);
-    const availableH = rect.height * (1 - PADDING_RATIO * 2);
-    const scale = Math.min(availableW / vb.w, availableH / vb.h);
-    const tx = (rect.width - vb.w * scale) / 2;
-    const ty = (rect.height - vb.h * scale) / 2;
-    setViewportTransform({ tx, ty, scale });
-    initialFitDoneRef.current = true;
-  }, [laid]);
+    // F2 対応 = viewBox 原点 (vb.x/vb.y、 通常負) を補正した fit 計算。
+    const doFit = useCallback((): void => {
+      if (!laid || !viewportRef.current) return;
+      const rect = viewportRef.current.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const vb = laid.viewBox;
+      if (vb.w === 0 || vb.h === 0) return;
+      const PADDING_RATIO = 0.04;
+      const availableW = rect.width * (1 - PADDING_RATIO * 2);
+      const availableH = rect.height * (1 - PADDING_RATIO * 2);
+      const scale = Math.min(availableW / vb.w, availableH / vb.h);
+      // F2 = tx/ty に vb.x/vb.y * scale を差引 (viewBox 原点補正)
+      const tx = (rect.width - vb.w * scale) / 2 - vb.x * scale;
+      const ty = (rect.height - vb.h * scale) / 2 - vb.y * scale;
+      setViewportTransform({ tx, ty, scale });
+    }, [laid]);
 
-  // 5. drag state (ref、 React 再 render 経由なし)
-  const dragRef = useRef<DragRef | null>(null);
+    // 4. 初回 fit と diagram (id 変化 = sample 切替) 変化時の再 fit
+    const lastFitDiagramIdRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (!laid || !viewportRef.current) return;
+      if (lastFitDiagramIdRef.current === laid.id) return;
+      lastFitDiagramIdRef.current = laid.id;
+      // rAF 2 段で viewport 実 rect が settle した後に fit
+      const raf1 = window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => doFit());
+      });
+      return () => window.cancelAnimationFrame(raf1);
+    }, [laid, doFit]);
 
-  // 6. lane div 参照 map (drag 対象の element を直接 transform 書換するため)
-  const laneElRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    // 5. drag state (ref、 React 再 render 経由なし)
+    const dragRef = useRef<DragRef | null>(null);
 
-  // 7. pointer down / move / up handlers (RAF driven direct DOM update)
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>, lane: LaneVisual) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const laneEl = e.currentTarget;
-      laneEl.setPointerCapture(e.pointerId);
-      const scale = viewportScaleRef.current;
-      dragRef.current = {
-        laneName: lane.name,
-        laneEl,
-        startClientX: e.clientX,
-        startClientY: e.clientY,
-        startWorldX: lane.worldX,
-        startWorldY: lane.worldY,
-        currentWorldX: lane.worldX,
-        currentWorldY: lane.worldY,
-        finalWorldX: lane.worldX,
-        finalWorldY: lane.worldY,
-        scale: scale > 0 ? scale : 1,
-        pointerId: e.pointerId,
-        rafScheduled: false,
-      };
-      laneEl.classList.add("html-canvas-lane-dragging");
-    },
-    [],
-  );
+    // 6. lane div 参照 map (drag 対象の element を直接 transform 書換するため)
+    const laneElRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const flushRaf = useCallback(() => {
-    const st = dragRef.current;
-    if (!st) return;
-    st.rafScheduled = false;
-    st.laneEl.style.transform = `translate3d(${st.currentWorldX}px, ${st.currentWorldY}px, 0)`;
-  }, []);
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
+    // F4 対応 = drag 中断時の共通 rollback (pointercancel / lostpointercapture / blur / unmount)
+    const abortDrag = useCallback(() => {
       const st = dragRef.current;
-      if (!st || e.pointerId !== st.pointerId) return;
-      const deltaClientX = e.clientX - st.startClientX;
-      const deltaClientY = e.clientY - st.startClientY;
-      st.currentWorldX = st.startWorldX + deltaClientX / st.scale;
-      st.currentWorldY = st.startWorldY + deltaClientY / st.scale;
-      if (st.rafScheduled) return;
-      st.rafScheduled = true;
-      window.requestAnimationFrame(flushRaf);
-    },
-    [flushRaf],
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const st = dragRef.current;
-      if (!st || e.pointerId !== st.pointerId) return;
-      // flicker ゼロ経路 = release 直前 pointer 位置を最終座標として direct transform 書換
-      const deltaClientX = e.clientX - st.startClientX;
-      const deltaClientY = e.clientY - st.startClientY;
-      st.finalWorldX = st.startWorldX + deltaClientX / st.scale;
-      st.finalWorldY = st.startWorldY + deltaClientY / st.scale;
-      st.laneEl.style.transform = `translate3d(${st.finalWorldX}px, ${st.finalWorldY}px, 0)`;
+      if (!st) return;
+      if (st.rafHandle != null) {
+        window.cancelAnimationFrame(st.rafHandle);
+        st.rafHandle = null;
+      }
+      // 開始座標へ rollback (write back なし)
+      st.laneEl.style.transform = `translate3d(${st.startWorldX}px, ${st.startWorldY}px, 0)`;
       st.laneEl.classList.remove("html-canvas-lane-dragging");
       try {
         st.laneEl.releasePointerCapture(st.pointerId);
       } catch {
         // pointer capture 未取得は無害
       }
-      // DSL write back (Math.round で round trip 一致、 updateActorPosition が Math.round 実施済)
-      const nextSrc = updateActorPosition(src, st.laneName, st.finalWorldX, st.finalWorldY);
       dragRef.current = null;
-      if (nextSrc !== src) {
-        onSrcChange(nextSrc);
-      }
-    },
-    [src, onSrcChange],
-  );
+    }, []);
 
-  // 8. test mirror = window.__htmlCanvasState (e2e 検証用、 lane world 座標 dump)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    (window as unknown as Record<string, unknown>)[CANVAS_TEST_MIRROR_KEY] = {
-      viewBox: laid?.viewBox ?? null,
-      viewportTransform,
-      lanes: lanes.map((l) => ({
-        name: l.name,
-        slug: l.slug,
-        worldX: l.worldX,
-        worldY: l.worldY,
-        worldW: l.worldW,
-        worldH: l.worldH,
-      })),
-    };
-  }, [laid, lanes, viewportTransform]);
+    // 7. pointer down / move / up handlers (RAF driven direct DOM update)
+    const handlePointerDown = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>, lane: LaneVisual) => {
+        if (e.button !== 0) return;
+        // F4 = active drag 中の追加 down は拒否 (multi-pointer 排他)
+        if (dragRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const laneEl = e.currentTarget;
+        laneEl.setPointerCapture(e.pointerId);
+        const scale = viewportScaleRef.current;
+        dragRef.current = {
+          laneName: lane.name,
+          laneEl,
+          startClientX: e.clientX,
+          startClientY: e.clientY,
+          startWorldX: lane.worldX,
+          startWorldY: lane.worldY,
+          currentWorldX: lane.worldX,
+          currentWorldY: lane.worldY,
+          finalWorldX: lane.worldX,
+          finalWorldY: lane.worldY,
+          scale: scale > 0 ? scale : 1,
+          pointerId: e.pointerId,
+          rafScheduled: false,
+          rafHandle: null,
+        };
+        laneEl.classList.add("html-canvas-lane-dragging");
+      },
+      [],
+    );
 
-  if (!laid) {
+    const flushRaf = useCallback(() => {
+      const st = dragRef.current;
+      if (!st) return;
+      st.rafScheduled = false;
+      st.rafHandle = null;
+      st.laneEl.style.transform = `translate3d(${st.currentWorldX}px, ${st.currentWorldY}px, 0)`;
+    }, []);
+
+    const handlePointerMove = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        const st = dragRef.current;
+        if (!st || e.pointerId !== st.pointerId) return;
+        const deltaClientX = e.clientX - st.startClientX;
+        const deltaClientY = e.clientY - st.startClientY;
+        st.currentWorldX = st.startWorldX + deltaClientX / st.scale;
+        st.currentWorldY = st.startWorldY + deltaClientY / st.scale;
+        if (st.rafScheduled) return;
+        st.rafScheduled = true;
+        st.rafHandle = window.requestAnimationFrame(flushRaf);
+      },
+      [flushRaf],
+    );
+
+    const handlePointerUp = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        const st = dragRef.current;
+        if (!st || e.pointerId !== st.pointerId) return;
+        if (st.rafHandle != null) {
+          window.cancelAnimationFrame(st.rafHandle);
+          st.rafHandle = null;
+        }
+        const deltaClientX = e.clientX - st.startClientX;
+        const deltaClientY = e.clientY - st.startClientY;
+        st.finalWorldX = st.startWorldX + deltaClientX / st.scale;
+        st.finalWorldY = st.startWorldY + deltaClientY / st.scale;
+        st.laneEl.style.transform = `translate3d(${st.finalWorldX}px, ${st.finalWorldY}px, 0)`;
+        st.laneEl.classList.remove("html-canvas-lane-dragging");
+        try {
+          st.laneEl.releasePointerCapture(st.pointerId);
+        } catch {
+          // pointer capture 未取得は無害
+        }
+        // F1 対応 = 対象外 lane も現座標で pin して DSL write back (Client 移動時 API/DB 飛び防止)
+        const nextSrc = writeBackDragEndSrc(src, lanes, st.laneName, st.finalWorldX, st.finalWorldY);
+        dragRef.current = null;
+        if (nextSrc !== src) {
+          onSrcChange(nextSrc);
+        }
+      },
+      [src, lanes, onSrcChange],
+    );
+
+    // F4 対応 = pointercancel / lostpointercapture / window.blur / unmount 共通 cleanup
+    const handlePointerCancel = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        const st = dragRef.current;
+        if (!st || e.pointerId !== st.pointerId) return;
+        abortDrag();
+      },
+      [abortDrag],
+    );
+
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      const onBlur = () => abortDrag();
+      window.addEventListener("blur", onBlur);
+      return () => {
+        window.removeEventListener("blur", onBlur);
+        abortDrag();
+      };
+    }, [abortDrag]);
+
+    // F3 対応 = 親 toolbar から呼ぶ imperative handle (fit / reset)
+    useImperativeHandle(
+      ref,
+      () => ({
+        fit: () => doFit(),
+        reset: () => {
+          abortDrag();
+          doFit();
+        },
+      }),
+      [doFit, abortDrag],
+    );
+
+    // 8. test mirror = window.__htmlCanvasState (e2e 検証用、 lane world 座標 dump)
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      (window as unknown as Record<string, unknown>)[CANVAS_TEST_MIRROR_KEY] = {
+        viewBox: laid?.viewBox ?? null,
+        viewportTransform,
+        lanes: lanes.map((l) => ({
+          name: l.name,
+          slug: l.slug,
+          worldX: l.worldX,
+          worldY: l.worldY,
+          worldW: l.worldW,
+          worldH: l.worldH,
+          origPosW: l.origPosW ?? null,
+          origPosH: l.origPosH ?? null,
+        })),
+      };
+    }, [laid, lanes, viewportTransform]);
+
+    if (!laid) {
+      return (
+        <div className="html-canvas-viewport" data-testid={testId} style={viewportStyle}>
+          <div style={placeholderStyle}>DSL parse error, HTML div canvas を描画できません。</div>
+        </div>
+      );
+    }
+
+    const vb = laid.viewBox;
+
     return (
-      <div className="html-canvas-viewport" data-testid={testId} style={viewportStyle}>
-        <div style={placeholderStyle}>DSL parse error, HTML div canvas を描画できません。</div>
+      <div ref={viewportRef} className="html-canvas-viewport" data-testid={testId} style={viewportStyle}>
+        <div
+          className="html-canvas-world"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: vb.w,
+            height: vb.h,
+            transform: `translate3d(${viewportTransform.tx}px, ${viewportTransform.ty}px, 0) scale(${viewportTransform.scale})`,
+            transformOrigin: "0 0",
+            willChange: "transform",
+          }}
+        >
+          {lanes.map((lane) => (
+            <div
+              key={lane.name}
+              ref={(el) => {
+                if (el) laneElRefs.current.set(lane.name, el);
+                else laneElRefs.current.delete(lane.name);
+              }}
+              className="html-canvas-lane"
+              data-html-canvas-lane={lane.slug}
+              data-html-canvas-lane-name={lane.name}
+              onPointerDown={(e) => handlePointerDown(e, lane)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              onLostPointerCapture={handlePointerCancel}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: lane.worldW,
+                height: lane.worldH,
+                transform: `translate3d(${lane.worldX}px, ${lane.worldY}px, 0)`,
+                willChange: "transform",
+                boxSizing: "border-box",
+                cursor: "grab",
+                background: "rgba(184, 134, 42, 0.08)",
+                border: "1.5px solid #b8862a",
+                borderRadius: 8,
+                padding: "10px 12px",
+                color: "#1a1410",
+                fontFamily: "'JetBrains Mono', 'Noto Sans JP', monospace",
+                fontSize: "14px",
+                fontWeight: 500,
+                userSelect: "none",
+                touchAction: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+                gap: 4,
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{lane.name}</div>
+              {lane.nodeCount > 0 ? (
+                <div style={{ fontSize: 11, color: "#8a5a2a", opacity: 0.75 }}>
+                  nodes: {lane.nodeCount}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
       </div>
     );
-  }
-
-  const vb = laid.viewBox;
-
-  return (
-    <div ref={viewportRef} className="html-canvas-viewport" data-testid={testId} style={viewportStyle}>
-      <div
-        className="html-canvas-world"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: vb.w,
-          height: vb.h,
-          transform: `translate3d(${viewportTransform.tx}px, ${viewportTransform.ty}px, 0) scale(${viewportTransform.scale})`,
-          transformOrigin: "0 0",
-          willChange: "transform",
-        }}
-      >
-        {lanes.map((lane) => (
-          <div
-            key={lane.name}
-            ref={(el) => {
-              if (el) laneElRefs.current.set(lane.name, el);
-              else laneElRefs.current.delete(lane.name);
-            }}
-            className="html-canvas-lane"
-            data-html-canvas-lane={lane.slug}
-            data-html-canvas-lane-name={lane.name}
-            onPointerDown={(e) => handlePointerDown(e, lane)}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: lane.worldW,
-              height: lane.worldH,
-              transform: `translate3d(${lane.worldX}px, ${lane.worldY}px, 0)`,
-              willChange: "transform",
-              boxSizing: "border-box",
-              cursor: "grab",
-              background: "rgba(184, 134, 42, 0.08)",
-              border: "1.5px solid #b8862a",
-              borderRadius: 8,
-              padding: "10px 12px",
-              color: "#1a1410",
-              fontFamily: "'JetBrains Mono', 'Noto Sans JP', monospace",
-              fontSize: "14px",
-              fontWeight: 500,
-              userSelect: "none",
-              touchAction: "none",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              justifyContent: "flex-start",
-              gap: 4,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 600 }}>{lane.name}</div>
-            {lane.nodeCount > 0 ? (
-              <div style={{ fontSize: 11, color: "#8a5a2a", opacity: 0.75 }}>
-                nodes: {lane.nodeCount}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+  },
+);
 
 const viewportStyle: React.CSSProperties = {
   position: "relative",
