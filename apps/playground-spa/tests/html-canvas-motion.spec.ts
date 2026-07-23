@@ -22,12 +22,6 @@ import { test, expect, type Page } from "@playwright/test";
 const LANE_SELECTOR = "[data-html-canvas-lane]";
 const NODE_SELECTOR = "[data-html-canvas-node]";
 
-interface SampleRow {
-  t: number;
-  cssLeft: number;
-  cssTop: number;
-}
-
 interface SamplingHandle {
   selector: string;
 }
@@ -68,6 +62,11 @@ interface RafPhaseStats {
   maxDelta: number;
   totalPositionDelta: number;
   maxSingleFrameJump: number;
+  /**
+   * Round 2 F1 refinement = 累積移動量 (往復加算) ではなく net displacement = 最終 sample と初期 sample の
+   * L2 距離。 pointer が単方向 drag なら element net 移動も pointer delta 相当を要求できる。
+   */
+  netDisplacement: number;
 }
 
 interface RafSampleFull {
@@ -90,7 +89,15 @@ async function stopAndReadSamples(page: Page): Promise<RafSampleFull[]> {
 
 function computePhaseStats(samples: RafSampleFull[]): RafPhaseStats {
   if (samples.length < 2) {
-    return { frameCount: samples.length, medianDelta: 0, p95Delta: 0, maxDelta: 0, totalPositionDelta: 0, maxSingleFrameJump: 0 };
+    return {
+      frameCount: samples.length,
+      medianDelta: 0,
+      p95Delta: 0,
+      maxDelta: 0,
+      totalPositionDelta: 0,
+      maxSingleFrameJump: 0,
+      netDisplacement: 0,
+    };
   }
   const deltas: number[] = [];
   let totalPositionDelta = 0;
@@ -107,6 +114,12 @@ function computePhaseStats(samples: RafSampleFull[]): RafPhaseStats {
   const medianDelta = sortedDelta[Math.floor(sortedDelta.length / 2)]!;
   const p95Delta = sortedDelta[Math.max(0, Math.floor(sortedDelta.length * 0.95) - 1)]!;
   const maxDelta = sortedDelta[sortedDelta.length - 1]!;
+  // Round 2 F1 refinement = net displacement (最終 sample - 初期 sample の L2 距離)
+  const first = samples[0]!;
+  const last = samples[samples.length - 1]!;
+  const netDisplacement = Math.sqrt(
+    (last.cssLeft - first.cssLeft) ** 2 + (last.cssTop - first.cssTop) ** 2,
+  );
   return {
     frameCount: samples.length,
     medianDelta,
@@ -114,6 +127,7 @@ function computePhaseStats(samples: RafSampleFull[]): RafPhaseStats {
     maxDelta,
     totalPositionDelta,
     maxSingleFrameJump,
+    netDisplacement,
   };
 }
 
@@ -182,10 +196,11 @@ test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF 
       return dx * dx + dy * dy > 0.01;
     });
     const stats = computePhaseStats(allSamples);
-    console.log(`[T-M1 lane] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
-    // F1 対応 = element が実際に移動していることを assert (rAF loop 単独 pass を排除)
-    // pointer が dx=240 動いた → element も 200px 以上動いている (viewport scale 補正込 buffer)
-    expect(stats.totalPositionDelta, `total element movement ${stats.totalPositionDelta.toFixed(1)}px (pointer moved 240px client)`).toBeGreaterThan(80);
+    console.log(`[T-M1 lane] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px netDisp=${stats.netDisplacement.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
+    // F1 対応 (Round 2 refinement) = 累積 (往復加算) ではなく net displacement で「単方向 drag が完遂」 を verify
+    // pointer が (dx=240, dy=80) 動いた → element の net displacement も同程度 (viewport scale ≈ 1、
+    // buffer 込で 200px 以上、 sqrt(240^2 + 80^2) ≈ 253px の 80% 目安)
+    expect(stats.netDisplacement, `net displacement ${stats.netDisplacement.toFixed(1)}px (pointer moved sqrt(240^2+80^2)≈253px)`).toBeGreaterThan(200);
     // F1 対応 = drag phase 中に位置変化 sample が 60 以上 = pointer 進行と element 追従が couple
     expect(drag.length, `frames with element movement ${drag.length} (drag phase 中の追従 frame)`).toBeGreaterThanOrEqual(60);
     // F2 対応 = median ≤ 20ms (50fps) + p95 ≤ 33ms + max ≤ 60ms (単発 stall hard cap、 60ms > 30fps 悲観)
@@ -220,8 +235,9 @@ test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF 
       return dx * dx + dy * dy > 0.01;
     });
     const stats = computePhaseStats(allSamples);
-    console.log(`[T-M2 node] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
-    expect(stats.totalPositionDelta, `node total movement ${stats.totalPositionDelta.toFixed(1)}px (pointer 180px client)`).toBeGreaterThan(60);
+    console.log(`[T-M2 node] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px netDisp=${stats.netDisplacement.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
+    // F1 refinement = pointer (dx=180, dy=60) → sqrt(180^2+60^2)≈190px の 80% buffer で 150px 以上
+    expect(stats.netDisplacement, `node net displacement ${stats.netDisplacement.toFixed(1)}px (pointer≈190px)`).toBeGreaterThan(150);
     expect(drag.length, `node frames with movement ${drag.length}`).toBeGreaterThanOrEqual(60);
     expect(stats.medianDelta, `node median ${stats.medianDelta.toFixed(2)}ms`).toBeLessThanOrEqual(20);
     expect(stats.p95Delta, `node p95 ${stats.p95Delta.toFixed(2)}ms`).toBeLessThanOrEqual(33);
