@@ -80,7 +80,7 @@ async function getAllLaneRects(
 test.describe("HTML div canvas drag (CAR-1947 Phase 1 + Round 2 regression)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
-    await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
+    await page.goto("/editor", { waitUntil: "networkidle" });
     await page.waitForSelector(LANE_SELECTOR, { timeout: 10000 });
     await page.waitForTimeout(500);
   });

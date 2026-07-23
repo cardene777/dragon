@@ -5,7 +5,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
-import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
+import { HtmlDivCanvasEditor, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
   clientToSvg,
@@ -346,7 +346,9 @@ export function CdlEditor(): React.JSX.Element {
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
-  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
+  // CAR-1963 Phase 2 PR 2 = feature flag 削除、 HTML div canvas 一択。 SVG stage は unreachable code として
+  // 一時保持 (次 PR で削除、 分割 review 経路で機能 parity 確認しやすくするため)。
+  const useHtmlCanvas = true;
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
@@ -2031,7 +2033,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.fit() : handleFit}
+            onClick={true ?() => htmlCanvasRef.current?.fit() : handleFit}
             title="表示を preview 領域に合わせる"
           >
             フィット
@@ -2039,7 +2041,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.reset() : handleReset}
+            onClick={true ?() => htmlCanvasRef.current?.reset() : handleReset}
             title="表示を初期状態に戻す (Esc)"
           >
             リセット
@@ -2048,8 +2050,8 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handle100}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "等倍表示"}
-            disabled={useHtmlCanvas}
+            title={true ?"HTML canvas mode では未対応 (Phase 2 で拡張)" : "等倍表示"}
+            disabled={true}
           >
             100%
           </button>
@@ -2057,9 +2059,9 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomOut}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "縮小"}
+            title={true ?"HTML canvas mode では未対応 (Phase 2 で拡張)" : "縮小"}
             aria-label="縮小"
-            disabled={useHtmlCanvas}
+            disabled={true}
           >
             −
           </button>
@@ -2067,143 +2069,21 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomIn}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "拡大"}
+            title={true ?"HTML canvas mode では未対応 (Phase 2 で拡張)" : "拡大"}
             aria-label="拡大"
-            disabled={useHtmlCanvas}
+            disabled={true}
           >
             +
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
-        {useHtmlCanvas ? (
-          <HtmlDivCanvasEditor
-            ref={htmlCanvasRef}
-            src={src}
-            onSrcChange={setSrc}
-            laid={laid}
-            testId="editor-preview-stage"
-          />
-        ) : (
-        <div
-          className={`v4-editor-stage ${dropOver ? "drop-over" : ""}`}
-          ref={previewRef}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onDragOver={handlePreviewDragOver}
-          onDragLeave={handlePreviewDragLeave}
-          onDrop={handlePreviewDrop}
-          data-testid="editor-preview-stage"
-        >
-          {dropOver && (
-            <div className="v4-editor-drop-overlay" aria-hidden>
-              ここにドロップして読み込む
-            </div>
-          )}
-          {dropHintMessage && (
-            <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
-          )}
-          <div
-            className="v4-editor-pan"
-            style={{
-              transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.scale})`,
-              transformOrigin: "0 0",
-            }}
-          >
-            {diagram ? (
-              <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
-              </div>
-            ) : (
-              <div className="v4-editor-empty">読み込み中...</div>
-            )}
-          </div>
-          {activeGuidelines.length > 0 && (() => {
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            if (!stageRect) return null;
-            return activeGuidelines.map((g, i) => {
-              if (g.axis === "horizontal") {
-                return (
-                  <div
-                    key={`gl-h-${i}`}
-                    data-guideline="horizontal"
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      top: `${g.coord}px`,
-                      height: "0px",
-                      borderTop: "1px dashed #d97706",
-                      pointerEvents: "none",
-                      zIndex: 105,
-                    }}
-                  />
-                );
-              }
-              return (
-                <div
-                  key={`gl-v-${i}`}
-                  data-guideline="vertical"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: `${g.coord}px`,
-                    width: "0px",
-                    borderLeft: "1px dashed #d97706",
-                    pointerEvents: "none",
-                    zIndex: 105,
-                  }}
-                />
-              );
-            });
-          })()}
-          {hoveredHandle && (() => {
-            // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            if (!stageRect) return null;
-            const r = hoveredHandle.rect;
-            const left = r.left - stageRect.left;
-            const top = r.top - stageRect.top;
-            const HANDLE = 10;
-            const style = (x: number, y: number, cursor: string) => ({
-              position: "absolute" as const,
-              left: `${x - HANDLE / 2}px`,
-              top: `${y - HANDLE / 2}px`,
-              width: `${HANDLE}px`,
-              height: `${HANDLE}px`,
-              background: "#fff",
-              border: "1.5px solid #8a5a2a",
-              borderRadius: "2px",
-              cursor,
-              zIndex: 100,
-              pointerEvents: "none" as const,
-            });
-            return (
-              <>
-                <div style={style(left, top, "nwse-resize")} data-corner="nw" />
-                <div style={style(left + r.width, top, "nesw-resize")} data-corner="ne" />
-                <div style={style(left, top + r.height, "nesw-resize")} data-corner="sw" />
-                <div style={style(left + r.width, top + r.height, "nwse-resize")} data-corner="se" />
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${left}px`,
-                    top: `${top}px`,
-                    width: `${r.width}px`,
-                    height: `${r.height}px`,
-                    border: "1.5px dashed rgba(138, 90, 42, 0.5)",
-                    pointerEvents: "none",
-                    zIndex: 99,
-                  }}
-                />
-              </>
-            );
-          })()}
-        </div>
-        )}
+        <HtmlDivCanvasEditor
+          ref={htmlCanvasRef}
+          src={src}
+          onSrcChange={setSrc}
+          laid={laid}
+          testId="editor-preview-stage"
+        />
       </section>
     </div>
   );
