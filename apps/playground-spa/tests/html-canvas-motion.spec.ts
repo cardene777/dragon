@@ -166,7 +166,7 @@ async function performSmoothDrag(
 test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF timing coupled)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
-    await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
+    await page.goto("/editor", { waitUntil: "networkidle" });
     await page.waitForSelector(LANE_SELECTOR, { timeout: 10000 });
     await page.waitForTimeout(500);
   });

@@ -344,9 +344,11 @@ function appendActorLine(src: string, newLine: string): string | null {
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
-  // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
-  // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
-  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
+  // CAR-1990 = /editor default 化。 `useHtmlCanvas` は常時 true 固定、 SVG stage 経路は unreachable code
+  // として残置 (dead code cleanup は CAR-1963 で継続)。 `?canvas=html` URL param は互換 no-op、
+  // `canvasHtmlFeatureFlag` import は type 保持のため残す (実 flag 判定は使わない)。
+  const useHtmlCanvas = true;
+  void canvasHtmlFeatureFlag;
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
