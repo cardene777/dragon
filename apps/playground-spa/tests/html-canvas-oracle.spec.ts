@@ -163,7 +163,7 @@ function assertCdlOracleAgainstDom(
 test.describe("HTML div canvas independent oracle (CAR-1965 test 品質改善)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
-    await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
+    await page.goto("/editor", { waitUntil: "networkidle" });
     await page.waitForSelector(LANE_SELECTOR, { timeout: 10000 });
     await page.waitForTimeout(500);
   });
