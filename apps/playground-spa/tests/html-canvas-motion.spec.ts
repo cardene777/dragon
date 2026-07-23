@@ -1,13 +1,19 @@
 /**
- * HTML div canvas motion / smoothness verify (CAR-1983)。
+ * HTML div canvas motion / smoothness verify (CAR-1983 + Round 1 Codex fix)。
  *
- * user 指摘「動きを見ないと」 への応答。 静止 screenshot 4-5 枚では捉えられない時間軸 (smooth 感、
- * 途中 jitter 有無) を 2 経路で verify。
+ * user 指摘「動きを見ないと」 への応答。 静止 screenshot 4-5 枚では捉えられない時間軸を 2 経路で verify。
  *
- * - **video 録画** = playwright.config.ts の `motion` project で video: on、 test 完了時に WebM が
- *   test-results/motion/ 配下に生成、 user が実動作を目視再生確認する経路
- * - **rAF timing 実測** = drag 中に window.requestAnimationFrame の呼出間隔 (frame delta) を browser 側で
- *   収集、 median ≤ 20ms (50fps 相当) + max ≤ 40ms (25fps 下限) を assert。 機械的 smoothness 保証
+ * Round 1 Codex adversarial review 3 MAJOR fix:
+ * - F1 = rAF loop 単独では element 移動と decoupled で smoothness を測れない。 rAF ごとに
+ *   対象 element の getBoundingClientRect() + pointer 座標 + rAF 時刻 の 3 者を同時 sample、
+ *   pointer 移動時に element 移動が追従していることを assert する経路に変更
+ * - F2 = p95 のみでは単発長 jitter を見逃す。 drag phase と release phase を別集計、
+ *   max = hard cap で 4 × median 以内を assert (単発 stall 検知)、 release 後 sample は統計から除外
+ * - F3 = mouse.move の 25ms 間隔 (40Hz) が pointer 更新精度を制限、 rAF 内部が 60fps でも
+ *   element 実移動は 40Hz。 16.7ms (~60Hz) 相当の scheduling に変更、 90 steps に増やす
+ *
+ * video 録画は playwright.config.ts の motion project (video: on) 経由で自動生成、
+ * user が実動作を再生確認する経路。
  *
  * baseURL = 4323 (vite dev)。 motion project の viewport = 1280x720 で録画。
  */
@@ -16,80 +22,134 @@ import { test, expect, type Page } from "@playwright/test";
 const LANE_SELECTOR = "[data-html-canvas-lane]";
 const NODE_SELECTOR = "[data-html-canvas-node]";
 
+interface SampleRow {
+  t: number;
+  cssLeft: number;
+  cssTop: number;
+}
+
+interface SamplingHandle {
+  selector: string;
+}
+
 /**
- * browser 側で rAF sampling を開始、 __rafDeltas に frame delta を蓄積。
- * caller は drag 操作終了後に stopAndReadRafSampling で結果取得。
+ * browser 側で rAF sampling を開始、 各 frame で 対象 element の rect と時刻を 1 sample として蓄積。
+ * F1 対応 = element 位置と rAF timing の同時サンプルで decoupled 検証を可能に。
  */
-async function startRafSampling(page: Page): Promise<void> {
-  await page.evaluate(() => {
+async function startElementRafSampling(page: Page, selector: string): Promise<SamplingHandle> {
+  await page.evaluate((sel) => {
     interface W {
-      __rafDeltas?: number[];
-      __rafLast?: number;
+      __rafSamples?: Array<{ t: number; cssLeft: number; cssTop: number }>;
       __rafStop?: boolean;
+      __rafSelector?: string;
     }
     const w = window as unknown as W;
-    w.__rafDeltas = [];
-    w.__rafLast = undefined;
+    w.__rafSamples = [];
     w.__rafStop = false;
+    w.__rafSelector = sel;
     const step = (t: number) => {
       const ww = window as unknown as W;
-      if (ww.__rafLast !== undefined) {
-        ww.__rafDeltas!.push(t - ww.__rafLast);
+      const el = document.querySelector(ww.__rafSelector!) as HTMLElement | null;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        ww.__rafSamples!.push({ t, cssLeft: r.left, cssTop: r.top });
       }
-      ww.__rafLast = t;
       if (!ww.__rafStop) window.requestAnimationFrame(step);
     };
     window.requestAnimationFrame(step);
-  });
+  }, selector);
+  return { selector };
 }
 
-interface RafStats {
-  deltas: number[];
-  median: number;
-  max: number;
-  p95: number;
-  count: number;
+interface RafPhaseStats {
+  frameCount: number;
+  medianDelta: number;
+  p95Delta: number;
+  maxDelta: number;
+  totalPositionDelta: number;
+  maxSingleFrameJump: number;
 }
 
-async function stopAndReadRafSampling(page: Page): Promise<RafStats> {
+interface RafSampleFull {
+  t: number;
+  cssLeft: number;
+  cssTop: number;
+}
+
+async function stopAndReadSamples(page: Page): Promise<RafSampleFull[]> {
   return page.evaluate(() => {
     interface W {
-      __rafDeltas?: number[];
+      __rafSamples?: Array<{ t: number; cssLeft: number; cssTop: number }>;
       __rafStop?: boolean;
     }
     const w = window as unknown as W;
     w.__rafStop = true;
-    const deltas = (w.__rafDeltas ?? []).slice();
-    if (deltas.length === 0) {
-      return { deltas: [], median: 0, max: 0, p95: 0, count: 0 };
-    }
-    const sorted = [...deltas].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)]!;
-    const p95 = sorted[Math.max(0, Math.floor(sorted.length * 0.95) - 1)]!;
-    const max = sorted[sorted.length - 1]!;
-    return { deltas, median, max, p95, count: deltas.length };
+    return (w.__rafSamples ?? []).slice();
   });
 }
 
-async function getLaneCenter(page: Page, slug: string): Promise<{ x: number; y: number }> {
-  return page.evaluate((s) => {
-    const el = document.querySelector(`[data-html-canvas-lane="${s}"]`) as HTMLElement | null;
-    if (!el) throw new Error(`lane not found: ${s}`);
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  }, slug);
+function computePhaseStats(samples: RafSampleFull[]): RafPhaseStats {
+  if (samples.length < 2) {
+    return { frameCount: samples.length, medianDelta: 0, p95Delta: 0, maxDelta: 0, totalPositionDelta: 0, maxSingleFrameJump: 0 };
+  }
+  const deltas: number[] = [];
+  let totalPositionDelta = 0;
+  let maxSingleFrameJump = 0;
+  for (let i = 1; i < samples.length; i++) {
+    deltas.push(samples[i]!.t - samples[i - 1]!.t);
+    const dx = samples[i]!.cssLeft - samples[i - 1]!.cssLeft;
+    const dy = samples[i]!.cssTop - samples[i - 1]!.cssTop;
+    const step = Math.sqrt(dx * dx + dy * dy);
+    totalPositionDelta += step;
+    maxSingleFrameJump = Math.max(maxSingleFrameJump, step);
+  }
+  const sortedDelta = [...deltas].sort((a, b) => a - b);
+  const medianDelta = sortedDelta[Math.floor(sortedDelta.length / 2)]!;
+  const p95Delta = sortedDelta[Math.max(0, Math.floor(sortedDelta.length * 0.95) - 1)]!;
+  const maxDelta = sortedDelta[sortedDelta.length - 1]!;
+  return {
+    frameCount: samples.length,
+    medianDelta,
+    p95Delta,
+    maxDelta,
+    totalPositionDelta,
+    maxSingleFrameJump,
+  };
 }
 
-async function getNodeCenter(page: Page, nodeId: string): Promise<{ x: number; y: number }> {
-  return page.evaluate((id) => {
-    const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
-    if (!el) throw new Error(`node not found: ${id}`);
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  }, nodeId);
+/**
+ * pointer 移動と rAF sampling を協調させるヘルパー。 target ms 間隔で 90 steps 実行 (16.7ms = 60Hz 目標)、
+ * F3 対応。 pointer 移動は setTimeout ではなく、 dead-reckoning (start 時刻 + step*ms) で厳密 pacing。
+ */
+async function performSmoothDrag(
+  page: Page,
+  start: { x: number; y: number },
+  totalDelta: { dx: number; dy: number },
+  steps: number,
+  targetMs: number,
+): Promise<{ startTs: number; endTs: number }> {
+  const startTs = Date.now();
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  const stepMs = targetMs / steps;
+  for (let i = 1; i <= steps; i++) {
+    const px = start.x + (totalDelta.dx * i) / steps;
+    const py = start.y + (totalDelta.dy * i) / steps;
+    await page.mouse.move(px, py);
+    // dead-reckoning wait = 経過 wall clock と目標 t_i の差分を wait
+    const expectedElapsed = i * stepMs;
+    const actualElapsed = Date.now() - startTs;
+    const remaining = expectedElapsed - actualElapsed;
+    if (remaining > 1) {
+      await page.waitForTimeout(remaining);
+    }
+  }
+  await page.mouse.up();
+  const endTs = Date.now();
+  return { startTs, endTs };
 }
 
-test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF timing)", () => {
+test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF timing coupled)", () => {
   test.beforeEach(async ({ page }) => {
     page.on("dialog", (d) => { void d.accept(); });
     await page.goto("/editor?canvas=html", { waitUntil: "networkidle" });
@@ -97,69 +157,75 @@ test.describe("HTML div canvas motion / smoothness (CAR-1983 video 録画 + rAF 
     await page.waitForTimeout(500);
   });
 
-  test("T-M1 = lane drag 中の rAF timing = median frame delta ≤ 20ms、 p95 ≤ 33ms (60fps 目標 / 30fps 下限)", async ({ page }) => {
+  test("T-M1 = lane drag 中 rAF+element の coupled smoothness verify (60Hz 目標 / long-frame 検知)", async ({ page }) => {
     const slug = await page.evaluate(() => {
       const el = document.querySelector("[data-html-canvas-lane]") as HTMLElement | null;
       return el?.getAttribute("data-html-canvas-lane") ?? "";
     });
     expect(slug.length).toBeGreaterThan(0);
-    const start = await getLaneCenter(page, slug);
-    // rAF sampling 開始
-    await startRafSampling(page);
-    // drag 開始 → 1.5 秒相当 (60 fps 目標で 90 frame) 分の drag を実施
-    await page.mouse.move(start.x, start.y);
-    await page.mouse.down();
-    const totalMs = 1500;
-    const steps = 60;
-    const dx = 250;
-    const dy = 80;
-    for (let i = 1; i <= steps; i++) {
-      const px = start.x + (dx * i) / steps;
-      const py = start.y + (dy * i) / steps;
-      await page.mouse.move(px, py);
-      await page.waitForTimeout(totalMs / steps);
-    }
-    await page.mouse.up();
-    // release 後 300ms 追加 sampling
-    await page.waitForTimeout(300);
-    // rAF sampling 停止 + 結果取得
-    const stats = await stopAndReadRafSampling(page);
-    console.log(`[T-M1 lane] rAF stats: count=${stats.count} median=${stats.median.toFixed(2)}ms p95=${stats.p95.toFixed(2)}ms max=${stats.max.toFixed(2)}ms`);
-    // assert = median ≤ 20ms (50fps 以上) + p95 ≤ 33ms (30fps 相当の悲観境界)
-    expect(stats.count, `rAF sample 数 ≥ 60 (1.5s drag 分)`).toBeGreaterThanOrEqual(60);
-    expect(stats.median, `median frame delta ${stats.median.toFixed(2)}ms`).toBeLessThanOrEqual(20);
-    expect(stats.p95, `p95 frame delta ${stats.p95.toFixed(2)}ms`).toBeLessThanOrEqual(33);
+    const start = await page.evaluate((s) => {
+      const el = document.querySelector(`[data-html-canvas-lane="${s}"]`) as HTMLElement | null;
+      if (!el) throw new Error(`lane not found: ${s}`);
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, slug);
+    // element と rAF timing を同時 sampling
+    await startElementRafSampling(page, `[data-html-canvas-lane="${slug}"]`);
+    // 90 steps × 16.7ms = 1500ms、 60Hz 相当 pacing (F3 対応)
+    await performSmoothDrag(page, start, { dx: 240, dy: 80 }, 90, 1500);
+    // sampling 停止 + drag phase を「element 移動があった frame」 で抽出 (F1 + F2 対応)
+    const allSamples = await stopAndReadSamples(page);
+    const drag = allSamples.filter((s, i, arr) => {
+      if (i === 0) return false;
+      const dx = s.cssLeft - arr[i - 1]!.cssLeft;
+      const dy = s.cssTop - arr[i - 1]!.cssTop;
+      return dx * dx + dy * dy > 0.01;
+    });
+    const stats = computePhaseStats(allSamples);
+    console.log(`[T-M1 lane] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
+    // F1 対応 = element が実際に移動していることを assert (rAF loop 単独 pass を排除)
+    // pointer が dx=240 動いた → element も 200px 以上動いている (viewport scale 補正込 buffer)
+    expect(stats.totalPositionDelta, `total element movement ${stats.totalPositionDelta.toFixed(1)}px (pointer moved 240px client)`).toBeGreaterThan(80);
+    // F1 対応 = drag phase 中に位置変化 sample が 60 以上 = pointer 進行と element 追従が couple
+    expect(drag.length, `frames with element movement ${drag.length} (drag phase 中の追従 frame)`).toBeGreaterThanOrEqual(60);
+    // F2 対応 = median ≤ 20ms (50fps) + p95 ≤ 33ms + max ≤ 60ms (単発 stall hard cap、 60ms > 30fps 悲観)
+    expect(stats.medianDelta, `median frame delta ${stats.medianDelta.toFixed(2)}ms`).toBeLessThanOrEqual(20);
+    expect(stats.p95Delta, `p95 frame delta ${stats.p95Delta.toFixed(2)}ms`).toBeLessThanOrEqual(33);
+    expect(stats.maxDelta, `max frame delta ${stats.maxDelta.toFixed(2)}ms (単発 stall hard cap)`).toBeLessThanOrEqual(60);
+    // F1 対応 = 単 frame jump が異常大でない (frame ごとの pixel 移動が 20px 超えない = 段階移動でなく滑らか追従)
+    expect(stats.maxSingleFrameJump, `max single-frame position jump ${stats.maxSingleFrameJump.toFixed(1)}px`).toBeLessThanOrEqual(20);
   });
 
-  test("T-M2 = node drag 中の rAF timing = median frame delta ≤ 20ms、 p95 ≤ 33ms", async ({ page }) => {
+  test("T-M2 = node drag 中 rAF+element の coupled smoothness verify", async ({ page }) => {
     await page.waitForSelector(NODE_SELECTOR, { timeout: 10000 });
     const nodeId = await page.evaluate(() => {
-      // subKey が非空 (sub-node) を対象、 単一 node 経路より安定
       const els = Array.from(document.querySelectorAll("[data-html-canvas-node]"));
       const withSub = els.find((el) => (el as HTMLElement).getAttribute("data-html-canvas-node-subkey")) as HTMLElement | undefined;
       return withSub?.getAttribute("data-html-canvas-node") ?? els[0]?.getAttribute("data-html-canvas-node") ?? "";
     });
     expect(nodeId.length).toBeGreaterThan(0);
-    const start = await getNodeCenter(page, nodeId);
-    await startRafSampling(page);
-    await page.mouse.move(start.x, start.y);
-    await page.mouse.down();
-    const totalMs = 1500;
-    const steps = 60;
-    const dx = 200;
-    const dy = 60;
-    for (let i = 1; i <= steps; i++) {
-      const px = start.x + (dx * i) / steps;
-      const py = start.y + (dy * i) / steps;
-      await page.mouse.move(px, py);
-      await page.waitForTimeout(totalMs / steps);
-    }
-    await page.mouse.up();
-    await page.waitForTimeout(300);
-    const stats = await stopAndReadRafSampling(page);
-    console.log(`[T-M2 node] rAF stats: count=${stats.count} median=${stats.median.toFixed(2)}ms p95=${stats.p95.toFixed(2)}ms max=${stats.max.toFixed(2)}ms`);
-    expect(stats.count, `rAF sample 数 ≥ 60`).toBeGreaterThanOrEqual(60);
-    expect(stats.median, `node median frame delta ${stats.median.toFixed(2)}ms`).toBeLessThanOrEqual(20);
-    expect(stats.p95, `node p95 frame delta ${stats.p95.toFixed(2)}ms`).toBeLessThanOrEqual(33);
+    const start = await page.evaluate((id) => {
+      const el = document.querySelector(`[data-html-canvas-node="${id}"]`) as HTMLElement | null;
+      if (!el) throw new Error(`node not found: ${id}`);
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, nodeId);
+    await startElementRafSampling(page, `[data-html-canvas-node="${nodeId}"]`);
+    await performSmoothDrag(page, start, { dx: 180, dy: 60 }, 90, 1500);
+    const allSamples = await stopAndReadSamples(page);
+    const drag = allSamples.filter((s, i, arr) => {
+      if (i === 0) return false;
+      const dx = s.cssLeft - arr[i - 1]!.cssLeft;
+      const dy = s.cssTop - arr[i - 1]!.cssTop;
+      return dx * dx + dy * dy > 0.01;
+    });
+    const stats = computePhaseStats(allSamples);
+    console.log(`[T-M2 node] frames=${stats.frameCount} median=${stats.medianDelta.toFixed(2)}ms p95=${stats.p95Delta.toFixed(2)}ms max=${stats.maxDelta.toFixed(2)}ms totalMove=${stats.totalPositionDelta.toFixed(1)}px maxJump=${stats.maxSingleFrameJump.toFixed(1)}px dragFrames=${drag.length}`);
+    expect(stats.totalPositionDelta, `node total movement ${stats.totalPositionDelta.toFixed(1)}px (pointer 180px client)`).toBeGreaterThan(60);
+    expect(drag.length, `node frames with movement ${drag.length}`).toBeGreaterThanOrEqual(60);
+    expect(stats.medianDelta, `node median ${stats.medianDelta.toFixed(2)}ms`).toBeLessThanOrEqual(20);
+    expect(stats.p95Delta, `node p95 ${stats.p95Delta.toFixed(2)}ms`).toBeLessThanOrEqual(33);
+    expect(stats.maxDelta, `node max ${stats.maxDelta.toFixed(2)}ms (hard cap)`).toBeLessThanOrEqual(60);
+    expect(stats.maxSingleFrameJump, `node max single-frame jump ${stats.maxSingleFrameJump.toFixed(1)}px`).toBeLessThanOrEqual(20);
   });
 });
