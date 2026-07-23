@@ -61,6 +61,19 @@ export interface DragState {
    * updateActorPosition 経路。 lane 全体を触らず個別 sub-node のみ固定する SSOT。
    */
   subNodeKey?: string;
+  /**
+   * 「掴んだ点 offset」 (CAR-1935 drag pipeline rewrite) = 対象 element の world bounding rect 左上を
+   * 原点とし、 pointer down 時の svgPt が左上からどれだけ離れているかを world 単位で保存する。
+   *
+   * drag semantic = drop finalize 時、 現在 svgPt から grabOffsetX / grabOffsetY を減算して newLaneLeftX /
+   * newLaneLeftY を決定することで、 「掴んだ点」 が release cursor 位置に完全一致するよう補正する。
+   * user 直感 (Miro / Figma) 「掴んだ point がそのまま release 位置に置かれる」 を実現する。
+   *
+   * 現状 initPosX + dx 単純加算経路は「lane 左上が cursor delta 分ずれる」 semantic で、 掴んだ点が
+   * lane 左上と異なる場合に release 位置と実配置が systematic に (grabOffset 分だけ) ずれる bug 補正。
+   */
+  grabOffsetX?: number;
+  grabOffsetY?: number;
 }
 
 /**

@@ -962,23 +962,53 @@ export function CdlEditor(): React.JSX.Element {
     if (!dragInfo) return false;
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
-    // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
-    // CdlLane の semantic = posX/posY は lane 左上 corner の絶対座標 (SVG unit)、 lane 中心ではない。
+    // CAR-1935 drag pipeline rewrite = initPosX / initPosY を「対象 element の bounding rect 左上 world 座標」
+    // に統一する。 旧経路 (svgPt.x fallback = cursor 位置基準) を全廃、 対象 element の実描画位置を絶対値で拾う。
+    //
+    // 参照優先順位:
+    //   (1) DSL の posX / posY (author が明示指定済、 最も信頼できる)
+    //   (2) data-cdl-lane-x / data-cdl-lane-y (cdl layout engine が set した lane 左上 world 座標)
+    //   (3) 対象 element の getBoundingClientRect → clientToSvg 変換 (fallback、 attribute 未 set 系)
+    //
+    // (3) は data-cdl-node 系 (parts sub-node 等) で lane attribute が無い case をカバー。
+    // 旧 svgPt.x fallback は「cursor 位置 = 初期位置」 で drag delta 0 スタート = 掴む前から node が
+    // cursor に snap する bug、 CAR-1935 root cause の 1 つとして排除。
+    const slug = slugifyActorName(dragInfo.name);
+    const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
+    const targetEl = (target.closest(`[data-cdl-node], [data-cdl-lane]`) ?? laneEl) as SVGGraphicsElement | null;
     let initPosX = cur?.posX;
     let initPosY = cur?.posY;
     if (initPosX === undefined || initPosY === undefined) {
-      const slug = slugifyActorName(dragInfo.name);
-      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-      if (laneEl) {
-        // data-cdl-lane-x / data-cdl-lane-y attribute で「left-top corner の SVG unit 座標」 が取れる (CDL render 経由)
-        const rawX = laneEl.getAttribute("data-cdl-lane-x");
-        const rawY = laneEl.getAttribute("data-cdl-lane-y");
-        initPosX = rawX ? parseFloat(rawX) : svgPt.x;
-        initPosY = rawY ? parseFloat(rawY) : svgPt.y;
+      const rawX = laneEl?.getAttribute("data-cdl-lane-x");
+      const rawY = laneEl?.getAttribute("data-cdl-lane-y");
+      if (rawX && rawY) {
+        initPosX = parseFloat(rawX);
+        initPosY = parseFloat(rawY);
+      } else if (targetEl) {
+        // fallback = 対象 element の実 bbox 左上を world 座標で取得
+        const rect = targetEl.getBoundingClientRect();
+        const tlPt = clientToSvg(svg, rect.left, rect.top);
+        initPosX = tlPt.x;
+        initPosY = tlPt.y;
       } else {
+        // safety fallback = svgPt (旧経路)、 通常到達しない
         initPosX = svgPt.x;
         initPosY = svgPt.y;
       }
+    }
+    // CAR-1935 grab point offset = 「掴んだ点」 と「対象 element 左上」 の world 単位 relative 距離。
+    // drop finalize で `newLaneLeftX = svgPt.x - grabOffsetX` として使い、 「掴んだ点 = release cursor 位置」
+    // invariant を成立させる (Miro / Figma 相当の drag semantics)。
+    //
+    // 対象 element の bounding rect が取れない case (lane / node 属性なし = 通常発生しない) は
+    // grabOffset 0 で fallback (旧 initPosX + dx 相当の挙動)。
+    let grabOffsetX = 0;
+    let grabOffsetY = 0;
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const tlPt = clientToSvg(svg, rect.left, rect.top);
+      grabOffsetX = svgPt.x - tlPt.x;
+      grabOffsetY = svgPt.y - tlPt.y;
     }
     elementDrag.current = {
       mode: "drag",
@@ -993,6 +1023,8 @@ export function CdlEditor(): React.JSX.Element {
       initPosH: cur?.posH,
       svgScale: svgPt.scale,
       commandBypass: e.metaKey || e.ctrlKey,
+      grabOffsetX,
+      grabOffsetY,
     };
     document.body.style.cursor = "grabbing";
     return true;
@@ -1051,12 +1083,21 @@ export function CdlEditor(): React.JSX.Element {
     const dy = svgPt.y - st.startSvgY;
     if (st.mode === "drag") {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
-      const newX = st.initPosX + dx;
-      const newY = st.initPosY + dy;
-      // user 明示要求 (2026-07-23) = 「一旦自動調整全部外して。 好きな場所に移動してドロップできるように」。
-      // 旧 viewBox re-fit 補償 (pan で inverse 相殺) + 旧 pin logic (drag 対象以外の全 lane を
-      // data-cdl-lane-x から posX 書出し) は全 disable。 target 1 個の posX/posY だけ DSL に書出す
-      // 最小実装。 副作用 = 他 lane が cdl 再 layout で shift する可能性あり (user が明示 accept)。
+      // CAR-1935 drag pipeline rewrite = 「掴んだ点 = release cursor 位置」 invariant で書出し。
+      //
+      // grabOffset (drag start 時に capture) = svgPt - targetLeftTop、 「掴んだ点」 が対象 element 左上から
+      // どれだけ離れているかを world 単位で保持。 release 時 svgPt を対象 element の新左上に変換するには
+      // svgPt - grabOffset を計算する。 これが新 posX / posY として DSL 書出しされる。
+      //
+      // 旧経路 (`newX = initPosX + dx`) は「lane 左上が cursor delta 分ずれる」 semantic で、 「掴んだ点」
+      // が lane 左上と異なる位置 (user が node 中央や右端を掴んだ場合) に systematic な grabOffset 分の
+      // 配置ずれが発生していた bug の fix。 user 発言「配置した場所と違う場所に飛ばされる」 の root cause。
+      //
+      // grabOffset が未 set (targetEl 取得失敗 case) は 0 fallback = 旧挙動と等価、 破壊的変更なし。
+      const grabX = st.grabOffsetX ?? 0;
+      const grabY = st.grabOffsetY ?? 0;
+      const newX = svgPt.x - grabX;
+      const newY = svgPt.y - grabY;
       setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
