@@ -174,7 +174,7 @@ function resolveDslName(rawId: string, slugToName: Map<string, string>): string 
  *   - `{slug}` (単独 node) → subNodeKey = undefined (actor 全体経路)
  * hit した slug が長いほうを優先することで、 短い slug が別 actor と誤 match することを防ぐ。
  */
-function resolveDslNameWithSubKey(
+export function resolveDslNameWithSubKey(
   rawId: string,
   slugToName: Map<string, string>,
 ): { name: string; subNodeKey?: string } | null {
