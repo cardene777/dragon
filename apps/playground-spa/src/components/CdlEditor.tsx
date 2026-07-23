@@ -2024,7 +2024,7 @@ ${newActorLine}
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap">
-                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} disableAutoFit />
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
