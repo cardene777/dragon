@@ -8,7 +8,6 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
-  findPartsUnionHit,
   clientToSvg,
   hitResizeHandle,
   updateActorPosition,
@@ -212,6 +211,55 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
  * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
  */
+/**
+ * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
+ * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
+ * parts は React state (overlayParts) で管理して独立 SVG overlay として描画する。
+ */
+function extractPartsFromSrc(
+  src: string,
+  partsCatalog: Record<string, { topic?: string } | unknown>,
+  partsItems: CatalogItem[],
+): { baseSrc: string; parts: Array<{ id: string; kind: string; posX: number; posY: number; item: CatalogItem }> } {
+  const partKindSet = new Set<string>();
+  for (const k of Object.keys(partsCatalog)) {
+    partKindSet.add(k);
+    if (k.startsWith("parts-")) partKindSet.add(k.slice(6));
+  }
+  const lines = src.split("\n");
+  const baseLines: string[] = [];
+  const parts: Array<{ id: string; kind: string; posX: number; posY: number; item: CatalogItem }> = [];
+  for (const line of lines) {
+    // `- alias: { kind: X, posX: N, posY: N, ... }` pattern
+    const m = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{(.+)\}\s*$/);
+    if (m) {
+      const alias = m[1]!.replace(/^"(.+)"$/, "$1");
+      const inner = m[2]!;
+      const kindMatch = inner.match(/(?:^|,)\s*kind\s*:\s*([a-zA-Z0-9-_]+)/);
+      if (kindMatch) {
+        const kindValue = kindMatch[1]!;
+        if (partKindSet.has(kindValue)) {
+          const posXMatch = inner.match(/(?:^|,)\s*posX\s*:\s*(-?\d+(?:\.\d+)?)/);
+          const posYMatch = inner.match(/(?:^|,)\s*posY\s*:\s*(-?\d+(?:\.\d+)?)/);
+          const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
+          if (item) {
+            parts.push({
+              id: alias,
+              kind: kindValue,
+              posX: posXMatch ? parseFloat(posXMatch[1]!) : 0,
+              posY: posYMatch ? parseFloat(posYMatch[1]!) : 0,
+              item,
+            });
+            continue; // skip this line from baseLines = cdl doesn't see this actor
+          }
+        }
+      }
+    }
+    baseLines.push(line);
+  }
+  return { baseSrc: baseLines.join("\n"), parts };
+}
+
 function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
   if (!svg) return src;
   let next = src;
@@ -363,6 +411,13 @@ export function CdlEditor(): React.JSX.Element {
   const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
+  // 2026-07-24 architectural refactor = parts を cdl DSL から完全切離、 独立 overlay 化。
+  // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
+  // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
+  // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; item: CatalogItem };
+  const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
+  const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
   // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
@@ -571,142 +626,12 @@ export function CdlEditor(): React.JSX.Element {
    * trade-off = achievement を viewBox 外に drag すると clip される (spec 上意図的、 user が pan/zoom で
    * 追跡可能)。 sample 切替時は viewBox 再取得が必要なので initialViewBoxRef を activeSample deps でリセット。
    */
-  /**
-   * viewBox + edge d freeze (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
-   *
-   * cdl auto-fit viewBox と edge routing = achievement drop / drag で node 位置が変わると
-   * viewBox 拡大 + edge Q curve detour 発生 → 全 content shrink + 矢印変形 = user 苦情の core。
-   *
-   * fix strategy = event-driven capture + MutationObserver override。
-   *   1. page load 時は capture しない = arrow animation は normal 動作
-   *   2. parts drop / node drag 直前に captureFrozenState() を呼び「現 SVG state」 を snapshot
-   *   3. drop / drag 後の cdl re-render で MutationObserver が発火 → 全 override で snapshot 復元
-   *   4. lane / arrow / viewBox 全て drop 直前状態を保つ = user 見た目 100% static
-   */
-  const frozenViewBoxRef = useRef<string | null>(null);
-  const frozenEdgeDsRef = useRef<Map<string, string> | null>(null);
-  // 2026-07-24 = text (edge label / lane label 等) の x/y を freeze する必要がある。
-  // edge d を freeze しても cdl は label 位置を新 edge の midpoint で再計算するため label が動く。
-  const frozenTextsRef = useRef<Map<string, { x: string; y: string; transform: string | null }> | null>(null);
-  useEffect(() => {
-    // sample 切替時は freeze state をリセット (次 drop / drag で再 capture)
-    frozenViewBoxRef.current = null;
-    frozenEdgeDsRef.current = null;
-    frozenTextsRef.current = null;
-  }, [activeSample]);
-
-  const captureFrozenState = useCallback((): void => {
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return;
-    const currentVB = svg.getAttribute("viewBox");
-    if (!currentVB) return;
-    frozenViewBoxRef.current = currentVB;
-    const edgeArr: Array<{ id: string; index: number; d: string }> = [];
-    const idxCounter = new Map<string, number>();
-    svg.querySelectorAll("[data-cdl-edge] path").forEach((p) => {
-      const id = (p.parentElement as SVGElement | null)?.getAttribute("data-cdl-edge") ?? "";
-      const d = p.getAttribute("d") ?? "";
-      if (!id || !d) return;
-      const idx = idxCounter.get(id) ?? 0;
-      idxCounter.set(id, idx + 1);
-      edgeArr.push({ id, index: idx, d });
-    });
-    frozenEdgeDsRef.current = new Map(edgeArr.map((e) => [`${e.id}#${e.index}`, e.d]));
-    // text element の x / y / transform を全 capture (edge label / lane label 位置固定用)
-    // key = 生 text content + parent data-cdl-* attribute の組合せで一意 identify
-    const textMap = new Map<string, { x: string; y: string; transform: string | null }>();
-    const textIdx = new Map<string, number>();
-    svg.querySelectorAll("text").forEach((t) => {
-      const el = t as SVGTextElement;
-      const parent = el.parentElement as SVGElement | null;
-      const parentTag = parent?.getAttribute("data-cdl-edge") ?? parent?.getAttribute("data-cdl-lane") ?? parent?.getAttribute("data-cdl-node") ?? "";
-      const content = (el.textContent ?? "").slice(0, 32);
-      const baseKey = `${parentTag}::${content}`;
-      const idx = textIdx.get(baseKey) ?? 0;
-      textIdx.set(baseKey, idx + 1);
-      const key = `${baseKey}#${idx}`;
-      textMap.set(key, {
-        x: el.getAttribute("x") ?? "",
-        y: el.getAttribute("y") ?? "",
-        transform: el.getAttribute("transform"),
-      });
-    });
-    frozenTextsRef.current = textMap;
-  }, []);
-
-  useEffect(() => {
-    const stage = previewRef.current;
-    if (!stage) return;
-    const freeze = (): void => {
-      const frozenVB = frozenViewBoxRef.current;
-      const frozenEdges = frozenEdgeDsRef.current;
-      const frozenTexts = frozenTextsRef.current;
-      if (!frozenVB || !frozenEdges || !frozenTexts) return;
-      const svg = stage.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      // 2026-07-24 fix (user 苦情「trophy 半分切れる」「shrink」 の 2 面同時 fix) = viewBox 完全 freeze
-      // + SVG overflow=visible。 viewBox を initial に override して他 lane / arrow を静的に保ちつつ、
-      // trophy が viewBox 外に出ても SVG 描画は clip されず visible に render される。
-      if (svg.getAttribute("overflow") !== "visible") {
-        svg.setAttribute("overflow", "visible");
-      }
-      // CSS overflow も明示 (SVG element 属性だけでは Chrome / Safari で不十分な場合あり)
-      if (svg.style.overflow !== "visible") {
-        svg.style.overflow = "visible";
-      }
-      const currentVB = svg.getAttribute("viewBox");
-      if (currentVB && currentVB !== frozenVB) {
-        svg.setAttribute("viewBox", frozenVB);
-      }
-      const seenIdx = new Map<string, number>();
-      svg.querySelectorAll("[data-cdl-edge] path").forEach((p) => {
-        const el = p as SVGPathElement;
-        const id = (el.parentElement as SVGElement | null)?.getAttribute("data-cdl-edge") ?? "";
-        if (!id) return;
-        const idx = seenIdx.get(id) ?? 0;
-        seenIdx.set(id, idx + 1);
-        const key = `${id}#${idx}`;
-        const targetD = frozenEdges.get(key);
-        if (targetD && el.getAttribute("d") !== targetD) {
-          el.setAttribute("d", targetD);
-        }
-      });
-      // text element の x / y / transform を override (label 移動固定)
-      const textIdx = new Map<string, number>();
-      svg.querySelectorAll("text").forEach((t) => {
-        const el = t as SVGTextElement;
-        const parent = el.parentElement as SVGElement | null;
-        const parentTag = parent?.getAttribute("data-cdl-edge") ?? parent?.getAttribute("data-cdl-lane") ?? parent?.getAttribute("data-cdl-node") ?? "";
-        const content = (el.textContent ?? "").slice(0, 32);
-        const baseKey = `${parentTag}::${content}`;
-        const idx = textIdx.get(baseKey) ?? 0;
-        textIdx.set(baseKey, idx + 1);
-        const key = `${baseKey}#${idx}`;
-        const target = frozenTexts.get(key);
-        if (!target) return;
-        if (target.x && el.getAttribute("x") !== target.x) el.setAttribute("x", target.x);
-        if (target.y && el.getAttribute("y") !== target.y) el.setAttribute("y", target.y);
-        if (target.transform && el.getAttribute("transform") !== target.transform) {
-          el.setAttribute("transform", target.transform);
-        }
-      });
-      // z-order fix (2026-07-24、 user 苦情「結果ラベルが trophy 上に来る」 対応) =
-      // parts merge (`__` alias) の全 group element を SVG root **直下** の最後に移動する
-      // (元 impl は immediate parent 内 last のみ = nodes group 内で last だが edges group より前で
-      //  edge label が trophy 上に来る symptom を放置していた)。
-      // svg.appendChild(g) = g を svg 直下の子として最後に移動 = SVG 描画順で最後 = z-index 最上。
-      const partsGroups = Array.from(svg.querySelectorAll("[data-cdl-node]"))
-        .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"));
-      for (const g of partsGroups) {
-        if (svg.lastElementChild !== g) {
-          svg.appendChild(g);
-        }
-      }
-    };
-    const observer = new MutationObserver(() => freeze());
-    observer.observe(stage, { subtree: true, attributes: true, childList: true, attributeFilter: ["viewBox", "d", "x", "y", "transform"] });
-    return () => observer.disconnect();
-  }, [diagram, src]);
+  // 2026-07-24 architectural refactor で freeze useEffect / captureFrozenState / frozen*Ref 全削除。
+  // parts を cdl DSL から切離して独立 overlay 化したため、 cdl SVG は base のみ描画 =
+  // achievement drop/drag で cdl re-compile が発火しない = viewBox / edge / text の auto-adjust が起きない。
+  // よって MutationObserver 経由の DOM override 経路は原理的に不要になった。 freeze による副作用 (未完成
+  // path capture / z-order 強制移動 / DOM 上書き) も同時に消える = クリーンな architecture 実現。
+  // pin machinery も同 architecture で不要 (cdl は base しか見ない → parts drop で lane 位置変化なし)。
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -911,8 +836,12 @@ export function CdlEditor(): React.JSX.Element {
           }
           return;
         }
-        // CAR-1657 = partsCatalog を渡して parts kind actor を merge 展開させる経路
-        const d = textDslToDiagram(src, { partsCatalog });
+        // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
+        // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
+        // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
+        const { baseSrc, parts } = extractPartsFromSrc(src, partsCatalog, partsItems);
+        setOverlayParts(parts);
+        const d = textDslToDiagram(baseSrc, { partsCatalog });
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
         // CAR-1947 Round 2 F5 = HTML canvas mode 時は compile 結果 (LaidDiagram) を SSOT として保持、
         // 子側の重複 compile を排除。 SVG mode 時は compile 結果を捨てて既存挙動維持 (setLaid 呼ばず)。
@@ -1157,19 +1086,9 @@ export function CdlEditor(): React.JSX.Element {
     }
 
     const actorNamesForHit = extractAllActorNames(src);
-    let dragInfo = findDragTarget(target, actorNamesForHit);
-    // 2026-07-24 fix (decision-log dragon-editor-full-revert-simplify) = SVG 空領域 click 対策。
-    // parts merge lane (achievement 等) は SVG shape が薄い label 部分のみで body は透明、
-    // union bbox 内 click でも findDragTarget が null を返して pan mode に fallback していた。
-    // findPartsUnionHit で全 parts sub-node の union bbox 判定を fallback として実施する。
-    if (!dragInfo) {
-      const unionHit = findPartsUnionHit(svg, e.clientX, e.clientY, actorNamesForHit);
-      if (unionHit) dragInfo = { name: unionHit.name, kind: "lane" };
-    }
+    const dragInfo = findDragTarget(target, actorNamesForHit);
+    // parts は overlay drop 経路 (React state 独立管理) で drag するため cdl SVG hit fallback は不要。
     if (!dragInfo) return false;
-    // freeze state capture = drag 直前の viewBox + edge d を snapshot (drop 経路と対称)
-    // drag 中の cdl re-render で lane / arrow が変形しない = user 見た目 100% static
-    captureFrozenState();
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
     // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
@@ -1276,28 +1195,8 @@ export function CdlEditor(): React.JSX.Element {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
-      // pin restore = drag 対象 lane 更新 + drag 対象以外の lane も現在位置で pin。
-      // pin を落とすと cdl の re-layout で「勝手に位置変わる」 症状発火するため保持。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue;
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
+      // architectural refactor で pin loop 削除 = 対象 actor の posX/Y のみ更新。
+      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1420,6 +1319,16 @@ export function CdlEditor(): React.JSX.Element {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
+    // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
+    if (overlayDragRef.current) {
+      const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
+      const scale = transformRef.current.scale || 1;
+      const dx = (e.clientX - startClientX) / scale;
+      const dy = (e.clientY - startClientY) / scale;
+      setOverlayParts((prev) => prev.map((p) => (p.id === id ? { ...p, posX: startPosX + dx, posY: startPosY + dy } : p)));
+      return;
+    }
     // element drag / resize 中は pan せず interaction pass に流す
     if (updateElementInteraction(e)) return;
     // zoom toolbar / share / export 等の UI 上 mouse.move は hover 状態を保持 (I3 forensic fix)。
@@ -1454,20 +1363,8 @@ export function CdlEditor(): React.JSX.Element {
       }
       const target = e.target as Element;
       const actorNamesForHover = extractAllActorNames(src);
-      let dragInfo = findDragTarget(target, actorNamesForHover);
-      // 2026-07-24 fix (decision-log dragon-editor-full-revert-simplify) = hover 経路の parts 空領域 fallback。
-      // findDragTarget が null (SVG 空領域 hover) でも parts merge union bbox 内なら hover 継続、
-      // 点線 outline + 4 隅 handle を表示 = achievement 全体を 1 unit として user に示す。
-      const svgForHover = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (!dragInfo && svgForHover) {
-        const unionHit = findPartsUnionHit(svgForHover, e.clientX, e.clientY, actorNamesForHover);
-        if (unionHit) {
-          const alias = slugifyActorName(unionHit.name);
-          const elementSelector = `[data-cdl-node^="${alias}__"]`;
-          setHoveredHandle({ id: unionHit.name, elementSelector, rect: unionHit.rect, subNodeKey: undefined });
-          return;
-        }
-      }
+      const dragInfo = findDragTarget(target, actorNamesForHover);
+      // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
       if (dragInfo) {
         // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
         // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
@@ -1560,6 +1457,18 @@ export function CdlEditor(): React.JSX.Element {
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-24 overlay parts drag finalize = 現 overlayParts state から新 posX/Y を DSL に書出す。
+    // drag 中は setSrc せず state 直接更新なので snap back なし、 mouseup で 1 回だけ DSL sync。
+    if (overlayDragRef.current) {
+      const { id } = overlayDragRef.current;
+      overlayDragRef.current = null;
+      document.body.style.cursor = "";
+      const part = overlayParts.find((p) => p.id === id);
+      if (part) {
+        setSrc((prev) => updateActorPosition(prev, id, part.posX, part.posY));
+      }
+      return;
+    }
     if (finalizeElementInteraction(e)) return;
     setDragging(false);
   };
@@ -1815,13 +1724,10 @@ animation:
     }
     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // pin restore = parts drop 前に既存 actors の現 lane 位置を DSL に書出し layout 固定。
-    // 「勝手に移動」 と逆の機構 (削るとむしろ cdl が re-layout して全 lane shift = user 「崩れる」 症状)。
-    const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
-    const newSrc = appendActorLine(pinnedSrc, newActorLine);
-    // freeze state capture = drop 直前の viewBox + edge d を snapshot、
-    // drop 後の cdl re-render で MutationObserver が override して static 化する (2026-07-24 fix)
-    captureFrozenState();
+    // 2026-07-24 architectural refactor = pin / freeze 経路削除。 parts は overlay 独立管理で
+    // cdl 側は base のみ compile するため、 pin (勝手な DSL 書換) も freeze (DOM override) も不要。
+    void svgEl;
+    const newSrc = appendActorLine(src, newActorLine);
     if (newSrc === null) {
       // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
       if (!confirmReplaceIfDirty(item.title)) {
@@ -1993,9 +1899,9 @@ ${newActorLine}
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // pin restore (drop 経路と同じ、 layout 固定用の防御 pin)
-                    const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
-                    const appended = appendActorLine(pinnedSrcClick, newActorLine);
+                    // architectural refactor で pin 削除 = parts は overlay 独立管理で cdl 影響なし
+                    void svgElClick;
+                    const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
@@ -2219,8 +2125,37 @@ ${newActorLine}
             }}
           >
             {diagram ? (
-              <div className="v4-editor-svg-wrap">
+              <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
                 <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
+                    に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
+                    同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
+                {overlayParts.map((p) => (
+                  <div
+                    key={p.id}
+                    data-overlay-part={p.id}
+                    style={{
+                      position: "absolute",
+                      left: `${p.posX}px`,
+                      top: `${p.posY}px`,
+                      cursor: "grab",
+                      userSelect: "none",
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      overlayDragRef.current = {
+                        id: p.id,
+                        startPosX: p.posX,
+                        startPosY: p.posY,
+                        startClientX: e.clientX,
+                        startClientY: e.clientY,
+                      };
+                      document.body.style.cursor = "grabbing";
+                    }}
+                  >
+                    <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
