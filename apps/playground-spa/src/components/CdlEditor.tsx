@@ -24,6 +24,7 @@ import {
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
+import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -211,85 +212,7 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
  * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
  */
-/**
- * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
- * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
- * parts は React state (overlayParts) で管理して独立 SVG overlay として描画する。
- */
-function extractPartsFromSrc(
-  src: string,
-  partsCatalog: Record<string, { topic?: string } | unknown>,
-  partsItems: CatalogItem[],
-): { baseSrc: string; parts: Array<{ id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem }> } {
-  const partKindSet = new Set<string>();
-  for (const k of Object.keys(partsCatalog)) {
-    partKindSet.add(k);
-    if (k.startsWith("parts-")) partKindSet.add(k.slice(6));
-  }
-  const lines = src.split("\n");
-  const baseLines: string[] = [];
-  const parts: Array<{ id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem }> = [];
-  for (const line of lines) {
-    // `- alias: { kind: X, posX: N, posY: N, ... }` pattern
-    const m = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{(.+)\}\s*$/);
-    if (m) {
-      const alias = m[1]!.replace(/^"(.+)"$/, "$1");
-      const inner = m[2]!;
-      const kindMatch = inner.match(/(?:^|,)\s*kind\s*:\s*([a-zA-Z0-9-_]+)/);
-      if (kindMatch) {
-        const kindValue = kindMatch[1]!;
-        if (partKindSet.has(kindValue)) {
-          const posXMatch = inner.match(/(?:^|,)\s*posX\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const posYMatch = inner.match(/(?:^|,)\s*posY\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const scaleMatch = inner.match(/(?:^|,)\s*scale\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
-          if (item) {
-            parts.push({
-              id: alias,
-              kind: kindValue,
-              posX: posXMatch ? parseFloat(posXMatch[1]!) : 0,
-              posY: posYMatch ? parseFloat(posYMatch[1]!) : 0,
-              scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
-              item,
-            });
-            continue; // skip this line from baseLines = cdl doesn't see this actor
-          }
-        }
-      }
-    }
-    baseLines.push(line);
-  }
-  return { baseSrc: baseLines.join("\n"), parts };
-}
-
-/**
- * overlay parts (kind: <partsKind>) actor 行の posX / posY / scale field を上書きする。
- * DSL に対象行が居るが field が無ければ append、 既にあれば置換。 他 field (kind / bg / state override 等) は保持。
- */
-function writeOverlayPartToDsl(src: string, alias: string, posX: number, posY: number, scale: number): string {
-  const lines = src.split("\n");
-  const rx = Math.round(posX);
-  const ry = Math.round(posY);
-  const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
-  const next = lines.map((line) => {
-    const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
-    if (!headMatch) return line;
-    const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
-    if (rawName !== alias) return line;
-    const prefix = headMatch[1]! + headMatch[2]! + headMatch[3]!;
-    let inner = headMatch[4]!;
-    // 既 field 削除 (posX / posY / scale) → 再挿入
-    inner = inner.replace(/,?\s*posX\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/,?\s*posY\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/,?\s*scale\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
-    const newFields = [`posX: ${rx}`, `posY: ${ry}`];
-    if (Math.abs(sScale - 1) > 0.001) newFields.push(`scale: ${sScale}`);
-    const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
-    return `${prefix}{ ${merged} }`;
-  });
-  return next.join("\n");
-}
+// 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
 
 function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
   if (!svg) return src;
