@@ -379,6 +379,9 @@ export function CdlEditor(): React.JSX.Element {
   // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
   // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
   const [groups, setGroups] = useState<Record<string, string[]>>({});
+  // 2026-07-24 rubber band 選択 (Task #90) = 背景 drag で area 内 全 overlay 選択。
+  // 状態 = { startClientX, startClientY, currentClientX, currentClientY } を rubber band drag 中保持。
+  const [rubberBand, setRubberBand] = useState<{ sx: number; sy: number; cx: number; cy: number } | null>(null);
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
   const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
@@ -561,44 +564,116 @@ export function CdlEditor(): React.JSX.Element {
   const hoveredHandleInitRectRef = useRef<DOMRect | null>(null);
   // viewBoxCompensation は「勝手な移動」 で user 意図 (drop 位置ぴったり) を破壊するため削除。
 
-  // 2026-07-24 grouping keyboard shortcut (Task #88):
-  //   Cmd+G / Ctrl+G = 現 selection から group 作成
-  //   Cmd+Shift+G / Ctrl+Shift+G = 現 selection に含まれる group を全解除
+  // ref 経由で state を読む (useEffect deps 頻繁変化で listener 再登録の性能問題 + stale closure 回避)
+  const selectedIdsRef = useRef(selectedIds);
+  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+  const overlayPartsRef = useRef(overlayParts);
+  useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
+
+  // 2026-07-24 Miro 相当 keyboard shortcut (Task #88 + #91):
+  //   Cmd+G / Ctrl+G           = group 作成
+  //   Cmd+Shift+G              = ungroup
+  //   Delete / Backspace       = selection 削除
+  //   Cmd+A                    = 全 overlay select
+  //   Cmd+D                    = duplicate (posX/Y に +30 offset で複製)
+  //   Escape                   = selection clear
+  //   矢印キー                 = 1px nudge (shift 併用で 10px)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const ctrlOrCmd = e.metaKey || e.ctrlKey;
-      if (!ctrlOrCmd) return;
-      if (e.key !== "g" && e.key !== "G") return;
       // 入力 field 上では 発火しない (CodeMirror / input 等)
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".cm-content"))) return;
-      e.preventDefault();
-      if (e.shiftKey) {
-        // ungroup = selection に含まれる group を解除 (member を selection に残す)
-        setGroups((prev) => {
-          const next: Record<string, string[]> = { ...prev };
-          for (const sid of selectedIds) {
-            if (sid.startsWith("group:")) {
-              const gid = sid.slice("group:".length);
-              delete next[gid];
-            }
+      // Escape = selection clear
+      if (e.key === "Escape") {
+        setSelectedIds([]);
+        return;
+      }
+      // Delete / Backspace = selection 削除
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        const overlayIdsToDelete = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToDelete.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const oid of overlayIdsToDelete) {
+            // actor 行を丸ごと削除
+            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+            next = next.replace(re, "");
           }
           return next;
         });
-        setSelectedIds((prev) => prev.filter((s) => !s.startsWith("group:")));
-      } else {
-        // group 作成 = selection 2 個以上で発火、 group id 生成、 member として selection の非-group id を保持
-        if (selectedIds.length < 2) return;
-        const members = selectedIds.filter((s) => !s.startsWith("group:"));
-        if (members.length < 2) return;
-        const gid = `g${Date.now().toString(36)}`;
-        setGroups((prev) => ({ ...prev, [gid]: members }));
-        setSelectedIds([`group:${gid}`]);
+        setSelectedIds([]);
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "a" || e.key === "A")) {
+        e.preventDefault();
+        // 全 overlay select
+        setSelectedIds(overlayPartsRef.current.map((p) => `overlay:${p.id}`));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        const overlayIdsToDupe = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToDupe.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const oid of overlayIdsToDupe) {
+            const orig = overlayPartsRef.current.find((p) => p.id === oid);
+            if (!orig) continue;
+            const baseName = oid.replace(/\d+$/, "");
+            let n = 1;
+            while (next.includes(`- ${baseName}${n}:`)) n++;
+            const newAlias = `${baseName}${n}`;
+            const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
+            const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+            const appended = appendActorLine(next, newLine);
+            if (appended !== null) next = appended;
+          }
+          return next;
+        });
+        return;
+      }
+      // 矢印キー nudge (selection がある場合)
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        const overlayIdsToNudge = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToNudge.length === 0) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+        setOverlayParts((prev) => prev.map((p) => overlayIdsToNudge.includes(p.id) ? { ...p, posX: p.posX + dx, posY: p.posY + dy } : p));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          setGroups((prev) => {
+            const next: Record<string, string[]> = { ...prev };
+            for (const sid of selectedIdsRef.current) {
+              if (sid.startsWith("group:")) {
+                const gid = sid.slice("group:".length);
+                delete next[gid];
+              }
+            }
+            return next;
+          });
+          setSelectedIds((prev) => prev.filter((s) => !s.startsWith("group:")));
+        } else {
+          if (selectedIdsRef.current.length < 2) return;
+          const members = selectedIdsRef.current.filter((s) => !s.startsWith("group:"));
+          if (members.length < 2) return;
+          const gid = `g${Date.now().toString(36)}`;
+          setGroups((prev) => ({ ...prev, [gid]: members }));
+          setSelectedIds([`group:${gid}`]);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedIds]);
+    // ref 経由で state 参照 = deps 空で 1 回だけ register (性能 + stale closure 両方対策)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 2026-07-24 fix = pending clearLiveTransform を diagram 更新後に実行 (snap back gap 解消)
   useEffect(() => {
@@ -1331,10 +1406,10 @@ export function CdlEditor(): React.JSX.Element {
       }
       return;
     }
-    // 背景 click = selection clear (Miro 相当)
-    setSelectedIds([]);
-    setDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
+    // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
+    // space+drag / middle button = pan mode (rubber band と分離、 後日実装)。 現状 通常 drag は rubber band。
+    if (!e.shiftKey && !e.metaKey) setSelectedIds([]);
+    setRubberBand({ sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
@@ -1344,13 +1419,20 @@ export function CdlEditor(): React.JSX.Element {
     if (overlayDragRef.current) {
       const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
       const panScale = transformRef.current.scale || 1;
-      const dx = (e.clientX - startClientX) / panScale;
-      const dy = (e.clientY - startClientY) / panScale;
-      // selection に含まれる 全 overlay parts を 同 delta で shift (multi drag)
+      let dx = (e.clientX - startClientX) / panScale;
+      let dy = (e.clientY - startClientY) / panScale;
+      // 2026-07-24 snap to grid (Task #93) = shift 押下で無効、 通常時は 20px grid に snap。
+      // primary target の新 pos が grid 交点になるように delta を丸める → 全 member 同 delta 適用で相対 pos 保持。
+      const GRID = 20;
+      if (!e.shiftKey) {
+        const targetX = Math.round((startPosX + dx) / GRID) * GRID;
+        const targetY = Math.round((startPosY + dy) / GRID) * GRID;
+        dx = targetX - startPosX;
+        dy = targetY - startPosY;
+      }
       const selectedOverlayIds = new Set(
         selectedIds.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length)),
       );
-      // drag 開始 ref に multi group が居るなら全員 shift、 いなければ single drag
       const groupStartsRef = multiDragStartsRef.current;
       setOverlayParts((prev) =>
         prev.map((p) => {
@@ -1521,6 +1603,10 @@ export function CdlEditor(): React.JSX.Element {
         }
       }
     }
+    if (rubberBand) {
+      setRubberBand({ ...rubberBand, cx: e.clientX, cy: e.clientY });
+      return;
+    }
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -1565,6 +1651,32 @@ export function CdlEditor(): React.JSX.Element {
       if (part) {
         setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
       }
+      return;
+    }
+    if (rubberBand) {
+      const rect = {
+        left: Math.min(rubberBand.sx, rubberBand.cx),
+        top: Math.min(rubberBand.sy, rubberBand.cy),
+        right: Math.max(rubberBand.sx, rubberBand.cx),
+        bottom: Math.max(rubberBand.sy, rubberBand.cy),
+      };
+      const isClickOnly = Math.abs(rect.right - rect.left) < 5 && Math.abs(rect.bottom - rect.top) < 5;
+      if (!isClickOnly && previewRef.current) {
+        // overlay parts の client bbox が rect と重なる parts を selection に追加
+        const overlayEls = previewRef.current.querySelectorAll("[data-overlay-part]");
+        const additions: string[] = [];
+        overlayEls.forEach((el) => {
+          const id = el.getAttribute("data-overlay-part") || "";
+          if (!id) return;
+          const r = (el as HTMLElement).getBoundingClientRect();
+          const intersects = r.left < rect.right && r.right > rect.left && r.top < rect.bottom && r.bottom > rect.top;
+          if (intersects) additions.push(`overlay:${id}`);
+        });
+        if (additions.length > 0) {
+          setSelectedIds((prev) => Array.from(new Set([...prev, ...additions])));
+        }
+      }
+      setRubberBand(null);
       return;
     }
     if (finalizeElementInteraction(e)) return;
@@ -2235,7 +2347,7 @@ ${newActorLine}
                       const oid = sid.slice("overlay:".length);
                       const p = overlayParts.find((x) => x.id === oid);
                       if (!p) continue;
-                      const w = 380 * p.scale; // achievement 等の base size (概算、 実 size は SVG から取れる)
+                      const w = 380 * p.scale;
                       const h = 380 * p.scale;
                       minL = Math.min(minL, p.posX);
                       minT = Math.min(minT, p.posY);
@@ -2255,9 +2367,46 @@ ${newActorLine}
                         width: `${maxR - minL + 16}px`,
                         height: `${maxB - minT + 16}px`,
                         border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
-                        pointerEvents: "none",
+                        pointerEvents: isGroupSelected ? "auto" : "none",
                         borderRadius: "4px",
                         zIndex: 50,
+                        cursor: isGroupSelected ? "grab" : "default",
+                        background: isGroupSelected ? "rgba(59, 130, 246, 0.03)" : "transparent",
+                      }}
+                      onMouseDown={(e) => {
+                        if (!isGroupSelected) return;
+                        e.stopPropagation();
+                        // group drag = 全 member を selectedIds に反映 (既 multi drag 経路発火)
+                        setSelectedIds(memberIds);
+                        // multi drag の primary target = first member
+                        const primaryMemberId = memberIds.find((s) => s.startsWith("overlay:"));
+                        if (!primaryMemberId) return;
+                        const oid = primaryMemberId.slice("overlay:".length);
+                        const primary = overlayParts.find((x) => x.id === oid);
+                        if (!primary) return;
+                        overlayDragRef.current = {
+                          id: oid,
+                          startPosX: primary.posX,
+                          startPosY: primary.posY,
+                          startClientX: e.clientX,
+                          startClientY: e.clientY,
+                        };
+                        // multi drag ref = 全 member の start pos
+                        const partsStart = new Map<string, { x: number; y: number }>();
+                        for (const sid of memberIds) {
+                          if (!sid.startsWith("overlay:")) continue;
+                          const mid = sid.slice("overlay:".length);
+                          const mp = overlayParts.find((x) => x.id === mid);
+                          if (mp) partsStart.set(mid, { x: mp.posX, y: mp.posY });
+                        }
+                        multiDragStartsRef.current = partsStart;
+                        document.body.style.cursor = "grabbing";
+                      }}
+                      onClick={(e) => {
+                        // group click = 選択 (member を selection として指定するか group id で保持)
+                        if (isGroupSelected) return;
+                        e.stopPropagation();
+                        setSelectedIds([`group:${gid}`]);
                       }}
                     />
                   );
@@ -2392,6 +2541,30 @@ ${newActorLine}
             )}
           </div>
           {/* activeGuidelines 描画削除 (guideline 機能全撤去、 2026-07-24) */}
+          {rubberBand && (() => {
+            const stageRect = previewRef.current?.getBoundingClientRect();
+            if (!stageRect) return null;
+            const left = Math.min(rubberBand.sx, rubberBand.cx) - stageRect.left;
+            const top = Math.min(rubberBand.sy, rubberBand.cy) - stageRect.top;
+            const width = Math.abs(rubberBand.cx - rubberBand.sx);
+            const height = Math.abs(rubberBand.cy - rubberBand.sy);
+            return (
+              <div
+                data-rubber-band="1"
+                style={{
+                  position: "absolute",
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${width}px`,
+                  height: `${height}px`,
+                  border: "1.5px dashed rgba(59, 130, 246, 0.8)",
+                  background: "rgba(59, 130, 246, 0.1)",
+                  pointerEvents: "none",
+                  zIndex: 200,
+                }}
+              />
+            );
+          })()}
           {hoveredHandle && (() => {
             // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
             const stageRect = previewRef.current?.getBoundingClientRect();
