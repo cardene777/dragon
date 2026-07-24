@@ -574,6 +574,11 @@ export function CdlEditor(): React.JSX.Element {
    * release 直後に保持される (真の Miro 相当の smooth drag)。
    */
   const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
+  // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
+  // setSrc → 300ms debounce → cdl re-compile → diagram 更新 useEffect で clear。
+  const pendingClearRef = useRef<string | null>(null);
+  // drag 開始時の hoveredHandle.rect を save = drag 中 rect 追従計算の基準点 (「枠が追いつかない」 fix)
+  const hoveredHandleInitRectRef = useRef<DOMRect | null>(null);
   /**
    * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
    *
@@ -601,6 +606,24 @@ export function CdlEditor(): React.JSX.Element {
       setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
     });
     return () => cancelAnimationFrame(raf);
+  }, [diagram]);
+
+  // 2026-07-24 fix = pending clearLiveTransform を diagram 更新後に実行 (snap back gap 解消)
+  useEffect(() => {
+    const pending = pendingClearRef.current;
+    if (!pending) return;
+    pendingClearRef.current = null;
+    // rAF 2 段 = React commit → paint → rAF1 = DOM 反映後 → rAF2 = paint 完了後
+    // paint 完了前に CSS 消すと snap back 見える。 2 frame 待って新 SVG が完全描画されてから消す。
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        clearLiveTransform(pending);
+      });
+      pendingClearRef.current = null;
+      void raf2;
+    });
+    return () => cancelAnimationFrame(raf1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diagram]);
 
   /**
@@ -690,6 +713,16 @@ export function CdlEditor(): React.JSX.Element {
       if (!frozenVB || !frozenEdges || !frozenTexts) return;
       const svg = stage.querySelector("svg") as SVGSVGElement | null;
       if (!svg) return;
+      // 2026-07-24 fix (user 苦情「trophy 半分切れる」「shrink」 の 2 面同時 fix) = viewBox 完全 freeze
+      // + SVG overflow=visible。 viewBox を initial に override して他 lane / arrow を静的に保ちつつ、
+      // trophy が viewBox 外に出ても SVG 描画は clip されず visible に render される。
+      if (svg.getAttribute("overflow") !== "visible") {
+        svg.setAttribute("overflow", "visible");
+      }
+      // CSS overflow も明示 (SVG element 属性だけでは Chrome / Safari で不十分な場合あり)
+      if (svg.style.overflow !== "visible") {
+        svg.style.overflow = "visible";
+      }
       const currentVB = svg.getAttribute("viewBox");
       if (currentVB && currentVB !== frozenVB) {
         svg.setAttribute("viewBox", frozenVB);
@@ -726,13 +759,16 @@ export function CdlEditor(): React.JSX.Element {
           el.setAttribute("transform", target.transform);
         }
       });
-      // z-order fix = parts merge (`__` alias) の全 group element を SVG root の最後に移動
-      // (背景 lane rect / step boxes が後から render されて achievement を隠す symptom fix)
+      // z-order fix (2026-07-24、 user 苦情「結果ラベルが trophy 上に来る」 対応) =
+      // parts merge (`__` alias) の全 group element を SVG root **直下** の最後に移動する
+      // (元 impl は immediate parent 内 last のみ = nodes group 内で last だが edges group より前で
+      //  edge label が trophy 上に来る symptom を放置していた)。
+      // svg.appendChild(g) = g を svg 直下の子として最後に移動 = SVG 描画順で最後 = z-index 最上。
       const partsGroups = Array.from(svg.querySelectorAll("[data-cdl-node]"))
         .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"));
       for (const g of partsGroups) {
-        if (g.parentElement && g.parentElement.lastElementChild !== g) {
-          g.parentElement.appendChild(g);
+        if (svg.lastElementChild !== g) {
+          svg.appendChild(g);
         }
       }
     };
@@ -1237,6 +1273,10 @@ export function CdlEditor(): React.JSX.Element {
       svgScale: svgPt.scale,
       commandBypass: e.metaKey || e.ctrlKey,
     };
+    // drag 開始時の hoveredHandle.rect を save = drag 中選択枠の追従計算基準
+    if (hoveredHandle) {
+      hoveredHandleInitRectRef.current = new DOMRect(hoveredHandle.rect.left, hoveredHandle.rect.top, hoveredHandle.rect.width, hoveredHandle.rect.height);
+    }
     document.body.style.cursor = "grabbing";
     return true;
   };
@@ -1254,10 +1294,19 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = auto-adjust + guideline を drag
+      // 中に呼ばない。 元 impl は他 preset element を transient shift + 整列補助線発火だったが、
+      // user 意図「Miro / Google スライド相当 = 個別独立要素、 auto 補正なし」 に反するため経路削除。
+      // 併せて hoveredHandle.rect を drag delta 分 shift = 選択枠が trophy 追従 (「枠が追いつかない」 fix)。
+      if (hoveredHandle) {
+        const svgScale = st.svgScale || 1;
+        const clientDx = (newX - st.initPosX) * svgScale;
+        const clientDy = (newY - st.initPosY) * svgScale;
+        const initRect = hoveredHandleInitRectRef.current;
+        if (initRect) {
+          setHoveredHandle((prev) => prev ? { ...prev, rect: new DOMRect(initRect.left + clientDx, initRect.top + clientDy, initRect.width, initRect.height) } : prev);
+        }
+      }
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1304,29 +1353,10 @@ export function CdlEditor(): React.JSX.Element {
       if (preCtm && !isPartsActor) {
         viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
       }
-      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
-      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
-      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue; // 既に固定済 skip
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
+      // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = 対象 actor の posX/Y のみ更新。
+      // 元 impl は「全 lane 座標 pin」 で drag 対象以外の Client/API/DB にも posX 書出しを勝手に発火、
+      // user が編集していない actor の DSL 行を意図せず変更する副作用があった。 個別独立要素の思想に反する。
+      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1359,8 +1389,11 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
       }
     }
-    // live CSS transform を clear (post-render で真の DSL 値が適用される)
-    clearLiveTransform(st.targetName);
+    // 2026-07-24 fix (user 苦情「離すと一瞬元位置に戻る」 対応) = live CSS transform を即 clear せず、
+    // setSrc → 300ms debounce → cdl re-compile → SVG 反映 完了後 (diagram useEffect) に clear する。
+    // 元 impl は finalize で即 clearLiveTransform し、 DSL 反映まで 300ms 空白時間で trophy が元位置に
+    // snap back 見える bug 発生。 pendingClearRef に target 名を保持、 diagram 更新 useEffect で clear。
+    pendingClearRef.current = st.targetName;
     // auto-adjust transient shift も全 clear (drop で消える spec §4)
     if (svg) clearAutoAdjustShifts(svg);
     // guideline も全 clear
@@ -1619,17 +1652,26 @@ export function CdlEditor(): React.JSX.Element {
           const alias = nodeIdForCur.split("__")[0]!;
           const partsEls = previewRef.current.querySelectorAll(`[data-cdl-node^="${alias}__"]`);
           if (partsEls.length > 0) {
-            // union bbox 計算 = 全 parts sub-node の (left / top / right / bottom) 最大範囲
+            // 2026-07-24 fix (user 苦情「囲いおかしい」 対応) = shape element (circle / rect / path /
+            // ellipse) のみ union bbox 対象、 text (title / subtitle) は除外して tight fit する。
+            // 元 impl は group 全体の getBoundingClientRect で text 領域も含めて上下延び bug。
             let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
             for (const el of Array.from(partsEls)) {
-              const r = (el as SVGGraphicsElement).getBoundingClientRect();
-              if (r.left < minL) minL = r.left;
-              if (r.top < minT) minT = r.top;
-              if (r.right > maxR) maxR = r.right;
-              if (r.bottom > maxB) maxB = r.bottom;
+              const shapes = (el as Element).querySelectorAll("circle, rect, path, ellipse, polygon");
+              const targets = shapes.length > 0 ? Array.from(shapes) : [el];
+              for (const s of targets) {
+                const r = (s as SVGGraphicsElement).getBoundingClientRect();
+                if (r.width <= 0 || r.height <= 0) continue;
+                if (r.left < minL) minL = r.left;
+                if (r.top < minT) minT = r.top;
+                if (r.right > maxR) maxR = r.right;
+                if (r.bottom > maxB) maxB = r.bottom;
+              }
             }
-            rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
-            elementSelector = `[data-cdl-node^="${alias}__"]`; // 全 parts sub-node
+            if (minL !== Infinity) {
+              rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
+              elementSelector = `[data-cdl-node^="${alias}__"]`;
+            }
           }
         }
         if (rect && elementSelector) {
@@ -1922,10 +1964,11 @@ animation:
     }
     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // canvas pivot UX 修正 (B2) = parts 追加前に既存 actors の現 lane 位置を pinning、
-    // 全 lane 再配置による既存 header shift を防ぐ
-    const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
-    const newSrc = appendActorLine(pinnedSrc, newActorLine);
+    // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = pinExistingActorLayoutFromSvg 経路削除。
+    // 元 impl は parts drop 前に既存 Client/API/DB の座標を勝手に DSL に書出し、 user が編集していない
+    // actor 行に posX/posY/posW/posH を注入する副作用があった。 個別独立要素の思想に反する。
+    // 代わりに freeze useEffect (viewBox + edge d + text + z-order override) で lane 静止を担保する。
+    const newSrc = appendActorLine(src, newActorLine);
     // freeze state capture = drop 直前の viewBox + edge d を snapshot、
     // drop 後の cdl re-render で MutationObserver が override して static 化する (2026-07-24 fix)
     captureFrozenState();
@@ -2100,9 +2143,9 @@ ${newActorLine}
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // canvas pivot UX 修正 (B2) = parts click 追加前に既存 actors の現 lane 位置を pinning
-                    const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
-                    const appended = appendActorLine(pinnedSrcClick, newActorLine);
+                    // 2026-07-24 fix (勝手に移動する機能全部削除) = pinExistingActorLayoutFromSvg 経路削除
+                    void svgElClick;
+                    const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;

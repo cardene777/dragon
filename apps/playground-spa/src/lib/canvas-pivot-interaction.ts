@@ -248,17 +248,23 @@ export function findPartsUnionHit(
     slugToName.set(name, name);
   }
   const aliasGroups = new Map<string, DOMRect[]>();
-  svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-node], [data-cdl-lane]").forEach((el) => {
-    const id = el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-lane") || "";
+  // 2026-07-24 fix = data-cdl-node のみ対象 + shape element (circle/rect/path/ellipse/polygon) の
+  // bbox 集計、 text (title / subtitle) は除外して tight fit。
+  svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-node]").forEach((el) => {
+    const id = el.getAttribute("data-cdl-node") || "";
     const usIdx = id.indexOf("__");
     if (usIdx <= 0) return;
     const alias = id.slice(0, usIdx);
     if (!slugToName.has(alias)) return;
-    const r = el.getBoundingClientRect();
-    if (r.width <= 0 || r.height <= 0) return;
+    const shapes = el.querySelectorAll("circle, rect, path, ellipse, polygon");
+    const targets = shapes.length > 0 ? Array.from(shapes) : [el as Element];
     const list = aliasGroups.get(alias) ?? [];
-    list.push(r);
-    aliasGroups.set(alias, list);
+    for (const s of targets) {
+      const r = (s as SVGGraphicsElement).getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      list.push(r);
+    }
+    if (list.length > 0) aliasGroups.set(alias, list);
   });
   for (const [alias, rects] of aliasGroups) {
     let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
