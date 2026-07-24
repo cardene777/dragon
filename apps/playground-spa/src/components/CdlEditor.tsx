@@ -8,6 +8,7 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
 import {
   findDragTarget,
+  findPartsUnionHit,
   clientToSvg,
   hitResizeHandle,
   updateActorPosition,
@@ -226,9 +227,17 @@ function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): 
     const px = parseFloat(rx);
     const py = parseFloat(ry);
     if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
+    // decision-log 2026-07-24-dragon-editor-full-revert-simplify = user 意図「auto 補正全 disable」 の
+    // core fix。 従来は posX/Y のみ pin していたが、 achievement drop で lane 幅再計算により Client
+    // lane が 252px shift する root cause だった。 posW/posH も同 attribute から snapshot して pin、
+    // 全 lane 完全固定で「独立要素として存在」 の思想を実現。
+    const rw = el.getAttribute("data-cdl-lane-w");
+    const rh = el.getAttribute("data-cdl-lane-h");
+    const pw = rw && Number.isFinite(parseFloat(rw)) ? parseFloat(rw) : undefined;
+    const ph = rh && Number.isFinite(parseFloat(rh)) ? parseFloat(rh) : undefined;
     // 既書出し検出 = 行ごとの regex で actor entry を探し `posX:` が既にあれば skip
     if (hasPosXInActorEntry(next, name)) continue;
-    next = injectActorPosXY(next, name, px, py);
+    next = injectActorPosXY(next, name, px, py, pw, ph);
   }
   return next;
 }
@@ -260,13 +269,18 @@ function hasPosXInActorEntry(src: string, targetName: string): boolean {
 }
 
 /**
- * 対象 actor に posX/posY (top-level) を注入する。 既存 inline map があれば merge、 bare / short form
- * なら inline map 化。 updateActorPosition と semantic 同じだが posW/posH 未指定に留める (auto layout 幅維持)。
+ * 対象 actor に posX/posY (+ optional posW/posH) を注入する。 既存 inline map があれば merge、
+ * bare / short form なら inline map 化。 posW/posH が渡された場合は追加 pin (2026-07-24 fix、
+ * decision-log dragon-editor-full-revert-simplify、 achievement drop で lane 幅再計算 → 他 lane
+ * 252px shift の root cause 対応)。
  */
-function injectActorPosXY(src: string, targetName: string, posX: number, posY: number): string {
+function injectActorPosXY(src: string, targetName: string, posX: number, posY: number, posW?: number, posH?: number): string {
   const rx = Math.round(posX);
   const ry = Math.round(posY);
-  const extra = `posX: ${rx}, posY: ${ry}`;
+  const parts: string[] = [`posX: ${rx}`, `posY: ${ry}`];
+  if (posW !== undefined && Number.isFinite(posW)) parts.push(`posW: ${Math.round(posW)}`);
+  if (posH !== undefined && Number.isFinite(posH)) parts.push(`posH: ${Math.round(posH)}`);
+  const extra = parts.join(", ");
   const lines = src.split("\n");
   const next = lines.map((line) => {
     // inline mapping (depth-aware)
@@ -1009,7 +1023,16 @@ export function CdlEditor(): React.JSX.Element {
       }
     }
 
-    const dragInfo = findDragTarget(target, extractAllActorNames(src));
+    const actorNamesForHit = extractAllActorNames(src);
+    let dragInfo = findDragTarget(target, actorNamesForHit);
+    // 2026-07-24 fix (decision-log dragon-editor-full-revert-simplify) = SVG 空領域 click 対策。
+    // parts merge lane (achievement 等) は SVG shape が薄い label 部分のみで body は透明、
+    // union bbox 内 click でも findDragTarget が null を返して pan mode に fallback していた。
+    // findPartsUnionHit で全 parts sub-node の union bbox 判定を fallback として実施する。
+    if (!dragInfo) {
+      const unionHit = findPartsUnionHit(svg, e.clientX, e.clientY, actorNamesForHit);
+      if (unionHit) dragInfo = { name: unionHit.name, kind: "lane" };
+    }
     if (!dragInfo) return false;
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
@@ -1104,7 +1127,10 @@ export function CdlEditor(): React.JSX.Element {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
-      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
+      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺。
+      // 2026-07-24 verify = parts drag で compensation skip 試行したが Client が 64px shift で
+      // user 期待「他 lane 完全静止」 を破るため revert。 compensation あり = Client 位置完全固定、
+      // pan container tx が動く副作用は付随するが user 視点の見た目位置は保存される。
       const preCtm = svg.getScreenCTM();
       if (preCtm) {
         viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
@@ -1373,7 +1399,21 @@ export function CdlEditor(): React.JSX.Element {
         }
       }
       const target = e.target as Element;
-      const dragInfo = findDragTarget(target, extractAllActorNames(src));
+      const actorNamesForHover = extractAllActorNames(src);
+      let dragInfo = findDragTarget(target, actorNamesForHover);
+      // 2026-07-24 fix (decision-log dragon-editor-full-revert-simplify) = hover 経路の parts 空領域 fallback。
+      // findDragTarget が null (SVG 空領域 hover) でも parts merge union bbox 内なら hover 継続、
+      // 点線 outline + 4 隅 handle を表示 = achievement 全体を 1 unit として user に示す。
+      const svgForHover = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      if (!dragInfo && svgForHover) {
+        const unionHit = findPartsUnionHit(svgForHover, e.clientX, e.clientY, actorNamesForHover);
+        if (unionHit) {
+          const alias = slugifyActorName(unionHit.name);
+          const elementSelector = `[data-cdl-node^="${alias}__"]`;
+          setHoveredHandle({ id: unionHit.name, elementSelector, rect: unionHit.rect, subNodeKey: undefined });
+          return;
+        }
+      }
       if (dragInfo) {
         // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
         // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
