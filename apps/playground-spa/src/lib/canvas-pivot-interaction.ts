@@ -61,6 +61,18 @@ export interface DragState {
    * updateActorPosition 経路。 lane 全体を触らず個別 sub-node のみ固定する SSOT。
    */
   subNodeKey?: string;
+  /**
+   * Task #65 fix = drag 開始時の SVG CTM inverse matrix (client → SVG world 変換行列)。
+   *
+   * 従来 = updateElementInteraction 内で毎回 svg.getScreenCTM() を再取得、 svg element が hover 追跡
+   * 等の副次 re-render で更新されると getScreenCTM が異なる matrix を返し、 client → world 変換が
+   * 途中で狂う。 実測 = drag 中 step 9 → 10 で svgPt.x が同じ値を返し element が特定位置で凍る
+   * (user 目視「マウスと関係ない場所に飛ぶ / 決まった軌道で動く」 の root cause)。
+   *
+   * 修正 = drag 開始時に inverse matrix を capture、 以降は保存 matrix で自前変換 = svg element 変化に
+   * 完全不変な drag 挙動を実現。
+   */
+  startCtmInverse?: DOMMatrix;
 }
 
 /**

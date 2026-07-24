@@ -587,6 +587,10 @@
     width: var(--cdl-svg-w, 800px) !important;
     height: var(--cdl-svg-h, 600px) !important;
     max-width: none !important;
+    /* SVG viewport 外に drag した element が clip されて「決まった軌道で動く」 に見える bug の fix。
+       SVG root の overflow を visible にして viewport 外への drag も描画する。 SVG spec default は
+       overflow:hidden 相当、 ここは明示 override で「Miro 相当の自由 drag」 に必須。 */
+    overflow: visible !important;
   }
   /* SVG 内 lane / node / edge element で drag / hover を受ける */
   .v4-editor-svg-wrap svg [data-cdl-lane],

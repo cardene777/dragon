@@ -1031,6 +1031,8 @@ export function CdlEditor(): React.JSX.Element {
         initPosY = svgPt.y;
       }
     }
+    // Task #65 fix = drag 開始時の CTM inverse を capture、 以降は svg element 変化に不変で drag。
+    const startCtm = svg.getScreenCTM();
     elementDrag.current = {
       mode: "drag",
       targetName: dragInfo.name,
@@ -1044,6 +1046,7 @@ export function CdlEditor(): React.JSX.Element {
       initPosH: cur?.posH,
       svgScale: svgPt.scale,
       commandBypass: e.metaKey || e.ctrlKey,
+      startCtmInverse: startCtm ? startCtm.inverse() : undefined,
     };
     document.body.style.cursor = "grabbing";
     return true;
@@ -1054,7 +1057,18 @@ export function CdlEditor(): React.JSX.Element {
     if (!st) return false;
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
     if (!svg) return false;
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    // Task #65 fix = 保存済 CTM inverse を使い client → world 変換 (svg element 変化に不変)。
+    // fallback = startCtmInverse 未 set (旧 code path) は毎回 getScreenCTM (従来挙動)。
+    let svgPt: { x: number; y: number; scale: number };
+    if (st.startCtmInverse) {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const world = pt.matrixTransform(st.startCtmInverse);
+      svgPt = { x: world.x, y: world.y, scale: st.svgScale };
+    } else {
+      svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    }
     const dx = svgPt.x - st.startSvgX;
     const dy = svgPt.y - st.startSvgY;
 
@@ -1062,10 +1076,7 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // Miro-like 自由 drag = auto adjust / guideline / snap 全 skip、 mousemove と 1:1 で対象のみ動かす
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1097,77 +1108,18 @@ export function CdlEditor(): React.JSX.Element {
     elementDrag.current = null;
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
     if (!svg) return true;
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-    const dx = svgPt.x - st.startSvgX;
-    const dy = svgPt.y - st.startSvgY;
-    if (st.mode === "drag") {
-      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
-      const newX = st.initPosX + dx;
-      const newY = st.initPosY + dy;
-      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
-      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
-      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
-      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue; // 既に固定済 skip
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
-    } else if (st.mode === "resize" && st.corner) {
-      const initW = st.initPosW ?? 100;
-      const initH = st.initPosH ?? 100;
-      let signX = 1;
-      let signY = 1;
-      if (st.corner === "nw") { signX = -1; signY = -1; }
-      if (st.corner === "ne") { signX = 1; signY = -1; }
-      if (st.corner === "sw") { signX = -1; signY = 1; }
-      const dW = dx * signX;
-      const dH = dy * signY;
-      const delta = Math.max(dW, dH);
-      const newW = Math.max(20, initW + delta);
-      const newH = Math.max(20, initH * (newW / initW));
-      let anchorX = st.initPosX;
-      let anchorY = st.initPosY;
-      if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
-      if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
-      // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
-      // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
-      // auto layout 保持で spacer / footer 等が引きずられない。
-      if (st.subNodeKey) {
-        setSrc((prev) => updateActorNodePosition(prev, st.targetName, st.subNodeKey!, anchorX, anchorY, newW, newH));
-      } else {
-        setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
-      }
-    }
-    // live CSS transform を clear (post-render で真の DSL 値が適用される)
-    clearLiveTransform(st.targetName);
-    // auto-adjust transient shift も全 clear (drop で消える spec §4)
+    // decision-log 2026-07-24-dragon-editor-cdl-patch-repivot = user 意図「lane 動かしても arrow
+    // 追従しない (Miro-like)」 の core 実装。 finalize で setSrc + clearLiveTransform を skip する
+    // ことで cdl 再 compile を発火せず、 CSS transform が permanent 保持される。
+    //
+    // 効果 = (1) lane 動く (live CSS transform 保持) (2) arrow 静止 (cdl 再 route なし)
+    //       (3) 見た目 cdl SVG 相当維持 (再 compile 走らないから 数千行の rendering 資産保持)
+    //       (4) 他 lane / node 動かない (cdl auto layout 発火なし)
+    //
+    // trade-off = drag 位置は DSL に永続化されない (sample 切替 / refresh で消える)、
+    // share URL export / save もできない。 permanent 化は別 approach (cdl 側 fork or DSL 拡張) で。
+    // auto-adjust transient shift + guideline clear は継続 (残ってると次 drag で bug)。
     if (svg) clearAutoAdjustShifts(svg);
-    // guideline も全 clear
     setActiveGuidelines([]);
     return true;
   };
@@ -1196,8 +1148,10 @@ export function CdlEditor(): React.JSX.Element {
   const applyLiveTransform = (targetName: string, dx: number, dy: number): void => {
     const svg = previewRef.current?.querySelector("svg");
     if (!svg) return;
-    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
+    // Task #66 fix = user 意図「arrow 動くな」 = edge (data-cdl-edge) を translate 対象から除外。
+    // lane / node のみ translate = user が lane を drag しても arrow (edge) の起点は静止 = 「勝手に変形」 解消。
+    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node]`).forEach((el) => {
+      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
       if (targetBelongsTo(id, targetName)) {
         (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px)`;
       }
@@ -1334,7 +1288,32 @@ export function CdlEditor(): React.JSX.Element {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
     // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
-    if (startElementInteraction(e)) return;
+    if (startElementInteraction(e)) {
+      // Task #65 fix = element drag 中は document 全体に listener 拘束、 mouse が SVG element の外 /
+      // viewport 外に出ても drag が interrupt しない。 従来 = React onMouseMove が preview div に張られ
+      // preview 外 (viewport 端付近) で event 途切れ → element 停止 → user 目視「マウスと関係ない場所に飛ぶ」。
+      const onMove = (evt: MouseEvent): void => {
+        updateElementInteraction({
+          clientX: evt.clientX,
+          clientY: evt.clientY,
+          metaKey: evt.metaKey,
+          ctrlKey: evt.ctrlKey,
+        } as unknown as React.MouseEvent<HTMLDivElement>);
+      };
+      const onUp = (evt: MouseEvent): void => {
+        finalizeElementInteraction({
+          clientX: evt.clientX,
+          clientY: evt.clientY,
+          metaKey: evt.metaKey,
+          ctrlKey: evt.ctrlKey,
+        } as unknown as React.MouseEvent<HTMLDivElement>);
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      return;
+    }
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
