@@ -344,9 +344,15 @@ function appendActorLine(src: string, newLine: string): string | null {
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrc] = useState<string>(SAMPLES[0].code);
-  // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
-  // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
-  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
+  // CAR-1990 相当 (2 回目 pivot、 decision-log 2026-07-24-dragon-editor-html-canvas-pivot)。
+  // /editor を HTML div canvas default 化。 user 意図「canvas 全要素の自動追従を消す」 =
+  // cdl auto layout engine の bypass = HTML div canvas 経路 (Miro / Google スライド相当)。
+  // useHtmlCanvas は常時 true 固定、 SVG stage 経路は unreachable code として残置 (dead code
+  // cleanup は follow-up Issue)。 `?canvas=html` URL param は互換 no-op、 SVG opt-out flag なし。
+  // canvasHtmlFeatureFlag import は将来 flag 復活時の再結線 point として value import で残す
+  // (実 flag 判定は本 pivot では使わない、 void で unused-warning 抑止)。
+  const useHtmlCanvas = true;
+  void canvasHtmlFeatureFlag;
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
@@ -1925,19 +1931,29 @@ ${newActorLine}
             共有URL
           </button>
           <div className="v4-editor-export">
-            <button type="button" className="v4-editor-bar-btn v4-editor-bar-btn-primary" disabled={!diagram}>
+            {/*
+              HTML canvas default 化により SVG element が存在せず、 export handler は silent
+              no-op になる。 HTML canvas → SVG export 実装または menu 撤去までの暫定対応として
+              全 export 経路を disabled + title で理由明示。
+            */}
+            <button
+              type="button"
+              className="v4-editor-bar-btn v4-editor-bar-btn-primary"
+              disabled
+              title="HTML canvas mode では export 未対応 (follow-up Issue で実装予定)"
+            >
               エクスポート ↓
             </button>
             <div className="v4-editor-export-menu">
-              <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
+              <button type="button" onClick={handleExportAnimatedSvg} disabled title="HTML canvas mode では未対応">
                 <strong>アニメーション SVG</strong>
                 <span>単一ファイルで動く / GitHub README / Notion</span>
               </button>
-              <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
+              <button type="button" onClick={handleExportStaticSvg} disabled title="HTML canvas mode では未対応">
                 <strong>静止 SVG</strong>
                 <span>現 phase の静止 1 frame / Keynote / PDF</span>
               </button>
-              <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
+              <button type="button" onClick={() => void handleExportPng()} disabled title="HTML canvas mode では未対応">
                 <strong>PNG</strong>
                 <span>ラスター 2x DPR / Slack / Twitter</span>
               </button>
