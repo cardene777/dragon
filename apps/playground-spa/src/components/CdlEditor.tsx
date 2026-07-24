@@ -372,7 +372,16 @@ export function CdlEditor(): React.JSX.Element {
   type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
   const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
+  // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
+  // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
+  // `cdl-edge:{id}` = cdl edge、 `text:{content}` = arrow label 等。
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
+  // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
+  const [groups, setGroups] = useState<Record<string, string[]>>({});
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
+  // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
+  const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
   // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
   // mousemove で diagonal delta から新 scale を計算。
   const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; panScale: number } | null>(null);
@@ -551,6 +560,45 @@ export function CdlEditor(): React.JSX.Element {
   // drag 開始時の hoveredHandle.rect を save = drag 中 rect 追従計算の基準点
   const hoveredHandleInitRectRef = useRef<DOMRect | null>(null);
   // viewBoxCompensation は「勝手な移動」 で user 意図 (drop 位置ぴったり) を破壊するため削除。
+
+  // 2026-07-24 grouping keyboard shortcut (Task #88):
+  //   Cmd+G / Ctrl+G = 現 selection から group 作成
+  //   Cmd+Shift+G / Ctrl+Shift+G = 現 selection に含まれる group を全解除
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const ctrlOrCmd = e.metaKey || e.ctrlKey;
+      if (!ctrlOrCmd) return;
+      if (e.key !== "g" && e.key !== "G") return;
+      // 入力 field 上では 発火しない (CodeMirror / input 等)
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".cm-content"))) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        // ungroup = selection に含まれる group を解除 (member を selection に残す)
+        setGroups((prev) => {
+          const next: Record<string, string[]> = { ...prev };
+          for (const sid of selectedIds) {
+            if (sid.startsWith("group:")) {
+              const gid = sid.slice("group:".length);
+              delete next[gid];
+            }
+          }
+          return next;
+        });
+        setSelectedIds((prev) => prev.filter((s) => !s.startsWith("group:")));
+      } else {
+        // group 作成 = selection 2 個以上で発火、 group id 生成、 member として selection の非-group id を保持
+        if (selectedIds.length < 2) return;
+        const members = selectedIds.filter((s) => !s.startsWith("group:"));
+        if (members.length < 2) return;
+        const gid = `g${Date.now().toString(36)}`;
+        setGroups((prev) => ({ ...prev, [gid]: members }));
+        setSelectedIds([`group:${gid}`]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedIds]);
 
   // 2026-07-24 fix = pending clearLiveTransform を diagram 更新後に実行 (snap back gap 解消)
   useEffect(() => {
@@ -1271,7 +1319,20 @@ export function CdlEditor(): React.JSX.Element {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
     // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
-    if (startElementInteraction(e)) return;
+    if (startElementInteraction(e)) {
+      // cdl element hit = selection 更新 (overlay と別の id 名前空間)
+      if (hoveredHandle) {
+        const selId = `cdl:${hoveredHandle.id}`;
+        if (e.shiftKey || e.metaKey) {
+          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
+        } else {
+          setSelectedIds([selId]);
+        }
+      }
+      return;
+    }
+    // 背景 click = selection clear (Miro 相当)
+    setSelectedIds([]);
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
@@ -1279,12 +1340,28 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
     // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
+    // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
     if (overlayDragRef.current) {
       const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
       const panScale = transformRef.current.scale || 1;
       const dx = (e.clientX - startClientX) / panScale;
       const dy = (e.clientY - startClientY) / panScale;
-      setOverlayParts((prev) => prev.map((p) => (p.id === id ? { ...p, posX: startPosX + dx, posY: startPosY + dy } : p)));
+      // selection に含まれる 全 overlay parts を 同 delta で shift (multi drag)
+      const selectedOverlayIds = new Set(
+        selectedIds.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length)),
+      );
+      // drag 開始 ref に multi group が居るなら全員 shift、 いなければ single drag
+      const groupStartsRef = multiDragStartsRef.current;
+      setOverlayParts((prev) =>
+        prev.map((p) => {
+          if (p.id === id) return { ...p, posX: startPosX + dx, posY: startPosY + dy };
+          if (groupStartsRef && groupStartsRef.has(p.id) && selectedOverlayIds.has(p.id)) {
+            const s = groupStartsRef.get(p.id)!;
+            return { ...p, posX: s.x + dx, posY: s.y + dy };
+          }
+          return p;
+        }),
+      );
       return;
     }
     // overlay parts resize = corner drag で scale 更新。 client px 基準で計算 (pan.scale と p.scale の混在バグ対策)。
@@ -1455,14 +1532,28 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-24 overlay parts drag finalize = 現 overlayParts state から新 posX/Y を DSL に書出す。
     // drag 中は setSrc せず state 直接更新なので snap back なし、 mouseup で 1 回だけ DSL sync。
+    // multi drag = groupStartsRef に含まれる 全 overlay 分を 1 setSrc で reduce sync。
     if (overlayDragRef.current) {
       const { id } = overlayDragRef.current;
+      const groupStarts = multiDragStartsRef.current;
       overlayDragRef.current = null;
+      multiDragStartsRef.current = null;
       document.body.style.cursor = "";
-      const part = overlayParts.find((p) => p.id === id);
-      if (part) {
-        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
-      }
+      setSrc((prev) => {
+        let next = prev;
+        // primary drag target を先に書出し
+        const primary = overlayParts.find((p) => p.id === id);
+        if (primary) next = writeOverlayPartToDsl(next, id, primary.posX, primary.posY, primary.scale);
+        // multi drag = selection の全 overlay も同 setSrc 内で 順次書出し
+        if (groupStarts) {
+          for (const [oid] of groupStarts) {
+            if (oid === id) continue;
+            const p = overlayParts.find((x) => x.id === oid);
+            if (p) next = writeOverlayPartToDsl(next, oid, p.posX, p.posY, p.scale);
+          }
+        }
+        return next;
+      });
       return;
     }
     // overlay parts resize finalize = 現 scale + posX/Y を DSL に書出す。
@@ -2134,15 +2225,54 @@ ${newActorLine}
             {diagram ? (
               <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
                 <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
+                    member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
+                {Object.entries(groups).map(([gid, memberIds]) => {
+                  const isGroupSelected = selectedIds.includes(`group:${gid}`);
+                  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+                  for (const sid of memberIds) {
+                    if (sid.startsWith("overlay:")) {
+                      const oid = sid.slice("overlay:".length);
+                      const p = overlayParts.find((x) => x.id === oid);
+                      if (!p) continue;
+                      const w = 380 * p.scale; // achievement 等の base size (概算、 実 size は SVG から取れる)
+                      const h = 380 * p.scale;
+                      minL = Math.min(minL, p.posX);
+                      minT = Math.min(minT, p.posY);
+                      maxR = Math.max(maxR, p.posX + w);
+                      maxB = Math.max(maxB, p.posY + h);
+                    }
+                  }
+                  if (minL === Infinity) return null;
+                  return (
+                    <div
+                      key={gid}
+                      data-group={gid}
+                      style={{
+                        position: "absolute",
+                        left: `${minL - 8}px`,
+                        top: `${minT - 8}px`,
+                        width: `${maxR - minL + 16}px`,
+                        height: `${maxB - minT + 16}px`,
+                        border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
+                        pointerEvents: "none",
+                        borderRadius: "4px",
+                        zIndex: 50,
+                      }}
+                    />
+                  );
+                })}
                 {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
                     に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
                     同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
                 {overlayParts.map((p) => {
                   const isHovered = hoveredOverlayId === p.id;
+                  const isSelected = selectedIds.includes(`overlay:${p.id}`);
                   return (
                     <div
                       key={p.id}
                       data-overlay-part={p.id}
+                      data-selected={isSelected ? "1" : undefined}
                       style={{
                         position: "absolute",
                         left: `${p.posX}px`,
@@ -2166,11 +2296,29 @@ ${newActorLine}
                           startClientY: e.clientY,
                         };
                         setHoveredOverlayId(p.id);
+                        // multi selection = shift/meta 押下で追加、 通常 click で置換 (但し既 selection に居る parts は保持)
+                        const selId = `overlay:${p.id}`;
+                        const wasSelected = selectedIds.includes(selId);
+                        if (e.shiftKey || e.metaKey) {
+                          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
+                        } else if (!wasSelected) {
+                          setSelectedIds([selId]);
+                        }
+                        // multi drag = 現 selection の全 overlay parts の start pos snapshot
+                        const currentSelection = wasSelected || e.shiftKey || e.metaKey ? selectedIds : [selId];
+                        const partsStart = new Map<string, { x: number; y: number }>();
+                        for (const sid of currentSelection) {
+                          if (!sid.startsWith("overlay:")) continue;
+                          const targetId = sid.slice("overlay:".length);
+                          const tp = overlayParts.find((x) => x.id === targetId);
+                          if (tp) partsStart.set(targetId, { x: tp.posX, y: tp.posY });
+                        }
+                        multiDragStartsRef.current = partsStart;
                         document.body.style.cursor = "grabbing";
                       }}
                     >
                       <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
-                      {isHovered && (() => {
+                      {(isHovered || isSelected) && (() => {
                         // hover 中 = 4 隅 handle + 点線 outline を overlay div 内に render。
                         // overlay div は既に scale 済なので子 handle も同 scale で描画される (見た目 handle size は scale の影響を受ける)。
                         // 対策 = handle を scale の逆で scale-cancel (現 overlay scale の逆比で border/handle 実寸を維持)。
