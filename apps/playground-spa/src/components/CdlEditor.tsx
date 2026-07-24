@@ -25,6 +25,7 @@ import {
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
+import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -359,7 +360,22 @@ function appendActorLine(src: string, newLine: string): string | null {
 
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
-  const [src, setSrc] = useState<string>(SAMPLES[0].code);
+  const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
+  // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
+  // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
+  const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
+    setSrcRaw((prev) => {
+      const nextSrc = typeof updater === "function" ? updater(prev) : updater;
+      if (nextSrc !== prev) {
+        historyRef.current.past.push(prev);
+        if (historyRef.current.past.length > 50) historyRef.current.past.shift();
+        historyRef.current.future = []; // 新 edit で redo 消去
+        lastCommittedSrcRef.current = nextSrc;
+      }
+      return nextSrc;
+    });
+  }, []);
+  const setSrcSilent = setSrcRaw; // undo / redo 経路用 (history に push しない)
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
@@ -369,7 +385,7 @@ export function CdlEditor(): React.JSX.Element {
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
-  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem };
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
   const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
   // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
@@ -382,12 +398,23 @@ export function CdlEditor(): React.JSX.Element {
   // 2026-07-24 rubber band 選択 (Task #90) = 背景 drag で area 内 全 overlay 選択。
   // 状態 = { startClientX, startClientY, currentClientX, currentClientY } を rubber band drag 中保持。
   const [rubberBand, setRubberBand] = useState<{ sx: number; sy: number; cx: number; cy: number } | null>(null);
+  // 2026-07-24 Undo / Redo (Feature 1) = src の history stack。 過去 50 世代保持、 Cmd+Z で戻る、 Cmd+Shift+Z で進む。
+  const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
+  const lastCommittedSrcRef = useRef<string>("");
+  // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
+  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number }>>([]);
+  // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
+  // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
+  const [colorPickerFor, setColorPickerFor] = useState<string | null>(null);
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
   const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
   // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
   // mousemove で diagonal delta から新 scale を計算。
   const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; panScale: number } | null>(null);
+  // rotate ref = Alt + corner drag で回転、 overlay div の中心 client 座標基準で角度計算
+  const overlayRotateRef = useRef<{ id: string; startRotate: number; centerClientX: number; centerClientY: number; startAngleRad: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
   // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
@@ -584,9 +611,117 @@ export function CdlEditor(): React.JSX.Element {
       // 入力 field 上では 発火しない (CodeMirror / input 等)
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".cm-content"))) return;
-      // Escape = selection clear
+      // Escape = selection clear + context menu / color picker close
       if (e.key === "Escape") {
         setSelectedIds([]);
+        setContextMenu(null);
+        setColorPickerFor(null);
+        return;
+      }
+      // Cmd+Z = Undo、 Cmd+Shift+Z (or Cmd+Y) = Redo (Feature 1)
+      if (ctrlOrCmd && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          const future = historyRef.current.future;
+          if (future.length === 0) return;
+          const next = future.pop()!;
+          historyRef.current.past.push(lastCommittedSrcRef.current);
+          lastCommittedSrcRef.current = next;
+          setSrcSilent(next);
+        } else {
+          const past = historyRef.current.past;
+          if (past.length === 0) return;
+          const prev = past.pop()!;
+          historyRef.current.future.push(lastCommittedSrcRef.current);
+          lastCommittedSrcRef.current = prev;
+          setSrcSilent(prev);
+        }
+        return;
+      }
+      // Cmd+C = clipboard に selection の overlay parts snapshot、 Cmd+V = paste (Feature 3)
+      if (ctrlOrCmd && (e.key === "c" || e.key === "C")) {
+        e.preventDefault();
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        clipboardRef.current = overlayIds
+          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale }));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "v" || e.key === "V")) {
+        e.preventDefault();
+        if (clipboardRef.current.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const clip of clipboardRef.current) {
+            const baseName = clip.kind.replace(/-/g, "");
+            let n = 1;
+            while (next.includes(`- ${baseName}${n}:`)) n++;
+            const newAlias = `${baseName}${n}`;
+            const scaleField = Math.abs(clip.scale - 1) > 0.001 ? `, scale: ${clip.scale.toFixed(3)}` : "";
+            const newLine = `  - ${newAlias}: { kind: ${clip.kind}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField} }`;
+            const appended = appendActorLine(next, newLine);
+            if (appended !== null) next = appended;
+          }
+          return next;
+        });
+        return;
+      }
+      // Alt+{L/R/E/T/B/M/H/V} = alignment (Feature 6)
+      if (e.altKey && ["l", "L", "r", "R", "e", "E", "t", "T", "b", "B", "m", "M", "h", "H", "v", "V"].includes(e.key)) {
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIds.length < 2) return;
+        e.preventDefault();
+        const mode: AlignMode =
+          e.key === "l" || e.key === "L" ? "left" :
+          e.key === "r" || e.key === "R" ? "right" :
+          e.key === "e" || e.key === "E" ? "center-h" :
+          e.key === "t" || e.key === "T" ? "top" :
+          e.key === "b" || e.key === "B" ? "bottom" :
+          e.key === "m" || e.key === "M" ? "middle-v" :
+          e.key === "h" || e.key === "H" ? "distribute-h" :
+          "distribute-v";
+        const parts = overlayIds
+          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({ id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 }));
+        const result = alignOverlayParts(parts, mode);
+        if (result.size === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const [id, pos] of result) {
+            const p = overlayPartsRef.current.find((x) => x.id === id);
+            if (p) next = writeOverlayPartToDsl(next, id, pos.posX, pos.posY, p.scale, p.rotate);
+          }
+          return next;
+        });
+        return;
+      }
+      // Cmd+] = bring forward (z-order 内で 1 個上)、 Cmd+[ = send backward (Feature 5)
+      // 実装 = DSL 内の actor 行順序を上下入替 (下 = 前面、 上 = 背面 = SVG 描画順)
+      if (ctrlOrCmd && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIds.length === 0) return;
+        const forward = e.key === "]";
+        setSrc((prev) => {
+          const lines = prev.split("\n");
+          const partsIndices = new Map<string, number>();
+          lines.forEach((line, i) => {
+            for (const oid of overlayIds) {
+              if (new RegExp(`^\\s*-\\s*${oid}\\s*:`).test(line)) partsIndices.set(oid, i);
+            }
+          });
+          const sorted = Array.from(partsIndices.entries()).sort((a, b) => forward ? b[1] - a[1] : a[1] - b[1]);
+          for (const [_oid, idx] of sorted) {
+            const swap = forward ? idx + 1 : idx - 1;
+            if (swap < 0 || swap >= lines.length) continue;
+            // 次/前 行も actor 行かチェック
+            if (!/^\s*-\s*\S+?\s*:\s*\{/.test(lines[swap]!)) continue;
+            [lines[idx], lines[swap]] = [lines[swap]!, lines[idx]!];
+          }
+          return lines.join("\n");
+        });
         return;
       }
       // Delete / Backspace = selection 削除
@@ -1393,6 +1528,9 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
+    // context menu / color picker 表示中の click は close
+    if (contextMenu) setContextMenu(null);
+    if (colorPickerFor) setColorPickerFor(null);
     // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
     if (startElementInteraction(e)) {
       // cdl element hit = selection 更新 (overlay と別の id 名前空間)
@@ -1444,6 +1582,15 @@ export function CdlEditor(): React.JSX.Element {
           return p;
         }),
       );
+      return;
+    }
+    // overlay rotate = Alt + corner drag、 center 基準の angle 差で rotate 更新 (Feature 7)
+    if (overlayRotateRef.current) {
+      const st = overlayRotateRef.current;
+      const currentAngle = Math.atan2(e.clientY - st.centerClientY, e.clientX - st.centerClientX);
+      const deltaDeg = ((currentAngle - st.startAngleRad) * 180) / Math.PI;
+      const newRotate = st.startRotate + deltaDeg;
+      setOverlayParts((prev) => prev.map((p) => p.id === st.id ? { ...p, rotate: newRotate } : p));
       return;
     }
     // overlay parts resize = corner drag で scale 更新。 client px 基準で計算 (pan.scale と p.scale の混在バグ対策)。
@@ -1629,17 +1776,28 @@ export function CdlEditor(): React.JSX.Element {
         let next = prev;
         // primary drag target を先に書出し
         const primary = overlayParts.find((p) => p.id === id);
-        if (primary) next = writeOverlayPartToDsl(next, id, primary.posX, primary.posY, primary.scale);
+        if (primary) next = writeOverlayPartToDsl(next, id, primary.posX, primary.posY, primary.scale, primary.rotate);
         // multi drag = selection の全 overlay も同 setSrc 内で 順次書出し
         if (groupStarts) {
           for (const [oid] of groupStarts) {
             if (oid === id) continue;
             const p = overlayParts.find((x) => x.id === oid);
-            if (p) next = writeOverlayPartToDsl(next, oid, p.posX, p.posY, p.scale);
+            if (p) next = writeOverlayPartToDsl(next, oid, p.posX, p.posY, p.scale, p.rotate);
           }
         }
         return next;
       });
+      return;
+    }
+    // overlay rotate finalize (Feature 7)
+    if (overlayRotateRef.current) {
+      const { id } = overlayRotateRef.current;
+      overlayRotateRef.current = null;
+      document.body.style.cursor = "";
+      const part = overlayParts.find((p) => p.id === id);
+      if (part) {
+        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale, part.rotate));
+      }
       return;
     }
     // overlay parts resize finalize = 現 scale + posX/Y を DSL に書出す。
@@ -2426,10 +2584,16 @@ ${newActorLine}
                         position: "absolute",
                         left: `${p.posX}px`,
                         top: `${p.posY}px`,
-                        transform: `scale(${p.scale})`,
+                        transform: `rotate(${p.rotate}deg) scale(${p.scale})`,
                         transformOrigin: "0 0",
                         cursor: "grab",
                         userSelect: "none",
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedIds([`overlay:${p.id}`]);
+                        setContextMenu({ x: e.clientX, y: e.clientY, overlayId: p.id });
                       }}
                       onMouseEnter={() => setHoveredOverlayId(p.id)}
                       onMouseLeave={() => {
@@ -2467,6 +2631,95 @@ ${newActorLine}
                       }}
                     >
                       <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                      {isSelected && (() => {
+                        // 選択時 color picker toggle button = 右上に 🎨 icon
+                        const inv = p.scale > 0 ? 1 / p.scale : 1;
+                        return (
+                          <button
+                            type="button"
+                            data-overlay-color-btn={p.id}
+                            style={{
+                              position: "absolute",
+                              top: `${-30 * inv}px`,
+                              right: `${-8 * inv}px`,
+                              width: `${24 * inv}px`,
+                              height: `${24 * inv}px`,
+                              background: "#fff",
+                              border: `${1 * inv}px solid #8a5a2a`,
+                              borderRadius: "50%",
+                              cursor: "pointer",
+                              fontSize: `${14 * inv}px`,
+                              padding: 0,
+                              zIndex: 110,
+                              lineHeight: 1,
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setColorPickerFor((prev) => prev === p.id ? null : p.id);
+                            }}
+                          >🎨</button>
+                        );
+                      })()}
+                      {colorPickerFor === p.id && (() => {
+                        const inv = p.scale > 0 ? 1 / p.scale : 1;
+                        return (
+                          <div
+                            data-overlay-color-picker={p.id}
+                            style={{
+                              position: "absolute",
+                              top: `${-70 * inv}px`,
+                              right: `${-8 * inv}px`,
+                              background: "#fff",
+                              border: `${1 * inv}px solid #8a5a2a`,
+                              padding: `${6 * inv}px`,
+                              borderRadius: `${6 * inv}px`,
+                              boxShadow: `0 ${2 * inv}px ${8 * inv}px rgba(0,0,0,0.15)`,
+                              display: "flex",
+                              gap: `${4 * inv}px`,
+                              zIndex: 120,
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            {["#f59e0b", "#ef4444", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#0891b2", "#78716c"].map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                data-overlay-color-swatch={c}
+                                style={{
+                                  width: `${20 * inv}px`,
+                                  height: `${20 * inv}px`,
+                                  background: c,
+                                  border: `${1 * inv}px solid #333`,
+                                  borderRadius: "50%",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // DSL の対象 actor 行 inline map に bg: "{color}" を upsert
+                                  setSrc((prev) => {
+                                    const lines = prev.split("\n");
+                                    const next = lines.map((line) => {
+                                      const m = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
+                                      if (!m) return line;
+                                      const rawName = m[2]!.replace(/^"(.+)"$/, "$1");
+                                      if (rawName !== p.id) return line;
+                                      const prefix = m[1]! + m[2]! + m[3]!;
+                                      let inner = m[4]!;
+                                      inner = inner.replace(/,?\s*bg\s*:\s*"[^"]*"/g, "").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
+                                      const merged = inner.length > 0 ? `${inner}, bg: "${c}"` : `bg: "${c}"`;
+                                      return `${prefix}{ ${merged} }`;
+                                    });
+                                    return next.join("\n");
+                                  });
+                                  setColorPickerFor(null);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {(isHovered || isSelected) && (() => {
                         // hover 中 = 4 隅 handle + 点線 outline を overlay div 内に render。
                         // overlay div は既に scale 済なので子 handle も同 scale で描画される (見た目 handle size は scale の影響を受ける)。
@@ -2512,6 +2765,20 @@ ${newActorLine}
                                     const div = (e.currentTarget.parentElement as HTMLElement | null);
                                     const rect = div?.getBoundingClientRect();
                                     if (!rect) return;
+                                    // Alt + corner drag = rotate mode (Feature 7、 Miro / Figma 相当)
+                                    if (e.altKey) {
+                                      const cx = rect.left + rect.width / 2;
+                                      const cy = rect.top + rect.height / 2;
+                                      overlayRotateRef.current = {
+                                        id: p.id,
+                                        startRotate: p.rotate,
+                                        centerClientX: cx,
+                                        centerClientY: cy,
+                                        startAngleRad: Math.atan2(e.clientY - cy, e.clientX - cx),
+                                      };
+                                      document.body.style.cursor = "grab";
+                                      return;
+                                    }
                                     overlayResizeRef.current = {
                                       id: p.id,
                                       corner,
@@ -2541,6 +2808,99 @@ ${newActorLine}
             )}
           </div>
           {/* activeGuidelines 描画削除 (guideline 機能全撤去、 2026-07-24) */}
+          {contextMenu && contextMenu.overlayId && (() => {
+            const target = contextMenu.overlayId;
+            const actions: Array<{ label: string; onClick: () => void }> = [
+              { label: "🎨 色を変える", onClick: () => { setColorPickerFor(target); setContextMenu(null); } },
+              { label: "📋 複製 (Cmd+D)", onClick: () => {
+                const orig = overlayParts.find((p) => p.id === target);
+                if (orig) {
+                  setSrc((prev) => {
+                    const baseName = target.replace(/\d+$/, "");
+                    let n = 1;
+                    while (prev.includes(`- ${baseName}${n}:`)) n++;
+                    const newAlias = `${baseName}${n}`;
+                    const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
+                    const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+                    return appendActorLine(prev, newLine) ?? prev;
+                  });
+                }
+                setContextMenu(null);
+              }},
+              { label: "⬆️ 前面へ (Cmd+])", onClick: () => {
+                setSrc((prev) => {
+                  const lines = prev.split("\n");
+                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
+                  if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
+                    [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
+                  }
+                  return lines.join("\n");
+                });
+                setContextMenu(null);
+              }},
+              { label: "⬇️ 背面へ (Cmd+[)", onClick: () => {
+                setSrc((prev) => {
+                  const lines = prev.split("\n");
+                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
+                  if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
+                    [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
+                  }
+                  return lines.join("\n");
+                });
+                setContextMenu(null);
+              }},
+              { label: "🗑 削除 (Delete)", onClick: () => {
+                setSrc((prev) => {
+                  const re = new RegExp(`^\\s*-\\s*${target}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+                  return prev.replace(re, "");
+                });
+                setSelectedIds([]);
+                setContextMenu(null);
+              }},
+            ];
+            return (
+              <div
+                data-context-menu="1"
+                style={{
+                  position: "fixed",
+                  left: `${contextMenu.x}px`,
+                  top: `${contextMenu.y}px`,
+                  background: "#fff",
+                  border: "1px solid #8a5a2a",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  borderRadius: "6px",
+                  padding: "4px 0",
+                  zIndex: 500,
+                  minWidth: "180px",
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                {actions.map((a) => (
+                  <button
+                    key={a.label}
+                    type="button"
+                    data-context-action={a.label}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                    onClick={(e) => { e.stopPropagation(); a.onClick(); }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
           {rubberBand && (() => {
             const stageRect = previewRef.current?.getBoundingClientRect();
             if (!stageRect) return null;

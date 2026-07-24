@@ -5,7 +5,7 @@
 
 import type { CatalogItem } from "@/lib/catalog-items";
 
-export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem };
+export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; item: CatalogItem };
 
 /**
  * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
@@ -36,6 +36,7 @@ export function extractPartsFromSrc(
           const posXMatch = inner.match(/(?:^|,)\s*posX\s*:\s*(-?\d+(?:\.\d+)?)/);
           const posYMatch = inner.match(/(?:^|,)\s*posY\s*:\s*(-?\d+(?:\.\d+)?)/);
           const scaleMatch = inner.match(/(?:^|,)\s*scale\s*:\s*(-?\d+(?:\.\d+)?)/);
+          const rotateMatch = inner.match(/(?:^|,)\s*rotate\s*:\s*(-?\d+(?:\.\d+)?)/);
           const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
           if (item) {
             parts.push({
@@ -44,6 +45,7 @@ export function extractPartsFromSrc(
               posX: posXMatch ? parseFloat(posXMatch[1]!) : 0,
               posY: posYMatch ? parseFloat(posYMatch[1]!) : 0,
               scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
+              rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               item,
             });
             continue;
@@ -66,11 +68,13 @@ export function writeOverlayPartToDsl(
   posX: number,
   posY: number,
   scale: number,
+  rotate: number = 0,
 ): string {
   const lines = src.split("\n");
   const rx = Math.round(posX);
   const ry = Math.round(posY);
   const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
+  const sRotate = Number.isFinite(rotate) ? Number(rotate.toFixed(1)) : 0;
   const next = lines.map((line) => {
     const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
     if (!headMatch) return line;
@@ -81,9 +85,11 @@ export function writeOverlayPartToDsl(
     inner = inner.replace(/,?\s*posX\s*:\s*-?\d+(?:\.\d+)?/g, "");
     inner = inner.replace(/,?\s*posY\s*:\s*-?\d+(?:\.\d+)?/g, "");
     inner = inner.replace(/,?\s*scale\s*:\s*-?\d+(?:\.\d+)?/g, "");
+    inner = inner.replace(/,?\s*rotate\s*:\s*-?\d+(?:\.\d+)?/g, "");
     inner = inner.replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
     const newFields = [`posX: ${rx}`, `posY: ${ry}`];
     if (Math.abs(sScale - 1) > 0.001) newFields.push(`scale: ${sScale}`);
+    if (Math.abs(sRotate) > 0.05) newFields.push(`rotate: ${sRotate}`);
     const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
     return `${prefix}{ ${merged} }`;
   });

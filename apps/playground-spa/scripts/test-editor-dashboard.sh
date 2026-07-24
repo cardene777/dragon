@@ -54,9 +54,9 @@ fi
 if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "2" ]]; then
   echo ""
   echo "───────────────────────────────────────────────────────────"
-  echo "  Layer 2 = state machine unit test (overlay-reducer)"
+  echo "  Layer 2 = state machine + align pure test"
   echo "───────────────────────────────────────────────────────────"
-  if npx vitest run src/lib/overlay-reducer.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l2.log; then
+  if npx vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l2.log; then
     RESULT_L2="pass"
   else
     RESULT_L2="fail"
@@ -69,7 +69,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
   echo "───────────────────────────────────────────────────────────"
-  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts --reporter=list --timeout=45000 2>&1 | tee /tmp/editor-test-l3.log; then
+  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts --reporter=list --timeout=45000 2>&1 | tee /tmp/editor-test-l3.log; then
     RESULT_L3="pass"
   else
     RESULT_L3="fail"
