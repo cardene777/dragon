@@ -212,6 +212,34 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
  * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
  */
+/**
+ * DSL 中の対象 actor が parts merge 経路 (CAR-1657 unified syntax、 `- alias: { kind: <partsKind>, ... }`
+ * 形式) で追加された actor か判定。 sequence preset の Client/API/DB 等は `kind:` field を持たない、
+ * parts merge actor は `kind: achievement` / `kind: arc-gauge` 等を必ず持つ。
+ * 用途 = viewBox freeze 併用時 の parts drag finalize で viewBox 補償 skip (2026-07-24 fix、
+ * user feedback「画面全体 pan する」 の 2 段目 fix)。
+ */
+function isPartsMergeActor(src: string, targetName: string): boolean {
+  for (const line of src.split("\n")) {
+    const m = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{/);
+    if (!m) continue;
+    const raw = m[1]!.replace(/^"(.+)"$/, "$1");
+    if (raw !== targetName) continue;
+    const braceStart = line.indexOf("{");
+    if (braceStart < 0) continue;
+    let depth = 0;
+    let inner = "";
+    for (let i = braceStart; i < line.length; i += 1) {
+      const c = line[i]!;
+      if (c === "{") depth += 1;
+      if (depth === 1 && c !== "{") inner += c;
+      if (c === "}") depth -= 1;
+    }
+    return /(?:^|,)\s*kind\s*:/.test(inner);
+  }
+  return false;
+}
+
 function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
   if (!svg) return src;
   let next = src;
@@ -574,6 +602,92 @@ export function CdlEditor(): React.JSX.Element {
     });
     return () => cancelAnimationFrame(raf);
   }, [diagram]);
+
+  /**
+   * viewBox 固定 (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
+   *
+   * cdl auto-fit viewBox = content bounding box を毎 render 再計算 → user が achievement を drag すると
+   * trophy world 座標が変わり viewBox が拡大 → 全 content が client px で縮小 → Client / API / DB / arrow
+   * 全部 shrink して「画面全体が pan / 変形」 に見える root cause。
+   *
+   * fix = 初回 render 時 viewBox を capture、 以後 render で svg.viewBox を強制 override して固定。
+   * achievement drag → posX/posY 書出し → cdl re-compile → CdlDiagramView が新 viewBox 生成しても、
+   * この useEffect が override して初回値に戻す = 全 lane / arrow の client px 位置が完全 static。
+   *
+   * trade-off = achievement を viewBox 外に drag すると clip される (spec 上意図的、 user が pan/zoom で
+   * 追跡可能)。 sample 切替時は viewBox 再取得が必要なので initialViewBoxRef を activeSample deps でリセット。
+   */
+  /**
+   * viewBox + edge d freeze (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
+   *
+   * cdl auto-fit viewBox と edge routing = achievement drop / drag で node 位置が変わると
+   * viewBox 拡大 + edge Q curve detour 発生 → 全 content shrink + 矢印変形 = user 苦情の core。
+   *
+   * fix strategy = event-driven capture + MutationObserver override。
+   *   1. page load 時は capture しない = arrow animation は normal 動作
+   *   2. parts drop / node drag 直前に captureFrozenState() を呼び「現 SVG state」 を snapshot
+   *   3. drop / drag 後の cdl re-render で MutationObserver が発火 → 全 override で snapshot 復元
+   *   4. lane / arrow / viewBox 全て drop 直前状態を保つ = user 見た目 100% static
+   */
+  const frozenViewBoxRef = useRef<string | null>(null);
+  const frozenEdgeDsRef = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    // sample 切替時は freeze state をリセット (次 drop / drag で再 capture)
+    frozenViewBoxRef.current = null;
+    frozenEdgeDsRef.current = null;
+  }, [activeSample]);
+
+  const captureFrozenState = useCallback((): void => {
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    const currentVB = svg.getAttribute("viewBox");
+    if (!currentVB) return;
+    frozenViewBoxRef.current = currentVB;
+    const edgeArr: Array<{ id: string; index: number; d: string }> = [];
+    const idxCounter = new Map<string, number>();
+    svg.querySelectorAll("[data-cdl-edge] path").forEach((p) => {
+      const id = (p.parentElement as SVGElement | null)?.getAttribute("data-cdl-edge") ?? "";
+      const d = p.getAttribute("d") ?? "";
+      if (!id || !d) return;
+      const idx = idxCounter.get(id) ?? 0;
+      idxCounter.set(id, idx + 1);
+      edgeArr.push({ id, index: idx, d });
+    });
+    frozenEdgeDsRef.current = new Map(edgeArr.map((e) => [`${e.id}#${e.index}`, e.d]));
+  }, []);
+
+  useEffect(() => {
+    const stage = previewRef.current;
+    if (!stage) return;
+    // frozen state が set されていれば MutationObserver で override する = event-driven freeze
+    const freeze = (): void => {
+      const frozenVB = frozenViewBoxRef.current;
+      const frozenEdges = frozenEdgeDsRef.current;
+      if (!frozenVB || !frozenEdges) return;
+      const svg = stage.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      const currentVB = svg.getAttribute("viewBox");
+      if (currentVB && currentVB !== frozenVB) {
+        svg.setAttribute("viewBox", frozenVB);
+      }
+      const seenIdx = new Map<string, number>();
+      svg.querySelectorAll("[data-cdl-edge] path").forEach((p) => {
+        const el = p as SVGPathElement;
+        const id = (el.parentElement as SVGElement | null)?.getAttribute("data-cdl-edge") ?? "";
+        if (!id) return;
+        const idx = seenIdx.get(id) ?? 0;
+        seenIdx.set(id, idx + 1);
+        const key = `${id}#${idx}`;
+        const targetD = frozenEdges.get(key);
+        if (targetD && el.getAttribute("d") !== targetD) {
+          el.setAttribute("d", targetD);
+        }
+      });
+    };
+    const observer = new MutationObserver(() => freeze());
+    observer.observe(stage, { subtree: true, attributes: true, childList: true, attributeFilter: ["viewBox", "d"] });
+    return () => observer.disconnect();
+  }, [diagram, src]);
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -1034,6 +1148,9 @@ export function CdlEditor(): React.JSX.Element {
       if (unionHit) dragInfo = { name: unionHit.name, kind: "lane" };
     }
     if (!dragInfo) return false;
+    // freeze state capture = drag 直前の viewBox + edge d を snapshot (drop 経路と対称)
+    // drag 中の cdl re-render で lane / arrow が変形しない = user 見た目 100% static
+    captureFrozenState();
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
     // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
@@ -1128,11 +1245,11 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺。
-      // 2026-07-24 verify = parts drag で compensation skip 試行したが Client が 64px shift で
-      // user 期待「他 lane 完全静止」 を破るため revert。 compensation あり = Client 位置完全固定、
-      // pan container tx が動く副作用は付随するが user 視点の見た目位置は保存される。
+      // 2026-07-24 fix (2 段目) = viewBox freeze useEffect と併用で parts drag は compensation skip。
+      // viewBox freeze で CTM.e/f 変化しないため compensation は無効化 = pan container 完全不変を実現。
+      const isPartsActor = isPartsMergeActor(src, st.targetName);
       const preCtm = svg.getScreenCTM();
-      if (preCtm) {
+      if (preCtm && !isPartsActor) {
         viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
       }
       // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
@@ -1175,9 +1292,10 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
+      // viewBox re-fit 補償 (drag 経路と同じ、 parts actor は viewBox freeze と併用で skip)
+      const isPartsActorResize = isPartsMergeActor(src, st.targetName);
       const preCtm = svg.getScreenCTM();
-      if (preCtm) {
+      if (preCtm && !isPartsActorResize) {
         viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
       }
       // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
@@ -1756,6 +1874,9 @@ animation:
     // 全 lane 再配置による既存 header shift を防ぐ
     const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
     const newSrc = appendActorLine(pinnedSrc, newActorLine);
+    // freeze state capture = drop 直前の viewBox + edge d を snapshot、
+    // drop 後の cdl re-render で MutationObserver が override して static 化する (2026-07-24 fix)
+    captureFrozenState();
     if (newSrc === null) {
       // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
       if (!confirmReplaceIfDirty(item.title)) {

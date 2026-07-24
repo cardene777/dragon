@@ -27,6 +27,26 @@ async function panTransform(page: import("@playwright/test").Page): Promise<stri
   });
 }
 
+async function edgeDs(page: import("@playwright/test").Page): Promise<Array<{ id: string; d: string }>> {
+  return page.evaluate(() => {
+    return Array.from(document.querySelectorAll("[data-cdl-edge] path")).map((el) => ({
+      id: (el.parentElement as SVGElement | null)?.getAttribute("data-cdl-edge") ?? "",
+      d: el.getAttribute("d") ?? "",
+    }));
+  });
+}
+
+async function laneClients(page: import("@playwright/test").Page): Promise<Array<{ id: string; bbox: any }>> {
+  return page.evaluate(() => {
+    return Array.from(document.querySelectorAll("[data-cdl-lane]:not([data-cdl-node]):not([data-cdl-edge])"))
+      .filter((el) => !(el.getAttribute("data-cdl-lane") ?? "").includes("__"))
+      .map((el) => {
+        const r = (el as SVGGraphicsElement).getBoundingClientRect();
+        return { id: el.getAttribute("data-cdl-lane") ?? "", bbox: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } };
+      });
+  });
+}
+
 test("achievement drop + trophy 中心 drag、 pan container 不変 + 他 lane 静止 verify", async ({ page }) => {
   await page.goto("/editor");
   await page.waitForLoadState("networkidle");
@@ -90,11 +110,15 @@ test("achievement drop + trophy 中心 drag、 pan container 不変 + 他 lane �
     await page.waitForTimeout(200);
   }
 
-  // drag 前 client / pan snapshot
+  // drag 前 client / pan snapshot + 全 lane + 全 arrow
   const clientBeforeDrag = await page.locator('[data-cdl-lane="client"]').first().boundingBox();
   const panBeforeDrag = await panTransform(page);
+  const lanesBeforeDrag = await laneClients(page);
+  const edgesBeforeDrag = await edgeDs(page);
   console.log(`[BEFORE-DRAG] Client:`, JSON.stringify(clientBeforeDrag));
   console.log(`[BEFORE-DRAG] pan: ${panBeforeDrag}`);
+  console.log(`[BEFORE-DRAG] lanes:`, JSON.stringify(lanesBeforeDrag));
+  console.log(`[BEFORE-DRAG] edges:`, JSON.stringify(edgesBeforeDrag));
 
   // mouse.down 直後 pan transform (drag mode 突入時点で pan していないか)
   await page.mouse.down();
@@ -123,9 +147,33 @@ test("achievement drop + trophy 中心 drag、 pan container 不変 + 他 lane �
   const panAfterUp = await panTransform(page);
   const clientAfterDrag = await page.locator('[data-cdl-lane="client"]').first().boundingBox();
   const trophyAfterDrag = await trophyNode.boundingBox();
+  const lanesAfterUp = await laneClients(page);
+  const edgesAfterUp = await edgeDs(page);
   console.log(`[AFTER-UP] pan: ${panAfterUp}`);
   console.log(`[AFTER-UP] Client:`, JSON.stringify(clientAfterDrag));
   console.log(`[AFTER-UP] Trophy:`, JSON.stringify(trophyAfterDrag));
+  console.log(`[AFTER-UP] lanes:`, JSON.stringify(lanesAfterUp));
+  console.log(`[AFTER-UP] edges:`, JSON.stringify(edgesAfterUp));
+  // 全 lane / 全 arrow の delta を機械判定
+  console.log(`[LANE-CHECK]`);
+  for (const before of lanesBeforeDrag) {
+    const after = lanesAfterUp.find((l) => l.id === before.id);
+    if (!after) { console.log(`  ${before.id} = REMOVED (NG)`); continue; }
+    const dx = Math.abs(after.bbox.x - before.bbox.x);
+    const dy = Math.abs(after.bbox.y - before.bbox.y);
+    const dw = Math.abs(after.bbox.w - before.bbox.w);
+    const dh = Math.abs(after.bbox.h - before.bbox.h);
+    const total = dx + dy + dw + dh;
+    console.log(`  ${before.id} dx=${dx} dy=${dy} dw=${dw} dh=${dh} total=${total} ${total < 2 ? "✓" : "NG"}`);
+  }
+  console.log(`[ARROW-CHECK]`);
+  for (let i = 0; i < edgesBeforeDrag.length; i++) {
+    const before = edgesBeforeDrag[i];
+    const after = edgesAfterUp[i];
+    if (!before || !after) continue;
+    const same = before.d === after.d;
+    console.log(`  ${before.id} ${same ? "✓ unchanged" : `NG ${before.d} → ${after.d}`}`);
+  }
 
   // 判定 axis
   const clientShift = clientBeforeDrag && clientAfterDrag
