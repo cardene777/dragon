@@ -35,7 +35,7 @@ test("visual 1 = 初期 editor stage", async ({ page }) => {
   const stage = page.locator('[data-testid="editor-preview-stage"]');
   await expect(stage).toHaveScreenshot("01-init.png", {
     animations: "disabled",
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.005,
   });
 });
 
@@ -53,7 +53,7 @@ test("visual 2 = achievement drop 直後", async ({ page }) => {
   await page.waitForTimeout(300);
   await expect(stage).toHaveScreenshot("02-drop.png", {
     animations: "disabled",
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.005,
   });
 });
 
@@ -79,7 +79,7 @@ test("visual 3 = achievement 右 200px drag 後", async ({ page }) => {
   await page.waitForTimeout(300);
   await expect(stage).toHaveScreenshot("03-drag.png", {
     animations: "disabled",
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.005,
   });
 });
 
@@ -111,6 +111,6 @@ test("visual 4 = SE corner drag で 1.5x resize", async ({ page }) => {
   await page.waitForTimeout(300);
   await expect(stage).toHaveScreenshot("04-resize.png", {
     animations: "disabled",
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.005,
   });
 });
