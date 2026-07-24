@@ -220,7 +220,7 @@ function extractPartsFromSrc(
   src: string,
   partsCatalog: Record<string, { topic?: string } | unknown>,
   partsItems: CatalogItem[],
-): { baseSrc: string; parts: Array<{ id: string; kind: string; posX: number; posY: number; item: CatalogItem }> } {
+): { baseSrc: string; parts: Array<{ id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem }> } {
   const partKindSet = new Set<string>();
   for (const k of Object.keys(partsCatalog)) {
     partKindSet.add(k);
@@ -228,7 +228,7 @@ function extractPartsFromSrc(
   }
   const lines = src.split("\n");
   const baseLines: string[] = [];
-  const parts: Array<{ id: string; kind: string; posX: number; posY: number; item: CatalogItem }> = [];
+  const parts: Array<{ id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem }> = [];
   for (const line of lines) {
     // `- alias: { kind: X, posX: N, posY: N, ... }` pattern
     const m = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{(.+)\}\s*$/);
@@ -241,6 +241,7 @@ function extractPartsFromSrc(
         if (partKindSet.has(kindValue)) {
           const posXMatch = inner.match(/(?:^|,)\s*posX\s*:\s*(-?\d+(?:\.\d+)?)/);
           const posYMatch = inner.match(/(?:^|,)\s*posY\s*:\s*(-?\d+(?:\.\d+)?)/);
+          const scaleMatch = inner.match(/(?:^|,)\s*scale\s*:\s*(-?\d+(?:\.\d+)?)/);
           const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
           if (item) {
             parts.push({
@@ -248,6 +249,7 @@ function extractPartsFromSrc(
               kind: kindValue,
               posX: posXMatch ? parseFloat(posXMatch[1]!) : 0,
               posY: posYMatch ? parseFloat(posYMatch[1]!) : 0,
+              scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
               item,
             });
             continue; // skip this line from baseLines = cdl doesn't see this actor
@@ -258,6 +260,35 @@ function extractPartsFromSrc(
     baseLines.push(line);
   }
   return { baseSrc: baseLines.join("\n"), parts };
+}
+
+/**
+ * overlay parts (kind: <partsKind>) actor 行の posX / posY / scale field を上書きする。
+ * DSL に対象行が居るが field が無ければ append、 既にあれば置換。 他 field (kind / bg / state override 等) は保持。
+ */
+function writeOverlayPartToDsl(src: string, alias: string, posX: number, posY: number, scale: number): string {
+  const lines = src.split("\n");
+  const rx = Math.round(posX);
+  const ry = Math.round(posY);
+  const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
+  const next = lines.map((line) => {
+    const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
+    if (!headMatch) return line;
+    const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
+    if (rawName !== alias) return line;
+    const prefix = headMatch[1]! + headMatch[2]! + headMatch[3]!;
+    let inner = headMatch[4]!;
+    // 既 field 削除 (posX / posY / scale) → 再挿入
+    inner = inner.replace(/,?\s*posX\s*:\s*-?\d+(?:\.\d+)?/g, "");
+    inner = inner.replace(/,?\s*posY\s*:\s*-?\d+(?:\.\d+)?/g, "");
+    inner = inner.replace(/,?\s*scale\s*:\s*-?\d+(?:\.\d+)?/g, "");
+    inner = inner.replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
+    const newFields = [`posX: ${rx}`, `posY: ${ry}`];
+    if (Math.abs(sScale - 1) > 0.001) newFields.push(`scale: ${sScale}`);
+    const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
+    return `${prefix}{ ${merged} }`;
+  });
+  return next.join("\n");
 }
 
 function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
@@ -415,9 +446,13 @@ export function CdlEditor(): React.JSX.Element {
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
-  type OverlayPart = { id: string; kind: string; posX: number; posY: number; item: CatalogItem };
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
+  const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
+  // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
+  // mousemove で diagonal delta から新 scale を計算。
+  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startBaseW: number; startBaseH: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
   // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
@@ -1323,10 +1358,38 @@ export function CdlEditor(): React.JSX.Element {
     // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
     if (overlayDragRef.current) {
       const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
-      const scale = transformRef.current.scale || 1;
-      const dx = (e.clientX - startClientX) / scale;
-      const dy = (e.clientY - startClientY) / scale;
+      const panScale = transformRef.current.scale || 1;
+      const dx = (e.clientX - startClientX) / panScale;
+      const dy = (e.clientY - startClientY) / panScale;
       setOverlayParts((prev) => prev.map((p) => (p.id === id ? { ...p, posX: startPosX + dx, posY: startPosY + dy } : p)));
+      return;
+    }
+    // overlay parts resize = corner drag で scale 更新。 diagonal delta を base 幅で割って scale 増分。
+    if (overlayResizeRef.current) {
+      const st = overlayResizeRef.current;
+      const panScale = transformRef.current.scale || 1;
+      // client delta を pan/zoom 除去した world delta へ
+      const dcx = (e.clientX - st.startClientX) / panScale;
+      const dcy = (e.clientY - st.startClientY) / panScale;
+      // corner に応じた符号 (se = 右下正、 nw = 左上正、 ...)
+      const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
+      const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
+      // aspect 保持 = X / Y の deltaW/H の 大きい方基準
+      const deltaW = dcx * signX;
+      const deltaH = dcy * signY;
+      const deltaMax = Math.max(deltaW, deltaH);
+      const newBaseW = Math.max(20, st.startBaseW * st.startScale + deltaMax);
+      const newScale = Math.max(0.1, newBaseW / st.startBaseW);
+      // 左上系 corner (nw / ne / sw) は posX / posY も shift (右下固定を除く全部で)
+      let newPosX = st.startPosX;
+      let newPosY = st.startPosY;
+      if (st.corner === "nw" || st.corner === "sw") {
+        newPosX = st.startPosX + (st.startBaseW * st.startScale - st.startBaseW * newScale);
+      }
+      if (st.corner === "nw" || st.corner === "ne") {
+        newPosY = st.startPosY + (st.startBaseH * st.startScale - st.startBaseH * newScale);
+      }
+      setOverlayParts((prev) => prev.map((p) => (p.id === st.id ? { ...p, scale: newScale, posX: newPosX, posY: newPosY } : p)));
       return;
     }
     // element drag / resize 中は pan せず interaction pass に流す
@@ -1465,7 +1528,18 @@ export function CdlEditor(): React.JSX.Element {
       document.body.style.cursor = "";
       const part = overlayParts.find((p) => p.id === id);
       if (part) {
-        setSrc((prev) => updateActorPosition(prev, id, part.posX, part.posY));
+        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
+      }
+      return;
+    }
+    // overlay parts resize finalize = 現 scale + posX/Y を DSL に書出す。
+    if (overlayResizeRef.current) {
+      const { id } = overlayResizeRef.current;
+      overlayResizeRef.current = null;
+      document.body.style.cursor = "";
+      const part = overlayParts.find((p) => p.id === id);
+      if (part) {
+        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
       }
       return;
     }
@@ -2130,32 +2204,107 @@ ${newActorLine}
                 {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
                     に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
                     同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
-                {overlayParts.map((p) => (
-                  <div
-                    key={p.id}
-                    data-overlay-part={p.id}
-                    style={{
-                      position: "absolute",
-                      left: `${p.posX}px`,
-                      top: `${p.posY}px`,
-                      cursor: "grab",
-                      userSelect: "none",
-                    }}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      overlayDragRef.current = {
-                        id: p.id,
-                        startPosX: p.posX,
-                        startPosY: p.posY,
-                        startClientX: e.clientX,
-                        startClientY: e.clientY,
-                      };
-                      document.body.style.cursor = "grabbing";
-                    }}
-                  >
-                    <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
-                  </div>
-                ))}
+                {overlayParts.map((p) => {
+                  const isHovered = hoveredOverlayId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      data-overlay-part={p.id}
+                      style={{
+                        position: "absolute",
+                        left: `${p.posX}px`,
+                        top: `${p.posY}px`,
+                        transform: `scale(${p.scale})`,
+                        transformOrigin: "0 0",
+                        cursor: "grab",
+                        userSelect: "none",
+                      }}
+                      onMouseEnter={() => setHoveredOverlayId(p.id)}
+                      onMouseLeave={() => {
+                        if (!overlayDragRef.current && !overlayResizeRef.current) setHoveredOverlayId(null);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        overlayDragRef.current = {
+                          id: p.id,
+                          startPosX: p.posX,
+                          startPosY: p.posY,
+                          startClientX: e.clientX,
+                          startClientY: e.clientY,
+                        };
+                        setHoveredOverlayId(p.id);
+                        document.body.style.cursor = "grabbing";
+                      }}
+                    >
+                      <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                      {isHovered && (() => {
+                        // hover 中 = 4 隅 handle + 点線 outline を overlay div 内に render。
+                        // overlay div は既に scale 済なので子 handle も同 scale で描画される (見た目 handle size は scale の影響を受ける)。
+                        // 対策 = handle を scale の逆で scale-cancel (現 overlay scale の逆比で border/handle 実寸を維持)。
+                        const inv = p.scale > 0 ? 1 / p.scale : 1;
+                        // overlay div 内 SVG の実サイズを DOM から取得 (partsCatalog の diagram size 基準)
+                        // querySelector で自身の CdlDiagramView 内 SVG bbox を測る
+                        const HANDLE = 12 * inv;
+                        return (
+                          <>
+                            {/* 点線 outline */}
+                            <div
+                              data-overlay-outline={p.id}
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                border: `${1.5 * inv}px dashed rgba(138, 90, 42, 0.6)`,
+                                pointerEvents: "none",
+                              }}
+                            />
+                            {(["nw", "ne", "sw", "se"] as const).map((corner) => {
+                              const cornerStyle: React.CSSProperties = {
+                                position: "absolute",
+                                width: `${HANDLE}px`,
+                                height: `${HANDLE}px`,
+                                background: "#fff",
+                                border: `${1.5 * inv}px solid #8a5a2a`,
+                                borderRadius: `${2 * inv}px`,
+                                cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                                zIndex: 100,
+                              };
+                              if (corner === "nw") { cornerStyle.left = `${-HANDLE / 2}px`; cornerStyle.top = `${-HANDLE / 2}px`; }
+                              if (corner === "ne") { cornerStyle.right = `${-HANDLE / 2}px`; cornerStyle.top = `${-HANDLE / 2}px`; }
+                              if (corner === "sw") { cornerStyle.left = `${-HANDLE / 2}px`; cornerStyle.bottom = `${-HANDLE / 2}px`; }
+                              if (corner === "se") { cornerStyle.right = `${-HANDLE / 2}px`; cornerStyle.bottom = `${-HANDLE / 2}px`; }
+                              return (
+                                <div
+                                  key={corner}
+                                  data-overlay-handle={corner}
+                                  style={cornerStyle}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    // 基準 = overlay div の client bbox size (scale 適用後の実 client px)
+                                    const div = (e.currentTarget.parentElement as HTMLElement | null);
+                                    const rect = div?.getBoundingClientRect();
+                                    if (!rect) return;
+                                    overlayResizeRef.current = {
+                                      id: p.id,
+                                      corner,
+                                      startScale: p.scale,
+                                      startClientX: e.clientX,
+                                      startClientY: e.clientY,
+                                      startPosX: p.posX,
+                                      startPosY: p.posY,
+                                      startBaseW: rect.width / p.scale,
+                                      startBaseH: rect.height / p.scale,
+                                    };
+                                    document.body.style.cursor = cornerStyle.cursor as string;
+                                  }}
+                                />
+                              );
+                            })}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
