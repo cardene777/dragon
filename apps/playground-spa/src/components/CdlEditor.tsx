@@ -452,7 +452,7 @@ export function CdlEditor(): React.JSX.Element {
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
   // mousemove で diagonal delta から新 scale を計算。
-  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startBaseW: number; startBaseH: number } | null>(null);
+  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; panScale: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
   // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
@@ -1364,31 +1364,29 @@ export function CdlEditor(): React.JSX.Element {
       setOverlayParts((prev) => prev.map((p) => (p.id === id ? { ...p, posX: startPosX + dx, posY: startPosY + dy } : p)));
       return;
     }
-    // overlay parts resize = corner drag で scale 更新。 diagonal delta を base 幅で割って scale 増分。
+    // overlay parts resize = corner drag で scale 更新。 client px 基準で計算 (pan.scale と p.scale の混在バグ対策)。
     if (overlayResizeRef.current) {
       const st = overlayResizeRef.current;
-      const panScale = transformRef.current.scale || 1;
-      // client delta を pan/zoom 除去した world delta へ
-      const dcx = (e.clientX - st.startClientX) / panScale;
-      const dcy = (e.clientY - st.startClientY) / panScale;
-      // corner に応じた符号 (se = 右下正、 nw = 左上正、 ...)
+      const dxClient = e.clientX - st.startClientX;
+      const dyClient = e.clientY - st.startClientY;
       const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
       const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
-      // aspect 保持 = X / Y の deltaW/H の 大きい方基準
-      const deltaW = dcx * signX;
-      const deltaH = dcy * signY;
+      const deltaW = dxClient * signX;
+      const deltaH = dyClient * signY;
       const deltaMax = Math.max(deltaW, deltaH);
-      const newBaseW = Math.max(20, st.startBaseW * st.startScale + deltaMax);
-      const newScale = Math.max(0.1, newBaseW / st.startBaseW);
-      // 左上系 corner (nw / ne / sw) は posX / posY も shift (右下固定を除く全部で)
+      const newClientW = Math.max(20, st.startClientW + deltaMax);
+      const scaleRatio = newClientW / st.startClientW;
+      const newScale = Math.max(0.1, st.startScale * scaleRatio);
+      // client delta を world 単位 (pan container 内座標系) に変換して posX/posY 補正
+      const deltaClientW = newClientW - st.startClientW;
+      const deltaClientH = (newClientW / st.startClientW) * st.startClientH - st.startClientH;
+      const deltaWorldW = deltaClientW / st.panScale;
+      const deltaWorldH = deltaClientH / st.panScale;
       let newPosX = st.startPosX;
       let newPosY = st.startPosY;
-      if (st.corner === "nw" || st.corner === "sw") {
-        newPosX = st.startPosX + (st.startBaseW * st.startScale - st.startBaseW * newScale);
-      }
-      if (st.corner === "nw" || st.corner === "ne") {
-        newPosY = st.startPosY + (st.startBaseH * st.startScale - st.startBaseH * newScale);
-      }
+      // anchor 逆補正 = drag corner の対角が固定点
+      if (st.corner === "nw" || st.corner === "sw") newPosX = st.startPosX - deltaWorldW;
+      if (st.corner === "nw" || st.corner === "ne") newPosY = st.startPosY - deltaWorldH;
       setOverlayParts((prev) => prev.map((p) => (p.id === st.id ? { ...p, scale: newScale, posX: newPosX, posY: newPosY } : p)));
       return;
     }
@@ -2279,7 +2277,6 @@ ${newActorLine}
                                   style={cornerStyle}
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
-                                    // 基準 = overlay div の client bbox size (scale 適用後の実 client px)
                                     const div = (e.currentTarget.parentElement as HTMLElement | null);
                                     const rect = div?.getBoundingClientRect();
                                     if (!rect) return;
@@ -2291,8 +2288,9 @@ ${newActorLine}
                                       startClientY: e.clientY,
                                       startPosX: p.posX,
                                       startPosY: p.posY,
-                                      startBaseW: rect.width / p.scale,
-                                      startBaseH: rect.height / p.scale,
+                                      startClientW: rect.width,
+                                      startClientH: rect.height,
+                                      panScale: transformRef.current.scale || 1,
                                     };
                                     document.body.style.cursor = cornerStyle.cursor as string;
                                   }}
