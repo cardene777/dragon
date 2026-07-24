@@ -631,10 +631,14 @@ export function CdlEditor(): React.JSX.Element {
    */
   const frozenViewBoxRef = useRef<string | null>(null);
   const frozenEdgeDsRef = useRef<Map<string, string> | null>(null);
+  // 2026-07-24 = text (edge label / lane label 等) の x/y を freeze する必要がある。
+  // edge d を freeze しても cdl は label 位置を新 edge の midpoint で再計算するため label が動く。
+  const frozenTextsRef = useRef<Map<string, { x: string; y: string; transform: string | null }> | null>(null);
   useEffect(() => {
     // sample 切替時は freeze state をリセット (次 drop / drag で再 capture)
     frozenViewBoxRef.current = null;
     frozenEdgeDsRef.current = null;
+    frozenTextsRef.current = null;
   }, [activeSample]);
 
   const captureFrozenState = useCallback((): void => {
@@ -654,16 +658,36 @@ export function CdlEditor(): React.JSX.Element {
       edgeArr.push({ id, index: idx, d });
     });
     frozenEdgeDsRef.current = new Map(edgeArr.map((e) => [`${e.id}#${e.index}`, e.d]));
+    // text element の x / y / transform を全 capture (edge label / lane label 位置固定用)
+    // key = 生 text content + parent data-cdl-* attribute の組合せで一意 identify
+    const textMap = new Map<string, { x: string; y: string; transform: string | null }>();
+    const textIdx = new Map<string, number>();
+    svg.querySelectorAll("text").forEach((t) => {
+      const el = t as SVGTextElement;
+      const parent = el.parentElement as SVGElement | null;
+      const parentTag = parent?.getAttribute("data-cdl-edge") ?? parent?.getAttribute("data-cdl-lane") ?? parent?.getAttribute("data-cdl-node") ?? "";
+      const content = (el.textContent ?? "").slice(0, 32);
+      const baseKey = `${parentTag}::${content}`;
+      const idx = textIdx.get(baseKey) ?? 0;
+      textIdx.set(baseKey, idx + 1);
+      const key = `${baseKey}#${idx}`;
+      textMap.set(key, {
+        x: el.getAttribute("x") ?? "",
+        y: el.getAttribute("y") ?? "",
+        transform: el.getAttribute("transform"),
+      });
+    });
+    frozenTextsRef.current = textMap;
   }, []);
 
   useEffect(() => {
     const stage = previewRef.current;
     if (!stage) return;
-    // frozen state が set されていれば MutationObserver で override する = event-driven freeze
     const freeze = (): void => {
       const frozenVB = frozenViewBoxRef.current;
       const frozenEdges = frozenEdgeDsRef.current;
-      if (!frozenVB || !frozenEdges) return;
+      const frozenTexts = frozenTextsRef.current;
+      if (!frozenVB || !frozenEdges || !frozenTexts) return;
       const svg = stage.querySelector("svg") as SVGSVGElement | null;
       if (!svg) return;
       const currentVB = svg.getAttribute("viewBox");
@@ -683,9 +707,37 @@ export function CdlEditor(): React.JSX.Element {
           el.setAttribute("d", targetD);
         }
       });
+      // text element の x / y / transform を override (label 移動固定)
+      const textIdx = new Map<string, number>();
+      svg.querySelectorAll("text").forEach((t) => {
+        const el = t as SVGTextElement;
+        const parent = el.parentElement as SVGElement | null;
+        const parentTag = parent?.getAttribute("data-cdl-edge") ?? parent?.getAttribute("data-cdl-lane") ?? parent?.getAttribute("data-cdl-node") ?? "";
+        const content = (el.textContent ?? "").slice(0, 32);
+        const baseKey = `${parentTag}::${content}`;
+        const idx = textIdx.get(baseKey) ?? 0;
+        textIdx.set(baseKey, idx + 1);
+        const key = `${baseKey}#${idx}`;
+        const target = frozenTexts.get(key);
+        if (!target) return;
+        if (target.x && el.getAttribute("x") !== target.x) el.setAttribute("x", target.x);
+        if (target.y && el.getAttribute("y") !== target.y) el.setAttribute("y", target.y);
+        if (target.transform && el.getAttribute("transform") !== target.transform) {
+          el.setAttribute("transform", target.transform);
+        }
+      });
+      // z-order fix = parts merge (`__` alias) の全 group element を SVG root の最後に移動
+      // (背景 lane rect / step boxes が後から render されて achievement を隠す symptom fix)
+      const partsGroups = Array.from(svg.querySelectorAll("[data-cdl-node]"))
+        .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"));
+      for (const g of partsGroups) {
+        if (g.parentElement && g.parentElement.lastElementChild !== g) {
+          g.parentElement.appendChild(g);
+        }
+      }
     };
     const observer = new MutationObserver(() => freeze());
-    observer.observe(stage, { subtree: true, attributes: true, childList: true, attributeFilter: ["viewBox", "d"] });
+    observer.observe(stage, { subtree: true, attributes: true, childList: true, attributeFilter: ["viewBox", "d", "x", "y", "transform"] });
     return () => observer.disconnect();
   }, [diagram, src]);
 

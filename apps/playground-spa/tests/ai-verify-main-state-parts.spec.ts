@@ -36,6 +36,28 @@ async function edgeDs(page: import("@playwright/test").Page): Promise<Array<{ id
   });
 }
 
+async function textPositions(page: import("@playwright/test").Page): Promise<Array<{ parent: string; content: string; x: string; y: string }>> {
+  return page.evaluate(() => {
+    return Array.from(document.querySelectorAll(".v4-editor-preview svg text")).map((t) => {
+      const el = t as SVGTextElement;
+      const parent = el.parentElement as SVGElement | null;
+      return {
+        parent: parent?.getAttribute("data-cdl-edge") ?? parent?.getAttribute("data-cdl-lane") ?? parent?.getAttribute("data-cdl-node") ?? "",
+        content: (el.textContent ?? "").slice(0, 20),
+        x: el.getAttribute("x") ?? "",
+        y: el.getAttribute("y") ?? "",
+      };
+    });
+  });
+}
+
+async function elementOrder(page: import("@playwright/test").Page): Promise<string[]> {
+  return page.evaluate(() => {
+    return Array.from(document.querySelectorAll(".v4-editor-preview svg [data-cdl-node], .v4-editor-preview svg [data-cdl-lane]"))
+      .map((el) => el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "");
+  });
+}
+
 async function laneClients(page: import("@playwright/test").Page): Promise<Array<{ id: string; bbox: any }>> {
   return page.evaluate(() => {
     return Array.from(document.querySelectorAll("[data-cdl-lane]:not([data-cdl-node]):not([data-cdl-edge])"))
@@ -110,15 +132,19 @@ test("achievement drop + trophy 中心 drag、 pan container 不変 + 他 lane �
     await page.waitForTimeout(200);
   }
 
-  // drag 前 client / pan snapshot + 全 lane + 全 arrow
+  // drag 前 client / pan snapshot + 全 lane + 全 arrow + text + element order
   const clientBeforeDrag = await page.locator('[data-cdl-lane="client"]').first().boundingBox();
   const panBeforeDrag = await panTransform(page);
   const lanesBeforeDrag = await laneClients(page);
   const edgesBeforeDrag = await edgeDs(page);
+  const textsBeforeDrag = await textPositions(page);
+  const orderBeforeDrag = await elementOrder(page);
   console.log(`[BEFORE-DRAG] Client:`, JSON.stringify(clientBeforeDrag));
   console.log(`[BEFORE-DRAG] pan: ${panBeforeDrag}`);
   console.log(`[BEFORE-DRAG] lanes:`, JSON.stringify(lanesBeforeDrag));
   console.log(`[BEFORE-DRAG] edges:`, JSON.stringify(edgesBeforeDrag));
+  console.log(`[BEFORE-DRAG] text count: ${textsBeforeDrag.length}`);
+  console.log(`[BEFORE-DRAG] order last 3: ${orderBeforeDrag.slice(-3).join(", ")}`);
 
   // mouse.down 直後 pan transform (drag mode 突入時点で pan していないか)
   await page.mouse.down();
@@ -191,4 +217,20 @@ test("achievement drop + trophy 中心 drag、 pan container 不変 + 他 lane �
     const trophyShift = trophyAfterDrag.x - trophyBox.x;
     console.log(`[TROPHY-SHIFT] x shift = ${trophyShift.toFixed(1)}px (期待 = 400 相当)`);
   }
+  const textsAfterUp = await textPositions(page);
+  console.log(`[TEXT-CHECK]`);
+  let textDiff = 0;
+  for (let i = 0; i < Math.min(textsBeforeDrag.length, textsAfterUp.length); i++) {
+    const before = textsBeforeDrag[i];
+    const after = textsAfterUp[i];
+    if (!before || !after) continue;
+    if (before.x !== after.x || before.y !== after.y) {
+      textDiff++;
+      if (textDiff <= 5) console.log(`  NG "${before.content}" (${before.parent}) x=${before.x}→${after.x} y=${before.y}→${after.y}`);
+    }
+  }
+  console.log(`  ${textDiff === 0 ? "✓ all texts unchanged" : `NG ${textDiff}/${textsBeforeDrag.length} texts moved`}`);
+  const orderAfterUp = await elementOrder(page);
+  const orderChanged = JSON.stringify(orderBeforeDrag) !== JSON.stringify(orderAfterUp);
+  console.log(`[ORDER-CHECK] ${orderChanged ? "NG order changed" : "✓ order unchanged"} (last 3: ${orderAfterUp.slice(-3).join(" | ")})`);
 });
