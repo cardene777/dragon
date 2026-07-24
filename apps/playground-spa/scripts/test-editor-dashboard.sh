@@ -67,9 +67,9 @@ fi
 if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   echo ""
   echo "───────────────────────────────────────────────────────────"
-  echo "  Layer 3 = Playwright E2E flagship (6 scenario)"
+  echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
   echo "───────────────────────────────────────────────────────────"
-  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts --reporter=list --timeout=45000 2>&1 | tee /tmp/editor-test-l3.log; then
+  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts --reporter=list --timeout=45000 2>&1 | tee /tmp/editor-test-l3.log; then
     RESULT_L3="pass"
   else
     RESULT_L3="fail"

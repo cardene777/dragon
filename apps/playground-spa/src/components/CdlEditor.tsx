@@ -1349,6 +1349,18 @@ export function CdlEditor(): React.JSX.Element {
       const actorNamesForHover = extractAllActorNames(src);
       const dragInfo = findDragTarget(target, actorNamesForHover);
       // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
+      // 2026-07-24 fix (user 苦情「1つずつをパーツとしても扱って」 対応) = data-cdl-* 未紐付きの text 要素
+      // (arrow label 等) を独立 hover target として扱う fallback。 label の親 group に data-cdl-edge が
+      // 付いていない cdl 側 SVG 構造への 対応。
+      if (!dragInfo && target.tagName === "text") {
+        const textRect = (target as SVGGraphicsElement).getBoundingClientRect();
+        if (textRect.width > 0 && textRect.height > 0) {
+          const content = (target.textContent ?? "").slice(0, 32);
+          const id = `text:${content}`;
+          setHoveredHandle({ id, elementSelector: "", rect: textRect, subNodeKey: undefined });
+          return;
+        }
+      }
       if (dragInfo) {
         // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
         // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
