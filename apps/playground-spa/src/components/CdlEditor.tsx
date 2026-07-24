@@ -22,8 +22,6 @@ import {
   type ResizeCorner,
   type WorldRect,
 } from "@/lib/canvas-pivot-interaction";
-import { computeCollisionShift, type PresetType } from "@/lib/canvas-pivot-auto-adjust";
-import { detectGuidelines, type Guideline } from "@/lib/canvas-pivot-guideline";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -203,119 +201,6 @@ function collectActorNamesFromSrc(src: string): Set<string> {
     }
   }
   return names;
-}
-
-/**
- * canvas pivot UX 修正 (B2 parts add layout shift 防止) = parts 追加前に既存 actors の現 lane 位置を
- * SVG DOM (data-cdl-lane-x/y attribute) から snapshot、 各 actor entry に posX/Y を injection して
- * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
- * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
- */
-function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
-  if (!svg) return src;
-  let next = src;
-  for (const name of Array.from(collectActorNamesFromSrc(src))) {
-    // 既に posX/Y 明示済 actor は skip (extractActorPosition が null 以外を返す)
-    // note: helper import は component 内でしか使えないため、 本 fn は import 経路対応のため CdlEditor 側から呼ぶ
-    const slug = slugifyForLane(name);
-    const el = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-    if (!el) continue;
-    const rx = el.getAttribute("data-cdl-lane-x");
-    const ry = el.getAttribute("data-cdl-lane-y");
-    if (!rx || !ry) continue;
-    const px = parseFloat(rx);
-    const py = parseFloat(ry);
-    if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
-    // 既書出し検出 = 行ごとの regex で actor entry を探し `posX:` が既にあれば skip
-    if (hasPosXInActorEntry(next, name)) continue;
-    next = injectActorPosXY(next, name, px, py);
-  }
-  return next;
-}
-
-/**
- * DSL src 中の対象 actor entry に既に posX field が書出済かを判定する軽量 grep。
- * `- name: { ... posX: ... }` 形式のみ検出、 nested `nodes: { subKey: { posX } }` は無視 (top-level posX が対象)。
- */
-function hasPosXInActorEntry(src: string, targetName: string): boolean {
-  for (const line of src.split("\n")) {
-    const inlineMatch = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{/);
-    if (!inlineMatch) continue;
-    const raw = inlineMatch[1]!.replace(/^"(.+)"$/, "$1");
-    if (raw !== targetName) continue;
-    // top-level posX 判定 = actor 行の brace 内で `posX:` が (nested { } 外に) 存在するか
-    const braceStart = line.indexOf("{");
-    if (braceStart < 0) continue;
-    let depth = 0;
-    let inner = "";
-    for (let i = braceStart; i < line.length; i += 1) {
-      const c = line[i]!;
-      if (c === "{") depth += 1;
-      if (depth === 1 && c !== "{") inner += c;
-      if (c === "}") depth -= 1;
-    }
-    return /(?:^|,)\s*posX\s*:/.test(inner);
-  }
-  return false;
-}
-
-/**
- * 対象 actor に posX/posY (top-level) を注入する。 既存 inline map があれば merge、 bare / short form
- * なら inline map 化。 updateActorPosition と semantic 同じだが posW/posH 未指定に留める (auto layout 幅維持)。
- */
-function injectActorPosXY(src: string, targetName: string, posX: number, posY: number): string {
-  const rx = Math.round(posX);
-  const ry = Math.round(posY);
-  const extra = `posX: ${rx}, posY: ${ry}`;
-  const lines = src.split("\n");
-  const next = lines.map((line) => {
-    // inline mapping (depth-aware)
-    const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{/);
-    if (headMatch) {
-      const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
-      if (rawName === targetName) {
-        const braceStart = headMatch[0]!.length - 1;
-        let depth = 0;
-        let endIdx = -1;
-        for (let i = braceStart; i < line.length; i += 1) {
-          const c = line[i]!;
-          if (c === "{") depth += 1;
-          else if (c === "}") {
-            depth -= 1;
-            if (depth === 0) { endIdx = i; break; }
-          }
-        }
-        if (endIdx < 0) return line;
-        const inner = line.slice(braceStart + 1, endIdx).trim();
-        const merged = inner ? `${inner}, ${extra}` : extra;
-        return `${line.slice(0, braceStart)}{ ${merged} }${line.slice(endIdx + 1)}`;
-      }
-    }
-    // short form: `- name: kind`
-    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
-    if (shortMatch && shortMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${shortMatch[1]}${shortMatch[2]}${shortMatch[3]}{ kind: ${shortMatch[4]!.trim()}, ${extra} }`;
-    }
-    // bare: `- name`
-    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
-    if (bareMatch && bareMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${bareMatch[1]}${bareMatch[2]}: { ${extra} }`;
-    }
-    return line;
-  });
-  return next.join("\n");
-}
-
-/** slugify を canvas-pivot-interaction と同一 logic で local reuse (import cycle 回避)。 */
-function slugifyForLane(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 64) || "n"
-  );
 }
 
 /**
@@ -519,48 +404,6 @@ export function CdlEditor(): React.JSX.Element {
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  /**
-   * drag / drop finalize 時の viewBox re-fit 補償 ref。
-   *
-   * cdl auto-fit viewBox は content bounding box + padding に合わせて毎 render 再計算する。
-   * user が element を drag → posX 書出し → 再 render で viewBox が re-fit → SVG の CTM (screen 変換)
-   * が shift → user 目には「drop した位置と違うところに snap back した」 に見える (実測 = 190 CSS px
-   * drag → 95 CSS px snap back = viewBox min-x が世界座標 467 unit shift = 95 CSS px 分の CTM.e shift)。
-   *
-   * 対策 = finalize 前に SVG CTM を capture、 setSrc 後の useEffect + rAF で新 CTM を測定、 delta を
-   * pan container の tx / ty に inverse で加算して「viewBox shift を pan で打ち消す」 = user 視覚位置は
-   * release 直後に保持される (真の Miro 相当の smooth drag)。
-   */
-  const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
-  /**
-   * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
-   *
-   * 動作 = viewBoxCompensationRef.current に finalize 前の CTM (screen 変換の e/f = translate 成分)
-   * が set 済なら、 rAF で render 完了を待ち、 新 CTM との delta を測って pan transform.tx / ty に
-   * inverse 加算する。 viewBox re-fit で CTM.e が -Δ 変化 → transform.tx += +Δ で相殺 → user 視覚
-   * 位置が release 直後に保持される (真の Miro 相当の smooth drag)。 delta が 0.5px 未満なら無視
-   * (measurement noise 抑制)。
-   */
-  // trigger は diagram (compile 済 CdlDiagram)、 src ではない = src → diagram は 300ms debounce
-  // (line 739 参照)、 src 即時 trigger だと viewBox re-fit 前の古い CTM を測ってしまう。 diagram
-  // 更新のタイミングで rAF measurement すれば新 CTM を捕捉できる。
-  useEffect(() => {
-    const comp = viewBoxCompensationRef.current;
-    if (!comp) return;
-    viewBoxCompensationRef.current = null;
-    const raf = requestAnimationFrame(() => {
-      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      const deltaX = comp.ctmE - ctm.e;
-      const deltaY = comp.ctmF - ctm.f;
-      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
-      setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [diagram]);
-
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
   // 2. #preset=<slug> = catalog / preset detail からの sample 直接 open
@@ -945,7 +788,6 @@ export function CdlEditor(): React.JSX.Element {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transform.scale, transform.tx, transform.ty]);
-  const [activeGuidelines, setActiveGuidelines] = useState<Guideline[]>([]);
 
   const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
@@ -1062,10 +904,7 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // 自由 drag = auto adjust / guideline / snap を全 skip、 mousemove と 1:1 で対象のみ動かす
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1100,38 +939,33 @@ export function CdlEditor(): React.JSX.Element {
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const dx = svgPt.x - st.startSvgX;
     const dy = svgPt.y - st.startSvgY;
+    // 自由 drag = drop 時に 300ms debounce を skip、 即座に compile + setDiagram する。
+    // 従来経路 = setSrc → 300ms 待ち → compile → re-render の間、 clearLiveTransform で CSS transform が
+    // 消え「元 auto layout 位置」 に一瞬戻ってから 300ms 後に新 posX 位置に飛ぶ = user 目視で「勝手に
+    // 調整された、 好きな場所に置けない」 に見える root cause。 immediate compile で flash を排除。
+    //
+    // 更に、 drop 対象 lane だけ posX 書出しだと未指定 lane が cdl 側 expandLaneGapsForEdgeLabels の
+    // pitch 均一化で数十 unit 再配置される。 user 意図「自動調整全 off」 を守るため、 触ってない
+    // 全 lane も現位置 posX で pinning して cdl 側の全 auto layout を disable する。
+    let newSrc: string | null = null;
     if (st.mode === "drag") {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
-      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
+      let next = updateActorPosition(src, st.targetName, newX, newY, st.initPosW, st.initPosH);
+      // 触ってない全 lane を現位置で pinning = pitch 均一化 / expandLanes 等の cdl 側 auto layout 全 off
+      for (const name of extractAllActorNames(src)) {
+        if (name === st.targetName) continue;
+        if (extractActorPosition(next, name)) continue;
+        const slug = slugifyActorName(name);
+        const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
+        if (!laneEl) continue;
+        const rx = laneEl.getAttribute("data-cdl-lane-x");
+        const ry = laneEl.getAttribute("data-cdl-lane-y");
+        if (!rx || !ry) continue;
+        next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
       }
-      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
-      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
-      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue; // 既に固定済 skip
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
+      newSrc = next;
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1149,26 +983,29 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
-      // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
-      // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
-      // auto layout 保持で spacer / footer 等が引きずられない。
       if (st.subNodeKey) {
-        setSrc((prev) => updateActorNodePosition(prev, st.targetName, st.subNodeKey!, anchorX, anchorY, newW, newH));
+        newSrc = updateActorNodePosition(src, st.targetName, st.subNodeKey!, anchorX, anchorY, newW, newH);
       } else {
-        setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
+        newSrc = updateActorPosition(src, st.targetName, anchorX, anchorY, newW, newH);
       }
     }
-    // live CSS transform を clear (post-render で真の DSL 値が適用される)
-    clearLiveTransform(st.targetName);
-    // auto-adjust transient shift も全 clear (drop で消える spec §4)
-    if (svg) clearAutoAdjustShifts(svg);
-    // guideline も全 clear
-    setActiveGuidelines([]);
+    if (newSrc !== null) {
+      setSrc(newSrc);
+      // debounce 待ちの pending timer を kill、 immediate compile で diagram を即更新
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      try {
+        const d = textDslToDiagram(newSrc, { partsCatalog });
+        setDiagram(d);
+      } catch {
+        // parse fail は debounce 経路の setError に任せる (immediate compile では黙って skip)
+      }
+      // clearLiveTransform を次 frame に遅延 = React re-render (setDiagram の反映) 後に CSS transform を
+      // 消す = element は既に新 posX 位置に描画済のため flash なし。
+      const target = st.targetName;
+      window.requestAnimationFrame(() => clearLiveTransform(target));
+    } else {
+      clearLiveTransform(st.targetName);
+    }
     return true;
   };
 
@@ -1245,90 +1082,6 @@ export function CdlEditor(): React.JSX.Element {
     if (corner === "nw" || corner === "se") return "nwse-resize";
     return "nesw-resize";
   };
-
-  const clearAutoAdjustShifts = useCallback((svg: SVGSVGElement): void => {
-    svg.querySelectorAll<SVGGraphicsElement>('[data-auto-adjust-shift="1"]').forEach((el) => {
-      el.style.transform = "";
-      el.removeAttribute("data-auto-adjust-shift");
-    });
-  }, []);
-
-  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
-    if (commandBypass) {
-      setActiveGuidelines([]);
-      return;
-    }
-    const draggedSlug = slugifyActorName(draggedName);
-    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"]`);
-    if (draggedEls.length === 0) {
-      setActiveGuidelines([]);
-      return;
-    }
-    const dragBB = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
-    const targets: Array<{ id: string; rect: DOMRect }> = [];
-    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane]").forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || "";
-      if (id === draggedSlug || id === draggedName) return;
-      targets.push({ id, rect: el.getBoundingClientRect() });
-    });
-    const stageRect = previewRef.current?.getBoundingClientRect();
-    if (!stageRect) {
-      setActiveGuidelines([]);
-      return;
-    }
-    // stage 相対座標に変換
-    const dragBBRel = {
-      x: dragBB.left - stageRect.left,
-      y: dragBB.top - stageRect.top,
-      width: dragBB.width,
-      height: dragBB.height,
-    };
-    const targetsRel = targets.map((t) => ({
-      id: t.id,
-      rect: {
-        x: t.rect.left - stageRect.left,
-        y: t.rect.top - stageRect.top,
-        width: t.rect.width,
-        height: t.rect.height,
-      },
-    }));
-    const guides = detectGuidelines(dragBBRel, targetsRel);
-    setActiveGuidelines(guides);
-  }, []);
-
-  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
-    // preset type を DSL の type: 行から抽出
-    const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
-    const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
-    // まず前回 tick の shift を全 clear
-    clearAutoAdjustShifts(svg);
-    if (commandBypass) return; // Command bypass = 何もしない
-
-    // drag 対象の rect を取得
-    const draggedSlug = slugifyActorName(draggedName);
-    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"], [data-cdl-node="${draggedSlug}"]`);
-    if (draggedEls.length === 0) return;
-    const draggedRect = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
-
-    // 他 lane / node に対して collision shift を計算 + CSS transform 適用
-    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane], [data-cdl-node]").forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
-      // drag 対象パーツは対象外 (自分自身を shift しない)
-      if (id === draggedSlug || id === draggedName || id.startsWith(`${draggedSlug}-`) || id.startsWith(`${draggedName}-`)) return;
-      const rect = el.getBoundingClientRect();
-      const shift = computeCollisionShift(
-        { x: draggedRect.left, y: draggedRect.top, width: draggedRect.width, height: draggedRect.height },
-        { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
-        preset,
-        false,
-      );
-      if (shift.dx !== 0 || shift.dy !== 0) {
-        el.style.transform = `translate(${shift.dx}px, ${shift.dy}px)`;
-        el.style.transition = "transform 200ms ease-out";
-        el.setAttribute("data-auto-adjust-shift", "1");
-      }
-    });
-  }, [src, clearAutoAdjustShifts]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
@@ -1712,10 +1465,8 @@ animation:
     }
     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // canvas pivot UX 修正 (B2) = parts 追加前に既存 actors の現 lane 位置を pinning、
-    // 全 lane 再配置による既存 header shift を防ぐ
-    const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
-    const newSrc = appendActorLine(pinnedSrc, newActorLine);
+    // 自由 drag = parts 追加前の全 lane pinning は skip、 既存 actors はそのまま維持
+    const newSrc = appendActorLine(src, newActorLine);
     if (newSrc === null) {
       // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
       if (!confirmReplaceIfDirty(item.title)) {
@@ -1887,9 +1638,8 @@ ${newActorLine}
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // canvas pivot UX 修正 (B2) = parts click 追加前に既存 actors の現 lane 位置を pinning
-                    const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
-                    const appended = appendActorLine(pinnedSrcClick, newActorLine);
+                    // 自由 drag = parts click 追加前の全 lane pinning は skip
+                    const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
@@ -2120,46 +1870,6 @@ ${newActorLine}
               <div className="v4-editor-empty">読み込み中...</div>
             )}
           </div>
-          {activeGuidelines.length > 0 && (() => {
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            if (!stageRect) return null;
-            return activeGuidelines.map((g, i) => {
-              if (g.axis === "horizontal") {
-                return (
-                  <div
-                    key={`gl-h-${i}`}
-                    data-guideline="horizontal"
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      top: `${g.coord}px`,
-                      height: "0px",
-                      borderTop: "1px dashed #d97706",
-                      pointerEvents: "none",
-                      zIndex: 105,
-                    }}
-                  />
-                );
-              }
-              return (
-                <div
-                  key={`gl-v-${i}`}
-                  data-guideline="vertical"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: `${g.coord}px`,
-                    width: "0px",
-                    borderLeft: "1px dashed #d97706",
-                    pointerEvents: "none",
-                    zIndex: 105,
-                  }}
-                />
-              );
-            });
-          })()}
           {hoveredHandle && (() => {
             // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
             const stageRect = previewRef.current?.getBoundingClientRect();
