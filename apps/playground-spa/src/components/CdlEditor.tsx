@@ -1353,10 +1353,28 @@ export function CdlEditor(): React.JSX.Element {
       if (preCtm && !isPartsActor) {
         viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
       }
-      // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = 対象 actor の posX/Y のみ更新。
-      // 元 impl は「全 lane 座標 pin」 で drag 対象以外の Client/API/DB にも posX 書出しを勝手に発火、
-      // user が編集していない actor の DSL 行を意図せず変更する副作用があった。 個別独立要素の思想に反する。
-      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
+      // pin restore = drag 対象 lane 更新 + drag 対象以外の lane も現在位置で pin。
+      // pin を落とすと cdl の re-layout で「勝手に位置変わる」 症状発火するため保持。
+      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      setSrc((prev) => {
+        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
+        if (svgEl) {
+          for (const name of extractAllActorNames(prev)) {
+            if (name === st.targetName) continue;
+            const cur2 = extractActorPosition(next, name);
+            if (cur2) continue;
+            const slug2 = slugifyActorName(name);
+            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
+            if (!el2) continue;
+            const rx = el2.getAttribute("data-cdl-lane-x");
+            const ry = el2.getAttribute("data-cdl-lane-y");
+            if (rx && ry) {
+              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
+            }
+          }
+        }
+        return next;
+      });
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1964,11 +1982,10 @@ animation:
     }
     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = pinExistingActorLayoutFromSvg 経路削除。
-    // 元 impl は parts drop 前に既存 Client/API/DB の座標を勝手に DSL に書出し、 user が編集していない
-    // actor 行に posX/posY/posW/posH を注入する副作用があった。 個別独立要素の思想に反する。
-    // 代わりに freeze useEffect (viewBox + edge d + text + z-order override) で lane 静止を担保する。
-    const newSrc = appendActorLine(src, newActorLine);
+    // pin restore = parts drop 前に既存 actors の現 lane 位置を DSL に書出し layout 固定。
+    // 「勝手に移動」 と逆の機構 (削るとむしろ cdl が re-layout して全 lane shift = user 「崩れる」 症状)。
+    const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
+    const newSrc = appendActorLine(pinnedSrc, newActorLine);
     // freeze state capture = drop 直前の viewBox + edge d を snapshot、
     // drop 後の cdl re-render で MutationObserver が override して static 化する (2026-07-24 fix)
     captureFrozenState();
@@ -2143,9 +2160,9 @@ ${newActorLine}
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // 2026-07-24 fix (勝手に移動する機能全部削除) = pinExistingActorLayoutFromSvg 経路削除
-                    void svgElClick;
-                    const appended = appendActorLine(src, newActorLine);
+                    // pin restore (drop 経路と同じ、 layout 固定用の防御 pin)
+                    const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
+                    const appended = appendActorLine(pinnedSrcClick, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
