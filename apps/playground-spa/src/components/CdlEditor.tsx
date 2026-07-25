@@ -456,8 +456,6 @@ export function CdlEditor(): React.JSX.Element {
   // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
   // mousemove で diagonal delta から新 scale を計算。
   const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; startBboxLeft: number; startBboxTop: number; panScale: number; panTx: number; panTy: number } | null>(null);
-  // rAF throttle = mousemove burst で React re-render 追いつかない対策、 60fps 上限で state 更新
-  const mousemoveRafRef = useRef<{ pending: boolean; lastX: number; lastY: number; shiftKey: boolean; altKey: boolean }>({ pending: false, lastX: 0, lastY: 0, shiftKey: false, altKey: false });
   // rotate ref = Alt + corner drag で回転、 overlay div の中心 client 座標基準で角度計算
   const overlayRotateRef = useRef<{ id: string; startRotate: number; centerClientX: number; centerClientY: number; startAngleRad: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
@@ -1621,30 +1619,7 @@ export function CdlEditor(): React.JSX.Element {
     setRubberBand({ sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY });
   };
 
-  // rAF throttle wrapper = drag / rotate / resize の高頻度 mousemove を 60fps に絞る
-  const flushMouseMove = (): void => {
-    const { lastX, lastY, shiftKey } = mousemoveRafRef.current;
-    // synthetic MouseEvent 相当 (clientX/Y + shiftKey のみ使う downstream logic)
-    const syntheticEvent = { clientX: lastX, clientY: lastY, shiftKey } as unknown as React.MouseEvent<HTMLDivElement>;
-    processMouseMove(syntheticEvent);
-    mousemoveRafRef.current.pending = false;
-  };
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
-    // resize / drag / rotate 中のみ rAF throttle、 それ以外 (pan / hover 追跡) は即時
-    if (overlayResizeRef.current || overlayDragRef.current || overlayRotateRef.current) {
-      mousemoveRafRef.current.lastX = e.clientX;
-      mousemoveRafRef.current.lastY = e.clientY;
-      mousemoveRafRef.current.shiftKey = e.shiftKey;
-      mousemoveRafRef.current.altKey = e.altKey;
-      if (!mousemoveRafRef.current.pending) {
-        mousemoveRafRef.current.pending = true;
-        requestAnimationFrame(flushMouseMove);
-      }
-      return;
-    }
-    processMouseMove(e);
-  };
-  const processMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
     // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
     // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
