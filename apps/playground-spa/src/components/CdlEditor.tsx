@@ -25,6 +25,7 @@ import {
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
+import { replaceTextInDsl } from "@/lib/text-edit-replace";
 import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
@@ -1702,8 +1703,10 @@ export function CdlEditor(): React.JSX.Element {
     if (!textEditing) return;
     const original = textEditing.originalText;
     setTextEditing(null);
-    if (newText === original || !newText.trim()) return;
-    setSrc((prev) => prev.split(original).join(newText));
+    // 2026-07-25 text 編集 DSL 精緻化 (CAR-2139 scope-out fix)
+    // 重複 text (Client が 4 箇所等) の全置換副作用を回避、 field scope 別に 1 箇所置換を試みる。
+    // SSOT = src/lib/text-edit-replace.ts (pure helper、 8 unit test)
+    setSrc((prev) => replaceTextInDsl(prev, original, newText));
   };
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
