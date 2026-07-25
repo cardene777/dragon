@@ -3070,45 +3070,27 @@ ${newActorLine}
             );
           })}
           {hoveredHandle && (() => {
-            // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
+            // 2026-07-25 hover UI 簡素化 = hover は 薄 border indicator のみ (Miro/Figma 相当)、 handle 削除。
+            // handle は 選択状態でのみ表示 (次 phase で cdl 要素 selection 統合、 現状は overlay parts のみ)。
             const stageRect = previewRef.current?.getBoundingClientRect();
             if (!stageRect) return null;
             const r = hoveredHandle.rect;
             const left = r.left - stageRect.left;
             const top = r.top - stageRect.top;
-            const HANDLE = 10;
-            const style = (x: number, y: number, cursor: string) => ({
-              position: "absolute" as const,
-              left: `${x - HANDLE / 2}px`,
-              top: `${y - HANDLE / 2}px`,
-              width: `${HANDLE}px`,
-              height: `${HANDLE}px`,
-              background: "#fff",
-              border: "1.5px solid #8a5a2a",
-              borderRadius: "2px",
-              cursor,
-              zIndex: 100,
-              pointerEvents: "none" as const,
-            });
             return (
-              <>
-                <div style={style(left, top, "nwse-resize")} data-corner="nw" />
-                <div style={style(left + r.width, top, "nesw-resize")} data-corner="ne" />
-                <div style={style(left, top + r.height, "nesw-resize")} data-corner="sw" />
-                <div style={style(left + r.width, top + r.height, "nwse-resize")} data-corner="se" />
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${left}px`,
-                    top: `${top}px`,
-                    width: `${r.width}px`,
-                    height: `${r.height}px`,
-                    border: "1.5px dashed rgba(138, 90, 42, 0.5)",
-                    pointerEvents: "none",
-                    zIndex: 99,
-                  }}
-                />
-              </>
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${r.width}px`,
+                  height: `${r.height}px`,
+                  border: "1px dashed rgba(37, 99, 235, 0.35)",
+                  pointerEvents: "none",
+                  zIndex: 99,
+                  boxSizing: "border-box",
+                }}
+              />
             );
           })()}
         </div>
