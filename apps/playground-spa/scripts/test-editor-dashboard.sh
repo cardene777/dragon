@@ -1,0 +1,111 @@
+#!/bin/bash
+# editor 全 4 層 test を まとめ実行 + summary 出力する dashboard script。
+#
+# 使い方:
+#   pnpm test:editor         # 全 4 層一括
+#   pnpm test:editor --layer 2  # 特定 layer のみ
+#
+# 前提:
+#   - dev server (localhost:4323) 起動済
+#   - AI_VERIFY_BASE_URL env 変数で URL override 可 (default localhost:4323)
+
+set -e
+cd "$(dirname "$0")/.."
+
+BASE_URL="${AI_VERIFY_BASE_URL:-http://localhost:4323}"
+LAYER_FILTER="${LAYER:-all}"
+
+# 引数 parse
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --layer) LAYER_FILTER="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  editor 4 層 test dashboard"
+echo "  BASE_URL = $BASE_URL"
+echo "  LAYER    = $LAYER_FILTER (all / 1 / 2 / 3 / 4)"
+echo "═══════════════════════════════════════════════════════════"
+
+RESULT_L1="skip"
+RESULT_L2="skip"
+RESULT_L3="skip"
+RESULT_L4="skip"
+COUNT_L1=0
+COUNT_L2=0
+COUNT_L3=0
+COUNT_L4=0
+
+if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "1" ]]; then
+  echo ""
+  echo "───────────────────────────────────────────────────────────"
+  echo "  Layer 1 = geometry / DSL parse unit test (overlay-dsl)"
+  echo "───────────────────────────────────────────────────────────"
+  if npx vitest run src/lib/overlay-dsl.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l1.log; then
+    RESULT_L1="pass"
+  else
+    RESULT_L1="fail"
+  fi
+  COUNT_L1=$(grep -oE "Tests[[:space:]]+[0-9]+ passed" /tmp/editor-test-l1.log | grep -oE "[0-9]+" | head -1)
+fi
+
+if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "2" ]]; then
+  echo ""
+  echo "───────────────────────────────────────────────────────────"
+  echo "  Layer 2 = state machine + align pure test"
+  echo "───────────────────────────────────────────────────────────"
+  if npx vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts src/lib/text-edit-replace.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l2.log; then
+    RESULT_L2="pass"
+  else
+    RESULT_L2="fail"
+  fi
+  COUNT_L2=$(grep -oE "Tests[[:space:]]+[0-9]+ passed" /tmp/editor-test-l2.log | grep -oE "[0-9]+" | head -1)
+fi
+
+if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
+  echo ""
+  echo "───────────────────────────────────────────────────────────"
+  echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
+  echo "───────────────────────────────────────────────────────────"
+  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts tests/editor-cdl-selection-text-edit.spec.ts --reporter=list --timeout=45000 2>&1 | tee /tmp/editor-test-l3.log; then
+    RESULT_L3="pass"
+  else
+    RESULT_L3="fail"
+  fi
+  COUNT_L3=$(grep -oE "^[[:space:]]*[0-9]+ passed" /tmp/editor-test-l3.log | grep -oE "[0-9]+" | head -1)
+fi
+
+if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "4" ]]; then
+  echo ""
+  echo "───────────────────────────────────────────────────────────"
+  echo "  Layer 4 = visual regression (4 baseline snapshot)"
+  echo "───────────────────────────────────────────────────────────"
+  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-visual.spec.ts --reporter=list --timeout=60000 2>&1 | tee /tmp/editor-test-l4.log; then
+    RESULT_L4="pass"
+  else
+    RESULT_L4="fail"
+  fi
+  COUNT_L4=$(grep -oE "^[[:space:]]*[0-9]+ passed" /tmp/editor-test-l4.log | grep -oE "[0-9]+" | head -1)
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "  SUMMARY"
+echo "═══════════════════════════════════════════════════════════"
+printf "  %-40s %-6s %s\n" "Layer 1 = geometry / DSL parse (fast)" "$RESULT_L1" "$COUNT_L1 tests"
+printf "  %-40s %-6s %s\n" "Layer 2 = state machine (fast)"        "$RESULT_L2" "$COUNT_L2 tests"
+printf "  %-40s %-6s %s\n" "Layer 3 = E2E flagship (medium)"       "$RESULT_L3" "$COUNT_L3 tests"
+printf "  %-40s %-6s %s\n" "Layer 4 = visual regression (slow)"    "$RESULT_L4" "$COUNT_L4 tests"
+echo "═══════════════════════════════════════════════════════════"
+
+if [[ "$RESULT_L1" == "fail" || "$RESULT_L2" == "fail" || "$RESULT_L3" == "fail" || "$RESULT_L4" == "fail" ]]; then
+  echo "  ✗ overall = FAIL"
+  echo "═══════════════════════════════════════════════════════════"
+  exit 1
+else
+  echo "  ✓ overall = PASS"
+  echo "═══════════════════════════════════════════════════════════"
+  exit 0
+fi

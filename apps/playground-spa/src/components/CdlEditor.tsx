@@ -22,8 +22,11 @@ import {
   type ResizeCorner,
   type WorldRect,
 } from "@/lib/canvas-pivot-interaction";
-import { computeCollisionShift, type PresetType } from "@/lib/canvas-pivot-auto-adjust";
-import { detectGuidelines, type Guideline } from "@/lib/canvas-pivot-guideline";
+// 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
+// user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
+import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
+import { replaceTextInDsl } from "@/lib/text-edit-replace";
+import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -211,6 +214,8 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
  * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
  */
+// 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
+
 function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
   if (!svg) return src;
   let next = src;
@@ -226,9 +231,17 @@ function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): 
     const px = parseFloat(rx);
     const py = parseFloat(ry);
     if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
+    // decision-log 2026-07-24-dragon-editor-full-revert-simplify = user 意図「auto 補正全 disable」 の
+    // core fix。 従来は posX/Y のみ pin していたが、 achievement drop で lane 幅再計算により Client
+    // lane が 252px shift する root cause だった。 posW/posH も同 attribute から snapshot して pin、
+    // 全 lane 完全固定で「独立要素として存在」 の思想を実現。
+    const rw = el.getAttribute("data-cdl-lane-w");
+    const rh = el.getAttribute("data-cdl-lane-h");
+    const pw = rw && Number.isFinite(parseFloat(rw)) ? parseFloat(rw) : undefined;
+    const ph = rh && Number.isFinite(parseFloat(rh)) ? parseFloat(rh) : undefined;
     // 既書出し検出 = 行ごとの regex で actor entry を探し `posX:` が既にあれば skip
     if (hasPosXInActorEntry(next, name)) continue;
-    next = injectActorPosXY(next, name, px, py);
+    next = injectActorPosXY(next, name, px, py, pw, ph);
   }
   return next;
 }
@@ -260,13 +273,18 @@ function hasPosXInActorEntry(src: string, targetName: string): boolean {
 }
 
 /**
- * 対象 actor に posX/posY (top-level) を注入する。 既存 inline map があれば merge、 bare / short form
- * なら inline map 化。 updateActorPosition と semantic 同じだが posW/posH 未指定に留める (auto layout 幅維持)。
+ * 対象 actor に posX/posY (+ optional posW/posH) を注入する。 既存 inline map があれば merge、
+ * bare / short form なら inline map 化。 posW/posH が渡された場合は追加 pin (2026-07-24 fix、
+ * decision-log dragon-editor-full-revert-simplify、 achievement drop で lane 幅再計算 → 他 lane
+ * 252px shift の root cause 対応)。
  */
-function injectActorPosXY(src: string, targetName: string, posX: number, posY: number): string {
+function injectActorPosXY(src: string, targetName: string, posX: number, posY: number, posW?: number, posH?: number): string {
   const rx = Math.round(posX);
   const ry = Math.round(posY);
-  const extra = `posX: ${rx}, posY: ${ry}`;
+  const parts: string[] = [`posX: ${rx}`, `posY: ${ry}`];
+  if (posW !== undefined && Number.isFinite(posW)) parts.push(`posW: ${Math.round(posW)}`);
+  if (posH !== undefined && Number.isFinite(posH)) parts.push(`posH: ${Math.round(posH)}`);
+  const extra = parts.join(", ");
   const lines = src.split("\n");
   const next = lines.map((line) => {
     // inline mapping (depth-aware)
@@ -343,12 +361,110 @@ function appendActorLine(src: string, newLine: string): string | null {
 
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
-  const [src, setSrc] = useState<string>(SAMPLES[0].code);
+  const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
+  // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
+  // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
+  const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
+    setSrcRaw((prev) => {
+      const nextSrc = typeof updater === "function" ? updater(prev) : updater;
+      if (nextSrc !== prev) {
+        historyRef.current.past.push(prev);
+        if (historyRef.current.past.length > 50) historyRef.current.past.shift();
+        historyRef.current.future = []; // 新 edit で redo 消去
+        lastCommittedSrcRef.current = nextSrc;
+      }
+      return nextSrc;
+    });
+  }, []);
+  const setSrcSilent = setSrcRaw; // undo / redo 経路用 (history に push しない)
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
   const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
+  // 2026-07-24 architectural refactor = parts を cdl DSL から完全切離、 独立 overlay 化。
+  // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
+  // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
+  // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; item: CatalogItem };
+  const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
+  const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
+  // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
+  // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
+  // `cdl-edge:{id}` = cdl edge、 `text:{content}` = arrow label 等。
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // 2026-07-25 cdl 要素 selection = `cdl:{id}` の selector を保存、 stage-level UI で bbox 再測定に使う
+  const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
+  const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
+  // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
+  const [textEditing, setTextEditing] = useState<{ originalText: string; bbox: { left: number; top: number; width: number; height: number }; fontSize: number } | null>(null);
+  // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
+  // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
+  const [groups, setGroups] = useState<Record<string, string[]>>({});
+  // 2026-07-24 rubber band 選択 (Task #90) = 背景 drag で area 内 全 overlay 選択。
+  // 状態 = { startClientX, startClientY, currentClientX, currentClientY } を rubber band drag 中保持。
+  const [rubberBand, setRubberBand] = useState<{ sx: number; sy: number; cx: number; cy: number } | null>(null);
+  // 2026-07-24 Undo / Redo (Feature 1) = src の history stack。 過去 50 世代保持、 Cmd+Z で戻る、 Cmd+Shift+Z で進む。
+  const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
+  const lastCommittedSrcRef = useRef<string>("");
+  // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
+  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number }>>([]);
+  // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
+  // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
+  const [colorPickerFor, setColorPickerFor] = useState<string | null>(null);
+  // 2026-07-25 shape client bbox measure (stage-local client px)。
+  // 「囲いサイズぐちゃぐちゃ」 root cause = pan.scale factor 抜けの座標系変換 bug、 全経路を client 空間に統一。
+  // 用途 = 選択 UI (border/handle/toolbar) を stage-level に portal render するための実 client bbox。
+  const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [shapeClientBboxes, setShapeClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const stageRect = previewRef.current?.getBoundingClientRect();
+      if (!stageRect) return;
+      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      for (const p of overlayParts) {
+        const div = overlayRefs.current[p.id];
+        if (!div) continue;
+        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+        if (shapes.length === 0) continue;
+        let maxArea = 0;
+        let best: DOMRect | null = null;
+        for (const s of Array.from(shapes)) {
+          const r = (s as SVGGraphicsElement).getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          const a = r.width * r.height;
+          if (a > maxArea) { maxArea = a; best = r; }
+        }
+        if (!best) continue;
+        // stage 相対 client px = stage 内 absolute で render 可能な bbox
+        next[p.id] = {
+          left: best.left - stageRect.left,
+          top: best.top - stageRect.top,
+          width: best.width,
+          height: best.height,
+        };
+      }
+      const changed = Object.keys(next).length !== Object.keys(shapeClientBboxes).length ||
+        Object.entries(next).some(([id, b]) => {
+          const prev = shapeClientBboxes[id];
+          return !prev || Math.abs(prev.left - b.left) > 0.5 || Math.abs(prev.top - b.top) > 0.5 || Math.abs(prev.width - b.width) > 0.5 || Math.abs(prev.height - b.height) > 0.5;
+        });
+      if (changed) setShapeClientBboxes(next);
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayParts]);
+
+  const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
+  // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
+  const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
+  // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
+  // mousemove で diagonal delta から新 scale を計算。
+  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; startBboxLeft: number; startBboxTop: number; panScale: number; panTx: number; panTy: number } | null>(null);
+  // rotate ref = Alt + corner drag で回転、 overlay div の中心 client 座標基準で角度計算
+  const overlayRotateRef = useRef<{ id: string; startRotate: number; centerClientX: number; centerClientY: number; startAngleRad: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
   // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
@@ -516,50 +632,319 @@ export function CdlEditor(): React.JSX.Element {
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
+  // 2026-07-25 pan / zoom 変化時に shape client bbox re-measure = 選択 UI 追従
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const stageRect = previewRef.current?.getBoundingClientRect();
+      if (!stageRect) return;
+      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      for (const id of Object.keys(overlayRefs.current)) {
+        const div = overlayRefs.current[id];
+        if (!div) continue;
+        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+        if (shapes.length === 0) continue;
+        let maxArea = 0;
+        let best: DOMRect | null = null;
+        for (const s of Array.from(shapes)) {
+          const r = (s as SVGGraphicsElement).getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          const a = r.width * r.height;
+          if (a > maxArea) { maxArea = a; best = r; }
+        }
+        if (!best) continue;
+        next[id] = { left: best.left - stageRect.left, top: best.top - stageRect.top, width: best.width, height: best.height };
+      }
+      setShapeClientBboxes(next);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [transform]);
+  // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const stageRect = previewRef.current?.getBoundingClientRect();
+      if (!stageRect) return;
+      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      for (const sid of selectedIds) {
+        if (!sid.startsWith("cdl:")) continue;
+        const key = sid.slice("cdl:".length);
+        const selector = cdlSelectorMap[key];
+        if (!selector || !previewRef.current) continue;
+        const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
+        if (!el || typeof el.getBoundingClientRect !== "function") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+      }
+      setCdlClientBboxes(next);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [selectedIds, transform, cdlSelectorMap]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  /**
-   * drag / drop finalize 時の viewBox re-fit 補償 ref。
-   *
-   * cdl auto-fit viewBox は content bounding box + padding に合わせて毎 render 再計算する。
-   * user が element を drag → posX 書出し → 再 render で viewBox が re-fit → SVG の CTM (screen 変換)
-   * が shift → user 目には「drop した位置と違うところに snap back した」 に見える (実測 = 190 CSS px
-   * drag → 95 CSS px snap back = viewBox min-x が世界座標 467 unit shift = 95 CSS px 分の CTM.e shift)。
-   *
-   * 対策 = finalize 前に SVG CTM を capture、 setSrc 後の useEffect + rAF で新 CTM を測定、 delta を
-   * pan container の tx / ty に inverse で加算して「viewBox shift を pan で打ち消す」 = user 視覚位置は
-   * release 直後に保持される (真の Miro 相当の smooth drag)。
-   */
-  const viewBoxCompensationRef = useRef<{ ctmE: number; ctmF: number } | null>(null);
-  /**
-   * src 更新後の viewBox re-fit 補償 useEffect (finalize 経路の drag / drop / resize から発火)。
-   *
-   * 動作 = viewBoxCompensationRef.current に finalize 前の CTM (screen 変換の e/f = translate 成分)
-   * が set 済なら、 rAF で render 完了を待ち、 新 CTM との delta を測って pan transform.tx / ty に
-   * inverse 加算する。 viewBox re-fit で CTM.e が -Δ 変化 → transform.tx += +Δ で相殺 → user 視覚
-   * 位置が release 直後に保持される (真の Miro 相当の smooth drag)。 delta が 0.5px 未満なら無視
-   * (measurement noise 抑制)。
-   */
-  // trigger は diagram (compile 済 CdlDiagram)、 src ではない = src → diagram は 300ms debounce
-  // (line 739 参照)、 src 即時 trigger だと viewBox re-fit 前の古い CTM を測ってしまう。 diagram
-  // 更新のタイミングで rAF measurement すれば新 CTM を捕捉できる。
+  // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
+  const pendingClearRef = useRef<string | null>(null);
+  // drag 開始時の hoveredHandle.rect を save = drag 中 rect 追従計算の基準点
+  const hoveredHandleInitRectRef = useRef<DOMRect | null>(null);
+  // viewBoxCompensation は「勝手な移動」 で user 意図 (drop 位置ぴったり) を破壊するため削除。
+
+  // ref 経由で state を読む (useEffect deps 頻繁変化で listener 再登録の性能問題 + stale closure 回避)
+  const selectedIdsRef = useRef(selectedIds);
+  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+  const overlayPartsRef = useRef(overlayParts);
+  useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
+
+  // 2026-07-24 Miro 相当 keyboard shortcut (Task #88 + #91):
+  //   Cmd+G / Ctrl+G           = group 作成
+  //   Cmd+Shift+G              = ungroup
+  //   Delete / Backspace       = selection 削除
+  //   Cmd+A                    = 全 overlay select
+  //   Cmd+D                    = duplicate (posX/Y に +30 offset で複製)
+  //   Escape                   = selection clear
+  //   矢印キー                 = 1px nudge (shift 併用で 10px)
   useEffect(() => {
-    const comp = viewBoxCompensationRef.current;
-    if (!comp) return;
-    viewBoxCompensationRef.current = null;
-    const raf = requestAnimationFrame(() => {
-      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      const deltaX = comp.ctmE - ctm.e;
-      const deltaY = comp.ctmF - ctm.f;
-      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
-      setTransform((t) => ({ ...t, tx: t.tx + deltaX, ty: t.ty + deltaY }));
+    const onKey = (e: KeyboardEvent): void => {
+      const ctrlOrCmd = e.metaKey || e.ctrlKey;
+      // 入力 field 上では 発火しない (CodeMirror / input 等)
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".cm-content"))) return;
+      // Escape = selection clear + context menu / color picker close
+      if (e.key === "Escape") {
+        setSelectedIds([]);
+        setContextMenu(null);
+        setColorPickerFor(null);
+        return;
+      }
+      // Cmd+Z = Undo、 Cmd+Shift+Z (or Cmd+Y) = Redo (Feature 1)
+      if (ctrlOrCmd && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          const future = historyRef.current.future;
+          if (future.length === 0) return;
+          const next = future.pop()!;
+          historyRef.current.past.push(lastCommittedSrcRef.current);
+          lastCommittedSrcRef.current = next;
+          setSrcSilent(next);
+        } else {
+          const past = historyRef.current.past;
+          if (past.length === 0) return;
+          const prev = past.pop()!;
+          historyRef.current.future.push(lastCommittedSrcRef.current);
+          lastCommittedSrcRef.current = prev;
+          setSrcSilent(prev);
+        }
+        return;
+      }
+      // Cmd+C = clipboard に selection の overlay parts snapshot、 Cmd+V = paste (Feature 3)
+      if (ctrlOrCmd && (e.key === "c" || e.key === "C")) {
+        e.preventDefault();
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        clipboardRef.current = overlayIds
+          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale }));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "v" || e.key === "V")) {
+        e.preventDefault();
+        if (clipboardRef.current.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const clip of clipboardRef.current) {
+            const baseName = clip.kind.replace(/-/g, "");
+            let n = 1;
+            while (next.includes(`- ${baseName}${n}:`)) n++;
+            const newAlias = `${baseName}${n}`;
+            const scaleField = Math.abs(clip.scale - 1) > 0.001 ? `, scale: ${clip.scale.toFixed(3)}` : "";
+            const newLine = `  - ${newAlias}: { kind: ${clip.kind}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField} }`;
+            const appended = appendActorLine(next, newLine);
+            if (appended !== null) next = appended;
+          }
+          return next;
+        });
+        return;
+      }
+      // Alt+{L/R/E/T/B/M/H/V} = alignment (Feature 6)
+      if (e.altKey && ["l", "L", "r", "R", "e", "E", "t", "T", "b", "B", "m", "M", "h", "H", "v", "V"].includes(e.key)) {
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIds.length < 2) return;
+        e.preventDefault();
+        const mode: AlignMode =
+          e.key === "l" || e.key === "L" ? "left" :
+          e.key === "r" || e.key === "R" ? "right" :
+          e.key === "e" || e.key === "E" ? "center-h" :
+          e.key === "t" || e.key === "T" ? "top" :
+          e.key === "b" || e.key === "B" ? "bottom" :
+          e.key === "m" || e.key === "M" ? "middle-v" :
+          e.key === "h" || e.key === "H" ? "distribute-h" :
+          "distribute-v";
+        const parts = overlayIds
+          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
+          .filter((p): p is NonNullable<typeof p> => !!p)
+          .map((p) => ({ id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 }));
+        const result = alignOverlayParts(parts, mode);
+        if (result.size === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const [id, pos] of result) {
+            const p = overlayPartsRef.current.find((x) => x.id === id);
+            if (p) next = writeOverlayPartToDsl(next, id, pos.posX, pos.posY, p.scale, p.rotate);
+          }
+          return next;
+        });
+        return;
+      }
+      // Cmd+] = bring forward (z-order 内で 1 個上)、 Cmd+[ = send backward (Feature 5)
+      // 実装 = DSL 内の actor 行順序を上下入替 (下 = 前面、 上 = 背面 = SVG 描画順)
+      if (ctrlOrCmd && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIds.length === 0) return;
+        const forward = e.key === "]";
+        setSrc((prev) => {
+          const lines = prev.split("\n");
+          const partsIndices = new Map<string, number>();
+          lines.forEach((line, i) => {
+            for (const oid of overlayIds) {
+              if (new RegExp(`^\\s*-\\s*${oid}\\s*:`).test(line)) partsIndices.set(oid, i);
+            }
+          });
+          const sorted = Array.from(partsIndices.entries()).sort((a, b) => forward ? b[1] - a[1] : a[1] - b[1]);
+          for (const [_oid, idx] of sorted) {
+            const swap = forward ? idx + 1 : idx - 1;
+            if (swap < 0 || swap >= lines.length) continue;
+            // 次/前 行も actor 行かチェック
+            if (!/^\s*-\s*\S+?\s*:\s*\{/.test(lines[swap]!)) continue;
+            [lines[idx], lines[swap]] = [lines[swap]!, lines[idx]!];
+          }
+          return lines.join("\n");
+        });
+        return;
+      }
+      // Delete / Backspace = selection 削除
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        const overlayIdsToDelete = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToDelete.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const oid of overlayIdsToDelete) {
+            // actor 行を丸ごと削除
+            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+            next = next.replace(re, "");
+          }
+          return next;
+        });
+        setSelectedIds([]);
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "a" || e.key === "A")) {
+        e.preventDefault();
+        // 全 overlay select
+        setSelectedIds(overlayPartsRef.current.map((p) => `overlay:${p.id}`));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        const overlayIdsToDupe = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToDupe.length === 0) return;
+        setSrc((prev) => {
+          let next = prev;
+          for (const oid of overlayIdsToDupe) {
+            const orig = overlayPartsRef.current.find((p) => p.id === oid);
+            if (!orig) continue;
+            const baseName = oid.replace(/\d+$/, "");
+            let n = 1;
+            while (next.includes(`- ${baseName}${n}:`)) n++;
+            const newAlias = `${baseName}${n}`;
+            const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
+            const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+            const appended = appendActorLine(next, newLine);
+            if (appended !== null) next = appended;
+          }
+          return next;
+        });
+        return;
+      }
+      // 矢印キー nudge (selection がある場合)
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        const overlayIdsToNudge = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
+        if (overlayIdsToNudge.length === 0) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+        setOverlayParts((prev) => prev.map((p) => overlayIdsToNudge.includes(p.id) ? { ...p, posX: p.posX + dx, posY: p.posY + dy } : p));
+        return;
+      }
+      if (ctrlOrCmd && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          setGroups((prev) => {
+            const next: Record<string, string[]> = { ...prev };
+            for (const sid of selectedIdsRef.current) {
+              if (sid.startsWith("group:")) {
+                const gid = sid.slice("group:".length);
+                delete next[gid];
+              }
+            }
+            return next;
+          });
+          setSelectedIds((prev) => prev.filter((s) => !s.startsWith("group:")));
+        } else {
+          if (selectedIdsRef.current.length < 2) return;
+          const members = selectedIdsRef.current.filter((s) => !s.startsWith("group:"));
+          if (members.length < 2) return;
+          const gid = `g${Date.now().toString(36)}`;
+          setGroups((prev) => ({ ...prev, [gid]: members }));
+          setSelectedIds([`group:${gid}`]);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // ref 経由で state 参照 = deps 空で 1 回だけ register (性能 + stale closure 両方対策)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 2026-07-24 fix = pending clearLiveTransform を diagram 更新後に実行 (snap back gap 解消)
+  useEffect(() => {
+    const pending = pendingClearRef.current;
+    if (!pending) return;
+    pendingClearRef.current = null;
+    // rAF 2 段 = React commit → paint → rAF1 = DOM 反映後 → rAF2 = paint 完了後
+    // paint 完了前に CSS 消すと snap back 見える。 2 frame 待って新 SVG が完全描画されてから消す。
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        clearLiveTransform(pending);
+      });
+      pendingClearRef.current = null;
+      void raf2;
     });
-    return () => cancelAnimationFrame(raf);
+    return () => cancelAnimationFrame(raf1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diagram]);
+
+  /**
+   * viewBox 固定 (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
+   *
+   * cdl auto-fit viewBox = content bounding box を毎 render 再計算 → user が achievement を drag すると
+   * trophy world 座標が変わり viewBox が拡大 → 全 content が client px で縮小 → Client / API / DB / arrow
+   * 全部 shrink して「画面全体が pan / 変形」 に見える root cause。
+   *
+   * fix = 初回 render 時 viewBox を capture、 以後 render で svg.viewBox を強制 override して固定。
+   * achievement drag → posX/posY 書出し → cdl re-compile → CdlDiagramView が新 viewBox 生成しても、
+   * この useEffect が override して初回値に戻す = 全 lane / arrow の client px 位置が完全 static。
+   *
+   * trade-off = achievement を viewBox 外に drag すると clip される (spec 上意図的、 user が pan/zoom で
+   * 追跡可能)。 sample 切替時は viewBox 再取得が必要なので initialViewBoxRef を activeSample deps でリセット。
+   */
+  // 2026-07-24 architectural refactor で freeze useEffect / captureFrozenState / frozen*Ref 全削除。
+  // parts を cdl DSL から切離して独立 overlay 化したため、 cdl SVG は base のみ描画 =
+  // achievement drop/drag で cdl re-compile が発火しない = viewBox / edge / text の auto-adjust が起きない。
+  // よって MutationObserver 経由の DOM override 経路は原理的に不要になった。 freeze による副作用 (未完成
+  // path capture / z-order 強制移動 / DOM 上書き) も同時に消える = クリーンな architecture 実現。
+  // pin machinery も同 architecture で不要 (cdl は base しか見ない → parts drop で lane 位置変化なし)。
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -764,8 +1149,12 @@ export function CdlEditor(): React.JSX.Element {
           }
           return;
         }
-        // CAR-1657 = partsCatalog を渡して parts kind actor を merge 展開させる経路
-        const d = textDslToDiagram(src, { partsCatalog });
+        // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
+        // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
+        // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
+        const { baseSrc, parts } = extractPartsFromSrc(src, partsCatalog, partsItems);
+        setOverlayParts(parts);
+        const d = textDslToDiagram(baseSrc, { partsCatalog });
         // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
         // CAR-1947 Round 2 F5 = HTML canvas mode 時は compile 結果 (LaidDiagram) を SSOT として保持、
         // 子側の重複 compile を排除。 SVG mode 時は compile 結果を捨てて既存挙動維持 (setLaid 呼ばず)。
@@ -945,7 +1334,7 @@ export function CdlEditor(): React.JSX.Element {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transform.scale, transform.tx, transform.ty]);
-  const [activeGuidelines, setActiveGuidelines] = useState<Guideline[]>([]);
+  // activeGuidelines state 削除 (guideline 機能全撤去)
 
   const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
@@ -1009,7 +1398,9 @@ export function CdlEditor(): React.JSX.Element {
       }
     }
 
-    const dragInfo = findDragTarget(target, extractAllActorNames(src));
+    const actorNamesForHit = extractAllActorNames(src);
+    const dragInfo = findDragTarget(target, actorNamesForHit);
+    // parts は overlay drop 経路 (React state 独立管理) で drag するため cdl SVG hit fallback は不要。
     if (!dragInfo) return false;
     const svgPt = clientToSvg(svg, e.clientX, e.clientY);
     const cur = extractActorPosition(src, dragInfo.name);
@@ -1045,8 +1436,71 @@ export function CdlEditor(): React.JSX.Element {
       svgScale: svgPt.scale,
       commandBypass: e.metaKey || e.ctrlKey,
     };
+    // drag 開始時の hoveredHandle.rect を save = drag 中選択枠の追従計算基準
+    if (hoveredHandle) {
+      hoveredHandleInitRectRef.current = new DOMRect(hoveredHandle.rect.left, hoveredHandle.rect.top, hoveredHandle.rect.width, hoveredHandle.rect.height);
+    }
     document.body.style.cursor = "grabbing";
     return true;
+  };
+
+  // 2026-07-25 Phase 4 = cdl 要素 stage-level selection UI から drag / resize を発火。
+  // 既存 elementDrag 経路を再利用、 selector map から実 SVG element を find して synthetic hoveredHandle を組立てる。
+  const startCdlHandleAction = (
+    e: React.MouseEvent<HTMLDivElement>,
+    key: string,
+    mode: "drag" | "resize",
+    corner?: "nw" | "ne" | "sw" | "se",
+  ): void => {
+    e.stopPropagation();
+    e.preventDefault();
+    const selector = cdlSelectorMap[key];
+    if (!selector || !previewRef.current) return;
+    const svg = previewRef.current.querySelector("svg") as SVGSVGElement | null;
+    const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
+    if (!svg || !el || typeof el.getBoundingClientRect !== "function") return;
+    const rect = el.getBoundingClientRect();
+    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    const cur = extractActorPosition(src, key);
+    let initX = cur?.posX;
+    let initY = cur?.posY;
+    let initW = cur?.posW;
+    let initH = cur?.posH;
+    const tlPt = clientToSvg(svg, rect.left, rect.top);
+    const brPt = clientToSvg(svg, rect.right, rect.bottom);
+    const wSvg = brPt.x - tlPt.x;
+    const hSvg = brPt.y - tlPt.y;
+    if (initX === undefined || initY === undefined) {
+      initX = tlPt.x;
+      initY = tlPt.y;
+    }
+    initW = initW ?? wSvg;
+    initH = initH ?? hSvg;
+    elementDrag.current = {
+      mode,
+      targetName: key,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startSvgX: svgPt.x,
+      startSvgY: svgPt.y,
+      initPosX: initX,
+      initPosY: initY,
+      initPosW: initW,
+      initPosH: initH,
+      corner,
+      svgScale: svgPt.scale,
+      commandBypass: e.metaKey || e.ctrlKey,
+      hoveredSelector: selector,
+      subNodeKey: undefined,
+    };
+    hoveredHandleInitRectRef.current = new DOMRect(rect.left, rect.top, rect.width, rect.height);
+    document.body.style.cursor = mode === "resize" && corner ? cornerToCursor(corner) : "grabbing";
+  };
+  const startCdlDrag = (e: React.MouseEvent<HTMLDivElement>, key: string): void => {
+    startCdlHandleAction(e, key, "drag");
+  };
+  const startCdlResize = (e: React.MouseEvent<HTMLDivElement>, key: string, corner: "nw" | "ne" | "sw" | "se"): void => {
+    startCdlHandleAction(e, key, "resize", corner);
   };
 
   const updateElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
@@ -1062,10 +1516,19 @@ export function CdlEditor(): React.JSX.Element {
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
       applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // canvas pivot 新 spec §4 = 図内 drag で他 preset element を transient shift (Command bypass 対応)
-      applyAutoAdjustDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
-      // canvas pivot 新 spec §6 = 整列補助線 (Command bypass 中は無効)
-      applyGuidelinesDuringDrag(st.targetName, e.metaKey || e.ctrlKey || st.commandBypass, svg);
+      // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = auto-adjust + guideline を drag
+      // 中に呼ばない。 元 impl は他 preset element を transient shift + 整列補助線発火だったが、
+      // user 意図「Miro / Google スライド相当 = 個別独立要素、 auto 補正なし」 に反するため経路削除。
+      // 併せて hoveredHandle.rect を drag delta 分 shift = 選択枠が trophy 追従 (「枠が追いつかない」 fix)。
+      if (hoveredHandle) {
+        const svgScale = st.svgScale || 1;
+        const clientDx = (newX - st.initPosX) * svgScale;
+        const clientDy = (newY - st.initPosY) * svgScale;
+        const initRect = hoveredHandleInitRectRef.current;
+        if (initRect) {
+          setHoveredHandle((prev) => prev ? { ...prev, rect: new DOMRect(initRect.left + clientDx, initRect.top + clientDy, initRect.width, initRect.height) } : prev);
+        }
+      }
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1104,34 +1567,8 @@ export function CdlEditor(): React.JSX.Element {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
       const newX = st.initPosX + dx;
       const newY = st.initPosY + dy;
-      // viewBox re-fit 補償 = 現 CTM を save、 setSrc 後の useEffect で新 CTM と比較して pan で相殺
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
-      // canvas pivot 新 spec = drag 対象以外の lane も現在位置で posX/Y 固定して layout 再計算で
-      // 引きずられないよう「全 lane 座標 pinning」 する。 sequence preset で drag 対象 1 lane だけ
-      // posX 設定すると残 lane の pitch 均一化で shift 発生する root cause の対策。
-      const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      setSrc((prev) => {
-        let next = updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH);
-        if (svgEl) {
-          for (const name of extractAllActorNames(prev)) {
-            if (name === st.targetName) continue;
-            const cur2 = extractActorPosition(next, name);
-            if (cur2) continue; // 既に固定済 skip
-            const slug2 = slugifyActorName(name);
-            const el2 = svgEl.querySelector(`[data-cdl-lane="${slug2}"]`) as SVGGraphicsElement | null;
-            if (!el2) continue;
-            const rx = el2.getAttribute("data-cdl-lane-x");
-            const ry = el2.getAttribute("data-cdl-lane-y");
-            if (rx && ry) {
-              next = updateActorPosition(next, name, parseFloat(rx), parseFloat(ry));
-            }
-          }
-        }
-        return next;
-      });
+      // architectural refactor で pin loop 削除 = 対象 actor の posX/Y のみ更新。
+      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
     } else if (st.mode === "resize" && st.corner) {
       const initW = st.initPosW ?? 100;
       const initH = st.initPosH ?? 100;
@@ -1149,11 +1586,6 @@ export function CdlEditor(): React.JSX.Element {
       let anchorY = st.initPosY;
       if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
       if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // viewBox re-fit 補償 (drag 経路と同じ、 resize でも content bbox が変わり viewBox re-fit する)
-      const preCtm = svg.getScreenCTM();
-      if (preCtm) {
-        viewBoxCompensationRef.current = { ctmE: preCtm.e, ctmF: preCtm.f };
-      }
       // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
       // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
       // auto layout 保持で spacer / footer 等が引きずられない。
@@ -1163,12 +1595,11 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
       }
     }
-    // live CSS transform を clear (post-render で真の DSL 値が適用される)
-    clearLiveTransform(st.targetName);
-    // auto-adjust transient shift も全 clear (drop で消える spec §4)
-    if (svg) clearAutoAdjustShifts(svg);
-    // guideline も全 clear
-    setActiveGuidelines([]);
+    // 2026-07-24 fix (user 苦情「離すと一瞬元位置に戻る」 対応) = live CSS transform を即 clear せず、
+    // setSrc → 300ms debounce → cdl re-compile → SVG 反映 完了後 (diagram useEffect) に clear する。
+    // 元 impl は finalize で即 clearLiveTransform し、 DSL 反映まで 300ms 空白時間で trophy が元位置に
+    // snap back 見える bug 発生。 pendingClearRef に target 名を保持、 diagram 更新 useEffect で clear。
+    pendingClearRef.current = st.targetName;
     return true;
   };
 
@@ -1246,100 +1677,141 @@ export function CdlEditor(): React.JSX.Element {
     return "nesw-resize";
   };
 
-  const clearAutoAdjustShifts = useCallback((svg: SVGSVGElement): void => {
-    svg.querySelectorAll<SVGGraphicsElement>('[data-auto-adjust-shift="1"]').forEach((el) => {
-      el.style.transform = "";
-      el.removeAttribute("data-auto-adjust-shift");
+  // 2026-07-24 全削除 = applyAutoAdjustDuringDrag / applyGuidelinesDuringDrag / clearAutoAdjustShifts
+  // (auto 補正 / 補助線 / shift clear) 3 関数を削除。 user 「勝手な移動全部削除」 の core、 呼出経路 +
+  // 定義本体を根絶する。 canvas-pivot-auto-adjust / canvas-pivot-guideline lib への依存も削除済。
+
+  // 2026-07-25 double click text 編集 = SVG <text> を狙って click したら inline HTML input を開く。
+  const handleStageDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    let el = e.target as SVGElement | HTMLElement | null;
+    // nearest text 要素を辿る (child tspan / foreignObject 対応)
+    while (el && el !== previewRef.current && el.tagName !== "text") el = el.parentElement as HTMLElement | null;
+    if (!el || el.tagName !== "text" || !previewRef.current) return;
+    const stageRect = previewRef.current.getBoundingClientRect();
+    const rect = (el as unknown as SVGGraphicsElement).getBoundingClientRect();
+    const original = (el.textContent ?? "").trim();
+    if (!original) return;
+    const fontSize = parseFloat(window.getComputedStyle(el as unknown as HTMLElement).fontSize) || 14;
+    setTextEditing({
+      originalText: original,
+      bbox: { left: rect.left - stageRect.left, top: rect.top - stageRect.top, width: Math.max(80, rect.width + 20), height: Math.max(24, rect.height + 8) },
+      fontSize,
     });
-  }, []);
-
-  const applyGuidelinesDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
-    if (commandBypass) {
-      setActiveGuidelines([]);
-      return;
-    }
-    const draggedSlug = slugifyActorName(draggedName);
-    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"]`);
-    if (draggedEls.length === 0) {
-      setActiveGuidelines([]);
-      return;
-    }
-    const dragBB = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
-    const targets: Array<{ id: string; rect: DOMRect }> = [];
-    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane]").forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || "";
-      if (id === draggedSlug || id === draggedName) return;
-      targets.push({ id, rect: el.getBoundingClientRect() });
-    });
-    const stageRect = previewRef.current?.getBoundingClientRect();
-    if (!stageRect) {
-      setActiveGuidelines([]);
-      return;
-    }
-    // stage 相対座標に変換
-    const dragBBRel = {
-      x: dragBB.left - stageRect.left,
-      y: dragBB.top - stageRect.top,
-      width: dragBB.width,
-      height: dragBB.height,
-    };
-    const targetsRel = targets.map((t) => ({
-      id: t.id,
-      rect: {
-        x: t.rect.left - stageRect.left,
-        y: t.rect.top - stageRect.top,
-        width: t.rect.width,
-        height: t.rect.height,
-      },
-    }));
-    const guides = detectGuidelines(dragBBRel, targetsRel);
-    setActiveGuidelines(guides);
-  }, []);
-
-  const applyAutoAdjustDuringDrag = useCallback((draggedName: string, commandBypass: boolean, svg: SVGSVGElement): void => {
-    // preset type を DSL の type: 行から抽出
-    const typeMatch = src.match(/^\s*type\s*:\s*(\w+)/m);
-    const preset = (typeMatch?.[1] as PresetType | undefined) ?? "sequence";
-    // まず前回 tick の shift を全 clear
-    clearAutoAdjustShifts(svg);
-    if (commandBypass) return; // Command bypass = 何もしない
-
-    // drag 対象の rect を取得
-    const draggedSlug = slugifyActorName(draggedName);
-    const draggedEls = svg.querySelectorAll(`[data-cdl-lane="${draggedSlug}"], [data-cdl-lane="${draggedName}"], [data-cdl-node="${draggedSlug}"]`);
-    if (draggedEls.length === 0) return;
-    const draggedRect = (draggedEls[0] as SVGGraphicsElement).getBoundingClientRect();
-
-    // 他 lane / node に対して collision shift を計算 + CSS transform 適用
-    svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-lane], [data-cdl-node]").forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
-      // drag 対象パーツは対象外 (自分自身を shift しない)
-      if (id === draggedSlug || id === draggedName || id.startsWith(`${draggedSlug}-`) || id.startsWith(`${draggedName}-`)) return;
-      const rect = el.getBoundingClientRect();
-      const shift = computeCollisionShift(
-        { x: draggedRect.left, y: draggedRect.top, width: draggedRect.width, height: draggedRect.height },
-        { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
-        preset,
-        false,
-      );
-      if (shift.dx !== 0 || shift.dy !== 0) {
-        el.style.transform = `translate(${shift.dx}px, ${shift.dy}px)`;
-        el.style.transition = "transform 200ms ease-out";
-        el.setAttribute("data-auto-adjust-shift", "1");
-      }
-    });
-  }, [src, clearAutoAdjustShifts]);
-
+    e.stopPropagation();
+  };
+  const commitTextEdit = (newText: string): void => {
+    if (!textEditing) return;
+    const original = textEditing.originalText;
+    setTextEditing(null);
+    // 2026-07-25 text 編集 DSL 精緻化 (CAR-2139 scope-out fix)
+    // 重複 text (Client が 4 箇所等) の全置換副作用を回避、 field scope 別に 1 箇所置換を試みる。
+    // SSOT = src/lib/text-edit-replace.ts (pure helper、 8 unit test)
+    setSrc((prev) => replaceTextInDsl(prev, original, newText));
+  };
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
+    // context menu / color picker 表示中の click は close
+    if (contextMenu) setContextMenu(null);
+    if (colorPickerFor) setColorPickerFor(null);
     // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
-    if (startElementInteraction(e)) return;
-    setDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
+    if (startElementInteraction(e)) {
+      // cdl element hit = selection 更新 (overlay と別の id 名前空間)
+      if (hoveredHandle) {
+        const selId = `cdl:${hoveredHandle.id}`;
+        // selector を保存 = stage-level UI の bbox 再測定で使う
+        setCdlSelectorMap((prev) => ({ ...prev, [hoveredHandle.id]: hoveredHandle.elementSelector }));
+        if (e.shiftKey || e.metaKey) {
+          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
+        } else {
+          setSelectedIds([selId]);
+        }
+      }
+      return;
+    }
+    // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
+    // space+drag / middle button = pan mode (rubber band と分離、 後日実装)。 現状 通常 drag は rubber band。
+    if (!e.shiftKey && !e.metaKey) setSelectedIds([]);
+    setRubberBand({ sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
+    // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
+    // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
+    if (overlayDragRef.current) {
+      const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
+      const panScale = transformRef.current.scale || 1;
+      let dx = (e.clientX - startClientX) / panScale;
+      let dy = (e.clientY - startClientY) / panScale;
+      // 2026-07-24 snap to grid (Task #93) = shift 押下で無効、 通常時は 20px grid に snap。
+      // primary target の新 pos が grid 交点になるように delta を丸める → 全 member 同 delta 適用で相対 pos 保持。
+      const GRID = 20;
+      if (!e.shiftKey) {
+        const targetX = Math.round((startPosX + dx) / GRID) * GRID;
+        const targetY = Math.round((startPosY + dy) / GRID) * GRID;
+        dx = targetX - startPosX;
+        dy = targetY - startPosY;
+      }
+      const selectedOverlayIds = new Set(
+        selectedIds.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length)),
+      );
+      const groupStartsRef = multiDragStartsRef.current;
+      setOverlayParts((prev) =>
+        prev.map((p) => {
+          if (p.id === id) return { ...p, posX: startPosX + dx, posY: startPosY + dy };
+          if (groupStartsRef && groupStartsRef.has(p.id) && selectedOverlayIds.has(p.id)) {
+            const s = groupStartsRef.get(p.id)!;
+            return { ...p, posX: s.x + dx, posY: s.y + dy };
+          }
+          return p;
+        }),
+      );
+      return;
+    }
+    // overlay rotate = Alt + corner drag、 center 基準の angle 差で rotate 更新 (Feature 7)
+    if (overlayRotateRef.current) {
+      const st = overlayRotateRef.current;
+      const currentAngle = Math.atan2(e.clientY - st.centerClientY, e.clientX - st.centerClientX);
+      const deltaDeg = ((currentAngle - st.startAngleRad) * 180) / Math.PI;
+      const newRotate = st.startRotate + deltaDeg;
+      setOverlayParts((prev) => prev.map((p) => p.id === st.id ? { ...p, rotate: newRotate } : p));
+      return;
+    }
+    // overlay parts resize = corner drag で uniform scale + opposite corner を client 座標で invariant に。
+    // Miro/Figma 挙動 = SE drag → NW 固定 / NW drag → SE 固定 / NE drag → SW 固定 / SW drag → NE 固定。
+    // shape offset in div は scale 倍されるため posX/posY を単純に足し引きすると shape 全体が動く。
+    // anchor client 座標 (stage-local) を invariant 化する posX/posY を毎 frame 逆算する。
+    if (overlayResizeRef.current) {
+      const st = overlayResizeRef.current;
+      const dxClient = e.clientX - st.startClientX;
+      const dyClient = e.clientY - st.startClientY;
+      const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
+      const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
+      const deltaW = dxClient * signX;
+      const deltaH = dyClient * signY;
+      const deltaMax = Math.max(deltaW, deltaH);
+      const newClientW = Math.max(20, st.startClientW + deltaMax);
+      const scaleRatio = newClientW / st.startClientW;
+      const newScale = Math.max(0.1, st.startScale * scaleRatio);
+      // anchor = drag corner の対角、 stage-local client 座標
+      let anchorClientX = st.startBboxLeft;
+      let anchorClientY = st.startBboxTop;
+      if (st.corner === "nw") { anchorClientX += st.startClientW; anchorClientY += st.startClientH; }
+      else if (st.corner === "ne") { anchorClientY += st.startClientH; }
+      else if (st.corner === "sw") { anchorClientX += st.startClientW; }
+      // stage-local client → world 変換 = (client - panTx) / panScale (pan container transform 逆変換)
+      const anchorWorldX = (anchorClientX - st.panTx) / st.panScale;
+      const anchorWorldY = (anchorClientY - st.panTy) / st.panScale;
+      // shape-local raw offset (unscaled world unit) = anchor が div 原点から見た元 shape 座標
+      const anchorRawOffsetX = (anchorWorldX - st.startPosX) / st.startScale;
+      const anchorRawOffsetY = (anchorWorldY - st.startPosY) / st.startScale;
+      // 新 scale で anchor client 座標を invariant に保つ posX/posY を逆算
+      const newPosX = anchorWorldX - anchorRawOffsetX * newScale;
+      const newPosY = anchorWorldY - anchorRawOffsetY * newScale;
+      setOverlayParts((prev) => prev.map((p) => (p.id === st.id ? { ...p, scale: newScale, posX: newPosX, posY: newPosY } : p)));
+      return;
+    }
     // element drag / resize 中は pan せず interaction pass に流す
     if (updateElementInteraction(e)) return;
     // zoom toolbar / share / export 等の UI 上 mouse.move は hover 状態を保持 (I3 forensic fix)。
@@ -1373,7 +1845,21 @@ export function CdlEditor(): React.JSX.Element {
         }
       }
       const target = e.target as Element;
-      const dragInfo = findDragTarget(target, extractAllActorNames(src));
+      const actorNamesForHover = extractAllActorNames(src);
+      const dragInfo = findDragTarget(target, actorNamesForHover);
+      // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
+      // 2026-07-24 fix (user 苦情「1つずつをパーツとしても扱って」 対応) = data-cdl-* 未紐付きの text 要素
+      // (arrow label 等) を独立 hover target として扱う fallback。 label の親 group に data-cdl-edge が
+      // 付いていない cdl 側 SVG 構造への 対応。
+      if (!dragInfo && target.tagName === "text") {
+        const textRect = (target as SVGGraphicsElement).getBoundingClientRect();
+        if (textRect.width > 0 && textRect.height > 0) {
+          const content = (target.textContent ?? "").slice(0, 32);
+          const id = `text:${content}`;
+          setHoveredHandle({ id, elementSelector: "", rect: textRect, subNodeKey: undefined });
+          return;
+        }
+      }
       if (dragInfo) {
         // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
         // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
@@ -1409,17 +1895,26 @@ export function CdlEditor(): React.JSX.Element {
           const alias = nodeIdForCur.split("__")[0]!;
           const partsEls = previewRef.current.querySelectorAll(`[data-cdl-node^="${alias}__"]`);
           if (partsEls.length > 0) {
-            // union bbox 計算 = 全 parts sub-node の (left / top / right / bottom) 最大範囲
+            // 2026-07-24 fix (user 苦情「囲いおかしい」 対応) = shape element (circle / rect / path /
+            // ellipse) のみ union bbox 対象、 text (title / subtitle) は除外して tight fit する。
+            // 元 impl は group 全体の getBoundingClientRect で text 領域も含めて上下延び bug。
             let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
             for (const el of Array.from(partsEls)) {
-              const r = (el as SVGGraphicsElement).getBoundingClientRect();
-              if (r.left < minL) minL = r.left;
-              if (r.top < minT) minT = r.top;
-              if (r.right > maxR) maxR = r.right;
-              if (r.bottom > maxB) maxB = r.bottom;
+              const shapes = (el as Element).querySelectorAll("circle, rect, path, ellipse, polygon");
+              const targets = shapes.length > 0 ? Array.from(shapes) : [el];
+              for (const s of targets) {
+                const r = (s as SVGGraphicsElement).getBoundingClientRect();
+                if (r.width <= 0 || r.height <= 0) continue;
+                if (r.left < minL) minL = r.left;
+                if (r.top < minT) minT = r.top;
+                if (r.right > maxR) maxR = r.right;
+                if (r.bottom > maxB) maxB = r.bottom;
+              }
             }
-            rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
-            elementSelector = `[data-cdl-node^="${alias}__"]`; // 全 parts sub-node
+            if (minL !== Infinity) {
+              rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
+              elementSelector = `[data-cdl-node^="${alias}__"]`;
+            }
           }
         }
         if (rect && elementSelector) {
@@ -1448,6 +1943,10 @@ export function CdlEditor(): React.JSX.Element {
         }
       }
     }
+    if (rubberBand) {
+      setRubberBand({ ...rubberBand, cx: e.clientX, cy: e.clientY });
+      return;
+    }
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -1457,6 +1956,80 @@ export function CdlEditor(): React.JSX.Element {
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-24 overlay parts drag finalize = 現 overlayParts state から新 posX/Y を DSL に書出す。
+    // drag 中は setSrc せず state 直接更新なので snap back なし、 mouseup で 1 回だけ DSL sync。
+    // multi drag = groupStartsRef に含まれる 全 overlay 分を 1 setSrc で reduce sync。
+    if (overlayDragRef.current) {
+      const { id } = overlayDragRef.current;
+      const groupStarts = multiDragStartsRef.current;
+      overlayDragRef.current = null;
+      multiDragStartsRef.current = null;
+      document.body.style.cursor = "";
+      setSrc((prev) => {
+        let next = prev;
+        // primary drag target を先に書出し
+        const primary = overlayParts.find((p) => p.id === id);
+        if (primary) next = writeOverlayPartToDsl(next, id, primary.posX, primary.posY, primary.scale, primary.rotate);
+        // multi drag = selection の全 overlay も同 setSrc 内で 順次書出し
+        if (groupStarts) {
+          for (const [oid] of groupStarts) {
+            if (oid === id) continue;
+            const p = overlayParts.find((x) => x.id === oid);
+            if (p) next = writeOverlayPartToDsl(next, oid, p.posX, p.posY, p.scale, p.rotate);
+          }
+        }
+        return next;
+      });
+      return;
+    }
+    // overlay rotate finalize (Feature 7)
+    if (overlayRotateRef.current) {
+      const { id } = overlayRotateRef.current;
+      overlayRotateRef.current = null;
+      document.body.style.cursor = "";
+      const part = overlayParts.find((p) => p.id === id);
+      if (part) {
+        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale, part.rotate));
+      }
+      return;
+    }
+    // overlay parts resize finalize = 現 scale + posX/Y を DSL に書出す。
+    if (overlayResizeRef.current) {
+      const { id } = overlayResizeRef.current;
+      overlayResizeRef.current = null;
+      document.body.style.cursor = "";
+      const part = overlayParts.find((p) => p.id === id);
+      if (part) {
+        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
+      }
+      return;
+    }
+    if (rubberBand) {
+      const rect = {
+        left: Math.min(rubberBand.sx, rubberBand.cx),
+        top: Math.min(rubberBand.sy, rubberBand.cy),
+        right: Math.max(rubberBand.sx, rubberBand.cx),
+        bottom: Math.max(rubberBand.sy, rubberBand.cy),
+      };
+      const isClickOnly = Math.abs(rect.right - rect.left) < 5 && Math.abs(rect.bottom - rect.top) < 5;
+      if (!isClickOnly && previewRef.current) {
+        // overlay parts の client bbox が rect と重なる parts を selection に追加
+        const overlayEls = previewRef.current.querySelectorAll("[data-overlay-part]");
+        const additions: string[] = [];
+        overlayEls.forEach((el) => {
+          const id = el.getAttribute("data-overlay-part") || "";
+          if (!id) return;
+          const r = (el as HTMLElement).getBoundingClientRect();
+          const intersects = r.left < rect.right && r.right > rect.left && r.top < rect.bottom && r.bottom > rect.top;
+          if (intersects) additions.push(`overlay:${id}`);
+        });
+        if (additions.length > 0) {
+          setSelectedIds((prev) => Array.from(new Set([...prev, ...additions])));
+        }
+      }
+      setRubberBand(null);
+      return;
+    }
     if (finalizeElementInteraction(e)) return;
     setDragging(false);
   };
@@ -1712,10 +2285,10 @@ animation:
     }
     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // canvas pivot UX 修正 (B2) = parts 追加前に既存 actors の現 lane 位置を pinning、
-    // 全 lane 再配置による既存 header shift を防ぐ
-    const pinnedSrc = pinExistingActorLayoutFromSvg(src, svgEl);
-    const newSrc = appendActorLine(pinnedSrc, newActorLine);
+    // 2026-07-24 architectural refactor = pin / freeze 経路削除。 parts は overlay 独立管理で
+    // cdl 側は base のみ compile するため、 pin (勝手な DSL 書換) も freeze (DOM override) も不要。
+    void svgEl;
+    const newSrc = appendActorLine(src, newActorLine);
     if (newSrc === null) {
       // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
       if (!confirmReplaceIfDirty(item.title)) {
@@ -1887,9 +2460,9 @@ ${newActorLine}
                     }
                     const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // canvas pivot UX 修正 (B2) = parts click 追加前に既存 actors の現 lane 位置を pinning
-                    const pinnedSrcClick = pinExistingActorLayoutFromSvg(src, svgElClick);
-                    const appended = appendActorLine(pinnedSrcClick, newActorLine);
+                    // architectural refactor で pin 削除 = parts は overlay 独立管理で cdl 影響なし
+                    void svgElClick;
+                    const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
@@ -2092,6 +2665,7 @@ ${newActorLine}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onDoubleClick={handleStageDoubleClick}
           onDragOver={handlePreviewDragOver}
           onDragLeave={handlePreviewDragLeave}
           onDrop={handlePreviewDrop}
@@ -2113,95 +2687,597 @@ ${newActorLine}
             }}
           >
             {diagram ? (
-              <div className="v4-editor-svg-wrap">
+              <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
                 <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
+                    member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
+                {Object.entries(groups).map(([gid, memberIds]) => {
+                  const isGroupSelected = selectedIds.includes(`group:${gid}`);
+                  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+                  for (const sid of memberIds) {
+                    if (sid.startsWith("overlay:")) {
+                      const oid = sid.slice("overlay:".length);
+                      const p = overlayParts.find((x) => x.id === oid);
+                      if (!p) continue;
+                      const w = 380 * p.scale;
+                      const h = 380 * p.scale;
+                      minL = Math.min(minL, p.posX);
+                      minT = Math.min(minT, p.posY);
+                      maxR = Math.max(maxR, p.posX + w);
+                      maxB = Math.max(maxB, p.posY + h);
+                    }
+                  }
+                  if (minL === Infinity) return null;
+                  return (
+                    <div
+                      key={gid}
+                      data-group={gid}
+                      style={{
+                        position: "absolute",
+                        left: `${minL - 8}px`,
+                        top: `${minT - 8}px`,
+                        width: `${maxR - minL + 16}px`,
+                        height: `${maxB - minT + 16}px`,
+                        border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
+                        pointerEvents: isGroupSelected ? "auto" : "none",
+                        borderRadius: "4px",
+                        zIndex: 50,
+                        cursor: isGroupSelected ? "grab" : "default",
+                        background: isGroupSelected ? "rgba(59, 130, 246, 0.03)" : "transparent",
+                      }}
+                      onMouseDown={(e) => {
+                        if (!isGroupSelected) return;
+                        e.stopPropagation();
+                        // group drag = 全 member を selectedIds に反映 (既 multi drag 経路発火)
+                        setSelectedIds(memberIds);
+                        // multi drag の primary target = first member
+                        const primaryMemberId = memberIds.find((s) => s.startsWith("overlay:"));
+                        if (!primaryMemberId) return;
+                        const oid = primaryMemberId.slice("overlay:".length);
+                        const primary = overlayParts.find((x) => x.id === oid);
+                        if (!primary) return;
+                        overlayDragRef.current = {
+                          id: oid,
+                          startPosX: primary.posX,
+                          startPosY: primary.posY,
+                          startClientX: e.clientX,
+                          startClientY: e.clientY,
+                        };
+                        // multi drag ref = 全 member の start pos
+                        const partsStart = new Map<string, { x: number; y: number }>();
+                        for (const sid of memberIds) {
+                          if (!sid.startsWith("overlay:")) continue;
+                          const mid = sid.slice("overlay:".length);
+                          const mp = overlayParts.find((x) => x.id === mid);
+                          if (mp) partsStart.set(mid, { x: mp.posX, y: mp.posY });
+                        }
+                        multiDragStartsRef.current = partsStart;
+                        document.body.style.cursor = "grabbing";
+                      }}
+                      onClick={(e) => {
+                        // group click = 選択 (member を selection として指定するか group id で保持)
+                        if (isGroupSelected) return;
+                        e.stopPropagation();
+                        setSelectedIds([`group:${gid}`]);
+                      }}
+                    />
+                  );
+                })}
+                {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
+                    に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
+                    同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
+                {overlayParts.map((p) => {
+                  const isHovered = hoveredOverlayId === p.id;
+                  const isSelected = selectedIds.includes(`overlay:${p.id}`);
+                  return (
+                    <div
+                      key={p.id}
+                      data-overlay-part={p.id}
+                      data-selected={isSelected ? "1" : undefined}
+                      ref={(el) => { overlayRefs.current[p.id] = el; }}
+                      style={{
+                        position: "absolute",
+                        left: `${p.posX}px`,
+                        top: `${p.posY}px`,
+                        transform: `rotate(${p.rotate}deg) scale(${p.scale})`,
+                        transformOrigin: "0 0",
+                        cursor: "grab",
+                        userSelect: "none",
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedIds([`overlay:${p.id}`]);
+                        setContextMenu({ x: e.clientX, y: e.clientY, overlayId: p.id });
+                      }}
+                      onMouseEnter={() => setHoveredOverlayId(p.id)}
+                      onMouseLeave={() => {
+                        if (!overlayDragRef.current && !overlayResizeRef.current) setHoveredOverlayId(null);
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        overlayDragRef.current = {
+                          id: p.id,
+                          startPosX: p.posX,
+                          startPosY: p.posY,
+                          startClientX: e.clientX,
+                          startClientY: e.clientY,
+                        };
+                        setHoveredOverlayId(p.id);
+                        // multi selection = shift/meta 押下で追加、 通常 click で置換 (但し既 selection に居る parts は保持)
+                        const selId = `overlay:${p.id}`;
+                        const wasSelected = selectedIds.includes(selId);
+                        if (e.shiftKey || e.metaKey) {
+                          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
+                        } else if (!wasSelected) {
+                          setSelectedIds([selId]);
+                        }
+                        // multi drag = 現 selection の全 overlay parts の start pos snapshot
+                        const currentSelection = wasSelected || e.shiftKey || e.metaKey ? selectedIds : [selId];
+                        const partsStart = new Map<string, { x: number; y: number }>();
+                        for (const sid of currentSelection) {
+                          if (!sid.startsWith("overlay:")) continue;
+                          const targetId = sid.slice("overlay:".length);
+                          const tp = overlayParts.find((x) => x.id === targetId);
+                          if (tp) partsStart.set(targetId, { x: tp.posX, y: tp.posY });
+                        }
+                        multiDragStartsRef.current = partsStart;
+                        document.body.style.cursor = "grabbing";
+                      }}
+                    >
+                      <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="v4-editor-empty">読み込み中...</div>
             )}
           </div>
-          {activeGuidelines.length > 0 && (() => {
+          {/* activeGuidelines 描画削除 (guideline 機能全撤去、 2026-07-24) */}
+          {contextMenu && contextMenu.overlayId && (() => {
+            const target = contextMenu.overlayId;
+            const actions: Array<{ label: string; onClick: () => void }> = [
+              { label: "🎨 色を変える", onClick: () => { setColorPickerFor(target); setContextMenu(null); } },
+              { label: "📋 複製 (Cmd+D)", onClick: () => {
+                const orig = overlayParts.find((p) => p.id === target);
+                if (orig) {
+                  setSrc((prev) => {
+                    const baseName = target.replace(/\d+$/, "");
+                    let n = 1;
+                    while (prev.includes(`- ${baseName}${n}:`)) n++;
+                    const newAlias = `${baseName}${n}`;
+                    const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
+                    const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+                    return appendActorLine(prev, newLine) ?? prev;
+                  });
+                }
+                setContextMenu(null);
+              }},
+              { label: "⬆️ 前面へ (Cmd+])", onClick: () => {
+                setSrc((prev) => {
+                  const lines = prev.split("\n");
+                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
+                  if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
+                    [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
+                  }
+                  return lines.join("\n");
+                });
+                setContextMenu(null);
+              }},
+              { label: "⬇️ 背面へ (Cmd+[)", onClick: () => {
+                setSrc((prev) => {
+                  const lines = prev.split("\n");
+                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
+                  if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
+                    [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
+                  }
+                  return lines.join("\n");
+                });
+                setContextMenu(null);
+              }},
+              { label: "🗑 削除 (Delete)", onClick: () => {
+                setSrc((prev) => {
+                  const re = new RegExp(`^\\s*-\\s*${target}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+                  return prev.replace(re, "");
+                });
+                setSelectedIds([]);
+                setContextMenu(null);
+              }},
+            ];
+            return (
+              <div
+                data-context-menu="1"
+                style={{
+                  position: "fixed",
+                  left: `${contextMenu.x}px`,
+                  top: `${contextMenu.y}px`,
+                  background: "#fff",
+                  border: "1px solid #8a5a2a",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  borderRadius: "6px",
+                  padding: "4px 0",
+                  zIndex: 500,
+                  minWidth: "180px",
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                {actions.map((a) => (
+                  <button
+                    key={a.label}
+                    type="button"
+                    data-context-action={a.label}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      textAlign: "left",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                    onClick={(e) => { e.stopPropagation(); a.onClick(); }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          {rubberBand && (() => {
             const stageRect = previewRef.current?.getBoundingClientRect();
             if (!stageRect) return null;
-            return activeGuidelines.map((g, i) => {
-              if (g.axis === "horizontal") {
-                return (
-                  <div
-                    key={`gl-h-${i}`}
-                    data-guideline="horizontal"
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      top: `${g.coord}px`,
-                      height: "0px",
-                      borderTop: "1px dashed #d97706",
-                      pointerEvents: "none",
-                      zIndex: 105,
-                    }}
-                  />
-                );
-              }
-              return (
+            const left = Math.min(rubberBand.sx, rubberBand.cx) - stageRect.left;
+            const top = Math.min(rubberBand.sy, rubberBand.cy) - stageRect.top;
+            const width = Math.abs(rubberBand.cx - rubberBand.sx);
+            const height = Math.abs(rubberBand.cy - rubberBand.sy);
+            return (
+              <div
+                data-rubber-band="1"
+                style={{
+                  position: "absolute",
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${width}px`,
+                  height: `${height}px`,
+                  border: "1.5px dashed rgba(59, 130, 246, 0.8)",
+                  background: "rgba(59, 130, 246, 0.1)",
+                  pointerEvents: "none",
+                  zIndex: 200,
+                }}
+              />
+            );
+          })()}
+          {/* 2026-07-25 overlay selection UI = stage-level portal render (transformed div 外)。
+              shapeClientBboxes を使って stage 相対 client px 座標に配置 = pan / scale / rotate 影響なし、
+              icon sharp、 resize / border position が visible shape に完全一致。 */}
+          {overlayParts.filter((p) => selectedIds.includes(`overlay:${p.id}`) || hoveredOverlayId === p.id).map((p) => {
+            const bbox = shapeClientBboxes[p.id];
+            if (!bbox) return null;
+            const isSelected = selectedIds.includes(`overlay:${p.id}`);
+            const isHovered = hoveredOverlayId === p.id;
+            const BORDER = "#2563eb";
+            const HANDLE = 10;
+            const changeColor = (c: string): void => {
+              setSrc((prev) => {
+                const lines = prev.split("\n");
+                const next = lines.map((line) => {
+                  const m = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
+                  if (!m) return line;
+                  const rawName = m[2]!.replace(/^"(.+)"$/, "$1");
+                  if (rawName !== p.id) return line;
+                  const prefix = m[1]! + m[2]! + m[3]!;
+                  let inner = m[4]!;
+                  inner = inner.replace(/,?\s*bg\s*:\s*"[^"]*"/g, "").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
+                  const merged = inner.length > 0 ? `${inner}, bg: "${c}"` : `bg: "${c}"`;
+                  return `${prefix}{ ${merged} }`;
+                });
+                return next.join("\n");
+              });
+              setColorPickerFor(null);
+            };
+            const iconStyle: React.CSSProperties = {
+              width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
+              background: "transparent", border: "none", cursor: "pointer", borderRadius: "6px", padding: 0,
+            };
+            return (
+              <div key={p.id} data-overlay-selection-ui={p.id}>
+                {/* 選択枠 = shape client bbox に完全 fit (padding なし)、 点線 */}
                 <div
-                  key={`gl-v-${i}`}
-                  data-guideline="vertical"
+                  data-overlay-outline={p.id}
+                  data-shape-bbox-left={bbox.left.toFixed(2)}
+                  data-shape-bbox-top={bbox.top.toFixed(2)}
+                  data-shape-bbox-width={bbox.width.toFixed(2)}
+                  data-shape-bbox-height={bbox.height.toFixed(2)}
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: `${g.coord}px`,
-                    width: "0px",
-                    borderLeft: "1px dashed #d97706",
-                    pointerEvents: "none",
-                    zIndex: 105,
+                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
+                    width: `${bbox.width}px`, height: `${bbox.height}px`,
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 90,
                   }}
                 />
-              );
-            });
-          })()}
-          {hoveredHandle && (() => {
-            // canvas pivot 新 spec = hover 中パーツの 4 隅 handle overlay (spec 項目 2 resize 用)
+                {/* 4 隅 handle = shape bbox 4 隅 に配置、 client px 直接指定 = pan/scale 影響なし */}
+                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
+                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
+                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
+                  return (
+                    <div
+                      key={corner}
+                      data-overlay-handle={corner}
+                      data-overlay-handle-for={p.id}
+                      style={{
+                        position: "absolute",
+                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
+                        width: `${HANDLE}px`, height: `${HANDLE}px`,
+                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                        zIndex: 100, transition: "transform 0.1s ease-out",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.4)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        // Alt = rotate (shape bbox 中心 基準)
+                        if (e.altKey) {
+                          const stageRect2 = previewRef.current?.getBoundingClientRect();
+                          if (!stageRect2) return;
+                          const rcx = stageRect2.left + bbox.left + bbox.width / 2;
+                          const rcy = stageRect2.top + bbox.top + bbox.height / 2;
+                          overlayRotateRef.current = {
+                            id: p.id, startRotate: p.rotate,
+                            centerClientX: rcx, centerClientY: rcy,
+                            startAngleRad: Math.atan2(e.clientY - rcy, e.clientX - rcx),
+                          };
+                          document.body.style.cursor = "grab";
+                          return;
+                        }
+                        // resize = shape client bbox 基準 (Miro 相当 = 引っ張った方向に visible shape が拡大 + opposite corner 固定)
+                        overlayResizeRef.current = {
+                          id: p.id, corner, startScale: p.scale,
+                          startClientX: e.clientX, startClientY: e.clientY,
+                          startPosX: p.posX, startPosY: p.posY,
+                          startClientW: bbox.width, startClientH: bbox.height,
+                          startBboxLeft: bbox.left, startBboxTop: bbox.top,
+                          panScale: transformRef.current.scale || 1,
+                          panTx: transformRef.current.tx, panTy: transformRef.current.ty,
+                        };
+                        document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
+                      }}
+                    />
+                  );
+                })}
+                {/* Toolbar = 選択時のみ、 shape 上方に配置。 sharp SVG icon (transform 外 = 縮小 blur なし) */}
+                {isSelected && (
+                  <div
+                    data-overlay-toolbar={p.id}
+                    style={{
+                      position: "absolute", left: `${bbox.left}px`, top: `${bbox.top - 44}px`,
+                      background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+                      padding: "4px", display: "flex", gap: "2px", zIndex: 200, whiteSpace: "nowrap",
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button type="button" data-overlay-toolbar-btn="color" title="色を変更" style={iconStyle}
+                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 2c-4.4 0-8 3.6-8 8s3.6 8 8 8c.6 0 1-.4 1-1s-.4-1-1-1c-.5 0-1-.4-1-1s.5-1 1-1c1.1 0 2-.9 2-2s-.9-2-2-2c-1.1 0-2-.9-2-2s.9-2 2-2c1.7 0 3 1.3 3 3 0 .6.4 1 1 1s1-.4 1-1c0-3.9-3.1-7-7-7z" fill="#374151"/>
+                        <circle cx="6" cy="10" r="1.2" fill="#ef4444"/>
+                        <circle cx="9" cy="6" r="1.2" fill="#3b82f6"/>
+                        <circle cx="14" cy="10" r="1.2" fill="#22c55e"/>
+                      </svg>
+                    </button>
+                    <button type="button" data-overlay-toolbar-btn="duplicate" title="複製 (Cmd+D)" style={iconStyle}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const baseName = p.id.replace(/\d+$/, "");
+                        setSrc((prev) => {
+                          let n = 1;
+                          while (prev.includes(`- ${baseName}${n}:`)) n++;
+                          const newAlias = `${baseName}${n}`;
+                          const scaleField = Math.abs(p.scale - 1) > 0.001 ? `, scale: ${p.scale.toFixed(3)}` : "";
+                          const newLine = `  - ${newAlias}: { kind: ${p.kind}, posX: ${Math.round(p.posX + 30)}, posY: ${Math.round(p.posY + 30)}${scaleField} }`;
+                          return appendActorLine(prev, newLine) ?? prev;
+                        });
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                        <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+                        <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
+                      </svg>
+                    </button>
+                    <button type="button" data-overlay-toolbar-btn="bring-front" title="前面へ (Cmd+])" style={iconStyle}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSrc((prev) => {
+                          const lines = prev.split("\n");
+                          const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
+                          if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
+                            [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
+                          }
+                          return lines.join("\n");
+                        });
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
+                        <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#374151"/>
+                      </svg>
+                    </button>
+                    <button type="button" data-overlay-toolbar-btn="send-back" title="背面へ (Cmd+[)" style={iconStyle}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSrc((prev) => {
+                          const lines = prev.split("\n");
+                          const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
+                          if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
+                            [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
+                          }
+                          return lines.join("\n");
+                        });
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
+                        <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#374151"/>
+                      </svg>
+                    </button>
+                    <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
+                    <button type="button" data-overlay-toolbar-btn="delete" title="削除 (Delete)" style={iconStyle}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSrc((prev) => {
+                          const re = new RegExp(`^\\s*-\\s*${p.id}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+                          return prev.replace(re, "");
+                        });
+                        setSelectedIds([]);
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                {/* Color picker popover */}
+                {isSelected && colorPickerFor === p.id && (
+                  <div data-overlay-color-picker={p.id}
+                    style={{
+                      position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
+                      background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)", padding: "10px",
+                      display: "grid", gridTemplateColumns: "repeat(6, 30px)", gap: "8px", zIndex: 210,
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}>
+                    {["#f59e0b", "#ef4444", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899",
+                      "#0891b2", "#78716c", "#f97316", "#84cc16", "#06b6d4", "#a855f7"].map((c) => (
+                      <button key={c} type="button" data-overlay-color-swatch={c}
+                        style={{
+                          width: "30px", height: "30px", background: c,
+                          border: "1.5px solid rgba(0,0,0,0.1)", borderRadius: "6px",
+                          cursor: "pointer", padding: 0, transition: "transform 0.1s ease-out",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                        onClick={(e) => { e.stopPropagation(); changeColor(c); }} />
+                    ))}
+                  </div>
+                )}
+                {/* hover only (未選択) は border だけ subtle 表示 */}
+                {!isSelected && isHovered && (
+                  <div style={{
+                    position: "absolute", left: `${bbox.left - 1}px`, top: `${bbox.top - 1}px`,
+                    width: `${bbox.width + 2}px`, height: `${bbox.height + 2}px`,
+                    border: `1px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 89, opacity: 0.5,
+                  }} />
+                )}
+              </div>
+            );
+          })}
+          {hoveredHandle && !selectedIds.includes(`cdl:${hoveredHandle.id}`) && (() => {
+            // 2026-07-25 hover UI 簡素化 = hover は 薄 border indicator のみ (Miro/Figma 相当)、 handle 削除。
+            // selection 済 cdl 要素は cdl selection UI が濃 border + handle を出すので hover UI 抑止。
             const stageRect = previewRef.current?.getBoundingClientRect();
             if (!stageRect) return null;
             const r = hoveredHandle.rect;
             const left = r.left - stageRect.left;
             const top = r.top - stageRect.top;
-            const HANDLE = 10;
-            const style = (x: number, y: number, cursor: string) => ({
-              position: "absolute" as const,
-              left: `${x - HANDLE / 2}px`,
-              top: `${y - HANDLE / 2}px`,
-              width: `${HANDLE}px`,
-              height: `${HANDLE}px`,
-              background: "#fff",
-              border: "1.5px solid #8a5a2a",
-              borderRadius: "2px",
-              cursor,
-              zIndex: 100,
-              pointerEvents: "none" as const,
-            });
             return (
-              <>
-                <div style={style(left, top, "nwse-resize")} data-corner="nw" />
-                <div style={style(left + r.width, top, "nesw-resize")} data-corner="ne" />
-                <div style={style(left, top + r.height, "nesw-resize")} data-corner="sw" />
-                <div style={style(left + r.width, top + r.height, "nwse-resize")} data-corner="se" />
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${left}px`,
-                    top: `${top}px`,
-                    width: `${r.width}px`,
-                    height: `${r.height}px`,
-                    border: "1.5px dashed rgba(138, 90, 42, 0.5)",
-                    pointerEvents: "none",
-                    zIndex: 99,
-                  }}
-                />
-              </>
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: `${r.width}px`,
+                  height: `${r.height}px`,
+                  border: "1px dashed rgba(37, 99, 235, 0.35)",
+                  pointerEvents: "none",
+                  zIndex: 99,
+                  boxSizing: "border-box",
+                }}
+              />
             );
           })()}
+          {/* 2026-07-25 text 編集 overlay = double click 起動、 Enter / blur で src.replaceAll */}
+          {textEditing && (
+            <input
+              autoFocus
+              data-testid="editor-text-edit-input"
+              defaultValue={textEditing.originalText}
+              style={{
+                position: "absolute",
+                left: `${textEditing.bbox.left}px`,
+                top: `${textEditing.bbox.top}px`,
+                width: `${textEditing.bbox.width}px`,
+                height: `${textEditing.bbox.height}px`,
+                fontSize: `${textEditing.fontSize}px`,
+                padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
+                background: "#fff", zIndex: 300, boxSizing: "border-box",
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitTextEdit((e.target as HTMLInputElement).value); }
+                else if (e.key === "Escape") { e.preventDefault(); setTextEditing(null); }
+              }}
+              onBlur={(e) => commitTextEdit(e.target.value)}
+            />
+          )}
+          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal
+              Phase 4 revert = 実 drag/resize は cdl actor の header/spacer/footer 複合構造で分裂 bug、
+              core 再設計が必要 (別 issue)。 現状は selection UI 表示のみ = user が「何が選ばれているか」 を確認可能。
+              handle は視覚 indicator のみ (pointerEvents: none)、 実操作は overlay parts のみ現時点で対応。 */}
+          {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
+            const key = sid.slice("cdl:".length);
+            const bbox = cdlClientBboxes[key];
+            if (!bbox) return null;
+            const BORDER = "#2563eb";
+            const HANDLE = 10;
+            return (
+              <div key={sid} data-cdl-selection-ui={key}>
+                <div
+                  data-cdl-outline={key}
+                  style={{
+                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
+                    width: `${bbox.width}px`, height: `${bbox.height}px`,
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 90,
+                  }}
+                />
+                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
+                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
+                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
+                  return (
+                    <div
+                      key={corner}
+                      data-cdl-handle={corner}
+                      data-cdl-handle-for={key}
+                      style={{
+                        position: "absolute",
+                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
+                        width: `${HANDLE}px`, height: `${HANDLE}px`,
+                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                        zIndex: 100, pointerEvents: "none",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
         )}
       </section>
