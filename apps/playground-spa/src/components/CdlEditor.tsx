@@ -392,6 +392,12 @@ export function CdlEditor(): React.JSX.Element {
   // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
   // `cdl-edge:{id}` = cdl edge、 `text:{content}` = arrow label 等。
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // 2026-07-25 cdl 要素 selection = `cdl:{id}` の selector を保存、 stage-level UI で bbox 再測定に使う
+  const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
+  const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
+  // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
+  const [textEditing, setTextEditing] = useState<{ originalText: string; bbox: { left: number; top: number; width: number; height: number }; fontSize: number } | null>(null);
   // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
   // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
   const [groups, setGroups] = useState<Record<string, string[]>>({});
@@ -651,6 +657,27 @@ export function CdlEditor(): React.JSX.Element {
     });
     return () => cancelAnimationFrame(raf);
   }, [transform]);
+  // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const stageRect = previewRef.current?.getBoundingClientRect();
+      if (!stageRect) return;
+      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      for (const sid of selectedIds) {
+        if (!sid.startsWith("cdl:")) continue;
+        const key = sid.slice("cdl:".length);
+        const selector = cdlSelectorMap[key];
+        if (!selector || !previewRef.current) continue;
+        const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
+        if (!el || typeof el.getBoundingClientRect !== "function") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+      }
+      setCdlClientBboxes(next);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [selectedIds, transform, cdlSelectorMap]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -1594,6 +1621,31 @@ export function CdlEditor(): React.JSX.Element {
   // (auto 補正 / 補助線 / shift clear) 3 関数を削除。 user 「勝手な移動全部削除」 の core、 呼出経路 +
   // 定義本体を根絶する。 canvas-pivot-auto-adjust / canvas-pivot-guideline lib への依存も削除済。
 
+  // 2026-07-25 double click text 編集 = SVG <text> を狙って click したら inline HTML input を開く。
+  const handleStageDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    let el = e.target as SVGElement | HTMLElement | null;
+    // nearest text 要素を辿る (child tspan / foreignObject 対応)
+    while (el && el !== previewRef.current && el.tagName !== "text") el = el.parentElement as HTMLElement | null;
+    if (!el || el.tagName !== "text" || !previewRef.current) return;
+    const stageRect = previewRef.current.getBoundingClientRect();
+    const rect = (el as unknown as SVGGraphicsElement).getBoundingClientRect();
+    const original = (el.textContent ?? "").trim();
+    if (!original) return;
+    const fontSize = parseFloat(window.getComputedStyle(el as unknown as HTMLElement).fontSize) || 14;
+    setTextEditing({
+      originalText: original,
+      bbox: { left: rect.left - stageRect.left, top: rect.top - stageRect.top, width: Math.max(80, rect.width + 20), height: Math.max(24, rect.height + 8) },
+      fontSize,
+    });
+    e.stopPropagation();
+  };
+  const commitTextEdit = (newText: string): void => {
+    if (!textEditing) return;
+    const original = textEditing.originalText;
+    setTextEditing(null);
+    if (newText === original || !newText.trim()) return;
+    setSrc((prev) => prev.split(original).join(newText));
+  };
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
@@ -1605,6 +1657,8 @@ export function CdlEditor(): React.JSX.Element {
       // cdl element hit = selection 更新 (overlay と別の id 名前空間)
       if (hoveredHandle) {
         const selId = `cdl:${hoveredHandle.id}`;
+        // selector を保存 = stage-level UI の bbox 再測定で使う
+        setCdlSelectorMap((prev) => ({ ...prev, [hoveredHandle.id]: hoveredHandle.elementSelector }));
         if (e.shiftKey || e.metaKey) {
           setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
         } else {
@@ -2549,6 +2603,7 @@ ${newActorLine}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onDoubleClick={handleStageDoubleClick}
           onDragOver={handlePreviewDragOver}
           onDragLeave={handlePreviewDragLeave}
           onDrop={handlePreviewDrop}
@@ -3069,9 +3124,9 @@ ${newActorLine}
               </div>
             );
           })}
-          {hoveredHandle && (() => {
+          {hoveredHandle && !selectedIds.includes(`cdl:${hoveredHandle.id}`) && (() => {
             // 2026-07-25 hover UI 簡素化 = hover は 薄 border indicator のみ (Miro/Figma 相当)、 handle 削除。
-            // handle は 選択状態でのみ表示 (次 phase で cdl 要素 selection 統合、 現状は overlay parts のみ)。
+            // selection 済 cdl 要素は cdl selection UI が濃 border + handle を出すので hover UI 抑止。
             const stageRect = previewRef.current?.getBoundingClientRect();
             if (!stageRect) return null;
             const r = hoveredHandle.rect;
@@ -3093,6 +3148,71 @@ ${newActorLine}
               />
             );
           })()}
+          {/* 2026-07-25 text 編集 overlay = double click 起動、 Enter / blur で src.replaceAll */}
+          {textEditing && (
+            <input
+              autoFocus
+              data-testid="editor-text-edit-input"
+              defaultValue={textEditing.originalText}
+              style={{
+                position: "absolute",
+                left: `${textEditing.bbox.left}px`,
+                top: `${textEditing.bbox.top}px`,
+                width: `${textEditing.bbox.width}px`,
+                height: `${textEditing.bbox.height}px`,
+                fontSize: `${textEditing.fontSize}px`,
+                padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
+                background: "#fff", zIndex: 300, boxSizing: "border-box",
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitTextEdit((e.target as HTMLInputElement).value); }
+                else if (e.key === "Escape") { e.preventDefault(); setTextEditing(null); }
+              }}
+              onBlur={(e) => commitTextEdit(e.target.value)}
+            />
+          )}
+          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal */}
+          {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
+            const key = sid.slice("cdl:".length);
+            const bbox = cdlClientBboxes[key];
+            if (!bbox) return null;
+            const BORDER = "#2563eb";
+            const HANDLE = 10;
+            return (
+              <div key={sid} data-cdl-selection-ui={key}>
+                <div
+                  data-cdl-outline={key}
+                  style={{
+                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
+                    width: `${bbox.width}px`, height: `${bbox.height}px`,
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 90,
+                  }}
+                />
+                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
+                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
+                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
+                  return (
+                    <div
+                      key={corner}
+                      data-cdl-handle={corner}
+                      data-cdl-handle-for={key}
+                      style={{
+                        position: "absolute",
+                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
+                        width: `${HANDLE}px`, height: `${HANDLE}px`,
+                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                        zIndex: 100, pointerEvents: "none",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
         )}
       </section>
