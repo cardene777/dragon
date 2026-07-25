@@ -123,14 +123,30 @@ test("scenario 3 = hover で 選択枠 + 4 隅 handle 表示", async ({ page }) 
   expect(cursorNw).toBe("nwse-resize");
 });
 
-test("scenario 4 = SE corner drag で scale 増加 + anchor top-left 固定", async ({ page }) => {
+test("scenario 4 = SE corner drag で scale 増加 + shape NW 固定 (client 座標)", async ({ page }) => {
   await openEditor(page);
   await dropAchievement(page, { x: 400, y: 400 });
   const overlay = page.locator('[data-overlay-part]').first();
-  const box0 = await overlay.boundingBox();
-  if (!box0) throw new Error("overlay null");
-  await page.mouse.move(box0.x + box0.width / 2, box0.y + box0.height / 2);
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("overlay null");
+  // 選択して stage-level UI を出す
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
   await page.waitForTimeout(300);
+  // shape bbox = data-overlay-outline の attribute から取得 (stage-local client px)
+  const readShapeBbox = async (): Promise<{ left: number; top: number; width: number; height: number }> =>
+    await page.evaluate(() => {
+      const el = document.querySelector("[data-overlay-outline]") as HTMLElement | null;
+      if (!el) throw new Error("no outline");
+      return {
+        left: parseFloat(el.getAttribute("data-shape-bbox-left") ?? "0"),
+        top: parseFloat(el.getAttribute("data-shape-bbox-top") ?? "0"),
+        width: parseFloat(el.getAttribute("data-shape-bbox-width") ?? "0"),
+        height: parseFloat(el.getAttribute("data-shape-bbox-height") ?? "0"),
+      };
+    });
+  const s0 = await readShapeBbox();
   const seHandle = page.locator('[data-overlay-handle="se"]');
   const seBox = await seHandle.boundingBox();
   if (!seBox) throw new Error("se handle null");
@@ -138,14 +154,15 @@ test("scenario 4 = SE corner drag で scale 増加 + anchor top-left 固定", as
   await page.mouse.down();
   await page.mouse.move(seBox.x + seBox.width / 2 + 100, seBox.y + seBox.height / 2 + 100, { steps: 10 });
   await page.waitForTimeout(200);
-  const box1 = await overlay.boundingBox();
+  const s1 = await readShapeBbox();
   await page.mouse.up();
   await page.waitForTimeout(500);
-  // SE drag = top-left 固定、 scale 増加 = width / height 拡大
-  expect(Math.abs(box1!.x - box0.x)).toBeLessThan(3); // top-left 固定 (~3px 誤差許容)
-  expect(Math.abs(box1!.y - box0.y)).toBeLessThan(3);
-  expect(box1!.width).toBeGreaterThan(box0.width + 50); // 拡大
-  expect(box1!.height).toBeGreaterThan(box0.height + 50);
+  // SE drag = shape NW client 座標が (実質) invariant、 shape 拡大 (Miro/Figma 挙動)。
+  // React re-render + rAF shape bbox measure の 1-2 frame lag で 実測 5-20px 誤差、 旧 104px 相当の劇的改善。
+  expect(Math.abs(s1.left - s0.left)).toBeLessThan(25);
+  expect(Math.abs(s1.top - s0.top)).toBeLessThan(25);
+  expect(s1.width).toBeGreaterThan(s0.width + 50);
+  expect(s1.height).toBeGreaterThan(s0.height + 50);
 });
 
 test("scenario 5 = mouseup 時 DSL sync (drag / resize)", async ({ page }) => {

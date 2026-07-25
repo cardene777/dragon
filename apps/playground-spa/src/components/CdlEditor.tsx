@@ -455,7 +455,9 @@ export function CdlEditor(): React.JSX.Element {
   const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
   // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
   // mousemove で diagonal delta から新 scale を計算。
-  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; panScale: number } | null>(null);
+  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; startBboxLeft: number; startBboxTop: number; panScale: number; panTx: number; panTy: number } | null>(null);
+  // rAF throttle = mousemove burst で React re-render 追いつかない対策、 60fps 上限で state 更新
+  const mousemoveRafRef = useRef<{ pending: boolean; lastX: number; lastY: number; shiftKey: boolean; altKey: boolean }>({ pending: false, lastX: 0, lastY: 0, shiftKey: false, altKey: false });
   // rotate ref = Alt + corner drag で回転、 overlay div の中心 client 座標基準で角度計算
   const overlayRotateRef = useRef<{ id: string; startRotate: number; centerClientX: number; centerClientY: number; startAngleRad: number } | null>(null);
   // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
@@ -1619,7 +1621,30 @@ export function CdlEditor(): React.JSX.Element {
     setRubberBand({ sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY });
   };
 
+  // rAF throttle wrapper = drag / rotate / resize の高頻度 mousemove を 60fps に絞る
+  const flushMouseMove = (): void => {
+    const { lastX, lastY, shiftKey } = mousemoveRafRef.current;
+    // synthetic MouseEvent 相当 (clientX/Y + shiftKey のみ使う downstream logic)
+    const syntheticEvent = { clientX: lastX, clientY: lastY, shiftKey } as unknown as React.MouseEvent<HTMLDivElement>;
+    processMouseMove(syntheticEvent);
+    mousemoveRafRef.current.pending = false;
+  };
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // resize / drag / rotate 中のみ rAF throttle、 それ以外 (pan / hover 追跡) は即時
+    if (overlayResizeRef.current || overlayDragRef.current || overlayRotateRef.current) {
+      mousemoveRafRef.current.lastX = e.clientX;
+      mousemoveRafRef.current.lastY = e.clientY;
+      mousemoveRafRef.current.shiftKey = e.shiftKey;
+      mousemoveRafRef.current.altKey = e.altKey;
+      if (!mousemoveRafRef.current.pending) {
+        mousemoveRafRef.current.pending = true;
+        requestAnimationFrame(flushMouseMove);
+      }
+      return;
+    }
+    processMouseMove(e);
+  };
+  const processMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
     // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
     // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
@@ -1662,7 +1687,10 @@ export function CdlEditor(): React.JSX.Element {
       setOverlayParts((prev) => prev.map((p) => p.id === st.id ? { ...p, rotate: newRotate } : p));
       return;
     }
-    // overlay parts resize = corner drag で scale 更新。 client px 基準で計算 (pan.scale と p.scale の混在バグ対策)。
+    // overlay parts resize = corner drag で uniform scale + opposite corner を client 座標で invariant に。
+    // Miro/Figma 挙動 = SE drag → NW 固定 / NW drag → SE 固定 / NE drag → SW 固定 / SW drag → NE 固定。
+    // shape offset in div は scale 倍されるため posX/posY を単純に足し引きすると shape 全体が動く。
+    // anchor client 座標 (stage-local) を invariant 化する posX/posY を毎 frame 逆算する。
     if (overlayResizeRef.current) {
       const st = overlayResizeRef.current;
       const dxClient = e.clientX - st.startClientX;
@@ -1675,16 +1703,21 @@ export function CdlEditor(): React.JSX.Element {
       const newClientW = Math.max(20, st.startClientW + deltaMax);
       const scaleRatio = newClientW / st.startClientW;
       const newScale = Math.max(0.1, st.startScale * scaleRatio);
-      // client delta を world 単位 (pan container 内座標系) に変換して posX/posY 補正
-      const deltaClientW = newClientW - st.startClientW;
-      const deltaClientH = (newClientW / st.startClientW) * st.startClientH - st.startClientH;
-      const deltaWorldW = deltaClientW / st.panScale;
-      const deltaWorldH = deltaClientH / st.panScale;
-      let newPosX = st.startPosX;
-      let newPosY = st.startPosY;
-      // anchor 逆補正 = drag corner の対角が固定点
-      if (st.corner === "nw" || st.corner === "sw") newPosX = st.startPosX - deltaWorldW;
-      if (st.corner === "nw" || st.corner === "ne") newPosY = st.startPosY - deltaWorldH;
+      // anchor = drag corner の対角、 stage-local client 座標
+      let anchorClientX = st.startBboxLeft;
+      let anchorClientY = st.startBboxTop;
+      if (st.corner === "nw") { anchorClientX += st.startClientW; anchorClientY += st.startClientH; }
+      else if (st.corner === "ne") { anchorClientY += st.startClientH; }
+      else if (st.corner === "sw") { anchorClientX += st.startClientW; }
+      // stage-local client → world 変換 = (client - panTx) / panScale (pan container transform 逆変換)
+      const anchorWorldX = (anchorClientX - st.panTx) / st.panScale;
+      const anchorWorldY = (anchorClientY - st.panTy) / st.panScale;
+      // shape-local raw offset (unscaled world unit) = anchor が div 原点から見た元 shape 座標
+      const anchorRawOffsetX = (anchorWorldX - st.startPosX) / st.startScale;
+      const anchorRawOffsetY = (anchorWorldY - st.startPosY) / st.startScale;
+      // 新 scale で anchor client 座標を invariant に保つ posX/posY を逆算
+      const newPosX = anchorWorldX - anchorRawOffsetX * newScale;
+      const newPosY = anchorWorldY - anchorRawOffsetY * newScale;
       setOverlayParts((prev) => prev.map((p) => (p.id === st.id ? { ...p, scale: newScale, posX: newPosX, posY: newPosY } : p)));
       return;
     }
@@ -2836,7 +2869,7 @@ ${newActorLine}
             const isSelected = selectedIds.includes(`overlay:${p.id}`);
             const isHovered = hoveredOverlayId === p.id;
             const BORDER = "#2563eb";
-            const HANDLE = 12;
+            const HANDLE = 10;
             const changeColor = (c: string): void => {
               setSrc((prev) => {
                 const lines = prev.split("\n");
@@ -2861,13 +2894,17 @@ ${newActorLine}
             };
             return (
               <div key={p.id} data-overlay-selection-ui={p.id}>
-                {/* 選択枠 = shape の client bbox にぴったり */}
+                {/* 選択枠 = shape client bbox に完全 fit (padding なし)、 点線 */}
                 <div
                   data-overlay-outline={p.id}
+                  data-shape-bbox-left={bbox.left.toFixed(2)}
+                  data-shape-bbox-top={bbox.top.toFixed(2)}
+                  data-shape-bbox-width={bbox.width.toFixed(2)}
+                  data-shape-bbox-height={bbox.height.toFixed(2)}
                   style={{
-                    position: "absolute", left: `${bbox.left - 1}px`, top: `${bbox.top - 1}px`,
-                    width: `${bbox.width + 2}px`, height: `${bbox.height + 2}px`,
-                    border: `1.5px solid ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
+                    width: `${bbox.width}px`, height: `${bbox.height}px`,
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
                     borderRadius: "2px", zIndex: 90,
                   }}
                 />
@@ -2907,13 +2944,15 @@ ${newActorLine}
                           document.body.style.cursor = "grab";
                           return;
                         }
-                        // resize = shape client bbox 基準 (Miro 相当 = 引っ張った方向に visible shape が拡大)
+                        // resize = shape client bbox 基準 (Miro 相当 = 引っ張った方向に visible shape が拡大 + opposite corner 固定)
                         overlayResizeRef.current = {
                           id: p.id, corner, startScale: p.scale,
                           startClientX: e.clientX, startClientY: e.clientY,
                           startPosX: p.posX, startPosY: p.posY,
                           startClientW: bbox.width, startClientH: bbox.height,
+                          startBboxLeft: bbox.left, startBboxTop: bbox.top,
                           panScale: transformRef.current.scale || 1,
+                          panTx: transformRef.current.tx, panTy: transformRef.current.ty,
                         };
                         document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
                       }}
