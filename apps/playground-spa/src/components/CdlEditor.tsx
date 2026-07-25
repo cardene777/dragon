@@ -3232,7 +3232,9 @@ ${newActorLine}
             />
           )}
           {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal
-              Phase 4 = handle mousedown で startCdlHandleResize、 outline mousedown で startCdlOutlineDrag を発火 */}
+              Phase 4 revert = 実 drag/resize は cdl actor の header/spacer/footer 複合構造で分裂 bug、
+              core 再設計が必要 (別 issue)。 現状は selection UI 表示のみ = user が「何が選ばれているか」 を確認可能。
+              handle は視覚 indicator のみ (pointerEvents: none)、 実操作は overlay parts のみ現時点で対応。 */}
           {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
             const key = sid.slice("cdl:".length);
             const bbox = cdlClientBboxes[key];
@@ -3243,14 +3245,12 @@ ${newActorLine}
               <div key={sid} data-cdl-selection-ui={key}>
                 <div
                   data-cdl-outline={key}
-                  data-cdl-drag-handle-for={key}
                   style={{
                     position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
                     width: `${bbox.width}px`, height: `${bbox.height}px`,
-                    border: `1.5px dashed ${BORDER}`, pointerEvents: "auto", boxSizing: "border-box",
-                    borderRadius: "2px", zIndex: 90, cursor: "grab", background: "transparent",
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 90,
                   }}
-                  onMouseDown={(e) => startCdlDrag(e, key)}
                 />
                 {(["nw", "ne", "sw", "se"] as const).map((corner) => {
                   const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
@@ -3267,9 +3267,8 @@ ${newActorLine}
                         background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                         cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                        zIndex: 100, pointerEvents: "auto",
+                        zIndex: 100, pointerEvents: "none",
                       }}
-                      onMouseDown={(e) => startCdlResize(e, key, corner)}
                     />
                   );
                 })}

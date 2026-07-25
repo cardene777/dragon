@@ -74,38 +74,9 @@ async function selectCdlNode(page: import("@playwright/test").Page, nodeId: stri
   return bbox;
 }
 
-test("Phase 4 cdl drag = outline drag で cdl 要素が新座標に移動 (DSL 書換確認)", async ({ page }) => {
-  await openEditor(page);
-  const bbox0 = await selectCdlNode(page, "client-header");
-  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  // outline を drag = grab で移動
-  const outline = page.locator('[data-cdl-outline="Client"]').first();
-  const ob = await outline.boundingBox();
-  if (!ob) throw new Error("outline null");
-  await page.mouse.move(ob.x + ob.width / 2, ob.y + ob.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(ob.x + ob.width / 2 + 80, ob.y + ob.height / 2, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(600);
-  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  expect(dslAfter).not.toBe(dslBefore);
-});
-
-test("Phase 4 cdl resize = SE handle drag で cdl 要素が拡大", async ({ page }) => {
-  await openEditor(page);
-  await selectCdlNode(page, "client-header");
-  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  const seHandle = page.locator('[data-cdl-handle="se"][data-cdl-handle-for="Client"]').first();
-  const sh = await seHandle.boundingBox();
-  if (!sh) throw new Error("se handle null");
-  await page.mouse.move(sh.x + sh.width / 2, sh.y + sh.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(sh.x + sh.width / 2 + 60, sh.y + sh.height / 2 + 60, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(600);
-  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  expect(dslAfter).not.toBe(dslBefore);
-});
+// NOTE: Phase 4 cdl drag / resize test は revert (cdl core の header/spacer/footer 複合構造で分裂 bug)。
+// selection UI は表示 keep = user が「何が選ばれているか」 確認可能、 実 drag/resize は overlay parts のみ現時点で対応。
+// cdl drag/resize は cdl core の layout 経路 (packages/cdl/src/layout/) の再設計が別 issue で必要。
 
 test("text edit 2 = Escape で input close (DSL 変化なし)", async ({ page }) => {
   await openEditor(page);
