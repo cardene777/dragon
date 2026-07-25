@@ -407,6 +407,49 @@ export function CdlEditor(): React.JSX.Element {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
   // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
   const [colorPickerFor, setColorPickerFor] = useState<string | null>(null);
+  // 2026-07-25 shape bbox measure = overlay div 内 実 shape (circle/rect/path) の bbox を div-local 座標で測定、
+  // 選択枠 + handle 位置を div edge ではなく 実 shape edge に配置 (「囲いデカい」 fix)。
+  const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [shapeBboxes, setShapeBboxes] = useState<Record<string, { x: number; y: number; w: number; h: number }>>({});
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const next: Record<string, { x: number; y: number; w: number; h: number }> = {};
+      for (const p of overlayParts) {
+        const div = overlayRefs.current[p.id];
+        if (!div) continue;
+        // 全 shape element 中 面積 最大 を採用 (title/subtitle text は除外)
+        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+        if (shapes.length === 0) continue;
+        const divRect = div.getBoundingClientRect();
+        let maxArea = 0;
+        let best: DOMRect | null = null;
+        for (const s of Array.from(shapes)) {
+          const r = (s as SVGGraphicsElement).getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue; // 極小 shape (icon 等) skip
+          const a = r.width * r.height;
+          if (a > maxArea) { maxArea = a; best = r; }
+        }
+        if (!best) continue;
+        const scale = p.scale > 0 ? p.scale : 1;
+        // div の transform scale を除去して div-local pre-scale 座標へ変換
+        next[p.id] = {
+          x: (best.left - divRect.left) / scale,
+          y: (best.top - divRect.top) / scale,
+          w: best.width / scale,
+          h: best.height / scale,
+        };
+      }
+      // diff check で 無駄 re-render 抑制
+      const changed = Object.keys(next).length !== Object.keys(shapeBboxes).length ||
+        Object.entries(next).some(([id, b]) => {
+          const prev = shapeBboxes[id];
+          return !prev || Math.abs(prev.x - b.x) > 0.5 || Math.abs(prev.y - b.y) > 0.5 || Math.abs(prev.w - b.w) > 0.5 || Math.abs(prev.h - b.h) > 0.5;
+        });
+      if (changed) setShapeBboxes(next);
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayParts]);
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
   const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
@@ -2580,6 +2623,7 @@ ${newActorLine}
                       key={p.id}
                       data-overlay-part={p.id}
                       data-selected={isSelected ? "1" : undefined}
+                      ref={(el) => { overlayRefs.current[p.id] = el; }}
                       style={{
                         position: "absolute",
                         left: `${p.posX}px`,
@@ -2632,149 +2676,292 @@ ${newActorLine}
                     >
                       <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
                       {isSelected && (() => {
-                        // 選択時 color picker toggle button = 右上に 🎨 icon
+                        // Figma 相当 floating toolbar = 選択 shape 上方 に配置、 SVG icon + 白 bg + shadow + rounded。
                         const inv = p.scale > 0 ? 1 / p.scale : 1;
+                        const bbox = shapeBboxes[p.id] ?? { x: 0, y: 0, w: 0, h: 0 };
+                        const useTight = bbox.w > 3 && bbox.h > 3;
+                        const tbLeft = useTight ? bbox.x : 0;
+                        const tbTop = (useTight ? bbox.y : 0) - 48 * inv;
+                        const iconStyle: React.CSSProperties = {
+                          width: `${32 * inv}px`,
+                          height: `${32 * inv}px`,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          borderRadius: `${4 * inv}px`,
+                          padding: 0,
+                        };
+                        const iconSize = 18 * inv;
+                        const changeColor = (c: string): void => {
+                          setSrc((prev) => {
+                            const lines = prev.split("\n");
+                            const next = lines.map((line) => {
+                              const m = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
+                              if (!m) return line;
+                              const rawName = m[2]!.replace(/^"(.+)"$/, "$1");
+                              if (rawName !== p.id) return line;
+                              const prefix = m[1]! + m[2]! + m[3]!;
+                              let inner = m[4]!;
+                              inner = inner.replace(/,?\s*bg\s*:\s*"[^"]*"/g, "").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
+                              const merged = inner.length > 0 ? `${inner}, bg: "${c}"` : `bg: "${c}"`;
+                              return `${prefix}{ ${merged} }`;
+                            });
+                            return next.join("\n");
+                          });
+                          setColorPickerFor(null);
+                        };
                         return (
-                          <button
-                            type="button"
-                            data-overlay-color-btn={p.id}
-                            style={{
-                              position: "absolute",
-                              top: `${-30 * inv}px`,
-                              right: `${-8 * inv}px`,
-                              width: `${24 * inv}px`,
-                              height: `${24 * inv}px`,
-                              background: "#fff",
-                              border: `${1 * inv}px solid #8a5a2a`,
-                              borderRadius: "50%",
-                              cursor: "pointer",
-                              fontSize: `${14 * inv}px`,
-                              padding: 0,
-                              zIndex: 110,
-                              lineHeight: 1,
-                            }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setColorPickerFor((prev) => prev === p.id ? null : p.id);
-                            }}
-                          >🎨</button>
-                        );
-                      })()}
-                      {colorPickerFor === p.id && (() => {
-                        const inv = p.scale > 0 ? 1 / p.scale : 1;
-                        return (
-                          <div
-                            data-overlay-color-picker={p.id}
-                            style={{
-                              position: "absolute",
-                              top: `${-70 * inv}px`,
-                              right: `${-8 * inv}px`,
-                              background: "#fff",
-                              border: `${1 * inv}px solid #8a5a2a`,
-                              padding: `${6 * inv}px`,
-                              borderRadius: `${6 * inv}px`,
-                              boxShadow: `0 ${2 * inv}px ${8 * inv}px rgba(0,0,0,0.15)`,
-                              display: "flex",
-                              gap: `${4 * inv}px`,
-                              zIndex: 120,
-                            }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                          >
-                            {["#f59e0b", "#ef4444", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#0891b2", "#78716c"].map((c) => (
+                          <>
+                            <div
+                              data-overlay-toolbar={p.id}
+                              style={{
+                                position: "absolute",
+                                left: `${tbLeft}px`,
+                                top: `${tbTop}px`,
+                                background: "#fff",
+                                border: `${1 * inv}px solid #e5e7eb`,
+                                borderRadius: `${8 * inv}px`,
+                                boxShadow: `0 ${4 * inv}px ${12 * inv}px rgba(0,0,0,0.12), 0 ${1 * inv}px ${3 * inv}px rgba(0,0,0,0.08)`,
+                                padding: `${4 * inv}px`,
+                                display: "flex",
+                                gap: `${2 * inv}px`,
+                                zIndex: 200,
+                                whiteSpace: "nowrap",
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
                               <button
-                                key={c}
                                 type="button"
-                                data-overlay-color-swatch={c}
-                                style={{
-                                  width: `${20 * inv}px`,
-                                  height: `${20 * inv}px`,
-                                  background: c,
-                                  border: `${1 * inv}px solid #333`,
-                                  borderRadius: "50%",
-                                  cursor: "pointer",
-                                  padding: 0,
-                                }}
+                                data-overlay-toolbar-btn="color"
+                                title="色を変更"
+                                style={iconStyle}
+                                onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none">
+                                  <path d="M10 2c-4.4 0-8 3.6-8 8s3.6 8 8 8c.6 0 1-.4 1-1s-.4-1-1-1c-.5 0-1-.4-1-1s.5-1 1-1c1.1 0 2-.9 2-2s-.9-2-2-2c-1.1 0-2-.9-2-2s.9-2 2-2c1.7 0 3 1.3 3 3 0 .6.4 1 1 1s1-.4 1-1c0-3.9-3.1-7-7-7z" fill="#374151"/>
+                                  <circle cx="6" cy="10" r="1" fill="#ef4444"/>
+                                  <circle cx="9" cy="6" r="1" fill="#3b82f6"/>
+                                  <circle cx="14" cy="10" r="1" fill="#22c55e"/>
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                data-overlay-toolbar-btn="duplicate"
+                                title="複製 (Cmd+D)"
+                                style={iconStyle}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // DSL の対象 actor 行 inline map に bg: "{color}" を upsert
+                                  const baseName = p.id.replace(/\d+$/, "");
+                                  setSrc((prev) => {
+                                    let n = 1;
+                                    while (prev.includes(`- ${baseName}${n}:`)) n++;
+                                    const newAlias = `${baseName}${n}`;
+                                    const scaleField = Math.abs(p.scale - 1) > 0.001 ? `, scale: ${p.scale.toFixed(3)}` : "";
+                                    const newLine = `  - ${newAlias}: { kind: ${p.kind}, posX: ${Math.round(p.posX + 30)}, posY: ${Math.round(p.posY + 30)}${scaleField} }`;
+                                    return appendActorLine(prev, newLine) ?? prev;
+                                  });
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                                  <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+                                  <rect x="7" y="7" width="10" height="10" rx="1.5"/>
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                data-overlay-toolbar-btn="bring-front"
+                                title="前面へ (Cmd+])"
+                                style={iconStyle}
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSrc((prev) => {
                                     const lines = prev.split("\n");
-                                    const next = lines.map((line) => {
-                                      const m = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
-                                      if (!m) return line;
-                                      const rawName = m[2]!.replace(/^"(.+)"$/, "$1");
-                                      if (rawName !== p.id) return line;
-                                      const prefix = m[1]! + m[2]! + m[3]!;
-                                      let inner = m[4]!;
-                                      inner = inner.replace(/,?\s*bg\s*:\s*"[^"]*"/g, "").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
-                                      const merged = inner.length > 0 ? `${inner}, bg: "${c}"` : `bg: "${c}"`;
-                                      return `${prefix}{ ${merged} }`;
-                                    });
-                                    return next.join("\n");
+                                    const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
+                                    if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
+                                      [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
+                                    }
+                                    return lines.join("\n");
                                   });
-                                  setColorPickerFor(null);
                                 }}
-                              />
-                            ))}
-                          </div>
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                                  <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#fff"/>
+                                  <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#374151" stroke="none"/>
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                data-overlay-toolbar-btn="send-back"
+                                title="背面へ (Cmd+[)"
+                                style={iconStyle}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSrc((prev) => {
+                                    const lines = prev.split("\n");
+                                    const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
+                                    if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
+                                      [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
+                                    }
+                                    return lines.join("\n");
+                                  });
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                                  <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#fff"/>
+                                  <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#374151" stroke="none"/>
+                                </svg>
+                              </button>
+                              <div style={{ width: `${1 * inv}px`, background: "#e5e7eb", margin: `${4 * inv}px ${2 * inv}px` }} />
+                              <button
+                                type="button"
+                                data-overlay-toolbar-btn="delete"
+                                title="削除 (Delete)"
+                                style={{ ...iconStyle }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSrc((prev) => {
+                                    const re = new RegExp(`^\\s*-\\s*${p.id}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+                                    return prev.replace(re, "");
+                                  });
+                                  setSelectedIds([]);
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                                  <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
+                                </svg>
+                              </button>
+                            </div>
+                            {colorPickerFor === p.id && (
+                              <div
+                                data-overlay-color-picker={p.id}
+                                style={{
+                                  position: "absolute",
+                                  left: `${tbLeft}px`,
+                                  top: `${tbTop + 42 * inv}px`,
+                                  background: "#fff",
+                                  border: `${1 * inv}px solid #e5e7eb`,
+                                  borderRadius: `${8 * inv}px`,
+                                  boxShadow: `0 ${4 * inv}px ${12 * inv}px rgba(0,0,0,0.12)`,
+                                  padding: `${8 * inv}px`,
+                                  display: "grid",
+                                  gridTemplateColumns: `repeat(6, ${28 * inv}px)`,
+                                  gap: `${6 * inv}px`,
+                                  zIndex: 210,
+                                }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                {[
+                                  "#f59e0b", "#ef4444", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899",
+                                  "#0891b2", "#78716c", "#f97316", "#84cc16", "#06b6d4", "#a855f7",
+                                ].map((c) => (
+                                  <button
+                                    key={c}
+                                    type="button"
+                                    data-overlay-color-swatch={c}
+                                    style={{
+                                      width: `${28 * inv}px`,
+                                      height: `${28 * inv}px`,
+                                      background: c,
+                                      border: `${1.5 * inv}px solid rgba(0,0,0,0.1)`,
+                                      borderRadius: `${6 * inv}px`,
+                                      cursor: "pointer",
+                                      padding: 0,
+                                      transition: "transform 0.1s ease-out",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                    onClick={(e) => { e.stopPropagation(); changeColor(c); }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </>
                         );
                       })()}
                       {(isHovered || isSelected) && (() => {
-                        // hover 中 = 4 隅 handle + 点線 outline を overlay div 内に render。
-                        // overlay div は既に scale 済なので子 handle も同 scale で描画される (見た目 handle size は scale の影響を受ける)。
-                        // 対策 = handle を scale の逆で scale-cancel (現 overlay scale の逆比で border/handle 実寸を維持)。
+                        // Figma / Miro 相当 selection UI = tight bbox + 大型 handle + floating toolbar。
                         const inv = p.scale > 0 ? 1 / p.scale : 1;
-                        // overlay div 内 SVG の実サイズを DOM から取得 (partsCatalog の diagram size 基準)
-                        // querySelector で自身の CdlDiagramView 内 SVG bbox を測る
-                        const HANDLE = 12 * inv;
+                        // shape bbox (実 shape に tight fit、 measure 済) or fallback (未 measure = div 全体)
+                        const bbox = shapeBboxes[p.id] ?? { x: 0, y: 0, w: 0, h: 0 };
+                        const useTight = bbox.w > 3 && bbox.h > 3;
+                        const bx = useTight ? bbox.x : 0;
+                        const by = useTight ? bbox.y : 0;
+                        const bw = useTight ? bbox.w : undefined;
+                        const bh = useTight ? bbox.h : undefined;
+                        const HANDLE = 14 * inv; // 12 → 14 で 大型化 + hover 拡大 で 押しやすさ 改善
+                        const BORDER_COLOR = "#2563eb"; // 青 solid (Figma 相当)
+                        const BORDER_W = 1.5 * inv;
                         return (
                           <>
-                            {/* 点線 outline */}
+                            {/* 選択枠 = 実 shape に tight fit の solid 青 border (dashed → solid で professional) */}
                             <div
                               data-overlay-outline={p.id}
                               style={{
                                 position: "absolute",
-                                inset: 0,
-                                border: `${1.5 * inv}px dashed rgba(138, 90, 42, 0.6)`,
+                                left: `${bx}px`,
+                                top: `${by}px`,
+                                width: bw !== undefined ? `${bw}px` : undefined,
+                                height: bh !== undefined ? `${bh}px` : undefined,
+                                right: bw === undefined ? 0 : undefined,
+                                bottom: bh === undefined ? 0 : undefined,
+                                border: `${BORDER_W}px solid ${BORDER_COLOR}`,
                                 pointerEvents: "none",
+                                boxSizing: "border-box",
+                                borderRadius: `${2 * inv}px`,
                               }}
                             />
+                            {/* 4 隅 handle = 白 fill + 青 border + shadow = Figma 相当。 位置 = shape bbox 4 隅 */}
                             {(["nw", "ne", "sw", "se"] as const).map((corner) => {
                               const cornerStyle: React.CSSProperties = {
                                 position: "absolute",
                                 width: `${HANDLE}px`,
                                 height: `${HANDLE}px`,
                                 background: "#fff",
-                                border: `${1.5 * inv}px solid #8a5a2a`,
+                                border: `${1.5 * inv}px solid ${BORDER_COLOR}`,
                                 borderRadius: `${2 * inv}px`,
+                                boxShadow: `0 ${1 * inv}px ${3 * inv}px rgba(0,0,0,0.2)`,
                                 cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
                                 zIndex: 100,
+                                transition: "transform 0.1s ease-out",
                               };
-                              if (corner === "nw") { cornerStyle.left = `${-HANDLE / 2}px`; cornerStyle.top = `${-HANDLE / 2}px`; }
-                              if (corner === "ne") { cornerStyle.right = `${-HANDLE / 2}px`; cornerStyle.top = `${-HANDLE / 2}px`; }
-                              if (corner === "sw") { cornerStyle.left = `${-HANDLE / 2}px`; cornerStyle.bottom = `${-HANDLE / 2}px`; }
-                              if (corner === "se") { cornerStyle.right = `${-HANDLE / 2}px`; cornerStyle.bottom = `${-HANDLE / 2}px`; }
+                              const cx = corner === "nw" || corner === "sw" ? bx : bx + (bw ?? 0);
+                              const cy = corner === "nw" || corner === "ne" ? by : by + (bh ?? 0);
+                              cornerStyle.left = `${cx - HANDLE / 2}px`;
+                              cornerStyle.top = `${cy - HANDLE / 2}px`;
                               return (
                                 <div
                                   key={corner}
                                   data-overlay-handle={corner}
                                   style={cornerStyle}
+                                  onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.3)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
                                     const div = (e.currentTarget.parentElement as HTMLElement | null);
                                     const rect = div?.getBoundingClientRect();
                                     if (!rect) return;
-                                    // Alt + corner drag = rotate mode (Feature 7、 Miro / Figma 相当)
                                     if (e.altKey) {
-                                      const cx = rect.left + rect.width / 2;
-                                      const cy = rect.top + rect.height / 2;
+                                      const rcx = rect.left + rect.width / 2;
+                                      const rcy = rect.top + rect.height / 2;
                                       overlayRotateRef.current = {
                                         id: p.id,
                                         startRotate: p.rotate,
-                                        centerClientX: cx,
-                                        centerClientY: cy,
-                                        startAngleRad: Math.atan2(e.clientY - cy, e.clientX - cx),
+                                        centerClientX: rcx,
+                                        centerClientY: rcy,
+                                        startAngleRad: Math.atan2(e.clientY - rcy, e.clientX - rcx),
                                       };
                                       document.body.style.cursor = "grab";
                                       return;

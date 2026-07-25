@@ -49,7 +49,7 @@ test("Feature 2: Color picker = 🎨 button で色 swatch popover 表示", async
   await drop(page, "parts-achievement", { x: 300, y: 300 });
   await selectFirstOverlay(page);
   // 🎨 button 表示確認
-  const colorBtn = page.locator('[data-overlay-color-btn]').first();
+  const colorBtn = page.locator('[data-overlay-toolbar-btn="color"]').first();
   expect(await colorBtn.count()).toBe(1);
   await colorBtn.click();
   await page.waitForTimeout(200);
