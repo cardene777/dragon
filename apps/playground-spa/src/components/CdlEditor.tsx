@@ -1443,6 +1443,65 @@ export function CdlEditor(): React.JSX.Element {
     return true;
   };
 
+  // 2026-07-25 Phase 4 = cdl 要素 stage-level selection UI から drag / resize を発火。
+  // 既存 elementDrag 経路を再利用、 selector map から実 SVG element を find して synthetic hoveredHandle を組立てる。
+  const startCdlHandleAction = (
+    e: React.MouseEvent<HTMLDivElement>,
+    key: string,
+    mode: "drag" | "resize",
+    corner?: "nw" | "ne" | "sw" | "se",
+  ): void => {
+    e.stopPropagation();
+    e.preventDefault();
+    const selector = cdlSelectorMap[key];
+    if (!selector || !previewRef.current) return;
+    const svg = previewRef.current.querySelector("svg") as SVGSVGElement | null;
+    const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
+    if (!svg || !el || typeof el.getBoundingClientRect !== "function") return;
+    const rect = el.getBoundingClientRect();
+    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
+    const cur = extractActorPosition(src, key);
+    let initX = cur?.posX;
+    let initY = cur?.posY;
+    let initW = cur?.posW;
+    let initH = cur?.posH;
+    const tlPt = clientToSvg(svg, rect.left, rect.top);
+    const brPt = clientToSvg(svg, rect.right, rect.bottom);
+    const wSvg = brPt.x - tlPt.x;
+    const hSvg = brPt.y - tlPt.y;
+    if (initX === undefined || initY === undefined) {
+      initX = tlPt.x;
+      initY = tlPt.y;
+    }
+    initW = initW ?? wSvg;
+    initH = initH ?? hSvg;
+    elementDrag.current = {
+      mode,
+      targetName: key,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startSvgX: svgPt.x,
+      startSvgY: svgPt.y,
+      initPosX: initX,
+      initPosY: initY,
+      initPosW: initW,
+      initPosH: initH,
+      corner,
+      svgScale: svgPt.scale,
+      commandBypass: e.metaKey || e.ctrlKey,
+      hoveredSelector: selector,
+      subNodeKey: undefined,
+    };
+    hoveredHandleInitRectRef.current = new DOMRect(rect.left, rect.top, rect.width, rect.height);
+    document.body.style.cursor = mode === "resize" && corner ? cornerToCursor(corner) : "grabbing";
+  };
+  const startCdlDrag = (e: React.MouseEvent<HTMLDivElement>, key: string): void => {
+    startCdlHandleAction(e, key, "drag");
+  };
+  const startCdlResize = (e: React.MouseEvent<HTMLDivElement>, key: string, corner: "nw" | "ne" | "sw" | "se"): void => {
+    startCdlHandleAction(e, key, "resize", corner);
+  };
+
   const updateElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
     const st = elementDrag.current;
     if (!st) return false;
@@ -3172,7 +3231,8 @@ ${newActorLine}
               onBlur={(e) => commitTextEdit(e.target.value)}
             />
           )}
-          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal */}
+          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal
+              Phase 4 = handle mousedown で startCdlHandleResize、 outline mousedown で startCdlOutlineDrag を発火 */}
           {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
             const key = sid.slice("cdl:".length);
             const bbox = cdlClientBboxes[key];
@@ -3183,12 +3243,14 @@ ${newActorLine}
               <div key={sid} data-cdl-selection-ui={key}>
                 <div
                   data-cdl-outline={key}
+                  data-cdl-drag-handle-for={key}
                   style={{
                     position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
                     width: `${bbox.width}px`, height: `${bbox.height}px`,
-                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
-                    borderRadius: "2px", zIndex: 90,
+                    border: `1.5px dashed ${BORDER}`, pointerEvents: "auto", boxSizing: "border-box",
+                    borderRadius: "2px", zIndex: 90, cursor: "grab", background: "transparent",
                   }}
+                  onMouseDown={(e) => startCdlDrag(e, key)}
                 />
                 {(["nw", "ne", "sw", "se"] as const).map((corner) => {
                   const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
@@ -3205,8 +3267,9 @@ ${newActorLine}
                         background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                         cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                        zIndex: 100, pointerEvents: "none",
+                        zIndex: 100, pointerEvents: "auto",
                       }}
+                      onMouseDown={(e) => startCdlResize(e, key, corner)}
                     />
                   );
                 })}

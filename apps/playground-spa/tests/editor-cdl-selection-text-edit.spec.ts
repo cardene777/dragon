@@ -58,6 +58,55 @@ test("text edit 1 = SVG text の double click で input 表示", async ({ page }
   expect(await input.count()).toBe(1);
 });
 
+async function selectCdlNode(page: import("@playwright/test").Page, nodeId: string): Promise<{ x: number; y: number; width: number; height: number }> {
+  const node = page.locator(`[data-cdl-node="${nodeId}"]`).first();
+  const bbox = await node.boundingBox();
+  if (!bbox) throw new Error(`${nodeId} null`);
+  const cx = bbox.x + bbox.width / 2;
+  const cy = bbox.y + bbox.height / 2;
+  await page.mouse.move(cx - 10, cy - 10);
+  await page.waitForTimeout(200);
+  await page.mouse.move(cx, cy);
+  await page.waitForTimeout(300);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+  return bbox;
+}
+
+test("Phase 4 cdl drag = outline drag で cdl 要素が新座標に移動 (DSL 書換確認)", async ({ page }) => {
+  await openEditor(page);
+  const bbox0 = await selectCdlNode(page, "client-header");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  // outline を drag = grab で移動
+  const outline = page.locator('[data-cdl-outline="Client"]').first();
+  const ob = await outline.boundingBox();
+  if (!ob) throw new Error("outline null");
+  await page.mouse.move(ob.x + ob.width / 2, ob.y + ob.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(ob.x + ob.width / 2 + 80, ob.y + ob.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  expect(dslAfter).not.toBe(dslBefore);
+});
+
+test("Phase 4 cdl resize = SE handle drag で cdl 要素が拡大", async ({ page }) => {
+  await openEditor(page);
+  await selectCdlNode(page, "client-header");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const seHandle = page.locator('[data-cdl-handle="se"][data-cdl-handle-for="Client"]').first();
+  const sh = await seHandle.boundingBox();
+  if (!sh) throw new Error("se handle null");
+  await page.mouse.move(sh.x + sh.width / 2, sh.y + sh.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sh.x + sh.width / 2 + 60, sh.y + sh.height / 2 + 60, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  expect(dslAfter).not.toBe(dslBefore);
+});
+
 test("text edit 2 = Escape で input close (DSL 変化なし)", async ({ page }) => {
   await openEditor(page);
   const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
