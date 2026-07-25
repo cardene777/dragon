@@ -56,7 +56,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "2" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 2 = state machine + align pure test"
   echo "───────────────────────────────────────────────────────────"
-  if npx vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l2.log; then
+  if npx vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts src/lib/text-edit-replace.test.ts --reporter=basic 2>&1 | tee /tmp/editor-test-l2.log; then
     RESULT_L2="pass"
   else
     RESULT_L2="fail"
