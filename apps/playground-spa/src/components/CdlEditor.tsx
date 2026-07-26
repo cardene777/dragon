@@ -26,6 +26,7 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
+import { aliasBaseName, buildDuplicateLine, nextAvailableAlias } from "@/lib/overlay-duplicate";
 import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
@@ -845,14 +846,8 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => {
           let next = prev;
           for (const clip of clipboardRef.current) {
-            const baseName = clip.kind.replace(/-/g, "");
-            let n = 1;
-            while (next.includes(`- ${baseName}${n}:`)) n++;
-            const newAlias = `${baseName}${n}`;
-            const scaleField = Math.abs(clip.scale - 1) > 0.001 ? `, scale: ${clip.scale.toFixed(3)}` : "";
-            const rotateField = Math.abs(clip.rotate) > 0.001 ? `, rotate: ${clip.rotate.toFixed(1)}` : "";
-            const bgField = clip.bg ? `, bg: "${clip.bg}"` : "";
-            const newLine = `  - ${newAlias}: { kind: ${clip.kind}${bgField}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField}${rotateField} }`;
+            const newAlias = nextAvailableAlias(next, clip.kind.replace(/-/g, ""));
+            const newLine = buildDuplicateLine(clip, newAlias);
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -962,17 +957,8 @@ export function CdlEditor(): React.JSX.Element {
           for (const oid of overlayIdsToDupe) {
             const orig = overlayPartsRef.current.find((p) => p.id === oid);
             if (!orig) continue;
-            const baseName = oid.replace(/\d+$/, "");
-            let n = 1;
-            while (next.includes(`- ${baseName}${n}:`)) n++;
-            const newAlias = `${baseName}${n}`;
-            // 2026-07-26 CAR-2158 correctness fix = duplicate で rotate / bg も引き継ぐ。
-            // 旧実装は kind / posX / posY / scale のみ複製していたため、 回転済 / 色変更済 parts を
-            // Cmd+D すると回転 0 度 + 元色に戻った複製ができていた。
-            const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
-            const rotateField = Math.abs(orig.rotate) > 0.001 ? `, rotate: ${orig.rotate.toFixed(1)}` : "";
-            const bgField = orig.bg ? `, bg: "${orig.bg}"` : "";
-            const newLine = `  - ${newAlias}: { kind: ${orig.kind}${bgField}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField}${rotateField} }`;
+            const newAlias = nextAvailableAlias(next, aliasBaseName(oid));
+            const newLine = buildDuplicateLine(orig, newAlias);
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -3028,12 +3014,8 @@ ${newActorLine}
                 const orig = overlayParts.find((p) => p.id === target);
                 if (orig) {
                   setSrc((prev) => {
-                    const baseName = target.replace(/\d+$/, "");
-                    let n = 1;
-                    while (prev.includes(`- ${baseName}${n}:`)) n++;
-                    const newAlias = `${baseName}${n}`;
-                    const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
-                    const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+                    const newAlias = nextAvailableAlias(prev, aliasBaseName(target));
+                    const newLine = buildDuplicateLine(orig, newAlias);
                     return appendActorLine(prev, newLine) ?? prev;
                   });
                 }
@@ -3262,13 +3244,9 @@ ${newActorLine}
                     <button type="button" data-overlay-toolbar-btn="duplicate" title="複製 (Cmd+D)" style={iconStyle}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const baseName = p.id.replace(/\d+$/, "");
                         setSrc((prev) => {
-                          let n = 1;
-                          while (prev.includes(`- ${baseName}${n}:`)) n++;
-                          const newAlias = `${baseName}${n}`;
-                          const scaleField = Math.abs(p.scale - 1) > 0.001 ? `, scale: ${p.scale.toFixed(3)}` : "";
-                          const newLine = `  - ${newAlias}: { kind: ${p.kind}, posX: ${Math.round(p.posX + 30)}, posY: ${Math.round(p.posY + 30)}${scaleField} }`;
+                          const newAlias = nextAvailableAlias(prev, aliasBaseName(p.id));
+                          const newLine = buildDuplicateLine(p, newAlias);
                           return appendActorLine(prev, newLine) ?? prev;
                         });
                       }}

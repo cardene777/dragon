@@ -197,12 +197,28 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
   expect(partsPosXs[0]).toBe(partsPosXs[1]);
 });
 
-test("Feature 6b: Alignment = 右揃えが実 bbox 基準で揃う (CAR-2158 consistency fix)", async ({ page }) => {
+test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CAR-2158)", async ({ page }) => {
   await openEditor(page);
-  // 幅の異なる 2 parts を配置 = 固定 380px 前提だと右端がずれる
   await drop(page, "parts-achievement", { x: 300, y: 200 });
   await drop(page, "parts-arc-gauge", { x: 700, y: 400 });
   const overlays = page.locator('[data-overlay-part]');
+
+  const shapeRights = async (): Promise<number[]> =>
+    await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[data-overlay-part]")).map((div) => {
+        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+        let maxArea = 0;
+        let right = 0;
+        for (const sh of Array.from(shapes)) {
+          const r = sh.getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          const area = r.width * r.height;
+          if (area > maxArea) { maxArea = area; right = r.right; }
+        }
+        return right;
+      }),
+    );
+
   const b0 = await overlays.nth(0).boundingBox();
   const b1 = await overlays.nth(1).boundingBox();
   if (!b0 || !b1) throw new Error("null");
@@ -215,16 +231,16 @@ test("Feature 6b: Alignment = 右揃えが実 bbox 基準で揃う (CAR-2158 con
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await page.waitForTimeout(300);
-  await page.keyboard.press("Alt+r"); // right align
-  await page.waitForTimeout(700);
-  // 揃えた後の実 bbox 右端が一致する (誤差 30px 以内 = shape 実寸ベースで揃っている)
-  const a0 = await overlays.nth(0).boundingBox();
-  const a1 = await overlays.nth(1).boundingBox();
-  if (!a0 || !a1) throw new Error("null");
-  const right0 = a0.x + a0.width;
-  const right1 = a1.x + a1.width;
-  console.log(`[align right] right0=${Math.round(right0)} right1=${Math.round(right1)} diff=${Math.round(Math.abs(right0 - right1))}`);
-  expect(Math.abs(right0 - right1)).toBeLessThan(30);
+  await page.keyboard.press("Alt+r");
+  await page.waitForTimeout(800);
+
+  const rights = await shapeRights();
+  console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
+  // 右揃えが機能していること自体の smoke check。
+  // 「実 bbox 基準か固定幅 380 か」 の判別は本 E2E では成立しない = 実測した幅差 12px が
+  // world → client 変換で縮み、 固定値実装でも同じ許容内に収まるため。
+  // その判別は `overlay-align.test.ts` の unit test 側で width を直接与えて検証する。
+  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(20);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

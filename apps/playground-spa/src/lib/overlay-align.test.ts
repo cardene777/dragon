@@ -77,3 +77,40 @@ describe("alignOverlayParts", () => {
     expect(r.get("b")!.posX).toBe(0);
   });
 });
+
+describe("align が要素ごとの実幅を使う (CAR-2158 consistency detector)", () => {
+  it("幅の異なる 2 要素を右揃えすると右端が一致する", () => {
+    // 固定幅で計算する実装だと、 実幅が違う要素同士では右端が揃わない。
+    // width を明示的に与えることで、 呼び出し側が実測値を渡しているかを分離して検証できる。
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 300, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "right");
+    const rightA = (result.get("a")?.posX ?? parts[0]!.posX) + parts[0]!.width * parts[0]!.scale;
+    const rightB = (result.get("b")?.posX ?? parts[1]!.posX) + parts[1]!.width * parts[1]!.scale;
+    expect(Math.abs(rightA - rightB)).toBeLessThan(0.001);
+  });
+
+  it("scale が違う 2 要素でも実寸 (width * scale) で揃う", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 2, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 100, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "right");
+    const rightA = (result.get("a")?.posX ?? 0) + 100 * 2;
+    const rightB = (result.get("b")?.posX ?? 0) + 100 * 1;
+    expect(Math.abs(rightA - rightB)).toBeLessThan(0.001);
+  });
+
+  it("center-h も実寸基準で中心が一致する", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 300, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "center-h");
+    const centerA = (result.get("a")?.posX ?? 0) + 100 / 2;
+    const centerB = (result.get("b")?.posX ?? 0) + 300 / 2;
+    expect(Math.abs(centerA - centerB)).toBeLessThan(0.001);
+  });
+});

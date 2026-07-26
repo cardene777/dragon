@@ -151,6 +151,17 @@ test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)",
   await page.waitForTimeout(200);
   await page.locator('[data-overlay-color-swatch="#8b5cf6"]').click();
   await page.waitForTimeout(500);
+  // 回転を付ける (Alt + corner drag) = rotate 継承も検証対象にする
+  const seHandle = page.locator('[data-overlay-handle="se"]').first();
+  const seBB = await seHandle.boundingBox();
+  if (!seBB) throw new Error("se handle null");
+  await page.keyboard.down("Alt");
+  await page.mouse.move(seBB.x + seBB.width / 2, seBB.y + seBB.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2 - 80, b.y + b.height / 2 + 80, { steps: 12 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+  await page.waitForTimeout(600);
   // 再選択して Cmd+D
   const b2 = await page.locator('[data-overlay-part]').first().boundingBox();
   if (!b2) throw new Error("null");
@@ -163,8 +174,11 @@ test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)",
   const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
   // bg が 2 箇所 (original + duplicate) に存在 = 複製で色が引き継がれた
   const bgCount = (dsl.match(/bg:\s*"#8b5cf6"/g) ?? []).length;
-  console.log(`[duplicate] bg 出現数 = ${bgCount}`);
+  // rotate も 2 箇所に存在 = 回転が引き継がれた (旧実装は rotate を捨てていた)
+  const rotateCount = (dsl.match(/rotate:\s*-?\d/g) ?? []).length;
+  console.log(`[duplicate] bg 出現数 = ${bgCount}, rotate 出現数 = ${rotateCount}`);
   expect(bgCount).toBe(2);
+  expect(rotateCount).toBe(2);
   expect(await page.locator('[data-overlay-part]').count()).toBe(2);
 });
 
