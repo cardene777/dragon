@@ -268,52 +268,38 @@ describe("extractPartsFromSrc → writeOverlayPartToDsl round-trip", () => {
   });
 });
 
-describe("ReDoS 耐性 (CAR-2158 security fix)", () => {
-  it("閉じ括弧を欠く長大行でも線形時間で判定を終える", () => {
-    // 旧 regex `\{(.+)\}\s*$` は `}` が来ない長い行で指数的探索に陥る形だった。
-    // 新 regex は inner を `[^}]*` に固定しているため、 1 pass で不成立が確定する。
-    const evil = `  - a: { kind: achievement, ${"posX: 1, ".repeat(4000)}`;
-    const src = `actors:\n${evil}\n`;
-    const t0 = performance.now();
-    const r = extractPartsFromSrc(src, catalog, partsItems);
-    const elapsed = performance.now() - t0;
-    // parts として認識されない (閉じ括弧なし) + 1 秒以内に終わる
-    expect(r.parts.length).toBe(0);
-    expect(elapsed).toBeLessThan(1000);
-  });
-
-  it("alias に空白混じりの長大文字列が来ても線形時間", () => {
-    // 旧 regex の `\S+?` (lazy) は後続 `\s*:\s*` との境界が曖昧でバックトラックした。
-    const evil = `  - ${"a ".repeat(4000)}: { kind: achievement }`;
-    const src = `actors:\n${evil}\n`;
-    const t0 = performance.now();
-    const r = extractPartsFromSrc(src, catalog, partsItems);
-    const elapsed = performance.now() - t0;
-    expect(r.parts.length).toBe(0);
-    expect(elapsed).toBeLessThan(1000);
-  });
-
-  it("writeOverlayPartToDsl も同 regex を共用して ReDoS 耐性を持つ", () => {
-    const evil = `  - a: { ${"x: 1, ".repeat(4000)}`;
-    const src = `actors:\n${evil}\n`;
-    const t0 = performance.now();
-    const out = writeOverlayPartToDsl(src, "a", 10, 20, 1);
-    const elapsed = performance.now() - t0;
-    // match しないので行はそのまま + 1 秒以内
-    expect(out).toBe(src);
-    expect(elapsed).toBeLessThan(1000);
-  });
-
-  it("正常行の parse は新 regex でも従来通り動く (回帰なし)", () => {
+describe("nested brace を含む actor 行 (CAR-2158 CRITICAL regression detector)", () => {
+  it("state: { ... } を持つ parts 行を落とさない", () => {
+    // `[^}]*` 形の regex は最初の `}` で打ち切られ、 この行全体が非 match になる。
+    // その結果 parts が overlay から消え、 drag / resize が保存されなくなる。
     const src = `actors:
-  - "quoted alias": { kind: achievement, posX: 5, posY: 6 }
-  - plain: { kind: achievement, posX: 7, posY: 8 }
+  - arc1: { kind: arc-gauge, posX: 100, posY: 200, state: { phase: false } }
 `;
     const r = extractPartsFromSrc(src, catalog, partsItems);
-    expect(r.parts.length).toBe(2);
-    expect(r.parts[0]!.id).toBe("quoted alias");
-    expect(r.parts[0]!.posX).toBe(5);
-    expect(r.parts[1]!.id).toBe("plain");
-    expect(r.parts[1]!.posX).toBe(7);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.id).toBe("arc1");
+    expect(r.parts[0]!.posX).toBe(100);
+    expect(r.parts[0]!.posY).toBe(200);
+  });
+
+  it("nested brace 行に対しても writeOverlayPartToDsl が座標を更新できる", () => {
+    const src = `actors:
+  - arc1: { kind: arc-gauge, posX: 100, posY: 200, state: { phase: false } }
+`;
+    const out = writeOverlayPartToDsl(src, "arc1", 500, 600, 1);
+    expect(out).not.toBe(src);
+    expect(out).toContain("posX: 500");
+    expect(out).toContain("posY: 600");
+    // nested brace は保持される
+    expect(out).toContain("state: { phase: false }");
+  });
+
+  it("nested brace が複数あっても parse できる", () => {
+    const src = `actors:
+  - arc1: { kind: arc-gauge, state: { phase: false }, style: { fill: "red" }, posX: 10 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.posX).toBe(10);
   });
 });

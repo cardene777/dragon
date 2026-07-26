@@ -107,6 +107,35 @@ test("keyboard 矢印 nudge = DSL に永続化される (CAR-2158 correctness fi
   expect(posXAfter).toBeGreaterThan(posXBefore + 40);
 });
 
+test("keyboard 矢印 nudge = キーリピート連打でも全押下が積算される (CAR-2158 race detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXBefore = parseInt(dslBefore.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+
+  // await を挟まず連続 dispatch = キーリピート相当。 sequential await だと 1 押下ごとに commit が
+  // 挟まるため、 base を stale に読む bug (5 連打で 10px しか進まない) を検出できない。
+  await page.evaluate(() => {
+    for (let i = 0; i < 5; i += 1) {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true, bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(700);
+
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXAfter = parseInt(dslAfter.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  console.log(`[nudge burst] posX: ${posXBefore} -> ${posXAfter} (delta ${posXAfter - posXBefore})`);
+  // shift+右 5 回 = 50px。 stale base だと 10px にしかならない
+  expect(posXAfter - posXBefore).toBe(50);
+});
+
 test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 400, y: 300 });

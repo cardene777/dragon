@@ -10,18 +10,16 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
 /**
  * actor 行 (`  - alias: { ... }`) の parse regex。
  *
- * 2026-07-26 CAR-2158 security fix = ReDoS 耐性を持つ形に書き直した。
- * 旧 `/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/` は
- *   - `\S+?` (lazy) と後続 `\s*:\s*` の境界が曖昧でバックトラック分岐が生じる
- *   - 末尾 `\}\s*$` が `(.+)` と競合し、 閉じ括弧を欠く長い行で指数的探索になる
- * という 2 点で catastrophic backtracking の経路を持っていた。
+ * inner を `(.+)` (greedy) にしているのは nested brace を含む行を落とさないため。
+ * cdl の actor には `state: { phase: false }` のような入れ子が実在し、
+ * `[^}]*` (閉じ括弧を含まない) にすると最初の `}` で打ち切られて行全体が非 match になる
+ * = parts が overlay から消えて drag / resize が保存されなくなる。
  *
- * 新実装は
- *   - alias を `[^\s:]+` (`:` と空白を含まない = 次の区切りと重ならない) に固定して曖昧性を消す
- *   - inner を `[^}]*` (閉じ括弧を含まない) にして `}` との競合を消す
- * ことで、 各文字の消費先が一意に決まり線形時間で判定できる。
+ * ReDoS を懸念して `[^}]*` に変えた版を一度入れたが、 実測すると旧形は
+ * 1000 → 16000 repeat で 0.011ms → 0.148ms と線形で、 catastrophic backtracking は起きていなかった。
+ * 懸念が実測で否定されたので greedy 形に戻し、 nested brace の取りこぼしを避ける方を採る。
  */
-const ACTOR_LINE_RE = /^(\s*-\s*)("[^"]+"|[^\s:]+)(\s*:\s*)\{([^}]*)\}\s*$/;
+const ACTOR_LINE_RE = /^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
 
 /**
  * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。

@@ -397,6 +397,12 @@ export function CdlEditor(): React.JSX.Element {
   const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
   // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
   const textKeySeqRef = useRef(0);
+  // 2026-07-26 CAR-2158 = 矢印キー nudge の累積管理。
+  // base = nudge 開始時点の座標、 accum = そこからの累積 delta。 どちらも同期 ref なので、
+  // キーリピートで同一 commit に複数 keydown が入っても押下回数分が正しく積算される
+  // (state / useEffect mirror 経由だと全押下が同じ古い base を読んで 1 回分しか進まない)。
+  const nudgeBaseRef = useRef<Map<string, { posX: number; posY: number; scale: number; rotate: number }>>(new Map());
+  const nudgeAccumRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
@@ -931,8 +937,9 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => {
           let next = prev;
           for (const oid of overlayIdsToDelete) {
-            // actor 行を丸ごと削除
-            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
+            // actor 行を丸ごと削除。 inner は greedy (.+) にする = nested brace (`state: { ... }`) を
+            // 持つ行を `[^}]*` だと最初の `}` で打ち切って消せない (CAR-2158 で同種の bug を修正済)。
+            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{.+\\}\\s*\\n`, "m");
             next = next.replace(re, "");
           }
           return next;
@@ -984,21 +991,36 @@ export function CdlEditor(): React.JSX.Element {
         // 2026-07-26 CAR-2158 correctness fix = nudge 後に DSL へ書き出す。
         // 旧実装は overlayParts state のみ更新していたため、 reload / 再 compile で nudge 分が消えていた
         // (drag / resize は mouseup で writeOverlayPartToDsl を呼ぶが nudge には同経路がなかった)。
-        // 新 pos は ref (最新 state の同期 mirror) から算出する = setOverlayParts の updater は非同期で
-        // 走るため、 その中で収集した値を setSrc に渡すと 1 手遅れの座標を書き出す race になる。
-        const nudged = new Map<string, { posX: number; posY: number; scale: number; rotate: number }>();
-        for (const p of overlayPartsRef.current) {
-          if (!overlayIdsToNudge.includes(p.id)) continue;
-          nudged.set(p.id, { posX: p.posX + dx, posY: p.posY + dy, scale: p.scale, rotate: p.rotate });
+        //
+        // 座標の累積は必ず前回値からの相対で行う。
+        //
+        // ref (useEffect mirror) から読むと、 キーリピートで同一 commit 内に複数 keydown が入った時に
+        // 全て同じ古い base から計算してしまう (5 連打で 50px 進むべきところ 10px になる)。
+        // かといって setOverlayParts の updater 内で集めた値を setSrc に渡すのも成立しない
+        // = updater の実行順は render 時で、 setSrc の updater が先に評価されうるため空になる。
+        //
+        // そこで「累積 delta」 を同期 ref で持ち、 state と DSL の双方をその delta から導く。
+        // ref の更新は同期なので、 同一 commit 内の連打でも押下回数分が正しく積算される。
+        for (const id of overlayIdsToNudge) {
+          if (!nudgeBaseRef.current.has(id)) {
+            const cur = overlayPartsRef.current.find((p) => p.id === id);
+            if (!cur) continue;
+            nudgeBaseRef.current.set(id, { posX: cur.posX, posY: cur.posY, scale: cur.scale, rotate: cur.rotate });
+          }
+          const prevDelta = nudgeAccumRef.current.get(id) ?? { dx: 0, dy: 0 };
+          nudgeAccumRef.current.set(id, { dx: prevDelta.dx + dx, dy: prevDelta.dy + dy });
         }
         setOverlayParts((prev) => prev.map((p) => {
-          const n = nudged.get(p.id);
-          return n ? { ...p, posX: n.posX, posY: n.posY } : p;
+          if (!overlayIdsToNudge.includes(p.id)) return p;
+          return { ...p, posX: p.posX + dx, posY: p.posY + dy };
         }));
         setSrc((prevSrc) => {
           let out = prevSrc;
-          for (const [id, pos] of nudged) {
-            out = writeOverlayPartToDsl(out, id, pos.posX, pos.posY, pos.scale, pos.rotate);
+          for (const id of overlayIdsToNudge) {
+            const base = nudgeBaseRef.current.get(id);
+            const accum = nudgeAccumRef.current.get(id);
+            if (!base || !accum) continue;
+            out = writeOverlayPartToDsl(out, id, base.posX + accum.dx, base.posY + accum.dy, base.scale, base.rotate);
           }
           return out;
         });
@@ -1838,6 +1860,9 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
+    // mouse 操作が入ると座標が nudge 以外の経路で変わるため、 nudge の累積 base を破棄する
+    nudgeBaseRef.current.clear();
+    nudgeAccumRef.current.clear();
     // context menu / color picker 表示中の click は close
     if (contextMenu) setContextMenu(null);
     if (colorPickerFor) setColorPickerFor(null);
