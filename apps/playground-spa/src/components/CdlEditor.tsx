@@ -395,6 +395,8 @@ export function CdlEditor(): React.JSX.Element {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   // 2026-07-25 cdl 要素 selection = `cdl:{id}` の selector を保存、 stage-level UI で bbox 再測定に使う
   const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
+  // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
+  const textKeySeqRef = useRef(0);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
@@ -1714,19 +1716,30 @@ export function CdlEditor(): React.JSX.Element {
     // context menu / color picker 表示中の click は close
     if (contextMenu) setContextMenu(null);
     if (colorPickerFor) setColorPickerFor(null);
+    // cdl element selection = hover 中の element があれば selection state を更新する。
+    // 2026-07-26 CAR-2158 fix = 旧実装は startElementInteraction(e) が true の時だけ selection したが、
+    // arrow label 等 findDragTarget が actor 名を解決できない element では false になり選択不能だった。
+    // hoveredHandle は hover 経路 (handleMouseMove の text fallback 含む) で確立済なので、
+    // interaction 成否と独立に selection を成立させる。
+    const applyCdlSelection = (): void => {
+      if (!hoveredHandle) return;
+      const selId = `cdl:${hoveredHandle.id}`;
+      // selector を保存 = stage-level UI の bbox 再測定で使う
+      setCdlSelectorMap((prev) => ({ ...prev, [hoveredHandle.id]: hoveredHandle.elementSelector }));
+      if (e.shiftKey || e.metaKey) {
+        setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
+      } else {
+        setSelectedIds([selId]);
+      }
+    };
     // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
     if (startElementInteraction(e)) {
-      // cdl element hit = selection 更新 (overlay と別の id 名前空間)
-      if (hoveredHandle) {
-        const selId = `cdl:${hoveredHandle.id}`;
-        // selector を保存 = stage-level UI の bbox 再測定で使う
-        setCdlSelectorMap((prev) => ({ ...prev, [hoveredHandle.id]: hoveredHandle.elementSelector }));
-        if (e.shiftKey || e.metaKey) {
-          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
-        } else {
-          setSelectedIds([selId]);
-        }
-      }
+      applyCdlSelection();
+      return;
+    }
+    // interaction 不成立でも hover 中 cdl element があれば selection のみ成立させる (arrow label 等)
+    if (hoveredHandle) {
+      applyCdlSelection();
       return;
     }
     // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
@@ -1856,7 +1869,17 @@ export function CdlEditor(): React.JSX.Element {
         if (textRect.width > 0 && textRect.height > 0) {
           const content = (target.textContent ?? "").slice(0, 32);
           const id = `text:${content}`;
-          setHoveredHandle({ id, elementSelector: "", rect: textRect, subNodeKey: undefined });
+          // 2026-07-26 CAR-2158 fix = 旧実装は elementSelector: "" で、 selection UI の bbox 再測定
+          // useEffect が空 selector を skip して handle 描画 0 件になっていた (arrow label が選択不能)。
+          // text element に data attribute を刻んで一意 selector を確立する (nth-of-type は
+          // parent 内 index のため stage 全体走査の index と一致せず不採用)。
+          let textKey = target.getAttribute("data-editor-text-key");
+          if (!textKey) {
+            textKey = `t${textKeySeqRef.current++}`;
+            target.setAttribute("data-editor-text-key", textKey);
+          }
+          const elementSelector = `[data-editor-text-key="${textKey}"]`;
+          setHoveredHandle({ id, elementSelector, rect: textRect, subNodeKey: undefined });
           return;
         }
       }
