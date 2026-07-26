@@ -117,6 +117,33 @@ actors:
     expect(r.parts[0]!.posX).toBe(100);
     expect(r.parts[0]!.posY).toBe(200);
   });
+
+  it("bg を parse して OverlayPartRaw.bg に載せる (CAR-2158 correctness fix)", () => {
+    const src = `actors:
+  - a: { kind: achievement, posX: 100, posY: 200, bg: "#22c55e" }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]!.bg).toBe("#22c55e");
+  });
+
+  it("bg 未指定なら undefined (色 override なし)", () => {
+    const src = `actors:
+  - a: { kind: achievement, posX: 100, posY: 200 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]!.bg).toBeUndefined();
+  });
+
+  it("bg が field 先頭でも末尾でも parse (順序独立)", () => {
+    const head = `actors:
+  - a: { bg: "#ef4444", kind: achievement, posX: 10 }
+`;
+    const tail = `actors:
+  - a: { kind: achievement, posX: 10, bg: "#ef4444" }
+`;
+    expect(extractPartsFromSrc(head, catalog, partsItems).parts[0]!.bg).toBe("#ef4444");
+    expect(extractPartsFromSrc(tail, catalog, partsItems).parts[0]!.bg).toBe("#ef4444");
+  });
 });
 
 describe("writeOverlayPartToDsl", () => {
@@ -238,5 +265,55 @@ describe("extractPartsFromSrc → writeOverlayPartToDsl round-trip", () => {
     expect(r.parts[0]!.posX).toBe(700);
     expect(r.parts[0]!.posY).toBe(800);
     expect(r.parts[0]!.scale).toBe(1.5);
+  });
+});
+
+describe("ReDoS 耐性 (CAR-2158 security fix)", () => {
+  it("閉じ括弧を欠く長大行でも線形時間で判定を終える", () => {
+    // 旧 regex `\{(.+)\}\s*$` は `}` が来ない長い行で指数的探索に陥る形だった。
+    // 新 regex は inner を `[^}]*` に固定しているため、 1 pass で不成立が確定する。
+    const evil = `  - a: { kind: achievement, ${"posX: 1, ".repeat(4000)}`;
+    const src = `actors:\n${evil}\n`;
+    const t0 = performance.now();
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    const elapsed = performance.now() - t0;
+    // parts として認識されない (閉じ括弧なし) + 1 秒以内に終わる
+    expect(r.parts.length).toBe(0);
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("alias に空白混じりの長大文字列が来ても線形時間", () => {
+    // 旧 regex の `\S+?` (lazy) は後続 `\s*:\s*` との境界が曖昧でバックトラックした。
+    const evil = `  - ${"a ".repeat(4000)}: { kind: achievement }`;
+    const src = `actors:\n${evil}\n`;
+    const t0 = performance.now();
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    const elapsed = performance.now() - t0;
+    expect(r.parts.length).toBe(0);
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("writeOverlayPartToDsl も同 regex を共用して ReDoS 耐性を持つ", () => {
+    const evil = `  - a: { ${"x: 1, ".repeat(4000)}`;
+    const src = `actors:\n${evil}\n`;
+    const t0 = performance.now();
+    const out = writeOverlayPartToDsl(src, "a", 10, 20, 1);
+    const elapsed = performance.now() - t0;
+    // match しないので行はそのまま + 1 秒以内
+    expect(out).toBe(src);
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("正常行の parse は新 regex でも従来通り動く (回帰なし)", () => {
+    const src = `actors:
+  - "quoted alias": { kind: achievement, posX: 5, posY: 6 }
+  - plain: { kind: achievement, posX: 7, posY: 8 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts.length).toBe(2);
+    expect(r.parts[0]!.id).toBe("quoted alias");
+    expect(r.parts[0]!.posX).toBe(5);
+    expect(r.parts[1]!.id).toBe("plain");
+    expect(r.parts[1]!.posX).toBe(7);
   });
 });

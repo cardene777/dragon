@@ -85,6 +85,60 @@ test("keyboard 矢印 = 1px nudge (shift で 10px)", async ({ page }) => {
   expect(dx).toBeGreaterThan(15);
 });
 
+test("keyboard 矢印 nudge = DSL に永続化される (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXBefore = parseInt(dslBefore.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  // shift+右 5 回 = world 50px 相当の移動
+  for (let i = 0; i < 5; i++) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXAfter = parseInt(dslAfter.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  console.log(`[nudge persist] posX: ${posXBefore} → ${posXAfter}`);
+  // DSL の posX が nudge 分だけ増えている = state だけでなく DSL にも書き出された
+  expect(posXAfter).toBeGreaterThan(posXBefore + 40);
+});
+
+test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 400, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b = await overlay.boundingBox();
+  if (!b) throw new Error("null");
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  // 色変更 (bg 付与)
+  await page.locator('[data-overlay-toolbar-btn="color"]').first().click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-overlay-color-swatch="#8b5cf6"]').click();
+  await page.waitForTimeout(500);
+  // 再選択して Cmd+D
+  const b2 = await page.locator('[data-overlay-part]').first().boundingBox();
+  if (!b2) throw new Error("null");
+  await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  await page.keyboard.press("Meta+d");
+  await page.waitForTimeout(600);
+  const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  // bg が 2 箇所 (original + duplicate) に存在 = 複製で色が引き継がれた
+  const bgCount = (dsl.match(/bg:\s*"#8b5cf6"/g) ?? []).length;
+  console.log(`[duplicate] bg 出現数 = ${bgCount}`);
+  expect(bgCount).toBe(2);
+  expect(await page.locator('[data-overlay-part]').count()).toBe(2);
+});
+
 test("keyboard Delete = selection 削除", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 300, y: 300 });

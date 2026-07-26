@@ -63,6 +63,59 @@ test("Feature 2: Color picker = 🎨 button で色 swatch popover 表示", async
   expect(dsl).toContain('bg: "#22c55e"');
 });
 
+test("Feature 2b: Color picker = 選んだ色が canvas の shape に実反映 (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  await selectFirstOverlay(page);
+  // 色変更前の shape fill を記録
+  const fillBefore = await page.evaluate(() => {
+    const div = document.querySelector("[data-overlay-part]");
+    if (!div) return null;
+    // 実装 (CdlEditor の bg 適用 useEffect) と同じ判定基準 = 色を持つ shape のうち最大面積
+    const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+    let maxArea = 0;
+    let best: Element | null = null;
+    for (const s of Array.from(shapes)) {
+      const r = s.getBoundingClientRect();
+      if (r.width < 3 || r.height < 3) continue;
+      const orig = s.getAttribute("data-original-fill");
+      const fill = orig !== null ? orig : (s.getAttribute("fill") ?? "");
+      const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+      if (!painted) continue;
+      const area = r.width * r.height;
+      if (area > maxArea) { maxArea = area; best = s; }
+    }
+    return best?.getAttribute("fill") ?? null;
+  });
+  await page.locator('[data-overlay-toolbar-btn="color"]').first().click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-overlay-color-swatch="#22c55e"]').click();
+  await page.waitForTimeout(700);
+  // 色変更後の shape fill を測定 = DSL だけでなく実 SVG に反映されている
+  const fillAfter = await page.evaluate(() => {
+    const div = document.querySelector("[data-overlay-part]");
+    if (!div) return null;
+    // 実装 (CdlEditor の bg 適用 useEffect) と同じ判定基準 = 色を持つ shape のうち最大面積
+    const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+    let maxArea = 0;
+    let best: Element | null = null;
+    for (const s of Array.from(shapes)) {
+      const r = s.getBoundingClientRect();
+      if (r.width < 3 || r.height < 3) continue;
+      const orig = s.getAttribute("data-original-fill");
+      const fill = orig !== null ? orig : (s.getAttribute("fill") ?? "");
+      const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+      if (!painted) continue;
+      const area = r.width * r.height;
+      if (area > maxArea) { maxArea = area; best = s; }
+    }
+    return best?.getAttribute("fill") ?? null;
+  });
+  console.log(`[color] fill: ${fillBefore} → ${fillAfter}`);
+  expect(fillAfter).toBe("#22c55e");
+  expect(fillAfter).not.toBe(fillBefore);
+});
+
 test("Feature 3: Copy/Paste = Cmd+C → Cmd+V で複製", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 300, y: 300 });
@@ -142,6 +195,36 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
   const partsPosXs = posXs.slice(-2);
   console.log(`[align] parts posX: ${partsPosXs.join(", ")}`);
   expect(partsPosXs[0]).toBe(partsPosXs[1]);
+});
+
+test("Feature 6b: Alignment = 右揃えが実 bbox 基準で揃う (CAR-2158 consistency fix)", async ({ page }) => {
+  await openEditor(page);
+  // 幅の異なる 2 parts を配置 = 固定 380px 前提だと右端がずれる
+  await drop(page, "parts-achievement", { x: 300, y: 200 });
+  await drop(page, "parts-arc-gauge", { x: 700, y: 400 });
+  const overlays = page.locator('[data-overlay-part]');
+  const b0 = await overlays.nth(0).boundingBox();
+  const b1 = await overlays.nth(1).boundingBox();
+  if (!b0 || !b1) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.down("Shift");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(300);
+  await page.keyboard.press("Alt+r"); // right align
+  await page.waitForTimeout(700);
+  // 揃えた後の実 bbox 右端が一致する (誤差 30px 以内 = shape 実寸ベースで揃っている)
+  const a0 = await overlays.nth(0).boundingBox();
+  const a1 = await overlays.nth(1).boundingBox();
+  if (!a0 || !a1) throw new Error("null");
+  const right0 = a0.x + a0.width;
+  const right1 = a1.x + a1.width;
+  console.log(`[align right] right0=${Math.round(right0)} right1=${Math.round(right1)} diff=${Math.round(Math.abs(right0 - right1))}`);
+  expect(Math.abs(right0 - right1)).toBeLessThan(30);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

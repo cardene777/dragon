@@ -386,7 +386,7 @@ export function CdlEditor(): React.JSX.Element {
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
-  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; item: CatalogItem };
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
   const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
   // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
@@ -411,7 +411,7 @@ export function CdlEditor(): React.JSX.Element {
   const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
   const lastCommittedSrcRef = useRef<string>("");
   // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
-  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number }>>([]);
+  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string }>>([]);
   // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
   // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
@@ -421,12 +421,26 @@ export function CdlEditor(): React.JSX.Element {
   // 用途 = 選択 UI (border/handle/toolbar) を stage-level に portal render するための実 client bbox。
   const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [shapeClientBboxes, setShapeClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  // keydown handler (align 等) から最新 bbox を読むための同期 mirror
+  const shapeClientBboxesRef = useRef(shapeClientBboxes);
+  useEffect(() => { shapeClientBboxesRef.current = shapeClientBboxes; }, [shapeClientBboxes]);
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      // 2026-07-26 CAR-2158 performance fix = 測定対象を「選択中 + hover 中」 に絞る。
+      // 旧実装は overlayParts 全件 × 各 div 内の全 shape を毎 state 変化で測定していたため、
+      // parts が増えるほど drag 中の 1 frame コストが線形に増えていた (実質 O(parts × shapes))。
+      // bbox を実際に使うのは stage-level 選択 UI (border / handle / toolbar) だけなので、
+      // 選択中と hover 中の parts に限定すれば描画結果は同一のまま測定量が定数近くに収まる。
+      const measureTargets = new Set<string>();
+      for (const sid of selectedIds) {
+        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
+      }
+      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
       for (const p of overlayParts) {
+        if (!measureTargets.has(p.id)) continue;
         const div = overlayRefs.current[p.id];
         if (!div) continue;
         const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
@@ -457,7 +471,7 @@ export function CdlEditor(): React.JSX.Element {
     });
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayParts]);
+  }, [overlayParts, selectedIds, hoveredOverlayId]);
 
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
@@ -640,7 +654,13 @@ export function CdlEditor(): React.JSX.Element {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
-      for (const id of Object.keys(overlayRefs.current)) {
+      // CAR-2158 performance fix = 選択 UI が使う分だけ測定 (全 overlay 走査を廃止)
+      const measureTargets = new Set<string>();
+      for (const sid of selectedIdsRef.current) {
+        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
+      }
+      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
+      for (const id of measureTargets) {
         const div = overlayRefs.current[id];
         if (!div) continue;
         const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
@@ -659,7 +679,55 @@ export function CdlEditor(): React.JSX.Element {
       setShapeClientBboxes(next);
     });
     return () => cancelAnimationFrame(raf);
-  }, [transform]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transform, hoveredOverlayId]);
+  // 2026-07-26 CAR-2158 correctness fix = overlay parts の bg を実 SVG shape に適用する。
+  // 旧実装は DSL に bg を書くだけで canvas に反映されず、 color picker が「押しても何も起きない」 状態だった。
+  // catalog 由来の diagram は共有 object なので mutate せず、 render 後の DOM に fill を上書きする経路を採る。
+  //
+  // 対象 shape の選び方が肝で、 「最大面積」 だけで選ぶと achievement の透明背景 rect が当たり、
+  // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
+  // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
+  // その中で最大面積のものを主要 shape とみなす。
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      for (const p of overlayParts) {
+        // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
+        const div = overlayRefs.current[p.id];
+        if (!div) continue;
+        if (!p.bg && !div.querySelector("[data-original-fill]")) continue;
+        const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
+        if (shapes.length === 0) continue;
+        let maxArea = 0;
+        let best: SVGGraphicsElement | null = null;
+        for (const s of Array.from(shapes)) {
+          const r = s.getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
+          const orig = s.getAttribute("data-original-fill");
+          const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
+          const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+          if (!painted) continue;
+          const area = r.width * r.height;
+          if (area > maxArea) { maxArea = area; best = s; }
+        }
+        if (!best) continue;
+        if (p.bg) {
+          // 元 fill を保存しておき、 bg 解除時に復元できるようにする
+          if (!best.hasAttribute("data-original-fill")) {
+            best.setAttribute("data-original-fill", best.getAttribute("fill") ?? "");
+          }
+          best.setAttribute("fill", p.bg);
+        } else if (best.hasAttribute("data-original-fill")) {
+          const orig = best.getAttribute("data-original-fill")!;
+          if (orig) best.setAttribute("fill", orig);
+          else best.removeAttribute("fill");
+          best.removeAttribute("data-original-fill");
+        }
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [overlayParts]);
   // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -744,7 +812,8 @@ export function CdlEditor(): React.JSX.Element {
         clipboardRef.current = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale }));
+          // 2026-07-26 CAR-2158 correctness fix = copy に rotate / bg も含める (paste で失われないように)
+          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale, rotate: p.rotate, bg: p.bg }));
         return;
       }
       if (ctrlOrCmd && (e.key === "v" || e.key === "V")) {
@@ -758,7 +827,9 @@ export function CdlEditor(): React.JSX.Element {
             while (next.includes(`- ${baseName}${n}:`)) n++;
             const newAlias = `${baseName}${n}`;
             const scaleField = Math.abs(clip.scale - 1) > 0.001 ? `, scale: ${clip.scale.toFixed(3)}` : "";
-            const newLine = `  - ${newAlias}: { kind: ${clip.kind}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField} }`;
+            const rotateField = Math.abs(clip.rotate) > 0.001 ? `, rotate: ${clip.rotate.toFixed(1)}` : "";
+            const bgField = clip.bg ? `, bg: "${clip.bg}"` : "";
+            const newLine = `  - ${newAlias}: { kind: ${clip.kind}${bgField}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField}${rotateField} }`;
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -780,10 +851,22 @@ export function CdlEditor(): React.JSX.Element {
           e.key === "m" || e.key === "M" ? "middle-v" :
           e.key === "h" || e.key === "H" ? "distribute-h" :
           "distribute-v";
+        // 2026-07-26 CAR-2158 consistency fix = align 幅高を実測値から算出する。
+        // 旧実装は width/height を 380 固定にしていたため、 実 shape が 380 でない parts (arc-gauge 等) で
+        // right / center / bottom / distribute 系の揃え位置が実際の見た目とずれていた。
+        // 実測 client bbox を world 単位 (pan.scale 除算) に戻し、 未測定なら 380 に fallback する。
+        const panScaleForAlign = transformRef.current.scale || 1;
         const parts = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => ({ id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 }));
+          .map((p) => {
+            const bbox = shapeClientBboxesRef.current[p.id];
+            const worldW = bbox ? bbox.width / panScaleForAlign : 380 * p.scale;
+            const worldH = bbox ? bbox.height / panScaleForAlign : 380 * p.scale;
+            // alignOverlayParts は width/height に scale を掛けて実寸を出すため、 pre-scale 値に戻して渡す
+            const safeScale = Math.abs(p.scale) > 0.001 ? p.scale : 1;
+            return { id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: worldW / safeScale, height: worldH / safeScale };
+          });
         const result = alignOverlayParts(parts, mode);
         if (result.size === 0) return;
         setSrc((prev) => {
@@ -859,8 +942,13 @@ export function CdlEditor(): React.JSX.Element {
             let n = 1;
             while (next.includes(`- ${baseName}${n}:`)) n++;
             const newAlias = `${baseName}${n}`;
+            // 2026-07-26 CAR-2158 correctness fix = duplicate で rotate / bg も引き継ぐ。
+            // 旧実装は kind / posX / posY / scale のみ複製していたため、 回転済 / 色変更済 parts を
+            // Cmd+D すると回転 0 度 + 元色に戻った複製ができていた。
             const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
-            const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+            const rotateField = Math.abs(orig.rotate) > 0.001 ? `, rotate: ${orig.rotate.toFixed(1)}` : "";
+            const bgField = orig.bg ? `, bg: "${orig.bg}"` : "";
+            const newLine = `  - ${newAlias}: { kind: ${orig.kind}${bgField}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField}${rotateField} }`;
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -876,7 +964,27 @@ export function CdlEditor(): React.JSX.Element {
         const step = e.shiftKey ? 10 : 1;
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-        setOverlayParts((prev) => prev.map((p) => overlayIdsToNudge.includes(p.id) ? { ...p, posX: p.posX + dx, posY: p.posY + dy } : p));
+        // 2026-07-26 CAR-2158 correctness fix = nudge 後に DSL へ書き出す。
+        // 旧実装は overlayParts state のみ更新していたため、 reload / 再 compile で nudge 分が消えていた
+        // (drag / resize は mouseup で writeOverlayPartToDsl を呼ぶが nudge には同経路がなかった)。
+        // 新 pos は ref (最新 state の同期 mirror) から算出する = setOverlayParts の updater は非同期で
+        // 走るため、 その中で収集した値を setSrc に渡すと 1 手遅れの座標を書き出す race になる。
+        const nudged = new Map<string, { posX: number; posY: number; scale: number; rotate: number }>();
+        for (const p of overlayPartsRef.current) {
+          if (!overlayIdsToNudge.includes(p.id)) continue;
+          nudged.set(p.id, { posX: p.posX + dx, posY: p.posY + dy, scale: p.scale, rotate: p.rotate });
+        }
+        setOverlayParts((prev) => prev.map((p) => {
+          const n = nudged.get(p.id);
+          return n ? { ...p, posX: n.posX, posY: n.posY } : p;
+        }));
+        setSrc((prevSrc) => {
+          let out = prevSrc;
+          for (const [id, pos] of nudged) {
+            out = writeOverlayPartToDsl(out, id, pos.posX, pos.posY, pos.scale, pos.rotate);
+          }
+          return out;
+        });
         return;
       }
       if (ctrlOrCmd && (e.key === "g" || e.key === "G")) {
