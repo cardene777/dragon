@@ -189,12 +189,25 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
   await page.waitForTimeout(200);
   await page.keyboard.press("Alt+l");
   await page.waitForTimeout(600);
-  const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  const posXs = Array.from(dsl.matchAll(/posX:\s*(-?\d+)/g)).map((m) => parseInt(m[1]!, 10));
-  // 上位 2 個 (最新 append の parts) が同 posX (左揃え)
-  const partsPosXs = posXs.slice(-2);
-  console.log(`[align] parts posX: ${partsPosXs.join(", ")}`);
-  expect(partsPosXs[0]).toBe(partsPosXs[1]);
+  // 左揃えは「実 shape の左端が揃う」 で検証する。
+  // posX の一致で見ていたが、 CAR-2158 Round 2 で align を実 AABB 基準の delta 方式に変えたため
+  // rotate や shape offset がある parts では posX は一致しない (揃うのは AABB の左端)。
+  const lefts = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("[data-overlay-part]")).map((div) => {
+      const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+      let maxArea = 0;
+      let left = 0;
+      for (const sh of Array.from(shapes)) {
+        const r = sh.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        const area = r.width * r.height;
+        if (area > maxArea) { maxArea = area; left = r.left; }
+      }
+      return left;
+    }),
+  );
+  console.log(`[align] shape lefts: ${lefts.map((l) => Math.round(l)).join(", ")}`);
+  expect(Math.abs((lefts[0] ?? 0) - (lefts[1] ?? 0))).toBeLessThan(3);
 });
 
 test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CAR-2158)", async ({ page }) => {
@@ -236,11 +249,9 @@ test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CA
 
   const rights = await shapeRights();
   console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
-  // 右揃えが機能していること自体の smoke check。
-  // 「実 bbox 基準か固定幅 380 か」 の判別は本 E2E では成立しない = 実測した幅差 12px が
-  // world → client 変換で縮み、 固定値実装でも同じ許容内に収まるため。
-  // その判別は `overlay-align.test.ts` の unit test 側で width を直接与えて検証する。
-  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(20);
+  // 実 AABB 基準で揃うので右端は完全一致する (許容 3px)。
+  // 固定幅 380 で計算する旧実装だと parts の実幅差の分だけずれるため、 これが detector になる。
+  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(3);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

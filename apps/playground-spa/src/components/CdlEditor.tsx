@@ -696,45 +696,68 @@ export function CdlEditor(): React.JSX.Element {
   // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
   // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
   // その中で最大面積のものを主要 shape とみなす。
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      for (const p of overlayParts) {
-        // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
-        const div = overlayRefs.current[p.id];
-        if (!div) continue;
-        if (!p.bg && !div.querySelector("[data-original-fill]")) continue;
-        const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
-        if (shapes.length === 0) continue;
-        let maxArea = 0;
-        let best: SVGGraphicsElement | null = null;
-        for (const s of Array.from(shapes)) {
-          const r = s.getBoundingClientRect();
-          if (r.width < 3 || r.height < 3) continue;
-          // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
-          const orig = s.getAttribute("data-original-fill");
-          const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
-          const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
-          if (!painted) continue;
-          const area = r.width * r.height;
-          if (area > maxArea) { maxArea = area; best = s; }
-        }
-        if (!best) continue;
-        if (p.bg) {
-          // 元 fill を保存しておき、 bg 解除時に復元できるようにする
-          if (!best.hasAttribute("data-original-fill")) {
-            best.setAttribute("data-original-fill", best.getAttribute("fill") ?? "");
-          }
-          best.setAttribute("fill", p.bg);
-        } else if (best.hasAttribute("data-original-fill")) {
-          const orig = best.getAttribute("data-original-fill")!;
-          if (orig) best.setAttribute("fill", orig);
-          else best.removeAttribute("fill");
-          best.removeAttribute("data-original-fill");
-        }
+  const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
+    for (const p of parts) {
+      // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
+      const div = overlayRefs.current[p.id];
+      if (!div) continue;
+      if (!p.bg && !div.querySelector("[data-original-fill]")) continue;
+      const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
+      if (shapes.length === 0) continue;
+      let maxArea = 0;
+      let best: SVGGraphicsElement | null = null;
+      for (const s of Array.from(shapes)) {
+        const r = s.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
+        const orig = s.getAttribute("data-original-fill");
+        const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
+        const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+        if (!painted) continue;
+        const area = r.width * r.height;
+        if (area > maxArea) { maxArea = area; best = s; }
       }
-    });
+      if (!best) continue;
+      if (p.bg) {
+        // 元 fill を保存しておき、 bg 解除時に復元できるようにする
+        if (!best.hasAttribute("data-original-fill")) {
+          best.setAttribute("data-original-fill", best.getAttribute("fill") ?? "");
+        }
+        if (best.getAttribute("fill") !== p.bg) best.setAttribute("fill", p.bg);
+      } else if (best.hasAttribute("data-original-fill")) {
+        const orig = best.getAttribute("data-original-fill")!;
+        if (orig) best.setAttribute("fill", orig);
+        else best.removeAttribute("fill");
+        best.removeAttribute("data-original-fill");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => applyOverlayBg(overlayParts));
     return () => cancelAnimationFrame(raf);
-  }, [overlayParts]);
+  }, [overlayParts, applyOverlayBg]);
+
+  // 2026-07-26 CAR-2158 Round 2 = animation で shape が差し替わると DOM 直書きの fill が失われる。
+  //
+  // parts の SVG は cdl 側の animation (rAF / setInterval 駆動) で属性が書き換わったり
+  // node ごと再生成されたりする。 bg は React 管理外の DOM 属性なので、 その度に override が消えて
+  // 色が元に戻ってしまう。 MutationObserver で対象 subtree の変化を拾い、 その都度 再適用する。
+  //
+  // 自分の書込みで再帰しないよう、 適用時は「現在値と違う時だけ」 setAttribute する (上の実装)。
+  useEffect(() => {
+    const withBg = overlayParts.filter((p) => p.bg);
+    if (withBg.length === 0) return;
+    const observers: MutationObserver[] = [];
+    for (const p of withBg) {
+      const div = overlayRefs.current[p.id];
+      if (!div) continue;
+      const observer = new MutationObserver(() => applyOverlayBg([p]));
+      observer.observe(div, { childList: true, subtree: true, attributes: true, attributeFilter: ["fill"] });
+      observers.push(observer);
+    }
+    return () => { for (const o of observers) o.disconnect(); };
+  }, [overlayParts, applyOverlayBg]);
   // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -879,11 +902,27 @@ export function CdlEditor(): React.JSX.Element {
           .filter((p): p is NonNullable<typeof p> => !!p)
           .map((p) => {
             const bbox = shapeClientBboxesRef.current[p.id];
-            const worldW = bbox ? bbox.width / panScaleForAlign : 380 * p.scale;
-            const worldH = bbox ? bbox.height / panScaleForAlign : 380 * p.scale;
-            // alignOverlayParts は width/height に scale を掛けて実寸を出すため、 pre-scale 値に戻して渡す
             const safeScale = Math.abs(p.scale) > 0.001 ? p.scale : 1;
-            return { id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: worldW / safeScale, height: worldH / safeScale };
+            if (!bbox) {
+              // 未測定 = 従来の近似 (posX/posY を左上、 380px 四方) で計算する
+              return { id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 };
+            }
+            // 実測 client bbox を world に直して bounds として渡す。
+            // rotate 済 parts では AABB の左上が posX / posY と一致しないため、
+            // width / height からの逆算ではなく実 bounds を渡して delta 方式で揃える。
+            const left = (bbox.left - transformRef.current.tx) / panScaleForAlign;
+            const top = (bbox.top - transformRef.current.ty) / panScaleForAlign;
+            const worldW = bbox.width / panScaleForAlign;
+            const worldH = bbox.height / panScaleForAlign;
+            return {
+              id: p.id,
+              posX: p.posX,
+              posY: p.posY,
+              scale: p.scale,
+              width: worldW / safeScale,
+              height: worldH / safeScale,
+              bounds: { left, top, right: left + worldW, bottom: top + worldH },
+            };
           });
         const result = alignOverlayParts(parts, mode);
         if (result.size === 0) return;
