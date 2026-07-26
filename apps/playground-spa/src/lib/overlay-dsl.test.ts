@@ -7,6 +7,7 @@ import {
   quoteAlias,
   splitTopLevelFields,
   readTopLevelField,
+  appendActorLine,
 } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
@@ -554,5 +555,53 @@ describe("Round 6 regression detector", () => {
       const out = writeOverlayPartToDsl(src, "a", 50, 60, 1);
       expect(out).toBe("actors:\r\n  - a: { kind: achievement, posX: 50, posY: 60 }\n  - b: { kind: achievement }\r\n");
     });
+  });
+});
+
+describe("appendActorLine (CAR-2158 Round 7 = CdlEditor から移設して test 可能にした)", () => {
+  it("actors block の末尾に挿入する", () => {
+    const src = "actors:\n  - a: { kind: achievement }\nflow:\n  - a -> a\n";
+    expect(appendActorLine(src, "  - b: { kind: achievement }")).toBe(
+      "actors:\n  - a: { kind: achievement }\n  - b: { kind: achievement }\nflow:\n  - a -> a\n",
+    );
+  });
+
+  it("末尾改行なしの DSL で行を連結しない", () => {
+    // separator 保持方式に変えた際、 挿入位置が buffer 末尾を越える場合に
+    // `splice(idx, 0, newLine, sep)` だと直前の行と newLine が改行なしで繋がっていた。
+    const src = "actors:\n  - a: { kind: achievement }";
+    expect(appendActorLine(src, "  - b: { kind: achievement }")).toBe(
+      "actors:\n  - a: { kind: achievement }\n  - b: { kind: achievement }",
+    );
+  });
+
+  it("actors のみ (改行なし) でも連結しない", () => {
+    expect(appendActorLine("actors:", "  - a: { kind: achievement }")).toBe("actors:\n  - a: { kind: achievement }");
+  });
+
+  it("CRLF の DSL では CRLF で挿入する", () => {
+    const src = "actors:\r\n  - a: { kind: achievement }\r\nflow:\r\n";
+    const out = appendActorLine(src, "  - b: { kind: achievement }");
+    expect(out).toBe("actors:\r\n  - a: { kind: achievement }\r\n  - b: { kind: achievement }\r\nflow:\r\n");
+    // LF 単独が混ざらない
+    expect(out!.match(/(?<!\r)\n/)).toBeNull();
+  });
+
+  it("actors block と次 block の間の空行を残したまま挿入する", () => {
+    const src = "actors:\n  - a: { kind: achievement }\n\nflow:\n";
+    expect(appendActorLine(src, "  - b: { kind: achievement }")).toBe(
+      "actors:\n  - a: { kind: achievement }\n  - b: { kind: achievement }\n\nflow:\n",
+    );
+  });
+
+  it("actors block が無ければ null", () => {
+    expect(appendActorLine("flow:\n  - a -> b\n", "  - x: {}")).toBeNull();
+  });
+
+  it("挿入後も write / read が成立する (連結していれば座標が読めない)", () => {
+    const src = "actors:\n  - a: { kind: achievement, posX: 1, posY: 2 }";
+    const out = appendActorLine(src, "  - b: { kind: achievement, posX: 30, posY: 40 }")!;
+    expect(readOverlayPartPos(out, "b")).toEqual({ posX: 30, posY: 40, scale: 1, rotate: 0 });
+    expect(readOverlayPartPos(out, "a")!.posX).toBe(1);
   });
 });

@@ -24,7 +24,7 @@ import {
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
@@ -361,35 +361,6 @@ function slugifyForLane(s: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 64) || "n"
   );
-}
-
-/**
- * CAR-1657 = src YAML の actors: block 末尾に 1 line append する helper。
- * actors: block が見つからない場合は null 返却 (caller が REPLACE fallback で新規 diagram を作る経路)。
- */
-function appendActorLine(src: string, newLine: string): string | null {
-  // 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
-  // LF 固定で挿入すると CRLF の DSL に LF 行が混ざり、 以後の座標更新で
-  // 無関係な行の改行まで巻き込まれる (CAR-2158 Round 6 MAJOR)。
-  const seg = src.split(/(\r\n|\n)/);
-  const lines: string[] = [];
-  for (let i = 0; i < seg.length; i += 2) lines.push(seg[i]!);
-  const actorsIdx = lines.findIndex((l) => /^actors[ \t]*:[ \t]*$/.test(l));
-  if (actorsIdx < 0) return null;
-  let insertIdx = lines.length;
-  for (let i = actorsIdx + 1; i < lines.length; i++) {
-    if (/^[a-zA-Z]/.test(lines[i] ?? "")) {
-      insertIdx = i;
-      break;
-    }
-  }
-  while (insertIdx > actorsIdx + 1 && (lines[insertIdx - 1] ?? "").trim() === "") {
-    insertIdx -= 1;
-  }
-  // 挿入位置の直前で実際に使われている改行コードに合わせる
-  const sep = seg[insertIdx * 2 - 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
-  seg.splice(insertIdx * 2, 0, newLine, sep);
-  return seg.join("");
 }
 
 export function CdlEditor(): React.JSX.Element {

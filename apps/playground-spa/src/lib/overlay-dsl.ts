@@ -237,3 +237,41 @@ export function writeOverlayPartToDsl(
   });
   return next.join("");
 }
+
+/**
+ * src YAML の actors block 末尾に 1 行 append する (CAR-1657)。
+ * actors block が無ければ null を返す (caller が新規 diagram を作る fallback 経路)。
+ *
+ * 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
+ * LF 固定で挿入すると CRLF の DSL に LF 行が混ざり、 以後の座標更新で
+ * 無関係な行の改行まで巻き込まれる (CAR-2158 Round 6 MAJOR)。
+ */
+export function appendActorLine(src: string, newLine: string): string | null {
+  const seg = src.split(/(\r\n|\n)/);
+  const lines: string[] = [];
+  for (let i = 0; i < seg.length; i += 2) lines.push(seg[i]!);
+  const actorsIdx = lines.findIndex((l) => /^actors[ \t]*:[ \t]*$/.test(l));
+  if (actorsIdx < 0) return null;
+  let insertIdx = lines.length;
+  for (let i = actorsIdx + 1; i < lines.length; i++) {
+    if (/^[a-zA-Z]/.test(lines[i] ?? "")) {
+      insertIdx = i;
+      break;
+    }
+  }
+  while (insertIdx > actorsIdx + 1 && (lines[insertIdx - 1] ?? "").trim() === "") {
+    insertIdx -= 1;
+  }
+  // 挿入位置の直前で実際に使われている改行コードに合わせる。
+  // 直前が無い (末尾改行なしの DSL) 場合は buffer 内の他の separator を見る。
+  const sep = seg[insertIdx * 2 - 1] ?? seg[1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+  if (insertIdx * 2 >= seg.length) {
+    // 挿入位置が buffer の末尾を越える = 末尾に改行が無い状態。
+    // ここで `splice(idx, 0, newLine, sep)` にすると直前の行と newLine が改行なしで
+    // 連結される (`  - a` + `  - b: {...}` が 1 行になる)。 改行を先に置く。
+    seg.push(sep, newLine);
+  } else {
+    seg.splice(insertIdx * 2, 0, newLine, sep);
+  }
+  return seg.join("");
+}
