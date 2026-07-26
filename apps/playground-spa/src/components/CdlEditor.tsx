@@ -24,7 +24,7 @@ import {
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
@@ -427,17 +427,6 @@ export function CdlEditor(): React.JSX.Element {
   const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
   // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
   const textKeySeqRef = useRef(0);
-  // 2026-07-26 CAR-2158 = 矢印キー nudge の累積管理。
-  // base = nudge 開始時点の座標、 accum = そこからの累積 delta。 どちらも同期 ref なので、
-  // キーリピートで同一 commit に複数 keydown が入っても押下回数分が正しく積算される
-  // (state / useEffect mirror 経由だと全押下が同じ古い base を読んで 1 回分しか進まない)。
-  const nudgeBaseRef = useRef<Map<string, { posX: number; posY: number; scale: number; rotate: number }>>(new Map());
-  const nudgeAccumRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
-  // nudge 自身が最後に書き出した src。 これと現在の src が食い違えば、
-  // drag / align / undo / CodeMirror 手編集など別経路で座標が動いたということなので base を捨てる。
-  // stage の mousedown で clear する方式は、 overlay 本体や handle が stopPropagation するため
-  // 経路が漏れる (CAR-2158 Round 3 で nudge→drag→nudge の巻き戻りとして実測された)。
-  const nudgeLastSrcRef = useRef<string | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
@@ -1037,52 +1026,33 @@ export function CdlEditor(): React.JSX.Element {
         // かといって setOverlayParts の updater 内で集めた値を setSrc に渡すのも成立しない
         // = updater の実行順は render 時で、 setSrc の updater が先に評価されうるため空になる。
         //
-        // 判定も累積も setSrc の updater 内で完結させる。
+        // updater は「渡された値だけから次の値を作る」 純関数に保つ。
         //
-        // updater の第 1 引数は常に「その時点で確定した最新 src」 なので、 同一 commit 内で
-        // 連続 dispatch されても順番に正しい値が渡ってくる。 ref (useEffect mirror) と比較する
-        // 方式にすると、 mirror は commit 後にしか更新されないため burst 中は毎回「別経路で
-        // 変わった」 と誤判定して累積を捨ててしまう (CAR-2158 Round 4 で drag / undo 後の burst
-        // が 5 押下で 10px しか進まない形で実測された)。
+        // 累積 state を ref に持って updater 内で書き換える実装にすると、 React StrictMode が
+        // updater を 2 回呼ぶため副作用が二重に走り、 5 押下が 10px にしかならない
+        // (Round 5 で実測)。 ref への書き込みは updater の外だけで行う。
+        //
+        // base / accum を持たずに済ませるため、 DSL 側の現在値に直接 delta を足す方式にする。
+        // updater の prevSrc は常にその時点で確定した最新値なので、 同一 commit 内で連続
+        // dispatch されても押下回数分が順に積み上がる。 別経路 (drag / undo / 手編集) で
+        // 座標が変わっていてもその値が起点になるため、 invalidate の判定自体が不要になる。
         setOverlayParts((prev) => prev.map((p) => {
           if (!overlayIdsToNudge.includes(p.id)) return p;
           return { ...p, posX: p.posX + dx, posY: p.posY + dy };
         }));
         setSrc((prevSrc) => {
-          // nudge 以外の経路で src が変わっていたら累積を捨てて base を取り直す
-          if (nudgeLastSrcRef.current !== null && nudgeLastSrcRef.current !== prevSrc) {
-            nudgeBaseRef.current.clear();
-            nudgeAccumRef.current.clear();
-          }
           let out = prevSrc;
           for (const id of overlayIdsToNudge) {
-            if (!nudgeBaseRef.current.has(id)) {
-              // base は DSL の現在値を直接読む。 overlayParts の mirror は commit 後にしか
-              // 更新されないため、 drag 直後の burst で 1 手前の座標を掴んでしまう。
-              const line = prevSrc.split("\n").find((l) => new RegExp(`^\\s*-\\s*"?${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"?\\s*:`).test(l));
-              const readNum = (key: string): number | null => {
-                const m = line?.match(new RegExp(`(?:^|,)\\s*${key}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`));
-                return m ? Number(m[1]) : null;
-              };
-              const cur = overlayPartsRef.current.find((x) => x.id === id);
-              const baseX = readNum("posX") ?? cur?.posX;
-              const baseY = readNum("posY") ?? cur?.posY;
-              if (baseX === undefined || baseY === undefined) continue;
-              nudgeBaseRef.current.set(id, {
-                posX: baseX,
-                posY: baseY,
-                scale: readNum("scale") ?? cur?.scale ?? 1,
-                rotate: readNum("rotate") ?? cur?.rotate ?? 0,
-              });
-            }
-            const prevDelta = nudgeAccumRef.current.get(id) ?? { dx: 0, dy: 0 };
-            const accum = { dx: prevDelta.dx + dx, dy: prevDelta.dy + dy };
-            nudgeAccumRef.current.set(id, accum);
-            const base = nudgeBaseRef.current.get(id)!;
-            out = writeOverlayPartToDsl(out, id, base.posX + accum.dx, base.posY + accum.dy, base.scale, base.rotate);
+            // 現在値は depth-aware な parse で読む。 naive な正規表現だと
+            // `nodes: { header: { posY: 60 } }` の入れ子を top-level と取り違えて
+            // 誤った座標を書き戻す (Round 3 / 4 で parse / write 側は潰済)。
+            // 座標は catalog を引かずに DSL から直接読む。 `extractPartsFromSrc` は catalog で
+            // item を解決するため、 catalog が未整備の文脈では null になり state mirror に
+            // fallback してしまう (commit 前の古い値を起点にして押下が積算されない)。
+            const cur = readOverlayPartPos(out, id) ?? overlayPartsRef.current.find((x) => x.id === id);
+            if (!cur) continue;
+            out = writeOverlayPartToDsl(out, id, cur.posX + dx, cur.posY + dy, cur.scale, cur.rotate);
           }
-          // nudge 由来の src を記録 = 次回 nudge で「別経路の変更が挟まったか」 を判定する
-          nudgeLastSrcRef.current = out;
           return out;
         });
         return;
@@ -1329,6 +1299,10 @@ export function CdlEditor(): React.JSX.Element {
     }
     return map;
   }, [partsItems]);
+
+  // keydown handler など、 partsCatalog の定義より前で実行される経路から参照するための mirror。
+  const partsCatalogRef = useRef(partsCatalog);
+  useEffect(() => { partsCatalogRef.current = partsCatalog; }, [partsCatalog]);
 
   // src 変更時 debounce 300ms で parse + render
   useEffect(() => {

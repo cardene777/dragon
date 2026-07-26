@@ -19,7 +19,13 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
  * 1000 → 16000 repeat で 0.011ms → 0.148ms と線形で、 catastrophic backtracking は起きていなかった。
  * 懸念が実測で否定されたので greedy 形に戻し、 nested brace の取りこぼしを避ける方を採る。
  */
-const ACTOR_LINE_RE = /^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
+const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
+
+/** quoted alias を素の文字列に戻す (`"a \" b"` → `a " b`)。 unquoted はそのまま。 */
+export function unquoteAlias(raw: string): string {
+  if (!raw.startsWith('"') || !raw.endsWith('"') || raw.length < 2) return raw;
+  return raw.slice(1, -1).replace(/\\(.)/g, "$1");
+}
 
 /**
  * inline map の inner を top-level の field 単位に分割する。
@@ -36,10 +42,11 @@ export function splitTopLevelFields(inner: string): string[] {
   let inQuote = false;
   for (let i = 0; i < inner.length; i += 1) {
     const ch = inner[i]!;
-    // backslash escape = 次の 1 文字をそのまま読み飛ばす。
-    // これを見ないと `label: "a \" b, c"` の `\"` を quote 終端と誤認し、
-    // 以降の `,` を field 区切りとして拾って posX を二重に書き出す (CAR-2158 Round 4 CRITICAL)。
-    if (ch === "\\") { i += 1; continue; }
+    // quote の中でだけ backslash escape を解釈する。
+    // quote 内で見ないと `label: "a \" b, c"` の `\"` を終端と誤認して以降の `,` を
+    // field 区切りに拾う。 逆に quote 外でも読み飛ばすと `label: x\, posX: 100` の `\,` を
+    // 食べて field が分割されなくなる (Round 4 で後者を作り込んだ)。
+    if (inQuote && ch === "\\") { i += 1; continue; }
     if (ch === '"') { inQuote = !inQuote; continue; }
     if (inQuote) continue;
     if (ch === "{" || ch === "[") depth += 1;
@@ -85,7 +92,7 @@ export function extractPartsFromSrc(
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const m = line.match(ACTOR_LINE_RE);
     if (m) {
-      const alias = m[2]!.replace(/^"(.+)"$/, "$1");
+      const alias = unquoteAlias(m[2]!);
       const inner = m[4]!;
       // nested map (`nodes: { header: { kind: x, posX: 1 } }`) の内側を top-level と
       // 取り違えないよう、 depth を数えて top-level field だけを読む。
@@ -128,6 +135,31 @@ export function extractPartsFromSrc(
 }
 
 /**
+ * DSL から 1 つの overlay part の top-level 座標を読む (catalog 不要)。
+ *
+ * `extractPartsFromSrc` は catalog を引いて item を解決するため、 catalog がまだ用意できていない
+ * 文脈 (state 更新関数の内側など) では null になる。 座標だけが要る経路はこちらを使う。
+ */
+export function readOverlayPartPos(
+  src: string,
+  alias: string,
+): { posX: number; posY: number; scale: number; rotate: number } | null {
+  for (const line of src.split(/\r?\n/)) {
+    const m = line.match(ACTOR_LINE_RE);
+    if (!m) continue;
+    if (unquoteAlias(m[2]!) !== alias) continue;
+    const inner = m[4]!;
+    const num = (key: string, fallback: number): number => {
+      const raw = readTopLevelField(inner, key);
+      const parsed = raw ? raw.match(/^(-?\d+(?:\.\d+)?)/) : null;
+      return parsed ? Number(parsed[1]) : fallback;
+    };
+    return { posX: num("posX", 0), posY: num("posY", 0), scale: num("scale", 1), rotate: num("rotate", 0) };
+  }
+  return null;
+}
+
+/**
  * overlay parts の posX / posY / scale field を DSL actor 行に upsert。
  * 他 field (kind / bg / state override 等) は保持。 scale が 1 以外の時のみ scale field 書出し。
  */
@@ -139,7 +171,9 @@ export function writeOverlayPartToDsl(
   scale: number,
   rotate: number = 0,
 ): string {
-  const lines = src.split("\n");
+  // 改行コードを保持したまま行単位で処理する
+  const newline = src.includes("\r\n") ? "\r\n" : "\n";
+  const lines = src.split(/\r?\n/);
   const rx = Math.round(posX);
   const ry = Math.round(posY);
   const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
@@ -147,7 +181,7 @@ export function writeOverlayPartToDsl(
   const next = lines.map((line) => {
     const headMatch = line.match(ACTOR_LINE_RE);
     if (!headMatch) return line;
-    const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
+    const rawName = unquoteAlias(headMatch[2]!);
     if (rawName !== alias) return line;
     const prefix = headMatch[1]! + headMatch[2]! + headMatch[3]!;
     // top-level の座標 field だけを差し替える。 global な正規表現置換は
@@ -163,5 +197,6 @@ export function writeOverlayPartToDsl(
     const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
     return `${prefix}{ ${merged} }`;
   });
-  return next.join("\n");
+  // 元の改行コードを保つ (CRLF の DSL を LF に潰さない)
+  return next.join(newline);
 }

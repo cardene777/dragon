@@ -406,3 +406,50 @@ describe("quote / escape 処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
     expect(r.parts[0]!.posX).toBe(7);
   });
 });
+
+describe("Round 5 regression detector", () => {
+  it("quote の外の backslash が field 区切りを飲み込まない", () => {
+    // quote 外でも escape を読み飛ばすと `x\,` の `,` を食べて field 分割が壊れ、
+    // posX が読めず write で二重化する。
+    const src = `actors:
+  - a: { kind: achievement, label: x\\, posX: 100, posY: 200 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.posX).toBe(100);
+    expect(r.parts[0]!.posY).toBe(200);
+    const out = writeOverlayPartToDsl(src, "a", 7, 8, 1);
+    const line = out.split("\n").find((l) => l.includes("- a:")) ?? "";
+    expect((line.match(/posX:/g) ?? []).length).toBe(1);
+  });
+
+  it("escaped quote を含む quoted alias を扱える", () => {
+    const src = `actors:
+  - "a \\" b": { kind: achievement, posX: 10, posY: 20 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.id).toBe('a " b');
+    const out = writeOverlayPartToDsl(src, 'a " b', 300, 400, 1);
+    expect(out).toContain("posX: 300");
+    expect(out).toContain('- "a \\" b":');
+  });
+
+  it("CRLF の DSL を write しても改行コードが保たれる", () => {
+    const src = 'actors:\r\n  - a: { kind: achievement, posX: 1, posY: 2 }\r\n';
+    const out = writeOverlayPartToDsl(src, "a", 50, 60, 1);
+    expect(out).toContain("\r\n");
+    expect(out).not.toMatch(/[^\r]\n/);
+    expect(out).toContain("posX: 50");
+  });
+
+  it("nested map を持つ行から base 座標を読んでも top-level が返る", () => {
+    // nudge の base 読み取りが naive regex だと nested の posY を掴んで part が飛ぶ。
+    const src = `actors:
+  - a: { kind: achievement, nodes: { header: { posX: 5, posY: 60 } }, posX: 100, posY: 200 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]!.posX).toBe(100);
+    expect(r.parts[0]!.posY).toBe(200);
+  });
+});
