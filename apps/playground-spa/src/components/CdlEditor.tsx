@@ -734,21 +734,38 @@ export function CdlEditor(): React.JSX.Element {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      // 2026-07-26 CAR-2158 fix = 選択対象の element が DOM から消えていたら selection ごと解除する。
+      // text selection は DOM attribute (data-editor-text-key) を selector の SSOT にしているため、
+      // label 編集による再 compile で React が text node を差し替えると attribute ごと消える。
+      // 旧実装は selector が null になっても selection state を残していたので、
+      // 実体のない選択枠が古い bbox のまま残り続けていた。
+      const staleKeys: string[] = [];
       for (const sid of selectedIds) {
         if (!sid.startsWith("cdl:")) continue;
         const key = sid.slice("cdl:".length);
         const selector = cdlSelectorMap[key];
         if (!selector || !previewRef.current) continue;
         const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
-        if (!el || typeof el.getBoundingClientRect !== "function") continue;
+        if (!el || typeof el.getBoundingClientRect !== "function") { staleKeys.push(key); continue; }
         const r = el.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) continue;
+        if (r.width < 3 || r.height < 3) { staleKeys.push(key); continue; }
         next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+      }
+      if (staleKeys.length > 0) {
+        setSelectedIds((prev) => prev.filter((sid) => !staleKeys.includes(sid.replace(/^cdl:/, ""))));
+        setCdlSelectorMap((prev) => {
+          const cleaned = { ...prev };
+          for (const k of staleKeys) delete cleaned[k];
+          return cleaned;
+        });
       }
       setCdlClientBboxes(next);
     });
     return () => cancelAnimationFrame(raf);
-  }, [selectedIds, transform, cdlSelectorMap]);
+    // diagram を依存に含める = 再 compile で text の位置 / 幅が変わった時に選択枠を追従させる
+    // (含めないと label 編集後に古い bbox の枠が残る)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, transform, cdlSelectorMap, diagram]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -1827,8 +1844,6 @@ export function CdlEditor(): React.JSX.Element {
     // cdl element selection = hover 中の element があれば selection state を更新する。
     // 2026-07-26 CAR-2158 fix = 旧実装は startElementInteraction(e) が true の時だけ selection したが、
     // arrow label 等 findDragTarget が actor 名を解決できない element では false になり選択不能だった。
-    // hoveredHandle は hover 経路 (handleMouseMove の text fallback 含む) で確立済なので、
-    // interaction 成否と独立に selection を成立させる。
     const applyCdlSelection = (): void => {
       if (!hoveredHandle) return;
       const selId = `cdl:${hoveredHandle.id}`;
@@ -1840,16 +1855,28 @@ export function CdlEditor(): React.JSX.Element {
         setSelectedIds([selId]);
       }
     };
-    // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
-    if (startElementInteraction(e)) {
+    // 2026-07-26 CAR-2158 fix = hoveredHandle の有無ではなく e.target を再 hit-test して判定する。
+    //
+    // 旧実装は hoveredHandle があれば無条件に selection して return していた。 hover state は
+    // element から 100px 離れるまで保持される (handleMouseMove の buffer) ため、 element 近傍の背景を
+    // click しても旧 element を再選択して return し、 背景 click による選択解除と rubber band が
+    // 起動しなくなっていた (codex review で再現条件を実測)。
+    const targetEl = e.target as Element | null;
+    const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
+      (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
+    if (onCdlElement) {
+      // 2026-07-26 CAR-2158 fix = cdl 要素の実 drag / resize は起動しない。
+      //
+      // Phase 4 revert (4523bf9) で「cdl の drag/resize は CAR-2156 の core 再設計まで無効」 と決めたが、
+      // 実際は selection UI を pointerEvents: none にしただけで、 stage の hit-test から
+      // startElementInteraction → elementDrag → updateActorPosition の DSL 書換経路が生きていた。
+      // つまり SVG node 本体を drag すれば撤去したはずの actor 分裂 / 順序入替を再発できる状態だった。
+      // ここで interaction を起動せず selection のみ行うことで、 撤去の意図を実装として成立させる。
       applyCdlSelection();
       return;
     }
-    // interaction 不成立でも hover 中 cdl element があれば selection のみ成立させる (arrow label 等)
-    if (hoveredHandle) {
-      applyCdlSelection();
-      return;
-    }
+    // 背景 click = stale hover を明示 clear してから通常経路 (選択解除 / rubber band) へ進む
+    if (hoveredHandle) setHoveredHandle(null);
     // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
     // space+drag / middle button = pan mode (rubber band と分離、 後日実装)。 現状 通常 drag は rubber band。
     if (!e.shiftKey && !e.metaKey) setSelectedIds([]);
@@ -1975,8 +2002,6 @@ export function CdlEditor(): React.JSX.Element {
       if (!dragInfo && target.tagName === "text") {
         const textRect = (target as SVGGraphicsElement).getBoundingClientRect();
         if (textRect.width > 0 && textRect.height > 0) {
-          const content = (target.textContent ?? "").slice(0, 32);
-          const id = `text:${content}`;
           // 2026-07-26 CAR-2158 fix = 旧実装は elementSelector: "" で、 selection UI の bbox 再測定
           // useEffect が空 selector を skip して handle 描画 0 件になっていた (arrow label が選択不能)。
           // text element に data attribute を刻んで一意 selector を確立する (nth-of-type は
@@ -1987,6 +2012,10 @@ export function CdlEditor(): React.JSX.Element {
             target.setAttribute("data-editor-text-key", textKey);
           }
           const elementSelector = `[data-editor-text-key="${textKey}"]`;
+          // selection ID も textKey ベースにする。 text 内容 (先頭 32 文字) を ID にすると、
+          // 同一文言の label が複数ある図で ID が衝突し、 shift+click が 2 要素選択ではなく
+          // 同一 ID の toggle になって selector も相互に上書きされていた。
+          const id = `text:${textKey}`;
           setHoveredHandle({ id, elementSelector, rect: textRect, subNodeKey: undefined });
           return;
         }
@@ -3327,6 +3356,9 @@ ${newActorLine}
             const top = r.top - stageRect.top;
             return (
               <div
+                // 2026-07-26 CAR-2158 = test が inline style の substring ではなく semantic hook で
+                // 対象を特定できるようにする (別の dashed div が増えても誤検出しない)
+                data-cdl-hover-outline={hoveredHandle.id}
                 style={{
                   position: "absolute",
                   left: `${left}px`,
