@@ -70,3 +70,24 @@ export function buildDuplicateLine(source: DuplicateSource, newAlias: string): s
 export function aliasBaseName(alias: string): string {
   return alias.replace(/\d+$/, "") || alias;
 }
+
+/**
+ * DSL から指定 alias の actor 行を削除する。
+ *
+ * 削除処理も duplicate と同様に 3 経路 (keyboard Delete / toolbar / context menu) へ
+ * 散らばっており、 `\{[^}]*\}` のまま残った経路では nested map を持つ actor を消せなかった
+ * (CAR-2158 Round 3 で 2/3 経路が未修正と判明)。 生成規則と同じくここに集約する。
+ *
+ * inner を `.+` (greedy) にしているのは `nodes: { header: { posX: 1 } }` のような
+ * 入れ子を含む行を最初の `}` で打ち切らないため。
+ */
+export function removeActorLine(src: string, alias: string): string {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const quoted = `(?:"${escaped}"|${escaped})`;
+  // inline map 形式 (`  - alias: { ... }`)
+  const inlineRe = new RegExp(`^\\s*-\\s*${quoted}\\s*:\\s*\\{.+\\}\\s*\\r?\\n`, "m");
+  if (inlineRe.test(src)) return src.replace(inlineRe, "");
+  // short form (`  - alias`)
+  const shortRe = new RegExp(`^\\s*-\\s*${quoted}\\s*\\r?\\n`, "m");
+  return src.replace(shortRe, "");
+}

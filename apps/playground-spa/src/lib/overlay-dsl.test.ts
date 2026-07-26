@@ -303,3 +303,58 @@ describe("nested brace を含む actor 行 (CAR-2158 CRITICAL regression detecto
     expect(r.parts[0]!.posX).toBe(10);
   });
 });
+
+describe("nested map の depth-aware 処理 (CAR-2158 Round 3 CRITICAL detector)", () => {
+  it("nested nodes 内の posX を top-level と取り違えない", () => {
+    // `nodes: { header: { posX: 50 } }` の posX を top-level として読むと座標が 50 になる。
+    const src = `actors:
+  - a: { kind: achievement, nodes: { header: { posX: 50, posY: 60 } }, posX: 100, posY: 200 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.posX).toBe(100);
+    expect(r.parts[0]!.posY).toBe(200);
+  });
+
+  it("nested map の中の kind を top-level kind と取り違えない", () => {
+    // top-level は arc-gauge。 nested の achievement を拾うと別 parts として解決される。
+    const src = `actors:
+  - a: { kind: arc-gauge, nodes: { inner: { kind: achievement } }, posX: 10 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.kind).toBe("arc-gauge");
+  });
+
+  it("write で nested map 内の posX を削らない (data loss detector)", () => {
+    const src = `actors:
+  - a: { kind: achievement, nodes: { header: { posX: 50, posY: 60 } }, posX: 100, posY: 200 }
+`;
+    const out = writeOverlayPartToDsl(src, "a", 300, 400, 1);
+    // top-level は更新される
+    expect(out).toContain("posX: 300");
+    expect(out).toContain("posY: 400");
+    // nested の座標はそのまま残る
+    expect(out).toContain("header: { posX: 50, posY: 60 }");
+  });
+
+  it("write で nested map 自体を落とさない", () => {
+    const src = `actors:
+  - a: { kind: achievement, nodes: { header: { posX: 50 }, footer: { posX: 70 } }, posX: 1 }
+`;
+    const out = writeOverlayPartToDsl(src, "a", 10, 20, 1);
+    expect(out).toContain("footer: { posX: 70 }");
+    expect(out).toContain("kind: achievement");
+  });
+
+  it("quoted 値の中の カンマ / brace で field 分割が壊れない", () => {
+    const src = `actors:
+  - a: { kind: achievement, label: "a, b { c }", posX: 5 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.posX).toBe(5);
+    const out = writeOverlayPartToDsl(src, "a", 9, 9, 1);
+    expect(out).toContain('label: "a, b { c }"');
+  });
+});

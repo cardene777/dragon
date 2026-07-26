@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildDuplicateLine, nextAvailableAlias, collectActorAliases, aliasBaseName } from "./overlay-duplicate";
+import { buildDuplicateLine, nextAvailableAlias, collectActorAliases, aliasBaseName, removeActorLine } from "./overlay-duplicate";
 
 describe("buildDuplicateLine", () => {
   it("rotate / bg を引き継ぐ (CAR-2158 Round 2 = 全 duplicate 経路で共通)", () => {
@@ -100,5 +100,54 @@ describe("aliasBaseName", () => {
 
   it("数字のみの alias は空にせず元を返す", () => {
     expect(aliasBaseName("123")).toBe("123");
+  });
+});
+
+describe("removeActorLine (CAR-2158 Round 3 = 削除 3 経路の共通化)", () => {
+  it("inline map 行を削除する", () => {
+    const src = `actors:
+  - a: { kind: achievement, posX: 1 }
+  - b: { kind: achievement, posX: 2 }
+`;
+    const out = removeActorLine(src, "a");
+    expect(out).not.toContain("- a:");
+    expect(out).toContain("- b:");
+  });
+
+  it("nested map を持つ行も削除できる (旧 [^}]* は最初の } で打ち切って消せない)", () => {
+    const src = `actors:
+  - a: { kind: achievement, nodes: { header: { posX: 1 } }, posX: 10 }
+  - b: { kind: achievement }
+`;
+    const out = removeActorLine(src, "a");
+    expect(out).not.toContain("- a:");
+    expect(out).toContain("- b:");
+  });
+
+  it("quoted alias も削除できる", () => {
+    const src = `actors:
+  - "my part": { kind: achievement }
+  - b: { kind: achievement }
+`;
+    const out = removeActorLine(src, "my part");
+    expect(out).not.toContain("my part");
+    expect(out).toContain("- b:");
+  });
+
+  it("short form (inline map なし) も削除できる", () => {
+    const src = `actors:
+  - Client
+  - API
+`;
+    const out = removeActorLine(src, "Client");
+    expect(out).not.toMatch(/^\s*- Client\s*$/m);
+    expect(out).toContain("- API");
+  });
+
+  it("存在しない alias では何も変わらない", () => {
+    const src = `actors:
+  - a: { kind: achievement }
+`;
+    expect(removeActorLine(src, "zzz")).toBe(src);
   });
 });

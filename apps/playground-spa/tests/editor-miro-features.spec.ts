@@ -136,6 +136,47 @@ test("keyboard 矢印 nudge = キーリピート連打でも全押下が積算�
   expect(posXAfter - posXBefore).toBe(50);
 });
 
+test("nudge → drag → nudge = 巻き戻らない (CAR-2158 Round 3 detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const readPosX = async (): Promise<number> => {
+    const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+    return parseInt(dsl.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  };
+
+  // 1) nudge で右に動かす
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const afterNudge1 = await readPosX();
+
+  // 2) overlay 本体を drag (stopPropagation する経路 = stage の mousedown に届かない)
+  const b1 = await overlay.boundingBox();
+  if (!b1) throw new Error("null");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b1.x + b1.width / 2 + 200, b1.y + b1.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const afterDrag = await readPosX();
+  expect(afterDrag).toBeGreaterThan(afterNudge1); // drag が効いている
+
+  // 3) 再度 nudge = drag 後の位置から進むべき (古い base に巻き戻ってはいけない)
+  for (let i = 0; i < 2; i += 1) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const afterNudge2 = await readPosX();
+  console.log(`[nudge-drag-nudge] ${afterNudge1} -> drag ${afterDrag} -> nudge ${afterNudge2}`);
+  // drag 後の位置 + 20px が期待値。 base が stale だと drag 分を失って巻き戻る
+  expect(afterNudge2).toBe(afterDrag + 20);
+});
+
 test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 400, y: 300 });

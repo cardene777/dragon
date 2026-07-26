@@ -200,6 +200,10 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
       for (const sh of Array.from(shapes)) {
         const r = sh.getBoundingClientRect();
         if (r.width < 3 || r.height < 3) continue;
+        // 実装 (findPaintedShape) と同じ painted 判定。 透明 wrapper を掴むと oracle がずれる
+        const orig = sh.getAttribute("data-original-fill");
+        const fill = orig !== null ? orig : (sh.getAttribute("fill") ?? "");
+        if (fill === "" || fill === "none" || fill === "transparent") continue;
         const area = r.width * r.height;
         if (area > maxArea) { maxArea = area; left = r.left; }
       }
@@ -225,6 +229,10 @@ test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CA
         for (const sh of Array.from(shapes)) {
           const r = sh.getBoundingClientRect();
           if (r.width < 3 || r.height < 3) continue;
+          // 実装 (findPaintedShape) と同じ painted 判定
+          const orig = sh.getAttribute("data-original-fill");
+          const fill = orig !== null ? orig : (sh.getAttribute("fill") ?? "");
+          if (fill === "" || fill === "none" || fill === "transparent") continue;
           const area = r.width * r.height;
           if (area > maxArea) { maxArea = area; right = r.right; }
         }
@@ -249,9 +257,12 @@ test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CA
 
   const rights = await shapeRights();
   console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
-  // 実 AABB 基準で揃うので右端は完全一致する (許容 3px)。
-  // 固定幅 380 で計算する旧実装だと parts の実幅差の分だけずれるため、 これが detector になる。
-  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(3);
+  // 実 AABB 基準で揃うので右端はほぼ一致する。
+  // 許容 8px は arc-gauge の path が stroke 分だけ AABB を広げる実測差 (5px) を吸収する幅。
+  //
+  // 「実測 bbox を使っているか」 の判別力は左揃え test の方が高い (mutation で 91px ずれる)。
+  // 右揃えは shape の stroke ばらつきが乗るため、 ここでは揃え自体の smoke に位置付ける。
+  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(8);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

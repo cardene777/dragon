@@ -26,7 +26,33 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { aliasBaseName, buildDuplicateLine, nextAvailableAlias } from "@/lib/overlay-duplicate";
+import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
+
+/**
+ * overlay div 内の「主要 shape」 を返す。
+ *
+ * 選択枠 / align / bg 適用の全てがこの判定を共有する。 painted 判定を入れないと
+ * achievement の透明 wrapper rect (fill=none) を掴んでしまい、 実際に見えている図形より
+ * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
+ */
+function findPaintedShape(div: Element): SVGGraphicsElement | null {
+  const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
+  let maxArea = 0;
+  let best: SVGGraphicsElement | null = null;
+  for (const s of Array.from(shapes)) {
+    const r = s.getBoundingClientRect();
+    if (r.width < 3 || r.height < 3) continue;
+    // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
+    const orig = s.getAttribute("data-original-fill");
+    const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
+    const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+    if (!painted) continue;
+    const area = r.width * r.height;
+    if (area > maxArea) { maxArea = area; best = s; }
+  }
+  return best;
+}
+
 import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
@@ -363,6 +389,9 @@ function appendActorLine(src: string, newLine: string): string | null {
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
+  // keydown handler から最新 src を同期的に読むための mirror
+  const srcRef = useRef(src);
+  useEffect(() => { srcRef.current = src; }, [src]);
   // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
   // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
   const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
@@ -404,6 +433,11 @@ export function CdlEditor(): React.JSX.Element {
   // (state / useEffect mirror 経由だと全押下が同じ古い base を読んで 1 回分しか進まない)。
   const nudgeBaseRef = useRef<Map<string, { posX: number; posY: number; scale: number; rotate: number }>>(new Map());
   const nudgeAccumRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
+  // nudge 自身が最後に書き出した src。 これと現在の src が食い違えば、
+  // drag / align / undo / CodeMirror 手編集など別経路で座標が動いたということなので base を捨てる。
+  // stage の mousedown で clear する方式は、 overlay 本体や handle が stopPropagation するため
+  // 経路が漏れる (CAR-2158 Round 3 で nudge→drag→nudge の巻き戻りとして実測された)。
+  const nudgeLastSrcRef = useRef<string | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
@@ -450,17 +484,9 @@ export function CdlEditor(): React.JSX.Element {
         if (!measureTargets.has(p.id)) continue;
         const div = overlayRefs.current[p.id];
         if (!div) continue;
-        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
-        if (shapes.length === 0) continue;
-        let maxArea = 0;
-        let best: DOMRect | null = null;
-        for (const s of Array.from(shapes)) {
-          const r = (s as SVGGraphicsElement).getBoundingClientRect();
-          if (r.width < 3 || r.height < 3) continue;
-          const a = r.width * r.height;
-          if (a > maxArea) { maxArea = a; best = r; }
-        }
-        if (!best) continue;
+        const bestEl = findPaintedShape(div);
+        if (!bestEl) continue;
+        const best = bestEl.getBoundingClientRect();
         // stage 相対 client px = stage 内 absolute で render 可能な bbox
         next[p.id] = {
           left: best.left - stageRect.left,
@@ -670,17 +696,9 @@ export function CdlEditor(): React.JSX.Element {
       for (const id of measureTargets) {
         const div = overlayRefs.current[id];
         if (!div) continue;
-        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
-        if (shapes.length === 0) continue;
-        let maxArea = 0;
-        let best: DOMRect | null = null;
-        for (const s of Array.from(shapes)) {
-          const r = (s as SVGGraphicsElement).getBoundingClientRect();
-          if (r.width < 3 || r.height < 3) continue;
-          const a = r.width * r.height;
-          if (a > maxArea) { maxArea = a; best = r; }
-        }
-        if (!best) continue;
+        const bestEl = findPaintedShape(div);
+        if (!bestEl) continue;
+        const best = bestEl.getBoundingClientRect();
         next[id] = { left: best.left - stageRect.left, top: best.top - stageRect.top, width: best.width, height: best.height };
       }
       setShapeClientBboxes(next);
@@ -702,21 +720,7 @@ export function CdlEditor(): React.JSX.Element {
       const div = overlayRefs.current[p.id];
       if (!div) continue;
       if (!p.bg && !div.querySelector("[data-original-fill]")) continue;
-      const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
-      if (shapes.length === 0) continue;
-      let maxArea = 0;
-      let best: SVGGraphicsElement | null = null;
-      for (const s of Array.from(shapes)) {
-        const r = s.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) continue;
-        // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
-        const orig = s.getAttribute("data-original-fill");
-        const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
-        const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
-        if (!painted) continue;
-        const area = r.width * r.height;
-        if (area > maxArea) { maxArea = area; best = s; }
-      }
+      const best = findPaintedShape(div);
       if (!best) continue;
       if (p.bg) {
         // 元 fill を保存しておき、 bg 解除時に復元できるようにする
@@ -901,7 +905,19 @@ export function CdlEditor(): React.JSX.Element {
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
           .map((p) => {
-            const bbox = shapeClientBboxesRef.current[p.id];
+            // align は「今この瞬間の実 AABB」 が要る。 state 経由の測定値は rAF 1 フレーム分
+            // 古いことがあり、 直前の drag / resize 直後だと揃え位置が数 px ずれる。
+            // 対象は選択中の parts だけなので、 ここで測り直しても負荷は小さい。
+            const div = overlayRefs.current[p.id];
+            const stageRect = previewRef.current?.getBoundingClientRect();
+            let bbox = shapeClientBboxesRef.current[p.id];
+            if (div && stageRect) {
+              const shapeEl = findPaintedShape(div);
+              if (shapeEl) {
+                const r = shapeEl.getBoundingClientRect();
+                bbox = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+              }
+            }
             const safeScale = Math.abs(p.scale) > 0.001 ? p.scale : 1;
             if (!bbox) {
               // 未測定 = 従来の近似 (posX/posY を左上、 380px 四方) で計算する
@@ -971,10 +987,7 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => {
           let next = prev;
           for (const oid of overlayIdsToDelete) {
-            // actor 行を丸ごと削除。 inner は greedy (.+) にする = nested brace (`state: { ... }`) を
-            // 持つ行を `[^}]*` だと最初の `}` で打ち切って消せない (CAR-2158 で同種の bug を修正済)。
-            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{.+\\}\\s*\\n`, "m");
-            next = next.replace(re, "");
+            next = removeActorLine(next, oid);
           }
           return next;
         });
@@ -1026,6 +1039,11 @@ export function CdlEditor(): React.JSX.Element {
         //
         // そこで「累積 delta」 を同期 ref で持ち、 state と DSL の双方をその delta から導く。
         // ref の更新は同期なので、 同一 commit 内の連打でも押下回数分が正しく積算される。
+        // 別経路で src が変わっていたら累積を捨てて base を取り直す
+        if (nudgeLastSrcRef.current !== null && nudgeLastSrcRef.current !== srcRef.current) {
+          nudgeBaseRef.current.clear();
+          nudgeAccumRef.current.clear();
+        }
         for (const id of overlayIdsToNudge) {
           if (!nudgeBaseRef.current.has(id)) {
             const cur = overlayPartsRef.current.find((p) => p.id === id);
@@ -1047,6 +1065,8 @@ export function CdlEditor(): React.JSX.Element {
             if (!base || !accum) continue;
             out = writeOverlayPartToDsl(out, id, base.posX + accum.dx, base.posY + accum.dy, base.scale, base.rotate);
           }
+          // nudge 由来の src を記録 = 次回 nudge で「別経路の変更が挟まったか」 を判定する
+          nudgeLastSrcRef.current = out;
           return out;
         });
         return;
@@ -1885,9 +1905,6 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     // toolbar クリックは pan させない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
-    // mouse 操作が入ると座標が nudge 以外の経路で変わるため、 nudge の累積 base を破棄する
-    nudgeBaseRef.current.clear();
-    nudgeAccumRef.current.clear();
     // context menu / color picker 表示中の click は close
     if (contextMenu) setContextMenu(null);
     if (colorPickerFor) setColorPickerFor(null);
@@ -3083,10 +3100,7 @@ ${newActorLine}
                 setContextMenu(null);
               }},
               { label: "🗑 削除 (Delete)", onClick: () => {
-                setSrc((prev) => {
-                  const re = new RegExp(`^\\s*-\\s*${target}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
-                  return prev.replace(re, "");
-                });
+                setSrc((prev) => removeActorLine(prev, target));
                 setSelectedIds([]);
                 setContextMenu(null);
               }},
@@ -3338,10 +3352,7 @@ ${newActorLine}
                     <button type="button" data-overlay-toolbar-btn="delete" title="削除 (Delete)" style={iconStyle}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSrc((prev) => {
-                          const re = new RegExp(`^\\s*-\\s*${p.id}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
-                          return prev.replace(re, "");
-                        });
+                        setSrc((prev) => removeActorLine(prev, p.id));
                         setSelectedIds([]);
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}

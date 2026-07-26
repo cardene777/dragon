@@ -22,6 +22,45 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
 const ACTOR_LINE_RE = /^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
 
 /**
+ * inline map の inner を top-level の field 単位に分割する。
+ *
+ * `kind: achievement, nodes: { header: { posX: 1 } }, posX: 10` のような nested map を
+ * 単純な `,` split や正規表現で扱うと、 入れ子の中の `posX` / `kind` を top-level のものと
+ * 取り違えて誤抽出・データ欠落を起こす (CAR-2158 Round 3 CRITICAL)。
+ * brace の深さを数えて、 深さ 0 の `,` でだけ区切る。
+ */
+export function splitTopLevelFields(inner: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  let inQuote = false;
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i]!;
+    if (ch === '"') { inQuote = !inQuote; continue; }
+    if (inQuote) continue;
+    if (ch === "{" || ch === "[") depth += 1;
+    else if (ch === "}" || ch === "]") depth -= 1;
+    else if (ch === "," && depth === 0) {
+      out.push(inner.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(inner.slice(start));
+  return out.map((f) => f.trim()).filter((f) => f.length > 0);
+}
+
+/** top-level field 群から key の値を取り出す (見つからなければ null)。 */
+export function readTopLevelField(inner: string, key: string): string | null {
+  for (const field of splitTopLevelFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    if (field.slice(0, idx).trim() !== key) continue;
+    return field.slice(idx + 1).trim();
+  }
+  return null;
+}
+
+/**
  * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
  * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
  */
@@ -44,17 +83,24 @@ export function extractPartsFromSrc(
     if (m) {
       const alias = m[2]!.replace(/^"(.+)"$/, "$1");
       const inner = m[4]!;
-      const kindMatch = inner.match(/(?:^|,)\s*kind\s*:\s*([a-zA-Z0-9-_]+)/);
-      if (kindMatch) {
-        const kindValue = kindMatch[1]!;
+      // nested map (`nodes: { header: { kind: x, posX: 1 } }`) の内側を top-level と
+      // 取り違えないよう、 depth を数えて top-level field だけを読む。
+      const kindRaw = readTopLevelField(inner, "kind");
+      if (kindRaw) {
+        const kindValue = kindRaw.match(/^[a-zA-Z0-9-_]+/)?.[0] ?? "";
         if (partKindSet.has(kindValue)) {
-          const posXMatch = inner.match(/(?:^|,)\s*posX\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const posYMatch = inner.match(/(?:^|,)\s*posY\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const scaleMatch = inner.match(/(?:^|,)\s*scale\s*:\s*(-?\d+(?:\.\d+)?)/);
-          const rotateMatch = inner.match(/(?:^|,)\s*rotate\s*:\s*(-?\d+(?:\.\d+)?)/);
+          const num = (key: string): RegExpMatchArray | null => {
+            const raw = readTopLevelField(inner, key);
+            return raw ? raw.match(/^(-?\d+(?:\.\d+)?)/) : null;
+          };
+          const posXMatch = num("posX");
+          const posYMatch = num("posY");
+          const scaleMatch = num("scale");
+          const rotateMatch = num("rotate");
           // 2026-07-26 CAR-2158 correctness fix = bg を parse する。
           // 旧実装は bg を無視していたため、 color picker で DSL に bg を書いても canvas に反映されなかった。
-          const bgMatch = inner.match(/(?:^|,)\s*bg\s*:\s*"([^"]*)"/);
+          const bgRaw = readTopLevelField(inner, "bg");
+          const bgMatch = bgRaw ? bgRaw.match(/^"([^"]*)"/) : null;
           const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
           if (item) {
             parts.push({
@@ -100,12 +146,13 @@ export function writeOverlayPartToDsl(
     const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
     if (rawName !== alias) return line;
     const prefix = headMatch[1]! + headMatch[2]! + headMatch[3]!;
-    let inner = headMatch[4]!;
-    inner = inner.replace(/,?\s*posX\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/,?\s*posY\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/,?\s*scale\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/,?\s*rotate\s*:\s*-?\d+(?:\.\d+)?/g, "");
-    inner = inner.replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
+    // top-level の座標 field だけを差し替える。 global な正規表現置換は
+    // nested map (`nodes: { header: { posX: 50 } }`) の中の posX まで消してしまう。
+    const kept = splitTopLevelFields(headMatch[4]!).filter((field) => {
+      const key = field.slice(0, field.indexOf(":")).trim();
+      return !["posX", "posY", "scale", "rotate"].includes(key);
+    });
+    const inner = kept.join(", ");
     const newFields = [`posX: ${rx}`, `posY: ${ry}`];
     if (Math.abs(sScale - 1) > 0.001) newFields.push(`scale: ${sScale}`);
     if (Math.abs(sRotate) > 0.05) newFields.push(`rotate: ${sRotate}`);
