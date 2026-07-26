@@ -594,6 +594,14 @@ describe("appendActorLine (CAR-2158 Round 7 = CdlEditor から移設して test 
     );
   });
 
+  it("改行混在の DSL で末尾に足す時、 直前行の改行コードに合わせる", () => {
+    // 先頭 LF / 直前 CRLF。 buffer 先頭の separator を見ると挿入位置と無関係な
+    // LF を拾い、 混在をさらに進めてしまう。
+    const src = "actors:\n  - a: { kind: achievement }\r\n  - b: { kind: achievement }";
+    const out = appendActorLine(src, "  - c: { kind: achievement }")!;
+    expect(out).toBe("actors:\n  - a: { kind: achievement }\r\n  - b: { kind: achievement }\r\n  - c: { kind: achievement }");
+  });
+
   it("actors block が無ければ null", () => {
     expect(appendActorLine("flow:\n  - a -> b\n", "  - x: {}")).toBeNull();
   });

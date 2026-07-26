@@ -263,8 +263,10 @@ export function appendActorLine(src: string, newLine: string): string | null {
     insertIdx -= 1;
   }
   // 挿入位置の直前で実際に使われている改行コードに合わせる。
-  // 直前が無い (末尾改行なしの DSL) 場合は buffer 内の他の separator を見る。
-  const sep = seg[insertIdx * 2 - 1] ?? seg[1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+  // 直前が無い (末尾改行なしの DSL で末尾に足す) 場合は、 最後の行を終端している
+  // separator を見る。 buffer 先頭の separator を見ると、 改行が混在した DSL で
+  // 挿入位置と無関係な改行コードを拾って混在をさらに進めてしまう。
+  const sep = seg[insertIdx * 2 - 1] ?? seg[seg.length - 2] ?? (src.includes("\r\n") ? "\r\n" : "\n");
   if (insertIdx * 2 >= seg.length) {
     // 挿入位置が buffer の末尾を越える = 末尾に改行が無い状態。
     // ここで `splice(idx, 0, newLine, sep)` にすると直前の行と newLine が改行なしで
