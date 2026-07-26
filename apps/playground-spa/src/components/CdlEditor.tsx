@@ -1037,32 +1037,48 @@ export function CdlEditor(): React.JSX.Element {
         // かといって setOverlayParts の updater 内で集めた値を setSrc に渡すのも成立しない
         // = updater の実行順は render 時で、 setSrc の updater が先に評価されうるため空になる。
         //
-        // そこで「累積 delta」 を同期 ref で持ち、 state と DSL の双方をその delta から導く。
-        // ref の更新は同期なので、 同一 commit 内の連打でも押下回数分が正しく積算される。
-        // 別経路で src が変わっていたら累積を捨てて base を取り直す
-        if (nudgeLastSrcRef.current !== null && nudgeLastSrcRef.current !== srcRef.current) {
-          nudgeBaseRef.current.clear();
-          nudgeAccumRef.current.clear();
-        }
-        for (const id of overlayIdsToNudge) {
-          if (!nudgeBaseRef.current.has(id)) {
-            const cur = overlayPartsRef.current.find((p) => p.id === id);
-            if (!cur) continue;
-            nudgeBaseRef.current.set(id, { posX: cur.posX, posY: cur.posY, scale: cur.scale, rotate: cur.rotate });
-          }
-          const prevDelta = nudgeAccumRef.current.get(id) ?? { dx: 0, dy: 0 };
-          nudgeAccumRef.current.set(id, { dx: prevDelta.dx + dx, dy: prevDelta.dy + dy });
-        }
+        // 判定も累積も setSrc の updater 内で完結させる。
+        //
+        // updater の第 1 引数は常に「その時点で確定した最新 src」 なので、 同一 commit 内で
+        // 連続 dispatch されても順番に正しい値が渡ってくる。 ref (useEffect mirror) と比較する
+        // 方式にすると、 mirror は commit 後にしか更新されないため burst 中は毎回「別経路で
+        // 変わった」 と誤判定して累積を捨ててしまう (CAR-2158 Round 4 で drag / undo 後の burst
+        // が 5 押下で 10px しか進まない形で実測された)。
         setOverlayParts((prev) => prev.map((p) => {
           if (!overlayIdsToNudge.includes(p.id)) return p;
           return { ...p, posX: p.posX + dx, posY: p.posY + dy };
         }));
         setSrc((prevSrc) => {
+          // nudge 以外の経路で src が変わっていたら累積を捨てて base を取り直す
+          if (nudgeLastSrcRef.current !== null && nudgeLastSrcRef.current !== prevSrc) {
+            nudgeBaseRef.current.clear();
+            nudgeAccumRef.current.clear();
+          }
           let out = prevSrc;
           for (const id of overlayIdsToNudge) {
-            const base = nudgeBaseRef.current.get(id);
-            const accum = nudgeAccumRef.current.get(id);
-            if (!base || !accum) continue;
+            if (!nudgeBaseRef.current.has(id)) {
+              // base は DSL の現在値を直接読む。 overlayParts の mirror は commit 後にしか
+              // 更新されないため、 drag 直後の burst で 1 手前の座標を掴んでしまう。
+              const line = prevSrc.split("\n").find((l) => new RegExp(`^\\s*-\\s*"?${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"?\\s*:`).test(l));
+              const readNum = (key: string): number | null => {
+                const m = line?.match(new RegExp(`(?:^|,)\\s*${key}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`));
+                return m ? Number(m[1]) : null;
+              };
+              const cur = overlayPartsRef.current.find((x) => x.id === id);
+              const baseX = readNum("posX") ?? cur?.posX;
+              const baseY = readNum("posY") ?? cur?.posY;
+              if (baseX === undefined || baseY === undefined) continue;
+              nudgeBaseRef.current.set(id, {
+                posX: baseX,
+                posY: baseY,
+                scale: readNum("scale") ?? cur?.scale ?? 1,
+                rotate: readNum("rotate") ?? cur?.rotate ?? 0,
+              });
+            }
+            const prevDelta = nudgeAccumRef.current.get(id) ?? { dx: 0, dy: 0 };
+            const accum = { dx: prevDelta.dx + dx, dy: prevDelta.dy + dy };
+            nudgeAccumRef.current.set(id, accum);
+            const base = nudgeBaseRef.current.get(id)!;
             out = writeOverlayPartToDsl(out, id, base.posX + accum.dx, base.posY + accum.dy, base.scale, base.rotate);
           }
           // nudge 由来の src を記録 = 次回 nudge で「別経路の変更が挟まったか」 を判定する

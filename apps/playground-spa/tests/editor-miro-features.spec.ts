@@ -177,6 +177,75 @@ test("nudge → drag → nudge = 巻き戻らない (CAR-2158 Round 3 detector)"
   expect(afterNudge2).toBe(afterDrag + 20);
 });
 
+test("nudge burst が drag / undo の後でも全押下積算される (CAR-2158 Round 4 race detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const readPosX = async (): Promise<number> => {
+    const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+    return parseInt(dsl.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  };
+  const burst = async (n: number): Promise<void> => {
+    await page.evaluate((count) => {
+      for (let i = 0; i < count; i += 1) {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true, bubbles: true }));
+      }
+    }, n);
+    await page.waitForTimeout(700);
+  };
+
+  // 1 回目の burst (nudgeLastSrcRef が null の初回経路)
+  await burst(5);
+  const afterFirst = await readPosX();
+
+  // drag を挟む = src が nudge 以外の経路で変わる
+  const b1 = await overlay.boundingBox();
+  if (!b1) throw new Error("null");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b1.x + b1.width / 2 + 100, b1.y + b1.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const afterDrag = await readPosX();
+  // drag 後に選択が外れる場合があるので確実に選び直す
+  const b2 = await overlay.boundingBox();
+  if (!b2) throw new Error("null");
+  await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+
+  // 2 回目の burst = drag 後でも 5 押下分 (50px) 進むべき。
+  // 累積が毎回捨てられると 10px (1 押下分) にしかならない。
+  await burst(5);
+  const afterSecond = await readPosX();
+  console.log(`[burst after drag] ${afterFirst} -> drag ${afterDrag} -> burst ${afterSecond} (delta ${afterSecond - afterDrag})`);
+  expect(afterSecond - afterDrag).toBe(50);
+
+  // undo を挟んでの burst も同様
+  await page.keyboard.press("Meta+z");
+  await page.waitForTimeout(700);
+  const afterUndo = await readPosX();
+  const b3 = await overlay.boundingBox();
+  if (b3) {
+    await page.mouse.move(b3.x + b3.width / 2, b3.y + b3.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  }
+  await burst(5);
+  const afterThird = await readPosX();
+  console.log(`[burst after undo] undo ${afterUndo} -> burst ${afterThird} (delta ${afterThird - afterUndo})`);
+  expect(afterThird - afterUndo).toBe(50);
+});
+
 test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 400, y: 300 });

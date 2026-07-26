@@ -84,10 +84,13 @@ export function aliasBaseName(alias: string): string {
 export function removeActorLine(src: string, alias: string): string {
   const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const quoted = `(?:"${escaped}"|${escaped})`;
+  // 行内の空白は `[ \t]` に限定する。 `\s` は改行を含むため、 CRLF の `\r` を跨いで
+  // 前後の行を結合してしまう (JS の multiline `^` は `\r` 直後にも match するため実測で再現、
+  // CAR-2158 Round 4 CRITICAL)。 行末も `(?:\r?\n|$)` で明示する。
   // inline map 形式 (`  - alias: { ... }`)
-  const inlineRe = new RegExp(`^\\s*-\\s*${quoted}\\s*:\\s*\\{.+\\}\\s*\\r?\\n`, "m");
+  const inlineRe = new RegExp(`^[ \t]*-[ \t]*${quoted}[ \t]*:[ \t]*\\{.+\\}[ \t]*(?:\\r?\\n|$)`, "m");
   if (inlineRe.test(src)) return src.replace(inlineRe, "");
   // short form (`  - alias`)
-  const shortRe = new RegExp(`^\\s*-\\s*${quoted}\\s*\\r?\\n`, "m");
+  const shortRe = new RegExp(`^[ \t]*-[ \t]*${quoted}[ \t]*(?:\\r?\\n|$)`, "m");
   return src.replace(shortRe, "");
 }

@@ -151,3 +151,24 @@ describe("removeActorLine (CAR-2158 Round 3 = 削除 3 経路の共通化)", () 
     expect(removeActorLine(src, "zzz")).toBe(src);
   });
 });
+
+describe("removeActorLine の改行処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
+  it("CRLF の DSL で前後の行を結合しない", () => {
+    // `\s` は改行を含むため、 CRLF の `\r` を跨いで隣接行を巻き込む。
+    const src = 'actors:\r\n  - a: { kind: achievement }\r\n  - b: { kind: achievement }\r\n';
+    const out = removeActorLine(src, "a");
+    expect(out).toBe('actors:\r\n  - b: { kind: achievement }\r\n');
+  });
+
+  it("CRLF の short form でも行構造を保つ", () => {
+    const src = 'actors:\r\n  - Client\r\n  - API\r\n';
+    const out = removeActorLine(src, "Client");
+    expect(out).toBe('actors:\r\n  - API\r\n');
+  });
+
+  it("末尾改行なしの最終行も削除できる", () => {
+    const src = 'actors:\n  - a: { kind: achievement }';
+    const out = removeActorLine(src, "a");
+    expect(out).toBe("actors:\n");
+  });
+});

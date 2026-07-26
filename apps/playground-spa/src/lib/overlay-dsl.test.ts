@@ -358,3 +358,51 @@ describe("nested map の depth-aware 処理 (CAR-2158 Round 3 CRITICAL detector)
     expect(out).toContain('label: "a, b { c }"');
   });
 });
+
+describe("quote / escape 処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
+  it("escaped quote を含む値で field 分割が壊れない", () => {
+    // `\"` を quote 終端と誤認すると、 以降の `,` を field 区切りとして拾い
+    // posX の抽出と書き出しが壊れる (二重書き出しになる)。
+    const src = `actors:
+  - a: { kind: achievement, label: "x \\" y, posX: 9", posX: 100 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.posX).toBe(100);
+  });
+
+  it("escaped quote を含む行の write で posX が二重化しない", () => {
+    const src = `actors:
+  - a: { kind: achievement, label: "x \\" y, posX: 9", posX: 100 }
+`;
+    const out = writeOverlayPartToDsl(src, "a", 500, 600, 1);
+    // 書き出し後の行に posX が 1 つだけ (label 内の文字列は数えない)
+    const line = out.split("\n").find((l) => l.includes("- a:")) ?? "";
+    const stripped = line.replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    expect((stripped.match(/posX:/g) ?? []).length).toBe(1);
+    expect(out).toContain("posX: 500");
+  });
+
+  it("quoted alias の extract → write round-trip が壊れない", () => {
+    const src = `actors:
+  - "my part": { kind: achievement, posX: 10, posY: 20 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.id).toBe("my part");
+    const out = writeOverlayPartToDsl(src, "my part", 300, 400, 1);
+    expect(out).toContain('- "my part":');
+    expect(out).toContain("posX: 300");
+    expect(out).toContain("posY: 400");
+  });
+
+  it("quoted alias に空白 / 記号を含んでも parse できる", () => {
+    const src = `actors:
+  - "a, b { c }": { kind: achievement, posX: 7 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]!.id).toBe("a, b { c }");
+    expect(r.parts[0]!.posX).toBe(7);
+  });
+});

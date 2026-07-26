@@ -258,10 +258,11 @@ test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CA
   const rights = await shapeRights();
   console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
   // 実 AABB 基準で揃うので右端はほぼ一致する。
-  // 許容 8px は arc-gauge の path が stroke 分だけ AABB を広げる実測差 (5px) を吸収する幅。
+  // 許容 8px の内訳 = arc-gauge は animated part で、 描画フレームによって painted shape の
+  // AABB が数 px 変動する (実測で right が 1904〜1907 の範囲で揺れる)。 その揺れ幅を吸収する。
   //
-  // 「実測 bbox を使っているか」 の判別力は左揃え test の方が高い (mutation で 91px ずれる)。
-  // 右揃えは shape の stroke ばらつきが乗るため、 ここでは揃え自体の smoke に位置付ける。
+  // 「実測 bbox を使っているか」 の判別は左揃え test が担う (mutation で 91px ずれて fail)。
+  // 右揃えは上記の揺れが乗るため、 ここでは揃え自体が動くことの smoke に位置付ける。
   expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(8);
 });
 

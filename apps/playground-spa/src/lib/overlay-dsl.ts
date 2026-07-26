@@ -36,6 +36,10 @@ export function splitTopLevelFields(inner: string): string[] {
   let inQuote = false;
   for (let i = 0; i < inner.length; i += 1) {
     const ch = inner[i]!;
+    // backslash escape = 次の 1 文字をそのまま読み飛ばす。
+    // これを見ないと `label: "a \" b, c"` の `\"` を quote 終端と誤認し、
+    // 以降の `,` を field 区切りとして拾って posX を二重に書き出す (CAR-2158 Round 4 CRITICAL)。
+    if (ch === "\\") { i += 1; continue; }
     if (ch === '"') { inQuote = !inQuote; continue; }
     if (inQuote) continue;
     if (ch === "{" || ch === "[") depth += 1;
