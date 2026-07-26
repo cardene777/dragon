@@ -172,3 +172,30 @@ describe("removeActorLine の改行処理 (CAR-2158 Round 4 CRITICAL detector)",
     expect(out).toBe("actors:\n");
   });
 });
+
+describe("escaped quote alias の一貫性 (CAR-2158 Round 6 CRITICAL detector)", () => {
+  const src = 'actors:\n  - "a \\" b": { kind: achievement, posX: 1 }\n  - b: { kind: achievement }\n';
+
+  it("collectActorAliases が overlay-dsl と同じ復号結果を返す", () => {
+    // 独自復号 (`replace(/^"(.*)"$/)`) だと `a \" b` が返り、 part の id (`a " b`) と食い違う。
+    expect(collectActorAliases(src)).toContain('a " b');
+  });
+
+  it("escaped quote を含む alias の行を削除できる", () => {
+    // 素の alias を quote で囲むだけの pattern (`"a " b"`) は実 DSL と一致せず no-op になる。
+    const out = removeActorLine(src, 'a " b');
+    expect(out).not.toBe(src);
+    expect(out).not.toContain("a \\\" b");
+    expect(out).toContain("- b:");
+  });
+
+  it("採番が escaped quote alias を使用済として数える", () => {
+    const s = 'actors:\n  - "ach\\"1": { kind: achievement }\n  - ach2: { kind: achievement }\n';
+    // 復号結果は `ach"1` で `ach1` ではない = ach1 は空いている
+    expect(nextAvailableAlias(s, "ach")).toBe("ach1");
+  });
+
+  it("CRLF の DSL でも alias を集められる", () => {
+    expect(collectActorAliases("actors:\r\n  - a: { kind: achievement }\r\n")).toContain("a");
+  });
+});

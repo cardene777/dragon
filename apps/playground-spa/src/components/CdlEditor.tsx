@@ -368,8 +368,13 @@ function slugifyForLane(s: string): string {
  * actors: block が見つからない場合は null 返却 (caller が REPLACE fallback で新規 diagram を作る経路)。
  */
 function appendActorLine(src: string, newLine: string): string | null {
-  const lines = src.split("\n");
-  const actorsIdx = lines.findIndex((l) => /^actors\s*:\s*$/.test(l));
+  // 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
+  // LF 固定で挿入すると CRLF の DSL に LF 行が混ざり、 以後の座標更新で
+  // 無関係な行の改行まで巻き込まれる (CAR-2158 Round 6 MAJOR)。
+  const seg = src.split(/(\r\n|\n)/);
+  const lines: string[] = [];
+  for (let i = 0; i < seg.length; i += 2) lines.push(seg[i]!);
+  const actorsIdx = lines.findIndex((l) => /^actors[ \t]*:[ \t]*$/.test(l));
   if (actorsIdx < 0) return null;
   let insertIdx = lines.length;
   for (let i = actorsIdx + 1; i < lines.length; i++) {
@@ -381,9 +386,10 @@ function appendActorLine(src: string, newLine: string): string | null {
   while (insertIdx > actorsIdx + 1 && (lines[insertIdx - 1] ?? "").trim() === "") {
     insertIdx -= 1;
   }
-  const before = lines.slice(0, insertIdx);
-  const after = lines.slice(insertIdx);
-  return [...before, newLine, ...after].join("\n");
+  // 挿入位置の直前で実際に使われている改行コードに合わせる
+  const sep = seg[insertIdx * 2 - 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+  seg.splice(insertIdx * 2, 0, newLine, sep);
+  return seg.join("");
 }
 
 export function CdlEditor(): React.JSX.Element {
@@ -1047,9 +1053,12 @@ export function CdlEditor(): React.JSX.Element {
             // `nodes: { header: { posY: 60 } }` の入れ子を top-level と取り違えて
             // 誤った座標を書き戻す (Round 3 / 4 で parse / write 側は潰済)。
             // 座標は catalog を引かずに DSL から直接読む。 `extractPartsFromSrc` は catalog で
-            // item を解決するため、 catalog が未整備の文脈では null になり state mirror に
-            // fallback してしまう (commit 前の古い値を起点にして押下が積算されない)。
-            const cur = readOverlayPartPos(out, id) ?? overlayPartsRef.current.find((x) => x.id === id);
+            // item を解決するため、 catalog が未整備の文脈では null になり、 commit 前の
+            // 古い state を起点にして押下が積算されなくなる。
+            // null (DSL に該当行なし) の時は state mirror へ fallback せず skip する。
+            // fallback しても `writeOverlayPartToDsl` が同じ alias 条件で対象行を見つけられず
+            // no-op になり、 optimistic な setOverlayParts だけが進んで DSL と乖離する。
+            const cur = readOverlayPartPos(out, id);
             if (!cur) continue;
             out = writeOverlayPartToDsl(out, id, cur.posX + dx, cur.posY + dy, cur.scale, cur.rotate);
           }
@@ -1299,10 +1308,6 @@ export function CdlEditor(): React.JSX.Element {
     }
     return map;
   }, [partsItems]);
-
-  // keydown handler など、 partsCatalog の定義より前で実行される経路から参照するための mirror。
-  const partsCatalogRef = useRef(partsCatalog);
-  useEffect(() => { partsCatalogRef.current = partsCatalog; }, [partsCatalog]);
 
   // src 変更時 debounce 300ms で parse + render
   useEffect(() => {

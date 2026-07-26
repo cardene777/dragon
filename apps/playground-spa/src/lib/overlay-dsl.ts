@@ -28,6 +28,17 @@ export function unquoteAlias(raw: string): string {
 }
 
 /**
+ * 素の alias を DSL の quoted 表記に戻す (`a " b` → `"a \" b"`)。 `unquoteAlias` の逆。
+ *
+ * alias を DSL 上の文字列として探す側 (削除の regex 組立て等) が必要とする。
+ * 素の alias をそのまま quote で囲むと `"a " b"` になり実 DSL と一致せず、
+ * 削除が silent fail する (CAR-2158 Round 6 CRITICAL)。
+ */
+export function quoteAlias(alias: string): string {
+  return `"${alias.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
  * inline map の inner を top-level の field 単位に分割する。
  *
  * `kind: achievement, nodes: { header: { posX: 1 } }, posX: 10` のような nested map を
@@ -39,22 +50,46 @@ export function splitTopLevelFields(inner: string): string[] {
   const out: string[] = [];
   let depth = 0;
   let start = 0;
-  let inQuote = false;
+  // double / single の 2 種を追跡する。 single を見ていなかった頃は
+  // `label: 'x,y'` を 2 field に割り、 `label: 'p, posX: 999'` の内側を top-level の
+  // posX と誤読して DSL を壊していた (CAR-2158 Round 6 CRITICAL)。
+  let quote: '"' | "'" | null = null;
+  // 直前の非空白文字。 quote の開始を「値の先頭」 に限るために持つ。
+  let prev: string | null = null;
   for (let i = 0; i < inner.length; i += 1) {
     const ch = inner[i]!;
-    // quote の中でだけ backslash escape を解釈する。
-    // quote 内で見ないと `label: "a \" b, c"` の `\"` を終端と誤認して以降の `,` を
-    // field 区切りに拾う。 逆に quote 外でも読み飛ばすと `label: x\, posX: 100` の `\,` を
-    // 食べて field が分割されなくなる (Round 4 で後者を作り込んだ)。
-    if (inQuote && ch === "\\") { i += 1; continue; }
-    if (ch === '"') { inQuote = !inQuote; continue; }
-    if (inQuote) continue;
+    if (quote === '"') {
+      // double-quoted の中でだけ backslash escape を解釈する。
+      // 見ないと `label: "a \" b, c"` の `\"` を終端と誤認して以降の `,` を拾う。
+      // 逆に quote 外でも読み飛ばすと `label: x\, posX: 100` の `\,` を食べて分割されない。
+      if (ch === "\\") { i += 1; continue; }
+      if (ch === '"') quote = null;
+      continue;
+    }
+    if (quote === "'") {
+      // YAML の single-quoted scalar は backslash escape を解釈せず、
+      // `''` (2 連続) が単一の `'` を表す。
+      if (ch === "'") {
+        if (inner[i + 1] === "'") { i += 1; continue; }
+        quote = null;
+      }
+      continue;
+    }
+    // quote の開始は値の先頭 (`:` `,` `{` `[` の直後、 または文字列先頭) でのみ認める。
+    // YAML では unquoted scalar 中の `'` (`label: It's fine`) は区切りの意味を持たないため、
+    // これを quote 開始と誤認すると以降の `,` を飲んで field が分割されなくなる。
+    if ((ch === '"' || ch === "'") && (prev === null || ":,{[".includes(prev))) {
+      quote = ch;
+      prev = ch;
+      continue;
+    }
     if (ch === "{" || ch === "[") depth += 1;
     else if (ch === "}" || ch === "]") depth -= 1;
     else if (ch === "," && depth === 0) {
       out.push(inner.slice(start, i));
       start = i + 1;
     }
+    if (ch !== " " && ch !== "\t") prev = ch;
   }
   out.push(inner.slice(start));
   return out.map((f) => f.trim()).filter((f) => f.length > 0);
@@ -171,14 +206,17 @@ export function writeOverlayPartToDsl(
   scale: number,
   rotate: number = 0,
 ): string {
-  // 改行コードを保持したまま行単位で処理する
-  const newline = src.includes("\r\n") ? "\r\n" : "\n";
-  const lines = src.split(/\r?\n/);
+  // 改行コードは行ごとに元のまま残す。 `src.includes("\r\n")` で buffer 全体を一括判定すると、
+  // LF と CRLF が混ざった DSL (複製で追加された行が LF、 元の行が CRLF 等) で
+  // 無関係な行の改行まで書き換わり、 diff が変更箇所以外に広がる (CAR-2158 Round 6 MAJOR)。
+  // capture group つき split で separator を配列に残し、 偶数 index (行) だけを触る。
+  const segments = src.split(/(\r\n|\n)/);
   const rx = Math.round(posX);
   const ry = Math.round(posY);
   const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
   const sRotate = Number.isFinite(rotate) ? Number(rotate.toFixed(1)) : 0;
-  const next = lines.map((line) => {
+  const next = segments.map((line, i) => {
+    if (i % 2 === 1) return line; // separator はそのまま
     const headMatch = line.match(ACTOR_LINE_RE);
     if (!headMatch) return line;
     const rawName = unquoteAlias(headMatch[2]!);
@@ -197,6 +235,5 @@ export function writeOverlayPartToDsl(
     const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
     return `${prefix}{ ${merged} }`;
   });
-  // 元の改行コードを保つ (CRLF の DSL を LF に潰さない)
-  return next.join(newline);
+  return next.join("");
 }

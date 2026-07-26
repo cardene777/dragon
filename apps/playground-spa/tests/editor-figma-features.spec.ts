@@ -21,13 +21,20 @@ async function drop(page: import("@playwright/test").Page, partId: string, posit
   await page.waitForTimeout(1000);
 }
 
-/** 測定前に rAF / timer を止めて frame を固定する (animated part の AABB 変動を排除)。 */
+/**
+ * rAF を止めて frame を固定する (animated part の AABB 変動を排除)。
+ *
+ * align の測定前ではなく align 実行の **前** に呼ぶ。 実装は align 実行時に自分で bbox を
+ * 測るため、 事後に固定しても実装が見た frame と test が見る frame がずれたままになる
+ * (CAR-2158 Round 6 MAJOR)。
+ *
+ * 止めるのは rAF だけにする。 `clearTimeout` / `clearInterval` で id を総なめすると
+ * parse / render の debounce (300ms) や React 内部の pending timer まで殺し、
+ * DOM が未収束のまま assertion に入る false green 経路を作る。
+ */
 async function freezeAnimation(page: import("@playwright/test").Page): Promise<void> {
   await page.evaluate(() => {
-    const w = window as unknown as { requestAnimationFrame: (cb: FrameRequestCallback) => number; setTimeout: typeof setTimeout };
-    w.requestAnimationFrame = () => 0;
-    const maxId = Number(w.setTimeout(() => {}, 0));
-    for (let i = 0; i <= maxId; i += 1) { clearInterval(i); clearTimeout(i); }
+    (window as unknown as { requestAnimationFrame: (cb: FrameRequestCallback) => number }).requestAnimationFrame = () => 0;
   });
   await page.waitForTimeout(300);
 }
@@ -198,12 +205,14 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await page.waitForTimeout(200);
+  // align 実行の前に固定する。 実装は align 時に自分で bbox を測るため、 事後に固定しても
+  // 実装が見た frame と test が見る frame の位相差が残る (Round 6 MAJOR)。
+  await freezeAnimation(page);
   await page.keyboard.press("Alt+l");
   await page.waitForTimeout(600);
   // 左揃えは「実 shape の左端が揃う」 で検証する。
   // posX の一致で見ていたが、 CAR-2158 Round 2 で align を実 AABB 基準の delta 方式に変えたため
   // rotate や shape offset がある parts では posX は一致しない (揃うのは AABB の左端)。
-  await freezeAnimation(page);
   const lefts = await page.evaluate(() =>
     Array.from(document.querySelectorAll("[data-overlay-part]")).map((div) => {
       const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
@@ -266,21 +275,16 @@ test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CA
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await page.waitForTimeout(300);
+  // align 実行の前に固定する (左揃え test と同じ扱い、 Round 6 MAJOR)。
+  await freezeAnimation(page);
   await page.keyboard.press("Alt+r");
   await page.waitForTimeout(800);
 
-  await freezeAnimation(page);
   const rights = await shapeRights();
   console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
-  // 右揃えが動くことの smoke check。
-  //
-  // 完全一致を要求しない理由 = arc-gauge は sweep animation を持ち、 painted shape の AABB が
-  // 53px 規模で変動する (実測 range 1854〜1907)。 測定前に frame を固定しても、
-  // align 実行時に実装が測った bbox と test が事後に測る bbox で対象 shape が一致せず 4px 残る。
-  //
-  // 「実測 bbox を使っているか」 の判別は左揃え test が担う。 そちらは achievement 同士 (静的 part) で
-  // 完全一致し、 実測 bbox を無効化する mutation で 91px ずれて fail する = detector として成立している。
-  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(10);
+  // 左揃えと同一の閾値を課す。 両 test は同じ part 対 (achievement + arc-gauge) を使うため、
+  // 片方だけ緩める理由がない。 緩めていた根拠 (「左は静的 part 同士」) は事実と異なっていた。
+  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(3);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

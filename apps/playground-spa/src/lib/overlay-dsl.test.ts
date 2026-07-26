@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { extractPartsFromSrc, writeOverlayPartToDsl } from "./overlay-dsl";
+import {
+  extractPartsFromSrc,
+  writeOverlayPartToDsl,
+  readOverlayPartPos,
+  unquoteAlias,
+  quoteAlias,
+  splitTopLevelFields,
+  readTopLevelField,
+} from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 const catalog: Record<string, unknown> = {
@@ -445,11 +453,106 @@ describe("Round 5 regression detector", () => {
 
   it("nested map を持つ行から base 座標を読んでも top-level が返る", () => {
     // nudge の base 読み取りが naive regex だと nested の posY を掴んで part が飛ぶ。
+    // 対象は readOverlayPartPos そのもの。 extractPartsFromSrc 経由で書いていた頃は
+    // 後者が既に depth-aware だったため fix 対象を一切踏まず、 naive regex に戻す
+    // mutation でも pass する false green だった (CAR-2158 Round 6 MAJOR)。
     const src = `actors:
   - a: { kind: achievement, nodes: { header: { posX: 5, posY: 60 } }, posX: 100, posY: 200 }
 `;
-    const r = extractPartsFromSrc(src, catalog, partsItems);
-    expect(r.parts[0]!.posX).toBe(100);
-    expect(r.parts[0]!.posY).toBe(200);
+    const pos = readOverlayPartPos(src, "a");
+    expect(pos).not.toBeNull();
+    expect(pos!.posX).toBe(100);
+    expect(pos!.posY).toBe(200);
+  });
+});
+
+describe("Round 6 regression detector", () => {
+  describe("readOverlayPartPos (catalog 不要の座標読み取り)", () => {
+    it("scale / rotate も top-level から読む", () => {
+      const src = "actors:\n  - a: { kind: achievement, posX: 10, posY: 20, scale: 1.5, rotate: 30 }\n";
+      expect(readOverlayPartPos(src, "a")).toEqual({ posX: 10, posY: 20, scale: 1.5, rotate: 30 });
+    });
+
+    it("field 不在時は既定値 (posX/posY 0、 scale 1、 rotate 0) を返す", () => {
+      const src = "actors:\n  - a: { kind: achievement }\n";
+      expect(readOverlayPartPos(src, "a")).toEqual({ posX: 0, posY: 0, scale: 1, rotate: 0 });
+    });
+
+    it("nested map の scale を top-level と取り違えない", () => {
+      const src = "actors:\n  - a: { kind: achievement, nodes: { inner: { scale: 9, rotate: 88 } }, posX: 1, posY: 2 }\n";
+      const pos = readOverlayPartPos(src, "a");
+      expect(pos!.scale).toBe(1);
+      expect(pos!.rotate).toBe(0);
+    });
+
+    it("escaped quote を含む quoted alias でも引ける", () => {
+      const src = 'actors:\n  - "a \\" b": { kind: achievement, posX: 7, posY: 8 }\n';
+      expect(readOverlayPartPos(src, 'a " b')!.posX).toBe(7);
+    });
+
+    it("CRLF の DSL でも引ける", () => {
+      const src = "actors:\r\n  - a: { kind: achievement, posX: 3, posY: 4 }\r\n";
+      expect(readOverlayPartPos(src, "a")!.posY).toBe(4);
+    });
+
+    it("未知 alias では null を返す", () => {
+      expect(readOverlayPartPos("actors:\n  - a: { kind: achievement }\n", "zzz")).toBeNull();
+    });
+  });
+
+  describe("unquoteAlias / quoteAlias の往復", () => {
+    it("quoteAlias は unquoteAlias の逆になる", () => {
+      for (const alias of ['a " b', "plain", "a \\ b", 'q"']) {
+        expect(unquoteAlias(quoteAlias(alias))).toBe(alias);
+      }
+    });
+
+    it("quoteAlias は DSL 上の表記を作る (素の alias を囲むだけでは足りない)", () => {
+      expect(quoteAlias('a " b')).toBe('"a \\" b"');
+    });
+  });
+
+  describe("single-quoted scalar (CRITICAL)", () => {
+    it("single quote 内の comma で field を割らない", () => {
+      const fields = splitTopLevelFields("kind: achievement, label: 'x,y', posX: 1");
+      expect(fields).toEqual(["kind: achievement", "label: 'x,y'", "posX: 1"]);
+    });
+
+    it("single quote 内の posX を top-level と誤読しない", () => {
+      const src = "actors:\n  - a: { kind: achievement, label: 'p, posX: 999', posX: 1, posY: 2 }\n";
+      expect(readOverlayPartPos(src, "a")!.posX).toBe(1);
+      expect(extractPartsFromSrc(src, catalog, partsItems).parts[0]!.posX).toBe(1);
+    });
+
+    it("write しても single-quoted 値が壊れない", () => {
+      const src = "actors:\n  - a: { kind: achievement, label: 'p, posX: 999', posX: 1, posY: 2 }\n";
+      const out = writeOverlayPartToDsl(src, "a", 7, 8, 1);
+      expect(out).toContain("label: 'p, posX: 999'");
+      expect(out).toContain("posX: 7");
+      expect(out).toContain("posY: 8");
+      // quote が不均衡なまま出力されない
+      expect((out.match(/'/g) ?? []).length % 2).toBe(0);
+    });
+
+    it("YAML の '' escape を終端と誤認しない", () => {
+      const fields = splitTopLevelFields("label: 'it''s, fine', posX: 1");
+      expect(fields).toEqual(["label: 'it''s, fine'", "posX: 1"]);
+    });
+
+    it("unquoted scalar 中のアポストロフィを quote 開始と誤認しない", () => {
+      // `label: It's fine` の `'` を quote 開始と読むと以降の `,` を飲んで posX が消える。
+      const fields = splitTopLevelFields("label: It's fine, posX: 1");
+      expect(fields).toEqual(["label: It's fine", "posX: 1"]);
+      expect(readTopLevelField("label: It's fine, posX: 1", "posX")).toBe("1");
+    });
+  });
+
+  describe("mixed line ending (MAJOR)", () => {
+    it("LF と CRLF が混在する DSL で無関係な行の改行を書き換えない", () => {
+      // 複製で追加された行が LF、 元の行が CRLF という状態が実際に起きる。
+      const src = "actors:\r\n  - a: { kind: achievement, posX: 1, posY: 2 }\n  - b: { kind: achievement }\r\n";
+      const out = writeOverlayPartToDsl(src, "a", 50, 60, 1);
+      expect(out).toBe("actors:\r\n  - a: { kind: achievement, posX: 50, posY: 60 }\n  - b: { kind: achievement }\r\n");
+    });
   });
 });

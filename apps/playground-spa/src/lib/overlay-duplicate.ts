@@ -7,6 +7,8 @@
  * 生成規則をここに集約して、 経路ごとの差が出ないようにする。
  */
 
+import { unquoteAlias, quoteAlias } from "./overlay-dsl";
+
 /** 複製元の最小情報。 呼び出し側の型 (OverlayPart / clipboard entry) の共通部分。 */
 export type DuplicateSource = {
   kind: string;
@@ -34,16 +36,24 @@ export function nextAvailableAlias(src: string, baseName: string): string {
   return `${baseName}${n}`;
 }
 
-/** DSL 中の全 actor alias を集める (quoted / short form / inline map の 3 形式)。 */
+/**
+ * DSL 中の全 actor alias を集める (quoted / short form / inline map の 3 形式)。
+ *
+ * quoted alias の復号は `overlay-dsl` の `unquoteAlias` に委ねる。 独自の
+ * `replace(/^"(.*)"$/)` で復号していた頃は escape (`\"`) が残り、 part の id
+ * (`a " b`) と alias 集合 (`a \" b`) が食い違って削除が silent fail していた
+ * (CAR-2158 Round 6 CRITICAL)。 複製時の採番も別集合を見て衝突しうる。
+ */
 export function collectActorAliases(src: string): string[] {
   const aliases: string[] = [];
-  for (const line of src.split("\n")) {
-    // `  - name` / `  - name: {...}` / `  - "quoted name": {...}` の 3 形式に対応
-    const m = line.match(/^\s*-\s*("[^"]*"|[^:\s][^:]*?)\s*(?::|$)/);
+  for (const line of src.split(/\r?\n/)) {
+    // `  - name` / `  - name: {...}` / `  - "quoted name": {...}` の 3 形式に対応。
+    // quoted 側は escape を含みうるので overlay-dsl の ACTOR_LINE_RE と同じ形で受ける。
+    const m = line.match(/^[ \t]*-[ \t]*("(?:[^"\\]|\\.)*"|[^:\s][^:]*?)[ \t]*(?::|$)/);
     if (!m) continue;
     const raw = m[1]!.trim();
     if (!raw) continue;
-    aliases.push(raw.replace(/^"(.*)"$/, "$1"));
+    aliases.push(unquoteAlias(raw));
   }
   return aliases;
 }
@@ -82,8 +92,12 @@ export function aliasBaseName(alias: string): string {
  * 入れ子を含む行を最初の `}` で打ち切らないため。
  */
 export function removeActorLine(src: string, alias: string): string {
-  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const quoted = `(?:"${escaped}"|${escaped})`;
+  const reEscape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // DSL 上の表記は bare (`- a`) と quoted (`- "a \" b"`) の 2 通り。
+  // quoted 側は素の alias を quote で囲むだけでは足りず、 DSL 表記へ再 escape してから
+  // regex 化する (`a " b` → `"a \" b"`)。 囲むだけだと `"a " b"` になり実 DSL と
+  // 一致せず削除が no-op になる (CAR-2158 Round 6 CRITICAL)。
+  const quoted = `(?:${reEscape(quoteAlias(alias))}|${reEscape(alias)})`;
   // 行内の空白は `[ \t]` に限定する。 `\s` は改行を含むため、 CRLF の `\r` を跨いで
   // 前後の行を結合してしまう (JS の multiline `^` は `\r` 直後にも match するため実測で再現、
   // CAR-2158 Round 4 CRITICAL)。 行末も `(?:\r?\n|$)` で明示する。
