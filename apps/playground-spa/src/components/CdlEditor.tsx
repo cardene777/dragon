@@ -9,17 +9,13 @@ import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHan
 import {
   findDragTarget,
   clientToSvg,
-  hitResizeHandle,
   updateActorPosition,
   updateActorNodePosition,
-  extractActorPosition,
-  extractActorNodePosition,
   extractAllActorNames,
   slugify as slugifyActorName,
   resolveClickPlacement,
   toWorldOrNull,
   type DragState,
-  type ResizeCorner,
   type WorldRect,
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
@@ -298,133 +294,7 @@ function collectActorNamesFromSrc(src: string): Set<string> {
   return names;
 }
 
-/**
- * canvas pivot UX 修正 (B2 parts add layout shift 防止) = parts 追加前に既存 actors の現 lane 位置を
- * SVG DOM (data-cdl-lane-x/y attribute) から snapshot、 各 actor entry に posX/Y を injection して
- * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
- * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
- */
 // 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
-
-function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
-  if (!svg) return src;
-  let next = src;
-  for (const name of Array.from(collectActorNamesFromSrc(src))) {
-    // 既に posX/Y 明示済 actor は skip (extractActorPosition が null 以外を返す)
-    // note: helper import は component 内でしか使えないため、 本 fn は import 経路対応のため CdlEditor 側から呼ぶ
-    const slug = slugifyForLane(name);
-    const el = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-    if (!el) continue;
-    const rx = el.getAttribute("data-cdl-lane-x");
-    const ry = el.getAttribute("data-cdl-lane-y");
-    if (!rx || !ry) continue;
-    const px = parseFloat(rx);
-    const py = parseFloat(ry);
-    if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
-    // decision-log 2026-07-24-dragon-editor-full-revert-simplify = user 意図「auto 補正全 disable」 の
-    // core fix。 従来は posX/Y のみ pin していたが、 achievement drop で lane 幅再計算により Client
-    // lane が 252px shift する root cause だった。 posW/posH も同 attribute から snapshot して pin、
-    // 全 lane 完全固定で「独立要素として存在」 の思想を実現。
-    const rw = el.getAttribute("data-cdl-lane-w");
-    const rh = el.getAttribute("data-cdl-lane-h");
-    const pw = rw && Number.isFinite(parseFloat(rw)) ? parseFloat(rw) : undefined;
-    const ph = rh && Number.isFinite(parseFloat(rh)) ? parseFloat(rh) : undefined;
-    // 既書出し検出 = 行ごとの regex で actor entry を探し `posX:` が既にあれば skip
-    if (hasPosXInActorEntry(next, name)) continue;
-    next = injectActorPosXY(next, name, px, py, pw, ph);
-  }
-  return next;
-}
-
-/**
- * DSL src 中の対象 actor entry に既に posX field が書出済かを判定する軽量 grep。
- * `- name: { ... posX: ... }` 形式のみ検出、 nested `nodes: { subKey: { posX } }` は無視 (top-level posX が対象)。
- */
-function hasPosXInActorEntry(src: string, targetName: string): boolean {
-  for (const line of src.split("\n")) {
-    const inlineMatch = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{/);
-    if (!inlineMatch) continue;
-    const raw = inlineMatch[1]!.replace(/^"(.+)"$/, "$1");
-    if (raw !== targetName) continue;
-    // top-level posX 判定 = actor 行の brace 内で `posX:` が (nested { } 外に) 存在するか
-    const braceStart = line.indexOf("{");
-    if (braceStart < 0) continue;
-    let depth = 0;
-    let inner = "";
-    for (let i = braceStart; i < line.length; i += 1) {
-      const c = line[i]!;
-      if (c === "{") depth += 1;
-      if (depth === 1 && c !== "{") inner += c;
-      if (c === "}") depth -= 1;
-    }
-    return /(?:^|,)\s*posX\s*:/.test(inner);
-  }
-  return false;
-}
-
-/**
- * 対象 actor に posX/posY (+ optional posW/posH) を注入する。 既存 inline map があれば merge、
- * bare / short form なら inline map 化。 posW/posH が渡された場合は追加 pin (2026-07-24 fix、
- * decision-log dragon-editor-full-revert-simplify、 achievement drop で lane 幅再計算 → 他 lane
- * 252px shift の root cause 対応)。
- */
-function injectActorPosXY(src: string, targetName: string, posX: number, posY: number, posW?: number, posH?: number): string {
-  const rx = Math.round(posX);
-  const ry = Math.round(posY);
-  const parts: string[] = [`posX: ${rx}`, `posY: ${ry}`];
-  if (posW !== undefined && Number.isFinite(posW)) parts.push(`posW: ${Math.round(posW)}`);
-  if (posH !== undefined && Number.isFinite(posH)) parts.push(`posH: ${Math.round(posH)}`);
-  const extra = parts.join(", ");
-  const lines = src.split("\n");
-  const next = lines.map((line) => {
-    // inline mapping (depth-aware)
-    const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{/);
-    if (headMatch) {
-      const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
-      if (rawName === targetName) {
-        const braceStart = headMatch[0]!.length - 1;
-        let depth = 0;
-        let endIdx = -1;
-        for (let i = braceStart; i < line.length; i += 1) {
-          const c = line[i]!;
-          if (c === "{") depth += 1;
-          else if (c === "}") {
-            depth -= 1;
-            if (depth === 0) { endIdx = i; break; }
-          }
-        }
-        if (endIdx < 0) return line;
-        const inner = line.slice(braceStart + 1, endIdx).trim();
-        const merged = inner ? `${inner}, ${extra}` : extra;
-        return `${line.slice(0, braceStart)}{ ${merged} }${line.slice(endIdx + 1)}`;
-      }
-    }
-    // short form: `- name: kind`
-    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
-    if (shortMatch && shortMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${shortMatch[1]}${shortMatch[2]}${shortMatch[3]}{ kind: ${shortMatch[4]!.trim()}, ${extra} }`;
-    }
-    // bare: `- name`
-    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
-    if (bareMatch && bareMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${bareMatch[1]}${bareMatch[2]}: { ${extra} }`;
-    }
-    return line;
-  });
-  return next.join("\n");
-}
-
-/** slugify を canvas-pivot-interaction と同一 logic で local reuse (import cycle 回避)。 */
-function slugifyForLane(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 64) || "n"
-  );
-}
 
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
@@ -1805,11 +1675,6 @@ export function CdlEditor(): React.JSX.Element {
     setSrc((prev) => setDiagramScale(prev, readDiagramScale(prev) * factor));
   };
 
-  const cornerToCursor = (corner: ResizeCorner): string => {
-    if (corner === "nw" || corner === "se") return "nwse-resize";
-    return "nesw-resize";
-  };
-
   // 2026-07-24 全削除 = applyAutoAdjustDuringDrag / applyGuidelinesDuringDrag / clearAutoAdjustShifts
   // (auto 補正 / 補助線 / shift clear) 3 関数を削除。 user 「勝手な移動全部削除」 の core、 呼出経路 +
   // 定義本体を根絶する。 canvas-pivot-auto-adjust / canvas-pivot-guideline lib への依存も削除済。
@@ -3042,7 +2907,6 @@ ${newActorLine}
                     に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
                     同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
                 {overlayParts.map((p) => {
-                  const isHovered = hoveredOverlayId === p.id;
                   const isSelected = selectedIds.includes(`overlay:${p.id}`);
                   return (
                     <div
@@ -3247,10 +3111,6 @@ ${newActorLine}
                 return next.join("\n");
               });
               setColorPickerFor(null);
-            };
-            const iconStyle: React.CSSProperties = {
-              width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
-              background: "transparent", border: "none", cursor: "pointer", borderRadius: "6px", padding: 0,
             };
             return (
               <div key={p.id} data-overlay-selection-ui={p.id}>

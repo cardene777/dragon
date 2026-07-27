@@ -83,7 +83,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
   echo "───────────────────────────────────────────────────────────"
-  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts tests/editor-cdl-selection-text-edit.spec.ts tests/editor-all-types.spec.ts --reporter=list --timeout=45000 2>&1 | tee "$LOG_DIR/editor-test-l3.log"; then
+  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts tests/editor-cdl-selection-text-edit.spec.ts tests/editor-all-types.spec.ts tests/ethereum.spec.ts --reporter=list --timeout=45000 2>&1 | tee "$LOG_DIR/editor-test-l3.log"; then
     RESULT_L3="pass"
   else
     RESULT_L3="fail"
