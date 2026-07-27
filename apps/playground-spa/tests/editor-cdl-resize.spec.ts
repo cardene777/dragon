@@ -56,10 +56,14 @@ test("selection 2 = 選択枠が Client 単独 bbox に追従 (SVG 全体を囲�
   const outline = page.locator('[data-cdl-outline]').first();
   const outlineBB = await outline.boundingBox();
   if (!outlineBB) throw new Error("outline null");
-  // 選択枠が対象 node の bbox に近い (誤差 25px 以内 = rAF measure lag 許容)
-  expect(Math.abs(outlineBB.x - nodeBB.x)).toBeLessThan(25);
-  expect(Math.abs(outlineBB.y - nodeBB.y)).toBeLessThan(25);
-  expect(Math.abs(outlineBB.width - nodeBB.width)).toBeLessThan(25);
+  // 選択枠が対象 node の bbox に一致する。
+  // 2026-07-26 CAR-2158 fix = height を assert に追加し、 許容誤差を 25px → 3px に縮めた。
+  // 旧 test は height 未検証 + 25px 許容で、 outline が SVG 全体まで伸びる regression を pass させていた
+  // (本 spec が検証したい「SVG 全体を囲わない」 の対象そのものを見逃していた)。
+  expect(Math.abs(outlineBB.x - nodeBB.x)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.y - nodeBB.y)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.width - nodeBB.width)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.height - nodeBB.height)).toBeLessThan(3);
 });
 
 test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle", async ({ page }) => {
@@ -74,11 +78,57 @@ test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle",
   // hover = 薄 border indicator (handle なし)
   await page.mouse.move(l.r.x + l.r.width / 2, l.r.y + l.r.height / 2);
   await page.waitForTimeout(400);
-  expect(await page.locator('div[style*="dashed"]').count()).toBeGreaterThanOrEqual(1);
+  expect(await page.locator('[data-cdl-hover-outline]').count()).toBe(1);
   expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
   // click 選択 = 4 隅 handle 表示
   await page.mouse.down();
   await page.mouse.up();
   await page.waitForTimeout(400);
   expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
+});
+
+test("negative = cdl node を drag しても DSL と bbox が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+  await openEditor(page);
+  const node = page.locator('[data-cdl-node="client-header"]').first();
+  const bb0 = await node.boundingBox();
+  if (!bb0) throw new Error("client-header null");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  // node 本体を掴んで大きく drag する
+  await page.mouse.move(bb0.x + bb0.width / 2, bb0.y + bb0.height / 2);
+  await page.waitForTimeout(300);
+  await page.mouse.down();
+  await page.mouse.move(bb0.x + bb0.width / 2 + 150, bb0.y + bb0.height / 2 + 100, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const bb1 = await node.boundingBox();
+  if (!bb1) throw new Error("client-header null after drag");
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  console.log(`[cdl drag negative] x: ${Math.round(bb0.x)} → ${Math.round(bb1.x)}`);
+  // Phase 4 revert の意図通り、 cdl 要素は動かず DSL も書き換わらない
+  expect(Math.abs(bb1.x - bb0.x)).toBeLessThan(3);
+  expect(Math.abs(bb1.y - bb0.y)).toBeLessThan(3);
+  expect(dslAfter).toBe(dslBefore);
+});
+
+test("negative = cdl 選択中の handle を drag しても DSL が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+  await openEditor(page);
+  await selectCdlNode(page, "client-header");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const node = page.locator('[data-cdl-node="client-header"]').first();
+  const bb0 = await node.boundingBox();
+  if (!bb0) throw new Error("null");
+  const se = page.locator('[data-cdl-handle="se"]').first();
+  const seBB = await se.boundingBox();
+  if (!seBB) throw new Error("se handle null");
+  await page.mouse.move(seBB.x + seBB.width / 2, seBB.y + seBB.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(seBB.x + 120, seBB.y + 120, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const bb1 = await node.boundingBox();
+  if (!bb1) throw new Error("null");
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  console.log(`[cdl resize negative] w: ${Math.round(bb0.width)} → ${Math.round(bb1.width)}`);
+  expect(Math.abs(bb1.width - bb0.width)).toBeLessThan(3);
+  expect(dslAfter).toBe(dslBefore);
 });

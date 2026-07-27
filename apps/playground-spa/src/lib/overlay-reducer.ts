@@ -9,6 +9,18 @@
  *   - client px 統一 (pan.scale / p.scale の単位混在バグ対策)。
  *   - drag / resize の同時発火は禁止 (先勝ち)、 排他 state で保持。
  *   - anchor 逆補正 = drag corner の対角固定を pure 計算で担保。
+ *
+ * ## 現状の位置付け (2026-07-26 CAR-2158 で明示)
+ *
+ * production (`CdlEditor.tsx`) は本 reducer を import しておらず、 同等の遷移を component 内 ref で
+ * 直接持っている。 つまり本 file は現時点で test-only の並行実装であり、 ここを直しても実挙動は変わらない。
+ *
+ * 削除せず残す理由は CAR-2156 (cdl actor の統一座標系再設計) の前提資産だから。 cdl 要素の drag/resize を
+ * 復元する際、 overlay parts と cdl 要素で同一の遷移規則を共用する受け皿として本 reducer に寄せる計画で、
+ * その時点で production 側を本 reducer 経由に付け替えて並行実装を解消する。
+ *
+ * それまでの間、 本 file と `CdlEditor.tsx` の遷移規則を変更する時は必ず両方を同時に更新する
+ * (片側だけ直すと test が通ったまま実挙動が壊れる = 本 file の存在が偽の安心になる)。
  */
 
 export type Corner = "nw" | "ne" | "sw" | "se";

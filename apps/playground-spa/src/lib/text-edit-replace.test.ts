@@ -157,28 +157,33 @@ actors:
   });
 
   it("edge case (b) fix = Client-v2 substring が Browser-v2 に化けない (CAR-2158)", () => {
-    // 旧 \b word boundary は hyphen を非 word 文字扱いで Client-v2 の Client 部分にも match していた
+    // 旧 \b word boundary は hyphen を非 word 文字扱いで Client-v2 の Client 部分にも match していた。
+    //
+    // fixture は Client-v2 を単独 Client より「前」 に置く。 これが regression detector として必須:
+    // 旧実装は actor pattern が 2 件 match して段階 2 を断念し、 段階 4 (文書中最初の Client を置換) に落ちる。
+    // 単独 Client が先頭にあると旧実装でも偶然 期待値を満たして pass するため detector にならない
+    // (codex review で実測、 旧実装に差し替えても pass することを確認済)。
     const src = `actors:
-  - Client
   - Client-v2
+  - Client
   - API`;
     const result = replaceTextInDsl(src, "Client", "Browser");
-    // Client 単独が 2 出現 (actors) だが Client-v2 は match しないので actor pattern は 1 hit
-    // 期待 = 最初の Client のみ Browser 化、 Client-v2 は完全保持
+    // 単独 Client のみ Browser 化、 Client-v2 は完全保持 (旧実装なら Browser-v2 になって fail する)
+    expect(result).toContain("- Client-v2");
+    expect(result).not.toContain("Browser-v2");
     expect(result).toContain("- Browser\n");
-    expect(result).toContain("- Client-v2"); // Browser-v2 に化けない
-    expect(result).not.toContain("- Browser-v2");
   });
 
   it("edge case (b) 拡張 = actor 単独が 1 個 + Client-v2 が 1 個 = 単独 Client のみ replace", () => {
+    // 同上、 Client-v2 を先に置いて旧実装が fail する順序にする
     const src = `actors:
-  - Client
   - Client-v2
+  - Client
 flow:
   - Client -> API: "x"`;
     const result = replaceTextInDsl(src, "Client", "Browser");
     // actor block 内の単独 Client 1 hit → Browser 化、 Client-v2 と flow の Client は保持
-    expect(result).toContain("- Browser\n  - Client-v2");
+    expect(result).toContain("- Client-v2\n  - Browser");
     expect(result).toContain("Client -> API");
     expect(result).not.toContain("Browser-v2");
     expect(result).not.toContain("Browser -> API");

@@ -24,8 +24,35 @@ import {
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, writeOverlayPartToDsl } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
+import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
+
+/**
+ * overlay div 内の「主要 shape」 を返す。
+ *
+ * 選択枠 / align / bg 適用の全てがこの判定を共有する。 painted 判定を入れないと
+ * achievement の透明 wrapper rect (fill=none) を掴んでしまい、 実際に見えている図形より
+ * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
+ */
+function findPaintedShape(div: Element): SVGGraphicsElement | null {
+  const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
+  let maxArea = 0;
+  let best: SVGGraphicsElement | null = null;
+  for (const s of Array.from(shapes)) {
+    const r = s.getBoundingClientRect();
+    if (r.width < 3 || r.height < 3) continue;
+    // override 済 shape は data-original-fill 側が元の色を持つ (現 fill は override 色)
+    const orig = s.getAttribute("data-original-fill");
+    const fill = orig !== null ? orig : (s.getAttribute("fill") ?? window.getComputedStyle(s).fill ?? "");
+    const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+    if (!painted) continue;
+    const area = r.width * r.height;
+    if (area > maxArea) { maxArea = area; best = s; }
+  }
+  return best;
+}
+
 import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
@@ -336,32 +363,12 @@ function slugifyForLane(s: string): string {
   );
 }
 
-/**
- * CAR-1657 = src YAML の actors: block 末尾に 1 line append する helper。
- * actors: block が見つからない場合は null 返却 (caller が REPLACE fallback で新規 diagram を作る経路)。
- */
-function appendActorLine(src: string, newLine: string): string | null {
-  const lines = src.split("\n");
-  const actorsIdx = lines.findIndex((l) => /^actors\s*:\s*$/.test(l));
-  if (actorsIdx < 0) return null;
-  let insertIdx = lines.length;
-  for (let i = actorsIdx + 1; i < lines.length; i++) {
-    if (/^[a-zA-Z]/.test(lines[i] ?? "")) {
-      insertIdx = i;
-      break;
-    }
-  }
-  while (insertIdx > actorsIdx + 1 && (lines[insertIdx - 1] ?? "").trim() === "") {
-    insertIdx -= 1;
-  }
-  const before = lines.slice(0, insertIdx);
-  const after = lines.slice(insertIdx);
-  return [...before, newLine, ...after].join("\n");
-}
-
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
+  // keydown handler から最新 src を同期的に読むための mirror
+  const srcRef = useRef(src);
+  useEffect(() => { srcRef.current = src; }, [src]);
   // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
   // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
   const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
@@ -386,7 +393,7 @@ export function CdlEditor(): React.JSX.Element {
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
-  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; item: CatalogItem };
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
   const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
   // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
@@ -411,7 +418,7 @@ export function CdlEditor(): React.JSX.Element {
   const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
   const lastCommittedSrcRef = useRef<string>("");
   // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
-  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number }>>([]);
+  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string }>>([]);
   // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
   // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
@@ -421,25 +428,31 @@ export function CdlEditor(): React.JSX.Element {
   // 用途 = 選択 UI (border/handle/toolbar) を stage-level に portal render するための実 client bbox。
   const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [shapeClientBboxes, setShapeClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  // keydown handler (align 等) から最新 bbox を読むための同期 mirror
+  const shapeClientBboxesRef = useRef(shapeClientBboxes);
+  useEffect(() => { shapeClientBboxesRef.current = shapeClientBboxes; }, [shapeClientBboxes]);
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      // 2026-07-26 CAR-2158 performance fix = 測定対象を「選択中 + hover 中」 に絞る。
+      // 旧実装は overlayParts 全件 × 各 div 内の全 shape を毎 state 変化で測定していたため、
+      // parts が増えるほど drag 中の 1 frame コストが線形に増えていた (実質 O(parts × shapes))。
+      // bbox を実際に使うのは stage-level 選択 UI (border / handle / toolbar) だけなので、
+      // 選択中と hover 中の parts に限定すれば描画結果は同一のまま測定量が定数近くに収まる。
+      const measureTargets = new Set<string>();
+      for (const sid of selectedIds) {
+        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
+      }
+      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
       for (const p of overlayParts) {
+        if (!measureTargets.has(p.id)) continue;
         const div = overlayRefs.current[p.id];
         if (!div) continue;
-        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
-        if (shapes.length === 0) continue;
-        let maxArea = 0;
-        let best: DOMRect | null = null;
-        for (const s of Array.from(shapes)) {
-          const r = (s as SVGGraphicsElement).getBoundingClientRect();
-          if (r.width < 3 || r.height < 3) continue;
-          const a = r.width * r.height;
-          if (a > maxArea) { maxArea = a; best = r; }
-        }
-        if (!best) continue;
+        const bestEl = findPaintedShape(div);
+        if (!bestEl) continue;
+        const best = bestEl.getBoundingClientRect();
         // stage 相対 client px = stage 内 absolute で render 可能な bbox
         next[p.id] = {
           left: best.left - stageRect.left,
@@ -457,7 +470,7 @@ export function CdlEditor(): React.JSX.Element {
     });
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayParts]);
+  }, [overlayParts, selectedIds, hoveredOverlayId]);
 
   const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
   // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
@@ -640,47 +653,119 @@ export function CdlEditor(): React.JSX.Element {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
-      for (const id of Object.keys(overlayRefs.current)) {
+      // CAR-2158 performance fix = 選択 UI が使う分だけ測定 (全 overlay 走査を廃止)
+      const measureTargets = new Set<string>();
+      for (const sid of selectedIdsRef.current) {
+        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
+      }
+      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
+      for (const id of measureTargets) {
         const div = overlayRefs.current[id];
         if (!div) continue;
-        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
-        if (shapes.length === 0) continue;
-        let maxArea = 0;
-        let best: DOMRect | null = null;
-        for (const s of Array.from(shapes)) {
-          const r = (s as SVGGraphicsElement).getBoundingClientRect();
-          if (r.width < 3 || r.height < 3) continue;
-          const a = r.width * r.height;
-          if (a > maxArea) { maxArea = a; best = r; }
-        }
-        if (!best) continue;
+        const bestEl = findPaintedShape(div);
+        if (!bestEl) continue;
+        const best = bestEl.getBoundingClientRect();
         next[id] = { left: best.left - stageRect.left, top: best.top - stageRect.top, width: best.width, height: best.height };
       }
       setShapeClientBboxes(next);
     });
     return () => cancelAnimationFrame(raf);
-  }, [transform]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transform, hoveredOverlayId]);
+  // 2026-07-26 CAR-2158 correctness fix = overlay parts の bg を実 SVG shape に適用する。
+  // 旧実装は DSL に bg を書くだけで canvas に反映されず、 color picker が「押しても何も起きない」 状態だった。
+  // catalog 由来の diagram は共有 object なので mutate せず、 render 後の DOM に fill を上書きする経路を採る。
+  //
+  // 対象 shape の選び方が肝で、 「最大面積」 だけで選ぶと achievement の透明背景 rect が当たり、
+  // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
+  // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
+  // その中で最大面積のものを主要 shape とみなす。
+  const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
+    for (const p of parts) {
+      // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
+      const div = overlayRefs.current[p.id];
+      if (!div) continue;
+      if (!p.bg && !div.querySelector("[data-original-fill]")) continue;
+      const best = findPaintedShape(div);
+      if (!best) continue;
+      if (p.bg) {
+        // 元 fill を保存しておき、 bg 解除時に復元できるようにする
+        if (!best.hasAttribute("data-original-fill")) {
+          best.setAttribute("data-original-fill", best.getAttribute("fill") ?? "");
+        }
+        if (best.getAttribute("fill") !== p.bg) best.setAttribute("fill", p.bg);
+      } else if (best.hasAttribute("data-original-fill")) {
+        const orig = best.getAttribute("data-original-fill")!;
+        if (orig) best.setAttribute("fill", orig);
+        else best.removeAttribute("fill");
+        best.removeAttribute("data-original-fill");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => applyOverlayBg(overlayParts));
+    return () => cancelAnimationFrame(raf);
+  }, [overlayParts, applyOverlayBg]);
+
+  // 2026-07-26 CAR-2158 Round 2 = animation で shape が差し替わると DOM 直書きの fill が失われる。
+  //
+  // parts の SVG は cdl 側の animation (rAF / setInterval 駆動) で属性が書き換わったり
+  // node ごと再生成されたりする。 bg は React 管理外の DOM 属性なので、 その度に override が消えて
+  // 色が元に戻ってしまう。 MutationObserver で対象 subtree の変化を拾い、 その都度 再適用する。
+  //
+  // 自分の書込みで再帰しないよう、 適用時は「現在値と違う時だけ」 setAttribute する (上の実装)。
+  useEffect(() => {
+    const withBg = overlayParts.filter((p) => p.bg);
+    if (withBg.length === 0) return;
+    const observers: MutationObserver[] = [];
+    for (const p of withBg) {
+      const div = overlayRefs.current[p.id];
+      if (!div) continue;
+      const observer = new MutationObserver(() => applyOverlayBg([p]));
+      observer.observe(div, { childList: true, subtree: true, attributes: true, attributeFilter: ["fill"] });
+      observers.push(observer);
+    }
+    return () => { for (const o of observers) o.disconnect(); };
+  }, [overlayParts, applyOverlayBg]);
   // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       const stageRect = previewRef.current?.getBoundingClientRect();
       if (!stageRect) return;
       const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
+      // 2026-07-26 CAR-2158 fix = 選択対象の element が DOM から消えていたら selection ごと解除する。
+      // text selection は DOM attribute (data-editor-text-key) を selector の SSOT にしているため、
+      // label 編集による再 compile で React が text node を差し替えると attribute ごと消える。
+      // 旧実装は selector が null になっても selection state を残していたので、
+      // 実体のない選択枠が古い bbox のまま残り続けていた。
+      const staleKeys: string[] = [];
       for (const sid of selectedIds) {
         if (!sid.startsWith("cdl:")) continue;
         const key = sid.slice("cdl:".length);
         const selector = cdlSelectorMap[key];
         if (!selector || !previewRef.current) continue;
         const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
-        if (!el || typeof el.getBoundingClientRect !== "function") continue;
+        if (!el || typeof el.getBoundingClientRect !== "function") { staleKeys.push(key); continue; }
         const r = el.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) continue;
+        if (r.width < 3 || r.height < 3) { staleKeys.push(key); continue; }
         next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+      }
+      if (staleKeys.length > 0) {
+        setSelectedIds((prev) => prev.filter((sid) => !staleKeys.includes(sid.replace(/^cdl:/, ""))));
+        setCdlSelectorMap((prev) => {
+          const cleaned = { ...prev };
+          for (const k of staleKeys) delete cleaned[k];
+          return cleaned;
+        });
       }
       setCdlClientBboxes(next);
     });
     return () => cancelAnimationFrame(raf);
-  }, [selectedIds, transform, cdlSelectorMap]);
+    // diagram を依存に含める = 再 compile で text の位置 / 幅が変わった時に選択枠を追従させる
+    // (含めないと label 編集後に古い bbox の枠が残る)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, transform, cdlSelectorMap, diagram]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -744,7 +829,8 @@ export function CdlEditor(): React.JSX.Element {
         clipboardRef.current = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale }));
+          // 2026-07-26 CAR-2158 correctness fix = copy に rotate / bg も含める (paste で失われないように)
+          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale, rotate: p.rotate, bg: p.bg }));
         return;
       }
       if (ctrlOrCmd && (e.key === "v" || e.key === "V")) {
@@ -753,12 +839,8 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => {
           let next = prev;
           for (const clip of clipboardRef.current) {
-            const baseName = clip.kind.replace(/-/g, "");
-            let n = 1;
-            while (next.includes(`- ${baseName}${n}:`)) n++;
-            const newAlias = `${baseName}${n}`;
-            const scaleField = Math.abs(clip.scale - 1) > 0.001 ? `, scale: ${clip.scale.toFixed(3)}` : "";
-            const newLine = `  - ${newAlias}: { kind: ${clip.kind}, posX: ${Math.round(clip.posX + 30)}, posY: ${Math.round(clip.posY + 30)}${scaleField} }`;
+            const newAlias = nextAvailableAlias(next, clip.kind.replace(/-/g, ""));
+            const newLine = buildDuplicateLine(clip, newAlias);
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -780,10 +862,50 @@ export function CdlEditor(): React.JSX.Element {
           e.key === "m" || e.key === "M" ? "middle-v" :
           e.key === "h" || e.key === "H" ? "distribute-h" :
           "distribute-v";
+        // 2026-07-26 CAR-2158 consistency fix = align 幅高を実測値から算出する。
+        // 旧実装は width/height を 380 固定にしていたため、 実 shape が 380 でない parts (arc-gauge 等) で
+        // right / center / bottom / distribute 系の揃え位置が実際の見た目とずれていた。
+        // 実測 client bbox を world 単位 (pan.scale 除算) に戻し、 未測定なら 380 に fallback する。
+        const panScaleForAlign = transformRef.current.scale || 1;
         const parts = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => ({ id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 }));
+          .map((p) => {
+            // align は「今この瞬間の実 AABB」 が要る。 state 経由の測定値は rAF 1 フレーム分
+            // 古いことがあり、 直前の drag / resize 直後だと揃え位置が数 px ずれる。
+            // 対象は選択中の parts だけなので、 ここで測り直しても負荷は小さい。
+            const div = overlayRefs.current[p.id];
+            const stageRect = previewRef.current?.getBoundingClientRect();
+            let bbox = shapeClientBboxesRef.current[p.id];
+            if (div && stageRect) {
+              const shapeEl = findPaintedShape(div);
+              if (shapeEl) {
+                const r = shapeEl.getBoundingClientRect();
+                bbox = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+              }
+            }
+            const safeScale = Math.abs(p.scale) > 0.001 ? p.scale : 1;
+            if (!bbox) {
+              // 未測定 = 従来の近似 (posX/posY を左上、 380px 四方) で計算する
+              return { id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 };
+            }
+            // 実測 client bbox を world に直して bounds として渡す。
+            // rotate 済 parts では AABB の左上が posX / posY と一致しないため、
+            // width / height からの逆算ではなく実 bounds を渡して delta 方式で揃える。
+            const left = (bbox.left - transformRef.current.tx) / panScaleForAlign;
+            const top = (bbox.top - transformRef.current.ty) / panScaleForAlign;
+            const worldW = bbox.width / panScaleForAlign;
+            const worldH = bbox.height / panScaleForAlign;
+            return {
+              id: p.id,
+              posX: p.posX,
+              posY: p.posY,
+              scale: p.scale,
+              width: worldW / safeScale,
+              height: worldH / safeScale,
+              bounds: { left, top, right: left + worldW, bottom: top + worldH },
+            };
+          });
         const result = alignOverlayParts(parts, mode);
         if (result.size === 0) return;
         setSrc((prev) => {
@@ -831,9 +953,7 @@ export function CdlEditor(): React.JSX.Element {
         setSrc((prev) => {
           let next = prev;
           for (const oid of overlayIdsToDelete) {
-            // actor 行を丸ごと削除
-            const re = new RegExp(`^\\s*-\\s*${oid.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
-            next = next.replace(re, "");
+            next = removeActorLine(next, oid);
           }
           return next;
         });
@@ -855,12 +975,8 @@ export function CdlEditor(): React.JSX.Element {
           for (const oid of overlayIdsToDupe) {
             const orig = overlayPartsRef.current.find((p) => p.id === oid);
             if (!orig) continue;
-            const baseName = oid.replace(/\d+$/, "");
-            let n = 1;
-            while (next.includes(`- ${baseName}${n}:`)) n++;
-            const newAlias = `${baseName}${n}`;
-            const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
-            const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+            const newAlias = nextAvailableAlias(next, aliasBaseName(oid));
+            const newLine = buildDuplicateLine(orig, newAlias);
             const appended = appendActorLine(next, newLine);
             if (appended !== null) next = appended;
           }
@@ -876,7 +992,49 @@ export function CdlEditor(): React.JSX.Element {
         const step = e.shiftKey ? 10 : 1;
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-        setOverlayParts((prev) => prev.map((p) => overlayIdsToNudge.includes(p.id) ? { ...p, posX: p.posX + dx, posY: p.posY + dy } : p));
+        // 2026-07-26 CAR-2158 correctness fix = nudge 後に DSL へ書き出す。
+        // 旧実装は overlayParts state のみ更新していたため、 reload / 再 compile で nudge 分が消えていた
+        // (drag / resize は mouseup で writeOverlayPartToDsl を呼ぶが nudge には同経路がなかった)。
+        //
+        // 座標の累積は必ず前回値からの相対で行う。
+        //
+        // ref (useEffect mirror) から読むと、 キーリピートで同一 commit 内に複数 keydown が入った時に
+        // 全て同じ古い base から計算してしまう (5 連打で 50px 進むべきところ 10px になる)。
+        // かといって setOverlayParts の updater 内で集めた値を setSrc に渡すのも成立しない
+        // = updater の実行順は render 時で、 setSrc の updater が先に評価されうるため空になる。
+        //
+        // updater は「渡された値だけから次の値を作る」 純関数に保つ。
+        //
+        // 累積 state を ref に持って updater 内で書き換える実装にすると、 React StrictMode が
+        // updater を 2 回呼ぶため副作用が二重に走り、 5 押下が 10px にしかならない
+        // (Round 5 で実測)。 ref への書き込みは updater の外だけで行う。
+        //
+        // base / accum を持たずに済ませるため、 DSL 側の現在値に直接 delta を足す方式にする。
+        // updater の prevSrc は常にその時点で確定した最新値なので、 同一 commit 内で連続
+        // dispatch されても押下回数分が順に積み上がる。 別経路 (drag / undo / 手編集) で
+        // 座標が変わっていてもその値が起点になるため、 invalidate の判定自体が不要になる。
+        setOverlayParts((prev) => prev.map((p) => {
+          if (!overlayIdsToNudge.includes(p.id)) return p;
+          return { ...p, posX: p.posX + dx, posY: p.posY + dy };
+        }));
+        setSrc((prevSrc) => {
+          let out = prevSrc;
+          for (const id of overlayIdsToNudge) {
+            // 現在値は depth-aware な parse で読む。 naive な正規表現だと
+            // `nodes: { header: { posY: 60 } }` の入れ子を top-level と取り違えて
+            // 誤った座標を書き戻す (Round 3 / 4 で parse / write 側は潰済)。
+            // 座標は catalog を引かずに DSL から直接読む。 `extractPartsFromSrc` は catalog で
+            // item を解決するため、 catalog が未整備の文脈では null になり、 commit 前の
+            // 古い state を起点にして押下が積算されなくなる。
+            // null (DSL に該当行なし) の時は state mirror へ fallback せず skip する。
+            // fallback しても `writeOverlayPartToDsl` が同じ alias 条件で対象行を見つけられず
+            // no-op になり、 optimistic な setOverlayParts だけが進んで DSL と乖離する。
+            const cur = readOverlayPartPos(out, id);
+            if (!cur) continue;
+            out = writeOverlayPartToDsl(out, id, cur.posX + dx, cur.posY + dy, cur.scale, cur.rotate);
+          }
+          return out;
+        });
         return;
       }
       if (ctrlOrCmd && (e.key === "g" || e.key === "G")) {
@@ -1719,8 +1877,6 @@ export function CdlEditor(): React.JSX.Element {
     // cdl element selection = hover 中の element があれば selection state を更新する。
     // 2026-07-26 CAR-2158 fix = 旧実装は startElementInteraction(e) が true の時だけ selection したが、
     // arrow label 等 findDragTarget が actor 名を解決できない element では false になり選択不能だった。
-    // hoveredHandle は hover 経路 (handleMouseMove の text fallback 含む) で確立済なので、
-    // interaction 成否と独立に selection を成立させる。
     const applyCdlSelection = (): void => {
       if (!hoveredHandle) return;
       const selId = `cdl:${hoveredHandle.id}`;
@@ -1732,16 +1888,28 @@ export function CdlEditor(): React.JSX.Element {
         setSelectedIds([selId]);
       }
     };
-    // canvas pivot 新 spec = SVG element 上なら element interaction を優先、 それ以外は pan
-    if (startElementInteraction(e)) {
+    // 2026-07-26 CAR-2158 fix = hoveredHandle の有無ではなく e.target を再 hit-test して判定する。
+    //
+    // 旧実装は hoveredHandle があれば無条件に selection して return していた。 hover state は
+    // element から 100px 離れるまで保持される (handleMouseMove の buffer) ため、 element 近傍の背景を
+    // click しても旧 element を再選択して return し、 背景 click による選択解除と rubber band が
+    // 起動しなくなっていた (codex review で再現条件を実測)。
+    const targetEl = e.target as Element | null;
+    const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
+      (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
+    if (onCdlElement) {
+      // 2026-07-26 CAR-2158 fix = cdl 要素の実 drag / resize は起動しない。
+      //
+      // Phase 4 revert (4523bf9) で「cdl の drag/resize は CAR-2156 の core 再設計まで無効」 と決めたが、
+      // 実際は selection UI を pointerEvents: none にしただけで、 stage の hit-test から
+      // startElementInteraction → elementDrag → updateActorPosition の DSL 書換経路が生きていた。
+      // つまり SVG node 本体を drag すれば撤去したはずの actor 分裂 / 順序入替を再発できる状態だった。
+      // ここで interaction を起動せず selection のみ行うことで、 撤去の意図を実装として成立させる。
       applyCdlSelection();
       return;
     }
-    // interaction 不成立でも hover 中 cdl element があれば selection のみ成立させる (arrow label 等)
-    if (hoveredHandle) {
-      applyCdlSelection();
-      return;
-    }
+    // 背景 click = stale hover を明示 clear してから通常経路 (選択解除 / rubber band) へ進む
+    if (hoveredHandle) setHoveredHandle(null);
     // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
     // space+drag / middle button = pan mode (rubber band と分離、 後日実装)。 現状 通常 drag は rubber band。
     if (!e.shiftKey && !e.metaKey) setSelectedIds([]);
@@ -1867,8 +2035,6 @@ export function CdlEditor(): React.JSX.Element {
       if (!dragInfo && target.tagName === "text") {
         const textRect = (target as SVGGraphicsElement).getBoundingClientRect();
         if (textRect.width > 0 && textRect.height > 0) {
-          const content = (target.textContent ?? "").slice(0, 32);
-          const id = `text:${content}`;
           // 2026-07-26 CAR-2158 fix = 旧実装は elementSelector: "" で、 selection UI の bbox 再測定
           // useEffect が空 selector を skip して handle 描画 0 件になっていた (arrow label が選択不能)。
           // text element に data attribute を刻んで一意 selector を確立する (nth-of-type は
@@ -1879,6 +2045,10 @@ export function CdlEditor(): React.JSX.Element {
             target.setAttribute("data-editor-text-key", textKey);
           }
           const elementSelector = `[data-editor-text-key="${textKey}"]`;
+          // selection ID も textKey ベースにする。 text 内容 (先頭 32 文字) を ID にすると、
+          // 同一文言の label が複数ある図で ID が衝突し、 shift+click が 2 要素選択ではなく
+          // 同一 ID の toggle になって selector も相互に上書きされていた。
+          const id = `text:${textKey}`;
           setHoveredHandle({ id, elementSelector, rect: textRect, subNodeKey: undefined });
           return;
         }
@@ -2866,12 +3036,8 @@ ${newActorLine}
                 const orig = overlayParts.find((p) => p.id === target);
                 if (orig) {
                   setSrc((prev) => {
-                    const baseName = target.replace(/\d+$/, "");
-                    let n = 1;
-                    while (prev.includes(`- ${baseName}${n}:`)) n++;
-                    const newAlias = `${baseName}${n}`;
-                    const scaleField = Math.abs(orig.scale - 1) > 0.001 ? `, scale: ${orig.scale.toFixed(3)}` : "";
-                    const newLine = `  - ${newAlias}: { kind: ${orig.kind}, posX: ${Math.round(orig.posX + 30)}, posY: ${Math.round(orig.posY + 30)}${scaleField} }`;
+                    const newAlias = nextAvailableAlias(prev, aliasBaseName(target));
+                    const newLine = buildDuplicateLine(orig, newAlias);
                     return appendActorLine(prev, newLine) ?? prev;
                   });
                 }
@@ -2900,10 +3066,7 @@ ${newActorLine}
                 setContextMenu(null);
               }},
               { label: "🗑 削除 (Delete)", onClick: () => {
-                setSrc((prev) => {
-                  const re = new RegExp(`^\\s*-\\s*${target}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
-                  return prev.replace(re, "");
-                });
+                setSrc((prev) => removeActorLine(prev, target));
                 setSelectedIds([]);
                 setContextMenu(null);
               }},
@@ -3100,13 +3263,9 @@ ${newActorLine}
                     <button type="button" data-overlay-toolbar-btn="duplicate" title="複製 (Cmd+D)" style={iconStyle}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const baseName = p.id.replace(/\d+$/, "");
                         setSrc((prev) => {
-                          let n = 1;
-                          while (prev.includes(`- ${baseName}${n}:`)) n++;
-                          const newAlias = `${baseName}${n}`;
-                          const scaleField = Math.abs(p.scale - 1) > 0.001 ? `, scale: ${p.scale.toFixed(3)}` : "";
-                          const newLine = `  - ${newAlias}: { kind: ${p.kind}, posX: ${Math.round(p.posX + 30)}, posY: ${Math.round(p.posY + 30)}${scaleField} }`;
+                          const newAlias = nextAvailableAlias(prev, aliasBaseName(p.id));
+                          const newLine = buildDuplicateLine(p, newAlias);
                           return appendActorLine(prev, newLine) ?? prev;
                         });
                       }}
@@ -3159,10 +3318,7 @@ ${newActorLine}
                     <button type="button" data-overlay-toolbar-btn="delete" title="削除 (Delete)" style={iconStyle}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSrc((prev) => {
-                          const re = new RegExp(`^\\s*-\\s*${p.id}\\s*:\\s*\\{[^}]*\\}\\s*\\n`, "m");
-                          return prev.replace(re, "");
-                        });
+                        setSrc((prev) => removeActorLine(prev, p.id));
                         setSelectedIds([]);
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
@@ -3219,6 +3375,9 @@ ${newActorLine}
             const top = r.top - stageRect.top;
             return (
               <div
+                // 2026-07-26 CAR-2158 = test が inline style の substring ではなく semantic hook で
+                // 対象を特定できるようにする (別の dashed div が増えても誤検出しない)
+                data-cdl-hover-outline={hoveredHandle.id}
                 style={{
                   position: "absolute",
                   left: `${left}px`,
