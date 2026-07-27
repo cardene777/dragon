@@ -27,9 +27,9 @@ import {
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
 import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, type ActorSnapshot } from "@/lib/cdl-actor-move";
-import { stretchEdgesFor, clearStretchedEdges, svgUnitPerClientPx } from "@/lib/edge-stretch";
+import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
 import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
-import { buildSizeSnapshots, scaleActorInDsl, scaleDiagramInDsl, clampScale } from "@/lib/cdl-actor-resize";
+import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -96,26 +96,6 @@ function ToolbarButton({ label, testId, onClick, children }: {
       )}
     </span>
   );
-}
-
-/**
- * resize handle の drag 量から倍率を出す。
- *
- * 掴んだ角の対角を固定点として、 対角からの距離が何倍になったかで測る。
- * 縦横の比が崩れないよう、 幅と高さの比率の大きい方を採る (Miro / Figma の corner drag と同じ)。
- */
-function resizeFactorFrom(
-  st: { startClientX: number; startClientY: number; baseW: number; baseH: number; corner: "nw" | "ne" | "sw" | "se" },
-  clientX: number,
-  clientY: number,
-): number {
-  const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
-  const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
-  const dw = (clientX - st.startClientX) * signX;
-  const dh = (clientY - st.startClientY) * signY;
-  const fw = st.baseW > 0 ? (st.baseW + dw) / st.baseW : 1;
-  const fh = st.baseH > 0 ? (st.baseH + dh) / st.baseH : 1;
-  return clampScale(Math.abs(fw - 1) >= Math.abs(fh - 1) ? fw : fh);
 }
 
 function findPaintedShape(div: Element): SVGGraphicsElement | null {
@@ -489,16 +469,9 @@ export function CdlEditor(): React.JSX.Element {
   const textKeySeqRef = useRef(0);
   // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
   // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
-  // 2026-07-27 CAR-2160 = cdl actor のサイズ変更 state。 掴んだ角と対角の距離比で倍率を出す。
-  const cdlResizeRef = useRef<{
-    actorName: string;
-    snapshots: ReturnType<typeof buildSizeSnapshots>;
-    startClientX: number;
-    startClientY: number;
-    baseW: number;
-    baseH: number;
-    corner: "nw" | "ne" | "sw" | "se";
-  } | null>(null);
+  // 2026-07-27 CAR-2160 = 図中の文字サイズの一律倍率。 cdl の fontSize は固定値なので
+  // viewport の拡大では追従しない。 CSS で属性値を上書きして一律に変える。
+  const [fontScale, setFontScale] = useState(1);
   const cdlActorDragRef = useRef<{
     snapshot: ActorSnapshot;
     startClientX: number;
@@ -809,6 +782,12 @@ export function CdlEditor(): React.JSX.Element {
     run();
     return () => observer?.disconnect();
   }, []);
+
+  // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
+  useEffect(() => {
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (svg) applyFontScale(svg, fontScale);
+  });
 
   const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
     for (const p of parts) {
@@ -1936,9 +1915,8 @@ export function CdlEditor(): React.JSX.Element {
     // drag 中の actor に繋がる edge は、 端点だけを追従させて伸縮させる。
     // edge 全体を translate すると繋がっていない側まで動いて線が浮くので、
     // `data-cdl-from` / `data-cdl-to` を見て動かす端を選ぶ。
-    // client px の dx を SVG 単位に直してから path に反映する。
-    const scale = svgUnitPerClientPx(svg);
-    stretchEdgesFor(svg, targetName, dx * scale, dy * scale, slugifyActorName(targetName));
+    // dx / dy は SVG user unit で受け取る (呼び出し側が変換済)。
+    stretchEdgesFor(svg, targetName, dx, dy, slugifyActorName(targetName));
   };
 
   const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
@@ -1980,13 +1958,15 @@ export function CdlEditor(): React.JSX.Element {
     clearStretchedEdges(svg);
   };
 
-  /** 図そのものを factor 倍する (全 actor の lane 幅 / node サイズ / 間隔)。 */
+  /**
+   * 図そのものを factor 倍する。
+   *
+   * `viewport` の laneWidth / laneGap / nodeGap をまとめて書き換える。 この 3 つで
+   * 箱の幅・横の間隔・縦の間隔が同時に動くため、 図が歪まずに拡大縮小される
+   * (node の posW だけ書くと横しか変わらず縦長になる)。
+   */
   const scaleWholeDiagram = (factor: number): void => {
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return;
-    const snapshots = buildSizeSnapshots(svg, srcRef.current);
-    if (snapshots.length === 0) return;
-    setSrc((prev) => scaleDiagramInDsl(prev, snapshots, factor));
+    setSrc((prev) => setDiagramScale(prev, readDiagramScale(prev) * factor));
   };
 
   const cornerToCursor = (corner: ResizeCorner): string => {
@@ -2101,26 +2081,6 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-27 CAR-2156 = cdl actor drag 中は SVG に live transform をかけて追従表示する。
     // DSL 書換は mouseup 1 回だけ (drag 中に書くと毎 frame 再 compile が走って重い)。
-    if (cdlResizeRef.current) {
-      const st = cdlResizeRef.current;
-      const f = resizeFactorFrom(st, e.clientX, e.clientY);
-      // DSL 書換は mouseup 1 回だけ。 drag 中は CSS transform で仮に見せる
-      // (毎 frame 再 compile すると重く、 手が離れる前に図が跳ねる)。
-      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (svg) {
-        const slug = slugifyActorName(st.actorName);
-        svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node]`).forEach((el) => {
-          const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
-          if (!targetBelongsTo(id, st.actorName)) return;
-          const g = el as SVGGraphicsElement;
-          g.style.transformBox = "fill-box";
-          g.style.transformOrigin = "center";
-          g.style.transform = `scale(${f})`;
-        });
-        void slug;
-      }
-      return;
-    }
     if (cdlActorDragRef.current) {
       const st = cdlActorDragRef.current;
       // 縦は動かさないので live preview も横だけ追従させる。
@@ -2130,9 +2090,11 @@ export function CdlEditor(): React.JSX.Element {
       const origin = clientToSvg(st.svg, 0, 0);
       const moved = clientToSvg(st.svg, dxClient, 0);
       const dxWorld = moved.x - origin.x;
-      const clampedWorld = clampDx(st.snapshot, dxWorld);
-      const ratio = dxWorld === 0 ? 1 : clampedWorld / dxWorld;
-      applyLiveTransform(st.snapshot.name, dxClient * ratio, 0);
+      // CSS transform は SVG の座標系内で効くので、 渡す値も SVG user unit に揃える。
+      // client px をそのまま渡すと、 lane / node は縮尺分だけ小さく動く一方
+      // edge の path は user unit で動くため、 矢印だけが先に進んで箱を突き抜ける
+      // (実測 = 箱が 50px 動く間に矢印の端が 100px 動いていた)。
+      applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), 0);
       return;
     }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
@@ -2371,25 +2333,6 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-27 CAR-2156 = cdl actor drag finalize。 lane + 配下 node に同 delta を書き出す。
     // client delta を world 単位に直してから渡す (snapshot 側が world 座標のため)。
-    if (cdlResizeRef.current) {
-      const st = cdlResizeRef.current;
-      cdlResizeRef.current = null;
-      document.body.style.cursor = "";
-      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-      if (svg) {
-        svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node]`).forEach((el) => {
-          const g = el as SVGGraphicsElement;
-          g.style.transform = "";
-          g.style.transformBox = "";
-          g.style.transformOrigin = "";
-        });
-      }
-      const f = resizeFactorFrom(st, e.clientX, e.clientY);
-      if (Math.abs(f - 1) > 0.02) {
-        setSrc((prev) => scaleActorInDsl(prev, st.snapshots, st.actorName, f));
-      }
-      return;
-    }
     if (cdlActorDragRef.current) {
       const st = cdlActorDragRef.current;
       cdlActorDragRef.current = null;
@@ -3052,6 +2995,24 @@ ${newActorLine}
           {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
               zoom (表示倍率) と違い、 DSL に書き出されるので export / 共有にも反映される。
               文字サイズは cdl 側の固定値なので追従しない = 箱と間隔だけが変わる。 */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-font-scale-down"
+            onClick={() => setFontScale((v) => clampFontScale(v / 1.15))}
+            title="図中の文字を一律で小さくする"
+          >
+            文字を小さく
+          </button>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-font-scale-up"
+            onClick={() => setFontScale((v) => clampFontScale(v * 1.15))}
+            title="図中の文字を一律で大きくする"
+          >
+            文字を大きく
+          </button>
           <button
             type="button"
             className="v4-editor-bar-btn"
@@ -3723,28 +3684,8 @@ ${newActorLine}
                         width: `${HANDLE}px`, height: `${HANDLE}px`,
                         background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                        zIndex: 100, pointerEvents: "auto",
-                      }}
-                      onMouseDown={(e) => {
-                        // 2026-07-27 CAR-2160 = cdl actor のサイズ変更。
-                        // 対角を固定点にして、 掴んだ角の移動量から倍率を出す。
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-                        if (!svg) return;
-                        const actorName = cdlKeyToActorName(key, srcRef.current);
-                        if (!actorName) return;
-                        cdlResizeRef.current = {
-                          actorName,
-                          snapshots: buildSizeSnapshots(svg, srcRef.current),
-                          startClientX: e.clientX,
-                          startClientY: e.clientY,
-                          baseW: bbox.width,
-                          baseH: bbox.height,
-                          corner,
-                        };
-                        document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
+                        cursor: "default",
+                        zIndex: 100, pointerEvents: "none",
                       }}
                     />
                   );

@@ -1030,7 +1030,7 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       lane.width = doc.viewport.laneWidth;
     }
   }
-  // viewport.width / height / gap / laneGap / nodeGap / labelMargin → CdlDiagram.viewport に集約
+  // viewport.width / height / gap / laneGap / nodeGap / scale / labelMargin → CdlDiagram.viewport に集約
   if (doc.viewport) {
     diagram.viewport = {
       ...(diagram.viewport ?? {}),
@@ -1039,6 +1039,7 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       ...(doc.viewport.gap !== undefined ? { gap: doc.viewport.gap } : {}),
       ...(doc.viewport.laneGap !== undefined ? { laneGap: doc.viewport.laneGap } : {}),
       ...(doc.viewport.nodeGap !== undefined ? { nodeGap: doc.viewport.nodeGap } : {}),
+      ...(doc.viewport.scale !== undefined ? { scale: doc.viewport.scale } : {}),
       ...(doc.viewport.labelMargin !== undefined ? { labelMargin: doc.viewport.labelMargin } : {}),
     };
   }
