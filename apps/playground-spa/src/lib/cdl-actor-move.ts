@@ -42,6 +42,32 @@ import { updateActorPosition, extractAllActorNames, slugify } from "./canvas-piv
  * 引数の座標は全て SVG world 単位。 呼び出し側 (CdlEditor) が client px から変換して渡す。
  */
 
+/**
+ * DSL の `type:` を読む。 見つからなければ null。
+ *
+ * 縦移動の可否を type で切り替えるために使う。
+ */
+export function readDiagramType(src: string): string | null {
+  for (const line of src.split(/\r?\n/)) {
+    const m = line.match(/^[ \t]*type[ \t]*:[ \t]*["']?([a-zA-Z0-9_-]+)["']?[ \t]*$/);
+    if (m) return m[1]!.toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * 縦にも動かせる type か。
+ *
+ * sequence / solidity は縦軸が時系列そのもので、 node の cy は stack (行番号) から
+ * 全 lane 共通で決まる。 lane に posY を書くと row の起点が動いて全 actor がずれる一方、
+ * lane の高さは footer 位置から再計算されるため header と footer が縦に割れる
+ * (実測 = header dy 46 に対し footer dy 8)。 それ以外の type は node の cy が独立なので
+ * 縦横とも自由に置ける。
+ */
+export function allowsVerticalMove(type: string | null): boolean {
+  return type !== "sequence" && type !== "solidity";
+}
+
 /** 1 actor の lane 位置とサイズ (world 単位)。 drag 開始時に SVG から読んで渡す。 */
 export type ActorLaneSnapshot = {
   /** DSL の actor 名 (alias)。 `- Client: { ... }` の Client */
@@ -129,7 +155,7 @@ export function clampDx(snapshot: ActorSnapshot, dx: number): number {
  * 縦位置は全 actor とも現在値のまま (§ なぜ横移動だけを扱うか)。
  * dx は隣接 lane と重ならない範囲に丸める (§ clampDx)。
  */
-export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number): string {
+export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number, dy: number = 0): string {
   const clamped = clampDx(snapshot, dx);
   let out = src;
   for (const lane of snapshot.lanes) {
@@ -174,7 +200,11 @@ export function buildActorSnapshotFromSvg(
 ): ActorSnapshot | null {
   const lanes: ActorLaneSnapshot[] = [];
   for (const name of actorNames) {
-    const el = findLaneElement(svg, name, toSlug(name));
+    // lane が actor に 1:1 対応するのは sequence / solidity / swimlane だけ。
+    // flow / topology / class / pie / mind / c4 は lane が 1 本しかなく、
+    // state / er / gantt は `lane-{slug}` / `gantt-{slug}` の prefix 付きで名前が合わない。
+    // これらは actor 自身が node なので、 lane が見つからなければ node を掴む。
+    const el = findLaneElement(svg, name, toSlug(name)) ?? findNodeElement(svg, name, toSlug(name));
     if (!el) continue;
     const attr = readLaneAttrs(el);
     if (attr) {
@@ -207,6 +237,25 @@ function findLaneElement(svg: SVGSVGElement, name: string, slug: string): Elemen
       if (el) return el;
     } catch {
       // selector 組立に失敗した値は諦めて次の候補へ (drag が起動しないだけで壊れない)
+    }
+  }
+  return null;
+}
+
+/**
+ * actor に対応する node の `<g>` を探す。 lane が actor と 1:1 でない type 用の経路。
+ *
+ * id は type ごとに違う (`start` / `idle` / `web` 等の素の slug)。 lane と同じく
+ * slug → 生名の順で試し、 selector 組立に失敗した候補は諦めて次へ進む。
+ */
+function findNodeElement(svg: SVGSVGElement, name: string, slug: string): Element | null {
+  for (const v of [slug, name]) {
+    if (!v) continue;
+    try {
+      const el = svg.querySelector(`[data-cdl-node="${cssEscape(v)}"]`);
+      if (el) return el;
+    } catch {
+      // 組立に失敗した値は諦めて次の候補へ
     }
   }
   return null;

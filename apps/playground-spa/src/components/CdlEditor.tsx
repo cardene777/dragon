@@ -26,7 +26,7 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, readDiagramType, allowsVerticalMove, type ActorSnapshot } from "@/lib/cdl-actor-move";
 import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
 import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -477,6 +477,8 @@ export function CdlEditor(): React.JSX.Element {
     startClientX: number;
     startClientY: number;
     svg: SVGSVGElement;
+    /** 縦にも動かせるか。 sequence 系は縦軸が時系列なので false */
+    allowVertical: boolean;
   } | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
@@ -2063,7 +2065,13 @@ export function CdlEditor(): React.JSX.Element {
             },
           );
           if (snap) {
-            cdlActorDragRef.current = { snapshot: snap, startClientX: e.clientX, startClientY: e.clientY, svg };
+            cdlActorDragRef.current = {
+              snapshot: snap,
+              startClientX: e.clientX,
+              startClientY: e.clientY,
+              svg,
+              allowVertical: allowsVerticalMove(readDiagramType(srcRef.current)),
+            };
             document.body.style.cursor = "grabbing";
           }
         }
@@ -2087,14 +2095,16 @@ export function CdlEditor(): React.JSX.Element {
       // 重なり防止の clamp も finalize と同じ条件でかける = 限界を超えて引っ張った時に
       // cursor に付いていって mouseup で戻る、 という食い違いを無くす。
       const dxClient = e.clientX - st.startClientX;
+      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
       const origin = clientToSvg(st.svg, 0, 0);
-      const moved = clientToSvg(st.svg, dxClient, 0);
+      const moved = clientToSvg(st.svg, dxClient, dyClient);
       const dxWorld = moved.x - origin.x;
+      const dyWorld = moved.y - origin.y;
       // CSS transform は SVG の座標系内で効くので、 渡す値も SVG user unit に揃える。
       // client px をそのまま渡すと、 lane / node は縮尺分だけ小さく動く一方
       // edge の path は user unit で動くため、 矢印だけが先に進んで箱を突き抜ける
       // (実測 = 箱が 50px 動く間に矢印の端が 100px 動いていた)。
-      applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), 0);
+      applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), dyWorld);
       return;
     }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
@@ -2338,12 +2348,13 @@ export function CdlEditor(): React.JSX.Element {
       cdlActorDragRef.current = null;
       document.body.style.cursor = "";
       const dxClient = e.clientX - st.startClientX;
+      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
       // live transform を戻す (DSL 反映後の再 render が正となるため)
       clearLiveTransform(st.snapshot.name);
-      if (Math.abs(dxClient) > 1) {
+      if (Math.abs(dxClient) > 1 || Math.abs(dyClient) > 1) {
         const origin = clientToSvg(st.svg, 0, 0);
-        const moved = clientToSvg(st.svg, dxClient, 0);
-        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x));
+        const moved = clientToSvg(st.svg, dxClient, dyClient);
+        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x, moved.y - origin.y));
       }
       return;
     }
