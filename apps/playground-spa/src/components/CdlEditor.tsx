@@ -26,6 +26,7 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
+import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, type ActorSnapshot } from "@/lib/cdl-actor-move";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -404,6 +405,14 @@ export function CdlEditor(): React.JSX.Element {
   const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
   // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
   const textKeySeqRef = useRef(0);
+  // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
+  // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
+  const cdlActorDragRef = useRef<{
+    snapshot: ActorSnapshot;
+    startClientX: number;
+    startClientY: number;
+    svg: SVGSVGElement;
+  } | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
@@ -1898,14 +1907,38 @@ export function CdlEditor(): React.JSX.Element {
     const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
       (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
     if (onCdlElement) {
-      // 2026-07-26 CAR-2158 fix = cdl 要素の実 drag / resize は起動しない。
-      //
-      // Phase 4 revert (4523bf9) で「cdl の drag/resize は CAR-2156 の core 再設計まで無効」 と決めたが、
-      // 実際は selection UI を pointerEvents: none にしただけで、 stage の hit-test から
-      // startElementInteraction → elementDrag → updateActorPosition の DSL 書換経路が生きていた。
-      // つまり SVG node 本体を drag すれば撤去したはずの actor 分裂 / 順序入替を再発できる状態だった。
-      // ここで interaction を起動せず selection のみ行うことで、 撤去の意図を実装として成立させる。
       applyCdlSelection();
+      // 2026-07-27 CAR-2156 = cdl actor (縦列) の drag を有効化する。
+      //
+      // Phase 4 (CAR-2139) で actor が分裂したのは cdl core の欠陥ではなく座標系の取り違えで、
+      // editor が配下 node にも座標を書いていたのが原因だった (詳細 = `lib/cdl-actor-move.ts`)。
+      // lane にだけ書けば配下 node は相対配置を保ったまま追従する。
+      //
+      // 掴んでいない actor も含めて全 lane の現在位置を snapshot するのは、 lane の x が
+      // 「指定が無い lane を順に並べる」 ロジックで決まるため。 1 つだけ座標を与えると
+      // 残りが詰め直されて大きく動く = user が最も嫌う「勝手に移動する」 挙動になる。
+      //
+      // arrow label (text) は actor に属さないため対象外 = selection のみで drag しない。
+      const actorName = hoveredHandle && !hoveredHandle.id.startsWith("text:") ? hoveredHandle.id : null;
+      if (actorName) {
+        const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+        if (svg) {
+          const snap = buildActorSnapshotFromSvg(
+            svg,
+            actorName,
+            extractAllActorNames(srcRef.current),
+            slugifyActorName,
+            (cx, cy) => {
+              const p = clientToSvg(svg, cx, cy);
+              return { x: p.x, y: p.y };
+            },
+          );
+          if (snap) {
+            cdlActorDragRef.current = { snapshot: snap, startClientX: e.clientX, startClientY: e.clientY, svg };
+            document.body.style.cursor = "grabbing";
+          }
+        }
+      }
       return;
     }
     // 背景 click = stale hover を明示 clear してから通常経路 (選択解除 / rubber band) へ進む
@@ -1917,6 +1950,22 @@ export function CdlEditor(): React.JSX.Element {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-27 CAR-2156 = cdl actor drag 中は SVG に live transform をかけて追従表示する。
+    // DSL 書換は mouseup 1 回だけ (drag 中に書くと毎 frame 再 compile が走って重い)。
+    if (cdlActorDragRef.current) {
+      const st = cdlActorDragRef.current;
+      // 縦は動かさないので live preview も横だけ追従させる。
+      // 重なり防止の clamp も finalize と同じ条件でかける = 限界を超えて引っ張った時に
+      // cursor に付いていって mouseup で戻る、 という食い違いを無くす。
+      const dxClient = e.clientX - st.startClientX;
+      const origin = clientToSvg(st.svg, 0, 0);
+      const moved = clientToSvg(st.svg, dxClient, 0);
+      const dxWorld = moved.x - origin.x;
+      const clampedWorld = clampDx(st.snapshot, dxWorld);
+      const ratio = dxWorld === 0 ? 1 : clampedWorld / dxWorld;
+      applyLiveTransform(st.snapshot.name, dxClient * ratio, 0);
+      return;
+    }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
     // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
     // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
@@ -2149,6 +2198,22 @@ export function CdlEditor(): React.JSX.Element {
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
+    // 2026-07-27 CAR-2156 = cdl actor drag finalize。 lane + 配下 node に同 delta を書き出す。
+    // client delta を world 単位に直してから渡す (snapshot 側が world 座標のため)。
+    if (cdlActorDragRef.current) {
+      const st = cdlActorDragRef.current;
+      cdlActorDragRef.current = null;
+      document.body.style.cursor = "";
+      const dxClient = e.clientX - st.startClientX;
+      // live transform を戻す (DSL 反映後の再 render が正となるため)
+      clearLiveTransform(st.snapshot.name);
+      if (Math.abs(dxClient) > 1) {
+        const origin = clientToSvg(st.svg, 0, 0);
+        const moved = clientToSvg(st.svg, dxClient, 0);
+        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x));
+      }
+      return;
+    }
     // 2026-07-24 overlay parts drag finalize = 現 overlayParts state から新 posX/Y を DSL に書出す。
     // drag 中は setSrc せず state 直接更新なので snap back なし、 mouseup で 1 回だけ DSL sync。
     // multi drag = groupStartsRef に含まれる 全 overlay 分を 1 setSrc で reduce sync。

@@ -14,6 +14,8 @@
  * 「- ユーザー: { posX: 200, posY: 300 }」 のように actor 名 → inline map 展開。
  */
 
+import { unquoteAlias } from "./overlay-dsl";
+
 export type PartKind = "lane" | "node" | "edge";
 export type ResizeCorner = "nw" | "ne" | "sw" | "se";
 export type InteractionMode = "drag" | "resize" | "diagram-resize";
@@ -69,11 +71,16 @@ export interface DragState {
  *   - `  - name`
  *   - `  - name: kind`
  *   - `  - name: { kind: ..., ... }`
- *   - `  - "quoted name"` 等の quote 付き
+ *   - `  - "quoted name"` 等の quote 付き (escape `\"` を含む場合は復号する)
+ *
+ * hit-test 側と actor 移動の snapshot 側が同じ集合を見る必要があるため、 抽出規則は本関数に
+ * 一本化する。 別実装を置くと「片方だけが actor と認識する DSL」 で drag 対象と snapshot が
+ * ずれる (CAR-2156 review MINOR)。
  */
 export function extractAllActorNames(src: string): string[] {
   const out: string[] = [];
-  const lines = src.split("\n");
+  // CRLF の DSL でも行末に `\r` を残さない
+  const lines = src.split(/\r?\n/);
   let inActors = false;
   for (const line of lines) {
     const trimmed = line.trim();
@@ -86,11 +93,10 @@ export function extractAllActorNames(src: string): string[] {
       inActors = false;
     }
     if (!inActors) continue;
-    const m = trimmed.match(/^-\s*("[^"]+"|\S+?)(\s*:\s*|\s*$)/);
+    // quoted 側は escape (`\"`) を含みうるので overlay-dsl と同じ形で受ける
+    const m = trimmed.match(/^-\s*("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*|\s*$)/);
     if (m) {
-      const raw = m[1]!;
-      const name = raw.replace(/^"(.+)"$/, "$1");
-      out.push(name);
+      out.push(unquoteAlias(m[1]!));
     }
   }
   return out;
@@ -348,7 +354,10 @@ export function updateActorPosition(
   posW?: number,
   posH?: number,
 ): string {
-  const lines = src.split("\n");
+  // 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
+  // `split("\n")` → `join("\n")` にすると、 書き換えた行だけ `\r` が落ちて CRLF の DSL に
+  // LF 行が混ざる (CAR-2156 review MINOR)。
+  const segments = src.split(/(\r\n|\n)/);
   const roundedX = Math.round(posX);
   const roundedY = Math.round(posY);
   const roundedW = posW !== undefined ? Math.round(posW) : undefined;
@@ -357,7 +366,8 @@ export function updateActorPosition(
   if (roundedW !== undefined) extraFields.push(`posW: ${roundedW}`);
   if (roundedH !== undefined) extraFields.push(`posH: ${roundedH}`);
 
-  const nextLines = lines.map((line) => {
+  const nextLines = segments.map((line, i) => {
+    if (i % 2 === 1) return line; // separator はそのまま
     // (3) inline mapping (depth-aware = nested `nodes: {...}` を含む inner も正確に切出す)
     const extract = extractActorInlineMapLine(line, targetName);
     if (extract) {
@@ -371,24 +381,30 @@ export function updateActorPosition(
       return `${prefix}${name}${sep}{ ${newInner} }${suffix}`;
     }
     // (2) short form
-    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
+    const shortMatch = line.match(/^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
     if (shortMatch && stripQuotes(shortMatch[2]!) === targetName) {
       const [, sPrefix, sName, sSep, kind] = shortMatch;
       return `${sPrefix}${sName}${sSep}{ kind: ${kind!.trim()}, ${extraFields.join(", ")} }`;
     }
     // (1) bare
-    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
+    const bareMatch = line.match(/^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+)\s*$/);
     if (bareMatch && stripQuotes(bareMatch[2]!) === targetName) {
       const [, bPrefix, bName] = bareMatch;
       return `${bPrefix}${bName}: { ${extraFields.join(", ")} }`;
     }
     return line;
   });
-  return nextLines.join("\n");
+  return nextLines.join("");
 }
 
+/**
+ * DSL 上の alias 表記を素の名前に戻す。
+ *
+ * 復号は `unquoteAlias` に委ねる。 独自に `replace(/^"(.+)"$/)` するとescape (`\"`) が
+ * 残り、 `extractAllActorNames` が返す名前と食い違って行が見つからなくなる。
+ */
 function stripQuotes(s: string): string {
-  return s.replace(/^"(.+)"$/, "$1").trim();
+  return unquoteAlias(s.trim());
 }
 
 /**
@@ -455,13 +471,13 @@ export function updateActorNodePosition(
       return `${prefix}${name}${sep}{ ${rewrittenInner} }${suffix}`;
     }
     // (2) short form: `- name: kind`
-    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
+    const shortMatch = line.match(/^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
     if (shortMatch && stripQuotes(shortMatch[2]!) === targetName) {
       const [, sPrefix, sName, sSep, kind] = shortMatch;
       return `${sPrefix}${sName}${sSep}{ kind: ${kind!.trim()}, nodes: { ${subNodeKey}: ${subMapText} } }`;
     }
     // (1) bare: `- name`
-    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
+    const bareMatch = line.match(/^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+)\s*$/);
     if (bareMatch && stripQuotes(bareMatch[2]!) === targetName) {
       const [, bPrefix, bName] = bareMatch;
       return `${bPrefix}${bName}: { nodes: { ${subNodeKey}: ${subMapText} } }`;
@@ -481,7 +497,10 @@ function extractActorInlineMapLine(
   line: string,
   targetName: string,
 ): { prefix: string; name: string; sep: string; inner: string; suffix: string } | null {
-  const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{/);
+  // quoted 側は escape (`\"`) を含みうる。 `extractAllActorNames` が認識する alias を
+  // ここで取りこぼすと、 掴んだ actor だけ座標が書かれず未 pin の唯一の lane として
+  // `layoutLanes` の cursorX = 0 に落ちる = 左端にワープする (CAR-2156 review MINOR)。
+  const headMatch = line.match(/^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{/);
   if (!headMatch) return null;
   if (stripQuotes(headMatch[2]!) !== targetName) return null;
   const [, prefix, name, sep] = headMatch;
