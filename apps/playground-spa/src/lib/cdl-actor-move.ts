@@ -42,7 +42,7 @@ import { updateActorPosition } from "./canvas-pivot-interaction";
  * 引数の座標は全て SVG world 単位。 呼び出し側 (CdlEditor) が client px から変換して渡す。
  */
 
-/** 1 actor の lane 位置 (world 単位)。 drag 開始時に SVG から測って渡す。 */
+/** 1 actor の lane 位置とサイズ (world 単位)。 drag 開始時に SVG から読んで渡す。 */
 export type ActorLaneSnapshot = {
   /** DSL の actor 名 (alias)。 `- Client: { ... }` の Client */
   name: string;
@@ -50,7 +50,19 @@ export type ActorLaneSnapshot = {
   laneX: number;
   /** lane 上端の world y */
   laneY: number;
+  /** lane の world 幅。 隣接 lane との重なり判定に使う */
+  laneW: number;
 };
+
+/**
+ * 隣接 lane との間に最低限空ける world 距離。
+ *
+ * lane が重なる位置に置くと cdl の衝突解決 (`resolveOverlaps`) が「横に重なった node を
+ * 縦に逃がす」 ため、 掴んでいない actor の header / footer だけが下にずれて lifeline から
+ * 外れる (実測 = 重なり位置まで動かすと API の header と footer が 88px 下がる)。
+ * Phase 4 で revert した分裂と見た目上は同じ症状になるので、 重なる位置には置けなくする。
+ */
+export const MIN_LANE_GAP = 40;
 
 /** drag 対象を含む図全体の snapshot。 */
 export type ActorSnapshot = {
@@ -61,23 +73,60 @@ export type ActorSnapshot = {
 };
 
 /**
- * actor を横に dx だけ動かした DSL を返す。
+ * drag の delta を、 隣接 lane と重ならない範囲に丸める。
  *
- * 対象 actor は dx を足した位置、 それ以外は現在位置をそのまま書く。
- * 全 actor に座標が入るため、 以降の compile では並べ直しが起きない。
- * 縦位置は全 actor とも現在値のまま (§ なぜ横移動だけを扱うか)。
+ * 重なる位置に置くと cdl の衝突解決が掴んでいない actor を縦に逃がして分裂させる
+ * (§ MIN_LANE_GAP)。 発生源で断つため、 隣に寄れる限界で止める。
+ * 隣が無い方向 (左端 / 右端) は制限しない。
  */
-export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number): string {
-  let out = src;
-  for (const lane of snapshot.lanes) {
-    const moved = lane.name === snapshot.name;
-    out = updateActorPosition(out, lane.name, lane.laneX + (moved ? dx : 0), lane.laneY);
+export function clampDx(snapshot: ActorSnapshot, dx: number): number {
+  const target = snapshot.lanes.find((l) => l.name === snapshot.name);
+  if (!target) return dx;
+  const others = snapshot.lanes.filter((l) => l.name !== snapshot.name);
+  const wantLeft = target.laneX + dx;
+  const wantRight = wantLeft + target.laneW;
+  let out = dx;
+  for (const o of others) {
+    const oLeft = o.laneX;
+    const oRight = o.laneX + o.laneW;
+    // 右方向に寄せて o と重なる → o の左辺 - gap まで
+    if (dx > 0 && wantRight + MIN_LANE_GAP > oLeft && target.laneX + target.laneW <= oLeft) {
+      out = Math.min(out, oLeft - MIN_LANE_GAP - target.laneW - target.laneX);
+    }
+    // 左方向に寄せて o と重なる → o の右辺 + gap まで
+    if (dx < 0 && wantLeft - MIN_LANE_GAP < oRight && target.laneX >= oRight) {
+      out = Math.max(out, oRight + MIN_LANE_GAP - target.laneX);
+    }
   }
   return out;
 }
 
 /**
- * SVG から全 actor の lane 位置を実測して snapshot を作る。
+ * actor を横に dx だけ動かした DSL を返す。
+ *
+ * 対象 actor は dx を足した位置、 それ以外は現在位置をそのまま書く。
+ * 全 actor に座標が入るため、 以降の compile では並べ直しが起きない。
+ * 縦位置は全 actor とも現在値のまま (§ なぜ横移動だけを扱うか)。
+ * dx は隣接 lane と重ならない範囲に丸める (§ clampDx)。
+ */
+export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number): string {
+  const clamped = clampDx(snapshot, dx);
+  let out = src;
+  for (const lane of snapshot.lanes) {
+    const moved = lane.name === snapshot.name;
+    out = updateActorPosition(out, lane.name, lane.laneX + (moved ? clamped : 0), lane.laneY);
+  }
+  return out;
+}
+
+/**
+ * SVG から全 actor の lane 位置を読んで snapshot を作る。
+ *
+ * 座標は cdl が lane の `<g>` に出している `data-cdl-lane-x` / `-y` / `-w` 属性から読む。
+ * `getBoundingClientRect` で測ると、 `contain: true` の lane では枠線 (strokeWidth 1.5) が
+ * bbox を左右 0.75px ずつ広げ、 `Math.round` と合わさって drag のたびに全 actor が
+ * 1px ずつずれ続ける (CAR-2156 review MINOR)。 属性を読めばこの経路ごと消える。
+ * 属性が無い場合だけ bbox 実測に落とす。
  *
  * `actorNames` は DSL 上の actor 名 (alias) の一覧。 slug 変換は `toSlug` に委ねる
  * (呼び出し側の `slugifyActorName` と規則を揃えるため)。
@@ -92,13 +141,18 @@ export function buildActorSnapshotFromSvg(
 ): ActorSnapshot | null {
   const lanes: ActorLaneSnapshot[] = [];
   for (const name of actorNames) {
-    const slug = toSlug(name);
-    const el = svg.querySelector(`[data-cdl-lane="${slug}"], [data-cdl-lane="${name}"]`);
+    const el = findLaneElement(svg, name, toSlug(name));
     if (!el) continue;
+    const attr = readLaneAttrs(el);
+    if (attr) {
+      lanes.push({ name, laneX: attr.x, laneY: attr.y, laneW: attr.w });
+      continue;
+    }
     const r = (el as SVGGraphicsElement).getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) continue;
     const tl = clientToWorld(r.left, r.top);
-    lanes.push({ name, laneX: tl.x, laneY: tl.y });
+    const br = clientToWorld(r.right, r.bottom);
+    lanes.push({ name, laneX: tl.x, laneY: tl.y, laneW: br.x - tl.x });
   }
   // drag 対象の lane が測れなければ drag を起動しない
   if (!lanes.some((l) => l.name === targetActorName)) return null;
@@ -106,27 +160,43 @@ export function buildActorSnapshotFromSvg(
 }
 
 /**
- * DSL の actors block から actor 名 (alias) を順に取り出す。
+ * lane の `<g>` を slug / 生名の順で探す。
  *
- * `- Client` / `- Client: { ... }` / `- "My Actor": { ... }` の 3 形式に対応する。
- * flow / animation 等の別 block は読まない (actors block の中だけを見る)。
+ * 属性値は `CSS.escape` を通す。 alias に `"` を含むと (`- "a \" b":` のような DSL)
+ * selector が `[data-cdl-lane="a " b"]` になって `querySelector` が SyntaxError を投げ、
+ * mousedown handler ごと落ちる (CAR-2156 review MINOR)。
  */
-export function collectActorNames(src: string): string[] {
-  const names: string[] = [];
-  let inActors = false;
-  for (const line of src.split(/\r?\n/)) {
-    if (/^actors[ \t]*:[ \t]*$/.test(line)) {
-      inActors = true;
-      continue;
+function findLaneElement(svg: SVGSVGElement, name: string, slug: string): Element | null {
+  for (const v of [slug, name]) {
+    if (!v) continue;
+    try {
+      const el = svg.querySelector(`[data-cdl-lane="${cssEscape(v)}"]`);
+      if (el) return el;
+    } catch {
+      // selector 組立に失敗した値は諦めて次の候補へ (drag が起動しないだけで壊れない)
     }
-    // 次の top-level block (行頭が英字) に入ったら終了
-    if (inActors && /^[a-zA-Z_]/.test(line)) break;
-    if (!inActors) continue;
-    const m = line.match(/^[ \t]*-[ \t]*("(?:[^"\\]|\\.)*"|[^:\s][^:]*?)[ \t]*(?::|$)/);
-    if (!m) continue;
-    const raw = m[1]!.trim();
-    if (!raw) continue;
-    names.push(raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1).replace(/\\(.)/g, "$1") : raw);
   }
-  return names;
+  return null;
+}
+
+/** `CSS.escape` が無い環境 (古い jsdom 等) では最小限の quote escape に落とす。 */
+function cssEscape(v: string): string {
+  const g = globalThis as { CSS?: { escape?: (s: string) => string } };
+  if (typeof g.CSS?.escape === "function") return g.CSS.escape(v);
+  return v.replace(/["\\]/g, "\\$&");
+}
+
+/** lane の `<g>` から cdl が出している座標属性を読む。 1 つでも欠けたら null。 */
+function readLaneAttrs(el: Element): { x: number; y: number; w: number } | null {
+  const num = (k: string): number | null => {
+    const raw = el.getAttribute(k);
+    if (raw === null) return null;
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : null;
+  };
+  const x = num("data-cdl-lane-x");
+  const y = num("data-cdl-lane-y");
+  const w = num("data-cdl-lane-w");
+  if (x === null || y === null || w === null) return null;
+  return { x, y, w };
 }

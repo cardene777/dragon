@@ -26,7 +26,7 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, collectActorNames, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { buildActorSnapshotFromSvg, moveActorInDsl, type ActorSnapshot } from "@/lib/cdl-actor-move";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -1926,7 +1926,7 @@ export function CdlEditor(): React.JSX.Element {
           const snap = buildActorSnapshotFromSvg(
             svg,
             actorName,
-            collectActorNames(srcRef.current),
+            extractAllActorNames(srcRef.current),
             slugifyActorName,
             (cx, cy) => {
               const p = clientToSvg(svg, cx, cy);

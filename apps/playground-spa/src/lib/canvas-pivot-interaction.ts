@@ -14,6 +14,8 @@
  * 「- ユーザー: { posX: 200, posY: 300 }」 のように actor 名 → inline map 展開。
  */
 
+import { unquoteAlias } from "./overlay-dsl";
+
 export type PartKind = "lane" | "node" | "edge";
 export type ResizeCorner = "nw" | "ne" | "sw" | "se";
 export type InteractionMode = "drag" | "resize" | "diagram-resize";
@@ -69,11 +71,16 @@ export interface DragState {
  *   - `  - name`
  *   - `  - name: kind`
  *   - `  - name: { kind: ..., ... }`
- *   - `  - "quoted name"` 等の quote 付き
+ *   - `  - "quoted name"` 等の quote 付き (escape `\"` を含む場合は復号する)
+ *
+ * hit-test 側と actor 移動の snapshot 側が同じ集合を見る必要があるため、 抽出規則は本関数に
+ * 一本化する。 別実装を置くと「片方だけが actor と認識する DSL」 で drag 対象と snapshot が
+ * ずれる (CAR-2156 review MINOR)。
  */
 export function extractAllActorNames(src: string): string[] {
   const out: string[] = [];
-  const lines = src.split("\n");
+  // CRLF の DSL でも行末に `\r` を残さない
+  const lines = src.split(/\r?\n/);
   let inActors = false;
   for (const line of lines) {
     const trimmed = line.trim();
@@ -86,11 +93,10 @@ export function extractAllActorNames(src: string): string[] {
       inActors = false;
     }
     if (!inActors) continue;
-    const m = trimmed.match(/^-\s*("[^"]+"|\S+?)(\s*:\s*|\s*$)/);
+    // quoted 側は escape (`\"`) を含みうるので overlay-dsl と同じ形で受ける
+    const m = trimmed.match(/^-\s*("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*|\s*$)/);
     if (m) {
-      const raw = m[1]!;
-      const name = raw.replace(/^"(.+)"$/, "$1");
-      out.push(name);
+      out.push(unquoteAlias(m[1]!));
     }
   }
   return out;
@@ -348,7 +354,10 @@ export function updateActorPosition(
   posW?: number,
   posH?: number,
 ): string {
-  const lines = src.split("\n");
+  // 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
+  // `split("\n")` → `join("\n")` にすると、 書き換えた行だけ `\r` が落ちて CRLF の DSL に
+  // LF 行が混ざる (CAR-2156 review MINOR)。
+  const segments = src.split(/(\r\n|\n)/);
   const roundedX = Math.round(posX);
   const roundedY = Math.round(posY);
   const roundedW = posW !== undefined ? Math.round(posW) : undefined;
@@ -357,7 +366,8 @@ export function updateActorPosition(
   if (roundedW !== undefined) extraFields.push(`posW: ${roundedW}`);
   if (roundedH !== undefined) extraFields.push(`posH: ${roundedH}`);
 
-  const nextLines = lines.map((line) => {
+  const nextLines = segments.map((line, i) => {
+    if (i % 2 === 1) return line; // separator はそのまま
     // (3) inline mapping (depth-aware = nested `nodes: {...}` を含む inner も正確に切出す)
     const extract = extractActorInlineMapLine(line, targetName);
     if (extract) {
@@ -384,7 +394,7 @@ export function updateActorPosition(
     }
     return line;
   });
-  return nextLines.join("\n");
+  return nextLines.join("");
 }
 
 function stripQuotes(s: string): string {
