@@ -26,7 +26,10 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { stretchEdgesFor, clearStretchedEdges, svgUnitPerClientPx } from "@/lib/edge-stretch";
+import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
+import { buildSizeSnapshots, scaleActorInDsl, scaleDiagramInDsl, clampScale } from "@/lib/cdl-actor-resize";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -36,6 +39,85 @@ import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine 
  * achievement の透明 wrapper rect (fill=none) を掴んでしまい、 実際に見えている図形より
  * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
  */
+/**
+ * text 編集の入力欄を「中身が全部見える幅」 に合わせる。
+ *
+ * 元要素の bbox に固定すると、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
+ * `scrollWidth` は内容の実幅を返すので、 一度 auto に戻してから測り直す。
+ * 元要素より狭くはしない (`minWidth` 相当) = 見た目の位置ずれを避ける。
+ */
+function fitTextEditWidth(el: HTMLInputElement, minWidth: number): void {
+  el.style.width = "auto";
+  el.style.width = `${Math.max(minWidth, el.scrollWidth + 16)}px`;
+}
+
+/**
+ * toolbar の icon button。 hover で即座に説明を出す。
+ *
+ * `title` 属性は表示まで 1-2 秒かかり、 icon だけでは何のボタンか分からない時間が生まれる。
+ * 自前の tooltip を hover 即時で出して、 icon の意味を推測させない。
+ */
+function ToolbarButton({ label, testId, onClick, children }: {
+  label: string;
+  testId: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const [hover, setHover] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        data-overlay-toolbar-btn={testId}
+        aria-label={label}
+        style={{
+          width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: hover ? "#f3f4f6" : "transparent", border: "none", cursor: "pointer",
+          borderRadius: "6px", padding: 0,
+        }}
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        {children}
+      </button>
+      {hover && (
+        <span
+          data-toolbar-tooltip={testId}
+          style={{
+            position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+            background: "#1f2937", color: "#fff", fontSize: "11px", lineHeight: 1.4,
+            padding: "4px 8px", borderRadius: "4px", whiteSpace: "nowrap", pointerEvents: "none",
+            zIndex: 400, boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          }}
+        >
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * resize handle の drag 量から倍率を出す。
+ *
+ * 掴んだ角の対角を固定点として、 対角からの距離が何倍になったかで測る。
+ * 縦横の比が崩れないよう、 幅と高さの比率の大きい方を採る (Miro / Figma の corner drag と同じ)。
+ */
+function resizeFactorFrom(
+  st: { startClientX: number; startClientY: number; baseW: number; baseH: number; corner: "nw" | "ne" | "sw" | "se" },
+  clientX: number,
+  clientY: number,
+): number {
+  const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
+  const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
+  const dw = (clientX - st.startClientX) * signX;
+  const dh = (clientY - st.startClientY) * signY;
+  const fw = st.baseW > 0 ? (st.baseW + dw) / st.baseW : 1;
+  const fh = st.baseH > 0 ? (st.baseH + dh) / st.baseH : 1;
+  return clampScale(Math.abs(fw - 1) >= Math.abs(fh - 1) ? fw : fh);
+}
+
 function findPaintedShape(div: Element): SVGGraphicsElement | null {
   const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
   let maxArea = 0;
@@ -407,6 +489,16 @@ export function CdlEditor(): React.JSX.Element {
   const textKeySeqRef = useRef(0);
   // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
   // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
+  // 2026-07-27 CAR-2160 = cdl actor のサイズ変更 state。 掴んだ角と対角の距離比で倍率を出す。
+  const cdlResizeRef = useRef<{
+    actorName: string;
+    snapshots: ReturnType<typeof buildSizeSnapshots>;
+    startClientX: number;
+    startClientY: number;
+    baseW: number;
+    baseH: number;
+    corner: "nw" | "ne" | "sw" | "se";
+  } | null>(null);
   const cdlActorDragRef = useRef<{
     snapshot: ActorSnapshot;
     startClientX: number;
@@ -689,6 +781,35 @@ export function CdlEditor(): React.JSX.Element {
   // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
   // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
   // その中で最大面積のものを主要 shape とみなす。
+  // 2026-07-27 CAR-2160 = 矢印とラベルに透明な当たり判定を敷く。
+  //
+  // cdl の矢印は stroke 4px の線で、 正確に click するのが実質不可能。 ラベルの text も
+  // 当たり判定がグリフの輪郭しかなく、 文字の隙間や周囲の余白では反応しない。
+  // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
+  //
+  // SVG は src 変更のたびに CdlDiagramView が中身を作り直すので、 MutationObserver で
+  // 作り直しを検知して注入し直す。 自分の注入も変化として検知されるため、
+  // 注入中は observer を切って無限ループを避ける。
+  useEffect(() => {
+    const host = previewRef.current;
+    if (!host) return;
+    let observer: MutationObserver | null = null;
+    const run = (): void => {
+      const svg = host.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      observer?.disconnect();
+      try {
+        injectHitAreas(svg);
+      } finally {
+        if (observer) observer.observe(host, { childList: true, subtree: true });
+      }
+    };
+    observer = new MutationObserver(() => run());
+    observer.observe(host, { childList: true, subtree: true });
+    run();
+    return () => observer?.disconnect();
+  }, []);
+
   const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
     for (const p of parts) {
       // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
@@ -757,8 +878,18 @@ export function CdlEditor(): React.JSX.Element {
         const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
         if (!el || typeof el.getBoundingClientRect !== "function") { staleKeys.push(key); continue; }
         const r = el.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) { staleKeys.push(key); continue; }
-        next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+        // 水平 / 垂直な矢印は片側が 0 になる。 両側 0 (= 実体なし) だけを stale とし、
+        // 片側 0 の線は最小の厚みを与えて枠を出す (旧実装は `< 3` で矢印を全て捨てていた)。
+        if (r.width < 3 && r.height < 3) { staleKeys.push(key); continue; }
+        const MIN_THICKNESS = 12;
+        const w = Math.max(r.width, MIN_THICKNESS);
+        const h = Math.max(r.height, MIN_THICKNESS);
+        next[key] = {
+          left: r.left - stageRect.left - (w - r.width) / 2,
+          top: r.top - stageRect.top - (h - r.height) / 2,
+          width: w,
+          height: h,
+        };
       }
       if (staleKeys.length > 0) {
         setSelectedIds((prev) => prev.filter((sid) => !staleKeys.includes(sid.replace(/^cdl:/, ""))));
@@ -1802,6 +1933,12 @@ export function CdlEditor(): React.JSX.Element {
         (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px)`;
       }
     });
+    // drag 中の actor に繋がる edge は、 端点だけを追従させて伸縮させる。
+    // edge 全体を translate すると繋がっていない側まで動いて線が浮くので、
+    // `data-cdl-from` / `data-cdl-to` を見て動かす端を選ぶ。
+    // client px の dx を SVG 単位に直してから path に反映する。
+    const scale = svgUnitPerClientPx(svg);
+    stretchEdgesFor(svg, targetName, dx * scale, dy * scale, slugifyActorName(targetName));
   };
 
   const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
@@ -1839,6 +1976,17 @@ export function CdlEditor(): React.JSX.Element {
         (el as SVGGraphicsElement).style.transform = "";
       }
     });
+    // drag 中に伸縮させた edge の path を元に戻す (DSL 反映後の再 render が正)
+    clearStretchedEdges(svg);
+  };
+
+  /** 図そのものを factor 倍する (全 actor の lane 幅 / node サイズ / 間隔)。 */
+  const scaleWholeDiagram = (factor: number): void => {
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    const snapshots = buildSizeSnapshots(svg, srcRef.current);
+    if (snapshots.length === 0) return;
+    setSrc((prev) => scaleDiagramInDsl(prev, snapshots, factor));
   };
 
   const cornerToCursor = (corner: ResizeCorner): string => {
@@ -1903,7 +2051,8 @@ export function CdlEditor(): React.JSX.Element {
     // element から 100px 離れるまで保持される (handleMouseMove の buffer) ため、 element 近傍の背景を
     // click しても旧 element を再選択して return し、 背景 click による選択解除と rubber band が
     // 起動しなくなっていた (codex review で再現条件を実測)。
-    const targetEl = e.target as Element | null;
+    const rawTarget = e.target as Element | null;
+    const targetEl = rawTarget ? resolveHitTarget(rawTarget) : null;
     const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
       (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
     if (onCdlElement) {
@@ -1952,6 +2101,26 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-27 CAR-2156 = cdl actor drag 中は SVG に live transform をかけて追従表示する。
     // DSL 書換は mouseup 1 回だけ (drag 中に書くと毎 frame 再 compile が走って重い)。
+    if (cdlResizeRef.current) {
+      const st = cdlResizeRef.current;
+      const f = resizeFactorFrom(st, e.clientX, e.clientY);
+      // DSL 書換は mouseup 1 回だけ。 drag 中は CSS transform で仮に見せる
+      // (毎 frame 再 compile すると重く、 手が離れる前に図が跳ねる)。
+      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      if (svg) {
+        const slug = slugifyActorName(st.actorName);
+        svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node]`).forEach((el) => {
+          const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || "";
+          if (!targetBelongsTo(id, st.actorName)) return;
+          const g = el as SVGGraphicsElement;
+          g.style.transformBox = "fill-box";
+          g.style.transformOrigin = "center";
+          g.style.transform = `scale(${f})`;
+        });
+        void slug;
+      }
+      return;
+    }
     if (cdlActorDragRef.current) {
       const st = cdlActorDragRef.current;
       // 縦は動かさないので live preview も横だけ追従させる。
@@ -2074,7 +2243,9 @@ export function CdlEditor(): React.JSX.Element {
           return;
         }
       }
-      const target = e.target as Element;
+      // 注入した当たり判定 (透明 rect) が hit した時は、 それが代表する text にすり替える。
+      // hover / 選択の判定は text 要素を前提に組まれているため。
+      const target = resolveHitTarget(e.target as Element);
       const actorNamesForHover = extractAllActorNames(src);
       const dragInfo = findDragTarget(target, actorNamesForHover);
       // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
@@ -2200,6 +2371,25 @@ export function CdlEditor(): React.JSX.Element {
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
     // 2026-07-27 CAR-2156 = cdl actor drag finalize。 lane + 配下 node に同 delta を書き出す。
     // client delta を world 単位に直してから渡す (snapshot 側が world 座標のため)。
+    if (cdlResizeRef.current) {
+      const st = cdlResizeRef.current;
+      cdlResizeRef.current = null;
+      document.body.style.cursor = "";
+      const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+      if (svg) {
+        svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node]`).forEach((el) => {
+          const g = el as SVGGraphicsElement;
+          g.style.transform = "";
+          g.style.transformBox = "";
+          g.style.transformOrigin = "";
+        });
+      }
+      const f = resizeFactorFrom(st, e.clientX, e.clientY);
+      if (Math.abs(f - 1) > 0.02) {
+        setSrc((prev) => scaleActorInDsl(prev, st.snapshots, st.actorName, f));
+      }
+      return;
+    }
     if (cdlActorDragRef.current) {
       const st = cdlActorDragRef.current;
       cdlActorDragRef.current = null;
@@ -2859,6 +3049,27 @@ ${newActorLine}
             <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
+          {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
+              zoom (表示倍率) と違い、 DSL に書き出されるので export / 共有にも反映される。
+              文字サイズは cdl 側の固定値なので追従しない = 箱と間隔だけが変わる。 */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-diagram-scale-down"
+            onClick={() => scaleWholeDiagram(1 / 1.25)}
+            title="図そのものを縮小する (表示倍率ではなく DSL に反映)"
+          >
+            図を縮小
+          </button>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-diagram-scale-up"
+            onClick={() => scaleWholeDiagram(1.25)}
+            title="図そのものを拡大する (表示倍率ではなく DSL に反映)"
+          >
+            図を拡大
+          </button>
           <button
             type="button"
             className="v4-editor-bar-btn"
@@ -3314,18 +3525,16 @@ ${newActorLine}
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <button type="button" data-overlay-toolbar-btn="color" title="色を変更" style={iconStyle}
-                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                    <ToolbarButton label="色を変更" testId="color"
+                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <path d="M10 2c-4.4 0-8 3.6-8 8s3.6 8 8 8c.6 0 1-.4 1-1s-.4-1-1-1c-.5 0-1-.4-1-1s.5-1 1-1c1.1 0 2-.9 2-2s-.9-2-2-2c-1.1 0-2-.9-2-2s.9-2 2-2c1.7 0 3 1.3 3 3 0 .6.4 1 1 1s1-.4 1-1c0-3.9-3.1-7-7-7z" fill="#374151"/>
                         <circle cx="6" cy="10" r="1.2" fill="#ef4444"/>
                         <circle cx="9" cy="6" r="1.2" fill="#3b82f6"/>
                         <circle cx="14" cy="10" r="1.2" fill="#22c55e"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="duplicate" title="複製 (Cmd+D)" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="複製 (Cmd+D)" testId="duplicate"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3333,15 +3542,13 @@ ${newActorLine}
                           const newLine = buildDuplicateLine(p, newAlias);
                           return appendActorLine(prev, newLine) ?? prev;
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
                         <rect x="3" y="3" width="10" height="10" rx="1.5"/>
                         <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="bring-front" title="前面へ (Cmd+])" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="前面へ (Cmd+])" testId="bring-front"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3352,15 +3559,13 @@ ${newActorLine}
                           }
                           return lines.join("\n");
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
                         <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#374151"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="send-back" title="背面へ (Cmd+[)" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="背面へ (Cmd+[)" testId="send-back"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3371,27 +3576,23 @@ ${newActorLine}
                           }
                           return lines.join("\n");
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
                         <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#374151"/>
                       </svg>
-                    </button>
+                    </ToolbarButton>
                     <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
-                    <button type="button" data-overlay-toolbar-btn="delete" title="削除 (Delete)" style={iconStyle}
+                    <ToolbarButton label="削除 (Delete)" testId="delete"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => removeActorLine(prev, p.id));
                         setSelectedIds([]);
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
                       </svg>
-                    </button>
+                    </ToolbarButton>
                   </div>
                 )}
                 {/* Color picker popover */}
@@ -3463,11 +3664,17 @@ ${newActorLine}
               autoFocus
               data-testid="editor-text-edit-input"
               defaultValue={textEditing.originalText}
+              // 入力欄は要素の bbox ではなく「中身が全部見える幅」 に合わせる。
+              // bbox 固定だと、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
+              // 元要素より狭くならないよう bbox 幅を下限にし、 中身が超えたら伸ばす。
+              ref={(el) => { if (el) fitTextEditWidth(el, textEditing.bbox.width); }}
+              onInput={(e) => fitTextEditWidth(e.currentTarget, textEditing.bbox.width)}
               style={{
                 position: "absolute",
                 left: `${textEditing.bbox.left}px`,
                 top: `${textEditing.bbox.top}px`,
-                width: `${textEditing.bbox.width}px`,
+                minWidth: `${textEditing.bbox.width}px`,
+                maxWidth: "min(90vw, 900px)",
                 height: `${textEditing.bbox.height}px`,
                 fontSize: `${textEditing.fontSize}px`,
                 padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
@@ -3517,11 +3724,72 @@ ${newActorLine}
                         background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                         cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                        zIndex: 100, pointerEvents: "none",
+                        zIndex: 100, pointerEvents: "auto",
+                      }}
+                      onMouseDown={(e) => {
+                        // 2026-07-27 CAR-2160 = cdl actor のサイズ変更。
+                        // 対角を固定点にして、 掴んだ角の移動量から倍率を出す。
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+                        if (!svg) return;
+                        const actorName = cdlKeyToActorName(key, srcRef.current);
+                        if (!actorName) return;
+                        cdlResizeRef.current = {
+                          actorName,
+                          snapshots: buildSizeSnapshots(svg, srcRef.current),
+                          startClientX: e.clientX,
+                          startClientY: e.clientY,
+                          baseW: bbox.width,
+                          baseH: bbox.height,
+                          corner,
+                        };
+                        document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
                       }}
                     />
                   );
                 })}
+                {/* cdl 要素の toolbar。 overlay parts と同じ位置 / 見た目に揃える。
+                    色変更は出さない = DSL の actor に色を保存する field が無く、 DOM に直接当てても
+                    再 compile で消えるため (実測で確認済)。 出せる操作だけを出す。 */}
+                {(() => {
+                  const actorName = cdlKeyToActorName(key, srcRef.current);
+                  if (!actorName) return null;
+                  return (
+                    <div
+                      data-cdl-toolbar={key}
+                      style={{
+                        position: "absolute", left: `${bbox.left}px`, top: `${bbox.top - 44}px`,
+                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+                        padding: "4px", display: "flex", gap: "2px", zIndex: 200, whiteSpace: "nowrap",
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <ToolbarButton label="複製" testId="cdl-duplicate"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSrc((prev) => duplicateActorInDsl(prev, actorName));
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                          <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+                          <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
+                        </svg>
+                      </ToolbarButton>
+                      <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
+                      <ToolbarButton label="削除 (Delete)" testId="cdl-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSrc((prev) => removeActorLine(prev, actorName));
+                          setSelectedIds([]);
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
+                        </svg>
+                      </ToolbarButton>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

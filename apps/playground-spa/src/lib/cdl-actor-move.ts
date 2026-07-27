@@ -1,4 +1,4 @@
-import { updateActorPosition } from "./canvas-pivot-interaction";
+import { updateActorPosition, extractAllActorNames, slugify } from "./canvas-pivot-interaction";
 
 /**
  * cdl actor (シーケンス図の縦列) の drag を DSL に書き出す helper (CAR-2156)。
@@ -232,4 +232,54 @@ function readLaneAttrs(el: Element): { x: number; y: number; w: number } | null 
   const w = num("data-cdl-lane-w");
   if (x === null || y === null || w === null) return null;
   return { x, y, w };
+}
+
+/**
+ * cdl 要素の selection key (`client-header` / `s0-client` / `client` 等) から
+ * DSL 上の actor 名を引く。 該当が無ければ null (toolbar を出さない)。
+ *
+ * key は slug 化済なので、 DSL の actor 名を同じ規則で slug にして突き合わせる。
+ * suffix (`-header` / `-footer` / `-spacer`) と prefix (`s{N}-`) は先に落とす。
+ */
+export function cdlKeyToActorName(key: string, src: string): string | null {
+  const stripped = key
+    .replace(/-header$/, "")
+    .replace(/-footer$/, "")
+    .replace(/-spacer$/, "")
+    .replace(/^s\d+-/, "");
+  for (const name of extractAllActorNames(src)) {
+    if (slugify(name) === stripped || name === stripped) return name;
+  }
+  return null;
+}
+
+/**
+ * actor 行を複製する。 alias の末尾連番を進めて衝突を避け、 元行の直後に挿入する。
+ *
+ * 座標は複製元と同じにしない = 完全に重なると掴み分けられないため、 lane 1 本分ずらす。
+ * 元行が座標を持たない (auto layout) 場合は座標を書かずに複製する = 並べ直しに任せる。
+ */
+export function duplicateActorInDsl(src: string, alias: string): string {
+  const segments = src.split(/(\r\n|\n)/);
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const quoted = `(?:"${escaped}"|${escaped})`;
+  const lineRe = new RegExp(`^([ \t]*-[ \t]*)${quoted}([ \t]*(?::|$).*)$`);
+  for (let i = 0; i < segments.length; i += 2) {
+    const line = segments[i]!;
+    const m = line.match(lineRe);
+    if (!m) continue;
+    const used = new Set(extractAllActorNames(src));
+    const base = alias.replace(/\d+$/, "") || alias;
+    let n = 2;
+    while (used.has(`${base}${n}`)) n += 1;
+    const newAlias = `${base}${n}`;
+    // 重ならないよう posX を lane 1 本分ずらす (座標を持つ行のみ)
+    const shifted = m[2]!.replace(/posX:\s*(-?\d+(?:\.\d+)?)/, (_s, v: string) => `posX: ${Math.round(Number(v) + 400)}`);
+    const newLine = `${m[1]}${newAlias}${shifted}`;
+    const sep = segments[i + 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+    if (i + 1 >= segments.length) segments.push(sep, newLine);
+    else segments.splice(i + 2, 0, newLine, sep);
+    return segments.join("");
+  }
+  return src;
 }
