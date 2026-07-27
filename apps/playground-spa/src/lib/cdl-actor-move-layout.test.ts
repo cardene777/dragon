@@ -146,9 +146,40 @@ flow:
     };
     const la = geom(moveActorInDsl(longSrc, ls, 100));
     for (const id of Object.keys(lb.nodes)) {
-      if (lb.nodes[id]!.lane === ls.lanes[1]!.name.toLowerCase()) continue;
-      if (la.nodes[id]!.lane === "server") continue;
-      expect(Math.abs(la.nodes[id]!.cx - lb.nodes[id]!.cx), id).toBeLessThan(2);
+      const grabbed = lb.nodes[id]!.lane === "server";
+      const delta = la.nodes[id]!.cx - lb.nodes[id]!.cx;
+      // 掴んだ側は dx ちょうど動く、 それ以外は動かない。
+      // grabbed 側を skip すると「長 actor 自身を掴んだ時に自分がずれる」 経路が漏れる。
+      expect(Math.abs(delta - (grabbed ? 100 : 0)), id).toBeLessThan(2);
+    }
+  });
+
+  it("長い actor 名の actor 自身を掴んでも、 落とした位置に着地する", () => {
+    const longSrc = `title: "T"
+type: sequence
+actors:
+  - AuthenticationService
+  - Server
+  - Store
+flow:
+  - AuthenticationService -> Server: "x"
+  - Server -> Store: "y"
+`;
+    const lb = geom(longSrc);
+    const ls: ActorSnapshot = {
+      name: "AuthenticationService",
+      lanes: (["AuthenticationService", "Server", "Store"] as const).map((n) => {
+        const key = Object.keys(lb.lanes).find((id) => id.startsWith(n.toLowerCase().slice(0, 6)))!;
+        const l = lb.lanes[key]!;
+        return { name: n, laneX: l.x, laneY: l.y, laneW: l.w };
+      }),
+    };
+    const la = geom(moveActorInDsl(longSrc, ls, -80));
+    const grabbedLane = Object.keys(lb.lanes).find((id) => id.startsWith("authen"))!;
+    for (const id of Object.keys(lb.nodes)) {
+      const grabbed = lb.nodes[id]!.lane === grabbedLane;
+      const delta = la.nodes[id]!.cx - lb.nodes[id]!.cx;
+      expect(Math.abs(delta - (grabbed ? -80 : 0)), id).toBeLessThan(2);
     }
   });
 
