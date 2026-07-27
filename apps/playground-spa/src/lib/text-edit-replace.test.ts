@@ -137,6 +137,58 @@ title: foo`;
     expect(result).toContain("title: foo");
   });
 
+  it("edge case (a) fix = actors block 冒頭空行 + flow 先行で fall-through しない (CAR-2158)", () => {
+    // 空行 (indent なし) を挟んだ DSL で、 旧実装は block scope 空 → fall-through で flow の Client を誤置換した
+    const src = `flow:
+  - Client -> API: "x"
+actors:
+
+  - Client
+  - API`;
+    const result = replaceTextInDsl(src, "Client", "Browser");
+    // 期待 = actors 側 (空行後) の Client のみ Browser 化、 flow 側は保持
+    expect(result).toContain("- Client -> API"); // flow 側は Client 保持
+    expect(result).toMatch(/actors:\s*\n\s*\n\s*-\s*Browser/); // actors 側は Browser
+    // Client → Browser の交換数 = 1
+    const clientCount = result.split("Client").length - 1;
+    const browserCount = result.split("Browser").length - 1;
+    expect(clientCount).toBe(1);
+    expect(browserCount).toBe(1);
+  });
+
+  it("edge case (b) fix = Client-v2 substring が Browser-v2 に化けない (CAR-2158)", () => {
+    // 旧 \b word boundary は hyphen を非 word 文字扱いで Client-v2 の Client 部分にも match していた。
+    //
+    // fixture は Client-v2 を単独 Client より「前」 に置く。 これが regression detector として必須:
+    // 旧実装は actor pattern が 2 件 match して段階 2 を断念し、 段階 4 (文書中最初の Client を置換) に落ちる。
+    // 単独 Client が先頭にあると旧実装でも偶然 期待値を満たして pass するため detector にならない
+    // (codex review で実測、 旧実装に差し替えても pass することを確認済)。
+    const src = `actors:
+  - Client-v2
+  - Client
+  - API`;
+    const result = replaceTextInDsl(src, "Client", "Browser");
+    // 単独 Client のみ Browser 化、 Client-v2 は完全保持 (旧実装なら Browser-v2 になって fail する)
+    expect(result).toContain("- Client-v2");
+    expect(result).not.toContain("Browser-v2");
+    expect(result).toContain("- Browser\n");
+  });
+
+  it("edge case (b) 拡張 = actor 単独が 1 個 + Client-v2 が 1 個 = 単独 Client のみ replace", () => {
+    // 同上、 Client-v2 を先に置いて旧実装が fail する順序にする
+    const src = `actors:
+  - Client-v2
+  - Client
+flow:
+  - Client -> API: "x"`;
+    const result = replaceTextInDsl(src, "Client", "Browser");
+    // actor block 内の単独 Client 1 hit → Browser 化、 Client-v2 と flow の Client は保持
+    expect(result).toContain("- Client-v2\n  - Browser");
+    expect(result).toContain("Client -> API");
+    expect(result).not.toContain("Browser-v2");
+    expect(result).not.toContain("Browser -> API");
+  });
+
   it("fallback replace で newText に $ token を含んでも literal 保持 (段階 4 の $ escape verify)", () => {
     // 全 fallback (段階 4) 経路 = actors なし + quoted 一意なし
     const src = `line1: Client

@@ -21,6 +21,24 @@ async function drop(page: import("@playwright/test").Page, partId: string, posit
   await page.waitForTimeout(1000);
 }
 
+/**
+ * rAF を止めて frame を固定する (animated part の AABB 変動を排除)。
+ *
+ * align の測定前ではなく align 実行の **前** に呼ぶ。 実装は align 実行時に自分で bbox を
+ * 測るため、 事後に固定しても実装が見た frame と test が見る frame がずれたままになる
+ * (CAR-2158 Round 6 MAJOR)。
+ *
+ * 止めるのは rAF だけにする。 `clearTimeout` / `clearInterval` で id を総なめすると
+ * parse / render の debounce (300ms) や React 内部の pending timer まで殺し、
+ * DOM が未収束のまま assertion に入る false green 経路を作る。
+ */
+async function freezeAnimation(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as unknown as { requestAnimationFrame: (cb: FrameRequestCallback) => number }).requestAnimationFrame = () => 0;
+  });
+  await page.waitForTimeout(300);
+}
+
 async function selectFirstOverlay(page: import("@playwright/test").Page): Promise<{ x: number; y: number; width: number; height: number }> {
   const overlay = page.locator('[data-overlay-part]').first();
   const b = await overlay.boundingBox();
@@ -61,6 +79,59 @@ test("Feature 2: Color picker = 🎨 button で色 swatch popover 表示", async
   await page.waitForTimeout(400);
   const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
   expect(dsl).toContain('bg: "#22c55e"');
+});
+
+test("Feature 2b: Color picker = 選んだ色が canvas の shape に実反映 (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  await selectFirstOverlay(page);
+  // 色変更前の shape fill を記録
+  const fillBefore = await page.evaluate(() => {
+    const div = document.querySelector("[data-overlay-part]");
+    if (!div) return null;
+    // 実装 (CdlEditor の bg 適用 useEffect) と同じ判定基準 = 色を持つ shape のうち最大面積
+    const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+    let maxArea = 0;
+    let best: Element | null = null;
+    for (const s of Array.from(shapes)) {
+      const r = s.getBoundingClientRect();
+      if (r.width < 3 || r.height < 3) continue;
+      const orig = s.getAttribute("data-original-fill");
+      const fill = orig !== null ? orig : (s.getAttribute("fill") ?? "");
+      const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+      if (!painted) continue;
+      const area = r.width * r.height;
+      if (area > maxArea) { maxArea = area; best = s; }
+    }
+    return best?.getAttribute("fill") ?? null;
+  });
+  await page.locator('[data-overlay-toolbar-btn="color"]').first().click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-overlay-color-swatch="#22c55e"]').click();
+  await page.waitForTimeout(700);
+  // 色変更後の shape fill を測定 = DSL だけでなく実 SVG に反映されている
+  const fillAfter = await page.evaluate(() => {
+    const div = document.querySelector("[data-overlay-part]");
+    if (!div) return null;
+    // 実装 (CdlEditor の bg 適用 useEffect) と同じ判定基準 = 色を持つ shape のうち最大面積
+    const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+    let maxArea = 0;
+    let best: Element | null = null;
+    for (const s of Array.from(shapes)) {
+      const r = s.getBoundingClientRect();
+      if (r.width < 3 || r.height < 3) continue;
+      const orig = s.getAttribute("data-original-fill");
+      const fill = orig !== null ? orig : (s.getAttribute("fill") ?? "");
+      const painted = fill !== "" && fill !== "none" && fill !== "transparent" && !fill.startsWith("rgba(0, 0, 0, 0)");
+      if (!painted) continue;
+      const area = r.width * r.height;
+      if (area > maxArea) { maxArea = area; best = s; }
+    }
+    return best?.getAttribute("fill") ?? null;
+  });
+  console.log(`[color] fill: ${fillBefore} → ${fillAfter}`);
+  expect(fillAfter).toBe("#22c55e");
+  expect(fillAfter).not.toBe(fillBefore);
 });
 
 test("Feature 3: Copy/Paste = Cmd+C → Cmd+V で複製", async ({ page }) => {
@@ -134,14 +205,86 @@ test("Feature 6: Alignment = Alt+L で左揃え", async ({ page }) => {
   await page.mouse.up();
   await page.keyboard.up("Shift");
   await page.waitForTimeout(200);
+  // align 実行の前に固定する。 実装は align 時に自分で bbox を測るため、 事後に固定しても
+  // 実装が見た frame と test が見る frame の位相差が残る (Round 6 MAJOR)。
+  await freezeAnimation(page);
   await page.keyboard.press("Alt+l");
   await page.waitForTimeout(600);
-  const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  const posXs = Array.from(dsl.matchAll(/posX:\s*(-?\d+)/g)).map((m) => parseInt(m[1]!, 10));
-  // 上位 2 個 (最新 append の parts) が同 posX (左揃え)
-  const partsPosXs = posXs.slice(-2);
-  console.log(`[align] parts posX: ${partsPosXs.join(", ")}`);
-  expect(partsPosXs[0]).toBe(partsPosXs[1]);
+  // 左揃えは「実 shape の左端が揃う」 で検証する。
+  // posX の一致で見ていたが、 CAR-2158 Round 2 で align を実 AABB 基準の delta 方式に変えたため
+  // rotate や shape offset がある parts では posX は一致しない (揃うのは AABB の左端)。
+  const lefts = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("[data-overlay-part]")).map((div) => {
+      const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+      let maxArea = 0;
+      let left = 0;
+      for (const sh of Array.from(shapes)) {
+        const r = sh.getBoundingClientRect();
+        if (r.width < 3 || r.height < 3) continue;
+        // 実装 (findPaintedShape) と同じ painted 判定。 透明 wrapper を掴むと oracle がずれる
+        const orig = sh.getAttribute("data-original-fill");
+        // computed style も見る = fill が CSS 変数 (`var(--cdl-tone-accent, ...)`) の場合、
+        // 属性値だけだと解決前の文字列になり実装と判定がずれる
+        const fill = orig !== null ? orig : (sh.getAttribute("fill") ?? window.getComputedStyle(sh).fill ?? "");
+        if (fill === "" || fill === "none" || fill === "transparent" || fill.startsWith("rgba(0, 0, 0, 0)")) continue;
+        const area = r.width * r.height;
+        if (area > maxArea) { maxArea = area; left = r.left; }
+      }
+      return left;
+    }),
+  );
+  console.log(`[align] shape lefts: ${lefts.map((l) => Math.round(l)).join(", ")}`);
+  expect(Math.abs((lefts[0] ?? 0) - (lefts[1] ?? 0))).toBeLessThan(3);
+});
+
+test("Feature 6b: Alignment = 右揃えで右端が揃う (実 bbox 基準、 CAR-2158)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 200 });
+  await drop(page, "parts-arc-gauge", { x: 700, y: 400 });
+  const overlays = page.locator('[data-overlay-part]');
+
+  const shapeRights = async (): Promise<number[]> =>
+    await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[data-overlay-part]")).map((div) => {
+        const shapes = div.querySelectorAll("circle, rect, path, ellipse, polygon");
+        let maxArea = 0;
+        let right = 0;
+        for (const sh of Array.from(shapes)) {
+          const r = sh.getBoundingClientRect();
+          if (r.width < 3 || r.height < 3) continue;
+          // 実装 (findPaintedShape) と同じ painted 判定
+          const orig = sh.getAttribute("data-original-fill");
+          const fill = orig !== null ? orig : (sh.getAttribute("fill") ?? window.getComputedStyle(sh).fill ?? "");
+          if (fill === "" || fill === "none" || fill === "transparent" || fill.startsWith("rgba(0, 0, 0, 0)")) continue;
+          const area = r.width * r.height;
+          if (area > maxArea) { maxArea = area; right = r.right; }
+        }
+        return right;
+      }),
+    );
+
+  const b0 = await overlays.nth(0).boundingBox();
+  const b1 = await overlays.nth(1).boundingBox();
+  if (!b0 || !b1) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.down("Shift");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(300);
+  // align 実行の前に固定する (左揃え test と同じ扱い、 Round 6 MAJOR)。
+  await freezeAnimation(page);
+  await page.keyboard.press("Alt+r");
+  await page.waitForTimeout(800);
+
+  const rights = await shapeRights();
+  console.log(`[align right] rights = ${rights.map((r) => Math.round(r)).join(", ")} diff=${Math.round(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0)))}`);
+  // 左揃えと同一の閾値を課す。 両 test は同じ part 対 (achievement + arc-gauge) を使うため、
+  // 片方だけ緩める理由がない。 緩めていた根拠 (「左は静的 part 同士」) は事実と異なっていた。
+  expect(Math.abs((rights[0] ?? 0) - (rights[1] ?? 0))).toBeLessThan(3);
 });
 
 test("Feature 7: Rotation = Alt+corner drag で rotate DSL に反映", async ({ page }) => {

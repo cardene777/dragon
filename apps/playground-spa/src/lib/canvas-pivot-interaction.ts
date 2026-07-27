@@ -222,65 +222,8 @@ export function resolveDslNameWithSubKey(
   return null;
 }
 
-/**
- * parts merge sub-node (`{alias}__{subId}`) の union bbox 内 client point 判定。
- *
- * 2026-07-24 fix (decision-log dragon-editor-full-revert-simplify) の core 経路。
- * findDragTarget は SVG hit test で shape path 内しか hit しないため、 parts lane の
- * 空領域 (lane body の透明部分) を click すると null を返して pan mode に fallback する。
- *
- * 本 helper は SVG DOM 全体から `data-cdl-node` / `data-cdl-lane` の `__` alias 全 sub-node を
- * 走査し、 各 alias の union bbox 内に client point が入るかを判定する。 alias が actorNames に
- * 含まれる場合のみ match、 該当 actor を drag target として返す。
- *
- * caller (startElementInteraction / hover) は findDragTarget が null を返した時の fallback として
- * 使う = 明示的な shape 内 click は従来経路、 空領域 click は本 helper で pan mode fallback を防ぐ。
- */
-export function findPartsUnionHit(
-  svg: SVGSVGElement,
-  clientX: number,
-  clientY: number,
-  actorNames: string[],
-): { name: string; rect: DOMRect } | null {
-  const slugToName = new Map<string, string>();
-  for (const name of actorNames) {
-    slugToName.set(slugify(name), name);
-    slugToName.set(name, name);
-  }
-  const aliasGroups = new Map<string, DOMRect[]>();
-  // 2026-07-24 fix = data-cdl-node のみ対象 + shape element (circle/rect/path/ellipse/polygon) の
-  // bbox 集計、 text (title / subtitle) は除外して tight fit。
-  svg.querySelectorAll<SVGGraphicsElement>("[data-cdl-node]").forEach((el) => {
-    const id = el.getAttribute("data-cdl-node") || "";
-    const usIdx = id.indexOf("__");
-    if (usIdx <= 0) return;
-    const alias = id.slice(0, usIdx);
-    if (!slugToName.has(alias)) return;
-    const shapes = el.querySelectorAll("circle, rect, path, ellipse, polygon");
-    const targets = shapes.length > 0 ? Array.from(shapes) : [el as Element];
-    const list = aliasGroups.get(alias) ?? [];
-    for (const s of targets) {
-      const r = (s as SVGGraphicsElement).getBoundingClientRect();
-      if (r.width <= 0 || r.height <= 0) continue;
-      list.push(r);
-    }
-    if (list.length > 0) aliasGroups.set(alias, list);
-  });
-  for (const [alias, rects] of aliasGroups) {
-    let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
-    for (const r of rects) {
-      if (r.left < minL) minL = r.left;
-      if (r.top < minT) minT = r.top;
-      if (r.right > maxR) maxR = r.right;
-      if (r.bottom > maxB) maxB = r.bottom;
-    }
-    if (clientX >= minL && clientX <= maxR && clientY >= minT && clientY <= maxB) {
-      const union = new DOMRect(minL, minT, maxR - minL, maxB - minT);
-      return { name: slugToName.get(alias)!, rect: union };
-    }
-  }
-  return null;
-}
+// 2026-07-26 CAR-2158 = findPartsUnionHit は overlay parts 独立 architecture (CAR-2139) 導入で
+// 参照 0 件になった dead export。 削除。 grep で production / test / spec 全域確認済。
 
 /**
  * client 座標 → SVG viewBox 座標変換 (getCTM inverse)。

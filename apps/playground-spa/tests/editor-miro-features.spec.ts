@@ -85,6 +85,213 @@ test("keyboard 矢印 = 1px nudge (shift で 10px)", async ({ page }) => {
   expect(dx).toBeGreaterThan(15);
 });
 
+test("keyboard 矢印 nudge = DSL に永続化される (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXBefore = parseInt(dslBefore.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  // shift+右 5 回 = world 50px 相当の移動
+  for (let i = 0; i < 5; i++) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXAfter = parseInt(dslAfter.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  console.log(`[nudge persist] posX: ${posXBefore} → ${posXAfter}`);
+  // DSL の posX が nudge 分だけ増えている = state だけでなく DSL にも書き出された
+  expect(posXAfter).toBeGreaterThan(posXBefore + 40);
+});
+
+test("keyboard 矢印 nudge = キーリピート連打でも全押下が積算される (CAR-2158 race detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXBefore = parseInt(dslBefore.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+
+  // await を挟まず連続 dispatch = キーリピート相当。 sequential await だと 1 押下ごとに commit が
+  // 挟まるため、 base を stale に読む bug (5 連打で 10px しか進まない) を検出できない。
+  await page.evaluate(() => {
+    for (let i = 0; i < 5; i += 1) {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true, bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(700);
+
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const posXAfter = parseInt(dslAfter.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  console.log(`[nudge burst] posX: ${posXBefore} -> ${posXAfter} (delta ${posXAfter - posXBefore})`);
+  // shift+右 5 回 = 50px。 stale base だと 10px にしかならない
+  expect(posXAfter - posXBefore).toBe(50);
+});
+
+test("nudge → drag → nudge = 巻き戻らない (CAR-2158 Round 3 detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const readPosX = async (): Promise<number> => {
+    const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+    return parseInt(dsl.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  };
+
+  // 1) nudge で右に動かす
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const afterNudge1 = await readPosX();
+
+  // 2) overlay 本体を drag (stopPropagation する経路 = stage の mousedown に届かない)
+  const b1 = await overlay.boundingBox();
+  if (!b1) throw new Error("null");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b1.x + b1.width / 2 + 200, b1.y + b1.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const afterDrag = await readPosX();
+  expect(afterDrag).toBeGreaterThan(afterNudge1); // drag が効いている
+
+  // 3) 再度 nudge = drag 後の位置から進むべき (古い base に巻き戻ってはいけない)
+  for (let i = 0; i < 2; i += 1) await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(500);
+  const afterNudge2 = await readPosX();
+  console.log(`[nudge-drag-nudge] ${afterNudge1} -> drag ${afterDrag} -> nudge ${afterNudge2}`);
+  // drag 後の位置 + 20px が期待値。 base が stale だと drag 分を失って巻き戻る
+  expect(afterNudge2).toBe(afterDrag + 20);
+});
+
+test("nudge burst が drag / undo の後でも全押下積算される (CAR-2158 Round 4 race detector)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 300, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b0 = await overlay.boundingBox();
+  if (!b0) throw new Error("null");
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const readPosX = async (): Promise<number> => {
+    const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+    return parseInt(dsl.match(/posX:\s*(-?\d+)/)?.[1] ?? "0", 10);
+  };
+  const burst = async (n: number): Promise<void> => {
+    await page.evaluate((count) => {
+      for (let i = 0; i < count; i += 1) {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true, bubbles: true }));
+      }
+    }, n);
+    await page.waitForTimeout(700);
+  };
+
+  // 1 回目の burst (nudgeLastSrcRef が null の初回経路)
+  await burst(5);
+  const afterFirst = await readPosX();
+
+  // drag を挟む = src が nudge 以外の経路で変わる
+  const b1 = await overlay.boundingBox();
+  if (!b1) throw new Error("null");
+  await page.mouse.move(b1.x + b1.width / 2, b1.y + b1.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b1.x + b1.width / 2 + 100, b1.y + b1.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const afterDrag = await readPosX();
+  // drag 後に選択が外れる場合があるので確実に選び直す
+  const b2 = await overlay.boundingBox();
+  if (!b2) throw new Error("null");
+  await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+
+  // 2 回目の burst = drag 後でも 5 押下分 (50px) 進むべき。
+  // 累積が毎回捨てられると 10px (1 押下分) にしかならない。
+  await burst(5);
+  const afterSecond = await readPosX();
+  console.log(`[burst after drag] ${afterFirst} -> drag ${afterDrag} -> burst ${afterSecond} (delta ${afterSecond - afterDrag})`);
+  expect(afterSecond - afterDrag).toBe(50);
+
+  // undo を挟んでの burst も同様
+  await page.keyboard.press("Meta+z");
+  await page.waitForTimeout(700);
+  const afterUndo = await readPosX();
+  const b3 = await overlay.boundingBox();
+  if (b3) {
+    await page.mouse.move(b3.x + b3.width / 2, b3.y + b3.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  }
+  await burst(5);
+  const afterThird = await readPosX();
+  console.log(`[burst after undo] undo ${afterUndo} -> burst ${afterThird} (delta ${afterThird - afterUndo})`);
+  expect(afterThird - afterUndo).toBe(50);
+});
+
+test("Cmd+D duplicate = rotate / bg を引き継ぐ (CAR-2158 correctness fix)", async ({ page }) => {
+  await openEditor(page);
+  await drop(page, "parts-achievement", { x: 400, y: 300 });
+  const overlay = page.locator('[data-overlay-part]').first();
+  const b = await overlay.boundingBox();
+  if (!b) throw new Error("null");
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  // 色変更 (bg 付与)
+  await page.locator('[data-overlay-toolbar-btn="color"]').first().click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-overlay-color-swatch="#8b5cf6"]').click();
+  await page.waitForTimeout(500);
+  // 回転を付ける (Alt + corner drag) = rotate 継承も検証対象にする
+  const seHandle = page.locator('[data-overlay-handle="se"]').first();
+  const seBB = await seHandle.boundingBox();
+  if (!seBB) throw new Error("se handle null");
+  await page.keyboard.down("Alt");
+  await page.mouse.move(seBB.x + seBB.width / 2, seBB.y + seBB.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2 - 80, b.y + b.height / 2 + 80, { steps: 12 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+  await page.waitForTimeout(600);
+  // 再選択して Cmd+D
+  const b2 = await page.locator('[data-overlay-part]').first().boundingBox();
+  if (!b2) throw new Error("null");
+  await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  await page.keyboard.press("Meta+d");
+  await page.waitForTimeout(600);
+  const dsl = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  // bg が 2 箇所 (original + duplicate) に存在 = 複製で色が引き継がれた
+  const bgCount = (dsl.match(/bg:\s*"#8b5cf6"/g) ?? []).length;
+  // rotate も 2 箇所に存在 = 回転が引き継がれた (旧実装は rotate を捨てていた)
+  const rotateCount = (dsl.match(/rotate:\s*-?\d/g) ?? []).length;
+  console.log(`[duplicate] bg 出現数 = ${bgCount}, rotate 出現数 = ${rotateCount}`);
+  expect(bgCount).toBe(2);
+  expect(rotateCount).toBe(2);
+  expect(await page.locator('[data-overlay-part]').count()).toBe(2);
+});
+
 test("keyboard Delete = selection 削除", async ({ page }) => {
   await openEditor(page);
   await drop(page, "parts-achievement", { x: 300, y: 300 });

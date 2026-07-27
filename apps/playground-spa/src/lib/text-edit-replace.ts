@@ -33,10 +33,19 @@ export function replaceTextInDsl(src: string, originalText: string, newText: str
  * actors: block を find して block scope 内の list pattern (`- {original}`) を replace。
  *
  * block 検出 = `actors:\n` 開始、 続く indented lines を block scope、
- * 次の top-level key (`\n[a-zA-Z_-]`) or EOF で block 終了。
+ * 次の top-level key (`\n[a-zA-Z_-]:`) or EOF で block 終了。
  *
- * block 内で `- {original}\b` が 1 箇所のみ match したら該当行を replace した src を返す。
- * それ以外 (block 不在 / 0 match / 2+ match) は null (次判定段階に譲る)。
+ * 2026-07-26 CAR-2158 edge case (a) fix = block 終了判定を「top-level key の実 pattern」 に精緻化。
+ * 旧実装 `^(?![ \t])` は 空行 (indent なし) も top-level 扱いで block scope が空になり、
+ * 段階 4 の fall-through で flow の `- Client -> API` を誤置換していた。
+ * 新実装 = 空行 skip + 次の top-level key `^[a-zA-Z_][\w-]*:` 検出で block 終了。
+ *
+ * block 内で `- {original}` が YAML 境界 (行末 or 空白 or `:`) で 1 箇所のみ match したら
+ * 該当行を replace した src を返す。 それ以外 (block 不在 / 0 match / 2+ match) は null (次判定段階に譲る)。
+ *
+ * 2026-07-26 CAR-2158 edge case (b) fix = word boundary を YAML delimiter set に置換。
+ * 旧 `\b Client \b` は `Client-v2` の Client 部分にも match し substring 誤置換していた。
+ * 新 = `(?=$|[ \t:,\r\n])` の lookahead で YAML 文脈の delimiter のみ許容、 hyphen は非 delimiter 扱い。
  */
 function replaceInActorsBlock(src: string, originalText: string, newText: string, escaped: string): string | null {
   const blockStartRe = /^actors:[ \t]*\r?\n/m;
@@ -44,13 +53,15 @@ function replaceInActorsBlock(src: string, originalText: string, newText: string
   if (!blockStartMatch) return null;
   const blockStartOffset = blockStartMatch.index + blockStartMatch[0].length;
   const rest = src.slice(blockStartOffset);
-  const blockEndInRest = rest.search(/^(?![ \t])/m);
+  // top-level key detection = 行頭 identifier + `:` (indent なしで先頭に来る key)。 空行は skip。
+  const blockEndInRest = rest.search(/^[a-zA-Z_][\w-]*:/m);
   const blockEndOffset = blockEndInRest === -1 ? src.length : blockStartOffset + blockEndInRest;
   const blockBody = src.slice(blockStartOffset, blockEndOffset);
-  const actorPattern = new RegExp(`(-[ \\t]+)${escaped}(\\b)`, "g");
+  // YAML delimiter lookahead = 空白 / colon / comma / 行末 のみ許容、 hyphen は非 delimiter
+  const actorPattern = new RegExp(`(-[ \\t]+)${escaped}(?=$|[ \\t:,\\r\\n])`, "gm");
   const actorMatches = blockBody.match(actorPattern);
   if (!actorMatches || actorMatches.length !== 1) return null;
-  const replacedBlock = blockBody.replace(actorPattern, (_match, prefix: string, suffix: string) => `${prefix}${newText}${suffix}`);
+  const replacedBlock = blockBody.replace(actorPattern, (_match, prefix: string) => `${prefix}${newText}`);
   return src.slice(0, blockStartOffset) + replacedBlock + src.slice(blockEndOffset);
 }
 

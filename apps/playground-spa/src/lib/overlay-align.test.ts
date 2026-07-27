@@ -77,3 +77,77 @@ describe("alignOverlayParts", () => {
     expect(r.get("b")!.posX).toBe(0);
   });
 });
+
+describe("align が要素ごとの実幅を使う (CAR-2158 consistency detector)", () => {
+  it("幅の異なる 2 要素を右揃えすると右端が一致する", () => {
+    // 固定幅で計算する実装だと、 実幅が違う要素同士では右端が揃わない。
+    // width を明示的に与えることで、 呼び出し側が実測値を渡しているかを分離して検証できる。
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 300, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "right");
+    const rightA = (result.get("a")?.posX ?? parts[0]!.posX) + parts[0]!.width * parts[0]!.scale;
+    const rightB = (result.get("b")?.posX ?? parts[1]!.posX) + parts[1]!.width * parts[1]!.scale;
+    expect(Math.abs(rightA - rightB)).toBeLessThan(0.001);
+  });
+
+  it("scale が違う 2 要素でも実寸 (width * scale) で揃う", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 2, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 100, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "right");
+    const rightA = (result.get("a")?.posX ?? 0) + 100 * 2;
+    const rightB = (result.get("b")?.posX ?? 0) + 100 * 1;
+    expect(Math.abs(rightA - rightB)).toBeLessThan(0.001);
+  });
+
+  it("center-h も実寸基準で中心が一致する", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100 },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 300, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "center-h");
+    const centerA = (result.get("a")?.posX ?? 0) + 100 / 2;
+    const centerB = (result.get("b")?.posX ?? 0) + 300 / 2;
+    expect(Math.abs(centerA - centerB)).toBeLessThan(0.001);
+  });
+});
+
+describe("bounds 指定 = rotate 済 parts でも実 AABB で揃う (CAR-2158 Round 2)", () => {
+  it("right align = AABB の右端が一致する (posX 起点の近似だとずれる)", () => {
+    // 100x50 を左上中心に 90 度回転すると、 AABB は posX より左に張り出す。
+    // width から逆算する実装では右端を 50px 読み違える。
+    const parts = [
+      { id: "rot", posX: 100, posY: 100, scale: 1, width: 100, height: 50, bounds: { left: 50, top: 100, right: 100, bottom: 200 } },
+      { id: "plain", posX: 0, posY: 300, scale: 1, width: 100, height: 50, bounds: { left: 0, top: 300, right: 100, bottom: 350 } },
+    ];
+    const result = alignOverlayParts(parts, "right");
+    // 両者の AABB 右端が一致する
+    const rotDx = (result.get("rot")?.posX ?? 100) - 100;
+    const plainDx = (result.get("plain")?.posX ?? 0) - 0;
+    expect(100 + rotDx).toBeCloseTo(100 + plainDx, 5);
+  });
+
+  it("bottom align = AABB の下端が一致する", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100, bounds: { left: 0, top: -20, right: 100, bottom: 80 } },
+      { id: "b", posX: 0, posY: 200, scale: 1, width: 100, height: 100, bounds: { left: 0, top: 200, right: 100, bottom: 300 } },
+    ];
+    const result = alignOverlayParts(parts, "bottom");
+    const aBottom = 80 + ((result.get("a")?.posY ?? 0) - 0);
+    const bBottom = 300 + ((result.get("b")?.posY ?? 200) - 200);
+    expect(aBottom).toBeCloseTo(bBottom, 5);
+  });
+
+  it("bounds 未指定なら従来の近似で動く (後方互換)", () => {
+    const parts = [
+      { id: "a", posX: 0, posY: 0, scale: 1, width: 100, height: 100 },
+      { id: "b", posX: 50, posY: 200, scale: 1, width: 100, height: 100 },
+    ];
+    const result = alignOverlayParts(parts, "left");
+    expect(result.get("a")?.posX).toBeCloseTo(0, 5);
+    expect(result.get("b")?.posX).toBeCloseTo(0, 5);
+  });
+});

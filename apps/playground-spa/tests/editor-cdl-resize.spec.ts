@@ -1,8 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * cdl 要素 (Client / API / DB header、 arrow label) の corner drag resize 実測。
- * user 「全てのパーツや要素のサイズ変更や選択ができるように」 の実装 verify。
+ * cdl 要素 (Client / API / DB header、 arrow label) の選択 UI 実測。
+ *
+ * 2026-07-26 CAR-2158 consistency fix = 現行 spec に追従。
+ * Phase 1 (eb7b9be) で hover UI から handle 削除、 Phase 4 revert (4523bf9) で cdl の実 drag/resize を
+ * 撤去 (cdl actor の header/spacer/footer 複合構造で分裂する root cause、 CAR-2156 で core 再設計待ち)。
+ *
+ * 現行 spec:
+ *   - hover = 薄 blue dashed border のみ (handle なし)
+ *   - click 選択 = 濃 dashed border + 4 隅 handle (`[data-cdl-handle]`、 pointerEvents: none = 表示のみ)
+ *   - 実 drag/resize は overlay parts のみ対応、 cdl 要素は CAR-2156 完了後に復元
  */
 
 const BASE_URL = process.env.AI_VERIFY_BASE_URL ?? "http://localhost:4323";
@@ -14,40 +22,51 @@ async function openEditor(page: import("@playwright/test").Page): Promise<void> 
   await page.waitForTimeout(2500);
 }
 
-async function hoverAndGetCorner(page: import("@playwright/test").Page, targetLocator: string, corner: "nw" | "ne" | "sw" | "se"): Promise<{ x: number; y: number } | null> {
-  const target = page.locator(targetLocator).first();
-  const bb = await target.boundingBox();
-  if (!bb) return null;
+async function selectCdlNode(page: import("@playwright/test").Page, nodeId: string): Promise<{ x: number; y: number; width: number; height: number }> {
+  const node = page.locator(`[data-cdl-node="${nodeId}"]`).first();
+  const bb = await node.boundingBox();
+  if (!bb) throw new Error(`${nodeId} null`);
   await page.mouse.move(50, 50);
   await page.waitForTimeout(300);
   await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
   await page.waitForTimeout(400);
-  // hover 4 隅 handle は fixed 位置に描画 (pointer-events: none だが座標算出用)
-  const handleBB = await page.locator(`[data-corner="${corner}"]`).first().boundingBox();
-  if (!handleBB) return null;
-  return { x: handleBB.x + handleBB.width / 2, y: handleBB.y + handleBB.height / 2 };
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  return bb;
 }
 
-test("resize 1 = Client lane header の SE corner drag でサイズ変わる", async ({ page }) => {
+test("selection 1 = Client lane header click 選択で 4 隅 handle 表示 (実 resize は CAR-2156 待ち)", async ({ page }) => {
   await openEditor(page);
-  const target = '[data-cdl-node="client-header"]';
-  const bb0 = await page.locator(target).first().boundingBox();
-  if (!bb0) throw new Error("client-header null");
-  const seCorner = await hoverAndGetCorner(page, target, "se");
-  if (!seCorner) throw new Error("se corner null");
-  await page.mouse.move(seCorner.x, seCorner.y);
-  await page.mouse.down();
-  await page.mouse.move(seCorner.x + 80, seCorner.y + 80, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(800);
-  const bb1 = await page.locator(target).first().boundingBox();
-  if (!bb1) throw new Error("bb1 null");
-  // 拡大されていれば OK
-  console.log(`[SE drag] Client bbox: ${bb0.width}x${bb0.height} → ${bb1.width}x${bb1.height}`);
-  expect(bb1.width).toBeGreaterThan(bb0.width + 20);
+  await selectCdlNode(page, "client-header");
+  // 選択 UI = outline 1 + handle 4
+  const outlineCount = await page.locator('[data-cdl-outline]').count();
+  const handleCount = await page.locator('[data-cdl-handle]').count();
+  expect(outlineCount).toBe(1);
+  expect(handleCount).toBe(4);
+  // 4 隅 handle の corner 属性が全て揃う
+  for (const corner of ["nw", "ne", "sw", "se"]) {
+    expect(await page.locator(`[data-cdl-handle="${corner}"]`).count()).toBe(1);
+  }
 });
 
-test("resize 2 = arrow label hover で 選択枠表示 (resize 本体は cdl spec 拡張後の別 issue)", async ({ page }) => {
+test("selection 2 = 選択枠が Client 単独 bbox に追従 (SVG 全体を囲わない)", async ({ page }) => {
+  await openEditor(page);
+  const nodeBB = await selectCdlNode(page, "client-header");
+  const outline = page.locator('[data-cdl-outline]').first();
+  const outlineBB = await outline.boundingBox();
+  if (!outlineBB) throw new Error("outline null");
+  // 選択枠が対象 node の bbox に一致する。
+  // 2026-07-26 CAR-2158 fix = height を assert に追加し、 許容誤差を 25px → 3px に縮めた。
+  // 旧 test は height 未検証 + 25px 許容で、 outline が SVG 全体まで伸びる regression を pass させていた
+  // (本 spec が検証したい「SVG 全体を囲わない」 の対象そのものを見逃していた)。
+  expect(Math.abs(outlineBB.x - nodeBB.x)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.y - nodeBB.y)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.width - nodeBB.width)).toBeLessThan(3);
+  expect(Math.abs(outlineBB.height - nodeBB.height)).toBeLessThan(3);
+});
+
+test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle", async ({ page }) => {
   await openEditor(page);
   const labels = await page.locator('.v4-editor-preview svg text').evaluateAll((els) =>
     els.map((el) => ({ content: (el.textContent ?? "").slice(0, 20), r: el.getBoundingClientRect() })).filter((l) => l.content.includes("ログイン")),
@@ -56,11 +75,60 @@ test("resize 2 = arrow label hover で 選択枠表示 (resize 本体は cdl spe
   const l = labels[0]!;
   await page.mouse.move(50, 50);
   await page.waitForTimeout(300);
+  // hover = 薄 border indicator (handle なし)
   await page.mouse.move(l.r.x + l.r.width / 2, l.r.y + l.r.height / 2);
   await page.waitForTimeout(400);
-  // hover 発火 = 4 隅 handle 表示までは 実装済 (Task #79 で fix)
-  const cornerCount = await page.locator('[data-corner]').count();
-  expect(cornerCount).toBe(4);
-  // 実 resize (corner drag で label 幅変更) は cdl 側 spec に label.fontSize / label.scale field
-  // を追加する後続 issue で対応。 現状は hover 選択枠表示のみが期待挙動。
+  expect(await page.locator('[data-cdl-hover-outline]').count()).toBe(1);
+  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
+  // click 選択 = 4 隅 handle 表示
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
+});
+
+test("negative = cdl node を drag しても DSL と bbox が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+  await openEditor(page);
+  const node = page.locator('[data-cdl-node="client-header"]').first();
+  const bb0 = await node.boundingBox();
+  if (!bb0) throw new Error("client-header null");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  // node 本体を掴んで大きく drag する
+  await page.mouse.move(bb0.x + bb0.width / 2, bb0.y + bb0.height / 2);
+  await page.waitForTimeout(300);
+  await page.mouse.down();
+  await page.mouse.move(bb0.x + bb0.width / 2 + 150, bb0.y + bb0.height / 2 + 100, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const bb1 = await node.boundingBox();
+  if (!bb1) throw new Error("client-header null after drag");
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  console.log(`[cdl drag negative] x: ${Math.round(bb0.x)} → ${Math.round(bb1.x)}`);
+  // Phase 4 revert の意図通り、 cdl 要素は動かず DSL も書き換わらない
+  expect(Math.abs(bb1.x - bb0.x)).toBeLessThan(3);
+  expect(Math.abs(bb1.y - bb0.y)).toBeLessThan(3);
+  expect(dslAfter).toBe(dslBefore);
+});
+
+test("negative = cdl 選択中の handle を drag しても DSL が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+  await openEditor(page);
+  await selectCdlNode(page, "client-header");
+  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  const node = page.locator('[data-cdl-node="client-header"]').first();
+  const bb0 = await node.boundingBox();
+  if (!bb0) throw new Error("null");
+  const se = page.locator('[data-cdl-handle="se"]').first();
+  const seBB = await se.boundingBox();
+  if (!seBB) throw new Error("se handle null");
+  await page.mouse.move(seBB.x + seBB.width / 2, seBB.y + seBB.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(seBB.x + 120, seBB.y + 120, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const bb1 = await node.boundingBox();
+  if (!bb1) throw new Error("null");
+  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
+  console.log(`[cdl resize negative] w: ${Math.round(bb0.width)} → ${Math.round(bb1.width)}`);
+  expect(Math.abs(bb1.width - bb0.width)).toBeLessThan(3);
+  expect(dslAfter).toBe(dslBefore);
 });
