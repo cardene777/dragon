@@ -116,6 +116,42 @@ describe("compile 後の座標 (layout oracle)", () => {
     }
   });
 
+  it("長い actor 名を含む図で、 掴んでいない actor が横にずれない", () => {
+    // `posX` を書いた lane は幅の自動拡張を失う。 posW を併記しないと、 縮んだ幅の半分だけ
+    // 配下 node が左に寄る (実測 = AuthenticationService の node が dx -112)。
+    // declared 340 に対し header が 290px を超えると発火する = 和名 12 文字 / 英名 21 文字程度。
+    const longSrc = `title: "T"
+type: sequence
+actors:
+  - AuthenticationService
+  - Server
+  - Store
+flow:
+  - AuthenticationService -> Server: "x"
+  - Server -> Store: "y"
+  - Store -> Server: "z"
+`;
+    const lb = geom(longSrc);
+    const laneOf = (n: string): { x: number; y: number; w: number } => {
+      const hit = Object.entries(lb.lanes).find(([id]) => id.startsWith(n.toLowerCase().slice(0, 6)));
+      if (!hit) throw new Error(`lane not found: ${n}`);
+      return hit[1];
+    };
+    const ls: ActorSnapshot = {
+      name: "Server",
+      lanes: (["AuthenticationService", "Server", "Store"] as const).map((n) => {
+        const l = laneOf(n);
+        return { name: n, laneX: l.x, laneY: l.y, laneW: l.w };
+      }),
+    };
+    const la = geom(moveActorInDsl(longSrc, ls, 100));
+    for (const id of Object.keys(lb.nodes)) {
+      if (lb.nodes[id]!.lane === ls.lanes[1]!.name.toLowerCase()) continue;
+      if (la.nodes[id]!.lane === "server") continue;
+      expect(Math.abs(la.nodes[id]!.cx - lb.nodes[id]!.cx), id).toBeLessThan(2);
+    }
+  });
+
   it("clampDx の戻り値どおりに lane が動く", () => {
     // 書込み側が Math.round するので 1px 未満の丸め差は許容する
     const dx = clampDx(snap, 5000);

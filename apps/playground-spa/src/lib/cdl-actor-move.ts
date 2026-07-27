@@ -134,7 +134,20 @@ export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number)
   let out = src;
   for (const lane of snapshot.lanes) {
     const moved = lane.name === snapshot.name;
-    out = updateActorPosition(out, lane.name, lane.laneX + (moved ? clamped : 0), lane.laneY);
+    // posW も併記する。 `posX` / `posY` を書いた lane は `layoutLanes` の pin 済 branch に入り、
+    // 幅を `lane.posW ?? lane.width` = declared 値から取る。 併せて `expandLanesForNodes` も
+    // skip されるため、 **node 幅に合わせた lane の自動拡張が失われる**。
+    // node の cx は `lane.x + lane.width / 2` なので、 縮んだ幅の半分だけ配下 node が左へ寄る。
+    // 長い actor 名 (declared 340 に対し header が 290px 超、 和名 12 文字 / 英名 21 文字程度) で
+    // 発火し、 掴んでいない actor が 112-266px 横へ飛ぶ (CAR-2156 review MAJOR)。
+    // lane 高さは pin の影響を受けないので posH は書かない (書くと footer の追従が止まる)。
+    out = updateActorPosition(
+      out,
+      lane.name,
+      lane.laneX + (moved ? clamped : 0),
+      lane.laneY,
+      lane.laneW,
+    );
   }
   return out;
 }
