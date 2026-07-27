@@ -1713,8 +1713,9 @@ export function CdlEditor(): React.JSX.Element {
     if (contextMenu) setContextMenu(null);
     if (colorPickerFor) setColorPickerFor(null);
     // cdl element selection = hover 中の element があれば selection state を更新する。
-    // 2026-07-26 CAR-2158 fix = 旧実装は startElementInteraction(e) が true の時だけ selection したが、
-    // arrow label 等 findDragTarget が actor 名を解決できない element では false になり選択不能だった。
+    // 2026-07-26 CAR-2158 fix = 旧実装は drag 起動が成功した時だけ selection していたが、
+    // arrow label 等 findDragTarget が actor 名を解決できない element では起動しないため
+    // 選択そのものができなかった。 drag の可否と選択を分離して、 選択は常に成立させる。
     const applyCdlSelection = (): void => {
       if (!hoveredHandle) return;
       const selId = `cdl:${hoveredHandle.id}`;
@@ -2008,7 +2009,7 @@ export function CdlEditor(): React.JSX.Element {
             dragInfo.subNodeKey = undefined;
           }
           // canvas pivot UX 修正 (B1) = data-cdl-node の subNodeKey (`header` / `footer` / `spacer` / `s0` 等)
-          // を hoveredHandle に転写、 startElementInteraction で subNodeKey 経由 individual sub-node 経路に流す。
+          // を hoveredHandle に転写し、 sub-node 単位の hover 判定に使う。
           // subNodeKey undefined 時 (findDragTarget が親 lane / raw actor を返した場合) は前回の subNodeKey を
           // 継承して subNodeKey 消失を防ぐ (SE 境界 mouse.move で親 lane に上がっても sub-node 経路を維持)。
           const inheritedSubKey =
