@@ -87,48 +87,113 @@ test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle",
   expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
 });
 
-test("negative = cdl node を drag しても DSL と bbox が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+test("cdl drag = actor 全体 (header + footer) が一体で横移動する (CAR-2156)", async ({ page }) => {
   await openEditor(page);
-  const node = page.locator('[data-cdl-node="client-header"]').first();
-  const bb0 = await node.boundingBox();
-  if (!bb0) throw new Error("client-header null");
+  const header = page.locator('[data-cdl-node="client-header"]').first();
+  const footer = page.locator('[data-cdl-node="client-footer"]').first();
+  const h0 = await header.boundingBox();
+  const f0 = await footer.boundingBox();
+  if (!h0 || !f0) throw new Error("client header/footer null");
   const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  // node 本体を掴んで大きく drag する
-  await page.mouse.move(bb0.x + bb0.width / 2, bb0.y + bb0.height / 2);
+
+  await page.mouse.move(h0.x + h0.width / 2, h0.y + h0.height / 2);
   await page.waitForTimeout(300);
   await page.mouse.down();
-  await page.mouse.move(bb0.x + bb0.width / 2 + 150, bb0.y + bb0.height / 2 + 100, { steps: 12 });
+  await page.mouse.move(h0.x + h0.width / 2 + 120, h0.y + h0.height / 2, { steps: 12 });
   await page.mouse.up();
-  await page.waitForTimeout(700);
-  const bb1 = await node.boundingBox();
-  if (!bb1) throw new Error("client-header null after drag");
+  await page.waitForTimeout(900);
+
+  const h1 = await header.boundingBox();
+  const f1 = await footer.boundingBox();
+  if (!h1 || !f1) throw new Error("null after drag");
   const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  console.log(`[cdl drag negative] x: ${Math.round(bb0.x)} → ${Math.round(bb1.x)}`);
-  // Phase 4 revert の意図通り、 cdl 要素は動かず DSL も書き換わらない
-  expect(Math.abs(bb1.x - bb0.x)).toBeLessThan(3);
-  expect(Math.abs(bb1.y - bb0.y)).toBeLessThan(3);
-  expect(dslAfter).toBe(dslBefore);
+
+  const headerDx = h1.x - h0.x;
+  const footerDx = f1.x - f0.x;
+  console.log(`[cdl drag] header dx=${Math.round(headerDx)} footer dx=${Math.round(footerDx)}`);
+
+  const headerDy = h1.y - h0.y;
+  const footerDy = f1.y - f0.y;
+  console.log(`[cdl drag] header dy=${Math.round(headerDy)} footer dy=${Math.round(footerDy)}`);
+
+  // header が実際に移動した (drag が効いている)
+  expect(Math.abs(headerDx)).toBeGreaterThan(50);
+  // 縦にも同じだけ動く (= 動かないので両方 0 付近)。 lane に posY を書くと row 起点が動く一方
+  // lane 高さが footer 位置から再計算され、 header と footer が別々にずれる
+  // (実測 = header dy 46 に対し footer dy 8)。 その分裂を検知する。
+  expect(Math.abs(footerDy - headerDy)).toBeLessThan(5);
+  // footer も同じだけ移動した = 分裂していない (Phase 4 で revert した症状の regression detector)
+  expect(Math.abs(footerDx - headerDx)).toBeLessThan(5);
+  // DSL に座標が書き出された
+  expect(dslAfter).not.toBe(dslBefore);
+  expect(dslAfter).toContain("posX");
 });
 
-test("negative = cdl 選択中の handle を drag しても DSL が変化しない (CAR-2156 完了までの撤去保証)", async ({ page }) => {
+test("cdl drag = 掴んでいない actor の座標が変わらない (勝手な移動の regression detector)", async ({ page }) => {
   await openEditor(page);
-  await selectCdlNode(page, "client-header");
-  const dslBefore = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  const node = page.locator('[data-cdl-node="client-header"]').first();
-  const bb0 = await node.boundingBox();
-  if (!bb0) throw new Error("null");
-  const se = page.locator('[data-cdl-handle="se"]').first();
-  const seBB = await se.boundingBox();
-  if (!seBB) throw new Error("se handle null");
-  await page.mouse.move(seBB.x + seBB.width / 2, seBB.y + seBB.height / 2);
+  const readPosX = async (name: string): Promise<number | null> =>
+    await page.evaluate((n) => {
+      const dsl = document.querySelector(".cm-content")?.textContent ?? "";
+      const m = dsl.match(new RegExp(`- ${n}: \\{[^}]*posX: (-?\\d+)`));
+      return m ? Number(m[1]) : null;
+    }, name);
+
+  const dragClient = async (dx: number): Promise<void> => {
+    const bb = await page.locator('[data-cdl-node="client-header"]').first().boundingBox();
+    if (!bb) throw new Error("null");
+    await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    await page.waitForTimeout(300);
+    await page.mouse.down();
+    await page.mouse.move(bb.x + bb.width / 2 + dx, bb.y + bb.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(900);
+  };
+
+  await dragClient(60);
+  const api1 = await readPosX("API");
+  const db1 = await readPosX("DB");
+  const client1 = await readPosX("Client");
+  // 掴んでいない actor にも座標が書かれる = 以降の compile で並べ直しが起きない
+  expect(api1).not.toBeNull();
+  expect(db1).not.toBeNull();
+  expect(client1).not.toBeNull();
+
+  // 2 回目の drag でも、 掴んでいない actor の座標は 1px も変わらない。
+  // 全 actor に座標を書かないと lane の並べ直しが起きて数百 px 動く
+  // (実測 = Client を +200 したとき API が -565)。
+  await dragClient(60);
+  const api2 = await readPosX("API");
+  const db2 = await readPosX("DB");
+  const client2 = await readPosX("Client");
+  console.log(`[cdl fix] API ${api1} → ${api2} / DB ${db1} → ${db2} / Client ${client1} → ${client2}`);
+  expect(api2).toBe(api1);
+  expect(db2).toBe(db1);
+  // 掴んだ actor だけが動いている
+  expect(client2).not.toBe(client1);
+});
+
+test("cdl drag = actor 順序が入れ替わらない (Client / API / DB の x 順序保持)", async ({ page }) => {
+  await openEditor(page);
+  const readOrder = async (): Promise<string[]> =>
+    await page.evaluate(() => {
+      const ids = ["client-header", "api-header", "db-header"];
+      return ids
+        .map((id) => ({ id, x: document.querySelector(`[data-cdl-node="${id}"]`)?.getBoundingClientRect().x ?? 0 }))
+        .sort((a, b) => a.x - b.x)
+        .map((e) => e.id);
+    });
+  const before = await readOrder();
+  const header = page.locator('[data-cdl-node="client-header"]').first();
+  const bb = await header.boundingBox();
+  if (!bb) throw new Error("null");
+  // 右に少しだけ動かす (API を追い越さない範囲)
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.waitForTimeout(300);
   await page.mouse.down();
-  await page.mouse.move(seBB.x + 120, seBB.y + 120, { steps: 12 });
+  await page.mouse.move(bb.x + bb.width / 2 + 40, bb.y + bb.height / 2, { steps: 8 });
   await page.mouse.up();
-  await page.waitForTimeout(700);
-  const bb1 = await node.boundingBox();
-  if (!bb1) throw new Error("null");
-  const dslAfter = await page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
-  console.log(`[cdl resize negative] w: ${Math.round(bb0.width)} → ${Math.round(bb1.width)}`);
-  expect(Math.abs(bb1.width - bb0.width)).toBeLessThan(3);
-  expect(dslAfter).toBe(dslBefore);
+  await page.waitForTimeout(900);
+  const after = await readOrder();
+  console.log(`[cdl order] before=${before.join(",")} after=${after.join(",")}`);
+  expect(after).toEqual(before);
 });
