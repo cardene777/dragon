@@ -171,7 +171,7 @@ export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number,
       out,
       lane.name,
       lane.laneX + (moved ? clamped : 0),
-      lane.laneY,
+      lane.laneY + (moved ? dy : 0),
       lane.laneW,
     );
   }

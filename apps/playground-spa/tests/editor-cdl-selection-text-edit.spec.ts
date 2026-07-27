@@ -58,7 +58,7 @@ test("text edit 1 = SVG text の double click で input 表示", async ({ page }
   expect(await input.count()).toBe(1);
 });
 
-async function selectCdlNode(page: import("@playwright/test").Page, nodeId: string): Promise<{ x: number; y: number; width: number; height: number }> {
+async function _selectCdlNode(page: import("@playwright/test").Page, nodeId: string): Promise<{ x: number; y: number; width: number; height: number }> {
   const node = page.locator(`[data-cdl-node="${nodeId}"]`).first();
   const bbox = await node.boundingBox();
   if (!bbox) throw new Error(`${nodeId} null`);
