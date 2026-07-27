@@ -81,21 +81,41 @@ export type ActorSnapshot = {
  */
 export function clampDx(snapshot: ActorSnapshot, dx: number): number {
   const target = snapshot.lanes.find((l) => l.name === snapshot.name);
-  if (!target) return dx;
-  const others = snapshot.lanes.filter((l) => l.name !== snapshot.name);
-  const wantLeft = target.laneX + dx;
-  const wantRight = wantLeft + target.laneW;
+  if (!target || dx === 0) return dx;
+  const tLeft = target.laneX;
+  const tRight = target.laneX + target.laneW;
   let out = dx;
-  for (const o of others) {
+  for (const o of snapshot.lanes) {
+    if (o.name === snapshot.name) continue;
     const oLeft = o.laneX;
     const oRight = o.laneX + o.laneW;
-    // 右方向に寄せて o と重なる → o の左辺 - gap まで
-    if (dx > 0 && wantRight + MIN_LANE_GAP > oLeft && target.laneX + target.laneW <= oLeft) {
-      out = Math.min(out, oLeft - MIN_LANE_GAP - target.laneW - target.laneX);
+    // 現時点で既に近すぎる / 重なっている隣は、 制限をかけると「離れようとしたのに
+    // 近づく」 逆流が起きる。 そういう隣に対しては「離れる方向にだけ動かす」 に倒す。
+    // (手書き posX や本 PR 以前に保存した DSL を開くと到達しうる)
+    const overlapping = tRight + MIN_LANE_GAP > oLeft && tLeft - MIN_LANE_GAP < oRight;
+    if (overlapping) {
+      // 「離れる」 を重なり量で定義する。 中心の左右で判定すると、 一方が他方を内包する
+      // 配置 (Client [0,340] の中に Inner [50,150]) でどちらに動かしても中心比較が
+      // 通ってしまい、 重なりを増やす向きを許してしまう。
+      const overlapAt = (shift: number): number => {
+        const l = tLeft + shift - MIN_LANE_GAP;
+        const r = tRight + shift + MIN_LANE_GAP;
+        return Math.max(0, Math.min(r, oRight) - Math.max(l, oLeft));
+      };
+      if (overlapAt(dx) > overlapAt(0)) return 0;
+      continue;
+    }
+    // 右方向に寄せて o と重なる → o の左辺 - gap まで。
+    // `Math.max(0, ...)` は「限界が現在位置より手前 = 逆向きに動く」 を防ぐ保険。
+    // 現状は上の overlapping 判定が近接ケースを先に捕まえるため到達しない
+    // (mutation で外しても test は素通りする)。 overlapping の条件を変えた時に
+    // 逆流が復活しないよう残す。
+    if (dx > 0 && tRight <= oLeft) {
+      out = Math.min(out, Math.max(0, oLeft - MIN_LANE_GAP - tRight));
     }
     // 左方向に寄せて o と重なる → o の右辺 + gap まで
-    if (dx < 0 && wantLeft - MIN_LANE_GAP < oRight && target.laneX >= oRight) {
-      out = Math.max(out, oRight + MIN_LANE_GAP - target.laneX);
+    if (dx < 0 && tLeft >= oRight) {
+      out = Math.max(out, Math.min(0, oRight + MIN_LANE_GAP - tLeft));
     }
   }
   return out;

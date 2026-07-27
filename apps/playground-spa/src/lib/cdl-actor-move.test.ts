@@ -78,6 +78,23 @@ describe("moveActorInDsl", () => {
     expect(out).toMatch(/^\s+- API\s*$/m);
   });
 
+  it("escaped quote を含む alias にも座標を書ける", () => {
+    // `extractAllActorNames` が認識する alias を `updateActorPosition` が取りこぼすと、
+    // 掴んだ actor だけ座標が書かれず、 未 pin の唯一の lane として layoutLanes の
+    // cursorX = 0 に落ちる = 掴んだ actor が左端にワープする。
+    const src = 'actors:\n  - "a \\" b": { kind: x }\n  - API\n';
+    const s2: ActorSnapshot = {
+      name: 'a " b',
+      lanes: [
+        { name: 'a " b', laneX: 0, laneY: 28, laneW: 340 },
+        { name: "API", laneX: 565, laneY: 28, laneW: 340 },
+      ],
+    };
+    const out = moveActorInDsl(src, s2, 100);
+    expect(out).toMatch(/- "a \\" b": \{[^}]*posX: 100/);
+    expect(out).toMatch(/- API:.*posX: 565/);
+  });
+
   it("CRLF の DSL で行末が混在しない", () => {
     // 書き換えた行だけ `\r` が落ちると CRLF buffer に LF 行が混ざる。
     const src = "actors:\r\n  - Client\r\n  - API\r\n";
@@ -119,6 +136,53 @@ describe("clampDx (重なり防止)", () => {
   it("真ん中の actor は両方向に制限される", () => {
     expect(clampDx(snap("API"), 5000)).toBe(1130 - MIN_LANE_GAP - 340 - 565);
     expect(clampDx(snap("API"), -5000)).toBe(340 + MIN_LANE_GAP - 565);
+  });
+
+  it("MIN_LANE_GAP は 40 以上 (定数書換で assertion が追随しないよう literal で固定)", () => {
+    // 期待値を定数から組み立てる assertion だけだと、 40 → 0 の書換が素通りする。
+    expect(MIN_LANE_GAP).toBeGreaterThanOrEqual(40);
+  });
+
+  it("既に間隔が足りない隣に対して drag の向きが反転しない", () => {
+    // 限界値に下限が無いと、 右に引いたのに左へ動く (実測 = dx +5 で -30)。
+    const near: ActorSnapshot = {
+      name: "Client",
+      lanes: [
+        { name: "Client", laneX: 0, laneY: 28, laneW: 340 },
+        { name: "API", laneX: 350, laneY: 28, laneW: 340 },
+      ],
+    };
+    for (const dx of [5, 5000]) expect(clampDx(near, dx)).toBeGreaterThanOrEqual(0);
+    for (const dx of [-5, -5000]) expect(clampDx(near, dx)).toBeLessThanOrEqual(0);
+  });
+
+  it("clamp 量が元の delta を超えない / 向きを変えない", () => {
+    const cases: Array<Array<[string, number, number]>> = [
+      [["A", 0, 340], ["B", 350, 340]],
+      [["A", 0, 340], ["B", 200, 340]],
+      [["A", 0, 340], ["B", 1000, 340]],
+    ];
+    for (const lanes of cases) {
+      const sn: ActorSnapshot = { name: "A", lanes: lanes.map(([name, x, w]) => ({ name, laneX: x, laneY: 28, laneW: w })) };
+      for (const dx of [-5000, -100, -5, 5, 100, 5000]) {
+        const r = clampDx(sn, dx);
+        expect(Math.abs(r)).toBeLessThanOrEqual(Math.abs(dx));
+        expect(r === 0 || Math.sign(r) === Math.sign(dx)).toBe(true);
+      }
+    }
+  });
+
+  it("既に重なっている隣に向かっては動かさない (離れる方向は通す)", () => {
+    // drag 経路では到達しないが、 手書き posX や本 PR 以前の DSL では起こりうる。
+    const overlap: ActorSnapshot = {
+      name: "Client",
+      lanes: [
+        { name: "Client", laneX: 0, laneY: 28, laneW: 340 },
+        { name: "Server", laneX: 200, laneY: 28, laneW: 340 },
+      ],
+    };
+    expect(clampDx(overlap, 100)).toBe(0);
+    expect(clampDx(overlap, -100)).toBe(-100);
   });
 
   it("1 本しか無ければ制限しない", () => {

@@ -26,7 +26,7 @@ import {
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, type ActorSnapshot } from "@/lib/cdl-actor-move";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -1954,8 +1954,16 @@ export function CdlEditor(): React.JSX.Element {
     // DSL 書換は mouseup 1 回だけ (drag 中に書くと毎 frame 再 compile が走って重い)。
     if (cdlActorDragRef.current) {
       const st = cdlActorDragRef.current;
-      // 縦は動かさないので live preview も横だけ追従させる (mouseup 後の位置と一致させる)
-      applyLiveTransform(st.snapshot.name, e.clientX - st.startClientX, 0);
+      // 縦は動かさないので live preview も横だけ追従させる。
+      // 重なり防止の clamp も finalize と同じ条件でかける = 限界を超えて引っ張った時に
+      // cursor に付いていって mouseup で戻る、 という食い違いを無くす。
+      const dxClient = e.clientX - st.startClientX;
+      const origin = clientToSvg(st.svg, 0, 0);
+      const moved = clientToSvg(st.svg, dxClient, 0);
+      const dxWorld = moved.x - origin.x;
+      const clampedWorld = clampDx(st.snapshot, dxWorld);
+      const ratio = dxWorld === 0 ? 1 : clampedWorld / dxWorld;
+      applyLiveTransform(st.snapshot.name, dxClient * ratio, 0);
       return;
     }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
