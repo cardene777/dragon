@@ -26,7 +26,7 @@ import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, 
 import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
 import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
-import { applySvgPixelSize, readSvgScaleAttr } from "@/lib/svg-pixel-size";
+import { applySvgPixelSize, readSvgScaleAttr, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
@@ -595,6 +595,15 @@ export function CdlEditor(): React.JSX.Element {
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
+
+  // 図全体の倍率。 overlay parts の world 座標を client 座標へ直す時に要る。
+  //
+  // cdl の SVG は 1 world unit = k px で描かれる。 overlay parts は同じ world 座標に置くので、
+  // parts 側も k を掛けないと図だけが伸びて parts が取り残される。 client との往復では
+  // pan の拡大率と合わせた `pan × k` が world→client の係数になる。
+  const diagramScaleRef = useRef(1);
+  /** world 1 単位が client 何 px か。 overlay parts の座標変換はすべてこれを通す。 */
+  const worldToClient = (): number => (transformRef.current.scale || 1) * (diagramScaleRef.current || 1);
   // 2026-07-25 pan / zoom 変化時に shape client bbox re-measure = 選択 UI 追従
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -859,7 +868,7 @@ export function CdlEditor(): React.JSX.Element {
         // 旧実装は width/height を 380 固定にしていたため、 実 shape が 380 でない parts (arc-gauge 等) で
         // right / center / bottom / distribute 系の揃え位置が実際の見た目とずれていた。
         // 実測 client bbox を world 単位 (pan.scale 除算) に戻し、 未測定なら 380 に fallback する。
-        const panScaleForAlign = transformRef.current.scale || 1;
+        const panScaleForAlign = worldToClient();
         const parts = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
@@ -1394,6 +1403,7 @@ export function CdlEditor(): React.JSX.Element {
     applySvgPixelSize(svg, vb);
 
     const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: readSvgScaleAttr(svg) };
+    diagramScaleRef.current = next.k;
     const comp = panCompensation(prevViewBoxRef.current, next, transformRef.current.scale);
     prevViewBoxRef.current = next;
     if (!comp) return;
@@ -1444,6 +1454,9 @@ export function CdlEditor(): React.JSX.Element {
   // activeSample 変化 (sample 切替) 時に initialFitDoneRef をリセットして次 diagram load で fit
   useEffect(() => {
     initialFitDoneRef.current = false;
+    // 別の図に切り替わるので、 前の図の枠を打ち消しの基準に使わない。
+    // 直後の fit が pan を上書きするため実害は出ないが、 基準としては無意味な値になる。
+    prevViewBoxRef.current = null;
   }, [activeSample]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
@@ -1837,9 +1850,9 @@ export function CdlEditor(): React.JSX.Element {
     // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
     if (overlayDragRef.current) {
       const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
-      const panScale = transformRef.current.scale || 1;
-      let dx = (e.clientX - startClientX) / panScale;
-      let dy = (e.clientY - startClientY) / panScale;
+      const factor = worldToClient();
+      let dx = (e.clientX - startClientX) / factor;
+      let dy = (e.clientY - startClientY) / factor;
       // 2026-07-24 snap to grid (Task #93) = shift 押下で無効、 通常時は 20px grid に snap。
       // primary target の新 pos が grid 交点になるように delta を丸める → 全 member 同 delta 適用で相対 pos 保持。
       const GRID = 20;
@@ -2440,6 +2453,10 @@ ${newActorLine}
     setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。 元に戻すには Cmd+Z。`, 6000);
   }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty, src]);
 
+  // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
+  // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
+  const diagramK = normalizeScale(diagram?.viewport?.scale);
+
   return (
     <div className="v4-editor">
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
@@ -2855,6 +2872,9 @@ ${newActorLine}
             {diagram ? (
               <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
                 <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* 図全体の倍率。 cdl の SVG は 1 world unit = k px で描かれるので、 同じ world 座標に
+                    置く overlay parts と group 枠にも同じ k を掛ける。 掛けないと図だけが伸びて
+                    parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
                 {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
                     member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
                 {Object.entries(groups).map(([gid, memberIds]) => {
@@ -2880,10 +2900,10 @@ ${newActorLine}
                       data-group={gid}
                       style={{
                         position: "absolute",
-                        left: `${minL - 8}px`,
-                        top: `${minT - 8}px`,
-                        width: `${maxR - minL + 16}px`,
-                        height: `${maxB - minT + 16}px`,
+                        left: `${(minL - 8) * diagramK}px`,
+                        top: `${(minT - 8) * diagramK}px`,
+                        width: `${(maxR - minL + 16) * diagramK}px`,
+                        height: `${(maxB - minT + 16) * diagramK}px`,
                         border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
                         pointerEvents: isGroupSelected ? "auto" : "none",
                         borderRadius: "4px",
@@ -2942,9 +2962,9 @@ ${newActorLine}
                       ref={(el) => { overlayRefs.current[p.id] = el; }}
                       style={{
                         position: "absolute",
-                        left: `${p.posX}px`,
-                        top: `${p.posY}px`,
-                        transform: `rotate(${p.rotate}deg) scale(${p.scale})`,
+                        left: `${p.posX * diagramK}px`,
+                        top: `${p.posY * diagramK}px`,
+                        transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
                         transformOrigin: "0 0",
                         cursor: "grab",
                         userSelect: "none",
@@ -3197,7 +3217,7 @@ ${newActorLine}
                           startPosX: p.posX, startPosY: p.posY,
                           startClientW: bbox.width, startClientH: bbox.height,
                           startBboxLeft: bbox.left, startBboxTop: bbox.top,
-                          panScale: transformRef.current.scale || 1,
+                          panScale: worldToClient(),
                           panTx: transformRef.current.tx, panTy: transformRef.current.ty,
                         };
                         document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";

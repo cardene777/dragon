@@ -1,7 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { readSvgScaleAttr, scaledPixelSize } from "./svg-pixel-size";
+import { readSvgScaleAttr, scaledPixelSize, applySvgPixelSize, normalizeScale } from "./svg-pixel-size";
 
 const svg = (v: string | null) => ({ getAttribute: () => v });
+
+/** `setProperty` の呼び出しを記録するだけの SVG 代役。 */
+function fakeSvg(scaleAttr: string | null) {
+  const calls: Array<[string, string, string]> = [];
+  return {
+    calls,
+    el: {
+      getAttribute: () => scaleAttr,
+      style: {
+        setProperty: (name: string, value: string, priority?: string) => {
+          calls.push([name, value, priority ?? ""]);
+        },
+      },
+    } as unknown as SVGSVGElement,
+  };
+}
 
 describe("readSvgScaleAttr", () => {
   it("属性が無ければ 1", () => {
@@ -44,5 +60,53 @@ describe("scaledPixelSize", () => {
       const p = scaledPixelSize(vb, k);
       expect(p.w / p.h).toBeCloseTo(vb.width / vb.height, 10);
     }
+  });
+});
+
+describe("normalizeScale", () => {
+  it("cdl と同じ規則で丸める", () => {
+    expect(normalizeScale(undefined)).toBe(1);
+    expect(normalizeScale(null)).toBe(1);
+    expect(normalizeScale(1.25)).toBe(1.25);
+    expect(normalizeScale(100)).toBe(8);
+    expect(normalizeScale(0.001)).toBe(0.125);
+    for (const bad of [0, -1, NaN, Infinity]) {
+      expect(normalizeScale(bad), String(bad)).toBe(1);
+    }
+  });
+});
+
+describe("applySvgPixelSize", () => {
+  it("幅 / 高さ / max-width を important 付きで焼き込む", () => {
+    const { calls, el } = fakeSvg(null);
+    applySvgPixelSize(el, { width: 800, height: 400 });
+    expect(calls).toEqual([
+      ["width", "800px", "important"],
+      ["height", "400px", "important"],
+      ["max-width", "none", "important"],
+    ]);
+  });
+
+  it("important を必ず付ける", () => {
+    // `editor.css` の `.v4-editor-svg-wrap svg` が `width: var(--cdl-svg-w, 800px) !important`
+    // を持つ。 important を落とすと stylesheet 側が勝ち、 図が 800x600 に潰れる。
+    const { calls, el } = fakeSvg("2");
+    applySvgPixelSize(el, { width: 100, height: 50 });
+    for (const [name, , priority] of calls) {
+      expect(priority, name).toBe("important");
+    }
+  });
+
+  it("倍率を掛けた値を焼き込む", () => {
+    const { calls, el } = fakeSvg("1.5");
+    const out = applySvgPixelSize(el, { width: 800, height: 400 });
+    expect(out).toEqual({ w: 1200, h: 600 });
+    expect(calls[0]).toEqual(["width", "1200px", "important"]);
+    expect(calls[1]).toEqual(["height", "600px", "important"]);
+  });
+
+  it("倍率が無ければ viewBox 実寸をそのまま焼き込む", () => {
+    const { el } = fakeSvg(null);
+    expect(applySvgPixelSize(el, { width: 1769.12, height: 1032 })).toEqual({ w: 1769.12, h: 1032 });
   });
 });

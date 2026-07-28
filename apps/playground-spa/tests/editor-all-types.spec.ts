@@ -147,3 +147,107 @@ test("flow では縦にも drag できる (時系列軸を持たない type)", a
   expect(after).not.toBe(before);
   expect(after).toContain("posY");
 });
+
+/**
+ * 図全体を拡大した時、 canvas に置いた部品 (overlay parts) も一緒に拡大する。
+ *
+ * 部品は cdl の図と同じ world 座標に置かれるが、 cdl の SVG は 1 world unit = 倍率 k px で
+ * 描かれる。 部品側に k を掛けないと図だけが伸びて部品がその場に取り残される。
+ *
+ * 倍率が画面上で何も変えなかった間は、 この不整合は起こりようがなかった (どちらも動かない)。
+ * 倍率が効くようになって初めて表に出る。
+ */
+
+/** 部品を 1 つ canvas に置く。 */
+async function dropPart(page: import("@playwright/test").Page): Promise<void> {
+  await page.goto("/editor");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+  await page.locator('[data-testid="editor-parts-tab"]').click();
+  await page.waitForTimeout(400);
+  const stage = page.locator('[data-testid="editor-preview-stage"]');
+  await page.locator('[data-testid="editor-part-item-parts-achievement"]').dragTo(stage, {
+    targetPosition: { x: 300, y: 300 },
+  });
+  await page.waitForTimeout(1000);
+}
+
+test("図を拡大すると canvas の部品も同じ倍率で拡大する", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await dropPart(page);
+
+  const read = async () =>
+    await page.evaluate(() => {
+      const node = document.querySelector("[data-cdl-node]")!.getBoundingClientRect();
+      const part = document.querySelector("[data-overlay-part]")!.getBoundingClientRect();
+      return { nodeW: node.width, nodeH: node.height, partW: part.width, partH: part.height };
+    });
+
+  const before = await read();
+  await page.locator('[data-testid="editor-diagram-scale-up"]').click();
+  await page.waitForTimeout(1200);
+  const after = await read();
+
+  // 図と部品が同じ倍率で拡大する (片方だけ動くと部品が図から外れる)
+  expect(after.nodeW / before.nodeW, "図の倍率").toBeCloseTo(1.25, 2);
+  expect(after.partW / before.partW, "部品の倍率").toBeCloseTo(1.25, 2);
+  expect(after.partH / before.partH, "部品の縦倍率").toBeCloseTo(1.25, 2);
+  expect(errors, "JS エラー").toEqual([]);
+});
+
+test("拡大した状態でも部品を drag した分だけ動く", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await dropPart(page);
+  await page.locator('[data-testid="editor-diagram-scale-up"]').click();
+  await page.waitForTimeout(1200);
+
+  // client 座標 → world 座標の変換に倍率を入れ忘れると、 倍率の分だけ移動量がずれる
+  // (1.25 倍なら指定の 1.25 倍動く = 100px 指定で 125px 動く)。
+  //
+  // shift 押下で 20 world unit の grid 吸着を切る。 吸着したままだと丸め分の許容が
+  // 必要になり、 倍率を掛け忘れた時のずれ (25px) が許容内に収まって検知できない。
+  const part = page.locator("[data-overlay-part]").first();
+  const b = (await part.boundingBox())!;
+  await page.keyboard.down("Shift");
+  await page.mouse.move(b.x + 20, b.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 20 + 100, b.y + 20 + 60, { steps: 10 });
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(700);
+  const a = (await part.boundingBox())!;
+
+  expect(a.x - b.x, "横の移動量").toBeCloseTo(100, 0);
+  expect(a.y - b.y, "縦の移動量").toBeCloseTo(60, 0);
+  expect(errors, "JS エラー").toEqual([]);
+});
+
+test("拡大した状態で図の要素を drag しても drag した分だけ動く", async ({ page }) => {
+  // 図枠 (viewBox) の移動を打ち消す補正が、 倍率込みで計算されているかを見る。
+  //
+  // 補正量は `pan × k × Δ枠原点`。 k を落とすと倍率を上げた時だけ補正が足りなくなり、
+  // 動かした要素の移動量が指定より小さくなる。 倍率 1 では k = 1 なので、 倍率を
+  // 上げた状態で測らないとこの取りこぼしは見えない。
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await openSample(page, "sequence");
+  await page.locator('[data-testid="editor-diagram-scale-up"]').click();
+  await page.waitForTimeout(1200);
+
+  const header = page.locator('[data-cdl-node="client-header"]').first();
+  const b = (await header.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(300);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2 + 150, b.y + b.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(1000);
+  const a = (await header.boundingBox())!;
+
+  // drag した 150px 分だけ動く (補正が足りないと 150 未満になる)
+  expect(a.x - b.x, "横の移動量").toBeGreaterThan(120);
+  expect(a.x - b.x, "横の移動量").toBeLessThan(180);
+  expect(errors, "JS エラー").toEqual([]);
+});
