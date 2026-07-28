@@ -162,7 +162,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "5" ]]; then
     RESULT_L5="skip"
   else
     require_server "$PROD_BASE_URL/editor" "本番 preview"
-    if npx playwright test tests/prod-check.spec.ts tests/a11y-check.spec.ts --reporter=list --timeout=45000 2>&1 | tee "$LOG_DIR/editor-test-l5.log"; then
+    if npx playwright test tests/prod-check.spec.ts tests/a11y-check.spec.ts tests/final-check.spec.ts --reporter=list --timeout=45000 2>&1 | tee "$LOG_DIR/editor-test-l5.log"; then
       RESULT_L5="pass"
     else
       RESULT_L5="fail"
