@@ -1,8 +1,9 @@
 /**
  * 図そのもののサイズ変更 (CAR-2160)。
  *
- * `viewport: { scale: k }` を書くだけ。 cdl 側が座標系ごと `<g transform="scale(k)">` で
- * 包み viewBox も k 倍するため、 箱 / 文字 / 線 / 間隔のすべてが等比で拡大縮小される。
+ * `viewport: { scale: k }` を書くだけ。 cdl 側が SVG の表示幅を親幅の k 倍にするため、
+ * 箱 / 文字 / 線 / 間隔のすべてが等比で拡大縮小される。 viewBox は等倍のままなので
+ * 座標系は変わらず、 当たり判定や座標の読み書きは倍率の影響を受けない。
  *
  * ## なぜ laneWidth / laneGap / nodeGap ではないか
  *

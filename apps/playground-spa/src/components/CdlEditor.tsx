@@ -1359,7 +1359,7 @@ export function CdlEditor(): React.JSX.Element {
       setTransform({ tx: 0, ty: 0, scale: 1 });
       return;
     }
-    const px = applySvgPixelSize(svg, vb);
+    const px = applySvgPixelSize(svg, vb, diagramK);
     // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
     // 追加 = CdlDiagramView は SVG の上に CdlHeader (phase progress / topic) を並べて描画するため、
     // pan 内の高さは (SVG 高) + (Header 高)。 SVG element の外に兄弟 element がある場合、
@@ -1384,7 +1384,7 @@ export function CdlEditor(): React.JSX.Element {
     const tx = (previewRect.width - px.w * scale) / 2;
     const ty = (previewRect.height - contentUnscaledH * scale) / 2;
     setTransform({ tx, ty, scale });
-  }, []);
+  }, [diagramK]);
 
   // 図が描き直される度に表示サイズを焼き直し、 図枠が動いた分を pan で打ち消す。
   //
@@ -1409,7 +1409,7 @@ export function CdlEditor(): React.JSX.Element {
     if (!svg) return;
     const vb = svg.viewBox.baseVal;
     if (!vb || vb.width === 0 || vb.height === 0) return;
-    applySvgPixelSize(svg, vb);
+    applySvgPixelSize(svg, vb, diagramK);
 
     const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: diagramK };
     const comp = panCompensation(prevViewBoxRef.current, next, transformRef.current.scale);
