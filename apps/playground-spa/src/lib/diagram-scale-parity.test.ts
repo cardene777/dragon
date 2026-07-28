@@ -78,6 +78,31 @@ describe("倍率の読み書きが parser の実値と一致する", () => {
     }
   });
 
+  it("block の終端判定の境界で parser と食い違わない", () => {
+    // parser は「空行は読み飛ばす / 字下げが親以下で終了」。 空白の種類や
+    // 字下げ幅で判定が変わると、 その行より後ろの field が見えなくなる。
+    const CASES: Array<[string, string]> = [
+      ["タブのみの行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n\t\n  nodeGap: 40\n${TAIL}`],
+      ["全角空白の行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n　\n  nodeGap: 40\n${TAIL}`],
+      ["字下げ 1 空白", `title: "T"\ntype: sequence\nviewport:\n laneGap: 300\n${TAIL}`],
+      ["block 内が空", `title: "T"\ntype: sequence\nviewport:\n${TAIL}`],
+      ["block 直後に別 key", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\nactors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n`],
+    ];
+    for (const [name, src] of CASES) {
+      const out = setDiagramScale(src, 1.5);
+      expect(parserScale(out), `${name} の parser 実値`).toBe(1.5);
+      expect(readDiagramScale(out), `${name} の読み戻し`).toBe(1.5);
+    }
+  });
+
+  it("scale が無い DSL は倍率 1 として読む (parser の undefined と同義)", () => {
+    // parser は未指定を undefined で返し、 こちらは既定値 1 を返す。 表記は違うが
+    // 「倍率 1」 という意味は同じ。 呼び出し側は 1 を基準に増減するのでこれでよい。
+    const src = `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n${TAIL}`;
+    expect(parserScale(src)).toBeUndefined();
+    expect(readDiagramScale(src)).toBe(1);
+  });
+
   it("倍率を繰り返し変えても parser の実値が追従する", () => {
     let src = `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n${TAIL}`;
     for (const k of [1.25, 1.5, 2, 0.8, 1.1]) {

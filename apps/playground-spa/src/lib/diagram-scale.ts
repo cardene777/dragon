@@ -58,7 +58,7 @@ export function setDiagramScale(src: string, scale: number): string {
   }
   for (let i = inlineIdx; i >= 0 && i < segments.length; i += 2) {
     const m = segments[i]!.match(/^([ \t]*viewport[ \t]*:[ \t]*)\{(.*)\}([ \t]*)$/);
-    if (!m) continue;
+    if (!m) break;
     const kept = splitTop(m[2]!).filter((f) => f.slice(0, f.indexOf(":")).trim() !== "scale");
     const merged = [...kept, ...(field ? [field] : [])].join(", ");
     if (merged.length === 0) {
