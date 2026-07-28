@@ -44,6 +44,10 @@ export function readDiagramScale(src: string): number {
 export function setDiagramScale(src: string, scale: number): string {
   const s = clampDiagramScale(scale);
   const field = Math.abs(s - 1) < 0.001 ? null : `scale: ${Math.round(s * 1000) / 1000}`;
+  // block 形式は行を跨ぐので別経路で扱う。 inline に書き換えると user の記法を
+  // 勝手に変えてしまうため、 block のまま `  scale: k` を足す / 差し替える。
+  if (isBlockViewport(src)) return setScaleInBlockViewport(src, field);
+
   const segments = src.split(/(\r\n|\n)/);
   for (let i = 0; i < segments.length; i += 2) {
     const m = segments[i]!.match(/^([ \t]*viewport[ \t]*:[ \t]*)\{(.*)\}([ \t]*)$/);
@@ -63,19 +67,94 @@ export function setDiagramScale(src: string, scale: number): string {
   for (let i = 0; i < segments.length; i += 2) {
     if (!/^[ \t]*type[ \t]*:/.test(segments[i]!)) continue;
     const sep = segments[i + 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
-    segments.splice(i + 2, 0, `viewport: { ${field} }`, sep);
+    if (i + 1 >= segments.length) {
+      // `type:` が最終行 = 後ろに separator が無い。 このまま splice すると
+      // `type: sequenceviewport: { scale: 1.5 }` と連結する (実測)。 改行を先に置く。
+      segments.push(sep, `viewport: { ${field} }`);
+    } else {
+      segments.splice(i + 2, 0, `viewport: { ${field} }`, sep);
+    }
     return segments.join("");
   }
   return `viewport: { ${field} }\n${src}`;
 }
 
-/** `viewport: { ... }` の中身を返す。 無ければ null。 */
+/**
+ * `viewport` の中身を返す。 無ければ null。
+ *
+ * DSL は 2 形式を受理する (`packages/dragon/src/v05/parser.ts`)。
+ *
+ *   inline = `viewport: { laneGap: 300, scale: 1.5 }`
+ *   block  = `viewport:` の次行以降に `  laneGap: 300` を字下げして並べる
+ *
+ * inline しか見ないと、 block 形式の DSL に 2 つ目の `viewport` を作ってしまう。
+ * parser は後勝ちで block 側を採用するため、 倍率が無言で効かなくなる (実測)。
+ */
 function readViewportInner(src: string): string | null {
-  for (const line of src.split(/\r?\n/)) {
-    const m = line.match(/^[ \t]*viewport[ \t]*:[ \t]*\{(.*)\}[ \t]*$/);
-    if (m) return m[1]!;
+  const lines = src.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const inline = lines[i]!.match(/^[ \t]*viewport[ \t]*:[ \t]*\{(.*)\}[ \t]*$/);
+    if (inline) return inline[1]!;
+    // block 形式 = `viewport:` の後に値が無く、 次行以降が字下げされている
+    if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(lines[i]!)) {
+      const fields: string[] = [];
+      for (let j = i + 1; j < lines.length; j += 1) {
+        const f = lines[j]!.match(/^[ \t]+([a-zA-Z][\w-]*)[ \t]*:[ \t]*(.+?)[ \t]*$/);
+        if (!f) break;
+        fields.push(`${f[1]}: ${f[2]}`);
+      }
+      return fields.join(", ");
+    }
   }
   return null;
+}
+
+/**
+ * block 形式の `viewport` に scale を upsert する。
+ *
+ * `field` が null (倍率 1) なら既存の `scale:` 行を消す。 block 自体は残す =
+ * 他の field が消えるのを避ける。
+ */
+function setScaleInBlockViewport(src: string, field: string | null): string {
+  const segments = src.split(/(\r\n|\n)/);
+  let headIdx = -1;
+  for (let i = 0; i < segments.length; i += 2) {
+    if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(segments[i]!)) { headIdx = i; break; }
+  }
+  if (headIdx < 0) return src;
+
+  // block の範囲 (字下げが続く限り) と、 既存 scale 行を探す
+  let lastIdx = headIdx;
+  let scaleIdx = -1;
+  let indent = "  ";
+  for (let i = headIdx + 2; i < segments.length; i += 2) {
+    const m = segments[i]!.match(/^([ \t]+)([a-zA-Z][\w-]*)[ \t]*:/);
+    if (!m) break;
+    lastIdx = i;
+    indent = m[1]!;
+    if (m[2] === "scale") scaleIdx = i;
+  }
+
+  if (field === null) {
+    if (scaleIdx < 0) return src;
+    // scale 行とその separator を消す
+    segments.splice(scaleIdx, segments[scaleIdx + 1] === undefined ? 1 : 2);
+    return segments.join("");
+  }
+  if (scaleIdx >= 0) {
+    segments[scaleIdx] = `${indent}${field}`;
+    return segments.join("");
+  }
+  // block の末尾に足す
+  const sep = segments[lastIdx + 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+  if (lastIdx + 1 >= segments.length) segments.push(sep, `${indent}${field}`);
+  else segments.splice(lastIdx + 2, 0, `${indent}${field}`, sep);
+  return segments.join("");
+}
+
+/** DSL の `viewport` が block 形式かを判定する。 */
+function isBlockViewport(src: string): boolean {
+  return src.split(/\r?\n/).some((l) => /^[ \t]*viewport[ \t]*:[ \t]*$/.test(l));
 }
 
 /** brace 深さを数えて top-level の `,` でだけ分割する。 */

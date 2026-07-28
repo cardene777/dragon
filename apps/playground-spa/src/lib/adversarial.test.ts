@@ -70,6 +70,22 @@ describe("edge-stretch — 壊しに行く入力", () => {
     }
   });
 
+  it("先頭に空白がある path を拒否しない (SVG 仕様上は正常)", () => {
+    // 拒否すると正常な path で矢印が追従しなくなる。
+    expect(parsePathD(" M 0 0 L 10 0")).not.toBeNull();
+    expect(parsePathD("\n  M 0 0 L 10 0")).not.toBeNull();
+    expect(shiftPathEnd(" M 0 0 L 10 0", "end", 5, 0)).toContain("15");
+  });
+
+  it("A の引数が足りない path で半径を座標と誤認しない", () => {
+    // A は末尾 2 つが座標で、 その前に 5 引数を要する。 個数を見ないと
+    // `"M 0 0 A 5 5"` の rx を座標と誤認して `"M 0 0 A 10 5"` を返す = 別の弧になる。
+    expect(shiftPathEnd("M 0 0 A 5 5", "end", 5, 0)).toBeNull();
+    expect(shiftPathEnd("M 0 0 A 5 5 0", "end", 5, 0)).toBeNull();
+    // 7 引数揃っていれば末尾だけ動く
+    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "end", 5, 0)).toBe("M 0 0 A 5 5 0 0 1 15 10");
+  });
+
   it("空文字の actor 名で誤検出しない", () => {
     expect(edgeSideFor("s0-client", "s0-api", "", "")).toBeNull();
   });
@@ -133,6 +149,44 @@ describe("diagram-scale — 壊しに行く入力", () => {
   it("1 に戻すと viewport 行ごと消えて元の DSL に一致する", () => {
     const base = 'title: "T"\ntype: sequence\nactors:\n  - A\n';
     expect(setDiagramScale(setDiagramScale(base, 2), 1)).toBe(base);
+  });
+
+  it("type が最終行 (末尾改行なし) でも行が連結しない", () => {
+    // splice の位置を誤ると `type: sequenceviewport: { scale: 1.5 }` と繋がる (実測)。
+    const out = setDiagramScale('title: "T"\ntype: sequence', 1.5);
+    expect(out).toBe('title: "T"\ntype: sequence\nviewport: { scale: 1.5 }');
+    expect(out, "行が繋がっていない").not.toMatch(/sequenceviewport/);
+  });
+
+  it("block 形式の viewport に 2 つ目を作らない", () => {
+    // DSL は inline と block の 2 形式を受理する。 inline しか見ないと block 形式に
+    // 2 つ目の viewport を作り、 parser が後勝ちで block を採用して倍率が効かなくなる。
+    const src = 'type: sequence\nviewport:\n  laneGap: 300\nactors:\n  - A\n';
+    const out = setDiagramScale(src, 1.5);
+    expect((out.match(/viewport:/g) ?? []).length, "viewport の数").toBe(1);
+    expect(out, "block のまま scale が入る").toContain("  scale: 1.5");
+    expect(out, "既存 field が残る").toContain("  laneGap: 300");
+  });
+
+  it("block 形式でも読み書きが往復する", () => {
+    const src = 'type: sequence\nviewport:\n  laneGap: 300\nactors:\n  - A\n';
+    expect(readDiagramScale(setDiagramScale(src, 2))).toBe(2);
+  });
+
+  it("block 形式で倍率 1 に戻すと scale 行だけ消える", () => {
+    const src = 'type: sequence\nviewport:\n  laneGap: 300\nactors:\n  - A\n';
+    const out = setDiagramScale(setDiagramScale(src, 2), 1);
+    expect(out).not.toContain("scale:");
+    expect(out, "他 field は残る").toContain("  laneGap: 300");
+    expect(out, "block 自体も残る").toContain("viewport:");
+  });
+
+  it("block 形式の viewport が最終行でも壊れない", () => {
+    const src = 'type: sequence\nviewport:\n  laneGap: 300';
+    const out = setDiagramScale(src, 1.5);
+    expect((out.match(/viewport:/g) ?? []).length).toBe(1);
+    expect(out).toContain("scale: 1.5");
+    expect(out, "行が繋がっていない").not.toMatch(/300[ \t]*scale/);
   });
 
   it("不正な倍率は 1 に倒す", () => {

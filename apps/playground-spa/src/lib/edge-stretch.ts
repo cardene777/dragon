@@ -21,7 +21,9 @@ export function parsePathD(d: string): PathToken[] | null {
   const tokens: PathToken[] = [];
   const re = /([MLCQATZmlcqatz])([^MLCQATZmlcqatz]*)/g;
   let m: RegExpExecArray | null;
-  let matchedLen = 0;
+  // 先頭の空白は許す。 拒否すると `" M 0 0 L 10 0"` のような正常な path で
+  // 矢印が追従しなくなる (SVG 仕様上、 command の前後の空白は有効)。
+  let matchedLen = d.length - d.trimStart().length;
   while ((m = re.exec(d)) !== null) {
     matchedLen += m[0]!.length;
     const cmd = m[1]!;
@@ -105,6 +107,10 @@ export function shiftPathEnd(d: string, side: "start" | "end" | "both", dx: numb
   const target = side === "start" ? tokens[0] : tokens[tokens.length - 1];
   if (!target) return null;
   if (coordPairCount(target.cmd) === 0) return null;
+  // A は末尾 2 つが座標で、 その前に 5 引数 (rx ry rot large sweep) を要する。
+  // 個数を確認しないと `"M 0 0 A 5 5"` (引数不足) の rx を座標と誤認して
+  // `"M 0 0 A 10 5"` を返す = 半径が書き換わった別の弧になる (実測)。
+  if (target.cmd === "A" && target.nums.length < 7) return null;
   if (side === "start") {
     if (target.nums.length < 2) return null;
     target.nums[0] = target.nums[0]! + dx;
