@@ -103,6 +103,24 @@ describe("倍率の読み書きが parser の実値と一致する", () => {
     expect(readDiagramScale(src)).toBe(1);
   });
 
+  it("字下げされた top-level viewport も parser と同じく採用する", () => {
+    // parser の主 loop は `matchTopHeader(line.trimmed)` を呼ぶだけで indent を見ない
+    // (`parser.ts:396-402`)。 字下げ行が無視されるのは直前の block が消費した場合だけなので、
+    // block を開かない key の直後にある字下げ `viewport:` は top-level として採用される。
+    //
+    // ここを「字下げなしのみ head」 に狭めると、 parser が採用する viewport を見落として
+    // 「書いたのに効かない」 食い違いが再発する (実測で 1 度作り込んで revert した)。
+    const CASES: Array<[string, string]> = [
+      ["字下げ inline", `title: "T"\ntype: sequence\n  viewport: { scale: 2 }\n${TAIL}`],
+      ["字下げ block", `title: "T"\ntype: sequence\n  viewport:\n    scale: 2\n${TAIL}`],
+    ];
+    for (const [name, src] of CASES) {
+      expect(readDiagramScale(src), `${name} の読み`).toBe(parserScale(src));
+      const out = setDiagramScale(src, 1.5);
+      expect(parserScale(out), `${name} の書込後`).toBe(1.5);
+    }
+  });
+
   it("倍率を繰り返し変えても parser の実値が追従する", () => {
     let src = `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n${TAIL}`;
     for (const k of [1.25, 1.5, 2, 0.8, 1.1]) {
