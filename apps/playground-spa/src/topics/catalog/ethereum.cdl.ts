@@ -66,7 +66,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
   .phase("p3", {
     duration: 3000,
     title: "③ 数字を付け替える",
-    body: "送り手から 250 を引き、 受け手に 250 を足す。 トークンが移動するのではなく、 表の数字が同時に書き換わるだけ。 合計は 1000 のまま変わらない。",
+    body: "送り手から 250 を引き、 受け手に 250 を足す。 トークンという物が移動するのではなく、 契約が持つ表の数字が同時に書き換わるだけ。 2 人の合計は 1000 のまま変わらない。",
   }, (p: PhaseBuilder) => p.activate("alice").activate("bob").tween("balA", 1000, 750).tween("balB", 0, 250).tween("moved", 0, 250).badge("書き換え"))
   .phase("p4", {
     duration: 2000,
@@ -118,12 +118,12 @@ export const eip1559Gas = diagram("eth-eip1559-gas", {
   .phase("p1", {
     duration: 2200,
     title: "① 目標ちょうどのとき",
-    body: "ブロックの使用率が目標の 50% なら、 基礎手数料は据え置き。 空いても混んでもいない状態。",
+    body: "1 ブロックに詰められる量には上限があり、 その半分が目標。 ちょうど目標なら基礎手数料は据え置きで、 空いても混んでもいない状態。",
   }, (p: PhaseBuilder) => p.activate("gauge").badge("据え置き"))
   .phase("p2", {
     duration: 3000,
     title: "② 混んできたとき",
-    body: "使用率が 50% を超えると、 次のブロックの基礎手数料が上がる。 1 ブロックで最大 12.5% までしか動かないので急騰はしない。",
+    body: "目標を超えて詰まると、 次のブロックの基礎手数料が上がる。 1 ブロックあたり最大 12.5% までしか動かないので、 一気に跳ね上がることはない。",
   }, (p: PhaseBuilder) => p.activate("gauge").activate("basefee").tween("usage", 50, 95).tween("usageDeg", 135, 257).tween("base", 20, 45).badge("上がる"))
   .phase("p3", {
     duration: 2400,
@@ -133,7 +133,7 @@ export const eip1559Gas = diagram("eth-eip1559-gas", {
   .phase("p4", {
     duration: 3000,
     title: "④ 空いてきたとき",
-    body: "使用率が 50% を下回ると基礎手数料は下がる。 混雑が続かない限り自動的に元の水準へ戻っていく。",
+    body: "目標を下回ると基礎手数料は下がる。 混雑が続かない限り自動的に元の水準へ戻っていく。 誰かが調整しているわけではなく、 式で決まる。",
   }, (p: PhaseBuilder) => p.activate("gauge").activate("basefee").tween("usage", 95, 20).tween("usageDeg", 257, 54).tween("base", 45, 18).tween("burn", 45, 63).tween("tip", 5, 2).badge("下がる"))
   .build();
 
@@ -190,12 +190,12 @@ export const erc4337Flow = diagram("eth-erc4337-flow", {
   .phase("p3", {
     duration: 3000,
     title: "③ 財布が自分で正しさを判断する",
-    body: "入口の契約が各財布に「これはあなたの意思か」 と尋ねる。 判断の仕方は財布ごとに自由に決められる。 ここが従来と最も違う点。",
+    body: "入口の契約が各財布に「これはあなたの意思か」 と尋ね、 財布側の判定に従う。 判定の仕方は財布ごとに自由に書ける。 秘密鍵の照合に固定されていない点が従来と最も違う。",
   }, (p: PhaseBuilder) => p.activate("entrypoint").tween("checked", 0, 100).tween("checkedDeg", 0, 270).badge("検証"))
   .phase("p4", {
     duration: 2400,
     title: "④ 手数料を肩代わりしてもらう",
-    body: "手数料を別の誰かが払える。 利用者はガス代を持っていなくても取引できる。 サービス側が負担する使い方が典型例。",
+    body: "手数料を肩代わりする契約を挟める。 利用者は手数料用の通貨を持っていなくても取引できる。 サービス側が負担する使い方が典型例。",
   }, (p: PhaseBuilder) => p.activate("entrypoint").tween("gasPaid", 0, 180).tween("ops", 5, 0).badge("実行完了"))
   .build();
 
@@ -247,7 +247,7 @@ export const blockProduction = diagram("eth-block-production", {
   .phase("p2", {
     duration: 2200,
     title: "② 提案者が選ばれる",
-    body: "12 秒ごとに 1 人が提案者に選ばれる。 誰が選ばれるかは事前に決まっているが、 予測しにくい仕組みになっている。",
+    body: "12 秒ごとに 1 人が提案者に選ばれる。 誰が選ばれるかは抽選で事前に決まるが、 直前まで公表されないので狙い撃ちされにくい。",
   }, (p: PhaseBuilder) => p.activate("picker").badge("担当が決まる"))
   .phase("p3", {
     duration: 3000,
@@ -257,11 +257,11 @@ export const blockProduction = diagram("eth-block-production", {
   .phase("p4", {
     duration: 2800,
     title: "④ 他の検証者が確かめる",
-    body: "他の検証者がブロックの正しさを確認して賛成票を投じる。 十分な賛成が集まらなければ、 このブロックは捨てられる。",
+    body: "他の検証者がブロックの正しさを確認して賛成票を投じる。 賛成が集まらないブロックは次の提案者に選ばれず、 鎖から外れる。",
   }, (p: PhaseBuilder) => p.activate("voters").activate("newblock").tween("votes", 0, 78).tween("votesDeg", 0, 211).badge("賛成を集める"))
   .phase("p5", {
     duration: 2400,
     title: "⑤ 確定する",
-    body: "3 分の 2 を超える賛成でブロックが鎖につながる。 さらに 2 回分の時間が経つと、 覆すことが事実上できなくなる。",
+    body: "賛成が全体の 3 分の 2 を超え、 それが 2 期間 (約 13 分) 続くと、 このブロックは覆せなくなる。 それまでは理論上、 別の鎖に置き換わる余地が残っている。",
   }, (p: PhaseBuilder) => p.activate("voters").tween("votes", 78, 96).tween("votesDeg", 211, 259).badge("覆せない"))
   .build();

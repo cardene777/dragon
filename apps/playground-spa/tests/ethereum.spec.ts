@@ -57,8 +57,16 @@ for (const id of DIAGRAMS) {
         return shapes.map((s) => s.getAttribute("d") ?? s.getAttribute("y") ?? "").join("|");
       });
     const before = await snapshot();
-    await page.waitForTimeout(6000);
-    const after = await snapshot();
+    // 固定待ちだと、 他 spec と連続実行して browser が重い時に phase が進み切らず落ちる
+    // (実測 = 単独なら 6 秒で通るが、 56 件の後半で 1 件だけ fail)。
+    // 変化するまで待つ形にして、 負荷の差で結果が変わらないようにする。
+    let after = before;
+    const deadline = Date.now() + 20000;
+    while (Date.now() < deadline) {
+      await page.waitForTimeout(500);
+      after = await snapshot();
+      if (after !== before) break;
+    }
     expect(after, `${id} の図形が phase で変化する`).not.toBe(before);
   });
 }

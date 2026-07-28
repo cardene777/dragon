@@ -138,7 +138,13 @@ export function HomePage(): React.ReactElement {
               {" 1.4s"}
             </pre>
             <div className="canvas-stage">
-              <svg viewBox="0 0 600 380" preserveAspectRatio="xMidYMid meet">
+              {/* 左の記法と対になる図解。 読み上げでも何の図か分かるよう名前を付ける */}
+              <svg
+                viewBox="0 0 600 380"
+                preserveAspectRatio="xMidYMid meet"
+                role="img"
+                aria-label="左の記法から生成されるシーケンス図の例"
+              >
                 <defs>
                   <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                     <path d="M0,0 L10,5 L0,10 z" fill="#8a5a2a" />
