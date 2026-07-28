@@ -246,8 +246,15 @@ test("拡大した状態で図の要素を drag しても drag した分だけ�
   await page.waitForTimeout(1000);
   const a = (await header.boundingBox())!;
 
-  // drag した 150px 分だけ動く (補正が足りないと 150 未満になる)
-  expect(a.x - b.x, "横の移動量").toBeGreaterThan(120);
-  expect(a.x - b.x, "横の移動量").toBeLessThan(180);
+  // drag した 150px 分だけ動く。
+  //
+  // 帯は 140-160 に取る。 DSL の posX は整数に丸められる (1 world unit ≈ 0.63 client px) ので
+  // 実測は 150 ちょうどにならない。 一方、 補正から倍率を落とすと 120 前後になるので、
+  // 下限を 120 付近に置くと丸めが逆に振れた時に取り逃がす (実測 149.810 に対し倍率落とし
+  // 119.848 で、 `> 120` では余裕が 0.152px しかなかった)。
+  //
+  // 上限も併せて置くことで、 補正が過剰に効いた場合 (k を二重に掛ける等) も拾う。
+  expect(a.x - b.x, "横の移動量").toBeGreaterThan(140);
+  expect(a.x - b.x, "横の移動量").toBeLessThan(160);
   expect(errors, "JS エラー").toEqual([]);
 });

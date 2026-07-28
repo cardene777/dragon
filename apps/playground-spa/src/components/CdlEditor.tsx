@@ -26,7 +26,7 @@ import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, 
 import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
 import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
-import { applySvgPixelSize, readSvgScaleAttr, normalizeScale } from "@/lib/svg-pixel-size";
+import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
@@ -595,6 +595,11 @@ export function CdlEditor(): React.JSX.Element {
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
+
+  // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
+  // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
+  // 描画も座標変換もこの 1 つを使う (別々に持つと片方だけ古くなる)。
+  const diagramK = normalizeScale(diagram?.viewport?.scale);
 
   // 図全体の倍率。 overlay parts の world 座標を client 座標へ直す時に要る。
   //
@@ -1395,6 +1400,10 @@ export function CdlEditor(): React.JSX.Element {
   //     補正量の算出は `src/lib/viewbox-anchor.ts` (成立条件と不変性を test で固定)。
   const prevViewBoxRef = useRef<ViewBoxOrigin | null>(null);
   useEffect(() => {
+    // 倍率は描画と同じ値 (`diagramK`) を使う。 SVG の `data-cdl-scale` からも同じ値が読めるが、
+    // 2 系統あると effect が途中で return した回に ref だけ古く残る。 描画と変換で別の倍率を
+    // 使うと、 部品の位置が図と合わなくなる。
+    diagramScaleRef.current = diagramK;
     if (!diagram || !previewRef.current) return;
     const svg = previewRef.current.querySelector("svg");
     if (!svg) return;
@@ -1402,13 +1411,12 @@ export function CdlEditor(): React.JSX.Element {
     if (!vb || vb.width === 0 || vb.height === 0) return;
     applySvgPixelSize(svg, vb);
 
-    const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: readSvgScaleAttr(svg) };
-    diagramScaleRef.current = next.k;
+    const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: diagramK };
     const comp = panCompensation(prevViewBoxRef.current, next, transformRef.current.scale);
     prevViewBoxRef.current = next;
     if (!comp) return;
     setTransform((t) => ({ ...t, tx: t.tx + comp.dtx, ty: t.ty + comp.dty }));
-  }, [diagram]);
+  }, [diagram, diagramK]);
 
   // 初回 diagram load 時のみ自動 Fit、 以降の diagram 変化 (drag / resize / drop) では
   // viewport 維持 = user 編集動作が正しく viewport に反映される (拡大したら拡大される)。
@@ -2453,10 +2461,6 @@ ${newActorLine}
     setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。 元に戻すには Cmd+Z。`, 6000);
   }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty, src]);
 
-  // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
-  // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
-  const diagramK = normalizeScale(diagram?.viewport?.scale);
-
   return (
     <div className="v4-editor">
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
@@ -2949,9 +2953,9 @@ ${newActorLine}
                     />
                   );
                 })}
-                {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
-                    に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
-                    同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
+                {/* parts overlay は cdl の SVG とは別に描く。 cdl は parts を知らないので base 図に
+                    影響しない。 位置と大きさは world 座標を `diagramK` 倍して置く (cdl の SVG が
+                    1 world unit = diagramK px で描かれるため、 上の注記を参照)。 */}
                 {overlayParts.map((p) => {
                   const isSelected = selectedIds.includes(`overlay:${p.id}`);
                   return (
