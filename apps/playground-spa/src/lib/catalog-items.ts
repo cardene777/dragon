@@ -27,6 +27,8 @@ import * as CookMod from "@/topics/catalog/cookbook.cdl";
 import * as TdMod from "@/topics/catalog/text-dsl.cdl";
 // --- category: interactive ---
 import * as InteractiveMod from "@/topics/catalog/interactive.cdl";
+// --- category: ethereum (仕組み解説アニメーション、 CAR-2160) ---
+import * as EthMod from "@/topics/catalog/ethereum.cdl";
 
 export interface CatalogItem {
   id: string;
@@ -96,6 +98,7 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   cookbook: moduleToItems(CookMod),
   "text-dsl": moduleToItems(TdMod),
   interactive: moduleToItems(InteractiveMod),
+  ethereum: moduleToItems(EthMod),
 };
 
 /** parts.cdl.ts の N 個 diagram を lazy-load する。 CategoryPage で params.slug === "parts" 時のみ発火。 */

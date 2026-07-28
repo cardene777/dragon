@@ -179,6 +179,14 @@ export type DslGroup = {
 export type DslViewport = {
   width?: number;
   height?: number;
+  /**
+   * 図全体の倍率 (default 1)。 箱 / 文字 / 線 / 間隔のすべてが等比で拡大縮小される。
+   *
+   * `laneWidth` / `laneGap` / `nodeGap` は **間隔だけ**を動かすため、 箱の大きさは変わらず
+   * 図に占める割合はむしろ下がる。 本 field は cdl 側で座標系ごと拡大するので、
+   * 見た目の比率が完全に保たれる (SVG user unit 固定の font-size も追従する)。
+   */
+  scale?: number;
   laneWidth?: number;
   /** 全体 default gap (互換維持、 個別 laneGap / nodeGap / labelMargin の fallback) */
   gap?: number;

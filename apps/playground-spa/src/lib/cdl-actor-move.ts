@@ -1,4 +1,4 @@
-import { updateActorPosition } from "./canvas-pivot-interaction";
+import { updateActorPosition, extractAllActorNames, slugify } from "./canvas-pivot-interaction";
 
 /**
  * cdl actor (シーケンス図の縦列) の drag を DSL に書き出す helper (CAR-2156)。
@@ -41,6 +41,32 @@ import { updateActorPosition } from "./canvas-pivot-interaction";
  *
  * 引数の座標は全て SVG world 単位。 呼び出し側 (CdlEditor) が client px から変換して渡す。
  */
+
+/**
+ * DSL の `type:` を読む。 見つからなければ null。
+ *
+ * 縦移動の可否を type で切り替えるために使う。
+ */
+export function readDiagramType(src: string): string | null {
+  for (const line of src.split(/\r?\n/)) {
+    const m = line.match(/^[ \t]*type[ \t]*:[ \t]*["']?([a-zA-Z0-9_-]+)["']?[ \t]*$/);
+    if (m) return m[1]!.toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * 縦にも動かせる type か。
+ *
+ * sequence / solidity は縦軸が時系列そのもので、 node の cy は stack (行番号) から
+ * 全 lane 共通で決まる。 lane に posY を書くと row の起点が動いて全 actor がずれる一方、
+ * lane の高さは footer 位置から再計算されるため header と footer が縦に割れる
+ * (実測 = header dy 46 に対し footer dy 8)。 それ以外の type は node の cy が独立なので
+ * 縦横とも自由に置ける。
+ */
+export function allowsVerticalMove(type: string | null): boolean {
+  return type !== "sequence" && type !== "solidity";
+}
 
 /** 1 actor の lane 位置とサイズ (world 単位)。 drag 開始時に SVG から読んで渡す。 */
 export type ActorLaneSnapshot = {
@@ -129,7 +155,7 @@ export function clampDx(snapshot: ActorSnapshot, dx: number): number {
  * 縦位置は全 actor とも現在値のまま (§ なぜ横移動だけを扱うか)。
  * dx は隣接 lane と重ならない範囲に丸める (§ clampDx)。
  */
-export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number): string {
+export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number, dy: number = 0): string {
   const clamped = clampDx(snapshot, dx);
   let out = src;
   for (const lane of snapshot.lanes) {
@@ -145,7 +171,7 @@ export function moveActorInDsl(src: string, snapshot: ActorSnapshot, dx: number)
       out,
       lane.name,
       lane.laneX + (moved ? clamped : 0),
-      lane.laneY,
+      lane.laneY + (moved ? dy : 0),
       lane.laneW,
     );
   }
@@ -174,7 +200,11 @@ export function buildActorSnapshotFromSvg(
 ): ActorSnapshot | null {
   const lanes: ActorLaneSnapshot[] = [];
   for (const name of actorNames) {
-    const el = findLaneElement(svg, name, toSlug(name));
+    // lane が actor に 1:1 対応するのは sequence / solidity / swimlane だけ。
+    // flow / topology / class / pie / mind / c4 は lane が 1 本しかなく、
+    // state / er / gantt は `lane-{slug}` / `gantt-{slug}` の prefix 付きで名前が合わない。
+    // これらは actor 自身が node なので、 lane が見つからなければ node を掴む。
+    const el = findLaneElement(svg, name, toSlug(name)) ?? findNodeElement(svg, name, toSlug(name));
     if (!el) continue;
     const attr = readLaneAttrs(el);
     if (attr) {
@@ -212,6 +242,25 @@ function findLaneElement(svg: SVGSVGElement, name: string, slug: string): Elemen
   return null;
 }
 
+/**
+ * actor に対応する node の `<g>` を探す。 lane が actor と 1:1 でない type 用の経路。
+ *
+ * id は type ごとに違う (`start` / `idle` / `web` 等の素の slug)。 lane と同じく
+ * slug → 生名の順で試し、 selector 組立に失敗した候補は諦めて次へ進む。
+ */
+function findNodeElement(svg: SVGSVGElement, name: string, slug: string): Element | null {
+  for (const v of [slug, name]) {
+    if (!v) continue;
+    try {
+      const el = svg.querySelector(`[data-cdl-node="${cssEscape(v)}"]`);
+      if (el) return el;
+    } catch {
+      // 組立に失敗した値は諦めて次の候補へ
+    }
+  }
+  return null;
+}
+
 /** `CSS.escape` が無い環境 (古い jsdom 等) では最小限の quote escape に落とす。 */
 function cssEscape(v: string): string {
   const g = globalThis as { CSS?: { escape?: (s: string) => string } };
@@ -232,4 +281,54 @@ function readLaneAttrs(el: Element): { x: number; y: number; w: number } | null 
   const w = num("data-cdl-lane-w");
   if (x === null || y === null || w === null) return null;
   return { x, y, w };
+}
+
+/**
+ * cdl 要素の selection key (`client-header` / `s0-client` / `client` 等) から
+ * DSL 上の actor 名を引く。 該当が無ければ null (toolbar を出さない)。
+ *
+ * key は slug 化済なので、 DSL の actor 名を同じ規則で slug にして突き合わせる。
+ * suffix (`-header` / `-footer` / `-spacer`) と prefix (`s{N}-`) は先に落とす。
+ */
+export function cdlKeyToActorName(key: string, src: string): string | null {
+  const stripped = key
+    .replace(/-header$/, "")
+    .replace(/-footer$/, "")
+    .replace(/-spacer$/, "")
+    .replace(/^s\d+-/, "");
+  for (const name of extractAllActorNames(src)) {
+    if (slugify(name) === stripped || name === stripped) return name;
+  }
+  return null;
+}
+
+/**
+ * actor 行を複製する。 alias の末尾連番を進めて衝突を避け、 元行の直後に挿入する。
+ *
+ * 座標は複製元と同じにしない = 完全に重なると掴み分けられないため、 lane 1 本分ずらす。
+ * 元行が座標を持たない (auto layout) 場合は座標を書かずに複製する = 並べ直しに任せる。
+ */
+export function duplicateActorInDsl(src: string, alias: string): string {
+  const segments = src.split(/(\r\n|\n)/);
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const quoted = `(?:"${escaped}"|${escaped})`;
+  const lineRe = new RegExp(`^([ \t]*-[ \t]*)${quoted}([ \t]*(?::|$).*)$`);
+  for (let i = 0; i < segments.length; i += 2) {
+    const line = segments[i]!;
+    const m = line.match(lineRe);
+    if (!m) continue;
+    const used = new Set(extractAllActorNames(src));
+    const base = alias.replace(/\d+$/, "") || alias;
+    let n = 2;
+    while (used.has(`${base}${n}`)) n += 1;
+    const newAlias = `${base}${n}`;
+    // 重ならないよう posX を lane 1 本分ずらす (座標を持つ行のみ)
+    const shifted = m[2]!.replace(/posX:\s*(-?\d+(?:\.\d+)?)/, (_s, v: string) => `posX: ${Math.round(Number(v) + 400)}`);
+    const newLine = `${m[1]}${newAlias}${shifted}`;
+    const sep = segments[i + 1] ?? (src.includes("\r\n") ? "\r\n" : "\n");
+    if (i + 1 >= segments.length) segments.push(sep, newLine);
+    else segments.splice(i + 2, 0, newLine, sep);
+    return segments.join("");
+  }
+  return src;
 }

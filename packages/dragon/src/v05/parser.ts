@@ -267,6 +267,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
           gap: numberOrUndef(opts.gap),
           laneGap: numberOrUndef(opts.laneGap),
           nodeGap: numberOrUndef(opts.nodeGap),
+          scale: numberOrUndef(opts.scale),
           labelMargin: numberOrUndef(opts.labelMargin),
           pos: { line: line.no },
         };
@@ -287,6 +288,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         gap: numberOrUndef(opts.gap),
         laneGap: numberOrUndef(opts.laneGap),
         nodeGap: numberOrUndef(opts.nodeGap),
+        scale: numberOrUndef(opts.scale),
         labelMargin: numberOrUndef(opts.labelMargin),
         pos: { line: line.no },
       };

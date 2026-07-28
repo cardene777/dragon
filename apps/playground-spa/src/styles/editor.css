@@ -286,7 +286,16 @@
     gap: 6px;
     border-bottom: 1px solid var(--v4-line);
     background: var(--v4-surface);
+    /* 狭い画面ではボタンが並びきらない。 bar 自体を横スクロールさせて、
+       page 全体が横スクロールするのを防ぐ (実測 = 390px 幅で scrollWidth 681)。
+       高さ固定なので折り返しは使えず、 はみ出し分は bar 内で送る。 */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
   }
+  .v4-editor-bar::-webkit-scrollbar { display: none; }
+  /* 縮んで潰れると押せなくなるので、 各項目は自然幅を保つ */
+  .v4-editor-bar > * { flex-shrink: 0; }
   .v4-editor-bar-file {
     font-family: var(--v4-mono);
     font-size: 11.5px;

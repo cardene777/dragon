@@ -64,7 +64,7 @@ async function getEditorText(page: Page): Promise<string> {
   return page.evaluate(() => document.querySelector(".cm-content")?.textContent ?? "");
 }
 
-function parseTranslate3d(transform: string): { x: number; y: number } | null {
+function _parseTranslate3d(transform: string): { x: number; y: number } | null {
   const m = transform.match(/translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/);
   if (!m) return null;
   return { x: parseFloat(m[1]!), y: parseFloat(m[2]!) };

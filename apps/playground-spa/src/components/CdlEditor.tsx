@@ -9,24 +9,25 @@ import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHan
 import {
   findDragTarget,
   clientToSvg,
-  hitResizeHandle,
   updateActorPosition,
   updateActorNodePosition,
-  extractActorPosition,
-  extractActorNodePosition,
   extractAllActorNames,
   slugify as slugifyActorName,
   resolveClickPlacement,
   toWorldOrNull,
   type DragState,
-  type ResizeCorner,
   type WorldRect,
 } from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
 import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, readDiagramType, allowsVerticalMove, type ActorSnapshot } from "@/lib/cdl-actor-move";
+import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
+import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
+import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
+import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
+import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -36,6 +37,65 @@ import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine 
  * achievement の透明 wrapper rect (fill=none) を掴んでしまい、 実際に見えている図形より
  * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
  */
+/**
+ * text 編集の入力欄を「中身が全部見える幅」 に合わせる。
+ *
+ * 元要素の bbox に固定すると、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
+ * `scrollWidth` は内容の実幅を返すので、 一度 auto に戻してから測り直す。
+ * 元要素より狭くはしない (`minWidth` 相当) = 見た目の位置ずれを避ける。
+ */
+function fitTextEditWidth(el: HTMLInputElement, minWidth: number): void {
+  el.style.width = "auto";
+  el.style.width = `${Math.max(minWidth, el.scrollWidth + 16)}px`;
+}
+
+/**
+ * toolbar の icon button。 hover で即座に説明を出す。
+ *
+ * `title` 属性は表示まで 1-2 秒かかり、 icon だけでは何のボタンか分からない時間が生まれる。
+ * 自前の tooltip を hover 即時で出して、 icon の意味を推測させない。
+ */
+function ToolbarButton({ label, testId, onClick, children }: {
+  label: string;
+  testId: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const [hover, setHover] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        type="button"
+        data-overlay-toolbar-btn={testId}
+        aria-label={label}
+        style={{
+          width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: hover ? "#f3f4f6" : "transparent", border: "none", cursor: "pointer",
+          borderRadius: "6px", padding: 0,
+        }}
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        {children}
+      </button>
+      {hover && (
+        <span
+          data-toolbar-tooltip={testId}
+          style={{
+            position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
+            background: "#1f2937", color: "#fff", fontSize: "11px", lineHeight: 1.4,
+            padding: "4px 8px", borderRadius: "4px", whiteSpace: "nowrap", pointerEvents: "none",
+            zIndex: 400, boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          }}
+        >
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function findPaintedShape(div: Element): SVGGraphicsElement | null {
   const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
   let maxArea = 0;
@@ -236,133 +296,7 @@ function collectActorNamesFromSrc(src: string): Set<string> {
   return names;
 }
 
-/**
- * canvas pivot UX 修正 (B2 parts add layout shift 防止) = parts 追加前に既存 actors の現 lane 位置を
- * SVG DOM (data-cdl-lane-x/y attribute) から snapshot、 各 actor entry に posX/Y を injection して
- * auto layout を固定する。 これで新 parts actor 追加で全体 lane 再配置が起きず、 既存 header 等の
- * 位置が保持される。 既に posX/Y が書出済の actor は skip、 SVG 上に lane element が無い actor も skip。
- */
 // 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
-
-function pinExistingActorLayoutFromSvg(src: string, svg: SVGSVGElement | null): string {
-  if (!svg) return src;
-  let next = src;
-  for (const name of Array.from(collectActorNamesFromSrc(src))) {
-    // 既に posX/Y 明示済 actor は skip (extractActorPosition が null 以外を返す)
-    // note: helper import は component 内でしか使えないため、 本 fn は import 経路対応のため CdlEditor 側から呼ぶ
-    const slug = slugifyForLane(name);
-    const el = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-    if (!el) continue;
-    const rx = el.getAttribute("data-cdl-lane-x");
-    const ry = el.getAttribute("data-cdl-lane-y");
-    if (!rx || !ry) continue;
-    const px = parseFloat(rx);
-    const py = parseFloat(ry);
-    if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
-    // decision-log 2026-07-24-dragon-editor-full-revert-simplify = user 意図「auto 補正全 disable」 の
-    // core fix。 従来は posX/Y のみ pin していたが、 achievement drop で lane 幅再計算により Client
-    // lane が 252px shift する root cause だった。 posW/posH も同 attribute から snapshot して pin、
-    // 全 lane 完全固定で「独立要素として存在」 の思想を実現。
-    const rw = el.getAttribute("data-cdl-lane-w");
-    const rh = el.getAttribute("data-cdl-lane-h");
-    const pw = rw && Number.isFinite(parseFloat(rw)) ? parseFloat(rw) : undefined;
-    const ph = rh && Number.isFinite(parseFloat(rh)) ? parseFloat(rh) : undefined;
-    // 既書出し検出 = 行ごとの regex で actor entry を探し `posX:` が既にあれば skip
-    if (hasPosXInActorEntry(next, name)) continue;
-    next = injectActorPosXY(next, name, px, py, pw, ph);
-  }
-  return next;
-}
-
-/**
- * DSL src 中の対象 actor entry に既に posX field が書出済かを判定する軽量 grep。
- * `- name: { ... posX: ... }` 形式のみ検出、 nested `nodes: { subKey: { posX } }` は無視 (top-level posX が対象)。
- */
-function hasPosXInActorEntry(src: string, targetName: string): boolean {
-  for (const line of src.split("\n")) {
-    const inlineMatch = line.match(/^\s*-\s*("[^"]+"|\S+?)\s*:\s*\{/);
-    if (!inlineMatch) continue;
-    const raw = inlineMatch[1]!.replace(/^"(.+)"$/, "$1");
-    if (raw !== targetName) continue;
-    // top-level posX 判定 = actor 行の brace 内で `posX:` が (nested { } 外に) 存在するか
-    const braceStart = line.indexOf("{");
-    if (braceStart < 0) continue;
-    let depth = 0;
-    let inner = "";
-    for (let i = braceStart; i < line.length; i += 1) {
-      const c = line[i]!;
-      if (c === "{") depth += 1;
-      if (depth === 1 && c !== "{") inner += c;
-      if (c === "}") depth -= 1;
-    }
-    return /(?:^|,)\s*posX\s*:/.test(inner);
-  }
-  return false;
-}
-
-/**
- * 対象 actor に posX/posY (+ optional posW/posH) を注入する。 既存 inline map があれば merge、
- * bare / short form なら inline map 化。 posW/posH が渡された場合は追加 pin (2026-07-24 fix、
- * decision-log dragon-editor-full-revert-simplify、 achievement drop で lane 幅再計算 → 他 lane
- * 252px shift の root cause 対応)。
- */
-function injectActorPosXY(src: string, targetName: string, posX: number, posY: number, posW?: number, posH?: number): string {
-  const rx = Math.round(posX);
-  const ry = Math.round(posY);
-  const parts: string[] = [`posX: ${rx}`, `posY: ${ry}`];
-  if (posW !== undefined && Number.isFinite(posW)) parts.push(`posW: ${Math.round(posW)}`);
-  if (posH !== undefined && Number.isFinite(posH)) parts.push(`posH: ${Math.round(posH)}`);
-  const extra = parts.join(", ");
-  const lines = src.split("\n");
-  const next = lines.map((line) => {
-    // inline mapping (depth-aware)
-    const headMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{/);
-    if (headMatch) {
-      const rawName = headMatch[2]!.replace(/^"(.+)"$/, "$1");
-      if (rawName === targetName) {
-        const braceStart = headMatch[0]!.length - 1;
-        let depth = 0;
-        let endIdx = -1;
-        for (let i = braceStart; i < line.length; i += 1) {
-          const c = line[i]!;
-          if (c === "{") depth += 1;
-          else if (c === "}") {
-            depth -= 1;
-            if (depth === 0) { endIdx = i; break; }
-          }
-        }
-        if (endIdx < 0) return line;
-        const inner = line.slice(braceStart + 1, endIdx).trim();
-        const merged = inner ? `${inner}, ${extra}` : extra;
-        return `${line.slice(0, braceStart)}{ ${merged} }${line.slice(endIdx + 1)}`;
-      }
-    }
-    // short form: `- name: kind`
-    const shortMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)([^\s{][^\n]*)$/);
-    if (shortMatch && shortMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${shortMatch[1]}${shortMatch[2]}${shortMatch[3]}{ kind: ${shortMatch[4]!.trim()}, ${extra} }`;
-    }
-    // bare: `- name`
-    const bareMatch = line.match(/^(\s*-\s*)("[^"]+"|\S+)\s*$/);
-    if (bareMatch && bareMatch[2]!.replace(/^"(.+)"$/, "$1") === targetName) {
-      return `${bareMatch[1]}${bareMatch[2]}: { ${extra} }`;
-    }
-    return line;
-  });
-  return next.join("\n");
-}
-
-/** slugify を canvas-pivot-interaction と同一 logic で local reuse (import cycle 回避)。 */
-function slugifyForLane(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 64) || "n"
-  );
-}
 
 export function CdlEditor(): React.JSX.Element {
   const location = useLocation();
@@ -407,11 +341,16 @@ export function CdlEditor(): React.JSX.Element {
   const textKeySeqRef = useRef(0);
   // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
   // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
+  // 2026-07-27 CAR-2160 = 図中の文字サイズの一律倍率。 cdl の fontSize は固定値なので
+  // viewport の拡大では追従しない。 CSS で属性値を上書きして一律に変える。
+  const [fontScale, setFontScale] = useState(1);
   const cdlActorDragRef = useRef<{
     snapshot: ActorSnapshot;
     startClientX: number;
     startClientY: number;
     svg: SVGSVGElement;
+    /** 縦にも動かせるか。 sequence 系は縦軸が時系列なので false */
+    allowVertical: boolean;
   } | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
@@ -656,6 +595,20 @@ export function CdlEditor(): React.JSX.Element {
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
+
+  // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
+  // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
+  // 描画も座標変換もこの 1 つを使う (別々に持つと片方だけ古くなる)。
+  const diagramK = normalizeScale(diagram?.viewport?.scale);
+
+  // 図全体の倍率。 overlay parts の world 座標を client 座標へ直す時に要る。
+  //
+  // cdl の SVG は 1 world unit = k px で描かれる。 overlay parts は同じ world 座標に置くので、
+  // parts 側も k を掛けないと図だけが伸びて parts が取り残される。 client との往復では
+  // pan の拡大率と合わせた `pan × k` が world→client の係数になる。
+  const diagramScaleRef = useRef(1);
+  /** world 1 単位が client 何 px か。 overlay parts の座標変換はすべてこれを通す。 */
+  const worldToClient = (): number => (transformRef.current.scale || 1) * (diagramScaleRef.current || 1);
   // 2026-07-25 pan / zoom 変化時に shape client bbox re-measure = 選択 UI 追従
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -689,6 +642,41 @@ export function CdlEditor(): React.JSX.Element {
   // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
   // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
   // その中で最大面積のものを主要 shape とみなす。
+  // 2026-07-27 CAR-2160 = 矢印とラベルに透明な当たり判定を敷く。
+  //
+  // cdl の矢印は stroke 4px の線で、 正確に click するのが実質不可能。 ラベルの text も
+  // 当たり判定がグリフの輪郭しかなく、 文字の隙間や周囲の余白では反応しない。
+  // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
+  //
+  // SVG は src 変更のたびに CdlDiagramView が中身を作り直すので、 MutationObserver で
+  // 作り直しを検知して注入し直す。 自分の注入も変化として検知されるため、
+  // 注入中は observer を切って無限ループを避ける。
+  useEffect(() => {
+    const host = previewRef.current;
+    if (!host) return;
+    let observer: MutationObserver | null = null;
+    const run = (): void => {
+      const svg = host.querySelector("svg") as SVGSVGElement | null;
+      if (!svg) return;
+      observer?.disconnect();
+      try {
+        injectHitAreas(svg);
+      } finally {
+        if (observer) observer.observe(host, { childList: true, subtree: true });
+      }
+    };
+    observer = new MutationObserver(() => run());
+    observer.observe(host, { childList: true, subtree: true });
+    run();
+    return () => observer?.disconnect();
+  }, []);
+
+  // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
+  useEffect(() => {
+    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (svg) applyFontScale(svg, fontScale);
+  });
+
   const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
     for (const p of parts) {
       // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
@@ -757,8 +745,18 @@ export function CdlEditor(): React.JSX.Element {
         const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
         if (!el || typeof el.getBoundingClientRect !== "function") { staleKeys.push(key); continue; }
         const r = el.getBoundingClientRect();
-        if (r.width < 3 || r.height < 3) { staleKeys.push(key); continue; }
-        next[key] = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+        // 水平 / 垂直な矢印は片側が 0 になる。 両側 0 (= 実体なし) だけを stale とし、
+        // 片側 0 の線は最小の厚みを与えて枠を出す (旧実装は `< 3` で矢印を全て捨てていた)。
+        if (r.width < 3 && r.height < 3) { staleKeys.push(key); continue; }
+        const MIN_THICKNESS = 12;
+        const w = Math.max(r.width, MIN_THICKNESS);
+        const h = Math.max(r.height, MIN_THICKNESS);
+        next[key] = {
+          left: r.left - stageRect.left - (w - r.width) / 2,
+          top: r.top - stageRect.top - (h - r.height) / 2,
+          width: w,
+          height: h,
+        };
       }
       if (staleKeys.length > 0) {
         setSelectedIds((prev) => prev.filter((sid) => !staleKeys.includes(sid.replace(/^cdl:/, ""))));
@@ -875,7 +873,7 @@ export function CdlEditor(): React.JSX.Element {
         // 旧実装は width/height を 380 固定にしていたため、 実 shape が 380 でない parts (arc-gauge 等) で
         // right / center / bottom / distribute 系の揃え位置が実際の見た目とずれていた。
         // 実測 client bbox を world 単位 (pan.scale 除算) に戻し、 未測定なら 380 に fallback する。
-        const panScaleForAlign = transformRef.current.scale || 1;
+        const panScaleForAlign = worldToClient();
         const parts = overlayIds
           .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
           .filter((p): p is NonNullable<typeof p> => !!p)
@@ -1361,12 +1359,7 @@ export function CdlEditor(): React.JSX.Element {
       setTransform({ tx: 0, ty: 0, scale: 1 });
       return;
     }
-    // SVG の CSS width / height を viewBox 実 pixel 値に強制する。
-    // CdlDiagramView は className="w-full h-auto" で親幅を欲しがるが、 pan は inline-block で
-    // 循環参照になり svg が default 300x150 に潰れる。 明示 pixel を渡して回避する。
-    svg.style.setProperty("width", `${vb.width}px`, "important");
-    svg.style.setProperty("height", `${vb.height}px`, "important");
-    svg.style.setProperty("max-width", "none", "important");
+    const px = applySvgPixelSize(svg, vb);
     // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
     // 追加 = CdlDiagramView は SVG の上に CdlHeader (phase progress / topic) を並べて描画するため、
     // pan 内の高さは (SVG 高) + (Header 高)。 SVG element の外に兄弟 element がある場合、
@@ -1377,21 +1370,53 @@ export function CdlEditor(): React.JSX.Element {
     // wrap の実 pixel 高さ (transform 後) を測り、 現行 scale (直前 setTransform 値) で
     // 逆算して unscaled 高さを推定。 初回 render 時 transform.scale = 1 で不正確でも、
     // useEffect 内 2 回呼出で settle する (既存 fallback pattern)。
-    const wrapPx = wrap ? wrap.getBoundingClientRect().height : vb.height;
+    const wrapPx = wrap ? wrap.getBoundingClientRect().height : px.h;
     const currentScale = transformRef.current.scale > 0 ? transformRef.current.scale : 1;
     const wrapUnscaled = wrapPx / currentScale;
-    const headerUnscaled = Math.max(0, wrapUnscaled - vb.height);
+    const headerUnscaled = Math.max(0, wrapUnscaled - px.h);
     const availableW = previewRect.width * (1 - PADDING_RATIO * 2);
     const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
-    const contentUnscaledH = vb.height + headerUnscaled;
-    const scaleX = availableW / vb.width;
+    const contentUnscaledH = px.h + headerUnscaled;
+    const scaleX = availableW / px.w;
     const scaleY = availableH / contentUnscaledH;
     const scale = Math.min(scaleX, scaleY);
     // SVG 中心と stage 中心を一致させる (左寄り解消の core)。
-    const tx = (previewRect.width - vb.width * scale) / 2;
+    const tx = (previewRect.width - px.w * scale) / 2;
     const ty = (previewRect.height - contentUnscaledH * scale) / 2;
     setTransform({ tx, ty, scale });
   }, []);
+
+  // 図が描き直される度に表示サイズを焼き直し、 図枠が動いた分を pan で打ち消す。
+  //
+  // (1) 表示サイズ = `handleFit` が決めているが、 fit は初回と sample 切替でしか走らない
+  //     (毎回走らせると user の pan / zoom が戻る)。 一方で図全体の倍率は fit を挟まずに
+  //     変わるので、 ここで焼き直さないと倍率を変えても画面が変わらない。
+  //
+  // (2) 図枠の打ち消し = cdl の viewBox は内容の外接矩形に自動追従する。 要素を右へ動かすと
+  //     枠の左端も右へ寄るため、 画面上では「動かした要素はその場、 他が左へずれる」 になる。
+  //     枠の原点が動いた分だけ pan を逆に振ると、 触っていない要素が画面に留まり、 動かした
+  //     要素だけが動く。
+  //
+  //     補正量の算出は `src/lib/viewbox-anchor.ts` (成立条件と不変性を test で固定)。
+  const prevViewBoxRef = useRef<ViewBoxOrigin | null>(null);
+  useEffect(() => {
+    // 倍率は描画と同じ値 (`diagramK`) を使う。 SVG の `data-cdl-scale` からも同じ値が読めるが、
+    // 2 系統あると effect が途中で return した回に ref だけ古く残る。 描画と変換で別の倍率を
+    // 使うと、 部品の位置が図と合わなくなる。
+    diagramScaleRef.current = diagramK;
+    if (!diagram || !previewRef.current) return;
+    const svg = previewRef.current.querySelector("svg");
+    if (!svg) return;
+    const vb = svg.viewBox.baseVal;
+    if (!vb || vb.width === 0 || vb.height === 0) return;
+    applySvgPixelSize(svg, vb);
+
+    const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: diagramK };
+    const comp = panCompensation(prevViewBoxRef.current, next, transformRef.current.scale);
+    prevViewBoxRef.current = next;
+    if (!comp) return;
+    setTransform((t) => ({ ...t, tx: t.tx + comp.dtx, ty: t.ty + comp.dty }));
+  }, [diagram, diagramK]);
 
   // 初回 diagram load 時のみ自動 Fit、 以降の diagram 変化 (drag / resize / drop) では
   // viewport 維持 = user 編集動作が正しく viewport に反映される (拡大したら拡大される)。
@@ -1437,6 +1462,9 @@ export function CdlEditor(): React.JSX.Element {
   // activeSample 変化 (sample 切替) 時に initialFitDoneRef をリセットして次 diagram load で fit
   useEffect(() => {
     initialFitDoneRef.current = false;
+    // 別の図に切り替わるので、 前の図の枠を打ち消しの基準に使わない。
+    // 直後の fit が pan を上書きするため実害は出ないが、 基準としては無意味な値になる。
+    prevViewBoxRef.current = null;
   }, [activeSample]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
@@ -1505,172 +1533,6 @@ export function CdlEditor(): React.JSX.Element {
   }, [transform.scale, transform.tx, transform.ty]);
   // activeGuidelines state 削除 (guideline 機能全撤去)
 
-  const startElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return false;
-    const target = e.target as Element;
-
-    // hover 中 handle への hit test を先に判定 (element より優先)
-    if (hoveredHandle) {
-      const corner = hitResizeHandle(e.clientX, e.clientY, hoveredHandle.rect);
-      if (corner) {
-        const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-        // canvas pivot UX 修正 (B1) = subNodeKey 有無で init pos の抽出経路を分岐
-        // (nested `nodes: { subKey: {...} }` から読出 vs actor 全体 posX 読出)
-        const subKey = hoveredHandle.subNodeKey;
-        const cur = subKey
-          ? extractActorNodePosition(src, hoveredHandle.id, subKey)
-          : extractActorPosition(src, hoveredHandle.id);
-        // sub-node init 座標が DSL 未書出しなら hover 中 rect の SVG 座標系変換で拾う。
-        // initW / initH は必ず SVG world 単位で計測する (client px → world 変換必須)、
-        // client 単位のまま書出すと zoom 縮小で actor.posW が client 74px 相当の小 world 値 (~370)
-        // になり compile 側で parts が縮小されて描画される bug (I2-forensic の Phase 4 検出済)。
-        let initX = cur?.posX;
-        let initY = cur?.posY;
-        let initW = cur?.posW;
-        let initH = cur?.posH;
-        {
-          const rect = hoveredHandle.rect;
-          const tlPt = clientToSvg(svg, rect.left, rect.top);
-          const brPt = clientToSvg(svg, rect.right, rect.bottom);
-          const wSvg = brPt.x - tlPt.x;
-          const hSvg = brPt.y - tlPt.y;
-          if (initX === undefined || initY === undefined) {
-            initX = tlPt.x + wSvg / 2;
-            initY = tlPt.y + hSvg / 2;
-          }
-          // initW / initH は DSL 未書出しなら world 単位の hover rect size を使う
-          initW = initW ?? wSvg;
-          initH = initH ?? hSvg;
-        }
-        elementDrag.current = {
-          mode: "resize",
-          targetName: hoveredHandle.id,
-          startClientX: e.clientX,
-          startClientY: e.clientY,
-          startSvgX: svgPt.x,
-          startSvgY: svgPt.y,
-          initPosX: initX,
-          initPosY: initY,
-          initPosW: initW,
-          initPosH: initH,
-          corner,
-          svgScale: svgPt.scale,
-          commandBypass: e.metaKey || e.ctrlKey,
-          // canvas pivot UX 修正 = resize は hover した individual element 単一のみに適用するため
-          // hoveredHandle.elementSelector を DragState に転写する
-          hoveredSelector: hoveredHandle.elementSelector,
-          subNodeKey: subKey,
-        };
-        document.body.style.cursor = cornerToCursor(corner);
-        return true;
-      }
-    }
-
-    const actorNamesForHit = extractAllActorNames(src);
-    const dragInfo = findDragTarget(target, actorNamesForHit);
-    // parts は overlay drop 経路 (React state 独立管理) で drag するため cdl SVG hit fallback は不要。
-    if (!dragInfo) return false;
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-    const cur = extractActorPosition(src, dragInfo.name);
-    // DSL に posX 未書出しなら、 現状 lane の SVG 座標を initPosX/Y として拾う (drag delta 経路で書出し)。
-    // CdlLane の semantic = posX/posY は lane 左上 corner の絶対座標 (SVG unit)、 lane 中心ではない。
-    let initPosX = cur?.posX;
-    let initPosY = cur?.posY;
-    if (initPosX === undefined || initPosY === undefined) {
-      const slug = slugifyActorName(dragInfo.name);
-      const laneEl = svg.querySelector(`[data-cdl-lane="${slug}"]`) as SVGGraphicsElement | null;
-      if (laneEl) {
-        // data-cdl-lane-x / data-cdl-lane-y attribute で「left-top corner の SVG unit 座標」 が取れる (CDL render 経由)
-        const rawX = laneEl.getAttribute("data-cdl-lane-x");
-        const rawY = laneEl.getAttribute("data-cdl-lane-y");
-        initPosX = rawX ? parseFloat(rawX) : svgPt.x;
-        initPosY = rawY ? parseFloat(rawY) : svgPt.y;
-      } else {
-        initPosX = svgPt.x;
-        initPosY = svgPt.y;
-      }
-    }
-    elementDrag.current = {
-      mode: "drag",
-      targetName: dragInfo.name,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startSvgX: svgPt.x,
-      startSvgY: svgPt.y,
-      initPosX,
-      initPosY,
-      initPosW: cur?.posW,
-      initPosH: cur?.posH,
-      svgScale: svgPt.scale,
-      commandBypass: e.metaKey || e.ctrlKey,
-    };
-    // drag 開始時の hoveredHandle.rect を save = drag 中選択枠の追従計算基準
-    if (hoveredHandle) {
-      hoveredHandleInitRectRef.current = new DOMRect(hoveredHandle.rect.left, hoveredHandle.rect.top, hoveredHandle.rect.width, hoveredHandle.rect.height);
-    }
-    document.body.style.cursor = "grabbing";
-    return true;
-  };
-
-  // 2026-07-25 Phase 4 = cdl 要素 stage-level selection UI から drag / resize を発火。
-  // 既存 elementDrag 経路を再利用、 selector map から実 SVG element を find して synthetic hoveredHandle を組立てる。
-  const startCdlHandleAction = (
-    e: React.MouseEvent<HTMLDivElement>,
-    key: string,
-    mode: "drag" | "resize",
-    corner?: "nw" | "ne" | "sw" | "se",
-  ): void => {
-    e.stopPropagation();
-    e.preventDefault();
-    const selector = cdlSelectorMap[key];
-    if (!selector || !previewRef.current) return;
-    const svg = previewRef.current.querySelector("svg") as SVGSVGElement | null;
-    const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
-    if (!svg || !el || typeof el.getBoundingClientRect !== "function") return;
-    const rect = el.getBoundingClientRect();
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-    const cur = extractActorPosition(src, key);
-    let initX = cur?.posX;
-    let initY = cur?.posY;
-    let initW = cur?.posW;
-    let initH = cur?.posH;
-    const tlPt = clientToSvg(svg, rect.left, rect.top);
-    const brPt = clientToSvg(svg, rect.right, rect.bottom);
-    const wSvg = brPt.x - tlPt.x;
-    const hSvg = brPt.y - tlPt.y;
-    if (initX === undefined || initY === undefined) {
-      initX = tlPt.x;
-      initY = tlPt.y;
-    }
-    initW = initW ?? wSvg;
-    initH = initH ?? hSvg;
-    elementDrag.current = {
-      mode,
-      targetName: key,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startSvgX: svgPt.x,
-      startSvgY: svgPt.y,
-      initPosX: initX,
-      initPosY: initY,
-      initPosW: initW,
-      initPosH: initH,
-      corner,
-      svgScale: svgPt.scale,
-      commandBypass: e.metaKey || e.ctrlKey,
-      hoveredSelector: selector,
-      subNodeKey: undefined,
-    };
-    hoveredHandleInitRectRef.current = new DOMRect(rect.left, rect.top, rect.width, rect.height);
-    document.body.style.cursor = mode === "resize" && corner ? cornerToCursor(corner) : "grabbing";
-  };
-  const startCdlDrag = (e: React.MouseEvent<HTMLDivElement>, key: string): void => {
-    startCdlHandleAction(e, key, "drag");
-  };
-  const startCdlResize = (e: React.MouseEvent<HTMLDivElement>, key: string, corner: "nw" | "ne" | "sw" | "se"): void => {
-    startCdlHandleAction(e, key, "resize", corner);
-  };
 
   const updateElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
     const st = elementDrag.current;
@@ -1802,6 +1664,11 @@ export function CdlEditor(): React.JSX.Element {
         (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px)`;
       }
     });
+    // drag 中の actor に繋がる edge は、 端点だけを追従させて伸縮させる。
+    // edge 全体を translate すると繋がっていない側まで動いて線が浮くので、
+    // `data-cdl-from` / `data-cdl-to` を見て動かす端を選ぶ。
+    // dx / dy は SVG user unit で受け取る (呼び出し側が変換済)。
+    stretchEdgesFor(svg, targetName, dx, dy, slugifyActorName(targetName));
   };
 
   const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
@@ -1839,11 +1706,19 @@ export function CdlEditor(): React.JSX.Element {
         (el as SVGGraphicsElement).style.transform = "";
       }
     });
+    // drag 中に伸縮させた edge の path を元に戻す (DSL 反映後の再 render が正)
+    clearStretchedEdges(svg);
   };
 
-  const cornerToCursor = (corner: ResizeCorner): string => {
-    if (corner === "nw" || corner === "se") return "nwse-resize";
-    return "nesw-resize";
+  /**
+   * 図そのものを factor 倍する。
+   *
+   * `viewport` の laneWidth / laneGap / nodeGap をまとめて書き換える。 この 3 つで
+   * 箱の幅・横の間隔・縦の間隔が同時に動くため、 図が歪まずに拡大縮小される
+   * (node の posW だけ書くと横しか変わらず縦長になる)。
+   */
+  const scaleWholeDiagram = (factor: number): void => {
+    setSrc((prev) => setDiagramScale(prev, readDiagramScale(prev) * factor));
   };
 
   // 2026-07-24 全削除 = applyAutoAdjustDuringDrag / applyGuidelinesDuringDrag / clearAutoAdjustShifts
@@ -1884,8 +1759,9 @@ export function CdlEditor(): React.JSX.Element {
     if (contextMenu) setContextMenu(null);
     if (colorPickerFor) setColorPickerFor(null);
     // cdl element selection = hover 中の element があれば selection state を更新する。
-    // 2026-07-26 CAR-2158 fix = 旧実装は startElementInteraction(e) が true の時だけ selection したが、
-    // arrow label 等 findDragTarget が actor 名を解決できない element では false になり選択不能だった。
+    // 2026-07-26 CAR-2158 fix = 旧実装は drag 起動が成功した時だけ selection していたが、
+    // arrow label 等 findDragTarget が actor 名を解決できない element では起動しないため
+    // 選択そのものができなかった。 drag の可否と選択を分離して、 選択は常に成立させる。
     const applyCdlSelection = (): void => {
       if (!hoveredHandle) return;
       const selId = `cdl:${hoveredHandle.id}`;
@@ -1903,7 +1779,8 @@ export function CdlEditor(): React.JSX.Element {
     // element から 100px 離れるまで保持される (handleMouseMove の buffer) ため、 element 近傍の背景を
     // click しても旧 element を再選択して return し、 背景 click による選択解除と rubber band が
     // 起動しなくなっていた (codex review で再現条件を実測)。
-    const targetEl = e.target as Element | null;
+    const rawTarget = e.target as Element | null;
+    const targetEl = rawTarget ? resolveHitTarget(rawTarget) : null;
     const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
       (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
     if (onCdlElement) {
@@ -1934,7 +1811,13 @@ export function CdlEditor(): React.JSX.Element {
             },
           );
           if (snap) {
-            cdlActorDragRef.current = { snapshot: snap, startClientX: e.clientX, startClientY: e.clientY, svg };
+            cdlActorDragRef.current = {
+              snapshot: snap,
+              startClientX: e.clientX,
+              startClientY: e.clientY,
+              svg,
+              allowVertical: allowsVerticalMove(readDiagramType(srcRef.current)),
+            };
             document.body.style.cursor = "grabbing";
           }
         }
@@ -1958,12 +1841,16 @@ export function CdlEditor(): React.JSX.Element {
       // 重なり防止の clamp も finalize と同じ条件でかける = 限界を超えて引っ張った時に
       // cursor に付いていって mouseup で戻る、 という食い違いを無くす。
       const dxClient = e.clientX - st.startClientX;
+      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
       const origin = clientToSvg(st.svg, 0, 0);
-      const moved = clientToSvg(st.svg, dxClient, 0);
+      const moved = clientToSvg(st.svg, dxClient, dyClient);
       const dxWorld = moved.x - origin.x;
-      const clampedWorld = clampDx(st.snapshot, dxWorld);
-      const ratio = dxWorld === 0 ? 1 : clampedWorld / dxWorld;
-      applyLiveTransform(st.snapshot.name, dxClient * ratio, 0);
+      const dyWorld = moved.y - origin.y;
+      // CSS transform は SVG の座標系内で効くので、 渡す値も SVG user unit に揃える。
+      // client px をそのまま渡すと、 lane / node は縮尺分だけ小さく動く一方
+      // edge の path は user unit で動くため、 矢印だけが先に進んで箱を突き抜ける
+      // (実測 = 箱が 50px 動く間に矢印の端が 100px 動いていた)。
+      applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), dyWorld);
       return;
     }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
@@ -1971,9 +1858,9 @@ export function CdlEditor(): React.JSX.Element {
     // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
     if (overlayDragRef.current) {
       const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
-      const panScale = transformRef.current.scale || 1;
-      let dx = (e.clientX - startClientX) / panScale;
-      let dy = (e.clientY - startClientY) / panScale;
+      const factor = worldToClient();
+      let dx = (e.clientX - startClientX) / factor;
+      let dy = (e.clientY - startClientY) / factor;
       // 2026-07-24 snap to grid (Task #93) = shift 押下で無効、 通常時は 20px grid に snap。
       // primary target の新 pos が grid 交点になるように delta を丸める → 全 member 同 delta 適用で相対 pos 保持。
       const GRID = 20;
@@ -2074,7 +1961,9 @@ export function CdlEditor(): React.JSX.Element {
           return;
         }
       }
-      const target = e.target as Element;
+      // 注入した当たり判定 (透明 rect) が hit した時は、 それが代表する text にすり替える。
+      // hover / 選択の判定は text 要素を前提に組まれているため。
+      const target = resolveHitTarget(e.target as Element);
       const actorNamesForHover = extractAllActorNames(src);
       const dragInfo = findDragTarget(target, actorNamesForHover);
       // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
@@ -2166,7 +2055,7 @@ export function CdlEditor(): React.JSX.Element {
             dragInfo.subNodeKey = undefined;
           }
           // canvas pivot UX 修正 (B1) = data-cdl-node の subNodeKey (`header` / `footer` / `spacer` / `s0` 等)
-          // を hoveredHandle に転写、 startElementInteraction で subNodeKey 経由 individual sub-node 経路に流す。
+          // を hoveredHandle に転写し、 sub-node 単位の hover 判定に使う。
           // subNodeKey undefined 時 (findDragTarget が親 lane / raw actor を返した場合) は前回の subNodeKey を
           // 継承して subNodeKey 消失を防ぐ (SE 境界 mouse.move で親 lane に上がっても sub-node 経路を維持)。
           const inheritedSubKey =
@@ -2205,12 +2094,13 @@ export function CdlEditor(): React.JSX.Element {
       cdlActorDragRef.current = null;
       document.body.style.cursor = "";
       const dxClient = e.clientX - st.startClientX;
+      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
       // live transform を戻す (DSL 反映後の再 render が正となるため)
       clearLiveTransform(st.snapshot.name);
-      if (Math.abs(dxClient) > 1) {
+      if (Math.abs(dxClient) > 1 || Math.abs(dyClient) > 1) {
         const origin = clientToSvg(st.svg, 0, 0);
-        const moved = clientToSvg(st.svg, dxClient, 0);
-        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x));
+        const moved = clientToSvg(st.svg, dxClient, dyClient);
+        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x, moved.y - origin.y));
       }
       return;
     }
@@ -2859,6 +2749,45 @@ ${newActorLine}
             <span className="v4-editor-live" /> ライブプレビュー
           </span>
           <span className="v4-editor-bar-gap" />
+          {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
+              zoom (表示倍率) と違い、 DSL に書き出されるので export / 共有にも反映される。
+              文字サイズは cdl 側の固定値なので追従しない = 箱と間隔だけが変わる。 */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-font-scale-down"
+            onClick={() => setFontScale((v) => clampFontScale(v / 1.15))}
+            title="図中の文字を一律で小さくする"
+          >
+            文字を小さく
+          </button>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-font-scale-up"
+            onClick={() => setFontScale((v) => clampFontScale(v * 1.15))}
+            title="図中の文字を一律で大きくする"
+          >
+            文字を大きく
+          </button>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-diagram-scale-down"
+            onClick={() => scaleWholeDiagram(1 / 1.25)}
+            title="図そのものを縮小する (表示倍率ではなく DSL に反映)"
+          >
+            図を縮小
+          </button>
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            data-testid="editor-diagram-scale-up"
+            onClick={() => scaleWholeDiagram(1.25)}
+            title="図そのものを拡大する (表示倍率ではなく DSL に反映)"
+          >
+            図を拡大
+          </button>
           <button
             type="button"
             className="v4-editor-bar-btn"
@@ -2947,6 +2876,9 @@ ${newActorLine}
             {diagram ? (
               <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
                 <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* 図全体の倍率。 cdl の SVG は 1 world unit = k px で描かれるので、 同じ world 座標に
+                    置く overlay parts と group 枠にも同じ k を掛ける。 掛けないと図だけが伸びて
+                    parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
                 {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
                     member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
                 {Object.entries(groups).map(([gid, memberIds]) => {
@@ -2972,10 +2904,10 @@ ${newActorLine}
                       data-group={gid}
                       style={{
                         position: "absolute",
-                        left: `${minL - 8}px`,
-                        top: `${minT - 8}px`,
-                        width: `${maxR - minL + 16}px`,
-                        height: `${maxB - minT + 16}px`,
+                        left: `${(minL - 8) * diagramK}px`,
+                        top: `${(minT - 8) * diagramK}px`,
+                        width: `${(maxR - minL + 16) * diagramK}px`,
+                        height: `${(maxB - minT + 16) * diagramK}px`,
                         border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
                         pointerEvents: isGroupSelected ? "auto" : "none",
                         borderRadius: "4px",
@@ -3021,11 +2953,10 @@ ${newActorLine}
                     />
                   );
                 })}
-                {/* 2026-07-24 architectural refactor = parts overlay 独立描画。 pan/scale 済 container 内
-                    に位置するため、 posX/posY (world 座標) をそのまま left/top に指定するだけで cdl SVG と
-                    同 座標系で表示される。 cdl は parts を知らないので base 図に影響なし。 */}
+                {/* parts overlay は cdl の SVG とは別に描く。 cdl は parts を知らないので base 図に
+                    影響しない。 位置と大きさは world 座標を `diagramK` 倍して置く (cdl の SVG が
+                    1 world unit = diagramK px で描かれるため、 上の注記を参照)。 */}
                 {overlayParts.map((p) => {
-                  const isHovered = hoveredOverlayId === p.id;
                   const isSelected = selectedIds.includes(`overlay:${p.id}`);
                   return (
                     <div
@@ -3035,9 +2966,9 @@ ${newActorLine}
                       ref={(el) => { overlayRefs.current[p.id] = el; }}
                       style={{
                         position: "absolute",
-                        left: `${p.posX}px`,
-                        top: `${p.posY}px`,
-                        transform: `rotate(${p.rotate}deg) scale(${p.scale})`,
+                        left: `${p.posX * diagramK}px`,
+                        top: `${p.posY * diagramK}px`,
+                        transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
                         transformOrigin: "0 0",
                         cursor: "grab",
                         userSelect: "none",
@@ -3231,10 +3162,6 @@ ${newActorLine}
               });
               setColorPickerFor(null);
             };
-            const iconStyle: React.CSSProperties = {
-              width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
-              background: "transparent", border: "none", cursor: "pointer", borderRadius: "6px", padding: 0,
-            };
             return (
               <div key={p.id} data-overlay-selection-ui={p.id}>
                 {/* 選択枠 = shape client bbox に完全 fit (padding なし)、 点線 */}
@@ -3294,7 +3221,7 @@ ${newActorLine}
                           startPosX: p.posX, startPosY: p.posY,
                           startClientW: bbox.width, startClientH: bbox.height,
                           startBboxLeft: bbox.left, startBboxTop: bbox.top,
-                          panScale: transformRef.current.scale || 1,
+                          panScale: worldToClient(),
                           panTx: transformRef.current.tx, panTy: transformRef.current.ty,
                         };
                         document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
@@ -3314,18 +3241,16 @@ ${newActorLine}
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <button type="button" data-overlay-toolbar-btn="color" title="色を変更" style={iconStyle}
-                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                    <ToolbarButton label="色を変更" testId="color"
+                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <path d="M10 2c-4.4 0-8 3.6-8 8s3.6 8 8 8c.6 0 1-.4 1-1s-.4-1-1-1c-.5 0-1-.4-1-1s.5-1 1-1c1.1 0 2-.9 2-2s-.9-2-2-2c-1.1 0-2-.9-2-2s.9-2 2-2c1.7 0 3 1.3 3 3 0 .6.4 1 1 1s1-.4 1-1c0-3.9-3.1-7-7-7z" fill="#374151"/>
                         <circle cx="6" cy="10" r="1.2" fill="#ef4444"/>
                         <circle cx="9" cy="6" r="1.2" fill="#3b82f6"/>
                         <circle cx="14" cy="10" r="1.2" fill="#22c55e"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="duplicate" title="複製 (Cmd+D)" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="複製 (Cmd+D)" testId="duplicate"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3333,15 +3258,13 @@ ${newActorLine}
                           const newLine = buildDuplicateLine(p, newAlias);
                           return appendActorLine(prev, newLine) ?? prev;
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
                         <rect x="3" y="3" width="10" height="10" rx="1.5"/>
                         <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="bring-front" title="前面へ (Cmd+])" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="前面へ (Cmd+])" testId="bring-front"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3352,15 +3275,13 @@ ${newActorLine}
                           }
                           return lines.join("\n");
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
                         <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#374151"/>
                       </svg>
-                    </button>
-                    <button type="button" data-overlay-toolbar-btn="send-back" title="背面へ (Cmd+[)" style={iconStyle}
+                    </ToolbarButton>
+                    <ToolbarButton label="背面へ (Cmd+[)" testId="send-back"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => {
@@ -3371,27 +3292,23 @@ ${newActorLine}
                           }
                           return lines.join("\n");
                         });
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
                         <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#374151"/>
                       </svg>
-                    </button>
+                    </ToolbarButton>
                     <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
-                    <button type="button" data-overlay-toolbar-btn="delete" title="削除 (Delete)" style={iconStyle}
+                    <ToolbarButton label="削除 (Delete)" testId="delete"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSrc((prev) => removeActorLine(prev, p.id));
                         setSelectedIds([]);
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      }}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
                       </svg>
-                    </button>
+                    </ToolbarButton>
                   </div>
                 )}
                 {/* Color picker popover */}
@@ -3463,11 +3380,17 @@ ${newActorLine}
               autoFocus
               data-testid="editor-text-edit-input"
               defaultValue={textEditing.originalText}
+              // 入力欄は要素の bbox ではなく「中身が全部見える幅」 に合わせる。
+              // bbox 固定だと、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
+              // 元要素より狭くならないよう bbox 幅を下限にし、 中身が超えたら伸ばす。
+              ref={(el) => { if (el) fitTextEditWidth(el, textEditing.bbox.width); }}
+              onInput={(e) => fitTextEditWidth(e.currentTarget, textEditing.bbox.width)}
               style={{
                 position: "absolute",
                 left: `${textEditing.bbox.left}px`,
                 top: `${textEditing.bbox.top}px`,
-                width: `${textEditing.bbox.width}px`,
+                minWidth: `${textEditing.bbox.width}px`,
+                maxWidth: "min(90vw, 900px)",
                 height: `${textEditing.bbox.height}px`,
                 fontSize: `${textEditing.fontSize}px`,
                 padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
@@ -3516,12 +3439,53 @@ ${newActorLine}
                         width: `${HANDLE}px`, height: `${HANDLE}px`,
                         background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                        cursor: "default",
                         zIndex: 100, pointerEvents: "none",
                       }}
                     />
                   );
                 })}
+                {/* cdl 要素の toolbar。 overlay parts と同じ位置 / 見た目に揃える。
+                    色変更は出さない = DSL の actor に色を保存する field が無く、 DOM に直接当てても
+                    再 compile で消えるため (実測で確認済)。 出せる操作だけを出す。 */}
+                {(() => {
+                  const actorName = cdlKeyToActorName(key, srcRef.current);
+                  if (!actorName) return null;
+                  return (
+                    <div
+                      data-cdl-toolbar={key}
+                      style={{
+                        position: "absolute", left: `${bbox.left}px`, top: `${bbox.top - 44}px`,
+                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+                        padding: "4px", display: "flex", gap: "2px", zIndex: 200, whiteSpace: "nowrap",
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <ToolbarButton label="複製" testId="cdl-duplicate"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSrc((prev) => duplicateActorInDsl(prev, actorName));
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
+                          <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+                          <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
+                        </svg>
+                      </ToolbarButton>
+                      <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
+                      <ToolbarButton label="削除 (Delete)" testId="cdl-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSrc((prev) => removeActorLine(prev, actorName));
+                          setSelectedIds([]);
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
+                        </svg>
+                      </ToolbarButton>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
