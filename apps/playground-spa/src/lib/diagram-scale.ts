@@ -111,14 +111,27 @@ function readViewportInner(src: string): string | null {
     if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(lines[i]!)) {
       const fields: string[] = [];
       for (let j = i + 1; j < lines.length; j += 1) {
+        if (!isInsideBlock(lines[j]!)) break;
         const f = lines[j]!.match(/^[ \t]+([a-zA-Z][\w-]*)[ \t]*:[ \t]*(.+?)[ \t]*$/);
-        if (!f) break;
-        fields.push(`${f[1]}: ${f[2]}`);
+        if (f) fields.push(`${f[1]}: ${f[2]}`);
       }
       last = fields.join(", ");
     }
   }
   return last;
+}
+
+/**
+ * その行が block の内側かを判定する。 parser の `collectIndentedList` と同じ条件にする。
+ *
+ * parser は「空行は読み飛ばす / 字下げが親以下になったら終了」 で、 その間にある
+ * コメント行やリスト項目 (`- x`) は items に入らないだけで **終端にはしない**。
+ * こちらだけ打ち切ると、 それらより後ろの field が見えず parser の実値と食い違う
+ * (実測 = コメント行 / リスト項目を挟むと parser は 2、 こちらは 1)。
+ */
+function isInsideBlock(line: string): boolean {
+  if (!line.trim()) return true; // 空行は終端ではない
+  return /^[ \t]/.test(line); // 字下げがある限り block の内側
 }
 
 /**
@@ -141,9 +154,10 @@ function setScaleInBlockViewport(src: string, field: string | null): string {
   let scaleIdx = -1;
   let indent = "  ";
   for (let i = headIdx + 2; i < segments.length; i += 2) {
-    const m = segments[i]!.match(/^([ \t]+)([a-zA-Z][\w-]*)[ \t]*:/);
-    if (!m) break;
+    if (!isInsideBlock(segments[i]!)) break;
     lastIdx = i;
+    const m = segments[i]!.match(/^([ \t]+)([a-zA-Z][\w-]*)[ \t]*:/);
+    if (!m) continue;
     indent = m[1]!;
     if (m[2] === "scale") scaleIdx = i;
   }

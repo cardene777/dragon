@@ -221,6 +221,24 @@ describe("diagram-scale — 壊しに行く入力", () => {
     }
   });
 
+  it("block 内の空行より後ろの field も見る (parser と同じ終端条件)", () => {
+    // parser の `collectIndentedList` は空行を読み飛ばして続ける。 打ち切ると
+    // 空行の後にある scale が見えず、 2 つ目を書いて parser の後勝ちで元の値が残る。
+    const src = 'type: sequence\nviewport:\n  laneGap: 300\n\n  scale: 2\nactors:\n  - A\n';
+    expect(readDiagramScale(src), "空行の後の scale を読む").toBe(2);
+    const out = setDiagramScale(src, 1.5);
+    expect((out.match(/scale:/g) ?? []).length, "scale が増えない").toBe(1);
+    expect(readDiagramScale(out), "書いた値が読める").toBe(1.5);
+  });
+
+  it("block の全 field が空行の後にあっても見つける", () => {
+    const src = 'type: sequence\nviewport:\n\n  laneGap: 300\n  scale: 3\nactors:\n  - A\n';
+    expect(readDiagramScale(src)).toBe(3);
+    const out = setDiagramScale(src, 2);
+    expect((out.match(/scale:/g) ?? []).length).toBe(1);
+    expect(readDiagramScale(out)).toBe(2);
+  });
+
   it("A の引数が 7 の倍数なら弾かない", () => {
     expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "end", 5, 0)).not.toBeNull();
     expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10 A 5 5 0 0 1 20 20", "end", 5, 0)).not.toBeNull();
