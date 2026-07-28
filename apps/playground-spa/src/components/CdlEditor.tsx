@@ -28,6 +28,7 @@ import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
+import { measureTextWidth, textInputWidth } from "@/lib/text-input-fit";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -38,15 +39,25 @@ import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine 
  * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
  */
 /**
- * text 編集の入力欄を「中身が全部見える幅」 に合わせる。
+ * 図全体を選んだ状態を表す selection id。
  *
- * 元要素の bbox に固定すると、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
- * `scrollWidth` は内容の実幅を返すので、 一度 auto に戻してから測り直す。
- * 元要素より狭くはしない (`minWidth` 相当) = 見た目の位置ずれを避ける。
+ * 倍率と文字サイズは図全体にしか効かないので、 その「全体」 が画面上どこまでかを見せる。
+ * 要素の id (`cdl:` / `overlay:` / `group:`) と衝突しない prefix を使う。
  */
-function fitTextEditWidth(el: HTMLInputElement, minWidth: number): void {
-  el.style.width = "auto";
-  el.style.width = `${Math.max(minWidth, el.scrollWidth + 16)}px`;
+const DIAGRAM_SELECTION_ID = "diagram:__all__";
+
+/**
+ * text 編集の入力欄を中身の幅に合わせる。
+ *
+ * `input` の `scrollWidth` は使えない。 内容に関係なく既定幅 (`size` 属性、 既定 20 文字
+ * 相当) に解決するので、 中身が短くても長くても同じ値が返る (実測 256px 固定)。
+ * canvas で文字そのものを測る。
+ */
+function fitTextEditWidth(el: HTMLInputElement): void {
+  const font = window.getComputedStyle(el).font;
+  const measured = measureTextWidth(el.value, font);
+  if (measured === null) return;
+  el.style.width = `${textInputWidth(measured)}px`;
 }
 
 /**
@@ -353,6 +364,13 @@ export function CdlEditor(): React.JSX.Element {
     allowVertical: boolean;
   } | null>(null);
   const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
+  // drag 中に選択枠を追従させるための tick。
+  //
+  // bbox は `diagram` の変化でしか測り直さないが、 drag 中の追従表示は DOM に直接
+  // transform を当てるだけで `diagram` は変わらない (DSL 書換は mouseup 1 回)。
+  // そのため drag 中は枠だけが元の位置に取り残される。 mousemove ごとに tick を進めて
+  // 測り直す。
+  const [dragTick, setDragTick] = useState(0);
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
   const [textEditing, setTextEditing] = useState<{ originalText: string; bbox: { left: number; top: number; width: number; height: number }; fontSize: number } | null>(null);
@@ -772,7 +790,7 @@ export function CdlEditor(): React.JSX.Element {
     // diagram を依存に含める = 再 compile で text の位置 / 幅が変わった時に選択枠を追従させる
     // (含めないと label 編集後に古い bbox の枠が残る)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, transform, cdlSelectorMap, diagram]);
+  }, [selectedIds, transform, cdlSelectorMap, diagram, dragTick]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -1738,7 +1756,9 @@ export function CdlEditor(): React.JSX.Element {
     const fontSize = parseFloat(window.getComputedStyle(el as unknown as HTMLElement).fontSize) || 14;
     setTextEditing({
       originalText: original,
-      bbox: { left: rect.left - stageRect.left, top: rect.top - stageRect.top, width: Math.max(80, rect.width + 20), height: Math.max(24, rect.height + 8) },
+      // 幅は実測のまま持つ。 入力欄の幅は中身から決めるのでここでは使わず、
+      // 元の文字の **中心** を出すためだけに要る。 下限で水増しすると中心がずれる。
+      bbox: { left: rect.left - stageRect.left, top: rect.top - stageRect.top, width: rect.width, height: Math.max(24, rect.height + 8) },
       fontSize,
     });
     e.stopPropagation();
@@ -1851,6 +1871,9 @@ export function CdlEditor(): React.JSX.Element {
       // edge の path は user unit で動くため、 矢印だけが先に進んで箱を突き抜ける
       // (実測 = 箱が 50px 動く間に矢印の端が 100px 動いていた)。
       applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), dyWorld);
+      // 選択枠は bbox を測り直さないと元の位置に取り残される。 DOM を動かした直後に
+      // 測り直しを促す (実測は次の rAF で走る)。
+      setDragTick((t) => t + 1);
       return;
     }
     // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
@@ -2160,6 +2183,19 @@ export function CdlEditor(): React.JSX.Element {
         bottom: Math.max(rubberBand.sy, rubberBand.cy),
       };
       const isClickOnly = Math.abs(rect.right - rect.left) < 5 && Math.abs(rect.bottom - rect.top) < 5;
+      // 図の内側を click しただけ = 図全体を選ぶ。
+      //
+      // 倍率と文字サイズは図全体にしか効かないので、 その「全体」 が画面上どこまでかを
+      // 見せる必要がある。 要素を選んだ時と同じ点線の囲いを図の外周に出す。
+      // 図の外を click した時は従来どおり選択解除のまま。
+      if (isClickOnly && previewRef.current) {
+        const svg = previewRef.current.querySelector("svg");
+        const r = svg?.getBoundingClientRect();
+        const inside = r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        if (inside) setSelectedIds([DIAGRAM_SELECTION_ID]);
+        setRubberBand(null);
+        return;
+      }
       if (!isClickOnly && previewRef.current) {
         // overlay parts の client bbox が rect と重なる parts を selection に追加
         const overlayEls = previewRef.current.querySelectorAll("[data-overlay-part]");
@@ -3380,19 +3416,21 @@ ${newActorLine}
               autoFocus
               data-testid="editor-text-edit-input"
               defaultValue={textEditing.originalText}
-              // 入力欄は要素の bbox ではなく「中身が全部見える幅」 に合わせる。
-              // bbox 固定だと、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
-              // 元要素より狭くならないよう bbox 幅を下限にし、 中身が超えたら伸ばす。
-              ref={(el) => { if (el) fitTextEditWidth(el, textEditing.bbox.width); }}
-              onInput={(e) => fitTextEditWidth(e.currentTarget, textEditing.bbox.width)}
+              // 入力欄は中身の幅に合わせる。 要素の箱幅を下限にすると、 箱の中の短い文字を
+              // 編集する時に入力欄だけが箱と同じ大きさになって間延びする。
+              ref={(el) => { if (el) fitTextEditWidth(el); }}
+              onInput={(e) => fitTextEditWidth(e.currentTarget)}
               style={{
                 position: "absolute",
-                left: `${textEditing.bbox.left}px`,
+                // 幅が入力のたびに変わるので、 元の文字の中心に固定する。
+                // 左端固定だと打つほど右へ伸びて元の位置から離れていく。
+                left: `${textEditing.bbox.left + textEditing.bbox.width / 2}px`,
                 top: `${textEditing.bbox.top}px`,
-                minWidth: `${textEditing.bbox.width}px`,
+                transform: "translateX(-50%)",
                 maxWidth: "min(90vw, 900px)",
                 height: `${textEditing.bbox.height}px`,
                 fontSize: `${textEditing.fontSize}px`,
+                textAlign: "center",
                 padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
                 background: "#fff", zIndex: 300, boxSizing: "border-box",
               }}
@@ -3404,16 +3442,34 @@ ${newActorLine}
               onBlur={(e) => commitTextEdit(e.target.value)}
             />
           )}
-          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal
-              Phase 4 revert = 実 drag/resize は cdl actor の header/spacer/footer 複合構造で分裂 bug、
-              core 再設計が必要 (別 issue)。 現状は selection UI 表示のみ = user が「何が選ばれているか」 を確認可能。
-              handle は視覚 indicator のみ (pointerEvents: none)、 実操作は overlay parts のみ現時点で対応。 */}
+          {/* 図全体を選んだ時の囲い。 倍率と文字サイズが効く範囲を示す。
+              位置は毎 render で SVG の実 bbox から測る (倍率変更や pan で動くため)。 */}
+          {selectedIds.includes(DIAGRAM_SELECTION_ID) && (() => {
+            const svg = previewRef.current?.querySelector("svg");
+            const stage = previewRef.current?.getBoundingClientRect();
+            const r = svg?.getBoundingClientRect();
+            if (!r || !stage) return null;
+            return (
+              <div
+                data-cdl-diagram-outline
+                style={{
+                  position: "absolute",
+                  left: `${r.left - stage.left}px`, top: `${r.top - stage.top}px`,
+                  width: `${r.width}px`, height: `${r.height}px`,
+                  border: "1.5px dashed #2563eb", pointerEvents: "none", boxSizing: "border-box",
+                  borderRadius: "4px", zIndex: 80,
+                }}
+              />
+            );
+          })()}
+          {/* cdl 要素の選択 UI = 点線の囲いのみ。
+              図の要素は個別に拡大できない (拡大は図全体の倍率でのみ行う) ので、 掴める形の
+              4 隅 handle は出さない。 出すと「引っ張れば大きくなる」 と読めてしまう。 */}
           {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
             const key = sid.slice("cdl:".length);
             const bbox = cdlClientBboxes[key];
             if (!bbox) return null;
             const BORDER = "#2563eb";
-            const HANDLE = 10;
             return (
               <div key={sid} data-cdl-selection-ui={key}>
                 <div
@@ -3425,26 +3481,6 @@ ${newActorLine}
                     borderRadius: "2px", zIndex: 90,
                   }}
                 />
-                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
-                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
-                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
-                  return (
-                    <div
-                      key={corner}
-                      data-cdl-handle={corner}
-                      data-cdl-handle-for={key}
-                      style={{
-                        position: "absolute",
-                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
-                        width: `${HANDLE}px`, height: `${HANDLE}px`,
-                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        cursor: "default",
-                        zIndex: 100, pointerEvents: "none",
-                      }}
-                    />
-                  );
-                })}
                 {/* cdl 要素の toolbar。 overlay parts と同じ位置 / 見た目に揃える。
                     色変更は出さない = DSL の actor に色を保存する field が無く、 DOM に直接当てても
                     再 compile で消えるため (実測で確認済)。 出せる操作だけを出す。 */}

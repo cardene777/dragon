@@ -184,11 +184,51 @@ export function stretchEdgesFor(
     });
     // label は線の中点に付いているので、 動かす端に近い分だけ寄せる
     // (both は全体、 片側なら半分) = 線の伸びに追従して見える。
+    //
+    // label は edge の `<g>` の **外側** に別 group として描かれる (cdl の
+    // `render/edges.tsx` が `data-cdl-edge-label-for` を持つ独立 group を出す)。
+    // edge group の中を探しても 1 つも見つからないので、 SVG 全体から id で引く。
     const ratio = side === "both" ? 1 : 0.5;
-    g.querySelectorAll("text, tspan, rect").forEach((el) => {
-      (el as SVGGraphicsElement).style.transform = `translate(${dx * ratio}px, ${dy * ratio}px)`;
+    const edgeId = g.getAttribute("data-cdl-edge");
+    if (!edgeId) return;
+    svg.querySelectorAll(`[data-cdl-edge-label-for="${cssEscape(edgeId)}"]`).forEach((el) => {
+      shiftLabelGroup(el as SVGGElement, dx * ratio, dy * ratio);
     });
   });
+}
+
+/**
+ * label group を平行移動する。
+ *
+ * `style.transform` は使えない。 label group は `transform="translate(x y)"` を **属性**で
+ * 持っており、 CSS の `transform` は presentation attribute より優先されるので、 style を
+ * 当てると元の位置指定ごと置き換わって label が原点付近へ飛ぶ。
+ *
+ * 元の値を退避してから属性を書き換える (path の `data-cdl-live-base` と同じ形)。
+ */
+function shiftLabelGroup(el: SVGGElement, dx: number, dy: number): void {
+  if (!el.hasAttribute("data-cdl-live-base")) {
+    el.setAttribute("data-cdl-live-base", el.getAttribute("transform") ?? "");
+  }
+  const base = el.getAttribute("data-cdl-live-base") ?? "";
+  const m = base.match(/translate\(\s*(-?[\d.eE+-]+)[\s,]+(-?[\d.eE+-]+)\s*\)/);
+  if (!m) return;
+  const x = Number(m[1]);
+  const y = Number(m[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  el.setAttribute("transform", base.replace(m[0], `translate(${x + dx} ${y + dy})`));
+}
+
+/**
+ * 属性値を selector に埋めるための escape。
+ *
+ * `CSS.escape` があればそれを使う。 無い環境 (jsdom 等) では、 edge id に現れうる文字
+ * (英数字 / `-` / `_`) 以外を落として selector を壊さないようにする。
+ */
+function cssEscape(v: string): string {
+  const g = globalThis as { CSS?: { escape?: (s: string) => string } };
+  if (typeof g.CSS?.escape === "function") return g.CSS.escape(v);
+  return v.replace(/[^\w-]/g, "\\$&");
 }
 
 /** 伸縮を元に戻す。 DSL 反映後の再 render が正になるため、 mouseup 時に呼ぶ。 */
@@ -204,6 +244,15 @@ export function clearStretchedEdges(svg: SVGSVGElement): void {
     g.querySelectorAll("text, tspan, rect").forEach((el) => {
       (el as SVGGraphicsElement).style.transform = "";
     });
+  });
+  // label は edge group の外側にあるので別途 clear する (set 側と同じ理由)。
+  // 属性を書き換えているので、 退避した元の値に戻す。
+  svg.querySelectorAll("[data-cdl-edge-label-for]").forEach((el) => {
+    const base = el.getAttribute("data-cdl-live-base");
+    if (base === null) return;
+    if (base === "") el.removeAttribute("transform");
+    else el.setAttribute("transform", base);
+    el.removeAttribute("data-cdl-live-base");
   });
 }
 

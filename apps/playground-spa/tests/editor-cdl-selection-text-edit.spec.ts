@@ -31,7 +31,9 @@ test("cdl selection 1 = client-header cdl node click で selection UI (border + 
   const outlineCount = await page.locator('[data-cdl-outline]').count();
   const handleCount = await page.locator('[data-cdl-handle]').count();
   expect(outlineCount).toBeGreaterThanOrEqual(1);
-  expect(handleCount).toBe(4 * outlineCount);
+  // 4 隅 handle は CAR-2292 で削除。 図の要素は個別に拡大できない (拡大は図全体の倍率で
+  // のみ行う) ので、 掴める形の handle を出すと「引っ張れば大きくなる」 と読める
+  expect(handleCount).toBe(0);
 });
 
 test("text edit 1 = SVG text の double click で input 表示", async ({ page }) => {

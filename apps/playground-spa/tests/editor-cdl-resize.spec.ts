@@ -9,7 +9,8 @@ import { test, expect } from "@playwright/test";
  *
  * 現行 spec:
  *   - hover = 薄 blue dashed border のみ (handle なし)
- *   - click 選択 = 濃 dashed border + 4 隅 handle (`[data-cdl-handle]`、 pointerEvents: none = 表示のみ)
+ *   - click 選択 = 濃 dashed border (`[data-cdl-outline]`)。 4 隅 handle は CAR-2292 で削除
+ *     (図の要素は個別に拡大できないので、 掴める形の handle を出すと誤解を招く)
  *   - 実 drag/resize は overlay parts のみ対応、 cdl 要素は CAR-2156 完了後に復元
  */
 
@@ -36,18 +37,13 @@ async function selectCdlNode(page: import("@playwright/test").Page, nodeId: stri
   return bb;
 }
 
-test("selection 1 = Client lane header click 選択で 4 隅 handle 表示 (実 resize は CAR-2156 待ち)", async ({ page }) => {
+test("selection 1 = Client lane header click 選択で点線の囲いが出る", async ({ page }) => {
   await openEditor(page);
   await selectCdlNode(page, "client-header");
-  // 選択 UI = outline 1 + handle 4
-  const outlineCount = await page.locator('[data-cdl-outline]').count();
-  const handleCount = await page.locator('[data-cdl-handle]').count();
-  expect(outlineCount).toBe(1);
-  expect(handleCount).toBe(4);
-  // 4 隅 handle の corner 属性が全て揃う
-  for (const corner of ["nw", "ne", "sw", "se"]) {
-    expect(await page.locator(`[data-cdl-handle="${corner}"]`).count()).toBe(1);
-  }
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(1);
+  // 4 隅 handle は出さない。 図の要素は個別に拡大できない (拡大は図全体の倍率でのみ行う)
+  // ので、 掴める形の handle があると「引っ張れば大きくなる」 と読める
+  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
 });
 
 test("selection 2 = 選択枠が Client 単独 bbox に追従 (SVG 全体を囲わない)", async ({ page }) => {
@@ -66,7 +62,7 @@ test("selection 2 = 選択枠が Client 単独 bbox に追従 (SVG 全体を囲�
   expect(Math.abs(outlineBB.height - nodeBB.height)).toBeLessThan(3);
 });
 
-test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle", async ({ page }) => {
+test("selection 3 = arrow label hover で 薄 border、 click で点線の囲い", async ({ page }) => {
   await openEditor(page);
   const labels = await page.locator('.v4-editor-preview svg text').evaluateAll((els) =>
     els.map((el) => ({ content: (el.textContent ?? "").slice(0, 20), r: el.getBoundingClientRect() })).filter((l) => l.content.includes("ログイン")),
@@ -80,11 +76,12 @@ test("selection 3 = arrow label hover で 薄 border、 click で 4 隅 handle",
   await page.waitForTimeout(400);
   expect(await page.locator('[data-cdl-hover-outline]').count()).toBe(1);
   expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
-  // click 選択 = 4 隅 handle 表示
+  // click 選択 = 点線の囲い。 handle は出さない
   await page.mouse.down();
   await page.mouse.up();
   await page.waitForTimeout(400);
-  expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(1);
+  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
 });
 
 test("cdl drag = actor 全体 (header + footer) が一体で横移動する (CAR-2156)", async ({ page }) => {

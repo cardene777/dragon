@@ -10,8 +10,11 @@ import { test, expect } from "@playwright/test";
  * handle は click 選択時のみ表示する spec に変更した。 本 spec の期待値もそれに追従する。
  *
  * 現行 spec:
- *   - hover = 薄 blue dashed border のみ (`[data-cdl-hover-outline]`)、 handle なし
- *   - click 選択 = 濃 dashed border + 4 隅 handle (`[data-cdl-handle]`)
+ *   - hover = 薄 blue dashed border のみ (`[data-cdl-hover-outline]`)
+ *   - click 選択 = 濃 dashed border (`[data-cdl-outline]`)
+ *
+ * 4 隅 handle は CAR-2292 で削除した。 図の要素は個別に拡大できない (拡大は図全体の倍率で
+ * のみ行う) ので、 掴める形の handle を出すと「引っ張れば大きくなる」 と読めてしまうため。
  */
 
 const BASE_URL = process.env.AI_VERIFY_BASE_URL ?? "http://localhost:4323";
@@ -24,7 +27,7 @@ async function openEditor(page: import("@playwright/test").Page): Promise<void> 
   await page.waitForTimeout(2500);
 }
 
-test("cdl 要素 1 = Client lane header hover で 薄 border、 click 選択で 4 隅 handle", async ({ page }) => {
+test("cdl 要素 1 = Client lane header hover で 薄 border、 click 選択で 濃 border", async ({ page }) => {
   await openEditor(page);
   const clientNode = page.locator('[data-cdl-node="client-header"]').first();
   const bb = await clientNode.boundingBox();
@@ -32,18 +35,19 @@ test("cdl 要素 1 = Client lane header hover で 薄 border、 click 選択で 
   await page.mouse.move(50, 50); // hover reset
   await page.waitForTimeout(300);
   // hover 前 = 選択 UI なし
-  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(0);
   // hover = 薄 border indicator のみ (handle なし)
   await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
   await page.waitForTimeout(400);
   // semantic hook で hover outline を特定 (inline style の substring 検索は対象非限定で誤検出する)
   expect(await page.locator('[data-cdl-hover-outline]').count()).toBe(1);
-  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
-  // click 選択 = 4 隅 handle 表示
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(0);
+  // click 選択 = 濃 dashed border。 handle は出さない (個別に拡大できないため)
   await page.mouse.down();
   await page.mouse.up();
   await page.waitForTimeout(400);
-  expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(1);
+  expect(await page.locator('[data-cdl-handle]').count()).toBe(0);
 });
 
 test("cdl 要素 2 = 選択枠が Client 単独範囲 (SVG 全体を囲わない)", async ({ page }) => {
@@ -91,11 +95,11 @@ test("cdl 要素 3 = arrow label (ログイン要求) hover で label だけ 選
   const outlineBB = await outline.boundingBox();
   if (!outlineBB) throw new Error("outline null");
   expect(outlineBB.width).toBeLessThan(300);
-  // click 選択で 4 隅 handle 表示
+  // click 選択で点線の囲いが出る
   await page.mouse.down();
   await page.mouse.up();
   await page.waitForTimeout(400);
-  expect(await page.locator('[data-cdl-handle]').count()).toBe(4);
+  expect(await page.locator('[data-cdl-outline]').count()).toBe(1);
 });
 
 test("cdl 要素 4 = 各 lane header (Client / API / DB) が独立選択可能", async ({ page }) => {
@@ -118,15 +122,15 @@ test("cdl 要素 4 = 各 lane header (Client / API / DB) が独立選択可能",
     await page.mouse.down();
     await page.mouse.up();
     await page.waitForTimeout(400);
-    expect(await page.locator('[data-cdl-handle]').count(), `${nodeId} 前の背景 click で clear`).toBe(0);
+    expect(await page.locator('[data-cdl-outline]').count(), `${nodeId} 前の背景 click で clear`).toBe(0);
     expect(await page.locator('[data-cdl-outline]').count(), `${nodeId} 前の背景 click で outline も clear`).toBe(0);
-    // hover → click 選択 = 4 隅 handle 表示 (CAR-2158 で spec 更新、 hover は border のみ)
+    // hover → click 選択 = 点線の囲い (hover は薄 border のみ)
     await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
     await page.waitForTimeout(400);
     await page.mouse.down();
     await page.mouse.up();
     await page.waitForTimeout(400);
-    expect(await page.locator('[data-cdl-handle]').count(), `${nodeId} で 4 隅 handle 表示`).toBe(4);
+    expect(await page.locator('[data-cdl-outline]').count(), `${nodeId} で 選択枠 表示`).toBe(1);
     // 選択枠が当該 node の bbox に対応している (別 node の枠が残っていない)
     const outlineBB = await page.locator('[data-cdl-outline]').first().boundingBox();
     if (!outlineBB) throw new Error("outline null");

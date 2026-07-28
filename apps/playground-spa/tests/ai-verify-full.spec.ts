@@ -53,14 +53,16 @@ test("AI verify 01 = 初期 stage", async ({ page }) => {
   expect(cdlNodeCount).toBeGreaterThan(3);
 });
 
-test("AI verify 02 = cdl 要素選択 UI = 点線 border + 4 handle", async ({ page }) => {
+test("AI verify 02 = cdl 要素選択 UI = 点線 border", async ({ page }) => {
   await open(page);
   await selectCdl(page, "client-header");
   await shoot(page, "02-cdl-selection");
   const outline = await page.locator('[data-cdl-outline]').count();
   const handle = await page.locator('[data-cdl-handle]').count();
   expect(outline).toBe(1);
-  expect(handle).toBe(4);
+  // 4 隅 handle は CAR-2292 で削除。 図の要素は個別に拡大できない (拡大は図全体の倍率で
+  // のみ行う) ので、 掴める形の handle を出すと「引っ張れば大きくなる」 と読める
+  expect(handle).toBe(0);
 });
 
 test("AI verify 03 = cdl drag で座標移動", async ({ page }) => {
@@ -81,20 +83,9 @@ test("AI verify 03 = cdl drag で座標移動", async ({ page }) => {
   expect(afterDsl).not.toBe(beforeDsl);
 });
 
-test("AI verify 04 = cdl SE handle resize で拡大", async ({ page }) => {
-  await open(page);
-  await selectCdl(page, "client-header");
-  const se = page.locator('[data-cdl-handle="se"]').first();
-  const sb = await se.boundingBox();
-  if (!sb) throw new Error("se null");
-  await page.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(sb.x + 80, sb.y + 80, { steps: 15 });
-  await shoot(page, "04a-cdl-resize-mid");
-  await page.mouse.up();
-  await page.waitForTimeout(500);
-  await shoot(page, "04b-cdl-resize-end");
-});
+// AI verify 04 (SE handle で resize) は CAR-2292 で削除した。 4 隅 handle 自体を出さなく
+// なったため掴む対象が無い。 図の拡大は倍率ボタン経由で、 その検証は
+// `editor-all-types.spec.ts` の倍率 test が持つ。
 
 test("AI verify 05 = double click text 編集 input 出現", async ({ page }) => {
   await open(page);
