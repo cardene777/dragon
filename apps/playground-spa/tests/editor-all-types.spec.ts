@@ -75,19 +75,29 @@ for (const { type, label } of TYPES) {
 
   test(`全 type: ${type} = 図の倍率が等比で効く`, async ({ page }) => {
     await openSample(page, label);
-    const vb = async (): Promise<{ w: number; h: number }> =>
+    // 測るのは **実描画サイズ** (getBoundingClientRect)。
+    //
+    // 以前はここで viewBox 属性を測っていたが、 それでは倍率が効いたことにならない。
+    // viewBox を k 倍すると表示倍率が 1/k になるので、 中身も k 倍していると両者が
+    // 打ち消し合って画面は 1 pixel も変わらない。 属性は増えるので test は通ってしまう。
+    const size = async (): Promise<{ w: number; h: number; vb: string }> =>
       await page.evaluate((sel) => {
-        const v = document.querySelector(sel)!.getAttribute("viewBox")!.split(/\s+/).map(Number);
-        return { w: v[2]!, h: v[3]! };
+        const svg = document.querySelector(sel)!;
+        const r = svg.getBoundingClientRect();
+        return { w: r.width, h: r.height, vb: svg.getAttribute("viewBox")! };
       }, DIAGRAM_SVG);
-    const b = await vb();
+    const b = await size();
     await page.locator('[data-testid="editor-diagram-scale-up"]').click();
     await page.waitForTimeout(1200);
-    const a = await vb();
+    const a = await size();
     // 縦横とも拡大し、 縦横比が保たれる (歪まない)
-    expect(a.w, `${type} の幅`).toBeGreaterThan(b.w);
-    expect(a.h, `${type} の高さ`).toBeGreaterThan(b.h);
+    expect(a.w, `${type} の描画幅`).toBeGreaterThan(b.w);
+    expect(a.h, `${type} の描画高さ`).toBeGreaterThan(b.h);
     expect(Math.abs(a.w / a.h - b.w / b.h), `${type} の縦横比`).toBeLessThan(0.01);
+    // 1 段 = 1.25 倍。 「大きくなった」 だけでなく倍率どおりであることまで見る。
+    expect(a.w / b.w, `${type} の倍率`).toBeCloseTo(1.25, 2);
+    // 座標系は変えない (当たり判定や座標の読み書きが倍率で狂わない)
+    expect(a.vb, `${type} の viewBox`).toBe(b.vb);
   });
 
   test(`全 type: ${type} = 文字サイズを一律で変えられる`, async ({ page }) => {

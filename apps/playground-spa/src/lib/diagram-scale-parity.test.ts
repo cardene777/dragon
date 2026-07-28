@@ -83,7 +83,8 @@ describe("倍率の読み書きが parser の実値と一致する", () => {
     // 字下げ幅で判定が変わると、 その行より後ろの field が見えなくなる。
     const CASES: Array<[string, string]> = [
       ["タブのみの行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n\t\n  nodeGap: 40\n${TAIL}`],
-      ["全角空白の行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n　\n  nodeGap: 40\n${TAIL}`],
+      // 全角空白は escape で書く。 見た目が半角と区別できず、 lint も literal を弾く。
+      ["全角空白の行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n\u3000\n  nodeGap: 40\n${TAIL}`],
       ["字下げ 1 空白", `title: "T"\ntype: sequence\nviewport:\n laneGap: 300\n${TAIL}`],
       ["block 内が空", `title: "T"\ntype: sequence\nviewport:\n${TAIL}`],
       ["block 直後に別 key", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\nactors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n`],

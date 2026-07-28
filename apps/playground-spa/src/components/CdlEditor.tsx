@@ -26,6 +26,8 @@ import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, 
 import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
 import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
+import { applySvgPixelSize, readSvgScaleAttr } from "@/lib/svg-pixel-size";
+import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
@@ -1343,12 +1345,7 @@ export function CdlEditor(): React.JSX.Element {
       setTransform({ tx: 0, ty: 0, scale: 1 });
       return;
     }
-    // SVG の CSS width / height を viewBox 実 pixel 値に強制する。
-    // CdlDiagramView は className="w-full h-auto" で親幅を欲しがるが、 pan は inline-block で
-    // 循環参照になり svg が default 300x150 に潰れる。 明示 pixel を渡して回避する。
-    svg.style.setProperty("width", `${vb.width}px`, "important");
-    svg.style.setProperty("height", `${vb.height}px`, "important");
-    svg.style.setProperty("max-width", "none", "important");
+    const px = applySvgPixelSize(svg, vb);
     // preview stage の 92% を使い、 4% 余白 (16-32px 程度) を上下左右に確保する。
     // 追加 = CdlDiagramView は SVG の上に CdlHeader (phase progress / topic) を並べて描画するため、
     // pan 内の高さは (SVG 高) + (Header 高)。 SVG element の外に兄弟 element がある場合、
@@ -1359,21 +1356,49 @@ export function CdlEditor(): React.JSX.Element {
     // wrap の実 pixel 高さ (transform 後) を測り、 現行 scale (直前 setTransform 値) で
     // 逆算して unscaled 高さを推定。 初回 render 時 transform.scale = 1 で不正確でも、
     // useEffect 内 2 回呼出で settle する (既存 fallback pattern)。
-    const wrapPx = wrap ? wrap.getBoundingClientRect().height : vb.height;
+    const wrapPx = wrap ? wrap.getBoundingClientRect().height : px.h;
     const currentScale = transformRef.current.scale > 0 ? transformRef.current.scale : 1;
     const wrapUnscaled = wrapPx / currentScale;
-    const headerUnscaled = Math.max(0, wrapUnscaled - vb.height);
+    const headerUnscaled = Math.max(0, wrapUnscaled - px.h);
     const availableW = previewRect.width * (1 - PADDING_RATIO * 2);
     const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
-    const contentUnscaledH = vb.height + headerUnscaled;
-    const scaleX = availableW / vb.width;
+    const contentUnscaledH = px.h + headerUnscaled;
+    const scaleX = availableW / px.w;
     const scaleY = availableH / contentUnscaledH;
     const scale = Math.min(scaleX, scaleY);
     // SVG 中心と stage 中心を一致させる (左寄り解消の core)。
-    const tx = (previewRect.width - vb.width * scale) / 2;
+    const tx = (previewRect.width - px.w * scale) / 2;
     const ty = (previewRect.height - contentUnscaledH * scale) / 2;
     setTransform({ tx, ty, scale });
   }, []);
+
+  // 図が描き直される度に表示サイズを焼き直し、 図枠が動いた分を pan で打ち消す。
+  //
+  // (1) 表示サイズ = `handleFit` が決めているが、 fit は初回と sample 切替でしか走らない
+  //     (毎回走らせると user の pan / zoom が戻る)。 一方で図全体の倍率は fit を挟まずに
+  //     変わるので、 ここで焼き直さないと倍率を変えても画面が変わらない。
+  //
+  // (2) 図枠の打ち消し = cdl の viewBox は内容の外接矩形に自動追従する。 要素を右へ動かすと
+  //     枠の左端も右へ寄るため、 画面上では「動かした要素はその場、 他が左へずれる」 になる。
+  //     枠の原点が動いた分だけ pan を逆に振ると、 触っていない要素が画面に留まり、 動かした
+  //     要素だけが動く。
+  //
+  //     補正量の算出は `src/lib/viewbox-anchor.ts` (成立条件と不変性を test で固定)。
+  const prevViewBoxRef = useRef<ViewBoxOrigin | null>(null);
+  useEffect(() => {
+    if (!diagram || !previewRef.current) return;
+    const svg = previewRef.current.querySelector("svg");
+    if (!svg) return;
+    const vb = svg.viewBox.baseVal;
+    if (!vb || vb.width === 0 || vb.height === 0) return;
+    applySvgPixelSize(svg, vb);
+
+    const next: ViewBoxOrigin = { x: vb.x, y: vb.y, k: readSvgScaleAttr(svg) };
+    const comp = panCompensation(prevViewBoxRef.current, next, transformRef.current.scale);
+    prevViewBoxRef.current = next;
+    if (!comp) return;
+    setTransform((t) => ({ ...t, tx: t.tx + comp.dtx, ty: t.ty + comp.dty }));
+  }, [diagram]);
 
   // 初回 diagram load 時のみ自動 Fit、 以降の diagram 変化 (drag / resize / drop) では
   // viewport 維持 = user 編集動作が正しく viewport に反映される (拡大したら拡大される)。

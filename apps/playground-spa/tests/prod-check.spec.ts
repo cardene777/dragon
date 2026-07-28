@@ -64,16 +64,22 @@ test("本番: エディタで図が描画され操作できる", async ({ page }
   await page.waitForTimeout(500);
   expect(await page.locator("[data-cdl-selection-ui]").count(), "選択 UI").toBeGreaterThan(0);
 
-  // 図の倍率が効く
-  const vb = async (): Promise<number> =>
+  // 図の倍率が効く。
+  //
+  // 測るのは viewBox 属性ではなく **実描画サイズ**。 viewBox を k 倍すると表示倍率が
+  // 1/k になるため、 中身も k 倍している実装では属性だけ増えて画面は変わらない。
+  const drawn = async (): Promise<{ w: number; vb: string }> =>
     await page.evaluate(() => {
       const s = document.querySelector('[data-testid="editor-preview-stage"] svg[viewBox]')!;
-      return Number(s.getAttribute("viewBox")!.split(/\s+/)[2]);
+      return { w: s.getBoundingClientRect().width, vb: s.getAttribute("viewBox")! };
     });
-  const before = await vb();
+  const before = await drawn();
   await page.locator('[data-testid="editor-diagram-scale-up"]').click();
   await page.waitForTimeout(1200);
-  expect(await vb(), "拡大後の幅").toBeGreaterThan(before);
+  const after = await drawn();
+  expect(after.w, "拡大後の描画幅").toBeGreaterThan(before.w);
+  expect(after.w / before.w, "1 段 = 1.25 倍").toBeCloseTo(1.25, 2);
+  expect(after.vb, "座標系は変えない").toBe(before.vb);
 
   expect(errors, "エディタのエラー").toEqual([]);
 });
