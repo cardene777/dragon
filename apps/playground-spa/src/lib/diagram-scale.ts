@@ -54,10 +54,10 @@ export function setDiagramScale(src: string, scale: number): string {
   // 最後の inline viewport を探す
   let inlineIdx = -1;
   for (let i = 0; i < segments.length; i += 2) {
-    if (/^viewport[ \t]*:[ \t]*\{.*\}[ \t]*$/.test(segments[i]!)) inlineIdx = i;
+    if (/^[ \t]*viewport[ \t]*:[ \t]*\{.*\}[ \t]*$/.test(segments[i]!)) inlineIdx = i;
   }
   for (let i = inlineIdx; i >= 0 && i < segments.length; i += 2) {
-    const m = segments[i]!.match(/^(viewport[ \t]*:[ \t]*)\{(.*)\}([ \t]*)$/);
+    const m = segments[i]!.match(/^([ \t]*viewport[ \t]*:[ \t]*)\{(.*)\}([ \t]*)$/);
     if (!m) break;
     const kept = splitTop(m[2]!).filter((f) => f.slice(0, f.indexOf(":")).trim() !== "scale");
     const merged = [...kept, ...(field ? [field] : [])].join(", ");
@@ -97,10 +97,6 @@ export function setDiagramScale(src: string, scale: number): string {
  * inline しか見ないと、 block 形式の DSL に 2 つ目の `viewport` を作ってしまう。
  * parser は後勝ちで block 側を採用するため、 倍率が無言で効かなくなる (実測)。
  *
- * `viewport` は top-level 専用 (`packages/dragon/src/v05/parser.ts:258`) なので、
- * 字下げのある `viewport:` 行は別 block の中身であって head ではない。 字下げを許すと
- * 将来 `viewport` を子に持つ構造が入った時に誤爆する。
- *
  * `viewport` が複数ある DSL では **最後のものを返す**。 parser が後勝ちで採用するため
  * (実測 = inline → block の順なら block、 逆順なら inline が doc.viewport になる)、
  * 先頭を返すと「書いた値が読めない」 食い違いが再発する。
@@ -109,10 +105,10 @@ function readViewportInner(src: string): string | null {
   const lines = src.split(/\r?\n/);
   let last: string | null = null;
   for (let i = 0; i < lines.length; i += 1) {
-    const inline = lines[i]!.match(/^viewport[ \t]*:[ \t]*\{(.*)\}[ \t]*$/);
+    const inline = lines[i]!.match(/^[ \t]*viewport[ \t]*:[ \t]*\{(.*)\}[ \t]*$/);
     if (inline) { last = inline[1]!; continue; }
     // block 形式 = `viewport:` の後に値が無く、 次行以降が字下げされている
-    if (/^viewport[ \t]*:[ \t]*$/.test(lines[i]!)) {
+    if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(lines[i]!)) {
       const fields: string[] = [];
       for (let j = i + 1; j < lines.length; j += 1) {
         if (!isInsideBlock(lines[j]!)) break;
@@ -149,7 +145,7 @@ function setScaleInBlockViewport(src: string, field: string | null): string {
   // 最後の block viewport を対象にする (parser の後勝ちに合わせる)
   let headIdx = -1;
   for (let i = 0; i < segments.length; i += 2) {
-    if (/^viewport[ \t]*:[ \t]*$/.test(segments[i]!)) headIdx = i;
+    if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(segments[i]!)) headIdx = i;
   }
   if (headIdx < 0) return src;
 
@@ -192,8 +188,8 @@ function setScaleInBlockViewport(src: string, field: string | null): string {
 function lastViewportIsBlock(src: string): boolean {
   let isBlock = false;
   for (const l of src.split(/\r?\n/)) {
-    if (/^viewport[ \t]*:[ \t]*\{.*\}[ \t]*$/.test(l)) isBlock = false;
-    else if (/^viewport[ \t]*:[ \t]*$/.test(l)) isBlock = true;
+    if (/^[ \t]*viewport[ \t]*:[ \t]*\{.*\}[ \t]*$/.test(l)) isBlock = false;
+    else if (/^[ \t]*viewport[ \t]*:[ \t]*$/.test(l)) isBlock = true;
   }
   return isBlock;
 }
