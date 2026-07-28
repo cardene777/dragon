@@ -78,6 +78,11 @@ function coordPairCount(cmd: string): number {
  * `"both"` は全座標を動かす (自己ループ等、 両端が同じ actor に付く場合)。
  */
 export function shiftPathEnd(d: string, side: "start" | "end" | "both", dx: number, dy: number): string | null {
+  // 有限でない delta を足すと `M 0 0 L NaN 0` のような壊れた path を出力し、
+  // それを `setAttribute("d", ...)` すると線が消える。 呼び出し側は client 座標を
+  // 変換して渡すので、 変換に失敗した場合 (getScreenCTM が null 等) に NaN が来うる。
+  // 扱えない入力は null を返して呼び出し側に判断を委ねる。
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
   const tokens = parsePathD(d);
   if (!tokens) return null;
   if (side === "both") {
