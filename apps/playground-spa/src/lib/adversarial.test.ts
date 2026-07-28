@@ -189,6 +189,44 @@ describe("diagram-scale — 壊しに行く入力", () => {
     expect(out, "行が繋がっていない").not.toMatch(/300[ \t]*scale/);
   });
 
+  describe("viewport が複数ある DSL (parser は後勝ち)", () => {
+    // 実測 = inline → block の順なら block が doc.viewport になり、 逆順なら inline。
+    // 読み書きが別の viewport を見ると「書いたのに読めない」 食い違いが起きる。
+    const CASES: Array<[string, string]> = [
+      ["inline → block", 'type: sequence\nviewport: { laneGap: 100 }\nviewport:\n  nodeGap: 50\nactors:\n  - A\n'],
+      ["block → inline", 'type: sequence\nviewport:\n  nodeGap: 50\nviewport: { laneGap: 100 }\nactors:\n  - A\n'],
+      ["inline 2 つ", 'type: sequence\nviewport: { laneGap: 100 }\nviewport: { nodeGap: 50 }\nactors:\n  - A\n'],
+      ["block 2 つ", 'type: sequence\nviewport:\n  laneGap: 100\nviewport:\n  nodeGap: 50\nactors:\n  - A\n'],
+    ];
+    for (const [name, src] of CASES) {
+      it(`${name} = 書いた値が読める`, () => {
+        const out = setDiagramScale(src, 2);
+        expect(readDiagramScale(out), `${name} の読み戻し`).toBe(2);
+        expect((out.match(/scale:/g) ?? []).length, `${name} の scale 数`).toBe(1);
+      });
+    }
+  });
+
+  it("block 形式の細部 (空行 / tab 字下げ / 後続 key / 入れ子) で壊れない", () => {
+    const CASES: Array<[string, string]> = [
+      ["空行", 'type: sequence\nviewport:\n  laneGap: 300\n\nactors:\n  - A\n'],
+      ["tab 字下げ", 'type: sequence\nviewport:\n\tlaneGap: 300\nactors:\n  - A\n'],
+      ["後続 key", 'type: sequence\nviewport:\n  laneGap: 300\nanimation:\n  - step: "x"\n'],
+      ["入れ子", 'type: sequence\nviewport:\n  pad: { x: 1, y: 2 }\n  laneGap: 300\nactors:\n  - A\n'],
+    ];
+    for (const [name, src] of CASES) {
+      const out = setDiagramScale(src, 1.5);
+      expect((out.match(/viewport:/g) ?? []).length, `${name} の viewport 数`).toBe(1);
+      expect(readDiagramScale(out), `${name} の読み戻し`).toBe(1.5);
+    }
+  });
+
+  it("A の引数が 7 の倍数なら弾かない", () => {
+    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "end", 5, 0)).not.toBeNull();
+    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10 A 5 5 0 0 1 20 20", "end", 5, 0)).not.toBeNull();
+    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "start", 5, 0)).not.toBeNull();
+  });
+
   it("不正な倍率は 1 に倒す", () => {
     for (const v of [NaN, Infinity, -Infinity, 0, -5]) {
       expect(clampDiagramScale(v), `scale=${v}`).toBe(1);
