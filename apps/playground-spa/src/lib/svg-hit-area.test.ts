@@ -80,6 +80,12 @@ describe("injectHitAreas — 矢印", () => {
 });
 
 describe("injectHitAreas — ラベル", () => {
+  it("余白は 4px 以上ある (定数を書き換えても検知できるよう literal で固定)", () => {
+    // 期待値を定数から組み立てる assertion だけだと、 余白を 0 にする書換が素通りする。
+    // 文字の隙間や周囲を掴めるようにするのが目的なので、 下限を直接固定する。
+    expect(LABEL_HIT_PADDING).toBeGreaterThanOrEqual(4);
+  });
+
   it("text の bbox に余白を足した透明 rect を敷く", () => {
     const svg = buildSvg({ labels: ["ログイン要求"] });
     injectHitAreas(svg);
