@@ -103,6 +103,17 @@ describe("倍率の読み書きが parser の実値と一致する", () => {
     expect(readDiagramScale(src)).toBe(1);
   });
 
+  it("字下げされた viewport 行を block head と誤認しない", () => {
+    // `viewport` は top-level 専用。 字下げのある `viewport:` は別 block の中身であって
+    // head ではない。 誤認すると存在しない block に書き込んで DSL を壊す。
+    const src = `title: "T"\ntype: sequence\nanimation:\n  viewport:\n    x: 1\n${TAIL}`;
+    const out = setDiagramScale(src, 1.5);
+    // top-level に新しい viewport が作られ、 animation の中身は無傷
+    expect(out).toContain("  viewport:");
+    expect(out).toContain("    x: 1");
+    expect(parserScale(out), "parser の実値").toBe(1.5);
+  });
+
   it("倍率を繰り返し変えても parser の実値が追従する", () => {
     let src = `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n${TAIL}`;
     for (const k of [1.25, 1.5, 2, 0.8, 1.1]) {
