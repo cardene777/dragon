@@ -11,6 +11,9 @@
 export { parseTextDsl } from "./parser";
 export { compileToCdl } from "./compile";
 export { parseTextDslV05 } from "./v05";
+// 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
+export { PRESET_TYPES } from "./v05/parser";
+export { TONE_ALIAS, NODE_KIND_ALIAS } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)

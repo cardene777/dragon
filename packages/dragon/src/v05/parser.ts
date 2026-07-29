@@ -42,7 +42,7 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import { TONES } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
 import { TONE_ALIAS } from "../keywords";
 import type {
   DslDocument,
@@ -65,7 +65,8 @@ export type V05ParseResult =
   | { ok: true; doc: DslDocument }
   | { ok: false; errors: DslError[] };
 
-const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
+/** 受け付ける図種。 記法一覧はここを見る。 */
+export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "sequence",
   "flow",
   "swimlane",
@@ -82,40 +83,31 @@ const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
 
 const NODE_KIND_DEFAULT: NodeKind = "actor";
 
-const NODE_KIND_VALID: ReadonlySet<string> = new Set([
-  "actor",
-  "function",
-  "storage",
-  "event",
-  "cdn",
-  "service",
-  "database",
-  "cache",
-  "queue",
-  "api",
-  "person",
-  "entity",
-  "state",
-  "container",
-  "card",
-  "lambda",
-  "kms",
-  "secret",
-  "alb",
-  "ecs",
-  "rds",
-  "s3",
-  "iam",
-  "user",
-  "browser",
-  // Solidity 専用 6 種
-  "contract",
-  "eoa",
-  "multisig",
-  "proxy",
-  "library",
-  "interface",
-]);
+/**
+ * 記法だけが持つ種類。 描画側には無いが、 図種ごとの組み立てで意味を持つ。
+ *
+ * `contract` / `eoa` / `multisig` / `proxy` / `library` / `interface` は Solidity 図の
+ * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。 組み立ての段階で描画できる
+ * 種類に置き換わるため、 そのまま描画側に渡ることはない。
+ *
+ * 残り (`alb` / `browser` / `container` / `ecs` / `iam` / `kms` / `lambda` / `rds` / `s3` /
+ * `secret` / `user`) は組み立てでも置き換わらず、 書いても図が出ない。 消すと既存の図が
+ * 壊れるため受理は続けるが、 記法一覧には載せない。
+ */
+const DSL_ONLY_KINDS = [
+  "entity", "state", "container",
+  "contract", "eoa", "multisig", "proxy", "library", "interface",
+  "alb", "browser", "ecs", "iam", "kms", "lambda", "rds", "s3", "secret", "user",
+] as const;
+
+/**
+ * 受け付ける箱の種類。 描画できる種類 (cdl の `NODE_KINDS`) に、 記法だけが持つ種類を足す。
+ *
+ * 以前は手書きの 31 種だった。 描画できる 90 種のうち 78 種が記法から書けず、 部品名として
+ * 扱われて「そんな部品は無い」 と警告が出るだけだった。 描画側を出所に加えることで
+ * 「描画できるものは書ける」 が成立する。
+ */
+const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([...NODE_KINDS, ...DSL_ONLY_KINDS]);
 
 // 受理する色名は cdl 側の一覧をそのまま使う。 手書きすると cdl に色が増えた時に取り残される。
 const TONE_VALID: ReadonlySet<string> = new Set<string>(TONES);
@@ -708,14 +700,40 @@ function parseActor(line: Line): DslActor | null {
   if (raw.includes(":")) {
     const idx = raw.lastIndexOf(":");
     const namePart = stripQuotes(raw.slice(0, idx).trim());
-    const kindPart = raw.slice(idx + 1).trim().toLowerCase();
+    const rest = raw.slice(idx + 1).trim();
     if (!namePart) return null;
+
+    // `名前: 種類 色` の形も受け付ける。 色を足すためだけに `{ }` を書かせない。
+    //
+    // 後ろから 1 語だけ見て、 色名として解決できれば色として取る。 色は語の集合が閉じている
+    // (`TONES` + 別名) ので、 種類名と取り違える余地がない。
+    const words = rest.split(/\s+/).filter(Boolean);
+    let tone: Tone | undefined;
+    if (words.length > 1) {
+      const resolved = toneOrUndef(words[words.length - 1]!);
+      if (resolved) {
+        tone = resolved;
+        words.pop();
+      }
+    }
+    const kindPart = words.join(" ").toLowerCase();
+
+    // 種類を書かず色だけ (`名前: 失敗`) の形も受け付ける。
+    if (words.length === 1 && tone === undefined) {
+      const only = toneOrUndef(words[0]!);
+      if (only) {
+        return { name: namePart, kind: NODE_KIND_DEFAULT, tone: only, pos: { line: line.no } };
+      }
+    }
+
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = kindPart !== "" && !NODE_KIND_VALID.has(kindPart);
     const kind = isPart ? NODE_KIND_DEFAULT : ((NODE_KIND_VALID.has(kindPart) ? kindPart : NODE_KIND_DEFAULT) as NodeKind);
     return {
       name: namePart,
       kind,
+      // parts では `tone` を状態の上書きとして扱うため、 色として渡さない
+      tone: isPart ? undefined : tone,
       partId: isPart ? kindPart : undefined,
       pos: { line: line.no },
     };
