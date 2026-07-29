@@ -1291,15 +1291,15 @@ animation:
                     for (let i = 1; i <= 1000 && existingNames.has(alias); i++) {
                       alias = `${aliasBase}${i + 1}`;
                     }
+                    // 状態の初期値は `名前=値` で書く。 状態名は自由なので等号で示す。
                     const stateInits: string[] = p.diagram.states.map((s) => {
                       const v = s.initial;
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
-                      return `${s.id}: ${rendered}`;
+                      return `${s.id}=${rendered}`;
                     });
                     // 座標は書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
                     // 実寸を走査する形に戻らずに済む。 位置を変えたい時は DSL に posX / posY を書く。
-                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
-                    const newActorLine = `  - ${alias}: { ${inlineFields} }`;
+                    const newActorLine = `  - ${alias}: ${[kindValue, ...stateInits].join(" ")}`;
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);

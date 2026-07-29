@@ -90,3 +90,19 @@ test("例をクリックすると入力欄に足される", async ({ page }) => 
   expect(after, "内容が増える").not.toBe(before);
   expect(after, "押した例が入る").toContain(code!);
 });
+
+test("パーツを足すと入れ子なしの行が入る", async ({ page }) => {
+  // 一覧の書き方と、 画面が実際に足す行の書き方が食い違うと、 読んだ通りに書けない
+  await openEditor(page);
+  await page.locator('[data-testid="editor-parts-tab"]').click();
+  await page.waitForTimeout(400);
+  await page.locator('[data-testid="editor-part-item-parts-achievement"]').click();
+  await page.waitForTimeout(900);
+
+  const added = await dsl(page);
+  // 足される行は `  - achievement1: achievement bg="#f59e0b"` の形 (一覧の id ではなく別名)
+  const line = added.split("\n").find((l) => /^\s*- achievement\d+:/.test(l));
+  expect(line, `パーツの行が入っていない: ${added.slice(-200)}`).toBeTruthy();
+  expect(line, `入れ子が残っている: ${line}`).not.toContain("{");
+  expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
+});

@@ -479,6 +479,8 @@ type ActorValues = {
   subtitle?: string;
   rows?: string[];
   value?: string;
+  /** parts の状態の上書き (`v=50` の形)。 状態名は自由なので等号で示す。 */
+  state?: Record<string, number | string | boolean>;
 };
 
 /**
@@ -504,6 +506,17 @@ function classifyValues(values: string[]): ActorValues {
         .map((x) => stripQuotes(x.trim()))
         .filter(Boolean);
       continue;
+    }
+    // `名前=値` は parts の状態の上書き。 状態名は自由なので、 形では見分けられない。
+    // 等号を書いてもらう。
+    const eq = v.indexOf("=");
+    if (eq > 0) {
+      const key = v.slice(0, eq);
+      const raw = stripQuotes(v.slice(eq + 1));
+      if (/^[A-Za-z_][\w-]*$/.test(key)) {
+        out.state = { ...(out.state ?? {}), [key]: coerceStateValue(raw) };
+        continue;
+      }
     }
     const tone = toneOrUndef(v);
     if (tone) { out.tone = tone; continue; }
@@ -850,6 +863,7 @@ function parseActor(line: Line): DslActor | null {
       rows: v.rows,
       value: v.value,
       partId: isPart ? v.kind : undefined,
+      stateOverride: isPart ? v.state : undefined,
       pos: { line: line.no },
     };
   }

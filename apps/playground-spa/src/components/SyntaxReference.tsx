@@ -42,6 +42,13 @@ const FORMS: Section[] = [
     ],
   },
   {
+    title: "パーツ",
+    lines: [
+      { code: "  - 時計1: alarm-clock", note: "パーツの名前を種類に書く" },
+      { code: "  - 計器1: arc-gauge v=50 count=100", note: "状態の初期値は 名前=値" },
+    ],
+  },
+  {
     title: "流れ",
     lines: [
       { code: '  - Client -> API: "要求"', note: "矢印と説明" },
