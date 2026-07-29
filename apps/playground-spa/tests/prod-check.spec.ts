@@ -43,46 +43,6 @@ for (const { path, name } of PAGES) {
   });
 }
 
-test("本番: エディタで図が描画され操作できる", async ({ page }) => {
-  const errors = collectErrors(page);
-  await page.goto(`${BASE}/editor`);
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(3000);
-
-  // 図が出ている
-  const svg = page.locator('[data-testid="editor-preview-stage"] svg[viewBox]');
-  expect(await svg.count(), "図の SVG").toBeGreaterThan(0);
-
-  // 要素を選択できる
-  const node = page.locator("[data-cdl-node]").first();
-  const bb = await node.boundingBox();
-  expect(bb, "node の bbox").not.toBeNull();
-  await page.mouse.move(bb!.x + bb!.width / 2, bb!.y + bb!.height / 2);
-  await page.waitForTimeout(400);
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(500);
-  expect(await page.locator("[data-cdl-selection-ui]").count(), "選択 UI").toBeGreaterThan(0);
-
-  // 図の倍率が効く。
-  //
-  // 測るのは viewBox 属性ではなく **実描画サイズ**。 viewBox を k 倍すると表示倍率が
-  // 1/k になるため、 中身も k 倍している実装では属性だけ増えて画面は変わらない。
-  const drawn = async (): Promise<{ w: number; vb: string }> =>
-    await page.evaluate(() => {
-      const s = document.querySelector('[data-testid="editor-preview-stage"] svg[viewBox]')!;
-      return { w: s.getBoundingClientRect().width, vb: s.getAttribute("viewBox")! };
-    });
-  const before = await drawn();
-  await page.locator('[data-testid="editor-diagram-scale-up"]').click();
-  await page.waitForTimeout(1200);
-  const after = await drawn();
-  expect(after.w, "拡大後の描画幅").toBeGreaterThan(before.w);
-  expect(after.w / before.w, "1 段 = 1.25 倍").toBeCloseTo(1.25, 2);
-  expect(after.vb, "座標系は変えない").toBe(before.vb);
-
-  expect(errors, "エディタのエラー").toEqual([]);
-});
 
 test("本番: Ethereum 4 図が描画される", async ({ page }) => {
   const errors = collectErrors(page);

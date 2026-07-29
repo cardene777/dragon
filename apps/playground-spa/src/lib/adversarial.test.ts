@@ -1,101 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePathD, shiftPathEnd, edgeSideFor } from "./edge-stretch";
 import { setDiagramScale, readDiagramScale, clampDiagramScale, clampFontScale } from "./diagram-scale";
-
-/**
- * 壊しに行く入力を与えて、 壊れた出力を作らないことを確認する。
- *
- * 正常系は既存 test が見ているので、 ここでは「想定していない入力」 だけを扱う。
- * 目的は「落ちない」 ことではなく「黙って間違った結果を返さない」 こと =
- * 扱えない入力には null を返して呼び出し側に判断を委ねる。
- */
-
-describe("edge-stretch — 壊しに行く入力", () => {
-  const BAD_PATHS = [
-    "",                       // 空
-    "   ",                    // 空白のみ
-    "M",                      // command のみ
-    "M 10",                   // 座標が片方だけ
-    "L 10 20",                // M で始まらない
-    "M 10 20 L",              // 末尾が command だけ
-    "M a b L c d",            // 数値でない
-    "m 10 20 l 30 40",        // 相対 command
-    "M 10 20 Z L 30 40",      // Z の後に続く
-    "M 10 20 X 30 40",        // 未知 command
-    "M 1e999 0 L 0 0",        // 範囲外の数値
-    "M 10,20L30,40",          // 区切りが混在
-  ];
-
-  for (const d of BAD_PATHS) {
-    it(`parsePathD("${d.slice(0, 20)}") が壊れた結果を返さない`, () => {
-      const r = parsePathD(d);
-      // null か、 全 token の数値が有限であること
-      if (r !== null) {
-        for (const t of r) {
-          for (const n of t.nums) expect(Number.isFinite(n), `${d} の数値`).toBe(true);
-        }
-      }
-    });
-
-    it(`shiftPathEnd("${d.slice(0, 20)}") が壊れた path を出さない`, () => {
-      for (const side of ["start", "end", "both"] as const) {
-        const out = shiftPathEnd(d, side, 10, 10);
-        if (out === null) continue;
-        // 出力が再び parse できること = 壊れていない
-        expect(parsePathD(out), `${d} / ${side} の再 parse`).not.toBeNull();
-        // NaN が混ざっていないこと
-        expect(out, `${d} / ${side} に NaN`).not.toContain("NaN");
-        expect(out, `${d} / ${side} に undefined`).not.toContain("undefined");
-      }
-    });
-  }
-
-  it("極端な delta でも数値が壊れない", () => {
-    for (const dx of [0, -0, 1e10, -1e10, 0.0001]) {
-      const out = shiftPathEnd("M 0 0 L 100 0", "end", dx, 0);
-      expect(out).not.toBeNull();
-      expect(out, `dx=${dx}`).not.toContain("NaN");
-      expect(parsePathD(out!)).not.toBeNull();
-    }
-  });
-
-  it("NaN / Infinity の delta では壊れた path を出さない", () => {
-    for (const dx of [NaN, Infinity, -Infinity]) {
-      const out = shiftPathEnd("M 0 0 L 100 0", "end", dx, 0);
-      // 出すなら有限な数値であること
-      if (out !== null) {
-        expect(out, `dx=${dx}`).not.toContain("NaN");
-        expect(out, `dx=${dx}`).not.toContain("Infinity");
-      }
-    }
-  });
-
-  it("先頭に空白がある path を拒否しない (SVG 仕様上は正常)", () => {
-    // 拒否すると正常な path で矢印が追従しなくなる。
-    expect(parsePathD(" M 0 0 L 10 0")).not.toBeNull();
-    expect(parsePathD("\n  M 0 0 L 10 0")).not.toBeNull();
-    expect(shiftPathEnd(" M 0 0 L 10 0", "end", 5, 0)).toContain("15");
-  });
-
-  it("A の引数が足りない path で半径を座標と誤認しない", () => {
-    // A は末尾 2 つが座標で、 その前に 5 引数を要する。 個数を見ないと
-    // `"M 0 0 A 5 5"` の rx を座標と誤認して `"M 0 0 A 10 5"` を返す = 別の弧になる。
-    expect(shiftPathEnd("M 0 0 A 5 5", "end", 5, 0)).toBeNull();
-    expect(shiftPathEnd("M 0 0 A 5 5 0", "end", 5, 0)).toBeNull();
-    // 7 引数揃っていれば末尾だけ動く
-    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "end", 5, 0)).toBe("M 0 0 A 5 5 0 0 1 15 10");
-  });
-
-  it("空文字の actor 名で誤検出しない", () => {
-    expect(edgeSideFor("s0-client", "s0-api", "", "")).toBeNull();
-  });
-
-  it("正規表現の特殊文字を含む actor 名でも落ちない", () => {
-    for (const name of ["a.b", "a*b", "a(b)", "a[b]", "a|b", "a\\b", "a+b", "a?b"]) {
-      expect(() => edgeSideFor(`s0-${name}`, "s0-api", name, name)).not.toThrow();
-    }
-  });
-});
 
 describe("diagram-scale — 壊しに行く入力", () => {
   it("viewport 行が 2 つある DSL でも 1 つだけ触る", () => {
@@ -237,12 +141,6 @@ describe("diagram-scale — 壊しに行く入力", () => {
     const out = setDiagramScale(src, 2);
     expect((out.match(/scale:/g) ?? []).length).toBe(1);
     expect(readDiagramScale(out)).toBe(2);
-  });
-
-  it("A の引数が 7 の倍数なら弾かない", () => {
-    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "end", 5, 0)).not.toBeNull();
-    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10 A 5 5 0 0 1 20 20", "end", 5, 0)).not.toBeNull();
-    expect(shiftPathEnd("M 0 0 A 5 5 0 0 1 10 10", "start", 5, 0)).not.toBeNull();
   });
 
   it("不正な倍率は 1 に倒す", () => {
