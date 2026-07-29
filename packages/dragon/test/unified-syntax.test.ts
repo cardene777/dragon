@@ -122,6 +122,35 @@ describe("矢印も同じ書き方で揃う", () => {
   });
 });
 
+describe("パーツも同じ書き方で揃う", () => {
+  it("パーツの名前を種類の位置に書く", () => {
+    const a = actorOf("- 時計1: alarm-clock");
+    expect([a.partId, a.stateOverride]).toEqual(["alarm-clock", undefined]);
+  });
+
+  it("状態の初期値を 名前=値 で書ける", () => {
+    const a = actorOf("- 計器1: arc-gauge v=50 count=100");
+    expect(a.partId).toBe("arc-gauge");
+    expect(a.stateOverride).toEqual({ v: 50, count: 100 });
+  });
+
+  it("入れ子で書いた時と同じ結果になる", () => {
+    const short = actorOf("- 計器1: arc-gauge v=50 count=100");
+    const nested = actorOf("- 計器1: { kind: arc-gauge, v: 50, count: 100 }");
+    expect([short.partId, short.stateOverride]).toEqual([nested.partId, nested.stateOverride]);
+  });
+
+  it("文字列の状態も書ける", () => {
+    const a = actorOf('- g1: gauge label="残り" v=30');
+    expect(a.stateOverride).toEqual({ label: "残り", v: 30 });
+  });
+
+  it("等号を含まない語は種類として読む", () => {
+    // `a=b` の形だけを状態として扱う。 種類名に等号は入らない
+    expect(actorOf("- A: service").kind).toBe("service");
+  });
+});
+
 describe("従来の書き方も動く", () => {
   it("入れ子はそのまま効く", () => {
     const a = actorOf('- A: { kind: service, subtitle: "本体", stack: 2 }');
