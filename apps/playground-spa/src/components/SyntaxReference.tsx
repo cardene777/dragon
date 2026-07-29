@@ -31,6 +31,7 @@ const FORMS: Section[] = [
       { code: "  - DB: database 失敗", note: "名前と種類と色" },
       { code: "  - 決済: 警告", note: "色だけ" },
       { code: '  - Web: { kind: service, subtitle: "本体" }', note: "細かく指定する時" },
+      { code: "  - 保存: s3", note: "固有名でも書ける (storage になる)" },
     ],
   },
   {
