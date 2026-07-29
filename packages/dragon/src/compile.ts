@@ -83,34 +83,25 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
  * では preset の入力型が色の項目を持たない。 箱が出来上がった後に id で対応付けることで、
  * どの図種でも同じ書き方が効く。 座標を伝播する `applyCanvasPivotPositions` と同じ経路。
  *
- * 対応付けは登場人物名の slug との完全一致。 順序図だけは 1 人が複数の箱に分かれるため、
- * 見える箱 (`{slug}-header` / `{slug}-footer`) も対象にする。 不可視の間隔用の箱と
- * 手順ごとの anchor は色を持っても見えないので対象外。
+ * 対応付けは箱に表示される名前との一致で行う。 id は使わない。
  *
- * 接頭 / 接尾の開いた一致は使わない。 登場人物「client」 の色が「api-client」 の箱に漏れる。
+ * id での対応付けは 2 通りに壊れる。 id は名前を slug に変換して作るが、 その変換規則が
+ * dragon と cdl で違い、 記号を含む名前では一致しない (実測 = `A_B` が dragon 側で `a_b`、
+ * cdl 側で `a-b`)。 逆に、 生成した id (`{slug}-header`) をそのまま名前に持つ登場人物が
+ * 居ると、 別人の箱を巻き込む。
+ *
+ * 表示名は変換を経ないので前者が起きず、 別人と一致しないので後者も起きない。 順序図で
+ * 1 人が分かれる複数の箱のうち、 間隔用と手順ごとの anchor は表示名が空なので自然に対象外に
+ * なる (色を持っても幅 2 で見えない)。
+ *
+ * parts は対象外。 parts の `tone` は色ではなく状態の上書きとして parser が扱うため、
+ * ここに色として渡ってこない。
  */
 function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
   for (const actor of doc.actors) {
     if (actor.tone === undefined) continue;
-    // parts は 1 件が複数の箱に展開されるため、 全部を同じ色に塗ると元の配色が壊れる。
-    // 黙って無視すると「書いたのに何も起きない」 になるので知らせる。
-    if (actor.partId !== undefined) {
-      if (typeof console !== "undefined" && console.warn) {
-        console.warn(
-          `[dragon] parts には色を指定できません (登場人物: ${actor.name}、 parts: ${actor.partId})。 色は parts 側の定義で決まります`,
-        );
-      }
-      continue;
-    }
-    const aliasSlug = slugify(actor.name);
-    const targets = new Set([
-      aliasSlug,
-      actor.name,
-      `${aliasSlug}-header`,
-      `${aliasSlug}-footer`,
-    ]);
     for (const node of diagram.nodes) {
-      if (targets.has(node.id)) node.tone = actor.tone;
+      if (node.title === actor.name) node.tone = actor.tone;
     }
   }
 }
