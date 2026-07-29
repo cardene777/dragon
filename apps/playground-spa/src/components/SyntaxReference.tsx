@@ -44,8 +44,8 @@ const FORMS: Section[] = [
   {
     title: "パーツ",
     lines: [
-      { code: "  - 時計1: alarm-clock", note: "パーツの名前を種類に書く" },
-      { code: "  - 計器1: arc-gauge v=50 count=100", note: "状態の初期値は 名前=値" },
+      { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
+      { code: "  - 計器: arc-gauge v=50", note: "既定と違う値にしたい時だけ 名前=値" },
     ],
   },
   {

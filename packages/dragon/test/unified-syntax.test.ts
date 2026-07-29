@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTextDslV05 } from "../src/v05/parser";
+import { compileToCdl } from "../src/compile";
 import type { DslActor, DslStep } from "../src/types";
 
 /**
@@ -170,5 +171,47 @@ describe("見本が新しい書き方で書かれている", () => {
     const src = readFileSync(samplesPath, "utf8");
     const nested = src.split("\n").filter((l) => /^\s*- .+: \{ kind:/.test(l));
     expect(nested, nested.join(" / ")).toEqual([]);
+  });
+});
+
+describe("パーツの既定値は書かなくてよい", () => {
+  // 画面がパーツを足す時、 以前は状態の初期値をそのまま書き出していた
+  // (`- achievement1: achievement bg="#f59e0b"`)。 パーツ側が既定値を持つので図は変わらず、
+  // 色番号のような読めない値が行に並ぶだけだった。
+  //
+  // 「書いても書かなくても同じ」 が崩れると、 省いた行で図が変わる。 それを固定する。
+  const partWithState = {
+    id: "gauge",
+    topic: "gauge",
+    lanes: [{ id: "l", x: 0, width: 300 }],
+    nodes: [{ id: "body", lane: "l", stack: 0, kind: "service", title: "本体", subtitle: "{v}" }],
+    edges: [],
+    states: [{ id: "v", initial: 50 }],
+    phases: [],
+  } as never;
+
+  const compileWith = (line: string) => {
+    const src = [
+      `title: "t"`, `type: flow`, ``, `actors:`,
+      `  ${line}`, `  - X`, ``,
+      `flow:`, `  - X -> X: "y"`,
+    ].join("\n");
+    const r = parseTextDslV05(src);
+    if (!r.ok) throw new Error("parse 失敗");
+    return compileToCdl(r.doc, { partsCatalog: { gauge: partWithState } });
+  };
+
+  it("既定値を書いても書かなくても同じ図になる", () => {
+    const written = compileWith("- g: gauge v=50");
+    const omitted = compileWith("- g: gauge");
+    expect(omitted.states).toEqual(written.states);
+    expect(omitted.nodes.map((n) => n.id)).toEqual(written.nodes.map((n) => n.id));
+  });
+
+  it("既定と違う値を書けば変わる", () => {
+    const changed = compileWith("- g: gauge v=80");
+    const omitted = compileWith("- g: gauge");
+    expect(changed.states).not.toEqual(omitted.states);
+    expect(changed.states.find((s) => s.id.endsWith("__v"))?.initial).toBe(80);
   });
 });

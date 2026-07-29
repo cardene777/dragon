@@ -1287,19 +1287,19 @@ animation:
                     const kindValue = p.id.startsWith("parts-") ? p.id.slice(6) : p.id;
                     const aliasBase = kindValue.replace(/[^a-zA-Z0-9]/g, "");
                     const existingNames = collectActorNamesFromSrc(src);
-                    let alias = `${aliasBase}1`;
-                    for (let i = 1; i <= 1000 && existingNames.has(alias); i++) {
-                      alias = `${aliasBase}${i + 1}`;
+                    // 1 件目は番号を付けない。 `achievement1: achievement` のように同じ語が
+                    // 2 度並ぶのは読みにくく、 1 件しか置かない時の番号は意味を持たない。
+                    let alias = aliasBase;
+                    for (let i = 2; i <= 1000 && existingNames.has(alias); i++) {
+                      alias = `${aliasBase}${i}`;
                     }
-                    // 状態の初期値は `名前=値` で書く。 状態名は自由なので等号で示す。
-                    const stateInits: string[] = p.diagram.states.map((s) => {
-                      const v = s.initial;
-                      const rendered = typeof v === "string" ? `"${v}"` : String(v);
-                      return `${s.id}=${rendered}`;
-                    });
-                    // 座標は書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
+                    // 状態は書かない。 パーツ側が既定値を持っているので、 そのまま書き出しても
+                    // 図は変わらず、 色番号のような読めない値が行に並ぶだけになる。
+                    // 変えたい時に `名前=値` で書き足す。
+                    //
+                    // 座標も書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
                     // 実寸を走査する形に戻らずに済む。 位置を変えたい時は DSL に posX / posY を書く。
-                    const newActorLine = `  - ${alias}: ${[kindValue, ...stateInits].join(" ")}`;
+                    const newActorLine = `  - ${alias}: ${kindValue}`;
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
