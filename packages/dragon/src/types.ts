@@ -78,6 +78,13 @@ export type DslActor = {
   initial?: boolean;
   final?: boolean;
   /**
+   * 箱の色。 未指定なら種類ごとの既定色。
+   *
+   * 矢印 (`DslStep.tone`) と同じ名前と別名を受け付ける (`成功` / `success` 等)。
+   * 効く種類は cdl 側の 26 種で、 それ以外は指定しても色が変わらない。
+   */
+  tone?: Tone;
+  /**
    * CAR-1657 parts unified syntax = kind が既存 NODE_KIND_VALID に無い値 (parts identifier 候補)
    * だった時、 parser は partId に格納して compile 側に委譲する。 compile 時に partsCatalog から
    * 対応する CdlDiagram を lookup + merge する経路。 partId set 時は kind = "actor" (default) fallback。

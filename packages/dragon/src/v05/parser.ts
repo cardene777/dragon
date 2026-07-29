@@ -42,6 +42,8 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import { TONES } from "@cardenelabs/cdl";
+import { TONE_ALIAS } from "../keywords";
 import type {
   DslDocument,
   DslActor,
@@ -115,14 +117,8 @@ const NODE_KIND_VALID: ReadonlySet<string> = new Set([
   "interface",
 ]);
 
-const TONE_VALID: ReadonlySet<string> = new Set<string>([
-  "success",
-  "error",
-  "warning",
-  "info",
-  "accent",
-  "teal",
-]);
+// 受理する色名は cdl 側の一覧をそのまま使う。 手書きすると cdl に色が増えた時に取り残される。
+const TONE_VALID: ReadonlySet<string> = new Set<string>(TONES);
 
 const STYLE_VALID: ReadonlySet<string> = new Set<string>(["solid", "dotted-flow"]);
 
@@ -423,6 +419,19 @@ function boolOrUndef(s: string | undefined): boolean | undefined {
 }
 
 /**
+ * 色名を解決する。 別名 (`成功` / `neutral` 等) も受け付ける。
+ *
+ * 未知の値は `undefined` にして既定色に落とす。 矢印の色 (`parseStep`) と同じ扱い。
+ */
+function toneOrUndef(s: string | undefined): Tone | undefined {
+  if (s === undefined) return undefined;
+  const raw = stripQuotes(s.trim());
+  const resolved = TONE_ALIAS[raw] ?? TONE_ALIAS[raw.toLowerCase()];
+  if (resolved) return resolved;
+  return TONE_VALID.has(raw.toLowerCase()) ? (raw.toLowerCase() as Tone) : undefined;
+}
+
+/**
  * actor 行から `name: { inner }` を depth count で抽出。 inner 内の `{ }` (例: `value: "{count}"`) を尊重。
  */
 function matchActorInlineMapping(raw: string): { name: string; inner: string } | null {
@@ -547,6 +556,7 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "stack",
   "initial",
   "final",
+  "tone",
   "state",
   // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
   "posX",
@@ -672,6 +682,7 @@ function parseActor(line: Line): DslActor | null {
       stack: numberOrUndef(opts.stack),
       initial: boolOrUndef(opts.initial),
       final: boolOrUndef(opts.final),
+      tone: toneOrUndef(opts.tone),
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
       // canvas pivot 新 spec = 絶対座標 field を actor に格納、 compile 経由で CDL に受け渡す
