@@ -481,6 +481,8 @@ type ActorValues = {
   subtitle?: string;
   rows?: string[];
   value?: string;
+  posX?: number;
+  posY?: number;
   /** parts の状態の上書き (`v=50` の形)。 状態名は自由なので等号で示す。 */
   state?: Record<string, number | string | boolean>;
 };
@@ -509,6 +511,9 @@ function classifyValues(values: string[]): ActorValues {
         .filter(Boolean);
       continue;
     }
+    // `@300,200` は位置。 2 つ揃わないと効かないので、 1 つの値としてまとめて書く
+    const at = v.match(/^@(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+    if (at) { out.posX = Number(at[1]); out.posY = Number(at[2]); continue; }
     // `名前=値` は parts の状態の上書き。 状態名は自由なので、 形では見分けられない。
     // 等号を書いてもらう。
     const eq = v.indexOf("=");
@@ -736,6 +741,27 @@ function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
       case "行":
         out.rows = raw.replace(/^\[|\]$/g, "").split(/,(?![^[]*\])/).map((x) => stripQuotes(x.trim())).filter(Boolean);
         break;
+      case "位置":
+      case "pos": {
+        // `位置: 300,200` の形。 posX と posY は両方揃わないと効かないので、 1 つの項目に
+        // まとめて書き分けられないようにする
+        const m = stripQuotes(raw).match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+        if (m) { out.posX = Number(m[1]); out.posY = Number(m[2]); }
+        break;
+      }
+      case "posX":
+        out.posX = numberOrUndef(raw);
+        break;
+      case "posY":
+        out.posY = numberOrUndef(raw);
+        break;
+      case "大きさ":
+      case "size": {
+        // `大きさ: 400,200` の形。 位置と揃える
+        const m = stripQuotes(raw).match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+        if (m) { out.posW = Number(m[1]); out.posH = Number(m[2]); }
+        break;
+      }
       case "lane":
         out.lane = stripQuotes(raw);
         break;
@@ -981,6 +1007,8 @@ function parseActor(line: Line): DslActor | null {
       subtitle: v.subtitle,
       rows: v.rows,
       value: v.value,
+      posX: v.posX,
+      posY: v.posY,
       partId: isPart ? v.kind : undefined,
       stateOverride: isPart ? v.state : undefined,
       pos: { line: line.no },
