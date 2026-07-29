@@ -89,16 +89,35 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
  * `contract` / `eoa` / `multisig` / `proxy` / `library` / `interface` は Solidity 図の
  * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。 組み立ての段階で描画できる
  * 種類に置き換わるため、 そのまま描画側に渡ることはない。
- *
- * 残り (`alb` / `browser` / `container` / `ecs` / `iam` / `kms` / `lambda` / `rds` / `s3` /
- * `secret` / `user`) は組み立てでも置き換わらず、 書いても図が出ない。 消すと既存の図が
- * 壊れるため受理は続けるが、 記法一覧には載せない。
  */
 const DSL_ONLY_KINDS = [
-  "entity", "state", "container",
+  "entity", "state",
   "contract", "eoa", "multisig", "proxy", "library", "interface",
-  "alb", "browser", "ecs", "iam", "kms", "lambda", "rds", "s3", "secret", "user",
 ] as const;
+
+/**
+ * AWS などの固有名を、 同じ役割を表す汎用の種類に読み替える表。
+ *
+ * これらは記法が受け付けるのに描画側に無く、 書くと「kind "alb" は未対応」 とエラーになって
+ * いた。 受け付けるのをやめると今度は部品名として扱われ「そんな部品はない」 と出る。 どちらも
+ * 書いた人が困るだけなので、 意味の近い種類に読み替えて実際に図が出るようにする。
+ *
+ * 読み替え先が重なるものがある (`iam` と `kms` は権限と鍵を守る役、 `s3` と `secret` は
+ * 保管する役)。 見た目が同じになるが、 役割が同じなので嘘にはならない。
+ */
+const INFRA_KIND_ALIAS: Record<string, NodeKind> = {
+  alb: "shape-api-gateway",   // 入口で振り分ける
+  browser: "frontend",         // 画面側
+  ecs: "microservice",         // コンテナ群
+  iam: "admin",                // 権限を守る
+  kms: "admin",                // 鍵を守る
+  lambda: "function",          // 呼ぶと動く
+  rds: "database",             // 表を持つ
+  s3: "storage",               // 置き場
+  secret: "storage",           // 機密の置き場
+  user: "person",              // 人
+  container: "service",        // 動かす単位 (C4 の container)
+};
 
 /**
  * 受け付ける箱の種類。 描画できる種類 (cdl の `NODE_KINDS`) に、 記法だけが持つ種類を足す。
@@ -107,7 +126,11 @@ const DSL_ONLY_KINDS = [
  * 扱われて「そんな部品は無い」 と警告が出るだけだった。 描画側を出所に加えることで
  * 「描画できるものは書ける」 が成立する。
  */
-const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([...NODE_KINDS, ...DSL_ONLY_KINDS]);
+const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([
+  ...NODE_KINDS,
+  ...DSL_ONLY_KINDS,
+  ...Object.keys(INFRA_KIND_ALIAS),
+]);
 
 // 受理する色名は cdl 側の一覧をそのまま使う。 手書きすると cdl に色が増えた時に取り残される。
 const TONE_VALID: ReadonlySet<string> = new Set<string>(TONES);
@@ -396,6 +419,18 @@ function stripQuotes(s: string): string {
   return s;
 }
 
+/**
+ * 書かれた種類名を、 描画できる種類に解決する。
+ *
+ * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 それ以外はそのまま返す。
+ */
+function resolveKind(raw: string): NodeKind {
+  if (raw === "") return NODE_KIND_DEFAULT;
+  // `Object.hasOwn` で引く。 素の添字だと `toString` 等の既定の持ち物が引けてしまい、
+  // 種類として関数が返る。 呼ぶ前に受理集合で弾いてはいるが、 表を引く側でも閉じておく。
+  return Object.hasOwn(INFRA_KIND_ALIAS, raw) ? INFRA_KIND_ALIAS[raw]! : (raw as NodeKind);
+}
+
 function numberOrUndef(s: string | undefined): number | undefined {
   if (s === undefined || s === "") return undefined;
   const n = Number(s);
@@ -664,7 +699,7 @@ function parseActor(line: Line): DslActor | null {
     // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
     const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
-    const kind = isPart ? NODE_KIND_DEFAULT : ((NODE_KIND_VALID.has(kindRaw) ? kindRaw : NODE_KIND_DEFAULT) as NodeKind);
+    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
       kind,
@@ -728,7 +763,7 @@ function parseActor(line: Line): DslActor | null {
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = kindPart !== "" && !NODE_KIND_VALID.has(kindPart);
-    const kind = isPart ? NODE_KIND_DEFAULT : ((NODE_KIND_VALID.has(kindPart) ? kindPart : NODE_KIND_DEFAULT) as NodeKind);
+    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindPart) ? kindPart : "");
     return {
       name: namePart,
       kind,
