@@ -4,6 +4,7 @@ import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violatio
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
@@ -323,7 +324,7 @@ export function CdlEditor(): React.JSX.Element {
    * 60 parts (CdlDiagram AST) が sidebar に populate される。 drag source として
    * draggable=true を付け、 canvas 側 onDrop で parts-serializer 経由で src 置換する。
    */
-  const [sidebarTab, setSidebarTab] = useState<"samples" | "parts">("samples");
+  const [sidebarTab, setSidebarTab] = useState<"samples" | "parts" | "syntax">("samples");
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
@@ -1205,7 +1206,25 @@ animation:
           >
             パーツ
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === "syntax"}
+            className={`v4-editor-side-tab ${sidebarTab === "syntax" ? "active" : ""}`}
+            onClick={() => setSidebarTab("syntax")}
+            data-testid="editor-syntax-tab"
+          >
+            記法
+          </button>
         </div>
+        {sidebarTab === "syntax" && (
+          <SyntaxReference
+            onInsert={(code) => {
+              // 末尾に足す。 どこに入れるかを当てるより、 足した後に user が動かす方が確実。
+              setSrc((prev) => (prev.endsWith("\n") ? `${prev}${code}\n` : `${prev}\n${code}\n`));
+            }}
+          />
+        )}
         {sidebarTab === "samples" && (
           <div className="v4-editor-side-samples-body">
             <input
