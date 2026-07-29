@@ -120,7 +120,40 @@ export function extractPartsFromSrc(
   const lines = src.split("\n");
   const baseLines: string[] = [];
   const parts: OverlayPartRaw[] = [];
+  // 縦に並べて書いた形 (`- 実績:` の次行から `kind: achievement`) を読むための持ち越し。
+  // 名前だけの行では種類が分からないので、 続く行で決まるまで覚えておく。
+  let pendingAlias: string | null = null;
+  let pendingIndent = -1;
   for (const line of lines) {
+    // 続く字下げ行から種類を拾う
+    if (pendingAlias !== null) {
+      const indent = line.length - line.trimStart().length;
+      const m2 = line.trim().match(/^kind\s*:\s*(\S+)/);
+      if (indent > pendingIndent && m2) {
+        const kindValue = m2[1]!.toLowerCase();
+        if (partKindSet.has(kindValue)) {
+          const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
+          if (item) {
+            parts.push({ id: pendingAlias, kind: kindValue, item, posX: 0, posY: 0, scale: 1, rotate: 0 });
+            pendingAlias = null;
+            continue;
+          }
+        }
+        pendingAlias = null;
+      } else if (line.trim() === "" || indent > pendingIndent) {
+        // 続きの行 (種類以外) はそのまま
+      } else {
+        pendingAlias = null;
+      }
+    }
+    // 名前だけの行 (`- 実績:`) は、 種類が続く行で決まる
+    const head = line.match(/^(\s*)-\s*("(?:[^"\\]|\\.)+"|[^:\s]+)\s*:\s*$/);
+    if (head) {
+      pendingAlias = unquoteAlias(head[2]!);
+      pendingIndent = head[1]!.length;
+      baseLines.push(line);
+      continue;
+    }
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
