@@ -1,6 +1,14 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // playground-spa の `@/` を vite / tsconfig と同じ場所に向ける。
+  // 揃えていないと、 型だけの import は通るのに実体を呼ぶ test が「package が無い」 で落ちる。
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./apps/playground-spa/src", import.meta.url)),
+    },
+  },
   test: {
     include: [
       "packages/**/test/**/*.test.ts",

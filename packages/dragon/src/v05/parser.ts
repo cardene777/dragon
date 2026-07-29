@@ -707,6 +707,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   const out: DslActor = { ...actor };
   const state: Record<string, number | string | boolean> = { ...(actor.stateOverride ?? {}) };
   let touchedState = false;
+  // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
+  const unknownKeys: Array<{ key: string; line: number }> = [];
 
   for (const ln of rest) {
     const idx = ln.trimmed.indexOf(":");
@@ -797,13 +799,42 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         // 残りはパーツの状態の上書き
         state[key] = coerceStateValue(stripQuotes(raw));
         touchedState = true;
+        unknownKeys.push({ key, line: ln.no });
         break;
     }
   }
   // 状態は parts でだけ意味を持つ
-  if (touchedState && out.partId !== undefined) out.stateOverride = state;
+  if (touchedState && out.partId !== undefined) {
+    out.stateOverride = state;
+    return out;
+  }
+  // パーツでない箱に書かれた見知らぬ項目は、 どこにも入らずに消える。 黙って捨てると
+  // 「書いたのに図が変わらない」 が手掛かりなしで起きるので、 綴りの誤りとして知らせる
+  for (const u of unknownKeys) {
+    errors.push({
+      line: u.line,
+      message: `項目名が読めません: "${u.key}"`,
+      hint: `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`,
+    });
+  }
   return out;
 }
+
+/**
+ * 縦に並べて書ける項目名。
+ *
+ * 綴りを誤った時の知らせに使う。 `applyContinuationLines` の分岐と揃える。
+ */
+export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
+  ...COLOR_KEYS,
+  "kind", "種類",
+  "subtitle", "補足",
+  "value", "値",
+  "rows", "行",
+  "位置", "pos", "posX", "posY",
+  "大きさ", "size",
+  "lane", "stack",
+]);
 
 /**
  * 相対で書かれた位置が解けるかを確かめる。
