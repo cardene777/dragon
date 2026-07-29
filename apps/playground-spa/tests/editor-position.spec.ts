@@ -159,3 +159,45 @@ flow:
     await expect(page.locator(".v4-editor-error")).toContainText("位置の書き方が読めません");
   });
 });
+
+test.describe("光らせる相手", () => {
+  test("居ない相手を書くと理由が画面に出る", async ({ page }) => {
+    await openWith(
+      page,
+      `title: "光らせる相手の誤り"
+type: sequence
+actors:
+  - Client
+  - api-gateway
+flow:
+  - Client -> api-gateway: "要求"
+animation:
+  - step: "呼ぶ" 1.4s
+    focus: [Client, いない人]
+`,
+    );
+    const notices = page.getByTestId("editor-compile-notices");
+    await expect(notices).toBeVisible();
+    await expect(notices).toContainText("いない人");
+    // 何が書けるか分かるよう、 居る名前を並べる
+    await expect(notices).toContainText("api-gateway");
+  });
+
+  test("名前に `-` を含む相手は誤り扱いにしない", async ({ page }) => {
+    await openWith(
+      page,
+      `title: "ハイフンを含む名前"
+type: sequence
+actors:
+  - Client
+  - api-gateway
+flow:
+  - Client -> api-gateway: "要求"
+animation:
+  - step: "呼ぶ" 1.4s
+    focus: [Client, api-gateway]
+`,
+    );
+    await expect(page.getByTestId("editor-compile-notices")).toHaveCount(0);
+  });
+});

@@ -12,6 +12,7 @@
 import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
 import { sequence, flow, swimlane, er, stateMachine, topology, diagram, layout } from "@cardenelabs/cdl";
+import { parseFocusEntry } from "./focus";
 import {
   orderByDependency,
   resolveRelativePos,
@@ -37,8 +38,8 @@ export interface CompileToCdlOpts {
 
 /** 図は出せるが書いた通りにならなかった、 という知らせ。 */
 export type CompileNotice = {
-  kind: "relative-position-ignored";
-  /** 対象の登場人物の名前 */
+  kind: "relative-position-ignored" | "focus-target-missing";
+  /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
   line: number;
@@ -93,6 +94,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
+  // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
+  // 居ないかは記述だけで決まるので 1 か所で見る
+  reportMissingFocusTargets(doc, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -100,6 +104,58 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, placed);
   return mergePartsFromActors(extended, placed, opts?.partsCatalog);
+}
+
+/**
+ * 光らせる相手 (`focus:`) が実在しない分を知らせる。
+ *
+ * 名前が当たらなかった指定は静かに消える。 光らせたい相手を書いたのに光らない状態が、
+ * 手掛かりなしで起きる。
+ *
+ * 見るのは記述だけ。 id の形は図種で違うが、 「その名前の箱が居るか」「その矢印が流れに
+ * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
+ * たびに検査が取り残される。
+ */
+function reportMissingFocusTargets(
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  if (!onNotice || !doc.animate) return;
+  const names = new Set(doc.actors.map((a) => a.name));
+  // 縦列を直接書いた図では、 その id も光らせる相手になる
+  for (const id of Object.keys(doc.lanes ?? {})) names.add(id);
+  // 矢印は流れに書かれた組合せだけを認める。 名前に空白を含められる (`決済 基盤`) ため、
+  // 連結した 1 本の鍵にはしない (`"a b" -> "c"` と `"a" -> "b c"` が同じ鍵になる)
+  const steps = new Map<string, Set<string>>();
+  for (const st of doc.flow) {
+    const tos = steps.get(st.from) ?? new Set<string>();
+    tos.add(st.to);
+    steps.set(st.from, tos);
+  }
+
+  for (const phase of doc.animate.phases) {
+    for (const raw of phase.highlight ?? []) {
+      const entry = parseFocusEntry(raw);
+      const found =
+        entry.kind === "edge"
+          ? (steps.get(entry.from)?.has(entry.to) ?? false)
+          : names.has(entry.name);
+      if (found) continue;
+      onNotice({
+        kind: "focus-target-missing",
+        actor: raw,
+        line: phase.pos.line,
+        message:
+          entry.kind === "edge"
+            ? `光らせる矢印が流れにありません: "${raw}"`
+            : `光らせる相手が見つかりません: "${raw}"`,
+        hint:
+          entry.kind === "edge"
+            ? "flow: に書いた矢印と同じ向きで書く"
+            : `actors: に書かれている名前 = ${[...names].join(", ")}`,
+      });
+    }
+  }
 }
 
 /**
@@ -1441,16 +1497,16 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   const resolveIds = (highlight: readonly string[]): string[] => {
     const out: string[] = [];
     for (const h of highlight) {
-      const arrowMatch = h.match(/^(.+?)\s*(?:->|→)\s*(.+?)$/);
-      if (arrowMatch) {
-        const fromSlug = slugify((arrowMatch[1] ?? "").trim());
-        const toSlug = slugify((arrowMatch[2] ?? "").trim());
+      const entry = parseFocusEntry(h);
+      if (entry.kind === "edge") {
+        const fromSlug = slugify(entry.from);
+        const toSlug = slugify(entry.to);
         for (const e of diagram.edges) {
           if (e.from === fromSlug && e.to === toSlug) out.push(e.id);
         }
         continue;
       }
-      const nodeSlug = slugify(h.trim());
+      const nodeSlug = slugify(entry.name);
       const node = diagram.nodes.find((n) => n.id === nodeSlug || n.id === `${nodeSlug}-header`);
       if (node) out.push(node.id);
     }
@@ -1625,38 +1681,33 @@ function resolveHighlight(
 ): string[] {
   const out: string[] = [];
   for (const raw of phase.highlight ?? []) {
-    const item = raw.trim();
-    // "A→B" or "A->B" 等の矢印つき → 該当 step edge を全部探して active
-    if (/[→\->]/.test(item)) {
-      const arrowMatch = item.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
-      if (arrowMatch) {
-        const fromName = arrowMatch[1]!.trim();
-        const toName = arrowMatch[2]!.trim();
-        const fromLaneId = actorIds.get(fromName) ?? slugify(fromName);
-        const toLaneId = actorIds.get(toName) ?? slugify(toName);
-        // 該当 edge を flow から検索
-        doc.flow.forEach((s, idx) => {
-          const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-          const sToId = actorIds.get(s.to) ?? slugify(s.to);
-          if (sFromId === fromLaneId && sToId === toLaneId) {
-            out.push(`e${idx}-${fromLaneId}-${toLaneId}`);
-          }
-        });
-        // 関連する step box も active 化
-        const stackIdx = doc.flow.findIndex((s) => {
-          const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-          const sToId = actorIds.get(s.to) ?? slugify(s.to);
-          return sFromId === fromLaneId && sToId === toLaneId;
-        });
-        if (stackIdx >= 0) {
-          out.push(`s${stackIdx}-${fromLaneId}`);
-          if (fromLaneId !== toLaneId) out.push(`s${stackIdx}-${toLaneId}`);
+    const entry = parseFocusEntry(raw);
+    // 矢印つき → 該当 step edge を全部探して active
+    if (entry.kind === "edge") {
+      const fromLaneId = actorIds.get(entry.from) ?? slugify(entry.from);
+      const toLaneId = actorIds.get(entry.to) ?? slugify(entry.to);
+      // 該当 edge を flow から検索
+      doc.flow.forEach((s, idx) => {
+        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
+        const sToId = actorIds.get(s.to) ?? slugify(s.to);
+        if (sFromId === fromLaneId && sToId === toLaneId) {
+          out.push(`e${idx}-${fromLaneId}-${toLaneId}`);
         }
+      });
+      // 関連する step box も active 化
+      const stackIdx = doc.flow.findIndex((s) => {
+        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
+        const sToId = actorIds.get(s.to) ?? slugify(s.to);
+        return sFromId === fromLaneId && sToId === toLaneId;
+      });
+      if (stackIdx >= 0) {
+        out.push(`s${stackIdx}-${fromLaneId}`);
+        if (fromLaneId !== toLaneId) out.push(`s${stackIdx}-${toLaneId}`);
       }
       continue;
     }
     // actor 名 → header + footer + 全 step box を active
-    const laneId = actorIds.get(item);
+    const laneId = actorIds.get(entry.name);
     if (laneId) {
       out.push(`${laneId}-header`);
       out.push(`${laneId}-footer`);
@@ -1973,27 +2024,23 @@ function resolveHighlightGeneric(
 ): string[] {
   const out: string[] = [];
   for (const raw of phase.highlight ?? []) {
-    const item = raw.trim();
+    const entry = parseFocusEntry(raw);
     // 矢印あり → edge を特定
-    if (/[→\->]/.test(item)) {
-      const arrowMatch = item.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
-      if (arrowMatch) {
-        const fromName = arrowMatch[1]!.trim();
-        const toName = arrowMatch[2]!.trim();
-        const fromId = actorToNodeId.get(fromName) ?? slugify(fromName);
-        const toId = actorToNodeId.get(toName) ?? slugify(toName);
-        // 該当 edge を探す
-        for (const edgeId of edgeIds) {
-          // edge id format: `e${idx}-${fromId}-${toId}`
-          if (edgeId.includes(`-${fromId}-${toId}`)) {
-            out.push(edgeId);
-          }
+    if (entry.kind === "edge") {
+      const fromId = actorToNodeId.get(entry.from) ?? slugify(entry.from);
+      const toId = actorToNodeId.get(entry.to) ?? slugify(entry.to);
+      // edge id は `e{idx}-{fromId}-{toId}` の形。 末尾一致で見る。
+      // 部分一致で見ると、 名前に `-` を含む箱 (`api-gateway`) の id が別の矢印の id に
+      // 混ざって当たる (実測 = 箱を光らせたい指定で矢印が光った)
+      for (const edgeId of edgeIds) {
+        if (edgeId.endsWith(`-${fromId}-${toId}`)) {
+          out.push(edgeId);
         }
       }
       continue;
     }
     // actor 名 → node id
-    const nodeId = actorToNodeId.get(item);
+    const nodeId = actorToNodeId.get(entry.name);
     if (nodeId) {
       out.push(nodeId);
     }

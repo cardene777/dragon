@@ -32,6 +32,9 @@ export {
   RELATIVE_GAP_DEFAULT,
 } from "./relative-pos";
 export type { RelativePos, RelativeDirection, AnchorBox } from "./relative-pos";
+// 光らせる相手の書き方の読み取り。 図種ごとの解決経路が同じ規則を共有する。
+export { parseFocusEntry } from "./focus";
+export type { FocusEntry } from "./focus";
 // 画面で見えている座標を記法に落とすための書込み。 記法を知る側に置く。
 export { writeActorPosition } from "./write-position";
 // 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
