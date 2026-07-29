@@ -1,34 +1,16 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
-import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
+import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
-import { HtmlDivCanvasEditor, canvasHtmlFeatureFlag, type HtmlDivCanvasEditorHandle } from "@/components/HtmlDivCanvasEditor";
-import {
-  findDragTarget,
-  clientToSvg,
-  updateActorPosition,
-  updateActorNodePosition,
-  extractAllActorNames,
-  slugify as slugifyActorName,
-  resolveClickPlacement,
-  toWorldOrNull,
-  type DragState,
-  type WorldRect,
-} from "@/lib/canvas-pivot-interaction";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, writeOverlayPartToDsl, readOverlayPartPos, appendActorLine } from "@/lib/overlay-dsl";
-import { replaceTextInDsl } from "@/lib/text-edit-replace";
-import { buildActorSnapshotFromSvg, moveActorInDsl, clampDx, cdlKeyToActorName, duplicateActorInDsl, readDiagramType, allowsVerticalMove, type ActorSnapshot } from "@/lib/cdl-actor-move";
-import { stretchEdgesFor, clearStretchedEdges } from "@/lib/edge-stretch";
-import { injectHitAreas, resolveHitTarget } from "@/lib/svg-hit-area";
+import { extractPartsFromSrc, appendActorLine } from "@/lib/overlay-dsl";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
-import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine } from "@/lib/overlay-duplicate";
 
 /**
  * overlay div 内の「主要 shape」 を返す。
@@ -44,57 +26,7 @@ import { aliasBaseName, buildDuplicateLine, nextAvailableAlias, removeActorLine 
  * `scrollWidth` は内容の実幅を返すので、 一度 auto に戻してから測り直す。
  * 元要素より狭くはしない (`minWidth` 相当) = 見た目の位置ずれを避ける。
  */
-function fitTextEditWidth(el: HTMLInputElement, minWidth: number): void {
-  el.style.width = "auto";
-  el.style.width = `${Math.max(minWidth, el.scrollWidth + 16)}px`;
-}
 
-/**
- * toolbar の icon button。 hover で即座に説明を出す。
- *
- * `title` 属性は表示まで 1-2 秒かかり、 icon だけでは何のボタンか分からない時間が生まれる。
- * 自前の tooltip を hover 即時で出して、 icon の意味を推測させない。
- */
-function ToolbarButton({ label, testId, onClick, children }: {
-  label: string;
-  testId: string;
-  onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const [hover, setHover] = useState(false);
-  return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
-      <button
-        type="button"
-        data-overlay-toolbar-btn={testId}
-        aria-label={label}
-        style={{
-          width: "32px", height: "32px", display: "inline-flex", alignItems: "center", justifyContent: "center",
-          background: hover ? "#f3f4f6" : "transparent", border: "none", cursor: "pointer",
-          borderRadius: "6px", padding: 0,
-        }}
-        onClick={onClick}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-      >
-        {children}
-      </button>
-      {hover && (
-        <span
-          data-toolbar-tooltip={testId}
-          style={{
-            position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)",
-            background: "#1f2937", color: "#fff", fontSize: "11px", lineHeight: 1.4,
-            padding: "4px 8px", borderRadius: "4px", whiteSpace: "nowrap", pointerEvents: "none",
-            zIndex: 400, boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          }}
-        >
-          {label}
-        </span>
-      )}
-    </span>
-  );
-}
 
 function findPaintedShape(div: Element): SVGGraphicsElement | null {
   const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
@@ -114,7 +46,6 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
   return best;
 }
 
-import { alignOverlayParts, type AlignMode } from "@/lib/overlay-align";
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -321,8 +252,6 @@ export function CdlEditor(): React.JSX.Element {
   const setSrcSilent = setSrcRaw; // undo / redo 経路用 (history に push しない)
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
-  const [useHtmlCanvas] = useState<boolean>(() => canvasHtmlFeatureFlag.isEnabled());
-  const htmlCanvasRef = useRef<HtmlDivCanvasEditorHandle | null>(null);
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   // 2026-07-24 architectural refactor = parts を cdl DSL から完全切離、 独立 overlay 化。
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
@@ -330,107 +259,28 @@ export function CdlEditor(): React.JSX.Element {
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
   type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
-  const [hoveredOverlayId, setHoveredOverlayId] = useState<string | null>(null);
   // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
   // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
   // `cdl-edge:{id}` = cdl edge、 `text:{content}` = arrow label 等。
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   // 2026-07-25 cdl 要素 selection = `cdl:{id}` の selector を保存、 stage-level UI で bbox 再測定に使う
-  const [cdlSelectorMap, setCdlSelectorMap] = useState<Record<string, string>>({});
   // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
-  const textKeySeqRef = useRef(0);
   // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
   // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
   // 2026-07-27 CAR-2160 = 図中の文字サイズの一律倍率。 cdl の fontSize は固定値なので
   // viewport の拡大では追従しない。 CSS で属性値を上書きして一律に変える。
   const [fontScale, setFontScale] = useState(1);
-  const cdlActorDragRef = useRef<{
-    snapshot: ActorSnapshot;
-    startClientX: number;
-    startClientY: number;
-    svg: SVGSVGElement;
-    /** 縦にも動かせるか。 sequence 系は縦軸が時系列なので false */
-    allowVertical: boolean;
-  } | null>(null);
-  const [cdlClientBboxes, setCdlClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
   // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
   // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
-  const [textEditing, setTextEditing] = useState<{ originalText: string; bbox: { left: number; top: number; width: number; height: number }; fontSize: number } | null>(null);
   // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
   // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
-  const [groups, setGroups] = useState<Record<string, string[]>>({});
   // 2026-07-24 rubber band 選択 (Task #90) = 背景 drag で area 内 全 overlay 選択。
   // 状態 = { startClientX, startClientY, currentClientX, currentClientY } を rubber band drag 中保持。
-  const [rubberBand, setRubberBand] = useState<{ sx: number; sy: number; cx: number; cy: number } | null>(null);
   // 2026-07-24 Undo / Redo (Feature 1) = src の history stack。 過去 50 世代保持、 Cmd+Z で戻る、 Cmd+Shift+Z で進む。
   const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
   const lastCommittedSrcRef = useRef<string>("");
   // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
-  const clipboardRef = useRef<Array<{ kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string }>>([]);
   // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; overlayId: string | null } | null>(null);
   // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
-  const [colorPickerFor, setColorPickerFor] = useState<string | null>(null);
-  // 2026-07-25 shape client bbox measure (stage-local client px)。
-  // 「囲いサイズぐちゃぐちゃ」 root cause = pan.scale factor 抜けの座標系変換 bug、 全経路を client 空間に統一。
-  // 用途 = 選択 UI (border/handle/toolbar) を stage-level に portal render するための実 client bbox。
-  const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [shapeClientBboxes, setShapeClientBboxes] = useState<Record<string, { left: number; top: number; width: number; height: number }>>({});
-  // keydown handler (align 等) から最新 bbox を読むための同期 mirror
-  const shapeClientBboxesRef = useRef(shapeClientBboxes);
-  useEffect(() => { shapeClientBboxesRef.current = shapeClientBboxes; }, [shapeClientBboxes]);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const stageRect = previewRef.current?.getBoundingClientRect();
-      if (!stageRect) return;
-      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
-      // 2026-07-26 CAR-2158 performance fix = 測定対象を「選択中 + hover 中」 に絞る。
-      // 旧実装は overlayParts 全件 × 各 div 内の全 shape を毎 state 変化で測定していたため、
-      // parts が増えるほど drag 中の 1 frame コストが線形に増えていた (実質 O(parts × shapes))。
-      // bbox を実際に使うのは stage-level 選択 UI (border / handle / toolbar) だけなので、
-      // 選択中と hover 中の parts に限定すれば描画結果は同一のまま測定量が定数近くに収まる。
-      const measureTargets = new Set<string>();
-      for (const sid of selectedIds) {
-        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
-      }
-      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
-      for (const p of overlayParts) {
-        if (!measureTargets.has(p.id)) continue;
-        const div = overlayRefs.current[p.id];
-        if (!div) continue;
-        const bestEl = findPaintedShape(div);
-        if (!bestEl) continue;
-        const best = bestEl.getBoundingClientRect();
-        // stage 相対 client px = stage 内 absolute で render 可能な bbox
-        next[p.id] = {
-          left: best.left - stageRect.left,
-          top: best.top - stageRect.top,
-          width: best.width,
-          height: best.height,
-        };
-      }
-      const changed = Object.keys(next).length !== Object.keys(shapeClientBboxes).length ||
-        Object.entries(next).some(([id, b]) => {
-          const prev = shapeClientBboxes[id];
-          return !prev || Math.abs(prev.left - b.left) > 0.5 || Math.abs(prev.top - b.top) > 0.5 || Math.abs(prev.width - b.width) > 0.5 || Math.abs(prev.height - b.height) > 0.5;
-        });
-      if (changed) setShapeClientBboxes(next);
-    });
-    return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayParts, selectedIds, hoveredOverlayId]);
-
-  const overlayDragRef = useRef<{ id: string; startPosX: number; startPosY: number; startClientX: number; startClientY: number } | null>(null);
-  // multi drag = drag 開始時に selection 内 全 overlay parts の start pos を snapshot、 mousemove で全員 shift
-  const multiDragStartsRef = useRef<Map<string, { x: number; y: number }> | null>(null);
-  // overlay resize = 4 隅 handle drag で幅高 scale。 startScale + startClient + corner を capture、
-  // mousemove で diagonal delta から新 scale を計算。
-  const overlayResizeRef = useRef<{ id: string; corner: "nw" | "ne" | "sw" | "se"; startScale: number; startClientX: number; startClientY: number; startPosX: number; startPosY: number; startClientW: number; startClientH: number; startBboxLeft: number; startBboxTop: number; panScale: number; panTx: number; panTy: number } | null>(null);
-  // rotate ref = Alt + corner drag で回転、 overlay div の中心 client 座標基準で角度計算
-  const overlayRotateRef = useRef<{ id: string; startRotate: number; centerClientX: number; centerClientY: number; startAngleRad: number } | null>(null);
-  // CAR-1947 Round 2 F5 = 親 compile 結果 (LaidDiagram) を HTML canvas に受渡す SSOT。
-  // useHtmlCanvas false 時は setLaid されず、 SVG 経路は従来通り CdlDiagramView 内部で layout する。
-  const [laid, setLaid] = useState<LaidDiagram | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
@@ -477,7 +327,6 @@ export function CdlEditor(): React.JSX.Element {
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
-  const [dropOver, setDropOver] = useState(false);
   const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
   const dropHintTimerRef = useRef<number | null>(null);
 
@@ -607,33 +456,8 @@ export function CdlEditor(): React.JSX.Element {
   // parts 側も k を掛けないと図だけが伸びて parts が取り残される。 client との往復では
   // pan の拡大率と合わせた `pan × k` が world→client の係数になる。
   const diagramScaleRef = useRef(1);
-  /** world 1 単位が client 何 px か。 overlay parts の座標変換はすべてこれを通す。 */
-  const worldToClient = (): number => (transformRef.current.scale || 1) * (diagramScaleRef.current || 1);
-  // 2026-07-25 pan / zoom 変化時に shape client bbox re-measure = 選択 UI 追従
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const stageRect = previewRef.current?.getBoundingClientRect();
-      if (!stageRect) return;
-      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
-      // CAR-2158 performance fix = 選択 UI が使う分だけ測定 (全 overlay 走査を廃止)
-      const measureTargets = new Set<string>();
-      for (const sid of selectedIdsRef.current) {
-        if (sid.startsWith("overlay:")) measureTargets.add(sid.slice("overlay:".length));
-      }
-      if (hoveredOverlayId) measureTargets.add(hoveredOverlayId);
-      for (const id of measureTargets) {
-        const div = overlayRefs.current[id];
-        if (!div) continue;
-        const bestEl = findPaintedShape(div);
-        if (!bestEl) continue;
-        const best = bestEl.getBoundingClientRect();
-        next[id] = { left: best.left - stageRect.left, top: best.top - stageRect.top, width: best.width, height: best.height };
-      }
-      setShapeClientBboxes(next);
-    });
-    return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transform, hoveredOverlayId]);
+  /** overlay parts の div 参照。 DSL の `bg:` を実際の図形に当てる時に使う。 */
+  const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   // 2026-07-26 CAR-2158 correctness fix = overlay parts の bg を実 SVG shape に適用する。
   // 旧実装は DSL に bg を書くだけで canvas に反映されず、 color picker が「押しても何も起きない」 状態だった。
   // catalog 由来の diagram は共有 object なので mutate せず、 render 後の DOM に fill を上書きする経路を採る。
@@ -647,30 +471,6 @@ export function CdlEditor(): React.JSX.Element {
   // cdl の矢印は stroke 4px の線で、 正確に click するのが実質不可能。 ラベルの text も
   // 当たり判定がグリフの輪郭しかなく、 文字の隙間や周囲の余白では反応しない。
   // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
-  //
-  // SVG は src 変更のたびに CdlDiagramView が中身を作り直すので、 MutationObserver で
-  // 作り直しを検知して注入し直す。 自分の注入も変化として検知されるため、
-  // 注入中は observer を切って無限ループを避ける。
-  useEffect(() => {
-    const host = previewRef.current;
-    if (!host) return;
-    let observer: MutationObserver | null = null;
-    const run = (): void => {
-      const svg = host.querySelector("svg") as SVGSVGElement | null;
-      if (!svg) return;
-      observer?.disconnect();
-      try {
-        injectHitAreas(svg);
-      } finally {
-        if (observer) observer.observe(host, { childList: true, subtree: true });
-      }
-    };
-    observer = new MutationObserver(() => run());
-    observer.observe(host, { childList: true, subtree: true });
-    run();
-    return () => observer?.disconnect();
-  }, []);
-
   // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
   useEffect(() => {
     const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
@@ -725,372 +525,46 @@ export function CdlEditor(): React.JSX.Element {
     }
     return () => { for (const o of observers) o.disconnect(); };
   }, [overlayParts, applyOverlayBg]);
-  // 2026-07-25 cdl 要素 selection UI の bbox 再測定 = selectedIds / transform / cdlSelectorMap 変化時
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const stageRect = previewRef.current?.getBoundingClientRect();
-      if (!stageRect) return;
-      const next: Record<string, { left: number; top: number; width: number; height: number }> = {};
-      // 2026-07-26 CAR-2158 fix = 選択対象の element が DOM から消えていたら selection ごと解除する。
-      // text selection は DOM attribute (data-editor-text-key) を selector の SSOT にしているため、
-      // label 編集による再 compile で React が text node を差し替えると attribute ごと消える。
-      // 旧実装は selector が null になっても selection state を残していたので、
-      // 実体のない選択枠が古い bbox のまま残り続けていた。
-      const staleKeys: string[] = [];
-      for (const sid of selectedIds) {
-        if (!sid.startsWith("cdl:")) continue;
-        const key = sid.slice("cdl:".length);
-        const selector = cdlSelectorMap[key];
-        if (!selector || !previewRef.current) continue;
-        const el = previewRef.current.querySelector(selector) as SVGGraphicsElement | null;
-        if (!el || typeof el.getBoundingClientRect !== "function") { staleKeys.push(key); continue; }
-        const r = el.getBoundingClientRect();
-        // 水平 / 垂直な矢印は片側が 0 になる。 両側 0 (= 実体なし) だけを stale とし、
-        // 片側 0 の線は最小の厚みを与えて枠を出す (旧実装は `< 3` で矢印を全て捨てていた)。
-        if (r.width < 3 && r.height < 3) { staleKeys.push(key); continue; }
-        const MIN_THICKNESS = 12;
-        const w = Math.max(r.width, MIN_THICKNESS);
-        const h = Math.max(r.height, MIN_THICKNESS);
-        next[key] = {
-          left: r.left - stageRect.left - (w - r.width) / 2,
-          top: r.top - stageRect.top - (h - r.height) / 2,
-          width: w,
-          height: h,
-        };
-      }
-      if (staleKeys.length > 0) {
-        setSelectedIds((prev) => prev.filter((sid) => !staleKeys.includes(sid.replace(/^cdl:/, ""))));
-        setCdlSelectorMap((prev) => {
-          const cleaned = { ...prev };
-          for (const k of staleKeys) delete cleaned[k];
-          return cleaned;
-        });
-      }
-      setCdlClientBboxes(next);
-    });
-    return () => cancelAnimationFrame(raf);
-    // diagram を依存に含める = 再 compile で text の位置 / 幅が変わった時に選択枠を追従させる
-    // (含めないと label 編集後に古い bbox の枠が残る)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, transform, cdlSelectorMap, diagram]);
   const previewRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
-  const pendingClearRef = useRef<string | null>(null);
   // drag 開始時の hoveredHandle.rect を save = drag 中 rect 追従計算の基準点
-  const hoveredHandleInitRectRef = useRef<DOMRect | null>(null);
   // viewBoxCompensation は「勝手な移動」 で user 意図 (drop 位置ぴったり) を破壊するため削除。
 
   // ref 経由で state を読む (useEffect deps 頻繁変化で listener 再登録の性能問題 + stale closure 回避)
-  const selectedIdsRef = useRef(selectedIds);
-  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
-  const overlayPartsRef = useRef(overlayParts);
-  useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
-
-  // 2026-07-24 Miro 相当 keyboard shortcut (Task #88 + #91):
-  //   Cmd+G / Ctrl+G           = group 作成
-  //   Cmd+Shift+G              = ungroup
-  //   Delete / Backspace       = selection 削除
-  //   Cmd+A                    = 全 overlay select
-  //   Cmd+D                    = duplicate (posX/Y に +30 offset で複製)
-  //   Escape                   = selection clear
-  //   矢印キー                 = 1px nudge (shift 併用で 10px)
+  // DSL 本文の取り消し / やり直し。
+  //
+  // CodeMirror は自前の履歴を持つため、 入力欄に焦点がある間はそちらが処理する。 ここが効くのは
+  // 焦点が入力欄の外にある時 (見本を読み込んだ直後など) で、 `confirmReplaceIfDirty` の確認文が
+  // 案内している取り消し経路がこれにあたる。
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      const ctrlOrCmd = e.metaKey || e.ctrlKey;
-      // 入力 field 上では 発火しない (CodeMirror / input 等)
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable || t.closest?.(".cm-content"))) return;
-      // Escape = selection clear + context menu / color picker close
-      if (e.key === "Escape") {
-        setSelectedIds([]);
-        setContextMenu(null);
-        setColorPickerFor(null);
-        return;
-      }
-      // Cmd+Z = Undo、 Cmd+Shift+Z (or Cmd+Y) = Redo (Feature 1)
-      if (ctrlOrCmd && (e.key === "z" || e.key === "Z")) {
-        e.preventDefault();
-        if (e.shiftKey) {
-          const future = historyRef.current.future;
-          if (future.length === 0) return;
-          const next = future.pop()!;
-          historyRef.current.past.push(lastCommittedSrcRef.current);
-          lastCommittedSrcRef.current = next;
-          setSrcSilent(next);
-        } else {
-          const past = historyRef.current.past;
-          if (past.length === 0) return;
-          const prev = past.pop()!;
-          historyRef.current.future.push(lastCommittedSrcRef.current);
-          lastCommittedSrcRef.current = prev;
-          setSrcSilent(prev);
-        }
-        return;
-      }
-      // Cmd+C = clipboard に selection の overlay parts snapshot、 Cmd+V = paste (Feature 3)
-      if (ctrlOrCmd && (e.key === "c" || e.key === "C")) {
-        e.preventDefault();
-        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        clipboardRef.current = overlayIds
-          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
-          .filter((p): p is NonNullable<typeof p> => !!p)
-          // 2026-07-26 CAR-2158 correctness fix = copy に rotate / bg も含める (paste で失われないように)
-          .map((p) => ({ kind: p.kind, posX: p.posX, posY: p.posY, scale: p.scale, rotate: p.rotate, bg: p.bg }));
-        return;
-      }
-      if (ctrlOrCmd && (e.key === "v" || e.key === "V")) {
-        e.preventDefault();
-        if (clipboardRef.current.length === 0) return;
-        setSrc((prev) => {
-          let next = prev;
-          for (const clip of clipboardRef.current) {
-            const newAlias = nextAvailableAlias(next, clip.kind.replace(/-/g, ""));
-            const newLine = buildDuplicateLine(clip, newAlias);
-            const appended = appendActorLine(next, newLine);
-            if (appended !== null) next = appended;
-          }
-          return next;
-        });
-        return;
-      }
-      // Alt+{L/R/E/T/B/M/H/V} = alignment (Feature 6)
-      if (e.altKey && ["l", "L", "r", "R", "e", "E", "t", "T", "b", "B", "m", "M", "h", "H", "v", "V"].includes(e.key)) {
-        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        if (overlayIds.length < 2) return;
-        e.preventDefault();
-        const mode: AlignMode =
-          e.key === "l" || e.key === "L" ? "left" :
-          e.key === "r" || e.key === "R" ? "right" :
-          e.key === "e" || e.key === "E" ? "center-h" :
-          e.key === "t" || e.key === "T" ? "top" :
-          e.key === "b" || e.key === "B" ? "bottom" :
-          e.key === "m" || e.key === "M" ? "middle-v" :
-          e.key === "h" || e.key === "H" ? "distribute-h" :
-          "distribute-v";
-        // 2026-07-26 CAR-2158 consistency fix = align 幅高を実測値から算出する。
-        // 旧実装は width/height を 380 固定にしていたため、 実 shape が 380 でない parts (arc-gauge 等) で
-        // right / center / bottom / distribute 系の揃え位置が実際の見た目とずれていた。
-        // 実測 client bbox を world 単位 (pan.scale 除算) に戻し、 未測定なら 380 に fallback する。
-        const panScaleForAlign = worldToClient();
-        const parts = overlayIds
-          .map((oid) => overlayPartsRef.current.find((p) => p.id === oid))
-          .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => {
-            // align は「今この瞬間の実 AABB」 が要る。 state 経由の測定値は rAF 1 フレーム分
-            // 古いことがあり、 直前の drag / resize 直後だと揃え位置が数 px ずれる。
-            // 対象は選択中の parts だけなので、 ここで測り直しても負荷は小さい。
-            const div = overlayRefs.current[p.id];
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            let bbox = shapeClientBboxesRef.current[p.id];
-            if (div && stageRect) {
-              const shapeEl = findPaintedShape(div);
-              if (shapeEl) {
-                const r = shapeEl.getBoundingClientRect();
-                bbox = { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
-              }
-            }
-            const safeScale = Math.abs(p.scale) > 0.001 ? p.scale : 1;
-            if (!bbox) {
-              // 未測定 = 従来の近似 (posX/posY を左上、 380px 四方) で計算する
-              return { id: p.id, posX: p.posX, posY: p.posY, scale: p.scale, width: 380, height: 380 };
-            }
-            // 実測 client bbox を world に直して bounds として渡す。
-            // rotate 済 parts では AABB の左上が posX / posY と一致しないため、
-            // width / height からの逆算ではなく実 bounds を渡して delta 方式で揃える。
-            const left = (bbox.left - transformRef.current.tx) / panScaleForAlign;
-            const top = (bbox.top - transformRef.current.ty) / panScaleForAlign;
-            const worldW = bbox.width / panScaleForAlign;
-            const worldH = bbox.height / panScaleForAlign;
-            return {
-              id: p.id,
-              posX: p.posX,
-              posY: p.posY,
-              scale: p.scale,
-              width: worldW / safeScale,
-              height: worldH / safeScale,
-              bounds: { left, top, right: left + worldW, bottom: top + worldH },
-            };
-          });
-        const result = alignOverlayParts(parts, mode);
-        if (result.size === 0) return;
-        setSrc((prev) => {
-          let next = prev;
-          for (const [id, pos] of result) {
-            const p = overlayPartsRef.current.find((x) => x.id === id);
-            if (p) next = writeOverlayPartToDsl(next, id, pos.posX, pos.posY, p.scale, p.rotate);
-          }
-          return next;
-        });
-        return;
-      }
-      // Cmd+] = bring forward (z-order 内で 1 個上)、 Cmd+[ = send backward (Feature 5)
-      // 実装 = DSL 内の actor 行順序を上下入替 (下 = 前面、 上 = 背面 = SVG 描画順)
-      if (ctrlOrCmd && (e.key === "]" || e.key === "[")) {
-        e.preventDefault();
-        const overlayIds = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        if (overlayIds.length === 0) return;
-        const forward = e.key === "]";
-        setSrc((prev) => {
-          const lines = prev.split("\n");
-          const partsIndices = new Map<string, number>();
-          lines.forEach((line, i) => {
-            for (const oid of overlayIds) {
-              if (new RegExp(`^\\s*-\\s*${oid}\\s*:`).test(line)) partsIndices.set(oid, i);
-            }
-          });
-          const sorted = Array.from(partsIndices.entries()).sort((a, b) => forward ? b[1] - a[1] : a[1] - b[1]);
-          for (const [_oid, idx] of sorted) {
-            const swap = forward ? idx + 1 : idx - 1;
-            if (swap < 0 || swap >= lines.length) continue;
-            // 次/前 行も actor 行かチェック
-            if (!/^\s*-\s*\S+?\s*:\s*\{/.test(lines[swap]!)) continue;
-            [lines[idx], lines[swap]] = [lines[swap]!, lines[idx]!];
-          }
-          return lines.join("\n");
-        });
-        return;
-      }
-      // Delete / Backspace = selection 削除
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        const overlayIdsToDelete = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        if (overlayIdsToDelete.length === 0) return;
-        setSrc((prev) => {
-          let next = prev;
-          for (const oid of overlayIdsToDelete) {
-            next = removeActorLine(next, oid);
-          }
-          return next;
-        });
-        setSelectedIds([]);
-        return;
-      }
-      if (ctrlOrCmd && (e.key === "a" || e.key === "A")) {
-        e.preventDefault();
-        // 全 overlay select
-        setSelectedIds(overlayPartsRef.current.map((p) => `overlay:${p.id}`));
-        return;
-      }
-      if (ctrlOrCmd && (e.key === "d" || e.key === "D")) {
-        e.preventDefault();
-        const overlayIdsToDupe = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        if (overlayIdsToDupe.length === 0) return;
-        setSrc((prev) => {
-          let next = prev;
-          for (const oid of overlayIdsToDupe) {
-            const orig = overlayPartsRef.current.find((p) => p.id === oid);
-            if (!orig) continue;
-            const newAlias = nextAvailableAlias(next, aliasBaseName(oid));
-            const newLine = buildDuplicateLine(orig, newAlias);
-            const appended = appendActorLine(next, newLine);
-            if (appended !== null) next = appended;
-          }
-          return next;
-        });
-        return;
-      }
-      // 矢印キー nudge (selection がある場合)
-      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
-        const overlayIdsToNudge = selectedIdsRef.current.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length));
-        if (overlayIdsToNudge.length === 0) return;
-        e.preventDefault();
-        const step = e.shiftKey ? 10 : 1;
-        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
-        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-        // 2026-07-26 CAR-2158 correctness fix = nudge 後に DSL へ書き出す。
-        // 旧実装は overlayParts state のみ更新していたため、 reload / 再 compile で nudge 分が消えていた
-        // (drag / resize は mouseup で writeOverlayPartToDsl を呼ぶが nudge には同経路がなかった)。
-        //
-        // 座標の累積は必ず前回値からの相対で行う。
-        //
-        // ref (useEffect mirror) から読むと、 キーリピートで同一 commit 内に複数 keydown が入った時に
-        // 全て同じ古い base から計算してしまう (5 連打で 50px 進むべきところ 10px になる)。
-        // かといって setOverlayParts の updater 内で集めた値を setSrc に渡すのも成立しない
-        // = updater の実行順は render 時で、 setSrc の updater が先に評価されうるため空になる。
-        //
-        // updater は「渡された値だけから次の値を作る」 純関数に保つ。
-        //
-        // 累積 state を ref に持って updater 内で書き換える実装にすると、 React StrictMode が
-        // updater を 2 回呼ぶため副作用が二重に走り、 5 押下が 10px にしかならない
-        // (Round 5 で実測)。 ref への書き込みは updater の外だけで行う。
-        //
-        // base / accum を持たずに済ませるため、 DSL 側の現在値に直接 delta を足す方式にする。
-        // updater の prevSrc は常にその時点で確定した最新値なので、 同一 commit 内で連続
-        // dispatch されても押下回数分が順に積み上がる。 別経路 (drag / undo / 手編集) で
-        // 座標が変わっていてもその値が起点になるため、 invalidate の判定自体が不要になる。
-        setOverlayParts((prev) => prev.map((p) => {
-          if (!overlayIdsToNudge.includes(p.id)) return p;
-          return { ...p, posX: p.posX + dx, posY: p.posY + dy };
-        }));
-        setSrc((prevSrc) => {
-          let out = prevSrc;
-          for (const id of overlayIdsToNudge) {
-            // 現在値は depth-aware な parse で読む。 naive な正規表現だと
-            // `nodes: { header: { posY: 60 } }` の入れ子を top-level と取り違えて
-            // 誤った座標を書き戻す (Round 3 / 4 で parse / write 側は潰済)。
-            // 座標は catalog を引かずに DSL から直接読む。 `extractPartsFromSrc` は catalog で
-            // item を解決するため、 catalog が未整備の文脈では null になり、 commit 前の
-            // 古い state を起点にして押下が積算されなくなる。
-            // null (DSL に該当行なし) の時は state mirror へ fallback せず skip する。
-            // fallback しても `writeOverlayPartToDsl` が同じ alias 条件で対象行を見つけられず
-            // no-op になり、 optimistic な setOverlayParts だけが進んで DSL と乖離する。
-            const cur = readOverlayPartPos(out, id);
-            if (!cur) continue;
-            out = writeOverlayPartToDsl(out, id, cur.posX + dx, cur.posY + dy, cur.scale, cur.rotate);
-          }
-          return out;
-        });
-        return;
-      }
-      if (ctrlOrCmd && (e.key === "g" || e.key === "G")) {
-        e.preventDefault();
-        if (e.shiftKey) {
-          setGroups((prev) => {
-            const next: Record<string, string[]> = { ...prev };
-            for (const sid of selectedIdsRef.current) {
-              if (sid.startsWith("group:")) {
-                const gid = sid.slice("group:".length);
-                delete next[gid];
-              }
-            }
-            return next;
-          });
-          setSelectedIds((prev) => prev.filter((s) => !s.startsWith("group:")));
-        } else {
-          if (selectedIdsRef.current.length < 2) return;
-          const members = selectedIdsRef.current.filter((s) => !s.startsWith("group:"));
-          if (members.length < 2) return;
-          const gid = `g${Date.now().toString(36)}`;
-          setGroups((prev) => ({ ...prev, [gid]: members }));
-          setSelectedIds([`group:${gid}`]);
-        }
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key !== "z" && e.key !== "Z") return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        const future = historyRef.current.future;
+        if (future.length === 0) return;
+        const next = future.pop()!;
+        historyRef.current.past.push(lastCommittedSrcRef.current);
+        lastCommittedSrcRef.current = next;
+        setSrcSilent(next);
+      } else {
+        const past = historyRef.current.past;
+        if (past.length === 0) return;
+        const prev = past.pop()!;
+        historyRef.current.future.push(lastCommittedSrcRef.current);
+        lastCommittedSrcRef.current = prev;
+        setSrcSilent(prev);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // ref 経由で state 参照 = deps 空で 1 回だけ register (性能 + stale closure 両方対策)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2026-07-24 fix = pending clearLiveTransform を diagram 更新後に実行 (snap back gap 解消)
-  useEffect(() => {
-    const pending = pendingClearRef.current;
-    if (!pending) return;
-    pendingClearRef.current = null;
-    // rAF 2 段 = React commit → paint → rAF1 = DOM 反映後 → rAF2 = paint 完了後
-    // paint 完了前に CSS 消すと snap back 見える。 2 frame 待って新 SVG が完全描画されてから消す。
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
-        clearLiveTransform(pending);
-      });
-      pendingClearRef.current = null;
-      void raf2;
-    });
-    return () => cancelAnimationFrame(raf1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diagram]);
 
   /**
    * viewBox 固定 (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
@@ -1302,11 +776,9 @@ export function CdlEditor(): React.JSX.Element {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
-          // CAR-1947 Round 2 F5 refinement = parts marker 経路でも HTML canvas mode 時は laid SSOT を更新。
-          // これで parts-only diagram 切替時に子側が旧 lane を表示する false positive を防止。
-          const laidPart = compile(part);
+          // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
+          compile(part);
           setDiagram(part);
-          if (useHtmlCanvas) setLaid(laidPart);
           setError(null);
           try {
             const report = visualValidate(part);
@@ -1322,12 +794,9 @@ export function CdlEditor(): React.JSX.Element {
         const { baseSrc, parts } = extractPartsFromSrc(src, partsCatalog, partsItems);
         setOverlayParts(parts);
         const d = textDslToDiagram(baseSrc, { partsCatalog });
-        // compile を pre-check して validate/layout の throw を CdlDiagramView 描画前に捕捉する。
-        // CAR-1947 Round 2 F5 = HTML canvas mode 時は compile 結果 (LaidDiagram) を SSOT として保持、
-        // 子側の重複 compile を排除。 SVG mode 時は compile 結果を捨てて既存挙動維持 (setLaid 呼ばず)。
-        const laidResult = compile(d);
+        // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
+        compile(d);
         setDiagram(d);
-        if (useHtmlCanvas) setLaid(laidResult);
         setError(null);
         // visualValidate で位置関係を機械検証、 warn / error を editor 上部に表示。
         // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
@@ -1483,233 +952,6 @@ export function CdlEditor(): React.JSX.Element {
     });
   };
 
-  // canvas pivot 新 spec PR-B = element drag / resize state。 SVG 上の element を drag 時は
-  // pan せず該当 element の位置 / サイズを DSL の posX/Y/W/H field に書き戻す。
-  const elementDrag = useRef<DragState | null>(null);
-  // hoveredHandle = hover 中パーツの「実 SVG element」 の rect と DSL actor 名。
-  // id = DSL 書出し用 actor 名 (lane hover なら actor 名、 node hover でも該当 actor 名 = lane / node は同じ actor に紐づく)。
-  // elementSelector = 実 target SVG element の CSS selector (individual element 判定用)。
-  // rect = element bounding rect (client coord、 outline 描画用 SSOT)。
-  const [hoveredHandle, setHoveredHandle] = useState<{
-    id: string;
-    elementSelector: string;
-    rect: DOMRect;
-    // canvas pivot UX 修正 (B1) = 対象 sub-node key (findDragTarget が data-cdl-node の suffix / prefix
-    // pattern から抽出、 undefined なら actor 全体経路 = 単一 node preset / lane hover)。
-    subNodeKey?: string;
-  } | null>(null);
-  // zoom / pan 変更時に hoveredHandle.rect を re-query (transform 変更で図が scale されるが outline は
-  // client px absolute で pan/scale の外側に描画されるため、 rect が古いままだと図と outline が乖離する
-  // = user 目視 bug 「点線の四角の囲いは拡大しない」 の root fix)。 rect 変化が閾値以上なら update、
-  // 微小変化 (float 誤差) は無視して無限 loop 回避。
-  useEffect(() => {
-    if (!hoveredHandle || !previewRef.current) return;
-    // parts 用の union bbox 経路 = elementSelector が prefix match `^=` 形式なら全 sub-node の union
-    const isPartsPrefixSelector = hoveredHandle.elementSelector.includes('^="');
-    let rect: DOMRect;
-    if (isPartsPrefixSelector) {
-      const els = previewRef.current.querySelectorAll(hoveredHandle.elementSelector);
-      if (els.length === 0) return;
-      let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
-      for (const el of Array.from(els)) {
-        const r = (el as SVGGraphicsElement).getBoundingClientRect();
-        if (r.left < minL) minL = r.left;
-        if (r.top < minT) minT = r.top;
-        if (r.right > maxR) maxR = r.right;
-        if (r.bottom > maxB) maxB = r.bottom;
-      }
-      rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
-    } else {
-      const el = previewRef.current.querySelector(hoveredHandle.elementSelector) as SVGGraphicsElement | null;
-      if (!el) return;
-      rect = el.getBoundingClientRect();
-    }
-    const old = hoveredHandle.rect;
-    const diff = Math.abs(rect.left - old.left) + Math.abs(rect.top - old.top) + Math.abs(rect.width - old.width) + Math.abs(rect.height - old.height);
-    if (diff > 0.5) {
-      setHoveredHandle({ ...hoveredHandle, rect });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transform.scale, transform.tx, transform.ty]);
-  // activeGuidelines state 削除 (guideline 機能全撤去)
-
-
-  const updateElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const st = elementDrag.current;
-    if (!st) return false;
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return false;
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-    const dx = svgPt.x - st.startSvgX;
-    const dy = svgPt.y - st.startSvgY;
-
-    if (st.mode === "drag") {
-      const newX = st.initPosX + dx;
-      const newY = st.initPosY + dy;
-      applyLiveTransform(st.targetName, newX - st.initPosX, newY - st.initPosY);
-      // 2026-07-24 fix (user 明示要求「勝手に移動する機能全部削除」) = auto-adjust + guideline を drag
-      // 中に呼ばない。 元 impl は他 preset element を transient shift + 整列補助線発火だったが、
-      // user 意図「Miro / Google スライド相当 = 個別独立要素、 auto 補正なし」 に反するため経路削除。
-      // 併せて hoveredHandle.rect を drag delta 分 shift = 選択枠が trophy 追従 (「枠が追いつかない」 fix)。
-      if (hoveredHandle) {
-        const svgScale = st.svgScale || 1;
-        const clientDx = (newX - st.initPosX) * svgScale;
-        const clientDy = (newY - st.initPosY) * svgScale;
-        const initRect = hoveredHandleInitRectRef.current;
-        if (initRect) {
-          setHoveredHandle((prev) => prev ? { ...prev, rect: new DOMRect(initRect.left + clientDx, initRect.top + clientDy, initRect.width, initRect.height) } : prev);
-        }
-      }
-    } else if (st.mode === "resize" && st.corner) {
-      const initW = st.initPosW ?? 100;
-      const initH = st.initPosH ?? 100;
-      // aspect 固定 = corner drag delta の大きい方に合わせる
-      let signX = 1;
-      let signY = 1;
-      if (st.corner === "nw") { signX = -1; signY = -1; }
-      if (st.corner === "ne") { signX = 1; signY = -1; }
-      if (st.corner === "sw") { signX = -1; signY = 1; }
-      const dW = dx * signX;
-      const dH = dy * signY;
-      const delta = Math.max(dW, dH);
-      const newW = Math.max(20, initW + delta);
-      const newH = Math.max(20, initH * (newW / initW));
-      // NW = 左上を掴んで拡大縮小 = 右下固定、 SE = 逆
-      let anchorX = st.initPosX;
-      let anchorY = st.initPosY;
-      if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
-      if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      applyLiveResize(st.targetName, anchorX - st.initPosX, anchorY - st.initPosY, newW / initW, newH / initH);
-    }
-    return true;
-  };
-
-  const finalizeElementInteraction = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-    const st = elementDrag.current;
-    if (!st) return false;
-    document.body.style.cursor = "";
-    elementDrag.current = null;
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return true;
-    const svgPt = clientToSvg(svg, e.clientX, e.clientY);
-    const dx = svgPt.x - st.startSvgX;
-    const dy = svgPt.y - st.startSvgY;
-    if (st.mode === "drag") {
-      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return true;
-      const newX = st.initPosX + dx;
-      const newY = st.initPosY + dy;
-      // architectural refactor で pin loop 削除 = 対象 actor の posX/Y のみ更新。
-      setSrc((prev) => updateActorPosition(prev, st.targetName, newX, newY, st.initPosW, st.initPosH));
-    } else if (st.mode === "resize" && st.corner) {
-      const initW = st.initPosW ?? 100;
-      const initH = st.initPosH ?? 100;
-      let signX = 1;
-      let signY = 1;
-      if (st.corner === "nw") { signX = -1; signY = -1; }
-      if (st.corner === "ne") { signX = 1; signY = -1; }
-      if (st.corner === "sw") { signX = -1; signY = 1; }
-      const dW = dx * signX;
-      const dH = dy * signY;
-      const delta = Math.max(dW, dH);
-      const newW = Math.max(20, initW + delta);
-      const newH = Math.max(20, initH * (newW / initW));
-      let anchorX = st.initPosX;
-      let anchorY = st.initPosY;
-      if (st.corner === "nw" || st.corner === "sw") anchorX = st.initPosX + initW - newW;
-      if (st.corner === "nw" || st.corner === "ne") anchorY = st.initPosY + initH - newH;
-      // canvas pivot UX 修正 (B1) = subNodeKey 有時は nested nodes 書出し (個別 sub-node 経路)、
-      // 未 set 時は actor 全体経路 (単一 node preset / 図単位 resize)。 lane 全体を触らない = 他 sub-node の
-      // auto layout 保持で spacer / footer 等が引きずられない。
-      if (st.subNodeKey) {
-        setSrc((prev) => updateActorNodePosition(prev, st.targetName, st.subNodeKey!, anchorX, anchorY, newW, newH));
-      } else {
-        setSrc((prev) => updateActorPosition(prev, st.targetName, anchorX, anchorY, newW, newH));
-      }
-    }
-    // 2026-07-24 fix (user 苦情「離すと一瞬元位置に戻る」 対応) = live CSS transform を即 clear せず、
-    // setSrc → 300ms debounce → cdl re-compile → SVG 反映 完了後 (diagram useEffect) に clear する。
-    // 元 impl は finalize で即 clearLiveTransform し、 DSL 反映まで 300ms 空白時間で trophy が元位置に
-    // snap back 見える bug 発生。 pendingClearRef に target 名を保持、 diagram 更新 useEffect で clear。
-    pendingClearRef.current = st.targetName;
-    return true;
-  };
-
-  const targetBelongsTo = (id: string, targetName: string): boolean => {
-    const slug = slugifyActorName(targetName);
-    // 空 slug (日本語 only 等で英数字ゼロ) は startsWith が全 match するため raw name match のみに絞る
-    if (!slug) {
-      return (
-        id === targetName ||
-        id.startsWith(`${targetName}-`) ||
-        id.startsWith(`${targetName}__`)
-      );
-    }
-    return (
-      id === targetName ||
-      id === slug ||
-      id.startsWith(`${targetName}-`) ||
-      id.startsWith(`${slug}-`) ||
-      id.startsWith(`${targetName}__`) ||
-      id.startsWith(`${slug}__`) ||
-      (/^s\d+-/.test(id) && (id.endsWith(`-${targetName}`) || id.endsWith(`-${slug}`)))
-    );
-  };
-
-  const applyLiveTransform = (targetName: string, dx: number, dy: number): void => {
-    const svg = previewRef.current?.querySelector("svg");
-    if (!svg) return;
-    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
-      if (targetBelongsTo(id, targetName)) {
-        (el as SVGGraphicsElement).style.transform = `translate(${dx}px, ${dy}px)`;
-      }
-    });
-    // drag 中の actor に繋がる edge は、 端点だけを追従させて伸縮させる。
-    // edge 全体を translate すると繋がっていない側まで動いて線が浮くので、
-    // `data-cdl-from` / `data-cdl-to` を見て動かす端を選ぶ。
-    // dx / dy は SVG user unit で受け取る (呼び出し側が変換済)。
-    stretchEdgesFor(svg, targetName, dx, dy, slugifyActorName(targetName));
-  };
-
-  const applyLiveResize = (targetName: string, dx: number, dy: number, sx: number, sy: number): void => {
-    const svg = previewRef.current?.querySelector("svg");
-    if (!svg) return;
-    // canvas pivot UX 修正 = resize は hover した individual element 単一のみに適用 (bug 1 root cause 修正)。
-    // 旧実装は「target 名 prefix / suffix にマッチする全 element に scale 適用」 で lane 全体が拡大していた。
-    // hoveredHandle.elementSelector は「実 hit した SVG element」 の selector なので個別 element を掴む。
-    void targetName;
-    const selector = elementDrag.current?.hoveredSelector;
-    if (selector) {
-      const el = svg.querySelector(selector) as SVGGraphicsElement | null;
-      if (el) {
-        el.style.transformOrigin = "0 0";
-        el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-      }
-    }
-  };
-
-  const clearLiveTransform = (targetName: string): void => {
-    const svg = previewRef.current?.querySelector("svg");
-    if (!svg) return;
-    // resize 経路の individual element selector も clear + drag 経路の bulk 経路も clear (両対応)
-    const selector = elementDrag.current?.hoveredSelector;
-    if (selector) {
-      const el = svg.querySelector(selector) as SVGGraphicsElement | null;
-      if (el) {
-        el.style.transform = "";
-        el.style.transformOrigin = "";
-      }
-    }
-    svg.querySelectorAll(`[data-cdl-lane], [data-cdl-node], [data-cdl-edge]`).forEach((el) => {
-      const id = el.getAttribute("data-cdl-lane") || el.getAttribute("data-cdl-node") || el.getAttribute("data-cdl-edge") || "";
-      if (targetBelongsTo(id, targetName)) {
-        (el as SVGGraphicsElement).style.transform = "";
-      }
-    });
-    // drag 中に伸縮させた edge の path を元に戻す (DSL 反映後の再 render が正)
-    clearStretchedEdges(svg);
-  };
-
   /**
    * 図そのものを factor 倍する。
    *
@@ -1726,358 +968,16 @@ export function CdlEditor(): React.JSX.Element {
   // 定義本体を根絶する。 canvas-pivot-auto-adjust / canvas-pivot-guideline lib への依存も削除済。
 
   // 2026-07-25 double click text 編集 = SVG <text> を狙って click したら inline HTML input を開く。
-  const handleStageDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
-    let el = e.target as SVGElement | HTMLElement | null;
-    // nearest text 要素を辿る (child tspan / foreignObject 対応)
-    while (el && el !== previewRef.current && el.tagName !== "text") el = el.parentElement as HTMLElement | null;
-    if (!el || el.tagName !== "text" || !previewRef.current) return;
-    const stageRect = previewRef.current.getBoundingClientRect();
-    const rect = (el as unknown as SVGGraphicsElement).getBoundingClientRect();
-    const original = (el.textContent ?? "").trim();
-    if (!original) return;
-    const fontSize = parseFloat(window.getComputedStyle(el as unknown as HTMLElement).fontSize) || 14;
-    setTextEditing({
-      originalText: original,
-      bbox: { left: rect.left - stageRect.left, top: rect.top - stageRect.top, width: Math.max(80, rect.width + 20), height: Math.max(24, rect.height + 8) },
-      fontSize,
-    });
-    e.stopPropagation();
-  };
-  const commitTextEdit = (newText: string): void => {
-    if (!textEditing) return;
-    const original = textEditing.originalText;
-    setTextEditing(null);
-    // 2026-07-25 text 編集 DSL 精緻化 (CAR-2139 scope-out fix)
-    // 重複 text (Client が 4 箇所等) の全置換副作用を回避、 field scope 別に 1 箇所置換を試みる。
-    // SSOT = src/lib/text-edit-replace.ts (pure helper、 8 unit test)
-    setSrc((prev) => replaceTextInDsl(prev, original, newText));
-  };
+  // 図の平行移動。 図そのものを触る操作 (掴んで動かす / 大きさを変える / 選ぶ) は
+  // DSL 入力だけで書く方針に合わせて外したため、 stage に残るのは表示位置の移動だけ。
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
-    // toolbar クリックは pan させない
+    // toolbar の click は移動として扱わない
     if ((e.target as HTMLElement).closest(".cdl-editor-zoom-toolbar")) return;
-    // context menu / color picker 表示中の click は close
-    if (contextMenu) setContextMenu(null);
-    if (colorPickerFor) setColorPickerFor(null);
-    // cdl element selection = hover 中の element があれば selection state を更新する。
-    // 2026-07-26 CAR-2158 fix = 旧実装は drag 起動が成功した時だけ selection していたが、
-    // arrow label 等 findDragTarget が actor 名を解決できない element では起動しないため
-    // 選択そのものができなかった。 drag の可否と選択を分離して、 選択は常に成立させる。
-    const applyCdlSelection = (): void => {
-      if (!hoveredHandle) return;
-      const selId = `cdl:${hoveredHandle.id}`;
-      // selector を保存 = stage-level UI の bbox 再測定で使う
-      setCdlSelectorMap((prev) => ({ ...prev, [hoveredHandle.id]: hoveredHandle.elementSelector }));
-      if (e.shiftKey || e.metaKey) {
-        setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
-      } else {
-        setSelectedIds([selId]);
-      }
-    };
-    // 2026-07-26 CAR-2158 fix = hoveredHandle の有無ではなく e.target を再 hit-test して判定する。
-    //
-    // 旧実装は hoveredHandle があれば無条件に selection して return していた。 hover state は
-    // element から 100px 離れるまで保持される (handleMouseMove の buffer) ため、 element 近傍の背景を
-    // click しても旧 element を再選択して return し、 背景 click による選択解除と rubber band が
-    // 起動しなくなっていた (codex review で再現条件を実測)。
-    const rawTarget = e.target as Element | null;
-    const targetEl = rawTarget ? resolveHitTarget(rawTarget) : null;
-    const onCdlElement = !!targetEl && !!targetEl.closest?.("svg") &&
-      (targetEl.tagName === "text" || !!targetEl.closest?.("[data-cdl-node], [data-cdl-lane], [data-cdl-edge]"));
-    if (onCdlElement) {
-      applyCdlSelection();
-      // 2026-07-27 CAR-2156 = cdl actor (縦列) の drag を有効化する。
-      //
-      // Phase 4 (CAR-2139) で actor が分裂したのは cdl core の欠陥ではなく座標系の取り違えで、
-      // editor が配下 node にも座標を書いていたのが原因だった (詳細 = `lib/cdl-actor-move.ts`)。
-      // lane にだけ書けば配下 node は相対配置を保ったまま追従する。
-      //
-      // 掴んでいない actor も含めて全 lane の現在位置を snapshot するのは、 lane の x が
-      // 「指定が無い lane を順に並べる」 ロジックで決まるため。 1 つだけ座標を与えると
-      // 残りが詰め直されて大きく動く = user が最も嫌う「勝手に移動する」 挙動になる。
-      //
-      // arrow label (text) は actor に属さないため対象外 = selection のみで drag しない。
-      const actorName = hoveredHandle && !hoveredHandle.id.startsWith("text:") ? hoveredHandle.id : null;
-      if (actorName) {
-        const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-        if (svg) {
-          const snap = buildActorSnapshotFromSvg(
-            svg,
-            actorName,
-            extractAllActorNames(srcRef.current),
-            slugifyActorName,
-            (cx, cy) => {
-              const p = clientToSvg(svg, cx, cy);
-              return { x: p.x, y: p.y };
-            },
-          );
-          if (snap) {
-            cdlActorDragRef.current = {
-              snapshot: snap,
-              startClientX: e.clientX,
-              startClientY: e.clientY,
-              svg,
-              allowVertical: allowsVerticalMove(readDiagramType(srcRef.current)),
-            };
-            document.body.style.cursor = "grabbing";
-          }
-        }
-      }
-      return;
-    }
-    // 背景 click = stale hover を明示 clear してから通常経路 (選択解除 / rubber band) へ進む
-    if (hoveredHandle) setHoveredHandle(null);
-    // 背景 mousedown = rubber band 選択開始 (Miro 相当)。 shift 押下併用時は selection 保持。
-    // space+drag / middle button = pan mode (rubber band と分離、 後日実装)。 現状 通常 drag は rubber band。
-    if (!e.shiftKey && !e.metaKey) setSelectedIds([]);
-    setRubberBand({ sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY });
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, tx: transform.tx, ty: transform.ty };
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
-    // 2026-07-27 CAR-2156 = cdl actor drag 中は SVG に live transform をかけて追従表示する。
-    // DSL 書換は mouseup 1 回だけ (drag 中に書くと毎 frame 再 compile が走って重い)。
-    if (cdlActorDragRef.current) {
-      const st = cdlActorDragRef.current;
-      // 縦は動かさないので live preview も横だけ追従させる。
-      // 重なり防止の clamp も finalize と同じ条件でかける = 限界を超えて引っ張った時に
-      // cursor に付いていって mouseup で戻る、 という食い違いを無くす。
-      const dxClient = e.clientX - st.startClientX;
-      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
-      const origin = clientToSvg(st.svg, 0, 0);
-      const moved = clientToSvg(st.svg, dxClient, dyClient);
-      const dxWorld = moved.x - origin.x;
-      const dyWorld = moved.y - origin.y;
-      // CSS transform は SVG の座標系内で効くので、 渡す値も SVG user unit に揃える。
-      // client px をそのまま渡すと、 lane / node は縮尺分だけ小さく動く一方
-      // edge の path は user unit で動くため、 矢印だけが先に進んで箱を突き抜ける
-      // (実測 = 箱が 50px 動く間に矢印の端が 100px 動いていた)。
-      applyLiveTransform(st.snapshot.name, clampDx(st.snapshot, dxWorld), dyWorld);
-      return;
-    }
-    // 2026-07-24 overlay parts drag = React state 更新のみ (setSrc せず即時反映、 real-time UX)。
-    // scale で client delta を world delta に変換、 overlayParts[id].posX/Y を直接更新 = ラグゼロ。
-    // Step 3 (multi drag) = drag ref に multi selection の全 overlay start pos を保持 (下 handleMouseDown 参照)
-    if (overlayDragRef.current) {
-      const { id, startPosX, startPosY, startClientX, startClientY } = overlayDragRef.current;
-      const factor = worldToClient();
-      let dx = (e.clientX - startClientX) / factor;
-      let dy = (e.clientY - startClientY) / factor;
-      // 2026-07-24 snap to grid (Task #93) = shift 押下で無効、 通常時は 20px grid に snap。
-      // primary target の新 pos が grid 交点になるように delta を丸める → 全 member 同 delta 適用で相対 pos 保持。
-      const GRID = 20;
-      if (!e.shiftKey) {
-        const targetX = Math.round((startPosX + dx) / GRID) * GRID;
-        const targetY = Math.round((startPosY + dy) / GRID) * GRID;
-        dx = targetX - startPosX;
-        dy = targetY - startPosY;
-      }
-      const selectedOverlayIds = new Set(
-        selectedIds.filter((s) => s.startsWith("overlay:")).map((s) => s.slice("overlay:".length)),
-      );
-      const groupStartsRef = multiDragStartsRef.current;
-      setOverlayParts((prev) =>
-        prev.map((p) => {
-          if (p.id === id) return { ...p, posX: startPosX + dx, posY: startPosY + dy };
-          if (groupStartsRef && groupStartsRef.has(p.id) && selectedOverlayIds.has(p.id)) {
-            const s = groupStartsRef.get(p.id)!;
-            return { ...p, posX: s.x + dx, posY: s.y + dy };
-          }
-          return p;
-        }),
-      );
-      return;
-    }
-    // overlay rotate = Alt + corner drag、 center 基準の angle 差で rotate 更新 (Feature 7)
-    if (overlayRotateRef.current) {
-      const st = overlayRotateRef.current;
-      const currentAngle = Math.atan2(e.clientY - st.centerClientY, e.clientX - st.centerClientX);
-      const deltaDeg = ((currentAngle - st.startAngleRad) * 180) / Math.PI;
-      const newRotate = st.startRotate + deltaDeg;
-      setOverlayParts((prev) => prev.map((p) => p.id === st.id ? { ...p, rotate: newRotate } : p));
-      return;
-    }
-    // overlay parts resize = corner drag で uniform scale + opposite corner を client 座標で invariant に。
-    // Miro/Figma 挙動 = SE drag → NW 固定 / NW drag → SE 固定 / NE drag → SW 固定 / SW drag → NE 固定。
-    // shape offset in div は scale 倍されるため posX/posY を単純に足し引きすると shape 全体が動く。
-    // anchor client 座標 (stage-local) を invariant 化する posX/posY を毎 frame 逆算する。
-    if (overlayResizeRef.current) {
-      const st = overlayResizeRef.current;
-      const dxClient = e.clientX - st.startClientX;
-      const dyClient = e.clientY - st.startClientY;
-      const signX = st.corner === "ne" || st.corner === "se" ? 1 : -1;
-      const signY = st.corner === "sw" || st.corner === "se" ? 1 : -1;
-      const deltaW = dxClient * signX;
-      const deltaH = dyClient * signY;
-      const deltaMax = Math.max(deltaW, deltaH);
-      const newClientW = Math.max(20, st.startClientW + deltaMax);
-      const scaleRatio = newClientW / st.startClientW;
-      const newScale = Math.max(0.1, st.startScale * scaleRatio);
-      // anchor = drag corner の対角、 stage-local client 座標
-      let anchorClientX = st.startBboxLeft;
-      let anchorClientY = st.startBboxTop;
-      if (st.corner === "nw") { anchorClientX += st.startClientW; anchorClientY += st.startClientH; }
-      else if (st.corner === "ne") { anchorClientY += st.startClientH; }
-      else if (st.corner === "sw") { anchorClientX += st.startClientW; }
-      // stage-local client → world 変換 = (client - panTx) / panScale (pan container transform 逆変換)
-      const anchorWorldX = (anchorClientX - st.panTx) / st.panScale;
-      const anchorWorldY = (anchorClientY - st.panTy) / st.panScale;
-      // shape-local raw offset (unscaled world unit) = anchor が div 原点から見た元 shape 座標
-      const anchorRawOffsetX = (anchorWorldX - st.startPosX) / st.startScale;
-      const anchorRawOffsetY = (anchorWorldY - st.startPosY) / st.startScale;
-      // 新 scale で anchor client 座標を invariant に保つ posX/posY を逆算
-      const newPosX = anchorWorldX - anchorRawOffsetX * newScale;
-      const newPosY = anchorWorldY - anchorRawOffsetY * newScale;
-      setOverlayParts((prev) => prev.map((p) => (p.id === st.id ? { ...p, scale: newScale, posX: newPosX, posY: newPosY } : p)));
-      return;
-    }
-    // element drag / resize 中は pan せず interaction pass に流す
-    if (updateElementInteraction(e)) return;
-    // zoom toolbar / share / export 等の UI 上 mouse.move は hover 状態を保持 (I3 forensic fix)。
-    // toolbar 上 mouse.move で hoveredHandle が rect 外 buffer 判定で null 化すると zoom 直後に
-    // outline が消える bug になる。 UI element は data-preserve-hover attribute or 特定 class で判定。
-    const targetEl = e.target as HTMLElement;
-    if (targetEl.closest?.(".cdl-editor-zoom-toolbar, .v4-editor-bar, .v4-editor-side, .v4-editor-code")) return;
-    // hover 中の element を追跡して handle 表示用 state 更新
-    if (!elementDrag.current) {
-      // canvas pivot UX 修正 (B1) = 既存 hoveredHandle の handle 4 隅境界 + buffer 内なら hover 更新を
-      // skip して subNodeKey / elementSelector を維持する。 SE corner まで mouse.move すると findDragTarget
-      // が親 lane 等別 target を返すことで hoveredHandle が上書きされ subNodeKey が消失し、 resize が actor
-      // 全体経路 (lane 全体 posX 書出し) に fallback → spacer / footer が引きずられる bug 修正。
-      if (hoveredHandle) {
-        const r = hoveredHandle.rect;
-        const handleBuffer = 16;
-        if (
-          e.clientX >= r.left - handleBuffer &&
-          e.clientX <= r.right + handleBuffer &&
-          e.clientY >= r.top - handleBuffer &&
-          e.clientY <= r.bottom + handleBuffer
-        ) {
-          // handle boundary 内 → hover 追跡は変えず既存 subNodeKey を保持
-          if (!dragging) return;
-          setTransform((t) => ({
-            ...t,
-            tx: dragStart.current.tx + (e.clientX - dragStart.current.x),
-            ty: dragStart.current.ty + (e.clientY - dragStart.current.y),
-          }));
-          return;
-        }
-      }
-      // 注入した当たり判定 (透明 rect) が hit した時は、 それが代表する text にすり替える。
-      // hover / 選択の判定は text 要素を前提に組まれているため。
-      const target = resolveHitTarget(e.target as Element);
-      const actorNamesForHover = extractAllActorNames(src);
-      const dragInfo = findDragTarget(target, actorNamesForHover);
-      // parts hover fallback は overlay 化で不要 (parts は cdl SVG 外の別 div、 hover は onMouseEnter で個別処理)
-      // 2026-07-24 fix (user 苦情「1つずつをパーツとしても扱って」 対応) = data-cdl-* 未紐付きの text 要素
-      // (arrow label 等) を独立 hover target として扱う fallback。 label の親 group に data-cdl-edge が
-      // 付いていない cdl 側 SVG 構造への 対応。
-      if (!dragInfo && target.tagName === "text") {
-        const textRect = (target as SVGGraphicsElement).getBoundingClientRect();
-        if (textRect.width > 0 && textRect.height > 0) {
-          // 2026-07-26 CAR-2158 fix = 旧実装は elementSelector: "" で、 selection UI の bbox 再測定
-          // useEffect が空 selector を skip して handle 描画 0 件になっていた (arrow label が選択不能)。
-          // text element に data attribute を刻んで一意 selector を確立する (nth-of-type は
-          // parent 内 index のため stage 全体走査の index と一致せず不採用)。
-          let textKey = target.getAttribute("data-editor-text-key");
-          if (!textKey) {
-            textKey = `t${textKeySeqRef.current++}`;
-            target.setAttribute("data-editor-text-key", textKey);
-          }
-          const elementSelector = `[data-editor-text-key="${textKey}"]`;
-          // selection ID も textKey ベースにする。 text 内容 (先頭 32 文字) を ID にすると、
-          // 同一文言の label が複数ある図で ID が衝突し、 shift+click が 2 要素選択ではなく
-          // 同一 ID の toggle になって selector も相互に上書きされていた。
-          const id = `text:${textKey}`;
-          setHoveredHandle({ id, elementSelector, rect: textRect, subNodeKey: undefined });
-          return;
-        }
-      }
-      if (dragInfo) {
-        // canvas pivot UX 修正 = hover 対象は「target が実 hit した SVG element」 = 個別 element の rect を SSOT にする
-        // (旧実装は parent lane の rect を採用していたため lane 全体を囲む枠が出る bug)
-        let elementSelector = "";
-        let cur: Element | null = target;
-        while (cur) {
-          const laneAttr = cur.getAttribute?.("data-cdl-lane");
-          const nodeAttr = cur.getAttribute?.("data-cdl-node");
-          const edgeAttr = cur.getAttribute?.("data-cdl-edge");
-          if (nodeAttr) {
-            elementSelector = `[data-cdl-node="${nodeAttr}"]`;
-            break;
-          }
-          if (edgeAttr) {
-            elementSelector = `[data-cdl-edge="${edgeAttr}"]`;
-            break;
-          }
-          if (laneAttr) {
-            elementSelector = `[data-cdl-lane="${laneAttr}"]`;
-            break;
-          }
-          cur = cur.parentElement;
-        }
-        // parts sub-node 判定 = data-cdl-node id が `{alias}__{subId}` 形式 (CAR-1657 unified syntax、
-        // parts merge 経路で prefix された node) の場合、 hover rect と elementSelector を
-        // parts 全 sub-node の union に置換 = user が hover した時に parts 全体が「1 unit」 として
-        // 点線 outline + 4 隅 handle で示される (Miro 相当の UX)。 sub-node 個別を掴む挙動は禁止、
-        // 一体として drag / resize する仕様。
-        let rect: DOMRect | null = cur ? (cur as Element).getBoundingClientRect() : null;
-        const nodeIdForCur = cur?.getAttribute?.("data-cdl-node") ?? "";
-        const isPartsSubNode = nodeIdForCur.includes("__");
-        if (isPartsSubNode && previewRef.current) {
-          const alias = nodeIdForCur.split("__")[0]!;
-          const partsEls = previewRef.current.querySelectorAll(`[data-cdl-node^="${alias}__"]`);
-          if (partsEls.length > 0) {
-            // 2026-07-24 fix (user 苦情「囲いおかしい」 対応) = shape element (circle / rect / path /
-            // ellipse) のみ union bbox 対象、 text (title / subtitle) は除外して tight fit する。
-            // 元 impl は group 全体の getBoundingClientRect で text 領域も含めて上下延び bug。
-            let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
-            for (const el of Array.from(partsEls)) {
-              const shapes = (el as Element).querySelectorAll("circle, rect, path, ellipse, polygon");
-              const targets = shapes.length > 0 ? Array.from(shapes) : [el];
-              for (const s of targets) {
-                const r = (s as SVGGraphicsElement).getBoundingClientRect();
-                if (r.width <= 0 || r.height <= 0) continue;
-                if (r.left < minL) minL = r.left;
-                if (r.top < minT) minT = r.top;
-                if (r.right > maxR) maxR = r.right;
-                if (r.bottom > maxB) maxB = r.bottom;
-              }
-            }
-            if (minL !== Infinity) {
-              rect = new DOMRect(minL, minT, maxR - minL, maxB - minT);
-              elementSelector = `[data-cdl-node^="${alias}__"]`;
-            }
-          }
-        }
-        if (rect && elementSelector) {
-          // parts (isPartsSubNode) なら subNodeKey を undefined に強制 = actor 全体経路
-          // (updateActorPosition で actor.posX/posY/posW/posH 書出し、 compile 側で parts 全 sub-node に scale 反映)
-          if (isPartsSubNode) {
-            dragInfo.subNodeKey = undefined;
-          }
-          // canvas pivot UX 修正 (B1) = data-cdl-node の subNodeKey (`header` / `footer` / `spacer` / `s0` 等)
-          // を hoveredHandle に転写し、 sub-node 単位の hover 判定に使う。
-          // subNodeKey undefined 時 (findDragTarget が親 lane / raw actor を返した場合) は前回の subNodeKey を
-          // 継承して subNodeKey 消失を防ぐ (SE 境界 mouse.move で親 lane に上がっても sub-node 経路を維持)。
-          const inheritedSubKey =
-            dragInfo.subNodeKey ??
-            (hoveredHandle && hoveredHandle.id === dragInfo.name ? hoveredHandle.subNodeKey : undefined);
-          setHoveredHandle({ id: dragInfo.name, elementSelector, rect, subNodeKey: inheritedSubKey });
-        }
-      } else if (hoveredHandle) {
-        // element 外に mouse が出ても hoveredHandle は維持 (I3 fix、 zoom button 移動時の軌跡で
-        // preview 内空き area 通過しても outline 消えない大 buffer 経路)。 100 px buffer で
-        // user が明示的に別 element hover しない限り hover 維持する Miro 相当の粘着 UX。
-        const r = hoveredHandle.rect;
-        const buffer = 100;
-        if (e.clientX < r.left - buffer || e.clientX > r.right + buffer || e.clientY < r.top - buffer || e.clientY > r.bottom + buffer) {
-          setHoveredHandle(null);
-        }
-      }
-    }
-    if (rubberBand) {
-      setRubberBand({ ...rubberBand, cx: e.clientX, cy: e.clientY });
-      return;
-    }
     if (!dragging) return;
     setTransform((t) => ({
       ...t,
@@ -2086,99 +986,7 @@ export function CdlEditor(): React.JSX.Element {
     }));
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>): void => {
-    // 2026-07-27 CAR-2156 = cdl actor drag finalize。 lane + 配下 node に同 delta を書き出す。
-    // client delta を world 単位に直してから渡す (snapshot 側が world 座標のため)。
-    if (cdlActorDragRef.current) {
-      const st = cdlActorDragRef.current;
-      cdlActorDragRef.current = null;
-      document.body.style.cursor = "";
-      const dxClient = e.clientX - st.startClientX;
-      const dyClient = st.allowVertical ? e.clientY - st.startClientY : 0;
-      // live transform を戻す (DSL 反映後の再 render が正となるため)
-      clearLiveTransform(st.snapshot.name);
-      if (Math.abs(dxClient) > 1 || Math.abs(dyClient) > 1) {
-        const origin = clientToSvg(st.svg, 0, 0);
-        const moved = clientToSvg(st.svg, dxClient, dyClient);
-        setSrc((prev) => moveActorInDsl(prev, st.snapshot, moved.x - origin.x, moved.y - origin.y));
-      }
-      return;
-    }
-    // 2026-07-24 overlay parts drag finalize = 現 overlayParts state から新 posX/Y を DSL に書出す。
-    // drag 中は setSrc せず state 直接更新なので snap back なし、 mouseup で 1 回だけ DSL sync。
-    // multi drag = groupStartsRef に含まれる 全 overlay 分を 1 setSrc で reduce sync。
-    if (overlayDragRef.current) {
-      const { id } = overlayDragRef.current;
-      const groupStarts = multiDragStartsRef.current;
-      overlayDragRef.current = null;
-      multiDragStartsRef.current = null;
-      document.body.style.cursor = "";
-      setSrc((prev) => {
-        let next = prev;
-        // primary drag target を先に書出し
-        const primary = overlayParts.find((p) => p.id === id);
-        if (primary) next = writeOverlayPartToDsl(next, id, primary.posX, primary.posY, primary.scale, primary.rotate);
-        // multi drag = selection の全 overlay も同 setSrc 内で 順次書出し
-        if (groupStarts) {
-          for (const [oid] of groupStarts) {
-            if (oid === id) continue;
-            const p = overlayParts.find((x) => x.id === oid);
-            if (p) next = writeOverlayPartToDsl(next, oid, p.posX, p.posY, p.scale, p.rotate);
-          }
-        }
-        return next;
-      });
-      return;
-    }
-    // overlay rotate finalize (Feature 7)
-    if (overlayRotateRef.current) {
-      const { id } = overlayRotateRef.current;
-      overlayRotateRef.current = null;
-      document.body.style.cursor = "";
-      const part = overlayParts.find((p) => p.id === id);
-      if (part) {
-        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale, part.rotate));
-      }
-      return;
-    }
-    // overlay parts resize finalize = 現 scale + posX/Y を DSL に書出す。
-    if (overlayResizeRef.current) {
-      const { id } = overlayResizeRef.current;
-      overlayResizeRef.current = null;
-      document.body.style.cursor = "";
-      const part = overlayParts.find((p) => p.id === id);
-      if (part) {
-        setSrc((prev) => writeOverlayPartToDsl(prev, id, part.posX, part.posY, part.scale));
-      }
-      return;
-    }
-    if (rubberBand) {
-      const rect = {
-        left: Math.min(rubberBand.sx, rubberBand.cx),
-        top: Math.min(rubberBand.sy, rubberBand.cy),
-        right: Math.max(rubberBand.sx, rubberBand.cx),
-        bottom: Math.max(rubberBand.sy, rubberBand.cy),
-      };
-      const isClickOnly = Math.abs(rect.right - rect.left) < 5 && Math.abs(rect.bottom - rect.top) < 5;
-      if (!isClickOnly && previewRef.current) {
-        // overlay parts の client bbox が rect と重なる parts を selection に追加
-        const overlayEls = previewRef.current.querySelectorAll("[data-overlay-part]");
-        const additions: string[] = [];
-        overlayEls.forEach((el) => {
-          const id = el.getAttribute("data-overlay-part") || "";
-          if (!id) return;
-          const r = (el as HTMLElement).getBoundingClientRect();
-          const intersects = r.left < rect.right && r.right > rect.left && r.top < rect.bottom && r.bottom > rect.top;
-          if (intersects) additions.push(`overlay:${id}`);
-        });
-        if (additions.length > 0) {
-          setSelectedIds((prev) => Array.from(new Set([...prev, ...additions])));
-        }
-      }
-      setRubberBand(null);
-      return;
-    }
-    if (finalizeElementInteraction(e)) return;
+  const handleMouseUp = (): void => {
     setDragging(false);
   };
 
@@ -2365,102 +1173,6 @@ animation:
     setActiveSample("new");
   };
 
-  /**
-   * sidebar parts item を drag 開始した時に partId (CdlDiagram.id) を dataTransfer に載せる。
-   * native HTML5 drag events を採用 (dnd-kit 30KB 依存追加を避けた、
-   * decision-log 2026-07-16-dragon-editor-drag-patch-strategy-and-lib)。
-   * MIME は独自 `application/dragon-part` + text/plain fallback で Safari 互換を担保する。
-   */
-  const handleDragStartPart = useCallback((partId: string) => (e: React.DragEvent<HTMLButtonElement>): void => {
-    e.dataTransfer.setData("application/dragon-part", partId);
-    e.dataTransfer.setData("text/plain", partId);
-    e.dataTransfer.effectAllowed = "copy";
-  }, []);
-
-  const handlePreviewDragOver = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
-    // preventDefault しないと onDrop が発火しない (native drag API 仕様)
-    if (e.dataTransfer.types.includes("application/dragon-part") || e.dataTransfer.types.includes("text/plain")) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      if (!dropOver) setDropOver(true);
-    }
-  }, [dropOver]);
-
-  const handlePreviewDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
-    // drag 元 element の入れ子で dragleave が誤発火するため、 currentTarget 外にした時のみ off
-    const rel = e.relatedTarget as Node | null;
-    if (rel && (e.currentTarget as Node).contains(rel)) return;
-    setDropOver(false);
-  }, []);
-
-  const handlePreviewDrop = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
-    e.preventDefault();
-    setDropOver(false);
-    const partId = e.dataTransfer.getData("application/dragon-part") || e.dataTransfer.getData("text/plain");
-    if (!partId) return;
-    const item = partsItems.find((p) => p.id === partId);
-    if (!item) {
-      setDropHintWithReset(`parts "${partId}" が見つかりません。 sidebar を再読込してください。`, 6000);
-      return;
-    }
-    // CAR-1657 unified syntax = drop で REPLACE ではなく既存 actors: に `- {alias}: { kind: {partId} }` を append する。
-    // parts.cdl.ts の id ('parts-arc-gauge') → syntax kind 値 ('arc-gauge') に strip prefix、
-    // alias は既 actor 名衝突回避で連番生成 ('arc1' → 'arc2')、 lane 指定は default なし (compile 側で内部 lane 生成)。
-    const kindValue = item.id.startsWith("parts-") ? item.id.slice(6) : item.id;
-    const aliasBase = kindValue.replace(/[^a-zA-Z0-9]/g, "");
-    const existingActorNames = collectActorNamesFromSrc(src);
-    let alias = `${aliasBase}1`;
-    for (let i = 1; i <= 1000 && existingActorNames.has(alias); i++) {
-      alias = `${aliasBase}${i + 1}`;
-    }
-    // parts state の initial 値を inline state override として展開 (parts に state 0 個ならなし)
-    const stateInits: string[] = item.diagram.states.map((s) => {
-      const v = s.initial;
-      const rendered = typeof v === "string" ? `"${v}"` : String(v);
-      return `${s.id}: ${rendered}`;
-    });
-    // parts drop 位置 fix (D1 forensic 対応) = drop 座標を SVG viewBox に変換し posX/posY 明示。
-    // compile 側 (mergePartIntoDiagram) が offsetX/Y として parts の lane / node に反映、 drop 位置
-    // に parts が中心配置される。 座標変換 = clientToSvg (getCTM inverse) で client → SVG world unit。
-    // getScreenCTM null (SVG 非表示 / detached) 時は toWorldOrNull が null を返す = posX/posY を書かず
-    // compile 側 fallback に委ねる (world 変換不能な raw client 座標の永続化を防ぐ、 #876)。
-    const svgEl = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-    const dropSvg = svgEl ? toWorldOrNull(svgEl, e.clientX, e.clientY) : null;
-    const posFields: string[] = [];
-    if (dropSvg) {
-      posFields.push(`posX: ${Math.round(dropSvg.x)}`);
-      posFields.push(`posY: ${Math.round(dropSvg.y)}`);
-    }
-    const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
-    const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-    // 2026-07-24 architectural refactor = pin / freeze 経路削除。 parts は overlay 独立管理で
-    // cdl 側は base のみ compile するため、 pin (勝手な DSL 書換) も freeze (DOM override) も不要。
-    void svgEl;
-    const newSrc = appendActorLine(src, newActorLine);
-    if (newSrc === null) {
-      // src に actors: block が見つからない = new file or 別 preset、 confirm dialog 経路 (REPLACE fallback)
-      if (!confirmReplaceIfDirty(item.title)) {
-        setDropHintWithReset("drop をキャンセルしました。 編集内容は保持されています。", 4000);
-        return;
-      }
-      const replaceSrc = `title: "${item.title}"
-type: sequence
-
-actors:
-${newActorLine}
-`;
-      setSrc(replaceSrc);
-      lastLoadedSrcRef.current = replaceSrc;
-      setActiveSample(item.title);
-      setDropHintWithReset(`parts "${item.title}" を新規 diagram として読み込みました。 元に戻すには Cmd+Z。`, 6000);
-      return;
-    }
-    // additive path = 既存 diagram に append、 confirm dialog 不要 (destructive でない)
-    setSrc(newSrc);
-    lastLoadedSrcRef.current = newSrc;
-    setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。 元に戻すには Cmd+Z。`, 6000);
-  }, [partsItems, setDropHintWithReset, confirmReplaceIfDirty, src]);
-
   return (
     <div className="v4-editor">
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
@@ -2546,12 +1258,10 @@ ${newActorLine}
                 <button
                   key={p.id}
                   type="button"
-                  draggable
-                  onDragStart={handleDragStartPart(p.id)}
                   className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
                   data-testid={`editor-part-item-${p.id}`}
                   data-part-id={p.id}
-                  title={`${p.subtitle} (drag してプレビューに drop)`}
+                  title={p.subtitle}
                   onClick={() => {
                     // CAR-1657 click = drop と同 semantic = actors: append (additive)。
                     // actors: block なし = REPLACE fallback (新規 diagram 作成、 confirm dialog 経由)
@@ -2567,49 +1277,10 @@ ${newActorLine}
                       const rendered = typeof v === "string" ? `"${v}"` : String(v);
                       return `${s.id}: ${rendered}`;
                     });
-                    // parts click 追加 = カーソル位置が無いため、 viewport 中央付近の「空いた場所」 に
-                    // 配置する (2026-07-21 user 決定)。 素朴に viewport 中央へ置くと中央にある既存 sequence
-                    // (Client/API/DB) の上に重なり、 過去報告の「図の上に parts が重なる」 目視 bug を再現し
-                    // resize handle も occlude されるため、 既存 content の world bbox 下端の下 (横は viewport
-                    // 中央 X を content 範囲に clamp) に置いて重なりを回避する。 従来の「図の右外 (maxLaneX +
-                    // 600)」 は画面外に飛んで見つけにくいため廃止済。
-                    const svgElClick = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
-                    let posFields: string[] = [];
-                    if (svgElClick && previewRef.current) {
-                      const containerRect = previewRef.current.getBoundingClientRect();
-                      // getScreenCTM null (SVG 非表示 / detached) 時は toWorldOrNull が null を返す =
-                      // posX/posY を書かず compile 側 fallback に委ねる (raw client 座標の永続化を防ぐ)。
-                      const center = toWorldOrNull(
-                        svgElClick,
-                        containerRect.left + containerRect.width / 2,
-                        containerRect.top + containerRect.height / 2,
-                      );
-                      if (center) {
-                        // 描画済 element の world bbox 列を集める。 parts merge 由来 (`__` 付き) も含める =
-                        // parts-only diagram で 2 個目以降を既存 parts の下に積んで重なりを避ける (#876)。
-                        const rects: WorldRect[] = [];
-                        for (const el of Array.from(svgElClick.querySelectorAll("[data-cdl-node], [data-cdl-lane]"))) {
-                          const id = el.getAttribute("data-cdl-node") ?? el.getAttribute("data-cdl-lane") ?? "";
-                          const r = (el as SVGGraphicsElement).getBoundingClientRect();
-                          const tl = toWorldOrNull(svgElClick, r.left, r.top);
-                          const br = toWorldOrNull(svgElClick, r.right, r.bottom);
-                          if (!tl || !br) continue;
-                          rects.push({ id, minX: tl.x, maxX: br.x, maxY: br.y });
-                        }
-                        // part の world 高さ ≈ stack span × STACK_PITCH_APPROX (compile と同係数 220)
-                        const stacks = p.diagram.nodes.map((n) => n.stack ?? 0);
-                        const partSpan = stacks.length > 0 ? Math.max(...stacks) - Math.min(...stacks) + 1 : 1;
-                        const placement = resolveClickPlacement(rects, center, partSpan * 220);
-                        posFields = [
-                          `posX: ${Math.round(placement.x)}`,
-                          `posY: ${Math.round(placement.y)}`,
-                        ];
-                      }
-                    }
-                    const inlineFields = [`kind: ${kindValue}`, ...posFields, ...stateInits].join(", ");
+                    // 座標は書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
+                    // 実寸を走査する形に戻らずに済む。 位置を変えたい時は DSL に posX / posY を書く。
+                    const inlineFields = [`kind: ${kindValue}`, ...stateInits].join(", ");
                     const newActorLine = `  - ${alias}: { ${inlineFields} }`;
-                    // architectural refactor で pin 削除 = parts は overlay 独立管理で cdl 影響なし
-                    void svgElClick;
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);
@@ -2631,7 +1302,7 @@ ${newActorLine}
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              パーツを右のプレビューに drag するか、 クリックで既存 diagram の actors: に追加します。 Cmd+Z で undo 可、 既存内容は消えません。
+              クリックで actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は DSL に posX / posY を書きます。
             </div>
           </div>
         )}
@@ -2791,7 +1462,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.fit() : handleFit}
+            onClick={handleFit}
             title="表示を preview 領域に合わせる"
           >
             フィット
@@ -2799,7 +1470,7 @@ ${newActorLine}
           <button
             type="button"
             className="v4-editor-bar-btn"
-            onClick={useHtmlCanvas ? () => htmlCanvasRef.current?.reset() : handleReset}
+            onClick={handleReset}
             title="表示を初期状態に戻す (Esc)"
           >
             リセット
@@ -2808,8 +1479,7 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handle100}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "等倍表示"}
-            disabled={useHtmlCanvas}
+            title="等倍表示"
           >
             100%
           </button>
@@ -2817,9 +1487,8 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomOut}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "縮小"}
+            title="縮小"
             aria-label="縮小"
-            disabled={useHtmlCanvas}
           >
             −
           </button>
@@ -2827,42 +1496,23 @@ ${newActorLine}
             type="button"
             className="v4-editor-bar-btn"
             onClick={handleZoomIn}
-            title={useHtmlCanvas ? "HTML canvas mode では未対応 (Phase 2 で拡張)" : "拡大"}
+            title="拡大"
             aria-label="拡大"
-            disabled={useHtmlCanvas}
           >
             +
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
-        {useHtmlCanvas ? (
-          <HtmlDivCanvasEditor
-            ref={htmlCanvasRef}
-            src={src}
-            onSrcChange={setSrc}
-            laid={laid}
-            testId="editor-preview-stage"
-          />
-        ) : (
         <div
-          className={`v4-editor-stage ${dropOver ? "drop-over" : ""}`}
+          className="v4-editor-stage"
           ref={previewRef}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onDoubleClick={handleStageDoubleClick}
-          onDragOver={handlePreviewDragOver}
-          onDragLeave={handlePreviewDragLeave}
-          onDrop={handlePreviewDrop}
           data-testid="editor-preview-stage"
         >
-          {dropOver && (
-            <div className="v4-editor-drop-overlay" aria-hidden>
-              ここにドロップして読み込む
-            </div>
-          )}
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
           )}
@@ -2881,88 +1531,15 @@ ${newActorLine}
                     parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
                 {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
                     member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
-                {Object.entries(groups).map(([gid, memberIds]) => {
-                  const isGroupSelected = selectedIds.includes(`group:${gid}`);
-                  let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
-                  for (const sid of memberIds) {
-                    if (sid.startsWith("overlay:")) {
-                      const oid = sid.slice("overlay:".length);
-                      const p = overlayParts.find((x) => x.id === oid);
-                      if (!p) continue;
-                      const w = 380 * p.scale;
-                      const h = 380 * p.scale;
-                      minL = Math.min(minL, p.posX);
-                      minT = Math.min(minT, p.posY);
-                      maxR = Math.max(maxR, p.posX + w);
-                      maxB = Math.max(maxB, p.posY + h);
-                    }
-                  }
-                  if (minL === Infinity) return null;
-                  return (
-                    <div
-                      key={gid}
-                      data-group={gid}
-                      style={{
-                        position: "absolute",
-                        left: `${(minL - 8) * diagramK}px`,
-                        top: `${(minT - 8) * diagramK}px`,
-                        width: `${(maxR - minL + 16) * diagramK}px`,
-                        height: `${(maxB - minT + 16) * diagramK}px`,
-                        border: isGroupSelected ? "2px dashed rgba(59, 130, 246, 0.7)" : "1.5px dashed rgba(138, 90, 42, 0.4)",
-                        pointerEvents: isGroupSelected ? "auto" : "none",
-                        borderRadius: "4px",
-                        zIndex: 50,
-                        cursor: isGroupSelected ? "grab" : "default",
-                        background: isGroupSelected ? "rgba(59, 130, 246, 0.03)" : "transparent",
-                      }}
-                      onMouseDown={(e) => {
-                        if (!isGroupSelected) return;
-                        e.stopPropagation();
-                        // group drag = 全 member を selectedIds に反映 (既 multi drag 経路発火)
-                        setSelectedIds(memberIds);
-                        // multi drag の primary target = first member
-                        const primaryMemberId = memberIds.find((s) => s.startsWith("overlay:"));
-                        if (!primaryMemberId) return;
-                        const oid = primaryMemberId.slice("overlay:".length);
-                        const primary = overlayParts.find((x) => x.id === oid);
-                        if (!primary) return;
-                        overlayDragRef.current = {
-                          id: oid,
-                          startPosX: primary.posX,
-                          startPosY: primary.posY,
-                          startClientX: e.clientX,
-                          startClientY: e.clientY,
-                        };
-                        // multi drag ref = 全 member の start pos
-                        const partsStart = new Map<string, { x: number; y: number }>();
-                        for (const sid of memberIds) {
-                          if (!sid.startsWith("overlay:")) continue;
-                          const mid = sid.slice("overlay:".length);
-                          const mp = overlayParts.find((x) => x.id === mid);
-                          if (mp) partsStart.set(mid, { x: mp.posX, y: mp.posY });
-                        }
-                        multiDragStartsRef.current = partsStart;
-                        document.body.style.cursor = "grabbing";
-                      }}
-                      onClick={(e) => {
-                        // group click = 選択 (member を selection として指定するか group id で保持)
-                        if (isGroupSelected) return;
-                        e.stopPropagation();
-                        setSelectedIds([`group:${gid}`]);
-                      }}
-                    />
-                  );
-                })}
+                
                 {/* parts overlay は cdl の SVG とは別に描く。 cdl は parts を知らないので base 図に
                     影響しない。 位置と大きさは world 座標を `diagramK` 倍して置く (cdl の SVG が
                     1 world unit = diagramK px で描かれるため、 上の注記を参照)。 */}
                 {overlayParts.map((p) => {
-                  const isSelected = selectedIds.includes(`overlay:${p.id}`);
                   return (
                     <div
                       key={p.id}
                       data-overlay-part={p.id}
-                      data-selected={isSelected ? "1" : undefined}
                       ref={(el) => { overlayRefs.current[p.id] = el; }}
                       style={{
                         position: "absolute",
@@ -2970,48 +1547,7 @@ ${newActorLine}
                         top: `${p.posY * diagramK}px`,
                         transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
                         transformOrigin: "0 0",
-                        cursor: "grab",
                         userSelect: "none",
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedIds([`overlay:${p.id}`]);
-                        setContextMenu({ x: e.clientX, y: e.clientY, overlayId: p.id });
-                      }}
-                      onMouseEnter={() => setHoveredOverlayId(p.id)}
-                      onMouseLeave={() => {
-                        if (!overlayDragRef.current && !overlayResizeRef.current) setHoveredOverlayId(null);
-                      }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        overlayDragRef.current = {
-                          id: p.id,
-                          startPosX: p.posX,
-                          startPosY: p.posY,
-                          startClientX: e.clientX,
-                          startClientY: e.clientY,
-                        };
-                        setHoveredOverlayId(p.id);
-                        // multi selection = shift/meta 押下で追加、 通常 click で置換 (但し既 selection に居る parts は保持)
-                        const selId = `overlay:${p.id}`;
-                        const wasSelected = selectedIds.includes(selId);
-                        if (e.shiftKey || e.metaKey) {
-                          setSelectedIds((prev) => prev.includes(selId) ? prev.filter((x) => x !== selId) : [...prev, selId]);
-                        } else if (!wasSelected) {
-                          setSelectedIds([selId]);
-                        }
-                        // multi drag = 現 selection の全 overlay parts の start pos snapshot
-                        const currentSelection = wasSelected || e.shiftKey || e.metaKey ? selectedIds : [selId];
-                        const partsStart = new Map<string, { x: number; y: number }>();
-                        for (const sid of currentSelection) {
-                          if (!sid.startsWith("overlay:")) continue;
-                          const targetId = sid.slice("overlay:".length);
-                          const tp = overlayParts.find((x) => x.id === targetId);
-                          if (tp) partsStart.set(targetId, { x: tp.posX, y: tp.posY });
-                        }
-                        multiDragStartsRef.current = partsStart;
-                        document.body.style.cursor = "grabbing";
                       }}
                     >
                       <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
@@ -3023,474 +1559,7 @@ ${newActorLine}
               <div className="v4-editor-empty">読み込み中...</div>
             )}
           </div>
-          {/* activeGuidelines 描画削除 (guideline 機能全撤去、 2026-07-24) */}
-          {contextMenu && contextMenu.overlayId && (() => {
-            const target = contextMenu.overlayId;
-            const actions: Array<{ label: string; onClick: () => void }> = [
-              { label: "🎨 色を変える", onClick: () => { setColorPickerFor(target); setContextMenu(null); } },
-              { label: "📋 複製 (Cmd+D)", onClick: () => {
-                const orig = overlayParts.find((p) => p.id === target);
-                if (orig) {
-                  setSrc((prev) => {
-                    const newAlias = nextAvailableAlias(prev, aliasBaseName(target));
-                    const newLine = buildDuplicateLine(orig, newAlias);
-                    return appendActorLine(prev, newLine) ?? prev;
-                  });
-                }
-                setContextMenu(null);
-              }},
-              { label: "⬆️ 前面へ (Cmd+])", onClick: () => {
-                setSrc((prev) => {
-                  const lines = prev.split("\n");
-                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
-                  if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
-                    [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
-                  }
-                  return lines.join("\n");
-                });
-                setContextMenu(null);
-              }},
-              { label: "⬇️ 背面へ (Cmd+[)", onClick: () => {
-                setSrc((prev) => {
-                  const lines = prev.split("\n");
-                  const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${target}\\s*:`).test(l));
-                  if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
-                    [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
-                  }
-                  return lines.join("\n");
-                });
-                setContextMenu(null);
-              }},
-              { label: "🗑 削除 (Delete)", onClick: () => {
-                setSrc((prev) => removeActorLine(prev, target));
-                setSelectedIds([]);
-                setContextMenu(null);
-              }},
-            ];
-            return (
-              <div
-                data-context-menu="1"
-                style={{
-                  position: "fixed",
-                  left: `${contextMenu.x}px`,
-                  top: `${contextMenu.y}px`,
-                  background: "#fff",
-                  border: "1px solid #8a5a2a",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  borderRadius: "6px",
-                  padding: "4px 0",
-                  zIndex: 500,
-                  minWidth: "180px",
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                onContextMenu={(e) => e.preventDefault()}
-              >
-                {actions.map((a) => (
-                  <button
-                    key={a.label}
-                    type="button"
-                    data-context-action={a.label}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "8px 12px",
-                      textAlign: "left",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "13px",
-                    }}
-                    onClick={(e) => { e.stopPropagation(); a.onClick(); }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-          {rubberBand && (() => {
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            if (!stageRect) return null;
-            const left = Math.min(rubberBand.sx, rubberBand.cx) - stageRect.left;
-            const top = Math.min(rubberBand.sy, rubberBand.cy) - stageRect.top;
-            const width = Math.abs(rubberBand.cx - rubberBand.sx);
-            const height = Math.abs(rubberBand.cy - rubberBand.sy);
-            return (
-              <div
-                data-rubber-band="1"
-                style={{
-                  position: "absolute",
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: `${width}px`,
-                  height: `${height}px`,
-                  border: "1.5px dashed rgba(59, 130, 246, 0.8)",
-                  background: "rgba(59, 130, 246, 0.1)",
-                  pointerEvents: "none",
-                  zIndex: 200,
-                }}
-              />
-            );
-          })()}
-          {/* 2026-07-25 overlay selection UI = stage-level portal render (transformed div 外)。
-              shapeClientBboxes を使って stage 相対 client px 座標に配置 = pan / scale / rotate 影響なし、
-              icon sharp、 resize / border position が visible shape に完全一致。 */}
-          {overlayParts.filter((p) => selectedIds.includes(`overlay:${p.id}`) || hoveredOverlayId === p.id).map((p) => {
-            const bbox = shapeClientBboxes[p.id];
-            if (!bbox) return null;
-            const isSelected = selectedIds.includes(`overlay:${p.id}`);
-            const isHovered = hoveredOverlayId === p.id;
-            const BORDER = "#2563eb";
-            const HANDLE = 10;
-            const changeColor = (c: string): void => {
-              setSrc((prev) => {
-                const lines = prev.split("\n");
-                const next = lines.map((line) => {
-                  const m = line.match(/^(\s*-\s*)("[^"]+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/);
-                  if (!m) return line;
-                  const rawName = m[2]!.replace(/^"(.+)"$/, "$1");
-                  if (rawName !== p.id) return line;
-                  const prefix = m[1]! + m[2]! + m[3]!;
-                  let inner = m[4]!;
-                  inner = inner.replace(/,?\s*bg\s*:\s*"[^"]*"/g, "").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").trim();
-                  const merged = inner.length > 0 ? `${inner}, bg: "${c}"` : `bg: "${c}"`;
-                  return `${prefix}{ ${merged} }`;
-                });
-                return next.join("\n");
-              });
-              setColorPickerFor(null);
-            };
-            return (
-              <div key={p.id} data-overlay-selection-ui={p.id}>
-                {/* 選択枠 = shape client bbox に完全 fit (padding なし)、 点線 */}
-                <div
-                  data-overlay-outline={p.id}
-                  data-shape-bbox-left={bbox.left.toFixed(2)}
-                  data-shape-bbox-top={bbox.top.toFixed(2)}
-                  data-shape-bbox-width={bbox.width.toFixed(2)}
-                  data-shape-bbox-height={bbox.height.toFixed(2)}
-                  style={{
-                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
-                    width: `${bbox.width}px`, height: `${bbox.height}px`,
-                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
-                    borderRadius: "2px", zIndex: 90,
-                  }}
-                />
-                {/* 4 隅 handle = shape bbox 4 隅 に配置、 client px 直接指定 = pan/scale 影響なし */}
-                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
-                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
-                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
-                  return (
-                    <div
-                      key={corner}
-                      data-overlay-handle={corner}
-                      data-overlay-handle-for={p.id}
-                      style={{
-                        position: "absolute",
-                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
-                        width: `${HANDLE}px`, height: `${HANDLE}px`,
-                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                        zIndex: 100, transition: "transform 0.1s ease-out",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.4)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        // Alt = rotate (shape bbox 中心 基準)
-                        if (e.altKey) {
-                          const stageRect2 = previewRef.current?.getBoundingClientRect();
-                          if (!stageRect2) return;
-                          const rcx = stageRect2.left + bbox.left + bbox.width / 2;
-                          const rcy = stageRect2.top + bbox.top + bbox.height / 2;
-                          overlayRotateRef.current = {
-                            id: p.id, startRotate: p.rotate,
-                            centerClientX: rcx, centerClientY: rcy,
-                            startAngleRad: Math.atan2(e.clientY - rcy, e.clientX - rcx),
-                          };
-                          document.body.style.cursor = "grab";
-                          return;
-                        }
-                        // resize = shape client bbox 基準 (Miro 相当 = 引っ張った方向に visible shape が拡大 + opposite corner 固定)
-                        overlayResizeRef.current = {
-                          id: p.id, corner, startScale: p.scale,
-                          startClientX: e.clientX, startClientY: e.clientY,
-                          startPosX: p.posX, startPosY: p.posY,
-                          startClientW: bbox.width, startClientH: bbox.height,
-                          startBboxLeft: bbox.left, startBboxTop: bbox.top,
-                          panScale: worldToClient(),
-                          panTx: transformRef.current.tx, panTy: transformRef.current.ty,
-                        };
-                        document.body.style.cursor = corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize";
-                      }}
-                    />
-                  );
-                })}
-                {/* Toolbar = 選択時のみ、 shape 上方に配置。 sharp SVG icon (transform 外 = 縮小 blur なし) */}
-                {isSelected && (
-                  <div
-                    data-overlay-toolbar={p.id}
-                    style={{
-                      position: "absolute", left: `${bbox.left}px`, top: `${bbox.top - 44}px`,
-                      background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
-                      padding: "4px", display: "flex", gap: "2px", zIndex: 200, whiteSpace: "nowrap",
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    <ToolbarButton label="色を変更" testId="color"
-                      onClick={(e) => { e.stopPropagation(); setColorPickerFor((prev) => prev === p.id ? null : p.id); }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 2c-4.4 0-8 3.6-8 8s3.6 8 8 8c.6 0 1-.4 1-1s-.4-1-1-1c-.5 0-1-.4-1-1s.5-1 1-1c1.1 0 2-.9 2-2s-.9-2-2-2c-1.1 0-2-.9-2-2s.9-2 2-2c1.7 0 3 1.3 3 3 0 .6.4 1 1 1s1-.4 1-1c0-3.9-3.1-7-7-7z" fill="#374151"/>
-                        <circle cx="6" cy="10" r="1.2" fill="#ef4444"/>
-                        <circle cx="9" cy="6" r="1.2" fill="#3b82f6"/>
-                        <circle cx="14" cy="10" r="1.2" fill="#22c55e"/>
-                      </svg>
-                    </ToolbarButton>
-                    <ToolbarButton label="複製 (Cmd+D)" testId="duplicate"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSrc((prev) => {
-                          const newAlias = nextAvailableAlias(prev, aliasBaseName(p.id));
-                          const newLine = buildDuplicateLine(p, newAlias);
-                          return appendActorLine(prev, newLine) ?? prev;
-                        });
-                      }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
-                        <rect x="3" y="3" width="10" height="10" rx="1.5"/>
-                        <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
-                      </svg>
-                    </ToolbarButton>
-                    <ToolbarButton label="前面へ (Cmd+])" testId="bring-front"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSrc((prev) => {
-                          const lines = prev.split("\n");
-                          const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
-                          if (idx >= 0 && idx + 1 < lines.length && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx + 1]!)) {
-                            [lines[idx], lines[idx + 1]] = [lines[idx + 1]!, lines[idx]!];
-                          }
-                          return lines.join("\n");
-                        });
-                      }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                        <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
-                        <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#374151"/>
-                      </svg>
-                    </ToolbarButton>
-                    <ToolbarButton label="背面へ (Cmd+[)" testId="send-back"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSrc((prev) => {
-                          const lines = prev.split("\n");
-                          const idx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*${p.id}\\s*:`).test(l));
-                          if (idx > 0 && /^\s*-\s*\S+?\s*:\s*\{/.test(lines[idx - 1]!)) {
-                            [lines[idx], lines[idx - 1]] = [lines[idx - 1]!, lines[idx]!];
-                          }
-                          return lines.join("\n");
-                        });
-                      }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                        <rect x="3" y="3" width="10" height="10" rx="1.5" fill="#fff" stroke="#374151" strokeWidth="1.5"/>
-                        <rect x="6" y="6" width="10" height="10" rx="1.5" fill="#374151"/>
-                      </svg>
-                    </ToolbarButton>
-                    <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
-                    <ToolbarButton label="削除 (Delete)" testId="delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSrc((prev) => removeActorLine(prev, p.id));
-                        setSelectedIds([]);
-                      }}>
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
-                      </svg>
-                    </ToolbarButton>
-                  </div>
-                )}
-                {/* Color picker popover */}
-                {isSelected && colorPickerFor === p.id && (
-                  <div data-overlay-color-picker={p.id}
-                    style={{
-                      position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
-                      background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)", padding: "10px",
-                      display: "grid", gridTemplateColumns: "repeat(6, 30px)", gap: "8px", zIndex: 210,
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}>
-                    {["#f59e0b", "#ef4444", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899",
-                      "#0891b2", "#78716c", "#f97316", "#84cc16", "#06b6d4", "#a855f7"].map((c) => (
-                      <button key={c} type="button" data-overlay-color-swatch={c}
-                        style={{
-                          width: "30px", height: "30px", background: c,
-                          border: "1.5px solid rgba(0,0,0,0.1)", borderRadius: "6px",
-                          cursor: "pointer", padding: 0, transition: "transform 0.1s ease-out",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                        onClick={(e) => { e.stopPropagation(); changeColor(c); }} />
-                    ))}
-                  </div>
-                )}
-                {/* hover only (未選択) は border だけ subtle 表示 */}
-                {!isSelected && isHovered && (
-                  <div style={{
-                    position: "absolute", left: `${bbox.left - 1}px`, top: `${bbox.top - 1}px`,
-                    width: `${bbox.width + 2}px`, height: `${bbox.height + 2}px`,
-                    border: `1px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
-                    borderRadius: "2px", zIndex: 89, opacity: 0.5,
-                  }} />
-                )}
-              </div>
-            );
-          })}
-          {hoveredHandle && !selectedIds.includes(`cdl:${hoveredHandle.id}`) && (() => {
-            // 2026-07-25 hover UI 簡素化 = hover は 薄 border indicator のみ (Miro/Figma 相当)、 handle 削除。
-            // selection 済 cdl 要素は cdl selection UI が濃 border + handle を出すので hover UI 抑止。
-            const stageRect = previewRef.current?.getBoundingClientRect();
-            if (!stageRect) return null;
-            const r = hoveredHandle.rect;
-            const left = r.left - stageRect.left;
-            const top = r.top - stageRect.top;
-            return (
-              <div
-                // 2026-07-26 CAR-2158 = test が inline style の substring ではなく semantic hook で
-                // 対象を特定できるようにする (別の dashed div が増えても誤検出しない)
-                data-cdl-hover-outline={hoveredHandle.id}
-                style={{
-                  position: "absolute",
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: `${r.width}px`,
-                  height: `${r.height}px`,
-                  border: "1px dashed rgba(37, 99, 235, 0.35)",
-                  pointerEvents: "none",
-                  zIndex: 99,
-                  boxSizing: "border-box",
-                }}
-              />
-            );
-          })()}
-          {/* 2026-07-25 text 編集 overlay = double click 起動、 Enter / blur で src.replaceAll */}
-          {textEditing && (
-            <input
-              autoFocus
-              data-testid="editor-text-edit-input"
-              defaultValue={textEditing.originalText}
-              // 入力欄は要素の bbox ではなく「中身が全部見える幅」 に合わせる。
-              // bbox 固定だと、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
-              // 元要素より狭くならないよう bbox 幅を下限にし、 中身が超えたら伸ばす。
-              ref={(el) => { if (el) fitTextEditWidth(el, textEditing.bbox.width); }}
-              onInput={(e) => fitTextEditWidth(e.currentTarget, textEditing.bbox.width)}
-              style={{
-                position: "absolute",
-                left: `${textEditing.bbox.left}px`,
-                top: `${textEditing.bbox.top}px`,
-                minWidth: `${textEditing.bbox.width}px`,
-                maxWidth: "min(90vw, 900px)",
-                height: `${textEditing.bbox.height}px`,
-                fontSize: `${textEditing.fontSize}px`,
-                padding: "2px 6px", border: "2px solid #2563eb", borderRadius: "4px",
-                background: "#fff", zIndex: 300, boxSizing: "border-box",
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); commitTextEdit((e.target as HTMLInputElement).value); }
-                else if (e.key === "Escape") { e.preventDefault(); setTextEditing(null); }
-              }}
-              onBlur={(e) => commitTextEdit(e.target.value)}
-            />
-          )}
-          {/* 2026-07-25 cdl 要素 selection UI = 点線 border + 10px 4 隅 handle、 stage-level portal
-              Phase 4 revert = 実 drag/resize は cdl actor の header/spacer/footer 複合構造で分裂 bug、
-              core 再設計が必要 (別 issue)。 現状は selection UI 表示のみ = user が「何が選ばれているか」 を確認可能。
-              handle は視覚 indicator のみ (pointerEvents: none)、 実操作は overlay parts のみ現時点で対応。 */}
-          {selectedIds.filter((s) => s.startsWith("cdl:")).map((sid) => {
-            const key = sid.slice("cdl:".length);
-            const bbox = cdlClientBboxes[key];
-            if (!bbox) return null;
-            const BORDER = "#2563eb";
-            const HANDLE = 10;
-            return (
-              <div key={sid} data-cdl-selection-ui={key}>
-                <div
-                  data-cdl-outline={key}
-                  style={{
-                    position: "absolute", left: `${bbox.left}px`, top: `${bbox.top}px`,
-                    width: `${bbox.width}px`, height: `${bbox.height}px`,
-                    border: `1.5px dashed ${BORDER}`, pointerEvents: "none", boxSizing: "border-box",
-                    borderRadius: "2px", zIndex: 90,
-                  }}
-                />
-                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
-                  const cx = corner === "nw" || corner === "sw" ? bbox.left : bbox.left + bbox.width;
-                  const cy = corner === "nw" || corner === "ne" ? bbox.top : bbox.top + bbox.height;
-                  return (
-                    <div
-                      key={corner}
-                      data-cdl-handle={corner}
-                      data-cdl-handle-for={key}
-                      style={{
-                        position: "absolute",
-                        left: `${cx - HANDLE / 2}px`, top: `${cy - HANDLE / 2}px`,
-                        width: `${HANDLE}px`, height: `${HANDLE}px`,
-                        background: "#fff", border: `2px solid ${BORDER}`, borderRadius: "3px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        cursor: "default",
-                        zIndex: 100, pointerEvents: "none",
-                      }}
-                    />
-                  );
-                })}
-                {/* cdl 要素の toolbar。 overlay parts と同じ位置 / 見た目に揃える。
-                    色変更は出さない = DSL の actor に色を保存する field が無く、 DOM に直接当てても
-                    再 compile で消えるため (実測で確認済)。 出せる操作だけを出す。 */}
-                {(() => {
-                  const actorName = cdlKeyToActorName(key, srcRef.current);
-                  if (!actorName) return null;
-                  return (
-                    <div
-                      data-cdl-toolbar={key}
-                      style={{
-                        position: "absolute", left: `${bbox.left}px`, top: `${bbox.top - 44}px`,
-                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
-                        padding: "4px", display: "flex", gap: "2px", zIndex: 200, whiteSpace: "nowrap",
-                      }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                    >
-                      <ToolbarButton label="複製" testId="cdl-duplicate"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSrc((prev) => duplicateActorInDsl(prev, actorName));
-                        }}>
-                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#374151" strokeWidth="1.5">
-                          <rect x="3" y="3" width="10" height="10" rx="1.5"/>
-                          <rect x="7" y="7" width="10" height="10" rx="1.5" fill="#fff"/>
-                        </svg>
-                      </ToolbarButton>
-                      <div style={{ width: "1px", background: "#e5e7eb", margin: "4px 2px" }} />
-                      <ToolbarButton label="削除 (Delete)" testId="cdl-delete"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSrc((prev) => removeActorLine(prev, actorName));
-                          setSelectedIds([]);
-                        }}>
-                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
-                        </svg>
-                      </ToolbarButton>
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
         </div>
-        )}
       </section>
     </div>
   );

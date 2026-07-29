@@ -79,25 +79,3 @@ test("a11y: 操作可能な要素にキーボードで到達できる", async ({
   expect(seen.size, "Tab で到達できた要素数").toBeGreaterThanOrEqual(5);
 });
 
-test("a11y: toolbar のボタンに名前がある (icon だけにしない)", async ({ page }) => {
-  await page.goto(`${BASE}/editor`);
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2500);
-  // 部品を置いて選択し toolbar を出す
-  await page.locator('[data-testid="editor-parts-tab"]').click();
-  await page.waitForTimeout(400);
-  const stage = page.locator('[data-testid="editor-preview-stage"]');
-  await page.locator('[data-testid="editor-part-item-parts-achievement"]').dragTo(stage, { targetPosition: { x: 300, y: 300 } });
-  await page.waitForTimeout(900);
-  const ov = page.locator("[data-overlay-part]").first();
-  const b = await ov.boundingBox();
-  await page.mouse.move(b!.x + b!.width / 2, b!.y + b!.height / 2);
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(500);
-  const unnamed = await page.evaluate(() =>
-    Array.from(document.querySelectorAll("[data-overlay-toolbar-btn]"))
-      .filter((el) => !(el.getAttribute("aria-label") ?? "").trim())
-      .map((el) => el.getAttribute("data-overlay-toolbar-btn") ?? "?"));
-  expect(unnamed, "名前のない toolbar ボタン").toEqual([]);
-});

@@ -22,20 +22,9 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
 const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
 
 /** quoted alias を素の文字列に戻す (`"a \" b"` → `a " b`)。 unquoted はそのまま。 */
-export function unquoteAlias(raw: string): string {
+function unquoteAlias(raw: string): string {
   if (!raw.startsWith('"') || !raw.endsWith('"') || raw.length < 2) return raw;
   return raw.slice(1, -1).replace(/\\(.)/g, "$1");
-}
-
-/**
- * 素の alias を DSL の quoted 表記に戻す (`a " b` → `"a \" b"`)。 `unquoteAlias` の逆。
- *
- * alias を DSL 上の文字列として探す側 (削除の regex 組立て等) が必要とする。
- * 素の alias をそのまま quote で囲むと `"a " b"` になり実 DSL と一致せず、
- * 削除が silent fail する (CAR-2158 Round 6 CRITICAL)。
- */
-export function quoteAlias(alias: string): string {
-  return `"${alias.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 /**
@@ -167,75 +156,6 @@ export function extractPartsFromSrc(
     baseLines.push(line);
   }
   return { baseSrc: baseLines.join("\n"), parts };
-}
-
-/**
- * DSL から 1 つの overlay part の top-level 座標を読む (catalog 不要)。
- *
- * `extractPartsFromSrc` は catalog を引いて item を解決するため、 catalog がまだ用意できていない
- * 文脈 (state 更新関数の内側など) では null になる。 座標だけが要る経路はこちらを使う。
- */
-export function readOverlayPartPos(
-  src: string,
-  alias: string,
-): { posX: number; posY: number; scale: number; rotate: number } | null {
-  for (const line of src.split(/\r?\n/)) {
-    const m = line.match(ACTOR_LINE_RE);
-    if (!m) continue;
-    if (unquoteAlias(m[2]!) !== alias) continue;
-    const inner = m[4]!;
-    const num = (key: string, fallback: number): number => {
-      const raw = readTopLevelField(inner, key);
-      const parsed = raw ? raw.match(/^(-?\d+(?:\.\d+)?)/) : null;
-      return parsed ? Number(parsed[1]) : fallback;
-    };
-    return { posX: num("posX", 0), posY: num("posY", 0), scale: num("scale", 1), rotate: num("rotate", 0) };
-  }
-  return null;
-}
-
-/**
- * overlay parts の posX / posY / scale field を DSL actor 行に upsert。
- * 他 field (kind / bg / state override 等) は保持。 scale が 1 以外の時のみ scale field 書出し。
- */
-export function writeOverlayPartToDsl(
-  src: string,
-  alias: string,
-  posX: number,
-  posY: number,
-  scale: number,
-  rotate: number = 0,
-): string {
-  // 改行コードは行ごとに元のまま残す。 `src.includes("\r\n")` で buffer 全体を一括判定すると、
-  // LF と CRLF が混ざった DSL (複製で追加された行が LF、 元の行が CRLF 等) で
-  // 無関係な行の改行まで書き換わり、 diff が変更箇所以外に広がる (CAR-2158 Round 6 MAJOR)。
-  // capture group つき split で separator を配列に残し、 偶数 index (行) だけを触る。
-  const segments = src.split(/(\r\n|\n)/);
-  const rx = Math.round(posX);
-  const ry = Math.round(posY);
-  const sScale = Number.isFinite(scale) ? Number(scale.toFixed(3)) : 1;
-  const sRotate = Number.isFinite(rotate) ? Number(rotate.toFixed(1)) : 0;
-  const next = segments.map((line, i) => {
-    if (i % 2 === 1) return line; // separator はそのまま
-    const headMatch = line.match(ACTOR_LINE_RE);
-    if (!headMatch) return line;
-    const rawName = unquoteAlias(headMatch[2]!);
-    if (rawName !== alias) return line;
-    const prefix = headMatch[1]! + headMatch[2]! + headMatch[3]!;
-    // top-level の座標 field だけを差し替える。 global な正規表現置換は
-    // nested map (`nodes: { header: { posX: 50 } }`) の中の posX まで消してしまう。
-    const kept = splitTopLevelFields(headMatch[4]!).filter((field) => {
-      const key = field.slice(0, field.indexOf(":")).trim();
-      return !["posX", "posY", "scale", "rotate"].includes(key);
-    });
-    const inner = kept.join(", ");
-    const newFields = [`posX: ${rx}`, `posY: ${ry}`];
-    if (Math.abs(sScale - 1) > 0.001) newFields.push(`scale: ${sScale}`);
-    if (Math.abs(sRotate) > 0.05) newFields.push(`rotate: ${sRotate}`);
-    const merged = inner.length > 0 ? `${inner}, ${newFields.join(", ")}` : newFields.join(", ");
-    return `${prefix}{ ${merged} }`;
-  });
-  return next.join("");
 }
 
 /**
