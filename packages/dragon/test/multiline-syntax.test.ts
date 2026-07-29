@@ -224,3 +224,68 @@ describe("色番号はパーツごとの色の状態に届く", () => {
     expect(d.states.map((s) => s.initial)).toEqual(["#0000ff"]);
   });
 });
+
+describe("位置と大きさを書ける", () => {
+  // 位置は posX と posY が両方揃わないと効かない。 別々に書けると片方だけ書いて
+  // 「効かない」 になるので、 1 つの項目にまとめる形を用意する。
+  const posOf = (body: string[]) => {
+    const a = actorOf(body);
+    return [a.posX, a.posY, a.posW, a.posH];
+  };
+
+  it("1 行で @x,y と書ける", () => {
+    expect(posOf([`  - A: service @300,200`])).toEqual([300, 200, undefined, undefined]);
+  });
+
+  it("色と並べても取り違えない", () => {
+    const a = actorOf([`  - A: service 失敗 @300,200`]);
+    expect([a.posX, a.posY, a.tone, a.kind]).toEqual([300, 200, "error", "service"]);
+  });
+
+  it("縦に並べて 位置: と書ける", () => {
+    expect(posOf([`  - A:`, `      kind: service`, `      位置: 300,200`])).toEqual([300, 200, undefined, undefined]);
+  });
+
+  it("pos でも posX/posY でも書ける", () => {
+    expect(posOf([`  - A:`, `      kind: service`, `      pos: 300,200`])).toEqual([300, 200, undefined, undefined]);
+    expect(posOf([`  - A:`, `      kind: service`, `      posX: 300`, `      posY: 200`])).toEqual([300, 200, undefined, undefined]);
+  });
+
+  it("大きさも同じ形で書ける", () => {
+    expect(posOf([`  - A:`, `      kind: service`, `      位置: 300,200`, `      大きさ: 400,180`]))
+      .toEqual([300, 200, 400, 180]);
+  });
+
+  it("入れ子で書いた時と同じ結果になる", () => {
+    const short = actorOf([`  - A: service @300,200`]);
+    const nested = actorOf([`  - A: { kind: service, posX: 300, posY: 200 }`]);
+    expect([short.posX, short.posY, short.kind]).toEqual([nested.posX, nested.posY, nested.kind]);
+  });
+
+  it("書かなければ自動配置のまま", () => {
+    expect(posOf([`  - A: service`])).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  it("数字でない値は位置にしない", () => {
+    // `@` で始まるだけの語を位置と誤読しない
+    expect(actorOf([`  - A: service @abc`]).posX).toBeUndefined();
+    // `,` を含んでいても数字でなければ位置ではない。 緩く取ると NaN が座標に入る
+    const a = actorOf([`  - A: service @abc,def`]);
+    expect([a.posX, a.posY], "数字でない値を座標にした").toEqual([undefined, undefined]);
+  });
+
+  it("図まで届く", () => {
+    const src = [
+      `title: "t"`, `type: flow`, ``, `actors:`,
+      `  - A:`, `      kind: service`, `      位置: 300,200`,
+      `  - X`, ``,
+      `flow:`, `  - A -> X: "y"`, ``,
+      `animation:`, `  - step: "s" 1.0s`, `    focus: [A, X]`,
+    ].join("\n");
+    const r = parseTextDslV05(src);
+    if (!r.ok) throw new Error("parse 失敗");
+    const d = compileToCdl(r.doc);
+    const n = d.nodes.find((x) => x.title === "A");
+    expect([n?.posX, n?.posY]).toEqual([300, 200]);
+  });
+});

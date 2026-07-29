@@ -75,6 +75,15 @@ const FORMS: Section[] = [
     ],
   },
   {
+    title: "位置と大きさ",
+    lines: [
+      { code: "  - Web: service @300,200", note: "位置。 書かなければ自動で決まる" },
+      { code: "  - Web:", note: "縦に並べる時は" },
+      { code: "      位置: 300,200", note: "左からの距離, 上からの距離" },
+      { code: "      大きさ: 400,180", note: "幅, 高さ" },
+    ],
+  },
+  {
     title: "図全体",
     lines: [
       { code: "viewport: { scale: 1.5 }", note: "図全体の倍率" },
