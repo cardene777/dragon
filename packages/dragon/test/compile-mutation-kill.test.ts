@@ -385,11 +385,10 @@ describe("parts merge", () => {
     expect(d.nodes.some((n) => n.id === "widget-header")).toBe(false);
     expect(d.nodes.some((n) => n.id.startsWith("widget-"))).toBe(false);
   });
-  it("part lane は既存 (part 以外) lane 右端 + gap 300 の外側に配置", () => {
+  it("part lane は格子の 1 番目 (左端) に配置", () => {
+    // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた
     const d = partsCompile();
-    const nonPart = d.lanes.filter((l) => l.id !== "widget__flow");
-    const maxRight = Math.max(...nonPart.map((l) => (l.x ?? 0) + l.width));
-    expect(d.lanes.find((l) => l.id === "widget__flow")!.x).toBe(maxRight + 300);
+    expect(d.lanes.find((l) => l.id === "widget__flow")!.x).toBe(0);
   });
   it("catalog 不在の partId は crash せず無視 (壊さない設計)", () => {
     expect(() => compileToCdl(makeDoc("sequence", {
@@ -739,12 +738,11 @@ function compileWithPart(over: Partial<DslActor> = {}, part: CdlDiagram = makeTe
 }
 
 describe("mergePartIntoDiagram: lane 配置 (offsetX 中心補正 / fallback)", () => {
-  it("offset 未指定 = 既存 lane 右端 + PARTS_LANE_GAP 300 に配置", () => {
+  it("offset 未指定 = 格子の 1 番目 (左端) に配置", () => {
+    // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く足すたびに図が右へ
+    // 伸び続けた (実測 = 8 個で幅 6140)。 格子に並べる形に変えた
     const d = compileWithPart();
-    const partLane = lane(d, "p1__l");
-    const others = d.lanes.filter((l) => !l.id.startsWith("p1__"));
-    const maxRight = Math.max(...others.map((l) => (l.x ?? 0) + l.width));
-    expect(partLane.x).toBe(maxRight + 300);
+    expect(lane(d, "p1__l").x).toBe(0);
   });
 
   it("posX 指定 = part 中心を posX に合わせるため lane.x = posX - width/2", () => {
@@ -798,10 +796,12 @@ describe("mergePartIntoDiagram: node posX / posY (drop 座標の中心合わせ)
     expect(node(d, "p1__bottom").posY).toBe(720);
   });
 
-  it("offset 未指定なら posX/posY は書かれない (auto layout 継続)", () => {
+  it("offset 未指定なら格子の座標が入る", () => {
+    // 以前は座標を書かず auto layout に任せていたが、 折り返しが無く右へ伸び続けた。
+    // 格子の位置を計算して入れる
     const d = compileWithPart();
-    expect(node(d, "p1__top").posX).toBeUndefined();
-    expect(node(d, "p1__top").posY).toBeUndefined();
+    expect(node(d, "p1__top").posX, "格子の横位置が入っていない").toBeDefined();
+    expect(node(d, "p1__top").posY, "格子の縦位置が入っていない").toBeDefined();
   });
 
   it("posX のみ指定でも shouldForcePos が立ち posY も明示される", () => {
@@ -872,10 +872,11 @@ describe("mergePartIntoDiagram: stack isolation", () => {
     expect(node(d, "p1__bottom").stack).toBe(targetMax + 1000 + 1);
   });
 
-  it("offset 未指定なら stack shift なし (元 stack のまま)", () => {
+  it("格子に置く時も stack は元のまま保たれる", () => {
+    // 格子の座標を入れても、 パーツ内部の並び順 (stack) は変えない
     const d = compileWithPart();
-    expect(node(d, "p1__top").stack).toBe(0);
-    expect(node(d, "p1__bottom").stack).toBe(1);
+    const shift = node(d, "p1__bottom").stack - node(d, "p1__top").stack;
+    expect(shift, "パーツ内部の並び順が変わった").toBe(1);
   });
 });
 
@@ -1407,13 +1408,12 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
     expect(d.nodes.some((n) => n.id.startsWith("p1__"))).toBe(false);
   });
 
-  it("target に lane が無い状態でも offset 未指定なら GAP のみで配置", () => {
-    // part だけの diagram = target lanes が空 → existingLaneMaxX = 0 → lane.x = 0 + 300
+  it("target に lane が無い状態でも格子の 1 番目に配置", () => {
     const d = compileToCdl(
       makeDoc("sequence", { actors: [actor("p1", { partId: "test" })], flow: [] }),
       { partsCatalog: { test: makeTestPart() } },
     );
-    expect(lane(d, "p1__l").x).toBe(300);
+    expect(lane(d, "p1__l").x).toBe(0);
   });
 });
 
