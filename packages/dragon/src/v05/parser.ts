@@ -197,18 +197,20 @@ export function parseTextDslV05(src: string): V05ParseResult {
       continue;
     }
     if (head.key === "actors") {
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
-      actors = items
-        .map((it) => parseActor(it))
-        .filter((a): a is DslActor => a !== null);
-      for (const it of items) {
-        if (parseActor(it) === null) {
+      // 1 行で書いた形と、 続く字下げ行に項目を並べた形の両方を受け付ける
+      const { items, next } = collectActorEntries(lines, i + 1, line.indent);
+      actors = [];
+      for (const entry of items) {
+        const base = parseActor(entry[0]!);
+        if (base === null) {
           errors.push({
-            line: it.no,
-            message: `invalid actor entry: "${it.trimmed}"`,
+            line: entry[0]!.no,
+            message: `invalid actor entry: "${entry[0]!.trimmed}"`,
             hint: 'use `- Client` or `- Client: storage`',
           });
+          continue;
         }
+        actors.push(applyContinuationLines(base, entry.slice(1)));
       }
       i = next;
       continue;
@@ -655,6 +657,123 @@ function collectIndentedList(lines: Line[], start: number, parentIndent: number)
     }
     i += 1;
   }
+  return { items, next: i };
+}
+
+/**
+ * 登場人物を 1 件ずつ集める。 続く字下げ行は同じ 1 件にまとめる。
+ *
+ * 項目が少なければ 1 行で書け、 多ければ縦に並べられる。 縦に並べた方が、 何を指定できるかが
+ * 見える。
+ *
+ * ```
+ * - Client
+ * - API: service
+ * - Web:
+ *     kind: service
+ *     色: 失敗
+ * ```
+ */
+/**
+ * 色の指定を振り分ける。
+ *
+ * 書く人は「色を変えたい」 としか思わないので、 項目は `色:` 1 つにまとめる。 意味の色
+ * (`失敗`) と色番号 (`#f59e0b`) は形で見分ける。 前者は箱の色、 後者はパーツの塗りになる。
+ */
+function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
+  const v = stripQuotes(raw.trim());
+  if (v.startsWith("#")) return { hex: v };
+  const tone = toneOrUndef(v);
+  return tone ? { tone } : {};
+}
+
+/** `色` / `color` のどちらでも書ける。 */
+const COLOR_KEYS = new Set(["色", "color", "tone"]);
+
+/**
+ * 続く字下げ行 (`kind: service` の形) を読んで 1 件にまとめる。
+ *
+ * 1 行で書いた時と同じ結果になるよう、 同じ振り分けを通す。
+ */
+function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
+  if (rest.length === 0) return actor;
+  const out: DslActor = { ...actor };
+  const state: Record<string, number | string | boolean> = { ...(actor.stateOverride ?? {}) };
+  let touchedState = false;
+
+  for (const ln of rest) {
+    const idx = ln.trimmed.indexOf(":");
+    if (idx < 0) continue;
+    const key = ln.trimmed.slice(0, idx).trim();
+    const raw = ln.trimmed.slice(idx + 1).trim();
+    if (!key || !raw) continue;
+
+    if (COLOR_KEYS.has(key)) {
+      const { tone, hex } = splitColorValue(raw);
+      if (tone) out.tone = tone;
+      // 色番号はパーツの塗りとして扱う。 箱は意味の色しか持たない
+      if (hex) { state.bg = hex; touchedState = true; }
+      continue;
+    }
+    switch (key) {
+      case "kind":
+      case "種類": {
+        const k = stripQuotes(raw).toLowerCase();
+        const isPart = k !== "" && !NODE_KIND_VALID.has(k);
+        out.kind = isPart ? NODE_KIND_DEFAULT : resolveKind(k);
+        out.partId = isPart ? k : undefined;
+        break;
+      }
+      case "subtitle":
+      case "補足":
+        out.subtitle = stripQuotes(raw);
+        break;
+      case "value":
+      case "値":
+        out.value = stripQuotes(raw);
+        break;
+      case "rows":
+      case "行":
+        out.rows = raw.replace(/^\[|\]$/g, "").split(/,(?![^[]*\])/).map((x) => stripQuotes(x.trim())).filter(Boolean);
+        break;
+      case "lane":
+        out.lane = stripQuotes(raw);
+        break;
+      case "stack":
+        out.stack = numberOrUndef(raw);
+        break;
+      default:
+        // 残りはパーツの状態の上書き
+        state[key] = coerceStateValue(stripQuotes(raw));
+        touchedState = true;
+        break;
+    }
+  }
+  // 状態は parts でだけ意味を持つ
+  if (touchedState && out.partId !== undefined) out.stateOverride = state;
+  return out;
+}
+
+function collectActorEntries(lines: Line[], start: number, parentIndent: number): { items: Line[][]; next: number } {
+  const items: Line[][] = [];
+  let cur: Line[] | null = null;
+  let headIndent = -1;
+  let i = start;
+  while (i < lines.length) {
+    const ln = lines[i]!;
+    if (!ln.trimmed) { i += 1; continue; }
+    if (ln.indent <= parentIndent) break;
+    if (ln.trimmed.startsWith("- ")) {
+      if (cur) items.push(cur);
+      cur = [{ ...ln, trimmed: ln.trimmed.slice(2).trim() }];
+      headIndent = ln.indent;
+    } else if (cur && ln.indent > headIndent) {
+      // 頭より深い字下げは、 直前の 1 件の続き
+      cur.push(ln);
+    }
+    i += 1;
+  }
+  if (cur) items.push(cur);
   return { items, next: i };
 }
 

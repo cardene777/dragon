@@ -21,6 +21,14 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
  */
 const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
 
+/**
+ * 入れ子を使わない書き方 (`- 実績: achievement v=50`) の行。
+ *
+ * 記法を空白区切りに揃えた時、 パーツもこの形で書けるようになった。 入れ子の形だけを見ていると
+ * 短い形で書いたパーツが図に出ない。
+ */
+const ACTOR_SHORT_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|[^:\s]+)(\s*:\s*)([^{\s][^{]*)$/;
+
 /** quoted alias を素の文字列に戻す (`"a \" b"` → `a " b`)。 unquoted はそのまま。 */
 function unquoteAlias(raw: string): string {
   if (!raw.startsWith('"') || !raw.endsWith('"') || raw.length < 2) return raw;
@@ -114,6 +122,20 @@ export function extractPartsFromSrc(
   const parts: OverlayPartRaw[] = [];
   for (const line of lines) {
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
+    const short = line.match(ACTOR_SHORT_RE);
+    if (short) {
+      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) で、 overlay は既定値で描く
+      const alias = unquoteAlias(short[2]!);
+      const kindValue = short[4]!.trim().split(/\s+/)[0]!.toLowerCase();
+      if (partKindSet.has(kindValue)) {
+        const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
+        if (item) {
+          // 座標と大きさは書かない形なので既定値。 位置を変えたい時は入れ子で posX を書く
+          parts.push({ id: alias, kind: kindValue, item, posX: 0, posY: 0, scale: 1, rotate: 0 });
+          continue;
+        }
+      }
+    }
     const m = line.match(ACTOR_LINE_RE);
     if (m) {
       const alias = unquoteAlias(m[2]!);
