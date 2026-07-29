@@ -154,3 +154,36 @@ test("短い形で書いたパーツも図に出る", async ({ page }) => {
   expect(await page.locator("[data-overlay-part]").count(), "パーツが図に出ない").toBe(1);
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
 });
+
+test("パーツが既存の図に重ならない", async ({ page }) => {
+  // 図に出す経路 (overlay) と組み立ての経路は別々に座標を決める。 片方だけ直すと画面がずれる。
+  // 以前 overlay 側が 0,0 固定で、 パーツが図の左上に重なって出ていた。
+  await openEditor(page);
+  await page.locator('[data-testid="editor-parts-tab"]').click();
+  await page.waitForTimeout(600);
+  await page.locator('[data-testid="editor-part-item-parts-achievement"]').click();
+  await page.waitForTimeout(1200);
+
+  const part = page.locator("[data-overlay-part]").first();
+  await expect(part, "パーツが出ていない").toBeVisible();
+
+  const partBox = await part.boundingBox();
+  expect(partBox, "パーツの位置が取れない").toBeTruthy();
+
+  // 既存の図の箱と重なっていないか。
+  // overlay は中に図を描くので、 その中身は数えない (自分自身との重なりになる)
+  const nodes = page.locator("[data-cdl-node]:not([data-overlay-part] [data-cdl-node])");
+  const count = await nodes.count();
+  expect(count, "既存の図が無い").toBeGreaterThan(0);
+
+  const hits: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const b = await nodes.nth(i).boundingBox();
+    if (!b || b.width < 5 || b.height < 5) continue; // 幅 2 の目印は除く
+    const p = partBox!;
+    if (p.x < b.x + b.width && p.x + p.width > b.x && p.y < b.y + b.height && p.y + p.height > b.y) {
+      hits.push(`${Math.round(b.x)},${Math.round(b.y)}`);
+    }
+  }
+  expect(hits, `既存の図に重なった: ${hits.join(" / ")}`).toEqual([]);
+});
