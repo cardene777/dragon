@@ -181,6 +181,61 @@ function mergePartsFromActors(
     }
     return target;
   }
+  // 位置を書かなかったパーツを並べる場所。
+  //
+  // 以前は「既存の右端 + 隙間」 に 1 つずつ置いていた。 折り返しが無いので、 足すたびに図が
+  // 右へ伸び続けた (実測 = 8 個で幅 6140、 1 個の 5.5 倍)。 canvas で座標を渡していた頃は
+  // この経路に入らなかったが、 canvas を外して全てここを通るようになった。
+  //
+  // 決まった数で折り返して格子に並べる。 縦位置も揃えるので、 高さの違うパーツが混ざっても
+  // 上端が揃う。
+  const PARTS_PER_ROW = 3;
+  const PARTS_GAP = 120;
+  // 既存の図の下に置く。 横に並べると既存の図が端に押しやられる。
+  //
+  // 既存の箱は自動配置なので、 この時点では座標を持たない (`posY` は未設定)。 段の数から
+  // 概算する。 1 段あたりの高さは cdl の既定の縦送り幅に合わせる。
+  // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
+  // 置き場所が下へずれる。
+  const STACK_PITCH = 280;
+  const partsActorNames = new Set(partsActors.map((a) => a.name));
+  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
+  // 段の最大値ではなく件数で数える。 パーツの仮の箱が先に並ぶと、 残った箱の段番号が
+  // パーツの数だけ後ろにずれるため。
+  const existingStacks = baseNodes.length;
+  const autoPlacedTop = existingStacks * STACK_PITCH + PARTS_GAP * 2;
+
+  // 段ごとの高さを先に決める。 座標は中心なので、 高さの違うパーツを同じ中心に置くと上端が
+  // ばらつき、 次の段の位置も自分の高さで決まってしまう (実測 = 重なりが出た)。
+  // 段の中で一番高いパーツに合わせて上端を揃える。
+  const partHeightOf = (d: CdlDiagram): number =>
+    d.nodes.length > 0 ? Math.max(...d.nodes.map((n) => n.h ?? 200)) : 200;
+  const partWidthOf = (d: CdlDiagram): number =>
+    d.lanes.length > 0
+      ? Math.max(...d.lanes.map((l) => (l.x ?? 0) + l.width)) - Math.min(...d.lanes.map((l) => l.x ?? 0))
+      : 400;
+
+  const autoActors = partsActors.filter((a) => a.posX === undefined && a.posY === undefined);
+  const autoParts = autoActors.map((a) => {
+    const id = a.partId ?? "";
+    const d = Object.hasOwn(partsCatalog, id)
+      ? partsCatalog[id]
+      : Object.hasOwn(partsCatalog, `parts-${id}`)
+        ? partsCatalog[`parts-${id}`]
+        : undefined;
+    return d;
+  });
+  const rowTops: number[] = [];
+  {
+    let top = autoPlacedTop;
+    for (let i = 0; i < autoParts.length; i += PARTS_PER_ROW) {
+      rowTops.push(top);
+      const rowHeights = autoParts.slice(i, i + PARTS_PER_ROW).map((d) => (d ? partHeightOf(d) : 200));
+      top += Math.max(...rowHeights, 200) + PARTS_GAP;
+    }
+  }
+  let autoIndex = 0;
+
   for (const actor of partsActors) {
     const partId = actor.partId;
     // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
@@ -277,7 +332,20 @@ function mergePartsFromActors(
       phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
     }
     const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
-    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
+    // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
+    let placeX = actor.posX;
+    let placeY = actor.posY;
+    if (placeX === undefined && placeY === undefined) {
+      const partW = partWidthOf(part);
+      const partH = partHeightOf(part);
+      const col = autoIndex % PARTS_PER_ROW;
+      const row = Math.floor(autoIndex / PARTS_PER_ROW);
+      placeX = col * (partW + PARTS_GAP) + partW / 2;
+      // 段の上端から自分の高さの半分だけ下げる = 上端が揃う
+      placeY = (rowTops[row] ?? autoPlacedTop) + partH / 2;
+      autoIndex += 1;
+    }
+    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH);
   }
   return target;
 }
