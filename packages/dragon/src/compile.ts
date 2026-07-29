@@ -276,9 +276,37 @@ function mergePartsFromActors(
     for (const phase of target.phases) {
       phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
     }
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
+    const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
+    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, actor.posX, actor.posY, actor.posW, actor.posH);
   }
   return target;
+}
+
+/**
+ * `色:` に書かれた色番号を、 パーツが持つ色の状態に入れる。
+ *
+ * 色を保持する状態の名前はパーツごとに違う (`bg` / `stFill` / `gFill` / `hue` など)。 名前を
+ * 決め打ちすると、 別の名前を使うパーツで色を書いても何も起きない。
+ *
+ * パーツの状態のうち初期値が色番号のものを探して、 そこに入れる。 複数あれば全部に入れる
+ * (`cpuC` / `memC` / `netC` のように系統ごとに分かれている場合、 1 つだけ変えるとちぐはぐになる)。
+ */
+function applyColorHex(
+  part: CdlDiagram,
+  colorHex: string | undefined,
+  stateOverride: Record<string, number | string | boolean>,
+): Record<string, number | string | boolean> {
+  if (!colorHex) return stateOverride;
+  const colorStates = part.states.filter(
+    (st) => typeof st.initial === "string" && /^#[0-9a-fA-F]{3,8}$/.test(st.initial),
+  );
+  if (colorStates.length === 0) return stateOverride;
+  const out = { ...stateOverride };
+  for (const st of colorStates) {
+    // 名前を指定して書いた値が優先。 `色:` はまとめて塗る指定
+    if (out[st.id] === undefined) out[st.id] = colorHex;
+  }
+  return out;
 }
 
 /**

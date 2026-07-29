@@ -1293,13 +1293,27 @@ animation:
                     for (let i = 2; i <= 1000 && existingNames.has(alias); i++) {
                       alias = `${aliasBase}${i}`;
                     }
-                    // 状態は書かない。 パーツ側が既定値を持っているので、 そのまま書き出しても
-                    // 図は変わらず、 色番号のような読めない値が行に並ぶだけになる。
-                    // 変えたい時に `名前=値` で書き足す。
+                    // 変えられる値を縦に並べて出す。 何を変えられるかが行から読めないと、
+                    // 書く人は状態名 (`bg` / `stFill` / `v` 等) を推測できない。
                     //
-                    // 座標も書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
+                    // 色は `色:` にまとめる。 状態名はパーツごとに違うが、 書く人が覚える
+                    // 理由がない (どの状態に入れるかは組み立て時に決まる)。
+                    const isColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v);
+                    const colorState = p.diagram.states.find((st) => isColor(st.initial));
+                    const otherStates = p.diagram.states.filter((st) => !isColor(st.initial));
+                    const detailLines: string[] = [`      kind: ${kindValue}`];
+                    if (colorState && isColor(colorState.initial)) {
+                      detailLines.push(`      色: "${colorState.initial}"`);
+                    }
+                    for (const st of otherStates) {
+                      const v = st.initial;
+                      detailLines.push(`      ${st.id}: ${typeof v === "string" ? `"${v}"` : String(v)}`);
+                    }
+                    // 座標は書かない。 自動配置に任せる方が、 位置を決める処理が画面上の
                     // 実寸を走査する形に戻らずに済む。 位置を変えたい時は DSL に posX / posY を書く。
-                    const newActorLine = `  - ${alias}: ${kindValue}`;
+                    const newActorLine = detailLines.length === 1
+                      ? `  - ${alias}: ${kindValue}`
+                      : [`  - ${alias}:`, ...detailLines].join("\n");
                     const appended = appendActorLine(src, newActorLine);
                     if (appended !== null) {
                       setSrc(appended);

@@ -54,8 +54,9 @@ const FORMS: Section[] = [
     title: "パーツ",
     lines: [
       { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
-      { code: "  - 計器: arc-gauge v=50", note: "既定と違う値にしたい時だけ 名前=値" },
-      { code: '      色: "#f59e0b"', note: "色番号でも指定できる" },
+      { code: "  - 実績:", note: "変えられる値があれば縦に並ぶ" },
+      { code: "      kind: achievement", note: "" },
+      { code: '      色: "#f59e0b"', note: "色を変えたい時はここを書き換える" },
     ],
   },
   {

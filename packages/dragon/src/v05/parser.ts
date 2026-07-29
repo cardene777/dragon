@@ -711,8 +711,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
     if (COLOR_KEYS.has(key)) {
       const { tone, hex } = splitColorValue(raw);
       if (tone) out.tone = tone;
-      // 色番号はパーツの塗りとして扱う。 箱は意味の色しか持たない
-      if (hex) { state.bg = hex; touchedState = true; }
+      // 色番号を入れる状態の名前はパーツごとに違う。 組み立て時に解決する
+      if (hex) out.colorHex = hex;
       continue;
     }
     switch (key) {

@@ -91,6 +91,13 @@ export type DslActor = {
    */
   partId?: string;
   /**
+   * `色:` に色番号を書いた時の値。 どの状態に入れるかは組み立て時に決める。
+   *
+   * 色を保持する状態の名前はパーツごとに違う (`bg` / `stFill` / `gFill` / `hue` など 17 種)。
+   * 解析の時点ではパーツの定義を知らないため、 名前を決めずに持っておく。
+   */
+  colorHex?: string;
+  /**
    * parts state override (partId set 時のみ有効)。 kind + 既存 reserved fields を除いた
    * inline option の残り (`v: 50` / `count: 100` 等) を state 名 → initial 値 map として保持。
    * compile 時に parts.states[i].initial を上書きする。

@@ -100,13 +100,17 @@ test("パーツを足すと入れ子なしの行が入る", async ({ page }) => 
   await page.waitForTimeout(900);
 
   const added = await dsl(page);
-  // 足される行は `  - achievement: achievement` の形
-  const line = added.split("\n").find((l) => /^\s*- achievement\d*:/.test(l));
-  expect(line, `パーツの行が入っていない: ${added.slice(-200)}`).toBeTruthy();
-  expect(line, `入れ子が残っている: ${line}`).not.toContain("{");
-  expect(line, `色番号が並んでいる: ${line}`).not.toMatch(/#[0-9a-fA-F]{6}/);
-  expect(line!.trim(), `1 件目に番号が付いている: ${line}`).toBe("- achievement: achievement");
+  const lines = added.split("\n");
+  const headIdx = lines.findIndex((l) => /^\s*- achievement\d*:/.test(l));
+  expect(headIdx, `パーツの行が入っていない: ${added.slice(-200)}`).toBeGreaterThan(-1);
+  // 変えられる値を縦に並べて出す。 1 行に詰めると色番号が読めない形で並ぶ
+  const block = lines.slice(headIdx, headIdx + 3).map((l) => l.trimEnd());
+  expect(block[0]!.trim(), `1 件目に番号が付いている: ${block[0]}`).toBe("- achievement:");
+  expect(block[1]).toBe("      kind: achievement");
+  expect(block[2], "色が出ていない").toMatch(/^\s+色: "#[0-9a-fA-F]{6}"$/);
+  expect(added, "入れ子が残っている").not.toContain("{ kind:");
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
+  expect(await page.locator("[data-overlay-part]").count(), "図に出ていない").toBe(1);
 });
 
 test("同じパーツを 2 つ置くと 2 件目に番号が付く", async ({ page }) => {
@@ -119,10 +123,10 @@ test("同じパーツを 2 つ置くと 2 件目に番号が付く", async ({ pa
   await item.click();
   await page.waitForTimeout(900);
 
-  const lines = (await dsl(page)).split("\n").filter((l) => /^\s*- achievement\d*:/.test(l));
-  expect(lines.map((l) => l.trim()), lines.join(" / ")).toEqual([
-    "- achievement: achievement",
-    "- achievement2: achievement",
+  const heads = (await dsl(page)).split("\n").filter((l) => /^\s*- achievement\d*:/.test(l));
+  expect(heads.map((l) => l.trim()), heads.join(" / ")).toEqual([
+    "- achievement:",
+    "- achievement2:",
   ]);
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
 });

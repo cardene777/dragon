@@ -53,9 +53,10 @@ describe("色は 1 つの項目で両方書ける", () => {
     expect([a.tone, a.stateOverride]).toEqual(["error", undefined]);
   });
 
-  it("色番号はパーツの塗りになる", () => {
+  it("色番号は組み立て時に解決する値として持つ", () => {
+    // どの状態に入れるかはパーツごとに違うので、 解析の時点では名前を決めない
     const a = actorOf([`  - A:`, `      kind: achievement`, `      色: "#f59e0b"`]);
-    expect(a.stateOverride).toEqual({ bg: "#f59e0b" });
+    expect(a.colorHex).toBe("#f59e0b");
     expect(a.tone, "色番号は箱の色にしない").toBeUndefined();
   });
 
@@ -164,5 +165,62 @@ describe("組み立てまで通る", () => {
     const web = d.nodes.find((n) => n.title === "Web");
     expect(web?.tone).toBe("error");
     expect(web?.subtitle).toBe("本体");
+  });
+});
+
+describe("色番号はパーツごとの色の状態に届く", () => {
+  // 色を保持する状態の名前はパーツごとに違う (`bg` / `stFill` / `gFill` / `hue` など 17 種)。
+  // `bg` 決め打ちにすると、 別の名前を使うパーツで色を書いても何も起きない。
+  const partWith = (stateId: string, initial: string) => ({
+    id: "p", topic: "p",
+    lanes: [{ id: "l", x: 0, width: 300 }],
+    nodes: [{ id: "body", lane: "l", stack: 0, kind: "dyn-circle", title: "x",
+      shape: { kind: "circle", radius: 100, fill: `{${stateId}}` } }],
+    edges: [], states: [{ id: stateId, initial }], phases: [],
+  }) as never;
+
+  const stateOf = (part: unknown, color?: string) => {
+    const body = color
+      ? [`  - p:`, `      kind: mypart`, `      色: "${color}"`]
+      : [`  - p: mypart`];
+    const src = [
+      `title: "t"`, `type: flow`, ``, `actors:`, ...body, `  - X`, ``,
+      `flow:`, `  - X -> X: "y"`,
+    ].join("\n");
+    const r = parseTextDslV05(src);
+    if (!r.ok) throw new Error("parse 失敗");
+    const d = compileToCdl(r.doc, { partsCatalog: { mypart: part as never } });
+    return d.states.map((s) => [s.id.replace("p__", ""), s.initial]);
+  };
+
+  it("bg という名前でなくても届く", () => {
+    expect(stateOf(partWith("stFill", "#22c55e"), "#ff0000")).toEqual([["stFill", "#ff0000"]]);
+    expect(stateOf(partWith("gFill", "#22c55e"), "#ff0000")).toEqual([["gFill", "#ff0000"]]);
+  });
+
+  it("色を書かなければ既定のまま", () => {
+    expect(stateOf(partWith("stFill", "#22c55e"))).toEqual([["stFill", "#22c55e"]]);
+  });
+
+  it("色でない状態は変えない", () => {
+    const part = {
+      id: "p", topic: "p",
+      lanes: [{ id: "l", x: 0, width: 300 }],
+      nodes: [{ id: "body", lane: "l", stack: 0, kind: "service", title: "x", subtitle: "{v}" }],
+      edges: [], states: [{ id: "v", initial: 50 }, { id: "bg", initial: "#22c55e" }], phases: [],
+    } as never;
+    expect(stateOf(part, "#ff0000")).toEqual([["v", 50], ["bg", "#ff0000"]]);
+  });
+
+  it("名前を指定して書いた値が優先", () => {
+    const src = [
+      `title: "t"`, `type: flow`, ``, `actors:`,
+      `  - p:`, `      kind: mypart`, `      色: "#ff0000"`, `      stFill: "#0000ff"`,
+      `  - X`, ``, `flow:`, `  - X -> X: "y"`,
+    ].join("\n");
+    const r = parseTextDslV05(src);
+    if (!r.ok) throw new Error("parse 失敗");
+    const d = compileToCdl(r.doc, { partsCatalog: { mypart: partWith("stFill", "#22c55e") } });
+    expect(d.states.map((s) => s.initial)).toEqual(["#0000ff"]);
   });
 });
