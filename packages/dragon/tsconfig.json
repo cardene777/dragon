@@ -13,7 +13,13 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "rootDir": "src",
-    "outDir": "dist",
+    // 型検査 (tsc -b) の出力先は tsup の出力先 (dist) と分ける。
+    //
+    // 同じ場所に出すと、 tsup が束ねた 1 file の index.d.ts と tsc が出す file 別の
+    // index.d.ts が交互に上書きし、 package.json の types が指す中身が「最後に走った側」
+    // で決まる。 tsc 側の index.d.ts は相対 re-export だけを持ち、 参照先の d.ts が
+    // dist に残らないため、 呼出側で型が any に落ちる (実測)。
+    "outDir": "dist-types",
     "composite": true,
     "declaration": true,
     "emitDeclarationOnly": true

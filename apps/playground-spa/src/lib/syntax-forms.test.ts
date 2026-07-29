@@ -34,9 +34,9 @@ describe("記法一覧の書式", () => {
     it(`${sec.title}: 例文が記法として読める`, () => {
       const src = buildSample(sec);
       const r = parseTextDslV05(src);
-      // 誤りの中身は package の型が届かないので (dist の d.ts が相対 re-export のまま)
-      // 形を仮定せずそのまま出す
-      const detail = r.ok ? "" : `\n${src}\n--- 誤り ---\n${JSON.stringify(r.errors, null, 1)}`;
+      const detail = r.ok
+        ? ""
+        : `\n${src}\n--- 誤り ---\n${r.errors.map((e) => `L${e.line} ${e.message}`).join("\n")}`;
       expect(r.ok, `${sec.title} の例文が読めない${detail}`).toBe(true);
     });
 

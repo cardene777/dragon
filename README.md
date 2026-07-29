@@ -297,6 +297,10 @@ dragon/
 
 ## 開発
 
+型の出力先が 2 つある。 束ねた 1 file (`dist/index.d.ts`、 `tsup` が出す) が package の公開型で、
+型検査 (`tsc -b`) の出力は `dist-types/` に分ける。 同じ場所に出すと交互に上書きし、
+`package.json` の `types` が指す中身が「最後に走った側」 で決まる。
+
 ```sh
 pnpm install
 
