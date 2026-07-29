@@ -42,10 +42,20 @@ const FORMS: Section[] = [
     ],
   },
   {
+    title: "項目が多い時",
+    lines: [
+      { code: "  - Web:", note: "名前だけ書いて改行" },
+      { code: "      kind: service", note: "項目を縦に並べる" },
+      { code: '      補足: "APIサーバー"', note: "日本語の項目名でもよい" },
+      { code: "      色: 失敗", note: "色は 色: にまとめた" },
+    ],
+  },
+  {
     title: "パーツ",
     lines: [
       { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
       { code: "  - 計器: arc-gauge v=50", note: "既定と違う値にしたい時だけ 名前=値" },
+      { code: '      色: "#f59e0b"', note: "色番号でも指定できる" },
     ],
   },
   {

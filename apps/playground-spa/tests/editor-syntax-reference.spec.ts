@@ -126,3 +126,27 @@ test("同じパーツを 2 つ置くと 2 件目に番号が付く", async ({ pa
   ]);
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
 });
+
+test("短い形で書いたパーツも図に出る", async ({ page }) => {
+  // 生成する行を短くした時、 図に出す側が入れ子の形しか読んでいなかった。 行は入るのに
+  // 図には出ない状態になり、 書いた人には理由が分からない。
+  //
+  // パーツの目録はタブを開いた時に読み込まれる。 開かずに書いても図には出ないので、
+  // 実際の使い方 (タブを開いてから書く) に合わせる。
+  await openEditor(page);
+  await page.locator('[data-testid="editor-parts-tab"]').click();
+  await page.waitForTimeout(700);
+  await setDsl(page, [
+    'title: "t"',
+    "type: flow",
+    "",
+    "actors:",
+    "  - 実績: achievement",
+    "  - X",
+    "",
+    "flow:",
+    '  - 実績 -> X: "y"',
+  ].join("\n"));
+  expect(await page.locator("[data-overlay-part]").count(), "パーツが図に出ない").toBe(1);
+  expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
+});
