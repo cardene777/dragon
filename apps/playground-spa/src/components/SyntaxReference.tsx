@@ -84,6 +84,15 @@ const FORMS: Section[] = [
     ],
   },
   {
+    title: "他の箱を基準に置く",
+    lines: [
+      { code: "      位置: Web の右", note: "座標を知らなくても置ける" },
+      { code: "      位置: Web の下 200", note: "数を書くとその分だけ離す" },
+      { code: "      位置: Web の左", note: "向きは 右 左 上 下" },
+      { code: "      位置: Web right 200", note: "英語でも書ける" },
+    ],
+  },
+  {
     title: "図全体",
     lines: [
       { code: "viewport: { scale: 1.5 }", note: "図全体の倍率" },

@@ -11,7 +11,13 @@
 
 import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
-import { sequence, flow, swimlane, er, stateMachine, topology, diagram } from "@cardenelabs/cdl";
+import { sequence, flow, swimlane, er, stateMachine, topology, diagram, layout } from "@cardenelabs/cdl";
+import {
+  orderByDependency,
+  resolveRelativePos,
+  type AnchorBox,
+  type RelativeDirection,
+} from "./relative-pos";
 
 export interface CompileToCdlOpts {
   /**
@@ -20,7 +26,25 @@ export interface CompileToCdlOpts {
    * lookup + mergePartIntoDiagram で target に統合。 未渡し時は parts kind actor を skip + warn。
    */
   partsCatalog?: Record<string, CdlDiagram>;
+  /**
+   * 組み立ての途中で分かった「書いたのに効かなかったこと」 の受け取り口。
+   *
+   * 図は出せるので誤りにはしないが、 黙って捨てると書いた人が理由を追えない。 editor は
+   * これを受けて画面に出す。 判定は組み立て側だけが持ち、 画面側は表示に徹する。
+   */
+  onNotice?: (notice: CompileNotice) => void;
 }
+
+/** 図は出せるが書いた通りにならなかった、 という知らせ。 */
+export type CompileNotice = {
+  kind: "relative-position-ignored";
+  /** 対象の登場人物の名前 */
+  actor: string;
+  /** 書かれていた行 */
+  line: number;
+  message: string;
+  hint?: string;
+};
 
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
   let diagram: CdlDiagram;
@@ -69,11 +93,225 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
+  // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
+  const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
-  applyCanvasPivotPositions(diagram, doc);
+  applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
-  const extended = applyV05Extensions(diagram, doc);
-  return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  const extended = applyV05Extensions(diagram, placed);
+  return mergePartsFromActors(extended, placed, opts?.partsCatalog);
+}
+
+/**
+ * 相対で書かれた位置 (`位置: Web の右 200`) を絶対座標に直した doc を返す。
+ *
+ * 基準の実座標は配置を 1 度計算しないと分からない。 cdl の `layout` を呼んで測り、
+ * 基準の縁から間隔を空けた位置を求める。 元の doc は書き換えず、 座標を入れた複製を返す。
+ *
+ * 相対指定が 1 件も無ければ何もしない。 配置計算は 1 回 1ms 前後かかるので、 使っていない
+ * 図に負担をかけない。
+ */
+function resolveRelativeDoc(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): DslDocument {
+  if (!doc.actors.some((a) => a.posRel !== undefined)) return doc;
+
+  // 1. 自動配置のまま測る。 基準がどこに居るかはここで分かる
+  const autoBoxes = measureActorBoxes(diagram);
+  const want = desiredCenters(doc, autoBoxes);
+  if (want.size === 0) return doc;
+
+  // 2. 狙った中心をそのまま座標として仮に置く
+  const naive = new Map([...want].map(([name, c]) => [name, { posX: c.cx, posY: c.cy }] as const));
+
+  // 3. 測り直して、 狙いとの差を足す。
+  //
+  // 座標を書いた時に中心がどこに来るかは図種で違う。 順序図の座標は縦列の左端を動かすので、
+  // 中心を狙って書くと縦列の幅の半分だけ右にずれる (実測 = 200 空けたいのに 370 空いた)。
+  // 図種ごとの規則を書き写すと cdl 側の変更で黙って壊れるため、 実際に置いた結果との差を
+  // 使って直す。 差は図種ごとに一定なので 1 度で合う (実測 = 8 図種すべてで狙い通り)。
+  const placedBoxes = measureActorBoxes(withPositions(diagram, doc, naive));
+  const fixed = new Map<string, { posX: number; posY: number }>();
+  for (const [name, pos] of naive) {
+    const got = placedBoxes.get(name);
+    const target = want.get(name)!;
+    if (!got) {
+      fixed.set(name, pos);
+      continue;
+    }
+    fixed.set(name, {
+      posX: pos.posX + (target.cx - got.cx),
+      posY: pos.posY + (target.cy - got.cy),
+    });
+  }
+
+  // 4. 効いたかを確かめ、 効かなかった分は自動配置に戻す。
+  //
+  // 座標がどの向きにも効く保証は無い。 順序図の縦位置がその例で、 縦列は横に並ぶものなので
+  // 下に動かせない。 そのまま出すと基準の上に重なった図が出る (実測)。 動かなかった時は
+  // 書かなかった時と同じ配置に戻し、 何が効かなかったかを呼出側に伝える。
+  return withDocPositions(doc, verifyPlacement(diagram, doc, fixed, onNotice));
+}
+
+/**
+ * 置いた結果が書いた通りかを確かめ、 外れた分を落とす。
+ *
+ * 確かめるのは最後の配置での「基準との位置関係」 で、 手順 1 で測った狙いではない。
+ * 誰かを固定すると周りの自動配置が動くため、 狙いと突き合わせると基準がずれた分を
+ * 見逃す。 書いた言葉 (`Web の右 200`) が最後の図でも成り立つかを見る。
+ */
+function verifyPlacement(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+  onNotice?: (notice: CompileNotice) => void,
+): Map<string, { posX: number; posY: number }> {
+  const boxes = measureActorBoxes(withPositions(diagram, doc, assign));
+  const kept = new Map(assign);
+  for (const actor of doc.actors) {
+    const rel = actor.posRel;
+    const pos = assign.get(actor.name);
+    if (!rel || !pos) continue;
+    const self = boxes.get(actor.name);
+    const anchor = boxes.get(rel.anchor);
+    if (!self || !anchor) continue;
+    const expect = resolveRelativePos(rel, anchor, self);
+    const offX = Math.abs(expect.posX - self.cx);
+    const offY = Math.abs(expect.posY - self.cy);
+    if (offX <= PLACEMENT_TOLERANCE && offY <= PLACEMENT_TOLERANCE) continue;
+    kept.delete(actor.name);
+    onNotice?.({
+      kind: "relative-position-ignored",
+      actor: actor.name,
+      line: actor.pos.line,
+      message: `"${actor.name}" の位置 (${rel.anchor} の${DIRECTION_LABEL[rel.dir]}) は${doc.type}図では効きません`,
+      hint: "座標 (`位置: 300,200`) で置くか、 自動配置に任せる",
+    });
+  }
+  return kept;
+}
+
+/** 向きの表示名。 効かなかった時の知らせで、 書いた言葉に近い形で返すために持つ。 */
+const DIRECTION_LABEL: Readonly<Record<RelativeDirection, string>> = {
+  right: "右",
+  left: "左",
+  above: "上",
+  below: "下",
+};
+
+/**
+ * 書いた通りに置けたと見なす誤差。
+ *
+ * 補正が効いた図種では実測 0.0 で一致する。 効かない向き (順序図の縦) は数百ずれるので、
+ * その間で切る。 丸めと配置計算の揺れを吸収する幅として 1 を取る。
+ */
+const PLACEMENT_TOLERANCE = 1;
+
+/**
+ * 相対で書かれた分について、 中心をどこに置きたいかを求める。
+ *
+ * 基準がまた相対で書かれていることがある (`C は B の右`、 `B は A の右`) ため、 依存の浅い順に
+ * 解く。 解けた中心は基準として次に使う。
+ */
+function desiredCenters(
+  doc: DslDocument,
+  boxes: ReadonlyMap<string, AnchorBox>,
+): Map<string, AnchorBox> {
+  const byName = new Map(doc.actors.map((a) => [a.name, a] as const));
+  const { order } = orderByDependency(doc.actors.map((a) => ({ name: a.name, rel: a.posRel })));
+  // 基準に使う中心。 相対で書かれていない分は測った位置をそのまま使う
+  const centers = new Map<string, AnchorBox>(boxes);
+  const out = new Map<string, AnchorBox>();
+
+  for (const name of order) {
+    const actor = byName.get(name);
+    const self = boxes.get(name);
+    if (!actor?.posRel || !self) continue;
+    const anchor = centers.get(actor.posRel.anchor);
+    // 測れない相手を基準にした分は自動配置のまま残す。 相手が居ることは parser が確かめて
+    // いるので、 ここに来るのは図に箱として現れない相手 (parts 等) を指した場合
+    if (!anchor) continue;
+    const p = resolveRelativePos(actor.posRel, anchor, self);
+    const center: AnchorBox = { cx: p.posX, cy: p.posY, w: self.w, h: self.h };
+    centers.set(name, center);
+    out.set(name, center);
+  }
+  return out;
+}
+
+/**
+ * 登場人物ごとの、 図の上での中心と大きさを測る。
+ *
+ * 対応付けは箱に表示される名前で行う。 id を使わない理由は `applyNodeTones` と同じで、
+ * slug の作り方が dragon と cdl で違うため記号を含む名前で一致しない。
+ *
+ * 1 人が複数の箱に分かれる図種 (順序図の上端 / 下端) では、 全部を囲む矩形を返す。
+ * 箱として現れない登場人物は縦列の矩形で代用する。
+ */
+function measureActorBoxes(diagram: CdlDiagram): Map<string, AnchorBox> {
+  const laid = layout(diagram);
+  const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
+  for (const n of laid.nodes) {
+    const title = n.title;
+    if (!title) continue;
+    const x0 = n.cx - n.w / 2;
+    const y0 = n.cy - n.h / 2;
+    const x1 = n.cx + n.w / 2;
+    const y1 = n.cy + n.h / 2;
+    const cur = bounds.get(title);
+    if (cur) {
+      cur.x0 = Math.min(cur.x0, x0);
+      cur.y0 = Math.min(cur.y0, y0);
+      cur.x1 = Math.max(cur.x1, x1);
+      cur.y1 = Math.max(cur.y1, y1);
+    } else {
+      bounds.set(title, { x0, y0, x1, y1 });
+    }
+  }
+  const out = new Map<string, AnchorBox>();
+  for (const [name, b] of bounds) {
+    out.set(name, { cx: (b.x0 + b.x1) / 2, cy: (b.y0 + b.y1) / 2, w: b.x1 - b.x0, h: b.y1 - b.y0 });
+  }
+  for (const lane of laid.lanes) {
+    const label = lane.label;
+    if (!label || out.has(label)) continue;
+    const y = lane.y ?? 0;
+    const h = lane.height ?? 0;
+    out.set(label, { cx: (lane.x ?? 0) + lane.width / 2, cy: y + h / 2, w: lane.width, h });
+  }
+  return out;
+}
+
+/** doc の複製に、 決まった座標を入れる。 元の doc は書き換えない。 */
+function withDocPositions(
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+): DslDocument {
+  if (assign.size === 0) return doc;
+  return {
+    ...doc,
+    actors: doc.actors.map((a) => {
+      const p = assign.get(a.name);
+      return p ? { ...a, posX: p.posX, posY: p.posY } : a;
+    }),
+  };
+}
+
+/** 決まった座標を反映した図の複製を作る。 測り直す時だけ使う捨て図。 */
+function withPositions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+): CdlDiagram {
+  const probe: CdlDiagram = {
+    ...diagram,
+    lanes: diagram.lanes.map((l) => ({ ...l })),
+    nodes: diagram.nodes.map((n) => ({ ...n })),
+  };
+  applyCanvasPivotPositions(probe, withDocPositions(doc, assign));
+  return probe;
 }
 
 /**
