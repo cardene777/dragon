@@ -27,6 +27,37 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  * 記法を空白区切りに揃えた時、 パーツもこの形で書けるようになった。 入れ子の形だけを見ていると
  * 短い形で書いたパーツが図に出ない。
  */
+
+/**
+ * 位置を書かなかったパーツを並べる場所。
+ *
+ * 図に出す経路 (本 file) と組み立ての経路 (`packages/dragon/src/compile.ts`) は別々に座標を
+ * 決める。 片方だけ直すと、 画面と組み立て結果がずれる。 同じ規則で並べる。
+ *
+ * 以前ここは `0,0` 固定だった。 その結果、 位置を書かないパーツが全て図の左上に重なって出た。
+ */
+const PARTS_PER_ROW = 3;
+const PARTS_GAP = 120;
+const PART_W = 380;
+const PART_H = 380;
+/**
+ * 既存の図の下に置く時の、 パーツの上端。
+ *
+ * 見本の順序図で下端が 920 (実測)。 そのすぐ下から始める。 離しすぎると、 図とパーツが同時に
+ * 画面に収まらない (実測 = 1200 だと縦 1580 になり、 パーツが画面外に出かかった)。
+ */
+const PARTS_TOP = 1000;
+
+function autoPartPos(index: number): { posX: number; posY: number } {
+  const col = index % PARTS_PER_ROW;
+  const row = Math.floor(index / PARTS_PER_ROW);
+  return {
+    posX: col * (PART_W + PARTS_GAP) + PART_W / 2,
+    // 上端を揃えたいので、 段の上端に高さの半分を足して中心にする
+    posY: PARTS_TOP + row * (PART_H + PARTS_GAP) + PART_H / 2,
+  };
+}
+
 const ACTOR_SHORT_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|[^:\s]+)(\s*:\s*)([^{\s][^{]*)$/;
 
 /** quoted alias を素の文字列に戻す (`"a \" b"` → `a " b`)。 unquoted はそのまま。 */
@@ -124,6 +155,15 @@ export function extractPartsFromSrc(
   // 名前だけの行では種類が分からないので、 続く行で決まるまで覚えておく。
   let pendingAlias: string | null = null;
   let pendingIndent = -1;
+  // 名前だけの行は、 パーツかどうかが続く行で決まるまで `baseSrc` に入れない。 先に入れると
+  // パーツと分かった後も残り、 図の中にも空の箱が出る (overlay と二重に描かれる)
+  let pendingHeadLines: string[] = [];
+  const flushPending = (): void => {
+    baseLines.push(...pendingHeadLines);
+    pendingHeadLines = [];
+  };
+  // 位置を書かなかったパーツの通し番号。 格子の何番目かを決める
+  let autoIndex = 0;
   for (const line of lines) {
     // 続く字下げ行から種類を拾う
     if (pendingAlias !== null) {
@@ -134,24 +174,31 @@ export function extractPartsFromSrc(
         if (partKindSet.has(kindValue)) {
           const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
           if (item) {
-            parts.push({ id: pendingAlias, kind: kindValue, item, posX: 0, posY: 0, scale: 1, rotate: 0 });
+            parts.push({ id: pendingAlias, kind: kindValue, item, ...autoPartPos(autoIndex), scale: 1, rotate: 0 });
+            autoIndex += 1;
             pendingAlias = null;
+            // 名前の行ごと落とす。 図には overlay として描くので、 図の中に箱は要らない
+            pendingHeadLines = [];
             continue;
           }
         }
+        // パーツではなかったので、 保留していた名前の行を戻す
         pendingAlias = null;
+        flushPending();
       } else if (line.trim() === "" || indent > pendingIndent) {
         // 続きの行 (種類以外) はそのまま
       } else {
         pendingAlias = null;
+        flushPending();
       }
     }
     // 名前だけの行 (`- 実績:`) は、 種類が続く行で決まる
     const head = line.match(/^(\s*)-\s*("(?:[^"\\]|\\.)+"|[^:\s]+)\s*:\s*$/);
     if (head) {
+      flushPending();
       pendingAlias = unquoteAlias(head[2]!);
       pendingIndent = head[1]!.length;
-      baseLines.push(line);
+      pendingHeadLines = [line];
       continue;
     }
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
@@ -164,7 +211,8 @@ export function extractPartsFromSrc(
         const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
         if (item) {
           // 座標と大きさは書かない形なので既定値。 位置を変えたい時は入れ子で posX を書く
-          parts.push({ id: alias, kind: kindValue, item, posX: 0, posY: 0, scale: 1, rotate: 0 });
+          parts.push({ id: alias, kind: kindValue, item, ...autoPartPos(autoIndex), scale: 1, rotate: 0 });
+          autoIndex += 1;
           continue;
         }
       }
@@ -210,6 +258,8 @@ export function extractPartsFromSrc(
     }
     baseLines.push(line);
   }
+  // 判定が終わらないまま終端に達した分を戻す
+  flushPending();
   return { baseSrc: baseLines.join("\n"), parts };
 }
 
