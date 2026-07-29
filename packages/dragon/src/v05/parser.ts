@@ -420,6 +420,100 @@ function stripQuotes(s: string): string {
 }
 
 /**
+ * 引用符と角括弧の外にある最後の `:` の位置。 見つからなければ -1。
+ *
+ * 名前に `:` を含められるので後ろから探すが、 `["id: PK"]` のように値の中にも `:` が入る。
+ * 深さを数えて、 値の中の `:` を数えない。
+ */
+function lastTopLevelColon(s: string): number {
+  let depth = 0;
+  let quote = "";
+  let last = -1;
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s[i]!;
+    if (quote) {
+      if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'") { quote = c; continue; }
+    if (c === "[" || c === "{") depth += 1;
+    else if (c === "]" || c === "}") depth -= 1;
+    else if (c === ":" && depth === 0) last = i;
+  }
+  return last;
+}
+
+/**
+ * 空白区切りの値を切り出す。 引用符と角括弧の中の空白では切らない。
+ *
+ * `service "API サーバー" 幅400` → `["service", '"API サーバー"', "幅400"]`
+ */
+function splitValues(s: string): string[] {
+  const out: string[] = [];
+  let buf = "";
+  let depth = 0;
+  let quote = "";
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s[i]!;
+    if (quote) {
+      buf += c;
+      if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'") { quote = c; buf += c; continue; }
+    if (c === "[" || c === "{") { depth += 1; buf += c; continue; }
+    if (c === "]" || c === "}") { depth -= 1; buf += c; continue; }
+    if (/\s/.test(c) && depth === 0) {
+      if (buf) { out.push(buf); buf = ""; }
+      continue;
+    }
+    buf += c;
+  }
+  if (buf) out.push(buf);
+  return out;
+}
+
+type ActorValues = {
+  kind: string;
+  tone?: Tone;
+  subtitle?: string;
+  rows?: string[];
+  value?: string;
+};
+
+/**
+ * 空白区切りで書かれた値を、 項目ごとに振り分ける。
+ *
+ * 振り分けは値の形で決まる。 引用符付きは補足 (2 つ目は値)、 角括弧は行、 色名は色、
+ * 残りが種類。 形が違うので取り違えない。
+ */
+function classifyValues(values: string[]): ActorValues {
+  const out: ActorValues = { kind: "" };
+  const kindWords: string[] = [];
+  for (const v of values) {
+    if ((v.startsWith('"') && v.endsWith('"') && v.length > 1) || (v.startsWith("'") && v.endsWith("'") && v.length > 1)) {
+      // 1 つ目の引用符は補足、 2 つ目は値 (`storage` の右側に出る数値等)
+      if (out.subtitle === undefined) out.subtitle = stripQuotes(v);
+      else if (out.value === undefined) out.value = stripQuotes(v);
+      continue;
+    }
+    if (v.startsWith("[") && v.endsWith("]")) {
+      out.rows = v
+        .slice(1, -1)
+        .split(/,(?![^[]*\])/)
+        .map((x) => stripQuotes(x.trim()))
+        .filter(Boolean);
+      continue;
+    }
+    const tone = toneOrUndef(v);
+    if (tone) { out.tone = tone; continue; }
+    kindWords.push(v);
+  }
+  out.kind = kindWords.join(" ").toLowerCase();
+  return out;
+}
+
+/**
  * 書かれた種類名を、 描画できる種類に解決する。
  *
  * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 それ以外はそのまま返す。
@@ -732,44 +826,30 @@ function parseActor(line: Line): DslActor | null {
     };
   }
   // 1 / 2 / 4
-  if (raw.includes(":")) {
-    const idx = raw.lastIndexOf(":");
+  if (lastTopLevelColon(raw) >= 0) {
+    const idx = lastTopLevelColon(raw);
     const namePart = stripQuotes(raw.slice(0, idx).trim());
     const rest = raw.slice(idx + 1).trim();
     if (!namePart) return null;
 
-    // `名前: 種類 色` の形も受け付ける。 色を足すためだけに `{ }` を書かせない。
+    // `名前: 種類 "補足" [行, 行] 色` の形。 `{ }` を書かせない。
     //
-    // 後ろから 1 語だけ見て、 色名として解決できれば色として取る。 色は語の集合が閉じている
-    // (`TONES` + 別名) ので、 種類名と取り違える余地がない。
-    const words = rest.split(/\s+/).filter(Boolean);
-    let tone: Tone | undefined;
-    if (words.length > 1) {
-      const resolved = toneOrUndef(words[words.length - 1]!);
-      if (resolved) {
-        tone = resolved;
-        words.pop();
-      }
-    }
-    const kindPart = words.join(" ").toLowerCase();
-
-    // 種類を書かず色だけ (`名前: 失敗`) の形も受け付ける。
-    if (words.length === 1 && tone === undefined) {
-      const only = toneOrUndef(words[0]!);
-      if (only) {
-        return { name: namePart, kind: NODE_KIND_DEFAULT, tone: only, pos: { line: line.no } };
-      }
-    }
+    // 値は形で見分ける。 引用符付きは補足、 角括弧は行、 色名は色、 残りが種類。
+    // 種類と色は語の集合が閉じているので取り違えない。
+    const v = classifyValues(splitValues(rest));
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
-    const isPart = kindPart !== "" && !NODE_KIND_VALID.has(kindPart);
-    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindPart) ? kindPart : "");
+    const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
+    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(v.kind) ? v.kind : "");
     return {
       name: namePart,
       kind,
       // parts では `tone` を状態の上書きとして扱うため、 色として渡さない
-      tone: isPart ? undefined : tone,
-      partId: isPart ? kindPart : undefined,
+      tone: isPart ? undefined : v.tone,
+      subtitle: v.subtitle,
+      rows: v.rows,
+      value: v.value,
+      partId: isPart ? v.kind : undefined,
       pos: { line: line.no },
     };
   }
@@ -809,11 +889,11 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
     labelOffsetY = numberOrUndef(opts.labelOffsetY);
     rest = rest.slice(0, mapMatch.index ?? 0).trim();
   }
-  // tone / style 抽出 (末尾 `(...)`)
+  // 色と線種を末尾から取る。 括弧 (`(成功)`) と空白区切り (`成功`) の両方を受け付ける。
+  //
+  // 括弧は従来の書き方で、 catalog が使っている。 空白区切りは登場人物と揃えた形。
   const optMatch = rest.match(/\s*\(([^)]*)\)\s*$/);
   if (optMatch) {
-    // 小文字化する前の値も渡す。 別名表には日本語 (`成功`) が入っており、 小文字化しても
-    // 変わらないが、 箱と矢印で同じ関数を通すことで受理する色名を一致させる。
     const opts = (optMatch[1] ?? "").split(",").map((s) => s.trim());
     for (const opt of opts) {
       const resolvedTone = toneOrUndef(opt);
@@ -821,6 +901,20 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
       else if (STYLE_VALID.has(opt.toLowerCase())) style = opt.toLowerCase() as EdgeStyle;
     }
     rest = rest.slice(0, optMatch.index ?? 0).trim();
+  } else {
+    // 末尾から順に、 色か線種として読める語を取る。 語の集合が閉じているので、 説明文の
+    // 一部を誤って取ることはない。 読めない語に当たった時点で止める。
+    const words = splitValues(rest);
+    while (words.length > 1) {
+      const last = words[words.length - 1]!;
+      // 引用符付きは説明文なので取らない
+      if (last.startsWith('"') || last.startsWith("'")) break;
+      const resolvedTone = toneOrUndef(last);
+      if (resolvedTone !== undefined) { tone = resolvedTone; words.pop(); continue; }
+      if (STYLE_VALID.has(last.toLowerCase())) { style = last.toLowerCase() as EdgeStyle; words.pop(); continue; }
+      break;
+    }
+    rest = words.join(" ");
   }
   let to = rest;
   const labelMatch = rest.match(/^(.+?):\s*(.+)$/);

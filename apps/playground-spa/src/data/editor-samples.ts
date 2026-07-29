@@ -75,10 +75,10 @@ animation:
 type: flow
 
 actors:
-  - Push: { kind: event }
-  - ビルド: { kind: function }
-  - テスト: { kind: function }
-  - デプロイ: { kind: function }
+  - Push: event
+  - ビルド: function
+  - テスト: function
+  - デプロイ: function
 
 flow:
   - Push -> ビルド: "トリガー"
@@ -104,9 +104,9 @@ type: swimlane
 
 actors:
   - Client
-  - 認証: { kind: service }
-  - DB: { kind: database }
-  - メール: { kind: service }
+  - 認証: service
+  - DB: database
+  - メール: service
 
 flow:
   - Client -> 認証: "登録要求"
@@ -132,10 +132,10 @@ animation:
 type: topology
 
 actors:
-  - LB: { kind: cloud, subtitle: "ロードバランサー" }
-  - Web: { kind: service, subtitle: "APIサーバー" }
-  - キャッシュ: { kind: cache, subtitle: "Redis" }
-  - DB: { kind: database, subtitle: "Postgres" }
+  - LB: cloud "ロードバランサー"
+  - Web: service "APIサーバー"
+  - キャッシュ: cache "Redis"
+  - DB: database "Postgres"
 
 flow:
   - LB -> Web: "振り分け"
@@ -158,9 +158,9 @@ animation:
 type: er
 
 actors:
-  - Client: { kind: storage, rows: ["id: PK", "email: string", "name: string"] }
-  - 投稿: { kind: storage, rows: ["id: PK", "userId: FK", "title: string", "body: text"] }
-  - コメント: { kind: storage, rows: ["id: PK", "postId: FK", "body: text"] }
+  - Client: storage ["id: PK", "email: string", "name: string"]
+  - 投稿: storage ["id: PK", "userId: FK", "title: string", "body: text"]
+  - コメント: storage ["id: PK", "postId: FK", "body: text"]
 
 flow:
   - Client -> 投稿: "投稿する" { cardinality: "1:N" }
@@ -180,10 +180,10 @@ type: state
 viewport: { height: 420 }
 
 actors:
-  - 待機: { kind: card }
-  - 検証中: { kind: card }
-  - 完了: { kind: card }
-  - 失敗: { kind: card }
+  - 待機: card
+  - 検証中: card
+  - 完了: card
+  - 失敗: card
 
 flow:
   - 待機 -> 検証中: "送信"
@@ -209,9 +209,9 @@ animation:
 type: class
 
 actors:
-  - 動物: { kind: storage, rows: ["+name: string", "+age: int", "+speak(): void"] }
-  - 犬: { kind: storage, rows: ["+breed: string", "+bark(): void"] }
-  - 猫: { kind: storage, rows: ["+indoor: boolean", "+meow(): void"] }
+  - 動物: storage ["+name: string", "+age: int", "+speak(): void"]
+  - 犬: storage ["+breed: string", "+bark(): void"]
+  - 猫: storage ["+indoor: boolean", "+meow(): void"]
 
 flow:
   - 犬 -> 動物: "extends"
@@ -229,10 +229,10 @@ animation:
 type: gantt
 
 actors:
-  - 設計: { subtitle: "Q1" }
-  - 実装: { subtitle: "Q2" }
-  - テスト: { subtitle: "Q3" }
-  - リリース: { subtitle: "Q4" }
+  - 設計: "Q1"
+  - 実装: "Q2"
+  - テスト: "Q3"
+  - リリース: "Q4"
 
 animation:
   - step: "Q1" 1.0s
@@ -270,10 +270,10 @@ animation:
 type: pie
 
 actors:
-  - TypeScript: { value: "45%" }
-  - Python: { value: "30%" }
-  - Rust: { value: "15%" }
-  - Go: { value: "10%" }
+  - TypeScript: "45%"
+  - Python: "30%"
+  - Rust: "15%"
+  - Go: "10%"
 
 animation:
   - step: "reveal" 2.0s
@@ -287,10 +287,10 @@ animation:
 type: c4
 
 actors:
-  - Client: { kind: person, subtitle: "L1" }
-  - システム: { kind: service, subtitle: "L1: system" }
-  - API: { kind: service, subtitle: "L2: container" }
-  - DB: { kind: database, subtitle: "L2: container" }
+  - Client: person "L1"
+  - システム: service "L1: system"
+  - API: service "L2: container"
+  - DB: database "L2: container"
 
 flow:
   - Client -> システム: "利用"

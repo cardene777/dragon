@@ -14,7 +14,12 @@ type Section = {
   lines: Array<{ code: string; note: string }>;
 };
 
-/** 書式の例。 実際に動く記述だけを載せる。 */
+/**
+ * 書式の例。 実際に動く記述だけを載せる。
+ *
+ * 値は空白で並べる。 `{ }` も `( )` も要らない。 引用符付きは補足、 角括弧は行、 色名は色、
+ * 残りが種類として読まれる。 形が違うので順番は自由。
+ */
 const FORMS: Section[] = [
   {
     title: "全体",
@@ -27,10 +32,12 @@ const FORMS: Section[] = [
     title: "登場人物",
     lines: [
       { code: "  - Client", note: "名前だけ" },
-      { code: "  - API: service", note: "名前と種類" },
-      { code: "  - DB: database 失敗", note: "名前と種類と色" },
-      { code: "  - 決済: 警告", note: "色だけ" },
-      { code: '  - Web: { kind: service, subtitle: "本体" }', note: "細かく指定する時" },
+      { code: "  - API: service", note: "種類" },
+      { code: '  - Web: service "APIサーバー"', note: "種類と補足" },
+      { code: "  - DB: database 失敗", note: "種類と色" },
+      { code: '  - LB: cloud "振り分け" 警告', note: "並べる順番は自由" },
+      { code: "  - 決済: 失敗", note: "色だけ" },
+      { code: '  - 表: storage ["id: PK", "name: 文字列"]', note: "行を持つ箱" },
       { code: "  - 保存: s3", note: "固有名でも書ける (storage になる)" },
     ],
   },
@@ -38,8 +45,8 @@ const FORMS: Section[] = [
     title: "流れ",
     lines: [
       { code: '  - Client -> API: "要求"', note: "矢印と説明" },
-      { code: '  - API -> DB: "検索" (成功)', note: "矢印の色" },
-      { code: '  - DB -> API: "結果" (dotted-flow)', note: "点線" },
+      { code: '  - API -> DB: "検索" 成功', note: "矢印の色" },
+      { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類" },
     ],
   },
   {
@@ -50,11 +57,10 @@ const FORMS: Section[] = [
     ],
   },
   {
-    title: "大きさと位置",
+    title: "図全体",
     lines: [
-      { code: "  - Web: { kind: service, w: 400 }", note: "幅 (高さは h)" },
-      { code: "  - Web: { kind: service, posX: 300, posY: 200 }", note: "位置を固定 (両方必要)" },
       { code: "viewport: { scale: 1.5 }", note: "図全体の倍率" },
+      { code: "viewport: { laneWidth: 400 }", note: "縦列の幅" },
     ],
   },
 ];
