@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
+import { readFile } from "node:fs/promises";
 import {
   extractPartsFromSrc,
   splitTopLevelFields,
   readTopLevelField,
   appendActorLine,
+  placeParts,
+  partRenderSize,
+  PART_RENDER_W,
+  PART_RENDER_H,
+  type OverlayPartParsed,
 } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
@@ -58,13 +64,26 @@ actors:
     expect(r.parts[0]!.scale).toBe(1);
   });
 
-  it("posX/posY 省略時 = default 0", () => {
+  it("位置を書かなければ座標を持たない (置き場所は後で決まる)", () => {
+    // 以前はここで 0 を入れていた。 その結果、 位置を書かないパーツが全て図の左上に
+    // 重なって出た。 読む処理は「書いていない」 をそのまま返し、 置く処理が格子に並べる
     const src = `actors:
   - a: { kind: achievement }
 `;
     const r = extractPartsFromSrc(src, catalog, partsItems);
-    expect(r.parts[0]!.posX).toBe(0);
-    expect(r.parts[0]!.posY).toBe(0);
+    expect(r.parts[0]!.posX).toBeUndefined();
+    expect(r.parts[0]!.posY).toBeUndefined();
+  });
+
+  it("縦横のどちらか片方だけでは位置にしない", () => {
+    // 両方揃って初めて位置になる。 片方だけを採ると、 書いた人から見て
+    // 「書いたのに効かない」 状態を作れてしまう
+    const src = `actors:
+  - a: { kind: achievement, posX: 100 }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]!.posX).toBeUndefined();
+    expect(r.parts[0]!.posY).toBeUndefined();
   });
 
   it("複数 parts 混在 = 全抽出、 base 側は 通常 actor のみ", () => {
@@ -170,11 +189,12 @@ describe("nested brace を含む actor 行 (CAR-2158 CRITICAL regression detecto
 
   it("nested brace が複数あっても parse できる", () => {
     const src = `actors:
-  - arc1: { kind: arc-gauge, state: { phase: false }, style: { fill: "red" }, posX: 10 }
+  - arc1: { kind: arc-gauge, state: { phase: false }, style: { fill: "red" }, posX: 10, posY: 20 }
 `;
     const r = extractPartsFromSrc(src, catalog, partsItems);
     expect(r.parts).toHaveLength(1);
     expect(r.parts[0]!.posX).toBe(10);
+    expect(r.parts[0]!.posY).toBe(20);
   });
 });
 
@@ -209,7 +229,7 @@ describe("quote / escape 処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
     // `\"` を quote 終端と誤認すると、 以降の `,` を field 区切りとして拾い
     // posX の抽出と書き出しが壊れる (二重書き出しになる)。
     const src = `actors:
-  - a: { kind: achievement, label: "x \\" y, posX: 9", posX: 100 }
+  - a: { kind: achievement, label: "x \\" y, posX: 9", posX: 100, posY: 200 }
 `;
     const r = extractPartsFromSrc(src, catalog, partsItems);
     expect(r.parts).toHaveLength(1);
@@ -220,12 +240,13 @@ describe("quote / escape 処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
 
   it("quoted alias に空白 / 記号を含んでも parse できる", () => {
     const src = `actors:
-  - "a, b { c }": { kind: achievement, posX: 7 }
+  - "a, b { c }": { kind: achievement, posX: 7, posY: 8 }
 `;
     const r = extractPartsFromSrc(src, catalog, partsItems);
     expect(r.parts).toHaveLength(1);
     expect(r.parts[0]!.id).toBe("a, b { c }");
     expect(r.parts[0]!.posX).toBe(7);
+    expect(r.parts[0]!.posY).toBe(8);
   });
 });
 
@@ -279,4 +300,198 @@ describe("appendActorLine (CAR-2158 Round 7 = CdlEditor から移設して test 
     expect(appendActorLine("flow:\n  - a -> b\n", "  - x: {}")).toBeNull();
   });
 
+});
+
+describe("パーツの置き場所 (placeParts)", () => {
+  /** どのパーツも 100x100 とみなす。 中心と左上の変換だけを見たいので大きさは固定する */
+  const size = (): { w: number; h: number } => ({ w: 100, h: 100 });
+  const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
+  const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
+    id: "p",
+    kind: "achievement",
+    item,
+    scale: 1,
+    rotate: 0,
+    ...over,
+  });
+
+  it("座標で書いた中心を、 画面に置く左上に直す", () => {
+    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size);
+    expect(p).toMatchObject({ posX: 250, posY: 150 });
+  });
+
+  it("相対で書いた分を基準の縁から離して置く", () => {
+    const [p] = placeParts(
+      [part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })],
+      boxes,
+      size,
+    );
+    // 中心 = 500 + 100 (相手の半分) + 50 (間隔) + 50 (自分の半分) = 700、 左上はその半分手前
+    expect(p!.posX).toBe(650);
+    expect(p!.posY).toBe(250);
+  });
+
+  it("パーツを基準にしたパーツも置ける", () => {
+    const placed = placeParts(
+      [
+        part({ id: "a", posX: 300, posY: 200 }),
+        part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
+      ],
+      boxes,
+      size,
+    );
+    // a の中心 300 から、 縁 50 + 間隔 100 + 自分の半分 50 = 中心 500、 左上 450
+    expect(placed[1]!.posX).toBe(450);
+  });
+
+  it("基準が連鎖しても書いた順に依らず解ける", () => {
+    const placed = placeParts(
+      [
+        part({ id: "c", posRel: { anchor: "b", dir: "right", gap: 100 } }),
+        part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
+        part({ id: "a", posX: 300, posY: 200 }),
+      ],
+      boxes,
+      size,
+    );
+    const byId = new Map(placed.map((p) => [p.id, p]));
+    expect(byId.get("b")!.posX).toBeGreaterThan(byId.get("a")!.posX);
+    expect(byId.get("c")!.posX).toBeGreaterThan(byId.get("b")!.posX);
+  });
+
+  it("居ない相手を基準にした分は格子に落とす (図から消さない)", () => {
+    const [p] = placeParts(
+      [part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })],
+      boxes,
+      size,
+    );
+    expect(p!.posX).toBeGreaterThanOrEqual(0);
+    expect(p!.posY).toBeGreaterThanOrEqual(0);
+  });
+
+  it("位置を書かない分だけで格子の番号を数える", () => {
+    // 座標を書いた分を数えると、 1 個座標を書いただけで残りの並びがずれる
+    const withFixed = placeParts(
+      [part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })],
+      boxes,
+      size,
+    );
+    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size);
+    expect(withFixed[1]!.posX).toBe(onlyAuto[0]!.posX);
+    expect(withFixed[2]!.posX).toBe(onlyAuto[1]!.posX);
+  });
+
+  it("位置を書かない分は互いに重ならない", () => {
+    const placed = placeParts(
+      [part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })],
+      boxes,
+      size,
+    );
+    const seen = new Set(placed.map((p) => `${p.posX},${p.posY}`));
+    expect(seen.size).toBe(placed.length);
+  });
+});
+
+describe("縦に並べて書いたパーツ (block ごと扱う)", () => {
+  const vertical = `title: "t"
+type: flow
+actors:
+  - Web: service
+  - 実績:
+      kind: achievement
+      色: "#f59e0b"
+      位置: 300,200
+flow:
+  - Web -> Web: "a"
+`;
+
+  it("block の残り行を前の登場人物に付けない", () => {
+    // `kind:` を見た時点で 2 行だけ落とすと、 `色:` と `位置:` が base 側に残り、
+    // 1 つ前の `- Web: service` の続きとして読まれる (実測 = Web が色と位置を持った)
+    const r = extractPartsFromSrc(vertical, catalog, partsItems);
+    expect(r.baseSrc).not.toContain("#f59e0b");
+    expect(r.baseSrc).not.toContain("位置: 300,200");
+    expect(r.baseSrc).toContain("- Web: service");
+  });
+
+  it("縦に並べた形の座標を読む", () => {
+    const r = extractPartsFromSrc(vertical, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]).toMatchObject({ id: "実績", kind: "achievement", posX: 300, posY: 200 });
+  });
+
+  it("縦に並べた形の相対指定を読む", () => {
+    const src = `actors:
+  - Web: service
+  - 実績:
+      kind: achievement
+      位置: Web の右 200
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]!.posRel).toEqual({ anchor: "Web", dir: "right", gap: 200 });
+  });
+
+  it("短い形の `@x,y` を読む", () => {
+    const src = `actors:
+  - Web: service
+  - 時計: achievement @400,500
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]).toMatchObject({ id: "時計", posX: 400, posY: 500 });
+  });
+
+  it("パーツでない block は行を 1 つも落とさない", () => {
+    const src = `actors:
+  - Web:
+      kind: service
+      補足: "x"
+flow:
+  - Web -> Web: "a"
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toEqual([]);
+    expect(r.baseSrc).toBe(src);
+  });
+});
+
+describe("縦に並べた block の項目の順番", () => {
+  it("kind が先頭でなくてもパーツと分かる", () => {
+    // 項目の順番は書く人の自由。 位置で決め打ちすると、 順番を変えただけで
+    // パーツと認識されず図の中に空の箱が出る
+    const src = `actors:
+  - Web: service
+  - 実績:
+      色: "#f59e0b"
+      位置: 300,200
+      kind: achievement
+flow:
+  - Web -> Web: "a"
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]).toMatchObject({ id: "実績", kind: "achievement", posX: 300, posY: 200 });
+    expect(r.baseSrc).not.toContain("実績");
+  });
+});
+
+describe("パーツの実寸 (CSS との対応)", () => {
+  it("画面側の CSS と同じ値を持つ", async () => {
+    // 大きさは editor.css が決めている。 片方だけ変えると、 位置の計算と見た目がずれる
+    const css = await readFile(
+      new URL("../styles/editor.css", import.meta.url),
+      "utf8",
+    );
+    expect(css).toContain(`var(--cdl-svg-w, ${PART_RENDER_W}px)`);
+    expect(css).toContain(`var(--cdl-svg-h, ${PART_RENDER_H}px)`);
+  });
+
+  it("拡大率を掛けた大きさを返す", () => {
+    expect(partRenderSize(1)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
+    expect(partRenderSize(2)).toEqual({ w: PART_RENDER_W * 2, h: PART_RENDER_H * 2 });
+  });
+
+  it("数でない拡大率は 1 として扱う (大きさを 0 にしない)", () => {
+    expect(partRenderSize(Number.NaN)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
+    expect(partRenderSize(0)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
+  });
 });

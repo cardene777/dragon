@@ -32,6 +32,10 @@ export {
   RELATIVE_GAP_DEFAULT,
 } from "./relative-pos";
 export type { RelativePos, RelativeDirection, AnchorBox } from "./relative-pos";
+// 画面で見えている座標を記法に落とすための書込み。 記法を知る側に置く。
+export { writeActorPosition } from "./write-position";
+// 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
+export { measureActorBoxes } from "./compile";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";

@@ -250,7 +250,7 @@ function desiredCenters(
  * 1 人が複数の箱に分かれる図種 (順序図の上端 / 下端) では、 全部を囲む矩形を返す。
  * 箱として現れない登場人物は縦列の矩形で代用する。
  */
-function measureActorBoxes(diagram: CdlDiagram): Map<string, AnchorBox> {
+export function measureActorBoxes(diagram: CdlDiagram): Map<string, AnchorBox> {
   const laid = layout(diagram);
   const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
   for (const n of laid.nodes) {

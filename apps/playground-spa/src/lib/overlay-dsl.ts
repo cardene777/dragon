@@ -4,8 +4,29 @@
  */
 
 import type { CatalogItem } from "@/lib/catalog-items";
+import {
+  parseRelativePos,
+  resolveRelativePos,
+  orderByDependency,
+  type RelativePos,
+  type AnchorBox,
+} from "@cardenelabs/dragon";
 
 export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; item: CatalogItem };
+
+/**
+ * 本文から読んだだけで、 まだ置き場所が決まっていないパーツ。
+ *
+ * 位置を書いていないパーツは格子に並べるが、 その順番は全部読み終わらないと決まらない。
+ * 相対で書いたパーツも、 基準の座標が分かるまで置けない。 読む処理と置く処理を分ける。
+ */
+export type OverlayPartParsed = Omit<OverlayPartRaw, "posX" | "posY"> & {
+  /** 座標で書かれた中心。 書いていなければ undefined */
+  posX?: number;
+  posY?: number;
+  /** 他の要素を基準にして書かれた位置 */
+  posRel?: RelativePos;
+};
 
 /**
  * actor 行 (`  - alias: { ... }`) の parse regex。
@@ -48,6 +69,26 @@ const PART_H = 380;
  */
 const PARTS_TOP = 1000;
 
+/**
+ * パーツ 1 個が図の上で占める大きさ (world 単位)。
+ *
+ * パーツは自分の図として描かれるが、 その大きさは自分の図枠ではなく編集画面の CSS
+ * (`editor.css` の `.v4-editor-svg-wrap svg` の `--cdl-svg-w` / `--cdl-svg-h` の既定値) で
+ * 決まる。 図枠から求めると実際の見た目とずれる (実測 = 図枠 525x500 のパーツが 800x600 で
+ * 描かれていた)。
+ *
+ * 本体の図だけは表示サイズを焼き込む処理が別にあり、 この既定値を上書きする。
+ * `overlay-dsl.test.ts` が CSS 側の値と一致していることを確かめる。
+ */
+export const PART_RENDER_W = 800;
+export const PART_RENDER_H = 600;
+
+/** 拡大率を反映したパーツの大きさ (world 単位)。 中心と左上の変換と、 表示合わせで使う。 */
+export function partRenderSize(scale: number): { w: number; h: number } {
+  const k = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return { w: PART_RENDER_W * k, h: PART_RENDER_H * k };
+}
+
 function autoPartPos(index: number): { posX: number; posY: number } {
   const col = index % PARTS_PER_ROW;
   const row = Math.floor(index / PARTS_PER_ROW);
@@ -56,6 +97,66 @@ function autoPartPos(index: number): { posX: number; posY: number } {
     // 上端を揃えたいので、 段の上端に高さの半分を足して中心にする
     posY: PARTS_TOP + row * (PART_H + PARTS_GAP) + PART_H / 2,
   };
+}
+
+/**
+ * 読んだパーツに置き場所を決める。
+ *
+ * 位置を書いていないパーツは格子に並べる (従来通り)。 座標で書いたパーツと、 相対で書いた
+ * パーツは、 書いた位置に置く。
+ *
+ * 書いた座標は箱の中心を指す。 登場人物の `位置:` と組み立て側のパーツ配置がどちらも中心
+ * なので、 画面側だけ左上にすると同じ数字が別の場所を指すことになる。 画面に置く時に
+ * 大きさの半分を引いて左上に直す。
+ *
+ * @param sizeOf パーツ 1 個の world 単位での大きさ。 中心と左上の変換に使う
+ * @param boxes 基準にできる要素の位置。 図の組み立て結果から測ったもの
+ */
+export function placeParts(
+  parsed: OverlayPartParsed[],
+  boxes: ReadonlyMap<string, AnchorBox>,
+  sizeOf: (part: OverlayPartParsed) => { w: number; h: number },
+): OverlayPartRaw[] {
+  const byId = new Map(parsed.map((p) => [p.id, p] as const));
+  const sizes = new Map(parsed.map((p) => [p.id, sizeOf(p)] as const));
+  // 基準に使える中心。 図の側の要素に、 座標で書いたパーツを足す
+  const centers = new Map<string, AnchorBox>(boxes);
+  for (const p of parsed) {
+    if (p.posX === undefined || p.posY === undefined) continue;
+    const s = sizes.get(p.id)!;
+    centers.set(p.id, { cx: p.posX, cy: p.posY, w: s.w, h: s.h });
+  }
+
+  // 相対で書いた分を、 基準の浅い順に解く
+  const { order } = orderByDependency(parsed.map((p) => ({ name: p.id, rel: p.posRel })));
+  const resolved = new Map<string, { posX: number; posY: number }>();
+  for (const name of order) {
+    const p = byId.get(name);
+    if (!p?.posRel) continue;
+    const anchor = centers.get(p.posRel.anchor);
+    if (!anchor) continue;
+    const s = sizes.get(p.id)!;
+    const c = resolveRelativePos(p.posRel, anchor, s);
+    resolved.set(p.id, c);
+    centers.set(p.id, { cx: c.posX, cy: c.posY, w: s.w, h: s.h });
+  }
+
+  // 格子の番号は「位置を書かなかった分」 だけで数える。 書いた分を数えると、 1 個座標を
+  // 書いただけで残りの並びがずれる
+  let autoIndex = 0;
+  return parsed.map((p) => {
+    const s = sizes.get(p.id)!;
+    const center =
+      p.posX !== undefined && p.posY !== undefined
+        ? { posX: p.posX, posY: p.posY }
+        : resolved.get(p.id);
+    if (!center) {
+      const auto = autoPartPos(autoIndex);
+      autoIndex += 1;
+      return { ...p, posX: auto.posX, posY: auto.posY };
+    }
+    return { ...p, posX: center.posX - s.w / 2, posY: center.posY - s.h / 2 };
+  });
 }
 
 const ACTOR_SHORT_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|[^:\s]+)(\s*:\s*)([^{\s][^{]*)$/;
@@ -142,77 +243,87 @@ export function extractPartsFromSrc(
   src: string,
   partsCatalog: Record<string, unknown>,
   partsItems: CatalogItem[],
-): { baseSrc: string; parts: OverlayPartRaw[] } {
+): { baseSrc: string; parts: OverlayPartParsed[] } {
   const partKindSet = new Set<string>();
   for (const k of Object.keys(partsCatalog)) {
     partKindSet.add(k);
     if (k.startsWith("parts-")) partKindSet.add(k.slice(6));
   }
+  const findItem = (kindValue: string): CatalogItem | undefined =>
+    partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
   const lines = src.split("\n");
   const baseLines: string[] = [];
-  const parts: OverlayPartRaw[] = [];
-  // 縦に並べて書いた形 (`- 実績:` の次行から `kind: achievement`) を読むための持ち越し。
-  // 名前だけの行では種類が分からないので、 続く行で決まるまで覚えておく。
-  let pendingAlias: string | null = null;
-  let pendingIndent = -1;
-  // 名前だけの行は、 パーツかどうかが続く行で決まるまで `baseSrc` に入れない。 先に入れると
-  // パーツと分かった後も残り、 図の中にも空の箱が出る (overlay と二重に描かれる)
-  let pendingHeadLines: string[] = [];
+  const parts: OverlayPartParsed[] = [];
+
+  /**
+   * 縦に並べて書いた 1 件分の持ち越し。
+   *
+   * パーツかどうかは続く `kind:` の行で決まるので、 名前の行を見た時点では判断できない。
+   * 判断が付くまで block 全体を貯めておき、 終わりが来てから振り分ける。
+   *
+   * 以前は `kind:` を見た時点でパーツと判定して名前と種類の 2 行だけを落としていた。 残りの行
+   * (`色:` / `位置:`) は base 側に残り、 1 つ前の登場人物の続きとして読まれていた (実測 =
+   * パーツに書いた色と位置が前の箱に付いた)。 block ごと扱えば取りこぼさない。
+   */
+  let pending: { alias: string; indent: number; lines: string[] } | null = null;
+
+  /** 貯めた block を振り分ける。 パーツなら overlay に、 そうでなければ base に戻す。 */
   const flushPending = (): void => {
-    baseLines.push(...pendingHeadLines);
-    pendingHeadLines = [];
+    if (!pending) return;
+    const block = pending;
+    pending = null;
+    const kindLine = block.lines.find((l) => /^\s*kind\s*:/.test(l));
+    const kindValue = kindLine?.trim().match(/^kind\s*:\s*(\S+)/)?.[1]?.toLowerCase();
+    const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
+    if (!kindValue || !item) {
+      baseLines.push(...block.lines);
+      return;
+    }
+    // 図には overlay として描くので、 図の中に箱は要らない。 block ごと落とす
+    parts.push({
+      id: block.alias,
+      kind: kindValue,
+      item,
+      scale: 1,
+      rotate: 0,
+      ...readPositionFromBlock(block.lines),
+    });
   };
-  // 位置を書かなかったパーツの通し番号。 格子の何番目かを決める
-  let autoIndex = 0;
+
   for (const line of lines) {
-    // 続く字下げ行から種類を拾う
-    if (pendingAlias !== null) {
+    if (pending !== null) {
       const indent = line.length - line.trimStart().length;
-      const m2 = line.trim().match(/^kind\s*:\s*(\S+)/);
-      if (indent > pendingIndent && m2) {
-        const kindValue = m2[1]!.toLowerCase();
-        if (partKindSet.has(kindValue)) {
-          const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
-          if (item) {
-            parts.push({ id: pendingAlias, kind: kindValue, item, ...autoPartPos(autoIndex), scale: 1, rotate: 0 });
-            autoIndex += 1;
-            pendingAlias = null;
-            // 名前の行ごと落とす。 図には overlay として描くので、 図の中に箱は要らない
-            pendingHeadLines = [];
-            continue;
-          }
-        }
-        // パーツではなかったので、 保留していた名前の行を戻す
-        pendingAlias = null;
-        flushPending();
-      } else if (line.trim() === "" || indent > pendingIndent) {
-        // 続きの行 (種類以外) はそのまま
-      } else {
-        pendingAlias = null;
-        flushPending();
+      // 空行と、 名前の行より深い字下げは block の続き
+      if (line.trim() === "" || indent > pending.indent) {
+        pending.lines.push(line);
+        continue;
       }
+      flushPending();
     }
     // 名前だけの行 (`- 実績:`) は、 種類が続く行で決まる
     const head = line.match(/^(\s*)-\s*("(?:[^"\\]|\\.)+"|[^:\s]+)\s*:\s*$/);
     if (head) {
-      flushPending();
-      pendingAlias = unquoteAlias(head[2]!);
-      pendingIndent = head[1]!.length;
-      pendingHeadLines = [line];
+      pending = { alias: unquoteAlias(head[2]!), indent: head[1]!.length, lines: [line] };
       continue;
     }
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
-      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) で、 overlay は既定値で描く
+      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)
       const alias = unquoteAlias(short[2]!);
-      const kindValue = short[4]!.trim().split(/\s+/)[0]!.toLowerCase();
+      const values = short[4]!.trim().split(/\s+/);
+      const kindValue = values[0]!.toLowerCase();
       if (partKindSet.has(kindValue)) {
-        const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
+        const item = findItem(kindValue);
         if (item) {
-          // 座標と大きさは書かない形なので既定値。 位置を変えたい時は入れ子で posX を書く
-          parts.push({ id: alias, kind: kindValue, item, ...autoPartPos(autoIndex), scale: 1, rotate: 0 });
-          autoIndex += 1;
+          parts.push({
+            id: alias,
+            kind: kindValue,
+            item,
+            scale: 1,
+            rotate: 0,
+            ...readAtToken(values),
+          });
           continue;
         }
       }
@@ -239,13 +350,15 @@ export function extractPartsFromSrc(
           // 旧実装は bg を無視していたため、 color picker で DSL に bg を書いても canvas に反映されなかった。
           const bgRaw = readTopLevelField(inner, "bg");
           const bgMatch = bgRaw ? bgRaw.match(/^"([^"]*)"/) : null;
-          const item = partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
+          const item = findItem(kindValue);
           if (item) {
             parts.push({
               id: alias,
               kind: kindValue,
-              posX: posXMatch ? parseFloat(posXMatch[1]!) : 0,
-              posY: posYMatch ? parseFloat(posYMatch[1]!) : 0,
+              // 中括弧の形は座標を直接持つ。 片方だけ書かれた時は書かなかった扱いにする
+              // (縦横 2 つ揃って初めて位置になる)
+              posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
+              posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
               scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               bg: bgMatch ? bgMatch[1]! : undefined,
@@ -258,9 +371,39 @@ export function extractPartsFromSrc(
     }
     baseLines.push(line);
   }
-  // 判定が終わらないまま終端に達した分を戻す
+  // 判定が終わらないまま終端に達した分を振り分ける
   flushPending();
   return { baseSrc: baseLines.join("\n"), parts };
+}
+
+/**
+ * 縦に並べた block から `位置:` を読む。
+ *
+ * 読み方は記法側と同じにする。 座標の形なら中心、 相対の形なら基準と向きを持つ。
+ * どちらでもなければ書かなかった扱い (自動配置) にする。
+ */
+function readPositionFromBlock(
+  lines: string[],
+): { posX?: number; posY?: number; posRel?: RelativePos } {
+  for (const line of lines) {
+    const m = line.trim().match(/^(位置|pos)\s*:\s*(.+)$/);
+    if (!m) continue;
+    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const abs = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+    if (abs) return { posX: Number(abs[1]), posY: Number(abs[2]) };
+    const rel = parseRelativePos(value);
+    if (rel) return { posRel: rel };
+  }
+  return {};
+}
+
+/** 空白区切りの値から `@300,200` を読む。 */
+function readAtToken(values: string[]): { posX?: number; posY?: number } {
+  for (const v of values) {
+    const m = v.match(/^@(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+    if (m) return { posX: Number(m[1]), posY: Number(m[2]) };
+  }
+  return {};
 }
 
 /**
