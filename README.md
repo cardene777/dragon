@@ -174,6 +174,19 @@ animation:
 
 catalog SPA で 380+ 実例を確認可能、 コピペして応用する使い方が標準。
 
+### 箱の色
+
+登場人物に `tone` を書くと、 その箱の色を種類ごとの既定色から変えられる。
+矢印の色 (`(success)`) と同じ名前と別名 (`成功` / `失敗` / `警告` / `情報` / `中立`) を受け付ける。
+
+```yaml
+actors:
+  - 決済API: { kind: service, tone: 失敗 }
+  - 台帳: { kind: storage, tone: success }
+```
+
+全図種で効く。 未知の名前を書いた場合は既定色のままになる。
+
 ## 関連 repo (相互リンク SSOT)
 
 - **[cdl](https://github.com/cardene777/cdl)** ... engine SSOT + layout / routing / rendering

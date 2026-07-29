@@ -68,11 +68,51 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   }
   applyEdgeInlineOptions(diagram, doc);
   applyGroupContainers(diagram, doc);
+  applyNodeTones(diagram, doc);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
   applyCanvasPivotPositions(diagram, doc);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, doc);
   return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+}
+
+/**
+ * 全図種共通の後処理で、 登場人物に書かれた色を対応する箱に載せる。
+ *
+ * 箱を作る経路は図種ごとに違い、 cdl の preset を経由する図種 (流れ図 / ER / 状態遷移 / 構成図)
+ * では preset の入力型が色の項目を持たない。 箱が出来上がった後に id で対応付けることで、
+ * どの図種でも同じ書き方が効く。 座標を伝播する `applyCanvasPivotPositions` と同じ経路。
+ *
+ * 対応付けは登場人物名の slug との完全一致。 順序図だけは 1 人が複数の箱に分かれるため、
+ * 見える箱 (`{slug}-header` / `{slug}-footer`) も対象にする。 不可視の間隔用の箱と
+ * 手順ごとの anchor は色を持っても見えないので対象外。
+ *
+ * 接頭 / 接尾の開いた一致は使わない。 登場人物「client」 の色が「api-client」 の箱に漏れる。
+ */
+function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
+  for (const actor of doc.actors) {
+    if (actor.tone === undefined) continue;
+    // parts は 1 件が複数の箱に展開されるため、 全部を同じ色に塗ると元の配色が壊れる。
+    // 黙って無視すると「書いたのに何も起きない」 になるので知らせる。
+    if (actor.partId !== undefined) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(
+          `[dragon] parts には色を指定できません (登場人物: ${actor.name}、 parts: ${actor.partId})。 色は parts 側の定義で決まります`,
+        );
+      }
+      continue;
+    }
+    const aliasSlug = slugify(actor.name);
+    const targets = new Set([
+      aliasSlug,
+      actor.name,
+      `${aliasSlug}-header`,
+      `${aliasSlug}-footer`,
+    ]);
+    for (const node of diagram.nodes) {
+      if (targets.has(node.id)) node.tone = actor.tone;
+    }
+  }
 }
 
 /**
