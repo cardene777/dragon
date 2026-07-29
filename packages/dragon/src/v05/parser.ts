@@ -421,14 +421,23 @@ function boolOrUndef(s: string | undefined): boolean | undefined {
 /**
  * 色名を解決する。 別名 (`成功` / `neutral` 等) も受け付ける。
  *
- * 未知の値は `undefined` にして既定色に落とす。 矢印の色 (`parseStep`) と同じ扱い。
+ * 未知の値は `undefined` にして既定色に落とす。 箱と矢印で同じ関数を通す。
+ *
+ * 別名表の参照には `Object.hasOwn` を使う。 素の添字だと `toString` / `constructor` /
+ * `valueOf` / `__proto__` が JavaScript の既定の持ち物として引けてしまい、 色名として
+ * 関数やオブジェクトが通る (実測)。 最後に解決結果が正規の色名かも確かめる。
  */
 function toneOrUndef(s: string | undefined): Tone | undefined {
   if (s === undefined) return undefined;
   const raw = stripQuotes(s.trim());
-  const resolved = TONE_ALIAS[raw] ?? TONE_ALIAS[raw.toLowerCase()];
-  if (resolved) return resolved;
-  return TONE_VALID.has(raw.toLowerCase()) ? (raw.toLowerCase() as Tone) : undefined;
+  const lower = raw.toLowerCase();
+  const resolved = Object.hasOwn(TONE_ALIAS, raw)
+    ? TONE_ALIAS[raw]
+    : Object.hasOwn(TONE_ALIAS, lower)
+      ? TONE_ALIAS[lower]
+      : undefined;
+  if (resolved !== undefined && TONE_VALID.has(resolved)) return resolved;
+  return TONE_VALID.has(lower) ? (lower as Tone) : undefined;
 }
 
 /**
@@ -556,7 +565,6 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "stack",
   "initial",
   "final",
-  "tone",
   "state",
   // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
   "posX",
@@ -682,7 +690,8 @@ function parseActor(line: Line): DslActor | null {
       stack: numberOrUndef(opts.stack),
       initial: boolOrUndef(opts.initial),
       final: boolOrUndef(opts.final),
-      tone: toneOrUndef(opts.tone),
+      // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
+      tone: isPart ? undefined : toneOrUndef(opts.tone),
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
       // canvas pivot 新 spec = 絶対座標 field を actor に格納、 compile 経由で CDL に受け渡す
@@ -750,10 +759,13 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   // tone / style 抽出 (末尾 `(...)`)
   const optMatch = rest.match(/\s*\(([^)]*)\)\s*$/);
   if (optMatch) {
-    const opts = (optMatch[1] ?? "").split(",").map((s) => s.trim().toLowerCase());
+    // 小文字化する前の値も渡す。 別名表には日本語 (`成功`) が入っており、 小文字化しても
+    // 変わらないが、 箱と矢印で同じ関数を通すことで受理する色名を一致させる。
+    const opts = (optMatch[1] ?? "").split(",").map((s) => s.trim());
     for (const opt of opts) {
-      if (TONE_VALID.has(opt)) tone = opt as Tone;
-      else if (STYLE_VALID.has(opt)) style = opt as EdgeStyle;
+      const resolvedTone = toneOrUndef(opt);
+      if (resolvedTone !== undefined) tone = resolvedTone;
+      else if (STYLE_VALID.has(opt.toLowerCase())) style = opt.toLowerCase() as EdgeStyle;
     }
     rest = rest.slice(0, optMatch.index ?? 0).trim();
   }

@@ -187,6 +187,8 @@ actors:
 
 全図種で効く。 未知の名前を書いた場合は既定色のままになる。
 
+parts (`kind` に parts の名前を書いたもの) では `tone` は状態の上書きとして扱われ、 色にはならない。
+
 ## 関連 repo (相互リンク SSOT)
 
 - **[cdl](https://github.com/cardene777/cdl)** ... engine SSOT + layout / routing / rendering
