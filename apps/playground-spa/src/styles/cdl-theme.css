@@ -628,15 +628,45 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 /* stroke: none は file 先頭 universal rule (theme prefix なし) で 全 theme 対応済、
    blueprint 個別 stroke rule は削除 (SSOT 一本化、 drift 予防、 CAR-1560)。 */
+
+/* ── edge の色を tone 別に決める (GH #889) ─────────────────────────────────
+ *
+ * cdl は `<g data-cdl-tone="error">` として意味だけを渡し、 色は本 file が決める
+ * (CAR-643 = cdl は形だけ / dragon が見た目)。 以前は theme ごとに 1 色を
+ * `!important` で焼き付けていたため、 因果の向き (警戒 = 赤 / 良好 = 緑) が線から
+ * 読めなかった。
+ *
+ * 色は「元の tone の色相を保ったまま、 紙に対して 4.5:1 を満たす濃さ」 に置いた。
+ * 元の色をそのまま使うと 6 色中 accent (5.55) だけしか 4.5:1 に届かない (実測)。
+ * 同じ明度に揃えるだけでは accent と info が見分けられなくなる (ΔE 16.6 → 5.2 に潰れる)
+ * ため、 彩度も上げて相互の ΔE を 15 以上に保った上で、 元の色から最も離れない組を選んだ。
+ *
+ * 紙の色は画面で実測した。 catalog は明暗どちらでも cream (#fcf8ee)、 editor は
+ * 明 #f8ecd0 / 暗 #1a1408。 cream 用の 1 組で 3 つを賄い、 editor の暗い紙だけ別組。
+ * 実効色は cdl 側の stroke-opacity 0.9 を掛けた後の値で測っている。
+ *
+ * 対象は blueprint のみ。 他 theme (circuit の金 / handdrawn の墨 等) は単色の edge が
+ * 見た目の要なので単色を保つ。 theme ごとの valence 色は個別の設計判断として分ける。
+ * ────────────────────────────────────────────────────────────────────── */
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #6d3f18 !important;
+  stroke: var(--dragon-edge-tone, #6d3f18) !important;
   stroke-width: 4 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: #6d3f18 !important;
-  stroke: #6d3f18 !important;
+  fill: var(--dragon-edge-tone, #6d3f18) !important;
+  stroke: var(--dragon-edge-tone, #6d3f18) !important;
   stroke-width: 2 !important;
 }
+
+/* 明るい紙 (catalog は明暗とも #fcf8ee、 editor の明 #f8ecd0) 用。
+   比は厳しい側 (#f8ecd0) で 4.65-4.67、 #fcf8ee では 5.05-5.09。 丸めの揺れ (描画側の 8bit 量子化で
+   ±0.06 動く) を吸収するため 4.65 を目標に置いた = 4.5 ちょうどを狙うと丸め次第で下回る。 */
+[data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #1a6288; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #006a53; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #096b37; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #9f3d30; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #7b5400; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #00619f; }
 /* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
    上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
    併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
@@ -682,16 +712,28 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
 }
+/* 暗い画面でも紙が cream のまま (catalog) の場所があるため、 色は tone 変数に委ねる。
+   従来は暗い画面で一律 gold #f0b840 にしていたが、 catalog は暗い画面でも紙を cream で
+   保つため gold が cream の上に乗って 1.70:1 まで落ちていた (実測)。 変数側で紙ごとに
+   使い分ける。 fallback の gold は tone を持たない edge 用に残す。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #f0b840 !important;
+  stroke: var(--dragon-edge-tone, #f0b840) !important;
   fill: none !important;
   stroke-width: 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #f0b840 !important;
-  fill: #f0b840 !important;
+  stroke: var(--dragon-edge-tone, #f0b840) !important;
+  fill: var(--dragon-edge-tone, #f0b840) !important;
   stroke-width: 2 !important;
 }
+/* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-5.07、
+   相互の ΔE は 15.4 以上。 selector は cream 用 (0-2-0) より詳しいので上書きになる。 */
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #5793bc; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #409c83; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #4ea36a; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #d86e5c; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #b28539; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #4999dd; }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
