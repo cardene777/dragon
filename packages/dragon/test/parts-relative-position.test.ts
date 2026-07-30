@@ -415,3 +415,134 @@ flow:
     }
   });
 });
+
+describe("パーツの形が変わっても間隔は書いた通り", () => {
+  /** 段と高さを指定して作るパーツ。 */
+  function shaped(id: string, nodes: Array<{ stack: number; h: number }>): CdlDiagram {
+    let b = diagram(id, { topic: id }).lane("l", { width: 400 });
+    nodes.forEach((n, i) => {
+      b = b.node(`n${i}`, { lane: "l", stack: n.stack, kind: "card", title: `n${i}`, w: 400, h: n.h });
+    });
+    return b.build();
+  }
+
+  /**
+   * 一番高い箱の高さと段数から概算すると、 形によって間隔が狂う。
+   * 実測 = 段 5 だけで 750、 段 0 高さ 0.5 で 299.8、 段 0/5 で高さ違いなら 275 になった。
+   */
+  const SHAPES: Array<{ label: string; nodes: Array<{ stack: number; h: number }> }> = [
+    { label: "段 0 のみ", nodes: [{ stack: 0, h: 200 }] },
+    { label: "段 5 のみ", nodes: [{ stack: 5, h: 200 }] },
+    { label: "段 -5 のみ", nodes: [{ stack: -5, h: 200 }] },
+    { label: "高さが極小", nodes: [{ stack: 0, h: 0.5 }] },
+    { label: "段が飛ぶ + 高さ違い", nodes: [{ stack: 0, h: 50 }, { stack: 5, h: 200 }] },
+    { label: "段が連続 + 高さ違い", nodes: [{ stack: 0, h: 300 }, { stack: 1, h: 100 }] },
+    { label: "段が逆順", nodes: [{ stack: 3, h: 100 }, { stack: 1, h: 250 }] },
+  ];
+
+  for (const shape of SHAPES) {
+    it(`${shape.label}: 下に 200 空ける`, () => {
+      const part = shaped("s", shape.nodes);
+      const catalog = { ...CATALOG, s: part, "parts-s": part };
+      const d = textDslToDiagram(
+        `title: "t"
+type: flow
+actors:
+  - Web: service
+  - x:
+      kind: s
+      位置: Web の下 200
+flow:
+  - Web -> Web: "a"
+`,
+        { partsCatalog: catalog },
+      );
+      const laid = layout(d);
+      const span = (pred: (n: { id: string; title?: string }) => boolean): { y0: number; y1: number } => {
+        const ns = laid.nodes.filter(pred);
+        return {
+          y0: Math.min(...ns.map((n) => n.cy - n.h / 2)),
+          y1: Math.max(...ns.map((n) => n.cy + n.h / 2)),
+        };
+      };
+      const web = span((n) => n.title === "Web");
+      const p = span((n) => n.id.includes("__"));
+      expect(p.y0 - web.y1, `${shape.label} の間隔`).toBeCloseTo(200, 0);
+    });
+  }
+});
+
+describe("形が非対称なパーツを基準にする", () => {
+  it("基準の中心のずれを反映する", () => {
+    // 段ごとに高さが違うパーツは、 渡す座標 (段の中心) と矩形の中心がずれる。
+    // 反映しないと基準の位置を取り違えて間隔が狂う
+    const part = diagram("asym", { topic: "asym" })
+      .lane("l", { width: 400 })
+      .node("a", { lane: "l", stack: 0, kind: "card", title: "a", w: 400, h: 50 })
+      .node("b", { lane: "l", stack: 5, kind: "card", title: "b", w: 400, h: 300 })
+      .build();
+    const catalog = { ...CATALOG, asym: part, "parts-asym": part };
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+actors:
+  - 基:
+      kind: asym
+      位置: 2000,2000
+  - 時計:
+      kind: clock
+      位置: 基 の下 150
+flow:
+  - 基 -> 基: "a"
+`,
+      { partsCatalog: catalog },
+    );
+    const laid = layout(d);
+    const span = (prefix: string): { y0: number; y1: number } => {
+      const ns = laid.nodes.filter((n) => n.id.startsWith(`${prefix}__`));
+      return {
+        y0: Math.min(...ns.map((n) => n.cy - n.h / 2)),
+        y1: Math.max(...ns.map((n) => n.cy + n.h / 2)),
+      };
+    };
+    const base = span("基");
+    const clock = span("時計");
+    expect(clock.y0 - base.y1).toBeCloseTo(150, 0);
+  });
+});
+
+describe("catalog の縦列幅が異常で拡大を書いた時", () => {
+  it("拡大の基準が崩れて桁違いの箱にならない", () => {
+    // 生値で bbox を出すと拡大の基準が 1 に落ち、 箱が桁違いに大きくなる
+    // (実測 = 指定間隔 200 が -31800 になった)
+    const broken = diagram("bw", { topic: "bw" })
+      .lane("l", { width: 400 })
+      .node("box", { lane: "l", stack: 0, kind: "card", title: "x", w: 400, h: 300 })
+      .build();
+    (broken.lanes[0] as { width: number }).width = Number.NaN;
+    const catalog = { ...CATALOG, bw: broken, "parts-bw": broken };
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+actors:
+  - Web: service
+  - b:
+      kind: bw
+      位置: Web の右 200
+      大きさ: 800,600
+flow:
+  - Web -> Web: "a"
+`,
+      { partsCatalog: catalog },
+    );
+    const laid = layout(d);
+    const part = laid.nodes.filter((n) => n.id.includes("__"));
+    for (const n of part) {
+      expect(n.w).toBeLessThan(10000);
+      expect(Number.isFinite(n.cx)).toBe(true);
+    }
+    const web = laid.nodes.find((n) => n.title === "Web")!;
+    const x0 = Math.min(...part.map((n) => n.cx - n.w / 2));
+    expect(x0 - (web.cx + web.w / 2)).toBeCloseTo(200, 0);
+  });
+});

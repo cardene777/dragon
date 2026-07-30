@@ -202,12 +202,20 @@ function resolveRelativeDoc(
   if (partsCatalog) {
     for (const [name, box] of partBoxes(diagram, doc, partsCatalog)) baseBoxes.set(name, box);
   }
-  const sizeOverride = partsCatalog ? partSizes(doc, partsCatalog) : new Map<string, { w: number; h: number }>();
+  const sizeOverride = partsCatalog
+    ? partSizes(doc, partsCatalog)
+    : new Map<string, { w: number; h: number; dx: number; dy: number }>();
   const want = desiredCenters(doc, baseBoxes, sizeOverride);
   if (want.size === 0) return doc;
 
-  // 2. 狙った中心をそのまま座標として仮に置く
-  const naive = new Map([...want].map(([name, c]) => [name, { posX: c.cx, posY: c.cy }] as const));
+  // 2. 狙った中心をそのまま座標として仮に置く。
+  //    パーツは渡す座標が段の中心なので、 矩形の中心とのずれを引く
+  const naive = new Map(
+    [...want].map(([name, c]) => {
+      const off = sizeOverride.get(name);
+      return [name, { posX: c.cx - (off?.dx ?? 0), posY: c.cy - (off?.dy ?? 0) }] as const;
+    }),
+  );
 
   // 3. 測り直して、 狙いとの差を足す。
   //
@@ -329,6 +337,7 @@ function desiredCenters(
   boxes: ReadonlyMap<string, AnchorBox>,
   sizeOverride: ReadonlyMap<string, { w: number; h: number }> = new Map(),
 ): Map<string, AnchorBox> {
+  // 大きさだけを見る。 中心のずれは呼ぶ側が座標に直す時に引く
   const byName = new Map(doc.actors.map((a) => [a.name, a] as const));
   const { order } = orderByDependency(doc.actors.map((a) => ({ name: a.name, rel: a.posRel })));
   // 基準に使う中心。 相対で書かれていない分は測った位置をそのまま使う
@@ -539,30 +548,51 @@ function lookupPart(
  */
 const PART_STACK_PITCH = 220;
 
+/**
+ * 箱の大きさを書かなかった時に cdl が使う値。
+ *
+ * 幅は実測で 340 固定 (縦列の幅を変えても変わらない)。 高さは種類で変わるため、 よく使われる
+ * 値を既定にする。 パーツの図が大きさを書いていれば、 こちらは使われない。
+ */
+const CDL_DEFAULT_NODE_W = 340;
+const CDL_DEFAULT_NODE_H = 200;
+
 /** 有限で正の数だけを通す。 catalog は呼出側が渡す値なので、 異常値を計算に入れない。 */
 function positiveOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-/** 配列の最大値 / 最小値。 spread で展開しない (要素数が多い catalog で stack が溢れる)。 */
+/**
+ * 配列の最大値 / 最小値。 spread で展開しない (要素数が多い catalog で stack が溢れる)。
+ *
+ * 空の時だけ既定値を返す。 既定値を初期値にすると、 全要素が既定値より小さい (大きい) 時に
+ * 存在しない値を範囲に含める (実測 = stack 5 だけのパーツで 0 を含め、 高さが 5 段分になった)。
+ */
 function maxOf(values: readonly number[], fallback: number): number {
-  let out = fallback;
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
   for (const v of values) if (v > out) out = v;
   return out;
 }
 
 function minOf(values: readonly number[], fallback: number): number {
-  let out = fallback;
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
   for (const v of values) if (v < out) out = v;
   return out;
 }
 
 /**
- * パーツ 1 個が図の上で占める大きさ。
+ * パーツ 1 個が図の上で占める外接矩形。
  *
- * merge が実際に組み立てる形と同じ規則で求める。 一番高い箱の高さだけで見ると、 段を持つ
- * パーツで実際の高さを取り違える (実測 = 2 段 400x200 のパーツの実高は 420、 200 と見ると
- * 間隔が 110 狭くなった)。
+ * `w` / `h` は大きさ、 `dx` / `dy` は矩形の中心が「merge に渡す座標」 からどれだけずれるか。
+ *
+ * merge がパーツを置く時に基準にするのは段の中心で、 外接矩形の中心とは一致しない。 段ごとに
+ * 箱の高さが違うと、 上下の伸び方が非対称になるため (実測 = 段 0 に高さ 50、 段 5 に高さ 200 の
+ * パーツで中心が 37.5 下にずれる)。 ずれを返して呼ぶ側が引く。
+ *
+ * 箱ごとに位置と大きさを見る。 一番高い箱の高さと段の数から概算すると実際の矩形と合わない
+ * (実測 = 段 5 だけのパーツで 200 空けたいところが 750、 段 0,5 で高さが違うと 275 になった)。
  *
  * `大きさ:` を書いた時の拡大も反映する。 merge は幅を `targetW / bbox 幅`、 高さを
  * `targetH / 段の総高` の比で拡大するため、 同じ比を掛ける。
@@ -571,36 +601,66 @@ function partExtent(
   part: CdlDiagram,
   targetW?: number,
   targetH?: number,
-): { w: number; h: number } {
-  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return { w: 400, h: 200 };
-  const laneRights: number[] = [];
+): { w: number; h: number; dx: number; dy: number } {
+  const fallback = { w: 400, h: 200, dx: 0, dy: 0 };
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return fallback;
+  if (part.nodes.length === 0) return fallback;
+
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値なので、 数でない値を計算に入れない
+  const lanes = new Map<string, { x: number; w: number }>();
   const laneLefts: number[] = [];
+  const laneRights: number[] = [];
   for (const l of part.lanes) {
     const x = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
-    const width = positiveOr(l.width, 400);
+    const w = positiveOr(l.width, 400);
+    lanes.set(l.id, { x, w });
     laneLefts.push(x);
-    laneRights.push(x + width);
+    laneRights.push(x + w);
   }
-  const rawW =
-    laneRights.length > 0
-      ? maxOf(laneRights, Number.NEGATIVE_INFINITY) - minOf(laneLefts, Number.POSITIVE_INFINITY)
-      : 400;
-  const bboxW = positiveOr(rawW, 400);
+  const bboxW = positiveOr(
+    maxOf(laneRights, 400) - minOf(laneLefts, 0),
+    400,
+  );
+  const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
   const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
 
-  const stacks = part.nodes.map((n) => (typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0));
+  const stacks = part.nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
   const maxStack = maxOf(stacks, 0);
   const minStack = minOf(stacks, 0);
+  const centerStack = (minStack + maxStack) / 2;
   const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
   const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
-  const maxNodeH = maxOf(
-    part.nodes.map((n) => positiveOr(n.h, 200)),
-    200,
-  );
-  // 段の間は送り幅で開き、 両端は箱の高さの分だけ広がる
-  const h = (maxStack - minStack) * PART_STACK_PITCH * scaleY + maxNodeH * scaleY;
 
-  return { w: bboxW * scaleX, h: positiveOr(h, 200) };
+  // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
+  const tops: number[] = [];
+  const bottoms: number[] = [];
+  const lefts: number[] = [];
+  const rights: number[] = [];
+  part.nodes.forEach((n, i) => {
+    const lane = lanes.get(n.lane) ?? { x: 0, w: 320 };
+    const cx = (lane.x + lane.w / 2 - bboxCenterX) * scaleX;
+    const cy = ((stacks[i] ?? 0) - centerStack) * PART_STACK_PITCH * scaleY;
+    const halfW = (positiveOr(n.w, CDL_DEFAULT_NODE_W) * scaleX) / 2;
+    const halfH = (positiveOr(n.h, CDL_DEFAULT_NODE_H) * scaleY) / 2;
+    lefts.push(cx - halfW);
+    rights.push(cx + halfW);
+    tops.push(cy - halfH);
+    bottoms.push(cy + halfH);
+  });
+  const x0 = minOf(lefts, 0);
+  const x1 = maxOf(rights, 400);
+  const y0 = minOf(tops, 0);
+  const y1 = maxOf(bottoms, 200);
+
+  return {
+    w: positiveOr(x1 - x0, 400),
+    h: positiveOr(y1 - y0, 200),
+    // 基準 (0,0) から見た矩形の中心
+    dx: Number.isFinite((x0 + x1) / 2) ? (x0 + x1) / 2 : 0,
+    dy: Number.isFinite((y0 + y1) / 2) ? (y0 + y1) / 2 : 0,
+  };
 }
 
 /** 格子に並べる時の 1 行あたりの個数と隙間。 */
@@ -648,7 +708,7 @@ function partGridCenters(
 
   const sizes = autoActors.map((a) => {
     const part = lookupPart(partsCatalog, a.partId);
-    return part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200 };
+    return part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200, dx: 0, dy: 0 };
   });
   // 列の送り幅は全体の最大幅で揃える
   const cellW = Math.max(1, ...sizes.map((s) => s.w));
@@ -665,23 +725,28 @@ function partGridCenters(
   autoActors.forEach((a, i) => {
     const col = i % PARTS_PER_ROW;
     const row = Math.floor(i / PARTS_PER_ROW);
-    out.set(a.name, {
-      // 横は共通の送り幅で送る。 自分の幅で送ると幅の違うパーツが隣と重なる
-      cx: col * (cellW + PARTS_GAP) + cellW / 2,
-      // 縦は自分の高さの半分だけ段の上端から下げる。 段の高さで下げると、 低いパーツの
-      // 上端が段の上端より下に来て段内でばらつく (実測 = 520 / 560 / 520 に散った)
-      cy: (rowTops[row] ?? autoPlacedTop) + (sizes[i]?.h ?? 200) / 2,
-    });
+    const size = sizes[i] ?? { w: 400, h: 200, dx: 0, dy: 0 };
+    // 矩形をどこに置きたいか
+    const wantCx = col * (cellW + PARTS_GAP) + cellW / 2;
+    // 縦は自分の高さの半分だけ段の上端から下げる。 段の高さで下げると、 低いパーツの
+    // 上端が段の上端より下に来て段内でばらつく (実測 = 520 / 560 / 520 に散った)
+    const wantCy = (rowTops[row] ?? autoPlacedTop) + size.h / 2;
+    // merge に渡すのは段の中心。 矩形の中心とのずれを引く
+    out.set(a.name, { cx: wantCx - size.dx, cy: wantCy - size.dy });
   });
   return out;
 }
 
-/** パーツごとの実寸 (catalog 由来)。 相対指定を解く時に自分の大きさとして使う。 */
+/**
+ * パーツごとの外接矩形 (catalog 由来)。 相対指定を解く時に自分の大きさとして使う。
+ *
+ * `dx` / `dy` は矩形の中心と merge に渡す座標のずれ。 狙った中心から引いて座標にする。
+ */
 function partSizes(
   doc: DslDocument,
   partsCatalog: Record<string, CdlDiagram>,
-): Map<string, { w: number; h: number }> {
-  const out = new Map<string, { w: number; h: number }>();
+): Map<string, { w: number; h: number; dx: number; dy: number }> {
+  const out = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of doc.actors) {
     if (a.partId === undefined) continue;
     const part = lookupPart(partsCatalog, a.partId);
@@ -708,13 +773,14 @@ function partBoxes(
     const part = lookupPart(partsCatalog, a.partId);
     if (!part) continue;
     const size = partExtent(part, a.posW, a.posH);
-    const center =
+    const placed =
       a.posX !== undefined && a.posY !== undefined
         ? { cx: a.posX, cy: a.posY }
         : grid.get(a.name);
     // 相対で書いた分はここでは決まらない (解決側が後で埋める)
-    if (!center) continue;
-    out.set(a.name, { cx: center.cx, cy: center.cy, w: size.w, h: size.h });
+    if (!placed) continue;
+    // 渡す座標は段の中心。 矩形の中心はそこからずれる
+    out.set(a.name, { cx: placed.cx + size.dx, cy: placed.cy + size.dy, w: size.w, h: size.h });
   }
   return out;
 }
@@ -938,12 +1004,19 @@ function mergePartIntoDiagram(
   // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
   // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
   // 中心からずれる (#880)。
-  const partMinLaneX = part.lanes.length > 0
-    ? Math.min(...part.lanes.map((l) => l.x ?? 0))
-    : 0;
-  const partMaxLaneRight = part.lanes.length > 0
-    ? Math.max(...part.lanes.map((l) => (l.x ?? 0) + l.width))
-    : 400;
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値で、 生値のまま bbox を出すと
+  // 拡大の基準が 1 に落ちて箱が桁違いに大きくなる (実測 = 指定間隔 200 が -31800 になった)
+  const partLaneGeom = new Map<string, { x: number; w: number }>();
+  for (const l of part.lanes) {
+    partLaneGeom.set(l.id, {
+      x: typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0,
+      w: positiveOr(l.width, 400),
+    });
+  }
+  const laneXs = [...partLaneGeom.values()].map((g) => g.x);
+  const laneRights = [...partLaneGeom.values()].map((g) => g.x + g.w);
+  const partMinLaneX = minOf(laneXs, 0);
+  const partMaxLaneRight = maxOf(laneRights, 400);
   // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
   // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
   // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
@@ -968,14 +1041,13 @@ function mergePartIntoDiagram(
       // lane の左端を mapLaneX で変換 = 元 lane 左端 (x) を scale 変換後の位置に置く。 lane 幅も
       // scale して lane 中心が mapLaneX(元 lane 中心) に一致する。 これで multi-lane でも各 lane が
       // part 全体の scale 変換に沿って配置される。
+      const geom = partLaneGeom.get(laneOrig.id) ?? { x: 0, w: 400 };
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
-        x: mapLaneX(laneOrig.x ?? 0),
-        // catalog は呼出側が渡す値。 幅が数でないとここから先の座標が全て非有限になり、
-        // 図が描けなくなる (実測 = 箱の中心が NaN になった)
-        width: positiveOr(laneOrig.width, 400) * laneScaleX,
+        x: mapLaneX(geom.x),
+        width: geom.w * laneScaleX,
       });
     }
   }
@@ -1061,11 +1133,8 @@ function mergePartIntoDiagram(
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
       // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
-      const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
-      const laneX = typeof partLane?.x === "number" && Number.isFinite(partLane.x) ? partLane.x : 0;
-      // 幅は catalog 由来。 数でない値をそのまま使うと座標が非有限になる (実測 = 中心が NaN)
-      const laneW = positiveOr(partLane?.width, 320);
-      nodePosX = mapLaneX(laneX + laneW / 2);
+      const geom = partLaneGeom.get(nodeOrig.lane) ?? { x: 0, w: 320 };
+      nodePosX = mapLaneX(geom.x + geom.w / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
