@@ -23,7 +23,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 // ============================================================
 // parts 1: 波打つ矩形ゲージ (dyn-wave)
 // ============================================================
-export const partsWaveGauge = diagram("parts-wave-gauge", {
+export const partsWaveGauge = diagram("parts-wave-gauge", { structuredData: "exclude",
   topic: "波打つ矩形ゲージ — 液面 metaphor",
 })
   .lane("l", { x: 0, width: 400 })
@@ -58,7 +58,7 @@ export const partsStackedLayer = diagram("parts-stacked-layer", {
 // ============================================================
 // parts 3: 状態インジケーター (色遷移する大 circle)
 // ============================================================
-export const partsStateIndicator = diagram("parts-state-indicator", {
+export const partsStateIndicator = diagram("parts-state-indicator", { structuredData: "exclude",
   topic: "状態インジケーター — 単一大 shape の色で状態表現",
 })
   .lane("l", { x: 0, width: 380 })
@@ -72,7 +72,7 @@ export const partsStateIndicator = diagram("parts-state-indicator", {
 // ============================================================
 // parts 4: 横進捗バー (fill が左→右)
 // ============================================================
-export const partsHorizontalBar = diagram("parts-horizontal-bar", {
+export const partsHorizontalBar = diagram("parts-horizontal-bar", { structuredData: "exclude",
   topic: "横進捗バー — 左→右に fill",
 })
   .lane("l", { x: 0, width: 600 })
@@ -86,7 +86,7 @@ export const partsHorizontalBar = diagram("parts-horizontal-bar", {
 // ============================================================
 // parts 5: アークゲージ (円弧 % 表現)
 // ============================================================
-export const partsArcGauge = diagram("parts-arc-gauge", {
+export const partsArcGauge = diagram("parts-arc-gauge", { structuredData: "exclude",
   topic: "アークゲージ — 円弧で 0-100% 表現",
 })
   .lane("l", { x: 0, width: 380 })
@@ -100,7 +100,7 @@ export const partsArcGauge = diagram("parts-arc-gauge", {
 // ============================================================
 // parts 6: カウンタ表示 (actor + subtitle template)
 // ============================================================
-export const partsCounterActor = diagram("parts-counter-actor", {
+export const partsCounterActor = diagram("parts-counter-actor", { structuredData: "exclude",
   topic: "カウンタ表示 — 数値 live",
 })
   .lane("l", { x: 0, width: 320 })
@@ -156,7 +156,7 @@ export const partsCircleSizeRace = diagram("parts-circle-size-race", {
 // ============================================================
 // parts 9: パーセントリング (readout)
 // ============================================================
-export const partsPercentRing = diagram("parts-percent-ring", {
+export const partsPercentRing = diagram("parts-percent-ring", { structuredData: "exclude",
   topic: "パーセントリング — 0-100% を ring 表示",
 })
   .lane("l", { x: 0, width: 300 })
@@ -170,7 +170,7 @@ export const partsPercentRing = diagram("parts-percent-ring", {
 // ============================================================
 // parts 10: カウントアップ (readout)
 // ============================================================
-export const partsCountup = diagram("parts-countup", {
+export const partsCountup = diagram("parts-countup", { structuredData: "exclude",
   topic: "カウントアップ — 数値 live 表示",
 })
   .lane("l", { x: 0, width: 300 })
@@ -209,7 +209,7 @@ export const partsEdgeChain = diagram("parts-edge-chain", {
 // ============================================================
 // parts 12: バケット貯留 (大 wave rectangle)
 // ============================================================
-export const partsBucketReservoir = diagram("parts-bucket-reservoir", {
+export const partsBucketReservoir = diagram("parts-bucket-reservoir", { structuredData: "exclude",
   topic: "バケット貯留 — 大 wave rectangle 容器",
 })
   .lane("l", { x: 0, width: 440 })
@@ -223,7 +223,7 @@ export const partsBucketReservoir = diagram("parts-bucket-reservoir", {
 // ============================================================
 // parts 13: スパークライン (readout、 履歴 trend)
 // ============================================================
-export const partsSparkline = diagram("parts-sparkline", {
+export const partsSparkline = diagram("parts-sparkline", { structuredData: "exclude",
   topic: "スパークライン — 数値履歴 trend",
 })
   .lane("l", { x: 0, width: 400 })
@@ -237,7 +237,7 @@ export const partsSparkline = diagram("parts-sparkline", {
 // ============================================================
 // parts 14: ドーナツチャート (readout、 N segment pie)
 // ============================================================
-export const partsDonut = diagram("parts-donut", {
+export const partsDonut = diagram("parts-donut", { structuredData: "exclude",
   topic: "ドーナツチャート — N segment 割合表示",
 })
   .lane("l", { x: 0, width: 300 })
@@ -251,7 +251,7 @@ export const partsDonut = diagram("parts-donut", {
 // ============================================================
 // parts 15: レーダーポリゴン (readout、 N 軸 polygon)
 // ============================================================
-export const partsRadar = diagram("parts-radar", {
+export const partsRadar = diagram("parts-radar", { structuredData: "exclude",
   topic: "レーダーポリゴン — N 軸 polygon balance",
 })
   .lane("l", { x: 0, width: 320 })
@@ -265,7 +265,7 @@ export const partsRadar = diagram("parts-radar", {
 // ============================================================
 // parts 16: ステップ進捗 (readout、 wizard step)
 // ============================================================
-export const partsStepProgress = diagram("parts-step-progress", {
+export const partsStepProgress = diagram("parts-step-progress", { structuredData: "exclude",
   topic: "ステップ進捗 — 番号付き wizard step",
 })
   .lane("l", { x: 0, width: 500 })
@@ -280,7 +280,7 @@ export const partsStepProgress = diagram("parts-step-progress", {
 // ============================================================
 // parts 17: ステータスドット (readout、 状態別色)
 // ============================================================
-export const partsStatusDot = diagram("parts-status-dot", {
+export const partsStatusDot = diagram("parts-status-dot", { structuredData: "exclude",
   topic: "ステータスドット — 小 dot で状態表示",
 })
   .lane("l", { x: 0, width: 300 })
@@ -298,7 +298,7 @@ export const partsStatusDot = diagram("parts-status-dot", {
 // ============================================================
 // parts 18: 通知カード (readout、 4 kind alert)
 // ============================================================
-export const partsNotification = diagram("parts-notification", {
+export const partsNotification = diagram("parts-notification", { structuredData: "exclude",
   topic: "通知カード — 4 kind (info/warn/error/success)",
 })
   .lane("l", { x: 0, width: 500 })
@@ -314,7 +314,7 @@ export const partsNotification = diagram("parts-notification", {
 // ============================================================
 // parts 19: KPI カード (readout、 数値 + delta + sparkline)
 // ============================================================
-export const partsKpiCard = diagram("parts-kpi-card", {
+export const partsKpiCard = diagram("parts-kpi-card", { structuredData: "exclude",
   topic: "KPI カード — 数値 + delta + mini sparkline",
 })
   .lane("l", { x: 0, width: 400 })
@@ -330,7 +330,7 @@ export const partsKpiCard = diagram("parts-kpi-card", {
 // ============================================================
 // parts 20: タイムライン帯 (readout、 時系列 status band)
 // ============================================================
-export const partsTimelineStrip = diagram("parts-timeline-strip", {
+export const partsTimelineStrip = diagram("parts-timeline-strip", { structuredData: "exclude",
   topic: "タイムライン帯 — 時系列 status band",
 })
   .lane("l", { x: 0, width: 600 })
@@ -344,7 +344,7 @@ export const partsTimelineStrip = diagram("parts-timeline-strip", {
 // ============================================================
 // parts 21: バッテリー残量 (dyn-rect + subtitle live)
 // ============================================================
-export const partsBatteryLevel = diagram("parts-battery-level", {
+export const partsBatteryLevel = diagram("parts-battery-level", { structuredData: "exclude",
   topic: "バッテリー残量 — 縦 fill で残量 metaphor",
 })
   .lane("l", { x: 0, width: 300 })
@@ -358,7 +358,7 @@ export const partsBatteryLevel = diagram("parts-battery-level", {
 // ============================================================
 // parts 22: 温度計 (dyn-rect vertical + 単位表示)
 // ============================================================
-export const partsThermometer = diagram("parts-thermometer", {
+export const partsThermometer = diagram("parts-thermometer", { structuredData: "exclude",
   topic: "温度計 — 縦棒温度で連続値 metaphor",
 })
   .lane("l", { x: 0, width: 260 })
@@ -372,7 +372,7 @@ export const partsThermometer = diagram("parts-thermometer", {
 // ============================================================
 // parts 23: 心拍波形 (readout sparkline + 単位)
 // ============================================================
-export const partsHeartbeat = diagram("parts-heartbeat", {
+export const partsHeartbeat = diagram("parts-heartbeat", { structuredData: "exclude",
   topic: "心拍波形 — sparkline で pulse 表現",
 })
   .lane("l", { x: 0, width: 500 })
@@ -413,7 +413,7 @@ export const partsRatingStars = diagram("parts-rating-stars", {
 // ============================================================
 // parts 25: 対比バー (A vs B、 2 dyn-rect 横並び)
 // ============================================================
-export const partsComparisonBars = diagram("parts-comparison-bars", {
+export const partsComparisonBars = diagram("parts-comparison-bars", { structuredData: "exclude",
   topic: "対比バー — A vs B の数値比較",
 })
   .lane("la", { x: 0, width: 260 })
@@ -431,7 +431,7 @@ export const partsComparisonBars = diagram("parts-comparison-bars", {
 // ============================================================
 // parts 26: トグルスイッチ (2 state 色 + 位置 metaphor)
 // ============================================================
-export const partsToggleSwitch = diagram("parts-toggle-switch", {
+export const partsToggleSwitch = diagram("parts-toggle-switch", { structuredData: "exclude",
   topic: "トグルスイッチ — on/off 状態表示",
 })
   .lane("l", { x: 0, width: 400 })
@@ -445,7 +445,7 @@ export const partsToggleSwitch = diagram("parts-toggle-switch", {
 // ============================================================
 // parts 27: スピードメーター (dyn-arc で 0-180 km/h)
 // ============================================================
-export const partsSpeedometer = diagram("parts-speedometer", {
+export const partsSpeedometer = diagram("parts-speedometer", { structuredData: "exclude",
   topic: "スピードメーター — 円弧針で速度表示",
 })
   .lane("l", { x: 0, width: 400 })
@@ -459,7 +459,7 @@ export const partsSpeedometer = diagram("parts-speedometer", {
 // ============================================================
 // parts 28: バッジカウント (countup + 通知強調)
 // ============================================================
-export const partsBadgeCount = diagram("parts-badge-count", {
+export const partsBadgeCount = diagram("parts-badge-count", { structuredData: "exclude",
   topic: "バッジカウント — 未読数の visual 強調",
 })
   .lane("l", { x: 0, width: 380 })
@@ -473,7 +473,7 @@ export const partsBadgeCount = diagram("parts-badge-count", {
 // ============================================================
 // parts 29: パルス指標 (rate の visual 表現)
 // ============================================================
-export const partsPulseIndicator = diagram("parts-pulse-indicator", {
+export const partsPulseIndicator = diagram("parts-pulse-indicator", { structuredData: "exclude",
   topic: "パルス指標 — レート visualization",
 })
   .lane("l", { x: 0, width: 400 })
@@ -510,7 +510,7 @@ export const partsGaugeCluster = diagram("parts-gauge-cluster", {
 // ============================================================
 // parts 31: デジタル時計 (countup HH:MM 表示)
 // ============================================================
-export const partsDigitalClock = diagram("parts-digital-clock", {
+export const partsDigitalClock = diagram("parts-digital-clock", { structuredData: "exclude",
   topic: "デジタル時計 — 時分の数値 live 表示",
 })
   .lane("l", { x: 0, width: 500 })
@@ -524,7 +524,7 @@ export const partsDigitalClock = diagram("parts-digital-clock", {
 // ============================================================
 // parts 32: カウントダウン (dyn-arc 円弧が減少)
 // ============================================================
-export const partsCountdown = diagram("parts-countdown", {
+export const partsCountdown = diagram("parts-countdown", { structuredData: "exclude",
   topic: "カウントダウン — 残り時間の円弧",
 })
   .lane("l", { x: 0, width: 400 })
@@ -538,7 +538,7 @@ export const partsCountdown = diagram("parts-countdown", {
 // ============================================================
 // parts 33: メッセージ吹き出し (dyn-rect + subtitle)
 // ============================================================
-export const partsMessageBubble = diagram("parts-message-bubble", {
+export const partsMessageBubble = diagram("parts-message-bubble", { structuredData: "exclude",
   topic: "メッセージ吹き出し — chat bubble",
 })
   .lane("l", { x: 0, width: 500 })
@@ -551,7 +551,7 @@ export const partsMessageBubble = diagram("parts-message-bubble", {
 // ============================================================
 // parts 34: ユーザーアバター (大 dyn-circle)
 // ============================================================
-export const partsUserAvatar = diagram("parts-user-avatar", {
+export const partsUserAvatar = diagram("parts-user-avatar", { structuredData: "exclude",
   topic: "ユーザーアバター — 大円で user icon",
 })
   .lane("l", { x: 0, width: 380 })
@@ -565,7 +565,7 @@ export const partsUserAvatar = diagram("parts-user-avatar", {
 // ============================================================
 // parts 35: 料金カード (KPI card variant with unit)
 // ============================================================
-export const partsPriceCard = diagram("parts-price-card", {
+export const partsPriceCard = diagram("parts-price-card", { structuredData: "exclude",
   topic: "料金カード — 価格 + 単位",
 })
   .lane("l", { x: 0, width: 500 })
@@ -581,7 +581,7 @@ export const partsPriceCard = diagram("parts-price-card", {
 // ============================================================
 // parts 36: ディスク使用率 (arc + %)
 // ============================================================
-export const partsDiskUsage = diagram("parts-disk-usage", {
+export const partsDiskUsage = diagram("parts-disk-usage", { structuredData: "exclude",
   topic: "ディスク使用率 — 使用量の弧",
 })
   .lane("l", { x: 0, width: 400 })
@@ -595,7 +595,7 @@ export const partsDiskUsage = diagram("parts-disk-usage", {
 // ============================================================
 // parts 37: 上下帯域 (2 dyn-rect で up/down 速度)
 // ============================================================
-export const partsBandwidthMeter = diagram("parts-bandwidth-meter", {
+export const partsBandwidthMeter = diagram("parts-bandwidth-meter", { structuredData: "exclude",
   topic: "上下帯域 — up/down 速度メーター",
 })
   .lane("la", { x: 0, width: 240 })
@@ -613,7 +613,7 @@ export const partsBandwidthMeter = diagram("parts-bandwidth-meter", {
 // ============================================================
 // parts 38: 天気アイコン (色付き大 circle で状態表現)
 // ============================================================
-export const partsWeatherIcon = diagram("parts-weather-icon", {
+export const partsWeatherIcon = diagram("parts-weather-icon", { structuredData: "exclude",
   topic: "天気アイコン — 天気状態を色で表現",
 })
   .lane("l", { x: 0, width: 380 })
@@ -627,7 +627,7 @@ export const partsWeatherIcon = diagram("parts-weather-icon", {
 // ============================================================
 // parts 39: 波形 3 連 (3 sparkline 同時、 CPU/MEM/NET trend)
 // ============================================================
-export const partsMultiSparkline = diagram("parts-multi-sparkline", {
+export const partsMultiSparkline = diagram("parts-multi-sparkline", { structuredData: "exclude",
   topic: "波形 3 連 — 3 指標の trend 同時表示",
 })
   .lane("l", { x: 0, width: 600 })
@@ -667,7 +667,7 @@ export const partsProgressDots = diagram("parts-progress-dots", {
 // ============================================================
 // parts 41: 音量メーター (dyn-wave で音量 metaphor)
 // ============================================================
-export const partsVolumeMeter = diagram("parts-volume-meter", {
+export const partsVolumeMeter = diagram("parts-volume-meter", { structuredData: "exclude",
   topic: "音量メーター — 音量 metaphor",
 })
   .lane("l", { x: 0, width: 400 })
@@ -681,7 +681,7 @@ export const partsVolumeMeter = diagram("parts-volume-meter", {
 // ============================================================
 // parts 42: 進捗 6 段階 (step progress 6 stage)
 // ============================================================
-export const partsProgressLong = diagram("parts-progress-long", {
+export const partsProgressLong = diagram("parts-progress-long", { structuredData: "exclude",
   topic: "進捗 6 段階 — 長い wizard flow",
 })
   .lane("l", { x: 0, width: 700 })
@@ -696,7 +696,7 @@ export const partsProgressLong = diagram("parts-progress-long", {
 // ============================================================
 // parts 43: 予算残り (dyn-rect + subtitle percent)
 // ============================================================
-export const partsBudgetUsage = diagram("parts-budget-usage", {
+export const partsBudgetUsage = diagram("parts-budget-usage", { structuredData: "exclude",
   topic: "予算消化率 — 使用量の visual",
 })
   .lane("l", { x: 0, width: 500 })
@@ -710,7 +710,7 @@ export const partsBudgetUsage = diagram("parts-budget-usage", {
 // ============================================================
 // parts 44: ステータス timeline (statusTimeline readout)
 // ============================================================
-export const partsStatusTimelineWeek = diagram("parts-status-timeline-week", {
+export const partsStatusTimelineWeek = diagram("parts-status-timeline-week", { structuredData: "exclude",
   topic: "週間 status timeline — 7 日分の状態帯",
 })
   .lane("l", { x: 0, width: 700 })
@@ -751,7 +751,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
 // ============================================================
 // parts 46: ショッピングカート (数量 subtitle live)
 // ============================================================
-export const partsShoppingCart = diagram("parts-shopping-cart", {
+export const partsShoppingCart = diagram("parts-shopping-cart", { structuredData: "exclude",
   topic: "ショッピングカート — 商品数 live",
 })
   .lane("l", { x: 0, width: 400 })
@@ -765,7 +765,7 @@ export const partsShoppingCart = diagram("parts-shopping-cart", {
 // ============================================================
 // parts 47: メール受信箱 (未読 badge)
 // ============================================================
-export const partsMailInbox = diagram("parts-mail-inbox", {
+export const partsMailInbox = diagram("parts-mail-inbox", { structuredData: "exclude",
   topic: "メール受信箱 — 未読 badge",
 })
   .lane("l", { x: 0, width: 380 })
@@ -779,7 +779,7 @@ export const partsMailInbox = diagram("parts-mail-inbox", {
 // ============================================================
 // parts 48: 位置ピン (map pin metaphor)
 // ============================================================
-export const partsLocationPin = diagram("parts-location-pin", {
+export const partsLocationPin = diagram("parts-location-pin", { structuredData: "exclude",
   topic: "位置ピン — 現在位置 metaphor",
 })
   .lane("l", { x: 0, width: 380 })
@@ -793,7 +793,7 @@ export const partsLocationPin = diagram("parts-location-pin", {
 // ============================================================
 // parts 49: 通知ベル (alert badge with pulse)
 // ============================================================
-export const partsBellNotification = diagram("parts-bell-notification", {
+export const partsBellNotification = diagram("parts-bell-notification", { structuredData: "exclude",
   topic: "通知ベル — 新着 alert",
 })
   .lane("l", { x: 0, width: 400 })
@@ -807,7 +807,7 @@ export const partsBellNotification = diagram("parts-bell-notification", {
 // ============================================================
 // parts 50: 検索バー (horizontal rect)
 // ============================================================
-export const partsSearchBar = diagram("parts-search-bar", {
+export const partsSearchBar = diagram("parts-search-bar", { structuredData: "exclude",
   topic: "検索バー — 入力域 metaphor",
 })
   .lane("l", { x: 0, width: 700 })
@@ -820,7 +820,7 @@ export const partsSearchBar = diagram("parts-search-bar", {
 // ============================================================
 // parts 51: いいねボタン (like count + heart)
 // ============================================================
-export const partsLikeButton = diagram("parts-like-button", {
+export const partsLikeButton = diagram("parts-like-button", { structuredData: "exclude",
   topic: "いいねボタン — count live",
 })
   .lane("l", { x: 0, width: 380 })
@@ -834,7 +834,7 @@ export const partsLikeButton = diagram("parts-like-button", {
 // ============================================================
 // parts 52: ブックマーク (縦 fill)
 // ============================================================
-export const partsBookmark = diagram("parts-bookmark", {
+export const partsBookmark = diagram("parts-bookmark", { structuredData: "exclude",
   topic: "ブックマーク — 保存済み metaphor",
 })
   .lane("l", { x: 0, width: 300 })
@@ -847,7 +847,7 @@ export const partsBookmark = diagram("parts-bookmark", {
 // ============================================================
 // parts 53: コイン残高 (currency countup)
 // ============================================================
-export const partsCoinBalance = diagram("parts-coin-balance", {
+export const partsCoinBalance = diagram("parts-coin-balance", { structuredData: "exclude",
   topic: "コイン残高 — currency live",
 })
   .lane("l", { x: 0, width: 500 })
@@ -861,7 +861,7 @@ export const partsCoinBalance = diagram("parts-coin-balance", {
 // ============================================================
 // parts 54: 経験値バー (EXP progression)
 // ============================================================
-export const partsExpBar = diagram("parts-exp-bar", {
+export const partsExpBar = diagram("parts-exp-bar", { structuredData: "exclude",
   topic: "経験値バー — XP progression",
 })
   .lane("l", { x: 0, width: 700 })
@@ -875,7 +875,7 @@ export const partsExpBar = diagram("parts-exp-bar", {
 // ============================================================
 // parts 55: 実績トロフィー (achievement)
 // ============================================================
-export const partsAchievement = diagram("parts-achievement", {
+export const partsAchievement = diagram("parts-achievement", { structuredData: "exclude",
   topic: "実績トロフィー — achievement 解放",
 })
   .lane("l", { x: 0, width: 400 })
@@ -889,7 +889,7 @@ export const partsAchievement = diagram("parts-achievement", {
 // ============================================================
 // parts 56: セールタグ (割引 badge)
 // ============================================================
-export const partsSaleTag = diagram("parts-sale-tag", {
+export const partsSaleTag = diagram("parts-sale-tag", { structuredData: "exclude",
   topic: "セールタグ — 割引率 badge",
 })
   .lane("l", { x: 0, width: 400 })
@@ -903,7 +903,7 @@ export const partsSaleTag = diagram("parts-sale-tag", {
 // ============================================================
 // parts 57: 再生ボタン (play triangle)
 // ============================================================
-export const partsPlayButton = diagram("parts-play-button", {
+export const partsPlayButton = diagram("parts-play-button", { structuredData: "exclude",
   topic: "再生ボタン — media play",
 })
   .lane("l", { x: 0, width: 380 })
@@ -917,7 +917,7 @@ export const partsPlayButton = diagram("parts-play-button", {
 // ============================================================
 // parts 58: クラウド同期 (sync progress arc)
 // ============================================================
-export const partsCloudSync = diagram("parts-cloud-sync", {
+export const partsCloudSync = diagram("parts-cloud-sync", { structuredData: "exclude",
   topic: "クラウド同期 — sync 進捗",
 })
   .lane("l", { x: 0, width: 400 })
@@ -931,7 +931,7 @@ export const partsCloudSync = diagram("parts-cloud-sync", {
 // ============================================================
 // parts 59: 目覚まし時計 (alarm circle)
 // ============================================================
-export const partsAlarmClock = diagram("parts-alarm-clock", {
+export const partsAlarmClock = diagram("parts-alarm-clock", { structuredData: "exclude",
   topic: "目覚まし時計 — alarm 表示",
 })
   .lane("l", { x: 0, width: 380 })
@@ -944,7 +944,7 @@ export const partsAlarmClock = diagram("parts-alarm-clock", {
 // ============================================================
 // parts 60: Wi-Fi 信号 (5 段階 signal strength)
 // ============================================================
-export const partsWifiSignal = diagram("parts-wifi-signal", {
+export const partsWifiSignal = diagram("parts-wifi-signal", { structuredData: "exclude",
   topic: "Wi-Fi 信号 — 5 段階強度",
 })
   .lane("la", { x: 0, width: 120 })
@@ -976,7 +976,7 @@ export const partsWifiSignal = diagram("parts-wifi-signal", {
 // ============================================================
 
 // parts 61: bind pattern = counter to circle radius (counter 0 → 100 で半径拡大)
-export const partsBindCounterRadius = diagram("parts-bind-counter-radius", {
+export const partsBindCounterRadius = diagram("parts-bind-counter-radius", { structuredData: "exclude",
   topic: "bind: counter → 半径 — 1 state を shape.radius に直接 bind",
 })
   .lane("l", { x: 0, width: 400 })
@@ -988,7 +988,7 @@ export const partsBindCounterRadius = diagram("parts-bind-counter-radius", {
   .build();
 
 // parts 62: bind pattern = 2 state mirror (state 独立、 同じ target に反映)
-export const partsBind2StateMirror = diagram("parts-bind-2state-mirror", {
+export const partsBind2StateMirror = diagram("parts-bind-2state-mirror", { structuredData: "exclude",
   topic: "bind: 2 state mirror — 独立 state を左右 gauge に並列 bind",
 })
   .lane("la", { x: 0, width: 300 })
@@ -1026,7 +1026,7 @@ export const partsBindCascade3 = diagram("parts-bind-cascade-3", {
   .build();
 
 // parts 64: bind pattern = template chain (state 値を title / subtitle に埋込)
-export const partsBindTemplateChain = diagram("parts-bind-template-chain", {
+export const partsBindTemplateChain = diagram("parts-bind-template-chain", { structuredData: "exclude",
   topic: "bind: template chain — {state} を title と subtitle 両方に埋込",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1038,7 +1038,7 @@ export const partsBindTemplateChain = diagram("parts-bind-template-chain", {
   .build();
 
 // parts 65: bind pattern = pulse cycle (0 → 100 → 0 の 2 tween で 1 パルス)
-export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", {
+export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", { structuredData: "exclude",
   topic: "bind: pulse cycle — 上下 tween chain で心拍表現",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1052,7 +1052,7 @@ export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", {
   .build();
 
 // parts 66: bind pattern = wave level 2-phase (満ちて引く 2 phase の水位変化)
-export const partsBindWaveLevel2Phase = diagram("parts-bind-wave-level-2phase", {
+export const partsBindWaveLevel2Phase = diagram("parts-bind-wave-level-2phase", { structuredData: "exclude",
   topic: "bind: wave level 2-phase — 水位を満ち→引きの 2 phase で bind",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1088,7 +1088,7 @@ export const partsBindGrid4 = diagram("parts-bind-grid-4", {
   .build();
 
 // parts 68: bind pattern = countdown (state 高値 → 低値、 subtitle で残数表示)
-export const partsBindCountdown = diagram("parts-bind-countdown", {
+export const partsBindCountdown = diagram("parts-bind-countdown", { structuredData: "exclude",
   topic: "bind: countdown — state を高 → 低へ tween、 残り時間 subtitle",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1100,7 +1100,7 @@ export const partsBindCountdown = diagram("parts-bind-countdown", {
   .build();
 
 // parts 69: bind pattern = arc angle sweep (0 → 360 で 1 周)
-export const partsBindArcSweep = diagram("parts-bind-arc-sweep", {
+export const partsBindArcSweep = diagram("parts-bind-arc-sweep", { structuredData: "exclude",
   topic: "bind: arc sweep — state 0 → 360 で 1 周 loading",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1112,7 +1112,7 @@ export const partsBindArcSweep = diagram("parts-bind-arc-sweep", {
   .build();
 
 // parts 70: bind pattern = split fill (2 state で 1 rect を上下分割)
-export const partsBindSplitFill = diagram("parts-bind-split-fill", {
+export const partsBindSplitFill = diagram("parts-bind-split-fill", { structuredData: "exclude",
   topic: "bind: split fill — 2 state 相補で 1 領域を上下分割",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1131,7 +1131,7 @@ export const partsBindSplitFill = diagram("parts-bind-split-fill", {
 // bar の幅 80 は node-visibility axis の下限 (80x40)。 これを下回ると「小さすぎて読めない node」
 // として error になる (#944 で 70 → 80)。 幅を変えても bar 同士の間隔は 70 のまま = engine が
 // lane 幅を node 幅 + 余白に自動拡張するため、 図全体が横に広がるだけで詰まらない。
-export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
+export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", { structuredData: "exclude",
   topic: "bind: 5 bar equalizer — 独立 state 5 で音楽 EQ 見立て",
 })
   .lane("l1", { x: 0, width: 80 })
@@ -1160,7 +1160,7 @@ export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
   .build();
 
 // parts 72: bind pattern = string state (色 palette を state で切替、 fill: "{color}")
-export const partsBindColorState = diagram("parts-bind-color-state", {
+export const partsBindColorState = diagram("parts-bind-color-state", { structuredData: "exclude",
   topic: "bind: color state — 文字列 state で fill 直接切替",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1176,7 +1176,7 @@ export const partsBindColorState = diagram("parts-bind-color-state", {
   .build();
 
 // parts 73: bind pattern = level + fill color combo (2 state で level + fill 色同時 bind)
-export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", {
+export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", { structuredData: "exclude",
   topic: "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1191,7 +1191,7 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
   .build();
 
 // parts 74: bind pattern = 3 phase escalation (state 段階昇順、 各 phase で set)
-export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
+export const partsBindEscalation3 = diagram("parts-bind-escalation-3", { structuredData: "exclude",
   topic: "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1208,7 +1208,7 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
   .build();
 
 // parts 75: bind pattern = tween chain 4-hop (0→25→50→75→100 の 4 phase)
-export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", {
+export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", { structuredData: "exclude",
   topic: "bind: tween chain 4-hop — 4 phase で 25% ずつ chain tween",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1226,7 +1226,7 @@ export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", {
   .build();
 
 // parts 76: bind pattern = ring counter (arc 内 counter を state で bind)
-export const partsBindRingCounter = diagram("parts-bind-ring-counter", {
+export const partsBindRingCounter = diagram("parts-bind-ring-counter", { structuredData: "exclude",
   topic: "bind: ring counter — arc + 中央 counter を同 state で表現",
 })
   .lane("l", { x: 0, width: 400 })
@@ -1238,7 +1238,7 @@ export const partsBindRingCounter = diagram("parts-bind-ring-counter", {
   .build();
 
 // parts 77: bind pattern = 2 mode toggle (bg + label を同時 set で mode 切替)
-export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
+export const partsBindModeToggle = diagram("parts-bind-mode-toggle", { structuredData: "exclude",
   topic: "bind: mode toggle — 2 state 同時 set で light/dark toggle",
 })
   .lane("l", { x: 0, width: 380 })
@@ -1281,7 +1281,7 @@ export const partsBind5DigitCounter = diagram("parts-bind-5-digit-counter", {
   .build();
 
 // parts 79: bind pattern = growth+shrink combo (成長 → 縮小の反対方向 chain)
-export const partsBindGrowShrink = diagram("parts-bind-grow-shrink", {
+export const partsBindGrowShrink = diagram("parts-bind-grow-shrink", { structuredData: "exclude",
   topic: "bind: grow+shrink — 上昇 → 下降の逆向 chain (呼吸)",
 })
   .lane("l", { x: 0, width: 380 })
