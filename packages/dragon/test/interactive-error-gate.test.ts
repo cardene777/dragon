@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateAll, layout } from "@cardenelabs/cdl";
-import type { CdlDiagram } from "@cardenelabs/cdl";
-import { timelineDrive, kpiDashboard } from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
+import type { BBox, CdlDiagram } from "@cardenelabs/cdl";
+import {
+  timelineDrive,
+  kpiDashboard,
+  oauthFlow,
+  trafficSankey,
+  exemplarNotificationFlow,
+} from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 
 /**
  * #401 interactive error-0 gate (段階拡張)。
@@ -37,6 +43,14 @@ import { timelineDrive, kpiDashboard } from "../../../apps/playground-spa/src/to
 const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
   { name: "interactive-timeline-drive", diagram: timelineDrive },
   { name: "interactive-kpi-dashboard", diagram: kpiDashboard },
+  // stage 3 (#892) = exemplar 3 件。 いずれも「label を置く場所が足りない」 が原因で、 layout の
+  // 作り替えは要らなかった。 詳細は各図の comment。
+  //   - oauth-flow ... lane 間隔を広げて label を 2 列 × 2 段に置ける幅を作る (7 → 0)
+  //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
+  //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
+  { name: "interactive-oauth-flow", diagram: oauthFlow },
+  { name: "interactive-traffic-sankey", diagram: trafficSankey },
+  { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow },
 ];
 
 /** SVG path `d` の M/L/Q(終点) から絶対点列を抽出する。 */
@@ -100,4 +114,47 @@ describe("#401 interactive error-0 gate", () => {
       `churn crest Y=${churnY} と nps crest Y=${npsY} の分離が不足 (side:"left" 由来の false green?)`,
     ).toBeGreaterThanOrEqual(30);
   });
+});
+
+/**
+ * #892 = exemplar 3 件の label 間隔を validator とは別経路で固定する。
+ *
+ * error 0 は validator の判定で、 validator が見ていない崩れは通ってしまう (stage 2 で実証済)。
+ * ここでは `laid.bboxes` の edge-label 矩形を直接測り、 同じ図の label 同士が最低限離れている
+ * ことを assert する。 3 図の offset をどれか 1 つでも元に戻すと落ちる。
+ */
+describe("#892 exemplar 3 件の label が互いに離れている (座標で固定)", () => {
+  /** 2 矩形の隙間。 交差していれば負値、 離れていれば正値を返す。 */
+  const gap = (a: BBox, b: BBox): number => {
+    const dx = Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w));
+    const dy = Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h));
+    // どちらかの軸で離れていればその距離、 両軸で重なっていれば負値
+    if (dx >= 0 || dy >= 0) return Math.max(dx, dy);
+    return Math.max(dx, dy);
+  };
+
+  const CASES: Array<{ name: string; diagram: CdlDiagram; minGap: number }> = [
+    // 2 列 × 2 段に置いた 4 label + 迂回 2 本の label
+    { name: "interactive-oauth-flow", diagram: oauthFlow, minGap: 16 },
+    // 縦区間 2 本の間から逃がした label
+    { name: "interactive-traffic-sankey", diagram: trafficSankey, minGap: 16 },
+    // 同じ高さに並んでいた 2 label
+    { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow, minGap: 16 },
+  ];
+
+  for (const c of CASES) {
+    it(`${c.name} の edge-label 同士が ${c.minGap} world 以上離れている`, () => {
+      const laid = layout(c.diagram);
+      const labels = laid.bboxes.filter((b) => b.kind === "edge-label");
+      expect(labels.length, "edge-label の矩形が取れていない").toBeGreaterThan(1);
+      const tight: string[] = [];
+      for (let i = 0; i < labels.length; i++) {
+        for (let j = i + 1; j < labels.length; j++) {
+          const g = gap(labels[i]!, labels[j]!);
+          if (g < c.minGap) tight.push(`${labels[i]!.id} ↔ ${labels[j]!.id} gap ${g.toFixed(1)}`);
+        }
+      }
+      expect(tight, `近すぎる label 対:\n${tight.join("\n")}`).toHaveLength(0);
+    });
+  }
 });
