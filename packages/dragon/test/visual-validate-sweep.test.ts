@@ -1,8 +1,10 @@
 /**
  * Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)。
  *
- * dragon playground の catalog topic 全 11 category (cookbook / patterns / presets / primitives /
+ * dragon playground の catalog topic module 全 11 件 (cookbook / patterns / presets / primitives /
  * primitives-extra / text-dsl / animation / styles / interactive / ethereum / parts) を Node 上で import し、
+ * (UI 上の category は 10 件。 primitives-extra は CATALOG_ITEMS 側で primitives に統合されるため、
+ *  module 数 11 と category 数 10 がずれる)
  * cdl visualValidateAll に通して engine 計算上の overlap (edge-label-overlap +
  * clearance 違反 + node-visibility + alignment) を 0 件で gating する。
  *
