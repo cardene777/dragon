@@ -492,3 +492,41 @@ flow:
     expect(api.posRel).toEqual({ anchor: "Web", dir: "right" });
   });
 });
+
+describe("間隔として受け付ける数", () => {
+  const src = (gap: string): string => `title: "t"
+type: flow
+actors:
+  - Web: service
+  - API:
+      kind: service
+      位置: Web の右 ${gap}
+flow:
+  - Web -> API: "a"
+`;
+
+  it("小数と指数表記を受け付ける", () => {
+    // 整数だけに絞ると、 有効な数を書いたのに「読めません」 と返る (実測)
+    for (const gap of ["200", "1.5", "1e2", "2E+2", ".5"]) {
+      const r = parseTextDslV05(src(gap));
+      const detail = r.ok ? "" : r.errors.map((e) => e.message).join(" / ");
+      expect(r.ok, `${gap} が通らない: ${detail}`).toBe(true);
+    }
+  });
+
+  it("負の数は指数表記でも拒否する", () => {
+    for (const gap of ["-200", "-1.5", "-1e2"]) {
+      const r = parseTextDslV05(src(gap));
+      expect(r.ok, `${gap} が通ってしまう`).toBe(false);
+      if (r.ok) continue;
+      expect(r.errors.some((e) => e.message.includes("負の数"))).toBe(true);
+    }
+  });
+
+  it("公開関数に負の値を直接渡しても向きが裏返らない", () => {
+    const anchor = { cx: 100, cy: 100, w: 40, h: 20 };
+    const target = { w: 60, h: 30 };
+    const p = resolveRelativePos({ anchor: "a", dir: "right", gap: -1000 }, anchor, target);
+    expect(p.posX).toBeGreaterThan(anchor.cx);
+  });
+});

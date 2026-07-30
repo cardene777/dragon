@@ -254,3 +254,55 @@ describe("光らせる相手の読み方 = 実在する名前を先に見る", (
     expect(parseFocusEntry("A -> B")).toEqual({ kind: "edge", from: "A", to: "B" });
   });
 });
+
+describe("slug の形が全図種で同じに効く", () => {
+  const run = (type: string, focus: string): { activate: string[]; notices: string[] } => {
+    const notices: string[] = [];
+    const d = textDslToDiagram(
+      `title: "t"
+type: ${type}
+actors:
+  - Client
+  - "API Gateway"
+flow:
+  - Client -> "API Gateway": "a"
+animation:
+  - step: "s" 1.4s
+    focus: [${focus}]
+`,
+      { onNotice: (n) => notices.push(n.message) },
+    );
+    return { activate: d.phases.flatMap((p) => p.activate ?? []), notices };
+  };
+
+  // 順序図だけ受理する状態にすると、 同じ記述が図種で別の意味になる
+  for (const type of ["sequence", "flow", "state", "er", "topology"]) {
+    it(`${type}: slug の形で書いても光る`, () => {
+      const r = run(type, "api-gateway");
+      expect(r.activate.length, `${type} で光らない`).toBeGreaterThan(0);
+      expect(r.notices, `${type} で誤報している`).toEqual([]);
+    });
+  }
+
+  it("2 つの名前が同じ slug になる時は光らせず知らせる", () => {
+    // どちらを指したか決められない。 黙ってどちらかを選ぶより気付ける形にする
+    const notices: string[] = [];
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+actors:
+  - "A B"
+  - "A-B"
+  - Client
+flow:
+  - Client -> "A B": "a"
+animation:
+  - step: "s" 1.4s
+    focus: [a-b]
+`,
+      { onNotice: (n) => notices.push(n.message) },
+    );
+    expect(d.phases.flatMap((p) => p.activate ?? [])).toEqual([]);
+    expect(notices.join(" ")).toContain("a-b");
+  });
+});

@@ -125,8 +125,16 @@ function reportMissingFocusTargets(
   // 解決側は名前が見つからない時に slug へ落とす。 受理集合もそれに合わせる。
   // 合わせないと、 実際は光る指定 (`API Gateway` を `api-gateway` と書いた形) を
   // 「見つかりません」 と誤報する (実測)
+  //
+  // 2 つ以上の名前が同じ slug になる時は受理しない。 解決側も曖昧として光らせないため、
+  // 受理すると「知らせは出ないのに何も光らない」 状態になる (実測)
   const accepted = new Set(names);
-  for (const n of names) accepted.add(slugify(n));
+  const slugCount = new Map<string, number>();
+  for (const n of names) {
+    const sl = slugify(n);
+    slugCount.set(sl, (slugCount.get(sl) ?? 0) + 1);
+  }
+  for (const [sl, count] of slugCount) if (count === 1) accepted.add(sl);
   //
   // 縦列の id は受理しない。 3 つの解決経路はいずれも縦列を光らせないため、 受理すると
   // 「知らせは出ないのに何も光らない」 状態を作る (実測 = `focus: [main]` で activate が空)
@@ -1721,7 +1729,7 @@ function resolveHighlight(
       continue;
     }
     // actor 名 → header + footer + 全 step box を active
-    const laneId = actorIds.get(entry.name);
+    const laneId = actorIds.get(entry.name) ?? slugLookup(actorIds, entry.name);
     if (laneId) {
       out.push(`${laneId}-header`);
       out.push(`${laneId}-footer`);
@@ -1736,6 +1744,25 @@ function resolveHighlight(
     }
   }
   return out;
+}
+
+/**
+ * 名前が見つからない時に、 slug の形でも探す。
+ *
+ * 記法は表示名で書くが、 書く人は id の形 (`api-gateway`) で書くこともある。 図種によって
+ * 受理する / しないが分かれると、 同じ記述が別の意味になる。
+ *
+ * 2 つ以上の名前が同じ slug になる時は解決しない。 どちらを指したか決められないため、
+ * 黙ってどちらかを選ぶより光らせない方が書いた人が気付ける。
+ */
+function slugLookup(byName: ReadonlyMap<string, string>, wanted: string): string | undefined {
+  let hit: string | undefined;
+  for (const [name, id] of byName) {
+    if (slugify(name) !== wanted) continue;
+    if (hit !== undefined) return undefined;
+    hit = id;
+  }
+  return hit;
 }
 
 function compileFlow(doc: DslDocument): CdlDiagram {
@@ -2054,8 +2081,10 @@ function resolveHighlightGeneric(
       }
       continue;
     }
-    // actor 名 → node id
-    const nodeId = actorToNodeId.get(entry.name);
+    // actor 名 → node id。 見つからなければ slug の形でも探す。
+    // 順序図だけが slug を受理する状態にすると、 同じ記述が図種で別の意味になる
+    // (実測 = `api-gateway` が順序図では光り、 流れ図では何も光らなかった)
+    const nodeId = actorToNodeId.get(entry.name) ?? slugLookup(actorToNodeId, entry.name);
     if (nodeId) {
       out.push(nodeId);
     }

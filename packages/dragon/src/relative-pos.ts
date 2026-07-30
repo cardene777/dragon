@@ -56,15 +56,23 @@ const DIRECTION_WORDS: Readonly<Record<string, RelativeDirection>> = {
 };
 
 /**
+ * 間隔として受け付ける数の形。
+ *
+ * 負の数は含めない (向きが裏返るため)。 小数と指数表記は受け付ける。 整数だけに絞ると、
+ * 有効な数を書いたのに「書き方が読めません」 と返す (実測 = `1e2` / `.5` が弾かれた)。
+ */
+const GAP_NUM = String.raw`(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?`;
+
+/**
  * 日本語の形。 `Web の右` / `Web の右 200` / `Web の右200`。
  *
  * 相手の名前は控えめ (`.+?`) に取る。 名前自体が `の右` で終わる場合 (`Aの右 の左`) でも、
  * 後戻りして末尾の向きを先に確定するため取り違えない。
  */
-const RE_JA = /^(.+?)\s*の\s*(右|左|上|下)(?:\s*(\d+(?:\.\d+)?))?$/;
+const RE_JA = new RegExp(String.raw`^(.+?)\s*の\s*(右|左|上|下)(?:\s*(${GAP_NUM}))?$`);
 
 /** 英語の形。 `Web right` / `Web right 200`。 向きの前後は空白で区切る。 */
-const RE_EN = /^(.+?)\s+(right|left|above|below)(?:\s+(\d+(?:\.\d+)?))?$/i;
+const RE_EN = new RegExp(String.raw`^(.+?)\s+(right|left|above|below)(?:\s+(${GAP_NUM}))?$`, "i");
 
 /**
  * `位置:` に書かれた値を相対指定として読む。 相対の形でなければ null。

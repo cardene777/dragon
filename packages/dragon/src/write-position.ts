@@ -65,22 +65,28 @@ export function writeActorPosition(
  * `actors:` block の行範囲。 見つからなければ null。
  *
  * 開始は行頭の `actors:` に限る。 終わりは次の行頭項目 (字下げなしの `key:`) の直前。
+ *
+ * `actors:` が複数ある本文では最後のものを返す。 記法側は同じ項目が 2 度現れると後の方で
+ * 上書きするため、 最初のものを見ると parser が採らない箱を書き換えることになる
+ * (実測 = 後の block に居る箱の書き戻しが `null` になった)。
  */
 function actorsSpan(
   lineAt: (i: number) => string,
   lineCount: number,
 ): { from: number; to: number } | null {
   let from = -1;
+  let to = lineCount;
   for (let i = 0; i < lineCount; i += 1) {
     const line = lineAt(i);
-    if (from < 0) {
-      if (/^actors[ \t]*:[ \t]*$/.test(line)) from = i + 1;
+    if (/^actors[ \t]*:[ \t]*$/.test(line)) {
+      from = i + 1;
+      to = lineCount;
       continue;
     }
-    // 字下げのない `key:` は次の項目の始まり
-    if (/^[^\s#][^:]*:/.test(line)) return { from, to: i };
+    // 字下げのない `key:` は次の項目の始まり。 直前の block はそこで閉じる
+    if (from >= 0 && to === lineCount && /^[^\s#][^:]*:/.test(line)) to = i;
   }
-  return from < 0 ? null : { from, to: lineCount };
+  return from < 0 ? null : { from, to };
 }
 
 type ActorHead = {

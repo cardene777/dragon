@@ -772,7 +772,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         //
         // 負の間隔 (`Web の右 -200`) もここに来る。 向きを書いた上で裏返す指定は、
         // 書いた人の意図と図が食い違うので誤りとして返す
-        const negative = /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\d/i.test(value);
+        const negative = /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\s*[\d.]/i.test(value);
         errors.push({
           line: ln.no,
           message: negative

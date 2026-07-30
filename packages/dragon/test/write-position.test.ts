@@ -205,3 +205,32 @@ flow:
     expect(writeActorPosition(src, "API", 300, 200)).toBeNull();
   });
 });
+
+describe("位置の書き戻し = actors: が複数ある本文", () => {
+  const two = `title: "t"
+type: flow
+actors:
+  - Old: service
+actors:
+  - Web: service
+  - API: service
+flow:
+  - Web -> API: "a"
+`;
+
+  it("記法が採る最後の block を対象にする", () => {
+    // 記法は同じ項目が 2 度現れると後の方で上書きする。 最初の block を見ると
+    // 記法が採らない箱を書き換える (実測 = 後の block の箱で `null` が返った)
+    const parsed = parseTextDslV05(two);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.doc.actors.map((a) => a.name)).toEqual(["Web", "API"]);
+    const out = writeActorPosition(two, "API", 300, 200);
+    expect(out, "後の block の箱に書けない").not.toBeNull();
+    expect(out!).toContain("  - API: service @300,200");
+  });
+
+  it("前の block に居る箱には書かない (記法が採らない)", () => {
+    expect(writeActorPosition(two, "Old", 300, 200)).toBeNull();
+  });
+});
