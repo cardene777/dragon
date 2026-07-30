@@ -531,15 +531,76 @@ function lookupPart(
   return undefined;
 }
 
-/** パーツ 1 個が図の上で占める大きさ。 */
-function partExtent(part: CdlDiagram): { w: number; h: number } {
-  const h = part.nodes.length > 0 ? Math.max(...part.nodes.map((n) => n.h ?? 200)) : 200;
-  const w =
-    part.lanes.length > 0
-      ? Math.max(...part.lanes.map((l) => (l.x ?? 0) + l.width)) -
-        Math.min(...part.lanes.map((l) => l.x ?? 0))
+/**
+ * merge がパーツを縦に送る幅。 `mergePartIntoDiagram` と共有する。
+ *
+ * 別々に持つと、 大きさの見積りと実際の置き場所がずれる (実測 = 2 段のパーツで 200 空けたい
+ * ところが 90 になった)。
+ */
+const PART_STACK_PITCH = 220;
+
+/** 有限で正の数だけを通す。 catalog は呼出側が渡す値なので、 異常値を計算に入れない。 */
+function positiveOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/** 配列の最大値 / 最小値。 spread で展開しない (要素数が多い catalog で stack が溢れる)。 */
+function maxOf(values: readonly number[], fallback: number): number {
+  let out = fallback;
+  for (const v of values) if (v > out) out = v;
+  return out;
+}
+
+function minOf(values: readonly number[], fallback: number): number {
+  let out = fallback;
+  for (const v of values) if (v < out) out = v;
+  return out;
+}
+
+/**
+ * パーツ 1 個が図の上で占める大きさ。
+ *
+ * merge が実際に組み立てる形と同じ規則で求める。 一番高い箱の高さだけで見ると、 段を持つ
+ * パーツで実際の高さを取り違える (実測 = 2 段 400x200 のパーツの実高は 420、 200 と見ると
+ * 間隔が 110 狭くなった)。
+ *
+ * `大きさ:` を書いた時の拡大も反映する。 merge は幅を `targetW / bbox 幅`、 高さを
+ * `targetH / 段の総高` の比で拡大するため、 同じ比を掛ける。
+ */
+function partExtent(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number } {
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return { w: 400, h: 200 };
+  const laneRights: number[] = [];
+  const laneLefts: number[] = [];
+  for (const l of part.lanes) {
+    const x = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+    const width = positiveOr(l.width, 400);
+    laneLefts.push(x);
+    laneRights.push(x + width);
+  }
+  const rawW =
+    laneRights.length > 0
+      ? maxOf(laneRights, Number.NEGATIVE_INFINITY) - minOf(laneLefts, Number.POSITIVE_INFINITY)
       : 400;
-  return { w, h };
+  const bboxW = positiveOr(rawW, 400);
+  const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
+
+  const stacks = part.nodes.map((n) => (typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0));
+  const maxStack = maxOf(stacks, 0);
+  const minStack = minOf(stacks, 0);
+  const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
+  const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
+  const maxNodeH = maxOf(
+    part.nodes.map((n) => positiveOr(n.h, 200)),
+    200,
+  );
+  // 段の間は送り幅で開き、 両端は箱の高さの分だけ広がる
+  const h = (maxStack - minStack) * PART_STACK_PITCH * scaleY + maxNodeH * scaleY;
+
+  return { w: bboxW * scaleX, h: positiveOr(h, 200) };
 }
 
 /** 格子に並べる時の 1 行あたりの個数と隙間。 */
@@ -569,9 +630,12 @@ function partGridCenters(
   partsCatalog: Record<string, CdlDiagram>,
 ): Map<string, { cx: number; cy: number }> {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
-  // 位置も相対も書かなかった分だけが格子に並ぶ
+  // 格子に並ぶのは座標を 1 つも書かず相対でも書かなかった分だけ。
+  //
+  // merge 側は「縦横どちらも書かなかった時」 に格子へ落とす。 条件が食い違うと、 片方だけ
+  // 書いたパーツが格子の枠を 1 つ消費して後続がずれる (実測 = 後続の中心が 200 から 720 に動いた)
   const autoActors = partsActors.filter(
-    (a) => !(a.posX !== undefined && a.posY !== undefined) && a.posRel === undefined,
+    (a) => a.posX === undefined && a.posY === undefined && a.posRel === undefined,
   );
   const out = new Map<string, { cx: number; cy: number }>();
   if (autoActors.length === 0) return out;
@@ -584,7 +648,7 @@ function partGridCenters(
 
   const sizes = autoActors.map((a) => {
     const part = lookupPart(partsCatalog, a.partId);
-    return part ? partExtent(part) : { w: 400, h: 200 };
+    return part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200 };
   });
   // 列の送り幅は全体の最大幅で揃える
   const cellW = Math.max(1, ...sizes.map((s) => s.w));
@@ -621,7 +685,7 @@ function partSizes(
   for (const a of doc.actors) {
     if (a.partId === undefined) continue;
     const part = lookupPart(partsCatalog, a.partId);
-    if (part) out.set(a.name, partExtent(part));
+    if (part) out.set(a.name, partExtent(part, a.posW, a.posH));
   }
   return out;
 }
@@ -643,7 +707,7 @@ function partBoxes(
     if (a.partId === undefined) continue;
     const part = lookupPart(partsCatalog, a.partId);
     if (!part) continue;
-    const size = partExtent(part);
+    const size = partExtent(part, a.posW, a.posH);
     const center =
       a.posX !== undefined && a.posY !== undefined
         ? { cx: a.posX, cy: a.posY }
@@ -909,7 +973,9 @@ function mergePartIntoDiagram(
         id: newLaneId,
         label: laneOrig.label ?? alias,
         x: mapLaneX(laneOrig.x ?? 0),
-        width: laneOrig.width * laneScaleX,
+        // catalog は呼出側が渡す値。 幅が数でないとここから先の座標が全て非有限になり、
+        // 図が描けなくなる (実測 = 箱の中心が NaN になった)
+        width: positiveOr(laneOrig.width, 400) * laneScaleX,
       });
     }
   }
@@ -927,7 +993,8 @@ function mergePartIntoDiagram(
   // parts 内部 stack 別の垂直 pitch (world unit) = STACK_PITCH_APPROX。 CDL layout の実 stackGap
   // (~100) + 標準 node h (~140-200) の合計相当。 これは parts の cy を厳密に再現しないが、
   // drop 座標 (dropX, dropY) 付近に parts が中心配置される見た目に十分な近似。
-  const STACK_PITCH_APPROX = 220;
+  // 縦の送り幅は大きさの見積りと共有する (`PART_STACK_PITCH`)。 別々に持つとずれる
+  const STACK_PITCH_APPROX = PART_STACK_PITCH;
   const STACK_ISOLATION_OFFSET = 1000;
   // parts の全 node の中心を drop 座標に合わせるため、 stack 範囲を計算して中心を offsetY に一致させる。
   const partStacks = part.nodes.map((n) => n.stack ?? 0);
@@ -995,8 +1062,9 @@ function mergePartIntoDiagram(
     if (shouldForcePos && nodePosX === undefined) {
       // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
       const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
-      const laneX = partLane?.x ?? 0;
-      const laneW = partLane?.width ?? 320;
+      const laneX = typeof partLane?.x === "number" && Number.isFinite(partLane.x) ? partLane.x : 0;
+      // 幅は catalog 由来。 数でない値をそのまま使うと座標が非有限になる (実測 = 中心が NaN)
+      const laneW = positiveOr(partLane?.width, 320);
       nodePosX = mapLaneX(laneX + laneW / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
@@ -1006,12 +1074,16 @@ function mergePartIntoDiagram(
       nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX * scaleY + (offsetY ?? 0);
     }
     // parts sub-node の w / h に scale 適用 (I2 forensic 対応、 targetW/H 指定時のみ)
-    const nodeW = nodeOrig.w !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? nodeOrig.w * scaleX
-      : nodeOrig.w;
-    const nodeH = nodeOrig.h !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? nodeOrig.h * scaleY
-      : nodeOrig.h;
+    // catalog の値は呼出側が渡すので、 拡大しない時も数として通るか確かめる。 通さないと
+    // 座標が非有限になって図が描けない (実測 = 箱の中心が NaN になった)
+    const rawNodeW = nodeOrig.w !== undefined ? positiveOr(nodeOrig.w, 200) : undefined;
+    const rawNodeH = nodeOrig.h !== undefined ? positiveOr(nodeOrig.h, 200) : undefined;
+    const nodeW = rawNodeW !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeW * scaleX
+      : rawNodeW;
+    const nodeH = rawNodeH !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeH * scaleY
+      : rawNodeH;
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),

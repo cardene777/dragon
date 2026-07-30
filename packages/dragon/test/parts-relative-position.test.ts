@@ -22,11 +22,22 @@ function makePart(id: string, w: number, h: number): CdlDiagram {
     .build();
 }
 
+/** 段を 2 つ持つパーツ。 実際の高さは 1 段の箱の高さより大きい。 */
+function makeStackedPart(id: string, w: number, h: number): CdlDiagram {
+  return diagram(id, { topic: id })
+    .lane("l", { width: w })
+    .node("top", { lane: "l", stack: 0, kind: "card", title: "上", w, h })
+    .node("bottom", { lane: "l", stack: 1, kind: "card", title: "下", w, h })
+    .build();
+}
+
 const CATALOG: Record<string, CdlDiagram> = {
   achievement: makePart("achievement", 400, 300),
   "parts-achievement": makePart("achievement", 400, 300),
   clock: makePart("clock", 200, 200),
   "parts-clock": makePart("clock", 200, 200),
+  stacked: makeStackedPart("stacked", 400, 200),
+  "parts-stacked": makeStackedPart("stacked", 400, 200),
 };
 
 type Box = { cx: number; cy: number; x0: number; x1: number; y0: number; y1: number; w: number; h: number };
@@ -262,5 +273,145 @@ flow:
   - Web -> Web: "a"
 `;
     expect(() => textDslToDiagram(src)).not.toThrow();
+  });
+});
+
+describe("パーツの大きさの見積り", () => {
+  it("段を持つパーツでも書いた間隔になる", () => {
+    // 一番高い箱の高さだけで見ると、 段の分の高さを取りこぼす
+    // (実測 = 2 段 400x200 の実高は 420、 200 と見て間隔が 90 になった)
+    const { boxes, notices } = boxesOf(`title: "t"
+type: flow
+actors:
+  - Web: service
+  - 積:
+      kind: stacked
+      位置: Web の下 200
+flow:
+  - Web -> Web: "a"
+`);
+    const web = boxes.get("Web")!;
+    const part = boxes.get("積")!;
+    expect(part.y0 - web.y1).toBeCloseTo(200, 0);
+    expect(notices).toEqual([]);
+  });
+
+  it("段を持つパーツを基準にしても書いた間隔になる", () => {
+    const { boxes } = boxesOf(`title: "t"
+type: flow
+actors:
+  - 積:
+      kind: stacked
+      位置: 1000,1000
+  - 時計:
+      kind: clock
+      位置: 積 の下 150
+flow:
+  - 積 -> 積: "a"
+`);
+    const part = boxes.get("積")!;
+    const clock = boxes.get("時計")!;
+    expect(clock.y0 - part.y1).toBeCloseTo(150, 0);
+  });
+
+  it("大きさを書いた時はその大きさで間隔を測る (横)", () => {
+    const { boxes } = boxesOf(`title: "t"
+type: flow
+actors:
+  - Web: service
+  - 実績:
+      kind: achievement
+      位置: Web の右 200
+      大きさ: 800,600
+flow:
+  - Web -> Web: "a"
+`);
+    const web = boxes.get("Web")!;
+    const part = boxes.get("実績")!;
+    expect(part.x0 - web.x1).toBeCloseTo(200, 0);
+  });
+
+  it("大きさを書いた時はその大きさで間隔を測る (縦)", () => {
+    // 縦の拡大を無視すると、 元の高さで間隔を測って狙いからずれる
+    const { boxes } = boxesOf(`title: "t"
+type: flow
+actors:
+  - Web: service
+  - 実績:
+      kind: achievement
+      位置: Web の下 200
+      大きさ: 800,900
+flow:
+  - Web -> Web: "a"
+`);
+    const web = boxes.get("Web")!;
+    const part = boxes.get("実績")!;
+    expect(part.y0 - web.y1).toBeCloseTo(200, 0);
+  });
+});
+
+describe("片方だけ書いた座標の扱い", () => {
+  it("縦だけ / 横だけ書いたパーツは格子の枠を消費しない", () => {
+    // 組み立て側が格子に落とすのは両方欠けた時だけ。 条件が食い違うと後続がずれる
+    // (実測 = 後続の中心が 200 から 720 に動いた)
+    const { boxes } = boxesOf(`title: "t"
+type: flow
+actors:
+  - Web: service
+  - x:
+      kind: stacked
+      posX: 5000
+  - y: stacked
+flow:
+  - Web -> Web: "a"
+`);
+    const only = boxesOf(`title: "t"
+type: flow
+actors:
+  - Web: service
+  - y: stacked
+flow:
+  - Web -> Web: "a"
+`);
+    expect(boxes.get("y")!.cx).toBeCloseTo(only.boxes.get("y")!.cx, 0);
+  });
+});
+
+describe("catalog の値が異常な時", () => {
+  it("大きさが数でないパーツでも図は出る", () => {
+    const broken = diagram("broken", { topic: "broken" })
+      .lane("l", { width: 400 })
+      .node("box", { lane: "l", stack: 0, kind: "card", title: "x", w: 400, h: 300 })
+      .build();
+    // 幅と高さを壊す (catalog は呼出側が渡す値なので、 異常値でも落ちない)
+    (broken.lanes[0] as { width: number }).width = Number.NaN;
+    (broken.nodes[0] as { h?: number }).h = Number.POSITIVE_INFINITY;
+    const catalog = { ...CATALOG, broken, "parts-broken": broken };
+    const src = `title: "t"
+type: flow
+actors:
+  - Web: service
+  - b:
+      kind: broken
+      位置: Web の右 200
+flow:
+  - Web -> Web: "a"
+`;
+    const d = textDslToDiagram(src, { partsCatalog: catalog });
+    // 異常値をそのまま計算に入れると、 座標が非有限になって図が描けない
+    const laid = layout(d);
+    for (const n of laid.nodes) {
+      expect(Number.isFinite(n.cx), `${n.id} の横位置が数でない`).toBe(true);
+      expect(Number.isFinite(n.cy), `${n.id} の縦位置が数でない`).toBe(true);
+      expect(Number.isFinite(n.w) && Number.isFinite(n.h), `${n.id} の大きさが数でない`).toBe(true);
+    }
+    // 縦列も見る。 幅が数でないと枠が描けず、 図枠の計算も崩れる
+    for (const l of laid.lanes) {
+      expect(Number.isFinite(l.width), `${l.id} の幅が数でない`).toBe(true);
+      expect(Number.isFinite(l.x ?? 0), `${l.id} の位置が数でない`).toBe(true);
+    }
+    for (const v of [laid.viewBox.x, laid.viewBox.y, laid.viewBox.w, laid.viewBox.h]) {
+      expect(Number.isFinite(v), "図枠が数でない").toBe(true);
+    }
   });
 });
