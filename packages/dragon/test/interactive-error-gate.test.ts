@@ -18,14 +18,20 @@ import {
  *
  * 本 file は解消済 diagram を列挙して error 0 を assert する。
  *
- * #401 は機械修正 (timeline-drive + kpi-dashboard、 interactive error 14→11) の scope で完了し、
- * 残件は #892 に分離する (本 PR の merge で `Closes #401` を発火、 2026-07-23 判断)。 3 exemplar は
- * いずれも edge-label 過密だが原因は個別に異なり、 labelOffset tuning では error-0 に収束しない
- * (oauth で 8 iteration 検証、 6→1〜3 で oscillation) fundamental layout redesign が必要な別 class:
+ * 【段階拡張の到達点 (Issue #398)】
+ * 「全 interactive diagram を error-0 で gating」 は visual-validate-sweep.test.ts が
+ * interactive category 全 129 diagram を収録したことで達成済。 error-0 だけを足す目的で
+ * 下の FIXED に diagram を追加する必要はもう無い。
+ * 本 file が引き続き担うのは、 validator が見ていない崩れを座標で直接固定する assert 群
+ * (crest Y 実分離 / label 2 列配置 等) = error 0 では検知できない false green の guard。
+ *
+ * #401 は機械修正 (timeline-drive + kpi-dashboard、 interactive error 14→11) の scope、 残件の
+ * 3 exemplar は #892 に分離した。 3 exemplar はいずれも edge-label 過密だが原因は個別に異なり、
+ * labelOffset tuning では error-0 に収束しなかった (oauth で 8 iteration 検証、 6→1〜3 で oscillation):
  *   - oauth-flow = 3 node + 6 edge (client↔consent の 4 bidirectional labeled edge が中間帯に集中)
  *   - traffic-sankey = 6 node + 8 一方向 edge (funnel の合流で label が sub-path に重なる)
  *   - notification-flow = 7 node + 7 edge (fcm hub への fan-out 集中で label が hub 周辺に密集)
- * #892 完了時に FIXED へ 3 exemplar を追加して gate を拡張する。
+ * 3 exemplar は #892 で解消済で、 下の FIXED (stage 3) に入っている。
  *
  * stage 1 = interactive-timeline-drive。
  *   - node "r" (dyn-rect bar) を w:60 → 80 に拡張して node-visibility error (最小 80x40 未満) を解消。

@@ -11,8 +11,11 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  * error になっていた。 lane pitch を広げて gap >= 70px を確保する fix の回帰を防ぐ。
  *
  * 対象 3 diagram は全 axis error 0 まで解消済のため、 clearance 以外も含めた error 0 を assert
- * する。 catalog 全体を gating する test は既存の visual-validate-sweep 側で別途扱う (interactive
- * は edge-label-overlap 等の pre-existing error が残るため全体 gating には未投入、 #401 scope)。
+ * する。
+ *
+ * interactive category 全 129 diagram は visual-validate-sweep 側で gating 済 (#398)。 本 file は
+ * その部分集合を個別に持つが、 3 diagram に絞って fail させることで「どの図の lane pitch が
+ * 戻ったか」 を sweep より早く名指しできる。 sweep が category 単位でしか落ちないのを補う役割。
  */
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;
