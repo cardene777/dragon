@@ -50,27 +50,54 @@ const RE_BOW = new RegExp(
 );
 const RE_TOKEN = new RegExp(`([MLQCZ])|(${NUM})`, "g");
 
-/** path を `command + 座標` の列に分解する。 丸めない。 */
-function tokenize(d: string): Array<{ cmd: string; nums: number[] }> {
-  const out: Array<{ cmd: string; nums: number[] }> = [];
+type Pt = [number, number];
+/** 1 区間 = 命令 + 制御点 + 終点。 */
+type Seg = { cmd: string; ctrls: Pt[]; end: Pt };
+
+/** path を「始点 + 区間の列」 に分解する。 丸めない。 */
+function parsePath(d: string): { start: Pt; segs: Seg[] } | null {
+  const toks: Array<{ cmd: string; nums: number[] }> = [];
   for (const m of d.matchAll(RE_TOKEN)) {
-    if (m[1]) out.push({ cmd: m[1], nums: [] });
-    else if (out.length > 0) out[out.length - 1]!.nums.push(Number(m[2]));
+    if (m[1]) toks.push({ cmd: m[1], nums: [] });
+    else if (toks.length > 0) toks[toks.length - 1]!.nums.push(Number(m[2]));
   }
-  return out;
+  if (toks.length === 0 || toks[0]!.cmd !== "M" || toks[0]!.nums.length < 2) return null;
+  const start: Pt = [toks[0]!.nums[0]!, toks[0]!.nums[1]!];
+  const segs: Seg[] = [];
+  for (const t of toks.slice(1)) {
+    const pairs: Pt[] = [];
+    for (let i = 0; i + 1 < t.nums.length; i += 2) pairs.push([t.nums[i]!, t.nums[i + 1]!]);
+    if (pairs.length === 0) continue; // Z 等
+    segs.push({ cmd: t.cmd, ctrls: pairs.slice(0, -1), end: pairs[pairs.length - 1]! });
+  }
+  return { start, segs };
 }
+
+const fmt = (p: Pt) => `${p[0]},${p[1]}`;
 
 /**
  * 向きを無視した path の key。 A→B と B→A を同じものとして扱う。
  *
  * 丸めない = 丸めると別の path (例 `L 10 0` と `L 10.004 0`) が同一視され、 cdl が分離対象に
- * しない有効な 2 本を「一致」 と誤判定する。 command も key に含める = 座標列だけでは直線と曲線を
+ * しない有効な 2 本を「一致」 と誤判定する。 命令も key に含める = 座標列だけでは直線と曲線を
  * 区別できない。
+ *
+ * 逆向きは **幾何として** 反転する = 区間の並びを逆にし、 区間内の制御点も逆にして、 終点を
+ * 1 つ前の点にする。 token 列をそのまま反転すると `M 0 0 Q 5 5 10 0` と `M 10 0 Q 5 5 0 0` が
+ * 別の key になる (同じ曲線なのに一致と判定できない)。
  */
 function normalizedPath(d: string): string {
-  const toks = tokenize(d);
-  const fwd = toks.map((t) => `${t.cmd}:${t.nums.join(",")}`).join(" ");
-  const rev = [...toks].reverse().map((t) => `${t.cmd}:${t.nums.join(",")}`).join(" ");
+  const parsed = parsePath(d);
+  if (!parsed) return d.replace(/\s+/g, " ").trim();
+  const { start, segs } = parsed;
+  const fwd = [fmt(start), ...segs.map((sg) => `${sg.cmd}(${sg.ctrls.map(fmt).join(";")})->${fmt(sg.end)}`)].join(" ");
+  const pts: Pt[] = [start, ...segs.map((sg) => sg.end)];
+  const revSegs: string[] = [];
+  for (let i = segs.length - 1; i >= 0; i--) {
+    const sg = segs[i]!;
+    revSegs.push(`${sg.cmd}(${[...sg.ctrls].reverse().map(fmt).join(";")})->${fmt(pts[i]!)}`);
+  }
+  const rev = [fmt(pts[pts.length - 1]!), ...revSegs].join(" ");
   return fwd < rev ? fwd : rev;
 }
 
@@ -149,6 +176,31 @@ describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
     expect(ALL.laid).toHaveLength(ALL.count);
   });
 
+  it("向きの正規化が幾何として正しい (helper を直接叩く)", () => {
+    // token 列をそのまま反転すると `M 0 0 Q 5 5 10 0` と `M 10 0 Q 5 5 0 0` が別の key になる
+    // (同じ曲線なのに一致と判定できない)。 区間の並びと区間内の制御点を反転する形で固定する。
+    const same: Array<[string, string]> = [
+      ["M 0 0 Q 5 5 10 0", "M 10 0 Q 5 5 0 0"],
+      ["M 0 0 L 10 0", "M 10 0 L 0 0"],
+      ["M 0 0 L 5 0 L 10 0", "M 10 0 L 5 0 L 0 0"],
+      ["M 1e-7 0 L 400 0", "M 400 0 L 1e-7 0"],
+    ];
+    for (const [a, b] of same) {
+      expect(normalizedPath(a), `${a} と ${b} が同一にならない`).toBe(normalizedPath(b));
+    }
+    const diff: Array<[string, string]> = [
+      // 丸めると同一視されてしまう組
+      ["M 0 0 L 10 0", "M 10.004 0 L 0.004 0"],
+      // 制御点の向きが逆 = 別の曲線
+      ["M 0 0 Q 5 5 10 0", "M 0 0 Q 5 -5 10 0"],
+      // 命令が違う = 直線と曲線
+      ["M 0 0 L 10 0", "M 0 0 Q 5 0 10 0"],
+    ];
+    for (const [a, b] of diff) {
+      expect(normalizedPath(a), `${a} と ${b} が同一視される`).not.toBe(normalizedPath(b));
+    }
+  });
+
   it("向きを無視して world 座標が一致する path が 1 組も無い", () => {
     const dup: string[] = [];
     for (const { id, laid } of ALL.laid) {
@@ -216,29 +268,45 @@ describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
     expect(missing, `分離されていない:\n${missing.join("\n")}`).toHaveLength(0);
   });
 
-  it("弓なりにした 2 本が中点で線幅より広く離れている", () => {
+  it("同じ 2 点を結ぶ線が中点で線幅より広く離れている", () => {
     // 分離幅が線幅 (光っている時 5) より広いこと。 実測は 32 (cdl の PARALLEL_EDGE_BOW)。
+    //
+    // 弓なりだけを対象にしてはいけない。 3 本群では中央 1 本が直線のまま残るため、 弓なりだけで
+    // 群を作ると中央と両隣の間隔を検査しない (中央を中心線の近くへ動かす変異が通ってしまう)。
     const mid = (pts: Array<[number, number]>) => pts[Math.floor(pts.length / 2)]!;
+    /** 弓なり / 直線 1 本のどちらでも中点と端点を返す。 折れ線は対象外。 */
+    const simpleMid = (d: string): { ends: string; mid: Array<[number, number]> } | null => {
+      const bow = bowPoints(d);
+      if (bow) {
+        const a = fmt(bow[0]!);
+        const b = fmt(bow[bow.length - 1]!);
+        return { ends: a < b ? `${a}|${b}` : `${b}|${a}`, mid: bow };
+      }
+      const parsed = parsePath(d);
+      if (!parsed || parsed.segs.length !== 1 || parsed.segs[0]!.cmd !== "L") return null;
+      const p0 = parsed.start;
+      const p1 = parsed.segs[0]!.end;
+      const a = fmt(p0);
+      const b = fmt(p1);
+      return {
+        ends: a < b ? `${a}|${b}` : `${b}|${a}`,
+        mid: [[(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2]],
+      };
+    };
     const narrow: string[] = [];
     for (const { id, laid } of ALL.laid) {
-      const bowed = laid.edges
-        .map((e) => ({ id: e.id, pts: bowPoints(e.d) }))
-        .filter((x): x is { id: string; pts: Array<[number, number]> } => x.pts !== null);
-      if (bowed.length < 2) continue;
-      // 同じ端点の組ごとにまとめる (向きは無視する)
-      const byEnds = new Map<string, typeof bowed>();
-      for (const x of bowed) {
-        const a = `${x.pts[0]![0]},${x.pts[0]![1]}`;
-        const b = `${x.pts[x.pts.length - 1]![0]},${x.pts[x.pts.length - 1]![1]}`;
-        const k = a < b ? `${a}|${b}` : `${b}|${a}`;
-        byEnds.set(k, [...(byEnds.get(k) ?? []), x]);
+      const byEnds = new Map<string, Array<{ id: string; mid: Array<[number, number]> }>>();
+      for (const e of laid.edges) {
+        const s = simpleMid(e.d);
+        if (!s) continue;
+        byEnds.set(s.ends, [...(byEnds.get(s.ends) ?? []), { id: e.id, mid: s.mid }]);
       }
       for (const group of byEnds.values()) {
         if (group.length < 2) continue;
         for (let i = 0; i < group.length; i++) {
           for (let j = i + 1; j < group.length; j++) {
-            const a = mid(group[i]!.pts);
-            const b = mid(group[j]!.pts);
+            const a = mid(group[i]!.mid);
+            const b = mid(group[j]!.mid);
             const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
             if (dist <= 5) narrow.push(`${id}: ${group[i]!.id} ↔ ${group[j]!.id} 中点間隔 ${dist.toFixed(1)}`);
           }
