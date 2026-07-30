@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { compileToCdl } from "../src/compile";
 import type { DslDocument, DslActor, DslStep, PresetType } from "../src/types";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { layout } from "@cardenelabs/cdl";
 
 /**
  * compile.ts mutation-kill test。
@@ -76,6 +77,19 @@ function makeDoc(type: PresetType, over: Partial<DslDocument> = {}): DslDocument
 function compile(type: PresetType, over: Partial<DslDocument> = {}): CdlDiagram {
   return compileToCdl(makeDoc(type, over));
 }
+/**
+ * merge 済のパーツの箱の左端 (実測値)。
+ *
+ * 大きさを書いていない箱は `posX` だけを見ても幅が分からない。 配置計算を通して実際の
+ * 大きさで測る (`layout` が種類ごとの既定値を埋める)。
+ */
+function partLeftEdge(d: CdlDiagram, prefix: string): number {
+  const laid = layout(d);
+  const ns = laid.nodes.filter((n) => n.id.startsWith(`${prefix}__`));
+  if (ns.length === 0) throw new Error(`part node not found: ${prefix}`);
+  return Math.min(...ns.map((n) => n.cx - n.w / 2));
+}
+
 function node(d: CdlDiagram, id: string) {
   const n = d.nodes.find((x) => x.id === id);
   if (!n) throw new Error(`node ${id} not found: ${d.nodes.map((x) => x.id).join(",")}`);
@@ -385,10 +399,13 @@ describe("parts merge", () => {
     expect(d.nodes.some((n) => n.id === "widget-header")).toBe(false);
     expect(d.nodes.some((n) => n.id.startsWith("widget-"))).toBe(false);
   });
-  it("part lane は格子の 1 番目 (左端) に配置", () => {
-    // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた
+  it("part は格子の 1 番目 (左端) に配置", () => {
+    // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた。
+    //
+    // 見るのは箱の左端。 縦列の左端は箱より外に出ることがあり (縦列が箱より広い catalog)、
+    // 縦列の x で見ると「箱が左端に来ているか」 を確かめられない
     const d = partsCompile();
-    expect(d.lanes.find((l) => l.id === "widget__flow")!.x).toBe(0);
+    expect(partLeftEdge(d, "widget")).toBe(0);
   });
   it("catalog 不在の partId は crash せず無視 (壊さない設計)", () => {
     expect(() => compileToCdl(makeDoc("sequence", {
@@ -740,9 +757,10 @@ function compileWithPart(over: Partial<DslActor> = {}, part: CdlDiagram = makeTe
 describe("mergePartIntoDiagram: lane 配置 (offsetX 中心補正 / fallback)", () => {
   it("offset 未指定 = 格子の 1 番目 (左端) に配置", () => {
     // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く足すたびに図が右へ
-    // 伸び続けた (実測 = 8 個で幅 6140)。 格子に並べる形に変えた
+    // 伸び続けた (実測 = 8 個で幅 6140)。 格子に並べる形に変えた。
+    // 見るのは箱の左端 (縦列は箱より外に出ることがある)
     const d = compileWithPart();
-    expect(lane(d, "p1__l").x).toBe(0);
+    expect(partLeftEdge(d, "p1")).toBe(0);
   });
 
   it("posX 指定 = part 中心を posX に合わせるため lane.x = posX - width/2", () => {
@@ -1413,7 +1431,7 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
       makeDoc("sequence", { actors: [actor("p1", { partId: "test" })], flow: [] }),
       { partsCatalog: { test: makeTestPart() } },
     );
-    expect(lane(d, "p1__l").x).toBe(0);
+    expect(partLeftEdge(d, "p1")).toBe(0);
   });
 });
 

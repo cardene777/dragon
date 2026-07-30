@@ -98,7 +98,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 居ないかは記述だけで決まるので 1 か所で見る
   reportMissingFocusTargets(doc, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
-  const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice);
+  const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
@@ -186,6 +186,7 @@ function resolveRelativeDoc(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (notice: CompileNotice) => void,
+  partsCatalog?: Record<string, CdlDiagram>,
 ): DslDocument {
   if (!doc.actors.some((a) => a.posRel !== undefined)) return doc;
 
@@ -194,12 +195,27 @@ function resolveRelativeDoc(
   // 自動配置のまま測ると、 座標で固定した箱を基準にした指定が壊れる。 基準の自動配置位置
   // から狙いを作るため、 実際の位置と食い違い、 最後の確認で「効きません」 と捨てられる
   // (実測 = `Web @1000,500` の右に置くはずの箱が 200 に出て、 そのまま落とされた)。
-  const baseBoxes = measureActorBoxes(withPositions(diagram, doc, new Map()));
-  const want = desiredCenters(doc, baseBoxes);
+  const measured = measureActorBoxes(withPositions(diagram, doc, new Map()));
+  // パーツの箱は catalog から作る。 組み立て前の図に残っている仮の箱を測ると、 実際に
+  // 描かれる大きさと違う値で間隔を計算することになる
+  const baseBoxes = new Map(measured);
+  if (partsCatalog) {
+    for (const [name, box] of partBoxes(diagram, doc, partsCatalog)) baseBoxes.set(name, box);
+  }
+  const sizeOverride = partsCatalog
+    ? partSizes(doc, partsCatalog)
+    : new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  const want = desiredCenters(doc, baseBoxes, sizeOverride);
   if (want.size === 0) return doc;
 
-  // 2. 狙った中心をそのまま座標として仮に置く
-  const naive = new Map([...want].map(([name, c]) => [name, { posX: c.cx, posY: c.cy }] as const));
+  // 2. 狙った中心をそのまま座標として仮に置く。
+  //    パーツは渡す座標が段の中心なので、 矩形の中心とのずれを引く
+  const naive = new Map(
+    [...want].map(([name, c]) => {
+      const off = sizeOverride.get(name);
+      return [name, { posX: c.cx - (off?.dx ?? 0), posY: c.cy - (off?.dy ?? 0) }] as const;
+    }),
+  );
 
   // 3. 測り直して、 狙いとの差を足す。
   //
@@ -207,9 +223,28 @@ function resolveRelativeDoc(
   // 中心を狙って書くと縦列の幅の半分だけ右にずれる (実測 = 200 空けたいのに 370 空いた)。
   // 図種ごとの規則を書き写すと cdl 側の変更で黙って壊れるため、 実際に置いた結果との差を
   // 使って直す。 差は図種ごとに一定なので 1 度で合う (実測 = 8 図種すべてで狙い通り)。
+  const isPart = new Set(doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name));
+  // 確かめる時も、 基準になるパーツは catalog 由来の箱で見る。 この時点の図には仮の箱しか
+  // 無いため、 測ると解決側と違う基準で期待を作ることになる (実測 = 正しく置いた箱が
+  // 「効きません」 と落とされた)
+  const partOverride = new Map<string, AnchorBox>();
+  for (const [name, box] of baseBoxes) {
+    if (isPart.has(name)) partOverride.set(name, box);
+  }
+  for (const [name, c] of want) {
+    if (!isPart.has(name)) continue;
+    partOverride.set(name, c);
+  }
   const placedBoxes = measureActorBoxes(withPositions(diagram, doc, naive));
   const fixed = new Map<string, { posX: number; posY: number }>();
   for (const [name, pos] of naive) {
+    // パーツは補正しない。 merge が座標を中心としてそのまま使うので狙いがそのまま効く。
+    // 一方この時点の図にはパーツの仮の箱しか無く、 動いていない位置を測って差を足すと
+    // ずれが二重になる (実測 = 狙い 760 に対して 1320 に飛んだ)
+    if (isPart.has(name)) {
+      fixed.set(name, pos);
+      continue;
+    }
     const got = placedBoxes.get(name);
     const target = want.get(name)!;
     if (!got) {
@@ -227,7 +262,7 @@ function resolveRelativeDoc(
   // 座標がどの向きにも効く保証は無い。 順序図の縦位置がその例で、 縦列は横に並ぶものなので
   // 下に動かせない。 そのまま出すと基準の上に重なった図が出る (実測)。 動かなかった時は
   // 書かなかった時と同じ配置に戻し、 何が効かなかったかを呼出側に伝える。
-  return withDocPositions(doc, verifyPlacement(diagram, doc, fixed, onNotice));
+  return withDocPositions(doc, verifyPlacement(diagram, doc, fixed, partOverride, onNotice));
 }
 
 /**
@@ -241,9 +276,16 @@ function verifyPlacement(
   diagram: CdlDiagram,
   doc: DslDocument,
   assign: ReadonlyMap<string, { posX: number; posY: number }>,
+  partOverride: ReadonlyMap<string, AnchorBox>,
   onNotice?: (notice: CompileNotice) => void,
 ): Map<string, { posX: number; posY: number }> {
   const boxes = measureActorBoxes(withPositions(diagram, doc, assign));
+  // パーツは merge 前なので、 図には実寸と違う仮の箱しか無い。 解決側と同じ箱に差し替える。
+  //
+  // 差し替えないと 2 通りに壊れる。 パーツを基準にした箱は仮の箱から期待を作って落とされ
+  // (実測 = 正しく置いた箱が「効きません」 になった)、 パーツ自身も仮の箱の位置と
+  // 突き合わせて落とされる。
+  for (const [name, box] of partOverride) boxes.set(name, box);
   const kept = new Map(assign);
   for (const actor of doc.actors) {
     const rel = actor.posRel;
@@ -293,7 +335,9 @@ const PLACEMENT_TOLERANCE = 1;
 function desiredCenters(
   doc: DslDocument,
   boxes: ReadonlyMap<string, AnchorBox>,
+  sizeOverride: ReadonlyMap<string, { w: number; h: number }> = new Map(),
 ): Map<string, AnchorBox> {
+  // 大きさだけを見る。 中心のずれは呼ぶ側が座標に直す時に引く
   const byName = new Map(doc.actors.map((a) => [a.name, a] as const));
   const { order } = orderByDependency(doc.actors.map((a) => ({ name: a.name, rel: a.posRel })));
   // 基準に使う中心。 相対で書かれていない分は測った位置をそのまま使う
@@ -302,11 +346,16 @@ function desiredCenters(
 
   for (const name of order) {
     const actor = byName.get(name);
-    const self = boxes.get(name);
+    // 自分の大きさ。 パーツは catalog の値を使う (図に残る仮の箱は実寸と違う)
+    const override = sizeOverride.get(name);
+    const measuredSelf = boxes.get(name);
+    const self = override
+      ? { cx: measuredSelf?.cx ?? 0, cy: measuredSelf?.cy ?? 0, w: override.w, h: override.h }
+      : measuredSelf;
     if (!actor?.posRel || !self) continue;
     const anchor = centers.get(actor.posRel.anchor);
     // 測れない相手を基準にした分は自動配置のまま残す。 相手が居ることは parser が確かめて
-    // いるので、 ここに来るのは図に箱として現れない相手 (parts 等) を指した場合
+    // いるので、 ここに来るのは図に箱として現れない相手 (catalog に無いパーツ等) を指した場合
     if (!anchor) continue;
     const p = resolveRelativePos(actor.posRel, anchor, self);
     const center: AnchorBox = { cx: p.posX, cy: p.posY, w: self.w, h: self.h };
@@ -476,6 +525,267 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
 }
 
 /**
+ * catalog からパーツ 1 個の図を引く。
+ *
+ * `Object.hasOwn` で引く。 素の添字だと `__proto__` 等の既定の持ち物が引けてしまう
+ * (catalog は呼出側が渡す untrusted な値)。
+ */
+function lookupPart(
+  partsCatalog: Record<string, CdlDiagram>,
+  partId: string | undefined,
+): CdlDiagram | undefined {
+  if (typeof partId !== "string" || partId.length === 0) return undefined;
+  if (Object.hasOwn(partsCatalog, partId)) return partsCatalog[partId];
+  if (Object.hasOwn(partsCatalog, `parts-${partId}`)) return partsCatalog[`parts-${partId}`];
+  return undefined;
+}
+
+/**
+ * merge がパーツを縦に送る幅。 `mergePartIntoDiagram` と共有する。
+ *
+ * 別々に持つと、 大きさの見積りと実際の置き場所がずれる (実測 = 2 段のパーツで 200 空けたい
+ * ところが 90 になった)。
+ */
+const PART_STACK_PITCH = 220;
+
+/**
+ * 箱の大きさを書かなかった時に cdl が使う値。
+ *
+ * 幅は実測で 340 固定 (縦列の幅を変えても変わらない)。 高さは種類で変わるため、 よく使われる
+ * 値を既定にする。 パーツの図が大きさを書いていれば、 こちらは使われない。
+ */
+const CDL_DEFAULT_NODE_W = 340;
+const CDL_DEFAULT_NODE_H = 200;
+
+/** 有限で正の数だけを通す。 catalog は呼出側が渡す値なので、 異常値を計算に入れない。 */
+function positiveOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/**
+ * 配列の最大値 / 最小値。 spread で展開しない (要素数が多い catalog で stack が溢れる)。
+ *
+ * 空の時だけ既定値を返す。 既定値を初期値にすると、 全要素が既定値より小さい (大きい) 時に
+ * 存在しない値を範囲に含める (実測 = stack 5 だけのパーツで 0 を含め、 高さが 5 段分になった)。
+ */
+function maxOf(values: readonly number[], fallback: number): number {
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
+  for (const v of values) if (v > out) out = v;
+  return out;
+}
+
+function minOf(values: readonly number[], fallback: number): number {
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
+  for (const v of values) if (v < out) out = v;
+  return out;
+}
+
+/**
+ * パーツ 1 個が図の上で占める外接矩形。
+ *
+ * `w` / `h` は大きさ、 `dx` / `dy` は矩形の中心が「merge に渡す座標」 からどれだけずれるか。
+ *
+ * merge がパーツを置く時に基準にするのは段の中心で、 外接矩形の中心とは一致しない。 段ごとに
+ * 箱の高さが違うと、 上下の伸び方が非対称になるため (実測 = 段 0 に高さ 50、 段 5 に高さ 200 の
+ * パーツで中心が 37.5 下にずれる)。 ずれを返して呼ぶ側が引く。
+ *
+ * 箱ごとに位置と大きさを見る。 一番高い箱の高さと段の数から概算すると実際の矩形と合わない
+ * (実測 = 段 5 だけのパーツで 200 空けたいところが 750、 段 0,5 で高さが違うと 275 になった)。
+ *
+ * `大きさ:` を書いた時の拡大も反映する。 merge は幅を `targetW / bbox 幅`、 高さを
+ * `targetH / 段の総高` の比で拡大するため、 同じ比を掛ける。
+ */
+function partExtent(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number; dx: number; dy: number } {
+  const fallback = { w: 400, h: 200, dx: 0, dy: 0 };
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return fallback;
+  if (part.nodes.length === 0) return fallback;
+
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値なので、 数でない値を計算に入れない
+  const lanes = new Map<string, { x: number; w: number }>();
+  const laneLefts: number[] = [];
+  const laneRights: number[] = [];
+  for (const l of part.lanes) {
+    const x = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+    const w = positiveOr(l.width, 400);
+    lanes.set(l.id, { x, w });
+    laneLefts.push(x);
+    laneRights.push(x + w);
+  }
+  const bboxW = positiveOr(
+    maxOf(laneRights, 400) - minOf(laneLefts, 0),
+    400,
+  );
+  const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
+  const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
+
+  const stacks = part.nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
+  const maxStack = maxOf(stacks, 0);
+  const minStack = minOf(stacks, 0);
+  const centerStack = (minStack + maxStack) / 2;
+  const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
+  const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
+
+  // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
+  const tops: number[] = [];
+  const bottoms: number[] = [];
+  const lefts: number[] = [];
+  const rights: number[] = [];
+  part.nodes.forEach((n, i) => {
+    const lane = lanes.get(n.lane) ?? { x: 0, w: 320 };
+    const cx = (lane.x + lane.w / 2 - bboxCenterX) * scaleX;
+    const cy = ((stacks[i] ?? 0) - centerStack) * PART_STACK_PITCH * scaleY;
+    const halfW = (positiveOr(n.w, CDL_DEFAULT_NODE_W) * scaleX) / 2;
+    const halfH = (positiveOr(n.h, CDL_DEFAULT_NODE_H) * scaleY) / 2;
+    lefts.push(cx - halfW);
+    rights.push(cx + halfW);
+    tops.push(cy - halfH);
+    bottoms.push(cy + halfH);
+  });
+  const x0 = minOf(lefts, 0);
+  const x1 = maxOf(rights, 400);
+  const y0 = minOf(tops, 0);
+  const y1 = maxOf(bottoms, 200);
+
+  return {
+    w: positiveOr(x1 - x0, 400),
+    h: positiveOr(y1 - y0, 200),
+    // 基準 (0,0) から見た矩形の中心
+    dx: Number.isFinite((x0 + x1) / 2) ? (x0 + x1) / 2 : 0,
+    dy: Number.isFinite((y0 + y1) / 2) ? (y0 + y1) / 2 : 0,
+  };
+}
+
+/** 格子に並べる時の 1 行あたりの個数と隙間。 */
+const PARTS_PER_ROW = 3;
+const PARTS_GAP = 120;
+/**
+ * 既存の図の下に置く時の目安。
+ *
+ * 既存の箱は自動配置なので、 この時点では座標を持たない。 段の数から概算する。
+ * 1 段あたりの高さは cdl の既定の縦送り幅に合わせる。
+ */
+const STACK_PITCH = 280;
+
+/**
+ * 位置を書かなかったパーツの、 格子上の中心。
+ *
+ * 解決側 (`resolveRelativeDoc`) と merge 側 (`mergePartsFromActors`) の両方から呼ぶ。
+ * 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。
+ *
+ * 列の送り幅は並べる全パーツの最大幅で揃える。 個々の幅で送ると、 幅の違うパーツが混ざった時に
+ * 隣と重なる (実測 = 400 の次に 200 を置くと 280 重なった)。 段の高さも同じ理由で段内の
+ * 最大高で揃える。
+ */
+function partGridCenters(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, { cx: number; cy: number }> {
+  const partsActors = doc.actors.filter((a) => a.partId !== undefined);
+  // 格子に並ぶのは座標を 1 つも書かず相対でも書かなかった分だけ。
+  //
+  // merge 側は「縦横どちらも書かなかった時」 に格子へ落とす。 条件が食い違うと、 片方だけ
+  // 書いたパーツが格子の枠を 1 つ消費して後続がずれる (実測 = 後続の中心が 200 から 720 に動いた)
+  const autoActors = partsActors.filter(
+    (a) => a.posX === undefined && a.posY === undefined && a.posRel === undefined,
+  );
+  const out = new Map<string, { cx: number; cy: number }>();
+  if (autoActors.length === 0) return out;
+
+  // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
+  // 置き場所が下へずれる
+  const partsActorNames = new Set(partsActors.map((a) => a.name));
+  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
+  const autoPlacedTop = baseNodes.length * STACK_PITCH + PARTS_GAP * 2;
+
+  const sizes = autoActors.map((a) => {
+    const part = lookupPart(partsCatalog, a.partId);
+    return part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200, dx: 0, dy: 0 };
+  });
+  // 列の送り幅は全体の最大幅で揃える
+  const cellW = Math.max(1, ...sizes.map((s) => s.w));
+  const rowTops: number[] = [];
+  {
+    let top = autoPlacedTop;
+    for (let i = 0; i < sizes.length; i += PARTS_PER_ROW) {
+      rowTops.push(top);
+      const rowH = Math.max(200, ...sizes.slice(i, i + PARTS_PER_ROW).map((s) => s.h));
+      top += rowH + PARTS_GAP;
+    }
+  }
+
+  autoActors.forEach((a, i) => {
+    const col = i % PARTS_PER_ROW;
+    const row = Math.floor(i / PARTS_PER_ROW);
+    const size = sizes[i] ?? { w: 400, h: 200, dx: 0, dy: 0 };
+    // 矩形をどこに置きたいか
+    const wantCx = col * (cellW + PARTS_GAP) + cellW / 2;
+    // 縦は自分の高さの半分だけ段の上端から下げる。 段の高さで下げると、 低いパーツの
+    // 上端が段の上端より下に来て段内でばらつく (実測 = 520 / 560 / 520 に散った)
+    const wantCy = (rowTops[row] ?? autoPlacedTop) + size.h / 2;
+    // merge に渡すのは段の中心。 矩形の中心とのずれを引く
+    out.set(a.name, { cx: wantCx - size.dx, cy: wantCy - size.dy });
+  });
+  return out;
+}
+
+/**
+ * パーツごとの外接矩形 (catalog 由来)。 相対指定を解く時に自分の大きさとして使う。
+ *
+ * `dx` / `dy` は矩形の中心と merge に渡す座標のずれ。 狙った中心から引いて座標にする。
+ */
+function partSizes(
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, { w: number; h: number; dx: number; dy: number }> {
+  const out = new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  for (const a of doc.actors) {
+    if (a.partId === undefined) continue;
+    const part = lookupPart(partsCatalog, a.partId);
+    if (part) out.set(a.name, partExtent(part, a.posW, a.posH));
+  }
+  return out;
+}
+
+/**
+ * パーツの箱 (中心と大きさ)。 相対指定を解く時の基準として使う。
+ *
+ * 大きさは catalog の図から求める。 組み立て前の図に残っている仮の箱を測ると、 実際に
+ * 描かれる大きさと違う値で間隔を計算することになる。
+ */
+function partBoxes(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, AnchorBox> {
+  const grid = partGridCenters(target, doc, partsCatalog);
+  const out = new Map<string, AnchorBox>();
+  for (const a of doc.actors) {
+    if (a.partId === undefined) continue;
+    const part = lookupPart(partsCatalog, a.partId);
+    if (!part) continue;
+    const size = partExtent(part, a.posW, a.posH);
+    const placed =
+      a.posX !== undefined && a.posY !== undefined
+        ? { cx: a.posX, cy: a.posY }
+        : grid.get(a.name);
+    // 相対で書いた分はここでは決まらない (解決側が後で埋める)
+    if (!placed) continue;
+    // 渡す座標は段の中心。 矩形の中心はそこからずれる
+    out.set(a.name, { cx: placed.cx + size.dx, cy: placed.cy + size.dy, w: size.w, h: size.h });
+  }
+  return out;
+}
+
+/**
  * CAR-1657 = doc.actors 中の partId set actor を検出、 partsCatalog から CdlDiagram を lookup、
  * mergePartIntoDiagram で target に prefix 付き統合する。 partsCatalog 未渡し or 該当 partId
  * 未登録なら warn を残して skip、 diagram render は継続 (壊さない設計)。
@@ -494,60 +804,11 @@ function mergePartsFromActors(
     }
     return target;
   }
-  // 位置を書かなかったパーツを並べる場所。
+  // 位置を書かなかったパーツの置き場所は `partGridCenters` が決める。
   //
-  // 以前は「既存の右端 + 隙間」 に 1 つずつ置いていた。 折り返しが無いので、 足すたびに図が
-  // 右へ伸び続けた (実測 = 8 個で幅 6140、 1 個の 5.5 倍)。 canvas で座標を渡していた頃は
-  // この経路に入らなかったが、 canvas を外して全てここを通るようになった。
-  //
-  // 決まった数で折り返して格子に並べる。 縦位置も揃えるので、 高さの違うパーツが混ざっても
-  // 上端が揃う。
-  const PARTS_PER_ROW = 3;
-  const PARTS_GAP = 120;
-  // 既存の図の下に置く。 横に並べると既存の図が端に押しやられる。
-  //
-  // 既存の箱は自動配置なので、 この時点では座標を持たない (`posY` は未設定)。 段の数から
-  // 概算する。 1 段あたりの高さは cdl の既定の縦送り幅に合わせる。
-  // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
-  // 置き場所が下へずれる。
-  const STACK_PITCH = 280;
-  const partsActorNames = new Set(partsActors.map((a) => a.name));
-  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
-  // 段の最大値ではなく件数で数える。 パーツの仮の箱が先に並ぶと、 残った箱の段番号が
-  // パーツの数だけ後ろにずれるため。
-  const existingStacks = baseNodes.length;
-  const autoPlacedTop = existingStacks * STACK_PITCH + PARTS_GAP * 2;
-
-  // 段ごとの高さを先に決める。 座標は中心なので、 高さの違うパーツを同じ中心に置くと上端が
-  // ばらつき、 次の段の位置も自分の高さで決まってしまう (実測 = 重なりが出た)。
-  // 段の中で一番高いパーツに合わせて上端を揃える。
-  const partHeightOf = (d: CdlDiagram): number =>
-    d.nodes.length > 0 ? Math.max(...d.nodes.map((n) => n.h ?? 200)) : 200;
-  const partWidthOf = (d: CdlDiagram): number =>
-    d.lanes.length > 0
-      ? Math.max(...d.lanes.map((l) => (l.x ?? 0) + l.width)) - Math.min(...d.lanes.map((l) => l.x ?? 0))
-      : 400;
-
-  const autoActors = partsActors.filter((a) => a.posX === undefined && a.posY === undefined);
-  const autoParts = autoActors.map((a) => {
-    const id = a.partId ?? "";
-    const d = Object.hasOwn(partsCatalog, id)
-      ? partsCatalog[id]
-      : Object.hasOwn(partsCatalog, `parts-${id}`)
-        ? partsCatalog[`parts-${id}`]
-        : undefined;
-    return d;
-  });
-  const rowTops: number[] = [];
-  {
-    let top = autoPlacedTop;
-    for (let i = 0; i < autoParts.length; i += PARTS_PER_ROW) {
-      rowTops.push(top);
-      const rowHeights = autoParts.slice(i, i + PARTS_PER_ROW).map((d) => (d ? partHeightOf(d) : 200));
-      top += Math.max(...rowHeights, 200) + PARTS_GAP;
-    }
-  }
-  let autoIndex = 0;
+  // 以前はここで格子を組んでいたが、 相対指定を解く側も同じ位置を知る必要がある。
+  // 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。 規則を共有する。
+  const gridCenters = partGridCenters(target, doc, partsCatalog);
 
   for (const actor of partsActors) {
     const partId = actor.partId;
@@ -648,15 +909,12 @@ function mergePartsFromActors(
     // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
     let placeX = actor.posX;
     let placeY = actor.posY;
+    // 格子に落とすのは縦横どちらも書かなかった時だけ。 片方だけ書いた時に残りを格子で
+    // 埋めると、 書いた値と格子が混ざった位置になる (従来の条件をそのまま保つ)
     if (placeX === undefined && placeY === undefined) {
-      const partW = partWidthOf(part);
-      const partH = partHeightOf(part);
-      const col = autoIndex % PARTS_PER_ROW;
-      const row = Math.floor(autoIndex / PARTS_PER_ROW);
-      placeX = col * (partW + PARTS_GAP) + partW / 2;
-      // 段の上端から自分の高さの半分だけ下げる = 上端が揃う
-      placeY = (rowTops[row] ?? autoPlacedTop) + partH / 2;
-      autoIndex += 1;
+      const center = gridCenters.get(actor.name);
+      placeX = center?.cx;
+      placeY = center?.cy;
     }
     mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH);
   }
@@ -746,12 +1004,19 @@ function mergePartIntoDiagram(
   // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
   // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
   // 中心からずれる (#880)。
-  const partMinLaneX = part.lanes.length > 0
-    ? Math.min(...part.lanes.map((l) => l.x ?? 0))
-    : 0;
-  const partMaxLaneRight = part.lanes.length > 0
-    ? Math.max(...part.lanes.map((l) => (l.x ?? 0) + l.width))
-    : 400;
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値で、 生値のまま bbox を出すと
+  // 拡大の基準が 1 に落ちて箱が桁違いに大きくなる (実測 = 指定間隔 200 が -31800 になった)
+  const partLaneGeom = new Map<string, { x: number; w: number }>();
+  for (const l of part.lanes) {
+    partLaneGeom.set(l.id, {
+      x: typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0,
+      w: positiveOr(l.width, 400),
+    });
+  }
+  const laneXs = [...partLaneGeom.values()].map((g) => g.x);
+  const laneRights = [...partLaneGeom.values()].map((g) => g.x + g.w);
+  const partMinLaneX = minOf(laneXs, 0);
+  const partMaxLaneRight = maxOf(laneRights, 400);
   // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
   // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
   // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
@@ -776,12 +1041,13 @@ function mergePartIntoDiagram(
       // lane の左端を mapLaneX で変換 = 元 lane 左端 (x) を scale 変換後の位置に置く。 lane 幅も
       // scale して lane 中心が mapLaneX(元 lane 中心) に一致する。 これで multi-lane でも各 lane が
       // part 全体の scale 変換に沿って配置される。
+      const geom = partLaneGeom.get(laneOrig.id) ?? { x: 0, w: 400 };
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
-        x: mapLaneX(laneOrig.x ?? 0),
-        width: laneOrig.width * laneScaleX,
+        x: mapLaneX(geom.x),
+        width: geom.w * laneScaleX,
       });
     }
   }
@@ -799,7 +1065,8 @@ function mergePartIntoDiagram(
   // parts 内部 stack 別の垂直 pitch (world unit) = STACK_PITCH_APPROX。 CDL layout の実 stackGap
   // (~100) + 標準 node h (~140-200) の合計相当。 これは parts の cy を厳密に再現しないが、
   // drop 座標 (dropX, dropY) 付近に parts が中心配置される見た目に十分な近似。
-  const STACK_PITCH_APPROX = 220;
+  // 縦の送り幅は大きさの見積りと共有する (`PART_STACK_PITCH`)。 別々に持つとずれる
+  const STACK_PITCH_APPROX = PART_STACK_PITCH;
   const STACK_ISOLATION_OFFSET = 1000;
   // parts の全 node の中心を drop 座標に合わせるため、 stack 範囲を計算して中心を offsetY に一致させる。
   const partStacks = part.nodes.map((n) => n.stack ?? 0);
@@ -866,10 +1133,8 @@ function mergePartIntoDiagram(
     let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
       // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
-      const partLane = part.lanes.find((l) => l.id === nodeOrig.lane);
-      const laneX = partLane?.x ?? 0;
-      const laneW = partLane?.width ?? 320;
-      nodePosX = mapLaneX(laneX + laneW / 2);
+      const geom = partLaneGeom.get(nodeOrig.lane) ?? { x: 0, w: 320 };
+      nodePosX = mapLaneX(geom.x + geom.w / 2);
     }
     if (shouldForcePos && nodePosY === undefined) {
       // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整、
@@ -878,12 +1143,16 @@ function mergePartIntoDiagram(
       nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX * scaleY + (offsetY ?? 0);
     }
     // parts sub-node の w / h に scale 適用 (I2 forensic 対応、 targetW/H 指定時のみ)
-    const nodeW = nodeOrig.w !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? nodeOrig.w * scaleX
-      : nodeOrig.w;
-    const nodeH = nodeOrig.h !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? nodeOrig.h * scaleY
-      : nodeOrig.h;
+    // catalog の値は呼出側が渡すので、 拡大しない時も数として通るか確かめる。 通さないと
+    // 座標が非有限になって図が描けない (実測 = 箱の中心が NaN になった)
+    const rawNodeW = nodeOrig.w !== undefined ? positiveOr(nodeOrig.w, 200) : undefined;
+    const rawNodeH = nodeOrig.h !== undefined ? positiveOr(nodeOrig.h, 200) : undefined;
+    const nodeW = rawNodeW !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeW * scaleX
+      : rawNodeW;
+    const nodeH = rawNodeH !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeH * scaleY
+      : rawNodeH;
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),
