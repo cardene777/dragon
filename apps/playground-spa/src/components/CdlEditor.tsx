@@ -13,7 +13,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partRenderSize } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize } from "@/lib/overlay-dsl";
 import { visibleWarnings } from "@/lib/editor-warnings";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -155,11 +155,6 @@ const v4EditorThemeDark = EditorView.theme(
  *
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
 const SAMPLES = EDITOR_SAMPLES;
-
-/** パーツ 1 個が図の上で占める大きさ。 大きさの決まり方は `overlay-dsl.ts` SSOT。 */
-function partWorldSize(part: { scale: number }): { w: number; h: number } {
-  return partRenderSize(part.scale);
-}
 
 function encodeShare(src: string): string {
   try {
@@ -820,7 +815,7 @@ export function CdlEditor(): React.JSX.Element {
         setOverlayParts(
           parts.length === 0
             ? []
-            : placeParts(parts, measureActorBoxes(d), partWorldSize, (n) => {
+            : placeParts(parts, measureActorBoxes(d), partWorldSize, d.nodes.length, (n) => {
                 // パーツは記法の解析より前に抜き出すので組み立て側の知らせに乗らない。
                 // 同じ場所に出すため、 ここで同じ形に直して混ぜる
                 notices.push({

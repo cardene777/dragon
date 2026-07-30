@@ -8,6 +8,7 @@ import {
   parseRelativePos,
   resolveRelativePos,
   orderByDependency,
+  partsGridCenters,
   type RelativePos,
   type AnchorBox,
 } from "@cardenelabs/dragon";
@@ -63,62 +64,23 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  */
 
 /**
- * 位置を書かなかったパーツを並べる場所。
+ * パーツ 1 個が画面上で占める大きさ (world 単位)。
  *
- * 図に出す経路 (本 file) と組み立ての経路 (`packages/dragon/src/compile.ts`) は別々に座標を
- * 決める。 片方だけ直すと、 画面と組み立て結果がずれる。 同じ規則で並べる。
+ * パーツは自分の図として重ねて描かれ、 その大きさは `editor.css` の
+ * `.v4-editor-svg-wrap svg` の既定値で決まる。 catalog の図枠から求めると実際の見た目と
+ * ずれる (実測 = 図枠 525x500 のパーツが 800x600 で描かれていた)。
  *
- * 以前ここは `0,0` 固定だった。 その結果、 位置を書かないパーツが全て図の左上に重なって出た。
- */
-const PARTS_PER_ROW = 3;
-const PARTS_GAP = 120;
-/**
- * 既存の図の下に置く時の、 パーツの上端。
- *
- * 見本の順序図で下端が 920 (実測)。 そのすぐ下から始める。 離しすぎると、 図とパーツが同時に
- * 画面に収まらない (実測 = 1200 だと縦 1580 になり、 パーツが画面外に出かかった)。
- */
-const PARTS_TOP = 1000;
-
-/**
- * パーツ 1 個が図の上で占める大きさ (world 単位)。
- *
- * パーツは自分の図として描かれるが、 その大きさは自分の図枠ではなく編集画面の CSS
- * (`editor.css` の `.v4-editor-svg-wrap svg` の `--cdl-svg-w` / `--cdl-svg-h` の既定値) で
- * 決まる。 図枠から求めると実際の見た目とずれる (実測 = 図枠 525x500 のパーツが 800x600 で
- * 描かれていた)。
- *
- * 本体の図だけは表示サイズを焼き込む処理が別にあり、 この既定値を上書きする。
- * `overlay-dsl.test.ts` が CSS 側の値と一致していることを確かめる。
+ * 組み立て側は catalog の図枠を実寸とするため、 位置を書かないパーツの置き場所が 2 経路で
+ * 違う (実測 = 中心が (400,1300) と (200,670))。 揃えるには画面側の描画を catalog の図枠に
+ * 合わせる必要があり、 図枠と箱の外接矩形が別 (525x500 と 380x380) で縦横比の扱いも要る。
+ * 格子の規則は共有済で、 残るのは大きさの出所。 Issue #937 で続ける。
  */
 export const PART_RENDER_W = 800;
 export const PART_RENDER_H = 600;
 
-/** 拡大率を反映したパーツの大きさ (world 単位)。 中心と左上の変換と、 表示合わせで使う。 */
-export function partRenderSize(scale: number): { w: number; h: number } {
-  const k = Number.isFinite(scale) && scale > 0 ? scale : 1;
+export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
+  const k = Number.isFinite(part.scale) && part.scale > 0 ? part.scale : 1;
   return { w: PART_RENDER_W * k, h: PART_RENDER_H * k };
-}
-
-/**
- * 位置を書かなかったパーツの、 格子上の中心。
- *
- * 送り幅は実寸から出す。 決め打ちの値を使うと、 実寸がそれより大きい時に隣と重なる
- * (実測 = 380 前提で 500 ずつ送っていたが実寸は 800 で、 2 個並べると 300 重なった)。
- *
- * 列の幅と段の高さは、 並べる全パーツの最大寸で揃える。 個別の寸法で送ると、 大きさの
- * 違うパーツが混ざった時に列が揃わない。
- */
-function autoPartCenter(
-  index: number,
-  cell: { w: number; h: number },
-): { posX: number; posY: number } {
-  const col = index % PARTS_PER_ROW;
-  const row = Math.floor(index / PARTS_PER_ROW);
-  return {
-    posX: col * (cell.w + PARTS_GAP) + cell.w / 2,
-    posY: PARTS_TOP + row * (cell.h + PARTS_GAP) + cell.h / 2,
-  };
 }
 
 /**
@@ -138,6 +100,7 @@ export function placeParts(
   parsed: OverlayPartParsed[],
   boxes: ReadonlyMap<string, AnchorBox>,
   sizeOf: (part: OverlayPartParsed) => { w: number; h: number },
+  baseNodeCount: number,
   onNotice?: (notice: PartPlacementNotice) => void,
 ): OverlayPartRaw[] {
   const byId = new Map(parsed.map((p) => [p.id, p] as const));
@@ -183,28 +146,24 @@ export function placeParts(
     });
   }
 
-  // 格子の 1 区画。 位置を書かなかったパーツの最大寸で揃える
-  const autoSizes = parsed
+  // 位置を書かなかった分は格子に並べる。 規則は組み立て側と共有する (`partsGridCenters`)。
+  // 別々に計算すると、 同じ本文でもパーツの位置が経路によって変わる
+  const autoIds = parsed
     .filter((p) => !(p.posX !== undefined && p.posY !== undefined) && !resolved.has(p.id))
-    .map((p) => sizes.get(p.id)!);
-  const cell = {
-    w: Math.max(1, ...autoSizes.map((s) => s.w)),
-    h: Math.max(1, ...autoSizes.map((s) => s.h)),
-  };
+    .map((p) => ({ id: p.id, ...sizes.get(p.id)! }));
+  const grid = partsGridCenters(baseNodeCount, autoIds);
 
-  // 格子の番号は「位置を書かなかった分」 だけで数える。 書いた分を数えると、 1 個座標を
-  // 書いただけで残りの並びがずれる
-  let autoIndex = 0;
   return parsed.map((p) => {
     const s = sizes.get(p.id)!;
     const explicit =
       p.posX !== undefined && p.posY !== undefined
         ? { posX: p.posX, posY: p.posY }
         : resolved.get(p.id);
+    const gridCenter = grid.get(p.id);
+    const center = explicit ?? (gridCenter ? { posX: gridCenter.cx, posY: gridCenter.cy } : undefined);
     // 書いた位置も格子も、 まず中心として求めてから左上に直す。 片方だけ中心のままにすると、
     // 同じ数字が経路によって別の場所を指す
-    const center = explicit ?? autoPartCenter(autoIndex, cell);
-    if (!explicit) autoIndex += 1;
+    if (!center) return { ...p, posX: 0, posY: 0 };
     return { ...p, posX: center.posX - s.w / 2, posY: center.posY - s.h / 2 };
   });
 }

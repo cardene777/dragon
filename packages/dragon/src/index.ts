@@ -39,6 +39,8 @@ export type { FocusEntry } from "./focus";
 export { writeActorPosition } from "./write-position";
 // 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
 export { measureActorBoxes } from "./compile";
+// パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
+export { partVisualSize, partsGridCenters } from "./compile";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
