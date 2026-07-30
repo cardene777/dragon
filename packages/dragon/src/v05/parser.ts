@@ -44,6 +44,7 @@
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
 import { TONE_ALIAS } from "../keywords";
+import { parseRelativePos, orderByDependency } from "../relative-pos";
 import type {
   DslDocument,
   DslActor,
@@ -210,8 +211,9 @@ export function parseTextDslV05(src: string): V05ParseResult {
           });
           continue;
         }
-        actors.push(applyContinuationLines(base, entry.slice(1)));
+        actors.push(applyContinuationLines(base, entry.slice(1), errors));
       }
+      validateRelativePositions(actors, errors);
       i = next;
       continue;
     }
@@ -700,11 +702,13 @@ const COLOR_KEYS = new Set(["色", "color", "tone"]);
  *
  * 1 行で書いた時と同じ結果になるよう、 同じ振り分けを通す。
  */
-function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
+function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[]): DslActor {
   if (rest.length === 0) return actor;
   const out: DslActor = { ...actor };
   const state: Record<string, number | string | boolean> = { ...(actor.stateOverride ?? {}) };
   let touchedState = false;
+  // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
+  const unknownKeys: Array<{ key: string; line: number }> = [];
 
   for (const ln of rest) {
     const idx = ln.trimmed.indexOf(":");
@@ -745,8 +749,39 @@ function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
       case "pos": {
         // `位置: 300,200` の形。 posX と posY は両方揃わないと効かないので、 1 つの項目に
         // まとめて書き分けられないようにする
-        const m = stripQuotes(raw).match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
-        if (m) { out.posX = Number(m[1]); out.posY = Number(m[2]); }
+        const value = stripQuotes(raw);
+        const m = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+        if (m) {
+          out.posX = Number(m[1]);
+          out.posY = Number(m[2]);
+          // 座標を後から書いた時は相対の指定を捨てる。 両方残すと、 どちらが効くかが
+          // 書いた順に依存して読めなくなる
+          out.posRel = undefined;
+          break;
+        }
+        // `位置: Web の右 200` の形。 座標を知らなくても位置を決められるようにする
+        const rel = parseRelativePos(value);
+        if (rel) {
+          out.posRel = rel;
+          out.posX = undefined;
+          out.posY = undefined;
+          break;
+        }
+        // どちらの形でもない値は黙って捨てない。 捨てると「書いたのに図が変わらない」 が
+        // 手掛かりなしで起きる
+        //
+        // 負の間隔 (`Web の右 -200`) もここに来る。 向きを書いた上で裏返す指定は、
+        // 書いた人の意図と図が食い違うので誤りとして返す
+        const negative = /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\s*[\d.]/i.test(value);
+        errors.push({
+          line: ln.no,
+          message: negative
+            ? `間隔に負の数は書けません: "${value}"`
+            : `位置の書き方が読めません: "${value}"`,
+          hint: negative
+            ? "向きを変えたい時は `右` / `左` / `上` / `下` を書き換える"
+            : "`位置: 300,200` (座標) か `位置: Web の右 200` (他の登場人物からの相対)",
+        });
         break;
       }
       case "posX":
@@ -772,12 +807,97 @@ function applyContinuationLines(actor: DslActor, rest: Line[]): DslActor {
         // 残りはパーツの状態の上書き
         state[key] = coerceStateValue(stripQuotes(raw));
         touchedState = true;
+        unknownKeys.push({ key, line: ln.no });
         break;
     }
   }
   // 状態は parts でだけ意味を持つ
-  if (touchedState && out.partId !== undefined) out.stateOverride = state;
+  if (touchedState && out.partId !== undefined) {
+    out.stateOverride = state;
+    return out;
+  }
+  // パーツでない箱に書かれた見知らぬ項目は、 どこにも入らずに消える。 黙って捨てると
+  // 「書いたのに図が変わらない」 が手掛かりなしで起きるので、 綴りの誤りとして知らせる
+  for (const u of unknownKeys) {
+    errors.push({
+      line: u.line,
+      message: `項目名が読めません: "${u.key}"`,
+      hint: `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`,
+    });
+  }
   return out;
+}
+
+/**
+ * 縦に並べて書ける項目名。
+ *
+ * 綴りを誤った時の知らせに使う。 `applyContinuationLines` の分岐と揃える。
+ */
+export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
+  ...COLOR_KEYS,
+  "kind", "種類",
+  "subtitle", "補足",
+  "value", "値",
+  "rows", "行",
+  "位置", "pos", "posX", "posY",
+  "大きさ", "size",
+  "lane", "stack",
+]);
+
+/**
+ * 相対で書かれた位置が解けるかを確かめる。
+ *
+ * 解けない書き方は 3 通りある。 相手が居ない / 自分を基準にした / 基準が輪になっている。
+ * どれも「書いたのに図が変わらない」 形で表に出るため、 図を出す前に行番号付きで知らせる。
+ *
+ * 誤りを見つけた actor からは相対の指定を外す。 残したままだと、 誤りを直さずに読み込んだ
+ * 経路 (error を無視する呼出) で解決できない指定が組み立てまで届く。
+ */
+function validateRelativePositions(actors: DslActor[], errors: DslError[]): void {
+  const named = new Set(actors.map((a) => a.name));
+  const broken = new Set<string>();
+
+  for (const a of actors) {
+    const rel = a.posRel;
+    if (!rel) continue;
+    if (rel.anchor === a.name) {
+      errors.push({
+        line: a.pos.line,
+        message: `位置の基準が自分自身です: "${a.name}"`,
+        hint: "別の登場人物の名前を書く",
+      });
+      broken.add(a.name);
+      continue;
+    }
+    if (!named.has(rel.anchor)) {
+      errors.push({
+        line: a.pos.line,
+        message: `位置の基準が見つかりません: "${rel.anchor}"`,
+        hint:
+          named.size > 0
+            ? `actors: に書かれている名前 = ${[...named].join(", ")}`
+            : "actors: に基準にする登場人物を書く",
+      });
+      broken.add(a.name);
+    }
+  }
+
+  const { cyclic } = orderByDependency(
+    actors.map((a) => ({ name: a.name, rel: broken.has(a.name) ? undefined : a.posRel })),
+  );
+  for (const name of cyclic) {
+    const a = actors.find((x) => x.name === name);
+    errors.push({
+      line: a?.pos.line ?? 1,
+      message: `位置の基準が互いを指しています: "${name}"`,
+      hint: "どれか 1 つは座標 (`位置: 300,200`) か自動配置にする",
+    });
+    broken.add(name);
+  }
+
+  for (const a of actors) {
+    if (broken.has(a.name)) a.posRel = undefined;
+  }
 }
 
 function collectActorEntries(lines: Line[], start: number, parentIndent: number): { items: Line[][]; next: number } {

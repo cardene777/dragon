@@ -4,6 +4,7 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import type { RelativePos } from "./relative-pos";
 
 export type PresetType =
   | "sequence"
@@ -113,6 +114,13 @@ export type DslActor = {
   posY?: number;
   posW?: number;
   posH?: number;
+  /**
+   * 位置を他の要素からの相対で書いた時の指定 (`位置: Web の右 200`)。
+   *
+   * 組み立ての段階で 1 度配置を計算し、 基準の実座標から `posX` / `posY` に直す。 解決後は
+   * 座標を直接書いた時と同じ経路を通るため、 効き方は書き方によって変わらない。
+   */
+  posRel?: RelativePos;
   /**
    * canvas pivot UX 修正 (B1 individual node isolation)。 actor 1 件が生成する複数 sub-node
    * (sequence の header / spacer / footer / s{N} 等) の中で「特定 sub-node だけを固定 / resize」

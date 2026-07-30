@@ -55,6 +55,10 @@ export default [
   {
     ignores: [
       "**/dist/**",
+      // `dist-types/` = 型検査 (tsc -b) の出力先。 束ね (tsup) の `dist/` と分けている
+      // (同じ場所に出すと d.ts を交互に上書きする、 `packages/dragon/tsconfig.json` 参照)。
+      // 生成物なので `dist/` と同じく lint 対象外。
+      "**/dist-types/**",
       "**/node_modules/**",
       "**/.astro/**",
       "**/.pagefind/**",

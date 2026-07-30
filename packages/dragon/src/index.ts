@@ -10,6 +10,7 @@
 
 export { parseTextDsl } from "./parser";
 export { compileToCdl } from "./compile";
+export type { CompileNotice } from "./compile";
 export { parseTextDslV05 } from "./v05";
 // 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
 export { PRESET_TYPES } from "./v05/parser";
@@ -23,6 +24,21 @@ export {
   DIAGRAM_BOUNDARY_PADDING,
 } from "./canvas-bounds";
 export type { DiagramBoundingBox } from "./canvas-bounds";
+// 位置を相対で書くための解決。 組み立て側と画面側の両方が同じ規則を使うために公開する。
+export {
+  parseRelativePos,
+  resolveRelativePos,
+  orderByDependency,
+  RELATIVE_GAP_DEFAULT,
+} from "./relative-pos";
+export type { RelativePos, RelativeDirection, AnchorBox } from "./relative-pos";
+// 光らせる相手の書き方の読み取り。 図種ごとの解決経路が同じ規則を共有する。
+export { parseFocusEntry } from "./focus";
+export type { FocusEntry } from "./focus";
+// 画面で見えている座標を記法に落とすための書込み。 記法を知る側に置く。
+export { writeActorPosition } from "./write-position";
+// 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
+export { measureActorBoxes } from "./compile";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
@@ -56,6 +72,7 @@ export type {
 import { parseTextDsl } from "./parser";
 import { parseTextDslV05 } from "./v05";
 import { compileToCdl } from "./compile";
+import type { CompileNotice } from "./compile";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /**
@@ -65,6 +82,11 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  */
 export interface CompileOpts {
   partsCatalog?: Record<string, CdlDiagram>;
+  /**
+   * 図は出せるが書いた通りにならなかったことの受け取り口 (`位置: Web の下` が順序図で
+   * 効かない等)。 判定は組み立て側が持ち、 呼出側は受け取って表示するだけにする。
+   */
+  onNotice?: (notice: CompileNotice) => void;
 }
 
 /**

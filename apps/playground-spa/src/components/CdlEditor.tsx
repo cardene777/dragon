@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
-import { compile, CdlDiagramView, visualValidate, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
-import { textDslToDiagram } from "@cardenelabs/dragon";
+import { compile, CdlDiagramView, visualValidate, layout, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
+import {
+  textDslToDiagram,
+  measureActorBoxes,
+  writeActorPosition,
+  type CompileNotice,
+} from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partRenderSize } from "@/lib/overlay-dsl";
+import { visibleWarnings } from "@/lib/editor-warnings";
+import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
@@ -149,6 +156,11 @@ const v4EditorThemeDark = EditorView.theme(
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
 const SAMPLES = EDITOR_SAMPLES;
 
+/** パーツ 1 個が図の上で占める大きさ。 大きさの決まり方は `overlay-dsl.ts` SSOT。 */
+function partWorldSize(part: { scale: number }): { w: number; h: number } {
+  return partRenderSize(part.scale);
+}
+
 function encodeShare(src: string): string {
   try {
     return btoa(unescape(encodeURIComponent(src)));
@@ -176,17 +188,6 @@ const FIXABLE_WARNING_AXES = new Set([
   "edge-label-overlap",
   "clearance",
   "edge-label-proximity",
-]);
-
-/**
- * UI 表示から除外する非致命 axis。
- * subpixel-precision = 座標小数点 (e.g. 832.56) の subpixel blur risk 検知、 実描画で
- * browser 側 anti-alias 済で人間の目視には影響ゼロ、 auto-fix logic も未実装。
- * 「修正できない warning を出すのは論外」 という UX 原則で silent 化する。
- * validate output 自体は残し、 golden test / benchmark 用途は継続利用可能。
- */
-const HIDDEN_WARNING_AXES = new Set([
-  "subpixel-precision",
 ]);
 
 /**
@@ -285,6 +286,15 @@ export function CdlEditor(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
+  /** 書いたのに効かなかったことの知らせ。 判定は組み立て側が持ち、 ここは表示だけ */
+  const [compileNotices, setCompileNotices] = useState<CompileNotice[]>([]);
+  /**
+   * 各要素が今どこに居るかを図に重ねて出すか。
+   *
+   * 座標を書く時、 今の値が見えないと数を当てるしかない。 出発点を見せて、 そこから
+   * 直せるようにする。 常時出すと図が読めなくなるので切り替えにする。
+   */
+  const [showPositions, setShowPositions] = useState(false);
 
   /** 対応可 warning 数 (edge-label offset で fix 可能な 3 axis のみ)、 button state 制御用 */
   const fixableWarningCount = useMemo(() => {
@@ -445,6 +455,11 @@ export function CdlEditor(): React.JSX.Element {
   const [transform, setTransform] = useState({ tx: 0, ty: 0, scale: 1 });
   const transformRef = useRef(transform);
   useEffect(() => { transformRef.current = transform; }, [transform]);
+  // 表示合わせは初回と見本の切替でしか走らない (毎回走らせると user の拡大と移動が戻る)。
+  // 依存に入れずに最新の値を読むため ref に写す
+  const overlayPartsRef = useRef<OverlayPart[]>([]);
+  useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
+  const worldOriginRef = useRef({ x: 0, y: 0 });
 
   // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
   // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
@@ -783,7 +798,7 @@ export function CdlEditor(): React.JSX.Element {
           setError(null);
           try {
             const report = visualValidate(part);
-            setWarnings(report.violations.filter((v) => !HIDDEN_WARNING_AXES.has(v.axis)));
+            setWarnings(visibleWarnings(report.violations, part));
           } catch {
             setWarnings([]);
           }
@@ -793,8 +808,31 @@ export function CdlEditor(): React.JSX.Element {
         // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
         // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
         const { baseSrc, parts } = extractPartsFromSrc(src, partsCatalog, partsItems);
-        setOverlayParts(parts);
-        const d = textDslToDiagram(baseSrc, { partsCatalog });
+        // 書いたのに効かなかったこと (`位置: Web の下` が順序図で効かない等) を受け取る。
+        // 判定は組み立て側が持つ。 画面側は受け取って出すだけにして、 規則を二重に持たない
+        const notices: CompileNotice[] = [];
+        const d = textDslToDiagram(baseSrc, { partsCatalog, onNotice: (n) => notices.push(n) });
+        // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が
+        // 要るため、 図を測ってから置く。 位置を書いていないパーツは従来通り格子に並ぶ。
+        //
+        // パーツが無い図では測らない。 配置計算は 1 回 1ms 前後かかるので、 入力ごとに
+        // 使わない計算を走らせない
+        setOverlayParts(
+          parts.length === 0
+            ? []
+            : placeParts(parts, measureActorBoxes(d), partWorldSize, (n) => {
+                // パーツは記法の解析より前に抜き出すので組み立て側の知らせに乗らない。
+                // 同じ場所に出すため、 ここで同じ形に直して混ぜる
+                notices.push({
+                  kind: "relative-position-ignored",
+                  actor: n.part,
+                  line: 0,
+                  message: n.message,
+                  hint: "actors: に書いた名前を基準にする",
+                });
+              }),
+        );
+        setCompileNotices(notices);
         // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
         compile(d);
         setDiagram(d);
@@ -803,19 +841,90 @@ export function CdlEditor(): React.JSX.Element {
         // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
         try {
           const report = visualValidate(d);
-          setWarnings(report.violations.filter((v) => !HIDDEN_WARNING_AXES.has(v.axis)));
+          setWarnings(visibleWarnings(report.violations, d));
         } catch {
           setWarnings([]);
         }
       } catch (e) {
         setError((e as Error).message);
         setWarnings([]);
+        // 図が出せない時は前回の知らせを残さない。 今の本文と対応しない行番号が出る
+        setCompileNotices([]);
       }
     }, 300);
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [src]);
+    // パーツ一覧は遅延して読み込まれる。 本文だけを見ていると、 読み込みが終わっても
+    // 抽出をやり直さないため、 パーツが図の中の空の箱のまま残る (実測 = 共有 URL で
+    // パーツ入りの本文を開くと、 一覧を開いた後も箱のままだった)
+  }, [src, partsCatalog, partsItems]);
+
+  /**
+   * 図の world 座標の原点が、 画面上のどこに来るか。
+   *
+   * 図枠 (`viewBox`) は内容の外接矩形なので、 左上は原点ではない (実測 = `-20 68` から始まる)。
+   * 図に重ねるもの (現在位置の札 / パーツ) は、 この分を引かないと図枠の余白だけずれる。
+   *
+   * 札とパーツで同じ値を使う。 別々に計算すると、 片方だけ直した時にずれが残る。
+   */
+  const worldOrigin = useMemo(() => {
+    if (!diagram) return { x: 0, y: 0 };
+    try {
+      const vb = layout(diagram).viewBox;
+      return { x: vb.x, y: vb.y };
+    } catch {
+      return { x: 0, y: 0 };
+    }
+  }, [diagram]);
+  worldOriginRef.current = worldOrigin;
+
+  /**
+   * 各要素が今どこに居るか。 切り替えが入の時だけ測る。
+   *
+   * 測り方は相対指定を解く時と同じ関数を使う (`measureActorBoxes`)。 画面側で別に数え直すと、
+   * 画面に出る座標と記法に書ける座標がずれる。
+   */
+  const positionMarks = useMemo(() => {
+    if (!showPositions || !diagram) return [];
+    try {
+      const vb = worldOrigin;
+      return [...measureActorBoxes(diagram)]
+        // 本文に書き戻せる相手だけに出す。 図には矢印の説明のように名前を持つが `actors:` に
+        // 行を持たない要素もあり、 札を出すと押しても何も起きない。 書き込みを実際に試して、
+        // 通る相手だけを対象にする (名前の見分け方を画面側で持ち直さずに済む)
+        .filter(([name]) => writeActorPosition(src, name, 0, 0) !== null)
+        .map(([name, box]) => ({
+          name,
+          cx: box.cx,
+          cy: box.cy,
+          left: (box.cx - vb.x) * diagramK,
+          top: (box.cy - vb.y) * diagramK,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+      return [];
+    }
+  }, [showPositions, diagram, diagramK, src, worldOrigin]);
+
+  /**
+   * 今の位置を座標として本文に書く。
+   *
+   * 自動配置のままだと本文に座標が無く、 動かす出発点が無い。 見えている値をそのまま
+   * 書き込めば、 そこから数を足し引きして調整できる。
+   */
+  const handleWritePosition = useCallback(
+    (name: string, cx: number, cy: number): void => {
+      const next = writeActorPosition(src, name, cx, cy);
+      if (next === null) {
+        setDropHintWithReset(`"${name}" の行が本文に見つかりませんでした。`, 4000);
+        return;
+      }
+      setSrc(next);
+      setDropHintWithReset(`"${name}" に 位置: ${Math.round(cx)},${Math.round(cy)} を書きました。`, 4000);
+    },
+    [src, setSrc, setDropHintWithReset],
+  );
 
   // Fit handler ... preview 領域に SVG の bounding を合わせる。
   // SVG が render される度 + sample 切替時に自動 Fit。
@@ -846,13 +955,26 @@ export function CdlEditor(): React.JSX.Element {
     const headerUnscaled = Math.max(0, wrapUnscaled - px.h);
     const availableW = previewRect.width * (1 - PADDING_RATIO * 2);
     const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
-    const contentUnscaledH = px.h + headerUnscaled;
-    const scaleX = availableW / px.w;
-    const scaleY = availableH / contentUnscaledH;
-    const scale = Math.min(scaleX, scaleY);
-    // SVG 中心と stage 中心を一致させる (左寄り解消の core)。
-    const tx = (previewRect.width - px.w * scale) / 2;
-    const ty = (previewRect.height - contentUnscaledH * scale) / 2;
+    // 図の外に置いたパーツも視野に入れる。 パーツは cdl の図とは別に重ねて描くので、
+    // 図の枠だけを見ると画面の外に出たまま戻せない (実測 = 自動配置のパーツが画面の下に出た)
+    const bounds = fitBounds(
+      { width: px.w, height: px.h },
+      headerUnscaled,
+      overlayPartsRef.current.map((p) => {
+        const size = partWorldSize(p);
+        return {
+          left: (p.posX - worldOriginRef.current.x) * diagramK,
+          top: (p.posY - worldOriginRef.current.y) * diagramK,
+          width: size.w * diagramK,
+          height: size.h * diagramK,
+        };
+      }),
+    );
+    const scale = Math.min(availableW / bounds.width, availableH / bounds.height);
+    // 囲んだ範囲の中心と stage 中心を一致させる (左寄り解消の core)。
+    // 範囲の左上が負になることがある (図の左や上にパーツを置いた場合) ので、 その分を戻す
+    const tx = (previewRect.width - bounds.width * scale) / 2 - bounds.left * scale;
+    const ty = (previewRect.height - bounds.height * scale) / 2 - bounds.top * scale;
     setTransform({ tx, ty, scale });
   }, [diagramK]);
 
@@ -1388,6 +1510,20 @@ animation:
           />
         </div>
         {error && <pre className="v4-editor-error">{error}</pre>}
+        {/* 書いたのに効かなかったこと。 誤りではない (図は出る) が、 黙って捨てると
+            書いた人が理由を追えないので、 行番号と直し方を添えて出す。 */}
+        {!error && compileNotices.length > 0 && (
+          <div className="v4-editor-notices" data-testid="editor-compile-notices">
+            {compileNotices.map((n) => (
+              <div key={`${n.actor}-${n.line}`} className="v4-editor-notice">
+                {/* 行が分からない知らせ (パーツ経由) では番号を出さない */}
+                {n.line > 0 && <span className="v4-editor-notice-line">L{n.line}</span>}
+                <span className="v4-editor-notice-text">{n.message}</span>
+                {n.hint && <span className="v4-editor-notice-hint">{n.hint}</span>}
+              </div>
+            ))}
+          </div>
+        )}
         {!error && warnings.length > 0 && (
           <div className="v4-editor-warnings">
             <div className="v4-editor-warnings-head">
@@ -1494,6 +1630,16 @@ animation:
           </button>
           <button
             type="button"
+            className={`v4-editor-bar-btn ${showPositions ? "is-on" : ""}`}
+            data-testid="editor-toggle-positions"
+            aria-pressed={showPositions}
+            onClick={() => setShowPositions((v) => !v)}
+            title="各要素が今どこに居るかを図に重ねて出す"
+          >
+            位置を表示
+          </button>
+          <button
+            type="button"
             className="v4-editor-bar-btn"
             onClick={handleFit}
             title="表示を preview 領域に合わせる"
@@ -1568,6 +1714,29 @@ animation:
                 {/* parts overlay は cdl の SVG とは別に描く。 cdl は parts を知らないので base 図に
                     影響しない。 位置と大きさは world 座標を `diagramK` 倍して置く (cdl の SVG が
                     1 world unit = diagramK px で描かれるため、 上の注記を参照)。 */}
+                {/* 各要素の現在位置。 押すとその座標を本文に書き込み、 調整の出発点にする。
+                    図の倍率 (`diagramK`) を掛けるのは overlay parts と同じ理由で、 cdl の SVG が
+                    1 world unit = diagramK px で描かれるため。 */}
+                {positionMarks.map((m) => (
+                  <button
+                    key={`pos-${m.name}`}
+                    type="button"
+                    className="v4-editor-pos-mark"
+                    data-testid={`editor-pos-mark-${m.name}`}
+                    data-pos-name={m.name}
+                    style={{
+                      left: `${m.left}px`,
+                      top: `${m.top}px`,
+                      // 表示倍率の逆数を掛けて、 札だけは画面上の大きさを保つ。 掛けないと
+                      // 図を縮めた時に札も一緒に縮んで数字が読めない (実測)
+                      transform: `translate(-50%, -50%) scale(${1 / transform.scale})`,
+                    }}
+                    title={`"${m.name}" に 位置: ${Math.round(m.cx)},${Math.round(m.cy)} を書く`}
+                    onClick={() => handleWritePosition(m.name, m.cx, m.cy)}
+                  >
+                    {Math.round(m.cx)},{Math.round(m.cy)}
+                  </button>
+                ))}
                 {overlayParts.map((p) => {
                   return (
                     <div
@@ -1576,8 +1745,10 @@ animation:
                       ref={(el) => { overlayRefs.current[p.id] = el; }}
                       style={{
                         position: "absolute",
-                        left: `${p.posX * diagramK}px`,
-                        top: `${p.posY * diagramK}px`,
+                        // 図枠の起点を引いてから倍率を掛ける。 引かないと図の余白の分だけ
+                        // パーツが図からずれる (実測 = 縦に 68 world ぶん上へ出た)
+                        left: `${(p.posX - worldOrigin.x) * diagramK}px`,
+                        top: `${(p.posY - worldOrigin.y) * diagramK}px`,
                         transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
                         transformOrigin: "0 0",
                         userSelect: "none",
