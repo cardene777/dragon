@@ -82,10 +82,12 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
   );
 }
 
-// gating 対象軸 ... visualValidate の全 axis の error severity を必須 gating 化。
+// gating 対象軸 ... visualValidate の全 axis の error severity を gating 化。
 // cdl routing v6 (PR #44) + shift v5 (PR #45) + baseline (PR #46) + 空 label bbox guard (PR #48)
-// の 4 段改良で border case は全て engine 側で解消済。 手作業 labelOffset は sample DSL から
-// 全撤廃、 allowlist なしで全 diagram を必須 gating 化する。
+// の 4 段改良で border case は全て engine 側で解消済、 手作業 labelOffset は sample DSL から全撤廃。
+//
+// 除外は下の 2 diagram の edge-node-cross のみで、 それ以外の severity=error は全て gating する。
+// 「線が node を貫く」 のが図の意図そのものである 2 例だけを名指しで除いている。
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
   // pattern-passthrough は「a → router → c」 の意図的な通過設計、 edge-node-cross は design 通り。
@@ -137,7 +139,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
   for (const { name, mod } of sources) {
-    it(`${name} ... visualValidate 全 axis error 0 件 (border case allowlist なし)`, () => {
+    it(`${name} ... visualValidate 全 axis error 0 件 (除外は intentional 2 diagram のみ)`, () => {
       const diagrams = collectDiagrams(mod, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams);
