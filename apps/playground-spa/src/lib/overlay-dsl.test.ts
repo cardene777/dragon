@@ -381,14 +381,37 @@ describe("パーツの置き場所 (placeParts)", () => {
     expect(withFixed[2]!.posX).toBe(onlyAuto[1]!.posX);
   });
 
-  it("位置を書かない分は互いに重ならない", () => {
+  it("位置を書かない分は箱として重ならない", () => {
+    // 座標が違うだけでは足りない。 送り幅が実寸より狭いと、 座標は違っても箱が重なる
+    // (実測 = 380 前提で送って実寸 800 のパーツが 300 重なった)
     const placed = placeParts(
       [part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })],
       boxes,
       size,
     );
-    const seen = new Set(placed.map((p) => `${p.posX},${p.posY}`));
-    expect(seen.size).toBe(placed.length);
+    const rects = placed.map((p) => ({ x0: p.posX, y0: p.posY, x1: p.posX + 100, y1: p.posY + 100 }));
+    for (let i = 0; i < rects.length; i += 1) {
+      for (let j = i + 1; j < rects.length; j += 1) {
+        const a = rects[i]!;
+        const b = rects[j]!;
+        const overlap = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+        expect(overlap, `${placed[i]!.id} と ${placed[j]!.id} が重なる`).toBe(false);
+      }
+    }
+  });
+
+  it("実寸が大きいパーツでも重ならない (送り幅を実寸から出す)", () => {
+    const big = (): { w: number; h: number } => ({ w: 800, h: 600 });
+    const placed = placeParts([part({ id: "a" }), part({ id: "b" })], boxes, big);
+    expect(placed[1]!.posX - placed[0]!.posX).toBeGreaterThanOrEqual(800);
+  });
+
+  it("格子も中心から左上に直す (書いた位置と意味を揃える)", () => {
+    // 自動配置だけ中心値を左上として返すと、 同じ数字が経路によって別の場所を指す。
+    // 格子 1 番目の中心 (100x100 なら x=50 / y=PARTS_TOP+50) を座標で書いた時と一致するか見る
+    const [auto] = placeParts([part({ id: "a" })], boxes, size);
+    const [written] = placeParts([part({ id: "a", posX: 50, posY: 1050 })], boxes, size);
+    expect({ posX: auto!.posX, posY: auto!.posY }).toEqual({ posX: written!.posX, posY: written!.posY });
   });
 });
 
@@ -493,5 +516,111 @@ describe("パーツの実寸 (CSS との対応)", () => {
   it("数でない拡大率は 1 として扱う (大きさを 0 にしない)", () => {
     expect(partRenderSize(Number.NaN)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
     expect(partRenderSize(0)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
+  });
+});
+
+describe("パーツの置き場所が決まらなかった時の知らせ", () => {
+  const size = (): { w: number; h: number } => ({ w: 100, h: 100 });
+  const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
+  const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
+    id: "p", kind: "achievement", item, scale: 1, rotate: 0, ...over,
+  });
+
+  it("基準が見つからない分を知らせる", () => {
+    const seen: string[] = [];
+    placeParts(
+      [part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })],
+      boxes,
+      size,
+      (n) => seen.push(`${n.reason}:${n.part}:${n.anchor}`),
+    );
+    expect(seen).toEqual(["missing:a:いない人"]);
+  });
+
+  it("互いを指している分を知らせる", () => {
+    const seen: string[] = [];
+    placeParts(
+      [
+        part({ id: "a", posRel: { anchor: "b", dir: "right" } }),
+        part({ id: "b", posRel: { anchor: "a", dir: "left" } }),
+      ],
+      boxes,
+      size,
+      (n) => seen.push(`${n.reason}:${n.part}`),
+    );
+    expect(seen.sort()).toEqual(["cyclic:a", "cyclic:b"]);
+  });
+
+  it("解けた分では知らせない", () => {
+    const seen: string[] = [];
+    placeParts(
+      [part({ id: "a", posRel: { anchor: "Web", dir: "right" } })],
+      boxes,
+      size,
+      (n) => seen.push(n.message),
+    );
+    expect(seen).toEqual([]);
+  });
+
+  it("知らせを受け取らなくても格子に落ちる", () => {
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size);
+    expect(Number.isFinite(p!.posX)).toBe(true);
+  });
+});
+
+describe("パーツを抜き出す範囲", () => {
+  it("`actors:` の外の行はパーツにしない", () => {
+    // 全文を走ると、 別の項目の下に並ぶ行まで図から消える (実測)
+    const src = `title: "t"
+type: flow
+notes:
+  - fake: achievement
+actors:
+  - Web: service
+  - 実績: achievement
+flow:
+  - Web -> Web: "a"
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts.map((p) => p.id)).toEqual(["実績"]);
+    expect(r.baseSrc).toContain("  - fake: achievement");
+  });
+
+  it("`種類:` でもパーツと分かる (項目名は日本語でもよい)", () => {
+    const src = `actors:
+  - Web: service
+  - 実績:
+      種類: achievement
+      位置: 300,200
+flow:
+  - Web -> Web: "a"
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts).toHaveLength(1);
+    expect(r.parts[0]).toMatchObject({ id: "実績", kind: "achievement", posX: 300, posY: 200 });
+    expect(r.baseSrc).not.toContain("実績");
+  });
+
+  it("引用符付きの種類も読む", () => {
+    const src = `actors:
+  - Web: service
+  - 実績:
+      kind: "achievement"
+flow:
+  - Web -> Web: "a"
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts.map((p) => p.kind)).toEqual(["achievement"]);
+  });
+
+  it("`actors:` の後の別項目に戻ったら抜き出しを止める", () => {
+    const src = `actors:
+  - 実績: achievement
+flow:
+  - 別: achievement
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts.map((p) => p.id)).toEqual(["実績"]);
+    expect(r.baseSrc).toContain("  - 別: achievement");
   });
 });

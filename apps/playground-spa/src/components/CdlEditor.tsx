@@ -812,10 +812,27 @@ export function CdlEditor(): React.JSX.Element {
         // 判定は組み立て側が持つ。 画面側は受け取って出すだけにして、 規則を二重に持たない
         const notices: CompileNotice[] = [];
         const d = textDslToDiagram(baseSrc, { partsCatalog, onNotice: (n) => notices.push(n) });
-        setCompileNotices(notices);
         // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が
-        // 要るため、 図を測ってから置く。 位置を書いていないパーツは従来通り格子に並ぶ
-        setOverlayParts(placeParts(parts, measureActorBoxes(d), partWorldSize));
+        // 要るため、 図を測ってから置く。 位置を書いていないパーツは従来通り格子に並ぶ。
+        //
+        // パーツが無い図では測らない。 配置計算は 1 回 1ms 前後かかるので、 入力ごとに
+        // 使わない計算を走らせない
+        setOverlayParts(
+          parts.length === 0
+            ? []
+            : placeParts(parts, measureActorBoxes(d), partWorldSize, (n) => {
+                // パーツは記法の解析より前に抜き出すので組み立て側の知らせに乗らない。
+                // 同じ場所に出すため、 ここで同じ形に直して混ぜる
+                notices.push({
+                  kind: "relative-position-ignored",
+                  actor: n.part,
+                  line: 0,
+                  message: n.message,
+                  hint: "actors: に書いた名前を基準にする",
+                });
+              }),
+        );
+        setCompileNotices(notices);
         // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
         compile(d);
         setDiagram(d);
@@ -1499,7 +1516,8 @@ animation:
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
             {compileNotices.map((n) => (
               <div key={`${n.actor}-${n.line}`} className="v4-editor-notice">
-                <span className="v4-editor-notice-line">L{n.line}</span>
+                {/* 行が分からない知らせ (パーツ経由) では番号を出さない */}
+                {n.line > 0 && <span className="v4-editor-notice-line">L{n.line}</span>}
                 <span className="v4-editor-notice-text">{n.message}</span>
                 {n.hint && <span className="v4-editor-notice-hint">{n.hint}</span>}
               </div>

@@ -30,9 +30,16 @@ const ARROW = /^(.+?)\s*(?:->|→)\s*(.+)$/;
  *
  * 矢印の両側は 1 文字以上を要求するので、 片側だけの形 (`-> API` / `API ->`) は矢印に
  * ならず名前として読まれる。
+ *
+ * `knownNames` に一致する名前は矢印より先に名前として読む。 引用符付きで矢印を含む名前
+ * (`"A -> B"`) を書いた箱は実在し得るので、 常に矢印と読むと光らせられない (実測 = 名前が
+ * 一致する箱があるのに何も光らず、 「矢印が流れにありません」 と誤報した)。
+ *
+ * @param knownNames 実在する箱の名前。 渡さない場合は書き方だけで判断する
  */
-export function parseFocusEntry(raw: string): FocusEntry {
+export function parseFocusEntry(raw: string, knownNames?: ReadonlySet<string>): FocusEntry {
   const item = raw.trim();
+  if (knownNames?.has(item)) return { kind: "node", name: item };
   const m = item.match(ARROW);
   if (!m) return { kind: "node", name: item };
   return { kind: "edge", from: m[1]!.trim(), to: m[2]!.trim() };

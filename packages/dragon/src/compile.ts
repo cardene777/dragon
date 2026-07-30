@@ -122,8 +122,14 @@ function reportMissingFocusTargets(
 ): void {
   if (!onNotice || !doc.animate) return;
   const names = new Set(doc.actors.map((a) => a.name));
-  // 縦列を直接書いた図では、 その id も光らせる相手になる
-  for (const id of Object.keys(doc.lanes ?? {})) names.add(id);
+  // 解決側は名前が見つからない時に slug へ落とす。 受理集合もそれに合わせる。
+  // 合わせないと、 実際は光る指定 (`API Gateway` を `api-gateway` と書いた形) を
+  // 「見つかりません」 と誤報する (実測)
+  const accepted = new Set(names);
+  for (const n of names) accepted.add(slugify(n));
+  //
+  // 縦列の id は受理しない。 3 つの解決経路はいずれも縦列を光らせないため、 受理すると
+  // 「知らせは出ないのに何も光らない」 状態を作る (実測 = `focus: [main]` で activate が空)
   // 矢印は流れに書かれた組合せだけを認める。 名前に空白を含められる (`決済 基盤`) ため、
   // 連結した 1 本の鍵にはしない (`"a b" -> "c"` と `"a" -> "b c"` が同じ鍵になる)
   const steps = new Map<string, Set<string>>();
@@ -135,11 +141,11 @@ function reportMissingFocusTargets(
 
   for (const phase of doc.animate.phases) {
     for (const raw of phase.highlight ?? []) {
-      const entry = parseFocusEntry(raw);
+      const entry = parseFocusEntry(raw, names);
       const found =
         entry.kind === "edge"
           ? (steps.get(entry.from)?.has(entry.to) ?? false)
-          : names.has(entry.name);
+          : accepted.has(entry.name);
       if (found) continue;
       onNotice({
         kind: "focus-target-missing",
@@ -153,6 +159,7 @@ function reportMissingFocusTargets(
           entry.kind === "edge"
             ? "flow: に書いた矢印と同じ向きで書く"
             : `actors: に書かれている名前 = ${[...names].join(", ")}`,
+        // 縦列の id は受理しないので、 その旨は hint に出さない (光らせられないため)
       });
     }
   }
@@ -174,9 +181,13 @@ function resolveRelativeDoc(
 ): DslDocument {
   if (!doc.actors.some((a) => a.posRel !== undefined)) return doc;
 
-  // 1. 自動配置のまま測る。 基準がどこに居るかはここで分かる
-  const autoBoxes = measureActorBoxes(diagram);
-  const want = desiredCenters(doc, autoBoxes);
+  // 1. 座標を書いた分を先に反映してから測る。 基準がどこに居るかはここで分かる。
+  //
+  // 自動配置のまま測ると、 座標で固定した箱を基準にした指定が壊れる。 基準の自動配置位置
+  // から狙いを作るため、 実際の位置と食い違い、 最後の確認で「効きません」 と捨てられる
+  // (実測 = `Web @1000,500` の右に置くはずの箱が 200 に出て、 そのまま落とされた)。
+  const baseBoxes = measureActorBoxes(withPositions(diagram, doc, new Map()));
+  const want = desiredCenters(doc, baseBoxes);
   if (want.size === 0) return doc;
 
   // 2. 狙った中心をそのまま座標として仮に置く
@@ -1494,10 +1505,12 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // highlight 解決関数 = actor 名 or "A -> B" / "A → B" を node.id / edge.id に変換。
   // codex-review CAR-1659 MAJOR fix = 全角矢印 `→` を対応 (generic 経路との互換)、
   // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
+  // 実在する名前。 矢印を含む名前 (`"A -> B"`) を矢印と読み違えないために渡す
+  const knownNames = new Set(doc.actors.map((a) => a.name));
   const resolveIds = (highlight: readonly string[]): string[] => {
     const out: string[] = [];
     for (const h of highlight) {
-      const entry = parseFocusEntry(h);
+      const entry = parseFocusEntry(h, knownNames);
       if (entry.kind === "edge") {
         const fromSlug = slugify(entry.from);
         const toSlug = slugify(entry.to);
@@ -1680,8 +1693,9 @@ function resolveHighlight(
   _stepEdgeIds: string[],
 ): string[] {
   const out: string[] = [];
+  const knownNames = new Set(actorIds.keys());
   for (const raw of phase.highlight ?? []) {
-    const entry = parseFocusEntry(raw);
+    const entry = parseFocusEntry(raw, knownNames);
     // 矢印つき → 該当 step edge を全部探して active
     if (entry.kind === "edge") {
       const fromLaneId = actorIds.get(entry.from) ?? slugify(entry.from);
@@ -2023,8 +2037,9 @@ function resolveHighlightGeneric(
   edgeIds: string[],
 ): string[] {
   const out: string[] = [];
+  const knownNames = new Set(actorToNodeId.keys());
   for (const raw of phase.highlight ?? []) {
-    const entry = parseFocusEntry(raw);
+    const entry = parseFocusEntry(raw, knownNames);
     // 矢印あり → edge を特定
     if (entry.kind === "edge") {
       const fromId = actorToNodeId.get(entry.from) ?? slugify(entry.from);

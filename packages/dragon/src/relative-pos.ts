@@ -61,10 +61,10 @@ const DIRECTION_WORDS: Readonly<Record<string, RelativeDirection>> = {
  * 相手の名前は控えめ (`.+?`) に取る。 名前自体が `の右` で終わる場合 (`Aの右 の左`) でも、
  * 後戻りして末尾の向きを先に確定するため取り違えない。
  */
-const RE_JA = /^(.+?)\s*の\s*(右|左|上|下)(?:\s*(-?\d+(?:\.\d+)?))?$/;
+const RE_JA = /^(.+?)\s*の\s*(右|左|上|下)(?:\s*(\d+(?:\.\d+)?))?$/;
 
 /** 英語の形。 `Web right` / `Web right 200`。 向きの前後は空白で区切る。 */
-const RE_EN = /^(.+?)\s+(right|left|above|below)(?:\s+(-?\d+(?:\.\d+)?))?$/i;
+const RE_EN = /^(.+?)\s+(right|left|above|below)(?:\s+(\d+(?:\.\d+)?))?$/i;
 
 /**
  * `位置:` に書かれた値を相対指定として読む。 相対の形でなければ null。
@@ -99,7 +99,11 @@ export function resolveRelativePos(
   anchor: AnchorBox,
   target: { w: number; h: number },
 ): { posX: number; posY: number } {
-  const gap = rel.gap ?? RELATIVE_GAP_DEFAULT;
+  // 負の間隔は向きを裏返す。 `Web の右 -1000` が Web の左に置かれ、 確かめる側も同じ値で
+  // 期待を作るので矛盾に気付けない (実測 = 右と書いて左に出た)。 間隔は 0 以上として扱う。
+  // 記法から来る値は parser が弾くが、 本関数は公開しているので入口で閉じる
+  const raw = rel.gap ?? RELATIVE_GAP_DEFAULT;
+  const gap = Number.isFinite(raw) && raw >= 0 ? raw : RELATIVE_GAP_DEFAULT;
   const dx = anchor.w / 2 + gap + target.w / 2;
   const dy = anchor.h / 2 + gap + target.h / 2;
   switch (rel.dir) {

@@ -7,7 +7,12 @@
 import { describe, it, expect } from "vitest";
 import { visualValidate } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-import { visibleWarnings, hasExplicitPositions, AUTO_LAYOUT_ALIGNMENT_AXES } from "./editor-warnings";
+import {
+  visibleWarnings,
+  hasExplicitPositions,
+  violationTargets,
+  AUTO_LAYOUT_ALIGNMENT_AXES,
+} from "./editor-warnings";
 
 const auto = `title: "t"
 type: flow
@@ -98,5 +103,77 @@ describe("編集画面の指摘の選び方", () => {
       ];
       expect(visibleWarnings(fake, d)).toEqual([]);
     }
+  });
+});
+
+describe("整列の指摘を外す範囲", () => {
+  /** 3 箱のうち 1 箱だけ手で置いた図。 触っていない箱の指摘は残ってほしい */
+  const oneManual = `title: "t"
+type: flow
+actors:
+  - Web: service
+  - API: service
+  - DB:
+      kind: database
+      位置: 900,900
+flow:
+  - Web -> API: "a"
+  - API -> DB: "b"
+`;
+
+  it("指摘の文面から対象の箱と縦列を読める (文面が変わったら気付く)", () => {
+    // 対象を読めなくなると隠す範囲がずれる。 実際の検証結果に対して読めることを確かめる
+    const d = textDslToDiagram(oneManual);
+    const raw = visualValidate(d).violations.filter((v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis));
+    expect(raw.length, "整列の指摘が出ていない").toBeGreaterThan(0);
+    const named = raw.filter((v) => violationTargets(v.detail).node !== undefined);
+    expect(named.length, "箱を名指しする指摘が読めない").toBeGreaterThan(0);
+    for (const v of raw) {
+      const t = violationTargets(v.detail);
+      expect(t.node !== undefined || t.lane !== undefined, `対象が読めない: ${v.detail}`).toBe(true);
+    }
+  });
+
+  it("手で置いた箱を名指しする指摘は外す", () => {
+    const d = textDslToDiagram(oneManual);
+    const shown = visibleWarnings(visualValidate(d).violations, d);
+    const dbNamed = shown.filter(
+      (v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis) && violationTargets(v.detail).node === "db",
+    );
+    expect(dbNamed).toEqual([]);
+  });
+
+  it("触っていない箱を名指しする指摘は残す", () => {
+    const d = textDslToDiagram(oneManual);
+    const fake = [
+      { axis: "alignment" as const, diagramId: d.id, detail: 'lane "other" 内 node "web" cx=1 が不一致', severity: "error" as const },
+    ];
+    expect(visibleWarnings(fake, d), "手で置いていない箱の指摘まで隠している").toHaveLength(1);
+  });
+
+  it("対象が読み取れない指摘は残す", () => {
+    const d = textDslToDiagram(oneManual);
+    const fake = [
+      { axis: "alignment" as const, diagramId: d.id, detail: "対象を書いていない文面", severity: "error" as const },
+    ];
+    expect(visibleWarnings(fake, d)).toHaveLength(1);
+  });
+
+  it("手で置いた箱と同じ縦列の間隔の指摘は外す", () => {
+    const d = textDslToDiagram(oneManual);
+    const lane = d.nodes.find((n) => n.posX !== undefined)?.lane;
+    expect(lane, "手で置いた箱の縦列が取れない").toBeDefined();
+    const fake = [
+      { axis: "column-gap-uniform" as const, diagramId: d.id, detail: `lane "${lane}" 内 node 間の gap variance`, severity: "warn" as const },
+    ];
+    expect(visibleWarnings(fake, d)).toEqual([]);
+  });
+
+  it("別の縦列の間隔の指摘は残す", () => {
+    const d = textDslToDiagram(oneManual);
+    const fake = [
+      { axis: "column-gap-uniform" as const, diagramId: d.id, detail: 'lane "untouched" 内 node 間の gap variance', severity: "warn" as const },
+    ];
+    expect(visibleWarnings(fake, d)).toHaveLength(1);
   });
 });

@@ -67,6 +67,16 @@ describe("呼出側に型が届く", () => {
     expect(pkg.exports["."]?.types).toContain(`${tsupOut}/`);
   });
 
+  it("呼出側は型を源から引く (build 前でも解決できる)", async () => {
+    // `package.json` の `types` は build 後にしか存在しない。 clean checkout で先に型検査すると
+    // 解決できず `any` に落ちる (`skipLibCheck: true` が誤りを隠すので気付けない)
+    const spa = await readJsonc(new URL("../../apps/playground-spa/tsconfig.json", PKG));
+    const paths = (spa.compilerOptions as Record<string, unknown>).paths as Record<string, string[]>;
+    const mapped = paths["@cardenelabs/dragon"];
+    expect(mapped, "SPA が dragon の型を源から引いていない").toBeDefined();
+    expect(mapped![0]).toContain("packages/dragon/src");
+  });
+
   it("束ねた d.ts が実体を持つ (相対 re-export だけになっていない)", async () => {
     const dts = new URL("dist/index.d.ts", PKG);
     if (!(await exists(dts))) {

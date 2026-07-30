@@ -149,23 +149,6 @@ animation:
     expect(noticesOf(s)).toEqual([]);
   });
 
-  it("縦列を直接書いた図では縦列の id も相手にできる", () => {
-    const s = `title: "t"
-type: flow
-lanes:
-  main: { width: 400, label: "本流" }
-actors:
-  - Client
-  - API
-flow:
-  - Client -> API: "要求"
-animation:
-  - step: "呼ぶ" 1.4s
-    focus: [main]
-`;
-    expect(noticesOf(s)).toEqual([]);
-  });
-
   it("知らせを受け取らなくても図は出る", () => {
     expect(() => textDslToDiagram(src("Client, いない人"))).not.toThrow();
   });
@@ -180,5 +163,94 @@ flow:
   - Client -> API: "要求"
 `;
     expect(noticesOf(s)).toEqual([]);
+  });
+});
+
+describe("知らせの受理集合が解決側と一致する", () => {
+  const run = (src: string): { activate: string[]; notices: string[] } => {
+    const notices: string[] = [];
+    const d = textDslToDiagram(src, { onNotice: (n) => notices.push(n.message) });
+    return { activate: d.phases.flatMap((p) => p.activate ?? []), notices };
+  };
+
+  it("slug の形で書いた名前を誤報しない (解決側は slug に落とす)", () => {
+    const r = run(`title: "t"
+type: sequence
+actors:
+  - Client
+  - "API Gateway"
+flow:
+  - Client -> "API Gateway": "a"
+animation:
+  - step: "s" 1.4s
+    focus: [api-gateway]
+`);
+    expect(r.activate.length, "光っていない").toBeGreaterThan(0);
+    expect(r.notices, "光るのに誤報している").toEqual([]);
+  });
+
+  it("縦列の id は受理しない (どの経路も縦列を光らせない)", () => {
+    // 受理すると「知らせは出ないのに何も光らない」 状態になる
+    const r = run(`title: "t"
+type: flow
+lanes:
+  main: { width: 400, label: "本流" }
+actors:
+  - Client
+  - API
+flow:
+  - Client -> API: "a"
+animation:
+  - step: "s" 1.4s
+    focus: [main]
+`);
+    expect(r.activate).toEqual([]);
+    expect(r.notices.join(" ")).toContain("main");
+  });
+
+  it("矢印を含む名前の箱は名前として光る", () => {
+    const r = run(`title: "t"
+type: flow
+actors:
+  - Client
+  - "A -> B"
+flow:
+  - Client -> "A -> B": "a"
+animation:
+  - step: "s" 1.4s
+    focus: ["A -> B"]
+`);
+    expect(r.activate.length, "光っていない").toBeGreaterThan(0);
+    expect(r.notices).toEqual([]);
+  });
+
+  it("実在しない名前は矢印として読んで知らせる", () => {
+    const r = run(`title: "t"
+type: flow
+actors:
+  - Client
+  - API
+flow:
+  - Client -> API: "a"
+animation:
+  - step: "s" 1.4s
+    focus: ["X -> Y"]
+`);
+    expect(r.notices.join(" ")).toContain("矢印が流れにありません");
+  });
+});
+
+describe("光らせる相手の読み方 = 実在する名前を先に見る", () => {
+  it("実在すれば矢印より名前を優先する", () => {
+    const known = new Set(["A -> B"]);
+    expect(parseFocusEntry("A -> B", known)).toEqual({ kind: "node", name: "A -> B" });
+  });
+
+  it("実在しなければ矢印として読む", () => {
+    expect(parseFocusEntry("A -> B", new Set(["A", "B"]))).toEqual({ kind: "edge", from: "A", to: "B" });
+  });
+
+  it("名前集合を渡さなければ書き方だけで判断する", () => {
+    expect(parseFocusEntry("A -> B")).toEqual({ kind: "edge", from: "A", to: "B" });
   });
 });

@@ -20,6 +20,19 @@ export type OverlayPartRaw = { id: string; kind: string; posX: number; posY: num
  * 位置を書いていないパーツは格子に並べるが、 その順番は全部読み終わらないと決まらない。
  * 相対で書いたパーツも、 基準の座標が分かるまで置けない。 読む処理と置く処理を分ける。
  */
+/**
+ * パーツの置き場所が書いた通りにならなかった、 という知らせ。
+ *
+ * パーツは記法の解析より前に本文から抜き出すため、 組み立て側の知らせ経路に乗らない。
+ * 画面側で拾って同じ場所に出す。
+ */
+export type PartPlacementNotice = {
+  part: string;
+  anchor: string;
+  reason: "missing" | "cyclic";
+  message: string;
+};
+
 export type OverlayPartParsed = Omit<OverlayPartRaw, "posX" | "posY"> & {
   /** 座標で書かれた中心。 書いていなければ undefined */
   posX?: number;
@@ -59,8 +72,6 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  */
 const PARTS_PER_ROW = 3;
 const PARTS_GAP = 120;
-const PART_W = 380;
-const PART_H = 380;
 /**
  * 既存の図の下に置く時の、 パーツの上端。
  *
@@ -89,13 +100,24 @@ export function partRenderSize(scale: number): { w: number; h: number } {
   return { w: PART_RENDER_W * k, h: PART_RENDER_H * k };
 }
 
-function autoPartPos(index: number): { posX: number; posY: number } {
+/**
+ * 位置を書かなかったパーツの、 格子上の中心。
+ *
+ * 送り幅は実寸から出す。 決め打ちの値を使うと、 実寸がそれより大きい時に隣と重なる
+ * (実測 = 380 前提で 500 ずつ送っていたが実寸は 800 で、 2 個並べると 300 重なった)。
+ *
+ * 列の幅と段の高さは、 並べる全パーツの最大寸で揃える。 個別の寸法で送ると、 大きさの
+ * 違うパーツが混ざった時に列が揃わない。
+ */
+function autoPartCenter(
+  index: number,
+  cell: { w: number; h: number },
+): { posX: number; posY: number } {
   const col = index % PARTS_PER_ROW;
   const row = Math.floor(index / PARTS_PER_ROW);
   return {
-    posX: col * (PART_W + PARTS_GAP) + PART_W / 2,
-    // 上端を揃えたいので、 段の上端に高さの半分を足して中心にする
-    posY: PARTS_TOP + row * (PART_H + PARTS_GAP) + PART_H / 2,
+    posX: col * (cell.w + PARTS_GAP) + cell.w / 2,
+    posY: PARTS_TOP + row * (cell.h + PARTS_GAP) + cell.h / 2,
   };
 }
 
@@ -116,6 +138,7 @@ export function placeParts(
   parsed: OverlayPartParsed[],
   boxes: ReadonlyMap<string, AnchorBox>,
   sizeOf: (part: OverlayPartParsed) => { w: number; h: number },
+  onNotice?: (notice: PartPlacementNotice) => void,
 ): OverlayPartRaw[] {
   const byId = new Map(parsed.map((p) => [p.id, p] as const));
   const sizes = new Map(parsed.map((p) => [p.id, sizeOf(p)] as const));
@@ -128,33 +151,60 @@ export function placeParts(
   }
 
   // 相対で書いた分を、 基準の浅い順に解く
-  const { order } = orderByDependency(parsed.map((p) => ({ name: p.id, rel: p.posRel })));
+  const { order, cyclic } = orderByDependency(parsed.map((p) => ({ name: p.id, rel: p.posRel })));
   const resolved = new Map<string, { posX: number; posY: number }>();
   for (const name of order) {
     const p = byId.get(name);
     if (!p?.posRel) continue;
     const anchor = centers.get(p.posRel.anchor);
-    if (!anchor) continue;
+    if (!anchor) {
+      // 基準が見つからない分は格子に落ちる。 黙って落とすと綴りの誤りに気付けない
+      onNotice?.({
+        part: p.id,
+        anchor: p.posRel.anchor,
+        reason: "missing",
+        message: `"${p.id}" の位置の基準が見つかりません: "${p.posRel.anchor}"`,
+      });
+      continue;
+    }
     const s = sizes.get(p.id)!;
     const c = resolveRelativePos(p.posRel, anchor, s);
     resolved.set(p.id, c);
     centers.set(p.id, { cx: c.posX, cy: c.posY, w: s.w, h: s.h });
   }
+  for (const name of cyclic) {
+    const p = byId.get(name);
+    if (!p?.posRel) continue;
+    onNotice?.({
+      part: name,
+      anchor: p.posRel.anchor,
+      reason: "cyclic",
+      message: `"${name}" の位置の基準が互いを指しています`,
+    });
+  }
+
+  // 格子の 1 区画。 位置を書かなかったパーツの最大寸で揃える
+  const autoSizes = parsed
+    .filter((p) => !(p.posX !== undefined && p.posY !== undefined) && !resolved.has(p.id))
+    .map((p) => sizes.get(p.id)!);
+  const cell = {
+    w: Math.max(1, ...autoSizes.map((s) => s.w)),
+    h: Math.max(1, ...autoSizes.map((s) => s.h)),
+  };
 
   // 格子の番号は「位置を書かなかった分」 だけで数える。 書いた分を数えると、 1 個座標を
   // 書いただけで残りの並びがずれる
   let autoIndex = 0;
   return parsed.map((p) => {
     const s = sizes.get(p.id)!;
-    const center =
+    const explicit =
       p.posX !== undefined && p.posY !== undefined
         ? { posX: p.posX, posY: p.posY }
         : resolved.get(p.id);
-    if (!center) {
-      const auto = autoPartPos(autoIndex);
-      autoIndex += 1;
-      return { ...p, posX: auto.posX, posY: auto.posY };
-    }
+    // 書いた位置も格子も、 まず中心として求めてから左上に直す。 片方だけ中心のままにすると、
+    // 同じ数字が経路によって別の場所を指す
+    const center = explicit ?? autoPartCenter(autoIndex, cell);
+    if (!explicit) autoIndex += 1;
     return { ...p, posX: center.posX - s.w / 2, posY: center.posY - s.h / 2 };
   });
 }
@@ -254,6 +304,9 @@ export function extractPartsFromSrc(
   const lines = src.split("\n");
   const baseLines: string[] = [];
   const parts: OverlayPartParsed[] = [];
+  // パーツを抜き出すのは `actors:` の中だけ。 全文を走ると、 別の項目の下に並ぶ行
+  // (`notes:` の下の `- fake: achievement` 等) までパーツとして図から消える (実測)
+  let inActors = false;
 
   /**
    * 縦に並べて書いた 1 件分の持ち越し。
@@ -272,8 +325,13 @@ export function extractPartsFromSrc(
     if (!pending) return;
     const block = pending;
     pending = null;
-    const kindLine = block.lines.find((l) => /^\s*kind\s*:/.test(l));
-    const kindValue = kindLine?.trim().match(/^kind\s*:\s*(\S+)/)?.[1]?.toLowerCase();
+    // 項目名は日本語でも英語でもよい (記法側と同じ)。 `種類:` を読まないと、 同じ本文が
+    // 画面と組み立てで別の絵になる
+    const kindLine = block.lines.find((l) => /^\s*(kind|種類)\s*:/.test(l));
+    const kindValue = kindLine
+      ?.trim()
+      .match(/^(?:kind|種類)\s*:\s*"?([^"\s]+)"?/)?.[1]
+      ?.toLowerCase();
     const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
     if (!kindValue || !item) {
       baseLines.push(...block.lines);
@@ -291,6 +349,18 @@ export function extractPartsFromSrc(
   };
 
   for (const line of lines) {
+    // 字下げのない `key:` で項目が切り替わる。 `actors:` の中かどうかを追う
+    if (/^[^\s#][^:]*:/.test(line)) {
+      flushPending();
+      inActors = /^actors[ \t]*:[ \t]*$/.test(line);
+      baseLines.push(line);
+      continue;
+    }
+    if (!inActors) {
+      flushPending();
+      baseLines.push(line);
+      continue;
+    }
     if (pending !== null) {
       const indent = line.length - line.trimStart().length;
       // 空行と、 名前の行より深い字下げは block の続き

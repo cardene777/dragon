@@ -769,10 +769,18 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         }
         // どちらの形でもない値は黙って捨てない。 捨てると「書いたのに図が変わらない」 が
         // 手掛かりなしで起きる
+        //
+        // 負の間隔 (`Web の右 -200`) もここに来る。 向きを書いた上で裏返す指定は、
+        // 書いた人の意図と図が食い違うので誤りとして返す
+        const negative = /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\d/i.test(value);
         errors.push({
           line: ln.no,
-          message: `位置の書き方が読めません: "${value}"`,
-          hint: "`位置: 300,200` (座標) か `位置: Web の右 200` (他の登場人物からの相対)",
+          message: negative
+            ? `間隔に負の数は書けません: "${value}"`
+            : `位置の書き方が読めません: "${value}"`,
+          hint: negative
+            ? "向きを変えたい時は `右` / `左` / `上` / `下` を書き換える"
+            : "`位置: 300,200` (座標) か `位置: Web の右 200` (他の登場人物からの相対)",
         });
         break;
       }

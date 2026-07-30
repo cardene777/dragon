@@ -28,7 +28,12 @@ export function writeActorPosition(
   const lineAt = (i: number): string => seg[i * 2] ?? "";
   const lineCount = Math.ceil(seg.length / 2);
 
-  for (let i = 0; i < lineCount; i += 1) {
+  // 探すのは `actors:` の中だけ。 全文を走ると、 別の項目に同じ名前で並ぶ行
+  // (`notes:` の下の `- API: service` 等) を先に掴んで書き換える (実測)
+  const span = actorsSpan(lineAt, lineCount);
+  if (!span) return null;
+
+  for (let i = span.from; i < span.to; i += 1) {
     const head = matchActorHead(lineAt(i));
     if (!head || head.name !== actorName) continue;
 
@@ -40,7 +45,7 @@ export function writeActorPosition(
 
     // 2. `- API:` だけの行 = 続く字下げ行に `位置:` を入れる
     if (head.hasColon && head.rest === "") {
-      return writeVerticalForm(seg, i, lineCount, head.indent, x, y);
+      return writeVerticalForm(seg, i, span.to, head.indent, x, y);
     }
 
     // 3. `- API: service` = 値の並びに `@x,y` を入れる
@@ -54,6 +59,28 @@ export function writeActorPosition(
     return seg.join("");
   }
   return null;
+}
+
+/**
+ * `actors:` block の行範囲。 見つからなければ null。
+ *
+ * 開始は行頭の `actors:` に限る。 終わりは次の行頭項目 (字下げなしの `key:`) の直前。
+ */
+function actorsSpan(
+  lineAt: (i: number) => string,
+  lineCount: number,
+): { from: number; to: number } | null {
+  let from = -1;
+  for (let i = 0; i < lineCount; i += 1) {
+    const line = lineAt(i);
+    if (from < 0) {
+      if (/^actors[ \t]*:[ \t]*$/.test(line)) from = i + 1;
+      continue;
+    }
+    // 字下げのない `key:` は次の項目の始まり
+    if (/^[^\s#][^:]*:/.test(line)) return { from, to: i };
+  }
+  return from < 0 ? null : { from, to: lineCount };
 }
 
 type ActorHead = {
@@ -198,6 +225,9 @@ function splitTopLevel(inner: string): string[] {
  *
  * 既にあれば値だけ差し替える。 無ければ最後の項目の次に足す。 字下げは既にある項目に
  * 合わせ、 項目が 1 つも無ければ頭の字下げに 4 を足す。
+ *
+ * 差し替える対象は登場人物の直下の項目だけ。 深さを見ないと、 入れ子の中の `位置:`
+ * (`nodes: → header: → 位置:`) を掴んで書き換える (実測)。
  */
 function writeVerticalForm(
   seg: string[],
@@ -216,8 +246,8 @@ function writeVerticalForm(
     if (indent <= headIndent) break;
     if (childIndent < 0) childIndent = indent;
     lastChild = j;
-    // 位置 / pos の行が既にあれば、 その行の値だけ差し替える
-    const key = line.trim().match(/^(位置|pos)\s*:/);
+    // 位置 / pos の行が既にあれば、 その行の値だけ差し替える。 直下の深さのものだけを見る
+    const key = indent === childIndent ? line.trim().match(/^(位置|pos)\s*:/) : null;
     if (key) {
       seg[j * 2] = `${" ".repeat(indent)}${key[1]}: ${x},${y}`;
       return seg.join("");

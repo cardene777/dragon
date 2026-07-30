@@ -163,3 +163,45 @@ describe("位置の書き戻し = 触ってよい範囲", () => {
     expect(out).toMatch(/kind: service\n\s+位置: 300,200$/);
   });
 });
+
+describe("位置の書き戻し = 探す範囲", () => {
+  it("`actors:` の外にある同名の行を書き換えない", () => {
+    // 全文を走ると、 別の項目に同じ名前で並ぶ行を先に掴む (実測)
+    const src = `title: "t"
+type: flow
+notes:
+  - API: service
+actors:
+  - Web: service
+  - API: service
+flow:
+  - Web -> API: "a"
+`;
+    const out = writeActorPosition(src, "API", 300, 200)!;
+    expect(out).toContain("notes:\n  - API: service\n");
+    expect(out).toContain("  - API: service @300,200");
+  });
+
+  it("入れ子の中の `位置:` を書き換えない", () => {
+    const src = `title: "t"
+type: flow
+actors:
+  - API:
+      kind: service
+      nodes:
+        header:
+          位置: 5,6
+flow:
+  - API -> API: "a"
+`;
+    const out = writeActorPosition(src, "API", 300, 200)!;
+    // 入れ子はそのまま、 直下に新しい行が入る
+    expect(out).toContain("          位置: 5,6");
+    expect(out).toMatch(/^ {6}位置: 300,200$/m);
+  });
+
+  it("`actors:` が無い本文では書き込まない", () => {
+    const src = 'title: "t"\ntype: flow\nnotes:\n  - API: service\n';
+    expect(writeActorPosition(src, "API", 300, 200)).toBeNull();
+  });
+});
