@@ -45,7 +45,8 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
   { name: "interactive-kpi-dashboard", diagram: kpiDashboard },
   // stage 3 (#892) = exemplar 3 件。 いずれも「label を置く場所が足りない」 が原因で、 layout の
   // 作り替えは要らなかった。 詳細は各図の comment。
-  //   - oauth-flow ... lane 間隔を広げて label を 2 列 × 2 段に置ける幅を作る (7 → 0)
+  //   - oauth-flow ... 同じ横線を通る 4 本の label を 2 列 × 2 段に置く (7 → 0)。 lane 間隔は
+  //     効かない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は同じ
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
   { name: "interactive-oauth-flow", diagram: oauthFlow },
@@ -126,46 +127,76 @@ describe("#401 interactive error-0 gate", () => {
  * 全対の一括 assert だけでは、 offset を 1 つ戻した時に落ちない組合せがある (実測)。 各図で
  * 実際に問題だった対を個別に assert して、 どの offset を戻しても落ちる状態にする。
  */
-describe("#892 exemplar 3 件の配置を座標で固定", () => {
-  /** cdl の `computeGap` と同じ計算。 交差していれば 0、 離れていれば最短距離。 */
-  const gapOf = (a: BBox, b: BBox): number => {
-    const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));
-    const dy = Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h)));
-    return Math.hypot(dx, dy);
+/** cdl の `computeGap` と同じ計算。 交差していれば 0、 離れていれば最短距離。 */
+const gapOf = (a: BBox, b: BBox): number => {
+  const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));
+  const dy = Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h)));
+  return Math.hypot(dx, dy);
+};
+const boxOf = (laid: ReturnType<typeof layout>, kind: BBox["kind"], id: string): BBox => {
+  const b = laid.bboxes.find((x) => x.kind === kind && x.id === id);
+  expect(b, `${kind} "${id}" の矩形が無い`).toBeDefined();
+  return b!;
+};
+/**
+ * label 矩形と path の最短距離。
+ *
+ * cdl は AABB ではなく「label の 8 点 (4 隅 + 4 辺中央) から線分列までの最短距離」 で測る
+ * (迂回する path では AABB が実距離より大きく出て見逃すため)。 同じ測り方をする。
+ * cdl 側の helper は package から export されていないので、 同 file の `pathPoints` を使う。
+ */
+const labelToPathGap = (box: BBox, d: string): number => {
+  const pts = pathPoints(d);
+  // path が pill を貫く場合は 0 を返す。 8 点からの最短距離だけで測ると、 点の間を通り抜ける
+  // 線分を「離れている」 と判定して guard がすり抜ける (cdl は矩形との交差を先に見て 0 にする)。
+  const crosses = (x1: number, y1: number, x2: number, y2: number): boolean => {
+    const inBox = (x: number, y: number) =>
+      x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+    if (inBox(x1, y1) || inBox(x2, y2)) return true;
+    const seg = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx2: number, dy2: number) => {
+      const o = (px: number, py: number, qx: number, qy: number, rx: number, ry: number) =>
+        Math.sign((qx - px) * (ry - py) - (qy - py) * (rx - px));
+      const d1 = o(ax, ay, bx, by, cx, cy);
+      const d2 = o(ax, ay, bx, by, dx2, dy2);
+      const d3 = o(cx, cy, dx2, dy2, ax, ay);
+      const d4 = o(cx, cy, dx2, dy2, bx, by);
+      return d1 !== d2 && d3 !== d4;
+    };
+    const x3 = box.x;
+    const y3 = box.y;
+    const x4 = box.x + box.w;
+    const y4 = box.y + box.h;
+    return (
+      seg(x1, y1, x2, y2, x3, y3, x4, y3) ||
+      seg(x1, y1, x2, y2, x4, y3, x4, y4) ||
+      seg(x1, y1, x2, y2, x4, y4, x3, y4) ||
+      seg(x1, y1, x2, y2, x3, y4, x3, y3)
+    );
   };
-  const boxOf = (laid: ReturnType<typeof layout>, kind: BBox["kind"], id: string): BBox => {
-    const b = laid.bboxes.find((x) => x.kind === kind && x.id === id);
-    expect(b, `${kind} "${id}" の矩形が無い`).toBeDefined();
-    return b!;
-  };
-  /**
-   * label 矩形と path の最短距離。
-   *
-   * cdl は AABB ではなく「label の 8 点 (4 隅 + 4 辺中央) から線分列までの最短距離」 で測る
-   * (迂回する path では AABB が実距離より大きく出て見逃すため)。 同じ測り方をする。
-   * cdl 側の helper は package から export されていないので、 同 file の `pathPoints` を使う。
-   */
-  const labelToPathGap = (box: BBox, d: string): number => {
-    const pts = pathPoints(d);
-    const probes: Array<[number, number]> = [
-      [box.x, box.y], [box.x + box.w, box.y], [box.x, box.y + box.h], [box.x + box.w, box.y + box.h],
-      [box.x + box.w / 2, box.y], [box.x + box.w / 2, box.y + box.h],
-      [box.x, box.y + box.h / 2], [box.x + box.w, box.y + box.h / 2],
-    ];
-    let best = Infinity;
-    for (let i = 1; i < pts.length; i++) {
-      const [x1, y1] = pts[i - 1]!;
-      const [x2, y2] = pts[i]!;
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const len2 = dx * dx + dy * dy;
-      for (const [px, py] of probes) {
-        const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
-        best = Math.min(best, Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t)));
-      }
+  for (let i = 1; i < pts.length; i++) {
+    if (crosses(pts[i - 1]![0], pts[i - 1]![1], pts[i]![0], pts[i]![1])) return 0;
+  }
+  const probes: Array<[number, number]> = [
+    [box.x, box.y], [box.x + box.w, box.y], [box.x, box.y + box.h], [box.x + box.w, box.y + box.h],
+    [box.x + box.w / 2, box.y], [box.x + box.w / 2, box.y + box.h],
+    [box.x, box.y + box.h / 2], [box.x + box.w, box.y + box.h / 2],
+  ];
+  let best = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    const [x1, y1] = pts[i - 1]!;
+    const [x2, y2] = pts[i]!;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len2 = dx * dx + dy * dy;
+    for (const [px, py] of probes) {
+      const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
+      best = Math.min(best, Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t)));
     }
-    return best;
-  };
+  }
+  return best;
+};
+
+describe("#892 exemplar 3 件の配置を座標で固定", () => {
   const LABEL_MIN = requiredNearClearance("edge-label", "edge-label");
   const PATH_MIN = requiredNearClearance("edge-label", "edge-path");
   const NODE_MIN = requiredNearClearance("node", "edge-label");
@@ -250,6 +281,38 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
       if (errs.length > 0) broke.push(`${target} を 1 文字伸ばすと ${errs.length} 件: ${errs.map((v) => v.axis).join(",")}`);
     }
     expect(broke, `1 文字で崩れる:\n${broke.join("\n")}`).toHaveLength(0);
+  });
+
+  it("gapOf = 斜めに離れた矩形で hypot を返す (max では過小評価になる)", () => {
+    // cdl の `computeGap` は hypot。 max(dx, dy) で測ると斜め方向を近く見積もり、 spec を
+    // 満たしていない対を「離れている」 と判定してしまう。 今の 3 図には斜めの対が無いため、
+    // 上の assert では差が出ない。 直接叩いて式を固定する。
+    const a: BBox = { kind: "edge-label", id: "a", x: 0, y: 0, w: 10, h: 10 };
+    const b: BBox = { kind: "edge-label", id: "b", x: 30, y: 40, w: 10, h: 10 };
+    // dx = 20 / dy = 30 → hypot 36.06 (max だと 30)
+    expect(gapOf(a, b)).toBeCloseTo(Math.hypot(20, 30), 5);
+    expect(gapOf(a, b)).not.toBeCloseTo(30, 1);
+    // 交差していれば 0
+    const c: BBox = { kind: "edge-label", id: "c", x: 5, y: 5, w: 10, h: 10 };
+    expect(gapOf(a, c)).toBe(0);
+    // 片軸だけ離れている場合はその距離
+    const d: BBox = { kind: "edge-label", id: "d", x: 25, y: 0, w: 10, h: 10 };
+    expect(gapOf(a, d)).toBeCloseTo(15, 5);
+  });
+
+  it("labelToPathGap = path が pill を貫く形で 0 を返す (8 点の間をすり抜けない)", () => {
+    // 今の 3 図はどの path も pill を貫かないため、 上の assert では発火しない防御。 壊れても
+    // 気付けないので直接叩く。 8 点からの最短距離だけで測ると、 点の間を通り抜ける線分を
+    // 「離れている」 と判定して guard がすり抜ける。
+    const box: BBox = { kind: "edge-label", id: "probe", x: 20, y: 0, w: 100, h: 100 };
+    // 曲線の終点が矩形の外にあり、 弦が矩形を横切る形
+    expect(labelToPathGap(box, "M 10 30 Q 70 0, 130 30")).toBe(0);
+    // 直線が矩形を貫く形
+    expect(labelToPathGap(box, "M 0 50 L 200 50")).toBe(0);
+    // 端点が矩形の中にある形
+    expect(labelToPathGap(box, "M 60 50 L 300 50")).toBe(0);
+    // 矩形から離れている形は距離を返す
+    expect(labelToPathGap(box, "M 0 200 L 200 200")).toBeCloseTo(100, 5);
   });
 
   it("3 図とも全 edge-label 対が spec 以上離れている (取りこぼし防止)", () => {
