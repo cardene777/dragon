@@ -6,11 +6,13 @@ import {
   readTopLevelField,
   appendActorLine,
   placeParts,
-  partRenderSize,
+  partWorldSize,
   PART_RENDER_W,
   PART_RENDER_H,
   type OverlayPartParsed,
 } from "./overlay-dsl";
+import { diagram } from "@cardenelabs/cdl";
+import { partVisualSize, partsGridCenters } from "@cardenelabs/dragon";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 const catalog: Record<string, unknown> = {
@@ -316,7 +318,7 @@ describe("パーツの置き場所 (placeParts)", () => {
   });
 
   it("座標で書いた中心を、 画面に置く左上に直す", () => {
-    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size);
+    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size, 1);
     expect(p).toMatchObject({ posX: 250, posY: 150 });
   });
 
@@ -325,6 +327,7 @@ describe("パーツの置き場所 (placeParts)", () => {
       [part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })],
       boxes,
       size,
+      1,
     );
     // 中心 = 500 + 100 (相手の半分) + 50 (間隔) + 50 (自分の半分) = 700、 左上はその半分手前
     expect(p!.posX).toBe(650);
@@ -339,6 +342,7 @@ describe("パーツの置き場所 (placeParts)", () => {
       ],
       boxes,
       size,
+      1,
     );
     // a の中心 300 から、 縁 50 + 間隔 100 + 自分の半分 50 = 中心 500、 左上 450
     expect(placed[1]!.posX).toBe(450);
@@ -353,6 +357,7 @@ describe("パーツの置き場所 (placeParts)", () => {
       ],
       boxes,
       size,
+      1,
     );
     const byId = new Map(placed.map((p) => [p.id, p]));
     expect(byId.get("b")!.posX).toBeGreaterThan(byId.get("a")!.posX);
@@ -364,6 +369,7 @@ describe("パーツの置き場所 (placeParts)", () => {
       [part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })],
       boxes,
       size,
+      1,
     );
     expect(p!.posX).toBeGreaterThanOrEqual(0);
     expect(p!.posY).toBeGreaterThanOrEqual(0);
@@ -375,8 +381,9 @@ describe("パーツの置き場所 (placeParts)", () => {
       [part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })],
       boxes,
       size,
+      1,
     );
-    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size);
+    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1);
     expect(withFixed[1]!.posX).toBe(onlyAuto[0]!.posX);
     expect(withFixed[2]!.posX).toBe(onlyAuto[1]!.posX);
   });
@@ -388,6 +395,7 @@ describe("パーツの置き場所 (placeParts)", () => {
       [part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })],
       boxes,
       size,
+      1,
     );
     const rects = placed.map((p) => ({ x0: p.posX, y0: p.posY, x1: p.posX + 100, y1: p.posY + 100 }));
     for (let i = 0; i < rects.length; i += 1) {
@@ -402,15 +410,16 @@ describe("パーツの置き場所 (placeParts)", () => {
 
   it("実寸が大きいパーツでも重ならない (送り幅を実寸から出す)", () => {
     const big = (): { w: number; h: number } => ({ w: 800, h: 600 });
-    const placed = placeParts([part({ id: "a" }), part({ id: "b" })], boxes, big);
+    const placed = placeParts([part({ id: "a" }), part({ id: "b" })], boxes, big, 1);
     expect(placed[1]!.posX - placed[0]!.posX).toBeGreaterThanOrEqual(800);
   });
 
   it("格子も中心から左上に直す (書いた位置と意味を揃える)", () => {
     // 自動配置だけ中心値を左上として返すと、 同じ数字が経路によって別の場所を指す。
-    // 格子 1 番目の中心 (100x100 なら x=50 / y=PARTS_TOP+50) を座標で書いた時と一致するか見る
-    const [auto] = placeParts([part({ id: "a" })], boxes, size);
-    const [written] = placeParts([part({ id: "a", posX: 50, posY: 1050 })], boxes, size);
+    // 格子の中心を組み立て側の規則から取り、 それを座標で書いた時と一致するか見る
+    const cell = partsGridCenters(1, [{ id: "a", w: 100, h: 100 }]).get("a")!;
+    const [auto] = placeParts([part({ id: "a" })], boxes, size, 1);
+    const [written] = placeParts([part({ id: "a", posX: cell.cx, posY: cell.cy })], boxes, size, 1);
     expect({ posX: auto!.posX, posY: auto!.posY }).toEqual({ posX: written!.posX, posY: written!.posY });
   });
 });
@@ -497,25 +506,46 @@ flow:
   });
 });
 
-describe("パーツの実寸 (CSS との対応)", () => {
+describe("パーツの実寸", () => {
+  const partOf = (w: number, h: number, scale = 1): OverlayPartParsed => ({
+    id: "p",
+    kind: "k",
+    scale,
+    rotate: 0,
+    item: {
+      id: "p",
+      title: "p",
+      diagram: diagram("p", { topic: "p" })
+        .lane("l", { width: w })
+        .node("box", { lane: "l", stack: 0, kind: "card", title: "p", w, h })
+        .build(),
+    } as CatalogItem,
+  });
+
   it("画面側の CSS と同じ値を持つ", async () => {
     // 大きさは editor.css が決めている。 片方だけ変えると、 位置の計算と見た目がずれる
-    const css = await readFile(
-      new URL("../styles/editor.css", import.meta.url),
-      "utf8",
-    );
+    const css = await readFile(new URL("../styles/editor.css", import.meta.url), "utf8");
     expect(css).toContain(`var(--cdl-svg-w, ${PART_RENDER_W}px)`);
     expect(css).toContain(`var(--cdl-svg-h, ${PART_RENDER_H}px)`);
   });
 
-  it("拡大率を掛けた大きさを返す", () => {
-    expect(partRenderSize(1)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
-    expect(partRenderSize(2)).toEqual({ w: PART_RENDER_W * 2, h: PART_RENDER_H * 2 });
+  it("組み立て側とは大きさの出所が違う (Issue #937 で続く)", () => {
+    // 画面側は CSS の固定値、 組み立て側は catalog の図枠。 揃っていないことを記録しておく
+    const part = partOf(400, 300);
+    expect(partWorldSize(part)).not.toEqual(partVisualSize(part.item.diagram));
+  });
+
+  it("拡大率を掛ける", () => {
+    const one = partWorldSize(partOf(400, 300, 1));
+    const two = partWorldSize(partOf(400, 300, 2));
+    expect(two.w).toBe(one.w * 2);
+    expect(two.h).toBe(one.h * 2);
   });
 
   it("数でない拡大率は 1 として扱う (大きさを 0 にしない)", () => {
-    expect(partRenderSize(Number.NaN)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
-    expect(partRenderSize(0)).toEqual({ w: PART_RENDER_W, h: PART_RENDER_H });
+    const base = partWorldSize(partOf(400, 300, 1));
+    expect(partWorldSize(partOf(400, 300, Number.NaN))).toEqual(base);
+    expect(partWorldSize(partOf(400, 300, 0))).toEqual(base);
   });
 });
 
@@ -532,6 +562,7 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       [part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })],
       boxes,
       size,
+      1,
       (n) => seen.push(`${n.reason}:${n.part}:${n.anchor}`),
     );
     expect(seen).toEqual(["missing:a:いない人"]);
@@ -546,6 +577,7 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       ],
       boxes,
       size,
+      1,
       (n) => seen.push(`${n.reason}:${n.part}`),
     );
     expect(seen.sort()).toEqual(["cyclic:a", "cyclic:b"]);
@@ -557,13 +589,14 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       [part({ id: "a", posRel: { anchor: "Web", dir: "right" } })],
       boxes,
       size,
+      1,
       (n) => seen.push(n.message),
     );
     expect(seen).toEqual([]);
   });
 
   it("知らせを受け取らなくても格子に落ちる", () => {
-    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size);
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1);
     expect(Number.isFinite(p!.posX)).toBe(true);
   });
 });
