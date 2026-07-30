@@ -38,7 +38,7 @@ function linear(c: number): number {
 }
 
 function luminance([r, g, b]: Rgb): number {
-  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+  return 0.2126729 * linear(r) + 0.7151522 * linear(g) + 0.072175 * linear(b);
 }
 
 function contrast(a: Rgb, b: Rgb): number {
@@ -52,15 +52,32 @@ function applyOpacity(fg: Rgb, bg: Rgb, alpha: number): Rgb {
   return [0, 1, 2].map((i) => fg[i]! * alpha + bg[i]! * (1 - alpha)) as Rgb;
 }
 
+/**
+ * sRGB (0-255 の実数) を CIE Lab に変換する。
+ *
+ * CSS Color 4 の定義通り sRGB -> D65 XYZ -> Bradford で D50 に適応 -> Lab の順で計算する。
+ * D65 XYZ をそのまま Lab の式に入れると、 Lab が D50 基準なので白色点がずれて ΔE が 0.7 ほど
+ * 動く。 判定を 15 に置いている以上、 この差は無視できない。
+ */
 function toLab([r, g, b]: Rgb): [number, number, number] {
   const R = linear(r);
   const G = linear(g);
   const B = linear(b);
-  const x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-  const y = R * 0.2126 + G * 0.7152 + B * 0.0722;
-  const z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+  // sRGB -> D65 XYZ
+  const x65 = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
+  const y65 = R * 0.2126729 + G * 0.7151522 + B * 0.072175;
+  const z65 = R * 0.0193339 + G * 0.119192 + B * 0.9503041;
+  // Bradford D65 -> D50
+  const x = 1.0479298208405488 * x65 + 0.022946793341019088 * y65 - 0.05019222954313557 * z65;
+  const y = 0.029627815688159344 * x65 + 0.990434484573249 * y65 - 0.01707382502938514 * z65;
+  const z = -0.009243058152591178 * x65 + 0.015055144896577895 * y65 + 0.7518742899580008 * z65;
+  // D50 白色点で正規化して Lab
+  const wp = [0.9642956764295677, 1.0, 0.8251046025104602];
+  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
+  const fx = f(x / wp[0]!);
+  const fy = f(y / wp[1]!);
+  const fz = f(z / wp[2]!);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
 function deltaE(a: Rgb, b: Rgb): number {
@@ -78,7 +95,7 @@ function deltaE(a: Rgb, b: Rgb): number {
  */
 async function readToneColors(
   page: Page,
-): Promise<{ paper: string; tones: Record<string, { stroke: string; opacity: number; head: string | null }> }> {
+): Promise<{ paper: string; tones: Record<string, { stroke: string; head: string }> }> {
   return page.evaluate((tones) => {
     const src = document.querySelector("[data-cdl-edge]");
     if (!src) throw new Error("edge が 1 本も無い");
@@ -90,23 +107,27 @@ async function readToneColors(
       el = el.parentElement;
     }
     if (!paper) throw new Error("紙の色が読めない");
-    const out: Record<string, { stroke: string; opacity: number; head: string | null }> = {};
+    const out: Record<string, { stroke: string; head: string }> = {};
     for (const tone of tones) {
       const clone = src.cloneNode(true) as Element;
       clone.setAttribute("data-cdl-tone", tone);
       clone.setAttribute("data-cdl-active", "false");
-      // 元 edge が光っていると不透明度 0.95 のまま複製される。 光っていない側の値を明示する。
-      clone.querySelector('[data-cdl-role="edge-line"]')?.setAttribute("stroke-opacity", "0.9");
       src.parentElement!.appendChild(clone);
       const line = clone.querySelector('[data-cdl-role="edge-line"]');
-      const head = clone.querySelector('[data-cdl-role="edge-arrowhead"]');
       if (!line) throw new Error(`${tone} の線が無い`);
-      const cs = getComputedStyle(line);
-      out[tone] = {
-        stroke: cs.stroke,
-        opacity: Number(cs.strokeOpacity),
-        head: head ? getComputedStyle(head).fill : null,
-      };
+      // 矢頭は `<defs><marker>` の中にあり clone には含まれない。 `marker-end` から実物を辿る。
+      // ただし `marker-end` は cdl が描画時に固定の属性として書くので、 clone の tone を変えても
+      // 元 edge の marker を指したまま。 元の tone を差し替えて、 その tone の marker を指させる。
+      const srcTone = src.getAttribute("data-cdl-tone") ?? "";
+      const srcRef = (line.getAttribute("marker-end") ?? "").replace(/^url\(#|\)$/g, "");
+      const ref = srcRef.replace(new RegExp(`^cdl-arrow-${srcTone}(-sm)?$`), `cdl-arrow-${tone}$1`);
+      if (ref === srcRef && srcTone !== tone) throw new Error(`marker id を差し替えられない: ${srcRef}`);
+      line.setAttribute("marker-end", `url(#${ref})`);
+      const marker = ref ? document.getElementById(ref) : null;
+      if (!marker) throw new Error(`${tone} の矢頭 marker (${ref}) が無い`);
+      const head = marker.querySelector('[data-cdl-role="edge-arrowhead"]');
+      if (!head) throw new Error(`${tone} の矢頭が無い`);
+      out[tone] = { stroke: getComputedStyle(line).stroke, head: getComputedStyle(head).fill };
       clone.remove();
     }
     return { paper, tones: out };
@@ -127,6 +148,19 @@ const SCREENS = [
 
 test.use({ viewport: { width: 1500, height: 1000 } });
 
+/** 光っていない edge の不透明度。 実物から読んで、 実効色の計算に使う。 */
+async function readInactiveOpacity(page: Page): Promise<number> {
+  const v = await page.evaluate(() => {
+    for (const g of document.querySelectorAll('[data-cdl-edge][data-cdl-active="false"]')) {
+      const line = g.querySelector('[data-cdl-role="edge-line"]');
+      if (line) return Number(getComputedStyle(line).strokeOpacity);
+    }
+    return null;
+  });
+  if (v === null) throw new Error("光っていない edge が 1 本も無い");
+  return v;
+}
+
 for (const screen of SCREENS) {
   for (const dark of [false, true]) {
     const label = `${screen.name} / ${dark ? "暗い画面" : "明るい画面"}`;
@@ -141,25 +175,29 @@ for (const screen of SCREENS) {
     test(`${label}: 紙に対する対比が ${MIN_CONTRAST}:1 以上`, async ({ page }) => {
       await open(page, screen.path, dark);
       const { paper, tones } = await readToneColors(page);
+      const alpha = await readInactiveOpacity(page);
       const bg = parseRgb(paper);
       const low: string[] = [];
       for (const t of TONES) {
-        const v = tones[t]!;
-        const r = contrast(applyOpacity(parseRgb(v.stroke), bg, v.opacity), bg);
-        if (r < MIN_CONTRAST) low.push(`${t} ${r.toFixed(2)} (${v.stroke} on ${paper})`);
+        const r = contrast(applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha), bg);
+        if (r < MIN_CONTRAST) low.push(`${t} ${r.toFixed(2)} (${tones[t]!.stroke} on ${paper}, 不透明度 ${alpha})`);
       }
       expect(low, `対比が足りない tone:\n${low.join("\n")}`).toHaveLength(0);
     });
 
-    test(`${label}: 隣り合う色が見分けられる (ΔE ${MIN_DELTA_E} 以上)`, async ({ page }) => {
+    test(`${label}: 実効色 (不透明度を掛けた後) で隣り合う色が見分けられる (ΔE ${MIN_DELTA_E} 以上)`, async ({ page }) => {
+      // 生の色ではなく、 紙に重ねた後の色で測る。 不透明度で紙に寄るため生の色より近づく。
       await open(page, screen.path, dark);
-      const { tones } = await readToneColors(page);
+      const { paper, tones } = await readToneColors(page);
+      const alpha = await readInactiveOpacity(page);
+      const bg = parseRgb(paper);
+      const eff = (t: string) => applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha);
       const close: string[] = [];
       for (let i = 0; i < TONES.length; i++) {
         for (let j = i + 1; j < TONES.length; j++) {
           const a = TONES[i]!;
           const b = TONES[j]!;
-          const d = deltaE(parseRgb(tones[a]!.stroke), parseRgb(tones[b]!.stroke));
+          const d = deltaE(eff(a), eff(b));
           if (d < MIN_DELTA_E) close.push(`${a} / ${b} ΔE ${d.toFixed(1)}`);
         }
       }
@@ -167,15 +205,23 @@ for (const screen of SCREENS) {
     });
 
     test(`${label}: 矢頭も線と同じ色になる`, async ({ page }) => {
+      // 矢頭は `<defs><marker>` の中で edge の子孫ではないため、 線と別に色を当てる必要がある。
+      // 当て忘れると線だけ色が付いて矢頭が焼き付けの色のまま残る (実測で踏んだ)。
       await open(page, screen.path, dark);
       const { tones } = await readToneColors(page);
       const mismatch: string[] = [];
       for (const t of TONES) {
         const v = tones[t]!;
-        if (v.head === null) continue;
         if (v.head !== v.stroke) mismatch.push(`${t}: 線 ${v.stroke} / 矢頭 ${v.head}`);
       }
       expect(mismatch, `線と矢頭の色が違う:\n${mismatch.join("\n")}`).toHaveLength(0);
+    });
+
+    test(`${label}: 光っていない線の不透明度が 0.9 以上`, async ({ page }) => {
+      // 対比は色と不透明度の積で決まる。 色を濃くしても不透明度で潰せてしまうため、 実物の値を
+      // 直接見る。 0.9 未満に戻ると上の対比検査が clone 側の値で通ってしまう穴を塞ぐ。
+      await open(page, screen.path, dark);
+      expect(await readInactiveOpacity(page)).toBeGreaterThanOrEqual(0.9);
     });
   }
 }
@@ -184,13 +230,21 @@ test("実在する edge も tone の色で描かれる (複製ではなく本物
   // interactive-ab-test = info (対照群へ) と success (処理群へ) の 2 本を持つ図。
   await open(page, "/catalog/interactive", false);
   const seen = await page.evaluate(() => {
-    const out: Array<{ tone: string; stroke: string; opacity: number }> = [];
+    const out: Array<{ tone: string; stroke: string; opacity: number; head: string | null }> = [];
     for (const g of document.querySelectorAll("[data-cdl-edge]")) {
       const tone = g.getAttribute("data-cdl-tone");
       const line = g.querySelector('[data-cdl-role="edge-line"]');
       if (!tone || !line) continue;
       const cs = getComputedStyle(line);
-      out.push({ tone, stroke: cs.stroke, opacity: Number(cs.strokeOpacity) });
+      const ref = (line.getAttribute("marker-end") ?? "").replace(/^url\(#|\)$/g, "");
+      const marker = ref ? document.getElementById(ref) : null;
+      const head = marker?.querySelector('[data-cdl-role="edge-arrowhead"]');
+      out.push({
+        tone,
+        stroke: cs.stroke,
+        opacity: Number(cs.strokeOpacity),
+        head: head ? getComputedStyle(head).fill : null,
+      });
     }
     return out;
   });
@@ -200,9 +254,12 @@ test("実在する edge も tone の色で描かれる (複製ではなく本物
   if (tones.size > 1) {
     expect(new Set(seen.map((s) => s.stroke)).size).toBeGreaterThan(1);
   }
-  // 灰色に落ちていない = 以前の焼き付け色 (#6d3f18 / #f0b840) が残っていない
   for (const s of seen) {
+    // 焼き付けの色 (#6d3f18 / #f0b840) が残っていない
     expect(s.stroke).not.toBe("rgb(109, 63, 24)");
     expect(s.stroke).not.toBe("rgb(240, 184, 64)");
+    // 矢頭も線と揃う
+    expect(s.head, `${s.tone} の矢頭が解決できない`).not.toBeNull();
+    expect(s.head).toBe(s.stroke);
   }
 });
