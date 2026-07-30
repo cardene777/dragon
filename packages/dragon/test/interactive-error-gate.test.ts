@@ -18,6 +18,13 @@ import {
  *
  * 本 file は解消済 diagram を列挙して error 0 を assert する。
  *
+ * 【段階拡張の到達点 (Issue #398)】
+ * 「全 interactive diagram を error-0 で gating」 は visual-validate-sweep.test.ts が
+ * interactive category 全 129 diagram を収録したことで達成済。 error-0 だけを足す目的で
+ * 下の FIXED に diagram を追加する必要はもう無い。
+ * 本 file が引き続き担うのは、 validator が見ていない崩れを座標で直接固定する assert 群
+ * (crest Y 実分離 / label 2 列配置 等) = error 0 では検知できない false green の guard。
+ *
  * #401 は機械修正 (timeline-drive + kpi-dashboard、 interactive error 14→11) の scope で完了し、
  * 残件は #892 に分離する (本 PR の merge で `Closes #401` を発火、 2026-07-23 判断)。 3 exemplar は
  * いずれも edge-label 過密だが原因は個別に異なり、 labelOffset tuning では error-0 に収束しない

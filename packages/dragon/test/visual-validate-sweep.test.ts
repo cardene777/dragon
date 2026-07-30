@@ -1,8 +1,8 @@
 /**
  * Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)。
  *
- * dragon playground の全 catalog topic (cookbook / patterns / presets / primitives /
- * primitives-extra / text-dsl / animation / styles) を Node 上で import し、
+ * dragon playground の catalog topic (cookbook / patterns / presets / primitives /
+ * primitives-extra / text-dsl / animation / styles / interactive / ethereum) を Node 上で import し、
  * cdl visualValidateAll に通して engine 計算上の overlap (edge-label-overlap +
  * clearance 違反 + node-visibility + alignment) を 0 件で gating する。
  *
@@ -12,18 +12,31 @@
  * 失敗時は diagram 単位で違反内容 (axis + detail) を出力。
  *
  * ---
- * 【現状 = 既知 fail (5 category)】
+ * 【interactive / ethereum を収録する理由 (Issue #398)】
  *
- * cookbook / patterns / presets / primitives / text-dsl の 5 category が engine の実 defect で fail 中。
- * 主なもの = lane-border-clearance (edge label が非発着 lane の border を貫通) / row-gap-uniform。
+ * interactive は 129 diagram を持つ最大 category だが、 本 sweep に長く未収録だった。
+ * そのため cdl の lane 幅計算が緩むと node が横に寄って読めなくなる崩れを誰も検知できなかった。
  *
- * 例 = diagram "jwt-auth" の edge "e3-user-api" label bbox (651..863) が
- *      非発着 lane "login" (755..1095) の左 border を 108px 貫通。
+ * 実際に起きたこと = interactive の 20+ item で横並び node の間隔が 60px しか取れず、
+ * clearance policy (node 同士は 70px 必要) を 80 件違反していた (catalog sweep 実測)。
+ * 原因は lane 幅を node 幅から決める時の左右余白 PAD が 20px で、
+ * 間隔 = PAD * 2 + 著者指定の lane 間 gap 20px = 60px にしかならなかったこと。
+ * cdl 側で PAD 20 → 25 に広げて間隔 70px を満たすよう修正済 (cdl PR #320)。
  *
- * 追跡 = cdl Issue #202 (https://github.com/cardene777/cdl/issues/202)。
+ * ただし修正後の間隔は 70px = 必要値ちょうどで、 余裕が 0px の pair が 68 組ある。
+ * 判定が `gap < required` の strict 比較なので pass するが、 PAD が 1px でも戻ると
+ * 即座に 80 件の違反に戻る。 本 sweep に収録して、 その差し戻しを test で止める。
+ *
+ * ---
+ * 【parts category が未収録の理由】
+ *
+ * parts は 80 diagram のうち "parts-bind-equalizer-5" が node-visibility 違反 5 件を出す
+ * (bar1-bar5 が幅 70px で、 axis の要求する幅 80px 未満)。 音量バーは細長い形が意図的な
+ * design なので、 「バーを太くする」 か 「意図的 design として除外登録する」 かの判断が要る。
+ * Issue #398 (clearance) とは別 axis / 別 category の話なので、 判断ごと別 Issue に分離した。
  *
  * この test は **意図的に skip も budget 緩和もしていない**。 defect を隠すと新規の描画崩れを
- * 検知できなくなるため、 engine 修正までは fail のまま残す。
+ * 検知できなくなるため、 収録した category は全 axis error 0 件で gating する。
  */
 import { describe, it, expect } from "vitest";
 import { visualValidateAll, type VisualValidationReport, type Violation } from "@cardenelabs/cdl";
@@ -39,6 +52,8 @@ import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalo
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
 import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
+import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
+import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 
 type ModuleLike = Record<string, unknown>;
 
@@ -116,6 +131,8 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
   { name: "text-dsl", mod: textDsl },
   { name: "animation", mod: animation },
   { name: "styles", mod: styles },
+  { name: "interactive", mod: interactive },
+  { name: "ethereum", mod: ethereum },
 ];
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
