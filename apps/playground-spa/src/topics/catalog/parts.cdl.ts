@@ -1127,6 +1127,10 @@ export const partsBindSplitFill = diagram("parts-bind-split-fill", {
   .build();
 
 // parts 71: bind pattern = 5 bar equalizer (5 state 独立 tween、 音楽 EQ 見立て)
+//
+// bar の幅 80 は node-visibility axis の下限 (80x40)。 これを下回ると「小さすぎて読めない node」
+// として error になる (#944 で 70 → 80)。 幅を変えても bar 同士の間隔は 70 のまま = engine が
+// lane 幅を node 幅 + 余白に自動拡張するため、 図全体が横に広がるだけで詰まらない。
 export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
   topic: "bind: 5 bar equalizer — 独立 state 5 で音楽 EQ 見立て",
 })
@@ -1140,15 +1144,15 @@ export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
   .state("e3", { initial: 90 })
   .state("e4", { initial: 60 })
   .state("e5", { initial: 30 })
-  .node("bar1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+  .node("bar1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 80, h: 300,
     shape: { kind: "rect", source: "{e1}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 4 } })
-  .node("bar2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+  .node("bar2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 80, h: 300,
     shape: { kind: "rect", source: "{e2}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
-  .node("bar3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+  .node("bar3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 80, h: 300,
     shape: { kind: "rect", source: "{e3}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 4 } })
-  .node("bar4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+  .node("bar4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 80, h: 300,
     shape: { kind: "rect", source: "{e4}", fillMax: 100, orient: "up", fill: "#a66a3d", radius: 4 } })
-  .node("bar5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 70, h: 300,
+  .node("bar5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 80, h: 300,
     shape: { kind: "rect", source: "{e5}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 4 } })
   .phase("p", { duration: 3500, title: "EQ 波", body: "" }, (p: PhaseBuilder) =>
     p.activate("bar1", "bar2", "bar3", "bar4", "bar5")
