@@ -1095,12 +1095,8 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
   topic: "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随",
 })
   .lane("user", { x: 0, width: 220 })
-  // lane 間隔を広く取る (旧 320 / 640)。 Browser ↔ Auth server に 4 本の edge があり、 label は
-  // 2 行 (label + sub) で幅 270 前後になる。 旧間隔では箱の間が 467 world しかなく、 label を
-  // 2 列に並べる幅 (270 × 2 + 間隔) が取れず、 縦 1 列に積むしかなかった。 縦 1 列だと pill の
-  // 高さ 66 に対して間隔 60 で重なる。 間隔を広げて 2 列 × 2 段に並べられるようにする。
-  .lane("auth", { x: 620, width: 220 })
-  .lane("resource", { x: 1240, width: 220 })
+  .lane("auth", { x: 320, width: 220 })
+  .lane("resource", { x: 640, width: 220 })
   .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" })
   .state("delay", { initial: 50 })
   .arraySignal("events", [
@@ -1132,17 +1128,29 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     title: "Resource",
     subtitle: "API endpoint",
   })
-  // 1-4 は Browser ↔ Auth server の往復 4 本。 label を 2 列 (X ±180) × 2 段 (Y ±45) に置く。
-  // 縦 1 列 (Y ±30 / ±90) だと 2 行 pill の高さ 66 に対して間隔 60 で重なる (実測 = 重なり面積
-  // 1628 と 1919)。 間隔を広げる方向 (±55 / ±160) では別の組が重なって振動した (7 → 4 → 8 → 2)。
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetX: -180, labelOffsetY: -45 })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetX: 180, labelOffsetY: -45 })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetX: -180, labelOffsetY: 45 })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetX: 180, labelOffsetY: 45 })
+  // 1-4 は Browser ↔ Auth server の往復 4 本で、 4 本とも同じ横線の上を通る。 label を
+  // 2 列 (X ±180) × 2 段 (Y ±45) に置く。
+  //
+  // 縦 1 列 (Y ±30 / ±90) では、 2 行 pill の高さ 68 に対して段の間隔が 60 しかなく重なる
+  // (実測 = 重なり面積 1628 と 1919)。 間隔を広げる方向 (±55 / ±160) では別の組が当たって
+  // 振動した (7 → 4 → 8 → 2)。 2 列に分けると、 同じ段の 2 つは横に 360 離れ (pill 幅 273 に
+  // 対して隙間 87)、 段の間は 120 になるので、 どちらの軸でも重ならない。
+  //
+  // 段の間隔は ±60 にする。 ±45 でも error 0 になるが、 label を 1 文字伸ばすと戻る
+  // (実測 = 2 か 3 の label に 1 文字足すと 5 件)。 ±60 なら 4 つのどれを 1 文字伸ばしても 0 件を
+  // 保つ。 横方向を広げる案 (±200 以上) は逆に悪化する = label が箱や path に寄って別の error が出る。
+  //
+  // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
+  // 変わらない (実測 = 320/640 と 620/1240 で lane x が同じ 787/1574)。
+  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetX: -180, labelOffsetY: -60 })
+  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetX: 180, labelOffsetY: -60 })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetX: -180, labelOffsetY: 60 })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetX: 180, labelOffsetY: 60 })
   // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
-  // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 5 を上、
-  // 6 を下 (side: "bottom") に分け、 label も上下へ 120 ずつ離す。
-  .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent", labelOffsetY: -120 })
+  // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 6 を下
+  // (side: "bottom") に回して迂回の向きを分け、 6 の label だけ下へ 120 離す。 5 側にも offset を
+  // 足すと label が path から 170 離れて edge-label-proximity warn が出て、 図の高さが 19% 増える。
+  .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
   .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "bottom", labelOffsetY: 120 })
   .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
   .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
