@@ -1,8 +1,8 @@
 /**
  * Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)。
  *
- * dragon playground の catalog topic (cookbook / patterns / presets / primitives /
- * primitives-extra / text-dsl / animation / styles / interactive / ethereum) を Node 上で import し、
+ * dragon playground の catalog topic 全 11 category (cookbook / patterns / presets / primitives /
+ * primitives-extra / text-dsl / animation / styles / interactive / ethereum / parts) を Node 上で import し、
  * cdl visualValidateAll に通して engine 計算上の overlap (edge-label-overlap +
  * clearance 違反 + node-visibility + alignment) を 0 件で gating する。
  *
@@ -28,12 +28,16 @@
  * 即座に 80 件の違反に戻る。 本 sweep に収録して、 その差し戻しを test で止める。
  *
  * ---
- * 【parts category が未収録の理由】
+ * 【parts category を収録した経緯 (Issue #944)】
  *
- * parts は 80 diagram のうち "parts-bind-equalizer-5" が node-visibility 違反 5 件を出す
- * (bar1-bar5 が幅 70px で、 axis の要求する幅 80px 未満)。 音量バーは細長い形が意図的な
- * design なので、 「バーを太くする」 か 「意図的 design として除外登録する」 かの判断が要る。
- * Issue #398 (clearance) とは別 axis / 別 category の話なので、 判断ごと別 Issue に分離した。
+ * parts は 80 diagram のうち "parts-bind-equalizer-5" が node-visibility 違反 5 件を出していた
+ * (bar1-bar5 が幅 70px で、 axis の要求する幅 80px 未満)。 音量バーは細長い形が意図的な design
+ * なので「バーを太くする」 か「意図的 design として除外登録する」 かの判断が要った。
+ *
+ * 実測すると、 幅を 80 にしても bar 同士の間隔は 70 のままだった (engine が lane 幅を
+ * node 幅 + 余白に自動拡張するため)。 図が横に 50px 広がるだけで他の axis は壊れない。
+ * 除外登録は「小さすぎる node」 を今後検知できなくする副作用を持つ一方、 幅を広げる側には
+ * 副作用が無かったため、 バーを 80 に広げて axis の検知力を残した。
  *
  * この test は **意図的に skip も budget 緩和もしていない**。 defect を隠すと新規の描画崩れを
  * 検知できなくなるため、 収録した category は全 axis error 0 件で gating する。
@@ -54,6 +58,7 @@ import * as animation from "../../../apps/playground-spa/src/topics/catalog/anim
 import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
+import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 
 type ModuleLike = Record<string, unknown>;
 
@@ -135,6 +140,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
   { name: "styles", mod: styles },
   { name: "interactive", mod: interactive },
   { name: "ethereum", mod: ethereum },
+  { name: "parts", mod: parts },
 ];
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
