@@ -659,14 +659,15 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 
 /* 明るい紙 (catalog は明暗とも #fcf8ee、 editor の明 #f8ecd0) 用。
-   比は厳しい側 (#f8ecd0) で 4.65-4.67、 #fcf8ee では 5.05-5.09。 丸めの揺れ (描画側の 8bit 量子化で
-   ±0.06 動く) を吸収するため 4.65 を目標に置いた = 4.5 ちょうどを狙うと丸め次第で下回る。 */
+   比は厳しい側 (#f8ecd0) で 4.65-4.67、 #fcf8ee では 5.05-5.09。 相互の見分け (実効色の ΔE) は
+   16.5 以上。 いずれも描画側の 8bit 量子化を floor / ceil の全組合せで確かめた最悪値でも
+   対比 4.61 / ΔE 15.30 を保つ = 目標に余裕を持たせないと丸め次第で下回る。 */
 [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #1b6288; }
 [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #006a53; }
 [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #006c33; }
 [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #9f3d30; }
 [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #7b5402; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #0060a3; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #0060a5; }
 
 /* 矢頭は `<defs><marker>` の中にあり、 edge の `<g data-cdl-tone>` の子孫ではないので上の変数を
    継承できない (実測 = 線が #0060a3 でも矢頭は焼き付けの #6d3f18 のまま)。 marker 自身に置く。
@@ -682,7 +683,7 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 [data-cdl-theme="blueprint"] #cdl-arrow-warning,
 [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #7b5402; }
 [data-cdl-theme="blueprint"] #cdl-arrow-info,
-[data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #0060a3; }
+[data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #0060a5; }
 /* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
    上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
    併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
@@ -742,21 +743,22 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
   fill: var(--dragon-edge-tone, #f0b840) !important;
   stroke-width: 2 !important;
 }
-/* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-5.07、
-   相互の ΔE は 15.4 以上。 selector は cream 用 (0-2-0) より詳しいので上書きになる。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #0097de; }
+/* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-4.96、
+   実効色の ΔE は 16.6 以上 (量子化の最悪値で 4.64 / 15.50)。 selector は cream 用 (0-2-0) より
+   詳しいので上書きになる。 */
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #0095e2; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #409c83; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #4ea36a; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #49a368; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #d86e5c; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #b28539; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #5d91c4; }
 /* 矢頭も同様に marker 自身へ置く (暗い紙用の組)。 */
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #0097de; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #0095e2; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal,
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #409c83; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #4ea36a; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #49a368; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error,
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #d86e5c; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,

@@ -47,9 +47,23 @@ function contrast(a: Rgb, b: Rgb): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-/** stroke-opacity を掛けた後の実際に見える色。 */
+/** stroke-opacity を掛けた後の実際に見える色。 8bit に丸めない。 */
 function applyOpacity(fg: Rgb, bg: Rgb, alpha: number): Rgb {
   return [0, 1, 2].map((i) => fg[i]! * alpha + bg[i]! * (1 - alpha)) as Rgb;
+}
+
+/**
+ * 実効色を 8bit に丸めた時に取り得る 8 通り (各成分の floor / ceil)。
+ *
+ * 描画側がどちら向きに丸めるかは実装依存で、 丸めの向きで対比と ΔE が 0.7 ほど動く。
+ * 判定を境界ちょうどに置くと丸め次第で下回るため、 全組合せの最悪値で見る。
+ */
+function quantized(v: Rgb): Rgb[] {
+  const out: Rgb[] = [];
+  for (const bits of [0, 1, 2, 3, 4, 5, 6, 7]) {
+    out.push([0, 1, 2].map((i) => ((bits >> i) & 1 ? Math.ceil(v[i]!) : Math.floor(v[i]!))) as Rgb);
+  }
+  return out;
 }
 
 /**
@@ -172,33 +186,36 @@ for (const screen of SCREENS) {
       expect(new Set(strokes).size, `色が重複している: ${strokes.join(" / ")}`).toBe(TONES.length);
     });
 
-    test(`${label}: 紙に対する対比が ${MIN_CONTRAST}:1 以上`, async ({ page }) => {
+    test(`${label}: 紙に対する対比が ${MIN_CONTRAST}:1 以上 (丸めの最悪値で)`, async ({ page }) => {
       await open(page, screen.path, dark);
       const { paper, tones } = await readToneColors(page);
       const alpha = await readInactiveOpacity(page);
       const bg = parseRgb(paper);
       const low: string[] = [];
       for (const t of TONES) {
-        const r = contrast(applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha), bg);
+        const eff = applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha);
+        const r = Math.min(...quantized(eff).map((q) => contrast(q, bg)));
         if (r < MIN_CONTRAST) low.push(`${t} ${r.toFixed(2)} (${tones[t]!.stroke} on ${paper}, 不透明度 ${alpha})`);
       }
       expect(low, `対比が足りない tone:\n${low.join("\n")}`).toHaveLength(0);
     });
 
-    test(`${label}: 実効色 (不透明度を掛けた後) で隣り合う色が見分けられる (ΔE ${MIN_DELTA_E} 以上)`, async ({ page }) => {
+    test(`${label}: 実効色で隣り合う色が見分けられる (ΔE ${MIN_DELTA_E} 以上、 丸めの最悪値で)`, async ({ page }) => {
       // 生の色ではなく、 紙に重ねた後の色で測る。 不透明度で紙に寄るため生の色より近づく。
+      // さらに丸めの向きで 0.7 ほど動くので、 全組合せの最悪値で判定する。
       await open(page, screen.path, dark);
       const { paper, tones } = await readToneColors(page);
       const alpha = await readInactiveOpacity(page);
       const bg = parseRgb(paper);
-      const eff = (t: string) => applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha);
+      const eff = (t: string) => quantized(applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha));
       const close: string[] = [];
       for (let i = 0; i < TONES.length; i++) {
         for (let j = i + 1; j < TONES.length; j++) {
           const a = TONES[i]!;
           const b = TONES[j]!;
-          const d = deltaE(eff(a), eff(b));
-          if (d < MIN_DELTA_E) close.push(`${a} / ${b} ΔE ${d.toFixed(1)}`);
+          let worst = Infinity;
+          for (const qa of eff(a)) for (const qb of eff(b)) worst = Math.min(worst, deltaE(qa, qb));
+          if (worst < MIN_DELTA_E) close.push(`${a} / ${b} ΔE ${worst.toFixed(1)}`);
         }
       }
       expect(close, `見分けづらい組:\n${close.join("\n")}`).toHaveLength(0);
