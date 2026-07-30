@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
+import { partsGridCenters } from "../src/compile";
 import type { CompileNotice } from "../src/compile";
 
 /** 大きさを指定して作る見本のパーツ。 実際の catalog と同じ形 (1 lane + 1 node)。 */
@@ -544,5 +545,83 @@ flow:
     const web = laid.nodes.find((n) => n.title === "Web")!;
     const x0 = Math.min(...part.map((n) => n.cx - n.w / 2));
     expect(x0 - (web.cx + web.w / 2)).toBeCloseTo(200, 0);
+  });
+});
+
+describe("格子に並べた時の段内の揃い", () => {
+  /** 段ごとに箱の高さが違うパーツ。 矩形の中心が段の中心からずれる */
+  function twoStack(id: string, h1: number, h2: number): CdlDiagram {
+    return diagram(id, { topic: id })
+      .lane("l", { width: 400 })
+      .node("a", { lane: "l", stack: 0, kind: "card", title: "a", w: 400, h: h1 })
+      .node("b", { lane: "l", stack: 1, kind: "card", title: "b", w: 400, h: h2 })
+      .build();
+  }
+
+  it("段ごとに高さが違うパーツも段内で上端が揃う", () => {
+    // 矩形の中心と merge に渡す座標のずれを引かないと揃わない
+    // (実測 = 対称なパーツの上端 520 に対して非対称は 507.5)
+    const sym = twoStack("sym", 100, 100);
+    const asym = twoStack("asym", 100, 50);
+    const catalog = { ...CATALOG, sym, "parts-sym": sym, asym, "parts-asym": asym };
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+actors:
+  - Web: service
+  - s: sym
+  - a: asym
+flow:
+  - Web -> Web: "x"
+`,
+      { partsCatalog: catalog },
+    );
+    const laid = layout(d);
+    const topOf = (prefix: string): number => {
+      const ns = laid.nodes.filter((n) => n.id.startsWith(`${prefix}__`));
+      return Math.min(...ns.map((n) => n.cy - n.h / 2));
+    };
+    expect(topOf("a")).toBeCloseTo(topOf("s"), 1);
+  });
+});
+
+describe("格子の規則に異常な値を渡した時", () => {
+  it("箱の数が数でなければ 0 として扱う", () => {
+    const a = partsGridCenters(Number.NaN, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    const b = partsGridCenters(0, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    expect(a).toEqual(b);
+  });
+
+  it("箱の数が負なら 0 として扱う", () => {
+    const a = partsGridCenters(-5, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    const b = partsGridCenters(0, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    expect(a).toEqual(b);
+  });
+
+  it("桁が溢れる大きさは返さない (描けない座標を渡さない)", () => {
+    // 2 個目の列は `送り幅 + 送り幅/2` になるので、 最大値だと桁が溢れる
+    const out = partsGridCenters(1, [
+      { id: "x", w: Number.MAX_VALUE, h: Number.MAX_VALUE },
+      { id: "y", w: Number.MAX_VALUE, h: Number.MAX_VALUE },
+    ]);
+    expect(out.size, "桁が溢れた分を返している").toBeLessThan(2);
+    for (const c of out.values()) {
+      expect(Number.isFinite(c.cx) && Number.isFinite(c.cy)).toBe(true);
+    }
+  });
+
+  it("同じ名前が 2 度来たら先の方を残す", () => {
+    const out = partsGridCenters(1, [
+      { id: "x", w: 100, h: 100 },
+      { id: "x", w: 900, h: 900 },
+    ]);
+    expect(out.size).toBe(1);
+    const only = out.get("x")!;
+    const first = partsGridCenters(1, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    expect(only).toEqual(first);
+  });
+
+  it("空なら何も返さない", () => {
+    expect(partsGridCenters(1, []).size).toBe(0);
   });
 });

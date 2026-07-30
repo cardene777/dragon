@@ -704,30 +704,43 @@ export function partsGridCenters(
 ): Map<string, { cx: number; cy: number }> {
   const out = new Map<string, { cx: number; cy: number }>();
   if (items.length === 0) return out;
-  const top = baseNodeCount * STACK_PITCH + PARTS_GAP * 2;
+  // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない箱の数や桁溢れを
+  // そのまま計算に入れると、 描けない座標を返すことになる
+  const safeCount =
+    Number.isSafeInteger(baseNodeCount) && baseNodeCount >= 0 ? baseNodeCount : 0;
+  const top = safeCount * STACK_PITCH + PARTS_GAP * 2;
+  // 同じ名前が 2 度来たら先の方だけを見る。 後の分を残すと、 どちらを指したか決められない
+  // まま列の送り幅にも影響する
+  const seen = new Set<string>();
+  const unique = items.filter((i) => {
+    if (seen.has(i.id)) return false;
+    seen.add(i.id);
+    return true;
+  });
   const cellW = maxOf(
-    items.map((i) => positiveOr(i.w, 400)),
+    unique.map((i) => positiveOr(i.w, 400)),
     400,
   );
   const rowTops: number[] = [];
   {
     let y = top;
-    for (let i = 0; i < items.length; i += PARTS_PER_ROW) {
+    for (let i = 0; i < unique.length; i += PARTS_PER_ROW) {
       rowTops.push(y);
       const rowH = maxOf(
-        items.slice(i, i + PARTS_PER_ROW).map((x) => positiveOr(x.h, 200)),
+        unique.slice(i, i + PARTS_PER_ROW).map((x) => positiveOr(x.h, 200)),
         200,
       );
       y += rowH + PARTS_GAP;
     }
   }
-  items.forEach((item, i) => {
+  unique.forEach((item, i) => {
     const col = i % PARTS_PER_ROW;
     const row = Math.floor(i / PARTS_PER_ROW);
-    out.set(item.id, {
-      cx: col * (cellW + PARTS_GAP) + cellW / 2,
-      cy: (rowTops[row] ?? top) + positiveOr(item.h, 200) / 2,
-    });
+    const cx = col * (cellW + PARTS_GAP) + cellW / 2;
+    const cy = (rowTops[row] ?? top) + positiveOr(item.h, 200) / 2;
+    // 桁溢れした座標は描けない。 返さずに落として、 呼出側が自動配置に倒せるようにする
+    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return;
+    out.set(item.id, { cx, cy });
   });
   return out;
 }
@@ -756,12 +769,23 @@ function partGridCenters(
   // 置き場所が下へずれる
   const partsActorNames = new Set(partsActors.map((a) => a.name));
   const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
-  const items = autoActors.map((a) => {
+  const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  for (const a of autoActors) {
     const part = lookupPart(partsCatalog, a.partId);
-    const size = part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200 };
-    return { id: a.name, w: size.w, h: size.h };
-  });
-  return partsGridCenters(baseNodes.length, items);
+    extents.set(a.name, part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200, dx: 0, dy: 0 });
+  }
+  const centers = partsGridCenters(
+    baseNodes.length,
+    autoActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
+  );
+  // merge に渡すのは段の中心。 矩形の中心とのずれを引く。 引かないと、 段ごとに箱の高さが
+  // 違うパーツで段内の上端が揃わない (実測 = 対称なパーツの上端 520 に対して 507.5)
+  const out = new Map<string, { cx: number; cy: number }>();
+  for (const [name, c] of centers) {
+    const e = extents.get(name)!;
+    out.set(name, { cx: c.cx - e.dx, cy: c.cy - e.dy });
+  }
+  return out;
 }
 
 /**
