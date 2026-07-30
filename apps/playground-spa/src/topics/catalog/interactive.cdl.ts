@@ -1128,12 +1128,36 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     title: "Resource",
     subtitle: "API endpoint",
   })
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetY: -90 })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetY: -30 })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetY: 30 })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetY: 90 })
+  // 1-4 は Browser ↔ Auth server の往復 4 本で、 4 本とも同じ横線の上を通る。 label を
+  // 2 列 (X ±180) × 2 段 (Y ±60) に置く。
+  //
+  // 縦 1 列 (Y ±30 / ±90) では、 2 行 pill の高さ 68 に対して段の間隔が 60 しかなく重なる
+  // (実測 = 重なり面積 1628 と 1919)。 間隔を広げる方向 (±55 / ±160) では別の組が当たって
+  // 振動した (7 → 4 → 8 → 2)。 2 列に分けると、 同じ段の 2 つは横に 360 離れ (pill 幅 273 に
+  // 対して隙間 87)、 段の間は宣言値で 120 離れる (実配置の中心 Y は 41 と 348 で、 矩形の隙間は
+  // 239) ので、 どちらの軸でも重ならない。
+  //
+  // 段の間隔は ±60 にする。 ±45 でも error 0 になるが、 label を 1 文字伸ばすと戻る
+  // (実測 = 2 か 3 の label に 1 文字足すと 5 件)。 ±60 なら 4 つのどれを 1 文字伸ばしても 0 件を
+  // 保つ。 横方向を狭める案 (±160 以下) は error が 2-6 件出る。
+  //
+  // 代わりに `edge-label-proximity` warn を 2 件受ける (label が自 path から 162 離れ、 目安の
+  // 150 を超える)。 0 error と 0 warn を同時に満たす配置は無い = X は 180 でないと error が出て、
+  // Y は 48 以下だと 1 文字で崩れ 49 以上だと warn が出る。 4 本が同じ横線を通る図では label を
+  // path の上に置けないので、 warn 側を受けて 1 文字分の余裕を取る判断にした。
+  //
+  // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
+  // 変わらない (実測 = 320/640 と 620/1240 で lane x が同じ 787/1574)。
+  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetX: -180, labelOffsetY: -60 })
+  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetX: 180, labelOffsetY: -60 })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetX: -180, labelOffsetY: 60 })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetX: 180, labelOffsetY: 60 })
+  // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
+  // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 6 を下
+  // (side: "bottom") に回して迂回の向きを分け、 6 の label だけ下へ 120 離す。 5 側にも offset を
+  // 足すと label が path から 170 離れて edge-label-proximity warn が出て、 図の高さが 19% 増える。
   .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
-  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "left" })
+  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "bottom", labelOffsetY: 120 })
   .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
   .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
   .phase("p", {
@@ -1657,7 +1681,14 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .node("product", { lane: "land", stack: 1, kind: "card", title: "Product", subtitle: "30 + 15 + 10 = 55" })
   .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "conversion = 140" })
   .edge("search", "home", { label: "40", tone: "success" })
-  .edge("search", "product", { label: "30", tone: "success" })
+  .edge("search", "product", {
+    label: "30",
+    tone: "success",
+    // 縦に降りる区間 (x=540) の中点に置くと、 direct → home の縦区間 (x=507) と 33px しか離れず
+    // 互いの pill が path を貫く。 右へ寄せて縦区間 2 本の間から外す。 60 では足りず (error 1)、
+    // 90 で解消する。
+    labelOffsetX: 90,
+  })
   .edge("social", "home", { label: "25", tone: "info" })
   .edge("social", "product", { label: "15", tone: "info" })
   .edge("direct", "home", { label: "20", tone: "accent" })
@@ -3987,7 +4018,13 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy", eyebrow: "device", subtitle: "圏外 → retry 対象" })
   .edge("msg", "kafka", { label: "enqueue", tone: "info" })
   .edge("kafka", "fcm", { label: "dequeue", tone: "info" })
-  .edge("fcm", "iphone", { label: "APNs 配信", tone: "success" })
+  .edge("fcm", "iphone", {
+    label: "APNs 配信",
+    tone: "success",
+    // 縦に走る区間の中点だと、 kafka → fcm の label と同じ高さ (y=438) に並んで 12px しか離れない。
+    // 縦区間は y=272-604 と長いので上へ寄せる。 -160 まで動かすと折れ角に乗って自 path と接する。
+    labelOffsetY: -120,
+  })
   .edge("fcm", "pixel", { label: "FCM 配信", tone: "success" })
   .edge("fcm", "galaxy", { label: "初回失敗", tone: "error" })
   .edge("galaxy", "retryGate", { label: "retry 要求", tone: "warning" })
