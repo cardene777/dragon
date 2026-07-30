@@ -1398,6 +1398,9 @@ function applyGroupContainers(diagram: CdlDiagram, doc: DslDocument): void {
       width: 800,
       label: g.label ?? id,
       contain: true,
+      // 束ねる lane 群に重ねて描く枠。 横に並べる lane ではないので、 engine の間隔調整
+      // (lane を詰めた分を幅で埋め合わせる処理) の対象から外す。
+      role: "overlay",
     });
   }
 }
@@ -1460,7 +1463,9 @@ function compileGantt(doc: DslDocument): CdlDiagram {
   const TASK_W = 280;
   const TASK_H = 64;
   const QUARTER_CX: Record<string, number> = { Q1: 200, Q2: 600, Q3: 900, Q4: 1200 };
-  b.lane("gantt-timeline", { x: 0, width: 1400, label: doc.title });
+  // task lane を上に重ねる背景の帯。 横に並べる lane ではないので、 engine の間隔調整の
+  // 対象から外す (帯の幅 1400 を隣との重なりとして扱われると task lane が異常に太る)。
+  b.lane("gantt-timeline", { x: 0, width: 1400, label: doc.title, role: "overlay" });
 
   doc.actors.forEach((a, idx) => {
     const subtitle = (a.subtitle ?? "").trim().toUpperCase();
