@@ -54,13 +54,33 @@ describe("Axis 18 node-vertical-clearance (LaidDiagram mutation で意図発火)
 });
 
 describe("Axis 19 lane-lane-gap (LaidDiagram mutation で意図発火)", () => {
-  it("2 lane を極端に近づけると gap 発火", () => {
+  // cdl#353 で判定対象を「枠が描かれる lane の対」 に絞った。 contain なし lane は塗りも線も
+  // 持たない矩形しか描かれず、 間隔が狭いこと自体が画面に現れないため。
+  it("枠を描く 2 lane を極端に近づけると gap 発火", () => {
     const diag = baseDiagram();
+    for (const l of diag.lanes) l.contain = true;
     const laid = layout(diag);
     // L2 を L1 の右端に近づける (gap 5px)
     laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["lane-lane-gap"]).toBeGreaterThan(0);
+  });
+
+  it("片方だけ枠を描く 2 lane を近づけても gap 発火", () => {
+    const diag = baseDiagram();
+    diag.lanes[0].contain = true;
+    const laid = layout(diag);
+    laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["lane-lane-gap"]).toBeGreaterThan(0);
+  });
+
+  it("枠を描かない 2 lane はいくら近づけても発火しない", () => {
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["lane-lane-gap"] ?? 0).toBe(0);
   });
 });
 

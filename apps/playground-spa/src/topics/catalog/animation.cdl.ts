@@ -54,7 +54,10 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
 /**
  * 6. richPipelineDemo = iter 9 wave 9-C 完動 pilot (rich layered animation exemplar)。
  *
- * incremental step 1-6 で全 element (dyn-wave / phase 5 / state 7 / readout 2 / lane 5 / edge 4 + activate 連鎖) が動作確認済、 動作 baseline は step6 compare で verified。
+ * incremental step 1-6 で全 element (dyn-wave / phase 5 / state 7 / readout 2 / lane 3 / edge 4 + activate 連鎖) が動作確認済、 動作 baseline は step6 compare で verified。
+ *
+ * 5 段を横 1 列に置くと幅 2002 world / 縦横比 6.3 で潰れるため、 3 列 2 段に折り返す。
+ * 帯 id は内容ではなく位置を表す (段をまたぐと 1 つの帯に別の段の節が入るため)。
  *
  * 5 layer 同時発火 (rich judgment 5/5 pass):
  * - layer 1 = arrow が step 1-5 順に色付き (edge activate 連鎖)
@@ -69,11 +72,9 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
 export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
   topic: "5段階CSVパイプラインのリッチ進捗デモ",
 })
-  .lane("l1", { x: 0, width: 160 })
-  .lane("l2", { x: 180, width: 160 })
-  .lane("l3", { x: 360, width: 160 })
-  .lane("l4", { x: 540, width: 160 })
-  .lane("l5", { x: 720, width: 160 })
+  .lane("col1", { x: 0, width: 190 })
+  .lane("col2", { x: 230, width: 190 })
+  .lane("col3", { x: 460, width: 190 })
   .state("s1", { initial: 0 })
   .state("s2", { initial: 0 })
   .state("s3", { initial: 0 })
@@ -81,15 +82,15 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
   .state("s5", { initial: 0 })
   .state("total", { initial: 0 })
   .state("processed", { initial: 0 })
-  .node("r1", { lane: "l1", stack: 0, kind: "dyn-wave", title: "検証", subtitle: "{s1}%", w: 140, h: 200,
+  .node("r1", { lane: "col1", stack: 0, kind: "dyn-wave", title: "検証", subtitle: "{s1}%", w: 140, h: 200,
     shape: { kind: "wave", level: "{s1}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
-  .node("r2", { lane: "l2", stack: 0, kind: "dyn-wave", title: "変換", subtitle: "{s2}%", w: 140, h: 200,
+  .node("r2", { lane: "col1", stack: 1, kind: "dyn-wave", title: "変換", subtitle: "{s2}%", w: 140, h: 200,
     shape: { kind: "wave", level: "{s2}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
-  .node("r3", { lane: "l3", stack: 0, kind: "dyn-wave", title: "加工", subtitle: "{s3}%", w: 140, h: 200,
+  .node("r3", { lane: "col2", stack: 0, kind: "dyn-wave", title: "加工", subtitle: "{s3}%", w: 140, h: 200,
     shape: { kind: "wave", level: "{s3}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
-  .node("r4", { lane: "l4", stack: 0, kind: "dyn-wave", title: "重複排除", subtitle: "{s4}%", w: 140, h: 200,
+  .node("r4", { lane: "col2", stack: 1, kind: "dyn-wave", title: "重複排除", subtitle: "{s4}%", w: 140, h: 200,
     shape: { kind: "wave", level: "{s4}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } })
-  .node("r5", { lane: "l5", stack: 0, kind: "dyn-wave", title: "保存", subtitle: "{s5}%", w: 140, h: 200,
+  .node("r5", { lane: "col3", stack: 0, kind: "dyn-wave", title: "保存", subtitle: "{s5}%", w: 140, h: 200,
     shape: { kind: "wave", level: "{s5}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#22c55e" } })
   .edge("r1", "r2", { id: "e12", label: "変換", tone: "info" })
   .edge("r2", "r3", { id: "e23", label: "加工", tone: "info" })
@@ -158,15 +159,15 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
  * - layer 3 = 進捗 readout.percentRing (0-100%)
  * - layer 4 = 経過時間 readout.countup (時)
  * - layer 5 = 状態 badge (受注 → 決済 → 発送 → 配達 → 完了)
+ *
+ * 5 段を横 1 列に置くと幅 1998 world / 縦横比 6.2 で潰れるため、 2 列 3 段に折り返す
+ * (3 列 2 段は線が節を貫くため採らない)。 帯 id は内容ではなく位置を表す。
  */
 export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
   topic: "EC注文状態遷移 (受注→決済→発送→配達→完了)",
 })
-  .lane("l1", { x: 0, width: 140 })
-  .lane("l2", { x: 160, width: 140 })
-  .lane("l3", { x: 320, width: 140 })
-  .lane("l4", { x: 480, width: 140 })
-  .lane("l5", { x: 640, width: 140 })
+  .lane("col1", { x: 0, width: 170 })
+  .lane("col2", { x: 210, width: 170 })
   .state("f1", { initial: 0 })
   .state("f2", { initial: 0 })
   .state("f3", { initial: 0 })
@@ -174,15 +175,15 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
   .state("f5", { initial: 0 })
   .state("progress", { initial: 0 })
   .state("elapsedHour", { initial: 0 })
-  .node("st1", { lane: "l1", stack: 0, kind: "dyn-rect", title: "受注", subtitle: "{f1}%", w: 120, h: 200,
+  .node("st1", { lane: "col1", stack: 0, kind: "dyn-rect", title: "受注", subtitle: "{f1}%", w: 120, h: 200,
     shape: { kind: "rect", source: "{f1}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
-  .node("st2", { lane: "l2", stack: 0, kind: "dyn-rect", title: "決済", subtitle: "{f2}%", w: 120, h: 200,
+  .node("st2", { lane: "col2", stack: 0, kind: "dyn-rect", title: "決済", subtitle: "{f2}%", w: 120, h: 200,
     shape: { kind: "rect", source: "{f2}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
-  .node("st3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "発送", subtitle: "{f3}%", w: 120, h: 200,
+  .node("st3", { lane: "col1", stack: 1, kind: "dyn-rect", title: "発送", subtitle: "{f3}%", w: 120, h: 200,
     shape: { kind: "rect", source: "{f3}", fillMax: 100, orient: "up", fill: "#4e9dc4" } })
-  .node("st4", { lane: "l4", stack: 0, kind: "dyn-rect", title: "配達", subtitle: "{f4}%", w: 120, h: 200,
+  .node("st4", { lane: "col2", stack: 1, kind: "dyn-rect", title: "配達", subtitle: "{f4}%", w: 120, h: 200,
     shape: { kind: "rect", source: "{f4}", fillMax: 100, orient: "up", fill: "#f97316" } })
-  .node("st5", { lane: "l5", stack: 0, kind: "dyn-rect", title: "完了", subtitle: "{f5}%", w: 120, h: 200,
+  .node("st5", { lane: "col1", stack: 2, kind: "dyn-rect", title: "完了", subtitle: "{f5}%", w: 120, h: 200,
     shape: { kind: "rect", source: "{f5}", fillMax: 100, orient: "up", fill: "#22c55e" } })
   .edge("st1", "st2", { id: "e12", label: "決済へ", tone: "info" })
   .edge("st2", "st3", { id: "e23", label: "発送へ", tone: "info" })
