@@ -46,19 +46,53 @@ describe("Axis 4 row-format (CdlDiagram input mutation で意図発火)", () => 
 });
 
 describe("Axis 21 grid-alignment (LaidDiagram mutation で意図発火)", () => {
-  it("chart- prefix node の cx を grid 16 world 倍数から外すと grid-alignment 発火", () => {
+  // cdl#368 で 2 点変わった。 対象を節の id 接頭辞から **種別** で絞るようになり、
+  // 判定も箱の中心から **4 辺** に変わった。 節の id を `chart-` にしただけでは対象に入らない。
+  const gridDiagram = () =>
+    baseDiagram({
+      nodes: [
+        { id: "a", lane: "L1", stack: 0, kind: "chart-pie", title: "A" },
+        { id: "b", lane: "L2", stack: 0, kind: "actor", title: "B" },
+      ],
+      edges: [],
+    });
+
+  it("格子に載せる種別の箱の左端を grid 16 world 倍数から外すと発火", () => {
+    const diag = gridDiagram();
+    const laid = layout(diag);
+    // 左端 = cx - w / 2 を格子から 5 world ずらす (許容は ±2)
+    laid.nodes[0].cx = laid.nodes[0].w / 2 + 5;
+    laid.nodes[0].cy = laid.nodes[0].h / 2;
+    expect(visualValidateLaid(laid, diag).counts["grid-alignment"]).toBeGreaterThan(0);
+  });
+
+  it("箱の寸法を grid 16 world 倍数から外すと右下が外れて発火", () => {
+    const diag = gridDiagram();
+    const laid = layout(diag);
+    laid.nodes[0].cx = laid.nodes[0].w / 2;
+    laid.nodes[0].cy = laid.nodes[0].h / 2;
+    // 左上は格子に載せたまま幅だけ 5 world 増やす
+    laid.nodes[0].w += 5;
+    laid.nodes[0].cx += 2.5;
+    expect(visualValidateLaid(laid, diag).counts["grid-alignment"]).toBeGreaterThan(0);
+  });
+
+  it("格子に載せない種別は、 id が chart- / funnel- でも発火しない", () => {
+    // id は旧仕様の接頭辞に合わせ、 種別だけを対象外にする。 実装が id 接頭辞の判定に
+    // 戻る (または種別と併用する) 回帰を、 この形でないと捕まえられない。
     const diag = baseDiagram({
       nodes: [
         { id: "chart-a", lane: "L1", stack: 0, kind: "actor", title: "A" },
-        { id: "chart-b", lane: "L2", stack: 0, kind: "actor", title: "B" },
+        { id: "funnel-b", lane: "L2", stack: 0, kind: "card", title: "B" },
       ],
       edges: [],
     });
     const laid = layout(diag);
-    laid.nodes[0].cx = 100.7;
-    laid.nodes[0].cy = 100.3;
-    const report = visualValidateLaid(laid, diag);
-    expect(report.counts["grid-alignment"]).toBeGreaterThan(0);
+    for (const n of laid.nodes) {
+      n.cx = n.w / 2 + 5;
+      n.cy = n.h / 2 + 5;
+    }
+    expect(visualValidateLaid(laid, diag).counts["grid-alignment"]).toBe(0);
   });
 });
 
