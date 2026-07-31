@@ -11,7 +11,10 @@
 
 import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
-import { sequence, flow, swimlane, er, stateMachine, topology, diagram, layout } from "@cardenelabs/cdl";
+import {
+  sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
+  rendersRows, rowBaselineY, ROW_PITCH_STORAGE, ROW_PITCH_GENERIC,
+} from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import {
   orderByDependency,
@@ -1758,6 +1761,21 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
+      // seq-like preset の header は kind を card 固定で作る。 actor が行を描く kind を宣言して
+      // rows も書いている場合だけ、 その kind を header に載せる。 載せないと rows が card に
+      // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
+      //
+      // 対象を「行を描く kind かつ rows あり」 に絞るのは、 header の見た目 (lifeline 上端の
+      // 名札) を kind ごとに変えると sequence 図の読み方が変わってしまうため。 行を出す意図が
+      // 明示された時だけ、 行を出せる kind に切り替える。
+      if (isSeqLike && a.kind !== undefined && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
+        node.kind = a.kind;
+        // header は h 固定で作られるので、 行が枠外に出ないよう最終行に合わせて伸ばす。
+        // 縦位置の式は cdl 側 SSOT (`rowBaselineY`) から引く。
+        const lastBaseline = rowBaselineY(a.kind, a.rows.length - 1) ?? 0;
+        const pitch = a.kind === "storage" ? ROW_PITCH_STORAGE : ROW_PITCH_GENERIC;
+        node.h = Math.max(node.h ?? 0, lastBaseline + pitch);
+      }
     }
   }
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
