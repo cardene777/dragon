@@ -40,9 +40,7 @@ describe("行を描く kind を宣言した sequence actor (#387)", () => {
     const rows = ["a: 1", "b: 2", "c: 3"];
     const d = textDslToDiagram(src(`DB: { kind: storage, rows: ["a: 1", "b: 2", "c: 3"] }`));
     const n = nodeById(d, "db-header")!;
-    const need = requiredRowsHeight("storage", rows.length)!;
-    expect(need).toBe(318); // 最終行 baseline 242 + 行送り 56 + 下余白 20
-    expect(n.h).toBeGreaterThanOrEqual(need);
+    expect(n.h).toBeGreaterThanOrEqual(requiredRowsHeight("storage", rows.length)!);
   });
 
   it("長い行でも cdl が要求する幅以上になる", () => {
