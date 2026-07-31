@@ -1177,7 +1177,7 @@ export const partsBindColorState = diagram("parts-bind-color-state", { structure
 
 // parts 73: bind pattern = level + fill color combo (2 state で level + fill 色同時 bind)
 export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", { structuredData: "exclude",
-  topic: "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用",
+  topic: "bind: 水位と色を同じ波形に併用する",
 })
   .lane("l", { x: 0, width: 400 })
   .state("lvl", { initial: 30 })
@@ -1192,7 +1192,7 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
 
 // parts 74: bind pattern = 3 phase escalation (state 段階昇順、 各 phase で set)
 export const partsBindEscalation3 = diagram("parts-bind-escalation-3", { structuredData: "exclude",
-  topic: "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)",
+  topic: "bind: 3 段階で state を切り替える",
 })
   .lane("l", { x: 0, width: 380 })
   .state("level", { initial: 1 })
@@ -1325,3 +1325,12 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
   .phase("p5", { duration: 1200, title: "平常復帰", body: "" }, (p: PhaseBuilder) =>
     p.activate("cpuG", "memG", "netG").set("status", "healthy"))
   .build();
+
+// ============================================================
+// catalog 一覧に出す説明文。
+//
+// `topic` は図の題名 (60 字以内) で、 長い説明はここに置く。 `sourceYaml__<key>` と同じ
+// suffix pair 規約で、 `moduleToItems` が `subtitle__<export 名>` を拾って subtitle にする。
+// ============================================================
+export const subtitle__partsBindLevelColorCombo = "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用";
+export const subtitle__partsBindEscalation3 = "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)";
