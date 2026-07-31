@@ -1167,27 +1167,38 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     subtitle: "API endpoint",
   })
   // 1-4 は Browser ↔ Auth server の往復 4 本で、 4 本とも同じ横線の上を通る。 label を
-  // 2 列 (X ±180) × 2 段 (Y ±60) に置く。
+  // 2 列 (X ±180) × 2 段 (上 -40 / 下 +60) に置く。
   //
   // 縦 1 列 (Y ±30 / ±90) では、 2 行 pill の高さ 68 に対して段の間隔が 60 しかなく重なる
   // (実測 = 重なり面積 1628 と 1919)。 間隔を広げる方向 (±55 / ±160) では別の組が当たって
   // 振動した (7 → 4 → 8 → 2)。 2 列に分けると、 同じ段の 2 つは横に 360 離れ (pill 幅 273 に
-  // 対して隙間 87)、 段の間は宣言値で 120 離れる (実配置の中心 Y は 41 と 348 で、 矩形の隙間は
-  // 239) ので、 どちらの軸でも重ならない。
+  // 対して隙間 87) るので、 その軸では重ならない。
   //
-  // 段の間隔は ±60 にする。 ±45 でも error 0 になるが、 label を 1 文字伸ばすと戻る
-  // (実測 = 2 か 3 の label に 1 文字足すと 5 件)。 ±60 なら 4 つのどれを 1 文字伸ばしても 0 件を
-  // 保つ。 横方向を狭める案 (±160 以下) は error が 2-6 件出る。
+  // 段の間は宣言値では 100 だが、 engine が 3 と 4 を下へ逃がすため実配置はもっと開く
+  // (実測 = 中心 Y が 61 と 348、 矩形の隙間は 219)。 宣言値の 100 だけでは pill 高 68 +
+  // 必要な隙間 36 = 104 に足りないので、 宣言値を見て安全と判断してはいけない。
   //
-  // 代わりに `edge-label-proximity` warn を 2 件受ける (label が自 path から 162 離れ、 目安の
-  // 150 を超える)。 0 error と 0 warn を同時に満たす配置は無い = X は 180 でないと error が出て、
-  // Y は 48 以下だと 1 文字で崩れ 49 以上だと warn が出る。 4 本が同じ横線を通る図では label を
-  // path の上に置けないので、 warn 側を受けて 1 文字分の余裕を取る判断にした。
+  // 段の高さの実測 (上段 Y × 下段 Y → 破綻 / 警告)。
+  //
+  //          下 +50    下 +60    下 +80
+  //   上 -60  0 / 3     0 / 3     0 / 3
+  //   上 -40  0 / 2     0 / 2     0 / 2
+  //   上 -20  1 / 2     1 / 2     1 / 2
+  //
+  // 上段を -40 にすると 1 の label が自分の弧に 65 まで近づき、 `edge-label-proximity` から
+  // 外れる。 -20 以上に上げると別の破綻が出るため安全な範囲は -50 〜 -30 で、 その中央が -40。
+  //
+  // 下段は +60 にする。 +50 でも警告は同数だが、 2 か 3 の label を 1 文字伸ばすと破綻する。
+  // +60 なら 4 つのどれを伸ばしても 0 / 2 を保つ。 横方向を狭める案 (±160 以下) は破綻が 2-6 件。
+  //
+  // 残る警告 2 件 (2 が 108、 3 が 111) は label をどこに置いても動かない。 4 本の弧は 32 ずつ
+  // しか離れていないのに 2 行 pill は高さ 68 で、 同じ列に 2 つ置くと 104 の間隔が要る。 自分の
+  // 弧の上に置ける label は 4 本中 2 本までになる (engine 側の課題として cdl#372 に分離)。
   //
   // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
   // 変わらない (実測 = 320/640 と 620/1240 で lane x が同じ 787/1574)。
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetX: -180, labelOffsetY: -60 })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetX: 180, labelOffsetY: -60 })
+  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetX: -180, labelOffsetY: -40 })
+  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetX: 180, labelOffsetY: -40 })
   .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetX: -180, labelOffsetY: 60 })
   .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetX: 180, labelOffsetY: 60 })
   // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
