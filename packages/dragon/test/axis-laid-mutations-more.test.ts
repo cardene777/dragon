@@ -85,15 +85,62 @@ describe("Axis 19 lane-lane-gap (LaidDiagram mutation で意図発火)", () => {
 });
 
 describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", () => {
-  it("node title が空だと accessible name 欠落で発火", () => {
+  // 図は `<svg role="img">` で描かれ、 中の節は個別に公開されない。 そのため本軸は
+  // 節ごとの題名ではなく「図の代替説明が組み立つか」 を見る (cdl#363)。
+  const countOf = (diag: CdlDiagram): number =>
+    visualValidateLaid(layout(diag), diag).counts["accessibility-basics"] ?? 0;
+
+  it("題名 (topic) が空だと発火", () => {
+    expect(countOf(baseDiagram({ topic: "" }))).toBeGreaterThan(0);
+  });
+
+  it("段に題も説明も無いと発火", () => {
+    const diag = baseDiagram({
+      phases: [
+        { id: "p", duration: 1000, title: "", body: "", activate: [], tweens: [], sets: [] },
+      ],
+    } as Partial<CdlDiagram>);
+    expect(countOf(diag)).toBeGreaterThan(0);
+  });
+
+  it("題名と段の説明が揃っていれば発火しない", () => {
+    const diag = baseDiagram({
+      phases: [
+        { id: "p", duration: 1000, title: "段の題", body: "段の説明", activate: [], tweens: [], sets: [] },
+      ],
+    } as Partial<CdlDiagram>);
+    expect(countOf(diag)).toBe(0);
+  });
+
+  it("段は題だけ / 説明だけでも発火しない (どちらか一方でよい)", () => {
+    const withOnly = (title: string, body: string): CdlDiagram =>
+      baseDiagram({
+        phases: [{ id: "p", duration: 1000, title, body, activate: [], tweens: [], sets: [] }],
+      } as Partial<CdlDiagram>);
+    expect(countOf(withOnly("段の題", "")), "題だけで発火した").toBe(0);
+    expect(countOf(withOnly("", "段の説明")), "説明だけで発火した").toBe(0);
+  });
+
+  it("段は 1 つずつ見る (揃った段と空の段が混ざると空の方だけ発火)", () => {
+    const diag = baseDiagram({
+      phases: [
+        { id: "p1", duration: 1000, title: "段 1", body: "説明 1", activate: [], tweens: [], sets: [] },
+        { id: "p2", duration: 1000, title: "", body: "", activate: [], tweens: [], sets: [] },
+      ],
+    } as Partial<CdlDiagram>);
+    expect(countOf(diag)).toBe(1);
+  });
+
+  it("節の題名が空でも発火しない (節は個別に公開されない)", () => {
     const diag = baseDiagram({
       nodes: [
         { id: "n1", lane: "L1", stack: 0, kind: "actor", title: "" },
         { id: "n2", lane: "L2", stack: 0, kind: "actor", title: "N2" },
       ],
-    });
-    const laid = layout(diag);
-    const report = visualValidateLaid(laid, diag);
-    expect(report.counts["accessibility-basics"]).toBeGreaterThan(0);
+      phases: [
+        { id: "p", duration: 1000, title: "段の題", body: "段の説明", activate: [], tweens: [], sets: [] },
+      ],
+    } as Partial<CdlDiagram>);
+    expect(countOf(diag)).toBe(0);
   });
 });
