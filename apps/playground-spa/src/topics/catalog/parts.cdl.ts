@@ -18,6 +18,10 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  *   - state indicator は 1 大 shape で状態を主張、 複数並列は避ける
  *   - metaphor は 1 parts = 1 concept、 混在禁止
  *   - name / label は日本語 (JA page 前提)
+ *
+ * 各図の直後に置く `subtitle__<export 名>` は catalog 一覧に出す説明文。 `topic` は図の題名
+ * (60 字以内) で、 長い説明はこちらに書く。 `sourceYaml__<key>` と同じ suffix pair 規約で、
+ * `moduleToItems` が拾って一覧の subtitle にする。
  */
 
 // ============================================================
@@ -1189,6 +1193,7 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
   .phase("p2", { duration: 2000, title: "警告色", body: "" }, (p: PhaseBuilder) =>
     p.activate("tank").set("hue", "#dc2626"))
   .build();
+export const subtitle__partsBindLevelColorCombo = "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用";
 
 // parts 74: bind pattern = 3 phase escalation (state 段階昇順、 各 phase で set)
 export const partsBindEscalation3 = diagram("parts-bind-escalation-3", { structuredData: "exclude",
@@ -1206,6 +1211,7 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", { structu
   .phase("p3", { duration: 1500, title: "L3 = 危険", body: "" }, (p: PhaseBuilder) =>
     p.activate("badge").set("level", 3).set("bg", "#dc2626"))
   .build();
+export const subtitle__partsBindEscalation3 = "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)";
 
 // parts 75: bind pattern = tween chain 4-hop (0→25→50→75→100 の 4 phase)
 export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", { structuredData: "exclude",
@@ -1325,12 +1331,3 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
   .phase("p5", { duration: 1200, title: "平常復帰", body: "" }, (p: PhaseBuilder) =>
     p.activate("cpuG", "memG", "netG").set("status", "healthy"))
   .build();
-
-// ============================================================
-// catalog 一覧に出す説明文。
-//
-// `topic` は図の題名 (60 字以内) で、 長い説明はここに置く。 `sourceYaml__<key>` と同じ
-// suffix pair 規約で、 `moduleToItems` が `subtitle__<export 名>` を拾って subtitle にする。
-// ============================================================
-export const subtitle__partsBindLevelColorCombo = "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用";
-export const subtitle__partsBindEscalation3 = "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)";
