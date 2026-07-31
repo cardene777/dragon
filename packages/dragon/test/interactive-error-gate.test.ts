@@ -233,6 +233,26 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     expect(cxs[1]! - cxs[0]!, "左列の 2 つの中心 X が揃っていない").toBeLessThan(1);
     expect(cxs[3]! - cxs[2]!, "右列の 2 つの中心 X が揃っていない").toBeLessThan(1);
     expect(cxs[2]! - cxs[0]!, "2 列が横に離れていない").toBeGreaterThan(300);
+    // 2 段であること = 中心 Y も 2 つの値に分かれる。 上段を動かすと片方の段だけがずれるため、
+    // 段が揃っているかを見ないと「上段だけ元に戻す」 変更を素通しする (#966)。
+    const cys = boxes.map((b) => b.y + b.h / 2).sort((a, b) => a - b);
+    expect(cys[1]! - cys[0]!, "上段の 2 つの中心 Y が揃っていない").toBeLessThan(1);
+    expect(cys[3]! - cys[2]!, "下段の 2 つの中心 Y が揃っていない").toBeLessThan(1);
+    expect(cys[2]! - cys[0]!, "2 段が縦に離れていない").toBeGreaterThan(200);
+  });
+
+  it("oauth-flow = 自分の弧から離れている label が 2 本に収まっている", () => {
+    // 4 本が同じ横線を通るため、 自分の弧の上に置ける label は 2 本まで (#966)。 残り 2 本が
+    // どれかを固定する = 段の高さを戻すと 3 本に増えるので、 件数だけでなく id も見る。
+    const far = visualValidateAll([oauthFlow])
+      .reports.flatMap((r) => r.violations)
+      .filter((v) => v.axis === "edge-label-proximity")
+      .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
+      .sort();
+    expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual([
+      "code-exchange",
+      "consent-client",
+    ]);
   });
 
   it("oauth-flow = 迂回する 2 本の label が上下に分かれている", () => {
