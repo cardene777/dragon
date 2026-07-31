@@ -9,7 +9,7 @@ import * as PresetsMod from "@/topics/catalog/presets.cdl";
  *
  * これらは export 名の綴りだけで diagram と結び付いている。 diagram の export 名を変えたり
  * `subtitle__` を打ち間違えたりすると、 **説明文が孤立して静かに `topic` へ落ちる**。
- * 説明文の block は定義元から数千行離れているため、 目視では気付けない。
+ * 隣に並べても綴りのずれは目視で気付けない (#952 で説明文を図の直後へ移した後も同じ)。
  *
  * そこで「対応する diagram の無い `subtitle__` が 1 つも無いこと」 を機械で押さえる。
  */
