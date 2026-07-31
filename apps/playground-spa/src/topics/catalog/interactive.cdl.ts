@@ -22,7 +22,10 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 /**
  * 1. slider → node value bind (input widget primitive + reactive state)。
  */
+// 2 要素の関係を 1 つだけ見せる最小例なので、 構造化データの抽出対象から外す (#970)。
+// 3 つ目の節を足すと「1 つの仕組みを最小の形で見せる」 という目的が崩れる。
 export const inputSliderBar = diagram("interactive-slider-bar", {
+  structuredData: "exclude",
   topic: "スライダーの値で棒の高さが変わる",
 })
   .lane("slider", { x: 0, width: 260 })
@@ -242,7 +245,9 @@ export const subtitle__stepperControl = "stepper control を 3-lane (Control inp
 /**
  * 9. number → sparkline = number 入力の履歴を line chart で。
  */
+// 2 要素の最小例なので抽出対象外 (#970、 `interactive-slider-bar` と同じ理由)。
 export const numberSparkline = diagram("interactive-number-spark", {
+  structuredData: "exclude",
   topic: "現在値と履歴のミニ折れ線を並べる",
 })
   .lane("current", { x: 0, width: 220 })
@@ -976,7 +981,9 @@ export const subtitle__arrayWaterfall = "arraySignal waterfall 5 element を 2-l
 /**
  * 31. renderOffset signal binding = slider で node が動く、 renderOffsetX/Y に signal template。
  */
+// 2 要素の対比が主題の最小例なので抽出対象外 (#970)。 固定と追随の 2 つで完結する。
 export const renderOffsetDrift = diagram("interactive-render-offset", {
+  structuredData: "exclude",
   topic: "固定点に対して浮遊点がずれて動く",
 })
   .lane("anchor", { x: 0, width: 240 })
