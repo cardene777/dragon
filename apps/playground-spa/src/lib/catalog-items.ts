@@ -56,17 +56,22 @@ function ensurePhase(d: CdlDiagram): CdlDiagram {
 
 /**
  * 全 export を CatalogItem 配列化する helper (topic module → items[])。
- * default = key を title、 subtitle = diagram.topic (もしあれば)。
+ * default = key を title、 subtitle = `subtitle__<key>` があればそれ、 無ければ diagram.topic。
+ *
+ * `topic` は図の題名で 60 字以内に収める (cdl の seo-metadata-quality が SEO title として見る)。
+ * 一覧に出したい長い説明は `subtitle__<key>` に置く。
  */
 function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
   const out: CatalogItem[] = [];
   // source 記法は `sourceYaml__<key>` / `sourceJson__<key>` の suffix pair convention で検出
   const sourceYamlMap = new Map<string, string>();
   const sourceJsonMap = new Map<string, string>();
+  const subtitleMap = new Map<string, string>();
   for (const [k, v] of Object.entries(mod)) {
     if (typeof v !== "string") continue;
     if (k.startsWith("sourceYaml__")) sourceYamlMap.set(k.slice("sourceYaml__".length), v);
     if (k.startsWith("sourceJson__")) sourceJsonMap.set(k.slice("sourceJson__".length), v);
+    if (k.startsWith("subtitle__")) subtitleMap.set(k.slice("subtitle__".length), v);
   }
   for (const [key, value] of Object.entries(mod)) {
     if (!value || typeof value !== "object") continue;
@@ -75,7 +80,7 @@ function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
     out.push({
       id: d.id,
       title: key,
-      subtitle: d.topic ?? "",
+      subtitle: subtitleMap.get(key) ?? d.topic ?? "",
       diagram: ensurePhase(d),
       sourceYaml: sourceYamlMap.get(key),
       sourceJson: sourceJsonMap.get(key),
