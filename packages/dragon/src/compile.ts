@@ -13,7 +13,7 @@ import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
-  rendersRows, rowBaselineY, ROW_PITCH_STORAGE, ROW_PITCH_GENERIC,
+  rendersRows, requiredRowsHeight, requiredRowsWidth,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import {
@@ -1768,13 +1768,16 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       // 対象を「行を描く kind かつ rows あり」 に絞るのは、 header の見た目 (lifeline 上端の
       // 名札) を kind ごとに変えると sequence 図の読み方が変わってしまうため。 行を出す意図が
       // 明示された時だけ、 行を出せる kind に切り替える。
-      if (isSeqLike && a.kind !== undefined && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
+      if (isSeqLike && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
         node.kind = a.kind;
-        // header は h 固定で作られるので、 行が枠外に出ないよう最終行に合わせて伸ばす。
-        // 縦位置の式は cdl 側 SSOT (`rowBaselineY`) から引く。
-        const lastBaseline = rowBaselineY(a.kind, a.rows.length - 1) ?? 0;
-        const pitch = a.kind === "storage" ? ROW_PITCH_STORAGE : ROW_PITCH_GENERIC;
-        node.h = Math.max(node.h ?? 0, lastBaseline + pitch);
+        // header は w / h を固定値で作られるので、 行が枠外に出ないよう両方向に伸ばす。
+        // cdl 側は `n.w` / `n.h` を明示した node の自動拡張を尊重する (著者指定を壊さない)
+        // 設計なので、 preset が置いた固定値がそのまま残ってしまう。
+        //
+        // 必要な寸法は cdl の SSOT (`requiredRowsHeight` / `requiredRowsWidth`) から引く。
+        // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
+        node.h = Math.max(node.h ?? 0, requiredRowsHeight(a.kind, a.rows.length) ?? 0);
+        node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows));
       }
     }
   }

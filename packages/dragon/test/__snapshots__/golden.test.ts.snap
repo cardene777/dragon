@@ -2088,14 +2088,14 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
   "id": "x03",
   "lanes": [
     {
-      "height": 840,
+      "height": 860,
       "id": "kv",
       "width": 340,
       "x": 0,
       "y": 28,
     },
     {
-      "height": 840,
+      "height": 860,
       "id": "cli",
       "width": 340,
       "x": 584,
@@ -2105,15 +2105,15 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
   "nodes": [
     {
       "cx": 170,
-      "cy": 277,
-      "h": 298,
+      "cy": 287,
+      "h": 318,
       "id": "kv-header",
       "kind": "storage",
-      "w": 140,
+      "w": 152,
     },
     {
       "cx": 170,
-      "cy": 546,
+      "cy": 566,
       "h": 40,
       "id": "kv-spacer",
       "kind": "card",
@@ -2121,7 +2121,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 754,
-      "cy": 277,
+      "cy": 287,
       "h": 72,
       "id": "cli-header",
       "kind": "card",
@@ -2129,7 +2129,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 754,
-      "cy": 546,
+      "cy": 566,
       "h": 40,
       "id": "cli-spacer",
       "kind": "card",
@@ -2137,7 +2137,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 754,
-      "cy": 667,
+      "cy": 687,
       "h": 2,
       "id": "s0-cli",
       "kind": "card",
@@ -2145,7 +2145,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 170,
-      "cy": 667,
+      "cy": 687,
       "h": 2,
       "id": "s0-kv",
       "kind": "card",
@@ -2153,7 +2153,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 170,
-      "cy": 804,
+      "cy": 824,
       "h": 72,
       "id": "kv-footer",
       "kind": "card",
@@ -2161,7 +2161,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
     },
     {
       "cx": 754,
-      "cy": 804,
+      "cy": 824,
       "h": 72,
       "id": "cli-footer",
       "kind": "card",
@@ -2177,7 +2177,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
   "states": [],
   "topic": "X03",
   "viewBox": {
-    "h": 952,
+    "h": 972,
     "w": 1028,
     "x": -44,
     "y": -24,
@@ -2915,35 +2915,35 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
   "id": "x10",
   "lanes": [
     {
-      "height": 1034,
+      "height": 1054,
       "id": "a",
       "width": 340,
       "x": 0,
       "y": 28,
     },
     {
-      "height": 1034,
+      "height": 1054,
       "id": "b",
       "width": 340,
       "x": 580,
       "y": 28,
     },
     {
-      "height": 1034,
+      "height": 1054,
       "id": "c",
       "width": 340,
       "x": 1160,
       "y": 28,
     },
     {
-      "height": 1034,
+      "height": 1054,
       "id": "d",
       "width": 340,
       "x": 1740,
       "y": 28,
     },
     {
-      "height": 1034,
+      "height": 1054,
       "id": "e",
       "width": 340,
       "x": 2320,
@@ -2953,7 +2953,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
   "nodes": [
     {
       "cx": 170,
-      "cy": 221,
+      "cy": 231,
       "h": 72,
       "id": "a-header",
       "kind": "card",
@@ -2961,7 +2961,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 170,
-      "cy": 434,
+      "cy": 454,
       "h": 40,
       "id": "a-spacer",
       "kind": "card",
@@ -2969,7 +2969,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 750,
-      "cy": 221,
+      "cy": 231,
       "h": 72,
       "id": "b-header",
       "kind": "card",
@@ -2977,7 +2977,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 750,
-      "cy": 434,
+      "cy": 454,
       "h": 40,
       "id": "b-spacer",
       "kind": "card",
@@ -2985,7 +2985,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1330,
-      "cy": 221,
+      "cy": 231,
       "h": 72,
       "id": "c-header",
       "kind": "card",
@@ -2993,7 +2993,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1330,
-      "cy": 434,
+      "cy": 454,
       "h": 40,
       "id": "c-spacer",
       "kind": "card",
@@ -3001,15 +3001,15 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1910,
-      "cy": 221,
-      "h": 186,
+      "cy": 231,
+      "h": 206,
       "id": "d-header",
       "kind": "storage",
       "w": 140,
     },
     {
       "cx": 1910,
-      "cy": 434,
+      "cy": 454,
       "h": 40,
       "id": "d-spacer",
       "kind": "card",
@@ -3017,7 +3017,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 2490,
-      "cy": 221,
+      "cy": 231,
       "h": 72,
       "id": "e-header",
       "kind": "card",
@@ -3025,7 +3025,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 2490,
-      "cy": 434,
+      "cy": 454,
       "h": 40,
       "id": "e-spacer",
       "kind": "card",
@@ -3033,7 +3033,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 170,
-      "cy": 555,
+      "cy": 575,
       "h": 2,
       "id": "s0-a",
       "kind": "card",
@@ -3041,7 +3041,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 750,
-      "cy": 555,
+      "cy": 575,
       "h": 2,
       "id": "s0-b",
       "kind": "card",
@@ -3049,7 +3049,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 750,
-      "cy": 657,
+      "cy": 677,
       "h": 2,
       "id": "s1-b",
       "kind": "card",
@@ -3057,7 +3057,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1910,
-      "cy": 657,
+      "cy": 677,
       "h": 2,
       "id": "s1-d",
       "kind": "card",
@@ -3065,7 +3065,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1910,
-      "cy": 759,
+      "cy": 779,
       "h": 2,
       "id": "s2-d",
       "kind": "card",
@@ -3073,7 +3073,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1330,
-      "cy": 759,
+      "cy": 779,
       "h": 2,
       "id": "s2-c",
       "kind": "card",
@@ -3081,7 +3081,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1330,
-      "cy": 861,
+      "cy": 881,
       "h": 2,
       "id": "s3-c",
       "kind": "card",
@@ -3089,7 +3089,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 2490,
-      "cy": 861,
+      "cy": 881,
       "h": 2,
       "id": "s3-e",
       "kind": "card",
@@ -3097,7 +3097,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 170,
-      "cy": 998,
+      "cy": 1018,
       "h": 72,
       "id": "a-footer",
       "kind": "card",
@@ -3105,7 +3105,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 750,
-      "cy": 998,
+      "cy": 1018,
       "h": 72,
       "id": "b-footer",
       "kind": "card",
@@ -3113,7 +3113,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1330,
-      "cy": 998,
+      "cy": 1018,
       "h": 72,
       "id": "c-footer",
       "kind": "card",
@@ -3121,7 +3121,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 1910,
-      "cy": 998,
+      "cy": 1018,
       "h": 72,
       "id": "d-footer",
       "kind": "card",
@@ -3129,7 +3129,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
     },
     {
       "cx": 2490,
-      "cy": 998,
+      "cy": 1018,
       "h": 72,
       "id": "e-footer",
       "kind": "card",
@@ -3145,7 +3145,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
   "states": [],
   "topic": "X10",
   "viewBox": {
-    "h": 1146,
+    "h": 1166,
     "w": 2764,
     "x": -44,
     "y": -24,
@@ -4423,21 +4423,21 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
   "id": "s10",
   "lanes": [
     {
-      "height": 886,
+      "height": 906,
       "id": "alice",
       "width": 340,
       "x": 0,
       "y": 28,
     },
     {
-      "height": 886,
+      "height": 906,
       "id": "balances",
       "width": 340,
       "x": 592,
       "y": 28,
     },
     {
-      "height": 886,
+      "height": 906,
       "id": "bob",
       "width": 340,
       "x": 1184,
@@ -4447,7 +4447,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
   "nodes": [
     {
       "cx": 170,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "alice-header",
       "kind": "card",
@@ -4455,7 +4455,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "alice-spacer",
       "kind": "card",
@@ -4463,15 +4463,15 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 762,
-      "cy": 249,
-      "h": 242,
+      "cy": 259,
+      "h": 262,
       "id": "balances-header",
       "kind": "storage",
       "w": 228,
     },
     {
       "cx": 762,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "balances-spacer",
       "kind": "card",
@@ -4479,7 +4479,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 1354,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "bob-header",
       "kind": "card",
@@ -4487,7 +4487,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 1354,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "bob-spacer",
       "kind": "card",
@@ -4495,7 +4495,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-alice",
       "kind": "card",
@@ -4503,7 +4503,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 762,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-balances",
       "kind": "card",
@@ -4511,7 +4511,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 762,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-balances",
       "kind": "card",
@@ -4519,7 +4519,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 1354,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-bob",
       "kind": "card",
@@ -4527,7 +4527,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
@@ -4535,7 +4535,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 762,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
@@ -4543,7 +4543,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
     },
     {
       "cx": 1354,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "bob-footer",
       "kind": "card",
@@ -4559,7 +4559,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
   "states": [],
   "topic": "S10",
   "viewBox": {
-    "h": 998,
+    "h": 1018,
     "w": 1628,
     "x": -44,
     "y": -24,
@@ -5616,21 +5616,21 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
   "id": "y02",
   "lanes": [
     {
-      "height": 886,
+      "height": 906,
       "id": "alice",
       "width": 340,
       "x": 0,
       "y": 28,
     },
     {
-      "height": 886,
+      "height": 906,
       "id": "token",
       "width": 340,
       "x": 632,
       "y": 28,
     },
     {
-      "height": 886,
+      "height": 906,
       "id": "balances",
       "width": 340,
       "x": 1264,
@@ -5640,7 +5640,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
   "nodes": [
     {
       "cx": 170,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "alice-header",
       "kind": "card",
@@ -5648,7 +5648,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "alice-spacer",
       "kind": "card",
@@ -5656,7 +5656,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 802,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "token-header",
       "kind": "card",
@@ -5664,7 +5664,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 802,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "token-spacer",
       "kind": "card",
@@ -5672,15 +5672,15 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 1434,
-      "cy": 249,
-      "h": 242,
+      "cy": 259,
+      "h": 262,
       "id": "balances-header",
       "kind": "storage",
       "w": 228,
     },
     {
       "cx": 1434,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "balances-spacer",
       "kind": "card",
@@ -5688,7 +5688,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-alice",
       "kind": "card",
@@ -5696,7 +5696,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 802,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-token",
       "kind": "card",
@@ -5704,7 +5704,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 802,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-token",
       "kind": "card",
@@ -5712,7 +5712,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 1434,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-balances",
       "kind": "card",
@@ -5720,7 +5720,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 170,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
@@ -5728,7 +5728,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 802,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "token-footer",
       "kind": "card",
@@ -5736,7 +5736,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
     },
     {
       "cx": 1434,
-      "cy": 850,
+      "cy": 870,
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
@@ -5752,7 +5752,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
   "states": [],
   "topic": "Y02",
   "viewBox": {
-    "h": 998,
+    "h": 1018,
     "w": 1708,
     "x": -44,
     "y": -24,
@@ -6922,35 +6922,35 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
   "id": "y09",
   "lanes": [
     {
-      "height": 988,
+      "height": 1008,
       "id": "alice",
       "width": 340,
       "x": 0,
       "y": 28,
     },
     {
-      "height": 988,
+      "height": 1008,
       "id": "bob",
       "width": 340,
       "x": 752,
       "y": 28,
     },
     {
-      "height": 988,
+      "height": 1008,
       "id": "token",
       "width": 340,
       "x": 1504,
       "y": 28,
     },
     {
-      "height": 988,
+      "height": 1008,
       "id": "balances",
       "width": 340,
       "x": 2256,
       "y": 28,
     },
     {
-      "height": 988,
+      "height": 1008,
       "id": "transfer",
       "width": 340,
       "x": 3008,
@@ -6960,7 +6960,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
   "nodes": [
     {
       "cx": 170,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "alice-header",
       "kind": "card",
@@ -6968,7 +6968,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 170,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "alice-spacer",
       "kind": "card",
@@ -6976,7 +6976,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 922,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "bob-header",
       "kind": "card",
@@ -6984,7 +6984,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 922,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "bob-spacer",
       "kind": "card",
@@ -6992,7 +6992,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "token-header",
       "kind": "card",
@@ -7000,7 +7000,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "token-spacer",
       "kind": "card",
@@ -7008,15 +7008,15 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 2426,
-      "cy": 249,
-      "h": 242,
+      "cy": 259,
+      "h": 262,
       "id": "balances-header",
       "kind": "storage",
       "w": 228,
     },
     {
       "cx": 2426,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "balances-spacer",
       "kind": "card",
@@ -7024,7 +7024,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 3178,
-      "cy": 249,
+      "cy": 259,
       "h": 72,
       "id": "transfer-header",
       "kind": "card",
@@ -7032,7 +7032,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 3178,
-      "cy": 490,
+      "cy": 510,
       "h": 40,
       "id": "transfer-spacer",
       "kind": "card",
@@ -7040,7 +7040,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 170,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-alice",
       "kind": "card",
@@ -7048,7 +7048,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 611,
+      "cy": 631,
       "h": 2,
       "id": "s0-token",
       "kind": "card",
@@ -7056,7 +7056,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-token",
       "kind": "card",
@@ -7064,7 +7064,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 2426,
-      "cy": 713,
+      "cy": 733,
       "h": 2,
       "id": "s1-balances",
       "kind": "card",
@@ -7072,7 +7072,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 815,
+      "cy": 835,
       "h": 2,
       "id": "s2-token",
       "kind": "card",
@@ -7080,7 +7080,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 3178,
-      "cy": 815,
+      "cy": 835,
       "h": 2,
       "id": "s2-transfer",
       "kind": "card",
@@ -7088,7 +7088,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 170,
-      "cy": 952,
+      "cy": 972,
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
@@ -7096,7 +7096,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 922,
-      "cy": 952,
+      "cy": 972,
       "h": 72,
       "id": "bob-footer",
       "kind": "card",
@@ -7104,7 +7104,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 1674,
-      "cy": 952,
+      "cy": 972,
       "h": 72,
       "id": "token-footer",
       "kind": "card",
@@ -7112,7 +7112,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 2426,
-      "cy": 952,
+      "cy": 972,
       "h": 72,
       "id": "balances-footer",
       "kind": "card",
@@ -7120,7 +7120,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
     },
     {
       "cx": 3178,
-      "cy": 952,
+      "cy": 972,
       "h": 72,
       "id": "transfer-footer",
       "kind": "card",
@@ -7153,7 +7153,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
   ],
   "topic": "Y09",
   "viewBox": {
-    "h": 1100,
+    "h": 1120,
     "w": 3452,
     "x": -44,
     "y": -24,
