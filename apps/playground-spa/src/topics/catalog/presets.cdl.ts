@@ -217,7 +217,10 @@ export const presetNetwork = network({ id: "network-demo", topic: "ネットワ�
   .build();
 
 // stateMachine2 preset ... 拡張 FSM (nested + action)
-export const presetStateMachine2 = stateMachine2({ id: "sm2-demo", topic: "階層状態や遷移アクションを持つ拡張ステート図" })
+// 箱の既定幅 320 のままだと 4 状態を横に並べた図が幅 2439 world / 縦横比 6.04 になり、
+// 親幅に収めた時に帯状に潰れて中身が読めない。 状態の幅を 280 に絞って 5.64 に収める
+// (280 は最も長い題名 "Loading" が切れない下限 198 に余裕を持たせた値、 cdl#357)。
+export const presetStateMachine2 = stateMachine2({ id: "sm2-demo", topic: "階層状態や遷移アクションを持つ拡張ステート図", stateWidth: 280 })
   .state({ id: "idle", title: "Idle", initial: true, entry: "clearForm" })
   .state({ id: "active", title: "Active" })
   .state({ id: "loading", title: "Loading", parent: "active", entry: "startSpinner", exit: "stopSpinner" })
