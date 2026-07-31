@@ -3,7 +3,8 @@
  *
  * ## 設計背景
  *
- * cdl visualValidate は 56 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
+ * cdl visualValidate は 66 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
+ * 本 file が counts field の存在を確かめるのは、 そのうち列挙した 55 axis。
  * 但し CdlDiagram レベルで意図的 defect を仕込んでも layout logic が prevent する axis が多い
  * (Axis 10 node-overlap は同 stack node が発生しても layout の re-position で解消、 Axis 11
  * edge-crossing は routing の detour で解消、 Axis 53 node-inside-viewbox は viewport 明示で
@@ -22,15 +23,6 @@
  *
  * Axis 7 (edge-label-proximity) は cdl PR #217 で catalog の defect が解消し class B へ移した。
  * `visualValidateLaid` で label を path から引き離す fixture で axis 判定 logic の生存を保証する。
- *
- * ### A-2. 合成 probe による生存確認 + catalog 回帰防止 (1 axis)
- * catalog には defect が無いが、 合成した入力なら発火させられる axis。 probe で「軸が dead に
- * なっていないこと」 を、 catalog 0 件の assert で「分類が正しいこと」 を同時に保証する:
- * - Axis 51 mermaid-parity (未分類の接頭辞を持つ図で発火 + presets は 0 件)
- *
- * Axis 51 は cdl #365 で対応表を現行の mermaid に合わせるまで、 catalog の 3 件
- * (topo / infra / network) が発火していた。 3 つとも `architecture-beta` に対応物があり、
- * catalog 側に defect は無かったため class A-2 へ移した。
  *
  * ### B. layout regression safety net (53 axis)
  * 現状の layout が正しく defect を prevent、 発火 0 が正常。 layout implementation の
@@ -225,8 +217,8 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
   });
 });
 
-describe("axis 発火 count field (全 56 axis で counts field 存在)", () => {
-  it("visualValidate report.counts に 56 axis 分の field が存在", () => {
+describe("axis 発火 count field (列挙した 55 axis で counts field 存在)", () => {
+  it("visualValidate report.counts に列挙した 55 axis 分の field が存在", () => {
     const report = visualValidate(baseDiagram());
     const expectedAxes = [
       "node-visibility",
@@ -279,7 +271,6 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
       "axis-documentation-completeness",
       "fixture-drift-detection",
       "locale-parity",
-      "mermaid-parity",
       "validate-performance-budget",
       "node-inside-viewbox",
       "node-inside-lane",
@@ -290,8 +281,8 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
       expect(report.counts).toHaveProperty(axis);
       expect(typeof report.counts[axis as keyof typeof report.counts]).toBe("number");
     }
-    // 56 axis 全て存在
-    expect(expectedAxes.length).toBe(56);
+    // 列挙した 55 axis が全て存在する (cdl#366 で mermaid-parity を削除して 56 → 55)
+    expect(expectedAxes.length).toBe(55);
   });
 });
 
@@ -365,41 +356,3 @@ describe("Axis 7 edge-label-proximity (layout regression safety net)", () => {
   });
 });
 
-describe("Axis 51 mermaid-parity", () => {
-  // 元は「見本 (presets) で 1 件以上発火する」 を固定していた。 cdl#365 で対応表を現行の
-  // mermaid に合わせた結果、 見本の 3 件 (topo / infra / network) は architecture-beta に
-  // 対応物があると分類され、 発火が 0 件になった。 見本が 0 件になるのが正しい状態。
-  //
-  // 軸が dead になっていないことの確認は、 対応表に無い接頭辞を持つ図に移した。
-  const isDiag = (v: unknown): v is CdlDiagram =>
-    typeof v === "object" && v !== null &&
-    typeof (v as CdlDiagram).id === "string" &&
-    Array.isArray((v as CdlDiagram).nodes);
-
-  it("対応表に無い接頭辞の図で発火する (軸が dead になっていない)", () => {
-    // 軸は `{接頭辞}-demo` の id から組み立て器を推定する。 節 4 個以上が判定の前提。
-    const diagram = {
-      id: "unknownpreset-demo",
-      topic: "未分類の組み立て器",
-      viewport: {},
-      lanes: [{ id: "l", x: 0, width: 400 }],
-      nodes: [0, 1, 2, 3].map((i) => ({
-        id: `n${i}`, lane: "l", stack: i, kind: "card", title: `N${i}`,
-      })),
-      edges: [],
-      states: [],
-      phases: [],
-    } as unknown as CdlDiagram;
-    expect(visualValidate(diagram).counts["mermaid-parity"]).toBe(1);
-  });
-
-  it("見本の図では発火しない (全て対応表に載っている)", async () => {
-    const presets = await import("../../../apps/playground-spa/src/topics/catalog/presets.cdl");
-    const diagrams = Object.values(presets).filter(isDiag);
-    expect(diagrams.length).toBeGreaterThan(0);
-    const offenders = diagrams
-      .filter((d) => visualValidate(d).counts["mermaid-parity"] > 0)
-      .map((d) => d.id);
-    expect(offenders).toEqual([]);
-  });
-});
