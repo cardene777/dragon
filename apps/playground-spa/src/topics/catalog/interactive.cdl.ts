@@ -1175,27 +1175,24 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
   })
   // 1-4 は Browser ↔ Auth server の往復 4 本。 label の位置は engine に任せる。
   //
-  // 元は engine が 3 と 4 の label を完全に同じ点 (579,305) に置いていたため、 ここで
-  // `labelOffsetX` / `labelOffsetY` を手で与えて 2 列 × 2 段に散らしていた。 cdl#372 で
-  // engine が節の組ごとに最小移動で散らすようになり、 手作業が要らなくなった。
+  // 元は engine が 3 と 4 の label を完全に同じ点に置いていたため、 `labelOffsetX` /
+  // `labelOffsetY` を手で与えて 2 列 × 2 段に散らしていた。 cdl#372 / cdl#374 / cdl#376 で
+  // engine が重ねず・線を跨がず・弧と同じ並び順に置くようになり、 手作業が要らなくなった。
   //
-  // 手作業を残すと engine の配置に足し合わさって破綻する (実測 = 破綻 3 件。 1 の label が
-  // 5 の線を横切り、 3 が Browser の節に 3 まで寄り、 3 と 4 が 32.4 まで近づく)。 外すと
-  // 破綻 0 / 警告 1 になる。
+  // **4 本の説明文 (`sub`) は label 本体に畳んだ**。 2 行 pill は高さ 68 で、 4 本を縦に並べる
+  // には 312 の縦幅が要る。 一方 4 本の弧は 96 しか広がらないため、 外側の label が弧から
+  // 200 以上離れて `edge-label-proximity` の破綻になる (実測 = 222)。 1 行 pill (36) なら
+  // 必要な縦幅が 216 に減り、 全ての label が自分の弧から 86 以内に収まる。
   //
-  // engine が置く label の中心 Y は -3 / 101 / 205 / 309 で、 104 ちょうどの間隔。 4 本の弧
-  // (155 / 187 / 219 / 251) と同じ並び順なので、 どの label がどの線のものか読み取れる。
-  //
-  // 残る警告 1 件は 1 の label が自分の弧から 124 離れるもの。 2 行 pill は高さ 68 で、 4 本を
-  // 並べるには 312 の縦幅が要るのに弧は 96 しか広がらない。 外側の label が遠くなるのは、
-  // この図の形そのものの制約。
+  // 情報は落としていない = `with client_id` 等の文言をそのまま括弧で label 本体に入れた。 pill は
+  // 横に伸びるが縦には伸びないので、 束の縦幅は変わらない。
   //
   // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
-  // 変わらない (実測 = 320/640 と 620/1240 で lane x が同じ 787/1574)。
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info" })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left" })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent" })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left" })
+  // 変わらない (実測 = 320/640 と 620/1240 のどちらでも lane x が 0/1008/2016)。
+  .edge("client", "consent", { label: "1. redirect (with client_id)", tone: "info" })
+  .edge("consent", "client", { label: "2. consent screen (user approves)", tone: "info", side: "left" })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange (with code)", tone: "accent" })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued (access_token)", tone: "success", side: "left" })
   // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
   // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 6 を下
   // (side: "bottom") に回して迂回の向きを分け、 6 の label だけ下へ 120 離す。 5 側にも offset を

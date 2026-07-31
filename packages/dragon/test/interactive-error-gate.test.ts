@@ -262,17 +262,16 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     }
     expect(tight, `近すぎる label 対:\n${tight.join("\n")}`).toHaveLength(0);
     // 手作業の offset を外して engine に任せた (#968)。 engine は 4 本を 1 列に積み、 中心 X を
-    // 揃えて中心 Y を要求の間隔ちょうどで並べる。 手作業を戻すと X が 2 値に割れるので落ちる
-    // (戻した場合の実測 = 破綻 3 件)。
+    // 揃えて並べる。 手作業を戻すと X が 2 値に割れるので落ちる。
     const cxs = boxes.map((b) => b.x + b.w / 2);
     expect(Math.max(...cxs) - Math.min(...cxs), "中心 X が揃っていない").toBeLessThan(1);
+    // 間隔は 1 行 pill (36) + 要求 (36) = 72 が基準。 弧の束を挟む所だけ余分に開く (cdl#376)。
+    const step = LABEL_MIN + 36;
     const cys = boxes.map((b) => b.y + b.h / 2).sort((a, b) => a - b);
-    for (let i = 1; i < cys.length; i++) {
-      expect(cys[i]! - cys[i - 1]!, `${i} 番目の間隔が要求とずれている`).toBeCloseTo(
-        LABEL_MIN + 68,
-        6,
-      );
-    }
+    const gaps = cys.slice(1).map((y, i) => y - cys[i]!);
+    for (const g of gaps) expect(g, "間隔が要求を下回っている").toBeGreaterThanOrEqual(step - 1e-6);
+    const exact = gaps.filter((g) => Math.abs(g - step) < 1e-6).length;
+    expect(exact, "束を挟む 1 箇所以外は要求ちょうどのはず").toBeGreaterThanOrEqual(gaps.length - 1);
   });
 
   it("oauth-flow = label の並び順が線の並び順と一致する", () => {
@@ -290,16 +289,24 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     expect(byLabel).toEqual(byPath);
   });
 
-  it("oauth-flow = 自分の弧から離れている label が 1 本に収まっている", () => {
-    // 2 行 pill は高さ 68 で、 4 本を並べるには 312 の縦幅が要るのに弧は 96 しか広がらない。
-    // 外側の 1 本が遠くなるのは図の形の制約 (#968)。 手作業の offset を戻すと顔ぶれが
-    // `consent-client` に変わる (件数は 1 のままなので、 件数ではなく id を見る)。
+  it("oauth-flow = 自分の弧から離れているのは束の両端 2 本だけ", () => {
+    // 4 本を 1 列に積むと、 束の外側に出る 2 本は弧から離れる。 1 行 pill (36) にしたことで
+    // 離れる量は 86 に収まり、 破綻 (160 超) にはならない (#376)。 `sub` を戻すと 2 行 pill
+    // (68) になり、 外側が 222 まで離れて破綻する。
     const far = visualValidateAll([oauthFlow])
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
       .sort();
-    expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual(["client-consent"]);
+    expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual([
+      "client-consent",
+      "token-issue",
+    ]);
+    // 破綻していない = 全て warn 止まり
+    const errors = visualValidateAll([oauthFlow])
+      .reports.flatMap((r) => r.violations)
+      .filter((v) => v.axis === "edge-label-proximity" && v.severity === "error");
+    expect(errors, "弧から離れすぎて破綻している").toEqual([]);
   });
 
   it("oauth-flow = 迂回する 2 本の label が上下に分かれている", () => {
