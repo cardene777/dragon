@@ -63,10 +63,40 @@ describe("Axis 21 grid-alignment (LaidDiagram mutation で意図発火)", () => 
 });
 
 describe("Axis 23 responsive-viewport (LaidDiagram mutation で意図発火)", () => {
-  it("viewBox width を 400 world 未満に強制すると responsive-viewport 発火", () => {
+  // cdl#353 で幅の下限判定を外した。 図は親幅いっぱいに伸びるため幅が小さいほど拡大されて
+  // 読みやすくなり、 「幅が小さい = 識別不能」 は成り立たない。 代わりに縦横比と、
+  // 描画できない寸法を見る。
+  it("viewBox を極端に横長にすると responsive-viewport 発火", () => {
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    laid.viewBox.w = 3000;
+    laid.viewBox.h = 270;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
+  });
+
+  it("viewBox を極端に縦長にしても responsive-viewport 発火", () => {
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    laid.viewBox.w = 270;
+    laid.viewBox.h = 3000;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
+  });
+
+  it("viewBox width を 400 world 未満にしても縦横比が保たれていれば発火しない", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
     laid.viewBox.w = 300;
+    laid.viewBox.h = 270;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["responsive-viewport"] ?? 0).toBe(0);
+  });
+
+  it("viewBox 寸法を 0 にすると描画不能として発火", () => {
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    laid.viewBox.w = 0;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
   });
