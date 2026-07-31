@@ -204,7 +204,6 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
           "axis-documentation-completeness",
           "fixture-drift-detection",
           "locale-parity",
-          "mermaid-parity",
           "validate-performance-budget",
         ]);
         // Axis 47/48 = SweepReport.metaViolations 経由の meta 判定を stderr dump
