@@ -23,7 +23,7 @@ import {
  * interactive category 全 129 diagram を収録したことで達成済。 error-0 だけを足す目的で
  * 下の FIXED に diagram を追加する必要はもう無い。
  * 本 file が引き続き担うのは、 validator が見ていない崩れを座標で直接固定する assert 群
- * (crest Y 実分離 / label 2 列配置 等) = error 0 では検知できない false green の guard。
+ * (crest Y 実分離 / label と弧の対応 等) = error 0 では検知できない false green の guard。
  *
  * #401 は機械修正 (timeline-drive + kpi-dashboard、 interactive error 14→11) の scope、 残件の
  * 3 exemplar は #892 に分離した。 3 exemplar はいずれも edge-label 過密だが原因は個別に異なり、
@@ -51,8 +51,9 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
   { name: "interactive-kpi-dashboard", diagram: kpiDashboard },
   // stage 3 (#892) = exemplar 3 件。 いずれも「label を置く場所が足りない」 が原因で、 layout の
   // 作り替えは要らなかった。 詳細は各図の comment。
-  //   - oauth-flow ... 同じ横線を通る 4 本の label を 2 列 × 2 段に置く (7 → 0)。 lane 間隔は
-  //     効かない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は同じ
+  //   - oauth-flow ... 同じ横線を通る 4 本の label の置き場所。 当初は手作業で 2 列 × 2 段に
+  //     散らしていたが、 engine が重ねずに置けるようになったので手作業を外した (cdl#372 /
+  //     cdl#374、 dragon#968)。 lane 間隔は効かない = cdl が label 幅に合わせて自動で広げる
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
   { name: "interactive-oauth-flow", diagram: oauthFlow },
@@ -70,6 +71,40 @@ function pathPoints(d: string): Array<[number, number]> {
     else pts.push([parseFloat(m[2]!), parseFloat(m[3]!)]);
   }
   return pts;
+}
+
+/**
+ * 実際に描かれる曲線の中央の高さ。
+ *
+ * `pathPoints` は `Q` の制御点を捨てて終点だけを拾うため、 端点が同じ高さで膨らむ弧は全て
+ * 同じ値になる (実測 = oauth の 4 本が全て 203)。 弧どうしの上下を比べる用途では使えない。
+ * ここでは制御点を含めて二次曲線を刻み、 通る点の平均を取る。
+ */
+function curveMidY(d: string): number {
+  const re = /([MLQ])\s*(-?[\d.]+)\s+(-?[\d.]+)(?:\s*,?\s*(-?[\d.]+)\s+(-?[\d.]+))?/g;
+  const ys: number[] = [];
+  let cur: [number, number] = [0, 0];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(d)) !== null) {
+    if (m[1] === "M") {
+      cur = [parseFloat(m[2]!), parseFloat(m[3]!)];
+    } else if (m[1] === "L") {
+      const next: [number, number] = [parseFloat(m[2]!), parseFloat(m[3]!)];
+      ys.push((cur[1] + next[1]) / 2);
+      cur = next;
+    } else if (m[4] !== undefined) {
+      const [cx, cy] = [parseFloat(m[2]!), parseFloat(m[3]!)];
+      const next: [number, number] = [parseFloat(m[4]!), parseFloat(m[5]!)];
+      // 二次曲線を 16 分割して通る点の平均を取る
+      for (let i = 1; i <= 16; i++) {
+        const t = i / 16;
+        const u = 1 - t;
+        ys.push(u * u * cur[1] + 2 * u * t * cy + t * t * next[1]);
+      }
+      cur = next;
+    }
+  }
+  return ys.length === 0 ? NaN : ys.reduce((a, b) => a + b, 0) / ys.length;
 }
 
 /** edge path の主水平区間 (最長の同一 Y segment) の Y = detour crest Y。 */
@@ -214,11 +249,10 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     expect(NODE_MIN).toBe(32);
   });
 
-  it("oauth-flow = 往復 4 本の label が 2 列 × 2 段で離れている", () => {
+  it("oauth-flow = 往復 4 本の label が engine の配置で 1 列に並ぶ", () => {
     const laid = layout(oauthFlow);
     const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
     const boxes = ids.map((id) => boxOf(laid, "edge-label", id));
-    // 縦 1 列に積むと段の間が 60 で pill 高 68 に足りない。 2 列にして全対を 36 以上にする。
     const tight: string[] = [];
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
@@ -227,32 +261,45 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
       }
     }
     expect(tight, `近すぎる label 対:\n${tight.join("\n")}`).toHaveLength(0);
-    // 2 列であること = 中心 X が 2 つの値に分かれ、 列の間が pill 幅より広い。 左端で比べると
-    // pill 幅が label の文字数で変わるため一致しない。
-    const cxs = boxes.map((b) => b.x + b.w / 2).sort((a, b) => a - b);
-    expect(cxs[1]! - cxs[0]!, "左列の 2 つの中心 X が揃っていない").toBeLessThan(1);
-    expect(cxs[3]! - cxs[2]!, "右列の 2 つの中心 X が揃っていない").toBeLessThan(1);
-    expect(cxs[2]! - cxs[0]!, "2 列が横に離れていない").toBeGreaterThan(300);
-    // 2 段であること = 中心 Y も 2 つの値に分かれる。 上段を動かすと片方の段だけがずれるため、
-    // 段が揃っているかを見ないと「上段だけ元に戻す」 変更を素通しする (#966)。
+    // 手作業の offset を外して engine に任せた (#968)。 engine は 4 本を 1 列に積み、 中心 X を
+    // 揃えて中心 Y を要求の間隔ちょうどで並べる。 手作業を戻すと X が 2 値に割れるので落ちる
+    // (戻した場合の実測 = 破綻 3 件)。
+    const cxs = boxes.map((b) => b.x + b.w / 2);
+    expect(Math.max(...cxs) - Math.min(...cxs), "中心 X が揃っていない").toBeLessThan(1);
     const cys = boxes.map((b) => b.y + b.h / 2).sort((a, b) => a - b);
-    expect(cys[1]! - cys[0]!, "上段の 2 つの中心 Y が揃っていない").toBeLessThan(1);
-    expect(cys[3]! - cys[2]!, "下段の 2 つの中心 Y が揃っていない").toBeLessThan(1);
-    expect(cys[2]! - cys[0]!, "2 段が縦に離れていない").toBeGreaterThan(200);
+    for (let i = 1; i < cys.length; i++) {
+      expect(cys[i]! - cys[i - 1]!, `${i} 番目の間隔が要求とずれている`).toBeCloseTo(
+        LABEL_MIN + 68,
+        6,
+      );
+    }
   });
 
-  it("oauth-flow = 自分の弧から離れている label が 2 本に収まっている", () => {
-    // 4 本が同じ横線を通るため、 自分の弧の上に置ける label は 2 本まで (#966)。 残り 2 本が
-    // どれかを固定する = 段の高さを戻すと 3 本に増えるので、 件数だけでなく id も見る。
+  it("oauth-flow = label の並び順が線の並び順と一致する", () => {
+    // 1 列に積むと「どの label がどの線のものか」 は並び順でしか読み取れない。 engine が弧を
+    // label の並びに合わせて振り分けることで順序が保たれる (cdl#374)。
+    //
+    // 高さは `curveMidY` で測る。 4 本は端点が同じ高さの弧なので、 制御点を捨てる `mainCrestY`
+    // では全て 203 になって順序を比べられない (この test が最初 false green だった)。
+    const laid = layout(oauthFlow);
+    const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
+    const target = laid.edges.filter((e) => ids.includes(e.id));
+    expect(new Set(target.map((e) => curveMidY(e.d).toFixed(3))).size, "4 本の高さが区別できない").toBe(4);
+    const byLabel = [...target].sort((x, y) => x.labelY - y.labelY).map((e) => e.id);
+    const byPath = [...target].sort((x, y) => curveMidY(x.d) - curveMidY(y.d)).map((e) => e.id);
+    expect(byLabel).toEqual(byPath);
+  });
+
+  it("oauth-flow = 自分の弧から離れている label が 1 本に収まっている", () => {
+    // 2 行 pill は高さ 68 で、 4 本を並べるには 312 の縦幅が要るのに弧は 96 しか広がらない。
+    // 外側の 1 本が遠くなるのは図の形の制約 (#968)。 手作業の offset を戻すと顔ぶれが
+    // `consent-client` に変わる (件数は 1 のままなので、 件数ではなく id を見る)。
     const far = visualValidateAll([oauthFlow])
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
       .sort();
-    expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual([
-      "code-exchange",
-      "consent-client",
-    ]);
+    expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual(["client-consent"]);
   });
 
   it("oauth-flow = 迂回する 2 本の label が上下に分かれている", () => {
