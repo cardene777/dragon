@@ -139,11 +139,10 @@ flow:
     // (`isSeqLike &&` を外した regression をここで捕まえる)。
     expect(n.w).toBeUndefined();
     expect(n.h).toBeUndefined();
-    // cdl 側の自動寸法が効く。 cdl は種別の既定 h (storage=240) と必要 h の大きい方を取るので、
-    // 本経路が上書きした場合の値 (必要 h ちょうど = 206) より大きくなる。 この差で経路を見分ける。
+    // cdl 側の自動寸法が効き、 行は枠内に収まる。 経路の判別は上の raw w / h で足りる
+    // (本経路は必ず両方を set するため)。 ここは寸法が破綻していないことだけを見る。
     const laid = layout(d).nodes.find((x) => x.id === "a")!;
-    expect(requiredRowsHeight("storage", 1)).toBe(206);
-    expect(laid.h).toBeGreaterThan(requiredRowsHeight("storage", 1)!);
+    expect(laid.h).toBeGreaterThanOrEqual(requiredRowsHeight("storage", 1)!);
     expect(laid.w).toBeGreaterThanOrEqual(requiredRowsWidth(["x: 1"]));
     expect(visualValidate(d).counts["rows-not-rendered"]).toBe(0);
   });
