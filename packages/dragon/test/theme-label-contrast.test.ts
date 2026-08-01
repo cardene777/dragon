@@ -51,6 +51,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
+import {
+  EDGE_LABEL_TEXT,
+  WCAG_AA_LARGE,
+  WCAG_AA_NORMAL,
+  requiredContrastRatio,
+} from "@cardenelabs/cdl";
 
 const CSS_PATH = fileURLToPath(
   new URL("../../../apps/playground-spa/src/styles/cdl-theme.css", import.meta.url),
@@ -73,23 +79,47 @@ function contrast(a: Rgb, b: Rgb): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-/** WCAG AA の閾値。 large text = 24px 以上 or 太字 18.66px 以上。 */
-const WCAG_AA_LARGE = 3.0;
-const WCAG_AA_NORMAL = 4.5;
+/**
+ * WCAG AA の閾値と large text の判定は cdl の SSOT を使う。
+ *
+ * ここに 24 / 18.66 / 700 を書き写すと、 engine 側の判定を変えた時に下流の検査だけが古い
+ * 規則で測り続ける。 実際 `RENDERER_DEFAULT` を書き写していた間に engine 側が sub 行を
+ * 太字に変え (cardene777/cdl#391)、 この検査は sub を通常文字として測ったままだった。
+ */
 const requiredRatio = (px: number, weight: number): number =>
-  px >= 24 || (weight >= 700 && px >= 18.66) ? WCAG_AA_LARGE : WCAG_AA_NORMAL;
+  requiredContrastRatio({ fontSize: px, fontWeight: weight, opacity: 1 });
 
 /** `render/edges.tsx` が presentation attribute で与える既定。 主題が宣言しなければこの値。 */
 const RENDERER_DEFAULT = {
-  main: { px: 22, weight: 700 },
-  sub: { px: 19, weight: 400 },
+  main: {
+    px: EDGE_LABEL_TEXT.main.fontSize,
+    weight: EDGE_LABEL_TEXT.main.fontWeight,
+    family: EDGE_LABEL_TEXT.main.fontFamily,
+  },
+  sub: {
+    px: EDGE_LABEL_TEXT.sub.fontSize,
+    weight: EDGE_LABEL_TEXT.sub.fontWeight,
+    family: EDGE_LABEL_TEXT.sub.fontFamily,
+  },
 } as const;
 
 /** 配色だけでは対比が決まらなくなる property。 宣言されていたら検査の範囲外。 */
 const OUT_OF_SCOPE_PROPS = ["opacity", "fill-opacity", "all"] as const;
 
 /** 対比に効く property。 これを 1 つも宣言しない規則は、 role に言及していても無関係。 */
-const RELEVANT_PROPS = ["fill", "font-size", "font-weight", ...OUT_OF_SCOPE_PROPS] as const;
+const RELEVANT_PROPS = ["fill", "font-size", "font-weight", "font-family", ...OUT_OF_SCOPE_PROPS] as const;
+
+/**
+ * `font-family` の先頭 (最も優先される family) を取り出す。 宣言が無ければ null。
+ *
+ * 先頭だけを見るのは、 続きが端末に入っている前提の代替 (`monospace` / `Courier New`) で、
+ * どの face が使われるかを web font の宣言から決められないため。
+ */
+function firstFamily(value: string | undefined): string | null {
+  if (value === undefined) return null;
+  const head = value.replace(/!important/, "").split(",")[0]?.trim() ?? "";
+  return head.replace(/^["']|["']$/g, "") || null;
+}
 
 /** 主題 × role の標準形。 これ以外の selector が label に当たったら検査の範囲外。 */
 const CANONICAL = /^(html\.dark )?\[data-cdl-theme="[a-z0-9-]+"\] \[data-cdl-role="(edge-label|edge-label-bg)"\]$/;
@@ -212,7 +242,7 @@ function parseWeight(value: string): number | null {
 type Role = "edge-label" | "edge-label-bg";
 type Mode = "light" | "dark";
 type Line = "main" | "sub";
-type Decl = { fill?: string; px?: string; weight?: string };
+type Decl = { fill?: string; px?: string; weight?: string; family?: string };
 
 type Collected = {
   /** `主題:明暗` → role → 宣言。 標準形の selector から集めたもの。 */
@@ -336,7 +366,12 @@ function collect(cssText: string, themes: string[]): Collected {
         const role = m[2] as Role;
         const prev = byTheme.get(key)?.[role] ?? {};
         const next: Decl = { ...prev };
-        for (const [prop, field] of [["fill", "fill"], ["font-size", "px"], ["font-weight", "weight"]] as const) {
+        for (const [prop, field] of [
+          ["fill", "fill"],
+          ["font-size", "px"],
+          ["font-weight", "weight"],
+          ["font-family", "family"],
+        ] as const) {
           const value = r.style.getPropertyValue(prop);
           if (!value) continue;
           if (/var\(/.test(value)) outOfScope.push(`${sel} { ${prop}: ${value} }`);
@@ -364,6 +399,8 @@ type Sample = {
   bg: Rgb | null;
   px: number | null;
   weight: number | null;
+  /** 宣言された font-family の先頭。 宣言が無ければ null (継承)。 */
+  family: string | null;
 };
 
 /** 主題 × 明暗 × 行 について、 宣言された配色を解決する。 */
@@ -391,6 +428,9 @@ function resolve(collected: Collected, themes: string[]): Sample[] {
           bg: bgRaw === undefined ? null : parseColor(bgRaw) ?? parseHex(bgRaw) ?? parseNamed(bgRaw),
           px: pxRaw === undefined ? def.px : parsePx(pxRaw),
           weight: weightRaw === undefined ? def.weight : parseWeight(weightRaw),
+          // 主題が宣言しなければ renderer が指定する family に落ちる。 main 行は renderer も
+          // 指定しない (host からの継承) ため null になり、 face の検査対象から外れる。
+          family: firstFamily(layer["edge-label"].family) ?? def.family,
         });
       }
     }
@@ -500,14 +540,21 @@ describe("CSSOM が値を実ブラウザと同じに解決する (cdl#388)", () 
   });
 
   it("宣言が無ければ renderer の既定値を使う", () => {
-    // 大きさは主題が宣言していないので既定 (main 22 / sub 19)。
-    expect(probe("").px).toBe(22);
-    expect(probe("", "sub").px).toBe(19);
+    // 既定は cdl の SSOT (`EDGE_LABEL_TEXT`) から来る。 主題が宣言しない項目はここに落ちる。
+    expect(probe("").px).toBe(EDGE_LABEL_TEXT.main.fontSize);
+    expect(probe("", "sub").px).toBe(EDGE_LABEL_TEXT.sub.fontSize);
     // 太さは neumorphism が 700 を宣言しているので、 両行ともそちらが効く。
     expect(probe("", "sub").weight).toBe(700);
     // 宣言しない主題では既定に戻る。
     const noWeight = resolve(collect(css, THEMES), ["handdrawn"]).find((r) => r.key === "handdrawn:light:sub")!;
-    expect(noWeight.weight).toBe(400);
+    expect(noWeight.weight).toBe(EDGE_LABEL_TEXT.sub.fontWeight);
+  });
+
+  it("engine の既定だけで 2 行とも large text になる", () => {
+    // 主題が太さを宣言しなくても閾値が 3:1 で済む = 主題側の配色の自由度がここで決まる。
+    // engine が sub を通常文字に戻すと、 この test と 24 組の判定が同時に動く。
+    expect(requiredRatio(EDGE_LABEL_TEXT.main.fontSize, EDGE_LABEL_TEXT.main.fontWeight)).toBe(WCAG_AA_LARGE);
+    expect(requiredRatio(EDGE_LABEL_TEXT.sub.fontSize, EDGE_LABEL_TEXT.sub.fontWeight)).toBe(WCAG_AA_LARGE);
   });
 });
 
@@ -627,5 +674,110 @@ describe("cdl が読まない CSS 変数を残さない (cdl#388)", () => {
     // (`packages/cdl/src/render/edges.tsx`)。 `--cdl-label-text` を書いても効かないため、
     // 「設定したつもり」 が残る。 実際の色は role selector の `fill` で決める。
     expect(css).not.toMatch(/--cdl-label-text\s*:/);
+  });
+});
+
+describe("描く太さの face を読み込んでいる (cdl#391)", () => {
+  /**
+   * `font-weight: 700` と書いても、 その太さの face を読み込んでいなければ 700 では描かれない。
+   *
+   * CSS の font matching は、 要求より重い face が無ければ軽い face に落とす。 Chromium は
+   * その時 **合成太字を当てない** = 実測で 600 と 700 の描画が 1 byte 差なく一致した。
+   *
+   * cdl は sub 行を「太字だから large text」 として 3:1 で判定する (`isLargeText`)。 実際に
+   * 描かれるのが 600 なら、 その前提が成り立たない。 4.5:1 が要るのに 3:1 で通ってしまう。
+   */
+  const FONT_URL_FILES = [
+    "../../../apps/playground-spa/index.html",
+    "../../../apps/playground-spa/src/styles/header.css",
+  ];
+
+  /** web font の宣言から `family → 読み込む太さ` を作る。 */
+  const declaredWeights = (text: string): Map<string, Set<number>> => {
+    const out = new Map<string, Set<number>>();
+    // `family=Inter:wght@400;500;700` / `family=JetBrains+Mono:wght@400;700` の形。
+    for (const m of text.matchAll(/family=([A-Za-z+\d]+)(?::([^&"')]*))?/g)) {
+      const family = m[1]!.replace(/\+/g, " ");
+      const set = out.get(family) ?? new Set<number>();
+      const axes = m[2] ?? "";
+      // `wght@` より後ろの数値。 `opsz,wght@6..72,400;6..72,500` のように軸が複数ある形では
+      // 各組の末尾が weight になる。
+      const wght = /wght@(.+)$/.exec(axes)?.[1];
+      if (wght === undefined) {
+        // 太さの指定が無い形 = regular (400) だけを読み込む。
+        set.add(400);
+      } else {
+        for (const group of wght.split(";")) {
+          const last = group.split(",").pop()!.trim();
+          const n = Number(last);
+          if (Number.isFinite(n)) set.add(n);
+        }
+      }
+      out.set(family, set);
+    }
+    return out;
+  };
+
+  const loaded = (): Map<string, Set<number>> => {
+    const merged = new Map<string, Set<number>>();
+    for (const rel of FONT_URL_FILES) {
+      const text = readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+      for (const [family, weights] of declaredWeights(text)) {
+        const set = merged.get(family) ?? new Set<number>();
+        for (const w of weights) set.add(w);
+        merged.set(family, set);
+      }
+    }
+    return merged;
+  };
+
+  it("宣言から family ごとの太さを取り出す", () => {
+    const m = declaredWeights(
+      'href="https://x/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Inter:wght@400;700&family=Kalam"',
+    );
+    expect([...m.get("Newsreader")!].sort()).toEqual([400, 600]);
+    expect([...m.get("Inter")!].sort()).toEqual([400, 700]);
+    // 太さを書かない形は regular だけ。
+    expect([...m.get("Kalam")!]).toEqual([400]);
+  });
+
+  it("label を描く太さの face を全主題ぶん読み込んでいる", () => {
+    const have = loaded();
+    const samples = resolve(collect(css, THEMES), THEMES);
+    const missing: string[] = [];
+    let checked = 0;
+    for (const s of samples) {
+      // family が決まらない行は見ない。 main 行は主題も renderer も指定せず host からの
+      // 継承になるので、 どの face が効くかを CSS からは決められない。
+      if (s.family === null || s.weight === null) continue;
+      const weights = have.get(s.family);
+      // 端末に入っている前提の family (`Courier New` 等) は web font として読み込まない。
+      if (weights === undefined) continue;
+      checked++;
+      if (!weights.has(s.weight)) missing.push(`${s.key} = ${s.family} の ${s.weight}`);
+    }
+    expect(missing).toEqual([]);
+    // 件数も固定する。 主題側の宣言が消えると検査対象が減り、 空でも通る状態になる。
+    // sub 行 12 組 (6 主題 × 明暗) は renderer が family を指定するので必ず対象に入り、
+    // 加えて main 行に family を宣言する 4 主題 × 明暗 = 8 組が乗る。
+    expect(checked).toBe(20);
+  });
+
+
+  it("engine の既定の太さも読み込んでいる (family を宣言する主題)", () => {
+    // 主題が太さを宣言しない場合、 engine の既定 (main / sub とも 700) で描かれる。
+    const have = loaded();
+    const samples = resolve(collect(css, THEMES), THEMES);
+    const families = new Set(samples.map((s) => s.family).filter((f): f is string => f !== null));
+    const missing: string[] = [];
+    for (const family of families) {
+      const weights = have.get(family);
+      if (weights === undefined) continue;
+      for (const line of ["main", "sub"] as const) {
+        const w = EDGE_LABEL_TEXT[line].fontWeight;
+        if (!weights.has(w)) missing.push(`${family} の ${w} (${line} 行の既定)`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
