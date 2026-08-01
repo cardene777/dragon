@@ -7,7 +7,14 @@
 
 import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
 
-/** 画面には出さない軸。 描画の滲みなど、 書く人が本文で直せないもの。 */
+/**
+ * 画面には出さない軸。 描画の滲みなど、 書く人が本文で直せないもの。
+ *
+ * **隠すのは `warn` だけ**。 同じ軸が `error` を出した時は隠さない (`visibleWarnings`)。
+ * 軸の単位で隠すと、 その軸が将来 `error` を出すようになった時に「位置関係 NG」 の badge ごと
+ * 黙って消える。 隠す判断は「書く人が直せない」 という理由に基づくもので、 図が壊れている
+ * ことまで伏せる意図ではない。
+ */
 export const HIDDEN_WARNING_AXES: ReadonlySet<string> = new Set(["subpixel-precision"]);
 
 /**
@@ -75,7 +82,9 @@ export function visibleWarnings(violations: Violation[], diagram: CdlDiagram): V
   const manual = manuallyPlaced(diagram);
   const hasManual = manual.nodes.size > 0 || manual.lanes.size > 0;
   return violations.filter((v) => {
-    if (HIDDEN_WARNING_AXES.has(v.axis)) return false;
+    // `error` は軸に関わらず出す。 隠す軸は「書く人が直せない滲み」 を対象にしたもので、
+    // 図の破綻を伏せるためではない。
+    if (HIDDEN_WARNING_AXES.has(v.axis) && v.severity !== "error") return false;
     if (!hasManual || !AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis)) return true;
     const t = violationTargets(v.detail);
     // 箱を名指ししている指摘は、 その箱を手で置いた時だけ外す
