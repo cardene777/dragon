@@ -216,8 +216,21 @@
    blueprint で同じ override を撤去したのと同じ regression。 11px だと太字でも WCAG の
    large text (18.66px 以上) に届かず通常文字の 4.5:1 が要るため、 #a66a3d (対 #e6ebf0 で
    3.69:1) が基準を割っていた。 19px 太字なら large text の 3:1 で足りる。 */
+/*
+ * edge label だけ accent (#a66a3d) より暗い copper を使う (#977)。
+ *
+ * 実ブラウザで測ると label の文字は画面上 6.4-9.3px しかない (宣言 22 / 19px を viewBox が
+ * 0.29-0.38 倍に縮める)。 WCAG の large text (18.66px 以上) に入らないので、 要求されるのは
+ * 3:1 ではなく 4.5:1。 accent のままだと背景 #e6ebf0 に対して 3.69:1 で割る。
+ *
+ * 色相 26° と彩度 0.46 は accent と同じにして、 明度だけ 0.45 → 0.36 に下げた。
+ *
+ * 実測が指定色より 4.5 に近く出る (指定 rgb(134,86,49) が rgb(139,93,58) として測れる)。 小さい
+ * 字は device pixel を完全には覆わず、 最も濃い画素でも背景と少し混ざるため。 指定値で
+ * 4.5 ちょうどに合わせると実測が割るので、 指定側に余裕 (5.2:1) を取っている。
+ */
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #a66a3d !important;
+  fill: #865631 !important;
   stroke: none !important;
   font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
   font-weight: 700 !important;

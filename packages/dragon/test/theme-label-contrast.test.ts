@@ -656,9 +656,14 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
 
   it("綴りが無効な色は宣言が無かったものとして扱う (ブラウザと同じ)", () => {
     // CSSOM が無効な宣言を捨てるので、 前の有効な宣言が残る。 主題の色がそのまま出る。
+    //
+    // 期待値は主題の宣言そのもの。 CSS から読んで突き合わせる (色を変えた時に 2 箇所を直す
+    // 必要が出ないように = 実際 #977 で `#a66a3d` → `#865631` に変えた時にここが落ちた)。
+    const themeFg = resolve(collect(css, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
     const fgOf = (decl: string) =>
       resolve(collect(`${css}\n${sel} { ${decl} }`, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
-    expect(fgOf("fill: zzznotacolor !important;")).toEqual([166, 106, 61]);
+    expect(themeFg, "主題が色を宣言している").not.toBeNull();
+    expect(fgOf("fill: zzznotacolor !important;")).toEqual(themeFg);
   });
 
   it("引用符の種類や空白が違っても検知する", () => {
