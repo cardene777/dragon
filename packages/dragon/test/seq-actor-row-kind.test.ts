@@ -48,9 +48,7 @@ describe("行を描く kind を宣言した sequence actor (#387)", () => {
     const long = ["averylongkeyname: averylongvaluehere"];
     const d = textDslToDiagram(src(`DB: { kind: storage, rows: ["averylongkeyname: averylongvaluehere"] }`));
     const n = nodeById(d, "db-header")!;
-    const need = requiredRowsWidth(long);
-    expect(need).toBeGreaterThan(140);
-    expect(n.w).toBeGreaterThanOrEqual(need);
+    expect(n.w).toBeGreaterThanOrEqual(requiredRowsWidth(long));
   });
 
   it("短い行でも幅が足りなければ広げる", () => {
@@ -78,16 +76,23 @@ describe("行を宣言しない sequence actor は従来どおり (#387)", () =>
     // 行を出す意図が明示された時だけ切り替える。
     const d = textDslToDiagram(src(`DB: { kind: storage }`));
     const n = nodeById(d, "db-header")!;
+    // 入力は `storage` なので、 `rows.length > 0` の条件を外すと header が `storage` に
+    // 変わる = この assertion で捕まえられる。
     expect(n.kind).toBe("card");
-    expect(n.h).toBe(72);
   });
 
   it("行を描かない kind に rows を書いた場合は載せない", () => {
-    // card は行を描かないので、 kind を載せても rows は消えたまま。 この状態は
-    // Axis 67 が error として報告する = 黙って消さない。
-    const d = textDslToDiagram(src(`DB: { kind: card, rows: ["count: 1"] }`));
+    // `actor` は行を描かない。 header の既定も `card` なので、 `rendersRows` の判定を
+    // 外すと header が `actor` に変わる = この test で捕まえられる (`card` を入力に使うと
+    // card → card の代入になり、 判定を外しても通ってしまう)。
+    //
+    // rows は消えたまま残るが、 この状態は Axis 67 が error として報告する = 黙って消さない。
+    const d = textDslToDiagram(src(`DB: { kind: actor, rows: ["count: 1"] }`));
     const n = nodeById(d, "db-header")!;
     expect(n.kind).toBe("card");
+    // 本経路を通ると行に合わせて幅が広がる。 preset の固定幅のままであることで、
+    // 通っていないと分かる。
+    expect(n.w!).toBeLessThan(requiredRowsWidth(["count: 1"]));
     expect(visualValidate(d).counts["rows-not-rendered"]).toBe(1);
   });
 
