@@ -104,6 +104,28 @@ describe("編集画面の指摘の選び方", () => {
       expect(visibleWarnings(fake, d)).toEqual([]);
     }
   });
+
+  it("隠す軸でも error なら出す", () => {
+    // 隠す理由は「書く人が直せない滲み」 で、 図の破綻を伏せる意図ではない。 軸だけで
+    // 隠すと、 その軸が将来 `error` を出すようになった時に「位置関係 NG」 の badge ごと
+    // 黙って消える。
+    for (const src of [auto, manual]) {
+      const d = textDslToDiagram(src);
+      const fake = [
+        { axis: "subpixel-precision" as const, diagramId: d.id, detail: "x", severity: "error" as const },
+      ];
+      expect(visibleWarnings(fake, d)).toHaveLength(1);
+    }
+  });
+
+  it("同じ軸で warn と error が混ざれば error だけ残す", () => {
+    const d = textDslToDiagram(auto);
+    const fake = [
+      { axis: "subpixel-precision" as const, diagramId: d.id, detail: "warn 側", severity: "warn" as const },
+      { axis: "subpixel-precision" as const, diagramId: d.id, detail: "error 側", severity: "error" as const },
+    ];
+    expect(visibleWarnings(fake, d).map((v) => v.detail)).toEqual(["error 側"]);
+  });
 });
 
 describe("整列の指摘を外す範囲", () => {
