@@ -96,7 +96,6 @@
   --cdl-text-dim: #7a808c;
   --cdl-text-secondary: #7a808c;
   --cdl-label-bg: #e6ebf0;
-  --cdl-label-text: #3a3d47;
   --cdl-edge-stroke: #a66a3d;
 }
 
@@ -213,12 +212,15 @@
   stroke: none !important;
   filter: url(#dragon-nm-raised-sm) !important;
 }
+/* font-size は renderer 側 SSOT (edge main 22 / edge sub 19) を尊重する。 11px に縮めていたが、
+   blueprint で同じ override を撤去したのと同じ regression。 11px だと太字でも WCAG の
+   large text (18.66px 以上) に届かず通常文字の 4.5:1 が要るため、 #a66a3d (対 #e6ebf0 で
+   3.69:1) が基準を割っていた。 19px 太字なら large text の 3:1 で足りる。 */
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
   fill: #a66a3d !important;
   stroke: none !important;
   font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
   font-weight: 700 !important;
-  font-size: 11px !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   fill: rgba(230, 235, 240, 0.5) !important;
@@ -245,7 +247,6 @@ html.dark [data-cdl-theme="neumorphism"] {
   --cdl-text-dim: #a08870;
   --cdl-text-secondary: #a08870;
   --cdl-label-bg: #241c14;
-  --cdl-label-text: #d8dde8;
   --cdl-edge-stroke: #d4a04a;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
@@ -407,7 +408,6 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   --cdl-text-dim: #7bb896;
   --cdl-text-secondary: #7bb896;
   --cdl-label-bg: #0a1a12;
-  --cdl-label-text: #a8e6c1;
   --cdl-edge-stroke: #48e0b0;
 }
 
