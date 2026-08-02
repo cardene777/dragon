@@ -282,7 +282,7 @@ export function CategoryPage(): React.ReactElement {
                       <div className="catalog-preview-loading">読み込み中…</div>
                     }
                   >
-                    <CdlDiagramView diagram={currentItem.diagram} hideHeader />
+                    <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader />
                   </InViewMount>
                 </div>
                 <SourceTabs item={currentItem} />
@@ -326,7 +326,7 @@ export function CategoryPage(): React.ReactElement {
               </Dialog.Close>
             </div>
             <div className="cdl-modal-body">
-              {modalItem && <CdlDiagramView diagram={modalItem.diagram} hideHeader />}
+              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={modalItem.diagram} hideHeader />}
             </div>
           </Dialog.Content>
         </Dialog.Portal>

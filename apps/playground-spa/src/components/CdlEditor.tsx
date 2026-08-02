@@ -1699,7 +1699,7 @@ animation:
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
-                <CdlDiagramView diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                <CdlDiagramView hideMiniPhaseIndicator diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
                 {/* 図全体の倍率。 cdl の SVG は 1 world unit = k px で描かれるので、 同じ world 座標に
                     置く overlay parts と group 枠にも同じ k を掛ける。 掛けないと図だけが伸びて
                     parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
@@ -1749,7 +1749,7 @@ animation:
                         userSelect: "none",
                       }}
                     >
-                      <CdlDiagramView diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                      <CdlDiagramView hideMiniPhaseIndicator diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
                     </div>
                   );
                 })}
