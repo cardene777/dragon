@@ -56,6 +56,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { stageSvgOf } from "@/lib/stage-svg";
+import { applyOffsetsToFlow } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -665,50 +666,20 @@ export function CdlEditor(): React.JSX.Element {
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
-    // 成功時も message
-    setAutoFixMessage(`${offsetByEdge.size} 件の edge-label offset を DSL に反映しました。`);
-    window.setTimeout(() => setAutoFixMessage(null), 6000);
+    // 書き戻しは `lib/auto-fix-dsl` に集約する。 component の中にあった間、 editor を丸ごと
+    // 描かないと確かめられず、 経路が丸ごと壊れても判定側の test は通った (#992)。
+    const result = applyOffsetsToFlow(src, diagram.edges, diagram.nodes, offsetByEdge);
+    if (result.src !== null) setSrc(result.src);
 
-    // diagram.edges を「順番」 で DSL の flow 行と対応させる (id 直接検索は slugify で難しい)。
-    // v05 parser は flow: 配下 の each item を配列順に edge に変換、 DSL flow 行順 = diagram.edges 順。
-    // 実装 ... 全行 split → "flow:" 出現後の region を「flow-lines」 とみなし、 次の top-level key
-    // (`^\w`) or 文書末までを対象範囲にする。
-    const allLines = src.split("\n");
-    const flowStart = allLines.findIndex((l) => /^\s*flow:\s*$/.test(l));
-    if (flowStart < 0) return;
-    let flowEnd = allLines.length;
-    for (let i = flowStart + 1; i < allLines.length; i++) {
-      if (/^[a-zA-Z]/.test(allLines[i] ?? "")) { flowEnd = i; break; }
-    }
-    let edgeIdx = 0;
-    let changed = false;
-    for (let i = flowStart + 1; i < flowEnd; i++) {
-      const line = allLines[i] ?? "";
-      if (!/^\s*-\s.+->/.test(line)) continue;
-      const e = diagram.edges[edgeIdx];
-      edgeIdx += 1;
-      if (!e) continue;
-      const offset = offsetByEdge.get(e.id);
-      if (!offset) continue;
-      const braceMatch = line.match(/^(.*?)(\s*\{([^}]*)\})?\s*$/);
-      const prefix = braceMatch?.[1] ?? line;
-      const inner = (braceMatch?.[3] ?? "")
-        .replace(/labelOffset[XY]\s*:\s*-?\d+\s*,?\s*/g, "")
-        .replace(/,\s*,/g, ",")
-        .replace(/^\s*,\s*|\s*,\s*$/g, "")
-        .trim();
-      const parts: string[] = [];
-      if (inner) parts.push(inner);
-      if (offset.offsetY !== undefined) parts.push(`labelOffsetY: ${offset.offsetY}`);
-      if (offset.offsetX !== undefined) parts.push(`labelOffsetX: ${offset.offsetX}`);
-      const newInline = parts.length > 0 ? ` { ${parts.join(", ")} }` : "";
-      const newLine = `${prefix}${newInline}`;
-      if (newLine !== line) {
-        allLines[i] = newLine;
-        changed = true;
-      }
-    }
-    if (changed) setSrc(allLines.join("\n"));
+    // 件数は **実際に書けた数** で出す。 対応する行が見つからなかった分まで数えると、 本文が
+    // 変わっていないのに「反映しました」 と出る (#992 の codex review)。
+    const failed = result.unmatched.length;
+    setAutoFixMessage(
+      failed === 0
+        ? `${result.applied.length} 件の edge-label offset を DSL に反映しました。`
+        : `${result.applied.length} 件を DSL に反映しました。 ${failed} 件は本文の該当行が見つからず反映できていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
+    );
+    window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
   }, [warnings, diagram, src]);
 
   // test 用 side channel = src の full text を window mirror に同期 (E2E で CodeMirror virtual
