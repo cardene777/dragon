@@ -301,7 +301,7 @@ export function HomePage(): React.ReactElement {
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetSequence} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={presetSequence} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">sequence</span>
@@ -311,7 +311,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetTopology} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={presetTopology} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">topology</span>
@@ -321,7 +321,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView diagram={presetEr} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={presetEr} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag">er</span>
