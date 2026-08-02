@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * HomePage の全 section が言語切替に追随することを固定する (#386)。
+ * HomePage と 404 page が言語切替に追随することを固定する (#386)。
  *
  * hero だけが対応済で、 features / quickstart / examples / closing-cta は日本語が直書きされて
  * いた。 英語で開いても日本語が出る状態だった。
@@ -61,5 +61,20 @@ test.describe("HomePage の言語切替 (#386)", () => {
       const jp = await japaneseTexts(page, sel);
       expect(jp.length, `${sel} に日本語が 1 件も無い`).toBeGreaterThan(0);
     }
+  });
+});
+
+test.describe("404 page の言語切替 (#386 段階 2)", () => {
+  test("英語で開くと日本語が出ない", async ({ page }) => {
+    await page.goto("/__no_such_page__?lang=en", { waitUntil: "networkidle" });
+    await page.waitForSelector(".v4-404", { timeout: 15000 });
+    expect(await japaneseTexts(page, ".v4-404"), "404 page に日本語が残っている").toEqual([]);
+  });
+
+  test("日本語で開くと日本語が出る", async ({ page }) => {
+    // 上の test だけだと page が描かれていない状態でも通る。
+    await page.goto("/__no_such_page__?lang=ja", { waitUntil: "networkidle" });
+    await page.waitForSelector(".v4-404", { timeout: 15000 });
+    expect((await japaneseTexts(page, ".v4-404")).length, "404 page に日本語が 1 件も無い").toBeGreaterThan(0);
   });
 });
