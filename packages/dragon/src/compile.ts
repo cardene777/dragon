@@ -2194,7 +2194,10 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
 function compileEr(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (entity を box として配置)
   if (doc.animate && doc.animate.phases.length > 0) {
-    return compileGenericWithAnimate(doc, { kind: "er", laneWidth: 460 });
+    // 460 は preset 側の旧既定に合わせた値だった。 preset が箱 400 + 余白 25 × 2 = 450 を
+    // 宣言するようになった (cardene777/cdl#359) ので、 同じ図が animate の有無で 10 world
+    // ずれないようここも 450 にする。
+    return compileGenericWithAnimate(doc, { kind: "er", laneWidth: 450 });
   }
   // er preset ... actors を entity に、 流れ を relation に
   const erBuilder = er({

@@ -15,21 +15,21 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 728,
+      "width": 450,
+      "x": 718,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -37,7 +37,7 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
       "w": 400,
     },
     {
-      "cx": 958,
+      "cx": 943,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -55,8 +55,8 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "topic": "E01",
   "viewBox": {
     "h": 279,
-    "w": 1278,
-    "x": -30,
+    "w": 1263,
+    "x": -35,
     "y": 59,
   },
 }
@@ -83,28 +83,28 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 758,
+      "width": 450,
+      "x": 748,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-product",
-      "width": 460,
-      "x": 1516,
+      "width": 450,
+      "x": 1496,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -112,7 +112,7 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
       "w": 400,
     },
     {
-      "cx": 988,
+      "cx": 973,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -120,7 +120,7 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
       "w": 400,
     },
     {
-      "cx": 1746,
+      "cx": 1721,
       "cy": 203,
       "h": 150,
       "id": "product",
@@ -138,8 +138,8 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "topic": "E02",
   "viewBox": {
     "h": 279,
-    "w": 2066,
-    "x": -30,
+    "w": 2041,
+    "x": -35,
     "y": 59,
   },
 }
@@ -160,21 +160,21 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 800,
+      "width": 450,
+      "x": 790,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -182,7 +182,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
       "w": 400,
     },
     {
-      "cx": 1030,
+      "cx": 1015,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -200,8 +200,8 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "topic": "E03",
   "viewBox": {
     "h": 279,
-    "w": 1350,
-    "x": -30,
+    "w": 1335,
+    "x": -35,
     "y": 59,
   },
 }
@@ -222,21 +222,21 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
     {
       "height": 40,
       "id": "lane-student",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-course",
-      "width": 460,
-      "x": 812,
+      "width": 450,
+      "x": 802,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "student",
@@ -244,7 +244,7 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
       "w": 400,
     },
     {
-      "cx": 1042,
+      "cx": 1027,
       "cy": 203,
       "h": 150,
       "id": "course",
@@ -262,8 +262,8 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "topic": "E04",
   "viewBox": {
     "h": 279,
-    "w": 1362,
-    "x": -30,
+    "w": 1347,
+    "x": -35,
     "y": 59,
   },
 }
@@ -284,21 +284,21 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 728,
+      "width": 450,
+      "x": 718,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -306,7 +306,7 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
       "w": 400,
     },
     {
-      "cx": 958,
+      "cx": 943,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -324,8 +324,8 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "topic": "E05",
   "viewBox": {
     "h": 279,
-    "w": 1278,
-    "x": -30,
+    "w": 1263,
+    "x": -35,
     "y": 59,
   },
 }
@@ -364,35 +364,35 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
     {
       "height": 40,
       "id": "lane-a",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-b",
-      "width": 460,
-      "x": 676,
+      "width": 450,
+      "x": 666,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-c",
-      "width": 460,
-      "x": 1352,
+      "width": 450,
+      "x": 1332,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-d",
-      "width": 460,
-      "x": 2028,
+      "width": 450,
+      "x": 1998,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "a",
@@ -400,7 +400,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 906,
+      "cx": 891,
       "cy": 203,
       "h": 150,
       "id": "b",
@@ -408,7 +408,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 1582,
+      "cx": 1557,
       "cy": 203,
       "h": 150,
       "id": "c",
@@ -416,7 +416,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 2258,
+      "cx": 2223,
       "cy": 203,
       "h": 150,
       "id": "d",
@@ -434,8 +434,8 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "topic": "E06",
   "viewBox": {
     "h": 404,
-    "w": 2578,
-    "x": -30,
+    "w": 2543,
+    "x": -35,
     "y": -66,
   },
 }
@@ -456,21 +456,21 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-profile",
-      "width": 460,
-      "x": 756,
+      "width": 450,
+      "x": 746,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -478,7 +478,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
       "w": 400,
     },
     {
-      "cx": 986,
+      "cx": 971,
       "cy": 203,
       "h": 150,
       "id": "profile",
@@ -496,8 +496,8 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "topic": "E07",
   "viewBox": {
     "h": 279,
-    "w": 1306,
-    "x": -30,
+    "w": 1291,
+    "x": -35,
     "y": 59,
   },
 }
@@ -518,21 +518,21 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 728,
+      "width": 450,
+      "x": 718,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -540,7 +540,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
       "w": 320,
     },
     {
-      "cx": 958,
+      "cx": 943,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -558,7 +558,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "topic": "E08",
   "viewBox": {
     "h": 362,
-    "w": 1292,
+    "w": 1272,
     "x": -44,
     "y": -24,
   },
@@ -580,14 +580,14 @@ exports[`golden: er preset > E09 self-reference 1`] = `
     {
       "height": 40,
       "id": "lane-employee",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "employee",
@@ -606,7 +606,7 @@ exports[`golden: er preset > E09 self-reference 1`] = `
   "viewBox": {
     "h": 331,
     "w": 566,
-    "x": -30,
+    "x": -35,
     "y": 66,
   },
 }
@@ -645,42 +645,42 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
     {
       "height": 40,
       "id": "lane-fact",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dima",
-      "width": 460,
-      "x": 676,
+      "width": 450,
+      "x": 666,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimb",
-      "width": 460,
-      "x": 1352,
+      "width": 450,
+      "x": 1332,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimc",
-      "width": 460,
-      "x": 2028,
+      "width": 450,
+      "x": 1998,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimd",
-      "width": 460,
-      "x": 2704,
+      "width": 450,
+      "x": 2664,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "fact",
@@ -688,7 +688,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 906,
+      "cx": 891,
       "cy": 203,
       "h": 150,
       "id": "dima",
@@ -696,7 +696,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 1582,
+      "cx": 1557,
       "cy": 203,
       "h": 150,
       "id": "dimb",
@@ -704,7 +704,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 2258,
+      "cx": 2223,
       "cy": 203,
       "h": 150,
       "id": "dimc",
@@ -712,7 +712,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 2934,
+      "cx": 2889,
       "cy": 203,
       "h": 150,
       "id": "dimd",
@@ -730,8 +730,8 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "topic": "E10",
   "viewBox": {
     "h": 404,
-    "w": 3254,
-    "x": -30,
+    "w": 3209,
+    "x": -35,
     "y": -66,
   },
 }
@@ -2420,21 +2420,21 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 460,
+      "width": 450,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 460,
-      "x": 800,
+      "width": 450,
+      "x": 790,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 230,
+      "cx": 225,
       "cy": 203,
       "h": 150,
       "id": "user",
@@ -2442,7 +2442,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
       "w": 400,
     },
     {
-      "cx": 1030,
+      "cx": 1015,
       "cy": 203,
       "h": 150,
       "id": "order",
@@ -2460,8 +2460,8 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "topic": "X06",
   "viewBox": {
     "h": 287,
-    "w": 1350,
-    "x": -30,
+    "w": 1335,
+    "x": -35,
     "y": 51,
   },
 }
