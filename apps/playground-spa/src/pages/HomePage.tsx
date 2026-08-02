@@ -143,7 +143,7 @@ export function HomePage(): React.ReactElement {
                 viewBox="0 0 600 380"
                 preserveAspectRatio="xMidYMid meet"
                 role="img"
-                aria-label="左の記法から生成されるシーケンス図の例"
+                aria-label={isJa ? "左の記法から生成されるシーケンス図の例" : "Example sequence diagram generated from the notation on the left"}
               >
                 <defs>
                   <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -213,8 +213,8 @@ export function HomePage(): React.ReactElement {
 
       <section className="features">
         <div className="section-head">
-          <span className="eyebrow">なぜdragonか</span>
-          <h2>書く手間を、動く成果に。</h2>
+          <span className="eyebrow">{isJa ? "なぜdragonか" : "Why dragon"}</span>
+          <h2>{isJa ? "書く手間を、動く成果に。" : "Turn your writing into diagrams that move."}</h2>
         </div>
         <div className="feature-grid">
           <div className="feature">
@@ -224,8 +224,8 @@ export function HomePage(): React.ReactElement {
                 <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
             </div>
-            <h3>YAML風で書ける</h3>
-            <p>登場人物と流れを箇条書きで宣言するだけ。図の内部構造を組む必要はない。</p>
+            <h3>{isJa ? "YAML風で書ける" : "Write it like YAML"}</h3>
+            <p>{isJa ? "登場人物と流れを箇条書きで宣言するだけ。図の内部構造を組む必要はない。" : "Just declare the actors and the flow as a list. You never assemble the diagram's internals."}</p>
           </div>
           <div className="feature">
             <div className="feature-icon">
@@ -233,8 +233,8 @@ export function HomePage(): React.ReactElement {
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
             </div>
-            <h3>phaseごとに動く</h3>
-            <p>state / tween / setで数値を補間し、phaseで焦点を切替える。静止画では伝わらない順序が伝わる。</p>
+            <h3>{isJa ? "phaseごとに動く" : "Motion, phase by phase"}</h3>
+            <p>{isJa ? "state / tween / setで数値を補間し、phaseで焦点を切替える。静止画では伝わらない順序が伝わる。" : "Interpolate values with state / tween / set, and shift the focus per phase. Convey sequences that a still image can't."}</p>
           </div>
           <div className="feature">
             <div className="feature-icon">
@@ -242,8 +242,8 @@ export function HomePage(): React.ReactElement {
                 <path d="M3 12h18M12 3v18" />
               </svg>
             </div>
-            <h3>install不要</h3>
-            <p>ブラウザでエディタを開いてYAMLを書けば、その場で動くSVGが手に入る。npm installも設定ファイルもいらない。</p>
+            <h3>{isJa ? "install不要" : "Nothing to install"}</h3>
+            <p>{isJa ? "ブラウザでエディタを開いてYAMLを書けば、その場で動くSVGが手に入る。npm installも設定ファイルもいらない。" : "Open the editor in your browser, write YAML, and a moving SVG is yours on the spot. No npm install, no config file."}</p>
           </div>
         </div>
       </section>
@@ -251,24 +251,24 @@ export function HomePage(): React.ReactElement {
       <section className="quickstart">
         <div className="section-head">
           <span className="eyebrow">3 steps</span>
-          <h2>1分で走り出す。</h2>
+          <h2>{isJa ? "1分で走り出す。" : "Up and running in a minute."}</h2>
         </div>
         <div className="steps">
           <div className="step">
             <div className="step-num">1</div>
             <div className="step-body">
-              <h3>エディタを開く</h3>
+              <h3>{isJa ? "エディタを開く" : "Open the editor"}</h3>
               <p>
-                ブラウザで<code>/editor</code>にアクセス。 install不要。
+                {isJa ? "ブラウザで" : "Visit "}<code>/editor</code>{isJa ? "にアクセス。 install不要。" : " in your browser. Nothing to install."}
               </p>
             </div>
           </div>
           <div className="step">
             <div className="step-num">2</div>
             <div className="step-body">
-              <h3>YAMLを書く</h3>
+              <h3>{isJa ? "YAMLを書く" : "Write the YAML"}</h3>
               <p>
-                登場人物と流れを箇条書きで宣言する。<code>type: sequence</code>で図の種類を選ぶ。
+                {isJa ? "登場人物と流れを箇条書きで宣言する。" : "Declare the actors and the flow as a list. "}<code>type: sequence</code>{isJa ? "で図の種類を選ぶ。" : " picks the kind of diagram."}
               </p>
               <pre className="step-code">
                 <span className="k">title</span>: <span className="s">"ログインAPI"</span>
@@ -286,8 +286,8 @@ export function HomePage(): React.ReactElement {
           <div className="step">
             <div className="step-num">3</div>
             <div className="step-body">
-              <h3>SVGが動き出す</h3>
-              <p>右のライブプレビューにphase単位で動くSVGが表示される。 URLで共有もダウンロードもできる。</p>
+              <h3>{isJa ? "SVGが動き出す" : "The SVG starts moving"}</h3>
+              <p>{isJa ? "右のライブプレビューにphase単位で動くSVGが表示される。 URLで共有もダウンロードもできる。" : "The live preview on the right shows an SVG that moves phase by phase. Share it by URL or download it."}</p>
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@ export function HomePage(): React.ReactElement {
       <section className="examples">
         <div className="section-head">
           <span className="eyebrow">use case</span>
-          <h2>こんな図が書ける。</h2>
+          <h2>{isJa ? "こんな図が書ける。" : "Diagrams you can write."}</h2>
         </div>
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
@@ -305,8 +305,8 @@ export function HomePage(): React.ReactElement {
             </div>
             <div className="example-body">
               <span className="example-tag">sequence</span>
-              <h3>API呼び出しの流れ</h3>
-              <p>登場人物どうしのやりとりを時間軸で並べる。認証 / API連携の説明に。</p>
+              <h3>{isJa ? "API呼び出しの流れ" : "How an API call flows"}</h3>
+              <p>{isJa ? "登場人物どうしのやりとりを時間軸で並べる。認証 / API連携の説明に。" : "Lay out interactions between actors on a timeline. Ideal for explaining authentication and API integrations."}</p>
             </div>
           </Link>
           <Link className="example" to="/catalog/presets">
@@ -315,8 +315,8 @@ export function HomePage(): React.ReactElement {
             </div>
             <div className="example-body">
               <span className="example-tag">topology</span>
-              <h3>システム構成図</h3>
-              <p>コンポーネントの配置と、リクエストがどこを通るかを同時に描く。</p>
+              <h3>{isJa ? "システム構成図" : "System topology"}</h3>
+              <p>{isJa ? "コンポーネントの配置と、リクエストがどこを通るかを同時に描く。" : "Show component placement and request paths in a single diagram."}</p>
             </div>
           </Link>
           <Link className="example" to="/catalog/presets">
@@ -325,25 +325,25 @@ export function HomePage(): React.ReactElement {
             </div>
             <div className="example-body">
               <span className="example-tag">er</span>
-              <h3>DBスキーマ</h3>
-              <p>entityと関係性を順番に見せる。 schema review / onboardingに。</p>
+              <h3>{isJa ? "DBスキーマ" : "DB schema"}</h3>
+              <p>{isJa ? "entityと関係性を順番に見せる。 schema review / onboardingに。" : "Reveal entities and relationships step by step. For schema review and onboarding."}</p>
             </div>
           </Link>
         </div>
         <div className="examples-more">
           <Link className="btn-secondary" to="/catalog">
-            図のカタログを見る →
+            {isJa ? "図のカタログを見る →" : "Browse the catalog →"}
           </Link>
         </div>
       </section>
 
       <section className="closing-cta">
         <div className="closing-cta-inner">
-          <h2>今すぐ、書いて動かす。</h2>
-          <p>YAMLを1ファイル書くだけ。 動く図を1分後に手に入れる。</p>
+          <h2>{isJa ? "今すぐ、書いて動かす。" : "Write it now, watch it move."}</h2>
+          <p>{isJa ? "YAMLを1ファイル書くだけ。 動く図を1分後に手に入れる。" : "One YAML file is all it takes. A moving diagram is yours a minute later."}</p>
           <div className="closing-cta-buttons">
             <Link className="btn-primary" to="/editor">
-              エディタを開く →
+              {isJa ? "エディタを開く →" : "Open the editor →"}
             </Link>
             <a
               className="btn-secondary"
