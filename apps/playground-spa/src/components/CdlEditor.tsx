@@ -56,6 +56,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { stageSvgOf } from "@/lib/stage-svg";
+import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -179,13 +180,6 @@ const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;
 const ZOOM_STEP = 0.2;
 
-/** handleAutoFix と fixableWarningCount で共有する axis whitelist (drift 防止 SSOT) */
-const FIXABLE_WARNING_AXES = new Set([
-  "edge-label-overlap",
-  "clearance",
-  "edge-label-proximity",
-]);
-
 /**
  * 未 register axis の default action guidance (SSOT 統一のため module-scope const 化)。
  * unfixableAxisHint / handleAutoFix message の 2 箇所で同一値を参照する。
@@ -293,15 +287,9 @@ export function CdlEditor(): React.JSX.Element {
   const [showPositions, setShowPositions] = useState(false);
 
   /** 対応可 warning 数 (edge-label offset で fix 可能な 3 axis のみ)、 button state 制御用 */
-  const fixableWarningCount = useMemo(() => {
-    return warnings.filter((w) => {
-      if (!FIXABLE_WARNING_AXES.has(w.axis)) return false;
-      const m1 = w.detail.match(/edge "([^"]+)"/);
-      const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
-      const edgeId = m1?.[1] ?? m2?.[1];
-      return edgeId !== undefined;
-    }).length;
-  }, [warnings]);
+  // 判定は `lib/auto-fix-offsets` に集約する。 以前は同じ判定を handleAutoFix と 2 箇所に
+  // 書いており、 表示件数と実際に当たる件数がずれる余地があった (#382)。
+  const fixableWarningCount = useMemo(() => countFixableWarnings(warnings), [warnings]);
 
   /**
    * 対応可 0 件時の hint text を、 実際に active な非 fixable axis で dynamic 生成する。
@@ -660,35 +648,7 @@ export function CdlEditor(): React.JSX.Element {
     // - `edge "e0-user-post" label が path segment から ...` (proximity)
     // - `node:X ↔ edge-label:e0-user-post overlap=...` (overlap)
     // - `X:Y ↔ Z:W gap=...` (clearance、 node と edge-label のケース)
-    const offsetByEdge = new Map<string, { offsetY?: number; offsetX?: number }>();
-    // axis whitelist は module scope の FIXABLE_WARNING_AXES を共有 (fixableWarningCount と drift 防止 SSOT)。
-    for (const w of warnings) {
-      if (!FIXABLE_WARNING_AXES.has(w.axis)) continue;
-      const m1 = w.detail.match(/edge "([^"]+)"/);
-      const m2 = w.detail.match(/edge-label:([^\s↔"]+)/);
-      const edgeId = m1?.[1] ?? m2?.[1];
-      if (!edgeId) continue;
-      const cur = offsetByEdge.get(edgeId) ?? {};
-      if (w.axis === "edge-label-overlap") {
-        // node × edge-label overlap = label が node 中に埋まる、 上方 shift で回避
-        cur.offsetY = -140;
-      } else if (w.axis === "clearance") {
-        // 隣接不足 = 更に離す
-        cur.offsetY = (cur.offsetY ?? -40) - 40;
-      } else if (w.axis === "edge-label-proximity") {
-        // label が path から離れすぎ、 detail から実 distance を抽出して逆方向に補正
-        const distMatch = w.detail.match(/(\d+)px 離れている/);
-        const dist = distMatch ? parseInt(distMatch[1], 10) : 0;
-        if (dist > 0) {
-          // 現 offset を「path 近接方向」 に半分縮める (offsetY 正/負符号は edge 側 default に依存)
-          // 直前の shift 探索で上方に置かれているケースが多いので +dist/2 で下方に寄せる
-          const cur_off = cur.offsetY ?? 0;
-          cur.offsetY = cur_off + Math.floor(dist / 2);
-        }
-      }
-      // text-readability は node 幅/title の話で label offset で解決しないため skip
-      offsetByEdge.set(edgeId, cur);
-    }
+    const offsetByEdge = buildAutoFixOffsets(warnings);
     if (offsetByEdge.size === 0) {
       // user feedback: 対応可能な warning がない、 inline banner で表示 (alert は browser 依存)
       // unfixableAxisHint と同じ filter (非 fixable のみ列挙) で対称性を担保、 fixable axis の
