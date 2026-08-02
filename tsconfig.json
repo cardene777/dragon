@@ -1,7 +1,14 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/dragon" },
-    { "path": "./apps/playground-spa" }
+    {
+      "path": "./packages/dragon"
+    },
+    {
+      "path": "./apps/playground-spa"
+    },
+    {
+      "path": "./test-support"
+    }
   ]
 }

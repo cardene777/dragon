@@ -115,6 +115,7 @@ export default [
             "./tsconfig.eslint.json",
             "./apps/playground-spa/tsconfig.json",
             "./packages/dragon/tsconfig.test.json",
+            "./test-support/tsconfig.json",
           ],
           noWarnOnMultipleProjects: true,
         },
@@ -137,6 +138,9 @@ export default [
           "./tsconfig.eslint.json",
           "./apps/playground-spa/tsconfig.json",
           "./packages/dragon/tsconfig.test.json",
+          // references は自動で辿られないため、 test-support も明示で並べる。
+          // 落とすと `global-setup.ts` が Parsing error になる (実測)。
+          "./test-support/tsconfig.json",
         ],
         tsconfigRootDir: import.meta.dirname,
       },

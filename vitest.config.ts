@@ -10,6 +10,10 @@ export default defineConfig({
     },
   },
   test: {
+    // test は `@cardenelabs/dragon` / `@cardenelabs/cdl` を package として import する = どちらも
+    // `dist` を読む。 `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
+    // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
+    globalSetup: ["./test-support/global-setup.ts"],
     include: [
       "packages/**/test/**/*.test.ts",
       "packages/**/test/**/*.test.tsx",
