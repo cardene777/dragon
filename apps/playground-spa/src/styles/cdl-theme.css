@@ -839,10 +839,45 @@ html.dark[data-cdl-theme="blueprint"] {
   --cdl-text: #f0e0b8;
   --cdl-text-dim: #d4c4a0;
   --cdl-text-mute: #a89880;
-  --cdl-node-fill: #f5ecd0;
+  /* `node-body` は上の selector で `#2a1f14` に強制されるのに、 変数だけ cream のまま残って
+     いた。 同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
+     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。 */
+  --cdl-node-fill: #2a1f14;
+  /* kind 内の小さい面 (mind-map / mind-radial / tree の枝の箱)。 page の文字色とは別軸で、
+     面と文字が対で動く。 明色のままだと tone が 2.13 まで落ちる (実測)。 */
+  --cdl-chip-fill: #33251a;
+  --cdl-chip-text: #f0e0b8;
+  /* tone で塗った図形の上に乗る文字。 dark の tone は明るいので文字は暗い側に倒す
+     (`#ffffff` のままだと `#fa970c` に対して 2.4)。 */
+  --cdl-text-on-tone: #241a10;
+  /* journey の気付き欄。 明色の付箋のままだと周囲から浮く。 */
+  --cdl-note-fill: #3a2a12;
+  --cdl-note-text: #f0d79a;
+  /* tree の根の箱は accent から下端に向かう縦の gradient で塗る。 下端だけ変数が無いまま
+     `#1f4d6e` (青) に落ちており、 `<defs>` の中なので色相の検査からも漏れていた
+     (codex review Round 3 の指摘)。 accent と同系の暖色にする。 実測 = 背景 4.70 /
+     `--cdl-text-on-tone` に対して 4.99。 */
+  --cdl-tone-accent-deep: #c47a0a;
   --cdl-divider: #4a3820;
   --cdl-stage-bg: #1a1408;
   --cdl-line-mute: #8a7050;
+
+  /* chart 系 kind が使う 6 tone (#383)。 上書きが無い間は cdl の fallback (#2d6a8f 等) が
+     そのまま出て、 warm palette の中に青系が残っていた (実測 = dark の chart-line-demo に
+     rgb(45,106,143))。
+
+     **背景は実測で決めた**。 `--cdl-node-fill` (#f5ecd0) は宣言値で、 実際に描かれる chart の
+     箱は `rgb(42,31,20)` = #2a1f14 (dark 用の別 selector が後から当たる)。 宣言値で対比を取ると
+     実描画では 2.30-2.60 まで落ちる (codex review 実測)。
+
+     条件は edge の tone と同じ = 対比 4.61 以上 / 実効色の ΔE 15.30 以上。 暖色側の色相から
+     両方を同時に満たす組を #2a1f14 に対して探索した。 実測 = 最悪 対比 6.57 / 最悪 ΔE 43.14。 */
+  --cdl-tone-accent: #fa970c;
+  --cdl-tone-teal: #5ebd86;
+  --cdl-tone-success: #38c40a;
+  --cdl-tone-error: #fa898d;
+  --cdl-tone-warning: #bda471;
+  --cdl-tone-info: #a5ad00;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
