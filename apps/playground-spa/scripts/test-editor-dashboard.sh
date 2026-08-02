@@ -120,6 +120,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   L3_GROUP_B=(
     tests/editor-all-types.spec.ts
     tests/ethereum.spec.ts
+    tests/editor-stage-svg.spec.ts
   )
   RESULT_L3="pass"
   : > "$LOG_DIR/editor-test-l3.log"

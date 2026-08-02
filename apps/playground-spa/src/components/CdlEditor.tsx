@@ -55,6 +55,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 }
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
+import { stageSvgOf } from "@/lib/stage-svg";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -484,7 +485,7 @@ export function CdlEditor(): React.JSX.Element {
   // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
   // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
   useEffect(() => {
-    const svg = previewRef.current?.querySelector("svg") as SVGSVGElement | null;
+    const svg = stageSvgOf(previewRef.current);
     if (svg) applyFontScale(svg, fontScale);
   });
 
@@ -925,7 +926,7 @@ export function CdlEditor(): React.JSX.Element {
   // SVG が render される度 + sample 切替時に自動 Fit。
   const handleFit = useCallback((): void => {
     if (!previewRef.current) return;
-    const svg = previewRef.current.querySelector("svg");
+    const svg = stageSvgOf(previewRef.current);
     if (!svg) return;
     const previewRect = previewRef.current.getBoundingClientRect();
     const vb = svg.viewBox.baseVal;
@@ -992,7 +993,7 @@ export function CdlEditor(): React.JSX.Element {
     // 使うと、 部品の位置が図と合わなくなる。
     diagramScaleRef.current = diagramK;
     if (!diagram || !previewRef.current) return;
-    const svg = previewRef.current.querySelector("svg");
+    const svg = stageSvgOf(previewRef.current);
     if (!svg) return;
     const vb = svg.viewBox.baseVal;
     if (!vb || vb.width === 0 || vb.height === 0) return;
@@ -1110,17 +1111,13 @@ export function CdlEditor(): React.JSX.Element {
 
   const handleReset = useCallback((): void => handleFit(), [handleFit]);
   const handle100 = (): void => {
-    if (!previewRef.current) {
-      setTransform({ tx: 0, ty: 0, scale: 1 });
-      return;
-    }
+    // 図を特定できない時は何もしない。 倍率だけ 1 にして原点へ寄せると、 図がどこにあるか
+    // 分からないまま表示位置だけ動く (#985 で Fit / リセットと挙動を揃えた)。
+    if (!previewRef.current) return;
     // 中央寄せして scale=1.0 にする
-    const svg = previewRef.current.querySelector("svg");
+    const svg = stageSvgOf(previewRef.current);
     const previewRect = previewRef.current.getBoundingClientRect();
-    if (!svg) {
-      setTransform({ tx: 0, ty: 0, scale: 1 });
-      return;
-    }
+    if (!svg) return;
     const vb = svg.viewBox.baseVal;
     const tx = (previewRect.width - vb.width) / 2;
     const ty = (previewRect.height - vb.height) / 2;
@@ -1176,7 +1173,9 @@ export function CdlEditor(): React.JSX.Element {
 
   const getPreviewSvg = (): SVGSVGElement | null => {
     if (typeof document === "undefined") return null;
-    return document.querySelector(".v4-editor-preview svg");
+    // 書き出しも図の `<svg>` を名指しで取る。 「最初の svg」 だと panel の widget を書き出す
+    // (#985)。 見つからなければ null を返し、 誤ったものを書き出さない。
+    return stageSvgOf(document.querySelector(".v4-editor-preview"));
   };
 
   const downloadBlob = (blob: Blob, filename: string): void => {

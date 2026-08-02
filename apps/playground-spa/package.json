@@ -12,7 +12,7 @@
     "test:editor": "bash scripts/test-editor-dashboard.sh",
     "test:editor:l1": "vitest run src/lib/overlay-dsl.test.ts",
     "test:editor:l2": "vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts src/lib/text-edit-replace.test.ts",
-    "test:editor:l3": "playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts tests/editor-cdl-selection-text-edit.spec.ts",
+    "test:editor:l3": "playwright test tests/editor-flagship.spec.ts tests/editor-cdl-element-selection.spec.ts tests/editor-cdl-resize.spec.ts tests/editor-selection-grouping.spec.ts tests/editor-miro-features.spec.ts tests/editor-figma-features.spec.ts tests/editor-cdl-selection-text-edit.spec.ts tests/editor-stage-svg.spec.ts",
     "test:editor:l4": "playwright test tests/editor-visual.spec.ts",
     "test:editor:l4:update": "playwright test tests/editor-visual.spec.ts --update-snapshots",
     "deploy": "pnpm build:pages && gh-pages -d dist -b gh-pages -m 'chore(deploy): GitHub Pages'"
