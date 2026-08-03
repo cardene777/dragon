@@ -171,6 +171,40 @@ actors:
     expect(extractPartsFromSrc(tail, catalog, partsItems).parts[0]!.bg).toBe("#ef4444");
   });
 });
+describe("extractPartsFromSrc の行の対応 (#998)", () => {
+  it("残した行から元の行番号を引ける", () => {
+    const src = ["title: x", "actors:", "  - a: service", "flow:", "  - a -> a: y"].join("\n");
+    const r = extractPartsFromSrc(src, {}, []);
+    expect(r.lineMap).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("パーツを落とした分だけ番号が飛ぶ", () => {
+    // 落とした行を数えないと、 組み立て側が返す行番号が元の本文とずれる。
+    const src = [
+      "title: x",
+      "actors:",
+      "  - g:",
+      "      kind: arc-gauge",
+      "  - a: service",
+      "flow:",
+      "  - a -> a: y",
+    ].join("\n");
+    const r = extractPartsFromSrc(src, { "arc-gauge": {} }, [
+      { id: "parts-arc-gauge", diagram: {} } as never,
+    ]);
+    expect(r.parts.length, "パーツが抜き出されていない").toBe(1);
+    expect(r.baseSrc.split("\n").length).toBe(r.lineMap.length);
+    // 落とした 2 行の後は元の番号に飛ぶ。
+    expect(r.lineMap).toEqual([1, 2, 5, 6, 7]);
+  });
+
+  it("パーツでない block は行番号ごと戻す", () => {
+    const src = ["title: x", "actors:", "  - a:", "      kind: service", "flow:"].join("\n");
+    const r = extractPartsFromSrc(src, {}, []);
+    expect(r.lineMap).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
 
 
 

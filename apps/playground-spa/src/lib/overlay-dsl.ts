@@ -252,7 +252,7 @@ export function extractPartsFromSrc(
   src: string,
   partsCatalog: Record<string, unknown>,
   partsItems: CatalogItem[],
-): { baseSrc: string; parts: OverlayPartParsed[] } {
+): { baseSrc: string; parts: OverlayPartParsed[]; lineMap: number[] } {
   const partKindSet = new Set<string>();
   for (const k of Object.keys(partsCatalog)) {
     partKindSet.add(k);
@@ -262,6 +262,19 @@ export function extractPartsFromSrc(
     partsItems.find((p) => p.id === `parts-${kindValue}` || p.id === kindValue);
   const lines = src.split("\n");
   const baseLines: string[] = [];
+  /**
+   * `baseSrc` の行 (0 始まり) から元の `src` の行 (1 始まり) を引く表。
+   *
+   * パーツの行を落とすので、 組み立て側が返す行番号は `baseSrc` の座標になる。 元の本文を
+   * 書き換える側 (自動修正) はこの表で戻す。 無いと、 `flow:` より前にパーツがある本文で
+   * 別の行を書き換える (#998)。
+   */
+  const lineMap: number[] = [];
+  /** 行を base 側に残す。 元の行番号を控える。 */
+  const keep = (line: string, srcIdx: number): void => {
+    baseLines.push(line);
+    lineMap.push(srcIdx + 1);
+  };
   const parts: OverlayPartParsed[] = [];
   // パーツを抜き出すのは `actors:` の中だけ。 全文を走ると、 別の項目の下に並ぶ行
   // (`notes:` の下の `- fake: achievement` 等) までパーツとして図から消える (実測)
@@ -277,7 +290,7 @@ export function extractPartsFromSrc(
    * (`色:` / `位置:`) は base 側に残り、 1 つ前の登場人物の続きとして読まれていた (実測 =
    * パーツに書いた色と位置が前の箱に付いた)。 block ごと扱えば取りこぼさない。
    */
-  let pending: { alias: string; indent: number; lines: string[] } | null = null;
+  let pending: { alias: string; indent: number; lines: string[]; srcIdx: number[] } | null = null;
 
   /** 貯めた block を振り分ける。 パーツなら overlay に、 そうでなければ base に戻す。 */
   const flushPending = (): void => {
@@ -293,7 +306,7 @@ export function extractPartsFromSrc(
       ?.toLowerCase();
     const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
     if (!kindValue || !item) {
-      baseLines.push(...block.lines);
+      block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
       return;
     }
     // 図には overlay として描くので、 図の中に箱は要らない。 block ごと落とす
@@ -307,17 +320,17 @@ export function extractPartsFromSrc(
     });
   };
 
-  for (const line of lines) {
+  for (const [srcIdx, line] of lines.entries()) {
     // 字下げのない `key:` で項目が切り替わる。 `actors:` の中かどうかを追う
     if (/^[^\s#][^:]*:/.test(line)) {
       flushPending();
       inActors = /^actors[ \t]*:[ \t]*$/.test(line);
-      baseLines.push(line);
+      keep(line, srcIdx);
       continue;
     }
     if (!inActors) {
       flushPending();
-      baseLines.push(line);
+      keep(line, srcIdx);
       continue;
     }
     if (pending !== null) {
@@ -325,6 +338,7 @@ export function extractPartsFromSrc(
       // 空行と、 名前の行より深い字下げは block の続き
       if (line.trim() === "" || indent > pending.indent) {
         pending.lines.push(line);
+        pending.srcIdx.push(srcIdx);
         continue;
       }
       flushPending();
@@ -332,7 +346,7 @@ export function extractPartsFromSrc(
     // 名前だけの行 (`- 実績:`) は、 種類が続く行で決まる
     const head = line.match(/^(\s*)-\s*("(?:[^"\\]|\\.)+"|[^:\s]+)\s*:\s*$/);
     if (head) {
-      pending = { alias: unquoteAlias(head[2]!), indent: head[1]!.length, lines: [line] };
+      pending = { alias: unquoteAlias(head[2]!), indent: head[1]!.length, lines: [line], srcIdx: [srcIdx] };
       continue;
     }
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
@@ -398,11 +412,11 @@ export function extractPartsFromSrc(
         }
       }
     }
-    baseLines.push(line);
+    keep(line, srcIdx);
   }
   // 判定が終わらないまま終端に達した分を振り分ける
   flushPending();
-  return { baseSrc: baseLines.join("\n"), parts };
+  return { baseSrc: baseLines.join("\n"), parts, lineMap };
 }
 
 /**

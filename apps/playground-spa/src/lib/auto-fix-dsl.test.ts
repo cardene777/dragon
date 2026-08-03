@@ -6,6 +6,8 @@ import {
   isEdgeLine,
   parseEdgeLine,
   splitFields,
+  toSourceLines,
+  usableEdgeLines,
   writeOffsetToEdgeLine,
   type EdgeRef,
   type NodeRef,
@@ -271,10 +273,83 @@ describe("書き戻し", () => {
     expect(r.unmatched).toEqual(["e0"]);
   });
 
+  it("組み立て側が返した行を優先する", () => {
+    // preset ごとの規則を知っているのは組み立て側だけ。 `type: flow` は from / to / label の
+    // 照合でも取れない形があるので、 返ってきた行をそのまま使う (#998)。
+    const src = ["flow:", "  - a -> c: いち", "  - c -> b: に"].join("\n");
+    const nodes: NodeRef[] = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    // `compileFlow` は actor の鎖を作るので from / to が DSL と食い違う。
+    const edges: EdgeRef[] = [
+      { id: "e-a-b", from: "a", to: "b", label: "に" },
+      { id: "e-b-c", from: "b", to: "c", label: "いち" },
+    ];
+    const r = applyOffsetsToFlow(
+      src,
+      edges,
+      nodes,
+      offsets(["e-b-c", { offsetY: 9 }]),
+      new Map([
+        ["e-a-b", 3],
+        ["e-b-c", 2],
+      ]),
+    );
+    expect(r.applied).toEqual(["e-b-c"]);
+    expect(r.src).toBe(["flow:", "  - a -> c: いち { labelOffsetY: 9 }", "  - c -> b: に"].join("\n"));
+  });
+
+  it("組み立て側が返した行が範囲の外なら使わない", () => {
+    // 別の section を書き換えないため。
+    const src = ["flow:", "  - a -> b: x", "note:", "  - c -> d: y"].join("\n");
+    const nodes: NodeRef[] = [{ id: "a" }, { id: "b" }];
+    const edges: EdgeRef[] = [{ id: "e0", from: "a", to: "b", label: "x" }];
+    const r = applyOffsetsToFlow(src, edges, nodes, offsets(["e0", { offsetY: 9 }]), new Map([["e0", 4]]));
+    // 範囲外は使わず、 照合で 2 行目に当たる。
+    expect(r.src).toBe(["flow:", "  - a -> b: x { labelOffsetY: 9 }", "note:", "  - c -> d: y"].join("\n"));
+  });
+
+  it("組み立て側が返した行が edge 行でなければ使わない", () => {
+    const src = ["flow:", "  - phase: 2", "  - a -> b: x"].join("\n");
+    const nodes: NodeRef[] = [{ id: "a" }, { id: "b" }];
+    const edges: EdgeRef[] = [{ id: "e0", from: "a", to: "b", label: "x" }];
+    const r = applyOffsetsToFlow(src, edges, nodes, offsets(["e0", { offsetY: 9 }]), new Map([["e0", 2]]));
+    expect(r.src).toBe(["flow:", "  - phase: 2", "  - a -> b: x { labelOffsetY: 9 }"].join("\n"));
+  });
+
   it("既に同じ値なら書き換えない (applied には数える)", () => {
     const once = applyOffsetsToFlow(SRC, EDGES, NODES, offsets(["e1", { offsetY: 9 }]));
     const twice = applyOffsetsToFlow(once.src!, EDGES, NODES, offsets(["e1", { offsetY: 9 }]));
     expect(twice.src).toBeNull();
     expect(twice.applied).toEqual(["e1"]);
+  });
+});
+
+describe("行番号を元の本文に戻す (#998)", () => {
+  it("パーツを抜いた分だけずれた行番号を戻す", () => {
+    // 組み立てに渡すのはパーツの行を抜いた本文。 戻さないと別の行を指す。
+    const lineMap = [1, 2, 5, 6, 7];
+    expect(toSourceLines(new Map([["e0", 3]]), lineMap)).toEqual(new Map([["e0", 5]]));
+    expect(toSourceLines(new Map([["e0", 1]]), lineMap)).toEqual(new Map([["e0", 1]]));
+  });
+
+  it("表に無い行は捨てる", () => {
+    // 推測で近い行に寄せると、 誤った行を書き換えて成功と報告する。
+    expect(toSourceLines(new Map([["e0", 9]]), [1, 2])).toEqual(new Map());
+    expect(toSourceLines(new Map([["e0", 0]]), [1, 2])).toEqual(new Map());
+  });
+
+  it("空なら空", () => {
+    expect(toSourceLines(new Map(), [1, 2])).toEqual(new Map());
+  });
+});
+
+describe("表を使ってよいか (#998)", () => {
+  it("組み立てた時の本文と同じなら使う", () => {
+    const lines = new Map([["e0", 2]]);
+    expect(usableEdgeLines({ src: "x", lines }, "x")).toBe(lines);
+  });
+
+  it("本文が変わっていれば使わない", () => {
+    // 入力から再描画までの間に押されると、 古い行番号が別の行を指す。
+    expect(usableEdgeLines({ src: "x", lines: new Map([["e0", 2]]) }, "y")).toBeUndefined();
   });
 });

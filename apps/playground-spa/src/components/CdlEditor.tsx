@@ -56,7 +56,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { stageSvgOf } from "@/lib/stage-svg";
-import { applyOffsetsToFlow } from "@/lib/auto-fix-dsl";
+import { applyOffsetsToFlow, toSourceLines, usableEdgeLines } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
@@ -276,6 +276,18 @@ export function CdlEditor(): React.JSX.Element {
   // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
+  /**
+   * edge の id から本文の行番号を引く表と、 それを作った時の本文 (#998)。
+   *
+   * 本文と対で持つ。 表だけ持つと、 入力から再描画までの間 (300ms) に押した時に古い行番号で
+   * 書き換える = たまたま edge 行を指していると、 別の行を直して「反映しました」 と出る。
+   *
+   * 表が空なら対応が取れていない = 自動修正は `from` / `to` / `label` の照合に落ちる。
+   */
+  const [edgeSource, setEdgeSource] = useState<{
+    src: string;
+    lines: ReadonlyMap<string, number>;
+  }>({ src: "", lines: new Map() });
   const [autoFixMessage, setAutoFixMessage] = useState<string | null>(null);
   /** 書いたのに効かなかったことの知らせ。 判定は組み立て側が持ち、 ここは表示だけ */
   const [compileNotices, setCompileNotices] = useState<CompileNotice[]>([]);
@@ -668,7 +680,10 @@ export function CdlEditor(): React.JSX.Element {
     }
     // 書き戻しは `lib/auto-fix-dsl` に集約する。 component の中にあった間、 editor を丸ごと
     // 描かないと確かめられず、 経路が丸ごと壊れても判定側の test は通った (#992)。
-    const result = applyOffsetsToFlow(src, diagram.edges, diagram.nodes, offsetByEdge);
+    // 表は組み立てた時の本文に紐づく。 入力の途中で押された時は照合だけに落とす = 古い行番号で
+    // 別の行を書き換えないため。
+    const lines = usableEdgeLines(edgeSource, src);
+    const result = applyOffsetsToFlow(src, diagram.edges, diagram.nodes, offsetByEdge, lines);
     if (result.src !== null) setSrc(result.src);
 
     // 件数は **実際に書けた数** で出す。 対応する行が見つからなかった分まで数えると、 本文が
@@ -680,7 +695,7 @@ export function CdlEditor(): React.JSX.Element {
         : `${result.applied.length} 件を DSL に反映しました。 ${failed} 件は本文の該当行が見つからず反映できていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
     );
     window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
-  }, [warnings, diagram, src]);
+  }, [warnings, diagram, src, edgeSource]);
 
   // test 用 side channel = src の full text を window mirror に同期 (E2E で CodeMirror virtual
   // scrolling を bypass して full buffer 検証する経路、 CAR-1646、 production では読み手なし)
@@ -734,11 +749,20 @@ export function CdlEditor(): React.JSX.Element {
         // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
         // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
         // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
-        const { baseSrc, parts } = extractPartsFromSrc(src, partsCatalog, partsItems);
+        const { baseSrc, parts, lineMap } = extractPartsFromSrc(src, partsCatalog, partsItems);
         // 書いたのに効かなかったこと (`位置: Web の下` が順序図で効かない等) を受け取る。
         // 判定は組み立て側が持つ。 画面側は受け取って出すだけにして、 規則を二重に持たない
         const notices: CompileNotice[] = [];
-        const d = textDslToDiagram(baseSrc, { partsCatalog, onNotice: (n) => notices.push(n) });
+        // edge が本文のどの行から来たかを受け取る (#998)。 preset によっては書いた step と
+        // 生成される edge が一致しないため、 これが無いと自動修正が別の行を書き換える。
+        const edgeLines = new Map<string, number>();
+        const d = textDslToDiagram(baseSrc, {
+          partsCatalog,
+          onNotice: (n) => notices.push(n),
+          onEdgeSource: (id, line) => edgeLines.set(id, line),
+        });
+        // 組み立て側が返すのはパーツの行を抜いた本文の座標。 元の本文に戻してから持つ。
+        setEdgeSource({ src, lines: toSourceLines(edgeLines, lineMap) });
         // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が
         // 要るため、 図を測ってから置く。 位置を書いていないパーツは従来通り格子に並ぶ。
         //
