@@ -39,7 +39,8 @@ async function main() {
     for (const item of items) {
       try {
         const laid = compile(item.diagram);
-        const report = visualValidate(laid);
+        // 見本の集計。 SEO の軸は見本に課さない (#887)。
+        const report = visualValidate(laid, { profile: "catalog" });
         const filtered = report.violations.filter((v) => !HIDDEN_AXES.has(v.axis));
         const errors = filtered.filter((v) => v.severity === "error");
         const warns = filtered.filter((v) => v.severity === "warn");

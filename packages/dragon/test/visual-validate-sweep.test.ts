@@ -150,7 +150,7 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
     it(`${name} ... visualValidate 全 axis error 0 件 (除外は intentional 2 diagram のみ)`, () => {
       const diagrams = collectDiagrams(mod, name);
       expect(diagrams.length).toBeGreaterThan(0);
-      const report = visualValidateAll(diagrams);
+      const report = visualValidateAll(diagrams, { profile: "catalog" });
       const gatingViolations = report.reports.flatMap((r) =>
         r.violations.filter(isGatingViolation).map((v) => ({ diagramId: r.diagramId, ...v })),
       );
