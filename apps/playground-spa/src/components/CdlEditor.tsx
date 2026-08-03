@@ -5,6 +5,8 @@ import {
   textDslToDiagram,
   measureActorBoxes,
   writeActorPosition,
+  isColorValue,
+  stripExternalPaint,
   type CompileNotice,
 } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
@@ -857,6 +859,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
             return;
           }
+          // 埋め込まれた図は本文にそのまま書ける = `fill` に何でも入れられる。
+          // この経路は cdl の組み立てを直接呼ぶため dragon 側の出口の検査を通らないので、
+          // ここで図の外を指す値を落とす (#1004)
+          for (const dropped of stripExternalPaint(part)) {
+            setDropHintWithReset(`図の外を指す値 (${dropped.path}) は色として使えないため外しました。`, 6000);
+          }
           // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
           compile(part);
           setDiagram(part);
@@ -1524,11 +1532,12 @@ animation:
                     //
                     // 色は `色:` にまとめる。 状態名はパーツごとに違うが、 書く人が覚える
                     // 理由がない (どの状態に入れるかは組み立て時に決まる)。
-                    const isColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v);
-                    const colorState = p.diagram.states.find((st) => isColor(st.initial));
-                    const otherStates = p.diagram.states.filter((st) => !isColor(st.initial));
+                    // 判定は組み立て側と同じものを使う (`isColorValue`)。 別々に持つと、
+                    // 画面が色欄として出した状態を組み立て側が色扱いしない食い違いが起きる
+                    const colorState = p.diagram.states.find((st) => isColorValue(st.initial));
+                    const otherStates = p.diagram.states.filter((st) => !isColorValue(st.initial));
                     const detailLines: string[] = [`      kind: ${kindValue}`];
-                    if (colorState && isColor(colorState.initial)) {
+                    if (colorState && isColorValue(colorState.initial)) {
                       detailLines.push(`      色: "${colorState.initial}"`);
                     }
                     for (const st of otherStates) {
