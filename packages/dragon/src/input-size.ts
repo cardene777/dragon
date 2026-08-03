@@ -1,0 +1,127 @@
+import type { DslDocument } from "./types";
+
+/**
+ * 図を組み立てる前に、 大きすぎる入力を止める (#1005)。
+ *
+ * 組み立てにかかる時間は要素数の 2 乗で伸びる。 実測 (要素だけを並べた形)。
+ *
+ * | 要素 | 組み立て |
+ * |---|---|
+ * | 1,000 | 104ms |
+ * | 2,000 | 346ms |
+ * | 5,000 | 1,647ms |
+ * | 10,000 | 7,622ms |
+ *
+ * 待機 (500ms) の後に同じ流れの中で走るため、 この間 editor は操作を受け付けない。
+ * 貼ってしまうと tab を閉じるまで戻らない。
+ *
+ * 見本 (catalog) は 1 図あたり平均 4 要素、 最も多い file でも平均 7 要素。 実用の規模と
+ * 1 秒の境界 (約 3,000 要素) は桁が 2-3 つ違うため、 上限を置いても正当な図には当たらない。
+ *
+ * 既にある `dom-complexity-budget` (400 要素) とは別物。 あちらは組み立てた**後**に
+ * 「見やすさ」 の観点で警告を出すだけで、 組み立て自体は走る。 こちらは組み立てる**前**に
+ * 「固まらない」 ために止める。 400-2,000 の範囲は従来どおり警告が出て図も描ける。
+ */
+
+/** 組み立てを止める要素数。 1 秒を明確に下回る水準に置く (2,000 要素で約 350ms) */
+export const MAX_INPUT_ELEMENTS = 2000;
+
+/**
+ * 組み立てを止める本文の大きさ (byte)。
+ *
+ * 要素数だけでは、 1 要素に極端に長い文字列を持つ形を捉えられない。 読み取り自体は速い
+ * (10,000 要素 98,936 byte で 2ms) ので、 実用の余裕を大きく取って置く。
+ */
+export const MAX_INPUT_BYTES = 512 * 1024;
+
+/** 数えた結果。 超過した時に何がどれだけ超えたかを画面に出すために使う */
+export interface InputSize {
+  elements: number;
+  bytes: number;
+}
+
+/**
+ * 記法の解析結果から要素数を数える。
+ *
+ * 数えるのは組み立ての重さに効くもの = 要素 / 流れ / 段 / 状態 / 段組み。
+ * 図の題名や表示の設定は数に入れない (何件あっても重さが変わらない)。
+ *
+ * **段の中身 (光らせる相手 / 遷移 / 即時変更) も数える**。 段の数だけを見ると、
+ * 1 段に 1,000 件の相手を書いた形が 1 件として通る。 実測ではこの形が組み立ての中で
+ * 約 100 万件に展開され、 呼び出しの深さが上限を超えて落ちた。
+ */
+export function countDocElements(doc: DslDocument): number {
+  const phases = doc.animate?.phases ?? [];
+  const phaseChildren = phases.reduce(
+    (acc, p) => acc + (p.highlight?.length ?? 0) + (p.tweens?.length ?? 0) + (p.sets?.length ?? 0),
+    0,
+  );
+  return (
+    doc.actors.length +
+    doc.flow.length +
+    phases.length +
+    phaseChildren +
+    (doc.animate?.states.length ?? 0) +
+    (doc.groups ? Object.keys(doc.groups).length : 0) +
+    (doc.lanes ? Object.keys(doc.lanes).length : 0)
+  );
+}
+
+/**
+ * 組み立て済みの図から要素数を数える。
+ *
+ * 記法を通らない入口 (本文に埋め込んだ図の定義) 用。 解析結果が無いため、 図の側で数える。
+ */
+export function countDiagramElements(diagram: {
+  nodes?: unknown[];
+  edges?: unknown[];
+  lanes?: unknown[];
+  states?: unknown[];
+  phases?: unknown[];
+}): number {
+  return (
+    (diagram.nodes?.length ?? 0) +
+    (diagram.edges?.length ?? 0) +
+    (diagram.lanes?.length ?? 0) +
+    (diagram.states?.length ?? 0) +
+    (diagram.phases?.length ?? 0)
+  );
+}
+
+/** 本文の大きさを byte で数える (文字数ではなく実際の大きさ) */
+export function countBytes(src: string): number {
+  // Node にも browser にもある形で数える。 `Buffer` は browser に無い
+  return new TextEncoder().encode(src).length;
+}
+
+/**
+ * 大きすぎる入力なら、 その旨を伝える文を返す。 収まっていれば `null`。
+ *
+ * 投げるのではなく文を返すのは、 呼出側が「誤りとして表示する」 か「別の扱いにする」 かを
+ * 選べるようにするため。
+ *
+ * `bytes` に 0 を渡すと大きさの検査を飛ばす (要素数だけを見たい合流点で使う)。
+ */
+export function describeOversize(size: InputSize): string | null {
+  if (size.elements > MAX_INPUT_ELEMENTS) {
+    return `要素が ${size.elements.toLocaleString()} 件あります。 ${MAX_INPUT_ELEMENTS.toLocaleString()} 件までにしてください (これ以上は組み立てに時間がかかり、 画面が止まります)`;
+  }
+  if (size.bytes > MAX_INPUT_BYTES) {
+    // KB の整数で出す。 MB 小数 1 桁だと、 1 byte 超えただけの時に「0.5MB / 上限 0.5MB」 と
+    // 同じ数字が並び、 制限内なのに拒まれたように読める
+    const kb = Math.ceil(size.bytes / 1024);
+    const limitKb = Math.floor(MAX_INPUT_BYTES / 1024);
+    return `本文が ${kb.toLocaleString()}KB あります。 ${limitKb.toLocaleString()}KB までにしてください (これ以上は読み取りだけで待たされ、 記憶も大きく使います)`;
+  }
+  return null;
+}
+
+/**
+ * 本文が大きすぎるなら、 その旨を伝える文を返す。 収まっていれば `null`。
+ *
+ * **読み取る前に呼ぶ**。 要素数の上限は読み取った後にしか分からないため、 巨大な本文を
+ * 渡された時の読み取り自体 (11.9MB で記憶 200MB) を防げない。
+ */
+export function describeOversizeSource(src: string): string | null {
+  return describeOversize({ elements: 0, bytes: countBytes(src) });
+}

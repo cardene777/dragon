@@ -1,5 +1,5 @@
 import { load, YAMLException } from "js-yaml";
-import { jsonToDiagram } from "@cardenelabs/dragon";
+import { jsonToDiagram, describeOversizeSource } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /**
@@ -52,6 +52,15 @@ export type YamlDiagramResult =
  * 別名参照 (anchor / merge key) は `js-yaml` の既定の挙動に任せる。
  */
 export function yamlToObject(src: string): YamlObjectResult {
+  // 読み取る前に大きさを見る (#1005)。 要素数の上限は読み取った後にしか分からないため、
+  // 巨大な本文そのものによる待ちと記憶の消費はここでしか防げない
+  const oversize = describeOversizeSource(src);
+  if (oversize) {
+    return {
+      ok: false,
+      error: { line: null, message: oversize, kind: "validation", reason: null },
+    };
+  }
   const trimmed = src.trim();
   if (trimmed.length === 0) {
     return {

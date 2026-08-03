@@ -7,6 +7,9 @@ import {
   writeActorPosition,
   isColorValue,
   stripExternalPaint,
+  describeOversize,
+  describeOversizeSource,
+  countDiagramElements,
   type CompileNotice,
 } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
@@ -924,10 +927,23 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 既 share URL / user が保存した buffer に marker が残っている可能性があり、 open 時は
         // 従来通り render 継続する (次回 drop で actors syntax に置換される)。
         // 新規 drop は parts kind syntax (actors: に kind = parts identifier) を使う。
+        // 埋め込んだ図の定義は記法の解析を通らないため、 大きさの上限も通らない (#1005)。
+        // 読み取る前に本文の大きさを見る
+        const markerOversize = describeOversizeSource(src);
+        if (markerOversize) {
+          setError(markerOversize);
+          return;
+        }
         if (isPartsMarker(src)) {
           const part = deserializePart(src);
           if (!part) {
             setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
+            return;
+          }
+          // 記法を通らないので要素数の上限も効かない。 図の側で数えて止める (#1005)
+          const partOversize = describeOversize({ elements: countDiagramElements(part), bytes: 0 });
+          if (partOversize) {
+            setError(partOversize);
             return;
           }
           // 埋め込まれた図は本文にそのまま書ける = `fill` に何でも入れられる。
@@ -963,6 +979,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         //
         // パーツが無い図では測らない。 配置計算は 1 回 1ms 前後かかるので、 入力ごとに
         // 使わない計算を走らせない
+        // 重ねるパーツは本文から抜いてから組み立てるので、 組み立て側の上限に数えられない。
+        // 抜いた分を足して見ないと、 パーツを 2,000 件超置いた本文が素通りする (#1005)
+        const withPartsOversize = describeOversize({
+          elements: countDiagramElements(d) + parts.length,
+          bytes: 0,
+        });
+        if (withPartsOversize) throw new Error(withPartsOversize);
         // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
         // ここで作った 1 つを共有する (渡さないと中でもう一度計算する、 #1006)
         const built = buildAndValidate(d);

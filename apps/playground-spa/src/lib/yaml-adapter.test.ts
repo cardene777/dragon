@@ -197,6 +197,24 @@ flow: []
     ]);
   });
 
+  it("大きすぎる本文は読み取る前に誤りにする (#1005)", () => {
+    // 要素数の上限は読み取った後にしか分からないので、 本文そのものの大きさはここで見る
+    const huge = `title: "${"あ".repeat(200000)}"\ntype: sequence\nactors:\n  - A\nflow: []\n`;
+    const result = yamlToObject(huge);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.kind).toBe("validation");
+    expect(result.error.message).toContain("本文が");
+  });
+
+  it("要素が多すぎる YAML は組み立てで誤りにする (#1005)", () => {
+    const actors = Array.from({ length: 2001 }, (_, i) => `  - A${i}`).join("\n");
+    const result = yamlToDiagram(`title: "size"\ntype: sequence\nactors:\n${actors}\nflow: []\n`);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("要素が");
+  });
+
   it("`---` で区切った複数の文書は誤りにする (先頭だけ読む形ではない)", () => {
     // 説明文と実装が食い違っていた箇所。 `load()` 自身が単一文書を要求する
     const result = yamlToObject("a: 1\n---\na: 2\n");
