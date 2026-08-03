@@ -53,6 +53,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/catalog" element={<CatalogIndexPage />} />
               <Route path="/catalog/:slug" element={<CategoryPage />} />
               <Route path="/editor" element={<EditorPage />} />
+              {/* 拡張子で最初の欄を決める経路 (`/editor/diagram.yml`)。 `resolveInitialTab` が
+                  pathname の末尾を見るため、 ここを通さないと 404 に落ちて判定に届かない */}
+              <Route path="/editor/:filename" element={<EditorPage />} />
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/preset/:id" element={<PresetDetailPage />} />
               <Route path="/release-notes" element={<ReleaseNotesPage />} />

@@ -1033,10 +1033,15 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
     // 図の外に置いたパーツも視野に入れる。 パーツは cdl の図とは別に重ねて描くので、
     // 図の枠だけを見ると画面の外に出たまま戻せない (実測 = 自動配置のパーツが画面の下に出た)
+    //
+    // ただし数えるのは本文欄を映している時だけ。 パーツは本文欄の記述から作るもので、
+    // YAML 欄では描いていない。 数に入れると、 見えないパーツを囲もうとして図が極端に
+    // 縮む (実測 = 本文欄で遠くに置いたパーツが YAML 欄の倍率を壊した)
+    const fitParts = activeTab === "cdl" ? overlayPartsRef.current : [];
     const bounds = fitBounds(
       { width: px.w, height: px.h },
       headerUnscaled,
-      overlayPartsRef.current.map((p) => {
+      fitParts.map((p) => {
         const size = partWorldSize(p);
         return {
           left: (p.posX - worldOriginRef.current.x) * diagramK,
@@ -1052,7 +1057,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const tx = (previewRect.width - bounds.width * scale) / 2 - bounds.left * scale;
     const ty = (previewRect.height - bounds.height * scale) / 2 - bounds.top * scale;
     setTransform({ tx, ty, scale });
-  }, [diagramK]);
+  }, [diagramK, activeTab]);
 
   // 図が描き直される度に表示サイズを焼き直し、 図枠が動いた分を pan で打ち消す。
   //
@@ -1370,6 +1375,19 @@ animation:
     setActiveSample("new");
   };
 
+  /**
+   * 本文欄 (`src`) を書き換える操作を止めるかどうか。
+   *
+   * これらの操作は YAML 欄を映している間も本文欄の中身を変える。 押した人からは
+   * 画面が何も変わらないように見えるのに、 見えていない方が書き換わっている
+   * (実測 = YAML 欄で「新規ファイル」 を押すと本文欄だけ `untitled` に置き換わった)。
+   *
+   * YAML 側に同じことをする経路はまだ無いので、 押せなくして食い違いを断つ。
+   */
+  const cdlWriteDisabled = activeTab !== "cdl";
+  /** 押せない時に出す理由。 button の `title` に入れる (無効の理由が読めないと故障に見える) */
+  const cdlOnlyHint = "本文欄 (CDL) でのみ使えます";
+
   return (
     <div className="v4-editor">
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
@@ -1378,6 +1396,9 @@ animation:
           type="button"
           className="v4-editor-side-new"
           onClick={handleNewFile}
+          disabled={cdlWriteDisabled}
+          title={cdlWriteDisabled ? cdlOnlyHint : undefined}
+          data-testid="editor-new-file"
         >
           <span className="v4-editor-side-new-plus">+</span>
           <span>新規ファイル</span>
@@ -1415,10 +1436,16 @@ animation:
         </div>
         {sidebarTab === "syntax" && (
           <SyntaxReference
-            onInsert={(code) => {
-              // 末尾に足す。 どこに入れるかを当てるより、 足した後に user が動かす方が確実。
-              setSrc((prev) => (prev.endsWith("\n") ? `${prev}${code}\n` : `${prev}\n${code}\n`));
-            }}
+            // YAML 欄では差し込み先が映っていないので、 一覧は読めるが押しても入らない形にする
+            // (`onInsert` 未指定で click と説明書きが外れる)
+            onInsert={
+              cdlWriteDisabled
+                ? undefined
+                : (code) => {
+                    // 末尾に足す。 どこに入れるかを当てるより、 足した後に user が動かす方が確実。
+                    setSrc((prev) => (prev.endsWith("\n") ? `${prev}${code}\n` : `${prev}\n${code}\n`));
+                  }
+            }
           />
         )}
         {sidebarTab === "samples" && (
@@ -1442,6 +1469,8 @@ animation:
                       data-testid={`editor-sample-${s.slug}`}
                       data-sample-label={s.label}
                       onClick={() => handleSelectSample(s)}
+                      disabled={cdlWriteDisabled}
+                      title={cdlWriteDisabled ? cdlOnlyHint : undefined}
                     >
                       {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
                     </button>
@@ -1476,7 +1505,8 @@ animation:
                   className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
                   data-testid={`editor-part-item-${p.id}`}
                   data-part-id={p.id}
-                  title={p.subtitle}
+                  title={cdlWriteDisabled ? cdlOnlyHint : p.subtitle}
+                  disabled={cdlWriteDisabled}
                   onClick={() => {
                     // CAR-1657 click = drop と同 semantic = actors: append (additive)。
                     // actors: block なし = REPLACE fallback (新規 diagram 作成、 confirm dialog 経由)
@@ -1567,7 +1597,16 @@ animation:
             {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
           </span>
           <span className="v4-editor-bar-gap" />
-          <button type="button" className="v4-editor-bar-btn" onClick={handleShare}>
+          {/* 共有 URL は本文欄の中身だけを載せる。 YAML 欄で押すと、 映していない本文が
+              相手の画面に開く (実測) ので、 YAML を載せる経路ができるまで押せなくする */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleShare}
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : undefined}
+            data-testid="editor-share"
+          >
             共有URL
           </button>
           <div className="v4-editor-export">
@@ -1647,11 +1686,16 @@ animation:
                 type="button"
                 className="v4-editor-warnings-apply"
                 onClick={handleAutoFix}
-                disabled={fixableWarningCount === 0}
+                // 書き戻し先は本文欄。 YAML 欄の図に出た警告を押すと、 その図を持たない
+                // 本文の方が書き換わる (または「反映できない」 と出る) ので押せなくする
+                disabled={fixableWarningCount === 0 || cdlWriteDisabled}
+                data-testid="editor-auto-fix"
                 title={
-                  fixableWarningCount > 0
-                    ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
-                    : "対応可 warning がありません"
+                  cdlWriteDisabled
+                    ? cdlOnlyHint
+                    : fixableWarningCount > 0
+                      ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
+                      : "対応可 warning がありません"
                 }
               >
                 {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "対応可なし"}
@@ -1721,7 +1765,8 @@ animation:
             className="v4-editor-bar-btn"
             data-testid="editor-diagram-scale-down"
             onClick={() => scaleWholeDiagram(1 / 1.25)}
-            title="図そのものを縮小する (表示倍率ではなく DSL に反映)"
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを縮小する (表示倍率ではなく DSL に反映)"}
           >
             図を縮小
           </button>
@@ -1730,7 +1775,8 @@ animation:
             className="v4-editor-bar-btn"
             data-testid="editor-diagram-scale-up"
             onClick={() => scaleWholeDiagram(1.25)}
-            title="図そのものを拡大する (表示倍率ではなく DSL に反映)"
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを拡大する (表示倍率ではなく DSL に反映)"}
           >
             図を拡大
           </button>
@@ -1740,7 +1786,9 @@ animation:
             data-testid="editor-toggle-positions"
             aria-pressed={showPositions}
             onClick={() => setShowPositions((v) => !v)}
-            title="各要素が今どこに居るかを図に重ねて出す"
+            // 札は本文欄にしか書き戻せない。 YAML 欄では押しても何も出ないので押せなくする
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "各要素が今どこに居るかを図に重ねて出す"}
           >
             位置を表示
           </button>

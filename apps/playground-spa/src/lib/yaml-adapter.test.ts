@@ -12,6 +12,7 @@
  * verify 方法 = `pnpm test yaml-adapter` (vitest run) で全 assertion PASS
  */
 import { describe, it, expect } from "vitest";
+import { jsonToDiagram } from "@cardenelabs/dragon";
 import {
   yamlToObject,
   yamlToDiagram,
@@ -167,20 +168,42 @@ flow:
     expect(result.error.message).toContain("empty");
   });
 
-  it("partsCatalog opt を jsonToDiagram に forward する (kind=parts 経路の regression 防止)", () => {
-    // catalog に無い kind を渡した時に silent fail せず validation error を返すことを確認
+  it("部品の一覧を渡すと図に取り込まれる (渡さないと仮の箱に落ちる)", () => {
+    // 渡す経路を落としても throw しないため、 「通った」 だけでは検知できない。
+    // 渡した時と渡さない時で図の中身が変わることを両方見る。
     const yaml = `title: "with parts"
 type: sequence
 actors:
   - name: gauge1
-    kind: unknown-part-xyz
+    kind: demo-part
 flow: []
 `;
-    // catalog なし = jsonToDiagram が受理してくれるか validation error を返すか (現行実装は受理する) を確認するだけの smoke
-    const result = yamlToDiagram(yaml);
-    // 動作: 現行 jsonToDiagram は未知 kind でも throw しない (partId として保持)、 diagram 生成に成功する
-    // → parts catalog forward 経路は throw なしで通ることを smoke 検証
-    expect(result.ok).toBe(true);
+    const part = jsonToDiagram({ title: "demo part", type: "flow", actors: ["Inner"], flow: [] });
+
+    const withCatalog = yamlToDiagram(yaml, { partsCatalog: { "demo-part": part } });
+    expect(withCatalog.ok).toBe(true);
+    if (!withCatalog.ok) return;
+    // 部品の中身が名前の頭を付けて入る
+    expect(withCatalog.diagram.nodes.map((n) => n.id)).toEqual(["gauge1__inner"]);
+
+    const without = yamlToDiagram(yaml);
+    expect(without.ok).toBe(true);
+    if (!without.ok) return;
+    // 解決できないと仮の箱 3 つになる = 渡す経路を落とせば必ずここで差が出る
+    expect(without.diagram.nodes.map((n) => n.id)).toEqual([
+      "gauge1-header",
+      "gauge1-spacer",
+      "gauge1-footer",
+    ]);
+  });
+
+  it("`---` で区切った複数の文書は誤りにする (先頭だけ読む形ではない)", () => {
+    // 説明文と実装が食い違っていた箇所。 `load()` 自身が単一文書を要求する
+    const result = yamlToObject("a: 1\n---\na: 2\n");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.kind).toBe("parse");
+    expect(result.error.message).toContain("single document");
   });
 });
 

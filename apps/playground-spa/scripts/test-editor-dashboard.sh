@@ -122,6 +122,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
     tests/ethereum.spec.ts
     tests/editor-stage-svg.spec.ts
     tests/editor-initial-animation.spec.ts
+    tests/editor-yaml-tab.spec.ts
   )
   RESULT_L3="pass"
   : > "$LOG_DIR/editor-test-l3.log"

@@ -14,9 +14,12 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  */
 
 /**
- * 統一 error shape = preview 領域で `YAML parse error: line <N>: <message>` として表示するために
- * `line` と `message` の 2 field を最低限保持する。 `mark` field は js-yaml YAMLException の元 mark を
- * そのまま渡す (追加 test で reason / column を assert する時に便利)。
+ * 誤りの形を 1 つに揃える。 画面は `YAML parse error: line <N>: <message>` の 1 行にするので、
+ * 行番号と本文の 2 つがあれば足りる。
+ *
+ * `reason` は js-yaml が返す短い理由をそのまま持つ (test で理由まで確かめたい時に使う)。
+ * js-yaml の `mark` (行 / 列 / 抜粋) は保持しない = 画面に出す形が決まっており、
+ * 使う予定のない値を持つと「使えるはず」 と読まれる。
  */
 export interface YamlAdapterError {
   /** 1-origin 行番号、 parse error は YAMLException.mark.line + 1、 validation error は null */
@@ -40,10 +43,13 @@ export type YamlDiagramResult =
   | { ok: false; error: YamlAdapterError };
 
 /**
- * multi-line YAML source を `js-yaml.load()` で plain object に変換する。
- * 空文字列 / whitespace 単独は `{ ok: false, error: validation }` として扱う (空 diagram は render 不能)。
- * multi-document YAML (`---` 区切り複数 doc) は最初の 1 doc のみを対象、 anchor / merge key は
- * js-yaml default 挙動を尊重するが本 PR で追加 spec は書かない (spec § out)。
+ * 複数行の YAML を `js-yaml` の `load()` で素の値に変換する。
+ *
+ * 空文字と空白だけの本文は誤り扱いにする (中身の無い図は描けない)。
+ *
+ * `---` で区切った複数の文書は **非対応**。 `load()` 自身が
+ * `expected a single document in the stream` を投げるので、 parse の誤りとして表示される。
+ * 別名参照 (anchor / merge key) は `js-yaml` の既定の挙動に任せる。
  */
 export function yamlToObject(src: string): YamlObjectResult {
   const trimmed = src.trim();
