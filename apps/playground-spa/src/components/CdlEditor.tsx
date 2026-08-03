@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
-import { compile, CdlDiagramView, visualValidate, layout, type CdlDiagram, type Violation } from "@cardenelabs/cdl";
+import { CdlDiagramView, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
 import {
   textDslToDiagram,
   measureActorBoxes,
@@ -16,7 +16,7 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize } from "@/lib/overlay-dsl";
-import { visibleWarnings } from "@/lib/editor-warnings";
+import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
@@ -223,6 +223,31 @@ function collectActorNamesFromSrc(src: string): Set<string> {
   return names;
 }
 
+/**
+ * 「この欄のこの中身で組み立て済み」 を表す鍵 (#1006)。
+ *
+ * 欄を切り替えただけで中身が変わっていないなら、 組み立て直す理由がない。 図の規模に比例して
+ * 重い処理なので、 往復のたびに計算すると画面が止まる。
+ *
+ * パーツの数を混ぜるのは、 一覧が遅れて読み込まれるため。 本文だけを見ていると、 読み込みが
+ * 終わってもやり直さず、 パーツが空の箱のまま残る (実測 = 共有 URL でパーツ入りの本文を開くと、
+ * 一覧を開いた後も箱のままだった)。
+ */
+function buildKey(tab: "cdl" | "yaml", src: string, yamlSrc: string, partsCount: number): string {
+  // 長さを持つ形で繋ぐ。 区切り文字で繋ぐと、 その文字が本文に出た時に別の中身が同じ鍵になる
+  return JSON.stringify([tab, partsCount, tab === "yaml" ? yamlSrc : src]);
+}
+
+/** 欄ごとに覚えておく組み立ての結果 */
+type BuildCacheEntry = {
+  key: string;
+  diagram: CdlDiagram;
+  laid: LaidDiagram;
+  warnings: Violation[];
+  /** 書いたのに効かなかったことの知らせ。 一緒に覚えないと、 戻った時に消えたままになる */
+  notices: CompileNotice[];
+};
+
 // 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
 
 /**
@@ -293,6 +318,16 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
+  /**
+   * 配置まで済ませた図 (#1006)。
+   *
+   * 組み立て (`compile`) は中で配置を計算する。 その結果を捨てると、 位置関係の検査と
+   * 図枠の原点でもう 2 度計算することになる (実測 = 辺 1,000 本で 1 回の描画に 5.42 秒)。
+   * 上の `diagram` と必ず対で更新する = 片方だけ新しい状態を作らない。
+   */
+  const [laid, setLaid] = useState<LaidDiagram | null>(null);
+  /** 欄ごとの組み立て結果。 中身が変わっていない欄に戻った時は、 これを載せ直すだけにする (#1006) */
+  const buildCacheRef = useRef<Record<"cdl" | "yaml", BuildCacheEntry | null>>({ cdl: null, yaml: null });
   // 2026-07-24 architectural refactor = parts を cdl DSL から完全切離、 独立 overlay 化。
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
@@ -808,9 +843,52 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     return map;
   }, [partsItems]);
 
+  /**
+   * 組み立てた図を画面に載せ、 位置関係を検査する (#1006)。
+   *
+   * 3 つの入口 (本文欄 / YAML 欄 / 埋め込み JSON) が同じことをしていた。 それぞれで
+   * 組み立て → 検査 → 図枠の原点と 3 度配置を計算していたため、 1 か所にまとめて
+   * 組み立ての結果を使い回す。
+   *
+   * 組み立てに失敗したら投げる。 図を載せる前に捕まえたいので、 ここでは握らない。
+   */
+  const commitBuilt = useCallback((d: CdlDiagram, built: BuildResult, notices: CompileNotice[]): void => {
+    buildCacheRef.current[activeTab] = {
+      key: buildKey(activeTab, src, yamlSrc, partsItems.length),
+      diagram: d,
+      laid: built.laid,
+      warnings: built.warnings,
+      notices,
+    };
+    setLaid(built.laid);
+    setDiagram(d);
+    setWarnings(built.warnings);
+    setCompileNotices(notices);
+  }, [activeTab, src, yamlSrc, partsItems.length]);
+
+  /** 組み立てて載せるまでを 1 度に済ませる経路 (測った配置を途中で使わない入口向け) */
+  const applyDiagram = useCallback((d: CdlDiagram): void => {
+    commitBuilt(d, buildAndValidate(d), []);
+  }, [commitBuilt]);
+
   // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    // 欄を切り替えただけで中身が変わっていないなら、 覚えてある図を戻すだけにする (#1006)。
+    // 組み立ては図の規模に比例して重く、 往復のたびに計算し直すと画面が止まる
+    const key = buildKey(activeTab, src, yamlSrc, partsItems.length);
+    const cached = buildCacheRef.current[activeTab];
+    if (cached && cached.key === key) {
+      setLaid(cached.laid);
+      setDiagram(cached.diagram);
+      setWarnings(cached.warnings);
+      setCompileNotices(cached.notices);
+      // 覚えてあるのは組み立てに成功した結果だけ。 誤りの表示を残すと、 図は正しいのに
+      // 前の失敗の帯が出たままになる (実測 = 正しい本文 → 壊れた本文 → 元に戻す で再現)
+      if (activeTab === "yaml") setYamlError(null);
+      else setError(null);
+      return;
+    }
     const debounceMs = activeTab === "yaml" ? 500 : 300;
     timerRef.current = window.setTimeout(() => {
       if (activeTab === "yaml") {
@@ -820,18 +898,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         const result = yamlToDiagram(yamlSrc, { partsCatalog });
         if (result.ok) {
           try {
-            compile(result.diagram);
-            setDiagram(result.diagram);
+            // 絞り込みは本文欄と同じ関数を通る (`applyDiagram` の中)。 別々に書くと、
+            // 片方だけ直した時に同じ図なのに欄によって出る警告が変わる。
+            applyDiagram(result.diagram);
             setYamlError(null);
             setError(null);
-            try {
-              const report = visualValidate(result.diagram);
-              // 絞り込みは本文欄と同じ関数を使う。 別々に書くと、 片方だけ直した時に
-              // 同じ図なのに欄によって出る警告が変わる。
-              setWarnings(visibleWarnings(report.violations, result.diagram));
-            } catch {
-              setWarnings([]);
-            }
           } catch (e) {
             // compile 側 throw = validation kind に丸め (jsonToDiagram 通過後の layout error)、
             // 前回 diagram は残す (spec AC 4 の spirit を compile error にも適用)。
@@ -865,16 +936,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           for (const dropped of stripExternalPaint(part)) {
             setDropHintWithReset(`図の外を指す値 (${dropped.path}) は色として使えないため外しました。`, 6000);
           }
-          // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
-          compile(part);
-          setDiagram(part);
+          // 組み立てに失敗する図は描画前に捕まえる (`applyDiagram` が投げ、 外側の catch が受ける)
+          applyDiagram(part);
           setError(null);
-          try {
-            const report = visualValidate(part);
-            setWarnings(visibleWarnings(report.violations, part));
-          } catch {
-            setWarnings([]);
-          }
           return;
         }
         // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
@@ -899,10 +963,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         //
         // パーツが無い図では測らない。 配置計算は 1 回 1ms 前後かかるので、 入力ごとに
         // 使わない計算を走らせない
+        // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
+        // ここで作った 1 つを共有する (渡さないと中でもう一度計算する、 #1006)
+        const built = buildAndValidate(d);
         setOverlayParts(
           parts.length === 0
             ? []
-            : placeParts(parts, measureActorBoxes(d), partWorldSize, d.nodes.length, (n) => {
+            : placeParts(parts, measureActorBoxes(d, built.laid), partWorldSize, d.nodes.length, (n) => {
                 // パーツは記法の解析より前に抜き出すので組み立て側の知らせに乗らない。
                 // 同じ場所に出すため、 ここで同じ形に直して混ぜる
                 notices.push({
@@ -914,19 +981,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
                 });
               }),
         );
-        setCompileNotices(notices);
-        // compile を先に通して、 組み立てに失敗する図を描画前に捕まえる (戻り値は使わない)。
-        compile(d);
-        setDiagram(d);
+        // 位置関係の検査は組み立ての中で走り、 「label が edge から遠すぎ」「node bbox に埋まる」
+        // 等を editor 上部に出す。 組み立てに失敗する図は上の `buildAndValidate` が投げ、
+        // 下の catch が受ける。
+        commitBuilt(d, built, notices);
         setError(null);
-        // visualValidate で位置関係を機械検証、 warn / error を editor 上部に表示。
-        // 「label が edge から遠すぎ」「node bbox に埋まる」 等をユーザーが DSL 書きながら把握可能に。
-        try {
-          const report = visualValidate(d);
-          setWarnings(visibleWarnings(report.violations, d));
-        } catch {
-          setWarnings([]);
-        }
       } catch (e) {
         setError((e as Error).message);
         setWarnings([]);
@@ -951,14 +1010,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    * 札とパーツで同じ値を使う。 別々に計算すると、 片方だけ直した時にずれが残る。
    */
   const worldOrigin = useMemo(() => {
-    if (!diagram) return { x: 0, y: 0 };
-    try {
-      const vb = layout(diagram).viewBox;
-      return { x: vb.x, y: vb.y };
-    } catch {
-      return { x: 0, y: 0 };
-    }
-  }, [diagram]);
+    // 配置は組み立ての時に済んでいる。 ここで測り直すと、 同じ図に対して 2 度計算する (#1006)
+    if (!laid) return { x: 0, y: 0 };
+    return { x: laid.viewBox.x, y: laid.viewBox.y };
+  }, [laid]);
   worldOriginRef.current = worldOrigin;
 
   /**
@@ -973,7 +1028,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (activeTab !== "cdl" || !showPositions || !diagram) return [];
     try {
       const vb = worldOrigin;
-      return [...measureActorBoxes(diagram)]
+      // 配置は組み立ての時に済んでいる。 渡さないと中でもう一度計算する (#1006)
+      return [...measureActorBoxes(diagram, laid ?? undefined)]
         // 本文に書き戻せる相手だけに出す。 図には矢印の説明のように名前を持つが `actors:` に
         // 行を持たない要素もあり、 札を出すと押しても何も起きない。 書き込みを実際に試して、
         // 通る相手だけを対象にする (名前の見分け方を画面側で持ち直さずに済む)
@@ -989,7 +1045,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     } catch {
       return [];
     }
-  }, [activeTab, showPositions, diagram, diagramK, src, worldOrigin]);
+  }, [activeTab, showPositions, diagram, laid, diagramK, src, worldOrigin]);
 
   /**
    * 今の位置を座標として本文に書く。
@@ -1867,7 +1923,8 @@ animation:
           >
             {diagram ? (
               <div className="v4-editor-svg-wrap" style={{ position: "relative" }}>
-                <CdlDiagramView hideMiniPhaseIndicator diagram={diagram} hideHeader emitGeometryWarn={import.meta.env.DEV} />
+                {/* 配置は組み立ての時に済んでいる。 渡さないと描画側がもう一度計算する (#1006) */}
+                <CdlDiagramView hideMiniPhaseIndicator diagram={diagram} laid={laid ?? undefined} hideHeader emitGeometryWarn={import.meta.env.DEV} />
                 {/* 図全体の倍率。 cdl の SVG は 1 world unit = k px で描かれるので、 同じ world 座標に
                     置く overlay parts と group 枠にも同じ k を掛ける。 掛けないと図だけが伸びて
                     parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
