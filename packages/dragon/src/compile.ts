@@ -17,6 +17,7 @@ import {
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
+import { countDocElements, describeOversize } from "./input-size";
 import {
   orderByDependency,
   resolveRelativePos,
@@ -62,6 +63,12 @@ export type CompileNotice = {
 };
 
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
+  // 大きすぎる図は組み立てない (#1005)。 組み立てにかかる時間は要素数の 2 乗で伸び、
+  // 待機の後に同じ流れの中で走るため、 貼ってしまうと画面が戻らない (実測 = 10,000 要素で 7.6 秒)。
+  // 両方の記法がここを通るので、 入口ごとに置かずここで 1 度だけ見る
+  const oversize = describeOversize({ elements: countDocElements(doc), bytes: 0 });
+  if (oversize) throw new Error(oversize);
+
   let diagram: CdlDiagram;
   switch (doc.type) {
     case "sequence":

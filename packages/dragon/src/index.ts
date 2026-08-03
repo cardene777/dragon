@@ -44,6 +44,17 @@ export { partVisualSize, partsGridCenters } from "./compile";
 // 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を
 // 作る側 / 画面が背景色を直接書く側で同じ物差しを使う (別々に持つと、 片方だけ直した時に片方が通す)。
 export { isColorValue, pointsOutside, stripExternalPaint } from "./color";
+// 大きすぎる入力を組み立てる前に止める上限 (#1005)。 画面側も同じ物差しで事前に知らせられるよう公開する。
+export {
+  MAX_INPUT_ELEMENTS,
+  MAX_INPUT_BYTES,
+  countDocElements,
+  countDiagramElements,
+  countBytes,
+  describeOversize,
+  describeOversizeSource,
+} from "./input-size";
+export type { InputSize } from "./input-size";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
@@ -77,6 +88,7 @@ export type {
 import { parseTextDsl } from "./parser";
 import { parseTextDslV05 } from "./v05";
 import { compileToCdl } from "./compile";
+import { describeOversizeSource } from "./input-size";
 import type { CompileNotice } from "./compile";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
@@ -114,6 +126,11 @@ export interface CompileOpts {
  * opts.partsCatalog を渡すと CAR-1657 parts kind (arc-gauge 等) の actor が merge 展開される。
  */
 export function textDslToDiagram(src: string, opts?: CompileOpts): CdlDiagram {
+  // 読み取る前に大きさを見る (#1005)。 要素数の上限は読み取った後にしか分からないため、
+  // 巨大な本文そのものによる待ちと記憶の消費はここでしか防げない
+  const oversize = describeOversizeSource(src);
+  if (oversize) throw new Error(oversize);
+
   if (isV05Source(src)) {
     const r = parseTextDslV05(src);
     if (!r.ok) {
