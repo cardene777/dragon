@@ -10,9 +10,37 @@
 
 export { parseTextDsl } from "./parser";
 export { compileToCdl } from "./compile";
+export type { CompileNotice } from "./compile";
 export { parseTextDslV05 } from "./v05";
+// 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
+export { PRESET_TYPES } from "./v05/parser";
+export { TONE_ALIAS, NODE_KIND_ALIAS } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
+// canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)
+export {
+  computeDiagramBoundingBox,
+  rectsOverlap,
+  DIAGRAM_BOUNDARY_PADDING,
+} from "./canvas-bounds";
+export type { DiagramBoundingBox } from "./canvas-bounds";
+// 位置を相対で書くための解決。 組み立て側と画面側の両方が同じ規則を使うために公開する。
+export {
+  parseRelativePos,
+  resolveRelativePos,
+  orderByDependency,
+  RELATIVE_GAP_DEFAULT,
+} from "./relative-pos";
+export type { RelativePos, RelativeDirection, AnchorBox } from "./relative-pos";
+// 光らせる相手の書き方の読み取り。 図種ごとの解決経路が同じ規則を共有する。
+export { parseFocusEntry } from "./focus";
+export type { FocusEntry } from "./focus";
+// 画面で見えている座標を記法に落とすための書込み。 記法を知る側に置く。
+export { writeActorPosition } from "./write-position";
+// 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
+export { measureActorBoxes } from "./compile";
+// パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
+export { partVisualSize, partsGridCenters } from "./compile";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
@@ -38,11 +66,15 @@ export type {
   DslLane,
   DslGroup,
   DslViewport,
+  // CAR-1693 Phase 1: canvas pivot DSL 表面 pos + layout mode の public 型
+  LayoutPos,
+  LayoutMode,
 } from "./types";
 
 import { parseTextDsl } from "./parser";
 import { parseTextDslV05 } from "./v05";
 import { compileToCdl } from "./compile";
+import type { CompileNotice } from "./compile";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /**
@@ -52,6 +84,21 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  */
 export interface CompileOpts {
   partsCatalog?: Record<string, CdlDiagram>;
+  /**
+   * 図は出せるが書いた通りにならなかったことの受け取り口 (`位置: Web の下` が順序図で
+   * 効かない等)。 判定は組み立て側が持ち、 呼出側は受け取って表示するだけにする。
+   */
+  onNotice?: (notice: CompileNotice) => void;
+  /**
+   * edge が DSL のどの行から来たかの受け取り口 (#998)。
+   *
+   * preset によっては書いた step と生成される edge が一致しない (`type: flow` は actor を鎖状に
+   * 繋ぐため `a -> c` と書いても `a -> b` になる)。 edge を起点に本文の行を直す機能 (自動修正の
+   * 書き戻し等) は、 この対応が無いと別の行を書き換える。
+   *
+   * **対応が取れない edge については呼ばれない**。 「対応が無い」 と「行 0」 を区別するため。
+   */
+  onEdgeSource?: (edgeId: string, line: number) => void;
 }
 
 /**

@@ -14,7 +14,11 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // dragon の型は源から引く。 package.json の `types` は束ねた `dist/index.d.ts` を
+      // 指すが、 それは build 後にしか存在しない。 clean checkout で先に型検査すると
+      // 解決できず `any` に落ちる (`skipLibCheck: true` が誤りを隠すので気付けない)。
+      "@cardenelabs/dragon": ["../../packages/dragon/src/index.ts"]
     },
     "types": ["node", "vite/client"]
   },

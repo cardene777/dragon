@@ -11,7 +11,17 @@
 
 import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
-import { sequence, flow, swimlane, er, stateMachine, topology, diagram } from "@cardenelabs/cdl";
+import {
+  sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
+  rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
+} from "@cardenelabs/cdl";
+import { parseFocusEntry } from "./focus";
+import {
+  orderByDependency,
+  resolveRelativePos,
+  type AnchorBox,
+  type RelativeDirection,
+} from "./relative-pos";
 
 export interface CompileToCdlOpts {
   /**
@@ -20,7 +30,35 @@ export interface CompileToCdlOpts {
    * lookup + mergePartIntoDiagram で target に統合。 未渡し時は parts kind actor を skip + warn。
    */
   partsCatalog?: Record<string, CdlDiagram>;
+  /**
+   * 組み立ての途中で分かった「書いたのに効かなかったこと」 の受け取り口。
+   *
+   * 図は出せるので誤りにはしないが、 黙って捨てると書いた人が理由を追えない。 editor は
+   * これを受けて画面に出す。 判定は組み立て側だけが持ち、 画面側は表示に徹する。
+   */
+  onNotice?: (notice: CompileNotice) => void;
+  /**
+   * edge が DSL のどの行から来たかの受け取り口 (#998)。
+   *
+   * preset によっては書いた step と生成される edge が一致しない (`type: flow` は actor を鎖状に
+   * 繋ぐため `a -> c` と書いても `a -> b` になる)。 edge を起点に本文の行を直す機能は、 この
+   * 対応が無いと別の行を書き換える。
+   *
+   * **対応が取れない edge については呼ばれない**。 「対応が無い」 と「行 0」 を区別するため。
+   */
+  onEdgeSource?: (edgeId: string, line: number) => void;
 }
+
+/** 図は出せるが書いた通りにならなかった、 という知らせ。 */
+export type CompileNotice = {
+  kind: "relative-position-ignored" | "focus-target-missing";
+  /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
+  actor: string;
+  /** 書かれていた行 */
+  line: number;
+  message: string;
+  hint?: string;
+};
 
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
   let diagram: CdlDiagram;
@@ -66,11 +104,763 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
       throw new Error(`unknown type: ${String(doc.type)}`);
   }
-  applyEdgeInlineOptions(diagram, doc);
+  // edge と本文の行の対応は表に集めてから 1 edge = 1 回で知らせる (#998)。 経路ごとに
+  // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
+  const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
+  applyEdgeInlineOptions(diagram, doc, edgeSourceLines);
+  // `type: flow` は actor を鎖状に繋ぐため上の (from, to) 一致では取れない。 preset の規則で埋める。
+  if (edgeSourceLines) fillFlowEdgeSources(diagram, doc, edgeSourceLines);
   applyGroupContainers(diagram, doc);
+  applyNodeTones(diagram, doc);
+  // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
+  // 居ないかは記述だけで決まるので 1 か所で見る
+  reportMissingFocusTargets(doc, opts?.onNotice);
+  // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
+  const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
+  // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
+  applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
-  const extended = applyV05Extensions(diagram, doc);
-  return mergePartsFromActors(extended, doc, opts?.partsCatalog);
+  const extended = applyV05Extensions(diagram, placed);
+  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog);
+  // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
+  // 途中で消えた edge の行を知らせても呼出側が使えない。
+  if (edgeSourceLines && opts?.onEdgeSource) {
+    const alive = new Set(merged.edges.map((e) => e.id));
+    for (const [id, line] of edgeSourceLines) {
+      if (alive.has(id)) opts.onEdgeSource(id, line);
+    }
+  }
+  return merged;
+}
+
+/**
+ * 光らせる相手 (`focus:`) が実在しない分を知らせる。
+ *
+ * 名前が当たらなかった指定は静かに消える。 光らせたい相手を書いたのに光らない状態が、
+ * 手掛かりなしで起きる。
+ *
+ * 見るのは記述だけ。 id の形は図種で違うが、 「その名前の箱が居るか」「その矢印が流れに
+ * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
+ * たびに検査が取り残される。
+ */
+function reportMissingFocusTargets(
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  if (!onNotice || !doc.animate) return;
+  const names = new Set(doc.actors.map((a) => a.name));
+  // 解決側は名前が見つからない時に slug へ落とす。 受理集合もそれに合わせる。
+  // 合わせないと、 実際は光る指定 (`API Gateway` を `api-gateway` と書いた形) を
+  // 「見つかりません」 と誤報する (実測)
+  //
+  // 2 つ以上の名前が同じ slug になる時は受理しない。 解決側も曖昧として光らせないため、
+  // 受理すると「知らせは出ないのに何も光らない」 状態になる (実測)
+  const accepted = new Set(names);
+  const slugCount = new Map<string, number>();
+  for (const n of names) {
+    const sl = slugify(n);
+    slugCount.set(sl, (slugCount.get(sl) ?? 0) + 1);
+  }
+  for (const [sl, count] of slugCount) if (count === 1) accepted.add(sl);
+  //
+  // 縦列の id は受理しない。 3 つの解決経路はいずれも縦列を光らせないため、 受理すると
+  // 「知らせは出ないのに何も光らない」 状態を作る (実測 = `focus: [main]` で activate が空)
+  // 矢印は流れに書かれた組合せだけを認める。 名前に空白を含められる (`決済 基盤`) ため、
+  // 連結した 1 本の鍵にはしない (`"a b" -> "c"` と `"a" -> "b c"` が同じ鍵になる)
+  const steps = new Map<string, Set<string>>();
+  for (const st of doc.flow) {
+    const tos = steps.get(st.from) ?? new Set<string>();
+    tos.add(st.to);
+    steps.set(st.from, tos);
+  }
+
+  for (const phase of doc.animate.phases) {
+    for (const raw of phase.highlight ?? []) {
+      const entry = parseFocusEntry(raw, names);
+      const found =
+        entry.kind === "edge"
+          ? (steps.get(entry.from)?.has(entry.to) ?? false)
+          : accepted.has(entry.name);
+      if (found) continue;
+      onNotice({
+        kind: "focus-target-missing",
+        actor: raw,
+        line: phase.pos.line,
+        message:
+          entry.kind === "edge"
+            ? `光らせる矢印が流れにありません: "${raw}"`
+            : `光らせる相手が見つかりません: "${raw}"`,
+        hint:
+          entry.kind === "edge"
+            ? "flow: に書いた矢印と同じ向きで書く"
+            : `actors: に書かれている名前 = ${[...names].join(", ")}`,
+        // 縦列の id は受理しないので、 その旨は hint に出さない (光らせられないため)
+      });
+    }
+  }
+}
+
+/**
+ * 相対で書かれた位置 (`位置: Web の右 200`) を絶対座標に直した doc を返す。
+ *
+ * 基準の実座標は配置を 1 度計算しないと分からない。 cdl の `layout` を呼んで測り、
+ * 基準の縁から間隔を空けた位置を求める。 元の doc は書き換えず、 座標を入れた複製を返す。
+ *
+ * 相対指定が 1 件も無ければ何もしない。 配置計算は 1 回 1ms 前後かかるので、 使っていない
+ * 図に負担をかけない。
+ */
+function resolveRelativeDoc(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+  partsCatalog?: Record<string, CdlDiagram>,
+): DslDocument {
+  if (!doc.actors.some((a) => a.posRel !== undefined)) return doc;
+
+  // 1. 座標を書いた分を先に反映してから測る。 基準がどこに居るかはここで分かる。
+  //
+  // 自動配置のまま測ると、 座標で固定した箱を基準にした指定が壊れる。 基準の自動配置位置
+  // から狙いを作るため、 実際の位置と食い違い、 最後の確認で「効きません」 と捨てられる
+  // (実測 = `Web @1000,500` の右に置くはずの箱が 200 に出て、 そのまま落とされた)。
+  const measured = measureActorBoxes(withPositions(diagram, doc, new Map()));
+  // パーツの箱は catalog から作る。 組み立て前の図に残っている仮の箱を測ると、 実際に
+  // 描かれる大きさと違う値で間隔を計算することになる
+  const baseBoxes = new Map(measured);
+  if (partsCatalog) {
+    for (const [name, box] of partBoxes(diagram, doc, partsCatalog)) baseBoxes.set(name, box);
+  }
+  const sizeOverride = partsCatalog
+    ? partSizes(doc, partsCatalog)
+    : new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  const want = desiredCenters(doc, baseBoxes, sizeOverride);
+  if (want.size === 0) return doc;
+
+  // 2. 狙った中心をそのまま座標として仮に置く。
+  //    パーツは渡す座標が段の中心なので、 矩形の中心とのずれを引く
+  const naive = new Map(
+    [...want].map(([name, c]) => {
+      const off = sizeOverride.get(name);
+      return [name, { posX: c.cx - (off?.dx ?? 0), posY: c.cy - (off?.dy ?? 0) }] as const;
+    }),
+  );
+
+  // 3. 測り直して、 狙いとの差を足す。
+  //
+  // 座標を書いた時に中心がどこに来るかは図種で違う。 順序図の座標は縦列の左端を動かすので、
+  // 中心を狙って書くと縦列の幅の半分だけ右にずれる (実測 = 200 空けたいのに 370 空いた)。
+  // 図種ごとの規則を書き写すと cdl 側の変更で黙って壊れるため、 実際に置いた結果との差を
+  // 使って直す。 差は図種ごとに一定なので 1 度で合う (実測 = 8 図種すべてで狙い通り)。
+  const isPart = new Set(doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name));
+  // 確かめる時も、 基準になるパーツは catalog 由来の箱で見る。 この時点の図には仮の箱しか
+  // 無いため、 測ると解決側と違う基準で期待を作ることになる (実測 = 正しく置いた箱が
+  // 「効きません」 と落とされた)
+  const partOverride = new Map<string, AnchorBox>();
+  for (const [name, box] of baseBoxes) {
+    if (isPart.has(name)) partOverride.set(name, box);
+  }
+  for (const [name, c] of want) {
+    if (!isPart.has(name)) continue;
+    partOverride.set(name, c);
+  }
+  const placedBoxes = measureActorBoxes(withPositions(diagram, doc, naive));
+  const fixed = new Map<string, { posX: number; posY: number }>();
+  for (const [name, pos] of naive) {
+    // パーツは補正しない。 merge が座標を中心としてそのまま使うので狙いがそのまま効く。
+    // 一方この時点の図にはパーツの仮の箱しか無く、 動いていない位置を測って差を足すと
+    // ずれが二重になる (実測 = 狙い 760 に対して 1320 に飛んだ)
+    if (isPart.has(name)) {
+      fixed.set(name, pos);
+      continue;
+    }
+    const got = placedBoxes.get(name);
+    const target = want.get(name)!;
+    if (!got) {
+      fixed.set(name, pos);
+      continue;
+    }
+    fixed.set(name, {
+      posX: pos.posX + (target.cx - got.cx),
+      posY: pos.posY + (target.cy - got.cy),
+    });
+  }
+
+  // 4. 効いたかを確かめ、 効かなかった分は自動配置に戻す。
+  //
+  // 座標がどの向きにも効く保証は無い。 順序図の縦位置がその例で、 縦列は横に並ぶものなので
+  // 下に動かせない。 そのまま出すと基準の上に重なった図が出る (実測)。 動かなかった時は
+  // 書かなかった時と同じ配置に戻し、 何が効かなかったかを呼出側に伝える。
+  return withDocPositions(doc, verifyPlacement(diagram, doc, fixed, partOverride, onNotice));
+}
+
+/**
+ * 置いた結果が書いた通りかを確かめ、 外れた分を落とす。
+ *
+ * 確かめるのは最後の配置での「基準との位置関係」 で、 手順 1 で測った狙いではない。
+ * 誰かを固定すると周りの自動配置が動くため、 狙いと突き合わせると基準がずれた分を
+ * 見逃す。 書いた言葉 (`Web の右 200`) が最後の図でも成り立つかを見る。
+ */
+function verifyPlacement(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+  partOverride: ReadonlyMap<string, AnchorBox>,
+  onNotice?: (notice: CompileNotice) => void,
+): Map<string, { posX: number; posY: number }> {
+  const boxes = measureActorBoxes(withPositions(diagram, doc, assign));
+  // パーツは merge 前なので、 図には実寸と違う仮の箱しか無い。 解決側と同じ箱に差し替える。
+  //
+  // 差し替えないと 2 通りに壊れる。 パーツを基準にした箱は仮の箱から期待を作って落とされ
+  // (実測 = 正しく置いた箱が「効きません」 になった)、 パーツ自身も仮の箱の位置と
+  // 突き合わせて落とされる。
+  for (const [name, box] of partOverride) boxes.set(name, box);
+  const kept = new Map(assign);
+  for (const actor of doc.actors) {
+    const rel = actor.posRel;
+    const pos = assign.get(actor.name);
+    if (!rel || !pos) continue;
+    const self = boxes.get(actor.name);
+    const anchor = boxes.get(rel.anchor);
+    if (!self || !anchor) continue;
+    const expect = resolveRelativePos(rel, anchor, self);
+    const offX = Math.abs(expect.posX - self.cx);
+    const offY = Math.abs(expect.posY - self.cy);
+    if (offX <= PLACEMENT_TOLERANCE && offY <= PLACEMENT_TOLERANCE) continue;
+    kept.delete(actor.name);
+    onNotice?.({
+      kind: "relative-position-ignored",
+      actor: actor.name,
+      line: actor.pos.line,
+      message: `"${actor.name}" の位置 (${rel.anchor} の${DIRECTION_LABEL[rel.dir]}) は${doc.type}図では効きません`,
+      hint: "座標 (`位置: 300,200`) で置くか、 自動配置に任せる",
+    });
+  }
+  return kept;
+}
+
+/** 向きの表示名。 効かなかった時の知らせで、 書いた言葉に近い形で返すために持つ。 */
+const DIRECTION_LABEL: Readonly<Record<RelativeDirection, string>> = {
+  right: "右",
+  left: "左",
+  above: "上",
+  below: "下",
+};
+
+/**
+ * 書いた通りに置けたと見なす誤差。
+ *
+ * 補正が効いた図種では実測 0.0 で一致する。 効かない向き (順序図の縦) は数百ずれるので、
+ * その間で切る。 丸めと配置計算の揺れを吸収する幅として 1 を取る。
+ */
+const PLACEMENT_TOLERANCE = 1;
+
+/**
+ * 相対で書かれた分について、 中心をどこに置きたいかを求める。
+ *
+ * 基準がまた相対で書かれていることがある (`C は B の右`、 `B は A の右`) ため、 依存の浅い順に
+ * 解く。 解けた中心は基準として次に使う。
+ */
+function desiredCenters(
+  doc: DslDocument,
+  boxes: ReadonlyMap<string, AnchorBox>,
+  sizeOverride: ReadonlyMap<string, { w: number; h: number }> = new Map(),
+): Map<string, AnchorBox> {
+  // 大きさだけを見る。 中心のずれは呼ぶ側が座標に直す時に引く
+  const byName = new Map(doc.actors.map((a) => [a.name, a] as const));
+  const { order } = orderByDependency(doc.actors.map((a) => ({ name: a.name, rel: a.posRel })));
+  // 基準に使う中心。 相対で書かれていない分は測った位置をそのまま使う
+  const centers = new Map<string, AnchorBox>(boxes);
+  const out = new Map<string, AnchorBox>();
+
+  for (const name of order) {
+    const actor = byName.get(name);
+    // 自分の大きさ。 パーツは catalog の値を使う (図に残る仮の箱は実寸と違う)
+    const override = sizeOverride.get(name);
+    const measuredSelf = boxes.get(name);
+    const self = override
+      ? { cx: measuredSelf?.cx ?? 0, cy: measuredSelf?.cy ?? 0, w: override.w, h: override.h }
+      : measuredSelf;
+    if (!actor?.posRel || !self) continue;
+    const anchor = centers.get(actor.posRel.anchor);
+    // 測れない相手を基準にした分は自動配置のまま残す。 相手が居ることは parser が確かめて
+    // いるので、 ここに来るのは図に箱として現れない相手 (catalog に無いパーツ等) を指した場合
+    if (!anchor) continue;
+    const p = resolveRelativePos(actor.posRel, anchor, self);
+    const center: AnchorBox = { cx: p.posX, cy: p.posY, w: self.w, h: self.h };
+    centers.set(name, center);
+    out.set(name, center);
+  }
+  return out;
+}
+
+/**
+ * 登場人物ごとの、 図の上での中心と大きさを測る。
+ *
+ * 対応付けは箱に表示される名前で行う。 id を使わない理由は `applyNodeTones` と同じで、
+ * slug の作り方が dragon と cdl で違うため記号を含む名前で一致しない。
+ *
+ * 1 人が複数の箱に分かれる図種 (順序図の上端 / 下端) では、 全部を囲む矩形を返す。
+ * 箱として現れない登場人物は縦列の矩形で代用する。
+ */
+export function measureActorBoxes(diagram: CdlDiagram): Map<string, AnchorBox> {
+  const laid = layout(diagram);
+  const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
+  for (const n of laid.nodes) {
+    const title = n.title;
+    if (!title) continue;
+    const x0 = n.cx - n.w / 2;
+    const y0 = n.cy - n.h / 2;
+    const x1 = n.cx + n.w / 2;
+    const y1 = n.cy + n.h / 2;
+    const cur = bounds.get(title);
+    if (cur) {
+      cur.x0 = Math.min(cur.x0, x0);
+      cur.y0 = Math.min(cur.y0, y0);
+      cur.x1 = Math.max(cur.x1, x1);
+      cur.y1 = Math.max(cur.y1, y1);
+    } else {
+      bounds.set(title, { x0, y0, x1, y1 });
+    }
+  }
+  const out = new Map<string, AnchorBox>();
+  for (const [name, b] of bounds) {
+    out.set(name, { cx: (b.x0 + b.x1) / 2, cy: (b.y0 + b.y1) / 2, w: b.x1 - b.x0, h: b.y1 - b.y0 });
+  }
+  for (const lane of laid.lanes) {
+    const label = lane.label;
+    if (!label || out.has(label)) continue;
+    const y = lane.y ?? 0;
+    const h = lane.height ?? 0;
+    out.set(label, { cx: (lane.x ?? 0) + lane.width / 2, cy: y + h / 2, w: lane.width, h });
+  }
+  return out;
+}
+
+/** doc の複製に、 決まった座標を入れる。 元の doc は書き換えない。 */
+function withDocPositions(
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+): DslDocument {
+  if (assign.size === 0) return doc;
+  return {
+    ...doc,
+    actors: doc.actors.map((a) => {
+      const p = assign.get(a.name);
+      return p ? { ...a, posX: p.posX, posY: p.posY } : a;
+    }),
+  };
+}
+
+/** 決まった座標を反映した図の複製を作る。 測り直す時だけ使う捨て図。 */
+function withPositions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  assign: ReadonlyMap<string, { posX: number; posY: number }>,
+): CdlDiagram {
+  const probe: CdlDiagram = {
+    ...diagram,
+    lanes: diagram.lanes.map((l) => ({ ...l })),
+    nodes: diagram.nodes.map((n) => ({ ...n })),
+  };
+  applyCanvasPivotPositions(probe, withDocPositions(doc, assign));
+  return probe;
+}
+
+/**
+ * 全図種共通の後処理で、 登場人物に書かれた色を対応する箱に載せる。
+ *
+ * 箱を作る経路は図種ごとに違い、 cdl の preset を経由する図種 (流れ図 / ER / 状態遷移 / 構成図)
+ * では preset の入力型が色の項目を持たない。 箱が出来上がった後に id で対応付けることで、
+ * どの図種でも同じ書き方が効く。 座標を伝播する `applyCanvasPivotPositions` と同じ経路。
+ *
+ * 対応付けは箱に表示される名前との一致で行う。 id は使わない。
+ *
+ * id での対応付けは 2 通りに壊れる。 id は名前を slug に変換して作るが、 その変換規則が
+ * dragon と cdl で違い、 記号を含む名前では一致しない (実測 = `A_B` が dragon 側で `a_b`、
+ * cdl 側で `a-b`)。 逆に、 生成した id (`{slug}-header`) をそのまま名前に持つ登場人物が
+ * 居ると、 別人の箱を巻き込む。
+ *
+ * 表示名は変換を経ないので前者が起きず、 別人と一致しないので後者も起きない。 順序図で
+ * 1 人が分かれる複数の箱のうち、 間隔用と手順ごとの anchor は表示名が空なので自然に対象外に
+ * なる (色を持っても幅 2 で見えない)。
+ *
+ * parts は対象外。 parts の `tone` は色ではなく状態の上書きとして parser が扱うため、
+ * ここに色として渡ってこない。
+ */
+function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
+  for (const actor of doc.actors) {
+    if (actor.tone === undefined) continue;
+    for (const node of diagram.nodes) {
+      if (node.title === actor.name) node.tone = actor.tone;
+    }
+  }
+}
+
+/**
+ * canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y/W/H を CDL 側 lane / node に伝播。
+ * preset builder が生成した diagram に対して、 doc.actors の 4 field を絶対座標として反映する。
+ * slugify で actor 名 → lane id / node id の逆引き、 posX/Y set 済 actor に対応する lane / node に
+ * 座標を書込む。 未指定 actor は従来 auto layout 経路そのまま。
+ */
+function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void {
+  for (const actor of doc.actors) {
+    if (actor.partId !== undefined) continue; // parts actor は別経路 (mergePartsFromActors) で処理
+    const aliasSlug = slugify(actor.name);
+    // actor 全体 posX/Y = lane と単一 node に一括反映 (従来経路)
+    if (actor.posX !== undefined && actor.posY !== undefined) {
+      for (const lane of diagram.lanes) {
+        if (lane.id === aliasSlug || lane.id === actor.name) {
+          lane.posX = actor.posX;
+          lane.posY = actor.posY;
+          if (actor.posW !== undefined) lane.posW = actor.posW;
+          if (actor.posH !== undefined) lane.posH = actor.posH;
+        }
+      }
+      for (const node of diagram.nodes) {
+        if (node.id === aliasSlug || node.id === actor.name) {
+          node.posX = actor.posX;
+          node.posY = actor.posY;
+          if (actor.posW !== undefined) node.posW = actor.posW;
+          if (actor.posH !== undefined) node.posH = actor.posH;
+        }
+      }
+    }
+    // canvas pivot UX 修正 (B1) = actor.nodes[subKey] を対応 CDL node に個別反映。
+    // sub-node id pattern を actor scope 限定の 2 経路に絞る (subagent review MAJOR-1 対応、 CAR-canvas-pivot):
+    //   1. `{aliasSlug}-{subKey}` = header / footer / spacer 等 suffix
+    //   2. `{subKey}-{aliasSlug}` = sequence step box `s{N}-{aliasSlug}` 等 prefix
+    // 旧 `node.id === subKey` 完全一致 fallback は actor scope を持たず cross-actor pollution risk
+    // (別 actor が保有する同名 id node に座標が漏れる silent bug) のため削除。 全 sub-node は必ず
+    // aliasSlug を接頭 / 接尾に含む形式で生成されるため、 2 経路で網羅済。
+    // lane 側は触らない = 他 sub-node の auto layout 経路を保持 (B1 独立性の SSOT)。
+    if (actor.nodes) {
+      for (const [subKey, override] of Object.entries(actor.nodes)) {
+        if (override.posX === undefined || override.posY === undefined) continue;
+        for (const node of diagram.nodes) {
+          if (
+            node.id === `${aliasSlug}-${subKey}` ||
+            node.id === `${subKey}-${aliasSlug}`
+          ) {
+            node.posX = override.posX;
+            node.posY = override.posY;
+            if (override.posW !== undefined) node.posW = override.posW;
+            if (override.posH !== undefined) node.posH = override.posH;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * catalog からパーツ 1 個の図を引く。
+ *
+ * `Object.hasOwn` で引く。 素の添字だと `__proto__` 等の既定の持ち物が引けてしまう
+ * (catalog は呼出側が渡す untrusted な値)。
+ */
+function lookupPart(
+  partsCatalog: Record<string, CdlDiagram>,
+  partId: string | undefined,
+): CdlDiagram | undefined {
+  if (typeof partId !== "string" || partId.length === 0) return undefined;
+  if (Object.hasOwn(partsCatalog, partId)) return partsCatalog[partId];
+  if (Object.hasOwn(partsCatalog, `parts-${partId}`)) return partsCatalog[`parts-${partId}`];
+  return undefined;
+}
+
+/**
+ * 箱の大きさを書かなかった時に cdl が使う値。
+ *
+ * 幅は実測で 340 固定 (縦列の幅を変えても変わらない)。 高さは種類で変わるため、 よく使われる
+ * 値を既定にする。 パーツの図が大きさを書いていれば、 こちらは使われない。
+ */
+const CDL_DEFAULT_NODE_W = 340;
+const CDL_DEFAULT_NODE_H = 200;
+
+/** 有限で正の数だけを通す。 catalog は呼出側が渡す値なので、 異常値を計算に入れない。 */
+function positiveOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/**
+ * 配列の最大値 / 最小値。 spread で展開しない (要素数が多い catalog で stack が溢れる)。
+ *
+ * 空の時だけ既定値を返す。 既定値を初期値にすると、 全要素が既定値より小さい (大きい) 時に
+ * 存在しない値を範囲に含める (実測 = stack 5 だけのパーツで 0 を含め、 高さが 5 段分になった)。
+ */
+function maxOf(values: readonly number[], fallback: number): number {
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
+  for (const v of values) if (v > out) out = v;
+  return out;
+}
+
+function minOf(values: readonly number[], fallback: number): number {
+  if (values.length === 0) return fallback;
+  let out = values[0]!;
+  for (const v of values) if (v < out) out = v;
+  return out;
+}
+
+/**
+ * merge がパーツを縦に送る幅。 `mergePartIntoDiagram` の `STACK_PITCH_APPROX` と同じ値。
+ *
+ * 大きさの見積りは merge が実際に置く形と揃える。 別の規則で見積ると、 間隔が狂う
+ * (実測 = 2 段のパーツで 200 空けたいところが 90 になった)。
+ */
+const PART_STACK_PITCH = 220;
+
+/**
+ * パーツ 1 個が図の上で占める外接矩形。
+ *
+ * `w` / `h` は大きさ、 `dx` / `dy` は矩形の中心が「merge に渡す座標」 からどれだけずれるか。
+ *
+ * merge がパーツを置く時に基準にするのは段の中心で、 外接矩形の中心とは一致しない。 段ごとに
+ * 箱の高さが違うと、 上下の伸び方が非対称になるため (実測 = 段 0 に高さ 50、 段 5 に高さ 200 の
+ * パーツで中心が 37.5 下にずれる)。 ずれを返して呼ぶ側が引く。
+ *
+ * 箱ごとに位置と大きさを見る。 一番高い箱の高さと段の数から概算すると実際の矩形と合わない
+ * (実測 = 段 5 だけのパーツで 200 空けたいところが 750、 段 0,5 で高さが違うと 275 になった)。
+ *
+ * 段の送り幅は merge の近似 (`PART_STACK_PITCH`) を使う。 パーツを自分の図として配置計算した
+ * 実寸とは段を持つパーツで 3% ほど違うが (実測 = 3 段で実高 620 に対して 640)、 ここで見たいのは
+ * 「merge がどこに置くか」 なので merge の規則に合わせる。
+ */
+function partExtent(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number; dx: number; dy: number } {
+  const fallback = { w: 400, h: 200, dx: 0, dy: 0 };
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return fallback;
+  if (part.nodes.length === 0) return fallback;
+
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値なので、 数でない値を計算に入れない
+  const lanes = new Map<string, { x: number; w: number }>();
+  const laneLefts: number[] = [];
+  const laneRights: number[] = [];
+  for (const l of part.lanes) {
+    const x = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+    const w = positiveOr(l.width, 400);
+    lanes.set(l.id, { x, w });
+    laneLefts.push(x);
+    laneRights.push(x + w);
+  }
+  const bboxW = positiveOr(maxOf(laneRights, 400) - minOf(laneLefts, 0), 400);
+  const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
+  const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
+
+  const stacks = part.nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
+  const maxStack = maxOf(stacks, 0);
+  const minStack = minOf(stacks, 0);
+  const centerStack = (minStack + maxStack) / 2;
+  const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
+  const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
+
+  // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
+  const tops: number[] = [];
+  const bottoms: number[] = [];
+  const lefts: number[] = [];
+  const rights: number[] = [];
+  part.nodes.forEach((n, i) => {
+    const lane = lanes.get(n.lane) ?? { x: 0, w: 320 };
+    const cx = (lane.x + lane.w / 2 - bboxCenterX) * scaleX;
+    const cy = ((stacks[i] ?? 0) - centerStack) * PART_STACK_PITCH * scaleY;
+    const halfW = (positiveOr(n.w, CDL_DEFAULT_NODE_W) * scaleX) / 2;
+    const halfH = (positiveOr(n.h, CDL_DEFAULT_NODE_H) * scaleY) / 2;
+    lefts.push(cx - halfW);
+    rights.push(cx + halfW);
+    tops.push(cy - halfH);
+    bottoms.push(cy + halfH);
+  });
+  const x0 = minOf(lefts, 0);
+  const x1 = maxOf(rights, 400);
+  const y0 = minOf(tops, 0);
+  const y1 = maxOf(bottoms, 200);
+
+  return {
+    w: positiveOr(x1 - x0, 400),
+    h: positiveOr(y1 - y0, 200),
+    dx: Number.isFinite((x0 + x1) / 2) ? (x0 + x1) / 2 : 0,
+    dy: Number.isFinite((y0 + y1) / 2) ? (y0 + y1) / 2 : 0,
+  };
+}
+
+/**
+ * パーツ 1 個の見た目の大きさ。 画面側がパーツを描く箱の大きさに使う。
+ *
+ * 組み立て側が間隔を測る時と同じ値を返す。 別に求めると、 同じ本文でもパーツの大きさが
+ * 経路によって変わる (実測 = 画面側が CSS 固定の 800x600、 組み立て側が catalog の図枠)。
+ */
+export function partVisualSize(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number } {
+  const e = partExtent(part, targetW, targetH);
+  return { w: e.w, h: e.h };
+}
+
+/** 格子に並べる時の 1 行あたりの個数と隙間。 */
+const PARTS_PER_ROW = 3;
+const PARTS_GAP = 120;
+/**
+ * 既存の図の下に置く時の目安。
+ *
+ * 既存の箱は自動配置なので、 この時点では座標を持たない。 箱の数から概算する。
+ * 1 段あたりの高さは cdl の既定の縦送り幅に合わせる。
+ */
+const STACK_PITCH = 280;
+
+/**
+ * 位置を書かなかったパーツを格子に並べた時の、 矩形の中心。
+ *
+ * 組み立て側 (`mergePartsFromActors`) と画面側 (playground の overlay) の両方から呼ぶ。
+ * 別々に計算すると、 同じ本文でも経路によってパーツの位置が変わる。
+ *
+ * 列の送り幅は並べる全パーツの最大幅で揃える。 個々の幅で送ると、 幅の違うパーツが混ざった時に
+ * 隣と重なる (実測 = 400 の次に 200 を置くと 280 重なった)。 段の高さも段内の最大高で揃える。
+ * 縦は自分の高さの半分だけ段の上端から下げて、 段内で上端を揃える。
+ *
+ * @param baseNodeCount パーツ以外の箱の数。 既存の図の下から並べ始めるために使う
+ */
+export function partsGridCenters(
+  baseNodeCount: number,
+  items: ReadonlyArray<{ id: string; w: number; h: number }>,
+): Map<string, { cx: number; cy: number }> {
+  const out = new Map<string, { cx: number; cy: number }>();
+  if (items.length === 0) return out;
+  // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない箱の数や桁溢れを
+  // そのまま計算に入れると、 描けない座標を返すことになる
+  const safeCount =
+    Number.isSafeInteger(baseNodeCount) && baseNodeCount >= 0 ? baseNodeCount : 0;
+  const top = safeCount * STACK_PITCH + PARTS_GAP * 2;
+  // 同じ名前が 2 度来たら先の方だけを見る。 後の分を残すと、 どちらを指したか決められない
+  // まま列の送り幅にも影響する
+  const seen = new Set<string>();
+  const unique = items.filter((i) => {
+    if (seen.has(i.id)) return false;
+    seen.add(i.id);
+    return true;
+  });
+  const cellW = maxOf(
+    unique.map((i) => positiveOr(i.w, 400)),
+    400,
+  );
+  const rowTops: number[] = [];
+  {
+    let y = top;
+    for (let i = 0; i < unique.length; i += PARTS_PER_ROW) {
+      rowTops.push(y);
+      const rowH = maxOf(
+        unique.slice(i, i + PARTS_PER_ROW).map((x) => positiveOr(x.h, 200)),
+        200,
+      );
+      y += rowH + PARTS_GAP;
+    }
+  }
+  unique.forEach((item, i) => {
+    const col = i % PARTS_PER_ROW;
+    const row = Math.floor(i / PARTS_PER_ROW);
+    const cx = col * (cellW + PARTS_GAP) + cellW / 2;
+    const cy = (rowTops[row] ?? top) + positiveOr(item.h, 200) / 2;
+    // 桁溢れした座標は描けない。 返さずに落として、 呼出側が自動配置に倒せるようにする
+    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return;
+    out.set(item.id, { cx, cy });
+  });
+  return out;
+}
+
+/**
+ * 位置を書かなかったパーツの、 merge に渡す座標。
+ *
+ * 格子の規則は `partsGridCenters` が持つ。 merge は矩形の中心を渡された座標に合わせるので、
+ * 中心をそのまま渡す。
+ */
+function partGridCenters(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, { cx: number; cy: number }> {
+  const partsActors = doc.actors.filter((a) => a.partId !== undefined);
+  // 格子に並ぶのは座標を 1 つも書かず相対でも書かなかった分だけ。
+  //
+  // merge 側は「縦横どちらも書かなかった時」 に格子へ落とす。 条件が食い違うと、 片方だけ
+  // 書いたパーツが格子の枠を 1 つ消費して後続がずれる (実測 = 後続の中心が 200 から 720 に動いた)
+  const autoActors = partsActors.filter(
+    (a) => a.posX === undefined && a.posY === undefined && a.posRel === undefined,
+  );
+  if (autoActors.length === 0) return new Map();
+  // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
+  // 置き場所が下へずれる
+  const partsActorNames = new Set(partsActors.map((a) => a.name));
+  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
+  const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  for (const a of autoActors) {
+    const part = lookupPart(partsCatalog, a.partId);
+    extents.set(a.name, part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200, dx: 0, dy: 0 });
+  }
+  const centers = partsGridCenters(
+    baseNodes.length,
+    autoActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
+  );
+  // merge に渡すのは段の中心。 矩形の中心とのずれを引く。 引かないと、 段ごとに箱の高さが
+  // 違うパーツで段内の上端が揃わない (実測 = 対称なパーツの上端 520 に対して 507.5)
+  const out = new Map<string, { cx: number; cy: number }>();
+  for (const [name, c] of centers) {
+    const e = extents.get(name)!;
+    out.set(name, { cx: c.cx - e.dx, cy: c.cy - e.dy });
+  }
+  return out;
+}
+
+/**
+ * パーツごとの外接矩形 (catalog 由来)。 相対指定を解く時に自分の大きさとして使う。
+ *
+ * `dx` / `dy` は矩形の中心と merge に渡す座標のずれ。 狙った中心から引いて座標にする。
+ */
+function partSizes(
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, { w: number; h: number; dx: number; dy: number }> {
+  const out = new Map<string, { w: number; h: number; dx: number; dy: number }>();
+  for (const a of doc.actors) {
+    if (a.partId === undefined) continue;
+    const part = lookupPart(partsCatalog, a.partId);
+    if (part) out.set(a.name, partExtent(part, a.posW, a.posH));
+  }
+  return out;
+}
+
+/**
+ * パーツの箱 (中心と大きさ)。 相対指定を解く時の基準として使う。
+ *
+ * 大きさは catalog の図から求める。 組み立て前の図に残っている仮の箱を測ると、 実際に
+ * 描かれる大きさと違う値で間隔を計算することになる。
+ */
+function partBoxes(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram>,
+): Map<string, AnchorBox> {
+  const grid = partGridCenters(target, doc, partsCatalog);
+  const out = new Map<string, AnchorBox>();
+  for (const a of doc.actors) {
+    if (a.partId === undefined) continue;
+    const part = lookupPart(partsCatalog, a.partId);
+    if (!part) continue;
+    const size = partExtent(part, a.posW, a.posH);
+    const placed =
+      a.posX !== undefined && a.posY !== undefined
+        ? { cx: a.posX, cy: a.posY }
+        : grid.get(a.name);
+    // 相対で書いた分はここでは決まらない (解決側が後で埋める)
+    if (!placed) continue;
+    // 渡す座標は段の中心。 矩形の中心はそこからずれる
+    out.set(a.name, { cx: placed.cx + size.dx, cy: placed.cy + size.dy, w: size.w, h: size.h });
+  }
+  return out;
 }
 
 /**
@@ -92,6 +882,12 @@ function mergePartsFromActors(
     }
     return target;
   }
+  // 位置を書かなかったパーツの置き場所は `partGridCenters` が決める。
+  //
+  // 以前はここで格子を組んでいたが、 相対指定を解く側も同じ位置を知る必要がある。
+  // 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。 規則を共有する。
+  const gridCenters = partGridCenters(target, doc, partsCatalog);
+
   for (const actor of partsActors) {
     const partId = actor.partId;
     // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
@@ -111,33 +907,123 @@ function mergePartsFromActors(
       continue;
     }
     // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
-    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slugify(alias)}-header /
-    // -spacer / -footer / s{N}-{slugify(alias)}` を生成、 alias slug prefix match で全 sweep。
+    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slug}-header / -spacer /
+    // -footer / s{N}-{slug}` を生成、 slug prefix match で全 sweep。
+    //
+    // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
+    // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
+    // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
+    // footer (title = actor 名) が残って actor 名が多重表示される。
+    //
+    // seq-like preset は「actor 専用 lane に属する node」 を exact set で特定する経路を使う。
+    // lane.label === actor.name で lane を引き当て (label は両 slug 経路とも actor.name 生値)、 その
+    // lane に属する node (header / spacer / footer / step anchor は全て actor lane 所属) を node.lane で
+    // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
+    // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
+    // の両方を同時に排除する。
     const aliasSlug = slugify(actor.name);
-    target.nodes = target.nodes.filter((n) => {
-      if (n.id === aliasSlug) return false;
-      if (n.id.startsWith(`${aliasSlug}-`)) return false;
+    const ownedLaneIds = new Set<string>();
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      for (const l of target.lanes) {
+        // 明示 lane mapping (actor.lane) 先は part の張替え先で actor 専用 lane ではないため除外
+        if (actor.lane !== undefined && l.id === actor.lane) continue;
+        if (l.label === actor.name) ownedLaneIds.add(l.id);
+      }
+    }
+    const ownedNodeIds = new Set<string>();
+    for (const n of target.nodes) {
+      if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
+    }
+    // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
+    // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
+    const matchesAliasSlug = (id: string): boolean => {
+      if (id === aliasSlug) return true;
+      if (id.startsWith(`${aliasSlug}-`)) return true;
       // sequence step anchor = `s{N}-{aliasSlug}` pattern
-      if (/^s\d+-/.test(n.id) && n.id.endsWith(`-${aliasSlug}`)) return false;
-      return true;
-    });
-    // edge も同 alias prefix / suffix 経由で削除 (parts actor に接続していた flow を除去、
-    // parts merge 後の flow は user が別途書く経路になる)
+      if (/^s\d+-/.test(id) && id.endsWith(`-${aliasSlug}`)) return true;
+      return false;
+    };
+    const relatedToActor = (id: string): boolean =>
+      ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
+    target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
+    // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
+    // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
+    const removedEdgeIds = new Set<string>();
     target.edges = target.edges.filter((e) => {
-      const relatedToAlias = (id: string) => id === aliasSlug || id.startsWith(`${aliasSlug}-`) || (id.startsWith("s") && id.endsWith(`-${aliasSlug}`));
-      return !relatedToAlias(e.from) && !relatedToAlias(e.to);
+      const drop = relatedToActor(e.from) || relatedToActor(e.to);
+      if (drop) removedEdgeIds.add(e.id);
+      return !drop;
     });
-    // 削除された nodes を activate 参照している既存 phase の cleanup
-    for (const phase of target.phases) {
-      phase.activate = phase.activate.filter((id) => {
-        if (id === aliasSlug) return false;
-        if (id.startsWith(`${aliasSlug}-`)) return false;
+    // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
+    // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
+    // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
+    //
+    // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
+    // 1 actor = 1 lane (lane.label === actor.name、 lane.id は actor 名の slug) の生成規則が成立し、
+    // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
+    // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
+    // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
+    //
+    // leftover lane の特定は lane.label === actor.name を第一に使う。 seq-like preset は非 animate 経路
+    // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
+    // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
+    // は両経路とも actor.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
+    // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      target.lanes = target.lanes.filter((l) => {
+        // 明示 lane mapping (actor.lane) 先は part の張替え先なので保持する。
+        if (actor.lane !== undefined && l.id === actor.lane) return true;
+        if (l.label === actor.name) return false;
+        if (l.id === aliasSlug) return false;
         return true;
       });
     }
-    mergePartIntoDiagram(target, part, actor.name, actor.stateOverride ?? {}, actor.lane);
+    // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
+    // = 取りこぼすと存在しない id が activate に残り dangling 参照になる、 #873)
+    for (const phase of target.phases) {
+      phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
+    }
+    const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
+    // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
+    let placeX = actor.posX;
+    let placeY = actor.posY;
+    // 格子に落とすのは縦横どちらも書かなかった時だけ。 片方だけ書いた時に残りを格子で
+    // 埋めると、 書いた値と格子が混ざった位置になる (従来の条件をそのまま保つ)
+    if (placeX === undefined && placeY === undefined) {
+      const center = gridCenters.get(actor.name);
+      placeX = center?.cx;
+      placeY = center?.cy;
+    }
+    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH);
   }
   return target;
+}
+
+/**
+ * `色:` に書かれた色番号を、 パーツが持つ色の状態に入れる。
+ *
+ * 色を保持する状態の名前はパーツごとに違う (`bg` / `stFill` / `gFill` / `hue` など)。 名前を
+ * 決め打ちすると、 別の名前を使うパーツで色を書いても何も起きない。
+ *
+ * パーツの状態のうち初期値が色番号のものを探して、 そこに入れる。 複数あれば全部に入れる
+ * (`cpuC` / `memC` / `netC` のように系統ごとに分かれている場合、 1 つだけ変えるとちぐはぐになる)。
+ */
+function applyColorHex(
+  part: CdlDiagram,
+  colorHex: string | undefined,
+  stateOverride: Record<string, number | string | boolean>,
+): Record<string, number | string | boolean> {
+  if (!colorHex) return stateOverride;
+  const colorStates = part.states.filter(
+    (st) => typeof st.initial === "string" && /^#[0-9a-fA-F]{3,8}$/.test(st.initial),
+  );
+  if (colorStates.length === 0) return stateOverride;
+  const out = { ...stateOverride };
+  for (const st of colorStates) {
+    // 名前を指定して書いた値が優先。 `色:` はまとめて塗る指定
+    if (out[st.id] === undefined) out[st.id] = colorHex;
+  }
+  return out;
 }
 
 /**
@@ -152,6 +1038,21 @@ function mergePartIntoDiagram(
   alias: string,
   stateOverride: Record<string, number | string | boolean>,
   laneMapping: string | undefined,
+  /**
+   * parts drop 位置 (drag-and-drop or click 追加時に呼出側が SVG viewBox 座標を書出す)。
+   * 未指定 = 従来 (lane.x = 0 baked-in で canvas 左端に描画)、 指定時 = parts 内部 lane の
+   * x / y に加算して drop 座標付近に描画。 D1 forensic (drop 座標乖離) の core fix。
+   */
+  offsetX?: number,
+  offsetY?: number,
+  /**
+   * parts 全体 resize 対応 (I2 forensic) = parts を Miro 相当の「1 unit」 として扱い、
+   * user が SE handle drag で拡大すると actor.posW/posH が書出される。 compile で受け取り、
+   * parts 全 sub-node の w / h と cx / cy 相対位置に scale 係数を適用して等比拡大する。
+   * 未指定 = 従来の parts 原寸 で描画 (scale なし)。
+   */
+  targetW?: number,
+  targetH?: number,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   const stateIdSet = new Set(part.states.map((s) => s.id));
@@ -165,29 +1066,172 @@ function mergePartIntoDiagram(
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
   const targetLaneId = laneMapping;
   const laneIdMap = new Map<string, string>();
+  // parts lane の横位置。
+  //   offset (drop / click 座標) 指定時 = part 中心を offsetX に合わせる = user が置いた位置に
+  //     parts の中心が来る。 node は lane 中心 (lane.x + laneW/2) に描画されるため、 lane 左端を
+  //     offsetX - laneW/2 に置くと node 中心 = offsetX となり cursor / viewport 中央に一致する
+  //     (縦方向 offsetY と対称、 offsetY 側は partCenterStack で既に中心合わせ済)。
+  //     従来の auto-adjust (max(offsetX, existingMax + gap) で既存 lane 右端へ強制右寄せ) は user
+  //     directive で廃止 (2026-07-21)。 重なりは user の意図位置を優先し、 手動移動で回避する経路。
+  //   未指定 (座標なし fallback) 時のみ existingMax + gap で右外配置 (通常経路は drop/click で座標を渡す)。
+  const PARTS_LANE_GAP = 300;
+  const existingLaneMaxX = target.lanes.length > 0
+    ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
+    : 0;
+  // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
+  // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
+  // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
+  // 中心からずれる (#880)。
+  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値で、 生値のまま bbox を出すと
+  // 拡大の基準が 1 に落ちて箱が桁違いに大きくなる (実測 = 指定間隔 200 が -31800 になった)
+  const partLaneGeom = new Map<string, { x: number; w: number }>();
+  for (const l of part.lanes) {
+    partLaneGeom.set(l.id, {
+      x: typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0,
+      w: positiveOr(l.width, 400),
+    });
+  }
+  const laneXs = [...partLaneGeom.values()].map((g) => g.x);
+  const laneRights = [...partLaneGeom.values()].map((g) => g.x + g.w);
+  const partMinLaneX = minOf(laneXs, 0);
+  const partMaxLaneRight = maxOf(laneRights, 400);
+  // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
+  // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
+  // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
+  const rawBboxW = partMaxLaneRight - partMinLaneX;
+  const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
+  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
+  // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
+  // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
+  const partOrigBboxCenterX = partMinLaneX + partsBboxW / 2;
+  const dropCenterX = offsetX !== undefined
+    ? offsetX
+    : existingLaneMaxX + PARTS_LANE_GAP + (partsBboxW * laneScaleX) / 2;
+  const mapLaneX = (x: number): number => (x - partOrigBboxCenterX) * laneScaleX + dropCenterX;
+
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
       laneIdMap.set(laneOrig.id, targetLaneId);
     } else {
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
-      // parts 独自 lane が target に追加される (target 側 lane と衝突しない)
+      // lane の左端を mapLaneX で変換 = 元 lane 左端 (x) を scale 変換後の位置に置く。 lane 幅も
+      // scale して lane 中心が mapLaneX(元 lane 中心) に一致する。 これで multi-lane でも各 lane が
+      // part 全体の scale 変換に沿って配置される。
+      const geom = partLaneGeom.get(laneOrig.id) ?? { x: 0, w: 400 };
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
         label: laneOrig.label ?? alias,
+        x: mapLaneX(geom.x),
+        width: geom.w * laneScaleX,
       });
     }
   }
+
+  // parts drop 位置 fix (D1 + D2 root fix):
+  //   D2 = parts の stack 番号 (0/1/2/…) が target sequence の stack と衝突すると
+  //        CDL layout の rowH 計算で全 lane の同 row cy が拡張、 sequence footer 等が縦 shift。
+  //        → 2 段防御 で分離する:
+  //             (1) 全 parts node に posX/posY 明示 set (CDL layout の絶対配置経路 = stack 計算 skip)
+  //             (2) parts の stack 番号を target 側 max stack + STACK_ISOLATION_OFFSET (1000) に shift
+  //                 = 万一 layout が rowH で参照しても sequence stack と重ならず影響 0 化
+  //   D1 = drop 座標尊重の縦方向 = parts の元 stack (0..N) から近似 pitch で cy を組み立て、
+  //        offsetY を加算して drop 座標付近に描画。 lane.x + lane.width/2 + offsetX で横位置。
+  //
+  const STACK_ISOLATION_OFFSET = 1000;
+  const shouldForcePos = offsetX !== undefined || offsetY !== undefined;
+  // target 側の現在 max stack + isolation offset で parts node の stack を shift、
+  // sequence の rowH 計算と完全分離 (D2 fix、 posX/posY 明示との 2 段防御)。
+  const targetMaxStack = shouldForcePos && target.nodes.length > 0
+    ? Math.max(...target.nodes.map((n) => n.stack ?? 0))
+    : 0;
+  const stackShiftBase = shouldForcePos ? targetMaxStack + STACK_ISOLATION_OFFSET : 0;
+  // parts 全体 resize scale (I2 forensic 対応): targetW / targetH 指定時、 parts の元 total size
+  // に対する比率 = scale 係数、 全 sub-node の w / h + cx / cy 相対位置に scale 反映。
+  // scaleX は lane push と同じ part bbox 幅基準 (laneScaleX) を使う = multi-lane で lane と node の
+  // scale 係数が一致する (#880、 lane[0] 幅基準だと非先頭 lane の node がずれる)。
+  // parts 内部 stack 別の垂直 pitch (world unit)。 CDL layout の実 stackGap (~100) +
+  // 標準 node h (~140-200) の合計相当。 parts の cy を厳密に再現しないが、 渡した座標付近に
+  // parts が中心配置される見た目に十分な近似。
+  //
+  // 実配置に置き換える案を試したが、 拡大の基準 (縦列基準 → 箱基準) まで変わって既存の
+  // 期待 14 件が崩れた。 段を持つパーツ (実 catalog で 80 件中 7 件) の内部比率が実配置と
+  // 3% ずれるが、 見た目の大きさは呼出側が揃えるため観測される差は無い
+  const STACK_PITCH_APPROX = 220;
+  const partStacks = part.nodes.map((n) => n.stack ?? 0);
+  const minStack = partStacks.length > 0 ? Math.min(...partStacks) : 0;
+  const maxStack = partStacks.length > 0 ? Math.max(...partStacks) : 0;
+  const partCenterStack = (minStack + maxStack) / 2;
+  const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
+  const scaleX = laneScaleX;
+  const scaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const nodeOrig of part.nodes) {
     const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
     // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
     // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
-    const newShape = nodeOrig.shape
+    let newShape = nodeOrig.shape
       ? deepRewriteStrings(nodeOrig.shape as unknown, rewriteTemplate)
       : undefined;
+    // parts 全体 resize (I2 forensic): shape 内 radius / outerRadius / innerRadius / thickness に
+    // scale 反映 = user が SE handle drag で拡大すると shape の見た目も比例拡大される。 scaleX を採用
+    // (等比 scale 相当、 縦方向 scaleY と乖離する場合は近似)、 shape 内数値 field のうち幾何寸法系
+    // のみ scale 適用 (fill / stroke 色 field 等 non-numeric は影響なし)。
+    if (newShape && (scaleX !== 1 || scaleY !== 1)) {
+      const shapeScale = Math.min(scaleX, scaleY); // 等比 scale で circle 崩れ回避
+      const geomKeys = new Set(["radius", "outerRadius", "innerRadius", "thickness"]);
+      const scaleGeom = (obj: unknown): unknown => {
+        if (obj === null || typeof obj !== "object") return obj;
+        if (Array.isArray(obj)) return obj.map(scaleGeom);
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+          if (geomKeys.has(k) && typeof v === "number") {
+            out[k] = v * shapeScale;
+          } else if (typeof v === "object" && v !== null) {
+            out[k] = scaleGeom(v);
+          } else {
+            out[k] = v;
+          }
+        }
+        return out;
+      };
+      newShape = scaleGeom(newShape) as typeof newShape;
+    }
+    // parts drop 位置 offset 反映:
+    //   - node.posX set 済 (parts が絶対座標を持つ) = その posX を part 中心基準で scale 変換
+    //   - offsetX 指定時 (drop 経路) で posX 未設定 = node が属する lane 中央を同じ式で変換
+    //   - offset なし (従来経路) は auto layout 継続 (posX undefined)
+    //
+    // 明示 posX と auto-layout の両経路を、 lane push と同じ単一式 mapLaneX で変換する
+    // (cc-codex #879 Round 2/3 MAJOR + #880)。 mapLaneX は part bbox 中心 → drop 座標の scale 変換で、
+    // lane / node / 明示 posX / auto-layout の全経路がこの 1 式を共有するため、 lane.x != 0 でも
+    // multi-lane でも node 中心と自 lane 中心が一致する。
+    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapLaneX(nodeOrig.posX) : undefined;
+    let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
+    if (shouldForcePos && nodePosX === undefined) {
+      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
+      const geom = partLaneGeom.get(nodeOrig.lane) ?? { x: 0, w: 320 };
+      nodePosX = mapLaneX(geom.x + geom.w / 2);
+    }
+    if (shouldForcePos && nodePosY === undefined) {
+      // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整
+      const stack = nodeOrig.stack ?? 0;
+      nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX * scaleY + (offsetY ?? 0);
+    }
+    // parts sub-node の w / h に scale 適用 (I2 forensic 対応、 targetW/H 指定時のみ)
+    // catalog の値は呼出側が渡すので、 拡大しない時も数として通るか確かめる。 通さないと
+    // 座標が非有限になって図が描けない (実測 = 箱の中心が NaN になった)
+    const rawNodeW = nodeOrig.w !== undefined ? positiveOr(nodeOrig.w, 200) : undefined;
+    const rawNodeH = nodeOrig.h !== undefined ? positiveOr(nodeOrig.h, 200) : undefined;
+    const nodeW = rawNodeW !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeW * scaleX
+      : rawNodeW;
+    const nodeH = rawNodeH !== undefined && (scaleX !== 1 || scaleY !== 1)
+      ? rawNodeH * scaleY
+      : rawNodeH;
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),
@@ -195,7 +1239,13 @@ function mergePartIntoDiagram(
       title: rewriteTemplate(nodeOrig.title) ?? nodeOrig.title,
       subtitle: rewriteTemplate(nodeOrig.subtitle),
       value: rewriteTemplate(nodeOrig.value),
+      // parts stack を target 側と分離 (D2 fix、 posX/posY 明示との 2 段防御)
+      stack: (nodeOrig.stack ?? 0) + stackShiftBase,
       ...(newShape ? { shape: newShape as CdlDiagram["nodes"][number]["shape"] } : {}),
+      ...(nodePosX !== undefined ? { posX: nodePosX } : {}),
+      ...(nodePosY !== undefined ? { posY: nodePosY } : {}),
+      ...(nodeW !== undefined ? { w: nodeW } : {}),
+      ...(nodeH !== undefined ? { h: nodeH } : {}),
     });
   }
 
@@ -315,7 +1365,12 @@ function deepRewriteStrings(
  * - ER preset で cardinality が author 明示なら、 既存の label "places (1:N)" に "(1:N)" を再付与せず、
  *   既に label に含まれている場合はスキップ (`label.includes(cardinality)` で判定)。
  */
-function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
+function applyEdgeInlineOptions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  /** 対応が取れた edge を記録する表。 callback は呼ばない (1 edge = 1 回にするため)。 */
+  sourceLines?: Map<string, number>,
+): void {
   const used = new Set<string>();
   // sequence preset では actor 名 が lane id、 edge.from は `s{stepIdx}-{laneId}` 形式。
   // solidity は sorted-actor を sequence preset 経由するため sequence と同形。
@@ -338,6 +1393,7 @@ function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
     });
     if (!target) return;
     used.add(target.id);
+    sourceLines?.set(target.id, s.pos.line);
     if (s.guard !== undefined) {
       target.guard = s.guard;
       // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
@@ -354,6 +1410,102 @@ function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
     }
     if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
     if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  });
+}
+
+/**
+ * 描画側が大きさを持つ種別。
+ *
+ * 記法の `kind` は描画の種別より広い。 そのまま渡すと大きさを引けずに描画が落ちる
+ * (実測 = solidity の golden 4 件が `Cannot read properties of undefined`)。
+ */
+const DRAWABLE_KINDS: ReadonlySet<string> = new Set(NODE_KINDS);
+
+/**
+ * 描画側に無い記法の種別を、 意味の近い描画の種別に読み替える。
+ *
+ * Solidity の記法は `eoa` / `contract` のように領域固有の語を使う。 描画側に同じ名前は無いが、
+ * 意味の対応する形はある (`shape-wallet` / `shape-smart-contract`)。 読み替えないと名札が
+ * 一律 `card` になり、 「書いたとおりの形になる」 が Solidity の図だけ成立しない。
+ *
+ * 並び順 (`compileSolidity` の `kindOrder`) はこの読み替えの前の値で決まる = 読み替えても
+ * 縦線の並びは変わらない。
+ */
+const KIND_ALIAS: Readonly<Record<string, string>> = {
+  eoa: "shape-wallet",
+  wallet: "shape-wallet",
+  multisig: "signer",
+  contract: "shape-smart-contract",
+  proxy: "shape-smart-contract",
+  library: "shape-code-block",
+  interface: "shape-code-block",
+};
+
+/** 記法の種別を描画の種別に直す。 描けない種別のままなら `undefined`。 */
+function drawableKind(kind: string | undefined): string | undefined {
+  if (kind === undefined) return undefined;
+  const mapped = KIND_ALIAS[kind] ?? kind;
+  return DRAWABLE_KINDS.has(mapped) ? mapped : undefined;
+}
+
+/**
+ * 順序図の名札 (lifeline 上端 / 下端) の高さを揃える。
+ *
+ * `kind` を書いたとおりに載せると、 種別ごとに要る高さが変わる (行を持つ storage は 206、
+ * card は 72)。 揃えないと縦線の始まる位置がばらけ、 「同じ高さから下りる」 読み方が崩れる。
+ *
+ * 上端は最も高いものに合わせる。 下端も同じ値にする = 上下で形が違うと、 同じ登場人物が
+ * 別物に見える。
+ */
+function alignSeqHeaderHeights(diagram: CdlDiagram, doc: DslDocument): void {
+  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  // 名札の id は `{laneId}-header` / `{laneId}-footer` の構造。 末尾の一致だけで見ると、
+  // 登場人物名が `Auth Header` の時に step の目印 `s0-auth-header` を拾い、 見えない 2px の
+  // 箱を名札の高さまで広げてしまう (#883 と同根)。
+  const isEnd = (n: CdlDiagram["nodes"][number]): boolean =>
+    n.id === `${n.lane}-header` || n.id === `${n.lane}-footer`;
+  const ends = diagram.nodes.filter(isEnd);
+  if (ends.length === 0) return;
+  // `posH` を書いた名札は揃えの外に置く。 「その名札だけを指定の大きさにし、 他には影響させない」
+  // という指定なので (`types.ts` の `nodes` override)、 値を変えるのも、 他の名札を引きずるのも
+  // 契約に反する (実測 = `posH: 400` を 1 つ書くと、 無関係な名札まで 72 → 400 になった)。
+  const auto = ends.filter((n) => n.posH === undefined);
+  if (auto.length === 0) return;
+  const tallest = Math.max(...auto.map((n) => n.h ?? 0));
+  if (tallest <= 0) return;
+  for (const n of auto) n.h = tallest;
+}
+
+/**
+ * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
+ *
+ * `type: flow` は **actor を宣言順に一直線に並べ、 隣り合う actor の間に edge を引く**。
+ * n 本目の edge は `actors[n]` から `actors[n+1]` へ向かい、 その label は
+ * `doc.flow.find((s) => s.to === actors[n+1].name)` で選ばれる (`compileFlow`)。 そのため
+ * `a -> c` / `c -> b` と書いても edge は `a -> b` / `b -> c` になり、 `(from, to)` の一致では
+ * 1 件も取れない。
+ *
+ * **label を選ぶのと同じ規則で引く**。 `slugify` を挟んだ照合にすると、 別の名前が同じ slug に
+ * なる形 (`API Gateway` と `api-gateway`) で label の出どころと違う step を返す。
+ *
+ * **汎用の `(from, to)` 照合が入れた値は上書きする**。 `type: flow` では label の出どころが
+ * この規則で決まるので、 こちらが正しい。 上書きしないと、 たまたま `(from, to)` が一致した
+ * 別の step の行が残る (実測 = `c -> b: いち` / `a -> b: に` の順で書くと、 edge の label は
+ * `いち` なのに `に` の行を返した)。
+ *
+ * 対応が取れない edge には何も入れない (呼出側が「対応が無い」 と「行 0」 を区別できるように
+ * するため、 #998)。
+ */
+function fillFlowEdgeSources(diagram: CdlDiagram, doc: DslDocument, sourceLines: Map<string, number>): void {
+  if (doc.type !== "flow") return;
+  // animation ありは別経路 (`compileGenericWithAnimate`) で、 鎖の規則が当てはまらない。
+  if (doc.animate && doc.animate.phases.length > 0) return;
+  diagram.edges.forEach((e, idx) => {
+    const to = doc.actors[idx + 1];
+    if (to === undefined) return;
+    const step = doc.flow.find((s) => s.to === to.name);
+    if (step === undefined) return;
+    sourceLines.set(e.id, step.pos.line);
   });
 }
 
@@ -375,6 +1527,9 @@ function applyGroupContainers(diagram: CdlDiagram, doc: DslDocument): void {
       width: 800,
       label: g.label ?? id,
       contain: true,
+      // 束ねる lane 群に重ねて描く枠。 横に並べる lane ではないので、 engine の間隔調整
+      // (lane を詰めた分を幅で埋め合わせる処理) の対象から外す。
+      role: "overlay",
     });
   }
 }
@@ -437,7 +1592,9 @@ function compileGantt(doc: DslDocument): CdlDiagram {
   const TASK_W = 280;
   const TASK_H = 64;
   const QUARTER_CX: Record<string, number> = { Q1: 200, Q2: 600, Q3: 900, Q4: 1200 };
-  b.lane("gantt-timeline", { x: 0, width: 1400, label: doc.title });
+  // task lane を上に重ねる背景の帯。 横に並べる lane ではないので、 engine の間隔調整の
+  // 対象から外す (帯の幅 1400 を隣との重なりとして扱われると task lane が異常に太る)。
+  b.lane("gantt-timeline", { x: 0, width: 1400, label: doc.title, role: "overlay" });
 
   doc.actors.forEach((a, idx) => {
     const subtitle = (a.subtitle ?? "").trim().toUpperCase();
@@ -689,19 +1846,90 @@ function compileMind(doc: DslDocument): CdlDiagram {
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
+  // actor の主要 node を preset 種別で回収する。 sequence / solidity は header/footer を対で生成する
+  // preset で主要 node は header、 それ以外の preset は actor 名 slug がそのまま node id になる。
+  //
+  // seq-like の非 animate 経路は実 node id を CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
+  // 生成する。 dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと、 actor `A_B` の
+  // primaryNodeId `a_b-header` が実 node `a-b-header` と食い違い、 inline option (subtitle / eyebrow /
+  // value / rows) が drop する (#881、 #873 / #877 と同根の dragon⇔CDL slug 不一致)。 lane.label は
+  // 両 slug 経路とも actor.name の生値なので (#877)、 actor 専用 lane を label 一致で引き当て、 その
+  // lane 内の `-header` node を権威 primary として回収する。 slug 決め打ちを廃して実装差を構造的に吸収。
+  //
+  // 経路を preset 種別 (isSeqLike) で分け、 かつ lane.label / node id を actor.name の exact 一致で
+  // 引くことで、 actor 名 "A Header" の slug `a-header` が actor "A" の node に漏れる cross-actor leak
+  // (#879) も同時に断つ。
+  const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
   // actor inline option → node merge
   for (const a of doc.actors) {
-    const actorId = slugify(a.name);
-    // 該当 actor の主要 node (header / single node) を見つけて option を merge
-    for (const node of diagram.nodes) {
-      if (node.id === actorId || node.id === `${actorId}-header` || node.id === actorId.replace(/-header$/, "")) {
-        if (a.subtitle !== undefined) node.subtitle = a.subtitle;
-        if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
-        if (a.value !== undefined) node.value = a.value;
-        if (a.rows !== undefined) node.rows = a.rows;
+    const dragonSlug = slugify(a.name);
+    let primaryNodes: CdlDiagram["nodes"];
+    if (isSeqLike) {
+      const ownedLaneIds = new Set(
+        diagram.lanes.filter((l) => l.label === a.name).map((l) => l.id),
+      );
+      // lane.label で actor 専用 lane を引けた場合はその lane の header node を回収する。 引けない
+      // (label 未設定等の) preset は従来どおり dragon slug の `{slug}-header` 決め打ちに fallback する。
+      //
+      // header node id は `{laneId}-header` の構造。 `endsWith("-header")` で判定すると step box
+      // `s{idx}-{laneId}` が actor 名末尾 "Header" (slug `...-header`) で誤マッチし、 option が invisible
+      // な step anchor にも copy される (cc-codex #883 MAJOR)。 lane id との構造 exact 一致で header だけを
+      // 引くことで step box / spacer / footer を排除する。
+      primaryNodes = ownedLaneIds.size > 0
+        ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id === `${n.lane}-header`)
+        : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
+    } else {
+      // 非 seq preset は 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。
+      primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
+    }
+    for (const node of primaryNodes) {
+      if (a.subtitle !== undefined) node.subtitle = a.subtitle;
+      if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
+      if (a.value !== undefined) node.value = a.value;
+      if (a.rows !== undefined) node.rows = a.rows;
+      // seq-like preset の header / footer は kind を card 固定で作る。 書いた kind を載せる
+      // (#975)。 載せないと「書いたのに効かない項目」 が残り、 `rows` を書いた時は行が card に
+      // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
+      //
+      // 以前は「行を描く kind かつ rows あり」 に絞っていた。 header の見た目を kind ごとに
+      // 変えると読み方が変わることを懸念したためだが、 **書いたとおりにならない方が読み手を
+      // 惑わせる**。 見本 412 図で影響を受けるのは 1 図 (4 actor) だけと実測した。
+      // 書いた種別を名札に載せる。 描画側に無い語は意味の近い形に読み替える (#975)。
+      const drawn = isSeqLike ? drawableKind(a.kind) : undefined;
+      if (drawn !== undefined) {
+        node.kind = drawn as typeof node.kind;
+        // 下端の名札も同じ形にする。 上下で形が違うと、 同じ登場人物が別物に見える。
+        // `rows` は上端にだけ載る (`primaryNodes` が上端しか拾わない) ので、 行は 2 度出ない。
+        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+        if (footer) footer.kind = drawn as typeof node.kind;
+      }
+      // 行を書いた時は枠に収まる高さと幅にする。 header は w / h を固定値で作られ、 cdl 側は
+      // `n.w` / `n.h` を明示した node の自動拡張を尊重する (著者指定を壊さない) 設計なので、
+      // preset が置いた固定値がそのまま残る。
+      //
+      // 必要な寸法は cdl の SSOT (`requiredRowsHeight` / `requiredRowsWidth`) から引く。
+      // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
+      if (isSeqLike && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
+        node.h = Math.max(node.h ?? 0, requiredRowsHeight(a.kind, a.rows.length) ?? 0);
+        node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows));
+      }
+      // 名札の大きさも書いたとおりにする (#975)。 縦線の位置は `位置:` の x が lane に効く
+      // (実測) が、 大きさはどこにも載っていなかった。
+      //
+      // 高さは指定をそのまま使わず、 揃える側 (`alignSeqHeaderHeights`) に渡す候補にする。
+      // 1 本だけ高い名札を作ると、 縦線の始まる位置がばらける。
+      if (isSeqLike) {
+        // 書いた値をそのまま使う。 大きい方を採ると、 縮める指定 (`大きさ: 80,60`) が効かない。
+        if (a.posW !== undefined) node.w = a.posW;
+        if (a.posH !== undefined) node.h = a.posH;
+        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+        if (footer && a.posW !== undefined) footer.w = a.posW;
       }
     }
   }
+  // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
+  // 「同じ高さから下りる」 読み方が崩れる (実測 = 行を持つ名札だけ 134px 下にずれた)。
+  alignSeqHeaderHeights(diagram, doc);
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
   // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
   // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。
@@ -738,7 +1966,7 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       lane.width = doc.viewport.laneWidth;
     }
   }
-  // viewport.width / height / gap / laneGap / nodeGap / labelMargin → CdlDiagram.viewport に集約
+  // viewport.width / height / gap / laneGap / nodeGap / scale / labelMargin → CdlDiagram.viewport に集約
   if (doc.viewport) {
     diagram.viewport = {
       ...(diagram.viewport ?? {}),
@@ -747,6 +1975,7 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       ...(doc.viewport.gap !== undefined ? { gap: doc.viewport.gap } : {}),
       ...(doc.viewport.laneGap !== undefined ? { laneGap: doc.viewport.laneGap } : {}),
       ...(doc.viewport.nodeGap !== undefined ? { nodeGap: doc.viewport.nodeGap } : {}),
+      ...(doc.viewport.scale !== undefined ? { scale: doc.viewport.scale } : {}),
       ...(doc.viewport.labelMargin !== undefined ? { labelMargin: doc.viewport.labelMargin } : {}),
     };
   }
@@ -780,19 +2009,21 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // highlight 解決関数 = actor 名 or "A -> B" / "A → B" を node.id / edge.id に変換。
   // codex-review CAR-1659 MAJOR fix = 全角矢印 `→` を対応 (generic 経路との互換)、
   // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
+  // 実在する名前。 矢印を含む名前 (`"A -> B"`) を矢印と読み違えないために渡す
+  const knownNames = new Set(doc.actors.map((a) => a.name));
   const resolveIds = (highlight: readonly string[]): string[] => {
     const out: string[] = [];
     for (const h of highlight) {
-      const arrowMatch = h.match(/^(.+?)\s*(?:->|→)\s*(.+?)$/);
-      if (arrowMatch) {
-        const fromSlug = slugify((arrowMatch[1] ?? "").trim());
-        const toSlug = slugify((arrowMatch[2] ?? "").trim());
+      const entry = parseFocusEntry(h, knownNames);
+      if (entry.kind === "edge") {
+        const fromSlug = slugify(entry.from);
+        const toSlug = slugify(entry.to);
         for (const e of diagram.edges) {
           if (e.from === fromSlug && e.to === toSlug) out.push(e.id);
         }
         continue;
       }
-      const nodeSlug = slugify(h.trim());
+      const nodeSlug = slugify(entry.name);
       const node = diagram.nodes.find((n) => n.id === nodeSlug || n.id === `${nodeSlug}-header`);
       if (node) out.push(node.id);
     }
@@ -859,7 +2090,16 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     const id = slugify(a.name) || `actor-${i}`;
     actorIds.set(a.name, id);
     actorIds.set(id, id);
-    b.lane(id, { width: laneW, label: a.name, lifeline: true });
+    // canvas pivot 新 spec = actor.posX/posY set 済なら CDL layout skip 経路に流す。
+    // sequence preset の lane はここで生成、 posW/posH は lane 全体の rect を上書き。
+    const laneOpts: Parameters<typeof b.lane>[1] = { width: laneW, label: a.name, lifeline: true };
+    if (a.posX !== undefined && a.posY !== undefined) {
+      laneOpts.posX = a.posX;
+      laneOpts.posY = a.posY;
+      if (a.posW !== undefined) laneOpts.posW = a.posW;
+      if (a.posH !== undefined) laneOpts.posH = a.posH;
+    }
+    b.lane(id, laneOpts);
     const headerId = `${id}-header`;
     // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
     // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
@@ -957,39 +2197,35 @@ function resolveHighlight(
   _stepEdgeIds: string[],
 ): string[] {
   const out: string[] = [];
+  const knownNames = new Set(actorIds.keys());
   for (const raw of phase.highlight ?? []) {
-    const item = raw.trim();
-    // "A→B" or "A->B" 等の矢印つき → 該当 step edge を全部探して active
-    if (/[→\->]/.test(item)) {
-      const arrowMatch = item.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
-      if (arrowMatch) {
-        const fromName = arrowMatch[1]!.trim();
-        const toName = arrowMatch[2]!.trim();
-        const fromLaneId = actorIds.get(fromName) ?? slugify(fromName);
-        const toLaneId = actorIds.get(toName) ?? slugify(toName);
-        // 該当 edge を flow から検索
-        doc.flow.forEach((s, idx) => {
-          const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-          const sToId = actorIds.get(s.to) ?? slugify(s.to);
-          if (sFromId === fromLaneId && sToId === toLaneId) {
-            out.push(`e${idx}-${fromLaneId}-${toLaneId}`);
-          }
-        });
-        // 関連する step box も active 化
-        const stackIdx = doc.flow.findIndex((s) => {
-          const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-          const sToId = actorIds.get(s.to) ?? slugify(s.to);
-          return sFromId === fromLaneId && sToId === toLaneId;
-        });
-        if (stackIdx >= 0) {
-          out.push(`s${stackIdx}-${fromLaneId}`);
-          if (fromLaneId !== toLaneId) out.push(`s${stackIdx}-${toLaneId}`);
+    const entry = parseFocusEntry(raw, knownNames);
+    // 矢印つき → 該当 step edge を全部探して active
+    if (entry.kind === "edge") {
+      const fromLaneId = actorIds.get(entry.from) ?? slugify(entry.from);
+      const toLaneId = actorIds.get(entry.to) ?? slugify(entry.to);
+      // 該当 edge を flow から検索
+      doc.flow.forEach((s, idx) => {
+        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
+        const sToId = actorIds.get(s.to) ?? slugify(s.to);
+        if (sFromId === fromLaneId && sToId === toLaneId) {
+          out.push(`e${idx}-${fromLaneId}-${toLaneId}`);
         }
+      });
+      // 関連する step box も active 化
+      const stackIdx = doc.flow.findIndex((s) => {
+        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
+        const sToId = actorIds.get(s.to) ?? slugify(s.to);
+        return sFromId === fromLaneId && sToId === toLaneId;
+      });
+      if (stackIdx >= 0) {
+        out.push(`s${stackIdx}-${fromLaneId}`);
+        if (fromLaneId !== toLaneId) out.push(`s${stackIdx}-${toLaneId}`);
       }
       continue;
     }
     // actor 名 → header + footer + 全 step box を active
-    const laneId = actorIds.get(item);
+    const laneId = actorIds.get(entry.name) ?? slugLookup(actorIds, entry.name);
     if (laneId) {
       out.push(`${laneId}-header`);
       out.push(`${laneId}-footer`);
@@ -1004,6 +2240,25 @@ function resolveHighlight(
     }
   }
   return out;
+}
+
+/**
+ * 名前が見つからない時に、 slug の形でも探す。
+ *
+ * 記法は表示名で書くが、 書く人は id の形 (`api-gateway`) で書くこともある。 図種によって
+ * 受理する / しないが分かれると、 同じ記述が別の意味になる。
+ *
+ * 2 つ以上の名前が同じ slug になる時は解決しない。 どちらを指したか決められないため、
+ * 黙ってどちらかを選ぶより光らせない方が書いた人が気付ける。
+ */
+function slugLookup(byName: ReadonlyMap<string, string>, wanted: string): string | undefined {
+  let hit: string | undefined;
+  for (const [name, id] of byName) {
+    if (slugify(name) !== wanted) continue;
+    if (hit !== undefined) return undefined;
+    hit = id;
+  }
+  return hit;
 }
 
 function compileFlow(doc: DslDocument): CdlDiagram {
@@ -1088,7 +2343,10 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
 function compileEr(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (entity を box として配置)
   if (doc.animate && doc.animate.phases.length > 0) {
-    return compileGenericWithAnimate(doc, { kind: "er", laneWidth: 460 });
+    // 460 は preset 側の旧既定に合わせた値だった。 preset が箱 400 + 余白 25 × 2 = 450 を
+    // 宣言するようになった (cardene777/cdl#359) ので、 同じ図が animate の有無で 10 world
+    // ずれないようここも 450 にする。
+    return compileGenericWithAnimate(doc, { kind: "er", laneWidth: 450 });
   }
   // er preset ... actors を entity に、 流れ を relation に
   const erBuilder = er({
@@ -1305,28 +2563,27 @@ function resolveHighlightGeneric(
   edgeIds: string[],
 ): string[] {
   const out: string[] = [];
+  const knownNames = new Set(actorToNodeId.keys());
   for (const raw of phase.highlight ?? []) {
-    const item = raw.trim();
+    const entry = parseFocusEntry(raw, knownNames);
     // 矢印あり → edge を特定
-    if (/[→\->]/.test(item)) {
-      const arrowMatch = item.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
-      if (arrowMatch) {
-        const fromName = arrowMatch[1]!.trim();
-        const toName = arrowMatch[2]!.trim();
-        const fromId = actorToNodeId.get(fromName) ?? slugify(fromName);
-        const toId = actorToNodeId.get(toName) ?? slugify(toName);
-        // 該当 edge を探す
-        for (const edgeId of edgeIds) {
-          // edge id format: `e${idx}-${fromId}-${toId}`
-          if (edgeId.includes(`-${fromId}-${toId}`)) {
-            out.push(edgeId);
-          }
+    if (entry.kind === "edge") {
+      const fromId = actorToNodeId.get(entry.from) ?? slugify(entry.from);
+      const toId = actorToNodeId.get(entry.to) ?? slugify(entry.to);
+      // edge id は `e{idx}-{fromId}-{toId}` の形。 末尾一致で見る。
+      // 部分一致で見ると、 名前に `-` を含む箱 (`api-gateway`) の id が別の矢印の id に
+      // 混ざって当たる (実測 = 箱を光らせたい指定で矢印が光った)
+      for (const edgeId of edgeIds) {
+        if (edgeId.endsWith(`-${fromId}-${toId}`)) {
+          out.push(edgeId);
         }
       }
       continue;
     }
-    // actor 名 → node id
-    const nodeId = actorToNodeId.get(item);
+    // actor 名 → node id。 見つからなければ slug の形でも探す。
+    // 順序図だけが slug を受理する状態にすると、 同じ記述が図種で別の意味になる
+    // (実測 = `api-gateway` が順序図では光り、 流れ図では何も光らなかった)
+    const nodeId = actorToNodeId.get(entry.name) ?? slugLookup(actorToNodeId, entry.name);
     if (nodeId) {
       out.push(nodeId);
     }
@@ -1356,17 +2613,77 @@ const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
   [/1\.\.\*/, "1..*"],
 ];
 
+// cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
+// 前後が identifier 文字 (英数字 + アンダースコア) なら token とみなさない = `column:Metadata` の `n:M` /
+// `10:11:12` の `1:1` / `field_1:N` の `1:N` を cardinality と誤認して壊すのを防ぐ
+// (cc-codex #879 Round 9/10/11)。 `_` を含むのは ER label が DB schema 由来で snake_case 命名が多く、
+// `_` 直後に cardinality 様の部分列が来る label が現実的に起こるため (`field_1:N` / `parent_N:M_child`)。
+// strip と parse で別々に pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
+function boundedCardinalityRegExp(pattern: RegExp, extraFlags = ""): RegExp {
+  const base = pattern.flags.includes("i") ? "i" : "";
+  return new RegExp(`(?<![A-Za-z0-9_])(?:${pattern.source})(?![A-Za-z0-9_])`, base + extraFlags);
+}
+
 function parseCardinalityFromLabel(label: string): ErRelationCardinality | null {
   for (const [pattern, card] of CARDINALITY_PATTERNS) {
-    if (pattern.test(label)) return card;
+    if (boundedCardinalityRegExp(pattern).test(label)) return card;
   }
   return null;
 }
 
+// stripCardinality が「水平空白」 として畳んでよい文字を明示列挙する (space / tab / 全角空白 U+3000)。
+// 改行系 (LF / CR / U+2028 line separator / U+2029 paragraph separator / vertical tab / form feed) は
+// 含めない = これらは label の行構造として保持する (cc-codex #879 Round 5/6 指摘 = `\s` / `[^\S\r\n]`
+// では Unicode 行区切りや CRLF を誤って畳んでしまう)。 括弧除去側と正規化側で同じ class を共有する。
+const HORIZONTAL_WS = " \\t\\u3000";
+const HWS = `[${HORIZONTAL_WS}]`;
+
 function stripCardinality(label: string): string {
   let r = label;
+  let removed = false;
   for (const [pattern] of CARDINALITY_PATTERNS) {
-    r = r.replace(pattern, "").trim();
+    // cardinality token を「それを囲む括弧ごと 1 単位」 で除去する。
+    // まず `(1:N)` のように token を直接包む括弧つき形を除去し、 次に裸の token を除去する。
+    // 括弧を token 単位で消すことで、 label 中の cardinality と無関係な正当な括弧 (例
+    // `fn() now` の `()`) を壊さない (cc-codex #879 Round 4 指摘 = 空括弧の全域除去は過剰)。
+    // 括弧と token の間は水平空白のみ許容し、 改行を挟む形 (`(\n1:N\n)`) は括弧除去の対象外にする
+    // (改行を消費して行構造を壊すのを防ぐ、 Round 6 Finding 2)。
+    const src = pattern.source;
+    const flags = pattern.flags.includes("i") ? "gi" : "g";
+    const before = r;
+    r = r.replace(new RegExp(`\\(${HWS}*${src}${HWS}*\\)`, flags), "");
+    // 裸 token 除去 = parse と同じ単語境界付き matcher (boundedCardinalityRegExp) を global で適用する。
+    // 前後が英数字なら token とみなさないため、 timestamp (`10:11:12`) / 比率 (`10:11`) / alphabet 埋め込み
+    // (`column:Metadata`) を壊さず、 同一 token の複数出現 (`1:N and 1:N`) は全て消す。 parse 側と境界規則を
+    // 単一 SSOT にすることで strip/parse の乖離 (strip は消すが parse は残す等) を構造的に防ぐ
+    // (cc-codex #879 Round 9/10 = 数字境界だけ / strip 側だけの修正では 2 経路 drift + alphabet 埋め込み穴)。
+    r = r.replace(boundedCardinalityRegExp(pattern, "g"), "");
+    if (r !== before) removed = true;
   }
-  return r.replace(/^[(\s]+|[)\s]+$/g, "") || label;
+  // token を除去していない label は空白を一切いじらない (無条件適用でも改行 / 複数空白を保持する、
+  // cc-codex #879 Round 5 指摘 = 無条件正規化は改行を含む label を破壊した)。
+  if (!removed) return label;
+  // 除去で生じた水平空白 (space / tab / 全角空白) のみ単一化する (例 "A 1:N B" → "A  B" → "A B")。
+  // 改行系は HWS に含めないため保持される。
+  //   - 各行内の連続水平空白を単一化
+  //   - 改行 (LF / CR) の前後の水平空白を除去 (改行直前の trailing 空白も落とす)
+  r = r
+    .replace(new RegExp(`${HWS}{2,}`, "g"), " ")
+    .replace(new RegExp(`${HWS}*([\\r\\n])${HWS}*`, "g"), "$1")
+    .replace(new RegExp(`^${HWS}+|${HWS}+$`, "g"), "");
+  // fallback = cardinality 除去後に「視覚的に意味のある文字」 が残らない場合は元 label を返す
+  // (Round 6 Finding 1 = 除去後に空白/不可視文字だけ残ると不可視 label になるのを防ぐ)。
+  //
+  // 「意味のある文字」 の判定は個別の空白/不可視文字を列挙 (denylist) すると際限が無く、
+  // Round 7 で `\s` → `\p{White_Space}` に変えたら NEL は拾えたが BOM を落とす等のいたちごっこに
+  // なった (cc-codex #879 Round 7/8/9)。 そこで Unicode の「見えない文字」 を 4 カテゴリで構造的に
+  // 判定する = 以下のいずれでもない可視文字が 1 つでもあれば意味あり。
+  //   - White_Space ... 全空白 (space / tab / NBSP / NEL / 全角空白 / 各種 Unicode space / 改行系)
+  //   - Cf (Format) ... BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER / soft hyphen 等
+  //   - Cc (Control) ... 制御文字
+  //   - Default_Ignorable_Code_Point ... variation selector (Mn) / Hangul filler (Lo) 等、 Cf に
+  //     入らない不可視文字 (Cf/Cc/White_Space だけでは取りこぼすと Round 9 で判明)
+  // 4 カテゴリで Unicode の非表示文字を網羅する (Braille blank U+2800 や通常文字は content 維持)。
+  const hasVisible = /[^\p{White_Space}\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/u.test(r);
+  return hasVisible ? r : label;
 }

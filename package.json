@@ -30,16 +30,21 @@
     "lint:notation": "pnpm build:packages && node packages/dragon/scripts/dragon-lint.mjs apps/playground-spa/src/topics/catalog/presets.cdl.ts apps/playground-spa/src/topics/catalog/text-dsl.cdl.ts",
     "lint:notation:proof": "pnpm build:packages && node packages/dragon/scripts/lint-proof-fixture.mjs",
     "fix:notation": "pnpm build:packages && node packages/dragon/scripts/dragon-lint.mjs --fix apps/playground-spa/src/topics/catalog/presets.cdl.ts",
-    "verify": "pnpm typecheck && pnpm test"
+    "verify": "pnpm typecheck && pnpm test",
+    "test:mutation": "stryker run"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@playwright/test": "^1.61.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.15.0",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.9",
     "eslint": "^9.29.0",
     "eslint-import-resolver-typescript": "^4.4.5",

@@ -6,6 +6,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  *
  * 全 pattern で lane width / gap を統一 (single 1700px / triple 1700px / quad 1700px)、
  * catalog 1 column max-w 1700px 内で SVG 縮小率 ~100% を維持、 全 card サイズ揃え。
+ * 例外は Hook callback で、 横 1 列だと縦横比 6:1 を超えて潰れるため 2 列 2 段に折り返す。
  *
  * lane gap = 240px (label pill 最大幅 ~200px + node 端 margin 40px) で edge label が
  * adjacent node に侵食しない設計。
@@ -64,23 +65,23 @@ export const patternCallReadWrite = diagram("pattern-call-rw", { topic: "pattern
 export const patternEmit = diagram("pattern-emit", { topic: "pattern: Emit Event (外部通知)" })
   .lane("c", { x: L2_X1, width: L2_W })
   .lane("o", { x: L2_X2, width: L2_W })
-  .node("fn", { lane: "c", stack: 0, kind: "function", title: "processOrder(...)" })
+  .node("fn", { lane: "c", stack: 0, kind: "function", title: "processOrder(...)", w: 426 })
   .node("ev", { lane: "o", stack: 0, kind: "event", title: "OrderCreated", subtitle: "(orderId, userId, total)" })
   .edge("fn", "ev", { id: "emit", label: "emit", tone: "success", style: "dotted-flow" })
   .phase("p", { duration: 2400, title: "emit", body: "関数内で emit したイベントが event bus / log に書き込まれる。" }, (p: PhaseBuilder) => p.activate("fn", "ev", "emit").badge("emit"))
   .build();
 
 /** 5. Hook callback ... 受信側 hook で「受け取れますか」 確認 */
-// v10.5 = lane 間 gap を詰めて viewBox 1940 → 1300 相当に (scale 4.0 → 2.7 で label 判読性向上)。
-// 旧配置 (x=0/500/1280) は lane 間 空白 400/400 world で label が実 DOM で 6-7 px に縮小、
-// 新配置 (x=0/380/880) は lane 間 gap 100 world で節間の視覚 flow は維持しつつ全体を圧縮。
+// 3 節を横 1 列に置くと幅 2099 world / 縦横比 6.3 になり、 親幅に収めた時に帯状に潰れて
+// label が読めなかった。 2 列 2 段に折り返して縦横比 2.2 に収める。
+// col1 = 送信側と受信側 hook を縦に重ね、 col2 = 中継する deliver を置く。 帯 id は内容ではなく
+// 位置を表す (段をまたぐと 1 つの帯に別の役割の節が入るため、 意味を名前にすると嘘になる)。
 export const patternHook = diagram("pattern-hook", { topic: "pattern: Hook callback" })
-  .lane("sender", { x: 0, width: 280 })
-  .lane("token", { x: 380, width: 380 })
-  .lane("recipient", { x: 880, width: 280 })
-  .node("from", { lane: "sender", stack: 0, kind: "actor", title: "Sender" })
-  .node("fn", { lane: "token", stack: 0, kind: "function", title: "deliver", subtitle: "送付前 hook" })
-  .node("hook", { lane: "recipient", stack: 0, kind: "function", title: "onReceive", subtitle: "受信側で実装" })
+  .lane("col1", { x: 0, width: 430 })
+  .lane("col2", { x: 470, width: 430 })
+  .node("from", { lane: "col1", stack: 0, kind: "actor", title: "Sender" })
+  .node("fn", { lane: "col2", stack: 0, kind: "function", title: "deliver", subtitle: "送付前 hook" })
+  .node("hook", { lane: "col1", stack: 1, kind: "function", title: "onReceive", subtitle: "受信側で実装" })
   .edge("from", "fn", { id: "call", label: "call", tone: "accent", style: "dotted-flow" })
   .edge("fn", "hook", { id: "hook", label: "hook callback", sub: "受信可否確認", tone: "teal", style: "dotted-flow" })
   .phase("call", { duration: 1800, title: "call", body: "送信側が deliver を呼ぶ。" }, (p: PhaseBuilder) => p.activate("from", "fn", "call").badge("call"))
@@ -95,7 +96,7 @@ export const patternBranch = diagram("pattern-branch", { topic: "pattern: Branch
   .node("input", { lane: "u", stack: 0, kind: "actor", title: "Input" })
   .node("check", { lane: "d", stack: 0, kind: "function", title: "if (valid?)", subtitle: "分岐 node" })
   .node("ok", { lane: "r", stack: 0, kind: "function", title: "process()" })
-  .node("ng", { lane: "r", stack: 1, kind: "event", title: "ValidationError" })
+  .node("ng", { lane: "r", stack: 1, kind: "event", title: "ValidationError", w: 382 })
   .edge("input", "check", { id: "e1", label: "evaluate", tone: "accent", style: "dotted-flow" })
   .edge("check", "ok", { id: "e2", label: "true", tone: "success", style: "dotted-flow" })
   .edge("check", "ng", { id: "e3", label: "false", tone: "error", style: "dotted-flow" })
@@ -168,7 +169,7 @@ export const patternRollback = diagram("pattern-rollback", { topic: "pattern: Ro
   .node("client", { lane: "u", stack: 0, kind: "actor", title: "Client", value: "{balance}" })
   .node("tx", { lane: "t", stack: 0, kind: "function", title: "BEGIN tx" })
   .node("op", { lane: "t", stack: 1, kind: "function", title: "operation()" })
-  .node("commit", { lane: "t", stack: 2, kind: "function", title: "COMMIT / ROLLBACK" })
+  .node("commit", { lane: "t", stack: 2, kind: "function", title: "COMMIT / ROLLBACK", w: 426 })
   .node("db", { lane: "s", stack: 0, kind: "storage", title: "DB", rows: ["balance: {balance}"] })
   .edge("client", "tx", { id: "e1", label: "BEGIN", tone: "accent", style: "dotted-flow" })
   .edge("tx", "op", { id: "e2", label: "execute", tone: "teal", style: "dotted-flow" })
@@ -206,7 +207,7 @@ export const patternValidateProcess = diagram("pattern-validate-process", { topi
   .node("validate", { lane: "v", stack: 0, kind: "function", title: "validate(input)" })
   .node("schema", { lane: "v", stack: 1, kind: "storage", title: "schema", rows: ["lib: zod / yup"] })
   .node("process", { lane: "p", stack: 0, kind: "function", title: "process()" })
-  .node("err", { lane: "p", stack: 1, kind: "event", title: "ValidationError" })
+  .node("err", { lane: "p", stack: 1, kind: "event", title: "ValidationError", w: 382 })
   .edge("client", "validate", { id: "e1", label: "submit", tone: "accent", style: "dotted-flow" })
   .edge("validate", "schema", { id: "e2", label: "check", tone: "teal", style: "dotted-flow" })
   .edge("validate", "process", { id: "e3", label: "ok", tone: "success", style: "dotted-flow" })

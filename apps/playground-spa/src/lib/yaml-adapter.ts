@@ -1,5 +1,5 @@
 import { load, YAMLException } from "js-yaml";
-import { jsonToDiagram, type DragonJson } from "@cardenelabs/dragon";
+import { jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /**
@@ -115,8 +115,8 @@ export function yamlToDiagram(
   const parseResult = yamlToObject(src);
   if (!parseResult.ok) return parseResult;
   try {
-    // jsonToDiagram は DragonJson shape を期待、 unknown object の shape 不一致は validation error として throw
-    const diagram = jsonToDiagram(parseResult.value as DragonJson, opts);
+    // jsonToDiagram は unknown を受けて中で形を検査する。 合わない形は throw される
+    const diagram = jsonToDiagram(parseResult.value, opts);
     return { ok: true, diagram };
   } catch (e) {
     return {

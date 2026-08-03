@@ -104,7 +104,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
   });
 
   test.describe("AC 3 / 4 = YAML 編集で preview render + parse error", () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(({ page }) => {
       // 起動時 dialog は全て accept、 unrelated confirm も含めて blocking を避ける
       page.on("dialog", (d) => {
         void d.accept();
@@ -158,6 +158,56 @@ actors:
       expect(text).toMatch(/^YAML parse error: line \d+:/);
       // 前回 render の SVG は残っている (spec AC 4)
       await expect(page.locator(".v4-editor-preview svg")).toBeVisible();
+    });
+  });
+
+  test.describe("本文欄の重ね描きは YAML 欄に持ち込まない", () => {
+    test.beforeEach(({ page }) => {
+      // 欄を移る時の確認は本 describe の対象ではないので、 出たら通す
+      page.on("dialog", (d) => {
+        void d.accept();
+      });
+    });
+
+    test("本文欄で置いたパーツは YAML 欄の図に重ならない", async ({ page }) => {
+      // パーツは本文欄の記述から取り出したもので、 YAML 欄の図はそれを持たない。
+      // 残したままだと、 その図に無い部品が乗って見える。
+      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      await page.getByTestId("editor-parts-tab").click();
+      await page.waitForTimeout(400);
+      await page.getByTestId("editor-part-item-parts-achievement").click();
+      await page.waitForTimeout(900);
+      await expect(page.locator("[data-overlay-part]"), "本文欄では出ている").toHaveCount(1);
+
+      await page.getByTestId("editor-tab-yaml").click();
+      await page.waitForTimeout(900);
+      expect(await getActiveTab(page)).toBe("yaml");
+      await expect(page.locator("[data-overlay-part]"), "YAML 欄に残っている").toHaveCount(0);
+
+      // 本文欄に戻せば元通り出る (消しているのではなく出し分けている)
+      await page.getByTestId("editor-tab-cdl").click();
+      await page.waitForTimeout(900);
+      await expect(page.locator("[data-overlay-part]"), "戻しても出ない").toHaveCount(1);
+    });
+
+    test("本文欄の位置の札は YAML 欄に出ない", async ({ page }) => {
+      // 札を押すと本文欄の記述に座標を書く。 YAML 欄で出すと、 映していない方が書き換わる。
+      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      await page.getByTestId("editor-toggle-positions").click();
+      await page.waitForTimeout(600);
+      const marksInCdl = await page.locator(".v4-editor-pos-mark").count();
+      expect(marksInCdl, "本文欄で札が出ていない").toBeGreaterThan(0);
+
+      await page.getByTestId("editor-tab-yaml").click();
+      await page.waitForTimeout(900);
+      expect(await getActiveTab(page)).toBe("yaml");
+      await expect(page.locator(".v4-editor-pos-mark"), "YAML 欄に札が残っている").toHaveCount(0);
+
+      await page.getByTestId("editor-tab-cdl").click();
+      await page.waitForTimeout(900);
+      expect(await page.locator(".v4-editor-pos-mark").count(), "戻しても出ない").toBe(marksInCdl);
     });
   });
 

@@ -96,7 +96,6 @@
   --cdl-text-dim: #7a808c;
   --cdl-text-secondary: #7a808c;
   --cdl-label-bg: #e6ebf0;
-  --cdl-label-text: #3a3d47;
   --cdl-edge-stroke: #a66a3d;
 }
 
@@ -213,12 +212,28 @@
   stroke: none !important;
   filter: url(#dragon-nm-raised-sm) !important;
 }
+/* font-size は renderer 側 SSOT (edge main 22 / edge sub 19) を尊重する。 11px に縮めていたが、
+   blueprint で同じ override を撤去したのと同じ regression。 11px だと太字でも WCAG の
+   large text (18.66px 以上) に届かず通常文字の 4.5:1 が要るため、 #a66a3d (対 #e6ebf0 で
+   3.69:1) が基準を割っていた。 19px 太字なら large text の 3:1 で足りる。 */
+/*
+ * edge label だけ accent (#a66a3d) より暗い copper を使う (#977)。
+ *
+ * 実ブラウザで測ると label の文字は画面上 6.4-9.3px しかない (宣言 22 / 19px を viewBox が
+ * 0.29-0.38 倍に縮める)。 WCAG の large text (18.66px 以上) に入らないので、 要求されるのは
+ * 3:1 ではなく 4.5:1。 accent のままだと背景 #e6ebf0 に対して 3.69:1 で割る。
+ *
+ * 色相 26° と彩度 0.46 は accent と同じにして、 明度だけ 0.45 → 0.36 に下げた。
+ *
+ * 実測が指定色より 4.5 に近く出る (指定 rgb(134,86,49) が rgb(139,93,58) として測れる)。 小さい
+ * 字は device pixel を完全には覆わず、 最も濃い画素でも背景と少し混ざるため。 指定値で
+ * 4.5 ちょうどに合わせると実測が割るので、 指定側に余裕 (5.2:1) を取っている。
+ */
 [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #a66a3d !important;
+  fill: #865631 !important;
   stroke: none !important;
   font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
   font-weight: 700 !important;
-  font-size: 11px !important;
 }
 [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
   fill: rgba(230, 235, 240, 0.5) !important;
@@ -245,7 +260,6 @@ html.dark [data-cdl-theme="neumorphism"] {
   --cdl-text-dim: #a08870;
   --cdl-text-secondary: #a08870;
   --cdl-label-bg: #241c14;
-  --cdl-label-text: #d8dde8;
   --cdl-edge-stroke: #d4a04a;
 }
 html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
@@ -407,7 +421,6 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   --cdl-text-dim: #7bb896;
   --cdl-text-secondary: #7bb896;
   --cdl-label-bg: #0a1a12;
-  --cdl-label-text: #a8e6c1;
   --cdl-edge-stroke: #48e0b0;
 }
 
@@ -628,15 +641,62 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
 }
 /* stroke: none は file 先頭 universal rule (theme prefix なし) で 全 theme 対応済、
    blueprint 個別 stroke rule は削除 (SSOT 一本化、 drift 予防、 CAR-1560)。 */
+
+/* ── edge の色を tone 別に決める (GH #889) ─────────────────────────────────
+ *
+ * cdl は `<g data-cdl-tone="error">` として意味だけを渡し、 色は本 file が決める
+ * (CAR-643 = cdl は形だけ / dragon が見た目)。 以前は theme ごとに 1 色を
+ * `!important` で焼き付けていたため、 因果の向き (警戒 = 赤 / 良好 = 緑) が線から
+ * 読めなかった。
+ *
+ * 色は「元の tone の色相を保ったまま、 紙に対して 4.5:1 を満たす濃さ」 に置いた。
+ * 元の色をそのまま使うと 6 色中 accent (5.55) だけしか 4.5:1 に届かない (実測)。
+ * 同じ明度に揃えるだけでは accent と info が見分けられなくなる (ΔE 16.6 → 5.2 に潰れる)
+ * ため、 彩度も上げて相互の ΔE を 15 以上に保った上で、 元の色から最も離れない組を選んだ。
+ *
+ * 紙の色は画面で実測した。 catalog は明暗どちらでも cream (#fcf8ee)、 editor は
+ * 明 #f8ecd0 / 暗 #1a1408。 cream 用の 1 組で 3 つを賄い、 editor の暗い紙だけ別組。
+ * 実効色は cdl 側の stroke-opacity 0.9 を掛けた後の値で測っている。
+ *
+ * 対象は blueprint のみ。 他 theme (circuit の金 / handdrawn の墨 等) は単色の edge が
+ * 見た目の要なので単色を保つ。 theme ごとの valence 色は個別の設計判断として分ける。
+ * ────────────────────────────────────────────────────────────────────── */
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #6d3f18 !important;
+  stroke: var(--dragon-edge-tone, #6d3f18) !important;
   stroke-width: 4 !important;
 }
 [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: #6d3f18 !important;
-  stroke: #6d3f18 !important;
+  fill: var(--dragon-edge-tone, #6d3f18) !important;
+  stroke: var(--dragon-edge-tone, #6d3f18) !important;
   stroke-width: 2 !important;
 }
+
+/* 明るい紙 (catalog は明暗とも #fcf8ee、 editor の明 #f8ecd0) 用。
+   比は厳しい側 (#f8ecd0) で 4.65-4.67、 #fcf8ee では 5.05-5.09。 相互の見分け (実効色の ΔE) は
+   16.5 以上。 いずれも描画側の 8bit 量子化を floor / ceil の全組合せで確かめた最悪値でも
+   対比 4.61 / ΔE 15.30 を保つ = 目標に余裕を持たせないと丸め次第で下回る。 */
+[data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #1b6288; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #006a53; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #006c33; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #9f3d30; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #7b5402; }
+[data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #0060a5; }
+
+/* 矢頭は `<defs><marker>` の中にあり、 edge の `<g data-cdl-tone>` の子孫ではないので上の変数を
+   継承できない (実測 = 線が #0060a3 でも矢頭は焼き付けの #6d3f18 のまま)。 marker 自身に置く。
+   marker は tone ごとに大小 2 種あるので両方を並べる。 */
+[data-cdl-theme="blueprint"] #cdl-arrow-accent,
+[data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #1b6288; }
+[data-cdl-theme="blueprint"] #cdl-arrow-teal,
+[data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #006a53; }
+[data-cdl-theme="blueprint"] #cdl-arrow-success,
+[data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #006c33; }
+[data-cdl-theme="blueprint"] #cdl-arrow-error,
+[data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #9f3d30; }
+[data-cdl-theme="blueprint"] #cdl-arrow-warning,
+[data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #7b5402; }
+[data-cdl-theme="blueprint"] #cdl-arrow-info,
+[data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #0060a5; }
 /* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
    上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
    併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
@@ -682,16 +742,42 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
 }
+/* 暗い画面でも紙が cream のまま (catalog) の場所があるため、 色は tone 変数に委ねる。
+   従来は暗い画面で一律 gold #f0b840 にしていたが、 catalog は暗い画面でも紙を cream で
+   保つため gold が cream の上に乗って 1.70:1 まで落ちていた (実測)。 変数側で紙ごとに
+   使い分ける。 fallback の gold は tone を持たない edge 用に残す。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: #f0b840 !important;
+  stroke: var(--dragon-edge-tone, #f0b840) !important;
   fill: none !important;
   stroke-width: 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #f0b840 !important;
-  fill: #f0b840 !important;
+  stroke: var(--dragon-edge-tone, #f0b840) !important;
+  fill: var(--dragon-edge-tone, #f0b840) !important;
   stroke-width: 2 !important;
 }
+/* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-4.96、
+   実効色の ΔE は 16.6 以上 (量子化の最悪値で 4.64 / 15.50)。 selector は cream 用 (0-2-0) より
+   詳しいので上書きになる。 */
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #0095e2; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #409c83; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #49a368; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #d86e5c; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #b28539; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #5d91c4; }
+/* 矢頭も同様に marker 自身へ置く (暗い紙用の組)。 */
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #0095e2; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #409c83; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #49a368; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #d86e5c; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #b28539; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info,
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #5d91c4; }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
@@ -753,10 +839,45 @@ html.dark[data-cdl-theme="blueprint"] {
   --cdl-text: #f0e0b8;
   --cdl-text-dim: #d4c4a0;
   --cdl-text-mute: #a89880;
-  --cdl-node-fill: #f5ecd0;
+  /* `node-body` は上の selector で `#2a1f14` に強制されるのに、 変数だけ cream のまま残って
+     いた。 同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
+     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。 */
+  --cdl-node-fill: #2a1f14;
+  /* kind 内の小さい面 (mind-map / mind-radial / tree の枝の箱)。 page の文字色とは別軸で、
+     面と文字が対で動く。 明色のままだと tone が 2.13 まで落ちる (実測)。 */
+  --cdl-chip-fill: #33251a;
+  --cdl-chip-text: #f0e0b8;
+  /* tone で塗った図形の上に乗る文字。 dark の tone は明るいので文字は暗い側に倒す
+     (`#ffffff` のままだと `#fa970c` に対して 2.4)。 */
+  --cdl-text-on-tone: #241a10;
+  /* journey の気付き欄。 明色の付箋のままだと周囲から浮く。 */
+  --cdl-note-fill: #3a2a12;
+  --cdl-note-text: #f0d79a;
+  /* tree の根の箱は accent から下端に向かう縦の gradient で塗る。 下端だけ変数が無いまま
+     `#1f4d6e` (青) に落ちており、 `<defs>` の中なので色相の検査からも漏れていた
+     (codex review Round 3 の指摘)。 accent と同系の暖色にする。 実測 = 背景 4.70 /
+     `--cdl-text-on-tone` に対して 4.99。 */
+  --cdl-tone-accent-deep: #c47a0a;
   --cdl-divider: #4a3820;
   --cdl-stage-bg: #1a1408;
   --cdl-line-mute: #8a7050;
+
+  /* chart 系 kind が使う 6 tone (#383)。 上書きが無い間は cdl の fallback (#2d6a8f 等) が
+     そのまま出て、 warm palette の中に青系が残っていた (実測 = dark の chart-line-demo に
+     rgb(45,106,143))。
+
+     **背景は実測で決めた**。 `--cdl-node-fill` (#f5ecd0) は宣言値で、 実際に描かれる chart の
+     箱は `rgb(42,31,20)` = #2a1f14 (dark 用の別 selector が後から当たる)。 宣言値で対比を取ると
+     実描画では 2.30-2.60 まで落ちる (codex review 実測)。
+
+     条件は edge の tone と同じ = 対比 4.61 以上 / 実効色の ΔE 15.30 以上。 暖色側の色相から
+     両方を同時に満たす組を #2a1f14 に対して探索した。 実測 = 最悪 対比 6.57 / 最悪 ΔE 43.14。 */
+  --cdl-tone-accent: #fa970c;
+  --cdl-tone-teal: #5ebd86;
+  --cdl-tone-success: #38c40a;
+  --cdl-tone-error: #fa898d;
+  --cdl-tone-warning: #bda471;
+  --cdl-tone-info: #a5ad00;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

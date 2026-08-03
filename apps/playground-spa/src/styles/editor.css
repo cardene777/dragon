@@ -217,6 +217,62 @@
     color: var(--v4-brand-deep);
     border-bottom-color: var(--v4-brand);
   }
+  /* ── 記法一覧 ── */
+  .v4-editor-syntax-section {
+    margin-bottom: 14px;
+  }
+  .v4-editor-syntax-title {
+    font-family: var(--v4-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--v4-ink-mute);
+    padding: 8px 8px 4px;
+  }
+  .v4-editor-syntax-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  button.v4-editor-syntax-row {
+    cursor: pointer;
+  }
+  button.v4-editor-syntax-row:hover {
+    background: rgba(26, 20, 16, 0.05);
+  }
+  .v4-editor-syntax-code {
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    color: var(--v4-ink);
+    word-break: break-all;
+  }
+  .v4-editor-syntax-note {
+    font-family: var(--v4-sans);
+    font-size: 11px;
+    color: var(--v4-ink-mute);
+  }
+  .v4-editor-syntax-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 10px 0;
+  }
+  .v4-editor-syntax-chip {
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    color: var(--v4-ink-dim);
+    background: rgba(26, 20, 16, 0.05);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
   .v4-editor-side-part {
     cursor: grab;
   }
@@ -286,7 +342,16 @@
     gap: 6px;
     border-bottom: 1px solid var(--v4-line);
     background: var(--v4-surface);
+    /* 狭い画面ではボタンが並びきらない。 bar 自体を横スクロールさせて、
+       page 全体が横スクロールするのを防ぐ (実測 = 390px 幅で scrollWidth 681)。
+       高さ固定なので折り返しは使えず、 はみ出し分は bar 内で送る。 */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
   }
+  .v4-editor-bar::-webkit-scrollbar { display: none; }
+  /* 縮んで潰れると押せなくなるので、 各項目は自然幅を保つ */
+  .v4-editor-bar > * { flex-shrink: 0; }
   .v4-editor-bar-file {
     font-family: var(--v4-mono);
     font-size: 11.5px;
@@ -323,6 +388,72 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+  /* 入になっている切り替えは、 押せる button と見分けが付く必要がある */
+  .v4-editor-bar-btn.is-on {
+    background: rgba(201, 162, 62, 0.28);
+    color: var(--v4-ink);
+  }
+  html.dark .v4-editor-bar-btn.is-on {
+    background: rgba(240, 183, 94, 0.32);
+    color: #fef3c7;
+  }
+
+  /* 現在位置の札。 図の上に重ねるので、 中心が要素の中心に来るよう半分ずらす。
+     ずらしと倍率の打ち消しは inline style で当てる (表示倍率が JS 側にしかないため)。 */
+  .v4-editor-pos-mark {
+    position: absolute;
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1.5px solid var(--v4-brand);
+    background: rgba(252, 248, 238, 0.96);
+    color: #7a5c1a;
+    font-family: var(--v4-mono);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 1px 4px rgba(26, 20, 16, 0.18);
+  }
+  .v4-editor-pos-mark:hover {
+    background: var(--v4-brand);
+    color: var(--v4-canvas);
+    border-color: var(--v4-brand);
+  }
+  html.dark .v4-editor-pos-mark {
+    background: rgba(26, 20, 8, 0.92);
+    color: #f0b840;
+    border-color: rgba(240, 184, 64, 0.6);
+  }
+
+  /* 書いたのに効かなかったことの知らせ。 誤りではないので、 error より弱い見た目にする */
+  .v4-editor-notices {
+    border-top: 1px solid var(--v4-line);
+    padding: 8px 14px;
+    max-height: 120px;
+    overflow-y: auto;
+    background: rgba(201, 162, 62, 0.07);
+  }
+  html.dark .v4-editor-notices {
+    background: rgba(201, 162, 62, 0.1);
+  }
+  .v4-editor-notice {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--v4-ink-dim);
+  }
+  .v4-editor-notice-line {
+    font-family: var(--v4-mono);
+    font-size: 11px;
+    color: var(--v4-ink-mute);
+    flex: none;
+  }
+  .v4-editor-notice-text { color: var(--v4-ink); }
+  .v4-editor-notice-hint { color: var(--v4-ink-mute); }
   .v4-editor-bar-zoom {
     font-family: var(--v4-mono);
     font-size: 11px;
@@ -530,20 +661,13 @@
   .v4-editor-stage:active {
     cursor: grabbing;
   }
-  /* CdlDiagramView は hideHeader=true で main header を隠しているが、
-     cdl 側 render.tsx:175 で hideHeader + phases > 1 時に自動追加される mini phase
-     indicator (bottom 「call」 dot 列 + phase title + badge) は dragon 側 UI 経路で
-     DSL / phase 名が既に visible なので冗長、 CSS で非表示にする (dragon-only fix)。
-     cdl side が Tailwind arbitrary values (`border-t border-[var(--cdl-divider,...)]`) で
-     class 名を合成しているため、 stable な組合せ 5 attribute (border-t + flex + text-xs
-     + px-3 + py-2) の AND 結合で mini indicator の div を狙い撃つ。
-     SVG stage は `px-3 py-3`、 interactive panel は `.cdl-ip-root`、 CdlHeader は
-     `border-b` なので現行 cdl 実装で誤 hit なし。 semantic hook (cdl `hideMiniPhaseIndicator`
-     prop) 追加は upstream cdl PR 必要のため follow-up Issue で対応。
-     scope = editor (.v4-editor-preview) + catalog (.catalog-preview-stage-inner) +
-     preset (.preset-detail-preview) の 3 経路、 CAR-1560 で catalog / preset 経路も
-     カバー拡張 (user 報告 「insert INSERT」 表示 root cause fix)。 */
-  [data-cdl-diagram] > div.border-t.flex.text-xs.px-3.py-2 {
+  /* editor では lane label (sequence preset の各 lane 上部に float する actor 名 text =
+     「Client」「alarmclock1」「API」「DB」 等) を非表示にする。 user から複数回の指摘あり
+     (「常にこの文字ある」 = 掴む対象 (actor header box) が既に actor 名を大きく表示済のため
+     lane label が視覚 noise + 重複表示)。 CdlDiagramView 側に hideLaneLabel prop が無いため
+     CSS で hide、 catalog 側 (.catalog-preview-*) は残す = catalog は spec を正確に render する場所。
+     scope = editor stage 内の [data-cdl-role="lane-label"] のみ。 */
+  .v4-editor-preview [data-cdl-role="lane-label"] {
     display: none !important;
   }
   /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
@@ -572,10 +696,19 @@
      viewBox の w / h を CSS variable で受けて実 pixel 幅を明示する。 */
   .v4-editor-svg-wrap svg {
     display: block;
-    pointer-events: none;
+    /* canvas pivot 新 spec = SVG 内 element で drag interaction を受けるため pointer-events all
+       (旧 pointer-events: none は HTML overlay 干渉回避の historical fix、 現状は不要) */
+    pointer-events: auto;
     width: var(--cdl-svg-w, 800px) !important;
     height: var(--cdl-svg-h, 600px) !important;
     max-width: none !important;
+  }
+  /* SVG 内 lane / node / edge element で drag / hover を受ける */
+  .v4-editor-svg-wrap svg [data-cdl-lane],
+  .v4-editor-svg-wrap svg [data-cdl-node],
+  .v4-editor-svg-wrap svg [data-cdl-edge] {
+    pointer-events: auto;
+    cursor: grab;
   }
   .v4-editor-empty {
     color: var(--v4-ink-mute);

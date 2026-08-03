@@ -7,21 +7,32 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
  * 実際に図形が動く) + 拡張 widget (xypad / stepper / radio / color) + readout widget
  * (bar / gauge / stat / sparkline) の 9 例。 全て抽象例のみで特定分野固有の題材は含まず、
  * library は汎用 primitive を提供、 domain 応用は consumer app 側の責務。
+ *
+ * 帯 id が `col1` から始まる図 (`col1` / `col2` …) は、 横 1 列だと縦横比 6:1 を超えて画面上で
+ * 帯状に潰れるため 2 段に折り返してある。 1 つの帯に別の役割の節が縦に並ぶので、 帯 id は
+ * 内容ではなく位置を表す (意味を名前にすると内容について嘘をつく)。 各節の役割は `title` が持つ。
+ *
+ * `col0` から始まる図 (grid-matrix 等) は別用途で、 元から格子の列を表す。 折り返しとは無関係。
+ *
+ * 各図の直後に置く `subtitle__<export 名>` は catalog 一覧に出す説明文。 `topic` は図の題名
+ * (60 字以内) で、 長い説明はこちらに書く。 `sourceYaml__<key>` と同じ suffix pair 規約で、
+ * `moduleToItems` が拾って一覧の subtitle にする。
  */
-
-const W = 480;
 
 /**
  * 1. slider → node value bind (input widget primitive + reactive state)。
  */
+// 2 要素の関係を 1 つだけ見せる最小例なので、 構造化データの抽出対象から外す (#970)。
+// 3 つ目の節を足すと「1 つの仕組みを最小の形で見せる」 という目的が崩れる。
 export const inputSliderBar = diagram("interactive-slider-bar", {
-  topic: "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化",
+  structuredData: "exclude",
+  topic: "スライダーの値で棒の高さが変わる",
 })
   .lane("slider", { x: 0, width: 260 })
   .lane("output", { x: 300, width: 260 })
   .input.slider("value", { min: 0, max: 100, defaultValue: 50, label: "Value" })
   .state("value", { initial: 50 })
-  .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider signal", subtitle: "value = {value}" })
+  .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider", subtitle: "value = {value}" })
   .node("bar-node", { lane: "output", stack: 0, kind: "card", title: "Bar", subtitle: "value: {value}" })
   .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
   .phase("p", {
@@ -30,12 +41,13 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
     body: "2-lane (Slider signal / Bar output) で input.slider bind の 2 step を分散、 bind edge (info tone) で signal 伝搬明示、 slider 変化で signal `value` 更新 → bar-node subtitle {value} 追随、 primitive signal binding を dataflow 化。",
   }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node").badge("bind: value"))
   .build();
+export const subtitle__inputSliderBar = "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化";
 
 /**
  * 2. formula → text bind (formula primitive + reactive computed)。
  */
 export const formulaTextBind = diagram("interactive-formula-text", {
-  topic: "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化",
+  topic: "入力値から 2 倍と半分を自動計算する",
 })
   .lane("input", { x: 0, width: 200 })
   .lane("doubled", { x: 240, width: 200 })
@@ -57,12 +69,13 @@ export const formulaTextBind = diagram("interactive-formula-text", {
     body: "3-lane (Input / Doubled / Halved) で formula chain を分散、 2 edge (× 2 success / ÷ 2 info) で dependency 明示、 input 変化で 2 formula reactive に再計算、 node subtitle {doubled} / {halved} 追随、 formula 依存の 2D dataflow view。",
   }, (p: PhaseBuilder) => p.activate("in", "out1", "out2").badge("formula bind"))
   .build();
+export const subtitle__formulaTextBind = "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化";
 
 /**
  * 3. scroll → progress readout (scroll-driven trigger)。
  */
 export const scrollNarrative = diagram("interactive-scroll-narrative", {
-  topic: "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随",
+  topic: "スクロール進行に 3 つの段が同時に追随する",
 })
   .lane("s1", { x: 0, width: 220 })
   .lane("s2", { x: 260, width: 220 })
@@ -78,21 +91,21 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
     body: "3-lane (Step 1 / Step 2 / Step 3) で 3 narrative step を横並び分散、 wrapper element scroll → intro progress 0→1 変化 → 3 node subtitle が同時追随、 narrative 進行を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("scroll bind"))
   .build();
+export const subtitle__scrollNarrative = "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随";
 
 /**
  * 4. click → toggle (event handler + hover)。
  */
 export const clickToggle = diagram("interactive-click-toggle", {
-  topic: "click event flow を 3-lane (Trigger button / Event handler / Signal state) + 2 edge、 click→handler→signal の 3 step dataflow",
+  topic: "クリックが handler を通って状態に届く",
 })
-  .lane("trigger", { x: 0, width: 200 })
-  .lane("handler", { x: 240, width: 220 })
-  .lane("signal", { x: 480, width: 200 })
+  .lane("col1", { x: 0, width: 360 })
+  .lane("col2", { x: 400, width: 370 })
   .input.toggle("active", { defaultValue: false, label: "Active" })
   .state("active", { initial: "off" })
-  .node("btn", { lane: "trigger", stack: 0, kind: "card", title: "Button", subtitle: "click target" })
-  .node("handlerNode", { lane: "handler", stack: 0, kind: "card", title: "Event handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
-  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal state", subtitle: "active = {active}" })
+  .node("btn", { lane: "col1", stack: 0, kind: "card", w: 180, title: "Button", subtitle: "click target" })
+  .node("handlerNode", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
+  .node("signalNode", { lane: "col1", stack: 1, kind: "card", w: 310, title: "Signal state", subtitle: "active = {active}" })
   .edge("btn", "handlerNode", { label: "click / hover", tone: "info" })
   .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
@@ -100,28 +113,29 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .phase("p", {
     duration: 1500,
     title: "Click → Handler → State (3 段 event flow)",
-    body: "3-lane (Trigger button / Event handler / Signal state) で click event flow の 3 step を分散、 2 edge (click info tone / toggle success tone) で dataflow 明示、 button click → consumer handler → active signal 反転 → signalNode subtitle 追随、 event 伝搬経路を lane 分割で可視化。",
+    body: "3 区画 (Trigger button / Event handler / Signal state) を 2 列 2 段に置いて click event flow の 3 step を分散、 2 edge (click info tone / toggle success tone) で dataflow 明示、 button click → consumer handler → active signal 反転 → signalNode subtitle 追随、 event 伝搬経路を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode").badge("event bind"))
   .build();
+export const subtitle__clickToggle = "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";
 
 /**
  * 5. visual binding = slider → node 実 width 変化 (arc-intro 相当の core UX)。
  * slider を drag すると bar node の SVG width が実際に伸縮、 subtitle だけでなく図形が動く。
  */
 export const visualBindBar = diagram("interactive-visual-bar", {
-  topic: "wBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 2 edge、 signal → 実 SVG width の反映経路を可視化",
+  topic: "信号の値が棒の実際の幅に反映される",
 })
   .lane("signal", { x: 0, width: 200 })
   .lane("bar", { x: 240, width: 340 })
   .lane("readout", { x: 600, width: 220 })
   .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "Bar width" })
   .state("barW", { initial: 160 })
-  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal source", subtitle: "barW = {barW}" })
+  .node("signalNode", { lane: "signal", stack: 0, kind: "card", title: "Signal", subtitle: "barW = {barW}" })
   .node("bar", {
     lane: "bar",
     stack: 0,
     kind: "card",
-    title: "Dynamic Bar",
+    title: "Bar",
     subtitle: "wBind = {barW}px",
     w: 160,
     wBind: "{barW}",
@@ -136,12 +150,13 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     body: "3-lane (Signal / Bar / Readout) で wBind visual binding の 3 経路を分散、 2 edge (wBind info / readout success) で signal → 2 target の 1:N 分岐明示、 slider 変化で bar node SVG width + readout.bar が同時追随、 visual binding dataflow を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("signalNode", "bar", "readoutNode").badge("visual bind"))
   .build();
+export const subtitle__visualBindBar = "wBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 2 edge、 signal → 実 SVG width の反映経路を可視化";
 
 /**
  * 6. visual binding = slider → node opacity で fade in/out。
  */
 export const visualBindOpacity = diagram("interactive-visual-opacity", {
-  topic: "opacity visual bind を 3-lane (Fade control / Target opacity / Reference constant) + 2 edge、 signal 追随 vs 固定の対比可視化",
+  topic: "信号に追随する濃さと固定の濃さを並べる",
 })
   .lane("control", { x: 0, width: 200 })
   .lane("target", { x: 240, width: 220 })
@@ -169,12 +184,13 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
     body: "3-lane (Fade control / Target opacity bind / Reference constant) で opacity 追随の有無を対比、 2 edge (op bind info tone / no bind warning tone) で binding 有無を明示、 slider (0..100) 変化 → formula op (0..1) → target node opacity 追随、 ref は無反応 (constant)、 visual binding 効果を lane 対比で可視化。",
   }, (p: PhaseBuilder) => p.activate("controlNode", "target", "ref").badge("opacity bind"))
   .build();
+export const subtitle__visualBindOpacity = "opacity visual bind を 3-lane (Fade control / Target opacity / Reference constant) + 2 edge、 signal 追随 vs 固定の対比可視化";
 
 /**
  * 7. XY pad = 2 軸選択、 stat readout で x/y を表示。
  */
 export const xypadNavigate = diagram("interactive-xypad-nav", {
-  topic: "XY pad 2D 座標を 4-lane quadrant (Q1/Q2/Q3/Q4) 分散、 現在 pos を center indicator + stat readout で数値化",
+  topic: "XY パッドの座標が 4 象限のどこかを示す",
 })
   .lane("q2", { x: 0, width: 160 })
   .lane("q1", { x: 180, width: 160 })
@@ -186,11 +202,11 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
     label: "Position",
   })
   .state("pos", { initial: "50,50" })
-  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2 (x<50, y>50)", subtitle: "upper-left" })
-  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1 (x>50, y>50)", subtitle: "upper-right" })
-  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3 (x<50, y<50)", subtitle: "lower-left" })
-  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4 (x>50, y<50)", subtitle: "lower-right" })
-  .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Current pos", subtitle: "{pos} (default center → Q1 boundary)" })
+  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2", subtitle: "upper-left" })
+  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1", subtitle: "upper-right" })
+  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3", subtitle: "lower-left" })
+  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4", subtitle: "lower-right" })
+  .node("indicator", { lane: "q1", stack: 1, kind: "card", title: "◆ Position", subtitle: "{pos} (default center → Q1 boundary)" })
   .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
   .phase("p", {
     duration: 1500,
@@ -198,19 +214,20 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
     body: "4-lane (Q2 左上 / Q1 右上 / Q3 左下 / Q4 右下) で 2D 座標空間を quadrant 分散、 各 quadrant 個別 card + 現在 pos indicator (default 50,50 = 中心)、 stat readout で pos 数値化、 座標分類と数値表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("q2Node", "q1Node", "q3Node", "q4Node", "indicator").badge("xypad"))
   .build();
+export const subtitle__xypadNavigate = "XY pad 2D 座標を 4-lane quadrant (Q1/Q2/Q3/Q4) 分散、 現在 pos を center indicator + stat readout で数値化";
 
 /**
  * 8. stepper で phase 相当の値を細かく調整、 bar readout に反映。
  */
 export const stepperControl = diagram("interactive-stepper", {
-  topic: "stepper control を 3-lane (Control input / Bar visualization / Stat readout) 分散 + 2 fan-out edge、 signal → 2 readout の 1:N 経路可視化",
+  topic: "増減ボタンで棒と数値が動く",
 })
   .lane("ctrl", { x: 0, width: 200 })
   .lane("bar", { x: 240, width: 220 })
   .lane("stat", { x: 480, width: 200 })
   .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "Count" })
   .state("count", { initial: 3 })
-  .node("ctrlNode", { lane: "ctrl", stack: 0, kind: "card", title: "Stepper control", subtitle: "count = {count} (0-10 range)" })
+  .node("ctrlNode", { lane: "ctrl", stack: 0, kind: "card", title: "Stepper", subtitle: "count = {count} (0-10 range)" })
   .node("barNode", { lane: "bar", stack: 0, kind: "card", title: "Bar visual", subtitle: "count 追随 progress bar (readout.bar)" })
   .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Stat readout", subtitle: "count 追随 number + unit (readout.stat)" })
   .edge("ctrlNode", "barNode", { label: "→ bar", tone: "info" })
@@ -223,12 +240,15 @@ export const stepperControl = diagram("interactive-stepper", {
     body: "3-lane (Control / Bar / Stat) で stepper と 2 readout を分散、 2 fan-out edge (→ bar info / → stat success) で 1 signal → N readout の bind 関係明示、 stepper +/- で count 変化 → bar + stat が同時追随、 signal 分岐 dataflow を可視化。",
   }, (p: PhaseBuilder) => p.activate("ctrlNode", "barNode", "statNode").badge("stepper"))
   .build();
+export const subtitle__stepperControl = "stepper control を 3-lane (Control input / Bar visualization / Stat readout) 分散 + 2 fan-out edge、 signal → 2 readout の 1:N 経路可視化";
 
 /**
  * 9. number → sparkline = number 入力の履歴を line chart で。
  */
+// 2 要素の最小例なので抽出対象外 (#970、 `interactive-slider-bar` と同じ理由)。
 export const numberSparkline = diagram("interactive-number-spark", {
-  topic: "number sparkline を 2-lane (Current value / History sparkline) 分散 + push edge、 現在値と履歴の関係を可視化",
+  structuredData: "exclude",
+  topic: "現在値と履歴のミニ折れ線を並べる",
 })
   .lane("current", { x: 0, width: 220 })
   .lane("history", { x: 260, width: 320 })
@@ -245,12 +265,13 @@ export const numberSparkline = diagram("interactive-number-spark", {
     body: "2-lane (Current value / History sparkline 15) で number sparkline を分散、 current → history push edge (info tone) で履歴伝搬明示、 number 入力変化で sparkline に直近 15 履歴 push、 stat が最新値。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "historyNode").badge("sparkline"))
   .build();
+export const subtitle__numberSparkline = "number sparkline を 2-lane (Current value / History sparkline) 分散 + push edge、 現在値と履歴の関係を可視化";
 
 /**
  * 9b. radio + stat = 選択肢と現在値。 radio で option 切替、 stat で文字列表示。
  */
 export const radioSelect = diagram("interactive-radio-select", {
-  topic: "radio 3 option (low/mid/high) を 3-lane 排他分散 + current indicator、 現在選択 mode 位置を明示",
+  topic: "3 択のラジオで選んだ 1 つだけが光る",
 })
   .lane("low", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
@@ -268,21 +289,22 @@ export const radioSelect = diagram("interactive-radio-select", {
     body: "3-lane (Low / Mid / High) で radio 3 option を排他分散、 各 option 個別 card + current indicator (default=mid lane)、 radio click で mode signal 更新 → subtitle と stat readout 追随、 排他選択構造を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentMode").badge("radio"))
   .build();
+export const subtitle__radioSelect = "radio 3 option (low/mid/high) を 3-lane 排他分散 + current indicator、 現在選択 mode 位置を明示";
 
 /**
  * 10. color picker で node stroke を変える (theme 実験)。
  */
 export const colorPickerTheme = diagram("interactive-color-theme", {
-  topic: "color picker pipeline を 3-lane (Picker input / Swatch preview / Hex stat) + 2 edge、 hex signal 生成 dataflow を可視化",
+  topic: "選んだ色が見本と 16 進表記に伝わる",
 })
-  .lane("picker", { x: 0, width: 220 })
-  .lane("swatch", { x: 260, width: 220 })
-  .lane("stat", { x: 520, width: 220 })
+  .lane("picker", { x: 0, width: 370 })
+  .lane("swatch", { x: 410, width: 230 })
+  .lane("stat", { x: 680, width: 320 })
   .input.color("accent", { defaultValue: "#8a5a2a", label: "Accent" })
   .state("accent", { initial: "#8a5a2a" })
-  .node("pickerNode", { lane: "picker", stack: 0, kind: "card", title: "Color picker", subtitle: "input.color widget · default #8a5a2a" })
-  .node("swatch", { lane: "swatch", stack: 0, kind: "card", title: "Swatch preview", subtitle: "hex: {accent}" })
-  .node("statNode", { lane: "stat", stack: 0, kind: "card", title: "Hex stat", subtitle: "readout.stat で hex 表示" })
+  .node("pickerNode", { lane: "picker", stack: 0, kind: "card", w: 320, title: "Color picker", subtitle: "input.color widget · default #8a5a2a" })
+  .node("swatch", { lane: "swatch", stack: 0, kind: "card", w: 180, title: "Swatch", subtitle: "hex: {accent}" })
+  .node("statNode", { lane: "stat", stack: 0, kind: "card", w: 270, title: "Hex stat", subtitle: "readout.stat で hex 表示" })
   .edge("pickerNode", "swatch", { label: "select", tone: "info" })
   .edge("swatch", "statNode", { label: "display", tone: "success" })
   .readout.stat("hexReadout", { source: "accent", label: "Selected", caption: "hex color" })
@@ -292,12 +314,13 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
     body: "3-lane (Picker input / Swatch preview / Hex stat) で color 生成 pipeline を分散、 2 edge (select info tone / display success tone) で dataflow 明示、 color picker で hex 選択 → swatch subtitle + stat readout が追随、 color 選択の 3 step 経路を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("pickerNode", "swatch", "statNode").badge("color"))
   .build();
+export const subtitle__colorPickerTheme = "color picker pipeline を 3-lane (Picker input / Swatch preview / Hex stat) + 2 edge、 hex signal 生成 dataflow を可視化";
 
 /**
  * 11. shape primitive = rect fill、 signal で内部が実際に伸縮する汎用 container。
  */
 export const shapeRectFill = diagram("interactive-shape-rect", {
-  topic: "dyn-rect fill を 4-lane (Low 25% / Mid 50% / High 75% / Interactive slider) 分散、 3 static + 1 reactive rect 並列比較",
+  topic: "四角の塗り割合を 4 段階で見せる",
 })
   .lane("low", { x: 0, width: 130 })
   .lane("mid", { x: 150, width: 130 })
@@ -350,6 +373,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     body: "4-lane (Low 25% gray / Mid 50% blue / High 75% orange / Interactive slider gold) で dyn-rect fill を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 fill range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh", "bar").badge("shape.rect"))
   .build();
+export const subtitle__shapeRectFill = "dyn-rect fill を 4-lane (Low 25% / Mid 50% / High 75% / Interactive slider) 分散、 3 static + 1 reactive rect 並列比較";
 
 /**
  * 12. chain fill = 3 個の rect を並列、 base 値の伝搬で各 fill が連動 (EIP1559 相当)。
@@ -381,12 +405,12 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
  * 13. dyn-circle = radius / progress を signal で駆動、 progress ring の汎用版。
  */
 export const shapeCirclePulse = diagram("interactive-shape-circle", {
-  topic: "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較",
+  topic: "円の進捗リングを 4 段階で見せる",
 })
   .lane("empty", { x: 0, width: 170 })
-  .lane("third", { x: 180, width: 170 })
-  .lane("twothird", { x: 360, width: 170 })
-  .lane("interactive", { x: 540, width: 180 })
+  .lane("third", { x: 195, width: 170 })
+  .lane("twothird", { x: 390, width: 170 })
+  .lane("interactive", { x: 585, width: 180 })
   .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "Progress" })
   .formula("prog", "p / 100")
   .state("p", { initial: 60 })
@@ -400,7 +424,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     shape: { kind: "circle", fillProgress: "{prog33}", fill: "#2563eb" } })
   .node("cTwoThird", { lane: "twothird", stack: 0, kind: "dyn-circle", title: "66%", subtitle: "two-third", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" } })
-  .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Slider", subtitle: "{p}%", w: 160, h: 160,
+  .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Ring", subtitle: "{p}%", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
@@ -408,17 +432,18 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     body: "4-lane (0% gray / 33% blue / 66% orange / Interactive slider gold) で dyn-circle progress ring を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 progress ring range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird", "c").badge("shape.circle"))
   .build();
+export const subtitle__shapeCirclePulse = "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較";
 
 /**
  * 14. dyn-arc = 角度で fill sweep、 gauge や circular progress の汎用形。
  */
 export const shapeArcSweep = diagram("interactive-shape-arc", {
-  topic: "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較",
+  topic: "弧のゲージ角度を 4 段階で見せる",
 })
   .lane("min", { x: 0, width: 180 })
-  .lane("quarter", { x: 190, width: 180 })
-  .lane("half", { x: 380, width: 180 })
-  .lane("interactive", { x: 570, width: 200 })
+  .lane("quarter", { x: 205, width: 180 })
+  .lane("half", { x: 410, width: 180 })
+  .lane("interactive", { x: 615, width: 200 })
   .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "Angle" })
   .state("a", { initial: 180 })
   .state("a0", { initial: 0 })
@@ -438,12 +463,13 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider gold) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
   .build();
+export const subtitle__shapeArcSweep = "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較";
 
 /**
  * 15. dyn-wave = 水位表示、 tank / battery / liquid level の汎用形。
  */
 export const shapeWaveTank = diagram("interactive-shape-wave", {
-  topic: "dyn-wave tank level を 4-lane (Low 25 / Half 50 / High 75 / Interactive slider) 分散、 3 static + 1 reactive tank 並列比較",
+  topic: "波の水位を 4 段階で見せる",
 })
   .lane("low", { x: 0, width: 160 })
   .lane("half", { x: 180, width: 160 })
@@ -454,13 +480,13 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   .state("lvl25", { initial: 25 })
   .state("lvl50", { initial: 50 })
   .state("lvl75", { initial: 75 })
-  .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low 25%", subtitle: "25%", w: 140, h: 220,
+  .node("wLow", { lane: "low", stack: 0, kind: "dyn-wave", title: "Low", subtitle: "25%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" } })
-  .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half 50%", subtitle: "50%", w: 140, h: 220,
+  .node("wHalf", { lane: "half", stack: 0, kind: "dyn-wave", title: "Half", subtitle: "50%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" } })
-  .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High 75%", subtitle: "75%", w: 140, h: 220,
+  .node("wHigh", { lane: "high", stack: 0, kind: "dyn-wave", title: "High", subtitle: "75%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" } })
-  .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Slider", subtitle: "{lvl}%", w: 140, h: 220,
+  .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Wave", subtitle: "{lvl}%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
   .phase("p", {
     duration: 1500,
@@ -468,12 +494,13 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider gold) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
   .build();
+export const subtitle__shapeWaveTank = "dyn-wave tank level を 4-lane (Low 25 / Half 50 / High 75 / Interactive slider) 分散、 3 static + 1 reactive tank 並列比較";
 
 /**
  * 16. dyn-polygon = 頂点数 + 回転を signal で駆動、 badge / medal / spinner の汎用形。
  */
 export const shapePolyRotate = diagram("interactive-shape-polygon", {
-  topic: "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較",
+  topic: "多角形の角数を 3 / 6 / 8 で見せる",
 })
   .lane("triangle", { x: 0, width: 180 })
   .lane("hexagon", { x: 200, width: 180 })
@@ -485,13 +512,13 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .state("radius", { initial: 60 })
   .state("rot0", { initial: 0 })
   .state("radius60", { initial: 60 })
-  .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Triangle", subtitle: "sides=3", w: 180, h: 180,
+  .node("polyTri", { lane: "triangle", stack: 0, kind: "dyn-polygon", title: "Tri", subtitle: "sides=3", w: 180, h: 180,
     shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" } })
-  .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "sides=6", w: 180, h: 180,
+  .node("polyHex", { lane: "hexagon", stack: 0, kind: "dyn-polygon", title: "Hex", subtitle: "sides=6", w: 180, h: 180,
     shape: { kind: "polygon", sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" } })
-  .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Octagon", subtitle: "sides=8", w: 180, h: 180,
+  .node("polyOct", { lane: "octagon", stack: 0, kind: "dyn-polygon", title: "Oct", subtitle: "sides=8", w: 180, h: 180,
     shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" } })
-  .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon slider", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
+  .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" } })
   .phase("p", {
     duration: 1500,
@@ -499,6 +526,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider gold) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
   }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
   .build();
+export const subtitle__shapePolyRotate = "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較";
 
 /**
  * 17. repeat + derive chain = N 個の shape を宣言的に生成、 前値参照で連鎖伝搬。
@@ -522,7 +550,7 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   .state("gas4", { initial: 34.56 })
   .state("gas5", { initial: 41.472 })
   // repeat 5 nodes: 各 rect は gas{i+1} を source、 lane l{i+1} に配置
-  .repeatNodes(5, (i) => ({
+  .repeatNodes(5, (_i) => ({
     id: `r{i}`,
     lane: `l{i+1}`,
     stack: 0,
@@ -540,20 +568,18 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
  * 18. dynamic readouts = countup / delta / percent-ring / typewriter を組合わせて KPI dashboard。
  */
 export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
-  topic: "4 dynamic readout (countup/delta/percent-ring/typewriter) を 4-lane 分散、 各 readout 個別 lane、 signal → 4 readout の 1:N 経路可視化",
+  topic: "数え上げ / 増減 / 円 / 打字の 4 表示を並べる",
 })
-  .lane("count", { x: 0, width: 180 })
-  .lane("delta", { x: 200, width: 180 })
-  .lane("ring", { x: 400, width: 180 })
-  .lane("text", { x: 600, width: 180 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 370 })
   .input.slider("rev", { min: 0, max: 500, defaultValue: 250, label: "Revenue" })
   .input.dropdown("status", { options: ["active", "pending", "closed"], defaultValue: "active", label: "Status" })
   .state("rev", { initial: 250 })
   .state("status", { initial: "active" })
-  .node("countNode", { lane: "count", stack: 0, kind: "card", title: "Countup", subtitle: "rev={rev} · animated $ counter" })
-  .node("deltaNode", { lane: "delta", stack: 0, kind: "card", title: "Delta", subtitle: "rev={rev} · ↑↓ arrow" })
-  .node("ringNode", { lane: "ring", stack: 0, kind: "card", title: "Percent ring", subtitle: "rev/500 = {rev} progress" })
-  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Typewriter", subtitle: "status={status} · char reveal" })
+  .node("countNode", { lane: "col1", stack: 0, kind: "card", w: 320, title: "Countup", subtitle: "rev={rev} · animated $ counter" })
+  .node("deltaNode", { lane: "col2", stack: 0, kind: "card", w: 240, title: "Delta", subtitle: "rev={rev} · ↑↓ arrow" })
+  .node("ringNode", { lane: "col1", stack: 1, kind: "card", w: 310, title: "Percent ring", subtitle: "rev/500 = {rev} progress" })
+  .node("textNode", { lane: "col2", stack: 1, kind: "card", w: 320, title: "Typewriter", subtitle: "status={status} · char reveal" })
   .readout.countup("revCount", { source: "rev", unit: "$", label: "Revenue count" })
   .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ delta" })
   .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress ring" })
@@ -561,16 +587,17 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   .phase("p", {
     duration: 1500,
     title: "readout 4-way split",
-    body: "4-lane (Countup / Delta / Percent ring / Typewriter) で 4 dynamic readout を機能別分散、 各 readout 個別 card + 対応 readout node、 revenue slider → 3 readout 追随 (countup/delta/ring)、 status dropdown → typewriter reveal、 1 signal → N readout の bind 関係を lane 分割で可視化。",
+    body: "4 区画 (Countup / Delta / Percent ring / Typewriter) を 2 列 2 段に置いて 4 dynamic readout を機能別分散、 各 readout 個別 card + 対応 readout node、 revenue slider → 3 readout 追随 (countup/delta/ring)、 status dropdown → typewriter reveal、 1 signal → N readout の bind 関係を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("countNode", "deltaNode", "ringNode", "textNode").badge("dashboard"))
   .build();
+export const subtitle__dynamicReadouts = "4 dynamic readout (countup/delta/percent-ring/typewriter) を 2 列 2 段に分散、 各 readout 個別区画、 signal → 4 readout の 1:N 経路可視化";
 
 /**
  * 19. timeline = 時間軸を signal 化、 play/pause/scrub/speed で phase 相当を手動制御。
  *     time signal 経由で dyn-* shape を動的に駆動。
  */
 export const timelineDrive = diagram("interactive-timeline-drive", {
-  topic: "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随",
+  topic: "1 つの時間信号が図形 2 種を同時に動かす",
 })
   .lane("time", { x: 0, width: 200 })
   .lane("bar", { x: 240, width: 180 })
@@ -581,13 +608,15 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .state("t", { initial: 0 })
   .state("bar", { initial: 0 })
   .state("angle", { initial: 0 })
-  .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline signal", subtitle: "t (0-1 loop 3s autoplay)" })
-  .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 60, h: 200,
+  .node("timeNode", { lane: "time", stack: 0, kind: "card", title: "Timeline", subtitle: "t (0-1 loop 3s autoplay)" })
+  .node("r", { lane: "bar", stack: 0, kind: "dyn-rect", title: "Bar (rect)", subtitle: "bar = t * 100", w: 80, h: 200,
     shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" } })
-  .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc (dial)", subtitle: "angle = t * 270", w: 140, h: 140,
+  .node("a", { lane: "arc", stack: 0, kind: "dyn-arc", title: "Arc", subtitle: "angle = t * 270", w: 140, h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" } })
-  .edge("timeNode", "r", { label: "t → bar (*100)", tone: "info" })
-  .edge("timeNode", "a", { label: "t → angle (*270)", tone: "accent" })
+  .edge("timeNode", "r", { label: "→ bar", tone: "info" })
+  // timeNode→a は bar lane を跨ぐ長い edge。 label を bar lane 中央へ寄せて左右余白を確保し、
+  // 非発着 lane bar の border 貫通 (lane-border-clearance) を font metric 変動にも耐える形で防ぐ。
+  .edge("timeNode", "a", { label: "→ angle", tone: "accent", labelOffsetX: -45 })
   .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
   .phase("p", {
     duration: 1500,
@@ -595,25 +624,26 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
     body: "3-lane (Timeline control / Rect shape / Arc shape) で time signal → 2 shape の 1:N fan-out を分散、 2 edge (t→bar info / t→angle accent) で formula dependency 明示、 play/pause/scrub で time 制御、 rect fill + arc angle が同時追随、 timeline dataflow を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a").badge("timeline"))
   .build();
+export const subtitle__timelineDrive = "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随";
 
 /**
  * 20. edge signal binding = 太さ / 色 / dashoffset を signal 追随、 chain の流れを animate。
  */
 export const edgeFlowBind = diagram("interactive-edge-flow", {
-  topic: "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate",
+  topic: "信号で線の太さと流れる点が変わる",
 })
-  .lane("src", { x: 0, width: 180 })
-  .lane("pipe", { x: 220, width: 180 })
-  .lane("sink", { x: 440, width: 180 })
+  .lane("src", { x: 0, width: 230 })
+  .lane("pipe", { x: 270, width: 350 })
+  .lane("sink", { x: 660, width: 190 })
   .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "Flow Width" })
   .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "Timeline" })
   .formula("dash", "t * 24")
   .state("flow", { initial: 5 })
   .state("t", { initial: 0 })
   .state("dash", { initial: 0 })
-  .node("a", { lane: "src", stack: 0, kind: "card", title: "Source", subtitle: "producer" })
-  .node("pipeNode", { lane: "pipe", stack: 0, kind: "card", title: "Pipe", subtitle: "width={flow} · dash={dash}" })
-  .node("b", { lane: "sink", stack: 0, kind: "card", title: "Sink", subtitle: "consumer" })
+  .node("a", { lane: "src", stack: 0, kind: "card", w: 180, title: "Source", subtitle: "producer" })
+  .node("pipeNode", { lane: "pipe", stack: 0, kind: "card", w: 300, title: "Pipe", subtitle: "width={flow} · dash={dash}" })
+  .node("b", { lane: "sink", stack: 0, kind: "card", w: 140, title: "Sink", subtitle: "consumer" })
   .edge("a", "pipeNode", { label: "produce", widthBind: "{flow}", dashOffsetBind: "{dash}" })
   .edge("pipeNode", "b", { label: "consume", widthBind: "{flow}", dashOffsetBind: "{dash}" })
   .phase("p", {
@@ -622,17 +652,18 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
     body: "3-lane (Source / Pipe / Sink) で dataflow を横並び分散、 2 edge (Source→Pipe / Pipe→Sink) が widthBind + dashOffsetBind で slider/timeline 追随、 flow slider で太さ、 timeline で dashoffset 変化 → 破線が横 lane を流れる animation、 pipeline 構造と edge signal bind を同時可視化。",
   }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b").badge("edge bind"))
   .build();
+export const subtitle__edgeFlowBind = "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
 
 /**
  * 21. new input widgets = range / multi-select / tabs / text の合わせ技。
  */
 export const inputVariety = diagram("interactive-input-variety", {
-  topic: "4 input widget (range/multiSelect/tabs/text) を 4-lane 分散、 各 widget 個別 lane + input signal 表示",
+  topic: "スライダー / 複数選択 / タブ / 文字の 4 入力を並べる",
 })
-  .lane("range", { x: 0, width: 180 })
-  .lane("multi", { x: 200, width: 180 })
-  .lane("tabs", { x: 400, width: 180 })
-  .lane("text", { x: 600, width: 180 })
+  .lane("range", { x: 0, width: 360 })
+  .lane("multi", { x: 380, width: 360 })
+  .lane("tabs", { x: 760, width: 230 })
+  .lane("text", { x: 1010, width: 320 })
   .input.range("priceRange", { min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "Price Range" })
   .input.multiSelect("tags", { options: ["new", "sale", "hot", "featured"], defaultValues: ["new"], label: "Tags" })
   .input.tabs("view", { options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" })
@@ -641,22 +672,23 @@ export const inputVariety = diagram("interactive-input-variety", {
   .state("tags", { initial: "new" })
   .state("view", { initial: "grid" })
   .state("query", { initial: "" })
-  .node("rangeNode", { lane: "range", stack: 0, kind: "card", title: "Range slider", subtitle: "price = {priceRange}" })
-  .node("multiNode", { lane: "multi", stack: 0, kind: "card", title: "Multi-select", subtitle: "tags = {tags}" })
-  .node("tabsNode", { lane: "tabs", stack: 0, kind: "card", title: "Tabs", subtitle: "view = {view}" })
-  .node("textNode", { lane: "text", stack: 0, kind: "card", title: "Text input", subtitle: "query = {query}" })
+  .node("rangeNode", { lane: "range", stack: 0, kind: "card", w: 310, title: "Range slider", subtitle: "price = {priceRange}" })
+  .node("multiNode", { lane: "multi", stack: 0, kind: "card", w: 310, title: "Multi-select", subtitle: "tags = {tags}" })
+  .node("tabsNode", { lane: "tabs", stack: 0, kind: "card", w: 180, title: "Tabs", subtitle: "view = {view}" })
+  .node("textNode", { lane: "text", stack: 0, kind: "card", w: 270, title: "Text input", subtitle: "query = {query}" })
   .phase("p", {
     duration: 1500,
     title: "input widget 4-way split",
     body: "4-lane (Range / MultiSelect / Tabs / Text) で 4 input widget を機能別分散、 各 widget 個別 card で bind signal 明示、 各 input が独立 signal を持つ複合入力構造を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode", "tabsNode", "textNode").badge("input variety"))
   .build();
+export const subtitle__inputVariety = "4 input widget (range/multiSelect/tabs/text) を 4-lane 分散、 各 widget 個別 lane + input signal 表示";
 
 /**
  * 22. new readouts = heat cell + badge + status dot の合わせ技。
  */
 export const readoutVariety = diagram("interactive-readout-variety", {
-  topic: "3 readout variant (heatCell/badge/statusDot) を 3-lane 分散、 各 readout 個別 lane + temp/state signal 追随",
+  topic: "熱セル / バッジ / 状態点の 3 表示を並べる",
 })
   .lane("heat", { x: 0, width: 220 })
   .lane("badge", { x: 260, width: 220 })
@@ -681,13 +713,14 @@ export const readoutVariety = diagram("interactive-readout-variety", {
     body: "3-lane (Heat cell / Badge / Status dot) で 3 readout variant を機能別分散、 各 readout 個別 card で signal 明示、 temp slider → heat + badge / state dropdown → dot が追随、 readout 種別を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode").badge("readout variety"))
   .build();
+export const subtitle__readoutVariety = "3 readout variant (heatCell/badge/statusDot) を 3-lane 分散、 各 readout 個別 lane + temp/state signal 追随";
 
 /**
  * 23. event 拡張 = double-click / keydown / focus / blur を network 化。
  *     signal update は consumer handler 側で実装、 catalog では primitive 存在確認のみ。
  */
 export const eventVariety = diagram("interactive-event-variety", {
-  topic: "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind",
+  topic: "5 種の操作イベントを受け取り分ける",
 })
   .lane("pointer", { x: 0, width: 200 })
   .lane("keyboard", { x: 240, width: 240 })
@@ -706,13 +739,14 @@ export const eventVariety = diagram("interactive-event-variety", {
     body: "3-lane (Pointer=Double Click / Keyboard=Focus+Blur+Keydown / Touch=Long Press) で 5 event を category 別分散、 3 target node に 5 event bind、 consumer handler map で dbl/focus/blur/keydown/longpress を実装、 event 分類と bind の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
   .build();
+export const subtitle__eventVariety = "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind";
 
 /**
  * 24. gridNodes = 2D grid layout。 rows × cols の matrix を宣言的に生成、
  *     signal で個別 cell の hover 状態を bind。
  */
 export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
-  topic: "gridNodes(3, 4) 12 cell を 4-lane (Col 0-3) 列別分散、 gridNodes template で lane 動的割当、 各 lane 3 cell (Row 0-2) stack",
+  topic: "3 行 4 列の格子を列ごとに並べる",
 })
   .lane("col0", { x: 0, width: 150 })
   .lane("col1", { x: 170, width: 150 })
@@ -722,7 +756,7 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
   .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "Col" })
   .state("r", { initial: 0 })
   .state("c", { initial: 0 })
-  .gridNodes(3, 4, (r, c) => ({
+  .gridNodes(3, 4, (r, _c) => ({
     id: `cell-{r}-{c}`,
     lane: `col{c}`,
     stack: r,
@@ -742,13 +776,14 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
     "cell-2-0", "cell-2-1", "cell-2-2", "cell-2-3",
   ).badge("2D grid"))
   .build();
+export const subtitle__gridLayoutMatrix = "gridNodes(3, 4) 12 cell を 4-lane (Col 0-3) 列別分散、 gridNodes template で lane 動的割当、 各 lane 3 cell (Row 0-2) stack";
 
 /**
  * 25. arraySignal = array を単一 signal に格納、 template で index / length / sum / avg access。
  *     readout.arrayBar で histogram、 readout.arrayList で bullet list 表示。
  */
 export const arraySignalHistogram = diagram("interactive-array-signal", {
-  topic: "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存",
+  topic: "配列 5 要素の合計と個別値を並べる",
 })
   .lane("agg", { x: 0, width: 240 })
   .lane("items", { x: 300, width: 260 })
@@ -758,7 +793,7 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
     lane: "agg",
     stack: 0,
     kind: "card",
-    title: "Array aggregate",
+    title: "Aggregate",
     subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
   })
   .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "first bar override = {bump}" })
@@ -776,12 +811,13 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
     body: "2-lane (Aggregate stat + Bump control / Individual items 5 個) で arraySignal を集約と要素別に分散、 aggregate lane に summary + bump control、 items lane に 5 個別 element card、 arrayBar + arrayList readout も併存で histogram + bullet 表示、 集約と要素の 2 view。",
   }, (p: PhaseBuilder) => p.activate("summary", "bumpNode", "i0", "i1", "i2", "i3", "i4").badge("array signal"))
   .build();
+export const subtitle__arraySignalHistogram = "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存";
 
 /**
  * 26. pathProgress readout + visibleIf。 slider で progress、 完了時 badge を visibleIf 経由で表示。
  */
 export const pathProgressDemo = diagram("interactive-path-progress", {
-  topic: "path progress を 3-lane (State / Path visual / Completion) 分散、 progress state + path readout + 完了 badge を lane 別展開",
+  topic: "経路の進捗と完了状態を連動させる",
 })
   .lane("state", { x: 0, width: 200 })
   .lane("visual", { x: 240, width: 300 })
@@ -811,20 +847,21 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
     body: "3-lane (State / Visual / Completion) で path progress を機能別分散、 state lane に slider driven main、 visual lane に pathProgress + percentRing 2 readout node、 done lane に visibleIf で 100% 時のみ現れる ok badge、 progress signal → path 進行 → 完了 badge の flow を lane 分割で明示。",
   }, (p: PhaseBuilder) => p.activate("main", "pathNode", "ringNode", "ok").badge("progress + hide"))
   .build();
+export const subtitle__pathProgressDemo = "path progress を 3-lane (State / Path visual / Completion) 分散、 progress state + path readout + 完了 badge を lane 別展開";
 
 /**
  * 27. lineChart readout = array signal を折れ線 chart 表示 (時系列 like)。
  */
 export const arrayLineChart = diagram("interactive-array-line-chart", {
-  topic: "arraySignal line chart を 3-lane (Data source / Area chart fill / Line chart no-fill) 分散、 chart variant 別 lane 展開、 lineChart 2 種類併存",
+  topic: "配列の値から面グラフを描く",
 })
   .lane("data", { x: 0, width: 200 })
   .lane("area", { x: 240, width: 280 })
   .lane("line", { x: 540, width: 280 })
   .arraySignal("series", [22, 35, 28, 42, 55, 48, 60, 72, 65, 80])
   .node("dataCard", { lane: "data", stack: 0, kind: "card", title: "Time series", subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" })
-  .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Area chart (fill=true)", subtitle: "blue #2563eb · viewH=70" })
-  .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Line chart (fill=false)", subtitle: "orange #f97316 · viewH=50" })
+  .node("areaCard", { lane: "area", stack: 0, kind: "card", title: "Area chart", subtitle: "blue #2563eb · viewH=70" })
+  .node("lineCard", { lane: "line", stack: 0, kind: "card", title: "Line chart", subtitle: "orange #f97316 · viewH=50" })
   .readout.lineChart("chart", { source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Area chart" })
   .readout.lineChart("chartNoFill", { source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" })
   .phase("p", {
@@ -833,12 +870,13 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
     body: "3-lane (Data source / Area chart fill=true / Line chart fill=false) で 10 point time series を chart variant 別分散、 同 data source を 2 種 lineChart readout (area/line) で並列比較、 fill option 差異を横並び view で明示。",
   }, (p: PhaseBuilder) => p.activate("dataCard", "areaCard", "lineCard").badge("line chart"))
   .build();
+export const subtitle__arrayLineChart = "arraySignal line chart を 3-lane (Data source / Area chart fill / Line chart no-fill) 分散、 chart variant 別 lane 展開、 lineChart 2 種類併存";
 
 /**
  * 28. stackedBar readout = 2 array を並列 bar 比較、 A/B histogram の per-index 対比。
  */
 export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
-  topic: "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存",
+  topic: "2 系列の配列を積み上げ棒で比べる",
 })
   .lane("groupA", { x: 0, width: 300 })
   .lane("groupB", { x: 340, width: 300 })
@@ -848,7 +886,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     lane: "groupA",
     stack: 0,
     kind: "card",
-    title: "Group A (blue)",
+    title: "Group A",
     subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}",
   })
   .node("aDetail", { lane: "groupA", stack: 1, kind: "card", title: "A 5 element", subtitle: "[40, 55, 30, 65, 45]" })
@@ -856,7 +894,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     lane: "groupB",
     stack: 0,
     kind: "card",
-    title: "Group B (orange)",
+    title: "Group B",
     subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}",
   })
   .node("bDetail", { lane: "groupB", stack: 1, kind: "card", title: "B 5 element", subtitle: "[25, 40, 50, 35, 60]" })
@@ -876,6 +914,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     body: "2-lane (Group A blue / Group B orange) で 2 arraySignal を group 別分散、 各 group に main card + detail element list、 comparison edge (warning tone) で A vs B diff 明示、 stackedBar readout も併存で per-index 隣接 bar 比較、 group 分類と bar 比較の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("stacked bar"))
   .build();
+export const subtitle__arrayStackedBar = "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存";
 
 /**
  * 29. radialNodes + renderOffset = hub-and-spoke architecture 図、
@@ -883,7 +922,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
  *     renderOffsetX/Y で見た目上の円周配置に。
  */
 export const radialHubAndSpoke = diagram("interactive-radial-hub", {
-  topic: "hub-and-spoke を 3-lane (Spokes 上 / Hub center / Spokes 下) 分散、 4 spoke を上下 lane に振り分けて edge-node-cross を回避、 hub → 4 spoke edge の star topology",
+  topic: "中心から放射状に 4 本が伸びる",
 })
   .lane("spokesTop", { x: -300, width: 200 })
   .lane("hub", { x: 0, width: 200 })
@@ -903,12 +942,13 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
     body: "3-lane (spokesTop / hub / spokesBottom) 分散で 4 spoke edge の edge-node-cross を回避、 hub 中心の star topology を lane 構造で明示 (CAR-1560 catalog sweep fix)。",
   }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3").badge("hub-and-spoke"))
   .build();
+export const subtitle__radialHubAndSpoke = "hub-and-spoke を 3-lane (Spokes 上 / Hub center / Spokes 下) 分散、 4 spoke を上下 lane に振り分けて edge-node-cross を回避、 hub → 4 spoke edge の star topology";
 
 /**
  * 30. waterfall readout = 5 element を左から累積、 正 / 負 で色分け (財務 waterfall chart)。
  */
 export const arrayWaterfall = diagram("interactive-array-waterfall", {
-  topic: "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存",
+  topic: "増減を滝グラフで正負に分けて見せる",
 })
   .lane("pos", { x: 0, width: 300 })
   .lane("neg", { x: 340, width: 300 })
@@ -918,7 +958,7 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
   .node("pos3", { lane: "pos", stack: 2, kind: "card", title: "+40", subtitle: "最終利益" })
   .node("neg1", { lane: "neg", stack: 0, kind: "card", title: "-30", subtitle: "小損失" })
   .node("neg2", { lane: "neg", stack: 1, kind: "card", title: "-20", subtitle: "追加損失" })
-  .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall summary", subtitle: "final = sum = {changes.sum}" })
+  .node("summary", { lane: "pos", stack: 3, kind: "card", title: "Waterfall", subtitle: "final = sum = {changes.sum}" })
   .readout.waterfall("wf", {
     source: "changes",
     min: -30,
@@ -936,12 +976,15 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     body: "2-lane (Positive changes 3 個 / Negative changes 2 個) で 5 waterfall element を符号別分散、 各 element 個別 card + summary card (pos lane 内)、 waterfall readout も併存で累積 bar 表示、 正/負 分類と累積 chart の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("pos1", "pos2", "pos3", "neg1", "neg2", "summary").badge("waterfall"))
   .build();
+export const subtitle__arrayWaterfall = "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存";
 
 /**
  * 31. renderOffset signal binding = slider で node が動く、 renderOffsetX/Y に signal template。
  */
+// 2 要素の対比が主題の最小例なので抽出対象外 (#970)。 固定と追随の 2 つで完結する。
 export const renderOffsetDrift = diagram("interactive-render-offset", {
-  topic: "renderOffset bind を 2-lane (Anchor fixed / Floater drift) 分散、 anchor は固定、 floater は renderOffset signal 追随",
+  structuredData: "exclude",
+  topic: "固定点に対して浮遊点がずれて動く",
 })
   .lane("anchor", { x: 0, width: 240 })
   .lane("floater", { x: 300, width: 300 })
@@ -949,12 +992,12 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
   .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "Drift Y" })
   .state("dx", { initial: 0 })
   .state("dy", { initial: 0 })
-  .node("anchor", { lane: "anchor", stack: 0, kind: "card", title: "Anchor (constant)", subtitle: "固定位置、 signal bind なし" })
+  .node("anchor", { lane: "anchor", stack: 0, kind: "card", title: "Anchor", subtitle: "固定位置、 signal bind なし" })
   .node("floater", {
     lane: "floater",
     stack: 0,
     kind: "card",
-    title: "Floater (drift)",
+    title: "Floater",
     subtitle: "dx={dx} · dy={dy}",
     renderOffsetX: "{dx}",
     renderOffsetY: "{dy}",
@@ -965,12 +1008,13 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
     body: "2-lane (Anchor / Floater) で renderOffset bind の有無を対比、 anchor は lane 固定位置、 floater は renderOffsetX/Y に signal template、 slider 変化で floater が実際に横 / 縦 drift、 lane 分割で reactive vs constant を可視化。",
   }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
   .build();
+export const subtitle__renderOffsetDrift = "renderOffset bind を 2-lane (Anchor fixed / Floater drift) 分散、 anchor は固定、 floater は renderOffset signal 追随";
 
 /**
  * 32. matrix readout = 4×4 の 2D array を色 gradient で表示 (confusion matrix / heatmap 用)。
  */
 export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
-  topic: "4×4 confusion matrix を 4-lane (class 0/1/2/3) 分散、 各 class の diagonal (correct) / off-diagonal (wrong) を個別 card 表示、 matrix readout 併存",
+  topic: "4×4 の混同行列を熱の色で見せる",
 })
   .lane("c0", { x: 0, width: 150 })
   .lane("c1", { x: 170, width: 150 })
@@ -997,12 +1041,13 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
     body: "4-lane (Class 0/1/2/3) で 4×4 confusion matrix を class 別に分散、 各 lane 内で correct (diagonal) と wrong (off-diagonal) を個別 card、 matrix readout も併存で色 gradient cell 表示、 class 別精度と 2D 相関の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("c0Diag", "c0Wrong", "c1Diag", "c1Wrong", "c2Diag", "c2Wrong", "c3Diag", "c3Wrong").badge("2D matrix"))
   .build();
+export const subtitle__matrixHeatmap = "4×4 confusion matrix を 4-lane (class 0/1/2/3) 分散、 各 class の diagonal (correct) / off-diagonal (wrong) を個別 card 表示、 matrix readout 併存";
 
 /**
  * 33. progress-group readout = 4 task の progress を label + bar list で表示。
  */
 export const taskProgressGroup = diagram("interactive-progress-group", {
-  topic: "4 task の progress を 2-lane (Advanced ≥50% / Behind <50%) に分散、 各 task 個別 card + progressGroup readout 併存",
+  topic: "4 件の進捗を達成 / 遅れで分けて見せる",
 })
   .lane("advanced", { x: 0, width: 240 })
   .lane("behind", { x: 300, width: 240 })
@@ -1025,18 +1070,17 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
     body: "2-lane (Advanced ≥50% / Behind <50%) で 4 task を進捗率別に分散、 各 task 個別 card で progress % 明示、 progressGroup readout も併存で per-row bar 表示、 sprint 進捗を lane 分割で visual triage。",
   }, (p: PhaseBuilder) => p.activate("implNode", "docsNode", "designNode", "testNode").badge("task list"))
   .build();
+export const subtitle__taskProgressGroup = "4 task の progress を 2-lane (Advanced ≥50% / Behind <50%) に分散、 各 task 個別 card + progressGroup readout 併存";
 
 /**
  * 34. domain example = EIP-1559 gas cost model。
  *     slider で base fee → 3 block の実 gas cost が waterfall + stacked-bar で並列可視化。
  */
 export const eip1559GasFlow = diagram("interactive-eip1559", {
-  topic: "EIP-1559 gas cost model = 4-lane (Sender / Block1 / Block2 / Block3) を edge で gas propagation、 base fee slider で 3 block の total が chain 追随",
+  topic: "EIP-1559 の手数料が 3 ブロックで変わる",
 })
-  .lane("sender", { x: 0, width: 180 })
-  .lane("block1", { x: 260, width: 180 })
-  .lane("block2", { x: 520, width: 180 })
-  .lane("block3", { x: 780, width: 180 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 300 })
   .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" })
   .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "Priority tip" })
   .state("baseFee", { initial: 50 })
@@ -1050,30 +1094,30 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .state("total2", { initial: 66 })
   .state("total3", { initial: 82 })
   .node("wallet", {
-    lane: "sender",
+    lane: "col1",
     stack: 0,
-    kind: "card",
-    title: "Sender wallet",
+    kind: "card", w: 320,
+    title: "Wallet",
     subtitle: "base {baseFee} + tip {priority} gwei",
   })
   .node("b1", {
-    lane: "block1",
-    stack: 0,
-    kind: "card",
+    lane: "col1",
+    stack: 1,
+    kind: "card", w: 240,
     title: "Block N",
     subtitle: "1.0x = {total1} gwei",
   })
   .node("b2", {
-    lane: "block2",
+    lane: "col2",
     stack: 0,
-    kind: "card",
+    kind: "card", w: 250,
     title: "Block N+1",
     subtitle: "1.2x = {total2} gwei",
   })
   .node("b3", {
-    lane: "block3",
-    stack: 0,
-    kind: "card",
+    lane: "col2",
+    stack: 1,
+    kind: "card", w: 250,
     title: "Block N+2",
     subtitle: "1.5x = {total3} gwei",
   })
@@ -1084,15 +1128,16 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .phase("p", {
     duration: 1200,
     title: "EIP-1559 gas flow",
-    body: "Sender → Block N → N+1 → N+2 の 4 lane、 slider で base + tip 変化 → formula chain で block2/3 の total gwei が逓増追随、 edge tone で cost escalation を可視化。",
+    body: "Sender → Block N → N+1 → N+2 の 4 区画を 2 列 2 段に置き、 slider で base + tip 変化 → formula chain で block2/3 の total gwei が逓増追随、 edge tone で cost escalation を可視化。",
   }, (p: PhaseBuilder) => p.activate("wallet", "b1", "b2", "b3").badge("EIP-1559"))
   .build();
+export const subtitle__eip1559GasFlow = "EIP-1559 gas cost model = 4 区画 (Sender / Block1 / Block2 / Block3) 2 列 2 段を edge で gas propagation、 base fee slider で 3 block の total が chain 追随";
 
 /**
  * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
  */
 export const oauthFlow = diagram("interactive-oauth-flow", {
-  topic: "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随",
+  topic: "OAuth 認可コードの往復を追う",
 })
   .lane("user", { x: 0, width: 220 })
   .lane("auth", { x: 320, width: 220 })
@@ -1111,7 +1156,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     lane: "user",
     stack: 0,
     kind: "card",
-    title: "Client browser",
+    title: "Browser",
     subtitle: "user agent",
   })
   .node("consent", {
@@ -1125,15 +1170,35 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     lane: "resource",
     stack: 0,
     kind: "card",
-    title: "Resource server",
+    title: "Resource",
     subtitle: "API endpoint",
   })
-  .edge("client", "consent", { label: "1. redirect", sub: "with client_id", tone: "info", labelOffsetY: -90 })
-  .edge("consent", "client", { label: "2. consent screen", sub: "user approves", tone: "info", side: "left", labelOffsetY: -30 })
-  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange", sub: "with code", tone: "accent", labelOffsetY: 30 })
-  .edge("consent", "client", { id: "token-issue", label: "4. token issued", sub: "access_token", tone: "success", side: "left", labelOffsetY: 90 })
+  // 1-4 は Browser ↔ Auth server の往復 4 本。 label の位置は engine に任せる。
+  //
+  // 元は engine が 3 と 4 の label を完全に同じ点に置いていたため、 `labelOffsetX` /
+  // `labelOffsetY` を手で与えて 2 列 × 2 段に散らしていた。 cdl#372 / cdl#374 / cdl#376 で
+  // engine が重ねず・線を跨がず・弧と同じ並び順に置くようになり、 手作業が要らなくなった。
+  //
+  // **4 本の説明文 (`sub`) は label 本体に畳んだ**。 2 行 pill は高さ 68 で、 4 本を縦に並べる
+  // には 312 の縦幅が要る。 一方 4 本の弧は 96 しか広がらないため、 外側の label が弧から
+  // 200 以上離れて `edge-label-proximity` の破綻になる (実測 = 222)。 1 行 pill (36) なら
+  // 必要な縦幅が 216 に減り、 全ての label が自分の弧から 86 以内に収まる。
+  //
+  // 情報は落としていない = `with client_id` 等の文言をそのまま括弧で label 本体に入れた。 pill は
+  // 横に伸びるが縦には伸びないので、 束の縦幅は変わらない。
+  //
+  // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
+  // 変わらない (実測 = 320/640 と 620/1240 のどちらでも lane x が 0/1008/2016)。
+  .edge("client", "consent", { label: "1. redirect (with client_id)", tone: "info" })
+  .edge("consent", "client", { label: "2. consent screen (user approves)", tone: "info", side: "left" })
+  .edge("client", "consent", { id: "code-exchange", label: "3. code exchange (with code)", tone: "accent" })
+  .edge("consent", "client", { id: "token-issue", label: "4. token issued (access_token)", tone: "success", side: "left" })
+  // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
+  // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 6 を下
+  // (side: "bottom") に回して迂回の向きを分け、 6 の label だけ下へ 120 離す。 5 側にも offset を
+  // 足すと label が path から 170 離れて edge-label-proximity warn が出て、 図の高さが 19% 増える。
   .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
-  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "left" })
+  .edge("api", "client", { label: "6. resp", sub: "protected data", tone: "success", side: "bottom", labelOffsetY: 120 })
   .readout.sequenceTimeline("seq", { source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" })
   .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
   .phase("p", {
@@ -1142,12 +1207,13 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     body: "3-lane (User / Auth / Resource) + 6 event edge で OAuth 2.0 code flow を node network 化、 sequence timeline と併記で時間軸 + 空間軸を dual 可視化。",
   }, (p: PhaseBuilder) => p.activate("client", "consent", "api").badge("OAuth"))
   .build();
+export const subtitle__oauthFlow = "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随";
 
 /**
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
  */
 export const decisionTree = diagram("interactive-decision-tree", {
-  topic: "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示",
+  topic: "3 段の決定木が 4 つの葉に分岐する",
 })
   .lane("root", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
@@ -1172,12 +1238,13 @@ export const decisionTree = diagram("interactive-decision-tree", {
     body: "3-lane (root / mid / leaf) tree depth 分散 + 明示 stack (root=1 / mid=0,2 / leaf=0,1,2,3) で parent-child alignment、 6 edge の 2 分木 (0→1,2 / 1→3,4 / 2→5,6) を edge-node-cross なしで表現 (CAR-1560 catalog sweep fix)。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
   .build();
+export const subtitle__decisionTree = "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示";
 
 /**
  * 37. radar chart = 5 skill dimensions を spider chart で表示。
  */
 export const skillRadar = diagram("interactive-skill-radar", {
-  topic: "5 skill を 3-lane (Strong ≥7 / Middle 5-6 / Weak <5) レベル別分散、 各 skill 個別 card + radar readout 併存",
+  topic: "5 技能を強 / 中 / 弱に分けて見せる",
 })
   .lane("strong", { x: 0, width: 220 })
   .lane("middle", { x: 260, width: 220 })
@@ -1196,12 +1263,13 @@ export const skillRadar = diagram("interactive-skill-radar", {
     body: "3-lane (Strong ≥7 / Middle 5-6 / Weak <5) で 5 skill をレベル別分散、 各 skill 個別 card で数値明示 (Design 8 / Test 7 / Debug 9 / Impl 5 / Docs 3)、 radar readout も併存で 5 次元 polygon 表示、 skill レベル分類と polygon 全体観の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("designNode", "testNode", "debugNode", "implNode", "docsNode").badge("radar"))
   .build();
+export const subtitle__skillRadar = "5 skill を 3-lane (Strong ≥7 / Middle 5-6 / Weak <5) レベル別分散、 各 skill 個別 card + radar readout 併存";
 
 /**
  * 38. bubble chart = 3D data (perf / cost / usage) の bubbles、 各点の size で 3 次元目を表現。
  */
 export const perfBubbleChart = diagram("interactive-perf-bubble", {
-  topic: "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存",
+  topic: "5 種の処理の負荷を大きさで比べる",
 })
   .lane("high", { x: 0, width: 300 })
   .lane("low", { x: 340, width: 300 })
@@ -1236,12 +1304,13 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     body: "2-lane (High usage ≥7 = 3 個 / Low usage <7 = 2 個) で 5 workload を usage 次元別分散、 各 workload 個別 card で (perf, cost, usage) 明示、 bubbleChart readout も併存で 3D bubble 表示、 usage 分類と 3D chart の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("w2", "w3", "w5", "w1", "w4").badge("3D bubble"))
   .build();
+export const subtitle__perfBubbleChart = "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存";
 
 /**
  * 39. donut chart = portfolio share (asset allocation) を multi-segment donut 表示。
  */
 export const portfolioDonut = diagram("interactive-portfolio-donut", {
-  topic: "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存",
+  topic: "資産 4 種を伝統 / 代替に分けて見せる",
 })
   .lane("traditional", { x: 0, width: 300 })
   .lane("alternative", { x: 340, width: 300 })
@@ -1251,7 +1320,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "30%" })
   .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "15%" })
   .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "10% (min)" })
-  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio total", subtitle: "sum = {assets.sum}%" })
+  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio", subtitle: "sum = {assets.sum}%" })
   .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
   .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
   .phase("p", {
@@ -1260,12 +1329,13 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
     body: "2-lane (Traditional Stocks+Bonds = 75% / Alternative Cash+Crypto = 25%) で 4 asset を category 別分散、 各 asset 個別 card + total summary、 donut readout も併存で multi-segment 円表示、 category 分類と donut 全体観の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode").badge("donut"))
   .build();
+export const subtitle__portfolioDonut = "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存";
 
 /**
  * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
  */
 export const kpiDashboard = diagram("interactive-kpi-dashboard", {
-  topic: "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随",
+  topic: "SaaS の主要指標 4 つを 1 画面に並べる",
 })
   .lane("revenue", { x: 0, width: 200 })
   .lane("users", { x: 260, width: 200 })
@@ -1309,7 +1379,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   })
   .edge("revCard", "usersCard", { label: "×8", sub: "acquisition", tone: "info" })
   .edge("revCard", "churnCard", { label: "inverse", sub: "50 − rev/10", tone: "error" })
-  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success" })
+  .edge("revCard", "npsCard", { label: "correlate", sub: "rev/2 + 20", tone: "success", side: "bottom" })
   .readout.stat("rev", { source: "revenueInput", unit: "k", label: "Revenue" })
   .readout.stat("usr", { source: "users", label: "Users" })
   .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
@@ -1320,16 +1390,17 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
     body: "4-lane で Revenue driver + 3 downstream KPI を node grid、 因果関係を edge tone (info=acquisition / error=inverse churn / success=NPS correlate) で表現、 formula chain で 3 KPI 同時追随。",
   }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard").badge("KPI"))
   .build();
+export const subtitle__kpiDashboard = "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随";
 
 /**
  * 41. domain A/B test result = 2 variant の conversion rate + confidence を並列表示。
  */
 export const abTestResult = diagram("interactive-ab-test", {
-  topic: "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化",
+  topic: "A/B テストの振り分けと結果を見せる",
 })
-  .lane("varA", { x: 0, width: 200 })
-  .lane("split", { x: 260, width: 200 })
-  .lane("varB", { x: 520, width: 200 })
+  .lane("varA", { x: 0, width: 300 })
+  .lane("split", { x: 360, width: 250 })
+  .lane("varB", { x: 670, width: 300 })
   .arraySignal("convA", [40, 45, 42, 48, 44])
   .arraySignal("convB", [50, 55, 58, 62, 60])
   .arraySignal("splitData", [50, 50])
@@ -1337,22 +1408,22 @@ export const abTestResult = diagram("interactive-ab-test", {
   .node("controlCard", {
     lane: "varA",
     stack: 0,
-    kind: "card",
-    title: "Variant A (Control)",
+    kind: "card", w: 250,
+    title: "Variant A",
     subtitle: "avg {convA.avg}%",
   })
   .node("splitCard", {
     lane: "split",
     stack: 0,
-    kind: "card",
-    title: "Traffic split",
+    kind: "card", w: 200,
+    title: "Split",
     subtitle: "50/50 randomize",
   })
   .node("treatmentCard", {
     lane: "varB",
     stack: 0,
-    kind: "card",
-    title: "Variant B (Treatment)",
+    kind: "card", w: 250,
+    title: "Variant B",
     subtitle: "avg {convB.avg}%",
   })
   .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
@@ -1366,6 +1437,7 @@ export const abTestResult = diagram("interactive-ab-test", {
     body: "3-lane (Variant A / Split / Variant B) + Split → 各 variant への 50/50 edge、 experiment 構造を node network で表現、 stackedBar + 2 donut で結果集約。",
   }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").badge("A/B test"))
   .build();
+export const subtitle__abTestResult = "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化";
 
 /**
  * 42. calendar heatmap = 1 年分の日次 commit を GitHub-style で表示 (365 day、 53 週 × 7 日)。
@@ -1382,7 +1454,7 @@ function generateCommits(): number[] {
 }
 
 export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
-  topic: "365 day contribution を 4-lane (Q1/Q2/Q3/Q4 quarter) 分散、 各 quarter summary card + total/max、 calendarHeatmap readout 併存",
+  topic: "365 日の活動量を四半期ごとに見せる",
 })
   .lane("q1", { x: 0, width: 160 })
   .lane("q2", { x: 180, width: 160 })
@@ -1401,12 +1473,13 @@ export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
     body: "4-lane (Q1/Q2/Q3/Q4) で 365 day を quarter 別に分散、 各 quarter summary card + year total (Q4 lane 内)、 calendarHeatmap readout も併存で 53 週 × 7 日 gradient 表示、 quarter 単位 aggregate と日単位詳細の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("q1Card", "q2Card", "q3Card", "q4Card", "totalCard").badge("contributions"))
   .build();
+export const subtitle__contributionHeatmap = "365 day contribution を 4-lane (Q1/Q2/Q3/Q4 quarter) 分散、 各 quarter summary card + total/max、 calendarHeatmap readout 併存";
 
 /**
  * 43. mini-map = 大 canvas 1000×800 上の 400×300 viewport を slider で移動、 mini-map で追従。
  */
 export const canvasMiniMap = diagram("interactive-canvas-minimap", {
-  topic: "canvas mini-map を 3-lane (X pan / Y pan / Mini-map viewport) 分散、 axis 別 control + viewport 集約、 miniMap readout 併存",
+  topic: "全体図の中で今見ている範囲を示す",
 })
   .lane("xpan", { x: 0, width: 200 })
   .lane("ypan", { x: 240, width: 200 })
@@ -1416,9 +1489,9 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
   .state("panX", { initial: 300 })
   .state("panY", { initial: 250 })
   .arraySignal("viewport", [300, 250, 400, 300])
-  .node("xNode", { lane: "xpan", stack: 0, kind: "card", title: "Pan X control", subtitle: "panX = {panX}px (0-600)" })
-  .node("yNode", { lane: "ypan", stack: 0, kind: "card", title: "Pan Y control", subtitle: "panY = {panY}px (0-500)" })
-  .node("mapNode", { lane: "map", stack: 0, kind: "card", title: "Mini-map viewport", subtitle: "pan ({panX}, {panY}) view 400×300" })
+  .node("xNode", { lane: "xpan", stack: 0, kind: "card", title: "Pan X", subtitle: "panX = {panX}px (0-600)" })
+  .node("yNode", { lane: "ypan", stack: 0, kind: "card", title: "Pan Y", subtitle: "panY = {panY}px (0-500)" })
+  .node("mapNode", { lane: "map", stack: 0, kind: "card", title: "Mini-map", subtitle: "pan ({panX}, {panY}) view 400×300" })
   .readout.miniMap("map", { source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview (mini-map)" })
   .readout.stat("panXStat", { source: "panX", unit: "px", label: "X stat" })
   .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y stat" })
@@ -1428,23 +1501,23 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
     body: "3-lane (X pan / Y pan / Mini-map viewport) で canvas 制御を axis 別分散、 X/Y 独立 slider control + viewport 集約 card、 miniMap readout も併存で 1000×800 canvas 縮小表示、 slider 変化で mini-map viewport rect が実座標追随、 axis 分離と全体 view の 2 経路。",
   }, (p: PhaseBuilder) => p.activate("xNode", "yNode", "mapNode").badge("mini-map"))
   .build();
+export const subtitle__canvasMiniMap = "canvas mini-map を 3-lane (X pan / Y pan / Mini-map viewport) 分散、 axis 別 control + viewport 集約、 miniMap readout 併存";
 
 /**
  * 44. kpi-card = revenue の現在値 + 直前値との delta + 6 point history sparkline を composite。
  */
 export const revenueKpiCard = diagram("interactive-revenue-kpi", {
-  topic: "revenue KPI を 3-lane (Previous / Current / Trend) 分散 + prev→current delta edge、 kpiCard readout 併存",
+  topic: "前期と今期の売上を推移付きで比べる",
 })
-  .lane("prevLane", { x: 0, width: 180 })
-  .lane("currLane", { x: 220, width: 200 })
-  .lane("trendLane", { x: 460, width: 220 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 350 })
   .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" })
   .state("current", { initial: 180 })
   .state("prev", { initial: 150 })
   .arraySignal("history", [120, 135, 148, 152, 165, 170])
-  .node("prevNode", { lane: "prevLane", stack: 0, kind: "card", title: "Previous", subtitle: "{prev}k (baseline)" })
-  .node("currNode", { lane: "currLane", stack: 0, kind: "card", title: "◆ Current", subtitle: "{current}k (slider driven)" })
-  .node("trendNode", { lane: "trendLane", stack: 0, kind: "card", title: "Trend history", subtitle: "6 month sparkline (120-170k)" })
+  .node("prevNode", { lane: "col1", stack: 0, kind: "card", w: 220, title: "Previous", subtitle: "{prev}k (baseline)" })
+  .node("currNode", { lane: "col2", stack: 0, kind: "card", w: 300, title: "◆ Current", subtitle: "{current}k (slider driven)" })
+  .node("trendNode", { lane: "col1", stack: 1, kind: "card", w: 320, title: "Trend", subtitle: "6 month sparkline (120-170k)" })
   .edge("prevNode", "currNode", { label: "delta = current - prev", tone: "success" })
   .edge("currNode", "trendNode", { label: "sparkline last", tone: "info" })
   .readout.kpiCard("kpi", { source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" })
@@ -1452,15 +1525,16 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   .phase("p", {
     duration: 1200,
     title: "KPI delta flow",
-    body: "3-lane (Previous / Current / Trend) で revenue KPI 3 component を分散、 prev→current delta edge (success tone) + current→trend sparkline edge (info tone)、 slider 操作で current lane が変化、 kpiCard readout も併存で composite 1 tile 表示。",
+    body: "3 区画 (Previous / Current / Trend) を 2 列 2 段に置いて revenue KPI 3 component を分散、 prev→current delta edge (success tone) + current→trend sparkline edge (info tone)、 slider 操作で current lane が変化、 kpiCard readout も併存で composite 1 tile 表示。",
   }, (p: PhaseBuilder) => p.activate("prevNode", "currNode", "trendNode").badge("KPI card"))
   .build();
+export const subtitle__revenueKpiCard = "revenue KPI を 3 区画 (Previous / Current / Trend) 2 列 2 段に分散 + prev→current delta edge、 kpiCard readout 併存";
 
 /**
  * 45. candlestick chart = 8 日分の OHLC を蝋燭足で表示 (finance chart)。
  */
 export const priceCandlestick = diagram("interactive-price-candlestick", {
-  topic: "OHLC 8 day を 2-lane (Up days close≥open / Down days close<open) 分散、 各 day 個別 card + candlestick readout 併存",
+  topic: "8 日分の値動きを陽線 / 陰線で見せる",
 })
   .lane("up", { x: 0, width: 320 })
   .lane("down", { x: 360, width: 320 })
@@ -1489,12 +1563,13 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
     body: "2-lane (Up days ▲ 6 個 / Down days ▼ 2 個) で 8 day OHLC を close vs open 方向別分散、 各 day 個別 card で open/close/delta 明示、 candlestick readout も併存で緑/赤 蝋燭足 + wick 描画、 direction 分類と price chart の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("d1", "d3", "d4", "d6", "d7", "d8", "d2", "d5").badge("finance"))
   .build();
+export const subtitle__priceCandlestick = "OHLC 8 day を 2-lane (Up days close≥open / Down days close<open) 分散、 各 day 個別 card + candlestick readout 併存";
 
 /**
  * 46. Venn diagram = 2 set (Users / Payers) の intersection を可視化。
  */
 export const userVenn = diagram("interactive-user-venn", {
-  topic: "2 set Venn を 3-lane (Users only / Both / Payers only) 領域別分散、 各 region 個別 card、 venn readout 併存",
+  topic: "2 つの集合の重なりを 3 領域で見せる",
 })
   .lane("usersOnly", { x: 0, width: 220 })
   .lane("both", { x: 260, width: 200 })
@@ -1503,7 +1578,7 @@ export const userVenn = diagram("interactive-user-venn", {
   .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "75 users (A - A∩B)" })
   .node("bothNode", { lane: "both", stack: 0, kind: "card", title: "Both (A ∩ B)", subtitle: "25 users (intersection)" })
   .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "15 users (B - A∩B)" })
-  .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Total universe", subtitle: "Users A=100 · Payers B=40" })
+  .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Universe", subtitle: "Users A=100 · Payers B=40" })
   .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap (2-set Venn)" })
   .phase("p", {
     duration: 1200,
@@ -1511,12 +1586,13 @@ export const userVenn = diagram("interactive-user-venn", {
     body: "3-lane (Users only 75 / Both 25 / Payers only 15) で 2 set Venn の 3 領域を分散、 各 region 個別 card で内訳明示、 中央 lane に total universe summary、 venn readout も併存で 円 gap 表示、 領域分類と 図の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("usersOnlyNode", "bothNode", "payersOnlyNode", "totalNode").badge("Venn"))
   .build();
+export const subtitle__userVenn = "2 set Venn を 3-lane (Users only / Both / Payers only) 領域別分散、 各 region 個別 card、 venn readout 併存";
 
 /**
  * 47. slope chart = 5 student の test score before/after 変化を slope で表示。
  */
 export const scoreSlope = diagram("interactive-score-slope", {
-  topic: "5 student score change を 2-lane (Improved up ↑ / Declined down ↓) 分散、 各 student 個別 card、 slope readout 併存",
+  topic: "5 人の点数変化を上昇 / 下降で分ける",
 })
   .lane("up", { x: 0, width: 300 })
   .lane("down", { x: 340, width: 300 })
@@ -1539,27 +1615,26 @@ export const scoreSlope = diagram("interactive-score-slope", {
     body: "2-lane (Improved ↑ 3 個 / Declined ↓ 2 個) で 5 student score を変化方向別分散、 各 student 個別 card で before → after + delta 明示、 slope readout も併存で 2 column 折れ線表示、 direction 分類と slope chart の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aliceNode", "carolNode", "danNode", "bobNode", "eveNode").badge("slope"))
   .build();
+export const subtitle__scoreSlope = "5 student score change を 2-lane (Improved up ↑ / Declined down ↓) 分散、 各 student 個別 card、 slope readout 併存";
 
 /**
  * 48. sales funnel = 4 stage の conversion funnel (Visit → Signup → Trial → Paid)。
  */
 export const salesFunnel = diagram("interactive-sales-funnel", {
-  topic: "sales funnel 4 stage を 4-lane pipeline + 3 drop-off edge、 Visit → Signup → Trial → Paid の conversion 遷移 network 化",
+  topic: "訪問から購入までの絞り込みを追う",
 })
-  .lane("visit", { x: 0, width: 160 })
-  .lane("signup", { x: 180, width: 160 })
-  .lane("trial", { x: 360, width: 160 })
-  .lane("paid", { x: 540, width: 160 })
+  .lane("col1", { x: 0, width: 220 })
+  .lane("col2", { x: 260, width: 270 })
   .arraySignal("stages", [
     ["Visit", 1000],
     ["Signup", 400],
     ["Trial", 150],
     ["Paid", 40],
   ] as unknown as (string | number)[])
-  .node("visitNode", { lane: "visit", stack: 0, kind: "card", title: "Visit", subtitle: "1000 (top)" })
-  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Signup", subtitle: "400 (-60%)" })
-  .node("trialNode", { lane: "trial", stack: 0, kind: "card", title: "Trial", subtitle: "150 (-62.5%)" })
-  .node("paidNode", { lane: "paid", stack: 0, kind: "card", title: "Paid", subtitle: "40 (-73%, bottom)" })
+  .node("visitNode", { lane: "col1", stack: 0, kind: "card", w: 160, title: "Visit", subtitle: "1000 (top)" })
+  .node("signupNode", { lane: "col2", stack: 0, kind: "card", w: 180, title: "Signup", subtitle: "400 (-60%)" })
+  .node("trialNode", { lane: "col1", stack: 1, kind: "card", w: 170, title: "Trial", subtitle: "150 (-62.5%)" })
+  .node("paidNode", { lane: "col2", stack: 1, kind: "card", w: 220, title: "Paid", subtitle: "40 (-73%, bottom)" })
   .edge("visitNode", "signupNode", { label: "40% conv", tone: "info" })
   .edge("signupNode", "trialNode", { label: "37.5% conv", tone: "warning" })
   .edge("trialNode", "paidNode", { label: "26.7% conv", tone: "error" })
@@ -1567,30 +1642,29 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
   .phase("p", {
     duration: 1200,
     title: "funnel pipeline",
-    body: "4-lane pipeline (Visit / Signup / Trial / Paid) + 3 conversion edge (40% info / 37.5% warning / 26.7% error で drop-off 深化 tone escalate)、 各 stage の count と conversion rate を明示、 funnel readout も併存で trapezoid 表示、 conversion 遷移を dataflow で可視化。",
+    body: "4 区画 pipeline (Visit / Signup / Trial / Paid) を 2 列 2 段に置いて + 3 conversion edge (40% info / 37.5% warning / 26.7% error で drop-off 深化 tone escalate)、 各 stage の count と conversion rate を明示、 funnel readout も併存で trapezoid 表示、 conversion 遷移を dataflow で可視化。",
   }, (p: PhaseBuilder) => p.activate("visitNode", "signupNode", "trialNode", "paidNode").badge("funnel"))
   .build();
+export const subtitle__salesFunnel = "sales funnel 4 stage を 2 列 2 段の pipeline + 3 drop-off edge、 Visit → Signup → Trial → Paid の conversion 遷移 network 化";
 
 /**
  * 49. project gantt = 4 task を 10 day timeline 上に配置。
  */
 export const projectGantt = diagram("interactive-project-gantt", {
-  topic: "project 4 task を 4-lane (Design / Impl / Test / Ship) task 別分散 + 3 handover edge、 gantt readout 併存",
+  topic: "4 工程の期間を横棒で並べる",
 })
-  .lane("design", { x: 0, width: 160 })
-  .lane("impl", { x: 180, width: 160 })
-  .lane("test", { x: 360, width: 160 })
-  .lane("ship", { x: 540, width: 160 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 330 })
   .arraySignal("tasks", [
     ["Design", 0, 3],
     ["Impl", 3, 5],
     ["Test", 6, 3],
     ["Ship", 9, 1],
   ] as unknown as (string | number)[])
-  .node("designNode", { lane: "design", stack: 0, kind: "card", title: "Design", subtitle: "day 0-3 (3 day)" })
-  .node("implNode", { lane: "impl", stack: 0, kind: "card", title: "Impl", subtitle: "day 3-8 (5 day, largest)" })
-  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "Test", subtitle: "day 6-9 (3 day, overlap w/ impl)" })
-  .node("shipNode", { lane: "ship", stack: 0, kind: "card", title: "Ship", subtitle: "day 9-10 (1 day)" })
+  .node("designNode", { lane: "col1", stack: 0, kind: "card", w: 200, title: "Design", subtitle: "day 0-3 (3 day)" })
+  .node("implNode", { lane: "col2", stack: 0, kind: "card", w: 280, title: "Impl", subtitle: "day 3-8 (5 day, largest)" })
+  .node("testNode", { lane: "col1", stack: 1, kind: "card", w: 320, title: "Test", subtitle: "day 6-9 (3 day, overlap w/ impl)" })
+  .node("shipNode", { lane: "col2", stack: 1, kind: "card", w: 210, title: "Ship", subtitle: "day 9-10 (1 day)" })
   .edge("designNode", "implNode", { label: "handover", tone: "info" })
   .edge("implNode", "testNode", { label: "test start", tone: "accent" })
   .edge("testNode", "shipNode", { label: "release", tone: "success" })
@@ -1598,15 +1672,16 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .phase("p", {
     duration: 1200,
     title: "task pipeline",
-    body: "4-lane (Design / Impl / Test / Ship) で 10 day sprint 4 task を task 別分散 + 3 handover edge (info→accent→success で release 直前 escalate)、 各 task 個別 card で day range 明示、 gantt readout も併存で timeline bar 表示、 task 分類と timeline の 2 経路 view。",
+    body: "4 区画 (Design / Impl / Test / Ship) を 2 列 2 段に置いて 10 day sprint 4 task を task 別分散 + 3 handover edge (info→accent→success で release 直前 escalate)、 各 task 個別 card で day range 明示、 gantt readout も併存で timeline bar 表示、 task 分類と timeline の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("designNode", "implNode", "testNode", "shipNode").badge("gantt"))
   .build();
+export const subtitle__projectGantt = "project 4 task を 4 区画 (Design / Impl / Test / Ship) 2 列 2 段で task 別分散 + 3 handover edge、 gantt readout 併存";
 
 /**
  * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
  */
 export const resourceTreemap = diagram("interactive-resource-treemap", {
-  topic: "6 team budget を 3-lane (Major ≥15% / Mid 5-14% / Minor <5%) size 別分散、 各 team 個別 card、 treemap readout 併存",
+  topic: "6 チームの予算を面積で比べる",
 })
   .lane("major", { x: 0, width: 220 })
   .lane("mid", { x: 260, width: 200 })
@@ -1632,12 +1707,13 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
     body: "3-lane (Major ≥15% = 3 team / Mid 5-14% = 2 team / Minor <5% = 1 team) で 6 team を budget size 別分散、 各 team 個別 card で % 明示、 treemap readout も併存で area 比例 hierarchical 表示、 size 分類と area chart の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("engNode", "salesNode", "mktNode", "supportNode", "opsNode", "legalNode").badge("treemap"))
   .build();
+export const subtitle__resourceTreemap = "6 team budget を 3-lane (Major ≥15% / Mid 5-14% / Minor <5%) size 別分散、 各 team 個別 card、 treemap readout 併存";
 
 /**
  * 51. sankey flow = traffic source → landing → conversion の flow diagram。
  */
 export const trafficSankey = diagram("interactive-traffic-sankey", {
-  topic: "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存",
+  topic: "流入 3 経路が 1 つの成果に合流する",
 })
   .lane("src", { x: 0, width: 180 })
   .lane("land", { x: 260, width: 180 })
@@ -1657,7 +1733,14 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .node("product", { lane: "land", stack: 1, kind: "card", title: "Product", subtitle: "30 + 15 + 10 = 55" })
   .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "conversion = 140" })
   .edge("search", "home", { label: "40", tone: "success" })
-  .edge("search", "product", { label: "30", tone: "success" })
+  .edge("search", "product", {
+    label: "30",
+    tone: "success",
+    // 縦に降りる区間 (x=540) の中点に置くと、 direct → home の縦区間 (x=507) と 33px しか離れず
+    // 互いの pill が path を貫く。 右へ寄せて縦区間 2 本の間から外す。 60 では足りず (error 1)、
+    // 90 で解消する。
+    labelOffsetX: 90,
+  })
   .edge("social", "home", { label: "25", tone: "info" })
   .edge("social", "product", { label: "15", tone: "info" })
   .edge("direct", "home", { label: "20", tone: "accent" })
@@ -1671,12 +1754,13 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
     body: "3-lane (Sources / Landings / Checkout) + 8 edge (source→landing 6 + landing→CV 2) で funnel 構造を node network 化、 tone で source 由来を分類 (success=Search / info=Social / accent=Direct / warning=to CV)、 sankey readout も併存。",
   }, (p: PhaseBuilder) => p.activate("search", "social", "direct", "home", "product", "checkout").badge("funnel"))
   .build();
+export const subtitle__trafficSankey = "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存";
 
 /**
  * 52. polar-area = 7 day activity distribution。
  */
 export const activityPolar = diagram("interactive-activity-polar", {
-  topic: "weekly activity 7 day を 2-lane (Weekday / Weekend) に分散、 各 day 個別 card + hours、 polarArea readout 併存",
+  topic: "1 週間の活動を平日 / 週末に分ける",
 })
   .lane("weekday", { x: 0, width: 300 })
   .lane("weekend", { x: 380, width: 220 })
@@ -1696,26 +1780,25 @@ export const activityPolar = diagram("interactive-activity-polar", {
     body: "2-lane (Weekday 5 個 / Weekend 2 個) で 7 day を分散、 各 day 個別 card で hours 明示、 polarArea readout も併存で極座標 sector 表示、 平日/週末の作業量差を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("monNode", "tueNode", "wedNode", "thuNode", "friNode", "satNode", "sunNode").badge("polar"))
   .build();
+export const subtitle__activityPolar = "weekly activity 7 day を 2-lane (Weekday / Weekend) に分散、 各 day 個別 card + hours、 polarArea readout 併存";
 
 /**
  * 53. step-indicator = onboarding 5 step wizard、 slider で current step を切替。
  */
 export const onboardingStepper = diagram("interactive-onboarding-stepper", {
-  topic: "onboarding 5 step wizard を 5-lane pipeline + 4 edge で wizard 遷移を node network 化、 stepIndicator readout 併存",
+  topic: "5 段の初期設定ウィザードを追う",
 })
-  .lane("signup", { x: 0, width: 140 })
-  .lane("profile", { x: 160, width: 140 })
-  .lane("prefs", { x: 320, width: 140 })
-  .lane("verify", { x: 480, width: 140 })
-  .lane("done", { x: 640, width: 140 })
+  .lane("col1", { x: 0, width: 250 })
+  .lane("col2", { x: 290, width: 340 })
+  .lane("col3", { x: 670, width: 190 })
   .input.stepper("current", { min: 0, max: 4, defaultValue: 2, label: "Current step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Sign up", "Profile", "Preferences", "Verify", "Done"])
-  .node("signupNode", { lane: "signup", stack: 0, kind: "card", title: "Sign up", subtitle: "アカウント作成" })
-  .node("profileNode", { lane: "profile", stack: 0, kind: "card", title: "Profile", subtitle: "プロフィール記入" })
-  .node("prefsNode", { lane: "prefs", stack: 0, kind: "card", title: "Preferences", subtitle: "設定選択 (現在地)" })
-  .node("verifyNode", { lane: "verify", stack: 0, kind: "card", title: "Verify", subtitle: "認証確認" })
-  .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "Done", subtitle: "完了" })
+  .node("signupNode", { lane: "col1", stack: 0, kind: "card", w: 200, title: "Sign up", subtitle: "アカウント作成" })
+  .node("profileNode", { lane: "col1", stack: 1, kind: "card", w: 200, title: "Profile", subtitle: "プロフィール記入" })
+  .node("prefsNode", { lane: "col2", stack: 0, kind: "card", w: 290, title: "Preferences", subtitle: "設定選択 (現在地)" })
+  .node("verifyNode", { lane: "col2", stack: 1, kind: "card", w: 180, title: "Verify", subtitle: "認証確認" })
+  .node("doneNode", { lane: "col3", stack: 0, kind: "card", w: 140, title: "Done", subtitle: "完了" })
   .edge("signupNode", "profileNode", { label: "next", tone: "info" })
   .edge("profileNode", "prefsNode", { label: "next", tone: "info" })
   .edge("prefsNode", "verifyNode", { label: "next", tone: "accent" })
@@ -1724,15 +1807,16 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
   .phase("p", {
     duration: 1200,
     title: "wizard pipeline",
-    body: "5-lane pipeline (Sign up → Profile → Preferences → Verify → Done) + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。",
+    body: "5 区画 pipeline (Sign up → Profile → Preferences → Verify → Done) を 3 列 2 段に置いて + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。",
   }, (p: PhaseBuilder) => p.activate("signupNode", "profileNode", "prefsNode", "verifyNode", "doneNode").badge("wizard"))
   .build();
+export const subtitle__onboardingStepper = "onboarding 5 step wizard を 3 列 2 段の pipeline + 4 edge で wizard 遷移を node network 化、 stepIndicator readout 併存";
 
 /**
  * 54. bullet-chart = KPI actual vs target + 3 range、 slider で actual 変化 → 3 range のどこにいるか可視化。
  */
 export const kpiBullet = diagram("interactive-kpi-bullet", {
-  topic: "KPI bullet chart を 3-lane (bad / avg / good) range 分散 + actual/target 個別 card、 bulletChart readout 併存",
+  topic: "実績と目標を良 / 並 / 悪の帯で見せる",
 })
   .lane("bad", { x: 0, width: 180 })
   .lane("avg", { x: 220, width: 180 })
@@ -1754,36 +1838,37 @@ export const kpiBullet = diagram("interactive-kpi-bullet", {
     body: "3-lane (bad 0-40 / avg 40-70 / good 70-100) range 分散、 actual (avg lane) + target (good lane) を個別 card で位置明示、 gap edge (warning tone) で actual→target の差を可視化、 bulletChart readout も併存で従来 chart 表示。",
   }, (p: PhaseBuilder) => p.activate("badRange", "avgRange", "goodRange", "actualNode", "targetNode").badge("KPI"))
   .build();
+export const subtitle__kpiBullet = "KPI bullet chart を 3-lane (bad / avg / good) range 分散 + actual/target 個別 card、 bulletChart readout 併存";
 
 /**
  * 55. number-board = 大 numeric display、 slider で revenue を score board 表示。
  */
 export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
-  topic: "revenue Q3 status を 3-lane (Current / Target / Gap) + 2 edge、 scoreboard display に加え target との差を可視化",
+  topic: "売上の現在 / 目標 / 差分を並べる",
 })
-  .lane("current", { x: 0, width: 220 })
-  .lane("target", { x: 260, width: 200 })
-  .lane("gap", { x: 480, width: 220 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 250 })
   .input.slider("rev", { min: 0, max: 999, defaultValue: 234, label: "Revenue" })
   .state("rev", { initial: 234 })
-  .node("currentNode", { lane: "current", stack: 0, kind: "card", title: "◆ Current", subtitle: "${rev}M (slider driven)" })
-  .node("targetNode", { lane: "target", stack: 0, kind: "card", title: "Target", subtitle: "$500M (Q3 goal)" })
-  .node("gapNode", { lane: "gap", stack: 0, kind: "card", title: "Gap", subtitle: "target - current (progress toward goal)" })
+  .node("currentNode", { lane: "col1", stack: 0, kind: "card", w: 270, title: "◆ Current", subtitle: "${rev}M (slider driven)" })
+  .node("targetNode", { lane: "col2", stack: 0, kind: "card", w: 200, title: "Target", subtitle: "$500M (Q3 goal)" })
+  .node("gapNode", { lane: "col1", stack: 1, kind: "card", w: 320, title: "Gap", subtitle: "target - current (progress toward goal)" })
   .edge("currentNode", "targetNode", { label: "progress", tone: "info" })
   .edge("targetNode", "gapNode", { label: "delta", tone: "warning" })
   .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#241c14", caption: "vs $500M target", label: "Revenue (scoreboard)" })
   .phase("p", {
     duration: 1200,
     title: "revenue progress flow",
-    body: "3-lane (Current / Target / Gap) で revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。",
+    body: "3 区画 (Current / Target / Gap) を 2 列 2 段に置いて revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "targetNode", "gapNode").badge("scoreboard"))
   .build();
+export const subtitle__revenueScoreboard = "revenue Q3 status を 3 区画 (Current / Target / Gap) 2 列 2 段 + 2 edge、 scoreboard display に加え target との差を可視化";
 
 /**
  * 56. leaderboard = 6 player の score ranking を top 5 表示 (medal 色 + bar + value)。
  */
 export const playerLeaderboard = diagram("interactive-player-leaderboard", {
-  topic: "6 player を 3-lane (Top 3 medals / Middle 2 / Bottom 1 out of top) rank 別分散、 各 player 個別 card、 leaderboard readout 併存",
+  topic: "6 人の順位を上位 / 中位 / 下位に分ける",
 })
   .lane("top", { x: 0, width: 260 })
   .lane("middle", { x: 300, width: 220 })
@@ -1809,21 +1894,22 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
     body: "3-lane (Top 3 medals gold/silver/bronze / Middle 2 rank 4-5 / Bottom 1 out of top) で 6 player を rank tier 別分散、 各 player 個別 card で score 明示、 leaderboard readout も併存で top 5 表示、 rank tier と leaderboard の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aliceNode", "eveNode", "carolNode", "bobNode", "frankNode", "danNode").badge("leaderboard"))
   .build();
+export const subtitle__playerLeaderboard = "6 player を 3-lane (Top 3 medals / Middle 2 / Bottom 1 out of top) rank 別分散、 各 player 個別 card、 leaderboard readout 併存";
 
 /**
  * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
  */
 export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
-  topic: "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存",
+  topic: "ビルド状態を信号機の 3 色で見せる",
 })
   .lane("red", { x: 0, width: 200 })
   .lane("yellow", { x: 240, width: 200 })
   .lane("green", { x: 480, width: 200 })
   .input.dropdown("status", { options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" })
   .state("status", { initial: "green" })
-  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red (failed)", subtitle: "ビルド失敗 · 要修正" })
-  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow (running)", subtitle: "ビルド実行中 · 待機" })
-  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green (passed)", subtitle: "ビルド成功 · deploy 可" })
+  .node("redNode", { lane: "red", stack: 0, kind: "card", title: "● Red", subtitle: "ビルド失敗 · 要修正" })
+  .node("yellowNode", { lane: "yellow", stack: 0, kind: "card", title: "● Yellow", subtitle: "ビルド実行中 · 待機" })
+  .node("greenNode", { lane: "green", stack: 0, kind: "card", title: "● Green", subtitle: "ビルド成功 · deploy 可" })
   .node("currentCI", { lane: "green", stack: 1, kind: "card", title: "◆ Current CI", subtitle: "status: {status}" })
   .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
   .phase("p", {
@@ -1832,12 +1918,13 @@ export const buildStatusTrafficLight = diagram("interactive-build-traffic-light"
     body: "3-lane (Red failed / Yellow running / Green passed) で build 3 state を分散、 各 state 個別 card + 現在 CI の位置 (default=green lane) を currentCI card で明示、 trafficLight readout も併存で glow filter 表示、 status 分類と現在 state の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI").badge("status"))
   .build();
+export const subtitle__buildStatusTrafficLight = "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存";
 
 /**
  * 58. tag-cloud = tech skill 8 種を weight 比例 font-size で表示。
  */
 export const techTagCloud = diagram("interactive-tech-tagcloud", {
-  topic: "8 tech skill を 3-lane (High ≥20 / Mid 10-19 / Low <10) weight 別分散、 各 skill 個別 card、 tagCloud readout 併存",
+  topic: "8 技術を使用量の大小で分けて見せる",
 })
   .lane("high", { x: 0, width: 220 })
   .lane("mid", { x: 260, width: 220 })
@@ -1867,18 +1954,17 @@ export const techTagCloud = diagram("interactive-tech-tagcloud", {
     body: "3-lane (High weight ≥20 / Mid 10-19 / Low <10) で 8 tech skill を weight 別分散、 各 skill 個別 card で weight 明示、 tagCloud readout も併存で font-size 比例表示、 weight 分類と cloud 全体観の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "pyNode", "rustNode", "goNode", "svelteNode", "vueNode", "denoNode").badge("tags"))
   .build();
+export const subtitle__techTagCloud = "8 tech skill を 3-lane (High ≥20 / Mid 10-19 / Low <10) weight 別分散、 各 skill 個別 card、 tagCloud readout 併存";
 
 /**
  * 59. activity-feed = team activity 5 event を feed list で表示。
  */
 export const teamActivityFeed = diagram("interactive-team-activity", {
-  topic: "team activity 5 event を 5-lane timeline (recent → old) で個別 card 分散、 activityFeed readout 併存",
+  topic: "チームの動きを新しい順に 5 件並べる",
 })
-  .lane("t1", { x: 0, width: 140 })
-  .lane("t2", { x: 160, width: 140 })
-  .lane("t3", { x: 320, width: 140 })
-  .lane("t4", { x: 480, width: 140 })
-  .lane("t5", { x: 640, width: 140 })
+  .lane("col1", { x: 0, width: 350 })
+  .lane("col2", { x: 390, width: 370 })
+  .lane("col3", { x: 800, width: 320 })
   .arraySignal("events", [
     ["Alice", "pushed to main", "2 min ago"],
     ["Bob", "opened PR #42", "8 min ago"],
@@ -1886,11 +1972,11 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
     ["Dan", "merged PR #38", "1 h ago"],
     ["Eve", "deployed v1.2", "3 h ago"],
   ] as unknown as (string | number)[])
-  .node("e1", { lane: "t1", stack: 0, kind: "card", title: "Alice", subtitle: "pushed to main · 2 min ago" })
-  .node("e2", { lane: "t2", stack: 0, kind: "card", title: "Bob", subtitle: "opened PR #42 · 8 min ago" })
-  .node("e3", { lane: "t3", stack: 0, kind: "card", title: "Carol", subtitle: "reviewed PR #40 · 15 min ago" })
-  .node("e4", { lane: "t4", stack: 0, kind: "card", title: "Dan", subtitle: "merged PR #38 · 1 h ago" })
-  .node("e5", { lane: "t5", stack: 0, kind: "card", title: "Eve", subtitle: "deployed v1.2 · 3 h ago" })
+  .node("e1", { lane: "col1", stack: 0, kind: "card", w: 300, title: "Alice", subtitle: "pushed to main · 2 min ago" })
+  .node("e2", { lane: "col1", stack: 1, kind: "card", w: 290, title: "Bob", subtitle: "opened PR #42 · 8 min ago" })
+  .node("e3", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Carol", subtitle: "reviewed PR #40 · 15 min ago" })
+  .node("e4", { lane: "col2", stack: 1, kind: "card", w: 270, title: "Dan", subtitle: "merged PR #38 · 1 h ago" })
+  .node("e5", { lane: "col3", stack: 0, kind: "card", w: 270, title: "Eve", subtitle: "deployed v1.2 · 3 h ago" })
   .edge("e1", "e2", { label: "→", tone: "info" })
   .edge("e2", "e3", { label: "→", tone: "info" })
   .edge("e3", "e4", { label: "→", tone: "accent" })
@@ -1899,15 +1985,16 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
   .phase("p", {
     duration: 1200,
     title: "activity timeline",
-    body: "5-lane timeline (recent → old) で 5 event を横並び node network 化、 4 edge (時系列連結、 tone info/accent で新旧分類)、 activityFeed readout も併存で feed list 表示、 timeline 構造と feed 一覧の 2 経路 view。",
+    body: "5 区画 timeline (recent → old) を 3 列 2 段に置いて 5 event を node network 化、 4 edge (時系列連結、 tone info/accent で新旧分類)、 activityFeed readout も併存で feed list 表示、 timeline 構造と feed 一覧の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("e1", "e2", "e3", "e4", "e5").badge("feed"))
   .build();
+export const subtitle__teamActivityFeed = "team activity 5 event を 3 列 2 段の timeline (recent → old) で個別 card 分散、 activityFeed readout 併存";
 
 /**
  * 60. rating = 5 star rating を slider (0-5) で表示、 half-star 対応。
  */
 export const productRating = diagram("interactive-product-rating", {
-  topic: "product rating を 3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) range 別分散 + current indicator、 rating readout 併存",
+  topic: "商品評価を低 / 中 / 高の帯で見せる",
 })
   .lane("low", { x: 0, width: 220 })
   .lane("mid", { x: 260, width: 220 })
@@ -1925,12 +2012,13 @@ export const productRating = diagram("interactive-product-rating", {
     body: "3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) で rating range を分散、 default 3.5 の位置 (mid lane) を currentNode で明示、 slider (0.5 刻み) 変化で rating readout 追随 (star display half-star 対応)、 range 分類と star 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentNode").badge("rating"))
   .build();
+export const subtitle__productRating = "product rating を 3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) range 別分散 + current indicator、 rating readout 併存";
 
 /**
  * 61. notification = alert card、 dropdown で kind (info/warn/error/success) を切替。
  */
 export const alertNotification = diagram("interactive-alert-notification", {
-  topic: "alert kind 4 種 (info/warn/error/success) を 4-lane 分散 + current indicator、 各 kind 個別 card、 notification readout 併存",
+  topic: "通知 4 種を情報 / 注意 / 異常 / 成功で分ける",
 })
   .lane("info", { x: 0, width: 170 })
   .lane("warn", { x: 190, width: 170 })
@@ -1952,12 +2040,13 @@ export const alertNotification = diagram("interactive-alert-notification", {
     body: "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("infoNode", "warnNode", "errorNode", "successNode", "currentAlert").badge("alert"))
   .build();
+export const subtitle__alertNotification = "alert kind 4 種 (info/warn/error/success) を 4-lane 分散 + current indicator、 各 kind 個別 card、 notification readout 併存";
 
 /**
  * 62. diff-counter = git commit style +N/-N、 stepper で additions / deletions 変化。
  */
 export const commitDiffCounter = diagram("interactive-commit-diff", {
-  topic: "git PR diff を 2-lane (Additions +N / Deletions -N) 分散 + net delta edge、 diffCounter readout 併存",
+  topic: "追加行と削除行から差し引きを出す",
 })
   .lane("adds", { x: 0, width: 260 })
   .lane("dels", { x: 300, width: 260 })
@@ -1966,7 +2055,7 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   .state("add", { initial: 120 })
   .state("del", { initial: 45 })
   .node("addCard", { lane: "adds", stack: 0, kind: "card", title: "+ Additions", subtitle: "+{add} lines (green)" })
-  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del ratio", subtitle: "add > del → net growth" })
+  .node("addDetail", { lane: "adds", stack: 1, kind: "card", title: "adds/del", subtitle: "add > del → net growth" })
   .node("delCard", { lane: "dels", stack: 0, kind: "card", title: "- Deletions", subtitle: "-{del} lines (red)" })
   .node("delDetail", { lane: "dels", stack: 1, kind: "card", title: "cleanup", subtitle: "remove obsolete code" })
   .edge("addCard", "delCard", { label: "net = add - del", tone: "info" })
@@ -1977,12 +2066,13 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
     body: "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("addCard", "addDetail", "delCard", "delDetail").badge("diff"))
   .build();
+export const subtitle__commitDiffCounter = "git PR diff を 2-lane (Additions +N / Deletions -N) 分散 + net delta edge、 diffCounter readout 併存";
 
 /**
  * 63. chat-bubble = customer support conversation 5 message、 self/other 左右寄せ表示。
  */
 export const supportChat = diagram("interactive-support-chat", {
-  topic: "customer support 5 message を 2-lane (Customer / Support) speaker 別分散、 各 message 個別 card、 chatBubble readout 併存",
+  topic: "問い合わせ 5 往復を客 / 担当で分ける",
 })
   .lane("customer", { x: 0, width: 280 })
   .lane("support", { x: 320, width: 320 })
@@ -2005,36 +2095,37 @@ export const supportChat = diagram("interactive-support-chat", {
     body: "2-lane (Customer 2 msg / Support 3 msg) で 5 message を speaker 別分散、 各 message 個別 card で内容明示、 chatBubble readout も併存で左右寄せ表示、 speaker 分類と thread 経路の 2 view。",
   }, (p: PhaseBuilder) => p.activate("cust1", "cust2", "sup1", "sup2", "sup3").badge("chat"))
   .build();
+export const subtitle__supportChat = "customer support 5 message を 2-lane (Customer / Support) speaker 別分散、 各 message 個別 card、 chatBubble readout 併存";
 
 /**
  * 64. avatar = user profile avatar、 text input で name 変化 → initials + color circle 追随。
  */
 export const userAvatar = diagram("interactive-user-avatar", {
-  topic: "user avatar generation pipeline を 3-lane (Input name / Initials extract / Circle render) + 2 edge で pipeline network 化、 avatar readout 併存",
+  topic: "名前からアイコン画像を組み立てる",
 })
-  .lane("input", { x: 0, width: 240 })
-  .lane("initials", { x: 280, width: 200 })
-  .lane("circle", { x: 520, width: 200 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 370 })
   .input.text("user", { defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" })
   .state("user", { initial: "Alice Wonderland" })
-  .node("inputNode", { lane: "input", stack: 0, kind: "card", title: "Text input", subtitle: "user = {user}" })
-  .node("initialsNode", { lane: "initials", stack: 0, kind: "card", title: "Initials extract", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
-  .node("circleNode", { lane: "circle", stack: 0, kind: "card", title: "Colored circle", subtitle: "size 56 · blue #2563eb + AW text" })
+  .node("inputNode", { lane: "col1", stack: 0, kind: "card", w: 270, title: "Text input", subtitle: "user = {user}" })
+  .node("initialsNode", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Initials", subtitle: "first 2 word head chars (Alice Wonderland → AW)" })
+  .node("circleNode", { lane: "col1", stack: 1, kind: "card", w: 320, title: "Circle", subtitle: "size 56 · blue #2563eb + AW text" })
   .edge("inputNode", "initialsNode", { label: "parse", tone: "info" })
   .edge("initialsNode", "circleNode", { label: "render", tone: "success" })
   .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" })
   .phase("p", {
     duration: 1200,
     title: "avatar pipeline",
-    body: "3-lane (Input name / Initials extract / Circle render) で avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。",
+    body: "3 区画 (Input name / Initials extract / Circle render) を 2 列 2 段に置いて avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。",
   }, (p: PhaseBuilder) => p.activate("inputNode", "initialsNode", "circleNode").badge("avatar"))
   .build();
+export const subtitle__userAvatar = "user avatar generation pipeline を 3 区画 (Input name / Initials extract / Circle render) 2 列 2 段 + 2 edge で pipeline network 化、 avatar readout 併存";
 
 /**
  * 65. checklist = sprint task list 6 item、 progress% 表示。
  */
 export const sprintChecklist = diagram("interactive-sprint-checklist", {
-  topic: "sprint 6 task を 2-lane (Done ✓ / Todo) 状態別分散、 各 task 個別 card、 checklist readout 併存",
+  topic: "6 タスクを完了 / 未完了で分ける",
 })
   .lane("done", { x: 0, width: 240 })
   .lane("todo", { x: 300, width: 240 })
@@ -2047,10 +2138,10 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
     ["Post-mortem", false],
   ] as unknown as (string | number)[])
   .node("t1", { lane: "done", stack: 0, kind: "card", title: "✓ Setup CI", subtitle: "done" })
-  .node("t2", { lane: "done", stack: 1, kind: "card", title: "✓ Write tests", subtitle: "done" })
+  .node("t2", { lane: "done", stack: 1, kind: "card", title: "✓ Tests", subtitle: "done" })
   .node("t3", { lane: "todo", stack: 0, kind: "card", title: "Fix bug #42", subtitle: "todo (blocker)" })
   .node("t4", { lane: "todo", stack: 1, kind: "card", title: "Code review", subtitle: "todo (awaits reviewer)" })
-  .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy staging", subtitle: "todo (depends on review)" })
+  .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy", subtitle: "todo (depends on review)" })
   .node("t6", { lane: "todo", stack: 3, kind: "card", title: "Post-mortem", subtitle: "todo (last)" })
   .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress (2/6 = 33%)" })
   .phase("p", {
@@ -2059,12 +2150,13 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
     body: "2-lane (Done 2 item / Todo 4 item) で 6 sprint task を状態別分散、 各 task 個別 card で進捗 + note 明示、 checklist readout も併存で progress% (2/6 = 33%) 表示、 status 分類と check-list の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("t1", "t2", "t3", "t4", "t5", "t6").badge("checklist"))
   .build();
+export const subtitle__sprintChecklist = "sprint 6 task を 2-lane (Done ✓ / Todo) 状態別分散、 各 task 個別 card、 checklist readout 併存";
 
 /**
  * 66. circular-gauge = engine RPM を 270° dial で表示、 slider で 0-8000 rpm 制御。
  */
 export const engineTachometer = diagram("interactive-engine-tachometer", {
-  topic: "engine RPM を 3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) 領域別分散 + current rpm indicator、 circularGauge readout 併存",
+  topic: "回転数を通常 / 巡航 / 過回転で見せる",
 })
   .lane("idle", { x: 0, width: 200 })
   .lane("cruise", { x: 240, width: 200 })
@@ -2073,7 +2165,7 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
   .state("rpm", { initial: 3500 })
   .node("idleNode", { lane: "idle", stack: 0, kind: "card", title: "Idle range", subtitle: "0-2000 rpm (green)" })
   .node("cruiseNode", { lane: "cruise", stack: 0, kind: "card", title: "Cruise range", subtitle: "2000-5000 rpm (yellow) · normal driving" })
-  .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline range", subtitle: "5000-8000 rpm (red) · caution" })
+  .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline", subtitle: "5000-8000 rpm (red) · caution" })
   .node("currentRpm", { lane: "cruise", stack: 1, kind: "card", title: "◆ Current", subtitle: "{rpm} rpm (default 3500 = cruise)" })
   .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer (270° dial)" })
   .phase("p", {
@@ -2082,37 +2174,38 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
     body: "3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) で rpm 範囲を領域別分散、 各 range 個別 card + 現在 rpm indicator (default 3500 = cruise lane)、 circularGauge readout も併存で 270° dial 表示、 range 分類と needle 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("idleNode", "cruiseNode", "redlineNode", "currentRpm").badge("tachometer"))
   .build();
+export const subtitle__engineTachometer = "engine RPM を 3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) 領域別分散 + current rpm indicator、 circularGauge readout 併存";
 
 /**
  * 67. price-tag = e-commerce 商品価格、 stepper で newPrice 変化 → discount % 自動計算。
  */
 export const productPriceTag = diagram("interactive-product-price-tag", {
-  topic: "e-commerce price tag を 3-lane (Old price / New price / Discount %) + 2 edge、 discount 計算経路可視化、 priceTag readout 併存",
+  topic: "旧価格 / 新価格 / 割引率を並べる",
 })
-  .lane("old", { x: 0, width: 200 })
-  .lane("new", { x: 240, width: 200 })
-  .lane("discount", { x: 480, width: 200 })
+  .lane("col1", { x: 0, width: 370 })
+  .lane("col2", { x: 410, width: 370 })
   .input.stepper("newPrice", { min: 0, max: 200, step: 5, defaultValue: 65, label: "New price" })
   .state("newPrice", { initial: 65 })
   .state("oldPrice", { initial: 100 })
-  .node("oldNode", { lane: "old", stack: 0, kind: "card", title: "Old price", subtitle: "${oldPrice} (strikethrough)" })
-  .node("newNode", { lane: "new", stack: 0, kind: "card", title: "New price", subtitle: "${newPrice} (stepper driven)" })
-  .node("discountNode", { lane: "discount", stack: 0, kind: "card", title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
+  .node("oldNode", { lane: "col1", stack: 0, kind: "card", w: 310, title: "Old price", subtitle: "${oldPrice} (strikethrough)" })
+  .node("newNode", { lane: "col2", stack: 0, kind: "card", w: 320, title: "New price", subtitle: "${newPrice} (stepper driven)" })
+  .node("discountNode", { lane: "col1", stack: 1, kind: "card", w: 320, title: "Discount %", subtitle: "(oldPrice - newPrice) / oldPrice · red badge" })
   .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
   .edge("newNode", "discountNode", { label: "%", tone: "error" })
   .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#241c14", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" })
   .phase("p", {
     duration: 1200,
     title: "price flow",
-    body: "3-lane (Old / New / Discount) で price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。",
+    body: "3 区画 (Old / New / Discount) を 2 列 2 段に置いて price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。",
   }, (p: PhaseBuilder) => p.activate("oldNode", "newNode", "discountNode").badge("price"))
   .build();
+export const subtitle__productPriceTag = "e-commerce price tag を 3 区画 (Old price / New price / Discount %) 2 列 2 段 + 2 edge、 discount 計算経路可視化、 priceTag readout 併存";
 
 /**
  * 68. spinner = deploy status、 dropdown で running/done/error 切替 → icon 変化。
  */
 export const deploySpinner = diagram("interactive-deploy-spinner", {
-  topic: "deploy 3 state (running/done/error) を 3-lane 分散 + current indicator、 spinner readout 併存",
+  topic: "配備状態を実行中 / 完了 / 失敗で見せる",
 })
   .lane("running", { x: 0, width: 220 })
   .lane("done", { x: 260, width: 220 })
@@ -2124,7 +2217,7 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   .node("runningNode", { lane: "running", stack: 0, kind: "card", title: "◐ Running", subtitle: "blue spinner · SMIL 回転 circle" })
   .node("doneNode", { lane: "done", stack: 0, kind: "card", title: "✓ Done", subtitle: "green · deploy success" })
   .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · deploy failed" })
-  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Current deploy", subtitle: "status: {status} · msg: {msg}" })
+  .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Deploy", subtitle: "status: {status} · msg: {msg}" })
   .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" })
   .phase("p",  {
     duration: 1200,
@@ -2132,12 +2225,13 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
     body: "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("runningNode", "doneNode", "errorNode", "currentState").badge("loading"))
   .build();
+export const subtitle__deploySpinner = "deploy 3 state (running/done/error) を 3-lane 分散 + current indicator、 spinner readout 併存";
 
 /**
  * 69. grade = exam score を slider で操作 → A/B/C/D/F letter grade + color 追随。
  */
 export const examGrade = diagram("interactive-exam-grade", {
-  topic: "exam grade 5 letter (A/B/C/D/F) を 5-lane band 分散 + current indicator (default=B lane)、 grade readout 併存",
+  topic: "成績を A から F の 5 段階で見せる",
 })
   .lane("A", { x: 0, width: 130 })
   .lane("B", { x: 150, width: 130 })
@@ -2159,12 +2253,13 @@ export const examGrade = diagram("interactive-exam-grade", {
     body: "5-lane (A ≥90 / B 80-89 / C 70-79 / D 60-69 / F <60) で 5 letter grade band を分散、 各 band 個別 card + current indicator (default score 85 → B lane)、 slider 変化で grade readout が letter + color 追随、 grade band 分類と current の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aNode", "bNode", "cNode", "dNode", "fNode", "currentGrade").badge("grade"))
   .build();
+export const subtitle__examGrade = "exam grade 5 letter (A/B/C/D/F) を 5-lane band 分散 + current indicator (default=B lane)、 grade readout 併存";
 
 /**
  * 70. stopwatch = ms 数値 (stepper で秒指定) を MM:SS.ms display で表示。
  */
 export const timerStopwatch = diagram("interactive-timer-stopwatch", {
-  topic: "stopwatch control を 3-lane (Seconds input / Running toggle / MM:SS.ms display) + 2 edge、 stepper + toggle → display fan-out、 stopwatch readout 併存",
+  topic: "秒数と実行状態から時計表示を作る",
 })
   .lane("input", { x: 0, width: 200 })
   .lane("toggle", { x: 240, width: 200 })
@@ -2176,8 +2271,8 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .state("elapsed", { initial: 125000 })
   .formula("elapsed", "sec * 1000")
   .node("secNode", { lane: "input", stack: 0, kind: "card", title: "Seconds", subtitle: "sec = {sec}s (0-3600)" })
-  .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "Running toggle", subtitle: "running = {running}" })
-  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms display", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
+  .node("runNode", { lane: "toggle", stack: 0, kind: "card", title: "Running", subtitle: "running = {running}" })
+  .node("displayNode", { lane: "display", stack: 0, kind: "card", title: "MM:SS.ms", subtitle: "elapsed = sec × 1000 = {elapsed}ms" })
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "color", tone: "success" })
   .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "Timer (MM:SS.ms)" })
@@ -2187,12 +2282,13 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
     body: "3-lane (Seconds / Running / Display) で stopwatch 3 component を分散、 2 edge (× 1000 info tone / color success tone) で 2 signal → 1 display の fan-in 明示、 stepper + toggle 変化で stopwatch readout の time + color が同時追随。",
   }, (p: PhaseBuilder) => p.activate("secNode", "runNode", "displayNode").badge("timer"))
   .build();
+export const subtitle__timerStopwatch = "stopwatch control を 3-lane (Seconds input / Running toggle / MM:SS.ms display) + 2 edge、 stepper + toggle → display fan-out、 stopwatch readout 併存";
 
 /**
  * 71. confidence-meter = ML classification confidence を slider で操作 → 3 color band 追随。
  */
 export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
-  topic: "ML confidence を 3-lane (Low <40 / Mid 40-74 / High ≥75) band 別分散 + current indicator (default=high)、 confidenceMeter readout 併存",
+  topic: "推論の確信度を低 / 中 / 高で見せる",
 })
   .lane("low", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
@@ -2210,27 +2306,28 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
     body: "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentConf").badge("ML conf"))
   .build();
+export const subtitle__mlConfidenceMeter = "ML confidence を 3-lane (Low <40 / Mid 40-74 / High ≥75) band 別分散 + current indicator (default=high)、 confidenceMeter readout 併存";
 
 /**
  * 72. reaction-bar = social post reactions、 4 emoji + count で pill 表示。
  */
 export const postReactions = diagram("interactive-post-reactions", {
-  topic: "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存",
+  topic: "投稿への 4 種の反応を並べる",
 })
-  .lane("thumb", { x: 0, width: 160 })
-  .lane("heart", { x: 180, width: 160 })
-  .lane("laugh", { x: 360, width: 160 })
-  .lane("party", { x: 540, width: 160 })
+  .lane("thumb", { x: 0, width: 360 })
+  .lane("heart", { x: 380, width: 270 })
+  .lane("laugh", { x: 670, width: 270 })
+  .lane("party", { x: 960, width: 270 })
   .arraySignal("reactions", [
     ["👍", 24],
     ["❤️", 12],
     ["😂", 8],
     ["🎉", 5],
   ] as unknown as (string | number)[])
-  .node("thumbNode", { lane: "thumb", stack: 0, kind: "card", title: "👍 Thumbs up", subtitle: "24 (max)" })
-  .node("heartNode", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "12" })
-  .node("laughNode", { lane: "laugh", stack: 0, kind: "card", title: "😂 Laugh", subtitle: "8" })
-  .node("partyNode", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "5 (min)" })
+  .node("thumbNode", { lane: "thumb", stack: 0, kind: "card", w: 310, title: "👍 Thumbs up", subtitle: "24 (max)" })
+  .node("heartNode", { lane: "heart", stack: 0, kind: "card", w: 220, title: "❤️ Heart", subtitle: "12" })
+  .node("laughNode", { lane: "laugh", stack: 0, kind: "card", w: 220, title: "😂 Laugh", subtitle: "8" })
+  .node("partyNode", { lane: "party", stack: 0, kind: "card", w: 220, title: "🎉 Party", subtitle: "5 (min)" })
   .readout.reactionBar("rb", { source: "reactions", color: "#2563eb", label: "Reactions (pill list)" })
   .phase("p", {
     duration: 1200,
@@ -2238,12 +2335,13 @@ export const postReactions = diagram("interactive-post-reactions", {
     body: "4-lane (Thumbs / Heart / Laugh / Party) で 4 social reaction を emoji 別分散、 各 reaction 個別 card で count 明示、 reactionBar readout も併存で pill list 表示、 emoji 分類と reaction list の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("thumbNode", "heartNode", "laughNode", "partyNode").badge("social"))
   .build();
+export const subtitle__postReactions = "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存";
 
 /**
  * 73. pill-group = tech skill 色付き pills、 [[label, colorHex], ...] で per-pill color。
  */
 export const techPills = diagram("interactive-tech-pills", {
-  topic: "tech stack 5 pill を 3-lane (Frontend / Systems / Build) category 別分散、 各 tool 個別 card、 pillGroup readout 併存",
+  topic: "技術 5 つを画面 / 基盤 / 構築で分ける",
 })
   .lane("frontend", { x: 0, width: 220 })
   .lane("systems", { x: 260, width: 200 })
@@ -2267,12 +2365,13 @@ export const techPills = diagram("interactive-tech-pills", {
     body: "3-lane (Frontend React+TS / Systems Rust / Build Vite+Bun) で 5 tech tool を category 別分散、 各 tool 個別 card で用途 + hex 明示、 pillGroup readout も併存で per-pill color 表示、 tech 分類と pill list の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "rustNode", "viteNode", "bunNode").badge("pills"))
   .build();
+export const subtitle__techPills = "tech stack 5 pill を 3-lane (Frontend / Systems / Build) category 別分散、 各 tool 個別 card、 pillGroup readout 併存";
 
 /**
  * 74. fuel-bar = device battery、 slider で 0-100% 変化 → 10 segment + 3 color band 追随。
  */
 export const deviceBattery = diagram("interactive-device-battery", {
-  topic: "battery level を 3-lane (Low <20 / Mid 20-60 / High ≥60) band 別分散 + current indicator (default=high)、 fuelBar readout 併存",
+  topic: "電池残量を低 / 中 / 高で見せる",
 })
   .lane("low", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
@@ -2290,27 +2389,28 @@ export const deviceBattery = diagram("interactive-device-battery", {
     body: "3-lane (Low <20 red / Mid 20-60 yellow / High ≥60 green) で battery 3 band を分散、 current indicator (default 72 → high lane)、 slider 変化で fuelBar readout の filled 数 + color 追随、 battery / fuel / stamina 状態を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentBattery").badge("battery"))
   .build();
+export const subtitle__deviceBattery = "battery level を 3-lane (Low <20 / Mid 20-60 / High ≥60) band 別分散 + current indicator (default=high)、 fuelBar readout 併存";
 
 /**
  * 75. metrics-grid = SaaS dashboard の 4 KPI を 2×2 grid 表示。
  */
 export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
-  topic: "SaaS 4 KPI を 4-lane (Users / Revenue / Uptime / Errors) 分散、 各 KPI 個別 card、 metricsGrid readout 併存",
+  topic: "SaaS の 4 指標を並べて見せる",
 })
-  .lane("users", { x: 0, width: 180 })
-  .lane("revenue", { x: 200, width: 180 })
-  .lane("uptime", { x: 400, width: 180 })
-  .lane("errors", { x: 600, width: 180 })
+  .lane("users", { x: 0, width: 270 })
+  .lane("revenue", { x: 290, width: 250 })
+  .lane("uptime", { x: 560, width: 230 })
+  .lane("errors", { x: 810, width: 230 })
   .arraySignal("kpis", [
     ["Users", "12.4k"],
     ["Revenue", "$45k"],
     ["Uptime", "99.9", "%"],
     ["Errors", 12],
   ] as unknown as (string | number)[])
-  .node("usersNode", { lane: "users", stack: 0, kind: "card", title: "Users", subtitle: "12.4k (active MAU)" })
-  .node("revenueNode", { lane: "revenue", stack: 0, kind: "card", title: "Revenue", subtitle: "$45k (MRR)" })
-  .node("uptimeNode", { lane: "uptime", stack: 0, kind: "card", title: "Uptime", subtitle: "99.9% (SLA)" })
-  .node("errorsNode", { lane: "errors", stack: 0, kind: "card", title: "Errors", subtitle: "12 (last 24h)" })
+  .node("usersNode", { lane: "users", stack: 0, kind: "card", w: 220, title: "Users", subtitle: "12.4k (active MAU)" })
+  .node("revenueNode", { lane: "revenue", stack: 0, kind: "card", w: 200, title: "Revenue", subtitle: "$45k (MRR)" })
+  .node("uptimeNode", { lane: "uptime", stack: 0, kind: "card", w: 180, title: "Uptime", subtitle: "99.9% (SLA)" })
+  .node("errorsNode", { lane: "errors", stack: 0, kind: "card", w: 180, title: "Errors", subtitle: "12 (last 24h)" })
   .readout.metricsGrid("mg", { source: "kpis", color: "#2563eb", label: "Metrics (2×2 grid)" })
   .phase("p", {
     duration: 1200,
@@ -2318,12 +2418,13 @@ export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
     body: "4-lane (Users / Revenue / Uptime / Errors) で SaaS 4 KPI を機能別分散、 各 KPI 個別 card で value + context 明示、 metricsGrid readout も併存で 2×2 grid 表示、 KPI 分類と dashboard 全体の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("usersNode", "revenueNode", "uptimeNode", "errorsNode").badge("grid"))
   .build();
+export const subtitle__dashboardMetricsGrid = "SaaS 4 KPI を 4-lane (Users / Revenue / Uptime / Errors) 分散、 各 KPI 個別 card、 metricsGrid readout 併存";
 
 /**
  * 76. thermometer = 室温 24°C を slider で操作 → 縦 bar + 球部 で温度表示。
  */
 export const roomThermometer = diagram("interactive-room-thermometer", {
-  topic: "室温を 3-lane (Cold <15°C / Comfort 15-25°C / Hot ≥25°C) 温度帯別分散 + current indicator、 thermometer readout 併存",
+  topic: "室温を寒い / 快適 / 暑いで分ける",
 })
   .lane("cold", { x: 0, width: 200 })
   .lane("comfort", { x: 240, width: 220 })
@@ -2341,12 +2442,13 @@ export const roomThermometer = diagram("interactive-room-thermometer", {
     body: "3-lane (Cold <15 / Comfort 15-25 / Hot ≥25) で room 温度を band 別分散、 current indicator (default 24 → comfort lane)、 slider 変化で thermometer readout 縦 bar + 球部 追随、 温度帯分類と thermometer 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("coldNode", "comfortNode", "hotNode", "currentTemp").badge("temp"))
   .build();
+export const subtitle__roomThermometer = "室温を 3-lane (Cold <15°C / Comfort 15-25°C / Hot ≥25°C) 温度帯別分散 + current indicator、 thermometer readout 併存";
 
 /**
  * 77. icon-tile = 3 KPI を emoji icon + label + value tile で表示。
  */
 export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
-  topic: "3 KPI (Growth / Revenue / Goals) を 3-lane 個別 tile 分散、 iconTile readout 併存",
+  topic: "3 つの指標をアイコン付きのタイルで並べる",
 })
   .lane("growth", { x: 0, width: 220 })
   .lane("revenue", { x: 260, width: 220 })
@@ -2366,12 +2468,13 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
     body: "3-lane (Growth / Revenue / Goals) で 3 KPI を機能別分散、 各 KPI 個別 card で emoji + value 明示、 iconTile readout も併存で colored icon square 表示、 KPI 分類と tile 一覧の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("growthNode", "revenueNode", "goalsNode").badge("tiles"))
   .build();
+export const subtitle__kpiIconTile = "3 KPI (Growth / Revenue / Goals) を 3-lane 個別 tile 分散、 iconTile readout 併存";
 
 /**
  * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
  */
 export const cryptoWallet = diagram("interactive-crypto-wallet", {
-  topic: "crypto wallet 4 token を 2-lane (Gainers +% / Losers -%) に分散、 各 token を個別 card、 tokenList readout 併存",
+  topic: "保有 4 銘柄を値上がり / 値下がりで分ける",
 })
   .lane("gainers", { x: 0, width: 220 })
   .lane("losers", { x: 300, width: 220 })
@@ -2392,12 +2495,13 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
     body: "2-lane (Gainers +% / Losers -%) で 4 token を delta 符号別に分散、 各 token を個別 card で並列表示、 tokenList readout で aggregate 一覧も併存、 portfolio 構造を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("btc", "sol", "eth", "doge").badge("wallet"))
   .build();
+export const subtitle__cryptoWallet = "crypto wallet 4 token を 2-lane (Gainers +% / Losers -%) に分散、 各 token を個別 card、 tokenList readout 併存";
 
 /**
  * 79. map-pin = world map (地図座標) 上の 5 city を pin 表示。
  */
 export const worldMapPins = diagram("interactive-world-map", {
-  topic: "world map 5 city を 2-lane (Asia-Pacific / America-Europe) に分散、 各 city 個別 node + 座標表記、 mapPin readout 併存",
+  topic: "5 都市をアジア / 欧米に分けて見せる",
 })
   .lane("apac", { x: 0, width: 220 })
   .lane("amea", { x: 300, width: 220 })
@@ -2420,12 +2524,13 @@ export const worldMapPins = diagram("interactive-world-map", {
     body: "2-lane (Asia-Pacific / America-Europe) で 5 city を地域別に分散、 各 city 個別 card + (x,y) 座標明示、 mapPin readout で 2D 地理配置も併存、 region 分類と地理位置の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("tokyo", "sydney", "nyc", "paris", "rio").badge("map"))
   .build();
+export const subtitle__worldMapPins = "world map 5 city を 2-lane (Asia-Pacific / America-Europe) に分散、 各 city 個別 node + 座標表記、 mapPin readout 併存";
 
 /**
  * 80. priority-badge = issue priority、 dropdown で high/med/low 切替 → badge + text 追随。
  */
 export const issuePriorityBadge = diagram("interactive-issue-priority", {
-  topic: "issue priority を 3-lane (High ▲ / Med ● / Low ▼) 分散、 現在選択 priority を currentIssue node で明示、 priorityBadge readout 併存",
+  topic: "課題の優先度を高 / 中 / 低で見せる",
 })
   .lane("high", { x: 0, width: 200 })
   .lane("med", { x: 240, width: 200 })
@@ -2434,10 +2539,10 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   .input.text("desc", { defaultValue: "Fix crash on startup", placeholder: "Issue description", maxLength: 60, label: "Description" })
   .state("prio", { initial: "high" })
   .state("desc", { initial: "Fix crash on startup" })
-  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "▲ High priority", subtitle: "red · crash / regression" })
-  .node("medNode", { lane: "med", stack: 0, kind: "card", title: "● Med priority", subtitle: "yellow · normal bug" })
-  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low priority", subtitle: "gray · nice-to-have" })
-  .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current Issue", subtitle: "prio: {prio} · {desc}" })
+  .node("highNode", { lane: "high", stack: 0, kind: "card", title: "▲ High", subtitle: "red · crash / regression" })
+  .node("medNode", { lane: "med", stack: 0, kind: "card", title: "● Med", subtitle: "yellow · normal bug" })
+  .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low", subtitle: "gray · nice-to-have" })
+  .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "prio: {prio} · {desc}" })
   .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority (badge + icon + text)" })
   .phase("p", {
     duration: 1200,
@@ -2445,12 +2550,13 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
     body: "3-lane (High red ▲ / Med yellow ● / Low gray ▼) で 3 priority level を分散、 各 level 個別 card + 現在 issue の位置 (default=high lane) を currentIssue card で明示、 priorityBadge readout も併存で dropdown 追随 badge 表示、 priority 分類と現在 state の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("highNode", "medNode", "lowNode", "currentIssue").badge("issue"))
   .build();
+export const subtitle__issuePriorityBadge = "issue priority を 3-lane (High ▲ / Med ● / Low ▼) 分散、 現在選択 priority を currentIssue node で明示、 priorityBadge readout 併存";
 
 /**
  * 81. podium = tournament の 1st/2nd/3rd 表彰台。
  */
 export const tournamentPodium = diagram("interactive-tournament-podium", {
-  topic: "tournament 1st/2nd/3rd を 3-lane (Silver/Gold/Bronze、 中央=Gold の podium 配列) 分散、 各 winner 個別 card、 podium readout 併存",
+  topic: "表彰台を中央が 1 位になる並びで見せる",
 })
   .lane("silver", { x: 0, width: 200 })
   .lane("gold", { x: 220, width: 220 })
@@ -2460,9 +2566,9 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
     ["Bob", "1050 pts"],
     ["Carol", "980 pts"],
   ] as unknown as (string | number)[])
-  .node("silverNode", { lane: "silver", stack: 0, kind: "card", title: "🥈 2nd — Bob", subtitle: "1050 pts (silver)" })
-  .node("goldNode", { lane: "gold", stack: 0, kind: "card", title: "🥇 1st — Alice", subtitle: "1200 pts (gold champion)" })
-  .node("bronzeNode", { lane: "bronze", stack: 0, kind: "card", title: "🥉 3rd — Carol", subtitle: "980 pts (bronze)" })
+  .node("silverNode", { lane: "silver", stack: 0, kind: "card", title: "🥈 2nd Bob", subtitle: "1050 pts (silver)" })
+  .node("goldNode", { lane: "gold", stack: 0, kind: "card", title: "🥇 1st Alice", subtitle: "1200 pts (gold champion)" })
+  .node("bronzeNode", { lane: "bronze", stack: 0, kind: "card", title: "🥉 3rd Carol", subtitle: "980 pts (bronze)" })
   .readout.podium("pod", { source: "winners", viewW: 280, viewH: 180, label: "Podium (3 縦 bar 表彰台)" })
   .phase("p", {
     duration: 1200,
@@ -2470,12 +2576,13 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
     body: "3-lane (Silver 左 / Gold 中央 / Bronze 右) で 3 winner を podium 実配置模倣、 中央=1 位を目立たせ、 各 winner 個別 card で名前 + score 明示、 podium readout も併存で従来 3 縦 bar 表示。",
   }, (p: PhaseBuilder) => p.activate("silverNode", "goldNode", "bronzeNode").badge("winners"))
   .build();
+export const subtitle__tournamentPodium = "tournament 1st/2nd/3rd を 3-lane (Silver/Gold/Bronze、 中央=Gold の podium 配列) 分散、 各 winner 個別 card、 podium readout 併存";
 
 /**
  * 82. poll-bar = feature poll、 4 option の投票 % 表示、 winner に ★ 装飾。
  */
 export const featurePoll = diagram("interactive-feature-poll", {
-  topic: "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存",
+  topic: "投票結果を 1 位とその他に分ける",
 })
   .lane("winner", { x: 0, width: 220 })
   .lane("runners", { x: 300, width: 220 })
@@ -2486,7 +2593,7 @@ export const featurePoll = diagram("interactive-feature-poll", {
     ["Nicer UI", 12],
   ] as unknown as (string | number)[])
   .node("dark", { lane: "winner", stack: 0, kind: "card", title: "★ Dark mode", subtitle: "42 votes (winner)" })
-  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Faster search", subtitle: "28 votes" })
+  .node("search", { lane: "runners", stack: 0, kind: "card", title: "Search", subtitle: "28 votes" })
   .node("api", { lane: "runners", stack: 1, kind: "card", title: "Better API", subtitle: "18 votes" })
   .node("ui", { lane: "runners", stack: 2, kind: "card", title: "Nicer UI", subtitle: "12 votes" })
   .readout.pollBar("pb", { source: "options", color: "#a08870", colorWinner: "#2563eb", label: "Results (aggregate)" })
@@ -2496,12 +2603,13 @@ export const featurePoll = diagram("interactive-feature-poll", {
     body: "2-lane (Winner / Runners-up 3 個) で 4 option を投票結果別に分散、 winner lane は 1 位を目立たせる、 pollBar readout で aggregate 一覧も併存、 poll 構造を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("dark", "search", "api", "ui").badge("poll"))
   .build();
+export const subtitle__featurePoll = "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存";
 
 /**
  * 83. user-stack = code review reviewer 7 人 (max 5 表示 + overflow +2)。
  */
 export const reviewerStack = diagram("interactive-reviewer-stack", {
-  topic: "code review reviewer 7 人 を 2-lane (Displayed 5 / Overflow 2) 分散、 各 reviewer 個別 card、 userStack readout 併存",
+  topic: "レビュアー 7 人を 5 人表示と残りで見せる",
 })
   .lane("displayed", { x: 0, width: 340 })
   .lane("overflow", { x: 380, width: 200 })
@@ -2520,18 +2628,17 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
     body: "2-lane (Displayed 5 avatar 表示分 / Overflow 2 +2 表示分) で 7 reviewer を max=5 境界別に分散、 各 reviewer 個別 card で initials + status 明示、 userStack readout も併存で overlap circle 表示、 表示 5 人と溢れ 2 人の構造を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3", "r4", "r5", "r6", "r7").badge("team"))
   .build();
+export const subtitle__reviewerStack = "code review reviewer 7 人 を 2-lane (Displayed 5 / Overflow 2) 分散、 各 reviewer 個別 card、 userStack readout 併存";
 
 /**
  * 84. commit-list = recent git commits を 5 rows 表示。
  */
 export const gitCommitList = diagram("interactive-git-commits", {
-  topic: "5 git commit を 5-lane (feat / fix / docs / refactor / test) commit type 別分散、 各 commit 個別 card、 commitList readout 併存",
+  topic: "5 つのコミットを種別ごとに並べる",
 })
-  .lane("feat", { x: 0, width: 150 })
-  .lane("fix", { x: 170, width: 150 })
-  .lane("docs", { x: 340, width: 150 })
-  .lane("refactor", { x: 510, width: 150 })
-  .lane("test", { x: 680, width: 150 })
+  .lane("col1", { x: 0, width: 350 })
+  .lane("col2", { x: 390, width: 360 })
+  .lane("col3", { x: 790, width: 350 })
   .arraySignal("commits", [
     ["a1b2c3d", "feat: add sankey primitive", "Alice"],
     ["e5f6g7h", "fix: circular gauge angle bug", "Bob"],
@@ -2539,24 +2646,25 @@ export const gitCommitList = diagram("interactive-git-commits", {
     ["m3n4o5p", "refactor: extract widget dispatcher", "Dan"],
     ["q7r8s9t", "test: add builder chain coverage", "Eve"],
   ] as unknown as (string | number)[])
-  .node("featNode", { lane: "feat", stack: 0, kind: "card", title: "feat", subtitle: "a1b2c3d · Alice · sankey" })
-  .node("fixNode", { lane: "fix", stack: 0, kind: "card", title: "fix", subtitle: "e5f6g7h · Bob · gauge angle" })
-  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "docs", subtitle: "i9j0k1l · Carol · SKILL.md" })
-  .node("refactorNode", { lane: "refactor", stack: 0, kind: "card", title: "refactor", subtitle: "m3n4o5p · Dan · dispatcher" })
-  .node("testNode", { lane: "test", stack: 0, kind: "card", title: "test", subtitle: "q7r8s9t · Eve · builder" })
+  .node("featNode", { lane: "col1", stack: 0, kind: "card", w: 280, title: "feat", subtitle: "a1b2c3d · Alice · sankey" })
+  .node("fixNode", { lane: "col2", stack: 0, kind: "card", w: 310, title: "fix", subtitle: "e5f6g7h · Bob · gauge angle" })
+  .node("docsNode", { lane: "col3", stack: 0, kind: "card", w: 300, title: "docs", subtitle: "i9j0k1l · Carol · SKILL.md" })
+  .node("refactorNode", { lane: "col1", stack: 1, kind: "card", w: 300, title: "refactor", subtitle: "m3n4o5p · Dan · dispatcher" })
+  .node("testNode", { lane: "col2", stack: 1, kind: "card", w: 270, title: "test", subtitle: "q7r8s9t · Eve · builder" })
   .readout.commitList("cl", { source: "commits", max: 5, color: "#2563eb", label: "History (git log)" })
   .phase("p", {
     duration: 1200,
     title: "commit type split",
-    body: "5-lane (feat / fix / docs / refactor / test) で 5 commit を type prefix 別分散、 各 commit 個別 card で sha + author + summary 明示、 commitList readout も併存で 3 column layout、 commit 分類と history の 2 経路 view。",
+    body: "5 区画 (feat / fix / docs / refactor / test) を 3 列 2 段に置いて 5 commit を type prefix 別分散、 各 commit 個別 card で sha + author + summary 明示、 commitList readout も併存で 3 column layout、 commit 分類と history の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("featNode", "fixNode", "docsNode", "refactorNode", "testNode").badge("git"))
   .build();
+export const subtitle__gitCommitList = "5 git commit を 5 区画 (feat / fix / docs / refactor / test) 3 列 2 段で commit type 別分散、 各 commit 個別 card、 commitList readout 併存";
 
 /**
  * 85. media-player = audio player、 slider で current time、 toggle で play/pause。
  */
 export const audioPlayer = diagram("interactive-audio-player", {
-  topic: "audio player を 3-lane (Current time / Play toggle / Duration) + 2 edge、 signal 制御と mediaPlayer readout の bind 関係可視化",
+  topic: "再生位置と再生状態から時間表示を作る",
 })
   .lane("current", { x: 0, width: 220 })
   .lane("toggle", { x: 260, width: 200 })
@@ -2578,12 +2686,13 @@ export const audioPlayer = diagram("interactive-audio-player", {
     body: "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "toggleNode", "durationNode").badge("media"))
   .build();
+export const subtitle__audioPlayer = "audio player を 3-lane (Current time / Play toggle / Duration) + 2 edge、 signal 制御と mediaPlayer readout の bind 関係可視化";
 
 /**
  * 86. event-log = server monitoring log、 4 severity (info/warn/error/debug) 表示。
  */
 export const serverEventLog = diagram("interactive-server-event-log", {
-  topic: "server monitoring event log 5 event を 4-lane (info / debug / warn / error) severity 別に分散、 eventLog readout 併存",
+  topic: "サーバのログ 5 件を重要度で分ける",
 })
   .lane("info", { x: 0, width: 160 })
   .lane("debug", { x: 200, width: 160 })
@@ -2608,12 +2717,13 @@ export const serverEventLog = diagram("interactive-server-event-log", {
     body: "4-lane (info / debug / warn / error) で 5 event を severity 別に分散、 各 event 個別 card で timestamp + msg 明示、 eventLog readout で timeline 一覧も併存、 severity 分類と時系列の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("info1", "info2", "debug1", "warn1", "error1").badge("monitor"))
   .build();
+export const subtitle__serverEventLog = "server monitoring event log 5 event を 4-lane (info / debug / warn / error) severity 別に分散、 eventLog readout 併存";
 
 /**
  * 87. search-result = 5 search hit を title + snippet + url で表示。
  */
 export const searchResults = diagram("interactive-search-results", {
-  topic: "search hit 5 を 2-lane (Docs 4 / Interactive tool 1) 分散、 各 hit 個別 card、 searchResult readout 併存",
+  topic: "検索結果を文書 / ツールに分ける",
 })
   .lane("docs", { x: 0, width: 340 })
   .lane("tools", { x: 380, width: 300 })
@@ -2625,10 +2735,10 @@ export const searchResults = diagram("interactive-search-results", {
     ["Vite guide", "Frontend build tool guide", "vitejs.dev"],
   ] as unknown as (string | number)[])
   .node("mdnNode", { lane: "docs", stack: 0, kind: "card", title: "MDN Web Docs", subtitle: "developer.mozilla.org" })
-  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TypeScript Handbook", subtitle: "typescriptlang.org/docs" })
+  .node("tsNode", { lane: "docs", stack: 1, kind: "card", title: "TS Handbook", subtitle: "typescriptlang.org/docs" })
   .node("reactNode", { lane: "docs", stack: 2, kind: "card", title: "React docs", subtitle: "react.dev" })
   .node("viteNode", { lane: "docs", stack: 3, kind: "card", title: "Vite guide", subtitle: "vitejs.dev" })
-  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust playground", subtitle: "play.rust-lang.org (interactive)" })
+  .node("rustNode", { lane: "tools", stack: 0, kind: "card", title: "Rust", subtitle: "play.rust-lang.org (interactive)" })
   .readout.searchResult("sr", { source: "hits", max: 5, color: "#2563eb", label: "Results (link + snippet + url)" })
   .phase("p", {
     duration: 1200,
@@ -2636,12 +2746,13 @@ export const searchResults = diagram("interactive-search-results", {
     body: "2-lane (Docs 4 hit / Interactive tool 1 hit) で 5 search result を category 別分散、 各 hit 個別 card で title + url 明示、 searchResult readout も併存で従来 list 表示、 category 分類と list 一覧の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("mdnNode", "tsNode", "reactNode", "viteNode", "rustNode").badge("search"))
   .build();
+export const subtitle__searchResults = "search hit 5 を 2-lane (Docs 4 / Interactive tool 1) 分散、 各 hit 個別 card、 searchResult readout 併存";
 
 /**
  * 88. roadmap = 2026 year quarterly plan Q1-Q4。
  */
 export const yearRoadmap = diagram("interactive-year-roadmap", {
-  topic: "2026 yearly roadmap を 4-lane (Q1-Q4) 分散、 各 quarter items を stack 分散、 quarterly 遷移 3 edge、 roadmap readout 併存",
+  topic: "年間の計画を四半期ごとに並べる",
 })
   .lane("q1", { x: 0, width: 150 })
   .lane("q2", { x: 170, width: 150 })
@@ -2654,14 +2765,14 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
     ["Q4", ["Public GA", "Series A"]],
   ] as unknown as (string | number)[])
   .node("q1Head", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "Design + MVP" })
-  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design system", subtitle: "foundation" })
-  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature A", subtitle: "prototype" })
+  .node("q1Item1", { lane: "q1", stack: 1, kind: "card", title: "Design", subtitle: "foundation" })
+  .node("q1Item2", { lane: "q1", stack: 2, kind: "card", title: "MVP feature", subtitle: "prototype" })
   .node("q2Head", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "Beta + growth" })
   .node("q2Item1", { lane: "q2", stack: 1, kind: "card", title: "Beta launch", subtitle: "public beta" })
   .node("q2Item2", { lane: "q2", stack: 2, kind: "card", title: "Feature B", subtitle: "beta scope" })
   .node("q3Head", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "Scale + enterprise" })
   .node("q3Item1", { lane: "q3", stack: 1, kind: "card", title: "Scale infra", subtitle: "capacity" })
-  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise deals", subtitle: "B2B revenue" })
+  .node("q3Item2", { lane: "q3", stack: 2, kind: "card", title: "Enterprise", subtitle: "B2B revenue" })
   .node("q4Head", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "GA + funding" })
   .node("q4Item1", { lane: "q4", stack: 1, kind: "card", title: "Public GA", subtitle: "general available" })
   .node("q4Item2", { lane: "q4", stack: 2, kind: "card", title: "Series A", subtitle: "growth capital" })
@@ -2675,12 +2786,13 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
     body: "4-lane (Q1-Q4) で 12 item を quarterly 分散、 各 quarter に header + 2 item stack、 3 edge で quarterly handover 遷移 (info→accent→success で年後半に向け tone escalate)、 roadmap readout も併存で 4 column 一覧、 quarterly plan の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("q1Head", "q2Head", "q3Head", "q4Head").badge("plan"))
   .build();
+export const subtitle__yearRoadmap = "2026 yearly roadmap を 4-lane (Q1-Q4) 分散、 各 quarter items を stack 分散、 quarterly 遷移 3 edge、 roadmap readout 併存";
 
 /**
  * 89. weather-forecast = 5-day weather (Mon-Fri) with icon + high/low temp。
  */
 export const weekWeather = diagram("interactive-week-weather", {
-  topic: "5-day weather を 3-lane (Sunny ☀ / Cloudy/Rainy / Thunder ⚡) 天気別分散、 各 day 個別 card、 weatherForecast readout 併存",
+  topic: "5 日間の天気を晴 / 曇雨 / 雷で分ける",
 })
   .lane("sunny", { x: 0, width: 220 })
   .lane("cloudy", { x: 260, width: 220 })
@@ -2704,12 +2816,13 @@ export const weekWeather = diagram("interactive-week-weather", {
     body: "3-lane (Sunny 2 day / Cloudy or Rainy 2 day / Thunder 1 day) で 5-day weather を天気別分散、 各 day 個別 card で icon + 高低 temp 明示、 weatherForecast readout も併存で 5 column widget 表示、 天気分類と日別詳細の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("monNode", "friNode", "tueNode", "wedNode", "thuNode").badge("weather"))
   .build();
+export const subtitle__weekWeather = "5-day weather を 3-lane (Sunny ☀ / Cloudy/Rainy / Thunder ⚡) 天気別分散、 各 day 個別 card、 weatherForecast readout 併存";
 
 /**
  * 90. video-card = tutorial video 3 本 (title + duration + views)。
  */
 export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
-  topic: "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存",
+  topic: "解説動画 3 本を言語ごとに分ける",
 })
   .lane("rust", { x: 0, width: 220 })
   .lane("ts", { x: 260, width: 220 })
@@ -2719,9 +2832,9 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
     ["🎥", "TypeScript deep dive", "45:20", "82k"],
     ["📺", "React hooks explained", "18:30", "156k"],
   ] as unknown as (string | number)[])
-  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust intro", subtitle: "12:45 · 24k views" })
-  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TypeScript deep dive", subtitle: "45:20 · 82k views" })
-  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React hooks", subtitle: "18:30 · 156k views (top view)" })
+  .node("rustVideo", { lane: "rust", stack: 0, kind: "card", title: "🎬 Rust", subtitle: "12:45 · 24k views" })
+  .node("tsVideo", { lane: "ts", stack: 0, kind: "card", title: "🎥 TS deep", subtitle: "45:20 · 82k views" })
+  .node("reactVideo", { lane: "react", stack: 0, kind: "card", title: "📺 React", subtitle: "18:30 · 156k views (top view)" })
   .readout.videoCard("vc", { source: "videos", max: 5, color: "#ef4444", label: "Videos (thumbnail list)" })
   .phase("p", {
     duration: 1200,
@@ -2729,24 +2842,23 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
     body: "3-lane (Rust / TypeScript / React) で 3 tutorial video を topic 別分散、 各 video 個別 card で title + duration + views 明示、 videoCard readout も併存で YouTube 定番 layout、 topic 分類と list 一覧の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("rustVideo", "tsVideo", "reactVideo").badge("video"))
   .build();
+export const subtitle__tutorialVideoCards = "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存";
 
 /**
  * 91. order-status = e-commerce 配送追跡、 stepper で current step 切替 → 4 icon step。
  */
 export const shippingOrderStatus = diagram("interactive-shipping-status", {
-  topic: "e-commerce 配送追跡 4 step (📦→🚚→🏠→✅) を 4-lane pipeline + 3 edge で状態遷移 network 化、 orderStatus readout 併存",
+  topic: "配送状況を 4 段階で追う",
 })
-  .lane("packed", { x: 0, width: 160 })
-  .lane("shipped", { x: 200, width: 160 })
-  .lane("delivery", { x: 400, width: 160 })
-  .lane("delivered", { x: 600, width: 160 })
+  .lane("col1", { x: 0, width: 340 })
+  .lane("col2", { x: 380, width: 340 })
   .input.stepper("current", { min: 0, max: 3, defaultValue: 2, label: "Step" })
   .state("current", { initial: 2 })
   .arraySignal("steps", ["Packed", "Shipped", "Out for delivery", "Delivered"])
-  .node("packedNode", { lane: "packed", stack: 0, kind: "card", title: "📦 Packed", subtitle: "梱包完了" })
-  .node("shippedNode", { lane: "shipped", stack: 0, kind: "card", title: "🚚 Shipped", subtitle: "配送開始" })
-  .node("deliveryNode", { lane: "delivery", stack: 0, kind: "card", title: "🏠 Out for delivery", subtitle: "配達中 (現在地)" })
-  .node("deliveredNode", { lane: "delivered", stack: 0, kind: "card", title: "✅ Delivered", subtitle: "配達完了" })
+  .node("packedNode", { lane: "col1", stack: 0, kind: "card", w: 250, title: "📦 Packed", subtitle: "梱包完了" })
+  .node("shippedNode", { lane: "col2", stack: 0, kind: "card", w: 270, title: "🚚 Shipped", subtitle: "配送開始" })
+  .node("deliveryNode", { lane: "col1", stack: 1, kind: "card", w: 290, title: "🏠 Delivery", subtitle: "配達中 (現在地)" })
+  .node("deliveredNode", { lane: "col2", stack: 1, kind: "card", w: 290, title: "✅ Delivered", subtitle: "配達完了" })
   .edge("packedNode", "shippedNode", { label: "handover", tone: "success" })
   .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
   .edge("deliveryNode", "deliveredNode", { label: "arrived", tone: "warning" })
@@ -2754,20 +2866,21 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .phase("p", {
     duration: 1200,
     title: "delivery pipeline",
-    body: "4-lane pipeline (Packed / Shipped / Out for delivery / Delivered) + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。",
+    body: "4 区画 pipeline (Packed / Shipped / Out for delivery / Delivered) を 2 列 2 段に置いて + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。",
   }, (p: PhaseBuilder) => p.activate("packedNode", "shippedNode", "deliveryNode", "deliveredNode").badge("tracking"))
   .build();
+export const subtitle__shippingOrderStatus = "e-commerce 配送追跡 4 step (📦→🚚→🏠→✅) を 2 列 2 段の pipeline + 3 edge で状態遷移 network 化、 orderStatus readout 併存";
 
 /**
  * 92. attendance-grid = チーム週間 attendance (5 day × 4 member)。
  */
 export const teamAttendanceGrid = diagram("interactive-team-attendance", {
-  topic: "5 day × 4 member attendance を 4-lane (Alice/Bob/Carol/Dan) member 別分散、 各 member weekly summary + attendanceGrid readout 併存",
+  topic: "4 人 × 5 日の出欠を並べる",
 })
-  .lane("alice", { x: 0, width: 150 })
-  .lane("bob", { x: 170, width: 150 })
-  .lane("carol", { x: 340, width: 150 })
-  .lane("dan", { x: 510, width: 150 })
+  .lane("alice", { x: 0, width: 330 })
+  .lane("bob", { x: 350, width: 330 })
+  .lane("carol", { x: 700, width: 370 })
+  .lane("dan", { x: 1090, width: 300 })
   .arraySignal("attendance", [
     ["Mon", true, true, false, true],
     ["Tue", true, false, true, true],
@@ -2776,10 +2889,10 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
     ["Fri", true, true, false, true],
   ] as unknown as (string | number)[])
   .arraySignal("members", ["Alice", "Bob", "Carol", "Dan"])
-  .node("aliceCard", { lane: "alice", stack: 0, kind: "card", title: "Alice", subtitle: "4/5 present (Thu absent)" })
-  .node("bobCard", { lane: "bob", stack: 0, kind: "card", title: "Bob", subtitle: "4/5 present (Tue absent)" })
-  .node("carolCard", { lane: "carol", stack: 0, kind: "card", title: "Carol", subtitle: "3/5 present (Mon/Fri absent)" })
-  .node("danCard", { lane: "dan", stack: 0, kind: "card", title: "Dan", subtitle: "5/5 present (perfect)" })
+  .node("aliceCard", { lane: "alice", stack: 0, kind: "card", w: 280, title: "Alice", subtitle: "4/5 present (Thu absent)" })
+  .node("bobCard", { lane: "bob", stack: 0, kind: "card", w: 280, title: "Bob", subtitle: "4/5 present (Tue absent)" })
+  .node("carolCard", { lane: "carol", stack: 0, kind: "card", w: 320, title: "Carol", subtitle: "3/5 present (Mon/Fri absent)" })
+  .node("danCard", { lane: "dan", stack: 0, kind: "card", w: 250, title: "Dan", subtitle: "5/5 present (perfect)" })
   .readout.attendanceGrid("ag", { source: "attendance", membersSource: "members", color: "#22c55e", label: "Attendance (5 day × 4 member grid)" })
   .phase("p", {
     duration: 1200,
@@ -2787,27 +2900,28 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
     body: "4-lane (Alice/Bob/Carol/Dan) で 5 day × 4 member attendance を member 別に分散、 各 member weekly summary card で present/absent 数明示、 attendanceGrid readout も併存で 2D grid 表示、 member 別 aggregate と day 別詳細の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "carolCard", "danCard").badge("attendance"))
   .build();
+export const subtitle__teamAttendanceGrid = "5 day × 4 member attendance を 4-lane (Alice/Bob/Carol/Dan) member 別分散、 各 member weekly summary + attendanceGrid readout 併存";
 
 /**
  * 93. timezone-clock = 4 city の multi-timezone clock (Tokyo / London / NYC / Sydney)。
  */
 export const globalTimezoneClock = diagram("interactive-timezone-clock", {
-  topic: "4 city timezone を 4-lane (Tokyo / London / NYC / Sydney) 都市別分散、 各 city 個別 card、 timezoneClock readout 併存",
+  topic: "4 都市の現地時刻を並べる",
 })
-  .lane("tokyo", { x: 0, width: 180 })
-  .lane("london", { x: 200, width: 180 })
-  .lane("nyc", { x: 400, width: 180 })
-  .lane("sydney", { x: 600, width: 180 })
+  .lane("tokyo", { x: 0, width: 230 })
+  .lane("london", { x: 250, width: 230 })
+  .lane("nyc", { x: 500, width: 230 })
+  .lane("sydney", { x: 750, width: 240 })
   .arraySignal("clocks", [
     ["Tokyo", 9, "22:30"],
     ["London", 0, "13:30"],
     ["NYC", -5, "08:30"],
     ["Sydney", 11, "00:30"],
   ] as unknown as (string | number)[])
-  .node("tokyoNode", { lane: "tokyo", stack: 0, kind: "card", title: "Tokyo", subtitle: "22:30 · UTC+9" })
-  .node("londonNode", { lane: "london", stack: 0, kind: "card", title: "London", subtitle: "13:30 · UTC±0" })
-  .node("nycNode", { lane: "nyc", stack: 0, kind: "card", title: "NYC", subtitle: "08:30 · UTC-5" })
-  .node("sydneyNode", { lane: "sydney", stack: 0, kind: "card", title: "Sydney", subtitle: "00:30 · UTC+11" })
+  .node("tokyoNode", { lane: "tokyo", stack: 0, kind: "card", w: 180, title: "Tokyo", subtitle: "22:30 · UTC+9" })
+  .node("londonNode", { lane: "london", stack: 0, kind: "card", w: 180, title: "London", subtitle: "13:30 · UTC±0" })
+  .node("nycNode", { lane: "nyc", stack: 0, kind: "card", w: 180, title: "NYC", subtitle: "08:30 · UTC-5" })
+  .node("sydneyNode", { lane: "sydney", stack: 0, kind: "card", w: 190, title: "Sydney", subtitle: "00:30 · UTC+11" })
   .readout.timezoneClock("tc", { source: "clocks", color: "#2563eb", label: "Cities (4-column grid)" })
   .phase("p", {
     duration: 1200,
@@ -2815,12 +2929,13 @@ export const globalTimezoneClock = diagram("interactive-timezone-clock", {
     body: "4-lane (Tokyo UTC+9 / London UTC±0 / NYC UTC-5 / Sydney UTC+11) で 4 city timezone を都市別分散、 各 city 個別 card で time + UTC offset 明示、 timezoneClock readout も併存で 4 column grid 表示、 city 分類と clock 一覧の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("tokyoNode", "londonNode", "nycNode", "sydneyNode").badge("clock"))
   .build();
+export const subtitle__globalTimezoneClock = "4 city timezone を 4-lane (Tokyo / London / NYC / Sydney) 都市別分散、 各 city 個別 card、 timezoneClock readout 併存";
 
 /**
  * 94. form-summary = signup form の 5 field 送信内容 summary。
  */
 export const signupFormSummary = diagram("interactive-signup-form", {
-  topic: "signup form 5 field を 3-lane (Personal / Contact / Prefs) semantic 分類、 各 field 個別 card、 formSummary readout 併存",
+  topic: "登録項目 5 つを意味ごとに分ける",
 })
   .lane("personal", { x: 0, width: 220 })
   .lane("contact", { x: 260, width: 220 })
@@ -2844,12 +2959,13 @@ export const signupFormSummary = diagram("interactive-signup-form", {
     body: "3-lane (Personal Name+Age / Contact Email+Country / Prefs Newsletter) で 5 field を semantic 分類、 各 field 個別 card で key/value 明示、 formSummary readout も併存で dl/dt/dd 表示、 field 分類と summary の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("nameNode", "ageNode", "emailNode", "countryNode", "newsletterNode").badge("form"))
   .build();
+export const subtitle__signupFormSummary = "signup form 5 field を 3-lane (Personal / Contact / Prefs) semantic 分類、 各 field 個別 card、 formSummary readout 併存";
 
 /**
  * 95. song-queue = playlist queue 5 song、 stepper で current index。
  */
 export const playlistSongQueue = diagram("interactive-playlist-queue", {
-  topic: "playlist queue 5 song を 3-lane (Played / Now Playing / Up Next) 状態別分散、 各 song 個別 card、 songQueue readout 併存",
+  topic: "再生待ち 5 曲を再生済 / 再生中 / 次にで分ける",
 })
   .lane("played", { x: 0, width: 200 })
   .lane("now", { x: 240, width: 220 })
@@ -2863,10 +2979,10 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
     ["Sweet Child O' Mine", "Guns N' Roses", "5:56"],
     ["Imagine", "John Lennon", "3:03"],
   ] as unknown as (string | number)[])
-  .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian Rhapsody", subtitle: "Queen · 5:55 (played)" })
-  .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel California", subtitle: "Eagles · 6:30 (now playing)" })
-  .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway to Heaven", subtitle: "Led Zeppelin · 8:02" })
-  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child O' Mine", subtitle: "Guns N' Roses · 5:56" })
+  .node("song0", { lane: "played", stack: 0, kind: "card", title: "✓ Bohemian", subtitle: "Queen · 5:55 (played)" })
+  .node("song1", { lane: "now", stack: 0, kind: "card", title: "▶ Hotel", subtitle: "Eagles · 6:30 (now playing)" })
+  .node("song2", { lane: "next", stack: 0, kind: "card", title: "Stairway", subtitle: "Led Zeppelin · 8:02" })
+  .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child", subtitle: "Guns N' Roses · 5:56" })
   .node("song4", { lane: "next", stack: 2, kind: "card", title: "Imagine", subtitle: "John Lennon · 3:03" })
   .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue (current highlight)" })
   .phase("p", {
@@ -2875,6 +2991,7 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
     body: "3-lane (Played 過去 / Now Playing 現在 / Up Next 未来) で 5 song を playback state 別分散、 default current=1 の状態を lane 配置で明示、 各 song 個別 card、 songQueue readout も併存で highlight 追随、 timeline 状態と queue の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("song0", "song1", "song2", "song3", "song4").badge("music"))
   .build();
+export const subtitle__playlistSongQueue = "playlist queue 5 song を 3-lane (Played / Now Playing / Up Next) 状態別分散、 各 song 個別 card、 songQueue readout 併存";
 
 /**
  * 96. calendar-month = January 2026 calendar with event marks + today highlight。
@@ -2889,17 +3006,17 @@ function generateCalendarDays(): (string | number)[] {
   return days as unknown as (string | number)[];
 }
 export const monthCalendarView = diagram("interactive-month-calendar", {
-  topic: "January 2026 calendar を 4-lane (Week 1 / Week 2 / Week 3 / Week 4-5) 週別分散、 各週 summary + calendarMonth readout 併存",
+  topic: "1 か月を週ごとに並べる",
 })
   .lane("w1", { x: 0, width: 150 })
   .lane("w2", { x: 170, width: 150 })
   .lane("w3", { x: 340, width: 150 })
   .lane("w4", { x: 510, width: 200 })
   .arraySignal("days", generateCalendarDays())
-  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1 (Jan 1-7)", subtitle: "1 event (Jan 3)" })
-  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2 (Jan 8-14)", subtitle: "2 events (Jan 8, 12) + today (13)" })
-  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3 (Jan 15-21)", subtitle: "1 event (Jan 17)" })
-  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5 (Jan 22-31)", subtitle: "2 events (Jan 22, 26)" })
+  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1", subtitle: "1 event (Jan 3)" })
+  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2", subtitle: "2 events (Jan 8, 12) + today (13)" })
+  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3", subtitle: "1 event (Jan 17)" })
+  .node("w4Card", { lane: "w4", stack: 0, kind: "card", title: "Week 4-5", subtitle: "2 events (Jan 22, 26)" })
   .node("monthSummary", { lane: "w4", stack: 1, kind: "card", title: "Month total", subtitle: "31 days · 6 events · today = Jan 13" })
   .readout.calendarMonth("cm", { source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view (7 column grid)" })
   .phase("p", {
@@ -2908,12 +3025,13 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
     body: "4-lane (Week 1 / 2 / 3 / 4-5) で January 2026 を週別分散、 各週 event 数 + today 位置 (Week 2 = Jan 13) 明示、 month total summary (Week 4-5 lane 内)、 calendarMonth readout も併存で 7 column grid 表示、 週単位 aggregate と月 grid の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("w1Card", "w2Card", "w3Card", "w4Card", "monthSummary").badge("calendar"))
   .build();
+export const subtitle__monthCalendarView = "January 2026 calendar を 4-lane (Week 1 / Week 2 / Week 3 / Week 4-5) 週別分散、 各週 summary + calendarMonth readout 併存";
 
 /**
  * 97. terminal = CLI session output、 5 command history。
  */
 export const cliTerminalSession = diagram("interactive-cli-terminal", {
-  topic: "CLI 5 command を 3-lane (Filesystem / Git / Dev) tool category 別分散、 各 command 個別 card、 terminal readout 併存",
+  topic: "コマンド 5 つを用途ごとに分ける",
 })
   .lane("fs", { x: 0, width: 220 })
   .lane("git", { x: 260, width: 220 })
@@ -2937,17 +3055,18 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
     body: "3-lane (Filesystem ls+cd / Git status / Dev pnpm+docker) で 5 CLI command を tool category 別分散、 各 command 個別 card で用途 + summary 明示、 terminal readout も併存で CLI window 表示、 category 分類と session の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("lsNode", "cdNode", "gitStatusNode", "pnpmNode", "dockerNode").badge("CLI"))
   .build();
+export const subtitle__cliTerminalSession = "CLI 5 command を 3-lane (Filesystem / Git / Dev) tool category 別分散、 各 command 個別 card、 terminal readout 併存";
 
 /**
  * 98. chess-board = 8×8 chess board with starting position。
  */
 export const chessStartingBoard = diagram("interactive-chess-board", {
-  topic: "32 chess piece を 4-lane (Black back rank / Black pawns / White pawns / White back rank) rank 別分散、 chessBoard readout 併存",
+  topic: "駒 32 個を白黒と前後列で並べる",
 })
-  .lane("blackBack", { x: 0, width: 180 })
-  .lane("blackPawn", { x: 200, width: 180 })
-  .lane("whitePawn", { x: 400, width: 180 })
-  .lane("whiteBack", { x: 600, width: 180 })
+  .lane("blackBack", { x: 0, width: 320 })
+  .lane("blackPawn", { x: 340, width: 340 })
+  .lane("whitePawn", { x: 700, width: 340 })
+  .lane("whiteBack", { x: 1060, width: 320 })
   .arraySignal("pieces", [
     // Black back rank (rank 8)
     ["a", 8, "♜"], ["b", 8, "♞"], ["c", 8, "♝"], ["d", 8, "♛"], ["e", 8, "♚"], ["f", 8, "♝"], ["g", 8, "♞"], ["h", 8, "♜"],
@@ -2958,10 +3077,10 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     // White back rank (rank 1)
     ["a", 1, "♖"], ["b", 1, "♘"], ["c", 1, "♗"], ["d", 1, "♕"], ["e", 1, "♔"], ["f", 1, "♗"], ["g", 1, "♘"], ["h", 1, "♖"],
   ] as unknown as (string | number)[])
-  .node("blackBackNode", { lane: "blackBack", stack: 0, kind: "card", title: "Black back (rank 8)", subtitle: "♜♞♝♛♚♝♞♜ · 8 pieces" })
-  .node("blackPawnNode", { lane: "blackPawn", stack: 0, kind: "card", title: "Black pawns (rank 7)", subtitle: "♟×8" })
-  .node("whitePawnNode", { lane: "whitePawn", stack: 0, kind: "card", title: "White pawns (rank 2)", subtitle: "♙×8" })
-  .node("whiteBackNode", { lane: "whiteBack", stack: 0, kind: "card", title: "White back (rank 1)", subtitle: "♖♘♗♕♔♗♘♖ · 8 pieces" })
+  .node("blackBackNode", { lane: "blackBack", stack: 0, kind: "card", w: 270, title: "Black back", subtitle: "♜♞♝♛♚♝♞♜ · 8 pieces" })
+  .node("blackPawnNode", { lane: "blackPawn", stack: 0, kind: "card", w: 290, title: "Black pawns", subtitle: "♟×8" })
+  .node("whitePawnNode", { lane: "whitePawn", stack: 0, kind: "card", w: 290, title: "White pawns", subtitle: "♙×8" })
+  .node("whiteBackNode", { lane: "whiteBack", stack: 0, kind: "card", w: 270, title: "White back", subtitle: "♖♘♗♕♔♗♘♖ · 8 pieces" })
   .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position (8×8 board)" })
   .phase("p", {
     duration: 1200,
@@ -2969,13 +3088,14 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     body: "4-lane (Black back rank 8 / Black pawns rank 7 / White pawns rank 2 / White back rank 1) で 32 piece を rank 別分散、 各 rank 個別 card で piece 明示、 chessBoard readout も併存で 8×8 board 表示、 rank 分類と board 全体観の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("blackBackNode", "blackPawnNode", "whitePawnNode", "whiteBackNode").badge("chess"))
   .build();
+export const subtitle__chessStartingBoard = "32 chess piece を 4-lane (Black back rank / Black pawns / White pawns / White back rank) rank 別分散、 chessBoard readout 併存";
 
 /**
  * 100. kanban-board = sprint task board、 3-lane (Todo / In Progress / Done) state 別分散 + kanban readout 併存。
  * cdl primitive iteration 6 の最初の readout、 layout diversity pattern taxonomy § 1 state-based split と直接共鳴。
  */
 export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
-  topic: "sprint 6 task を 3-lane (Todo / In Progress / Done) 状態別分散、 kanban readout 併存",
+  topic: "6 タスクを未着手 / 進行中 / 完了で分ける",
 })
   .lane("todo", { x: 0, width: 220 })
   .lane("inprogress", { x: 260, width: 220 })
@@ -2988,8 +3108,8 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
     ["done", "Setup CI", "med"],
     ["done", "Repo bootstrap", "low"],
   ] as unknown as (string | number)[])
-  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2 tasks)", subtitle: "Design API schema (high) · Write docs (low)" })
-  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress (2)", subtitle: "Impl auth flow (high) · Migration script (med)" })
+  .node("todoCard", { lane: "todo", stack: 0, kind: "card", title: "Todo (2)", subtitle: "Design API schema (high) · Write docs (low)" })
+  .node("inprogressCard", { lane: "inprogress", stack: 0, kind: "card", title: "In Progress", subtitle: "Impl auth flow (high) · Migration script (med)" })
   .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "Done (2)", subtitle: "Setup CI (med) · Repo bootstrap (low)" })
   .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" })
   .phase("p", {
@@ -2998,24 +3118,23 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
     body: "3-lane (Todo / In Progress / Done) で 6 sprint task を state 別分散、 各 column summary card + kanban readout 併存で 3 column task board 表示、 priority color (high red / med yellow / low gray) で task tag、 state-based split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("todoCard", "inprogressCard", "doneCard").badge("kanban"))
   .build();
+export const subtitle__sprintKanbanBoard = "sprint 6 task を 3-lane (Todo / In Progress / Done) 状態別分散、 kanban readout 併存";
 
 /**
- * 101. breadcrumb = navigation path、 4-lane (Home / Docs / API / Reference) pipeline + 3 next edge + breadcrumb readout 併存。
+ * 101. breadcrumb = navigation path、 4 区画 (Home / Docs / API / Reference) を 2 列 2 段に置いた pipeline + 3 next edge + breadcrumb readout 併存。
  * cdl primitive iteration 6 の 2 番目、 pattern taxonomy § 4 pipeline flow と直接共鳴。
  */
 export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
-  topic: "docs navigation 4 crumb を 4-lane pipeline (Home → Docs → API → Reference) + 3 next edge + breadcrumb readout 併存",
+  topic: "階層 4 段のパンくずを順に辿る",
 })
-  .lane("home", { x: 0, width: 170 })
-  .lane("docs", { x: 190, width: 170 })
-  .lane("api", { x: 380, width: 170 })
-  .lane("ref", { x: 570, width: 170 })
+  .lane("col1", { x: 0, width: 270 })
+  .lane("col2", { x: 310, width: 300 })
   .arraySignal("path", ["Home", "Docs", "API", "Reference"])
   .state("cur", { initial: 2 })
-  .node("homeNode", { lane: "home", stack: 0, kind: "card", title: "Home", subtitle: "root · index 0" })
-  .node("docsNode", { lane: "docs", stack: 0, kind: "card", title: "Docs", subtitle: "index 1" })
-  .node("apiNode", { lane: "api", stack: 0, kind: "card", title: "◆ API", subtitle: "index 2 (current)" })
-  .node("refNode", { lane: "ref", stack: 0, kind: "card", title: "Reference", subtitle: "index 3" })
+  .node("homeNode", { lane: "col1", stack: 0, kind: "card", w: 190, title: "Home", subtitle: "root · index 0" })
+  .node("docsNode", { lane: "col2", stack: 0, kind: "card", w: 140, title: "Docs", subtitle: "index 1" })
+  .node("apiNode", { lane: "col1", stack: 1, kind: "card", w: 220, title: "◆ API", subtitle: "index 2 (current)" })
+  .node("refNode", { lane: "col2", stack: 1, kind: "card", w: 250, title: "Reference", subtitle: "index 3" })
   .edge("homeNode", "docsNode", { label: "→", tone: "info" })
   .edge("docsNode", "apiNode", { label: "→", tone: "accent" })
   .edge("apiNode", "refNode", { label: "→", tone: "info" })
@@ -3023,16 +3142,17 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .phase("p", {
     duration: 1200,
     title: "navigation pipeline",
-    body: "4-lane (Home / Docs / API / Reference) navigation path を pipeline 分散、 3 next edge (info → accent → info) で遷移経路明示、 breadcrumb readout も併存で `Home › Docs › API › Reference` 表示、 pipeline flow pattern の primitive expansion 事例。",
+    body: "4 区画 (Home / Docs / API / Reference) navigation path を 2 列 2 段に置いて pipeline 分散、 3 next edge (info → accent → info) で遷移経路明示、 breadcrumb readout も併存で `Home › Docs › API › Reference` 表示、 pipeline flow pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("homeNode", "docsNode", "apiNode", "refNode").badge("nav"))
   .build();
+export const subtitle__docsBreadcrumb = "docs navigation 4 crumb を 2 列 2 段の pipeline (Home → Docs → API → Reference) + 3 next edge + breadcrumb readout 併存";
 
 /**
  * 102. timeline-vertical = day schedule 5 event を縦 timeline で表示、 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存。
  * cdl primitive iteration 6 の 3 番目、 pattern taxonomy § 7 individual element split と共鳴。
  */
 export const dayScheduleTimeline = diagram("interactive-day-schedule", {
-  topic: "day schedule 5 event を 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存",
+  topic: "1 日の予定を朝 / 昼 / 夜で分ける",
 })
   .lane("morning", { x: 0, width: 240 })
   .lane("afternoon", { x: 280, width: 240 })
@@ -3054,13 +3174,14 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
     body: "3-lane (Morning / Afternoon / Evening) で 5 event を時間帯別分散、 各 lane summary card + timelineVertical readout 併存で dot + line + text の縦 timeline 表示、 individual element split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard", "eveningCard").badge("timeline"))
   .build();
+export const subtitle__dayScheduleTimeline = "day schedule 5 event を 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存";
 
 /**
  * 103. status-timeline = server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存。
  * iteration 6 wave 3、 pattern taxonomy § 4 pipeline flow + § 1 state-based split。
  */
 export const serverUptimeStatus = diagram("interactive-server-uptime", {
-  topic: "server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存",
+  topic: "稼働 6 区間を稼働 / 待機 / 異常で分ける",
 })
   .lane("active", { x: 0, width: 240 })
   .lane("idle", { x: 280, width: 240 })
@@ -3073,7 +3194,7 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     ["11:15", "active"],
     ["12:00", "active"],
   ] as unknown as (string | number)[])
-  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4 events)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
+  .node("activeCard", { lane: "active", stack: 0, kind: "card", title: "Active (4)", subtitle: "09:00 / 09:15 / 11:15 / 12:00 · green" })
   .node("idleCard", { lane: "idle", stack: 0, kind: "card", title: "Idle (1)", subtitle: "10:30 · gray" })
   .node("errorCard", { lane: "error", stack: 0, kind: "card", title: "Error (1)", subtitle: "11:00 · red" })
   .readout.statusTimeline("st", { source: "events", max: 8, label: "Server status" })
@@ -3083,20 +3204,21 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     body: "3-lane (Active / Idle / Error) で 6 event を status 別分散、 statusTimeline readout も併存で strip 表示、 uptime monitoring 定番の pattern taxonomy 交差事例。",
   }, (p: PhaseBuilder) => p.activate("activeCard", "idleCard", "errorCard").badge("uptime"))
   .build();
+export const subtitle__serverUptimeStatus = "server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存";
 
 /**
  * 104. calendar-week = 週間 mini calendar、 7-lane 分散 + calendarWeek readout 併存。 iteration 6 wave 3、 pattern taxonomy § 7 individual element split。
  */
 export const weekCalendarView = diagram("interactive-week-calendar", {
-  topic: "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存",
+  topic: "1 週間を曜日ごとに並べる",
 })
-  .lane("mon", { x: 0, width: 100 })
-  .lane("tue", { x: 110, width: 100 })
-  .lane("wed", { x: 220, width: 100 })
-  .lane("thu", { x: 330, width: 100 })
-  .lane("fri", { x: 440, width: 100 })
-  .lane("sat", { x: 550, width: 100 })
-  .lane("sun", { x: 660, width: 100 })
+  .lane("mon", { x: 0, width: 160 })
+  .lane("tue", { x: 185, width: 160 })
+  .lane("wed", { x: 370, width: 210 })
+  .lane("thu", { x: 605, width: 160 })
+  .lane("fri", { x: 790, width: 160 })
+  .lane("sat", { x: 975, width: 160 })
+  .lane("sun", { x: 1160, width: 160 })
   .arraySignal("week", [
     ["Mon", true, false],
     ["Tue", false, false],
@@ -3106,13 +3228,13 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     ["Sat", false, false],
     ["Sun", false, false],
   ] as unknown as (string | number)[])
-  .node("monNode", { lane: "mon", stack: 0, kind: "card", title: "Mon", subtitle: "event" })
-  .node("tueNode", { lane: "tue", stack: 0, kind: "card", title: "Tue", subtitle: "-" })
-  .node("wedNode", { lane: "wed", stack: 0, kind: "card", title: "◆ Wed (today)", subtitle: "event" })
-  .node("thuNode", { lane: "thu", stack: 0, kind: "card", title: "Thu", subtitle: "-" })
-  .node("friNode", { lane: "fri", stack: 0, kind: "card", title: "Fri", subtitle: "event" })
-  .node("satNode", { lane: "sat", stack: 0, kind: "card", title: "Sat", subtitle: "-" })
-  .node("sunNode", { lane: "sun", stack: 0, kind: "card", title: "Sun", subtitle: "-" })
+  .node("monNode", { lane: "mon", stack: 0, kind: "card", w: 110, title: "Mon", subtitle: "event" })
+  .node("tueNode", { lane: "tue", stack: 0, kind: "card", w: 110, title: "Tue", subtitle: "-" })
+  .node("wedNode", { lane: "wed", stack: 0, kind: "card", w: 160, title: "◆ Wed", subtitle: "event" })
+  .node("thuNode", { lane: "thu", stack: 0, kind: "card", w: 110, title: "Thu", subtitle: "-" })
+  .node("friNode", { lane: "fri", stack: 0, kind: "card", w: 110, title: "Fri", subtitle: "event" })
+  .node("satNode", { lane: "sat", stack: 0, kind: "card", w: 110, title: "Sat", subtitle: "-" })
+  .node("sunNode", { lane: "sun", stack: 0, kind: "card", w: 110, title: "Sun", subtitle: "-" })
   .readout.calendarWeek("cw", { source: "week", cellSize: 40, color: "#2563eb", label: "This week" })
   .phase("p", {
     duration: 1200,
@@ -3120,20 +3242,21 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     body: "7-lane で 7-day を個別 day 分散、 各 day 個別 card、 calendarWeek readout も併存で 7-cell strip 表示、 week dashboard 定番。",
   }, (p: PhaseBuilder) => p.activate("monNode", "tueNode", "wedNode", "thuNode", "friNode", "satNode", "sunNode").badge("week"))
   .build();
+export const subtitle__weekCalendarView = "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存";
 
 /**
  * 105. kpi-comparison = A/B team score 比較を 2-lane 分散 + kpiComparison readout 併存。 iteration 6 wave 3、 pattern taxonomy § 3 category split。
  */
 export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
-  topic: "Team A vs Team B の score を 2-lane 分散 + kpiComparison readout 併存",
+  topic: "2 チームの成績を並べて比べる",
 })
   .lane("teamA", { x: 0, width: 340 })
   .lane("teamB", { x: 380, width: 340 })
   .arraySignal("teams", [["Team A", 82], ["Team B", 65]] as unknown as (string | number)[])
   .node("aCard", { lane: "teamA", stack: 0, kind: "card", title: "Team A", subtitle: "82 (winner, blue)" })
-  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "82 story points" })
+  .node("aDetail", { lane: "teamA", stack: 1, kind: "card", title: "Velocity", subtitle: "82 story points" })
   .node("bCard", { lane: "teamB", stack: 0, kind: "card", title: "Team B", subtitle: "65 (orange)" })
-  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Sprint velocity", subtitle: "65 story points" })
+  .node("bDetail", { lane: "teamB", stack: 1, kind: "card", title: "Velocity", subtitle: "65 story points" })
   .edge("aCard", "bCard", { label: "diff 17", tone: "warning" })
   .readout.kpiComparison("kc", { source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" })
   .phase("p", {
@@ -3142,23 +3265,22 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
     body: "2-lane (Team A / Team B) で 2 team を category 分散、 各 team main + detail card + diff edge、 kpiComparison readout も併存で horizontal bar 比較、 A/B compare 定番。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").badge("compare"))
   .build();
+export const subtitle__teamKpiComparison = "Team A vs Team B の score を 2-lane 分散 + kpiComparison readout 併存";
 
 /**
- * 106. step-progress = 4 step wizard を 4-lane pipeline + 3 next edge + stepProgress readout 併存。 iteration 6 wave 4、 pattern taxonomy § 4 pipeline flow + § 5 fan-out。
+ * 106. step-progress = 4 step wizard を 4 区画 2 列 2 段の pipeline + 3 next edge + stepProgress readout 併存。 iteration 6 wave 4、 pattern taxonomy § 4 pipeline flow + § 5 fan-out。
  */
 export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
-  topic: "content publish workflow 4 step を 4-lane pipeline + 3 next edge + stepProgress readout 併存",
+  topic: "記事公開の 4 工程を順に追う",
 })
-  .lane("draft", { x: 0, width: 170 })
-  .lane("review", { x: 190, width: 170 })
-  .lane("approve", { x: 380, width: 170 })
-  .lane("publish", { x: 570, width: 170 })
+  .lane("col1", { x: 0, width: 300 })
+  .lane("col2", { x: 340, width: 270 })
   .arraySignal("steps", ["Draft", "Review", "Approve", "Publish"])
   .state("cur", { initial: 2 })
-  .node("draftNode", { lane: "draft", stack: 0, kind: "card", title: "Draft", subtitle: "index 0 · done" })
-  .node("reviewNode", { lane: "review", stack: 0, kind: "card", title: "Review", subtitle: "index 1 · done" })
-  .node("approveNode", { lane: "approve", stack: 0, kind: "card", title: "◆ Approve", subtitle: "index 2 (current)" })
-  .node("publishNode", { lane: "publish", stack: 0, kind: "card", title: "Publish", subtitle: "index 3 · pending" })
+  .node("draftNode", { lane: "col1", stack: 0, kind: "card", w: 190, title: "Draft", subtitle: "index 0 · done" })
+  .node("reviewNode", { lane: "col2", stack: 0, kind: "card", w: 190, title: "Review", subtitle: "index 1 · done" })
+  .node("approveNode", { lane: "col1", stack: 1, kind: "card", w: 250, title: "◆ Approve", subtitle: "index 2 (current)" })
+  .node("publishNode", { lane: "col2", stack: 1, kind: "card", w: 220, title: "Publish", subtitle: "index 3 · pending" })
   .edge("draftNode", "reviewNode", { label: "submit", tone: "success" })
   .edge("reviewNode", "approveNode", { label: "reviewed", tone: "info" })
   .edge("approveNode", "publishNode", { label: "publish", tone: "accent" })
@@ -3166,15 +3288,16 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .phase("p", {
     duration: 1200,
     title: "workflow pipeline",
-    body: "4-lane (Draft / Review / Approve / Publish) で content workflow 4 step を pipeline 分散、 3 next edge、 stepProgress readout も併存で numbered dot + progress line 表示、 pipeline flow pattern の primitive expansion 事例。",
+    body: "4 区画 (Draft / Review / Approve / Publish) を 2 列 2 段に置いて content workflow 4 step を pipeline 分散、 3 next edge、 stepProgress readout も併存で numbered dot + progress line 表示、 pipeline flow pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("draftNode", "reviewNode", "approveNode", "publishNode").badge("workflow"))
   .build();
+export const subtitle__publishWorkflowSteps = "content publish workflow 4 step を 2 列 2 段の pipeline + 3 next edge + stepProgress readout 併存";
 
 /**
  * 107. user-presence = 5 team member を 3-lane (Online / Away / Offline) + userPresence readout 併存。 iteration 6 wave 4、 pattern taxonomy § 1 state-based split。
  */
 export const teamPresenceStatus = diagram("interactive-team-presence", {
-  topic: "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存",
+  topic: "5 人の在席を在席 / 離席 / 不在で分ける",
 })
   .lane("online", { x: 0, width: 240 })
   .lane("away", { x: 280, width: 240 })
@@ -3198,20 +3321,21 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
     body: "3-lane (Online 3 / Away 1 / Offline 1) で 5 team member を presence status 別分散、 userPresence readout も併存で dot + name list 表示、 state-based split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").badge("presence"))
   .build();
+export const subtitle__teamPresenceStatus = "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存";
 
 /**
  * 108. rating-thumb = review vote 2 category (up / down) を 2-lane + ratingThumb readout 併存。 iteration 6 wave 4、 pattern taxonomy § 3 category split。
  */
 export const feedbackThumbRating = diagram("interactive-feedback-rating", {
-  topic: "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存",
+  topic: "賛成票と反対票を並べて見せる",
 })
   .lane("up", { x: 0, width: 340 })
   .lane("down", { x: 380, width: 340 })
   .arraySignal("votes", [24, 3])
   .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "24 (89%)" })
-  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive feedback", subtitle: "green tone" })
+  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive", subtitle: "green tone" })
   .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "3 (11%)" })
-  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative feedback", subtitle: "red tone" })
+  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative", subtitle: "red tone" })
   .edge("upCard", "downCard", { label: "ratio 24 vs 3", tone: "warning" })
   .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" })
   .phase("p", {
@@ -3220,12 +3344,13 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
     body: "2-lane (Up 24 / Down 3) で review vote を category 分散、 各 category main + detail card + ratio edge、 ratingThumb readout も併存で ▲/▼ + colored bar 表示、 category split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").badge("rating"))
   .build();
+export const subtitle__feedbackThumbRating = "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存";
 
 /**
  * 109. org-chart-mini = 3-level org hierarchy を 3-lane (CEO / VP / IC) tree depth 別分散 + orgChartMini readout 併存。 iteration 6 wave 5、 pattern taxonomy § 8 tree depth split。
  */
 export const startupOrgChart = diagram("interactive-startup-org", {
-  topic: "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存",
+  topic: "3 階層の組織図を階層ごとに並べる",
 })
   .lane("ceo", { x: 0, width: 220 })
   .lane("vp", { x: 260, width: 220 })
@@ -3240,7 +3365,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   ] as unknown as (string | number)[])
   .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "level 0 (root)" })
   .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "level 1" })
-  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol VP Sales", subtitle: "level 1" })
+  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol Sales", subtitle: "level 1" })
   .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "level 2 · under Bob" })
   .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "level 2 · under Bob" })
   .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "level 2 · under Carol" })
@@ -3256,12 +3381,13 @@ export const startupOrgChart = diagram("interactive-startup-org", {
     body: "3-lane (CEO 1 / VP 2 / IC 3) tree depth 別に 6 org member 分散、 5 report edge (2 CEO→VP info / 3 VP→IC accent)、 orgChartMini readout も併存で 3 level tree 表示、 tree depth split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank").badge("org"))
   .build();
+export const subtitle__startupOrgChart = "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存";
 
 /**
  * 110. kpi-trend-tile = NPS current + delta + sparkline を 3-lane (Current / Delta / History) fan-out + kpiTrendTile readout 併存。 iteration 6 wave 5、 pattern taxonomy § 5 fan-out。
  */
 export const npsTrendKpi = diagram("interactive-nps-trend", {
-  topic: "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存",
+  topic: "NPS の現在値と増減と推移を並べる",
 })
   .lane("cur", { x: 0, width: 220 })
   .lane("delta", { x: 260, width: 220 })
@@ -3269,10 +3395,10 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .state("cur", { initial: 82 })
   .state("prev", { initial: 75 })
   .arraySignal("hist", [60, 65, 70, 75, 80, 82])
-  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current NPS", subtitle: "82 (今月)" })
+  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current", subtitle: "82 (今月)" })
   .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "75 (先月)" })
   .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "▲ Delta", subtitle: "+7 (+9.3%) · green" })
-  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6 month history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
+  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6mo history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
   .edge("curCard", "prevCard", { label: "compare", tone: "info" })
   .edge("curCard", "histCard", { label: "spark", tone: "success" })
   .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" })
@@ -3282,18 +3408,19 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
     body: "3-lane (Current / Delta / History) で 1 KPI を 3 view に fan-out、 2 edge (compare info / spark success)、 kpiTrendTile readout も併存で 1 tile に current + delta arrow + sparkline を集約、 fan-out pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard", "histCard").badge("kpi trend"))
   .build();
+export const subtitle__npsTrendKpi = "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存";
 
 /**
  * 111. quick-poll-emoji = 3 emoji reaction poll を 3-lane 分散 + quickPollEmoji readout 併存。 iteration 6 wave 5、 pattern taxonomy § 3 category split。
  */
 export const postReactionPoll = diagram("interactive-post-reaction-poll", {
-  topic: "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存",
+  topic: "絵文字 3 種の投票を並べる",
 })
   .lane("thumbs", { x: 0, width: 240 })
   .lane("heart", { x: 280, width: 240 })
   .lane("party", { x: 560, width: 240 })
   .arraySignal("votes", [["👍", 42], ["❤️", 28], ["🎉", 15]] as unknown as (string | number)[])
-  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs (winner)", subtitle: "42 votes · highlight border" })
+  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs", subtitle: "42 votes · highlight border" })
   .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "28 votes" })
   .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "15 votes" })
   .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
@@ -3303,19 +3430,20 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
     body: "3-lane (Thumbs / Heart / Party) で 3 emoji vote を category 別分散、 winner (thumbs 42) に highlight border、 quickPollEmoji readout も併存で pill 表示、 category split pattern の primitive expansion 事例。",
   }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").badge("poll"))
   .build();
+export const subtitle__postReactionPoll = "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存";
 
 /**
  * 112. voice-message = 音声メッセージ再生 UI を 3-lane (送信者 / 波形 / 再生) dense sequence 分散 + voiceMessage readout 併存 + 3 phase 動き (受信 → 再生中 tween → 完了)。 iteration 7 wave 1、 pattern taxonomy § 7 dense sequence。
  */
 export const voiceMessagePlayback = diagram("interactive-voice-message-playback", {
-  topic: "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 再生中 tween → 完了の動きを可視化",
+  topic: "音声メッセージの波形と再生位置を見せる",
 })
   .lane("sender", { x: 0, width: 200 })
   .lane("wave", { x: 240, width: 260 })
   .lane("play", { x: 540, width: 220 })
   .arraySignal("amps", [0.2, 0.4, 0.7, 0.9, 0.6, 0.3, 0.5, 0.8, 0.4, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4])
   .state("progress", { initial: 0 })
-  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice (送信者)", subtitle: "0:23 音声メモ · 2 分前" })
+  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice", subtitle: "0:23 音声メモ · 2 分前" })
   .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "波形 15 バー", subtitle: "amp 0.2 → 0.9 の dense sequence" })
   .node("playCard", { lane: "play", stack: 0, kind: "card", title: "▶ 再生", subtitle: "progress で active バー左から色付く" })
   .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "アクティブ バー", subtitle: "progressSource で active/idle 区別" })
@@ -3338,19 +3466,20 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
     body: "再生終了、 progress = 1 で 15 バー全 active、 4 card 全 highlight、 次アクション待機状態。",
   }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").set("progress", 1).badge("完了"))
   .build();
+export const subtitle__voiceMessagePlayback = "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 再生中 tween → 完了の動きを可視化";
 
 /**
  * 113. thread-summary = 会話スレッド概要を 3-lane (未読 / 参加者 / 直近) category split 分散 + threadSummary readout 併存 + 3 phase 動き (静か → 新着 tween → 混雑)。 iteration 7 wave 1、 pattern taxonomy § 3 category split。
  */
 export const teamThreadSummary = diagram("interactive-team-thread-summary", {
-  topic: "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 tween → 混雑の動きを可視化",
+  topic: "スレッドの未読 / 参加者 / 経過をまとめる",
 })
   .lane("unread", { x: 0, width: 220 })
   .lane("participants", { x: 260, width: 220 })
   .lane("activity", { x: 520, width: 260 })
   .arraySignal("thread", [5, 8, "Alice", "12 分前"] as unknown as (string | number)[])
   .state("unreadCount", { initial: 0 })
-  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読 {unreadCount} 件", subtitle: "赤バッジ · 累積表示" })
+  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読", subtitle: "{unreadCount} 件 · 赤バッジ" })
   .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "参加者 8 名", subtitle: "team-eng チャンネル" })
   .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "直近: Alice", subtitle: "「LGTM 🚀」 · 12 分前" })
   .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "12 分前", subtitle: "直近アクティビティ" })
@@ -3373,20 +3502,21 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
     body: "追加着信、 unreadCount を 3 → 5 まで tween、 全 4 card active、 unreadCard の赤バッジが視覚的に主張。",
   }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").tween("unreadCount", 3, 5).badge("混雑"))
   .build();
+export const subtitle__teamThreadSummary = "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 tween → 混雑の動きを可視化";
 
 /**
  * 114. read-receipt = message 既読状態遷移を 3-lane (送信 / 配信 / 既読) state-driven visibility 分散 + readReceipt readout 併存 + 3 phase 動き (送信 → 配信 → 既読 の状態切替)。 iteration 7 wave 1、 pattern taxonomy § 2 state-driven visibility。
  */
 export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
-  topic: "DM 既読状態 (0=送信 / 1=配信 / 2=既読) を 3-lane state 別分散 + readReceipt readout 併存、 3 phase で状態遷移の動きを可視化",
+  topic: "DM の送信 / 配信 / 既読を段階で見せる",
 })
-  .lane("sent", { x: 0, width: 240 })
-  .lane("delivered", { x: 280, width: 240 })
-  .lane("read", { x: 560, width: 240 })
+  .lane("sent", { x: 0, width: 300 })
+  .lane("delivered", { x: 340, width: 320 })
+  .lane("read", { x: 700, width: 320 })
   .state("status", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "▶ 送信 (0)", subtitle: "単チェック · 灰 · 09:42" })
-  .node("deliveredCard", { lane: "delivered", stack: 0, kind: "card", title: "▶▶ 配信 (1)", subtitle: "二重チェック · 灰 · 09:43" })
-  .node("readCard", { lane: "read", stack: 0, kind: "card", title: "◆ 既読 (2)", subtitle: "二重チェック · 青 · 09:45" })
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", w: 250, title: "▶ 送信 (0)", subtitle: "単チェック · 灰 · 09:42" })
+  .node("deliveredCard", { lane: "delivered", stack: 0, kind: "card", w: 270, title: "▶▶ 配信 (1)", subtitle: "二重チェック · 灰 · 09:43" })
+  .node("readCard", { lane: "read", stack: 0, kind: "card", w: 270, title: "◆ 既読 (2)", subtitle: "二重チェック · 青 · 09:45" })
   .edge("sentCard", "deliveredCard", { label: "配信完了", tone: "info" })
   .edge("deliveredCard", "readCard", { label: "既読", tone: "success" })
   .readout.readReceipt("rr", { source: "status", colorRead: "#2563eb", colorPending: "#a08870", label: "既読状態" })
@@ -3406,18 +3536,19 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     body: "status = 2 に切替、 既読 lane 追加 activate、 readout の二重チェックが青に変化 (既読確認)。",
   }, (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard", "readCard").set("status", 2).badge("既読"))
   .build();
+export const subtitle__dmReadReceipt = "DM 既読状態 (0=送信 / 1=配信 / 2=既読) を 3-lane state 別分散 + readReceipt readout 併存、 3 phase で状態遷移の動きを可視化";
 
 /**
  * 115. password-strength = パスワード強度 5 段階を 3-lane (入力 / メーター / ルール) rank-based split 分散 + passwordStrength readout 併存 + 3 phase 動き (弱 → tween → 強)。 iteration 7 wave 2、 pattern taxonomy § 4 rank-based split。
  */
 export const formPasswordCheck = diagram("interactive-form-password-check", {
-  topic: "サインアップ画面の password 強度 5 段階を 3-lane 分散 + passwordStrength readout 併存、 3 phase で弱 → 中 tween → 強の連続改善を可視化",
+  topic: "パスワードの強度を 5 段階で見せる",
 })
   .lane("input", { x: 0, width: 220 })
   .lane("meter", { x: 260, width: 260 })
   .lane("rules", { x: 560, width: 260 })
   .state("pw", { initial: 1 })
-  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ password 入力欄", subtitle: "現在 level {pw} · マスク表示" })
+  .node("pwField", { lane: "input", stack: 0, kind: "card", title: "◆ password", subtitle: "現在 level {pw} · マスク表示" })
   .node("meterBars", { lane: "meter", stack: 0, kind: "card", title: "4 セグメント メーター", subtitle: "level {pw} 分だけ着色" })
   .node("levelLabel", { lane: "meter", stack: 1, kind: "card", title: "level ラベル", subtitle: "メーター色と同色 tint" })
   .node("rule1", { lane: "rules", stack: 0, kind: "card", title: "✓ 8 文字以上", subtitle: "level ≥ 1 で pass" })
@@ -3442,19 +3573,20 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     body: "数字 + 記号追加で pw = 4、 meter 全 4 セグメント緑、 全 rule pass、 6 node 全 active。",
   }, (p: PhaseBuilder) => p.activate("pwField", "meterBars", "levelLabel", "rule1", "rule2", "rule3").set("pw", 4).badge("強い"))
   .build();
+export const subtitle__formPasswordCheck = "サインアップ画面の password 強度 5 段階を 3-lane 分散 + passwordStrength readout 併存、 3 phase で弱 → 中 tween → 強の連続改善を可視化";
 
 /**
  * 116. otp-input = ログイン OTP 6 桁検証を 3-lane (SMS / 入力 / 検証) dense sequence 分散 + otpInput readout 併存 + 3 phase 動き (送信 → 入力 tween → 検証)。 iteration 7 wave 2、 pattern taxonomy § 7 dense sequence。
  */
 export const loginOtpVerify = diagram("interactive-login-otp-verify", {
-  topic: "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で SMS 送信 → 入力 tween → 自動送信の連続動作を可視化",
+  topic: "OTP 6 桁の入力から検証までを追う",
 })
   .lane("sent", { x: 0, width: 220 })
   .lane("entry", { x: 260, width: 260 })
   .lane("verify", { x: 560, width: 220 })
   .arraySignal("otp", [4, 8, 2, 1, 5, 7])
   .state("entered", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信 +81-90-****-1234", subtitle: "6 桁コード · 3 分 TTL" })
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信", subtitle: "6 桁コード · 3 分 TTL" })
   .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6 ボックス グリッド", subtitle: "入力済 {entered}/6" })
   .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "フォーカス ボックス", subtitle: "青枠でハイライト" })
   .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "検証 → ログイン", subtitle: "6/6 で自動送信" })
@@ -3477,45 +3609,46 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
     body: "6 桁揃った瞬間に自動送信、 検証 lane 追加 activate、 4 node 全 highlight、 login 成功後の次画面待機。",
   }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").set("entered", 6).badge("検証完了"))
   .build();
+export const subtitle__loginOtpVerify = "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で SMS 送信 → 入力 tween → 自動送信の連続動作を可視化";
 
 /**
- * 117. file-dropzone = プロフィール画像アップロードを 3-lane (未選択 / アップロード / プレビュー) state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
+ * 117. file-dropzone = プロフィール画像アップロードを 3 区画 (未選択 / アップロード / プレビュー) 2 列 2 段の state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
  */
 export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", {
-  topic: "プロフィール画像アップロードを 3-lane 分散 + fileDropzone readout 併存、 3 phase で未選択 → drop → プレビュー表示の状態遷移を可視化",
+  topic: "画像の選択から反映までを追う",
 })
-  .lane("empty", { x: 0, width: 240 })
-  .lane("uploaded", { x: 280, width: 240 })
-  .lane("preview", { x: 560, width: 220 })
+  .lane("col1", { x: 0, width: 330 })
+  .lane("col2", { x: 370, width: 360 })
   .state("file", { initial: "" })
-  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未選択", subtitle: "破線枠 · '⬆ ここにドロップ'" })
-  .node("uploadedCard", { lane: "uploaded", stack: 0, kind: "card", title: "◆ avatar-2024.png (245 KB)", subtitle: "実線枠 · ファイル名カード" })
-  .node("previewCard", { lane: "preview", stack: 0, kind: "card", title: "▶ 円形アバター プレビュー", subtitle: "80×80 クロップ表示" })
+  .node("emptyCard", { lane: "col1", stack: 0, kind: "card", w: 280, title: "未選択", subtitle: "破線枠 · '⬆ ここにドロップ'" })
+  .node("uploadedCard", { lane: "col2", stack: 0, kind: "card", w: 310, title: "◆ avatar.png", subtitle: "実線枠 · ファイル名カード" })
+  .node("previewCard", { lane: "col1", stack: 1, kind: "card", w: 220, title: "▶ 円形アバター", subtitle: "80×80 クロップ表示" })
   .edge("emptyCard", "uploadedCard", { label: "drop", tone: "info" })
   .edge("uploadedCard", "previewCard", { label: "プレビュー", tone: "success" })
   .readout.fileDropzone("fd", { source: "file", colorActive: "#2563eb", label: "アバター ファイル" })
   .phase("p1", {
     duration: 1500,
     title: "未選択",
-    body: "file = ''、 未選択 lane のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。",
+    body: "file = ''、 未選択の card のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。",
   }, (p: PhaseBuilder) => p.activate("emptyCard").set("file", "").badge("未選択"))
   .phase("p2", {
     duration: 2000,
     title: "ドロップ受信",
-    body: "file を空 → 'avatar-2024.png' に切替、 アップロード lane 追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard").set("file", "avatar-2024.png").badge("アップロード"))
+    body: "file を空 → 'avatar.png' に切替、 アップロードの card を追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard").set("file", "avatar.png").badge("アップロード"))
   .phase("p3", {
     duration: 1500,
     title: "プレビュー表示",
-    body: "アップロード完了、 プレビュー lane 追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").set("file", "avatar-2024.png").badge("完了"))
+    body: "アップロード完了、 プレビューの card を追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "uploadedCard", "previewCard").set("file", "avatar.png").badge("完了"))
   .build();
+export const subtitle__profileAvatarUpload = "プロフィール画像アップロードを 3 区画 2 列 2 段に分散 + fileDropzone readout 併存、 3 phase で未選択 → drop → プレビュー表示の状態遷移を可視化";
 
 /**
  * 118. log-stream = 本番ログ tail を 3-lane (時刻 / レベル / メッセージ) dense sequence 分散 + logStream readout 併存 + 3 phase 動き (通常 → 警告 tween → 障害)。 iteration 7 wave 3、 pattern taxonomy § 7 dense sequence。
  */
 export const prodLogTail = diagram("interactive-prod-log-tail", {
-  topic: "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 tween → 障害の重篤度昇華を可視化",
+  topic: "本番ログ直近 5 行を重要度付きで流す",
 })
   .lane("ts", { x: 0, width: 180 })
   .lane("level", { x: 200, width: 140 })
@@ -3530,9 +3663,9 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   .state("severity", { initial: 0 })
   .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "◆ 時刻列", subtitle: "5 event 2 分幅" })
   .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "レベル分布", subtitle: "現在 severity {severity}" })
-  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動 ok", subtitle: "09:02:02 · INF 青 pill" })
+  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動", subtitle: "09:02:02 · INF 青 pill" })
   .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "メモリ使用率 82%", subtitle: "09:01:03 · WRN 橙 pill" })
-  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker crash: OOM", subtitle: "09:01:47 · ERR 赤 pill" })
+  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker OOM", subtitle: "09:01:47 · ERR 赤 pill" })
   .edge("tsCard", "levelCard", { label: "分類", tone: "info" })
   .edge("levelCard", "errRow", { label: "重篤化", tone: "error" })
   .readout.logStream("ls", { source: "logs", label: "ログ tail" })
@@ -3552,12 +3685,13 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
     body: "worker が OOM で crash、 severity を 2 → 3 まで tween、 ERR 赤 pill 行が highlight、 全 5 node active、 障害対応フロー起動。",
   }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow").tween("severity", 2, 3).badge("障害"))
   .build();
+export const subtitle__prodLogTail = "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 tween → 障害の重篤度昇華を可視化";
 
 /**
  * 119. alert-banner = 重要度別 alert banner を 3-lane (トリガー / 重要度 / アクション) state-driven visibility 分散 + alertBanner readout 併存 + 3 phase 動き (info → warn tween → error エスカレーション)。 iteration 7 wave 3、 pattern taxonomy § 2 state-driven visibility。
  */
 export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
-  topic: "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn tween → error のエスカレーションを可視化",
+  topic: "運用通知を情報 / 注意 / 異常で出し分ける",
 })
   .lane("trigger", { x: 0, width: 240 })
   .lane("severity", { x: 280, width: 240 })
@@ -3587,12 +3721,13 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
     body: "対応期限超過、 sev を 2 → 3 まで tween、 banner が橙 → 赤に、 ✕ アイコン + アクション lane activate、 オペレータ緊急対応。",
   }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").tween("sev", 2, 3).badge("error"))
   .build();
+export const subtitle__opsAlertBanner = "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn tween → error のエスカレーションを可視化";
 
 /**
  * 120. service-health = microservice health matrix を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存。 iteration 7 wave 3、 pattern taxonomy § 3 category split。
  */
 export const serviceHealthGrid = diagram("interactive-service-health-grid", {
-  topic: "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存",
+  topic: "各サービスの稼働状態を一覧で見せる",
 })
   .lane("up", { x: 0, width: 240 })
   .lane("deg", { x: 280, width: 240 })
@@ -3630,12 +3765,13 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     body: "queue が down、 healthy を 4 → 3 まで tween、 下段 lane 追加 activate、 grid に赤マス、 cascade edge 発火、 6 node 全 highlight。",
   }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").tween("healthy", 4, 3).badge("障害"))
   .build();
+export const subtitle__serviceHealthGrid = "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存";
 
 /**
  * 121. cart-summary = ショッピングカート小計を 3-lane (商品 / 内訳 / 合計) rank-based split 分散 + cartSummary readout 併存 + 3 phase 動き (商品追加 tween → 送料計算 → 合計確定)。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
  */
 export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", {
-  topic: "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で商品追加 tween → 送料計算 → 合計確定の連続動作を可視化",
+  topic: "カートの小計から合計までを積み上げる",
 })
   .lane("items", { x: 0, width: 220 })
   .lane("costs", { x: 260, width: 260 })
@@ -3666,22 +3802,23 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
     body: "合計 lane 追加 activate、 total = 158.35 で totalCard が太字 + 青色ハイライト、 4 node 全 highlight、 チェックアウト準備完了。",
   }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").set("total", 158.35).badge("合計"))
   .build();
+export const subtitle__checkoutCartSummary = "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で商品追加 tween → 送料計算 → 合計確定の連続動作を可視化";
 
 /**
  * 122. pricing-tier = SaaS 料金プラン (3 tier 比較) を 3-lane (Starter / Pro / Enterprise) category split 分散 + pricingTier readout 併存 + 3 phase 動き (Starter → Pro tween → Enterprise 検討)。 iteration 7 wave 4、 pattern taxonomy § 3 category split。
  */
 export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
-  topic: "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter 検討 → Pro 選択 tween → 比較完了の動きを可視化",
+  topic: "料金 3 プランを並べて比べる",
 })
   .lane("starter", { x: 0, width: 240 })
   .lane("pro", { x: 280, width: 240 })
   .lane("enterprise", { x: 560, width: 260 })
   .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (string | number)[])
   .state("selected", { initial: 0 })
-  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter · $9/月", subtitle: "3 席 · コミュニティサポート" })
-  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro · $29/月 (人気)", subtitle: "10 席 · 優先サポート" })
+  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter $9/月", subtitle: "3 席 · コミュニティサポート" })
+  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro $29/月", subtitle: "10 席 · 優先サポート" })
   .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "▶ 一番人気", subtitle: "枠 highlight · 選択中 = {selected}" })
-  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise · 見積", subtitle: "無制限 · 専任 CSM" })
+  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise", subtitle: "要見積 · 無制限 · 専任 CSM" })
   .edge("starterCard", "proCard", { label: "アップグレード", tone: "info" })
   .edge("proCard", "enterpriseCard", { label: "アップグレード", tone: "success" })
   .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro プラン" })
@@ -3701,12 +3838,13 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
     body: "selected = 2 に切替、 Enterprise lane 追加 activate、 3 tier 並列比較で意思決定、 4 node 全 highlight。",
   }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").set("selected", 2).badge("比較"))
   .build();
+export const subtitle__saasPricingTier = "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter 検討 → Pro 選択 tween → 比較完了の動きを可視化";
 
 /**
  * 123. coupon-code = チェックアウト クーポン適用フローを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
  */
 export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
-  topic: "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で discount 0 → 20% tween を可視化",
+  topic: "クーポンの未入力から適用までを追う",
 })
   .lane("empty", { x: 0, width: 240 })
   .lane("entered", { x: 280, width: 240 })
@@ -3716,7 +3854,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未入力", subtitle: "破線枠 · 'コード入力'" })
   .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "'SAVE20' 入力済", subtitle: "実線枠 · 未適用 · discount = {discount}" })
   .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "適用ボタン", subtitle: "灰 → 緑にクリックで変化" })
-  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ -{discount}% 適用済", subtitle: "緑 pill · 割引アクティブ" })
+  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ 適用済", subtitle: "-{discount}% · 緑 pill" })
   .edge("emptyCard", "enteredCard", { label: "コード入力", tone: "info" })
   .edge("enteredCard", "appliedCard", { label: "適用", tone: "success" })
   .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "クーポン" })
@@ -3736,12 +3874,13 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
     body: "適用ボタンクリック、 discount を 0 → 20 まで tween、 適用済 lane 追加 activate、 -20% off の緑 pill 表示、 4 node 全 highlight。",
   }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").tween("discount", 0, 20).badge("適用"))
   .build();
+export const subtitle__checkoutCouponApply = "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で discount 0 → 20% tween を可視化";
 
 /**
  * 124. article-preview = ブログ記事プレビュー card を 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
  */
 export const blogArticlePreview = diagram("interactive-blog-article-preview", {
-  topic: "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で初期 → hover tween → 続きを読むの動きを可視化",
+  topic: "記事カードの見出しと抜粋と著者を並べる",
 })
   .lane("thumb", { x: 0, width: 200 })
   .lane("content", { x: 220, width: 320 })
@@ -3772,12 +3911,13 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
     body: "クリック直前、 メタ lane 追加 activate、 著者 + 経過時間表示、 5 node 全 highlight、 詳細画面遷移待機。",
   }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").set("hovered", 1).badge("click"))
   .build();
+export const subtitle__blogArticlePreview = "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で初期 → hover tween → 続きを読むの動きを可視化";
 
 /**
  * 125. toc-nav = ドキュメント TOC (階層 3 段 + アクティブセクション) を 3-lane (H1 / H2 / H3) tree depth split 分散 + tocNav readout 併存 + 3 phase 動き (Intro → GS → First tween スクロール)。 iteration 7 wave 5、 pattern taxonomy § 8 tree depth split。
  */
 export const docsTocNav = diagram("interactive-docs-toc-nav", {
-  topic: "docs TOC (階層 3 段 + アクティブセクション) を 3-lane 分散 + tocNav readout 併存、 3 phase でスクロール進行によるアクティブセクション遷移を可視化",
+  topic: "3 段の目次と現在位置を見せる",
 })
   .lane("lvl0", { x: 0, width: 240 })
   .lane("lvl1", { x: 280, width: 260 })
@@ -3786,17 +3926,17 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
     [0, "はじめに", 0],
     [1, "スタートガイド", 1],
     [2, "インストール", 0],
-    [2, "最初の diagram", 1],
+    [2, "最初の図", 1],
     [1, "高度な使い方", 0],
     [0, "API リファレンス", 0],
   ] as unknown as (string | number)[])
   .state("activeIdx", { initial: 0 })
   .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "はじめに (H1)", subtitle: "level 0 · idx {activeIdx}" })
-  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス (H1)", subtitle: "level 0" })
-  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド (H2)", subtitle: "level 1 · 青枠" })
+  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス", subtitle: "level 0" })
+  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド", subtitle: "level 1 · 青枠" })
   .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "高度な使い方 (H2)", subtitle: "level 1" })
   .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "インストール (H3)", subtitle: "level 2" })
-  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の diagram (H3)", subtitle: "level 2 · 青文字 + 枠" })
+  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の図", subtitle: "level 2 · 青文字 + 枠" })
   .edge("introCard", "gsCard", { label: "次へ", tone: "info" })
   .edge("gsCard", "installCard", { label: "子", tone: "accent" })
   .edge("gsCard", "firstCard", { label: "現在", tone: "success" })
@@ -3814,15 +3954,16 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
   .phase("p3", {
     duration: 1500,
     title: "H3 詳細",
-    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の diagram' が青文字 + 枠、 全 6 node 展開状態。",
+    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の図' が青文字 + 枠、 全 6 node 展開状態。",
   }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").tween("activeIdx", 1, 3).badge("First"))
   .build();
+export const subtitle__docsTocNav = "docs TOC (階層 3 段 + アクティブセクション) を 3-lane 分散 + tocNav readout 併存、 3 phase でスクロール進行によるアクティブセクション遷移を可視化";
 
 /**
  * 126. share-buttons = ブログ記事 SNS シェアボタンを 3-lane (Twitter / Facebook / LinkedIn) dense sequence 分散 + shareButtons readout 併存 + 3 phase 動き (投稿直後 → 拡散 tween → バズ)。 iteration 7 wave 5、 iteration 完遂。 pattern taxonomy § 7 dense sequence。
  */
 export const socialShareButtons = diagram("interactive-social-share-buttons", {
-  topic: "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で拡散カウント 0 → 384 tween を可視化",
+  topic: "SNS 4 種の共有ボタンを並べる",
 })
   .lane("tw", { x: 0, width: 200 })
   .lane("fb", { x: 220, width: 200 })
@@ -3853,12 +3994,13 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     body: "totalShares を 300 → 384 まで tween、 Reddit も active、 4 platform 全 highlight、 384 shares で定着。 iteration 7 完遂 = 動き + 日本語の 15 diagram フル対応。",
   }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").tween("totalShares", 300, 384).badge("バズ"))
   .build();
+export const subtitle__socialShareButtons = "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で拡散カウント 0 → 384 tween を可視化";
 
 /**
  * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
  */
 export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", {
-  topic: "EC 決済実業務シナリオ = 4 phase (購入 → 3DS 認証 → 銀行確定 → 記帳) の flow を shape-* primitive 8 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "EC 決済を購入から記帳まで 4 段階で追う",
 })
   .lane("customer", { x: 0, width: 220 })
   .lane("processor", { x: 240, width: 280 })
@@ -3868,9 +4010,9 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .state("txStatus", { initial: 0 })
   .state("totalTx", { initial: 1247 })
   .node("customer", { lane: "customer", stack: 0, kind: "shape-person", title: "田中様", eyebrow: "customer", subtitle: "購入者" })
-  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "iPhone 15", eyebrow: "device", subtitle: "Safari / iOS 17" })
+  .node("mobile", { lane: "customer", stack: 1, kind: "shape-mobile-device", title: "iPhone", eyebrow: "device", subtitle: "Safari / iOS 17" })
   .node("card", { lane: "customer", stack: 2, kind: "shape-credit-card", title: "VISA **1234", eyebrow: "card", subtitle: "MUFG 発行" })
-  .node("shop", { lane: "processor", stack: 0, kind: "shape-online-shop", title: "BuyNow.com", eyebrow: "merchant", subtitle: "checkout · ¥{amount}" })
+  .node("shop", { lane: "processor", stack: 0, kind: "shape-online-shop", title: "BuyNow", eyebrow: "merchant", subtitle: "checkout · ¥{amount}" })
   .node("gateway", { lane: "processor", stack: 1, kind: "shape-api-gateway", title: "API Gateway", eyebrow: "gateway", subtitle: "認証 + rate limit" })
   .node("provider", { lane: "processor", stack: 2, kind: "shape-payment-provider", title: "Stripe", eyebrow: "provider", subtitle: "3DS {auth3ds}%" })
   .node("bankShape", { lane: "bank", stack: 0, kind: "shape-bank", title: "MUFG", eyebrow: "issuer", subtitle: "発行銀行 · 与信照会" })
@@ -3889,7 +4031,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   .phase("p1", {
     duration: 2200,
     title: "商品購入",
-    body: "田中様が iPhone で BuyNow.com にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
+    body: "田中様が iPhone で BuyNow にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
   }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop").tween("amount", 0, 12500).set("txStatus", 0).set("auth3ds", 0).badge("購入"))
   .phase("p2", {
     duration: 2500,
@@ -3907,12 +4049,13 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     body: "銀行が取引台帳に記帳 + 監査 log 記録、 totalTx 1247 → 1248 tween (countup が +1 加算表示、 800ms かけて動的 count up)、 全 8 shape active、 決済 flow 完遂。",
   }, (p: PhaseBuilder) => p.activate("customer", "mobile", "card", "shop", "gateway", "provider", "bankShape", "ledger").tween("totalTx", 1247, 1248).set("txStatus", 2).badge("記帳完了"))
   .build();
+export const subtitle__exemplarPaymentFlow = "EC 決済実業務シナリオ = 4 phase (購入 → 3DS 認証 → 銀行確定 → 記帳) の flow を shape-* primitive 8 種で表現 + 4 readout が state を consume して visually 連続変化";
 
 /**
  * 128. exemplar-login-flow v2 = 実 login 認証 + 2FA + セッション発行シナリオ、 shape-* primitive (mobile-device / person / server-rack / hexagon / diamond / cylinder / cloud) で visual scene 化、 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) + 4 readout (traffic-light / countup / gauge / bar) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 2。
  */
 export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
-  topic: "login + 2FA 実業務シナリオ = 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "ログインと 2 要素認証を 5 段階で追う",
 })
   .lane("user", { x: 0, width: 200 })
   .lane("auth", { x: 220, width: 300 })
@@ -3926,7 +4069,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
   .node("authApi", { lane: "auth", stack: 0, kind: "shape-server-rack", title: "Auth API", eyebrow: "server", subtitle: "credential 一次検証" })
   .node("mfaCheck", { lane: "auth", stack: 1, kind: "shape-diamond", title: "2FA 要求?", eyebrow: "decision", subtitle: "TOTP 6 桁 or SMS" })
   .node("jwtSign", { lane: "auth", stack: 2, kind: "shape-hexagon", title: "JWT 発行器", eyebrow: "signer", subtitle: "RS256 · exp 1h" })
-  .node("session", { lane: "session", stack: 0, kind: "shape-cylinder", title: "Redis Session", eyebrow: "cache", subtitle: "TTL 3600s" })
+  .node("session", { lane: "session", stack: 0, kind: "shape-cylinder", title: "Redis", eyebrow: "cache", subtitle: "TTL 3600s" })
   .node("token", { lane: "session", stack: 1, kind: "shape-cloud", title: "JWT token", eyebrow: "response", subtitle: "Bearer · 302 redirect" })
   .edge("customer", "mobile", { label: "入力", tone: "info" })
   .edge("mobile", "authApi", { label: "POST /login", tone: "info" })
@@ -3964,12 +4107,13 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     body: "JWT token を Bearer header で返却、 302 redirect。 successLogin 8421 → 8422 tween (countup が +1 加算表示、 900ms かけて動的)、 latency 180 → 50ms tween (最終)、 全 7 shape active。",
   }, (p: PhaseBuilder) => p.activate("customer", "mobile", "authApi", "mfaCheck", "jwtSign", "session", "token").tween("successLogin", 8421, 8422).tween("latency", 180, 50).set("authStatus", 2).badge("応答"))
   .build();
+export const subtitle__exemplarLoginFlow = "login + 2FA 実業務シナリオ = 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化";
 
 /**
  * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 shape-* primitive (message-bubble / stack / cloud / diamond / mobile-device × 3) で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
  */
 export const exemplarNotificationFlow = diagram("interactive-exemplar-notification-flow", {
-  topic: "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化",
+  topic: "通知配信を発火から再送まで 5 段階で追う",
 })
   .lane("origin", { x: 0, width: 200 })
   .lane("infra", { x: 220, width: 280 })
@@ -3982,12 +4126,18 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   .node("kafka", { lane: "infra", stack: 0, kind: "shape-stack", title: "Kafka キュー", eyebrow: "queue", subtitle: "残 {queued} 件 · TTL 300s" })
   .node("fcm", { lane: "infra", stack: 1, kind: "shape-cloud", title: "FCM Service", eyebrow: "notification", subtitle: "配信 batch 処理" })
   .node("retryGate", { lane: "infra", stack: 2, kind: "shape-diamond", title: "retry 判定", eyebrow: "policy", subtitle: "指数 backoff · 最大 3 回" })
-  .node("iphone", { lane: "devices", stack: 0, kind: "shape-mobile-device", title: "iPhone (A)", eyebrow: "device", subtitle: "APNs 経由 · foreground" })
-  .node("pixel", { lane: "devices", stack: 1, kind: "shape-mobile-device", title: "Pixel (B)", eyebrow: "device", subtitle: "FCM 経由 · background" })
-  .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy (C)", eyebrow: "device", subtitle: "圏外 → retry 対象" })
+  .node("iphone", { lane: "devices", stack: 0, kind: "shape-mobile-device", title: "iPhone", eyebrow: "device", subtitle: "APNs 経由 · foreground" })
+  .node("pixel", { lane: "devices", stack: 1, kind: "shape-mobile-device", title: "Pixel", eyebrow: "device", subtitle: "FCM 経由 · background" })
+  .node("galaxy", { lane: "devices", stack: 2, kind: "shape-mobile-device", title: "Galaxy", eyebrow: "device", subtitle: "圏外 → retry 対象" })
   .edge("msg", "kafka", { label: "enqueue", tone: "info" })
   .edge("kafka", "fcm", { label: "dequeue", tone: "info" })
-  .edge("fcm", "iphone", { label: "APNs 配信", tone: "success" })
+  .edge("fcm", "iphone", {
+    label: "APNs 配信",
+    tone: "success",
+    // 縦に走る区間の中点だと、 kafka → fcm の label と同じ高さ (y=438) に並んで 12px しか離れない。
+    // 縦区間は y=272-604 と長いので上へ寄せる。 -160 まで動かすと折れ角に乗って自 path と接する。
+    labelOffsetY: -120,
+  })
   .edge("fcm", "pixel", { label: "FCM 配信", tone: "success" })
   .edge("fcm", "galaxy", { label: "初回失敗", tone: "error" })
   .edge("galaxy", "retryGate", { label: "retry 要求", tone: "warning" })
@@ -4022,3 +4172,4 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     body: "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。",
   }, (p: PhaseBuilder) => p.activate("msg", "kafka", "fcm", "retryGate", "iphone", "pixel", "galaxy").tween("queued", 20, 0).tween("delivered", 950, 992).tween("failed", 50, 8).tween("deliveryRate", 95, 99).badge("retry"))
   .build();
+export const subtitle__exemplarNotificationFlow = "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して visually 連続変化";

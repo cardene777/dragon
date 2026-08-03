@@ -129,7 +129,7 @@ export function PresetDetailPage(): React.ReactElement {
 
         <section className="nm-presets-section" aria-label={`${preset.title} 詳細`}>
           <div className="nm-preset-detail-stage">
-            <CdlDiagramView diagram={preset.diagram} hideHeader />
+            <CdlDiagramView hideMiniPhaseIndicator diagram={preset.diagram} hideHeader />
           </div>
           <div className="nm-preset-detail-nav">
             <Link

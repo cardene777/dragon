@@ -9,7 +9,6 @@
  */
 import { describe, it, expect } from "vitest";
 import { parseTextDslV05 } from "../src/v05/parser";
-import { compileToCdl } from "../src/compile";
 import { textDslToDiagram, jsonToDiagram } from "../src/index";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
@@ -337,6 +336,156 @@ actors:
       // parts merge 由来 (arc1__ prefix) の node は存在する
       const partsNodes = diagram.nodes.filter((n) => n.id.startsWith("arc1__"));
       expect(partsNodes.length).toBeGreaterThan(0);
+    });
+
+    it("actor label 二重表示 fix = parts actor 由来の sequence lane も削除される", () => {
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - arc1: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // sequence preset が生成した parts actor 用 lane (id = aliasSlug "arc1") は削除される。
+      // 残っていると part 側 lane (arc1__l、 label = alias "arc1") と 2 本が同じ label を
+      // lane-label として描画し二重表示 (alarmclock1 が右下で重なる bug の root cause)。
+      const leftoverLane = diagram.lanes.filter((l) => l.id === "arc1" || l.id.startsWith("arc1-"));
+      expect(leftoverLane.length).toBe(0);
+      // part 由来 lane (arc1__ prefix) は 1 本だけ存在する
+      const partsLanes = diagram.lanes.filter((l) => l.id.startsWith("arc1__"));
+      expect(partsLanes.length).toBe(1);
+      // alias "arc1" を label に持つ lane は高々 1 本 (part lane のみ、 二重表示なし)
+      const aliasLabelLanes = diagram.lanes.filter((l) => l.label === "arc1");
+      expect(aliasLabelLanes.length).toBeLessThanOrEqual(1);
+    });
+
+    it("drop 座標尊重 = posX 指定時は既存 lane 右端に強制せず posX 位置に配置 (auto-adjust 廃止)", () => {
+      // 2026-07-21 user 決定 = parts は drop / click した位置にそのまま配置し、 既存 lane 右端 + gap への
+      // 強制右寄せ (auto-adjust) を廃止する。 posX が既存 lane 右端より左でも offsetX をそのまま使う。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - API
+  - arc1: { kind: arc-gauge, posX: 100, posY: 50, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      const partNode = diagram.nodes.find((n) => n.id === "arc1__arc");
+      expect(partNode).toBeDefined();
+      // 前提 = 既存 lane (ユーザー / API) の右端は posX (100) より右に広がる
+      const existingMaxRight = Math.max(
+        ...diagram.lanes
+          .filter((l) => !l.id.startsWith("arc1__"))
+          .map((l) => (l.x ?? 0) + l.width),
+      );
+      expect(existingMaxRight).toBeGreaterThan(100);
+      // auto-adjust 廃止 + 中心補正 = part node 中心 (posX) が offsetX (100) に一致 = 置いた位置に
+      // parts 中心が来る。 従来は Math.max(100, existingMaxRight + 300) で右へクランプされ posX >> 100。
+      expect(partNode!.posX).toBe(100);
+    });
+
+    it("underscore を含む parts actor 名でも header/footer/spacer が消し残らない (#873 slug 不一致)", () => {
+      // dragon slugify は `_` を保持 (arc_one)、 cdl preset slugify は `-` に置換 (arc-one) するため、
+      // dragon 側 aliasSlug と実 node id (arc-one-header 等) が不一致で sweep を取りこぼしていた。
+      // header / footer は title = actor 名を描画するため、 消し残ると actor 名が多重表示される。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - arc_one: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // parts actor 由来の sequence node (header / footer / spacer / step) が 0 件
+      const leftover = diagram.nodes.filter(
+        (n) => n.id === "arc-one" || n.id.startsWith("arc-one-") || n.id === "arc_one" || n.id.startsWith("arc_one-"),
+      );
+      expect(leftover.map((n) => n.id)).toEqual([]);
+      // actor 名 (arc_one) を title に持つ node は part merge 由来のみ = 多重表示なし
+      const titled = diagram.nodes.filter((n) => n.title === "arc_one");
+      expect(titled.length).toBeLessThanOrEqual(1);
+      // part merge 由来 node は存在する (削除しすぎていない)
+      expect(diagram.nodes.some((n) => n.id.startsWith("arc_one__"))).toBe(true);
+    });
+
+    it("全角を含む parts actor 名でも header/footer/spacer が消し残らない (#873 slug 不一致)", () => {
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - ユーザー
+  - ゲージ１: { kind: arc-gauge, v: 50 }
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // actor 名を title に持つ node は part merge 由来のみ (header / footer が消し残ると 2 件以上)
+      const titled = diagram.nodes.filter((n) => n.title === "ゲージ１");
+      expect(titled.length).toBeLessThanOrEqual(1);
+      // 残存 lane も 0 (label 特定経路)
+      expect(diagram.lanes.filter((l) => l.label === "ゲージ１").length).toBeLessThanOrEqual(1);
+    });
+
+    it("slug が prefix 関係にある別 actor を巻き込まない (cc-codex MAJOR fix、 a_b vs a-b-c)", () => {
+      // parts actor `a_b` の lane id は `a-b` (cdl slug)。 prefix match で sweep すると通常 actor
+      // `a-b-c` の `a-b-c-header` / `-footer` / step anchor / edge まで誤削除し、 activate に dangling
+      // 参照が残る。 exact set (node.lane 由来) 方式で巻き込みゼロを保証する。
+      const src = `title: "test"
+type: sequence
+
+actors:
+  - Client
+  - a_b: { kind: arc-gauge, v: 50 }
+  - a-b-c
+
+flow:
+  - Client -> a-b-c: "呼出"
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // 通常 actor a-b-c の node が全て残る (header / spacer / footer)
+      const abcNodes = diagram.nodes.filter((n) => n.lane === "a-b-c");
+      expect(abcNodes.length).toBeGreaterThan(0);
+      expect(diagram.nodes.some((n) => n.id === "a-b-c-header")).toBe(true);
+      expect(diagram.nodes.some((n) => n.id === "a-b-c-footer")).toBe(true);
+      // a-b-c lane も残る
+      expect(diagram.lanes.some((l) => l.id === "a-b-c")).toBe(true);
+      // Client -> a-b-c の edge が残る (parts actor と無関係な flow)
+      expect(diagram.edges.some((e) => e.from.endsWith("-client") && e.to.endsWith("-a-b-c"))).toBe(true);
+      // parts actor a_b 由来 node は削除される
+      expect(diagram.nodes.some((n) => n.id === "a-b-header" || n.id === "a-b-footer")).toBe(false);
+      // phase.activate に存在しない id (dangling) が残らない
+      const validIds = new Set<string>([
+        ...diagram.nodes.map((n) => n.id),
+        ...diagram.edges.map((e) => e.id),
+      ]);
+      for (const phase of diagram.phases) {
+        for (const id of phase.activate) {
+          expect(validIds.has(id), `activate id "${id}" が存在する node/edge を指す`).toBe(true);
+        }
+      }
+    });
+
+    it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
+      // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
+      // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、
+      // 消すと通常 actor "other" の node が削除済 lane を参照する不正 diagram になる。
+      const src = `title: "flow test"
+type: flow
+
+actors:
+  - flow: { kind: arc-gauge, v: 50 }
+  - other
+
+flow:
+  - flow -> other: "go"
+`;
+      const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
+      // 共有 lane "flow" は parts actor 名と一致するが seq-like でないので保持される
+      const sharedLane = diagram.lanes.find((l) => l.id === "flow");
+      expect(sharedLane).toBeDefined();
+      // 通常 actor "other" の node は共有 lane "flow" を参照し続ける (orphan 化しない)
+      const otherNode = diagram.nodes.find((n) => n.id === "other");
+      expect(otherNode?.lane).toBe("flow");
     });
 
     it("MAJOR fix = phase parallel merge (append ではなく既存 phase に union)", () => {

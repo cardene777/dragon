@@ -63,18 +63,22 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
 
     for (const arrow of arrows) {
       const points = parsePath(arrow.d);
-      expect(points.length, `path が 4 point (M + 3L 直角 elbow): ${arrow.d}`).toBe(4);
-      const [start, mid1, mid2, tip] = points as [
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number },
-        { x: number; y: number },
-      ];
-      expect(mid1.x, `1 段目は水平右方向 (mid1.x >= start.x): ${arrow.d}`).toBeGreaterThanOrEqual(start.x);
-      expect(Math.abs(mid1.y - start.y), `1 段目 y 一致 (水平): ${arrow.d}`).toBeLessThan(1);
-      expect(Math.abs(mid2.x - mid1.x), `2 段目 x 一致 (垂直 elbow): ${arrow.d}`).toBeLessThan(1);
-      expect(Math.abs(tip.y - mid2.y), `3 段目 y 一致 (水平着地): ${arrow.d}`).toBeLessThan(1);
-      expect(Math.abs(tip.x - mid2.x), `3 段目 x が elbow.x 近傍で子 bar 左辺に着地 (< 40px): ${arrow.d}`).toBeLessThan(40);
+      // gantt arrow の path pattern は 2 分岐 (`kinds/gantt.tsx § dependsOn arrow`)
+      //   - hasRoom = true  → M+3L (4 point) の直接 elbow 経路 (start → enter → tipY → tip)
+      //   - hasRoom = false → M+5L (6 point) の回り込み経路 (start → +elbowGap → midY → enter → tipY → tip)
+      // sample の layout で bar 間隔が近い場合は 6 point 経路が採用される (spec-valid)、 test は両対応で
+      // 「終端が水平着地」 + 「1 段目は水平右方向」 のみを共通不変量として assert する。
+      expect([4, 6], `path point 数は 4 (直接 elbow) or 6 (回り込み) のいずれか: ${arrow.d}`).toContain(points.length);
+      const start = points[0]!;
+      const secondPt = points[1]!;
+      const tip = points[points.length - 1]!;
+      const beforeTip = points[points.length - 2]!;
+      // 1 段目 = 水平右方向 (start → 第2 point、 y 一致 + x 増加)
+      expect(secondPt.x, `1 段目は水平右方向 (>= start.x): ${arrow.d}`).toBeGreaterThanOrEqual(start.x);
+      expect(Math.abs(secondPt.y - start.y), `1 段目 y 一致 (水平): ${arrow.d}`).toBeLessThan(1);
+      // 終端 = 水平着地 (beforeTip → tip、 y 一致)、 x は enter 近傍 (子 bar 左辺 40px 以内)
+      expect(Math.abs(tip.y - beforeTip.y), `終端は水平着地 (y 一致): ${arrow.d}`).toBeLessThan(1);
+      expect(Math.abs(tip.x - beforeTip.x), `終端 x が elbow.x 近傍で子 bar 左辺に着地 (< 40px): ${arrow.d}`).toBeLessThan(40);
     }
   });
 
@@ -134,7 +138,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("funnel-stages: polygon の幅が上から下へ単調減少 (自然な逆三角形)", async ({ page }) => {
-    await page.getByText("ファネル", { exact: true }).first().click();
+    await page.getByText("ファネル図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const widths = await page.evaluate(() => {
@@ -226,7 +230,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("card: subtitle が rect の水平範囲を超えない (sm2 の long entry/exit label 対応)", async ({ page }) => {
-    await page.getByText("ステート図 (拡張)", { exact: true }).first().click();
+    await page.getByText("拡張ステート図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const info = await page.evaluate(() => {

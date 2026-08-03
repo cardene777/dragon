@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "dragon core の mutation testing 設定。 test が実バグ (mutant) を捕まえるかを計測する。 mutate 対象は well-tested な core file に絞る (mutation testing は遅いため)。",
+  "packageManager": "pnpm",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "packages/dragon/src/keywords.ts",
+    "packages/dragon/src/parser.ts",
+    "packages/dragon/src/compile.ts"
+  ],
+  "reporters": ["clear-text", "progress", "json"],
+  "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
+  "concurrency": 4,
+  "timeoutMS": 30000,
+  "thresholds": {
+    "high": 85,
+    "low": 70,
+    "break": 0
+  }
+}

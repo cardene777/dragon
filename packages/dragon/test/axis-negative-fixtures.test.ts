@@ -3,7 +3,8 @@
  *
  * ## 設計背景
  *
- * cdl visualValidate は 56 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
+ * cdl visualValidate は 66 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
+ * 本 file が counts field の存在を確かめるのは、 そのうち列挙した 55 axis。
  * 但し CdlDiagram レベルで意図的 defect を仕込んでも layout logic が prevent する axis が多い
  * (Axis 10 node-overlap は同 stack node が発生しても layout の re-position で解消、 Axis 11
  * edge-crossing は routing の detour で解消、 Axis 53 node-inside-viewbox は viewport 明示で
@@ -14,12 +15,11 @@
  *
  * ## 2 種類の axis 保証
  *
- * ### A. catalog real defect 保証 (2 axis)
+ * ### A. catalog real defect 保証 (1 axis)
  * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
  * regression を検出可能。 Axis 3 は PR #392 (sequence actor auto-size) 以降 catalog real defect
  * が消えたため、 manual defect injection fixture に移行 (下記 Axis 3 describe block 参照):
  * - Axis 12 edge-node-cross       (pattern-passthrough)
- * - Axis 51 mermaid-parity        (presets)
  *
  * Axis 7 (edge-label-proximity) は cdl PR #217 で catalog の defect が解消し class B へ移した。
  * `visualValidateLaid` で label を path から引き離す fixture で axis 判定 logic の生存を保証する。
@@ -217,8 +217,8 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
   });
 });
 
-describe("axis 発火 count field (全 56 axis で counts field 存在)", () => {
-  it("visualValidate report.counts に 56 axis 分の field が存在", () => {
+describe("axis 発火 count field (列挙した 55 axis で counts field 存在)", () => {
+  it("visualValidate report.counts に列挙した 55 axis 分の field が存在", () => {
     const report = visualValidate(baseDiagram());
     const expectedAxes = [
       "node-visibility",
@@ -271,7 +271,6 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
       "axis-documentation-completeness",
       "fixture-drift-detection",
       "locale-parity",
-      "mermaid-parity",
       "validate-performance-budget",
       "node-inside-viewbox",
       "node-inside-lane",
@@ -282,8 +281,8 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
       expect(report.counts).toHaveProperty(axis);
       expect(typeof report.counts[axis as keyof typeof report.counts]).toBe("number");
     }
-    // 56 axis 全て存在
-    expect(expectedAxes.length).toBe(56);
+    // 列挙した 55 axis が全て存在する (cdl#366 で mermaid-parity を削除して 56 → 55)
+    expect(expectedAxes.length).toBe(55);
   });
 });
 
@@ -293,7 +292,7 @@ describe("axis 発火 count field (全 56 axis で counts field 存在)", () => 
 // ────────────────────────────────────────────────────────────
 
 describe("Axis 3 text-readability (defect injection via manual fixture)", () => {
-  it("width が title 超過の inject fixture で text-readability > 0 発火", async () => {
+  it("width が title 超過の inject fixture で text-readability > 0 発火", () => {
     // 従来 = cookbook 内の real defect を asset で使い >= 1 を保証していたが、
     // PR #392 (sequence actor auto-size) で cookbook の real defect が消えた (改善) ため、
     // 意図的 defect injection fixture で visualValidate 検知能力を保証する経路に切替。
@@ -357,21 +356,3 @@ describe("Axis 7 edge-label-proximity (layout regression safety net)", () => {
   });
 });
 
-describe("Axis 51 mermaid-parity (catalog real defect assertion)", () => {
-  it("presets の diagram で mermaid-parity >= 1 発火 (SSOT: warn(mermaid-parity=5))", async () => {
-    const presets = await import("../../../apps/playground-spa/src/topics/catalog/presets.cdl");
-    const isDiag = (v: unknown): v is CdlDiagram => {
-      return typeof v === "object" && v !== null &&
-        typeof (v as CdlDiagram).id === "string" &&
-        Array.isArray((v as CdlDiagram).nodes);
-    };
-    const diagrams = Object.values(presets).filter(isDiag);
-    let totalCount = 0;
-    for (const d of diagrams) {
-      const r = visualValidate(d);
-      totalCount += r.counts["mermaid-parity"];
-    }
-    // visual-validate-sweep presets SSOT: mermaid-parity=5 (topo/infra/tree/mind/pie 等 cdl 独自 preset)
-    expect(totalCount).toBeGreaterThanOrEqual(1);
-  });
-});

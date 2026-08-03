@@ -18,6 +18,8 @@ import { HomePage } from "./pages/HomePage";
 // eager import すると home page 初期 bundle が 450KB+ 膨らむ。 React.lazy で
 // route access 時のみ chunk load = 初期 home bundle 大幅圧縮 + user 指摘 "サイト重い" 対応 (CAR-1519 hotfix)。
 const CatalogIndexPage = lazy(() => import("./pages/CatalogIndexPage").then((m) => ({ default: m.CatalogIndexPage })));
+import { RenderProbePage } from "./pages/RenderProbePage";
+
 const CategoryPage = lazy(() => import("./pages/CategoryPage").then((m) => ({ default: m.CategoryPage })));
 const EditorPage = lazy(() => import("./pages/EditorPage").then((m) => ({ default: m.EditorPage })));
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
@@ -55,6 +57,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/preset/:id" element={<PresetDetailPage />} />
               <Route path="/release-notes" element={<ReleaseNotesPage />} />
               <Route path="/contribute" element={<ContributePage />} />
+              {/* 実ブラウザでしか測れない検査に、 見本に無い形の図を通すための頁
+                  (cardene777/cdl#397)。 静的 import にしてあるので、 公開ビルドでは分岐ごと
+                  落ちて chunk も出ない (`lazy` だと参照の無い chunk が残る)。 */}
+              {import.meta.env.DEV && <Route path="/__render" element={<RenderProbePage />} />}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

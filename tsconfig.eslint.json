@@ -1,8 +1,17 @@
 {
   "files": [],
   "references": [
-    { "path": "./apps/playground-spa" },
-    { "path": "./packages/dragon/tsconfig.test.json" }
+    {
+      "path": "./apps/playground-spa"
+    },
+    {
+      "path": "./packages/dragon/tsconfig.test.json"
+    },
+    {
+      "path": "./test-support"
+    }
   ],
-  "include": ["vitest.config.ts"]
+  "include": [
+    "vitest.config.ts"
+  ]
 }

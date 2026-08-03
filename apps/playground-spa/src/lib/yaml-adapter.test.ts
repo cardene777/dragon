@@ -17,7 +17,7 @@ import {
   yamlToDiagram,
   formatYamlError,
   type YamlAdapterError,
-} from "../yaml-adapter";
+} from "./yaml-adapter";
 
 const VALID_YAML = `title: "YAML tab demo"
 type: sequence
@@ -114,7 +114,7 @@ describe("yamlToDiagram (full pipeline)", () => {
     expect(result.diagram.id).toBeTruthy();
     expect(result.diagram.nodes.length).toBeGreaterThan(0);
     expect(result.diagram.edges.length).toBeGreaterThan(0);
-    const firstEdge = result.diagram.edges[0]!;
+    const firstEdge = result.diagram.edges[0];
     expect(firstEdge.label).toBe("login");
   });
 

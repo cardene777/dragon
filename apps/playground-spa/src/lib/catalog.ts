@@ -66,6 +66,14 @@ export const CATEGORIES: CategoryMeta[] = [
     cluster: "extended",
   },
   {
+    slug: "ethereum",
+    label: "イーサリアム",
+    eyebrow: "仕組みを動きで理解する",
+    desc: "ブロックチェーンの中で何が起きているかを、 数値が動く様子で説明する図。 残高が付け替わる / 手数料が上下する / ブロックが積まれる といった変化そのものを見せるので、 静止した箱と矢印では掴みにくい仕組みが直感的に分かる。",
+    items: ["ERC-20 の送金", "EIP-1559 の手数料", "ERC-4337 の代理支払い", "ブロック生成"],
+    cluster: "extended",
+  },
+  {
     slug: "parts",
     label: "パーツ",
     eyebrow: "合成用の小さな部品",
