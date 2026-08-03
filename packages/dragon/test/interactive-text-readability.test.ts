@@ -70,7 +70,7 @@ const ALLOWED = new Set<string>([
 
 describe("#885 interactive text-readability (全 diagram 検査)", () => {
   const diagrams = collectDiagrams();
-  const report = visualValidateAll(diagrams);
+  const report = visualValidateAll(diagrams, { profile: "catalog" });
 
   it("interactive の全 diagram が存在する (import が空でない)", () => {
     expect(diagrams.length).toBeGreaterThan(50);

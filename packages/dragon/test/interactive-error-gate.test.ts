@@ -127,7 +127,7 @@ function mainCrestY(d: string): number {
 }
 
 describe("#401 interactive error-0 gate", () => {
-  const report = visualValidateAll(FIXED.map((f) => f.diagram));
+  const report = visualValidateAll(FIXED.map((f) => f.diagram), { profile: "catalog" });
 
   for (const { name } of FIXED) {
     it(`${name} は visualValidate error 0 件`, () => {
@@ -293,7 +293,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     // 4 本を 1 列に積むと、 束の外側に出る 2 本は弧から離れる。 1 行 pill (36) にしたことで
     // 離れる量は 86 に収まり、 破綻 (160 超) にはならない (#376)。 `sub` を戻すと 2 行 pill
     // (68) になり、 外側が 222 まで離れて破綻する。
-    const far = visualValidateAll([oauthFlow])
+    const far = visualValidateAll([oauthFlow], { profile: "catalog" })
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
@@ -303,7 +303,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
       "token-issue",
     ]);
     // 破綻していない = 全て warn 止まり
-    const errors = visualValidateAll([oauthFlow])
+    const errors = visualValidateAll([oauthFlow], { profile: "catalog" })
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity" && v.severity === "error");
     expect(errors, "弧から離れすぎて破綻している").toEqual([]);
@@ -357,7 +357,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
         const e = d.edges.find((x) => x.id === id) as { label: string };
         e.label = `${e.label}X`;
       }
-      const errs = (visualValidateAll([d]).reports[0]?.violations ?? []).filter((v) => v.severity === "error");
+      const errs = (visualValidateAll([d], { profile: "catalog" }).reports[0]?.violations ?? []).filter((v) => v.severity === "error");
       if (errs.length > 0) broke.push(`${target} を 1 文字伸ばすと ${errs.length} 件: ${errs.map((v) => v.axis).join(",")}`);
     }
     expect(broke, `1 文字で崩れる:\n${broke.join("\n")}`).toHaveLength(0);

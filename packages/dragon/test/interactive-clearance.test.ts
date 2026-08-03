@@ -39,7 +39,7 @@ function collectDiagrams(): CdlDiagram[] {
 
 describe("#398 interactive catalog lane-spacing clearance", () => {
   const diagrams = collectDiagrams();
-  const report = visualValidateAll(diagrams);
+  const report = visualValidateAll(diagrams, { profile: "catalog" });
   const byId = new Map(report.reports.map((r) => [r.diagramId, r]));
 
   const fixedIds = ["interactive-shape-circle", "interactive-shape-arc", "interactive-week-calendar"];
