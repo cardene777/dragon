@@ -41,6 +41,9 @@ export { writeActorPosition } from "./write-position";
 export { measureActorBoxes } from "./compile";
 // パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
 export { partVisualSize, partsGridCenters } from "./compile";
+// 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を
+// 作る側 / 画面が背景色を直接書く側で同じ物差しを使う (別々に持つと、 片方だけ直した時に片方が通す)。
+export { isColorValue, pointsOutside, stripExternalPaint } from "./color";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";

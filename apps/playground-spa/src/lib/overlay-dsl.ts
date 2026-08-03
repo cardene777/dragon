@@ -9,6 +9,7 @@ import {
   resolveRelativePos,
   orderByDependency,
   partsGridCenters,
+  isColorValue,
   type RelativePos,
   type AnchorBox,
 } from "@cardenelabs/dragon";
@@ -404,7 +405,10 @@ export function extractPartsFromSrc(
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
               scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
-              bg: bgMatch ? bgMatch[1]! : undefined,
+              // 背景色は SVG の `fill` に直接入る。 色として読めない値を持ち回ると、
+              // `url(https://...)` を書いた本文を共有された人の環境から外部へ要求が飛ぶ (#1004)。
+              // 色でなければ「書かなかった」 扱いにして、 既定の見た目に戻す
+              bg: bgMatch && isColorValue(bgMatch[1]) ? bgMatch[1] : undefined,
               item,
             });
             continue;

@@ -160,6 +160,32 @@ actors:
     expect(r.parts[0]!.bg).toBeUndefined();
   });
 
+  it("色として読めない bg は書かなかった扱いにする (#1004)", () => {
+    // `bg` は SVG の `fill` に直接入る。 図の外を指す値を持ち回ると、 その本文を共有された人の
+    // 環境から外部へ要求が飛ぶ。 色でなければ既定の見た目に戻す
+    for (const bad of [
+      'url(https://example.invalid/x)',
+      'URL(https://example.invalid/x)',
+      'red; background:url(https://example.invalid/x)',
+      'https://example.invalid/x',
+      '#ff',
+    ]) {
+      const src = `actors:
+  - a: { kind: achievement, posX: 100, posY: 200, bg: "${bad}" }
+`;
+      const r = extractPartsFromSrc(src, catalog, partsItems);
+      expect(r.parts[0]?.bg, bad).toBeUndefined();
+    }
+  });
+
+  it("色名で書いた bg は通る (#1004)", () => {
+    const src = `actors:
+  - a: { kind: achievement, posX: 100, posY: 200, bg: "red" }
+`;
+    const r = extractPartsFromSrc(src, catalog, partsItems);
+    expect(r.parts[0]?.bg).toBe("red");
+  });
+
   it("bg が field 先頭でも末尾でも parse (順序独立)", () => {
     const head = `actors:
   - a: { bg: "#ef4444", kind: achievement, posX: 10 }

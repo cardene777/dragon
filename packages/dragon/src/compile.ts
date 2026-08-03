@@ -16,6 +16,7 @@ import {
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
+import { isColorValue, stripExternalPaint } from "./color";
 import {
   orderByDependency,
   resolveRelativePos,
@@ -51,7 +52,7 @@ export interface CompileToCdlOpts {
 
 /** 図は出せるが書いた通りにならなかった、 という知らせ。 */
 export type CompileNotice = {
-  kind: "relative-position-ignored" | "focus-target-missing";
+  kind: "relative-position-ignored" | "focus-target-missing" | "state-override-rejected" | "external-paint-dropped";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -121,7 +122,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, placed);
-  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog);
+  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog, opts?.onNotice);
   // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
   // 途中で消えた edge の行を知らせても呼出側が使えない。
   if (edgeSourceLines && opts?.onEdgeSource) {
@@ -130,7 +131,27 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       if (alive.has(id)) opts.onEdgeSource(id, line);
     }
   }
+  // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
+  //
+  // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
+  // 埋め込んだ JSON と入口が 4 つ以上あり、 1 つ見落とすと穴が残る。 描画へ渡る図は必ず
+  // ここを通るので、 出口で 1 度だけ見る。
+  for (const dropped of stripExternalPaint(merged)) {
+    opts?.onNotice?.({
+      kind: "external-paint-dropped",
+      actor: dropped.path,
+      line: 0,
+      message: `図の外を指す値 (${truncateForMessage(dropped.value)}) は色として使えないため外しました`,
+      hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
+    });
+  }
   return merged;
+}
+
+/** 知らせに載せる値を短く切る。 長い URL をそのまま出すと画面の帯が読めなくなる */
+function truncateForMessage(v: string): string {
+  const s = v.trim();
+  return s.length <= 40 ? s : `${s.slice(0, 37)}...`;
 }
 
 /**
@@ -872,6 +893,7 @@ function mergePartsFromActors(
   target: CdlDiagram,
   doc: DslDocument,
   partsCatalog?: Record<string, CdlDiagram>,
+  onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   if (partsActors.length === 0) return target;
@@ -994,9 +1016,32 @@ function mergePartsFromActors(
       placeX = center?.cx;
       placeY = center?.cy;
     }
-    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH);
+    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH, onNotice, actor.pos?.line ?? 0);
   }
   return target;
+}
+
+/**
+ * 状態の初期値に上書きを当てた結果と、 色として読めないため捨てたかどうか。
+ *
+ * **元の値が色の状態は、 上書きも色に限る** (#1004)。 状態の値は `fill` に入るため、
+ * `url(https://example.invalid/x)` のような外部を指す値を通すと、 図を開いた人の環境から
+ * その URL へ要求が飛ぶ。 書き出した SVG を配布しても同じことが起きる。
+ * 色として読めない上書きは捨てて元の色を残す = 図は出るが外部は指さない。
+ *
+ * 元の値が色でない状態 (数値 / 文字列) は制限しない。 色として描かれないため、
+ * 一律に弾くとゲージの値や説明文の差し替えという正当な用途を壊す。
+ *
+ * 捨てたことは呼出側が知らせる。 黙って捨てると、 書いた人は色が変わらない理由
+ * (書き間違い / 拒否 / 描画不具合) を区別できない。
+ */
+function resolveStateOverride(
+  original: number | string,
+  override: number | string | boolean | undefined,
+): { initial: number | string; rejected: boolean } {
+  if (override === undefined) return { initial: original, rejected: false };
+  if (isColorValue(original) && !isColorValue(override)) return { initial: original, rejected: true };
+  return { initial: override as number | string, rejected: false };
 }
 
 /**
@@ -1014,9 +1059,7 @@ function applyColorHex(
   stateOverride: Record<string, number | string | boolean>,
 ): Record<string, number | string | boolean> {
   if (!colorHex) return stateOverride;
-  const colorStates = part.states.filter(
-    (st) => typeof st.initial === "string" && /^#[0-9a-fA-F]{3,8}$/.test(st.initial),
-  );
+  const colorStates = part.states.filter((st) => isColorValue(st.initial));
   if (colorStates.length === 0) return stateOverride;
   const out = { ...stateOverride };
   for (const st of colorStates) {
@@ -1053,6 +1096,10 @@ function mergePartIntoDiagram(
    */
   targetW?: number,
   targetH?: number,
+  /** 書いたのに使わなかった上書きを知らせる口。 黙って捨てると理由を追えない (#1004) */
+  onNotice?: (notice: CompileNotice) => void,
+  /** 知らせに載せる行。 パーツを書いた行を指す。 行が取れない経路 (JSON) では 0 */
+  noticeLine = 0,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   const stateIdSet = new Set(part.states.map((s) => s.id));
@@ -1251,11 +1298,17 @@ function mergePartIntoDiagram(
 
   // state merge = id prefix + initial override
   for (const stateOrig of part.states) {
-    const overrideVal = stateOverride[stateOrig.id];
-    target.states.push({
-      id: prefix(stateOrig.id),
-      initial: overrideVal !== undefined ? (overrideVal as number | string) : stateOrig.initial,
-    });
+    const { initial, rejected } = resolveStateOverride(stateOrig.initial, stateOverride[stateOrig.id]);
+    if (rejected) {
+      onNotice?.({
+        kind: "state-override-rejected",
+        actor: alias,
+        line: noticeLine,
+        message: `"${alias}" の ${stateOrig.id} に書いた値は色として読めないため使いません`,
+        hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
+      });
+    }
+    target.states.push({ id: prefix(stateOrig.id), initial });
   }
 
   // edge merge = id / from / to prefix (parts 内 edge は稀だが対応)
