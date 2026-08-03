@@ -89,6 +89,16 @@ export interface CompileOpts {
    * 効かない等)。 判定は組み立て側が持ち、 呼出側は受け取って表示するだけにする。
    */
   onNotice?: (notice: CompileNotice) => void;
+  /**
+   * edge が DSL のどの行から来たかの受け取り口 (#998)。
+   *
+   * preset によっては書いた step と生成される edge が一致しない (`type: flow` は actor を鎖状に
+   * 繋ぐため `a -> c` と書いても `a -> b` になる)。 edge を起点に本文の行を直す機能 (自動修正の
+   * 書き戻し等) は、 この対応が無いと別の行を書き換える。
+   *
+   * **対応が取れない edge については呼ばれない**。 「対応が無い」 と「行 0」 を区別するため。
+   */
+  onEdgeSource?: (edgeId: string, line: number) => void;
 }
 
 /**

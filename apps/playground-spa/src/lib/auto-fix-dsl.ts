@@ -171,20 +171,27 @@ export interface ApplyResult {
  * `a -> c` / `c -> b` と書くと `e-a-b` / `e-b-c` の順で、 label も入れ替わる)。 順番で当てると
  * 別の行に offset が入り、 それでも「反映しました」 と出る。
  *
- * 代わりに行から読んだ `from` / `to` / `label` を edge と照合する。 対応は **offset の対象に
- * 関わらず全 edge について先に確定する**。 対象だけを走査すると、 同じ 3 つ組の行が複数あって
- * 後ろの edge だけが対象の時に前の行へ当ててしまう。
+ * 対応は 2 段で取る。
+ *
+ * 1. 組み立て側が返した行番号 (`edgeLines`、 #998)。 preset ごとの規則を知っているのは組み立て側
+ *    だけなので、 これがある edge はこれを使う
+ * 2. 行から読んだ `from` / `to` / `label` の照合。 組み立て側が対応を返さない edge の受け皿
+ *
+ * 2 の対応は **offset の対象に関わらず全 edge について先に確定する**。 対象だけを走査すると、
+ * 同じ 3 つ組の行が複数あって後ろの edge だけが対象の時に前の行へ当ててしまう。
  *
  * @param src 現在の source
  * @param edges `diagram.edges`
  * @param nodes `diagram.nodes` (DSL の名前から id を引くため)
  * @param offsetByEdge edge の id から当てる offset
+ * @param edgeLines 組み立て側が返した edge の id → 本文の行番号 (1 始まり)
  */
 export function applyOffsetsToFlow(
   src: string,
   edges: readonly EdgeRef[],
   nodes: readonly NodeRef[],
   offsetByEdge: ReadonlyMap<string, EdgeOffset>,
+  edgeLines?: ReadonlyMap<string, number>,
 ): ApplyResult {
   if (offsetByEdge.size === 0) return { src: null, applied: [], unmatched: [] };
   const lines = src.split("\n");
@@ -198,7 +205,19 @@ export function applyOffsetsToFlow(
   // 対応は `diagram.edges` の順に取る = 同じ 3 つ組なら前の edge が前の行を取る。
   const lineOf = new Map<string, number>();
   const used = new Set<number>();
+
+  // 組み立て側が返した行を先に使う。 範囲の外を指す値は使わない (別の section を書き換える)。
+  for (const [id, line] of edgeLines ?? []) {
+    const i = line - 1;
+    if (i <= range.start || i >= range.end) continue;
+    if (!isEdgeLine(lines[i] ?? "")) continue;
+    if (used.has(i)) continue;
+    used.add(i);
+    lineOf.set(id, i);
+  }
+
   for (const e of edges) {
+    if (lineOf.has(e.id)) continue;
     for (let i = range.start + 1; i < range.end; i++) {
       if (used.has(i)) continue;
       const line = lines[i] ?? "";
@@ -231,4 +250,46 @@ export function applyOffsetsToFlow(
     applied.push(id);
   }
   return { src: changed ? lines.join("\n") : null, applied, unmatched };
+}
+
+/**
+ * 組み立て側が返した行番号を、 元の本文の座標に戻す (#998)。
+ *
+ * 組み立てに渡すのはパーツの行を抜いた本文なので、 返る行番号はその座標になる。 戻さないと
+ * `flow:` より前にパーツがある本文で別の行を指す。
+ *
+ * @param edgeLines edge の id → 抜いた後の本文の行番号 (1 始まり)
+ * @param lineMap 抜いた後の本文の行 (0 始まり) → 元の本文の行番号 (1 始まり)
+ */
+export function toSourceLines(
+  edgeLines: ReadonlyMap<string, number>,
+  lineMap: readonly number[],
+): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const [id, line] of edgeLines) {
+    const orig = lineMap[line - 1];
+    // 表に無い行は捨てる。 推測で近い行に寄せると、 誤った行を書き換えて成功と報告する。
+    if (orig !== undefined) out.set(id, orig);
+  }
+  return out;
+}
+
+/** 組み立てた時の本文と、 その時の edge → 行の対応。 */
+export interface EdgeSourceSnapshot {
+  readonly src: string;
+  readonly lines: ReadonlyMap<string, number>;
+}
+
+/**
+ * 今の本文に対して使える対応表を返す。 使えなければ `undefined`。
+ *
+ * 表は組み立てた時の本文に紐づく。 入力から再描画までの間に押されると、 古い行番号が
+ * たまたま edge 行を指して別の行を書き換える (実測で再現する形ではないが、 行を挿入した直後に
+ * 押すと起きる)。
+ */
+export function usableEdgeLines(
+  snapshot: EdgeSourceSnapshot,
+  src: string,
+): ReadonlyMap<string, number> | undefined {
+  return snapshot.src === src ? snapshot.lines : undefined;
 }

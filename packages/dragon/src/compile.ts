@@ -37,6 +37,16 @@ export interface CompileToCdlOpts {
    * これを受けて画面に出す。 判定は組み立て側だけが持ち、 画面側は表示に徹する。
    */
   onNotice?: (notice: CompileNotice) => void;
+  /**
+   * edge が DSL のどの行から来たかの受け取り口 (#998)。
+   *
+   * preset によっては書いた step と生成される edge が一致しない (`type: flow` は actor を鎖状に
+   * 繋ぐため `a -> c` と書いても `a -> b` になる)。 edge を起点に本文の行を直す機能は、 この
+   * 対応が無いと別の行を書き換える。
+   *
+   * **対応が取れない edge については呼ばれない**。 「対応が無い」 と「行 0」 を区別するため。
+   */
+  onEdgeSource?: (edgeId: string, line: number) => void;
 }
 
 /** 図は出せるが書いた通りにならなかった、 という知らせ。 */
@@ -94,7 +104,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
       throw new Error(`unknown type: ${String(doc.type)}`);
   }
-  applyEdgeInlineOptions(diagram, doc);
+  // edge と本文の行の対応は表に集めてから 1 edge = 1 回で知らせる (#998)。 経路ごとに
+  // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
+  const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
+  applyEdgeInlineOptions(diagram, doc, edgeSourceLines);
+  // `type: flow` は actor を鎖状に繋ぐため上の (from, to) 一致では取れない。 preset の規則で埋める。
+  if (edgeSourceLines) fillFlowEdgeSources(diagram, doc, edgeSourceLines);
   applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
@@ -106,7 +121,16 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, placed);
-  return mergePartsFromActors(extended, placed, opts?.partsCatalog);
+  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog);
+  // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
+  // 途中で消えた edge の行を知らせても呼出側が使えない。
+  if (edgeSourceLines && opts?.onEdgeSource) {
+    const alive = new Set(merged.edges.map((e) => e.id));
+    for (const [id, line] of edgeSourceLines) {
+      if (alive.has(id)) opts.onEdgeSource(id, line);
+    }
+  }
+  return merged;
 }
 
 /**
@@ -1341,7 +1365,12 @@ function deepRewriteStrings(
  * - ER preset で cardinality が author 明示なら、 既存の label "places (1:N)" に "(1:N)" を再付与せず、
  *   既に label に含まれている場合はスキップ (`label.includes(cardinality)` で判定)。
  */
-function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
+function applyEdgeInlineOptions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  /** 対応が取れた edge を記録する表。 callback は呼ばない (1 edge = 1 回にするため)。 */
+  sourceLines?: Map<string, number>,
+): void {
   const used = new Set<string>();
   // sequence preset では actor 名 が lane id、 edge.from は `s{stepIdx}-{laneId}` 形式。
   // solidity は sorted-actor を sequence preset 経由するため sequence と同形。
@@ -1364,6 +1393,7 @@ function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
     });
     if (!target) return;
     used.add(target.id);
+    sourceLines?.set(target.id, s.pos.line);
     if (s.guard !== undefined) {
       target.guard = s.guard;
       // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
@@ -1380,6 +1410,39 @@ function applyEdgeInlineOptions(diagram: CdlDiagram, doc: DslDocument): void {
     }
     if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
     if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  });
+}
+
+/**
+ * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
+ *
+ * `type: flow` は **actor を宣言順に一直線に並べ、 隣り合う actor の間に edge を引く**。
+ * n 本目の edge は `actors[n]` から `actors[n+1]` へ向かい、 その label は
+ * `doc.flow.find((s) => s.to === actors[n+1].name)` で選ばれる (`compileFlow`)。 そのため
+ * `a -> c` / `c -> b` と書いても edge は `a -> b` / `b -> c` になり、 `(from, to)` の一致では
+ * 1 件も取れない。
+ *
+ * **label を選ぶのと同じ規則で引く**。 `slugify` を挟んだ照合にすると、 別の名前が同じ slug に
+ * なる形 (`API Gateway` と `api-gateway`) で label の出どころと違う step を返す。
+ *
+ * **汎用の `(from, to)` 照合が入れた値は上書きする**。 `type: flow` では label の出どころが
+ * この規則で決まるので、 こちらが正しい。 上書きしないと、 たまたま `(from, to)` が一致した
+ * 別の step の行が残る (実測 = `c -> b: いち` / `a -> b: に` の順で書くと、 edge の label は
+ * `いち` なのに `に` の行を返した)。
+ *
+ * 対応が取れない edge には何も入れない (呼出側が「対応が無い」 と「行 0」 を区別できるように
+ * するため、 #998)。
+ */
+function fillFlowEdgeSources(diagram: CdlDiagram, doc: DslDocument, sourceLines: Map<string, number>): void {
+  if (doc.type !== "flow") return;
+  // animation ありは別経路 (`compileGenericWithAnimate`) で、 鎖の規則が当てはまらない。
+  if (doc.animate && doc.animate.phases.length > 0) return;
+  diagram.edges.forEach((e, idx) => {
+    const to = doc.actors[idx + 1];
+    if (to === undefined) return;
+    const step = doc.flow.find((s) => s.to === to.name);
+    if (step === undefined) return;
+    sourceLines.set(e.id, step.pos.line);
   });
 }
 

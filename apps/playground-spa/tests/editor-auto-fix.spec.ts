@@ -125,6 +125,76 @@ flow:
     await expect(button).toContainText("対応可なし");
   });
 
+  test("行順と edge 順が食い違っても正しい行に入る", async ({ page }) => {
+    // `type: flow` の preset は actor を宣言順に鎖状に繋ぐ = `a -> c` と書いても `a -> b` の
+    // edge になる。 組み立て側が返す行番号 (#998) を使わないと別の行を書き換える。
+    await open(
+      page,
+      `title: "行順と edge 順が違う"
+type: flow
+actors:
+  - a: service
+  - b:
+      kind: service
+      位置: a の右 500
+  - c:
+      kind: service
+      位置: a の右 250
+flow:
+  - a -> c: とてもとてもながいラベルの文字列テストです
+  - c -> b: みじかい
+`,
+    );
+    const button = page.locator(".v4-editor-warnings-apply");
+    // 対応外の警告しか出ない図では押せない。 その場合は本 test の前提が崩れているので落とす。
+    await expect(button, "対応可 0 件で button が無効").toBeEnabled({ timeout: 15000 });
+    await button.click();
+    await expect.poll(async () => await srcOf(page), { timeout: 10000 }).toContain("labelOffsetY");
+
+    // 組み立て側は `e-b-c` に長いラベルを、 `e-a-b` に短い方を載せる (actor の鎖)。 行との
+    // 対応が壊れていると、 長いラベルの警告に対する offset が短い方の行に入る。
+    const lines = (await srcOf(page)).split("\n").filter((l) => l.includes("labelOffsetY"));
+    expect(lines.length, "1 行も書き換わっていない").toBeGreaterThan(0);
+    const long = lines.find((l) => l.includes("とてもとてもながいラベルの文字列テストです"));
+    expect(long, "長いラベルの行に入っていない").toBeDefined();
+  });
+
+  test("パーツが本文の前にあっても正しい行に入る", async ({ page }) => {
+    // パーツの行は組み立て前に抜かれるので、 組み立て側が返す行番号は本文の座標とずれる。
+    // 戻さないと `flow:` より前にパーツがある本文で別の行を書き換える (#998)。
+    await open(
+      page,
+      `title: "パーツが前にある"
+type: flow
+actors:
+  - g:
+      kind: arc-gauge
+  - a: service
+  - b:
+      kind: service
+      位置: a の右 500
+  - c:
+      kind: service
+      位置: a の右 250
+flow:
+  - a -> c: とてもとてもながいラベルの文字列テストです
+  - c -> b: みじかい
+`,
+    );
+    const button = page.locator(".v4-editor-warnings-apply");
+    await expect(button, "対応可 0 件で button が無効").toBeEnabled({ timeout: 15000 });
+    await button.click();
+    await expect.poll(async () => await srcOf(page), { timeout: 10000 }).toContain("labelOffsetY");
+
+    const src = await srcOf(page);
+    for (const line of src.split("\n")) {
+      if (!line.includes("labelOffsetY")) continue;
+      expect(line, "edge 行以外に書かれている").toMatch(/->/);
+    }
+    const long = src.split("\n").find((l) => l.includes("labelOffsetY"));
+    expect(long, "長いラベルの行に入っていない").toContain("とてもとてもながいラベルの文字列テストです");
+  });
+
   /**
    * 行順と edge 順が食い違う形は browser からは作れない。 `type: flow` の preset は actor を
    * 鎖状に繋いだ edge を作り、 DSL の step とは対応しない (実測 = `a -> c` / `c -> b` と書くと
