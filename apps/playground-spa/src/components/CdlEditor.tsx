@@ -55,6 +55,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 }
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
+import { yamlToDiagram, formatYamlError, type YamlAdapterError } from "@/lib/yaml-adapter";
 import { stageSvgOf } from "@/lib/stage-svg";
 import { applyOffsetsToFlow, toSourceLines, usableEdgeLines } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
@@ -222,7 +223,41 @@ function collectActorNamesFromSrc(src: string): Set<string> {
 
 // 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
 
-export function CdlEditor(): React.JSX.Element {
+/**
+ * CAR-1678 = YAML tab の初期 buffer (multi-line YAML DSL、 dragon JSON schema と 1:1 対応)。
+ * SAMPLES[0] と対等な UX を YAML 派 user にも提供、 title / actors / flow / animation の 4 block 揃え、
+ * confirmReplaceIfDirty の初期比較 (yamlLastLoadedRef) にも同 default を使う。
+ */
+const DEFAULT_YAML_SRC = `title: "YAML tab demo"
+type: sequence
+actors:
+  - User
+  - API
+flow:
+  - from: User
+    to: API
+    label: login
+  - from: API
+    to: User
+    label: ok
+animation:
+  - step: request
+    duration: 1.2
+    focus:
+      - User
+      - API
+`;
+
+/**
+ * CAR-1678 = CdlEditor が accept する initial tab hint。
+ * EditorPage が URL param `?format=yaml` or 拡張子 `.yml` を検知して "yaml" を渡す。
+ * 未指定 (undefined) or "cdl" なら従来通り CDL tab active で起動する。
+ */
+export interface CdlEditorProps {
+  initialTab?: "cdl" | "yaml";
+}
+
+export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const location = useLocation();
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
   // keydown handler から最新 src を同期的に読むための mirror
@@ -243,6 +278,16 @@ export function CdlEditor(): React.JSX.Element {
     });
   }, []);
   const setSrcSilent = setSrcRaw; // undo / redo 経路用 (history に push しない)
+  /**
+   * CAR-1678 = 編集 tab (CDL 従来経路 / YAML 新経路)。
+   * initialTab prop (EditorPage 側で URL param + 拡張子から決定) を初期値に採用、
+   * user が UI 経由で切替えた後は自前 state で管理する (prop 変化に追随はしない = URL param は起動 1 回のみ有効)。
+   */
+  const [activeTab, setActiveTab] = useState<"cdl" | "yaml">(props.initialTab ?? "cdl");
+  /** CAR-1678 = YAML tab の source buffer、 CDL 側 `src` と分離。 双方向 sync なし (spec 反例 2)。 */
+  const [yamlSrc, setYamlSrc] = useState<string>(DEFAULT_YAML_SRC);
+  /** CAR-1678 = YAML parse / validation error、 preview 上部の error banner に表示、 null = 正常 */
+  const [yamlError, setYamlError] = useState<YamlAdapterError | null>(null);
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
@@ -371,6 +416,12 @@ export function CdlEditor(): React.JSX.Element {
    * 編集済と判定して window.confirm を出す。 一致 = user 未編集で silent replace 継続。
    */
   const lastLoadedSrcRef = useRef<string>(SAMPLES[0].code);
+  /**
+   * CAR-1678 = YAML tab 側の「最後に programmatic に load した src」 追跡。
+   * tab 切替時の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim()) で使う。
+   * default = DEFAULT_YAML_SRC、 URL 経由の share 復元経路は本 PR 対象外 (spec § out)。
+   */
+  const yamlLastLoadedSrcRef = useRef<string>(DEFAULT_YAML_SRC);
   const confirmReplaceIfDirty = useCallback((newSrcPreviewLabel: string): boolean => {
     // codex-review CAR-1659 CRITICAL fix = length > 20 guard 削除、 strict 比較のみで dirty 判定。
     // 短い編集 (削除 / 部分修正) でも user 意図した変更なら必ず confirm すべき、 length 閾値は
@@ -382,6 +433,35 @@ export function CdlEditor(): React.JSX.Element {
     );
     return ok;
   }, [src]);
+
+  /**
+   * CAR-1678 = YAML tab の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim())。
+   * CDL 側 confirmReplaceIfDirty と対称、 tab 切替時のみ使うので独立 callback にせず inline 呼出でも可、
+   * ただし CDL / YAML 両方向で同じ「Unsaved changes will be lost. Continue?」 message を出したいので
+   * 共通化しやすい形に括り出す (spec AC 2 の form SSOT)。
+   */
+  const confirmTabSwitchIfDirty = useCallback((): boolean => {
+    const cdlDirty = src.trim() !== (lastLoadedSrcRef.current ?? "").trim();
+    const yamlDirty = yamlSrc.trim() !== (yamlLastLoadedSrcRef.current ?? "").trim();
+    // 切替元 tab の dirty 判定に基づき confirm を出す (切替後 tab の buffer は保持される)。
+    const sourceDirty = activeTab === "cdl" ? cdlDirty : yamlDirty;
+    if (!sourceDirty) return true;
+    // spec AC 2 = `Unsaved changes will be lost. Continue?` の文言 SSOT。
+    // native confirm dialog なので Playwright test は page.on("dialog") で捕捉する。
+    return window.confirm("Unsaved changes will be lost. Continue?");
+  }, [activeTab, src, yamlSrc]);
+
+  const handleTabSwitch = useCallback((next: "cdl" | "yaml"): void => {
+    if (next === activeTab) return;
+    if (!confirmTabSwitchIfDirty()) return;
+    setActiveTab(next);
+    // 切替後 tab の error banner はリセットして clean state で再 render に入る
+    if (next === "yaml") {
+      setError(null);
+    } else {
+      setYamlError(null);
+    }
+  }, [activeTab, confirmTabSwitchIfDirty]);
 
   // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)。
   // codex-review PR #413 MAJOR fix = partsLoadFailed で終了状態を保持、 失敗後は明示的な reset
@@ -704,6 +784,13 @@ export function CdlEditor(): React.JSX.Element {
     (window as unknown as { __cdlEditorSrc?: string }).__cdlEditorSrc = src;
   }, [src]);
 
+  // CAR-1678 = YAML tab 側の window mirror + active tab の露出 (E2E 検証用 side channel、 production では読み手なし)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __cdlEditorYamlSrc?: string }).__cdlEditorYamlSrc = yamlSrc;
+    (window as unknown as { __cdlEditorActiveTab?: string }).__cdlEditorActiveTab = activeTab;
+  }, [yamlSrc, activeTab]);
+
   // CAR-1657 = parts catalog を CdlEditor 側で load、 textDslToDiagram に inject する経路。
   // parts identifier (arc-gauge / wave-gauge 等) を kind field で書ける unified syntax の compile 時
   // lookup 用。 loadPartsItems が partsItems state を populate する useEffect と同 tab 切替 trigger 利用。
@@ -719,10 +806,46 @@ export function CdlEditor(): React.JSX.Element {
     return map;
   }, [partsItems]);
 
-  // src 変更時 debounce 300ms で parse + render
+  // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    const debounceMs = activeTab === "yaml" ? 500 : 300;
     timerRef.current = window.setTimeout(() => {
+      if (activeTab === "yaml") {
+        // CAR-1678 = YAML tab は yaml-adapter.ts (js-yaml.load → jsonToDiagram) 経由で bridge。
+        // parse / validation error は preview 上部の error banner (yamlError state) に表示、
+        // 前回 render (diagram) は消さない (spec AC 4 = 「前回 render は消えず維持」)。
+        const result = yamlToDiagram(yamlSrc, { partsCatalog });
+        if (result.ok) {
+          try {
+            compile(result.diagram);
+            setDiagram(result.diagram);
+            setYamlError(null);
+            setError(null);
+            try {
+              const report = visualValidate(result.diagram);
+              // 絞り込みは本文欄と同じ関数を使う。 別々に書くと、 片方だけ直した時に
+              // 同じ図なのに欄によって出る警告が変わる。
+              setWarnings(visibleWarnings(report.violations, result.diagram));
+            } catch {
+              setWarnings([]);
+            }
+          } catch (e) {
+            // compile 側 throw = validation kind に丸め (jsonToDiagram 通過後の layout error)、
+            // 前回 diagram は残す (spec AC 4 の spirit を compile error にも適用)。
+            setYamlError({
+              kind: "validation",
+              line: null,
+              message: e instanceof Error ? e.message : String(e),
+              reason: null,
+            });
+          }
+        } else {
+          // parse or validation error = banner 更新、 diagram は残す (前回 render 保持)
+          setYamlError(result.error);
+        }
+        return;
+      }
       try {
         // CAR-1657 = 旧 #!parts JSON escape hatch は backward compat 経路 (deprecated、 auto-convert 前提)。
         // 既 share URL / user が保存した buffer に marker が残っている可能性があり、 open 時は
@@ -802,14 +925,14 @@ export function CdlEditor(): React.JSX.Element {
         // 図が出せない時は前回の知らせを残さない。 今の本文と対応しない行番号が出る
         setCompileNotices([]);
       }
-    }, 300);
+    }, debounceMs);
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
     // パーツ一覧は遅延して読み込まれる。 本文だけを見ていると、 読み込みが終わっても
     // 抽出をやり直さないため、 パーツが図の中の空の箱のまま残る (実測 = 共有 URL で
     // パーツ入りの本文を開くと、 一覧を開いた後も箱のままだった)
-  }, [src, partsCatalog, partsItems]);
+  }, [src, yamlSrc, activeTab, partsCatalog, partsItems]);
 
   /**
    * 図の world 座標の原点が、 画面上のどこに来るか。
@@ -837,7 +960,9 @@ export function CdlEditor(): React.JSX.Element {
    * 画面に出る座標と記法に書ける座標がずれる。
    */
   const positionMarks = useMemo(() => {
-    if (!showPositions || !diagram) return [];
+    // 札は押すと本文欄の `src` に座標を書く。 YAML 欄で出すと、 映していない本文の方が
+    // 書き換わる = 押した相手と変わる中身が食い違うので、 本文欄の時だけ出す。
+    if (activeTab !== "cdl" || !showPositions || !diagram) return [];
     try {
       const vb = worldOrigin;
       return [...measureActorBoxes(diagram)]
@@ -856,7 +981,7 @@ export function CdlEditor(): React.JSX.Element {
     } catch {
       return [];
     }
-  }, [showPositions, diagram, diagramK, src, worldOrigin]);
+  }, [activeTab, showPositions, diagram, diagramK, src, worldOrigin]);
 
   /**
    * 今の位置を座標として本文に書く。
@@ -908,10 +1033,15 @@ export function CdlEditor(): React.JSX.Element {
     const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
     // 図の外に置いたパーツも視野に入れる。 パーツは cdl の図とは別に重ねて描くので、
     // 図の枠だけを見ると画面の外に出たまま戻せない (実測 = 自動配置のパーツが画面の下に出た)
+    //
+    // ただし数えるのは本文欄を映している時だけ。 パーツは本文欄の記述から作るもので、
+    // YAML 欄では描いていない。 数に入れると、 見えないパーツを囲もうとして図が極端に
+    // 縮む (実測 = 本文欄で遠くに置いたパーツが YAML 欄の倍率を壊した)
+    const fitParts = activeTab === "cdl" ? overlayPartsRef.current : [];
     const bounds = fitBounds(
       { width: px.w, height: px.h },
       headerUnscaled,
-      overlayPartsRef.current.map((p) => {
+      fitParts.map((p) => {
         const size = partWorldSize(p);
         return {
           left: (p.posX - worldOriginRef.current.x) * diagramK,
@@ -927,7 +1057,7 @@ export function CdlEditor(): React.JSX.Element {
     const tx = (previewRect.width - bounds.width * scale) / 2 - bounds.left * scale;
     const ty = (previewRect.height - bounds.height * scale) / 2 - bounds.top * scale;
     setTransform({ tx, ty, scale });
-  }, [diagramK]);
+  }, [diagramK, activeTab]);
 
   // 図が描き直される度に表示サイズを焼き直し、 図枠が動いた分を pan で打ち消す。
   //
@@ -1245,6 +1375,19 @@ animation:
     setActiveSample("new");
   };
 
+  /**
+   * 本文欄 (`src`) を書き換える操作を止めるかどうか。
+   *
+   * これらの操作は YAML 欄を映している間も本文欄の中身を変える。 押した人からは
+   * 画面が何も変わらないように見えるのに、 見えていない方が書き換わっている
+   * (実測 = YAML 欄で「新規ファイル」 を押すと本文欄だけ `untitled` に置き換わった)。
+   *
+   * YAML 側に同じことをする経路はまだ無いので、 押せなくして食い違いを断つ。
+   */
+  const cdlWriteDisabled = activeTab !== "cdl";
+  /** 押せない時に出す理由。 button の `title` に入れる (無効の理由が読めないと故障に見える) */
+  const cdlOnlyHint = "本文欄 (CDL) でのみ使えます";
+
   return (
     <div className="v4-editor">
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
@@ -1253,6 +1396,9 @@ animation:
           type="button"
           className="v4-editor-side-new"
           onClick={handleNewFile}
+          disabled={cdlWriteDisabled}
+          title={cdlWriteDisabled ? cdlOnlyHint : undefined}
+          data-testid="editor-new-file"
         >
           <span className="v4-editor-side-new-plus">+</span>
           <span>新規ファイル</span>
@@ -1290,10 +1436,16 @@ animation:
         </div>
         {sidebarTab === "syntax" && (
           <SyntaxReference
-            onInsert={(code) => {
-              // 末尾に足す。 どこに入れるかを当てるより、 足した後に user が動かす方が確実。
-              setSrc((prev) => (prev.endsWith("\n") ? `${prev}${code}\n` : `${prev}\n${code}\n`));
-            }}
+            // YAML 欄では差し込み先が映っていないので、 一覧は読めるが押しても入らない形にする
+            // (`onInsert` 未指定で click と説明書きが外れる)
+            onInsert={
+              cdlWriteDisabled
+                ? undefined
+                : (code) => {
+                    // 末尾に足す。 どこに入れるかを当てるより、 足した後に user が動かす方が確実。
+                    setSrc((prev) => (prev.endsWith("\n") ? `${prev}${code}\n` : `${prev}\n${code}\n`));
+                  }
+            }
           />
         )}
         {sidebarTab === "samples" && (
@@ -1317,6 +1469,8 @@ animation:
                       data-testid={`editor-sample-${s.slug}`}
                       data-sample-label={s.label}
                       onClick={() => handleSelectSample(s)}
+                      disabled={cdlWriteDisabled}
+                      title={cdlWriteDisabled ? cdlOnlyHint : undefined}
                     >
                       {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
                     </button>
@@ -1351,7 +1505,8 @@ animation:
                   className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
                   data-testid={`editor-part-item-${p.id}`}
                   data-part-id={p.id}
-                  title={p.subtitle}
+                  title={cdlWriteDisabled ? cdlOnlyHint : p.subtitle}
+                  disabled={cdlWriteDisabled}
                   onClick={() => {
                     // CAR-1657 click = drop と同 semantic = actors: append (additive)。
                     // actors: block なし = REPLACE fallback (新規 diagram 作成、 confirm dialog 経由)
@@ -1415,9 +1570,43 @@ animation:
       {/* ── 中央 DSL editor (CodeMirror) ── */}
       <section className="v4-editor-code">
         <header className="v4-editor-bar">
-          <span className="v4-editor-bar-file">▲ {activeSample}.dragon</span>
+          {/* CAR-1678 = CDL / YAML tab 切替 (2 tab のみ、 spec § in scope の 2 tab semantics) */}
+          <div className="v4-editor-tabs" role="tablist" aria-label="editor format tabs">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "cdl"}
+              className={`v4-editor-tab ${activeTab === "cdl" ? "active" : ""}`}
+              onClick={() => handleTabSwitch("cdl")}
+              data-testid="editor-tab-cdl"
+            >
+              CDL
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "yaml"}
+              className={`v4-editor-tab ${activeTab === "yaml" ? "active" : ""}`}
+              onClick={() => handleTabSwitch("yaml")}
+              data-testid="editor-tab-yaml"
+            >
+              YAML
+            </button>
+          </div>
+          <span className="v4-editor-bar-file">
+            {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
+          </span>
           <span className="v4-editor-bar-gap" />
-          <button type="button" className="v4-editor-bar-btn" onClick={handleShare}>
+          {/* 共有 URL は本文欄の中身だけを載せる。 YAML 欄で押すと、 映していない本文が
+              相手の画面に開く (実測) ので、 YAML を載せる経路ができるまで押せなくする */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn"
+            onClick={handleShare}
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : undefined}
+            data-testid="editor-share"
+          >
             共有URL
           </button>
           <div className="v4-editor-export">
@@ -1440,12 +1629,12 @@ animation:
             </div>
           </div>
         </header>
-        <div className="v4-editor-code-body">
+        <div className="v4-editor-code-body" data-testid={`editor-code-body-${activeTab}`}>
           <CodeMirror
-            value={src}
+            value={activeTab === "yaml" ? yamlSrc : src}
             theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
             extensions={[yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]}
-            onChange={(v) => setSrc(v)}
+            onChange={(v) => (activeTab === "yaml" ? setYamlSrc(v) : setSrc(v))}
             height="100%"
             basicSetup={{
               lineNumbers: true,
@@ -1458,10 +1647,16 @@ animation:
             }}
           />
         </div>
-        {error && <pre className="v4-editor-error">{error}</pre>}
+        {activeTab === "yaml" && yamlError && (
+          <pre className="v4-editor-error" data-testid="editor-yaml-error">
+            {formatYamlError(yamlError)}
+          </pre>
+        )}
+        {activeTab === "cdl" && error && <pre className="v4-editor-error">{error}</pre>}
         {/* 書いたのに効かなかったこと。 誤りではない (図は出る) が、 黙って捨てると
-            書いた人が理由を追えないので、 行番号と直し方を添えて出す。 */}
-        {!error && compileNotices.length > 0 && (
+            書いた人が理由を追えないので、 行番号と直し方を添えて出す。
+            本文の行番号を指すので、 その本文を映していない YAML 欄では出さない。 */}
+        {activeTab === "cdl" && !error && compileNotices.length > 0 && (
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
             {compileNotices.map((n) => (
               <div key={`${n.actor}-${n.line}`} className="v4-editor-notice">
@@ -1473,6 +1668,7 @@ animation:
             ))}
           </div>
         )}
+        {/* 位置関係の警告は図に対する検査なので、 どちらの欄で書いた図でも出す。 */}
         {!error && warnings.length > 0 && (
           <div className="v4-editor-warnings">
             <div className="v4-editor-warnings-head">
@@ -1490,11 +1686,16 @@ animation:
                 type="button"
                 className="v4-editor-warnings-apply"
                 onClick={handleAutoFix}
-                disabled={fixableWarningCount === 0}
+                // 書き戻し先は本文欄。 YAML 欄の図に出た警告を押すと、 その図を持たない
+                // 本文の方が書き換わる (または「反映できない」 と出る) ので押せなくする
+                disabled={fixableWarningCount === 0 || cdlWriteDisabled}
+                data-testid="editor-auto-fix"
                 title={
-                  fixableWarningCount > 0
-                    ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
-                    : "対応可 warning がありません"
+                  cdlWriteDisabled
+                    ? cdlOnlyHint
+                    : fixableWarningCount > 0
+                      ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
+                      : "対応可 warning がありません"
                 }
               >
                 {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "対応可なし"}
@@ -1564,7 +1765,8 @@ animation:
             className="v4-editor-bar-btn"
             data-testid="editor-diagram-scale-down"
             onClick={() => scaleWholeDiagram(1 / 1.25)}
-            title="図そのものを縮小する (表示倍率ではなく DSL に反映)"
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを縮小する (表示倍率ではなく DSL に反映)"}
           >
             図を縮小
           </button>
@@ -1573,7 +1775,8 @@ animation:
             className="v4-editor-bar-btn"
             data-testid="editor-diagram-scale-up"
             onClick={() => scaleWholeDiagram(1.25)}
-            title="図そのものを拡大する (表示倍率ではなく DSL に反映)"
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを拡大する (表示倍率ではなく DSL に反映)"}
           >
             図を拡大
           </button>
@@ -1583,7 +1786,9 @@ animation:
             data-testid="editor-toggle-positions"
             aria-pressed={showPositions}
             onClick={() => setShowPositions((v) => !v)}
-            title="各要素が今どこに居るかを図に重ねて出す"
+            // 札は本文欄にしか書き戻せない。 YAML 欄では押しても何も出ないので押せなくする
+            disabled={cdlWriteDisabled}
+            title={cdlWriteDisabled ? cdlOnlyHint : "各要素が今どこに居るかを図に重ねて出す"}
           >
             位置を表示
           </button>
@@ -1686,7 +1891,10 @@ animation:
                     {Math.round(m.cx)},{Math.round(m.cy)}
                   </button>
                 ))}
-                {overlayParts.map((p) => {
+                {/* 重ねるパーツは本文欄の `src` から取り出したもの。 YAML 欄の図に重ねると、
+                    その図が持たない部品が乗って見える (実測 = 本文欄でパーツを置いてから
+                    欄を切り替えると残った) ので、 本文欄の時だけ出す。 */}
+                {activeTab === "cdl" && overlayParts.map((p) => {
                   return (
                     <div
                       key={p.id}
