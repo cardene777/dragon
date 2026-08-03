@@ -346,6 +346,46 @@ flow:
     });
   });
 
+  test.describe("覚えてある図に戻る時、 前の誤りを引きずらない", () => {
+    test.beforeEach(({ page }) => {
+      page.on("dialog", (d) => {
+        void d.accept();
+      });
+    });
+
+    test("正しい YAML → 壊れた YAML → 元に戻すと誤りの帯が消える", async ({ page }) => {
+      // 覚えてあるのは組み立てに成功した結果だけ。 戻った時に前の失敗の帯が残ると、
+      // 図は正しいのに直っていないように見える
+      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.waitForTimeout(1000);
+
+      const good = `title: "ok"
+type: sequence
+actors:
+  - X
+  - Y
+flow:
+  - from: X
+    to: Y
+    label: go
+`;
+      await setYamlSrc(page, good);
+      await page.waitForTimeout(900);
+      await expect(page.getByTestId("editor-yaml-error")).toHaveCount(0);
+
+      // 壊す
+      await setYamlSrc(page, `title: "broken\ntype: sequence\n`);
+      await page.waitForTimeout(900);
+      await expect(page.getByTestId("editor-yaml-error")).toBeVisible({ timeout: 3000 });
+
+      // 元に戻す = 覚えてある結果に当たる
+      await setYamlSrc(page, good);
+      await page.waitForTimeout(900);
+      await expect(page.getByTestId("editor-yaml-error"), "誤りの帯が残っている").toHaveCount(0);
+      await expect(page.locator(".v4-editor-preview svg")).toBeVisible();
+    });
+  });
+
   test.describe("regression = CDL tab 経路は無変更", () => {
     test("CDL tab で見本を選ぶと本文と図が入れ替わる", async ({ page }) => {
       page.on("dialog", (d) => void d.accept());

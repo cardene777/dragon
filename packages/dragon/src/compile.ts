@@ -10,7 +10,7 @@
  */
 
 import type { DslDocument, DslPhase } from "./types";
-import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
+import type { CdlDiagram, ErRelationCardinality, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
@@ -422,8 +422,18 @@ function desiredCenters(
  * 1 人が複数の箱に分かれる図種 (順序図の上端 / 下端) では、 全部を囲む矩形を返す。
  * 箱として現れない登場人物は縦列の矩形で代用する。
  */
-export function measureActorBoxes(diagram: CdlDiagram): Map<string, AnchorBox> {
-  const laid = layout(diagram);
+export function measureActorBoxes(
+  diagram: CdlDiagram,
+  /**
+   * 配置まで済ませた図。 渡すとここでは測り直さない (#1006)。
+   *
+   * 呼出側が既に組み立てているなら、 ここで `layout` を呼ぶと同じ図の配置を 2 度計算する。
+   * 図の規模に比例して重く、 辺 500 本で約 300ms (実測)。
+   * 渡す時は `diagram` と対にする = 別の図の配置を渡すと、 測る位置がずれる。
+   */
+  laidHint?: LaidDiagram,
+): Map<string, AnchorBox> {
+  const laid = laidHint ?? layout(diagram);
   const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
   for (const n of laid.nodes) {
     const title = n.title;
