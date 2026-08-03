@@ -386,6 +386,118 @@ flow:
     });
   });
 
+  test.describe("読み取りの実装は YAML 欄を開いた時だけ読み込む (#1007)", () => {
+    /** 読み取りの実装 (`js-yaml` を含む塊) が読み込まれたかを記録する */
+    function watchAdapterRequests(page: Page): string[] {
+      const seen: string[] = [];
+      page.on("request", (r) => {
+        const url = r.url();
+        if (url.includes("yaml-adapter")) seen.push(url);
+      });
+      return seen;
+    }
+
+    test("本文欄だけ使った時は読み込まれない", async ({ page }) => {
+      const seen = watchAdapterRequests(page);
+      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.waitForTimeout(1200);
+      // 本文欄で書き換えても読み込まない
+      await page.locator('[data-testid="editor-code-body-cdl"] .cm-content').click();
+      await page.keyboard.press("End");
+      await page.keyboard.type("\n# edit");
+      await page.waitForTimeout(900);
+      expect(seen, `読み込まれている: ${seen.join(", ")}`).toHaveLength(0);
+    });
+
+    test("読み込みに失敗したら、 黙って止まらず理由と直し方を出す", async ({ page }) => {
+      // 読み取りを別 file に分けたことで、 その取得が失敗する経路ができた。 黙って描かれないと
+      // 故障に見える。
+      //
+      // **取り直しはできない**。 読み込みに失敗した module は browser 側にも失敗として
+      // 記録され、 同じ名前で頼み直しても要求自体が出ない (実測 = 1 回目を落とした後に
+      // 書き換えても要求は 1 回のまま)。 今できる案内は「頁を開き直す」
+      page.on("dialog", (d) => void d.accept());
+      await page.route(/yaml-adapter/, (route) => route.abort("failed"));
+
+      await page.goto("/editor?format=yaml", { waitUntil: "domcontentloaded" });
+      const banner = page.getByTestId("editor-yaml-error");
+      await expect(banner).toBeVisible({ timeout: 8000 });
+      const text = await banner.textContent();
+      expect(text, "何が起きたか分からない").toContain("読み込めませんでした");
+      expect(text, "どうすればよいか分からない").toContain("頁を開き直して");
+    });
+
+    test("YAML 欄を開くと読み込まれ、 図が描かれる", async ({ page }) => {
+      page.on("dialog", (d) => void d.accept());
+      const seen = watchAdapterRequests(page);
+      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.waitForTimeout(1500);
+      expect(seen.length, "読み込まれていない").toBeGreaterThan(0);
+      // 遅れて届いた後も図は描かれる
+      await expect(page.locator(".v4-editor-preview svg")).toBeVisible({ timeout: 5000 });
+    });
+
+    test("届くのが遅れた古い入力で、 新しい図を上書きしない", async ({ page }) => {
+      // 順序を作らないと照合の識別力が出ない。 作る順序は次の通り。
+      //
+      // 1. `first` を書いて待機 (500ms) を明けさせ、 取得を始めさせる
+      // 2. 取得が始まったのを見てから `second` を書く
+      // 3. `second` の待機が明ける前に取得を解放する
+      //
+      // これで `first` の callback が `second` より後に走る。 照合が無いと `first` の図が
+      // 一度描かれてしまう
+      page.on("dialog", (d) => void d.accept());
+      const gate: { release: (() => void) | null; requested: boolean } = { release: null, requested: false };
+      await page.route(/yaml-adapter/, async (route) => {
+        gate.requested = true;
+        await new Promise<void>((r) => {
+          gate.release = r;
+        });
+        await route.continue();
+      });
+
+      await page.goto("/editor?format=yaml", { waitUntil: "domcontentloaded" });
+      await expect.poll(() => gate.requested, { timeout: 8000 }).toBe(true);
+
+      // 1. `first` を書いて待機を明けさせる = この内容で callback が登録される
+      await setYamlSrc(page, `title: "first"
+type: sequence
+actors:
+  - P
+  - Q
+flow:
+  - from: P
+    to: Q
+    label: onlyfirst
+`);
+      await page.waitForTimeout(700);
+
+      // 2. 続けて `second` を書く。 待機は張り直され、 まだ明けていない
+      await setYamlSrc(page, `title: "second"
+type: sequence
+actors:
+  - R
+  - S
+flow:
+  - from: R
+    to: S
+    label: two
+`);
+
+      // 3. `second` の待機が明ける前に解放する = `first` の callback が先に走る
+      await page.waitForTimeout(120);
+      gate.release?.();
+      // 解放の直後に見る。 照合が無ければ、 ここで `first` の図が描かれてしまう
+      await page.waitForTimeout(250);
+      const rightAfter = await previewFingerprint(page);
+      expect(rightAfter, "届いた古い入力の図が描かれた").not.toContain("onlyfirst");
+
+      // 最後は `second` に落ち着く
+      await page.waitForTimeout(2000);
+      expect(await previewFingerprint(page)).toContain("two");
+    });
+  });
+
   test.describe("regression = CDL tab 経路は無変更", () => {
     test("CDL tab で見本を選ぶと本文と図が入れ替わる", async ({ page }) => {
       page.on("dialog", (d) => void d.accept());

@@ -60,7 +60,9 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
 }
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
-import { yamlToDiagram, formatYamlError, type YamlAdapterError } from "@/lib/yaml-adapter";
+// 誤りの型と整形だけを静的に読む。 読み取りの実装 (`js-yaml` を含む) は YAML 欄を開いた時に
+// 初めて読み込む (#1007)。 整形までその到着を待つと、 誤りの帯が 1 拍遅れて出る
+import { formatYamlError, type YamlAdapterError } from "@/lib/yaml-error";
 import { stageSvgOf } from "@/lib/stage-svg";
 import { applyOffsetsToFlow, toSourceLines, usableEdgeLines } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
@@ -241,6 +243,28 @@ function buildKey(tab: "cdl" | "yaml", src: string, yamlSrc: string, partsCount:
   return JSON.stringify([tab, partsCount, tab === "yaml" ? yamlSrc : src]);
 }
 
+/**
+ * YAML の読み取りは、 YAML 欄を開いた時に初めて読み込む (#1007)。
+ *
+ * `js-yaml` は圧縮後 12KB あり、 editor の塊 (圧縮後 173KB) の 7% を占める。 本文欄しか
+ * 使わない人も download と評価の費用を払っていた。
+ *
+ * 約束を module に持って使い回す。 欄を往復するたびに読み直すと、 2 回目以降に無駄な待ちが出る。
+ */
+let yamlAdapterPromise: Promise<typeof import("@/lib/yaml-adapter")> | null = null;
+function loadYamlAdapter(): Promise<typeof import("@/lib/yaml-adapter")> {
+  yamlAdapterPromise ??= import("@/lib/yaml-adapter").catch((e: unknown) => {
+    // 失敗した約束は捨てる。 ただし **これだけでは取り直せない** = 読み込みに失敗した
+    // module は browser 側にも失敗として記録され、 同じ名前で頼み直しても要求自体が
+    // 出ない (実測 = 1 回目を落とした後に書き換えても要求は 1 回のまま)。
+    // 捨てるのは、 将来 束ね方が変わって取り直せるようになった時に効かせるため。
+    // 今できる案内は「頁を開き直す」 で、 それは誤りの文に書く
+    yamlAdapterPromise = null;
+    throw e;
+  });
+  return yamlAdapterPromise;
+}
+
 /** 欄ごとに覚えておく組み立ての結果 */
 type BuildCacheEntry = {
   key: string;
@@ -293,6 +317,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // keydown handler から最新 src を同期的に読むための mirror
   const srcRef = useRef(src);
   useEffect(() => { srcRef.current = src; }, [src]);
+  // 読み取りの実装が届いた時に「今の本文 / 今の欄」 を同期的に読むための鏡 (#1007)。
+  // 届くまでの間に書き換わっていたら、 古い入力の結果で新しい図を上書きしない
+  const yamlSrcRef = useRef("");
+  const activeTabRef = useRef<"cdl" | "yaml">("cdl");
   // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
   // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
   const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
@@ -318,6 +346,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const [yamlSrc, setYamlSrc] = useState<string>(DEFAULT_YAML_SRC);
   /** CAR-1678 = YAML parse / validation error、 preview 上部の error banner に表示、 null = 正常 */
   const [yamlError, setYamlError] = useState<YamlAdapterError | null>(null);
+  // 遅れて届く読み取りの実装から「今の本文 / 今の欄」 を同期的に読むために鏡を保つ (#1007)
+  useEffect(() => { yamlSrcRef.current = yamlSrc; }, [yamlSrc]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
   // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
@@ -877,6 +908,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    // YAML 欄に入った時点で読み取りの取得を始める (#1007)。 待機 (500ms) の中で初めて
+    // 呼ぶと、 必ず 500ms 待ってから 42KB の取得が始まる = 待機と通信が並ばない。
+    // ここでの失敗は握る (実際の表示は下の経路が受け持つ)
+    if (activeTab === "yaml") void loadYamlAdapter().catch(() => undefined);
     // 欄を切り替えただけで中身が変わっていないなら、 覚えてある図を戻すだけにする (#1006)。
     // 組み立ては図の規模に比例して重く、 往復のたびに計算し直すと画面が止まる
     const key = buildKey(activeTab, src, yamlSrc, partsItems.length);
@@ -898,28 +933,49 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // CAR-1678 = YAML tab は yaml-adapter.ts (js-yaml.load → jsonToDiagram) 経由で bridge。
         // parse / validation error は preview 上部の error banner (yamlError state) に表示、
         // 前回 render (diagram) は消さない (spec AC 4 = 「前回 render は消えず維持」)。
-        const result = yamlToDiagram(yamlSrc, { partsCatalog });
-        if (result.ok) {
-          try {
-            // 絞り込みは本文欄と同じ関数を通る (`applyDiagram` の中)。 別々に書くと、
-            // 片方だけ直した時に同じ図なのに欄によって出る警告が変わる。
-            applyDiagram(result.diagram);
-            setYamlError(null);
-            setError(null);
-          } catch (e) {
-            // compile 側 throw = validation kind に丸め (jsonToDiagram 通過後の layout error)、
-            // 前回 diagram は残す (spec AC 4 の spirit を compile error にも適用)。
+        //
+        // 読み取りの実装は初回だけ読み込む (#1007)。 戻ってきた時に本文や欄が変わっていたら
+        // 何もしない = 古い入力の結果で新しい図を上書きしない。
+        const requestedSrc = yamlSrc;
+        void loadYamlAdapter()
+          .then(({ yamlToDiagram }) => {
+            // 届くまでの間に本文が変わっていたら捨てる。 待機が明けて取得を始めた後に
+            // 書き換えると、 次の待機が明ける前に古い方が届く = 一瞬だけ古い図が出る
+            // (実測 = 照合を外すと `onlyfirst` の図が描かれた)
+            if (yamlSrcRef.current !== requestedSrc || activeTabRef.current !== "yaml") return;
+            const result = yamlToDiagram(requestedSrc, { partsCatalog });
+            if (result.ok) {
+              try {
+                // 絞り込みは本文欄と同じ関数を通る (`applyDiagram` の中)。 別々に書くと、
+                // 片方だけ直した時に同じ図なのに欄によって出る警告が変わる。
+                applyDiagram(result.diagram);
+                setYamlError(null);
+                setError(null);
+              } catch (e) {
+                // compile 側 throw = validation kind に丸め (jsonToDiagram 通過後の layout error)、
+                // 前回 diagram は残す (spec AC 4 の spirit を compile error にも適用)。
+                setYamlError({
+                  kind: "validation",
+                  line: null,
+                  message: e instanceof Error ? e.message : String(e),
+                  reason: null,
+                });
+              }
+            } else {
+              // parse or validation error = banner 更新、 diagram は残す (前回 render 保持)
+              setYamlError(result.error);
+            }
+          })
+          .catch((e: unknown) => {
+            // 読み込み自体に失敗した形 (通信断など)。 黙って描かれないと故障に見える
+            if (yamlSrcRef.current !== requestedSrc || activeTabRef.current !== "yaml") return;
             setYamlError({
               kind: "validation",
               line: null,
-              message: e instanceof Error ? e.message : String(e),
+              message: `YAML の読み取りを読み込めませんでした。 頁を開き直してください (${e instanceof Error ? e.message : String(e)})`,
               reason: null,
             });
-          }
-        } else {
-          // parse or validation error = banner 更新、 diagram は残す (前回 render 保持)
-          setYamlError(result.error);
-        }
+          });
         return;
       }
       try {
