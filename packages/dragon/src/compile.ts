@@ -13,7 +13,7 @@ import type { DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
-  rendersRows, requiredRowsHeight, requiredRowsWidth,
+  rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import {
@@ -1414,6 +1414,69 @@ function applyEdgeInlineOptions(
 }
 
 /**
+ * 描画側が大きさを持つ種別。
+ *
+ * 記法の `kind` は描画の種別より広い。 そのまま渡すと大きさを引けずに描画が落ちる
+ * (実測 = solidity の golden 4 件が `Cannot read properties of undefined`)。
+ */
+const DRAWABLE_KINDS: ReadonlySet<string> = new Set(NODE_KINDS);
+
+/**
+ * 描画側に無い記法の種別を、 意味の近い描画の種別に読み替える。
+ *
+ * Solidity の記法は `eoa` / `contract` のように領域固有の語を使う。 描画側に同じ名前は無いが、
+ * 意味の対応する形はある (`shape-wallet` / `shape-smart-contract`)。 読み替えないと名札が
+ * 一律 `card` になり、 「書いたとおりの形になる」 が Solidity の図だけ成立しない。
+ *
+ * 並び順 (`compileSolidity` の `kindOrder`) はこの読み替えの前の値で決まる = 読み替えても
+ * 縦線の並びは変わらない。
+ */
+const KIND_ALIAS: Readonly<Record<string, string>> = {
+  eoa: "shape-wallet",
+  wallet: "shape-wallet",
+  multisig: "signer",
+  contract: "shape-smart-contract",
+  proxy: "shape-smart-contract",
+  library: "shape-code-block",
+  interface: "shape-code-block",
+};
+
+/** 記法の種別を描画の種別に直す。 描けない種別のままなら `undefined`。 */
+function drawableKind(kind: string | undefined): string | undefined {
+  if (kind === undefined) return undefined;
+  const mapped = KIND_ALIAS[kind] ?? kind;
+  return DRAWABLE_KINDS.has(mapped) ? mapped : undefined;
+}
+
+/**
+ * 順序図の名札 (lifeline 上端 / 下端) の高さを揃える。
+ *
+ * `kind` を書いたとおりに載せると、 種別ごとに要る高さが変わる (行を持つ storage は 206、
+ * card は 72)。 揃えないと縦線の始まる位置がばらけ、 「同じ高さから下りる」 読み方が崩れる。
+ *
+ * 上端は最も高いものに合わせる。 下端も同じ値にする = 上下で形が違うと、 同じ登場人物が
+ * 別物に見える。
+ */
+function alignSeqHeaderHeights(diagram: CdlDiagram, doc: DslDocument): void {
+  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  // 名札の id は `{laneId}-header` / `{laneId}-footer` の構造。 末尾の一致だけで見ると、
+  // 登場人物名が `Auth Header` の時に step の目印 `s0-auth-header` を拾い、 見えない 2px の
+  // 箱を名札の高さまで広げてしまう (#883 と同根)。
+  const isEnd = (n: CdlDiagram["nodes"][number]): boolean =>
+    n.id === `${n.lane}-header` || n.id === `${n.lane}-footer`;
+  const ends = diagram.nodes.filter(isEnd);
+  if (ends.length === 0) return;
+  // `posH` を書いた名札は揃えの外に置く。 「その名札だけを指定の大きさにし、 他には影響させない」
+  // という指定なので (`types.ts` の `nodes` override)、 値を変えるのも、 他の名札を引きずるのも
+  // 契約に反する (実測 = `posH: 400` を 1 つ書くと、 無関係な名札まで 72 → 400 になった)。
+  const auto = ends.filter((n) => n.posH === undefined);
+  if (auto.length === 0) return;
+  const tallest = Math.max(...auto.map((n) => n.h ?? 0));
+  if (tallest <= 0) return;
+  for (const n of auto) n.h = tallest;
+}
+
+/**
  * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
  *
  * `type: flow` は **actor を宣言順に一直線に並べ、 隣り合う actor の間に edge を引く**。
@@ -1824,26 +1887,49 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
-      // seq-like preset の header は kind を card 固定で作る。 actor が行を描く kind を宣言して
-      // rows も書いている場合だけ、 その kind を header に載せる。 載せないと rows が card に
+      // seq-like preset の header / footer は kind を card 固定で作る。 書いた kind を載せる
+      // (#975)。 載せないと「書いたのに効かない項目」 が残り、 `rows` を書いた時は行が card に
       // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
       //
-      // 対象を「行を描く kind かつ rows あり」 に絞るのは、 header の見た目 (lifeline 上端の
-      // 名札) を kind ごとに変えると sequence 図の読み方が変わってしまうため。 行を出す意図が
-      // 明示された時だけ、 行を出せる kind に切り替える。
+      // 以前は「行を描く kind かつ rows あり」 に絞っていた。 header の見た目を kind ごとに
+      // 変えると読み方が変わることを懸念したためだが、 **書いたとおりにならない方が読み手を
+      // 惑わせる**。 見本 412 図で影響を受けるのは 1 図 (4 actor) だけと実測した。
+      // 書いた種別を名札に載せる。 描画側に無い語は意味の近い形に読み替える (#975)。
+      const drawn = isSeqLike ? drawableKind(a.kind) : undefined;
+      if (drawn !== undefined) {
+        node.kind = drawn as typeof node.kind;
+        // 下端の名札も同じ形にする。 上下で形が違うと、 同じ登場人物が別物に見える。
+        // `rows` は上端にだけ載る (`primaryNodes` が上端しか拾わない) ので、 行は 2 度出ない。
+        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+        if (footer) footer.kind = drawn as typeof node.kind;
+      }
+      // 行を書いた時は枠に収まる高さと幅にする。 header は w / h を固定値で作られ、 cdl 側は
+      // `n.w` / `n.h` を明示した node の自動拡張を尊重する (著者指定を壊さない) 設計なので、
+      // preset が置いた固定値がそのまま残る。
+      //
+      // 必要な寸法は cdl の SSOT (`requiredRowsHeight` / `requiredRowsWidth`) から引く。
+      // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
       if (isSeqLike && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
-        node.kind = a.kind;
-        // header は w / h を固定値で作られるので、 行が枠外に出ないよう両方向に伸ばす。
-        // cdl 側は `n.w` / `n.h` を明示した node の自動拡張を尊重する (著者指定を壊さない)
-        // 設計なので、 preset が置いた固定値がそのまま残ってしまう。
-        //
-        // 必要な寸法は cdl の SSOT (`requiredRowsHeight` / `requiredRowsWidth`) から引く。
-        // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
         node.h = Math.max(node.h ?? 0, requiredRowsHeight(a.kind, a.rows.length) ?? 0);
         node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows));
       }
+      // 名札の大きさも書いたとおりにする (#975)。 縦線の位置は `位置:` の x が lane に効く
+      // (実測) が、 大きさはどこにも載っていなかった。
+      //
+      // 高さは指定をそのまま使わず、 揃える側 (`alignSeqHeaderHeights`) に渡す候補にする。
+      // 1 本だけ高い名札を作ると、 縦線の始まる位置がばらける。
+      if (isSeqLike) {
+        // 書いた値をそのまま使う。 大きい方を採ると、 縮める指定 (`大きさ: 80,60`) が効かない。
+        if (a.posW !== undefined) node.w = a.posW;
+        if (a.posH !== undefined) node.h = a.posH;
+        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+        if (footer && a.posW !== undefined) footer.w = a.posW;
+      }
     }
   }
+  // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
+  // 「同じ高さから下りる」 読み方が崩れる (実測 = 行を持つ名札だけ 134px 下にずれた)。
+  alignSeqHeaderHeights(diagram, doc);
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
   // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
   // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。

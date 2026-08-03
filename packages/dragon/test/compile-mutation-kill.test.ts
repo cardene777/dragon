@@ -1051,11 +1051,13 @@ describe("compileSequenceWithAnimate: header / footer / spacer / step box 生成
     }
   });
 
-  it("header は title = actor 名 / kind card / stack 0", () => {
+  it("header は title = actor 名 / kind は書いたとおり / stack 0", () => {
+    // #975 で「書いた kind を名札に載せる」 に変えた。 helper の actor は `kind: "actor"` を
+    // 持つので、 載せない実装に戻すと `card` になってこの assertion が落ちる。
     const d = compileToCdl(makeDoc("sequence", { animate: ANIM }));
     const h = node(d, "a-header");
     expect(h.title).toBe("A");
-    expect(h.kind).toBe("card");
+    expect(h.kind).toBe("actor");
     expect(h.stack).toBe(0);
   });
 
