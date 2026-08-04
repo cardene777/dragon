@@ -1,0 +1,82 @@
+/**
+ * 表示部品を持たない図に、段の進行があることの検証 (#1034)。
+ *
+ * これらは入力欄 / 図形 / 配置そのものを見せる素材で、表示部品を持たない。 段が 1 つしか
+ * ないと開いても静止画と変わらず、何が起きるのかが伝わらない。
+ *
+ * **状態は動かさない**。 入力欄の値は段の値を上書きするため (実測 = `render.tsx` が
+ * `stateOverrides` を `computeStateValues` の結果に重ねる)、段で状態を動かしても効かない。
+ * 代わりに「どの箱に注目するか」 を段で進める。
+ */
+import { describe, it, expect } from "vitest";
+import * as Interactive from "@/topics/catalog/interactive.cdl";
+
+/** 表示部品を持たない図 (#1034 の対象)。 */
+const TARGETS = [
+  "inputSliderBar", "formulaTextBind", "scrollNarrative", "clickToggle",
+  "shapeRectFill", "shapeChainFill", "shapeCirclePulse", "shapeArcSweep",
+  "shapeWaveTank", "shapePolyRotate", "repeatDeriveChain", "edgeFlowBind",
+  "inputVariety", "eventVariety", "radialHubAndSpoke", "renderOffsetDrift",
+  "decisionTree",
+] as const;
+
+type Diagram = {
+  readouts?: unknown[];
+  nodes?: Array<{ id?: string }>;
+  phases?: Array<{ activate?: string[]; title?: string; body?: string }>;
+};
+
+const mod = Interactive as unknown as Record<string, Diagram>;
+
+describe("段の進行 (#1034)", () => {
+  it("対象が全件 実在する", () => {
+    // 名前を打ち間違えると以下の検証が素通りする
+    const missing = TARGETS.filter((k) => mod[k] === undefined);
+    expect(missing, `図が無い: ${missing.join(", ")}`).toHaveLength(0);
+  });
+
+  it("対象は表示部品を持たない (分類の前提)", () => {
+    // 表示部品を持つ図は別の基準 (段ごとに表示が変化する) で見る
+    const withRo = TARGETS.filter((k) => (mod[k]?.readouts ?? []).length > 0);
+    expect(withRo, `表示部品を持つ図が混ざっている: ${withRo.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段が 3 つ以上ある", () => {
+    const few = TARGETS.filter((k) => (mod[k]?.phases ?? []).length < 3)
+      .map((k) => `${k}: ${(mod[k]?.phases ?? []).length}`);
+    expect(few, `段が足りない: ${few.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段ごとに注目する箱の組合せが変わる", () => {
+    // 同じ組合せの段が並ぶと、進めても見た目が変わらない
+    const dup = TARGETS.filter((k) => {
+      const sets = (mod[k]?.phases ?? []).map((p) => (p.activate ?? []).join(","));
+      return new Set(sets).size < sets.length;
+    });
+    expect(dup, `同じ組合せの段がある: ${dup.join(", ")}`).toHaveLength(0);
+  });
+
+  it("光らせる箱が実在する", () => {
+    // 綴りを誤ると光らないだけで、何も知らせない
+    const bad: string[] = [];
+    for (const k of TARGETS) {
+      const ids = new Set((mod[k]?.nodes ?? []).map((n) => n.id));
+      for (const p of mod[k]?.phases ?? []) {
+        for (const a of p.activate ?? []) if (!ids.has(a)) bad.push(`${k}: ${a}`);
+      }
+    }
+    expect(bad, `存在しない箱を指している: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段に題と説明がある", () => {
+    // 段を進めた時に何が起きたかを読む手がかりになる
+    const bad: string[] = [];
+    for (const k of TARGETS) {
+      for (const [i, p] of (mod[k]?.phases ?? []).entries()) {
+        if (!p.title || p.title.length < 3) bad.push(`${k}[${i}]: 題が無い`);
+        if (!p.body || p.body.length < 20) bad.push(`${k}[${i}]: 説明が短い`);
+      }
+    }
+    expect(bad, `段の説明が足りない: ${bad.join(", ")}`).toHaveLength(0);
+  });
+});
