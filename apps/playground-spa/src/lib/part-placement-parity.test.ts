@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram, measureActorBoxes } from "@cardenelabs/dragon";
-import { extractPartsFromSrc, placeParts, partWorldSize } from "./overlay-dsl";
+import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 /** 見本のパーツ。 段の数と大きさを変えて作る。 */
@@ -188,6 +188,101 @@ flow:
     const anchor = boxes.get("Web")!;
     const scrGap = p.posX + pad.left - (anchor.cx + anchor.w / 2);
     expect(scrGap, "画面側の間隔が書いた値と違う").toBeCloseTo(200, 1);
+  });
+
+  it("上下の相対でも 2 経路で同じになる", () => {
+    // 横だけ見ていると、縦の余白 (上 60 / 下 60) を引き忘れた実装が通ってしまう
+    const below = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - p:
+      kind: wide
+      位置: Web の下 200
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(below, { partsCatalog: CATALOG }));
+    const web = laid.nodes.filter((n) => !n.id.startsWith("p__"));
+    const part = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    const libGap =
+      Math.min(...part.map((n) => n.cy - n.h / 2)) - Math.max(...web.map((n) => n.cy + n.h / 2));
+    expect(libGap, "組み立て側の間隔が書いた値と違う").toBeCloseTo(200, 1);
+
+    const parsed = extractPartsFromSrc(below, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const boxes = measureActorBoxes(base);
+    const placed = placeParts(parsed.parts, boxes, partWorldSize, base.nodes.length);
+    const p = placed.find((x) => x.id === "p")!;
+    const pad = framePadding(p.item.diagram);
+    const anchor = boxes.get("Web")!;
+    expect(p.posY + pad.top - (anchor.cy + anchor.h / 2), "画面側の縦の間隔が違う").toBeCloseTo(200, 1);
+
+    // 横は基準の中心に揃う。 中心の合わせ方も 2 経路で同じであることを見る
+    const libCx =
+      (Math.min(...part.map((n) => n.cx - n.w / 2)) + Math.max(...part.map((n) => n.cx + n.w / 2))) / 2;
+    const own = layout(p.item.diagram);
+    const boxW =
+      Math.max(...own.nodes.map((n) => n.cx + n.w / 2)) -
+      Math.min(...own.nodes.map((n) => n.cx - n.w / 2));
+    expect(p.posX + pad.left + boxW / 2, "画面側の横の中心が違う").toBeCloseTo(libCx, 1);
+  });
+
+  it("パーツを基準にした連鎖でも 2 経路で同じになる", () => {
+    // 基準として出す矩形が箱ではなく図枠になっていると、連鎖するたびに余白のぶん開いていく
+    const chain = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: Web の右 200
+  - b:
+      kind: small
+      位置: a の右 200
+  - c:
+      kind: wide
+      位置: b の右 200
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(chain, { partsCatalog: CATALOG }));
+    const leftOf = (alias: string): number => {
+      const ns = laid.nodes.filter((n) => n.id.startsWith(`${alias}__`));
+      return Math.min(...ns.map((n) => n.cx - n.w / 2));
+    };
+
+    const parsed = extractPartsFromSrc(chain, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    for (const id of ["a", "b", "c"]) {
+      const p = placed.find((x) => x.id === id)!;
+      const pad = framePadding(p.item.diagram);
+      expect(p.posX + pad.left, `${id} の横がずれている`).toBeCloseTo(leftOf(id), 1);
+    }
+  });
+
+  it("倍率を書くと箱も余白も同じだけ伸びる", () => {
+    // 倍率は画面側だけの機能 (組み立て側は見ない)。 図枠にだけ掛けて箱や余白に掛け忘れると、
+    // 拡大したパーツの位置だけがずれる
+    const parsed = extractPartsFromSrc(
+      `actors:\n  - p: { kind: wide, posX: 0, posY: 0, scale: 2 }\n`,
+      KIND_SET,
+      ITEMS,
+    );
+    const doubled = parsed.parts.find((x) => x.id === "p")!;
+    const single = { ...doubled, scale: 1 };
+    const b1 = partBoxRect(single);
+    const b2 = partBoxRect(doubled);
+    expect(b2.w).toBeCloseTo(b1.w * 2, 1);
+    expect(b2.h).toBeCloseTo(b1.h * 2, 1);
+    expect(b2.left, "余白に倍率が掛かっていない").toBeCloseTo(b1.left * 2, 1);
+    expect(b2.top, "余白に倍率が掛かっていない").toBeCloseTo(b1.top * 2, 1);
+    expect(partWorldSize(doubled).w).toBeCloseTo(partWorldSize(single).w * 2, 1);
   });
 
   it("座標で書いたパーツも 2 経路で同じ場所になる", () => {
