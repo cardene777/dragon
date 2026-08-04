@@ -3,6 +3,8 @@ import { useLocation } from "react-router";
 import { CdlDiagramView, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
 import {
   textDslToDiagram,
+  partRenderSize,
+  partTargetScale,
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
@@ -18,7 +20,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, partFrameSize, normalizePartScale } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -366,7 +368,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
   // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
   // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
-  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; item: CatalogItem };
+  type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; posW?: number; posH?: number; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
   // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
   // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
@@ -613,10 +615,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 1 frame に載る (実測 = 80 件で 160 回 0.74ms)。 パーツが変わった時だけ数えて、
   // style と表示合わせで同じ 1 つを見る。
   //
-  // `大きさ:` を書いた分の伸縮を含む (#1018)。 含めないと、書いた見本だけ画面が元の大きさで
-  // 描き、組み立て側と絵が変わる
+  // ここに渡すのは **伸縮する前** の図枠。 SVG は図枠を `preserveAspectRatio="xMidYMid meet"`
+  // で収めるため、縦横で違う比の枠を渡しても中身は縦横同じ率でしか伸びない (実測 =
+  // `大きさ: 2000,300` で枠が 2625 になっても中身は 716 のままだった、#1018)。
+  // 伸縮は下の `transform` で縦横別に掛ける
   const partSizes = useMemo(
-    () => new Map(overlayParts.map((p) => [p.id, partFrameSize(p)])),
+    () => new Map(overlayParts.map((p) => [p.id, partRenderSize(p.item.diagram)])),
+    [overlayParts],
+  );
+  // `大きさ:` の伸縮。 縦横で率が違うので `transform` 側で掛ける (#1018)
+  const partScales = useMemo(
+    () => new Map(overlayParts.map((p) => [p.id, partTargetScale(p.item.diagram, p.posW, p.posH)])),
     [overlayParts],
   );
 
@@ -2053,6 +2062,8 @@ animation:
                 {activeTab === "cdl" && overlayParts.map((p) => {
                   // 事前に数えた大きさ。 取れない形は CSS の既定値に任せる
                   const partSize = partSizes.get(p.id) ?? { w: 800, h: 600 };
+                  const partScale = partScales.get(p.id) ?? { x: 1, y: 1 };
+                  const k = normalizePartScale(p.scale) * diagramK;
                   return (
                     <div
                       key={p.id}
@@ -2069,8 +2080,9 @@ animation:
                         ["--cdl-svg-w" as string]: `${partSize.w}px`,
                         ["--cdl-svg-h" as string]: `${partSize.h}px`,
                         // 倍率は置き場所を決めた時と同じ物差しを通す。 生の値を使うと
-                        // `scale: 0` が「場所は等倍・画面では消える」 状態になる
-                        transform: `rotate(${p.rotate}deg) scale(${normalizePartScale(p.scale) * diagramK})`,
+                        // `scale: 0` が「場所は等倍・画面では消える」 状態になる。
+                        // `大きさ:` の伸縮は縦横で率が違うので 2 引数の形で掛ける (#1018)
+                        transform: `rotate(${p.rotate}deg) scale(${partScale.x * k}, ${partScale.y * k})`,
                         transformOrigin: "0 0",
                         userSelect: "none",
                       }}

@@ -904,12 +904,12 @@ function partFrameGeometry(part: CdlDiagram): PartFrameGeometry {
  * 中心で合わせると、 高さの差の半分だけ上端がずれて段内の揃いが崩れる (実測で 12.5)。
  * 左上で合わせれば、 高さが変わっても上端は動かない。
  *
- * 図枠の大きさに倍率 (`大きさ:`) は掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で
- * 描くため、 ここで掛けると確保する場所だけが変わって画面とずれる。
+ * 図枠にも箱にも `大きさ:` の伸縮を掛ける。 画面側も同じ率で伸縮するので、掛けないと
+ * 確保する場所だけが元の大きさのまま残る (実測 = 240 ずれた、#1018)。
  *
- * ただし `大きさ:` で図枠より大きくした箱は、 図枠だけを確保すると隣に重なる (実測 =
- * `大きさ: 2000,300` の箱が x=60..2060 に伸び、 隣が 725 から始まって 1335 重なった)。
- * 確保するのは図枠と箱の両方を含む矩形にする。 `大きさ:` を書かなければ図枠が箱を包むので、
+ * 確保するのは図枠と箱の両方を含む矩形。 縦横で率が違うと箱が図枠からはみ出すことがあり、
+ * 図枠だけを確保すると隣に重なる (実測 = `大きさ: 2000,300` の箱が x=60..2060 に伸び、
+ * 隣が 725 から始まって 1335 重なった)。 `大きさ:` を書かなければ図枠が箱を包むので、
  * 和は図枠と一致して 2 経路の一致は保たれる。
  */
 function partFrameExtent(
@@ -918,7 +918,16 @@ function partFrameExtent(
   targetH?: number,
 ): { w: number; h: number; dx: number; dy: number } {
   const box = partExtent(part, targetW, targetH);
-  const frame = partFrameGeometry(part);
+  const geom = partFrameGeometry(part);
+  // 図枠にも `大きさ:` の伸縮を掛ける。 掛けないと箱だけが伸びて、確保する場所が足りなくなる
+  // (実測 = `大きさ: 2000,300` で組み立て側の箱が 60..2060、画面側が 300..2300 と 240 ずれた、#1018)
+  const t = partTargetScale(part, targetW, targetH);
+  const frame = {
+    w: geom.w * t.x,
+    h: geom.h * t.y,
+    left: geom.left * t.x,
+    top: geom.top * t.y,
+  };
   // merge に渡す座標を原点にした時の、 図枠の中心
   const frameDx = box.dx + frame.w / 2 - frame.left - box.w / 2;
   const frameDy = box.dy + frame.h / 2 - frame.top - box.h / 2;
@@ -1410,7 +1419,11 @@ function mergePartIntoDiagram(
   // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
   const rawBboxW = partMaxLaneRight - partMinLaneX;
   const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
-  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  // 非有限は 1 に倒す。 桁が溢れた `大きさ:` (`Number()` が Infinity を返す長さ) を
+  // そのまま掛けると描けない座標になり、 大きさを見積る側 (`partTargetScale`) だけが
+  // 1 に倒していたため経路で食い違っていた (#1018)
+  const rawLaneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  const laneScaleX = Number.isFinite(rawLaneScaleX) && rawLaneScaleX > 0 ? rawLaneScaleX : 1;
   // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
   // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
   // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
@@ -1476,7 +1489,8 @@ function mergePartIntoDiagram(
   const partCenterStack = (minStack + maxStack) / 2;
   const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
   const scaleX = laneScaleX;
-  const scaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
+  const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
+  const scaleY = Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const nodeOrig of part.nodes) {
