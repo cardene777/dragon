@@ -15,7 +15,13 @@
 import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { textDslToDiagram, measureActorBoxes } from "@cardenelabs/dragon";
+import {
+  textDslToDiagram,
+  measureActorBoxes,
+  partScaleFactor,
+  partBoxInFrame,
+  MAX_PART_SCALE,
+} from "@cardenelabs/dragon";
 import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect, partFrameSize } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
@@ -592,5 +598,112 @@ actors:
       expect(scr.get(id)!.cx, `${id} の横がずれている`).toBeCloseTo(lib.get(id)!.cx, 1);
       expect(scr.get(id)!.cy, `${id} の縦がずれている`).toBeCloseTo(lib.get(id)!.cy, 1);
     }
+  });
+});
+
+describe("倍率の意味 (#1026)", () => {
+  /** 取り込んだ / 重ねた箱の外接矩形の大きさを、経路ごとに返す。 */
+  const libSize = (src: string, alias: string): { w: number; h: number } => {
+    const laid = layout(textDslToDiagram(src, { partsCatalog: CATALOG }));
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of laid.nodes) {
+      if (!String(n.id ?? "").startsWith(`${alias}__`)) continue;
+      x0 = Math.min(x0, n.cx - n.w / 2);
+      x1 = Math.max(x1, n.cx + n.w / 2);
+      y0 = Math.min(y0, n.cy - n.h / 2);
+      y1 = Math.max(y1, n.cy + n.h / 2);
+    }
+    return { w: x1 - x0, h: y1 - y0 };
+  };
+
+  const src = (actor: string): string =>
+    `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n  - a: ${actor}\n`;
+
+  it("3 つの書き方が組み立て側で同じ大きさになる", () => {
+    // 書き方で意味が変わると、同じ本文を貼り替えただけで絵が変わる
+    const forms: Array<[string, string]> = [
+      ["中括弧の形", src("{ kind: wide, scale: 2 }")],
+      ["空白区切りの形", src("wide scale=2")],
+      ["縦に並べた形", `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n  - a:\n      kind: wide\n      scale: 2\n`],
+    ];
+    const got = forms.map(([name, text]) => [name, libSize(text, "a")] as const);
+    const [, first] = got[0]!;
+    for (const [name, size] of got) {
+      expect(size.w, `${name} だけ幅が違う`).toBeCloseTo(first.w, 1);
+      expect(size.h, `${name} だけ高さが違う`).toBeCloseTo(first.h, 1);
+    }
+  });
+
+  it("倍率を書くと画面側でも組み立て側でも大きくなる", () => {
+    // 直す前は、画面側だけが大きくなり組み立て側は状態の上書きとして捨てていた
+    const plainLib = libSize(src("{ kind: wide }"), "a");
+    const scaledLib = libSize(src("{ kind: wide, scale: 2 }"), "a");
+    expect(scaledLib.w, "組み立て側で効いていない").toBeGreaterThan(plainLib.w * 1.5);
+
+    const screenSize = (text: string): { w: number; h: number } => {
+      const parsed = extractPartsFromSrc(text, KIND_SET, ITEMS);
+      const part = parsed.parts.find((p) => p.id === "a")!;
+      return partBoxRect(part);
+    };
+    const plainScr = screenSize(src("{ kind: wide }"));
+    const scaledScr = screenSize(src("{ kind: wide, scale: 2 }"));
+    expect(scaledScr.w / plainScr.w, "画面側で効いていない").toBeCloseTo(2, 6);
+  });
+
+  it("別名と重複の規則が 2 経路で揃う", () => {
+    // 規則は 3 つ = 別名は scale が先 / 同じ名前は後勝ち / 読めない値でも別名に降りない。
+    // 実測では 4 例すべてで engine と画面が違う値を返していた
+    const cases: Array<[string, string, number]> = [
+      ["縦・同じ名前を 2 度", `  - a:\n      kind: wide\n      倍率: 2\n      倍率: 3\n`, 3],
+      ["短・同じ名前を 2 度", `  - a: wide scale=2 scale=3\n`, 3],
+      ["短・読めない値と別名", `  - a: wide scale=x 倍率=3\n`, 1],
+      ["縦・読めない値と別名", `  - a:\n      kind: wide\n      scale: x\n      倍率: 3\n`, 1],
+      ["中括弧・別名を両方", `  - a: { kind: wide, scale: 2, 倍率: 3 }\n`, 2],
+      ["中括弧・同じ名前を 2 度", `  - a: { kind: wide, scale: 2, scale: 3 }\n`, 3],
+      ["縦・値が空と別名", `  - a:\n      kind: wide\n      scale:\n      倍率: 3\n`, 1],
+      ["中括弧・値が空と別名", `  - a: { kind: wide, scale:, 倍率: 3 }\n`, 1],
+      ["短・値が空と別名", `  - a: wide scale= 倍率=3\n`, 1],
+    ];
+    for (const [name, actors, want] of cases) {
+      const src = `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n${actors}`;
+      // 画面側
+      const scr = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((p) => p.id === "a");
+      expect(scr?.scale, `${name} の画面側が違う`).toBe(want);
+      // 組み立て側 (読めない値は倍率として書かなかった扱いになる)
+      const lib = textDslToDiagram(src, { partsCatalog: CATALOG });
+      expect(lib.nodes.some((n) => String(n.id ?? "").startsWith("a__")), `${name} が取り込まれていない`).toBe(true);
+    }
+  });
+
+  it("上限を跨いでも 2 経路の率が揃う", () => {
+    // 率ごとに上限を掛けると、大きさ由来 1000 倍と倍率 2 で画面だけ 2000 倍になる (実測)
+    const part = PARTS.wide!;
+    const base = 400 * MAX_PART_SCALE;
+    const engine = partScaleFactor(part, base, base, 2);
+    const screen = partBoxRect({
+      id: "a",
+      kind: "wide",
+      scale: 2,
+      rotate: 0,
+      posW: base,
+      posH: base,
+      item: { id: "parts-wide", title: "wide", diagram: part } as CatalogItem,
+    });
+    const box = partBoxInFrame(part);
+    expect(screen.w / box.w, "画面側の率が組み立て側と違う").toBeCloseTo(engine.x, 6);
+    expect(engine.x, "合成後の上限を超えている").toBe(MAX_PART_SCALE);
+  });
+
+  it("倍率の増え方が 2 経路で揃う", () => {
+    // 絶対値は経路で違う (画面は図枠を重ね、組み立ては本体の送り幅で並び直す)。
+    // 揃うべきは **倍率を書いた時の伸び方** で、そこがずれると片方だけ大きく見える
+    const ratio = (get: (text: string) => number): number =>
+      get(src("{ kind: wide, scale: 3 }")) / get(src("{ kind: wide }"));
+    const libRatio = ratio((t) => libSize(t, "a").w);
+    const scrRatio = ratio((t) => {
+      const parsed = extractPartsFromSrc(t, KIND_SET, ITEMS);
+      return partBoxRect(parsed.parts.find((p) => p.id === "a")!).w;
+    });
+    expect(libRatio, `伸び方がずれている (組み立て ${libRatio} / 画面 ${scrRatio})`).toBeCloseTo(scrRatio, 1);
   });
 });

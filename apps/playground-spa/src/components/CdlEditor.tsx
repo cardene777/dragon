@@ -4,7 +4,7 @@ import { CdlDiagramView, type CdlDiagram, type LaidDiagram, type Violation } fro
 import {
   textDslToDiagram,
   partRenderSize,
-  partTargetScale,
+  partScaleFactor,
   partDrawsInDiagram,
   measureActorBoxes,
   writeActorPosition,
@@ -21,7 +21,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -640,9 +640,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     () => new Map(overlayParts.map((p) => [p.id, partRenderSize(p.item.diagram)])),
     [overlayParts],
   );
-  // `大きさ:` の伸縮。 縦横で率が違うので `transform` 側で掛ける (#1018)
+  // `大きさ:` と `倍率:` を合成した伸縮。 縦横で率が違うので `transform` 側で掛ける
+  // (#1018 / #1026)。 上限は合成した後に 1 度だけ掛かる (組み立て側と同じ関数)
   const partScales = useMemo(
-    () => new Map(overlayParts.map((p) => [p.id, partTargetScale(p.item.diagram, p.posW, p.posH)])),
+    () =>
+      new Map(
+        overlayParts.map((p) => [p.id, partScaleFactor(p.item.diagram, p.posW, p.posH, p.scale)]),
+      ),
     [overlayParts],
   );
 
@@ -2098,8 +2102,9 @@ animation:
                 {activeTab === "cdl" && overlayParts.map((p) => {
                   // 事前に数えた大きさ。 取れない形は CSS の既定値に任せる
                   const partSize = partSizes.get(p.id) ?? { w: 800, h: 600 };
+                  // `大きさ:` と `倍率:` を合成した率。 上限は合成後に 1 度だけ掛かっている
                   const partScale = partScales.get(p.id) ?? { x: 1, y: 1 };
-                  const k = normalizePartScale(p.scale) * diagramK;
+                  const k = diagramK;
                   return (
                     <div
                       key={p.id}

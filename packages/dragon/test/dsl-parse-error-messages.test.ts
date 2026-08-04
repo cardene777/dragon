@@ -137,17 +137,73 @@ flow:
     rows: '["id: PK"]', 行: '["id: PK"]',
     位置: "300,200", pos: "300,200", posX: "300", posY: "200",
     大きさ: "400,180", size: "400,180",
+    倍率: "2", scale: "2",
     lane: "l1", stack: "1",
     色: "失敗", color: "失敗", tone: "失敗",
   };
+
+  /**
+   * パーツにだけ効く項目名 (#1026)。
+   *
+   * 倍率は図形の大きさを変えるもので、普通の箱には効かない。 普通の箱に書いた時は
+   * 「書いたのに図が変わらない」 を避けるため綴り誤りとして知らせる。
+   */
+  const PARTS_ONLY = new Set(["倍率", "scale"]);
+
+  /** パーツの中に項目を 1 行置いた本文。 */
+  const wrapPart = (item: string): string => `title: "t"
+type: flow
+actors:
+  - Web: service
+  - g:
+      kind: arc-gauge
+${item}
+flow:
+  - Web -> Web: "a"
+`;
 
   it("知らせに並べる項目名は全て実際に使える (一覧と実装がずれない)", () => {
     for (const key of ACTOR_ITEM_KEYS) {
       const value = VALUE_OF[key];
       expect(value, `${key} の値の例が test に無い`).toBeDefined();
-      const r = parseTextDslV05(wrap(`      ${key}: ${value}`));
+      const src = PARTS_ONLY.has(key) ? wrapPart(`      ${key}: ${value}`) : wrap(`      ${key}: ${value}`);
+      const r = parseTextDslV05(src);
       const detail = r.ok ? "" : r.errors.map((e) => e.message).join(" / ");
       expect(r.ok, `項目 ${key} が通らない: ${detail}`).toBe(true);
+    }
+  });
+
+  it("倍率を普通の箱に書いたら知らせる (3 つの書き方すべてで)", () => {
+    // 黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる。
+    // 縦に並べた形だけ知らせて他が黙ると、書き方を変えた時だけ知らせが出ることになる
+    const forms: Array<[string, string]> = [
+      ["縦に並べた形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API:\n      kind: service\n      倍率: 2\nflow:\n  - Web -> API: "a"\n`],
+      ["中括弧の形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API: { kind: service, 倍率: 2 }\nflow:\n  - Web -> API: "a"\n`],
+      ["空白区切りの形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API: service scale=2\nflow:\n  - Web -> API: "a"\n`],
+    ];
+    for (const [name, src] of forms) {
+      const r = parseTextDslV05(src);
+      expect(r.ok, `${name} が黙って通っている`).toBe(false);
+      if (r.ok) continue;
+      expect(
+        r.errors.some((e) => e.message.includes("項目名が読めません")),
+        `${name} の知らせが無い (${r.errors.map((e) => e.message).join(" / ")})`,
+      ).toBe(true);
+    }
+  });
+
+  it("別名を 2 つ書いたら先に並べた名前を採る", () => {
+    // 後勝ちにすると、画面側 (常に scale 優先) と経路で 2 と 3 に割れる
+    const cases: Array<[string, string]> = [
+      ["縦に並べた形", `title: "t"\ntype: flow\nactors:\n  - g:\n      kind: arc-gauge\n      scale: 2\n      倍率: 3\nflow:\n  - g -> g: "a"\n`],
+      ["中括弧の形", `title: "t"\ntype: flow\nactors:\n  - g: { kind: arc-gauge, scale: 2, 倍率: 3 }\nflow:\n  - g -> g: "a"\n`],
+      ["空白区切りの形", `title: "t"\ntype: flow\nactors:\n  - g: arc-gauge scale=2 倍率=3\nflow:\n  - g -> g: "a"\n`],
+    ];
+    for (const [name, src] of cases) {
+      const r = parseTextDslV05(src);
+      expect(r.ok, `${name} が読めない`).toBe(true);
+      if (!r.ok) continue;
+      expect(r.doc.actors.find((a) => a.name === "g")?.scale, `${name} で後の名前が勝っている`).toBe(2);
     }
   });
 

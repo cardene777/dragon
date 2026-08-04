@@ -55,11 +55,18 @@ export { NODE_KIND_VALID } from "./v05/parser";
 // 書いた見本だけ経路で大きさが変わる (#1018)。
 // `partDrawsInDiagram` = その見本が図の中に描かれる部品を持つか。 実体が操作パネルの
 // 部品だけの見本 (catalog 80 件中 17 件) は重ねても図に出ないため、画面側が知らせる (#1017)。
+// `倍率:` (`scale`) は図形の倍率として予約する (#1026)。 画面と組み立てで意味が違うと、
+// 同じ本文が経路で別の絵になる。 正規化 (`normalizePartScale`) と `大きさ:` との掛け合わせ
+// (`partTargetSize`) を engine 側に置き、画面側も同じ関数を呼ぶ。
 export {
   partRenderSize,
   partVisualSize,
   partBoxInFrame,
   partTargetScale,
+  partTargetSize,
+  partScaleFactor,
+  normalizePartScale,
+  MAX_PART_SCALE,
   partDrawsInDiagram,
   partIsMeasurable,
   partsGridCenters,

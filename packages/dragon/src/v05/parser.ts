@@ -208,7 +208,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectActorEntries(lines, i + 1, line.indent);
       actors = [];
       for (const entry of items) {
-        const base = parseActor(entry[0]!);
+        const base = parseActor(entry[0]!, errors);
         if (base === null) {
           errors.push({
             line: entry[0]!.no,
@@ -493,6 +493,10 @@ type ActorValues = {
   posY?: number;
   /** parts の状態の上書き (`v=50` の形)。 状態名は自由なので等号で示す。 */
   state?: Record<string, number | string | boolean>;
+  /** 図形の倍率 (`倍率=2` / `scale=2` の形、 #1026)。 状態とは別枠で持つ。 */
+  scale?: number;
+  /** 書かれた倍率の名前。 値が読めない形 (`scale=x`) と書いていない形を見分ける。 */
+  scaleKeys?: string[];
 };
 
 /**
@@ -503,6 +507,8 @@ type ActorValues = {
  */
 function classifyValues(values: string[]): ActorValues {
   const out: ActorValues = { kind: "" };
+  /** 書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
+  const scaleWritten = new Map<string, string>();
   const kindWords: string[] = [];
   for (const v of values) {
     if ((v.startsWith('"') && v.endsWith('"') && v.length > 1) || (v.startsWith("'") && v.endsWith("'") && v.length > 1)) {
@@ -528,6 +534,12 @@ function classifyValues(values: string[]): ActorValues {
     if (eq > 0) {
       const key = v.slice(0, eq);
       const raw = stripQuotes(v.slice(eq + 1));
+      // `倍率` だけは状態ではなく図形の倍率 (#1026)。 書かれた名前をそのまま貯めて、
+      // どれが効くかは `resolveScale` が 1 箇所で決める (3 つの書き方で規則を揃えるため)
+      if (SCALE_KEYS.has(key)) {
+        scaleWritten.set(key, raw);
+        continue;
+      }
       if (/^[A-Za-z_][\w-]*$/.test(key)) {
         out.state = { ...(out.state ?? {}), [key]: coerceStateValue(raw) };
         continue;
@@ -538,6 +550,9 @@ function classifyValues(values: string[]): ActorValues {
     kindWords.push(v);
   }
   out.kind = kindWords.join(" ").toLowerCase();
+  const s = resolveScale(scaleWritten);
+  out.scale = s.scale;
+  out.scaleKeys = s.keys;
   return out;
 }
 
@@ -625,6 +640,49 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
  */
 function parseInlineMapping(inner: string): Record<string, string> {
   const out: Record<string, string> = {};
+  for (const p of splitInlineFields(inner)) {
+    // 項目名は英字だけでなく日本語も受ける (#1026)。 受けないと `{ kind: x, 倍率: 2 }` の
+    // 倍率が消え、同じ意味を書いたのに中括弧の形だけ効かない (実測)。
+    //
+    // 読める名前を広げても、**知っている名前しか使われない**。 パーツの状態の上書きに
+    // 流れるのは `ACTOR_RESERVED_FIELDS` に無い名前だけで、日本語の項目名 (`位置` / `大きさ`
+    // 等) はそこに載せてあるため、これまでどおり落ちる
+    const m = p.match(/^\s*([^\s:,{}[\]"']+)\s*:\s*(.+?)\s*$/);
+    if (m) {
+      const key = m[1]!;
+      out[key] = stripQuotes(m[2]!.trim());
+    }
+  }
+  return out;
+}
+
+/**
+ * 中括弧の中身から、倍率として書かれた名前と値を拾う (#1026)。
+ *
+ * `parseInlineMapping` は値が 1 文字以上ある項目しか拾わない。 それをそのまま使うと、
+ * 値を書かなかった形 (`{ kind: x, scale: }`) で「書いた」 ことすら残らず、
+ * 予約の知らせが消える。 倍率だけは値が空でも名前を残す。
+ */
+function writtenScaleFields(inner: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const field of splitInlineFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    const key = field.slice(0, idx).trim();
+    if (!SCALE_KEYS.has(key)) continue;
+    // 同じ名前を 2 度書いたら後の値を採る
+    out.set(key, stripQuotes(field.slice(idx + 1).trim()));
+  }
+  return out;
+}
+
+/**
+ * 中括弧の中身を、入れ子と引用符を保ったまま項目ごとに割る。
+ *
+ * `parseInlineMapping` と、倍率の「書かれた名前」 を拾う経路 (#1026) で共用する。
+ * 割り方を 2 つ持つと、片方だけが拾える項目という食い違いが生まれる。
+ */
+function splitInlineFields(inner: string): string[] {
   let depth = 0;
   let buf = "";
   const parts: string[] = [];
@@ -640,16 +698,7 @@ function parseInlineMapping(inner: string): Record<string, string> {
     buf += c;
   }
   if (buf.trim()) parts.push(buf);
-  for (const p of parts) {
-    const m = p.match(/^\s*([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.+?)\s*$/);
-    if (m) {
-      const key = m[1]!;
-      let value = m[2]!.trim();
-      value = stripQuotes(value);
-      out[key] = value;
-    }
-  }
-  return out;
+  return parts;
 }
 
 function collectIndentedList(lines: Line[], start: number, parentIndent: number): { items: Line[]; next: number } {
@@ -704,6 +753,39 @@ function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
 const COLOR_KEYS = new Set(["色", "color", "tone"]);
 
 /**
+ * 見本の倍率として予約する項目名 (#1026)。
+ *
+ * 予約しないと状態の名前として読まれる。 画面側は同じ語を図形の倍率として読むため、
+ * 予約しない限り同じ本文が 2 経路で別の絵になる。 3 つの書き方すべてで同じ扱いにする。
+ */
+const SCALE_KEYS: ReadonlySet<string> = new Set(["scale", "倍率"]);
+
+/** 別名を 2 つ書いた時に優先する順。 画面側 (`SCALE_KEYS`) と同じ並びにする。 */
+const SCALE_ORDER = ["scale", "倍率"] as const;
+
+/**
+ * 書かれた倍率から、実際に効く値と書かれた名前を決める (#1026)。
+ *
+ * 規則は 3 つの書き方と画面側で共通にする。
+ *
+ * - 別名は `scale` を先に見る (両方書いた時に書き方で効く名前が変わらないようにする)
+ * - 同じ名前を 2 度書いた時は後に書いた方を採る (前を採ると書き直した値が効かない)
+ * - 書いた名前の値が読めなくても、もう一方の名前に降りない (綴りを誤った時だけ
+ *   別の値が効く、という追いにくい形を作らない)
+ *
+ * `keys` は書かれた名前そのもの。 値が読めたかに関わらず入る。 見本が同じ名前の状態を
+ * 持つ時の知らせ (`scale-reserved`) が、値の読めなさに左右されないようにするため。
+ */
+function resolveScale(written: Map<string, string>): { scale?: number; keys: string[] } {
+  const keys = [...written.keys()];
+  for (const key of SCALE_ORDER) {
+    const raw = written.get(key);
+    if (raw !== undefined) return { scale: numberOrUndef(raw), keys };
+  }
+  return { keys };
+}
+
+/**
  * 続く字下げ行 (`kind: service` の形) を読んで 1 件にまとめる。
  *
  * 1 行で書いた時と同じ結果になるよう、 同じ振り分けを通す。
@@ -713,6 +795,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   const out: DslActor = { ...actor };
   const state: Record<string, number | string | boolean> = { ...(actor.stateOverride ?? {}) };
   let touchedState = false;
+  /** 縦に並べて書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
+  const scaleWritten = new Map<string, string>();
   // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
   const unknownKeys: Array<{ key: string; line: number }> = [];
 
@@ -721,7 +805,15 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     if (idx < 0) continue;
     const key = ln.trimmed.slice(0, idx).trim();
     const raw = ln.trimmed.slice(idx + 1).trim();
-    if (!key || !raw) continue;
+    if (!key) continue;
+    // 倍率だけは値が空でも名前を残す (#1026)。 捨てると、値を書かなかった形で
+    // 予約の知らせが消え、別名 (`倍率`) に降りて別の値が効いてしまう
+    if (SCALE_KEYS.has(key)) {
+      scaleWritten.set(key, stripQuotes(raw));
+      unknownKeys.push({ key, line: ln.no });
+      continue;
+    }
+    if (!raw) continue;
 
     if (COLOR_KEYS.has(key)) {
       const { tone, hex } = splitColorValue(raw);
@@ -817,9 +909,16 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         break;
     }
   }
-  // 状態は parts でだけ意味を持つ
-  if (touchedState && out.partId !== undefined) {
-    out.stateOverride = state;
+  // 名前の行と縦に並べた行の両方に倍率がある形では、後に書いた縦の行を採る。
+  // 知らせ (`scale-reserved`) は書かれた名前をすべて見るので、名前だけは足し合わせる
+  if (scaleWritten.size > 0) {
+    const s = resolveScale(scaleWritten);
+    out.scale = s.scale;
+    out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
+  }
+  // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
+  if (out.partId !== undefined) {
+    if (touchedState) out.stateOverride = state;
     return out;
   }
   // パーツでない箱に書かれた見知らぬ項目は、 どこにも入らずに消える。 黙って捨てると
@@ -847,6 +946,7 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "rows", "行",
   "位置", "pos", "posX", "posY",
   "大きさ", "size",
+  "倍率", "scale",
   "lane", "stack",
 ]);
 
@@ -978,6 +1078,19 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "posH",
   // canvas pivot UX 修正 (B1) = sub-node 単位 override map (nested `nodes: { header: {...} }`)
   "nodes",
+  // 図形の倍率 (#1026)。 状態の名前としては読まない
+  "scale",
+  "倍率",
+  // 日本語の項目名 (#1026)。 中括弧の形が日本語の項目名を読めるようになったため、
+  // ここに載せないと状態の名前として拾われる。 縦に並べた形での意味 (位置 / 大きさ 等) は
+  // 中括弧の形では未対応なので、これまでどおり落とす方に揃える
+  "種類",
+  "補足",
+  "値",
+  "行",
+  "位置",
+  "大きさ",
+  "色",
 ]);
 
 function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
@@ -1058,7 +1171,28 @@ function coerceStateValue(raw: string): number | string | boolean {
   return stripped;
 }
 
-function parseActor(line: Line): DslActor | null {
+/**
+ * パーツでない箱に倍率を書いた時に知らせる (#1026)。
+ *
+ * 倍率はパーツにしか効かない。 黙って捨てると「書いたのに大きさが変わらない」 が手掛かり
+ * なしで起きる。 3 つの書き方すべてで同じ知らせを出す (縦に並べた形だけ知らせて他が黙る、
+ * という状態を作らない)。
+ */
+function reportScaleOnNonPart(
+  isPart: boolean,
+  key: string | undefined,
+  line: number,
+  errors: DslError[],
+): void {
+  if (isPart || key === undefined) return;
+  errors.push({
+    line,
+    message: `項目名が読めません: "${key}"`,
+    hint: `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`,
+  });
+}
+
+function parseActor(line: Line, errors: DslError[]): DslActor | null {
   // 5 形式 サポート:
   // 1. `Client`                              ... name のみ、 kind=actor default
   // 2. `Client: storage`                     ... name + kind 略記
@@ -1077,6 +1211,10 @@ function parseActor(line: Line): DslActor | null {
     // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
     const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
+    // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)。
+    // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
+    const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
+    reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
@@ -1104,6 +1242,9 @@ function parseActor(line: Line): DslActor | null {
       posY: numberOrUndef(opts.posY),
       posW: numberOrUndef(opts.posW),
       posH: numberOrUndef(opts.posH),
+      // 図形の倍率 (#1026)。 どれが効くかは `resolveScale` が 1 箇所で決める
+      scale: inlineScale.scale,
+      scaleKeys: inlineScale.keys.length ? inlineScale.keys : undefined,
       // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
       nodes: parseActorNodesField(opts.nodes),
       pos: { line: line.no },
@@ -1124,6 +1265,8 @@ function parseActor(line: Line): DslActor | null {
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
+    // 倍率はパーツにしか効かない (#1026)
+    reportScaleOnNonPart(isPart, v.scaleKeys?.[0], line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(v.kind) ? v.kind : "");
     return {
       name: namePart,
@@ -1135,6 +1278,8 @@ function parseActor(line: Line): DslActor | null {
       value: v.value,
       posX: v.posX,
       posY: v.posY,
+      scale: v.scale,
+      scaleKeys: v.scaleKeys?.length ? v.scaleKeys : undefined,
       partId: isPart ? v.kind : undefined,
       stateOverride: isPart ? v.state : undefined,
       pos: { line: line.no },

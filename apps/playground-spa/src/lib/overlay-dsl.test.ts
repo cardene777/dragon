@@ -835,10 +835,19 @@ describe("縦に並べて書いた倍率 (#1020)", () => {
     expect(inline[0]?.scale, "書き方で効く名前が変わっている").toBe(block[0]?.scale);
   });
 
-  it("短い形の scale= は倍率として読まない", () => {
-    // 組み立て側は状態の名前として読む。 ここだけ倍率にすると意味が 3 通りになる (#1026)
-    const got = parse(`actors:\n  - a: achievement scale=2\n`);
-    expect(got[0]?.scale, "短い形を倍率として読んでいる").toBe(1);
+  it("短い形の scale= も倍率として読む (#1026)", () => {
+    // 組み立て側でも図形の倍率として予約したので、3 つの書き方で同じ意味になる
+    const short = parse(`actors:\n  - a: achievement scale=2\n`);
+    const inline = parse(`actors:\n  - a: { kind: achievement, scale: 2 }\n`);
+    const block = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 2\n`);
+    expect(short[0]?.scale, "短い形が読めていない").toBe(2);
+    expect(short[0]?.scale, "書き方で値が変わる").toBe(inline[0]?.scale);
+    expect(short[0]?.scale, "書き方で値が変わる").toBe(block[0]?.scale);
+  });
+
+  it("短い形の 倍率= も読む", () => {
+    const got = parse(`actors:\n  - a: achievement 倍率=3\n`);
+    expect(got[0]?.scale, "日本語の項目名が読めていない").toBe(3);
   });
 
   it("倍率と大きさは両方効く", () => {

@@ -74,6 +74,7 @@ export const FORMS: Section[] = [
       { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
       { code: "  - 実績:", note: "変えられる値があれば縦に並ぶ" },
       { code: "      kind: achievement", note: "" },
+      { code: "      倍率: 2", note: "パーツだけを大きくする" },
       { code: '      色: "#f59e0b"', note: "色を変えたい時はここを書き換える" },
     ],
   },

@@ -12,6 +12,9 @@ import {
   partRenderSize,
   partBoxInFrame,
   partTargetScale,
+  partScaleFactor,
+  normalizePartScale,
+  MAX_PART_SCALE,
   isColorValue,
   NODE_KIND_VALID,
   type RelativePos,
@@ -95,9 +98,9 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  * 間隔は見えている箱で解くので、 そちらは `partBoxRect` を使う (#1014)。
  */
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
-  const k = normalizePartScale(part.scale);
-  const e = partFrameSize(part);
-  return { w: e.w * k, h: e.h * k };
+  const e = partRenderSize(part.item.diagram);
+  const f = partScaleFactor(part.item.diagram, part.posW, part.posH, part.scale);
+  return { w: e.w * f.x, h: e.h * f.y };
 }
 
 /**
@@ -112,43 +115,14 @@ export function partWorldSize(part: OverlayPartParsed): { w: number; h: number }
 export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
   const e = partRenderSize(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  return { w: e.w * capScale(t.x), h: e.h * capScale(t.y) };
+  return { w: e.w * t.x, h: e.h * t.y };
 }
 
-/**
- * 掛ける前に率そのものを上限で止める。
- *
- * `scale:` だけを止めても、`大きさ:` から出る率と掛け合わさると再び桁が溢れる。
- * 掛ける手前で 1 つずつ止める方が、どの経路から来ても同じ上限が効く。
- */
-function capScale(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 1;
-  return Math.min(value, MAX_PART_SCALE);
-}
 
-/**
- * 本文に書かれた倍率を、 描ける値に直す。
- *
- * 記法は `scale: -2` も `scale: 0` も、 桁が溢れて `Infinity` になる値も書ける。 place と
- * 描画で別々に直すと、 同じパーツが「置き場所は等倍・画面では消える」 状態になる (実測 =
- * `scale: 0` が Fit では等倍の場所を占めるのに、 画面には出なかった)。 読んだ時点で直して、
- * 以降どこから見ても同じ値にする。
- */
-export function normalizePartScale(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 1;
-  // 有限でも桁が大きすぎると、掛けた先が非有限になる (実測 = `scale: 1e308` で
-  // 描く大きさが Infinity、置き場所が -Infinity になりパーツが消えた)。
-  // 画面に収まる範囲の上限で頭打ちにする
-  return Math.min(value, MAX_PART_SCALE);
-}
 
-/**
- * 倍率の上限 (#1020)。
- *
- * 図枠は数百 world 単位なので、1000 倍で数十万になる。 これを超える倍率は画面上で意味を持たず、
- * 掛けた先が非有限になる危険だけが残る。
- */
-export const MAX_PART_SCALE = 1000;
+// 倍率の直し方と上限は組み立て側 (`packages/dragon`) が持つ (#1026)。 別々に持つと、
+// 同じ本文が経路で別の大きさになる。 呼び出し側の import 元を変えずに済むよう再輸出する。
+export { normalizePartScale, MAX_PART_SCALE };
 
 /**
  * 書かれた値を倍率として読む。
@@ -176,16 +150,13 @@ export function partBoxRect(part: OverlayPartParsed): {
   left: number;
   top: number;
 } {
-  const k = normalizePartScale(part.scale);
   const b = partBoxInFrame(part.item.diagram);
-  const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  const tx = capScale(t.x);
-  const ty = capScale(t.y);
+  const f = partScaleFactor(part.item.diagram, part.posW, part.posH, part.scale);
   return {
-    w: b.w * tx * k,
-    h: b.h * ty * k,
-    left: b.left * tx * k,
-    top: b.top * ty * k,
+    w: b.w * f.x,
+    h: b.h * f.y,
+    left: b.left * f.x,
+    top: b.top * f.y,
   };
 }
 
@@ -608,11 +579,11 @@ export function extractPartsFromSrc(
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
-      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)。
+      // 短い形は先頭の語が種類。 残りは倍率 (`scale=2`) と状態の上書き (`v=50`) と
+      // 位置 (`@300,200`)。
       //
-      // **`scale=2` は倍率として読まない** (#1020)。 組み立て側は 3 つの書き方すべてで
-      // `scale` を状態の名前として読むため (実測)、ここだけ図形の倍率にすると
-      // 同じ語の意味が書き方で 3 通りになる。 意味の食い違い自体は #1026 に切り出した
+      // `倍率` は組み立て側でも図形の倍率として予約した (#1026)。 予約する前は状態の名前として
+      // 読まれており、同じ本文が 2 経路で別の絵になっていた
       const alias = unquoteAlias(short[2]!);
       const values = short[4]!.trim().split(/\s+/);
       const kindValue = values[0]!.toLowerCase();
@@ -623,7 +594,7 @@ export function extractPartsFromSrc(
             id: alias,
             kind: kindValue,
             item,
-            scale: 1,
+            scale: readScaleToken(values),
             rotate: 0,
             ...readAtToken(values),
           });
@@ -676,7 +647,7 @@ export function extractPartsFromSrc(
               // (縦横 2 つ揃って初めて位置になる)
               posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
-              scale: parsePartScale(readTopLevelField(inner, "scale") ?? readTopLevelField(inner, "倍率")),
+              scale: readInlineScale(inner),
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               posW: size("posW"),
               posH: size("posH"),
@@ -737,7 +708,7 @@ function readPositionFromBlock(
  * 見本を library として使う経路との意味の違いは #1026 に切り出した。
  */
 function readScaleFromBlock(lines: string[]): number {
-  const raw = readDirectField(lines, ["scale", "倍率"]);
+  const raw = readDirectField(lines, SCALE_KEYS);
   return parsePartScale(raw);
 }
 
@@ -792,6 +763,49 @@ function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
     return { posW: Number(wh[1]), posH: Number(wh[2]) };
   }
   return {};
+}
+
+/**
+ * 空白区切りの値から `scale=2` / `倍率=2` を読む (#1026)。
+ *
+ * 読み方は 3 つの書き方すべてで同じにする。 **別名は `scale` を先に見て、同じ名前を 2 度
+ * 書いた時は後に書いた方を採る**。 前を採ると書き直した値が効かない。
+ *
+ * 書いた名前が `scale` なら、その値が読めなくても `倍率` に降りない。 降りると
+ * 「綴りを誤った時だけ別の値が効く」 という追いにくい形になる。
+ */
+function readScaleToken(values: string[]): number {
+  for (const key of SCALE_KEYS) {
+    let found: string | null = null;
+    for (const v of values) {
+      if (v.startsWith(`${key}=`)) found = v.slice(key.length + 1);
+    }
+    if (found !== null) return parsePartScale(found);
+  }
+  return 1;
+}
+
+/** 倍率として読む項目名。 先に並べた方を優先する (組み立て側と同じ順)。 */
+const SCALE_KEYS = ["scale", "倍率"] as const;
+
+/**
+ * 中括弧の形から倍率を読む (#1026)。
+ *
+ * 同じ名前を 2 度書いた時は後に書いた方を採る。 `readTopLevelField` は先に書いた方を返すため、
+ * ここでは使えない (縦に並べた形が後を採るので、揃えないと書き方で結果が変わる)。
+ */
+function readInlineScale(inner: string): number {
+  const fields = splitTopLevelFields(inner);
+  for (const key of SCALE_KEYS) {
+    let found: string | null = null;
+    for (const field of fields) {
+      const idx = field.indexOf(":");
+      if (idx < 0 || field.slice(0, idx).trim() !== key) continue;
+      found = field.slice(idx + 1).trim();
+    }
+    if (found !== null) return parsePartScale(found);
+  }
+  return 1;
 }
 
 /** 空白区切りの値から `@300,200` を読む。 */
