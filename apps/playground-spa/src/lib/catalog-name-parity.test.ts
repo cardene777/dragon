@@ -20,6 +20,7 @@ import * as Styles from "@/topics/catalog/styles.cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
+import * as Parts from "@/topics/catalog/parts.cdl";
 import { ITEM_NAME_JA } from "./i18n";
 
 const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
@@ -33,15 +34,22 @@ const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
   ["presets", Presets as unknown as Record<string, unknown>],
   ["ethereum", Ethereum as unknown as Record<string, unknown>],
   ["text-dsl", TextDsl as unknown as Record<string, unknown>],
+  // parts は画面では遅延読み込みだが、名前の衝突は読み込み方に関係なく起きる
+  ["parts", Parts as unknown as Record<string, unknown>],
 ];
 
-/** 図として組み立て済の export だけを拾う (説明文の export と helper を除く)。 */
+/**
+ * 図として組み立て済の export だけを拾う。
+ *
+ * 判定は production (`catalog-items.ts` の `moduleToItems`) と**同じ式**にする。
+ * 厳しくすると production が一覧に出す図を test が見落とし、緩くすると図でない export を数える。
+ */
 function diagramKeys(mod: Record<string, unknown>): string[] {
   return Object.entries(mod)
-    .filter(([k]) => !k.startsWith("subtitle__"))
-    .filter(([, v]) => {
-      const d = v as { id?: unknown; nodes?: unknown };
-      return typeof d?.id === "string" && Array.isArray(d?.nodes);
+    .filter(([, value]) => {
+      if (!value || typeof value !== "object") return false;
+      const d = value as { id?: unknown; nodes?: unknown };
+      return Boolean(d.id) && Boolean(d.nodes);
     })
     .map(([k]) => k);
 }
@@ -50,12 +58,17 @@ describe("一覧の名前 (#1030)", () => {
   const byCatalog = CATALOGS.map(([name, mod]) => [name, diagramKeys(mod)] as const);
   const total = byCatalog.reduce((a, [, ks]) => a + ks.length, 0);
 
-  it("対象が空振りしていない", () => {
-    // 抽出条件を誤って 0 件になると、以下の検証が全て素通りする
-    expect(total, `図が取れていない (${byCatalog.map(([n, k]) => `${n}:${k.length}`).join(" ")})`).toBeGreaterThan(300);
-    for (const [name, keys] of byCatalog) {
-      expect(keys.length, `${name} の図が 0 件`).toBeGreaterThan(0);
-    }
+  it("catalog ごとの図の数を固定する", () => {
+    // 件数の下限だけだと、取りこぼしても通ってしまう。 catalog ごとの実数で固定する。
+    // 図を足したらこの表も更新する = 数が変わったことに気付ける
+    const expected: Record<string, number> = {
+      interactive: 129, cookbook: 25, patterns: 12, primitives: 89,
+      "primitives-extra": 21, animation: 10, styles: 10, presets: 20,
+      ethereum: 4, "text-dsl": 12, parts: 80,
+    };
+    const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
+    expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);
+    expect(total, "総数が合わない").toBe(Object.values(expected).reduce((a, b) => a + b, 0));
   });
 
   it("catalog をまたいで export 名が衝突しない", () => {
