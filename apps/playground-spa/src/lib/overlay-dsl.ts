@@ -112,7 +112,18 @@ export function partWorldSize(part: OverlayPartParsed): { w: number; h: number }
 export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
   const e = partRenderSize(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  return { w: e.w * t.x, h: e.h * t.y };
+  return { w: e.w * capScale(t.x), h: e.h * capScale(t.y) };
+}
+
+/**
+ * 掛ける前に率そのものを上限で止める。
+ *
+ * `scale:` だけを止めても、`大きさ:` から出る率と掛け合わさると再び桁が溢れる。
+ * 掛ける手前で 1 つずつ止める方が、どの経路から来ても同じ上限が効く。
+ */
+function capScale(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  return Math.min(value, MAX_PART_SCALE);
 }
 
 /**
@@ -168,11 +179,13 @@ export function partBoxRect(part: OverlayPartParsed): {
   const k = normalizePartScale(part.scale);
   const b = partBoxInFrame(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
+  const tx = capScale(t.x);
+  const ty = capScale(t.y);
   return {
-    w: b.w * t.x * k,
-    h: b.h * t.y * k,
-    left: b.left * t.x * k,
-    top: b.top * t.y * k,
+    w: b.w * tx * k,
+    h: b.h * ty * k,
+    left: b.left * tx * k,
+    top: b.top * ty * k,
   };
 }
 
@@ -574,8 +587,12 @@ export function extractPartsFromSrc(
     }
     if (pending !== null) {
       const indent = line.length - line.trimStart().length;
-      // 空行と、 名前の行より深い字下げは block の続き
-      if (line.trim() === "" || indent > pending.indent) {
+      // 空行と注釈の行、 名前の行より深い字下げは block の続き。
+      //
+      // 注釈を字下げで判定すると、 項目より浅く置いた `# ...` が block を終わらせ、
+      // その後の項目が丸ごと読まれなくなる (実測 = `scale: 4` が 1 になった)。
+      // 空行と同じ扱いにする = どちらも項目ではないので、 読む側が数から外す
+      if (line.trim() === "" || line.trim().startsWith("#") || indent > pending.indent) {
         pending.lines.push(line);
         pending.srcIdx.push(srcIdx);
         continue;
@@ -591,7 +608,11 @@ export function extractPartsFromSrc(
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
-      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)
+      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)。
+      //
+      // **`scale=2` は倍率として読まない** (#1020)。 組み立て側は 3 つの書き方すべてで
+      // `scale` を状態の名前として読むため (実測)、ここだけ図形の倍率にすると
+      // 同じ語の意味が書き方で 3 通りになる。 意味の食い違い自体は #1026 に切り出した
       const alias = unquoteAlias(short[2]!);
       const values = short[4]!.trim().split(/\s+/);
       const kindValue = values[0]!.toLowerCase();
@@ -729,22 +750,26 @@ function readScaleFromBlock(lines: string[]): number {
  * 同じ項目を 2 度書いた時は後を採る。 前を採ると、書き直した値が効かない。
  */
 function readDirectField(lines: string[], keys: readonly string[]): string | null {
-  // 先頭は名前の行 (`  - 実績:`) で、項目より浅い。 これを混ぜると直下の字下げを見誤る
-  const body = lines.slice(1);
-  const indents = body
-    .filter((l) => l.trim() !== "")
-    .map((l) => l.length - l.trimStart().length);
+  // 先頭は名前の行 (`  - 実績:`) で、項目より浅い。 これを混ぜると直下の字下げを見誤る。
+  // 注釈の行も除く = 項目より浅く置かれた `# ...` を数に入れると直下を見誤り、
+  // 本来読める項目が読めなくなる (実測 = 浅い注釈があると `scale: 4` が 1 になった)
+  const body = lines.slice(1).filter((l) => l.trim() !== "" && !l.trim().startsWith("#"));
+  const indents = body.map((l) => l.length - l.trimStart().length);
   if (indents.length === 0) return null;
   const direct = Math.min(...indents);
-  const pattern = new RegExp(`^(${keys.join("|")})\\s*:\\s*(.*)$`);
-  let found: string | null = null;
-  for (const line of body) {
-    if (line.trim() === "") continue;
-    if (line.length - line.trimStart().length !== direct) continue;
-    const m = line.trim().match(pattern);
-    if (m) found = m[2] ?? "";
+  // 別名 (`scale` / `倍率`) は **先に並べた名前を優先** する。 中括弧の形も同じ順で引くので、
+  // 両方書いた時にどちらが効くかが書き方で変わらない
+  for (const key of keys) {
+    let found: string | null = null;
+    for (const line of body) {
+      if (line.length - line.trimStart().length !== direct) continue;
+      const m = line.trim().match(new RegExp(`^${key}\\s*:\\s*(.*)$`));
+      // 同じ名前を 2 度書いた時は後を採る。 前を採ると書き直した値が効かない
+      if (m) found = m[1] ?? "";
+    }
+    if (found !== null) return found;
   }
-  return found;
+  return null;
 }
 
 /**

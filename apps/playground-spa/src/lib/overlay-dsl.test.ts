@@ -607,6 +607,18 @@ describe("パーツの実寸", () => {
     expect(size.h, "潰れている").toBeGreaterThan(10);
   });
 
+  it("大きさと掛け合わせても桁が溢れない", () => {
+    // 倍率だけ止めても、`大きさ:` から出る率と掛け合わさると再び溢れる。
+    // 掛ける手前で 1 つずつ止めないと、描く大きさと箱が非有限になる
+    const huge = Number(`1${"0".repeat(307)}`);
+    const part = { ...partOf(400, 300, MAX_PART_SCALE), posW: huge, posH: huge };
+    const world = partWorldSize(part);
+    expect(Number.isFinite(world.w), "描く幅が非有限").toBe(true);
+    expect(Number.isFinite(world.h), "描く高さが非有限").toBe(true);
+    const box = partBoxRect(part);
+    expect(Number.isFinite(box.w) && Number.isFinite(box.h), "箱が非有限").toBe(true);
+  });
+
   it("拡大率を掛ける", () => {
     const one = partWorldSize(partOf(400, 300, 1));
     const two = partWorldSize(partOf(400, 300, 2));
@@ -803,6 +815,30 @@ describe("縦に並べて書いた倍率 (#1020)", () => {
     expect(Number.isFinite(world.h), "描く大きさが非有限").toBe(true);
     const box = partBoxRect(got[0]!);
     expect(Number.isFinite(box.w) && Number.isFinite(box.left), "箱が非有限").toBe(true);
+  });
+
+  it("浅い注釈があっても読める", () => {
+    // 注釈を数に入れると直下の字下げを見誤り、読める項目が読めなくなる
+    const got = parse(
+      `actors:\n  - a:\n      kind: achievement\n  # 注釈\n      scale: 4\n`,
+    );
+    expect(got[0]?.scale, "注釈で読めなくなっている").toBe(4);
+  });
+
+  it("別名を両方書いたら先に並べた方を採る", () => {
+    // 中括弧の形も同じ順で引くので、書き方で効く方が変わらない
+    const block = parse(
+      `actors:\n  - a:\n      kind: achievement\n      scale: 2\n      倍率: 3\n`,
+    );
+    const inline = parse(`actors:\n  - a: { kind: achievement, scale: 2, 倍率: 3 }\n`);
+    expect(block[0]?.scale, "block 側で先の名前が効いていない").toBe(2);
+    expect(inline[0]?.scale, "書き方で効く名前が変わっている").toBe(block[0]?.scale);
+  });
+
+  it("短い形の scale= は倍率として読まない", () => {
+    // 組み立て側は状態の名前として読む。 ここだけ倍率にすると意味が 3 通りになる (#1026)
+    const got = parse(`actors:\n  - a: achievement scale=2\n`);
+    expect(got[0]?.scale, "短い形を倍率として読んでいる").toBe(1);
   });
 
   it("倍率と大きさは両方効く", () => {
