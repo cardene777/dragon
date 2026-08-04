@@ -5,6 +5,7 @@ import {
   textDslToDiagram,
   partRenderSize,
   partTargetScale,
+  partDrawsInDiagram,
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
@@ -1062,6 +1063,18 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           bytes: 0,
         });
         if (withPartsOversize) throw new Error(withPartsOversize);
+        // 実体が操作パネルの部品だけの見本は、重ねても図には出ない (#1017)。 場所は確保される
+        // ため「置いたのに見えない」 状態になる。 黙って置くと綴りを疑うことになるので知らせる
+        for (const p of parts) {
+          if (partDrawsInDiagram(p.item.diagram)) continue;
+          notices.push({
+            kind: "part-not-drawn",
+            actor: p.id,
+            line: 0,
+            message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、重ねても図には出ません。`,
+            hint: "操作パネルの部品として使う見本です",
+          });
+        }
         // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
         // ここで作った 1 つを共有する (渡さないと中でもう一度計算する、 #1006)
         const built = buildAndValidate(d);
@@ -1822,8 +1835,10 @@ animation:
             本文の行番号を指すので、 その本文を映していない YAML 欄では出さない。 */}
         {activeTab === "cdl" && !error && compileNotices.length > 0 && (
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
-            {compileNotices.map((n) => (
-              <div key={`${n.actor}-${n.line}`} className="v4-editor-notice">
+            {compileNotices.map((n, i) => (
+              // 同じ名前 / 同じ行で種類だけ違う知らせが並ぶ (箱を持たない見本に効かない相対指定を
+              // 書いた形)。 種類と並び順まで入れないと React が行を取り違える
+              <div key={`${n.kind}-${n.actor}-${n.line}-${i}`} className="v4-editor-notice">
                 {/* 行が分からない知らせ (パーツ経由) では番号を出さない */}
                 {n.line > 0 && <span className="v4-editor-notice-line">L{n.line}</span>}
                 <span className="v4-editor-notice-text">{n.message}</span>

@@ -329,4 +329,40 @@ flow:
     // 比がそのまま出る。 `transform` を外すと 1 倍前後に落ちる
     expect(sizedW / plainW, `伸びていない (${sizedW} / ${plainW})`).toBeGreaterThan(3);
   });
+
+  /**
+   * 実体が操作パネルの部品だけの見本を置いた時に知らせが出ることを固定する (#1017)。
+   *
+   * この見本 (catalog 80 件中 17 件) は図の中に描く部品を持たない。 場所は確保されるため
+   * 「置いたのに見えない」 状態になり、黙って置くと綴りを疑うことになる。
+   */
+  test("パネル部品だけの見本を置くと知らせが出る", async ({ page }) => {
+    await setup(page);
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForSelector('[data-part-id="parts-percent-ring"]', { timeout: 15000 });
+    await page.waitForTimeout(300);
+
+    await page.click('[data-part-id="parts-percent-ring"]');
+    await page.waitForTimeout(1500);
+    const shown = await page.evaluate(
+      () => document.querySelector('[data-testid="editor-compile-notices"]')?.textContent ?? "",
+    );
+    expect(shown, "知らせが出ていない").toContain("図の中に描く部品を持たない");
+  });
+
+  test("図として描く見本では知らせが出ない", async ({ page }) => {
+    await setup(page);
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForSelector('[data-part-id="parts-achievement"]', { timeout: 15000 });
+    await page.waitForTimeout(300);
+
+    await page.click('[data-part-id="parts-achievement"]');
+    await page.waitForTimeout(1500);
+    const shown = await page.evaluate(
+      () => document.querySelector('[data-testid="editor-compile-notices"]')?.textContent ?? "",
+    );
+    expect(shown, "図として描く見本にまで知らせが出ている").not.toContain(
+      "図の中に描く部品を持たない",
+    );
+  });
 });

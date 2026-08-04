@@ -58,7 +58,13 @@ export interface CompileToCdlOpts {
 
 /** 図は出せるが書いた通りにならなかった、 という知らせ。 */
 export type CompileNotice = {
-  kind: "relative-position-ignored" | "focus-target-missing" | "state-override-rejected" | "external-paint-dropped";
+  kind:
+    | "relative-position-ignored"
+    | "focus-target-missing"
+    | "state-override-rejected"
+    | "external-paint-dropped"
+    // 図の中に描く部品を持たない見本を重ねた (#1017)
+    | "part-not-drawn";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -788,8 +794,11 @@ function partExtent(
  * `preserveAspectRatio` で収めるため、 箱の値を渡すと縮んで描いた大きさと食い違う
  * (実測 = achievement が箱の値で描くと約 275x275 になった)。
  *
- * 箱を持たないパーツ (実体を `shape` で描く 17 件) でも図枠は正しく出る。 箱だけを見ると
- * 1x1 になり、 その値で描くと潰れる。 図枠なら全 80 件で極小が 0 件になることを実測した。
+ * 箱を持たないパーツ (実体が操作パネルの部品である 17 件) でも図枠は出る。 箱だけを見ると
+ * 1x1 になり、 その値で描くと潰れる。
+ *
+ * ただし **図枠は場所を確保するだけで、図の中に何か描かれることは保証しない**。 上の 17 件は
+ * 図の中に描く部品を持たず、重ねても図には出ない (`partDrawsInDiagram`、#1017)。
  *
  * 画面が描く大きさと、 組み立て側の格子が確保する場所の両方がこれを見る。 別々の物差しを
  * 持っていた頃は、 同じ本文でも通った経路でパーツの位置が変わっていた (#937)。
@@ -799,6 +808,41 @@ function partExtent(
 export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
   const g = partFrameGeometry(part);
   return { w: g.w, h: g.h };
+}
+
+/**
+ * この見本が、図の中に描かれる部品を持っているか (#1017)。
+ *
+ * 見本の中には実体が **操作パネルの部品** (`readouts`) だけのものがある。 配置計算も描画も
+ * `readouts` を図の中では扱わないため、図として重ねても何も出ない。 位置決めのための
+ * 1x1 の箱が 1 つあるだけになる。
+ *
+ * catalog 80 件を測ると、この 2 群は `readouts` の有無で完全に分かれた。
+ * `readouts` を持つ 17 件は箱と図枠の面積比が全件 0.0000 (箱は 1x1)、
+ * 持たない 63 件は最小でも 0.1877。 境目に入る件は無い。
+ *
+ * 判定は面積の閾値ではなく **`readouts` を持ち、かつ箱が図枠に対して極小** の 2 条件で行う。
+ * 閾値だけで見ると、小さい箱を意図して置いた見本を巻き込む。 `readouts` だけで見ると、
+ * 箱も実体も両方持つ見本 (現状 0 件だが作れる) を誤って弾く。
+ *
+ * 測れない図では「持っている」 側に倒す。 弾く側に倒すと、測れないだけの見本が使えなくなる。
+ */
+export function partDrawsInDiagram(part: CdlDiagram): boolean {
+  const readouts = (part as { readouts?: unknown }).readouts;
+  if (!Array.isArray(readouts) || readouts.length === 0) return true;
+  const g = partFrameGeometry(part);
+  if (!(g.w > 0) || !(g.h > 0)) return true;
+  // 箱が図枠の 1% にも満たなければ、実体は図の外にある。
+  //
+  // **辺ごとに割ってから掛ける**。 面積を先に出すと桁の大きい図で溢れ、判定が反転する
+  // (実測 = 箱 1.7e305 x 1e4 / 図枠 1.7e308 x 1e4 は比 0.001 で「描かない」 が正しいのに、
+  // 面積を先に出すと Infinity / Infinity = NaN になって「描く」 に倒れた)。
+  //
+  // それでも出せない時は「持っている」 側に倒す。 弾く側に倒すと、
+  // 測れないだけの見本が使えなくなる
+  const ratio = (g.boxW / g.w) * (g.boxH / g.h);
+  if (!Number.isFinite(ratio)) return true;
+  return ratio >= 0.01;
 }
 
 /**
