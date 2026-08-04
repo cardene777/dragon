@@ -660,6 +660,9 @@ describe("倍率の意味 (#1026)", () => {
       ["縦・読めない値と別名", `  - a:\n      kind: wide\n      scale: x\n      倍率: 3\n`, 1],
       ["中括弧・別名を両方", `  - a: { kind: wide, scale: 2, 倍率: 3 }\n`, 2],
       ["中括弧・同じ名前を 2 度", `  - a: { kind: wide, scale: 2, scale: 3 }\n`, 3],
+      ["縦・値が空と別名", `  - a:\n      kind: wide\n      scale:\n      倍率: 3\n`, 1],
+      ["中括弧・値が空と別名", `  - a: { kind: wide, scale:, 倍率: 3 }\n`, 1],
+      ["短・値が空と別名", `  - a: wide scale= 倍率=3\n`, 1],
     ];
     for (const [name, actors, want] of cases) {
       const src = `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n${actors}`;

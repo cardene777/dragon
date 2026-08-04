@@ -176,6 +176,9 @@ describe("倍率の意味 (#1026)", () => {
       ["縦・読めない値と別名", `  - a:\n      kind: sample\n      scale: x\n      倍率: 3\n`, 1],
       ["中括弧・別名を両方", `  - a: { kind: sample, scale: 2, 倍率: 3 }\n`, 2],
       ["中括弧・同じ名前を 2 度", `  - a: { kind: sample, scale: 2, scale: 3 }\n`, 3],
+      ["縦・値が空と別名", `  - a:\n      kind: sample\n      scale:\n      倍率: 3\n`, 1],
+      ["中括弧・値が空と別名", `  - a: { kind: sample, scale:, 倍率: 3 }\n`, 1],
+      ["短・値が空と別名", `  - a: sample scale= 倍率=3\n`, 1],
     ];
     for (const [name, actors, want] of cases) {
       const r = parseTextDslV05(`${head}actors:\n${actors}${tail}`);
@@ -195,6 +198,22 @@ describe("倍率の意味 (#1026)", () => {
       onNotice: (n) => notices.push(n.kind),
     });
     expect(notices, `知らせが消えている (${notices.join(",")})`).toContain("scale-reserved");
+  });
+
+  it("値が空でも知らせは出る", () => {
+    // 値の有無で知らせが消えると、`scale:` と書いた人だけ意味が変わったことに気付けない
+    for (const form of [
+      `  - a:\n      kind: sample\n      scale:\n`,
+      `  - a: { kind: sample, scale: }\n`,
+      `  - a: sample scale=\n`,
+    ]) {
+      const notices: string[] = [];
+      textDslToDiagram(`${head}actors:\n${form}${tail}`, {
+        partsCatalog: catalog,
+        onNotice: (n) => notices.push(n.kind),
+      });
+      expect(notices, `知らせが消えている (${form.trim()})`).toContain("scale-reserved");
+    }
   });
 
   it("書いていない名前の状態には知らせない", () => {

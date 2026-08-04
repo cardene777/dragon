@@ -640,6 +640,49 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
  */
 function parseInlineMapping(inner: string): Record<string, string> {
   const out: Record<string, string> = {};
+  for (const p of splitInlineFields(inner)) {
+    // 項目名は英字だけでなく日本語も受ける (#1026)。 受けないと `{ kind: x, 倍率: 2 }` の
+    // 倍率が消え、同じ意味を書いたのに中括弧の形だけ効かない (実測)。
+    //
+    // 読める名前を広げても、**知っている名前しか使われない**。 パーツの状態の上書きに
+    // 流れるのは `ACTOR_RESERVED_FIELDS` に無い名前だけで、日本語の項目名 (`位置` / `大きさ`
+    // 等) はそこに載せてあるため、これまでどおり落ちる
+    const m = p.match(/^\s*([^\s:,{}[\]"']+)\s*:\s*(.+?)\s*$/);
+    if (m) {
+      const key = m[1]!;
+      out[key] = stripQuotes(m[2]!.trim());
+    }
+  }
+  return out;
+}
+
+/**
+ * 中括弧の中身から、倍率として書かれた名前と値を拾う (#1026)。
+ *
+ * `parseInlineMapping` は値が 1 文字以上ある項目しか拾わない。 それをそのまま使うと、
+ * 値を書かなかった形 (`{ kind: x, scale: }`) で「書いた」 ことすら残らず、
+ * 予約の知らせが消える。 倍率だけは値が空でも名前を残す。
+ */
+function writtenScaleFields(inner: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const field of splitInlineFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    const key = field.slice(0, idx).trim();
+    if (!SCALE_KEYS.has(key)) continue;
+    // 同じ名前を 2 度書いたら後の値を採る
+    out.set(key, stripQuotes(field.slice(idx + 1).trim()));
+  }
+  return out;
+}
+
+/**
+ * 中括弧の中身を、入れ子と引用符を保ったまま項目ごとに割る。
+ *
+ * `parseInlineMapping` と、倍率の「書かれた名前」 を拾う経路 (#1026) で共用する。
+ * 割り方を 2 つ持つと、片方だけが拾える項目という食い違いが生まれる。
+ */
+function splitInlineFields(inner: string): string[] {
   let depth = 0;
   let buf = "";
   const parts: string[] = [];
@@ -655,22 +698,7 @@ function parseInlineMapping(inner: string): Record<string, string> {
     buf += c;
   }
   if (buf.trim()) parts.push(buf);
-  for (const p of parts) {
-    // 項目名は英字だけでなく日本語も受ける (#1026)。 受けないと `{ kind: x, 倍率: 2 }` の
-    // 倍率が消え、同じ意味を書いたのに中括弧の形だけ効かない (実測)。
-    //
-    // 読める名前を広げても、**知っている名前しか使われない**。 パーツの状態の上書きに
-    // 流れるのは `ACTOR_RESERVED_FIELDS` に無い名前だけで、日本語の項目名 (`位置` / `大きさ`
-    // 等) はそこに載せてあるため、これまでどおり落ちる
-    const m = p.match(/^\s*([^\s:,{}[\]"']+)\s*:\s*(.+?)\s*$/);
-    if (m) {
-      const key = m[1]!;
-      let value = m[2]!.trim();
-      value = stripQuotes(value);
-      out[key] = value;
-    }
-  }
-  return out;
+  return parts;
 }
 
 function collectIndentedList(lines: Line[], start: number, parentIndent: number): { items: Line[]; next: number } {
@@ -777,7 +805,15 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     if (idx < 0) continue;
     const key = ln.trimmed.slice(0, idx).trim();
     const raw = ln.trimmed.slice(idx + 1).trim();
-    if (!key || !raw) continue;
+    if (!key) continue;
+    // 倍率だけは値が空でも名前を残す (#1026)。 捨てると、値を書かなかった形で
+    // 予約の知らせが消え、別名 (`倍率`) に降りて別の値が効いてしまう
+    if (SCALE_KEYS.has(key)) {
+      scaleWritten.set(key, stripQuotes(raw));
+      unknownKeys.push({ key, line: ln.no });
+      continue;
+    }
+    if (!raw) continue;
 
     if (COLOR_KEYS.has(key)) {
       const { tone, hex } = splitColorValue(raw);
@@ -859,14 +895,6 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         if (m) { out.posW = Number(m[1]); out.posH = Number(m[2]); }
         break;
       }
-      case "scale":
-      case "倍率":
-        // 図形の倍率 (#1026)。 状態の名前としては読まない。
-        // どれが効くかは block を読み終わってから `resolveScale` が決める
-        scaleWritten.set(key, stripQuotes(raw));
-        // パーツ以外に書いても効かないので、綴り誤りと同じ扱いで知らせる側にも積む
-        unknownKeys.push({ key, line: ln.no });
-        break;
       case "lane":
         out.lane = stripQuotes(raw);
         break;
@@ -1184,10 +1212,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
     const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
     // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)。
-    // `opts` は同じ名前が 2 度出た時に後の値で上書きされているので、そのまま渡してよい
-    const inlineScale = resolveScale(
-      new Map(Object.entries(opts).filter(([k]) => SCALE_KEYS.has(k))),
-    );
+    // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
+    const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
