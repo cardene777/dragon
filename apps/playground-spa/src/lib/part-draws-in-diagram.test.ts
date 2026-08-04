@@ -140,4 +140,35 @@ describe("図の中に描かれるかの判定 (#1017)", () => {
     } as unknown as CdlDiagram;
     expect(partDrawsInDiagram(huge), "桁の大きい図で誤判定している").toBe(true);
   });
+
+  it("桁が溢れる形でも判定が反転しない", () => {
+    // 面積を先に出すと、比 0.001 (「描かない」 が正しい) が Infinity / Infinity = NaN に
+    // なって「描く」 に倒れる。 辺ごとに割る形でしか正しく出ない
+    const overflow = {
+      readouts: [{ id: "r", kind: "gauge", source: "{v}" }],
+      lanes: [{ id: "l", x: 0, width: 1.7e308 }],
+      nodes: [{ id: "n", lane: "l", stack: 0, kind: "card", title: "n", w: 1.7e305, h: 1e4 }],
+      edges: [],
+      states: [],
+      phases: [],
+    } as unknown as CdlDiagram;
+    expect(partDrawsInDiagram(overflow), "桁が溢れて判定が反転している").toBe(false);
+  });
+
+  it("閾値は 1%", () => {
+    // 境目を挟む 2 点で 1% そのものを固定する。 実測した面積比は
+    // 箱の幅 50 で 0.00960、55 で 0.01056。 閾値を動かすとどちらかの期待が外れる
+    const withWidth = (w: number): CdlDiagram =>
+      ({
+        readouts: [{ id: "r", kind: "gauge", source: "{v}" }],
+        lanes: [{ id: "l", x: 0, width: 10000 }],
+        nodes: [{ id: "n", lane: "l", stack: 0, kind: "card", title: "n", w, h: 10000 }],
+        edges: [],
+        states: [],
+        phases: [],
+      }) as unknown as CdlDiagram;
+
+    expect(partDrawsInDiagram(withWidth(50)), "1% 未満 (0.00960) を通している").toBe(false);
+    expect(partDrawsInDiagram(withWidth(55)), "1% 超 (0.01056) を弾いている").toBe(true);
+  });
 });

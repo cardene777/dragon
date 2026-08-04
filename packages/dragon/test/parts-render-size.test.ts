@@ -29,7 +29,7 @@ const BOXED: CdlDiagram = diagram("boxed", { topic: "boxed" })
  * 箱を持たないパーツ。 catalog の readout 系 (percent-ring / arc-gauge 等) と同じ形で、
  * 実体は `readouts` が描き、 箱は位置決めのための 1x1 が 1 個だけ。
  */
-const SHAPE_ONLY: CdlDiagram = {
+const READOUT_ONLY: CdlDiagram = {
   id: "parts-percent-ring",
   topic: "percent-ring",
   lanes: [{ id: "l", x: 0, width: 400 }],
@@ -56,12 +56,12 @@ describe("partRenderSize", () => {
   });
 
   it("箱を持たないパーツでも潰れない", () => {
-    const visual = partVisualSize(SHAPE_ONLY);
+    const visual = partVisualSize(READOUT_ONLY);
     // 箱だけを見ると 1x1 になる。 この値で描くと画面上で点になる
     expect(visual.w).toBeLessThanOrEqual(2);
     expect(visual.h).toBeLessThanOrEqual(2);
 
-    const render = partRenderSize(SHAPE_ONLY);
+    const render = partRenderSize(READOUT_ONLY);
     // 図枠なら実体を描ける大きさが出る
     expect(render.w).toBeGreaterThan(100);
     expect(render.h).toBeGreaterThan(100 * 0.2);

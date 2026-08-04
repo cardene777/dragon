@@ -834,12 +834,12 @@ export function partDrawsInDiagram(part: CdlDiagram): boolean {
   if (!(g.w > 0) || !(g.h > 0)) return true;
   // 箱が図枠の 1% にも満たなければ、実体は図の外にある。
   //
-  // 比が出せない時は「持っている」 側に倒す。 桁の大きい図で面積を先に出すと
-  // Infinity / Infinity = NaN になり、比較が常に false = 「描かない」 に倒れる
-  // (実測 = 1e200 四方の図で、面積比 1 のはずが弾かれた)。
+  // **辺ごとに割ってから掛ける**。 面積を先に出すと桁の大きい図で溢れ、判定が反転する
+  // (実測 = 箱 1.7e305 x 1e4 / 図枠 1.7e308 x 1e4 は比 0.001 で「描かない」 が正しいのに、
+  // 面積を先に出すと Infinity / Infinity = NaN になって「描く」 に倒れた)。
   //
-  // 辺ごとに割ってから掛けるのは桁溢れを避けるため。 catalog の見本では上の判定と結果が
-  // 変わらないので、これ自体は保険 (変異試験で差が出ないことを確認済)
+  // それでも出せない時は「持っている」 側に倒す。 弾く側に倒すと、
+  // 測れないだけの見本が使えなくなる
   const ratio = (g.boxW / g.w) * (g.boxH / g.h);
   if (!Number.isFinite(ratio)) return true;
   return ratio >= 0.01;
