@@ -460,4 +460,50 @@ flow:
 
     expect(attempts.length, `読み込みが繰り返されている (${attempts.length} 回)`).toBeLessThanOrEqual(2);
   });
+
+  /**
+   * YAML 欄に直接書いた見本でも読み込みが起きることを固定する (#1022)。
+   *
+   * YAML は登場人物を `{ name, kind }` の形で書くため、本文欄と文法が違う。 本文欄の走査を
+   * 当てると次の行の種類を読み飛ばし、`kind:` を書いても読み込みが起きない。
+   */
+  test("YAML 欄に書いた見本でも一覧を読み込む", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => requests.push(r.url()));
+
+    await setup(page);
+    await page.click('[data-testid="editor-tab-yaml"]');
+    await page.waitForTimeout(600);
+    // ここまでで読み込まれていないことを確かめてから書く
+    expect(
+      requests.filter((u) => u.includes("parts.cdl")).length,
+      "書く前に読み込まれている",
+    ).toBe(0);
+
+    await page.locator('[data-testid="editor-code-body-yaml"] .cm-content').click();
+    await page.keyboard.press("Meta+A");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.insertText(
+      [
+        "title: t",
+        "type: flow",
+        "actors:",
+        "  - name: Web",
+        "    kind: service",
+        "  - name: ach",
+        "    kind: achievement",
+        "flow:",
+        "  - from: Web",
+        "    to: Web",
+        "    label: x",
+        "",
+      ].join("\n"),
+    );
+    await page.waitForTimeout(2500);
+
+    expect(
+      requests.filter((u) => u.includes("parts.cdl")).length,
+      "YAML 欄に書いた見本で読み込みが起きていない",
+    ).toBeGreaterThan(0);
+  });
 });

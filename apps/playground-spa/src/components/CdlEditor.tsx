@@ -21,7 +21,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale, srcMayUseParts } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -547,7 +547,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
   // 種類を書いていない本文では読み込まないので、起動の重さは変わらない
   const needsPartsForSrc = useMemo(
-    () => srcMayUseParts(activeTab === "yaml" ? yamlSrc : src),
+    () => (activeTab === "yaml" ? yamlMayUseParts(yamlSrc) : srcMayUseParts(src)),
     [activeTab, src, yamlSrc],
   );
   useEffect(() => {

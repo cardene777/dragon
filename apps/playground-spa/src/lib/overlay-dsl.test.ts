@@ -9,6 +9,7 @@ import {
   partWorldSize,
   normalizePartScale,
   srcMayUseParts,
+  yamlMayUseParts,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -730,6 +731,36 @@ describe("本文が見本を使っているかの見込み判定 (#1022)", () =>
   it("見本かどうかまでは決めない", () => {
     // 一覧が無いと決められないので、一覧に無い種類でも拾う (多めに拾う側に倒す)
     expect(srcMayUseParts(`actors:\n  - a: { kind: unknown-thing }\n`)).toBe(true);
+  });
+});
+
+describe("YAML 欄の見込み判定 (#1022)", () => {
+  it("縦に並べた形の種類を拾う", () => {
+    // YAML は `{ name, kind }` の形。 本文欄の走査を当てると次の行の種類を読み飛ばす
+    expect(
+      yamlMayUseParts(`actors:\n  - name: user\n    kind: achievement\n`),
+      "縦に並べた形を拾えていない",
+    ).toBe(true);
+  });
+
+  it("波括弧の形の種類を拾う", () => {
+    expect(yamlMayUseParts(`actors:\n  - { name: user, kind: achievement }\n`)).toBe(true);
+  });
+
+  it("名前を種類とみなさない", () => {
+    // 本文欄の走査を当てると `- name: Alice` の Alice を種類と読んで読み込みが起きる
+    expect(
+      yamlMayUseParts(`actors:\n  - name: Alice\n    kind: actor\n`),
+      "名前を種類として読んでいる",
+    ).toBe(false);
+  });
+
+  it("組み込みの種類では拾わない", () => {
+    expect(yamlMayUseParts(`actors:\n  - name: Web\n    kind: service\n`)).toBe(false);
+  });
+
+  it("actors の外は見ない", () => {
+    expect(yamlMayUseParts(`notes: |\n  kind: achievement\n`)).toBe(false);
   });
 });
 

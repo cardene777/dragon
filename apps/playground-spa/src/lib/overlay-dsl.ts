@@ -363,19 +363,62 @@ const BUILTIN_KINDS: ReadonlySet<string> = new Set(
  *
  * `actors:` の中だけを見る。 外の文字列や注釈に種類の語があっても読み込みを起こさない。
  */
+/**
+ * 書かれた種類が見本の候補か。 組み込みの種類なら候補ではない。
+ *
+ * 除かないと `- Web: service` を書いた本文で毎回 80 件を読み込むことになる。
+ */
+function isPartKindCandidate(kind: string | null | undefined): boolean {
+  if (kind === undefined || kind === null) return false;
+  const k = kind.trim().replace(/^["']|["']$/g, "").toLowerCase();
+  if (k === "") return false;
+  return !BUILTIN_KINDS.has(k);
+}
+
+/**
+ * YAML 欄の本文が見本を使っている見込みがあるか (#1022)。
+ *
+ * YAML は登場人物を `{ name, kind }` の形で書くため、本文欄とは文法が違う。 同じ走査を当てると
+ * 2 つの誤りが出る = `- name: user` を本文欄の短い形と読んで名前を種類とみなし (`- name: Alice`
+ * だけで読み込みが起きる)、次の行にある `kind:` は名前だけの行の続きではないため読み飛ばす。
+ *
+ * こちらは **`kind:` の項目だけ** を見る。 名前は見ない。
+ */
+export function yamlMayUseParts(src: string): boolean {
+  let inActors = false;
+  for (const line of src.split(/\r?\n/)) {
+    // 字下げのない `key:` で項目が切り替わる
+    const top = line.match(/^([^\s#][^:]*):(.*)$/);
+    if (top) {
+      inActors = /^actors[ \t]*$/.test(top[1]!);
+      if (!inActors) continue;
+      // 同じ行に書いた形 (`actors: [{ name: a, kind: x }]`)
+      if (hasPartKindInline(top[2]!)) return true;
+      continue;
+    }
+    if (!inActors) continue;
+    // 縦に並べた形 (`- name: a` の次の行に `kind: x`)
+    const kv = line.match(/^\s*-?\s*(kind|種類)\s*:\s*(.+)$/);
+    if (kv && isPartKindCandidate(kv[2])) return true;
+    // 波括弧の形
+    if (hasPartKindInline(line)) return true;
+  }
+  return false;
+}
+
+/** 波括弧の中に見本の候補になる種類が書かれているか。 */
+function hasPartKindInline(text: string): boolean {
+  const m = text.match(/\{(.+)\}/);
+  if (!m) return false;
+  const inner = m[1]!;
+  const kind = readTopLevelField(inner, "kind") ?? readTopLevelField(inner, "種類");
+  return isPartKindCandidate(kind);
+}
+
 export function srcMayUseParts(src: string): boolean {
   const lines = src.split(/\r?\n/);
   let inActors = false;
   let blockIndent = -1;
-
-  const isCandidate = (kind: string | undefined): boolean => {
-    if (kind === undefined) return false;
-    const k = kind.trim().replace(/^["']|["']$/g, "").toLowerCase();
-    if (k === "") return false;
-    // 組み込みの種類は見本ではない。 これを除かないと、`- Web: service` を書いた本文で
-    // 毎回 80 件を読み込むことになる
-    return !BUILTIN_KINDS.has(k);
-  };
 
   for (const line of lines) {
     // 字下げのない `key:` で項目が切り替わる
@@ -391,7 +434,7 @@ export function srcMayUseParts(src: string): boolean {
     // 縦に並べた形の続き。 種類の行を見る
     if (blockIndent >= 0 && indent > blockIndent) {
       const m = line.trim().match(/^(kind|種類)\s*:\s*(.+)$/);
-      if (m && isCandidate(m[2])) return true;
+      if (m && isPartKindCandidate(m[2])) return true;
       continue;
     }
     blockIndent = -1;
@@ -400,7 +443,7 @@ export function srcMayUseParts(src: string): boolean {
     const inline = line.match(ACTOR_LINE_RE);
     if (inline) {
       const kind = readTopLevelField(inline[4]!, "kind") ?? readTopLevelField(inline[4]!, "種類");
-      if (isCandidate(kind ?? undefined)) return true;
+      if (isPartKindCandidate(kind)) return true;
       continue;
     }
 
@@ -408,7 +451,7 @@ export function srcMayUseParts(src: string): boolean {
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
       const first = short[4]!.trim().split(/\s+/)[0];
-      if (isCandidate(first)) return true;
+      if (isPartKindCandidate(first)) return true;
       continue;
     }
 
