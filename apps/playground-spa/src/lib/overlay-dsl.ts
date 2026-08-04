@@ -80,9 +80,21 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  * 図枠に寄せると段内で上端が揃わなくなる。 格子の並べ方から変える必要があり #937 で続く。
  */
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
-  const k = Number.isFinite(part.scale) && part.scale > 0 ? part.scale : 1;
+  const k = normalizePartScale(part.scale);
   const e = partRenderSize(part.item.diagram);
   return { w: e.w * k, h: e.h * k };
+}
+
+/**
+ * 本文に書かれた倍率を、 描ける値に直す。
+ *
+ * 記法は `scale: -2` も `scale: 0` も、 桁が溢れて `Infinity` になる値も書ける。 place と
+ * 描画で別々に直すと、 同じパーツが「置き場所は等倍・画面では消える」 状態になる (実測 =
+ * `scale: 0` が Fit では等倍の場所を占めるのに、 画面には出なかった)。 読んだ時点で直して、
+ * 以降どこから見ても同じ値にする。
+ */
+export function normalizePartScale(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
 /**
@@ -404,7 +416,7 @@ export function extractPartsFromSrc(
               // (縦横 2 つ揃って初めて位置になる)
               posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
-              scale: scaleMatch ? parseFloat(scaleMatch[1]!) : 1,
+              scale: scaleMatch ? normalizePartScale(parseFloat(scaleMatch[1]!)) : 1,
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               // 背景色は SVG の `fill` に直接入る。 色として読めない値を持ち回ると、
               // `url(https://...)` を書いた本文を共有された人の環境から外部へ要求が飛ぶ (#1004)。

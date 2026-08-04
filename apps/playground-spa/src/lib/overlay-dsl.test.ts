@@ -7,6 +7,7 @@ import {
   appendActorLine,
   placeParts,
   partWorldSize,
+  normalizePartScale,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -632,6 +633,28 @@ describe("パーツの実寸", () => {
     const base = partWorldSize(partOf(400, 300, 1));
     expect(partWorldSize(partOf(400, 300, Number.NaN))).toEqual(base);
     expect(partWorldSize(partOf(400, 300, 0))).toEqual(base);
+  });
+
+  it("読んだ時点で拡大率を直す (置き場所と描画で食い違わせない、 #937)", () => {
+    // 直さずに持ち回ると、 置き場所は `partWorldSize` が 1 に直した大きさを占めるのに、
+    // 画面は生の値で `scale()` を書くため消える / 反転する
+    const src = `actors:
+  - zero: { kind: achievement, posX: 0, posY: 0, scale: 0 }
+  - minus: { kind: achievement, posX: 0, posY: 0, scale: -2 }
+`;
+    const got = extractPartsFromSrc(src, catalog, partsItems);
+    expect(got.parts.length, "パーツが読めていない").toBe(2);
+    for (const p of got.parts) {
+      expect(p.scale, `拡大率が直っていない (${p.id})`).toBe(1);
+    }
+  });
+
+  it("拡大率を直す規則は 1 つ (normalizePartScale)", () => {
+    expect(normalizePartScale(2)).toBe(2);
+    expect(normalizePartScale(0)).toBe(1);
+    expect(normalizePartScale(-2)).toBe(1);
+    expect(normalizePartScale(Number.NaN)).toBe(1);
+    expect(normalizePartScale(Number.POSITIVE_INFINITY)).toBe(1);
   });
 });
 

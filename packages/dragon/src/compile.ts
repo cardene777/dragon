@@ -17,7 +17,12 @@ import {
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
-import { countDocElements, describeOversize } from "./input-size";
+import {
+  MAX_INPUT_ELEMENTS,
+  countDiagramElements,
+  countDocElements,
+  describeOversize,
+} from "./input-size";
 import {
   orderByDependency,
   resolveRelativePos,
@@ -743,6 +748,10 @@ function partExtent(
  * 組み立てに失敗する図では、 既定の大きさに落とす (呼出側は catalog を渡すので通常起きない)。
  */
 export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
+  // 組み立てと違い、 ここは画面を描くたびに呼ばれる。 大きすぎる図を渡されると
+  // 1 回の描画で画面が止まるため、 測る前に止める。 上限は組み立て側と同じ物差しを使う
+  // (#1005)。 catalog の見本は数十要素なので、 通常の呼出はここに掛からない
+  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return { w: 400, h: 200 };
   try {
     const vb = layout(part).viewBox;
     const w = positiveOr(vb.w, 400);

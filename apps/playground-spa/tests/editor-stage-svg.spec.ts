@@ -224,4 +224,38 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     expect(after, "図の svg が消えている").not.toBeNull();
     expect(Math.round(after!.sw), "目印が無いのにフィットが効いている").toBe(Math.round(before!.sw));
   });
+
+  /**
+   * 重ねたパーツが図枠の実寸で描かれることを固定する (#937)。
+   *
+   * 大きさは `CdlEditor` が `--cdl-svg-w/h` に入れる。 入れないと `editor.css` の既定値
+   * (800x600) に落ち、 縦横比の違うパーツが `preserveAspectRatio` で縮む。 助変数を消しても
+   * 単体 test は通ってしまうため (helper の返値と CSS 文字列しか見ていない)、 画面で確かめる。
+   */
+  test("重ねたパーツは図枠の実寸で描かれる", async ({ page }) => {
+    await setup(page);
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForTimeout(300);
+    await page.click('[data-part-id="parts-horizontal-bar"]');
+    await page.waitForTimeout(1200);
+
+    const got = await page.evaluate(() => {
+      const wrap = document.querySelector("[data-overlay-part] .v4-editor-svg-wrap svg[data-cdl-stage]")
+        ?? document.querySelector("[data-overlay-part] svg[data-cdl-stage]");
+      if (!wrap) return null;
+      const vb = (wrap.getAttribute("viewBox") ?? "").split(/\s+/).map(Number);
+      const r = wrap.getBoundingClientRect();
+      return { vbW: vb[2] ?? 0, vbH: vb[3] ?? 0, w: r.width, h: r.height };
+    });
+    expect(got, "重ねたパーツの svg が無い").not.toBeNull();
+    expect(got!.vbW, "図枠の幅が取れていない").toBeGreaterThan(0);
+
+    // 描く大きさは図枠と同じ (画面全体の倍率は掛かるので、 縦横比で見る)
+    const drawn = got!.w / got!.h;
+    const frame = got!.vbW / got!.vbH;
+    expect(Math.abs(drawn - frame), `縦横比が図枠と違う (描画 ${drawn} / 図枠 ${frame})`).toBeLessThan(0.05);
+
+    // 既定値に落ちていないこと。 落ちると縦横比は 800/600 に張り付く
+    expect(Math.abs(drawn - 800 / 600), "800x600 の既定値で描かれている").toBeGreaterThan(0.05);
+  });
 });
