@@ -422,7 +422,13 @@ function matchTopHeader(trimmed: string): TopHeader | null {
   return { key: (m[1] ?? "").toLowerCase(), value: value.length ? stripQuotes(value) : null };
 }
 
-function stripQuotes(s: string): string {
+/**
+ * 対応する引用符だけを外す。
+ *
+ * 先頭と末尾を別々に外すと、対応しない形 (`'300,200"`) が中身だけ取り出せてしまう。
+ * 画面側も同じ関数を使う (#1028) = 別々に持つと、片方だけが読める本文ができる。
+ */
+export function stripQuotes(s: string): string {
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     return s.slice(1, -1);
   }
@@ -891,8 +897,20 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "大きさ":
       case "size": {
         // `大きさ: 400,200` の形。 位置と揃える
-        const m = stripQuotes(raw).match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
-        if (m) { out.posW = Number(m[1]); out.posH = Number(m[2]); }
+        const value = stripQuotes(raw);
+        const m = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+        if (m) {
+          out.posW = Number(m[1]);
+          out.posH = Number(m[2]);
+          break;
+        }
+        // 読めない値を黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる。
+        // 位置と同じく行番号付きで知らせる (#1028)
+        errors.push({
+          line: ln.no,
+          message: `大きさの書き方が読めません: "${value}"`,
+          hint: "`大きさ: 400,200` (幅, 高さ) の形で書く",
+        });
         break;
       }
       case "lane":

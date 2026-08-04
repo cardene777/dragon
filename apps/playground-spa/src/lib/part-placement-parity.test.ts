@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
+  parseTextDslV05,
   textDslToDiagram,
   measureActorBoxes,
   partScaleFactor,
@@ -705,5 +706,224 @@ describe("倍率の意味 (#1026)", () => {
       return partBoxRect(parsed.parts.find((p) => p.id === "a")!).w;
     });
     expect(libRatio, `伸び方がずれている (組み立て ${libRatio} / 画面 ${scrRatio})`).toBeCloseTo(scrRatio, 1);
+  });
+});
+
+describe("名前の行に値を書いた見本の続きの行 (#1028)", () => {
+  /** 組み立て側が読んだ値。 */
+  const lib = (src: string): { posX?: number; posY?: number; posW?: number; posH?: number; scale?: number } => {
+    const r = parseTextDslV05(src);
+    if (!r.ok) return {};
+    const a = r.doc.actors.find((x) => x.name === "a");
+    return { posX: a?.posX, posY: a?.posY, posW: a?.posW, posH: a?.posH, scale: a?.scale };
+  };
+  /** 画面側が読んだ値。 */
+  const scr = (src: string): { posX?: number; posY?: number; posW?: number; posH?: number; scale?: number } => {
+    const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+    return { posX: p?.posX, posY: p?.posY, posW: p?.posW, posH: p?.posH, scale: p?.scale };
+  };
+  const wrap = (actors: string): string => `title: "t"\ntype: flow\n\nactors:\n${actors}\nflow:\n  - a -> a: "x"\n`;
+
+  it("短い形の続きの行を画面も読む", () => {
+    // 直す前は画面側だけ全て undefined で、続きの行が本文に残っていた
+    const src = wrap(`  - a: wide\n      位置: 300,200\n      大きさ: 800,400\n`);
+    const l = lib(src);
+    const s = scr(src);
+    expect(l.posX, "組み立て側が読めていない").toBe(300);
+    expect(s.posX, `画面側が読めていない (${JSON.stringify(s)})`).toBe(l.posX);
+    expect(s.posY).toBe(l.posY);
+    expect(s.posW).toBe(l.posW);
+    expect(s.posH).toBe(l.posH);
+  });
+
+  it("中括弧の形の続きの行も読む", () => {
+    const src = wrap(`  - a: { kind: wide }\n      位置: 300,200\n`);
+    expect(scr(src).posX, "画面側が読めていない").toBe(lib(src).posX);
+    expect(scr(src).posY).toBe(lib(src).posY);
+  });
+
+  it("続きの行が名前の行に勝つ", () => {
+    // 順番どおりの読み方にする。 組み立て側も後に書いた行を採る
+    const src = wrap(`  - a: wide @100,100\n      位置: 300,200\n`);
+    expect(lib(src).posX, "組み立て側で後の行が勝っていない").toBe(300);
+    expect(scr(src).posX, "画面側で後の行が勝っていない").toBe(300);
+  });
+
+  it("書いていない項目は名前の行の値を残す", () => {
+    const src = wrap(`  - a: wide @100,100\n      倍率: 3\n`);
+    expect(scr(src).posX, "名前の行の位置が消えている").toBe(100);
+    expect(scr(src).scale, "倍率が読めていない").toBe(3);
+  });
+
+  it("次の 1 件の行を前の 1 件に取り込まない", () => {
+    const src = wrap(`  - a: wide\n  - b: wide\n      倍率: 5\n`);
+    const parts = extractPartsFromSrc(src, KIND_SET, ITEMS).parts;
+    expect(parts.map((p) => p.id), "件数が合わない").toEqual(["a", "b"]);
+    expect(parts.find((p) => p.id === "a")?.scale, "次の 1 件の倍率を取り込んでいる").toBe(1);
+    expect(parts.find((p) => p.id === "b")?.scale).toBe(5);
+  });
+
+  it("見本でない箱の続きの行は本文に残す", () => {
+    // 画面が重ねるのは見本だけ。 普通の箱の行を落とすと、図から要素が消える
+    const src = wrap(`  - Web: service\n      位置: 300,200\n`);
+    const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+    expect(r.parts, "普通の箱を見本として抜いている").toHaveLength(0);
+    expect(r.baseSrc, "続きの行が本文から消えている").toContain("位置: 300,200");
+  });
+
+  it("続きの行の位置が名前の行の位置を打ち消す", () => {
+    // 重ねるだけだと座標と相対が同時に立つ。 組み立て側は相対だけを採るのでずれる
+    const src = wrap(`  - Web: service\n  - a: wide @100,100\n      位置: Web の右 200\n`);
+    const l = lib(src);
+    const s = scr(src);
+    expect(l.posX, "組み立て側で座標が残っている").toBeUndefined();
+    expect(s.posX, `画面側で座標が残っている (${JSON.stringify(s)})`).toBeUndefined();
+    expect(s.posY).toBeUndefined();
+  });
+
+  it("位置と大きさは後に書いた行を採る", () => {
+    // 前を採ると書き直した値が効かない。 組み立て側は後に書いた行で上書きする
+    const posSrc = wrap(`  - Web: service\n  - a:\n      kind: wide\n      位置: Web の右 200\n      位置: 300,400\n`);
+    expect(lib(posSrc).posX, "組み立て側が後の行を採っていない").toBe(300);
+    expect(scr(posSrc).posX, `画面側が後の行を採っていない (${JSON.stringify(scr(posSrc))})`).toBe(300);
+
+    const sizeSrc = wrap(`  - a:\n      kind: wide\n      大きさ: 100,100\n      大きさ: 800,400\n`);
+    expect(lib(sizeSrc).posW, "組み立て側が後の行を採っていない").toBe(800);
+    expect(scr(sizeSrc).posW, "画面側が後の行を採っていない").toBe(800);
+  });
+
+  it("続きの行の kind が名前の行の種類を上書きする", () => {
+    // 名前の行の種類を固定すると、続きで別の見本にしても画面だけ元の見本のままになる
+    const src = wrap(`  - a: wide\n      kind: small\n`);
+    const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+    expect(p?.kind, "続きの kind が効いていない").toBe("small");
+  });
+
+  it("続きで見本でない種類にしたら本文に戻す", () => {
+    // 抜いたまま捨てると、書いた箱が図から消える
+    for (const kind of ["service", "nosuchkind"]) {
+      const src = wrap(`  - a: wide\n      kind: ${kind}\n`);
+      const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+      expect(r.parts, `${kind} を見本として抜いている`).toHaveLength(0);
+      expect(r.baseSrc, `${kind} の行が本文から消えている`).toContain(`kind: ${kind}`);
+      expect(r.baseSrc, "名前の行が本文から消えている").toContain("- a: wide");
+    }
+  });
+
+  it("字下げの形が変わっても境界が壊れない", () => {
+    // 4 空白 / タブ / `-` の後に空白を重ねる形。 続きと次の 1 件の境目が書き方で変わらない
+    const cases: Array<[string, string, number | undefined]> = [
+      ["4 空白の続き", `  - a: wide\n    倍率: 3\n`, 3],
+      ["`-` の後に空白を重ねる", `  -   a: wide\n      倍率: 3\n`, 3],
+      // タブ 1 文字は空白 2 つより浅いので続きにならない (組み立て側も同じ)
+      ["タブ字下げ", `  - a: wide\n\t倍率: 3\n`, 1],
+    ];
+    for (const [name, actors, want] of cases) {
+      const src = wrap(actors);
+      const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+      expect(p?.scale, `${name} の倍率が違う`).toBe(want);
+      const l = lib(src);
+      expect(l.scale ?? 1, `${name} で組み立て側とずれている`).toBe(want);
+    }
+  });
+
+  it("種類だけ知っていて見本が無い時は本文に残す", () => {
+    // catalog の名前は知っているが実体を引けない形。 抜くと図から消える
+    const kinds: Record<string, unknown> = { ...KIND_SET, ghost: {} };
+    const src = wrap(`  - a: ghost\n      倍率: 3\n`);
+    const r = extractPartsFromSrc(src, kinds, ITEMS);
+    expect(r.parts, "実体が無いのに抜いている").toHaveLength(0);
+    expect(r.baseSrc, "行が本文から消えている").toContain("- a: ghost");
+    expect(r.baseSrc, "続きの行が本文から消えている").toContain("倍率: 3");
+  });
+
+  it("読めない値を書いた見本は本文に残して知らせを出させる", () => {
+    // 抜くと組み立て側に届かず、行番号付きの知らせが消える
+    const cases: Array<[string, string]> = [
+      ["位置 (負の間隔)", `  - Web: service\n  - a: wide\n      位置: Web の右 -200\n`],
+      ["位置 (読めない形)", `  - a: wide\n      位置: あちこち\n`],
+      ["大きさ (1 つしか書かない)", `  - a: wide\n      大きさ: 800\n`],
+    ];
+    for (const [name, actors] of cases) {
+      const src = wrap(actors);
+      const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+      expect(r.parts, `${name} を抜いている`).toHaveLength(0);
+      expect(r.baseSrc, `${name} の行が本文から消えている`).toContain("- a: wide");
+    }
+    // 実際に知らせが出ることまで見る
+    const bad = wrap(`  - Web: service\n  - a: wide\n      位置: Web の右 -200\n`);
+    const parsed = parseTextDslV05(extractPartsFromSrc(bad, KIND_SET, ITEMS).baseSrc);
+    expect(parsed.ok, "知らせが出ていない").toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.errors.some((e) => e.message.includes("負の数")), "知らせの中身が違う").toBe(true);
+  });
+
+  it("読める値なら従来どおり抜く", () => {
+    // 読めない形を本文に残す判定が、正しい本文まで巻き込まないことを見る
+    const src = wrap(`  - Web: service\n  - a: wide\n      位置: Web の右 200\n      大きさ: 800,400\n`);
+    const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+    expect(r.parts, "読める本文を抜いていない").toHaveLength(1);
+    expect(r.baseSrc, "見本の行が本文に残っている").not.toContain("- a: wide");
+  });
+
+  it("引用符の外し方が組み立て側と揃う", () => {
+    // 先頭と末尾を別々に外すと、対応しない形が中身だけ取り出せてしまう。
+    // 画面側だけ読めると、組み立て側が知らせる誤りが画面では通ってしまう
+    const cases: Array<[string, string, boolean]> = [
+      ["一重引用符の kind", `  - a: wide\n      kind: 'small'\n`, true],
+      ["二重引用符の kind", `  - a: wide\n      kind: "small"\n`, true],
+      ["日本語の項目名", `  - a: wide\n      種類: 'small'\n`, true],
+      ["対応しない引用符の kind", `  - a: wide\n      kind: 'small"\n`, false],
+      ["対応しない引用符の位置", `  - a: wide\n      位置: '300,200"\n`, false],
+      ["対応しない引用符の大きさ", `  - a: wide\n      大きさ: '800,400"\n`, false],
+    ];
+    for (const [name, actors, extracted] of cases) {
+      const src = wrap(actors);
+      const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+      expect(r.parts.length > 0, `${name} の抜き方が違う`).toBe(extracted);
+      if (extracted) {
+        expect(r.parts[0]?.kind, `${name} の種類が引けていない`).toBe("small");
+        continue;
+      }
+      // 抜かなかった分は、組み立て側が知らせるか、見本として解決できないかのどちらか
+      const parsed = parseTextDslV05(src);
+      const unresolved =
+        parsed.ok && parsed.doc.actors.find((x) => x.name === "a")?.partId !== "small";
+      expect(!parsed.ok || unresolved, `${name} が組み立て側では通っている`).toBe(true);
+    }
+  });
+
+  it("名前だけの block でも kind は後に書いた方を採る", () => {
+    // 先を採ると書き直した種類が効かない。 組み立て側は後に書いた行で上書きする
+    const src = wrap(`  - a:\n      kind: wide\n      kind: small\n`);
+    const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+    expect(p?.kind, "画面側が先の種類を採っている").toBe("small");
+    const r = parseTextDslV05(src);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.actors.find((x) => x.name === "a")?.partId, "組み立て側とずれている").toBe("small");
+  });
+
+  it("読めない大きさは組み立て側も知らせる", () => {
+    // 画面側が本文に戻しても、組み立て側が黙って無視すると誰も知らせない
+    const src = wrap(`  - a: wide\n      大きさ: 800\n`);
+    const r = parseTextDslV05(src);
+    expect(r.ok, "知らせが出ていない").toBe(false);
+    if (r.ok) return;
+    expect(
+      r.errors.some((e) => e.message.includes("大きさの書き方が読めません")),
+      `知らせの中身が違う (${r.errors.map((e) => e.message).join(" / ")})`,
+    ).toBe(true);
+  });
+
+  it("落とした行の数だけ行番号が飛ぶ", () => {
+    // 続きの行も落とすようになったので、行番号の対応がずれていないことを見る
+    const src = wrap(`  - a: wide\n      位置: 300,200\n  - Web: service\n`);
+    const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+    expect(r.baseSrc.split("\n").length, "行番号の対応が本文と合っていない").toBe(r.lineMap.length);
+    const lines = src.split("\n");
+    r.baseSrc.split("\n").forEach((l, i) => {
+      expect(lines[r.lineMap[i]! - 1], `${i} 行目の対応がずれている`).toBe(l);
+    });
   });
 });

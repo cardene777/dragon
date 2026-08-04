@@ -16,6 +16,7 @@ import {
   normalizePartScale,
   MAX_PART_SCALE,
   isColorValue,
+  stripQuotes,
   NODE_KIND_VALID,
   type RelativePos,
   type AnchorBox,
@@ -512,20 +513,58 @@ export function extractPartsFromSrc(
    * (`色:` / `位置:`) は base 側に残り、 1 つ前の登場人物の続きとして読まれていた (実測 =
    * パーツに書いた色と位置が前の箱に付いた)。 block ごと扱えば取りこぼさない。
    */
-  let pending: { alias: string; indent: number; lines: string[]; srcIdx: number[] } | null = null;
+  let pending: {
+    alias: string;
+    indent: number;
+    lines: string[];
+    srcIdx: number[];
+    /**
+     * 名前の行だけで見本と分かった場合の中身 (#1028)。
+     *
+     * `- a: achievement` や `- a: { kind: achievement }` は 1 行で見本と決まる。 それでも
+     * 続く行を読むために貯める = 貯めなければ続きの行が本文に残り、組み立て側が読む
+     * `位置:` / `大きさ:` / `倍率:` を画面側だけ落とす (実測)。
+     */
+    head?: OverlayPartParsed;
+  } | null = null;
 
   /** 貯めた block を振り分ける。 パーツなら overlay に、 そうでなければ base に戻す。 */
   const flushPending = (): void => {
     if (!pending) return;
     const block = pending;
     pending = null;
+    const body = block.lines.slice(1);
+    // 読めない値を書いた行がある block は、丸ごと本文に戻す。
+    //
+    // 見本の行は本文から抜くため、抜いた中の誤りは組み立て側に届かない = 行番号付きの
+    // 知らせが消える (実測 = `位置: Web の右 -200` の「間隔に負の数は書けません」 が出なくなった)。
+    // 抜かずに残せば、普通の箱に書いた時と同じ経路で知らせが出る
+    if (hasUnreadableItem(body)) {
+      block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+      return;
+    }
+    // 名前の行で見本と決まっている場合は、続く行を上書きとして重ねる
+    if (block.head) {
+      // 続く行の `kind:` は名前の行の種類を上書きする (組み立て側と同じ)。
+      // 見本でない種類 / catalog に無い種類になったら、block ごと本文に戻す =
+      // 抜いたまま捨てると、書いた箱が図から消える
+      const rewritten = readKindFromBlock(body);
+      if (rewritten !== null) {
+        const item = partKindSet.has(rewritten) ? findItem(rewritten) : undefined;
+        if (!item) {
+          block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+          return;
+        }
+        parts.push(applyBlockOverrides({ ...block.head, kind: rewritten, item }, body));
+        return;
+      }
+      parts.push(applyBlockOverrides(block.head, body));
+      return;
+    }
     // 項目名は日本語でも英語でもよい (記法側と同じ)。 `種類:` を読まないと、 同じ本文が
-    // 画面と組み立てで別の絵になる
-    const kindLine = block.lines.find((l) => /^\s*(kind|種類)\s*:/.test(l));
-    const kindValue = kindLine
-      ?.trim()
-      .match(/^(?:kind|種類)\s*:\s*"?([^"\s]+)"?/)?.[1]
-      ?.toLowerCase();
+    // 画面と組み立てで別の絵になる。
+    // 2 度書いた時は後に書いた方を採る (組み立て側と同じ)。 先を採ると、書き直した種類が効かない
+    const kindValue = readKindFromBlock(block.lines) ?? undefined;
     const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
     if (!kindValue || !item) {
       block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
@@ -590,14 +629,22 @@ export function extractPartsFromSrc(
       if (partKindSet.has(kindValue)) {
         const item = findItem(kindValue);
         if (item) {
-          parts.push({
-            id: alias,
-            kind: kindValue,
-            item,
-            scale: readScaleToken(values),
-            rotate: 0,
-            ...readAtToken(values),
-          });
+          // 続く行を読むためにここでは確定しない (#1028)。 確定すると続きの行が本文に残り、
+          // 組み立て側だけが `位置:` / `大きさ:` / `倍率:` を読む状態になる
+          pending = {
+            alias,
+            indent: line.length - line.trimStart().length,
+            lines: [line],
+            srcIdx: [srcIdx],
+            head: {
+              id: alias,
+              kind: kindValue,
+              item,
+              scale: readScaleToken(values),
+              rotate: 0,
+              ...readAtToken(values),
+            },
+          };
           continue;
         }
       }
@@ -640,7 +687,7 @@ export function extractPartsFromSrc(
           const bgMatch = bgRaw ? bgRaw.match(/^"([^"]*)"/) : null;
           const item = findItem(kindValue);
           if (item) {
-            parts.push({
+            const head: OverlayPartParsed = {
               id: alias,
               kind: kindValue,
               // 中括弧の形は座標を直接持つ。 片方だけ書かれた時は書かなかった扱いにする
@@ -656,7 +703,17 @@ export function extractPartsFromSrc(
               // 色でなければ「書かなかった」 扱いにして、 既定の見た目に戻す
               bg: bgMatch && isColorValue(bgMatch[1]) ? bgMatch[1] : undefined,
               item,
-            });
+            };
+            // 続く行を読むためにここでは確定しない (#1028)
+            pending = {
+              alias,
+              // 字下げは行頭の空白の長さ。 名前だけの行と同じ物差しにしないと、
+              // 続きの行を取り込む深さが書き方で変わる
+              indent: line.length - line.trimStart().length,
+              lines: [line],
+              srcIdx: [srcIdx],
+              head,
+            };
             continue;
           }
         }
@@ -670,6 +727,82 @@ export function extractPartsFromSrc(
 }
 
 /**
+ * 読めない値を書いた行があるか (#1028)。
+ *
+ * 対象は位置と大きさの 2 つ。 どちらも組み立て側が行番号付きで知らせる項目で、
+ * 画面側が黙って捨てると誤りに気付けない。
+ *
+ * 倍率は対象にしない。 読めない値は 1 倍に直す規約 (#1026) で、組み立て側も知らせないため。
+ */
+function hasUnreadableItem(lines: string[]): boolean {
+  for (const line of lines) {
+    const t = line.trim();
+    const pos = t.match(/^(?:位置|pos)\s*:\s*(.+)$/);
+    if (pos) {
+      const value = stripQuotes(pos[1]!.trim());
+      const abs = /^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value);
+      if (!abs && parseRelativePos(value) === null) return true;
+      continue;
+    }
+    const size = t.match(/^(?:大きさ|size)\s*:\s*(.+)$/);
+    if (size) {
+      const value = stripQuotes(size[1]!.trim());
+      if (!/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 続く行から `kind:` / `種類:` を読む (#1028)。 書かれていなければ `null`。
+ *
+ * 同じ項目を 2 度書いた時は後に書いた方を採る (組み立て側と同じ)。
+ */
+function readKindFromBlock(lines: string[]): string | null {
+  let out: string | null = null;
+  for (const line of lines) {
+    const m = line.trim().match(/^(?:kind|種類)\s*:\s*(.+)$/);
+    // 引用符は組み立て側と同じ関数で外す。 別々に持つと `kind: 'small'` のように
+    // 一重引用符で書いた見本が画面側だけ引けなくなる (実測)
+    if (m) out = stripQuotes(m[1]!.trim()).toLowerCase();
+  }
+  return out;
+}
+
+/**
+ * 名前の行で決まった見本に、続く行の指定を重ねる (#1028)。
+ *
+ * 組み立て側 (`applyContinuationLines`) と同じく **続く行が勝つ**。 名前の行に書いた値を
+ * 続く行が上書きする形で、順番どおりの読み方になる。
+ *
+ * 書かれていない項目は名前の行の値を残す。 `readPositionFromBlock` などは見つからない時に
+ * 空を返すので、そのまま重ねれば「書いていない項目は変えない」 が成立する。
+ * 倍率だけは書いていない時に 1 を返すため、書かれたかどうかを別に見る。
+ */
+function applyBlockOverrides(head: OverlayPartParsed, body: string[]): OverlayPartParsed {
+  if (body.length === 0) return head;
+  const scale = readScaleFromBlockOrNull(body);
+  const pos = readPositionFromBlock(body);
+  return {
+    ...head,
+    // 位置を書いた行があれば、名前の行に書いた位置は**丸ごと**置き換える。
+    // 重ねるだけだと、座標と相対指定が同時に立つ (実測 = 名前の行の `@100,100` が残ったまま
+    // 続きの行の `位置: Web の右` も立ち、組み立て側は相対だけを採るのでずれる)
+    ...(Object.keys(pos).length > 0 ? { posX: undefined, posY: undefined, posRel: undefined, ...pos } : {}),
+    ...readSizeFromBlock(body),
+    ...(scale === null ? {} : { scale }),
+  };
+}
+
+/**
+ * 縦に並べた行から倍率を読む。 書かれていなければ `null` (「書いていない」 と「1 倍」 の区別)。
+ */
+function readScaleFromBlockOrNull(lines: string[]): number | null {
+  const raw = readDirectField(["", ...lines], SCALE_KEYS);
+  return raw === null ? null : parsePartScale(raw);
+}
+
+/**
  * 縦に並べた block から `位置:` を読む。
  *
  * 読み方は記法側と同じにする。 座標の形なら中心、 相対の形なら基準と向きを持つ。
@@ -678,16 +811,22 @@ export function extractPartsFromSrc(
 function readPositionFromBlock(
   lines: string[],
 ): { posX?: number; posY?: number; posRel?: RelativePos } {
+  // 同じ項目を 2 度書いた時は **後に書いた方** を採る (組み立て側と同じ)。
+  // 前を採ると、書き直した位置が効かない (実測 = 相対の後に座標を書いても相対のままだった)
+  let out: { posX?: number; posY?: number; posRel?: RelativePos } = {};
   for (const line of lines) {
     const m = line.trim().match(/^(位置|pos)\s*:\s*(.+)$/);
     if (!m) continue;
-    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const value = stripQuotes(m[2]!.trim());
     const abs = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
-    if (abs) return { posX: Number(abs[1]), posY: Number(abs[2]) };
+    if (abs) {
+      out = { posX: Number(abs[1]), posY: Number(abs[2]) };
+      continue;
+    }
     const rel = parseRelativePos(value);
-    if (rel) return { posRel: rel };
+    if (rel) out = { posRel: rel };
   }
-  return {};
+  return out;
 }
 
 /**
@@ -754,15 +893,17 @@ function readDirectField(lines: string[], keys: readonly string[]): string | nul
  * `大きさ: 2000,0` のように片方だけ有効な形で組み立て側と食い違う (あちらは横だけ伸ばす)。
  */
 function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
+  // 位置と同じく、同じ項目を 2 度書いたら後に書いた方を採る (組み立て側と同じ)
+  let out: { posW?: number; posH?: number } = {};
   for (const line of lines) {
     const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
     if (!m) continue;
-    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const value = stripQuotes(m[2]!.trim());
     const wh = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
     if (!wh) continue;
-    return { posW: Number(wh[1]), posH: Number(wh[2]) };
+    out = { posW: Number(wh[1]), posH: Number(wh[2]) };
   }
-  return {};
+  return out;
 }
 
 /**
