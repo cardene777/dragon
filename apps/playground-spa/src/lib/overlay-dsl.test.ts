@@ -7,9 +7,11 @@ import {
   appendActorLine,
   placeParts,
   partWorldSize,
+  partBoxRect,
   normalizePartScale,
   srcMayUseParts,
   yamlMayUseParts,
+  MAX_PART_SCALE,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -765,6 +767,42 @@ describe("縦に並べて書いた倍率 (#1020)", () => {
     const block = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 2.5\n`);
     const inline = parse(`actors:\n  - a: { kind: achievement, scale: 2.5 }\n`);
     expect(block[0]?.scale).toBe(inline[0]?.scale);
+  });
+
+  it("中括弧の形と数の読み方が揃う", () => {
+    // 先頭の 10 進部分だけを取ると `1e2` が 1 になり、書き方で結果が変わる
+    for (const v of ["1e2", '"3"', "2.5"]) {
+      const block = parse(`actors:\n  - a:\n      kind: achievement\n      scale: ${v}\n`);
+      const inline = parse(`actors:\n  - a: { kind: achievement, scale: ${v} }\n`);
+      expect(block[0]?.scale, `block ${v} が読めていない`).toBe(inline[0]?.scale);
+    }
+    expect(parse(`actors:\n  - a:\n      kind: achievement\n      scale: 1e2\n`)[0]?.scale).toBe(100);
+  });
+
+  it("入れ子の中の倍率は拾わない", () => {
+    // 字下げを見ないと、入れ子の中の同名の項目までパーツ全体の倍率になる (実測で 7 になった)
+    const got = parse(
+      `actors:\n  - a:\n      kind: achievement\n      nodes:\n        header:\n          scale: 7\n`,
+    );
+    expect(got[0]?.scale, "入れ子の中を拾っている").toBe(1);
+  });
+
+  it("2 度書いたら後を採る", () => {
+    // 前を採ると、書き直した値が効かない
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: abc\n      scale: 4\n`);
+    expect(got[0]?.scale, "書き直した値が効いていない").toBe(4);
+  });
+
+  it("桁の大きい倍率は上限で頭打ちにする", () => {
+    // 有限でも掛けた先が非有限になる (実測 = `scale: 1e308` で描く大きさが Infinity、
+    // 置き場所が -Infinity になりパーツが消えた)
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 1e308\n`);
+    expect(got[0]?.scale, "上限で止めていない").toBe(MAX_PART_SCALE);
+    const world = partWorldSize(got[0]!);
+    expect(Number.isFinite(world.w), "描く大きさが非有限").toBe(true);
+    expect(Number.isFinite(world.h), "描く大きさが非有限").toBe(true);
+    const box = partBoxRect(got[0]!);
+    expect(Number.isFinite(box.w) && Number.isFinite(box.left), "箱が非有限").toBe(true);
   });
 
   it("倍率と大きさは両方効く", () => {

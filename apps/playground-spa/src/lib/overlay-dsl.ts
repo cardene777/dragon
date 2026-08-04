@@ -124,7 +124,32 @@ export function partFrameSize(part: OverlayPartParsed): { w: number; h: number }
  * 以降どこから見ても同じ値にする。
  */
 export function normalizePartScale(value: number): number {
-  return Number.isFinite(value) && value > 0 ? value : 1;
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  // 有限でも桁が大きすぎると、掛けた先が非有限になる (実測 = `scale: 1e308` で
+  // 描く大きさが Infinity、置き場所が -Infinity になりパーツが消えた)。
+  // 画面に収まる範囲の上限で頭打ちにする
+  return Math.min(value, MAX_PART_SCALE);
+}
+
+/**
+ * 倍率の上限 (#1020)。
+ *
+ * 図枠は数百 world 単位なので、1000 倍で数十万になる。 これを超える倍率は画面上で意味を持たず、
+ * 掛けた先が非有限になる危険だけが残る。
+ */
+export const MAX_PART_SCALE = 1000;
+
+/**
+ * 書かれた値を倍率として読む。
+ *
+ * 引用符を外して値全体を数として読む。 先頭の 10 進部分だけを取ると `1e2` が 1 になり、
+ * 同じ値を書いても書き方で結果が変わる (実測 = 縦に並べた形は 100、中括弧の形は 1)。
+ */
+function parsePartScale(raw: string | null | undefined): number {
+  if (raw === null || raw === undefined) return 1;
+  const trimmed = raw.trim().replace(/^["']|["']$/g, "");
+  if (trimmed === "") return 1;
+  return normalizePartScale(Number(trimmed));
 }
 
 /**
@@ -601,7 +626,6 @@ export function extractPartsFromSrc(
           };
           const posXMatch = num("posX");
           const posYMatch = num("posY");
-          const scaleMatch = num("scale");
           const rotateMatch = num("rotate");
           // 中括弧の形で書いた寸法。 組み立て側はこの形の `posW` / `posH` を受けるので、
           // 読まないと同じ本文が画面側だけ元の大きさになる (#1018)。
@@ -631,7 +655,7 @@ export function extractPartsFromSrc(
               // (縦横 2 つ揃って初めて位置になる)
               posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
-              scale: scaleMatch ? normalizePartScale(parseFloat(scaleMatch[1]!)) : 1,
+              scale: parsePartScale(readTopLevelField(inner, "scale") ?? readTopLevelField(inner, "倍率")),
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               posW: size("posW"),
               posH: size("posH"),
@@ -675,6 +699,55 @@ function readPositionFromBlock(
 }
 
 /**
+ * 縦に並べて書いた 1 件から `scale: 2` を読む (#1020)。
+ *
+ * 中括弧の形は読んでいたが、縦に並べた形は常に 1 として扱っていた。 書いても効かず、
+ * しかも何も知らせないため、書いた人からは倍率が無いように見える。
+ *
+ * 数の読み方は中括弧の形と揃える (値全体を数として読み、`normalizePartScale` を通す)。
+ * 書いていなければ 1。
+ */
+/**
+ * 縦に並べて書いた 1 件から倍率を読む (#1020)。
+ *
+ * **画面側だけの意味**。 組み立て側は `scale` を状態の名前として読む (実測 = 3 つの書き方すべてで
+ * `stateOverride.scale` になった)。 重ねたパーツは本文から抜いてから組み立てるため、この値を
+ * 読むのは画面側だけ = 通常の操作では食い違いは表に出ない。
+ * 見本を library として使う経路との意味の違いは #1026 に切り出した。
+ */
+function readScaleFromBlock(lines: string[]): number {
+  const raw = readDirectField(lines, ["scale", "倍率"]);
+  return parsePartScale(raw);
+}
+
+/**
+ * 縦に並べて書いた 1 件から、**直下の項目** だけを読む。
+ *
+ * 字下げを見ずに読むと、入れ子の中の同名の項目まで拾う (実測 = `nodes` の下に書いた
+ * `scale: 7` がパーツ全体の倍率になった)。 一番浅い字下げを直下とみなす。
+ *
+ * 同じ項目を 2 度書いた時は後を採る。 前を採ると、書き直した値が効かない。
+ */
+function readDirectField(lines: string[], keys: readonly string[]): string | null {
+  // 先頭は名前の行 (`  - 実績:`) で、項目より浅い。 これを混ぜると直下の字下げを見誤る
+  const body = lines.slice(1);
+  const indents = body
+    .filter((l) => l.trim() !== "")
+    .map((l) => l.length - l.trimStart().length);
+  if (indents.length === 0) return null;
+  const direct = Math.min(...indents);
+  const pattern = new RegExp(`^(${keys.join("|")})\\s*:\\s*(.*)$`);
+  let found: string | null = null;
+  for (const line of body) {
+    if (line.trim() === "") continue;
+    if (line.length - line.trimStart().length !== direct) continue;
+    const m = line.trim().match(pattern);
+    if (m) found = m[2] ?? "";
+  }
+  return found;
+}
+
+/**
  * 縦に並べて書いた 1 件から `大きさ: 400,180` を読む。
  *
  * 読まないと、組み立て側だけが拡大して画面と大きさが変わる (実測 = `大きさ: 2000,300` の
@@ -684,26 +757,6 @@ function readPositionFromBlock(
  * どうかは `partTargetScale` が縦横それぞれで決める。 ここで「両方が正の時だけ」 と絞ると、
  * `大きさ: 2000,0` のように片方だけ有効な形で組み立て側と食い違う (あちらは横だけ伸ばす)。
  */
-/**
- * 縦に並べて書いた 1 件から `scale: 2` を読む (#1020)。
- *
- * 中括弧の形は読んでいたが、縦に並べた形は常に 1 として扱っていた。 書いても効かず、
- * しかも何も知らせないため、書いた人からは倍率が無いように見える。
- *
- * 数の読み方は中括弧の形と揃える (値全体を数として読み、`normalizePartScale` を通す)。
- * 書いていなければ 1。
- */
-function readScaleFromBlock(lines: string[]): number {
-  for (const line of lines) {
-    const m = line.trim().match(/^(scale|倍率)\s*:\s*(.+)$/);
-    if (!m) continue;
-    const raw = m[2]!.trim().replace(/^["']|["']$/g, "");
-    if (raw === "") continue;
-    return normalizePartScale(Number(raw));
-  }
-  return 1;
-}
-
 function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
   for (const line of lines) {
     const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
