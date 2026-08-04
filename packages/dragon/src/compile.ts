@@ -688,6 +688,83 @@ function minOf(values: readonly number[], fallback: number): number {
 const PART_STACK_PITCH = 220;
 
 /**
+ * 倍率の上限 (#1020)。
+ *
+ * 図枠は数百 world 単位なので、1000 倍で数十万になる。 これを超える倍率は画面上で意味を持たず、
+ * 掛けた先が非有限になる危険だけが残る。
+ */
+export const MAX_PART_SCALE = 1000;
+
+/**
+ * 本文に書かれた倍率を、描ける値に直す (#1020 / #1026)。
+ *
+ * 記法は `倍率: -2` も `倍率: 0` も、桁が溢れて `Infinity` になる値も書ける。 置き場所と
+ * 描画で別々に直すと、同じ見本が「置き場所は等倍・画面では消える」 状態になる (実測 =
+ * `scale: 0` が等倍の場所を占めるのに画面には出なかった)。 読んだ時点で直す。
+ *
+ * **画面側と組み立て側の両方から呼ぶ**。 別々に持つと、同じ本文が経路で別の絵になる (#1026)。
+ */
+export function normalizePartScale(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  return Math.min(value, MAX_PART_SCALE);
+}
+
+/**
+ * 見本 1 件の狙いの大きさ (#1026)。
+ *
+ * `大きさ:` (`posW` / `posH`) と `倍率:` (`scale`) は掛け合わさる。 画面側も
+ * 「図枠 × 大きさから出る率 × 倍率」 で描くので、同じ式にしないと 2 経路で絵が変わる。
+ *
+ * 倍率を書かなければ `大きさ:` をそのまま返す。 書いた時だけ、書いていない辺を図枠の実寸で
+ * 補ってから掛ける (`大きさ:` は片方だけでは効かないため、両辺が揃うか両方 undefined になる)。
+ */
+export function partTargetSize(
+  part: CdlDiagram,
+  posW: number | undefined,
+  posH: number | undefined,
+  scale: number | undefined,
+): { w: number | undefined; h: number | undefined } {
+  if (scale === undefined) return { w: posW, h: posH };
+  const k = normalizePartScale(scale);
+  if (k === 1) return { w: posW, h: posH };
+  // 基準は `大きさ:` と同じ物差し (縦列の外接矩形と段の送り幅)。 図枠を基準にすると、
+  // 図枠と外接矩形の差のぶんだけ余分に掛かる (実測 = 3 倍と書いて 4.0875 倍になった)
+  const base = partScaleBase(part);
+  // 掛けた先が非有限にならないよう上限倍で頭打ちにする。 画面側も同じ上限までしか描かない
+  const cap = (b: number, target: number): number => Math.min(target * k, b * MAX_PART_SCALE);
+  return { w: cap(base.w, posW ?? base.w), h: cap(base.h, posH ?? base.h) };
+}
+
+/**
+ * `大きさ:` と `倍率:` が掛かる時の基準の大きさ (#1026)。
+ *
+ * 横は縦列の外接矩形、縦は段の送り幅の合計。 **図枠 (`partRenderSize`) ではない**。
+ * 図枠は余白を含むため、これを基準にすると書いた倍率より大きく掛かる。
+ *
+ * `partTargetScale` と `partTargetSize` が同じ物差しを使うことで、
+ * `partTargetScale(part, base.w * k, base.h * k)` が丁度 `k` 倍を返す関係が保たれる。
+ */
+function partScaleBase(part: CdlDiagram): { w: number; h: number } {
+  const lanes = Array.isArray(part.lanes) ? part.lanes : [];
+  const nodes = Array.isArray(part.nodes) ? part.nodes : [];
+  const lefts: number[] = [];
+  const rights: number[] = [];
+  for (const l of lanes) {
+    const lx = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+    const lw = positiveOr(l.width, 400);
+    lefts.push(lx);
+    rights.push(lx + lw);
+  }
+  const stacks = nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
+  return {
+    w: positiveOr(maxOf(rights, 400) - minOf(lefts, 0), 400),
+    h: Math.max(1, (maxOf(stacks, 0) - minOf(stacks, 0) + 1) * PART_STACK_PITCH),
+  };
+}
+
+/**
  * `大きさ:` を書いた時に、見本を何倍にするか (#1018)。
  *
  * 横は縦列の幅、縦は段の数から出す。 どちらも書かなければ 1 倍。
@@ -710,33 +787,13 @@ export function partTargetScale(
   // 箱が 1 つも無い図でも縦列があれば取り込み側は伸縮する。 ここで 1 に倒すと、
   // 箱を持たない外部の見本だけ画面が等倍のまま残る
 
-  let x = 1;
-  if (targetW !== undefined && targetW > 0) {
-    const lefts: number[] = [];
-    const rights: number[] = [];
-    for (const l of part.lanes) {
-      const lx = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
-      const lw = positiveOr(l.width, 400);
-      lefts.push(lx);
-      rights.push(lx + lw);
-    }
-    const bboxW = positiveOr(maxOf(rights, 400) - minOf(lefts, 0), 400);
-    x = targetW / bboxW;
-  }
+  const base = partScaleBase(part);
+  const x = targetW !== undefined && targetW > 0 ? targetW / base.w : 1;
+  const y = targetH !== undefined && targetH > 0 ? targetH / base.h : 1;
 
-  let y = 1;
-  if (targetH !== undefined && targetH > 0) {
-    const stacks = part.nodes.map((n) =>
-      typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
-    );
-    const origH = Math.max(1, (maxOf(stacks, 0) - minOf(stacks, 0) + 1) * PART_STACK_PITCH);
-    y = targetH / origH;
-  }
-
-  return {
-    x: Number.isFinite(x) && x > 0 ? x : 1,
-    y: Number.isFinite(y) && y > 0 ? y : 1,
-  };
+  // 上限は倍率と同じ関数で掛ける (#1026)。 画面側は `大きさ:` から出る率にも同じ上限を
+  // 掛けており、engine 側だけ青天井にすると桁の大きい本文で 2 経路の絵が割れる
+  return { x: normalizePartScale(x), y: normalizePartScale(y) };
 }
 
 /**
@@ -1207,7 +1264,8 @@ function partGridCenters(
     const part = lookupPart(partsCatalog, a.partId)!;
     // 格子は図枠で決める。 画面側も図枠をそのまま置くので、 同じ物差しで並べれば
     // 2 経路の置き場所が揃う (#937)
-    extents.set(a.name, partFrameExtent(part, a.posW, a.posH));
+    const t = partTargetSize(part, a.posW, a.posH, a.scale);
+    extents.set(a.name, partFrameExtent(part, t.w, t.h));
   }
   const centers = partsGridCenters(
     baseNodes.length,
@@ -1236,7 +1294,10 @@ function partSizes(
   for (const a of doc.actors) {
     if (a.partId === undefined) continue;
     const part = lookupPart(partsCatalog, a.partId);
-    if (part) out.set(a.name, partExtent(part, a.posW, a.posH));
+    if (part) {
+      const t = partTargetSize(part, a.posW, a.posH, a.scale);
+      out.set(a.name, partExtent(part, t.w, t.h));
+    }
   }
   return out;
 }
@@ -1258,7 +1319,8 @@ function partBoxes(
     if (a.partId === undefined) continue;
     const part = lookupPart(partsCatalog, a.partId);
     if (!part) continue;
-    const size = partExtent(part, a.posW, a.posH);
+    const t = partTargetSize(part, a.posW, a.posH, a.scale);
+    const size = partExtent(part, t.w, t.h);
     const placed =
       a.posX !== undefined && a.posY !== undefined
         ? { cx: a.posX, cy: a.posY }
@@ -1437,7 +1499,8 @@ function mergePartsFromActors(
       placeX = center?.cx;
       placeY = center?.cy;
     }
-    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, actor.posW, actor.posH, onNotice, actor.pos?.line ?? 0);
+    const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
+    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, t.w, t.h, onNotice, actor.pos?.line ?? 0);
   }
   return target;
 }

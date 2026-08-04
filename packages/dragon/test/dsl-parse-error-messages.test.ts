@@ -137,17 +137,49 @@ flow:
     rows: '["id: PK"]', 行: '["id: PK"]',
     位置: "300,200", pos: "300,200", posX: "300", posY: "200",
     大きさ: "400,180", size: "400,180",
+    倍率: "2", scale: "2",
     lane: "l1", stack: "1",
     色: "失敗", color: "失敗", tone: "失敗",
   };
+
+  /**
+   * パーツにだけ効く項目名 (#1026)。
+   *
+   * 倍率は図形の大きさを変えるもので、普通の箱には効かない。 普通の箱に書いた時は
+   * 「書いたのに図が変わらない」 を避けるため綴り誤りとして知らせる。
+   */
+  const PARTS_ONLY = new Set(["倍率", "scale"]);
+
+  /** パーツの中に項目を 1 行置いた本文。 */
+  const wrapPart = (item: string): string => `title: "t"
+type: flow
+actors:
+  - Web: service
+  - g:
+      kind: arc-gauge
+${item}
+flow:
+  - Web -> Web: "a"
+`;
 
   it("知らせに並べる項目名は全て実際に使える (一覧と実装がずれない)", () => {
     for (const key of ACTOR_ITEM_KEYS) {
       const value = VALUE_OF[key];
       expect(value, `${key} の値の例が test に無い`).toBeDefined();
-      const r = parseTextDslV05(wrap(`      ${key}: ${value}`));
+      const src = PARTS_ONLY.has(key) ? wrapPart(`      ${key}: ${value}`) : wrap(`      ${key}: ${value}`);
+      const r = parseTextDslV05(src);
       const detail = r.ok ? "" : r.errors.map((e) => e.message).join(" / ");
       expect(r.ok, `項目 ${key} が通らない: ${detail}`).toBe(true);
+    }
+  });
+
+  it("倍率を普通の箱に書いたら知らせる (パーツにだけ効く)", () => {
+    // 黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる
+    for (const key of PARTS_ONLY) {
+      const r = parseTextDslV05(wrap(`      ${key}: 2`));
+      expect(r.ok, `${key} が普通の箱で通っている`).toBe(false);
+      if (r.ok) continue;
+      expect(r.errors.some((e) => e.message.includes(key)), `${key} の知らせが無い`).toBe(true);
     }
   });
 

@@ -493,6 +493,8 @@ type ActorValues = {
   posY?: number;
   /** parts の状態の上書き (`v=50` の形)。 状態名は自由なので等号で示す。 */
   state?: Record<string, number | string | boolean>;
+  /** 図形の倍率 (`倍率=2` / `scale=2` の形、 #1026)。 状態とは別枠で持つ。 */
+  scale?: number;
 };
 
 /**
@@ -528,6 +530,11 @@ function classifyValues(values: string[]): ActorValues {
     if (eq > 0) {
       const key = v.slice(0, eq);
       const raw = stripQuotes(v.slice(eq + 1));
+      // `倍率` だけは状態ではなく図形の倍率 (#1026)。 3 つの書き方で意味を揃える
+      if (SCALE_KEYS.has(key)) {
+        out.scale = numberOrUndef(raw);
+        continue;
+      }
       if (/^[A-Za-z_][\w-]*$/.test(key)) {
         out.state = { ...(out.state ?? {}), [key]: coerceStateValue(raw) };
         continue;
@@ -704,6 +711,14 @@ function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
 const COLOR_KEYS = new Set(["色", "color", "tone"]);
 
 /**
+ * 見本の倍率として予約する項目名 (#1026)。
+ *
+ * 予約しないと状態の名前として読まれる。 画面側は同じ語を図形の倍率として読むため、
+ * 予約しない限り同じ本文が 2 経路で別の絵になる。 3 つの書き方すべてで同じ扱いにする。
+ */
+const SCALE_KEYS: ReadonlySet<string> = new Set(["scale", "倍率"]);
+
+/**
  * 続く字下げ行 (`kind: service` の形) を読んで 1 件にまとめる。
  *
  * 1 行で書いた時と同じ結果になるよう、 同じ振り分けを通す。
@@ -803,6 +818,13 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         if (m) { out.posW = Number(m[1]); out.posH = Number(m[2]); }
         break;
       }
+      case "scale":
+      case "倍率":
+        // 図形の倍率 (#1026)。 状態の名前としては読まない。
+        // パーツ以外に書いても効かないので、綴り誤りと同じ扱いで知らせる側にも積む
+        out.scale = numberOrUndef(stripQuotes(raw));
+        unknownKeys.push({ key, line: ln.no });
+        break;
       case "lane":
         out.lane = stripQuotes(raw);
         break;
@@ -817,9 +839,9 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         break;
     }
   }
-  // 状態は parts でだけ意味を持つ
-  if (touchedState && out.partId !== undefined) {
-    out.stateOverride = state;
+  // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
+  if (out.partId !== undefined) {
+    if (touchedState) out.stateOverride = state;
     return out;
   }
   // パーツでない箱に書かれた見知らぬ項目は、 どこにも入らずに消える。 黙って捨てると
@@ -847,6 +869,7 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "rows", "行",
   "位置", "pos", "posX", "posY",
   "大きさ", "size",
+  "倍率", "scale",
   "lane", "stack",
 ]);
 
@@ -978,6 +1001,9 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "posH",
   // canvas pivot UX 修正 (B1) = sub-node 単位 override map (nested `nodes: { header: {...} }`)
   "nodes",
+  // 図形の倍率 (#1026)。 状態の名前としては読まない
+  "scale",
+  "倍率",
 ]);
 
 function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
@@ -1104,6 +1130,8 @@ function parseActor(line: Line): DslActor | null {
       posY: numberOrUndef(opts.posY),
       posW: numberOrUndef(opts.posW),
       posH: numberOrUndef(opts.posH),
+      // 図形の倍率 (#1026)。 別名は先に並べた方を採る (画面側と同じ順)
+      scale: numberOrUndef(opts.scale ?? opts["倍率"]),
       // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
       nodes: parseActorNodesField(opts.nodes),
       pos: { line: line.no },
@@ -1135,6 +1163,7 @@ function parseActor(line: Line): DslActor | null {
       value: v.value,
       posX: v.posX,
       posY: v.posY,
+      scale: v.scale,
       partId: isPart ? v.kind : undefined,
       stateOverride: isPart ? v.state : undefined,
       pos: { line: line.no },

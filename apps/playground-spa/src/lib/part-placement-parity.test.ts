@@ -594,3 +594,66 @@ actors:
     }
   });
 });
+
+describe("倍率の意味 (#1026)", () => {
+  /** 取り込んだ / 重ねた箱の外接矩形の大きさを、経路ごとに返す。 */
+  const libSize = (src: string, alias: string): { w: number; h: number } => {
+    const laid = layout(textDslToDiagram(src, { partsCatalog: CATALOG }));
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const n of laid.nodes) {
+      if (!String(n.id ?? "").startsWith(`${alias}__`)) continue;
+      x0 = Math.min(x0, n.cx - n.w / 2);
+      x1 = Math.max(x1, n.cx + n.w / 2);
+      y0 = Math.min(y0, n.cy - n.h / 2);
+      y1 = Math.max(y1, n.cy + n.h / 2);
+    }
+    return { w: x1 - x0, h: y1 - y0 };
+  };
+
+  const src = (actor: string): string =>
+    `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n  - a: ${actor}\n`;
+
+  it("3 つの書き方が組み立て側で同じ大きさになる", () => {
+    // 書き方で意味が変わると、同じ本文を貼り替えただけで絵が変わる
+    const forms: Array<[string, string]> = [
+      ["中括弧の形", src("{ kind: wide, scale: 2 }")],
+      ["空白区切りの形", src("wide scale=2")],
+      ["縦に並べた形", `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n  - a:\n      kind: wide\n      scale: 2\n`],
+    ];
+    const got = forms.map(([name, text]) => [name, libSize(text, "a")] as const);
+    const [, first] = got[0]!;
+    for (const [name, size] of got) {
+      expect(size.w, `${name} だけ幅が違う`).toBeCloseTo(first.w, 1);
+      expect(size.h, `${name} だけ高さが違う`).toBeCloseTo(first.h, 1);
+    }
+  });
+
+  it("倍率を書くと画面側でも組み立て側でも大きくなる", () => {
+    // 直す前は、画面側だけが大きくなり組み立て側は状態の上書きとして捨てていた
+    const plainLib = libSize(src("{ kind: wide }"), "a");
+    const scaledLib = libSize(src("{ kind: wide, scale: 2 }"), "a");
+    expect(scaledLib.w, "組み立て側で効いていない").toBeGreaterThan(plainLib.w * 1.5);
+
+    const screenSize = (text: string): { w: number; h: number } => {
+      const parsed = extractPartsFromSrc(text, KIND_SET, ITEMS);
+      const part = parsed.parts.find((p) => p.id === "a")!;
+      return partBoxRect(part);
+    };
+    const plainScr = screenSize(src("{ kind: wide }"));
+    const scaledScr = screenSize(src("{ kind: wide, scale: 2 }"));
+    expect(scaledScr.w / plainScr.w, "画面側で効いていない").toBeCloseTo(2, 6);
+  });
+
+  it("倍率の増え方が 2 経路で揃う", () => {
+    // 絶対値は経路で違う (画面は図枠を重ね、組み立ては本体の送り幅で並び直す)。
+    // 揃うべきは **倍率を書いた時の伸び方** で、そこがずれると片方だけ大きく見える
+    const ratio = (get: (text: string) => number): number =>
+      get(src("{ kind: wide, scale: 3 }")) / get(src("{ kind: wide }"));
+    const libRatio = ratio((t) => libSize(t, "a").w);
+    const scrRatio = ratio((t) => {
+      const parsed = extractPartsFromSrc(t, KIND_SET, ITEMS);
+      return partBoxRect(parsed.parts.find((p) => p.id === "a")!).w;
+    });
+    expect(libRatio, `伸び方がずれている (組み立て ${libRatio} / 画面 ${scrRatio})`).toBeCloseTo(scrRatio, 1);
+  });
+});
