@@ -173,13 +173,37 @@ flow:
     }
   });
 
-  it("倍率を普通の箱に書いたら知らせる (パーツにだけ効く)", () => {
-    // 黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる
-    for (const key of PARTS_ONLY) {
-      const r = parseTextDslV05(wrap(`      ${key}: 2`));
-      expect(r.ok, `${key} が普通の箱で通っている`).toBe(false);
+  it("倍率を普通の箱に書いたら知らせる (3 つの書き方すべてで)", () => {
+    // 黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる。
+    // 縦に並べた形だけ知らせて他が黙ると、書き方を変えた時だけ知らせが出ることになる
+    const forms: Array<[string, string]> = [
+      ["縦に並べた形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API:\n      kind: service\n      倍率: 2\nflow:\n  - Web -> API: "a"\n`],
+      ["中括弧の形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API: { kind: service, 倍率: 2 }\nflow:\n  - Web -> API: "a"\n`],
+      ["空白区切りの形", `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - API: service scale=2\nflow:\n  - Web -> API: "a"\n`],
+    ];
+    for (const [name, src] of forms) {
+      const r = parseTextDslV05(src);
+      expect(r.ok, `${name} が黙って通っている`).toBe(false);
       if (r.ok) continue;
-      expect(r.errors.some((e) => e.message.includes(key)), `${key} の知らせが無い`).toBe(true);
+      expect(
+        r.errors.some((e) => e.message.includes("項目名が読めません")),
+        `${name} の知らせが無い (${r.errors.map((e) => e.message).join(" / ")})`,
+      ).toBe(true);
+    }
+  });
+
+  it("別名を 2 つ書いたら先に並べた名前を採る", () => {
+    // 後勝ちにすると、画面側 (常に scale 優先) と経路で 2 と 3 に割れる
+    const cases: Array<[string, string]> = [
+      ["縦に並べた形", `title: "t"\ntype: flow\nactors:\n  - g:\n      kind: arc-gauge\n      scale: 2\n      倍率: 3\nflow:\n  - g -> g: "a"\n`],
+      ["中括弧の形", `title: "t"\ntype: flow\nactors:\n  - g: { kind: arc-gauge, scale: 2, 倍率: 3 }\nflow:\n  - g -> g: "a"\n`],
+      ["空白区切りの形", `title: "t"\ntype: flow\nactors:\n  - g: arc-gauge scale=2 倍率=3\nflow:\n  - g -> g: "a"\n`],
+    ];
+    for (const [name, src] of cases) {
+      const r = parseTextDslV05(src);
+      expect(r.ok, `${name} が読めない`).toBe(true);
+      if (!r.ok) continue;
+      expect(r.doc.actors.find((a) => a.name === "g")?.scale, `${name} で後の名前が勝っている`).toBe(2);
     }
   });
 

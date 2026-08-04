@@ -12,6 +12,7 @@ import {
   partRenderSize,
   partBoxInFrame,
   partTargetScale,
+  partScaleFactor,
   normalizePartScale,
   MAX_PART_SCALE,
   isColorValue,
@@ -97,9 +98,9 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  * 間隔は見えている箱で解くので、 そちらは `partBoxRect` を使う (#1014)。
  */
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
-  const k = normalizePartScale(part.scale);
-  const e = partFrameSize(part);
-  return { w: e.w * k, h: e.h * k };
+  const e = partRenderSize(part.item.diagram);
+  const f = partScaleFactor(part.item.diagram, part.posW, part.posH, part.scale);
+  return { w: e.w * f.x, h: e.h * f.y };
 }
 
 /**
@@ -114,7 +115,7 @@ export function partWorldSize(part: OverlayPartParsed): { w: number; h: number }
 export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
   const e = partRenderSize(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  return { w: e.w * normalizePartScale(t.x), h: e.h * normalizePartScale(t.y) };
+  return { w: e.w * t.x, h: e.h * t.y };
 }
 
 
@@ -149,16 +150,13 @@ export function partBoxRect(part: OverlayPartParsed): {
   left: number;
   top: number;
 } {
-  const k = normalizePartScale(part.scale);
   const b = partBoxInFrame(part.item.diagram);
-  const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  const tx = normalizePartScale(t.x);
-  const ty = normalizePartScale(t.y);
+  const f = partScaleFactor(part.item.diagram, part.posW, part.posH, part.scale);
   return {
-    w: b.w * tx * k,
-    h: b.h * ty * k,
-    left: b.left * tx * k,
-    top: b.top * ty * k,
+    w: b.w * f.x,
+    h: b.h * f.y,
+    left: b.left * f.x,
+    top: b.top * f.y,
   };
 }
 

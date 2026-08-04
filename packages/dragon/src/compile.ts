@@ -64,7 +64,9 @@ export type CompileNotice = {
     | "state-override-rejected"
     | "external-paint-dropped"
     // 図の中に描く部品を持たない見本を重ねた (#1017)
-    | "part-not-drawn";
+    | "part-not-drawn"
+    // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
+    | "scale-reserved";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -696,6 +698,14 @@ const PART_STACK_PITCH = 220;
 export const MAX_PART_SCALE = 1000;
 
 /**
+ * 図形の倍率として予約した項目名 (#1026)。
+ *
+ * 記法側 (`v05/parser.ts` の `SCALE_KEYS`) と同じ集合。 見本が同じ名前の状態を持つ時に
+ * 知らせを出すため、組み立て側でも持つ。
+ */
+const SCALE_RESERVED: ReadonlySet<string> = new Set(["scale", "倍率"]);
+
+/**
  * 本文に書かれた倍率を、描ける値に直す (#1020 / #1026)。
  *
  * 記法は `倍率: -2` も `倍率: 0` も、桁が溢れて `Infinity` になる値も書ける。 置き場所と
@@ -710,13 +720,38 @@ export function normalizePartScale(value: number): number {
 }
 
 /**
+ * `大きさ:` と `倍率:` を合成した最終の伸縮率 (#1026)。
+ *
+ * **上限は合成した後に 1 度だけ掛ける**。 率ごとに掛けると、`大きさ:` 由来 1000 倍と
+ * `倍率: 2` で合わせて 2000 倍になり、1 度だけ掛ける経路 (1000 倍) と食い違う (実測)。
+ *
+ * 基準は `大きさ:` と同じ物差し (縦列の外接矩形と段の送り幅)。 図枠を基準にすると、
+ * 図枠と外接矩形の差のぶんだけ余分に掛かる (実測 = 3 倍と書いて 4.0875 倍になった)。
+ *
+ * 画面側 (重ねて描く時の `transform`) と組み立て側 (取り込む時の伸縮) が同じ値を使う。
+ */
+export function partScaleFactor(
+  part: CdlDiagram,
+  posW: number | undefined,
+  posH: number | undefined,
+  scale: number | undefined,
+): { x: number; y: number } {
+  const base = partScaleBase(part);
+  const k = scale === undefined ? 1 : normalizePartScale(scale);
+  const rx = posW !== undefined && posW > 0 ? posW / base.w : 1;
+  const ry = posH !== undefined && posH > 0 ? posH / base.h : 1;
+  return { x: normalizePartScale(rx * k), y: normalizePartScale(ry * k) };
+}
+
+/**
  * 見本 1 件の狙いの大きさ (#1026)。
  *
- * `大きさ:` (`posW` / `posH`) と `倍率:` (`scale`) は掛け合わさる。 画面側も
- * 「図枠 × 大きさから出る率 × 倍率」 で描くので、同じ式にしないと 2 経路で絵が変わる。
+ * 合成した率を基準に掛けて返す。 取り込み側はこの値から自分で率を出し直すため、
+ * ここで上限を掛けておかないと「見積りは上限どまり・実体は青天井」 になる (実測 =
+ * 見積り 1000 倍に対して実体 10000 倍)。
  *
- * 倍率を書かなければ `大きさ:` をそのまま返す。 書いた時だけ、書いていない辺を図枠の実寸で
- * 補ってから掛ける (`大きさ:` は片方だけでは効かないため、両辺が揃うか両方 undefined になる)。
+ * 何も書かれていない辺は「狙いなし」 のまま返す。 基準の値を入れると、取り込み側が
+ * 自前で測る外接矩形との差だけ伸縮が掛かってしまう。
  */
 export function partTargetSize(
   part: CdlDiagram,
@@ -724,15 +759,15 @@ export function partTargetSize(
   posH: number | undefined,
   scale: number | undefined,
 ): { w: number | undefined; h: number | undefined } {
-  if (scale === undefined) return { w: posW, h: posH };
-  const k = normalizePartScale(scale);
-  if (k === 1) return { w: posW, h: posH };
-  // 基準は `大きさ:` と同じ物差し (縦列の外接矩形と段の送り幅)。 図枠を基準にすると、
-  // 図枠と外接矩形の差のぶんだけ余分に掛かる (実測 = 3 倍と書いて 4.0875 倍になった)
+  if (posW === undefined && posH === undefined && scale === undefined) {
+    return { w: undefined, h: undefined };
+  }
   const base = partScaleBase(part);
-  // 掛けた先が非有限にならないよう上限倍で頭打ちにする。 画面側も同じ上限までしか描かない
-  const cap = (b: number, target: number): number => Math.min(target * k, b * MAX_PART_SCALE);
-  return { w: cap(base.w, posW ?? base.w), h: cap(base.h, posH ?? base.h) };
+  const f = partScaleFactor(part, posW, posH, scale);
+  return {
+    w: posW === undefined && scale === undefined ? undefined : base.w * f.x,
+    h: posH === undefined && scale === undefined ? undefined : base.h * f.y,
+  };
 }
 
 /**
@@ -787,14 +822,11 @@ export function partTargetScale(
   // 箱が 1 つも無い図でも縦列があれば取り込み側は伸縮する。 ここで 1 に倒すと、
   // 箱を持たない外部の見本だけ画面が等倍のまま残る
 
-  const base = partScaleBase(part);
-  const x = targetW !== undefined && targetW > 0 ? targetW / base.w : 1;
-  const y = targetH !== undefined && targetH > 0 ? targetH / base.h : 1;
-
-  // 上限は倍率と同じ関数で掛ける (#1026)。 画面側は `大きさ:` から出る率にも同じ上限を
-  // 掛けており、engine 側だけ青天井にすると桁の大きい本文で 2 経路の絵が割れる
-  return { x: normalizePartScale(x), y: normalizePartScale(y) };
+  // 倍率を書かない場合の合成率。 上限の掛け方を 1 箇所に閉じるため同じ関数を通す
+  return partScaleFactor(part, targetW, targetH, undefined);
 }
+
+
 
 /**
  * パーツ 1 個が図の上で占める外接矩形。
@@ -1498,6 +1530,20 @@ function mergePartsFromActors(
       const center = gridCenters.get(actor.name);
       placeX = center?.cx;
       placeY = center?.cy;
+    }
+    // `倍率` / `scale` は図形の倍率として予約した (#1026)。 同じ名前の状態を持つ見本では、
+    // 予約する前は状態の上書きとして効いていた。 黙って意味が変わると気付けないので知らせる
+    if (actor.scale !== undefined) {
+      const clashed = (part.states ?? []).find((st) => SCALE_RESERVED.has(String(st.id ?? "")));
+      if (clashed) {
+        onNotice?.({
+          kind: "scale-reserved",
+          actor: actor.name,
+          line: actor.pos?.line ?? 0,
+          message: `"${clashed.id}" は見本の大きさを変える項目として扱いました (${clashed.id} という名前の状態は変えていません)`,
+          hint: `状態を変えたい時は \`state: { ${clashed.id}: ... }\` と書く`,
+        });
+      }
     }
     const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
     mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, t.w, t.h, onNotice, actor.pos?.line ?? 0);

@@ -64,6 +64,7 @@ export {
   partBoxInFrame,
   partTargetScale,
   partTargetSize,
+  partScaleFactor,
   normalizePartScale,
   MAX_PART_SCALE,
   partDrawsInDiagram,

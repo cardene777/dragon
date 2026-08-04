@@ -15,7 +15,13 @@
 import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { textDslToDiagram, measureActorBoxes } from "@cardenelabs/dragon";
+import {
+  textDslToDiagram,
+  measureActorBoxes,
+  partScaleFactor,
+  partBoxInFrame,
+  MAX_PART_SCALE,
+} from "@cardenelabs/dragon";
 import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect, partFrameSize } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
@@ -642,6 +648,25 @@ describe("倍率の意味 (#1026)", () => {
     const plainScr = screenSize(src("{ kind: wide }"));
     const scaledScr = screenSize(src("{ kind: wide, scale: 2 }"));
     expect(scaledScr.w / plainScr.w, "画面側で効いていない").toBeCloseTo(2, 6);
+  });
+
+  it("上限を跨いでも 2 経路の率が揃う", () => {
+    // 率ごとに上限を掛けると、大きさ由来 1000 倍と倍率 2 で画面だけ 2000 倍になる (実測)
+    const part = PARTS.wide!;
+    const base = 400 * MAX_PART_SCALE;
+    const engine = partScaleFactor(part, base, base, 2);
+    const screen = partBoxRect({
+      id: "a",
+      kind: "wide",
+      scale: 2,
+      rotate: 0,
+      posW: base,
+      posH: base,
+      item: { id: "parts-wide", title: "wide", diagram: part } as CatalogItem,
+    });
+    const box = partBoxInFrame(part);
+    expect(screen.w / box.w, "画面側の率が組み立て側と違う").toBeCloseTo(engine.x, 6);
+    expect(engine.x, "合成後の上限を超えている").toBe(MAX_PART_SCALE);
   });
 
   it("倍率の増え方が 2 経路で揃う", () => {
