@@ -7,9 +7,11 @@ import {
   appendActorLine,
   placeParts,
   partWorldSize,
+  partBoxRect,
   normalizePartScale,
   srcMayUseParts,
   yamlMayUseParts,
+  MAX_PART_SCALE,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -605,6 +607,18 @@ describe("パーツの実寸", () => {
     expect(size.h, "潰れている").toBeGreaterThan(10);
   });
 
+  it("大きさと掛け合わせても桁が溢れない", () => {
+    // 倍率だけ止めても、`大きさ:` から出る率と掛け合わさると再び溢れる。
+    // 掛ける手前で 1 つずつ止めないと、描く大きさと箱が非有限になる
+    const huge = Number(`1${"0".repeat(307)}`);
+    const part = { ...partOf(400, 300, MAX_PART_SCALE), posW: huge, posH: huge };
+    const world = partWorldSize(part);
+    expect(Number.isFinite(world.w), "描く幅が非有限").toBe(true);
+    expect(Number.isFinite(world.h), "描く高さが非有限").toBe(true);
+    const box = partBoxRect(part);
+    expect(Number.isFinite(box.w) && Number.isFinite(box.h), "箱が非有限").toBe(true);
+  });
+
   it("拡大率を掛ける", () => {
     const one = partWorldSize(partOf(400, 300, 1));
     const two = partWorldSize(partOf(400, 300, 2));
@@ -731,6 +745,110 @@ describe("本文が見本を使っているかの見込み判定 (#1022)", () =>
   it("見本かどうかまでは決めない", () => {
     // 一覧が無いと決められないので、一覧に無い種類でも拾う (多めに拾う側に倒す)
     expect(srcMayUseParts(`actors:\n  - a: { kind: unknown-thing }\n`)).toBe(true);
+  });
+});
+
+describe("縦に並べて書いた倍率 (#1020)", () => {
+  const parse = (src: string) => extractPartsFromSrc(src, catalog, partsItems).parts;
+
+  it("縦に並べて書いた倍率が効く", () => {
+    // 中括弧の形は読んでいたが、縦に並べた形は常に 1 として扱っていた
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 2\n`);
+    expect(got[0]?.scale, "倍率が読めていない").toBe(2);
+  });
+
+  it("項目名は日本語でもよい", () => {
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      倍率: 3\n`);
+    expect(got[0]?.scale).toBe(3);
+  });
+
+  it("書いていなければ 1", () => {
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n`);
+    expect(got[0]?.scale).toBe(1);
+  });
+
+  it("描けない値は 1 に直す", () => {
+    // 中括弧の形と同じ物差し (`normalizePartScale`) を通す
+    for (const v of ["0", "-2", "abc", ""]) {
+      const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: ${v}\n`);
+      expect(got[0]?.scale, `scale: ${v} が 1 になっていない`).toBe(1);
+    }
+  });
+
+  it("中括弧の形と同じ値になる", () => {
+    const block = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 2.5\n`);
+    const inline = parse(`actors:\n  - a: { kind: achievement, scale: 2.5 }\n`);
+    expect(block[0]?.scale).toBe(inline[0]?.scale);
+  });
+
+  it("中括弧の形と数の読み方が揃う", () => {
+    // 先頭の 10 進部分だけを取ると `1e2` が 1 になり、書き方で結果が変わる
+    for (const v of ["1e2", '"3"', "2.5"]) {
+      const block = parse(`actors:\n  - a:\n      kind: achievement\n      scale: ${v}\n`);
+      const inline = parse(`actors:\n  - a: { kind: achievement, scale: ${v} }\n`);
+      expect(block[0]?.scale, `block ${v} が読めていない`).toBe(inline[0]?.scale);
+    }
+    expect(parse(`actors:\n  - a:\n      kind: achievement\n      scale: 1e2\n`)[0]?.scale).toBe(100);
+  });
+
+  it("入れ子の中の倍率は拾わない", () => {
+    // 字下げを見ないと、入れ子の中の同名の項目までパーツ全体の倍率になる (実測で 7 になった)
+    const got = parse(
+      `actors:\n  - a:\n      kind: achievement\n      nodes:\n        header:\n          scale: 7\n`,
+    );
+    expect(got[0]?.scale, "入れ子の中を拾っている").toBe(1);
+  });
+
+  it("2 度書いたら後を採る", () => {
+    // 前を採ると、書き直した値が効かない
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: abc\n      scale: 4\n`);
+    expect(got[0]?.scale, "書き直した値が効いていない").toBe(4);
+  });
+
+  it("桁の大きい倍率は上限で頭打ちにする", () => {
+    // 有限でも掛けた先が非有限になる (実測 = `scale: 1e308` で描く大きさが Infinity、
+    // 置き場所が -Infinity になりパーツが消えた)
+    const got = parse(`actors:\n  - a:\n      kind: achievement\n      scale: 1e308\n`);
+    expect(got[0]?.scale, "上限で止めていない").toBe(MAX_PART_SCALE);
+    const world = partWorldSize(got[0]!);
+    expect(Number.isFinite(world.w), "描く大きさが非有限").toBe(true);
+    expect(Number.isFinite(world.h), "描く大きさが非有限").toBe(true);
+    const box = partBoxRect(got[0]!);
+    expect(Number.isFinite(box.w) && Number.isFinite(box.left), "箱が非有限").toBe(true);
+  });
+
+  it("浅い注釈があっても読める", () => {
+    // 注釈を数に入れると直下の字下げを見誤り、読める項目が読めなくなる
+    const got = parse(
+      `actors:\n  - a:\n      kind: achievement\n  # 注釈\n      scale: 4\n`,
+    );
+    expect(got[0]?.scale, "注釈で読めなくなっている").toBe(4);
+  });
+
+  it("別名を両方書いたら先に並べた方を採る", () => {
+    // 中括弧の形も同じ順で引くので、書き方で効く方が変わらない
+    const block = parse(
+      `actors:\n  - a:\n      kind: achievement\n      scale: 2\n      倍率: 3\n`,
+    );
+    const inline = parse(`actors:\n  - a: { kind: achievement, scale: 2, 倍率: 3 }\n`);
+    expect(block[0]?.scale, "block 側で先の名前が効いていない").toBe(2);
+    expect(inline[0]?.scale, "書き方で効く名前が変わっている").toBe(block[0]?.scale);
+  });
+
+  it("短い形の scale= は倍率として読まない", () => {
+    // 組み立て側は状態の名前として読む。 ここだけ倍率にすると意味が 3 通りになる (#1026)
+    const got = parse(`actors:\n  - a: achievement scale=2\n`);
+    expect(got[0]?.scale, "短い形を倍率として読んでいる").toBe(1);
+  });
+
+  it("倍率と大きさは両方効く", () => {
+    // 倍率は描画と置き場所に、大きさは図枠の伸縮に掛かる。 掛け合わさる
+    const got = parse(
+      `actors:\n  - a:\n      kind: achievement\n      scale: 2\n      大きさ: 800,400\n`,
+    );
+    expect(got[0]?.scale).toBe(2);
+    expect(got[0]?.posW).toBe(800);
+    expect(got[0]?.posH).toBe(400);
   });
 });
 

@@ -112,7 +112,18 @@ export function partWorldSize(part: OverlayPartParsed): { w: number; h: number }
 export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
   const e = partRenderSize(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
-  return { w: e.w * t.x, h: e.h * t.y };
+  return { w: e.w * capScale(t.x), h: e.h * capScale(t.y) };
+}
+
+/**
+ * 掛ける前に率そのものを上限で止める。
+ *
+ * `scale:` だけを止めても、`大きさ:` から出る率と掛け合わさると再び桁が溢れる。
+ * 掛ける手前で 1 つずつ止める方が、どの経路から来ても同じ上限が効く。
+ */
+function capScale(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  return Math.min(value, MAX_PART_SCALE);
 }
 
 /**
@@ -124,7 +135,32 @@ export function partFrameSize(part: OverlayPartParsed): { w: number; h: number }
  * 以降どこから見ても同じ値にする。
  */
 export function normalizePartScale(value: number): number {
-  return Number.isFinite(value) && value > 0 ? value : 1;
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  // 有限でも桁が大きすぎると、掛けた先が非有限になる (実測 = `scale: 1e308` で
+  // 描く大きさが Infinity、置き場所が -Infinity になりパーツが消えた)。
+  // 画面に収まる範囲の上限で頭打ちにする
+  return Math.min(value, MAX_PART_SCALE);
+}
+
+/**
+ * 倍率の上限 (#1020)。
+ *
+ * 図枠は数百 world 単位なので、1000 倍で数十万になる。 これを超える倍率は画面上で意味を持たず、
+ * 掛けた先が非有限になる危険だけが残る。
+ */
+export const MAX_PART_SCALE = 1000;
+
+/**
+ * 書かれた値を倍率として読む。
+ *
+ * 引用符を外して値全体を数として読む。 先頭の 10 進部分だけを取ると `1e2` が 1 になり、
+ * 同じ値を書いても書き方で結果が変わる (実測 = 縦に並べた形は 100、中括弧の形は 1)。
+ */
+function parsePartScale(raw: string | null | undefined): number {
+  if (raw === null || raw === undefined) return 1;
+  const trimmed = raw.trim().replace(/^["']|["']$/g, "");
+  if (trimmed === "") return 1;
+  return normalizePartScale(Number(trimmed));
 }
 
 /**
@@ -143,11 +179,13 @@ export function partBoxRect(part: OverlayPartParsed): {
   const k = normalizePartScale(part.scale);
   const b = partBoxInFrame(part.item.diagram);
   const t = partTargetScale(part.item.diagram, part.posW, part.posH);
+  const tx = capScale(t.x);
+  const ty = capScale(t.y);
   return {
-    w: b.w * t.x * k,
-    h: b.h * t.y * k,
-    left: b.left * t.x * k,
-    top: b.top * t.y * k,
+    w: b.w * tx * k,
+    h: b.h * ty * k,
+    left: b.left * tx * k,
+    top: b.top * ty * k,
   };
 }
 
@@ -527,7 +565,7 @@ export function extractPartsFromSrc(
       id: block.alias,
       kind: kindValue,
       item,
-      scale: 1,
+      scale: readScaleFromBlock(block.lines),
       rotate: 0,
       ...readPositionFromBlock(block.lines),
       ...readSizeFromBlock(block.lines),
@@ -549,8 +587,12 @@ export function extractPartsFromSrc(
     }
     if (pending !== null) {
       const indent = line.length - line.trimStart().length;
-      // 空行と、 名前の行より深い字下げは block の続き
-      if (line.trim() === "" || indent > pending.indent) {
+      // 空行と注釈の行、 名前の行より深い字下げは block の続き。
+      //
+      // 注釈を字下げで判定すると、 項目より浅く置いた `# ...` が block を終わらせ、
+      // その後の項目が丸ごと読まれなくなる (実測 = `scale: 4` が 1 になった)。
+      // 空行と同じ扱いにする = どちらも項目ではないので、 読む側が数から外す
+      if (line.trim() === "" || line.trim().startsWith("#") || indent > pending.indent) {
         pending.lines.push(line);
         pending.srcIdx.push(srcIdx);
         continue;
@@ -566,7 +608,11 @@ export function extractPartsFromSrc(
     // ReDoS 耐性のため ACTOR_LINE_RE (capture: prefix / name / sep / inner) を共用する
     const short = line.match(ACTOR_SHORT_RE);
     if (short) {
-      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)
+      // 短い形は先頭の語が種類。 残りは状態の上書き (`v=50`) と位置 (`@300,200`)。
+      //
+      // **`scale=2` は倍率として読まない** (#1020)。 組み立て側は 3 つの書き方すべてで
+      // `scale` を状態の名前として読むため (実測)、ここだけ図形の倍率にすると
+      // 同じ語の意味が書き方で 3 通りになる。 意味の食い違い自体は #1026 に切り出した
       const alias = unquoteAlias(short[2]!);
       const values = short[4]!.trim().split(/\s+/);
       const kindValue = values[0]!.toLowerCase();
@@ -601,7 +647,6 @@ export function extractPartsFromSrc(
           };
           const posXMatch = num("posX");
           const posYMatch = num("posY");
-          const scaleMatch = num("scale");
           const rotateMatch = num("rotate");
           // 中括弧の形で書いた寸法。 組み立て側はこの形の `posW` / `posH` を受けるので、
           // 読まないと同じ本文が画面側だけ元の大きさになる (#1018)。
@@ -631,7 +676,7 @@ export function extractPartsFromSrc(
               // (縦横 2 つ揃って初めて位置になる)
               posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
-              scale: scaleMatch ? normalizePartScale(parseFloat(scaleMatch[1]!)) : 1,
+              scale: parsePartScale(readTopLevelField(inner, "scale") ?? readTopLevelField(inner, "倍率")),
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               posW: size("posW"),
               posH: size("posH"),
@@ -672,6 +717,59 @@ function readPositionFromBlock(
     if (rel) return { posRel: rel };
   }
   return {};
+}
+
+/**
+ * 縦に並べて書いた 1 件から `scale: 2` を読む (#1020)。
+ *
+ * 中括弧の形は読んでいたが、縦に並べた形は常に 1 として扱っていた。 書いても効かず、
+ * しかも何も知らせないため、書いた人からは倍率が無いように見える。
+ *
+ * 数の読み方は中括弧の形と揃える (値全体を数として読み、`normalizePartScale` を通す)。
+ * 書いていなければ 1。
+ */
+/**
+ * 縦に並べて書いた 1 件から倍率を読む (#1020)。
+ *
+ * **画面側だけの意味**。 組み立て側は `scale` を状態の名前として読む (実測 = 3 つの書き方すべてで
+ * `stateOverride.scale` になった)。 重ねたパーツは本文から抜いてから組み立てるため、この値を
+ * 読むのは画面側だけ = 通常の操作では食い違いは表に出ない。
+ * 見本を library として使う経路との意味の違いは #1026 に切り出した。
+ */
+function readScaleFromBlock(lines: string[]): number {
+  const raw = readDirectField(lines, ["scale", "倍率"]);
+  return parsePartScale(raw);
+}
+
+/**
+ * 縦に並べて書いた 1 件から、**直下の項目** だけを読む。
+ *
+ * 字下げを見ずに読むと、入れ子の中の同名の項目まで拾う (実測 = `nodes` の下に書いた
+ * `scale: 7` がパーツ全体の倍率になった)。 一番浅い字下げを直下とみなす。
+ *
+ * 同じ項目を 2 度書いた時は後を採る。 前を採ると、書き直した値が効かない。
+ */
+function readDirectField(lines: string[], keys: readonly string[]): string | null {
+  // 先頭は名前の行 (`  - 実績:`) で、項目より浅い。 これを混ぜると直下の字下げを見誤る。
+  // 注釈の行も除く = 項目より浅く置かれた `# ...` を数に入れると直下を見誤り、
+  // 本来読める項目が読めなくなる (実測 = 浅い注釈があると `scale: 4` が 1 になった)
+  const body = lines.slice(1).filter((l) => l.trim() !== "" && !l.trim().startsWith("#"));
+  const indents = body.map((l) => l.length - l.trimStart().length);
+  if (indents.length === 0) return null;
+  const direct = Math.min(...indents);
+  // 別名 (`scale` / `倍率`) は **先に並べた名前を優先** する。 中括弧の形も同じ順で引くので、
+  // 両方書いた時にどちらが効くかが書き方で変わらない
+  for (const key of keys) {
+    let found: string | null = null;
+    for (const line of body) {
+      if (line.length - line.trimStart().length !== direct) continue;
+      const m = line.trim().match(new RegExp(`^${key}\\s*:\\s*(.*)$`));
+      // 同じ名前を 2 度書いた時は後を採る。 前を採ると書き直した値が効かない
+      if (m) found = m[1] ?? "";
+    }
+    if (found !== null) return found;
+  }
+  return null;
 }
 
 /**
