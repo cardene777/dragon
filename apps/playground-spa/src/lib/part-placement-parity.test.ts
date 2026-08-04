@@ -157,6 +157,29 @@ actors:
     expect(scr.get("My Part")!.cy, "縦がずれている").toBeCloseTo(lib.get("My Part")!.cy, 1);
   });
 
+  it("本体と同じ名前のパーツでも本体に重ならない", () => {
+    // 名札でも列でも本体と区別できない。 区別できない時に「パーツのもの」 として数から外すと、
+    // 本体の箱まで消えてパーツが本体の中に入る (実測 = 上端が 1140 から 300 に飛んだ)。
+    // 外さない側に倒すと間隔が広がるだけで済む
+    const dup = `title: "t"
+type: sequence
+
+actors:
+  - p: {}
+  - p: { kind: wide }
+`;
+    const laid = layout(textDslToDiagram(dup, { partsCatalog: CATALOG }));
+    const part = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    expect(part.length, "パーツが取り込まれていない").toBeGreaterThan(0);
+    const partTop = Math.min(...part.map((n) => n.cy - n.h / 2));
+    const baseBottom = Math.max(
+      ...laid.nodes.filter((n) => !n.id.startsWith("p__")).map((n) => n.cy + n.h / 2),
+    );
+    expect(partTop, `パーツが本体に重なっている (${partTop} < ${baseBottom})`).toBeGreaterThan(
+      baseBottom,
+    );
+  });
+
   it("大きさを書いて図枠より大きくしても隣に重ならない", () => {
     // 図枠だけを確保すると、 大きさで広げた箱が隣に重なる
     // (実測 = x=60..2060 の箱の隣が 725 から始まり 1335 重なった)

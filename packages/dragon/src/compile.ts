@@ -968,11 +968,28 @@ function partGridCenters(
   // 属する列で特定するが、 列の id は名前を slug に変換して作るため名前とは一致しない
   // (実測 = `My Part` の列 id は `My-Part`)。 名前で引くと記号を含む名前だけ取りこぼす。
   // 列の `label` は slug の経路によらず名前の生値を持つので、 そちらで引く (§ merge の
-  // 仮の箱の掃除が同じ方法を採っている)
-  const partsActorNames = new Set(partsActors.map((a) => a.name));
+  // 仮の箱の掃除が同じ方法を採っている)。
+  //
+  // どの列がパーツのものか決められない時は、 数から外さない。 外す側に倒すと本体の箱まで
+  // 消えて、 パーツが本体の図に重なる (実測 = 同じ名前を本体とパーツの両方に書くと、
+  // 上端が 1140 から 300 に飛んで本体の中に入った)。 外さなければ間隔が 1 段ぶん広がるだけで済む
+  const otherActorNames = new Set(
+    doc.actors.filter((a) => a.partId === undefined).map((a) => a.name),
+  );
+  // 本体にも同じ名前がある分は外さない。 名札でも列でも本体と区別できないため
+  const partsActorNames = new Set(
+    partsActors.map((a) => a.name).filter((n) => !otherActorNames.has(n)),
+  );
+  // 明示的に他の列へ張ったパーツは、 その列を専有していない (本体と共有している)
+  const sharedLaneIds = new Set(
+    partsActors.map((a) => a.lane).filter((l): l is string => l !== undefined),
+  );
   const partsLaneIds = new Set<string>();
   for (const l of target.lanes) {
-    if (l.label !== undefined && partsActorNames.has(l.label)) partsLaneIds.add(l.id);
+    if (l.label === undefined) continue;
+    if (!partsActorNames.has(l.label)) continue;
+    if (sharedLaneIds.has(l.id)) continue;
+    partsLaneIds.add(l.id);
   }
   const baseNodes = target.nodes.filter(
     (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane),
