@@ -18,6 +18,7 @@ import { describe, it, expect } from "vitest";
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
+  parseTextDslV05,
   textDslToDiagram,
   partRenderSize,
   partTargetScale,
@@ -163,6 +164,54 @@ describe("倍率の意味 (#1026)", () => {
     for (const key of ["位置", "大きさ", "色"]) {
       expect(ids.some((id) => id.endsWith(key)), `${key} が状態になっている (${ids.join(",")})`).toBe(false);
     }
+  });
+
+  it("別名と重複の規則が 2 経路で揃う", () => {
+    // 規則は 3 つ = 別名は scale が先 / 同じ名前は後勝ち / 読めない値でも別名に降りない。
+    // どれか 1 つでもずれると、同じ本文が画面と組み立てで別の大きさになる (実測で 4 例とも割れた)
+    const cases: Array<[string, string, number]> = [
+      ["縦・同じ名前を 2 度", `  - a:\n      kind: sample\n      倍率: 2\n      倍率: 3\n`, 3],
+      ["短・同じ名前を 2 度", `  - a: sample scale=2 scale=3\n`, 3],
+      ["短・読めない値と別名", `  - a: sample scale=x 倍率=3\n`, 1],
+      ["縦・読めない値と別名", `  - a:\n      kind: sample\n      scale: x\n      倍率: 3\n`, 1],
+      ["中括弧・別名を両方", `  - a: { kind: sample, scale: 2, 倍率: 3 }\n`, 2],
+      ["中括弧・同じ名前を 2 度", `  - a: { kind: sample, scale: 2, scale: 3 }\n`, 3],
+    ];
+    for (const [name, actors, want] of cases) {
+      const r = parseTextDslV05(`${head}actors:\n${actors}${tail}`);
+      expect(r.ok, `${name} が読めない`).toBe(true);
+      if (!r.ok) continue;
+      // 読めない値は倍率として 1 になる (`partScaleFactor` が正規化する)
+      const got = r.doc.actors.find((a) => a.name === "a")?.scale ?? 1;
+      expect(got, `${name} の倍率が違う`).toBe(want);
+    }
+  });
+
+  it("読めない値でも知らせは出る", () => {
+    // 読めた値で判定すると `scale: x` で知らせが消える。 意味が変わったことは値と無関係
+    const notices: string[] = [];
+    textDslToDiagram(`${head}actors:\n  - a: { kind: sample, scale: x }\n${tail}`, {
+      partsCatalog: catalog,
+      onNotice: (n) => notices.push(n.kind),
+    });
+    expect(notices, `知らせが消えている (${notices.join(",")})`).toContain("scale-reserved");
+  });
+
+  it("書いていない名前の状態には知らせない", () => {
+    // `scale` を書いて見本が `倍率` の状態を持つだけの組合せは、元から衝突していない
+    const other = diagram("r", { topic: "r" })
+      .lane("l", { width: 400 })
+      .node("box", { lane: "l", stack: 0, kind: "card", title: "r", w: 200, h: 100 })
+      .state("倍率", { initial: 1 })
+      .build();
+    const notices: string[] = [];
+    textDslToDiagram(`${head}actors:\n  - a: { kind: other, scale: 2 }\n${tail}`, {
+      partsCatalog: { other },
+      onNotice: (n) => notices.push(n.kind),
+    });
+    expect(notices, `衝突していない組合せに知らせている (${notices.join(",")})`).not.toContain(
+      "scale-reserved",
+    );
   });
 
   it("上限は合成した後に 1 度だけ掛かる", () => {

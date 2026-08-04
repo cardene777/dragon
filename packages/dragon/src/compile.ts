@@ -698,14 +698,6 @@ const PART_STACK_PITCH = 220;
 export const MAX_PART_SCALE = 1000;
 
 /**
- * 図形の倍率として予約した項目名 (#1026)。
- *
- * 記法側 (`v05/parser.ts` の `SCALE_KEYS`) と同じ集合。 見本が同じ名前の状態を持つ時に
- * 知らせを出すため、組み立て側でも持つ。
- */
-const SCALE_RESERVED: ReadonlySet<string> = new Set(["scale", "倍率"]);
-
-/**
  * 本文に書かれた倍率を、描ける値に直す (#1020 / #1026)。
  *
  * 記法は `倍率: -2` も `倍率: 0` も、桁が溢れて `Infinity` になる値も書ける。 置き場所と
@@ -1533,8 +1525,12 @@ function mergePartsFromActors(
     }
     // `倍率` / `scale` は図形の倍率として予約した (#1026)。 同じ名前の状態を持つ見本では、
     // 予約する前は状態の上書きとして効いていた。 黙って意味が変わると気付けないので知らせる
-    if (actor.scale !== undefined) {
-      const clashed = (part.states ?? []).find((st) => SCALE_RESERVED.has(String(st.id ?? "")));
+    // 判定は **書かれた名前** で行う。 読めた値で判定すると `scale: x` のように値が
+    // 読めない形で知らせが消え、逆に `scale` を書いて見本が `倍率` の状態を持つだけの
+    // 組合せ (元から衝突していない) にも知らせてしまう
+    const written = new Set(actor.scaleKeys ?? []);
+    if (written.size > 0) {
+      const clashed = (part.states ?? []).find((st) => written.has(String(st.id ?? "")));
       if (clashed) {
         onNotice?.({
           kind: "scale-reserved",

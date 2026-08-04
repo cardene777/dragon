@@ -647,7 +647,7 @@ export function extractPartsFromSrc(
               // (縦横 2 つ揃って初めて位置になる)
               posX: posXMatch && posYMatch ? parseFloat(posXMatch[1]!) : undefined,
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
-              scale: parsePartScale(readTopLevelField(inner, "scale") ?? readTopLevelField(inner, "倍率")),
+              scale: readInlineScale(inner),
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
               posW: size("posW"),
               posH: size("posH"),
@@ -708,7 +708,7 @@ function readPositionFromBlock(
  * 見本を library として使う経路との意味の違いは #1026 に切り出した。
  */
 function readScaleFromBlock(lines: string[]): number {
-  const raw = readDirectField(lines, ["scale", "倍率"]);
+  const raw = readDirectField(lines, SCALE_KEYS);
   return parsePartScale(raw);
 }
 
@@ -768,12 +768,42 @@ function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
 /**
  * 空白区切りの値から `scale=2` / `倍率=2` を読む (#1026)。
  *
- * 別名は先に並べた方を採る。 他の 2 つの書き方と同じ順にしないと、書き方で効く名前が変わる。
+ * 読み方は 3 つの書き方すべてで同じにする。 **別名は `scale` を先に見て、同じ名前を 2 度
+ * 書いた時は後に書いた方を採る**。 前を採ると書き直した値が効かない。
+ *
+ * 書いた名前が `scale` なら、その値が読めなくても `倍率` に降りない。 降りると
+ * 「綴りを誤った時だけ別の値が効く」 という追いにくい形になる。
  */
 function readScaleToken(values: string[]): number {
-  for (const key of ["scale", "倍率"]) {
-    const hit = values.find((v) => v.startsWith(`${key}=`));
-    if (hit) return parsePartScale(hit.slice(key.length + 1));
+  for (const key of SCALE_KEYS) {
+    let found: string | null = null;
+    for (const v of values) {
+      if (v.startsWith(`${key}=`)) found = v.slice(key.length + 1);
+    }
+    if (found !== null) return parsePartScale(found);
+  }
+  return 1;
+}
+
+/** 倍率として読む項目名。 先に並べた方を優先する (組み立て側と同じ順)。 */
+const SCALE_KEYS = ["scale", "倍率"] as const;
+
+/**
+ * 中括弧の形から倍率を読む (#1026)。
+ *
+ * 同じ名前を 2 度書いた時は後に書いた方を採る。 `readTopLevelField` は先に書いた方を返すため、
+ * ここでは使えない (縦に並べた形が後を採るので、揃えないと書き方で結果が変わる)。
+ */
+function readInlineScale(inner: string): number {
+  const fields = splitTopLevelFields(inner);
+  for (const key of SCALE_KEYS) {
+    let found: string | null = null;
+    for (const field of fields) {
+      const idx = field.indexOf(":");
+      if (idx < 0 || field.slice(0, idx).trim() !== key) continue;
+      found = field.slice(idx + 1).trim();
+    }
+    if (found !== null) return parsePartScale(found);
   }
   return 1;
 }

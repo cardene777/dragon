@@ -650,6 +650,28 @@ describe("倍率の意味 (#1026)", () => {
     expect(scaledScr.w / plainScr.w, "画面側で効いていない").toBeCloseTo(2, 6);
   });
 
+  it("別名と重複の規則が 2 経路で揃う", () => {
+    // 規則は 3 つ = 別名は scale が先 / 同じ名前は後勝ち / 読めない値でも別名に降りない。
+    // 実測では 4 例すべてで engine と画面が違う値を返していた
+    const cases: Array<[string, string, number]> = [
+      ["縦・同じ名前を 2 度", `  - a:\n      kind: wide\n      倍率: 2\n      倍率: 3\n`, 3],
+      ["短・同じ名前を 2 度", `  - a: wide scale=2 scale=3\n`, 3],
+      ["短・読めない値と別名", `  - a: wide scale=x 倍率=3\n`, 1],
+      ["縦・読めない値と別名", `  - a:\n      kind: wide\n      scale: x\n      倍率: 3\n`, 1],
+      ["中括弧・別名を両方", `  - a: { kind: wide, scale: 2, 倍率: 3 }\n`, 2],
+      ["中括弧・同じ名前を 2 度", `  - a: { kind: wide, scale: 2, scale: 3 }\n`, 3],
+    ];
+    for (const [name, actors, want] of cases) {
+      const src = `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n${actors}`;
+      // 画面側
+      const scr = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((p) => p.id === "a");
+      expect(scr?.scale, `${name} の画面側が違う`).toBe(want);
+      // 組み立て側 (読めない値は倍率として書かなかった扱いになる)
+      const lib = textDslToDiagram(src, { partsCatalog: CATALOG });
+      expect(lib.nodes.some((n) => String(n.id ?? "").startsWith("a__")), `${name} が取り込まれていない`).toBe(true);
+    }
+  });
+
   it("上限を跨いでも 2 経路の率が揃う", () => {
     // 率ごとに上限を掛けると、大きさ由来 1000 倍と倍率 2 で画面だけ 2000 倍になる (実測)
     const part = PARTS.wide!;

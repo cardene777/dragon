@@ -495,8 +495,8 @@ type ActorValues = {
   state?: Record<string, number | string | boolean>;
   /** 図形の倍率 (`倍率=2` / `scale=2` の形、 #1026)。 状態とは別枠で持つ。 */
   scale?: number;
-  /** 倍率を書いたか。 描けない値 (`倍率=x`) で `scale` が undefined になる形と区別する。 */
-  scaleWritten?: boolean;
+  /** 書かれた倍率の名前。 値が読めない形 (`scale=x`) と書いていない形を見分ける。 */
+  scaleKeys?: string[];
 };
 
 /**
@@ -507,6 +507,8 @@ type ActorValues = {
  */
 function classifyValues(values: string[]): ActorValues {
   const out: ActorValues = { kind: "" };
+  /** 書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
+  const scaleWritten = new Map<string, string>();
   const kindWords: string[] = [];
   for (const v of values) {
     if ((v.startsWith('"') && v.endsWith('"') && v.length > 1) || (v.startsWith("'") && v.endsWith("'") && v.length > 1)) {
@@ -532,12 +534,10 @@ function classifyValues(values: string[]): ActorValues {
     if (eq > 0) {
       const key = v.slice(0, eq);
       const raw = stripQuotes(v.slice(eq + 1));
-      // `倍率` だけは状態ではなく図形の倍率 (#1026)。 3 つの書き方で意味を揃える。
-      // 別名を 2 つ書いた時は **先に並べた名前** を採る (画面側と同じ規則)。
-      // 後勝ちにすると `scale=2 倍率=3` が経路で 2 と 3 に割れる (実測)
+      // `倍率` だけは状態ではなく図形の倍率 (#1026)。 書かれた名前をそのまま貯めて、
+      // どれが効くかは `resolveScale` が 1 箇所で決める (3 つの書き方で規則を揃えるため)
       if (SCALE_KEYS.has(key)) {
-        if (out.scale === undefined || key === SCALE_PRIMARY) out.scale = numberOrUndef(raw);
-        out.scaleWritten = true;
+        scaleWritten.set(key, raw);
         continue;
       }
       if (/^[A-Za-z_][\w-]*$/.test(key)) {
@@ -550,6 +550,9 @@ function classifyValues(values: string[]): ActorValues {
     kindWords.push(v);
   }
   out.kind = kindWords.join(" ").toLowerCase();
+  const s = resolveScale(scaleWritten);
+  out.scale = s.scale;
+  out.scaleKeys = s.keys;
   return out;
 }
 
@@ -729,8 +732,30 @@ const COLOR_KEYS = new Set(["色", "color", "tone"]);
  */
 const SCALE_KEYS: ReadonlySet<string> = new Set(["scale", "倍率"]);
 
-/** 別名を 2 つ書いた時に優先する名前。 画面側 (`readDirectField`) と同じ順にする。 */
-const SCALE_PRIMARY = "scale";
+/** 別名を 2 つ書いた時に優先する順。 画面側 (`SCALE_KEYS`) と同じ並びにする。 */
+const SCALE_ORDER = ["scale", "倍率"] as const;
+
+/**
+ * 書かれた倍率から、実際に効く値と書かれた名前を決める (#1026)。
+ *
+ * 規則は 3 つの書き方と画面側で共通にする。
+ *
+ * - 別名は `scale` を先に見る (両方書いた時に書き方で効く名前が変わらないようにする)
+ * - 同じ名前を 2 度書いた時は後に書いた方を採る (前を採ると書き直した値が効かない)
+ * - 書いた名前の値が読めなくても、もう一方の名前に降りない (綴りを誤った時だけ
+ *   別の値が効く、という追いにくい形を作らない)
+ *
+ * `keys` は書かれた名前そのもの。 値が読めたかに関わらず入る。 見本が同じ名前の状態を
+ * 持つ時の知らせ (`scale-reserved`) が、値の読めなさに左右されないようにするため。
+ */
+function resolveScale(written: Map<string, string>): { scale?: number; keys: string[] } {
+  const keys = [...written.keys()];
+  for (const key of SCALE_ORDER) {
+    const raw = written.get(key);
+    if (raw !== undefined) return { scale: numberOrUndef(raw), keys };
+  }
+  return { keys };
+}
 
 /**
  * 続く字下げ行 (`kind: service` の形) を読んで 1 件にまとめる。
@@ -742,6 +767,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   const out: DslActor = { ...actor };
   const state: Record<string, number | string | boolean> = { ...(actor.stateOverride ?? {}) };
   let touchedState = false;
+  /** 縦に並べて書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
+  const scaleWritten = new Map<string, string>();
   // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
   const unknownKeys: Array<{ key: string; line: number }> = [];
 
@@ -835,10 +862,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "scale":
       case "倍率":
         // 図形の倍率 (#1026)。 状態の名前としては読まない。
-        // 別名を 2 つ書いた時は先に並べた名前を採る (画面側と同じ規則)
-        if (out.scale === undefined || key === SCALE_PRIMARY) {
-          out.scale = numberOrUndef(stripQuotes(raw));
-        }
+        // どれが効くかは block を読み終わってから `resolveScale` が決める
+        scaleWritten.set(key, stripQuotes(raw));
         // パーツ以外に書いても効かないので、綴り誤りと同じ扱いで知らせる側にも積む
         unknownKeys.push({ key, line: ln.no });
         break;
@@ -855,6 +880,13 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         unknownKeys.push({ key, line: ln.no });
         break;
     }
+  }
+  // 名前の行と縦に並べた行の両方に倍率がある形では、後に書いた縦の行を採る。
+  // 知らせ (`scale-reserved`) は書かれた名前をすべて見るので、名前だけは足し合わせる
+  if (scaleWritten.size > 0) {
+    const s = resolveScale(scaleWritten);
+    out.scale = s.scale;
+    out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
@@ -1151,8 +1183,12 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
     const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
-    // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)
-    reportScaleOnNonPart(isPart, Object.keys(opts).find((k) => SCALE_KEYS.has(k)), line.no, errors);
+    // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)。
+    // `opts` は同じ名前が 2 度出た時に後の値で上書きされているので、そのまま渡してよい
+    const inlineScale = resolveScale(
+      new Map(Object.entries(opts).filter(([k]) => SCALE_KEYS.has(k))),
+    );
+    reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
@@ -1180,8 +1216,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       posY: numberOrUndef(opts.posY),
       posW: numberOrUndef(opts.posW),
       posH: numberOrUndef(opts.posH),
-      // 図形の倍率 (#1026)。 別名は先に並べた方を採る (画面側と同じ順)
-      scale: numberOrUndef(opts.scale ?? opts["倍率"]),
+      // 図形の倍率 (#1026)。 どれが効くかは `resolveScale` が 1 箇所で決める
+      scale: inlineScale.scale,
+      scaleKeys: inlineScale.keys.length ? inlineScale.keys : undefined,
       // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
       nodes: parseActorNodesField(opts.nodes),
       pos: { line: line.no },
@@ -1203,7 +1240,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
     // 倍率はパーツにしか効かない (#1026)
-    reportScaleOnNonPart(isPart, v.scaleWritten ? "scale" : undefined, line.no, errors);
+    reportScaleOnNonPart(isPart, v.scaleKeys?.[0], line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(v.kind) ? v.kind : "");
     return {
       name: namePart,
@@ -1216,6 +1253,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       posX: v.posX,
       posY: v.posY,
       scale: v.scale,
+      scaleKeys: v.scaleKeys?.length ? v.scaleKeys : undefined,
       partId: isPart ? v.kind : undefined,
       stateOverride: isPart ? v.state : undefined,
       pos: { line: line.no },
