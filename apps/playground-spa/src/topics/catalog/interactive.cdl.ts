@@ -1136,7 +1136,7 @@ export const subtitle__eip1559GasFlow = "EIP-1559 gas cost model = 4 区画 (Sen
 /**
  * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
  */
-export const oauthFlow = diagram("interactive-oauth-flow", {
+export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
   topic: "OAuth 認可コードの往復を追う",
 })
   .lane("user", { x: 0, width: 220 })
@@ -1207,7 +1207,7 @@ export const oauthFlow = diagram("interactive-oauth-flow", {
     body: "3-lane (User / Auth / Resource) + 6 event edge で OAuth 2.0 code flow を node network 化、 sequence timeline と併記で時間軸 + 空間軸を dual 可視化。",
   }, (p: PhaseBuilder) => p.activate("client", "consent", "api").badge("OAuth"))
   .build();
-export const subtitle__oauthFlow = "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随";
+export const subtitle__interactiveOauthFlow = "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随";
 
 /**
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。

@@ -4,7 +4,7 @@ import type { BBox, CdlDiagram } from "@cardenelabs/cdl";
 import {
   timelineDrive,
   kpiDashboard,
-  oauthFlow,
+  interactiveOauthFlow,
   trafficSankey,
   exemplarNotificationFlow,
 } from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
@@ -56,7 +56,7 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
   //     cdl#374、 dragon#968)。 lane 間隔は効かない = cdl が label 幅に合わせて自動で広げる
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
-  { name: "interactive-oauth-flow", diagram: oauthFlow },
+  { name: "interactive-oauth-flow", diagram: interactiveOauthFlow },
   { name: "interactive-traffic-sankey", diagram: trafficSankey },
   { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow },
 ];
@@ -250,7 +250,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
   });
 
   it("oauth-flow = 往復 4 本の label が engine の配置で 1 列に並ぶ", () => {
-    const laid = layout(oauthFlow);
+    const laid = layout(interactiveOauthFlow);
     const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
     const boxes = ids.map((id) => boxOf(laid, "edge-label", id));
     const tight: string[] = [];
@@ -280,7 +280,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     //
     // 高さは `curveMidY` で測る。 4 本は端点が同じ高さの弧なので、 制御点を捨てる `mainCrestY`
     // では全て 203 になって順序を比べられない (この test が最初 false green だった)。
-    const laid = layout(oauthFlow);
+    const laid = layout(interactiveOauthFlow);
     const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
     const target = laid.edges.filter((e) => ids.includes(e.id));
     expect(new Set(target.map((e) => curveMidY(e.d).toFixed(3))).size, "4 本の高さが区別できない").toBe(4);
@@ -293,7 +293,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     // 4 本を 1 列に積むと、 束の外側に出る 2 本は弧から離れる。 1 行 pill (36) にしたことで
     // 離れる量は 86 に収まり、 破綻 (160 超) にはならない (#376)。 `sub` を戻すと 2 行 pill
     // (68) になり、 外側が 222 まで離れて破綻する。
-    const far = visualValidateAll([oauthFlow], { profile: "catalog" })
+    const far = visualValidateAll([interactiveOauthFlow], { profile: "catalog" })
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
@@ -303,14 +303,14 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
       "token-issue",
     ]);
     // 破綻していない = 全て warn 止まり
-    const errors = visualValidateAll([oauthFlow], { profile: "catalog" })
+    const errors = visualValidateAll([interactiveOauthFlow], { profile: "catalog" })
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity" && v.severity === "error");
     expect(errors, "弧から離れすぎて破綻している").toEqual([]);
   });
 
   it("oauth-flow = 迂回する 2 本の label が上下に分かれている", () => {
-    const laid = layout(oauthFlow);
+    const laid = layout(interactiveOauthFlow);
     const up = boxOf(laid, "edge-label", "client-api");
     const down = boxOf(laid, "edge-label", "api-client");
     // 何もしないと同じ点に乗る (実測 = 重なり面積 12215)。
@@ -351,7 +351,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
     const broke: string[] = [];
     for (const target of [...ids, "(全部)"]) {
-      const d = JSON.parse(JSON.stringify(oauthFlow)) as CdlDiagram;
+      const d = JSON.parse(JSON.stringify(interactiveOauthFlow)) as CdlDiagram;
       for (const id of ids) {
         if (target !== "(全部)" && id !== target) continue;
         const e = d.edges.find((x) => x.id === id) as { label: string };
@@ -396,7 +396,7 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
   });
 
   it("3 図とも全 edge-label 対が spec 以上離れている (取りこぼし防止)", () => {
-    for (const d of [oauthFlow, trafficSankey, exemplarNotificationFlow]) {
+    for (const d of [interactiveOauthFlow, trafficSankey, exemplarNotificationFlow]) {
       const laid = layout(d);
       const labels = laid.bboxes.filter((x) => x.kind === "edge-label");
       expect(labels.length, `${d.id} の edge-label が取れていない`).toBeGreaterThan(1);
