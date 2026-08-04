@@ -16,6 +16,7 @@ import {
   normalizePartScale,
   MAX_PART_SCALE,
   isColorValue,
+  stripQuotes,
   NODE_KIND_VALID,
   type RelativePos,
   type AnchorBox,
@@ -561,12 +562,9 @@ export function extractPartsFromSrc(
       return;
     }
     // 項目名は日本語でも英語でもよい (記法側と同じ)。 `種類:` を読まないと、 同じ本文が
-    // 画面と組み立てで別の絵になる
-    const kindLine = block.lines.find((l) => /^\s*(kind|種類)\s*:/.test(l));
-    const kindValue = kindLine
-      ?.trim()
-      .match(/^(?:kind|種類)\s*:\s*"?([^"\s]+)"?/)?.[1]
-      ?.toLowerCase();
+    // 画面と組み立てで別の絵になる。
+    // 2 度書いた時は後に書いた方を採る (組み立て側と同じ)。 先を採ると、書き直した種類が効かない
+    const kindValue = readKindFromBlock(block.lines) ?? undefined;
     const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
     if (!kindValue || !item) {
       block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
@@ -741,14 +739,14 @@ function hasUnreadableItem(lines: string[]): boolean {
     const t = line.trim();
     const pos = t.match(/^(?:位置|pos)\s*:\s*(.+)$/);
     if (pos) {
-      const value = pos[1]!.trim().replace(/^["']|["']$/g, "");
+      const value = stripQuotes(pos[1]!.trim());
       const abs = /^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value);
       if (!abs && parseRelativePos(value) === null) return true;
       continue;
     }
     const size = t.match(/^(?:大きさ|size)\s*:\s*(.+)$/);
     if (size) {
-      const value = size[1]!.trim().replace(/^["']|["']$/g, "");
+      const value = stripQuotes(size[1]!.trim());
       if (!/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value)) return true;
     }
   }
@@ -763,8 +761,10 @@ function hasUnreadableItem(lines: string[]): boolean {
 function readKindFromBlock(lines: string[]): string | null {
   let out: string | null = null;
   for (const line of lines) {
-    const m = line.trim().match(/^(?:kind|種類)\s*:\s*"?([^"\s]+)"?/);
-    if (m) out = m[1]!.toLowerCase();
+    const m = line.trim().match(/^(?:kind|種類)\s*:\s*(.+)$/);
+    // 引用符は組み立て側と同じ関数で外す。 別々に持つと `kind: 'small'` のように
+    // 一重引用符で書いた見本が画面側だけ引けなくなる (実測)
+    if (m) out = stripQuotes(m[1]!.trim()).toLowerCase();
   }
   return out;
 }
@@ -817,7 +817,7 @@ function readPositionFromBlock(
   for (const line of lines) {
     const m = line.trim().match(/^(位置|pos)\s*:\s*(.+)$/);
     if (!m) continue;
-    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const value = stripQuotes(m[2]!.trim());
     const abs = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
     if (abs) {
       out = { posX: Number(abs[1]), posY: Number(abs[2]) };
@@ -898,7 +898,7 @@ function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
   for (const line of lines) {
     const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
     if (!m) continue;
-    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const value = stripQuotes(m[2]!.trim());
     const wh = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
     if (!wh) continue;
     out = { posW: Number(wh[1]), posH: Number(wh[2]) };

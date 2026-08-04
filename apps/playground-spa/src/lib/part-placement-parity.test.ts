@@ -866,6 +866,56 @@ describe("名前の行に値を書いた見本の続きの行 (#1028)", () => {
     expect(r.baseSrc, "見本の行が本文に残っている").not.toContain("- a: wide");
   });
 
+  it("引用符の外し方が組み立て側と揃う", () => {
+    // 先頭と末尾を別々に外すと、対応しない形が中身だけ取り出せてしまう。
+    // 画面側だけ読めると、組み立て側が知らせる誤りが画面では通ってしまう
+    const cases: Array<[string, string, boolean]> = [
+      ["一重引用符の kind", `  - a: wide\n      kind: 'small'\n`, true],
+      ["二重引用符の kind", `  - a: wide\n      kind: "small"\n`, true],
+      ["日本語の項目名", `  - a: wide\n      種類: 'small'\n`, true],
+      ["対応しない引用符の kind", `  - a: wide\n      kind: 'small"\n`, false],
+      ["対応しない引用符の位置", `  - a: wide\n      位置: '300,200"\n`, false],
+      ["対応しない引用符の大きさ", `  - a: wide\n      大きさ: '800,400"\n`, false],
+    ];
+    for (const [name, actors, extracted] of cases) {
+      const src = wrap(actors);
+      const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+      expect(r.parts.length > 0, `${name} の抜き方が違う`).toBe(extracted);
+      if (extracted) {
+        expect(r.parts[0]?.kind, `${name} の種類が引けていない`).toBe("small");
+        continue;
+      }
+      // 抜かなかった分は、組み立て側が知らせるか、見本として解決できないかのどちらか
+      const parsed = parseTextDslV05(src);
+      const unresolved =
+        parsed.ok && parsed.doc.actors.find((x) => x.name === "a")?.partId !== "small";
+      expect(!parsed.ok || unresolved, `${name} が組み立て側では通っている`).toBe(true);
+    }
+  });
+
+  it("名前だけの block でも kind は後に書いた方を採る", () => {
+    // 先を採ると書き直した種類が効かない。 組み立て側は後に書いた行で上書きする
+    const src = wrap(`  - a:\n      kind: wide\n      kind: small\n`);
+    const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+    expect(p?.kind, "画面側が先の種類を採っている").toBe("small");
+    const r = parseTextDslV05(src);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.actors.find((x) => x.name === "a")?.partId, "組み立て側とずれている").toBe("small");
+  });
+
+  it("読めない大きさは組み立て側も知らせる", () => {
+    // 画面側が本文に戻しても、組み立て側が黙って無視すると誰も知らせない
+    const src = wrap(`  - a: wide\n      大きさ: 800\n`);
+    const r = parseTextDslV05(src);
+    expect(r.ok, "知らせが出ていない").toBe(false);
+    if (r.ok) return;
+    expect(
+      r.errors.some((e) => e.message.includes("大きさの書き方が読めません")),
+      `知らせの中身が違う (${r.errors.map((e) => e.message).join(" / ")})`,
+    ).toBe(true);
+  });
+
   it("落とした行の数だけ行番号が飛ぶ", () => {
     // 続きの行も落とすようになったので、行番号の対応がずれていないことを見る
     const src = wrap(`  - a: wide\n      位置: 300,200\n  - Web: service\n`);
