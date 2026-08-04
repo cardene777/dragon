@@ -741,9 +741,8 @@ function partExtent(
  * 箱を持たないパーツ (実体を `shape` で描く 17 件) でも図枠は正しく出る。 箱だけを見ると
  * 1x1 になり、 その値で描くと潰れる。 図枠なら全 80 件で極小が 0 件になることを実測した。
  *
- * **今は画面側が描く大きさにだけ使う**。 組み立て側の格子はまだ箱の外接矩形で決めており、
- * 2 経路の置き場所は揃っていない (#937 で続く)。 格子を図枠に寄せると段内で上端が
- * 揃わなくなるため、 格子の並べ方から変える必要がある。
+ * 画面が描く大きさと、 組み立て側の格子が確保する場所の両方がこれを見る。 別々の物差しを
+ * 持っていた頃は、 同じ本文でも通った経路でパーツの位置が変わっていた (#937)。
  *
  * 組み立てに失敗する図では、 既定の大きさに落とす (呼出側は catalog を渡すので通常起きない)。
  */
@@ -760,6 +759,69 @@ export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
   } catch {
     return { w: 400, h: 200 };
   }
+}
+
+/**
+ * 図枠の左上から、 箱の外接矩形の左上までの余白 (パーツ自身の座標)。
+ *
+ * 図枠は箱の周りに余白を持つ。 実測では左 60 / 上 60 / 右 85 / 下 60 で、 左右が非対称。
+ * 図枠を置き場所の物差しにする時、 この余白を引かないと箱の位置が合わない。
+ *
+ * 測れない図では 0 を返す。 呼出側は図枠と箱の左上が同じ扱いになり、 余白のぶんだけ
+ * ずれるが、 描けない座標にはならない。
+ */
+function partFramePadding(part: CdlDiagram): { left: number; top: number } {
+  const none = { left: 0, top: 0 };
+  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return none;
+  try {
+    const own = layout(part);
+    if (own.nodes.length === 0) return none;
+    let x0 = Infinity;
+    let y0 = Infinity;
+    for (const n of own.nodes) {
+      x0 = Math.min(x0, n.cx - n.w / 2);
+      y0 = Math.min(y0, n.cy - n.h / 2);
+    }
+    const left = x0 - own.viewBox.x;
+    const top = y0 - own.viewBox.y;
+    return {
+      left: Number.isFinite(left) ? left : 0,
+      top: Number.isFinite(top) ? top : 0,
+    };
+  } catch {
+    return none;
+  }
+}
+
+/**
+ * パーツ 1 個が図の上で確保する図枠 (merge に渡す座標での表し方)。
+ *
+ * `w` / `h` は図枠の大きさ、 `dx` / `dy` は図枠の中心が「merge に渡す座標」 からどれだけ
+ * ずれるか。 画面側は図枠をそのまま置くので、 格子が図枠で場所を決めれば 2 経路が揃う。
+ *
+ * **合わせるのは箱の中心ではなく左上**。 段を 2 つ以上持つパーツは、 取り込んだ後に本体の
+ * 送り幅で並び直すため箱の高さが単体の時と変わる (実測 = 単体 300 が取り込むと 320)。
+ * 中心で合わせると、 高さの差の半分だけ上端がずれて段内の揃いが崩れる (実測で 12.5)。
+ * 左上で合わせれば、 高さが変わっても上端は動かない。
+ *
+ * 図枠の大きさは倍率を掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で描くため、
+ * ここで掛けると確保する場所だけが変わって画面とずれる。 掛かるのは箱の側 (`partExtent`) で、
+ * `大きさ:` を書いたパーツは箱が縮んだまま図枠ぶんの場所を確保する。
+ */
+function partFrameExtent(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number; dx: number; dy: number } {
+  const box = partExtent(part, targetW, targetH);
+  const frame = partRenderSize(part);
+  const pad = partFramePadding(part);
+  return {
+    w: frame.w,
+    h: frame.h,
+    dx: box.dx + frame.w / 2 - pad.left - box.w / 2,
+    dy: box.dy + frame.h / 2 - pad.top - box.h / 2,
+  };
 }
 
 /**
@@ -867,9 +929,15 @@ function partGridCenters(
   );
   if (autoActors.length === 0) return new Map();
   // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
-  // 置き場所が下へずれる
+  // 置き場所が下へずれる。
+  //
+  // 名札 (`title`) だけを見ると、 順序図で 1 人につき作られる 3 つの箱のうち間隔用のものが
+  // 漏れる (名札が空のため)。 パーツ 1 個につき 1 つ残り、 格子の起点が 1 段ぶん下がって
+  // 画面側とずれていた (実測 = 縦が 840 = 3 段ぶん違った)。 属する列 (`lane`) でも見る
   const partsActorNames = new Set(partsActors.map((a) => a.name));
-  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
+  const baseNodes = target.nodes.filter(
+    (n) => !partsActorNames.has(n.title) && !partsActorNames.has(n.lane),
+  );
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of autoActors) {
     const part = lookupPart(partsCatalog, a.partId);
@@ -877,13 +945,9 @@ function partGridCenters(
       extents.set(a.name, { w: 400, h: 200, dx: 0, dy: 0 });
       continue;
     }
-    // 格子は箱の外接矩形で決める (据え置き)。
-    //
-    // 図枠 (`partRenderSize`) に寄せると 2 経路で完全に揃うが、 `partsGridCenters` が
-    // 中心から高さの半分を引いて上端を出す設計のため、 パーツごとに図枠の高さが違うと
-    // 段内で上端が揃わなくなる (実測で 12.5 ずれた)。 格子の並べ方そのものを
-    // 「上端揃え」 に変える必要があり、 影響が広いので #937 で続ける。
-    extents.set(a.name, partExtent(part, a.posW, a.posH));
+    // 格子は図枠で決める。 画面側も図枠をそのまま置くので、 同じ物差しで並べれば
+    // 2 経路の置き場所が揃う (#937)
+    extents.set(a.name, partFrameExtent(part, a.posW, a.posH));
   }
   const centers = partsGridCenters(
     baseNodes.length,
