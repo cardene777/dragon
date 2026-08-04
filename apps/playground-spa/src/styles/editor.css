@@ -694,7 +694,10 @@
      svg が default 300x150 に潰れる bug を解消する (CdlDiagramView は w-full class + maxWidth 100% で
      親幅を欲しがるが、 inline-block 親では循環参照になる)。
      viewBox の w / h を CSS variable で受けて実 pixel 幅を明示する。 */
-  .v4-editor-svg-wrap svg {
+  /* 図を描く svg だけを対象にする (#937)。 `svg` 全体に掛けると、 パーツの中で使われる
+     読み取り widget の内部 svg にも同じ大きさが効いて、 中身が本来の縦横比で描かれない
+     (実測 = 340x60 の内部 svg が 700x700 になった) */
+  .v4-editor-svg-wrap svg[data-cdl-stage] {
     display: block;
     /* canvas pivot 新 spec = SVG 内 element で drag interaction を受けるため pointer-events all
        (旧 pointer-events: none は HTML overlay 干渉回避の historical fix、 現状は不要) */

@@ -9,6 +9,7 @@ import {
   resolveRelativePos,
   orderByDependency,
   partsGridCenters,
+  partRenderSize,
   isColorValue,
   type RelativePos,
   type AnchorBox,
@@ -67,21 +68,21 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
 /**
  * パーツ 1 個が画面上で占める大きさ (world 単位)。
  *
- * パーツは自分の図として重ねて描かれ、 その大きさは `editor.css` の
- * `.v4-editor-svg-wrap svg` の既定値で決まる。 catalog の図枠から求めると実際の見た目と
- * ずれる (実測 = 図枠 525x500 のパーツが 800x600 で描かれていた)。
+ * **見本の図枠を実寸として使う** (`partRenderSize`、 `packages/dragon`)。 以前は
+ * `editor.css` の固定値 (800x600) で、 見本の実寸と無関係だった (実測 = 図枠 525x520 の
+ * パーツが 800x600 で描かれていた)。
  *
- * 組み立て側は catalog の図枠を実寸とするため、 位置を書かないパーツの置き場所が 2 経路で
- * 違う (実測 = 中心が (400,1300) と (200,670))。 揃えるには画面側の描画を catalog の図枠に
- * 合わせる必要があり、 図枠と箱の外接矩形が別 (525x500 と 380x380) で縦横比の扱いも要る。
- * 格子の規則は共有済で、 残るのは大きさの出所。 Issue #937 で続ける。
+ * 箱の外接矩形ではなく図枠を使う。 SVG は図枠を基準に `preserveAspectRatio` で収めるため、
+ * 箱の値を渡すと縮んで、 置いた場所と描かれた大きさが食い違う (実測 = achievement が
+ * 箱の値だと約 275x275 になった)。
+ *
+ * **組み立て側との一致はまだ取れていない**。 あちらの格子は箱の外接矩形で決めており、
+ * 図枠に寄せると段内で上端が揃わなくなる。 格子の並べ方から変える必要があり #937 で続く。
  */
-export const PART_RENDER_W = 800;
-export const PART_RENDER_H = 600;
-
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
   const k = Number.isFinite(part.scale) && part.scale > 0 ? part.scale : 1;
-  return { w: PART_RENDER_W * k, h: PART_RENDER_H * k };
+  const e = partRenderSize(part.item.diagram);
+  return { w: e.w * k, h: e.h * k };
 }
 
 /**

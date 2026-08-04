@@ -6,6 +6,7 @@ import {
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
+  partRenderSize,
   stripExternalPaint,
   describeOversize,
   describeOversizeSource,
@@ -2051,6 +2052,10 @@ animation:
                         // パーツが図からずれる (実測 = 縦に 68 world ぶん上へ出た)
                         left: `${(p.posX - worldOrigin.x) * diagramK}px`,
                         top: `${(p.posY - worldOrigin.y) * diagramK}px`,
+                        // 描く大きさを見本の図枠に合わせる (#937)。 渡さないと CSS の
+                        // 既定値 (800x600) で描かれ、 置き場所を決めた大きさと食い違う
+                        ["--cdl-svg-w" as string]: `${partRenderSize(p.item.diagram).w}px`,
+                        ["--cdl-svg-h" as string]: `${partRenderSize(p.item.diagram).h}px`,
                         transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
                         transformOrigin: "0 0",
                         userSelect: "none",
