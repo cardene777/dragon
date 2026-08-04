@@ -224,4 +224,53 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     expect(after, "図の svg が消えている").not.toBeNull();
     expect(Math.round(after!.sw), "目印が無いのにフィットが効いている").toBe(Math.round(before!.sw));
   });
+
+  /**
+   * 重ねたパーツが図枠の実寸で描かれることを固定する (#937)。
+   *
+   * 大きさは `CdlEditor` が `--cdl-svg-w/h` に入れる。 入れないと `editor.css` の既定値
+   * (800x600) に落ち、 縦横比の違うパーツが `preserveAspectRatio` で縮む。 助変数を消しても
+   * 単体 test は通ってしまうため (helper の返値と CSS 文字列しか見ていない)、 画面で確かめる。
+   */
+  test("重ねたパーツは図枠の実寸で描かれる", async ({ page }) => {
+    await setup(page);
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForTimeout(300);
+    await page.click('[data-part-id="parts-horizontal-bar"]');
+    await page.waitForTimeout(1200);
+
+    const got = await page.evaluate(() => {
+      const host = document.querySelector("[data-overlay-part]");
+      if (!host) return null;
+      const wrap = host.querySelector(".v4-editor-svg-wrap svg[data-cdl-stage]")
+        ?? host.querySelector("svg[data-cdl-stage]");
+      if (!wrap) return null;
+      const vb = (wrap.getAttribute("viewBox") ?? "").split(/\s+/).map(Number);
+      const r = wrap.getBoundingClientRect();
+      const style = getComputedStyle(host);
+      return {
+        vbW: vb[2] ?? 0,
+        vbH: vb[3] ?? 0,
+        w: r.width,
+        h: r.height,
+        // 画面に渡した値そのもの。 縦横比だけを見ると、 縦横を同じ率で間違えた時に通ってしまう
+        varW: parseFloat(style.getPropertyValue("--cdl-svg-w")),
+        varH: parseFloat(style.getPropertyValue("--cdl-svg-h")),
+      };
+    });
+    expect(got, "重ねたパーツの svg が無い").not.toBeNull();
+    expect(got!.vbW, "図枠の幅が取れていない").toBeGreaterThan(0);
+
+    // 渡した値が図枠と同じ数字であること。 2 倍にする間違いはここで落ちる
+    expect(got!.varW, `渡した幅が図枠と違う (渡した ${got!.varW} / 図枠 ${got!.vbW})`).toBeCloseTo(got!.vbW, 1);
+    expect(got!.varH, `渡した高さが図枠と違う (渡した ${got!.varH} / 図枠 ${got!.vbH})`).toBeCloseTo(got!.vbH, 1);
+
+    // 渡した値が実際に svg に効いていること (画面全体の倍率が掛かるので縦横比で見る)
+    const drawn = got!.w / got!.h;
+    const frame = got!.vbW / got!.vbH;
+    expect(Math.abs(drawn - frame), `縦横比が図枠と違う (描画 ${drawn} / 図枠 ${frame})`).toBeLessThan(0.05);
+
+    // 既定値に落ちていないこと。 落ちると縦横比は 800/600 に張り付く
+    expect(Math.abs(drawn - 800 / 600), "800x600 の既定値で描かれている").toBeGreaterThan(0.05);
+  });
 });

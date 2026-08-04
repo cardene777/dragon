@@ -40,7 +40,9 @@ export { writeActorPosition } from "./write-position";
 // 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
 export { measureActorBoxes } from "./compile";
 // パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
-export { partVisualSize, partsGridCenters } from "./compile";
+// パーツの実寸 (図枠) と、 箱の外接矩形。 前者は画面側 (描画と置き場所) の SSOT で、
+// 組み立て側の格子と相対指定は後者を使い続ける。 2 経路の一致は #937 に残っている。
+export { partRenderSize, partVisualSize, partsGridCenters } from "./compile";
 // 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を
 // 作る側 / 画面が背景色を直接書く側で同じ物差しを使う (別々に持つと、 片方だけ直した時に片方が通す)。
 export { isColorValue, pointsOutside, stripExternalPaint } from "./color";

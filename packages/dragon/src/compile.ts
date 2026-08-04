@@ -17,7 +17,12 @@ import {
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
-import { countDocElements, describeOversize } from "./input-size";
+import {
+  MAX_INPUT_ELEMENTS,
+  countDiagramElements,
+  countDocElements,
+  describeOversize,
+} from "./input-size";
 import {
   orderByDependency,
   resolveRelativePos,
@@ -726,10 +731,41 @@ function partExtent(
 }
 
 /**
- * パーツ 1 個の見た目の大きさ。 画面側がパーツを描く箱の大きさに使う。
+ * パーツ 1 個が実際に描かれる大きさ (#937)。
  *
- * 組み立て側が間隔を測る時と同じ値を返す。 別に求めると、 同じ本文でもパーツの大きさが
- * 経路によって変わる (実測 = 画面側が CSS 固定の 800x600、 組み立て側が catalog の図枠)。
+ * 図枠 (`viewBox`) を返す。 箱の外接矩形 (`partVisualSize`) ではない。 2 つは別物で、
+ * 実測では図枠 525x520 に対し箱 380x400 と余白の分だけ違う。 SVG は図枠を基準に
+ * `preserveAspectRatio` で収めるため、 箱の値を渡すと縮んで描いた大きさと食い違う
+ * (実測 = achievement が箱の値で描くと約 275x275 になった)。
+ *
+ * 箱を持たないパーツ (実体を `shape` で描く 17 件) でも図枠は正しく出る。 箱だけを見ると
+ * 1x1 になり、 その値で描くと潰れる。 図枠なら全 80 件で極小が 0 件になることを実測した。
+ *
+ * **今は画面側が描く大きさにだけ使う**。 組み立て側の格子はまだ箱の外接矩形で決めており、
+ * 2 経路の置き場所は揃っていない (#937 で続く)。 格子を図枠に寄せると段内で上端が
+ * 揃わなくなるため、 格子の並べ方から変える必要がある。
+ *
+ * 組み立てに失敗する図では、 既定の大きさに落とす (呼出側は catalog を渡すので通常起きない)。
+ */
+export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
+  // 組み立てと違い、 ここは画面を描くたびに呼ばれる。 大きすぎる図を渡されると
+  // 1 回の描画で画面が止まるため、 測る前に止める。 上限は組み立て側と同じ物差しを使う
+  // (#1005)。 catalog の見本は数十要素なので、 通常の呼出はここに掛からない
+  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return { w: 400, h: 200 };
+  try {
+    const vb = layout(part).viewBox;
+    const w = positiveOr(vb.w, 400);
+    const h = positiveOr(vb.h, 200);
+    return { w, h };
+  } catch {
+    return { w: 400, h: 200 };
+  }
+}
+
+/**
+ * パーツ 1 個の箱の外接矩形。
+ *
+ * 図枠 (`partRenderSize`) とは別で、 余白を含まない。 相対指定を解く時の「縁からの距離」 に使う。
  */
 export function partVisualSize(
   part: CdlDiagram,
@@ -837,7 +873,17 @@ function partGridCenters(
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of autoActors) {
     const part = lookupPart(partsCatalog, a.partId);
-    extents.set(a.name, part ? partExtent(part, a.posW, a.posH) : { w: 400, h: 200, dx: 0, dy: 0 });
+    if (!part) {
+      extents.set(a.name, { w: 400, h: 200, dx: 0, dy: 0 });
+      continue;
+    }
+    // 格子は箱の外接矩形で決める (据え置き)。
+    //
+    // 図枠 (`partRenderSize`) に寄せると 2 経路で完全に揃うが、 `partsGridCenters` が
+    // 中心から高さの半分を引いて上端を出す設計のため、 パーツごとに図枠の高さが違うと
+    // 段内で上端が揃わなくなる (実測で 12.5 ずれた)。 格子の並べ方そのものを
+    // 「上端揃え」 に変える必要があり、 影響が広いので #937 で続ける。
+    extents.set(a.name, partExtent(part, a.posW, a.posH));
   }
   const centers = partsGridCenters(
     baseNodes.length,

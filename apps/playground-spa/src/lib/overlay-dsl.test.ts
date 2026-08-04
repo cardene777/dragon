@@ -7,12 +7,11 @@ import {
   appendActorLine,
   placeParts,
   partWorldSize,
-  PART_RENDER_W,
-  PART_RENDER_H,
+  normalizePartScale,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
-import { partVisualSize, partsGridCenters } from "@cardenelabs/dragon";
+import { partRenderSize, partsGridCenters } from "@cardenelabs/dragon";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 const catalog: Record<string, unknown> = {
@@ -582,17 +581,45 @@ describe("パーツの実寸", () => {
     } as CatalogItem,
   });
 
-  it("画面側の CSS と同じ値を持つ", async () => {
-    // 大きさは editor.css が決めている。 片方だけ変えると、 位置の計算と見た目がずれる
+  it("大きさは画面が渡す (CSS の既定値は保険、 #937)", async () => {
     const css = await readFile(new URL("../styles/editor.css", import.meta.url), "utf8");
-    expect(css).toContain(`var(--cdl-svg-w, ${PART_RENDER_W}px)`);
-    expect(css).toContain(`var(--cdl-svg-h, ${PART_RENDER_H}px)`);
+    expect(css).toContain("var(--cdl-svg-w,");
+    expect(css).toContain("var(--cdl-svg-h,");
   });
 
-  it("組み立て側とは大きさの出所が違う (Issue #937 で続く)", () => {
-    // 画面側は CSS の固定値、 組み立て側は catalog の図枠。 揃っていないことを記録しておく
+  it("大きさを決める CSS は図の svg だけに掛かる (#937)", async () => {
+    // `svg` 全体に掛けると、 パーツの中で使う読み取り widget の内部 svg にも効いて
+    // 中身が本来の縦横比で描かれない (実測 = 340x60 の内部 svg が 700x700 になった)
+    const css = await readFile(new URL("../styles/editor.css", import.meta.url), "utf8");
+    expect(css).toContain(".v4-editor-svg-wrap svg[data-cdl-stage]");
+  });
+
+  it("見本の図枠を実寸として使う (#937)", () => {
+    // 箱の外接矩形ではなく図枠。 SVG は図枠を基準に収めるので、 箱の値を渡すと縮む
     const part = partOf(400, 300);
-    expect(partWorldSize(part)).not.toEqual(partVisualSize(part.item.diagram));
+    expect(partWorldSize(part)).toEqual(partRenderSize(part.item.diagram));
+  });
+
+  it("箱を持たないパーツでも潰れない (#937)", () => {
+    // 実体を `shape` で描くパーツは `w: 1, h: 1` のダミー箱を持つ。 箱だけを見ると 1x1 になり、
+    // その値で描くと潰れる (実測 = 2026-08-02 の試みで 17 件が 1px になった)
+    const noBox: OverlayPartParsed = {
+      id: "p",
+      kind: "p",
+      scale: 1,
+      rotate: 0,
+      item: {
+        id: "p",
+        title: "p",
+        diagram: diagram("p", { topic: "p" })
+          .lane("l", { width: 300 })
+          .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1 })
+          .build(),
+      } as CatalogItem,
+    };
+    const size = partWorldSize(noBox);
+    expect(size.w, "潰れている").toBeGreaterThan(10);
+    expect(size.h, "潰れている").toBeGreaterThan(10);
   });
 
   it("拡大率を掛ける", () => {
@@ -606,6 +633,28 @@ describe("パーツの実寸", () => {
     const base = partWorldSize(partOf(400, 300, 1));
     expect(partWorldSize(partOf(400, 300, Number.NaN))).toEqual(base);
     expect(partWorldSize(partOf(400, 300, 0))).toEqual(base);
+  });
+
+  it("読んだ時点で拡大率を直す (置き場所と描画で食い違わせない、 #937)", () => {
+    // 直さずに持ち回ると、 置き場所は `partWorldSize` が 1 に直した大きさを占めるのに、
+    // 画面は生の値で `scale()` を書くため消える / 反転する
+    const src = `actors:
+  - zero: { kind: achievement, posX: 0, posY: 0, scale: 0 }
+  - minus: { kind: achievement, posX: 0, posY: 0, scale: -2 }
+`;
+    const got = extractPartsFromSrc(src, catalog, partsItems);
+    expect(got.parts.length, "パーツが読めていない").toBe(2);
+    for (const p of got.parts) {
+      expect(p.scale, `拡大率が直っていない (${p.id})`).toBe(1);
+    }
+  });
+
+  it("拡大率を直す規則は 1 つ (normalizePartScale)", () => {
+    expect(normalizePartScale(2)).toBe(2);
+    expect(normalizePartScale(0)).toBe(1);
+    expect(normalizePartScale(-2)).toBe(1);
+    expect(normalizePartScale(Number.NaN)).toBe(1);
+    expect(normalizePartScale(Number.POSITIVE_INFINITY)).toBe(1);
   });
 });
 

@@ -6,6 +6,7 @@ import {
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
+  partRenderSize,
   stripExternalPaint,
   describeOversize,
   describeOversizeSource,
@@ -18,7 +19,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -608,6 +609,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const overlayPartsRef = useRef<OverlayPart[]>([]);
   useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
   const worldOriginRef = useRef({ x: 0, y: 0 });
+
+  // パーツを描く大きさ (#937)。 `partRenderSize` は中で配置計算を回すので、 render のたびに
+  // 数えると移動中の 1 frame に載る (実測 = 80 件で 160 回 0.74ms)。 パーツが変わった時だけ
+  // 数えて、 style と表示合わせで同じ 1 つを見る
+  const partSizes = useMemo(
+    () => new Map(overlayParts.map((p) => [p.id, partRenderSize(p.item.diagram)])),
+    [overlayParts],
+  );
 
   // 図全体の倍率。 cdl が SVG に載せる値と同じ規則で `diagram` から出す。
   // DOM を読まないので render 中に確定し、 overlay parts と図が同じ frame で揃う。
@@ -2040,6 +2049,8 @@ animation:
                     その図が持たない部品が乗って見える (実測 = 本文欄でパーツを置いてから
                     欄を切り替えると残った) ので、 本文欄の時だけ出す。 */}
                 {activeTab === "cdl" && overlayParts.map((p) => {
+                  // 事前に数えた大きさ。 取れない形は CSS の既定値に任せる
+                  const partSize = partSizes.get(p.id) ?? { w: 800, h: 600 };
                   return (
                     <div
                       key={p.id}
@@ -2051,7 +2062,13 @@ animation:
                         // パーツが図からずれる (実測 = 縦に 68 world ぶん上へ出た)
                         left: `${(p.posX - worldOrigin.x) * diagramK}px`,
                         top: `${(p.posY - worldOrigin.y) * diagramK}px`,
-                        transform: `rotate(${p.rotate}deg) scale(${p.scale * diagramK})`,
+                        // 描く大きさを見本の図枠に合わせる (#937)。 渡さないと CSS の
+                        // 既定値 (800x600) で描かれ、 置き場所を決めた大きさと食い違う
+                        ["--cdl-svg-w" as string]: `${partSize.w}px`,
+                        ["--cdl-svg-h" as string]: `${partSize.h}px`,
+                        // 倍率は置き場所を決めた時と同じ物差しを通す。 生の値を使うと
+                        // `scale: 0` が「場所は等倍・画面では消える」 状態になる
+                        transform: `rotate(${p.rotate}deg) scale(${normalizePartScale(p.scale) * diagramK})`,
                         transformOrigin: "0 0",
                         userSelect: "none",
                       }}
