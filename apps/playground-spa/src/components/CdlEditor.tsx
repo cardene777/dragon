@@ -1068,7 +1068,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         for (const p of parts) {
           if (partDrawsInDiagram(p.item.diagram)) continue;
           notices.push({
-            kind: "relative-position-ignored",
+            kind: "part-not-drawn",
             actor: p.id,
             line: 0,
             message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、重ねても図には出ません。`,
@@ -1835,8 +1835,10 @@ animation:
             本文の行番号を指すので、 その本文を映していない YAML 欄では出さない。 */}
         {activeTab === "cdl" && !error && compileNotices.length > 0 && (
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
-            {compileNotices.map((n) => (
-              <div key={`${n.actor}-${n.line}`} className="v4-editor-notice">
+            {compileNotices.map((n, i) => (
+              // 同じ名前 / 同じ行で種類だけ違う知らせが並ぶ (箱を持たない見本に効かない相対指定を
+              // 書いた形)。 種類と並び順まで入れないと React が行を取り違える
+              <div key={`${n.kind}-${n.actor}-${n.line}-${i}`} className="v4-editor-notice">
                 {/* 行が分からない知らせ (パーツ経由) では番号を出さない */}
                 {n.line > 0 && <span className="v4-editor-notice-line">L{n.line}</span>}
                 <span className="v4-editor-notice-text">{n.message}</span>

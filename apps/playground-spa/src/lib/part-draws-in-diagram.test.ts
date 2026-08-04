@@ -94,4 +94,50 @@ describe("図の中に描かれるかの判定 (#1017)", () => {
     // 弾く側に倒すと、測れないだけの見本が使えなくなる
     expect(partDrawsInDiagram({} as CdlDiagram)).toBe(true);
   });
+
+  it("組み立てられない図もパネル部品を持てば通す", () => {
+    // `readouts` を持つだけでは弾かない。 測れなかった時は「持っている」 側に倒す
+    const broken = {
+      readouts: [{ id: "r", kind: "gauge", source: "{v}" }],
+    } as unknown as CdlDiagram;
+    expect(partDrawsInDiagram(broken)).toBe(true);
+  });
+
+  it("パネル部品の持ち方が変でも落ちない", () => {
+    // catalog は呼出側が渡すので、配列でない値が来ることがある
+    for (const readouts of [null, undefined, 0, "x", {}]) {
+      const d = { ...PARTS[0]![1], readouts } as unknown as CdlDiagram;
+      expect(partDrawsInDiagram(d), `readouts=${JSON.stringify(readouts)} で落ちた`).toBe(true);
+    }
+  });
+
+  it("境目の値で判定が切り替わる", () => {
+    // 1% という値そのものを固定する。 実測した面積比は 10 四方 = 0.00123、
+    // 100 四方 = 0.06784。 閾値を動かすとどちらかの期待が変わる
+    const withSide = (side: number): CdlDiagram =>
+      ({
+        readouts: [{ id: "r", kind: "gauge", source: "{v}" }],
+        lanes: [{ id: "l", x: 0, width: 1000 }],
+        nodes: [{ id: "n", lane: "l", stack: 0, kind: "card", title: "n", w: side, h: side }],
+        edges: [],
+        states: [],
+        phases: [],
+      }) as unknown as CdlDiagram;
+
+    expect(partDrawsInDiagram(withSide(10)), "極小の箱を通している (比 0.00123)").toBe(false);
+    expect(partDrawsInDiagram(withSide(100)), "実体のある箱を弾いている (比 0.06784)").toBe(true);
+  });
+
+  it("桁の大きい図でも面積比が壊れない", () => {
+    // 面積を先に出すと Infinity / Infinity = NaN になり「描かない」 側に倒れる
+    const huge = {
+      readouts: [{ id: "r", kind: "gauge", source: "{v}" }],
+      lanes: [{ id: "l", x: 0, width: 1e200 }],
+      nodes: [{ id: "n", lane: "l", stack: 0, kind: "card", title: "n", w: 1e200, h: 1e200 }],
+      edges: [],
+      states: [],
+      phases: [],
+    } as unknown as CdlDiagram;
+    expect(partDrawsInDiagram(huge), "桁の大きい図で誤判定している").toBe(true);
+  });
 });
