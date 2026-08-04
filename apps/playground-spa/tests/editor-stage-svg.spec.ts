@@ -382,6 +382,55 @@ flow:
   });
 
   /**
+   * 名前の行に値を書いた見本の続きの行が、画面でも効くことを固定する (#1028)。
+   *
+   * 続きの行を読まないと本文にそのまま残り、組み立て側だけが位置と大きさを読む。
+   * 単体 test は読んだ値しか見ないため、描いた結果を画面で測る。
+   */
+  test("名前の行に値を書いた見本でも続きの行が効く", async ({ page }) => {
+    const withCont = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a: achievement
+      位置: 2000,700
+      倍率: 3
+
+flow:
+  - Web -> Web: "x"
+`;
+    const plain = withCont.replace("      倍率: 3\n", "");
+
+    const measure = async (src: string): Promise<number> => {
+      const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
+      await page.goto(`/editor#s=${encoded}`);
+      await page.waitForSelector('[data-testid="editor-preview-stage"]');
+      await page.waitForTimeout(1800);
+      return await page.evaluate(() => {
+        const svg = document.querySelector("[data-overlay-part] svg[data-cdl-stage]");
+        const nodes = Array.from(svg?.querySelectorAll("[data-cdl-node]") ?? []).map((n) =>
+          n.getBoundingClientRect(),
+        );
+        if (nodes.length === 0) return 0;
+        return Math.max(...nodes.map((r) => r.x + r.width)) - Math.min(...nodes.map((r) => r.x));
+      });
+    };
+
+    await setup(page);
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForSelector('[data-part-id="parts-achievement"]', { timeout: 15000 });
+
+    const plainW = await measure(plain);
+    expect(plainW, "倍率を書かない見本の箱が測れていない").toBeGreaterThan(0);
+    const scaledW = await measure(withCont);
+    expect(scaledW, "倍率を書いた見本の箱が測れていない").toBeGreaterThan(0);
+
+    // 続きの行を読まなければ 1 倍前後に落ちる
+    expect(scaledW / plainW, `続きの行が効いていない (${scaledW} / ${plainW})`).toBeGreaterThan(2);
+  });
+
+  /**
    * 実体が操作パネルの部品だけの見本を置いた時に知らせが出ることを固定する (#1017)。
    *
    * この見本 (catalog 80 件中 17 件) は図の中に描く部品を持たない。 場所は確保されるため

@@ -512,13 +512,31 @@ export function extractPartsFromSrc(
    * (`色:` / `位置:`) は base 側に残り、 1 つ前の登場人物の続きとして読まれていた (実測 =
    * パーツに書いた色と位置が前の箱に付いた)。 block ごと扱えば取りこぼさない。
    */
-  let pending: { alias: string; indent: number; lines: string[]; srcIdx: number[] } | null = null;
+  let pending: {
+    alias: string;
+    indent: number;
+    lines: string[];
+    srcIdx: number[];
+    /**
+     * 名前の行だけで見本と分かった場合の中身 (#1028)。
+     *
+     * `- a: achievement` や `- a: { kind: achievement }` は 1 行で見本と決まる。 それでも
+     * 続く行を読むために貯める = 貯めなければ続きの行が本文に残り、組み立て側が読む
+     * `位置:` / `大きさ:` / `倍率:` を画面側だけ落とす (実測)。
+     */
+    head?: OverlayPartParsed;
+  } | null = null;
 
   /** 貯めた block を振り分ける。 パーツなら overlay に、 そうでなければ base に戻す。 */
   const flushPending = (): void => {
     if (!pending) return;
     const block = pending;
     pending = null;
+    // 名前の行で見本と決まっている場合は、続く行を上書きとして重ねる
+    if (block.head) {
+      parts.push(applyBlockOverrides(block.head, block.lines.slice(1)));
+      return;
+    }
     // 項目名は日本語でも英語でもよい (記法側と同じ)。 `種類:` を読まないと、 同じ本文が
     // 画面と組み立てで別の絵になる
     const kindLine = block.lines.find((l) => /^\s*(kind|種類)\s*:/.test(l));
@@ -590,14 +608,22 @@ export function extractPartsFromSrc(
       if (partKindSet.has(kindValue)) {
         const item = findItem(kindValue);
         if (item) {
-          parts.push({
-            id: alias,
-            kind: kindValue,
-            item,
-            scale: readScaleToken(values),
-            rotate: 0,
-            ...readAtToken(values),
-          });
+          // 続く行を読むためにここでは確定しない (#1028)。 確定すると続きの行が本文に残り、
+          // 組み立て側だけが `位置:` / `大きさ:` / `倍率:` を読む状態になる
+          pending = {
+            alias,
+            indent: line.length - line.trimStart().length,
+            lines: [line],
+            srcIdx: [srcIdx],
+            head: {
+              id: alias,
+              kind: kindValue,
+              item,
+              scale: readScaleToken(values),
+              rotate: 0,
+              ...readAtToken(values),
+            },
+          };
           continue;
         }
       }
@@ -640,7 +666,7 @@ export function extractPartsFromSrc(
           const bgMatch = bgRaw ? bgRaw.match(/^"([^"]*)"/) : null;
           const item = findItem(kindValue);
           if (item) {
-            parts.push({
+            const head: OverlayPartParsed = {
               id: alias,
               kind: kindValue,
               // 中括弧の形は座標を直接持つ。 片方だけ書かれた時は書かなかった扱いにする
@@ -656,7 +682,17 @@ export function extractPartsFromSrc(
               // 色でなければ「書かなかった」 扱いにして、 既定の見た目に戻す
               bg: bgMatch && isColorValue(bgMatch[1]) ? bgMatch[1] : undefined,
               item,
-            });
+            };
+            // 続く行を読むためにここでは確定しない (#1028)
+            pending = {
+              alias,
+              // 字下げは行頭の空白の長さ。 名前だけの行と同じ物差しにしないと、
+              // 続きの行を取り込む深さが書き方で変わる
+              indent: line.length - line.trimStart().length,
+              lines: [line],
+              srcIdx: [srcIdx],
+              head,
+            };
             continue;
           }
         }
@@ -667,6 +703,35 @@ export function extractPartsFromSrc(
   // 判定が終わらないまま終端に達した分を振り分ける
   flushPending();
   return { baseSrc: baseLines.join("\n"), parts, lineMap };
+}
+
+/**
+ * 名前の行で決まった見本に、続く行の指定を重ねる (#1028)。
+ *
+ * 組み立て側 (`applyContinuationLines`) と同じく **続く行が勝つ**。 名前の行に書いた値を
+ * 続く行が上書きする形で、順番どおりの読み方になる。
+ *
+ * 書かれていない項目は名前の行の値を残す。 `readPositionFromBlock` などは見つからない時に
+ * 空を返すので、そのまま重ねれば「書いていない項目は変えない」 が成立する。
+ * 倍率だけは書いていない時に 1 を返すため、書かれたかどうかを別に見る。
+ */
+function applyBlockOverrides(head: OverlayPartParsed, body: string[]): OverlayPartParsed {
+  if (body.length === 0) return head;
+  const scale = readScaleFromBlockOrNull(body);
+  return {
+    ...head,
+    ...readPositionFromBlock(body),
+    ...readSizeFromBlock(body),
+    ...(scale === null ? {} : { scale }),
+  };
+}
+
+/**
+ * 縦に並べた行から倍率を読む。 書かれていなければ `null` (「書いていない」 と「1 倍」 の区別)。
+ */
+function readScaleFromBlockOrNull(lines: string[]): number | null {
+  const raw = readDirectField(["", ...lines], SCALE_KEYS);
+  return raw === null ? null : parsePartScale(raw);
 }
 
 /**

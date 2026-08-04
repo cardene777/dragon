@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
+  parseTextDslV05,
   textDslToDiagram,
   measureActorBoxes,
   partScaleFactor,
@@ -705,5 +706,79 @@ describe("倍率の意味 (#1026)", () => {
       return partBoxRect(parsed.parts.find((p) => p.id === "a")!).w;
     });
     expect(libRatio, `伸び方がずれている (組み立て ${libRatio} / 画面 ${scrRatio})`).toBeCloseTo(scrRatio, 1);
+  });
+});
+
+describe("名前の行に値を書いた見本の続きの行 (#1028)", () => {
+  /** 組み立て側が読んだ値。 */
+  const lib = (src: string): { posX?: number; posY?: number; posW?: number; posH?: number; scale?: number } => {
+    const r = parseTextDslV05(src);
+    if (!r.ok) return {};
+    const a = r.doc.actors.find((x) => x.name === "a");
+    return { posX: a?.posX, posY: a?.posY, posW: a?.posW, posH: a?.posH, scale: a?.scale };
+  };
+  /** 画面側が読んだ値。 */
+  const scr = (src: string): { posX?: number; posY?: number; posW?: number; posH?: number; scale?: number } => {
+    const p = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((x) => x.id === "a");
+    return { posX: p?.posX, posY: p?.posY, posW: p?.posW, posH: p?.posH, scale: p?.scale };
+  };
+  const wrap = (actors: string): string => `title: "t"\ntype: flow\n\nactors:\n${actors}\nflow:\n  - a -> a: "x"\n`;
+
+  it("短い形の続きの行を画面も読む", () => {
+    // 直す前は画面側だけ全て undefined で、続きの行が本文に残っていた
+    const src = wrap(`  - a: wide\n      位置: 300,200\n      大きさ: 800,400\n`);
+    const l = lib(src);
+    const s = scr(src);
+    expect(l.posX, "組み立て側が読めていない").toBe(300);
+    expect(s.posX, `画面側が読めていない (${JSON.stringify(s)})`).toBe(l.posX);
+    expect(s.posY).toBe(l.posY);
+    expect(s.posW).toBe(l.posW);
+    expect(s.posH).toBe(l.posH);
+  });
+
+  it("中括弧の形の続きの行も読む", () => {
+    const src = wrap(`  - a: { kind: wide }\n      位置: 300,200\n`);
+    expect(scr(src).posX, "画面側が読めていない").toBe(lib(src).posX);
+    expect(scr(src).posY).toBe(lib(src).posY);
+  });
+
+  it("続きの行が名前の行に勝つ", () => {
+    // 順番どおりの読み方にする。 組み立て側も後に書いた行を採る
+    const src = wrap(`  - a: wide @100,100\n      位置: 300,200\n`);
+    expect(lib(src).posX, "組み立て側で後の行が勝っていない").toBe(300);
+    expect(scr(src).posX, "画面側で後の行が勝っていない").toBe(300);
+  });
+
+  it("書いていない項目は名前の行の値を残す", () => {
+    const src = wrap(`  - a: wide @100,100\n      倍率: 3\n`);
+    expect(scr(src).posX, "名前の行の位置が消えている").toBe(100);
+    expect(scr(src).scale, "倍率が読めていない").toBe(3);
+  });
+
+  it("次の 1 件の行を前の 1 件に取り込まない", () => {
+    const src = wrap(`  - a: wide\n  - b: wide\n      倍率: 5\n`);
+    const parts = extractPartsFromSrc(src, KIND_SET, ITEMS).parts;
+    expect(parts.map((p) => p.id), "件数が合わない").toEqual(["a", "b"]);
+    expect(parts.find((p) => p.id === "a")?.scale, "次の 1 件の倍率を取り込んでいる").toBe(1);
+    expect(parts.find((p) => p.id === "b")?.scale).toBe(5);
+  });
+
+  it("見本でない箱の続きの行は本文に残す", () => {
+    // 画面が重ねるのは見本だけ。 普通の箱の行を落とすと、図から要素が消える
+    const src = wrap(`  - Web: service\n      位置: 300,200\n`);
+    const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+    expect(r.parts, "普通の箱を見本として抜いている").toHaveLength(0);
+    expect(r.baseSrc, "続きの行が本文から消えている").toContain("位置: 300,200");
+  });
+
+  it("落とした行の数だけ行番号が飛ぶ", () => {
+    // 続きの行も落とすようになったので、行番号の対応がずれていないことを見る
+    const src = wrap(`  - a: wide\n      位置: 300,200\n  - Web: service\n`);
+    const r = extractPartsFromSrc(src, KIND_SET, ITEMS);
+    expect(r.baseSrc.split("\n").length, "行番号の対応が本文と合っていない").toBe(r.lineMap.length);
+    const lines = src.split("\n");
+    r.baseSrc.split("\n").forEach((l, i) => {
+      expect(lines[r.lineMap[i]! - 1], `${i} 行目の対応がずれている`).toBe(l);
+    });
   });
 });
