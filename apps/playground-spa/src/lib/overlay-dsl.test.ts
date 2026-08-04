@@ -8,6 +8,7 @@ import {
   placeParts,
   partWorldSize,
   normalizePartScale,
+  srcMayUseParts,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -636,6 +637,38 @@ describe("パーツの実寸", () => {
     expect(normalizePartScale(-2)).toBe(1);
     expect(normalizePartScale(Number.NaN)).toBe(1);
     expect(normalizePartScale(Number.POSITIVE_INFINITY)).toBe(1);
+  });
+});
+
+describe("本文が見本を使っているかの見込み判定 (#1022)", () => {
+  it("縦に並べて種類を書いた形を拾う", () => {
+    expect(
+      srcMayUseParts(`actors:\n  - a:\n      kind: achievement\n`),
+      "縦に並べた形を拾えていない",
+    ).toBe(true);
+    expect(srcMayUseParts(`actors:\n  - a:\n      種類: achievement\n`)).toBe(true);
+  });
+
+  it("中括弧で種類を書いた形を拾う", () => {
+    expect(srcMayUseParts(`actors:\n  - a: { kind: achievement, posX: 0 }\n`)).toBe(true);
+    expect(srcMayUseParts(`actors:\n  - a: { 種類: achievement }\n`)).toBe(true);
+  });
+
+  it("種類を書いていない本文では拾わない", () => {
+    // 拾うと見本を使わない本文でも 80 件を読み込むことになる
+    expect(srcMayUseParts(`actors:\n  - Web: service\n  - DB: db\n`)).toBe(false);
+    expect(srcMayUseParts(`title: "t"\ntype: flow\n`)).toBe(false);
+    expect(srcMayUseParts("")).toBe(false);
+  });
+
+  it("値が無い種類は拾わない", () => {
+    // 書きかけの行で読み込みを起こさない
+    expect(srcMayUseParts(`actors:\n  - a:\n      kind:\n`)).toBe(false);
+  });
+
+  it("見本かどうかまでは決めない", () => {
+    // 一覧が無いと決められないので、組み込みの種類でも拾う (多めに拾う側に倒す)
+    expect(srcMayUseParts(`actors:\n  - a: { kind: db }\n`)).toBe(true);
   });
 });
 

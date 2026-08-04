@@ -21,7 +21,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale, srcMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -542,8 +542,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // (samples tab に切替) までは自動再試行しない。 無限 retry loop を防ぐ。
   // cancelled guard は使わない ... dep 変化で cleanup 発火 → promise callback が cancelled=true 判定
   // で setPartsItems 呼ばない React footgun を回避するため、 単純に partsLoadFailed flag のみで制御。
+  // 本文が種類を書いている時も読み込む (#1022)。 一覧を開くまで読まない形だと、共有 URL で
+  // 開いた本文の見本が中身のないまま組み立てられ、別名がそのまま箱になる
+  // (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
+  // 種類を書いていない本文では読み込まないので、起動の重さは変わらない
+  const needsPartsForSrc = useMemo(() => srcMayUseParts(src), [src]);
   useEffect(() => {
-    if (sidebarTab !== "parts" || partsItems.length > 0 || partsLoading || partsLoadFailed) return;
+    const wanted = sidebarTab === "parts" || needsPartsForSrc;
+    if (!wanted || partsItems.length > 0 || partsLoading || partsLoadFailed) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPartsLoading(true);
     loadPartsItems()
@@ -555,7 +561,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         setDropHintWithReset("parts の load に失敗しました。 samples tab に切替後 parts tab を再表示すると再試行します。", 8000);
       })
       .finally(() => setPartsLoading(false));
-  }, [sidebarTab, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
+  }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
 
   // samples tab に切替時 = 次に parts tab に戻った時の再試行を許可する経路 (partsLoadFailed をリセット)
   useEffect(() => {

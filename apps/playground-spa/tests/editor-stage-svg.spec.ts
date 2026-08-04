@@ -365,4 +365,63 @@ flow:
       "図の中に描く部品を持たない",
     );
   });
+
+  /**
+   * 共有 URL で開いた本文の見本が、一覧を開かなくても見本として復元されることを固定する (#1022)。
+   *
+   * 見本の一覧は 80 件あるため開いた時に読む形で遅延させている。 本文の側から読み込みを
+   * 起こさないと、中身が無いまま組み立てられて別名がそのまま箱になる
+   * (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
+   */
+  test("共有 URL の見本は一覧を開かなくても復元される", async ({ page }) => {
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - ach:",
+      "      kind: achievement",
+      "      v: 50",
+      "",
+      "flow:",
+      '  - Web -> Web: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(2500);
+
+    const overlay = await page.evaluate(
+      () => document.querySelectorAll("[data-overlay-part]").length,
+    );
+    expect(overlay, "見本として重ねられていない").toBeGreaterThan(0);
+  });
+
+  test("見本を使わない本文では一覧を読み込まない", async ({ page }) => {
+    // 読み込むと、見本を使わない本文でも 80 件の取得を待つことになる
+    const requests: string[] = [];
+    page.on("request", (r) => requests.push(r.url()));
+
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - DB: db",
+      "",
+      "flow:",
+      '  - Web -> DB: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(2500);
+
+    const loaded = requests.filter((u) => u.includes("parts.cdl"));
+    expect(loaded.length, `見本一覧を読み込んでいる (${loaded[0] ?? ""})`).toBe(0);
+  });
 });

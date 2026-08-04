@@ -335,6 +335,30 @@ export function readTopLevelField(inner: string, key: string): string | null {
  * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
  * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
  */
+/**
+ * 本文が見本 (パーツ) を使っている見込みがあるか (#1022)。
+ *
+ * 見本の一覧は 80 件あるため、開いた時に読む形で遅延させている。 そのため一覧を一度も
+ * 開いていない状態で共有 URL を開くと、見本の中身が無いまま組み立てられ、別名がそのまま
+ * 箱になる (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
+ *
+ * 本文の側から読み込みを起こすための判定。 **種類が書かれているか** だけを見る。
+ * 見本かどうかは一覧が無いと決められないので、ここでは決めない。 多めに拾って読み込みを
+ * 起こす方に倒す (見本を使わない本文で 1 回余分に読むだけで、絵は変わらない)。
+ *
+ * 縦に並べた形 (`kind:` の行) と中括弧の形 (`{ kind: ... }`) の両方を見る。
+ */
+export function srcMayUseParts(src: string): boolean {
+  for (const line of src.split(/\r?\n/)) {
+    // 縦に並べた形。 字下げの中に種類の行がある
+    if (/^\s+(kind|種類)\s*:\s*\S/.test(line)) return true;
+    // 中括弧の形。 名前の後の `{ ... }` に種類が入っている
+    // 単語の境目 (`\b`) は日本語に効かないので、区切り (開き括弧か読点) で見る
+    if (/^\s*-\s*[^:]+:\s*\{\s*(?:[^}]*,\s*)?(kind|種類)\s*:\s*\S/.test(line)) return true;
+  }
+  return false;
+}
+
 export function extractPartsFromSrc(
   src: string,
   partsCatalog: Record<string, unknown>,
