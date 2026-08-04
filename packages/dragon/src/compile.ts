@@ -1115,17 +1115,19 @@ function partsBudget(
   target: CdlDiagram,
   partsActors: ReadonlyArray<{ name: string; partId?: string }>,
   partsCatalog: Record<string, CdlDiagram>,
-): Set<string> {
-  const accepted = new Set<string>();
+): Set<number> {
+  // 名前ではなく **書かれた順番** で覚える。 名前で覚えると、同じ名前を 2 度書いた時に
+  // 先の 1 件が入れた名前で後の 1 件まで採用扱いになる
+  const accepted = new Set<number>();
   let used = countDiagramElements(target);
-  for (const a of partsActors) {
+  partsActors.forEach((a, i) => {
     const part = lookupPart(partsCatalog, a.partId);
-    if (part === undefined) continue;
+    if (part === undefined) return;
     const cost = countDiagramElements(part);
-    if (used + cost > MAX_INPUT_ELEMENTS) continue;
+    if (used + cost > MAX_INPUT_ELEMENTS) return;
     used += cost;
-    accepted.add(a.name);
-  }
+    accepted.add(i);
+  });
   return accepted;
 }
 
@@ -1139,8 +1141,10 @@ function partGridCenters(
   target: CdlDiagram,
   doc: DslDocument,
   partsCatalog: Record<string, CdlDiagram>,
-  /** 取り込む見本の名前。 渡さなければ全部を並べる */
-  accepted?: ReadonlySet<string>,
+  /** 取り込む見本の書かれた順番。 渡さなければ全部を並べる */
+  accepted?: ReadonlySet<number>,
+  /** 順番の元になった一覧 (本文に書かれた順) */
+  acceptedFrom?: ReadonlyArray<{ name: string }>,
 ): Map<string, { cx: number; cy: number }> {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   // 格子に並ぶのは座標を 1 つも書かず相対でも書かなかった分だけ。
@@ -1189,10 +1193,14 @@ function partGridCenters(
   );
   // 取り込まれない見本は格子の枠を使わない (#1015)。 枠を使うと、落とした見本の分だけ
   // 後続がずれる (実測 = 隣の見本の左端が 60 から 725 に動いた)
+  const acceptedNames =
+    accepted === undefined || acceptedFrom === undefined
+      ? undefined
+      : new Set(acceptedFrom.filter((_, i) => accepted.has(i)).map((a) => a.name));
   const placedActors = autoActors.filter(
     (a) =>
       lookupPart(partsCatalog, a.partId) !== undefined &&
-      (accepted === undefined || accepted.has(a.name)),
+      (acceptedNames === undefined || acceptedNames.has(a.name)),
   );
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of placedActors) {
@@ -1264,89 +1272,23 @@ function partBoxes(
 }
 
 /**
- * CAR-1657 = doc.actors 中の partId set actor を検出、 partsCatalog から CdlDiagram を lookup、
- * mergePartIntoDiagram で target に prefix 付き統合する。 partsCatalog 未渡し or 該当 partId
- * 未登録なら warn を残して skip、 diagram render は継続 (壊さない設計)。
+ * パーツ用に作られた仮の箱 / 線 / 列を掃除する (#1015 で helper 化)。
+ *
+ * 取り込む時だけでなく **落とす時にも呼ぶ**。 落とした時に残すと、格子から外した後続の見本と
+ * 重なる (実測で 64,000 の重なりが出た)。
  */
-function mergePartsFromActors(
+function cleanupPlaceholderActor(
   target: CdlDiagram,
   doc: DslDocument,
-  partsCatalog?: Record<string, CdlDiagram>,
-  onNotice?: (notice: CompileNotice) => void,
-): CdlDiagram {
-  const partsActors = doc.actors.filter((a) => a.partId !== undefined);
-  if (partsActors.length === 0) return target;
-  if (!partsCatalog) {
-    if (typeof console !== "undefined" && console.warn) {
-      const names = partsActors.map((a) => `${a.name} (kind: ${a.partId ?? "?"})`).join(", ");
-      console.warn(`[dragon] parts kind actors detected but no partsCatalog provided: ${names}`);
-    }
-    return target;
-  }
-  // 位置を書かなかったパーツの置き場所は `partGridCenters` が決める。
-  //
-  // 以前はここで格子を組んでいたが、 相対指定を解く側も同じ位置を知る必要がある。
-  // 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。 規則を共有する。
-  // 取り込んでよい合計を先に決める (#1015)。 1 件ずつ上限以下でも、同じ見本を別名で何度も
-  // 参照すれば合計は上限を超える (実測 = 1,001 要素の見本を 3 名で参照して 3,005 要素になった)。
-  // 本体の分を引いた残りを予算として、順に配って超えた分を落とす。
-  //
-  // 格子より先に決める。 後にすると、落とす見本が格子の枠を消費して後続がずれる
-  const budget = partsBudget(target, partsActors, partsCatalog);
-  const gridCenters = partGridCenters(target, doc, partsCatalog, budget);
-
-  for (const actor of partsActors) {
-    const partId = actor.partId;
-    // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
-    // inherited property (`__proto__` 等) を除外する prototype pollution 対策。 `parts-` prefix 経路も
-    // Object.hasOwn 経由で確認する。
-    if (typeof partId !== "string" || partId.length === 0) continue;
-    const found = lookupPartRaw(partsCatalog, partId);
-    // 見つかっても大きすぎる図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
-    // なるため、見つからなかった時と分けて知らせる。
-    // 1 件では収まっても合計で超える分も同じく落とす
-    if (found !== undefined && !budget.has(actor.name)) {
-      const overOne = !partIsMeasurable(found);
-      onNotice?.({
-        kind: "part-not-drawn",
-        actor: actor.name,
-        line: 0,
-        message: `"${actor.name}" (${partId}) は大きすぎるため取り込みません。`,
-        hint: overOne
-          ? `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`
-          : `図全体の要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えます`,
-      });
-      continue;
-    }
-    const part = found;
-    if (!part) {
-      if (typeof console !== "undefined" && console.warn) {
-        console.warn(`[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`);
-      }
-      continue;
-    }
-    // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
-    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slug}-header / -spacer /
-    // -footer / s{N}-{slug}` を生成、 slug prefix match で全 sweep。
-    //
-    // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
-    // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
-    // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
-    // footer (title = actor 名) が残って actor 名が多重表示される。
-    //
-    // seq-like preset は「actor 専用 lane に属する node」 を exact set で特定する経路を使う。
-    // lane.label === actor.name で lane を引き当て (label は両 slug 経路とも actor.name 生値)、 その
-    // lane に属する node (header / spacer / footer / step anchor は全て actor lane 所属) を node.lane で
-    // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
-    // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
-    // の両方を同時に排除する。
-    const aliasSlug = slugify(actor.name);
+  a: { name: string; lane?: string },
+): void {
+    const aliasSlug = slugify(a.name);
     const ownedLaneIds = new Set<string>();
     if (doc.type === "sequence" || doc.type === "solidity") {
       for (const l of target.lanes) {
-        // 明示 lane mapping (actor.lane) 先は part の張替え先で actor 専用 lane ではないため除外
-        if (actor.lane !== undefined && l.id === actor.lane) continue;
-        if (l.label === actor.name) ownedLaneIds.add(l.id);
+        // 明示 lane mapping (a.lane) 先は part の張替え先で actor 専用 lane ではないため除外
+        if (a.lane !== undefined && l.id === a.lane) continue;
+        if (l.label === a.name) ownedLaneIds.add(l.id);
       }
     }
     const ownedNodeIds = new Set<string>();
@@ -1378,21 +1320,21 @@ function mergePartsFromActors(
     // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
     //
     // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
-    // 1 actor = 1 lane (lane.label === actor.name、 lane.id は actor 名の slug) の生成規則が成立し、
+    // 1 actor = 1 lane (lane.label === a.name、 lane.id は actor 名の slug) の生成規則が成立し、
     // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
     // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
     // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
     //
-    // leftover lane の特定は lane.label === actor.name を第一に使う。 seq-like preset は非 animate 経路
+    // leftover lane の特定は lane.label === a.name を第一に使う。 seq-like preset は非 animate 経路
     // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
     // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
-    // は両経路とも actor.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
+    // は両経路とも a.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
     // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
     if (doc.type === "sequence" || doc.type === "solidity") {
       target.lanes = target.lanes.filter((l) => {
-        // 明示 lane mapping (actor.lane) 先は part の張替え先なので保持する。
-        if (actor.lane !== undefined && l.id === actor.lane) return true;
-        if (l.label === actor.name) return false;
+        // 明示 lane mapping (a.lane) 先は part の張替え先なので保持する。
+        if (a.lane !== undefined && l.id === a.lane) return true;
+        if (l.label === a.name) return false;
         if (l.id === aliasSlug) return false;
         return true;
       });
@@ -1402,6 +1344,88 @@ function mergePartsFromActors(
     for (const phase of target.phases) {
       phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
     }
+}
+
+/**
+ * CAR-1657 = doc.actors 中の partId set actor を検出、 partsCatalog から CdlDiagram を lookup、
+ * mergePartIntoDiagram で target に prefix 付き統合する。 partsCatalog 未渡し or 該当 partId
+ * 未登録なら warn を残して skip、 diagram render は継続 (壊さない設計)。
+ */
+function mergePartsFromActors(
+  target: CdlDiagram,
+  doc: DslDocument,
+  partsCatalog?: Record<string, CdlDiagram>,
+  onNotice?: (notice: CompileNotice) => void,
+): CdlDiagram {
+  const partsActors = doc.actors.filter((a) => a.partId !== undefined);
+  if (partsActors.length === 0) return target;
+  if (!partsCatalog) {
+    if (typeof console !== "undefined" && console.warn) {
+      const names = partsActors.map((a) => `${a.name} (kind: ${a.partId ?? "?"})`).join(", ");
+      console.warn(`[dragon] parts kind actors detected but no partsCatalog provided: ${names}`);
+    }
+    return target;
+  }
+  // 位置を書かなかったパーツの置き場所は `partGridCenters` が決める。
+  //
+  // 以前はここで格子を組んでいたが、 相対指定を解く側も同じ位置を知る必要がある。
+  // 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。 規則を共有する。
+  // 取り込んでよい合計を先に決める (#1015)。 1 件ずつ上限以下でも、同じ見本を別名で何度も
+  // 参照すれば合計は上限を超える (実測 = 1,001 要素の見本を 3 名で参照して 3,005 要素になった)。
+  // 本体の分を引いた残りを予算として、順に配って超えた分を落とす。
+  //
+  // 格子より先に決める。 後にすると、落とす見本が格子の枠を消費して後続がずれる
+  const budget = partsBudget(target, partsActors, partsCatalog);
+  const gridCenters = partGridCenters(target, doc, partsCatalog, budget, partsActors);
+
+  for (const [actorIndex, actor] of partsActors.entries()) {
+    const partId = actor.partId;
+    // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
+    // inherited property (`__proto__` 等) を除外する prototype pollution 対策。 `parts-` prefix 経路も
+    // Object.hasOwn 経由で確認する。
+    if (typeof partId !== "string" || partId.length === 0) continue;
+    const found = lookupPartRaw(partsCatalog, partId);
+    // 見つかっても大きすぎる図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
+    // なるため、見つからなかった時と分けて知らせる。
+    // 1 件では収まっても合計で超える分も同じく落とす
+    if (found !== undefined && !budget.has(actorIndex)) {
+      const overOne = !partIsMeasurable(found);
+      onNotice?.({
+        kind: "part-not-drawn",
+        actor: actor.name,
+        line: 0,
+        message: `"${actor.name}" (${partId}) は大きすぎるため取り込みません。`,
+        hint: overOne
+          ? `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`
+          : `図全体の要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えます`,
+      });
+      // 落とす時も仮の箱を掃除する。 残すと格子から外した後続の見本と重なる
+      cleanupPlaceholderActor(target, doc, actor);
+      continue;
+    }
+    const part = found;
+    if (!part) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn(`[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`);
+      }
+      continue;
+    }
+    // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
+    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slug}-header / -spacer /
+    // -footer / s{N}-{slug}` を生成、 slug prefix match で全 sweep。
+    //
+    // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
+    // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
+    // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
+    // footer (title = actor 名) が残って actor 名が多重表示される。
+    //
+    // seq-like preset は「actor 専用 lane に属する node」 を exact set で特定する経路を使う。
+    // lane.label === actor.name で lane を引き当て (label は両 slug 経路とも actor.name 生値)、 その
+    // lane に属する node (header / spacer / footer / step anchor は全て actor lane 所属) を node.lane で
+    // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
+    // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
+    // の両方を同時に排除する。
+    cleanupPlaceholderActor(target, doc, actor);
     const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
     // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
     let placeX = actor.posX;

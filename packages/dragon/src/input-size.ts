@@ -83,6 +83,10 @@ export function countDiagramElements(diagram: {
   states?: unknown[];
   phases?: unknown[];
   readouts?: unknown[];
+  inputs?: unknown[];
+  formulas?: unknown[];
+  scrollTriggers?: unknown[];
+  eventBindings?: unknown[];
 }): number {
   const phases = Array.isArray(diagram.phases) ? diagram.phases : [];
   const phaseChildren = phases.reduce((acc: number, p) => {
@@ -102,7 +106,12 @@ export function countDiagramElements(diagram: {
     (diagram.states?.length ?? 0) +
     phases.length +
     phaseChildren +
-    (diagram.readouts?.length ?? 0)
+    // 図が持てる並びは全部数える。 1 つでも外すと、そこに寄せた図が素通りする
+    (diagram.readouts?.length ?? 0) +
+    (diagram.inputs?.length ?? 0) +
+    (diagram.formulas?.length ?? 0) +
+    (diagram.scrollTriggers?.length ?? 0) +
+    (diagram.eventBindings?.length ?? 0)
   );
 }
 

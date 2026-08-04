@@ -136,6 +136,70 @@ flow:
     expect(withBad, "落とした見本が枠を使って後続がずれている").toBeCloseTo(alone, 1);
   });
 
+  it("落とした見本の仮の箱が後続と重ならない", () => {
+    // 掃除しないと、格子から外した後続の見本と重なる (実測で 64,000 の重なり)
+    const big = makeOversize();
+    const cat = { big, "parts-big": big, ok: OK, "parts-ok": OK };
+    const laid = layout(
+      textDslToDiagram(
+        `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - bad: { kind: big }\n  - good: { kind: ok }\n\nflow:\n  - Web -> Web: "x"\n`,
+        { partsCatalog: cat },
+      ),
+    );
+    const rect = (n: { cx: number; cy: number; w: number; h: number }) => ({
+      x0: n.cx - n.w / 2,
+      x1: n.cx + n.w / 2,
+      y0: n.cy - n.h / 2,
+      y1: n.cy + n.h / 2,
+    });
+    const bad = laid.nodes.filter((n) => n.id === "bad" || n.id.startsWith("bad-")).map(rect);
+    const good = laid.nodes.filter((n) => n.id.startsWith("good__")).map(rect);
+    expect(good.length, "後続の見本が取り込まれていない").toBeGreaterThan(0);
+    let overlap = 0;
+    for (const a of bad) {
+      for (const b of good) {
+        const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+        const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+        if (w > 0 && h > 0) overlap += w * h;
+      }
+    }
+    expect(overlap, `落とした見本の箱が後続と重なっている (${overlap})`).toBe(0);
+  });
+
+  it("同じ名前を 2 度書いても合計を超えない", () => {
+    // 採否を名前で覚えると、先の 1 件が入れた名前で後の 1 件まで採用扱いになる
+    const b = diagram("half", { topic: "half" }).lane("l", { width: 400 });
+    for (let i = 0; i < Math.floor(MAX_INPUT_ELEMENTS * 0.6); i += 1) {
+      b.node(`n${i}`, { lane: "l", stack: i, kind: "card", title: `n${i}`, w: 100, h: 40 });
+    }
+    const half = b.build();
+    const d = textDslToDiagram(
+      `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - dup: { kind: half }\n  - dup: { kind: half }\n\nflow:\n  - Web -> Web: "x"\n`,
+      { partsCatalog: { half, "parts-half": half } },
+    );
+    expect(countDiagramElements(d), "合計が上限を超えている").toBeLessThanOrEqual(
+      MAX_INPUT_ELEMENTS,
+    );
+  });
+
+  it("図が持てる並びは全部数える", () => {
+    // 1 つでも数え漏らすと、そこに寄せた図が素通りする
+    for (const key of ["inputs", "formulas", "scrollTriggers", "eventBindings", "readouts"]) {
+      const d = {
+        id: "p",
+        topic: "p",
+        lanes: [],
+        nodes: [],
+        edges: [],
+        states: [],
+        phases: [],
+        [key]: Array.from({ length: MAX_INPUT_ELEMENTS + 1 }, (_, i) => ({ id: `x${i}` })),
+      } as unknown as CdlDiagram;
+      expect(countDiagramElements(d), `${key} を数えていない`).toBeGreaterThan(MAX_INPUT_ELEMENTS);
+      expect(partIsMeasurable(d), `${key} だけで超えた図を通している`).toBe(false);
+    }
+  });
+
   it("合計で上限を超える分も落とす", () => {
     // 1 件ずつは上限以下でも、同じ見本を何度も参照すれば合計は超える
     // (実測 = 1,001 要素の見本を 3 名で参照して最終図が 3,005 要素になった)
