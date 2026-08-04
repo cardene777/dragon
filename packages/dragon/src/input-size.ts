@@ -71,6 +71,10 @@ export function countDocElements(doc: DslDocument): number {
  * 組み立て済みの図から要素数を数える。
  *
  * 記法を通らない入口 (本文に埋め込んだ図の定義) 用。 解析結果が無いため、 図の側で数える。
+ *
+ * **段の中身と読み取り部品も数える**。 段を 1 件として数えるだけだと、段の中に 10,000 件の
+ * 光らせる指定を持つ図が「1 要素」 と判定されて素通りする (実測)。 記法側の数え方
+ * (`countDocElements`) は段の中身を足しているので、こちらも揃える。
  */
 export function countDiagramElements(diagram: {
   nodes?: unknown[];
@@ -78,13 +82,36 @@ export function countDiagramElements(diagram: {
   lanes?: unknown[];
   states?: unknown[];
   phases?: unknown[];
+  readouts?: unknown[];
+  inputs?: unknown[];
+  formulas?: unknown[];
+  scrollTriggers?: unknown[];
+  eventBindings?: unknown[];
 }): number {
+  const phases = Array.isArray(diagram.phases) ? diagram.phases : [];
+  const phaseChildren = phases.reduce((acc: number, p) => {
+    const ph = p as { activate?: unknown[]; highlight?: unknown[]; tweens?: unknown[]; sets?: unknown[] };
+    return (
+      acc +
+      (Array.isArray(ph?.activate) ? ph.activate.length : 0) +
+      (Array.isArray(ph?.highlight) ? ph.highlight.length : 0) +
+      (Array.isArray(ph?.tweens) ? ph.tweens.length : 0) +
+      (Array.isArray(ph?.sets) ? ph.sets.length : 0)
+    );
+  }, 0);
   return (
     (diagram.nodes?.length ?? 0) +
     (diagram.edges?.length ?? 0) +
     (diagram.lanes?.length ?? 0) +
     (diagram.states?.length ?? 0) +
-    (diagram.phases?.length ?? 0)
+    phases.length +
+    phaseChildren +
+    // 図が持てる並びは全部数える。 1 つでも外すと、そこに寄せた図が素通りする
+    (diagram.readouts?.length ?? 0) +
+    (diagram.inputs?.length ?? 0) +
+    (diagram.formulas?.length ?? 0) +
+    (diagram.scrollTriggers?.length ?? 0) +
+    (diagram.eventBindings?.length ?? 0)
   );
 }
 
