@@ -532,9 +532,32 @@ export function extractPartsFromSrc(
     if (!pending) return;
     const block = pending;
     pending = null;
+    const body = block.lines.slice(1);
+    // 読めない値を書いた行がある block は、丸ごと本文に戻す。
+    //
+    // 見本の行は本文から抜くため、抜いた中の誤りは組み立て側に届かない = 行番号付きの
+    // 知らせが消える (実測 = `位置: Web の右 -200` の「間隔に負の数は書けません」 が出なくなった)。
+    // 抜かずに残せば、普通の箱に書いた時と同じ経路で知らせが出る
+    if (hasUnreadableItem(body)) {
+      block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+      return;
+    }
     // 名前の行で見本と決まっている場合は、続く行を上書きとして重ねる
     if (block.head) {
-      parts.push(applyBlockOverrides(block.head, block.lines.slice(1)));
+      // 続く行の `kind:` は名前の行の種類を上書きする (組み立て側と同じ)。
+      // 見本でない種類 / catalog に無い種類になったら、block ごと本文に戻す =
+      // 抜いたまま捨てると、書いた箱が図から消える
+      const rewritten = readKindFromBlock(body);
+      if (rewritten !== null) {
+        const item = partKindSet.has(rewritten) ? findItem(rewritten) : undefined;
+        if (!item) {
+          block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+          return;
+        }
+        parts.push(applyBlockOverrides({ ...block.head, kind: rewritten, item }, body));
+        return;
+      }
+      parts.push(applyBlockOverrides(block.head, body));
       return;
     }
     // 項目名は日本語でも英語でもよい (記法側と同じ)。 `種類:` を読まないと、 同じ本文が
@@ -706,6 +729,47 @@ export function extractPartsFromSrc(
 }
 
 /**
+ * 読めない値を書いた行があるか (#1028)。
+ *
+ * 対象は位置と大きさの 2 つ。 どちらも組み立て側が行番号付きで知らせる項目で、
+ * 画面側が黙って捨てると誤りに気付けない。
+ *
+ * 倍率は対象にしない。 読めない値は 1 倍に直す規約 (#1026) で、組み立て側も知らせないため。
+ */
+function hasUnreadableItem(lines: string[]): boolean {
+  for (const line of lines) {
+    const t = line.trim();
+    const pos = t.match(/^(?:位置|pos)\s*:\s*(.+)$/);
+    if (pos) {
+      const value = pos[1]!.trim().replace(/^["']|["']$/g, "");
+      const abs = /^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value);
+      if (!abs && parseRelativePos(value) === null) return true;
+      continue;
+    }
+    const size = t.match(/^(?:大きさ|size)\s*:\s*(.+)$/);
+    if (size) {
+      const value = size[1]!.trim().replace(/^["']|["']$/g, "");
+      if (!/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/.test(value)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 続く行から `kind:` / `種類:` を読む (#1028)。 書かれていなければ `null`。
+ *
+ * 同じ項目を 2 度書いた時は後に書いた方を採る (組み立て側と同じ)。
+ */
+function readKindFromBlock(lines: string[]): string | null {
+  let out: string | null = null;
+  for (const line of lines) {
+    const m = line.trim().match(/^(?:kind|種類)\s*:\s*"?([^"\s]+)"?/);
+    if (m) out = m[1]!.toLowerCase();
+  }
+  return out;
+}
+
+/**
  * 名前の行で決まった見本に、続く行の指定を重ねる (#1028)。
  *
  * 組み立て側 (`applyContinuationLines`) と同じく **続く行が勝つ**。 名前の行に書いた値を
@@ -718,9 +782,13 @@ export function extractPartsFromSrc(
 function applyBlockOverrides(head: OverlayPartParsed, body: string[]): OverlayPartParsed {
   if (body.length === 0) return head;
   const scale = readScaleFromBlockOrNull(body);
+  const pos = readPositionFromBlock(body);
   return {
     ...head,
-    ...readPositionFromBlock(body),
+    // 位置を書いた行があれば、名前の行に書いた位置は**丸ごと**置き換える。
+    // 重ねるだけだと、座標と相対指定が同時に立つ (実測 = 名前の行の `@100,100` が残ったまま
+    // 続きの行の `位置: Web の右` も立ち、組み立て側は相対だけを採るのでずれる)
+    ...(Object.keys(pos).length > 0 ? { posX: undefined, posY: undefined, posRel: undefined, ...pos } : {}),
     ...readSizeFromBlock(body),
     ...(scale === null ? {} : { scale }),
   };
@@ -743,16 +811,22 @@ function readScaleFromBlockOrNull(lines: string[]): number | null {
 function readPositionFromBlock(
   lines: string[],
 ): { posX?: number; posY?: number; posRel?: RelativePos } {
+  // 同じ項目を 2 度書いた時は **後に書いた方** を採る (組み立て側と同じ)。
+  // 前を採ると、書き直した位置が効かない (実測 = 相対の後に座標を書いても相対のままだった)
+  let out: { posX?: number; posY?: number; posRel?: RelativePos } = {};
   for (const line of lines) {
     const m = line.trim().match(/^(位置|pos)\s*:\s*(.+)$/);
     if (!m) continue;
     const value = m[2]!.trim().replace(/^["']|["']$/g, "");
     const abs = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
-    if (abs) return { posX: Number(abs[1]), posY: Number(abs[2]) };
+    if (abs) {
+      out = { posX: Number(abs[1]), posY: Number(abs[2]) };
+      continue;
+    }
     const rel = parseRelativePos(value);
-    if (rel) return { posRel: rel };
+    if (rel) out = { posRel: rel };
   }
-  return {};
+  return out;
 }
 
 /**
@@ -819,15 +893,17 @@ function readDirectField(lines: string[], keys: readonly string[]): string | nul
  * `大きさ: 2000,0` のように片方だけ有効な形で組み立て側と食い違う (あちらは横だけ伸ばす)。
  */
 function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
+  // 位置と同じく、同じ項目を 2 度書いたら後に書いた方を採る (組み立て側と同じ)
+  let out: { posW?: number; posH?: number } = {};
   for (const line of lines) {
     const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
     if (!m) continue;
     const value = m[2]!.trim().replace(/^["']|["']$/g, "");
     const wh = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
     if (!wh) continue;
-    return { posW: Number(wh[1]), posH: Number(wh[2]) };
+    out = { posW: Number(wh[1]), posH: Number(wh[2]) };
   }
-  return {};
+  return out;
 }
 
 /**
