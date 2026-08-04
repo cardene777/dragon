@@ -527,7 +527,7 @@ export function extractPartsFromSrc(
       id: block.alias,
       kind: kindValue,
       item,
-      scale: 1,
+      scale: readScaleFromBlock(block.lines),
       rotate: 0,
       ...readPositionFromBlock(block.lines),
       ...readSizeFromBlock(block.lines),
@@ -684,6 +684,26 @@ function readPositionFromBlock(
  * どうかは `partTargetScale` が縦横それぞれで決める。 ここで「両方が正の時だけ」 と絞ると、
  * `大きさ: 2000,0` のように片方だけ有効な形で組み立て側と食い違う (あちらは横だけ伸ばす)。
  */
+/**
+ * 縦に並べて書いた 1 件から `scale: 2` を読む (#1020)。
+ *
+ * 中括弧の形は読んでいたが、縦に並べた形は常に 1 として扱っていた。 書いても効かず、
+ * しかも何も知らせないため、書いた人からは倍率が無いように見える。
+ *
+ * 数の読み方は中括弧の形と揃える (値全体を数として読み、`normalizePartScale` を通す)。
+ * 書いていなければ 1。
+ */
+function readScaleFromBlock(lines: string[]): number {
+  for (const line of lines) {
+    const m = line.trim().match(/^(scale|倍率)\s*:\s*(.+)$/);
+    if (!m) continue;
+    const raw = m[2]!.trim().replace(/^["']|["']$/g, "");
+    if (raw === "") continue;
+    return normalizePartScale(Number(raw));
+  }
+  return 1;
+}
+
 function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
   for (const line of lines) {
     const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
