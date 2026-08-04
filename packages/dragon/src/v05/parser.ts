@@ -127,7 +127,13 @@ const INFRA_KIND_ALIAS: Record<string, NodeKind> = {
  * 扱われて「そんな部品は無い」 と警告が出るだけだった。 描画側を出所に加えることで
  * 「描画できるものは書ける」 が成立する。
  */
-const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([
+/**
+ * 記法が受理する種類の全体。 これに載っていない種類は見本 (パーツ) の候補になる。
+ *
+ * 画面側が「本文が見本を使っているか」 を判定するのに使う (#1022)。 手書きの一覧を
+ * 別に持つと、種類が増えた時にそちらだけ取り残されて余分な読み込みが起きる。
+ */
+export const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([
   ...NODE_KINDS,
   ...DSL_ONLY_KINDS,
   ...Object.keys(INFRA_KIND_ALIAS),

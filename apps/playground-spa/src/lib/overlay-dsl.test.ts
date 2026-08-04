@@ -8,6 +8,8 @@ import {
   placeParts,
   partWorldSize,
   normalizePartScale,
+  srcMayUseParts,
+  yamlMayUseParts,
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
@@ -636,6 +638,129 @@ describe("パーツの実寸", () => {
     expect(normalizePartScale(-2)).toBe(1);
     expect(normalizePartScale(Number.NaN)).toBe(1);
     expect(normalizePartScale(Number.POSITIVE_INFINITY)).toBe(1);
+  });
+});
+
+describe("本文が見本を使っているかの見込み判定 (#1022)", () => {
+  /**
+   * 判定と抽出は同じ本文を見る。 食い違うと「読み込んだのに使われない」 か
+   * 「使うのに読み込まない」 のどちらかが起きるので、同じ表で両方を見る。
+   *
+   * `mayUse` = 読み込みを起こすか、`extracts` = 実際に見本として抜き出せるか。
+   * `mayUse` は多めに拾う側なので、`extracts` が true なら `mayUse` も true でなければならない。
+   */
+  const table: Array<{ label: string; src: string; extracts: boolean; mayUse: boolean }> = [
+    {
+      label: "縦に並べた形",
+      src: `actors:\n  - a:\n      kind: achievement\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "縦に並べた形 (日本語の項目名)",
+      src: `actors:\n  - a:\n      種類: achievement\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "中括弧の形",
+      src: `actors:\n  - a: { kind: achievement, posX: 0 }\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "中括弧の形 (入れ子が種類より前)",
+      src: `actors:\n  - a: { nodes: { header: { posX: 1 } }, kind: achievement }\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "空白区切りの短い形 (一覧から置くとこの形)",
+      src: `actors:\n  - 実績: achievement v=50\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "空白区切りの短い形 (値を書かない)",
+      src: `actors:\n  - 実績: achievement\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "引用符付きの名前",
+      src: `actors:\n  - "a: b": { kind: achievement }\n`,
+      extracts: true,
+      mayUse: true,
+    },
+    {
+      label: "組み込みの種類 (見本ではない)",
+      src: `actors:\n  - Web: service\n  - DB: database\n`,
+      extracts: false,
+      mayUse: false,
+    },
+    {
+      label: "種類を書いていない",
+      src: `actors:\n  - Web\n  - DB\n`,
+      extracts: false,
+      mayUse: false,
+    },
+    {
+      label: "actors の外に種類の語がある",
+      src: `notes: |\n  kind: achievement\n`,
+      extracts: false,
+      mayUse: false,
+    },
+  ];
+
+  for (const row of table) {
+    it(`${row.label}`, () => {
+      const got = extractPartsFromSrc(row.src, catalog, partsItems);
+      expect(got.parts.length > 0, `抽出の結果が期待と違う`).toBe(row.extracts);
+      expect(srcMayUseParts(row.src), `読み込み判定が期待と違う`).toBe(row.mayUse);
+      if (row.extracts) {
+        expect(srcMayUseParts(row.src), "抽出できるのに読み込みを起こさない").toBe(true);
+      }
+    });
+  }
+
+  it("値が無い種類は拾わない", () => {
+    // 書きかけの行で読み込みを起こさない
+    expect(srcMayUseParts(`actors:\n  - a:\n      kind:\n`)).toBe(false);
+  });
+
+  it("見本かどうかまでは決めない", () => {
+    // 一覧が無いと決められないので、一覧に無い種類でも拾う (多めに拾う側に倒す)
+    expect(srcMayUseParts(`actors:\n  - a: { kind: unknown-thing }\n`)).toBe(true);
+  });
+});
+
+describe("YAML 欄の見込み判定 (#1022)", () => {
+  it("縦に並べた形の種類を拾う", () => {
+    // YAML は `{ name, kind }` の形。 本文欄の走査を当てると次の行の種類を読み飛ばす
+    expect(
+      yamlMayUseParts(`actors:\n  - name: user\n    kind: achievement\n`),
+      "縦に並べた形を拾えていない",
+    ).toBe(true);
+  });
+
+  it("波括弧の形の種類を拾う", () => {
+    expect(yamlMayUseParts(`actors:\n  - { name: user, kind: achievement }\n`)).toBe(true);
+  });
+
+  it("名前を種類とみなさない", () => {
+    // 本文欄の走査を当てると `- name: Alice` の Alice を種類と読んで読み込みが起きる
+    expect(
+      yamlMayUseParts(`actors:\n  - name: Alice\n    kind: actor\n`),
+      "名前を種類として読んでいる",
+    ).toBe(false);
+  });
+
+  it("組み込みの種類では拾わない", () => {
+    expect(yamlMayUseParts(`actors:\n  - name: Web\n    kind: service\n`)).toBe(false);
+  });
+
+  it("actors の外は見ない", () => {
+    expect(yamlMayUseParts(`notes: |\n  kind: achievement\n`)).toBe(false);
   });
 });
 

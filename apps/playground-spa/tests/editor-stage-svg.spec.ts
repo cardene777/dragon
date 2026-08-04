@@ -365,4 +365,145 @@ flow:
       "図の中に描く部品を持たない",
     );
   });
+
+  /**
+   * 共有 URL で開いた本文の見本が、一覧を開かなくても見本として復元されることを固定する (#1022)。
+   *
+   * 見本の一覧は 80 件あるため開いた時に読む形で遅延させている。 本文の側から読み込みを
+   * 起こさないと、中身が無いまま組み立てられて別名がそのまま箱になる
+   * (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
+   */
+  test("共有 URL の見本は一覧を開かなくても復元される", async ({ page }) => {
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - ach:",
+      "      kind: achievement",
+      "      v: 50",
+      "",
+      "flow:",
+      '  - Web -> Web: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(2500);
+
+    const overlay = await page.evaluate(
+      () => document.querySelectorAll("[data-overlay-part]").length,
+    );
+    expect(overlay, "見本として重ねられていない").toBeGreaterThan(0);
+  });
+
+  test("見本を使わない本文では一覧を読み込まない", async ({ page }) => {
+    // 読み込むと、見本を使わない本文でも 80 件の取得を待つことになる
+    const requests: string[] = [];
+    page.on("request", (r) => requests.push(r.url()));
+
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - DB: database",
+      "",
+      "flow:",
+      '  - Web -> DB: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(2500);
+
+    const loaded = requests.filter((u) => u.includes("parts.cdl"));
+    expect(loaded.length, `見本一覧を読み込んでいる (${loaded[0] ?? ""})`).toBe(0);
+  });
+
+  /**
+   * 見本の読み込みに失敗した時、要求が輪にならないことを固定する (#1022)。
+   *
+   * 本文起点の読み込みは既定の tab (samples) で走る。 失敗時の解除をその tab で行っていた頃は、
+   * 失敗 → 解除 → 再発火 の輪になり、本文を触らなくても要求が出続けていた。
+   */
+  test("見本の読み込みに失敗しても要求が繰り返されない", async ({ page }) => {
+    // 要求数では数えられない。 取得に失敗した module は再取得されないため、
+    // 輪になっていても要求は 1 回で止まる。 失敗のたびに出る記録を数える
+    const attempts: string[] = [];
+    page.on("console", (m) => {
+      if (m.text().includes("parts load failed")) attempts.push(m.text());
+    });
+    await page.route("**/parts.cdl*", (route) => route.abort());
+
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - ach:",
+      "      kind: achievement",
+      "",
+      "flow:",
+      '  - Web -> Web: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(4000);
+
+    expect(attempts.length, `読み込みが繰り返されている (${attempts.length} 回)`).toBeLessThanOrEqual(2);
+  });
+
+  /**
+   * YAML 欄に直接書いた見本でも読み込みが起きることを固定する (#1022)。
+   *
+   * YAML は登場人物を `{ name, kind }` の形で書くため、本文欄と文法が違う。 本文欄の走査を
+   * 当てると次の行の種類を読み飛ばし、`kind:` を書いても読み込みが起きない。
+   */
+  test("YAML 欄に書いた見本でも一覧を読み込む", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => requests.push(r.url()));
+
+    await setup(page);
+    await page.click('[data-testid="editor-tab-yaml"]');
+    await page.waitForTimeout(600);
+    // ここまでで読み込まれていないことを確かめてから書く
+    expect(
+      requests.filter((u) => u.includes("parts.cdl")).length,
+      "書く前に読み込まれている",
+    ).toBe(0);
+
+    await page.locator('[data-testid="editor-code-body-yaml"] .cm-content').click();
+    await page.keyboard.press("Meta+A");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.insertText(
+      [
+        "title: t",
+        "type: flow",
+        "actors:",
+        "  - name: Web",
+        "    kind: service",
+        "  - name: ach",
+        "    kind: achievement",
+        "flow:",
+        "  - from: Web",
+        "    to: Web",
+        "    label: x",
+        "",
+      ].join("\n"),
+    );
+    await page.waitForTimeout(2500);
+
+    expect(
+      requests.filter((u) => u.includes("parts.cdl")).length,
+      "YAML 欄に書いた見本で読み込みが起きていない",
+    ).toBeGreaterThan(0);
+  });
 });
