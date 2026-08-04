@@ -13,6 +13,7 @@ import {
   partBoxInFrame,
   partTargetScale,
   isColorValue,
+  NODE_KIND_VALID,
   type RelativePos,
   type AnchorBox,
 } from "@cardenelabs/dragon";
@@ -336,25 +337,83 @@ export function readTopLevelField(inner: string, key: string): string | null {
  * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
  */
 /**
+ * 組み込みの種類。 これに載っているものは見本ではない。
+ *
+ * 記法が受理する種類の全体 (`NODE_KIND_VALID`) をそのまま使う。 手書きの一覧を別に持つと、
+ * 種類が増えた時にこちらだけ取り残されて余分な読み込みが起きる。
+ */
+const BUILTIN_KINDS: ReadonlySet<string> = new Set(
+  [...NODE_KIND_VALID].map((k) => k.toLowerCase()),
+);
+
+/**
  * 本文が見本 (パーツ) を使っている見込みがあるか (#1022)。
  *
  * 見本の一覧は 80 件あるため、開いた時に読む形で遅延させている。 そのため一覧を一度も
  * 開いていない状態で共有 URL を開くと、見本の中身が無いまま組み立てられ、別名がそのまま
  * 箱になる (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
  *
- * 本文の側から読み込みを起こすための判定。 **種類が書かれているか** だけを見る。
- * 見本かどうかは一覧が無いと決められないので、ここでは決めない。 多めに拾って読み込みを
- * 起こす方に倒す (見本を使わない本文で 1 回余分に読むだけで、絵は変わらない)。
+ * 本文の側から読み込みを起こすための判定。 見本かどうかは一覧が無いと決められないので、
+ * **組み込みの種類でないものが書かれていたら候補とみなす**。 多めに拾う側に倒す
+ * (見本を使わない本文で 1 回余分に読むだけで、絵は変わらない)。
  *
- * 縦に並べた形 (`kind:` の行) と中括弧の形 (`{ kind: ... }`) の両方を見る。
+ * 見る書き方は `extractPartsFromSrc` と同じ 3 つ。 別々の規則で見ると、
+ * 「読み込んだのに使われない」 か「使うのに読み込まない」 のどちらかが起きる。
+ * 特に一覧から置いた時に作られる短い形 (`- 実績: achievement`) は、種類の行を持たない。
+ *
+ * `actors:` の中だけを見る。 外の文字列や注釈に種類の語があっても読み込みを起こさない。
  */
 export function srcMayUseParts(src: string): boolean {
-  for (const line of src.split(/\r?\n/)) {
-    // 縦に並べた形。 字下げの中に種類の行がある
-    if (/^\s+(kind|種類)\s*:\s*\S/.test(line)) return true;
-    // 中括弧の形。 名前の後の `{ ... }` に種類が入っている
-    // 単語の境目 (`\b`) は日本語に効かないので、区切り (開き括弧か読点) で見る
-    if (/^\s*-\s*[^:]+:\s*\{\s*(?:[^}]*,\s*)?(kind|種類)\s*:\s*\S/.test(line)) return true;
+  const lines = src.split(/\r?\n/);
+  let inActors = false;
+  let blockIndent = -1;
+
+  const isCandidate = (kind: string | undefined): boolean => {
+    if (kind === undefined) return false;
+    const k = kind.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    if (k === "") return false;
+    // 組み込みの種類は見本ではない。 これを除かないと、`- Web: service` を書いた本文で
+    // 毎回 80 件を読み込むことになる
+    return !BUILTIN_KINDS.has(k);
+  };
+
+  for (const line of lines) {
+    // 字下げのない `key:` で項目が切り替わる
+    if (/^[^\s#][^:]*:/.test(line)) {
+      inActors = /^actors[ \t]*:[ \t]*$/.test(line);
+      blockIndent = -1;
+      continue;
+    }
+    if (!inActors) continue;
+    if (line.trim() === "") continue;
+
+    const indent = line.length - line.trimStart().length;
+    // 縦に並べた形の続き。 種類の行を見る
+    if (blockIndent >= 0 && indent > blockIndent) {
+      const m = line.trim().match(/^(kind|種類)\s*:\s*(.+)$/);
+      if (m && isCandidate(m[2])) return true;
+      continue;
+    }
+    blockIndent = -1;
+
+    // 中括弧の形
+    const inline = line.match(ACTOR_LINE_RE);
+    if (inline) {
+      const kind = readTopLevelField(inline[4]!, "kind") ?? readTopLevelField(inline[4]!, "種類");
+      if (isCandidate(kind ?? undefined)) return true;
+      continue;
+    }
+
+    // 空白区切りの短い形 (`- 実績: achievement v=50`)。 一覧から置くとこの形になる
+    const short = line.match(ACTOR_SHORT_RE);
+    if (short) {
+      const first = short[4]!.trim().split(/\s+/)[0];
+      if (isCandidate(first)) return true;
+      continue;
+    }
+
+    // 名前だけの行 (`- 実績:`) は、次の行から縦に並べた形が続く
+    if (/^\s*-\s*("(?:[^"\\]|\\.)+"|[^:\s]+)\s*:\s*$/.test(line)) blockIndent = indent;
   }
   return false;
 }

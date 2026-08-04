@@ -40,6 +40,9 @@ export { writeActorPosition } from "./write-position";
 // 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
 export { measureActorBoxes } from "./compile";
 // パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
+// 記法が受理する種類の全体。 画面側が「本文が見本を使っているか」 を判定するのに使う (#1022)。
+export { NODE_KIND_VALID } from "./v05/parser";
+
 // パーツの大きさを測る 3 つ。 用途で使い分ける (取り違えると経路ごとに絵が変わる)。
 //
 // - `partRenderSize` = 図枠。 画面が描く大きさと、 格子が確保する場所に使う

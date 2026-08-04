@@ -410,7 +410,7 @@ flow:
       "",
       "actors:",
       "  - Web: service",
-      "  - DB: db",
+      "  - DB: database",
       "",
       "flow:",
       '  - Web -> DB: "x"',
@@ -423,5 +423,41 @@ flow:
 
     const loaded = requests.filter((u) => u.includes("parts.cdl"));
     expect(loaded.length, `見本一覧を読み込んでいる (${loaded[0] ?? ""})`).toBe(0);
+  });
+
+  /**
+   * 見本の読み込みに失敗した時、要求が輪にならないことを固定する (#1022)。
+   *
+   * 本文起点の読み込みは既定の tab (samples) で走る。 失敗時の解除をその tab で行っていた頃は、
+   * 失敗 → 解除 → 再発火 の輪になり、本文を触らなくても要求が出続けていた。
+   */
+  test("見本の読み込みに失敗しても要求が繰り返されない", async ({ page }) => {
+    // 要求数では数えられない。 取得に失敗した module は再取得されないため、
+    // 輪になっていても要求は 1 回で止まる。 失敗のたびに出る記録を数える
+    const attempts: string[] = [];
+    page.on("console", (m) => {
+      if (m.text().includes("parts load failed")) attempts.push(m.text());
+    });
+    await page.route("**/parts.cdl*", (route) => route.abort());
+
+    const src = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - Web: service",
+      "  - ach:",
+      "      kind: achievement",
+      "",
+      "flow:",
+      '  - Web -> Web: "x"',
+      "",
+    ].join("\n");
+    const encoded = Buffer.from(src, "utf8").toString("base64");
+    await page.goto(`/editor#s=${encoded}`);
+    await page.waitForSelector('[data-testid="editor-preview-stage"]');
+    await page.waitForTimeout(4000);
+
+    expect(attempts.length, `読み込みが繰り返されている (${attempts.length} 回)`).toBeLessThanOrEqual(2);
   });
 });

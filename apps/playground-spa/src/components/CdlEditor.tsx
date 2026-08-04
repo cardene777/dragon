@@ -546,7 +546,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 開いた本文の見本が中身のないまま組み立てられ、別名がそのまま箱になる
   // (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
   // 種類を書いていない本文では読み込まないので、起動の重さは変わらない
-  const needsPartsForSrc = useMemo(() => srcMayUseParts(src), [src]);
+  const needsPartsForSrc = useMemo(
+    () => srcMayUseParts(activeTab === "yaml" ? yamlSrc : src),
+    [activeTab, src, yamlSrc],
+  );
   useEffect(() => {
     const wanted = sidebarTab === "parts" || needsPartsForSrc;
     if (!wanted || partsItems.length > 0 || partsLoading || partsLoadFailed) return;
@@ -558,14 +561,21 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す + 失敗 flag を立てて再試行禁止
         console.error("[CdlEditor] parts load failed", e);
         setPartsLoadFailed(true);
-        setDropHintWithReset("parts の load に失敗しました。 samples tab に切替後 parts tab を再表示すると再試行します。", 8000);
+        setDropHintWithReset("見本を読み込めませんでした。 パーツ一覧を開き直すと再試行します。", 8000);
       })
       .finally(() => setPartsLoading(false));
   }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
 
-  // samples tab に切替時 = 次に parts tab に戻った時の再試行を許可する経路 (partsLoadFailed をリセット)
+  // 一覧 tab に切替えた時だけ再試行を許す (#1022)。
+  //
+  // 以前は samples tab で解除していたが、本文起点の読み込みは既定の samples tab で走るため、
+  // 失敗 → 解除 → 再発火の輪になっていた (本文を触らなくても要求が出続ける)。
+  // 一覧を開く操作は user の明示的な意思なので、そこだけで解除する
+  const prevSidebarTabRef = useRef(sidebarTab);
   useEffect(() => {
-    if (sidebarTab === "samples" && partsLoadFailed) {
+    const prev = prevSidebarTabRef.current;
+    prevSidebarTabRef.current = sidebarTab;
+    if (sidebarTab === "parts" && prev !== "parts" && partsLoadFailed) {
       setPartsLoadFailed(false);
     }
   }, [sidebarTab, partsLoadFailed]);
