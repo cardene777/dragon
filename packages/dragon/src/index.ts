@@ -48,10 +48,13 @@ export { measureActorBoxes } from "./compile";
 //
 // 格子だけ図枠なのは、 隣と重ならない幅を確保するのが目的で描く大きさそのものが要るため。
 // 座標と間隔は見えている箱で測る (#937 / #1014)。
+// `大きさ:` の倍率は `partTargetScale` が持つ。 画面側も同じ規則で拡大しないと、
+// 書いた見本だけ経路で大きさが変わる (#1018)。
 export {
   partRenderSize,
   partVisualSize,
   partBoxInFrame,
+  partTargetScale,
   partsGridCenters,
 } from "./compile";
 // 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を

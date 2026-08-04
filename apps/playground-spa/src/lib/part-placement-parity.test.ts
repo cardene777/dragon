@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram, measureActorBoxes } from "@cardenelabs/dragon";
-import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect } from "./overlay-dsl";
+import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect, partFrameSize } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 /** 見本のパーツ。 段の数と大きさを変えて作る。 */
@@ -317,6 +317,168 @@ flow:
       Math.min(...own.nodes.map((n) => n.cx - n.w / 2));
     const scrCx = p.posX + pad.left + boxW / 2;
     expect(scrCx, "書いた座標の指す場所が経路で違う").toBeCloseTo(libCx, 1);
+  });
+
+  it("大きさを書いたパーツが 2 経路で同じ大きさになる", () => {
+    // 画面側が `大きさ:` を読まなかった頃は、組み立て側だけが伸び、それを基準にした
+    // 相対指定が 800 ずれていた (#1018)
+    const sized = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: 1000,500
+      大きさ: 2000,300
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(sized, { partsCatalog: CATALOG }));
+    const ns = laid.nodes.filter((n) => n.id.startsWith("a__"));
+    const libW =
+      Math.max(...ns.map((n) => n.cx + n.w / 2)) - Math.min(...ns.map((n) => n.cx - n.w / 2));
+
+    const parsed = extractPartsFromSrc(sized, KIND_SET, ITEMS);
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    expect(a.posW, "大きさが読めていない").toBe(2000);
+    expect(a.posH, "大きさが読めていない").toBe(300);
+    expect(partBoxRect(a).w, "画面側の箱が組み立て側と違う").toBeCloseTo(libW, 1);
+  });
+
+  it("大きさを書いたパーツを基準にした相対でも 2 経路で同じになる", () => {
+    const chain = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: 1000,500
+      大きさ: 2000,300
+  - b:
+      kind: small
+      位置: a の右 200
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(chain, { partsCatalog: CATALOG }));
+    const bs = laid.nodes.filter((n) => n.id.startsWith("b__"));
+    const libLeft = Math.min(...bs.map((n) => n.cx - n.w / 2));
+
+    const parsed = extractPartsFromSrc(chain, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const b = placed.find((x) => x.id === "b")!;
+    expect(b.posX + partBoxRect(b).left, "基準の幅が経路で違う").toBeCloseTo(libLeft, 1);
+  });
+
+  it("大きさを書いたパーツの縦も 2 経路で同じになる", () => {
+    // 横だけ見ていると、縦の倍率を常に 1 にする実装が通ってしまう
+    const sized = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: 1000,500
+      大きさ: 2000,300
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(sized, { partsCatalog: CATALOG }));
+    const ns = laid.nodes.filter((n) => n.id.startsWith("a__"));
+    const libH =
+      Math.max(...ns.map((n) => n.cy + n.h / 2)) - Math.min(...ns.map((n) => n.cy - n.h / 2));
+    const libTop = Math.min(...ns.map((n) => n.cy - n.h / 2));
+
+    const parsed = extractPartsFromSrc(sized, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const a = placed.find((x) => x.id === "a")!;
+    expect(partBoxRect(a).h, "画面側の箱の高さが組み立て側と違う").toBeCloseTo(libH, 1);
+    // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると打ち消し合って見えなくなる
+    // (横は縦列の幅 400 に対して 2000 で 5 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍)
+    const pad = framePadding(a.item.diagram);
+    expect(a.posY + pad.top * (300 / 220), "画面側の箱の上端が組み立て側と違う").toBeCloseTo(
+      libTop,
+      1,
+    );
+    const libLeft = Math.min(...ns.map((n) => n.cx - n.w / 2));
+    expect(a.posX + pad.left * (2000 / 400), "画面側の箱の左端が組み立て側と違う").toBeCloseTo(
+      libLeft,
+      1,
+    );
+  });
+
+  it("大きさを書いても位置を書かなければ 2 経路で同じ場所になる", () => {
+    // 格子が確保する場所にも伸縮を掛けないと、置き場所だけ元の大きさで決まる
+    const auto = `title: "t"
+type: sequence
+
+actors:
+  - 本体: {}
+  - a:
+      kind: wide
+      大きさ: 2000,300
+`;
+    const lib = libraryCenters(auto);
+
+    const parsed = extractPartsFromSrc(auto, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const a = placed.find((x) => x.id === "a")!;
+    // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると、
+    // 余白の誤りが打ち消し合って見えなくなる。
+    // 横は縦列の幅 400 に対して 2000 なので 5 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍
+    const pad = framePadding(a.item.diagram);
+    expect(a.posX + pad.left * (2000 / 400), "横がずれている").toBeCloseTo(lib.get("a")!.cx, 1);
+    expect(a.posY + pad.top * (300 / 220), "縦がずれている").toBeCloseTo(lib.get("a")!.cy, 1);
+  });
+
+  it("大きさの縦横は独立して効く", () => {
+    // 片方だけ書いた形を「両方無効」 と読むと、組み立て側と食い違う
+    const parsed = extractPartsFromSrc(
+      `actors:\n  - a:\n      kind: wide\n      大きさ: 2000,0\n`,
+      KIND_SET,
+      ITEMS,
+    );
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    const base = extractPartsFromSrc(`actors:\n  - b: { kind: wide }\n`, KIND_SET, ITEMS).parts[0]!;
+    expect(partBoxRect(a).w / partBoxRect(base).w, "横が効いていない").toBeCloseTo(5, 1);
+    expect(partBoxRect(a).h / partBoxRect(base).h, "縦まで効いている").toBeCloseTo(1, 1);
+  });
+
+  it("中括弧で書いた寸法も読む", () => {
+    // 組み立て側は `{ posW: 2000, posH: 300 }` を受ける。画面側が読まないと大きさが変わる
+    const parsed = extractPartsFromSrc(
+      `actors:\n  - a: { kind: wide, posW: 2000, posH: 300 }\n`,
+      KIND_SET,
+      ITEMS,
+    );
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    expect(a.posW, "中括弧の寸法が読めていない").toBe(2000);
+    expect(a.posH, "中括弧の寸法が読めていない").toBe(300);
+  });
+
+  it("大きさを書くと描く大きさも同じだけ伸びる", () => {
+    // 箱だけ伸ばして描く大きさを据え置くと、置き場所と絵が食い違う
+    const parsed = extractPartsFromSrc(
+      `actors:\n  - a:\n      kind: wide\n      大きさ: 2000,300\n  - b:\n      kind: wide\n`,
+      KIND_SET,
+      ITEMS,
+    );
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    const b = parsed.parts.find((x) => x.id === "b")!;
+    const ratio = partBoxRect(a).w / partBoxRect(b).w;
+    expect(partFrameSize(a).w / partFrameSize(b).w, "描く大きさに倍率が掛かっていない").toBeCloseTo(
+      ratio,
+      1,
+    );
   });
 
   it("本体と同じ名前のパーツでも本体に重ならない", () => {

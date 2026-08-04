@@ -273,4 +273,60 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     // 既定値に落ちていないこと。 落ちると縦横比は 800/600 に張り付く
     expect(Math.abs(drawn - 800 / 600), "800x600 の既定値で描かれている").toBeGreaterThan(0.05);
   });
+
+  /**
+   * `大きさ:` を書いたパーツが、実際に描かれる中身まで伸びることを固定する (#1018)。
+   *
+   * SVG は図枠を `preserveAspectRatio="xMidYMid meet"` で収めるため、縦横で違う比の枠を
+   * 渡しても中身は縦横同じ率でしか伸びない (実測 = 枠を 2625 にしても中身は 716 のままだった)。
+   * 伸縮は `transform` で縦横別に掛けている。
+   *
+   * 単体 test は助変数の値しか見ないため、`transform` を外す変更でも通る。 画面で測る。
+   */
+  test("大きさを書いたパーツは中身まで伸びる", async ({ page }) => {
+    const withSize = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: achievement
+      位置: 2000,700
+      大きさ: 2000,300
+
+flow:
+  - Web -> Web: "x"
+`;
+    const plain = withSize.replace("      大きさ: 2000,300\n", "");
+
+    /** 重ねたパーツの中の箱を、画面上の幅で測る。 */
+    const measure = async (src: string): Promise<number> => {
+      const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
+      await page.goto(`/editor#s=${encoded}`);
+      await page.waitForSelector('[data-testid="editor-preview-stage"]');
+      await page.waitForTimeout(1800);
+      return await page.evaluate(() => {
+        const svg = document.querySelector("[data-overlay-part] svg[data-cdl-stage]");
+        const nodes = Array.from(svg?.querySelectorAll("[data-cdl-node]") ?? []).map((n) =>
+          n.getBoundingClientRect(),
+        );
+        if (nodes.length === 0) return 0;
+        return Math.max(...nodes.map((r) => r.x + r.width)) - Math.min(...nodes.map((r) => r.x));
+      });
+    };
+
+    await setup(page);
+    // 見本の一覧を読ませてから測る (開かないと catalog が来ない)
+    await page.click('[data-testid="editor-parts-tab"]');
+    await page.waitForSelector('[data-part-id="parts-achievement"]', { timeout: 15000 });
+
+    const plainW = await measure(plain);
+    expect(plainW, "大きさを書かないパーツの箱が測れていない").toBeGreaterThan(0);
+    const sizedW = await measure(withSize);
+    expect(sizedW, "大きさを書いたパーツの箱が測れていない").toBeGreaterThan(0);
+
+    // 縦列の幅 400 に対して 2000 なので 5 倍。 画面全体の拡大率は同じ本文で揃うため、
+    // 比がそのまま出る。 `transform` を外すと 1 倍前後に落ちる
+    expect(sizedW / plainW, `伸びていない (${sizedW} / ${plainW})`).toBeGreaterThan(3);
+  });
 });

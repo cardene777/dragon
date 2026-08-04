@@ -653,6 +653,58 @@ function minOf(values: readonly number[], fallback: number): number {
 const PART_STACK_PITCH = 220;
 
 /**
+ * `大きさ:` を書いた時に、見本を何倍にするか (#1018)。
+ *
+ * 横は縦列の幅、縦は段の数から出す。 どちらも書かなければ 1 倍。
+ *
+ * **縦は「書いた高さにする」 ではなく「段の送り幅の合計に対する倍率」**。 `大きさ: 2000,300` を
+ * 1 段の見本に書くと、横は 2000 になるが縦は 300 ではなく 409 になる (段の送り幅 220 に対して
+ * 300 なので 1.36 倍、それが箱の高さ 300 に掛かる)。 意図した仕様かは怪しいが、既に本文が
+ * この前提で書かれているため変えない。 画面側も同じ規則で拡大する。
+ *
+ * 組み立て側 (`partExtent`) と画面側 (playground) の両方から呼ぶ。 別々に持つと、`大きさ:` を
+ * 書いた見本だけ経路で大きさが変わる。
+ */
+export function partTargetScale(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { x: number; y: number } {
+  const none = { x: 1, y: 1 };
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return none;
+  // 箱が 1 つも無い図でも縦列があれば取り込み側は伸縮する。 ここで 1 に倒すと、
+  // 箱を持たない外部の見本だけ画面が等倍のまま残る
+
+  let x = 1;
+  if (targetW !== undefined && targetW > 0) {
+    const lefts: number[] = [];
+    const rights: number[] = [];
+    for (const l of part.lanes) {
+      const lx = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+      const lw = positiveOr(l.width, 400);
+      lefts.push(lx);
+      rights.push(lx + lw);
+    }
+    const bboxW = positiveOr(maxOf(rights, 400) - minOf(lefts, 0), 400);
+    x = targetW / bboxW;
+  }
+
+  let y = 1;
+  if (targetH !== undefined && targetH > 0) {
+    const stacks = part.nodes.map((n) =>
+      typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+    );
+    const origH = Math.max(1, (maxOf(stacks, 0) - minOf(stacks, 0) + 1) * PART_STACK_PITCH);
+    y = targetH / origH;
+  }
+
+  return {
+    x: Number.isFinite(x) && x > 0 ? x : 1,
+    y: Number.isFinite(y) && y > 0 ? y : 1,
+  };
+}
+
+/**
  * パーツ 1 個が図の上で占める外接矩形。
  *
  * `w` / `h` は大きさ、 `dx` / `dy` は矩形の中心が「merge に渡す座標」 からどれだけずれるか。
@@ -690,7 +742,7 @@ function partExtent(
   }
   const bboxW = positiveOr(maxOf(laneRights, 400) - minOf(laneLefts, 0), 400);
   const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
-  const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
+  const { x: scaleX, y: scaleY } = partTargetScale(part, targetW, targetH);
 
   const stacks = part.nodes.map((n) =>
     typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
@@ -698,8 +750,6 @@ function partExtent(
   const maxStack = maxOf(stacks, 0);
   const minStack = minOf(stacks, 0);
   const centerStack = (minStack + maxStack) / 2;
-  const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
-  const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
 
   // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
   const tops: number[] = [];
@@ -855,12 +905,12 @@ function partFrameGeometry(part: CdlDiagram): PartFrameGeometry {
  * 中心で合わせると、 高さの差の半分だけ上端がずれて段内の揃いが崩れる (実測で 12.5)。
  * 左上で合わせれば、 高さが変わっても上端は動かない。
  *
- * 図枠の大きさに倍率 (`大きさ:`) は掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で
- * 描くため、 ここで掛けると確保する場所だけが変わって画面とずれる。
+ * 図枠にも箱にも `大きさ:` の伸縮を掛ける。 画面側も同じ率で伸縮するので、掛けないと
+ * 確保する場所だけが元の大きさのまま残る (実測 = 240 ずれた、#1018)。
  *
- * ただし `大きさ:` で図枠より大きくした箱は、 図枠だけを確保すると隣に重なる (実測 =
- * `大きさ: 2000,300` の箱が x=60..2060 に伸び、 隣が 725 から始まって 1335 重なった)。
- * 確保するのは図枠と箱の両方を含む矩形にする。 `大きさ:` を書かなければ図枠が箱を包むので、
+ * 確保するのは図枠と箱の両方を含む矩形。 縦横で率が違うと箱が図枠からはみ出すことがあり、
+ * 図枠だけを確保すると隣に重なる (実測 = `大きさ: 2000,300` の箱が x=60..2060 に伸び、
+ * 隣が 725 から始まって 1335 重なった)。 `大きさ:` を書かなければ図枠が箱を包むので、
  * 和は図枠と一致して 2 経路の一致は保たれる。
  */
 function partFrameExtent(
@@ -869,7 +919,16 @@ function partFrameExtent(
   targetH?: number,
 ): { w: number; h: number; dx: number; dy: number } {
   const box = partExtent(part, targetW, targetH);
-  const frame = partFrameGeometry(part);
+  const geom = partFrameGeometry(part);
+  // 図枠にも `大きさ:` の伸縮を掛ける。 掛けないと箱だけが伸びて、確保する場所が足りなくなる
+  // (実測 = `大きさ: 2000,300` で組み立て側の箱が 60..2060、画面側が 300..2300 と 240 ずれた、#1018)
+  const t = partTargetScale(part, targetW, targetH);
+  const frame = {
+    w: geom.w * t.x,
+    h: geom.h * t.y,
+    left: geom.left * t.x,
+    top: geom.top * t.y,
+  };
   // merge に渡す座標を原点にした時の、 図枠の中心
   const frameDx = box.dx + frame.w / 2 - frame.left - box.w / 2;
   const frameDy = box.dy + frame.h / 2 - frame.top - box.h / 2;
@@ -1361,7 +1420,11 @@ function mergePartIntoDiagram(
   // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
   const rawBboxW = partMaxLaneRight - partMinLaneX;
   const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
-  const laneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  // 非有限は 1 に倒す。 桁が溢れた `大きさ:` (`Number()` が Infinity を返す長さ) を
+  // そのまま掛けると描けない座標になり、 大きさを見積る側 (`partTargetScale`) だけが
+  // 1 に倒していたため経路で食い違っていた (#1018)
+  const rawLaneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  const laneScaleX = Number.isFinite(rawLaneScaleX) && rawLaneScaleX > 0 ? rawLaneScaleX : 1;
   // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
   // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
   // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
@@ -1421,13 +1484,18 @@ function mergePartIntoDiagram(
   // 期待 14 件が崩れた。 段を持つパーツ (実 catalog で 80 件中 7 件) の内部比率が実配置と
   // 3% ずれるが、 見た目の大きさは呼出側が揃えるため観測される差は無い
   const STACK_PITCH_APPROX = 220;
-  const partStacks = part.nodes.map((n) => n.stack ?? 0);
+  // 数でない段は 0 として扱う。 大きさを見積る側 (`partTargetScale`) が同じ判定をしており、
+  // ここだけ NaN を通すと段の数が NaN になって倍率が経路で食い違う (#1018)
+  const partStacks = part.nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
   const minStack = partStacks.length > 0 ? Math.min(...partStacks) : 0;
   const maxStack = partStacks.length > 0 ? Math.max(...partStacks) : 0;
   const partCenterStack = (minStack + maxStack) / 2;
   const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
   const scaleX = laneScaleX;
-  const scaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
+  const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
+  const scaleY = Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
 
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const nodeOrig of part.nodes) {
