@@ -605,8 +605,22 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
  *
  * `Object.hasOwn` で引く。 素の添字だと `__proto__` 等の既定の持ち物が引けてしまう
  * (catalog は呼出側が渡す untrusted な値)。
+ *
+ * **測れない図は「無い」 として扱う** (#1015)。 大きさを測れないまま取り込むと、既定の
+ * 400x200 の枠を確保した場所に中身が全て展開される。 上限を置いた目的 (大きすぎる入力で
+ * 止まらないようにする) も達成されない。
  */
 function lookupPart(
+  partsCatalog: Record<string, CdlDiagram>,
+  partId: string | undefined,
+): CdlDiagram | undefined {
+  const found = lookupPartRaw(partsCatalog, partId);
+  if (found === undefined) return undefined;
+  return partIsMeasurable(found) ? found : undefined;
+}
+
+/** catalog を引くところだけ。 測れるかは見ない。 */
+function lookupPartRaw(
   partsCatalog: Record<string, CdlDiagram>,
   partId: string | undefined,
 ): CdlDiagram | undefined {
@@ -614,6 +628,21 @@ function lookupPart(
   if (Object.hasOwn(partsCatalog, partId)) return partsCatalog[partId];
   if (Object.hasOwn(partsCatalog, `parts-${partId}`)) return partsCatalog[`parts-${partId}`];
   return undefined;
+}
+
+/**
+ * この図を取り込んでよいか (#1015)。
+ *
+ * 見るのは **要素数が上限 (`MAX_INPUT_ELEMENTS`) を超えていないこと** だけ。
+ * 超えた図を取り込むと、既定の 400x200 の枠を確保した場所に中身が全て展開される。
+ * 上限を置いた意図 (大きすぎる入力で止まらないようにする) も達成されない。
+ *
+ * **配置計算が通るかは見ない**。 取り込みは lane を張り替えるため、単体では配置計算が
+ * 通らない図でも取り込みは成功する (実測 = 存在しない lane を指す箱を持つ見本が、
+ * 取り込み後は正しい lane に載った)。 配置計算で弾くと、動いている本文が描けなくなる。
+ */
+export function partIsMeasurable(part: CdlDiagram): boolean {
+  return countDiagramElements(part) <= MAX_INPUT_ELEMENTS;
 }
 
 /**
@@ -1233,12 +1262,20 @@ function mergePartsFromActors(
     // inherited property (`__proto__` 等) を除外する prototype pollution 対策。 `parts-` prefix 経路も
     // Object.hasOwn 経由で確認する。
     if (typeof partId !== "string" || partId.length === 0) continue;
-    let part: CdlDiagram | undefined;
-    if (Object.hasOwn(partsCatalog, partId)) {
-      part = partsCatalog[partId];
-    } else if (Object.hasOwn(partsCatalog, `parts-${partId}`)) {
-      part = partsCatalog[`parts-${partId}`];
+    const found = lookupPartRaw(partsCatalog, partId);
+    // 見つかっても測れない図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
+    // なるため、見つからなかった時と分けて知らせる
+    if (found !== undefined && !partIsMeasurable(found)) {
+      onNotice?.({
+        kind: "part-not-drawn",
+        actor: actor.name,
+        line: 0,
+        message: `"${actor.name}" (${partId}) は大きすぎるため取り込みません。`,
+        hint: `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`,
+      });
+      continue;
     }
+    const part = found;
     if (!part) {
       if (typeof console !== "undefined" && console.warn) {
         console.warn(`[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`);
