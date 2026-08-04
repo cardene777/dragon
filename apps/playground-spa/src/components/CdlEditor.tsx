@@ -1073,9 +1073,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // パーツが無い図では測らない。 配置計算は 1 回 1ms 前後かかるので、 入力ごとに
         // 使わない計算を走らせない
         // 重ねるパーツは本文から抜いてから組み立てるので、 組み立て側の上限に数えられない。
-        // 抜いた分を足して見ないと、 パーツを 2,000 件超置いた本文が素通りする (#1005)
+        // 抜いた分を足して見ないと、 パーツを 2,000 件超置いた本文が素通りする (#1005)。
+        //
+        // 数えるのは **見本の中身** で、置いた件数ではない (#1015)。 件数で数えると、
+        // 2,001 個の箱を持つ見本 1 件が「1 要素」 として素通りする
         const withPartsOversize = describeOversize({
-          elements: countDiagramElements(d) + parts.length,
+          elements:
+            countDiagramElements(d) +
+            parts.reduce((acc, p) => acc + countDiagramElements(p.item.diagram), 0),
           bytes: 0,
         });
         if (withPartsOversize) throw new Error(withPartsOversize);
