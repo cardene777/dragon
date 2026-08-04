@@ -90,6 +90,18 @@ function partLeftEdge(d: CdlDiagram, prefix: string): number {
   return Math.min(...ns.map((n) => n.cx - n.w / 2));
 }
 
+/**
+ * 格子の 1 列目に置かれたパーツの、 箱の左端。
+ *
+ * 格子が確保するのは図枠なので、 図枠の左端が 0 に来る。 箱はその中で余白のぶん右にある
+ * (実測 = 60)。 余白の値を test に書くと catalog の作りに追随できないため、 見本の図から測る。
+ */
+function frameLeftPadding(part: CdlDiagram): number {
+  const own = layout(part);
+  const x0 = Math.min(...own.nodes.map((n) => n.cx - n.w / 2));
+  return x0 - own.viewBox.x;
+}
+
 function node(d: CdlDiagram, id: string) {
   const n = d.nodes.find((x) => x.id === id);
   if (!n) throw new Error(`node ${id} not found: ${d.nodes.map((x) => x.id).join(",")}`);
@@ -403,9 +415,10 @@ describe("parts merge", () => {
     // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた。
     //
     // 見るのは箱の左端。 縦列の左端は箱より外に出ることがあり (縦列が箱より広い catalog)、
-    // 縦列の x で見ると「箱が左端に来ているか」 を確かめられない
+    // 縦列の x で見ると「箱が左端に来ているか」 を確かめられない。
+    // 格子が確保するのは図枠なので、 図枠の左端が 0 = 箱は余白のぶん右に来る (#937)
     const d = partsCompile();
-    expect(partLeftEdge(d, "widget")).toBe(0);
+    expect(partLeftEdge(d, "widget")).toBeCloseTo(frameLeftPadding(compile("flow")), 1);
   });
   it("catalog 不在の partId は crash せず無視 (壊さない設計)", () => {
     expect(() => compileToCdl(makeDoc("sequence", {
@@ -758,9 +771,10 @@ describe("mergePartIntoDiagram: lane 配置 (offsetX 中心補正 / fallback)", 
   it("offset 未指定 = 格子の 1 番目 (左端) に配置", () => {
     // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く足すたびに図が右へ
     // 伸び続けた (実測 = 8 個で幅 6140)。 格子に並べる形に変えた。
-    // 見るのは箱の左端 (縦列は箱より外に出ることがある)
+    // 見るのは箱の左端 (縦列は箱より外に出ることがある)。
+    // 格子が確保するのは図枠なので、 図枠の左端が 0 = 箱は余白のぶん右に来る (#937)
     const d = compileWithPart();
-    expect(partLeftEdge(d, "p1")).toBe(0);
+    expect(partLeftEdge(d, "p1")).toBeCloseTo(frameLeftPadding(makeTestPart()), 1);
   });
 
   it("posX 指定 = part 中心を posX に合わせるため lane.x = posX - width/2", () => {
@@ -1433,7 +1447,8 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
       makeDoc("sequence", { actors: [actor("p1", { partId: "test" })], flow: [] }),
       { partsCatalog: { test: makeTestPart() } },
     );
-    expect(partLeftEdge(d, "p1")).toBe(0);
+    // 格子が確保するのは図枠なので、 図枠の左端が 0 = 箱は余白のぶん右に来る (#937)
+    expect(partLeftEdge(d, "p1")).toBeCloseTo(frameLeftPadding(makeTestPart()), 1);
   });
 });
 

@@ -741,25 +741,117 @@ function partExtent(
  * 箱を持たないパーツ (実体を `shape` で描く 17 件) でも図枠は正しく出る。 箱だけを見ると
  * 1x1 になり、 その値で描くと潰れる。 図枠なら全 80 件で極小が 0 件になることを実測した。
  *
- * **今は画面側が描く大きさにだけ使う**。 組み立て側の格子はまだ箱の外接矩形で決めており、
- * 2 経路の置き場所は揃っていない (#937 で続く)。 格子を図枠に寄せると段内で上端が
- * 揃わなくなるため、 格子の並べ方から変える必要がある。
+ * 画面が描く大きさと、 組み立て側の格子が確保する場所の両方がこれを見る。 別々の物差しを
+ * 持っていた頃は、 同じ本文でも通った経路でパーツの位置が変わっていた (#937)。
  *
  * 組み立てに失敗する図では、 既定の大きさに落とす (呼出側は catalog を渡すので通常起きない)。
  */
 export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
-  // 組み立てと違い、 ここは画面を描くたびに呼ばれる。 大きすぎる図を渡されると
-  // 1 回の描画で画面が止まるため、 測る前に止める。 上限は組み立て側と同じ物差しを使う
-  // (#1005)。 catalog の見本は数十要素なので、 通常の呼出はここに掛からない
-  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return { w: 400, h: 200 };
-  try {
-    const vb = layout(part).viewBox;
-    const w = positiveOr(vb.w, 400);
-    const h = positiveOr(vb.h, 200);
-    return { w, h };
-  } catch {
-    return { w: 400, h: 200 };
+  const g = partFrameGeometry(part);
+  return { w: g.w, h: g.h };
+}
+
+/**
+ * 見本 1 個の図枠と、 図枠の左上から箱の左上までの余白。
+ *
+ * 図枠の大きさと余白は同じ配置計算から出るので、 1 回で両方を取る。 別々に呼ぶと同じ図を
+ * 2 度組み立てることになり、 パーツを 1 個置くたびに配置計算が 2 回走る。
+ *
+ * 結果は見本ごとに覚えておく。 catalog の見本は複数の別名から同じものを指すため、 覚えないと
+ * 別名の数だけ組み立て直す (相対指定があると 1 個につき 4 回になる)。 覚えるのは大きさだけで、
+ * 色などの見た目は含まないため、 呼出側が色を差し替えても古い値にはならない。
+ *
+ * 組み立てと違い画面を描くたびに呼ばれるので、 大きすぎる図は測る前に止める。 上限は
+ * 組み立て側と同じ物差しを使う (#1005)。 catalog の見本は数十要素なので通常は掛からない。
+ *
+ * 測れない図では既定の大きさと余白 0 に落とす。
+ */
+const PART_FRAME_CACHE = new WeakMap<
+  CdlDiagram,
+  { w: number; h: number; left: number; top: number }
+>();
+
+function partFrameGeometry(part: CdlDiagram): {
+  w: number;
+  h: number;
+  left: number;
+  top: number;
+} {
+  const cached = PART_FRAME_CACHE.get(part);
+  if (cached) return cached;
+  const fallback = { w: 400, h: 200, left: 0, top: 0 };
+  let out = fallback;
+  if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
+    try {
+      const own = layout(part);
+      const vb = own.viewBox;
+      const w = positiveOr(vb.w, 400);
+      const h = positiveOr(vb.h, 200);
+      if (own.nodes.length === 0) {
+        out = { w, h, left: 0, top: 0 };
+      } else {
+        let x0 = Infinity;
+        let y0 = Infinity;
+        for (const n of own.nodes) {
+          x0 = Math.min(x0, n.cx - n.w / 2);
+          y0 = Math.min(y0, n.cy - n.h / 2);
+        }
+        const left = x0 - vb.x;
+        const top = y0 - vb.y;
+        out = {
+          w,
+          h,
+          left: Number.isFinite(left) ? left : 0,
+          top: Number.isFinite(top) ? top : 0,
+        };
+      }
+    } catch {
+      out = fallback;
+    }
   }
+  PART_FRAME_CACHE.set(part, out);
+  return out;
+}
+
+/**
+ * パーツ 1 個が図の上で確保する図枠 (merge に渡す座標での表し方)。
+ *
+ * `w` / `h` は図枠の大きさ、 `dx` / `dy` は図枠の中心が「merge に渡す座標」 からどれだけ
+ * ずれるか。 画面側は図枠をそのまま置くので、 格子が図枠で場所を決めれば 2 経路が揃う。
+ *
+ * **合わせるのは箱の中心ではなく左上**。 段を 2 つ以上持つパーツは、 取り込んだ後に本体の
+ * 送り幅で並び直すため箱の高さが単体の時と変わる (実測 = 単体 300 が取り込むと 320)。
+ * 中心で合わせると、 高さの差の半分だけ上端がずれて段内の揃いが崩れる (実測で 12.5)。
+ * 左上で合わせれば、 高さが変わっても上端は動かない。
+ *
+ * 図枠の大きさに倍率 (`大きさ:`) は掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で
+ * 描くため、 ここで掛けると確保する場所だけが変わって画面とずれる。
+ *
+ * ただし `大きさ:` で図枠より大きくした箱は、 図枠だけを確保すると隣に重なる (実測 =
+ * `大きさ: 2000,300` の箱が x=60..2060 に伸び、 隣が 725 から始まって 1335 重なった)。
+ * 確保するのは図枠と箱の両方を含む矩形にする。 `大きさ:` を書かなければ図枠が箱を包むので、
+ * 和は図枠と一致して 2 経路の一致は保たれる。
+ */
+function partFrameExtent(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { w: number; h: number; dx: number; dy: number } {
+  const box = partExtent(part, targetW, targetH);
+  const frame = partFrameGeometry(part);
+  // merge に渡す座標を原点にした時の、 図枠の中心
+  const frameDx = box.dx + frame.w / 2 - frame.left - box.w / 2;
+  const frameDy = box.dy + frame.h / 2 - frame.top - box.h / 2;
+  const x0 = Math.min(frameDx - frame.w / 2, box.dx - box.w / 2);
+  const x1 = Math.max(frameDx + frame.w / 2, box.dx + box.w / 2);
+  const y0 = Math.min(frameDy - frame.h / 2, box.dy - box.h / 2);
+  const y1 = Math.max(frameDy + frame.h / 2, box.dy + box.h / 2);
+  return {
+    w: positiveOr(x1 - x0, frame.w),
+    h: positiveOr(y1 - y0, frame.h),
+    dx: Number.isFinite((x0 + x1) / 2) ? (x0 + x1) / 2 : frameDx,
+    dy: Number.isFinite((y0 + y1) / 2) ? (y0 + y1) / 2 : frameDy,
+  };
 }
 
 /**
@@ -867,9 +959,41 @@ function partGridCenters(
   );
   if (autoActors.length === 0) return new Map();
   // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
-  // 置き場所が下へずれる
-  const partsActorNames = new Set(partsActors.map((a) => a.name));
-  const baseNodes = target.nodes.filter((n) => !partsActorNames.has(n.title));
+  // 置き場所が下へずれる。
+  //
+  // 名札 (`title`) だけを見ると、 順序図で 1 人につき作られる 3 つの箱のうち間隔用のものが
+  // 漏れる (名札が空のため)。 パーツ 1 個につき 1 つ残り、 格子の起点が 1 段ぶん下がって
+  // 画面側とずれていた (実測 = 縦が 840 = 3 段ぶん違った)。
+  //
+  // 属する列で特定するが、 列の id は名前を slug に変換して作るため名前とは一致しない
+  // (実測 = `My Part` の列 id は `My-Part`)。 名前で引くと記号を含む名前だけ取りこぼす。
+  // 列の `label` は slug の経路によらず名前の生値を持つので、 そちらで引く (§ merge の
+  // 仮の箱の掃除が同じ方法を採っている)。
+  //
+  // どの列がパーツのものか決められない時は、 数から外さない。 外す側に倒すと本体の箱まで
+  // 消えて、 パーツが本体の図に重なる (実測 = 同じ名前を本体とパーツの両方に書くと、
+  // 上端が 1140 から 300 に飛んで本体の中に入った)。 外さなければ間隔が 1 段ぶん広がるだけで済む
+  const otherActorNames = new Set(
+    doc.actors.filter((a) => a.partId === undefined).map((a) => a.name),
+  );
+  // 本体にも同じ名前がある分は外さない。 名札でも列でも本体と区別できないため
+  const partsActorNames = new Set(
+    partsActors.map((a) => a.name).filter((n) => !otherActorNames.has(n)),
+  );
+  // 明示的に他の列へ張ったパーツは、 その列を専有していない (本体と共有している)
+  const sharedLaneIds = new Set(
+    partsActors.map((a) => a.lane).filter((l): l is string => l !== undefined),
+  );
+  const partsLaneIds = new Set<string>();
+  for (const l of target.lanes) {
+    if (l.label === undefined) continue;
+    if (!partsActorNames.has(l.label)) continue;
+    if (sharedLaneIds.has(l.id)) continue;
+    partsLaneIds.add(l.id);
+  }
+  const baseNodes = target.nodes.filter(
+    (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane),
+  );
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of autoActors) {
     const part = lookupPart(partsCatalog, a.partId);
@@ -877,13 +1001,9 @@ function partGridCenters(
       extents.set(a.name, { w: 400, h: 200, dx: 0, dy: 0 });
       continue;
     }
-    // 格子は箱の外接矩形で決める (据え置き)。
-    //
-    // 図枠 (`partRenderSize`) に寄せると 2 経路で完全に揃うが、 `partsGridCenters` が
-    // 中心から高さの半分を引いて上端を出す設計のため、 パーツごとに図枠の高さが違うと
-    // 段内で上端が揃わなくなる (実測で 12.5 ずれた)。 格子の並べ方そのものを
-    // 「上端揃え」 に変える必要があり、 影響が広いので #937 で続ける。
-    extents.set(a.name, partExtent(part, a.posW, a.posH));
+    // 格子は図枠で決める。 画面側も図枠をそのまま置くので、 同じ物差しで並べれば
+    // 2 経路の置き場所が揃う (#937)
+    extents.set(a.name, partFrameExtent(part, a.posW, a.posH));
   }
   const centers = partsGridCenters(
     baseNodes.length,
