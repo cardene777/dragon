@@ -802,6 +802,32 @@ export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
 }
 
 /**
+ * この見本が、図の中に描かれる部品を持っているか (#1017)。
+ *
+ * 見本の中には実体が **操作パネルの部品** (`readouts`) だけのものがある。 配置計算も描画も
+ * `readouts` を図の中では扱わないため、図として重ねても何も出ない。 位置決めのための
+ * 1x1 の箱が 1 つあるだけになる。
+ *
+ * catalog 80 件を測ると、この 2 群は `readouts` の有無で完全に分かれた。
+ * `readouts` を持つ 17 件は箱と図枠の面積比が全件 0.0000 (箱は 1x1)、
+ * 持たない 63 件は最小でも 0.1877。 境目に入る件は無い。
+ *
+ * 判定は面積の閾値ではなく **`readouts` を持ち、かつ箱が図枠に対して極小** の 2 条件で行う。
+ * 閾値だけで見ると、小さい箱を意図して置いた見本を巻き込む。 `readouts` だけで見ると、
+ * 箱も実体も両方持つ見本 (現状 0 件だが作れる) を誤って弾く。
+ *
+ * 測れない図では「持っている」 側に倒す。 弾く側に倒すと、測れないだけの見本が使えなくなる。
+ */
+export function partDrawsInDiagram(part: CdlDiagram): boolean {
+  const readouts = (part as { readouts?: unknown }).readouts;
+  if (!Array.isArray(readouts) || readouts.length === 0) return true;
+  const g = partFrameGeometry(part);
+  if (!(g.w > 0) || !(g.h > 0)) return true;
+  // 箱が図枠の 1% にも満たなければ、実体は図の外にある
+  return (g.boxW * g.boxH) / (g.w * g.h) >= 0.01;
+}
+
+/**
  * 図枠の中で、 箱の外接矩形がどこにどれだけの大きさで描かれるか (#1014)。
  *
  * `left` / `top` は図枠の左上からの余白、 `w` / `h` は箱の大きさ。 図枠は 1 対 1 で描かれるので、

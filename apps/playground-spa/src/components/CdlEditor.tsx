@@ -5,6 +5,7 @@ import {
   textDslToDiagram,
   partRenderSize,
   partTargetScale,
+  partDrawsInDiagram,
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
@@ -1062,6 +1063,18 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           bytes: 0,
         });
         if (withPartsOversize) throw new Error(withPartsOversize);
+        // 実体が操作パネルの部品だけの見本は、重ねても図には出ない (#1017)。 場所は確保される
+        // ため「置いたのに見えない」 状態になる。 黙って置くと綴りを疑うことになるので知らせる
+        for (const p of parts) {
+          if (partDrawsInDiagram(p.item.diagram)) continue;
+          notices.push({
+            kind: "relative-position-ignored",
+            actor: p.id,
+            line: 0,
+            message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、重ねても図には出ません。`,
+            hint: "操作パネルの部品として使う見本です",
+          });
+        }
         // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
         // ここで作った 1 つを共有する (渡さないと中でもう一度計算する、 #1006)
         const built = buildAndValidate(d);

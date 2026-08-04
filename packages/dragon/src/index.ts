@@ -50,11 +50,14 @@ export { measureActorBoxes } from "./compile";
 // 座標と間隔は見えている箱で測る (#937 / #1014)。
 // `大きさ:` の倍率は `partTargetScale` が持つ。 画面側も同じ規則で拡大しないと、
 // 書いた見本だけ経路で大きさが変わる (#1018)。
+// `partDrawsInDiagram` = その見本が図の中に描かれる部品を持つか。 実体が操作パネルの
+// 部品だけの見本 (catalog 80 件中 17 件) は重ねても図に出ないため、画面側が知らせる (#1017)。
 export {
   partRenderSize,
   partVisualSize,
   partBoxInFrame,
   partTargetScale,
+  partDrawsInDiagram,
   partsGridCenters,
 } from "./compile";
 // 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を
