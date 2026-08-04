@@ -747,50 +747,70 @@ function partExtent(
  * 組み立てに失敗する図では、 既定の大きさに落とす (呼出側は catalog を渡すので通常起きない)。
  */
 export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
-  // 組み立てと違い、 ここは画面を描くたびに呼ばれる。 大きすぎる図を渡されると
-  // 1 回の描画で画面が止まるため、 測る前に止める。 上限は組み立て側と同じ物差しを使う
-  // (#1005)。 catalog の見本は数十要素なので、 通常の呼出はここに掛からない
-  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return { w: 400, h: 200 };
-  try {
-    const vb = layout(part).viewBox;
-    const w = positiveOr(vb.w, 400);
-    const h = positiveOr(vb.h, 200);
-    return { w, h };
-  } catch {
-    return { w: 400, h: 200 };
-  }
+  const g = partFrameGeometry(part);
+  return { w: g.w, h: g.h };
 }
 
 /**
- * 図枠の左上から、 箱の外接矩形の左上までの余白 (パーツ自身の座標)。
+ * 見本 1 個の図枠と、 図枠の左上から箱の左上までの余白。
  *
- * 図枠は箱の周りに余白を持つ。 実測では左 60 / 上 60 / 右 85 / 下 60 で、 左右が非対称。
- * 図枠を置き場所の物差しにする時、 この余白を引かないと箱の位置が合わない。
+ * 図枠の大きさと余白は同じ配置計算から出るので、 1 回で両方を取る。 別々に呼ぶと同じ図を
+ * 2 度組み立てることになり、 パーツを 1 個置くたびに配置計算が 2 回走る。
  *
- * 測れない図では 0 を返す。 呼出側は図枠と箱の左上が同じ扱いになり、 余白のぶんだけ
- * ずれるが、 描けない座標にはならない。
+ * 結果は見本ごとに覚えておく。 catalog の見本は複数の別名から同じものを指すため、 覚えないと
+ * 別名の数だけ組み立て直す (相対指定があると 1 個につき 4 回になる)。 覚えるのは大きさだけで、
+ * 色などの見た目は含まないため、 呼出側が色を差し替えても古い値にはならない。
+ *
+ * 組み立てと違い画面を描くたびに呼ばれるので、 大きすぎる図は測る前に止める。 上限は
+ * 組み立て側と同じ物差しを使う (#1005)。 catalog の見本は数十要素なので通常は掛からない。
+ *
+ * 測れない図では既定の大きさと余白 0 に落とす。
  */
-function partFramePadding(part: CdlDiagram): { left: number; top: number } {
-  const none = { left: 0, top: 0 };
-  if (countDiagramElements(part) > MAX_INPUT_ELEMENTS) return none;
-  try {
-    const own = layout(part);
-    if (own.nodes.length === 0) return none;
-    let x0 = Infinity;
-    let y0 = Infinity;
-    for (const n of own.nodes) {
-      x0 = Math.min(x0, n.cx - n.w / 2);
-      y0 = Math.min(y0, n.cy - n.h / 2);
+const PART_FRAME_CACHE = new WeakMap<
+  CdlDiagram,
+  { w: number; h: number; left: number; top: number }
+>();
+
+function partFrameGeometry(part: CdlDiagram): {
+  w: number;
+  h: number;
+  left: number;
+  top: number;
+} {
+  const cached = PART_FRAME_CACHE.get(part);
+  if (cached) return cached;
+  const fallback = { w: 400, h: 200, left: 0, top: 0 };
+  let out = fallback;
+  if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
+    try {
+      const own = layout(part);
+      const vb = own.viewBox;
+      const w = positiveOr(vb.w, 400);
+      const h = positiveOr(vb.h, 200);
+      if (own.nodes.length === 0) {
+        out = { w, h, left: 0, top: 0 };
+      } else {
+        let x0 = Infinity;
+        let y0 = Infinity;
+        for (const n of own.nodes) {
+          x0 = Math.min(x0, n.cx - n.w / 2);
+          y0 = Math.min(y0, n.cy - n.h / 2);
+        }
+        const left = x0 - vb.x;
+        const top = y0 - vb.y;
+        out = {
+          w,
+          h,
+          left: Number.isFinite(left) ? left : 0,
+          top: Number.isFinite(top) ? top : 0,
+        };
+      }
+    } catch {
+      out = fallback;
     }
-    const left = x0 - own.viewBox.x;
-    const top = y0 - own.viewBox.y;
-    return {
-      left: Number.isFinite(left) ? left : 0,
-      top: Number.isFinite(top) ? top : 0,
-    };
-  } catch {
-    return none;
   }
+  PART_FRAME_CACHE.set(part, out);
+  return out;
 }
 
 /**
@@ -804,9 +824,13 @@ function partFramePadding(part: CdlDiagram): { left: number; top: number } {
  * 中心で合わせると、 高さの差の半分だけ上端がずれて段内の揃いが崩れる (実測で 12.5)。
  * 左上で合わせれば、 高さが変わっても上端は動かない。
  *
- * 図枠の大きさは倍率を掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で描くため、
- * ここで掛けると確保する場所だけが変わって画面とずれる。 掛かるのは箱の側 (`partExtent`) で、
- * `大きさ:` を書いたパーツは箱が縮んだまま図枠ぶんの場所を確保する。
+ * 図枠の大きさに倍率 (`大きさ:`) は掛けない。 画面側が `大きさ:` を見ずに catalog の図枠で
+ * 描くため、 ここで掛けると確保する場所だけが変わって画面とずれる。
+ *
+ * ただし `大きさ:` で図枠より大きくした箱は、 図枠だけを確保すると隣に重なる (実測 =
+ * `大きさ: 2000,300` の箱が x=60..2060 に伸び、 隣が 725 から始まって 1335 重なった)。
+ * 確保するのは図枠と箱の両方を含む矩形にする。 `大きさ:` を書かなければ図枠が箱を包むので、
+ * 和は図枠と一致して 2 経路の一致は保たれる。
  */
 function partFrameExtent(
   part: CdlDiagram,
@@ -814,13 +838,19 @@ function partFrameExtent(
   targetH?: number,
 ): { w: number; h: number; dx: number; dy: number } {
   const box = partExtent(part, targetW, targetH);
-  const frame = partRenderSize(part);
-  const pad = partFramePadding(part);
+  const frame = partFrameGeometry(part);
+  // merge に渡す座標を原点にした時の、 図枠の中心
+  const frameDx = box.dx + frame.w / 2 - frame.left - box.w / 2;
+  const frameDy = box.dy + frame.h / 2 - frame.top - box.h / 2;
+  const x0 = Math.min(frameDx - frame.w / 2, box.dx - box.w / 2);
+  const x1 = Math.max(frameDx + frame.w / 2, box.dx + box.w / 2);
+  const y0 = Math.min(frameDy - frame.h / 2, box.dy - box.h / 2);
+  const y1 = Math.max(frameDy + frame.h / 2, box.dy + box.h / 2);
   return {
-    w: frame.w,
-    h: frame.h,
-    dx: box.dx + frame.w / 2 - pad.left - box.w / 2,
-    dy: box.dy + frame.h / 2 - pad.top - box.h / 2,
+    w: positiveOr(x1 - x0, frame.w),
+    h: positiveOr(y1 - y0, frame.h),
+    dx: Number.isFinite((x0 + x1) / 2) ? (x0 + x1) / 2 : frameDx,
+    dy: Number.isFinite((y0 + y1) / 2) ? (y0 + y1) / 2 : frameDy,
   };
 }
 
@@ -933,10 +963,19 @@ function partGridCenters(
   //
   // 名札 (`title`) だけを見ると、 順序図で 1 人につき作られる 3 つの箱のうち間隔用のものが
   // 漏れる (名札が空のため)。 パーツ 1 個につき 1 つ残り、 格子の起点が 1 段ぶん下がって
-  // 画面側とずれていた (実測 = 縦が 840 = 3 段ぶん違った)。 属する列 (`lane`) でも見る
+  // 画面側とずれていた (実測 = 縦が 840 = 3 段ぶん違った)。
+  //
+  // 属する列で特定するが、 列の id は名前を slug に変換して作るため名前とは一致しない
+  // (実測 = `My Part` の列 id は `My-Part`)。 名前で引くと記号を含む名前だけ取りこぼす。
+  // 列の `label` は slug の経路によらず名前の生値を持つので、 そちらで引く (§ merge の
+  // 仮の箱の掃除が同じ方法を採っている)
   const partsActorNames = new Set(partsActors.map((a) => a.name));
+  const partsLaneIds = new Set<string>();
+  for (const l of target.lanes) {
+    if (l.label !== undefined && partsActorNames.has(l.label)) partsLaneIds.add(l.id);
+  }
   const baseNodes = target.nodes.filter(
-    (n) => !partsActorNames.has(n.title) && !partsActorNames.has(n.lane),
+    (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane),
   );
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
   for (const a of autoActors) {

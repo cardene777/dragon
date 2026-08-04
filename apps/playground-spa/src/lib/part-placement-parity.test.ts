@@ -141,6 +141,91 @@ actors:
     expect(tops[2], "段を 2 つ持つパーツだけ上端がずれている").toBeCloseTo(tops[0]!, 1);
   });
 
+  it("記号を含む名前でも同じ場所になる", () => {
+    // 列の id は名前を slug に変換して作るため、 名前で引くと記号を含む名前だけ取りこぼす。
+    // 取りこぼすと格子の起点が 1 段ぶん下がる (実測 = 1140 に対し 1420)
+    const named = `title: "t"
+type: sequence
+
+actors:
+  - 本体: {}
+  - "My Part": { kind: wide }
+`;
+    const lib = libraryCenters(named);
+    const scr = screenCenters(named);
+    expect(scr.get("My Part")!.cx, "横がずれている").toBeCloseTo(lib.get("My Part")!.cx, 1);
+    expect(scr.get("My Part")!.cy, "縦がずれている").toBeCloseTo(lib.get("My Part")!.cy, 1);
+  });
+
+  it("大きさを書いて図枠より大きくしても隣に重ならない", () => {
+    // 図枠だけを確保すると、 大きさで広げた箱が隣に重なる
+    // (実測 = x=60..2060 の箱の隣が 725 から始まり 1335 重なった)
+    const sized = `title: "t"
+type: sequence
+
+actors:
+  - 本体: {}
+  - big:
+      kind: wide
+      大きさ: 2000,300
+  - next: { kind: small }
+`;
+    const laid = layout(textDslToDiagram(sized, { partsCatalog: CATALOG }));
+    const spanOf = (alias: string): { x0: number; x1: number } => {
+      const ns = laid.nodes.filter((n) => n.id.startsWith(`${alias}__`));
+      return {
+        x0: Math.min(...ns.map((n) => n.cx - n.w / 2)),
+        x1: Math.max(...ns.map((n) => n.cx + n.w / 2)),
+      };
+    };
+    const big = spanOf("big");
+    const next = spanOf("next");
+    expect(big.x1 - big.x0, "大きさが効いていない").toBeGreaterThan(1000);
+    expect(next.x0, `隣に重なっている (${big.x1} と ${next.x0})`).toBeGreaterThanOrEqual(big.x1);
+  });
+
+  it("箱を持たないパーツでも場所が決まる", () => {
+    // 実体を readout で描くパーツは箱が 1x1 しかない。 箱を物差しにすると場所が潰れる
+    const boxless: CdlDiagram = {
+      id: "parts-ring",
+      topic: "ring",
+      lanes: [{ id: "l", x: 0, width: 400 }],
+      nodes: [
+        { id: "hidden", lane: "l", stack: 0, kind: "actor", w: 1, h: 1 },
+      ] as CdlDiagram["nodes"],
+      edges: [],
+      states: [{ id: "v", initial: 50 }],
+      phases: [
+        { id: "p", duration: 1000, title: "静止", body: "", activate: [], tweens: [], sets: [] },
+      ] as CdlDiagram["phases"],
+      readouts: [
+        { id: "ring", kind: "gauge", source: "{v}", nodeId: "hidden" },
+      ] as unknown as CdlDiagram["readouts"],
+    };
+    const cat = { ...CATALOG, ring: boxless, "parts-ring": boxless };
+    const items = [...ITEMS, { id: "parts-ring", title: "ring", diagram: boxless } as CatalogItem];
+    const kinds = { ...KIND_SET, ring: {}, "parts-ring": {} };
+    const withRing = `title: "t"
+type: sequence
+
+actors:
+  - 本体: {}
+  - r: { kind: ring }
+  - w: { kind: wide }
+`;
+    const laid = layout(textDslToDiagram(withRing, { partsCatalog: cat }));
+    const ring = laid.nodes.filter((n) => n.id.startsWith("r__"));
+    expect(ring.length, "パーツが取り込まれていない").toBeGreaterThan(0);
+
+    const parsed = extractPartsFromSrc(withRing, kinds, items);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const r = placed.find((p) => p.id === "r")!;
+    const w = placed.find((p) => p.id === "w")!;
+    // 箱を物差しにすると幅 1 の列になって重なる。 図枠なら離れる
+    expect(Math.abs(r.posX - w.posX), "画面側でパーツが重なっている").toBeGreaterThan(100);
+  });
+
   it("パーツを 4 個置くと 2 段目に折り返す", () => {
     // 1 段 3 個。 折り返しの規則も 2 経路で同じであることを見る
     const four = `title: "t"
