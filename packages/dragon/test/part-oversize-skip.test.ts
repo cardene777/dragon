@@ -8,7 +8,7 @@
  * 黙って落とすと「書いたのに出ない」 になり、綴りを疑うことになる。
  */
 import { describe, it, expect } from "vitest";
-import { diagram } from "@cardenelabs/cdl";
+import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
   textDslToDiagram,
@@ -118,6 +118,76 @@ flow:
     expect(d.nodes.filter((n) => n.id.startsWith("bad__")).length, "落とせていない").toBe(0);
     expect(d.nodes.filter((n) => n.id.startsWith("good__")).length, "巻き添えで落ちた").toBeGreaterThan(0);
     expect(d.nodes.some((n) => n.id.includes("web") || n.lane === "Web"), "本体が消えた").toBe(true);
+  });
+
+  it("落とした見本は格子の枠を使わない", () => {
+    // 枠を使うと、落とした見本の分だけ後続がずれる (実測 = 左端が 60 から 725 に動いた)
+    const head = `title: "t"\ntype: flow\nactors:\n  - Web: service\n`;
+    const tail = `\nflow:\n  - Web -> Web: "x"\n`;
+    const big = makeOversize();
+    const cat = { big, "parts-big": big, ok: OK, "parts-ok": OK };
+    const leftOf = (src: string, alias: string): number => {
+      const laid = layout(textDslToDiagram(src, { partsCatalog: cat }));
+      const ns = laid.nodes.filter((n) => n.id.startsWith(`${alias}__`));
+      return Math.min(...ns.map((n) => n.cx - n.w / 2));
+    };
+    const alone = leftOf(`${head}  - good: { kind: ok }\n${tail}`, "good");
+    const withBad = leftOf(`${head}  - bad: { kind: big }\n  - good: { kind: ok }\n${tail}`, "good");
+    expect(withBad, "落とした見本が枠を使って後続がずれている").toBeCloseTo(alone, 1);
+  });
+
+  it("合計で上限を超える分も落とす", () => {
+    // 1 件ずつは上限以下でも、同じ見本を何度も参照すれば合計は超える
+    // (実測 = 1,001 要素の見本を 3 名で参照して最終図が 3,005 要素になった)
+    const b = diagram("half", { topic: "half" }).lane("l", { width: 400 });
+    for (let i = 0; i < Math.floor(MAX_INPUT_ELEMENTS * 0.6); i += 1) {
+      b.node(`n${i}`, { lane: "l", stack: i, kind: "card", title: `n${i}`, w: 100, h: 40 });
+    }
+    const half = b.build();
+    const notices: CompileNotice[] = [];
+    const d = textDslToDiagram(
+      `title: "t"\ntype: flow\nactors:\n  - Web: service\n  - a: { kind: half }\n  - c: { kind: half }\n\nflow:\n  - Web -> Web: "x"\n`,
+      { partsCatalog: { half, "parts-half": half }, onNotice: (n) => notices.push(n) },
+    );
+    expect(d.nodes.filter((n) => n.id.startsWith("a__")).length, "先に書いた分が落ちている").toBeGreaterThan(0);
+    expect(d.nodes.filter((n) => n.id.startsWith("c__")).length, "合計で超えた分を落としていない").toBe(0);
+    const n = notices.find((x) => x.kind === "part-not-drawn" && x.actor === "c");
+    expect(n, "知らせが出ていない").toBeDefined();
+    expect(n!.hint).toContain("図全体");
+  });
+
+  it("段の中身と読み取り部品も数える", () => {
+    // 段を 1 件として数えるだけだと、段の中に大量の指定を持つ図が素通りする
+    const withPhases = {
+      id: "p",
+      topic: "p",
+      lanes: [{ id: "l", x: 0, width: 400 }],
+      nodes: [{ id: "n", lane: "l", stack: 0, kind: "card", title: "n", w: 100, h: 40 }],
+      edges: [],
+      states: [],
+      phases: [
+        {
+          id: "ph",
+          duration: 1000,
+          title: "t",
+          body: "",
+          activate: Array.from({ length: MAX_INPUT_ELEMENTS + 1 }, (_, i) => `n${i}`),
+          tweens: [],
+          sets: [],
+        },
+      ],
+    } as unknown as CdlDiagram;
+    expect(countDiagramElements(withPhases), "段の中身を数えていない").toBeGreaterThan(
+      MAX_INPUT_ELEMENTS,
+    );
+    expect(partIsMeasurable(withPhases), "段の中身だけで超えた図を通している").toBe(false);
+  });
+
+  it("知らせに名前が入る", () => {
+    const got = build(makeOversize());
+    const n = got.notices.find((x) => x.kind === "part-not-drawn")!;
+    expect(n.actor, "どの見本かが分からない").toBe("p");
+    expect(n.line).toBe(0);
   });
 
   it("判定そのもの", () => {

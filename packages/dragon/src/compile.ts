@@ -1102,6 +1102,34 @@ export function partsGridCenters(
 }
 
 /**
+ * 取り込んでよい見本の名前 (#1015)。
+ *
+ * 1 件ずつが上限以下でも、同じ見本を別名で何度も参照すれば合計は上限を超える
+ * (実測 = 1,001 要素の見本を 3 名で参照して最終図が 3,005 要素になった)。
+ * 本体の分を引いた残りを予算とし、本文に書かれた順に配る。
+ *
+ * 順に配るのは、どれを落とすかを決める規則が要るため。 先に書いたものを優先する形なら、
+ * 書いた人から見て「後ろが落ちる」 と読める。
+ */
+function partsBudget(
+  target: CdlDiagram,
+  partsActors: ReadonlyArray<{ name: string; partId?: string }>,
+  partsCatalog: Record<string, CdlDiagram>,
+): Set<string> {
+  const accepted = new Set<string>();
+  let used = countDiagramElements(target);
+  for (const a of partsActors) {
+    const part = lookupPart(partsCatalog, a.partId);
+    if (part === undefined) continue;
+    const cost = countDiagramElements(part);
+    if (used + cost > MAX_INPUT_ELEMENTS) continue;
+    used += cost;
+    accepted.add(a.name);
+  }
+  return accepted;
+}
+
+/**
  * 位置を書かなかったパーツの、 merge に渡す座標。
  *
  * 格子の規則は `partsGridCenters` が持つ。 merge は矩形の中心を渡された座標に合わせるので、
@@ -1111,6 +1139,8 @@ function partGridCenters(
   target: CdlDiagram,
   doc: DslDocument,
   partsCatalog: Record<string, CdlDiagram>,
+  /** 取り込む見本の名前。 渡さなければ全部を並べる */
+  accepted?: ReadonlySet<string>,
 ): Map<string, { cx: number; cy: number }> {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   // 格子に並ぶのは座標を 1 つも書かず相対でも書かなかった分だけ。
@@ -1157,20 +1187,23 @@ function partGridCenters(
   const baseNodes = target.nodes.filter(
     (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane),
   );
+  // 取り込まれない見本は格子の枠を使わない (#1015)。 枠を使うと、落とした見本の分だけ
+  // 後続がずれる (実測 = 隣の見本の左端が 60 から 725 に動いた)
+  const placedActors = autoActors.filter(
+    (a) =>
+      lookupPart(partsCatalog, a.partId) !== undefined &&
+      (accepted === undefined || accepted.has(a.name)),
+  );
   const extents = new Map<string, { w: number; h: number; dx: number; dy: number }>();
-  for (const a of autoActors) {
-    const part = lookupPart(partsCatalog, a.partId);
-    if (!part) {
-      extents.set(a.name, { w: 400, h: 200, dx: 0, dy: 0 });
-      continue;
-    }
+  for (const a of placedActors) {
+    const part = lookupPart(partsCatalog, a.partId)!;
     // 格子は図枠で決める。 画面側も図枠をそのまま置くので、 同じ物差しで並べれば
     // 2 経路の置き場所が揃う (#937)
     extents.set(a.name, partFrameExtent(part, a.posW, a.posH));
   }
   const centers = partsGridCenters(
     baseNodes.length,
-    autoActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
+    placedActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
   );
   // merge に渡すのは段の中心。 矩形の中心とのずれを引く。 引かないと、 段ごとに箱の高さが
   // 違うパーツで段内の上端が揃わない (実測 = 対称なパーツの上端 520 に対して 507.5)
@@ -1254,7 +1287,13 @@ function mergePartsFromActors(
   //
   // 以前はここで格子を組んでいたが、 相対指定を解く側も同じ位置を知る必要がある。
   // 別々に計算すると、 解決側が想定した位置と実際の置き場所がずれる。 規則を共有する。
-  const gridCenters = partGridCenters(target, doc, partsCatalog);
+  // 取り込んでよい合計を先に決める (#1015)。 1 件ずつ上限以下でも、同じ見本を別名で何度も
+  // 参照すれば合計は上限を超える (実測 = 1,001 要素の見本を 3 名で参照して 3,005 要素になった)。
+  // 本体の分を引いた残りを予算として、順に配って超えた分を落とす。
+  //
+  // 格子より先に決める。 後にすると、落とす見本が格子の枠を消費して後続がずれる
+  const budget = partsBudget(target, partsActors, partsCatalog);
+  const gridCenters = partGridCenters(target, doc, partsCatalog, budget);
 
   for (const actor of partsActors) {
     const partId = actor.partId;
@@ -1263,15 +1302,19 @@ function mergePartsFromActors(
     // Object.hasOwn 経由で確認する。
     if (typeof partId !== "string" || partId.length === 0) continue;
     const found = lookupPartRaw(partsCatalog, partId);
-    // 見つかっても測れない図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
-    // なるため、見つからなかった時と分けて知らせる
-    if (found !== undefined && !partIsMeasurable(found)) {
+    // 見つかっても大きすぎる図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
+    // なるため、見つからなかった時と分けて知らせる。
+    // 1 件では収まっても合計で超える分も同じく落とす
+    if (found !== undefined && !budget.has(actor.name)) {
+      const overOne = !partIsMeasurable(found);
       onNotice?.({
         kind: "part-not-drawn",
         actor: actor.name,
         line: 0,
         message: `"${actor.name}" (${partId}) は大きすぎるため取り込みません。`,
-        hint: `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`,
+        hint: overOne
+          ? `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`
+          : `図全体の要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えます`,
       });
       continue;
     }
