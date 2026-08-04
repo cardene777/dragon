@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { diagram, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram, measureActorBoxes } from "@cardenelabs/dragon";
-import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect } from "./overlay-dsl";
+import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect, partFrameSize } from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 /** 見本のパーツ。 段の数と大きさを変えて作る。 */
@@ -317,6 +317,78 @@ flow:
       Math.min(...own.nodes.map((n) => n.cx - n.w / 2));
     const scrCx = p.posX + pad.left + boxW / 2;
     expect(scrCx, "書いた座標の指す場所が経路で違う").toBeCloseTo(libCx, 1);
+  });
+
+  it("大きさを書いたパーツが 2 経路で同じ大きさになる", () => {
+    // 画面側が `大きさ:` を読まなかった頃は、組み立て側だけが伸び、それを基準にした
+    // 相対指定が 800 ずれていた (#1018)
+    const sized = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: 1000,500
+      大きさ: 2000,300
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(sized, { partsCatalog: CATALOG }));
+    const ns = laid.nodes.filter((n) => n.id.startsWith("a__"));
+    const libW =
+      Math.max(...ns.map((n) => n.cx + n.w / 2)) - Math.min(...ns.map((n) => n.cx - n.w / 2));
+
+    const parsed = extractPartsFromSrc(sized, KIND_SET, ITEMS);
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    expect(a.posW, "大きさが読めていない").toBe(2000);
+    expect(a.posH, "大きさが読めていない").toBe(300);
+    expect(partBoxRect(a).w, "画面側の箱が組み立て側と違う").toBeCloseTo(libW, 1);
+  });
+
+  it("大きさを書いたパーツを基準にした相対でも 2 経路で同じになる", () => {
+    const chain = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - a:
+      kind: wide
+      位置: 1000,500
+      大きさ: 2000,300
+  - b:
+      kind: small
+      位置: a の右 200
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(chain, { partsCatalog: CATALOG }));
+    const bs = laid.nodes.filter((n) => n.id.startsWith("b__"));
+    const libLeft = Math.min(...bs.map((n) => n.cx - n.w / 2));
+
+    const parsed = extractPartsFromSrc(chain, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const b = placed.find((x) => x.id === "b")!;
+    expect(b.posX + partBoxRect(b).left, "基準の幅が経路で違う").toBeCloseTo(libLeft, 1);
+  });
+
+  it("大きさを書くと描く大きさも同じだけ伸びる", () => {
+    // 箱だけ伸ばして描く大きさを据え置くと、置き場所と絵が食い違う
+    const parsed = extractPartsFromSrc(
+      `actors:\n  - a:\n      kind: wide\n      大きさ: 2000,300\n  - b:\n      kind: wide\n`,
+      KIND_SET,
+      ITEMS,
+    );
+    const a = parsed.parts.find((x) => x.id === "a")!;
+    const b = parsed.parts.find((x) => x.id === "b")!;
+    const ratio = partBoxRect(a).w / partBoxRect(b).w;
+    expect(partFrameSize(a).w / partFrameSize(b).w, "描く大きさに倍率が掛かっていない").toBeCloseTo(
+      ratio,
+      1,
+    );
   });
 
   it("本体と同じ名前のパーツでも本体に重ならない", () => {

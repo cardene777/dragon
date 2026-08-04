@@ -6,7 +6,6 @@ import {
   measureActorBoxes,
   writeActorPosition,
   isColorValue,
-  partRenderSize,
   stripExternalPaint,
   describeOversize,
   describeOversizeSource,
@@ -19,7 +18,7 @@ import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, normalizePartScale } from "@/lib/overlay-dsl";
+import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, partFrameSize, normalizePartScale } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
@@ -610,11 +609,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   useEffect(() => { overlayPartsRef.current = overlayParts; }, [overlayParts]);
   const worldOriginRef = useRef({ x: 0, y: 0 });
 
-  // パーツを描く大きさ (#937)。 `partRenderSize` は中で配置計算を回すので、 render のたびに
-  // 数えると移動中の 1 frame に載る (実測 = 80 件で 160 回 0.74ms)。 パーツが変わった時だけ
-  // 数えて、 style と表示合わせで同じ 1 つを見る
+  // パーツを描く大きさ (#937)。 中で配置計算を回すので、 render のたびに数えると移動中の
+  // 1 frame に載る (実測 = 80 件で 160 回 0.74ms)。 パーツが変わった時だけ数えて、
+  // style と表示合わせで同じ 1 つを見る。
+  //
+  // `大きさ:` を書いた分の伸縮を含む (#1018)。 含めないと、書いた見本だけ画面が元の大きさで
+  // 描き、組み立て側と絵が変わる
   const partSizes = useMemo(
-    () => new Map(overlayParts.map((p) => [p.id, partRenderSize(p.item.diagram)])),
+    () => new Map(overlayParts.map((p) => [p.id, partFrameSize(p)])),
     [overlayParts],
   );
 

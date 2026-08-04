@@ -653,6 +653,57 @@ function minOf(values: readonly number[], fallback: number): number {
 const PART_STACK_PITCH = 220;
 
 /**
+ * `大きさ:` を書いた時に、見本を何倍にするか (#1018)。
+ *
+ * 横は縦列の幅、縦は段の数から出す。 どちらも書かなければ 1 倍。
+ *
+ * **縦は「書いた高さにする」 ではなく「段の送り幅の合計に対する倍率」**。 `大きさ: 2000,300` を
+ * 1 段の見本に書くと、横は 2000 になるが縦は 300 ではなく 409 になる (段の送り幅 220 に対して
+ * 300 なので 1.36 倍、それが箱の高さ 300 に掛かる)。 意図した仕様かは怪しいが、既に本文が
+ * この前提で書かれているため変えない。 画面側も同じ規則で拡大する。
+ *
+ * 組み立て側 (`partExtent`) と画面側 (playground) の両方から呼ぶ。 別々に持つと、`大きさ:` を
+ * 書いた見本だけ経路で大きさが変わる。
+ */
+export function partTargetScale(
+  part: CdlDiagram,
+  targetW?: number,
+  targetH?: number,
+): { x: number; y: number } {
+  const none = { x: 1, y: 1 };
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return none;
+  if (part.nodes.length === 0) return none;
+
+  let x = 1;
+  if (targetW !== undefined && targetW > 0) {
+    const lefts: number[] = [];
+    const rights: number[] = [];
+    for (const l of part.lanes) {
+      const lx = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
+      const lw = positiveOr(l.width, 400);
+      lefts.push(lx);
+      rights.push(lx + lw);
+    }
+    const bboxW = positiveOr(maxOf(rights, 400) - minOf(lefts, 0), 400);
+    x = targetW / bboxW;
+  }
+
+  let y = 1;
+  if (targetH !== undefined && targetH > 0) {
+    const stacks = part.nodes.map((n) =>
+      typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+    );
+    const origH = Math.max(1, (maxOf(stacks, 0) - minOf(stacks, 0) + 1) * PART_STACK_PITCH);
+    y = targetH / origH;
+  }
+
+  return {
+    x: Number.isFinite(x) && x > 0 ? x : 1,
+    y: Number.isFinite(y) && y > 0 ? y : 1,
+  };
+}
+
+/**
  * パーツ 1 個が図の上で占める外接矩形。
  *
  * `w` / `h` は大きさ、 `dx` / `dy` は矩形の中心が「merge に渡す座標」 からどれだけずれるか。
@@ -690,7 +741,7 @@ function partExtent(
   }
   const bboxW = positiveOr(maxOf(laneRights, 400) - minOf(laneLefts, 0), 400);
   const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
-  const scaleX = targetW !== undefined && targetW > 0 ? targetW / bboxW : 1;
+  const { x: scaleX, y: scaleY } = partTargetScale(part, targetW, targetH);
 
   const stacks = part.nodes.map((n) =>
     typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
@@ -698,8 +749,6 @@ function partExtent(
   const maxStack = maxOf(stacks, 0);
   const minStack = minOf(stacks, 0);
   const centerStack = (minStack + maxStack) / 2;
-  const origH = Math.max(1, (maxStack - minStack + 1) * PART_STACK_PITCH);
-  const scaleY = targetH !== undefined && targetH > 0 ? targetH / origH : 1;
 
   // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
   const tops: number[] = [];

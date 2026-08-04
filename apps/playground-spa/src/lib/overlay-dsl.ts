@@ -11,6 +11,7 @@ import {
   partsGridCenters,
   partRenderSize,
   partBoxInFrame,
+  partTargetScale,
   isColorValue,
   type RelativePos,
   type AnchorBox,
@@ -43,6 +44,9 @@ export type OverlayPartParsed = Omit<OverlayPartRaw, "posX" | "posY"> & {
   posY?: number;
   /** 他の要素を基準にして書かれた位置 */
   posRel?: RelativePos;
+  /** `大きさ:` で書かれた寸法。 倍率の求め方は `partTargetScale` が持つ (#1018) */
+  posW?: number;
+  posH?: number;
 };
 
 /**
@@ -82,8 +86,23 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  */
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
   const k = normalizePartScale(part.scale);
-  const e = partRenderSize(part.item.diagram);
+  const e = partFrameSize(part);
   return { w: e.w * k, h: e.h * k };
+}
+
+/**
+ * パーツ 1 個を描く大きさ (倍率 `scale:` を掛ける前)。
+ *
+ * `大きさ:` を書いた分だけ図枠を伸縮する。 倍率の求め方は組み立て側と同じ関数を使う
+ * (`partTargetScale`)。 別々に持つと、`大きさ:` を書いた見本だけ経路で大きさが変わる (#1018)。
+ *
+ * `scale:` は CSS の `transform` で掛けるため、ここでは掛けない。 画面に渡す助変数
+ * (`--cdl-svg-w/h`) はこの値をそのまま使う。
+ */
+export function partFrameSize(part: OverlayPartParsed): { w: number; h: number } {
+  const e = partRenderSize(part.item.diagram);
+  const t = partTargetScale(part.item.diagram, part.posW, part.posH);
+  return { w: e.w * t.x, h: e.h * t.y };
 }
 
 /**
@@ -113,7 +132,13 @@ export function partBoxRect(part: OverlayPartParsed): {
 } {
   const k = normalizePartScale(part.scale);
   const b = partBoxInFrame(part.item.diagram);
-  return { w: b.w * k, h: b.h * k, left: b.left * k, top: b.top * k };
+  const t = partTargetScale(part.item.diagram, part.posW, part.posH);
+  return {
+    w: b.w * t.x * k,
+    h: b.h * t.y * k,
+    left: b.left * t.x * k,
+    top: b.top * t.y * k,
+  };
 }
 
 /**
@@ -370,6 +395,7 @@ export function extractPartsFromSrc(
       scale: 1,
       rotate: 0,
       ...readPositionFromBlock(block.lines),
+      ...readSizeFromBlock(block.lines),
     });
   };
 
@@ -492,6 +518,30 @@ function readPositionFromBlock(
     if (abs) return { posX: Number(abs[1]), posY: Number(abs[2]) };
     const rel = parseRelativePos(value);
     if (rel) return { posRel: rel };
+  }
+  return {};
+}
+
+/**
+ * 縦に並べて書いた 1 件から `大きさ: 400,180` を読む。
+ *
+ * 読まないと、組み立て側だけが拡大して画面と大きさが変わる (実測 = `大きさ: 2000,300` の
+ * 見本が組み立て側 2000 幅、画面側 400 幅。それを基準にした相対指定が 800 ずれた)。
+ *
+ * 項目名は日本語でも英語でもよい (`位置:` と同じ)。 縦横どちらも正の数の時だけ受ける =
+ * 片方だけ書いた形は組み立て側も倍率 1 として扱うため、揃えておく。
+ */
+function readSizeFromBlock(lines: string[]): { posW?: number; posH?: number } {
+  for (const line of lines) {
+    const m = line.trim().match(/^(大きさ|size)\s*:\s*(.+)$/);
+    if (!m) continue;
+    const value = m[2]!.trim().replace(/^["']|["']$/g, "");
+    const wh = value.match(/^(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
+    if (!wh) continue;
+    const w = Number(wh[1]);
+    const h = Number(wh[2]);
+    if (!(w > 0) || !(h > 0)) continue;
+    return { posW: w, posH: h };
   }
   return {};
 }
