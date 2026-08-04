@@ -480,9 +480,18 @@ export function extractPartsFromSrc(
           // 中括弧の形で書いた寸法。 組み立て側はこの形の `posW` / `posH` を受けるので、
           // 読まないと同じ本文が画面側だけ元の大きさになる (#1018)。
           // `大きさ: 2000,300` は中括弧の中では深さ 0 の `,` で 2 つに割れるため、
-          // 組み立て側も受けない。 揃えて受けない
-          const posWMatch = num("posW");
-          const posHMatch = num("posH");
+          // 組み立て側も受けない。 揃えて受けない。
+          //
+          // 数の読み方は先頭の 10 進部分だけを取る `num` ではなく、値全体を数として読む。
+          // 組み立て側が `Number()` で読むため、`posW: 1e3` が画面側だけ 1 になる
+          const size = (key: string): number | undefined => {
+            const raw = readTopLevelField(inner, key);
+            if (raw === undefined || raw === null) return undefined;
+            const trimmed = raw.trim().replace(/^["']|["']$/g, "");
+            if (trimmed === "") return undefined;
+            const n = Number(trimmed);
+            return Number.isFinite(n) ? n : undefined;
+          };
           // 2026-07-26 CAR-2158 correctness fix = bg を parse する。
           // 旧実装は bg を無視していたため、 color picker で DSL に bg を書いても canvas に反映されなかった。
           const bgRaw = readTopLevelField(inner, "bg");
@@ -498,8 +507,8 @@ export function extractPartsFromSrc(
               posY: posXMatch && posYMatch ? parseFloat(posYMatch[1]!) : undefined,
               scale: scaleMatch ? normalizePartScale(parseFloat(scaleMatch[1]!)) : 1,
               rotate: rotateMatch ? parseFloat(rotateMatch[1]!) : 0,
-              posW: posWMatch ? parseFloat(posWMatch[1]!) : undefined,
-              posH: posHMatch ? parseFloat(posHMatch[1]!) : undefined,
+              posW: size("posW"),
+              posH: size("posH"),
               // 背景色は SVG の `fill` に直接入る。 色として読めない値を持ち回ると、
               // `url(https://...)` を書いた本文を共有された人の環境から外部へ要求が飛ぶ (#1004)。
               // 色でなければ「書かなかった」 扱いにして、 既定の見た目に戻す

@@ -672,7 +672,8 @@ export function partTargetScale(
 ): { x: number; y: number } {
   const none = { x: 1, y: 1 };
   if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return none;
-  if (part.nodes.length === 0) return none;
+  // 箱が 1 つも無い図でも縦列があれば取り込み側は伸縮する。 ここで 1 に倒すと、
+  // 箱を持たない外部の見本だけ画面が等倍のまま残る
 
   let x = 1;
   if (targetW !== undefined && targetW > 0) {
@@ -1483,7 +1484,11 @@ function mergePartIntoDiagram(
   // 期待 14 件が崩れた。 段を持つパーツ (実 catalog で 80 件中 7 件) の内部比率が実配置と
   // 3% ずれるが、 見た目の大きさは呼出側が揃えるため観測される差は無い
   const STACK_PITCH_APPROX = 220;
-  const partStacks = part.nodes.map((n) => n.stack ?? 0);
+  // 数でない段は 0 として扱う。 大きさを見積る側 (`partTargetScale`) が同じ判定をしており、
+  // ここだけ NaN を通すと段の数が NaN になって倍率が経路で食い違う (#1018)
+  const partStacks = part.nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
   const minStack = partStacks.length > 0 ? Math.min(...partStacks) : 0;
   const maxStack = partStacks.length > 0 ? Math.max(...partStacks) : 0;
   const partCenterStack = (minStack + maxStack) / 2;
