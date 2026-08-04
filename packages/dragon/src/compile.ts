@@ -752,10 +752,33 @@ export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
 }
 
 /**
- * 見本 1 個の図枠と、 図枠の左上から箱の左上までの余白。
+ * 図枠の中で、 箱の外接矩形がどこにどれだけの大きさで描かれるか (#1014)。
  *
- * 図枠の大きさと余白は同じ配置計算から出るので、 1 回で両方を取る。 別々に呼ぶと同じ図を
- * 2 度組み立てることになり、 パーツを 1 個置くたびに配置計算が 2 回走る。
+ * `left` / `top` は図枠の左上からの余白、 `w` / `h` は箱の大きさ。 図枠は 1 対 1 で描かれるので、
+ * 画面上の箱の位置は「図枠の左上 + `left`/`top`」 になる。
+ *
+ * 相対で書いた位置 (`位置: Web の右 200`) の間隔は、 見えている箱の縁から測る。 図枠の縁で
+ * 測ると余白のぶんだけ広がる (実測 = 200 と書いて画面では 260 空いた)。 画面側が間隔を解く時に
+ * 図枠ではなくこちらを使うことで、 組み立て側と同じ間隔になる。
+ *
+ * 測れない図では図枠と同じ大きさ・余白 0 を返す。 箱を持たない図でも同じで、 図枠がそのまま
+ * 箱として扱われる。
+ */
+export function partBoxInFrame(part: CdlDiagram): {
+  w: number;
+  h: number;
+  left: number;
+  top: number;
+} {
+  const g = partFrameGeometry(part);
+  return { w: g.boxW, h: g.boxH, left: g.left, top: g.top };
+}
+
+/**
+ * 見本 1 個の図枠と、 その中の箱の外接矩形 (位置と大きさ)。
+ *
+ * 図枠の大きさ・余白・箱の大きさは同じ配置計算から出るので、 1 回で全部を取る。 別々に呼ぶと
+ * 同じ図を何度も組み立てることになり、 パーツを 1 個置くたびに配置計算が 2 回走る。
  *
  * 結果は見本ごとに覚えておく。 catalog の見本は複数の別名から同じものを指すため、 覚えないと
  * 別名の数だけ組み立て直す (相対指定があると 1 個につき 4 回になる)。 覚えるのは大きさだけで、
@@ -766,20 +789,21 @@ export function partRenderSize(part: CdlDiagram): { w: number; h: number } {
  *
  * 測れない図では既定の大きさと余白 0 に落とす。
  */
-const PART_FRAME_CACHE = new WeakMap<
-  CdlDiagram,
-  { w: number; h: number; left: number; top: number }
->();
-
-function partFrameGeometry(part: CdlDiagram): {
+type PartFrameGeometry = {
   w: number;
   h: number;
   left: number;
   top: number;
-} {
+  boxW: number;
+  boxH: number;
+};
+
+const PART_FRAME_CACHE = new WeakMap<CdlDiagram, PartFrameGeometry>();
+
+function partFrameGeometry(part: CdlDiagram): PartFrameGeometry {
   const cached = PART_FRAME_CACHE.get(part);
   if (cached) return cached;
-  const fallback = { w: 400, h: 200, left: 0, top: 0 };
+  const fallback = { w: 400, h: 200, left: 0, top: 0, boxW: 400, boxH: 200 };
   let out = fallback;
   if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
     try {
@@ -788,13 +812,18 @@ function partFrameGeometry(part: CdlDiagram): {
       const w = positiveOr(vb.w, 400);
       const h = positiveOr(vb.h, 200);
       if (own.nodes.length === 0) {
-        out = { w, h, left: 0, top: 0 };
+        // 箱を持たない図では図枠をそのまま箱として扱う。 相対指定の間隔は図枠の縁から測る
+        out = { w, h, left: 0, top: 0, boxW: w, boxH: h };
       } else {
         let x0 = Infinity;
         let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
         for (const n of own.nodes) {
           x0 = Math.min(x0, n.cx - n.w / 2);
+          x1 = Math.max(x1, n.cx + n.w / 2);
           y0 = Math.min(y0, n.cy - n.h / 2);
+          y1 = Math.max(y1, n.cy + n.h / 2);
         }
         const left = x0 - vb.x;
         const top = y0 - vb.y;
@@ -803,6 +832,8 @@ function partFrameGeometry(part: CdlDiagram): {
           h,
           left: Number.isFinite(left) ? left : 0,
           top: Number.isFinite(top) ? top : 0,
+          boxW: positiveOr(x1 - x0, w),
+          boxH: positiveOr(y1 - y0, h),
         };
       }
     } catch {

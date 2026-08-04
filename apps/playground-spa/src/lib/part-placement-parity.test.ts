@@ -157,6 +157,73 @@ actors:
     expect(scr.get("My Part")!.cy, "縦がずれている").toBeCloseTo(lib.get("My Part")!.cy, 1);
   });
 
+  it("相対で書いた間隔が 2 経路で同じになる", () => {
+    // 間隔は見えている箱の縁から測る。 図枠の縁で測ると余白のぶん広がる
+    // (実測 = 200 と書いて画面側は 260 空いた)
+    const rel = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - p:
+      kind: wide
+      位置: Web の右 200
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(rel, { partsCatalog: CATALOG }));
+    const web = laid.nodes.filter((n) => !n.id.startsWith("p__"));
+    const part = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    const libGap =
+      Math.min(...part.map((n) => n.cx - n.w / 2)) - Math.max(...web.map((n) => n.cx + n.w / 2));
+    expect(libGap, "組み立て側の間隔が書いた値と違う").toBeCloseTo(200, 1);
+
+    const parsed = extractPartsFromSrc(rel, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const boxes = measureActorBoxes(base);
+    const placed = placeParts(parsed.parts, boxes, partWorldSize, base.nodes.length);
+    const p = placed.find((x) => x.id === "p")!;
+    const pad = framePadding(p.item.diagram);
+    const anchor = boxes.get("Web")!;
+    const scrGap = p.posX + pad.left - (anchor.cx + anchor.w / 2);
+    expect(scrGap, "画面側の間隔が書いた値と違う").toBeCloseTo(200, 1);
+  });
+
+  it("座標で書いたパーツも 2 経路で同じ場所になる", () => {
+    // 書いた座標は箱の中心を指す。 画面側が図枠の中心として扱うと、
+    // 余白が左右で違う分 (実測 12.5) だけずれる
+    const fixed = `title: "t"
+type: flow
+
+actors:
+  - Web: service
+  - p:
+      kind: wide
+      位置: 1000,500
+
+flow:
+  - Web -> Web: "x"
+`;
+    const laid = layout(textDslToDiagram(fixed, { partsCatalog: CATALOG }));
+    const part = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    const libCx =
+      (Math.min(...part.map((n) => n.cx - n.w / 2)) + Math.max(...part.map((n) => n.cx + n.w / 2))) /
+      2;
+
+    const parsed = extractPartsFromSrc(fixed, KIND_SET, ITEMS);
+    const base = textDslToDiagram(parsed.baseSrc);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const p = placed.find((x) => x.id === "p")!;
+    const pad = framePadding(p.item.diagram);
+    const own = layout(p.item.diagram);
+    const boxW =
+      Math.max(...own.nodes.map((n) => n.cx + n.w / 2)) -
+      Math.min(...own.nodes.map((n) => n.cx - n.w / 2));
+    const scrCx = p.posX + pad.left + boxW / 2;
+    expect(scrCx, "書いた座標の指す場所が経路で違う").toBeCloseTo(libCx, 1);
+  });
+
   it("本体と同じ名前のパーツでも本体に重ならない", () => {
     // 名札でも列でも本体と区別できない。 区別できない時に「パーツのもの」 として数から外すと、
     // 本体の箱まで消えてパーツが本体の中に入る (実測 = 上端が 1140 から 300 に飛んだ)。

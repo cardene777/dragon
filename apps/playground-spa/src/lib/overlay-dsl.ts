@@ -10,6 +10,7 @@ import {
   orderByDependency,
   partsGridCenters,
   partRenderSize,
+  partBoxInFrame,
   isColorValue,
   type RelativePos,
   type AnchorBox,
@@ -76,8 +77,8 @@ const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
  * 箱の値を渡すと縮んで、 置いた場所と描かれた大きさが食い違う (実測 = achievement が
  * 箱の値だと約 275x275 になった)。
  *
- * **組み立て側との一致はまだ取れていない**。 あちらの格子は箱の外接矩形で決めており、
- * 図枠に寄せると段内で上端が揃わなくなる。 格子の並べ方から変える必要があり #937 で続く。
+ * 使うのは **描く大きさと、 格子に並べる時の場所の確保** の 2 つ。 書いた座標と相対指定の
+ * 間隔は見えている箱で解くので、 そちらは `partBoxRect` を使う (#1014)。
  */
 export function partWorldSize(part: OverlayPartParsed): { w: number; h: number } {
   const k = normalizePartScale(part.scale);
@@ -98,17 +99,39 @@ export function normalizePartScale(value: number): number {
 }
 
 /**
+ * パーツ 1 個の、 見えている箱の大きさと図枠の中での位置 (world 単位)。
+ *
+ * 書いた座標と相対指定の間隔は、 見えている箱を基準にする。 図枠で解くと余白のぶんだけ
+ * ずれる (実測 = `Web の右 200` と書いて、 組み立て側は 200、 画面側は 260 空いた)。
+ * 組み立て側は箱で解いているので、 画面側も箱に合わせる (#1014)。
+ */
+export function partBoxRect(part: OverlayPartParsed): {
+  w: number;
+  h: number;
+  left: number;
+  top: number;
+} {
+  const k = normalizePartScale(part.scale);
+  const b = partBoxInFrame(part.item.diagram);
+  return { w: b.w * k, h: b.h * k, left: b.left * k, top: b.top * k };
+}
+
+/**
  * 読んだパーツに置き場所を決める。
  *
  * 位置を書いていないパーツは格子に並べる (従来通り)。 座標で書いたパーツと、 相対で書いた
  * パーツは、 書いた位置に置く。
  *
  * 書いた座標は箱の中心を指す。 登場人物の `位置:` と組み立て側のパーツ配置がどちらも中心
- * なので、 画面側だけ左上にすると同じ数字が別の場所を指すことになる。 画面に置く時に
- * 大きさの半分を引いて左上に直す。
+ * なので、 画面側だけ左上にすると同じ数字が別の場所を指すことになる。
  *
- * @param sizeOf パーツ 1 個の world 単位での大きさ。 中心と左上の変換に使う
+ * 返すのは **図枠の左上**。 画面は図枠を置くが、 座標と間隔は箱で解くため、 最後に余白を
+ * 引いて図枠の左上に直す。 格子だけは図枠で場所を決める (隣と重ならない幅を確保するのが
+ * 目的なので、 描く大きさそのものが要る)。
+ *
+ * @param sizeOf パーツ 1 個の図枠の大きさ。 格子に並べる時の場所の確保に使う
  * @param boxes 基準にできる要素の位置。 図の組み立て結果から測ったもの
+ * @param boxOf パーツ 1 個の見えている箱。 座標と間隔を解くのに使う (既定は `partBoxRect`)
  */
 export function placeParts(
   parsed: OverlayPartParsed[],
@@ -116,15 +139,23 @@ export function placeParts(
   sizeOf: (part: OverlayPartParsed) => { w: number; h: number },
   baseNodeCount: number,
   onNotice?: (notice: PartPlacementNotice) => void,
+  boxOf: (part: OverlayPartParsed) => {
+    w: number;
+    h: number;
+    left: number;
+    top: number;
+  } = partBoxRect,
 ): OverlayPartRaw[] {
   const byId = new Map(parsed.map((p) => [p.id, p] as const));
   const sizes = new Map(parsed.map((p) => [p.id, sizeOf(p)] as const));
-  // 基準に使える中心。 図の側の要素に、 座標で書いたパーツを足す
+  const boxRects = new Map(parsed.map((p) => [p.id, boxOf(p)] as const));
+  // 基準に使える中心。 図の側の要素に、 座標で書いたパーツを足す。
+  // 基準として出すのは箱で、 図枠ではない (組み立て側も箱を基準に出している)
   const centers = new Map<string, AnchorBox>(boxes);
   for (const p of parsed) {
     if (p.posX === undefined || p.posY === undefined) continue;
-    const s = sizes.get(p.id)!;
-    centers.set(p.id, { cx: p.posX, cy: p.posY, w: s.w, h: s.h });
+    const b = boxRects.get(p.id)!;
+    centers.set(p.id, { cx: p.posX, cy: p.posY, w: b.w, h: b.h });
   }
 
   // 相対で書いた分を、 基準の浅い順に解く
@@ -144,10 +175,10 @@ export function placeParts(
       });
       continue;
     }
-    const s = sizes.get(p.id)!;
-    const c = resolveRelativePos(p.posRel, anchor, s);
+    const b = boxRects.get(p.id)!;
+    const c = resolveRelativePos(p.posRel, anchor, b);
     resolved.set(p.id, c);
-    centers.set(p.id, { cx: c.posX, cy: c.posY, w: s.w, h: s.h });
+    centers.set(p.id, { cx: c.posX, cy: c.posY, w: b.w, h: b.h });
   }
   for (const name of cyclic) {
     const p = byId.get(name);
@@ -169,16 +200,24 @@ export function placeParts(
 
   return parsed.map((p) => {
     const s = sizes.get(p.id)!;
+    const b = boxRects.get(p.id)!;
     const explicit =
       p.posX !== undefined && p.posY !== undefined
         ? { posX: p.posX, posY: p.posY }
         : resolved.get(p.id);
+    // 書いた位置と相対で解いた位置は箱の中心。 図枠の左上に直すには、 箱の左上まで戻してから
+    // 余白のぶん外へ出す
+    if (explicit) {
+      return {
+        ...p,
+        posX: explicit.posX - b.w / 2 - b.left,
+        posY: explicit.posY - b.h / 2 - b.top,
+      };
+    }
+    // 格子は図枠で場所を決めるので、 返るのは図枠の中心。 半分引けば図枠の左上になる
     const gridCenter = grid.get(p.id);
-    const center = explicit ?? (gridCenter ? { posX: gridCenter.cx, posY: gridCenter.cy } : undefined);
-    // 書いた位置も格子も、 まず中心として求めてから左上に直す。 片方だけ中心のままにすると、
-    // 同じ数字が経路によって別の場所を指す
-    if (!center) return { ...p, posX: 0, posY: 0 };
-    return { ...p, posX: center.posX - s.w / 2, posY: center.posY - s.h / 2 };
+    if (!gridCenter) return { ...p, posX: 0, posY: 0 };
+    return { ...p, posX: gridCenter.cx - s.w / 2, posY: gridCenter.cy - s.h / 2 };
   });
 }
 

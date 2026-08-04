@@ -366,6 +366,13 @@ describe("appendActorLine (CAR-2158 Round 7 = CdlEditor から移設して test 
 describe("パーツの置き場所 (placeParts)", () => {
   /** どのパーツも 100x100 とみなす。 中心と左上の変換だけを見たいので大きさは固定する */
   const size = (): { w: number; h: number } => ({ w: 100, h: 100 });
+  /** 図枠と箱が同じ (余白なし) とみなす。 余白の効き方は parity test 側で見る */
+  const box = (): { w: number; h: number; left: number; top: number } => ({
+    w: 100,
+    h: 100,
+    left: 0,
+    top: 0,
+  });
   const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
   const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
     id: "p",
@@ -377,72 +384,47 @@ describe("パーツの置き場所 (placeParts)", () => {
   });
 
   it("座標で書いた中心を、 画面に置く左上に直す", () => {
-    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size, 1);
+    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size, 1, undefined, box);
     expect(p).toMatchObject({ posX: 250, posY: 150 });
   });
 
   it("相対で書いた分を基準の縁から離して置く", () => {
-    const [p] = placeParts(
-      [part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })],
-      boxes,
-      size,
-      1,
-    );
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })], boxes, size, 1, undefined, box);
     // 中心 = 500 + 100 (相手の半分) + 50 (間隔) + 50 (自分の半分) = 700、 左上はその半分手前
     expect(p!.posX).toBe(650);
     expect(p!.posY).toBe(250);
   });
 
   it("パーツを基準にしたパーツも置ける", () => {
-    const placed = placeParts(
-      [
+    const placed = placeParts([
         part({ id: "a", posX: 300, posY: 200 }),
         part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
-      ],
-      boxes,
-      size,
-      1,
-    );
+      ], boxes, size, 1, undefined, box);
     // a の中心 300 から、 縁 50 + 間隔 100 + 自分の半分 50 = 中心 500、 左上 450
     expect(placed[1]!.posX).toBe(450);
   });
 
   it("基準が連鎖しても書いた順に依らず解ける", () => {
-    const placed = placeParts(
-      [
+    const placed = placeParts([
         part({ id: "c", posRel: { anchor: "b", dir: "right", gap: 100 } }),
         part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
         part({ id: "a", posX: 300, posY: 200 }),
-      ],
-      boxes,
-      size,
-      1,
-    );
+      ], boxes, size, 1, undefined, box);
     const byId = new Map(placed.map((p) => [p.id, p]));
     expect(byId.get("b")!.posX).toBeGreaterThan(byId.get("a")!.posX);
     expect(byId.get("c")!.posX).toBeGreaterThan(byId.get("b")!.posX);
   });
 
   it("居ない相手を基準にした分は格子に落とす (図から消さない)", () => {
-    const [p] = placeParts(
-      [part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })],
-      boxes,
-      size,
-      1,
-    );
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1, undefined, box);
     expect(p!.posX).toBeGreaterThanOrEqual(0);
     expect(p!.posY).toBeGreaterThanOrEqual(0);
   });
 
   it("位置を書かない分だけで格子の番号を数える", () => {
     // 座標を書いた分を数えると、 1 個座標を書いただけで残りの並びがずれる
-    const withFixed = placeParts(
-      [part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })],
-      boxes,
-      size,
-      1,
-    );
-    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1);
+    const withFixed = placeParts([part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1, undefined, box);
+    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1, undefined, box);
     expect(withFixed[1]!.posX).toBe(onlyAuto[0]!.posX);
     expect(withFixed[2]!.posX).toBe(onlyAuto[1]!.posX);
   });
@@ -450,12 +432,7 @@ describe("パーツの置き場所 (placeParts)", () => {
   it("位置を書かない分は箱として重ならない", () => {
     // 座標が違うだけでは足りない。 送り幅が実寸より狭いと、 座標は違っても箱が重なる
     // (実測 = 380 前提で送って実寸 800 のパーツが 300 重なった)
-    const placed = placeParts(
-      [part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })],
-      boxes,
-      size,
-      1,
-    );
+    const placed = placeParts([part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })], boxes, size, 1, undefined, box);
     const rects = placed.map((p) => ({ x0: p.posX, y0: p.posY, x1: p.posX + 100, y1: p.posY + 100 }));
     for (let i = 0; i < rects.length; i += 1) {
       for (let j = i + 1; j < rects.length; j += 1) {
@@ -477,8 +454,8 @@ describe("パーツの置き場所 (placeParts)", () => {
     // 自動配置だけ中心値を左上として返すと、 同じ数字が経路によって別の場所を指す。
     // 格子の中心を組み立て側の規則から取り、 それを座標で書いた時と一致するか見る
     const cell = partsGridCenters(1, [{ id: "a", w: 100, h: 100 }]).get("a")!;
-    const [auto] = placeParts([part({ id: "a" })], boxes, size, 1);
-    const [written] = placeParts([part({ id: "a", posX: cell.cx, posY: cell.cy })], boxes, size, 1);
+    const [auto] = placeParts([part({ id: "a" })], boxes, size, 1, undefined, box);
+    const [written] = placeParts([part({ id: "a", posX: cell.cx, posY: cell.cy })], boxes, size, 1, undefined, box);
     expect({ posX: auto!.posX, posY: auto!.posY }).toEqual({ posX: written!.posX, posY: written!.posY });
   });
 });
@@ -660,6 +637,12 @@ describe("パーツの実寸", () => {
 
 describe("パーツの置き場所が決まらなかった時の知らせ", () => {
   const size = (): { w: number; h: number } => ({ w: 100, h: 100 });
+  const box = (): { w: number; h: number; left: number; top: number } => ({
+    w: 100,
+    h: 100,
+    left: 0,
+    top: 0,
+  });
   const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
   const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
     id: "p", kind: "achievement", item, scale: 1, rotate: 0, ...over,
@@ -673,6 +656,7 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       size,
       1,
       (n) => seen.push(`${n.reason}:${n.part}:${n.anchor}`),
+      box,
     );
     expect(seen).toEqual(["missing:a:いない人"]);
   });
@@ -688,6 +672,7 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       size,
       1,
       (n) => seen.push(`${n.reason}:${n.part}`),
+      box,
     );
     expect(seen.sort()).toEqual(["cyclic:a", "cyclic:b"]);
   });
@@ -700,12 +685,13 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
       size,
       1,
       (n) => seen.push(n.message),
+      box,
     );
     expect(seen).toEqual([]);
   });
 
   it("知らせを受け取らなくても格子に落ちる", () => {
-    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1);
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1, undefined, box);
     expect(Number.isFinite(p!.posX)).toBe(true);
   });
 });
