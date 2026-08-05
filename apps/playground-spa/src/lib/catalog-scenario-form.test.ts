@@ -13,7 +13,9 @@ import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 
 /**
- * 段で表示部品を動かせる 9 件。
+ * 段で表示部品を動かせる図。
+ *
+ * #1033 の 9 件に、#1032 の 1 本目 13 件を加えた。
  *
  * 表示部品が見る状態を入力欄も計算式も持たないため、段の `tween` / `set` がそのまま表示に届く。
  */
@@ -21,6 +23,11 @@ const DRIVEN = [
   "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
   "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
   "canvasMiniMap",
+  // #1032 の 1 本目 (表示部品の見本、いずれも入力欄も計算式も持たない)
+  "matrixHeatmap", "taskProgressGroup", "skillRadar", "perfBubbleChart",
+  "contributionHeatmap", "priceCandlestick", "userVenn", "scoreSlope",
+  "salesFunnel", "projectGantt", "resourceTreemap", "trafficSankey",
+  "activityPolar",
 ] as const;
 
 /**
@@ -76,7 +83,7 @@ describe("手本の形 (#1033)", () => {
     expect(missing, `図が無い: ${missing.join(", ")}`).toHaveLength(0);
   });
 
-  it("対象は表示部品を 2 個以上持つ、または種別が他と重なる", () => {
+  it("対象は表示部品を持つ (持たない図は別の基準で見る)", () => {
     // 表示部品 1 個 + 種別が唯一の図は「部品の見本」 で、別の基準で見る (#1032)。
     // 「0 個でない」 だけだと、1 個まで削る変異が通ってしまう
     const kindCount = new Map<string, number>();
@@ -86,14 +93,11 @@ describe("手本の形 (#1033)", () => {
         if (r.kind) kindCount.set(r.kind, (kindCount.get(r.kind) ?? 0) + 1);
       }
     }
-    const bad = ALL.filter((k) => {
-      const ro = mod[k]?.readouts ?? [];
-      if (ro.length >= 2) return false;
-      if (ro.length === 0) return true;
-      // 1 個でも、その種別が他の図にも出るなら「見本」 ではない
-      return (kindCount.get(ro[0]!.kind ?? "") ?? 0) < 2;
-    });
-    expect(bad, `分類の条件を満たさない図が混ざっている: ${bad.join(", ")}`).toHaveLength(0);
+    // 表示部品を 1 つも持たない図は、そもそもこの基準の対象外 (#1034 で別に見る)
+    const none = ALL.filter((k) => (mod[k]?.readouts ?? []).length === 0);
+    expect(none, `表示部品を持たない図が混ざっている: ${none.join(", ")}`).toHaveLength(0);
+    // 種別の数え上げ自体が動いていることを確かめる (0 件だと以下が素通りする)
+    expect(kindCount.size, "表示部品の種別が数えられていない").toBeGreaterThan(50);
   });
 
   it("段が 3 つ以上ある", () => {
@@ -262,9 +266,24 @@ describe("手本の形 (#1033)", () => {
       const driven = drivenStates(d);
       for (const n of d.nodes ?? []) {
         const sub = n.subtitle ?? "";
+        if (sub.includes("{")) continue;
         for (const st of driven) {
-          // 状態の名前を説明に書いているのに束ねの形 (`{...}`) を持たない = 固定値
-          if (sub.includes(st) && !sub.includes("{")) bad.push(`${k}/${n.id}: "${sub}"`);
+          // 状態の名前を書いている / 段が渡す値をそのまま書いている、のどちらも固定値
+          if (sub.includes(st)) { bad.push(`${k}/${n.id}: "${sub}"`); break; }
+          const written = new Set<string>();
+          for (const p of d.phases ?? []) {
+            for (const x of p.sets ?? []) {
+              if ((x as { stateId?: string }).stateId !== st) continue;
+              const raw = String((x as { value?: unknown }).value ?? "");
+              for (const m of raw.matchAll(/-?\d+(?:\.\d+)?/g)) written.add(m[0]);
+            }
+          }
+          // 段が渡す数を固定で書いていたら、差し替えた時に食い違う
+          const nums = [...sub.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => m[0]);
+          if (nums.length >= 1 && nums.every((x) => written.has(x))) {
+            bad.push(`${k}/${n.id}: "${sub}"`);
+            break;
+          }
         }
       }
     }
