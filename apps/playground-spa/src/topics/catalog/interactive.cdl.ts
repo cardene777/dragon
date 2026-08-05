@@ -3628,12 +3628,12 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
   .phase("p2", {
     duration: 1800,
     title: "2 本に増える",
-    body: "行が増える。 長さも再生数も文字として出るため、桁の違いがそのまま幅に出る。",
+    body: "行が 2 つになる。 長さと再生数はどちらも文字として出るだけで、幅には効かない。",
   }, (p: PhaseBuilder) => p.activate("rustVideo", "tsVideo").set("videos", '[["🎬","Rust intro for beginners","12:45","24k"],["🎥","TypeScript deep dive","45:20","82k"]]'))
   .phase("p3", {
     duration: 1800,
     title: "3 本が揃う",
-    body: "3 行が縦に並ぶ。 題が長い行でも折り返さず、同じ高さで揃うことが読み取れる。",
+    body: "3 行が縦に並ぶ。 各行に絵記号と題と長さと再生数の 4 つがそのまま出る。",
   }, (p: PhaseBuilder) => p.activate("rustVideo", "tsVideo", "reactVideo").set("videos", '[["🎬","Rust intro for beginners","12:45","24k"],["🎥","TypeScript deep dive","45:20","82k"],["📺","React hooks explained","18:30","156k"]]'))
   .build();
 export const subtitle__tutorialVideoCards = "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存";
@@ -3722,10 +3722,10 @@ export const globalTimezoneClock = diagram("interactive-timezone-clock", {
     ["NYC", -5, "08:30"],
     ["Sydney", 11, "00:30"],
   ] as unknown as (string | number)[])
-  .node("tokyoNode", { lane: "tokyo", stack: 0, kind: "card", w: 180, title: "Tokyo", subtitle: "時差が最も進んでいる側" })
+  .node("tokyoNode", { lane: "tokyo", stack: 0, kind: "card", w: 180, title: "Tokyo", subtitle: "時差が進んでいる側の都市" })
   .node("londonNode", { lane: "london", stack: 0, kind: "card", w: 180, title: "London", subtitle: "時差の基準となる都市" })
-  .node("nycNode", { lane: "nyc", stack: 0, kind: "card", w: 180, title: "NYC", subtitle: "時差が最も遅れている側" })
-  .node("sydneyNode", { lane: "sydney", stack: 0, kind: "card", w: 190, title: "Sydney", subtitle: "日付が先に変わる都市" })
+  .node("nycNode", { lane: "nyc", stack: 0, kind: "card", w: 180, title: "NYC", subtitle: "時差が最も遅れている都市" })
+  .node("sydneyNode", { lane: "sydney", stack: 0, kind: "card", w: 190, title: "Sydney", subtitle: "時差が最も進んでいる都市" })
   .readout.timezoneClock("tc", { source: "clocks", color: "#2563eb", label: "Cities (4-column grid)" })
   .phase("p1", {
     duration: 1800,
@@ -4049,8 +4049,8 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
   .phase("p2", {
     duration: 1800,
     title: "午後まで",
-    body: "点が 4 つに増え、縦線が下へ伸びる。 補足を持たない予定でも点の間隔は変わらない。",
-  }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard").set("events", '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging","v1.2.0"],["16:00","1-on-1","career discussion"]]'))
+    body: "点が 4 つに増える。 補足を持たない予定は 3 行目が出ないが、点の間隔は変わらない。",
+  }, (p: PhaseBuilder) => p.activate("morningCard", "afternoonCard").set("events", '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging"],["16:00","1-on-1","career discussion"]]'))
   .phase("p3", {
     duration: 1800,
     title: "1 日ぶん",
@@ -4121,28 +4121,28 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     ["Sat", false, false],
     ["Sun", false, false],
   ] as unknown as (string | number)[])
-  .node("monNode", { lane: "mon", stack: 0, kind: "card", w: 110, title: "Mon", subtitle: "予定が入る日" })
-  .node("tueNode", { lane: "tue", stack: 0, kind: "card", w: 110, title: "Tue", subtitle: "予定の無い日" })
-  .node("wedNode", { lane: "wed", stack: 0, kind: "card", w: 160, title: "Wed", subtitle: "予定が入る日" })
-  .node("thuNode", { lane: "thu", stack: 0, kind: "card", w: 110, title: "Thu", subtitle: "予定の無い日" })
-  .node("friNode", { lane: "fri", stack: 0, kind: "card", w: 110, title: "Fri", subtitle: "予定が入る日" })
-  .node("satNode", { lane: "sat", stack: 0, kind: "card", w: 110, title: "Sat", subtitle: "予定の無い日 (週末)" })
-  .node("sunNode", { lane: "sun", stack: 0, kind: "card", w: 110, title: "Sun", subtitle: "予定の無い日 (週明け前)" })
+  .node("monNode", { lane: "mon", stack: 0, kind: "card", w: 110, title: "Mon", subtitle: "予定を持つ日" })
+  .node("tueNode", { lane: "tue", stack: 0, kind: "card", w: 110, title: "Tue", subtitle: "予定を持たない日" })
+  .node("wedNode", { lane: "wed", stack: 0, kind: "card", w: 160, title: "Wed", subtitle: "予定を持つ日" })
+  .node("thuNode", { lane: "thu", stack: 0, kind: "card", w: 110, title: "Thu", subtitle: "予定を持たない日" })
+  .node("friNode", { lane: "fri", stack: 0, kind: "card", w: 110, title: "Fri", subtitle: "予定を持つ日" })
+  .node("satNode", { lane: "sat", stack: 0, kind: "card", w: 110, title: "Sat", subtitle: "予定を持たない日 (週末)" })
+  .node("sunNode", { lane: "sun", stack: 0, kind: "card", w: 110, title: "Sun", subtitle: "予定を持たない日 (週明け前)" })
   .readout.calendarWeek("cw", { source: "week", cellSize: 40, color: "#2563eb", label: "This week" })
   .phase("p1", {
     duration: 1800,
     title: "週の始まり",
-    body: "今日の印が左端に付く。 予定のある日は別の印を持ち、2 種類の印が重なる形が読める。",
+    body: "今日の升目だけ塗りつぶす。 塗った日は予定の丸を出さないため、印は 1 つに畳まれる。",
   }, (p: PhaseBuilder) => p.activate("monNode").set("week", '[["Mon",true,true],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]'))
   .phase("p2", {
     duration: 1800,
     title: "週の半ば",
-    body: "今日の印だけが右へ移る。 予定の印は動かないため、2 つの印の役割の違いが読める。",
+    body: "塗りが右へ移る。 塗りが外れた日に予定の丸が現れ、塗られた日の丸が消える。",
   }, (p: PhaseBuilder) => p.activate("monNode", "wedNode").set("week", '[["Mon",true,false],["Tue",false,false],["Wed",true,true],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]'))
   .phase("p3", {
     duration: 1800,
     title: "週の終わり",
-    body: "今日の印が 5 つ目まで進む。 7 つの升目の数は変わらず、印の位置だけが動く。",
+    body: "塗りが 5 つ目まで進む。 7 つの升目の数は変わらず、塗りと丸の位置だけが動く。",
   }, (p: PhaseBuilder) => p.activate("monNode", "wedNode", "friNode", "satNode", "sunNode").set("week", '[["Mon",true,false],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,true],["Sat",false,false],["Sun",false,false]]'))
   .build();
 export const subtitle__weekCalendarView = "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存";
