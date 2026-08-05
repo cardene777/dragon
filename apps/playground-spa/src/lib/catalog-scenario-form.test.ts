@@ -166,31 +166,10 @@ describe("手本の形 (#1033)", () => {
     expect(bad, `段を通して値が変わらない表示部品: ${bad.join(", ")}`).toHaveLength(0);
   });
 
-  it("隣り合う段が同じ値を渡さない", () => {
-    // 「2 種類以上の値を取る」 だけでは、途中の 1 段が前段と同じでも通ってしまう (実測で素通りした)。
-    // 前段と同じ値の段は、進めても表示が動かない = その段だけ静止画に戻る
-    const bad: string[] = [];
-    for (const k of DRIVEN) {
-      const d = mod[k]!;
-      const owned = new Set([
-        ...(d.inputs ?? []).map((i) => i.id),
-        ...(d.formulas ?? []).map((f) => f.id),
-        ...(d.scrollTriggers ?? []).map((t) => t.id),
-      ]);
-      // 状態ごとに、段を追って最後に渡された値を持ち回る (その段で触らない状態は前段の値が残る)
-      const last = new Map<string, string>();
-      for (const [pi, p] of (d.phases ?? []).entries()) {
-        for (const st of p.sets ?? []) {
-          const id = (st as { stateId?: string }).stateId;
-          if (!id || owned.has(id)) continue;
-          const v = String((st as { value?: string | number }).value ?? "");
-          if (last.get(id) === v) bad.push(`${k}/${id}[段${pi}]: 前段と同じ値`);
-          last.set(id, v);
-        }
-      }
-    }
-    expect(bad, `前段と同じ値を渡す段がある: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
-  });
+  // 「隣り合う段で表示が動くか」 は `catalog-box-binding.test.ts` §「隣り合う段で、表示部品の
+  // 描画結果が変わる」 が見る。 生の値だけを比べる形はここに置いていたが、描画側が値を加工
+  // する種別 (割合で伸びる帯 / 0 件を出さない札 / 件数上限) で違う値から同じ絵が出るため、
+  // engine を通して描画結果で比べる側に一本化した。
 
   it("段は入力欄も計算式も握る状態を触らない", () => {
     // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される
@@ -265,14 +244,24 @@ describe("手本の形 (#1033)", () => {
     //
     // 一律に 0/1/2 で見ると、地図では x を y の値域と突き合わせることになる。
     // 描画側はどちらも値域で **切り詰める** ため、外れた点は黙って枠の縁に貼り付く。
+    //
+    // 表に無い種別は **検査せず fail** させる (fail-closed)。 既定を `[x, y, r]` に倒すと、
+    // 別の並びを持つ新種別が誤った添字で黙って検査され、対応表の欠落に気付けない。
     const axisIndex: Record<string, { x: number; y: number; r: number }> = {
+      
+      "bubble-chart": { x: 0, y: 1, r: 2 },
       "map-pin": { x: 1, y: 2, r: -1 },
     };
     const bad: string[] = [];
     for (const k of DRIVEN) {
       const d = mod[k]!;
       for (const r of d.readouts ?? []) {
-        const ix = axisIndex[r.kind ?? ""] ?? { x: 0, y: 1, r: 2 };
+        const hasAxisBounds = [r.xMin, r.xMax, r.yMin, r.yMax, r.rMin, r.rMax].some((v) => v !== undefined);
+        const ix = axisIndex[r.kind ?? ""];
+        if (!ix) {
+          if (hasAxisBounds) bad.push(`${k}/${r.id}: 種別 "${r.kind}" が添字表に無い (描画実装を確認して表に足す)`);
+          continue;
+        }
         const axes: Array<[number, number | undefined, number | undefined]> = (
           [
             [ix.x, r.xMin, r.xMax], [ix.y, r.yMin, r.yMax], [ix.r, r.rMin, r.rMax],

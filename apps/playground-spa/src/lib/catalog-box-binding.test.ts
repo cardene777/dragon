@@ -65,6 +65,60 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
   return out;
 }
 
+/**
+ * 描画側が値をどう絵にするかの射影。 生の値が違っても画面が同じになる形を捕まえる。
+ *
+ * 射影の根拠は `cdl/packages/cdl/src/render/interactive-panel.tsx` の各 readout 実装。
+ * 表に無い種別は生の値をそのまま返す (加工しない種別は生値の一致 = 画面の一致)。
+ *
+ * | 種別 | 描画側の加工 |
+ * |---|---|
+ * | `poll-bar` | `count / 総数` の百分率で帯を伸ばし、最大の行に ★ を付ける |
+ * | `reaction-bar` | `count > 0` の行だけ札にする (0 件は札自体が出ない) |
+ * | `podium` | 先頭 3 件だけ台にする |
+ * | `user-stack` | `max` 件まで丸にし、超えた分は残り件数として出す |
+ * | `ROW_LIMIT_KINDS` | `max` 件までしか出さない |
+ * | 既定 | 加工しない (生値の一致 = 画面の一致) |
+ *
+ * **`max` の意味は種別で違う**。 件数の上限として使う種別と、色や長さの基準値として
+ * 使う種別 (`calendar-heatmap` は濃さの基準、`progress-group` / `radar` は帯の基準) がある。
+ * 既定で件数として切ると、基準値を持つ種別で「先頭 N 件が同じなら同じ絵」 と誤判定する
+ * (実測 = 30 日の升目を上限 10 で切り、後半だけ違う 2 段を同じとみなした)。
+ * 下の集合は `interactive-panel.tsx` で `slice(0, max)` を持つ種別だけを列挙している。
+ */
+const ROW_LIMIT_KINDS = new Set([
+  "array-list", "leaderboard", "activity-feed", "chat-bubble", "user-stack",
+  "commit-list", "event-log", "search-result", "video-card", "song-queue",
+  "terminal", "kanban-board", "timeline-vertical", "status-timeline", "user-presence",
+]);
+function visibleSignature(kind: string, raw: string, max: number | undefined): string {
+  let rows: unknown;
+  try { rows = JSON.parse(raw); } catch { return raw; }
+  if (!Array.isArray(rows)) return raw;
+  const at = (r: unknown, i: number): number =>
+    Array.isArray(r) && typeof r[i] === "number" ? (r[i] as number) : Number.NaN;
+  switch (kind) {
+    case "poll-bar": {
+      const counts = rows.map((r) => at(r, 1)).filter(Number.isFinite);
+      const total = counts.reduce((s, c) => s + c, 0) || 1;
+      const top = counts.length ? Math.max(...counts) : 0;
+      return counts.map((c) => `${Math.round((c / total) * 100)}${c === top ? "*" : ""}`).join(",");
+    }
+    case "reaction-bar":
+      return JSON.stringify(rows.filter((r) => at(r, 1) > 0));
+    case "podium":
+      return JSON.stringify(rows.slice(0, 3));
+    case "user-stack":
+      return typeof max === "number"
+        ? `${JSON.stringify(rows.slice(0, max))}+${Math.max(0, rows.length - max)}`
+        : JSON.stringify(rows);
+    default:
+      return JSON.stringify(
+        ROW_LIMIT_KINDS.has(kind) && typeof max === "number" ? rows.slice(0, max) : rows,
+      );
+  }
+}
+
 describe("箱の束ねが実際に解決する (#1032)", () => {
   it("対象が全件 実在する", () => {
     const missing = DRIVEN.filter((k) => mod[k] === undefined);
@@ -145,9 +199,19 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     // 箱と行の対応は **箱の題に行の文字列が現れるか** で機械的に取る
     // (`👍 Thumbs up` ↔ `["👍",24]`、`₿ BTC` ↔ `["₿","BTC","0.42",5.3]`)。
     //
-    // 順位を付ける数は **行がちょうど 1 つだけ数を持つ場合** に限る。 2 つ以上ある行
-    // (`["Mon","☀",24,18]` の高低、`["Tokyo",100,60]` の座標) はどちらで順位を付けるかが
-    // 決まらないため見ない。 0 個の行 (`["Alice","1200 pts"]` は数が文字列の中) も見ない。
+    // 順位を付ける数は **表示部品の種別ごとに、描画実装が読む位置** から取る。
+    // 行に数が 2 つ以上あっても、どれで順位が決まるかは実装を読めば一意に定まる。
+    //
+    // | 種別 | 順位の決まり方 | 実装 |
+    // |---|---|---|
+    // | `weather-forecast` | 行の 3 番目 (高い方の気温) | `[日, 記号, 高, 低]` を順に読む |
+    // | `podium` | 配列の並び順 (台の高さは `[0.7, 0.55, 0.4]` 固定) | 得点は文字として出すだけ |
+    // | 既定 | 行がちょうど 1 つ持つ数 | 数が 1 つなら曖昧さが無い |
+    //
+    // `map-pin` の上下左右は順位ではなく座標のため、別の検査 (§ 位置の説明) で見る。
+    const RANK_INDEX: Record<string, number> = { "weather-forecast": 2 };
+    /** 台の高さが並び順で決まる種別。 数の大小ではなく行の位置が順位になる。 */
+    const RANK_BY_ORDER = new Set(["podium"]);
     const RANK = [
       { re: /最も(多|大き|高|暖か)/, want: "max" },
       { re: /次に多/, want: "second" },
@@ -162,26 +226,53 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       type Node = { id?: string; title?: string; subtitle?: string };
       const nodes = (d as { nodes?: Node[] }).nodes ?? [];
       if (!nodes.some((n) => RANK.some((r) => r.re.test(n.subtitle ?? "")))) continue;
+      const kind = String(((d as { readouts?: Array<{ kind?: string }> }).readouts ?? [])[0]?.kind ?? "");
       for (const [pi, p] of ((d as { phases?: Array<{ sets?: Array<{ stateId?: string; value?: string | number }> }> }).phases ?? []).entries()) {
         for (const st of p.sets ?? []) {
           let rows: unknown;
           try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
           if (!Array.isArray(rows)) continue;
-          // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
-          const nums = rows.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
-          if (nums.length < 2 || !nums.every((n) => n.length === 1)) continue;
-          const values = nums.map((n) => n[0] as number);
+          let values: number[];
+          if (RANK_BY_ORDER.has(kind)) {
+            // 並び順がそのまま順位。 先頭ほど大きいとみなすため降順の連番を当てる
+            values = rows.map((_, i) => rows.length - i);
+          } else if (RANK_INDEX[kind] !== undefined) {
+            const at = RANK_INDEX[kind]!;
+            const picked = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
+            if (!picked.every((v) => typeof v === "number")) continue;
+            values = picked as number[];
+          } else {
+            // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
+            const nums = rows.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
+            if (!nums.every((n) => n.length === 1)) continue;
+            values = nums.map((n) => n[0] as number);
+          }
+          if (values.length < 2) continue;
           const sorted = [...values].sort((a, b) => b - a);
           for (const n of nodes) {
             const claim = RANK.find((r) => r.re.test(n.subtitle ?? ""));
             if (!claim || !n.title) continue;
-            // 題と行の対応は双方向で見る (題 `Search` ↔ 行 `Faster search`、題 `👍 Thumbs up` ↔ 行 `👍`)
+            // 題と行の対応は双方向で見る (題 `Search` ↔ 行 `Faster search`、題 `👍 Thumbs up` ↔ 行 `👍`)。
+            // **最も長く一致した行を選ぶ**。 最初に一致した行を取ると、複数の行が共有する
+            // 短い文字 (天気の `☀` 等) で別の行に吸われる (実測 = 題 `☀ Fri` が `Mon` の行に一致した)
             const title = n.title.toLowerCase();
-            const idx = rows.findIndex((r) => Array.isArray(r) && r.some((v) => {
-              if (typeof v !== "string" || v.length === 0) return false;
-              const s = v.toLowerCase();
-              return title.includes(s) || s.includes(title);
-            }));
+            const score = (r: unknown): number => {
+              if (!Array.isArray(r)) return 0;
+              let best = 0;
+              for (const v of r) {
+                if (typeof v !== "string" || v.length === 0) continue;
+                const s = v.toLowerCase();
+                if (title.includes(s) || s.includes(title)) best = Math.max(best, s.length);
+              }
+              return best;
+            };
+            const scores = rows.map(score);
+            const top = Math.max(0, ...scores);
+            const idx = top === 0 ? -1 : scores.indexOf(top);
+            if (top > 0 && scores.filter((s) => s === top).length > 1) {
+              bad.push(`${k}/${n.id}[段${pi}]: 題 "${n.title}" が複数の行に同じ長さで一致する`);
+              continue;
+            }
             const key = `${k}/${n.id}`;
             everMatched.set(key, (everMatched.get(key) ?? false) || idx >= 0);
             // その段に行が無いのは正しい (段ごとに出す件数が違う図がある)。 順位は付けられないので見ない
@@ -208,6 +299,92 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       if (!hit) bad.push(`${key}: 題に対応する行がどの段にも無い`);
     }
     expect(bad, `順位の説明が値と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("隣り合う段で、表示部品の描画結果が変わる", () => {
+    // 生の値を比べるだけでは足りない。 描画側が値を加工する種別では、
+    // 違う値から同じ絵が出る (実測 = 割合で伸びる帯に 8/6/3/2 と 23/16/10/7 を渡すと
+    // どちらも 42/32/16/11 と 41/29/18/13 でほぼ同じ)。
+    //
+    // engine の `computeStateValues` を通して段ごとの実効値を取り (段が触らない状態は
+    // 前段の値を持ち越す)、種別ごとの射影で「画面に出る形」 に変えてから比べる。
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const laid = layout(d) as never;
+      const owned = new Set([
+        ...((d as { inputs?: Array<{ id?: string }> }).inputs ?? []).map((i) => i.id),
+        ...((d as { formulas?: Array<{ id?: string }> }).formulas ?? []).map((f) => f.id),
+        ...((d as { scrollTriggers?: Array<{ id?: string }> }).scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      const phases = (d as { phases?: unknown[] }).phases ?? [];
+      for (const r of (d as { readouts?: Array<{ id?: string; kind?: string; source?: string; max?: number }> }).readouts ?? []) {
+        if (!r.source || owned.has(r.source)) continue;
+        let prev: string | undefined;
+        for (let i = 0; i < phases.length; i += 1) {
+          // 状態の実効値は文字列か数値で入る (`sets` の `value` は `string | number`)。
+          // それ以外は文字列化しても中身が読めないため、空として扱う
+          const values = computeStateValues(laid, i, 1) as Record<string, string | number | undefined>;
+          const raw = values[r.source];
+          const sig = visibleSignature(String(r.kind ?? ""), typeof raw === "string" || typeof raw === "number" ? String(raw) : "", r.max);
+          if (prev !== undefined && sig === prev) {
+            bad.push(`${k}/${r.id}[段${i}]: 前段と描画結果が同じ`);
+          }
+          prev = sig;
+        }
+      }
+    }
+    expect(bad, `段を進めても表示が変わらない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱が語る位置が、座標の向きと一致する", () => {
+    // 座標を持つ表示部品では上下左右の主張が順位検査に乗らない。
+    // `map-pin` の `yFor` は `pad + 正規化した y * 高さ` で **上下を反転しない** ため、
+    // y が大きい点ほど画面の下に出る (実測 = 上限 80 に対し y=60 は 75% 地点)。
+    // 「右上」 と書いて y が大きい点を指す形は、この検査でしか拾えない。
+    const AXIS: Record<string, { x: number; y: number }> = { "map-pin": { x: 1, y: 2 } };
+    /** 主張の語と、その語が要求する「軸の値が最小か最大か」。 y は大きいほど下。 */
+    const DIR = [
+      { re: /最も左/, axis: "x" as const, want: "min" as const },
+      { re: /最も右/, axis: "x" as const, want: "max" as const },
+      { re: /最も上/, axis: "y" as const, want: "min" as const },
+      { re: /最も下/, axis: "y" as const, want: "max" as const },
+    ];
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const r0 = ((d as { readouts?: Array<{ kind?: string; source?: string }> }).readouts ?? [])[0];
+      const ax = AXIS[String(r0?.kind ?? "")];
+      if (!ax || !r0?.source) continue;
+      type Node = { id?: string; title?: string; subtitle?: string };
+      const nodes = (d as { nodes?: Node[] }).nodes ?? [];
+      for (const [pi, p] of ((d as { phases?: Array<{ sets?: Array<{ stateId?: string; value?: string | number }> }> }).phases ?? []).entries()) {
+        for (const st of p.sets ?? []) {
+          if (st.stateId !== r0.source) continue;
+          let rows: unknown;
+          try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
+          if (!Array.isArray(rows) || rows.length < 2) continue;
+          for (const n of nodes) {
+            for (const dir of DIR) {
+              if (!dir.re.test(n.subtitle ?? "") || !n.title) continue;
+              const title = n.title.toLowerCase();
+              const idx = rows.findIndex((r) => Array.isArray(r)
+                && typeof r[0] === "string" && r[0].toLowerCase() === title);
+              if (idx < 0) continue;
+              const at = dir.axis === "x" ? ax.x : ax.y;
+              const vals = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
+              if (!vals.every((v) => typeof v === "number")) continue;
+              const nums = vals as number[];
+              const want = dir.want === "min" ? Math.min(...nums) : Math.max(...nums);
+              if (nums[idx] !== want) {
+                bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが ${dir.axis}=${nums[idx]} (端は ${want})`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `位置の説明が座標と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   it("段が動かす状態を束ねた箱は、段ごとに表示が変わる", () => {

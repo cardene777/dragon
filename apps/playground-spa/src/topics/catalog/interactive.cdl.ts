@@ -1899,7 +1899,7 @@ export const abTestResult = diagram("interactive-ab-test", {
     duration: 1800,
     title: "差が確定する",
     body: "振り分けを半々に戻しても差が残る。 振り分けと結果を分けて見られる。",
-  }, (p: PhaseBuilder) => p.activate("splitCard", "treatmentCard").set("results", '[62,38]').set("convA", '[47,48,49,47,48]').set("convB", '[58,61,63,62,65]'))
+  }, (p: PhaseBuilder) => p.activate("splitCard", "treatmentCard").set("splitData", '[50,50]').set("results", '[62,38]').set("convA", '[47,48,49,47,48]').set("convB", '[58,61,63,62,65]'))
 .build();
 export const subtitle__abTestResult = "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化";
 
@@ -2976,17 +2976,17 @@ export const postReactions = diagram("interactive-post-reactions", {
   .phase("p1", {
     duration: 1800,
     title: "投稿した直後",
-    body: "反応が付き始めたばかり。 4 種とも数が小さく、札の長さの差がまだ小さい。",
+    body: "反応が付き始めたばかり。 絵記号と数を組にした札が 4 枚並び、数はどれも小さい。",
   }, (p: PhaseBuilder) => p.activate("thumbNode").set("reactions", '[["👍",5],["❤️",3],["😂",2],["🎉",1]]'))
   .phase("p2", {
     duration: 1800,
     title: "広まる",
-    body: "4 種すべてに反応が付く。 札の長さの差が開き、順位がはっきりする。",
+    body: "数が増える。 札の大きさは数に関わらず一定で、中の数字だけが上がる。",
   }, (p: PhaseBuilder) => p.activate("thumbNode", "heartNode").set("reactions", '[["👍",14],["❤️",7],["😂",4],["🎉",2]]'))
   .phase("p3", {
     duration: 1800,
     title: "落ち着く",
-    body: "伸びが止まる。 一番人気が最も長く、残り 3 種が短い順に続く形で固まる。",
+    body: "伸びが止まる。 一番人気とそれ以外の数の開きが最大になり、順位が読める。",
   }, (p: PhaseBuilder) => p.activate("thumbNode", "heartNode", "laughNode", "partyNode").set("reactions", '[["👍",24],["❤️",12],["😂",8],["🎉",5]]'))
   .build();
 export const subtitle__postReactions = "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存";
@@ -3079,17 +3079,17 @@ export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
   .phase("p1", {
     duration: 1800,
     title: "立ち上げ",
-    body: "利用者も売上も小さく、異常が多い。 4 枚の升目のうち右下だけが目立つ。",
+    body: "利用者も売上も小さく、異常の件数が大きい。 4 つの升目に数と名前が出る。",
   }, (p: PhaseBuilder) => p.activate("usersNode", "errorsNode").set("kpis", '[["Users","3.1k"],["Revenue","$9k"],["Uptime","98.2","%"],["Errors",47]]'))
   .phase("p2", {
     duration: 1800,
     title: "伸びる",
-    body: "利用者と売上が増え、異常が半分に減る。 4 枚の升目が同じくらいの重みになる。",
+    body: "利用者と売上が増え、異常が半分に減る。 升目の並びと大きさは変わらず数だけが動く。",
   }, (p: PhaseBuilder) => p.activate("usersNode", "revenueNode", "errorsNode").set("kpis", '[["Users","7.8k"],["Revenue","$26k"],["Uptime","99.4","%"],["Errors",23]]'))
   .phase("p3", {
     duration: 1800,
     title: "落ち着く",
-    body: "4 つとも良い値に揃う。 升目の並びが一目で健全さを示す形になる。",
+    body: "4 つとも良い値に揃う。 稼働率だけが単位付き (%) で出ることが読み取れる。",
   }, (p: PhaseBuilder) => p.activate("usersNode", "revenueNode", "uptimeNode", "errorsNode").set("kpis", '[["Users","12.4k"],["Revenue","$45k"],["Uptime","99.9","%"],["Errors",12]]'))
   .build();
 export const subtitle__dashboardMetricsGrid = "SaaS 4 KPI を 4-lane (Users / Revenue / Uptime / Errors) 分散、 各 KPI 個別 card、 metricsGrid readout 併存";
@@ -3206,7 +3206,7 @@ export const worldMapPins = diagram("interactive-world-map", {
     ["Sydney", 105, 75],
     ["Rio", 40, 65],
   ] as unknown as (string | number)[])
-  .node("tokyo", { lane: "apac", stack: 0, kind: "card", title: "Tokyo", subtitle: "最初の拠点 (右上寄り)" })
+  .node("tokyo", { lane: "apac", stack: 0, kind: "card", title: "Tokyo", subtitle: "最初の拠点 (右寄り・やや下)" })
   .node("sydney", { lane: "apac", stack: 1, kind: "card", title: "Sydney", subtitle: "最も下に出る点" })
   .node("nyc", { lane: "amea", stack: 0, kind: "card", title: "NYC", subtitle: "最も左に出る点" })
   .node("paris", { lane: "amea", stack: 1, kind: "card", title: "Paris", subtitle: "最も上に出る点" })
@@ -3277,17 +3277,17 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
   .phase("p1", {
     duration: 1800,
     title: "予選の点",
-    body: "3 人の点はまだ僅差。 台の高さの差が小さく、順位が付きにくい形で並ぶ。",
+    body: "予選を終えた点が台の上に出る。 台の高さは順位で決まり、点の大小では変わらない。",
   }, (p: PhaseBuilder) => p.activate("goldNode").set("winners", '[["Alice","400 pts"],["Bob","380 pts"],["Carol","350 pts"]]'))
   .phase("p2", {
     duration: 1800,
     title: "準決勝",
-    body: "点が倍近くに伸びる。 順位はそのままで、台の高さの差が読み取れるようになる。",
+    body: "点が倍近くに伸びる。 順位が変わらないため、台の形はそのままで数字だけが動く。",
   }, (p: PhaseBuilder) => p.activate("goldNode", "silverNode").set("winners", '[["Alice","800 pts"],["Bob","700 pts"],["Carol","640 pts"]]'))
   .phase("p3", {
     duration: 1800,
     title: "決勝の点",
-    body: "最終の点で確定する。 中央が最も高く、左右がその順に低い表彰台の形になる。",
+    body: "最終の点で確定する。 配列の先頭が中央の一番高い台に、続く 2 件が左と右に出る。",
   }, (p: PhaseBuilder) => p.activate("goldNode", "silverNode", "bronzeNode").set("winners", '[["Alice","1200 pts"],["Bob","1050 pts"],["Carol","980 pts"]]'))
   .build();
 export const subtitle__tournamentPodium = "tournament 1st/2nd/3rd を 3-lane (Silver/Gold/Bronze、 中央=Gold の podium 配列) 分散、 各 winner 個別 card、 podium readout 併存";
@@ -3313,18 +3313,18 @@ export const featurePoll = diagram("interactive-feature-poll", {
   .readout.pollBar("pb", { source: "options", color: "#a08870", colorWinner: "#2563eb", label: "Results (aggregate)" })
   .phase("p1", {
     duration: 1800,
-    title: "投票の開始",
-    body: "票がまだ少ない。 4 本の帯はどれも短く、一番上だけがわずかに長い。",
-  }, (p: PhaseBuilder) => p.activate("dark").set("options", '[["Dark mode",8],["Faster search",6],["Better API",3],["Nicer UI",2]]'))
+    title: "票が割れる",
+    body: "4 案の割合が近い。 帯は票数でなく全体に占める割合で伸びるため、長さの差が小さい。",
+  }, (p: PhaseBuilder) => p.activate("dark").set("options", '[["Dark mode",7],["Faster search",6],["Better API",5],["Nicer UI",4]]'))
   .phase("p2", {
     duration: 1800,
-    title: "票が集まる",
-    body: "全体の票が増える。 一番上の帯だけ色が違い、他と区別されることが読み取れる。",
-  }, (p: PhaseBuilder) => p.activate("dark", "search").set("options", '[["Dark mode",23],["Faster search",16],["Better API",10],["Nicer UI",7]]'))
+    title: "1 案に集まる",
+    body: "先頭の案が全体の 6 割を占める。 ★ が付いて色も他と変わり、帯が一気に伸びる。",
+  }, (p: PhaseBuilder) => p.activate("dark", "search").set("options", '[["Dark mode",40],["Faster search",13],["Better API",8],["Nicer UI",5]]'))
   .phase("p3", {
     duration: 1800,
     title: "締め切り",
-    body: "最終の票数で確定する。 上から順に短くなる 4 本の帯で、差が一目で読める形になる。",
+    body: "他の案も票を伸ばし、先頭の割合が 4 割まで下がる。 上から順に短くなる形に落ち着く。",
   }, (p: PhaseBuilder) => p.activate("dark", "search", "api", "ui").set("options", '[["Dark mode",42],["Faster search",28],["Better API",18],["Nicer UI",12]]'))
   .build();
 export const subtitle__featurePoll = "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存";
