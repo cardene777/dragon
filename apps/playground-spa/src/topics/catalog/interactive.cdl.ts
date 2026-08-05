@@ -997,10 +997,20 @@ export const eventVariety = diagram("interactive-event-variety", {
 })
   .lane("pointer", { x: 0, width: 200 })
   .lane("keyboard", { x: 240, width: 240 })
-  .lane("touch", { x: 500, width: 200 })
-  .node("btn1", { lane: "pointer", stack: 0, kind: "card", title: "Double Click", subtitle: "dblclick event" })
-  .node("btn2", { lane: "keyboard", stack: 0, kind: "card", title: "Key Focus", subtitle: "focus + blur + keydown 3 event" })
-  .node("btn3", { lane: "touch", stack: 0, kind: "card", title: "Long Press", subtitle: "longpress 500ms hold" })
+  .lane("touch", { x: 500, width: 240 })
+  // 受け取った結果を画面に出すための入力欄。 `on.*` は受け取り手の名前しか持たないため、
+  // 使う側 (`catalog-handlers.ts`) がこの 2 つを書き換える。
+  // 受け取り手が触るのは入力欄で、別に `state` を置くと参照されず警告になる
+  .input.dropdown("lastEvent", {
+    options: ["まだ無し", "2 回押し", "選ばれた", "外れた", "キー入力", "長押し"],
+    defaultValue: "まだ無し",
+    label: "直近に受け取った操作",
+  })
+  .input.stepper("received", { min: 0, max: 99, defaultValue: 0, label: "受け取った回数" })
+  .node("btn1", { lane: "pointer", stack: 0, kind: "card", title: "Double Click", subtitle: "2 回続けて押す" })
+  .node("btn2", { lane: "keyboard", stack: 0, kind: "card", title: "Key Focus", subtitle: "選ぶ / 外れる / キーを押す" })
+  .node("btn3", { lane: "touch", stack: 0, kind: "card", title: "Long Press", subtitle: "押したまま 500 ミリ秒" })
+  .node("receiver", { lane: "touch", stack: 1, kind: "card", w: 220, title: "受け取った結果", subtitle: "{lastEvent} · 累計 {received} 回" })
   .on.doubleClick({ kind: "node", id: "btn1" }, "on-dbl")
   .on.focus({ kind: "node", id: "btn2" }, "on-focus")
   .on.blur({ kind: "node", id: "btn2" }, "on-blur")
@@ -1009,18 +1019,18 @@ export const eventVariety = diagram("interactive-event-variety", {
   .phase("p1", {
     duration: 1600,
     title: "2 回押す",
-    body: "1 つ目は 2 回続けて押した時だけ反応する。 1 回では動かない。",
-  }, (p: PhaseBuilder) => p.activate("btn1"))
+    body: "1 つ目は 2 回続けて押した時だけ受け取る。 1 回では何も起きない。 受け取ると右下の箱が変わる。",
+  }, (p: PhaseBuilder) => p.activate("btn1", "receiver"))
   .phase("p2", {
     duration: 1600,
-    title: "文字を打つ",
+    title: "選ぶ / キーを押す",
     body: "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。",
-  }, (p: PhaseBuilder) => p.activate("btn1", "btn2"))
+  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "receiver"))
   .phase("p3", {
     duration: 1600,
     title: "長く押す",
-    body: "3 つ目は押したまま一定時間たつと反応する。 2 回押す / 文字を打つ と並べると、受け取り方の幅が分かる。",
-  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3"))
+    body: "3 つ目は押したまま一定時間たつと受け取る。 5 つの操作はどれも同じ箱に結果を書く。",
+  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3", "receiver"))
 .build();
 export const subtitle__eventVariety = "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind";
 
