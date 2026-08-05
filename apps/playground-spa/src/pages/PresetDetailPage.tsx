@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
-import { PRESETS } from "@/lib/presets";
+import { PRESETS, presetName } from "@/lib/presets";
 import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
@@ -95,8 +95,11 @@ export function PresetDetailPage(): React.ReactElement {
             <span className="cur">{preset.slug}</span>
           </nav>
           <span className="nm-eyebrow">{preset.eyebrow}</span>
+          {/* 見出しは識別子ではなく言語に応じた名前を出す (#1047) */}
           <h1 className="nm-hero-title">
-            {preset.title} <span className="nm-gradient-accent">プリセット</span>
+            {/* 名前だけを別要素にする = 検査が添えの語と分けて実名で照合できる (#1047) */}
+            <span className="nm-hero-title-name">{presetName(preset, locale)}</span>{" "}
+            <span className="nm-gradient-accent">{locale === "ja" ? "プリセット" : "preset"}</span>
           </h1>
           <p className="nm-hero-subtitle">{preset.subtitle}</p>
           {/* 動きの種類は人が書かず図から導く (#1043)。 SSOT = catalog-motion.ts */}
@@ -132,7 +135,7 @@ export function PresetDetailPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label={`${preset.title} 詳細`}>
+        <section className="nm-presets-section" aria-label={`${presetName(preset, locale)} 詳細`}>
           <div className="nm-preset-detail-stage">
             <CdlDiagramView hideMiniPhaseIndicator diagram={preset.diagram} hideHeader />
           </div>
@@ -140,11 +143,11 @@ export function PresetDetailPage(): React.ReactElement {
             <Link
               to={`/preset/${prevPreset.slug}`}
               className="nm-preset-detail-nav-btn"
-              aria-label={`前へ: ${prevPreset.title}`}
+              aria-label={`前へ: ${presetName(prevPreset, locale)}`}
             >
               <ChevronLeft size={13} />
               <span className="opacity-70">前へ</span>
-              <span className="font-semibold">{prevPreset.title}</span>
+              <span className="font-semibold">{presetName(prevPreset, locale)}</span>
             </Link>
             <span className="font-mono text-[11px] text-[var(--v4-ink-mute,#8a8678)]">
               {currentIdx + 1} / {PRESETS.length}
@@ -152,10 +155,10 @@ export function PresetDetailPage(): React.ReactElement {
             <Link
               to={`/preset/${nextPreset.slug}`}
               className="nm-preset-detail-nav-btn"
-              aria-label={`次へ: ${nextPreset.title}`}
+              aria-label={`次へ: ${presetName(nextPreset, locale)}`}
             >
               <span className="opacity-70">次へ</span>
-              <span className="font-semibold">{nextPreset.title}</span>
+              <span className="font-semibold">{presetName(nextPreset, locale)}</span>
               <ChevronLeft size={13} className="rotate-180" />
             </Link>
           </div>
