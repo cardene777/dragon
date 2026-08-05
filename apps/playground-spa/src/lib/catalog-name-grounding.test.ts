@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
-import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
+import { ITEM_NAME_JA, ITEM_NAME_EN, itemNameJa, itemNameEn } from "./i18n";
 
 /**
  * 場面を名乗る語。 図が持たないのに名前が名乗ると、見出しが別の図を約束する。
@@ -29,7 +29,7 @@ import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
  * 根拠があっても見つからない (実測 = 「四半期」 を持つ図に対して `Quarterly roadmap` が落ちた)。
  * どちらか一方の言い方が図にあれば根拠ありとする。
  */
-const SCENE_WORDS: Array<{ ja: string[]; en: string[] }> = [
+const SCENE_WORDS: Array<{ ja: string[]; en: string[]; notScene?: string[] }> = [
   // 人物 / 役割
   { ja: ["エンジニア"], en: ["engineer"] },
   { ja: ["デザイナー"], en: ["designer"] },
@@ -64,51 +64,75 @@ const SCENE_WORDS: Array<{ ja: string[]; en: string[] }> = [
   { ja: ["ポッドキャスト"], en: ["podcast"] },
   { ja: ["通勤"], en: ["commute"] },
   { ja: ["ブラックフライデー"], en: ["black friday"] },
-  // 英語側を持たない語。 `production` は「生成」 の意味でも使われ、場面かどうかを語だけで
-  // 決められない (実測 = `Ethereum block production` が本番環境の意味で落ちた)
-  { ja: ["本番"], en: [] },
+  // `production` は「生成」 の意味でも使われるため、その言い回しだけを名乗りから外す。
+  // 語ごと外すと、この検査が直したはずの `Production deploy incident escalation` を
+  // 戻しても通ってしまう (Round 1 の指摘)
+  { ja: ["本番"], en: ["production"], notScene: ["block production"] },
 ];
 
-/** 英語は語の区切りで見る (見ないと `across` の中の `oss` に当たる、実測)。 */
-function hasEnglishWord(haystackLower: string, word: string): boolean {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`).test(haystackLower);
+/**
+ * 語が入っているかを見る。 **英字を含む語は語の区切りで、含まない語はそのまま** 探す。
+ *
+ * 区切りを見ないと `across` の中の `oss`、`SELECT` の中の `EC` に当たる (どちらも実測)。
+ * 逆に日本語は語の区切りを持たないため、区切りを求めると「四半期ごと」 が引けなくなる。
+ */
+function hasWord(haystack: string, word: string): boolean {
+  if (!/[a-z]/i.test(word)) return haystack.includes(word);
+  const escaped = word.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`).test(haystack.toLowerCase());
 }
 
 /** 名前が名乗る場面のうち、図に根拠が無いものを返す。 */
 function groundlessWords(name: string, evidence: string, locale: "ja" | "en"): string[] {
-  const nameLower = name.toLowerCase();
-  const evidenceLower = evidence.toLowerCase();
   const out: string[] = [];
   for (const entry of SCENE_WORDS) {
-    const claimed = locale === "ja"
-      ? entry.ja.some((w) => name.includes(w))
-      : entry.en.some((w) => hasEnglishWord(nameLower, w));
+    // 場面を指さない言い回しは名乗りとみなさない (`block production` は「生成」 の意味)
+    if (entry.notScene?.some((phrase) => hasWord(name, phrase))) continue;
+    const claimed = (locale === "ja" ? entry.ja : entry.en).some((w) => hasWord(name, w));
     if (!claimed) continue;
     // どちらの言い方でも図にあれば根拠あり
-    const grounded = entry.ja.some((w) => evidence.includes(w))
-      || entry.en.some((w) => hasEnglishWord(evidenceLower, w));
+    const grounded = [...entry.ja, ...entry.en].some((w) => hasWord(evidence, w));
     if (!grounded) out.push(locale === "ja" ? entry.ja[0] : entry.en[0]);
   }
   return out;
 }
 
-/** 図から、名前の根拠になりうる文言を全て集める。 */
+/**
+ * 画面に出ない値が入っている key。 これらの下は根拠として数えない。
+ *
+ * **数えると識別子が根拠になる**。 図の id は `interactive-saas-pricing-tier` のように
+ * 名前と同じ語を持つため、`SaaS` を名乗る名前が id を根拠に通ってしまう (実測)。
+ */
+const NON_VISIBLE_KEYS = new Set([
+  "id", "kind", "shape", "style", "tone", "fill", "stroke", "color", "accent",
+  "from", "to", "source", "target", "lane", "parent", "handlerId", "event",
+  "format", "align", "side", "variant", "preset",
+]);
+
+/**
+ * 図から、名前の根拠になりうる文言を全て集める。
+ *
+ * **表示される field を数え上げず、表示されない key を除く**。 数え上げる形は、拾い漏れた
+ * field に根拠がある正しい名前を落とす (実測 = `presetTree` の項目名にある `CEO` / `CTO`、
+ * `presetGantt` の担当者名にある `Designer` が漏れていた)。 除く形なら、図に field が
+ * 増えても既定で根拠に入る。
+ */
 function evidenceOf(diagram: unknown): string {
-  const d = diagram as {
-    topic?: string;
-    nodes?: Array<{ title?: string; subtitle?: string }>;
-    readouts?: Array<{ label?: string }>;
-    inputs?: Array<{ label?: string; options?: string[] }>;
-    phases?: Array<{ title?: string; body?: string }>;
-    lanes?: Array<{ label?: string }>;
+  const parts: string[] = [];
+  const seen = new Set<object>();
+  const walk = (value: unknown): void => {
+    if (typeof value === "string") { parts.push(value); return; }
+    if (typeof value !== "object" || value === null) return;
+    // 図は同じ節を複数の箱から指すことがあるため、辿った先を覚えて巡回を止める
+    if (seen.has(value)) return;
+    seen.add(value);
+    if (Array.isArray(value)) { for (const child of value) walk(child); return; }
+    for (const [key, child] of Object.entries(value)) {
+      if (NON_VISIBLE_KEYS.has(key)) continue;
+      walk(child);
+    }
   };
-  const parts: string[] = [d.topic ?? ""];
-  for (const lane of d.lanes ?? []) parts.push(lane.label ?? "");
-  for (const node of d.nodes ?? []) parts.push(node.title ?? "", node.subtitle ?? "");
-  for (const r of d.readouts ?? []) parts.push(r.label ?? "");
-  for (const i of d.inputs ?? []) parts.push(i.label ?? "", ...(i.options ?? []));
-  for (const p of d.phases ?? []) parts.push(p.title ?? "", p.body ?? "");
+  walk(diagram);
   return parts.join(" ");
 }
 
@@ -133,8 +157,9 @@ describe("一覧の名前の根拠 (#1048)", () => {
 
     const bad: string[] = [];
     for (const { item } of items) {
-      const name = ITEM_NAME_JA[item.title];
-      if (!name) continue;
+      // **画面と同じ経路で名前を引く**。 表を直に読むと、表に無い図を検査せず飛ばしてしまう。
+      // 画面は表に無い図に export 名をそのまま出すため、そこに場面語があれば見逃す
+      const name = itemNameJa(item.title);
       const groundless = groundlessWords(name, evidenceOf(item.diagram), "ja");
       if (groundless.length) bad.push(`${item.title} "${name}" → 図に無い: ${groundless.join(", ")}`);
     }
@@ -145,8 +170,7 @@ describe("一覧の名前の根拠 (#1048)", () => {
     const items = await allItems();
     const bad: string[] = [];
     for (const { item } of items) {
-      const name = ITEM_NAME_EN[item.title];
-      if (!name) continue;
+      const name = itemNameEn(item.title);
       const groundless = groundlessWords(name, evidenceOf(item.diagram), "en");
       if (groundless.length) bad.push(`${item.title} "${name}" → 図に無い: ${groundless.join(", ")}`);
     }
