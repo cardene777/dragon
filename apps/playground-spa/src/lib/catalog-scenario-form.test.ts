@@ -1,0 +1,303 @@
+/**
+ * 表示部品を 2 個以上持つ図が、手本の形になっていることの検証 (#1033)。
+ *
+ * 手本 (`exemplarPaymentFlow` 等) は「段を進めると状態が動き、表示部品がそれを見て変化する」。
+ * 直す前は 25 件すべてが段 1 つで、表示部品は初期値を出したまま動かなかった。
+ *
+ * **25 件のうち 16 件は構造的に届かない**。 表示部品が見ている状態を **入力欄または計算式** が
+ * 握っており、どちらも段の値を上書きするため (`interactive-panel.tsx` が signals / computeds /
+ * scrollHandles を `stateOverrides` として返し、`render.tsx` がそれを段の値に重ねる)、
+ * 段で動かしても効かない。 これらは #1034 と同じ「段ごとに注目する箱が変わる」 を基準にする。
+ */
+import { describe, it, expect } from "vitest";
+import * as Interactive from "@/topics/catalog/interactive.cdl";
+
+/**
+ * 段で表示部品を動かせる 9 件。
+ *
+ * 表示部品が見る状態を入力欄も計算式も持たないため、段の `tween` / `set` がそのまま表示に届く。
+ */
+const DRIVEN = [
+  "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
+  "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
+  "canvasMiniMap",
+] as const;
+
+/**
+ * 表示部品が見る状態を **入力欄または計算式** が握っている 16 件。
+ *
+ * `interactive-panel.tsx` は signals (入力欄) と computeds (計算式) を `stateOverrides` として返し、
+ * `render.tsx` がそれを段の値に重ねる。 どちらが持つ状態も段で動かしても効かない。
+ * これらは #1034 と同じ基準 (段ごとに注目する箱が変わる) を使う。
+ */
+const INPUT_DRIVEN = [
+  "visualBindBar", "visualBindOpacity", "xypadNavigate", "stepperControl",
+  "numberSparkline", "radioSelect", "colorPickerTheme", "dynamicReadouts",
+  "timelineDrive", "readoutVariety", "gridLayoutMatrix", "pathProgressDemo",
+  "kpiDashboard", "revenueKpiCard", "kpiBullet", "buildStatusTrafficLight",
+] as const;
+
+type Diagram = {
+  inputs?: Array<{ id?: string }>;
+  formulas?: Array<{ id?: string }>;
+  scrollTriggers?: Array<{ id?: string }>;
+  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number }>;
+  nodes?: Array<{ id?: string; subtitle?: string }>;
+  phases?: Array<{
+    tweens?: Array<{ stateId?: string }>;
+    sets?: Array<{ stateId?: string }>;
+    activate?: string[];
+    title?: string;
+    body?: string;
+  }>;
+};
+
+const mod = Interactive as unknown as Record<string, Diagram>;
+const ALL = [...DRIVEN, ...INPUT_DRIVEN];
+
+/** 段が動かす状態の集合。 */
+function drivenStates(d: Diagram): Set<string> {
+  const out = new Set<string>();
+  for (const p of d.phases ?? []) {
+    for (const t of p.tweens ?? []) if (t.stateId) out.add(t.stateId);
+    for (const s of p.sets ?? []) if (s.stateId) out.add(s.stateId);
+  }
+  return out;
+}
+
+/** 表示部品が見る状態。 積み上げ棒は `sourceA` / `sourceB` で 2 つ見る。 */
+function readoutSources(d: Diagram): string[] {
+  return (d.readouts ?? []).flatMap((r) => [r.source, r.sourceA, r.sourceB]).filter(Boolean) as string[];
+}
+
+describe("手本の形 (#1033)", () => {
+  it("対象が全件 実在する", () => {
+    const missing = ALL.filter((k) => mod[k] === undefined);
+    expect(missing, `図が無い: ${missing.join(", ")}`).toHaveLength(0);
+  });
+
+  it("対象は表示部品を 2 個以上持つ、または種別が他と重なる", () => {
+    // 表示部品 1 個 + 種別が唯一の図は「部品の見本」 で、別の基準で見る (#1032)。
+    // 「0 個でない」 だけだと、1 個まで削る変異が通ってしまう
+    const kindCount = new Map<string, number>();
+    for (const [k, v] of Object.entries(mod)) {
+      if (k.startsWith("subtitle__")) continue;
+      for (const r of (v as Diagram).readouts ?? []) {
+        if (r.kind) kindCount.set(r.kind, (kindCount.get(r.kind) ?? 0) + 1);
+      }
+    }
+    const bad = ALL.filter((k) => {
+      const ro = mod[k]?.readouts ?? [];
+      if (ro.length >= 2) return false;
+      if (ro.length === 0) return true;
+      // 1 個でも、その種別が他の図にも出るなら「見本」 ではない
+      return (kindCount.get(ro[0]!.kind ?? "") ?? 0) < 2;
+    });
+    expect(bad, `分類の条件を満たさない図が混ざっている: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段が 3 つ以上ある", () => {
+    const few = ALL.filter((k) => (mod[k]?.phases ?? []).length < 3)
+      .map((k) => `${k}: ${(mod[k]?.phases ?? []).length}`);
+    expect(few, `段が足りない: ${few.join(", ")}`).toHaveLength(0);
+  });
+
+  it("表示部品が 1 つ残らず段で動く状態を見ている", () => {
+    // 手本の核心。 「どれか 1 つ」 だと、2 つ目以降が止まったままでも通ってしまう
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const driven = drivenStates(d);
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      for (const r of d.readouts ?? []) {
+        const srcs = [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[];
+        if (srcs.length === 0) continue;
+        // 入力欄 / 計算式が握る表示部品は段では動かせない。 動かせるものだけを対象にする
+        if (srcs.every((s) => owned.has(s))) continue;
+        if (!srcs.some((s) => driven.has(s))) bad.push(`${k}/${r.id}`);
+      }
+    }
+    expect(bad, `段で動かない表示部品がある: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("表示部品ごとに、段を通して値が実際に変わる", () => {
+    // 連動があるだけでは足りない。 `tween(x, 50, 50)` のように動かない指定でも
+    // 「見ている」 は成立する。 また図の中の 1 つが動けば通る形だと、
+    // 2 つ目以降が止まったままの変異を見逃す (実測で素通りした)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      for (const r of d.readouts ?? []) {
+        const srcs = ([r.source, r.sourceA, r.sourceB].filter(Boolean) as string[])
+          .filter((x) => !owned.has(x));
+        if (srcs.length === 0) continue;
+        // その表示部品が見るどれか 1 つの状態が、段を通して 2 種類以上の値を取ればよい
+        const moves = srcs.some((src) => {
+          const seq: string[] = [];
+          for (const p of d.phases ?? []) {
+            for (const t of p.tweens ?? []) {
+              if (t.stateId === src) seq.push(`${(t as { from?: unknown }).from}->${(t as { to?: unknown }).to}`);
+            }
+            for (const st of p.sets ?? []) {
+              if (st.stateId === src) seq.push(String((st as { value?: unknown }).value));
+            }
+          }
+          return new Set(seq).size >= 2;
+        });
+        if (!moves) bad.push(`${k}/${r.id}`);
+      }
+    }
+    expect(bad, `段を通して値が変わらない表示部品: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段は入力欄も計算式も握る状態を触らない", () => {
+    // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される
+    const bad: string[] = [];
+    for (const k of ALL) {
+      const d = mod[k]!;
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      for (const st of drivenStates(d)) if (owned.has(st)) bad.push(`${k}: ${st}`);
+    }
+    expect(bad, `入力欄 / 計算式の状態を段が触っている: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段が渡す配列が表示部品の値域に収まる", () => {
+    // 値域を外れると表示側で頭打ちになり、違う値が同じ見た目になる
+    // (実測 = 上限 50 の棒に 52 / 60 / 72 を渡して 3 段とも満杯だった)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        const lo = r.min;
+        const hi = r.max;
+        if (typeof lo !== "number" || typeof hi !== "number") continue;
+        for (const src of [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[]) {
+          for (const p of d.phases ?? []) {
+            for (const st of p.sets ?? []) {
+              if ((st as { stateId?: string }).stateId !== src) continue;
+              const raw = String((st as { value?: unknown }).value ?? "");
+              if (!raw.startsWith("[")) continue;
+              let parsed: unknown;
+              try { parsed = JSON.parse(raw); } catch { bad.push(`${k}/${r.id}: 配列として読めない`); continue; }
+              if (!Array.isArray(parsed)) continue;
+              // 数値だけを取り出す (入れ子の配列にも降りる)
+              const nums: number[] = [];
+              const walk = (v: unknown): void => {
+                if (typeof v === "number") nums.push(v);
+                else if (Array.isArray(v)) v.forEach(walk);
+              };
+              walk(parsed);
+              if (r.kind === "waterfall") {
+                // 滝は増減を積み上げて描く。 各段の値ではなく **累積** が値域に収まる必要がある
+                let acc = 0;
+                for (const n of nums) {
+                  acc += n;
+                  if (acc < lo || acc > hi) bad.push(`${k}/${r.id}: 累積 ${acc} が [${lo}, ${hi}] の外`);
+                }
+                continue;
+              }
+              for (const n of nums) {
+                if (n < lo || n > hi) bad.push(`${k}/${r.id}: ${n} が [${lo}, ${hi}] の外`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `値域を外れている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("時間軸に渡す値が [[時刻, 名前], ...] の形になっている", () => {
+    // 文字列だけの配列を渡すと、表示側は空になる (実測)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        if (r.kind !== "sequence-timeline") continue;
+        for (const p of d.phases ?? []) {
+          for (const st of p.sets ?? []) {
+            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            const raw = String((st as { value?: unknown }).value ?? "");
+            let parsed: unknown;
+            try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
+            if (!Array.isArray(parsed) || parsed.length === 0) { bad.push(`${k}: 空`); continue; }
+            for (const e of parsed) {
+              const okPair =
+                Array.isArray(e) && e.length >= 2 && typeof e[0] === "number" && typeof e[1] === "string";
+              const okNum = typeof e === "number";
+              if (!okPair && !okNum) bad.push(`${k}: ${JSON.stringify(e)} の形が違う`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `時間軸の形が違う: ${bad.slice(0, 4).join(", ")}`).toHaveLength(0);
+
+    // 最終段は図が持つやり取りの数だけ並ぶ。 少ないと「全体が並ぶ」 が成立しない
+    const oauth = mod.interactiveOauthFlow!;
+    const last = (oauth.phases ?? []).at(-1);
+    const raw = String(((last?.sets ?? [])[0] as { value?: unknown })?.value ?? "[]");
+    expect(JSON.parse(raw), "最終段のやり取りが 6 件でない").toHaveLength(6);
+  });
+
+  it("段が動かす状態を指す箱は、固定値でなく束ねで書く", () => {
+    // 配列だけ差し替えて箱の説明を固定値のままにすると、同じ段で図と箱が違う値を出す
+    // (実測 = 棒が [15,22,30,38,48] を描く段で、箱は 12 / 34 / 20 / 45 / 28 を出していた)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const driven = drivenStates(d);
+      for (const n of d.nodes ?? []) {
+        const sub = n.subtitle ?? "";
+        for (const st of driven) {
+          // 状態の名前を説明に書いているのに束ねの形 (`{...}`) を持たない = 固定値
+          if (sub.includes(st) && !sub.includes("{")) bad.push(`${k}/${n.id}: "${sub}"`);
+        }
+      }
+    }
+    expect(bad, `箱が固定値を出している: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段ごとに注目する箱の組合せが変わる", () => {
+    const dup = ALL.filter((k) => {
+      const sets = (mod[k]?.phases ?? []).map((p) => [...new Set(p.activate ?? [])].sort().join(","));
+      return new Set(sets).size < sets.length;
+    });
+    expect(dup, `同じ組合せの段がある: ${dup.join(", ")}`).toHaveLength(0);
+  });
+
+  it("光らせる箱が実在する", () => {
+    const bad: string[] = [];
+    for (const k of ALL) {
+      const ids = new Set((mod[k]?.nodes ?? []).map((n) => n.id));
+      for (const p of mod[k]?.phases ?? []) {
+        for (const a of p.activate ?? []) if (!ids.has(a)) bad.push(`${k}: ${a}`);
+      }
+    }
+    expect(bad, `存在しない箱を指している: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段に題と説明がある", () => {
+    const bad: string[] = [];
+    for (const k of ALL) {
+      for (const [i, p] of (mod[k]?.phases ?? []).entries()) {
+        if (!p.title || p.title.length < 3) bad.push(`${k}[${i}]: 題が無い`);
+        if (!p.body || p.body.length < 20) bad.push(`${k}[${i}]: 説明が短い`);
+      }
+    }
+    expect(bad, `段の説明が足りない: ${bad.join(", ")}`).toHaveLength(0);
+  });
+});
