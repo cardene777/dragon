@@ -63,14 +63,21 @@ export function motionOf(diagram: CdlDiagram): Motion {
       if (owned.has(s.stateId)) continue;
       effective.set(s.stateId, String((s as { value?: unknown }).value));
     }
+    // 同じ段で同じ状態に `tween` が複数あると、後のものが前のものを上書きする。
+    // 段ごとに勝ち残った 1 つだけを見る (前のものまで数えると、画面に出ない動きを数える)
+    const winner = new Map<string, { from: string; to: string }>();
     for (const t of phase.tweens ?? []) {
       if (owned.has(t.stateId)) continue;
-      const from = String((t as { from?: unknown }).from);
-      const to = String((t as { to?: unknown }).to);
+      winner.set(t.stateId, {
+        from: String((t as { from?: unknown }).from),
+        to: String((t as { to?: unknown }).to),
+      });
+    }
+    for (const [stateId, { from, to }] of winner) {
       // 始点と終点が同じ tween は段の中で動かない (`tween(x, 50, 50)`)。
       // それでも終点が持ち越した値と違えば、段の境界で一度に変わる
-      if (from !== to) continuous.add(t.stateId);
-      effective.set(t.stateId, to);
+      if (from !== to) continuous.add(stateId);
+      effective.set(stateId, to);
     }
     for (const id of effective.keys()) if (!owned.has(id)) record(id);
   }

@@ -140,6 +140,25 @@ describe("動きの記述 (#1043)", () => {
       }],
     } as unknown as Parameters<typeof motionOf>[0];
     expect(motionOf(lands), "上書き後の値の変化を見落としている").toBe("step");
+
+    // 同じ段で同じ状態に tween が 2 つ = 後のものが勝つ
+    const laterWins = {
+      id: "x", nodes: [], states: [{ id: "a", initial: 0 }],
+      phases: [{
+        id: "p1", sets: [],
+        tweens: [{ stateId: "a", from: 0, to: 1 }, { stateId: "a", from: 0, to: 0 }],
+      }],
+    } as unknown as Parameters<typeof motionOf>[0];
+    expect(motionOf(laterWins), "上書きされた tween を連続と数えている").toBe("none");
+
+    const laterMoves = {
+      id: "x", nodes: [], states: [{ id: "a", initial: 0 }],
+      phases: [{
+        id: "p1", sets: [],
+        tweens: [{ stateId: "a", from: 0, to: 0 }, { stateId: "a", from: 0, to: 1 }],
+      }],
+    } as unknown as Parameters<typeof motionOf>[0];
+    expect(motionOf(laterMoves), "勝ち残った tween の動きを見落としている").toBe("continuous");
   });
 
   it("入力欄 / 計算式が握る状態は動きに数えない", () => {
@@ -207,10 +226,14 @@ describe("動きの記述 (#1043)", () => {
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
 
-  it("画面が導いた一文を出している", () => {
-    // 一覧の中と拡大表示の 2 経路がある。 片方だけだと、その経路で動きの情報が落ちる
-    const src = readFileSync(new URL("../pages/CategoryPage.tsx", import.meta.url), "utf8");
-    const uses = src.match(/motionNote/g) ?? [];
-    expect(uses.length, `画面が導いた一文を出していない (出現 ${uses.length} 回)`).toBeGreaterThanOrEqual(4);
+  it("説明を出す画面が、導いた一文も出している", () => {
+    // 説明が出る画面は 3 経路ある (一覧の中 / 拡大表示 / preset 詳細)。
+    // 出さない経路が残ると、そこでは説明だけが単独で出る
+    const pages = ["../pages/CategoryPage.tsx", "../pages/PresetDetailPage.tsx"];
+    for (const page of pages) {
+      const src = readFileSync(new URL(page, import.meta.url), "utf8");
+      const uses = (src.match(/motionNote/g) ?? []).length;
+      expect(uses, `${page} が導いた一文を出していない`).toBeGreaterThanOrEqual(2);
+    }
   });
 });
