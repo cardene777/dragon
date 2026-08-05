@@ -55,9 +55,11 @@ describe("段の進行 (#1034)", () => {
   });
 
   it("段ごとに注目する箱の組合せが変わる", () => {
-    // 同じ組合せの段が並ぶと、進めても見た目が変わらない
+    // 同じ組合せの段が並ぶと、進めても見た目が変わらない。
+    // 並び順で比べると、同じ集合を並べ替えただけの段を見逃す
+    const key = (a: string[] = []) => [...new Set(a)].sort().join(",");
     const dup = TARGETS.filter((k) => {
-      const sets = (mod[k]?.phases ?? []).map((p) => (p.activate ?? []).join(","));
+      const sets = (mod[k]?.phases ?? []).map((p) => key(p.activate));
       return new Set(sets).size < sets.length;
     });
     expect(dup, `同じ組合せの段がある: ${dup.join(", ")}`).toHaveLength(0);
@@ -80,21 +82,29 @@ describe("段の進行 (#1034)", () => {
     // 「異なる」 だけでは、順序を入れ替える変異や無関係な箱への差し替えを検出できない。
     // 進行は積み上げが基本で、箱が 2 個しかない図だけ最終段で絞る
     const NARROW = new Set(["inputSliderBar", "renderOffsetDrift"]);
+    // 例外の前提 = 箱が 2 個しかないため、積み上げでは 3 段目を作れない
+    for (const k of NARROW) {
+      expect((mod[k]?.nodes ?? []).length, `${k} は箱 2 個の前提が崩れている`).toBe(2);
+    }
     const bad: string[] = [];
     for (const k of TARGETS) {
       const ph = mod[k]?.phases ?? [];
       for (let i = 1; i < ph.length; i += 1) {
         const prev = new Set(ph[i - 1]!.activate ?? []);
-        const cur = ph[i]!.activate ?? [];
+        const cur = new Set(ph[i]!.activate ?? []);
         const isLast = i === ph.length - 1;
         if (NARROW.has(k) && isLast) {
-          // 絞る段は、直前の集合に含まれる箱だけを指す
-          const outside = cur.filter((a) => !prev.has(a));
+          // 絞る段は、直前の集合の一部だけを指す (空にはしない)
+          const outside = [...cur].filter((a) => !prev.has(a));
           if (outside.length > 0) bad.push(`${k}[${i}]: 絞る段が新しい箱を出した (${outside.join(",")})`);
+          if (cur.size === 0) bad.push(`${k}[${i}]: 絞る段が空`);
+          if (cur.size >= prev.size) bad.push(`${k}[${i}]: 絞れていない`);
           continue;
         }
-        const dropped = [...prev].filter((a) => !cur.includes(a));
+        const dropped = [...prev].filter((a) => !cur.has(a));
         if (dropped.length > 0) bad.push(`${k}[${i}]: 前段の箱が消えた (${dropped.join(",")})`);
+        // 増えないと進行として見えない
+        if (cur.size <= prev.size) bad.push(`${k}[${i}]: 箱が増えていない`);
       }
     }
     expect(bad, `段の進行が積み上がっていない: ${bad.join(", ")}`).toHaveLength(0);

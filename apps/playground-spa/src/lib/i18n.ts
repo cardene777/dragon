@@ -93,7 +93,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   sortFilter: "ソートと絞込",
 
   // === interactive primitive tour = 汎用DSL機能デモ ===
-  inputSliderBar: "スライダー入力で棒の高さが変化",
+  inputSliderBar: "スライダー入力が説明欄に反映",
   formulaTextBind: "計算式でテキストが自動更新",
   scrollNarrative: "スクロール駆動のフェーズ進行",
   clickToggle: "クリックで状態切替",

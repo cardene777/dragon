@@ -26,7 +26,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 // 3 つ目の節を足すと「1 つの仕組みを最小の形で見せる」 という目的が崩れる。
 export const inputSliderBar = diagram("interactive-slider-bar", {
   structuredData: "exclude",
-  topic: "スライダーの値で棒の高さが変わる",
+  topic: "スライダーの値が右の箱の説明欄に届く",
 })
   .lane("slider", { x: 0, width: 260 })
   .lane("output", { x: 300, width: 260 })
@@ -147,8 +147,8 @@ export const clickToggle = diagram("interactive-click-toggle", {
   }, (p: PhaseBuilder) => p.activate("btn"))
   .phase("p2", {
     duration: 1600,
-    title: "受け取り手に届く",
-    body: "押すと受け取り手が呼ばれる。 ボタンと受け取り手が繋がる。",
+    title: "受け取り手に結ぶ",
+    body: "押した時に呼ぶ受け取り手を結び付ける宣言。 結び付けを書くところまでがこの図の範囲。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode"))
   .phase("p3", {
     duration: 1600,
