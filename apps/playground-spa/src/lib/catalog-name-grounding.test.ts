@@ -75,23 +75,39 @@ const SCENE_WORDS: Array<{ ja: string[]; en: string[]; notScene?: string[] }> = 
  *
  * 区切りを見ないと `across` の中の `oss`、`SELECT` の中の `EC` に当たる (どちらも実測)。
  * 逆に日本語は語の区切りを持たないため、区切りを求めると「四半期ごと」 が引けなくなる。
+ *
+ * 区切りには **数字も含める**。 英字だけを区切りにすると `EC2` / `SaaS2` のような識別子の中の
+ * `EC` / `SaaS` に当たる。
  */
 function hasWord(haystack: string, word: string): boolean {
   if (!/[a-z]/i.test(word)) return haystack.includes(word);
   const escaped = word.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`).test(haystack.toLowerCase());
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`).test(haystack.toLowerCase());
+}
+
+/** 場面を指さない言い回しを取り除く。 残りだけを名乗り / 根拠として見る。 */
+function withoutPhrases(text: string, phrases: string[] | undefined): string {
+  if (!phrases?.length) return text;
+  return phrases.reduce((current, phrase) => {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return current.replace(new RegExp(escaped, "gi"), " ");
+  }, text);
 }
 
 /** 名前が名乗る場面のうち、図に根拠が無いものを返す。 */
 function groundlessWords(name: string, evidence: string, locale: "ja" | "en"): string[] {
   const out: string[] = [];
   for (const entry of SCENE_WORDS) {
-    // 場面を指さない言い回しは名乗りとみなさない (`block production` は「生成」 の意味)
-    if (entry.notScene?.some((phrase) => hasWord(name, phrase))) continue;
-    const claimed = (locale === "ja" ? entry.ja : entry.en).some((w) => hasWord(name, w));
+    // 場面を指さない言い回しは **名前と図の両方から** 取り除く。
+    // 図の側に残すと、「生成」 の意味で使われた語が場面の根拠に化ける
+    // (`Ethereum block production` を持つ図が、`Production deploy incident` を通してしまう)。
+    // 名前の側で打ち切らないのは、同じ名前が別の場面も名乗っている場合に検査を続けるため
+    const claimText = withoutPhrases(name, entry.notScene);
+    const evidenceText = withoutPhrases(evidence, entry.notScene);
+    const claimed = (locale === "ja" ? entry.ja : entry.en).some((w) => hasWord(claimText, w));
     if (!claimed) continue;
     // どちらの言い方でも図にあれば根拠あり
-    const grounded = [...entry.ja, ...entry.en].some((w) => hasWord(evidence, w));
+    const grounded = [...entry.ja, ...entry.en].some((w) => hasWord(evidenceText, w));
     if (!grounded) out.push(locale === "ja" ? entry.ja[0] : entry.en[0]);
   }
   return out;
@@ -102,12 +118,33 @@ function groundlessWords(name: string, evidence: string, locale: "ja" | "en"): s
  *
  * **数えると識別子が根拠になる**。 図の id は `interactive-saas-pricing-tier` のように
  * 名前と同じ語を持つため、`SaaS` を名乗る名前が id を根拠に通ってしまう (実測)。
+ * 他の図を指す `dependsOn` / `stateId` も同じで、そこにある語は画面に出ない。
  */
 const NON_VISIBLE_KEYS = new Set([
-  "id", "kind", "shape", "style", "tone", "fill", "stroke", "color", "accent",
-  "from", "to", "source", "target", "lane", "parent", "handlerId", "event",
-  "format", "align", "side", "variant", "preset",
+  // 識別子と、他の要素を指す参照
+  "id", "from", "to", "source", "sourceA", "sourceB", "target", "lane", "parent",
+  "dependsOn", "activate", "handlerId", "event", "map",
+  // 見た目の指定
+  "kind", "shape", "style", "tone", "fill", "stroke", "color", "colors", "accent",
+  "theme", "orient", "routing", "align", "side", "fromSide", "toSide", "labelAnchor",
+  "format", "variant", "preset",
+  // 計算式と表示条件 (画面に出るのは結果の値で、式そのものではない)
+  "expression", "formula", "formulas", "guard", "visibleIf",
+  // 図の外側の仕掛け
+  "scroll", "scrollTriggers", "interactiveHandlers",
 ]);
+
+/**
+ * 画面に出ない値が入っている key の形。 個別に並べるより取りこぼしが少ない。
+ *
+ * `<何か>Source` は値の出どころ (state の名前) を指し、`<何か>Id` は要素を指し、
+ * `<何か>Bind` は結び付け先を指す。 `color<何か>` は色の指定で、いずれも画面には出ない。
+ */
+const NON_VISIBLE_KEY_PATTERNS = [/Source$/, /Id$/, /Bind$/, /^color[A-Z]/];
+
+function isNonVisibleKey(key: string): boolean {
+  return NON_VISIBLE_KEYS.has(key) || NON_VISIBLE_KEY_PATTERNS.some((p) => p.test(key));
+}
 
 /**
  * 図から、名前の根拠になりうる文言を全て集める。
@@ -128,7 +165,7 @@ function evidenceOf(diagram: unknown): string {
     seen.add(value);
     if (Array.isArray(value)) { for (const child of value) walk(child); return; }
     for (const [key, child] of Object.entries(value)) {
-      if (NON_VISIBLE_KEYS.has(key)) continue;
+      if (isNonVisibleKey(key)) continue;
       walk(child);
     }
   };
@@ -175,6 +212,36 @@ describe("一覧の名前の根拠 (#1048)", () => {
       if (groundless.length) bad.push(`${item.title} "${name}" → 図に無い: ${groundless.join(", ")}`);
     }
     expect(bad, `図が持たない場面を名乗る英語名:\n${bad.join("\n")}`).toHaveLength(0);
+  });
+
+  it("画面に出ない値を根拠にしない", () => {
+    // 図の識別子や参照は画面に出ないため、そこに語があっても名乗りの根拠にならない。
+    // 数えると `interactive-saas-pricing-tier` のような id で `SaaS` の名乗りが通る (実測)
+    const hidden = {
+      id: "interactive-cto-board",
+      topic: "3 人の担当を並べる",
+      nodes: [{ id: "a", title: "担当", dependsOn: "CTO" }],
+      states: [{ stateId: "CFO", initial: 0 }],
+    };
+    expect(groundlessWords("CTOの決定", evidenceOf(hidden), "ja"), "参照を根拠にしている").toEqual(["CTO"]);
+
+    // 画面に出る値なら根拠になる (除き過ぎると正しい名前が落ちる)
+    const shown = { id: "x", topic: "決めるのは CTO", nodes: [{ id: "a", title: "担当" }] };
+    expect(groundlessWords("CTOの決定", evidenceOf(shown), "ja"), "表示される語を落としている").toEqual([]);
+  });
+
+  it("語の区切りに数字を含める", () => {
+    // 英字だけを区切りにすると `EC2` の中の `EC` に当たる
+    expect(groundlessWords("EC注文の一覧", "AWS EC2 instance", "ja")).toEqual(["EC"]);
+    expect(groundlessWords("EC注文の一覧", "scene: EC 注文", "ja")).toEqual([]);
+  });
+
+  it("場面を指さない言い回しは図の側でも根拠にしない", () => {
+    // 図に残すと「生成」 の意味で使われた語が場面の根拠に化ける
+    expect(groundlessWords("Production deploy incident", "Ethereum block production", "en")).toEqual(["production"]);
+    expect(groundlessWords("Production deploy incident", "Building v1.2.3 for production", "en")).toEqual([]);
+    // 名前が非場面の言い回しを含むだけなら名乗りにしない
+    expect(groundlessWords("Ethereum block production", "ブロックができるまで", "en")).toEqual([]);
   });
 
   it("両言語が同じ図に対して同じ判定になる", async () => {
