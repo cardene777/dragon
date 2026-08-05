@@ -5,7 +5,7 @@
  * 語らなくなっているため、**画面から動きの情報が丸ごと落ちる** 形になる。
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 import { PRESETS } from "./presets";
@@ -19,12 +19,9 @@ import { motionOf, motionNote } from "./catalog-motion";
  *
  * **この列挙は塞ぎ切れない**。 言い回しは無限にあり、同義語を足す形は収束しない。
  *
- * 動く図では実害が小さい。 導出文が隣に出るため、語彙の外の言い回しで誤って語っても
- * 矛盾した一文が並ぶ形になり、読み手が気付ける。
- *
- * **動かない図では塞げていない**。 導出文が付かないため、語彙の外の言い回しで動きを書くと
- * 誤った説明が単独で出る。 塞ぐには静的な図すべてに「値は変わらない」 の一文を出すことになり、
- * 読み手に不要な一文を増やすため採っていない。
+ * それでも誤った説明が単独で出ることは無い。 導出文を **動かない図も含めて必ず出す**
+ * ようにしたため (#1053)、語彙の外の言い回しで誤って語っても矛盾した一文が隣に並び、
+ * 読み手が気付ける。 列挙が受け持つのは「書き忘れの指摘」 までで、保証は導出文の側にある。
  */
 const CONTINUOUS_WORDS = [
   /tween/i,
@@ -174,22 +171,36 @@ describe("動きの記述 (#1043)", () => {
     expect(motionOf(diagramWith({ tweens: ["v", "w"], inputs: ["v"] }))).toBe("continuous");
   });
 
-  it("動かない図には一文を付けない", () => {
-    expect(motionNote(diagramWith({}))).toBeUndefined();
+  it("動かない図にも一文を付ける", () => {
+    // 付けないと、静的な図の説明に語彙の外の言い回しで動きを書かれた時に
+    // 誤った説明が単独で出る (#1053)
+    expect(motionNote(diagramWith({}))).toBe("段を進めても値は変わらない");
     expect(motionNote(diagramWith({ tweens: ["a"] }))).toBe("段の中で値が連続して動く");
     expect(motionNote(diagramWith({ sets: ["a"] }))).toBe("段の切替で値が一度に変わる");
   });
 
-  it("一覧の項目が導いた一文を持っている", () => {
-    // 組み立て側 (`catalog-items.ts`) の配線が切れていないこと
+  it("全ての項目が導いた一文を持っている", async () => {
+    // 組み立て側 (`catalog-items.ts`) の配線が切れていないこと。
+    // **1 件でも欠けたら落とす** (#1053)。 欠けた図では説明が単独で出る
+    const items = await allDescriptions();
+    expect(items.length, "図が 1 件も見つからない").toBeGreaterThan(430);
+
+    const allowed = new Set([
+      "段の中で値が連続して動く",
+      "段の切替で値が一度に変わる",
+      "段を進めても値は変わらない",
+    ]);
+    const bad: string[] = [];
+    for (const { where, name, diagram } of items) {
+      const note = motionNote(diagram);
+      if (!allowed.has(note)) bad.push(`${where}/${name}: ${note}`);
+    }
+    expect(bad, `想定外の一文がある: ${bad.join(" / ")}`).toHaveLength(0);
+
+    // 一覧の項目に載っていること (配線)
     const interactive = CATALOG_ITEMS.interactive ?? [];
-    expect(interactive.length, "図が 1 件も見つからない").toBeGreaterThan(50);
-    const withNote = interactive.filter((i) => typeof i.motionNote === "string");
-    expect(withNote.length, "導いた一文を持つ項目が無い (配線が切れている)").toBeGreaterThan(50);
-    // 一文の中身は 2 種類しかない (自由文が紛れ込んでいないこと)
-    const allowed = new Set(["段の中で値が連続して動く", "段の切替で値が一度に変わる"]);
-    const unexpected = [...new Set(withNote.map((i) => i.motionNote))].filter((s) => !allowed.has(s!));
-    expect(unexpected, `想定外の一文がある: ${unexpected.join(" / ")}`).toHaveLength(0);
+    const missing = interactive.filter((i) => !allowed.has(i.motionNote)).map((i) => i.title);
+    expect(missing, `一文が載っていない項目: ${missing.join(", ")}`).toHaveLength(0);
   });
 
   it("全ての図で、一文が段の実装と一致する", () => {
@@ -197,18 +208,21 @@ describe("動きの記述 (#1043)", () => {
     // **一覧に載る全ての図** を見る。 一部の図に絞ると、連続して動く図が 4 件しかないため
     // その 4 件が範囲から外れて、連続側の判定が一度も試されないまま通る (実測で起きた)
     const items = CATALOG_ITEMS.interactive ?? [];
-    const kinds = { continuous: 0, step: 0 };
+    const kinds = { continuous: 0, step: 0, none: 0 };
     for (const item of items) {
-      const hasTween = (item.diagram.phases ?? []).some((p) => (p.tweens ?? []).length > 0);
       const kind = motionOf(item.diagram);
-      if (kind === "none") continue;
-      const expected = hasTween ? "段の中で値が連続して動く" : "段の切替で値が一度に変わる";
+      const expected = {
+        continuous: "段の中で値が連続して動く",
+        step: "段の切替で値が一度に変わる",
+        none: "段を進めても値は変わらない",
+      }[kind];
       expect(item.motionNote, `${item.title} の一文が実装と合わない`).toBe(expected);
       kinds[kind] += 1;
     }
-    // 2 種類ともが実データで試されていること
+    // 3 種類ともが実データで試されていること
     expect(kinds.continuous, "連続して動く図が 1 件も無い").toBeGreaterThan(0);
     expect(kinds.step, "段の切替で変わる図が 1 件も無い").toBeGreaterThan(0);
+    expect(kinds.none, "動かない図が 1 件も無い").toBeGreaterThan(0);
   });
 
   it("連続した動きを語る説明は、実際に連続して動く図だけが持つ", async () => {
@@ -230,14 +244,55 @@ describe("動きの記述 (#1043)", () => {
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
 
-  it("説明を出す画面が、導いた一文も出している", () => {
-    // 説明が出る画面は 3 経路ある (一覧の中 / 拡大表示 / preset 詳細)。
-    // 出さない経路が残ると、そこでは説明だけが単独で出る
-    const pages = ["../pages/CategoryPage.tsx", "../pages/PresetDetailPage.tsx"];
-    for (const page of pages) {
-      const src = readFileSync(new URL(page, import.meta.url), "utf8");
-      const uses = (src.match(/motionNote/g) ?? []).length;
-      expect(uses, `${page} が導いた一文を出していない`).toBeGreaterThanOrEqual(2);
+  it("説明を出す箇所ごとに、導いた一文が隣にある", () => {
+    // **file 単位で見ない** (#1053)。 file のどこかに `motionNote` があれば通る形だと、
+    // 同じ file に説明だけの表示を足しても気付けない (Round 2 の指摘)。
+    //
+    // 説明を出す **箇所ごと** に、その近くへ導出文があることを見る。
+    const bad: string[] = [];
+    let sinks = 0;
+    for (const { name, src } of screenSources()) {
+      const lines = src.split("\n");
+      lines.forEach((line, i) => {
+        if (!line.includes(".subtitle")) return;
+        // 絞り込みの述語は表示ではない (`p.subtitle.toLowerCase().includes(q)` 等)
+        if (/\.toLowerCase\(\)|\.includes\(|\.match\(|\.test\(/.test(line)) return;
+        sinks += 1;
+        // 前後 6 行を見る。 JSX は条件付き描画 + コメントで表示が数行に散るため
+        // (実測 = 拡大表示の説明と導出文の間が 5 行あった)
+        const near = lines.slice(Math.max(0, i - 6), i + 7).join("\n");
+        if (!near.includes("motionNote")) bad.push(`${name}:${i + 1} ${line.trim()}`);
+      });
+    }
+    // 検査が空振りしていないこと (表示箇所を 1 つも見つけられない形)
+    expect(sinks, "説明を出す箇所が 1 つも見つからない").toBeGreaterThan(3);
+    expect(bad, `導いた一文が隣にない表示:\n${bad.join("\n")}`).toHaveLength(0);
+  });
+
+  it("editor の parts 一覧の説明に、導いた一文が併記される", () => {
+    // 表示箇所の検査は近さで見るため、意図した中身までは見ない。
+    // review が名指しした箇所は中身も直接見る
+    const src = readFileSync(new URL("../components/CdlEditor.tsx", import.meta.url), "utf8");
+    // この file の tooltip は複数ある。 **説明を出しているものだけ** を対象にする
+    const tooltips = src.split("\n").filter((l) => l.includes("title={") && l.includes(".subtitle"));
+    expect(tooltips.length, "説明を出す tooltip が見つからない").toBeGreaterThan(0);
+    for (const line of tooltips) {
+      // 無効時は hint だけ、 有効時は説明と導出文の両方
+      expect(line, `無効時の hint が消えている: ${line.trim()}`).toContain("cdlOnlyHint");
+      expect(line, `導いた一文が併記されていない: ${line.trim()}`).toContain("motionNote");
     }
   });
 });
+
+/** 画面を組み立てる file (`pages/` と `components/` の `.tsx`)。 */
+function screenSources(): Array<{ name: string; src: string }> {
+  const roots = [new URL("../pages/", import.meta.url), new URL("../components/", import.meta.url)];
+  const out: Array<{ name: string; src: string }> = [];
+  for (const root of roots) {
+    for (const name of readdirSync(root)) {
+      if (!name.endsWith(".tsx")) continue;
+      out.push({ name, src: readFileSync(new URL(name, root), "utf8") });
+    }
+  }
+  return out;
+}

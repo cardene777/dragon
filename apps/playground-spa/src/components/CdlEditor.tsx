@@ -1698,6 +1698,8 @@ animation:
                   : "検索条件に一致するパーツがありません。"}
               </div>
             )}
+            {/* 説明 (`subtitle`) を出す画面は、導いた動きの一文も併せて出す (#1053)。
+                出さないと説明だけが単独で読まれ、動きの誤りに気付けない */}
             <div className="v4-editor-side-list">
               {filteredParts.map((p) => (
                 <button
@@ -1706,7 +1708,7 @@ animation:
                   className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
                   data-testid={`editor-part-item-${p.id}`}
                   data-part-id={p.id}
-                  title={cdlWriteDisabled ? cdlOnlyHint : p.subtitle}
+                  title={cdlWriteDisabled ? cdlOnlyHint : `${p.subtitle}\n${p.motionNote}`}
                   disabled={cdlWriteDisabled}
                   onClick={() => {
                     // CAR-1657 click = drop と同 semantic = actors: append (additive)。
