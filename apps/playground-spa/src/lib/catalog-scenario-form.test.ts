@@ -196,15 +196,27 @@ describe("手本の形 (#1033)", () => {
   // engine を通して描画結果で比べる側に一本化した。
 
   it("一覧の説明が語る動きの種類が、段の実装と一致する", () => {
-    // 一覧の説明 (`subtitle__X`) に `tween` と書くと「段の中で値が連続して動く」 と読まれる。
-    // 段が `set` だけで値を差し替える図に書くと、実際は段の切替時に一度で変わる。
-    // (実測 = 段を `set` に直した 10 図で説明だけ `tween` のまま残っていた)
+    // 一覧の説明 (`subtitle__X`) に「連続して動く」 と読める語を書くと、段の中で値が
+    // 滑らかに変わると読まれる。 段が `set` だけで差し替える図では、実際は段の切替時に
+    // 一度で変わる (実測 = 段を `set` に直した 10 図で説明だけ `tween` のまま残っていた)。
+    //
+    // **語を 1 つだけ見る形にしない**。 `tween` を「連続変化」 に書き換えるだけで
+    // 同じ誤りを書き戻せてしまう
+    const CONTINUOUS = [
+      /tween/i,
+      /連続(?:的)?(?:に|変化|動作|補間)/,
+      /徐々に/,
+      /(?:なめらか|滑らか)に/,
+      /少しずつ/,
+    ];
     const bad: string[] = [];
     for (const k of DRIVEN) {
       const caption = (mod as unknown as Record<string, unknown>)[`subtitle__${k}`];
-      if (typeof caption !== "string" || !caption.includes("tween")) continue;
+      if (typeof caption !== "string") continue;
+      const claim = CONTINUOUS.find((re) => re.test(caption));
+      if (!claim) continue;
       const hasTween = (mod[k]?.phases ?? []).some((p) => (p.tweens ?? []).length > 0);
-      if (!hasTween) bad.push(`${k}: 説明は tween と書くが段は set だけ`);
+      if (!hasTween) bad.push(`${k}: 説明は連続した動きを語るが段は set だけ`);
     }
     expect(bad, `説明と段の動きが合わない: ${bad.join(", ")}`).toHaveLength(0);
   });

@@ -4363,7 +4363,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .phase("p2", {
     duration: 1800,
     title: "底を打つ",
-    body: "今月が先月と並ぶ。 差が 0 になって印が消え、折れ線だけが右上がりに戻る。",
+    body: "今月が先月と並んで差が 0 になる。 印は上向きのまま残り、折れ線の右端が持ち直す。",
   }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard").set("cur", 64).set("prev", 64).set("hist", '[68,66,64,60,58,64]'))
   .phase("p3", {
     duration: 1800,
