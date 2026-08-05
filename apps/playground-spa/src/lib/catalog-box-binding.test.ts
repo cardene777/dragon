@@ -107,7 +107,7 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
  */
 const SLICE_ONLY = new Set([
   "activity-feed", "chat-bubble", "commit-list", "event-log", "search-result",
-  "video-card", "terminal", "timeline-vertical", "user-presence",
+  "video-card", "terminal", "timeline-vertical",
 ]);
 /**
  * `max` ではなく **実装に埋め込まれた固定値** で切る種別。
@@ -116,14 +116,12 @@ const SLICE_ONLY = new Set([
  * 数はすべて `interactive-panel.tsx` の `slice(...)` から引いた。
  */
 const FIXED_LIMIT: Record<string, number> = {
-  "voice-message": 40,
   "otp-input": 6,
   "service-health": 6,
   "toc-nav": 6,
   "share-buttons": 4,
 };
 function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined): string {
-  const one = inputs.length === 1 ? inputs[0]![1] : undefined;
   const parse = (raw: string | undefined): unknown[] | undefined => {
     if (raw === undefined) return undefined;
     try {
@@ -131,8 +129,29 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
       return Array.isArray(v) ? v : undefined;
     } catch { return undefined; }
   };
-  const rows = parse(one);
   const asIs = () => JSON.stringify(inputs);
+  /** 入力を field 名で引く (2 つ以上の入力から 1 つの絵を描く種別で使う)。 */
+  const input = (field: string): string | undefined =>
+    inputs.find(([name]) => name === field)?.[1];
+
+  // 入力を 2 つ以上取る種別は、1 入力前提の `rows` に乗らないため先に処理する。
+  // ここに書かないと、下の `if (!rows) return asIs()` で生の入力をそのまま返し、
+  // 種別ごとの加工が **一度も実行されない** (実測 = 波形の 40 本上限が dead code だった)
+  if (kind === "voice-message") {
+    // 振幅は先頭 40 本まで、各値は 0..1 に丸める。 進み具合も 0..1 に丸め、
+    // 色が付く本数は `floor(本数 * 進み具合)` で決まる
+    const amps = parse(input("source")) ?? [];
+    const shown = amps.slice(0, 40).map((v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0;
+    });
+    const rawP = Number(input("progressSource"));
+    const p = Number.isFinite(rawP) ? Math.max(0, Math.min(1, rawP)) : 0;
+    return JSON.stringify({ bars: shown, active: Math.floor(shown.length * p) });
+  }
+
+  const one = inputs.length === 1 ? inputs[0]![1] : undefined;
+  const rows = parse(one);
   if (!rows) return asIs();
   const at = (r: unknown, i: number): number =>
     Array.isArray(r) && typeof r[i] === "number" ? (r[i] as number) : Number.NaN;
@@ -193,6 +212,18 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
         const s = String(r[1] ?? "").toLowerCase();
         return [r[0], colorOf(s), s.length > 5 ? s.slice(0, 4).toUpperCase() : s.toUpperCase()];
       }));
+    }
+    case "user-presence": {
+      // `max` 件まで出し、**溢れた件数を「+N more」 として描く**。
+      // 溢れ件数を落とすと、先頭が同じで人数だけ違う 2 段を同じ絵とみなす。
+      // 名前は 24 文字を超えると末尾を省き、状態は小文字にして色を引く
+      const users = rows.flatMap((r) => {
+        if (!Array.isArray(r) || r.length < 2) return [];
+        const name = String(r[0]);
+        return [[name.length > 24 ? `${name.slice(0, 23)}…` : name, String(r[1]).toLowerCase()]];
+      });
+      const lim = typeof max === "number" ? max : users.length;
+      return JSON.stringify({ shown: users.slice(0, lim), overflow: Math.max(0, users.length - lim) });
     }
     case "log-stream":
       // **末尾** 5 行だけを出す (`slice(-5)`)。 他の種別と切る向きが逆で、

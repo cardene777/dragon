@@ -195,6 +195,20 @@ describe("手本の形 (#1033)", () => {
   // する種別 (割合で伸びる帯 / 0 件を出さない札 / 件数上限) で違う値から同じ絵が出るため、
   // engine を通して描画結果で比べる側に一本化した。
 
+  it("一覧の説明が語る動きの種類が、段の実装と一致する", () => {
+    // 一覧の説明 (`subtitle__X`) に `tween` と書くと「段の中で値が連続して動く」 と読まれる。
+    // 段が `set` だけで値を差し替える図に書くと、実際は段の切替時に一度で変わる。
+    // (実測 = 段を `set` に直した 10 図で説明だけ `tween` のまま残っていた)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const caption = (mod as unknown as Record<string, unknown>)[`subtitle__${k}`];
+      if (typeof caption !== "string" || !caption.includes("tween")) continue;
+      const hasTween = (mod[k]?.phases ?? []).some((p) => (p.tweens ?? []).length > 0);
+      if (!hasTween) bad.push(`${k}: 説明は tween と書くが段は set だけ`);
+    }
+    expect(bad, `説明と段の動きが合わない: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
   it("段は入力欄も計算式も握る状態を触らない", () => {
     // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される
     const bad: string[] = [];

@@ -4241,18 +4241,18 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
   .phase("p1", {
     duration: 1800,
     title: "朝の在席",
-    body: "全員が不在。 名前の左の丸がすべて灰で、状態が色だけで表される形が読める。",
+    body: "全員が不在。 名前の左の丸がすべて灰になり、行末の状態も同じ語で揃う。",
   }, (p: PhaseBuilder) => p.activate("danCard").set("team", '[["Alice","offline"],["Bob","offline"],["Carol","offline"],["Dan","offline"],["Eve","offline"]]'))
   .phase("p2", {
     duration: 1800,
-    title: "始業した後",
-    body: "在席と離席が混じる。 並びは変わらず、丸の色だけが人ごとに分かれる。",
-  }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"]]'))
+    title: "上限ちょうど",
+    body: "6 人まで並ぶ。 表示の上限と同じ人数なので、余りの行はまだ出ない。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"]]'))
   .phase("p3", {
     duration: 1800,
-    title: "日中の在席",
-    body: "在席が 3 人になる。 緑 3 と黄 1 と灰 1 の内訳が、丸の色だけで数えられる。",
-  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","online"],["Dan","offline"],["Eve","online"]]'))
+    title: "上限を超える",
+    body: "7 人目は行にならず、末尾に残りの人数としてまとめて出る。 上の 6 行は変わらない。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"],["Grace","away"]]'))
   .build();
 export const subtitle__teamPresenceStatus = "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存";
 
@@ -4363,7 +4363,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .phase("p2", {
     duration: 1800,
     title: "底を打つ",
-    body: "今月が先月と並ぶ。 差が 0 になり、折れ線の右端が水平に寝る。",
+    body: "今月が先月と並ぶ。 差が 0 になって印が消え、折れ線だけが右上がりに戻る。",
   }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard").set("cur", 64).set("prev", 64).set("hist", '[68,66,64,60,58,64]'))
   .phase("p3", {
     duration: 1800,
@@ -4439,7 +4439,7 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
     body: "15 本すべてに色が付く。 進み具合が 1 になると境目が右端まで届く。",
   }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").set("progress", 1).badge("完了"))
   .build();
-export const subtitle__voiceMessagePlayback = "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 再生中 tween → 完了の動きを可視化";
+export const subtitle__voiceMessagePlayback = "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 半ばまで再生 → 完了の変化を可視化";
 
 /**
  * 113. thread-summary = 会話スレッド概要を 3-lane (未読 / 参加者 / 直近) category split 分散 + threadSummary readout 併存 + 3 phase 動き (静か → 新着 tween → 混雑)。 iteration 7 wave 1、 pattern taxonomy § 3 category split。
@@ -4461,7 +4461,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   .phase("p1", {
     duration: 1800,
     title: "静かなスレッド",
-    body: "未読が 0。 未読が 0 の間は赤い丸そのものが出ないため、人数と経過だけが並ぶ。",
+    body: "未読が 0。 赤い丸だけが消え、人数と直近の発言者と経過の 3 行は残る。",
   }, (p: PhaseBuilder) => p.activate("partCard").set("thread", '[0,4,"Bob","2 時間前"]').badge("静か"))
   .phase("p2", {
     duration: 1800,
@@ -4474,7 +4474,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
     body: "未読が 5 件に増える。 丸の大きさは変わらず、中の数と 3 行の文字だけが動く。",
   }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").set("thread", '[5,8,"Alice","12 分前"]').badge("混雑"))
   .build();
-export const subtitle__teamThreadSummary = "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 tween → 混雑の動きを可視化";
+export const subtitle__teamThreadSummary = "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 → 混雑の変化を可視化";
 
 /**
  * 114. read-receipt = message 既読状態遷移を 3-lane (送信 / 配信 / 既読) state-driven visibility 分散 + readReceipt readout 併存 + 3 phase 動き (送信 → 配信 → 既読 の状態切替)。 iteration 7 wave 1、 pattern taxonomy § 2 state-driven visibility。
@@ -4580,7 +4580,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
     body: "6 つとも埋まる。 空欄が無くなり青枠も消え、そのまま送る形になる。",
   }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").set("otp", '[4,8,2,1,5,7]').badge("検証完了"))
   .build();
-export const subtitle__loginOtpVerify = "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で SMS 送信 → 入力 tween → 自動送信の連続動作を可視化";
+export const subtitle__loginOtpVerify = "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で空欄 → 3 桁 → 6 桁の入力状態を可視化";
 
 /**
  * 117. file-dropzone = プロフィール画像アップロードを 3 区画 (未選択 / アップロード / プレビュー) 2 列 2 段の state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
@@ -4647,7 +4647,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   .phase("p2", {
     duration: 1800,
     title: "注意が出る",
-    body: "橙の札が付いた行が混じる。 本文が 24 文字を超える行は末尾を省いて出る。",
+    body: "橙の札が付いた行が混じる。 青い札と並ぶため、重さの違いが色で読み取れる。",
   }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow").set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"]]').badge("警告"))
   .phase("p3", {
     duration: 1800,
@@ -4655,7 +4655,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
     body: "行が 6 つに増えるが、出るのは **末尾 5 行** だけ。 先頭の 1 行が押し出されて消える。",
   }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow").set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"worker crash: OOM"],["09:02:02",1,"worker 再起動 ok"],["09:02:30",1,"health check ok"]]').badge("障害"))
   .build();
-export const subtitle__prodLogTail = "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 tween → 障害の重篤度昇華を可視化";
+export const subtitle__prodLogTail = "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 → 障害の重篤度昇華を可視化";
 
 /**
  * 119. alert-banner = 重要度別 alert banner を 3-lane (トリガー / 重要度 / アクション) state-driven visibility 分散 + alertBanner readout 併存 + 3 phase 動き (info → warn tween → error エスカレーション)。 iteration 7 wave 3、 pattern taxonomy § 2 state-driven visibility。
@@ -4687,10 +4687,10 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
   .phase("p3", {
     duration: 1800,
     title: "異常に上がる",
-    body: "重要度が最大になり帯が赤くなる。 本文が 32 文字を超えると末尾を省いて出る。",
+    body: "重要度が最大になり帯が赤くなる。 本文と印も異常を表す内容に入れ替わる。",
   }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").set("alert", '[3,"prod-web-3 応答なし — 全系統の切替が要る"]').badge("error"))
   .build();
-export const subtitle__opsAlertBanner = "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn tween → error のエスカレーションを可視化";
+export const subtitle__opsAlertBanner = "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn → error のエスカレーションを可視化";
 
 /**
  * 120. service-health = microservice health matrix を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存。 iteration 7 wave 3、 pattern taxonomy § 3 category split。
@@ -4746,8 +4746,8 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
   .lane("total", { x: 560, width: 240 })
   .arraySignal("cart", [3, 149.85, 8.5, 158.35])
   .node("itemsCard", { lane: "items", stack: 0, kind: "card", title: "商品数", subtitle: "カートに入れた点数" })
-  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "小計", subtitle: "話している人数" })
-  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "送料", subtitle: "最後に書いた人の名前" })
+  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "小計", subtitle: "商品の金額を足した値" })
+  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "送料", subtitle: "小計に加える配送費" })
   .node("totalCard", { lane: "total", stack: 0, kind: "card", title: "合計", subtitle: "末尾の行 · 太字と青で出る" })
   .edge("itemsCard", "subtotalCard", { label: "集計", tone: "info" })
   .edge("subtotalCard", "totalCard", { label: "+送料", tone: "success" })
@@ -4769,7 +4769,7 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
     body: "合計が最も大きくなる。 最後の行だけ太字と青で出て、他の 3 行と区別される。",
   }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").set("cart", '[3,149.85,8.5,158.35]').badge("合計"))
   .build();
-export const subtitle__checkoutCartSummary = "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で商品追加 tween → 送料計算 → 合計確定の連続動作を可視化";
+export const subtitle__checkoutCartSummary = "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で 1 点 → 2 点 → 確定の金額変化を可視化";
 
 /**
  * 122. pricing-tier = SaaS 料金プラン (3 tier 比較) を 3-lane (Starter / Pro / Enterprise) category split 分散 + pricingTier readout 併存 + 3 phase 動き (Starter → Pro tween → Enterprise 検討)。 iteration 7 wave 4、 pattern taxonomy § 3 category split。
@@ -4804,7 +4804,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
     body: "特典を 5 つ渡しても出るのは **先頭 3 つ** まで。 4 つ目以降は表示に載らない。",
   }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").set("plan", '["Enterprise",99,"無制限の席","専任の担当","監査ログ","SSO 連携","SLA 保証"]').badge("比較"))
   .build();
-export const subtitle__saasPricingTier = "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter 検討 → Pro 選択 tween → 比較完了の動きを可視化";
+export const subtitle__saasPricingTier = "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter → Pro → Enterprise の表示差を可視化";
 
 /**
  * 123. coupon-code = チェックアウト クーポン適用フローを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
@@ -4839,7 +4839,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
     body: "割引が正になる。 緑の札が現れ、符号と割引率が並んで出る形になる。",
   }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").set("coupon", '["SAVE20",20]').badge("適用"))
   .build();
-export const subtitle__checkoutCouponApply = "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で discount 0 → 20% tween を可視化";
+export const subtitle__checkoutCouponApply = "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で未入力 → 符号入力 → 適用の状態変化を可視化";
 
 /**
  * 124. article-preview = ブログ記事プレビュー card を 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
@@ -4854,8 +4854,8 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   .node("thumbCard", { lane: "thumb", stack: 0, kind: "card", title: "サムネイル", subtitle: "配列の値に依らず固定" })
   .node("titleCard", { lane: "content", stack: 0, kind: "card", title: "タイトル", subtitle: "長いと末尾を省いて出る見出し" })
   .node("excerptCard", { lane: "content", stack: 1, kind: "card", title: "抜粋", subtitle: "折り返して出る本文" })
-  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "著者", subtitle: "最後に書いた人の名前" })
-  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "経過", subtitle: "最後の書き込みからの経過" })
+  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "著者", subtitle: "記事を書いた人の名前" })
+  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "経過", subtitle: "記事の公開からの経過" })
   .edge("thumbCard", "titleCard", { label: "視線", tone: "info" })
   .edge("titleCard", "authorCard", { label: "帰属", tone: "success" })
   .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事 card" })
@@ -4867,7 +4867,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   .phase("p2", {
     duration: 1800,
     title: "抜粋が伸びる",
-    body: "抜粋が 2 行に折り返す。 28 文字ごとに区切られ、2 行目の末尾が省略される。",
+    body: "抜粋が 2 行に分かれる。 1 行目は 28 文字で切れて省略記号が付き、残りが 2 行目に出る。",
   }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard").set("article", '["dragon 入門","dragon で interactive diagram を作る方法を解説","Alice","2 時間前"]').badge("hover"))
   .phase("p3", {
     duration: 1800,
@@ -4875,7 +4875,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
     body: "題が 26 文字を超える。 題も末尾を省いて出るため、1 行に収まる形が保たれる。",
   }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").set("article", '["dragon で作る interactive diagram の完全ガイド 2026 年版","段ごとの変化と表示部品の連動を実例つきで最初から順に解説する長い記事","Carol","3 日前"]').badge("click"))
   .build();
-export const subtitle__blogArticlePreview = "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で初期 → hover tween → 続きを読むの動きを可視化";
+export const subtitle__blogArticlePreview = "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で短い記事 → 抜粋が伸びる → 題も伸びるの表示差を可視化";
 
 /**
  * 125. toc-nav = ドキュメント TOC (階層 3 段 + アクティブセクション) を 3-lane (H1 / H2 / H3) tree depth split 分散 + tocNav readout 併存 + 3 phase 動き (Intro → GS → First tween スクロール)。 iteration 7 wave 5、 pattern taxonomy § 8 tree depth split。
@@ -4957,7 +4957,7 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     body: "4 つの差が最も開く。 5 つ渡しても出るのは **先頭 4 つ** までで、5 つ目は載らない。",
   }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").set("shares", '[["tw",245],["fb",89],["li",32],["rd",18],["hn",6]]').badge("バズ"))
   .build();
-export const subtitle__socialShareButtons = "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で拡散カウント 0 → 384 tween を可視化";
+export const subtitle__socialShareButtons = "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で投稿直後 → 広まる → 落ち着くの共有数変化を可視化";
 
 /**
  * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
