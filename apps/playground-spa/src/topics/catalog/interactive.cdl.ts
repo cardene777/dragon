@@ -134,7 +134,7 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .input.toggle("active", { defaultValue: false, label: "Active" })
   .state("active", { initial: "off" })
   .node("btn", { lane: "col1", stack: 0, kind: "card", w: 180, title: "Button", subtitle: "click target" })
-  .node("handlerNode", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Handler", subtitle: "toggle-active + hover-state (consumer 実装)" })
+  .node("handlerNode", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Handler", subtitle: "押した時と触れた時の受け取り手" })
   .node("signalNode", { lane: "col1", stack: 1, kind: "card", w: 310, title: "Signal state", subtitle: "active = {active}" })
   .edge("btn", "handlerNode", { label: "click / hover", tone: "info" })
   .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
@@ -148,12 +148,12 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .phase("p2", {
     duration: 1600,
     title: "受け取り手に結ぶ",
-    body: "押した時に呼ぶ受け取り手を結び付ける宣言。 結び付けを書くところまでがこの図の範囲。",
+    body: "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode"))
   .phase("p3", {
     duration: 1600,
-    title: "書き換えを宣言する",
-    body: "受け取り手が値を書き換える宣言。 実際に動かすには使う側が受け取り手を渡す必要があり、この見本では宣言の形だけを示す。",
+    title: "押すと値が変わる",
+    body: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode"))
 .build();
 export const subtitle__clickToggle = "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";

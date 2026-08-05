@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -282,7 +283,7 @@ export function CategoryPage(): React.ReactElement {
                       <div className="catalog-preview-loading">読み込み中…</div>
                     }
                   >
-                    <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader />
+                    <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
                   </InViewMount>
                 </div>
                 <SourceTabs item={currentItem} />
@@ -326,7 +327,7 @@ export function CategoryPage(): React.ReactElement {
               </Dialog.Close>
             </div>
             <div className="cdl-modal-body">
-              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={modalItem.diagram} hideHeader />}
+              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={modalItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />}
             </div>
           </Dialog.Content>
         </Dialog.Portal>
