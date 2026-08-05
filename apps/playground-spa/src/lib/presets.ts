@@ -3,6 +3,7 @@
  * SPA なので client/server 分割不要、 1 file で完結。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { itemName, type Locale } from "./i18n";
 import {
   presetSwimlane,
   presetFlow,
@@ -30,10 +31,35 @@ export interface PresetMetadata {
   id: string;
   slug: string;
   eyebrow: string;
+  /**
+   * 識別子。 `slug` と同じ値で、URL と図の対応を追う時に使う。
+   *
+   * **画面に出す名前には使わない** (#1047)。 `stateMachine2` / `mindMapRadial` のような
+   * 識別子風の文字列がそのまま見出しに出ていた。 表示名は `presetName()` が
+   * catalog と同じ名前の表から引く。
+   */
   title: string;
   subtitle: string;
   tags: string[];
   diagram: CdlDiagram;
+}
+
+/**
+ * preset が catalog の名前の表 (`ITEM_NAME_JA` / `ITEM_NAME_EN`) を引く時の鍵 (#1047)。
+ *
+ * catalog 側は `presetSwimlane` のような export 名で引く。 preset 側の `id` は
+ * `swimlane` なので、頭を大きくして `preset` を前に付けると一致する。
+ *
+ * **一致は機械で見る**。 導く形にすると `id` の付け方が変わった時に静かに外れるため、
+ * 全 preset の鍵が両方の表にあることを `presets.test.ts` が確かめる。
+ */
+export function presetCatalogKey(preset: PresetMetadata): string {
+  return `preset${preset.id.charAt(0).toUpperCase()}${preset.id.slice(1)}`;
+}
+
+/** 画面に出す preset の名前。 言語に応じて catalog と同じ名前を返す。 */
+export function presetName(preset: PresetMetadata, locale: Locale): string {
+  return itemName(presetCatalogKey(preset), locale);
 }
 
 export const PRESETS: PresetMetadata[] = [
