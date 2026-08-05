@@ -244,25 +244,55 @@ describe("動きの記述 (#1043)", () => {
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
 
-  it("説明を出す file は、導いた一文も出している", () => {
-    // **file を数え上げず、説明を出す file を探して全件見る** (#1053)。
-    // 数え上げる形は経路が増えた時に気付けない (実測 = editor の tooltip が
-    // `subtitle` だけを出しており、review で初めて見つかった)
-    const roots = [new URL("../pages/", import.meta.url), new URL("../components/", import.meta.url)];
-    const checked: string[] = [];
+  it("説明を出す箇所ごとに、導いた一文が隣にある", () => {
+    // **file 単位で見ない** (#1053)。 file のどこかに `motionNote` があれば通る形だと、
+    // 同じ file に説明だけの表示を足しても気付けない (Round 2 の指摘)。
+    //
+    // 説明を出す **箇所ごと** に、その近くへ導出文があることを見る。
     const bad: string[] = [];
-    for (const root of roots) {
-      for (const name of readdirSync(root)) {
-        if (!name.endsWith(".tsx")) continue;
-        const src = readFileSync(new URL(name, root), "utf8");
-        // 説明を画面に出しているか (`.subtitle` を JSX か文字列に埋めている)
-        if (!/\{[^{}]*\.subtitle[^{}]*\}/.test(src)) continue;
-        checked.push(name);
-        if (!src.includes("motionNote")) bad.push(name);
-      }
+    let sinks = 0;
+    for (const { name, src } of screenSources()) {
+      const lines = src.split("\n");
+      lines.forEach((line, i) => {
+        if (!line.includes(".subtitle")) return;
+        // 絞り込みの述語は表示ではない (`p.subtitle.toLowerCase().includes(q)` 等)
+        if (/\.toLowerCase\(\)|\.includes\(|\.match\(|\.test\(/.test(line)) return;
+        sinks += 1;
+        // 前後 6 行を見る。 JSX は条件付き描画 + コメントで表示が数行に散るため
+        // (実測 = 拡大表示の説明と導出文の間が 5 行あった)
+        const near = lines.slice(Math.max(0, i - 6), i + 7).join("\n");
+        if (!near.includes("motionNote")) bad.push(`${name}:${i + 1} ${line.trim()}`);
+      });
     }
-    // 検査が空振りしていないこと (説明を出す file を 1 つも見つけられない形)
-    expect(checked.length, "説明を出す file が 1 つも見つからない").toBeGreaterThan(1);
-    expect(bad, `説明だけを出している file: ${bad.join(", ")}`).toHaveLength(0);
+    // 検査が空振りしていないこと (表示箇所を 1 つも見つけられない形)
+    expect(sinks, "説明を出す箇所が 1 つも見つからない").toBeGreaterThan(3);
+    expect(bad, `導いた一文が隣にない表示:\n${bad.join("\n")}`).toHaveLength(0);
+  });
+
+  it("editor の parts 一覧の説明に、導いた一文が併記される", () => {
+    // 表示箇所の検査は近さで見るため、意図した中身までは見ない。
+    // review が名指しした箇所は中身も直接見る
+    const src = readFileSync(new URL("../components/CdlEditor.tsx", import.meta.url), "utf8");
+    // この file の tooltip は複数ある。 **説明を出しているものだけ** を対象にする
+    const tooltips = src.split("\n").filter((l) => l.includes("title={") && l.includes(".subtitle"));
+    expect(tooltips.length, "説明を出す tooltip が見つからない").toBeGreaterThan(0);
+    for (const line of tooltips) {
+      // 無効時は hint だけ、 有効時は説明と導出文の両方
+      expect(line, `無効時の hint が消えている: ${line.trim()}`).toContain("cdlOnlyHint");
+      expect(line, `導いた一文が併記されていない: ${line.trim()}`).toContain("motionNote");
+    }
   });
 });
+
+/** 画面を組み立てる file (`pages/` と `components/` の `.tsx`)。 */
+function screenSources(): Array<{ name: string; src: string }> {
+  const roots = [new URL("../pages/", import.meta.url), new URL("../components/", import.meta.url)];
+  const out: Array<{ name: string; src: string }> = [];
+  for (const root of roots) {
+    for (const name of readdirSync(root)) {
+      if (!name.endsWith(".tsx")) continue;
+      out.push({ name, src: readFileSync(new URL(name, root), "utf8") });
+    }
+  }
+  return out;
+}
