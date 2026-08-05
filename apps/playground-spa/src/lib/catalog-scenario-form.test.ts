@@ -31,6 +31,11 @@ const DRIVEN = [
   // #1032 の 2 本目
   "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
   "sprintChecklist",
+  // #1032 の 3 本目 (いずれも表示部品が見る配列を入力欄も計算式も持たない)
+  "postReactions", "techPills", "dashboardMetricsGrid", "kpiIconTile",
+  "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
+  "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
+  "yearRoadmap", "weekWeather",
 ] as const;
 
 /**
@@ -161,6 +166,32 @@ describe("手本の形 (#1033)", () => {
     expect(bad, `段を通して値が変わらない表示部品: ${bad.join(", ")}`).toHaveLength(0);
   });
 
+  it("隣り合う段が同じ値を渡さない", () => {
+    // 「2 種類以上の値を取る」 だけでは、途中の 1 段が前段と同じでも通ってしまう (実測で素通りした)。
+    // 前段と同じ値の段は、進めても表示が動かない = その段だけ静止画に戻る
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      // 状態ごとに、段を追って最後に渡された値を持ち回る (その段で触らない状態は前段の値が残る)
+      const last = new Map<string, string>();
+      for (const [pi, p] of (d.phases ?? []).entries()) {
+        for (const st of p.sets ?? []) {
+          const id = (st as { stateId?: string }).stateId;
+          if (!id || owned.has(id)) continue;
+          const v = String((st as { value?: string | number }).value ?? "");
+          if (last.get(id) === v) bad.push(`${k}/${id}[段${pi}]: 前段と同じ値`);
+          last.set(id, v);
+        }
+      }
+    }
+    expect(bad, `前段と同じ値を渡す段がある: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
   it("段は入力欄も計算式も握る状態を触らない", () => {
     // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される
     const bad: string[] = [];
@@ -223,14 +254,30 @@ describe("手本の形 (#1033)", () => {
   });
 
   it("3 軸を持つ表示部品は軸ごとの値域に収まる", () => {
-    // `min` / `max` だけを見る検査では、円の大きさ (rMax) の超過を拾えない (実測)
+    // `min` / `max` だけを見る検査では、円の大きさ (rMax) の超過を拾えない (実測)。
+    //
+    // 組の何番目が x / y かは **表示部品の種別で違う**。 描画側の実装がそれぞれ別の添字を読む。
+    //
+    // | 種別 | 読む添字 | 実装 |
+    // |---|---|---|
+    // | `bubble-chart` | `[x, y, r]` | `interactive-panel.tsx` が `el[0]` / `el[1]` / `el[2]` |
+    // | `map-pin` | `[名前, x, y]` | 同 file が `el[1]` / `el[2]` を読み `el[0]` は名前 |
+    //
+    // 一律に 0/1/2 で見ると、地図では x を y の値域と突き合わせることになる。
+    // 描画側はどちらも値域で **切り詰める** ため、外れた点は黙って枠の縁に貼り付く。
+    const axisIndex: Record<string, { x: number; y: number; r: number }> = {
+      "map-pin": { x: 1, y: 2, r: -1 },
+    };
     const bad: string[] = [];
     for (const k of DRIVEN) {
       const d = mod[k]!;
       for (const r of d.readouts ?? []) {
-        const axes: Array<[number, number | undefined, number | undefined]> = [
-          [0, r.xMin, r.xMax], [1, r.yMin, r.yMax], [2, r.rMin, r.rMax],
-        ];
+        const ix = axisIndex[r.kind ?? ""] ?? { x: 0, y: 1, r: 2 };
+        const axes: Array<[number, number | undefined, number | undefined]> = (
+          [
+            [ix.x, r.xMin, r.xMax], [ix.y, r.yMin, r.yMax], [ix.r, r.rMin, r.rMax],
+          ] as Array<[number, number | undefined, number | undefined]>
+        ).filter((a) => a[0] >= 0);
         if (axes.every(([, lo, hi]) => lo === undefined && hi === undefined)) continue;
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {

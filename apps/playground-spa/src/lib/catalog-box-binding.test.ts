@@ -28,6 +28,11 @@ const DRIVEN = [
   // #1032 の 2 本目
   "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
   "sprintChecklist", "pathProgressDemo",
+  // #1032 の 3 本目
+  "postReactions", "techPills", "dashboardMetricsGrid", "kpiIconTile",
+  "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
+  "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
+  "yearRoadmap", "weekWeather",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -130,6 +135,79 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       }
     }
     expect(bad, `矢印に束ねを書いている: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱が語る順位が、段の渡す値の順位と一致する", () => {
+    // 4 度繰り返した誤り (説明と実装の食い違い) の型。 箱に「最も多い」 と書いておきながら
+    // 段が渡す配列ではその行が 1 位でない、という食い違いは他のどの検査でも拾えない
+    // (値としては正しく解決し、束ねの形も正しく、値域にも収まるため)。
+    //
+    // 箱と行の対応は **箱の題に行の文字列が現れるか** で機械的に取る
+    // (`👍 Thumbs up` ↔ `["👍",24]`、`₿ BTC` ↔ `["₿","BTC","0.42",5.3]`)。
+    //
+    // 順位を付ける数は **行がちょうど 1 つだけ数を持つ場合** に限る。 2 つ以上ある行
+    // (`["Mon","☀",24,18]` の高低、`["Tokyo",100,60]` の座標) はどちらで順位を付けるかが
+    // 決まらないため見ない。 0 個の行 (`["Alice","1200 pts"]` は数が文字列の中) も見ない。
+    const RANK = [
+      { re: /最も(多|大き|高|暖か)/, want: "max" },
+      { re: /次に多/, want: "second" },
+      { re: /中ほど/, want: "middle" },
+      { re: /最も(少な|小さ|低|寒)/, want: "min" },
+    ] as const;
+    const bad: string[] = [];
+    // 題に対応する行が 1 度も見つからない箱 (綴り違い) を、段ごとの判定とは別に拾う
+    const everMatched = new Map<string, boolean>();
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      type Node = { id?: string; title?: string; subtitle?: string };
+      const nodes = (d as { nodes?: Node[] }).nodes ?? [];
+      if (!nodes.some((n) => RANK.some((r) => r.re.test(n.subtitle ?? "")))) continue;
+      for (const [pi, p] of ((d as { phases?: Array<{ sets?: Array<{ stateId?: string; value?: string | number }> }> }).phases ?? []).entries()) {
+        for (const st of p.sets ?? []) {
+          let rows: unknown;
+          try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
+          if (!Array.isArray(rows)) continue;
+          // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
+          const nums = rows.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
+          if (nums.length < 2 || !nums.every((n) => n.length === 1)) continue;
+          const values = nums.map((n) => n[0] as number);
+          const sorted = [...values].sort((a, b) => b - a);
+          for (const n of nodes) {
+            const claim = RANK.find((r) => r.re.test(n.subtitle ?? ""));
+            if (!claim || !n.title) continue;
+            // 題と行の対応は双方向で見る (題 `Search` ↔ 行 `Faster search`、題 `👍 Thumbs up` ↔ 行 `👍`)
+            const title = n.title.toLowerCase();
+            const idx = rows.findIndex((r) => Array.isArray(r) && r.some((v) => {
+              if (typeof v !== "string" || v.length === 0) return false;
+              const s = v.toLowerCase();
+              return title.includes(s) || s.includes(title);
+            }));
+            const key = `${k}/${n.id}`;
+            everMatched.set(key, (everMatched.get(key) ?? false) || idx >= 0);
+            // その段に行が無いのは正しい (段ごとに出す件数が違う図がある)。 順位は付けられないので見ない
+            if (idx < 0) continue;
+            // 同じ数が並ぶと、その行が何番目かが決まらない
+            if (values.filter((v) => v === values[idx]).length > 1) {
+              bad.push(`${k}/${n.id}[段${pi}]: 同じ数が並び順位が決まらない (${values.join(",")})`);
+              continue;
+            }
+            const rank = sorted.indexOf(values[idx]!);
+            const okRank =
+              claim.want === "max" ? rank === 0
+              : claim.want === "second" ? rank === 1
+              : claim.want === "min" ? rank === values.length - 1
+              : rank > 0 && rank < values.length - 1;
+            if (!okRank) {
+              bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが ${values[idx]} は ${rank + 1} 番目`);
+            }
+          }
+        }
+      }
+    }
+    for (const [key, hit] of everMatched) {
+      if (!hit) bad.push(`${key}: 題に対応する行がどの段にも無い`);
+    }
+    expect(bad, `順位の説明が値と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   it("段が動かす状態を束ねた箱は、段ごとに表示が変わる", () => {
