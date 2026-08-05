@@ -13,7 +13,9 @@ import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 
 /**
- * 段で表示部品を動かせる 9 件。
+ * 段で表示部品を動かせる図。
+ *
+ * #1033 の 9 件に、#1032 の 1 本目 13 件を加えた。
  *
  * 表示部品が見る状態を入力欄も計算式も持たないため、段の `tween` / `set` がそのまま表示に届く。
  */
@@ -21,6 +23,14 @@ const DRIVEN = [
   "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
   "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
   "canvasMiniMap",
+  // #1032 の 1 本目 (表示部品の見本、いずれも入力欄も計算式も持たない)
+  "matrixHeatmap", "taskProgressGroup", "skillRadar", "perfBubbleChart",
+  "contributionHeatmap", "priceCandlestick", "userVenn", "scoreSlope",
+  "salesFunnel", "projectGantt", "resourceTreemap", "trafficSankey",
+  "activityPolar",
+  // #1032 の 2 本目
+  "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
+  "sprintChecklist",
 ] as const;
 
 /**
@@ -41,7 +51,7 @@ type Diagram = {
   inputs?: Array<{ id?: string }>;
   formulas?: Array<{ id?: string }>;
   scrollTriggers?: Array<{ id?: string }>;
-  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number }>;
+  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number; xMin?: number; xMax?: number; yMin?: number; yMax?: number; rMin?: number; rMax?: number }>;
   nodes?: Array<{ id?: string; subtitle?: string }>;
   phases?: Array<{
     tweens?: Array<{ stateId?: string }>;
@@ -65,18 +75,13 @@ function drivenStates(d: Diagram): Set<string> {
   return out;
 }
 
-/** 表示部品が見る状態。 積み上げ棒は `sourceA` / `sourceB` で 2 つ見る。 */
-function readoutSources(d: Diagram): string[] {
-  return (d.readouts ?? []).flatMap((r) => [r.source, r.sourceA, r.sourceB]).filter(Boolean) as string[];
-}
-
 describe("手本の形 (#1033)", () => {
   it("対象が全件 実在する", () => {
     const missing = ALL.filter((k) => mod[k] === undefined);
     expect(missing, `図が無い: ${missing.join(", ")}`).toHaveLength(0);
   });
 
-  it("対象は表示部品を 2 個以上持つ、または種別が他と重なる", () => {
+  it("対象は表示部品を持つ (持たない図は別の基準で見る)", () => {
     // 表示部品 1 個 + 種別が唯一の図は「部品の見本」 で、別の基準で見る (#1032)。
     // 「0 個でない」 だけだと、1 個まで削る変異が通ってしまう
     const kindCount = new Map<string, number>();
@@ -86,14 +91,11 @@ describe("手本の形 (#1033)", () => {
         if (r.kind) kindCount.set(r.kind, (kindCount.get(r.kind) ?? 0) + 1);
       }
     }
-    const bad = ALL.filter((k) => {
-      const ro = mod[k]?.readouts ?? [];
-      if (ro.length >= 2) return false;
-      if (ro.length === 0) return true;
-      // 1 個でも、その種別が他の図にも出るなら「見本」 ではない
-      return (kindCount.get(ro[0]!.kind ?? "") ?? 0) < 2;
-    });
-    expect(bad, `分類の条件を満たさない図が混ざっている: ${bad.join(", ")}`).toHaveLength(0);
+    // 表示部品を 1 つも持たない図は、そもそもこの基準の対象外 (#1034 で別に見る)
+    const none = ALL.filter((k) => (mod[k]?.readouts ?? []).length === 0);
+    expect(none, `表示部品を持たない図が混ざっている: ${none.join(", ")}`).toHaveLength(0);
+    // 種別の数え上げ自体が動いていることを確かめる (0 件だと以下が素通りする)
+    expect(kindCount.size, "表示部品の種別が数えられていない").toBeGreaterThan(50);
   });
 
   it("段が 3 つ以上ある", () => {
@@ -145,10 +147,10 @@ describe("手本の形 (#1033)", () => {
           const seq: string[] = [];
           for (const p of d.phases ?? []) {
             for (const t of p.tweens ?? []) {
-              if (t.stateId === src) seq.push(`${(t as { from?: unknown }).from}->${(t as { to?: unknown }).to}`);
+              if (t.stateId === src) seq.push(`${(t as { from?: number }).from}->${(t as { to?: number }).to}`);
             }
             for (const st of p.sets ?? []) {
-              if (st.stateId === src) seq.push(String((st as { value?: unknown }).value));
+              if (st.stateId === src) seq.push(String((st as { value?: string | number }).value));
             }
           }
           return new Set(seq).size >= 2;
@@ -188,7 +190,7 @@ describe("手本の形 (#1033)", () => {
           for (const p of d.phases ?? []) {
             for (const st of p.sets ?? []) {
               if ((st as { stateId?: string }).stateId !== src) continue;
-              const raw = String((st as { value?: unknown }).value ?? "");
+              const raw = String((st as { value?: string | number }).value ?? "");
               if (!raw.startsWith("[")) continue;
               let parsed: unknown;
               try { parsed = JSON.parse(raw); } catch { bad.push(`${k}/${r.id}: 配列として読めない`); continue; }
@@ -220,6 +222,39 @@ describe("手本の形 (#1033)", () => {
     expect(bad, `値域を外れている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
+  it("3 軸を持つ表示部品は軸ごとの値域に収まる", () => {
+    // `min` / `max` だけを見る検査では、円の大きさ (rMax) の超過を拾えない (実測)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        const axes: Array<[number, number | undefined, number | undefined]> = [
+          [0, r.xMin, r.xMax], [1, r.yMin, r.yMax], [2, r.rMin, r.rMax],
+        ];
+        if (axes.every(([, lo, hi]) => lo === undefined && hi === undefined)) continue;
+        for (const p of d.phases ?? []) {
+          for (const st of p.sets ?? []) {
+            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            const raw = String((st as { value?: string | number }).value ?? "");
+            let parsed: unknown;
+            try { parsed = JSON.parse(raw); } catch { continue; }
+            if (!Array.isArray(parsed)) continue;
+            for (const tuple of parsed) {
+              if (!Array.isArray(tuple)) continue;
+              for (const [i, lo, hi] of axes) {
+                const v = tuple[i];
+                if (typeof v !== "number") continue;
+                if (lo !== undefined && v < lo) bad.push(`${k}/${r.id}: 軸${i} の ${v} が下限 ${lo} 未満`);
+                if (hi !== undefined && v > hi) bad.push(`${k}/${r.id}: 軸${i} の ${v} が上限 ${hi} 超過`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `軸の値域を外れている: ${bad.slice(0, 5).join(", ")}`).toHaveLength(0);
+  });
+
   it("時間軸に渡す値が [[時刻, 名前], ...] の形になっている", () => {
     // 文字列だけの配列を渡すと、表示側は空になる (実測)
     const bad: string[] = [];
@@ -230,7 +265,7 @@ describe("手本の形 (#1033)", () => {
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {
             if ((st as { stateId?: string }).stateId !== r.source) continue;
-            const raw = String((st as { value?: unknown }).value ?? "");
+            const raw = String((st as { value?: string | number }).value ?? "");
             let parsed: unknown;
             try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
             if (!Array.isArray(parsed) || parsed.length === 0) { bad.push(`${k}: 空`); continue; }
@@ -249,7 +284,7 @@ describe("手本の形 (#1033)", () => {
     // 最終段は図が持つやり取りの数だけ並ぶ。 少ないと「全体が並ぶ」 が成立しない
     const oauth = mod.interactiveOauthFlow!;
     const last = (oauth.phases ?? []).at(-1);
-    const raw = String(((last?.sets ?? [])[0] as { value?: unknown })?.value ?? "[]");
+    const raw = String(((last?.sets ?? [])[0] as { value?: string | number })?.value ?? "[]");
     expect(JSON.parse(raw), "最終段のやり取りが 6 件でない").toHaveLength(6);
   });
 
@@ -262,9 +297,24 @@ describe("手本の形 (#1033)", () => {
       const driven = drivenStates(d);
       for (const n of d.nodes ?? []) {
         const sub = n.subtitle ?? "";
+        if (sub.includes("{")) continue;
         for (const st of driven) {
-          // 状態の名前を説明に書いているのに束ねの形 (`{...}`) を持たない = 固定値
-          if (sub.includes(st) && !sub.includes("{")) bad.push(`${k}/${n.id}: "${sub}"`);
+          // 状態の名前を書いている / 段が渡す値をそのまま書いている、のどちらも固定値
+          if (sub.includes(st)) { bad.push(`${k}/${n.id}: "${sub}"`); break; }
+          const written = new Set<string>();
+          for (const p of d.phases ?? []) {
+            for (const x of p.sets ?? []) {
+              if ((x as { stateId?: string }).stateId !== st) continue;
+              const raw = String((x as { value?: string | number }).value ?? "");
+              for (const m of raw.matchAll(/-?\d+(?:\.\d+)?/g)) written.add(m[0]);
+            }
+          }
+          // 段が渡す数を固定で書いていたら、差し替えた時に食い違う
+          const nums = [...sub.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => m[0]);
+          if (nums.length >= 1 && nums.every((x) => written.has(x))) {
+            bad.push(`${k}/${n.id}: "${sub}"`);
+            break;
+          }
         }
       }
     }
