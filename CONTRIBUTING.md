@@ -31,6 +31,46 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 4. `pnpm test` + `pnpm typecheck` + `pnpm build` が緑になるか確認
 5. pull request を起票
 
+## 残作業の数え方
+
+この repo の issue は **Linear と GitHub の 2 箇所**にある。 片方だけ見ると残作業が見えない。
+
+「残りゼロ」 と判断する前に、両方を実測する。
+
+```bash
+# GitHub 側
+gh issue list -R cardene777/dragon --state open --limit 50
+gh pr list -R cardene777/dragon --state open
+
+# Linear 側 (MCP 経由)
+#   mcp__linear__list_issues  project=dragon  state=Backlog
+#   mcp__linear__list_issues  project=dragon  state="In Progress"
+```
+
+### Linear の tool が見当たらない時
+
+**「この repo は GitHub 運用だから Linear は非該当」 と読み替えない。**
+
+`.mcp.json` に Linear が登録されている。 tool が出ていないのは **未登録ではなく未認証**。
+
+1. `.mcp.json` を開いて登録の有無を確かめる
+2. 登録があれば `mcp__linear__authenticate` を呼び、返ってきた URL を開いて認可する
+3. 認可後に tool が使えるようになるので、そこで数える
+
+登録が無い repo なら非該当でよい。 その場合も `.mcp.json` を見てから判断する。
+
+数えるだけなら API key と `curl` でも読める (Linear の状態変更は MCP 経由が必須で、
+GraphQL の mutation 直叩きは禁止)。
+
+### なぜこの手順があるか
+
+2026-08-06 の棚卸しで、GitHub が 0 件になった時点で Linear の tool が出ておらず、
+`.mcp.json` を見ないまま「非該当」 と判断した。 実際は未認証だっただけで、認証したら
+Backlog 7 件 / In Progress 4 件が残っていた。 そのまま報告していれば 11 件を見落として
+「残作業 0」 と書くところだった。
+
+経緯は `#1055` と `#1056` に残っている。
+
 ## Tests
 
 ```bash
