@@ -22,32 +22,54 @@ export type Motion = "continuous" | "step" | "none";
  * `render.tsx` がそれを段の値に重ねる)。 これを除かないと、画面が動かない図に
  * 「連続して動く」 と書くことになる。
  */
-function reachableStates(diagram: CdlDiagram): { tweened: Set<string>; setted: Set<string> } {
+/**
+ * 図の動きの種類。
+ *
+ * - `continuous` = 段の中で値が連続して動く (`tween` の始点と終点が違う)
+ * - `step` = 段の切替で値が一度に変わる (`set` で値が実際に入れ替わる)
+ * - `none` = 段を通しても画面に届く値が変わらない
+ *
+ * **書いてあるかではなく、値が実際に変わるかで決める**。 `tween(x, 50, 50)` や、
+ * 初期値と同じ値を置く `set` は動かない。 数えると、止まったままの図に
+ * 「段の切替で値が一度に変わる」 と書くことになる (実測 = `parts` の 6 図がこれだった)。
+ */
+export function motionOf(diagram: CdlDiagram): Motion {
   const owned = new Set<string>([
     ...(diagram.inputs ?? []).map((i) => i.id),
     ...(diagram.formulas ?? []).map((f) => f.id),
     ...(diagram.scrollTriggers ?? []).map((t) => t.id),
   ]);
-  const tweened = new Set<string>();
-  const setted = new Set<string>();
-  for (const phase of diagram.phases ?? []) {
-    for (const t of phase.tweens ?? []) if (!owned.has(t.stateId)) tweened.add(t.stateId);
-    for (const s of phase.sets ?? []) if (!owned.has(s.stateId)) setted.add(s.stateId);
-  }
-  return { tweened, setted };
-}
+  const initial = new Map<string, string>();
+  for (const s of diagram.states ?? []) initial.set(s.id, String(s.initial));
 
-/**
- * 図の動きの種類。
- *
- * - `continuous` = 段の中で値が連続して動く (`tween` を持つ)
- * - `step` = 段の切替で値が一度に変わる (`set` だけ)
- * - `none` = 段が画面に届く値を触らない
- */
-export function motionOf(diagram: CdlDiagram): Motion {
-  const { tweened, setted } = reachableStates(diagram);
-  if (tweened.size > 0) return "continuous";
-  if (setted.size > 0) return "step";
+  // 状態ごとに、段を通して取る値を順に並べる。 2 種類以上あれば動いている
+  const values = new Map<string, string[]>();
+  const trackOf = (id: string): string[] => {
+    let track = values.get(id);
+    if (!track) {
+      track = initial.has(id) ? [initial.get(id)!] : [];
+      values.set(id, track);
+    }
+    return track;
+  };
+  const continuous = new Set<string>();
+  for (const phase of diagram.phases ?? []) {
+    for (const t of phase.tweens ?? []) {
+      if (owned.has(t.stateId)) continue;
+      const from = (t as { from?: unknown }).from;
+      const to = (t as { to?: unknown }).to;
+      trackOf(t.stateId).push(String(from), String(to));
+      // 始点と終点が同じ tween は動かない (`tween(x, 50, 50)`)
+      if (String(from) !== String(to)) continuous.add(t.stateId);
+    }
+    for (const s of phase.sets ?? []) {
+      if (owned.has(s.stateId)) continue;
+      trackOf(s.stateId).push(String((s as { value?: unknown }).value));
+    }
+  }
+
+  if (continuous.size > 0) return "continuous";
+  for (const track of values.values()) if (new Set(track).size >= 2) return "step";
   return "none";
 }
 

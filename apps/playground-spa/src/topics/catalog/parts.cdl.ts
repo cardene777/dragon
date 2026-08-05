@@ -1211,7 +1211,8 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", { structu
   .phase("p3", { duration: 1500, title: "L3 = 危険", body: "" }, (p: PhaseBuilder) =>
     p.activate("badge").set("level", 3).set("bg", "#dc2626"))
   .build();
-export const subtitle__partsBindEscalation3 = "bind: escalation 3 — 3 phase で state を段階的に set (tween ではなく step)";
+// 動きの種類 (段階か連続か) は図から導いて画面に出るため、説明では言わない (#1043)
+export const subtitle__partsBindEscalation3 = "bind: escalation 3 — 3 phase で state を段階ごとに set";
 
 // parts 75: bind pattern = tween chain 4-hop (0→25→50→75→100 の 4 phase)
 export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", { structuredData: "exclude",
