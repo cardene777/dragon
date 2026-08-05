@@ -21,7 +21,7 @@ import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
-import { ITEM_NAME_JA } from "./i18n";
+import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 
 const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
   ["interactive", Interactive as unknown as Record<string, unknown>],
@@ -86,5 +86,43 @@ describe("一覧の名前 (#1030)", () => {
     const keys = byCatalog.find(([n]) => n === "interactive")![1];
     const missing = keys.filter((k) => ITEM_NAME_JA[k] === undefined);
     expect(missing, `一覧に名前が無い: ${missing.join(", ")}`).toHaveLength(0);
+  });
+
+  it("名前の表と図の集合が双方向で一致する (#1035)", () => {
+    // 図にあって表に無い = その言語で export 名が出る。
+    // 表にあって図に無い = 死んだ entry で、両言語に同じ死んだ key を足すと
+    // 集合の一致だけを見る検査は通ってしまう。 **図を基準に双方向で見る**
+    const diagrams = new Set(byCatalog.flatMap(([, keys]) => keys));
+    for (const [label, table] of [["日本語名", ITEM_NAME_JA], ["英語名", ITEM_NAME_EN]] as const) {
+      const missing = [...diagrams].filter((k) => table[k] === undefined);
+      expect(missing, `${label}が無い図: ${missing.slice(0, 8).join(", ")}`).toHaveLength(0);
+      const dead = Object.keys(table).filter((k) => !diagrams.has(k));
+      expect(dead, `${label}の表に図の無い entry: ${dead.slice(0, 8).join(", ")}`).toHaveLength(0);
+    }
+  });
+
+  it("英語名が ASCII だけで書かれている", () => {
+    // 日本語をそのまま貼る訳し忘れを見る。 **文字種を列挙する形にしない** =
+    // 日本語だけを弾くと、他の文字体系 (ハングル / キリル文字 等) が素通りする。
+    // 現行 443 件はすべて ASCII なので、ASCII 以外を弾く形が最も狭く正しい
+    const bad = Object.entries(ITEM_NAME_EN)
+      // eslint-disable-next-line no-control-regex
+      .filter(([, v]) => /[^\x20-\x7e]/.test(v))
+      .map(([k, v]) => `${k}: "${v}"`);
+    expect(bad, `英語名に ASCII 以外が混ざっている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("表示名が export 名と同じにならない", () => {
+    // export 名がそのまま出る状態を、名前の形ではなく **export 名との一致** で見る。
+    // 形で見る (camelCase かどうか) と、`websocket` のような小文字 1 語の export 名を
+    // 見逃し、`iPhone` のような正しい英語名を誤って弾く
+    const same: string[] = [];
+    for (const [, keys] of byCatalog) {
+      for (const k of keys) {
+        if (ITEM_NAME_JA[k] === k) same.push(`ja/${k}`);
+        if (ITEM_NAME_EN[k] === k) same.push(`en/${k}`);
+      }
+    }
+    expect(same, `表示名が export 名と同じ: ${same.slice(0, 8).join(", ")}`).toHaveLength(0);
   });
 });
