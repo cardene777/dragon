@@ -63,6 +63,57 @@ describe("catalog の受け取り手 (#1038)", () => {
     expect(value, "2 回目で切りに戻らない").toBe(false);
   });
 
+  it("長押しは押している時間を測る (#1045)", () => {
+    // `cdl` は `long-press` に pointerdown / pointerup / pointercancel をそのまま渡すだけで
+    // 時間を測らない。 測らないと押した瞬間と離した瞬間の 2 回とも受け取ってしまう
+    const calls: string[] = [];
+    const signals = {
+      input: {}, formula: {}, scroll: {},
+      setString: (id: string, v: string) => { if (id === "lastEvent") calls.push(v); },
+      getNumber: () => 0,
+      setNumber: () => { /* 累計は別 test で見る */ },
+    };
+    const h = CATALOG_HANDLERS["on-long"]!;
+    // `Event.timeStamp` は読み取り専用なので、実 Event を作らず必要な 2 つの値だけを渡す
+    const ev = (type: string, ts: number) => ({ type, timeStamp: ts }) as unknown as Event;
+
+    // 短い押下 = 受け取らない
+    h(ev("pointerdown", 1000), signals as never);
+    h(ev("pointerup", 1100), signals as never);
+    expect(calls, "短い押下で受け取っている").toHaveLength(0);
+
+    // 長い押下 = 受け取る
+    h(ev("pointerdown", 2000), signals as never);
+    h(ev("pointerup", 2600), signals as never);
+    expect(calls, "長い押下で受け取っていない").toEqual(["長押し"]);
+
+    // 取り消された押下の後、離しただけでは受け取らない
+    h(ev("pointerdown", 3000), signals as never);
+    h(ev("pointercancel", 3100), signals as never);
+    h(ev("pointerup", 4000), signals as never);
+    expect(calls, "取り消し後の離しで受け取っている").toEqual(["長押し"]);
+
+    // 押していないのに離しただけでも受け取らない
+    h(ev("pointerup", 5000), signals as never);
+    expect(calls, "押さずに離して受け取っている").toEqual(["長押し"]);
+  });
+
+  it("5 種の操作がそれぞれ別の名前を残す (#1045)", () => {
+    // 1 つでも同じ名前だと、どれを受け取ったか画面で区別が付かない
+    const names = new Map<string, string>();
+    for (const id of ["on-dbl", "on-focus", "on-blur", "on-key"]) {
+      const signals = {
+        input: {}, formula: {}, scroll: {},
+        setString: (k: string, v: string) => { if (k === "lastEvent") names.set(id, v); },
+        getNumber: () => 0,
+        setNumber: () => { /* 累計は別 test で見る */ },
+      };
+      CATALOG_HANDLERS[id]!(new Event("x"), signals as never);
+    }
+    expect(names.size, "受け取り手が名前を残していない").toBe(4);
+    expect(new Set(names.values()).size, `名前が重複している: ${[...names.values()].join(", ")}`).toBe(4);
+  });
+
   it("受け取り手を渡さない描画経路が残っていない", () => {
     // 一覧の中と拡大表示の 2 経路がある。 片方だけ渡すと、もう片方が
     // 「押しても動かない」 まま残る (実測 = #1038 はどちらも渡していなかった)
