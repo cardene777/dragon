@@ -4,9 +4,10 @@
  * 手本 (`exemplarPaymentFlow` 等) は「段を進めると状態が動き、表示部品がそれを見て変化する」。
  * 直す前は 25 件すべてが段 1 つで、表示部品は初期値を出したまま動かなかった。
  *
- * **25 件のうち 14 件は構造的に届かない**。 表示部品が見ている状態を入力欄が握っており、
- * 入力欄の値は段の値を上書きするため (`packages/cdl` の `render.tsx` で実測)、段で動かしても効かない。
- * これらは #1034 と同じ「段ごとに注目する箱が変わる」 を基準にする。
+ * **25 件のうち 16 件は構造的に届かない**。 表示部品が見ている状態を **入力欄または計算式** が
+ * 握っており、どちらも段の値を上書きするため (`interactive-panel.tsx` が signals / computeds /
+ * scrollHandles を `stateOverrides` として返し、`render.tsx` がそれを段の値に重ねる)、
+ * 段で動かしても効かない。 これらは #1034 と同じ「段ごとに注目する箱が変わる」 を基準にする。
  */
 import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
@@ -39,8 +40,9 @@ const INPUT_DRIVEN = [
 type Diagram = {
   inputs?: Array<{ id?: string }>;
   formulas?: Array<{ id?: string }>;
+  scrollTriggers?: Array<{ id?: string }>;
   readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number }>;
-  nodes?: Array<{ id?: string }>;
+  nodes?: Array<{ id?: string; subtitle?: string }>;
   phases?: Array<{
     tweens?: Array<{ stateId?: string }>;
     sets?: Array<{ stateId?: string }>;
@@ -75,9 +77,23 @@ describe("手本の形 (#1033)", () => {
   });
 
   it("対象は表示部品を 2 個以上持つ、または種別が他と重なる", () => {
-    // 表示部品 1 個 + 種別が唯一の図は「部品の見本」 で、別の基準で見る (#1032)
-    const none = ALL.filter((k) => (mod[k]?.readouts ?? []).length === 0);
-    expect(none, `表示部品を持たない図が混ざっている: ${none.join(", ")}`).toHaveLength(0);
+    // 表示部品 1 個 + 種別が唯一の図は「部品の見本」 で、別の基準で見る (#1032)。
+    // 「0 個でない」 だけだと、1 個まで削る変異が通ってしまう
+    const kindCount = new Map<string, number>();
+    for (const [k, v] of Object.entries(mod)) {
+      if (k.startsWith("subtitle__")) continue;
+      for (const r of (v as Diagram).readouts ?? []) {
+        if (r.kind) kindCount.set(r.kind, (kindCount.get(r.kind) ?? 0) + 1);
+      }
+    }
+    const bad = ALL.filter((k) => {
+      const ro = mod[k]?.readouts ?? [];
+      if (ro.length >= 2) return false;
+      if (ro.length === 0) return true;
+      // 1 個でも、その種別が他の図にも出るなら「見本」 ではない
+      return (kindCount.get(ro[0]!.kind ?? "") ?? 0) < 2;
+    });
+    expect(bad, `分類の条件を満たさない図が混ざっている: ${bad.join(", ")}`).toHaveLength(0);
   });
 
   it("段が 3 つ以上ある", () => {
@@ -86,34 +102,61 @@ describe("手本の形 (#1033)", () => {
     expect(few, `段が足りない: ${few.join(", ")}`).toHaveLength(0);
   });
 
-  it("表示部品が段で動く状態を見ている", () => {
-    // 手本の核心。 段が動かす状態を表示部品が見ていないと、進めても表示が変わらない
-    const unlinked = DRIVEN.filter((k) => {
+  it("表示部品が 1 つ残らず段で動く状態を見ている", () => {
+    // 手本の核心。 「どれか 1 つ」 だと、2 つ目以降が止まったままでも通ってしまう
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
       const d = mod[k]!;
       const driven = drivenStates(d);
-      return !readoutSources(d).some((s) => driven.has(s));
-    });
-    expect(unlinked, `表示部品が動く状態を見ていない: ${unlinked.join(", ")}`).toHaveLength(0);
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      for (const r of d.readouts ?? []) {
+        const srcs = [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[];
+        if (srcs.length === 0) continue;
+        // 入力欄 / 計算式が握る表示部品は段では動かせない。 動かせるものだけを対象にする
+        if (srcs.every((s) => owned.has(s))) continue;
+        if (!srcs.some((s) => driven.has(s))) bad.push(`${k}/${r.id}`);
+      }
+    }
+    expect(bad, `段で動かない表示部品がある: ${bad.join(", ")}`).toHaveLength(0);
   });
 
-  it("段を通して表示部品の値が実際に変わる", () => {
+  it("表示部品ごとに、段を通して値が実際に変わる", () => {
     // 連動があるだけでは足りない。 `tween(x, 50, 50)` のように動かない指定でも
-    // 「見ている」 は成立してしまう。 段を通した値の並びに 2 種類以上あることを見る
-    const still = DRIVEN.filter((k) => {
+    // 「見ている」 は成立する。 また図の中の 1 つが動けば通る形だと、
+    // 2 つ目以降が止まったままの変異を見逃す (実測で素通りした)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
       const d = mod[k]!;
-      const srcs = new Set(readoutSources(d));
-      for (const src of srcs) {
-        const seq: string[] = [];
-        for (const p of d.phases ?? []) {
-          for (const t of p.tweens ?? []) if (t.stateId === src) seq.push(`${(t as { from?: unknown }).from}->${(t as { to?: unknown }).to}`);
-          for (const st of p.sets ?? []) if (st.stateId === src) seq.push(String((st as { value?: unknown }).value));
-        }
-        // 1 つの状態でも値が 2 種類以上あれば、その表示部品は段で動く
-        if (new Set(seq).size >= 2) return false;
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
+      ]);
+      for (const r of d.readouts ?? []) {
+        const srcs = ([r.source, r.sourceA, r.sourceB].filter(Boolean) as string[])
+          .filter((x) => !owned.has(x));
+        if (srcs.length === 0) continue;
+        // その表示部品が見るどれか 1 つの状態が、段を通して 2 種類以上の値を取ればよい
+        const moves = srcs.some((src) => {
+          const seq: string[] = [];
+          for (const p of d.phases ?? []) {
+            for (const t of p.tweens ?? []) {
+              if (t.stateId === src) seq.push(`${(t as { from?: unknown }).from}->${(t as { to?: unknown }).to}`);
+            }
+            for (const st of p.sets ?? []) {
+              if (st.stateId === src) seq.push(String((st as { value?: unknown }).value));
+            }
+          }
+          return new Set(seq).size >= 2;
+        });
+        if (!moves) bad.push(`${k}/${r.id}`);
       }
-      return true;
-    });
-    expect(still, `段を通して値が変わらない: ${still.join(", ")}`).toHaveLength(0);
+    }
+    expect(bad, `段を通して値が変わらない表示部品: ${bad.join(", ")}`).toHaveLength(0);
   });
 
   it("段は入力欄も計算式も握る状態を触らない", () => {
@@ -124,6 +167,7 @@ describe("手本の形 (#1033)", () => {
       const owned = new Set([
         ...(d.inputs ?? []).map((i) => i.id),
         ...(d.formulas ?? []).map((f) => f.id),
+        ...(d.scrollTriggers ?? []).map((t) => t.id),
       ]);
       for (const st of drivenStates(d)) if (owned.has(st)) bad.push(`${k}: ${st}`);
     }
@@ -156,6 +200,15 @@ describe("手本の形 (#1033)", () => {
                 else if (Array.isArray(v)) v.forEach(walk);
               };
               walk(parsed);
+              if (r.kind === "waterfall") {
+                // 滝は増減を積み上げて描く。 各段の値ではなく **累積** が値域に収まる必要がある
+                let acc = 0;
+                for (const n of nums) {
+                  acc += n;
+                  if (acc < lo || acc > hi) bad.push(`${k}/${r.id}: 累積 ${acc} が [${lo}, ${hi}] の外`);
+                }
+                continue;
+              }
               for (const n of nums) {
                 if (n < lo || n > hi) bad.push(`${k}/${r.id}: ${n} が [${lo}, ${hi}] の外`);
               }
@@ -182,15 +235,40 @@ describe("手本の形 (#1033)", () => {
             try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
             if (!Array.isArray(parsed) || parsed.length === 0) { bad.push(`${k}: 空`); continue; }
             for (const e of parsed) {
-              const okPair = Array.isArray(e) && typeof e[0] === "number";
+              const okPair =
+                Array.isArray(e) && e.length >= 2 && typeof e[0] === "number" && typeof e[1] === "string";
               const okNum = typeof e === "number";
-              if (!okPair && !okNum) bad.push(`${k}: ${JSON.stringify(e)} が時刻を持たない`);
+              if (!okPair && !okNum) bad.push(`${k}: ${JSON.stringify(e)} の形が違う`);
             }
           }
         }
       }
     }
     expect(bad, `時間軸の形が違う: ${bad.slice(0, 4).join(", ")}`).toHaveLength(0);
+
+    // 最終段は図が持つやり取りの数だけ並ぶ。 少ないと「全体が並ぶ」 が成立しない
+    const oauth = mod.interactiveOauthFlow!;
+    const last = (oauth.phases ?? []).at(-1);
+    const raw = String(((last?.sets ?? [])[0] as { value?: unknown })?.value ?? "[]");
+    expect(JSON.parse(raw), "最終段のやり取りが 6 件でない").toHaveLength(6);
+  });
+
+  it("段が動かす状態を指す箱は、固定値でなく束ねで書く", () => {
+    // 配列だけ差し替えて箱の説明を固定値のままにすると、同じ段で図と箱が違う値を出す
+    // (実測 = 棒が [15,22,30,38,48] を描く段で、箱は 12 / 34 / 20 / 45 / 28 を出していた)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const driven = drivenStates(d);
+      for (const n of d.nodes ?? []) {
+        const sub = n.subtitle ?? "";
+        for (const st of driven) {
+          // 状態の名前を説明に書いているのに束ねの形 (`{...}`) を持たない = 固定値
+          if (sub.includes(st) && !sub.includes("{")) bad.push(`${k}/${n.id}: "${sub}"`);
+        }
+      }
+    }
+    expect(bad, `箱が固定値を出している: ${bad.join(", ")}`).toHaveLength(0);
   });
 
   it("段ごとに注目する箱の組合せが変わる", () => {

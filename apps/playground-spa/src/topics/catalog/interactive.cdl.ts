@@ -270,18 +270,18 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
   .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
   .phase("p1", {
     duration: 1800,
-    title: "左下から",
-    body: "座標が左下にある状態。 4 つの区画のうち 1 つ目に入っている。",
+    title: "左下の区画",
+    body: "4 つに区切った左下。 座標はつまみで決まり、入った区画の箱が光る。",
   }, (p: PhaseBuilder) => p.activate("q3Node", "indicator"))
   .phase("p2", {
     duration: 1800,
-    title: "右上へ移る",
-    body: "座標が右上の区画へ移る。 区画が変わると光る箱も変わる。",
+    title: "右上の区画",
+    body: "右上の区画。 つまみを動かして境界をまたぐと、光る箱が入れ替わる。",
   }, (p: PhaseBuilder) => p.activate("q1Node", "indicator"))
   .phase("p3", {
     duration: 1800,
-    title: "中心に戻る",
-    body: "座標が真ん中に戻る。 4 区画のどこにも寄っていない状態。",
+    title: "4 区画を見る",
+    body: "4 つの区画が同じ大きさで並ぶ。 座標 1 組がどれか 1 つを指す。",
   }, (p: PhaseBuilder) => p.activate("q1Node", "q2Node", "q3Node", "q4Node", "indicator"))
 .build();
 export const subtitle__xypadNavigate = "XY pad 2D 座標を 4-lane quadrant (Q1/Q2/Q3/Q4) 分散、 現在 pos を center indicator + stat readout で数値化";
@@ -375,18 +375,18 @@ export const radioSelect = diagram("interactive-radio-select", {
   .readout.stat("modeStat", { source: "mode", label: "Current", caption: "選択中" })
   .phase("p1", {
     duration: 1800,
-    title: "低を選ぶ",
-    body: "3 択のうち低が選ばれた状態。 選ばれた 1 つだけが光る。",
+    title: "低の札",
+    body: "3 択の 1 つ目。 どれが選ばれるかはつまみで決まり、選ばれた 1 つだけが光る。",
   }, (p: PhaseBuilder) => p.activate("lowNode"))
   .phase("p2", {
     duration: 1800,
-    title: "中に移る",
-    body: "中に切り替えると、低が消えて中が光る。 同時に光るのは常に 1 つ。",
+    title: "中の札",
+    body: "2 つ目の札。 3 つのうち同時に選べるのは常に 1 つ。",
   }, (p: PhaseBuilder) => p.activate("midNode"))
   .phase("p3", {
     duration: 1800,
-    title: "高に移る",
-    body: "高に切り替える。 3 つの札を行き来しても選択は 1 つに保たれる。",
+    title: "高の札",
+    body: "3 つ目の札。 選んだ値は右の箱にも文字で出る。",
   }, (p: PhaseBuilder) => p.activate("highNode", "currentMode"))
 .build();
 export const subtitle__radioSelect = "radio 3 option (low/mid/high) を 3-lane 排他分散 + current indicator、 現在選択 mode 位置を明示";
@@ -416,12 +416,12 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   .phase("p2", {
     duration: 1800,
     title: "見本に伝わる",
-    body: "同じ色が中央の見本を塗る。 選択が見た目に反映される。",
+    body: "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。",
   }, (p: PhaseBuilder) => p.activate("pickerNode", "swatch"))
   .phase("p3", {
     duration: 1800,
     title: "表記も揃う",
-    body: "右に 16 進の表記が出る。 見た目と文字列が同じ値を指す。",
+    body: "右にも同じ 16 進表記が出る。 選んだ値が 2 箇所で読める形になっている。",
   }, (p: PhaseBuilder) => p.activate("pickerNode", "swatch", "statNode"))
 .build();
 export const subtitle__colorPickerTheme = "color picker pipeline を 3-lane (Picker input / Swatch preview / Hex stat) + 2 edge、 hex signal 生成 dataflow を可視化";
@@ -859,7 +859,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .phase("p3", {
     duration: 1800,
     title: "弧にも届く",
-    body: "同じ値が弧にも束ねられている。 時間 1 つで 2 種類の図形が揃って動く。",
+    body: "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。",
   }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a"))
 .build();
 export const subtitle__timelineDrive = "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随";
@@ -1086,11 +1086,11 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
     subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
   })
   .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "first bar override = {bump}" })
-  .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "xs[0] = 12" })
-  .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "xs[1] = 34" })
-  .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "xs[2] = 20" })
-  .node("i3", { lane: "items", stack: 3, kind: "card", title: "#3", subtitle: "xs[3] = 45 (max)" })
-  .node("i4", { lane: "items", stack: 4, kind: "card", title: "#4", subtitle: "xs[4] = 28" })
+  .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "xs[0] = {xs[0]}" })
+  .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "xs[1] = {xs[1]}" })
+  .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "xs[2] = {xs[2]}" })
+  .node("i3", { lane: "items", stack: 3, kind: "card", title: "#3", subtitle: "xs[3] = {xs[3]}" })
+  .node("i4", { lane: "items", stack: 4, kind: "card", title: "#4", subtitle: "xs[4] = {xs[4]}" })
   .readout.arrayBar("hist", { source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars (histogram)" })
   .readout.arrayList("items", { source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items (bullet list)" })
   .readout.stat("first", { source: "bump", label: "Bump" })
@@ -1101,13 +1101,13 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
   }, (p: PhaseBuilder) => p.activate("summary", "i0").set("xs", '[12,34,20,45,28]'))
   .phase("p2", {
     duration: 1800,
-    title: "値が入れ替わる",
-    body: "配列全体が別の値に差し替わる。 棒の高さも一覧の並びも同時に組み替わる。",
+    title: "山が右へ移る",
+    body: "配列を差し替えると、一番高い棒が左寄りから右端に移る。 各箱の数字も同時に変わる。",
   }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2").set("xs", '[40,18,30,26,48]'))
   .phase("p3", {
     duration: 1800,
-    title: "山が移る",
-    body: "一番高い棒の位置が左から右へ移る。 配列 1 つで棒と一覧が同時に組み替わる。",
+    title: "右上がりに整う",
+    body: "右端を最大に保ったまま、左から右へ揃って上がる形にする。 配列 1 つで棒も箱も追いかける。",
   }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2", "i3", "i4").set("xs", '[15,22,30,38,48]'))
 .build();
 export const subtitle__arraySignalHistogram = "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存";
@@ -1710,10 +1710,10 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .lane("alternative", { x: 340, width: 300 })
   .arraySignal("assets", [45, 30, 15, 10])
   .arraySignal("assetNames", ["Stocks", "Bonds", "Cash", "Crypto"])
-  .node("stocksNode", { lane: "traditional", stack: 0, kind: "card", title: "Stocks", subtitle: "45% (max)" })
-  .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "30%" })
-  .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "15%" })
-  .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "10% (min)" })
+  .node("stocksNode", { lane: "traditional", stack: 0, kind: "card", title: "Stocks", subtitle: "{assets[0]}%" })
+  .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "{assets[1]}%" })
+  .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "{assets[2]}%" })
+  .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "{assets[3]}%" })
   .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio", subtitle: "sum = {assets.sum}%" })
   .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
   .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
@@ -1721,17 +1721,17 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
     duration: 1800,
     title: "株式に寄る",
     body: "株式の比重が大きい配分。 円の 1 区画が広い。",
-  }, (p: PhaseBuilder) => p.activate("stocksNode").set("assets", '[60,20,15,5]'))
+  }, (p: PhaseBuilder) => p.activate("stocksNode").set("assets", '[60,20,15,5]').set("assetNames", '["Stocks","Bonds","Cash","Crypto"]'))
   .phase("p2", {
     duration: 1800,
     title: "債券を増やす",
-    body: "債券に振り替える。 円の区画と一覧の並びが同時に変わる。",
-  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode").set("assets", '[45,30,15,10]'))
+    body: "債券に振り替える。 円の区画の比率が変わり、各箱の数字も追いかける。",
+  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode").set("assets", '[45,30,15,10]').set("assetNames", '["Stocks","Bonds","Crypto","Cash"]'))
   .phase("p3", {
     duration: 1800,
     title: "分散する",
     body: "4 種に近い比率で分散する。 区画の差が小さくなる。",
-  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode").set("assets", '[30,28,22,20]'))
+  }, (p: PhaseBuilder) => p.activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode").set("assets", '[30,28,22,20]').set("assetNames", '["Stocks","Bonds","Cash","Crypto"]'))
 .build();
 export const subtitle__portfolioDonut = "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存";
 
@@ -1801,7 +1801,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .phase("p3", {
     duration: 1800,
     title: "4 指標が揃う",
-    body: "推奨度まで並ぶ。 つまみ 1 つから 4 つの指標を導いている。",
+    body: "推奨度まで並ぶ。 つまみが持つ 1 指標と、そこから導く 3 指標の組になっている。",
   }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard"))
 .build();
 export const subtitle__kpiDashboard = "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随";
@@ -1849,17 +1849,17 @@ export const abTestResult = diagram("interactive-ab-test", {
     duration: 1800,
     title: "振り分け",
     body: "利用者を半々に分ける。 振り分けの円が 2 等分になる。",
-  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard").set("splitData", '[50,50]').set("results", '[50,50]'))
+  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard").set("splitData", '[50,50]').set("results", '[50,50]').set("convA", '[48,50,49,51,50]').set("convB", '[49,50,51,50,52]'))
   .phase("p2", {
     duration: 1800,
     title: "差が出る",
-    body: "試験群の成績が上回り始める。 結果の円が傾く。",
-  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").set("results", '[55,45]'))
+    body: "試験群に多く振り分けて成績を見る。 振り分けの円と結果の円が別々に動く。",
+  }, (p: PhaseBuilder) => p.activate("controlCard", "splitCard", "treatmentCard").set("splitData", '[60,40]').set("results", '[55,45]').set("convA", '[48,49,50,48,49]').set("convB", '[52,55,57,56,58]'))
   .phase("p3", {
     duration: 1800,
     title: "差が確定する",
-    body: "差が広がって結論が出る。 振り分けは半々のまま、結果だけが動いた。",
-  }, (p: PhaseBuilder) => p.activate("splitCard", "treatmentCard").set("results", '[62,38]'))
+    body: "振り分けを半々に戻しても差が残る。 振り分けと結果を分けて見られる。",
+  }, (p: PhaseBuilder) => p.activate("splitCard", "treatmentCard").set("results", '[62,38]').set("convA", '[47,48,49,47,48]').set("convB", '[58,61,63,62,65]'))
 .build();
 export const subtitle__abTestResult = "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化";
 
