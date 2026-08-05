@@ -268,6 +268,10 @@ export function CategoryPage(): React.ReactElement {
                     {currentItem.subtitle && (
                       <p className="catalog-preview-sub">{currentItem.subtitle}</p>
                     )}
+                    {/* 動きの種類は人が書かず図から導く (#1043)。 SSOT = catalog-motion.ts */}
+                    {currentItem.motionNote && (
+                      <p className="catalog-preview-motion">{currentItem.motionNote}</p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -321,6 +325,10 @@ export function CategoryPage(): React.ReactElement {
                   <Dialog.Description className="cdl-modal-desc">
                     {modalItem.subtitle}
                   </Dialog.Description>
+                )}
+                {/* 動きの種類は人が書かず図から導く (#1043)。 SSOT = catalog-motion.ts */}
+                {modalItem?.motionNote && (
+                  <p className="cdl-modal-motion">{modalItem.motionNote}</p>
                 )}
               </div>
               <Dialog.Close asChild>
