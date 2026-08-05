@@ -75,11 +75,6 @@ function drivenStates(d: Diagram): Set<string> {
   return out;
 }
 
-/** 表示部品が見る状態。 積み上げ棒は `sourceA` / `sourceB` で 2 つ見る。 */
-function readoutSources(d: Diagram): string[] {
-  return (d.readouts ?? []).flatMap((r) => [r.source, r.sourceA, r.sourceB]).filter(Boolean) as string[];
-}
-
 describe("手本の形 (#1033)", () => {
   it("対象が全件 実在する", () => {
     const missing = ALL.filter((k) => mod[k] === undefined);
@@ -152,10 +147,10 @@ describe("手本の形 (#1033)", () => {
           const seq: string[] = [];
           for (const p of d.phases ?? []) {
             for (const t of p.tweens ?? []) {
-              if (t.stateId === src) seq.push(`${(t as { from?: unknown }).from}->${(t as { to?: unknown }).to}`);
+              if (t.stateId === src) seq.push(`${(t as { from?: number }).from}->${(t as { to?: number }).to}`);
             }
             for (const st of p.sets ?? []) {
-              if (st.stateId === src) seq.push(String((st as { value?: unknown }).value));
+              if (st.stateId === src) seq.push(String((st as { value?: string | number }).value));
             }
           }
           return new Set(seq).size >= 2;
@@ -195,7 +190,7 @@ describe("手本の形 (#1033)", () => {
           for (const p of d.phases ?? []) {
             for (const st of p.sets ?? []) {
               if ((st as { stateId?: string }).stateId !== src) continue;
-              const raw = String((st as { value?: unknown }).value ?? "");
+              const raw = String((st as { value?: string | number }).value ?? "");
               if (!raw.startsWith("[")) continue;
               let parsed: unknown;
               try { parsed = JSON.parse(raw); } catch { bad.push(`${k}/${r.id}: 配列として読めない`); continue; }
@@ -240,7 +235,7 @@ describe("手本の形 (#1033)", () => {
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {
             if ((st as { stateId?: string }).stateId !== r.source) continue;
-            const raw = String((st as { value?: unknown }).value ?? "");
+            const raw = String((st as { value?: string | number }).value ?? "");
             let parsed: unknown;
             try { parsed = JSON.parse(raw); } catch { continue; }
             if (!Array.isArray(parsed)) continue;
@@ -270,7 +265,7 @@ describe("手本の形 (#1033)", () => {
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {
             if ((st as { stateId?: string }).stateId !== r.source) continue;
-            const raw = String((st as { value?: unknown }).value ?? "");
+            const raw = String((st as { value?: string | number }).value ?? "");
             let parsed: unknown;
             try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
             if (!Array.isArray(parsed) || parsed.length === 0) { bad.push(`${k}: 空`); continue; }
@@ -289,7 +284,7 @@ describe("手本の形 (#1033)", () => {
     // 最終段は図が持つやり取りの数だけ並ぶ。 少ないと「全体が並ぶ」 が成立しない
     const oauth = mod.interactiveOauthFlow!;
     const last = (oauth.phases ?? []).at(-1);
-    const raw = String(((last?.sets ?? [])[0] as { value?: unknown })?.value ?? "[]");
+    const raw = String(((last?.sets ?? [])[0] as { value?: string | number })?.value ?? "[]");
     expect(JSON.parse(raw), "最終段のやり取りが 6 件でない").toHaveLength(6);
   });
 
@@ -310,7 +305,7 @@ describe("手本の形 (#1033)", () => {
           for (const p of d.phases ?? []) {
             for (const x of p.sets ?? []) {
               if ((x as { stateId?: string }).stateId !== st) continue;
-              const raw = String((x as { value?: unknown }).value ?? "");
+              const raw = String((x as { value?: string | number }).value ?? "");
               for (const m of raw.matchAll(/-?\d+(?:\.\d+)?/g)) written.add(m[0]);
             }
           }
