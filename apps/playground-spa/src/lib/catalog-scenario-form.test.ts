@@ -28,6 +28,9 @@ const DRIVEN = [
   "contributionHeatmap", "priceCandlestick", "userVenn", "scoreSlope",
   "salesFunnel", "projectGantt", "resourceTreemap", "trafficSankey",
   "activityPolar",
+  // #1032 の 2 本目
+  "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
+  "sprintChecklist",
 ] as const;
 
 /**

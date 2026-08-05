@@ -25,6 +25,9 @@ const DRIVEN = [
   "perfBubbleChart", "contributionHeatmap", "priceCandlestick", "userVenn",
   "scoreSlope", "salesFunnel", "projectGantt", "resourceTreemap",
   "trafficSankey", "activityPolar",
+  // #1032 の 2 本目
+  "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
+  "sprintChecklist", "pathProgressDemo",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -36,13 +39,22 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
   const phases = (d as { phases?: unknown[] }).phases ?? [];
   for (let i = 0; i < phases.length; i += 1) {
     const values = computeStateValues(laid, i, 1);
-    for (const n of (d as { nodes?: Array<{ id?: string; subtitle?: string }> }).nodes ?? []) {
-      if (!n.subtitle) continue;
-      out.push({ phase: i, id: String(n.id), text: interpolate(n.subtitle, values), template: n.subtitle });
-    }
-    for (const e of (d as { edges?: Array<{ id?: string; label?: string }> }).edges ?? []) {
-      if (!e.label) continue;
-      out.push({ phase: i, id: `edge:${e.id}`, text: interpolate(e.label, values), template: e.label });
+    // 描画側 (`nodes.tsx`) が解決するのは title / subtitle / eyebrow / value / rows / visibleIf。
+    // subtitle だけを見ると、他の field に書いた束ねが無検査になる
+    type Node = {
+      id?: string; title?: string; subtitle?: string; eyebrow?: string;
+      value?: string; rows?: string[]; visibleIf?: string;
+    };
+    for (const n of (d as { nodes?: Node[] }).nodes ?? []) {
+      const fields: Array<[string, string | undefined]> = [
+        ["title", n.title], ["subtitle", n.subtitle], ["eyebrow", n.eyebrow],
+        ["value", n.value], ["visibleIf", n.visibleIf],
+        ...((n.rows ?? []).map((r, ri) => [`rows[${ri}]`, r] as [string, string])),
+      ];
+      for (const [field, tpl] of fields) {
+        if (!tpl) continue;
+        out.push({ phase: i, id: `${n.id}.${field}`, text: interpolate(tpl, values), template: tpl });
+      }
     }
   }
   return out;
@@ -70,14 +82,54 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     const bad: string[] = [];
     for (const k of DRIVEN) {
       for (const r of renderedTexts(mod[k]!)) {
-        // 束ねの結果にカンマ区切りの数値列が出る = 行や組をそのまま出している
-        if (!r.template.includes("[")) continue;
-        if (/\d+(?:,\s*-?[\d.]+){2,}/.test(r.text)) {
+        // 添字は 1 つの値を取り出すもの。 結果にカンマが出たら行や組をそのまま出している
+        // (実測 = `{cm[0]}` が "9,0,0,0"、`{players[0]}` が "Carol,1240")
+        if (!/\[\d+\]/.test(r.template)) continue;
+        if (r.text.includes(",")) {
           bad.push(`${k}/${r.id}[段${r.phase}]: "${r.text}"`);
         }
       }
     }
     expect(bad, `入れ子をそのまま出している: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱の題名と添字が、名前の配列と対応する", () => {
+    // 添字がずれていても値としては正しく解決するため、他の検査では拾えない
+    // (実測 = `title: "Impl"` の箱が Design の値を出していた)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      // 表示部品が名前の一覧を持つ図だけを見る
+      const labelSrc = (d as { readouts?: Array<{ labelSource?: string }> }).readouts
+        ?.map((r) => r.labelSource).find(Boolean);
+      if (!labelSrc) continue;
+      const st = (d as { states?: Array<{ id?: string; initial?: unknown }> }).states
+        ?.find((x) => x.id === labelSrc);
+      if (!st) continue;
+      let names: unknown;
+      try { names = JSON.parse(String(st.initial)); } catch { continue; }
+      if (!Array.isArray(names)) continue;
+      for (const n of (d as { nodes?: Array<{ id?: string; title?: string; subtitle?: string }> }).nodes ?? []) {
+        const m = n.subtitle?.match(/\{\w+\[(\d+)\]\}/);
+        if (!m || !n.title) continue;
+        const want = names[Number(m[1])];
+        if (typeof want === "string" && want !== n.title) {
+          bad.push(`${k}/${n.id}: 題名 "${n.title}" に対し添字 ${m[1]} は "${want}"`);
+        }
+      }
+    }
+    expect(bad, `題名と添字が対応していない: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("矢印の説明に束ねを書かない", () => {
+    // 描画側 (`edges.tsx`) は矢印の説明を解決しない。 書くと波括弧がそのまま画面に出る
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      for (const e of (mod[k] as { edges?: Array<{ id?: string; label?: string }> }).edges ?? []) {
+        if (e.label?.includes("{")) bad.push(`${k}/${e.id}: "${e.label}"`);
+      }
+    }
+    expect(bad, `矢印に束ねを書いている: ${bad.join(", ")}`).toHaveLength(0);
   });
 
   it("段が動かす状態を束ねた箱は、段ごとに表示が変わる", () => {
@@ -103,7 +155,10 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
         if (!refs.some((x) => driven.has(x) && !owned.has(x))) continue;
         byId.set(r.id, (byId.get(r.id) ?? new Set()).add(r.text));
       }
-      if (byId.size > 0 && [...byId.values()].every((v) => v.size <= 1)) still.push(k);
+      // **箱ごとに** 見る。 図の中の 1 つが動けば通る形だと、個別の誤りを見逃す
+      for (const [id, texts] of byId) {
+        if (texts.size <= 1) still.push(`${k}/${id}`);
+      }
     }
     expect(still, `段が動かす状態を束ねているのに変わらない: ${still.join(", ")}`).toHaveLength(0);
   });

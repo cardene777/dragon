@@ -1422,10 +1422,10 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
   .lane("behind", { x: 300, width: 240 })
   .arraySignal("progress", [40, 75, 20, 90])
   .arraySignal("names", ["Design", "Impl", "Test", "Docs"])
-  .node("implNode", { lane: "advanced", stack: 0, kind: "card", title: "Impl", subtitle: "{progress[0]}%" })
-  .node("docsNode", { lane: "advanced", stack: 1, kind: "card", title: "Docs", subtitle: "{progress[1]}%" })
-  .node("designNode", { lane: "behind", stack: 0, kind: "card", title: "Design", subtitle: "{progress[2]}%" })
-  .node("testNode", { lane: "behind", stack: 1, kind: "card", title: "Test", subtitle: "{progress[3]}%" })
+  .node("implNode", { lane: "advanced", stack: 0, kind: "card", title: "Impl", subtitle: "{progress[1]}%" })
+  .node("docsNode", { lane: "advanced", stack: 1, kind: "card", title: "Docs", subtitle: "{progress[3]}%" })
+  .node("designNode", { lane: "behind", stack: 0, kind: "card", title: "Design", subtitle: "{progress[0]}%" })
+  .node("testNode", { lane: "behind", stack: 1, kind: "card", title: "Test", subtitle: "{progress[2]}%" })
   .readout.progressGroup("tasks", {
     source: "progress",
     max: 100,
@@ -1666,10 +1666,10 @@ export const skillRadar = diagram("interactive-skill-radar", {
   .arraySignal("skills", [8, 5, 7, 3, 9])
   .arraySignal("skillNames", ["Design", "Impl", "Test", "Docs", "Debug"])
   .node("designNode", { lane: "strong", stack: 0, kind: "card", title: "Design", subtitle: "{skills[0]}/10" })
-  .node("testNode", { lane: "strong", stack: 1, kind: "card", title: "Test", subtitle: "{skills[1]}/10" })
-  .node("debugNode", { lane: "strong", stack: 2, kind: "card", title: "Debug", subtitle: "{skills[2]}/10" })
-  .node("implNode", { lane: "middle", stack: 0, kind: "card", title: "Impl", subtitle: "{skills[3]}/10" })
-  .node("docsNode", { lane: "weak", stack: 0, kind: "card", title: "Docs", subtitle: "{skills[4]}/10" })
+  .node("testNode", { lane: "strong", stack: 1, kind: "card", title: "Test", subtitle: "{skills[2]}/10" })
+  .node("debugNode", { lane: "strong", stack: 2, kind: "card", title: "Debug", subtitle: "{skills[4]}/10" })
+  .node("implNode", { lane: "middle", stack: 0, kind: "card", title: "Impl", subtitle: "{skills[1]}/10" })
+  .node("docsNode", { lane: "weak", stack: 0, kind: "card", title: "Docs", subtitle: "{skills[3]}/10" })
   .readout.radar("radar", { source: "skills", max: 10, labelSource: "skillNames", color: "#2563eb", viewW: 200, viewH: 200, label: "Skills (polygon spider)" })
   .phase("p1", {
     duration: 1800,
@@ -1704,11 +1704,11 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     [30, 80, 3],
     [60, 50, 7],
   ] as unknown as (string | number)[])
-  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "やや軽い処理" })
-  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "中位の処理" })
-  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "やや重い処理" })
-  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "最も軽い処理" })
-  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "最も重い処理" })
+  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "中央寄りの処理" })
+  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "右上に位置する処理" })
+  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "左上に位置する処理" })
+  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "左下に位置する処理" })
+  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "右寄りの処理" })
   .readout.bubbleChart("bubbles", {
     source: "perf",
     xMin: 0,
@@ -1754,7 +1754,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .node("bondsNode", { lane: "traditional", stack: 1, kind: "card", title: "Bonds", subtitle: "{assets[1]}%" })
   .node("cashNode", { lane: "alternative", stack: 0, kind: "card", title: "Cash", subtitle: "{assets[2]}%" })
   .node("cryptoNode", { lane: "alternative", stack: 1, kind: "card", title: "Crypto", subtitle: "{assets[3]}%" })
-  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio", subtitle: "sum = {assets.sum}%" })
+  .node("totalNode", { lane: "traditional", stack: 2, kind: "card", title: "Portfolio", subtitle: "合計 {assets.sum}% · 最大 {assets.max}%" })
   .readout.donut("d", { source: "assets", innerRatio: 0.55, viewW: 160, viewH: 160, label: "Allocation (donut)" })
   .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
   .phase("p1", {
@@ -1918,17 +1918,17 @@ function generateCommits(): number[] {
 }
 
 export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
-  topic: "365 日の活動量を四半期ごとに見せる",
+  topic: "30 日の活動量を升目の濃さで見せる",
 })
   .lane("q1", { x: 0, width: 160 })
   .lane("q2", { x: 180, width: 160 })
   .lane("q3", { x: 360, width: 160 })
   .lane("q4", { x: 540, width: 160 })
   .arraySignal("commits", generateCommits())
-  .node("q1Card", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "90 days · winter" })
-  .node("q2Card", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "91 days · spring" })
-  .node("q3Card", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "92 days · summer" })
-  .node("q4Card", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "92 days · autumn" })
+  .node("q1Card", { lane: "q1", stack: 0, kind: "card", title: "Q1 (Jan-Mar)", subtitle: "静かな期間" })
+  .node("q2Card", { lane: "q2", stack: 0, kind: "card", title: "Q2 (Apr-Jun)", subtitle: "活発な期間" })
+  .node("q3Card", { lane: "q3", stack: 0, kind: "card", title: "Q3 (Jul-Sep)", subtitle: "落ち着く期間" })
+  .node("q4Card", { lane: "q4", stack: 0, kind: "card", title: "Q4 (Oct-Dec)", subtitle: "全体の推移" })
   .node("totalCard", { lane: "q4", stack: 1, kind: "card", title: "Year total", subtitle: "sum {commits.sum} · max {commits.max} · avg {commits.avg}" })
   .readout.calendarHeatmap("h", { source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 year (53 週 × 7 日)" })
   .phase("p1", {
@@ -2079,9 +2079,9 @@ export const userVenn = diagram("interactive-user-venn", {
   .lane("both", { x: 260, width: 200 })
   .lane("payersOnly", { x: 500, width: 200 })
   .arraySignal("sets", [100, 40, 25])
-  .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "A 全体 = {sets[0]}" })
+  .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users total", subtitle: "A 全体 {sets[0]} · 共通 {sets[2]}" })
   .node("bothNode", { lane: "both", stack: 0, kind: "card", title: "Both (A ∩ B)", subtitle: "共通 = {sets[2]}" })
-  .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "B 全体 = {sets[1]}" })
+  .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers total", subtitle: "B 全体 = {sets[1]}" })
   .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Universe", subtitle: "A={sets[0]} · B={sets[1]}" })
   .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap (2-set Venn)" })
   .phase("p1", {
@@ -2117,11 +2117,11 @@ export const scoreSlope = diagram("interactive-score-slope", {
     [80, 88, "Dan"],
     [60, 55, "Eve"],
   ] as unknown as (string | number)[])
-  .node("aliceNode", { lane: "up", stack: 0, kind: "card", title: "Alice ↑", subtitle: "65 → 82 (+17)" })
-  .node("carolNode", { lane: "up", stack: 1, kind: "card", title: "Carol ↑", subtitle: "55 → 78 (+23, max gain)" })
-  .node("danNode", { lane: "up", stack: 2, kind: "card", title: "Dan ↑", subtitle: "80 → 88 (+8)" })
-  .node("bobNode", { lane: "down", stack: 0, kind: "card", title: "Bob ↓", subtitle: "70 → 68 (-2)" })
-  .node("eveNode", { lane: "down", stack: 1, kind: "card", title: "Eve ↓", subtitle: "60 → 55 (-5)" })
+  .node("aliceNode", { lane: "up", stack: 0, kind: "card", title: "Alice ↑", subtitle: "1 人目" })
+  .node("carolNode", { lane: "up", stack: 1, kind: "card", title: "Carol ↑", subtitle: "3 人目" })
+  .node("danNode", { lane: "up", stack: 2, kind: "card", title: "Dan ↑", subtitle: "4 人目" })
+  .node("bobNode", { lane: "down", stack: 0, kind: "card", title: "Bob ↓", subtitle: "2 人目" })
+  .node("eveNode", { lane: "down", stack: 1, kind: "card", title: "Eve ↓", subtitle: "5 人目" })
   .readout.slope("s", { source: "scores", min: 40, max: 100, viewW: 260, viewH: 160, colorUp: "#22c55e", colorDown: "#ef4444", label: "Score change (slope)" })
   .phase("p1", {
     duration: 1800,
@@ -2156,12 +2156,12 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     ["Paid", 40],
   ] as unknown as (string | number)[])
   .node("visitNode", { lane: "col1", stack: 0, kind: "card", w: 160, title: "Visit", subtitle: "漏斗の入口" })
-  .node("signupNode", { lane: "col2", stack: 0, kind: "card", w: 180, title: "Signup", subtitle: "400 (-60%)" })
-  .node("trialNode", { lane: "col1", stack: 1, kind: "card", w: 170, title: "Trial", subtitle: "150 (-62.5%)" })
-  .node("paidNode", { lane: "col2", stack: 1, kind: "card", w: 220, title: "Paid", subtitle: "40 (-73%, bottom)" })
-  .edge("visitNode", "signupNode", { label: "40% conv", tone: "info" })
-  .edge("signupNode", "trialNode", { label: "37.5% conv", tone: "warning" })
-  .edge("trialNode", "paidNode", { label: "26.7% conv", tone: "error" })
+  .node("signupNode", { lane: "col2", stack: 0, kind: "card", w: 180, title: "Signup", subtitle: "登録に進む段" })
+  .node("trialNode", { lane: "col1", stack: 1, kind: "card", w: 170, title: "Trial", subtitle: "試用に進む段" })
+  .node("paidNode", { lane: "col2", stack: 1, kind: "card", w: 220, title: "Paid", subtitle: "購入に至る段" })
+  .edge("visitNode", "signupNode", { label: "登録へ", tone: "info" })
+  .edge("signupNode", "trialNode", { label: "試用へ", tone: "warning" })
+  .edge("trialNode", "paidNode", { label: "購入へ", tone: "error" })
   .readout.funnel("f", { source: "stages", viewW: 280, viewH: 200, colorTop: "#2563eb", colorBottom: "#a08870", label: "Conversion (trapezoid)" })
   .phase("p1", {
     duration: 1800,
@@ -2285,7 +2285,7 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .node("direct", { lane: "src", stack: 2, kind: "card", title: "Direct", subtitle: "直接の流入" })
   .node("home", { lane: "land", stack: 0, kind: "card", title: "Home", subtitle: "入口ページ" })
   .node("product", { lane: "land", stack: 1, kind: "card", title: "Product", subtitle: "商品ページ" })
-  .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "conversion = 140" })
+  .node("checkout", { lane: "cv", stack: 0, kind: "card", title: "Checkout", subtitle: "成果ページ" })
   .edge("search", "home", { label: "40", tone: "success" })
   .edge("search", "product", {
     label: "30",
@@ -2465,19 +2465,29 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
     ["Eve", 890],
     ["Frank", 720],
   ] as unknown as (string | number)[])
-  .node("aliceNode", { lane: "top", stack: 0, kind: "card", title: "🥇 1st Alice", subtitle: "920 (gold, max)" })
-  .node("eveNode", { lane: "top", stack: 1, kind: "card", title: "🥈 2nd Eve", subtitle: "890 (silver)" })
-  .node("carolNode", { lane: "top", stack: 2, kind: "card", title: "🥉 3rd Carol", subtitle: "850 (bronze)" })
-  .node("bobNode", { lane: "middle", stack: 0, kind: "card", title: "4th Bob", subtitle: "780" })
-  .node("frankNode", { lane: "middle", stack: 1, kind: "card", title: "5th Frank", subtitle: "720 (last displayed)" })
-  .node("danNode", { lane: "bottom", stack: 0, kind: "card", title: "6th Dan", subtitle: "680 (out of top 5)" })
+  .node("aliceNode", { lane: "top", stack: 0, kind: "card", title: "🥇 1st Alice", subtitle: "首位" })
+  .node("eveNode", { lane: "top", stack: 1, kind: "card", title: "🥈 2nd Eve", subtitle: "2 位" })
+  .node("carolNode", { lane: "top", stack: 2, kind: "card", title: "🥉 3rd Carol", subtitle: "3 位" })
+  .node("bobNode", { lane: "middle", stack: 0, kind: "card", title: "4th Bob", subtitle: "中位" })
+  .node("frankNode", { lane: "middle", stack: 1, kind: "card", title: "5th Frank", subtitle: "表示の末尾" })
+  .node("danNode", { lane: "bottom", stack: 0, kind: "card", title: "6th Dan", subtitle: "圏外" })
   .readout.leaderboard("lb", { source: "players", max: 5, color: "#2563eb", label: "Ranking (top 5 leaderboard)" })
-  .phase("p", {
-    duration: 1200,
-    title: "rank tier split",
-    body: "3-lane (Top 3 medals gold/silver/bronze / Middle 2 rank 4-5 / Bottom 1 out of top) で 6 player を rank tier 別分散、 各 player 個別 card で score 明示、 leaderboard readout も併存で top 5 表示、 rank tier と leaderboard の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("aliceNode", "eveNode", "carolNode", "bobNode", "frankNode", "danNode").badge("leaderboard"))
-  .build();
+  .phase("p1", {
+    duration: 1800,
+    title: "接戦の状態",
+    body: "上位の点差が小さい状態。 並びが僅差で決まる。",
+  }, (p: PhaseBuilder) => p.activate("aliceNode").set("players", '[["Alice",920],["Bob",915],["Carol",910],["Dan",905],["Eve",900]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "差が開く",
+    body: "首位が抜ける。 上位と下位の点差が大きくなる。",
+  }, (p: PhaseBuilder) => p.activate("aliceNode", "eveNode").set("players", '[["Alice",1180],["Eve",890],["Carol",850],["Bob",780],["Frank",720]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "順位が入れ替わる",
+    body: "別の人が首位に立つ。 並びが上下ごと組み替わる。",
+  }, (p: PhaseBuilder) => p.activate("aliceNode", "eveNode", "carolNode", "bobNode", "frankNode", "danNode").set("players", '[["Carol",1240],["Alice",1180],["Frank",1050],["Eve",890],["Bob",780],["Dan",680]]'))
+.build();
 export const subtitle__playerLeaderboard = "6 player を 3-lane (Top 3 medals / Middle 2 / Bottom 1 out of top) rank 別分散、 各 player 個別 card、 leaderboard readout 併存";
 
 /**
@@ -2533,21 +2543,31 @@ export const techTagCloud = diagram("interactive-tech-tagcloud", {
     ["Vue", 8],
     ["Deno", 5],
   ] as unknown as (string | number)[])
-  .node("reactNode", { lane: "high", stack: 0, kind: "card", title: "React", subtitle: "weight=30 (max)" })
-  .node("tsNode", { lane: "high", stack: 1, kind: "card", title: "TypeScript", subtitle: "weight=28" })
-  .node("pyNode", { lane: "high", stack: 2, kind: "card", title: "Python", subtitle: "weight=22" })
-  .node("rustNode", { lane: "mid", stack: 0, kind: "card", title: "Rust", subtitle: "weight=18" })
-  .node("goNode", { lane: "mid", stack: 1, kind: "card", title: "Go", subtitle: "weight=15" })
-  .node("svelteNode", { lane: "mid", stack: 2, kind: "card", title: "Svelte", subtitle: "weight=10" })
-  .node("vueNode", { lane: "low", stack: 0, kind: "card", title: "Vue", subtitle: "weight=8" })
-  .node("denoNode", { lane: "low", stack: 1, kind: "card", title: "Deno", subtitle: "weight=5 (min)" })
+  .node("reactNode", { lane: "high", stack: 0, kind: "card", title: "React", subtitle: "最も大きい語" })
+  .node("tsNode", { lane: "high", stack: 1, kind: "card", title: "TypeScript", subtitle: "大きい語" })
+  .node("pyNode", { lane: "high", stack: 2, kind: "card", title: "Python", subtitle: "やや大きい語" })
+  .node("rustNode", { lane: "mid", stack: 0, kind: "card", title: "Rust", subtitle: "中位の語" })
+  .node("goNode", { lane: "mid", stack: 1, kind: "card", title: "Go", subtitle: "やや小さい語" })
+  .node("svelteNode", { lane: "mid", stack: 2, kind: "card", title: "Svelte", subtitle: "小さい語" })
+  .node("vueNode", { lane: "low", stack: 0, kind: "card", title: "Vue", subtitle: "より小さい語" })
+  .node("denoNode", { lane: "low", stack: 1, kind: "card", title: "Deno", subtitle: "最も小さい語" })
   .readout.tagCloud("tc", { source: "tags", minSize: 12, maxSize: 32, label: "Tech cloud (font-size 比例)" })
-  .phase("p", {
-    duration: 1200,
-    title: "skill weight split",
-    body: "3-lane (High weight ≥20 / Mid 10-19 / Low <10) で 8 tech skill を weight 別分散、 各 skill 個別 card で weight 明示、 tagCloud readout も併存で font-size 比例表示、 weight 分類と cloud 全体観の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "pyNode", "rustNode", "goNode", "svelteNode", "vueNode", "denoNode").badge("tags"))
-  .build();
+  .phase("p1", {
+    duration: 1800,
+    title: "少ない語",
+    body: "語が 3 つだけの状態。 大きさの差が読み取りやすい。",
+  }, (p: PhaseBuilder) => p.activate("reactNode").set("tags", '[["React",30],["TypeScript",28],["Python",22]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "語が増える",
+    body: "語が 8 つに増える。 大小の幅が広がる。",
+  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "pyNode").set("tags", '[["React",30],["TypeScript",28],["Python",22],["Rust",18],["Go",15],["Svelte",10],["Vue",8],["Deno",5]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "重みが変わる",
+    body: "重みの順が入れ替わる。 大きく出る語が変わる。",
+  }, (p: PhaseBuilder) => p.activate("reactNode", "tsNode", "pyNode", "rustNode", "goNode", "svelteNode", "vueNode", "denoNode").set("tags", '[["Rust",32],["React",26],["Deno",24],["TypeScript",20],["Go",16],["Python",12],["Svelte",9],["Vue",6]]'))
+.build();
 export const subtitle__techTagCloud = "8 tech skill を 3-lane (High ≥20 / Mid 10-19 / Low <10) weight 別分散、 各 skill 個別 card、 tagCloud readout 併存";
 
 /**
@@ -2566,22 +2586,32 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
     ["Dan", "merged PR #38", "1 h ago"],
     ["Eve", "deployed v1.2", "3 h ago"],
   ] as unknown as (string | number)[])
-  .node("e1", { lane: "col1", stack: 0, kind: "card", w: 300, title: "Alice", subtitle: "pushed to main · 2 min ago" })
-  .node("e2", { lane: "col1", stack: 1, kind: "card", w: 290, title: "Bob", subtitle: "opened PR #42 · 8 min ago" })
-  .node("e3", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Carol", subtitle: "reviewed PR #40 · 15 min ago" })
-  .node("e4", { lane: "col2", stack: 1, kind: "card", w: 270, title: "Dan", subtitle: "merged PR #38 · 1 h ago" })
-  .node("e5", { lane: "col3", stack: 0, kind: "card", w: 270, title: "Eve", subtitle: "deployed v1.2 · 3 h ago" })
+  .node("e1", { lane: "col1", stack: 0, kind: "card", w: 300, title: "Alice", subtitle: "最新の出来事" })
+  .node("e2", { lane: "col1", stack: 1, kind: "card", w: 290, title: "Bob", subtitle: "次に新しい出来事" })
+  .node("e3", { lane: "col2", stack: 0, kind: "card", w: 320, title: "Carol", subtitle: "中ほどの出来事" })
+  .node("e4", { lane: "col2", stack: 1, kind: "card", w: 270, title: "Dan", subtitle: "やや古い出来事" })
+  .node("e5", { lane: "col3", stack: 0, kind: "card", w: 270, title: "Eve", subtitle: "最も古い出来事" })
   .edge("e1", "e2", { label: "→", tone: "info" })
   .edge("e2", "e3", { label: "→", tone: "info" })
   .edge("e3", "e4", { label: "→", tone: "accent" })
   .edge("e4", "e5", { label: "→", tone: "accent" })
   .readout.activityFeed("af", { source: "events", max: 5, color: "#2563eb", label: "Recent (feed list)" })
-  .phase("p", {
-    duration: 1200,
-    title: "activity timeline",
-    body: "5 区画 timeline (recent → old) を 3 列 2 段に置いて 5 event を node network 化、 4 edge (時系列連結、 tone info/accent で新旧分類)、 activityFeed readout も併存で feed list 表示、 timeline 構造と feed 一覧の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("e1", "e2", "e3", "e4", "e5").badge("feed"))
-  .build();
+  .phase("p1", {
+    duration: 1800,
+    title: "1 件だけ",
+    body: "出来事が 1 件だけある状態。 一覧の先頭に入る。",
+  }, (p: PhaseBuilder) => p.activate("e1").set("events", '[["Alice","pushed to main","2 min ago"]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "積み上がる",
+    body: "出来事が増えて一覧が伸びる。 新しいものが上に来る。",
+  }, (p: PhaseBuilder) => p.activate("e1", "e2", "e3").set("events", '[["Alice","pushed to main","2 min ago"],["Bob","opened PR #42","8 min ago"],["Carol","reviewed PR #40","15 min ago"]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "押し出される",
+    body: "件数の上限を超えると古いものが落ちる。 一覧の長さは変わらない。",
+  }, (p: PhaseBuilder) => p.activate("e1", "e2", "e3", "e4", "e5").set("events", '[["Dan","released v2.0","1 min ago"],["Alice","pushed to main","2 min ago"],["Bob","opened PR #42","8 min ago"],["Carol","reviewed PR #40","15 min ago"],["Eve","merged PR #38","1 h ago"]]'))
+.build();
 export const subtitle__teamActivityFeed = "team activity 5 event を 3 列 2 段の timeline (recent → old) で個別 card 分散、 activityFeed readout 併存";
 
 /**
@@ -2677,18 +2707,28 @@ export const supportChat = diagram("interactive-support-chat", {
     ["Support", "Checking...", true],
     ["Support", "Refunded! You'll see it in 3-5 days.", true],
   ] as unknown as (string | number)[])
-  .node("cust1", { lane: "customer", stack: 0, kind: "card", title: "Alice #1", subtitle: "Hi, I need help with my order" })
-  .node("cust2", { lane: "customer", stack: 1, kind: "card", title: "Alice #2", subtitle: "#12345" })
-  .node("sup1", { lane: "support", stack: 0, kind: "card", title: "Support #1", subtitle: "Sure! What's the order ID?" })
-  .node("sup2", { lane: "support", stack: 1, kind: "card", title: "Support #2", subtitle: "Checking..." })
-  .node("sup3", { lane: "support", stack: 2, kind: "card", title: "Support #3", subtitle: "Refunded! 3-5 days." })
+  .node("cust1", { lane: "customer", stack: 0, kind: "card", title: "Alice #1", subtitle: "利用者の 1 通目" })
+  .node("cust2", { lane: "customer", stack: 1, kind: "card", title: "Alice #2", subtitle: "利用者の 2 通目" })
+  .node("sup1", { lane: "support", stack: 0, kind: "card", title: "Support #1", subtitle: "応対側の 1 通目" })
+  .node("sup2", { lane: "support", stack: 1, kind: "card", title: "Support #2", subtitle: "確認中の返答" })
+  .node("sup3", { lane: "support", stack: 2, kind: "card", title: "Support #3", subtitle: "解決の返答" })
   .readout.chatBubble("cb", { source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#f0e0b8", label: "Conversation (bubbles)" })
-  .phase("p", {
-    duration: 1200,
-    title: "speaker split",
-    body: "2-lane (Customer 2 msg / Support 3 msg) で 5 message を speaker 別分散、 各 message 個別 card で内容明示、 chatBubble readout も併存で左右寄せ表示、 speaker 分類と thread 経路の 2 view。",
-  }, (p: PhaseBuilder) => p.activate("cust1", "cust2", "sup1", "sup2", "sup3").badge("chat"))
-  .build();
+  .phase("p1", {
+    duration: 1800,
+    title: "問い合わせ",
+    body: "利用者からの 1 通目。 左側に吹き出しが出る。",
+  }, (p: PhaseBuilder) => p.activate("cust1").set("thread", '[["Alice","Hi, I need help with my order",false]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "やり取りが続く",
+    body: "応対側が返し、利用者が答える。 左右に交互に並ぶ。",
+  }, (p: PhaseBuilder) => p.activate("cust1", "sup1", "cust2").set("thread", '[["Alice","Hi, I need help with my order",false],["Support","Sure! What is the order ID?",true],["Alice","#12345",false]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "解決する",
+    body: "確認を経て解決に至る。 やり取りの流れが上から下へ読める形になる。",
+  }, (p: PhaseBuilder) => p.activate("cust1", "sup1", "cust2", "sup2", "sup3").set("thread", '[["Alice","Hi, I need help with my order",false],["Support","Sure! What is the order ID?",true],["Alice","#12345",false],["Support","Checking...",true],["Support","Refunded! 3-5 days.",true]]'))
+.build();
 export const subtitle__supportChat = "customer support 5 message を 2-lane (Customer / Support) speaker 別分散、 各 message 個別 card、 chatBubble readout 併存";
 
 /**
@@ -2738,12 +2778,22 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
   .node("t5", { lane: "todo", stack: 2, kind: "card", title: "Deploy", subtitle: "todo (depends on review)" })
   .node("t6", { lane: "todo", stack: 3, kind: "card", title: "Post-mortem", subtitle: "todo (last)" })
   .readout.checklist("cl", { source: "tasks", color: "#22c55e", label: "Progress (2/6 = 33%)" })
-  .phase("p", {
-    duration: 1200,
-    title: "sprint split",
-    body: "2-lane (Done 2 item / Todo 4 item) で 6 sprint task を状態別分散、 各 task 個別 card で進捗 + note 明示、 checklist readout も併存で progress% (2/6 = 33%) 表示、 status 分類と check-list の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("t1", "t2", "t3", "t4", "t5", "t6").badge("checklist"))
-  .build();
+  .phase("p1", {
+    duration: 1800,
+    title: "着手前",
+    body: "どれも未完了の状態。 印が 1 つも付いていない。",
+  }, (p: PhaseBuilder) => p.activate("t1").set("tasks", '[["Setup CI",false],["Write tests",false],["Fix bug #42",false],["Code review",false],["Deploy",false],["Retro",false]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "半分進む",
+    body: "前半が終わる。 印の付いた項目が上に集まる。",
+  }, (p: PhaseBuilder) => p.activate("t1", "t2", "t3").set("tasks", '[["Setup CI",true],["Write tests",true],["Fix bug #42",true],["Code review",false],["Deploy",false],["Retro",false]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "残り 1 件",
+    body: "最後の 1 件を残して終わる。 未完了がどれか一目で分かる。",
+  }, (p: PhaseBuilder) => p.activate("t1", "t2", "t3", "t4", "t5", "t6").set("tasks", '[["Setup CI",true],["Write tests",true],["Fix bug #42",true],["Code review",true],["Deploy",true],["Retro",false]]'))
+.build();
 export const subtitle__sprintChecklist = "sprint 6 task を 2-lane (Done ✓ / Todo) 状態別分散、 各 task 個別 card、 checklist readout 併存";
 
 /**
