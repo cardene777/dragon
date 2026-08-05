@@ -102,10 +102,8 @@ export function PresetDetailPage(): React.ReactElement {
             <span className="nm-gradient-accent">{locale === "ja" ? "プリセット" : "preset"}</span>
           </h1>
           <p className="nm-hero-subtitle">{preset.subtitle}</p>
-          {/* 動きの種類は人が書かず図から導く (#1043)。 SSOT = catalog-motion.ts */}
-          {motionNote(preset.diagram) && (
-            <p className="nm-hero-motion">{motionNote(preset.diagram)}</p>
-          )}
+          {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す (#1053) */}
+          <p className="nm-hero-motion">{motionNote(preset.diagram)}</p>
           <div className="nm-hero-actions">
             <Link to={`/editor#preset=${preset.slug}`} className="nm-hero-btn nm-hero-btn-primary">
               <span>エディタで開く</span>

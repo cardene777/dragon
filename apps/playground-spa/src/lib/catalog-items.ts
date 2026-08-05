@@ -39,9 +39,9 @@ export interface CatalogItem {
    * 動きの種類を表す 1 文 (#1043)。 **人は書かず、図の実装から導く**。
    *
    * 説明 (`subtitle`) に動きを書くと実装とずれ、ずれは言い回しの列挙では止められない。
-   * 動かない図では付かない。 SSOT = `catalog-motion.ts`
+   * 動かない図も含めて必ず付く (#1053)。 SSOT = `catalog-motion.ts`
    */
-  motionNote?: string;
+  motionNote: string;
   diagram: CdlDiagram;
   /** 人 / LLM 向け source 記法 (optional、 dragon package の 2 記法を dogfood 提示するため) */
   sourceYaml?: string;

@@ -19,12 +19,9 @@ import { motionOf, motionNote } from "./catalog-motion";
  *
  * **この列挙は塞ぎ切れない**。 言い回しは無限にあり、同義語を足す形は収束しない。
  *
- * 動く図では実害が小さい。 導出文が隣に出るため、語彙の外の言い回しで誤って語っても
- * 矛盾した一文が並ぶ形になり、読み手が気付ける。
- *
- * **動かない図では塞げていない**。 導出文が付かないため、語彙の外の言い回しで動きを書くと
- * 誤った説明が単独で出る。 塞ぐには静的な図すべてに「値は変わらない」 の一文を出すことになり、
- * 読み手に不要な一文を増やすため採っていない。
+ * それでも誤った説明が単独で出ることは無い。 導出文を **動かない図も含めて必ず出す**
+ * ようにしたため (#1053)、語彙の外の言い回しで誤って語っても矛盾した一文が隣に並び、
+ * 読み手が気付ける。 列挙が受け持つのは「書き忘れの指摘」 までで、保証は導出文の側にある。
  */
 const CONTINUOUS_WORDS = [
   /tween/i,
@@ -174,22 +171,36 @@ describe("動きの記述 (#1043)", () => {
     expect(motionOf(diagramWith({ tweens: ["v", "w"], inputs: ["v"] }))).toBe("continuous");
   });
 
-  it("動かない図には一文を付けない", () => {
-    expect(motionNote(diagramWith({}))).toBeUndefined();
+  it("動かない図にも一文を付ける", () => {
+    // 付けないと、静的な図の説明に語彙の外の言い回しで動きを書かれた時に
+    // 誤った説明が単独で出る (#1053)
+    expect(motionNote(diagramWith({}))).toBe("段を進めても値は変わらない");
     expect(motionNote(diagramWith({ tweens: ["a"] }))).toBe("段の中で値が連続して動く");
     expect(motionNote(diagramWith({ sets: ["a"] }))).toBe("段の切替で値が一度に変わる");
   });
 
-  it("一覧の項目が導いた一文を持っている", () => {
-    // 組み立て側 (`catalog-items.ts`) の配線が切れていないこと
+  it("全ての項目が導いた一文を持っている", async () => {
+    // 組み立て側 (`catalog-items.ts`) の配線が切れていないこと。
+    // **1 件でも欠けたら落とす** (#1053)。 欠けた図では説明が単独で出る
+    const items = await allDescriptions();
+    expect(items.length, "図が 1 件も見つからない").toBeGreaterThan(430);
+
+    const allowed = new Set([
+      "段の中で値が連続して動く",
+      "段の切替で値が一度に変わる",
+      "段を進めても値は変わらない",
+    ]);
+    const bad: string[] = [];
+    for (const { where, name, diagram } of items) {
+      const note = motionNote(diagram);
+      if (!allowed.has(note)) bad.push(`${where}/${name}: ${note}`);
+    }
+    expect(bad, `想定外の一文がある: ${bad.join(" / ")}`).toHaveLength(0);
+
+    // 一覧の項目に載っていること (配線)
     const interactive = CATALOG_ITEMS.interactive ?? [];
-    expect(interactive.length, "図が 1 件も見つからない").toBeGreaterThan(50);
-    const withNote = interactive.filter((i) => typeof i.motionNote === "string");
-    expect(withNote.length, "導いた一文を持つ項目が無い (配線が切れている)").toBeGreaterThan(50);
-    // 一文の中身は 2 種類しかない (自由文が紛れ込んでいないこと)
-    const allowed = new Set(["段の中で値が連続して動く", "段の切替で値が一度に変わる"]);
-    const unexpected = [...new Set(withNote.map((i) => i.motionNote))].filter((s) => !allowed.has(s!));
-    expect(unexpected, `想定外の一文がある: ${unexpected.join(" / ")}`).toHaveLength(0);
+    const missing = interactive.filter((i) => !allowed.has(i.motionNote)).map((i) => i.title);
+    expect(missing, `一文が載っていない項目: ${missing.join(", ")}`).toHaveLength(0);
   });
 
   it("全ての図で、一文が段の実装と一致する", () => {
@@ -197,18 +208,21 @@ describe("動きの記述 (#1043)", () => {
     // **一覧に載る全ての図** を見る。 一部の図に絞ると、連続して動く図が 4 件しかないため
     // その 4 件が範囲から外れて、連続側の判定が一度も試されないまま通る (実測で起きた)
     const items = CATALOG_ITEMS.interactive ?? [];
-    const kinds = { continuous: 0, step: 0 };
+    const kinds = { continuous: 0, step: 0, none: 0 };
     for (const item of items) {
-      const hasTween = (item.diagram.phases ?? []).some((p) => (p.tweens ?? []).length > 0);
       const kind = motionOf(item.diagram);
-      if (kind === "none") continue;
-      const expected = hasTween ? "段の中で値が連続して動く" : "段の切替で値が一度に変わる";
+      const expected = {
+        continuous: "段の中で値が連続して動く",
+        step: "段の切替で値が一度に変わる",
+        none: "段を進めても値は変わらない",
+      }[kind];
       expect(item.motionNote, `${item.title} の一文が実装と合わない`).toBe(expected);
       kinds[kind] += 1;
     }
-    // 2 種類ともが実データで試されていること
+    // 3 種類ともが実データで試されていること
     expect(kinds.continuous, "連続して動く図が 1 件も無い").toBeGreaterThan(0);
     expect(kinds.step, "段の切替で変わる図が 1 件も無い").toBeGreaterThan(0);
+    expect(kinds.none, "動かない図が 1 件も無い").toBeGreaterThan(0);
   });
 
   it("連続した動きを語る説明は、実際に連続して動く図だけが持つ", async () => {
