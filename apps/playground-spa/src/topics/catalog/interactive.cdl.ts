@@ -1085,7 +1085,7 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
     title: "Aggregate",
     subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
   })
-  .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "first bar override = {bump}" })
+  .node("bumpNode", { lane: "agg", stack: 1, kind: "card", title: "Bump control", subtitle: "1 本目だけを上書きするつまみ" })
   .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "xs[0] = {xs[0]}" })
   .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "xs[1] = {xs[1]}" })
   .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "xs[2] = {xs[2]}" })
@@ -1208,7 +1208,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     title: "Group A",
     subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}",
   })
-  .node("aDetail", { lane: "groupA", stack: 1, kind: "card", title: "A 5 element", subtitle: "A = {groupA[0]} / {groupA[1]} / {groupA[2]} / {groupA[3]} / {groupA[4]}" })
+  .node("aDetail", { lane: "groupA", stack: 1, kind: "card", title: "A 5 element", subtitle: "系列 A" })
   .node("bCard", {
     lane: "groupB",
     stack: 0,
@@ -1216,7 +1216,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     title: "Group B",
     subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}",
   })
-  .node("bDetail", { lane: "groupB", stack: 1, kind: "card", title: "B 5 element", subtitle: "B = {groupB[0]} / {groupB[1]} / {groupB[2]} / {groupB[3]} / {groupB[4]}" })
+  .node("bDetail", { lane: "groupB", stack: 1, kind: "card", title: "B 5 element", subtitle: "系列 B" })
   .edge("aCard", "bCard", { label: "A vs B diff", tone: "warning" })
   .readout.stackedBar("cmp", {
     sourceA: "groupA",
@@ -1385,14 +1385,14 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
     [0, 1, 9, 0],
     [0, 0, 2, 6],
   ] as unknown as (string | number)[])
-  .node("c0Diag", { lane: "c0", stack: 0, kind: "card", title: "Class 0 ✓", subtitle: "correct = {cm[0]}" })
-  .node("c0Wrong", { lane: "c0", stack: 1, kind: "card", title: "Class 0 ✕", subtitle: "wrong = {cm[1]}" })
-  .node("c1Diag", { lane: "c1", stack: 0, kind: "card", title: "Class 1 ✓", subtitle: "correct = {cm[2]}" })
-  .node("c1Wrong", { lane: "c1", stack: 1, kind: "card", title: "Class 1 ✕", subtitle: "wrong = {cm[3]}" })
-  .node("c2Diag", { lane: "c2", stack: 0, kind: "card", title: "Class 2 ✓", subtitle: "correct = {cm[4]}" })
-  .node("c2Wrong", { lane: "c2", stack: 1, kind: "card", title: "Class 2 ✕", subtitle: "wrong = {cm[5]}" })
-  .node("c3Diag", { lane: "c3", stack: 0, kind: "card", title: "Class 3 ✓", subtitle: "correct = {cm[6]}" })
-  .node("c3Wrong", { lane: "c3", stack: 1, kind: "card", title: "Class 3 ✕", subtitle: "wrong = {cm[7]}" })
+  .node("c0Diag", { lane: "c0", stack: 0, kind: "card", title: "Class 0 ✓", subtitle: "上段の正解" })
+  .node("c0Wrong", { lane: "c0", stack: 1, kind: "card", title: "Class 0 ✕", subtitle: "上段の取り違え" })
+  .node("c1Diag", { lane: "c1", stack: 0, kind: "card", title: "Class 1 ✓", subtitle: "中上段の正解" })
+  .node("c1Wrong", { lane: "c1", stack: 1, kind: "card", title: "Class 1 ✕", subtitle: "中上段の取り違え" })
+  .node("c2Diag", { lane: "c2", stack: 0, kind: "card", title: "Class 2 ✓", subtitle: "中下段の正解" })
+  .node("c2Wrong", { lane: "c2", stack: 1, kind: "card", title: "Class 2 ✕", subtitle: "中下段の取り違え" })
+  .node("c3Diag", { lane: "c3", stack: 0, kind: "card", title: "Class 3 ✓", subtitle: "下段の正解" })
+  .node("c3Wrong", { lane: "c3", stack: 1, kind: "card", title: "Class 3 ✕", subtitle: "下段の取り違え" })
   .readout.matrix("m", { source: "cm", min: 0, max: 10, cellSize: 30, showValue: true, colors: ["#f0f4f8", "#0369a1"] as const, label: "Predictions (4×4)" })
   .phase("p1", {
     duration: 1800,
@@ -1704,11 +1704,11 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     [30, 80, 3],
     [60, 50, 7],
   ] as unknown as (string | number)[])
-  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "性能 {perf[0]} · 費用 {perf[1]} · 量 {perf[2]}" })
-  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "性能 {perf[3]} · 費用 {perf[4]} · 量 {perf[5]}" })
-  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "性能 {perf[6]} · 費用 {perf[7]} · 量 {perf[8]}" })
-  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "性能 {perf[9]} · 費用 {perf[10]} · 量 {perf[11]}" })
-  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "性能 {perf[12]} · 費用 {perf[13]} · 量 {perf[14]}" })
+  .node("w2", { lane: "high", stack: 0, kind: "card", title: "Workload B", subtitle: "やや軽い処理" })
+  .node("w3", { lane: "high", stack: 1, kind: "card", title: "Workload C", subtitle: "中位の処理" })
+  .node("w5", { lane: "high", stack: 2, kind: "card", title: "Workload E", subtitle: "やや重い処理" })
+  .node("w1", { lane: "low", stack: 0, kind: "card", title: "Workload A", subtitle: "最も軽い処理" })
+  .node("w4", { lane: "low", stack: 1, kind: "card", title: "Workload D", subtitle: "最も重い処理" })
   .readout.bubbleChart("bubbles", {
     source: "perf",
     xMin: 0,
@@ -1736,7 +1736,7 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     duration: 1800,
     title: "偏りが出る",
     body: "右上に大きな円が集まる。 位置と大きさの両方で傾向が読める。",
-  }, (p: PhaseBuilder) => p.activate("w2", "w3", "w5", "w1", "w4").set("perf", '[[50,20,4],[70,40,9],[90,60,14],[30,80,3],[85,70,12]]'))
+  }, (p: PhaseBuilder) => p.activate("w2", "w3", "w5", "w1", "w4").set("perf", '[[50,20,4],[70,40,9],[90,60,10],[30,80,3],[85,70,8]]'))
 .build();
 export const subtitle__perfBubbleChart = "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存";
 
@@ -2059,7 +2059,7 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
   .phase("p2", {
     duration: 1800,
     title: "上がる",
-    body: "終値が始値を上回る日が続く。 足が上向きに積み上がる。",
+    body: "陽線と陰線を交えながら、全体として右上がりに進む。 足は横に並ぶ。",
   }, (p: PhaseBuilder) => p.activate("d1", "d2", "d3", "d4").set("ohlc", '[[100,108,96,105],[105,110,100,102],[102,106,98,104],[104,112,103,111],[111,115,108,109]]'))
   .phase("p3", {
     duration: 1800,
@@ -2079,9 +2079,9 @@ export const userVenn = diagram("interactive-user-venn", {
   .lane("both", { x: 260, width: 200 })
   .lane("payersOnly", { x: 500, width: 200 })
   .arraySignal("sets", [100, 40, 25])
-  .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "A のみ = {sets[0]}" })
+  .node("usersOnlyNode", { lane: "usersOnly", stack: 0, kind: "card", title: "Users only", subtitle: "A 全体 = {sets[0]}" })
   .node("bothNode", { lane: "both", stack: 0, kind: "card", title: "Both (A ∩ B)", subtitle: "共通 = {sets[2]}" })
-  .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "B のみ = {sets[1]}" })
+  .node("payersOnlyNode", { lane: "payersOnly", stack: 0, kind: "card", title: "Payers only", subtitle: "B 全体 = {sets[1]}" })
   .node("totalNode", { lane: "both", stack: 1, kind: "card", title: "Universe", subtitle: "A={sets[0]} · B={sets[1]}" })
   .readout.venn("v", { source: "sets", viewW: 220, viewH: 140, colorA: "#2563eb", colorB: "#f97316", labelA: "Users", labelB: "Payers", label: "Overlap (2-set Venn)" })
   .phase("p1", {
@@ -2155,7 +2155,7 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     ["Trial", 150],
     ["Paid", 40],
   ] as unknown as (string | number)[])
-  .node("visitNode", { lane: "col1", stack: 0, kind: "card", w: 160, title: "Visit", subtitle: "入口 = {stages[1]}" })
+  .node("visitNode", { lane: "col1", stack: 0, kind: "card", w: 160, title: "Visit", subtitle: "漏斗の入口" })
   .node("signupNode", { lane: "col2", stack: 0, kind: "card", w: 180, title: "Signup", subtitle: "400 (-60%)" })
   .node("trialNode", { lane: "col1", stack: 1, kind: "card", w: 170, title: "Trial", subtitle: "150 (-62.5%)" })
   .node("paidNode", { lane: "col2", stack: 1, kind: "card", w: 220, title: "Paid", subtitle: "40 (-73%, bottom)" })
@@ -2211,7 +2211,7 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .phase("p2", {
     duration: 1800,
     title: "連なる",
-    body: "前の作業の終わりから次が始まる。 帯が階段状に並ぶ。",
+    body: "前の作業を追うように次が始まる。 一部が重なりながら帯が階段状に並ぶ。",
   }, (p: PhaseBuilder) => p.activate("designNode", "implNode", "testNode").set("tasks", '[["Design",0,3],["Impl",3,5],["Test",6,3]]'))
   .phase("p3", {
     duration: 1800,
@@ -2248,7 +2248,7 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
   .phase("p1", {
     duration: 1800,
     title: "均等に分ける",
-    body: "6 つがほぼ同じ大きさ。 区画が整然と並ぶ。",
+    body: "6 つをほぼ同じ配分にする。 区画の大きさが揃って整然と並ぶ。",
   }, (p: PhaseBuilder) => p.activate("engNode").set("teams", '[["Engineering",17],["Sales",17],["Marketing",17],["Support",17],["Ops",16],["Legal",16]]'))
   .phase("p2", {
     duration: 1800,
@@ -2314,9 +2314,9 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   }, (p: PhaseBuilder) => p.activate("search", "social", "home", "product").set("flows", '[["Search","Home",40],["Search","Product",30],["Social","Home",25],["Social","Product",15]]'))
   .phase("p3", {
     duration: 1800,
-    title: "合流する",
-    body: "複数の経路が同じ行き先に集まる。 帯の太さで量の差が読める。",
-  }, (p: PhaseBuilder) => p.activate("search", "social", "direct", "home", "product", "checkout").set("flows", '[["Search","Home",40],["Search","Product",30],["Social","Home",25],["Social","Product",15],["Direct","Home",20],["Home","Checkout",50],["Product","Checkout",35]]'))
+    title: "流入元が増える",
+    body: "3 つ目の流入元が加わる。 帯の太さで流入量の差が読める。",
+  }, (p: PhaseBuilder) => p.activate("search", "social", "direct", "home", "product", "checkout").set("flows", '[["Search","Home",40],["Search","Product",30],["Social","Home",25],["Social","Product",15],["Direct","Home",20],["Direct","Product",10]]'))
 .build();
 export const subtitle__trafficSankey = "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存";
 
@@ -2341,7 +2341,7 @@ export const activityPolar = diagram("interactive-activity-polar", {
   .phase("p1", {
     duration: 1800,
     title: "平日だけ",
-    body: "平日に時間が偏り、週末は 0。 扇形が片側だけに伸びる。",
+    body: "平日に時間が入り、週末は 0。 週末の 2 区画だけが消える。",
   }, (p: PhaseBuilder) => p.activate("monNode", "tueNode").set("hours", '[6,7,8,6,7,0,0]'))
   .phase("p2", {
     duration: 1800,

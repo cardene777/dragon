@@ -48,7 +48,7 @@ type Diagram = {
   inputs?: Array<{ id?: string }>;
   formulas?: Array<{ id?: string }>;
   scrollTriggers?: Array<{ id?: string }>;
-  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number }>;
+  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number; xMin?: number; xMax?: number; yMin?: number; yMax?: number; rMin?: number; rMax?: number }>;
   nodes?: Array<{ id?: string; subtitle?: string }>;
   phases?: Array<{
     tweens?: Array<{ stateId?: string }>;
@@ -222,6 +222,39 @@ describe("手本の形 (#1033)", () => {
       }
     }
     expect(bad, `値域を外れている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("3 軸を持つ表示部品は軸ごとの値域に収まる", () => {
+    // `min` / `max` だけを見る検査では、円の大きさ (rMax) の超過を拾えない (実測)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        const axes: Array<[number, number | undefined, number | undefined]> = [
+          [0, r.xMin, r.xMax], [1, r.yMin, r.yMax], [2, r.rMin, r.rMax],
+        ];
+        if (axes.every(([, lo, hi]) => lo === undefined && hi === undefined)) continue;
+        for (const p of d.phases ?? []) {
+          for (const st of p.sets ?? []) {
+            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            const raw = String((st as { value?: unknown }).value ?? "");
+            let parsed: unknown;
+            try { parsed = JSON.parse(raw); } catch { continue; }
+            if (!Array.isArray(parsed)) continue;
+            for (const tuple of parsed) {
+              if (!Array.isArray(tuple)) continue;
+              for (const [i, lo, hi] of axes) {
+                const v = tuple[i];
+                if (typeof v !== "number") continue;
+                if (lo !== undefined && v < lo) bad.push(`${k}/${r.id}: 軸${i} の ${v} が下限 ${lo} 未満`);
+                if (hi !== undefined && v > hi) bad.push(`${k}/${r.id}: 軸${i} の ${v} が上限 ${hi} 超過`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `軸の値域を外れている: ${bad.slice(0, 5).join(", ")}`).toHaveLength(0);
   });
 
   it("時間軸に渡す値が [[時刻, 名前], ...] の形になっている", () => {
