@@ -33,6 +33,11 @@ const DRIVEN = [
   "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
   "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
   "yearRoadmap", "weekWeather",
+  // #1032 の 4 本目
+  "tutorialVideoCards", "teamAttendanceGrid", "globalTimezoneClock", "signupFormSummary",
+  "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
+  "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
+  "teamKpiComparison", "publishWorkflowSteps",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -80,6 +85,9 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
  * | `podium` | 先頭 3 件だけ台にする |
  * | `leaderboard` | 値の降順に並べ替えてから `max` 件に切る |
  * | `array-list` / `user-stack` | `max` 件まで出し、超えた分を残り件数として出す |
+ * | `calendar-week` | 先頭 **7 件** (`max` ではない)、今日の日は予定の丸を出さない |
+ * | `kanban-board` | 既知の 3 列に振り分け、列ごとに `max` 件 + 溢れ件数 |
+ * | `status-timeline` | 状態を小文字にし、5 文字超なら先頭 4 文字を大文字で出す |
  * | `SLICE_ONLY` | `max` 件までしか出さない (残り件数は出さない) |
  *
  * **`max` の意味は種別で違う**。 件数の上限として使う種別と、色や長さの基準値として
@@ -91,7 +99,10 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
  * 値域による切り詰め (`Math.min(max, v)` 等) は射影に入れない。 値域を外れる値は
  * §「段が渡す配列が表示部品の値域に収まる」 が別に弾くため、ここに届かない。
  */
-const SLICE_ONLY = new Set(["activity-feed", "chat-bubble", "commit-list", "event-log", "search-result"]);
+const SLICE_ONLY = new Set([
+  "activity-feed", "chat-bubble", "commit-list", "event-log", "search-result",
+  "video-card", "terminal", "timeline-vertical",
+]);
 function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined): string {
   const one = inputs.length === 1 ? inputs[0]![1] : undefined;
   const parse = (raw: string | undefined): unknown[] | undefined => {
@@ -129,6 +140,41 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
       return typeof max === "number"
         ? `${JSON.stringify(cut(max))}+${Math.max(0, rows.length - max)}`
         : JSON.stringify(rows);
+    case "calendar-week":
+      // 先頭 7 件だけを描き、**今日の日には予定の丸を出さない** (`hasEvent && !isToday`)。
+      // 生の真偽 2 つを比べると、今日が移った時に入れ替わる予定の丸を見落とす
+      return JSON.stringify(cut(7).map((r) => {
+        if (!Array.isArray(r)) return r;
+        const today = Boolean(r[2]);
+        return [r[0], Boolean(r[1]) && !today, today];
+      }));
+    case "kanban-board": {
+      // 既知の 3 列に振り分けてから列ごとに切る。 列をまたぐ入力の並びだけが違う
+      // 2 段は同じ絵になる。 列名は小文字にして区切り文字を落として引く
+      const buckets: Record<string, unknown[]> = { todo: [], inprogress: [], done: [] };
+      for (const r of rows) {
+        if (!Array.isArray(r)) continue;
+        const key = String(r[0] ?? "").toLowerCase().replace(/[-_ ]/g, "");
+        const b = buckets[key];
+        if (b) b.push([r[1], r[2]]);
+      }
+      const lim = typeof max === "number" ? max : Number.POSITIVE_INFINITY;
+      return JSON.stringify(Object.entries(buckets).map(([k, v]) =>
+        [k, v.slice(0, lim), Math.max(0, v.length - Math.min(v.length, lim))]));
+    }
+    case "status-timeline": {
+      // 画面に出るのは **色と表示名** の 2 つで、状態の生値ではない。
+      // 色は小文字にした状態名で引き、無ければ灰色に落ちる。 表示名は 5 文字を超えると
+      // 先頭 4 文字を大文字にして出す。 生値が違っても、この 2 つが同じなら同じ絵になる
+      // (実測 = `active` と `activated` はどちらも `ACTI` + 灰色ではなく、色で分かれる)
+      const colorOf = (s: string) =>
+        ({ active: "#22c55e", idle: "#94a3b8", error: "#ef4444" } as Record<string, string>)[s] ?? "#cbd5e1";
+      return JSON.stringify((typeof max === "number" ? cut(max) : rows).map((r) => {
+        if (!Array.isArray(r)) return r;
+        const s = String(r[1] ?? "").toLowerCase();
+        return [r[0], colorOf(s), s.length > 5 ? s.slice(0, 4).toUpperCase() : s.toUpperCase()];
+      }));
+    }
     default:
       return JSON.stringify(SLICE_ONLY.has(kind) && typeof max === "number" ? cut(max) : rows);
   }
@@ -363,6 +409,85 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       }
     }
     expect(bad, `段を進めても表示が変わらない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱が語る有無が、段の渡す真偽と一致する", () => {
+    // 順位でも位置でもなく「その行が印を持つか」 を語る箱がある。 描画側は真偽を
+    // `Boolean()` で読んで印の有無に変えるため、値を false にしても他の検査には掛からない
+    // (順位が付く数でも座標でもないため)。
+    //
+    // 箱と真偽の対応は 2 形ある。 どちらも `interactive-panel.tsx` の実装から引く。
+    //
+    // | 形 | 種別 | 箱の題が指すもの | 見る値 |
+    // |---|---|---|---|
+    // | 行 | `calendar-week` | 行の先頭 (曜日) | その行の 2 番目 |
+    // | 列 | `attendance-grid` | 名前の一覧の要素 (人) | 全行の (その人の位置 + 1) 番目 |
+    //
+    // 列の形では「全行が真か」 を見る。 1 行でも偽なら「欠けが無い」 は成立しない。
+    const ROW_FLAG: Record<string, number> = { "calendar-week": 1 };
+    const COL_FLAG = new Set(["attendance-grid"]);
+    const ROW_CLAIM = [
+      { re: /予定を持つ/, want: true },
+      { re: /予定を持たない/, want: false },
+    ];
+    const COL_CLAIM = [
+      { re: /欠けが無い/, want: true },
+      { re: /欠けがある/, want: false },
+    ];
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const r0 = ((d as { readouts?: Array<{ kind?: string; source?: string; membersSource?: string }> }).readouts ?? [])[0];
+      const kind = String(r0?.kind ?? "");
+      const at = ROW_FLAG[kind];
+      const isCol = COL_FLAG.has(kind);
+      if ((at === undefined && !isCol) || !r0?.source) continue;
+      type Node = { id?: string; title?: string; subtitle?: string };
+      const nodes = (d as { nodes?: Node[] }).nodes ?? [];
+      // 列の形では、名前の一覧から人の位置を引く
+      let members: string[] = [];
+      if (isCol && r0.membersSource) {
+        // 名前の一覧は JSON 文字列で状態に入る (`arraySignal` が文字列化して持つ)
+        const st = (d as { states?: Array<{ id?: string; initial?: string | number }> }).states
+          ?.find((x) => x.id === r0.membersSource);
+        try {
+          const v: unknown = JSON.parse(typeof st?.initial === "string" ? st.initial : "");
+          if (Array.isArray(v)) members = v.map((x) => String(x));
+        } catch { /* 引けない図は対象外 */ }
+      }
+      for (const [pi, p] of ((d as { phases?: Array<{ sets?: Array<{ stateId?: string; value?: string | number }> }> }).phases ?? []).entries()) {
+        for (const st of p.sets ?? []) {
+          if (st.stateId !== r0.source) continue;
+          let rows: unknown;
+          try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
+          if (!Array.isArray(rows)) continue;
+          for (const n of nodes) {
+            if (!n.title) continue;
+            const title = n.title.toLowerCase();
+            if (isCol) {
+              const claim = COL_CLAIM.find((f) => f.re.test(n.subtitle ?? ""));
+              if (!claim) continue;
+              const mi = members.findIndex((m) => m.toLowerCase() === title);
+              if (mi < 0) { bad.push(`${k}/${n.id}: 題 "${n.title}" が名前の一覧に無い`); continue; }
+              const allTrue = rows.every((r) => Array.isArray(r) && Boolean(r[mi + 1]));
+              if (allTrue !== claim.want) {
+                bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが全行が真か = ${String(allTrue)}`);
+              }
+              continue;
+            }
+            const claim = ROW_CLAIM.find((f) => f.re.test(n.subtitle ?? ""));
+            if (!claim) continue;
+            const row = rows.find((r) => Array.isArray(r)
+              && typeof r[0] === "string" && r[0].toLowerCase() === title);
+            if (!Array.isArray(row)) continue;
+            if (Boolean(row[at!]) !== claim.want) {
+              bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが値は ${String(row[at!])}`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `有無の説明が値と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   it("箱が語る位置が、座標の向きと一致する", () => {

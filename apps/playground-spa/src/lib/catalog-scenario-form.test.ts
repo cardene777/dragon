@@ -36,6 +36,11 @@ const DRIVEN = [
   "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
   "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
   "yearRoadmap", "weekWeather",
+  // #1032 の 4 本目
+  "tutorialVideoCards", "teamAttendanceGrid", "globalTimezoneClock", "signupFormSummary",
+  "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
+  "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
+  "teamKpiComparison", "publishWorkflowSteps",
 ] as const;
 
 /**
@@ -69,6 +74,20 @@ type Diagram = {
 
 const mod = Interactive as unknown as Record<string, Diagram>;
 const ALL = [...DRIVEN, ...INPUT_DRIVEN];
+
+/**
+ * 表示部品が状態を指す field の値。
+ *
+ * `source` 1 つとは限らない。 積み上げ棒は `sourceA` / `sourceB`、パンくずと工程表は
+ * `currentSource` / `stepsSource` を持つ。 `source` だけを見ると、`source` の指す状態を
+ * 段が動かさない図が「動いていない」 と誤判定される (実測 = `docsBreadcrumb` は
+ * `path` を固定したまま `cur` を動かす)。
+ */
+function readoutSources(r: Record<string, unknown>): string[] {
+  return Object.entries(r)
+    .filter(([f, v]) => /(^source|Source$)/.test(f) && typeof v === "string")
+    .map(([, v]) => v as string);
+}
 
 /** 段が動かす状態の集合。 */
 function drivenStates(d: Diagram): Set<string> {
@@ -121,7 +140,7 @@ describe("手本の形 (#1033)", () => {
         ...(d.scrollTriggers ?? []).map((t) => t.id),
       ]);
       for (const r of d.readouts ?? []) {
-        const srcs = [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[];
+        const srcs = readoutSources(r as Record<string, unknown>);
         if (srcs.length === 0) continue;
         // 入力欄 / 計算式が握る表示部品は段では動かせない。 動かせるものだけを対象にする
         if (srcs.every((s) => owned.has(s))) continue;
@@ -144,8 +163,7 @@ describe("手本の形 (#1033)", () => {
         ...(d.scrollTriggers ?? []).map((t) => t.id),
       ]);
       for (const r of d.readouts ?? []) {
-        const srcs = ([r.source, r.sourceA, r.sourceB].filter(Boolean) as string[])
-          .filter((x) => !owned.has(x));
+        const srcs = readoutSources(r as Record<string, unknown>).filter((x) => !owned.has(x));
         if (srcs.length === 0) continue;
         // その表示部品が見るどれか 1 つの状態が、段を通して 2 種類以上の値を取ればよい
         const moves = srcs.some((src) => {
