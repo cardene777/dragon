@@ -186,18 +186,18 @@ export const visualBindBar = diagram("interactive-visual-bar", {
   .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "Width readout" })
   .phase("p1", {
     duration: 1800,
-    title: "細い状態",
-    body: "棒の幅が 60 の状態から始める。 信号の値がそのまま幅になる。",
+    title: "信号を見る",
+    body: "左の箱が信号の値を持つ。 幅はつまみで決まるので、ここでは持ち主だけを見る。",
   }, (p: PhaseBuilder) => p.activate("signalNode"))
   .phase("p2", {
     duration: 1800,
-    title: "広がる",
-    body: "信号が 60 から 200 へ動く。 棒がそれに追いつくように広がる。",
+    title: "棒に届く",
+    body: "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。",
   }, (p: PhaseBuilder) => p.activate("signalNode", "bar"))
   .phase("p3", {
     duration: 1800,
-    title: "読み取る",
-    body: "右の表示が今の幅を数で出す。 図形と数が同じ信号を見ている。",
+    title: "数でも読む",
+    body: "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。",
   }, (p: PhaseBuilder) => p.activate("signalNode", "bar", "readoutNode"))
 .build();
 export const subtitle__visualBindBar = "wBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 2 edge、 signal → 実 SVG width の反映経路を可視化";
@@ -230,18 +230,18 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
   .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "Fade % gauge" })
   .phase("p1", {
     duration: 1800,
-    title: "薄い状態",
-    body: "追随する側の濃さを 20 まで落とす。 固定側との差が大きい。",
+    title: "動かす側を見る",
+    body: "左の箱がつまみで濃さを持つ。 この値が右の 1 つだけに届く。",
   }, (p: PhaseBuilder) => p.activate("controlNode", "ref"))
   .phase("p2", {
     duration: 1800,
-    title: "濃くなる",
-    body: "信号が上がると追随側だけが濃くなる。 固定側は動かない。",
+    title: "追随する側",
+    body: "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。",
   }, (p: PhaseBuilder) => p.activate("controlNode", "target", "ref"))
   .phase("p3", {
     duration: 1800,
-    title: "同じ濃さに並ぶ",
-    body: "追随側が固定側と同じ濃さまで届く。 2 つの差が消える。",
+    title: "固定の側と比べる",
+    body: "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。",
   }, (p: PhaseBuilder) => p.activate("target", "ref"))
 .build();
 export const subtitle__visualBindOpacity = "opacity visual bind を 3-lane (Fade control / Target opacity / Reference constant) + 2 edge、 signal 追随 vs 固定の対比可視化";
@@ -341,18 +341,18 @@ export const numberSparkline = diagram("interactive-number-spark", {
   .readout.stat("valStat", { source: "val", label: "Latest", caption: "input 履歴の最新" })
   .phase("p1", {
     duration: 1800,
-    title: "低い値",
-    body: "現在値が 8 の状態。 折れ線の右端がここにある。",
+    title: "現在値を見る",
+    body: "つまみが持つ今の値。 数字と折れ線の右端が同じ値を指す。",
   }, (p: PhaseBuilder) => p.activate("currentNode"))
   .phase("p2", {
     duration: 1800,
-    title: "上がる",
-    body: "値が 8 から 34 へ上がる。 数字と折れ線の右端が同時に動く。",
+    title: "履歴と並べる",
+    body: "折れ線は過去の値を並べたもの。 現在値だけが右端で動く。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "historyNode"))
   .phase("p3", {
     duration: 1800,
-    title: "落ち着く",
-    body: "値が 22 に落ち着く。 履歴の形で上下の動きが残る。",
+    title: "形で読む",
+    body: "上下の動きは折れ線の形に残る。 数字 1 つでは分からない推移が読める。",
   }, (p: PhaseBuilder) => p.activate("historyNode"))
 .build();
 export const subtitle__numberSparkline = "number sparkline を 2-lane (Current value / History sparkline) 分散 + push edge、 現在値と履歴の関係を可視化";
@@ -804,18 +804,18 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status text" })
   .phase("p1", {
     duration: 1800,
-    title: "起点に揃える",
-    body: "件数 250 / 状態は待機。 4 つの表示が同じ起点に揃っている。",
+    title: "数え上げを見る",
+    body: "件数を数え上げる表示。 4 つのうち 1 つ目で、つまみの値をそのまま出す。",
   }, (p: PhaseBuilder) => p.activate("countNode"))
   .phase("p2", {
     duration: 1800,
-    title: "増える",
-    body: "件数が 250 から 640 へ増える。 数え上げ / 増減 / 円の 3 つが同時に動く。",
+    title: "増減と円を見る",
+    body: "同じ件数から増減の幅と割合の円を出す。 1 つの値を 3 通りに描き分ける。",
   }, (p: PhaseBuilder) => p.activate("countNode", "deltaNode", "ringNode"))
   .phase("p3", {
     duration: 1800,
-    title: "打ち出す",
-    body: "件数が 900 に届き、打字の表示が完了を出す。 4 表示が揃って終わる。",
+    title: "文字でも出す",
+    body: "状態を打ち出す表示まで並ぶ。 数値 3 つと文字 1 つの 4 表示が揃う。",
   }, (p: PhaseBuilder) => p.activate("countNode", "deltaNode", "ringNode", "textNode"))
 .build();
 export const subtitle__dynamicReadouts = "4 dynamic readout (countup/delta/percent-ring/typewriter) を 2 列 2 段に分散、 各 readout 個別区画、 signal → 4 readout の 1:N 経路可視化";
@@ -848,19 +848,19 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
   .phase("p1", {
     duration: 1800,
-    title: "時刻 0",
-    body: "時間の信号が 0。 2 つの図形はまだ動いていない。",
-  }, (p: PhaseBuilder) => p.activate("timeNode").tween("bar", 0, 12))
+    title: "時間の元を見る",
+    body: "時間の入力が元になる。 この値から計算式で図形の値を導く。",
+  }, (p: PhaseBuilder) => p.activate("timeNode"))
   .phase("p2", {
     duration: 1800,
-    title: "中ほど",
-    body: "信号が 45 まで進む。 四角と弧が同じ信号で同時に動く。",
-  }, (p: PhaseBuilder) => p.activate("timeNode", "r").tween("bar", 0, 45))
+    title: "四角に届く",
+    body: "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。",
+  }, (p: PhaseBuilder) => p.activate("timeNode", "r"))
   .phase("p3", {
     duration: 1800,
-    title: "終端まで進む",
-    body: "信号が 100 に届く。 1 つの時間で 2 種類の図形が揃って終わる。",
-  }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a").tween("bar", 45, 100))
+    title: "弧にも届く",
+    body: "同じ値が弧にも束ねられている。 時間 1 つで 2 種類の図形が揃って動く。",
+  }, (p: PhaseBuilder) => p.activate("timeNode", "r", "a"))
 .build();
 export const subtitle__timelineDrive = "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随";
 
@@ -972,18 +972,18 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   ], label: "State dot" })
   .phase("p1", {
     duration: 1800,
-    title: "平常な温度",
-    body: "温度 24 度で状態は正常。 3 つの表示が落ち着いた側を示す。",
+    title: "熱の升目を見る",
+    body: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。",
   }, (p: PhaseBuilder) => p.activate("heatNode"))
   .phase("p2", {
     duration: 1800,
-    title: "上がる",
-    body: "温度が 24 から 58 へ上がる。 熱セルの色が濃くなり、バッジの数字も上がる。",
+    title: "札でも出す",
+    body: "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。",
   }, (p: PhaseBuilder) => p.activate("heatNode", "badgeNode"))
   .phase("p3", {
     duration: 1800,
-    title: "警戒の温度",
-    body: "温度が 78 に達し、状態点が警戒側に変わる。 3 表示が同じ 1 つの状態を別の形で出す。",
+    title: "状態の点を見る",
+    body: "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。",
   }, (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode"))
 .build();
 export const subtitle__readoutVariety = "3 readout variant (heatCell/badge/statusDot) を 3-lane 分散、 各 readout 個別 lane + temp/state signal 追随";
@@ -1051,18 +1051,18 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
   .readout.stat("hoverC", { source: "c", label: "Col" })
   .phase("p1", {
     duration: 1800,
-    title: "1 行目",
-    body: "行 0 / 列 0 から始める。 格子の左上を指している。",
+    title: "1 行目を見る",
+    body: "格子の 1 行目。 行と列はつまみで選び、選んだ位置が表示に出る。",
   }, (p: PhaseBuilder) => p.activate("cell-0-0", "cell-0-1", "cell-0-2", "cell-0-3"))
   .phase("p2", {
     duration: 1800,
-    title: "2 行目へ",
-    body: "行が 1 に進む。 指している場所が 1 段下がる。",
+    title: "2 行目を見る",
+    body: "2 行目の 4 つ。 3 行 4 列がすべて同じ形で並んでいる。",
   }, (p: PhaseBuilder) => p.activate("cell-1-0", "cell-1-1", "cell-1-2", "cell-1-3"))
   .phase("p3", {
     duration: 1800,
-    title: "3 行目へ",
-    body: "行 2 / 列 3 まで進む。 3 行 4 列の端に届く。",
+    title: "3 行目を見る",
+    body: "3 行目まで見ると格子の全体が揃う。 12 個が規則的に並ぶ。",
   }, (p: PhaseBuilder) => p.activate("cell-2-0", "cell-2-1", "cell-2-2", "cell-2-3"))
 .build();
 export const subtitle__gridLayoutMatrix = "gridNodes(3, 4) 12 cell を 4-lane (Col 0-3) 列別分散、 gridNodes template で lane 動的割当、 各 lane 3 cell (Row 0-2) stack";
@@ -1102,13 +1102,13 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
   .phase("p2", {
     duration: 1800,
     title: "値が入れ替わる",
-    body: "配列全体が別の値に差し替わる。 棒も一覧も同時に組み替わる。",
-  }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2").set("xs", '[40,18,52,26,60]'))
+    body: "配列全体が別の値に差し替わる。 棒の高さも一覧の並びも同時に組み替わる。",
+  }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2").set("xs", '[40,18,30,26,48]'))
   .phase("p3", {
     duration: 1800,
-    title: "山が動く",
-    body: "最大値の位置が右端に移る。 配列 1 つで 2 つの表示が連動する。",
-  }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2", "i3", "i4").set("xs", '[15,22,30,48,72]'))
+    title: "山が移る",
+    body: "一番高い棒の位置が左から右へ移る。 配列 1 つで棒と一覧が同時に組み替わる。",
+  }, (p: PhaseBuilder) => p.activate("summary", "i0", "i1", "i2", "i3", "i4").set("xs", '[15,22,30,38,48]'))
 .build();
 export const subtitle__arraySignalHistogram = "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存";
 
@@ -1142,18 +1142,18 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "Ring" })
   .phase("p1", {
     duration: 1800,
-    title: "着手する",
-    body: "進捗 10%。 経路の頭だけが塗られている。",
+    title: "元の値を見る",
+    body: "進捗の値をつまみが持つ。 この 1 つの値から 2 つの表示を作る。",
   }, (p: PhaseBuilder) => p.activate("main"))
   .phase("p2", {
     duration: 1800,
-    title: "中盤まで進む",
-    body: "進捗が 55% まで進む。 経路の塗りと円の角度が同時に増える。",
+    title: "経路と円に届く",
+    body: "同じ進捗が経路の塗りと円の角度になる。 つまみを動かすと両方が動く。",
   }, (p: PhaseBuilder) => p.activate("main", "pathNode", "ringNode"))
   .phase("p3", {
     duration: 1800,
-    title: "完了に届く",
-    body: "進捗 100%。 経路が端まで塗られ、完了の印が点く。",
+    title: "完了の印",
+    body: "進捗が満ちた時だけ出る印。 条件付きの表示で、満たない間は隠れている。",
   }, (p: PhaseBuilder) => p.activate("main", "pathNode", "ringNode", "ok"))
 .build();
 export const subtitle__pathProgressDemo = "path progress を 3-lane (State / Path visual / Completion) 分散、 progress state + path readout + 完了 badge を lane 別展開";
@@ -1230,17 +1230,17 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
   .phase("p1", {
     duration: 1800,
     title: "A だけ",
-    body: "1 つ目の系列だけを見る。 積み上げの下段にあたる。",
+    body: "1 つ目の系列だけを見る。 2 系列を横に並べて比べる形の片方。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail").set("groupA", '[40,55,30,65,45]').set("groupB", '[0,0,0,0,0]'))
   .phase("p2", {
     duration: 1800,
-    title: "B を重ねる",
-    body: "2 つ目の系列が上に積まれる。 合計の高さが伸びる。",
+    title: "B を並べる",
+    body: "2 つ目の系列が隣に並ぶ。 同じ位置で 2 本の高さを比べられる。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard").set("groupB", '[25,40,50,35,60]'))
   .phase("p3", {
     duration: 1800,
-    title: "入れ替わる",
-    body: "2 つ目が 1 つ目を上回る位置が出てくる。 積み上げの比率が動く。",
+    title: "高さが入れ替わる",
+    body: "2 つ目が 1 つ目を上回る位置が出てくる。 隣り合う 2 本の高低が逆になる。",
   }, (p: PhaseBuilder) => p.activate("aCard", "aDetail", "bCard", "bDetail").set("groupA", '[30,35,25,40,30]').set("groupB", '[45,60,70,55,80]'))
 .build();
 export const subtitle__arrayStackedBar = "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存";
@@ -1313,7 +1313,7 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     duration: 1800,
     title: "増える分",
     body: "正の増減だけを置く。 滝が右上がりに積み上がる。",
-  }, (p: PhaseBuilder) => p.activate("pos1", "pos2").set("changes", '[100,50,40]'))
+  }, (p: PhaseBuilder) => p.activate("pos1", "pos2").set("changes", '[60,30,25]'))
   .phase("p2", {
     duration: 1800,
     title: "減る分が入る",
@@ -1323,7 +1323,7 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     duration: 1800,
     title: "収支が出る",
     body: "増減を通した合計が出る。 一覧と滝が同じ配列を見ている。",
-  }, (p: PhaseBuilder) => p.activate("pos1", "pos2", "pos3", "neg1", "neg2", "summary").set("changes", '[100,-30,50,-20,40,-15,25]'))
+  }, (p: PhaseBuilder) => p.activate("pos1", "pos2", "pos3", "neg1", "neg2", "summary").set("changes", '[60,-20,40,-15,30]'))
 .build();
 export const subtitle__arrayWaterfall = "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存";
 
@@ -1574,17 +1574,17 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
     duration: 1800,
     title: "認可を求める",
     body: "利用者が認可画面に進む。 やり取りの 1 つ目が記録される。",
-  }, (p: PhaseBuilder) => p.activate("client").set("events", '["認可要求"]'))
+  }, (p: PhaseBuilder) => p.activate("client").set("events", '[[0,"認可要求"]]'))
   .phase("p2", {
     duration: 1800,
     title: "コードを受け取る",
     body: "認可コードが返る。 やり取りが 2 つに増える。",
-  }, (p: PhaseBuilder) => p.activate("client", "consent").set("events", '["認可要求","コード発行"]'))
+  }, (p: PhaseBuilder) => p.activate("client", "consent").set("events", '[[0,"認可要求"],[120,"コード発行"]]'))
   .phase("p3", {
     duration: 1800,
     title: "引き換える",
-    body: "コードを token に引き換えて資源に届く。 往復の全体が並ぶ。",
-  }, (p: PhaseBuilder) => p.activate("client", "consent", "api").set("events", '["認可要求","コード発行","token 交換","資源取得"]'))
+    body: "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。",
+  }, (p: PhaseBuilder) => p.activate("client", "consent", "api").set("events", '[[0,"認可要求"],[120,"コード発行"],[260,"token 交換"],[380,"token 発行"],[500,"資源要求"],[620,"資源応答"]]'))
 .build();
 export const subtitle__interactiveOauthFlow = "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随";
 
@@ -1790,19 +1790,19 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
   .phase("p1", {
     duration: 1800,
-    title: "月初の値",
-    body: "利用者 960 / 解約率 38 / 推奨度 80。 4 指標の起点。",
-  }, (p: PhaseBuilder) => p.activate("usersCard").tween("users", 880, 960).tween("churn", 45, 38).tween("nps", 72, 80))
+    title: "利用者を見る",
+    body: "売上のつまみから計算式で利用者数を導く。 4 指標のうち 1 つ目。",
+  }, (p: PhaseBuilder) => p.activate("usersCard"))
   .phase("p2", {
     duration: 1800,
-    title: "中旬の動き",
-    body: "利用者が伸び、解約率が下がる。 2 指標が逆向きに動く。",
-  }, (p: PhaseBuilder) => p.activate("usersCard", "churnCard").tween("users", 960, 1180).tween("churn", 38, 24))
+    title: "解約率も導く",
+    body: "同じ元の値から解約率を導く。 売上を動かすと 2 つが同時に変わる。",
+  }, (p: PhaseBuilder) => p.activate("usersCard", "churnCard"))
   .phase("p3", {
     duration: 1800,
-    title: "月末の締め",
-    body: "推奨度も上がって 4 指標が揃って改善する。",
-  }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard").tween("users", 1180, 1340).tween("churn", 24, 18).tween("nps", 80, 92))
+    title: "4 指標が揃う",
+    body: "推奨度まで並ぶ。 つまみ 1 つから 4 つの指標を導いている。",
+  }, (p: PhaseBuilder) => p.activate("revCard", "usersCard", "churnCard", "npsCard"))
 .build();
 export const subtitle__kpiDashboard = "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随";
 
@@ -1958,18 +1958,18 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev stat" })
   .phase("p1", {
     duration: 1800,
-    title: "前期と並ぶ",
-    body: "前期 150 / 今期も 150 の状態。 差はまだ無い。",
+    title: "前期を見る",
+    body: "比べる相手になる前期の値。 これは固定で動かない。",
   }, (p: PhaseBuilder) => p.activate("prevNode"))
   .phase("p2", {
     duration: 1800,
-    title: "伸びる",
-    body: "今期が 150 から 205 へ伸びる。 前期との差が開く。",
+    title: "今期を見る",
+    body: "今期の値はつまみで動く。 前期との差がその場で出る。",
   }, (p: PhaseBuilder) => p.activate("prevNode", "currNode"))
   .phase("p3", {
     duration: 1800,
-    title: "推移が出る",
-    body: "推移の表示に上向きの形が出る。 数と形が同じ動きを指す。",
+    title: "推移で読む",
+    body: "推移の表示が上下の向きを形で出す。 数字と形の 2 通りで読める。",
   }, (p: PhaseBuilder) => p.activate("prevNode", "currNode", "trendNode"))
 .build();
 export const subtitle__revenueKpiCard = "revenue KPI を 3 区画 (Previous / Current / Trend) 2 列 2 段に分散 + prev→current delta edge、 kpiCard readout 併存";
@@ -2278,18 +2278,18 @@ export const kpiBullet = diagram("interactive-kpi-bullet", {
   .readout.stat("targetStat", { source: "target", label: "Target" })
   .phase("p1", {
     duration: 1800,
-    title: "悪い帯",
-    body: "実績 30 で悪い帯に入っている。 目標まで遠い。",
+    title: "悪い帯を見る",
+    body: "実績が入ると位置づけが分かる 3 本の帯。 一番下の帯。",
   }, (p: PhaseBuilder) => p.activate("badRange", "actualNode"))
   .phase("p2", {
     duration: 1800,
-    title: "並の帯",
-    body: "実績が 62 まで上がって並の帯に入る。 帯をまたぐと位置づけが変わる。",
+    title: "並の帯を見る",
+    body: "真ん中の帯。 つまみで実績を動かすと、入る帯が変わる。",
   }, (p: PhaseBuilder) => p.activate("badRange", "avgRange", "actualNode"))
   .phase("p3", {
     duration: 1800,
-    title: "目標到達",
-    body: "実績が 85 に届き、目標 80 を越える。 良い帯に入る。",
+    title: "良い帯と目標",
+    body: "一番上の帯と、目標を指す縦線。 実績がどこに立つかで読み分ける。",
   }, (p: PhaseBuilder) => p.activate("badRange", "avgRange", "goodRange", "actualNode", "targetNode"))
 .build();
 export const subtitle__kpiBullet = "KPI bullet chart を 3-lane (bad / avg / good) range 分散 + actual/target 個別 card、 bulletChart readout 併存";
@@ -2368,18 +2368,18 @@ export const buildStatusTrafficLight = diagram("interactive-build-traffic-light"
   .readout.trafficLight("tl", { source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" })
   .phase("p1", {
     duration: 1800,
-    title: "待機している",
-    body: "まだ組み立てが走っていない状態。 信号は赤のまま止まっている。",
+    title: "赤を見る",
+    body: "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。",
   }, (p: PhaseBuilder) => p.activate("redNode"))
   .phase("p2", {
     duration: 1800,
-    title: "実行中",
-    body: "組み立てが走り出す。 信号が黄に変わる。",
+    title: "黄を見る",
+    body: "走っている間の色。 選んだ状態に応じて 1 つだけが点く。",
   }, (p: PhaseBuilder) => p.activate("redNode", "yellowNode"))
   .phase("p3", {
     duration: 1800,
-    title: "成功で終わる",
-    body: "すべて通って信号が緑になる。 3 色で状態が読み分けられる。",
+    title: "緑を見る",
+    body: "通った時の色。 3 色で状態を読み分ける形になっている。",
   }, (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI"))
 .build();
 export const subtitle__buildStatusTrafficLight = "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存";

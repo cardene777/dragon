@@ -12,32 +12,34 @@ import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 
 /**
- * 段で表示部品を動かせる 11 件。
+ * 段で表示部品を動かせる 9 件。
  *
- * 表示部品が見る状態を入力欄が持っていないため、段の `tween` / `set` がそのまま表示に届く。
+ * 表示部品が見る状態を入力欄も計算式も持たないため、段の `tween` / `set` がそのまま表示に届く。
  */
 const DRIVEN = [
-  "timelineDrive", "arraySignalHistogram", "arrayLineChart", "arrayStackedBar",
-  "arrayWaterfall", "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut",
-  "kpiDashboard", "abTestResult", "canvasMiniMap",
+  "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
+  "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
+  "canvasMiniMap",
 ] as const;
 
 /**
- * 表示部品が見る状態を入力欄が握っている 14 件。
+ * 表示部品が見る状態を **入力欄または計算式** が握っている 16 件。
  *
- * 入力欄の値は段の値を上書きするため (`packages/cdl` の `render.tsx` で実測)、
- * 段で動かしても効かない。 これらは #1034 と同じ基準 (段ごとに注目する箱が変わる) を使う。
+ * `interactive-panel.tsx` は signals (入力欄) と computeds (計算式) を `stateOverrides` として返し、
+ * `render.tsx` がそれを段の値に重ねる。 どちらが持つ状態も段で動かしても効かない。
+ * これらは #1034 と同じ基準 (段ごとに注目する箱が変わる) を使う。
  */
 const INPUT_DRIVEN = [
   "visualBindBar", "visualBindOpacity", "xypadNavigate", "stepperControl",
   "numberSparkline", "radioSelect", "colorPickerTheme", "dynamicReadouts",
-  "readoutVariety", "gridLayoutMatrix", "pathProgressDemo", "revenueKpiCard",
-  "kpiBullet", "buildStatusTrafficLight",
+  "timelineDrive", "readoutVariety", "gridLayoutMatrix", "pathProgressDemo",
+  "kpiDashboard", "revenueKpiCard", "kpiBullet", "buildStatusTrafficLight",
 ] as const;
 
 type Diagram = {
   inputs?: Array<{ id?: string }>;
-  readouts?: Array<{ source?: string; sourceA?: string; sourceB?: string }>;
+  formulas?: Array<{ id?: string }>;
+  readouts?: Array<{ id?: string; kind?: string; source?: string; sourceA?: string; sourceB?: string; min?: number; max?: number }>;
   nodes?: Array<{ id?: string }>;
   phases?: Array<{
     tweens?: Array<{ stateId?: string }>;
@@ -114,20 +116,86 @@ describe("手本の形 (#1033)", () => {
     expect(still, `段を通して値が変わらない: ${still.join(", ")}`).toHaveLength(0);
   });
 
-  it("段は入力欄が握る状態を触らない", () => {
-    // 触ると実行時に入力欄の値で上書きされる。 書いてあると「動くはず」 と誤読される
+  it("段は入力欄も計算式も握る状態を触らない", () => {
+    // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される
     const bad: string[] = [];
     for (const k of ALL) {
       const d = mod[k]!;
-      const inputIds = new Set((d.inputs ?? []).map((i) => i.id));
-      for (const st of drivenStates(d)) if (inputIds.has(st)) bad.push(`${k}: ${st}`);
+      const owned = new Set([
+        ...(d.inputs ?? []).map((i) => i.id),
+        ...(d.formulas ?? []).map((f) => f.id),
+      ]);
+      for (const st of drivenStates(d)) if (owned.has(st)) bad.push(`${k}: ${st}`);
     }
-    expect(bad, `入力欄の状態を段が触っている: ${bad.join(", ")}`).toHaveLength(0);
+    expect(bad, `入力欄 / 計算式の状態を段が触っている: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段が渡す配列が表示部品の値域に収まる", () => {
+    // 値域を外れると表示側で頭打ちになり、違う値が同じ見た目になる
+    // (実測 = 上限 50 の棒に 52 / 60 / 72 を渡して 3 段とも満杯だった)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        const lo = r.min;
+        const hi = r.max;
+        if (typeof lo !== "number" || typeof hi !== "number") continue;
+        for (const src of [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[]) {
+          for (const p of d.phases ?? []) {
+            for (const st of p.sets ?? []) {
+              if ((st as { stateId?: string }).stateId !== src) continue;
+              const raw = String((st as { value?: unknown }).value ?? "");
+              if (!raw.startsWith("[")) continue;
+              let parsed: unknown;
+              try { parsed = JSON.parse(raw); } catch { bad.push(`${k}/${r.id}: 配列として読めない`); continue; }
+              if (!Array.isArray(parsed)) continue;
+              // 数値だけを取り出す (入れ子の配列にも降りる)
+              const nums: number[] = [];
+              const walk = (v: unknown): void => {
+                if (typeof v === "number") nums.push(v);
+                else if (Array.isArray(v)) v.forEach(walk);
+              };
+              walk(parsed);
+              for (const n of nums) {
+                if (n < lo || n > hi) bad.push(`${k}/${r.id}: ${n} が [${lo}, ${hi}] の外`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `値域を外れている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("時間軸に渡す値が [[時刻, 名前], ...] の形になっている", () => {
+    // 文字列だけの配列を渡すと、表示側は空になる (実測)
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      for (const r of d.readouts ?? []) {
+        if (r.kind !== "sequence-timeline") continue;
+        for (const p of d.phases ?? []) {
+          for (const st of p.sets ?? []) {
+            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            const raw = String((st as { value?: unknown }).value ?? "");
+            let parsed: unknown;
+            try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
+            if (!Array.isArray(parsed) || parsed.length === 0) { bad.push(`${k}: 空`); continue; }
+            for (const e of parsed) {
+              const okPair = Array.isArray(e) && typeof e[0] === "number";
+              const okNum = typeof e === "number";
+              if (!okPair && !okNum) bad.push(`${k}: ${JSON.stringify(e)} が時刻を持たない`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `時間軸の形が違う: ${bad.slice(0, 4).join(", ")}`).toHaveLength(0);
   });
 
   it("段ごとに注目する箱の組合せが変わる", () => {
     const dup = ALL.filter((k) => {
-      const sets = (mod[k]?.phases ?? []).map((p) => (p.activate ?? []).join(","));
+      const sets = (mod[k]?.phases ?? []).map((p) => [...new Set(p.activate ?? [])].sort().join(","));
       return new Set(sets).size < sets.length;
     });
     expect(dup, `同じ組合せの段がある: ${dup.join(", ")}`).toHaveLength(0);
