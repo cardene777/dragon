@@ -26,7 +26,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     // 4 diagram の title 相当 label が表示 (JA)
-    for (const label of ["スライダー入力で棒の高さが変化", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"]) {
+    for (const label of ["スライダー入力が説明欄に反映", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"]) {
       await expect(page.getByText(label).first()).toBeVisible();
     }
   });
@@ -36,7 +36,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.waitForTimeout(800);
 
     // 各 example を sidebar で選択して preview area の SVG を verify する
-    const examples = ["スライダー入力で棒の高さが変化", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"];
+    const examples = ["スライダー入力が説明欄に反映", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"];
     const preview = page.locator("main.catalog-preview");
     for (const label of examples) {
       // sidebar 側の該当 item を click

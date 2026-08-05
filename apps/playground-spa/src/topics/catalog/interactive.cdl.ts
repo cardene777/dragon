@@ -26,7 +26,7 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 // 3 つ目の節を足すと「1 つの仕組みを最小の形で見せる」 という目的が崩れる。
 export const inputSliderBar = diagram("interactive-slider-bar", {
   structuredData: "exclude",
-  topic: "スライダーの値で棒の高さが変わる",
+  topic: "スライダーの値が右の箱の説明欄に届く",
 })
   .lane("slider", { x: 0, width: 260 })
   .lane("output", { x: 300, width: 260 })
@@ -35,12 +35,22 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
   .node("sliderNode", { lane: "slider", stack: 0, kind: "card", title: "Slider", subtitle: "value = {value}" })
   .node("bar-node", { lane: "output", stack: 0, kind: "card", title: "Bar", subtitle: "value: {value}" })
   .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
-  .phase("p", {
-    duration: 1500,
-    title: "Slider → Bar 追随 (数値変化を bar が同期表示)",
-    body: "2-lane (Slider signal / Bar output) で input.slider bind の 2 step を分散、 bind edge (info tone) で signal 伝搬明示、 slider 変化で signal `value` 更新 → bar-node subtitle {value} 追随、 primitive signal binding を dataflow 化。",
-  }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node").badge("bind: value"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "つまみを持つ",
+    body: "左の縦列だけを見る。 つまみが `value` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。",
+  }, (p: PhaseBuilder) => p.activate("sliderNode"))
+  .phase("p2", {
+    duration: 1600,
+    title: "値が渡る",
+    body: "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。",
+  }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node"))
+  .phase("p3", {
+    duration: 1600,
+    title: "説明欄に出る",
+    body: "渡った値が右の箱の説明欄に出る。 図形の大きさは変わらず、文字として反映される経路。",
+  }, (p: PhaseBuilder) => p.activate("bar-node"))
+.build();
 export const subtitle__inputSliderBar = "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化";
 
 /**
@@ -63,12 +73,22 @@ export const formulaTextBind = diagram("interactive-formula-text", {
   .node("out2", { lane: "halved", stack: 0, kind: "card", title: "Halved", subtitle: "input / 2 = {halved}" })
   .edge("in", "out1", { label: "× 2", tone: "success" })
   .edge("in", "out2", { label: "÷ 2", tone: "info" })
-  .phase("p", {
-    duration: 1500,
-    title: "Input × 2 → 派生 → 半分派生 (数式連鎖の可視化)",
-    body: "3-lane (Input / Doubled / Halved) で formula chain を分散、 2 edge (× 2 success / ÷ 2 info) で dependency 明示、 input 変化で 2 formula reactive に再計算、 node subtitle {doubled} / {halved} 追随、 formula 依存の 2D dataflow view。",
-  }, (p: PhaseBuilder) => p.activate("in", "out1", "out2").badge("formula bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "元の値を置く",
+    body: "左の箱に入力値を置く。 まだ計算式は動いていない。",
+  }, (p: PhaseBuilder) => p.activate("in"))
+  .phase("p2", {
+    duration: 1600,
+    title: "2 倍を出す",
+    body: "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。",
+  }, (p: PhaseBuilder) => p.activate("in", "out1"))
+  .phase("p3", {
+    duration: 1600,
+    title: "半分も出す",
+    body: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。",
+  }, (p: PhaseBuilder) => p.activate("in", "out1", "out2"))
+.build();
 export const subtitle__formulaTextBind = "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化";
 
 /**
@@ -85,12 +105,22 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
   .node("a", { lane: "s1", stack: 0, kind: "card", title: "Step 1", subtitle: "progress: {intro}" })
   .node("b", { lane: "s2", stack: 0, kind: "card", title: "Step 2", subtitle: "progress: {intro}" })
   .node("c", { lane: "s3", stack: 0, kind: "card", title: "Step 3", subtitle: "progress: {intro}" })
-  .phase("p", {
-    duration: 1500,
-    title: "scroll narrative split",
-    body: "3-lane (Step 1 / Step 2 / Step 3) で 3 narrative step を横並び分散、 wrapper element scroll → intro progress 0→1 変化 → 3 node subtitle が同時追随、 narrative 進行を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("scroll bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "1 箱で見る",
+    body: "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。",
+  }, (p: PhaseBuilder) => p.activate("a"))
+  .phase("p2", {
+    duration: 1600,
+    title: "2 箱で見る",
+    body: "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。",
+  }, (p: PhaseBuilder) => p.activate("a", "b"))
+  .phase("p3", {
+    duration: 1600,
+    title: "3 箱が同時に追う",
+    body: "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。",
+  }, (p: PhaseBuilder) => p.activate("a", "b", "c"))
+.build();
 export const subtitle__scrollNarrative = "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随";
 
 /**
@@ -110,12 +140,22 @@ export const clickToggle = diagram("interactive-click-toggle", {
   .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
   .on.hover({ kind: "node", id: "btn" }, "hover-state")
-  .phase("p", {
-    duration: 1500,
-    title: "Click → Handler → State (3 段 event flow)",
-    body: "3 区画 (Trigger button / Event handler / Signal state) を 2 列 2 段に置いて click event flow の 3 step を分散、 2 edge (click info tone / toggle success tone) で dataflow 明示、 button click → consumer handler → active signal 反転 → signalNode subtitle 追随、 event 伝搬経路を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode").badge("event bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "押す前",
+    body: "ボタンだけがある状態。 まだ何も起きていない。",
+  }, (p: PhaseBuilder) => p.activate("btn"))
+  .phase("p2", {
+    duration: 1600,
+    title: "受け取り手に結ぶ",
+    body: "押した時に呼ぶ受け取り手を結び付ける宣言。 結び付けを書くところまでがこの図の範囲。",
+  }, (p: PhaseBuilder) => p.activate("btn", "handlerNode"))
+  .phase("p3", {
+    duration: 1600,
+    title: "書き換えを宣言する",
+    body: "受け取り手が値を書き換える宣言。 実際に動かすには使う側が受け取り手を渡す必要があり、この見本では宣言の形だけを示す。",
+  }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode"))
+.build();
 export const subtitle__clickToggle = "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";
 
 /**
@@ -367,12 +407,27 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     h: 240,
     shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" },
   })
-  .phase("p", {
-    duration: 1500,
-    title: "rect fill range compare",
-    body: "4-lane (Low 25% gray / Mid 50% blue / High 75% orange / Interactive slider gold) で dyn-rect fill を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 fill range を横並び比較 view で明示。",
-  }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh", "bar").badge("shape.rect"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "25% を見る",
+    body: "塗りが 4 分の 1 の状態。 下から少しだけ埋まっている。",
+  }, (p: PhaseBuilder) => p.activate("barLow"))
+  .phase("p2", {
+    duration: 1600,
+    title: "50% と並べる",
+    body: "半分の状態を隣に置く。 25% との差が高さで分かる。",
+  }, (p: PhaseBuilder) => p.activate("barLow", "barMid"))
+  .phase("p3", {
+    duration: 1600,
+    title: "75% まで並べる",
+    body: "4 分の 3 まで並べる。 3 段階の差が一目で比べられる。",
+  }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh"))
+  .phase("p4", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。",
+  }, (p: PhaseBuilder) => p.activate("barLow", "barMid", "barHigh", "bar"))
+.build();
 export const subtitle__shapeRectFill = "dyn-rect fill を 4-lane (Low 25% / Mid 50% / High 75% / Interactive slider) 分散、 3 static + 1 reactive rect 並列比較";
 
 /**
@@ -398,8 +453,22 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" } })
   .node("r3", { lane: "l3", stack: 0, kind: "dyn-rect", title: "Block 3", subtitle: "gas: {gas3}", w: 100, h: 220,
     shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" } })
-  .phase("p", { duration: 1500, title: "chain 追随 = 前値が formula で次を駆動", body: "base slider を動かすと gas1 = base、 gas2 = base*1.2、 gas3 = base*1.5 で連動、 3 rect の fill が同時に伸縮。" }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3").badge("chain fill"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "等倍で見る",
+    body: "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。",
+  }, (p: PhaseBuilder) => p.activate("r1"))
+  .phase("p2", {
+    duration: 1600,
+    title: "1.2 倍で見る",
+    body: "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2"))
+  .phase("p3", {
+    duration: 1600,
+    title: "1.5 倍で見る",
+    body: "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。",
+  }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3"))
+.build();
 
 /**
  * 13. dyn-circle = radius / progress を signal で駆動、 progress ring の汎用版。
@@ -426,12 +495,27 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" } })
   .node("c", { lane: "interactive", stack: 0, kind: "dyn-circle", title: "Ring", subtitle: "{p}%", w: 160, h: 160,
     shape: { kind: "circle", fillProgress: "{prog}", fill: "#8a5a2a" } })
-  .phase("p", {
-    duration: 1500,
-    title: "circle progress compare",
-    body: "4-lane (0% gray / 33% blue / 66% orange / Interactive slider gold) で dyn-circle progress ring を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 progress ring range を横並び比較 view で明示。",
-  }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird", "c").badge("shape.circle"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "0% を見る",
+    body: "輪がまだ描かれていない状態。 ここが目盛りの始まりで、右へ行くほど輪が伸びる。",
+  }, (p: PhaseBuilder) => p.activate("cEmpty"))
+  .phase("p2", {
+    duration: 1600,
+    title: "33% と並べる",
+    body: "3 分の 1 まで描いた輪を隣に置く。 0% との差が、輪の長さの違いとして読み取れる。",
+  }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird"))
+  .phase("p3", {
+    duration: 1600,
+    title: "66% まで並べる",
+    body: "3 分の 2 まで並べる。 角度の差が輪の長さで分かる。",
+  }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird"))
+  .phase("p4", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。",
+  }, (p: PhaseBuilder) => p.activate("cEmpty", "cThird", "cTwoThird", "c"))
+.build();
 export const subtitle__shapeCirclePulse = "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較";
 
 /**
@@ -457,12 +541,27 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     shape: { kind: "arc", angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" } })
   .node("g", { lane: "interactive", stack: 0, kind: "dyn-arc", title: "Slider", subtitle: "{a}°", w: 180, h: 180,
     shape: { kind: "arc", angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#8a5a2a" } })
-  .phase("p", {
-    duration: 1500,
-    title: "3 static (0° / 90° / 180°) + slider 追随",
-    body: "4-lane (0° gray / 90° blue / 180° orange / Interactive slider gold) で dyn-arc sweep を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 arc angle range (0-270° 内 4 point) を横並び比較 view で明示。",
-  }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g").badge("shape.arc"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "0 度を見る",
+    body: "針が振れていない状態。 ここが目盛りの始まりで、右へ行くほど弧が長くなる。",
+  }, (p: PhaseBuilder) => p.activate("gMin"))
+  .phase("p2", {
+    duration: 1600,
+    title: "90 度と並べる",
+    body: "4 分の 1 まで振れた状態を隣に置く。",
+  }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter"))
+  .phase("p3", {
+    duration: 1600,
+    title: "180 度まで並べる",
+    body: "半周まで並べる。 角度の差が弧の長さで分かる。",
+  }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf"))
+  .phase("p4", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。",
+  }, (p: PhaseBuilder) => p.activate("gMin", "gQuarter", "gHalf", "g"))
+.build();
 export const subtitle__shapeArcSweep = "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較";
 
 /**
@@ -488,12 +587,27 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     shape: { kind: "wave", level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" } })
   .node("w", { lane: "interactive", stack: 0, kind: "dyn-wave", title: "Wave", subtitle: "{lvl}%", w: 140, h: 220,
     shape: { kind: "wave", level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" } })
-  .phase("p", {
-    duration: 1500,
-    title: "3 水位 (25% / 50% / 75%) + slider 追随",
-    body: "4-lane (Low 25% gray / Half 50% blue / High 75% orange / Interactive slider gold) で dyn-wave tank level を段階比較、 3 static + 1 reactive、 slider 変化で Interactive lane が追随、 tank / battery level range を横並び比較 view で明示。",
-  }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w").badge("shape.wave"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "25% を見る",
+    body: "水位が低い状態。 波の線が下の方にあり、上に空きが多く残っている。",
+  }, (p: PhaseBuilder) => p.activate("wLow"))
+  .phase("p2", {
+    duration: 1600,
+    title: "50% と並べる",
+    body: "半分まで入った状態を隣に置く。 25% との差が、線の高さの違いとして読み取れる。",
+  }, (p: PhaseBuilder) => p.activate("wLow", "wHalf"))
+  .phase("p3", {
+    duration: 1600,
+    title: "75% まで並べる",
+    body: "4 分の 3 まで並べる。 水位の差が線の高さで分かる。",
+  }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh"))
+  .phase("p4", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。",
+  }, (p: PhaseBuilder) => p.activate("wLow", "wHalf", "wHigh", "w"))
+.build();
 export const subtitle__shapeWaveTank = "dyn-wave tank level を 4-lane (Low 25 / Half 50 / High 75 / Interactive slider) 分散、 3 static + 1 reactive tank 並列比較";
 
 /**
@@ -520,12 +634,27 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" } })
   .node("p", { lane: "interactive", stack: 0, kind: "dyn-polygon", title: "Hexagon", subtitle: "{rot}° · r={radius}", w: 200, h: 200,
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" } })
-  .phase("p", {
-    duration: 1500,
-    title: "3 頂点数 (△3 / ⬡6 / ⯃8) + slider 追随",
-    body: "4-lane (Triangle 3 sides gray / Hexagon 6 sides blue / Octagon 8 sides orange / Interactive hexagon slider gold) で dyn-polygon sides を段階比較、 3 static + 1 reactive、 rot/radius slider 変化で Interactive lane が追随 (回転 + 拡縮)、 polygon shape variety を横並び比較 view で明示。",
-  }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p").badge("shape.polygon"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "3 角を見る",
+    body: "角が 3 つの状態。 これが最も少ない形で、角を増やすほど丸に近づいていく。",
+  }, (p: PhaseBuilder) => p.activate("polyTri"))
+  .phase("p2", {
+    duration: 1600,
+    title: "6 角と並べる",
+    body: "角を 6 つにした形を隣に置く。 丸みが増す。",
+  }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex"))
+  .phase("p3", {
+    duration: 1600,
+    title: "8 角まで並べる",
+    body: "角を 8 つまで増やす。 角の数と丸みの関係が分かる。",
+  }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct"))
+  .phase("p4", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "右端はつまみで回転角と大きさを変えられる。 角の数は固定で、3 つの見本と見比べる。",
+  }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p"))
+.build();
 export const subtitle__shapePolyRotate = "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較";
 
 /**
@@ -561,8 +690,27 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
     h: 220,
     shape: { kind: "rect" as const, source: "{gas{i+1}}", fillMax: 130, orient: "up" as const, fill: "#8a5a2a" },
   }))
-  .phase("p", { duration: 1500, title: "repeat + derive で 5 rect が chain 伝搬", body: "count=5、 base を動かすと gas1..gas5 が formula chain で連鎖伝搬、 5 rect の fill が同時追随。" }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3", "r4").badge("repeat + derive"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "起点を置く",
+    body: "元の値が 1 つ目の四角に入る。 ここが連なりの起点。",
+  }, (p: PhaseBuilder) => p.activate("r0"))
+  .phase("p2", {
+    duration: 1600,
+    title: "2 つ目まで伝わる",
+    body: "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。",
+  }, (p: PhaseBuilder) => p.activate("r0", "r1"))
+  .phase("p3", {
+    duration: 1600,
+    title: "4 つ目まで伝わる",
+    body: "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。",
+  }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3"))
+  .phase("p4", {
+    duration: 1600,
+    title: "端まで届く",
+    body: "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。",
+  }, (p: PhaseBuilder) => p.activate("r0", "r1", "r2", "r3", "r4"))
+.build();
 
 /**
  * 18. dynamic readouts = countup / delta / percent-ring / typewriter を組合わせて KPI dashboard。
@@ -646,12 +794,22 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   .node("b", { lane: "sink", stack: 0, kind: "card", w: 140, title: "Sink", subtitle: "consumer" })
   .edge("a", "pipeNode", { label: "produce", widthBind: "{flow}", dashOffsetBind: "{dash}" })
   .edge("pipeNode", "b", { label: "consume", widthBind: "{flow}", dashOffsetBind: "{dash}" })
-  .phase("p", {
-    duration: 1500,
-    title: "Source → Pipe → Sink (流量 slider で edge 太さ + 破線 flow)",
-    body: "3-lane (Source / Pipe / Sink) で dataflow を横並び分散、 2 edge (Source→Pipe / Pipe→Sink) が widthBind + dashOffsetBind で slider/timeline 追随、 flow slider で太さ、 timeline で dashoffset 変化 → 破線が横 lane を流れる animation、 pipeline 構造と edge signal bind を同時可視化。",
-  }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b").badge("edge bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "送り手を見る",
+    body: "左の箱が信号を持つ。 まだ線には出ていない。",
+  }, (p: PhaseBuilder) => p.activate("a"))
+  .phase("p2", {
+    duration: 1600,
+    title: "線に出る",
+    body: "信号の大きさが線の太さになる。 太いほど多く流れている。",
+  }, (p: PhaseBuilder) => p.activate("a", "pipeNode"))
+  .phase("p3", {
+    duration: 1600,
+    title: "受け手まで届く",
+    body: "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。",
+  }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b"))
+.build();
 export const subtitle__edgeFlowBind = "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
 
 /**
@@ -676,12 +834,27 @@ export const inputVariety = diagram("interactive-input-variety", {
   .node("multiNode", { lane: "multi", stack: 0, kind: "card", w: 310, title: "Multi-select", subtitle: "tags = {tags}" })
   .node("tabsNode", { lane: "tabs", stack: 0, kind: "card", w: 180, title: "Tabs", subtitle: "view = {view}" })
   .node("textNode", { lane: "text", stack: 0, kind: "card", w: 270, title: "Text input", subtitle: "query = {query}" })
-  .phase("p", {
-    duration: 1500,
-    title: "input widget 4-way split",
-    body: "4-lane (Range / MultiSelect / Tabs / Text) で 4 input widget を機能別分散、 各 widget 個別 card で bind signal 明示、 各 input が独立 signal を持つ複合入力構造を lane 分割で可視化。",
-  }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode", "tabsNode", "textNode").badge("input variety"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "数を選ぶ",
+    body: "つまみで数の範囲を選ぶ。 4 種類の入力のうち 1 つ目。",
+  }, (p: PhaseBuilder) => p.activate("rangeNode"))
+  .phase("p2", {
+    duration: 1600,
+    title: "複数選ぶ",
+    body: "札を複数選べる入力を加える。 選んだ数だけ値が増える。",
+  }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode"))
+  .phase("p3", {
+    duration: 1600,
+    title: "切り替える",
+    body: "タブで表示を切り替える入力を加える。 1 つだけ選ぶ形。",
+  }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode", "tabsNode"))
+  .phase("p4", {
+    duration: 1600,
+    title: "文字を打つ",
+    body: "文字を打つ入力まで並ぶ。 4 種類が同じ図の中で動く。",
+  }, (p: PhaseBuilder) => p.activate("rangeNode", "multiNode", "tabsNode", "textNode"))
+.build();
 export const subtitle__inputVariety = "4 input widget (range/multiSelect/tabs/text) を 4-lane 分散、 各 widget 個別 lane + input signal 表示";
 
 /**
@@ -733,12 +906,22 @@ export const eventVariety = diagram("interactive-event-variety", {
   .on.blur({ kind: "node", id: "btn2" }, "on-blur")
   .on.keydown({ kind: "node", id: "btn2" }, "on-key")
   .on.longPress({ kind: "node", id: "btn3" }, "on-long")
-  .phase("p", {
-    duration: 1500,
-    title: "event category split",
-    body: "3-lane (Pointer=Double Click / Keyboard=Focus+Blur+Keydown / Touch=Long Press) で 5 event を category 別分散、 3 target node に 5 event bind、 consumer handler map で dbl/focus/blur/keydown/longpress を実装、 event 分類と bind の 2 経路 view。",
-  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3").badge("event bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "2 回押す",
+    body: "1 つ目は 2 回続けて押した時だけ反応する。 1 回では動かない。",
+  }, (p: PhaseBuilder) => p.activate("btn1"))
+  .phase("p2", {
+    duration: 1600,
+    title: "文字を打つ",
+    body: "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。",
+  }, (p: PhaseBuilder) => p.activate("btn1", "btn2"))
+  .phase("p3", {
+    duration: 1600,
+    title: "長く押す",
+    body: "3 つ目は押したまま一定時間たつと反応する。 2 回押す / 文字を打つ と並べると、受け取り方の幅が分かる。",
+  }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3"))
+.build();
 export const subtitle__eventVariety = "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind";
 
 /**
@@ -936,12 +1119,22 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
   .edge("hub", "spoke-1", { label: "90°", tone: "info" })
   .edge("hub", "spoke-2", { label: "180°", tone: "info" })
   .edge("hub", "spoke-3", { label: "270°", tone: "info" })
-  .phase("p", {
-    duration: 1200,
-    title: "hub-and-spoke 4",
-    body: "3-lane (spokesTop / hub / spokesBottom) 分散で 4 spoke edge の edge-node-cross を回避、 hub 中心の star topology を lane 構造で明示 (CAR-1560 catalog sweep fix)。",
-  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3").badge("hub-and-spoke"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "中心を置く",
+    body: "真ん中の箱が起点。 ここから外へ伸びる。",
+  }, (p: PhaseBuilder) => p.activate("hub"))
+  .phase("p2", {
+    duration: 1600,
+    title: "2 本伸ばす",
+    body: "中心から 2 本が外へ伸びる。 向きが 2 方向に分かれる。",
+  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1"))
+  .phase("p3", {
+    duration: 1600,
+    title: "4 本に広げる",
+    body: "4 本すべてが放射状に広がる。 中心 1 つに対して外が 4 つ。",
+  }, (p: PhaseBuilder) => p.activate("hub", "spoke-0", "spoke-1", "spoke-2", "spoke-3"))
+.build();
 export const subtitle__radialHubAndSpoke = "hub-and-spoke を 3-lane (Spokes 上 / Hub center / Spokes 下) 分散、 4 spoke を上下 lane に振り分けて edge-node-cross を回避、 hub → 4 spoke edge の star topology";
 
 /**
@@ -1002,12 +1195,22 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
     renderOffsetX: "{dx}",
     renderOffsetY: "{dy}",
   })
-  .phase("p", {
-    duration: 1200,
-    title: "fixed vs drift",
-    body: "2-lane (Anchor / Floater) で renderOffset bind の有無を対比、 anchor は lane 固定位置、 floater は renderOffsetX/Y に signal template、 slider 変化で floater が実際に横 / 縦 drift、 lane 分割で reactive vs constant を可視化。",
-  }, (p: PhaseBuilder) => p.activate("anchor", "floater").badge("offset bind"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "基準を置く",
+    body: "動かない点を先に置く。 ここが位置の基準になる。",
+  }, (p: PhaseBuilder) => p.activate("anchor"))
+  .phase("p2", {
+    duration: 1600,
+    title: "ずれを見る",
+    body: "もう 1 つの点が基準からずれて描かれる。 ずれ幅は縦横それぞれで決まる。",
+  }, (p: PhaseBuilder) => p.activate("anchor", "floater"))
+  .phase("p3", {
+    duration: 1600,
+    title: "つまみで動かす",
+    body: "つまみで縦横のずれを変えられる。 基準は動かないので差が読み取れる。",
+  }, (p: PhaseBuilder) => p.activate("floater"))
+.build();
 export const subtitle__renderOffsetDrift = "renderOffset bind を 2-lane (Anchor fixed / Floater drift) 分散、 anchor は固定、 floater は renderOffset signal 追随";
 
 /**
@@ -1232,12 +1435,27 @@ export const decisionTree = diagram("interactive-decision-tree", {
   .edge("node-1", "node-4", { label: "no", tone: "error" })
   .edge("node-2", "node-5", { label: "yes", tone: "success" })
   .edge("node-2", "node-6", { label: "no", tone: "error" })
-  .phase("p", {
-    duration: 1200,
-    title: "decision tree",
-    body: "3-lane (root / mid / leaf) tree depth 分散 + 明示 stack (root=1 / mid=0,2 / leaf=0,1,2,3) で parent-child alignment、 6 edge の 2 分木 (0→1,2 / 1→3,4 / 2→5,6) を edge-node-cross なしで表現 (CAR-1560 catalog sweep fix)。",
-  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6").badge("decision tree"))
-  .build();
+  .phase("p1", {
+    duration: 1600,
+    title: "入口に立つ",
+    body: "一番上の分かれ道から始まる。 まだどちらにも進んでいない。",
+  }, (p: PhaseBuilder) => p.activate("node-0"))
+  .phase("p2", {
+    duration: 1600,
+    title: "1 段目で分かれる",
+    body: "最初の判断で左右に分かれる。 2 つの道ができる。",
+  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2"))
+  .phase("p3", {
+    duration: 1600,
+    title: "左の枝が分かれる",
+    body: "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。",
+  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4"))
+  .phase("p4", {
+    duration: 1600,
+    title: "右の枝も分かれる",
+    body: "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。",
+  }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6"))
+.build();
 export const subtitle__decisionTree = "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示";
 
 /**
