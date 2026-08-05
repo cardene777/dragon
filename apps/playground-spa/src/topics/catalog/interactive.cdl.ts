@@ -4232,17 +4232,27 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
     ["Dan", "offline"],
     ["Eve", "online"],
   ] as unknown as (string | number)[])
-  .node("aliceCard", { lane: "online", stack: 0, kind: "card", title: "● Alice", subtitle: "online · green dot" })
-  .node("carolCard", { lane: "online", stack: 1, kind: "card", title: "● Carol", subtitle: "online" })
-  .node("eveCard", { lane: "online", stack: 2, kind: "card", title: "● Eve", subtitle: "online" })
-  .node("bobCard", { lane: "away", stack: 0, kind: "card", title: "● Bob", subtitle: "away · yellow dot" })
-  .node("danCard", { lane: "offline", stack: 0, kind: "card", title: "● Dan", subtitle: "offline · gray dot" })
+  .node("aliceCard", { lane: "online", stack: 0, kind: "card", title: "Alice", subtitle: "在席の人 (緑の丸)" })
+  .node("carolCard", { lane: "online", stack: 1, kind: "card", title: "Carol", subtitle: "在席の人 (緑の丸)" })
+  .node("eveCard", { lane: "online", stack: 2, kind: "card", title: "Eve", subtitle: "在席の人 (緑の丸)" })
+  .node("bobCard", { lane: "away", stack: 0, kind: "card", title: "Bob", subtitle: "離席の人 (黄の丸)" })
+  .node("danCard", { lane: "offline", stack: 0, kind: "card", title: "Dan", subtitle: "不在の人 (灰の丸)" })
   .readout.userPresence("up", { source: "team", max: 6, label: "Team status" })
-  .phase("p", {
-    duration: 1200,
-    title: "presence state split",
-    body: "3-lane (Online 3 / Away 1 / Offline 1) で 5 team member を presence status 別分散、 userPresence readout も併存で dot + name list 表示、 state-based split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").badge("presence"))
+  .phase("p1", {
+    duration: 1800,
+    title: "朝の在席",
+    body: "全員が不在。 名前の左の丸がすべて灰で、状態が色だけで表される形が読める。",
+  }, (p: PhaseBuilder) => p.activate("danCard").set("team", '[["Alice","offline"],["Bob","offline"],["Carol","offline"],["Dan","offline"],["Eve","offline"]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "始業した後",
+    body: "在席と離席が混じる。 並びは変わらず、丸の色だけが人ごとに分かれる。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "日中の在席",
+    body: "在席が 3 人になる。 緑 3 と黄 1 と灰 1 の内訳が、丸の色だけで数えられる。",
+  }, (p: PhaseBuilder) => p.activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard").set("team", '[["Alice","online"],["Bob","away"],["Carol","online"],["Dan","offline"],["Eve","online"]]'))
   .build();
 export const subtitle__teamPresenceStatus = "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存";
 
@@ -4255,17 +4265,27 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
   .lane("up", { x: 0, width: 340 })
   .lane("down", { x: 380, width: 340 })
   .arraySignal("votes", [24, 3])
-  .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "24 (89%)" })
-  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive", subtitle: "green tone" })
-  .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "3 (11%)" })
-  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative", subtitle: "red tone" })
-  .edge("upCard", "downCard", { label: "ratio 24 vs 3", tone: "warning" })
+  .node("upCard", { lane: "up", stack: 0, kind: "card", title: "▲ Up votes", subtitle: "帯の緑の側を決める票" })
+  .node("upDetail", { lane: "up", stack: 1, kind: "card", title: "Positive", subtitle: "帯の緑の部分" })
+  .node("downCard", { lane: "down", stack: 0, kind: "card", title: "▼ Down votes", subtitle: "帯の赤の側を決める票" })
+  .node("downDetail", { lane: "down", stack: 1, kind: "card", title: "Negative", subtitle: "帯の赤の部分" })
+  .edge("upCard", "downCard", { label: "割合", tone: "warning" })
   .readout.ratingThumb("rt", { source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" })
-  .phase("p", {
-    duration: 1200,
-    title: "vote category split",
-    body: "2-lane (Up 24 / Down 3) で review vote を category 分散、 各 category main + detail card + ratio edge、 ratingThumb readout も併存で ▲/▼ + colored bar 表示、 category split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").badge("rating"))
+  .phase("p1", {
+    duration: 1800,
+    title: "票が割れる",
+    body: "賛成と反対がほぼ同数。 帯は票数でなく賛成の占める割合で塗り分けられる。",
+  }, (p: PhaseBuilder) => p.activate("upCard", "downCard").set("votes", '[12,10]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "賛成が増える",
+    body: "賛成の割合が 3 分の 2 になる。 緑の部分が伸び、赤の部分が縮む。",
+  }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard").set("votes", '[20,10]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "賛成に寄る",
+    body: "賛成が 9 割近くを占める。 総数が増えても、帯の長さは割合だけで決まる。",
+  }, (p: PhaseBuilder) => p.activate("upCard", "upDetail", "downCard", "downDetail").set("votes", '[24,3]'))
   .build();
 export const subtitle__feedbackThumbRating = "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存";
 
@@ -4286,23 +4306,33 @@ export const startupOrgChart = diagram("interactive-startup-org", {
     ["Eve Eng", 2],
     ["Frank Sales", 2],
   ] as unknown as (string | number)[])
-  .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "level 0 (root)" })
-  .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "level 1" })
-  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol Sales", subtitle: "level 1" })
-  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "level 2 · under Bob" })
-  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "level 2 · under Bob" })
-  .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "level 2 · under Carol" })
+  .node("ceoCard", { lane: "ceo", stack: 0, kind: "card", title: "Alice CEO", subtitle: "最上位の階層" })
+  .node("vpEng", { lane: "vp", stack: 0, kind: "card", title: "Bob VP Eng", subtitle: "中間の階層" })
+  .node("vpSales", { lane: "vp", stack: 1, kind: "card", title: "Carol Sales", subtitle: "中間の階層" })
+  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "最下位の階層" })
+  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "最下位の階層" })
+  .node("icFrank", { lane: "ic", stack: 2, kind: "card", title: "Frank Sales", subtitle: "最下位の階層" })
   .edge("ceoCard", "vpEng", { label: "reports", tone: "info" })
   .edge("ceoCard", "vpSales", { label: "reports", tone: "info" })
   .edge("vpEng", "icDan", { label: "manages", tone: "accent" })
   .edge("vpEng", "icEve", { label: "manages", tone: "accent" })
   .edge("vpSales", "icFrank", { label: "manages", tone: "accent" })
   .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "Org hierarchy" })
-  .phase("p", {
-    duration: 1200,
-    title: "org tree depth split",
-    body: "3-lane (CEO 1 / VP 2 / IC 3) tree depth 別に 6 org member 分散、 5 report edge (2 CEO→VP info / 3 VP→IC accent)、 orgChartMini readout も併存で 3 level tree 表示、 tree depth split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank").badge("org"))
+  .phase("p1", {
+    duration: 1800,
+    title: "創業した頃",
+    body: "階層が 1 段しかない。 下の段が空だと繋ぐ線を引かないため、箱が 1 つ浮く形になる。",
+  }, (p: PhaseBuilder) => p.activate("ceoCard").set("org", '[["Alice CEO",0]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "役員を置く",
+    body: "2 段目が埋まり、上の段から線が下りる。 同じ段の箱は横に並ぶ。",
+  }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales").set("org", '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "現場が増える",
+    body: "3 段目まで揃う。 名前が 10 文字を超える箱は末尾を省いて出ることが読み取れる。",
+  }, (p: PhaseBuilder) => p.activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank").set("org", '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1],["Dan Eng",2],["Eve Eng",2],["Frank Sales",2]]'))
   .build();
 export const subtitle__startupOrgChart = "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存";
 
@@ -4318,18 +4348,28 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .state("cur", { initial: 82 })
   .state("prev", { initial: 75 })
   .arraySignal("hist", [60, 65, 70, 75, 80, 82])
-  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "◆ Current", subtitle: "82 (今月)" })
-  .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "75 (先月)" })
-  .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "▲ Delta", subtitle: "+7 (+9.3%) · green" })
-  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "6mo history", subtitle: "60 → 65 → 70 → 75 → 80 → 82" })
-  .edge("curCard", "prevCard", { label: "compare", tone: "info" })
-  .edge("curCard", "histCard", { label: "spark", tone: "success" })
+  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "Current", subtitle: "今月の値" })
+  .node("prevCard", { lane: "delta", stack: 0, kind: "card", title: "Previous", subtitle: "先月の値" })
+  .node("deltaCard", { lane: "delta", stack: 1, kind: "card", title: "Delta", subtitle: "今月 - 先月の差" })
+  .node("histCard", { lane: "hist", stack: 0, kind: "card", title: "History", subtitle: "折れ線のもとになる並び" })
+  .edge("curCard", "prevCard", { label: "比べる", tone: "info" })
+  .edge("curCard", "histCard", { label: "並べる", tone: "success" })
   .readout.kpiTrendTile("kt", { source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" })
-  .phase("p", {
-    duration: 1200,
-    title: "KPI fan-out",
-    body: "3-lane (Current / Delta / History) で 1 KPI を 3 view に fan-out、 2 edge (compare info / spark success)、 kpiTrendTile readout も併存で 1 tile に current + delta arrow + sparkline を集約、 fan-out pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard", "histCard").badge("kpi trend"))
+  .phase("p1", {
+    duration: 1800,
+    title: "下がった月",
+    body: "今月が先月を下回る。 差が負になり、印と色が下向きの赤に変わる。",
+  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard").set("cur", 58).set("prev", 64).set("hist", '[70,68,66,64,60,58]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "底を打つ",
+    body: "今月が先月と並ぶ。 差が 0 になり、折れ線の右端が水平に寝る。",
+  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard").set("cur", 64).set("prev", 64).set("hist", '[68,66,64,60,58,64]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "持ち直す",
+    body: "今月が先月を上回る。 差が正になって上向きの緑になり、折れ線も右上がりに揃う。",
+  }, (p: PhaseBuilder) => p.activate("curCard", "prevCard", "deltaCard", "histCard").set("cur", 82).set("prev", 75).set("hist", '[60,65,70,75,80,82]'))
   .build();
 export const subtitle__npsTrendKpi = "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存";
 
@@ -4343,15 +4383,25 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
   .lane("heart", { x: 280, width: 240 })
   .lane("party", { x: 560, width: 240 })
   .arraySignal("votes", [["👍", 42], ["❤️", 28], ["🎉", 15]] as unknown as (string | number)[])
-  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "◆ 👍 Thumbs", subtitle: "42 votes · highlight border" })
-  .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "28 votes" })
-  .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "15 votes" })
+  .node("thumbsCard", { lane: "thumbs", stack: 0, kind: "card", title: "👍 Thumbs", subtitle: "票が最も多い絵文字" })
+  .node("heartCard", { lane: "heart", stack: 0, kind: "card", title: "❤️ Heart", subtitle: "次に多い絵文字" })
+  .node("partyCard", { lane: "party", stack: 0, kind: "card", title: "🎉 Party", subtitle: "票が最も少ない絵文字" })
   .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
-  .phase("p", {
-    duration: 1200,
-    title: "poll category split",
-    body: "3-lane (Thumbs / Heart / Party) で 3 emoji vote を category 別分散、 winner (thumbs 42) に highlight border、 quickPollEmoji readout も併存で pill 表示、 category split pattern の primitive expansion 事例。",
-  }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").badge("poll"))
+  .phase("p1", {
+    duration: 1800,
+    title: "票が入り始める",
+    body: "票がまだ少ない。 最も多いものに枠が付き、他の 2 つとは色が変わる。",
+  }, (p: PhaseBuilder) => p.activate("thumbsCard").set("votes", '[["👍",3],["❤️",2],["🎉",1]]'))
+  .phase("p2", {
+    duration: 1800,
+    title: "票が集まる",
+    body: "差が開く。 枠が付くのは最も多い 1 つだけで、位置は動かない。",
+  }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard").set("votes", '[["👍",12],["❤️",7],["🎉",4]]'))
+  .phase("p3", {
+    duration: 1800,
+    title: "締め切り",
+    body: "3 種の差が最も開く。 枠の位置は動かず、中の数だけが上がる形で落ち着く。",
+  }, (p: PhaseBuilder) => p.activate("thumbsCard", "heartCard", "partyCard").set("votes", '[["👍",42],["❤️",28],["🎉",15]]'))
   .build();
 export const subtitle__postReactionPoll = "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存";
 
@@ -4366,27 +4416,27 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
   .lane("play", { x: 540, width: 220 })
   .arraySignal("amps", [0.2, 0.4, 0.7, 0.9, 0.6, 0.3, 0.5, 0.8, 0.4, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4])
   .state("progress", { initial: 0 })
-  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "◆ Alice", subtitle: "0:23 音声メモ · 2 分前" })
-  .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "波形 15 バー", subtitle: "amp 0.2 → 0.9 の dense sequence" })
-  .node("playCard", { lane: "play", stack: 0, kind: "card", title: "▶ 再生", subtitle: "progress で active バー左から色付く" })
-  .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "アクティブ バー", subtitle: "progressSource で active/idle 区別" })
+  .node("senderCard", { lane: "sender", stack: 0, kind: "card", title: "送り主", subtitle: "録音した人" })
+  .node("waveCard", { lane: "wave", stack: 0, kind: "card", title: "波形", subtitle: "音の大小が棒の高さになる" })
+  .node("playCard", { lane: "play", stack: 0, kind: "card", title: "再生", subtitle: "左から順に色が付く波形" })
+  .node("progressCard", { lane: "play", stack: 1, kind: "card", title: "進み具合", subtitle: "色の付いた本数を決める割合" })
   .edge("senderCard", "waveCard", { label: "録音", tone: "info" })
   .edge("waveCard", "playCard", { label: "再生", tone: "success" })
   .readout.voiceMessage("vm", { source: "amps", progressSource: "progress", duration: 23, colorPlay: "#2563eb", colorBar: "#cbd5e1", label: "音声メモ" })
   .phase("p1", {
-    duration: 2000,
-    title: "受信",
-    body: "Alice からの音声メモが着信、 送信者 + 波形 lane が active、 再生前で progress = 0、 全バー idle 色 (灰)。",
+    duration: 1800,
+    title: "受信した直後",
+    body: "棒が 15 本並ぶが、どれも灰のまま。 進み具合が 0 の間は色が 1 本も付かない。",
   }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard").set("progress", 0).badge("受信"))
   .phase("p2", {
-    duration: 2500,
-    title: "再生中",
-    body: "再生開始、 progress を 0 → 1 まで tween で連続変化、 波形バーが左から順に active 色 (青) に切替、 再生 lane 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").tween("progress", 0, 1).badge("再生中"))
+    duration: 1800,
+    title: "半ばまで再生",
+    body: "左から半分の棒に色が付く。 棒の高さは変わらず、色の境目だけが右へ動く。",
+  }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard").set("progress", 0.5).badge("再生中"))
   .phase("p3", {
-    duration: 1500,
+    duration: 1800,
     title: "再生完了",
-    body: "再生終了、 progress = 1 で 15 バー全 active、 4 card 全 highlight、 次アクション待機状態。",
+    body: "15 本すべてに色が付く。 進み具合が 1 になると境目が右端まで届く。",
   }, (p: PhaseBuilder) => p.activate("senderCard", "waveCard", "playCard", "progressCard").set("progress", 1).badge("完了"))
   .build();
 export const subtitle__voiceMessagePlayback = "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 再生中 tween → 完了の動きを可視化";
@@ -4401,29 +4451,28 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   .lane("participants", { x: 260, width: 220 })
   .lane("activity", { x: 520, width: 260 })
   .arraySignal("thread", [5, 8, "Alice", "12 分前"] as unknown as (string | number)[])
-  .state("unreadCount", { initial: 0 })
-  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "◆ 未読", subtitle: "{unreadCount} 件 · 赤バッジ" })
-  .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "参加者 8 名", subtitle: "team-eng チャンネル" })
-  .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "直近: Alice", subtitle: "「LGTM 🚀」 · 12 分前" })
-  .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "12 分前", subtitle: "直近アクティビティ" })
+  .node("unreadCard", { lane: "unread", stack: 0, kind: "card", title: "未読", subtitle: "赤い丸の中に出る数" })
+  .node("partCard", { lane: "participants", stack: 0, kind: "card", title: "参加者", subtitle: "話している人数" })
+  .node("authorCard", { lane: "activity", stack: 0, kind: "card", title: "直近の発言者", subtitle: "最後に書いた人の名前" })
+  .node("timeCard", { lane: "activity", stack: 1, kind: "card", title: "経過", subtitle: "最後の書き込みからの経過" })
   .edge("unreadCard", "authorCard", { label: "帰属", tone: "info" })
   .edge("partCard", "authorCard", { label: "所属", tone: "teal" })
   .readout.threadSummary("ts", { source: "thread", colorUnread: "#ef4444", label: "スレッド概要" })
   .phase("p1", {
-    duration: 1500,
+    duration: 1800,
     title: "静かなスレッド",
-    body: "未読なし (unreadCount = 0)、 参加者 lane のみ active、 通常の観測状態。",
-  }, (p: PhaseBuilder) => p.activate("partCard").set("unreadCount", 0).badge("静か"))
+    body: "未読が 0。 未読が 0 の間は赤い丸そのものが出ないため、人数と経過だけが並ぶ。",
+  }, (p: PhaseBuilder) => p.activate("partCard").set("thread", '[0,4,"Bob","2 時間前"]').badge("静か"))
   .phase("p2", {
-    duration: 2000,
-    title: "新着 3 件",
-    body: "新規メッセージ着信、 unreadCount を 0 → 3 まで tween、 未読 + 直近 lane 追加 activate、 authorCard に最新発言者表示。",
-  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard").tween("unreadCount", 0, 3).badge("新着"))
+    duration: 1800,
+    title: "新着が付く",
+    body: "未読が 3 件。 右上に赤い丸が現れ、中に件数が出る。 人数と発言者も入れ替わる。",
+  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard").set("thread", '[3,6,"Carol","25 分前"]').badge("新着"))
   .phase("p3", {
-    duration: 2000,
-    title: "混雑",
-    body: "追加着信、 unreadCount を 3 → 5 まで tween、 全 4 card active、 unreadCard の赤バッジが視覚的に主張。",
-  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").tween("unreadCount", 3, 5).badge("混雑"))
+    duration: 1800,
+    title: "混雑する",
+    body: "未読が 5 件に増える。 丸の大きさは変わらず、中の数と 3 行の文字だけが動く。",
+  }, (p: PhaseBuilder) => p.activate("unreadCard", "partCard", "authorCard", "timeCard").set("thread", '[5,8,"Alice","12 分前"]').badge("混雑"))
   .build();
 export const subtitle__teamThreadSummary = "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 tween → 混雑の動きを可視化";
 
@@ -4508,29 +4557,28 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
   .lane("entry", { x: 260, width: 260 })
   .lane("verify", { x: 560, width: 220 })
   .arraySignal("otp", [4, 8, 2, 1, 5, 7])
-  .state("entered", { initial: 0 })
-  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "◆ SMS 送信", subtitle: "6 桁コード · 3 分 TTL" })
-  .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6 ボックス グリッド", subtitle: "入力済 {entered}/6" })
-  .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "フォーカス ボックス", subtitle: "青枠でハイライト" })
-  .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "検証 → ログイン", subtitle: "6/6 で自動送信" })
+  .node("sentCard", { lane: "sent", stack: 0, kind: "card", title: "SMS 送信", subtitle: "6 桁の符号を送る" })
+  .node("entryCard", { lane: "entry", stack: 0, kind: "card", title: "6 つの枠", subtitle: "0-9 以外は空欄になる" })
+  .node("focusHint", { lane: "entry", stack: 1, kind: "card", title: "次に入れる枠", subtitle: "空欄の先頭が青枠になる" })
+  .node("verifyCard", { lane: "verify", stack: 0, kind: "card", title: "検証", subtitle: "6 つ埋まると送る" })
   .edge("sentCard", "entryCard", { label: "ユーザ入力", tone: "info" })
   .edge("entryCard", "verifyCard", { label: "自動送信", tone: "success" })
   .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "OTP コード" })
   .phase("p1", {
-    duration: 1500,
-    title: "SMS 送信",
-    body: "OTP を SMS 送信、 entered = 0、 SMS lane のみ active、 6 ボックス全て空 (灰枠)。",
-  }, (p: PhaseBuilder) => p.activate("sentCard").set("entered", 0).badge("送信"))
+    duration: 1800,
+    title: "送った直後",
+    body: "6 つの枠がすべて空。 0-9 の外の値は空欄として描かれるため、-1 を並べると空になる。",
+  }, (p: PhaseBuilder) => p.activate("sentCard").set("otp", '[-1,-1,-1,-1,-1,-1]').badge("送信"))
   .phase("p2", {
-    duration: 2500,
-    title: "入力中 (0 → 6 桁)",
-    body: "ユーザが 1 桁ずつ入力、 entered を 0 → 6 まで tween、 各 phase で focus ボックスが右へ移動、 入力 lane 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint").tween("entered", 0, 6).badge("入力中"))
+    duration: 1800,
+    title: "3 つ入れる",
+    body: "左から 3 つが埋まる。 埋まった枠に数が出て、次に入れる枠が青枠で示される。",
+  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint").set("otp", '[4,8,2,-1,-1,-1]').badge("入力中"))
   .phase("p3", {
-    duration: 1500,
-    title: "検証完了",
-    body: "6 桁揃った瞬間に自動送信、 検証 lane 追加 activate、 4 node 全 highlight、 login 成功後の次画面待機。",
-  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").set("entered", 6).badge("検証完了"))
+    duration: 1800,
+    title: "6 つ揃う",
+    body: "6 つとも埋まる。 空欄が無くなり青枠も消え、そのまま送る形になる。",
+  }, (p: PhaseBuilder) => p.activate("sentCard", "entryCard", "focusHint", "verifyCard").set("otp", '[4,8,2,1,5,7]').badge("検証完了"))
   .build();
 export const subtitle__loginOtpVerify = "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で SMS 送信 → 入力 tween → 自動送信の連続動作を可視化";
 
@@ -4583,30 +4631,29 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
     ["09:01:47", 3, "worker crash: OOM"],
     ["09:02:02", 1, "worker 再起動 ok"],
   ] as unknown as (string | number)[])
-  .state("severity", { initial: 0 })
-  .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "◆ 時刻列", subtitle: "5 event 2 分幅" })
-  .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "レベル分布", subtitle: "現在 severity {severity}" })
-  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "worker 再起動", subtitle: "09:02:02 · INF 青 pill" })
-  .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "メモリ使用率 82%", subtitle: "09:01:03 · WRN 橙 pill" })
-  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "▶ worker OOM", subtitle: "09:01:47 · ERR 赤 pill" })
+  .node("tsCard", { lane: "ts", stack: 0, kind: "card", title: "時刻列", subtitle: "行の左端に出る時刻" })
+  .node("levelCard", { lane: "level", stack: 0, kind: "card", title: "レベル列", subtitle: "札の色を決める重さ" })
+  .node("infoRow", { lane: "msg", stack: 0, kind: "card", title: "情報の行", subtitle: "情報を表す札 (青)" })
+  .node("warnRow", { lane: "msg", stack: 1, kind: "card", title: "注意の行", subtitle: "注意を表す札 (橙)" })
+  .node("errRow", { lane: "msg", stack: 2, kind: "card", title: "異常の行", subtitle: "異常を表す札 (赤)" })
   .edge("tsCard", "levelCard", { label: "分類", tone: "info" })
   .edge("levelCard", "errRow", { label: "重篤化", tone: "error" })
   .readout.logStream("ls", { source: "logs", label: "ログ tail" })
   .phase("p1", {
     duration: 1800,
     title: "通常運転",
-    body: "severity = 0、 INF レベルログのみ流れる、 時刻 + レベル + info 行 lane が active、 平常観測状態。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow").set("severity", 0).badge("通常"))
+    body: "情報の行だけが流れる。 札はどれも同じ色で、重さの差が出ていない状態。",
+  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow").set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"]]').badge("通常"))
   .phase("p2", {
     duration: 1800,
-    title: "警告発生",
-    body: "メモリ 82% 検知、 severity を 0 → 2 まで tween、 WRN 橙 pill 行が追加 activate、 監視強化トリガ。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow").tween("severity", 0, 2).badge("警告"))
+    title: "注意が出る",
+    body: "橙の札が付いた行が混じる。 本文が 24 文字を超える行は末尾を省いて出る。",
+  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow").set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"]]').badge("警告"))
   .phase("p3", {
     duration: 1800,
-    title: "障害検知",
-    body: "worker が OOM で crash、 severity を 2 → 3 まで tween、 ERR 赤 pill 行が highlight、 全 5 node active、 障害対応フロー起動。",
-  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow").tween("severity", 2, 3).badge("障害"))
+    title: "異常が出る",
+    body: "行が 6 つに増えるが、出るのは **末尾 5 行** だけ。 先頭の 1 行が押し出されて消える。",
+  }, (p: PhaseBuilder) => p.activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow").set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"worker crash: OOM"],["09:02:02",1,"worker 再起動 ok"],["09:02:30",1,"health check ok"]]').badge("障害"))
   .build();
 export const subtitle__prodLogTail = "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 tween → 障害の重篤度昇華を可視化";
 
@@ -4620,29 +4667,28 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
   .lane("severity", { x: 280, width: 240 })
   .lane("action", { x: 560, width: 220 })
   .arraySignal("alert", [2, "CPU 92% を 5 分継続 — 調査要"] as unknown as (string | number)[])
-  .state("sev", { initial: 0 })
-  .node("triggerCard", { lane: "trigger", stack: 0, kind: "card", title: "◆ CPU 閾値超過", subtitle: "prod-web-3 · 92% を 5 分継続" })
-  .node("sevCard", { lane: "severity", stack: 0, kind: "card", title: "重要度 = {sev}", subtitle: "0=info / 2=warn / 3=error" })
-  .node("iconCard", { lane: "severity", stack: 1, kind: "card", title: "重要度別アイコン", subtitle: "ℹ → ⚠ → ✕" })
-  .node("actionCard", { lane: "action", stack: 0, kind: "card", title: "調査 → Ack", subtitle: "オペレータ対応待ち" })
+  .node("triggerCard", { lane: "trigger", stack: 0, kind: "card", title: "きっかけ", subtitle: "本文になる出来事" })
+  .node("sevCard", { lane: "severity", stack: 0, kind: "card", title: "重要度", subtitle: "帯の色を決める重さ" })
+  .node("iconCard", { lane: "severity", stack: 1, kind: "card", title: "重要度の印", subtitle: "重要度で ℹ / ⚠ / ✕ が変わる" })
+  .node("actionCard", { lane: "action", stack: 0, kind: "card", title: "対応", subtitle: "受け取った人が動く" })
   .edge("triggerCard", "sevCard", { label: "分類", tone: "info" })
   .edge("sevCard", "actionCard", { label: "通知", tone: "warning" })
   .readout.alertBanner("ab", { source: "alert", label: "アラート" })
   .phase("p1", {
-    duration: 1500,
-    title: "軽微 (info)",
-    body: "sev = 0、 トリガー + 重要度 lane active、 banner は info 青枠 + ℹ アイコン、 監視のみ。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard").set("sev", 0).badge("info"))
+    duration: 1800,
+    title: "軽微な知らせ",
+    body: "重要度が最も低い。 帯は青で、印は情報を表す形になる。",
+  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard").set("alert", '[0,"CPU 68% — 通常の範囲"]').badge("info"))
   .phase("p2", {
     duration: 1800,
-    title: "警告エスカレーション",
-    body: "CPU 継続超過、 sev を 0 → 2 まで tween、 banner が青 → 橙に連続変化、 icon lane 追加 activate、 ⚠ アイコン表示。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard").tween("sev", 0, 2).badge("warn"))
+    title: "注意に上がる",
+    body: "重要度が上がり、帯が橙に変わる。 本文も入れ替わり、印が注意の形になる。",
+  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard").set("alert", '[2,"CPU 92% を 5 分継続 — 調査要"]').badge("warn"))
   .phase("p3", {
-    duration: 1500,
-    title: "重大 (error)",
-    body: "対応期限超過、 sev を 2 → 3 まで tween、 banner が橙 → 赤に、 ✕ アイコン + アクション lane activate、 オペレータ緊急対応。",
-  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").tween("sev", 2, 3).badge("error"))
+    duration: 1800,
+    title: "異常に上がる",
+    body: "重要度が最大になり帯が赤くなる。 本文が 32 文字を超えると末尾を省いて出る。",
+  }, (p: PhaseBuilder) => p.activate("triggerCard", "sevCard", "iconCard", "actionCard").set("alert", '[3,"prod-web-3 応答なし — 全系統の切替が要る"]').badge("error"))
   .build();
 export const subtitle__opsAlertBanner = "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn tween → error のエスカレーションを可視化";
 
@@ -4663,30 +4709,29 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     ["cache", 1],
     ["queue", 0],
   ] as unknown as (string | number)[])
-  .state("healthy", { initial: 6 })
-  .node("apiCard", { lane: "up", stack: 0, kind: "card", title: "● api (緑)", subtitle: "healthy · p99 45ms" })
-  .node("webCard", { lane: "up", stack: 1, kind: "card", title: "● web (緑)", subtitle: "healthy · uptime 99.9%" })
-  .node("authCard", { lane: "up", stack: 2, kind: "card", title: "● auth (緑)", subtitle: "healthy · 100 rps" })
-  .node("dbCard", { lane: "deg", stack: 0, kind: "card", title: "● db (黄)", subtitle: "degraded · レプリカ遅延 15s" })
-  .node("cacheCard", { lane: "deg", stack: 1, kind: "card", title: "● cache (黄)", subtitle: "degraded · eviction 頻発" })
-  .node("queueCard", { lane: "down", stack: 0, kind: "card", title: "● queue (赤)", subtitle: "◆ down · 接続拒否" })
+  .node("apiCard", { lane: "up", stack: 0, kind: "card", title: "api", subtitle: "稼働を表す緑のマス" })
+  .node("webCard", { lane: "up", stack: 1, kind: "card", title: "web", subtitle: "稼働を表す緑のマス" })
+  .node("authCard", { lane: "up", stack: 2, kind: "card", title: "auth", subtitle: "稼働を表す緑のマス" })
+  .node("dbCard", { lane: "deg", stack: 0, kind: "card", title: "db", subtitle: "劣化を表す黄のマス" })
+  .node("cacheCard", { lane: "deg", stack: 1, kind: "card", title: "cache", subtitle: "劣化を表す黄のマス" })
+  .node("queueCard", { lane: "down", stack: 0, kind: "card", title: "queue", subtitle: "停止を表す赤のマス" })
   .edge("dbCard", "queueCard", { label: "波及", tone: "error" })
   .readout.serviceHealth("sh", { source: "svcs", label: "サービス (6)" })
   .phase("p1", {
-    duration: 1500,
-    title: "全稼働 (6/6)",
-    body: "healthy = 6、 上段 3 サービス (api / web / auth) が active、 grid は全マス緑、 平常運転。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard").set("healthy", 6).badge("全稼働"))
+    duration: 1800,
+    title: "全て稼働",
+    body: "6 つのマスがすべて緑。 名前と状態の組が並び、状態の数だけで色が決まる。",
+  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard").set("svcs", '[["api",2],["web",2],["auth",2],["db",2],["cache",2],["queue",2]]').badge("全稼働"))
   .phase("p2", {
     duration: 1800,
-    title: "劣化 (6 → 4)",
-    body: "db + cache が degraded に、 healthy を 6 → 4 まで tween、 中段 lane 追加 activate、 grid に黄マス出現。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard").tween("healthy", 6, 4).badge("劣化"))
+    title: "一部が劣化",
+    body: "2 つが黄に変わる。 マスの位置と数は変わらず、色だけが入れ替わる。",
+  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard").set("svcs", '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",2]]').badge("劣化"))
   .phase("p3", {
-    duration: 1500,
-    title: "障害 (4 → 3)",
-    body: "queue が down、 healthy を 4 → 3 まで tween、 下段 lane 追加 activate、 grid に赤マス、 cascade edge 発火、 6 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").tween("healthy", 4, 3).badge("障害"))
+    duration: 1800,
+    title: "1 つが停止",
+    body: "最後の 1 つが赤になる。 緑 3 と黄 2 と赤 1 の内訳が、色を数えて読み取れる。",
+  }, (p: PhaseBuilder) => p.activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard").set("svcs", '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",0]]').badge("障害"))
   .build();
 export const subtitle__serviceHealthGrid = "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存";
 
@@ -4700,30 +4745,29 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
   .lane("costs", { x: 260, width: 260 })
   .lane("total", { x: 560, width: 240 })
   .arraySignal("cart", [3, 149.85, 8.5, 158.35])
-  .state("total", { initial: 0 })
-  .node("itemsCard", { lane: "items", stack: 0, kind: "card", title: "◆ カート 3 商品", subtitle: "ジャケット / 書籍 / ケーブル" })
-  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "小計", subtitle: "$149.85" })
-  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "送料", subtitle: "$8.50 · 標準 3 日" })
-  .node("totalCard", { lane: "total", stack: 0, kind: "card", title: "▶ 合計 (太字)", subtitle: "累積 {total} · 青色" })
+  .node("itemsCard", { lane: "items", stack: 0, kind: "card", title: "商品数", subtitle: "カートに入れた点数" })
+  .node("subtotalCard", { lane: "costs", stack: 0, kind: "card", title: "小計", subtitle: "話している人数" })
+  .node("shippingCard", { lane: "costs", stack: 1, kind: "card", title: "送料", subtitle: "最後に書いた人の名前" })
+  .node("totalCard", { lane: "total", stack: 0, kind: "card", title: "合計", subtitle: "末尾の行 · 太字と青で出る" })
   .edge("itemsCard", "subtotalCard", { label: "集計", tone: "info" })
   .edge("subtotalCard", "totalCard", { label: "+送料", tone: "success" })
   .edge("shippingCard", "totalCard", { label: "加算", tone: "info" })
   .readout.cartSummary("cs", { source: "cart", currency: "$", colorTotal: "#2563eb", label: "カート合計" })
   .phase("p1", {
-    duration: 1500,
-    title: "商品追加",
-    body: "商品 lane active、 total を 0 → 149.85 まで tween、 小計行が累積して表示、 subtotalCard 追加 activate。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard").tween("total", 0, 149.85).badge("小計"))
+    duration: 1800,
+    title: "1 点だけ入れる",
+    body: "4 行が並ぶ。 金額はどれも小数 2 桁で出るため、整数を渡しても末尾が 0 で揃う。",
+  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard").set("cart", '[1,49.9,8.5,58.4]').badge("小計"))
   .phase("p2", {
-    duration: 1500,
-    title: "送料計算",
-    body: "送料計算、 total を 149.85 → 158.35 まで tween、 shippingCard 追加 activate、 送料行が加算表示。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard").tween("total", 149.85, 158.35).badge("送料"))
+    duration: 1800,
+    title: "点数を増やす",
+    body: "小計が上がり合計も動く。 送料は変わらないため、3 行目だけが同じ値のまま残る。",
+  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard").set("cart", '[2,99.9,8.5,108.4]').badge("送料"))
   .phase("p3", {
-    duration: 1500,
-    title: "合計確定",
-    body: "合計 lane 追加 activate、 total = 158.35 で totalCard が太字 + 青色ハイライト、 4 node 全 highlight、 チェックアウト準備完了。",
-  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").set("total", 158.35).badge("合計"))
+    duration: 1800,
+    title: "確定する",
+    body: "合計が最も大きくなる。 最後の行だけ太字と青で出て、他の 3 行と区別される。",
+  }, (p: PhaseBuilder) => p.activate("itemsCard", "subtotalCard", "shippingCard", "totalCard").set("cart", '[3,149.85,8.5,158.35]').badge("合計"))
   .build();
 export const subtitle__checkoutCartSummary = "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で商品追加 tween → 送料計算 → 合計確定の連続動作を可視化";
 
@@ -4737,29 +4781,28 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   .lane("pro", { x: 280, width: 240 })
   .lane("enterprise", { x: 560, width: 260 })
   .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (string | number)[])
-  .state("selected", { initial: 0 })
-  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter $9/月", subtitle: "3 席 · コミュニティサポート" })
-  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "◆ Pro $29/月", subtitle: "10 席 · 優先サポート" })
-  .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "▶ 一番人気", subtitle: "枠 highlight · 選択中 = {selected}" })
-  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise", subtitle: "要見積 · 無制限 · 専任 CSM" })
+  .node("starterCard", { lane: "starter", stack: 0, kind: "card", title: "Starter", subtitle: "最も安いプラン" })
+  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "Pro", subtitle: "中間のプラン" })
+  .node("proBadge", { lane: "pro", stack: 1, kind: "card", title: "特典の欄", subtitle: "名前と価格の後に並ぶ特典" })
+  .node("enterpriseCard", { lane: "enterprise", stack: 0, kind: "card", title: "Enterprise", subtitle: "最も高いプラン" })
   .edge("starterCard", "proCard", { label: "アップグレード", tone: "info" })
   .edge("proCard", "enterpriseCard", { label: "アップグレード", tone: "success" })
-  .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "Pro プラン" })
+  .readout.pricingTier("pt", { source: "plan", colorAccent: "#2563eb", currency: "$", label: "プラン" })
   .phase("p1", {
-    duration: 1500,
-    title: "Starter 検討",
-    body: "selected = 0、 Starter lane のみ active、 小規模チーム向けの最安 tier を初期検討。",
-  }, (p: PhaseBuilder) => p.activate("starterCard").set("selected", 0).badge("Starter"))
+    duration: 1800,
+    title: "最も安いプラン",
+    body: "名前と価格と特典 1 つが出る。 3 つ目以降が特典として並ぶ形が読める。",
+  }, (p: PhaseBuilder) => p.activate("starterCard").set("plan", '["Starter",9,"3 席"]').badge("Starter"))
   .phase("p2", {
-    duration: 2000,
-    title: "Pro 選択",
-    body: "team 拡大で機能不足、 selected を 0 → 1 まで tween、 Pro lane 追加 activate、 proBadge の '一番人気' が highlight、 card 詳細表示。",
-  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge").tween("selected", 0, 1).badge("Pro"))
+    duration: 1800,
+    title: "中間のプラン",
+    body: "価格が上がり特典が 3 つに増える。 名前と価格の位置は変わらず、下の並びだけが伸びる。",
+  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge").set("plan", '["Pro",29,"10 席","優先サポート","カスタムドメイン"]').badge("Pro"))
   .phase("p3", {
-    duration: 1500,
-    title: "Enterprise 比較",
-    body: "selected = 2 に切替、 Enterprise lane 追加 activate、 3 tier 並列比較で意思決定、 4 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").set("selected", 2).badge("比較"))
+    duration: 1800,
+    title: "最も高いプラン",
+    body: "特典を 5 つ渡しても出るのは **先頭 3 つ** まで。 4 つ目以降は表示に載らない。",
+  }, (p: PhaseBuilder) => p.activate("starterCard", "proCard", "proBadge", "enterpriseCard").set("plan", '["Enterprise",99,"無制限の席","専任の担当","監査ログ","SSO 連携","SLA 保証"]').badge("比較"))
   .build();
 export const subtitle__saasPricingTier = "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter 検討 → Pro 選択 tween → 比較完了の動きを可視化";
 
@@ -4773,29 +4816,28 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .lane("entered", { x: 280, width: 240 })
   .lane("applied", { x: 560, width: 240 })
   .arraySignal("coupon", ["SAVE20", 20] as unknown as (string | number)[])
-  .state("discount", { initial: 0 })
-  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未入力", subtitle: "破線枠 · 'コード入力'" })
-  .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "'SAVE20' 入力済", subtitle: "実線枠 · 未適用 · discount = {discount}" })
-  .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "適用ボタン", subtitle: "灰 → 緑にクリックで変化" })
-  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "◆ 適用済", subtitle: "-{discount}% · 緑 pill" })
+  .node("emptyCard", { lane: "empty", stack: 0, kind: "card", title: "未入力", subtitle: "符号が空の状態" })
+  .node("enteredCard", { lane: "entered", stack: 0, kind: "card", title: "入力済", subtitle: "符号は入ったが割引がまだ無い" })
+  .node("applyBtn", { lane: "entered", stack: 1, kind: "card", title: "適用ボタン", subtitle: "押すと割引が入る" })
+  .node("appliedCard", { lane: "applied", stack: 0, kind: "card", title: "適用済", subtitle: "割引が正になり緑の札が出る" })
   .edge("emptyCard", "enteredCard", { label: "コード入力", tone: "info" })
   .edge("enteredCard", "appliedCard", { label: "適用", tone: "success" })
   .readout.couponCode("cc", { source: "coupon", colorApplied: "#22c55e", label: "クーポン" })
   .phase("p1", {
-    duration: 1500,
+    duration: 1800,
     title: "未入力",
-    body: "discount = 0、 未入力 lane のみ active、 dropzone は破線 + 'コード入力' プロンプト、 適用前状態。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard").set("discount", 0).badge("未入力"))
+    body: "符号が空で割引も 0。 入力を促す表示だけが出て、割引の札は現れない。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard").set("coupon", '["",0]').badge("未入力"))
   .phase("p2", {
-    duration: 1500,
-    title: "コード入力",
-    body: "'SAVE20' 入力、 入力済 lane + 適用ボタン追加 activate、 discount はまだ 0 (適用前)、 dropzone が実線に変化。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn").set("discount", 0).badge("入力済"))
+    duration: 1800,
+    title: "符号を入れる",
+    body: "符号が入るが割引はまだ 0。 符号の文字は出るが、割引の札は出ないままになる。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn").set("coupon", '["SAVE20",0]').badge("入力済"))
   .phase("p3", {
     duration: 1800,
-    title: "適用完了",
-    body: "適用ボタンクリック、 discount を 0 → 20 まで tween、 適用済 lane 追加 activate、 -20% off の緑 pill 表示、 4 node 全 highlight。",
-  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").tween("discount", 0, 20).badge("適用"))
+    title: "適用する",
+    body: "割引が正になる。 緑の札が現れ、符号と割引率が並んで出る形になる。",
+  }, (p: PhaseBuilder) => p.activate("emptyCard", "enteredCard", "applyBtn", "appliedCard").set("coupon", '["SAVE20",20]').badge("適用"))
   .build();
 export const subtitle__checkoutCouponApply = "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で discount 0 → 20% tween を可視化";
 
@@ -4809,30 +4851,29 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   .lane("content", { x: 220, width: 320 })
   .lane("meta", { x: 560, width: 220 })
   .arraySignal("article", ["dragon 入門", "dragon で interactive diagram を作る方法を解説", "Alice", "2 時間前"] as unknown as (string | number)[])
-  .state("hovered", { initial: 0 })
-  .node("thumbCard", { lane: "thumb", stack: 0, kind: "card", title: "◆ サムネイル (📄)", subtitle: "80×100 · 単色背景" })
-  .node("titleCard", { lane: "content", stack: 0, kind: "card", title: "タイトル", subtitle: "'dragon 入門' · アクセント色 · hover = {hovered}" })
-  .node("excerptCard", { lane: "content", stack: 1, kind: "card", title: "抜粋 (2 行)", subtitle: "'dragon で interactive diagram を…'" })
-  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "著者 Alice", subtitle: "灰色テキスト · 左寄せ" })
-  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "2 時間前", subtitle: "淡色 · 右寄せ" })
+  .node("thumbCard", { lane: "thumb", stack: 0, kind: "card", title: "サムネイル", subtitle: "配列の値に依らず固定" })
+  .node("titleCard", { lane: "content", stack: 0, kind: "card", title: "タイトル", subtitle: "長いと末尾を省いて出る見出し" })
+  .node("excerptCard", { lane: "content", stack: 1, kind: "card", title: "抜粋", subtitle: "折り返して出る本文" })
+  .node("authorCard", { lane: "meta", stack: 0, kind: "card", title: "著者", subtitle: "最後に書いた人の名前" })
+  .node("timeCard", { lane: "meta", stack: 1, kind: "card", title: "経過", subtitle: "最後の書き込みからの経過" })
   .edge("thumbCard", "titleCard", { label: "視線", tone: "info" })
   .edge("titleCard", "authorCard", { label: "帰属", tone: "success" })
   .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事 card" })
   .phase("p1", {
-    duration: 1500,
-    title: "初期表示",
-    body: "hovered = 0、 サムネ lane のみ active、 record 一覧表示中の閲覧前状態、 title 色は通常。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard").set("hovered", 0).badge("初期"))
+    duration: 1800,
+    title: "短い記事",
+    body: "題も抜粋も短い。 4 つの値がそれぞれの位置にそのまま出て、省略は起きない。",
+  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard").set("article", '["入門","はじめの一歩","Bob","5 分前"]').badge("初期"))
   .phase("p2", {
     duration: 1800,
-    title: "hover",
-    body: "マウス hover で hovered を 0 → 1 まで tween、 本文 lane 追加 activate、 title が濃青に、 excerpt が視認可能に。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard").tween("hovered", 0, 1).badge("hover"))
+    title: "抜粋が伸びる",
+    body: "抜粋が 2 行に折り返す。 28 文字ごとに区切られ、2 行目の末尾が省略される。",
+  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard").set("article", '["dragon 入門","dragon で interactive diagram を作る方法を解説","Alice","2 時間前"]').badge("hover"))
   .phase("p3", {
-    duration: 1500,
-    title: "続きを読む",
-    body: "クリック直前、 メタ lane 追加 activate、 著者 + 経過時間表示、 5 node 全 highlight、 詳細画面遷移待機。",
-  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").set("hovered", 1).badge("click"))
+    duration: 1800,
+    title: "題も伸びる",
+    body: "題が 26 文字を超える。 題も末尾を省いて出るため、1 行に収まる形が保たれる。",
+  }, (p: PhaseBuilder) => p.activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard").set("article", '["dragon で作る interactive diagram の完全ガイド 2026 年版","段ごとの変化と表示部品の連動を実例つきで最初から順に解説する長い記事","Carol","3 日前"]').badge("click"))
   .build();
 export const subtitle__blogArticlePreview = "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で初期 → hover tween → 続きを読むの動きを可視化";
 
@@ -4854,31 +4895,31 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
     [0, "API リファレンス", 0],
   ] as unknown as (string | number)[])
   .state("activeIdx", { initial: 0 })
-  .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "はじめに (H1)", subtitle: "level 0 · idx {activeIdx}" })
-  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス", subtitle: "level 0" })
-  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "◆ スタートガイド", subtitle: "level 1 · 青枠" })
-  .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "高度な使い方 (H2)", subtitle: "level 1" })
-  .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "インストール (H3)", subtitle: "level 2" })
-  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "◆ 最初の図", subtitle: "level 2 · 青文字 + 枠" })
+  .node("introCard", { lane: "lvl0", stack: 0, kind: "card", title: "はじめに", subtitle: "最も浅い階層 · 字下げなし" })
+  .node("apiCard", { lane: "lvl0", stack: 1, kind: "card", title: "API リファレンス", subtitle: "最も浅い階層 · 字下げなし" })
+  .node("gsCard", { lane: "lvl1", stack: 0, kind: "card", title: "スタートガイド", subtitle: "中間の階層 · 少し字下げ" })
+  .node("advCard", { lane: "lvl1", stack: 1, kind: "card", title: "高度な使い方", subtitle: "中間の階層 · 少し字下げ" })
+  .node("installCard", { lane: "lvl2", stack: 0, kind: "card", title: "インストール", subtitle: "最も深い階層 · 大きく字下げ" })
+  .node("firstCard", { lane: "lvl2", stack: 1, kind: "card", title: "最初の図", subtitle: "最も深い階層 · 大きく字下げ" })
   .edge("introCard", "gsCard", { label: "次へ", tone: "info" })
   .edge("gsCard", "installCard", { label: "子", tone: "accent" })
   .edge("gsCard", "firstCard", { label: "現在", tone: "success" })
   .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "ドキュメント TOC" })
   .phase("p1", {
-    duration: 1500,
-    title: "H1 現在",
-    body: "activeIdx = 0、 lvl0 lane のみ active、 'はじめに' が現在セクション、 introCard の subtitle が idx 0 を表示。",
-  }, (p: PhaseBuilder) => p.activate("introCard").set("activeIdx", 0).badge("Intro"))
+    duration: 1800,
+    title: "先頭を読む",
+    body: "先頭の項目だけが青い。 印は各行の 3 つ目で、正の値を持つ行が今いる場所になる。",
+  }, (p: PhaseBuilder) => p.activate("introCard").set("toc", '[[0,"はじめに",1],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]').badge("Intro"))
   .phase("p2", {
     duration: 1800,
-    title: "H2 移動",
-    body: "スクロールで下位セクションへ、 activeIdx を 0 → 1 まで tween、 lvl1 lane 追加 activate、 'スタートガイド' が青枠でハイライト。",
-  }, (p: PhaseBuilder) => p.activate("introCard", "gsCard").tween("activeIdx", 0, 1).badge("GS"))
+    title: "下へ進む",
+    body: "青い行が 2 つ目へ移る。 階層に応じた字下げは変わらず、色だけが動く。",
+  }, (p: PhaseBuilder) => p.activate("introCard", "gsCard").set("toc", '[[0,"はじめに",0],[1,"スタートガイド",1],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]').badge("GS"))
   .phase("p3", {
-    duration: 1500,
-    title: "H3 詳細",
-    body: "更にスクロール、 activeIdx を 1 → 3 まで tween、 lvl2 lane 追加 activate、 '最初の図' が青文字 + 枠、 全 6 node 展開状態。",
-  }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").tween("activeIdx", 1, 3).badge("First"))
+    duration: 1800,
+    title: "さらに下へ",
+    body: "最も深い階層の行が青くなる。 6 行のうち出るのは先頭 6 行までで、字下げが 3 段に分かれる。",
+  }, (p: PhaseBuilder) => p.activate("introCard", "apiCard", "gsCard", "advCard", "installCard", "firstCard").set("toc", '[[0,"はじめに",0],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",1],[1,"高度な使い方",0],[0,"API リファレンス",0]]').badge("First"))
   .build();
 export const subtitle__docsTocNav = "docs TOC (階層 3 段 + アクティブセクション) を 3-lane 分散 + tocNav readout 併存、 3 phase でスクロール進行によるアクティブセクション遷移を可視化";
 
@@ -4892,30 +4933,29 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
   .lane("fb", { x: 220, width: 200 })
   .lane("li", { x: 440, width: 200 })
   .arraySignal("shares", [["tw", 245], ["fb", 89], ["li", 32], ["rd", 18]] as unknown as (string | number)[])
-  .state("totalShares", { initial: 0 })
-  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "◆ 𝕏 Twitter", subtitle: "245 shares · 空色ボタン" })
-  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "f Facebook", subtitle: "89 shares · 濃青ボタン" })
-  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "in LinkedIn", subtitle: "32 shares · 暗青ボタン" })
-  .node("rdCard", { lane: "li", stack: 1, kind: "card", title: "R Reddit", subtitle: "18 shares · 橙ボタン" })
+  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "tw", subtitle: "共有が最も多い先" })
+  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "fb", subtitle: "次に多い先" })
+  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "li", subtitle: "中ほどの先" })
+  .node("rdCard", { lane: "li", stack: 1, kind: "card", title: "rd", subtitle: "共有が最も少ない先" })
   .edge("twCard", "fbCard", { label: "拡散", tone: "info" })
   .edge("fbCard", "liCard", { label: "拡散", tone: "info" })
   .edge("liCard", "rdCard", { label: "拡散", tone: "info" })
-  .readout.shareButtons("sb", { source: "shares", label: "シェア 累計 {totalShares}" })
+  .readout.shareButtons("sb", { source: "shares", label: "シェア" })
   .phase("p1", {
-    duration: 1500,
-    title: "投稿直後",
-    body: "totalShares を 0 → 50 まで tween、 Twitter lane のみ active、 初期反応で早期拡散の観測。",
-  }, (p: PhaseBuilder) => p.activate("twCard").tween("totalShares", 0, 50).badge("開始"))
+    duration: 1800,
+    title: "投稿した直後",
+    body: "4 つのボタンが並び、数はどれも小さい。 ボタンの大きさは数に依らず一定。",
+  }, (p: PhaseBuilder) => p.activate("twCard").set("shares", '[["tw",12],["fb",5],["li",3],["rd",1]]').badge("開始"))
   .phase("p2", {
-    duration: 2000,
-    title: "拡散中",
-    body: "totalShares を 50 → 300 まで tween、 Facebook + LinkedIn lane 追加 activate、 SNS 間で拡散連鎖。",
-  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard").tween("totalShares", 50, 300).badge("拡散"))
+    duration: 1800,
+    title: "広まる",
+    body: "数が桁 1 つぶん増える。 並びと色は変わらず、ボタンの中の数だけが上がる。",
+  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard").set("shares", '[["tw",98],["fb",41],["li",17],["rd",8]]').badge("拡散"))
   .phase("p3", {
-    duration: 1500,
-    title: "バズ定着",
-    body: "totalShares を 300 → 384 まで tween、 Reddit も active、 4 platform 全 highlight、 384 shares で定着。 iteration 7 完遂 = 動き + 日本語の 15 diagram フル対応。",
-  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").tween("totalShares", 300, 384).badge("バズ"))
+    duration: 1800,
+    title: "落ち着く",
+    body: "4 つの差が最も開く。 5 つ渡しても出るのは **先頭 4 つ** までで、5 つ目は載らない。",
+  }, (p: PhaseBuilder) => p.activate("twCard", "fbCard", "liCard", "rdCard").set("shares", '[["tw",245],["fb",89],["li",32],["rd",18],["hn",6]]').badge("バズ"))
   .build();
 export const subtitle__socialShareButtons = "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で拡散カウント 0 → 384 tween を可視化";
 

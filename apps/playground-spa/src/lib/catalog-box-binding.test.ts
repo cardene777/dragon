@@ -38,6 +38,12 @@ const DRIVEN = [
   "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
   "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
   "teamKpiComparison", "publishWorkflowSteps",
+  // #1032 の 5 本目 (残り 17 件、 これで 84 件が完了)
+  "teamPresenceStatus", "feedbackThumbRating", "startupOrgChart", "npsTrendKpi",
+  "postReactionPoll", "voiceMessagePlayback", "teamThreadSummary", "loginOtpVerify",
+  "prodLogTail", "opsAlertBanner", "serviceHealthGrid", "checkoutCartSummary",
+  "saasPricingTier", "checkoutCouponApply", "blogArticlePreview", "docsTocNav",
+  "socialShareButtons",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -101,8 +107,21 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
  */
 const SLICE_ONLY = new Set([
   "activity-feed", "chat-bubble", "commit-list", "event-log", "search-result",
-  "video-card", "terminal", "timeline-vertical",
+  "video-card", "terminal", "timeline-vertical", "user-presence",
 ]);
+/**
+ * `max` ではなく **実装に埋め込まれた固定値** で切る種別。
+ *
+ * `max` を渡していても件数には効かない (`max` を持たない種別もある)。
+ * 数はすべて `interactive-panel.tsx` の `slice(...)` から引いた。
+ */
+const FIXED_LIMIT: Record<string, number> = {
+  "voice-message": 40,
+  "otp-input": 6,
+  "service-health": 6,
+  "toc-nav": 6,
+  "share-buttons": 4,
+};
 function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined): string {
   const one = inputs.length === 1 ? inputs[0]![1] : undefined;
   const parse = (raw: string | undefined): unknown[] | undefined => {
@@ -175,8 +194,25 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
         return [r[0], colorOf(s), s.length > 5 ? s.slice(0, 4).toUpperCase() : s.toUpperCase()];
       }));
     }
-    default:
+    case "log-stream":
+      // **末尾** 5 行だけを出す (`slice(-5)`)。 他の種別と切る向きが逆で、
+      // 先頭を変えても絵が変わらず、末尾を変えた時だけ変わる。
+      // 重さは 0..3 に丸め、本文は 24 文字を超えると末尾を省く
+      return JSON.stringify(rows.slice(-5).map((r) => {
+        if (!Array.isArray(r)) return r;
+        const lv = Number(r[1]);
+        const msg = String(r[2] ?? "");
+        return [r[0], Number.isFinite(lv) ? Math.max(0, Math.min(3, Math.floor(lv))) : 1,
+          msg.length > 24 ? `${msg.slice(0, 23)}…` : msg];
+      }));
+    case "pricing-tier":
+      // 名前と価格の後、**3 つ目から 3 件まで** が特典として出る (index 2..4)
+      return JSON.stringify([rows[0], rows[1], ...rows.slice(2, 5)]);
+    default: {
+      const fixed = FIXED_LIMIT[kind];
+      if (fixed !== undefined) return JSON.stringify(cut(fixed));
       return JSON.stringify(SLICE_ONLY.has(kind) && typeof max === "number" ? cut(max) : rows);
+    }
   }
 }
 
@@ -271,6 +307,8 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     //
     // `map-pin` の上下左右は順位ではなく座標のため、別の検査 (§ 位置の説明) で見る。
     const RANK_INDEX: Record<string, number> = { "weather-forecast": 2 };
+    /** 画面に出る行数の上限。 切られた行は順位の対象にしない。 */
+    const VISIBLE_LIMIT: Record<string, number> = { "share-buttons": 4, "podium": 3 };
     /** 台の高さが並び順で決まる種別。 数の大小ではなく行の位置が順位になる。 */
     const RANK_BY_ORDER = new Set(["podium"]);
     const RANK = [
@@ -293,18 +331,23 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
           let rows: unknown;
           try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
           if (!Array.isArray(rows)) continue;
+          // 画面に出る範囲だけで順位を見る。 切られて見えない行を数に入れると、
+          // 「最も少ない」 が画面の外の行を指すことになる (実測 = 共有先を 5 つ渡すと
+          // 先頭 4 つしか出ないのに、5 つ目を含めて順位を付けていた)
+          const limit = VISIBLE_LIMIT[kind];
+          const shown: unknown[] = limit === undefined ? rows : rows.slice(0, limit);
           let values: number[];
           if (RANK_BY_ORDER.has(kind)) {
             // 並び順がそのまま順位。 先頭ほど大きいとみなすため降順の連番を当てる
-            values = rows.map((_, i) => rows.length - i);
+            values = shown.map((_, i) => shown.length - i);
           } else if (RANK_INDEX[kind] !== undefined) {
             const at = RANK_INDEX[kind]!;
-            const picked = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
+            const picked = shown.map((r) => (Array.isArray(r) ? r[at] : undefined));
             if (!picked.every((v) => typeof v === "number")) continue;
             values = picked as number[];
           } else {
             // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
-            const nums = rows.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
+            const nums = shown.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
             if (!nums.every((n) => n.length === 1)) continue;
             values = nums.map((n) => n[0] as number);
           }
@@ -327,7 +370,7 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
               }
               return best;
             };
-            const scores = rows.map(score);
+            const scores = shown.map(score);
             const top = Math.max(0, ...scores);
             const idx = top === 0 ? -1 : scores.indexOf(top);
             if (top > 0 && scores.filter((s) => s === top).length > 1) {

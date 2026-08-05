@@ -41,6 +41,12 @@ const DRIVEN = [
   "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
   "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
   "teamKpiComparison", "publishWorkflowSteps",
+  // #1032 の 5 本目 (残り 17 件、 これで 84 件が完了)
+  "teamPresenceStatus", "feedbackThumbRating", "startupOrgChart", "npsTrendKpi",
+  "postReactionPoll", "voiceMessagePlayback", "teamThreadSummary", "loginOtpVerify",
+  "prodLogTail", "opsAlertBanner", "serviceHealthGrid", "checkoutCartSummary",
+  "saasPricingTier", "checkoutCouponApply", "blogArticlePreview", "docsTocNav",
+  "socialShareButtons",
 ] as const;
 
 /**
