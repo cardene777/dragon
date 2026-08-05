@@ -38,6 +38,12 @@ const DRIVEN = [
   "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
   "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
   "teamKpiComparison", "publishWorkflowSteps",
+  // #1032 の 5 本目 (残り 17 件、 これで 84 件が完了)
+  "teamPresenceStatus", "feedbackThumbRating", "startupOrgChart", "npsTrendKpi",
+  "postReactionPoll", "voiceMessagePlayback", "teamThreadSummary", "loginOtpVerify",
+  "prodLogTail", "opsAlertBanner", "serviceHealthGrid", "checkoutCartSummary",
+  "saasPricingTier", "checkoutCouponApply", "blogArticlePreview", "docsTocNav",
+  "socialShareButtons",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -103,8 +109,19 @@ const SLICE_ONLY = new Set([
   "activity-feed", "chat-bubble", "commit-list", "event-log", "search-result",
   "video-card", "terminal", "timeline-vertical",
 ]);
-function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined): string {
-  const one = inputs.length === 1 ? inputs[0]![1] : undefined;
+/**
+ * `max` ではなく **実装に埋め込まれた固定値** で切る種別。
+ *
+ * `max` を渡していても件数には効かない (`max` を持たない種別もある)。
+ * 数はすべて `interactive-panel.tsx` の `slice(...)` から引いた。
+ */
+const FIXED_LIMIT: Record<string, number> = {
+  "otp-input": 6,
+  "service-health": 6,
+  "toc-nav": 6,
+  "share-buttons": 4,
+};
+function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined, minBound?: number): string {
   const parse = (raw: string | undefined): unknown[] | undefined => {
     if (raw === undefined) return undefined;
     try {
@@ -112,8 +129,129 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
       return Array.isArray(v) ? v : undefined;
     } catch { return undefined; }
   };
-  const rows = parse(one);
   const asIs = () => JSON.stringify(inputs);
+  /** 入力を field 名で引く (2 つ以上の入力から 1 つの絵を描く種別で使う)。 */
+  const input = (field: string): string | undefined =>
+    inputs.find(([name]) => name === field)?.[1];
+
+  // 入力を 2 つ以上取る種別は、1 入力前提の `rows` に乗らないため先に処理する。
+  // ここに書かないと、下の `if (!rows) return asIs()` で生の入力をそのまま返し、
+  // 種別ごとの加工が **一度も実行されない** (実測 = 波形の 40 本上限が dead code だった)
+  const num = (v: unknown): number => Number(v);
+  switch (kind) {
+    case "voice-message": {
+      // 振幅は先頭 40 本まで、**数として読めない要素は棒にしない** (描画側は `push` しない)。
+      // 各値は 0..1 に丸め、色が付く本数は `floor(本数 * 進み具合)` で決まる
+      // **数として読めない要素を捨ててから 40 本に切る**。 順序が逆だと、先頭 40 件に
+      // 不正値があった時に 41 件目が繰り上がらず、棒の本数が 1 本ずれる
+      const amps = parse(input("source")) ?? [];
+      const bars = amps.flatMap((v) => {
+        const n = num(v);
+        return Number.isFinite(n) ? [Math.max(0, Math.min(1, n))] : [];
+      }).slice(0, 40);
+      const rawP = num(input("progressSource"));
+      const p = Number.isFinite(rawP) ? Math.max(0, Math.min(1, rawP)) : 0;
+      return JSON.stringify({ bars, active: Math.floor(bars.length * p) });
+    }
+    case "kpi-trend-tile": {
+      // 折れ線は履歴の **最小と最大で正規化** して描く。 平行移動や等倍した並びは
+      // 同じ形になる。 差は `現在 - 前回` で、0 以上なら上向きの印になる
+      const hist = (parse(input("historySource")) ?? []).map(num).filter(Number.isFinite);
+      const lo = hist.length ? Math.min(...hist) : 0;
+      const hi = hist.length ? Math.max(...hist) : 1;
+      const range = hi - lo || 1;
+      const cur = num(input("source"));
+      const prev = num(input("prevSource"));
+      const delta = (Number.isFinite(cur) ? cur : 0) - (Number.isFinite(prev) ? prev : 0);
+      return JSON.stringify({
+        cur: Number.isFinite(cur) ? cur : 0,
+        delta,
+        up: delta >= 0,
+        spark: hist.map((v) => (v - lo) / range),
+      });
+    }
+    case "step-progress": {
+      // 現在位置は 0..(件数 - 1) に丸められる。 範囲の外を渡しても端で止まる
+      const steps = parse(input("stepsSource")) ?? [];
+      const raw = num(input("source"));
+      const cur = Number.isFinite(raw) ? Math.max(0, Math.min(steps.length - 1, raw)) : 0;
+      return JSON.stringify({ steps, cur });
+    }
+    case "breadcrumb": {
+      // 現在位置は **整数として読む** (`1.2` と `1.8` はどちらも 1 段目を指す)。
+      // 範囲の外なら末尾が現在になる (`-1` を渡すと末尾が濃くなる)
+      const items = (parse(input("source")) ?? []).map(String);
+      const raw = Number.parseInt(input("currentSource") ?? "", 10);
+      const cur = Number.isFinite(raw) && raw >= 0 && raw < items.length ? raw : items.length - 1;
+      return JSON.stringify({ items, cur });
+    }
+    case "order-status": {
+      // 現在位置は四捨五入してから 0..(件数 - 1) に丸める
+      const steps = parse(input("stepsSource")) ?? [];
+      const raw = num(input("source"));
+      const cur = Number.isFinite(raw) ? Math.max(0, Math.min(steps.length - 1, Math.round(raw))) : 0;
+      return JSON.stringify({ steps, cur });
+    }
+    case "song-queue": {
+      // `max` 件まで出し、現在位置は四捨五入する (範囲の外は -1 = どれも現在でない)
+      const songs = parse(input("source")) ?? [];
+      const raw = num(input("currentSource"));
+      return JSON.stringify({
+        shown: typeof max === "number" ? songs.slice(0, max) : songs,
+        cur: Number.isFinite(raw) ? Math.round(raw) : -1,
+      });
+    }
+    default:
+      break;
+  }
+  // 値の並びと **名前の並び** を別々に取る種別。 値は `max` を基準に伸ばし、
+  // 名前は文字としてそのまま出す。 名前だけを変えても絵は変わる (文字が出るため)
+  if (input("labelSource") !== undefined && input("source") !== undefined && inputs.length === 2) {
+    const vals = (parse(input("source")) ?? []).map((v) => {
+      const n = num(v);
+      return Number.isFinite(n) ? n : 0;
+    });
+    const base = max || 1;
+    // 名前は **値の件数ぶんだけ** 描かれる。 余った名前は画面に出ず、
+    // 足りない分は連番で補われる。 名前の並び全体を署名に入れると、
+    // 出ない名前を変えただけで「絵が変わった」 と誤認する
+    const names = (parse(input("labelSource")) ?? []).map(String);
+    return JSON.stringify({
+      bars: vals.map((v) => Math.max(0, Math.min(1, v / base))),
+      labels: vals.map((_, i) => names[i] ?? String(i + 1)),
+    });
+  }
+  if (kind === "attendance-grid") {
+    // 行の 2 つ目以降を真偽として読み、印の有無に変える。
+    // **列は人数ぶんだけ描かれる**。 人数を超えた真偽は升目にならないため署名に入れない
+    const members = (parse(input("membersSource")) ?? []).map(String);
+    const grid = (parse(input("source")) ?? []).flatMap((r) => {
+      if (!Array.isArray(r) || r.length < 2) return [];
+      return [[String(r[0]), ...members.map((_, i) => Boolean(r[i + 1]))]];
+    });
+    return JSON.stringify({ grid, members });
+  }
+  if (kind === "stacked-bar") {
+    // 2 系列の高さは `min` / `max` で正規化してから 0..1 に切り詰める。
+    // 値域の外に出た値は端で頭打ちになり、違う値が同じ高さの棒になる。
+    // 数として読めない要素は 0 として扱う (描画側が `map` で 0 に倒す)
+    const lo = minBound ?? 0;
+    const hi = max ?? 1;
+    const range = hi - lo || 1;
+    const norm = (raw: string | undefined) => (parse(raw) ?? []).map((v) => {
+      const n = num(v);
+      return Math.max(0, Math.min(1, ((Number.isFinite(n) ? n : 0) - lo) / range));
+    });
+    return JSON.stringify({ a: norm(input("sourceA")), b: norm(input("sourceB")) });
+  }
+
+  const one = inputs.length === 1 ? inputs[0]![1] : undefined;
+  const rows = parse(one);
+  // 入力が 2 つ以上あるのにここへ届いたら、その種別の射影を書き忘れている。
+  // 生の値で比べる形に静かに落とすと、描画側の加工で同じ絵になる段を見逃す
+  if (!rows && inputs.length > 1) {
+    throw new Error(`複数入力の射影が未実装: ${kind} (入力 ${inputs.map(([f]) => f).join(" / ")})`);
+  }
   if (!rows) return asIs();
   const at = (r: unknown, i: number): number =>
     Array.isArray(r) && typeof r[i] === "number" ? (r[i] as number) : Number.NaN;
@@ -175,8 +313,37 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
         return [r[0], colorOf(s), s.length > 5 ? s.slice(0, 4).toUpperCase() : s.toUpperCase()];
       }));
     }
-    default:
+    case "user-presence": {
+      // `max` 件まで出し、**溢れた件数を「+N more」 として描く**。
+      // 溢れ件数を落とすと、先頭が同じで人数だけ違う 2 段を同じ絵とみなす。
+      // 名前は 24 文字を超えると末尾を省き、状態は小文字にして色を引く
+      const users = rows.flatMap((r) => {
+        if (!Array.isArray(r) || r.length < 2) return [];
+        const name = String(r[0]);
+        return [[name.length > 24 ? `${name.slice(0, 23)}…` : name, String(r[1]).toLowerCase()]];
+      });
+      const lim = typeof max === "number" ? max : users.length;
+      return JSON.stringify({ shown: users.slice(0, lim), overflow: Math.max(0, users.length - lim) });
+    }
+    case "log-stream":
+      // **末尾** 5 行だけを出す (`slice(-5)`)。 他の種別と切る向きが逆で、
+      // 先頭を変えても絵が変わらず、末尾を変えた時だけ変わる。
+      // 重さは 0..3 に丸め、本文は 24 文字を超えると末尾を省く
+      return JSON.stringify(rows.slice(-5).map((r) => {
+        if (!Array.isArray(r)) return r;
+        const lv = Number(r[1]);
+        const msg = String(r[2] ?? "");
+        return [r[0], Number.isFinite(lv) ? Math.max(0, Math.min(3, Math.floor(lv))) : 1,
+          msg.length > 24 ? `${msg.slice(0, 23)}…` : msg];
+      }));
+    case "pricing-tier":
+      // 名前と価格の後、**3 つ目から 3 件まで** が特典として出る (index 2..4)
+      return JSON.stringify([rows[0], rows[1], ...rows.slice(2, 5)]);
+    default: {
+      const fixed = FIXED_LIMIT[kind];
+      if (fixed !== undefined) return JSON.stringify(cut(fixed));
       return JSON.stringify(SLICE_ONLY.has(kind) && typeof max === "number" ? cut(max) : rows);
+    }
   }
 }
 
@@ -271,6 +438,8 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     //
     // `map-pin` の上下左右は順位ではなく座標のため、別の検査 (§ 位置の説明) で見る。
     const RANK_INDEX: Record<string, number> = { "weather-forecast": 2 };
+    /** 画面に出る行数の上限。 切られた行は順位の対象にしない。 */
+    const VISIBLE_LIMIT: Record<string, number> = { "share-buttons": 4, "podium": 3 };
     /** 台の高さが並び順で決まる種別。 数の大小ではなく行の位置が順位になる。 */
     const RANK_BY_ORDER = new Set(["podium"]);
     const RANK = [
@@ -293,18 +462,23 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
           let rows: unknown;
           try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
           if (!Array.isArray(rows)) continue;
+          // 画面に出る範囲だけで順位を見る。 切られて見えない行を数に入れると、
+          // 「最も少ない」 が画面の外の行を指すことになる (実測 = 共有先を 5 つ渡すと
+          // 先頭 4 つしか出ないのに、5 つ目を含めて順位を付けていた)
+          const limit = VISIBLE_LIMIT[kind];
+          const shown: unknown[] = limit === undefined ? rows : rows.slice(0, limit);
           let values: number[];
           if (RANK_BY_ORDER.has(kind)) {
             // 並び順がそのまま順位。 先頭ほど大きいとみなすため降順の連番を当てる
-            values = rows.map((_, i) => rows.length - i);
+            values = shown.map((_, i) => shown.length - i);
           } else if (RANK_INDEX[kind] !== undefined) {
             const at = RANK_INDEX[kind]!;
-            const picked = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
+            const picked = shown.map((r) => (Array.isArray(r) ? r[at] : undefined));
             if (!picked.every((v) => typeof v === "number")) continue;
             values = picked as number[];
           } else {
             // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
-            const nums = rows.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
+            const nums = shown.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
             if (!nums.every((n) => n.length === 1)) continue;
             values = nums.map((n) => n[0] as number);
           }
@@ -327,7 +501,7 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
               }
               return best;
             };
-            const scores = rows.map(score);
+            const scores = shown.map(score);
             const top = Math.max(0, ...scores);
             const idx = top === 0 ? -1 : scores.indexOf(top);
             if (top > 0 && scores.filter((s) => s === top).length > 1) {
@@ -391,6 +565,8 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
         if (fields.length === 0) continue;
         const kind = typeof r.kind === "string" ? r.kind : "";
         const max = typeof r.max === "number" ? r.max : undefined;
+        // 積み上げ棒は `min` と `max` の 2 つで高さを正規化する
+        const minBound = typeof r.min === "number" ? r.min : undefined;
         let prev: string | undefined;
         for (let i = 0; i < phases.length; i += 1) {
           // 状態の実効値は文字列か数値で入る (`sets` の `value` は `string | number`)。
@@ -400,7 +576,7 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
             const raw = values[s];
             return [f, typeof raw === "string" || typeof raw === "number" ? String(raw) : ""] as [string, string];
           });
-          const sig = visibleSignature(kind, inputs, max);
+          const sig = visibleSignature(kind, inputs, max, minBound);
           if (prev !== undefined && sig === prev) {
             bad.push(`${k}/${String(r.id)}[段${i}]: 前段と描画結果が同じ`);
           }
