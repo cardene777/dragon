@@ -39,37 +39,44 @@ export function motionOf(diagram: CdlDiagram): Motion {
     ...(diagram.formulas ?? []).map((f) => f.id),
     ...(diagram.scrollTriggers ?? []).map((t) => t.id),
   ]);
-  const initial = new Map<string, string>();
-  for (const s of diagram.states ?? []) initial.set(s.id, String(s.initial));
+  // 画面に出る値を段の順に組み立てる。 **描画側と同じ順で重ねる**
+  // (`computeStateValues` は同じ段の中で `set` を順に適用してから `tween` が上書きし、
+  // 過ぎた段の `tween` は終点で落ち着く)。 宣言された値を全て並べる形にすると、
+  // 画面に一度も出ない途中の指定まで動きに数えてしまう
+  const effective = new Map<string, string>();
+  for (const s of diagram.states ?? []) effective.set(s.id, String(s.initial));
 
-  // 状態ごとに、段を通して取る値を順に並べる。 2 種類以上あれば動いている
-  const values = new Map<string, string[]>();
-  const trackOf = (id: string): string[] => {
-    let track = values.get(id);
-    if (!track) {
-      track = initial.has(id) ? [initial.get(id)!] : [];
-      values.set(id, track);
-    }
-    return track;
+  // 状態ごとに、画面に出た値を段ごとに記録する。 2 種類以上あれば動いている
+  const seen = new Map<string, Set<string>>();
+  const record = (id: string): void => {
+    const value = effective.get(id);
+    if (value === undefined) return;
+    const set = seen.get(id) ?? new Set<string>();
+    set.add(value);
+    seen.set(id, set);
   };
+  for (const id of effective.keys()) record(id);
+
   const continuous = new Set<string>();
   for (const phase of diagram.phases ?? []) {
-    for (const t of phase.tweens ?? []) {
-      if (owned.has(t.stateId)) continue;
-      const from = (t as { from?: unknown }).from;
-      const to = (t as { to?: unknown }).to;
-      trackOf(t.stateId).push(String(from), String(to));
-      // 始点と終点が同じ tween は動かない (`tween(x, 50, 50)`)
-      if (String(from) !== String(to)) continuous.add(t.stateId);
-    }
     for (const s of phase.sets ?? []) {
       if (owned.has(s.stateId)) continue;
-      trackOf(s.stateId).push(String((s as { value?: unknown }).value));
+      effective.set(s.stateId, String((s as { value?: unknown }).value));
     }
+    for (const t of phase.tweens ?? []) {
+      if (owned.has(t.stateId)) continue;
+      const from = String((t as { from?: unknown }).from);
+      const to = String((t as { to?: unknown }).to);
+      // 始点と終点が同じ tween は段の中で動かない (`tween(x, 50, 50)`)。
+      // それでも終点が持ち越した値と違えば、段の境界で一度に変わる
+      if (from !== to) continuous.add(t.stateId);
+      effective.set(t.stateId, to);
+    }
+    for (const id of effective.keys()) if (!owned.has(id)) record(id);
   }
 
   if (continuous.size > 0) return "continuous";
-  for (const track of values.values()) if (new Set(track).size >= 2) return "step";
+  for (const values of seen.values()) if (values.size >= 2) return "step";
   return "none";
 }
 

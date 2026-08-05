@@ -6,7 +6,9 @@
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
+import { PRESETS } from "./presets";
 import { motionOf, motionNote } from "./catalog-motion";
 
 /**
@@ -38,17 +40,25 @@ const CONTINUOUS_WORDS = [
 /**
  * 画面に出る全ての説明。
  *
- * `subtitle` が SSOT で、`subtitle__X` を持たない図は `diagram.topic` が入る。
+ * 一覧は `CatalogItem.subtitle` が SSOT で、`subtitle__X` を持たない図は `diagram.topic` が入る。
  * `parts` は画面側で後から読み込む形なので明示的に足す (足さないと 80 件が範囲から漏れる)。
+ *
+ * **preset の詳細画面は別の入れ物を使う**。 `PresetDetailPage` は `CatalogItem` を経由せず
+ * `PRESETS` の説明を直に出すため、ここを足さないとその画面の説明が範囲から漏れる。
  */
-async function allItems(): Promise<Array<{ category: string; item: CatalogItem }>> {
-  const out: Array<{ category: string; item: CatalogItem }> = [];
+async function allDescriptions(): Promise<Array<{ where: string; name: string; text: string; diagram: CdlDiagram }>> {
+  const out: Array<{ where: string; name: string; text: string; diagram: CdlDiagram }> = [];
   const byCategory: Record<string, CatalogItem[]> = {
     ...CATALOG_ITEMS,
     parts: await loadPartsItems(),
   };
   for (const [category, items] of Object.entries(byCategory)) {
-    for (const item of items) out.push({ category, item });
+    for (const item of items) {
+      out.push({ where: category, name: item.title, text: item.subtitle, diagram: item.diagram });
+    }
+  }
+  for (const preset of PRESETS) {
+    out.push({ where: "preset 詳細", name: preset.id, text: preset.subtitle, diagram: preset.diagram });
   }
   return out;
 }
@@ -105,6 +115,33 @@ describe("動きの記述 (#1043)", () => {
     expect(motionOf(diagramWith({ sets: [{ id: "a", value: 0 }, { id: "b", value: 1 }] }))).toBe("step");
   });
 
+  it("画面に出ない途中の指定を動きに数えない", () => {
+    // 描画側は同じ段の中で `set` を順に適用してから `tween` が上書きする
+    // (`computeStateValues`)。 宣言された値を全て並べる形にすると、画面に一度も出ない
+    // 途中の指定まで数えてしまう
+    const overridden = {
+      id: "x", nodes: [], states: [{ id: "a", initial: 0 }],
+      phases: [{
+        id: "p1",
+        // 同じ段で set が 2 回 = 最後だけが見える、 さらに tween が上書きする
+        sets: [{ stateId: "a", value: 7 }, { stateId: "a", value: 9 }],
+        tweens: [{ stateId: "a", from: 0, to: 0 }],
+      }],
+    } as unknown as Parameters<typeof motionOf>[0];
+    expect(motionOf(overridden), "上書きされて消える値を数えている").toBe("none");
+
+    // 上書きの結果が初期値と違えば、段の境界で一度に変わる
+    const lands = {
+      id: "x", nodes: [], states: [{ id: "a", initial: 0 }],
+      phases: [{
+        id: "p1",
+        sets: [{ stateId: "a", value: 7 }],
+        tweens: [{ stateId: "a", from: 5, to: 5 }],
+      }],
+    } as unknown as Parameters<typeof motionOf>[0];
+    expect(motionOf(lands), "上書き後の値の変化を見落としている").toBe("step");
+  });
+
   it("入力欄 / 計算式が握る状態は動きに数えない", () => {
     // 握られている状態は実行時に上書きされるため、段で動かしても画面に届かない。
     // 数えると、画面が動かない図に「連続して動く」 と書くことになる
@@ -157,15 +194,15 @@ describe("動きの記述 (#1043)", () => {
     // 他の種別が範囲の外だった (実測 = `animation` と `parts` の 9 件が見られていなかった)。
     //
     // **画面に出る説明を全件見る**。 判定の中身は変わらないが、範囲が画面と一致する
-    const items = await allItems();
-    expect(items.length, "図が 1 件も見つからない").toBeGreaterThan(400);
+    const descriptions = await allDescriptions();
+    expect(descriptions.length, "説明が 1 件も見つからない").toBeGreaterThan(430);
 
     const bad: string[] = [];
-    for (const { category, item } of items) {
-      const found = CONTINUOUS_WORDS.filter((re) => re.test(item.subtitle)).map((re) => re.source);
+    for (const { where, name, text, diagram } of descriptions) {
+      const found = CONTINUOUS_WORDS.filter((re) => re.test(text)).map((re) => re.source);
       if (!found.length) continue;
-      if (motionOf(item.diagram) === "continuous") continue;
-      bad.push(`${category}/${item.title}: ${found.join(" / ")} と語るが ${motionOf(item.diagram)}`);
+      if (motionOf(diagram) === "continuous") continue;
+      bad.push(`${where}/${name}: ${found.join(" / ")} と語るが ${motionOf(diagram)}`);
     }
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
