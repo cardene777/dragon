@@ -2696,7 +2696,7 @@ export const subtitle__commitDiffCounter = "git PR diff を 2-lane (Additions +N
  * 63. chat-bubble = customer support conversation 5 message、 self/other 左右寄せ表示。
  */
 export const supportChat = diagram("interactive-support-chat", {
-  topic: "問い合わせ 5 往復を客 / 担当で分ける",
+  topic: "問い合わせ 5 通を客 / 担当で分ける",
 })
   .lane("customer", { x: 0, width: 280 })
   .lane("support", { x: 320, width: 320 })

@@ -11,19 +11,19 @@ import { test, expect } from "@playwright/test";
 const SPA_URL = "http://localhost:4323";
 
 /**
- * interactive カテゴリの export 名。
+ * 表示名の表に載っている名前 (= 一覧に出てよい名前)。
  *
- * **名前の形では判定しない**。 形で見ると `websocket` のような小文字 1 語の export 名を
- * 見逃し、`iPhone` のような正しい英語名を誤って弾く。 export 名そのものと突き合わせる。
+ * **手で列挙しない**。 前の形は 15 件を手書きしており、interactive 129 件のうち
+ * 13 件しか見ていなかった。 表に載っていない文字列が一覧に出たら、表示名が引けずに
+ * export 名がそのまま出ている。
  *
- * 一覧に出た名前がこの集合に入っていたら、表示名が引けずに export 名が出ている。
+ * 名前の形 (camelCase かどうか) では判定しない。 形で見ると `websocket` のような
+ * 小文字 1 語の export 名を見逃し、`iPhone` のような正しい英語名を誤って弾く。
  */
-const EXPORT_NAMES = new Set([
-  "inputSliderBar", "formulaTextBind", "scrollNarrative", "clickToggle",
-  "interactiveOauthFlow", "shapeChainFill", "repeatDeriveChain", "decisionTree",
-  "userVenn", "supportChat", "mlConfidenceMeter", "shippingOrderStatus",
-  "eventVariety", "websocket", "pagination",
-]);
+import { ITEM_NAME_JA, ITEM_NAME_EN } from "../src/lib/i18n";
+
+const ALLOWED_JA = new Set(Object.values(ITEM_NAME_JA));
+const ALLOWED_EN = new Set(Object.values(ITEM_NAME_EN));
 
 test.describe("catalog の一覧の名前 (#1035)", () => {
   test("言語を切り替えると一覧の名前が変わる", async ({ page }) => {
@@ -52,8 +52,8 @@ test.describe("catalog の一覧の名前 (#1035)", () => {
       .filter(Boolean);
     expect(names.length, "一覧が空 (検査が空振りしている)").toBeGreaterThan(50);
 
-    const idents = names.filter((n) => EXPORT_NAMES.has(n));
-    expect(idents, `export 名がそのまま出ている: ${idents.slice(0, 6).join(", ")}`).toHaveLength(0);
+    const unknown = names.filter((n) => !ALLOWED_EN.has(n));
+    expect(unknown, `表に無い名前が出ている (export 名の可能性): ${unknown.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   test("日本語表示でも export 名がそのまま出ない", async ({ page }) => {
@@ -66,8 +66,8 @@ test.describe("catalog の一覧の名前 (#1035)", () => {
       .filter(Boolean);
     expect(names.length, "一覧が空 (検査が空振りしている)").toBeGreaterThan(50);
 
-    const idents = names.filter((n) => EXPORT_NAMES.has(n));
-    expect(idents, `export 名がそのまま出ている: ${idents.slice(0, 6).join(", ")}`).toHaveLength(0);
+    const unknown = names.filter((n) => !ALLOWED_JA.has(n));
+    expect(unknown, `表に無い名前が出ている (export 名の可能性): ${unknown.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   test("英語表示の名前で検索できる", async ({ page }) => {
