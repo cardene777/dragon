@@ -65,6 +65,13 @@
   max-width: 780px;
   margin: 0 0 24px;
 }
+/* 動きの種類 = 人が書かず図から導く 1 文 (#1043)。 説明より一段弱く出す */
+.nm-hero-motion {
+  font-size: 13px;
+  color: var(--v4-ink-dim);
+  opacity: 0.85;
+  margin: -18px 0 24px;
+}
 .nm-hero-actions {
   display: flex;
   align-items: center;

@@ -332,6 +332,19 @@ html.dark .catalog-preview-sub {
   color: #d0c0a5;
 }
 
+/* 動きの種類 = 人が書かず図から導く 1 文 (#1043)。 説明より一段弱く出す */
+.catalog-preview-motion,
+.cdl-modal-motion {
+  font-size: 12.5px;
+  color: var(--v4-ink-dim);
+  opacity: 0.85;
+  margin: 4px 0 0;
+}
+html.dark .catalog-preview-motion,
+html.dark .cdl-modal-motion {
+  color: #b9ab92;
+}
+
 /* 拡大 button = 右上絶対配置ではなく preview header 右端に inline 配置 */
 .catalog-expand-btn {
   display: inline-flex;

@@ -12,6 +12,7 @@
 import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 
+
 /**
  * 段で表示部品を動かせる図。
  *
@@ -195,34 +196,9 @@ describe("手本の形 (#1033)", () => {
   // する種別 (割合で伸びる帯 / 0 件を出さない札 / 件数上限) で違う値から同じ絵が出るため、
   // engine を通して描画結果で比べる側に一本化した。
 
-  it("一覧の説明が語る動きの種類が、段の実装と一致する", () => {
-    // 一覧の説明 (`subtitle__X`) に「連続して動く」 と読める語を書くと、段の中で値が
-    // 滑らかに変わると読まれる。 段が `set` だけで差し替える図では、実際は段の切替時に
-    // 一度で変わる (実測 = 段を `set` に直した 10 図で説明だけ `tween` のまま残っていた)。
-    //
-    // **語を 1 つだけ見る形にしない**。 `tween` を「連続変化」 に書き換えるだけで
-    // 同じ誤りを書き戻せてしまう
-    // 語の後ろを限定しない。 限定すると活用形で迂回できる
-    // (実測 = `連続変化` は当たるが `連続して動く` / `連続する` は当たらなかった)
-    const CONTINUOUS = [
-      /tween/i,
-      /連続/,
-      /徐々/,
-      /なめらか|滑らか/,
-      /少しずつ/,
-      /補間/,
-    ];
-    const bad: string[] = [];
-    for (const k of DRIVEN) {
-      const caption = (mod as unknown as Record<string, unknown>)[`subtitle__${k}`];
-      if (typeof caption !== "string") continue;
-      const claim = CONTINUOUS.find((re) => re.test(caption));
-      if (!claim) continue;
-      const hasTween = (mod[k]?.phases ?? []).some((p) => (p.tweens ?? []).length > 0);
-      if (!hasTween) bad.push(`${k}: 説明は連続した動きを語るが段は set だけ`);
-    }
-    expect(bad, `説明と段の動きが合わない: ${bad.join(", ")}`).toHaveLength(0);
-  });
+  // 説明が語る動きと実装の突き合わせは `catalog-motion.test.ts` が見る。
+  // 画面に出る説明は `CatalogItem.subtitle` が SSOT で、`subtitle__X` を持たない図は
+  // `diagram.topic` が説明になる。 この module の export だけを見ると後者を見落とす。
 
   it("段は入力欄も計算式も握る状態を触らない", () => {
     // どちらも実行時に段の値を上書きする。 書いてあると「動くはず」 と誤読される

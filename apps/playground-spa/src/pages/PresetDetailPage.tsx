@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
 import { PRESETS } from "@/lib/presets";
+import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
@@ -98,6 +99,10 @@ export function PresetDetailPage(): React.ReactElement {
             {preset.title} <span className="nm-gradient-accent">プリセット</span>
           </h1>
           <p className="nm-hero-subtitle">{preset.subtitle}</p>
+          {/* 動きの種類は人が書かず図から導く (#1043)。 SSOT = catalog-motion.ts */}
+          {motionNote(preset.diagram) && (
+            <p className="nm-hero-motion">{motionNote(preset.diagram)}</p>
+          )}
           <div className="nm-hero-actions">
             <Link to={`/editor#preset=${preset.slug}`} className="nm-hero-btn nm-hero-btn-primary">
               <span>エディタで開く</span>
