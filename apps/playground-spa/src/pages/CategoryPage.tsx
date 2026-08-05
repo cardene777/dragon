@@ -6,7 +6,7 @@ import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
-import { itemName, itemNameJa } from "@/lib/i18n";
+import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
@@ -147,12 +147,16 @@ export function CategoryPage(): React.ReactElement {
     if (!query.trim()) return items;
     const q = query.toLowerCase();
     return items.filter((item) => {
-      const jaName = itemNameJa(item.title).toLowerCase();
+      // **画面に出ている名前で引けること** が要る。 日本語名だけを見ていると、
+      // 英語表示で見えている名前を打っても消える (実測 = `Medical triage` が引けなかった)
+      const ja = itemNameJa(item.title).toLowerCase();
+      const en = itemNameEn(item.title).toLowerCase();
       return (
         item.title.toLowerCase().includes(q) ||
         item.subtitle.toLowerCase().includes(q) ||
         item.id.toLowerCase().includes(q) ||
-        jaName.includes(q)
+        ja.includes(q) ||
+        en.includes(q)
       );
     });
   }, [items, query]);
