@@ -5,7 +5,7 @@
  * 語らなくなっているため、**画面から動きの情報が丸ごと落ちる** 形になる。
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 import { PRESETS } from "./presets";
@@ -244,14 +244,25 @@ describe("動きの記述 (#1043)", () => {
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
 
-  it("説明を出す画面が、導いた一文も出している", () => {
-    // 説明が出る画面は 3 経路ある (一覧の中 / 拡大表示 / preset 詳細)。
-    // 出さない経路が残ると、そこでは説明だけが単独で出る
-    const pages = ["../pages/CategoryPage.tsx", "../pages/PresetDetailPage.tsx"];
-    for (const page of pages) {
-      const src = readFileSync(new URL(page, import.meta.url), "utf8");
-      const uses = (src.match(/motionNote/g) ?? []).length;
-      expect(uses, `${page} が導いた一文を出していない`).toBeGreaterThanOrEqual(2);
+  it("説明を出す file は、導いた一文も出している", () => {
+    // **file を数え上げず、説明を出す file を探して全件見る** (#1053)。
+    // 数え上げる形は経路が増えた時に気付けない (実測 = editor の tooltip が
+    // `subtitle` だけを出しており、review で初めて見つかった)
+    const roots = [new URL("../pages/", import.meta.url), new URL("../components/", import.meta.url)];
+    const checked: string[] = [];
+    const bad: string[] = [];
+    for (const root of roots) {
+      for (const name of readdirSync(root)) {
+        if (!name.endsWith(".tsx")) continue;
+        const src = readFileSync(new URL(name, root), "utf8");
+        // 説明を画面に出しているか (`.subtitle` を JSX か文字列に埋めている)
+        if (!/\{[^{}]*\.subtitle[^{}]*\}/.test(src)) continue;
+        checked.push(name);
+        if (!src.includes("motionNote")) bad.push(name);
+      }
     }
+    // 検査が空振りしていないこと (説明を出す file を 1 つも見つけられない形)
+    expect(checked.length, "説明を出す file が 1 つも見つからない").toBeGreaterThan(1);
+    expect(bad, `説明だけを出している file: ${bad.join(", ")}`).toHaveLength(0);
   });
 });
