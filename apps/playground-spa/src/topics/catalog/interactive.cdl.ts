@@ -43,12 +43,12 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
   .phase("p2", {
     duration: 1600,
     title: "値が渡る",
-    body: "つまみと棒を結ぶ線を通って `value` が右へ渡る。 棒の説明に同じ値が出る。 2 つの箱が同じ値を見ている状態。",
+    body: "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。",
   }, (p: PhaseBuilder) => p.activate("sliderNode", "bar-node"))
   .phase("p3", {
     duration: 1600,
-    title: "棒の高さになる",
-    body: "渡った値が棒の高さとして描かれる。 つまみを動かすと高さが追いかける。 値 1 つが見た目に変わるまでの 3 手。",
+    title: "説明欄に出る",
+    body: "渡った値が右の箱の説明欄に出る。 図形の大きさは変わらず、文字として反映される経路。",
   }, (p: PhaseBuilder) => p.activate("bar-node"))
 .build();
 export const subtitle__inputSliderBar = "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化";
@@ -107,18 +107,18 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
   .node("c", { lane: "s3", stack: 0, kind: "card", title: "Step 3", subtitle: "progress: {intro}" })
   .phase("p1", {
     duration: 1600,
-    title: "1 つ目に入る",
-    body: "画面を下げると 1 つ目の区切りに入る。 ここで最初の箱が点く。",
+    title: "1 箱で見る",
+    body: "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。",
   }, (p: PhaseBuilder) => p.activate("a"))
   .phase("p2", {
     duration: 1600,
-    title: "2 つ目に進む",
-    body: "さらに下げると 2 つ目に入る。 1 つ目は点いたまま、2 つ目が加わる。",
+    title: "2 箱で見る",
+    body: "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。",
   }, (p: PhaseBuilder) => p.activate("a", "b"))
   .phase("p3", {
     duration: 1600,
-    title: "3 つ目まで届く",
-    body: "最後まで下げると 3 つ目が点く。 画面の位置が 3 つの区切りに対応している。",
+    title: "3 箱が同時に追う",
+    body: "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。",
   }, (p: PhaseBuilder) => p.activate("a", "b", "c"))
 .build();
 export const subtitle__scrollNarrative = "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随";
@@ -152,8 +152,8 @@ export const clickToggle = diagram("interactive-click-toggle", {
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode"))
   .phase("p3", {
     duration: 1600,
-    title: "値が変わる",
-    body: "受け取り手が値を書き換える。 押すたびに入りと切りが入れ替わる。",
+    title: "書き換えを宣言する",
+    body: "受け取り手が値を書き換える宣言。 実際に動かすには使う側が受け取り手を渡す必要があり、この見本では宣言の形だけを示す。",
   }, (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode"))
 .build();
 export const subtitle__clickToggle = "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";
@@ -455,18 +455,18 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" } })
   .phase("p1", {
     duration: 1600,
-    title: "1 つ目に入る",
-    body: "元の値が 1 つ目の四角の塗りになる。 つまみを動かすと、この四角だけが先に反応する。",
+    title: "等倍で見る",
+    body: "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。",
   }, (p: PhaseBuilder) => p.activate("r1"))
   .phase("p2", {
     duration: 1600,
-    title: "2 つ目へ渡る",
-    body: "1 つ目の値から計算式で 2 つ目の塗りが決まる。 前の値を受けて次が決まる。",
+    title: "1.2 倍で見る",
+    body: "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。",
   }, (p: PhaseBuilder) => p.activate("r1", "r2"))
   .phase("p3", {
     duration: 1600,
-    title: "3 つ目まで届く",
-    body: "同じ形で 3 つ目まで繋がる。 元を 1 つ動かすと 3 つが連なって変わる。",
+    title: "1.5 倍で見る",
+    body: "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。",
   }, (p: PhaseBuilder) => p.activate("r1", "r2", "r3"))
 .build();
 
@@ -652,7 +652,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .phase("p4", {
     duration: 1600,
     title: "つまみで動かす",
-    body: "右端はつまみで角の数と大きさを変えられる。 3 つの見本と見比べる。",
+    body: "右端はつまみで回転角と大きさを変えられる。 角の数は固定で、3 つの見本と見比べる。",
   }, (p: PhaseBuilder) => p.activate("polyTri", "polyHex", "polyOct", "p"))
 .build();
 export const subtitle__shapePolyRotate = "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較";
@@ -807,7 +807,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   .phase("p3", {
     duration: 1600,
     title: "受け手まで届く",
-    body: "線を流れる点が受け手に届く。 信号 1 つで太さと流れの両方が変わる。",
+    body: "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。",
   }, (p: PhaseBuilder) => p.activate("a", "pipeNode", "b"))
 .build();
 export const subtitle__edgeFlowBind = "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
@@ -908,18 +908,18 @@ export const eventVariety = diagram("interactive-event-variety", {
   .on.longPress({ kind: "node", id: "btn3" }, "on-long")
   .phase("p1", {
     duration: 1600,
-    title: "押した時",
-    body: "1 つ目のボタンは押した時に反応する。 最も基本の受け取り方で、指を離すまで待たない。",
+    title: "2 回押す",
+    body: "1 つ目は 2 回続けて押した時だけ反応する。 1 回では動かない。",
   }, (p: PhaseBuilder) => p.activate("btn1"))
   .phase("p2", {
     duration: 1600,
-    title: "重ねる",
-    body: "2 つ目は指を重ねた時に反応する。 押さなくても届く。",
+    title: "文字を打つ",
+    body: "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。",
   }, (p: PhaseBuilder) => p.activate("btn1", "btn2"))
   .phase("p3", {
     duration: 1600,
-    title: "離した時",
-    body: "3 つ目は離した時に反応する。 押した時 / 重ねた時 と並べると、受け取る瞬間の違いが分かる。",
+    title: "長く押す",
+    body: "3 つ目は押したまま一定時間たつと反応する。 2 回押す / 文字を打つ と並べると、受け取り方の幅が分かる。",
   }, (p: PhaseBuilder) => p.activate("btn1", "btn2", "btn3"))
 .build();
 export const subtitle__eventVariety = "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind";
@@ -1447,13 +1447,13 @@ export const decisionTree = diagram("interactive-decision-tree", {
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2"))
   .phase("p3", {
     duration: 1600,
-    title: "2 段目で分かれる",
-    body: "それぞれがもう一度分かれる。 道が 4 つになる。",
+    title: "左の枝が分かれる",
+    body: "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4"))
   .phase("p4", {
     duration: 1600,
-    title: "葉に着く",
-    body: "4 つの終点すべてに届く。 3 段の判断で 4 通りの結果になる。",
+    title: "右の枝も分かれる",
+    body: "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。",
   }, (p: PhaseBuilder) => p.activate("node-0", "node-1", "node-2", "node-3", "node-4", "node-5", "node-6"))
 .build();
 export const subtitle__decisionTree = "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示";

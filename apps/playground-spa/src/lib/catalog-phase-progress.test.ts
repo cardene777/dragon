@@ -22,8 +22,15 @@ const TARGETS = [
 
 type Diagram = {
   readouts?: unknown[];
+  inputs?: Array<{ id?: string }>;
   nodes?: Array<{ id?: string }>;
-  phases?: Array<{ activate?: string[]; title?: string; body?: string }>;
+  phases?: Array<{
+    activate?: string[];
+    tweens?: unknown[];
+    sets?: unknown[];
+    title?: string;
+    body?: string;
+  }>;
 };
 
 const mod = Interactive as unknown as Record<string, Diagram>;
@@ -54,6 +61,43 @@ describe("段の進行 (#1034)", () => {
       return new Set(sets).size < sets.length;
     });
     expect(dup, `同じ組合せの段がある: ${dup.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段は状態を一切動かさない", () => {
+    // 本 PR の中核。 これらの図の状態は入力欄が握っており、段で動かしても上書きされる。
+    // 書いてあると「動くはず」 と誤読されるため、1 つも無いことを固定する
+    const bad: string[] = [];
+    for (const k of TARGETS) {
+      for (const [i, p] of (mod[k]?.phases ?? []).entries()) {
+        if ((p.tweens ?? []).length > 0) bad.push(`${k}[${i}]: tween`);
+        if ((p.sets ?? []).length > 0) bad.push(`${k}[${i}]: set`);
+      }
+    }
+    expect(bad, `段が状態を動かしている: ${bad.join(", ")}`).toHaveLength(0);
+  });
+
+  it("注目する箱が段を追うごとに増える (最終段の絞り込みは除く)", () => {
+    // 「異なる」 だけでは、順序を入れ替える変異や無関係な箱への差し替えを検出できない。
+    // 進行は積み上げが基本で、箱が 2 個しかない図だけ最終段で絞る
+    const NARROW = new Set(["inputSliderBar", "renderOffsetDrift"]);
+    const bad: string[] = [];
+    for (const k of TARGETS) {
+      const ph = mod[k]?.phases ?? [];
+      for (let i = 1; i < ph.length; i += 1) {
+        const prev = new Set(ph[i - 1]!.activate ?? []);
+        const cur = ph[i]!.activate ?? [];
+        const isLast = i === ph.length - 1;
+        if (NARROW.has(k) && isLast) {
+          // 絞る段は、直前の集合に含まれる箱だけを指す
+          const outside = cur.filter((a) => !prev.has(a));
+          if (outside.length > 0) bad.push(`${k}[${i}]: 絞る段が新しい箱を出した (${outside.join(",")})`);
+          continue;
+        }
+        const dropped = [...prev].filter((a) => !cur.includes(a));
+        if (dropped.length > 0) bad.push(`${k}[${i}]: 前段の箱が消えた (${dropped.join(",")})`);
+      }
+    }
+    expect(bad, `段の進行が積み上がっていない: ${bad.join(", ")}`).toHaveLength(0);
   });
 
   it("光らせる箱が実在する", () => {
