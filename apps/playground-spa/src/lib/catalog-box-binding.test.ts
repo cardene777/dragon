@@ -33,6 +33,11 @@ const DRIVEN = [
   "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
   "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
   "yearRoadmap", "weekWeather",
+  // #1032 の 4 本目
+  "tutorialVideoCards", "teamAttendanceGrid", "globalTimezoneClock", "signupFormSummary",
+  "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
+  "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
+  "teamKpiComparison", "publishWorkflowSteps",
 ] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
@@ -363,6 +368,48 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       }
     }
     expect(bad, `段を進めても表示が変わらない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱が語る有無が、段の渡す真偽と一致する", () => {
+    // 順位でも位置でもなく「その行が印を持つか」 を語る箱がある。 描画側は真偽を
+    // `Boolean()` で読んで印の有無に変えるため、値を false にしても他の検査には掛からない
+    // (順位が付く数でも座標でもないため)。
+    //
+    // 真偽がどの位置に入るかは種別で違う。 `interactive-panel.tsx` の実装から引く。
+    const FLAG_INDEX: Record<string, number> = { "calendar-week": 1 };
+    const FLAG = [
+      { re: /予定が入る/, want: true },
+      { re: /予定の無い/, want: false },
+    ];
+    const bad: string[] = [];
+    for (const k of DRIVEN) {
+      const d = mod[k]!;
+      const r0 = ((d as { readouts?: Array<{ kind?: string; source?: string }> }).readouts ?? [])[0];
+      const at = FLAG_INDEX[String(r0?.kind ?? "")];
+      if (at === undefined || !r0?.source) continue;
+      type Node = { id?: string; title?: string; subtitle?: string };
+      const nodes = (d as { nodes?: Node[] }).nodes ?? [];
+      for (const [pi, p] of ((d as { phases?: Array<{ sets?: Array<{ stateId?: string; value?: string | number }> }> }).phases ?? []).entries()) {
+        for (const st of p.sets ?? []) {
+          if (st.stateId !== r0.source) continue;
+          let rows: unknown;
+          try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
+          if (!Array.isArray(rows)) continue;
+          for (const n of nodes) {
+            const claim = FLAG.find((f) => f.re.test(n.subtitle ?? ""));
+            if (!claim || !n.title) continue;
+            const title = n.title.toLowerCase();
+            const row = rows.find((r) => Array.isArray(r)
+              && typeof r[0] === "string" && r[0].toLowerCase() === title);
+            if (!Array.isArray(row)) continue;
+            if (Boolean(row[at]) !== claim.want) {
+              bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが値は ${String(row[at])}`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad, `有無の説明が値と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 
   it("箱が語る位置が、座標の向きと一致する", () => {
