@@ -66,37 +66,47 @@ function renderedTexts(d: CdlDiagram): Array<{ phase: number; id: string; text: 
 }
 
 /**
- * 描画側が値をどう絵にするかの射影。 生の値が違っても画面が同じになる形を捕まえる。
+ * 描画側が値をどう絵にするかの射影。 生の値が違っても画面が同じになる形と、
+ * 生の値が違っても画面は同じになる形の両方を捕まえる。
  *
  * 射影の根拠は `cdl/packages/cdl/src/render/interactive-panel.tsx` の各 readout 実装。
- * 表に無い種別は生の値をそのまま返す (加工しない種別は生値の一致 = 画面の一致)。
+ * **加工する種別だけを書く**。 表に無い種別は値をそのまま返す (値をそのまま絵にするため、
+ * 生値の一致がそのまま画面の一致になる)。
  *
  * | 種別 | 描画側の加工 |
  * |---|---|
  * | `poll-bar` | `count / 総数` の百分率で帯を伸ばし、最大の行に ★ を付ける |
  * | `reaction-bar` | `count > 0` の行だけ札にする (0 件は札自体が出ない) |
  * | `podium` | 先頭 3 件だけ台にする |
- * | `user-stack` | `max` 件まで丸にし、超えた分は残り件数として出す |
- * | `ROW_LIMIT_KINDS` | `max` 件までしか出さない |
- * | 既定 | 加工しない (生値の一致 = 画面の一致) |
+ * | `leaderboard` | 値の降順に並べ替えてから `max` 件に切る |
+ * | `array-list` / `user-stack` | `max` 件まで出し、超えた分を残り件数として出す |
+ * | `SLICE_ONLY` | `max` 件までしか出さない (残り件数は出さない) |
  *
  * **`max` の意味は種別で違う**。 件数の上限として使う種別と、色や長さの基準値として
- * 使う種別 (`calendar-heatmap` は濃さの基準、`progress-group` / `radar` は帯の基準) がある。
- * 既定で件数として切ると、基準値を持つ種別で「先頭 N 件が同じなら同じ絵」 と誤判定する
- * (実測 = 30 日の升目を上限 10 で切り、後半だけ違う 2 段を同じとみなした)。
- * 下の集合は `interactive-panel.tsx` で `slice(0, max)` を持つ種別だけを列挙している。
+ * 使う種別 (`calendar-heatmap` は濃さの基準、`progress-group` / `radar` は帯の基準、
+ * `stacked-bar` は高さの基準) がある。 既定で件数として切ると、基準値を持つ種別で
+ * 「先頭 N 件が同じなら同じ絵」 と誤判定する (実測 = 30 日の升目を上限 10 で切り、
+ * 後半だけ違う 2 段を同じとみなした)。
+ *
+ * 値域による切り詰め (`Math.min(max, v)` 等) は射影に入れない。 値域を外れる値は
+ * §「段が渡す配列が表示部品の値域に収まる」 が別に弾くため、ここに届かない。
  */
-const ROW_LIMIT_KINDS = new Set([
-  "array-list", "leaderboard", "activity-feed", "chat-bubble", "user-stack",
-  "commit-list", "event-log", "search-result", "video-card", "song-queue",
-  "terminal", "kanban-board", "timeline-vertical", "status-timeline", "user-presence",
-]);
-function visibleSignature(kind: string, raw: string, max: number | undefined): string {
-  let rows: unknown;
-  try { rows = JSON.parse(raw); } catch { return raw; }
-  if (!Array.isArray(rows)) return raw;
+const SLICE_ONLY = new Set(["activity-feed", "chat-bubble", "commit-list", "event-log", "search-result"]);
+function visibleSignature(kind: string, inputs: Array<[string, string]>, max: number | undefined): string {
+  const one = inputs.length === 1 ? inputs[0]![1] : undefined;
+  const parse = (raw: string | undefined): unknown[] | undefined => {
+    if (raw === undefined) return undefined;
+    try {
+      const v: unknown = JSON.parse(raw);
+      return Array.isArray(v) ? v : undefined;
+    } catch { return undefined; }
+  };
+  const rows = parse(one);
+  const asIs = () => JSON.stringify(inputs);
+  if (!rows) return asIs();
   const at = (r: unknown, i: number): number =>
     Array.isArray(r) && typeof r[i] === "number" ? (r[i] as number) : Number.NaN;
+  const cut = (n: number) => rows.slice(0, n);
   switch (kind) {
     case "poll-bar": {
       const counts = rows.map((r) => at(r, 1)).filter(Number.isFinite);
@@ -107,15 +117,20 @@ function visibleSignature(kind: string, raw: string, max: number | undefined): s
     case "reaction-bar":
       return JSON.stringify(rows.filter((r) => at(r, 1) > 0));
     case "podium":
-      return JSON.stringify(rows.slice(0, 3));
+      return JSON.stringify(cut(3));
+    case "leaderboard": {
+      // 値の降順に並べ替えてから切る。 入力の並びだけが違う 2 段は同じ絵になる
+      const sorted = [...rows].sort((a, b) => at(b, 1) - at(a, 1));
+      return JSON.stringify(typeof max === "number" ? sorted.slice(0, max) : sorted);
+    }
+    case "array-list":
     case "user-stack":
+      // 溢れた件数を「… +N」 として出すため、切った先の件数も絵の一部
       return typeof max === "number"
-        ? `${JSON.stringify(rows.slice(0, max))}+${Math.max(0, rows.length - max)}`
+        ? `${JSON.stringify(cut(max))}+${Math.max(0, rows.length - max)}`
         : JSON.stringify(rows);
     default:
-      return JSON.stringify(
-        ROW_LIMIT_KINDS.has(kind) && typeof max === "number" ? rows.slice(0, max) : rows,
-      );
+      return JSON.stringify(SLICE_ONLY.has(kind) && typeof max === "number" ? cut(max) : rows);
   }
 }
 
@@ -318,17 +333,30 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
         ...((d as { scrollTriggers?: Array<{ id?: string }> }).scrollTriggers ?? []).map((t) => t.id),
       ]);
       const phases = (d as { phases?: unknown[] }).phases ?? [];
-      for (const r of (d as { readouts?: Array<{ id?: string; kind?: string; source?: string; max?: number }> }).readouts ?? []) {
-        if (!r.source || owned.has(r.source)) continue;
+      for (const r of (d as { readouts?: Array<Record<string, unknown>> }).readouts ?? []) {
+        // 表示部品が状態を指す field は `source` で始まるか `Source` で終わる。
+        // 積み上げ棒は `sourceA` / `sourceB` の 2 系列で 1 つの絵を描くため、
+        // 末尾一致 (`/source$/`) だけでは 2 系列とも拾えず 3 図が丸ごと外れる (実測)
+        const fields = Object.entries(r)
+          .filter(([f, v]) => /(^source|Source$)/.test(f) && typeof v === "string")
+          .map(([f, v]) => [f, v as string] as [string, string])
+          .filter(([, s]) => !owned.has(s))
+          .sort((a, b) => a[0].localeCompare(b[0]));
+        if (fields.length === 0) continue;
+        const kind = typeof r.kind === "string" ? r.kind : "";
+        const max = typeof r.max === "number" ? r.max : undefined;
         let prev: string | undefined;
         for (let i = 0; i < phases.length; i += 1) {
           // 状態の実効値は文字列か数値で入る (`sets` の `value` は `string | number`)。
           // それ以外は文字列化しても中身が読めないため、空として扱う
           const values = computeStateValues(laid, i, 1) as Record<string, string | number | undefined>;
-          const raw = values[r.source];
-          const sig = visibleSignature(String(r.kind ?? ""), typeof raw === "string" || typeof raw === "number" ? String(raw) : "", r.max);
+          const inputs = fields.map(([f, s]) => {
+            const raw = values[s];
+            return [f, typeof raw === "string" || typeof raw === "number" ? String(raw) : ""] as [string, string];
+          });
+          const sig = visibleSignature(kind, inputs, max);
           if (prev !== undefined && sig === prev) {
-            bad.push(`${k}/${r.id}[段${i}]: 前段と描画結果が同じ`);
+            bad.push(`${k}/${String(r.id)}[段${i}]: 前段と描画結果が同じ`);
           }
           prev = sig;
         }
@@ -342,13 +370,19 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     // `map-pin` の `yFor` は `pad + 正規化した y * 高さ` で **上下を反転しない** ため、
     // y が大きい点ほど画面の下に出る (実測 = 上限 80 に対し y=60 は 75% 地点)。
     // 「右上」 と書いて y が大きい点を指す形は、この検査でしか拾えない。
+    //
+    // 「最も」 の付かない位置表現 (`右寄り` / `やや下` / `左下`) も見る。 最上級だけを見ると、
+    // 直した文言そのものが検査に届かない (実測 = `右上寄り` も `右寄り・やや下` も
+    // 4 つの最上級に一致せず、Tokyo の箱に一度も到達していなかった)。
+    //
+    // 最上級は「その軸の端であること」、 それ以外は「その軸の中点より外側であること」 を要求する。
     const AXIS: Record<string, { x: number; y: number }> = { "map-pin": { x: 1, y: 2 } };
-    /** 主張の語と、その語が要求する「軸の値が最小か最大か」。 y は大きいほど下。 */
-    const DIR = [
-      { re: /最も左/, axis: "x" as const, want: "min" as const },
-      { re: /最も右/, axis: "x" as const, want: "max" as const },
-      { re: /最も上/, axis: "y" as const, want: "min" as const },
-      { re: /最も下/, axis: "y" as const, want: "max" as const },
+    /** 軸ごとに、主張の語を「端」 と「片側」 の 2 段階で読む。 y は大きいほど下。 */
+    const CLAIM = [
+      { axis: "x" as const, top: /最も右/, side: /右/, want: "max" as const },
+      { axis: "x" as const, top: /最も左/, side: /左/, want: "min" as const },
+      { axis: "y" as const, top: /最も下/, side: /下/, want: "max" as const },
+      { axis: "y" as const, top: /最も上/, side: /上/, want: "min" as const },
     ];
     const bad: string[] = [];
     for (const k of DRIVEN) {
@@ -365,19 +399,35 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
           try { rows = JSON.parse(String(st.value ?? "")); } catch { continue; }
           if (!Array.isArray(rows) || rows.length < 2) continue;
           for (const n of nodes) {
-            for (const dir of DIR) {
-              if (!dir.re.test(n.subtitle ?? "") || !n.title) continue;
+            const sub = n.subtitle ?? "";
+            for (const claim of CLAIM) {
+              const isTop = claim.top.test(sub);
+              if (!isTop && !claim.side.test(sub)) continue;
+              if (!n.title) continue;
               const title = n.title.toLowerCase();
               const idx = rows.findIndex((r) => Array.isArray(r)
                 && typeof r[0] === "string" && r[0].toLowerCase() === title);
               if (idx < 0) continue;
-              const at = dir.axis === "x" ? ax.x : ax.y;
+              const at = claim.axis === "x" ? ax.x : ax.y;
               const vals = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
               if (!vals.every((v) => typeof v === "number")) continue;
               const nums = vals as number[];
-              const want = dir.want === "min" ? Math.min(...nums) : Math.max(...nums);
-              if (nums[idx] !== want) {
-                bad.push(`${k}/${n.id}[段${pi}]: "${n.subtitle}" だが ${dir.axis}=${nums[idx]} (端は ${want})`);
+              const lo = Math.min(...nums);
+              const hi = Math.max(...nums);
+              // 端が 1 つに定まらない (全点が同じ座標) 段では、どちら寄りかを判定できない
+              if (lo === hi) continue;
+              const v = nums[idx]!;
+              if (isTop) {
+                const want = claim.want === "min" ? lo : hi;
+                if (v !== want) {
+                  bad.push(`${k}/${n.id}[段${pi}]: "${sub}" だが ${claim.axis}=${v} (端は ${want})`);
+                }
+              } else {
+                const mid = (lo + hi) / 2;
+                const ok = claim.want === "min" ? v < mid : v > mid;
+                if (!ok) {
+                  bad.push(`${k}/${n.id}[段${pi}]: "${sub}" だが ${claim.axis}=${v} (中点は ${mid})`);
+                }
               }
             }
           }
