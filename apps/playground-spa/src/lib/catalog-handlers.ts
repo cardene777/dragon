@@ -40,45 +40,70 @@ const noop: InteractiveHandlerMap[string] = () => {
  * 名前は図の入力欄 (`lastEvent`) の選択肢と一致させる = 一致しないと種別が合わず
  * 書き込みが無視される (`setString` は種別違いを警告して何もしない)。
  */
+const RECEIVED_MAX = 99;
 function receiveAs(label: string): InteractiveHandlerMap[string] {
   return (_event, signals) => {
     signals.setString?.("lastEvent", label);
     const n = signals.getNumber?.("received") ?? 0;
-    // 上限 (99) を超えると入力欄の値域から外れるため、超えたら 0 に戻す
-    signals.setNumber?.("received", n >= 99 ? 0 : n + 1);
+    // 入力欄の値域 (0-99) で止める。 0 に戻すと 100 回目が「累計 0 回」 と読め、
+    // 「受け取った」 のに数が減る = 受け取っていないように見える
+    signals.setNumber?.("received", Math.min(n + 1, RECEIVED_MAX));
   };
 }
 
 /**
- * 押している時間を測って、一定時間を超えた時だけ受け取る (`eventVariety` の長押し)。
+ * 押し続けた時間を数えて、一定時間に達した時点で受け取る (`eventVariety` の長押し)。
  *
  * **時間の判定は使う側の責務**。 `cdl` は `long-press` に対して `pointerdown` /
  * `pointerup` / `pointercancel` の 3 つをそのまま渡すだけで、時間を測らない
  * (`event-handler/index.ts` の注記が「handler 側で time diff を測る簡易実装」 と書いている)。
+ * 何もしないと押した瞬間と離した瞬間の 2 回とも受け取り、短い押下でも届く (実測)。
  *
- * 測らないと押した瞬間と離した瞬間の 2 回とも受け取ってしまい、
- * 「押したまま一定時間たつと」 の説明と食い違う (実測で短い押下でも届いた)。
+ * **離した時ではなく、達した時点で受け取る**。 段の説明は「押したまま一定時間たつと受け取る」
+ * と書いており、離すまで画面が変わらないのでは説明と食い違う。
+ *
+ * 待ちは **押下ごと** に持つ。 受け取り手は 1 つを一覧と拡大表示が共有し、指も複数あり得るため、
+ * 1 つの変数に持つと別の表示や別の指の離しが取り違えられる (先に押した方が取りこぼされる)。
  */
 const LONG_PRESS_MS = 500;
 function createLongPress(label: string): InteractiveHandlerMap[string] {
-  let pressedAt: number | undefined;
+  // 押下の区別は「どの要素を」「どの指で」 の 2 つで決まる。 要素は表示ごとに別物なので、
+  // 要素で分ければ一覧と拡大表示が混ざらない
+  const waiting = new WeakMap<EventTarget, Map<number, ReturnType<typeof setTimeout>>>();
   const receive = receiveAs(label);
+
+  const stop = (target: EventTarget | null, pointerId: number): void => {
+    if (!target) return;
+    const byPointer = waiting.get(target);
+    const timer = byPointer?.get(pointerId);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    byPointer?.delete(pointerId);
+  };
+
   return (event, signals) => {
-    if (event.type === "pointerdown") {
-      pressedAt = event.timeStamp;
+    // 結び付けた要素で分ける (`currentTarget` は配信中だけ有効なのでこの場で読む)
+    const target = event.currentTarget ?? event.target;
+    const pointerId = (event as PointerEvent).pointerId ?? 0;
+    if (event.type !== "pointerdown") {
+      // 離した / 取り消した = 時間に届かなかったので待ちをやめる
+      stop(target, pointerId);
       return;
     }
-    if (event.type === "pointercancel") {
-      // 押下が取り消されたら測り直す (そのまま残すと次の離しで誤って受け取る)
-      pressedAt = undefined;
-      return;
-    }
-    if (event.type !== "pointerup") return;
-    const started = pressedAt;
-    pressedAt = undefined;
-    if (started === undefined) return;
-    if (event.timeStamp - started < LONG_PRESS_MS) return;
-    receive(event, signals);
+    stop(target, pointerId);
+    if (!target) return;
+    const byPointer = waiting.get(target) ?? new Map<number, ReturnType<typeof setTimeout>>();
+    waiting.set(target, byPointer);
+    byPointer.set(
+      pointerId,
+      setTimeout(() => {
+        byPointer.delete(pointerId);
+        // 図が画面から外れた後に書くと、消えた図の状態を触ることになる
+        // (`Element` を名前で見ると画面の無い環境で落ちるため、値の方を見る)
+        if ((target as { isConnected?: boolean }).isConnected === false) return;
+        receive(event, signals);
+      }, LONG_PRESS_MS),
+    );
   };
 }
 

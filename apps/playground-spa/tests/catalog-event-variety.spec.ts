@@ -62,6 +62,8 @@ test.describe("catalog の eventVariety (#1045)", () => {
   });
 
   test("押したまま一定時間たつと受け取る", async ({ page }) => {
+    // 段の説明は「押したまま一定時間たつと受け取る」。 **離す前に** 画面が変わることを見る。
+    // 離した時に受け取る形だと、押し続けている間は何も起きず説明と食い違う
     const preview = await open(page);
     const box = await preview.locator('[data-cdl-node="btn3"]').first().boundingBox();
     expect(box, "長押しの対象が見つからない").not.toBeNull();
@@ -69,10 +71,13 @@ test.describe("catalog の eventVariety (#1045)", () => {
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await page.mouse.down();
     await page.waitForTimeout(700);
+
+    const whileHolding = await readReceiver(preview);
+    expect(whileHolding, "押し続けている間に受け取っていない (離すまで変わらない)").toContain("長押し");
+
     await page.mouse.up();
     await page.waitForTimeout(300);
-
-    expect(await readReceiver(preview), "長押し が届かない").toContain("長押し");
+    expect(await readReceiver(preview), "離した後に消えている").toContain("長押し");
   });
 
   test("短く押しただけでは長押しにならない", async ({ page }) => {
