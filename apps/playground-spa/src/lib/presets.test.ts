@@ -25,19 +25,36 @@ describe("preset の表示名 (#1047)", () => {
     expect(missing, `名前を引けない preset:\n${missing.join("\n")}`).toHaveLength(0);
   });
 
-  it("表示名が識別子のままにならない", () => {
-    // 名前を引けないと `itemName` は鍵 (export 名) をそのまま返す。 その状態を見逃すと
-    // 「見出しが識別子風」 の直す前に戻る
+  it("表示名がこの図の識別子と一致しない", () => {
+    // **形ではなく値で見る**。 形だけで見ると、識別子の書き方が変わった時
+    // (kebab / snake / 数字始まり) にすり抜ける
     const identifierLike: string[] = [];
+    for (const preset of PRESETS) {
+      const identifiers = [preset.id, preset.slug, presetCatalogKey(preset)];
+      for (const locale of ["ja", "en"] as const) {
+        const name = presetName(preset, locale);
+        if (identifiers.includes(name)) identifierLike.push(`${preset.id} (${locale}): ${name}`);
+      }
+    }
+    expect(identifierLike, `表示名が識別子と同じ: ${identifierLike.join(", ")}`).toHaveLength(0);
+  });
+
+  it("表示名が識別子の形をしていない", () => {
+    // 値の一致だけでは、別の識別子 (他の図の `id` 等) が出る形を捕まえられない。
+    // 識別子の書き方を 3 種まとめて見る
+    const IDENTIFIER_SHAPES = [
+      /^[a-z][A-Za-z0-9]*$/, // camelCase / 小文字 1 語
+      /^[a-z0-9]+([-_][a-z0-9]+)+$/, // kebab-case / snake_case
+      /^[0-9]/, // 数字始まり
+    ];
+    const shaped: string[] = [];
     for (const preset of PRESETS) {
       for (const locale of ["ja", "en"] as const) {
         const name = presetName(preset, locale);
-        if (name === presetCatalogKey(preset)) identifierLike.push(`${preset.id} (${locale})`);
-        // 識別子は先頭が小文字で空白を持たない。 表示名がその形なら引けていない
-        if (/^[a-z][A-Za-z0-9]*$/.test(name)) identifierLike.push(`${preset.id} (${locale}): ${name}`);
+        if (IDENTIFIER_SHAPES.some((re) => re.test(name))) shaped.push(`${preset.id} (${locale}): ${name}`);
       }
     }
-    expect(identifierLike, `表示名が識別子のまま: ${identifierLike.join(", ")}`).toHaveLength(0);
+    expect(shaped, `表示名が識別子の形: ${shaped.join(", ")}`).toHaveLength(0);
   });
 
   it("言語ごとに違う名前を返す", () => {
@@ -46,10 +63,13 @@ describe("preset の表示名 (#1047)", () => {
     expect(same, `言語を切り替えても変わらない: ${same.join(", ")}`).toHaveLength(0);
   });
 
-  it("識別子は表示に使わない", () => {
-    // `title` は URL と図の対応を追う識別子で、画面には出さない (#1047)
+  it("識別子を画面に出す経路が残っていない", () => {
+    // 直す前は `title` を見出しに出していた。 field ごと外したので型が止めるが、
+    // `id` / `slug` を代わりに出す形は型では止まらない
     const src = readFileSync(new URL("../pages/PresetDetailPage.tsx", import.meta.url), "utf8");
-    const uses = [...src.matchAll(/\{(?:preset|prevPreset|nextPreset)\.title\}/g)].map((m) => m[0]);
+    // 括弧の中で識別子を出している箇所 (`{preset.id}` 等)。 パンくずの末尾は URL と
+    // 対応する位置なので `slug` を出してよい (意図して残している)
+    const uses = [...src.matchAll(/\{(?:preset|prevPreset|nextPreset)\.(id|title)\}/g)].map((m) => m[0]);
     expect(uses, `識別子を画面に出している: ${uses.join(", ")}`).toHaveLength(0);
   });
 });

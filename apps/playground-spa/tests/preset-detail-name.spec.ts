@@ -15,22 +15,37 @@ async function heading(page: Page): Promise<string> {
   return ((await page.locator("h1.nm-hero-title").first().textContent()) ?? "").trim();
 }
 
+/** 見出しの名前だけ (添えの語を除く)。 */
+async function headingName(page: Page): Promise<string> {
+  return ((await page.locator(".nm-hero-title-name").first().textContent()) ?? "").trim();
+}
+
 async function switchLocale(page: Page): Promise<void> {
   await page.locator("button.v4-nav-lang-toggle").click();
   await page.waitForTimeout(500);
 }
 
 test.describe("preset 詳細の見出し (#1047)", () => {
-  test("言語を切り替えると見出しの名前が変わる", async ({ page }) => {
+  test("言語を切り替えると見出しの名前が実名で変わる", async ({ page }) => {
+    // **名前の部分だけを実名で照合する**。 見出し全体で比べると、添えの語
+    // (プリセット / preset) が変わっただけでも通ってしまう
     await page.goto(`${SPA_URL}/preset/state-machine-2`, { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
-
-    const ja = await heading(page);
-    expect(ja.length, "見出しが空").toBeGreaterThan(0);
+    expect(await headingName(page), "日本語表示で日本語名が出ない").toBe("拡張ステート図");
 
     await switchLocale(page);
-    const en = await heading(page);
-    expect(en, `言語を切り替えても見出しが変わらない ("${ja}")`).not.toBe(ja);
+    expect(await headingName(page), "英語表示で英語名が出ない").toBe("Extended state machine");
+  });
+
+  test("識別子とは違う名前が出る", async ({ page }) => {
+    // 形ではなく値で見る。 直す前は `stateMachine2` (= 図の識別子) が出ていた
+    await page.goto(`${SPA_URL}/preset/mindmap-radial`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(600);
+    const name = await headingName(page);
+    for (const identifier of ["mindMapRadial", "mindmap-radial", "presetMindMapRadial"]) {
+      expect(name, `識別子がそのまま出ている: ${identifier}`).not.toBe(identifier);
+    }
+    expect(name, "日本語名が出ない").toBe("放射状マインドマップ");
   });
 
   test("見出しに識別子がそのまま出ない", async ({ page }) => {

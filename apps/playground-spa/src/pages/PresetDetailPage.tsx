@@ -97,7 +97,8 @@ export function PresetDetailPage(): React.ReactElement {
           <span className="nm-eyebrow">{preset.eyebrow}</span>
           {/* 見出しは識別子ではなく言語に応じた名前を出す (#1047) */}
           <h1 className="nm-hero-title">
-            {presetName(preset, locale)}{" "}
+            {/* 名前だけを別要素にする = 検査が添えの語と分けて実名で照合できる (#1047) */}
+            <span className="nm-hero-title-name">{presetName(preset, locale)}</span>{" "}
             <span className="nm-gradient-accent">{locale === "ja" ? "プリセット" : "preset"}</span>
           </h1>
           <p className="nm-hero-subtitle">{preset.subtitle}</p>
