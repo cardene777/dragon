@@ -21,7 +21,7 @@ import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
-import { ITEM_NAME_JA } from "./i18n";
+import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 
 const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
   ["interactive", Interactive as unknown as Record<string, unknown>],
@@ -86,5 +86,33 @@ describe("一覧の名前 (#1030)", () => {
     const keys = byCatalog.find(([n]) => n === "interactive")![1];
     const missing = keys.filter((k) => ITEM_NAME_JA[k] === undefined);
     expect(missing, `一覧に名前が無い: ${missing.join(", ")}`).toHaveLength(0);
+  });
+
+  it("全カテゴリの図が英語名を持つ (#1035)", () => {
+    // 英語表示は以前 export 名をそのまま出しており、識別子が 332 件すべてに並んでいた。
+    // 日本語名は 41 件欠けても気付けなかったため、英語側は全件を要求する
+    const missing: string[] = [];
+    for (const [cat, keys] of byCatalog) {
+      for (const k of keys) if (ITEM_NAME_EN[k] === undefined) missing.push(`${cat}/${k}`);
+    }
+    expect(missing, `英語名が無い: ${missing.slice(0, 8).join(", ")}`).toHaveLength(0);
+  });
+
+  it("日本語名と英語名が同じ export 名の集合を持つ", () => {
+    // 片方だけ足すと、その言語だけ export 名が出る。 両方に足すことを機械で強制する
+    const ja = new Set(Object.keys(ITEM_NAME_JA));
+    const en = new Set(Object.keys(ITEM_NAME_EN));
+    const jaOnly = [...ja].filter((k) => !en.has(k));
+    const enOnly = [...en].filter((k) => !ja.has(k));
+    expect(jaOnly, `日本語名だけある: ${jaOnly.slice(0, 8).join(", ")}`).toHaveLength(0);
+    expect(enOnly, `英語名だけある: ${enOnly.slice(0, 8).join(", ")}`).toHaveLength(0);
+  });
+
+  it("英語名が英字で書かれている", () => {
+    // 日本語名をそのまま貼ると、英語表示に日本語が出る。 訳し忘れを機械で見る
+    const ja = Object.entries(ITEM_NAME_EN)
+      .filter(([, v]) => /[\u3040-\u30ff\u4e00-\u9fff]/.test(v))
+      .map(([k, v]) => `${k}: "${v}"`);
+    expect(ja, `英語名に日本語が混ざっている: ${ja.slice(0, 6).join(", ")}`).toHaveLength(0);
   });
 });

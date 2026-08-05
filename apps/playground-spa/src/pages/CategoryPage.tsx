@@ -6,7 +6,7 @@ import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
-import { itemNameJa } from "@/lib/i18n";
+import { itemName, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
@@ -105,8 +105,7 @@ export function CategoryPage(): React.ReactElement {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const displayName = (item: CatalogItem): string =>
-    locale === "ja" ? itemNameJa(item.title) : item.title;
+  const displayName = (item: CatalogItem): string => itemName(item.title, locale);
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
   // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
