@@ -142,11 +142,13 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
     case "voice-message": {
       // 振幅は先頭 40 本まで、**数として読めない要素は棒にしない** (描画側は `push` しない)。
       // 各値は 0..1 に丸め、色が付く本数は `floor(本数 * 進み具合)` で決まる
+      // **数として読めない要素を捨ててから 40 本に切る**。 順序が逆だと、先頭 40 件に
+      // 不正値があった時に 41 件目が繰り上がらず、棒の本数が 1 本ずれる
       const amps = parse(input("source")) ?? [];
-      const bars = amps.slice(0, 40).flatMap((v) => {
+      const bars = amps.flatMap((v) => {
         const n = num(v);
         return Number.isFinite(n) ? [Math.max(0, Math.min(1, n))] : [];
-      });
+      }).slice(0, 40);
       const rawP = num(input("progressSource"));
       const p = Number.isFinite(rawP) ? Math.max(0, Math.min(1, rawP)) : 0;
       return JSON.stringify({ bars, active: Math.floor(bars.length * p) });
@@ -176,9 +178,10 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
       return JSON.stringify({ steps, cur });
     }
     case "breadcrumb": {
-      // 現在位置が範囲の外なら **末尾** が現在になる (`-1` を渡すと末尾が濃くなる)
-      const items = parse(input("source")) ?? [];
-      const raw = num(input("currentSource"));
+      // 現在位置は **整数として読む** (`1.2` と `1.8` はどちらも 1 段目を指す)。
+      // 範囲の外なら末尾が現在になる (`-1` を渡すと末尾が濃くなる)
+      const items = (parse(input("source")) ?? []).map(String);
+      const raw = Number.parseInt(input("currentSource") ?? "", 10);
       const cur = Number.isFinite(raw) && raw >= 0 && raw < items.length ? raw : items.length - 1;
       return JSON.stringify({ items, cur });
     }
@@ -209,18 +212,24 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
       return Number.isFinite(n) ? n : 0;
     });
     const base = max || 1;
+    // 名前は **値の件数ぶんだけ** 描かれる。 余った名前は画面に出ず、
+    // 足りない分は連番で補われる。 名前の並び全体を署名に入れると、
+    // 出ない名前を変えただけで「絵が変わった」 と誤認する
+    const names = (parse(input("labelSource")) ?? []).map(String);
     return JSON.stringify({
       bars: vals.map((v) => Math.max(0, Math.min(1, v / base))),
-      labels: (parse(input("labelSource")) ?? []).map(String),
+      labels: vals.map((_, i) => names[i] ?? String(i + 1)),
     });
   }
   if (kind === "attendance-grid") {
-    // 行の 2 つ目以降を真偽として読み、印の有無に変える。 名前は文字としてそのまま出す
-    const rows2 = parse(input("source")) ?? [];
-    return JSON.stringify({
-      grid: rows2.map((r) => (Array.isArray(r) ? [r[0], ...r.slice(1).map(Boolean)] : r)),
-      members: (parse(input("membersSource")) ?? []).map(String),
+    // 行の 2 つ目以降を真偽として読み、印の有無に変える。
+    // **列は人数ぶんだけ描かれる**。 人数を超えた真偽は升目にならないため署名に入れない
+    const members = (parse(input("membersSource")) ?? []).map(String);
+    const grid = (parse(input("source")) ?? []).flatMap((r) => {
+      if (!Array.isArray(r) || r.length < 2) return [];
+      return [[String(r[0]), ...members.map((_, i) => Boolean(r[i + 1]))]];
     });
+    return JSON.stringify({ grid, members });
   }
   if (kind === "stacked-bar") {
     // 2 系列の高さは `min` / `max` で正規化してから 0..1 に切り詰める。
