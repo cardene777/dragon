@@ -674,11 +674,20 @@
      warm cream text (#f8ecd0) + gold stroke (#f0b840) を使用するため、 stage も dark
      bg で対比を最大化できる。 graticule grid は warm gold rgba(240, 184, 64) で subtle 維持。
      旧仕様 (light cream bg 強制) は 2026-07-15 の palette 移行前の暫定対応、 現在は撤去。 */
+  /* 暗い画面の紙 (#1060)。
+     以前は `#1a1408` で、 箱の `#2a1f14` との明るさの差が `ΔL* 6.1` しかなく、 **箱が面として
+     立っていなかった**。 見えるのは輪郭線と文字だけで、 目が図の構造を掴めない。
+
+     明るい画面は同じくらい差が小さくても輪郭線が効く (全体が明るいため)。 暗い側は輪郭も
+     一緒に沈むので効かない。 この非対称が「暗い時だけ見づらい」 の正体。
+
+     紙の側を上げて「明るい机に暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
+     格子は紙が明るくなったぶん暗い側に引く (明色の格子だと紙に溶ける)。 */
   html.dark .v4-editor-stage {
-    background: #1a1408;
+    background: #3a2f22;
     background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(240, 184, 64, 0.08) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(240, 184, 64, 0.08) 23px 24px);
+      repeating-linear-gradient(0deg, transparent 0 23px, rgba(20, 14, 6, 0.22) 23px 24px),
+      repeating-linear-gradient(90deg, transparent 0 23px, rgba(20, 14, 6, 0.22) 23px 24px);
   }
   .v4-editor-pan {
     will-change: transform;

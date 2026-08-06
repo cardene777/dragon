@@ -716,13 +716,23 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   fill: #8a5a2a !important;
   font-weight: 700 !important;
 }
+/* 面の色 (#1060)。 以前は `#2a1f14` で、 editor の紙 `#1a1408` との明るさの差が `ΔL* 6.1`
+   しかなく、 **箱が面として立っていなかった** = 見えるのは輪郭線と文字だけで、 目が図の
+   構造を掴めない状態だった。
+
+   editor 側は紙を `#3a2f22` へ上げた (`editor.css`)。 箱は逆に暗い側へ置いて「明るい机に
+   暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
+
+   **catalog も同じ値でよい**。 catalog は暗い画面でも紙を cream (`#fcf8ee`) で保つので、
+   もともと「暗い箱・明るい紙」 の関係にある。 箱が暗くなる分だけ対比が上がる
+   (箱の中の文字 `#f8ecd0` との対比は 13.72 → 15.72)。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #2a1f14 !important;
+  fill: #191309 !important;
   stroke: #f0b840 !important;
   stroke-width: 3.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #2a1f14 !important;
+  fill: #191309 !important;
   stroke: rgba(240, 184, 64, 0.85) !important;
   stroke-width: 2.2 !important;
 }
@@ -759,25 +769,38 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
 /* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-4.96、
    実効色の ΔE は 16.6 以上 (量子化の最悪値で 4.64 / 15.50)。 selector は cream 用 (0-2-0) より
    詳しいので上書きになる。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #0095e2; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #409c83; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #49a368; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #d86e5c; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #b28539; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #5d91c4; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #ffa347; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #5fd8ac; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #9ee34f; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #ff8a8a; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #ffd45e; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #f0c9a0; }
 /* 矢頭も同様に marker 自身へ置く (暗い紙用の組)。 */
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #0095e2; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #ffa347; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #409c83; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #5fd8ac; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #49a368; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #9ee34f; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #d86e5c; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #ff8a8a; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #b28539; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #ffd45e; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #5d91c4; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #f0c9a0; }
+/* 命綱と枠線は紙が明るくなったぶん落ち着かせる (#1060)。 `#f0b840` のままだと明るい紙の
+   上で線より目立ち、 どこが本題か分からなくなる。 命綱は「そこに人がいる」 ことを示す
+   補助線なので、 本文ほどの強さは要らない。
+
+   **editor だけに限る**。 catalog は暗い画面でも紙を cream で保つため、 そちらで命綱を
+   落とすと紙に溶ける。 */
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
+  stroke: rgba(154, 133, 106, 0.85) !important;
+}
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
+  stroke: rgba(154, 133, 106, 0.55) !important;
+}
+
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
