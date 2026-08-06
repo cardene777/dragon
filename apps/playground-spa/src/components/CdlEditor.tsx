@@ -1637,6 +1637,9 @@ animation:
           type="button"
           className="v4-editor-side-backdrop"
           aria-label="一覧を閉じる"
+          // 押しても focus を受け取らない。 受け取ると、 閉じた瞬間に自分が消えて focus が
+          // 行き場を失う (実測 = body に落ちる)。 押す前の位置に残す
+          onMouseDown={(e) => e.preventDefault()}
           onClick={closeSide}
           data-testid="editor-side-backdrop"
         />

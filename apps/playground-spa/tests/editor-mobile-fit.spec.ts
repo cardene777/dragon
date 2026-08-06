@@ -116,6 +116,20 @@ test("一覧の中から閉じると出し入れのボタンに戻る", async ({
   expect(戻り先, "閉じた後に focus が行き場を失っている").toBe("editor-side-toggle");
 });
 
+test("幕を押して閉じても focus が行き場を失わない", async ({ page }) => {
+  // 幕はボタンなので、 押すと focus を受け取ってから消える。 そのままだと focus が body に
+  // 落ちる (Round 2 verify の指摘)。 押す前の位置 (出し入れのボタン) に残す
+  await openEditor(page, 375);
+  await page.locator("[data-testid=editor-side-toggle]").click();
+  await page.waitForTimeout(400);
+  await page.locator("[data-testid=editor-side-backdrop]").click({ position: { x: 340, y: 300 } });
+  await page.waitForTimeout(400);
+  const 行き先 = await page.evaluate(
+    () => document.activeElement?.getAttribute("data-testid") ?? document.activeElement?.tagName ?? "",
+  );
+  expect(行き先, "幕を押した後に focus が行き場を失っている").toBe("editor-side-toggle");
+});
+
 test("出し入れのボタンが隣のアイコンと同じ大きさになる", async ({ page }) => {
   // 携帯は指で触るので、 このボタンだけ小さいと押せない。
   //
