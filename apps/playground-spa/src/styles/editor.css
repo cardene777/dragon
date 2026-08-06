@@ -352,6 +352,10 @@
   .v4-editor-bar::-webkit-scrollbar { display: none; }
   /* 縮んで潰れると押せなくなるので、 各項目は自然幅を保つ */
   .v4-editor-bar > * { flex-shrink: 0; }
+  /* **名前だけは縮む** (#1063)。 ボタンをアイコンにした後、 操作列に残るはみ出しの原因は
+     ファイル名だった (実測 = 1100px 幅で 255px を占め、 残り 97px のはみ出しはすべてこれ)。
+     操作は押せないと困るが、 名前は端が切れても読める。 */
+  .v4-editor-bar > .v4-editor-bar-file { flex-shrink: 1; }
   .v4-editor-bar-file {
     font-family: var(--v4-mono);
     font-size: 11.5px;
@@ -359,7 +363,23 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    /* 画面が狭い時はここが縮む (#1063)。 ボタンをアイコンにした後、 操作列に残る
+       はみ出しの原因はファイル名だった (実測 = 1100px 幅で 255px を占め、 残り 97px の
+       はみ出しはすべてこれ)。 操作は押せないと困るが、 名前は端が切れても読める。 */
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
+  /* **縮むのは名前だけ** (#1063)。 子を一律に縮めると、 状態を示す点 (`v4-editor-live`)
+     まで 0px に潰れて「今つながっているか」 が見えなくなる。 */
+  .v4-editor-bar-file-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .v4-editor-live { flex: 0 0 auto; }
   .v4-editor-bar-gap { flex: 1; }
   .v4-editor-bar-btn {
     padding: 5px 11px;
@@ -375,6 +395,62 @@
   .v4-editor-bar-btn:hover {
     background: rgba(26, 20, 16, 0.05);
     color: var(--v4-ink);
+  }
+  /* アイコンだけのボタン (#1063)。 文字のままだと 12 個で 811px を占め、 操作列 (491px)
+     から 320px はみ出して右端が押せなかった。
+
+     正方形にするのは、 押せる範囲を大きさで揃えるため。 幅を中身任せにすると、 線の少ない
+     アイコン (虫めがね) だけ狭くなって押しにくい。 */
+  .v4-editor-bar-btn-icon {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  /* 3 ペインを保つ最小幅 (901px) まで収める (#1063)。 アイコンは 30px 角で押せる大きさを
+     保ち、 代わりに **間の余白と左右の余白を詰める**。 ボタン 10 個の間隔 6px は 66px を
+     占め、 それだけで 901px 幅の不足分 (60px) を超える。 */
+  @media (max-width: 1100px) {
+    .v4-editor-bar {
+      gap: 2px;
+      padding: 0 8px;
+    }
+  }
+  /* それでも足りない幅では、 **数字の周りの余白を削る** (#1063)。
+     隠さないと 901px で 10px 溢れて右端が消えるが、 **消してもいけない** = 今の倍率を
+     知る手段が画面から完全に無くなる (実測 = 画面上に百分率を出す要素は他に無い)。
+     区切り線と左右の余白で 15px 空くので、 それで足りる。 */
+  @media (max-width: 1000px) {
+    .v4-editor-bar-zoom {
+      padding-left: 4px;
+      margin-left: 0;
+      border-left: none;
+      /* 広い時は 44px を確保して桁が動いても位置がぶれないようにしているが、 狭い時は
+         その余裕が入らない。 実際の桁数ぶんだけ使う */
+      min-width: auto;
+    }
+    /* ボタンも 30px → 26px に詰める。 指で押す端末の下限 (24px) は保つ。 */
+    .v4-editor-bar-btn-icon {
+      width: 26px;
+      height: 26px;
+    }
+    /* 間と余白を最小まで詰める。 これで 901px でも数字を残したまま全部が収まる
+       (実測 = 名前 52px + ボタン 260px + 数字 21px + 間 11px + 余白 8px = 352px < 361px) */
+    .v4-editor-bar {
+      gap: 1px;
+      padding: 0 4px;
+    }
+    /* 名前は「ライブプレビュー」 の 52px が下限。 状態の点と文字で、 これ以上は縮まない。
+       残りは名前を隠して稼ぐ = 何の欄かは左の見出しとタブで分かる */
+    .v4-editor-preview .v4-editor-bar-file-name { display: none; }
+  }
+  /* 見えている枠が無いので、 キーボードで来た時の印だけは必ず出す */
+  .v4-editor-bar-btn:focus-visible {
+    outline: 2px solid var(--v4-brand);
+    outline-offset: 1px;
   }
   .v4-editor-bar-btn-primary {
     background: var(--v4-ink);
@@ -463,6 +539,11 @@
     border-left: 1px solid var(--v4-line);
     min-width: 44px;
     text-align: right;
+    /* 3 ペインを保つ最小幅 (901px) まで操作列を収める (#1063)。 ボタン 10 個 (300px) に
+       この 44px と左の余白が乗ると 960px 幅で 55px 溢れる。 数字は端が切れても読めるので
+       縮む側に置く。 */
+    flex-shrink: 1;
+    min-width: 0;
   }
   .v4-editor-live {
     width: 6px;

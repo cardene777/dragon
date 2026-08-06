@@ -64,7 +64,7 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     await setup(page);
     await insertWidgetSvg(page);
 
-    await page.click('button:has-text("フィット")');
+    await page.click('[data-testid="editor-fit"]');
     await page.waitForTimeout(500);
 
     const box = await stageBox(page);
@@ -82,7 +82,7 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     await setup(page);
     await insertWidgetSvg(page);
 
-    await page.click('button:has-text("リセット")');
+    await page.click('[data-testid="editor-reset"]');
     await page.waitForTimeout(500);
 
     const box = await stageBox(page);
@@ -138,12 +138,12 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     await setup(page);
     await insertWidgetSvg(page);
 
-    await page.click('button:has-text("フィット")');
+    await page.click('[data-testid="editor-fit"]');
     await page.waitForTimeout(300);
     for (let i = 0; i < 3; i++) await page.click('button[aria-label="拡大"], button:has-text("＋")').catch(() => {});
     await page.waitForTimeout(300);
 
-    await page.click('button:has-text("100%")');
+    await page.click('[data-testid="editor-actual-size"]');
     await page.waitForTimeout(500);
 
     const r = await page.evaluate(() => {
@@ -212,7 +212,7 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     expect(removed, "目印を外せていない").toBe(true);
 
     const before = await stageBoxBy(page, "[data-test-was-stage]");
-    await page.click('button:has-text("フィット")');
+    await page.click('[data-testid="editor-fit"]');
     await page.click('[data-testid="editor-font-scale-up"]');
     await page.waitForTimeout(500);
 
