@@ -1888,7 +1888,7 @@ exports[`golden: inline option edge cases > X01 subtitle only 1`] = `
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
     {
@@ -1936,7 +1936,7 @@ exports[`golden: inline option edge cases > X01 subtitle only 1`] = `
       "cy": 578,
       "h": 72,
       "id": "a-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
     {
@@ -1998,7 +1998,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "cy": 164,
       "h": 72,
       "id": "meter-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 162,
     },
     {
@@ -2046,7 +2046,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "cy": 578,
       "h": 72,
       "id": "meter-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 162,
     },
     {
@@ -2500,7 +2500,7 @@ exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
     {
@@ -2516,7 +2516,7 @@ exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
       "cy": 164,
       "h": 72,
       "id": "sys-header",
-      "kind": "card",
+      "kind": "function",
       "w": 140,
     },
     {
@@ -2548,7 +2548,7 @@ exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
       "cy": 578,
       "h": 72,
       "id": "user-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
     {
@@ -2556,7 +2556,7 @@ exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
       "cy": 578,
       "h": 72,
       "id": "sys-footer",
-      "kind": "card",
+      "kind": "function",
       "w": 140,
     },
   ],
@@ -3706,7 +3706,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 162,
     },
     {
@@ -3722,7 +3722,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "cy": 164,
       "h": 72,
       "id": "bob-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
     {
@@ -3754,7 +3754,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "cy": 578,
       "h": 72,
       "id": "alice-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 162,
     },
     {
@@ -3762,7 +3762,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
       "cy": 578,
       "h": 72,
       "id": "bob-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 140,
     },
   ],
@@ -3816,7 +3816,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "cy": 164,
       "h": 72,
       "id": "counter-header",
-      "kind": "card",
+      "kind": "actor",
       "w": 206,
     },
     {
@@ -3864,7 +3864,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "cy": 578,
       "h": 72,
       "id": "counter-footer",
-      "kind": "card",
+      "kind": "actor",
       "w": 206,
     },
     {

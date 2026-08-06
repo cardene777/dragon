@@ -2085,6 +2085,18 @@ const LABEL_MIN_H: Readonly<Record<string, number>> = {
 };
 
 /**
+ * 名札が、 小型の `card` では描かれない文字を持つか。
+ *
+ * 小型の `card` (`h < 100`) が描くのは名前だけ。 `subtitle` と `eyebrow` は分岐で外れ、
+ * `value` は `card` が元から描かない。 `rows` を描くのは種別が限られる。
+ * どれか 1 つでも持つ名札を `card` に落とすと、 著者が書いた文字が画面から消える。
+ */
+function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
+  if (n.subtitle !== undefined || n.eyebrow !== undefined || n.value !== undefined) return true;
+  return rendersRows(n.kind) && (n.rows?.length ?? 0) > 0;
+}
+
+/**
  * 名前が箱に収まらない種別を名札から外す (#1061)。
  *
  * `#975` が「書いた種別を名札に載せる」 挙動を入れ、 `#1058` が「書かなかった時は載せない」
@@ -2096,9 +2108,15 @@ const LABEL_MIN_H: Readonly<Record<string, number>> = {
  * `requiredRowsHeight` で 206 以上になり、 揃え (`alignSeqHeaderHeights`) がその高さを
  * 全本に配るので、 同じ図の `event` も収まる。 判定を揃えの後に置くのはこのため。
  *
- * 収まらない時は `card` に戻す。 名札の大きさでは 4 種とも `card` と枠線の色 (実測 =
- * どれも `rgb(109, 63, 24)`) も角丸もほぼ同じで、 違いは名前の位置と字形だけ = 落としても
- * 見た目の情報は減らず、 はみ出しだけが消える。
+ * **著者が書いた文字を持つ名札は落とさない**。 小型の `card` は名前しか描かない
+ * (`subtitle` / `eyebrow` は `h < 100` の分岐で外れ、 `value` は元から描かない)。 落とすと
+ * 書いた文字が画面から消える = 名前がはみ出すより悪い。 `rows` と同じ扱いにする。
+ *
+ * 落とす時に失うものは 3 つある。 名前の位置と字形が `card` の形 (中央 / 20px / 幅に合わせて
+ * 縮む) になること、 既定の配色での枠線の色 (`function` の緑 / `event` の緑)、 `event` の
+ * 拍動 (0.92 倍 + 半透明)。 本 app の配色は枠線の色を上書きするため見た目は変わらない
+ * (実測 = 4 種とも `rgb(109, 63, 24)`) が、 既定の配色で使う利用者には色の差が出る。
+ * それでも落とすのは、 名前が箱をまたぐ方が読み手に与える誤りが大きいため。
  *
  * 高さを上げる方向は採らない。 名札の高さは全本で揃える規約があるため 1 本の指定が全体に
  * 伝播し、 全名札が 2-3 倍になる (`#1058` で実測、 golden 25 件が変化)。
@@ -2112,6 +2130,11 @@ const LABEL_MIN_H: Readonly<Record<string, number>> = {
  * `shape-` で始まる種別は対象外。 これらは名前を箱ではなく **自分の絵に対して** 置く
  * (実測 = `shape-code-block` は箱が 30 でも絵は 180 で描かれ、 名前は絵の中にある)。
  * 箱を基準に測ると収まっていないように見えるが、 箱はその絵の一部でしかない。
+ *
+ * **著者が文字を書いた名札は、 名前がはみ出したままになる**。 4 種は `subtitle` を `y=126`
+ * 付近、 `value` を `y=152` に置くため、 収める高さは 150 以上になる。 揃えの伝播で全名札が
+ * 2 倍になるので、 高さで解く道は上と同じ理由で採れない。 直すには描画側 (`cdl`) に小型用の
+ * 配置が要る。
  */
 function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
@@ -2123,9 +2146,10 @@ function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
     else pair.push(n);
   }
   for (const pair of ends.values()) {
-    // 行を書いた名札は行を優先する。 `card` は行を描かないので、 落とすと書いた行が画面から
-    // 消える (`#387` と同じ壊れ方になる)。 行は上端にしか載らないため 1 組で見る。
-    if (pair.some((n) => rendersRows(n.kind) && (n.rows?.length ?? 0) > 0)) continue;
+    // 著者が書いた文字を持つ名札は落とさない。 小型の `card` は名前しか描かないため、
+    // 落とすと書いた文字が画面から消える (`#387` と同じ壊れ方になる)。 これらは上端にしか
+    // 載らないため 1 組で見る。
+    if (pair.some(hasAuthoredText)) continue;
     const 収まらない = pair.some((n) => {
       const need = LABEL_MIN_H[n.kind];
       if (need === undefined) return false;
