@@ -106,12 +106,22 @@ describe("残作業の数え方 (#1056)", () => {
     // 起票直後の issue は project 未設定のことがあり、project で絞ると数から消える
     // (実測 = この手順自身の issue CAR-2948 が Triage + project 未設定で漏れた)。
     //
-    // **project で絞る行があること自体は求めない**。 team 全体を 1 query で数えるのは
-    // 取りこぼしが減る側の修正で、それを落とす検査は手順を直す側の邪魔にしかならない
+    // **1 つの状態に固定した行では足りない**。 project 未設定は Triage に限らず
+    // どの状態でも起こりうるため、`state=Triage` だけを project 無しで数える形は
+    // 他の状態の未設定 issue を落とす。 状態を書かないか、置き場所 (`<...>`) で書く
+    const unscoped = linearListLines().filter((l) => !l.includes("project="));
     expect(
-      linearListLines().filter((l) => !l.includes("project=")).length,
+      unscoped.length,
       "project を付けずに数える行が無い (project 未設定の issue が漏れる)",
     ).toBeGreaterThan(0);
+    const state = /state=(\S+)/;
+    expect(
+      unscoped.filter((l) => !state.test(l) || state.exec(l)![1].includes("<")).length,
+      `project 無しの行が特定の状態に固定されている: ${unscoped.join(" / ")}`,
+    ).toBeGreaterThan(0);
+
+    // **project で絞る行があること自体は求めない**。 team 全体を 1 query で数えるのは
+    // 取りこぼしが減る側の修正で、それを落とす検査は手順を直す側の邪魔にしかならない
   });
 
   it("Linear の数え方が完了扱いの除外で書かれている", () => {
@@ -129,9 +139,17 @@ describe("残作業の数え方 (#1056)", () => {
     const branch = authBranch();
     expect(branch, "`.mcp.json` を見る手順が無い").toContain(".mcp.json");
     expect(branch, "未認証の経路が無い").toContain("未認証");
-    const rows = branch.split("\n").filter((line) => line.trim().startsWith("|"));
-    // 見出し + 区切り + 理由 3 つ以上
-    expect(rows.length, `理由の表が ${rows.length} 行 (原因を 1 つに決めつけている)`).toBeGreaterThan(4);
+    // 表でも箇条書きでもよい。 **書き方は問わず、並んでいる項目の数だけを見る** =
+    // 表を箇条書きに直すのは中身の変わらない修正で、それを落とす検査は書き換えの邪魔になる
+    const items = branch
+      .split("\n")
+      .map((line) => line.trim())
+      // 箇条書きは区切りの後に空白を要求する (`**強調**` の先頭 `*` を数えないため)
+      .filter((line) => /^(\|\s*\S|[-*]\s+\S)/.test(line) && !/^\|[\s:|-]*\|?$/.test(line));
+    expect(
+      items.length,
+      `分岐に並んでいる項目が ${items.length} 件 (原因を 1 つに決めつけている)`,
+    ).toBeGreaterThan(5);
   });
 
   it("認証の呼び方が client ごとに書かれている", () => {

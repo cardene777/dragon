@@ -45,13 +45,13 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 
 ```text
 mcp__linear__list_issue_statuses  team=Cardene
-mcp__linear__list_issues  project=dragon  state=<完了扱いでない状態>
-mcp__linear__list_issues  team=Cardene  state=Triage
+mcp__linear__list_issues  team=Cardene  state=<完了扱いでない状態>
 ```
 
-`project=dragon` だけでは足りない。 起票した直後の issue は project が未設定のことがあり、
-project で絞ると消える。 3 行目のように project を付けずに `Triage` も数え、
-dragon の話かどうかは本文で判定する。
+**team 全体で数えて、dragon の話かどうかは本文で判定する。**
+`project=dragon` で絞ると、project が未設定の issue が丸ごと消える。 未設定は起票直後に
+起きやすいが `Triage` に限らず、どの状態でも起こりうる。 件数が多くて絞りたい時も、
+project で絞った数を「残り全部」 として報告しない。
 
 実測すると、`Backlog` と `In Progress` を `project=dragon` で数えるだけでは
 **この手順そのものの issue (`CAR-2948`) が数から消える**。 `Triage` にあり project が未設定のため。
