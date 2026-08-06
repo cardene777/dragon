@@ -352,6 +352,10 @@
   .v4-editor-bar::-webkit-scrollbar { display: none; }
   /* 縮んで潰れると押せなくなるので、 各項目は自然幅を保つ */
   .v4-editor-bar > * { flex-shrink: 0; }
+  /* **名前だけは縮む** (#1063)。 ボタンをアイコンにした後、 操作列に残るはみ出しの原因は
+     ファイル名だった (実測 = 1100px 幅で 255px を占め、 残り 97px のはみ出しはすべてこれ)。
+     操作は押せないと困るが、 名前は端が切れても読める。 */
+  .v4-editor-bar > .v4-editor-bar-file { flex-shrink: 1; }
   .v4-editor-bar-file {
     font-family: var(--v4-mono);
     font-size: 11.5px;
@@ -359,7 +363,16 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    /* 画面が狭い時はここが縮む (#1063)。 ボタンをアイコンにした後、 操作列に残る
+       はみ出しの原因はファイル名だった (実測 = 1100px 幅で 255px を占め、 残り 97px の
+       はみ出しはすべてこれ)。 操作は押せないと困るが、 名前は端が切れても読める。 */
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
+  /* 縮む側と縮まない側を分ける。 ボタンは押せる大きさを保つ */
+  .v4-editor-bar-file > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .v4-editor-bar-gap { flex: 1; }
   .v4-editor-bar-btn {
     padding: 5px 11px;
@@ -375,6 +388,25 @@
   .v4-editor-bar-btn:hover {
     background: rgba(26, 20, 16, 0.05);
     color: var(--v4-ink);
+  }
+  /* アイコンだけのボタン (#1063)。 文字のままだと 12 個で 811px を占め、 操作列 (491px)
+     から 320px はみ出して右端が押せなかった。
+
+     正方形にするのは、 押せる範囲を大きさで揃えるため。 幅を中身任せにすると、 線の少ない
+     アイコン (虫めがね) だけ狭くなって押しにくい。 */
+  .v4-editor-bar-btn-icon {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  /* 見えている枠が無いので、 キーボードで来た時の印だけは必ず出す */
+  .v4-editor-bar-btn:focus-visible {
+    outline: 2px solid var(--v4-brand);
+    outline-offset: 1px;
   }
   .v4-editor-bar-btn-primary {
     background: var(--v4-ink);

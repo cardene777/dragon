@@ -26,6 +26,10 @@ import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
+import {
+  IconShare, IconExport, IconTextDown, IconTextUp, IconShrink, IconGrow,
+  IconPositions, IconFit, IconReset, IconActualSize, IconZoomOut, IconZoomIn,
+} from "@/components/EditorBarIcons";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 
@@ -1807,17 +1811,26 @@ animation:
               相手の画面に開く (実測) ので、 YAML を載せる経路ができるまで押せなくする */}
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             onClick={handleShare}
             disabled={cdlWriteDisabled}
-            title={cdlWriteDisabled ? cdlOnlyHint : undefined}
+            aria-label="共有URL"
+            title={cdlWriteDisabled ? cdlOnlyHint : "この図を開ける URL を作って写す"}
             data-testid="editor-share"
           >
-            共有URL
+            <IconShare />
           </button>
           <div className="v4-editor-export">
-            <button type="button" className="v4-editor-bar-btn v4-editor-bar-btn-primary" disabled={!diagram}>
-              エクスポート ↓
+            <button
+              type="button"
+              className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-bar-btn-primary"
+              disabled={!diagram}
+              aria-label="エクスポート"
+              aria-haspopup="menu"
+              data-testid="editor-export"
+              title="画像として書き出す (SVG / PNG)"
+            >
+              <IconExport />
             </button>
             <div className="v4-editor-export-menu">
               <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
@@ -1950,97 +1963,116 @@ animation:
           {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
               zoom (表示倍率) と違い、 DSL に書き出されるので export / 共有にも反映される。
               文字サイズは cdl 側の固定値なので追従しない = 箱と間隔だけが変わる。 */}
+          {/* アイコンだけを置く (#1063)。 文字のままだと 12 個で 811px を占め、
+              操作列 (491px) から 320px はみ出して右端が押せなかった。
+
+              **名前は `aria-label` で必ず持たせる**。 アイコンには文字が無いので、
+              付けないと読み上げで「ボタン」 としか読まれず何をするか分からない。
+              `title` はホバーで出る説明で、 押す前に何が起きるかを書く。 */}
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-font-scale-down"
             onClick={() => setFontScale((v) => clampFontScale(v / 1.15))}
-            title="図中の文字を一律で小さくする"
+            aria-label="文字を小さく"
+            title="図の中の文字を一律で小さくする"
           >
-            文字を小さく
+            <IconTextDown />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-font-scale-up"
             onClick={() => setFontScale((v) => clampFontScale(v * 1.15))}
-            title="図中の文字を一律で大きくする"
+            aria-label="文字を大きく"
+            title="図の中の文字を一律で大きくする"
           >
-            文字を大きく
+            <IconTextUp />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-diagram-scale-down"
             onClick={() => scaleWholeDiagram(1 / 1.25)}
             disabled={cdlWriteDisabled}
-            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを縮小する (表示倍率ではなく DSL に反映)"}
+            aria-label="図を縮小"
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを縮める (表示倍率ではなく記法に書き戻す)"}
           >
-            図を縮小
+            <IconShrink />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-diagram-scale-up"
             onClick={() => scaleWholeDiagram(1.25)}
             disabled={cdlWriteDisabled}
-            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを拡大する (表示倍率ではなく DSL に反映)"}
+            aria-label="図を拡大"
+            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを広げる (表示倍率ではなく記法に書き戻す)"}
           >
-            図を拡大
+            <IconGrow />
           </button>
           <button
             type="button"
-            className={`v4-editor-bar-btn ${showPositions ? "is-on" : ""}`}
+            className={`v4-editor-bar-btn v4-editor-bar-btn-icon ${showPositions ? "is-on" : ""}`}
             data-testid="editor-toggle-positions"
             aria-pressed={showPositions}
             onClick={() => setShowPositions((v) => !v)}
             // 札は本文欄にしか書き戻せない。 YAML 欄では押しても何も出ないので押せなくする
             disabled={cdlWriteDisabled}
+            aria-label="位置を表示"
             title={cdlWriteDisabled ? cdlOnlyHint : "各要素が今どこに居るかを図に重ねて出す"}
           >
-            位置を表示
+            <IconPositions />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
+            data-testid="editor-fit"
             onClick={handleFit}
-            title="表示を preview 領域に合わせる"
+            aria-label="フィット"
+            title="図が枠に収まるように表示を合わせる"
           >
-            フィット
+            <IconFit />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
+            data-testid="editor-reset"
             onClick={handleReset}
-            title="表示を初期状態に戻す (Esc)"
+            aria-label="リセット"
+            title="表示を最初の状態に戻す (Esc)"
           >
-            リセット
+            <IconReset />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
+            data-testid="editor-actual-size"
             onClick={handle100}
-            title="等倍表示"
+            aria-label="等倍表示"
+            title="等倍で表示する"
           >
-            100%
+            <IconActualSize />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
+            data-testid="editor-zoom-out"
             onClick={handleZoomOut}
-            title="縮小"
             aria-label="縮小"
+            title="表示を縮小する"
           >
-            −
+            <IconZoomOut />
           </button>
           <button
             type="button"
-            className="v4-editor-bar-btn"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon"
+            data-testid="editor-zoom-in"
             onClick={handleZoomIn}
-            title="拡大"
             aria-label="拡大"
+            title="表示を拡大する"
           >
-            +
+            <IconZoomIn />
           </button>
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
