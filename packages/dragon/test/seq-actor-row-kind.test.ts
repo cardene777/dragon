@@ -78,27 +78,30 @@ describe("行を宣言しなくても kind は載る (#975)", () => {
     // #387 では「行を出す意図が明示された時だけ切り替える」 としていたが、 **書いたとおりに
     // ならない方が読み手を惑わせる** ため #975 で常に載せる形にした。 名札の高さは揃えるので
     // 縦線の始まる位置はばらけない。
-    const d = textDslToDiagram(src(`DB: { kind: storage }`));
-    expect(nodeById(d, "db-header")?.kind).toBe("storage");
+    //
+    // probe は `database`。 `storage` は行が無いと名札の高さが 72 のままで、 名前が箱から
+    // はみ出すため `card` に落ちる (#1061、 `seq-header-kind-fit.test.ts` が見る)。
+    const d = textDslToDiagram(src(`DB: { kind: database }`));
+    expect(nodeById(d, "db-header")?.kind).toBe("database");
   });
 
   it("行を描かない kind でも載せる", () => {
-    const d = textDslToDiagram(src(`DB: { kind: actor, rows: ["count: 1"] }`));
+    const d = textDslToDiagram(src(`DB: { kind: shape-file, rows: ["count: 1"] }`));
     const n = nodeById(d, "db-header")!;
-    expect(n.kind).toBe("actor");
+    expect(n.kind).toBe("shape-file");
     // 行を描かない kind なので幅は広げない。 行が出ないことは Axis 67 が報告する。
     expect(n.w!).toBeLessThan(requiredRowsWidth(["count: 1"]));
     expect(visualValidate(d).counts["rows-not-rendered"]).toBe(1);
   });
 
   it("rows が空配列でも kind は載る", () => {
-    expect(nodeById(d0(`DB: { kind: storage, rows: [] }`), "db-header")?.kind).toBe("storage");
+    expect(nodeById(d0(`DB: { kind: database, rows: [] }`), "db-header")?.kind).toBe("database");
   });
 
   it("下端の名札も同じ kind にする", () => {
     // 上下で形が違うと、 同じ登場人物が別物に見える。
-    const d = textDslToDiagram(src(`DB: { kind: storage }`));
-    expect(nodeById(d, "db-footer")?.kind).toBe("storage");
+    const d = textDslToDiagram(src(`DB: { kind: database }`));
+    expect(nodeById(d, "db-footer")?.kind).toBe("database");
   });
 
   it("下端に行は出さない", () => {
