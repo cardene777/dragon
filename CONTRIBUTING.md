@@ -31,6 +31,79 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 4. `pnpm test` + `pnpm typecheck` + `pnpm build` が緑になるか確認
 5. pull request を起票
 
+## 残作業の数え方
+
+この repo の issue は **Linear と GitHub の 2 箇所**にある。 片方だけ見ると残作業が見えない。
+
+「残りゼロ」 と判断する前に、両方を実測する。
+
+### Linear 側
+
+完了扱いの状態は `Done` / `Canceled` / `Duplicate` の 3 つで、**それ以外は全て残作業**。
+状態は後から増えるため、残っている状態を数え上げるのではなく
+**完了扱いの 3 つを除いた残り全部**として数える。
+
+```text
+mcp__linear__list_issue_statuses  team=Cardene
+mcp__linear__list_issues  team=Cardene  state=<完了扱いでない状態>
+```
+
+**team 全体で数えて、dragon の話かどうかは本文で判定する。**
+`project=dragon` で絞ると、project が未設定の issue が丸ごと消える。 未設定は起票直後に
+起きやすいが `Triage` に限らず、どの状態でも起こりうる。 件数が多くて絞りたい時も、
+project で絞った数を「残り全部」 として報告しない。
+
+実測すると、`Backlog` と `In Progress` を `project=dragon` で数えるだけでは
+**この手順そのものの issue (`CAR-2948`) が数から消える**。 `Triage` にあり project が未設定のため。
+
+### GitHub 側
+
+```bash
+gh issue list -R cardene777/dragon --state open --limit 200
+gh pr list -R cardene777/dragon --state open --limit 200
+```
+
+`--limit` を省くと **30 件で黙って打ち切られる**。 返ってきた件数が `--limit` と同じなら
+まだ先があるので、上限を上げて数え直す。
+
+### Linear の tool が見当たらない時
+
+**「tool が無い」 を「Linear は非該当」 と読み替えない。** これがそのまま数え漏れになる。
+
+`.mcp.json` に Linear の登録があることは、**server が登録済である**ことしか示さない。
+tool が出ない理由は他にもある。
+
+| 理由 | 確かめ方 |
+|---|---|
+| 未認証 | 下記の command で認証すると出る |
+| client が MCP 未対応、または server を無効にしている | client 側の設定を見る |
+| 接続の許可をまだ与えていない | client が確認を出していないか見る |
+| network から Linear に届いていない | 他の外部通信が通るか見る |
+| workspace に招待されていない | 認証まで進んでも issue が見えない |
+
+認証の command は client ごとに違う。
+
+- Claude Code ... `claude mcp login linear` (`/mcp` から選んでもよい)
+- Codex CLI ... `codex mcp login linear`
+
+**Linear は private な workspace で、外部の contributor は招待されていない。**
+その場合は GitHub 側だけを数え、報告に **「Linear は数えていない」 と明記する**。
+数えていない source を 0 件として書かない。
+
+### なぜこの手順があるか
+
+2026-08-06 の棚卸しで、GitHub が 0 件になった時点で Linear の tool が出ておらず、
+`.mcp.json` を見ないまま「非該当」 と判断した。 実際は未認証だっただけで、認証したら
+Backlog 7 件 / In Progress 4 件が残っていた。 そのまま報告していれば 11 件を見落として
+「残作業 0」 と書くところだった。
+
+**この手順の最初の版も同じ誤り方をしていた。** 認証後に数えた 2 つの状態
+(`Backlog` / `In Progress`) をそのまま手順に書いたため、`Triage` にある project 未設定の
+issue が数から漏れた。 数え方を「見た状態の列挙」 で書くと、見ていない状態が
+最初から存在しないことになる。 だから完了扱いを除く形で書いてある。
+
+経緯は `#1055` と `#1056` に残っている。
+
 ## Tests
 
 ```bash
