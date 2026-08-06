@@ -241,12 +241,21 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
       for (const role of ["lane-lifeline", "lane-container"]) {
         const el = document.querySelector(`svg [data-cdl-role="${role}"]`);
         if (!el) continue;
-        // **薄さは色の alpha だけではない**。 要素と祖先に掛かる `opacity` も効く
-        // (実測 = 描画側が `opacity: 0.7` を掛けており、 色を不透明にしても 2.73 に落ちた)
-        let 実効 = 1;
+        // **薄さは色の alpha だけではない**。 効くものを 3 つとも数える。
+        //
+        // 1. 色自身の alpha (`rgba(...)`)
+        // 2. 要素と祖先の `opacity` — 実測 = 描画側が `opacity: 0.7` を掛けており、
+        //    色を不透明にしても 2.73 に落ちた
+        // 3. `stroke-opacity` — 線にだけ掛かる別軸。 現状はどこも 1 だが、
+        //    数えないと将来効いた時に黙って通る
+        //
+        // 祖先は `documentElement` **自身も含めて** 遡る。 除くと root に掛けた
+        // `opacity` を見落とす。
+        let 実効 = Number(getComputedStyle(el).strokeOpacity || 1);
         let n: Element | null = el;
-        while (n && n !== document.documentElement) {
+        while (n) {
           実効 *= Number(getComputedStyle(n).opacity || 1);
+          if (n === document.documentElement) break;
           n = n.parentElement;
         }
         strokes.push({ role, stroke: getComputedStyle(el).stroke, opacity: 実効 });
@@ -254,6 +263,9 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
       return { paper, strokes };
     });
     expect(r.paper, `${場所} の紙を測れていない`).not.toBeNull();
+    // 測る対象が 0 件だと、 何も確かめずに通る。 どの画面でどの役割が出るかは
+    // 上の表で決めているので、 1 件も取れないのは選択子が実装とずれた合図
+    expect(r.strokes.length, `${場所} で補助線を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
 
     for (const { role, stroke, opacity } of r.strokes) {
       // 色の alpha と要素の opacity の両方を紙に重ねた実効色で測る。
