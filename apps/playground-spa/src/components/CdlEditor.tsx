@@ -1961,7 +1961,9 @@ animation:
       <section className="v4-editor-preview">
         <header className="v4-editor-bar">
           <span className="v4-editor-bar-file">
-            <span className="v4-editor-live" /> ライブプレビュー
+            <span className="v4-editor-live" />
+            {/* 名前は span で包む (#1063)。 裸の文字だと縮まず、 狭い画面で 55px を占め続ける */}
+            <span className="v4-editor-bar-file-name">ライブプレビュー</span>
           </span>
           <span className="v4-editor-bar-gap" />
           {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。

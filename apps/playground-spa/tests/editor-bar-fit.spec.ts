@@ -80,9 +80,21 @@ test("12 個の操作がすべて画面の中にある", async ({ page }) => {
       if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.bottom > window.innerHeight) {
         return { id, 件数: 1, 状態: `画面の外 (left=${Math.round(r.left)} right=${Math.round(r.right)})` };
       }
-      // 途中の親に隠れていないか。 中心の点にその要素が居るかで見る
+      // **見えない置き方も弾く**。 大きさがあっても、 透明 / 非表示 / 押せない設定なら
+      // 画面には無いのと同じ
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.display === "none") return { id, 件数: 1, 状態: `${cs.visibility}/${cs.display}` };
+      if (Number(cs.opacity) < 0.1) return { id, 件数: 1, 状態: `透明 (opacity ${cs.opacity})` };
+      if (cs.pointerEvents === "none") return { id, 件数: 1, 状態: "押せない (pointer-events: none)" };
+
+      // 途中の何かに隠れていないか。 中心の点で最前面に居るのが自分 (かその中身) かで見る。
+      //
+      // **`中心.contains(el)` を条件に足してはいけない**。 前面の要素が祖先だった場合に
+      // 通ってしまい、 覆われている状態を見逃す。 見るのは「自分の内側か」 だけ。
       const 中心 = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
-      if (!中心 || (!el.contains(中心) && !中心.contains(el))) return { id, 件数: 1, 状態: "何かに隠れている" };
+      if (!中心 || !el.contains(中心)) {
+        return { id, 件数: 1, 状態: `何かに隠れている (前面 = ${中心?.tagName ?? "なし"})` };
+      }
       return { id, 件数: 1, 状態: "ok" };
     }),
     操作.map((o) => o.id),
@@ -154,24 +166,58 @@ test("似た役割のアイコンが同じ形になっていない", async ({ pa
   expect(重複.map((x) => x.id), `同じ形のアイコンがある: ${重複.map((x) => x.id).join(", ")}`).toEqual([]);
 });
 
-test("狭い画面で名前が省略記号で切れる", async ({ page }) => {
+test("長い名前が狭い画面で省略記号付きで切れる", async ({ page }) => {
   // 名前は縮む側に置いた。 ただし **省略記号が出ないと、ただ切れただけに見える**。
-  // 親が `inline-flex` だと裸の文字には `text-overflow` が効かないので、span で包む
+  // 親が `inline-flex` だと裸の文字には `text-overflow` が効かないので span で包む。
+  //
+  // **設定を見るだけでは足りない**。 `text-overflow: ellipsis` が付いていても、
+  // 実際に切れていなければ効いているか分からない。 長い名前を入れて切れることまで見る。
   await openEditor(page, 901);
-  const r = await page.evaluate(() => {
-    const el = document.querySelector(".v4-editor-bar-file-name");
-    if (!el) return null;
+
+  const 記法欄 = () => page.locator(".v4-editor-bar").first().locator(".v4-editor-bar-file-name");
+
+  // 見本を切り替えて長い名前にする (見本の名前が file 名になる)
+  const 長い見本 = page.getByRole("button", { name: /Clientと投稿のスキーマ|システム構成|スプリントロードマップ/ }).first();
+  if (await 長い見本.count()) {
+    await 長い見本.click();
+    await page.waitForTimeout(900);
+  }
+
+  const r = await 記法欄().evaluate((el) => {
     const cs = getComputedStyle(el);
     return {
+      文字: (el.textContent ?? "").trim(),
       省略: cs.textOverflow,
       折返し: cs.whiteSpace,
-      切れている: el.scrollWidth > el.clientWidth,
-      幅: Math.round(el.getBoundingClientRect().width),
+      // 中身が枠より広ければ切れている
+      切れている: el.scrollWidth > el.clientWidth + 1,
+      内側: el.scrollWidth,
+      枠: el.clientWidth,
     };
   });
-  expect(r, "名前を包む要素が無い").not.toBeNull();
-  expect(r!.省略, "省略記号が出ない").toBe("ellipsis");
-  expect(r!.折返し, "折り返してしまう").toBe("nowrap");
+
+  expect(r.省略, "省略記号が出ない").toBe("ellipsis");
+  expect(r.折返し, "折り返してしまう").toBe("nowrap");
+  expect(
+    r.切れている,
+    `名前が切れていないので省略記号を確かめられない (文字 "${r.文字}" / 内側 ${r.内側}px / 枠 ${r.枠}px)`,
+  ).toBe(true);
+});
+
+test("YAML 欄に切り替えても名前の扱いが同じ", async ({ page }) => {
+  // 名前は欄によって別の文字列になる (本文欄は見本名、 YAML 欄は固定名)。
+  // 片方だけ包んでいると、 切り替えた時に縮まなくなる
+  await openEditor(page, 901);
+  await page.getByTestId("editor-tab-yaml").click();
+  await page.waitForTimeout(900);
+
+  const r = await page.locator(".v4-editor-bar").first().locator(".v4-editor-bar-file-name").evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { 文字: (el.textContent ?? "").trim(), 省略: cs.textOverflow, 折返し: cs.whiteSpace };
+  });
+  expect(r.文字.length, "YAML 欄で名前が空").toBeGreaterThan(0);
+  expect(r.省略, "YAML 欄で省略記号が出ない").toBe("ellipsis");
+  expect(r.折返し, "YAML 欄で折り返してしまう").toBe("nowrap");
 });
 
 test("狭い画面でも状態の点が潰れない", async ({ page }) => {
@@ -185,4 +231,30 @@ test("狭い画面でも状態の点が潰れない", async ({ page }) => {
   });
   expect(点, "状態の点が無い").not.toBeNull();
   expect(点!.w, `状態の点が潰れている (幅 ${点!.w}px)`).toBeGreaterThanOrEqual(4);
+});
+
+test("狭い画面でも今の倍率が見える", async ({ page }) => {
+  // 幅が足りない時に数字を畳む案を試したが、 **今の倍率を知る手段が画面から完全に
+  // 無くなった** (実測 = 画面上に百分率を出す要素は他に 1 つも無い)。 余白と大きさを
+  // 詰めて残す形にした。
+  for (const width of [1440, 1024, 901]) {
+    await openEditor(page, width);
+    const r = await page.evaluate(() => {
+      const el = document.querySelector(".v4-editor-bar-zoom");
+      if (!el) return null;
+      const box = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return {
+        文字: (el.textContent ?? "").trim(),
+        幅: Math.round(box.width),
+        表示: cs.display,
+        見え方: cs.visibility,
+      };
+    });
+    expect(r, `${width}px で倍率の要素が無い`).not.toBeNull();
+    expect(r!.表示, `${width}px で倍率が畳まれている`).not.toBe("none");
+    expect(r!.見え方, `${width}px で倍率が隠れている`).not.toBe("hidden");
+    expect(r!.幅, `${width}px で倍率が潰れている`).toBeGreaterThan(0);
+    expect(r!.文字, `${width}px で倍率の数字が出ていない`).toMatch(/\d+%/);
+  }
 });
