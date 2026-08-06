@@ -77,6 +77,32 @@ function authBranch(): string {
   return procedure.slice(start);
 }
 
+/**
+ * 分岐のうち **tool が出ない理由を並べた部分**だけ (認証 command の並びより前)。
+ *
+ * 分岐全体で数えると、認証 command の並びが件数に混ざる。 理由を削っても
+ * command 側の行数で埋まって通ってしまうため、理由だけを数える。
+ */
+function authCauses(): string {
+  const branch = authBranch();
+  const commands = branch.search(/^.*mcp login/m);
+  return commands > -1 ? branch.slice(0, commands) : branch;
+}
+
+/**
+ * markdown の並び (表の行 / 箇条書き) を項目として数える。
+ *
+ * 表の区切り行 (`|---|---|`) は数えない。 箇条書きの区切り (`-` / `*` / `+`) は
+ * 後ろに空白を要求する = `**強調**` の先頭 `*` を項目と誤認しないため
+ * (実測 = 誤認したまま「理由を 1 件に減らす」 変異が素通りしていた)。
+ */
+function listedItems(src: string): string[] {
+  return src
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^(\|\s*\S|[-*+]\s+\S)/.test(line) && !/^\|[\s:|-]*\|?$/.test(line));
+}
+
 describe("残作業の数え方 (#1056)", () => {
   it("手順の節がある", () => {
     expect(contributing(), "節ごと消えている").toContain("## 残作業の数え方");
@@ -114,7 +140,8 @@ describe("残作業の数え方 (#1056)", () => {
       unscoped.length,
       "project を付けずに数える行が無い (project 未設定の issue が漏れる)",
     ).toBeGreaterThan(0);
-    const state = /state=(\S+)/;
+    // `=` の前後の空白を許す = `state = Triage` と書いた固定を素通りさせない
+    const state = /state\s*=\s*(\S+)/;
     expect(
       unscoped.filter((l) => !state.test(l) || state.exec(l)![1].includes("<")).length,
       `project 無しの行が特定の状態に固定されている: ${unscoped.join(" / ")}`,
@@ -139,17 +166,14 @@ describe("残作業の数え方 (#1056)", () => {
     const branch = authBranch();
     expect(branch, "`.mcp.json` を見る手順が無い").toContain(".mcp.json");
     expect(branch, "未認証の経路が無い").toContain("未認証");
-    // 表でも箇条書きでもよい。 **書き方は問わず、並んでいる項目の数だけを見る** =
-    // 表を箇条書きに直すのは中身の変わらない修正で、それを落とす検査は書き換えの邪魔になる
-    const items = branch
-      .split("\n")
-      .map((line) => line.trim())
-      // 箇条書きは区切りの後に空白を要求する (`**強調**` の先頭 `*` を数えないため)
-      .filter((line) => /^(\|\s*\S|[-*]\s+\S)/.test(line) && !/^\|[\s:|-]*\|?$/.test(line));
+    // 表でも箇条書きでもよい。 **書き方は問わず、並んでいる理由の数だけを見る** =
+    // 表を箇条書きに直すのは中身の変わらない修正で、それを落とす検査は書き換えの邪魔になる。
+    // 数えるのは理由の並びだけ = 認証 command の並びを混ぜると、理由を削っても埋まる
+    const causes = listedItems(authCauses());
     expect(
-      items.length,
-      `分岐に並んでいる項目が ${items.length} 件 (原因を 1 つに決めつけている)`,
-    ).toBeGreaterThan(5);
+      causes.length,
+      `並んでいる理由が ${causes.length} 件 (原因を 1 つに決めつけている)`,
+    ).toBeGreaterThan(3);
   });
 
   it("認証の呼び方が client ごとに書かれている", () => {
