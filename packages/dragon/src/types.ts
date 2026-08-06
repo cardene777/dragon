@@ -69,6 +69,15 @@ export type DslDocument = {
 export type DslActor = {
   name: string;
   kind: NodeKind;
+  /**
+   * 著者が種類を書いたか。 書かなかった時 `kind` には既定の `actor` が入るため、
+   * `kind` の値だけでは「書いた `actor`」 と「書かなかった」 を区別できない。
+   *
+   * 順序図の名札は小型の箱 (`h: 72`) で作られる。 描画側は `card` に小型用の分岐を持つが
+   * `actor` には無く、 名札の文字が箱の下端をはみ出す。 書いた時だけ種類を名札に載せ、
+   * 書かなかった時は小型に耐える形のまま残すために、 この 2 つを区別する (#1058)。
+   */
+  kindWritten?: boolean;
   /** v0.5+ inline option */
   subtitle?: string;
   eyebrow?: string;

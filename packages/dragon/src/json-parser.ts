@@ -307,7 +307,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   const p0 = { line: 0 };
   const actors: DslActor[] = json.actors.map((a) => {
     if (typeof a === "string") {
-      return { name: a, kind: "actor" as NodeKind, pos: p0 };
+      return { name: a, kind: "actor" as NodeKind, kindWritten: false, pos: p0 };
     }
     // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
     const kindStr = (a.kind ?? "actor") as string;
@@ -315,6 +315,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     return {
       name: a.name,
       kind: isPart ? "actor" as NodeKind : (a.kind ?? "actor") as NodeKind,
+      // parts 候補は `kind` を `actor` に倒して `partId` へ退避するため、 名札に載せる種類としては
+      // 「書かなかった」 と同じ扱いにする (#1058)
+      kindWritten: a.kind !== undefined && !isPart,
       subtitle: a.subtitle,
       eyebrow: a.eyebrow,
       value: a.value,
