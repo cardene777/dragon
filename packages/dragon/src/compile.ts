@@ -2065,6 +2065,110 @@ function alignSeqHeaderHeights(diagram: CdlDiagram, doc: DslDocument): void {
 }
 
 /**
+ * 名札に載せるのに要る高さ (world 単位)。
+ *
+ * 描画側が **名前を箱の高さに関係なく固定の位置に置く** 種別だけを持つ。 この 4 種は
+ * `y=86` / `86` / `78` / `88` の baseline に名前を書き、 小型用の分岐を持たない
+ * (持つのは `card` だけで、 高さ 100 未満なら中央に置く)。
+ *
+ * 値は実測 = 高さを 1 ずつ変えて描き、 名前の下端が箱の下端を越えなくなる最小の整数を取った
+ * (`type: flow` で `大きさ:` を書いて掃いた)。 描画側の `y` と font の大きさから式で出さない
+ * = 字形の下ばみ (descender) は font に依存し、 式を写すと描画を変えた時に片方だけ古くなる。
+ * 表が実際の描画と合っているかは `apps/playground-spa/tests/node-label-fit.spec.ts` が
+ * 両側 (この高さで収まる / 2 低いとはみ出す) を実 render で測って見る。
+ */
+const LABEL_MIN_H: Readonly<Record<string, number>> = {
+  actor: 95, // baseline y=86 / fontSize 32 (実測 = 95 で -0.82、 94 で +0.18)
+  function: 94, // y=86 / 24 mono (94 で -0.99、 93 で +0.01)
+  storage: 86, // y=78 / 22 mono (86 で -0.99、 85 で +0.01)
+  event: 96, // y=88 / 26 mono、 0.92 倍に縮めて描かれる (96 で -0.2、 95 で +0.69)
+};
+
+/**
+ * 名札が、 小型の `card` では描かれない文字を持つか。
+ *
+ * 小型の `card` (`h < 100`) が描くのは名前だけ。 `subtitle` と `eyebrow` は分岐で外れ、
+ * `value` は `card` が元から描かない。 `rows` を描くのは種別が限られる。
+ * どれか 1 つでも持つ名札を `card` に落とすと、 著者が書いた文字が画面から消える。
+ */
+function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
+  if (n.subtitle !== undefined || n.eyebrow !== undefined || n.value !== undefined) return true;
+  return rendersRows(n.kind) && (n.rows?.length ?? 0) > 0;
+}
+
+/**
+ * 名前が箱に収まらない種別を名札から外す (#1061)。
+ *
+ * `#975` が「書いた種別を名札に載せる」 挙動を入れ、 `#1058` が「書かなかった時は載せない」
+ * を直した。 残っていたのは **書いた時にはみ出す** 側で、 名札は小型の箱 (`h: 72`) なのに
+ * 上の 4 種は名前を固定位置に置くため、 名前が箱の下端をまたぐ
+ * (実測 = actor 21.6 / function 21.6 / storage 13.6 / event 24.2 world px)。
+ *
+ * **収まる高さがある時は書いたとおりに載せる**。 `rows` を書いた名札は
+ * `requiredRowsHeight` で 206 以上になり、 揃え (`alignSeqHeaderHeights`) がその高さを
+ * 全本に配るので、 同じ図の `event` も収まる。 判定を揃えの後に置くのはこのため。
+ *
+ * **著者が書いた文字を持つ名札は落とさない**。 小型の `card` は名前しか描かない
+ * (`subtitle` / `eyebrow` は `h < 100` の分岐で外れ、 `value` は元から描かない)。 落とすと
+ * 書いた文字が画面から消える = 名前がはみ出すより悪い。 `rows` と同じ扱いにする。
+ *
+ * 落とす時に失うものは 3 つある。 名前の位置と字形が `card` の形 (中央 / 20px / 幅に合わせて
+ * 縮む) になること、 既定の配色での枠線の色 (`function` の緑 / `event` の緑)、 `event` の
+ * 拍動 (0.92 倍 + 半透明)。 本 app の配色は枠線の色を上書きするため見た目は変わらない
+ * (実測 = 4 種とも `rgb(109, 63, 24)`) が、 既定の配色で使う利用者には色の差が出る。
+ * それでも落とすのは、 名前が箱をまたぐ方が読み手に与える誤りが大きいため。
+ *
+ * 高さを上げる方向は採らない。 名札の高さは全本で揃える規約があるため 1 本の指定が全体に
+ * 伝播し、 全名札が 2-3 倍になる (`#1058` で実測、 golden 25 件が変化)。
+ *
+ * **判定は上下 1 組でする**。 `nodes` override で上端だけ大きさを書くと (`posH: 120`)、
+ * 上端は収まり下端 (72) は収まらないため、 1 つずつ見ると同じ登場人物の上下で形が変わる。
+ * 上下で形が違うと別物に見えるので、 どちらかが収まらなければ両方落とす。
+ *
+ * ## 覆っていない範囲
+ *
+ * `shape-` で始まる種別は対象外。 これらは名前を箱ではなく **自分の絵に対して** 置く
+ * (実測 = `shape-code-block` は箱が 30 でも絵は 180 で描かれ、 名前は絵の中にある)。
+ * 箱を基準に測ると収まっていないように見えるが、 箱はその絵の一部でしかない。
+ *
+ * **著者が文字を書いた名札は、 名前がはみ出したままになる**。 4 種は `subtitle` を `y=126`
+ * 付近、 `value` を `y=152` に置くため、 収める高さは 150 以上になる。 揃えの伝播で全名札が
+ * 2 倍になるので、 高さで解く道は上と同じ理由で採れない。 直すには描画側 (`cdl`) に小型用の
+ * 配置が要る。
+ */
+function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
+  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  const ends = new Map<string, CdlDiagram["nodes"]>();
+  for (const n of diagram.nodes) {
+    if (n.id !== `${n.lane}-header` && n.id !== `${n.lane}-footer`) continue;
+    const pair = ends.get(n.lane);
+    if (pair === undefined) ends.set(n.lane, [n]);
+    else pair.push(n);
+  }
+  for (const pair of ends.values()) {
+    // 著者が書いた文字を持つ名札は落とさない。 小型の `card` は名前しか描かないため、
+    // 落とすと書いた文字が画面から消える (`#387` と同じ壊れ方になる)。 これらは上端にしか
+    // 載らないため 1 組で見る。
+    if (pair.some(hasAuthoredText)) continue;
+    const 収まらない = pair.some((n) => {
+      const need = LABEL_MIN_H[n.kind];
+      if (need === undefined) return false;
+      // 描画で使う高さを見る。 `posH` が効くのは `posX` と `posY` が揃った node だけ
+      // (`layout/nodes.ts`)。 揃っていない node の `posH` を見ると、 描画では使われない値で
+      // 判定することになる。
+      const h = (n.posX !== undefined && n.posY !== undefined ? n.posH : undefined) ?? n.h;
+      // 高さを書いていない名札は描画側の既定 (`NODE_SIZE`、 4 種とも 170 以上) で描かれるので
+      // 収まる。 名札は必ず高さを持つため通常ここには来ない。
+      return h !== undefined && h < need;
+    });
+    if (!収まらない) continue;
+    for (const n of pair) {
+      if (LABEL_MIN_H[n.kind] !== undefined) n.kind = "card";
+    }
+  }
+}
+
+/**
  * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
  *
  * `type: flow` は **actor を宣言順に一直線に並べ、 隣り合う actor の間に edge を引く**。
@@ -2528,6 +2632,9 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
   // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
   // 「同じ高さから下りる」 読み方が崩れる (実測 = 行を持つ名札だけ 134px 下にずれた)。
   alignSeqHeaderHeights(diagram, doc);
+  // 揃えた後の高さで、 名前が箱に収まらない種別を名札から外す (#1061)。 揃えは高さを上げる
+  // 方向にしか動かないので、 ここで見れば「行を書いた図では書いた種別が残る」 が成立する。
+  dropUnfittableEndKinds(diagram, doc);
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
   // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
   // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。

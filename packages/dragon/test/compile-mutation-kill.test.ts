@@ -1084,12 +1084,18 @@ describe("compileSequenceWithAnimate: header / footer / spacer / step box 生成
   });
 
   it("header は title = actor 名 / kind は書いたとおり / stack 0", () => {
-    // #975 で「書いた kind を名札に載せる」 に変えた。 helper の actor は `kind: "actor"` を
-    // 持つので、 載せない実装に戻すと `card` になってこの assertion が落ちる。
-    const d = compileToCdl(makeDoc("sequence", { animate: ANIM }));
+    // #975 で「書いた kind を名札に載せる」 に変えた。 載せない実装に戻すと `card` になって
+    // この assertion が落ちる。
+    //
+    // 種類は `database` を使う。 helper の既定 (`kind: "actor"`) は名札の高さ (72) では名前が
+    // 箱からはみ出すため `card` に落ちる (#1061) = 載せる経路を消しても同じ `card` になり、
+    // この検査が何も守らなくなる。
+    const d = compileToCdl(
+      makeDoc("sequence", { animate: ANIM, actors: [actor("A", { kind: "database" }), actor("B")] }),
+    );
     const h = node(d, "a-header");
     expect(h.title).toBe("A");
-    expect(h.kind).toBe("actor");
+    expect(h.kind).toBe("database");
     expect(h.stack).toBe(0);
   });
 

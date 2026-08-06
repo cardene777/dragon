@@ -8,7 +8,12 @@
  * 「`actor` と書いた」 に化ける。 書いた時だけ載せることを機械で守る。
  *
  * **記法は 5 経路ある**。 実装中に 2 度、 1 経路だけ直して他が漏れた (括弧記法を直した時に
- * inline mapping と継続行が残り、 書いた `storage` が `card` に落ちた)。 表で全経路を通す。
+ * inline mapping と継続行が残り、 書いた種類が `card` に落ちた)。 表で全経路を通す。
+ *
+ * 書いた種類の probe には `database` を使う。 `actor` / `function` / `storage` / `event` は
+ * 名札の高さ (72) では名前が箱からはみ出すため `card` に落ちる (#1061) = これらで測ると、
+ * 載せる経路を消しても結果が同じ `card` になり、 配線漏れを検知できない。
+ * 落とす側の挙動は `seq-header-kind-fit.test.ts` が見る。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, jsonToDiagram, compileToCdl, parseTextDsl, parseTextDslV05 } from "../src/index";
@@ -30,7 +35,7 @@ type: sequence
 
 actors:
   - Client
-  - API (storage)
+  - API (database)
 
 flow:
   1. Client → API: 呼ぶ
@@ -41,7 +46,7 @@ type: sequence
 
 actors:
   - Client
-  - API: storage
+  - API: database
 
 flow:
   - Client -> API: "呼ぶ"
@@ -52,7 +57,7 @@ type: sequence
 
 actors:
   - Client
-  - API: { kind: storage }
+  - API: { kind: database }
 
 flow:
   - Client -> API: "呼ぶ"
@@ -64,7 +69,7 @@ type: sequence
 actors:
   - Client
   - API:
-      kind: storage
+      kind: database
 
 flow:
   - Client -> API: "呼ぶ"
@@ -73,11 +78,11 @@ flow:
 const JSON_DOC = {
   title: "t",
   type: "sequence" as const,
-  actors: ["Client", { name: "API", kind: "storage" }],
+  actors: ["Client", { name: "API", kind: "database" }],
   flow: [{ from: "Client", to: "API", label: "呼ぶ" }],
 };
 
-/** `Client` は種類を書かない、 `API` は `storage` を書く。 記法ごとに書き方が違う。 */
+/** `Client` は種類を書かない、 `API` は `database` を書く。 記法ごとに書き方が違う。 */
 const 記法 = [
   { name: "v0.4 括弧", diagram: () => textDslToDiagram(V04), actors: () => parseTextDsl(V04).doc?.actors },
   { name: "v0.5 略記", diagram: () => textDslToDiagram(略記), actors: () => parseTextDslV05(略記).doc?.actors },
@@ -93,7 +98,7 @@ describe("順序図の名札の種類 (#1058)", () => {
     it("書いた種類は名札に載る", () => {
       // #975 の意図 = 書いたのに効かない項目を残さない。 本 fix で失わせない
       const kinds = headerKinds(diagram());
-      expect(kinds["api-header"], `書いた storage が名札に載らない (id 一覧: ${Object.keys(kinds).join(", ")})`).toBe("storage");
+      expect(kinds["api-header"], `書いた database が名札に載らない (id 一覧: ${Object.keys(kinds).join(", ")})`).toBe("database");
     });
 
     it("書かない登場人物の名札は card のまま", () => {
@@ -130,14 +135,14 @@ describe("順序図の名札の種類 (#1058)", () => {
       title: "t",
       type: "sequence",
       actors: [
-        { name: "Client", kind: "actor", pos: { line: 1 } },
-        { name: "DB", kind: "storage", pos: { line: 2 } },
+        { name: "Client", kind: "service", pos: { line: 1 } },
+        { name: "DB", kind: "database", pos: { line: 2 } },
       ],
       flow: [{ no: 1, from: "Client", to: "DB", label: "呼ぶ", pos: { line: 3 } }],
       pos: { line: 1 },
     });
     const kinds = headerKinds(diagram);
-    expect(kinds["db-header"], "直接組み立てた storage が card に落ちている").toBe("storage");
-    expect(kinds["client-header"], "直接組み立てた actor が card に落ちている").toBe("actor");
+    expect(kinds["db-header"], "直接組み立てた database が card に落ちている").toBe("database");
+    expect(kinds["client-header"], "直接組み立てた service が card に落ちている").toBe("service");
   });
 });
