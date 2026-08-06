@@ -81,11 +81,28 @@ test("12 個の操作がすべて画面の中にある", async ({ page }) => {
         return { id, 件数: 1, 状態: `画面の外 (left=${Math.round(r.left)} right=${Math.round(r.right)})` };
       }
       // **見えない置き方も弾く**。 大きさがあっても、 透明 / 非表示 / 押せない設定なら
-      // 画面には無いのと同じ
+      // 画面には無いのと同じ。
+      //
+      // **自分の値だけを見ては足りない**。 透け方は祖先から受け継ぐので、 親に
+      // `opacity: 0` を掛けると自分は `opacity: 1` のまま画面から消える
+      // (実測 = 自身 1 / 実効 0 / 大きさ 30px / 中心も自分、 で素通りした)。
+      // `filter` も同じで、 `filter: opacity(0)` は `opacity` の値に現れない。
       const cs = getComputedStyle(el);
       if (cs.visibility === "hidden" || cs.display === "none") return { id, 件数: 1, 状態: `${cs.visibility}/${cs.display}` };
-      if (Number(cs.opacity) < 0.1) return { id, 件数: 1, 状態: `透明 (opacity ${cs.opacity})` };
       if (cs.pointerEvents === "none") return { id, 件数: 1, 状態: "押せない (pointer-events: none)" };
+
+      let 実効opacity = 1;
+      let 透過filter: string | null = null;
+      let n: Element | null = el;
+      while (n) {
+        const c = getComputedStyle(n);
+        実効opacity *= Number(c.opacity || 1);
+        if (c.filter && c.filter !== "none") 透過filter = `${n.tagName}: ${c.filter}`;
+        if (n === document.documentElement) break;
+        n = n.parentElement;
+      }
+      if (実効opacity < 0.1) return { id, 件数: 1, 状態: `透明 (実効 opacity ${実効opacity})` };
+      if (透過filter) return { id, 件数: 1, 状態: `filter が掛かっている (${透過filter})` };
 
       // 途中の何かに隠れていないか。 中心の点で最前面に居るのが自分 (かその中身) かで見る。
       //
