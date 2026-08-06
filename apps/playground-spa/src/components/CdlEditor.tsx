@@ -1803,8 +1803,12 @@ animation:
               YAML
             </button>
           </div>
+          {/* 名前は span で包む (#1063)。 裸の文字のままだと、 親が `inline-flex` なので
+              `text-overflow: ellipsis` が効かず、 狭い画面で省略記号なしに切れる。 */}
           <span className="v4-editor-bar-file">
-            {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
+            <span className="v4-editor-bar-file-name">
+              {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
+            </span>
           </span>
           <span className="v4-editor-bar-gap" />
           {/* 共有 URL は本文欄の中身だけを載せる。 YAML 欄で押すと、 映していない本文が

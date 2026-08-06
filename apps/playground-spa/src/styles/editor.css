@@ -371,8 +371,15 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  /* 縮む側と縮まない側を分ける。 ボタンは押せる大きさを保つ */
-  .v4-editor-bar-file > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* **縮むのは名前だけ** (#1063)。 子を一律に縮めると、 状態を示す点 (`v4-editor-live`)
+     まで 0px に潰れて「今つながっているか」 が見えなくなる。 */
+  .v4-editor-bar-file-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .v4-editor-live { flex: 0 0 auto; }
   .v4-editor-bar-gap { flex: 1; }
   .v4-editor-bar-btn {
     padding: 5px 11px;
@@ -402,6 +409,20 @@
     align-items: center;
     justify-content: center;
     flex: none;
+  }
+  /* 3 ペインを保つ最小幅 (901px) まで収める (#1063)。 アイコンは 30px 角で押せる大きさを
+     保ち、 代わりに **間の余白と左右の余白を詰める**。 ボタン 10 個の間隔 6px は 66px を
+     占め、 それだけで 901px 幅の不足分 (60px) を超える。 */
+  @media (max-width: 1100px) {
+    .v4-editor-bar {
+      gap: 2px;
+      padding: 0 8px;
+    }
+  }
+  /* それでも足りない幅では、 **数字を畳んで操作を残す** (#1063)。 押せないと困るのは
+     ボタンで、 今の倍率は図を触れば分かる。 隠さないと 901px で 10px 溢れて右端が消える。 */
+  @media (max-width: 1000px) {
+    .v4-editor-bar-zoom { display: none; }
   }
   /* 見えている枠が無いので、 キーボードで来た時の印だけは必ず出す */
   .v4-editor-bar-btn:focus-visible {
@@ -495,6 +516,11 @@
     border-left: 1px solid var(--v4-line);
     min-width: 44px;
     text-align: right;
+    /* 3 ペインを保つ最小幅 (901px) まで操作列を収める (#1063)。 ボタン 10 個 (300px) に
+       この 44px と左の余白が乗ると 960px 幅で 55px 溢れる。 数字は端が切れても読めるので
+       縮む側に置く。 */
+    flex-shrink: 1;
+    min-width: 0;
   }
   .v4-editor-live {
     width: 6px;

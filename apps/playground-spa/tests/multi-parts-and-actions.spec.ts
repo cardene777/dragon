@@ -16,7 +16,7 @@ async function setup(page: Page) {
   mkdirSync(OUT_DIR, { recursive: true });
   page.on("dialog", (d) => { void d.accept(); });
   await page.goto("/editor", { waitUntil: "networkidle" });
-  await page.waitForSelector(".v4-editor-preview svg", { timeout: 10000 });
+  await page.waitForSelector(".v4-editor-preview svg[data-cdl-theme]", { timeout: 10000 });
   await page.waitForTimeout(600);
 }
 
@@ -29,7 +29,7 @@ async function addParts(page: Page, partId: string): Promise<void> {
 
 async function getAllPartsRects(page: Page): Promise<Array<{ id: string; alias: string; x: number; right: number; y: number; bottom: number }>> {
   return await page.evaluate(() => {
-    const svg = document.querySelector(".v4-editor-preview svg");
+    const svg = document.querySelector(".v4-editor-preview svg[data-cdl-theme]");
     if (!svg) return [];
     return Array.from(svg.querySelectorAll('[data-cdl-node]'))
       .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"))
@@ -63,7 +63,9 @@ test.describe("複数 parts / share URL / undo / zoom 極値 網羅", () => {
     // 実装 = navigator.clipboard.writeText で URL を copy、 直接 encodeShare 経由で URL 生成
     const shareUrl = await page.evaluate(() => {
       // handleShare 関数を直接呼ぶ (button click は clipboard permission 制約回避)
-      const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.includes("共有URL"));
+      // **文字では探せない** (#1063)。 操作列をアイコンにしたので button に文字が無い。
+      // id で探す (id は e2e が参照する契約として保っている)
+      const btn = document.querySelector('[data-testid="editor-share"]');
       if (!btn) return null;
       // 実 encodeShare 経路は base64 → hash、 test では単純に current URL hash を検出できないため URL 生成の代替判定
       return `${window.location.origin}${window.location.pathname}#s=<encoded>`;
