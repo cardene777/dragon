@@ -38,6 +38,13 @@ export const IconShare = (): JSX.Element => (
   </Icon>
 );
 
+/** 脇の一覧を出す。 横 3 本 = 並んだ項目 (#1070)。 */
+export const IconList = (): JSX.Element => (
+  <Icon>
+    <path d="M3 4.5h10M3 8h10M3 11.5h10" />
+  </Icon>
+);
+
 /** 画像として書き出す。 下向きの矢印 + 底の線 = 取り出す。 */
 export const IconExport = (): JSX.Element => (
   <Icon>

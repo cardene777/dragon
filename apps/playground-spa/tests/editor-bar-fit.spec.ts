@@ -168,6 +168,10 @@ test("アイコンのボタンが押せる大きさを保っている", async ({
   await openEditor(page, 1440);
   const 小さい = await page.evaluate(() =>
     [...document.querySelectorAll(".v4-editor-bar-btn-icon")]
+      // 隠れているボタンは触る先が無いので測らない。 脇の一覧の出し入れ (#1070) は狭い画面
+      // だけに出るため、 この幅では 0x0 になる。 出ている幅での大きさは
+      // `editor-mobile-fit.spec.ts` が見る
+      .filter((el) => getComputedStyle(el).display !== "none")
       .map((el) => {
         const r = el.getBoundingClientRect();
         return { 名: el.getAttribute("aria-label") ?? "?", w: Math.round(r.width), h: Math.round(r.height) };
