@@ -11,6 +11,8 @@
     height: calc(100vh - 60px);
     background: var(--v4-canvas);
     font-family: var(--v4-sans);
+    /* 狭い画面で脇の一覧を重ねて出すための基準 (#1070) */
+    position: relative;
   }
   @media (max-width: 1200px) {
     .v4-editor {
@@ -30,6 +32,71 @@
       grid-row: 2;
       border-top: 1px solid var(--v4-line);
       min-height: 360px;
+    }
+  }
+
+  /* ── 狭い画面 = 脇の一覧を畳んで本体に全幅を渡す (#1070) ──
+     脇は幅 220px 固定で、 狭いほど本体 (記法欄と絵) だけが削られていた
+     (実測 = 375px で脇 220 / 記法欄 155、 画面の 59% を脇が占める)。
+     700px で切るのは、 それ以下だと本体が 480px を割って 1 行の記法が読めなくなるため。
+
+     出し入れのボタンと重ねる幕は、 広い画面では要らない (脇が常に出ている)。
+     **先に消してから、 狭い画面の指定で出す**。 順番を逆にすると、 後に書いた方が
+     同じ強さで勝って全幅で消える。 class を 2 つ重ねるのは、 後に書かれた
+     `.v4-editor-bar-btn-icon` (`display: inline-flex`) に負けないため。 */
+  .v4-editor .v4-editor-side-toggle,
+  .v4-editor .v4-editor-side-backdrop {
+    display: none;
+  }
+  @media (max-width: 700px) {
+    .v4-editor {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(280px, 1fr) minmax(300px, 1fr);
+    }
+    .v4-editor-side {
+      /* 本体を押し出さずに重ねる。 押し出す形にすると、 出した瞬間に本体が 0 になる */
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      width: min(300px, 84vw);
+      transform: translateX(-101%);
+      /* 位置を動かすだけでは、 畳んだ一覧の中身が Tab の順番と読み上げに残る (画面の外に
+         居る見えないボタンに focus が飛ぶ)。 `visibility` で見えない間は触れなくする。
+         `visibility` は時間で変化しないので、 閉じる時だけ滑り終えてから (0.18s 後に) 効かせる */
+      visibility: hidden;
+      transition: transform 0.18s ease, visibility 0s linear 0.18s;
+      box-shadow: 0 0 0 1px var(--v4-line), 8px 0 24px rgb(0 0 0 / 18%);
+    }
+    .v4-editor.side-open .v4-editor-side {
+      transform: none;
+      visibility: visible;
+      /* 出す時は待たずに触れるようにする */
+      transition: transform 0.18s ease, visibility 0s;
+    }
+    .v4-editor .v4-editor-side-backdrop {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 39;
+      border: none;
+      padding: 0;
+      background: rgb(0 0 0 / 28%);
+      cursor: pointer;
+    }
+    .v4-editor-code {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .v4-editor-preview {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: 300px;
+    }
+    /* 出し入れのボタンは狭い画面でだけ出す */
+    .v4-editor .v4-editor-side-toggle {
+      display: inline-flex;
     }
   }
 

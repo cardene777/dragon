@@ -27,7 +27,7 @@ import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
 import {
-  IconShare, IconExport, IconTextDown, IconTextUp, IconShrink, IconGrow,
+  IconShare, IconExport, IconList, IconTextDown, IconTextUp, IconShrink, IconGrow,
   IconPositions, IconFit, IconReset, IconActualSize, IconZoomOut, IconZoomIn,
 } from "@/components/EditorBarIcons";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
@@ -456,6 +456,30 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    * draggable=true を付け、 canvas 側 onDrop で parts-serializer 経由で src 置換する。
    */
   const [sidebarTab, setSidebarTab] = useState<"samples" | "parts" | "syntax">("samples");
+  /**
+   * 狭い画面で脇の一覧を出しているか (#1070)。
+   *
+   * 脇の一覧は幅 220px 固定で、狭い画面ほど本体 (記法欄と絵) だけが削られていた
+   * (実測 = 375px で記法欄 155px)。 700px 以下では脇を畳んで本体に全幅を渡し、
+   * この状態で出し入れする。 広い画面では常に出ているので、この値は使われない
+   * (CSS 側が `@media` で畳む幅を決める)。
+   */
+  const [sideOpen, setSideOpen] = useState(false);
+  const sideRef = useRef<HTMLElement | null>(null);
+  const sideToggleRef = useRef<HTMLButtonElement | null>(null);
+  /**
+   * 脇の一覧を畳む。 中に focus が居たら出し入れのボタンへ戻す (#1070 Round 2)。
+   *
+   * 畳んだ一覧は `visibility: hidden` で触れなくなるため、 中に focus を残したまま閉じると
+   * 行き先を失って body に落ちる。 そこから Tab を押すと画面の先頭からやり直しになる。
+   */
+  const closeSide = useCallback((): void => {
+    setSideOpen(false);
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && sideRef.current?.contains(active)) {
+      sideToggleRef.current?.focus();
+    }
+  }, []);
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
@@ -1435,14 +1459,20 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const handleZoomIn = (): void => zoomAtCenter(ZOOM_STEP);
   const handleZoomOut = (): void => zoomAtCenter(-ZOOM_STEP);
 
-  // Esc で Reset
+  // Esc で Reset。 脇の一覧を出している間は、 まず一覧を閉じる (#1070)。
+  // 出した一覧を Esc で閉じられないと、 図の位置まで戻る操作が同じ key に重なって驚く
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") handleReset();
+      if (e.key !== "Escape") return;
+      if (sideOpen) {
+        closeSide();
+        return;
+      }
+      handleReset();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleReset]);
+  }, [handleReset, sideOpen, closeSide]);
 
   const handleShare = (): void => {
     if (typeof window === "undefined") return;
@@ -1559,6 +1589,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setSrc(s.code);
     lastLoadedSrcRef.current = s.code;
     setActiveSample(s.label);
+    // 見本を選んだら脇を畳む (#1070)。 狭い画面では脇が本体に重なるので、 開いたままだと
+    // 選んだ図が見えない。 広い画面では脇は常に出ているのでこの値は使われない
+    closeSide();
   };
 
   const handleNewFile = (): void => {
@@ -1596,9 +1629,23 @@ animation:
   const cdlOnlyHint = "本文欄 (CDL) でのみ使えます";
 
   return (
-    <div className="v4-editor">
+    <div className={`v4-editor${sideOpen ? " side-open" : ""}`}>
+      {/* 狭い画面で脇の一覧を出している間、 本体側を押したら閉じる (#1070)。
+          畳んだ一覧の外を押して閉じられないと、 出した後に本体へ戻る道が無くなる。 */}
+      {sideOpen && (
+        <button
+          type="button"
+          className="v4-editor-side-backdrop"
+          aria-label="一覧を閉じる"
+          // 押しても focus を受け取らない。 受け取ると、 閉じた瞬間に自分が消えて focus が
+          // 行き場を失う (実測 = body に落ちる)。 押す前の位置に残す
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={closeSide}
+          data-testid="editor-side-backdrop"
+        />
+      )}
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
-      <aside className="v4-editor-side">
+      <aside className="v4-editor-side" id="editor-side" ref={sideRef}>
         <button
           type="button"
           className="v4-editor-side-new"
@@ -1780,6 +1827,20 @@ animation:
       {/* ── 中央 DSL editor (CodeMirror) ── */}
       <section className="v4-editor-code">
         <header className="v4-editor-bar">
+          {/* 脇の一覧の出し入れ (#1070)。 広い画面では CSS で隠す (常に出ているため) */}
+          <button
+            type="button"
+            className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-side-toggle"
+            ref={sideToggleRef}
+            onClick={() => setSideOpen((v) => !v)}
+            aria-label="見本とパーツの一覧"
+            aria-expanded={sideOpen}
+            aria-controls="editor-side"
+            title="見本とパーツの一覧を出す"
+            data-testid="editor-side-toggle"
+          >
+            <IconList />
+          </button>
           {/* CAR-1678 = CDL / YAML tab 切替 (2 tab のみ、 spec § in scope の 2 tab semantics) */}
           <div className="v4-editor-tabs" role="tablist" aria-label="editor format tabs">
             <button
