@@ -96,6 +96,26 @@ test("畳んだ一覧は Tab でも読み上げでも触れない", async ({ pag
   expect(出した後, "出したのに触れない").toBe("visible");
 });
 
+test("一覧の中から閉じると出し入れのボタンに戻る", async ({ page }) => {
+  // 畳んだ一覧は触れなくなるので、 中に focus を残したまま閉じると行き先を失って body に
+  // 落ちる。 そこから Tab を押すと画面の先頭からやり直しになる (Round 2 review の指摘)
+  await openEditor(page, 375);
+  await page.locator("[data-testid=editor-side-toggle]").click();
+  await page.waitForTimeout(400);
+  await page.locator("[data-testid=editor-sample-flow]").first().focus();
+  const 焦点は一覧の中 = await page.evaluate(
+    () => document.querySelector(".v4-editor-side")?.contains(document.activeElement) ?? false,
+  );
+  expect(焦点は一覧の中, "一覧の中に focus を置けていない").toBe(true);
+
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+  const 戻り先 = await page.evaluate(
+    () => document.activeElement?.getAttribute("data-testid") ?? document.activeElement?.tagName ?? "",
+  );
+  expect(戻り先, "閉じた後に focus が行き場を失っている").toBe("editor-side-toggle");
+});
+
 test("出し入れのボタンが隣のアイコンと同じ大きさになる", async ({ page }) => {
   // 携帯は指で触るので、 このボタンだけ小さいと押せない。
   //

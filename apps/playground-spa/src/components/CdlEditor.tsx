@@ -465,6 +465,21 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    * (CSS 側が `@media` で畳む幅を決める)。
    */
   const [sideOpen, setSideOpen] = useState(false);
+  const sideRef = useRef<HTMLElement | null>(null);
+  const sideToggleRef = useRef<HTMLButtonElement | null>(null);
+  /**
+   * 脇の一覧を畳む。 中に focus が居たら出し入れのボタンへ戻す (#1070 Round 2)。
+   *
+   * 畳んだ一覧は `visibility: hidden` で触れなくなるため、 中に focus を残したまま閉じると
+   * 行き先を失って body に落ちる。 そこから Tab を押すと画面の先頭からやり直しになる。
+   */
+  const closeSide = useCallback((): void => {
+    setSideOpen(false);
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && sideRef.current?.contains(active)) {
+      sideToggleRef.current?.focus();
+    }
+  }, []);
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
@@ -1450,14 +1465,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== "Escape") return;
       if (sideOpen) {
-        setSideOpen(false);
+        closeSide();
         return;
       }
       handleReset();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleReset, sideOpen]);
+  }, [handleReset, sideOpen, closeSide]);
 
   const handleShare = (): void => {
     if (typeof window === "undefined") return;
@@ -1576,7 +1591,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setActiveSample(s.label);
     // 見本を選んだら脇を畳む (#1070)。 狭い画面では脇が本体に重なるので、 開いたままだと
     // 選んだ図が見えない。 広い画面では脇は常に出ているのでこの値は使われない
-    setSideOpen(false);
+    closeSide();
   };
 
   const handleNewFile = (): void => {
@@ -1622,12 +1637,12 @@ animation:
           type="button"
           className="v4-editor-side-backdrop"
           aria-label="一覧を閉じる"
-          onClick={() => setSideOpen(false)}
+          onClick={closeSide}
           data-testid="editor-side-backdrop"
         />
       )}
       {/* ── 左 sidebar (new file + tabs = SAMPLES / parts、 CAR-1646 で parts tab 追加) ── */}
-      <aside className="v4-editor-side" id="editor-side">
+      <aside className="v4-editor-side" id="editor-side" ref={sideRef}>
         <button
           type="button"
           className="v4-editor-side-new"
@@ -1813,6 +1828,7 @@ animation:
           <button
             type="button"
             className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-side-toggle"
+            ref={sideToggleRef}
             onClick={() => setSideOpen((v) => !v)}
             aria-label="見本とパーツの一覧"
             aria-expanded={sideOpen}
