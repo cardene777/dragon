@@ -745,15 +745,20 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
    editor (暗い紙) 向けは下の `.v4-editor-stage` 側で上書きする。
 
    不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明のままだと
-   「宣言した色」 と「見える色」 がずれ、 検査も人も間違える。 */
+   「宣言した色」 と「見える色」 がずれ、 検査も人も間違える。
+
+   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
+   (`cdl` の `stage.tsx`)。 色を不透明にしてもこれは残るので、 見える色はさらに紙寄りになる
+   (実測 = `#8a6a33` を置いても対比 2.73 で 3:1 を割った)。 `opacity` 込みで 3 以上になる
+   色を選ぶ。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: #8a6a33 !important;
+  stroke: #5c5024 !important;
   stroke-width: 2.2 !important;
   stroke-dasharray: 8 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: #7d5f2c !important;
+  stroke: #5c5024 !important;
   stroke-width: 2.8 !important;
   stroke-dasharray: 8 5 !important;
 }
@@ -803,15 +808,18 @@ html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --d
 
    不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明だと「宣言した色」
    と「見える色」 がずれる (実測 = `rgba(154,133,106,.85)` は重ねた後 `rgb(140,120,95)` で
-   対比 3.08 に落ち、 意味を持つ線に必要な 3:1 をかろうじて超える程度だった)。
+   対比 3.08 に落ちていた)。
+
+   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
+   (`cdl` の `stage.tsx`)。 `opacity` 込みで 3 以上になる色を選ぶ。
 
    命綱は「そこに人がいる」 ことを示す補助線なので、 本文ほどの強さは要らない。
    意味を持つ非文字要素の下限 3:1 を満たす範囲で落ち着かせる。 */
 html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-lifeline"] {
-  stroke: #b09a78 !important;
+  stroke: #b4ac80 !important;
 }
 html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-container"] {
-  stroke: #a08a6a !important;
+  stroke: #b4ac80 !important;
 }
 
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {

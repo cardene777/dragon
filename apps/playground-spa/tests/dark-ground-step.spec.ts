@@ -237,24 +237,37 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
         if (c && c !== "rgba(0, 0, 0, 0)" && !c.includes(", 0)")) paper = c;
         n = n.parentElement;
       }
-      const strokes: { role: string; stroke: string }[] = [];
+      const strokes: { role: string; stroke: string; opacity: number }[] = [];
       for (const role of ["lane-lifeline", "lane-container"]) {
         const el = document.querySelector(`svg [data-cdl-role="${role}"]`);
-        if (el) strokes.push({ role, stroke: getComputedStyle(el).stroke });
+        if (!el) continue;
+        // **薄さは色の alpha だけではない**。 要素と祖先に掛かる `opacity` も効く
+        // (実測 = 描画側が `opacity: 0.7` を掛けており、 色を不透明にしても 2.73 に落ちた)
+        let 実効 = 1;
+        let n: Element | null = el;
+        while (n && n !== document.documentElement) {
+          実効 *= Number(getComputedStyle(n).opacity || 1);
+          n = n.parentElement;
+        }
+        strokes.push({ role, stroke: getComputedStyle(el).stroke, opacity: 実効 });
       }
       return { paper, strokes };
     });
     expect(r.paper, `${場所} の紙を測れていない`).not.toBeNull();
 
-    for (const { role, stroke } of r.strokes) {
-      // 半透明なら紙に重ねた実効色で測る。 宣言値のまま測ると実際より強く見積もる
+    for (const { role, stroke, opacity } of r.strokes) {
+      // 色の alpha と要素の opacity の両方を紙に重ねた実効色で測る。
+      // どちらかを落とすと実際より強く見積もる
       const f = (stroke.match(/[\d.]+/g) ?? []).map(Number);
       const bg = parse(r.paper!);
-      const a = f.length === 4 ? f[3]! : 1;
+      const a = (f.length === 4 ? f[3]! : 1) * opacity;
       const 実効 = [0, 1, 2].map((i) => f[i]! * a + bg[i]! * (1 - a));
       const [hi, lo] = [luminance(実効), luminance(bg)].sort((p, q) => q - p);
       const 対比 = (hi! + 0.05) / (lo! + 0.05);
-      expect(対比, `${場所} の ${role} が紙に溶ける (宣言 ${stroke} / 重ねた後の対比 ${対比.toFixed(2)})`).toBeGreaterThanOrEqual(3);
+      expect(
+        対比,
+        `${場所} の ${role} が紙に溶ける (宣言 ${stroke} / opacity ${opacity.toFixed(2)} / 重ねた後の対比 ${対比.toFixed(2)})`,
+      ).toBeGreaterThanOrEqual(3);
     }
   }
 });
