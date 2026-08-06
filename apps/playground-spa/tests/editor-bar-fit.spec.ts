@@ -104,6 +104,22 @@ test("12 個の操作がすべて画面の中にある", async ({ page }) => {
       if (実効opacity < 0.1) return { id, 件数: 1, 状態: `透明 (実効 opacity ${実効opacity})` };
       if (透過filter) return { id, 件数: 1, 状態: `filter が掛かっている (${透過filter})` };
 
+      // **箱があるだけでは足りない**。 箱と当たり判定を残したまま中身だけを消す書き方がある
+      // (実測 = `content-visibility: hidden` は 30px の箱と `elementFromPoint` を維持したまま
+      // 中の絵を描かない。 `transform: scale(0)` は中身の大きさを 0 にする)。
+      // アイコンそのものが描かれているかを見る。
+      if (cs.contentVisibility === "hidden") return { id, 件数: 1, 状態: "中身が描かれない (content-visibility: hidden)" };
+      const svg = el.querySelector("svg");
+      if (!svg) return { id, 件数: 1, 状態: "アイコンが無い" };
+      const svgBox = svg.getBoundingClientRect();
+      if (svgBox.width < 8 || svgBox.height < 8) {
+        return { id, 件数: 1, 状態: `アイコンが潰れている (${Math.round(svgBox.width)}x${Math.round(svgBox.height)})` };
+      }
+      // 箱の中に絵が納まっているか (はみ出した先が切られていないか)
+      if (svgBox.left < r.left - 1 || svgBox.right > r.right + 1) {
+        return { id, 件数: 1, 状態: "アイコンが箱の外にある" };
+      }
+
       // 途中の何かに隠れていないか。 中心の点で最前面に居るのが自分 (かその中身) かで見る。
       //
       // **`中心.contains(el)` を条件に足してはいけない**。 前面の要素が祖先だった場合に
