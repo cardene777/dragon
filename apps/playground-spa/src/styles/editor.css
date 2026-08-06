@@ -62,11 +62,18 @@
       z-index: 40;
       width: min(300px, 84vw);
       transform: translateX(-101%);
-      transition: transform 0.18s ease;
+      /* 位置を動かすだけでは、 畳んだ一覧の中身が Tab の順番と読み上げに残る (画面の外に
+         居る見えないボタンに focus が飛ぶ)。 `visibility` で見えない間は触れなくする。
+         `visibility` は時間で変化しないので、 閉じる時だけ滑り終えてから (0.18s 後に) 効かせる */
+      visibility: hidden;
+      transition: transform 0.18s ease, visibility 0s linear 0.18s;
       box-shadow: 0 0 0 1px var(--v4-line), 8px 0 24px rgb(0 0 0 / 18%);
     }
     .v4-editor.side-open .v4-editor-side {
       transform: none;
+      visibility: visible;
+      /* 出す時は待たずに触れるようにする */
+      transition: transform 0.18s ease, visibility 0s;
     }
     .v4-editor .v4-editor-side-backdrop {
       display: block;

@@ -69,6 +69,33 @@ test("携帯の幅では脇の一覧が畳まれている", async ({ page }) => 
   expect(m.幕, "畳んでいるのに幕が出ている").toBe(false);
 });
 
+test("畳んだ一覧は Tab でも読み上げでも触れない", async ({ page }) => {
+  // 位置を動かすだけだと、 画面の外に居る見えないボタンに focus が飛ぶ (Round 1 review の
+  // 指摘)。 `visibility` で触れなくしていることを、 状態と実際の Tab 移動の両方で見る
+  await openEditor(page, 375);
+  const 見え方 = await page.evaluate(
+    () => getComputedStyle(document.querySelector(".v4-editor-side")!).visibility,
+  );
+  expect(見え方, "畳んだ一覧が触れる状態で残っている").toBe("hidden");
+
+  await page.locator("[data-testid=editor-side-toggle]").focus();
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press("Tab");
+    const 中に居る = await page.evaluate(
+      () => document.querySelector(".v4-editor-side")?.contains(document.activeElement) ?? false,
+    );
+    expect(中に居る, `Tab ${i + 1} 回目で畳んだ一覧の中に入った`).toBe(false);
+  }
+
+  // 出した後は触れる (触れなくする指定が出した状態まで巻き込んでいない)
+  await page.locator("[data-testid=editor-side-toggle]").click();
+  await page.waitForTimeout(400);
+  const 出した後 = await page.evaluate(
+    () => getComputedStyle(document.querySelector(".v4-editor-side")!).visibility,
+  );
+  expect(出した後, "出したのに触れない").toBe("visible");
+});
+
 test("出し入れのボタンが隣のアイコンと同じ大きさになる", async ({ page }) => {
   // 携帯は指で触るので、 このボタンだけ小さいと押せない。
   //
