@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { ITEM_NAME_JA } from "../src/lib/i18n";
 
 /**
  * 本番ビルドでの動作確認 (公開前の最終ゲート)。
@@ -49,8 +50,13 @@ test("本番: Ethereum 4 図が描画される", async ({ page }) => {
   await page.goto(`${BASE}/catalog/ethereum`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(3000);
+  // 一覧に出るのは表示名 (`ERC-20の送金`) で、 export 名 (`erc20Transfer`) は描かれない
+  // (`#1035` で表示名に変わった)。 名前は手で書かず表から引く (#1068)。
+  const names = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());
   for (const id of ["erc20Transfer", "eip1559Gas", "erc4337Flow", "blockProduction"]) {
-    expect(await page.getByText(id, { exact: true }).count(), id).toBeGreaterThan(0);
+    const name = ITEM_NAME_JA[id];
+    expect(name, `表示名が表に無い: ${id}`).toBeTruthy();
+    expect(names, `${id} (${name}) が一覧に無い: ${names.join(", ")}`).toContain(name);
   }
   expect(await page.locator("svg[viewBox]").count(), "SVG").toBeGreaterThanOrEqual(4);
   expect(errors, "カタログのエラー").toEqual([]);
