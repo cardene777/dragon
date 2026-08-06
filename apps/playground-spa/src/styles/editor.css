@@ -683,7 +683,11 @@
 
      紙の側を上げて「明るい机に暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
      格子は紙が明るくなったぶん暗い側に引く (明色の格子だと紙に溶ける)。 */
-  html.dark .v4-editor-stage {
+  /* **主題を blueprint に限る**。 他の 5 主題 (neumorphism / isometric / circuit /
+     handdrawn / pinboard) はそれぞれ完成した配色を持ち、 明るい箱を使うものもある
+     (実測 = circuit / handdrawn / pinboard の箱は `#fdf8ec` 前後)。 紙だけ変えると
+     明るい箱が明るい紙に乗って沈む。 主題は `html` 要素に付く (`useTheme.ts`)。 */
+  html.dark[data-cdl-theme="blueprint"] .v4-editor-stage {
     background: #3a2f22;
     background-image:
       repeating-linear-gradient(0deg, transparent 0 23px, rgba(20, 14, 6, 0.22) 23px 24px),

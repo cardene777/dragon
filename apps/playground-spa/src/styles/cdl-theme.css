@@ -736,14 +736,24 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
   stroke: rgba(240, 184, 64, 0.85) !important;
   stroke-width: 2.2 !important;
 }
+/* 命綱と枠の色 (#1060)。
+   **半透明で置くと、重ねた後の色で判断しないと実際の見え方が分からない**。 以前は
+   `rgba(240,184,64,.6)` (gold) を明暗どちらの紙にも当てており、 catalog の cream の紙では
+   重ねた後が `rgb(245,210,134)` = 対比 1.38 で紙に溶けていた (実測)。
+
+   catalog は暗い画面でも紙を cream で保つので、 こちらは暗い側の色を置く。
+   editor (暗い紙) 向けは下の `.v4-editor-stage` 側で上書きする。
+
+   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明のままだと
+   「宣言した色」 と「見える色」 がずれ、 検査も人も間違える。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(240, 184, 64, 0.6) !important;
+  stroke: #8a6a33 !important;
   stroke-width: 2.2 !important;
   stroke-dasharray: 8 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(240, 184, 64, 0.7) !important;
+  stroke: #7d5f2c !important;
   stroke-width: 2.8 !important;
   stroke-dasharray: 8 5 !important;
 }
@@ -788,17 +798,20 @@ html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #ffd45e; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info,
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #f0c9a0; }
-/* 命綱と枠線は紙が明るくなったぶん落ち着かせる (#1060)。 `#f0b840` のままだと明るい紙の
-   上で線より目立ち、 どこが本題か分からなくなる。 命綱は「そこに人がいる」 ことを示す
-   補助線なので、 本文ほどの強さは要らない。
+/* editor は紙が暗い (`#3a2f22`) ので、 命綱と枠は明るい側に置く (#1060)。
+   catalog 用の暗い茶をそのまま使うと紙に沈む。
 
-   **editor だけに限る**。 catalog は暗い画面でも紙を cream で保つため、 そちらで命綱を
-   落とすと紙に溶ける。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(154, 133, 106, 0.85) !important;
+   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明だと「宣言した色」
+   と「見える色」 がずれる (実測 = `rgba(154,133,106,.85)` は重ねた後 `rgb(140,120,95)` で
+   対比 3.08 に落ち、 意味を持つ線に必要な 3:1 をかろうじて超える程度だった)。
+
+   命綱は「そこに人がいる」 ことを示す補助線なので、 本文ほどの強さは要らない。
+   意味を持つ非文字要素の下限 3:1 を満たす範囲で落ち着かせる。 */
+html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-lifeline"] {
+  stroke: #b09a78 !important;
 }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
-  stroke: rgba(154, 133, 106, 0.55) !important;
+html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-container"] {
+  stroke: #a08a6a !important;
 }
 
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
@@ -822,7 +835,9 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
-  fill: #2a1f14 !important;
+  /* 上の `node-body` 本体と同じ色にする (#1060)。 揃えないと、 箱を rect 1 枚で描く種別と
+     子図形で描く種別 (generic 系) が同じ図の中で別の面の色になる。 */
+  fill: #191309 !important;
   stroke: #f0b840 !important;
   stroke-width: 3.5 !important;
 }
@@ -862,10 +877,12 @@ html.dark[data-cdl-theme="blueprint"] {
   --cdl-text: #f0e0b8;
   --cdl-text-dim: #d4c4a0;
   --cdl-text-mute: #a89880;
-  /* `node-body` は上の selector で `#2a1f14` に強制されるのに、 変数だけ cream のまま残って
-     いた。 同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
-     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。 */
-  --cdl-node-fill: #2a1f14;
+  /* `node-body` は上の selector で強制されるのに、 変数だけ cream のまま残っていた。
+     同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
+     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。
+
+     **強制先を変えたら必ずここも変える** (#1060)。 揃えないと chart 系だけが旧色のまま残る。 */
+  --cdl-node-fill: #191309;
   /* kind 内の小さい面 (mind-map / mind-radial / tree の枝の箱)。 page の文字色とは別軸で、
      面と文字が対で動く。 明色のままだと tone が 2.13 まで落ちる (実測)。 */
   --cdl-chip-fill: #33251a;

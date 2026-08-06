@@ -120,12 +120,160 @@ test("暗い画面で線が紙の上で読める", async ({ page }) => {
   }
 });
 
+test("暗い画面で図の中の面の色が揃っている", async ({ page }) => {
+  // 面の色は selector が 3 系統ある = 箱を rect 1 枚で描く種別 / 子図形で描く種別 (generic 系) /
+  // 変数 (`--cdl-node-fill`) 経由で塗る種別 (chart 系)。 1 つだけ直すと、 同じ図の中で
+  // **面の色が混ざる** (実測 = 本 PR の初版で generic 系と chart 系が旧色のまま残った)。
+  //
+  // **既定サンプル (順序図) だけでは足りない**。 順序図は箱を rect 1 枚で描くので、
+  // 子図形と変数の系統に届かない (実測 = generic 系と chart 系を旧色に戻す変異が素通りした)。
+  //
+  // 3 系統が出る 2 画面を見る。
+  // `/preset/topology` = 本体 4 / 子図形 5、 `/catalog/presets` = `chart-line` (変数経由)
+  for (const path of ["/preset/topology", "/catalog/presets"]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.documentElement.classList.add("dark"));
+    await page.waitForTimeout(2500);
+
+    const 色 = await page.evaluate(() => {
+      const seen = new Map<string, number>();
+      // **`node-body` の中だけを見ては足りない**。 変数 (`--cdl-node-fill`) を参照する面は
+      // chart 系の中にあり、 `node-body` の外側に置かれることがある (実測 = `chart-line` の
+      // 点は `node-body` を持たない `circle`)。 図の中の面を全部見る。
+      for (const t of document.querySelectorAll("svg rect, svg ellipse, svg circle, svg path")) {
+        // icon は別軸 (gold で塗る)。 線と矢頭も面ではない
+        if (t.closest("[data-cdl-role='node-kind-icon']")) continue;
+        const role = t.closest("[data-cdl-role]")?.getAttribute("data-cdl-role");
+        if (role === "edge-line" || role === "edge-arrowhead") continue;
+        const f = getComputedStyle(t).fill;
+        if (!f || f === "none" || f.startsWith("url(")) continue;
+        seen.set(f, (seen.get(f) ?? 0) + 1);
+      }
+      return [...seen].sort((a, b) => b[1] - a[1]);
+    });
+    expect(色.length, `${path} で面を 1 つも測れていない`).toBeGreaterThan(0);
+    // 種別ごとの塗り分け (tone) はあるので 1 色に限らないが、 **旧色が残っていないこと** を見る
+    const 旧色 = 色.filter(([c]) => c === "rgb(42, 31, 20)");
+    expect(旧色, `${path} に旧い面の色 #2a1f14 が残っている: ${JSON.stringify(旧色)}`).toEqual([]);
+  }
+});
+
+test("書き出す絵の紙が画面の紙と同じ", async ({ page }) => {
+  // 書き出し側は紙の色を別に持っていた (実測 = 画面を `#3a2f22` に変えた後も `#241c14` の
+  // まま残り、 箱との明るさの差が `ΔL* 4.7` に潰れていた)。 画面から読む形にする。
+  await openDark(page);
+  const 一致 = await page.evaluate(() => {
+    const stage = document.querySelector(".v4-editor-stage");
+    if (!stage) return null;
+    const 画面 = getComputedStyle(stage).backgroundColor;
+    // 書き出しが使う関数と同じ辿り方 (透けていたら祖先へ)
+    let n: Element | null = stage;
+    let 読んだ: string | null = null;
+    while (n && !読んだ) {
+      const c = getComputedStyle(n).backgroundColor;
+      if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) 読んだ = c;
+      n = n.parentElement;
+    }
+    return { 画面, 読んだ };
+  });
+  expect(一致, "図面の枠を測れていない").not.toBeNull();
+  expect(一致!.読んだ, "書き出しが読む色が画面の紙と違う").toBe(一致!.画面);
+});
+
+test("紙の変更が主題 blueprint に限られている", async ({ page }) => {
+  // 他の 5 主題はそれぞれ完成した配色を持ち、 明るい箱を使うものもある (実測 = handdrawn /
+  // pinboard の箱は `#fdf7d9` 前後)。 紙だけ変えると明るい箱が明るい紙に乗って沈む。
+  // 主題は `html` 要素に付く (`useTheme.ts`)。
+  await openDark(page);
+  const 結果 = await page.evaluate(() => {
+    const stage = document.querySelector(".v4-editor-stage");
+    const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
+    const 元 = document.documentElement.getAttribute("data-cdl-theme");
+    const out: { 主題: string; 紙: string | null }[] = [];
+    for (const t of ["blueprint", "neumorphism", "isometric", "circuit", "handdrawn", "pinboard"]) {
+      document.documentElement.setAttribute("data-cdl-theme", t);
+      svg?.setAttribute("data-cdl-theme", t);
+      out.push({ 主題: t, 紙: stage ? getComputedStyle(stage).backgroundColor : null });
+    }
+    if (元) { document.documentElement.setAttribute("data-cdl-theme", 元); svg?.setAttribute("data-cdl-theme", 元); }
+    return out;
+  });
+  const blueprint = 結果.find((r) => r.主題 === "blueprint")!;
+  const 他 = 結果.filter((r) => r.主題 !== "blueprint");
+  expect(blueprint.紙, "blueprint の紙が変わっていない").toBe("rgb(58, 47, 34)");
+  for (const r of 他) {
+    expect(r.紙, `${r.主題} の紙まで変えている (${r.紙})`).not.toBe(blueprint.紙);
+  }
+});
+
+test("補助線が重ねた後の色で読める", async ({ page }) => {
+  // **半透明で置くと、宣言した色と見える色がずれる**。 以前は gold を半透明で明暗どちらの紙にも
+  // 当てており、 catalog の cream の紙では重ねた後が対比 1.38 で溶けていた (実測)。
+  // 意味を持つ非文字要素の下限は 3:1。
+  // 命綱は順序図に、枠は topology / swimlane に出る。 どちらか片方の画面だけでは
+  // もう一方の役割に届かない (実測 = `/editor` は命綱 3 / 枠 0、 `/catalog/patterns` は
+  // 命綱 0 / 枠 1)。 紙が暗い側と cream 側の両方を通す。
+  //
+  // **cream の紙に命綱が出る画面は現状 1 つも無い** (実測 = カタログ側 5 画面すべて命綱 0)。
+  // そのため catalog 向けの命綱の色を変えても、この検査は落ちない。 到達する入力を作れない
+  // 防御的な指定として残してある (`cdl-theme.css` の `lane-lifeline`)。
+  for (const [場所, path] of [
+    ["editor (暗い紙)", "/editor"],
+    ["catalog (cream の紙)", "/catalog/patterns"],
+    ["catalog (cream の紙・枠)", "/preset/topology"],
+  ] as const) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.documentElement.classList.add("dark"));
+    await page.waitForTimeout(2200);
+
+    const r = await page.evaluate(() => {
+      const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
+      let paper: string | null = null;
+      let n: HTMLElement | null = svg?.parentElement ?? null;
+      while (n && !paper) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c && c !== "rgba(0, 0, 0, 0)" && !c.includes(", 0)")) paper = c;
+        n = n.parentElement;
+      }
+      const strokes: { role: string; stroke: string }[] = [];
+      for (const role of ["lane-lifeline", "lane-container"]) {
+        const el = document.querySelector(`svg [data-cdl-role="${role}"]`);
+        if (el) strokes.push({ role, stroke: getComputedStyle(el).stroke });
+      }
+      return { paper, strokes };
+    });
+    expect(r.paper, `${場所} の紙を測れていない`).not.toBeNull();
+
+    for (const { role, stroke } of r.strokes) {
+      // 半透明なら紙に重ねた実効色で測る。 宣言値のまま測ると実際より強く見積もる
+      const f = (stroke.match(/[\d.]+/g) ?? []).map(Number);
+      const bg = parse(r.paper!);
+      const a = f.length === 4 ? f[3]! : 1;
+      const 実効 = [0, 1, 2].map((i) => f[i]! * a + bg[i]! * (1 - a));
+      const [hi, lo] = [luminance(実効), luminance(bg)].sort((p, q) => q - p);
+      const 対比 = (hi! + 0.05) / (lo! + 0.05);
+      expect(対比, `${場所} の ${role} が紙に溶ける (宣言 ${stroke} / 重ねた後の対比 ${対比.toFixed(2)})`).toBeGreaterThanOrEqual(3);
+    }
+  }
+});
+
 test("明るい画面は変えていない", async ({ page }) => {
-  // 変更は暗い画面に限った。 明るい側を巻き込んでいないことを直接見る
+  // 変更は暗い画面に限った。 明るい側を巻き込んでいないことを直接見る。
+  //
+  // **色を literal で固定しない**。 固定すると将来の正当な配色更新まで落ちる。
+  // 「面が分かれて見えるか」 と「その上の文字が読めるか」 の不変条件で見る。
   await page.goto("/editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
   const s = await surfaces(page);
-  expect(s.箱, "明るい画面の箱の色が変わっている").toBe("rgb(253, 248, 236)");
-  expect(s.座布団, "明るい画面の座布団の色が変わっている").toBe("rgb(253, 248, 236)");
+  expect(s.紙, "明るい画面の紙を測れていない").not.toBeNull();
+
+  // 明るい画面は全体が明るいので、 面の段差は小さくても輪郭線が効く。 段差ではなく
+  // 「紙が明るい側にある」 ことと「箱の上の文字が読める」 ことを見る
+  expect(Lstar(s.紙!), "明るい画面の紙が暗くなっている").toBeGreaterThan(80);
+  expect(Lstar(s.箱!), "明るい画面の箱が暗くなっている").toBeGreaterThan(80);
+  expect(contrast(s.箱!, s.文字!), "明るい画面で箱の中の文字が読めない").toBeGreaterThanOrEqual(4.61);
+  expect(contrast(s.箱!, s.枠!), "明るい画面で箱の枠が見えない").toBeGreaterThanOrEqual(3);
 });
