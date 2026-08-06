@@ -59,14 +59,17 @@ import { layout } from "@cardenelabs/cdl";
  */
 
 /**
- * `kindWritten: true` は「著者が種類を書いた」 を表す (#1058)。
+ * `kindWritten` を **あえて設定しない** (#1058)。
  *
- * 書かなかった時も `kind` には既定の `actor` が入るため、 値だけでは区別できない。
- * この helper は #975 (書いた種類を名札に載せる) の検査を支えるので、 書いた側として作る。
- * 書かなかった側の挙動は `seq-header-kind.test.ts` が見る。
+ * この helper は記法の parse を通さず `DslActor` を直接組み立てる = 公開 API
+ * (`compileToCdl()`) を外から呼ぶ利用者と同じ形になる。 その経路では `kindWritten` が
+ * `undefined` で、 従来どおり「書いた」 扱いになることを、 この test 群が守る。
+ *
+ * 一律 `true` を入れるとこの後方互換が検査から消える。 書かなかった側の挙動は
+ * `seq-header-kind.test.ts` が記法ごとに見る。
  */
 function actor(name: string, over: Partial<DslActor> = {}): DslActor {
-  return { name, kind: "actor", kindWritten: true, pos: { line: 1 }, ...over };
+  return { name, kind: "actor", pos: { line: 1 }, ...over };
 }
 function step(from: string, to: string, over: Partial<DslStep> = {}): DslStep {
   return { no: 1, from, to, label: "x", pos: { line: 1 }, ...over };
@@ -286,6 +289,14 @@ describe("compileSequenceWithAnimate header 寸法", () => {
     const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [actor("A"), actor("B")], flow: [step("A", "B")] }));
     expect(node(d, "a-header").w).toBe(140);
     expect(node(d, "a-header").h).toBe(72);
+  });
+  it("種類を書かない名札は card のまま 72", () => {
+    // 書かない側は `card` に残るので、 小型用の描き方 (h < 100 で中央揃え) で文字が収まる。
+    // 書いた側の高さは #1058 の scope 外 (`#1061` で扱う)
+    const bare = (name: string): DslActor => ({ name, kind: "actor", kindWritten: false, pos: { line: 1 } });
+    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [bare("A"), bare("B")], flow: [step("A", "B")] }));
+    expect(node(d, "a-header").h).toBe(72);
+    expect(node(d, "a-header").kind).toBe("card");
   });
   it("長い actor 名は len*22+52 で auto-size (13 文字 → 338)", () => {
     const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [actor("LongActorName"), actor("B")], flow: [step("LongActorName", "B")] }));

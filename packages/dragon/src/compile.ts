@@ -2488,7 +2488,12 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       // 値だけを見ると「書かなかった」 が「`actor` と書いた」 に化ける。 名札は小型の箱
       // (`h: 72`) で作られ、 描画側は `card` に小型用の分岐を持つが `actor` には無い。
       // 既定値で上書きすると小型の分岐が外れ、 名前の文字が箱の下端をはみ出す。
-      const drawn = isSeqLike && a.kindWritten === true ? drawableKind(a.kind) : undefined;
+      //
+      // 判定は `!== false` で行う。 記法の parse は書かなかった時に `false` を明示するので
+      // これで区別できる。 `=== true` にすると、 **記法を通さず `DslActor` を直接組み立てて
+      // `compileToCdl()` を呼ぶ経路** (公開 API) が既定の `undefined` で全て「書かなかった」
+      // に倒れ、 書いた種類が消える (#975 の挙動が壊れる)。
+      const drawn = isSeqLike && a.kindWritten !== false ? drawableKind(a.kind) : undefined;
       if (drawn !== undefined) {
         node.kind = drawn as typeof node.kind;
         // 下端の名札も同じ形にする。 上下で形が違うと、 同じ登場人物が別物に見える。
