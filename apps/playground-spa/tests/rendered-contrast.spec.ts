@@ -114,6 +114,45 @@ async function open(page: Page, target: { slug: string; id: string }, theme: str
   await page.waitForTimeout(600);
 }
 
+/** 撮り直す回数。 動いている瞬間に当たっても、 次の機会を待てば測れる (#1072)。 */
+const STILL_ATTEMPTS = 5;
+
+/**
+ * その label の領域が動いていない瞬間を捉えて、 背景と文字を撮る (#1072)。
+ *
+ * 隠した状態で 2 度撮り、 差があれば animation 等で画面が動いており、 差分を文字と見なせない。
+ *
+ * **見本は動き続ける**。 `oauth-flow` は `animation:` を持ち、 描画側は
+ * `requestAnimationFrame` の loop で段を進める。 「止まるまで待つ」 形は成立しない
+ * (実測 = `pattern-passthrough` も 20 秒待っても止まらない)。
+ *
+ * 動くのは図の一部で、 label の領域は多くの瞬間で静止している。 だから **測れる瞬間まで
+ * 撮り直す**。 1 回で諦めると、 負荷が高い時にだけその label が測れず、 件数だけが 1 少なく
+ * なって落ちる (実測 = 全件実行 3 回のうち 2 回、 落ちる主題は毎回違う)。
+ *
+ * 撮り直しても駄目なら `null` を返す = 呼出側が理由付きで失敗させる。 動いた画面の色を
+ * 対比として報告しない。
+ */
+async function shootWhenStill(
+  page: Page,
+  id: string,
+  index: number,
+  box: Box,
+): Promise<{ bg: PNG; fg: PNG } | null> {
+  for (let attempt = 0; attempt < STILL_ATTEMPTS; attempt++) {
+    // その label だけを隠す。 撮る範囲も同じなので、 差分は必ずその文字による。
+    await setLabelsHidden(page, id, true, index);
+    const bg = await shoot(page, box);
+    const bg2 = await shoot(page, box);
+    await setLabelsHidden(page, id, false, index);
+    const fg = await shoot(page, box);
+    if (measure(bg2, bg).kind !== "ok") return { bg, fg };
+    // 動いていた。 次の機会を待つ
+    await page.waitForTimeout(200);
+  }
+  return null;
+}
+
 /** 描かれている edge label の位置と文字仕様を集める。 */
 async function collectLabels(page: Page, id: string): Promise<Label[]> {
   return page.evaluate((id) => {
@@ -282,35 +321,29 @@ test.describe("edge label の描画対比 (#977)", () => {
 
           for (let i = 0; i < labels.length; i++) {
             const l = labels[i];
-            // その label だけを隠す。 撮る範囲も同じなので、 差分は必ずその文字による。
-            await setLabelsHidden(page, target.id, true, i);
-            const bg = await shoot(page, l.box);
-            // 同じ状態で 2 度撮る。 差があれば animation 等で画面が動いており、 差分を文字と
-            // 見なせない。
-            //
-            // **この分岐は現状の見本では通らない** (静止画なので 2 度撮っても必ず同じ)。
-            // 変異試験でも検知できない = 動く見本を対象に加えた時に効く防御として残す。
-            const bg2 = await shoot(page, l.box);
-            await setLabelsHidden(page, target.id, false, i);
-            const fg = await shoot(page, l.box);
-
-            const drift = measure(bg2, bg);
-            if (drift.kind === "ok") {
-              failures.push(`${target.id}/${l.key} は隠した状態でも画面が動いており測れない`);
+            const shot = await shootWhenStill(page, target.id, i, l.box);
+            if (shot === null) {
+              failures.push(
+                `${target.id}/${l.key} は ${STILL_ATTEMPTS} 回撮り直しても画面が動いており測れない`,
+              );
               continue;
             }
-            const m = measure(fg, bg);
+            const m = measure(shot.fg, shot.bg);
             if (m.kind === "ok") { measured++; worst = Math.min(worst, m.ratio); }
             const f = judge(l, m);
             if (f !== null) failures.push(`${target.id}/${f}`);
           }
         }
 
+        // **理由を先に出す**。 測れなかった label は必ず `failures` にも理由が入る
+        // (測れない 3 経路 = 画面が動いた / 文字が背景と同じ / 芯を特定できない、 のどれも
+        // `failures.push` を通る)。 件数を先に照合すると「9 対 10」 だけが出て、 なぜ 1 件
+        // 落ちたのかが失敗の文面から消える (#1072 の調査で 2 回とも理由が読めなかった)。
+        expect(failures, `${theme}/${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
         // 1 件も測れていなければ、 0 件の failures は「満たした」 ことを意味しない。
         expect(measured, `${theme}/${mode} で実際に測れた label 数`).toBe(
           TARGETS.reduce((n, t) => n + t.expectedLabels, 0),
         );
-        expect(failures, `${theme}/${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
       });
     }
   }
