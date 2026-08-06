@@ -195,6 +195,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* 前後移動のボタンは縮まない (`flex-shrink: 0`)。 折り返しを許さないと、 2 つの合計幅が
+     画面を超えた時にそのまま外へ出る (実測 = 375px で 27px、 #1074) */
+  flex-wrap: wrap;
   gap: 16px;
   padding: 16px 20px;
   background: var(--v4-canvas-dim);
@@ -251,7 +254,10 @@
 /* ── theme grid (2 col responsive) ── */
 .nm-preset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  /* 下限を画面幅で頭打ちにする (#1074)。 `minmax(480px, 1fr)` のままだと、 画面が 480px より
+     狭くてもカードが 480px を割らず、 375px の画面で 137px が外に出ていた。 `min()` を挟むと
+     広い画面では 480px のまま、 狭い画面では画面幅まで縮む */
+  grid-template-columns: repeat(auto-fill, minmax(min(480px, 100%), 1fr));
   gap: 20px;
 }
 .nm-preset-card {
