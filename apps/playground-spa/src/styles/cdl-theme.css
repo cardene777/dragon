@@ -716,24 +716,49 @@ html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
   fill: #8a5a2a !important;
   font-weight: 700 !important;
 }
+/* 面の色 (#1060)。 以前は `#2a1f14` で、 editor の紙 `#1a1408` との明るさの差が `ΔL* 6.1`
+   しかなく、 **箱が面として立っていなかった** = 見えるのは輪郭線と文字だけで、 目が図の
+   構造を掴めない状態だった。
+
+   editor 側は紙を `#3a2f22` へ上げた (`editor.css`)。 箱は逆に暗い側へ置いて「明るい机に
+   暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
+
+   **catalog も同じ値でよい**。 catalog は暗い画面でも紙を cream (`#fcf8ee`) で保つので、
+   もともと「暗い箱・明るい紙」 の関係にある。 箱が暗くなる分だけ対比が上がる
+   (箱の中の文字 `#f8ecd0` との対比は 13.72 → 15.72)。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #2a1f14 !important;
+  fill: #191309 !important;
   stroke: #f0b840 !important;
   stroke-width: 3.5 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #2a1f14 !important;
+  fill: #191309 !important;
   stroke: rgba(240, 184, 64, 0.85) !important;
   stroke-width: 2.2 !important;
 }
+/* 命綱と枠の色 (#1060)。
+   **半透明で置くと、重ねた後の色で判断しないと実際の見え方が分からない**。 以前は
+   `rgba(240,184,64,.6)` (gold) を明暗どちらの紙にも当てており、 catalog の cream の紙では
+   重ねた後が `rgb(245,210,134)` = 対比 1.38 で紙に溶けていた (実測)。
+
+   catalog は暗い画面でも紙を cream で保つので、 こちらは暗い側の色を置く。
+   editor (暗い紙) 向けは下の `.v4-editor-stage` 側で上書きする。
+
+   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明のままだと
+   「宣言した色」 と「見える色」 がずれ、 検査も人も間違える。
+
+   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
+   (`cdl` の `stage.tsx`)。 色を不透明にしてもこれは残るので、 見える色はさらに紙寄りになる
+   (実測 = `#8a6a33` を置いても対比 2.73 で 3:1 を割った)。 `opacity` 込みで 3 以上になる
+   色を選ぶ。 */
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
   fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: rgba(240, 184, 64, 0.6) !important;
+  stroke: #5c5024 !important;
   stroke-width: 2.2 !important;
   stroke-dasharray: 8 4 !important;
 }
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(240, 184, 64, 0.7) !important;
+  stroke: #5c5024 !important;
   stroke-width: 2.8 !important;
   stroke-dasharray: 8 5 !important;
 }
@@ -759,25 +784,44 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
 /* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-4.96、
    実効色の ΔE は 16.6 以上 (量子化の最悪値で 4.64 / 15.50)。 selector は cream 用 (0-2-0) より
    詳しいので上書きになる。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #0095e2; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #409c83; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #49a368; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #d86e5c; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #b28539; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #5d91c4; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #ffa347; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #5fd8ac; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #9ee34f; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #ff8a8a; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #ffd45e; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #f0c9a0; }
 /* 矢頭も同様に marker 自身へ置く (暗い紙用の組)。 */
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #0095e2; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #ffa347; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #409c83; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #5fd8ac; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #49a368; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #9ee34f; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #d86e5c; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #ff8a8a; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #b28539; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #ffd45e; }
 html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #5d91c4; }
+html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #f0c9a0; }
+/* editor は紙が暗い (`#3a2f22`) ので、 命綱と枠は明るい側に置く (#1060)。
+   catalog 用の暗い茶をそのまま使うと紙に沈む。
+
+   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明だと「宣言した色」
+   と「見える色」 がずれる (実測 = `rgba(154,133,106,.85)` は重ねた後 `rgb(140,120,95)` で
+   対比 3.08 に落ちていた)。
+
+   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
+   (`cdl` の `stage.tsx`)。 `opacity` 込みで 3 以上になる色を選ぶ。
+
+   命綱は「そこに人がいる」 ことを示す補助線なので、 本文ほどの強さは要らない。
+   意味を持つ非文字要素の下限 3:1 を満たす範囲で落ち着かせる。 */
+html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-lifeline"] {
+  stroke: #b4ac80 !important;
+}
+html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-container"] {
+  stroke: #b4ac80 !important;
+}
+
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
   fill: #f8ecd0 !important;
   font-weight: 700 !important;
@@ -799,7 +843,9 @@ html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
 html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
-  fill: #2a1f14 !important;
+  /* 上の `node-body` 本体と同じ色にする (#1060)。 揃えないと、 箱を rect 1 枚で描く種別と
+     子図形で描く種別 (generic 系) が同じ図の中で別の面の色になる。 */
+  fill: #191309 !important;
   stroke: #f0b840 !important;
   stroke-width: 3.5 !important;
 }
@@ -839,10 +885,12 @@ html.dark[data-cdl-theme="blueprint"] {
   --cdl-text: #f0e0b8;
   --cdl-text-dim: #d4c4a0;
   --cdl-text-mute: #a89880;
-  /* `node-body` は上の selector で `#2a1f14` に強制されるのに、 変数だけ cream のまま残って
-     いた。 同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
-     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。 */
-  --cdl-node-fill: #2a1f14;
+  /* `node-body` は上の selector で強制されるのに、 変数だけ cream のまま残っていた。
+     同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
+     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。
+
+     **強制先を変えたら必ずここも変える** (#1060)。 揃えないと chart 系だけが旧色のまま残る。 */
+  --cdl-node-fill: #191309;
   /* kind 内の小さい面 (mind-map / mind-radial / tree の枝の箱)。 page の文字色とは別軸で、
      面と文字が対で動く。 明色のままだと tone が 2.13 まで落ちる (実測)。 */
   --cdl-chip-fill: #33251a;

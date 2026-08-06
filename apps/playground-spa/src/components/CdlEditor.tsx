@@ -25,6 +25,7 @@ import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMay
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
+import { stagePaperColor } from "@/lib/stage-paper";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 
@@ -1534,9 +1535,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       URL.revokeObjectURL(svgUrl);
       return;
     }
-    // dark mode 対応 = 現在の theme に応じた stage bg を塗る
-    const isDark = document.documentElement.classList.contains("dark");
-    ctx.fillStyle = isDark ? "#241c14" : "#f0e8d4";
+    // 紙の色は **画面から読む** (#1060)。 値を書くと CSS 側を変えた時にここだけ古くなり、
+    // 書き出した絵の紙だけが別の色になる (実測 = 画面の紙を `#3a2f22` に変えた後も、
+    // ここは `#241c14` のままで箱との差が `ΔL* 4.7` に潰れていた)。
+    ctx.fillStyle = stagePaperColor(previewRef.current);
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
     URL.revokeObjectURL(svgUrl);
