@@ -116,10 +116,14 @@ describe("行を宣言しなくても kind は載る (#975)", () => {
     expect(nodeById(d0(`DB: { kind: multisig }`), "db-header")?.kind).toBe("signer");
   });
 
-  it("読み取れない語は記法側の既定になる", () => {
-    // 未知の語は記法の parse が既定 (`actor`) に落とす。 描画側に無い語がそのまま来ることは
-    // ないが、 来た時のために `drawableKind` が `undefined` を返す形も残してある。
-    expect(nodeById(d0(`DB: { kind: 知らない語 }`), "db-header")?.kind).toBe("actor");
+  it("読み取れない語では名札の種類を上書きしない", () => {
+    // 未知の語はパーツの名前かもしれないので、 記法の parse は `kind` を既定 (`actor`) に倒し、
+    // 書かれた語を `partId` へ退避する。 このとき **名札に載せる種類は決まっていない**。
+    //
+    // 以前は既定に倒した `actor` をそのまま名札に載せていた (#1058 まで)。 名札は小型の箱
+    // (`h: 72`) で作られ、 描画側は `card` に小型用の分岐を持つが `actor` には無いため、
+    // 名前の文字が箱の下端をはみ出していた。 決まっていない時は上書きしない。
+    expect(nodeById(d0(`DB: { kind: 知らない語 }`), "db-header")?.kind).toBe("card");
   });
 
   it("`posH` を書いた名札は揃えの対象から外す", () => {

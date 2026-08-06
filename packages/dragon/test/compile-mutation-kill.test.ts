@@ -58,8 +58,15 @@ import { layout } from "@cardenelabs/cdl";
  * それは本 Issue の scope (test 追加) の外。
  */
 
+/**
+ * `kindWritten: true` は「著者が種類を書いた」 を表す (#1058)。
+ *
+ * 書かなかった時も `kind` には既定の `actor` が入るため、 値だけでは区別できない。
+ * この helper は #975 (書いた種類を名札に載せる) の検査を支えるので、 書いた側として作る。
+ * 書かなかった側の挙動は `seq-header-kind.test.ts` が見る。
+ */
 function actor(name: string, over: Partial<DslActor> = {}): DslActor {
-  return { name, kind: "actor", pos: { line: 1 }, ...over };
+  return { name, kind: "actor", kindWritten: true, pos: { line: 1 }, ...over };
 }
 function step(from: string, to: string, over: Partial<DslStep> = {}): DslStep {
   return { no: 1, from, to, label: "x", pos: { line: 1 }, ...over };

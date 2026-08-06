@@ -834,6 +834,9 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         const k = stripQuotes(raw).toLowerCase();
         const isPart = k !== "" && !NODE_KIND_VALID.has(k);
         out.kind = isPart ? NODE_KIND_DEFAULT : resolveKind(k);
+        // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
+        // 「書かなかった」 と同じ扱いにする (#1058)
+        out.kindWritten = k !== "" && !isPart;
         out.partId = isPart ? k : undefined;
         break;
       }
@@ -1237,6 +1240,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     return {
       name: namePart,
       kind,
+      // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
+      // 「書かなかった」 と同じ扱いにする (#1058)
+      kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
       eyebrow: opts.eyebrow,
       value: opts.value,
@@ -1289,6 +1295,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     return {
       name: namePart,
       kind,
+      // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
+      // 「書かなかった」 と同じ扱いにする (#1058)
+      kindWritten: v.kind !== "" && !isPart,
       // parts では `tone` を状態の上書きとして扱うため、 色として渡さない
       tone: isPart ? undefined : v.tone,
       subtitle: v.subtitle,
@@ -1305,7 +1314,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
   }
   const namePart = stripQuotes(raw);
   if (!namePart) return null;
-  return { name: namePart, kind: NODE_KIND_DEFAULT, pos: { line: line.no } };
+  return { name: namePart, kind: NODE_KIND_DEFAULT, kindWritten: false, pos: { line: line.no } };
 }
 
 function parseFlowStep(line: Line, no: number): DslStep | null {

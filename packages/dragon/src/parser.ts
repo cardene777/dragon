@@ -169,11 +169,13 @@ function parseActor(l: Line, errors: DslError[]): DslActor | null {
     return null;
   }
   let kind: NodeKind = "actor";
+  let kindWritten = false;
   if (item.paren) {
     const resolved = NODE_KIND_ALIAS[item.paren] ?? (item.paren as NodeKind);
     kind = resolved;
+    kindWritten = true;
   }
-  return { name: item.name, kind, pos: { line: l.lineNo } };
+  return { name: item.name, kind, kindWritten, pos: { line: l.lineNo } };
 }
 
 function parseStep(l: Line, errors: DslError[], actors: DslActor[]): DslStep | null {

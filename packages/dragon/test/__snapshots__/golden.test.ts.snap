@@ -2218,7 +2218,7 @@ exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2234,7 +2234,7 @@ exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
       "cy": 164,
       "h": 72,
       "id": "b-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2266,7 +2266,7 @@ exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
       "cy": 578,
       "h": 72,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2274,7 +2274,7 @@ exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
       "cy": 578,
       "h": 72,
       "id": "b-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -2328,7 +2328,7 @@ exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2344,7 +2344,7 @@ exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
       "cy": 164,
       "h": 72,
       "id": "b-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2376,7 +2376,7 @@ exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
       "cy": 578,
       "h": 72,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2384,7 +2384,7 @@ exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
       "cy": 578,
       "h": 72,
       "id": "b-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -2711,7 +2711,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2727,7 +2727,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 164,
       "h": 72,
       "id": "b-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2743,7 +2743,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 164,
       "h": 72,
       "id": "c-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2759,7 +2759,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 164,
       "h": 72,
       "id": "d-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2839,7 +2839,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 884,
       "h": 72,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2847,7 +2847,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 884,
       "h": 72,
       "id": "b-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2855,7 +2855,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 884,
       "h": 72,
       "id": "c-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2863,7 +2863,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
       "cy": 884,
       "h": 72,
       "id": "d-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -2956,7 +2956,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 231,
       "h": 206,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -2988,7 +2988,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 231,
       "h": 206,
       "id": "c-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3020,7 +3020,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 231,
       "h": 206,
       "id": "e-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3100,7 +3100,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 1085,
       "h": 206,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3116,7 +3116,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 1085,
       "h": 206,
       "id": "c-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3132,7 +3132,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "cy": 1085,
       "h": 206,
       "id": "e-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -3179,7 +3179,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3203,7 +3203,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
       "cy": 578,
       "h": 72,
       "id": "alice-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
   ],
@@ -3257,7 +3257,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3273,7 +3273,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "cy": 164,
       "h": 72,
       "id": "bob-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3305,7 +3305,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "cy": 578,
       "h": 72,
       "id": "alice-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3313,7 +3313,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
       "cy": 578,
       "h": 72,
       "id": "bob-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -3380,7 +3380,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3412,7 +3412,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "cy": 164,
       "h": 72,
       "id": "bob-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3460,7 +3460,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "cy": 680,
       "h": 72,
       "id": "alice-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3476,7 +3476,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
       "cy": 680,
       "h": 72,
       "id": "bob-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -3543,7 +3543,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3575,7 +3575,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "cy": 164,
       "h": 72,
       "id": "bob-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3623,7 +3623,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "cy": 680,
       "h": 72,
       "id": "alice-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -3639,7 +3639,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
       "cy": 680,
       "h": 72,
       "id": "bob-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -3832,7 +3832,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3872,7 +3872,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "cy": 578,
       "h": 72,
       "id": "user-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -3952,7 +3952,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3968,7 +3968,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 164,
       "h": 72,
       "id": "b-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -3984,7 +3984,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 164,
       "h": 72,
       "id": "c-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4000,7 +4000,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 164,
       "h": 72,
       "id": "d-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4064,7 +4064,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 782,
       "h": 72,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4072,7 +4072,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 782,
       "h": 72,
       "id": "b-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4080,7 +4080,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 782,
       "h": 72,
       "id": "c-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4088,7 +4088,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
       "cy": 782,
       "h": 72,
       "id": "d-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -4160,7 +4160,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "cy": 164,
       "h": 72,
       "id": "client-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -4176,7 +4176,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "cy": 164,
       "h": 72,
       "id": "server-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -4256,7 +4256,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "cy": 884,
       "h": 72,
       "id": "client-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -4264,7 +4264,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
       "cy": 884,
       "h": 72,
       "id": "server-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 184,
     },
   ],
@@ -4450,7 +4450,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "cy": 259,
       "h": 262,
       "id": "alice-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -4482,7 +4482,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "cy": 259,
       "h": 262,
       "id": "bob-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4530,7 +4530,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "cy": 965,
       "h": 262,
       "id": "alice-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -4546,7 +4546,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "cy": 965,
       "h": 262,
       "id": "bob-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -4645,7 +4645,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 164,
       "h": 72,
       "id": "a-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4661,7 +4661,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 164,
       "h": 72,
       "id": "b-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4677,7 +4677,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 164,
       "h": 72,
       "id": "c-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4693,7 +4693,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 164,
       "h": 72,
       "id": "d-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4709,7 +4709,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 164,
       "h": 72,
       "id": "e-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4805,7 +4805,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 986,
       "h": 72,
       "id": "a-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4813,7 +4813,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 986,
       "h": 72,
       "id": "b-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4821,7 +4821,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 986,
       "h": 72,
       "id": "c-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4829,7 +4829,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 986,
       "h": 72,
       "id": "d-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4837,7 +4837,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
       "cy": 986,
       "h": 72,
       "id": "e-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -4897,7 +4897,7 @@ exports[`golden: sequence preset > S12 sub label on edge 1`] = `
       "cy": 164,
       "h": 72,
       "id": "x-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4913,7 +4913,7 @@ exports[`golden: sequence preset > S12 sub label on edge 1`] = `
       "cy": 164,
       "h": 72,
       "id": "y-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4961,7 +4961,7 @@ exports[`golden: sequence preset > S12 sub label on edge 1`] = `
       "cy": 680,
       "h": 72,
       "id": "x-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -4969,7 +4969,7 @@ exports[`golden: sequence preset > S12 sub label on edge 1`] = `
       "cy": 680,
       "h": 72,
       "id": "y-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -5023,7 +5023,7 @@ exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
       "cy": 164,
       "h": 72,
       "id": "p-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5039,7 +5039,7 @@ exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
       "cy": 164,
       "h": 72,
       "id": "q-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5071,7 +5071,7 @@ exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
       "cy": 578,
       "h": 72,
       "id": "p-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5079,7 +5079,7 @@ exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
       "cy": 578,
       "h": 72,
       "id": "q-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -5133,7 +5133,7 @@ exports[`golden: sequence preset > S14 viewport explicit width / height 1`] = `
       "cy": 164,
       "h": 72,
       "id": "l-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5149,7 +5149,7 @@ exports[`golden: sequence preset > S14 viewport explicit width / height 1`] = `
       "cy": 164,
       "h": 72,
       "id": "r-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5181,7 +5181,7 @@ exports[`golden: sequence preset > S14 viewport explicit width / height 1`] = `
       "cy": 578,
       "h": 72,
       "id": "l-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5189,7 +5189,7 @@ exports[`golden: sequence preset > S14 viewport explicit width / height 1`] = `
       "cy": 578,
       "h": 72,
       "id": "r-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -5268,7 +5268,7 @@ exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
       "cy": 164,
       "h": 72,
       "id": "cli-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5284,7 +5284,7 @@ exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
       "cy": 164,
       "h": 72,
       "id": "srv-header",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5380,7 +5380,7 @@ exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
       "cy": 884,
       "h": 72,
       "id": "cli-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5388,7 +5388,7 @@ exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
       "cy": 884,
       "h": 72,
       "id": "srv-footer",
-      "kind": "actor",
+      "kind": "card",
       "w": 140,
     },
     {
