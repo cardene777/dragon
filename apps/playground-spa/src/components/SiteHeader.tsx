@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useLocale } from "@/lib/useLocale";
+import { useToast } from "@/components/Toast";
 
 /**
  * 全 page 共通の header (v4 design、 dark/light toggle + JA/EN toggle 両方対応)。
@@ -20,6 +21,7 @@ export function SiteHeader(): React.ReactElement {
   const pathname = location.pathname;
   const [isDark, setIsDark] = useState<boolean>(false);
   const [locale, setLocale] = useLocale();
+  const { toast } = useToast();
 
   useEffect(() => {
     try {
@@ -53,11 +55,21 @@ export function SiteHeader(): React.ReactElement {
     setLocale(locale === "ja" ? "en" : "ja");
   };
 
+  // 写した結果を必ず画面に出す (#1082)。 写すだけだと、 押した人には成功も失敗も見えず
+  // 「押しても何も起きない壊れたボタン」 になる。 失敗も黙って捨てない = 写せなかったことが
+  // 分かれば URL を選んで自分で写す道に切り替えられる
   const onShare = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
+      toast({
+        type: "success",
+        title: locale === "ja" ? "URL をコピーしました" : "Copied the URL",
+      });
     } catch {
-      // localStorage / matchMedia 非対応環境では default 値を維持
+      toast({
+        type: "error",
+        title: locale === "ja" ? "コピーに失敗しました" : "Could not copy the URL",
+      });
     }
   };
 
