@@ -252,15 +252,15 @@ animation:
 type: mind
 
 actors:
-  - root: { title: "新プロジェクト" }
-  - features: { title: "機能" }
-  - design: { title: "デザイン" }
-  - launch: { title: "リリース" }
-  - market: { title: "マーケット" }
+  - 新プロジェクト
+  - 機能
+  - デザイン
+  - リリース
+  - マーケット
 
 animation:
   - step: "reveal" 2.0s
-    focus: [root, features, design, launch, market]
+    focus: [新プロジェクト, 機能, デザイン, リリース, マーケット]
 `,
   },
   {

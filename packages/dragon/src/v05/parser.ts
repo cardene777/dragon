@@ -1213,6 +1213,63 @@ function reportScaleOnNonPart(
   });
 }
 
+/**
+ * 中括弧の形で読める項目名。
+ *
+ * ここに無い名前は、 パーツでない箱ではどこにも入らずに消える。 `ACTOR_ITEM_KEYS` (縦に
+ * 並べた形) とは別に持つ = 中括弧の形は位置や大きさを未対応にしてあり、 同じ集合にすると
+ * 「知らせない」 側がずれる。
+ */
+const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+  "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
+  "initial", "final", "tone", "nodes",
+  "posX", "posY", "posW", "posH",
+  // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
+  // 同じ名前で 2 度知らせることになる
+  "scale", "倍率",
+]);
+// `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
+// 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
+// している経路が予約語で残る (Round 1 review の指摘、 実測で確認)。 パーツ側は `isPart` の
+// 早期 return が先に効くのでここに載せる必要が無い
+
+/**
+ * 中括弧に書かれた読めない項目名を知らせる (#1090)。
+ *
+ * 縦に並べた形は `applyContinuationLines` が既に知らせている。 中括弧の形だけが黙って
+ * 捨てていた = 同じ意味を書いても、 書き方によって知らされたりされなかったりする。
+ *
+ * 実測 = 見本「プロジェクト構想」 は `- root: { title: "新プロジェクト" }` と書かれており、
+ * 5 つの箱すべてで題が捨てられて識別子 (`root` 等) が出ていた。 知らせも出ないため、 書いた
+ * 人には「書いたのに図が変わらない」 としか見えない。
+ *
+ * パーツでは知らせない。 中括弧に書いた名前は状態の上書きとして意味を持つ (`extractStateOverride`)。
+ */
+function reportUnknownInlineKeys(
+  isPart: boolean,
+  inner: string,
+  line: number,
+  errors: DslError[],
+): void {
+  if (isPart) return;
+  // 値が空の形 (`{ title: }`) も見る。 `parseInlineMapping` は値が 1 文字以上ある項目しか
+  // 拾わないため、 その結果を走査すると空白の有無で知らせが消える (実測 = `{title:}` と
+  // `{ title:}` は黙って通り、 `{ title: }` だけ知らせが出た)。 契約が入力の整形に依存する
+  // (Round 1 review の指摘)。 倍率が `writtenScaleFields` で同じ境界を持つのと揃える
+  for (const field of splitInlineFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    const key = field.slice(0, idx).trim();
+    if (!key) continue;
+    if (INLINE_ACTOR_KEYS.has(key)) continue;
+    errors.push({
+      line,
+      message: `項目名が読めません: "${key}"`,
+      hint: `使える項目 = ${[...INLINE_ACTOR_KEYS].join(", ")}`,
+    });
+  }
+}
+
 function parseActor(line: Line, errors: DslError[]): DslActor | null {
   // 5 形式 サポート:
   // 1. `Client`                              ... name のみ、 kind=actor default
@@ -1236,6 +1293,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
     const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
+    // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
+    reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,

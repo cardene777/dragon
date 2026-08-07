@@ -137,7 +137,7 @@ type: sequence
 
 actors:
   - A: { kind: actor }
-  - DB: { kind: storage, 行: ["count: 1"], nodes: { header: { posX: 10, posY: 20, posW: 200, posH: 50 } } }
+  - DB: { kind: storage, rows: ["count: 1"], nodes: { header: { posX: 10, posY: 20, posW: 200, posH: 50 } } }
 
 flow:
   - A -> DB: "x"
@@ -155,7 +155,7 @@ type: sequence
 
 actors:
   - "Auth Header": { kind: actor }
-  - DB: { kind: storage, 行: ["count: 1"] }
+  - DB: { kind: storage, rows: ["count: 1"] }
 
 flow:
   - "Auth Header" -> DB: "x"
@@ -243,7 +243,7 @@ type: sequence
 
 actors:
   - A: { kind: actor }
-  - DB: { kind: storage, 行: ["count: 1"] }
+  - DB: { kind: storage, rows: ["count: 1"] }
 
 flow:
   - A -> DB: "x"
