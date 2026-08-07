@@ -59,6 +59,11 @@ const stageBoxBy = (page: Page, sel: string) =>
     // 図の中で最も小さい文字の、 画面上の大きさ。 図を基準にフィットしたかを見る材料
     const px = [...stage.querySelectorAll("text")]
       .filter((t) => (t.textContent ?? "").trim().length > 0)
+      // 画面に出ていない文字は測らない (実装が数えないものと揃える、 #1084)
+      .filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
       .map((t) => Number.parseFloat(getComputedStyle(t).fontSize) * k)
       .filter((v) => Number.isFinite(v) && v > 0);
     return {

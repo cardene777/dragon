@@ -64,20 +64,41 @@ export function applyReadableFloor(
 }
 
 /**
+ * 画面に出ていない文字か。 `display: none` / `visibility: hidden` / 透明度 0 の 3 形を見る。
+ *
+ * 見えていない文字を数えると、 誰も読まない文字のために図が大きくなる。 実測では見本
+ * 「プロジェクト構想」 に `display: none` の 20 の文字があり、 見えている最小 (24) ではなく
+ * そちらが下限を決めていた (42% で足りるところが 50% になっていた)。
+ *
+ * 大きさ 0 の枠は判定に使わない。 描画のある環境では見えない文字と一致するが、 枠を持たない
+ * 環境 (単体テストの仮想 DOM) では全ての文字が 0 になり、 判定が全消しになる。
+ */
+function 見えない(t: Element): boolean {
+  if (typeof globalThis.getComputedStyle !== "function") return false;
+  const cs = globalThis.getComputedStyle(t);
+  if (cs.display === "none") return true;
+  if (cs.visibility === "hidden" || cs.visibility === "collapse") return true;
+  const op = Number.parseFloat(cs.opacity);
+  return Number.isFinite(op) && op === 0;
+}
+
+/**
  * 図の中で最も小さい文字の大きさ (世界座標)。 1 つも取れなければ 0。
  *
  * `getComputedStyle` を先に見る。 cdl は文字の大きさを CSS でも属性でも書くため、 属性だけを
  * 見ると CSS 側で決まっている図で拾えない。 逆に属性だけの図もあるので、 計算値が取れない時は
  * 属性に落ちる。
  *
- * 空文字の `<text>` は数えない。 位置合わせのために置かれた中身の無い節点があり、 それを
- * 数えると「読めない文字」 が実在しないのに下限が上がる。
+ * 数えないものが 2 つある。 空文字の `<text>` は位置合わせのために置かれた中身の無い節点で、
+ * 数えると「読めない文字」 が実在しないのに下限が上がる。 画面に出ていない文字も同じ理由で
+ * 数えない (`見えない` の説明を参照)。
  */
 export function smallestFontWorld(svg: SVGSVGElement | null | undefined): number {
   if (!svg) return 0;
   let min = Number.POSITIVE_INFINITY;
   for (const t of svg.querySelectorAll("text")) {
     if ((t.textContent ?? "").trim().length === 0) continue;
+    if (見えない(t)) continue;
     let size = Number.NaN;
     if (typeof globalThis.getComputedStyle === "function") {
       size = Number.parseFloat(globalThis.getComputedStyle(t).fontSize);

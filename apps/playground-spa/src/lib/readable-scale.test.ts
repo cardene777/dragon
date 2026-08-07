@@ -111,3 +111,47 @@ describe("smallestFontWorld", () => {
     expect(smallestFontWorld(undefined)).toBe(0);
   });
 });
+
+describe("smallestFontWorld — 画面に出ていない文字 (Round 1 review の指摘)", () => {
+  const svgWith = (html: string): SVGSVGElement => {
+    const host = document.createElement("div");
+    host.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${html}</svg>`;
+    return host.querySelector("svg")!;
+  };
+
+  it("display: none の文字は数えない", () => {
+    // 実測 = 見本「プロジェクト構想」 に隠れた 20 の文字があり、 見えている最小 (24) ではなく
+    // そちらが下限を決めていた (42% で足りるところが 50% になっていた)
+    const svg = svgWith(
+      `<text font-size="20" style="display: none">隠</text><text font-size="24">見</text>`,
+    );
+    expect(smallestFontWorld(svg)).toBe(24);
+  });
+
+  it("visibility: hidden の文字は数えない", () => {
+    const svg = svgWith(
+      `<text font-size="11" style="visibility: hidden">隠</text><text font-size="18">見</text>`,
+    );
+    expect(smallestFontWorld(svg)).toBe(18);
+  });
+
+  it("透明度 0 の文字は数えない", () => {
+    const svg = svgWith(
+      `<text font-size="9" style="opacity: 0">隠</text><text font-size="17">見</text>`,
+    );
+    expect(smallestFontWorld(svg)).toBe(17);
+  });
+
+  it("薄いだけの文字は数える", () => {
+    // 透明度 0 は見えないが、 0.3 は読める。 見えるものを落とすと図が要らぬ大きさになる
+    const svg = svgWith(
+      `<text font-size="12" style="opacity: 0.3">薄</text><text font-size="20">濃</text>`,
+    );
+    expect(smallestFontWorld(svg)).toBe(12);
+  });
+
+  it("見えている文字が 1 つも無ければ 0 (下限を課さない)", () => {
+    const svg = svgWith(`<text font-size="20" style="display: none">隠</text>`);
+    expect(smallestFontWorld(svg)).toBe(0);
+  });
+});

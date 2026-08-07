@@ -27,6 +27,13 @@ async function 測る(page: import("@playwright/test").Page) {
     const scale = svg.getBoundingClientRect().width / vb.width;
     const rows = [...svg.querySelectorAll("text")]
       .filter((t) => (t.textContent ?? "").trim().length > 0)
+      // 画面に出ていない文字は測らない。 実装 (`src/lib/readable-scale.ts`) が数えないものを
+      // 検査が数えると、 正しい状態を「文字が小さい」 として落とす。 ここでは実際に枠を持つか
+      // で見る = 実ブラウザなので、 隠し方の種類 (display / visibility / 透明度) に依らない
+      .filter((t) => {
+        const r = t.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
       .map((t) => ({
         px: Math.round(Number.parseFloat(getComputedStyle(t).fontSize) * scale * 10) / 10,
         s: (t.textContent ?? "").trim().slice(0, 10),
@@ -75,6 +82,26 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
     戻した後!.最小.px,
     `収めた後も文字が小さい: ${戻した後!.最小.px}px (倍率 ${戻した後!.倍率})`,
   ).toBeGreaterThanOrEqual(MIN_PX);
+});
+
+test("画面に出ていない文字は下限を決めない (#1084)", async ({ page }) => {
+  // Round 1 review の指摘。 見本「プロジェクト構想」 には `display: none` の 20 の文字があり、
+  // 数えると見えている最小 (24) ではなくそちらが下限を決める = 42% で足りるところが 50% になる。
+  // 誰も読まない文字のために図が大きくなり、 横に動かす量も増える
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/editor#preset=mind");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+
+  const m = await 測る(page);
+  expect(m!.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+  // 下限が倍率を決める図なので、 見えている最小文字はちょうど 10px に張り付く。
+  // 隠れた文字を数えると 12px になる (実測)
+  expect(
+    m!.最小.px,
+    `下限より大きく描かれている (隠れた文字を数えた疑い): ${m!.最小.px}px (倍率 ${m!.倍率})`,
+  ).toBeLessThan(11);
+  expect(m!.最小.px, `文字が小さすぎる: ${m!.最小.px}px`).toBeGreaterThanOrEqual(10);
 });
 
 test("枠に余裕がある図では倍率を上げない (#1084)", async ({ page }) => {
