@@ -2029,6 +2029,19 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
   interface: "shape-code-block",
 };
 
+/**
+ * 図全体を 1 つの箱で描く種別。
+ *
+ * これらは中身 (扇 / 帯 / 枝) を payload で受け取り、 1 node で図全体を描く。 登場人物ごとの箱を
+ * 持たないので、 段の `focus:` で名前を指しても引く先が無い。 `injectPhasesFallback` が
+ * この一覧を使って「実在する名前ならその箱を光らせる」 に読み替える (#1076 / #1077)。
+ */
+const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
+  "chart-pie", "chart-line", "chart-bar",
+  "gantt-timeline", "mind-map", "mind-radial",
+  "funnel-stages", "quadrant-matrix", "tree-hierarchy", "journey-map",
+]);
+
 /** 記法の種別を描画の種別に直す。 描けない種別のままなら `undefined`。 */
 function drawableKind(kind: string | undefined): string | undefined {
   if (kind === undefined) return undefined;
@@ -2281,40 +2294,82 @@ function compileSolidity(doc: DslDocument): CdlDiagram {
  */
 function compileGantt(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const TASK_W = 280;
-  const TASK_H = 64;
-  const QUARTER_CX: Record<string, number> = { Q1: 200, Q2: 600, Q3: 900, Q4: 1200 };
-  // task lane を上に重ねる背景の帯。 横に並べる lane ではないので、 engine の間隔調整の
-  // 対象から外す (帯の幅 1400 を隣との重なりとして扱われると task lane が異常に太る)。
-  b.lane("gantt-timeline", { x: 0, width: 1400, label: doc.title, role: "overlay" });
+  const CHART_W = 720;
+  const CHART_H = 360;
+  b.lane("gantt", { width: CHART_W, label: doc.title });
 
-  doc.actors.forEach((a, idx) => {
-    const subtitle = (a.subtitle ?? "").trim().toUpperCase();
-    const cx = QUARTER_CX[subtitle] ?? 200;
-    const laneX = cx - TASK_W / 2;
-    const laneId = `gantt-${slugify(a.name) || `t${idx}`}`;
-    b.lane(laneId, { x: laneX, width: TASK_W, label: "" });
-    const nodeId = slugify(a.name) || `t${idx}`;
-    b.node(nodeId, {
-      lane: laneId,
-      stack: idx,
-      kind: "card",
-      title: a.name,
-      w: TASK_W,
-      h: TASK_H,
-    });
-  });
-
-  for (const s of doc.flow) {
-    const fromId = slugify(s.from);
-    const toId = slugify(s.to);
-    b.edge(fromId, toId, {
-      label: s.label,
-      ...(s.sub ? { sub: s.sub } : {}),
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
-    });
+  // 目盛りは **書かれた順** に並べる。 以前は `Q1=200 / Q2=600 / ...` の決め打ちで、 Q1-Q4 以外は
+  // 全て同じ位置に落ちていた。 順に並べれば月名でも週番号でも同じ規則で置ける
+  const 目盛り: string[] = [];
+  const 目盛りなし: string[] = [];
+  const タスク: { name: string; label: string; tone?: DslDocument["actors"][number]["tone"] }[] = [];
+  for (const a of doc.actors) {
+    const label = (a.value ?? a.subtitle ?? "").trim();
+    if (label === "") {
+      目盛りなし.push(a.name);
+      continue;
+    }
+    if (!目盛り.includes(label)) 目盛り.push(label);
+    // 色は帯にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
+    タスク.push({ name: a.name, label, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
+  if (目盛りなし.length > 0 && typeof console !== "undefined" && console.warn) {
+    console.warn(
+      `[dragon] type: gantt で時期を読めない項目があります (帯に載せません): ${目盛りなし.join(", ")}。` +
+        ` \`- 設計: "Q1"\` の形で書いてください`,
+    );
+  }
+
+  // 矢印は依存として読む (`- 設計 -> 実装` = 実装は設計の後)。 帯どうしを結ぶ線は描画側が
+  // 依存として描くので、 書いた矢印を捨てずに使う。 居ない名前を指した矢印は伝える
+  const タスク名 = new Set(タスク.map((t) => t.name));
+  const 依存元 = new Map<string, string>();
+  const 居ない: string[] = [];
+  const 装飾つき: string[] = [];
+  for (const s of doc.flow) {
+    if (!タスク名.has(s.from) || !タスク名.has(s.to)) {
+      居ない.push(`${s.from} -> ${s.to}`);
+      continue;
+    }
+    依存元.set(s.to, s.from);
+    // 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた文字や色は描けないので伝える
+    if ((s.label ?? "") !== "" || (s.sub ?? "") !== "" || s.tone !== undefined || s.style !== undefined) {
+      装飾つき.push(`${s.from} -> ${s.to}`);
+    }
+  }
+  if (居ない.length > 0 && typeof console !== "undefined" && console.warn) {
+    console.warn(
+      `[dragon] type: gantt で依存を結べない矢印があります (居ない項目か時期なし): ${居ない.join(", ")}`,
+    );
+  }
+  if (装飾つき.length > 0 && typeof console !== "undefined" && console.warn) {
+    console.warn(
+      `[dragon] type: gantt の矢印は前後の関係だけを使います (文字 / 色 / 線種は描けません): ${装飾つき.join(", ")}`,
+    );
+  }
+
+  b.node(`${slugify(doc.title) || "gantt"}-chart`, {
+    lane: "gantt",
+    stack: 0,
+    kind: "gantt-timeline",
+    title: doc.title,
+    w: CHART_W,
+    h: CHART_H,
+    ganttData: タスク.map((t) => {
+      const idx = 目盛り.indexOf(t.label);
+      const from = 依存元.get(t.name);
+      return {
+        id: slugify(t.name) || t.name,
+        title: t.name,
+        startIdx: idx,
+        endIdx: idx,
+        startLabel: t.label,
+        endLabel: t.label,
+        ...(from !== undefined ? { dependsOn: slugify(from) || from } : {}),
+        ...(t.tone !== undefined ? { tone: t.tone } : {}),
+      };
+    }),
+  });
 
   return b.build();
 }
@@ -2759,10 +2814,10 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
   // 実在する名前。 矢印を含む名前 (`"A -> B"`) を矢印と読み違えないために渡す
   const knownNames = new Set(doc.actors.map((a) => a.name));
-  // 図全体を 1 つの箱で描く種類 (`chart-pie` 等) は、 登場人物ごとの箱を持たない。
+  // 図全体を 1 つの箱で描く種類は、 登場人物ごとの箱を持たない。
   // 箱が 1 つの時だけ対象にする = 2 つ以上あるとどれを指したのか決められない
-  const chartNodes = diagram.nodes.filter((n) => String(n.kind).startsWith("chart-"));
-  const singleBoxNode = chartNodes.length === 1 ? chartNodes[0] : undefined;
+  const singleBoxNodes = diagram.nodes.filter((n) => SINGLE_BOX_KINDS.has(String(n.kind)));
+  const singleBoxNode = singleBoxNodes.length === 1 ? singleBoxNodes[0] : undefined;
   const resolveIds = (highlight: readonly string[]): string[] => {
     const out: string[] = [];
     for (const h of highlight) {

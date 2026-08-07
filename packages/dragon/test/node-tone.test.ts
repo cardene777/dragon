@@ -49,7 +49,8 @@ const TYPES = [
 
 describe("登場人物の色が箱に届く", () => {
   for (const type of TYPES) {
-    if (type === "pie") continue; // 円グラフは箱を持たないので下の専用 test で見る
+    // 円グラフとガントは図全体を 1 箱で描くので、 箱ごとの色を持たない。 下の専用 test で見る
+    if (type === "pie" || type === "gantt") continue;
     it(`${type} で色が載る`, () => {
       const diagram = build(type, `- Client: { kind: service, tone: error }`);
       // 「1 つ以上に載った」 では、 意図しない箱だけが染まっても通る。 対象の登場人物を
@@ -62,6 +63,14 @@ describe("登場人物の色が箱に届く", () => {
       }
     });
   }
+
+  it("ガントでは帯に載る", () => {
+    // ガントも箱を 1 つしか持たない (#1077)。 帯 1 本ずつに色が載ることを見る
+    const diagram = build("gantt", `- Client: { kind: service, tone: error, subtitle: "Q1" }`);
+    const chart = diagram.nodes.find((n) => n.kind === "gantt-timeline");
+    expect(chart, "帯を描く箱がない").toBeDefined();
+    expect(chart!.ganttData?.map((t) => [t.title, t.tone])).toEqual([["Client", "error"]]);
+  });
 
   it("円グラフでは扇に載る", () => {
     // 円グラフは箱を 1 つしか持たない (#1076 で `chart-pie` に 1 node で渡す形に変えた)。

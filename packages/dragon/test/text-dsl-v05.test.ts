@@ -415,7 +415,8 @@ flow:
   - task1 -> task2: "depends"
 `);
     expect(diagram).toBeDefined();
-    expect(diagram.lanes.length).toBeGreaterThanOrEqual(2);
+    // 帯を描く箱 1 つ = lane も 1 本 (#1077 で task ごとの lane をやめた)
+    expect(diagram.lanes).toHaveLength(1);
   });
 
   it("type: class を受理し subtitle / rows が node に反映", () => {
@@ -505,7 +506,9 @@ describe("Text DSL v0.5 新規 5 preset structure (専用 layout 検証)", () =>
   // textDslToDiagram の v0.5 auto-detect (`-> 検出経路) では fallback して旧 parser に
   // 行きうる。 新 preset の structure 検証は parseTextDslV05 + compileToCdl 直接経路で行う。
 
-  it("gantt: 各 actor が card kind で個別 lane に stack 配置される", () => {
+  it("gantt: 帯を描く箱 1 つに全タスクが入る", () => {
+    // **変更前は task ごとに lane と card を作っていた** (#1077)。 位置は Q1-Q4 の決め打ちで、
+    // 表に無い語は同じ位置に落ち、 段が 1 つずつ下がって階段状に散らばっていた
     const r = parseTextDslV05(`
 title: "ロードマップ"
 type: gantt
@@ -518,18 +521,19 @@ actors:
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const diagram = compileToCdl(r.doc);
-    // 背景 lane (gantt-timeline) + 各 task 用 lane (3 本) = 4 本
-    expect(diagram.lanes).toHaveLength(4);
-    expect(diagram.lanes[0]!.id).toBe("gantt-timeline");
-    expect(diagram.lanes[1]!.id).toBe("gantt-task1");
-    // 全 task node が card kind
-    expect(diagram.nodes.every((n) => n.kind === "card")).toBe(true);
-    expect(diagram.nodes).toHaveLength(3);
-    // 各 task は独立 stack (上下並び)
-    const stacks = diagram.nodes.map((n) => n.stack).sort((a, b) => a - b);
-    expect(stacks).toEqual([0, 1, 2]);
+    expect(diagram.lanes).toHaveLength(1);
+    expect(diagram.nodes).toHaveLength(1);
+    const chart = diagram.nodes[0]!;
+    expect(chart.kind).toBe("gantt-timeline");
+    expect(chart.ganttData?.map((t) => [t.title, t.startIdx, t.startLabel])).toEqual([
+      ["task1", 0, "Q1"],
+      ["task2", 1, "Q2"],
+      ["task3", 2, "Q3"],
+    ]);
     // 横棒 size を明示 (TASK_W=280 / TASK_H=64)
-    expect(diagram.nodes.every((n) => n.w === 280 && n.h === 64)).toBe(true);
+    // 大きさは cdl の gantt preset と同じ
+    expect(chart.w).toBe(720);
+    expect(chart.h).toBe(360);
   });
 
   it("class: 各 actor が storage kind に強制され rows 表示が可能", () => {

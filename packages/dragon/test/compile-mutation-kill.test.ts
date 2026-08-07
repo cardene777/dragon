@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { compileToCdl } from "../src/compile";
 import type { DslDocument, DslActor, DslStep, PresetType } from "../src/types";
 import type { CdlDiagram } from "@cardenelabs/cdl";
@@ -123,28 +123,47 @@ function lane(d: CdlDiagram, id: string) {
   return l;
 }
 
-// ── compileGantt: 寸法と QUARTER_CX 座標 ──
+// ── compileGantt: 帯 1 箱 + 目盛りの並び ──
 describe("compileGantt", () => {
-  it("task node は kind card / w 280 / h 64", () => {
+  // **変更前は card を決め打ち座標に置いていた** (#1077)。 `Q1=200 / Q2=600 / Q3=900 / Q4=1200`
+  // の表に無い語は全て同じ位置に落ち、 `stack: idx` で 1 段ずつ下がって階段状に散らばっていた。
+  // 帯も目盛りも無く、 幅 1400 の帯を敷くので画面に合わせると文字が読めない大きさになる。
+  it("帯を描く箱 1 つ / w 720 / h 360", () => {
     const d = compile("gantt", { actors: [actor("A", { subtitle: "Q1" }), actor("B", { subtitle: "Q2" })] });
-    const n = node(d, "a");
-    expect(n.kind).toBe("card");
-    expect(n.w).toBe(280);
-    expect(n.h).toBe(64);
+    expect(d.nodes).toHaveLength(1);
+    const n = d.nodes[0]!;
+    expect(n.kind).toBe("gantt-timeline");
+    expect(n.w).toBe(720);
+    expect(n.h).toBe(360);
   });
-  it("QUARTER_CX で lane.x が決まる (Q1→60, Q2→460, Q3→760, Q4→1060 = cx - 140)", () => {
-    const d = compile("gantt", { actors: [actor("A", { subtitle: "Q1" }), actor("B", { subtitle: "Q2" }), actor("C", { subtitle: "Q3" }), actor("D", { subtitle: "Q4" })] });
-    expect(lane(d, "gantt-a").x).toBe(60);
-    expect(lane(d, "gantt-b").x).toBe(460);
-    expect(lane(d, "gantt-c").x).toBe(760);
-    expect(lane(d, "gantt-d").x).toBe(1060);
+  it("目盛りは書かれた順に並ぶ (決め打ちの表を使わない)", () => {
+    // 月名でも週番号でも同じ規則で置けることを、 Q1-Q4 以外の語で見る
+    const d = compile("gantt", {
+      actors: [actor("A", { subtitle: "3月" }), actor("B", { subtitle: "1月" }), actor("C", { subtitle: "3月" })],
+    });
+    const data = d.nodes[0]!.ganttData!;
+    expect(data.map((t) => [t.title, t.startIdx, t.startLabel])).toEqual([
+      ["A", 0, "3月"],
+      ["B", 1, "1月"],
+      ["C", 0, "3月"],
+    ]);
   });
-  it("timeline 背景 lane は width 1400", () => {
-    expect(lane(compile("gantt"), "gantt-timeline").width).toBe(1400);
+  it("時期を書かない項目は帯に載せない", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = compile("gantt", { actors: [actor("A", { subtitle: "Q1" }), actor("B")] });
+    expect(d.nodes[0]!.ganttData!.map((t) => t.title)).toEqual(["A"]);
+    expect(warn.mock.calls.map((c) => String(c[0])).join(" ")).toContain("B");
+    warn.mockRestore();
   });
-  it("未知 subtitle は Q1 (cx 200 → x 60) fallback", () => {
-    const d = compile("gantt", { actors: [actor("A", { subtitle: "ZZ" }), actor("B")] });
-    expect(lane(d, "gantt-a").x).toBe(60);
+  it("矢印は依存として帯に載る", () => {
+    // 書いた矢印を捨てない。 描画側は `dependsOn` を依存の線として描く
+    const d = compile("gantt", {
+      actors: [actor("A", { subtitle: "Q1" }), actor("B", { subtitle: "Q2" })],
+      flow: [step("A", "B")],
+    });
+    const data = d.nodes[0]!.ganttData!;
+    expect(data.find((t) => t.title === "B")?.dependsOn).toBe("a");
+    expect(data.find((t) => t.title === "A")?.dependsOn).toBeUndefined();
   });
 });
 
@@ -703,7 +722,9 @@ describe("compileSwimlane 網羅", () => {
 // ── 型別 compiler の edge option 伝播 (sub/tone/style を spread する preset) ──
 // flow は edge に label のみ渡す (sub/tone/style 非対応) ため除外。
 describe("型別 compiler edge option 伝播", () => {
-  for (const t of ["gantt", "class", "c4", "topology"] as PresetType[]) {
+  // `gantt` は矢印を線ではなく帯の依存 (`dependsOn`) として持つため、 この一覧から外した
+  // (#1077)。 依存として載ることは `compileGantt` の「矢印は依存として帯に載る」 が見る
+  for (const t of ["class", "c4", "topology"] as PresetType[]) {
     it(`${t} edge は sub / tone / style を保持`, () => {
       const d = compile(t, { flow: [step("A", "B", { sub: "n", tone: "warning", style: "dashed" })] });
       const e = d.edges[0]!;
