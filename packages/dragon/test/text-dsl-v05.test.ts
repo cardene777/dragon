@@ -3,7 +3,7 @@
  *
  * 英語 keyword + 日本語値 quote 必須 + YAML 風 syntax の parser を検証。
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { parseTextDslV05, compileToCdl, textDslToDiagram } from "@cardenelabs/dragon";
 import { diagram as buildDiagram, layout as layoutFromSrc } from "@cardenelabs/cdl";
 
@@ -561,7 +561,9 @@ flow:
     expect(diagram.edges[0]!.label).toBe("extends");
   });
 
-  it("pie: 各 actor が card kind で 1 lane に slice 縦並びされ value が反映", () => {
+  it("pie: 円を描く箱 1 つに全 slice の割合が入る", () => {
+    // **変更前は card を縦に積んでいた** (#1076)。 `type: pie` と書いても円が出ず、 割合は
+    // 箱の説明文として枠からはみ出していた。 描画側の `chart-pie` に 1 node で渡す形に変えた。
     const r = parseTextDslV05(`
 title: "シェア"
 type: pie
@@ -574,15 +576,101 @@ actors:
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const diagram = compileToCdl(r.doc);
-    // 1 lane (pie-slices) に slice 縦並び
-    expect(diagram.lanes).toHaveLength(1);
-    expect(diagram.lanes[0]!.id).toBe("pie-slices");
-    // 全 slice は card kind
-    expect(diagram.nodes.every((n) => n.kind === "card")).toBe(true);
-    expect(diagram.nodes).toHaveLength(3);
-    // value が各 node に反映 (% 表示が pie chart の意図)
-    const sliceA = diagram.nodes.find((n) => n.id === "slicea");
-    expect(sliceA?.value).toBe("30%");
+    expect(diagram.nodes).toHaveLength(1);
+    const chart = diagram.nodes[0]!;
+    expect(chart.kind).toBe("chart-pie");
+    // 割合は数値で入る (`"30%"` の文字列のままだと描画側が扇を描けない)
+    expect(chart.chartData).toEqual([
+      { label: "SliceA", value: 30 },
+      { label: "SliceB", value: 25 },
+      { label: "SliceC", value: 45 },
+    ]);
+  });
+
+  it("pie: 割合を読めない登場人物は円に載せず警告を出す", () => {
+    // 黙って 0 にすると、 その分だけ欠けた円が「正しい図」 として出る
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - 読める: "30%"
+  - 読めない: "四割"
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    expect(diagram.nodes[0]!.chartData).toEqual([{ label: "読める", value: 30 }]);
+    expect(warn.mock.calls.map((c) => String(c[0])).join(" ")).toContain("読めない");
+    warn.mockRestore();
+  });
+
+  it("pie: 登場人物を指した focus が円の箱に届く", () => {
+    // 円グラフは箱が 1 つなので、 登場人物ごとの箱を名前で引けない。 解決できないままだと
+    // `focus:` が丸ごと消え、 段が進んでも何も光らない (#1076 の 1 箱化で踏んだ)
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - A: "60%"
+  - B: "40%"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [A, B]
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    const chart = diagram.nodes.find((n) => n.kind === "chart-pie")!;
+    expect(diagram.phases).toHaveLength(1);
+    // 2 人を指しても箱は 1 つ = 重複させない
+    expect(diagram.phases[0]!.activate).toEqual([chart.id]);
+  });
+
+  it("pie: 居ない名前を指しても光らせない", () => {
+    // 実在する名前だけを箱に読み替える。 綴り誤りまで光らせると、 誤りに気付けない
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - A: "60%"
+  - B: "40%"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [C]
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    expect(diagram.phases[0]!.activate).toEqual([]);
+  });
+
+  it("pie: 矢印を書いたら描けないことを伝える", () => {
+    // 円グラフは扇 1 枚が 1 項目で、 項目どうしを結ぶ線が無い。 黙って捨てると
+    // 「書いたのに効かない」 が手掛かりなしで残る
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - A: "60%"
+  - B: "40%"
+
+flow:
+  - A -> B: "x"
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    expect(diagram.edges, "円グラフに矢印が残っている").toHaveLength(0);
+    expect(warn.mock.calls.map((c) => String(c[0])).join(" ")).toContain("矢印を描けません");
+    warn.mockRestore();
   });
 
   it("c4: subtitle L1/L2/L3 で 3 段 lane に配置 + group container 存在", () => {
