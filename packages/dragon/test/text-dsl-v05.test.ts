@@ -606,6 +606,50 @@ actors:
     warn.mockRestore();
   });
 
+  it("pie: 登場人物を指した focus が円の箱に届く", () => {
+    // 円グラフは箱が 1 つなので、 登場人物ごとの箱を名前で引けない。 解決できないままだと
+    // `focus:` が丸ごと消え、 段が進んでも何も光らない (#1076 の 1 箱化で踏んだ)
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - A: "60%"
+  - B: "40%"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [A, B]
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    const chart = diagram.nodes.find((n) => n.kind === "chart-pie")!;
+    expect(diagram.phases).toHaveLength(1);
+    // 2 人を指しても箱は 1 つ = 重複させない
+    expect(diagram.phases[0]!.activate).toEqual([chart.id]);
+  });
+
+  it("pie: 居ない名前を指しても光らせない", () => {
+    // 実在する名前だけを箱に読み替える。 綴り誤りまで光らせると、 誤りに気付けない
+    const r = parseTextDslV05(`
+title: "シェア"
+type: pie
+
+actors:
+  - A: "60%"
+  - B: "40%"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [C]
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const diagram = compileToCdl(r.doc);
+    expect(diagram.phases[0]!.activate).toEqual([]);
+  });
+
   it("pie: 矢印を書いたら描けないことを伝える", () => {
     // 円グラフは扇 1 枚が 1 項目で、 項目どうしを結ぶ線が無い。 黙って捨てると
     // 「書いたのに効かない」 が手掛かりなしで残る

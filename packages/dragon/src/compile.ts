@@ -2759,6 +2759,10 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
   // 実在する名前。 矢印を含む名前 (`"A -> B"`) を矢印と読み違えないために渡す
   const knownNames = new Set(doc.actors.map((a) => a.name));
+  // 図全体を 1 つの箱で描く種類 (`chart-pie` 等) は、 登場人物ごとの箱を持たない。
+  // 箱が 1 つの時だけ対象にする = 2 つ以上あるとどれを指したのか決められない
+  const chartNodes = diagram.nodes.filter((n) => String(n.kind).startsWith("chart-"));
+  const singleBoxNode = chartNodes.length === 1 ? chartNodes[0] : undefined;
   const resolveIds = (highlight: readonly string[]): string[] => {
     const out: string[] = [];
     for (const h of highlight) {
@@ -2773,9 +2777,18 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
       }
       const nodeSlug = slugify(entry.name);
       const node = diagram.nodes.find((n) => n.id === nodeSlug || n.id === `${nodeSlug}-header`);
-      if (node) out.push(node.id);
+      if (node) {
+        out.push(node.id);
+        continue;
+      }
+      // 図全体が 1 つの箱になる種類 (円グラフ等) では、 登場人物ごとの箱が無い。 名前で
+      // 指しても解決できず、 書いた `focus:` が丸ごと消える (#1076 で pie を 1 箱にした時に
+      // 発生)。 **書いた名前が実在するなら、 その箱を光らせる** = 何も光らないより意図に近い。
+      // 実在しない名前は従来どおり無視する (綴り誤りを黙って光らせない)
+      if (knownNames.has(entry.name) && singleBoxNode !== undefined) out.push(singleBoxNode.id);
     }
-    return out;
+    // 同じ箱を複数回指した時に重複させない (円グラフで 4 人を指すと 4 回入る)
+    return [...new Set(out)];
   };
 
   // phase 注入。 CdlPhase.tweens[].stateId / sets[].stateId で state 参照 (state ではない)。

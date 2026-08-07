@@ -52,22 +52,36 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
 });
 
 test("見本「言語シェア」 で文字が箱からはみ出さない (#1076)", async ({ page }) => {
-  // 変更前は `45%` が card の説明文として枠の下端に重なっていた
+  // 変更前は `45%` が card の説明文として枠の下端に重なっていた。
+  //
+  // **`data-cdl-role='node-label'` を探しては測れない**。 円グラフの凡例は role を持たない
+  // 素の `text` で、 探しても 0 件になり「はみ出しは 0 件」 として通る (Round 1 review の指摘)。
+  // 円の箱の下にある `text` を直接列挙し、 測った件数も併せて見る
   await openSample(page, "pie");
-  const 溢れ = await page.evaluate(() => {
-    const out: string[] = [];
-    for (const body of document.querySelectorAll("svg [data-cdl-role='node-body']")) {
-      const g = body.closest("g");
-      const label = g?.querySelector("[data-cdl-role='node-label']");
-      if (!label) continue;
-      const b = body.getBoundingClientRect();
-      const t = label.getBoundingClientRect();
-      if (b.height < 1 || t.height < 1) continue;
-      if (t.bottom - b.bottom > 1 || b.top - t.top > 1) {
-        out.push(`${(label.textContent ?? "").trim()}(下 ${Math.round(t.bottom - b.bottom)})`);
+  const m = await page.evaluate(() => {
+    const chart = document.querySelector('[data-cdl-kind="chart-pie"]');
+    if (!chart) return null;
+    const body = chart.querySelector("[data-cdl-role='node-body']") ?? chart;
+    const b = body.getBoundingClientRect();
+    const 溢れ: string[] = [];
+    let 測った = 0;
+    for (const t of chart.querySelectorAll("text")) {
+      const r = t.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) continue;
+      測った++;
+      const 下 = Math.round(r.bottom - b.bottom);
+      const 上 = Math.round(b.top - r.top);
+      const 右 = Math.round(r.right - b.right);
+      const 左 = Math.round(b.left - r.left);
+      if (下 > 1 || 上 > 1 || 右 > 1 || 左 > 1) {
+        溢れ.push(`${(t.textContent ?? "").trim()}(下 ${下} / 上 ${上} / 右 ${右} / 左 ${左})`);
       }
     }
-    return out;
+    return { 溢れ, 測った };
   });
-  expect(溢れ, `文字が箱からはみ出している: ${溢れ.join(", ")}`).toEqual([]);
+
+  expect(m, "円を描く箱が画面に無い").not.toBeNull();
+  // 8 = 項目名 4 + 割合 4。 件数を見ないと、 文字が 1 つも取れていない状態で通る
+  expect(m!.測った, "凡例の文字を 1 つも測れていない").toBeGreaterThanOrEqual(8);
+  expect(m!.溢れ, `文字が箱からはみ出している: ${m!.溢れ.join(", ")}`).toEqual([]);
 });
