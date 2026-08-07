@@ -24,6 +24,7 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
+import { applyReadableFloor, readableFloorScale, smallestFontWorld } from "@/lib/readable-scale";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
 import {
@@ -1283,7 +1284,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         };
       }),
     );
-    const scale = Math.min(availableW / bounds.width, availableH / bounds.height);
+    const fitScale = Math.min(availableW / bounds.width, availableH / bounds.height);
+    // 収める倍率が文字を潰す所まで下がったら、 読める大きさで止める (#1084)。
+    // 横長の図では幅が上限を決めるため、 縦の空白を残したまま極端に縮む (実測 = 見本
+    // 「Client登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。 止めた結果
+    // 枠に収まらない分は、 既にある平行移動で横に動かして見る
+    const scale = applyReadableFloor(fitScale, readableFloorScale(smallestFontWorld(svg), diagramK));
     // 囲んだ範囲の中心と stage 中心を一致させる (左寄り解消の core)。
     // 範囲の左上が負になることがある (図の左や上にパーツを置いた場合) ので、 その分を戻す
     const tx = (previewRect.width - bounds.width * scale) / 2 - bounds.left * scale;

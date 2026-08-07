@@ -50,11 +50,26 @@ async function insertWidgetSvg(page: Page): Promise<void> {
 const stageBoxBy = (page: Page, sel: string) =>
   page.evaluate((selector) => {
     const preview = document.querySelector(".v4-editor-stage");
-    const stage = preview?.querySelector(`svg${selector}`);
+    const stage = preview?.querySelector<SVGSVGElement>(`svg${selector}`);
     if (!preview || !stage) return null;
     const p = preview.getBoundingClientRect();
     const s = stage.getBoundingClientRect();
-    return { pw: p.width, ph: p.height, sw: s.width, sh: s.height };
+    const vb = stage.viewBox.baseVal;
+    const k = vb && vb.width > 0 ? s.width / vb.width : -1;
+    // 図の中で最も小さい文字の、 画面上の大きさ。 図を基準にフィットしたかを見る材料
+    const px = [...stage.querySelectorAll("text")]
+      .filter((t) => (t.textContent ?? "").trim().length > 0)
+      .map((t) => Number.parseFloat(getComputedStyle(t).fontSize) * k)
+      .filter((v) => Number.isFinite(v) && v > 0);
+    return {
+      pw: p.width,
+      ph: p.height,
+      sw: s.width,
+      sh: s.height,
+      // 画面上の倍率 = 実 px 幅 / 図の枠の幅。 widget (120 角) を基準にすると桁で外れる
+      k,
+      最小文字: px.length > 0 ? Math.min(...px) : -1,
+    };
   }, sel);
 
 const stageBox = (page: Page) => stageBoxBy(page, "[data-cdl-stage]");
@@ -70,11 +85,25 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     const box = await stageBox(page);
     expect(box, "stage の svg が取れない").not.toBeNull();
 
-    // フィットは図を preview に収める操作。 widget (120 角) を基準にすると倍率が桁で外れ、
-    // 図は preview を大きくはみ出す。 収まっていることを見る。
-    expect(box!.sw, `図の幅 ${box!.sw} が preview 幅 ${box!.pw} に収まらない`).toBeLessThanOrEqual(box!.pw + 2);
-    expect(box!.sh, `図の高さ ${box!.sh} が preview 高さ ${box!.ph} に収まらない`).toBeLessThanOrEqual(box!.ph + 2);
-    // 収まっているだけでは「極端に小さい」 も通るので、 下限も置く。
+    // フィットが図を基準にしていることを **画面上の文字の大きさ** で見る (#1084 で書き換え)。
+    //
+    // 変更前は「図が preview に収まる」 で見ていた。 読める下限を入れた結果、 正しく図を基準に
+    // していても横にはみ出すようになった (既定の見本 = 50% で 886px / 枠 595px) ため、 収まりを
+    // 条件にすると正しい状態を落とす。
+    //
+    // 収めた後の倍率は「枠に収まる倍率」 と「文字が 10px になる倍率」 の大きい方で決まる。
+    // 既定の見本 (1772×1032、 最小文字 20) では後者が決め手になり、 最小文字はちょうど 10px に
+    // 張り付く。 widget (120 角) を基準にすると図の縦で決まってしまい 14.3px になる (実測)。
+    expect(box!.最小文字, "図の文字を測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      box!.最小文字,
+      `文字が読める下限に張り付いていない: ${box!.最小文字}px (倍率 ${box!.k})`,
+    ).toBeGreaterThanOrEqual(10);
+    expect(
+      box!.最小文字,
+      `図より大きいものを基準にした疑い: 文字 ${box!.最小文字}px (倍率 ${box!.k})`,
+    ).toBeLessThan(11);
+    // 倍率だけでは「図が 1px しか無い」 形が通るので、 実寸の下限も置く。
     expect(box!.sw, "図が preview に対して小さすぎる").toBeGreaterThan(box!.pw * 0.3);
   });
 
@@ -87,7 +116,10 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
 
     const box = await stageBox(page);
     expect(box).not.toBeNull();
-    expect(box!.sw).toBeLessThanOrEqual(box!.pw + 2);
+    // フィットと同じ理由で、 幅の収まりではなく画面上の文字の大きさで見る (#1084)
+    expect(box!.最小文字, "図の文字を測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(box!.最小文字, `文字が読める下限に張り付いていない: ${box!.最小文字}px`).toBeGreaterThanOrEqual(10);
+    expect(box!.最小文字, `図より大きいものを基準にした疑い: ${box!.最小文字}px`).toBeLessThan(11);
     expect(box!.sw).toBeGreaterThan(0);
   });
 
