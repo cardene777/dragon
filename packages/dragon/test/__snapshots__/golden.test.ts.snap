@@ -9196,7 +9196,12 @@ exports[`golden: swimlane preset > L01 2 lane 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L01",
   "viewBox": {
@@ -9274,7 +9279,12 @@ exports[`golden: swimlane preset > L02 3 lane 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L02",
   "viewBox": {
@@ -9373,7 +9383,12 @@ exports[`golden: swimlane preset > L03 4 lane with all info tone 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L03",
   "viewBox": {
@@ -9430,7 +9445,12 @@ exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L04",
   "viewBox": {
@@ -9637,7 +9657,12 @@ exports[`golden: swimlane preset > L06 5 service lane 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L06",
   "viewBox": {
@@ -9715,7 +9740,12 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
       "w": 400,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L07",
   "viewBox": {
@@ -9799,7 +9829,12 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L08",
   "viewBox": {
@@ -9856,7 +9891,12 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L09",
   "viewBox": {
@@ -9997,7 +10037,12 @@ exports[`golden: swimlane preset > L10 6 lane with viewport 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L10",
   "viewBox": {
@@ -10075,7 +10120,12 @@ exports[`golden: swimlane preset > L11 tone variation 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L11",
   "viewBox": {
@@ -10199,7 +10249,12 @@ exports[`golden: swimlane preset > L13 labelOffset on swimlane 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L13",
   "viewBox": {
@@ -10241,7 +10296,12 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L14",
   "viewBox": {
@@ -10319,7 +10379,12 @@ exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
       "w": 320,
     },
   ],
-  "phases": [],
+  "phases": [
+    {
+      "duration_ms": 1000,
+      "id": "static",
+    },
+  ],
   "states": [],
   "topic": "L15",
   "viewBox": {
