@@ -51,6 +51,81 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
   expect(m!.文字.join(" "), "項目名が出ていない").toContain("TypeScript");
 });
 
+test("見本「スプリントロードマップ」 で帯と目盛りが描かれる (#1077)", async ({ page }) => {
+  // 変更前は帯も目盛りも無く、 小さな箱が階段状に 4 つ散らばっていた
+  await openSample(page, "gantt");
+
+  const m = await page.evaluate(() => {
+    const g = document.querySelector('[data-cdl-kind="gantt-timeline"]');
+    if (!g) return null;
+    const box = g.getBoundingClientRect();
+    // 帯 = 図の幅の 1 割から 6 割に収まる矩形。 枠や背景 (ほぼ全幅) と区別する
+    const 帯 = [...g.querySelectorAll("rect")]
+      .map((r) => r.getBoundingClientRect())
+      .filter((r) => r.width > box.width * 0.05 && r.width < box.width * 0.6 && r.height > 4)
+      .map((r) => ({ w: Math.round(r.width), x: Math.round(r.x) }));
+    const 文字 = [...g.querySelectorAll("text")];
+    return {
+      帯,
+      文言: 文字.map((t) => (t.textContent ?? "").trim()),
+      最小文字高: Math.min(...文字.map((t) => Math.round(t.getBoundingClientRect().height))),
+    };
+  });
+
+  expect(m, "帯を描く箱が画面に無い").not.toBeNull();
+  // 4 タスク = 帯 4 本。 数を見ないと、 1 本だけ描いて残りが消えても通る
+  expect(m!.帯.length, `帯の数が違う: ${JSON.stringify(m!.帯)}`).toBe(4);
+  // 時期がずれていれば x も動く = 4 本が同じ位置に重なっていないことを見る
+  expect(new Set(m!.帯.map((b) => b.x)).size, "帯が同じ位置に重なっている").toBe(4);
+  // 目盛りとタスク名が出る
+  for (const 語 of ["Q1", "Q4", "設計", "リリース"]) {
+    expect(m!.文言.join(" "), `${語} が出ていない`).toContain(語);
+  }
+  // 変更前は幅 1400 の帯を敷いていたため、 画面に合わせると文字が読めない大きさになっていた
+  expect(m!.最小文字高, "文字が小さすぎる").toBeGreaterThanOrEqual(8);
+});
+
+test("タスクが多いガントでも帯が箱に収まる (#1077)", async ({ page }) => {
+  // 高さを 360 で固定していると、 8 件目から最後の帯が枠の外に出る (Round 1 review の指摘)。
+  // 件数から高さを決めていることを、 実際に 8 件描いて確かめる
+  const src = [
+    `title: "多いガント"`,
+    `type: gantt`,
+    ``,
+    `actors:`,
+    ...Array.from({ length: 8 }, (_, i) => `  - タスク${i + 1}: "Q${i + 1}"`),
+    ``,
+    // 段が 1 つも無い図は描画側の検査で弾かれるため、 最小の 1 段を置く
+    `animation:`,
+    `  - step: "全体" 1.0s`,
+    `    focus: [タスク1]`,
+  ].join("\n");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+
+  const m = await page.evaluate(() => {
+    const g = document.querySelector('[data-cdl-kind="gantt-timeline"]');
+    if (!g) return null;
+    const body = g.querySelector("[data-cdl-role='node-body']") ?? g;
+    const b = body.getBoundingClientRect();
+    const 帯 = [...g.querySelectorAll("rect")]
+      .map((r) => r.getBoundingClientRect())
+      .filter((r) => r.width > b.width * 0.02 && r.width < b.width * 0.6 && r.height > 4);
+    return {
+      本数: 帯.length,
+      はみ出し: 帯
+        .map((r) => Math.round(Math.max(r.bottom - b.bottom, b.top - r.top)))
+        .filter((v) => v > 1),
+    };
+  });
+
+  expect(m, "帯を描く箱が画面に無い").not.toBeNull();
+  expect(m!.本数, "帯が 8 本描かれていない").toBe(8);
+  expect(m!.はみ出し, `帯が箱の外に出ている: ${m!.はみ出し.join(", ")}`).toEqual([]);
+});
+
 test("見本「言語シェア」 で文字が箱からはみ出さない (#1076)", async ({ page }) => {
   // 変更前は `45%` が card の説明文として枠の下端に重なっていた。
   //
