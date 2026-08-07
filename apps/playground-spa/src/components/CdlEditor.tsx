@@ -25,6 +25,7 @@ import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMay
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { applyReadableFloor, readableFloorScale, smallestFontWorld } from "@/lib/readable-scale";
+import { axisOffset } from "@/lib/fit-anchor";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
 import {
@@ -1290,10 +1291,19 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // 「Client登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。 止めた結果
     // 枠に収まらない分は、 既にある平行移動で横に動かして見る
     const scale = applyReadableFloor(fitScale, readableFloorScale(smallestFontWorld(svg), diagramK));
-    // 囲んだ範囲の中心と stage 中心を一致させる (左寄り解消の core)。
-    // 範囲の左上が負になることがある (図の左や上にパーツを置いた場合) ので、 その分を戻す
-    const tx = (previewRect.width - bounds.width * scale) / 2 - bounds.left * scale;
-    const ty = (previewRect.height - bounds.height * scale) / 2 - bounds.top * scale;
+    // 位置決めは軸ごとに独立して決める (#1088)。 収まる軸は中央、 収まらない軸は始点に寄せる。
+    // 読める下限 (#1084) で収まらなくなった図を中央に置くと左右が同じだけ隠れ、 図の始まりが
+    // 見えない (実測 = 見本「Client登録」 で左右 343px ずつ)。 読む人は左から読む
+    const tx = axisOffset({
+      frame: previewRect.width,
+      content: bounds.width * scale,
+      origin: bounds.left * scale,
+    });
+    const ty = axisOffset({
+      frame: previewRect.height,
+      content: bounds.height * scale,
+      origin: bounds.top * scale,
+    });
     setTransform({ tx, ty, scale });
   }, [diagramK, activeTab]);
 
