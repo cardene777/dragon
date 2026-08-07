@@ -2520,24 +2520,49 @@ function compilePie(doc: DslDocument): CdlDiagram {
 function compileC4(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const LANE_W = 400;
-  b.lane("c4-l1", { x: 0, width: LANE_W, label: "System Context", contain: true });
-  b.lane("c4-l2", { x: LANE_W + 80, width: LANE_W, label: "Container", contain: true });
-  b.lane("c4-l3", { x: (LANE_W + 80) * 2, width: LANE_W, label: "Component", contain: true });
+  const LANE_GAP = 80;
+  const 段の名前: Record<number, string> = { 1: "System Context", 2: "Container", 3: "Component" };
 
-  const stackPerLane: Record<string, number> = { "c4-l1": 0, "c4-l2": 0, "c4-l3": 0 };
-  doc.actors.forEach((a, idx) => {
-    const subtitle = (a.subtitle ?? "").trim().toUpperCase();
-    const lid = subtitle === "L2" ? "c4-l2" : subtitle === "L3" ? "c4-l3" : "c4-l1";
-    const stack = stackPerLane[lid]!;
-    stackPerLane[lid] = stack + 1;
-    const nodeId = slugify(a.name) || `n${idx}`;
-    b.node(nodeId, {
-      lane: lid,
-      stack,
-      kind: a.kind,
-      title: a.name,
+  // 段は **先頭一致** で読む。 `subtitle === "L2"` の完全一致だと、 記法でよく書かれる
+  // `"L2: container"` が一致せず全員が L1 に落ちていた (#1078)。 `L2X` のような別の語を
+  // 拾わないよう、 数字の直後が英数字でないことを条件にする
+  const 段を読む = (subtitle: string | undefined): number => {
+    const m = (subtitle ?? "").trim().match(/^L([123])(?![0-9A-Za-z])/i);
+    return m === null ? 1 : Number(m[1]);
+  };
+
+  const 割当 = doc.actors.map((a, idx) => ({
+    段: 段を読む(a.subtitle),
+    id: slugify(a.name) || `n${idx}`,
+    actor: a,
+  }));
+
+  // **中身のある段だけ枠を作る**。 3 段を必ず作ると、 書いていない段が空の点線枠として残り、
+  // 見た人には「何かが描かれ損ねた」 ようにしか見えない
+  const 使う段 = [1, 2, 3].filter((lv) => 割当.some((x) => x.段 === lv));
+  使う段.forEach((lv, i) => {
+    b.lane(`c4-l${lv}`, {
+      // 空の段を飛ばした分だけ左に詰める。 飛ばした位置に隙間を残すと、 やはり
+      // 「何かが抜けている」 ように見える
+      x: i * (LANE_W + LANE_GAP),
+      width: LANE_W,
+      label: 段の名前[lv]!,
+      contain: true,
     });
   });
+
+  const stackPerLane: Record<string, number> = { "c4-l1": 0, "c4-l2": 0, "c4-l3": 0 };
+  for (const x of 割当) {
+    const lid = `c4-l${x.段}`;
+    const stack = stackPerLane[lid]!;
+    stackPerLane[lid] = stack + 1;
+    b.node(x.id, {
+      lane: lid,
+      stack,
+      kind: x.actor.kind,
+      title: x.actor.name,
+    });
+  }
 
   for (const s of doc.flow) {
     const fromId = slugify(s.from);

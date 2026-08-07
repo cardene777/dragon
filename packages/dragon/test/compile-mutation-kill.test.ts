@@ -206,19 +206,50 @@ describe("compileGantt", () => {
 
 // ── compileC4: 3 lane 座標 + subtitle 別配置 ──
 describe("compileC4", () => {
-  it("3 lane の x は 0 / 480 / 960 (LANE_W 400 + gap 80)", () => {
-    const d = compile("c4");
+  it("中身のある段だけ枠を作る", () => {
+    // **変更前は 3 段を必ず作っていた** (#1078)。 書いていない段が空の点線枠として残り、
+    // 見た人には「何かが描かれ損ねた」 ようにしか見えなかった
+    const d = compile("c4"); // 既定の 2 actor はどちらも段の指定なし = L1
+    expect(d.lanes.map((l) => l.id)).toEqual(["c4-l1"]);
     expect(lane(d, "c4-l1").x).toBe(0);
-    expect(lane(d, "c4-l2").x).toBe(480);
-    expect(lane(d, "c4-l3").x).toBe(960);
     expect(lane(d, "c4-l1").width).toBe(400);
     expect(lane(d, "c4-l1").contain).toBe(true);
+  });
+  it("使う段が飛んでいたら左に詰める", () => {
+    // 空の段の位置に隙間を残すと、 やはり「何かが抜けている」 ように見える
+    const d = compile("c4", { actors: [actor("A", { subtitle: "L1" }), actor("B", { subtitle: "L3" })] });
+    expect(d.lanes.map((l) => [l.id, l.x])).toEqual([
+      ["c4-l1", 0],
+      ["c4-l3", 480],
+    ]);
+  });
+  it("段の名前は L1 / L2 / L3 で決まる", () => {
+    const d = compile("c4", {
+      actors: [actor("A", { subtitle: "L1" }), actor("B", { subtitle: "L2" }), actor("C", { subtitle: "L3" })],
+    });
+    expect(d.lanes.map((l) => l.label)).toEqual(["System Context", "Container", "Component"]);
   });
   it("subtitle L2 / L3 で lane 振り分け、 それ以外は l1", () => {
     const d = compile("c4", { actors: [actor("A", { subtitle: "L2" }), actor("B", { subtitle: "L3" }), actor("C", { subtitle: "other" })] });
     expect(node(d, "a").lane).toBe("c4-l2");
     expect(node(d, "b").lane).toBe("c4-l3");
     expect(node(d, "c").lane).toBe("c4-l1");
+  });
+  it("段は先頭一致で読む (`L2: container` / 小文字 / 別の語)", () => {
+    // 記法でよく書かれる `"L2: container"` が完全一致で外れ、 全員 L1 に落ちていた (#1078)。
+    // `L2X` のような別の語まで拾わないことも同時に見る
+    const d = compile("c4", {
+      actors: [
+        actor("A", { subtitle: "L2: container" }),
+        actor("B", { subtitle: "l3 component" }),
+        actor("C", { subtitle: "L2X" }),
+        actor("D", { subtitle: "" }),
+      ],
+    });
+    expect(node(d, "a").lane, "L2: container が L2 に入らない").toBe("c4-l2");
+    expect(node(d, "b").lane, "小文字の l3 が L3 に入らない").toBe("c4-l3");
+    expect(node(d, "c").lane, "L2X を L2 と読んでいる").toBe("c4-l1");
+    expect(node(d, "d").lane, "段を書かない項目が L1 に入らない").toBe("c4-l1");
   });
   it("node kind は actor.kind をそのまま使う", () => {
     const d = compile("c4", { actors: [actor("A", { kind: "service" }), actor("B")] });

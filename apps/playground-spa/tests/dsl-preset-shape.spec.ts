@@ -126,6 +126,31 @@ test("タスクが多いガントでも帯が箱に収まる (#1077)", async ({ 
   expect(m!.はみ出し, `帯が箱の外に出ている: ${m!.はみ出し.join(", ")}`).toEqual([]);
 });
 
+test("見本「C4コンテキスト」 で空の枠が残らない (#1078)", async ({ page }) => {
+  // 変更前は L1 / L2 / L3 の枠を必ず作り、 段の振り分けが完全一致だったため全員が L1 に落ち、
+  // 右上に中身のない点線枠が 2 つ残っていた
+  await openSample(page, "c4");
+
+  const m = await page.evaluate(() => {
+    // 枠は `data-cdl-lane-w` を併せ持つ要素。 箱 (`data-cdl-node`) も所属先を `data-cdl-lane` で
+    // 持つので、 それだけで探すと箱まで「枠」 として数えてしまう
+    const lanes = [...document.querySelectorAll("[data-cdl-lane][data-cdl-lane-w]")];
+    const 箱の所属 = [...document.querySelectorAll("[data-cdl-node]")].map((n) =>
+      n.getAttribute("data-cdl-lane"),
+    );
+    return lanes.map((l) => {
+      const id = l.getAttribute("data-cdl-lane");
+      return { id, 箱: 箱の所属.filter((x) => x === id).length };
+    });
+  });
+
+  expect(m.length, "枠が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+  const 空枠 = m.filter((l) => l.箱 === 0);
+  expect(空枠, `中身のない枠が残っている: ${空枠.map((l) => l.id).join(", ")}`).toEqual([]);
+  // 見本は L1 に 2 件 (Client / システム) と L2 に 2 件 (API / DB)
+  expect(m.map((l) => l.id).sort(), "段の振り分けが効いていない").toEqual(["c4-l1", "c4-l2"]);
+});
+
 test("見本「言語シェア」 で文字が箱からはみ出さない (#1076)", async ({ page }) => {
   // 変更前は `45%` が card の説明文として枠の下端に重なっていた。
   //
