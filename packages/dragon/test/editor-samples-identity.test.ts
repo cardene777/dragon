@@ -4,7 +4,7 @@ import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-sam
 /**
  * 見本の名前と識別子の整合の検証 (#1092)。
  *
- * 一覧で選んだ名前と、 開いた図の題が違っていた (13 件中 5 件)。 選んだものと開いたものの名前が
+ * 一覧で選んだ名前と、 開いた図の題が違っていた (12 件中 5 件)。 選んだものと開いたものの名前が
  * 一致しないので、 別の図を開いたのか確かめる手立てが無い。
  *
  * 識別子も 2 件が重複しており (`sequence`)、 2 件目には URL が無く、 同じ `data-testid` が画面に
@@ -18,7 +18,7 @@ const 名前 = (label: string): string => label.replace(/\s*\(.+\)$/, "");
 const 題 = (code: string): string => /title:\s*"(.+?)"/.exec(code)?.[1] ?? "";
 
 describe("見本の名前と題が一致する (#1092)", () => {
-  it("13 件すべてで一致する", () => {
+  it("全件で一致する", () => {
     const 食い違い = EDITOR_SAMPLES.filter((s) => 名前(s.label) !== 題(s.code)).map(
       (s) => `${名前(s.label)} ≠ ${題(s.code)}`,
     );
