@@ -2295,7 +2295,6 @@ function compileSolidity(doc: DslDocument): CdlDiagram {
 function compileGantt(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 720;
-  const CHART_H = 360;
   b.lane("gantt", { width: CHART_W, label: doc.title });
 
   // 目盛りは **書かれた順** に並べる。 以前は `Q1=200 / Q2=600 / ...` の決め打ちで、 Q1-Q4 以外は
@@ -2347,6 +2346,10 @@ function compileGantt(doc: DslDocument): CdlDiagram {
       `[dragon] type: gantt の矢印は前後の関係だけを使います (文字 / 色 / 線種は描けません): ${装飾つき.join(", ")}`,
     );
   }
+
+  // 高さは件数から決める。 描画側は 1 行 28 以上 + 行間 20 で積み、 上下に 32 / 44 の余白を取る
+  // (`kinds/gantt.tsx`)。 360 の固定だと 8 件目から最後の帯が枠の外に出る (実測 = 8 件で 56 はみ出す)
+  const CHART_H = Math.max(360, 48 * タスク.length + 96);
 
   b.node(`${slugify(doc.title) || "gantt"}-chart`, {
     lane: "gantt",
@@ -2825,8 +2828,17 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
       if (entry.kind === "edge") {
         const fromSlug = slugify(entry.from);
         const toSlug = slugify(entry.to);
+        let 見つかった = false;
         for (const e of diagram.edges) {
-          if (e.from === fromSlug && e.to === toSlug) out.push(e.id);
+          if (e.from === fromSlug && e.to === toSlug) {
+            out.push(e.id);
+            見つかった = true;
+          }
+        }
+        // 線を持たない種類 (帯の依存等) では矢印が edge にならない。 両端が実在するなら
+        // その箱を光らせる = 矢印を指した段で何も光らないより意図に近い (#1077)
+        if (!見つかった && singleBoxNode !== undefined && knownNames.has(entry.from) && knownNames.has(entry.to)) {
+          out.push(singleBoxNode.id);
         }
         continue;
       }

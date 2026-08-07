@@ -155,6 +155,43 @@ describe("compileGantt", () => {
     expect(warn.mock.calls.map((c) => String(c[0])).join(" ")).toContain("B");
     warn.mockRestore();
   });
+  it("件数が増えると高さが伸びる", () => {
+    // 描画側は 1 行 28 以上 + 行間 20 で積む。 360 の固定だと 8 件目から最後の帯が枠の外に出る
+    const 作る = (n: number) =>
+      compile("gantt", {
+        actors: Array.from({ length: n }, (_, i) => actor(`t${i}`, { subtitle: `Q${i + 1}` })),
+      });
+    expect(作る(4).nodes[0]!.h, "4 件では既定の高さ").toBe(360);
+    expect(作る(8).nodes[0]!.h, "8 件で足りる高さ").toBe(480);
+    expect(作る(12).nodes[0]!.h, "12 件で足りる高さ").toBe(672);
+  });
+
+  it("矢印を指した段が帯の箱を光らせる", () => {
+    // 帯の依存は線 (edge) にならないので、 矢印を指した段が何も光らないままになっていた
+    const d = compile("gantt", {
+      actors: [actor("A", { subtitle: "Q1" }), actor("B", { subtitle: "Q2" })],
+      flow: [step("A", "B")],
+      animate: {
+        states: [],
+        phases: [{ name: "p", durationMs: 800, highlight: ["A -> B"], pos: { line: 1 } }],
+        pos: { line: 1 },
+      } as unknown as DslDocument["animate"],
+    });
+    expect(d.phases[0]!.activate).toEqual([d.nodes[0]!.id]);
+  });
+
+  it("居ない相手を指した矢印では光らせない", () => {
+    const d = compile("gantt", {
+      actors: [actor("A", { subtitle: "Q1" }), actor("B", { subtitle: "Q2" })],
+      animate: {
+        states: [],
+        phases: [{ name: "p", durationMs: 800, highlight: ["A -> Z"], pos: { line: 1 } }],
+        pos: { line: 1 },
+      } as unknown as DslDocument["animate"],
+    });
+    expect(d.phases[0]!.activate).toEqual([]);
+  });
+
   it("矢印は依存として帯に載る", () => {
     // 書いた矢印を捨てない。 描画側は `dependsOn` を依存の線として描く
     const d = compile("gantt", {
