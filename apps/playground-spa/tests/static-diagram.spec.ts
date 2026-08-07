@@ -115,3 +115,26 @@ test("animation を書いた図では段の数が変わらない (#1086)", async
   // 動かない図に入れる段の目印。 書いた図に混ざれば「段を足す条件を間違えた」 と分かる
   expect([...見た段], "入れた段が混ざっている").not.toContain("static");
 });
+
+test("見本「プロジェクト構想」 に日本語の名前が出る (#1090)", async ({ page }) => {
+  // 変更前は `- root: { title: "新プロジェクト" }` と書かれており、 `title` は読める項目では
+  // ないため黙って捨てられ、 識別子 (`root` / `features` 等) が箱に出ていた
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/editor#preset=mind");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+
+  const 文字 = await page.evaluate(() =>
+    [...document.querySelectorAll('.v4-editor-preview svg[data-cdl-stage] [data-cdl-node] text')]
+      .map((t) => (t.textContent ?? "").trim())
+      .filter((s) => s.length > 0),
+  );
+
+  expect(文字.sort(), `箱の文字が違う: ${文字.join(", ")}`).toEqual([
+    "デザイン",
+    "マーケット",
+    "リリース",
+    "新プロジェクト",
+    "機能",
+  ]);
+});

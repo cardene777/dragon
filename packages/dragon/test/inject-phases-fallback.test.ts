@@ -126,19 +126,22 @@ animation:
     });
 
     it("mind SAMPLE の focus 5 件 (5 node、 edge なし) を正しく activate", () => {
+      // 見本と同じ内容。 変更前は `- root: { title: "新プロジェクト" }` と書いていたが、
+      // `title` は読める項目ではなく黙って捨てられていた (#1090)。 見本を名前で書く形に
+      // 直したので、 こちらも揃える
       const src = `title: "プロジェクト構想"
 type: mind
 
 actors:
-  - root: { title: "新プロジェクト" }
-  - features: { title: "機能" }
-  - design: { title: "デザイン" }
-  - launch: { title: "リリース" }
-  - market: { title: "マーケット" }
+  - 新プロジェクト
+  - 機能
+  - デザイン
+  - リリース
+  - マーケット
 
 animation:
   - step: "reveal" 2.0s
-    focus: [root, features, design, launch, market]
+    focus: [新プロジェクト, 機能, デザイン, リリース, マーケット]
 `;
       const diagram = textDslToDiagram(src);
       expect(diagram.phases.length).toBe(1);

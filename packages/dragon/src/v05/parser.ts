@@ -1213,6 +1213,51 @@ function reportScaleOnNonPart(
   });
 }
 
+/**
+ * 中括弧の形で読める項目名。
+ *
+ * ここに無い名前は、 パーツでない箱ではどこにも入らずに消える。 `ACTOR_ITEM_KEYS` (縦に
+ * 並べた形) とは別に持つ = 中括弧の形は位置や大きさを未対応にしてあり、 同じ集合にすると
+ * 「知らせない」 側がずれる。
+ */
+const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+  "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
+  "initial", "final", "tone", "nodes", "state",
+  "posX", "posY", "posW", "posH",
+  // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
+  // 同じ名前で 2 度知らせることになる
+  "scale", "倍率",
+]);
+
+/**
+ * 中括弧に書かれた読めない項目名を知らせる (#1090)。
+ *
+ * 縦に並べた形は `applyContinuationLines` が既に知らせている。 中括弧の形だけが黙って
+ * 捨てていた = 同じ意味を書いても、 書き方によって知らされたりされなかったりする。
+ *
+ * 実測 = 見本「プロジェクト構想」 は `- root: { title: "新プロジェクト" }` と書かれており、
+ * 5 つの箱すべてで題が捨てられて識別子 (`root` 等) が出ていた。 知らせも出ないため、 書いた
+ * 人には「書いたのに図が変わらない」 としか見えない。
+ *
+ * パーツでは知らせない。 中括弧に書いた名前は状態の上書きとして意味を持つ (`extractStateOverride`)。
+ */
+function reportUnknownInlineKeys(
+  isPart: boolean,
+  opts: Record<string, string>,
+  line: number,
+  errors: DslError[],
+): void {
+  if (isPart) return;
+  for (const key of Object.keys(opts)) {
+    if (INLINE_ACTOR_KEYS.has(key)) continue;
+    errors.push({
+      line,
+      message: `項目名が読めません: "${key}"`,
+      hint: `使える項目 = ${[...INLINE_ACTOR_KEYS].join(", ")}`,
+    });
+  }
+}
+
 function parseActor(line: Line, errors: DslError[]): DslActor | null {
   // 5 形式 サポート:
   // 1. `Client`                              ... name のみ、 kind=actor default
@@ -1236,6 +1281,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
     const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
+    // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
+    reportUnknownInlineKeys(isPart, opts, line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
