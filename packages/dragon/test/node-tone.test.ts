@@ -49,6 +49,7 @@ const TYPES = [
 
 describe("登場人物の色が箱に届く", () => {
   for (const type of TYPES) {
+    if (type === "pie") continue; // 円グラフは箱を持たないので下の専用 test で見る
     it(`${type} で色が載る`, () => {
       const diagram = build(type, `- Client: { kind: service, tone: error }`);
       // 「1 つ以上に載った」 では、 意図しない箱だけが染まっても通る。 対象の登場人物を
@@ -61,6 +62,18 @@ describe("登場人物の色が箱に届く", () => {
       }
     });
   }
+
+  it("円グラフでは扇に載る", () => {
+    // 円グラフは箱を 1 つしか持たない (#1076 で `chart-pie` に 1 node で渡す形に変えた)。
+    // 箱ごとの色は付けられないので、 扇 1 枚ずつに載っていることを見る。
+    // 見ないと、 色を書いても黙って消える状態に戻せてしまう
+    const diagram = build("pie", `- Client: { kind: service, tone: error, value: "30%" }`);
+    const chart = diagram.nodes.find((n) => n.kind === "chart-pie");
+    expect(chart, "円を描く箱がない").toBeDefined();
+    expect(chart!.chartData, "扇に色が載っていない").toEqual([
+      { label: "Client", value: 30, tone: "error" },
+    ]);
+  });
 
   it("順序図では見える箱だけに載る", () => {
     // 1 人が header / spacer / footer / 手順ごとの anchor に分かれる。 間隔用と anchor は

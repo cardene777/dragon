@@ -2371,33 +2371,76 @@ function compileClass(doc: DslDocument): CdlDiagram {
  *
  * flow は通常なし (slice 間に依存関係はない)、 author 明示時のみ edge を描く。
  */
+/**
+ * 割合の書き方から数値を読む。 読めなければ `null`。
+ *
+ * 受けるのは `"45%"` / `"45"` / `"45.5%"` と、 前後の空白。 `"四割"` や `"0.45"` のような
+ * 別の言い方は読まない = **黙って 0 にすると、 その分だけ欠けた円が「正しい図」 として出る**。
+ * 読めなかったことは呼出側が警告に出す。
+ */
+function parseShareValue(raw: string | undefined): number | null {
+  if (raw === undefined) return null;
+  const m = raw.trim().match(/^(\d+(?:\.\d+)?)\s*%?$/);
+  if (m === null) return null;
+  const v = Number(m[1]);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Pie preset (円グラフ)。
+ *
+ * 描画側の `chart-pie` に 1 node で渡す。 以前は `card` を縦に積むだけで、 `type: pie` と
+ * 書いても円が出ず、 割合が箱の説明文として枠からはみ出していた (実機報告)。
+ *
+ * 大きさは cdl の `chart()` preset と同じ 640x320 (どちらも格子 16 の倍数)。 lane 幅は
+ * `chart()` が使う `gridAlignedLaneW` と同じ計算 = 中身 + 左右の余白 32 ずつ。
+ *
+ * 値は actor の説明文から読む (`- TypeScript: "45%"`)。 読めない actor は円に載せず、
+ * まとめて警告に出す。 合計が 100 にならなくても描画側が比で割るので、 こちらでは正規化しない。
+ */
 function compilePie(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const SLICE_W = 480;
-  b.lane("pie-slices", { width: SLICE_W, label: doc.title });
+  const CHART_W = 640;
+  const CHART_H = 320;
+  b.lane("chart", { width: CHART_W + 64, label: doc.title });
 
-  doc.actors.forEach((a, idx) => {
-    const nodeId = slugify(a.name) || `p${idx}`;
-    b.node(nodeId, {
-      lane: "pie-slices",
-      stack: idx,
-      kind: "card",
-      title: a.name,
-      w: SLICE_W,
-      h: 120,
-    });
-  });
-
-  for (const s of doc.flow) {
-    const fromId = slugify(s.from);
-    const toId = slugify(s.to);
-    b.edge(fromId, toId, {
-      label: s.label,
-      ...(s.sub ? { sub: s.sub } : {}),
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
-    });
+  const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    // 割合の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
+    // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
+    const value = parseShareValue(a.value ?? a.subtitle);
+    if (value === null) {
+      読めない.push(a.name);
+      continue;
+    }
+    // 色は扇にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
+    data.push({ label: a.name, value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
+  if (読めない.length > 0 && typeof console !== "undefined" && console.warn) {
+    console.warn(
+      `[dragon] type: pie で割合を読めない項目があります (円に載せません): ${読めない.join(", ")}。` +
+        ` \`- 名前: "45%"\` の形で書いてください`,
+    );
+  }
+  // 円グラフは扇 1 枚が 1 項目で、 項目どうしを結ぶ線が無い。 書いた矢印は描けないので、
+  // 黙って捨てずに伝える (「書いたのに効かない」 を残さない)
+  if (doc.flow.length > 0 && typeof console !== "undefined" && console.warn) {
+    console.warn(
+      `[dragon] type: pie では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
+        ` 関係を描くなら type: flow を使ってください`,
+    );
+  }
+
+  b.node(`${slugify(doc.title) || "pie"}-chart`, {
+    lane: "chart",
+    stack: 0,
+    kind: "chart-pie",
+    title: doc.title,
+    w: CHART_W,
+    h: CHART_H,
+    chartData: data,
+  });
 
   return b.build();
 }
