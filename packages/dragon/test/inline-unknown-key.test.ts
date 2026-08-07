@@ -88,3 +88,46 @@ describe("中括弧では日本語の項目名が読めない (#1090 で判明)"
     expect(読めない項目(r)).toEqual([]);
   });
 });
+
+describe("知らせが入力の整形に依存しない (Round 1 review の指摘)", () => {
+  // `parseInlineMapping` は値が 1 文字以上ある項目しか拾わない。 その結果を走査していた間、
+  // 空白の有無で知らせが消えていた (実測 = `{title:}` と `{ title:}` は黙って通り、
+  // `{ title: }` だけ知らせが出た)。 整形だけで診断が消えると、 契約が入力の書き方に依存する
+  for (const [name, actor] of [
+    ["空白なし", `  - A: {title:}`],
+    ["前だけ空白", `  - A: { title:}`],
+    ["前後に空白", `  - A: { title: }`],
+    ["値あり", `  - A: { title: "あ" }`],
+  ] as const) {
+    it(`${name} でも知らせが出る`, () => {
+      expect(読めない項目(解析(actor))).toEqual([`項目名が読めません: "title"`]);
+    });
+  }
+
+  it("項目名が空の形では知らせない", () => {
+    // `{ : "あ" }` は名前が無い。 空文字を名前として知らせても直しようがない
+    expect(読めない項目(解析(`  - A: { : "あ" }`))).toEqual([]);
+  });
+});
+
+describe("state は通常の箱では読めない (Round 1 review の指摘)", () => {
+  // `extractStateOverride` はパーツの時しか状態を作らない。 通常の箱で読める扱いにすると
+  // `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうとしている経路が予約語で残る
+  it("通常の箱に state を書くと知らせが出る", () => {
+    expect(読めない項目(解析(`  - A: { state: { foo: 1 } }`))).toEqual([
+      `項目名が読めません: "state"`,
+    ]);
+  });
+
+  it("パーツに state を書いても知らせない", () => {
+    expect(読めない項目(解析(`  - arc1: { kind: arc-gauge, state: { v: 50 } }`))).toEqual([]);
+  });
+
+  it("パーツでは state の値が実際に残る", () => {
+    // 知らせないだけでなく、 書いた値が効いていることを見る。 効かないなら知らせないのは誤り
+    const r = 解析(`  - arc1: { kind: arc-gauge, state: { v: 50 } }`);
+    expect(r.ok, "解析に失敗した").toBe(true);
+    const a = r.ok ? r.doc.actors[0] : undefined;
+    expect(a?.stateOverride, "状態の上書きが残っていない").toEqual({ v: 50 });
+  });
+});

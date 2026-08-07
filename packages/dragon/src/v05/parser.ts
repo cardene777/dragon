@@ -1222,12 +1222,16 @@ function reportScaleOnNonPart(
  */
 const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
-  "initial", "final", "tone", "nodes", "state",
+  "initial", "final", "tone", "nodes",
   "posX", "posY", "posW", "posH",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
   "scale", "倍率",
 ]);
+// `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
+// 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
+// している経路が予約語で残る (Round 1 review の指摘、 実測で確認)。 パーツ側は `isPart` の
+// 早期 return が先に効くのでここに載せる必要が無い
 
 /**
  * 中括弧に書かれた読めない項目名を知らせる (#1090)。
@@ -1243,12 +1247,20 @@ const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
  */
 function reportUnknownInlineKeys(
   isPart: boolean,
-  opts: Record<string, string>,
+  inner: string,
   line: number,
   errors: DslError[],
 ): void {
   if (isPart) return;
-  for (const key of Object.keys(opts)) {
+  // 値が空の形 (`{ title: }`) も見る。 `parseInlineMapping` は値が 1 文字以上ある項目しか
+  // 拾わないため、 その結果を走査すると空白の有無で知らせが消える (実測 = `{title:}` と
+  // `{ title:}` は黙って通り、 `{ title: }` だけ知らせが出た)。 契約が入力の整形に依存する
+  // (Round 1 review の指摘)。 倍率が `writtenScaleFields` で同じ境界を持つのと揃える
+  for (const field of splitInlineFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    const key = field.slice(0, idx).trim();
+    if (!key) continue;
     if (INLINE_ACTOR_KEYS.has(key)) continue;
     errors.push({
       line,
@@ -1282,7 +1294,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
-    reportUnknownInlineKeys(isPart, opts, line.no, errors);
+    reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
     const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
