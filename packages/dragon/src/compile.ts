@@ -2506,13 +2506,14 @@ function compilePie(doc: DslDocument): CdlDiagram {
 /**
  * C4 preset (C4 model 階層 system context 専用 layout)
  *
- * 設計 ... actor.subtitle に "L1" / "L2" / "L3" マーカーを置き、 階層 lane を生成。
- * - L1 = System Context (左 lane)
- * - L2 = Container (中央 lane)
- * - L3 = Component (右 lane)
+ * 設計 ... actor.subtitle の先頭に "L1" / "L2" / "L3" を置き、 階層 lane を生成。
+ * - L1 = System Context
+ * - L2 = Container
+ * - L3 = Component
  *
- * 実装 ... 3 lane を横並び (contain: true で囲む) 配置し、 各 actor を対応 L lane に配置する。
- * 同 L lane 内の actor は内部 stack で縦並びになる (横並びは layout 制約上不可、
+ * 実装 ... **中身のある段だけ** lane を作り、 使う段を左から順に詰めて横並び (contain: true で
+ * 囲む) 配置する。 3 lane を常に作ると中身のない枠が画面に残り、 描かれ損ねたように見える (#1078)。
+ * 同 lane 内の actor は内部 stack で縦並びになる (横並びは layout 制約上不可、
  * 段の区別が視覚的に最重要)。 subtitle marker 未指定なら L1 fallback。
  *
  * flow ... actor 間の関係を edge で表現。
