@@ -2470,8 +2470,10 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
   });
 
   it("独自 layout preset (class) では phases 空なら fallback 注入も走らない", () => {
+    // 書いた段が 0 件なら、 書いた段に由来する段は入らない。 代わりに動かない図として
+    // 扱われ、 出口で段が 1 つ入る (#1086)。 段が 1 件も無い図は描画側が弾くため
     const d = compileToCdl(makeDoc("class", { animate: EMPTY_ANIM }));
-    expect(d.phases.length).toBe(0);
+    expect(d.phases.map((p) => p.id)).toEqual(["static"]);
   });
 
   it("phases が 1 個以上なら animate 経路に入る (guard の true 側)", () => {

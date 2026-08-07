@@ -151,6 +151,16 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       if (alive.has(id)) opts.onEdgeSource(id, line);
     }
   }
+  // 動かない図に段を 1 つ入れる (#1086)。
+  //
+  // 描画側は「段が 1 件以上」 を要求するが、 段を作るかどうかは種類ごとにばらけている。
+  // 実測 = `animation:` を書かない同じ記法を 12 種に与えると、 6 種 (sequence / flow / er /
+  // state / topology / solidity) は描かれ、 6 種 (swimlane / gantt / class / pie / c4 / mind)
+  // は「phase が 0 件です」 で弾かれた。 書く人から見ると区別する手がかりが無い。
+  //
+  // **出口で 1 度だけ見る**。 種類ごとに塞ぐと 12 経路のどれかを見落とす。 図は必ずここを
+  // 通るので、 ここで段が無ければ入れる。
+  injectStaticPhase(merged);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
@@ -166,6 +176,39 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     });
   }
   return merged;
+}
+
+/**
+ * 動かない図に段を 1 つ入れる (#1086)。
+ *
+ * 描画側は段が 1 件以上あることを要求する。 一方で段を作るかどうかは種類ごとにばらけており、
+ * `animation:` を書かない図は 12 種のうち 6 種だけが描かれ、 残り 6 種は弾かれていた。
+ *
+ * ## 何も光らせない段にはしない
+ *
+ * 段には「この段で何が主役か」 を示す役割がある。 空の段を入れると図は描かれるが、 全ての
+ * 要素が主役でない状態 (薄い表示) になり、 動かない図として読めない。 全部を光らせる段なら、
+ * 動かない図が「常に全部が主役」 として自然に読める。
+ *
+ * ## 既に段がある図には触らない
+ *
+ * `animation:` を書いた図と、 描画側が段を作る 6 種はここに入らない。 段の数と中身は書いた
+ * とおりに保たれる。
+ */
+function injectStaticPhase(diagram: CdlDiagram): void {
+  if (diagram.phases.length > 0) return;
+  // 光らせる相手が 1 つも無い図 (要素ゼロ) でも段は入れる。 描画側が要求するのは段の存在で
+  // あって中身ではなく、 ここで諦めると「空の図は描けない」 という別の欠落になる
+  const activate = [...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id)];
+  diagram.phases.push({
+    id: "static",
+    duration: 1000,
+    title: diagram.topic ?? "全体",
+    body: "",
+    activate,
+    tweens: [],
+    sets: [],
+  });
 }
 
 /** 知らせに載せる値を短く切る。 長い URL をそのまま出すと画面の帯が読めなくなる */
