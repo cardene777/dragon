@@ -1480,21 +1480,24 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 探して文字を差し替えていたが、 その id を持つ要素はどこにも無く常に `null` = 押しても
   // 画面が何も変わらなかった (実測)。 id を足す方向にはしない = このボタンは絵だけなので、
   // 中身を書き換えると絵が消える
-  const handleShare = (): void => {
+  //
+  // 写す口が無い環境 (secure context でない / 埋め込みで塞がれている) では
+  // `navigator.clipboard` 自体が `undefined` で、 参照した瞬間に同期例外になる。 `.catch()` は
+  // Promise が作られないため呼ばれない = 知らせも逃げ道も出ないまま無反応に戻る。 `try` の中で
+  // 参照して、 同期例外と writeText の失敗を同じ道に集める
+  const handleShare = async (): Promise<void> => {
     if (typeof window === "undefined") return;
     const encoded = encodeShare(src);
     const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
-    void navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        toast({ type: "success", title: "URL をコピーしました" });
-      })
-      .catch(() => {
-        // 写せない時は知らせを出した上で URL 自体も見せる。 知らせだけだと、 写せなかった人が
-        // URL を手に入れる道が残らない
-        toast({ type: "error", title: "コピーに失敗しました" });
-        window.prompt("共有 URL をコピーしてください:", url);
-      });
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ type: "success", title: "URL をコピーしました" });
+    } catch {
+      // 写せない時は知らせを出した上で URL 自体も見せる。 知らせだけだと、 写せなかった人が
+      // URL を手に入れる道が残らない
+      toast({ type: "error", title: "コピーに失敗しました" });
+      window.prompt("共有 URL をコピーしてください:", url);
+    }
   };
 
   const getPreviewSvg = (): SVGSVGElement | null => {
@@ -1882,7 +1885,9 @@ animation:
           <button
             type="button"
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
-            onClick={handleShare}
+            onClick={() => {
+              void handleShare();
+            }}
             disabled={cdlWriteDisabled}
             aria-label="共有URL"
             title={cdlWriteDisabled ? cdlOnlyHint : "この図を開ける URL を作って写す"}

@@ -60,6 +60,26 @@ test("エディタの共有を押すと知らせが出て絵が残る (#1082)", 
   expect(url, `共有 URL に本文が載っていない: ${url}`).toContain("#s=");
 });
 
+test("写す口が無い環境でも失敗の知らせが出る (#1082)", async ({ page }) => {
+  // Round 1 review の指摘。 secure context でない環境や塞がれた埋め込みでは
+  // `navigator.clipboard` 自体が `undefined` で、 参照した瞬間に同期例外になる。
+  // `.then().catch()` 形だと Promise が作られず知らせも逃げ道も出ない = 直す前と同じ無反応に戻る
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+    window.prompt = () => null;
+  });
+  await page.goto("/editor");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+
+  await page.locator('[data-testid="editor-share"]').click();
+  await expect(知らせ(page).first(), "写す口が無いのに知らせが出ない").toContainText(
+    "コピーに失敗しました",
+    { timeout: 4000 },
+  );
+});
+
 test("写せなかった時は失敗の知らせが出る (#1082)", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   // clipboard を必ず失敗させる。 権限を与えないだけでは環境によって成功するため、
