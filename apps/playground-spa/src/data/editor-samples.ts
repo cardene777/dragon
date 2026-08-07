@@ -18,7 +18,7 @@ export const EDITOR_SAMPLES: EditorSample[] = [
   {
     label: "ログインAPI呼び出し (sequence)",
     slug: "sequence",
-    code: `title: "ログインAPI"
+    code: `title: "ログインAPI呼び出し"
 type: sequence
 
 actors:
@@ -45,7 +45,7 @@ animation:
   },
   {
     label: "注文チェックアウト (sequence)",
-    slug: "sequence",
+    slug: "sequence-checkout",
     code: `title: "注文チェックアウト"
 type: sequence
 
@@ -152,9 +152,9 @@ animation:
 `,
   },
   {
-    label: "Clientと投稿のスキーマ (er)",
+    label: "Client・投稿・コメントのスキーマ (er)",
     slug: "er",
-    code: `title: "Client投稿スキーマ"
+    code: `title: "Client・投稿・コメントのスキーマ"
 type: er
 
 actors:
@@ -203,7 +203,7 @@ animation:
 `,
   },
   {
-    label: "OOP クラス階層 (class)",
+    label: "動物クラス階層 (class)",
     slug: "class",
     code: `title: "動物クラス階層"
 type: class
@@ -223,7 +223,7 @@ animation:
 `,
   },
   {
-    label: "スプリントロードマップ (gantt)",
+    label: "Q1-Q4ロードマップ (gantt)",
     slug: "gantt",
     code: `title: "Q1-Q4ロードマップ"
 type: gantt
@@ -281,7 +281,7 @@ animation:
 `,
   },
   {
-    label: "C4コンテキスト (c4)",
+    label: "C4コンテキストモデル (c4)",
     slug: "c4",
     code: `title: "C4コンテキストモデル"
 type: c4
