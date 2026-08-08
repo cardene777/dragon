@@ -18,6 +18,7 @@
 import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
+import type { PresetType } from "../src/types";
 import { parseTextDslV05 } from "../src/v05";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
@@ -41,23 +42,30 @@ import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cd
  *
  * `sequence` / `solidity` は名札 (上端 / 下端) を `card` で作り、 段の目印も `card` なので
  * `card` だけになる。 `pie` / `gantt` は図全体を 1 つの箱で描く種類。
+ *
+ * **`PresetType` でキーを付ける**。 件数だけを見る形にすると、 13 番目の型を足して表への追加を
+ * 忘れても件数は 12 のままで通る (Round 1 review の指摘)。 `Record<PresetType, ...>` にすれば、
+ * 型を足した時点で型検査が「表に無い」 と言う。 余分なキーも同じく型検査で落ちる。
  */
-const 型と種類: ReadonlyArray<readonly [string, readonly string[]]> = [
-  ["sequence", ["card"]],
-  ["flow", ["actor"]],
-  ["swimlane", ["actor"]],
-  ["er", ["storage"]],
-  ["state", ["card"]],
-  ["topology", ["actor"]],
-  ["solidity", ["card"]],
-  ["gantt", ["gantt-timeline"]],
-  ["class", ["storage"]],
-  ["pie", ["chart-pie"]],
-  ["c4", ["actor"]],
-  ["mind", ["card"]],
-];
+const 型と種類 = {
+  sequence: ["card"],
+  flow: ["actor"],
+  swimlane: ["actor"],
+  er: ["storage"],
+  state: ["card"],
+  topology: ["actor"],
+  solidity: ["card"],
+  gantt: ["gantt-timeline"],
+  class: ["storage"],
+  pie: ["chart-pie"],
+  c4: ["actor"],
+  mind: ["card"],
+} as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
-const 記法 = (type: string): string =>
+/** 表の中身を `[型, 種類]` の並びで取り出す */
+const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<readonly [PresetType, readonly string[]]>;
+
+const 記法 = (type: PresetType): string =>
   `title: "t"\ntype: ${type}\n\nactors:\n  - A: "Q1"\n  - B: "Q2"\n\nflow:\n  - A -> B: "x"\n`;
 
 /** 中身の無い枠。 枠を作ったのに 1 つも節点が入っていないもの */
@@ -94,7 +102,7 @@ const catalog図: ReadonlyArray<readonly [string, CdlDiagram]> = catalog.flatMap
 );
 
 describe("軸 1 = 型の名前が約束した種類の節点を作る (#1096)", () => {
-  for (const [type, 種類] of 型と種類) {
+  for (const [type, 種類] of 型の一覧) {
     it(`type: ${type} は ${種類.join(" / ")} を作る`, () => {
       const d = textDslToDiagram(記法(type));
       expect(d.nodes.length, "節点が 1 つも無い").toBeGreaterThan(0);
@@ -103,17 +111,29 @@ describe("軸 1 = 型の名前が約束した種類の節点を作る (#1096)", 
     });
   }
 
-  it("表が 12 種すべてを覆う", () => {
-    // 型を足した時に表への追加を忘れると、 その型は検査されないまま通る
-    expect(型と種類.length, "表の件数が 12 でない").toBe(12);
+  it("表が型の一覧をすべて覆う", () => {
+    // `satisfies Readonly<Record<PresetType, ...>>` が抜けと余りを型検査で落とすので、 ここでは
+    // 表が空でないことだけを見る (型検査を通った時点で網羅は保証されている)。
+    // 件数を数える形は採らない = 13 番目の型を足して表を直し忘れても件数は 12 のままで通る
+    expect(型の一覧.length, "表が空").toBeGreaterThan(0);
   });
 });
 
 describe("軸 2 = 中身の無い枠を作らない (#1096)", () => {
-  for (const [type] of 型と種類) {
+  for (const [type] of 型の一覧) {
     it(`type: ${type} で空の枠が残らない`, () => {
       const d = textDslToDiagram(記法(type));
       expect(d.lanes.length, "枠が 1 つも無い").toBeGreaterThan(0);
+      expect(空の枠(d), `中身の無い枠が残っている: ${空の枠(d).join(", ")}`).toEqual([]);
+    });
+  }
+
+  for (const [type] of 型の一覧) {
+    it(`type: ${type} で登場人物が 0 人でも空の枠が残らない`, () => {
+      // 到達できる境界。 `title` と `type` だけの本文は解析を通る (実測) ので、 枠を先に作る
+      // 実装では中身の無い枠が残る (Round 1 review の指摘。 実測で `mind` / `flow` /
+      // `topology` / `class` の 4 種が該当した)
+      const d = textDslToDiagram(`title: "t"\ntype: ${type}\n`);
       expect(空の枠(d), `中身の無い枠が残っている: ${空の枠(d).join(", ")}`).toEqual([]);
     });
   }
@@ -163,5 +183,17 @@ describe("軸 3 = 書いた指定が黙って捨てられない (#1096)", () => 
       }
     });
     expect(問題, `見本が図にならない: ${問題.join(" / ")}`).toEqual([]);
+  });
+
+  it("組み立てで捨てられた指定が 0 件", () => {
+    // 解析を通っても、 組み立てで「書いたが効かなかった」 ことがある (順序図に効かない相対位置 /
+    // 居ない相手を指した focus 等)。 それは誤りではなく知らせ (`onNotice`) として返るので、
+    // `r.ok` だけを見ていると素通りする (Round 1 review の指摘)
+    const 問題 = EDITOR_SAMPLES.flatMap((s) => {
+      const 知らせ: string[] = [];
+      textDslToDiagram(s.code, { onNotice: (n) => 知らせ.push(`${n.kind}(${n.actor})`) });
+      return 知らせ.length > 0 ? [`${s.slug}: ${知らせ.join(", ")}`] : [];
+    });
+    expect(問題, `見本に効かない指定がある: ${問題.join(" / ")}`).toEqual([]);
   });
 });
