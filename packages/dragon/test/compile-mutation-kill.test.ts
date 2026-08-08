@@ -750,11 +750,21 @@ describe("injectPhasesFallback 網羅", () => {
 
 // ── compileMind lane 座標 (LEAF_W 280 / ROOT_W 320 / gap 80) ──
 describe("compileMind lane 座標", () => {
-  it("lane x = left 0 / center 360 / right 760", () => {
-    const d = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
+  it("枝が 2 本なら lane x = left 0 / center 360 / right 760", () => {
+    // 枝 2 本で左右とも中身が入る。 変更前は登場人物 2 人 (枝 1 本) で見ていたが、 その形では
+    // 右の枠が中身なしで残っていた (#1096)。 中身のある枠だけ作るようにしたので、 3 枠が
+    // 揃う形で座標を固定する
+    const d = compile("mind", { actors: [actor("R"), actor("L1"), actor("R1")], flow: [] });
     expect(lane(d, "mind-left").x).toBe(0);
     expect(lane(d, "mind-center").x).toBe(360);
     expect(lane(d, "mind-right").x).toBe(760);
+  });
+
+  it("枝が 1 本なら右の枠を作らない", () => {
+    // 作ると中身の無い枠が残る (#1096)。 中央は左の枠の分だけ右に寄る
+    const d = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
+    expect(d.lanes.map((l) => l.id)).toEqual(["mind-left", "mind-center"]);
+    expect(lane(d, "mind-center").x).toBe(360);
   });
 });
 
@@ -2163,7 +2173,8 @@ describe("compileMind: 暗黙 edge と lane 構成", () => {
   });
 
   it("mind-left は x 0、 mind-right はその右側に配置", () => {
-    const d = compile("mind", { actors: [actor("Root"), actor("L1")], flow: [] });
+    // 枝 2 本にする = 1 本では右の枠を作らない (作ると中身が無い、 #1096)
+    const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("R1")], flow: [] });
     expect(lane(d, "mind-left").x).toBe(0);
     expect(lane(d, "mind-right").x!).toBeGreaterThan(lane(d, "mind-left").x!);
   });

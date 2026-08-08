@@ -2434,6 +2434,8 @@ function compileGantt(doc: DslDocument): CdlDiagram {
 function compileClass(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CLASS_W = 400;
+  // 登場人物が 0 人なら枠も作らない。 先に作ると中身の無い枠が 1 つ残る (#1096)
+  if (doc.actors.length === 0) return b.build();
   b.lane("class-stack", { width: CLASS_W, label: doc.title });
 
   doc.actors.forEach((a, idx) => {
@@ -2639,11 +2641,34 @@ function compileMind(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const LEAF_W = 280;
   const ROOT_W = 320;
-  b.lane("mind-left", { x: 0, width: LEAF_W, label: "" });
-  b.lane("mind-center", { x: LEAF_W + 80, width: ROOT_W, label: doc.title });
-  b.lane("mind-right", { x: LEAF_W + 80 + ROOT_W + 80, width: LEAF_W, label: "" });
+  const GAP = 80;
 
+  // 枝は左右に交互に置く。 中身のある枠だけ作る (#1096)。
+  //
+  // 3 枠を固定で作ると、 枝が 1 本の図で右の枠が中身なしで残る (実測 = 登場人物 2 人で
+  // `mind-right` が空)。 見る人には「何かが描かれ損ねた」 ようにしか見えない (`#1078` で
+  // `c4` を直したのと同じ欠陥)。
+  const 枝の数 = Math.max(0, doc.actors.length - 1);
+  const 左に置く数 = Math.ceil(枝の数 / 2);
+  const 右に置く数 = 枝の数 - 左に置く数;
+  const 左を使う = 左に置く数 > 0;
+  const 右を使う = 右に置く数 > 0;
+
+  // 登場人物が 0 人なら枠も作らない。 中央の枠を先に作ると、 中身の無い枠が 1 つ残る
+  // (実測 = `title` と `type` だけの本文で `mind-center` が空、 Round 1 review の指摘)
   if (doc.actors.length === 0) return b.build();
+
+  // 使う枠だけ左から詰める。 飛ばした位置に隙間を残すと、 やはり「抜けている」 ように見える
+  let x = 0;
+  if (左を使う) {
+    b.lane("mind-left", { x, width: LEAF_W, label: "" });
+    x += LEAF_W + GAP;
+  }
+  b.lane("mind-center", { x, width: ROOT_W, label: doc.title });
+  x += ROOT_W + GAP;
+  if (右を使う) {
+    b.lane("mind-right", { x, width: LEAF_W, label: "" });
+  }
 
   const root = doc.actors[0]!;
   const rootId = slugify(root.name) || "root";
@@ -3163,6 +3188,12 @@ function compileFlow(doc: DslDocument): CdlDiagram {
   if (doc.animate && doc.animate.phases.length > 0) {
     return compileGenericWithAnimate(doc, { kind: "flow", laneId: "main", laneWidth: 400 });
   }
+  // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま
+  // 通すと中身の無い枠が残る (実測 = `title` と `type` だけの本文で枠 `flow` が空)。
+  // 枠を持たない図として返す = `swimlane` / `c4` が 0 人で枠 0 になるのと揃う
+  if (doc.actors.length === 0) {
+    return diagram(slugify(doc.title), { topic: doc.title }).build();
+  }
   // flow preset は actors を順に step として配置、 step 間に edge auto
   const flowBuilder = flow({
     id: slugify(doc.title),
@@ -3309,6 +3340,11 @@ function compileTopology(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor を別 lane に)
   if (doc.animate && doc.animate.phases.length > 0) {
     return compileGenericWithAnimate(doc, { kind: "topology", laneWidth: 460 });
+  }
+  // 登場人物が 0 人なら枠も作らない。 描画側の `topology()` は枠を必ず 1 つ作るため、 そのまま
+  // 通すと中身の無い枠が残る (#1096)
+  if (doc.actors.length === 0) {
+    return diagram(slugify(doc.title), { topic: doc.title }).build();
   }
   // topology preset ... actors を 1 つの group 内 container として配置
   // v0.3 で「group」 ブロックを追加して複数 group 対応検討
