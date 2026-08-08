@@ -42,21 +42,29 @@ async function 開く(page: import("@playwright/test").Page, slug: string): Prom
   await page.waitForTimeout(2500);
 }
 
-// 読める下限で枠に収まらなくなる見本。 変更前は左右が同量ずつ隠れていた
-for (const slug of ["swimlane", "sequence", "pie"]) {
-  test(`見本 ${slug} を開くと図の左端が見える (#1088)`, async ({ page }) => {
-    await 開く(page, slug);
-    const m = await 隠れ量(page);
+// 読める下限で枠に収まらなくなる見本。 変更前は左右が同量ずつ隠れていた。
+//
+// 3 見本を総当たりしない。 位置決めの分かれ目は「その軸が収まるか」 だけで、 8 見本を実測すると
+// swimlane / sequence / pie / er は全て同じ枝 (横は収まらない / 縦は収まる) に落ちる。 最も
+// 大きく隠れていた 1 件を見る (実測の隠れ量 = swimlane 343px / sequence 99px / pie 23px)。
+//
+// 他の枝は下の 3 件が受け持つ = 横も収まる (`flow`) / 縦が収まらない (その場で作る) /
+// 囲んだ範囲の始点が負 (その場で作る)。
+//
+// 境界を `>=` にする変異は落とせない。 どの見本も枠とちょうど同幅にならず、 同幅では両方の枝が
+// 同じ値を返すため等価 (単体側の `ちょうど同じ大きさは収まる側に入れる` が意図を残す)。
+test("見本 swimlane を開くと図の左端が見える (#1088)", async ({ page }) => {
+  await 開く(page, "swimlane");
+  const m = await 隠れ量(page);
 
-    expect(m, "図が画面に無い").not.toBeNull();
-    // 収まらない図であることを先に確かめる。 収まる図で測っても「左が隠れない」 は自明に通り、
-    // 検査が空振りする
-    expect(m!.図幅, `枠に収まっている (検査が空振りしている): ${m!.図幅} <= ${m!.枠幅}`).toBeGreaterThan(
-      m!.枠幅,
-    );
-    expect(m!.左, `図の左端が ${m!.左}px 隠れている`).toBeLessThanOrEqual(1);
-  });
-}
+  expect(m, "図が画面に無い").not.toBeNull();
+  // 収まらない図であることを先に確かめる。 収まる図で測っても「左が隠れない」 は自明に通り、
+  // 検査が空振りする
+  expect(m!.図幅, `枠に収まっている (検査が空振りしている): ${m!.図幅} <= ${m!.枠幅}`).toBeGreaterThan(
+    m!.枠幅,
+  );
+  expect(m!.左, `図の左端が ${m!.左}px 隠れている`).toBeLessThanOrEqual(1);
+});
 
 test("枠に収まる図は中央に置かれる (#1088)", async ({ page }) => {
   // 始点寄せは収まらない軸だけに効く。 収まる図まで左に寄せると、 直そうとしていない図の
