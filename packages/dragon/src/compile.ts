@@ -2549,6 +2549,33 @@ function compilePie(doc: DslDocument): CdlDiagram {
 }
 
 /**
+ * 段の目印を読み取る。 目印と、 それを落とした残りの説明を返す (#1098)。
+ *
+ * 目印 (`L1` / `L2` / `L3`) は「どの段に置くか」 を組み立てに伝えるためのもので、 読む人には
+ * 意味を持たない。 段の名前は枠のラベル (`System Context` 等) が出すので二重でもある。
+ * 読み取ったら説明から落とす = 書いた人が説明として書いた部分だけが箱に出る。
+ *
+ * | 書いた文字 | 段 | 残る説明 |
+ * |---|---|---|
+ * | `"L1"` | 1 | (無し) |
+ * | `"L2: container"` | 2 | `container` |
+ * | `"L1 利用者"` | 1 | `利用者` |
+ * | `"利用者"` | 1 (既定) | `利用者` |
+ *
+ * 目印の直後の区切り (`:` と空白) も落とす。 残さないと `: container` のように区切りだけが
+ * 先頭に残る。 `L2X` のような別の語を目印と読み違えないよう、 数字の直後が英数字でないことを
+ * 条件にする。
+ */
+function 段を読み取る(subtitle: string | undefined): { 段: number; 説明: string | undefined } {
+  const 元 = (subtitle ?? "").trim();
+  const m = 元.match(/^L([123])(?![0-9A-Za-z])/i);
+  if (m === null) return { 段: 1, 説明: subtitle };
+  // 目印と、 その直後の区切り (`:` / 全角コロン / 空白) を落とす
+  const 残り = 元.slice(m[0].length).replace(/^[:：\s]+/, "").trim();
+  return { 段: Number(m[1]), 説明: 残り === "" ? undefined : 残り };
+}
+
+/**
  * C4 preset (C4 model 階層 system context 専用 layout)
  *
  * 設計 ... actor.subtitle の先頭に "L1" / "L2" / "L3" を置き、 階層 lane を生成。
@@ -2569,19 +2596,11 @@ function compileC4(doc: DslDocument): CdlDiagram {
   const LANE_GAP = 80;
   const 段の名前: Record<number, string> = { 1: "System Context", 2: "Container", 3: "Component" };
 
-  // 段は **先頭一致** で読む。 `subtitle === "L2"` の完全一致だと、 記法でよく書かれる
-  // `"L2: container"` が一致せず全員が L1 に落ちていた (#1078)。 `L2X` のような別の語を
-  // 拾わないよう、 数字の直後が英数字でないことを条件にする
-  const 段を読む = (subtitle: string | undefined): number => {
-    const m = (subtitle ?? "").trim().match(/^L([123])(?![0-9A-Za-z])/i);
-    return m === null ? 1 : Number(m[1]);
-  };
-
-  const 割当 = doc.actors.map((a, idx) => ({
-    段: 段を読む(a.subtitle),
-    id: slugify(a.name) || `n${idx}`,
-    actor: a,
-  }));
+  // 段は **先頭一致** で読み、 読んだ目印は説明から落とす (`段を読み取る` の説明を参照)
+  const 割当 = doc.actors.map((a, idx) => {
+    const { 段, 説明 } = 段を読み取る(a.subtitle);
+    return { 段, 説明, id: slugify(a.name) || `n${idx}`, actor: a };
+  });
 
   // **中身のある段だけ枠を作る**。 3 段を必ず作ると、 書いていない段が空の点線枠として残り、
   // 見た人には「何かが描かれ損ねた」 ようにしか見えない
@@ -2770,7 +2789,11 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
     }
     for (const node of primaryNodes) {
-      if (a.subtitle !== undefined) node.subtitle = a.subtitle;
+      // `type: c4` では説明の先頭に段の目印 (`L1` / `L2` / `L3`) を書く。 目印は組み立てに
+      // 段を伝えるためのもので読む人に意味を持たず、 段の名前は枠のラベルが既に出している。
+      // ここで落とさないと、 組み立てが読み取った目印がそのまま箱の説明として出る (#1098)
+      const 説明 = doc.type === "c4" ? 段を読み取る(a.subtitle).説明 : a.subtitle;
+      if (説明 !== undefined) node.subtitle = 説明;
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
