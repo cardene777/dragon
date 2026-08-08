@@ -2639,9 +2639,30 @@ function compileMind(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const LEAF_W = 280;
   const ROOT_W = 320;
-  b.lane("mind-left", { x: 0, width: LEAF_W, label: "" });
-  b.lane("mind-center", { x: LEAF_W + 80, width: ROOT_W, label: doc.title });
-  b.lane("mind-right", { x: LEAF_W + 80 + ROOT_W + 80, width: LEAF_W, label: "" });
+  const GAP = 80;
+
+  // 枝は左右に交互に置く。 中身のある枠だけ作る (#1096)。
+  //
+  // 3 枠を固定で作ると、 枝が 1 本の図で右の枠が中身なしで残る (実測 = 登場人物 2 人で
+  // `mind-right` が空)。 見る人には「何かが描かれ損ねた」 ようにしか見えない (`#1078` で
+  // `c4` を直したのと同じ欠陥)。
+  const 枝の数 = Math.max(0, doc.actors.length - 1);
+  const 左に置く数 = Math.ceil(枝の数 / 2);
+  const 右に置く数 = 枝の数 - 左に置く数;
+  const 左を使う = 左に置く数 > 0;
+  const 右を使う = 右に置く数 > 0;
+
+  // 使う枠だけ左から詰める。 飛ばした位置に隙間を残すと、 やはり「抜けている」 ように見える
+  let x = 0;
+  if (左を使う) {
+    b.lane("mind-left", { x, width: LEAF_W, label: "" });
+    x += LEAF_W + GAP;
+  }
+  b.lane("mind-center", { x, width: ROOT_W, label: doc.title });
+  x += ROOT_W + GAP;
+  if (右を使う) {
+    b.lane("mind-right", { x, width: LEAF_W, label: "" });
+  }
 
   if (doc.actors.length === 0) return b.build();
 
