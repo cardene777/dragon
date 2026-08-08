@@ -75,14 +75,20 @@ for (const c of category) {
     continue;
   }
 
-  for (const id of 対象) {
-    // 一覧の項目を押すと右側のプレビューが差し替わる
-    const 項目 = page.locator(".catalog-list-item").filter({ hasText: id });
-    if ((await 項目.count()) === 0) {
-      失敗.push(`${c}/${id}: 一覧に見つからない`);
+  for (const [i, id] of 対象.entries()) {
+    // 一覧の項目を押すと右側のプレビューが差し替わる。
+    //
+    // **`hasText` で選ばない**。 部分一致なので、 別の識別子に含まれる名前が別の項目を掴む
+    // (実測 = cookbook の `notification` は `email-notification` にも一致し、 DOM 上で先にある
+    // 後者が選ばれる。 `notification.png` の中身が別の図になり、 件数は変わらないので失敗にも
+    // ならない)。 識別子は上で拾った順に並んでいるので、 その番号でそのまま指す
+    const 項目 = page.locator(".catalog-list-item").nth(i);
+    const 実際の識別子 = (await 項目.locator(".catalog-list-item-id").textContent())?.trim();
+    if (実際の識別子 !== id) {
+      失敗.push(`${c}/${id}: ${i} 番目が ${実際の識別子} になっている (一覧が動いた)`);
       continue;
     }
-    await 項目.first().click();
+    await 項目.click();
     await page.waitForTimeout(1200);
 
     const 拡大 = page.locator('.catalog-preview-card button[aria-label*="拡大"]');

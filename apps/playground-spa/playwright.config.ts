@@ -21,10 +21,18 @@ import { defineConfig } from "@playwright/test";
  * 通る)。 速さより「落ちたら本当に壊れている」 を優先する。 手元で急ぐ時は `--workers=6` を
  * 付けて上書きできる。
  *
- * ## 時間を標本にする検査は直列にする
+ * ## 時間を標本にする検査は他と重ならないようにする
  *
  * 動きの途中を 40ms 間隔で観測する検査は、 負荷が上がると標本を取り損ねて落ちる。 図が壊れて
- * いないのに落ちる = 落ちたことが情報を持たなくなるので、 別 project に分けて 1 件ずつ回す。
+ * いないのに落ちる = 落ちたことが情報を持たなくなる。
+ *
+ * **project の `workers: 1` だけでは足りない**。 それはその project 内の同時実行数を 1 に
+ * するだけで、 `default` と同時に走ることは止めない (実測 = 2 project を指定すると
+ * `Running 6 tests using 2 workers` になり、 両方が同時に始まる)。 `dependencies` で
+ * `default` の後に回す。
+ *
+ * 代償 = `default` が落ちると `timing` は実行されない (Playwright の仕様)。 `default` が赤い時は
+ * そちらを直すのが先なので受容する。
  */
 
 /** 動きの途中を時間で標本にする検査。 負荷で結果が変わるため直列で回す */
@@ -44,10 +52,11 @@ export default defineConfig({
       use: 共通,
     },
     {
-      // 動きの時間を測る検査。 `workers: 1` で他の検査と重ならないようにする
+      // 動きの時間を測る検査。 `default` の後に 1 件ずつ回す (同時に走ると標本を取り損ねる)
       name: "timing",
       testMatch: 時間を測る検査,
       workers: 1,
+      dependencies: ["default"],
       use: 共通,
     },
     {
@@ -55,6 +64,7 @@ export default defineConfig({
       testMatch: /html-canvas-motion\.spec\.ts$/,
       timeout: 60000,
       workers: 1,
+      dependencies: ["default"],
       use: {
         ...共通,
         // video 常時録画 (WebM)、 viewport 内全描画を記録
