@@ -162,13 +162,20 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
   // 層 1 の 3 件では捕まらない。
   //
   // 12 件を別々の検査にすると立ち上げ時間が 12 回かかるので、 1 件の中で回す
-  const 見本 = [
-    "sequence", "sequence-checkout", "flow", "swimlane", "topology", "er",
-    "state-machine", "class", "gantt", "mind", "pie", "c4",
+  // 見本ごとの「画面に出ている文字の数」 を下限として記録する。 描画側が文字を隠す形に変わると
+  // この数が減る = 図から言葉が黙って消える (Round 2 review 3 巡目の指摘)。
+  //
+  // 下限にするのは、 見本に中身を足した時に落とさないため。 減る方向だけを見る。
+  // 実測値 (2026-08-08) は下の数そのもので、 隠れている文字は別に 1-4 件ある (種別ごとの
+  // 重複した名前で、 描画側が意図して隠している)
+  const 見本: ReadonlyArray<readonly [string, number]> = [
+    ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 8],
+    ["topology", 11], ["er", 25], ["state-machine", 10], ["class", 19],
+    ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
   ];
   const 問題: string[] = [];
 
-  for (const slug of 見本) {
+  for (const [slug, 見える下限] of 見本) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
@@ -181,10 +188,12 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
       let 読めない = 0;
       let 最小 = Number.POSITIVE_INFINITY;
       let 測った = 0;
+      let 見える = 0;
       for (const t of svg.querySelectorAll("text")) {
         if ((t.textContent ?? "").trim().length === 0) continue;
         const cs = getComputedStyle(t);
         if (cs.display === "none" || cs.visibility === "hidden") continue;
+        見える += 1;
         const size = Number.parseFloat(cs.fontSize);
         // 大きさを計算値から読めない文字。 `smallestFontWorld` はこれを飛ばすので、
         // 下限の計算に載らないまま画面に出る
@@ -195,7 +204,7 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
         測った += 1;
         最小 = Math.min(最小, size * k);
       }
-      return { 読めない, 最小: Number.isFinite(最小) ? Math.round(最小 * 10) / 10 : -1, 測った };
+      return { 読めない, 最小: Number.isFinite(最小) ? Math.round(最小 * 10) / 10 : -1, 測った, 見える };
     });
 
     if (m === null) {
@@ -205,6 +214,8 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
     if (m.測った === 0) 問題.push(`${slug}: 文字を 1 つも測れていない`);
     if (m.読めない > 0) 問題.push(`${slug}: 大きさを読めない文字 ${m.読めない} 件`);
     if (m.最小 > 0 && m.最小 < 10) 問題.push(`${slug}: 最小文字 ${m.最小}px`);
+    // 画面に出ている文字が減った = 図から言葉が黙って消えた
+    if (m.見える < 見える下限) 問題.push(`${slug}: 見える文字が ${m.見える} 件 (${見える下限} 件あったはず)`);
   }
 
   expect(問題, `描画側の文字が下限の計算に載っていない: ${問題.join(" / ")}`).toEqual([]);
