@@ -16,10 +16,12 @@ import { test, expect } from "@playwright/test";
 const MIN_PX = 10;
 
 /**
- * 3 件だけ回す。 8 見本の総当たりは要らないが、 2 件では足りない (Round 2 review の指摘)。
+ * 検査は 2 層に分ける。
  *
- * 世界座標の最小文字が種別ごとに違うため、 **下限がどこで決まるかが変わる**。 3 件は
- * その分かれ目を 1 つずつ踏む。
+ * ## 層 1 = 下限の計算 (3 件)
+ *
+ * 世界座標の最小文字が種別ごとに違うため、 **下限がどこで決まるかが変わる**。 その分かれ目を
+ * 1 つずつ踏む。
  *
  * | 見本 | 世界座標の最小文字 | 下限 | 何を踏むか |
  * |---|---|---|---|
@@ -30,9 +32,17 @@ const MIN_PX = 10;
  * `pie` を落とすと上限を下げる変異 (100% → 80%) を見逃す (実測で確認)。 swimlane と flow の
  * 下限は 50% / 45% で、 どちらも 80% を下回るため上限に触れない。
  *
- * 残りの 5 見本 (sequence 20 / topology 17 / c4 17 / mind 24 / gantt 11) は上の 3 件と同じ
- * 分かれ目に落ちるので回さない。 文字の出し方 (箱の中か外か / 大きさを計算値から取れるか /
- * 隠れた文字があるか) は 8 種とも同じであることを実測で確認した。
+ * ## 層 2 = 描画側の出力 (全 12 見本を 1 件で回す)
+ *
+ * 下限は `smallestFontWorld` が読んだ文字の大きさから決まる。 その読み取りは
+ * `getComputedStyle` に依存しており、 **描画側 (cdl、 別 repo) が大きさを計算値から読めない形で
+ * 出すと、 その文字だけ下限の計算から漏れて 10px を割る**。 描画は種別ごとに別なので、 これは
+ * 層 1 の 3 件では捕まらない (Round 2 review の指摘)。
+ *
+ * 12 件を別々の検査にすると 12 件分の立ち上げ時間がかかるので、 1 件の中で回す。
+ *
+ * 実測 (全 12 見本) では 12 種とも大きさを計算値から読めており、 属性しか持たない文字も
+ * 読めない文字も 0 件だった。 この検査はその状態が崩れた時に落ちる。
  *
  * | 見本 | 世界座標の最小文字 | 変更前 | 変更後 |
  * |---|---|---|---|
@@ -143,4 +153,59 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   const m = await 測る(page);
   expect(m!.倍率, `倍率が動いた: ${m!.倍率}`).toBeGreaterThan(0.55);
   expect(m!.倍率, `倍率が上がった: ${m!.倍率}`).toBeLessThan(0.65);
+});
+
+test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", async ({ page }) => {
+  // 層 2 (file 冒頭の説明を参照)。 下限は `smallestFontWorld` が読んだ文字の大きさから決まり、
+  // その読み取りは `getComputedStyle` に依存する。 描画側 (cdl、 別 repo) が大きさを計算値から
+  // 読めない形で出すと、 その文字だけ計算から漏れて 10px を割る。 描画は種別ごとに別なので
+  // 層 1 の 3 件では捕まらない。
+  //
+  // 12 件を別々の検査にすると立ち上げ時間が 12 回かかるので、 1 件の中で回す
+  const 見本 = [
+    "sequence", "sequence-checkout", "flow", "swimlane", "topology", "er",
+    "state-machine", "class", "gantt", "mind", "pie", "c4",
+  ];
+  const 問題: string[] = [];
+
+  for (const slug of 見本) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/editor#preset=${slug}`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1600);
+
+    const m = await page.evaluate(() => {
+      const svg = document.querySelector<SVGSVGElement>(".v4-editor-preview svg[data-cdl-stage]");
+      if (!svg) return null;
+      const k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+      let 読めない = 0;
+      let 最小 = Number.POSITIVE_INFINITY;
+      let 測った = 0;
+      for (const t of svg.querySelectorAll("text")) {
+        if ((t.textContent ?? "").trim().length === 0) continue;
+        const cs = getComputedStyle(t);
+        if (cs.display === "none" || cs.visibility === "hidden") continue;
+        const size = Number.parseFloat(cs.fontSize);
+        // 大きさを計算値から読めない文字。 `smallestFontWorld` はこれを飛ばすので、
+        // 下限の計算に載らないまま画面に出る
+        if (!Number.isFinite(size) || size <= 0) {
+          読めない += 1;
+          continue;
+        }
+        測った += 1;
+        最小 = Math.min(最小, size * k);
+      }
+      return { 読めない, 最小: Number.isFinite(最小) ? Math.round(最小 * 10) / 10 : -1, 測った };
+    });
+
+    if (m === null) {
+      問題.push(`${slug}: 図が画面に無い`);
+      continue;
+    }
+    if (m.測った === 0) 問題.push(`${slug}: 文字を 1 つも測れていない`);
+    if (m.読めない > 0) 問題.push(`${slug}: 大きさを読めない文字 ${m.読めない} 件`);
+    if (m.最小 > 0 && m.最小 < 10) 問題.push(`${slug}: 最小文字 ${m.最小}px`);
+  }
+
+  expect(問題, `描画側の文字が下限の計算に載っていない: ${問題.join(" / ")}`).toEqual([]);
 });
