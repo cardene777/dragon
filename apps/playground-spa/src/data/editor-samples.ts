@@ -287,10 +287,10 @@ animation:
 type: c4
 
 actors:
-  - Client: person "L1"
-  - システム: service "L1: system"
-  - API: service "L2: container"
-  - DB: database "L2: container"
+  - Client: person "L1 図を使う人"
+  - システム: service "L1 対象のシステム全体"
+  - API: service "L2 要求を受ける入口"
+  - DB: database "L2 データを保つ"
 
 flow:
   - Client -> システム: "利用"

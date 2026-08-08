@@ -185,3 +185,37 @@ test("見本「言語シェア」 で文字が箱からはみ出さない (#1076
   expect(m!.測った, "凡例の文字を 1 つも測れていない").toBeGreaterThanOrEqual(8);
   expect(m!.溢れ, `文字が箱からはみ出している: ${m!.溢れ.join(", ")}`).toEqual([]);
 });
+
+test("見本「C4コンテキストモデル」 の箱に段の目印が出ない (#1098)", async ({ page }) => {
+  // 変更前は 4 箱すべてが `L1` / `L1: system` / `L2: container` を説明として出していた。
+  // 目印は組み立てに段を伝えるためのもので、 段の名前は枠のラベルが既に出している
+  await openSample(page, "c4");
+
+  const m = await page.evaluate(() => {
+    const svg = document.querySelector('.v4-editor-preview svg[data-cdl-stage]');
+    if (!svg) return null;
+    return {
+      説明: [...svg.querySelectorAll("[data-cdl-node]")].map((n) => ({
+        題: n.getAttribute("data-cdl-title") ?? "",
+        説明: n.getAttribute("data-cdl-subtitle") ?? "",
+      })),
+      枠のラベル: [...svg.querySelectorAll("text")]
+        .map((t) => (t.textContent ?? "").trim())
+        .filter((s) => /System Context|Container|Component/.test(s)),
+    };
+  });
+
+  expect(m, "図が画面に無い").not.toBeNull();
+  expect(m!.説明.length, "箱が 1 つも無い (検査が空振りしている)").toBe(4);
+
+  // 目印が説明として残っていないこと
+  const 目印が残る = m!.説明.filter((x) => /^L[123]\b/i.test(x.説明));
+  expect(目印が残る, `箱の説明に段の目印が出ている: ${目印が残る.map((x) => `${x.題}="${x.説明}"`).join(", ")}`).toEqual([]);
+
+  // 説明が空になっていないこと (落としすぎていないか)
+  const 説明なし = m!.説明.filter((x) => x.説明 === "");
+  expect(説明なし, `説明が消えた箱がある: ${説明なし.map((x) => x.題).join(", ")}`).toEqual([]);
+
+  // 段の名前は枠のラベルが出す (箱の説明と二重にしない)
+  expect(m!.枠のラベル.sort(), "枠のラベルが出ていない").toEqual(["Container", "System Context"]);
+});
