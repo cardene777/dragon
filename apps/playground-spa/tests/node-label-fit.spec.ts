@@ -298,18 +298,29 @@ flow:
     );
     // **描き替わるまで待つ**。 `page.goto` は `#` だけが変わる形だと同一 document 内の移動に
     // なり、 記法が読み直されないことがある。 待たずに測ると前の束をもう一度測って、
-    // 測った数だけが増える (実測 = 49 種のはずが 56 になった)
+    // 測った数だけが増える (実測 = 49 種のはずが 56 になった)。
+    //
+    // **本の数で待ってはいけない**。 束は全て同じ本数なので、 前の束が残っていても数は一致する
+    // = 描き替えが遅れると最初の束を 7 回測って `測れた === 49` を満たし、 残り 42 種の regression を
+    // 見逃す (Round 1 review の指摘)。 **この束にしか無い名前** が出るまで待つ
+    const 期待 = group.map((_, j) => `a${i + j}-header`);
     await page
       .waitForFunction(
-        (want) => document.querySelectorAll('[data-cdl-node$="-header"]').length === want,
-        group.length,
+        (want) => want.every((id) => document.querySelector(`[data-cdl-node="${id}"]`) !== null),
+        期待,
         { timeout: 20_000 },
       )
       .catch(() => {
-        throw new Error(`${i} 番目の束が描き替わらない (期待 ${group.length} 本)`);
+        throw new Error(`${i} 番目の束が描き替わらない (期待 ${期待.join(" / ")})`);
       });
 
     const rows = await 名札の絵を測る(page);
+    // 待った後も、 測った名前がこの束のものと一致することを見る = 待ちが素通りしても捕まえる
+    expect(
+      rows.map((r) => r.名).sort(),
+      `${i} 番目の束で別の名前を測っている`,
+    ).toEqual([...期待].sort());
+
     for (const r of rows) {
       測れた += 1;
       if (r.箱高 !== 72) {
@@ -356,3 +367,108 @@ flow:
   // 完全に収まる 5 種の 1 つ
   expect(kindOf("c-header"), "収まる種別を落としている").toBe("shape-cloud");
 });
+
+/**
+ * 種別を 1 つ指定して、 その箱の絵のはみ出しを図の座標系で測る (#1067)。
+ *
+ * `名札の絵を測る` は名札 (`-header`) 全件を返すが、 こちらは id を指定して 1 つだけ見る。
+ * 名札に載らない高さを確かめる時は `type: flow` で描くため、 `-header` に当たらない。
+ */
+async function 箱の絵を測る(
+  page: import("@playwright/test").Page,
+  nodeId: string,
+): Promise<{ kind: string; 箱高: number; 下: number } | null> {
+  return await page.evaluate((want) => {
+    const svg = document
+      .querySelector(".v4-editor-stage")
+      ?.querySelector<SVGSVGElement>("svg[data-cdl-stage]");
+    const n = svg?.querySelector<SVGGraphicsElement>(`[data-cdl-node="${want}"]`);
+    if (!n) return null;
+    const num = (a: string): number => Number.parseFloat(n.getAttribute(a) ?? "");
+    const cy = num("data-cdl-cy");
+    const h = num("data-cdl-h");
+    if (![cy, h].every(Number.isFinite)) return null;
+    let b: DOMRect;
+    try {
+      b = n.getBBox();
+    } catch {
+      return null;
+    }
+    const r = (v: number): number => Math.round(v * 10) / 10;
+    return {
+      kind: n.getAttribute("data-cdl-kind") ?? "",
+      箱高: r(h),
+      下: r(b.y + b.height - (cy + h / 2)),
+    };
+  }, nodeId);
+}
+
+/**
+ * `LABEL_MIN_H` に足した `shape-` 4 種の値を実描画の両側で確かめる (#1067)。
+ *
+ * 組み立て側の表 (`packages/dragon/src/compile.ts` の `LABEL_MIN_H`) と同じ値を書き写す。
+ * 単体側 (`seq-header-kind-fit.test.ts`) は「表の値で載る / 1 低いと落ちる」 を見るが、
+ * **表の値そのものが実際の描画と合っているか** は実 render でしか分からない。 単体だけだと
+ * 実装と検査が同じ数値を複製するだけになり、 描画側が変わっても両方一緒に通る
+ * (Round 1 review の指摘)。
+ */
+const 絵が収まる高さ = [
+  { kind: "shape-person", h: 228 },
+  { kind: "shape-server-rack", h: 166 },
+  { kind: "shape-website", h: 98 },
+  { kind: "shape-warehouse", h: 79 },
+] as const;
+
+for (const { kind, h } of 絵が収まる高さ) {
+  test(`${kind} は高さ ${h} で絵が箱に収まる (#1067)`, async ({ page }) => {
+    // 表を小さくする誤り (はみ出す高さで載せてしまう) をここで捕まえる。
+    // この高さなら名札に載るので順序図で測れる
+    await 記法を開く(
+      page,
+      `title: "t"
+type: sequence
+
+actors:
+  - A
+  - B:
+      kind: ${kind}
+      大きさ: 300,${h}
+
+flow:
+  - A -> B: "x"
+`,
+    );
+    const 実測 = await 箱の絵を測る(page, "b-header");
+    expect(実測, "名札 B が測れていない").not.toBeNull();
+    expect(実測!.箱高, `名札の高さが ${h} になっていない`).toBeGreaterThanOrEqual(h - 1);
+    // **種類が残っていることを先に見る**。 表の値が実際より小さいと名札が `card` に落ち、
+    // `card` を測って「収まっている」 が自明に通る (実測 = 228 を 200 にする変異が通り抜けた)
+    expect(実測!.kind, `名札が ${実測!.kind} に落ちている (表の値が実際より小さい)`).toBe(kind);
+    expect(実測!.下, `絵が箱の下端を ${実測!.下} はみ出す`).toBeLessThanOrEqual(0.5);
+  });
+
+  test(`${kind} は高さ ${h - 2} だと絵が箱をはみ出す (#1067)`, async ({ page }) => {
+    // 表を大きくする誤り (収まるのに落とす) を捕まえる。 この高さの名札は `card` に落ちて
+    // 測れないので、 名札を持たない `type: flow` で同じ種類を同じ高さに描く
+    await 記法を開く(
+      page,
+      `title: "t"
+type: flow
+
+actors:
+  - A:
+      kind: ${kind}
+      位置: 400,300
+      大きさ: 300,${h - 2}
+  - B
+
+flow:
+  - A -> B: "x"
+`,
+    );
+    const 実測 = await 箱の絵を測る(page, "a");
+    expect(実測, "箱 A が測れていない").not.toBeNull();
+    expect(実測!.箱高, `箱の高さが ${h - 2} になっていない`).toBeLessThanOrEqual(h);
+    expect(実測!.下, "表の値より 2 低いのに絵が収まっている (表が過大)").toBeGreaterThan(0);
+  });
+}
