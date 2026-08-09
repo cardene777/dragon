@@ -24,7 +24,7 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
-import { boxesSpanPx, readableScaleForFrame, smallestFontWorld } from "@/lib/readable-scale";
+import { boxesRightPx, readableScaleForFrame, smallestFontWorld } from "@/lib/readable-scale";
 import { axisOffset } from "@/lib/fit-anchor";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
@@ -1297,7 +1297,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       fitScale,
       minFontWorld: smallestFontWorld(svg),
       diagramK,
-      boxesSpan: boxesSpanPx(svg, vb.width > 0 ? px.w / vb.width : 0, bounds.left),
+      boxesRight: boxesRightPx(svg, vb.width > 0 ? px.w / vb.width : 0, vb.x),
+      boundsLeft: bounds.left,
+      boundsWidth: bounds.width,
       frameWidth: previewRect.width,
     });
     // 位置決めは軸ごとに独立して決める (#1088)。 収まる軸は中央、 収まらない軸は始点に寄せる。

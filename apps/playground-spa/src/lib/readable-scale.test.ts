@@ -5,7 +5,7 @@ import {
   applyReadableFloor,
   smallestFontWorld,
   readableScaleForFrame,
-  boxesSpanPx,
+  boxesRightPx,
   READABLE_MIN_PX,
   READABLE_MAX_SCALE,
   READABLE_RELAXED_PX,
@@ -80,65 +80,107 @@ describe("applyReadableFloor", () => {
 
 describe("readableScaleForFrame", () => {
   // 実測 (窓 1440px、 枠 840px) を土台にする。 最小文字 20 世界座標 / 図の倍率 1 で
-  // 好ましい下限 (10px) は 0.5、 譲った下限 (8px) は 0.4 になる
-  const 素 = { fitScale: 0.23, minFontWorld: 20, diagramK: 1, frameWidth: 840 };
+  // 好ましい下限 (10px) は 0.5、 譲った下限 (8px) は 0.4 になる。
+  // 囲んだ範囲は箱の右端と同じにしておく = 位置決めの効果を見る test だけ個別に上書きする
+  const 素 = {
+    fitScale: 0.23,
+    minFontWorld: 20,
+    diagramK: 1,
+    frameWidth: 840,
+    boundsLeft: 0,
+    boundsWidth: 3000,
+  };
 
   it("箱が枠に収まるなら譲らない", () => {
     // 見本「ログインAPI呼び出し」 = 図の外枠は 886px で枠を超えるが、 箱は全部内側。
     // 外枠で判定すると 8px に落ちる (実測でそうなった)
-    expect(readableScaleForFrame({ ...素, boxesSpan: 1600 })).toBeCloseTo(0.5, 5);
+    expect(readableScaleForFrame({ ...素, boxesRight: 1600 })).toBeCloseTo(0.5, 5);
   });
 
   it("箱が枠から出て、 譲れば収まるなら譲る", () => {
-    // 1 箱あたり 0.5 で 840 を超え、 0.4 なら収まる幅
-    expect(readableScaleForFrame({ ...素, boxesSpan: 2000 })).toBeCloseTo(0.4, 5);
+    // 0.5 で 1000 → 枠 840 を超える。 0.4 で 800 → 収まる
+    expect(readableScaleForFrame({ ...素, boxesRight: 2000 })).toBeCloseTo(0.4, 5);
   });
 
   it("譲っても収まらないなら譲らない", () => {
     // 文字が小さくなるだけで見えない箱は見えないまま = 損しかしない。
     // 見本「Client登録」 を減らす前がここに落ちる
-    expect(readableScaleForFrame({ ...素, boxesSpan: 3000 })).toBeCloseTo(0.5, 5);
+    expect(readableScaleForFrame({ ...素, boxesRight: 3000 })).toBeCloseTo(0.5, 5);
   });
 
   it("境界ちょうどは譲らない", () => {
     // 0.5 で 840 ぴったり = 枠に収まっている
-    expect(readableScaleForFrame({ ...素, boxesSpan: 1680 })).toBeCloseTo(0.5, 5);
+    expect(readableScaleForFrame({ ...素, boxesRight: 1680 })).toBeCloseTo(0.5, 5);
+  });
+
+  // Round 1 review の指摘。 判定が倍率を掛けるだけだと、 中央寄せの分 (`axisOffset`) を
+  // 見落として「譲ったのに箱が出たまま」 になる。 実測は 3 段の swimlane で名前を 14 文字に
+  // した形 = 譲った倍率でも箱が枠から 10.7px 外に残り、 文字だけ小さくなっていた
+  it("譲ると図が枠に収まって中央へ動く時、 その分だけ箱が右へずれるのを数える", () => {
+    // 譲った倍率 0.4 で 囲んだ範囲は 800 → 枠 840 に収まるので中央寄せ (右へ 20)。
+    // 箱の右端 2050 × 0.4 = 820 に 20 が乗って 840 ちょうど = 収まる
+    expect(
+      readableScaleForFrame({ ...素, boxesRight: 2050, boundsWidth: 2000 }),
+    ).toBeCloseTo(0.4, 5);
+    // 1px 右にあるだけで枠を超える = 譲らない
+    expect(
+      readableScaleForFrame({ ...素, boxesRight: 2053, boundsWidth: 2000 }),
+    ).toBeCloseTo(0.5, 5);
+  });
+
+  it("図の左にパーツがある時は、 寄せ戻す分を数える", () => {
+    // 囲んだ範囲の左端が負 = 左端に寄せると図が右へ動く。 その分を足さないと甘くなる。
+    // 0.4 で 囲んだ範囲 1200 は枠 840 を超えるので左端寄せ、 tx = -(-500 × 0.4) = 200。
+    // 箱の右端 1550 × 0.4 = 620 に 200 が乗って 820 = 収まる
+    expect(
+      readableScaleForFrame({ ...素, boxesRight: 1550, boundsLeft: -500, boundsWidth: 3000 }),
+    ).toBeCloseTo(0.4, 5);
+    // 右へ 100 動かすと 860 で枠を超える = 譲らない
+    expect(
+      readableScaleForFrame({ ...素, boxesRight: 1800, boundsLeft: -500, boundsWidth: 3000 }),
+    ).toBeCloseTo(0.5, 5);
   });
 
   it("測れない時は譲らない", () => {
     // 判定材料が無いことを理由に文字を小さくしない
-    for (const v of [null, 0, -1, Number.NaN]) {
-      expect(readableScaleForFrame({ ...素, boxesSpan: v }), `boxesSpan=${v}`).toBeCloseTo(0.5, 5);
+    for (const v of [null, Number.NaN]) {
+      expect(readableScaleForFrame({ ...素, boxesRight: v }), `boxesRight=${v}`).toBeCloseTo(0.5, 5);
     }
     for (const v of [0, -1, Number.NaN]) {
       expect(
-        readableScaleForFrame({ ...素, boxesSpan: 2000, frameWidth: v }),
+        readableScaleForFrame({ ...素, boxesRight: 2000, frameWidth: v }),
         `frameWidth=${v}`,
       ).toBeCloseTo(0.5, 5);
+      expect(
+        readableScaleForFrame({ ...素, boxesRight: 2000, boundsWidth: v }),
+        `boundsWidth=${v}`,
+      ).toBeCloseTo(0.5, 5);
     }
+    expect(readableScaleForFrame({ ...素, boxesRight: 2000, boundsLeft: Number.NaN })).toBeCloseTo(
+      0.5,
+      5,
+    );
   });
 
   it("収める倍率が下限より大きい図では何も起きない", () => {
     // 縦長の図。 下限が効いていないので譲る余地がそもそも無い
-    expect(readableScaleForFrame({ ...素, fitScale: 0.8, boxesSpan: 2000 })).toBeCloseTo(0.8, 5);
+    expect(readableScaleForFrame({ ...素, fitScale: 0.8, boxesRight: 2000 })).toBeCloseTo(0.8, 5);
   });
 
   it("下限の px は差し替えられる", () => {
-    // 譲り先を 5px にすると下限 0.25、 boxesSpan 2000 でも収まる
-    expect(
-      readableScaleForFrame({ ...素, boxesSpan: 3000, relaxedPx: 5 }),
-    ).toBeCloseTo(0.25, 5);
+    // 譲り先を 5px にすると下限 0.25、 箱の右端 3000 でも 750 で収まる
+    expect(readableScaleForFrame({ ...素, boxesRight: 3000, relaxedPx: 5 })).toBeCloseTo(0.25, 5);
   });
 
   it("譲り先の既定は 8px", () => {
     expect(READABLE_RELAXED_PX).toBe(8);
-    expect(readableScaleForFrame({ ...素, boxesSpan: 2000 })).toBe(
-      readableScaleForFrame({ ...素, boxesSpan: 2000, relaxedPx: 8 }),
+    expect(readableScaleForFrame({ ...素, boxesRight: 2000 })).toBe(
+      readableScaleForFrame({ ...素, boxesRight: 2000, relaxedPx: 8 }),
     );
   });
 });
 
-describe("boxesSpanPx", () => {
+describe("boxesRightPx", () => {
   /** getBBox を持たない jsdom のために、 節点ごとの矩形を差し込んだ svg を作る */
   const svgWithNodes = (boxes: { x: number; width: number }[]): SVGSVGElement => {
     const host = document.createElement("div");
@@ -153,23 +195,27 @@ describe("boxesSpanPx", () => {
     return svg as SVGSVGElement;
   };
 
-  it("最も右にある箱の右端までを返す", () => {
-    // viewBox 単位 100 の箱を px 換算 2 倍で見る = 右端 400、 図の左端 0
+  it("最も右にある箱の右端を返す", () => {
+    // 利用者座標 200 の位置を px 換算 2 倍で見る = 400
     const svg = svgWithNodes([
       { x: 0, width: 50 },
       { x: 150, width: 50 },
     ]);
-    expect(boxesSpanPx(svg, 2, 0)).toBe(400);
+    expect(boxesRightPx(svg, 2, 0)).toBe(400);
   });
 
-  it("図の左端が負なら、 その分だけ広がる", () => {
-    // パーツが図の外 (左) にあると左端が負になる。 寄せる基準がそこになる
-    const svg = svgWithNodes([{ x: 0, width: 100 }]);
-    expect(boxesSpanPx(svg, 1, -30)).toBe(130);
+  // Round 1 review の指摘。 実データの `sequence` は `viewBox.x = -44` で、 引かないと右端を
+  // 44 利用者単位ぶん手前に見積もる = 判定が枠幅の側へ甘くなる
+  it("viewBox の原点がずれている時はその分を戻す", () => {
+    const svg = svgWithNodes([{ x: 1518, width: 50 }]);
+    // 原点 -44 なので図の左端からの距離は 1568 + 44 = 1612
+    expect(boxesRightPx(svg, 1, -44)).toBe(1612);
+    // 引き忘れると 1568 になる (この差が Round 1 の指摘そのもの)
+    expect(boxesRightPx(svg, 1, 0)).toBe(1568);
   });
 
   it("箱が 1 つも無ければ null", () => {
-    expect(boxesSpanPx(svgWithNodes([]), 1, 0)).toBeNull();
+    expect(boxesRightPx(svgWithNodes([]), 1, 0)).toBeNull();
   });
 
   it("大きさを持たない箱は数えない", () => {
@@ -177,7 +223,7 @@ describe("boxesSpanPx", () => {
       { x: 0, width: 100 },
       { x: 500, width: 0 },
     ]);
-    expect(boxesSpanPx(svg, 1, 0)).toBe(100);
+    expect(boxesRightPx(svg, 1, 0)).toBe(100);
   });
 
   it("getBBox が投げる節点は数えない", () => {
@@ -188,22 +234,16 @@ describe("boxesSpanPx", () => {
       throw new Error("not rendered");
     };
     svg.append(壊れた);
-    expect(boxesSpanPx(svg, 1, 0)).toBe(100);
+    expect(boxesRightPx(svg, 1, 0)).toBe(100);
   });
 
   it("換算が壊れている時は null", () => {
     const svg = svgWithNodes([{ x: 0, width: 100 }]);
     for (const v of [0, -1, Number.NaN]) {
-      expect(boxesSpanPx(svg, v, 0), `pxPerViewBox=${v}`).toBeNull();
+      expect(boxesRightPx(svg, v, 0), `pxPerViewBox=${v}`).toBeNull();
     }
-    expect(boxesSpanPx(svg, 1, Number.NaN)).toBeNull();
-    expect(boxesSpanPx(null, 1, 0)).toBeNull();
-  });
-
-  it("広がりが 0 以下になる形は null", () => {
-    // 図の左端が箱の右端より右にある = 判定材料として使えない
-    const svg = svgWithNodes([{ x: 0, width: 100 }]);
-    expect(boxesSpanPx(svg, 1, 100)).toBeNull();
+    expect(boxesRightPx(svg, 1, Number.NaN)).toBeNull();
+    expect(boxesRightPx(null, 1, 0)).toBeNull();
   });
 });
 

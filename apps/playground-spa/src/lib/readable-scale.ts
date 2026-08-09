@@ -12,6 +12,7 @@
  * 倍率が違う (実測 = 世界座標の最小文字は 11 から 24 まで散る)。 文字そのものを基準にすれば
  * どの図でも同じ「読めるかどうか」 で揃う。
  */
+import { axisOffset } from "./fit-anchor";
 
 /** 画面上でこれを下回ると本文として読めない (px)。 */
 export const READABLE_MIN_PX = 10;
@@ -80,24 +81,35 @@ export function applyReadableFloor(
  * 図の外枠は余白を含むため、 箱がすべて枠の中にある見本でも「収まらない」 と判定される
  * (実測 = `sequence` は外枠 886px で枠 840px を超えるが、 箱は 17 個すべて内側)。 外枠で
  * 分岐させると全図が譲る側に落ち、 下限を一律に下げたのと同じ結果になる (実測で 12 見本すべて
- * 一致した)。 判定は **箱の広がり** で行う。
+ * 一致した)。 判定は **箱の右端が画面のどこに来るか** で行う。
  *
- * `boxesSpan` は「箱の右端 - 図の左端」 を倍率をかける前の px 座標で表したもの。 枠に収まらない
- * 図は左端に寄せられる (#1088) ため、 画面上の箱の右端はこの値に倍率を掛けた位置になる。
+ * ## 画面上の位置は `axisOffset` が決める
+ *
+ * 箱の右端に倍率を掛けただけでは足りない。 実際の位置は直後の `axisOffset` (#1088) が決めており、
+ * 枠に収まる図は中央に置かれるため右端が `(枠 - 図) / 2` だけ右へずれる。 収まらない図だけが
+ * 左端に寄る。 判定と配置で別の式を使うと両者がずれるので、 **配置と同じ関数** を判定にも使う。
+ *
+ * Round 1 review はこのずれを実測で示した = 3 段の swimlane で名前を 14 文字にすると、 譲った
+ * 倍率でも中央寄せの分で箱が枠から 10.7px 外に残り、 文字だけ小さくなっていた。
  *
  * ## 譲っても収まらないなら譲らない
  *
  * 譲った下限でも箱が枠から出るなら、 文字が小さくなるだけで見えない箱は見えないままになる。
  * それは損しかしないので好ましい下限に留める。 変更前 (`#1100` 時点) と同じ見え方になる。
  *
- * 測れない時 (`boxesSpan` が null / 枠幅が正でない) は好ましい下限を返す = 判定材料が無いことを
- * 理由に文字を小さくしない。
+ * 測れない時 (`boxesRight` が null / 枠幅が正でない / 囲んだ範囲が取れない) は好ましい下限を
+ * 返す = 判定材料が無いことを理由に文字を小さくしない。
  */
 export function readableScaleForFrame(args: {
   fitScale: number;
   minFontWorld: number;
   diagramK: number;
-  boxesSpan: number | null;
+  /** 箱の右端。 倍率をかける前の px 座標で、 図の左上を原点とする */
+  boxesRight: number | null;
+  /** 囲んだ範囲の左端。 図の外にパーツがあると負になる (倍率をかける前の px) */
+  boundsLeft: number;
+  /** 囲んだ範囲の幅 (倍率をかける前の px) */
+  boundsWidth: number;
   frameWidth: number;
   minPx?: number;
   relaxedPx?: number;
@@ -106,38 +118,57 @@ export function readableScaleForFrame(args: {
     fitScale,
     minFontWorld,
     diagramK,
-    boxesSpan,
+    boxesRight,
+    boundsLeft,
+    boundsWidth,
     frameWidth,
     minPx = READABLE_MIN_PX,
     relaxedPx = READABLE_RELAXED_PX,
   } = args;
   const 好ましい = applyReadableFloor(fitScale, readableFloorScale(minFontWorld, diagramK, minPx));
-  if (boxesSpan === null || !Number.isFinite(boxesSpan) || boxesSpan <= 0) return 好ましい;
+  if (boxesRight === null || !Number.isFinite(boxesRight)) return 好ましい;
+  if (!Number.isFinite(boundsLeft) || !Number.isFinite(boundsWidth) || boundsWidth <= 0) {
+    return 好ましい;
+  }
   if (!Number.isFinite(frameWidth) || frameWidth <= 0) return 好ましい;
-  if (boxesSpan * 好ましい <= frameWidth) return 好ましい;
+
+  /** その倍率で置いた時、 箱の右端が枠の中に入るか */
+  const 収まる = (scale: number): boolean => {
+    if (!Number.isFinite(scale) || scale <= 0) return true;
+    const tx = axisOffset({
+      frame: frameWidth,
+      content: boundsWidth * scale,
+      origin: boundsLeft * scale,
+    });
+    return boxesRight * scale + tx <= frameWidth;
+  };
+
+  if (収まる(好ましい)) return 好ましい;
   const 譲った = applyReadableFloor(fitScale, readableFloorScale(minFontWorld, diagramK, relaxedPx));
-  if (boxesSpan * 譲った > frameWidth) return 好ましい;
-  return 譲った;
+  return 収まる(譲った) ? 譲った : 好ましい;
 }
 
 /**
- * 「箱の右端 - 図の左端」 を、 倍率をかける前の px 座標で返す。 箱が 1 つも無ければ null。
+ * 箱の右端を、 倍率をかける前の px 座標で返す。 箱が 1 つも無ければ null。
  *
- * `getBBox` は利用者座標 (viewBox 単位) を返すので、 `pxPerViewBox` (= 図の pixel 幅 / viewBox
- * 幅) を掛けて px 座標に直す。 画面上の矩形 (`getBoundingClientRect`) を使うと、 その時点の
- * 倍率が混ざって候補倍率の判定に使えない。
+ * `getBBox` は利用者座標を返すので 2 段の変換が要る。 まず `viewBoxX` を引いて図の左上を原点に
+ * 直し、 次に `pxPerViewBox` (= 図の pixel 幅 / viewBox 幅) を掛けて px 座標にする。
  *
- * `boundsLeft` は図の左端 (パーツが図の外にあると負になる)。 枠に収まらない図はこの点が枠の
- * 左辺に来るように寄せられる (#1088) ため、 そこからの距離が画面上の箱の右端になる。
+ * **`viewBoxX` を引き忘れてはいけない**。 実データの `sequence` は `viewBox.x = -44` で、 引かないと
+ * 右端を 44 利用者単位ぶん手前に見積もる (Round 1 review の指摘)。 原点がずれた値を
+ * 図の左端を 0 とする枠と比べることになり、 判定が枠幅の側へ甘くなる。
+ *
+ * 画面上の矩形 (`getBoundingClientRect`) は使わない。 その時点の倍率が混ざり、 候補倍率での
+ * 判定に使えない。
  */
-export function boxesSpanPx(
+export function boxesRightPx(
   svg: SVGSVGElement | null | undefined,
   pxPerViewBox: number,
-  boundsLeft: number,
+  viewBoxX: number,
 ): number | null {
   if (!svg) return null;
   if (!Number.isFinite(pxPerViewBox) || pxPerViewBox <= 0) return null;
-  if (!Number.isFinite(boundsLeft)) return null;
+  if (!Number.isFinite(viewBoxX)) return null;
   let 右端 = Number.NEGATIVE_INFINITY;
   for (const n of svg.querySelectorAll("[data-cdl-node]")) {
     if (typeof (n as SVGGraphicsElement).getBBox !== "function") continue;
@@ -149,11 +180,9 @@ export function boxesSpanPx(
       continue;
     }
     if (!Number.isFinite(b.x) || !Number.isFinite(b.width) || b.width <= 0) continue;
-    右端 = Math.max(右端, (b.x + b.width) * pxPerViewBox);
+    右端 = Math.max(右端, (b.x + b.width - viewBoxX) * pxPerViewBox);
   }
-  if (!Number.isFinite(右端)) return null;
-  const span = 右端 - boundsLeft;
-  return span > 0 ? span : null;
+  return Number.isFinite(右端) ? 右端 : null;
 }
 
 /**

@@ -17,6 +17,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { 下限 as 文字の下限 } from "./readable-floor";
 
 /** 画面の外に出ている箱の名前 */
 async function 画面外の箱(page: import("@playwright/test").Page, slug: string) {
@@ -143,17 +144,21 @@ test("収まらない見本が 1 件も無い (#1102)", async ({ page }) => {
 });
 
 // `#1102` で 8px まで譲るのは、 好ましい下限 10px では箱が枠から出る図に限る。 譲る図と譲らない
-// 図の両方を押さえておかないと、 一律に下げる変更が入っても緑のまま通る
-const 文字の下限 = [
-  { slug: "sequence", 下限: 10, 理由: "箱が枠に収まるので譲らない (図の外枠は 886px で枠を超える)" },
-  { slug: "sequence-checkout", 下限: 10, 理由: "同上" },
-  { slug: "gantt", 下限: 10, 理由: "同上" },
-  { slug: "swimlane", 下限: 8, 理由: "10px では箱が枠から出る" },
-  { slug: "state-machine", 下限: 8, 理由: "同上" },
-  { slug: "er", 下限: 8, 理由: "同上" },
+// 図の両方を押さえておかないと、 一律に下げる変更が入っても緑のまま通る。
+//
+// どの見本がどちらに落ちるかは `readable-floor.ts` (共有の期待値) が持つ。 同じ分類を
+// `editor-readable-scale.spec.ts` も使うため、 片方だけ直しても両方が通る形を避ける
+const 見る見本 = [
+  { slug: "sequence", 理由: "箱が枠に収まるので譲らない (図の外枠は 886px で枠を超える)" },
+  { slug: "sequence-checkout", 理由: "同上" },
+  { slug: "gantt", 理由: "同上" },
+  { slug: "swimlane", 理由: "10px では箱が枠から出る" },
+  { slug: "state-machine", 理由: "同上" },
+  { slug: "er", 理由: "同上" },
 ] as const;
 
-for (const { slug, 下限, 理由 } of 文字の下限) {
+for (const { slug, 理由 } of 見る見本) {
+  const 下限 = 文字の下限(slug);
   test(`見本 ${slug} の画面上の最小文字が ${下限}px (#1102)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/editor#preset=${slug}`);
