@@ -86,9 +86,12 @@ describe("行を宣言しなくても kind は載る (#975)", () => {
   });
 
   it("行を描かない kind でも載せる", () => {
-    const d = textDslToDiagram(src(`DB: { kind: shape-file, rows: ["count: 1"] }`));
+    // probe は `shape-cloud`。 元は `shape-file` だったが、 `#1067` で名札から落ちる種別に
+    // なった (下へ 18 はみ出し、 高さを上げても消えない)。 落ちると `card` になり
+    // 「書いた kind が載る」 を見られなくなるため、 名札に残る種別に付け替えた
+    const d = textDslToDiagram(src(`DB: { kind: shape-cloud, rows: ["count: 1"] }`));
     const n = nodeById(d, "db-header")!;
-    expect(n.kind).toBe("shape-file");
+    expect(n.kind).toBe("shape-cloud");
     // 行を描かない kind なので幅は広げない。 行が出ないことは Axis 67 が報告する。
     expect(n.w!).toBeLessThan(requiredRowsWidth(["count: 1"]));
     expect(visualValidate(d).counts["rows-not-rendered"]).toBe(1);
@@ -115,8 +118,11 @@ describe("行を宣言しなくても kind は載る (#975)", () => {
     // (実測 = solidity の golden 4 件が `Cannot read properties of undefined`)。
     // 一律 card にすると Solidity の図だけ「書いたとおりの形」 にならないので読み替える。
     expect(nodeById(d0(`DB: { kind: eoa }`), "db-header")?.kind).toBe("shape-wallet");
-    expect(nodeById(d0(`DB: { kind: contract }`), "db-header")?.kind).toBe("shape-smart-contract");
     expect(nodeById(d0(`DB: { kind: multisig }`), "db-header")?.kind).toBe("signer");
+    // `contract` の読み替え先 (`shape-smart-contract`) は名札に収まらないため `card` になる
+    // (#1067)。 読み替えが消えたのではなく、 読み替えた後に落ちている =
+    // `seq-header-kind-fit.test.ts` が両者の区別を見る
+    expect(nodeById(d0(`DB: { kind: contract }`), "db-header")?.kind).toBe("card");
   });
 
   it("読み取れない語では名札の種類を上書きしない", () => {

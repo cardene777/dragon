@@ -2138,7 +2138,63 @@ const LABEL_MIN_H: Readonly<Record<string, number>> = {
   function: 94, // y=86 / 24 mono (94 で -0.99、 93 で +0.01)
   storage: 86, // y=78 / 22 mono (86 で -0.99、 85 で +0.01)
   event: 96, // y=88 / 26 mono、 0.92 倍に縮めて描かれる (96 で -0.2、 95 で +0.69)
+
+  // `shape-` のうち、 高さを上げれば下のはみ出しが消える 4 種 (#1067)。 値は「収まる最小の高さ」
+  // で、 1 手前 (値 - 1) では 0.9-1 はみ出すことを実測した
+  "shape-person": 228, // 名札 72 で下へ 155.9
+  "shape-server-rack": 166, // 94
+  "shape-website": 98, // 26
+  "shape-warehouse": 79, // 7
 };
+
+/**
+ * 名札の高さをどれだけ上げても収まらない種別 (#1067)。
+ *
+ * `shape-` を名札に書くと絵が箱の外に描かれる。 49 種すべてを実測したところ、 完全に収まるのは
+ * 5 種 (`shape-cloud` / `shape-window` / `shape-message-bubble` / `shape-token` /
+ * `shape-online-shop`) だけだった。
+ *
+ * ## はみ出す向きで実害を分ける
+ *
+ * | 向き | 実害 | 扱い |
+ * |---|---|---|
+ * | 下 | 縦線が絵を貫く | 落とす |
+ * | 左右 | 隣の本とぶつかる (`shape-code-block` は右へ 132) | 落とす |
+ * | 上のみ | 何ともぶつからず図の外にも出ない | 残す |
+ *
+ * 上だけのはみ出しを残すのは、 実測で **viewBox の内側に収まる** ことを確かめたため
+ * (最大の `shape-robot-arm` は上へ 129 だが viewBox に 23 の余裕がある)。 箱から出ていても
+ * 読み手には壊れて見えない。 落とすと形の区別を 10 種ぶん失うだけになる。
+ *
+ * ## ここに載るのは「高さで直らない」 種別だけ
+ *
+ * 下のはみ出しは高さで直ることがある。 4 種は `LABEL_MIN_H` に最小の高さを持たせ、 `rows` 等で
+ * 名札が高くなった図では書いたとおりの形で載る (`#1061` の「収まる高さがある時は書いたとおりに
+ * 載せる」 と同じ扱い)。
+ *
+ * こちらに載るのは 2 種類。 **左右にはみ出す 24 種** は横幅が高さで変わらないため直らない
+ * (実測 = `shape-smart-contract` は h=72 でも h=430 でも右へ 15.2)。 **下のはみ出しが高さに
+ * 依らない 6 種** は h を 72 から 600 まで上げても値が変わらない (実測 = `shape-stack` は
+ * 常に 36、 `shape-cylinder` は 150 以上で常に 1)。
+ *
+ * ## 失うもの
+ *
+ * Solidity の読み替え (`#975`) のうち `contract` / `proxy` (`shape-smart-contract`) と
+ * `library` / `interface` (`shape-code-block`) がここに入るため、 名札では `card` になる。
+ * `eoa` / `wallet` (`shape-wallet`) は上へ 12.1 だけなので形を保つ。
+ */
+const LABEL_NEVER_FITS: ReadonlySet<string> = new Set([
+  // 左右にはみ出す 24 種。 横幅は高さで変わらないため直らない
+  "shape-api-gateway", "shape-atm", "shape-auditor", "shape-bank", "shape-bitcoin-chain",
+  "shape-blockchain", "shape-blockchain-block", "shape-blockchain-node", "shape-brokerage",
+  "shape-code-block", "shape-customer-service", "shape-ethereum-chain", "shape-hexagon",
+  "shape-kanban-card", "shape-lawyer", "shape-network-node", "shape-nft", "shape-notary",
+  "shape-regulator", "shape-satellite", "shape-smart-contract", "shape-terminal",
+  "shape-trader", "shape-trust-bank",
+  // 下のはみ出しが高さに依らない 6 種
+  "shape-cylinder", "shape-diamond", "shape-file", "shape-folder", "shape-mobile-device",
+  "shape-stack",
+]);
 
 /**
  * 名札が、 小型の `card` では描かれない文字を持つか。
@@ -2181,11 +2237,17 @@ function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
  * 上端は収まり下端 (72) は収まらないため、 1 つずつ見ると同じ登場人物の上下で形が変わる。
  * 上下で形が違うと別物に見えるので、 どちらかが収まらなければ両方落とす。
  *
+ * ## `shape-` も対象に含める (#1067)
+ *
+ * 当初は対象外にしていた。 これらは名前を箱ではなく自分の絵に対して置くため、 箱を基準に測ると
+ * 収まっていないように見えるだけだと考えたため。 49 種を実測すると **絵そのものが箱の外に出て
+ * 縦線に貫かれ、 隣の本ともぶつかって** いた。 どの種別をどう扱うかは `LABEL_NEVER_FITS` の
+ * 説明が SSOT。
+ *
  * ## 覆っていない範囲
  *
- * `shape-` で始まる種別は対象外。 これらは名前を箱ではなく **自分の絵に対して** 置く
- * (実測 = `shape-code-block` は箱が 30 でも絵は 180 で描かれ、 名前は絵の中にある)。
- * 箱を基準に測ると収まっていないように見えるが、 箱はその絵の一部でしかない。
+ * **上だけにはみ出す `shape-` は残す**。 何ともぶつからず図の外にも出ないため
+ * (`LABEL_NEVER_FITS` の説明を参照)。 箱の外に絵があること自体は直っていない。
  *
  * **著者が文字を書いた名札は、 名前がはみ出したままになる**。 4 種は `subtitle` を `y=126`
  * 付近、 `value` を `y=152` に置くため、 収める高さは 150 以上になる。 揃えの伝播で全名札が
@@ -2207,6 +2269,8 @@ function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
     // 載らないため 1 組で見る。
     if (pair.some(hasAuthoredText)) continue;
     const 収まらない = pair.some((n) => {
+      // 高さを上げても直らない種別 (#1067)。 高さを見ずに落とす
+      if (LABEL_NEVER_FITS.has(n.kind)) return true;
       const need = LABEL_MIN_H[n.kind];
       if (need === undefined) return false;
       // 描画で使う高さを見る。 `posH` が効くのは `posX` と `posY` が揃った node だけ
@@ -2219,7 +2283,7 @@ function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
     });
     if (!収まらない) continue;
     for (const n of pair) {
-      if (LABEL_MIN_H[n.kind] !== undefined) n.kind = "card";
+      if (LABEL_NEVER_FITS.has(n.kind) || LABEL_MIN_H[n.kind] !== undefined) n.kind = "card";
     }
   }
 }

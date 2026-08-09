@@ -5496,7 +5496,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "cy": 164,
       "h": 72,
       "id": "token-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5568,7 +5568,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "cy": 680,
       "h": 72,
       "id": "token-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5659,7 +5659,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "cy": 259,
       "h": 262,
       "id": "token-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5731,7 +5731,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "cy": 965,
       "h": 262,
       "id": "token-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5835,7 +5835,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 164,
       "h": 72,
       "id": "nft-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5851,7 +5851,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 164,
       "h": 72,
       "id": "receiver-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -5939,7 +5939,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 782,
       "h": 72,
       "id": "nft-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -5947,7 +5947,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 782,
       "h": 72,
       "id": "receiver-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -6051,7 +6051,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 164,
       "h": 72,
       "id": "router-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6067,7 +6067,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 164,
       "h": 72,
       "id": "pool-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6155,7 +6155,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 782,
       "h": 72,
       "id": "router-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6163,7 +6163,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 782,
       "h": 72,
       "id": "pool-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6299,7 +6299,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 164,
       "h": 72,
       "id": "target-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6387,7 +6387,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 782,
       "h": 72,
       "id": "target-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
   ],
@@ -6470,7 +6470,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 164,
       "h": 72,
       "id": "proxy-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6486,7 +6486,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 164,
       "h": 72,
       "id": "impl-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6542,7 +6542,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 680,
       "h": 72,
       "id": "proxy-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6550,7 +6550,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 680,
       "h": 72,
       "id": "impl-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
   ],
@@ -6633,7 +6633,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 164,
       "h": 72,
       "id": "vault-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6649,7 +6649,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 164,
       "h": 72,
       "id": "safemath-header",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -6705,7 +6705,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 680,
       "h": 72,
       "id": "vault-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6713,7 +6713,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 680,
       "h": 72,
       "id": "safemath-footer",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 228,
     },
   ],
@@ -6780,7 +6780,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 164,
       "h": 72,
       "id": "caller-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6796,7 +6796,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 164,
       "h": 72,
       "id": "ierc20-header",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6812,7 +6812,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 164,
       "h": 72,
       "id": "token-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6860,7 +6860,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 680,
       "h": 72,
       "id": "caller-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6868,7 +6868,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 680,
       "h": 72,
       "id": "ierc20-footer",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6876,7 +6876,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
       "cy": 680,
       "h": 72,
       "id": "token-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
   ],
@@ -7235,7 +7235,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "cy": 164,
       "h": 72,
       "id": "vault-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7339,7 +7339,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "cy": 884,
       "h": 72,
       "id": "vault-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7430,7 +7430,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "cy": 164,
       "h": 72,
       "id": "token-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7502,7 +7502,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "cy": 680,
       "h": 72,
       "id": "token-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7593,7 +7593,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "cy": 164,
       "h": 72,
       "id": "contract-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -7665,7 +7665,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "cy": 680,
       "h": 72,
       "id": "contract-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -8076,7 +8076,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 164,
       "h": 72,
       "id": "pool-header",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -8092,7 +8092,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 164,
       "h": 72,
       "id": "safemath-header",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -8204,7 +8204,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 884,
       "h": 72,
       "id": "pool-footer",
-      "kind": "shape-smart-contract",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -8212,7 +8212,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 884,
       "h": 72,
       "id": "safemath-footer",
-      "kind": "shape-code-block",
+      "kind": "card",
       "w": 228,
     },
     {

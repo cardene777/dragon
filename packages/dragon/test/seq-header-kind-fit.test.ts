@@ -30,12 +30,47 @@ const kindOf = (d: CdlDiagram, id: string): string | undefined =>
   d.nodes.find((n) => n.id === id)?.kind;
 const hOf = (d: CdlDiagram, id: string): number | undefined => d.nodes.find((n) => n.id === id)?.h;
 
-/** 名札の高さ (72) では名前が箱からはみ出す 4 種と、 収まるのに要る高さ。 */
+/**
+ * 名札の高さ (72) では箱からはみ出すが、 **高さを上げれば収まる** 種別と、 要る高さ。
+ *
+ * 前半 4 種は名前がはみ出す (#1061)。 後半 4 種は絵が下へはみ出す `shape-` (#1067) で、
+ * 高さを上げると下のはみ出しが消えることを実測した (1 低いと 0.9-1 はみ出す)。
+ */
 const 収まらない種別 = [
   { kind: "actor", 要る高さ: 95 },
   { kind: "function", 要る高さ: 94 },
   { kind: "storage", 要る高さ: 86 },
   { kind: "event", 要る高さ: 96 },
+  { kind: "shape-person", 要る高さ: 228 },
+  { kind: "shape-server-rack", 要る高さ: 166 },
+  { kind: "shape-website", 要る高さ: 98 },
+  { kind: "shape-warehouse", 要る高さ: 79 },
+] as const;
+
+/**
+ * 高さを上げても収まらない `shape-` (#1067)。 名札では常に `card` に落ちる。
+ *
+ * 左右は高さで変わらず (実測 = `shape-smart-contract` は h=72 でも h=430 でも右へ 15.2)、
+ * 下のはみ出しが高さに依らない種別もある (実測 = `shape-stack` は h=72 から 600 まで常に 36)。
+ */
+const 高さで直らない種別 = [
+  "shape-smart-contract", // 右 15.1 (Solidity の `contract` / `proxy`)
+  "shape-code-block", // 右 132 (`library` / `interface`)
+  "shape-stack", // 下 36 が高さに依らない
+  "shape-cylinder", // 下 3.6 が高さに依らない
+] as const;
+
+/**
+ * 名札に載ったままにする `shape-` (#1067)。
+ *
+ * 上だけにはみ出す種別は何ともぶつからず、 図の外にも出ない (実測 = `shape-robot-arm` は
+ * 上へ 129 だが viewBox に 23 の余裕がある)。 完全に収まる 5 種も当然残る。
+ */
+const 残す種別 = [
+  "shape-wallet", // 上 12.1 (Solidity の `eoa` / `wallet`)
+  "shape-robot-arm", // 上 129
+  "shape-cloud", // 完全に収まる
+  "shape-token", // 完全に収まる
 ] as const;
 
 describe("名札に載せる種類 (#1061)", () => {
@@ -76,13 +111,63 @@ describe("名札に載せる種類 (#1061)", () => {
     expect(kindOf(d, "b-header")).toBe("service");
   });
 
-  it("`shape-` の種別は対象外", () => {
-    // これらは名前を箱ではなく自分の絵に対して置く (実測 = `shape-code-block` は箱が 30 でも
-    // 絵は 180 で描かれ、 名前は絵の中にある)。 箱を基準に測る判定を当てると、 Solidity の図が
-    // 一律 `card` になって `#975` の読み替え (`contract` → `shape-smart-contract`) が消える。
+  describe.each(高さで直らない種別)("%s (高さで直らない)", (kind) => {
+    it("既定の高さでは card に落ちる", () => {
+      const d =図(`  - A\n  - B: ${kind}`);
+      expect(kindOf(d, "b-header")).toBe("card");
+      expect(kindOf(d, "b-footer")).toBe("card");
+    });
+
+    it("高さを大きく書いても落ちる", () => {
+      // ここが `収まらない種別` との違い。 高さを上げても直らないので、 高さを見ずに落とす
+      const d =図(`  - A\n  - B:\n      kind: ${kind}\n      大きさ: 300,600`);
+      expect(hOf(d, "b-header"), "書いた高さが名札に届いていない").toBe(600);
+      expect(kindOf(d, "b-header")).toBe("card");
+    });
+  });
+
+  describe.each(残す種別)("%s (残す)", (kind) => {
+    it("既定の高さでも書いたとおりの形になる", () => {
+      // 上だけのはみ出しは何ともぶつからず図の外にも出ない。 落とすと形の区別を失うだけ
+      const d =図(`  - A\n  - B: ${kind}`);
+      expect(hOf(d, "b-header"), "名札の高さが 72 から動いている").toBe(72);
+      expect(kindOf(d, "b-header")).toBe(kind);
+      expect(kindOf(d, "b-footer")).toBe(kind);
+    });
+  });
+
+  it("Solidity の読み替えのうち、 形が残るのは eoa / wallet だけになる", () => {
+    // `#975` の読み替えは 3 組ある。 `#1067` の後に名札で形が残るのは
+    // `eoa` / `wallet` → `shape-wallet` (上へ 12.1 だけ) のみ。
+    //
+    // `contract` / `proxy` → `shape-smart-contract` (右 15.1) と
+    // `library` / `interface` → `shape-code-block` (右 132) は高さで直らないため `card` になる。
+    // 読み替えそのものは残っている = 読み替えないと描画側に無い語のまま渡って落ちる
     const d =図(`  - A: contract\n  - B: eoa`);
-    expect(kindOf(d, "a-header")).toBe("shape-smart-contract");
+    expect(kindOf(d, "a-header")).toBe("card");
     expect(kindOf(d, "b-header")).toBe("shape-wallet");
+
+    const d2 =図(`  - A: library\n  - B: proxy`);
+    expect(kindOf(d2, "a-header")).toBe("card");
+    expect(kindOf(d2, "b-header")).toBe("card");
+  });
+
+  it("落とすのは順序図の名札だけ", () => {
+    // 判定は `sequence` / `solidity` の `-header` / `-footer` にしか当たらない。
+    // 別の図では書いた語がそのまま残る (読み替えも名札の経路でしか通らない)
+    const d = textDslToDiagram(`
+title: "t"
+type: flow
+
+actors:
+  - A: contract
+  - B: library
+
+flow:
+  - A -> B: "x"
+`);
+    expect(d.nodes.find((n) => n.id === "a")?.kind).toBe("contract");
+    expect(d.nodes.find((n) => n.id === "b")?.kind).toBe("library");
   });
 
   it("行を書いた名札は種類が残る", () => {
