@@ -339,17 +339,20 @@ flow:
   expect(問題, `絵が箱からはみ出している: ${問題.join(" / ")}`).toEqual([]);
 });
 
-test("上だけにはみ出す種別は形を残す (#1067)", async ({ page }) => {
+test("上だけにはみ出す種別は形を残す (#1067 / #1106)", async ({ page }) => {
   // 落としすぎの側を捕まえる。 判定を「どの向きでもはみ出したら落とす」 に広げると、
-  // 何ともぶつからない 10 種まで `card` になる。 代表 2 種を固定する
+  // 何ともぶつからない 9 種まで `card` になる。
+  //
+  // `shape-wallet` はここに居ない。 上へ 12.1 だけだが絵が潰れて名前と重なるため、 `#1106` で
+  // 落とす側へ移した (user 実機確認)。 上のはみ出し量ではなく **名前が読めるか** で分かれる
   await 記法を開く(
     page,
     `title: "t"
 type: sequence
 
 actors:
-  - A: shape-wallet
-  - B: shape-robot-arm
+  - A: shape-robot-arm
+  - B: shape-iot-sensor
   - C: shape-cloud
 
 flow:
@@ -360,12 +363,39 @@ flow:
   const rows = await 名札の絵を測る(page);
   const kindOf = (名: string): string | undefined => rows.find((r) => r.名 === 名)?.kind;
   expect(rows.length, "名札を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
-  // 上へ 12.1 (Solidity の `eoa` の読み替え先)
-  expect(kindOf("a-header"), "上だけのはみ出しで落としている").toBe("shape-wallet");
   // 上へ 129。 それでも viewBox の内側に収まる
-  expect(kindOf("b-header"), "上だけのはみ出しで落としている").toBe("shape-robot-arm");
+  expect(kindOf("a-header"), "上だけのはみ出しで落としている").toBe("shape-robot-arm");
+  // 上へ 48
+  expect(kindOf("b-header"), "上だけのはみ出しで落としている").toBe("shape-iot-sensor");
   // 完全に収まる 5 種の 1 つ
   expect(kindOf("c-header"), "収まる種別を落としている").toBe("shape-cloud");
+});
+
+test("shape-wallet は名札で card に落ちる (#1106)", async ({ page }) => {
+  // 上へ 12.1 しか出ないが、 絵が潰れて名前と重なるため落とす。 落とす基準が「はみ出し量」
+  // ではなく「名前が読めるか」 であることを固定する
+  await 記法を開く(
+    page,
+    `title: "t"
+type: sequence
+
+actors:
+  - EOA: eoa
+  - Wallet: wallet
+  - Robot: shape-robot-arm
+
+flow:
+  - EOA -> Wallet: "x"
+`,
+  );
+
+  const rows = await 名札の絵を測る(page);
+  const kindOf = (名: string): string | undefined => rows.find((r) => r.名 === 名)?.kind;
+  expect(rows.length, "名札を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+  expect(kindOf("eoa-header"), "eoa が落ちていない").toBe("card");
+  expect(kindOf("wallet-header"), "wallet が落ちていない").toBe("card");
+  // 同じ「上だけ」 の種別でも残すものがあることを一緒に見る = 全部落とす変異を捕まえる
+  expect(kindOf("robot-header"), "残す種別まで落ちている").toBe("shape-robot-arm");
 });
 
 /**

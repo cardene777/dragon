@@ -58,17 +58,21 @@ const 高さで直らない種別 = [
   "shape-code-block", // 右 132 (`library` / `interface`)
   "shape-stack", // 下 36 が高さに依らない
   "shape-cylinder", // 下 3.6 が高さに依らない
+  "shape-wallet", // 上 12.1 だが絵が潰れて名前と重なる (#1106、 user 実機確認)
 ] as const;
 
 /**
- * 名札に載ったままにする `shape-` (#1067)。
+ * 名札に載ったままにする `shape-` (#1067 / #1106)。
  *
  * 上だけにはみ出す種別は何ともぶつからず、 図の外にも出ない (実測 = `shape-robot-arm` は
  * 上へ 129 だが viewBox に 23 の余裕がある)。 完全に収まる 5 種も当然残る。
+ *
+ * **ただし上だけの 10 種のうち `shape-wallet` は落とす** (#1106)。 上へ 12.1 しか出ないのに
+ * 絵が潰れて名前と重なるため = 分ける基準ははみ出し量ではなく「名前が読めるか」。
  */
 const 残す種別 = [
-  "shape-wallet", // 上 12.1 (Solidity の `eoa` / `wallet`)
-  "shape-robot-arm", // 上 129
+  "shape-robot-arm", // 上 129。 絵の質が良いため残す (#1106 で user 判断)
+  "shape-iot-sensor", // 上 48
   "shape-cloud", // 完全に収まる
   "shape-token", // 完全に収まる
 ] as const;
@@ -136,20 +140,22 @@ describe("名札に載せる種類 (#1061)", () => {
     });
   });
 
-  it("Solidity の読み替えのうち、 形が残るのは eoa / wallet だけになる", () => {
-    // `#975` の読み替えは 3 組ある。 `#1067` の後に名札で形が残るのは
-    // `eoa` / `wallet` → `shape-wallet` (上へ 12.1 だけ) のみ。
+  it("Solidity の読み替えは名札では形を残さない", () => {
+    // `#975` の読み替えは 4 組ある。 `#1106` の後、 名札で形が残るのは
+    // `multisig` → `signer` だけになった。
     //
     // `contract` / `proxy` → `shape-smart-contract` (右 15.1) と
-    // `library` / `interface` → `shape-code-block` (右 132) は高さで直らないため `card` になる。
+    // `library` / `interface` → `shape-code-block` (右 132) は絵が箱の外に出るため `card`。
+    // `eoa` / `wallet` → `shape-wallet` は上へ 12.1 だけだが絵が潰れて名前と重なる (#1106)。
+    //
     // 読み替えそのものは残っている = 読み替えないと描画側に無い語のまま渡って落ちる
     const d =図(`  - A: contract\n  - B: eoa`);
     expect(kindOf(d, "a-header")).toBe("card");
-    expect(kindOf(d, "b-header")).toBe("shape-wallet");
+    expect(kindOf(d, "b-header")).toBe("card");
 
-    const d2 =図(`  - A: library\n  - B: proxy`);
+    const d2 =図(`  - A: library\n  - B: multisig`);
     expect(kindOf(d2, "a-header")).toBe("card");
-    expect(kindOf(d2, "b-header")).toBe("card");
+    expect(kindOf(d2, "b-header")).toBe("signer");
   });
 
   it("落とすのは順序図の名札だけ", () => {
