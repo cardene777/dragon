@@ -42,21 +42,43 @@ async function 開く(page: import("@playwright/test").Page, slug: string): Prom
   await page.waitForTimeout(2500);
 }
 
-// 読める下限で枠に収まらなくなる見本。 変更前は左右が同量ずつ隠れていた。
+// 横に収まらない図で左端が見えることを見る。 変更前は左右が同量ずつ隠れていた。
 //
-// 3 見本を総当たりしない。 位置決めの分かれ目は「その軸が収まるか」 だけで、 8 見本を実測すると
-// swimlane / sequence / pie / er は全て同じ枝 (横は収まらない / 縦は収まる) に落ちる。 最も
-// 大きく隠れていた 1 件を見る (実測の隠れ量 = swimlane 343px / sequence 99px / pie 23px)。
+// **見本を使わず、 その場で作る**。 `#1102` で 12 見本すべてが枠に収まるようになり、 横に
+// 収まらない見本が 1 つも無くなった。 見本に頼ると空振り防止 (`図幅 > 枠幅`) が落ちる。
+// 元は `swimlane` を使い、 隠れ量 343px を実測していた。
+//
+// 位置決めの分かれ目は「その軸が収まるか」 だけなので、 収まらない図を 1 つ作れば足りる。
+// 段を 6 本にすると読める下限を 8px まで譲っても枠 (840px) に収まらない。
 //
 // 他の枝は下の 3 件が受け持つ = 横も収まる (`flow`) / 縦が収まらない (その場で作る) /
 // 囲んだ範囲の始点が負 (その場で作る)。
 //
-// 境界を `>=` にする変異は落とせない。 どの見本も枠とちょうど同幅にならず、 同幅では両方の枝が
+// 境界を `>=` にする変異は落とせない。 枠とちょうど同幅にはならず、 同幅では両方の枝が
 // 同じ値を返すため等価 (単体側の `ちょうど同じ大きさは収まる側に入れる` が意図を残す)。
-test("見本 swimlane を開くと図の左端が見える (#1088)", async ({ page }) => {
-  await 開く(page, "swimlane");
-  const m = await 隠れ量(page);
+/** 段を 6 本にした swimlane。 下限を 8px まで譲っても枠 (840px) に収まらない */
+const 横に長い図 = [
+  `title: "横に長い"`,
+  `type: swimlane`,
+  ``,
+  `actors:`,
+  ...Array.from({ length: 6 }, (_, i) => `  - 担当${i + 1}`),
+  ``,
+  `flow:`,
+  ...Array.from({ length: 5 }, (_, i) => `  - 担当${i + 1} -> 担当${i + 2}: "渡す"`),
+].join("\n");
 
+async function 書いて開く(page: import("@playwright/test").Page, src: string): Promise<void> {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2500);
+}
+
+test("横に収まらない図では左端が見える (#1088)", async ({ page }) => {
+  await 書いて開く(page, 横に長い図);
+
+  const m = await 隠れ量(page);
   expect(m, "図が画面に無い").not.toBeNull();
   // 収まらない図であることを先に確かめる。 収まる図で測っても「左が隠れない」 は自明に通り、
   // 検査が空振りする
@@ -137,11 +159,18 @@ test("図の外に置いたパーツも囲んで左端に合わせる (#1088)", 
 
 test("縦に収まる図では上端に寄せない (#1088)", async ({ page }) => {
   // 軸ごとに独立して決める。 横は収まらないが縦は収まる図で、 縦まで上端に寄せると
-  // 上下の余白が偏る
-  await 開く(page, "swimlane");
+  // 上下の余白が偏る。
+  //
+  // `#1102` で見本 `swimlane` は横も収まるようになった。 そのまま使うと「両軸とも収まる図」 に
+  // なり、 中央に置かれるのが当たり前になって軸ごとの独立を確かめられない。 横に収まらない図を
+  // その場で作る
+  await 書いて開く(page, 横に長い図);
   const m = await 隠れ量(page);
 
   expect(m, "図が画面に無い").not.toBeNull();
+  // 横は収まっていないことを先に確かめる (両軸とも収まる図では自明に通る)
+  expect(m!.図幅, `横が収まっている (検査が空振りしている)`).toBeGreaterThan(m!.枠幅);
+  expect(m!.図高, `縦が収まっていない (検査の前提が崩れている)`).toBeLessThanOrEqual(m!.枠高);
   // 上が負 = 図の上端が枠の上端より下にある = 余白がある
   expect(m!.上, `縦まで上端に寄せている: 上 ${m!.上}`).toBeLessThan(0);
 });

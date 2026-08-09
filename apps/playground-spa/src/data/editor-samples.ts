@@ -105,20 +105,16 @@ type: swimlane
 actors:
   - Client
   - 認証: service
-  - DB: database
   - メール: service
 
 flow:
   - Client -> 認証: "登録要求"
-  - 認証 -> DB: "Client保存"
   - 認証 -> メール: "歓迎メール送信"
   - メール -> Client: "メール到着"
 
 animation:
   - step: "register" 1.4s
     focus: [Client, 認証, "Client -> 認証"]
-  - step: "persist" 1.4s
-    focus: [認証, DB, "認証 -> DB"]
   - step: "notify" 1.4s
     focus: [認証, メール, "認証 -> メール"]
   - step: "deliver" 1.4s
@@ -183,13 +179,11 @@ actors:
   - 待機: card
   - 検証中: card
   - 完了: card
-  - 失敗: card
 
 flow:
   - 待機 -> 検証中: "送信"
   - 検証中 -> 完了: "認証成功" (success)
-  - 検証中 -> 失敗: "認証失敗"
-  - 失敗 -> 待機: "再試行"
+  - 検証中 -> 待機: "認証失敗・再試行"
 
 animation:
   - step: "idle" 1.0s
@@ -199,7 +193,7 @@ animation:
   - step: "success" 1.0s
     focus: [完了, "検証中 -> 完了"]
   - step: "fail" 1.0s
-    focus: [失敗, "検証中 -> 失敗"]
+    focus: [待機, "検証中 -> 待機"]
 `,
   },
   {

@@ -24,7 +24,7 @@ import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serial
 import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
-import { applyReadableFloor, readableFloorScale, smallestFontWorld } from "@/lib/readable-scale";
+import { boxesRightPx, readableScaleForFrame, smallestFontWorld } from "@/lib/readable-scale";
 import { axisOffset } from "@/lib/fit-anchor";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { stagePaperColor } from "@/lib/stage-paper";
@@ -1288,9 +1288,20 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const fitScale = Math.min(availableW / bounds.width, availableH / bounds.height);
     // 収める倍率が文字を潰す所まで下がったら、 読める大きさで止める (#1084)。
     // 横長の図では幅が上限を決めるため、 縦の空白を残したまま極端に縮む (実測 = 見本
-    // 「Client登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。 止めた結果
-    // 枠に収まらない分は、 既にある平行移動で横に動かして見る
-    const scale = applyReadableFloor(fitScale, readableFloorScale(smallestFontWorld(svg), diagramK));
+    // 「Client登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。
+    //
+    // 下限 10px で箱が枠から出る図に限り 8px まで譲る (#1102)。 譲っても収まらないなら譲らない
+    // = 文字が小さくなるだけで見えない箱は見えないままになる。 判定の詳細は
+    // `readableScaleForFrame` の説明を参照
+    const scale = readableScaleForFrame({
+      fitScale,
+      minFontWorld: smallestFontWorld(svg),
+      diagramK,
+      boxesRight: boxesRightPx(svg, vb.width > 0 ? px.w / vb.width : 0, vb.x),
+      boundsLeft: bounds.left,
+      boundsWidth: bounds.width,
+      frameWidth: previewRect.width,
+    });
     // 位置決めは軸ごとに独立して決める (#1088)。 収まる軸は中央、 収まらない軸は始点に寄せる。
     // 読める下限 (#1084) で収まらなくなった図を中央に置くと左右が同じだけ隠れ、 図の始まりが
     // 見えない (実測 = 見本「Client登録」 で左右 343px ずつ)。 読む人は左から読む

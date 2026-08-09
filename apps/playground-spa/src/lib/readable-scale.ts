@@ -12,9 +12,19 @@
  * 倍率が違う (実測 = 世界座標の最小文字は 11 から 24 まで散る)。 文字そのものを基準にすれば
  * どの図でも同じ「読めるかどうか」 で揃う。
  */
+import { axisOffset } from "./fit-anchor";
 
 /** 画面上でこれを下回ると本文として読めない (px)。 */
 export const READABLE_MIN_PX = 10;
+
+/**
+ * 箱が枠から出る図に限って譲る下限 (px、 #1102)。
+ *
+ * 10px を全図で下げると、 いま足りている見本まで巻き添えになる (実測 = `sequence` 10 → 8.7px、
+ * `sequence-checkout` 10 → 9.2px、 `gantt` 10 → 9.7px)。 10px は `#1084` が「本文として
+ * 読めない境界」 として置いた値なので、 守れる図では守る。
+ */
+export const READABLE_RELAXED_PX = 8;
 
 /**
  * 100% を超えて引き伸ばさない。
@@ -61,6 +71,118 @@ export function applyReadableFloor(
   if (!Number.isFinite(floorScale) || floorScale <= 0) return fitScale;
   const capped = Math.min(floorScale, maxScale);
   return Math.max(fitScale, capped);
+}
+
+/**
+ * 実際に使う倍率。 好ましい下限で箱が枠から出る図に限って、 譲れる下限まで下げる (#1102)。
+ *
+ * ## 判定に図の外枠を使ってはいけない
+ *
+ * 図の外枠は余白を含むため、 箱がすべて枠の中にある見本でも「収まらない」 と判定される
+ * (実測 = `sequence` は外枠 886px で枠 840px を超えるが、 箱は 17 個すべて内側)。 外枠で
+ * 分岐させると全図が譲る側に落ち、 下限を一律に下げたのと同じ結果になる (実測で 12 見本すべて
+ * 一致した)。 判定は **箱の右端が画面のどこに来るか** で行う。
+ *
+ * ## 画面上の位置は `axisOffset` が決める
+ *
+ * 箱の右端に倍率を掛けただけでは足りない。 実際の位置は直後の `axisOffset` (#1088) が決めており、
+ * 枠に収まる図は中央に置かれるため右端が `(枠 - 図) / 2` だけ右へずれる。 収まらない図だけが
+ * 左端に寄る。 判定と配置で別の式を使うと両者がずれるので、 **配置と同じ関数** を判定にも使う。
+ *
+ * Round 1 review はこのずれを実測で示した = 3 段の swimlane で名前を 14 文字にすると、 譲った
+ * 倍率でも中央寄せの分で箱が枠から 10.7px 外に残り、 文字だけ小さくなっていた。
+ *
+ * ## 譲っても収まらないなら譲らない
+ *
+ * 譲った下限でも箱が枠から出るなら、 文字が小さくなるだけで見えない箱は見えないままになる。
+ * それは損しかしないので好ましい下限に留める。 変更前 (`#1100` 時点) と同じ見え方になる。
+ *
+ * 測れない時 (`boxesRight` が null / 枠幅が正でない / 囲んだ範囲が取れない) は好ましい下限を
+ * 返す = 判定材料が無いことを理由に文字を小さくしない。
+ */
+export function readableScaleForFrame(args: {
+  fitScale: number;
+  minFontWorld: number;
+  diagramK: number;
+  /** 箱の右端。 倍率をかける前の px 座標で、 図の左上を原点とする */
+  boxesRight: number | null;
+  /** 囲んだ範囲の左端。 図の外にパーツがあると負になる (倍率をかける前の px) */
+  boundsLeft: number;
+  /** 囲んだ範囲の幅 (倍率をかける前の px) */
+  boundsWidth: number;
+  frameWidth: number;
+  minPx?: number;
+  relaxedPx?: number;
+}): number {
+  const {
+    fitScale,
+    minFontWorld,
+    diagramK,
+    boxesRight,
+    boundsLeft,
+    boundsWidth,
+    frameWidth,
+    minPx = READABLE_MIN_PX,
+    relaxedPx = READABLE_RELAXED_PX,
+  } = args;
+  const 好ましい = applyReadableFloor(fitScale, readableFloorScale(minFontWorld, diagramK, minPx));
+  if (boxesRight === null || !Number.isFinite(boxesRight)) return 好ましい;
+  if (!Number.isFinite(boundsLeft) || !Number.isFinite(boundsWidth) || boundsWidth <= 0) {
+    return 好ましい;
+  }
+  if (!Number.isFinite(frameWidth) || frameWidth <= 0) return 好ましい;
+
+  /** その倍率で置いた時、 箱の右端が枠の中に入るか */
+  const 収まる = (scale: number): boolean => {
+    if (!Number.isFinite(scale) || scale <= 0) return true;
+    const tx = axisOffset({
+      frame: frameWidth,
+      content: boundsWidth * scale,
+      origin: boundsLeft * scale,
+    });
+    return boxesRight * scale + tx <= frameWidth;
+  };
+
+  if (収まる(好ましい)) return 好ましい;
+  const 譲った = applyReadableFloor(fitScale, readableFloorScale(minFontWorld, diagramK, relaxedPx));
+  return 収まる(譲った) ? 譲った : 好ましい;
+}
+
+/**
+ * 箱の右端を、 倍率をかける前の px 座標で返す。 箱が 1 つも無ければ null。
+ *
+ * `getBBox` は利用者座標を返すので 2 段の変換が要る。 まず `viewBoxX` を引いて図の左上を原点に
+ * 直し、 次に `pxPerViewBox` (= 図の pixel 幅 / viewBox 幅) を掛けて px 座標にする。
+ *
+ * **`viewBoxX` を引き忘れてはいけない**。 実データの `sequence` は `viewBox.x = -44` で、 引かないと
+ * 右端を 44 利用者単位ぶん手前に見積もる (Round 1 review の指摘)。 原点がずれた値を
+ * 図の左端を 0 とする枠と比べることになり、 判定が枠幅の側へ甘くなる。
+ *
+ * 画面上の矩形 (`getBoundingClientRect`) は使わない。 その時点の倍率が混ざり、 候補倍率での
+ * 判定に使えない。
+ */
+export function boxesRightPx(
+  svg: SVGSVGElement | null | undefined,
+  pxPerViewBox: number,
+  viewBoxX: number,
+): number | null {
+  if (!svg) return null;
+  if (!Number.isFinite(pxPerViewBox) || pxPerViewBox <= 0) return null;
+  if (!Number.isFinite(viewBoxX)) return null;
+  let 右端 = Number.NEGATIVE_INFINITY;
+  for (const n of svg.querySelectorAll("[data-cdl-node]")) {
+    if (typeof (n as SVGGraphicsElement).getBBox !== "function") continue;
+    let b: DOMRect;
+    try {
+      b = (n as SVGGraphicsElement).getBBox();
+    } catch {
+      // 描画されていない節点は getBBox が投げる環境がある。 数えない
+      continue;
+    }
+    if (!Number.isFinite(b.x) || !Number.isFinite(b.width) || b.width <= 0) continue;
+    右端 = Math.max(右端, (b.x + b.width - viewBoxX) * pxPerViewBox);
+  }
+  return Number.isFinite(右端) ? 右端 : null;
 }
 
 /**
