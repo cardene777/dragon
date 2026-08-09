@@ -117,12 +117,12 @@ describe("行を宣言しなくても kind は載る (#975)", () => {
     // 記法の kind は描画の kind より広い。 そのまま渡すと大きさを引けずに描画が落ちる
     // (実測 = solidity の golden 4 件が `Cannot read properties of undefined`)。
     // 一律 card にすると Solidity の図だけ「書いたとおりの形」 にならないので読み替える。
-    expect(nodeById(d0(`DB: { kind: eoa }`), "db-header")?.kind).toBe("shape-wallet");
     expect(nodeById(d0(`DB: { kind: multisig }`), "db-header")?.kind).toBe("signer");
-    // `contract` の読み替え先 (`shape-smart-contract`) は名札に収まらないため `card` になる
-    // (#1067)。 読み替えが消えたのではなく、 読み替えた後に落ちている =
+    // `contract` (`shape-smart-contract`) と `eoa` (`shape-wallet`) は名札に収まらないため
+    // `card` になる (#1067 / #1106)。 読み替えが消えたのではなく、 読み替えた後に落ちている =
     // `seq-header-kind-fit.test.ts` が両者の区別を見る
     expect(nodeById(d0(`DB: { kind: contract }`), "db-header")?.kind).toBe("card");
+    expect(nodeById(d0(`DB: { kind: eoa }`), "db-header")?.kind).toBe("card");
   });
 
   it("読み取れない語では名札の種類を上書きしない", () => {

@@ -5480,7 +5480,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5560,7 +5560,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
       "cy": 680,
       "h": 72,
       "id": "alice-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5643,7 +5643,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "cy": 259,
       "h": 262,
       "id": "alice-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5723,7 +5723,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "cy": 965,
       "h": 262,
       "id": "alice-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5819,7 +5819,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -5931,7 +5931,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
       "cy": 782,
       "h": 72,
       "id": "alice-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -6035,7 +6035,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 164,
       "h": 72,
       "id": "trader-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6147,7 +6147,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
       "cy": 782,
       "h": 72,
       "id": "trader-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6251,7 +6251,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 164,
       "h": 72,
       "id": "owner1-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6267,7 +6267,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 164,
       "h": 72,
       "id": "owner2-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6363,7 +6363,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 782,
       "h": 72,
       "id": "owner1-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6371,7 +6371,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
       "cy": 782,
       "h": 72,
       "id": "owner2-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -6454,7 +6454,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6534,7 +6534,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
       "cy": 680,
       "h": 72,
       "id": "user-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6617,7 +6617,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -6697,7 +6697,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
       "cy": 680,
       "h": 72,
       "id": "user-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -7219,7 +7219,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "cy": 164,
       "h": 72,
       "id": "attacker-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -7331,7 +7331,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
       "cy": 884,
       "h": 72,
       "id": "attacker-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 228,
     },
     {
@@ -7414,7 +7414,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7494,7 +7494,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
       "cy": 680,
       "h": 72,
       "id": "alice-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -7577,7 +7577,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "cy": 164,
       "h": 72,
       "id": "caller-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -7657,7 +7657,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
       "cy": 680,
       "h": 72,
       "id": "caller-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 184,
     },
     {
@@ -7740,7 +7740,7 @@ exports[`golden: solidity preset > Y13 bridge node + relayer 1`] = `
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -7820,7 +7820,7 @@ exports[`golden: solidity preset > Y13 bridge node + relayer 1`] = `
       "cy": 680,
       "h": 72,
       "id": "user-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -7890,7 +7890,7 @@ exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`]
       "cy": 164,
       "h": 72,
       "id": "user-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -7938,7 +7938,7 @@ exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`]
       "cy": 578,
       "h": 72,
       "id": "user-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -8044,7 +8044,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 164,
       "h": 72,
       "id": "alice-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -8060,7 +8060,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 164,
       "h": 72,
       "id": "bob-header",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {
@@ -8188,7 +8188,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 884,
       "h": 72,
       "id": "alice-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 162,
     },
     {
@@ -8196,7 +8196,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
       "cy": 884,
       "h": 72,
       "id": "bob-footer",
-      "kind": "shape-wallet",
+      "kind": "card",
       "w": 140,
     },
     {

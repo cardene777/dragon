@@ -2194,6 +2194,9 @@ const LABEL_NEVER_FITS: ReadonlySet<string> = new Set([
   // 下のはみ出しが高さに依らない 6 種
   "shape-cylinder", "shape-diamond", "shape-file", "shape-folder", "shape-mobile-device",
   "shape-stack",
+  // 上へ出る絵が名札の大きさでは読めない。 `#1067` では「上は何ともぶつからない」 として残したが、
+  // 実際には絵が小さく潰れて名前と重なり、 横に並べた時も 1 本だけ頭が浮く (user 実機確認)
+  "shape-wallet",
 ]);
 
 /**
