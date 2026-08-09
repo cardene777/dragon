@@ -12,8 +12,24 @@
  */
 import { test, expect } from "@playwright/test";
 
-/** 画面上でこれを下回ると本文として読めない (`src/lib/readable-scale.ts` と同じ値)。 */
+/**
+ * 画面上でこれを下回ると本文として読めない (`src/lib/readable-scale.ts` と同じ値を書き写す。
+ * import すると実装の定数を変えた時に検査も一緒に動いてしまう)。
+ *
+ * `#1102` で下限は 1 つではなくなった。 好ましい下限は 10px のままで、 **10px では箱が枠から
+ * 出る図に限り 8px まで譲る**。 譲っても収まらないなら譲らない。
+ */
 const MIN_PX = 10;
+const RELAXED_PX = 8;
+
+/**
+ * 見本ごとの下限 (`#1102`)。 譲る図と譲らない図の両方を持たないと、 下限を一律に下げる変更が
+ * 入っても緑のまま通る。
+ *
+ * どの見本がどちらに落ちるかの SSOT は `editor-preview-width.spec.ts` の `文字の下限`。
+ */
+const 下限 = (slug: string): number =>
+  ["swimlane", "state-machine", "er"].includes(slug) ? RELAXED_PX : MIN_PX;
 
 /**
  * 検査は 2 層に分ける。
@@ -83,7 +99,7 @@ async function 測る(page: import("@playwright/test").Page) {
 }
 
 for (const slug of SAMPLES) {
-  test(`見本 ${slug} を開くと文字が ${MIN_PX}px 以上で出る (#1084)`, async ({ page }) => {
+  test(`見本 ${slug} を開くと文字が ${下限(slug)}px 以上で出る (#1084)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
@@ -96,7 +112,7 @@ for (const slug of SAMPLES) {
     expect(
       m!.最小.px,
       `文字が小さすぎる: ${m!.最小.s} が ${m!.最小.px}px (倍率 ${m!.倍率})`,
-    ).toBeGreaterThanOrEqual(MIN_PX);
+    ).toBeGreaterThanOrEqual(下限(slug));
   });
 }
 
@@ -111,7 +127,9 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
   await page.locator('[data-testid="editor-zoom-out"]').click();
   await page.waitForTimeout(400);
   const 縮めた後 = await 測る(page);
-  expect(縮めた後!.最小.px, "縮める操作が効いていない (検査が空振りしている)").toBeLessThan(MIN_PX);
+  expect(縮めた後!.最小.px, "縮める操作が効いていない (検査が空振りしている)").toBeLessThan(
+    下限("swimlane"),
+  );
 
   await page.locator('[data-testid="editor-fit"]').click();
   await page.waitForTimeout(600);
@@ -119,7 +137,7 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
   expect(
     戻した後!.最小.px,
     `収めた後も文字が小さい: ${戻した後!.最小.px}px (倍率 ${戻した後!.倍率})`,
-  ).toBeGreaterThanOrEqual(MIN_PX);
+  ).toBeGreaterThanOrEqual(下限("swimlane"));
 });
 
 test("画面に出ていない文字は下限を決めない (#1084)", async ({ page }) => {
@@ -130,7 +148,10 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
   // **下限が倍率を決める見本を選ぶ**。 枠に余裕がある見本では下限が効かず、 隠れた文字を数えても
   // 倍率が変わらないため検査が空振りする。 `#1100` で絵の枠を 852px に広げた時、 元々使っていた
   // 「プロジェクト構想」 は枠に収まるようになり (倍率 50.9% > 下限 41.7%) この検査が意味を
-  // 失った。 実測で下限が決める見本に付け替えた
+  // 失った。 実測で下限が決める見本に付け替えた。
+  //
+  // `#1102` で `er` は譲った下限 (8px) 側に落ちたが、 下限が倍率を決める点は変わらないため
+  // この見本のままでよい。 見る値だけ 8px 基準に直した
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/editor#preset=er");
   await page.waitForLoadState("networkidle");
@@ -138,13 +159,13 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
 
   const m = await 測る(page);
   expect(m!.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
-  // 下限が倍率を決めているので、 見えている最小文字はちょうど 10px に張り付く。
-  // 隠れた 20 の文字を数えると下限が 50% に上がり、 文字は 11px になる (実測)
+  // 下限が倍率を決めているので、 見えている最小文字はちょうど 8px に張り付く。
+  // 隠れた 20 の文字を数えると下限が 36.4% → 40% に上がり、 文字は 8.8px になる
   expect(
     m!.最小.px,
     `下限より大きく描かれている (隠れた文字を数えた疑い): ${m!.最小.px}px (倍率 ${m!.倍率})`,
-  ).toBeLessThan(10.9);
-  expect(m!.最小.px, `文字が小さすぎる: ${m!.最小.px}px`).toBeGreaterThanOrEqual(10);
+  ).toBeLessThan(8.7);
+  expect(m!.最小.px, `文字が小さすぎる: ${m!.最小.px}px`).toBeGreaterThanOrEqual(8);
 });
 
 test("枠に余裕がある図では倍率を上げない (#1084)", async ({ page }) => {
@@ -172,10 +193,17 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
   //
   // 下限にするのは、 見本に中身を足した時に落とさないため。 減る方向だけを見る。
   // 実測値 (2026-08-08) は下の数そのもので、 隠れている文字は別に 1-4 件ある (種別ごとの
-  // 重複した名前で、 描画側が意図して隠している)
+  // 重複した名前で、 描画側が意図して隠している)。
+  //
+  // `#1102` で 2 件を下方修正した。 いずれも見本から登場人物を 1 つ外した分で、 内訳も一致する。
+  //
+  // | 見本 | 変更前 | 変更後 | 減った言葉 |
+  // |---|---|---|---|
+  // | `swimlane` | 8 | 6 | `DB` / `Client保存` (レーンを 1 本外した) |
+  // | `state-machine` | 10 | 8 | `失敗` / `認証失敗` / `再試行` が消え `認証失敗・再試行` が増えた |
   const 見本: ReadonlyArray<readonly [string, number]> = [
-    ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 8],
-    ["topology", 11], ["er", 25], ["state-machine", 10], ["class", 19],
+    ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
+    ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
     ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
   ];
   const 問題: string[] = [];
@@ -218,7 +246,7 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
     }
     if (m.測った === 0) 問題.push(`${slug}: 文字を 1 つも測れていない`);
     if (m.読めない > 0) 問題.push(`${slug}: 大きさを読めない文字 ${m.読めない} 件`);
-    if (m.最小 > 0 && m.最小 < 10) 問題.push(`${slug}: 最小文字 ${m.最小}px`);
+    if (m.最小 > 0 && m.最小 < 下限(slug)) 問題.push(`${slug}: 最小文字 ${m.最小}px`);
     // 画面に出ている文字が減った = 図から言葉が黙って消えた
     if (m.見える < 見える下限) 問題.push(`${slug}: 見える文字が ${m.見える} 件 (${見える下限} 件あったはず)`);
   }

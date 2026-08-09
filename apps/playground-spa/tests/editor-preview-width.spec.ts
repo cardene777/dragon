@@ -8,11 +8,12 @@
  * 絵の枠が 688px しかなく、 図は 886-1374px になるため収まらない。 画面の割り当てを変えて
  * 絵の枠を 840px にした。
  *
- * ## 収まらない見本が 3 件残る
+ * ## 残った 3 件を `#1102` で収めた
  *
- * `swimlane` (1374px) と `state-machine` (1340px) と `er` (1021px) は 840px でも収まらない。
- * ここまで広げるには窓の大半を絵に割く必要があり、 記法を書く場所が残らない。 中身を減らすか
- * 下限を下げるかは別の判断として残す。
+ * `swimlane` (1374px) / `state-machine` (1340px) / `er` (1021px) は 840px でも収まらなかった。
+ * 実測で「中身を減らす」 と「読める下限を下げる」 のどちらか一方では解けないことが確定したため、
+ * 両方を使う。 ただし下限を下げるのは **箱が枠から出る図に限る** (`readableScaleForFrame`)。
+ * `swimlane` と `state-machine` は登場人物を 1 つ減らし、 `er` は減らさずに下限だけで収めた。
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
@@ -121,25 +122,74 @@ test("記法欄の横に欠ける量が見本の最長行を大きく超えな�
   expect(m!.中身, `最長行が想定と違う: ${m!.中身}px`).toBeLessThanOrEqual(560);
 });
 
-test("収まらない見本は 3 件に留まる (#1100)", async ({ page }) => {
+test("収まらない見本が 1 件も無い (#1102)", async ({ page }) => {
   // 見本を 1 件の中で回すため、 既定の 30 秒では足りない (実測 = 1 見本あたり約 4 秒)
   test.setTimeout(120_000);
-  // **見本の一覧は SSOT (`src/data/editor-samples.ts`) から引く**。 既知の 3 件だけを見ていると
-  // 残りのどれかが将来画面外へ出ても緑のまま通る (Round 1 review の指摘 1 点目)。 手書きで
-  // 12 件並べるのも同じ穴が残る = SSOT に 13 件目が増えた時に検査が追随しない (同 2 点目)。
-  //
-  // `swimlane` (図 1374px) / `state-machine` (1340px) / `er` (1021px) は絵の枠 840px でも
-  // 収まらない。 収めるには窓の大半を絵に割く必要があり記法を書く場所が残らないため 3 件を残す
+  // **見本の一覧は SSOT (`src/data/editor-samples.ts`) から引く**。 既知の件数だけを見ていると
+  // 残りのどれかが将来画面外へ出ても緑のまま通る (`#1100` Round 1 review の指摘 1 点目)。
+  // 手書きで並べるのも同じ穴が残る = SSOT に 13 件目が増えた時に検査が追随しない (同 2 点目)。
   const 収まらない: string[] = [];
   let 測れた = 0;
   for (const { slug } of EDITOR_SAMPLES) {
     const m = await 画面外の箱(page, slug);
     if (m === null) continue;
     測れた += 1;
-    if (m.外.length > 0) 収まらない.push(slug);
+    if (m.外.length > 0) 収まらない.push(`${slug} (${m.外.join(" / ")})`);
   }
   // 空振り防止。 SSOT が空でないことと、 全件を実際に測れたことの 2 つを見る
   expect(EDITOR_SAMPLES.length, "SSOT に見本が無い").toBeGreaterThan(0);
   expect(測れた, "測れなかった見本がある (検査が空振りしている)").toBe(EDITOR_SAMPLES.length);
-  expect(収まらない.sort(), "収まらない見本が変わった").toEqual(["er", "state-machine", "swimlane"]);
+  expect(収まらない.sort(), "画面の外に出ている見本がある").toEqual([]);
 });
+
+// `#1102` で 8px まで譲るのは、 好ましい下限 10px では箱が枠から出る図に限る。 譲る図と譲らない
+// 図の両方を押さえておかないと、 一律に下げる変更が入っても緑のまま通る
+const 文字の下限 = [
+  { slug: "sequence", 下限: 10, 理由: "箱が枠に収まるので譲らない (図の外枠は 886px で枠を超える)" },
+  { slug: "sequence-checkout", 下限: 10, 理由: "同上" },
+  { slug: "gantt", 下限: 10, 理由: "同上" },
+  { slug: "swimlane", 下限: 8, 理由: "10px では箱が枠から出る" },
+  { slug: "state-machine", 下限: 8, 理由: "同上" },
+  { slug: "er", 下限: 8, 理由: "同上" },
+] as const;
+
+for (const { slug, 下限, 理由 } of 文字の下限) {
+  test(`見本 ${slug} の画面上の最小文字が ${下限}px (#1102)`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/editor#preset=${slug}`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2400);
+
+    const m = await page.evaluate(() => {
+      const svg = document
+        .querySelector(".v4-editor-stage")
+        ?.querySelector<SVGSVGElement>("svg[data-cdl-stage]");
+      if (!svg) return null;
+      const 幅 = svg.getBoundingClientRect().width;
+      const vb = svg.viewBox?.baseVal?.width ?? 0;
+      if (!(幅 > 0) || !(vb > 0)) return null;
+      const k = 幅 / vb;
+      let 最小 = Number.POSITIVE_INFINITY;
+      let 数えた = 0;
+      for (const t of svg.querySelectorAll("text")) {
+        if ((t.textContent ?? "").trim().length === 0) continue;
+        const cs = getComputedStyle(t);
+        if (cs.display === "none") continue;
+        if (cs.visibility === "hidden" || cs.visibility === "collapse") continue;
+        if (Number.parseFloat(cs.opacity) === 0) continue;
+        const world = Number.parseFloat(cs.fontSize);
+        if (!Number.isFinite(world) || world <= 0) continue;
+        数えた += 1;
+        最小 = Math.min(最小, world * k);
+      }
+      return 数えた > 0 ? { 最小: Math.round(最小 * 10) / 10, 数えた } : null;
+    });
+
+    expect(m, "図の文字が取れない").not.toBeNull();
+    expect(m!.数えた, "文字が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    // 下限ちょうどで止まる。 実測は 6 件とも小数点以下が 0 なので、 幅は丸めを吸収する分だけ。
+    // 0.3px にすると `gantt` の変異後の値 (9.7px) が許容に隠れて変異を見逃す (実測)
+    expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeGreaterThanOrEqual(下限 - 0.2);
+    expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeLessThan(下限 + 0.2);
+  });
+}

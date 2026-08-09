@@ -4,8 +4,11 @@ import {
   readableFloorScale,
   applyReadableFloor,
   smallestFontWorld,
+  readableScaleForFrame,
+  boxesSpanPx,
   READABLE_MIN_PX,
   READABLE_MAX_SCALE,
+  READABLE_RELAXED_PX,
 } from "./readable-scale";
 
 describe("readableFloorScale", () => {
@@ -72,6 +75,135 @@ describe("applyReadableFloor", () => {
 
   it("上限は差し替えられる", () => {
     expect(applyReadableFloor(0.3, 2, 1.5)).toBeCloseTo(1.5, 5);
+  });
+});
+
+describe("readableScaleForFrame", () => {
+  // 実測 (窓 1440px、 枠 840px) を土台にする。 最小文字 20 世界座標 / 図の倍率 1 で
+  // 好ましい下限 (10px) は 0.5、 譲った下限 (8px) は 0.4 になる
+  const 素 = { fitScale: 0.23, minFontWorld: 20, diagramK: 1, frameWidth: 840 };
+
+  it("箱が枠に収まるなら譲らない", () => {
+    // 見本「ログインAPI呼び出し」 = 図の外枠は 886px で枠を超えるが、 箱は全部内側。
+    // 外枠で判定すると 8px に落ちる (実測でそうなった)
+    expect(readableScaleForFrame({ ...素, boxesSpan: 1600 })).toBeCloseTo(0.5, 5);
+  });
+
+  it("箱が枠から出て、 譲れば収まるなら譲る", () => {
+    // 1 箱あたり 0.5 で 840 を超え、 0.4 なら収まる幅
+    expect(readableScaleForFrame({ ...素, boxesSpan: 2000 })).toBeCloseTo(0.4, 5);
+  });
+
+  it("譲っても収まらないなら譲らない", () => {
+    // 文字が小さくなるだけで見えない箱は見えないまま = 損しかしない。
+    // 見本「Client登録」 を減らす前がここに落ちる
+    expect(readableScaleForFrame({ ...素, boxesSpan: 3000 })).toBeCloseTo(0.5, 5);
+  });
+
+  it("境界ちょうどは譲らない", () => {
+    // 0.5 で 840 ぴったり = 枠に収まっている
+    expect(readableScaleForFrame({ ...素, boxesSpan: 1680 })).toBeCloseTo(0.5, 5);
+  });
+
+  it("測れない時は譲らない", () => {
+    // 判定材料が無いことを理由に文字を小さくしない
+    for (const v of [null, 0, -1, Number.NaN]) {
+      expect(readableScaleForFrame({ ...素, boxesSpan: v }), `boxesSpan=${v}`).toBeCloseTo(0.5, 5);
+    }
+    for (const v of [0, -1, Number.NaN]) {
+      expect(
+        readableScaleForFrame({ ...素, boxesSpan: 2000, frameWidth: v }),
+        `frameWidth=${v}`,
+      ).toBeCloseTo(0.5, 5);
+    }
+  });
+
+  it("収める倍率が下限より大きい図では何も起きない", () => {
+    // 縦長の図。 下限が効いていないので譲る余地がそもそも無い
+    expect(readableScaleForFrame({ ...素, fitScale: 0.8, boxesSpan: 2000 })).toBeCloseTo(0.8, 5);
+  });
+
+  it("下限の px は差し替えられる", () => {
+    // 譲り先を 5px にすると下限 0.25、 boxesSpan 2000 でも収まる
+    expect(
+      readableScaleForFrame({ ...素, boxesSpan: 3000, relaxedPx: 5 }),
+    ).toBeCloseTo(0.25, 5);
+  });
+
+  it("譲り先の既定は 8px", () => {
+    expect(READABLE_RELAXED_PX).toBe(8);
+    expect(readableScaleForFrame({ ...素, boxesSpan: 2000 })).toBe(
+      readableScaleForFrame({ ...素, boxesSpan: 2000, relaxedPx: 8 }),
+    );
+  });
+});
+
+describe("boxesSpanPx", () => {
+  /** getBBox を持たない jsdom のために、 節点ごとの矩形を差し込んだ svg を作る */
+  const svgWithNodes = (boxes: { x: number; width: number }[]): SVGSVGElement => {
+    const host = document.createElement("div");
+    host.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${boxes
+      .map(() => `<g data-cdl-node="1"></g>`)
+      .join("")}</svg>`;
+    const svg = host.querySelector("svg")!;
+    svg.querySelectorAll("[data-cdl-node]").forEach((n, i) => {
+      (n as unknown as { getBBox: () => DOMRect }).getBBox = () =>
+        ({ x: boxes[i].x, y: 0, width: boxes[i].width, height: 10 }) as DOMRect;
+    });
+    return svg as SVGSVGElement;
+  };
+
+  it("最も右にある箱の右端までを返す", () => {
+    // viewBox 単位 100 の箱を px 換算 2 倍で見る = 右端 400、 図の左端 0
+    const svg = svgWithNodes([
+      { x: 0, width: 50 },
+      { x: 150, width: 50 },
+    ]);
+    expect(boxesSpanPx(svg, 2, 0)).toBe(400);
+  });
+
+  it("図の左端が負なら、 その分だけ広がる", () => {
+    // パーツが図の外 (左) にあると左端が負になる。 寄せる基準がそこになる
+    const svg = svgWithNodes([{ x: 0, width: 100 }]);
+    expect(boxesSpanPx(svg, 1, -30)).toBe(130);
+  });
+
+  it("箱が 1 つも無ければ null", () => {
+    expect(boxesSpanPx(svgWithNodes([]), 1, 0)).toBeNull();
+  });
+
+  it("大きさを持たない箱は数えない", () => {
+    const svg = svgWithNodes([
+      { x: 0, width: 100 },
+      { x: 500, width: 0 },
+    ]);
+    expect(boxesSpanPx(svg, 1, 0)).toBe(100);
+  });
+
+  it("getBBox が投げる節点は数えない", () => {
+    const svg = svgWithNodes([{ x: 0, width: 100 }]);
+    const 壊れた = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    壊れた.setAttribute("data-cdl-node", "1");
+    (壊れた as unknown as { getBBox: () => DOMRect }).getBBox = () => {
+      throw new Error("not rendered");
+    };
+    svg.append(壊れた);
+    expect(boxesSpanPx(svg, 1, 0)).toBe(100);
+  });
+
+  it("換算が壊れている時は null", () => {
+    const svg = svgWithNodes([{ x: 0, width: 100 }]);
+    for (const v of [0, -1, Number.NaN]) {
+      expect(boxesSpanPx(svg, v, 0), `pxPerViewBox=${v}`).toBeNull();
+    }
+    expect(boxesSpanPx(svg, 1, Number.NaN)).toBeNull();
+    expect(boxesSpanPx(null, 1, 0)).toBeNull();
+  });
+
+  it("広がりが 0 以下になる形は null", () => {
+    // 図の左端が箱の右端より右にある = 判定材料として使えない
+    const svg = svgWithNodes([{ x: 0, width: 100 }]);
+    expect(boxesSpanPx(svg, 1, 100)).toBeNull();
   });
 });
 
