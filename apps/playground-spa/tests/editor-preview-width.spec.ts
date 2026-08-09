@@ -75,37 +75,71 @@ test("絵の枠が記法欄より広い (#1100)", async ({ page }) => {
   expect(m!.記法, `記法欄が狭すぎる: ${m!.記法}px`).toBeGreaterThanOrEqual(320);
 });
 
-test("記法欄で見本の最長行が折り返さない (#1100)", async ({ page }) => {
-  // 幅を数字で見るだけでは足りない。 実際に折り返していないかを行の高さで見る
+// 記法欄の幅は窓の幅で変わる。 比率だけで割ると狭い窓で潰れるため床を置いた (Round 1 review の
+// 指摘)。 実測 = 床が無いと 1366px で 307px、 1280px で 283px、 1201px で 261px まで縮んだ
+for (const 窓 of [1440, 1366, 1280, 1201]) {
+  test(`窓 ${窓}px で記法欄が 340px を保つ (#1100)`, async ({ page }) => {
+    await page.setViewportSize({ width: 窓, height: 900 });
+    await page.goto("/editor");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1800);
+
+    const m = await page.evaluate(() => {
+      const code = document.querySelector(".v4-editor-code");
+      return code ? Math.round(code.getBoundingClientRect().width) : -1;
+    });
+    expect(m, `記法欄が潰れている: ${m}px`).toBeGreaterThanOrEqual(340);
+  });
+}
+
+test("記法欄の横に欠ける量が見本の最長行を大きく超えない (#1100)", async ({ page }) => {
+  // **「折り返さない」 を見てはいけない**。 `.cm-line` の `white-space` は `pre` なので、 幅が
+  // 足りなくても行の高さは増えず横スクロールになる = 常に真で検査が空振りする (Round 1 review の
+  // 指摘。 変更前の検査はこれを見ていた)。
+  //
+  // 横スクロール自体は無くならない。 見本で最も長い行 (`er` の
+  // `title: "Client・投稿・コメントのスキーマ"`) は 545px あり、 完全に収めると記法欄 545px /
+  // 絵の枠 635px で変更前より狭くなる。 変更前も `er` は 54px 欠けていた (実測) ので、
+  // 欠けないことは目標にしない。 **欠ける量が最長行から決まる範囲に収まっているか** を見る
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=sequence");
+  await page.goto("/editor#preset=er");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
 
   const m = await page.evaluate(() => {
-    const lines = [...document.querySelectorAll(".cm-line")];
-    if (lines.length === 0) return null;
-    const 高さ = lines.map((l) => Math.round(l.getBoundingClientRect().height));
-    const 最小 = Math.min(...高さ.filter((h) => h > 0));
-    // 折り返した行は 1 行分の 2 倍近くになる
-    const 折り返し = lines
-      .filter((l) => l.getBoundingClientRect().height > 最小 * 1.5)
-      .map((l) => (l.textContent ?? "").trim().slice(0, 30));
-    return { 折り返し, 行数: lines.length };
+    const sc = document.querySelector(".cm-scroller");
+    if (!sc) return null;
+    return { 見える: sc.clientWidth, 中身: sc.scrollWidth };
   });
 
   expect(m, "本文欄が取れない").not.toBeNull();
-  expect(m!.行数, "行が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
-  expect(m!.折り返し, `折り返している行がある: ${m!.折り返し.join(" / ")}`).toEqual([]);
+  // 中身は 545px。 見える幅 340px なので 205px 欠ける。 これ以上大きくなったら記法欄が
+  // 想定より潰れている
+  expect(m!.中身 - m!.見える, `横に欠ける量が想定を超えた: ${m!.中身 - m!.見える}px`).toBeLessThanOrEqual(210);
+  // 中身の幅そのものも見る = 見本を長い題に変えると欠ける量が増えるので、 どちらが動いたか分かる
+  expect(m!.中身, `最長行が想定と違う: ${m!.中身}px`).toBeLessThanOrEqual(560);
 });
 
 test("収まらない見本は 3 件に留まる (#1100)", async ({ page }) => {
-  // `swimlane` / `state-machine` / `er` は 892px でも収まらない。 これ以上増えたら
-  // 割り当てか見本の中身が変わったということ
+  // 12 見本を 1 件の中で回すため、 既定の 30 秒では足りない (実測 = 1 見本あたり約 4 秒)
+  test.setTimeout(120_000);
+  // **12 見本すべてを巡回する**。 既知の 3 件だけを見ていると、 残りのどれかが将来画面外へ出ても
+  // 緑のまま通る (Round 1 review の指摘)。
+  //
+  // `swimlane` (図 1374px) / `state-machine` (1340px) / `er` (1021px) は絵の枠 840px でも
+  // 収まらない。 収めるには窓の大半を絵に割く必要があり記法を書く場所が残らないため 3 件を残す
+  const 全見本 = [
+    "sequence", "sequence-checkout", "flow", "swimlane", "topology", "er",
+    "state-machine", "class", "gantt", "mind", "pie", "c4",
+  ];
   const 収まらない: string[] = [];
-  for (const slug of ["swimlane", "state-machine", "er"]) {
+  let 測れた = 0;
+  for (const slug of 全見本) {
     const m = await 画面外の箱(page, slug);
-    if (m !== null && m.外.length > 0) 収まらない.push(slug);
+    if (m === null) continue;
+    測れた += 1;
+    if (m.外.length > 0) 収まらない.push(slug);
   }
+  expect(測れた, "見本を 1 件も測れていない (検査が空振りしている)").toBe(全見本.length);
   expect(収まらない.sort(), "収まらない見本が変わった").toEqual(["er", "state-machine", "swimlane"]);
 });
