@@ -147,29 +147,27 @@
   .v4-editor-side-new {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 11px 14px;
-    background: var(--v4-ink);
-    color: var(--v4-canvas);
-    border-radius: 9px;
-    font-family: var(--v4-mono);
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 12px;
+    background: var(--d-accent);
+    color: var(--d-on-accent);
+    border-radius: var(--d-r-1);
+    font-family: var(--d-body);
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     border: none;
-    transition: background 0.15s, transform 0.15s;
-    text-align: left;
+    text-align: center;
   }
   .v4-editor-side-new:hover {
-    background: var(--v4-brand-deep);
-    transform: translateY(-1px);
+    filter: brightness(1.08);
   }
   .v4-editor-side-new-plus {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     display: grid;
     place-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
     font-size: 14px;
     font-weight: 400;
   }
@@ -189,14 +187,14 @@
     cursor: pointer;
     user-select: none;
     list-style: none;
-    border-radius: 6px;
+    border-radius: var(--d-r-1);
     transition: background 0.15s;
   }
   .v4-editor-side-samples-summary::-webkit-details-marker {
     display: none;
   }
   .v4-editor-side-samples-summary:hover {
-    background: rgba(26, 20, 16, 0.04);
+    background: var(--d-surface-2);
   }
   .v4-editor-side-samples-label {
     font-family: var(--v4-mono);
@@ -231,18 +229,18 @@
 
   .v4-editor-search {
     margin-bottom: 10px;
-    padding: 7px 11px;
-    font-family: var(--v4-mono);
-    font-size: 12px;
-    background: var(--v4-code-bg, #fcf8ee);
-    border: 1px solid var(--v4-line);
-    border-radius: 7px;
-    color: var(--v4-ink);
+    height: 34px;
+    padding: 0 10px;
+    font-family: var(--d-body);
+    font-size: 13px;
+    background: var(--d-surface-2);
+    border: 1px solid var(--d-border-strong);
+    border-radius: var(--d-r-1);
+    color: var(--d-text-primary);
     outline: none;
-    transition: border-color 0.15s;
   }
   .v4-editor-search:focus {
-    border-color: var(--v4-brand);
+    border-color: var(--d-accent);
   }
   .v4-editor-search::placeholder {
     color: var(--v4-ink-mute);
@@ -267,25 +265,24 @@
     display: block;
     width: 100%;
     text-align: left;
-    padding: 7px 10px;
+    padding: 7px 9px;
     border: none;
     background: transparent;
-    color: var(--v4-ink-dim);
-    font-family: var(--v4-sans);
+    color: var(--d-text-secondary);
+    font-family: var(--d-body);
     font-size: 13px;
-    border-radius: 6px;
+    border-radius: var(--d-r-1);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
     margin-bottom: 1px;
   }
   .v4-editor-side-item:hover {
-    background: rgba(26, 20, 16, 0.05);
-    color: var(--v4-ink);
+    background: var(--d-surface-2);
+    color: var(--d-text-primary);
   }
   .v4-editor-side-item.active {
-    background: rgba(166, 106, 61, 0.1);
-    color: var(--v4-brand-deep);
-    font-weight: 500;
+    background: var(--d-accent-soft);
+    color: var(--d-accent);
+    font-weight: 600;
   }
 
   /* ── sidebar tabs (samples / parts、 CAR-1646) ── */
@@ -302,21 +299,18 @@
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--v4-ink-mute);
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-weight: 600;
+    color: var(--d-text-muted);
+    font-family: var(--d-body);
+    font-size: 13px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
   }
   .v4-editor-side-tab:hover {
-    color: var(--v4-ink);
+    color: var(--d-text-primary);
   }
   .v4-editor-side-tab.active {
-    color: var(--v4-brand-deep);
-    border-bottom-color: var(--v4-brand);
+    color: var(--d-text-primary);
+    border-bottom-color: var(--d-accent);
+    font-weight: 600;
   }
   /* ── 記法一覧 ── */
   .v4-editor-syntax-section {
@@ -339,14 +333,14 @@
     padding: 6px 10px;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: var(--d-r-1);
     transition: background 0.15s;
   }
   button.v4-editor-syntax-row {
     cursor: pointer;
   }
   button.v4-editor-syntax-row:hover {
-    background: rgba(26, 20, 16, 0.05);
+    background: var(--d-surface-2);
   }
   .v4-editor-syntax-code {
     font-family: var(--v4-mono);
@@ -366,11 +360,11 @@
     padding: 4px 10px 0;
   }
   .v4-editor-syntax-chip {
-    font-family: var(--v4-mono);
+    font-family: var(--d-mono);
     font-size: 11px;
-    color: var(--v4-ink-dim);
-    background: rgba(26, 20, 16, 0.05);
-    border-radius: 4px;
+    color: var(--d-text-secondary);
+    background: var(--d-surface-2);
+    border-radius: 2px;
     padding: 2px 6px;
   }
 
@@ -398,7 +392,7 @@
 
   /* ── drop overlay / hint on preview stage (CAR-1646) ── */
   .v4-editor-stage.drop-over {
-    outline: 2px dashed var(--v4-brand, #a66a3d);
+    outline: 2px dashed var(--d-accent);
     outline-offset: -6px;
   }
   .v4-editor-drop-overlay {
@@ -407,12 +401,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(240, 232, 212, 0.85);
-    color: var(--v4-brand-deep, #8a5a2a);
-    font-family: var(--v4-sans);
+    background: var(--d-accent-soft);
+    color: var(--d-accent);
+    font-family: var(--d-body);
     font-size: 15px;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: var(--d-r-2);
     pointer-events: none;
     z-index: 5;
   }
@@ -421,13 +415,13 @@
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 8px 14px;
-    background: rgba(26, 20, 8, 0.88);
-    color: #f8ecd8;
-    font-family: var(--v4-sans);
+    padding: 6px 12px;
+    background: var(--d-surface);
+    border: 1px solid var(--d-border-strong);
+    color: var(--d-text-primary);
+    font-family: var(--d-body);
     font-size: 12.5px;
-    border-radius: 6px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    border-radius: var(--d-r-1);
     z-index: 4;
     pointer-events: none;
     max-width: 80%;
@@ -436,7 +430,7 @@
 
   /* ── 中央 + 右共通 bar ── */
   .v4-editor-bar {
-    height: 40px;
+    height: 46px;
     padding: 0 14px;
     display: flex;
     align-items: center;
@@ -483,19 +477,18 @@
   .v4-editor-live { flex: 0 0 auto; }
   .v4-editor-bar-gap { flex: 1; }
   .v4-editor-bar-btn {
-    padding: 5px 11px;
-    border-radius: 6px;
-    border: none;
+    padding: 6px 11px;
+    border-radius: var(--d-r-1);
+    border: 1px solid transparent;
     background: transparent;
-    color: var(--v4-ink-dim);
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
+    color: var(--d-text-secondary);
+    font-family: var(--d-body);
+    font-size: 12.5px;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
   }
   .v4-editor-bar-btn:hover {
-    background: rgba(26, 20, 16, 0.05);
-    color: var(--v4-ink);
+    border-color: var(--d-border-strong);
+    color: var(--d-text-primary);
   }
   /* アイコンだけのボタン (#1063)。 文字のままだと 12 個で 811px を占め、 操作列 (491px)
      から 320px はみ出して右端が押せなかった。
@@ -550,16 +543,20 @@
   }
   /* 見えている枠が無いので、 キーボードで来た時の印だけは必ず出す */
   .v4-editor-bar-btn:focus-visible {
-    outline: 2px solid var(--v4-brand);
+    outline: 2px solid var(--d-accent);
     outline-offset: 1px;
   }
   .v4-editor-bar-btn-primary {
-    background: var(--v4-ink);
-    color: var(--v4-canvas);
+    background: var(--d-accent);
+    border-color: var(--d-accent);
+    color: var(--d-on-accent);
+    font-weight: 600;
   }
   .v4-editor-bar-btn-primary:hover {
-    background: var(--v4-brand-deep);
-    color: var(--v4-canvas);
+    background: var(--d-accent);
+    border-color: var(--d-accent);
+    color: var(--d-on-accent);
+    filter: brightness(1.08);
   }
   .v4-editor-bar-btn:disabled {
     opacity: 0.4;
@@ -567,70 +564,59 @@
   }
   /* 入になっている切り替えは、 押せる button と見分けが付く必要がある */
   .v4-editor-bar-btn.is-on {
-    background: rgba(201, 162, 62, 0.28);
-    color: var(--v4-ink);
-  }
-  html.dark .v4-editor-bar-btn.is-on {
-    background: rgba(240, 183, 94, 0.32);
-    color: #fef3c7;
+    background: var(--d-accent-soft);
+    border-color: var(--d-accent);
+    color: var(--d-accent);
   }
 
   /* 現在位置の札。 図の上に重ねるので、 中心が要素の中心に来るよう半分ずらす。
      ずらしと倍率の打ち消しは inline style で当てる (表示倍率が JS 側にしかないため)。 */
   .v4-editor-pos-mark {
     position: absolute;
-    padding: 3px 9px;
-    border-radius: 99px;
-    border: 1.5px solid var(--v4-brand);
-    background: rgba(252, 248, 238, 0.96);
-    color: #7a5c1a;
-    font-family: var(--v4-mono);
-    font-size: 12px;
-    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: var(--d-r-1);
+    border: 1px solid var(--d-accent);
+    background: var(--d-accent-soft);
+    color: var(--d-accent);
+    font-family: var(--d-mono);
+    font-size: 11.5px;
+    font-weight: 600;
     line-height: 1.4;
     white-space: nowrap;
     cursor: pointer;
     z-index: 5;
-    box-shadow: 0 1px 4px rgba(26, 20, 16, 0.18);
   }
   .v4-editor-pos-mark:hover {
-    background: var(--v4-brand);
-    color: var(--v4-canvas);
-    border-color: var(--v4-brand);
-  }
-  html.dark .v4-editor-pos-mark {
-    background: rgba(26, 20, 8, 0.92);
-    color: #f0b840;
-    border-color: rgba(240, 184, 64, 0.6);
+    background: var(--d-accent);
+    color: var(--d-on-accent);
+    border-color: var(--d-accent);
   }
 
-  /* 書いたのに効かなかったことの知らせ。 誤りではないので、 error より弱い見た目にする */
+  /* 書いたのに効かなかったことの知らせ = 助言。 誤りではないので、 誤りより弱い色を当てる */
   .v4-editor-notices {
-    border-top: 1px solid var(--v4-line);
-    padding: 8px 14px;
+    border-top: 1px solid var(--d-border);
+    padding: 11px 16px 12px;
     max-height: 120px;
     overflow-y: auto;
-    background: rgba(201, 162, 62, 0.07);
-  }
-  html.dark .v4-editor-notices {
-    background: rgba(201, 162, 62, 0.1);
+    background: var(--d-hint-soft);
   }
   .v4-editor-notice {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
+    font-family: var(--d-body);
     font-size: 12.5px;
     line-height: 1.7;
-    color: var(--v4-ink-dim);
+    color: var(--d-text-secondary);
   }
   .v4-editor-notice-line {
-    font-family: var(--v4-mono);
-    font-size: 11px;
-    color: var(--v4-ink-mute);
+    font-family: var(--d-mono);
+    font-size: 10.5px;
+    color: var(--d-hint);
     flex: none;
   }
-  .v4-editor-notice-text { color: var(--v4-ink); }
-  .v4-editor-notice-hint { color: var(--v4-ink-mute); }
+  .v4-editor-notice-text { color: var(--d-text-primary); }
+  .v4-editor-notice-hint { color: var(--d-text-muted); }
   .v4-editor-bar-zoom {
     font-family: var(--v4-mono);
     font-size: 11px;
@@ -649,9 +635,8 @@
   .v4-editor-live {
     width: 6px;
     height: 6px;
-    background: #a3d6a8;
+    background: var(--d-accent);
     border-radius: 50%;
-    box-shadow: 0 0 8px #a3d6a8;
     animation: live-pulse 1.8s ease-in-out infinite;
   }
   @keyframes live-pulse {
@@ -663,8 +648,8 @@
   .v4-editor-code {
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--v4-line);
-    background: var(--v4-code-bg, #fcf8ee);
+    border-right: 1px solid var(--d-border);
+    background: var(--d-code-bg);
     min-width: 0;
   }
   .v4-editor-code-body {
@@ -675,25 +660,29 @@
   .v4-editor-code-body .cm-editor {
     height: 100%;
   }
+  /* 誤り。 3 種の知らせの中で最も強い色を当てる */
   .v4-editor-error {
-    padding: 12px 18px;
-    background: rgba(193, 90, 74, 0.06);
-    border-top: 1px solid rgba(193, 90, 74, 0.3);
-    font-family: var(--v4-mono);
-    font-size: 12px;
-    color: #8b2828;
+    padding: 11px 16px 12px;
+    background: var(--d-err-soft);
+    border-top: 1px solid var(--d-border);
+    font-family: var(--d-mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--d-err);
     white-space: pre-wrap;
     max-height: 130px;
     overflow-y: auto;
   }
   /* ── 位置関係 warning bar (visualValidate 結果) ── */
+  /* 気付き。 誤りではないので、 誤りより 1 段弱い色を当てる */
   .v4-editor-warnings {
-    border-top: 1px solid rgba(201, 162, 62, 0.35);
-    background: rgba(201, 162, 62, 0.06);
+    border-top: 1px solid var(--d-border);
+    background: var(--d-warn-soft);
     max-height: 180px;
     overflow-y: auto;
-    padding: 14px 18px;
-    font-size: 15px;
+    padding: 11px 16px 12px;
+    font-family: var(--d-body);
+    font-size: 13px;
   }
   /* 900px 以下 responsive = 2 段 editor layout で warning panel が code editor を圧迫、
      max-height を 120px に絞って CodeMirror body を最低 160px 予約する (codex critical fix) */
@@ -704,10 +693,6 @@
       font-size: 13px;
     }
   }
-  html.dark .v4-editor-warnings {
-    background: rgba(201, 162, 62, 0.10);
-    border-top-color: rgba(201, 162, 62, 0.4);
-  }
   .v4-editor-warnings-head {
     display: flex;
     align-items: center;
@@ -716,65 +701,48 @@
   }
   .v4-editor-warnings-badge {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 99px;
-    background: rgba(201, 162, 62, 0.25);
-    color: #7a5c1a;
-    font-family: var(--v4-mono);
-    font-size: 14px;
-    font-weight: 700;
-  }
-  html.dark .v4-editor-warnings-badge {
-    background: rgba(240, 183, 94, 0.35);
-    color: #fef3c7;
+    padding: 2px 7px;
+    border-radius: 9px;
+    background: var(--d-warn-soft);
+    border: 1px solid var(--d-warn);
+    color: var(--d-warn);
+    font-family: var(--d-mono);
+    font-size: 11px;
+    font-weight: 600;
   }
   .v4-editor-warnings-hint {
-    color: var(--v4-ink-dim);
-    font-size: 14px;
+    color: var(--d-text-secondary);
+    font-size: 12.5px;
     flex: 1;
   }
   .v4-editor-warnings-apply {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1.5px solid var(--v4-brand);
-    background: var(--v4-brand);
-    color: var(--v4-canvas);
-    font-family: var(--v4-mono);
-    font-size: 14px;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: var(--d-r-1);
+    border: 1px solid var(--d-border-strong);
+    background: transparent;
+    color: var(--d-text-primary);
+    font-family: var(--d-body);
+    font-size: 11.5px;
     cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
   }
   .v4-editor-warnings-apply:hover {
-    background: var(--v4-brand-deep);
-    border-color: var(--v4-brand-deep);
-    transform: translateY(-1px);
+    border-color: var(--d-accent);
+    color: var(--d-accent);
   }
   .v4-editor-warnings-apply:disabled {
     background: transparent;
-    border-color: var(--v4-line);
-    color: var(--v4-ink-dim);
+    border-color: var(--d-border);
+    color: var(--d-text-muted);
     cursor: not-allowed;
-    transform: none;
     opacity: 0.65;
   }
   .v4-editor-warnings-apply:disabled:hover {
     background: transparent;
-    border-color: var(--v4-line);
-    transform: none;
-  }
-  html.dark .v4-editor-warnings-apply:disabled {
-    background: transparent;
-    border-color: var(--v4-line);
-    color: var(--v4-ink-dim);
-  }
-  html.dark .v4-editor-warnings-apply {
-    background: var(--v4-brand);
-    color: #1a1410;
-  }
-  html.dark .v4-editor-warnings-apply:hover {
-    background: var(--v4-brand-glow);
-    border-color: var(--v4-brand-glow);
+    border-color: var(--d-border);
+    color: var(--d-text-muted);
   }
   .v4-editor-warnings-list {
     list-style: none;
@@ -786,41 +754,37 @@
   }
   .v4-editor-warning-item {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: baseline;
-    padding: 4px 6px;
-    border-radius: 6px;
-    font-family: var(--v4-mono);
+    padding: 4px 0;
+    font-family: var(--d-body);
   }
-  .v4-editor-warning-item.v4-editor-warning-error {
-    background: rgba(193, 90, 74, 0.10);
+  .v4-editor-warning-item.v4-editor-warning-error .v4-editor-warning-axis {
+    background: var(--d-err-soft);
+    color: var(--d-err);
   }
-  .v4-editor-warning-item.v4-editor-warning-warn {
-    background: rgba(201, 162, 62, 0.10);
+  .v4-editor-warning-item.v4-editor-warning-warn .v4-editor-warning-axis {
+    background: var(--d-warn-soft);
+    color: var(--d-warn);
   }
   .v4-editor-warning-axis {
     flex: 0 0 auto;
-    padding: 3px 10px;
-    border-radius: 99px;
-    background: var(--v4-surface-2);
-    color: var(--v4-ink-dim);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    border-radius: 2px;
+    background: var(--d-surface-2);
+    color: var(--d-text-secondary);
+    font-family: var(--d-mono);
+    font-size: 10.5px;
   }
   .v4-editor-warning-detail {
-    color: var(--v4-ink-dim);
-    font-size: 14px;
-    line-height: 1.55;
-  }
-  html.dark .v4-editor-warning-detail {
-    color: var(--v4-ink);
+    color: var(--d-text-primary);
+    font-size: 12.5px;
+    line-height: 1.7;
   }
   .v4-editor-warning-more {
-    color: var(--v4-ink-mute);
-    font-size: 13px;
-    font-style: italic;
-    padding: 4px 8px;
+    color: var(--d-text-muted);
+    font-size: 11.5px;
+    padding: 4px 0;
   }
 
   /* ── 右 preview ── */
@@ -833,10 +797,19 @@
     flex: 1;
     overflow: hidden;
     position: relative;
-    background: var(--v4-surface);
+    background: var(--d-surface);
+    /* 方眼は掴む場所の目安。 図より前に出ないよう、 罫線の色を半分まで薄める */
     background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(26, 20, 16, 0.04) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(26, 20, 16, 0.04) 23px 24px);
+      repeating-linear-gradient(
+        0deg,
+        transparent 0 23px,
+        color-mix(in srgb, var(--d-border) 55%, transparent) 23px 24px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 23px,
+        color-mix(in srgb, var(--d-border) 55%, transparent) 23px 24px
+      );
     cursor: grab;
     user-select: none;
   }
@@ -852,29 +825,8 @@
   .v4-editor-preview [data-cdl-role="lane-label"] {
     display: none !important;
   }
-  /* dark mode editor stage ... 龍鱗ゴールド dark palette 移行後は blueprint theme が
-     warm cream text (#f8ecd0) + gold stroke (#f0b840) を使用するため、 stage も dark
-     bg で対比を最大化できる。 graticule grid は warm gold rgba(240, 184, 64) で subtle 維持。
-     旧仕様 (light cream bg 強制) は 2026-07-15 の palette 移行前の暫定対応、 現在は撤去。 */
-  /* 暗い画面の紙 (#1060)。
-     以前は `#1a1408` で、 箱の `#2a1f14` との明るさの差が `ΔL* 6.1` しかなく、 **箱が面として
-     立っていなかった**。 見えるのは輪郭線と文字だけで、 目が図の構造を掴めない。
-
-     明るい画面は同じくらい差が小さくても輪郭線が効く (全体が明るいため)。 暗い側は輪郭も
-     一緒に沈むので効かない。 この非対称が「暗い時だけ見づらい」 の正体。
-
-     紙の側を上げて「明るい机に暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
-     格子は紙が明るくなったぶん暗い側に引く (明色の格子だと紙に溶ける)。 */
-  /* **主題を blueprint に限る**。 他の 5 主題 (neumorphism / isometric / circuit /
-     handdrawn / pinboard) はそれぞれ完成した配色を持ち、 明るい箱を使うものもある
-     (実測 = circuit / handdrawn / pinboard の箱は `#fdf8ec` 前後)。 紙だけ変えると
-     明るい箱が明るい紙に乗って沈む。 主題は `html` 要素に付く (`useTheme.ts`)。 */
-  html.dark[data-cdl-theme="blueprint"] .v4-editor-stage {
-    background: #3a2f22;
-    background-image:
-      repeating-linear-gradient(0deg, transparent 0 23px, rgba(20, 14, 6, 0.22) 23px 24px),
-      repeating-linear-gradient(90deg, transparent 0 23px, rgba(20, 14, 6, 0.22) 23px 24px);
-  }
+  /* 暗い側の紙は明るい側と同じ経路で決まる。 上の `--d-surface` が html.dark で
+     差し替わるので、 主題ごとの上書きは持たない。 */
   .v4-editor-pan {
     will-change: transform;
     display: block;
@@ -924,10 +876,9 @@
     top: calc(100% + 8px);
     right: 0;
     min-width: 280px;
-    background: var(--v4-surface);
-    border: 1px solid var(--v4-line);
-    border-radius: 12px;
-    box-shadow: 0 12px 32px -8px rgba(0,0,0,0.18), 0 4px 12px -4px rgba(0,0,0,0.12);
+    background: var(--d-surface);
+    border: 1px solid var(--d-border-strong);
+    border-radius: var(--d-r-2);
     padding: 6px;
     display: none;
     flex-direction: column;
@@ -946,15 +897,14 @@
     padding: 10px 12px;
     background: transparent;
     border: none;
-    color: var(--v4-ink);
-    font-family: var(--v4-sans);
+    color: var(--d-text-primary);
+    font-family: var(--d-body);
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: var(--d-r-1);
     text-align: left;
-    transition: background 0.15s;
   }
   .v4-editor-export-menu button:hover {
-    background: rgba(166, 106, 61, 0.08);
+    background: var(--d-accent-soft);
   }
   .v4-editor-export-menu button:disabled {
     opacity: 0.4;
@@ -963,44 +913,42 @@
   .v4-editor-export-menu button strong {
     font-size: 13px;
     font-weight: 600;
-    color: var(--v4-brand-deep);
-  }
-  html.dark .v4-editor-export-menu button strong {
-    color: var(--v4-brand);
+    color: var(--d-accent);
   }
   .v4-editor-export-menu button span {
     font-size: 11.5px;
-    color: var(--v4-ink-dim);
-    font-family: var(--v4-mono);
+    color: var(--d-text-secondary);
+    font-family: var(--d-mono);
   }
 
-  /* ── CAR-1678 = CDL / YAML format tabs (editor bar 左端) ── */
+  /* 記法の切替 (CAR-1678)。 1 つの枠に収めて、 選ばれている側だけ色を反転する */
   .v4-editor-tabs {
     display: inline-flex;
-    gap: 2px;
     align-items: center;
-    padding: 0 4px 0 0;
-    border-right: 1px solid var(--v4-line);
     margin-right: 10px;
   }
   .v4-editor-tab {
-    padding: 6px 12px;
+    padding: 6px 11px;
     background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--v4-ink-mute);
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 600;
+    border: 1px solid var(--d-border-strong);
+    color: var(--d-text-secondary);
+    font-family: var(--d-mono);
+    font-size: 11px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+  }
+  .v4-editor-tab:first-child {
+    border-radius: var(--d-r-1) 0 0 var(--d-r-1);
+  }
+  .v4-editor-tab + .v4-editor-tab {
+    border-left: none;
+    border-radius: 0 var(--d-r-1) var(--d-r-1) 0;
   }
   .v4-editor-tab:hover {
-    color: var(--v4-ink);
+    color: var(--d-text-primary);
   }
   .v4-editor-tab.active {
-    color: var(--v4-brand-deep);
-    border-bottom-color: var(--v4-brand);
+    background: var(--d-accent);
+    border-color: var(--d-accent);
+    color: var(--d-on-accent);
+    font-weight: 600;
   }

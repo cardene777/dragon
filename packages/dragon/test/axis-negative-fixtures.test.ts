@@ -250,7 +250,7 @@ describe("axis 発火 count field (列挙した 55 axis で counts field 存在)
       "contrast-basics",
       "print-media-compat",
       "svg-filter-integrity",
-      "neumorphism-shadow-budget",
+      "node-clearance-budget",
       "color-blind-safety",
       "marker-gradient-def-integrity",
       "subpixel-precision",

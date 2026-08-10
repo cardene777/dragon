@@ -1,49 +1,156 @@
 @import "tailwindcss";
 
 /* ================================================================
- * Base color / typography tokens (龍鱗ゴールド light default、 CAR palette 2026-07-15)
+ * 配色と字面の SSOT。 値の出どころは docs/design/app.pen の variables。
  *
- * palette 起源:
- *   dragon = 財宝を守る西洋龍 metaphor、 dev tool の boring UI からの離脱。
- *   light = parchment (#f0e8d4) + copper (#a66a3d) + amber (#b8862a) + obsidian ink
- *   dark  = obsidian (#1a1410) + amber (#f0b840) + ember (#f56b45) + parchment ink
- *   dark override は header.css の html.dark { --v4-* } SSOT で設定 (base 側で light default)
+ * 明暗の切替は html 要素の dark class 1 本で行う。 実体は SiteHeader.tsx が
+ * classList と localStorage で持つ。 css 側はここで定義した変数を
+ * html.dark で上書きするだけで、 個別の規則は変数だけを参照する。
  *
- * theme override は cdl-theme.css SSOT ([data-cdl-theme] selector 経由、
- * 個別 diagram theme は本 palette と独立、 blueprint theme は default で navy+cream 維持)
+ * 図そのものの配色 (cdl-theme.css) は本 palette と独立に動く。
  * ================================================================ */
+:root {
+  --d-bg: #faf9f6;
+  --d-surface: #ffffff;
+  --d-surface-2: #f2f1ec;
+  --d-surface-3: #e8e6df;
+  --d-border: #e3e0d8;
+  --d-border-strong: #c7c3b8;
+  --d-text-primary: #191714;
+  --d-text-secondary: #57534b;
+  --d-text-muted: #8a857a;
+  --d-accent: #c8442a;
+  --d-accent-soft: #fbeae4;
+  --d-on-accent: #ffffff;
+  --d-code-bg: #f5f4ef;
+
+  --d-err: #be3b2a;
+  --d-warn: #9a6b1f;
+  --d-hint: #2c68ae;
+  --d-err-soft: #fbe9e5;
+  --d-warn-soft: #f8efdc;
+  --d-hint-soft: #e8eff8;
+
+  /* 図の中で系統を描き分けるための 6 色 */
+  --d-dg-1: #2c68ae;
+  --d-dg-2: #2a7a57;
+  --d-dg-3: #9a6b1f;
+  --d-dg-4: #65499f;
+  --d-dg-5: #a93a5e;
+  --d-dg-6: #1f7178;
+
+  /* 重ね窓の背後を覆う色。 明暗どちらでも同じ濃さで敷く */
+  --d-scrim: #100e0cb8;
+
+  --d-display: "Space Grotesk", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* 角は一貫して浅い。 部品 3px / 面 5px / 窓 6px の 3 段だけ使う */
+  --d-r-1: 3px;
+  --d-r-2: 5px;
+  --d-r-3: 6px;
+
+  /* 頁の左右余白。 design の 120px を上限に、 狭い画面では縮む */
+  --d-gutter: clamp(20px, 8.4vw, 120px);
+  --d-topbar-h: 60px;
+
+  /* --- 旧名から新しい値への橋渡し。 既存の規則を書き換えずに配色だけ移す --- */
+  --v4-canvas: var(--d-bg);
+  --v4-canvas-dim: var(--d-surface-2);
+  --v4-surface: var(--d-surface);
+  --v4-surface-2: var(--d-surface-2);
+  --v4-line: var(--d-border);
+  --v4-line-soft: var(--d-border);
+  --v4-ink: var(--d-text-primary);
+  --v4-ink-dim: var(--d-text-secondary);
+  --v4-ink-mute: var(--d-text-muted);
+  --v4-brand: var(--d-accent);
+  --v4-brand-deep: var(--d-accent);
+  --v4-brand-soft: var(--d-accent-soft);
+  --v4-brand-glow: var(--d-accent);
+  --v4-brand-hi: var(--d-accent);
+  --v4-accent-domain: var(--d-accent);
+  --v4-accent-extended: var(--d-accent);
+  --v4-code-bg: var(--d-code-bg);
+  --v4-display: var(--d-display);
+  --v4-serif: var(--d-display);
+  --v4-sans: var(--d-body);
+  --v4-mono: var(--d-mono);
+
+  --canvas: var(--d-bg);
+  --surface: var(--d-surface);
+  --line: var(--d-border);
+  --ink: var(--d-text-primary);
+  --ink-mute: var(--d-text-muted);
+  --brand: var(--d-accent);
+  --brand-deep: var(--d-accent);
+  --mono: var(--d-mono);
+  --serif: var(--d-display);
+
+  --nm-surface: var(--d-surface);
+  --nm-bg-base: var(--d-bg);
+  --nm-text: var(--d-text-primary);
+  --nm-text-secondary: var(--d-text-secondary);
+  --nm-accent: var(--d-accent);
+  --nm-shadow-dark: transparent;
+  --nm-shadow-light: transparent;
+
+  --color-surface: var(--d-surface);
+  --color-accent: var(--d-accent);
+  --color-ink: var(--d-text-primary);
+  --color-ink-dim: var(--d-text-secondary);
+  --color-ink-mute: var(--d-text-muted);
+  --color-surface-2: var(--d-surface-2);
+}
+
+html.dark {
+  --d-bg: #111110;
+  --d-surface: #191817;
+  --d-surface-2: #221f1d;
+  --d-surface-3: #2b2825;
+  --d-border: #302d29;
+  --d-border-strong: #494440;
+  --d-text-primary: #f3f1ec;
+  --d-text-secondary: #a9a399;
+  --d-text-muted: #77716a;
+  --d-accent: #f2704c;
+  --d-accent-soft: #3a211a;
+  --d-on-accent: #1c0f09;
+  --d-code-bg: #151413;
+
+  --d-err: #f0806c;
+  --d-warn: #e0a94f;
+  --d-hint: #6fa8e8;
+  --d-err-soft: #3a1c16;
+  --d-warn-soft: #332711;
+  --d-hint-soft: #16233a;
+
+  --d-dg-1: #6fa8e8;
+  --d-dg-2: #5fc496;
+  --d-dg-3: #e0a94f;
+  --d-dg-4: #a98de8;
+  --d-dg-5: #e883a6;
+  --d-dg-6: #5fc2c7;
+}
+
 @theme {
-  --color-v4-canvas: #f0e8d4;
-  --color-v4-surface: #f8ecd8;
-  --color-v4-line: #d8c8a8;
-  --color-v4-line-soft: #e8dfc8;
-  --color-v4-ink: #1a1410;
-  --color-v4-ink-dim: #3a2a10;
-  --color-v4-ink-mute: #6d5a3a;
-  --color-v4-brand: #a66a3d;
-  --color-v4-brand-deep: #8a5a2a;
-  --color-v4-brand-glow: #b8862a;
-  --color-v4-brand-hi: #b8862a;
-
-  --color-nm-surface: #f5ecd8;
-  --color-nm-bg-base: #ebe0c4;
-
   --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Newsreader", "EB Garamond", Georgia, serif;
+  --font-serif: "Space Grotesk", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
   --radius-pill: 999px;
 }
 
 html,
 body {
-  background: var(--color-v4-canvas);
-  color: var(--color-v4-ink);
-  font-family: var(--font-sans);
+  background: var(--d-bg);
+  color: var(--d-text-primary);
+  font-family: var(--d-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -52,22 +159,18 @@ body {
   min-height: 100dvh;
 }
 
-/* dark mode = html.dark class toggle 経路の SSOT override (龍鱗ゴールド obsidian palette)
- * base html/body の背景 / 前景を dark obsidian + parchment ink に切替、
- * 個別 component の dark 挙動は header.css / editor.css / catalog-new.css 等の html.dark 経路 SSOT。 */
-html.dark,
-html.dark body {
-  background: #1a1410;
-  color: #f8ecd0;
-}
-html.dark ::-webkit-scrollbar-thumb {
-  background: #3d322a;
-}
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #5a4838;
+@layer base {
+  .font-display {
+    font-family: var(--d-display);
+  }
+  .font-body {
+    font-family: var(--d-body);
+  }
+  .font-code {
+    font-family: var(--d-mono);
+  }
 }
 
-/* macOS-like scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -76,11 +179,87 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-v4-line);
+  background: var(--d-border-strong);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-v4-ink-mute);
+  background: var(--d-text-muted);
+}
+
+/* ================================================================
+ * 写した結果の知らせ (06 見本の詳細 / 06b コピー失敗)。
+ * 全頁の上の帯から呼ばれるので、 頁ごとの css ではなくここに置く。
+ * ================================================================ */
+
+.toast-root {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 388px;
+  max-width: 100%;
+  padding: 14px 16px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border-strong);
+  border-radius: 4px;
+}
+
+.toast-root.is-error {
+  background: var(--d-err-soft);
+  border-color: var(--d-err);
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  color: var(--d-dg-2);
+}
+
+.toast-root.is-error .toast-icon {
+  color: var(--d-err);
+}
+
+.toast-root.is-info .toast-icon {
+  color: var(--d-hint);
+}
+
+.toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-family: var(--d-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.toast-sub {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  color: var(--d-text-muted);
+}
+
+.toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 6px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-secondary);
+  cursor: pointer;
+}
+
+.toast-close:hover {
+  color: var(--d-text-primary);
+  border-color: var(--d-accent);
 }
 
 /* Skip nav accessibility */

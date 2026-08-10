@@ -28,13 +28,13 @@ async function getYamlSrc(page: Page): Promise<string> {
  * 「svg があるか」 だけを見ると、 図が更新されなくなっても前の図が残るので気付けない。
  * 描かれている文字を並べて、 前後で変わったか / 変わっていないかを見る。
  *
- * **選択子は `svg[data-cdl-theme]` で図だけを指す** (#1063)。 `.v4-editor-preview svg` は
+ * **選択子は `svg[data-cdl-stage]` で図だけを指す** (#1063)。 `.v4-editor-preview svg` は
  * 操作列のアイコンも拾う (実測 = 11 個)。 操作列を文字からアイコンに変えた時、 `.first()` が
  * 先頭のアイコンを掴んで「図の文字が空」 になり、 6 箇所が落ちた。
  */
 async function previewFingerprint(page: Page): Promise<string> {
   return await page
-    .locator(".v4-editor-preview svg[data-cdl-theme]")
+    .locator(".v4-editor-preview svg[data-cdl-stage]")
     .first()
     .evaluate((svg) =>
       Array.from(svg.querySelectorAll("text"))
@@ -157,7 +157,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
       await page.waitForTimeout(1000);
       expect(await getActiveTab(page)).toBe("yaml");
       // default YAML template で render 済 = SVG が存在するはず
-      await expect(page.locator(".v4-editor-preview svg[data-cdl-theme]")).toBeVisible({ timeout: 5000 });
+      await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible({ timeout: 5000 });
       const before = await previewFingerprint(page);
       expect(before, "初期の図が描かれていない").not.toBe("");
 
@@ -193,7 +193,7 @@ flow:
       await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1000);
       // 前回 render が存在することを確認
-      await expect(page.locator(".v4-editor-preview svg[data-cdl-theme]")).toBeVisible();
+      await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible();
       const before = await previewFingerprint(page);
       expect(before).not.toBe("");
 
@@ -386,7 +386,7 @@ flow:
       await setYamlSrc(page, good);
       await page.waitForTimeout(900);
       await expect(page.getByTestId("editor-yaml-error"), "誤りの帯が残っている").toHaveCount(0);
-      await expect(page.locator(".v4-editor-preview svg[data-cdl-theme]")).toBeVisible();
+      await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible();
     });
   });
 
@@ -438,7 +438,7 @@ flow:
       await page.waitForTimeout(1500);
       expect(seen.length, "読み込まれていない").toBeGreaterThan(0);
       // 遅れて届いた後も図は描かれる
-      await expect(page.locator(".v4-editor-preview svg[data-cdl-theme]")).toBeVisible({ timeout: 5000 });
+      await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible({ timeout: 5000 });
     });
 
     test("届くのが遅れた古い入力で、 新しい図を上書きしない", async ({ page }) => {
@@ -507,7 +507,7 @@ flow:
       page.on("dialog", (d) => void d.accept());
       await page.goto("/editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
-      await expect(page.locator(".v4-editor-preview svg[data-cdl-theme]")).toBeVisible({ timeout: 5000 });
+      await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible({ timeout: 5000 });
       const before = await previewFingerprint(page);
       const srcBefore = await page.evaluate(() => {
         const w = window as unknown as { __cdlEditorSrc?: string };

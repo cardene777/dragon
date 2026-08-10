@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { Link2, Moon, Sun } from "lucide-react";
 import { useLocale } from "@/lib/useLocale";
 import { useToast } from "@/components/Toast";
 
 /**
- * 全 page 共通の header (v4 design、 dark/light toggle + JA/EN toggle 両方対応)。
- * v4-nav-* CSS class SSOT = src/styles/header.css。
+ * 全 page 共通の header。 見た目の SSOT = docs/design/app.pen の C / TopBar、
+ * class の中身は src/styles/header.css。
+ * 明暗は html 要素の dark class 1 本で切替わり、 その値は localStorage に残る。
  */
 const LINKS: Array<{ to: string; ja: string; en: string }> = [
-  { to: "/", ja: "Home", en: "home" },
-  { to: "/editor", ja: "エディタ", en: "editor" },
+  { to: "/", ja: "トップ", en: "home" },
   { to: "/catalog", ja: "カタログ", en: "catalog" },
+  { to: "/editor", ja: "エディタ", en: "editor" },
   { to: "/docs", ja: "ドキュメント", en: "docs" },
+  { to: "/release-notes", ja: "リリースノート", en: "releases" },
 ];
 
 const REPO_URL = "https://github.com/cardene777/dragon";
@@ -64,11 +67,16 @@ export function SiteHeader(): React.ReactElement {
       toast({
         type: "success",
         title: locale === "ja" ? "URL をコピーしました" : "Copied the URL",
+        description: window.location.pathname,
       });
     } catch {
       toast({
         type: "error",
-        title: locale === "ja" ? "コピーに失敗しました" : "Could not copy the URL",
+        title: locale === "ja" ? "コピーできませんでした" : "Could not copy the URL",
+        description:
+          locale === "ja"
+            ? "この画面では clipboard に触れない"
+            : "This page cannot reach the clipboard",
       });
     }
   };
@@ -89,9 +97,8 @@ export function SiteHeader(): React.ReactElement {
     <header className="v4-nav">
       <Link to="/" className="v4-nav-brand">
         <div className="v4-nav-mark">
-          <svg viewBox="0 0 28 28" fill="none">
-            <path d="M4 24 L24 4 L24 24 Z" fill="var(--v4-brand-deep, #8a5a2a)" />
-            <path d="M4 24 L14 14 L24 24 Z" fill="var(--v4-brand-glow, #b8862a)" opacity="0.85" />
+          <svg viewBox="0 0 22 16" aria-hidden="true">
+            <path d="M2 15l9-14 9 14-9-4.5z" />
           </svg>
         </div>
         <div>
@@ -126,53 +133,41 @@ export function SiteHeader(): React.ReactElement {
           GitHub ↗
         </a>
       </nav>
-      <button
-        type="button"
-        className="v4-nav-lang-toggle"
-        onClick={toggleLocale}
-        aria-label={langLabel}
-        title={langLabel}
-      >
-        <span className="v4-lang-current">{locale === "ja" ? "JA" : "EN"}</span>
-      </button>
-      <button
-        type="button"
-        className="v4-nav-theme-toggle"
-        onClick={toggleTheme}
-        aria-label={themeLabel}
-        title={themeLabel}
-      >
-        <span className="v4-theme-icon">{isDark ? "☾" : "☀"}</span>
-      </button>
-      <button
-        type="button"
-        className="v4-nav-share-btn"
-        onClick={() => {
-          void onShare();
-        }}
-        aria-label={shareLabel}
-        title={shareLabel}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className="v4-nav-actions">
+        <button
+          type="button"
+          className="v4-nav-lang-toggle"
+          onClick={toggleLocale}
+          aria-label={langLabel}
+          title={langLabel}
         >
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-      </button>
-      <Link className="v4-nav-cta" to="/editor">
-        {openEditorLabel}
-      </Link>
+          <span className={`v4-nav-lang-seg${locale === "ja" ? " is-on" : ""}`}>JA</span>
+          <span className={`v4-nav-lang-seg${locale === "en" ? " is-on" : ""}`}>EN</span>
+        </button>
+        <button
+          type="button"
+          className="v4-nav-icon-btn v4-nav-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={themeLabel}
+          title={themeLabel}
+        >
+          {isDark ? <Moon size={15} /> : <Sun size={15} />}
+        </button>
+        <button
+          type="button"
+          className="v4-nav-icon-btn v4-nav-share-btn"
+          onClick={() => {
+            void onShare();
+          }}
+          aria-label={shareLabel}
+          title={shareLabel}
+        >
+          <Link2 size={15} />
+        </button>
+        <Link className="v4-nav-cta" to="/editor">
+          {openEditorLabel}
+        </Link>
+      </div>
     </header>
   );
 }

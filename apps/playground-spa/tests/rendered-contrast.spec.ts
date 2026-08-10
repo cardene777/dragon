@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
  *
- * `packages/dragon/test/theme-label-contrast.test.ts` (cardene777/cdl#388) は **宣言された配色**
+ * `packages/dragon/test/edge-label-contrast.test.ts` (cardene777/cdl#388) は **宣言された配色**
  * を見る。 実際に画面に出る対比は半透明の重なり / 祖先の `opacity` / host 側の背景 / `@media` /
  * 状態依存 selector に依存し、 それらは実ブラウザでしか決まらない。
  *
@@ -29,8 +29,6 @@ import { fileURLToPath } from "node:url";
 
 const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4323";
 
-/** `cdl-theme.css` が定義する主題。 */
-const THEMES = ["blueprint", "circuit", "handdrawn", "isometric", "neumorphism", "pinboard"] as const;
 const MODES = ["light", "dark"] as const;
 
 /**
@@ -46,15 +44,6 @@ const TARGETS = [
   { slug: "patterns", id: "pattern-passthrough", expectedLabels: 2, expectedDeclaredPx: [22, 19] },
   { slug: "cookbook", id: "oauth-flow", expectedLabels: 8, expectedDeclaredPx: [22] },
 ] as const;
-
-/**
- * 暗色の宣言を持たない主題。 明暗で同じ結果になるのが正しい。
- *
- * `cdl-theme.css` の `html.dark [data-cdl-theme="<name>"]` の数を数えた実測
- * (blueprint 23 / neumorphism 21 / isometric 6 / circuit 0 / handdrawn 0 / pinboard 0)。
- * 宣言が増えたらこの一覧も動かす。
- */
-const NO_DARK_VARIANT = new Set(["circuit", "handdrawn", "pinboard"]);
 
 /** WCAG 2.x の相対輝度。 */
 function luminance([r, g, b]: [number, number, number]): number {
@@ -78,39 +67,31 @@ type Box = { x: number; y: number; width: number; height: number };
 type Label = { key: string; box: Box; px: number; weight: number; text: string; declaredPx: number };
 
 /**
- * 主題と明暗を当てた状態で見本を開く。
+ * 明暗を当てた状態で見本を開く。
  *
- * 主題は **属性を直接立てる**。 `?theme=` の query は現状 app 側で反映されず (`useTheme` は
- * どこからも import されていない)、 `<html>` も `<svg>` も既定の `blueprint` のままになる。
- * `cdl-theme.css` の selector は `[data-cdl-theme="x"] [data-cdl-role="edge-label"]` の形なので、
- * 属性さえ立てば主題の配色は実際に当たる。
+ * 明暗は `<html>` の class で決まる。 図の色は `cdl-theme.css` が `var(--d-*)` で参照し、
+ * その変数を `globals.css` が `html.dark` で差し替えるので、 class を切り替えるだけで
+ * 図まで追随する。
  *
- * app の UI 経路に依存させないのは、 本 test が見たいのが「主題の配色が実際に描かれた時の
- * 対比」 であって、 主題を選ぶ UI ではないため。
+ * app の切替 UI を経由しないのは、 本 test が見たいのが「配色が実際に描かれた時の対比」
+ * であって、 切替の操作ではないため。
  */
-async function open(page: Page, target: { slug: string; id: string }, theme: string, mode: string): Promise<void> {
+async function open(page: Page, target: { slug: string; id: string }, mode: string): Promise<void> {
   await page.goto(`${BASE}/catalog/${target.slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 20000 });
   await page.locator(".catalog-list-item").filter({ hasText: target.id }).first().click();
   await page.waitForSelector(`[data-cdl-diagram="${target.id}"]`, { timeout: 20000 });
-  await page.evaluate(([t, m]) => {
+  await page.evaluate((m) => {
     document.documentElement.classList.toggle("dark", m === "dark");
-    document.documentElement.setAttribute("data-cdl-theme", t);
-    document.querySelectorAll("[data-cdl-diagram] svg").forEach((el) => {
-      el.setAttribute("data-cdl-theme", t);
-    });
-  }, [theme, mode] as const);
-  // 当たっていないと 12 通りが全て同じ画面になる。
+  }, mode);
+  // 当たっていないと明暗 2 通りが同じ画面になる。
   await page.waitForFunction(
-    (t) => {
-      const svg = document.querySelector("[data-cdl-diagram] svg");
-      return svg?.getAttribute("data-cdl-theme") === t;
-    },
-    theme,
+    (m) => document.documentElement.classList.contains("dark") === (m === "dark"),
+    mode,
     { timeout: 20000 },
   );
   await page.evaluate(() => document.fonts.ready);
-  // 主題の切替に transition が掛かるので落ち着くまで待つ。
+  // 明暗の切替に transition が掛かるので落ち着くまで待つ。
   await page.waitForTimeout(600);
 }
 
@@ -301,15 +282,14 @@ test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 3 });
 test.describe("edge label の描画対比 (#977)", () => {
   test.describe.configure({ timeout: 120000 });
 
-  for (const theme of THEMES) {
-    for (const mode of MODES) {
-      test(`${theme} / ${mode} の edge label が WCAG AA を満たす`, async ({ page }) => {
+  for (const mode of MODES) {
+      test(`${mode} の edge label が WCAG AA を満たす`, async ({ page }) => {
         const failures: string[] = [];
         let measured = 0;
         let worst = Infinity;
 
         for (const target of TARGETS) {
-          await open(page, target, theme, mode);
+          await open(page, target, mode);
           const labels = await collectLabels(page, target.id);
           // **target ごとに** 件数を固定する。 合計だけだと、 `pattern-passthrough` の sub が
           // 消えて `oauth-flow` が 1 件増える形で合計が変わらず、 sub 行の検査を失う。
@@ -339,25 +319,26 @@ test.describe("edge label の描画対比 (#977)", () => {
         // (測れない 3 経路 = 画面が動いた / 文字が背景と同じ / 芯を特定できない、 のどれも
         // `failures.push` を通る)。 件数を先に照合すると「9 対 10」 だけが出て、 なぜ 1 件
         // 落ちたのかが失敗の文面から消える (#1072 の調査で 2 回とも理由が読めなかった)。
-        expect(failures, `${theme}/${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
+        expect(failures, `${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
         // 1 件も測れていなければ、 0 件の failures は「満たした」 ことを意味しない。
-        expect(measured, `${theme}/${mode} で実際に測れた label 数`).toBe(
+        expect(measured, `${mode} で実際に測れた label 数`).toBe(
           TARGETS.reduce((n, t) => n + t.expectedLabels, 0),
         );
       });
-    }
   }
 
-  test("暗色の宣言を持たない主題の一覧が実際と合っている", () => {
-    // 一覧がずれると、 暗色を持つ主題を「持たない」 として飛ばして検査しなくなる。
-    // `cdl-theme.css` を読んで数える。
+  test("図の配色が明暗を 1 箇所でしか決めていない", () => {
+    // 元は「暗色の宣言を持たない主題の一覧」 を照合していた。 主題を廃止したので、
+    // その一覧が守っていた前提 (どこで暗色が決まるか) を直接測る形に置き換えた。
+    //
+    // 図の色は変数の差し替えだけで明暗が決まる。 `cdl-theme.css` に `html.dark` を書くと
+    // 決める場所が 2 つになり、 変数を変えても図だけ古い色のまま残る。
     const css = readFileSync(
       fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)), "utf8",
     );
-    const actual = THEMES.filter(
-      (t) => !new RegExp(`html\\.dark \\[data-cdl-theme="${t}"\\]`).test(css),
-    );
-    expect([...actual].sort()).toEqual([...NO_DARK_VARIANT].sort());
+    expect(css.match(/html\.dark/g) ?? [], "cdl-theme.css に html.dark が書かれている").toEqual([]);
+    // 変数を参照していること自体も固定する。 色を直に書くと明暗が追随しない。
+    expect(css).toMatch(/var\(--d-/);
   });
 
   test("judge の境界と種別 (単体)", () => {
@@ -387,9 +368,9 @@ test.describe("edge label の描画対比 (#977)", () => {
     // つまり `declared * scaleY` を `declared` に戻す変異を、 この色でだけ検知できる。
     // 一括で対比を落とす変異 (下の test) は 3:1 も割るので、 両者を区別しない。
     const target = TARGETS[0];
-    await open(page, target, "neumorphism", "light");
+    await open(page, target, "light");
     await page.addStyleTag({
-      content: `html body [data-cdl-theme] [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
+      content: `html body [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
     });
     await page.waitForTimeout(300);
 
@@ -411,7 +392,7 @@ test.describe("edge label の描画対比 (#977)", () => {
   test("対比を落とすと検知する (変異試験)", async ({ page }) => {
     // 本 test の存在理由。 実際に閾値を割る配色を当てて、 検知できることを確かめる。
     const target = TARGETS[0];
-    await open(page, target, "blueprint", "light");
+    await open(page, target, "light");
     const labels = await collectLabels(page, target.id);
     expect(labels.length).toBeGreaterThan(0);
 
@@ -420,7 +401,7 @@ test.describe("edge label の描画対比 (#977)", () => {
     // 主題の CSS も `!important` を使うので、 **主題より詳細度の高い selector** で当てる
     // (`[data-cdl-role="edge-label"]` だけだと主題側が勝って何も変わらない)。
     await page.addStyleTag({
-      content: `html body [data-cdl-theme] [data-cdl-role="edge-label"] { fill: #e8e8e8 !important; }`,
+      content: `html body [data-cdl-role="edge-label"] { fill: #e8e8e8 !important; }`,
     });
     await page.waitForTimeout(300);
 

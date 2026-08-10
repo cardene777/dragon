@@ -1,9 +1,7 @@
 /* ================================================================
  * カタログ一覧 (02) / カタログの分類 (03) / 重ね窓 (03b)。
  * 見た目の SSOT = docs/design/app.pen。 色と字面は globals.css の変数だけを見る。
- * 明暗は html.dark が変数を差し替えることで切替わるので、 暗い側の規則は要らない。
- *
- * 図の中に出る操作盤 (.cdl-ip-*) は catalog-widgets.css に分けてある。
+ * 明暗は html.dark が変数を差し替えることで切替わる。
  * ================================================================ */
 
 .catalog-page {
@@ -108,12 +106,6 @@
   border-color: var(--d-border-strong);
 }
 
-.catalog-index-card-top {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
 .catalog-index-card-head {
   display: flex;
   align-items: center;
@@ -131,6 +123,12 @@
   font-family: var(--d-mono);
   font-size: 11px;
   color: var(--d-text-muted);
+}
+
+.catalog-index-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 
 .catalog-index-card-title {
@@ -173,15 +171,16 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: calc(100dvh - var(--d-topbar-h) - 32px);
   padding: 14px;
-  overflow: auto;
   background: var(--d-surface);
   border: 1px solid var(--d-border);
   border-radius: var(--d-r-2);
+  max-height: calc(100dvh - var(--d-topbar-h) - 32px);
+  overflow: auto;
 }
 
 .catalog-search-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -190,10 +189,6 @@
   background: var(--d-surface-2);
   border: 1px solid var(--d-border-strong);
   border-radius: var(--d-r-1);
-}
-
-.catalog-search-wrap:focus-within {
-  border-color: var(--d-accent);
 }
 
 .catalog-search-icon {
@@ -214,6 +209,10 @@
 
 .catalog-search::placeholder {
   color: var(--d-text-muted);
+}
+
+.catalog-search-wrap:focus-within {
+  border-color: var(--d-accent);
 }
 
 .catalog-search-clear {
@@ -306,10 +305,10 @@
 }
 
 .catalog-preview-id {
-  margin-bottom: 6px;
   font-family: var(--d-mono);
   font-size: 11px;
   color: var(--d-text-muted);
+  margin-bottom: 6px;
 }
 
 .catalog-preview-title {
@@ -390,6 +389,7 @@
 .catalog-source-tabs {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   height: 46px;
   padding: 0 18px;

@@ -1,15 +1,143 @@
 import { Link } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
+import { PenLine, Play, Share2 } from "lucide-react";
 import { presetSequence, presetTopology, presetEr } from "@/topics/catalog/presets.cdl";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 
 /**
- * dragon top page = 旧 apps/playground/src/pages/index.astro の忠実再現。
- * 6 section 構成: hero / hero-demo (canvas mockup + animated seq SVG) /
- * features (3 card) / quickstart (3 step) / examples (3 preset thumbnail) / closing-cta。
- * CSS SSOT = src/styles/home.css (旧 index.astro <style> tag 706 line)。
+ * dragon の入口。 見た目の SSOT = docs/design/app.pen の 01 トップ、
+ * class の中身は src/styles/home.css。
+ * 6 段構成 = 名乗り / 実物の窓 / 3 つの強み / 3 手順 / 用途 3 例 / 締めの誘い。
  */
+
+/** 記述の 1 かたまり。 role が色を決める (k=鍵 / v=値 / p=区切り / id=登場人物 / a=矢印) */
+interface CodeToken {
+  text: string;
+  role?: "k" | "v" | "p" | "id" | "a";
+}
+
+/** 記述の 1 行。 indent は 0 か 1 の 2 段だけ、 hl を付けた行が今の局面 */
+interface CodeLine {
+  no: number;
+  indent: 0 | 1;
+  tokens: CodeToken[];
+  hl?: boolean;
+}
+
+const DEMO_CODE: CodeLine[] = [
+  { no: 1, indent: 0, tokens: [{ text: "title:", role: "k" }, { text: " ログイン処理", role: "v" }] },
+  { no: 2, indent: 0, tokens: [{ text: "type:", role: "k" }, { text: " sequence", role: "v" }] },
+  { no: 3, indent: 0, tokens: [] },
+  { no: 4, indent: 0, tokens: [{ text: "actors:", role: "k" }] },
+  {
+    no: 5,
+    indent: 1,
+    tokens: [
+      { text: "- { ", role: "p" },
+      { text: "id: ", role: "k" },
+      { text: "user", role: "v" },
+      { text: ", ", role: "p" },
+      { text: "label: ", role: "k" },
+      { text: "User", role: "v" },
+      { text: " }", role: "p" },
+    ],
+  },
+  {
+    no: 6,
+    indent: 1,
+    tokens: [
+      { text: "- { ", role: "p" },
+      { text: "id: ", role: "k" },
+      { text: "api", role: "v" },
+      { text: ", ", role: "p" },
+      { text: "label: ", role: "k" },
+      { text: "API", role: "v" },
+      { text: " }", role: "p" },
+    ],
+  },
+  {
+    no: 7,
+    indent: 1,
+    tokens: [
+      { text: "- { ", role: "p" },
+      { text: "id: ", role: "k" },
+      { text: "db", role: "v" },
+      { text: ", ", role: "p" },
+      { text: "label: ", role: "k" },
+      { text: "DB", role: "v" },
+      { text: " }", role: "p" },
+    ],
+  },
+  { no: 8, indent: 0, tokens: [] },
+  { no: 9, indent: 0, tokens: [{ text: "flow:", role: "k" }] },
+  {
+    no: 10,
+    indent: 1,
+    tokens: [
+      { text: "- ", role: "p" },
+      { text: "user", role: "id" },
+      { text: " -> ", role: "a" },
+      { text: "api", role: "id" },
+      { text: ": ", role: "p" },
+      { text: "POST /login", role: "v" },
+    ],
+  },
+  {
+    no: 11,
+    indent: 1,
+    hl: true,
+    tokens: [
+      { text: "- ", role: "p" },
+      { text: "api", role: "id" },
+      { text: " -> ", role: "a" },
+      { text: "db", role: "id" },
+      { text: ": ", role: "p" },
+      { text: "SELECT user", role: "v" },
+    ],
+  },
+  {
+    no: 12,
+    indent: 1,
+    tokens: [
+      { text: "- ", role: "p" },
+      { text: "db", role: "id" },
+      { text: " -> ", role: "a" },
+      { text: "api", role: "id" },
+      { text: ": ", role: "p" },
+      { text: "row (1)", role: "v" },
+    ],
+  },
+  {
+    no: 13,
+    indent: 1,
+    tokens: [
+      { text: "- ", role: "p" },
+      { text: "api", role: "id" },
+      { text: " -> ", role: "a" },
+      { text: "user", role: "id" },
+      { text: ": ", role: "p" },
+      { text: "200 OK", role: "v" },
+    ],
+  },
+  { no: 14, indent: 0, tokens: [] },
+  { no: 15, indent: 0, tokens: [{ text: "animate:", role: "k" }] },
+  { no: 16, indent: 1, tokens: [{ text: "mode:", role: "k" }, { text: " phase", role: "v" }] },
+  { no: 17, indent: 1, tokens: [{ text: "duration:", role: "k" }, { text: " 600", role: "v" }] },
+  { no: 18, indent: 1, tokens: [{ text: "easing:", role: "k" }, { text: " ease-out", role: "v" }] },
+  { no: 19, indent: 1, tokens: [{ text: "loop:", role: "k" }, { text: " true", role: "v" }] },
+];
+
+/** 3 手順の 2 つ目に添える短い記述 */
+const STEP_CODE = [
+  "type: sequence",
+  "actors:",
+  "  - { id: user }",
+  "  - { id: api }",
+  "flow:",
+  "  - user -> api: GET /me",
+];
+
 export function HomePage(): React.ReactElement {
   const [locale] = useLocale();
   const isJa = locale === "ja";
@@ -18,125 +146,63 @@ export function HomePage(): React.ReactElement {
       <SiteHeader />
 
       <section className="hero">
-        <div className="hero-copy">
-          <div className="hero-eyebrow">
-            <span className="ver">v0.5</span>
-            <span>text dsl × svg animation</span>
-          </div>
-          <h1>
-            {isJa ? (
-              <>書くと、<em>動く</em>。</>
-            ) : (
-              <>Write. <em>Watch it move</em>.</>
-            )}
-          </h1>
-          <p className="lead">
-            {isJa
-              ? "登場人物と流れをYAMLに1行ずつ並べる。それだけで、時間を持つSVG図が立ち上がる。静止画では届かなかった順序と因果を、動きで伝える。"
-              : "Lay actors and flow into YAML, one line at a time. What appears is an SVG that carries time—delivering order and causality that stills could never reach."}
-          </p>
-          <div className="hero-cta">
-            <Link className="btn-primary" to="/editor">
-              {isJa ? "エディタを開く →" : "Open the editor →"}
-            </Link>
-            <Link className="btn-secondary" to="/docs">
-              {isJa ? "ドキュメントを読む" : "Read the docs"}
-            </Link>
-          </div>
+        <div className="hero-eyebrow">
+          <span className="chip">v0.5</span>
+          <span className="chip">text dsl × svg animation</span>
+        </div>
+        <h1>
+          {isJa ? (
+            <>書くと、<em>動く</em>。</>
+          ) : (
+            <>Write. <em>Watch it move</em>.</>
+          )}
+        </h1>
+        <p className="lead">
+          {isJa
+            ? "登場人物と流れを YAML に 1 行ずつ並べる。 それだけで、 時間を持つ SVG 図が立ち上がる。 静止画では届かなかった順序と因果を、 動きで伝える。"
+            : "Lay actors and flow into YAML, one line at a time. What appears is an SVG that carries time—delivering order and causality that stills could never reach."}
+        </p>
+        <div className="hero-cta">
+          <Link className="btn-primary" to="/editor">
+            {isJa ? "エディタを開く →" : "Open the editor →"}
+          </Link>
+          <Link className="btn-secondary" to="/docs">
+            {isJa ? "ドキュメントを読む" : "Read the docs"}
+          </Link>
         </div>
       </section>
 
       <section className="hero-demo">
         <div className="canvas">
           <div className="canvas-bar">
-            <div className="dots">
-              <span className="dot r"></span>
-              <span className="dot y"></span>
-              <span className="dot g"></span>
+            <div className="canvas-bar-left">
+              <div className="dots">
+                <span className="dot"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+              </div>
+              <span className="file">api-call.dragon</span>
             </div>
-            <span className="file">
-              ▲ <b>api-call.dragon</b>
-            </span>
             <span className="phase">
               <span className="live-dot"></span> phase 2 / 4 · API → DB
             </span>
           </div>
           <div className="canvas-body">
-            <pre className="canvas-code">
-              <span className="ln">1</span>
-              <span className="k">title</span>: <span className="s">"ログインAPI"</span>
-              {"\n"}
-              <span className="ln">2</span>
-              <span className="k">type</span>: sequence
-              {"\n"}
-              <span className="ln">3</span>
-              {"\n"}
-              <span className="ln">4</span>
-              <span className="k">actors</span>:
-              {"\n"}
-              <span className="ln">5</span>
-              {"  - User"}
-              {"\n"}
-              <span className="ln">6</span>
-              {"  - API"}
-              {"\n"}
-              <span className="ln">7</span>
-              {"  - DB"}
-              {"\n"}
-              <span className="ln">8</span>
-              {"\n"}
-              <span className="ln">9</span>
-              <span className="k">flow</span>:
-              {"\n"}
-              <span className="ln">10</span>
-              {"  - "}
-              <span className="hl-1">
-                User → API: <span className="s">"login"</span>
-              </span>
-              {"\n"}
-              <span className="ln">11</span>
-              {"  - "}
-              <span className="hl-2">
-                API → DB: <span className="s">"select"</span>
-              </span>
-              {"\n"}
-              <span className="ln">12</span>
-              {"  - "}
-              <span className="hl-3">
-                DB → API: <span className="s">"row"</span>
-              </span>
-              {"\n"}
-              <span className="ln">13</span>
-              {"  - "}
-              <span className="hl-4">
-                API → User: <span className="s">"200"</span>
-              </span>
-              {"\n"}
-              <span className="ln">14</span>
-              {"\n"}
-              <span className="ln">15</span>
-              <span className="k">animation</span>:
-              {"\n"}
-              <span className="ln">16</span>
-              {"  - step: "}
-              <span className="s">"call"</span>
-              {" 1.4s"}
-              {"\n"}
-              <span className="ln">17</span>
-              {"  - step: "}
-              <span className="s">"query"</span>
-              {" 1.4s"}
-              {"\n"}
-              <span className="ln">18</span>
-              {"  - step: "}
-              <span className="s">"return"</span>
-              {" 1.4s"}
-              {"\n"}
-              <span className="ln">19</span>
-              {"  - step: "}
-              <span className="s">"ok"</span>
-              {" 1.4s"}
-            </pre>
+            <div className="canvas-code">
+              {DEMO_CODE.map((line) => (
+                <div key={line.no} className={`code-line${line.hl ? " hl" : ""}`}>
+                  <span className="ln">{line.no}</span>
+                  <span className={`ind ind-${line.indent}`}></span>
+                  <span className="code-text">
+                    {line.tokens.map((tok, i) => (
+                      <span key={i} className={tok.role ? `t-${tok.role}` : undefined}>
+                        {tok.text}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
             <div className="canvas-stage">
               {/* 左の記法と対になる図解。 読み上げでも何の図か分かるよう名前を付ける */}
               <svg
@@ -145,67 +211,68 @@ export function HomePage(): React.ReactElement {
                 role="img"
                 aria-label={isJa ? "左の記法から生成されるシーケンス図の例" : "Example sequence diagram generated from the notation on the left"}
               >
-                <defs>
-                  <marker id="ar-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,0 L10,5 L0,10 z" fill="#8a5a2a" />
-                  </marker>
-                  <marker id="ar-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,0 L10,5 L0,10 z" fill="#6d28d9" />
-                  </marker>
-                  <marker id="ar-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,0 L10,5 L0,10 z" fill="#4ea36a" />
-                  </marker>
-                </defs>
                 <line className="lifeline" x1="100" y1="80" x2="100" y2="360" />
                 <line className="lifeline" x1="300" y1="80" x2="300" y2="360" />
                 <line className="lifeline" x1="500" y1="80" x2="500" y2="360" />
 
-                <rect className="actor-box actor-focus-user" x="60" y="55" width="80" height="40" rx="7" />
+                <rect className="actor-box actor-focus-user" x="60" y="55" width="80" height="40" rx="3" />
                 <text className="actor-label" x="100" y="80" textAnchor="middle">
                   User
                 </text>
-                <rect className="actor-box actor-focus-api" x="260" y="55" width="80" height="40" rx="7" />
+                <rect className="actor-box actor-focus-api" x="260" y="55" width="80" height="40" rx="3" />
                 <text className="actor-label" x="300" y="80" textAnchor="middle">
                   API
                 </text>
-                <rect className="actor-box actor-focus-db" x="460" y="55" width="80" height="40" rx="7" />
+                <rect className="actor-box actor-focus-db" x="460" y="55" width="80" height="40" rx="3" />
                 <text className="actor-label" x="500" y="80" textAnchor="middle">
                   DB
                 </text>
 
-                <path className="seq-msg seq-msg-1" d="M 100 150 L 300 150" markerEnd="url(#ar-teal)" />
-                <text className="seq-label seq-label-1" x="200" y="138" textAnchor="middle">
+                {/* 矢羽根も線と同じ組で動かす。 印 (marker) は参照元の色を継がないので、
+                    塗りを currentColor にした図形として置き、 色の推移を線と共有する */}
+                <path className="seq-msg seq-msg-1" d="M 100 150 L 292 150" />
+                <path className="seq-head seq-msg-1" d="M292 145 L300 150 L292 155 Z" />
+                <text className="seq-label seq-label-1" x="196" y="138" textAnchor="middle">
                   POST /login
                 </text>
 
-                <path className="seq-msg seq-msg-2" d="M 300 200 L 500 200" markerEnd="url(#ar-teal)" />
-                <text className="seq-label seq-label-2" x="400" y="188" textAnchor="middle">
+                <path className="seq-msg seq-msg-2" d="M 300 200 L 492 200" />
+                <path className="seq-head seq-msg-2" d="M492 195 L500 200 L492 205 Z" />
+                <text className="seq-label seq-label-2" x="396" y="188" textAnchor="middle">
                   SELECT user
                 </text>
 
-                <path className="seq-msg seq-msg-3" d="M 500 260 L 300 260" markerEnd="url(#ar-purple)" />
-                <text className="seq-label seq-label-3" x="400" y="248" textAnchor="middle">
+                <path className="seq-msg seq-msg-3" d="M 500 260 L 308 260" />
+                <path className="seq-head seq-msg-3" d="M308 255 L300 260 L308 265 Z" />
+                <text className="seq-label seq-label-3" x="404" y="248" textAnchor="middle">
                   row (1)
                 </text>
 
-                <path className="seq-msg seq-msg-4" d="M 300 320 L 100 320" markerEnd="url(#ar-green)" />
-                <text className="seq-label seq-label-4" x="200" y="308" textAnchor="middle">
+                <path className="seq-msg seq-msg-4" d="M 300 320 L 108 320" />
+                <path className="seq-head seq-msg-4" d="M108 315 L100 320 L108 325 Z" />
+                <text className="seq-label seq-label-4" x="204" y="308" textAnchor="middle">
                   200 OK
                 </text>
 
-                <text className="phase-text phase-1" x="300" y="30" fill="#8a5a2a">
+                <text className="phase-text phase-1" x="300" y="30">
                   phase 1 · call · 1.4s
                 </text>
-                <text className="phase-text phase-2" x="300" y="30" fill="#8a5a2a">
+                <text className="phase-text phase-2" x="300" y="30">
                   phase 2 · query · 1.4s
                 </text>
-                <text className="phase-text phase-3" x="300" y="30" fill="#6d28d9">
+                <text className="phase-text phase-3" x="300" y="30">
                   phase 3 · return · 1.4s
                 </text>
-                <text className="phase-text phase-4" x="300" y="30" fill="#4ea36a">
+                <text className="phase-text phase-4" x="300" y="30">
                   phase 4 · ok · 1.4s
                 </text>
               </svg>
+              <div className="stage-progress" aria-hidden="true">
+                <span className="seg on"></span>
+                <span className="seg on"></span>
+                <span className="seg"></span>
+                <span className="seg"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -213,37 +280,30 @@ export function HomePage(): React.ReactElement {
 
       <section className="features">
         <div className="section-head">
-          <span className="eyebrow">{isJa ? "なぜdragonか" : "Why dragon"}</span>
-          <h2>{isJa ? "書く手間を、動く成果に。" : "Turn your writing into diagrams that move."}</h2>
+          <span className="eyebrow">{isJa ? "なぜ dragon か" : "Why dragon"}</span>
+          <h2>{isJa ? "書く手間を、 動く成果に。" : "Turn your writing into diagrams that move."}</h2>
         </div>
         <div className="feature-grid">
           <div className="feature">
             <div className="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
+              <PenLine size={20} />
             </div>
-            <h3>{isJa ? "YAML風で書ける" : "Write it like YAML"}</h3>
-            <p>{isJa ? "登場人物と流れを箇条書きで宣言するだけ。図の内部構造を組む必要はない。" : "Just declare the actors and the flow as a list. You never assemble the diagram's internals."}</p>
+            <h3>{isJa ? "YAML 風で書ける" : "Write it like YAML"}</h3>
+            <p>{isJa ? "登場人物と流れを箇条書きで宣言するだけ。 図の内部構造を組む必要はない。" : "Just declare the actors and the flow as a list. You never assemble the diagram's internals."}</p>
           </div>
           <div className="feature">
             <div className="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
+              <Play size={20} />
             </div>
-            <h3>{isJa ? "phaseごとに動く" : "Motion, phase by phase"}</h3>
-            <p>{isJa ? "state / tween / setで数値を補間し、phaseで焦点を切替える。静止画では伝わらない順序が伝わる。" : "Interpolate values with state / tween / set, and shift the focus per phase. Convey sequences that a still image can't."}</p>
+            <h3>{isJa ? "局面ごとに動き出す" : "Motion, phase by phase"}</h3>
+            <p>{isJa ? "局面を切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。" : "Switch phases and the diagram itself transitions. Values interpolate, and order and causality become visible."}</p>
           </div>
           <div className="feature">
             <div className="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12h18M12 3v18" />
-              </svg>
+              <Share2 size={20} />
             </div>
-            <h3>{isJa ? "install不要" : "Nothing to install"}</h3>
-            <p>{isJa ? "ブラウザでエディタを開いてYAMLを書けば、その場で動くSVGが手に入る。npm installも設定ファイルもいらない。" : "Open the editor in your browser, write YAML, and a moving SVG is yours on the spot. No npm install, no config file."}</p>
+            <h3>{isJa ? "場所を指す文字列で渡せる" : "Hand it over as a URL"}</h3>
+            <p>{isJa ? "図は SVG として書き出せる。 場所を指す文字列に載せれば、 そのまま共有も持ち出しもできる。" : "Export the diagram as SVG. Put it on a URL and it travels—shared or taken with you as is."}</p>
           </div>
         </div>
       </section>
@@ -251,44 +311,30 @@ export function HomePage(): React.ReactElement {
       <section className="quickstart">
         <div className="section-head">
           <span className="eyebrow">3 steps</span>
-          <h2>{isJa ? "1分で走り出す。" : "Up and running in a minute."}</h2>
+          <h2>{isJa ? "1 分で走り出す。" : "Up and running in a minute."}</h2>
         </div>
         <div className="steps">
           <div className="step">
-            <div className="step-num">1</div>
-            <div className="step-body">
-              <h3>{isJa ? "エディタを開く" : "Open the editor"}</h3>
-              <p>
-                {isJa ? "ブラウザで" : "Visit "}<code>/editor</code>{isJa ? "にアクセス。 install不要。" : " in your browser. Nothing to install."}
-              </p>
-            </div>
+            <div className="step-num">01</div>
+            <h3>{isJa ? "エディタを開く" : "Open the editor"}</h3>
+            <p>{isJa ? "ブラウザで /editor にアクセスする。 導入作業は要らない。" : "Visit /editor in your browser. Nothing to install."}</p>
           </div>
           <div className="step">
-            <div className="step-num">2</div>
-            <div className="step-body">
-              <h3>{isJa ? "YAMLを書く" : "Write the YAML"}</h3>
-              <p>
-                {isJa ? "登場人物と流れを箇条書きで宣言する。" : "Declare the actors and the flow as a list. "}<code>type: sequence</code>{isJa ? "で図の種類を選ぶ。" : " picks the kind of diagram."}
-              </p>
-              <pre className="step-code">
-                <span className="k">title</span>: <span className="s">"ログインAPI"</span>
-                {"\n"}
-                <span className="k">type</span>: sequence
-                {"\n"}
-                <span className="k">actors</span>:
-                {"\n  - User\n  - API\n"}
-                <span className="k">flow</span>:
-                {"\n  - User → API: "}
-                <span className="s">"login"</span>
-              </pre>
-            </div>
+            <div className="step-num">02</div>
+            <h3>{isJa ? "YAML を書く" : "Write the YAML"}</h3>
+            <p>{isJa ? "登場人物と流れを箇条書きで宣言する。 type で図の種類を選ぶ。" : "Declare the actors and the flow as a list. type picks the kind of diagram."}</p>
+            <pre className="step-code">
+              {STEP_CODE.map((line) => (
+                <span key={line} className="step-code-line">
+                  {line}
+                </span>
+              ))}
+            </pre>
           </div>
           <div className="step">
-            <div className="step-num">3</div>
-            <div className="step-body">
-              <h3>{isJa ? "SVGが動き出す" : "The SVG starts moving"}</h3>
-              <p>{isJa ? "右のライブプレビューにphase単位で動くSVGが表示される。 URLで共有もダウンロードもできる。" : "The live preview on the right shows an SVG that moves phase by phase. Share it by URL or download it."}</p>
-            </div>
+            <div className="step-num">03</div>
+            <h3>{isJa ? "SVG が動き出す" : "The SVG starts moving"}</h3>
+            <p>{isJa ? "右の実況表示に、 局面ごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。" : "The live view on the right shows a diagram that moves phase by phase. Share it by URL, or take it with you."}</p>
           </div>
         </div>
       </section>
@@ -304,9 +350,9 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetSequence} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag">sequence</span>
-              <h3>{isJa ? "API呼び出しの流れ" : "How an API call flows"}</h3>
-              <p>{isJa ? "登場人物どうしのやりとりを時間軸で並べる。認証 / API連携の説明に。" : "Lay out interactions between actors on a timeline. Ideal for explaining authentication and API integrations."}</p>
+              <span className="example-tag tag-seq">sequence</span>
+              <h3>{isJa ? "API 呼び出しの流れ" : "How an API call flows"}</h3>
+              <p>{isJa ? "登場人物どうしのやりとりを時間軸で並べる。 認証や API 連携の説明に。" : "Lay out interactions between actors on a timeline. Ideal for explaining authentication and API integrations."}</p>
             </div>
           </Link>
           <Link className="example" to="/catalog/presets">
@@ -314,9 +360,9 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetTopology} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag">topology</span>
+              <span className="example-tag tag-topo">topology</span>
               <h3>{isJa ? "システム構成図" : "System topology"}</h3>
-              <p>{isJa ? "コンポーネントの配置と、リクエストがどこを通るかを同時に描く。" : "Show component placement and request paths in a single diagram."}</p>
+              <p>{isJa ? "部品の配置と、 要求がどこを通るかを同時に描く。" : "Show component placement and request paths in a single diagram."}</p>
             </div>
           </Link>
           <Link className="example" to="/catalog/presets">
@@ -324,14 +370,14 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetEr} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag">er</span>
-              <h3>{isJa ? "DBスキーマ" : "DB schema"}</h3>
-              <p>{isJa ? "entityと関係性を順番に見せる。 schema review / onboardingに。" : "Reveal entities and relationships step by step. For schema review and onboarding."}</p>
+              <span className="example-tag tag-er">er</span>
+              <h3>{isJa ? "データベースの構造" : "DB schema"}</h3>
+              <p>{isJa ? "実体と関係を順番に見せる。 構造の見直しや引き継ぎに。" : "Reveal entities and relationships step by step. For schema review and onboarding."}</p>
             </div>
           </Link>
         </div>
         <div className="examples-more">
-          <Link className="btn-secondary" to="/catalog">
+          <Link className="link-accent" to="/catalog">
             {isJa ? "図のカタログを見る →" : "Browse the catalog →"}
           </Link>
         </div>
@@ -339,8 +385,8 @@ export function HomePage(): React.ReactElement {
 
       <section className="closing-cta">
         <div className="closing-cta-inner">
-          <h2>{isJa ? "今すぐ、書いて動かす。" : "Write it now, watch it move."}</h2>
-          <p>{isJa ? "YAMLを1ファイル書くだけ。 動く図を1分後に手に入れる。" : "One YAML file is all it takes. A moving diagram is yours a minute later."}</p>
+          <h2>{isJa ? "今すぐ、 書いて動かす。" : "Write it now, watch it move."}</h2>
+          <p>{isJa ? "YAML を 1 つ書くだけ。 動く図を 1 分後に手に入れる。" : "One YAML file is all it takes. A moving diagram is yours a minute later."}</p>
           <div className="closing-cta-buttons">
             <Link className="btn-primary" to="/editor">
               {isJa ? "エディタを開く →" : "Open the editor →"}

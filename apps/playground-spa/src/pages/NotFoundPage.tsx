@@ -1,43 +1,54 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 
 /**
- * 404 page = 旧 apps/playground/src/pages/404.astro 忠実復元。
- * v4-404 = 大きい 404 code + em 強調 title + 4 CTA (overview / editor / catalog / docs)。
- * CSS = home.css の .v4-404-* class (旧 404.astro <style> tag 移植)。
+ * 見つからない頁。 見た目の SSOT = docs/design/app.pen の 09 見つからない頁、
+ * class の中身は src/styles/home.css の .v4-404-*。
+ * 局面の目盛りを空のまま置くのは、 「まだ何も書かれていない」 ことを図の言葉で言うため。
  */
 export function NotFoundPage(): React.ReactElement {
   const [locale] = useLocale();
+  const location = useLocation();
   const isJa = locale === "ja";
   return (
     <div>
       <SiteHeader />
       <main className="v4-404">
-        <div className="v4-404-code">404</div>
+        <div className="v4-404-code" aria-label="404">
+          <span aria-hidden="true">4</span>
+          <span className="zero" aria-hidden="true">
+            0
+          </span>
+          <span aria-hidden="true">4</span>
+        </div>
+        <div className="v4-404-phases" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         <h1 className="v4-404-title">
           <em>{isJa ? "そこは" : "That page"}</em>
           <span>{isJa ? "、 まだ書かれていない。" : " has not been written yet."}</span>
         </h1>
         <p className="v4-404-lead">
           {isJa
-            ? "お探しの page は移動 / 削除されたか、 そもそも存在しません。 dragon の 4 つの入口から探してみてください。"
+            ? "お探しの頁は移動または削除されたか、 そもそも存在しません。 dragon の 4 つの入口から探してみてください。"
             : "The page you are looking for was moved, deleted, or never existed. Try one of dragon's four entry points."}
         </p>
         <div className="v4-404-cta">
-          <Link to="/" className="v4-btn-primary">
-            overview →
-          </Link>
-          <Link to="/editor" className="v4-btn-secondary">
-            open editor
+          <Link to="/editor" className="v4-btn-primary">
+            {isJa ? "エディタを開く →" : "open editor →"}
           </Link>
           <Link to="/catalog" className="v4-btn-secondary">
-            browse catalog
+            {isJa ? "カタログを見る" : "browse catalog"}
           </Link>
           <Link to="/docs" className="v4-btn-secondary">
-            read docs
+            {isJa ? "ドキュメントを読む" : "read docs"}
           </Link>
         </div>
+        <p className="v4-404-path">{location.pathname}</p>
       </main>
     </div>
   );

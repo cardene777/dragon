@@ -1,330 +1,224 @@
-  @import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+/* ================================================================
+ * 全頁の上の帯。 docs/design/app.pen の C / TopBar が SSOT。
+ *
+ * 明暗は html.dark の 1 本で切替わる。 ここでは色を直に書かず
+ * globals.css の変数だけを参照するので、 暗い側の規則は要らない。
+ * ================================================================ */
 
-  :root {
-    /* 龍鱗ゴールド light palette (globals.css @theme と整合) */
-    --v4-canvas: #f0e8d4;
-    --v4-canvas-dim: #ebe0c4;
-    --v4-surface: #f8ecd8;
-    --v4-surface-2: #ebe0c4;
-    --v4-line: #d8c8a8;
-    --v4-line-soft: #e8dfc8;
-    --v4-ink: #1a1410;
-    --v4-ink-dim: #3a2a10;
-    --v4-ink-mute: #6d5a3a;
-    --v4-brand: #a66a3d;
-    --v4-brand-deep: #8a5a2a;
-    --v4-brand-soft: #f8ecd8;
-    --v4-brand-glow: #b8862a;
-    --v4-brand-hi: #b8862a;
-    --v4-display: "Cinzel", var(--v4-serif);
-    --v4-accent-domain: #c2410c;
-    --v4-accent-extended: #a66a3d;
-    --v4-serif: "Newsreader", "EB Garamond", Georgia, serif;
-    --v4-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
-    --v4-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
-    --v4-code-bg: #fcf8ee;
-  }
+.v4-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--d-topbar-h);
+  padding: 0 28px;
+  background: var(--d-surface);
+  border-bottom: 1px solid var(--d-border);
+}
 
-  /* Neumorphism sticky header (CAR-N-6、 backdrop blur + inset shadow bottom で subtle depth) */
+/* ── 銘 ── */
+
+.v4-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+
+.v4-nav-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 14px;
+}
+
+.v4-nav-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.v4-nav-mark svg path {
+  fill: var(--d-accent);
+}
+
+.v4-nav-name {
+  font-family: var(--d-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--d-text-primary);
+}
+
+.v4-nav-sub {
+  margin-left: 6px;
+  font-family: var(--d-body);
+  font-size: 11px;
+  color: var(--d-text-muted);
+}
+
+.v4-nav-brand:hover .v4-nav-name {
+  color: var(--d-accent);
+}
+
+/* ── 行き先 ── */
+
+.v4-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* 下線は常に置き、 選ばれていない間は透かす。 押した時に行が動かない */
+.v4-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 11px 0;
+  font-family: var(--d-body);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--d-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.v4-nav-link::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+}
+
+.v4-nav-link:hover {
+  color: var(--d-text-primary);
+}
+
+.v4-nav-link.active {
+  color: var(--d-accent);
+}
+
+.v4-nav-link.active::after {
+  background: var(--d-accent);
+}
+
+/* ── 右の操作群 ── */
+
+.v4-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.v4-nav-lang-toggle {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  cursor: pointer;
+  padding: 0;
+}
+
+.v4-nav-lang-seg {
+  padding: 5px 9px;
+  font-family: var(--d-body);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--d-text-muted);
+}
+
+.v4-nav-lang-seg.is-on {
+  background: var(--d-surface-3);
+  color: var(--d-text-primary);
+  font-weight: 600;
+}
+
+.v4-nav-lang-toggle:hover {
+  border-color: var(--d-border-strong);
+}
+
+.v4-nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  color: var(--d-text-secondary);
+  cursor: pointer;
+}
+
+.v4-nav-icon-btn:hover {
+  border-color: var(--d-border-strong);
+  color: var(--d-text-primary);
+}
+
+.v4-nav-icon-btn svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.v4-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-family: var(--d-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.v4-nav-cta:hover {
+  filter: brightness(1.08);
+}
+
+.v4-nav-cta:active {
+  filter: brightness(0.94);
+}
+
+/* ── 幅が足りない時は外側から落とす ── */
+
+@media (max-width: 1100px) {
   .v4-nav {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    padding: 0 32px;
-    height: 60px;
-    background: var(--nm-header-bg, rgba(240, 232, 212, 0.82));
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-bottom: 1px solid var(--nm-header-border, var(--v4-line));
-    box-shadow: var(
-      --nm-header-shadow,
-      0 1px 0 rgba(248, 236, 208, 0.5) inset,
-      0 1px 3px rgba(26, 20, 16, 0.04)
-    );
-    font-family: var(--v4-sans);
-  }
-  .v4-nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    margin-right: auto;
-    color: var(--v4-ink);
-    text-decoration: none;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .v4-nav-brand:hover {
-    transform: translateY(-1px);
-  }
-  .v4-nav-brand:hover .v4-nav-mark svg {
-    transform: rotate(-6deg) scale(1.05);
-  }
-  .v4-nav-mark {
-    width: 30px;
-    height: 30px;
-    display: grid;
-    place-items: center;
-  }
-  .v4-nav-mark svg {
-    width: 28px;
-    height: 28px;
-    display: block;
-    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .v4-nav-name {
-    font-family: var(--v4-display);
-    font-weight: 600;
-    font-size: 18px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--v4-ink);
+    padding: 0 16px;
   }
   .v4-nav-sub {
-    color: var(--v4-ink-mute);
-    font-weight: 400;
-    margin-left: 8px;
-    font-size: 12.5px;
-    font-family: var(--v4-mono);
-    letter-spacing: -0.02em;
+    display: none;
   }
-  .v4-nav-links {
-    display: flex;
-    gap: 2px;
+}
+
+@media (max-width: 900px) {
+  .v4-nav-cta {
+    display: none;
   }
   .v4-nav-link {
-    position: relative;
-    padding: 6px 13px;
-    border-radius: 7px;
-    font-size: 13px;
-    color: var(--v4-ink-dim);
-    transition: color 0.15s, background 0.15s;
-    font-family: var(--v4-mono);
-    letter-spacing: -0.02em;
-    text-decoration: none;
+    padding: 9px 7px 0;
+    font-size: 12px;
   }
-  .v4-nav-link:hover {
-    color: var(--v4-ink);
-    background: rgba(26, 20, 16, 0.05);
-  }
-  /* active link ... Vercel / Linear 風 = bg pill + underline accent で「今どこ」 を明示 */
-  .v4-nav-link.active {
-    color: var(--v4-brand-deep);
-    background: rgba(166, 106, 61, 0.08);
-    font-weight: 600;
-  }
-  .v4-nav-link.active::after {
-    content: "";
-    position: absolute;
-    bottom: -14px;
-    left: 13px;
-    right: 13px;
-    height: 2px;
-    background: var(--v4-brand);
-    border-radius: 999px 999px 0 0;
-  }
-  .v4-nav-cta {
-    margin-left: 14px;
-    padding: 8px 18px;
-    border-radius: 9px;
-    background: var(--v4-ink);
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--v4-canvas);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--v4-mono);
-    letter-spacing: -0.02em;
-    transition:
-      transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-      background 0.15s,
-      box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-    text-decoration: none;
-    box-shadow:
-      0 1px 2px rgba(26, 20, 16, 0.12),
-      0 1px 0 rgba(255, 255, 255, 0.1) inset;
-  }
-  .v4-nav-cta:hover {
-    transform: translateY(-1px) scale(1.02);
-    background: var(--v4-brand-deep);
-    box-shadow:
-      0 8px 20px -8px rgba(26, 20, 16, 0.32),
-      0 1px 0 rgba(255, 255, 255, 0.15) inset;
-  }
-  .v4-nav-cta:active {
-    transform: translateY(0) scale(1);
-    box-shadow:
-      inset 0 2px 4px rgba(0, 0, 0, 0.2),
-      0 1px 0 rgba(255, 255, 255, 0.05) inset;
-  }
+}
 
-  /* ── theme toggle button ── */
-  .v4-nav-theme-toggle {
-    margin-left: 8px;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--v4-line);
-    background: var(--v4-surface);
-    color: var(--v4-ink);
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    font-size: 15px;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    position: relative;
+@media (max-width: 720px) {
+  .v4-nav-links {
+    display: none;
   }
-  .v4-nav-theme-toggle:hover {
-    border-color: var(--v4-brand);
-    color: var(--v4-brand);
-  }
-  html.dark .v4-nav-theme-toggle {
-    background: #241c14;
-    border-color: #3d322a;
-    color: #f8ecd0;
-  }
-  html.dark .v4-nav-theme-toggle:hover {
-    border-color: #f0b840;
-    color: #f0b840;
-  }
-  .v4-theme-icon {
-    line-height: 1;
-    font-size: 15px;
-  }
-  /* ── share button (theme toggle と同 size、 余白 8px 確保) ── */
-  .v4-nav-share-btn {
-    margin-left: 8px;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid var(--v4-line);
-    background: var(--v4-surface);
-    color: var(--v4-ink-dim);
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-  }
-  .v4-nav-share-btn:hover {
-    border-color: var(--v4-brand);
-    color: var(--v4-brand);
-  }
-  /* ─────── dark mode palette override (全 page 共通) ─────── */
-  /* dark nav */
-  /* body / global */
-  /* ── search bar (docs) ── */
-  .v4-nav-search {
-    min-width: 220px;
-  }
-
-  /* ── lang toggle (docs) ── */
-  .v4-nav-lang-toggle {
-    margin-left: 4px;
-    height: 36px;
-    padding: 0 12px;
-    border-radius: 8px;
-    border: 1px solid var(--v4-line);
-    background: var(--v4-surface);
-    color: var(--v4-ink);
-    font-family: var(--v4-mono);
-    font-size: 11.5px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: border-color 0.15s;
-  }
-  .v4-nav-lang-toggle:hover {
-    border-color: var(--v4-brand);
-    color: var(--v4-brand);
-  }
-  html.dark .v4-nav-lang-toggle {
-    background: #241c14;
-    border-color: #3d322a;
-    color: #f8ecd0;
-  }
-  html.dark .v4-nav-lang-toggle:hover {
-    border-color: #f0b840;
-    color: #f0b840;
-  }
-  .v4-lang-current {
-    color: var(--v4-brand);
-    font-weight: 700;
-  }
-  html.dark .v4-lang-current {
-    color: #f0b840;
-  }
-
-  /* 900px 以下 responsive = header 幅超過による body 横スクロール解消 */
-  @media (max-width: 900px) {
-    .v4-nav {
-      padding: 0 16px;
-    }
-    .v4-nav-cta { display: none; }
-    .v4-nav-sub { display: none; }
-    .v4-nav-links {
-      gap: 4px;
-    }
-    .v4-nav-link {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-  }
-  @media (max-width: 768px) {
-    .v4-nav-search { display: none; }
-    .v4-nav-links .v4-nav-link:nth-of-type(n+3) { display: none; }
-  }
-  @media (max-width: 640px) {
-    .v4-nav-name { font-size: 14px; }
-    .v4-nav-links { display: none; }
-  }
-
-  /* ── html.dark cascade (龍鱗ゴールド dark = obsidian + amber + ember) ── */
-  html.dark {
-    --v4-canvas: #1a1410;
-    --v4-canvas-dim: #241c14;
-    --v4-surface: #241c14;
-    --v4-surface-2: #2e2418;
-    --v4-line: #3d322a;
-    --v4-line-soft: #241c14;
-    --v4-ink: #f8ecd0;
-    --v4-ink-dim: #d0c0a5;
-    --v4-ink-mute: #a08870;
-    --v4-brand: #f0b840;
-    --v4-brand-deep: #d4a032;
-    --v4-brand-soft: #2e2418;
-    --v4-brand-glow: #f56b45;
-    --v4-brand-hi: #f56b45;
-    --v4-code-bg: #241c14;
-  }
-  html.dark body {
-    background-color: #1a1410;
-    /* dragon の宝の光 = radial gold + ember glow (両側) */
-    background-image:
-      radial-gradient(
-        ellipse 900px 500px at 75% 30%,
-        rgba(240, 184, 64, 0.10),
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse 700px 400px at 15% 90%,
-        rgba(245, 107, 69, 0.06),
-        transparent 60%
-      );
-  }
-  html.dark .v4-nav {
-    background: rgba(26, 20, 16, 0.88);
-    border-bottom-color: #3d322a;
-  }
-  html.dark .v4-nav-cta {
-    background: linear-gradient(180deg, #f0b840, #d4a032);
-    color: #1a1410;
-    border: 1px solid #f0b840;
-    box-shadow: 0 4px 16px -4px rgba(240, 184, 64, 0.55);
-  }
-  html.dark .v4-nav-cta:hover {
-    background: linear-gradient(180deg, #f8c858, #f0b840);
-    box-shadow: 0 6px 24px -4px rgba(240, 184, 64, 0.75);
-  }
+}

@@ -1,19 +1,77 @@
 /*
  * ═════════════════════════════════════════════════════════════════════════════
- * Universal SVG text stroke inheritance guard (theme 横断 root cause fix)
+ * 図の見た目 SSOT
  * ═════════════════════════════════════════════════════════════════════════════
  *
- * SVG は stroke を child text 要素に inherit する仕様、 node-body 等 shape rule
- * で設定した stroke-width が glyph に適用されて double-strike / bloated 表示 bug
- * となる。 全 theme で SVG text は fill のみで描画すべき、 stroke は shape 側限定。
+ * cdl は形だけを描き、 色は持たない。 図の中の各部品には `data-cdl-role` が付くので、
+ * dragon 側が本 file で色を当てる。
  *
- * 影響 theme (stroke-width あり) = isometric (1.2) / circuit (1.6) / pinboard (1) /
- * handdrawn (1.6) / blueprint (3.5、 既に個別 fix 済)。 neumorphism は stroke: none で影響なし。
+ * **明暗の切替は書かない**。 色はすべて `globals.css` の `--d-*` を参照するので、
+ * `html.dark` が変数を差し替えれば図も一緒に変わる。 ここに `html.dark` の規則を足すと
+ * 明暗を決める場所が 2 つになる。
  *
- * 経緯 = blueprint theme で user 報告 「ライトモード文字がバグ」 → 3.5px stroke が
- * font-size 17-20px glyph に double-strike 効果 → 個別 fix (PR #403) → 他 theme も
- * 同 pattern 潜在 risk と判明、 universal 経路で予防。
+ * 図の紙は画面と同じ `--d-surface`。 一覧でも編集画面でも同じ紙の上に図が乗る。
+ *
+ * `!important` を付けるのは、 cdl が要素に `fill=` `stroke=` を直接書いており、
+ * 属性は CSS の通常の規則より強いため。
  */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * cdl 内部の図 (chart 系 / tree / mind-map / journey-map) が読む変数。
+ *
+ * これらの図は role を持たない小さな部品を自前で描くので、 CSS では届かない。
+ * cdl が変数として口を開けているので、 そこへ新しい色を流す。
+ *
+ * 宣言先が `:root` でよいのは、 `html.dark` も同じ html 要素だから。
+ * 参照先の `--d-*` が差し替わると、 ここも自動で追随する。
+ * ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  --cdl-canvas-bg: var(--d-surface);
+  --cdl-stage-bg: var(--d-surface);
+  --cdl-node-fill: var(--d-surface-2);
+  --cdl-fill: var(--d-surface-3);
+  --cdl-label-bg: var(--d-surface);
+  --cdl-chip-fill: var(--d-surface-3);
+  --cdl-chip-text: var(--d-text-primary);
+
+  --cdl-text: var(--d-text-primary);
+  --cdl-text-dim: var(--d-text-secondary);
+  --cdl-text-mute: var(--d-text-muted);
+  --cdl-text-accent: var(--d-accent);
+  /* 色で塗った図形の上に乗る文字。 明では図形が濃いので白、 暗では図形が明るいので黒に倒れる */
+  --cdl-text-on-tone: var(--d-on-accent);
+
+  --cdl-line: var(--d-text-secondary);
+  --cdl-line-mute: var(--d-text-muted);
+  /* 枠線。 消す指定をされることがあるので、 区切り線とは別に持つ */
+  --cdl-divider: var(--d-border);
+  /* 表の区切り線。 箱の塗り (`--d-surface-2`) の上で対比 3.25 (明) / 3.40 (暗)。
+     既定のままだと cdl の灰色 `#7e848e` が出て、 暗い画面で紙に沈む */
+  --cdl-row-divider: var(--d-text-muted);
+
+  --cdl-note-fill: var(--d-warn-soft);
+  --cdl-note-text: var(--d-warn);
+
+  /* 図の中で系統を描き分ける 6 色。 紙に対して明 4.67 以上 / 暗 7.1 以上 */
+  --cdl-tone-accent: var(--d-accent);
+  --cdl-tone-accent-deep: var(--d-accent);
+  --cdl-tone-teal: var(--d-dg-6);
+  --cdl-tone-success: var(--d-dg-2);
+  --cdl-tone-error: var(--d-err);
+  --cdl-tone-warning: var(--d-warn);
+  --cdl-tone-info: var(--d-dg-1);
+
+  --cdl-thumbnail-modal-bg: var(--d-surface);
+  --cdl-thumbnail-overlay-bg: var(--d-scrim);
+  --cdl-thumbnail-close-bg: color-mix(in srgb, var(--d-text-primary) 12%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 文字に線を引かせない。
+ *
+ * SVG は親の `stroke` を文字にも継がせる。 箱に線幅を与えると文字の輪郭にも乗り、
+ * 二重に描かれて潰れる。 文字は塗りだけで描く。
+ * ───────────────────────────────────────────────────────────────────────────── */
 [data-cdl-role="node-body"] text,
 [data-cdl-role="node-label"],
 [data-cdl-role="edge-label"],
@@ -21,973 +79,131 @@
   stroke: none !important;
 }
 
-/**
- * cdl SVG 6 theme override SSOT (CAR-730 = 全 role !important 完全 override 化)
- *
- * cdl は CAR-643 で geometry only に scope 縮小、 shadow / border effect の style は
- * cdl SVG 内に持たない。 dragon 側で `[data-cdl-theme="<name>"] [data-cdl-role="<role>"]`
- * selector 経由に自分の style を適用する。 CAR-707 (cdl theme prop) + CAR-708 (dragon defs)
- * merge 済で実 catalog page で見た目が全 theme blueprint と同じ状態だった問題を CAR-730 で解決:
- *
- *   root cause 3 点:
- *     1. CSS specificity 不足 = 2 段 selector が cdl SVG 内 inline `fill=` `stroke=` に負ける
- *     2. role 網羅不足 = data-cdl-role が edge-line / edge-arrowhead / node-label / edge-label /
- *                       node-kind-icon の 5 種で未付与 → override 対象外
- *     3. filter / fill 適用時の !important 欠如 = specificity 勝負で inline attr に負ける
- *
- *   fix:
- *     1. cdl 側で 5 追加 role を SSOT 化 (types.ts CdlRole)、 render 対象要素に付与
- *     2. dragon 側 (本 file) で 6 theme × 全 role × fill/stroke/filter/font を !important で明示
- *
- * 適用 role SSOT (CAR-730、 全 10 role):
- *   - node-body       ... 6 shape wrapper (actor / card / event / function / storage / generic)
- *   - node-label      ... node 内 main title text (kind に依らず全 node 共通)
- *   - node-kind-icon  ... GenericNode の kind 別 icon path (25 種)
- *   - edge-line       ... edge の描画 path (solid / dotted-flow 両方)
- *   - edge-arrowhead  ... edge marker triangle (defs 内 marker path)
- *   - edge-label-bg   ... edge label pill 背景 rect
- *   - edge-label      ... edge label text (main 行 + sub 行)
- *   - lane-container  ... lane.contain=true の boundary rect
- *   - lane-lifeline   ... lane.lifeline=true の縦点線 line
- *   - lane-label      ... lane 見出し text
- *
- * default theme = "blueprint" (CAR-707 cdl 側 fallback SSOT)。 SVG root に
- * `data-cdl-theme="blueprint"` が明示的に付与されるため、 全 theme rule を明示 selector で書く。
- *
- * SVG defs 本体は BaseLayout / DocsLayout に inline `<svg><defs>` で 1 度だけ inject する
- * (CdlFilterDefs.astro SSOT)。
- *
- * !important の使用理由 = cdl 側 SVG 内 inline `fill=` `stroke=` は CSS より specificity が高く、
- * !important なしでは override が効かない。 style 分離規約 (CAR-643) の徹底のために本 file で
- * !important を全 rule に適用する。
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 箱
+ * ───────────────────────────────────────────────────────────────────────────── */
 
-/* ═════════════════════════════════════════════════════════════════════════════
- * Neumorphism (CAR-748 = Round 11 意図まで到達、 Circuit pattern (CAR-741) 流用)
- * 意図 = soft raised bumps + dual shadow (light TL + dark BR) + no border +
- *        warm copper accent (#a66a3d) + Söhne / Inter regular + monolithic surface #e6ebf0
- *
- * CAR-741 Circuit theme と同じ 3 経路を採用:
- *   (a) CSS var 上書き経路 = kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"`
- *       fallback を効かせる (最も clean な経路)
- *   (b) 子孫 selector 経路 = generic.tsx の `<g data-cdl-role="node-body">` 直下の
- *       rect/path/ellipse/circle を !important + 具体 selector で override
- *   (c) 全 role !important 明示 = edge-line / edge-arrowhead / node-label / edge-label /
- *       node-kind-icon / lane-* まで網羅
- *
- * dragon-nm-raised = 既存 dragon-nm-raised-soft の alias、 dual shadow を Round 11 意図
- * (stdDeviation=3, offset ±4, opacity 0.55 dark / 0.95 light) で強化する。
- * dragon-nm-raised-sm = edge-label pill 背景用の小型 dual shadow (stdDeviation=1.5, offset ±2)。
- * ═════════════════════════════════════════════════════════════════════════════ */
-
-/*
- * CSS var 上書き経路 (a)
- * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
- * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
- */
-[data-cdl-theme="neumorphism"] {
-  --cdl-node-fill: #e6ebf0;
-  /* tone-info は generic.tsx で accent / eyebrowColor に使われる = 見た目 accent と統一 */
-  --cdl-tone-info: #a66a3d;
-  --cdl-tone-accent: #a66a3d;
-  /* divider は kinds/card.tsx の stroke fallback (非 active 時) に使われる。 border は消したいので transparent */
-  --cdl-divider: transparent;
-  --cdl-text: #3a3d47;
-  --cdl-text-dim: #7a808c;
-  --cdl-text-secondary: #7a808c;
-  --cdl-label-bg: #e6ebf0;
-  --cdl-edge-stroke: #a66a3d;
+/* 子の図形にも同じ塗りを当てる。 kind によって `rect` / `path` / `ellipse` と形が変わり、
+   包む要素だけに当てると中身が既定色のまま残る */
+[data-cdl-role="node-body"],
+[data-cdl-role="node-body"] > rect,
+[data-cdl-role="node-body"] > path,
+[data-cdl-role="node-body"] > ellipse,
+[data-cdl-role="node-body"] > circle,
+[data-cdl-role="node-body"] > g > rect,
+[data-cdl-role="node-body"] > g > path,
+[data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-role="node-body"] > g > circle {
+  fill: var(--d-surface-2) !important;
+  stroke: var(--d-text-muted) !important;
+  stroke-width: 1.75 !important;
 }
 
-/*
- * 直接 role selector 経路 (b1)
- * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] {
-  fill: #e6ebf0 !important;
-  stroke: none !important;
-  filter: url(#dragon-nm-raised) !important;
-  rx: 14 !important;
-  ry: 14 !important;
+[data-cdl-role="node-label"] {
+  fill: var(--d-text-primary) !important;
+  font-family: var(--d-body) !important;
+  font-weight: 600 !important;
 }
 
-/*
- * 子孫 selector 経路 (b2)
- * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
- * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
- * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > path,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle {
-  fill: #e6ebf0 !important;
-  stroke: none !important;
-  filter: url(#dragon-nm-raised) !important;
-  rx: 14 !important;
-  ry: 14 !important;
-}
-/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
-  fill: #e6ebf0 !important;
+/* 3 つ目の属性を持たせて、 上の子要素の規則より強くする。
+   同じ強さだと後から書いた方が勝ち、 絵が箱の塗りで潰れる */
+[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
+[data-cdl-role="node-kind-icon"] path {
+  fill: var(--d-text-secondary) !important;
   stroke: none !important;
 }
 
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
-  fill: #3a3d47 !important;
-  stroke: none !important;
-  font-family: "Söhne", "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-weight: 700 !important;
-}
-/*
- * icon path の specificity は node-body の子孫 selector (`> g > path`) と衝突するため、
- * `[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path` の 3 attribute selector
- * で specificity を勝たせる (0-3-1 > 0-2-2)。 !important の source order だけでは
- * `[node-body] > g > path` (0-2-2) が同 !important レベルで負けるため、 attribute 数で決着させる。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #a66a3d !important;
-  stroke: none !important;
-  opacity: 1 !important;
-}
-/*
- * Neumorphism kind icon badge = Round 11 意図の raised circular badge (24 → 40 world)。
- *
- * icon `<g>` は `translate(iconX iconY)` で node 右上に配置される local origin を持つ。
- * その local 座標系で 24x24 の transparent rect を x=-8 / y=-8 / w=40 / h=40 の
- * 円形 badge (rx=ry=20) に置換、 `dragon-nm-raised-sm` filter で soft dual shadow を
- * 適用する。 icon path (0-24 viewBox) は center (12, 12) を基準に 1.67x scale して
- * 40x40 badge を占めるサイズに拡大、 accent copper (#a66a3d) fill で可読性を上げる。
- *
- * specificity: 4 attribute selector (theme + node-body + node-kind-icon + tag) で
- * 既存 `[node-body] rect` (3 attr) を上書き。 `> rect` 直接子指定で GenericNode 以外の
- * shape rect (actor/card/event/function 等の node-body 本体 rect) を巻き込まない。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
-  fill: #e6ebf0 !important;
-  stroke: none !important;
-  rx: 20px !important;
-  ry: 20px !important;
-  width: 40px !important;
-  height: 40px !important;
-  x: -8px !important;
-  y: -8px !important;
-  filter: url(#dragon-nm-raised-sm) !important;
-}
-/*
- * icon glyph 拡大 (24x24 native → 40x40 badge に scale 1.67)。
- *
- * SVG transform 順は right-to-left の合成、 `translate(-8 -8) scale(1.67)` は
- * (1) 各点を scale 1.67x (2) その結果を (-8, -8) に translate。
- * viewBox center (12, 12) は 1.67*12 - 8 = 12.04 に写像され、
- * 24x24 → 40x40 に等方拡大しつつ badge 中心と一致する。
- * transform-box は SVG path で不安定なため、 明示 translate + scale で確実に center 固定する。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
-[data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
-  transform: translate(-8px, -8px) scale(1.67) !important;
-  fill: #a66a3d !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"],
-[data-cdl-theme="neumorphism"] path[data-cdl-role="edge-line"],
-[data-cdl-theme="neumorphism"] line[data-cdl-role="edge-line"] {
-  stroke: #a66a3d !important;
-  stroke-width: 1.6 !important;
-  stroke-linecap: round !important;
-  fill: none !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  fill: #a66a3d !important;
-  stroke: none !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #a66a3d !important;
-  stroke: none !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
-  fill: #e6ebf0 !important;
-  stroke: none !important;
-  filter: url(#dragon-nm-raised-sm) !important;
-}
-/* font-size は renderer 側 SSOT (edge main 22 / edge sub 19) を尊重する。 11px に縮めていたが、
-   blueprint で同じ override を撤去したのと同じ regression。 11px だと太字でも WCAG の
-   large text (18.66px 以上) に届かず通常文字の 4.5:1 が要るため、 #a66a3d (対 #e6ebf0 で
-   3.69:1) が基準を割っていた。 19px 太字なら large text の 3:1 で足りる。 */
-/*
- * edge label だけ accent (#a66a3d) より暗い copper を使う (#977)。
- *
- * 実ブラウザで測ると label の文字は画面上 6.4-9.3px しかない (宣言 22 / 19px を viewBox が
- * 0.29-0.38 倍に縮める)。 WCAG の large text (18.66px 以上) に入らないので、 要求されるのは
- * 3:1 ではなく 4.5:1。 accent のままだと背景 #e6ebf0 に対して 3.69:1 で割る。
- *
- * 色相 26° と彩度 0.46 は accent と同じにして、 明度だけ 0.45 → 0.36 に下げた。
- *
- * 実測が指定色より 4.5 に近く出る (指定 rgb(134,86,49) が rgb(139,93,58) として測れる)。 小さい
- * 字は device pixel を完全には覆わず、 最も濃い画素でも背景と少し混ざるため。 指定値で
- * 4.5 ちょうどに合わせると実測が割るので、 指定側に余裕 (5.2:1) を取っている。
- */
-[data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #865631 !important;
-  stroke: none !important;
-  font-family: "JetBrains Mono", "Söhne Mono", ui-monospace, SFMono-Regular, monospace !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: rgba(230, 235, 240, 0.5) !important;
-  stroke: rgba(166, 106, 61, 0.2) !important;
-  stroke-dasharray: 4 4 !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(166, 106, 61, 0.35) !important;
-  stroke-opacity: 0.6 !important;
-}
-[data-cdl-theme="neumorphism"] [data-cdl-role="lane-label"] {
-  fill: #7a808c !important;
-  stroke: none !important;
-  font-family: "Söhne", "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 12px !important;
-}
-
-/* ─── dark mode variant (raised bumps + dark palette 反転) ─── */
-html.dark [data-cdl-theme="neumorphism"] {
-  --cdl-node-fill: #241c14;
-  --cdl-tone-info: #d4a04a;
-  --cdl-tone-accent: #d4a04a;
-  --cdl-text: #d8dde8;
-  --cdl-text-dim: #a08870;
-  --cdl-text-secondary: #a08870;
-  --cdl-label-bg: #241c14;
-  --cdl-edge-stroke: #d4a04a;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"],
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] rect,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > path,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > path,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > ellipse,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] > g > circle,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] ellipse {
-  fill: #241c14 !important;
-  filter: url(#dragon-nm-raised-dark) !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label-bg"] {
-  fill: #241c14 !important;
-  filter: url(#dragon-nm-raised-sm-dark) !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-label"] {
-  fill: #d8dde8 !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] path {
-  fill: #d4a04a !important;
-}
-/* dark mode kind icon badge (Round 11 意図 raised badge dark variant) */
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > rect {
-  fill: #241c14 !important;
-  filter: url(#dragon-nm-raised-sm-dark) !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > path,
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-kind-icon"] > path {
-  fill: #d4a04a !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-line"] {
-  stroke: #d4a04a !important;
-  fill: none !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #d4a04a !important;
-  fill: #d4a04a !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-arrowhead"] path {
-  fill: #d4a04a !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="edge-label"] {
-  fill: #d4a04a !important;
-}
-html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="lane-container"] {
-  fill: rgba(36, 28, 20, 0.5) !important;
-  stroke: rgba(212, 160, 74, 0.25) !important;
-}
-
-/* ═════════════════════════════════════════════════════════════════════════════
- * Isometric (3D 立体 metaphor、 top-light gradient + cast shadow)
- * 意図 = 30° 立体 cube + top-light gradient + cast shadow + 3D pipes
- * 注 = SVG transform で svg root 全体を skew するのは text 反転を招くため、
- *      本 CSS では fill / stroke / filter で立体感を演出する経路。 完全 3D 化は
- *      将来 cdl engine の isometric projection を実装する時に別途対応。
- * ═════════════════════════════════════════════════════════════════════════════ */
-[data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
-  fill: url(#dragon-iso-top-gradient) !important;
-  stroke: #8a7050 !important;
-  stroke-width: 1.2 !important;
-  filter: url(#dragon-iso-cast-shadow) !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
-  fill: #ffffff !important;
-  stroke: #8a7050 !important;
-  stroke-width: 1 !important;
-  filter: url(#dragon-iso-cast-shadow) !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="lane-container"] {
-  fill: rgba(244, 248, 255, 0.5) !important;
-  stroke: rgba(184, 199, 222, 0.7) !important;
-  stroke-dasharray: 6 4 !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(122, 96, 68, 0.55) !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="node-label"] {
-  fill: #1a1408 !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #1a1408 !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #8a7050 !important;
-  stroke-width: 3 !important;
-  filter: url(#dragon-iso-cast-shadow) !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  fill: #8a7050 !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="node-kind-icon"] path {
-  fill: #8a7050 !important;
-  opacity: 0.9 !important;
-}
-[data-cdl-theme="isometric"] [data-cdl-role="lane-label"] {
-  fill: #8a7050 !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-body"] {
-  fill: url(#dragon-iso-top-gradient-dark) !important;
-  stroke: #a08870 !important;
-  filter: url(#dragon-iso-cast-shadow-dark) !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label-bg"] {
-  fill: #241c14 !important;
-  stroke: #a08870 !important;
-  filter: url(#dragon-iso-cast-shadow-dark) !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-label"],
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-label"] {
-  fill: #d8dde8 !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-line"] {
-  stroke: #a08870 !important;
-  fill: none !important;
-}
-html.dark [data-cdl-theme="isometric"] [data-cdl-role="edge-arrowhead"] {
-  stroke: #a08870 !important;
-  fill: #a08870 !important;
-}
-
-/* ═════════════════════════════════════════════════════════════════════════════
- * Circuit (PCB 基板 metaphor、 solder pad gold + trace mint + PCB green board)
- * 意図 = dark PCB board + gold solder pads (`data-cdl-role="node-pad"` 4 隅 circle) +
- *        mint traces + monospace + uppercase + letter-spacing。
- *
- * CAR-Circuit-DOM-確定 (task #147 実 DOM inspection 反映) 根本解決:
- *   1. cdl kinds/*.tsx は `<g data-cdl-role="node-body">` 経路 (generic.tsx) と
- *      `<rect data-cdl-role="node-body">` 経路 (5 kinds) の 2 経路混在。 generic.tsx は
- *      内部 rect/path/ellipse/circle が inline `fill="var(--cdl-node-fill, #ffffff)"`
- *      で描画されるため、 親 g への CSS `fill:` は子孫 shape に届かない (fill は
- *      inheritance するが子の inline attribute が上書きする SVG 仕様)。
- *   2. 解決策 = 2 経路併用:
- *      a. `[data-cdl-theme="circuit"]` root に `--cdl-node-fill` / `--cdl-tone-accent` /
- *         `--cdl-divider` / `--cdl-text` / `--cdl-text-dim` を上書き → kinds/*.tsx の
- *         inline `var(--cdl-node-fill, ...)` fallback を効かせる (最も clean な経路)
- *      b. `[data-cdl-role="node-body"] > rect / > path / > ellipse / > circle` の
- *         子孫 selector で fill / stroke を直接 override (var 経路が届かない edge case
- *         用の fallback、 かつ `[data-cdl-role="node-body"]` 自身が rect の 5 kinds
- *         にも重複 hit するので同じ rule で両経路 cover)
- *   3. solder pad = presets.astro の decoratePads() で `<circle data-cdl-role="node-pad">`
- *      を 4 隅に inject 済、 CSS で fill=gold + visibility=visible 強制
- * ═════════════════════════════════════════════════════════════════════════════ */
-
-/*
- * CSS var 上書き経路 (a)
- * kinds/*.tsx の inline `fill="var(--cdl-node-fill, #ffffff)"` に届く。
- * `--cdl-node-fill` は cdl 側で SSOT 化されている convention 変数名。
- */
-[data-cdl-theme="circuit"] {
-  --cdl-node-fill: #0a1a12;
-  --cdl-tone-info: #c8a038;
-  --cdl-tone-accent: #c8a038;
-  --cdl-divider: #c8a038;
-  --cdl-text: #a8e6c1;
-  --cdl-text-dim: #7bb896;
-  --cdl-text-secondary: #7bb896;
-  --cdl-label-bg: #0a1a12;
-  --cdl-edge-stroke: #48e0b0;
-}
-
-/*
- * 直接 role selector 経路 (b1)
- * 5 kinds (actor/card/event/function/storage) の rect + generic.tsx の g が両方 hit する。
- * generic.tsx の g には fill 効かない (g は fill を子に伝えるが子 rect の inline attr が優先)
- * が、 5 kinds の rect には直接効く。 stroke は g 経由でも子 rect が inherit しない場合
- * があるため、 g 自体には効きにくい。 下記 (b2) 子孫 selector が真の hammer。
- */
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] {
-  fill: #0a1a12 !important;
-  stroke: #c8a038 !important;
-  stroke-width: 1.6 !important;
-}
-
-/*
- * 子孫 selector 経路 (b2)
- * generic.tsx の `<g data-cdl-role="node-body">` 直下の rect/path/ellipse/circle を
- * すべて狙い撃ち。 SVG 仕様上、 子 rect の inline `fill="..."` は presentation attribute で
- * 0 specificity 相当、 !important 付き CSS rule が確実に上書きする。
- */
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] rect,
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > path,
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > path,
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] > g > circle {
-  fill: #0a1a12 !important;
-  stroke: #c8a038 !important;
-  stroke-width: 1.6 !important;
-}
-/* cylinder の top ellipse (別 g 直下)、 cloud の pass2 stroke circle 対応 */
-[data-cdl-theme="circuit"] [data-cdl-role="node-body"] ellipse {
-  fill: #0a1a12 !important;
-  stroke: #c8a038 !important;
-}
-
-[data-cdl-theme="circuit"] [data-cdl-role="edge-label-bg"] {
-  fill: #0a1a12 !important;
-  stroke: #c8a038 !important;
-  stroke-width: 1 !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-cir-board-pattern) !important;
-  stroke: #48e0b0 !important;
-  stroke-opacity: 0.35 !important;
-  stroke-dasharray: 8 4 !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="lane-lifeline"] {
-  stroke: #48e0b0 !important;
-  stroke-opacity: 0.55 !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="node-label"] {
-  fill: #a8e6c1 !important;
-  stroke: none !important;
-  font-family: "JetBrains Mono", "Courier New", monospace !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="edge-label"] {
-  fill: #a8e6c1 !important;
-  stroke: none !important;
-  font-family: "JetBrains Mono", "Courier New", monospace !important;
-  letter-spacing: 0.05em !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="edge-line"] {
-  stroke: #48e0b0 !important;
-  stroke-width: 2.2 !important;
-  stroke-linecap: square !important;
-  fill: none !important;
-  filter: url(#dragon-cir-trace-glow) !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="edge-arrowhead"] {
-  fill: #48e0b0 !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="node-kind-icon"] path {
-  fill: #c8a038 !important;
-  opacity: 0.95 !important;
-  stroke: none !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="lane-label"] {
-  fill: #c8a038 !important;
-  stroke: none !important;
-  font-family: "JetBrains Mono", "Courier New", monospace !important;
-  letter-spacing: 3px !important;
-  text-transform: uppercase !important;
-}
-[data-cdl-theme="circuit"] [data-cdl-role="node-pad"] {
-  fill: #c8a038 !important;
-  stroke: none !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* ═════════════════════════════════════════════════════════════════════════════
- * Pinboard (掲示板 metaphor、 sticky note + kraft board + slight rotation)
- * 意図 = sticky notes rotated + kraft handwriting-ish tone
- * 注 = rotate は CSS transform で個別 node body に適用 (奇数番 -1deg / 偶数番 +1deg で
- *      lively 感を出す)。 SVG transform-origin は :nth-of-type + center 指定。
- * ═════════════════════════════════════════════════════════════════════════════ */
-[data-cdl-theme="pinboard"] [data-cdl-role="node-body"] {
-  fill: #fdf7d9 !important;
-  stroke: rgba(90, 60, 30, 0.25) !important;
-  stroke-width: 1 !important;
-  filter: url(#dragon-pin-sticky-shadow) !important;
-}
-/*
- * CAR-735 = rotate は `rect[data-cdl-role="node-body"]` のみに絞る (actor / card / event /
- * function / storage / cylinder の default rect shape に効く)。 GenericNode 由来の
- * `<g data-cdl-role="node-body">` 経路は outer group が既に translate 済で、 g に rotate を
- * 掛けると transform-box=fill-box + child text 座標が破綻し、 node 群が canvas 外に飛ぶ。
- * rect 単独 rotate は shape 本体のみ回すため、 icon / label と若干ズレるが sticky note の
- * 「シート紙が斜めに貼られた」 印象は保たれる。 layout displacement は 0。
- */
-[data-cdl-theme="pinboard"] g:nth-of-type(odd) > rect[data-cdl-role="node-body"] {
-  transform: rotate(-1.5deg);
-  transform-origin: center;
-  transform-box: fill-box;
-}
-[data-cdl-theme="pinboard"] g:nth-of-type(even) > rect[data-cdl-role="node-body"] {
-  transform: rotate(1deg);
-  transform-origin: center;
-  transform-box: fill-box;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-label-bg"] {
-  fill: #fffef5 !important;
-  stroke: rgba(90, 60, 30, 0.28) !important;
-  stroke-width: 1 !important;
-  filter: url(#dragon-pin-sticky-shadow) !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-pin-board-pattern) !important;
-  stroke: rgba(60, 40, 20, 0.45) !important;
-  stroke-dasharray: 4 3 !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(90, 60, 30, 0.5) !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="node-label"] {
-  fill: #3a2a10 !important;
-  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-label"] {
-  fill: #3a2a10 !important;
-  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-line"] {
-  stroke: #6a4020 !important;
-  stroke-width: 2.4 !important;
-  stroke-linecap: round !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="edge-arrowhead"] {
-  fill: #6a4020 !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="node-kind-icon"] path {
-  fill: #6a4020 !important;
-  opacity: 0.85 !important;
-}
-[data-cdl-theme="pinboard"] [data-cdl-role="lane-label"] {
-  fill: #4a2810 !important;
-  font-family: "Kalam", "Comic Sans MS", "Caveat", cursive !important;
-}
-
-/* ═════════════════════════════════════════════════════════════════════════════
- * Blueprint (default、 設計図 metaphor、 graticule pattern + ortho arrow)
- * 意図 = 設計図の graticule + ortho ライン + rev code 相当の落ち着いた青。
- * ═════════════════════════════════════════════════════════════════════════════ */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #fdf8ec !important;
-  stroke: #6d3f18 !important;
-  stroke-width: 3.5 !important;
-}
-/* generic node の子 shape 経路にも light palette を明示配線 (dark と対称、
-   codex critical fix) */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
-  fill: #fdf8ec !important;
-  stroke: #6d3f18 !important;
-  stroke-width: 3.5 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #fdf8ec !important;
-  stroke: #6d3f18 !important;
-  stroke-width: 2 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-bp-graticule) !important;
-  stroke: rgba(109, 63, 24, 0.55) !important;
-  stroke-width: 2 !important;
-  stroke-dasharray: 8 4 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: rgba(109, 63, 24, 0.65) !important;
-  stroke-width: 2.5 !important;
-  stroke-dasharray: 8 5 !important;
-}
-/* font-size は renderer 側 SSOT (generic 20 / actor 32 / edge main 22 / edge sub 19 / lane 20)
-   を尊重、 CSS 側は fill + font-weight のみ override (codex major #1 fix、
-   `!important` font-size で renderer default を「縮小」 する regression 撤去) */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  fill: #4a2810 !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #4a2810 !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  font-weight: 700 !important;
-}
-/* stroke: none は file 先頭 universal rule (theme prefix なし) で 全 theme 対応済、
-   blueprint 個別 stroke rule は削除 (SSOT 一本化、 drift 予防、 CAR-1560)。 */
-
-/* ── edge の色を tone 別に決める (GH #889) ─────────────────────────────────
- *
- * cdl は `<g data-cdl-tone="error">` として意味だけを渡し、 色は本 file が決める
- * (CAR-643 = cdl は形だけ / dragon が見た目)。 以前は theme ごとに 1 色を
- * `!important` で焼き付けていたため、 因果の向き (警戒 = 赤 / 良好 = 緑) が線から
- * 読めなかった。
- *
- * 色は「元の tone の色相を保ったまま、 紙に対して 4.5:1 を満たす濃さ」 に置いた。
- * 元の色をそのまま使うと 6 色中 accent (5.55) だけしか 4.5:1 に届かない (実測)。
- * 同じ明度に揃えるだけでは accent と info が見分けられなくなる (ΔE 16.6 → 5.2 に潰れる)
- * ため、 彩度も上げて相互の ΔE を 15 以上に保った上で、 元の色から最も離れない組を選んだ。
- *
- * 紙の色は画面で実測した。 catalog は明暗どちらでも cream (#fcf8ee)、 editor は
- * 明 #f8ecd0 / 暗 #1a1408。 cream 用の 1 組で 3 つを賄い、 editor の暗い紙だけ別組。
- * 実効色は cdl 側の stroke-opacity 0.9 を掛けた後の値で測っている。
- *
- * 対象は blueprint のみ。 他 theme (circuit の金 / handdrawn の墨 等) は単色の edge が
- * 見た目の要なので単色を保つ。 theme ごとの valence 色は個別の設計判断として分ける。
- * ────────────────────────────────────────────────────────────────────── */
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: var(--dragon-edge-tone, #6d3f18) !important;
-  stroke-width: 4 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  fill: var(--dragon-edge-tone, #6d3f18) !important;
-  stroke: var(--dragon-edge-tone, #6d3f18) !important;
-  stroke-width: 2 !important;
-}
-
-/* 明るい紙 (catalog は明暗とも #fcf8ee、 editor の明 #f8ecd0) 用。
-   比は厳しい側 (#f8ecd0) で 4.65-4.67、 #fcf8ee では 5.05-5.09。 相互の見分け (実効色の ΔE) は
-   16.5 以上。 いずれも描画側の 8bit 量子化を floor / ceil の全組合せで確かめた最悪値でも
-   対比 4.61 / ΔE 15.30 を保つ = 目標に余裕を持たせないと丸め次第で下回る。 */
-[data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #1b6288; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #006a53; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #006c33; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #9f3d30; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #7b5402; }
-[data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #0060a5; }
-
-/* 矢頭は `<defs><marker>` の中にあり、 edge の `<g data-cdl-tone>` の子孫ではないので上の変数を
-   継承できない (実測 = 線が #0060a3 でも矢頭は焼き付けの #6d3f18 のまま)。 marker 自身に置く。
-   marker は tone ごとに大小 2 種あるので両方を並べる。 */
-[data-cdl-theme="blueprint"] #cdl-arrow-accent,
-[data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #1b6288; }
-[data-cdl-theme="blueprint"] #cdl-arrow-teal,
-[data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #006a53; }
-[data-cdl-theme="blueprint"] #cdl-arrow-success,
-[data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #006c33; }
-[data-cdl-theme="blueprint"] #cdl-arrow-error,
-[data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #9f3d30; }
-[data-cdl-theme="blueprint"] #cdl-arrow-warning,
-[data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #7b5402; }
-[data-cdl-theme="blueprint"] #cdl-arrow-info,
-[data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #0060a5; }
-/* icon selector = 3-attribute pattern で child shape override (`> g > path` 0-2-2) を
-   上書きする specificity 0-3-1 を確保 (neumorphism 経路 line 121-125 と同型)。
-   併せて icon 内 transparent rect が child override で塗り潰される regression 対策で
-   `> rect` の transparent-force 追加 */
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
-  fill: #6d3f18 !important;
-  stroke: none !important;
-  opacity: 0.85 !important;
-}
-[data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
-[data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
+/* 絵の中の透明な下敷き。 上の塗りに巻き込まれると絵が四角く塗り潰される */
+[data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
+[data-cdl-role="node-kind-icon"] > rect {
   fill: transparent !important;
   stroke: none !important;
 }
-[data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #8a5a2a !important;
-  font-weight: 700 !important;
-}
-/* 面の色 (#1060)。 以前は `#2a1f14` で、 editor の紙 `#1a1408` との明るさの差が `ΔL* 6.1`
-   しかなく、 **箱が面として立っていなかった** = 見えるのは輪郭線と文字だけで、 目が図の
-   構造を掴めない状態だった。
 
-   editor 側は紙を `#3a2f22` へ上げた (`editor.css`)。 箱は逆に暗い側へ置いて「明るい机に
-   暗い札が置かれている」 関係にする。 差は `ΔL* 13.9`。
-
-   **catalog も同じ値でよい**。 catalog は暗い画面でも紙を cream (`#fcf8ee`) で保つので、
-   もともと「暗い箱・明るい紙」 の関係にある。 箱が暗くなる分だけ対比が上がる
-   (箱の中の文字 `#f8ecd0` との対比は 13.72 → 15.72)。 */
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] {
-  fill: #191309 !important;
-  stroke: #f0b840 !important;
-  stroke-width: 3.5 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label-bg"] {
-  fill: #191309 !important;
-  stroke: rgba(240, 184, 64, 0.85) !important;
-  stroke-width: 2.2 !important;
-}
-/* 命綱と枠の色 (#1060)。
-   **半透明で置くと、重ねた後の色で判断しないと実際の見え方が分からない**。 以前は
-   `rgba(240,184,64,.6)` (gold) を明暗どちらの紙にも当てており、 catalog の cream の紙では
-   重ねた後が `rgb(245,210,134)` = 対比 1.38 で紙に溶けていた (実測)。
-
-   catalog は暗い画面でも紙を cream で保つので、 こちらは暗い側の色を置く。
-   editor (暗い紙) 向けは下の `.v4-editor-stage` 側で上書きする。
-
-   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明のままだと
-   「宣言した色」 と「見える色」 がずれ、 検査も人も間違える。
-
-   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
-   (`cdl` の `stage.tsx`)。 色を不透明にしてもこれは残るので、 見える色はさらに紙寄りになる
-   (実測 = `#8a6a33` を置いても対比 2.73 で 3:1 を割った)。 `opacity` 込みで 3 以上になる
-   色を選ぶ。 */
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-container"] {
-  fill: url(#dragon-bp-graticule-dark) !important;
-  stroke: #5c5024 !important;
-  stroke-width: 2.2 !important;
-  stroke-dasharray: 8 4 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-lifeline"] {
-  stroke: #5c5024 !important;
-  stroke-width: 2.8 !important;
-  stroke-dasharray: 8 5 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"],
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  fill: #f8ecd0 !important;
-  font-weight: 700 !important;
-}
-/* 暗い画面でも紙が cream のまま (catalog) の場所があるため、 色は tone 変数に委ねる。
-   従来は暗い画面で一律 gold #f0b840 にしていたが、 catalog は暗い画面でも紙を cream で
-   保つため gold が cream の上に乗って 1.70:1 まで落ちていた (実測)。 変数側で紙ごとに
-   使い分ける。 fallback の gold は tone を持たない edge 用に残す。 */
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-line"] {
-  stroke: var(--dragon-edge-tone, #f0b840) !important;
-  fill: none !important;
-  stroke-width: 4 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-arrowhead"] {
-  stroke: var(--dragon-edge-tone, #f0b840) !important;
-  fill: var(--dragon-edge-tone, #f0b840) !important;
-  stroke-width: 2 !important;
-}
-/* editor の暗い stage (#1a1408) だけは紙が暗いので明るい側の組を使う。 比 4.66-4.96、
-   実効色の ΔE は 16.6 以上 (量子化の最悪値で 4.64 / 15.50)。 selector は cream 用 (0-2-0) より
-   詳しいので上書きになる。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="accent"] { --dragon-edge-tone: #ffa347; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="teal"] { --dragon-edge-tone: #5fd8ac; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="success"] { --dragon-edge-tone: #9ee34f; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="error"] { --dragon-edge-tone: #ff8a8a; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="warning"] { --dragon-edge-tone: #ffd45e; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] [data-cdl-tone="info"] { --dragon-edge-tone: #f0c9a0; }
-/* 矢頭も同様に marker 自身へ置く (暗い紙用の組)。 */
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-accent-sm { --dragon-edge-tone: #ffa347; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-teal-sm { --dragon-edge-tone: #5fd8ac; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-success-sm { --dragon-edge-tone: #9ee34f; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-error-sm { --dragon-edge-tone: #ff8a8a; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-warning-sm { --dragon-edge-tone: #ffd45e; }
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info,
-html.dark .v4-editor-stage [data-cdl-theme="blueprint"] #cdl-arrow-info-sm { --dragon-edge-tone: #f0c9a0; }
-/* editor は紙が暗い (`#3a2f22`) ので、 命綱と枠は明るい側に置く (#1060)。
-   catalog 用の暗い茶をそのまま使うと紙に沈む。
-
-   不透明で置くのは、 重ねた後の色を宣言から読めるようにするため。 半透明だと「宣言した色」
-   と「見える色」 がずれる (実測 = `rgba(154,133,106,.85)` は重ねた後 `rgb(140,120,95)` で
-   対比 3.08 に落ちていた)。
-
-   **薄さは色の alpha だけではない**。 描画側は要素自体に `opacity: 0.7` を掛けている
-   (`cdl` の `stage.tsx`)。 `opacity` 込みで 3 以上になる色を選ぶ。
-
-   命綱は「そこに人がいる」 ことを示す補助線なので、 本文ほどの強さは要らない。
-   意味を持つ非文字要素の下限 3:1 を満たす範囲で落ち着かせる。 */
-html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-lifeline"] {
-  stroke: #b4ac80 !important;
-}
-html.dark[data-cdl-theme="blueprint"] .v4-editor-stage [data-cdl-role="lane-container"] {
-  stroke: #b4ac80 !important;
+/* 表の区切り線。 名前と列の間の横線と、 左右の列を分ける縦線 */
+[data-cdl-role="node-row-divider"],
+[data-cdl-role="node-column-divider"] {
+  stroke: var(--d-text-muted) !important;
 }
 
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="lane-label"] {
-  fill: #f8ecd0 !important;
-  font-weight: 700 !important;
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 線
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* 既定は控えめな色。 意味を持つ線は下の tone で上書きされる */
+[data-cdl-role="edge-line"] {
+  stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke-width: 2.25 !important;
 }
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-label"] {
-  font-weight: 700 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="edge-label"] {
-  font-weight: 700 !important;
-}
-/* generic node の子 shape (rect / circle / path 等) は node-body 親要素の
-   fill/stroke を上書きしてしまうため、 明示的な子 selector で dark palette を配線する。
-   codex critical fix: 実描画で子 rect の #f5ecd0 と label の #f8ecd0 が contrast 1.17:1 = 消失 */
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > rect,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > path,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > rect,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > path,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > ellipse,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] > g > circle,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] ellipse,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] circle {
-  /* 上の `node-body` 本体と同じ色にする (#1060)。 揃えないと、 箱を rect 1 枚で描く種別と
-     子図形で描く種別 (generic 系) が同じ図の中で別の面の色になる。 */
-  fill: #191309 !important;
-  stroke: #f0b840 !important;
-  stroke-width: 3.5 !important;
-}
-/* dark node-kind-icon fill を gold に上書き、 3-attribute pattern で child override
-   (`> g > path` 0-3-3) を上書きする specificity 0-4-2 を確保 */
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] path,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] path {
-  fill: #f0b840 !important;
-  stroke: none !important;
-  opacity: 0.9 !important;
-}
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-body"] [data-cdl-role="node-kind-icon"] > rect,
-html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-kind-icon"] > rect {
-  fill: transparent !important;
+
+[data-cdl-role="edge-arrowhead"] {
+  fill: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
   stroke: none !important;
 }
-/* active edge の 太い glow (背景に色を落とす halo effect) は path 形状によっては
-   閉じた polygon として色塗りに見えることがあるため全 mode で無効化。 光は edge line
-   自体の彩度・太さで表現する方針に統一 (dark / light 両対応) */
+
+/* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める */
+[data-cdl-tone="accent"] { --dragon-edge-tone: var(--d-accent); }
+[data-cdl-tone="teal"] { --dragon-edge-tone: var(--d-dg-6); }
+[data-cdl-tone="success"] { --dragon-edge-tone: var(--d-dg-2); }
+[data-cdl-tone="error"] { --dragon-edge-tone: var(--d-err); }
+[data-cdl-tone="warning"] { --dragon-edge-tone: var(--d-warn); }
+[data-cdl-tone="info"] { --dragon-edge-tone: var(--d-dg-1); }
+
+/* 矢頭は `<defs>` の中にあり、 線を包む要素の子ではないので上の変数を継げない。
+   矢頭自身に置く。 大小 2 種あるので両方に当てる */
+#cdl-arrow-accent,
+#cdl-arrow-accent-sm { --dragon-edge-tone: var(--d-accent); }
+#cdl-arrow-teal,
+#cdl-arrow-teal-sm { --dragon-edge-tone: var(--d-dg-6); }
+#cdl-arrow-success,
+#cdl-arrow-success-sm { --dragon-edge-tone: var(--d-dg-2); }
+#cdl-arrow-error,
+#cdl-arrow-error-sm { --dragon-edge-tone: var(--d-err); }
+#cdl-arrow-warning,
+#cdl-arrow-warning-sm { --dragon-edge-tone: var(--d-warn); }
+#cdl-arrow-info,
+#cdl-arrow-info-sm { --dragon-edge-tone: var(--d-dg-1); }
+
+/* 線に添える札 */
+[data-cdl-role="edge-label-bg"] {
+  fill: var(--d-surface) !important;
+  stroke: var(--d-border-strong) !important;
+  stroke-width: 1 !important;
+}
+
+[data-cdl-role="edge-label"] {
+  fill: var(--d-text-primary) !important;
+  font-family: var(--d-body) !important;
+  font-weight: 500 !important;
+}
+
+/* 動いている線の周りに落とす光。 形によっては閉じた面に見えて色の塊になるため出さない。
+   動きは線自体の太さと色で伝える */
 [data-cdl-role="edge-glow"] {
   display: none !important;
 }
 
-/* dark mode 時 chart 系 kind (chart-line / chart-pie / chart-bar / gantt / funnel /
-   quadrant / tree / mind-map / mind-radial / journey-map) の text 系 CSS variable を
-   dark 用に上書きして kind 内 SVG text を全部 明るく描画する。
-   node-fill (背景 rect) は kind 内で「文字色に対する背景」 として使われるため
-   dark 時も明色系 (--cdl-node-fill = #f5ecd0 warm cream) を保って rect と text の contrast を維持する。 */
-/* blueprint theme (default) scope で warm tone を注入する。
-   他 theme (neumorphism / isometric / circuit / handdrawn / pinboard) は個別に
-   完成した color scheme を持つため global override すると theme 混在で色が濁る
-   (codex review 指摘 major #3、 CAR-880 follow-up)。
-   同一要素 selector (`html.dark[data-cdl-theme]`) に限定する - descendant selector
-   だと nested CDL SVG が持つ default `data-cdl-theme="blueprint"` に page-level
-   theme (neumorphism / isometric) 選択時も一致して leak する (Round 2 major #1)。 */
-html.dark[data-cdl-theme="blueprint"] {
-  --cdl-text: #f0e0b8;
-  --cdl-text-dim: #d4c4a0;
-  --cdl-text-mute: #a89880;
-  /* `node-body` は上の selector で強制されるのに、 変数だけ cream のまま残っていた。
-     同じ図の中に暗い箱と明色の面が混在し、 変数側の面に乗る tone が実測 1.87-2.14 まで
-     落ちていた (chart-line の点 / journey の点)。 強制先と同じ色に揃える。
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 区画
+ * ───────────────────────────────────────────────────────────────────────────── */
 
-     **強制先を変えたら必ずここも変える** (#1060)。 揃えないと chart 系だけが旧色のまま残る。 */
-  --cdl-node-fill: #191309;
-  /* kind 内の小さい面 (mind-map / mind-radial / tree の枝の箱)。 page の文字色とは別軸で、
-     面と文字が対で動く。 明色のままだと tone が 2.13 まで落ちる (実測)。 */
-  --cdl-chip-fill: #33251a;
-  --cdl-chip-text: #f0e0b8;
-  /* tone で塗った図形の上に乗る文字。 dark の tone は明るいので文字は暗い側に倒す
-     (`#ffffff` のままだと `#fa970c` に対して 2.4)。 */
-  --cdl-text-on-tone: #241a10;
-  /* journey の気付き欄。 明色の付箋のままだと周囲から浮く。 */
-  --cdl-note-fill: #3a2a12;
-  --cdl-note-text: #f0d79a;
-  /* tree の根の箱は accent から下端に向かう縦の gradient で塗る。 下端だけ変数が無いまま
-     `#1f4d6e` (青) に落ちており、 `<defs>` の中なので色相の検査からも漏れていた
-     (codex review Round 3 の指摘)。 accent と同系の暖色にする。 実測 = 背景 4.70 /
-     `--cdl-text-on-tone` に対して 4.99。 */
-  --cdl-tone-accent-deep: #c47a0a;
-  --cdl-divider: #4a3820;
-  --cdl-stage-bg: #1a1408;
-  --cdl-line-mute: #8a7050;
-
-  /* chart 系 kind が使う 6 tone (#383)。 上書きが無い間は cdl の fallback (#2d6a8f 等) が
-     そのまま出て、 warm palette の中に青系が残っていた (実測 = dark の chart-line-demo に
-     rgb(45,106,143))。
-
-     **背景は実測で決めた**。 `--cdl-node-fill` (#f5ecd0) は宣言値で、 実際に描かれる chart の
-     箱は `rgb(42,31,20)` = #2a1f14 (dark 用の別 selector が後から当たる)。 宣言値で対比を取ると
-     実描画では 2.30-2.60 まで落ちる (codex review 実測)。
-
-     条件は edge の tone と同じ = 対比 4.61 以上 / 実効色の ΔE 15.30 以上。 暖色側の色相から
-     両方を同時に満たす組を #2a1f14 に対して探索した。 実測 = 最悪 対比 6.57 / 最悪 ΔE 43.14。 */
-  --cdl-tone-accent: #fa970c;
-  --cdl-tone-teal: #5ebd86;
-  --cdl-tone-success: #38c40a;
-  --cdl-tone-error: #fa898d;
-  --cdl-tone-warning: #bda471;
-  --cdl-tone-info: #a5ad00;
+/* 描画側が要素ごと 0.7 の薄さで描くので、 見える色は紙寄りになる。
+   それを見込んで、 宣言では枠線より 1 段濃い色を置く */
+[data-cdl-role="lane-container"] {
+  fill: none !important;
+  stroke: var(--d-text-muted) !important;
+  stroke-width: 1.5 !important;
+  stroke-dasharray: 6 4 !important;
 }
 
-/* ═════════════════════════════════════════════════════════════════════════════
- * Handdrawn (手描き metaphor、 turbulence displacement + kraft palette)
- * 意図 = wobble stroke (turbulence displacement) + handdrawn font + kraft
- * ═════════════════════════════════════════════════════════════════════════════ */
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-body"] {
-  fill: #fdf7d9 !important;
-  stroke: #2c2820 !important;
-  stroke-width: 1.6 !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-label-bg"] {
-  fill: #fffef5 !important;
-  stroke: #2c2820 !important;
-  stroke-width: 1 !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="lane-container"] {
-  fill: #f0e6c8 !important;
-  stroke: #2c2820 !important;
-  stroke-width: 1.2 !important;
-  stroke-dasharray: 5 3 !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="lane-lifeline"] {
-  stroke: #5a4830 !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-label"] {
-  fill: #2c2820 !important;
-  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
-  font-weight: 700 !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-label"] {
-  fill: #2c2820 !important;
-  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-line"] {
-  stroke: #2c2820 !important;
-  stroke-width: 2.4 !important;
-  stroke-linecap: round !important;
-  filter: url(#dragon-hd-wobble) !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="edge-arrowhead"] {
-  fill: #2c2820 !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="node-kind-icon"] path {
-  fill: #2c2820 !important;
-  opacity: 0.85 !important;
-}
-[data-cdl-theme="handdrawn"] [data-cdl-role="lane-label"] {
-  fill: #2c2820 !important;
-  font-family: "Caveat", "Bradley Hand", "Comic Sans MS", cursive !important;
+[data-cdl-role="lane-lifeline"] {
+  stroke: var(--d-text-muted) !important;
+  stroke-width: 1.5 !important;
+  stroke-dasharray: 6 5 !important;
 }
 
-/* ═════════════════════════════════════════════════════════════════════════════
- * Reduced motion respect ... filter は静的なので特別な override 不要。
- * pinboard の rotate は装飾なので prefers-reduced-motion で reset。
- * ═════════════════════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce) {
-  [data-cdl-theme="pinboard"] g > [data-cdl-role="node-body"] {
-    transform: none !important;
-  }
+[data-cdl-role="lane-label"] {
+  fill: var(--d-text-secondary) !important;
+  font-family: var(--d-body) !important;
+  font-weight: 600 !important;
 }

@@ -16,7 +16,7 @@ export function ContributePage(): React.ReactElement {
         <section className="nm-hero">
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <span className="cur">コントリビュート</span>
           </nav>
           <span className="nm-eyebrow">CONTRIBUTE · OPEN SOURCE</span>

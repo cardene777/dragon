@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import "./styles/globals.css";
 import "./styles/cdl-theme.css";
 import "./styles/catalog-new.css";
+// 図の中に出る操作盤 (.cdl-ip-*) は分量が大きいので catalog-new.css から分けてある。
+import "./styles/catalog-widgets.css";
 import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";

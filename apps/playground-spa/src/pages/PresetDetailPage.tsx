@@ -52,13 +52,13 @@ export function PresetDetailPage(): React.ReactElement {
     return (
       <div>
         <SiteHeader />
-        <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center gap-4 px-6">
-          <p className="text-[16px] text-[var(--v4-ink-dim,#5a6270)]">
+        <div className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center gap-4 px-6">
+          <p className="text-[16px] text-[var(--d-text-secondary)]">
             プリセットが見つかりません
           </p>
           <Link
             to="/catalog/presets"
-            className="text-[14px] text-[var(--v4-brand,#8a5a2a)] underline"
+            className="text-[14px] text-[var(--d-accent)] underline"
           >
             プリセット一覧に戻る →
           </Link>
@@ -74,9 +74,17 @@ export function PresetDetailPage(): React.ReactElement {
   const onShare = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast({ type: "success", title: "URL をコピーしました" });
+      toast({
+        type: "success",
+        title: "URL をコピーしました",
+        description: `/preset/${preset.slug}`,
+      });
     } catch {
-      toast({ type: "error", title: "コピーに失敗しました" });
+      toast({
+        type: "error",
+        title: "コピーできませんでした",
+        description: "この画面では clipboard に触れない",
+      });
     }
   };
 
@@ -87,11 +95,11 @@ export function PresetDetailPage(): React.ReactElement {
         <section className="nm-hero">
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <Link to="/catalog">カタログ</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <Link to="/catalog/presets">プリセット</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <span className="cur">{preset.slug}</span>
           </nav>
           <span className="nm-eyebrow">{preset.eyebrow}</span>
@@ -147,7 +155,7 @@ export function PresetDetailPage(): React.ReactElement {
               <span className="opacity-70">前へ</span>
               <span className="font-semibold">{presetName(prevPreset, locale)}</span>
             </Link>
-            <span className="font-mono text-[11px] text-[var(--v4-ink-mute,#8a8678)]">
+            <span className="font-mono text-[11px] text-[var(--d-text-muted)]">
               {currentIdx + 1} / {PRESETS.length}
             </span>
             <Link

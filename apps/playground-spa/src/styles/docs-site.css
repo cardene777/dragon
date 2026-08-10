@@ -1,1326 +1,216 @@
-/**
- * mermaid 公式 (mermaid.js.org) 流儀の docs サイト専用 styles。
- * DocsLayout.astro + pages/docs/index.astro (Hero) で共有。
- */
+/* ================================================================
+ * ドキュメント頁 (05)。
+ * 見た目の SSOT = docs/design/app.pen。 色と字面は globals.css の変数だけを見る。
+ * 明暗は html.dark が変数を差し替えることで切替わるので、 暗い側の規則は要らない。
+ * ================================================================ */
 
-body.docs-body {
-  /* 龍鱗ゴールド light palette (globals.css @theme + header.css / home.css :root と整合、 dark は html.dark で override) */
-  --nm-bg: #f0e8d4;
-  --nm-surface: #f8ecd8;
-  --nm-text: #1a1410;
-  --nm-text-secondary: #3a2a10;
-  --nm-text-muted: #6d5a3a;
-  --nm-accent: #a66a3d;
-  --nm-border: #d8c8a8;
-  --docs-nav-h: 60px;
-  --docs-sidebar-w: 260px;
-  --docs-aside-w: 220px;
-  background: var(--nm-bg);
-  color: var(--nm-text);
-  font-family: "Inter", -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
-  font-feature-settings: "ss01", "cv11";
-  -webkit-font-smoothing: antialiased;
-  margin: 0;
-}
-html.dark body.docs-body {
-  --nm-bg: #1a1410;
-  --nm-surface: #241c14;
-  --nm-text: #f8ecd0;
-  --nm-text-secondary: #d0c0a5;
-  --nm-text-muted: #a08870;
-  --nm-accent: #b8862a;
-  --nm-border: rgba(248, 236, 208, 0.08);
-}
-body.docs-body .site-header,
-body.docs-body footer.site-footer {
-  display: none;
+.docs-body {
+  background: var(--d-bg);
+  color: var(--d-text-primary);
+  font-family: var(--d-body);
 }
 
-/* docs-shell 3 column grid */
-body.docs-body .docs-shell {
+.docs-hero-shell {
   max-width: 1440px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: var(--docs-sidebar-w) minmax(0, 1fr) var(--docs-aside-w);
-  gap: 0;
+  padding: 0 var(--d-gutter) 110px;
 }
 
-/* 2. Sidebar */
-body.docs-body .docs-sidebar {
-  position: sticky;
-  top: var(--docs-nav-h);
-  align-self: start;
-  height: calc(100vh - var(--docs-nav-h));
-  overflow-y: auto;
-  padding: 32px 16px 32px 24px;
-  border-right: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 20%, transparent);
-}
-body.docs-body details.docs-sidebar-section {
-  margin-bottom: 16px;
-}
-body.docs-body details.docs-sidebar-section[open] {
-  margin-bottom: 20px;
-}
-body.docs-body summary.docs-sidebar-section-title {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--nm-text);
-  padding: 12px 14px;
-  cursor: pointer;
-  user-select: none;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-radius: 8px;
-  transition: background 0.15s, color 0.15s;
-  min-height: 44px;
-}
-body.docs-body summary.docs-sidebar-section-title::-webkit-details-marker,
-body.docs-body summary.docs-sidebar-section-title::marker {
-  display: none;
-}
-body.docs-body summary.docs-sidebar-section-title:hover {
-  background: rgba(166, 106, 61, 0.1);
-  color: #a66a3d;
-}
-body.docs-body .docs-sidebar-section-caret {
-  display: inline-grid;
-  place-items: center;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--nm-text-muted);
-  transition: transform 0.2s, color 0.15s;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  line-height: 1;
-}
-body.docs-body details.docs-sidebar-section[open] .docs-sidebar-section-caret {
-  color: #a66a3d;
-}
-body.docs-body details.docs-sidebar-section[open] .docs-sidebar-section-caret {
-  transform: rotate(90deg);
-}
-body.docs-body summary.docs-sidebar-section-title:hover .docs-sidebar-section-caret {
-  color: #a66a3d;
-}
-body.docs-body details.docs-sidebar-section ul.docs-sidebar-list {
-  margin-top: 6px;
-  padding-left: 10px;
-}
-body.docs-body .docs-sidebar-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-body.docs-body .docs-sidebar-list li {
-  margin: 2px 0;
-}
-/* Neumorphism sidebar link (CAR-N-6、 subtle bg + border-left accent + smooth transition) */
-body.docs-body a.docs-sidebar-link {
-  display: block;
-  padding: 8px 14px;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--nm-text-secondary) !important;
-  text-decoration: none !important;
-  border-radius: 6px;
-  border-left: 2px solid transparent;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
-    padding-left 0.18s ease;
-}
-body.docs-body a.docs-sidebar-link:hover {
-  color: var(--nm-text) !important;
-  background: rgba(166, 106, 61, 0.06) !important;
-  padding-left: 16px;
-}
-body.docs-body a.docs-sidebar-link.active {
-  color: #a66a3d !important;
-  font-weight: 600;
-  border-left-color: #a66a3d !important;
-  background: linear-gradient(
-    90deg,
-    rgba(166, 106, 61, 0.14) 0%,
-    rgba(166, 106, 61, 0.05) 100%
-  ) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
+/* ── 頁の頭 ── */
 
-/* 3. Main */
-body.docs-body .docs-main {
-  padding: 32px 48px 48px;
-  max-width: 800px;
-  width: 100%;
-}
-body.docs-body .docs-breadcrumb {
-  font-size: 12px;
-  color: var(--nm-text-muted);
-  margin-bottom: 16px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-body.docs-body .docs-breadcrumb a {
-  color: var(--nm-text-secondary);
-  text-decoration: none;
-}
-body.docs-body .docs-breadcrumb a:hover {
-  color: var(--nm-accent);
-}
-body.docs-body .docs-breadcrumb .current {
-  color: var(--nm-text);
-}
-
-body.docs-body .docs-prose h1 {
-  font-size: 36px;
-  font-weight: 700;
-  margin: 0 0 24px;
-  color: var(--nm-text);
-  scroll-margin-top: calc(var(--docs-nav-h) + 16px);
-}
-body.docs-body .docs-prose h2 {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 48px 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 25%, transparent);
-  color: var(--nm-text);
-  scroll-margin-top: calc(var(--docs-nav-h) + 16px);
-}
-body.docs-body .docs-prose h3 {
-  font-size: 19px;
-  font-weight: 700;
-  margin: 32px 0 12px;
-  color: var(--nm-text);
-  scroll-margin-top: calc(var(--docs-nav-h) + 16px);
-}
-body.docs-body .docs-prose p {
-  margin: 16px 0;
-  line-height: 1.75;
-  color: var(--nm-text);
-}
-body.docs-body .docs-prose code {
-  background: color-mix(in srgb, var(--nm-shadow-dark) 12%, transparent);
-  padding: 2px 6px;
-  border-radius: 5px;
-  font-size: 0.875em;
-  font-family: "JetBrains Mono", monospace;
-}
-body.docs-body .docs-prose pre {
-  background: var(--nm-surface) !important;
-  background-color: var(--nm-surface) !important;
-  color: var(--nm-text) !important;
-  padding: 18px 20px;
-  border-radius: 10px;
-  overflow-x: auto;
-  margin: 20px 0;
-  border: 1px solid rgba(196, 185, 172, 0.4);
-  box-shadow: inset 1px 1px 2px rgba(196, 185, 172, 0.25);
-  font-family: "JetBrains Mono", "Cascadia Code", "Source Code Pro", monospace;
-  font-size: 13.5px;
-  line-height: 1.7;
-}
-body.docs-body .docs-prose pre code {
-  background: transparent !important;
-  padding: 0;
-  font-size: inherit;
-  color: inherit !important;
-  font-family: inherit;
-}
-/* inline code */
-body.docs-body .docs-prose code:not(pre code) {
-  background: rgba(196, 185, 172, 0.25) !important;
-  color: var(--nm-text) !important;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.875em;
-  font-family: "JetBrains Mono", monospace;
-}
-body.docs-body .docs-prose table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 20px 0;
-  font-size: 14px;
-}
-body.docs-body .docs-prose th,
-body.docs-body .docs-prose td {
-  text-align: left;
-  padding: 10px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 25%, transparent);
-}
-body.docs-body .docs-prose th {
-  background: color-mix(in srgb, var(--nm-shadow-dark) 8%, transparent);
-  font-weight: 700;
-  font-size: 13px;
-}
-body.docs-body .docs-prose ul,
-body.docs-body .docs-prose ol {
-  padding-left: 1.5em;
-  margin: 16px 0;
-}
-body.docs-body .docs-prose li {
-  margin: 6px 0;
-  line-height: 1.7;
-}
-body.docs-body .docs-prose a {
-  color: var(--nm-accent);
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--nm-accent) 40%, transparent);
-  text-underline-offset: 3px;
-}
-body.docs-body .docs-prose a:hover {
-  text-decoration-color: var(--nm-accent);
-}
-body.docs-body .docs-prose blockquote {
-  border-left: 3px solid var(--nm-accent);
-  padding: 4px 0 4px 16px;
-  margin: 20px 0;
-  color: var(--nm-text-secondary);
-  background: color-mix(in srgb, var(--nm-accent) 4%, transparent);
-}
-body.docs-body .docs-prose hr {
-  border: none;
-  border-top: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 30%, transparent);
-  margin: 36px 0;
-}
-
-/* Prev/Next */
-body.docs-body .docs-pager {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 48px 0 24px;
-  padding-top: 24px;
-  border-top: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 25%, transparent);
-}
-/* Neumorphism pager link (CAR-N-6、 subtle raised + hover deepen) */
-body.docs-body .docs-pager-link {
+.docs-hero {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 18px 22px;
-  background: var(--nm-surface);
-  border: 1px solid rgba(240, 224, 184, 0.6);
-  border-radius: 12px;
-  text-decoration: none;
-  color: var(--nm-text);
-  transition:
-    border-color 0.18s ease,
-    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 12px -6px rgba(26, 20, 16, 0.08),
-    0 1px 0 rgba(248, 236, 208, 0.5) inset;
-}
-body.docs-body .docs-pager-link:hover {
-  border-color: rgba(166, 106, 61, 0.32);
-  transform: translateY(-2px);
-  box-shadow:
-    0 12px 24px -8px rgba(26, 20, 16, 0.14),
-    0 4px 8px -4px rgba(166, 106, 61, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
-}
-html.dark body.docs-body .docs-pager-link {
-  border-color: rgba(240, 184, 64, 0.14);
-  box-shadow:
-    0 4px 12px -6px rgba(0, 0, 0, 0.4),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-}
-html.dark body.docs-body .docs-pager-link:hover {
-  border-color: rgba(240, 184, 64, 0.35);
-}
-body.docs-body .docs-pager-next {
-  text-align: right;
-}
-body.docs-body .docs-pager-label {
-  font-size: 11px;
-  color: var(--nm-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-body.docs-body .docs-pager-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--nm-accent);
-}
-
-body.docs-body .docs-footer {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid color-mix(in srgb, var(--nm-shadow-dark) 20%, transparent);
-  font-size: 13px;
-  color: var(--nm-text-muted);
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-body.docs-body .docs-footer-edit {
-  color: var(--nm-accent);
-  text-decoration: none;
-}
-body.docs-body .docs-footer-edit:hover {
-  text-decoration: underline;
-}
-
-/* 4. Aside (TOC) */
-body.docs-body .docs-aside {
-  position: sticky;
-  top: var(--docs-nav-h);
-  align-self: start;
-  height: calc(100vh - var(--docs-nav-h));
-  overflow-y: auto;
-  padding: 32px 24px;
-  font-size: 12px;
-}
-body.docs-body .docs-aside-title {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--nm-text-muted);
-  margin-bottom: 12px;
-}
-body.docs-body .docs-aside-toc {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-body.docs-body .docs-aside-toc-item a {
-  display: block;
-  padding: 4px 0 4px 8px;
-  color: var(--nm-text-secondary);
-  text-decoration: none;
-  border-left: 2px solid transparent;
-  line-height: 1.4;
-}
-body.docs-body .docs-aside-toc-item a:hover {
-  color: var(--nm-text);
-}
-body.docs-body .docs-aside-toc-item a.active {
-  color: var(--nm-accent);
-  border-left-color: var(--nm-accent);
-  font-weight: 600;
-}
-body.docs-body .docs-aside-toc-h3 a {
-  padding-left: 20px;
-  font-size: 11.5px;
-}
-
-@media (max-width: 1100px) {
-  body.docs-body .docs-shell {
-    grid-template-columns: var(--docs-sidebar-w) minmax(0, 1fr) !important;
-  }
-  body.docs-body .docs-aside {
-    display: none !important;
-  }
-}
-@media (max-width: 900px) {
-  body.docs-body .docs-shell {
-    grid-template-columns: 1fr !important;
-  }
-  body.docs-body .docs-sidebar {
-    position: fixed !important;
-    top: var(--docs-nav-h) !important;
-    left: 0 !important;
-    width: 280px !important;
-    height: calc(100vh - var(--docs-nav-h)) !important;
-    background: var(--nm-bg) !important;
-    border-right: 1px solid rgba(196, 185, 172, 0.5) !important;
-    z-index: 40 !important;
-    transform: translateX(-100%);
-    transition: transform 0.2s;
-    overflow-y: auto;
-    padding: 16px 12px !important;
-  }
-  body.docs-body .docs-sidebar.docs-sidebar-open {
-    transform: translateX(0);
-  }
-  body.docs-body button.docs-navbar-menu-toggle {
-    display: grid !important;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    background: transparent !important;
-    border: 1px solid rgba(196, 185, 172, 0.4) !important;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 20px;
-    color: var(--nm-text) !important;
-  }
-  body.docs-body .docs-pager {
-    grid-template-columns: 1fr !important;
-  }
-}
-@media (max-width: 900px) {
-  body.docs-body .docs-navbar-search {
-    display: none !important;
-  }
-  body.docs-body .docs-navbar-nav {
-    display: none !important;
-  }
-  body.docs-body .docs-main {
-    padding: 24px 18px 40px !important;
-    min-width: 0;
-  }
-  body.docs-body .docs-prose {
-    word-break: break-word;
-    overflow-wrap: break-word;
-  }
-  body.docs-body .docs-prose td a,
-  body.docs-body .docs-prose th a {
-    white-space: nowrap;
-  }
-  body.docs-body .docs-hero-title {
-    font-size: 44px !important;
-    line-height: 1.15 !important;
-    word-break: keep-all;
-    overflow-wrap: normal;
-  }
-  body.docs-body .docs-hero-title-accent {
-    word-break: keep-all;
-  }
-}
-@media (max-width: 640px) {
-  body.docs-body .docs-navbar-nav {
-    display: none !important;
-  }
-  body.docs-body .docs-navbar-inner {
-    padding: 0 12px !important;
-    gap: 6px !important;
-  }
-  body.docs-body .docs-navbar-title-sub {
-    display: none;
-  }
-  body.docs-body .docs-main {
-    padding: 20px 16px 32px !important;
-  }
-  body.docs-body .docs-hero-shell {
-    padding: 32px 20px 64px !important;
-  }
-  body.docs-body .docs-hero-title {
-    font-size: 36px !important;
-    line-height: 1.2 !important;
-  }
-  body.docs-body .docs-hero-lead {
-    font-size: 15px !important;
-  }
-  body.docs-body .docs-hero-features {
-    grid-template-columns: 1fr !important;
-  }
-  body.docs-body .docs-hero-cta {
-    flex-direction: column !important;
-  }
-  body.docs-body .docs-hero-cta a {
-    width: 100%;
-    text-align: center;
-  }
-}
-/* === i18n untranslated banner === */
-body.docs-body .docs-i18n-banner {
-  background: rgba(166, 106, 61, 0.12) !important;
-  border: 1px solid rgba(166, 106, 61, 0.35) !important;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 0 24px;
-  font-size: 14px;
-  color: var(--nm-text) !important;
-}
-body.docs-body .docs-i18n-banner strong {
-  display: block;
-  margin-bottom: 4px;
-}
-body.docs-body .docs-i18n-banner a {
-  color: #a66a3d !important;
-  text-decoration: underline;
-}
-html.dark body.docs-body .docs-i18n-banner {
-  background: rgba(212, 165, 116, 0.12) !important;
-  border-color: rgba(212, 165, 116, 0.35) !important;
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-i18n-banner a {
-  color: #b8862a !important;
-}
-
-@media (min-width: 901px) {
-  body.docs-body button.docs-navbar-menu-toggle {
-    display: none !important;
-  }
-}
-
-/* === Hero === */
-body.docs-body .docs-hero-shell {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 64px 24px 96px;
-}
-body.docs-body .docs-hero {
-  text-align: center;
-  padding: 48px 0 56px;
-}
-body.docs-body .docs-hero-eyebrow {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--nm-accent);
-  background: color-mix(in srgb, var(--nm-accent) 10%, transparent);
-  padding: 6px 14px;
-  border-radius: 999px;
-  margin-bottom: 24px;
-}
-body.docs-body .docs-hero-title {
-  font-family: "Newsreader", "EB Garamond", Georgia, serif;
-  font-size: 56px;
-  font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-  margin: 0 0 24px;
-  color: var(--nm-text);
-}
-body.docs-body .docs-hero-title-accent {
-  font-style: italic;
-  font-weight: 400;
-  color: var(--nm-accent);
-}
-body.docs-body .docs-hero-lead {
-  font-size: 18px;
-  line-height: 1.7;
-  color: var(--nm-text-secondary);
-  max-width: 700px;
-  margin: 0 auto 32px;
-}
-body.docs-body .docs-hero-lead strong {
-  color: var(--nm-accent);
-}
-body.docs-body .docs-hero-cta {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-body.docs-body .docs-hero-cta-primary,
-body.docs-body .docs-hero-cta-secondary {
-  display: inline-block;
-  padding: 12px 22px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-/* Neumorphism raised CTA button (CAR-N-6、 Vercel / Linear 風 subtle depth + scale hover) */
-body.docs-body .docs-hero-cta-primary,
-body.docs-body a.docs-hero-cta-primary {
-  background: #a66a3d !important;
-  background-color: #a66a3d !important;
-  color: #ffffff !important;
-  box-shadow:
-    0 4px 12px -2px rgba(166, 106, 61, 0.35),
-    0 1px 0 rgba(255, 255, 255, 0.15) inset;
-  transition:
-    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-}
-body.docs-body .docs-hero-cta-primary:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 12px 24px -4px rgba(166, 106, 61, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.2) inset;
-}
-body.docs-body .docs-hero-cta-primary:active {
-  transform: translateY(0) scale(1);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-body.docs-body .docs-hero-cta-secondary,
-body.docs-body a.docs-hero-cta-secondary {
-  background: var(--nm-surface) !important;
-  background-color: var(--nm-surface) !important;
-  color: var(--nm-text) !important;
-  border: 1px solid rgba(196, 185, 172, 0.5) !important;
-  box-shadow:
-    0 2px 6px -2px rgba(26, 20, 16, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.7) inset;
-  transition:
-    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-}
-body.docs-body .docs-hero-cta-secondary:hover {
-  border-color: var(--nm-accent) !important;
-  color: var(--nm-accent) !important;
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 8px 16px -4px rgba(26, 20, 16, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.7) inset;
-}
-
-body.docs-body .docs-hero-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
-  margin: 64px 0;
-}
-/* Neumorphism raised feature card (CAR-N-6、 catalog card と統一) */
-body.docs-body .docs-feature-card,
-body.docs-body a.docs-feature-card {
-  display: block;
-  padding: 28px;
-  background: var(--nm-surface) !important;
-  background-color: var(--nm-surface) !important;
-  border: 1px solid rgba(240, 224, 184, 0.6) !important;
-  border-radius: 16px;
-  text-decoration: none !important;
-  color: var(--nm-text) !important;
-  transition:
-    border-color 0.18s ease,
-    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 12px 24px -12px rgba(26, 20, 16, 0.1),
-    0 4px 8px -4px rgba(166, 106, 61, 0.06),
-    0 1px 0 rgba(248, 236, 208, 0.5) inset;
-}
-body.docs-body .docs-feature-card:hover {
-  border-color: rgba(166, 106, 61, 0.28) !important;
-  transform: translateY(-4px);
-  box-shadow:
-    0 24px 48px -20px rgba(26, 20, 16, 0.2),
-    0 12px 24px -12px rgba(166, 106, 61, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
-}
-html.dark body.docs-body .docs-feature-card,
-html.dark body.docs-body a.docs-feature-card {
-  border-color: rgba(240, 184, 64, 0.14) !important;
-  box-shadow:
-    0 12px 24px -12px rgba(0, 0, 0, 0.5),
-    0 4px 8px -4px rgba(0, 0, 0, 0.3),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-}
-html.dark body.docs-body .docs-feature-card:hover {
-  border-color: rgba(240, 184, 64, 0.35) !important;
-  box-shadow:
-    0 24px 48px -20px rgba(0, 0, 0, 0.7),
-    0 12px 24px -12px rgba(240, 184, 64, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
-body.docs-body .docs-feature-icon {
-  font-size: 28px;
-  margin-bottom: 12px;
-}
-body.docs-body .docs-feature-card h3 {
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0 0 6px;
-  color: var(--nm-text) !important;
-}
-body.docs-body .docs-feature-card p {
-  font-size: 13.5px;
-  color: var(--nm-text-secondary) !important;
-  line-height: 1.55;
-  margin: 0;
+  padding: 58px 0 44px;
 }
 
-body.docs-body .docs-hero-snippet {
-  margin: 80px 0 0;
-}
-body.docs-body .docs-hero-snippet h2 {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  color: var(--nm-text);
-  text-align: center;
-}
-body.docs-body .docs-hero-snippet pre {
-  background: var(--nm-surface) !important;
-  background-color: var(--nm-surface) !important;
-  color: var(--nm-text) !important;
-  padding: 24px 28px;
-  border-radius: 12px;
-  overflow-x: auto;
-  border: 1px solid rgba(196, 185, 172, 0.4);
-  box-shadow: inset 1px 1px 3px rgba(196, 185, 172, 0.3);
-  font-size: 13.5px;
-  line-height: 1.7;
-  font-family: "JetBrains Mono", monospace;
-}
-body.docs-body .docs-hero-snippet pre code,
-body.docs-body .docs-hero-snippet pre code * {
-  background: transparent !important;
-  background-color: transparent !important;
-}
-body.docs-body .docs-hero-snippet-cta {
-  display: block;
-  text-align: center;
-  max-width: 320px;
-  margin: 24px auto 0;
-}
-
-@media (max-width: 640px) {
-  .docs-hero-title {
-    font-size: 38px;
-  }
-  .docs-hero-lead {
-    font-size: 15.5px;
-  }
-  .docs-hero-cta {
-    flex-direction: column;
-    align-items: center;
-  }
-  .docs-hero-cta-primary,
-  .docs-hero-cta-secondary {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-/* === コード copy ボタン === */
-body.docs-body .docs-prose pre {
-  position: relative;
-}
-body.docs-body button.docs-code-copy {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(60, 60, 60, 0.6) !important;
-  color: #d4d4d4 !important;
-  border: none;
-  padding: 4px 10px;
+.docs-hero-eyebrow {
+  font-family: var(--d-mono);
   font-size: 11px;
-  border-radius: 5px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s;
-  font-family: "Inter", sans-serif;
-}
-body.docs-body .docs-prose pre:hover button.docs-code-copy {
-  opacity: 1;
-}
-body.docs-body button.docs-code-copy:hover {
-  background: rgba(166, 106, 61, 0.85) !important;
-}
-body.docs-body button.docs-code-copy .docs-code-copy-done {
-  display: none;
-}
-body.docs-body button.docs-code-copy.done .docs-code-copy-default {
-  display: none;
-}
-body.docs-body button.docs-code-copy.done .docs-code-copy-done {
-  display: inline;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
 }
 
-/* === Theme toggle button === */
-body.docs-body button.docs-navbar-theme-toggle {
-  background: transparent !important;
-  border: 1px solid rgba(196, 185, 172, 0.4) !important;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  display: grid;
-  place-items: center;
-  color: var(--nm-text) !important;
-  margin-left: 4px;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
-}
-body.docs-body button.docs-navbar-theme-toggle:hover {
-  background: rgba(166, 106, 61, 0.1) !important;
-  border-color: rgba(166, 106, 61, 0.4) !important;
-  transform: scale(1.05);
-}
-body.docs-body button.docs-navbar-theme-toggle .docs-theme-icon-dark {
-  display: none;
-}
-html.dark body.docs-body button.docs-navbar-theme-toggle .docs-theme-icon-light {
-  display: none;
-}
-html.dark body.docs-body button.docs-navbar-theme-toggle .docs-theme-icon-dark {
-  display: inline;
-}
-
-/* === Lang toggle button (JA / EN) === */
-body.docs-body button.docs-navbar-lang-toggle {
-  background: transparent !important;
-  border: 1px solid rgba(196, 185, 172, 0.4) !important;
-  height: 40px;
-  min-width: 48px;
-  padding: 0 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 13px;
+.docs-hero-title {
+  font-family: var(--d-display);
+  font-size: clamp(30px, 3.8vw, 46px);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  display: grid;
-  place-items: center;
-  color: var(--nm-text) !important;
-  margin-left: 4px;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
-}
-body.docs-body button.docs-navbar-lang-toggle:hover {
-  background: rgba(166, 106, 61, 0.1) !important;
-  border-color: rgba(166, 106, 61, 0.4) !important;
-  transform: scale(1.05);
-}
-body.docs-body button.docs-navbar-lang-toggle .docs-lang-en {
-  display: none;
-}
-html[lang="en"] body.docs-body button.docs-navbar-lang-toggle .docs-lang-ja {
-  display: none;
-}
-html[lang="en"] body.docs-body button.docs-navbar-lang-toggle .docs-lang-en {
-  display: inline;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--d-text-primary);
 }
 
-/* === Search keyboard navigation active state === */
-body.docs-body .docs-search-result.active {
-  background: rgba(166, 106, 61, 0.12) !important;
-}
-body.docs-body .docs-search-result-preview {
-  font-size: 12px;
-  color: var(--nm-text-secondary);
-  margin-top: 3px;
-  line-height: 1.4;
-}
-body.docs-body .docs-search-result-preview mark {
-  background: rgba(166, 106, 61, 0.25);
-  color: var(--nm-text);
-  padding: 0 2px;
-  border-radius: 2px;
+.docs-hero-title-accent {
+  color: var(--d-accent);
 }
 
-/* === Callout / admonition (markdown 拡張で生成される class、 純 CSS) === */
-body.docs-body .docs-prose .callout,
-body.docs-body .docs-prose .admonition {
-  margin: 20px 0;
-  padding: 14px 18px;
-  border-radius: 8px;
-  border-left: 4px solid;
-}
-body.docs-body .docs-prose .callout-title {
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-body.docs-body .docs-prose .callout-tip {
-  background: rgba(74, 139, 127, 0.1);
-  border-left-color: #4a8b7f;
-}
-body.docs-body .docs-prose .callout-warning {
-  background: rgba(201, 162, 62, 0.12);
-  border-left-color: #c9a23e;
-}
-body.docs-body .docs-prose .callout-danger,
-body.docs-body .docs-prose .callout-error {
-  background: rgba(193, 90, 74, 0.12);
-  border-left-color: #c15a4a;
-}
-body.docs-body .docs-prose .callout-info,
-body.docs-body .docs-prose .callout-note {
-  background: rgba(90, 142, 193, 0.1);
-  border-left-color: #5a8ec1;
+.docs-hero-lead {
+  max-width: 760px;
+  font-family: var(--d-body);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
 }
 
-/*
- * === Shiki syntax highlighting (Astro dual theme) ===
- *
- * Astro Shiki は dual theme + defaultColor: false で各 token に
- *   <span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF">
- * を出力する。 CSS variable で light / dark を切替。
- *
- * pre 自体の背景は light = var(--nm-surface) #f8ecd8 (龍鱗ゴールド parchment)、 dark = #241c14 (obsidian)。
- * pre 内 token color は light scope では --shiki-light、 dark scope では --shiki-dark を優先。
- */
-body.docs-body .docs-prose pre.astro-code,
-body.docs-body .docs-prose pre[style] {
-  background-color: var(--nm-surface) !important;
-  background: var(--nm-surface) !important;
-  color: var(--nm-text) !important;
-  padding: 18px 20px !important;
-  border: 1px solid rgba(196, 185, 172, 0.4) !important;
-  border-radius: 10px !important;
-  box-shadow: inset 1px 1px 2px rgba(196, 185, 172, 0.25);
-}
-body.docs-body .docs-prose pre.astro-code code,
-body.docs-body .docs-prose pre[style] code {
-  font-family: "JetBrains Mono", "Cascadia Code", "Source Code Pro", monospace !important;
-  font-size: 13.5px !important;
-  line-height: 1.7 !important;
-  background: transparent !important;
-  color: inherit !important;
-}
-/* light mode: --shiki-light を採用 + text-decoration クリア (Tailwind preflight 干渉 abbr 等) */
-body.docs-body .docs-prose pre.astro-code .line span,
-body.docs-body .docs-prose pre.astro-code span[style*="--shiki"] {
-  color: var(--shiki-light) !important;
-  background-color: var(--shiki-light-bg, transparent) !important;
-  text-decoration: none !important;
-}
-
-/* === Dark mode (html.dark) === */
-html.dark body.docs-body {
-  background: var(--nm-bg) !important;
-  color: var(--nm-text) !important;
-}
-html.dark body.docs-body header.docs-navbar {
-  background: rgba(38, 34, 30, 0.92) !important;
-  border-bottom-color: rgba(166, 106, 61, 0.2) !important;
-}
-html.dark body.docs-body .docs-navbar-brand,
-html.dark body.docs-body .docs-navbar-link,
-html.dark body.docs-body .docs-navbar-title-sub {
-  color: #d4c4b0 !important;
-}
-html.dark body.docs-body .docs-navbar-link.active {
-  color: #b8862a !important;
-  border-bottom-color: #b8862a !important;
-}
-html.dark body.docs-body .docs-navbar-search-input {
-  background: #25292f !important;
-  color: #f8ecd0 !important;
-  border-color: rgba(212, 165, 116, 0.2) !important;
-}
-html.dark body.docs-body .docs-navbar-search-results {
-  background: #25292f !important;
-  border-color: rgba(212, 165, 116, 0.25) !important;
-}
-html.dark body.docs-body .docs-sidebar {
-  border-right-color: rgba(255, 255, 255, 0.08) !important;
-}
-html.dark body.docs-body a.docs-sidebar-link {
-  color: #b0a596 !important;
-}
-html.dark body.docs-body a.docs-sidebar-link:hover {
-  background: rgba(212, 165, 116, 0.08) !important;
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body a.docs-sidebar-link.active {
-  color: #b8862a !important;
-  border-left-color: #b8862a !important;
-  background: rgba(212, 165, 116, 0.15) !important;
-}
-html.dark body.docs-body .docs-sidebar-section-title,
-html.dark body.docs-body .docs-aside-title {
-  color: #8a8073 !important;
-}
-html.dark body.docs-body .docs-prose h1,
-html.dark body.docs-body .docs-prose h2,
-html.dark body.docs-body .docs-prose h3,
-html.dark body.docs-body .docs-prose p,
-html.dark body.docs-body .docs-prose li {
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-prose h2 {
-  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
-}
-html.dark body.docs-body .docs-prose code {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-prose a {
-  color: #b8862a !important;
-}
-html.dark body.docs-body .docs-prose th {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-html.dark body.docs-body .docs-prose th,
-html.dark body.docs-body .docs-prose td {
-  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
-}
-html.dark body.docs-body .docs-pager-link {
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
-html.dark body.docs-body .docs-pager-link:hover {
-  border-color: #b8862a !important;
-}
-html.dark body.docs-body .docs-pager-title {
-  color: #b8862a !important;
-}
-html.dark body.docs-body button.docs-navbar-theme-toggle,
-html.dark body.docs-body button.docs-navbar-lang-toggle {
-  border-color: rgba(212, 165, 116, 0.3) !important;
-  color: #b8862a !important;
-}
-html.dark body.docs-body button.docs-navbar-theme-toggle:hover,
-html.dark body.docs-body button.docs-navbar-lang-toggle:hover {
-  background: rgba(212, 165, 116, 0.1) !important;
-  border-color: rgba(212, 165, 116, 0.5) !important;
-}
-html.dark body.docs-body .docs-aside-toc-item a {
-  color: #8a8073 !important;
-}
-html.dark body.docs-body .docs-aside-toc-item a.active {
-  color: #b8862a !important;
-  border-left-color: #b8862a !important;
-}
-html.dark body.docs-body .docs-breadcrumb a,
-html.dark body.docs-body .docs-breadcrumb .current {
-  color: #b0a596 !important;
-}
-html.dark body.docs-body .docs-footer {
-  border-top-color: rgba(255, 255, 255, 0.1) !important;
-  color: #8a8073 !important;
-}
-
-/* === 404 page === */
-body.docs-body .docs-404 {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 80px 24px 96px;
-  text-align: center;
-}
-body.docs-body .docs-404-code {
-  font-size: 96px;
-  font-weight: 900;
-  color: #a66a3d;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  margin-bottom: 16px;
-}
-body.docs-body .docs-404-title {
-  font-size: 32px;
-  font-weight: 800;
-  margin: 0 0 16px;
-  color: var(--nm-text);
-}
-body.docs-body .docs-404-lead {
-  font-size: 16px;
-  color: var(--nm-text-secondary);
-  line-height: 1.7;
-  margin-bottom: 32px;
-}
-body.docs-body .docs-404-links {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 48px;
-}
-body.docs-body .docs-404-suggest {
-  text-align: left;
-  margin-top: 48px;
-  padding: 24px 28px;
-  background: rgba(166, 106, 61, 0.05) !important;
-  border-radius: 12px;
-  border: 1px solid rgba(166, 106, 61, 0.15);
-}
-body.docs-body .docs-404-suggest h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--nm-text);
-}
-body.docs-body .docs-404-suggest ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-body.docs-body .docs-404-suggest li {
-  margin: 6px 0;
-}
-body.docs-body .docs-404-suggest a {
-  color: #a66a3d !important;
-  text-decoration: none !important;
-}
-body.docs-body .docs-404-suggest a:hover {
-  text-decoration: underline !important;
-}
-html.dark body.docs-body .docs-404-title {
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-404-lead {
-  color: #b0a596 !important;
-}
-html.dark body.docs-body .docs-404-suggest {
-  background: rgba(212, 165, 116, 0.08) !important;
-  border-color: rgba(212, 165, 116, 0.2) !important;
-}
-html.dark body.docs-body .docs-404-suggest h3 {
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-404-suggest a {
-  color: #b8862a !important;
-}
-
-/* === Dark mode の code block (Shiki astro-code 含む) === */
-html.dark body.docs-body .docs-prose pre,
-html.dark body.docs-body .docs-prose pre.astro-code,
-html.dark body.docs-body .docs-prose pre[style],
-html.dark body.docs-body .docs-hero-snippet pre {
-  background: #1f1c18 !important;
-  background-color: #1f1c18 !important;
-  color: #f8ecd0 !important;
-  border-color: rgba(212, 165, 116, 0.18) !important;
-  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4) !important;
-}
-/* Shiki dual theme ... dark mode は --shiki-dark token color を採用 (light の黒文字を上書き) */
-html.dark body.docs-body .docs-prose pre.astro-code,
-html.dark body.docs-body .docs-prose pre.astro-code span {
-  color: var(--shiki-dark, #f8ecd0) !important;
-  background-color: var(--shiki-dark-bg, transparent) !important;
-  text-decoration: none !important;
-}
-html.dark body.docs-body .docs-prose pre.astro-code .line,
-html.dark body.docs-body .docs-prose pre.astro-code .line span {
-  color: var(--shiki-dark, #f8ecd0) !important;
-  text-decoration: none !important;
-}
-html.dark body.docs-body .docs-hero-snippet pre code,
-html.dark body.docs-body .docs-hero-snippet pre code * {
-  background: transparent !important;
-  background-color: transparent !important;
-  color: #f8ecd0 !important;
-}
-html.dark body.docs-body .docs-prose code:not(pre code) {
-  background: rgba(212, 165, 116, 0.18) !important;
-  color: #f8ecd0 !important;
-}
-
-/* === Live cdl preview embed === */
-body.docs-body .docs-live-preview {
-  margin: 24px 0;
-  border: 1px solid rgba(196, 185, 172, 0.5);
-  border-radius: 12px;
-  background: rgba(232, 221, 208, 0.5);
-  overflow: hidden;
-}
-body.docs-body .docs-live-preview-header {
+.docs-hero-cta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  background: rgba(166, 106, 61, 0.08);
-  border-bottom: 1px solid rgba(196, 185, 172, 0.4);
-}
-body.docs-body .docs-live-preview-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #a66a3d;
-}
-body.docs-body .docs-live-preview-link {
-  font-size: 12px;
-  font-weight: 500;
-  color: #a66a3d !important;
-  text-decoration: none !important;
-}
-body.docs-body .docs-live-preview-link:hover {
-  text-decoration: underline !important;
-}
-body.docs-body .docs-live-preview-loading {
-  padding: 32px;
-  text-align: center;
-  color: var(--nm-text-secondary);
-  font-size: 13px;
-}
-body.docs-body .docs-live-preview-frame {
-  display: flex;
-  justify-content: center;
-  padding: 24px 16px;
-  background: #f8ecd0;
-}
-body.docs-body .docs-live-preview-frame svg {
-  max-width: 100%;
-  height: auto;
-  max-height: 520px;
-}
-html.dark body.docs-body .docs-live-preview {
-  background: rgba(48, 42, 36, 0.55);
-  border-color: rgba(212, 165, 116, 0.22);
-}
-html.dark body.docs-body .docs-live-preview-header {
-  background: rgba(212, 165, 116, 0.1);
-  border-bottom-color: rgba(212, 165, 116, 0.22);
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
 }
 
-/*
- * dark mode のライブプレビュー frame ... catalog SVG (ベージュ palette) を
- * そのまま透過させて表示する。 SVG の fill は inline attribute なので CSS で
- * 上書き不可能、 filter invert を使うと text が読みにくくなる。
- * frame の bg をベージュ寄り (#f8ecd0) にして light テーマの一部のように見せ、
- * dark UI の中に「light な図のショウケース」 を埋め込む形にする。
- */
-html.dark body.docs-body .docs-live-preview-frame {
-  background: #f8ecd0 !important;
-}
-
-/* === Doc Tabs (人向け + LLM 向け の切替) === */
-body.docs-body .docs-tabs {
-  margin: 24px 0;
-  border: 1px solid rgba(196, 185, 172, 0.5);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(245, 237, 227, 0.4);
-}
-body.docs-body .docs-tabs-nav {
-  display: flex;
-  gap: 0;
-  background: rgba(232, 221, 208, 0.6);
-  border-bottom: 1px solid rgba(196, 185, 172, 0.5);
-  padding: 0 4px;
-}
-body.docs-body .docs-tab-btn {
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  padding: 12px 20px;
-  font-size: 14px;
+.docs-hero-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--d-accent);
+  border-radius: var(--d-r-1);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-family: var(--d-body);
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--nm-text-secondary);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  margin-bottom: -1px;
-}
-body.docs-body .docs-tab-btn:hover {
-  color: #a66a3d;
-  background: rgba(166, 106, 61, 0.05);
-}
-body.docs-body .docs-tab-btn.active {
-  color: #a66a3d;
-  border-bottom-color: #a66a3d;
-  background: rgba(166, 106, 61, 0.08);
-}
-body.docs-body .docs-tab-panel {
-  display: none;
-  padding: 24px 28px;
-}
-body.docs-body .docs-tab-panel.active {
-  display: block;
-}
-body.docs-body .docs-tab-panel > *:first-child {
-  margin-top: 0;
-}
-body.docs-body .docs-tab-panel > *:last-child {
-  margin-bottom: 0;
+  line-height: 1.2;
+  text-decoration: none;
 }
 
-/* dark mode */
-html.dark body.docs-body .docs-tabs {
-  background: rgba(38, 34, 30, 0.4);
-  border-color: rgba(212, 165, 116, 0.3);
-}
-html.dark body.docs-body .docs-tabs-nav {
-  background: rgba(28, 24, 20, 0.6);
-  border-bottom-color: rgba(212, 165, 116, 0.3);
-}
-html.dark body.docs-body .docs-tab-btn {
-  color: #b8a994;
-}
-html.dark body.docs-body .docs-tab-btn:hover {
-  color: #b8862a;
-  background: rgba(212, 165, 116, 0.08);
-}
-html.dark body.docs-body .docs-tab-btn.active {
-  color: #b8862a;
-  border-bottom-color: #b8862a;
-  background: rgba(212, 165, 116, 0.1);
+.docs-hero-cta-primary:hover {
+  filter: brightness(1.08);
 }
 
-/* === Pagefind 全文検索 UI (SearchBar.tsx) === */
+.docs-hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-primary);
+  font-family: var(--d-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.docs-hero-cta-secondary:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+/* ── 要点。 枠で囲わず、 頭の 2px の罫線だけで区切る ── */
+
+.docs-hero-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 24px;
+  padding-bottom: 64px;
+}
+
+.docs-feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 2px solid var(--d-border-strong);
+  text-decoration: none;
+}
+
+.docs-feature-card:hover {
+  border-top-color: var(--d-accent);
+}
+
+.docs-feature-icon {
+  display: flex;
+  align-items: center;
+  color: var(--d-accent);
+}
+
+.docs-feature-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.docs-feature-card h2 {
+  font-family: var(--d-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.docs-feature-card p {
+  font-family: var(--d-body);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+/* ── 記述の見本 ── */
+
+.docs-hero-snippet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.docs-hero-snippet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.docs-hero-snippet-no {
+  font-family: var(--d-mono);
+  font-size: 12px;
+  color: var(--d-accent);
+}
+
+.docs-hero-snippet h2 {
+  font-family: var(--d-display);
+  font-size: clamp(21px, 2.4vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  color: var(--d-text-primary);
+}
+
+.docs-hero-snippet pre {
+  width: 100%;
+  margin: 0;
+  padding: 16px 20px;
+  background: var(--d-code-bg);
+  border: 1px solid var(--d-border);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.docs-hero-snippet code {
+  font-family: var(--d-mono);
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--d-text-secondary);
+  white-space: pre;
+}
+
+.docs-hero-snippet-cta {
+  align-self: flex-start;
+}
+
+/* ── 狭い画面 ── */
+
+@media (max-width: 900px) {
+  .docs-hero-features {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 48px;
+  }
+  .docs-hero {
+    padding: 36px 0 32px;
+  }
+  .docs-hero-shell {
+    padding-bottom: 64px;
+  }
+}

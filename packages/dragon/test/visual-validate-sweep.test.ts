@@ -183,7 +183,7 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
           "contrast-basics",
           "print-media-compat",
           "svg-filter-integrity",
-          "neumorphism-shadow-budget",
+          "node-clearance-budget",
           "color-blind-safety",
           "marker-gradient-def-integrity",
           "subpixel-precision",

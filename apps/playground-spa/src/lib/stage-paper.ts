@@ -7,9 +7,14 @@
  * 潰れていた)。
  */
 
-/** 画面と色が合わなくなった時に使う最後の手段。 実際に読めた時は使わない。 */
-const FALLBACK_DARK = "#3a2f22";
-const FALLBACK_LIGHT = "#f0e8d4";
+/**
+ * 画面と色が合わなくなった時に使う最後の手段。 実際に読めた時は使わない。
+ *
+ * 値は `globals.css` の `--d-surface` (明暗それぞれ) と揃える。 図の紙は一覧でも編集画面でも
+ * この面の色なので、 ずれると読めなかった時だけ別の紙で書き出される。
+ */
+const FALLBACK_DARK = "#191817";
+const FALLBACK_LIGHT = "#ffffff";
 
 /** 透けている色 (`rgba(...,0)` / `transparent`) か。 */
 function isTransparent(color: string): boolean {

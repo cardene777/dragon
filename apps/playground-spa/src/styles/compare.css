@@ -1,425 +1,346 @@
-/* shared nm-* class 定義 (PR #374 で ComparePage 削除後の共有 stylesheet)
- * reader = ReleaseNotesPage / PresetDetailPage / ContributePage の 3 page が
- * nm-hero / nm-preset-grid / nm-preset-card 等を参照する共有 stylesheet。
- * design = 龍鱗ゴールド palette (parchment + copper + amber、 PR #373 で全 tokenized)。
- * 将来 rename 候補 = shared-nm.css (別 PR scope)。
- */
+/* ================================================================
+ * 見本の詳細 (06) / 更新履歴 (07) / 参加方法 (08) が使う nm-* 一式。
+ * 見た目の SSOT = docs/design/app.pen。 色と字面は globals.css の変数だけを見る。
+ * 明暗は html.dark が変数を差し替えることで切替わるので、 暗い側の規則は要らない。
+ * ================================================================ */
 
-/* ── layout root ── */
+/* ── 頁の頭 ── */
+
 .nm-hero {
-  max-width: 1360px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 32px 32px 24px;
-  font-family: var(--v4-sans, "Inter", sans-serif);
-  color: var(--v4-ink);
+  padding: 54px var(--d-gutter) 44px;
+  font-family: var(--d-body);
 }
+
 .nm-crumb {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  gap: 7px;
+  font-family: var(--d-mono);
   font-size: 12px;
-  color: var(--v4-ink-mute);
-  margin-bottom: 16px;
+  color: var(--d-text-muted);
 }
+
 .nm-crumb a {
-  color: var(--v4-ink-dim);
+  color: var(--d-text-muted);
   text-decoration: none;
 }
+
 .nm-crumb a:hover {
-  color: var(--v4-brand);
+  color: var(--d-accent);
 }
+
 .nm-crumb .cur {
-  color: var(--v4-ink);
-  font-weight: 600;
+  color: var(--d-text-secondary);
 }
+
 .nm-eyebrow {
-  display: inline-block;
-  font-family: var(--v4-mono, "JetBrains Mono", monospace);
+  font-family: var(--d-mono);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--v4-brand);
-  text-transform: uppercase;
-  margin-bottom: 12px;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
 }
+
 .nm-hero-title {
-  font-family: var(--v4-serif, "Newsreader", serif);
-  font-size: 40px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--v4-ink);
-  margin: 0 0 12px;
+  font-family: var(--d-display);
+  font-size: clamp(28px, 3.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
   line-height: 1.15;
+  color: var(--d-text-primary);
 }
+
 .nm-gradient-accent {
-  background: linear-gradient(90deg, var(--v4-brand) 0%, #f0b840 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--d-accent);
 }
+
 .nm-hero-subtitle {
+  max-width: 740px;
+  font-family: var(--d-body);
   font-size: 15px;
-  line-height: 1.65;
-  color: var(--v4-ink-dim);
-  max-width: 780px;
-  margin: 0 0 24px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
 }
-/* 動きの種類 = 人が書かず図から導く 1 文 (#1043)。 説明より一段弱く出す */
+
 .nm-hero-motion {
-  font-size: 13px;
-  color: var(--v4-ink-dim);
-  opacity: 0.85;
-  margin: -18px 0 24px;
+  font-family: var(--d-mono);
+  font-size: 11.5px;
+  color: var(--d-text-muted);
 }
+
 .nm-hero-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  padding-top: 8px;
 }
-.nm-preset-select-wrap {
-  min-width: 260px;
-}
-.nm-preset-select-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  min-width: 260px;
-  background: var(--v4-surface);
-  border: 1px solid var(--v4-line);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--v4-ink);
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.nm-preset-select-trigger:hover {
-  border-color: var(--v4-brand);
-  box-shadow: 0 0 0 3px rgba(166, 106, 61, 0.08);
-}
-.nm-preset-select-content {
-  background: var(--v4-surface);
-  border: 1px solid var(--v4-line);
-  border-radius: 8px;
-  padding: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  min-width: 320px;
-}
-.nm-preset-select-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--v4-ink);
-  cursor: pointer;
-  outline: none;
-}
-.nm-preset-select-item[data-highlighted] {
-  background: var(--v4-canvas-dim);
-  color: var(--v4-brand);
-}
+
 .nm-hero-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 10px 15px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: transparent;
+  font-family: var(--d-body);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.2;
+  color: var(--d-text-primary);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
   cursor: pointer;
-  border: 1px solid transparent;
-  font-family: var(--v4-sans, "Inter", sans-serif);
 }
-.nm-hero-btn-primary {
-  background: var(--v4-brand);
-  color: #fff;
-  border-color: var(--v4-brand);
-}
-.nm-hero-btn-primary:hover {
-  background: var(--v4-brand-deep);
-  border-color: var(--v4-brand-deep);
-}
-.nm-hero-btn-secondary {
-  background: var(--v4-canvas-dim);
-  color: var(--v4-brand);
-  border-color: var(--v4-line);
-}
-.nm-hero-btn-secondary:hover {
-  background: var(--v4-surface);
-  border-color: var(--v4-brand);
-}
+
 .nm-hero-btn-arrow {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+  color: var(--d-text-secondary);
 }
 
-/* ── preset detail page ── */
-.nm-preset-detail-stage {
-  background: var(--v4-surface);
-  border: 1px solid var(--v4-line);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  min-height: 720px;
+.nm-hero-btn-primary {
+  background: var(--d-accent);
+  border-color: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
+}
+
+.nm-hero-btn-primary .nm-hero-btn-arrow {
+  color: var(--d-on-accent);
+}
+
+.nm-hero-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.nm-hero-btn-secondary:hover {
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+}
+
+.nm-hero-btn-secondary:hover .nm-hero-btn-arrow {
+  color: var(--d-accent);
+}
+
+/* ── 段 ── */
+
+.nm-presets-section {
   display: flex;
-  /* CAR-1560 codex MAJOR fix = flex center + overflow: auto で 900-1200px 域の scroll clip 回避、
-     PR #406 と同 flex-start approach で SVG は左上起点、 wide diagram の horizontal scroll 完全対応。 */
-  align-items: flex-start;
-  justify-content: flex-start;
-  overflow: auto;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--d-gutter) 100px;
+  font-family: var(--d-body);
 }
-/* preset detail SVG intrinsic size + horizontal scroll (user 継続報告 「文字小さすぎ」 対応、 CAR-1560
-   revision 2 = catalog-new.css と同 approach、 width: max-content で narrow diagram は compact / wide は scroll)。 */
+
+.nm-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.nm-section-title {
+  font-family: var(--d-display);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--d-text-primary);
+}
+
+.nm-section-desc {
+  max-width: 760px;
+  font-family: var(--d-body);
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--d-text-secondary);
+}
+
+/* ── 札 ── */
+
+.nm-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.nm-preset-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+}
+
+.nm-preset-card:hover {
+  border-color: var(--d-border-strong);
+}
+
+.nm-preset-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.nm-preset-id {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--d-accent);
+}
+
+.nm-preset-eyebrow {
+  font-family: var(--d-mono);
+  font-size: 10.5px;
+  letter-spacing: 1.2px;
+  color: var(--d-text-muted);
+}
+
+.nm-preset-title {
+  font-family: var(--d-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--d-text-primary);
+}
+
+.nm-preset-subtitle {
+  font-family: var(--d-body);
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--d-text-secondary);
+}
+
+.nm-preset-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--d-border);
+}
+
+.nm-preset-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+}
+
+.nm-preset-tag {
+  padding: 3px 8px;
+  border-radius: var(--d-r-1);
+  background: var(--d-surface-2);
+  font-family: var(--d-mono);
+  font-size: 11px;
+  color: var(--d-text-secondary);
+}
+
+.nm-preset-docs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 14px;
+  font-family: var(--d-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.nm-preset-docs:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nm-preset-docs-arrow {
+  font-size: 12px;
+}
+
+/* ── 実物 ── */
+
+.nm-preset-detail-stage {
+  display: grid;
+  place-items: center;
+  min-height: 462px;
+  padding: 24px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-3);
+}
+
 .nm-preset-detail-stage svg {
-  width: max-content !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  height: auto !important;
-  max-height: 800px !important;
+  max-width: 100%;
+  height: auto;
 }
-@media (max-width: 900px) {
-  .nm-preset-detail-stage svg {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-}
+
+/* ── 前へ / 次へ ── */
+
 .nm-preset-detail-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 前後移動のボタンは縮まない (`flex-shrink: 0`)。 折り返しを許さないと、 2 つの合計幅が
-     画面を超えた時にそのまま外へ出る (実測 = 375px で 27px、 #1074) */
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 20px;
-  background: var(--v4-canvas-dim);
-  border: 1px solid var(--v4-line);
-  border-radius: 8px;
-}
-.nm-preset-detail-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 6px;
-  color: var(--v4-ink);
-  text-decoration: none;
-  font-size: 13px;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
-.nm-preset-detail-nav-btn:hover {
-  background: var(--v4-surface);
-  color: var(--v4-brand);
-}
-
-/* ── section ── */
-.nm-presets-section {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 16px 32px 64px;
-}
-.nm-section-head {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--v4-line);
-}
-.nm-section-title {
-  font-family: var(--v4-serif, "Newsreader", serif);
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--v4-ink);
-  margin: 0 0 8px;
-}
-.nm-section-count {
-  color: var(--v4-ink-mute);
-  font-weight: 400;
-  font-size: 18px;
-}
-.nm-section-desc {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--v4-ink-dim);
-  margin: 0;
-}
-
-/* ── theme grid (2 col responsive) ── */
-.nm-preset-grid {
-  display: grid;
-  /* 下限を画面幅で頭打ちにする (#1074)。 `minmax(480px, 1fr)` のままだと、 画面が 480px より
-     狭くてもカードが 480px を割らず、 375px の画面で 137px が外に出ていた。 `min()` を挟むと
-     広い画面では 480px のまま、 狭い画面では画面幅まで縮む */
-  grid-template-columns: repeat(auto-fill, minmax(min(480px, 100%), 1fr));
   gap: 20px;
 }
-.nm-preset-card {
-  background: var(--v4-surface);
-  border: 1px solid var(--v4-line);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.nm-preset-card:hover {
-  border-color: var(--v4-brand);
-  box-shadow: 0 4px 16px rgba(166, 106, 61, 0.06);
-}
-.nm-preset-card-head {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--v4-line);
-}
-.nm-preset-eyebrow {
-  display: inline-block;
-  font-family: var(--v4-mono, "JetBrains Mono", monospace);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--v4-brand);
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.nm-preset-title {
-  font-family: var(--v4-serif, "Newsreader", serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--v4-ink);
-  margin: 0 0 4px;
-}
-.nm-preset-subtitle {
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--v4-ink-dim);
-  margin: 0;
-}
-.nm-preset-preview {
-  padding: 24px;
-  background: #fcf8ee;
-  min-height: 360px;
+
+.nm-preset-detail-nav-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-.nm-preset-card-foot {
-  padding: 12px 20px;
-  border-top: 1px solid var(--v4-line);
-  background: var(--v4-canvas-dim);
-}
-.nm-preset-tags {
-  display: flex;
-  gap: 6px;
-}
-.nm-preset-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background: var(--v4-surface);
-  border: 1px solid var(--v4-line);
-  border-radius: 4px;
-  font-family: var(--v4-mono, "JetBrains Mono", monospace);
-  font-size: 10px;
-  color: var(--v4-ink-dim);
+  gap: 7px;
+  flex: 1;
+  padding: 18px 22px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  font-family: var(--d-body);
+  font-size: 14px;
+  color: var(--d-text-primary);
+  text-decoration: none;
 }
 
-/* ── dark mode ── */
-html.dark .nm-hero,
-html.dark .nm-hero-title,
-html.dark .nm-section-title,
-html.dark .nm-preset-title {
-  color: #f8ecd0;
+.nm-preset-detail-nav-btn:last-of-type {
+  justify-content: flex-end;
 }
-html.dark .nm-hero-subtitle,
-html.dark .nm-section-desc,
-html.dark .nm-preset-subtitle {
-  color: #d0c0a5;
+
+.nm-preset-detail-nav-btn:hover {
+  border-color: var(--d-accent);
 }
-html.dark .nm-crumb {
-  color: #a08870;
+
+.nm-preset-detail-nav-btn svg {
+  color: var(--d-accent);
 }
-html.dark .nm-crumb a {
-  color: #d0c0a5;
+
+/* ── 狭い画面 ── */
+
+@media (max-width: 1000px) {
+  .nm-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-html.dark .nm-crumb .cur {
-  color: #f8ecd0;
-}
-html.dark .nm-preset-card {
-  background: #241c14;
-  border-color: #3d322a;
-}
-html.dark .nm-preset-card:hover {
-  border-color: #f0b840;
-}
-html.dark .nm-preset-card-head,
-html.dark .nm-preset-card-foot {
-  border-color: #3d322a;
-}
-html.dark .nm-preset-card-foot {
-  background: #14100c;
-}
-/* blueprint SVG は light bg 前提設計、 dark mode でも preview は cream paper 維持 */
-html.dark .nm-preset-preview {
-  background: #fcf8ee;
-}
-html.dark .nm-preset-tag {
-  background: #241c14;
-  border-color: #3d322a;
-  color: #b8bfcc;
-}
-html.dark .nm-preset-select-trigger {
-  background: #241c14;
-  border-color: #3d322a;
-  color: #f8ecd0;
-}
-html.dark .nm-preset-select-content {
-  background: #241c14;
-  border-color: #3d322a;
-}
-html.dark .nm-preset-select-item {
-  color: #f8ecd0;
-}
-html.dark .nm-preset-select-item[data-highlighted] {
-  background: #2e2418;
-  color: #f0b840;
-}
-html.dark .nm-hero-btn-secondary {
-  background: #241c14;
-  border-color: #3d322a;
-  color: #f0b840;
-}
-html.dark .nm-hero-btn-secondary:hover {
-  background: #2e2418;
-  border-color: #f0b840;
-}
-html.dark .nm-hero-btn-primary {
-  background: #f0b840;
-  color: #1a1410;
-  border-color: #f0b840;
-}
-html.dark .nm-hero-btn-primary:hover {
-  background: #f8c858;
-  border-color: #f8c858;
-}
-html.dark .nm-section-head {
-  border-color: #3d322a;
-}
-html.dark .nm-preset-detail-stage {
-  /* blueprint SVG は light bg 前提設計、 dark mode でも cream paper 維持 */
-  background: #fcf8ee;
-  border-color: #3d322a;
-}
-html.dark .nm-preset-detail-nav {
-  background: #14100c;
-  border-color: #3d322a;
-}
-html.dark .nm-preset-detail-nav-btn {
-  color: #f8ecd0;
-}
-html.dark .nm-preset-detail-nav-btn:hover {
-  background: #2e2418;
-  color: #f0b840;
+
+@media (max-width: 760px) {
+  .nm-preset-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nm-hero {
+    padding-top: 36px;
+    padding-bottom: 32px;
+  }
+  .nm-presets-section {
+    padding-bottom: 64px;
+  }
+  .nm-preset-detail-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

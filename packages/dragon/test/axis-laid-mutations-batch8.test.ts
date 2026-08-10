@@ -1,6 +1,6 @@
 /**
  * visualValidateLaid API での real defect assertion (8th batch)。
- * Axis 30 (neumorphism-shadow-budget) / 37 (row-content-typing) /
+ * Axis 30 (node-clearance-budget) / 37 (row-content-typing) /
  * 38 (terminal-safe-text) / 39 (gpu-layer-efficiency) / 40 (memory-budget) を追加、
  * 位置関係 core 32 → 37 に拡張。
  *
@@ -34,7 +34,7 @@ function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   };
 }
 
-describe("Axis 30 neumorphism-shadow-budget (LaidDiagram mutation で意図発火)", () => {
+describe("Axis 30 node-clearance-budget (LaidDiagram mutation で意図発火)", () => {
   it("2 node の clearance を shadow budget 6 未満に強制すると影食い込み発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
@@ -49,7 +49,7 @@ describe("Axis 30 neumorphism-shadow-budget (LaidDiagram mutation で意図発�
     laid.nodes[1].w = 60;
     laid.nodes[1].h = 60;
     const report = visualValidateLaid(laid, diag);
-    expect(report.counts["neumorphism-shadow-budget"]).toBeGreaterThan(0);
+    expect(report.counts["node-clearance-budget"]).toBeGreaterThan(0);
   });
 });
 
