@@ -29,9 +29,12 @@ function parseColor(v: string): RGBA | null {
 }
 
 function relLuminance([r, g, b]: [number, number, number]): number {
+  // 境界は現行の WCAG が書く 0.04045。 本 repo は 0.04045 が 3 件 / 0.03928 が 2 件と割れて
+  // いるので、 現行値かつ多数派に揃える。 2 値の差は暗い側の極端な値でしか効かず、 本 spec の
+  // 判定は 12 通りとも変わらない (実測)
   const f = (x: number): number => {
     const c = x / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
