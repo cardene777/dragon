@@ -52,14 +52,16 @@
   --cdl-note-fill: var(--d-warn-soft);
   --cdl-note-text: var(--d-warn);
 
-  /* 図の中で系統を描き分ける 6 色。 紙に対して明 4.67 以上 / 暗 7.1 以上 */
-  --cdl-tone-accent: var(--d-accent);
-  --cdl-tone-accent-deep: var(--d-accent);
+  /* 図の中で意味を描き分ける 6 色。
+     `--d-accent` を割り当てない。 site の主役色は赤橙で、 `--d-err` (赤) と色相が近く
+     実測で ΔE 3.8 まで潰れた (見分けられる下限は 15)。 意味の色は系統色から取る。 */
+  --cdl-tone-accent: var(--d-dg-1);
+  --cdl-tone-accent-deep: var(--d-dg-1);
   --cdl-tone-teal: var(--d-dg-6);
   --cdl-tone-success: var(--d-dg-2);
   --cdl-tone-error: var(--d-err);
   --cdl-tone-warning: var(--d-warn);
-  --cdl-tone-info: var(--d-dg-1);
+  --cdl-tone-info: var(--d-dg-4);
 
   --cdl-thumbnail-modal-bg: var(--d-surface);
   --cdl-thumbnail-overlay-bg: var(--d-scrim);
@@ -94,8 +96,8 @@
 [data-cdl-role="node-body"] > g > path,
 [data-cdl-role="node-body"] > g > ellipse,
 [data-cdl-role="node-body"] > g > circle {
-  fill: var(--d-surface-2) !important;
-  stroke: var(--d-text-muted) !important;
+  fill: var(--d-surface-3) !important;
+  stroke: var(--d-text-secondary) !important;
   stroke-width: 1.75 !important;
 }
 
@@ -123,7 +125,7 @@
 /* 表の区切り線。 名前と列の間の横線と、 左右の列を分ける縦線 */
 [data-cdl-role="node-row-divider"],
 [data-cdl-role="node-column-divider"] {
-  stroke: var(--d-text-muted) !important;
+  stroke: var(--d-text-secondary) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -142,17 +144,17 @@
 }
 
 /* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める */
-[data-cdl-tone="accent"] { --dragon-edge-tone: var(--d-accent); }
+[data-cdl-tone="accent"] { --dragon-edge-tone: var(--d-dg-1); }
 [data-cdl-tone="teal"] { --dragon-edge-tone: var(--d-dg-6); }
 [data-cdl-tone="success"] { --dragon-edge-tone: var(--d-dg-2); }
 [data-cdl-tone="error"] { --dragon-edge-tone: var(--d-err); }
 [data-cdl-tone="warning"] { --dragon-edge-tone: var(--d-warn); }
-[data-cdl-tone="info"] { --dragon-edge-tone: var(--d-dg-1); }
+[data-cdl-tone="info"] { --dragon-edge-tone: var(--d-dg-4); }
 
 /* 矢頭は `<defs>` の中にあり、 線を包む要素の子ではないので上の変数を継げない。
    矢頭自身に置く。 大小 2 種あるので両方に当てる */
 #cdl-arrow-accent,
-#cdl-arrow-accent-sm { --dragon-edge-tone: var(--d-accent); }
+#cdl-arrow-accent-sm { --dragon-edge-tone: var(--d-dg-1); }
 #cdl-arrow-teal,
 #cdl-arrow-teal-sm { --dragon-edge-tone: var(--d-dg-6); }
 #cdl-arrow-success,
@@ -162,12 +164,12 @@
 #cdl-arrow-warning,
 #cdl-arrow-warning-sm { --dragon-edge-tone: var(--d-warn); }
 #cdl-arrow-info,
-#cdl-arrow-info-sm { --dragon-edge-tone: var(--d-dg-1); }
+#cdl-arrow-info-sm { --dragon-edge-tone: var(--d-dg-4); }
 
 /* 線に添える札 */
 [data-cdl-role="edge-label-bg"] {
-  fill: var(--d-surface) !important;
-  stroke: var(--d-border-strong) !important;
+  fill: var(--d-surface-3) !important;
+  stroke: var(--d-text-muted) !important;
   stroke-width: 1 !important;
 }
 
@@ -191,13 +193,13 @@
    それを見込んで、 宣言では枠線より 1 段濃い色を置く */
 [data-cdl-role="lane-container"] {
   fill: none !important;
-  stroke: var(--d-text-muted) !important;
+  stroke: var(--d-text-secondary) !important;
   stroke-width: 1.5 !important;
   stroke-dasharray: 6 4 !important;
 }
 
 [data-cdl-role="lane-lifeline"] {
-  stroke: var(--d-text-muted) !important;
+  stroke: var(--d-text-secondary) !important;
   stroke-width: 1.5 !important;
   stroke-dasharray: 6 5 !important;
 }
