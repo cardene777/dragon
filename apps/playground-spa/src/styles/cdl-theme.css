@@ -991,3 +991,65 @@ html.dark[data-cdl-theme="blueprint"] {
     transform: none !important;
   }
 }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+ * 表の区切り線 (`cardene777/cdl#423` で追加された 2 役割、 本 repo `#1108`)
+ *
+ * `node-row-divider` = 実体の名前と列の間の横線。
+ * `node-column-divider` = 名前の列と値の列の間の縦線。
+ * 2 本で 1 組の表を作るので、 同じ色で描く。
+ *
+ * 濃さは **箱の塗りに対して対比 3:1 以上**。 塗りは主題ごとに違い、 推測すると外すので
+ * 見本 `er-demo` を実際に描いて測った値で計算した (`tests/divider-contrast.spec.ts` が
+ * 同じ計算で毎回確かめる)。
+ *
+ *   主題        塗り                        線                          対比
+ *   blueprint   明 #fdf8ec / 暗 #191309     枠線を薄めた茶 / 黄         3.46 / 3.42
+ *   circuit     #0a1a12 (濃い緑)            枠線の金を薄めた           3.39
+ *   handdrawn   #fdf7d9                     枠線の墨を薄めた           3.42
+ *   isometric   上面が階調 (#fff→#b89c68)   階調の一番濃い所で足りる茶 4.16 / 3.25
+ *   neumorphism 明 #e6ebf0 / 暗 #241c14     枠線を持たないので灰 / 砂  3.50 / 3.68
+ *   pinboard    #fdf7d9                     枠線の茶を濃くした         3.22
+ *
+ * isometric の上面は単色でなく階調なので、 一番濃い停止色に対して足りる値にしてある。
+ *
+ * cdl 側は `var(--cdl-row-divider, #7e848e)` で描く。 変数を定義する経路でも届くが、
+ * 本 file の他の役割に揃えて `!important` の役割 rule で当てる (cdl が将来 色を直書きに
+ * 変えても効き続ける)。
+ * ═════════════════════════════════════════════════════════════════════════════ */
+[data-cdl-theme="blueprint"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="blueprint"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(109, 63, 24, 0.65) !important;
+}
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-row-divider"],
+html.dark [data-cdl-theme="blueprint"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(240, 184, 64, 0.5) !important;
+}
+[data-cdl-theme="circuit"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="circuit"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(200, 160, 56, 0.6) !important;
+}
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="handdrawn"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(44, 40, 32, 0.55) !important;
+}
+[data-cdl-theme="isometric"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="isometric"] [data-cdl-role="node-column-divider"] {
+  stroke: rgb(74, 58, 36) !important;
+}
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-row-divider"],
+html.dark [data-cdl-theme="isometric"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(220, 200, 170, 0.65) !important;
+}
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="neumorphism"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(90, 96, 110, 0.8) !important;
+}
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-row-divider"],
+html.dark [data-cdl-theme="neumorphism"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(190, 175, 150, 0.6) !important;
+}
+[data-cdl-theme="pinboard"] [data-cdl-role="node-row-divider"],
+[data-cdl-theme="pinboard"] [data-cdl-role="node-column-divider"] {
+  stroke: rgba(90, 60, 30, 0.6) !important;
+}
