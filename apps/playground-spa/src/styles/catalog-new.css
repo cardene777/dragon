@@ -255,6 +255,11 @@
   background: transparent;
   text-align: left;
   cursor: pointer;
+  /* 画面の外にある項目は組版も描画も飛ばす。 一覧は最大 129 件あり、 全部を最初に
+     組むと開いた瞬間が重くなる (user 指摘への対処、 CAR-1519)。
+     高さを先に押さえておくのは、 巻き取った時に位置が飛ばないようにするため。 */
+  content-visibility: auto;
+  contain-intrinsic-size: 46px;
 }
 
 .catalog-list-item:hover {

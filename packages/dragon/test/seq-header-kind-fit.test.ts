@@ -35,12 +35,15 @@ const hOf = (d: CdlDiagram, id: string): number | undefined => d.nodes.find((n) 
  *
  * 前半 4 種は名前がはみ出す (#1061)。 後半 4 種は絵が下へはみ出す `shape-` (#1067) で、
  * 高さを上げると下のはみ出しが消えることを実測した (1 低いと 0.9-1 はみ出す)。
+ *
+ * 値は `compile.ts` の `LABEL_MIN_H` と揃える。 字を変えると下ばみの量が変わるので、
+ * 実装側を測り直したらここも動かす (#1110 で前半 4 種が動いた)。
  */
 const 収まらない種別 = [
-  { kind: "actor", 要る高さ: 95 },
-  { kind: "function", 要る高さ: 94 },
-  { kind: "storage", 要る高さ: 86 },
-  { kind: "event", 要る高さ: 96 },
+  { kind: "actor", 要る高さ: 94 },
+  { kind: "function", 要る高さ: 92 },
+  { kind: "storage", 要る高さ: 83 },
+  { kind: "event", 要る高さ: 95 },
   { kind: "shape-person", 要る高さ: 228 },
   { kind: "shape-server-rack", 要る高さ: 166 },
   { kind: "shape-website", 要る高さ: 98 },

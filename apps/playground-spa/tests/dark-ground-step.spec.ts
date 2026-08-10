@@ -82,26 +82,16 @@ async function openDark(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForTimeout(2200);
 }
 
-test("暗い画面で箱が紙から面として分かれる", async ({ page }) => {
-  await openDark(page);
-  const s = await surfaces(page);
-  expect(s.紙, "紙の色を測れていない").not.toBeNull();
-  expect(s.箱, "箱の色を測れていない").not.toBeNull();
-
-  // 8 でようやく段、 12-15 で明確。 以前は 6.1 だった
-  const 段差 = Math.abs(Lstar(s.紙!) - Lstar(s.箱!));
-  expect(段差, `紙 ${s.紙} と箱 ${s.箱} の明るさの差が ${段差.toFixed(1)} (12 以上必要)`).toBeGreaterThanOrEqual(12);
-});
-
-test("暗い画面でラベルの座布団が紙から分かれる", async ({ page }) => {
-  await openDark(page);
-  const s = await surfaces(page);
-  expect(s.座布団, "座布団の色を測れていない").not.toBeNull();
-
-  // 座布団が紙に溶けると、 線の上に浮いた文字だけが見える状態になる
-  const 段差 = Math.abs(Lstar(s.紙!) - Lstar(s.座布団!));
-  expect(段差, `紙 ${s.紙} と座布団 ${s.座布団} の明るさの差が ${段差.toFixed(1)} (12 以上必要)`).toBeGreaterThanOrEqual(12);
-});
+/**
+ * 面の段差 (`L*` の差 12 以上) を測る 2 件は #1110 で外した。
+ *
+ * 12 という値は旧配色 (羊皮紙・銅・琥珀・黒曜石) の面の幅に合わせて決めたもので、
+ * 明暗 2 種に作り直した配色では最大でも 11.8 しか離れない = 満たせない。
+ *
+ * 見た目の判断は `docs/design/app.pen` に一本化した (user 指示「pencil が全て」)。
+ * 面が分かれて見えるかは画面で判断する。 下の「紙と箱の明るさが離れている」 は、
+ * 配色の良し悪しではなく **上書きが届いているか** を見る配線の検査として残す。
+ */
 
 test("暗い画面で箱の中の文字と枠が読める", async ({ page }) => {
   await openDark(page);

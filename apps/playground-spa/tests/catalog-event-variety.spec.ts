@@ -16,6 +16,10 @@ async function open(page: Page): Promise<Locator> {
   await page.waitForTimeout(600);
   await page.locator("aside.catalog-sidebar").getByText(ITEM_LABEL, { exact: false }).first().click();
   await page.waitForTimeout(500);
+  // 字が届くと文字の幅が変わり、 その下にある図の位置が動く。 座標を測ってから押す形
+  // (長押し) は、 測った後に動くと押す先が外れる。 落ち着くまで待ってから返す。
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(300);
   const preview = page.locator("main.catalog-preview");
   await expect(preview.locator("svg").first()).toBeVisible();
   return preview;
@@ -65,7 +69,11 @@ test.describe("catalog の eventVariety (#1045)", () => {
     // 段の説明は「押したまま一定時間たつと受け取る」。 **離す前に** 画面が変わることを見る。
     // 離した時に受け取る形だと、押し続けている間は何も起きず説明と食い違う
     const preview = await open(page);
-    const box = await preview.locator('[data-cdl-node="btn3"]').first().boundingBox();
+    const 対象 = preview.locator('[data-cdl-node="btn3"]').first();
+    // 座標で押すので、 画面の外にあると届かない (`click` と違って自動で送られない)。
+    // 図は見出しの下に来るため、 縦の狭い画面では対象が折り返しの下に落ちる。
+    await 対象.scrollIntoViewIfNeeded();
+    const box = await 対象.boundingBox();
     expect(box, "長押しの対象が見つからない").not.toBeNull();
 
     await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);

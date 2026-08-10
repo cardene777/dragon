@@ -31,10 +31,10 @@ import { NODE_KINDS } from "@cardenelabs/cdl";
 
 /** 組み立て側の表 (`packages/dragon/src/compile.ts` の `LABEL_MIN_H`) と同じ値。 */
 const 要る高さ = [
-  { kind: "actor", h: 95 },
-  { kind: "function", h: 94 },
-  { kind: "storage", h: 86 },
-  { kind: "event", h: 96 },
+  { kind: "actor", h: 94 },
+  { kind: "function", h: 92 },
+  { kind: "storage", h: 83 },
+  { kind: "event", h: 95 },
 ] as const;
 
 /** 記法を URL に載せてエディタへ渡す (`CdlEditor.tsx` の `#s=<base64>`)。 */

@@ -336,9 +336,11 @@ test.describe("edge label の描画対比 (#977)", () => {
     const css = readFileSync(
       fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)), "utf8",
     );
-    expect(css.match(/html\.dark/g) ?? [], "cdl-theme.css に html.dark が書かれている").toEqual([]);
+    // 説明文に書くのは構わない (規約そのものを書いてある)。 見るのは規則の側だけ。
+    const 規則だけ = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(規則だけ.match(/html\.dark/g) ?? [], "cdl-theme.css の規則に html.dark がある").toEqual([]);
     // 変数を参照していること自体も固定する。 色を直に書くと明暗が追随しない。
-    expect(css).toMatch(/var\(--d-/);
+    expect(規則だけ).toMatch(/var\(--d-/);
   });
 
   test("judge の境界と種別 (単体)", () => {

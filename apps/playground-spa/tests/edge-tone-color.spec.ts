@@ -19,8 +19,15 @@ import { test, expect, type Page } from "@playwright/test";
 
 const TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 
-/** 対比の下限。 文字の基準に合わせる (図形の基準 3:1 より厳しい側を採る)。 */
-const MIN_CONTRAST = 4.5;
+/**
+ * 対比の下限。 WCAG が figure などの非文字要素に定める 3:1。
+ *
+ * 以前は文字の基準 4.5 を当てていたが、 これは旧配色 (暖色一色) の濃さに合わせて
+ * 厳しい側を採ったもので、 線に求められる標準ではない。 見た目の判断は
+ * `docs/design/app.pen` に一本化したので (user 指示「pencil が全て」)、 ここは
+ * 標準そのものに戻す。
+ */
+const MIN_CONTRAST = 3;
 /** 色の見分けの下限。 ΔE 10 未満は並べても判別しづらい。 */
 const MIN_DELTA_E = 15;
 

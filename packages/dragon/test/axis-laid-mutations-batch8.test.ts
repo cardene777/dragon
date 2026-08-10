@@ -1,6 +1,6 @@
 /**
  * visualValidateLaid API での real defect assertion (8th batch)。
- * Axis 30 (node-clearance-budget) / 37 (row-content-typing) /
+ * Axis 37 (row-content-typing) /
  * 38 (terminal-safe-text) / 39 (gpu-layer-efficiency) / 40 (memory-budget) を追加、
  * 位置関係 core 32 → 37 に拡張。
  *
@@ -34,24 +34,14 @@ function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   };
 }
 
-describe("Axis 30 node-clearance-budget (LaidDiagram mutation で意図発火)", () => {
-  it("2 node の clearance を shadow budget 6 未満に強制すると影食い込み発火", () => {
-    const diag = baseDiagram();
-    const laid = layout(diag);
-    // 2 node bbox を 3 world だけ離す (clearance > 0 && < 6)。
-    // node1 right = 200 + 60/2 = 230、 node2 left = 233 で gap 3、 y は完全一致 (dy=0)。
-    laid.nodes[0].cx = 200;
-    laid.nodes[0].cy = 300;
-    laid.nodes[0].w = 60;
-    laid.nodes[0].h = 60;
-    laid.nodes[1].cx = 263;
-    laid.nodes[1].cy = 300;
-    laid.nodes[1].w = 60;
-    laid.nodes[1].h = 60;
-    const report = visualValidateLaid(laid, diag);
-    expect(report.counts["node-clearance-budget"]).toBeGreaterThan(0);
-  });
-});
+/**
+ * 軸 30 (旧 `neumorphism-shadow-budget` → `node-clearance-budget`) の検査は
+ * cardene777/cdl#426 で軸ごと削除されたため外した。
+ *
+ * 軸は主題固有の影 (6 world) を前提としており、 主題の廃止で根拠が消えた。
+ * 隣り合う node の間隔は `node-vertical-clearance` (40 world) と
+ * near-collision (70 world) が引き続き見る。
+ */
 
 describe("Axis 37 row-content-typing (CdlDiagram input mutation で意図発火)", () => {
   it("node.rows の url key に非 URL 値を混入すると型検査失敗で発火", () => {

@@ -39,7 +39,7 @@ const huesOf = (page: Page, id: string) =>
     const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
     if (!root) return null;
     const out: Array<{ hue: number; color: string }> = [];
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline"))) {
+    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon"))) {
       // `<defs>` の marker は定義であって描画ではない。 含めると「実際には出ていない色」 で
       // 前提が成立してしまう (codex review Round 1 の指摘)。
       if (el.closest("defs")) continue;
@@ -143,10 +143,12 @@ const contrastsOf = (page: Page, id: string) =>
       "journey-band": ["fill"],
       "journey-line-glow": ["stroke"],
       "journey-chip": ["fill"],
+      // 放射状の図の中心に敷く光の輪。 不透明度 0.18 で意図して淡く、 読ませる要素ではない。
+      "mind-radial-halo": ["fill"],
     };
 
     const out: Array<{ tag: string; role: string; prop: string; color: string; bg: string; c: number }> = [];
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, text, ellipse"))) {
+    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon, text, ellipse"))) {
       if (el.closest("defs")) continue;
       const cs = getComputedStyle(el);
       const role = el.getAttribute("data-cdl-role") ?? "";
@@ -243,23 +245,15 @@ async function open(page: Page, id: string): Promise<void> {
 }
 
 test.describe("dark の図の tone (#383)", () => {
-  test("明色では青系が出ている (前提)", async ({ page }) => {
-    // 出ていなければ dark の 0 件は「暖色にしたから消えた」 ではなく「元から色が無い」 になる。
-    await open(page, "chart-line-demo");
-    const light = await huesOf(page, "chart-line-demo");
-    expect(light, "図が描かれていない").not.toBeNull();
-    expect(light!.filter((x) => isBlue(x.hue)).length, "明色で青系が 1 件も無い").toBeGreaterThan(0);
-  });
-
   /**
-   * `TONE_HEX` (焼き付けの hex) を使う kind は CSS 変数が効かない。 描画用途を `TONE`
-   * (CSS 変数版) に切り替えたので、 これらでも青系が消えることを見る。
+   * 暗い画面で色が入れ替わること。
    *
-   * chart-line だけを見ていた間は pie / funnel / gantt / journey に青系が残り、 4 図に広げた後も
-   * `toneRgba()` 経由の quadrant と裸 hex の tree に残っていた (codex review Round 1 / Round 2)。
+   * かつては「青系が残っていないこと」 で見ていた。 当時の配色は暖色一色で、 青が出るのは
+   * 上書きが効いていない証拠になったため (#383)。 配色を明暗 2 種に作り直した今は青も紫も
+   * 正規の色なので、 色相ではなく **明暗で値が変わること** を直接見る。
    */
   for (const id of IDS) {
-    test(`${id} に青系が残らない`, async ({ page }) => {
+    test(`${id} の色が明暗で入れ替わる`, async ({ page }) => {
       await open(page, id);
       const light = await huesOf(page, id);
       expect(light, `${id} が描かれていない`).not.toBeNull();
@@ -268,7 +262,12 @@ test.describe("dark の図の tone (#383)", () => {
       await page.evaluate(() => document.documentElement.classList.add("dark"));
       await page.waitForTimeout(600);
       const dark = await huesOf(page, id);
-      expect(dark!.filter((x) => isBlue(x.hue)).map((x) => x.color), `${id} の dark に青系`).toEqual([]);
+      expect(dark!.length, `${id} の dark に色が 1 件も無い`).toBeGreaterThan(0);
+      // 1 色でも変われば上書きは届いている。 全色の一致を求めると、 明暗で同じにしてよい
+      // 色 (紙に依らない中間色) を持つ図が落ちる。
+      const 明 = new Set(light!.map((x) => x.color));
+      const 暗 = new Set(dark!.map((x) => x.color));
+      expect([...暗].some((c) => !明.has(c)), `${id} の色が明暗で 1 つも変わらない`).toBe(true);
     });
   }
 
