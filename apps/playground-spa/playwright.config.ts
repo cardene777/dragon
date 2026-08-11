@@ -21,10 +21,17 @@ import { defineConfig } from "@playwright/test";
  * 通る)。 速さより「落ちたら本当に壊れている」 を優先する。 手元で急ぐ時は `--workers=6` を
  * 付けて上書きできる。
  *
- * ## 時間を標本にする検査は他と重ならないようにする
+ * ## 他と重ねない検査
  *
- * 動きの途中を 40ms 間隔で観測する検査は、 負荷が上がると標本を取り損ねて落ちる。 図が壊れて
- * いないのに落ちる = 落ちたことが情報を持たなくなる。
+ * 2 種類ある。 **負荷に弱い側** と **負荷を出す側** で、 どちらも他と重なると結果が変わる。
+ *
+ * 負荷に弱い側 = 動きの途中を 40ms 間隔で観測する検査。 負荷が上がると標本を取り損ねて落ちる。
+ * 図が壊れていないのに落ちる = 落ちたことが情報を持たなくなる。
+ *
+ * 負荷を出す側 = `fullPage` の写しを何枚も撮る検査 (`muted-text-symmetry`、 20 枚)。 自分は
+ * 落ちないが、 同時に走る寸法の検査を落とす。 main で全件を 3 回回して 2 回失敗し、 落ちる
+ * test が毎回入れ替わった (単独では通る)。 動きを止めるだけでは足りず、 写しそのものの
+ * 負荷が原因だった (GH #1118)。
  *
  * **project の `workers: 1` だけでは足りない**。 それはその project 内の同時実行数を 1 に
  * するだけで、 `default` と同時に走ることは止めない (実測 = 2 project を指定すると
@@ -35,8 +42,8 @@ import { defineConfig } from "@playwright/test";
  * そちらを直すのが先なので受容する。
  */
 
-/** 動きの途中を時間で標本にする検査。 負荷で結果が変わるため直列で回す */
-const 時間を測る検査 = /(editor-initial-animation|rendered-contrast)\.spec\.ts$/;
+/** 他と重ねない検査。 負荷で結果が変わる側と、 負荷を出す側の両方を含む */
+const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry)\.spec\.ts$/;
 
 const 共通 = { baseURL: "http://localhost:4323", trace: "on-first-retry" } as const;
 
@@ -48,13 +55,13 @@ export default defineConfig({
   projects: [
     {
       name: "default",
-      testIgnore: [/html-canvas-motion\.spec\.ts$/, 時間を測る検査],
+      testIgnore: [/html-canvas-motion\.spec\.ts$/, 重ねない検査],
       use: 共通,
     },
     {
-      // 動きの時間を測る検査。 `default` の後に 1 件ずつ回す (同時に走ると標本を取り損ねる)
-      name: "timing",
-      testMatch: 時間を測る検査,
+      // `default` の後に 1 件ずつ回す (同時に走ると標本を取り損ねる / 他を落とす)
+      name: "serial",
+      testMatch: 重ねない検査,
       workers: 1,
       dependencies: ["default"],
       use: 共通,
