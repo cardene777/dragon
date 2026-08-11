@@ -639,8 +639,9 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  /* 薄さは色そのものが持つ。 ここに `opacity` を重ねると二重に薄まり、
+     10.5px の文字が地に溶ける (実測 = 明 3.58 / 暗 4.06 で下限割れ)。 */
   color: var(--v4-ink-mute);
-  opacity: 0.8;
 }
 
 /* input side は chip 維持だが、 hover state はよりはっきり見せる (触れる signal) */
