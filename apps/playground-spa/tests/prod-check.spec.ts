@@ -12,12 +12,43 @@ import { ITEM_NAME_JA } from "../src/lib/i18n";
 const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4324/dragon";
 test.use({ viewport: { width: 1920, height: 1080 } });
 
-/** console error / pageerror を集めて返す。 */
+/**
+ * console error / pageerror を集めて返す。
+ *
+ * **外部から取る資源の失敗は数えない**。 字は Google の配信元から取るので、 向こうで
+ * 版が変わると古い定義を握っている間だけ 404 になる (実測 = 落ちる画面が実行ごとに
+ * 変わり、 新しい状態で開くと出ない)。 本 test が見たいのは本番 build 固有の壊れ方で、
+ * 外部の都合ではない。
+ *
+ * 自分の資源 (`/dragon/` 配下) の 404 は引き続き数える = そちらは本番 build の欠陥。
+ */
 function collectErrors(page: import("@playwright/test").Page): string[] {
   const errors: string[] = [];
+  /**
+   * 外部から取る資源の読込失敗か。
+   *
+   * 判定は同期で行う = 非同期にすると `expect` の時点で結果が揃っていない。
+   *
+   * **自分の資源かどうかは `BASE` の origin と比べる**。 `localhost` の文字列で見ると、
+   * `PROD_BASE_URL` に別の host を渡した時や `127.0.0.1` / IPv6 の形で自分の資源まで
+   * 外に数え、 本番 build の欠陥を見逃す (review 指摘)。
+   *
+   * URL が空 / 解けない時は数える側に倒す = 判定できないものを見逃さない。
+   */
+  const 外部の資源 = (m: import("@playwright/test").ConsoleMessage): boolean => {
+    if (!/Failed to load resource/.test(m.text())) return false;
+    const u = m.location()?.url ?? "";
+    if (!u) return false;
+    try {
+      return new URL(u, BASE).origin !== new URL(BASE).origin;
+    } catch {
+      return false;
+    }
+  };
   page.on("pageerror", (e) => errors.push(`pageerror: ${e}`));
   page.on("console", (m) => {
-    if (m.type() === "error") errors.push(`console: ${m.text()}`);
+    if (m.type() !== "error") return;
+    if (!外部の資源(m)) errors.push(`console: ${m.text()}`);
   });
   return errors;
 }
