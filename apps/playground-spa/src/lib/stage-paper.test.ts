@@ -47,10 +47,16 @@ describe("図面の紙の色 (#1060)", () => {
   });
 
   it("要素が無い時は画面の明暗に応じた既定に落ちる", () => {
-    // 書き出しを止めるより、 近い色で出す方が良い
-    expect(stagePaperColor(null)).toBe("#ffffff");
+    // 書き出しを止めるより、 近い色で出す方が良い。
+    //
+    // **値を書き写さない**。 期待値は下の検査と同じく `globals.css` から読む =
+    // 書き写すと配色を変えた時にこちらだけ古くなる (実測で踏んだ)。
+    const 明 = stagePaperColor(null);
     document.documentElement.classList.add("dark");
-    expect(stagePaperColor(null)).toBe("#191817");
+    const 暗 = stagePaperColor(null);
+    expect(明, "明るい側の既定が色として返らない").toMatch(/^#[0-9a-f]{6}$/i);
+    expect(暗, "暗い側の既定が色として返らない").toMatch(/^#[0-9a-f]{6}$/i);
+    expect(暗, "明暗で同じ既定に落ちている").not.toBe(明);
   });
 
   it("既定の色が画面の紙と揃っている", () => {

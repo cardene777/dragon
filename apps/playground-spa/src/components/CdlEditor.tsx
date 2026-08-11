@@ -119,7 +119,7 @@ const CODE_THEME_RULES = {
   },
   ".cm-activeLineGutter": { backgroundColor: "var(--d-accent-soft)", color: "var(--d-accent)" },
   ".cm-activeLine": { backgroundColor: "var(--d-accent-soft)" },
-  ".cm-selectionBackground, ::selection": { backgroundColor: "var(--d-surface-3) !important" },
+  ".cm-selectionBackground, ::selection": { backgroundColor: "var(--d-code-selection-bg) !important" },
   "&.cm-focused": { outline: "none" },
 };
 

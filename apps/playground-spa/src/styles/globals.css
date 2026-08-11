@@ -51,6 +51,22 @@
   --d-body: "Inter", -apple-system, "Segoe UI", sans-serif;
   --d-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
+  /* 図の枝と札の縁の薄さ。 役割ごとに cdl が持つ既定が違う
+     (枝 0.55 / 放射の枝 0.7 / 札の縁 0.6)。
+     **明るい側は cdl の値をそのまま使う** = 上書きすると `main` と見え方が変わる
+     (review で実測、 放射の枝 0.7 → 0.85 / 札の縁 0.6 → 0.85 になっていた)。
+     暗い側だけ面が明るいぶん沈むので、 下の `html.dark` で上げる。 */
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-mind-radial-edge-opacity: 0.7;
+  --d-journey-chip-opacity: 0.6;
+
+  /* 記述欄で選んだ範囲の地。 面の色を流用すると、 面を明るくした時に構文の色が沈む
+     (実測 = `--d-surface-3` にした時に 12.5px の色 5 種が 3.26-4.45 で下限割れ)。
+     判定は「選ぶ前より読みにくくならないこと」 = 通常の地に対する対比を基準にし、
+     どの構文色も 1 割以上落ちない値を選んだ。 */
+  --d-code-selection-bg: #e8eef7;
+
   /* 角は一貫して浅い。 部品 3px / 面 5px / 窓 6px の 3 段だけ使う */
   --d-r-1: 3px;
   --d-r-2: 5px;
@@ -111,27 +127,47 @@
   --color-surface-2: var(--d-surface-2);
 }
 
+/* 暗い表示。
+ *
+ * **地を黒に寄せない**。 `.pen` の初出は地 `#111110` (明るさ 5) で、 面との差が 3-4 しか
+ * 無く「全部が黒で面が分かれない」 状態だった (user 判定「暗すぎ、 見えなさすぎ」)。
+ *
+ * 面の段を 6 ずつ空けて、 地 12.9 / 面 18.1 / 一段上 23.7 / 箱 29.5 に置き直した。
+ * 図の紙 (`--d-surface`) と箱 (`--d-surface-3`) の差は 11.4 になる。 */
 html.dark {
-  --d-bg: #111110;
-  --d-surface: #191817;
-  --d-surface-2: #221f1d;
-  --d-surface-3: #2b2825;
-  --d-border: #302d29;
-  --d-border-strong: #494440;
+  --d-bg: #23211e;
+  --d-surface: #2e2c28;
+  --d-surface-2: #3b3834;
+  --d-surface-3: #494540;
+  --d-border: #54504a;
+  --d-border-strong: #6e6860;
   --d-text-primary: #f3f1ec;
-  --d-text-secondary: #a9a399;
-  --d-text-muted: #77716a;
+  --d-text-secondary: #c4bdb3;
+  /* 面を明るくしたぶん、 薄い文字も上げないと箱の上で沈む (旧値は箱に対して 1.97) */
+  --d-text-muted: #a8a199;
   --d-accent: #f2704c;
-  --d-accent-soft: #3a211a;
+  /* 強調色の文字が乗るので、 面より一段落とす (#4a2a20 だと 4.38 で下限を割る) */
+  --d-accent-soft: #41241b;
   --d-on-accent: #1c0f09;
-  --d-code-bg: #151413;
+  --d-code-bg: #1f1d1b;
 
   --d-err: #f0806c;
   --d-warn: #e0a94f;
   --d-hint: #6fa8e8;
-  --d-err-soft: #3a1c16;
-  --d-warn-soft: #332711;
-  --d-hint-soft: #16233a;
+  --d-err-soft: #4a2620;
+  --d-warn-soft: #40331a;
+  --d-hint-soft: #22304a;
+
+  /* 面が明るいぶん、 薄めて描かれる枝と縁が沈む (実測 = 0.85 でも紫が 2.94)。
+     暗い側だけ 0.92 に揃える。 明るい側は上の既定 (cdl の値) がそのまま効く。 */
+  --d-tree-edge-opacity: 0.92;
+  --d-mind-edge-opacity: 0.92;
+  --d-mind-radial-edge-opacity: 0.92;
+  --d-journey-chip-opacity: 0.92;
+
+  /* 選んだ範囲の地。 構文の色 (12.5px) が乗るので、 記述欄の地 (`--d-code-bg`) に対する
+     対比が 1 割以上落ちない値にする (`#2a2622` は 10.65% 落ちて条件を満たさなかった)。 */
+  --d-code-selection-bg: #292521;
 
   --d-dg-1: #6fa8e8;
   --d-dg-2: #5fc496;
