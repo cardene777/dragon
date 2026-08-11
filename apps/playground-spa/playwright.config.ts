@@ -38,7 +38,7 @@ import { defineConfig } from "@playwright/test";
  * `Running 6 tests using 2 workers` になり、 両方が同時に始まる)。 `dependencies` で
  * `default` の後に回す。
  *
- * 代償 = `default` が落ちると `timing` は実行されない (Playwright の仕様)。 `default` が赤い時は
+ * 代償 = `default` が落ちると `serial` は実行されない (Playwright の仕様)。 `default` が赤い時は
  * そちらを直すのが先なので受容する。
  */
 
