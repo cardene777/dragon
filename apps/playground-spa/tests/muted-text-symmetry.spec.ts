@@ -97,6 +97,32 @@ async function 薄い文字を集める(page: Page): Promise<対象[]> {
       if (c.visibility === "hidden" || c.display === "none") continue;
       const r = e.getBoundingClientRect();
       if (r.width < 2 || r.height < 2) continue;
+
+      // **切り取られる要素は対象にしない**。 内側に scroll する箱や写しの下端で、
+      // 要素の一部しか描かれないことがある。 字の下半分だけが外に出ると、 残った帯には
+      // 字の画素が 1 つも無く「隠しても変わらない」 になる (実測 = 一覧の 8 件と
+      // `/editor` の `mind` 1 件)。
+      //
+      // 部分的に描かれた要素を測ると、 配色と無関係な理由で落ちたり通ったりする。
+      // **全部描かれている要素だけ** を測り、 それ以外は測れなかった扱いにもしない
+      // (測れないのではなく、 測る対象ではない)。
+      let [l, t2, rr, b] = [r.left, r.top, r.right, r.bottom];
+      for (let n = e.parentElement; n; n = n.parentElement) {
+        const ns = getComputedStyle(n);
+        const 切る = [ns.overflow, ns.overflowX, ns.overflowY].some((v) => v !== "visible");
+        if (!切る) continue;
+        const p = n.getBoundingClientRect();
+        l = Math.max(l, p.left);
+        t2 = Math.max(t2, p.top);
+        rr = Math.min(rr, p.right);
+        b = Math.min(b, p.bottom);
+      }
+      // 写しは文書の大きさで撮るので、 そこからはみ出す分も切り取られる
+      rr = Math.min(rr, document.documentElement.scrollWidth - scrollX);
+      b = Math.min(b, document.documentElement.scrollHeight - scrollY);
+      const 欠け = l - r.left > 0.5 || t2 - r.top > 0.5 || r.right - rr > 0.5 || r.bottom - b > 0.5;
+      if (欠け) continue;
+
       const v = 数値(c.color);
       if (!v) continue;
 
@@ -188,12 +214,19 @@ async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string
   await page.evaluate(() => scrollTo(0, 0));
 }
 
-type 結果 = { 文: string; 比: number; 要: number; px: number; 地: [number, number, number] };
+type 結果 = { 文: string; 比: number; 要: number; px: number; 地: string };
+/** 測れなかった 1 件。 黙って除くと、 読めない文字が 1 件だけ残っても通ってしまう。 */
+type 測れず = { 文: string; px: number; 理由: string };
 
-/** 薄い文字を全部測る。 写しは 1 画面につき 1 枚だけ撮る。 */
-async function 測る(page: Page): Promise<結果[]> {
+/**
+ * 薄い文字を全部測る。 写しは 1 画面につき 2 枚だけ撮る。
+ *
+ * 測れなかった要素は捨てずに返す。 捨てると、 地と同じ色になって消えた 1 件や写しの外に
+ * 出た 1 件があっても、 他の要素で件数条件を満たして通ってしまう。
+ */
+async function 測る(page: Page): Promise<{ 測れた: 結果[]; 測れず: 測れず[] }> {
   const 対象群 = await 薄い文字を集める(page);
-  if (対象群.length === 0) return [];
+  if (対象群.length === 0) return { 測れた: [], 測れず: [] };
 
   // 薄い文字を隠した画面 = 各文字の位置の地。 半透明の重なりも gradient も、
   // 描画側が合成した結果がそのまま画素に出る
@@ -203,6 +236,7 @@ async function 測る(page: Page): Promise<結果[]> {
   const 字画 = PNG.sync.read(await page.screenshot({ fullPage: true }));
 
   const out: 結果[] = [];
+  const 不能: 測れず[] = [];
   for (const t of 対象群) {
     const 範囲 = {
       x: t.box.x * 倍率,
@@ -211,8 +245,17 @@ async function 測る(page: Page): Promise<結果[]> {
       height: t.box.height * 倍率,
     };
     const 芯 = cores(字画, 地画, 範囲);
-    // 隠しても画素が変わらない = 覆われている / 画面の外。 配色の問題ではないので数えない
-    if (芯.kind !== "ok") continue;
+    if (芯.kind !== "ok") {
+      // `invisible` = 隠しても画素が変わらない (地と同じ色になっている / 何かに覆われている)。
+      // `unmeasurable` = 範囲が写しの外 / 芯を特定できない。 どちらも「読めることを確かめられて
+      // いない」 ので、 黙って除かず落とす側に倒す
+      不能.push({
+        文: t.文,
+        px: t.px,
+        理由: 芯.kind === "invisible" ? "隠しても画素が変わらない" : 芯.reason,
+      });
+      continue;
+    }
 
     let 最悪 = Infinity;
     let 最悪地: [number, number, number] = [0, 0, 0];
@@ -222,10 +265,19 @@ async function 測る(page: Page): Promise<結果[]> {
       const r = contrast(fg, bg);
       if (r < 最悪) { 最悪 = r; 最悪地 = bg; }
     }
-    if (!Number.isFinite(最悪)) continue;
-    out.push({ 文: t.文, 比: 最悪, 要: requiredRatio(t.px, t.weight), px: t.px, 地: 最悪地 });
+    if (!Number.isFinite(最悪)) {
+      不能.push({ 文: t.文, px: t.px, 理由: "芯の画素が 0 件" });
+      continue;
+    }
+    out.push({
+      文: t.文,
+      比: 最悪,
+      要: requiredRatio(t.px, t.weight),
+      px: t.px,
+      地: 最悪地.join(","),
+    });
   }
-  return out;
+  return { 測れた: out, 測れず: 不能 };
 }
 
 /**
@@ -250,8 +302,12 @@ for (const 暗い of [false, true]) {
   test(`${名}画面で薄い文字が地の上で読める`, async ({ page }) => {
     for (const { path, 部品 } of 画面) {
       await 開く(page, path, 暗い, 部品);
-      const 件 = await 測る(page);
+      const { 測れた: 件, 測れず } = await 測る(page);
       expect(件.length, `${path} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
+      expect(
+        測れず.map((x: 測れず) => `「${x.文}」 ${x.px}px (${x.理由})`),
+        `${名}画面 ${path} に読めることを確かめられない薄い文字がある`,
+      ).toEqual([]);
       for (const { 文, 比, 要, px, 地 } of 件) {
         expect(
           比,
@@ -268,10 +324,10 @@ test("薄い文字の読みやすさが明暗で揃っている", async ({ page 
   // **地が明暗で違うので色そのものは比べられない**。 地に対する対比で比べる。
   const 代表 = async (暗い: boolean): Promise<number> => {
     await 開く(page, "/catalog/presets", 暗い);
-    const 件 = await 測る(page);
+    const { 測れた: 件 } = await 測る(page);
     expect(件.length, `${暗い ? "暗い" : "明るい"}側で薄い文字を測れていない`).toBeGreaterThan(0);
     // 面の上に乗るものが多数派なので中央値を採る (端の 1 件に引きずられない)
-    const v = 件.map((x) => x.比).sort((a, b) => a - b);
+    const v = 件.map((x: 結果) => x.比).sort((a: number, b: number) => a - b);
     return v[Math.floor(v.length / 2)]!;
   };
   const 明 = await 代表(false);

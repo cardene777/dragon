@@ -1,8 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import {
-  luminance,
-  contrast,
   requiredRatio,
   shoot,
   measure,
