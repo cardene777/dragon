@@ -213,12 +213,18 @@
 /* ─────────────────────────────────────────────────────────────────────────────
  * 枝分かれの図 (tree / mind-map) の枝
  *
- * cdl は枝を 0.55 の薄さで描く。 色は届いていても、 薄めた後に紙と混ざって
- * 対比 2.77 まで落ちる (実測)。 図形が読める下限は 3。
+ * cdl は枝を 0.55-0.7 の薄さで描く。 色は届いていても、 薄めた後に紙と混ざって
+ * 対比 2.3-2.99 まで落ちる (実測)。 図形が読める下限は 3。
+ *
+ * 面を明るくした時 (#1112) に、 放射状の図の枝と道筋の札の縁も同じ理由で沈んだので足した。
  *
  * 色ではなく薄さを上げて直す。 色は `.pen` が決めたものをそのまま使う。
+ *
+ * **役割ごとに変数を分ける**。 cdl の既定が役割で違う (枝 0.55 / 放射の枝 0.7 /
+ * 札の縁 0.6) ため、 1 つの変数で束ねると明るい側の見え方が変わる (review で実測)。
+ * 値の SSOT は `globals.css`。
  * ───────────────────────────────────────────────────────────────────────────── */
-[data-cdl-role="tree-edge"],
-[data-cdl-role="mind-edge"] {
-  stroke-opacity: 0.85 !important;
-}
+[data-cdl-role="tree-edge"] { stroke-opacity: var(--d-tree-edge-opacity) !important; }
+[data-cdl-role="mind-edge"] { stroke-opacity: var(--d-mind-edge-opacity) !important; }
+[data-cdl-role="mind-radial-edge"] { stroke-opacity: var(--d-mind-radial-edge-opacity) !important; }
+[data-cdl-role="journey-chip"] { stroke-opacity: var(--d-journey-chip-opacity) !important; }

@@ -13,7 +13,7 @@
  * 値は `globals.css` の `--d-surface` (明暗それぞれ) と揃える。 図の紙は一覧でも編集画面でも
  * この面の色なので、 ずれると読めなかった時だけ別の紙で書き出される。
  */
-const FALLBACK_DARK = "#191817";
+const FALLBACK_DARK = "#2e2c28";
 const FALLBACK_LIGHT = "#ffffff";
 
 /** 透けている色 (`rgba(...,0)` / `transparent`) か。 */
