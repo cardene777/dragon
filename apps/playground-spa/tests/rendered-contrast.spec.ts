@@ -1,5 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
+import {
+  luminance,
+  contrast,
+  requiredRatio,
+  shoot,
+  measure,
+  type Box,
+  type Measured,
+} from "./helpers/pixel-contrast";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,25 +55,6 @@ const TARGETS = [
   { slug: "cookbook", id: "oauth-flow", expectedLabels: 8, expectedDeclaredPx: [22] },
 ] as const;
 
-/** WCAG 2.x の相対輝度。 */
-function luminance([r, g, b]: [number, number, number]): number {
-  const ch = [r, g, b].map((v) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
-}
-
-function contrast(a: [number, number, number], b: [number, number, number]): number {
-  const [la, lb] = [luminance(a), luminance(b)];
-  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-}
-
-/** WCAG AA の閾値。 large text = 24px 以上 or 太字 18.66px 以上。 */
-const requiredRatio = (px: number, weight: number): number =>
-  px >= 24 || (weight >= 700 && px >= 18.66) ? 3.0 : 4.5;
-
-type Box = { x: number; y: number; width: number; height: number };
 type Label = { key: string; box: Box; px: number; weight: number; text: string; declaredPx: number };
 
 /**
@@ -178,81 +168,6 @@ async function setLabelsHidden(page: Page, id: string, hidden: boolean, index?: 
         (el as SVGElement).style.visibility = h ? "hidden" : "";
       });
   }, [id, hidden, index] as const);
-}
-
-/** 画素を読む。 `clip` の範囲を撮って RGBA の配列で返す。 */
-async function shoot(page: Page, clip: Box): Promise<PNG> {
-  // `floor(x)` と `ceil(width)` を組み合わせると右端 / 下端が欠ける (`x=0.9, w=10.9` で末尾
-  // 0.8px が落ちる)。 端を先に丸めてから幅を出す。
-  const left = Math.floor(clip.x), top = Math.floor(clip.y);
-  const right = Math.ceil(clip.x + clip.width), bottom = Math.ceil(clip.y + clip.height);
-  const buf = await page.screenshot({
-    clip: { x: left, y: top, width: right - left, height: bottom - top },
-  });
-  return PNG.sync.read(buf);
-}
-
-const at = (img: PNG, i: number): [number, number, number] =>
-  [img.data[i], img.data[i + 1], img.data[i + 2]];
-
-type Measured =
-  | { kind: "ok"; fg: [number, number, number]; bg: [number, number, number]; ratio: number }
-  | { kind: "invisible" }
-  | { kind: "unmeasurable"; reason: string };
-
-/**
- * 文字の芯の色と、 その位置の背景色から対比を出す。
- *
- * ## 芯の採り方 = 最も濃く塗られた画素
- *
- * 変化量が最大の画素を採る。 そこが字が最も濃く乗っている場所で、 **指定された文字色に最も
- * 近い**。
- *
- * 「変化量の大きい画素群の中の最悪値」 を採る形は採らない。 見本の label は画面上 6.4-8.5px
- * しかなく、 **ほぼ全ての画素が anti-alias で背景と混ざっている**。 最悪値を採ると混色を
- * 測ることになり、 実測で 12.37:1 の組が 2.81:1 と出た (指定色は同じなのに)。
- *
- * WCAG の対比は指定された色で判定する。 anti-alias は rasterize の副産物で、 配色の問題では
- * ない。 1 つの `<text>` の中で字ごとに色が変わることは無いので、 最も濃い画素 1 つでその
- * label の文字色を代表できる。
- *
- * ただし「最も濃い 1 画素」 だけを見ると「十分な対比の画素が 1 つある」 ことしか言えない。
- * 背景が場所によって違えば (格子 / 模様 / 半透明の重なり)、 別の字は基準を割っているかも
- * しれない。 そこで **芯の候補それぞれを、 その画素の背景と比べて最悪値を採る**。
- *
- * 3 倍で撮っているので芯の候補は実際に字で覆われた画素であり、 最悪値を採っても anti-alias の
- * 混色を拾わない (等倍で同じことをすると 12.37:1 の組が 2.81:1 と出た)。
- *
- * ## 背景が一様でない場合
- *
- * 芯の候補の背景色がばらついていると (gradient / 模様 / 半透明の重なり)、 どの背景と比べる
- * べきかが決まらない。 判定せずに `unmeasurable` を返す = 黙って通さない。
- */
-function measure(visible: PNG, hidden: PNG): Measured {
-  const n = Math.min(visible.data.length, hidden.data.length);
-  const diffs: Array<{ i: number; d: number }> = [];
-  let maxDiff = 0;
-  for (let i = 0; i < n; i += 4) {
-    const d = Math.abs(luminance(at(visible, i)) - luminance(at(hidden, i)));
-    if (d > 0.001) diffs.push({ i, d });
-    if (d > maxDiff) maxDiff = d;
-  }
-  // 1 画素も変わっていなければ文字が見えていない。 対比 1:1 とすると「真っ黒な違反」 になる
-  // ので分ける。
-  if (maxDiff <= 0.001) return { kind: "invisible" };
-
-  const core = diffs.filter((x) => x.d >= maxDiff * 0.97);
-  if (core.length === 0) return { kind: "unmeasurable", reason: "字の芯を特定できない" };
-
-  let worst: Measured | null = null;
-  let worstRatio = Infinity;
-  for (const { i } of core) {
-    const fg = at(visible, i);
-    const bg = at(hidden, i);
-    const r = contrast(fg, bg);
-    if (r < worstRatio) { worstRatio = r; worst = { kind: "ok", fg, bg, ratio: r }; }
-  }
-  return worst ?? { kind: "unmeasurable", reason: "候補なし" };
 }
 
 /** 1 つの label の判定。 変異試験も本番も同じ経路を通す。 */

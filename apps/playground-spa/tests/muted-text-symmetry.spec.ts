@@ -5,18 +5,36 @@
  * なかった。 暗い側は #1112 で `#77716a` から `#a8a199` へ持ち上げてあり 5.46 ある。
  * 同じ役割の文字が明暗で倍近く開いていた。
  *
- * ## 変数の値ではなく描かれた文字を測る
+ * ## 地は画素から読み、 文字は宣言色を使う (review R1-F1、 2 巡)
  *
- * `--d-text-muted` の値だけを見ると「変数は直したが参照側に届いていない」 形を通す。
- * 実際に描かれた要素の色と、 その要素が乗っている地を辿って測る。
+ * 初版は宣言した色をそのまま測り、 `opacity` を重ねた形を見逃した (宣言 5.47 / 実際 3.58)。
+ * 2 版は `opacity` を数えたが、 半透明の地を読み飛ばしてその下の不透明な祖先を地として
+ * 採っていた (白地に `rgba(0,0,0,0.5)` を重ねた上の文字を 5.47 と判定する形が残る)。
  *
- * ## 宣言した色ではなく重ねた後の色で測る
+ * 難しいのは **地** の側で、 半透明の重なり / gradient / 混色 (`color-mix`) / 画像が絡み、
+ * 合成の順序まで含めて再現しないと合わない。 そこは自前で持たず、 **薄い文字を隠した画面を
+ * 撮ってその画素を読む**。 描画側が既に正しく合成している。
  *
- * `opacity` を数えないと、 薄い色の上に更に `opacity` を重ねた形を見逃す。 実測で
- * `/catalog/interactive` の読み取り部品が `--d-text-muted` に `opacity: 0.8` を重ねており、
- * 宣言値では 5.47 なのに実際は 3.58 だった (review 指摘、 本 PR で `opacity` 側を外した)。
+ * **文字の側は画素から採らない**。 anti-alias のせいで、 最も濃い画素でも宣言した色に届かない
+ * (実測 = 11px の等幅で宣言 `#6d6960` に対し芯の画素が `#73706 7`、 対比 5.30 が 4.49 に沈む。
+ * 3 倍で撮っても変わらない)。 WCAG は指定された色で判定するので、 宣言色に `opacity` と
+ * 色自身の alpha を掛けて、 読み取った地に重ねる。
  *
- * 自分と祖先の `opacity` と、 色自身の alpha を地に重ねてから測る。
+ * ## 地は「字が乗っている画素」 だけを見る
+ *
+ * 要素の矩形には字が乗っていない場所も入る。 そこを通る枠線や隣の面まで地として拾うと、
+ * 実際より暗い / 明るい所を見て誤判定する (実測 = 行番号の矩形の worst が `227,224,216` に
+ * なり、 実際の地 `245,244,239` より 2 段暗い所を見ていた)。
+ *
+ * 隠した写しと出した写しの差が大きい画素 = 字が実際に覆った所だけを見る。 1 つの文字が
+ * 格子や半透明の重なりにまたがる場合に備えて、 その中の最悪値を採る。
+ *
+ * ## 1 画面あたり 2 枚で済ませる
+ *
+ * 対象は 1 画面で最大 135 件ある。 1 件ずつ撮ると現実的な時間で終わらないので、
+ * **薄い文字を全部隠して 1 枚、 出して 1 枚** 撮り、 各要素の矩形だけを切り出して読む。
+ *
+ * 薄い文字どうしが重なることは無いので、 まとめて隠しても他の文字が地に混ざらない。
  *
  * ## 測る対象が 0 件なら落とす
  *
@@ -27,47 +45,45 @@
  * 満たしてしまい、 画面固有の薄い文字を 1 件も測れなくても通る (実測 = `/docs` で
  * 取れた 2 件がどちらも帯の中だった)。
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { PNG } from "pngjs";
+import { contrast, cores, requiredRatio, type Box } from "./helpers/pixel-contrast";
 
-/** sRGB → 相対輝度 (WCAG)。 */
-function luminance(rgb: number[]): number {
-  const [r, g, b] = rgb.map((c) => {
-    const s = c / 255;
-    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-}
-
-const 対比 = (a: number[], b: number[]): number => {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((p, q) => q - p);
-  return (hi! + 0.05) / (lo! + 0.05);
-};
+const 倍率 = 2;
+test.use({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 倍率 });
 
 /**
- * その画面で `--d-text-muted` が実際に当たっている文字を集め、 地との対比を返す。
+ * 薄い文字 1 件。
  *
- * 地は透けている親を遡って辿る。 半透明の地は「透けている」 とみなして更に遡る
- * (合成せずに扱うと実際より明るい / 暗い地で測ることになる)。
+ * `box` は頁の左上を原点とする座標 (写しと同じ基準)。
+ * `色` は宣言された rgb、 `実効` は色の alpha と自分 / 祖先の `opacity` を掛けた値。
  */
-async function 薄い文字の対比(page: import("@playwright/test").Page): Promise<
-  { 文: string; 色: number[]; 地: number[]; 実効: number }[]
-> {
+type 対象 = {
+  文: string;
+  box: Box;
+  px: number;
+  weight: number;
+  色: [number, number, number];
+  実効: number;
+};
+
+/** その画面で `--d-text-muted` が実際に当たっている文字を集める。 */
+async function 薄い文字を集める(page: Page): Promise<対象[]> {
   return await page.evaluate(() => {
-    const 数値 = (s: string): number[] | null => {
-      const m = s.match(/[\d.]+/g);
-      return m && m.length >= 3 ? m.slice(0, 3).map(Number) : null;
-    };
     const 薄 = getComputedStyle(document.documentElement).getPropertyValue("--d-text-muted").trim();
     // 変数を解決した実 rgb を得る (hex のままでは computed color と比べられない)
     const probe = document.createElement("span");
     probe.style.color = 薄;
     document.body.appendChild(probe);
-    const 薄rgb = getComputedStyle(probe).color;
+    const 目標 = getComputedStyle(probe).color;
     probe.remove();
-    const 目標 = 数値(薄rgb);
-    if (!目標) return [];
 
-    const out: { 文: string; 色: number[]; 地: number[]; 実効: number }[] = [];
+    const 数値 = (s: string): number[] | null => {
+      const m = s.match(/[\d.]+/g);
+      return m && m.length >= 3 ? m.map(Number) : null;
+    };
+
+    const out: 対象[] = [];
     for (const e of document.querySelectorAll("*")) {
       const 直 = [...e.childNodes]
         .filter((n) => n.nodeType === 3 && n.textContent?.trim())
@@ -77,55 +93,76 @@ async function 薄い文字の対比(page: import("@playwright/test").Page): Pro
       // 全画面に出る上の帯は数に入れない (帯だけで件数条件を満たさないため)
       if (e.closest("header.v4-nav")) continue;
       const c = getComputedStyle(e);
-      const box = e.getBoundingClientRect();
-      if (box.width < 2 || box.height < 2) continue;
-      if (c.visibility === "hidden" || c.display === "none" || Number(c.opacity) < 0.15) continue;
-      const 色 = 数値(c.color);
-      if (!色 || 色.some((v, i) => v !== 目標[i])) continue;
+      if (c.color !== 目標) continue;
+      if (c.visibility === "hidden" || c.display === "none") continue;
+      const r = e.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) continue;
+      const v = 数値(c.color);
+      if (!v) continue;
 
-      let 地: number[] | null = null;
-      let n: Element | null = e;
-      while (n && n !== document.documentElement) {
-        const v = getComputedStyle(n).backgroundColor;
-        const a = v.match(/[\d.]+/g);
-        // 不透明な地だけを採る。 半透明は透けているので更に遡る
-        if (a && (a.length < 4 || Number(a[3]) > 0.9)) {
-          地 = a.slice(0, 3).map(Number);
-          break;
-        }
-        n = n.parentElement;
-      }
-      if (!地) 地 = 数値(getComputedStyle(document.documentElement).backgroundColor);
-      if (!地) continue;
-
-      // **宣言した色のままでは測れない**。 効くものを 3 つとも数えて地に重ねる。
-      //
-      // 1. 色自身の alpha (`rgba(...)`)
-      // 2. 要素と祖先の `opacity` — 薄い色に更に重ねると二重に薄まる
-      // 3. 祖先は `documentElement` 自身も含めて遡る (root に掛けた分を見落とさない)
-      const alpha = (c.color.match(/[\d.]+/g) ?? []).length === 4
-        ? Number((c.color.match(/[\d.]+/g) as string[])[3])
-        : 1;
-      let 実効 = alpha;
+      // 色自身の alpha と、 自分と祖先の `opacity` を掛ける。 祖先は `documentElement`
+      // 自身も含めて遡る (root に掛けた分を見落とさない)
+      let 実効 = v.length === 4 ? v[3]! : 1;
       let a: Element | null = e;
       while (a) {
         実効 *= Number(getComputedStyle(a).opacity || 1);
         if (a === document.documentElement) break;
         a = a.parentElement;
       }
-      const 重ねた = [0, 1, 2].map((i) => 色[i]! * 実効 + 地[i]! * (1 - 実効));
-      out.push({ 文: 直.slice(0, 24), 色: 重ねた, 地, 実効 });
+      out.push({
+        文: 直.slice(0, 24),
+        box: { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height },
+        px: parseFloat(c.fontSize),
+        weight: Number.parseInt(c.fontWeight, 10) || 400,
+        色: [v[0]!, v[1]!, v[2]!],
+        実効,
+      });
     }
     return out;
   });
 }
 
-async function 開く(
-  page: import("@playwright/test").Page,
-  path: string,
-  暗い: boolean,
-  部品?: string,
-): Promise<void> {
+/** 薄い文字を全部隠す / 戻す。 隠した画面が地になる。 */
+async function 隠す(page: Page, 隠すか: boolean): Promise<void> {
+  await page.evaluate((h) => {
+    const 薄 = getComputedStyle(document.documentElement).getPropertyValue("--d-text-muted").trim();
+    const probe = document.createElement("span");
+    probe.style.color = 薄;
+    document.body.appendChild(probe);
+    const 目標 = getComputedStyle(probe).color;
+    probe.remove();
+    for (const e of document.querySelectorAll("*")) {
+      const 直 = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim());
+      if (!直 || e.closest("header.v4-nav")) continue;
+      if (getComputedStyle(e).color !== 目標) continue;
+      (e as HTMLElement).style.visibility = h ? "hidden" : "";
+    }
+  }, 隠すか);
+}
+
+/**
+ * 画面の動きを止める。
+ *
+ * 本検査は 4 並列の中で走り、 その間ずっと動く図を開いたままにする。 他の worker で
+ * 寸法を測る検査が走ると CPU を奪われて標本を取り損ね、 図が壊れていないのに落ちる
+ * (実測 = 本 file を外すと 383 件が安定して通り、 入れると `row-bounds-offset` /
+ * `pattern-validate-process` が回ごとに入れ替わって落ちた)。
+ *
+ * 動いたまま 2 枚撮ると、 隠した写しと出した写しで図そのものが変わってしまう問題もある。
+ *
+ * `animation: none` ではなく `paused` にするのは、 途中の状態を保ったまま止めるため
+ * (`none` は初期状態へ戻すので、 動きの中で色が変わる要素を実際とは違う色で測ることになる)。
+ */
+async function 動きを止める(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `*, *::before, *::after {
+      animation-play-state: paused !important;
+      transition: none !important;
+    }`,
+  });
+}
+
+async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string): Promise<void> {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(path);
   await page.waitForLoadState("networkidle");
@@ -133,44 +170,62 @@ async function 開く(
     document.documentElement.classList.toggle("dark", d);
   }, 暗い);
   await page.waitForTimeout(1200);
-  if (!部品) {
-    await 動きを止める(page);
-    return;
+  if (部品) {
+    // 一覧の中の選択は URL に出ないので押して開く (`CategoryPage` が state で持つ)
+    const 押せた = await page.evaluate((id) => {
+      const 札 = [...document.querySelectorAll(".catalog-list-item")].find((e) =>
+        (e.textContent ?? "").includes(id),
+      );
+      if (!札) return false;
+      (札 as HTMLElement).scrollIntoView({ block: "center" });
+      (札 as HTMLElement).click();
+      return true;
+    }, 部品);
+    expect(押せた, `${path} に ${部品} が見つからない (一覧の中身が変わった)`).toBe(true);
+    await page.waitForTimeout(2000);
   }
-  // 一覧の中の選択は URL に出ないので押して開く (`CategoryPage` が state で持つ)
-  const 押せた = await page.evaluate((id) => {
-    const 札 = [...document.querySelectorAll(".catalog-list-item")].find((e) =>
-      (e.textContent ?? "").includes(id),
-    );
-    if (!札) return false;
-    (札 as HTMLElement).scrollIntoView({ block: "center" });
-    (札 as HTMLElement).click();
-    return true;
-  }, 部品);
-  expect(押せた, `${path} に ${部品} が見つからない (一覧の中身が変わった)`).toBe(true);
-  await page.waitForTimeout(2000);
   await 動きを止める(page);
+  await page.evaluate(() => scrollTo(0, 0));
 }
 
-/**
- * 画面の動きを止める。
- *
- * 本検査は 4 並列の中で 26 秒走り、 その間ずっと動く図を開いたままにする。 他の worker で
- * 寸法を測る検査が走ると CPU を奪われて標本を取り損ね、 図が壊れていないのに落ちる
- * (実測 = 本 file を外すと 383 件が安定して通り、 入れると `row-bounds-offset` /
- * `pattern-validate-process` が回ごとに入れ替わって落ちた)。
- *
- * 測る対象は動かない札の文字なので、 止めても値は変わらない。 `animation: none` ではなく
- * `paused` にするのは、 途中の状態を保ったまま止めるため (`none` は初期状態へ戻すので、
- * 動きの中で色が変わる要素を実際とは違う色で測ることになる)。
- */
-async function 動きを止める(page: import("@playwright/test").Page): Promise<void> {
-  await page.addStyleTag({
-    content: `*, *::before, *::after {
-      animation-play-state: paused !important;
-      transition: none !important;
-    }`,
-  });
+type 結果 = { 文: string; 比: number; 要: number; px: number; 地: [number, number, number] };
+
+/** 薄い文字を全部測る。 写しは 1 画面につき 1 枚だけ撮る。 */
+async function 測る(page: Page): Promise<結果[]> {
+  const 対象群 = await 薄い文字を集める(page);
+  if (対象群.length === 0) return [];
+
+  // 薄い文字を隠した画面 = 各文字の位置の地。 半透明の重なりも gradient も、
+  // 描画側が合成した結果がそのまま画素に出る
+  await 隠す(page, true);
+  const 地画 = PNG.sync.read(await page.screenshot({ fullPage: true }));
+  await 隠す(page, false);
+  const 字画 = PNG.sync.read(await page.screenshot({ fullPage: true }));
+
+  const out: 結果[] = [];
+  for (const t of 対象群) {
+    const 範囲 = {
+      x: t.box.x * 倍率,
+      y: t.box.y * 倍率,
+      width: t.box.width * 倍率,
+      height: t.box.height * 倍率,
+    };
+    const 芯 = cores(字画, 地画, 範囲);
+    // 隠しても画素が変わらない = 覆われている / 画面の外。 配色の問題ではないので数えない
+    if (芯.kind !== "ok") continue;
+
+    let 最悪 = Infinity;
+    let 最悪地: [number, number, number] = [0, 0, 0];
+    for (const { bg } of 芯.画素) {
+      // **文字の色は画素から採らない**。 宣言色を実効の濃さで、 読み取った地に重ねる
+      const fg = bg.map((b, k) => t.色[k]! * t.実効 + b * (1 - t.実効)) as [number, number, number];
+      const r = contrast(fg, bg);
+      if (r < 最悪) { 最悪 = r; 最悪地 = bg; }
+    }
+    if (!Number.isFinite(最悪)) continue;
+    out.push({ 文: t.文, 比: 最悪, 要: requiredRatio(t.px, t.weight), px: t.px, 地: 最悪地 });
+  }
+  return out;
 }
 
 /**
@@ -183,26 +238,25 @@ async function 動きを止める(page: import("@playwright/test").Page): Promis
  * 入れると件数条件を満たせない。
  */
 const 画面 = [
-  { path: "/" }, // 35 件
-  { path: "/catalog/presets" }, // 26 件
-  { path: "/editor" }, // 90 件
-  { path: "/contribute" }, // 5 件
+  { path: "/", 部品: undefined }, // 35 件
+  { path: "/catalog/presets", 部品: undefined }, // 26 件
+  { path: "/editor", 部品: undefined }, // 90 件
+  { path: "/contribute", 部品: undefined }, // 5 件
   { path: "/catalog/interactive", 部品: "interactive-dynamic-readouts" }, // 135 件
 ] as const;
 
 for (const 暗い of [false, true]) {
   const 名 = 暗い ? "暗い" : "明るい";
   test(`${名}画面で薄い文字が地の上で読める`, async ({ page }) => {
-    for (const { path, 部品 } of 画面.map((s) => ({ 部品: undefined, ...s }))) {
+    for (const { path, 部品 } of 画面) {
       await 開く(page, path, 暗い, 部品);
-      const 件 = await 薄い文字の対比(page);
+      const 件 = await 測る(page);
       expect(件.length, `${path} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
-      for (const { 文, 色, 地, 実効 } of 件) {
-        const v = 対比(色, 地);
+      for (const { 文, 比, 要, px, 地 } of 件) {
         expect(
-          v,
-          `${名}画面 ${path} の「${文}」 が地に溶ける (重ねた後 ${色.map(Math.round)} / 地 ${地} / 実効 ${実効.toFixed(2)} / 対比 ${v.toFixed(2)})`,
-        ).toBeGreaterThanOrEqual(4.5);
+          比,
+          `${名}画面 ${path} の「${文}」 が地に溶ける (${px}px / 地 ${地} / 対比 ${比.toFixed(2)} / 要 ${要})`,
+        ).toBeGreaterThanOrEqual(要);
       }
     }
   });
@@ -212,16 +266,16 @@ test("薄い文字の読みやすさが明暗で揃っている", async ({ page 
   // 本 Issue の中身。 片側だけを直しても落ちないと、 同じ非対称がまた作られる。
   //
   // **地が明暗で違うので色そのものは比べられない**。 地に対する対比で比べる。
-  const 測る = async (暗い: boolean): Promise<number> => {
+  const 代表 = async (暗い: boolean): Promise<number> => {
     await 開く(page, "/catalog/presets", 暗い);
-    const 件 = await 薄い文字の対比(page);
+    const 件 = await 測る(page);
     expect(件.length, `${暗い ? "暗い" : "明るい"}側で薄い文字を測れていない`).toBeGreaterThan(0);
     // 面の上に乗るものが多数派なので中央値を採る (端の 1 件に引きずられない)
-    const v = 件.map(({ 色, 地 }) => 対比(色, 地)).sort((a, b) => a - b);
+    const v = 件.map((x) => x.比).sort((a, b) => a - b);
     return v[Math.floor(v.length / 2)]!;
   };
-  const 明 = await 測る(false);
-  const 暗 = await 測る(true);
+  const 明 = await 代表(false);
+  const 暗 = await 代表(true);
   expect(
     Math.abs(明 - 暗),
     `薄い文字の読みやすさが明暗で開いている (明 ${明.toFixed(2)} / 暗 ${暗.toFixed(2)})`,
