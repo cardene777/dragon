@@ -18,7 +18,10 @@
   --d-border-strong: #c7c3b8;
   --d-text-primary: #191714;
   --d-text-secondary: #57534b;
-  --d-text-muted: #8a857a;
+  /* 白地で対比 5.47。 暗い側の #a8a199 (面の上で 5.46) と揃える。
+   * .pen の値は #8a857a (対比 3.67) だが、 暗い側を #1112 で持ち上げた際に
+   * 明るい側が取り残されて同じ役割の文字が明暗で倍近く開いていた。 */
+  --d-text-muted: #6d6960;
   --d-accent: #c8442a;
   --d-accent-soft: #fbeae4;
   --d-on-accent: #ffffff;
