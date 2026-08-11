@@ -82,26 +82,21 @@ async function openDark(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForTimeout(2200);
 }
 
-test("暗い画面で箱が紙から面として分かれる", async ({ page }) => {
-  await openDark(page);
-  const s = await surfaces(page);
-  expect(s.紙, "紙の色を測れていない").not.toBeNull();
-  expect(s.箱, "箱の色を測れていない").not.toBeNull();
-
-  // 8 でようやく段、 12-15 で明確。 以前は 6.1 だった
-  const 段差 = Math.abs(Lstar(s.紙!) - Lstar(s.箱!));
-  expect(段差, `紙 ${s.紙} と箱 ${s.箱} の明るさの差が ${段差.toFixed(1)} (12 以上必要)`).toBeGreaterThanOrEqual(12);
-});
-
-test("暗い画面でラベルの座布団が紙から分かれる", async ({ page }) => {
-  await openDark(page);
-  const s = await surfaces(page);
-  expect(s.座布団, "座布団の色を測れていない").not.toBeNull();
-
-  // 座布団が紙に溶けると、 線の上に浮いた文字だけが見える状態になる
-  const 段差 = Math.abs(Lstar(s.紙!) - Lstar(s.座布団!));
-  expect(段差, `紙 ${s.紙} と座布団 ${s.座布団} の明るさの差が ${段差.toFixed(1)} (12 以上必要)`).toBeGreaterThanOrEqual(12);
-});
+/**
+ * 面の段差 (`L*` の差 12 以上) を測る 2 件は #1110 で外した。
+ *
+ * 12 という値は旧配色 (羊皮紙・銅・琥珀・黒曜石) の面の幅に合わせて決めたもので、
+ * 明暗 2 種に作り直した配色では最大でも 11.8 しか離れない = 満たせない。
+ *
+ * 見た目の判断は `docs/design/app.pen` に一本化した。 user 明示指示
+ * 「いらない・pencil が全て。 デザインに関しては。」 による。
+ *
+ * **代わりの数値を置かない**。 置くとその数値を誰かが決めることになり、 `.pen` に
+ * 一本化した権威が再び分散する。 面が分かれて見えるかは画面で判断する。
+ *
+ * 下の「紙と箱の明るさが離れている」 は配色の良し悪しではなく **上書きが届いているか** を
+ * 見る配線の検査として残す (同じ色なら変数が効いていない)。
+ */
 
 test("暗い画面で箱の中の文字と枠が読める", async ({ page }) => {
   await openDark(page);
@@ -181,30 +176,36 @@ test("書き出す絵の紙が画面の紙と同じ", async ({ page }) => {
   expect(一致!.読んだ, "書き出しが読む色が画面の紙と違う").toBe(一致!.画面);
 });
 
-test("紙の変更が主題 blueprint に限られている", async ({ page }) => {
-  // 他の 5 主題はそれぞれ完成した配色を持ち、 明るい箱を使うものもある (実測 = handdrawn /
-  // pinboard の箱は `#fdf7d9` 前後)。 紙だけ変えると明るい箱が明るい紙に乗って沈む。
-  // 主題は `html` 要素に付く (`useTheme.ts`)。
+test("暗い画面で紙と箱の明るさが離れている", async ({ page }) => {
+  // 元は「紙の変更が主題 blueprint に限られている」 を測っていた。 主題を廃止したので、
+  // その検査が守っていた中身 (箱が紙に沈まないこと) を直接測る形に置き換えた。
+  //
+  // 紙と箱が同じ明るさだと、 見えるのは輪郭線と文字だけになり、 目が図の構造を掴めない。
   await openDark(page);
-  const 結果 = await page.evaluate(() => {
+  const 測定 = await page.evaluate(() => {
     const stage = document.querySelector(".v4-editor-stage");
-    const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
-    const 元 = document.documentElement.getAttribute("data-cdl-theme");
-    const out: { 主題: string; 紙: string | null }[] = [];
-    for (const t of ["blueprint", "neumorphism", "isometric", "circuit", "handdrawn", "pinboard"]) {
-      document.documentElement.setAttribute("data-cdl-theme", t);
-      svg?.setAttribute("data-cdl-theme", t);
-      out.push({ 主題: t, 紙: stage ? getComputedStyle(stage).backgroundColor : null });
-    }
-    if (元) { document.documentElement.setAttribute("data-cdl-theme", 元); svg?.setAttribute("data-cdl-theme", 元); }
-    return out;
+    const box = document.querySelector("svg [data-cdl-role='node-body']");
+    if (!stage || !box) return null;
+    return {
+      紙: getComputedStyle(stage).backgroundColor,
+      箱: getComputedStyle(box).fill,
+    };
   });
-  const blueprint = 結果.find((r) => r.主題 === "blueprint")!;
-  const 他 = 結果.filter((r) => r.主題 !== "blueprint");
-  expect(blueprint.紙, "blueprint の紙が変わっていない").toBe("rgb(58, 47, 34)");
-  for (const r of 他) {
-    expect(r.紙, `${r.主題} の紙まで変えている (${r.紙})`).not.toBe(blueprint.紙);
-  }
+  expect(測定, "紙と箱を測れていない").not.toBeNull();
+
+  const 明るさ = (色: string): number => {
+    const m = /rgba?\(([^)]+)\)/.exec(色);
+    if (!m) return Number.NaN;
+    const [r, g, b] = m[1]!.split(",").map((v) => Number(v.trim()) / 255);
+    const 直線化 = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * 直線化(r!) + 0.7152 * 直線化(g!) + 0.0722 * 直線化(b!);
+  };
+  const 紙 = 明るさ(測定!.紙);
+  const 箱 = 明るさ(測定!.箱);
+  expect(Number.isNaN(紙) || Number.isNaN(箱), "色を読めていない").toBe(false);
+  // 面としての区別が付く最低限。 対比 1.2 は WCAG の閾値ではなく「別の面に見える」 目安。
+  const 対比 = (Math.max(紙, 箱) + 0.05) / (Math.min(紙, 箱) + 0.05);
+  expect(対比, `紙 ${測定!.紙} と箱 ${測定!.箱} が同じ明るさ`).toBeGreaterThan(1.2);
 });
 
 test("補助線が重ねた後の色で読める", async ({ page }) => {

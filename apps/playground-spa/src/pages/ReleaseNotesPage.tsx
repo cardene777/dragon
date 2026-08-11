@@ -16,7 +16,7 @@ export function ReleaseNotesPage(): React.ReactElement {
         <section className="nm-hero">
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <span className="cur">リリースノート</span>
           </nav>
           <span className="nm-eyebrow">RELEASE · v0.5 CURRENT</span>
@@ -60,14 +60,14 @@ export function ReleaseNotesPage(): React.ReactElement {
               <span className="nm-preset-eyebrow">TEXT DSL × SVG ANIMATION</span>
               <h3 className="nm-preset-title">v0.5 (最新)</h3>
               <p className="nm-preset-subtitle">
-                Text DSL parser + 12 プリセット (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 6 テーマ (blueprint / neumorphism / circuit / handdrawn / pinboard / isometric)。
+                Text DSL parser + 12 プリセット (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 明暗 2 通りの表示。
               </p>
             </header>
             <footer className="nm-preset-card-foot">
               <div className="nm-preset-tags">
                 <span className="nm-preset-tag">v0.5</span>
                 <span className="nm-preset-tag">12 プリセット</span>
-                <span className="nm-preset-tag">6 テーマ</span>
+                <span className="nm-preset-tag">明暗 2 表示</span>
               </div>
               <a
                 href="https://github.com/cardene777/dragon/blob/main/CHANGELOG.md"

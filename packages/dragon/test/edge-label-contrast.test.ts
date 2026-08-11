@@ -1,5 +1,5 @@
 /**
- * 主題が **宣言している** edge label の配色を検査する (cardene777/cdl#388)。
+ * 図の中の線に添える札 (edge label) の配色を検査する (cardene777/cdl#388)。
  *
  * cdl 側の軸 27 `contrast-basics` は cdl の既定値どうしの対比しか測れない。 下流は 2 通りの
  * 経路で色を変えられるため、 下流の配色は下流が見る必要がある。
@@ -8,14 +8,23 @@
  *   2. role selector への `fill: ... !important`
  *      (`[data-cdl-role="edge-label"]` / `[data-cdl-role="edge-label-bg"]`)
  *
- * `cdl-theme.css` の 6 主題は **2 の経路** で色を決めている。 変数だけを読むと実際の色と
- * 食い違うので、 role selector の宣言を読む。
+ * `cdl-theme.css` は 2 の経路で色を決めている。 変数だけを読むと実際の色と食い違うので、
+ * role selector の宣言を読む。
+ *
+ * ## 明暗をどう測るか
+ *
+ * `cdl-theme.css` は色を直に書かず `var(--d-*)` で参照する。 明暗の差は `globals.css` が
+ * `:root` と `html.dark` で同じ変数に別の値を置くことで生まれる。
+ *
+ * そこで `globals.css` から明暗 2 通りの変数表を作り、 `cdl-theme.css` の `var()` を
+ * 置き換えてから読む。 変数の連鎖が解けない (定義が無い) 場合は `var()` が残るので、
+ * 範囲外として落ちる = 変数表と実際の参照がずれたら気付ける。
  *
  * ## 何を検査するか = 宣言された配色まで
  *
  * 本 test が答える問いは 1 つだけ。
  *
- *   「各主題が edge label の文字と背景に宣言した色の組は、 宣言した文字の大きさに対して
+ *   「明暗それぞれで、 札の文字と背景に宣言した色の組は、 宣言した文字の大きさに対して
  *    WCAG AA を満たすか」
  *
  * これは **配色の検査** であって、 描画結果の検査ではない。 実際に画面に出る対比は
@@ -31,19 +40,21 @@
  * 合成 DOM は実ページと等価にならないので、 精度を上げても収束しない。 静的解析の
  * 非収束 pattern (`~/.claude/rules/quality.md § 責務境界` に同型の事例)。
  *
- * **責務を分ける**。 描画結果の対比は実ブラウザで測る = #977 (`tests/a11y-check.spec.ts` に配線)。 本 test は配色の宣言だけを見る。 配色が正しくても描画で崩れることはあるが、
- * 配色が誤っていれば描画は必ず崩れるので、 先に潰す価値がある。
+ * **責務を分ける**。 描画結果の対比は実ブラウザで測る = #977 (`tests/a11y-check.spec.ts` に配線)。
+ * 本 test は配色の宣言だけを見る。 配色が正しくても描画で崩れることはあるが、 配色が誤って
+ * いれば描画は必ず崩れるので、 先に潰す価値がある。
  *
  * ## 検査の範囲外を fail closed にする
  *
  * 上の問いに答えられない形で書かれていたら落とす。 黙って既定値に戻すと、 実際は違う色 /
  * 大きさなのに「配色は正しい」 と報告してしまう。
  *
- *   - 主題 × role の標準形以外の selector が label に当たりうる (`svg[...]` / `:hover` /
- *     子孫指定 / host 側の class を伴う祖先)
- *   - `@media` / `@supports` の中で label に当たりうる
- *   - 値に `var()` が入る
- *   - 色が不透明な sRGB に解決できない (`var()` / 半透明) / 大きさが px 以外 / 太さが相対値
+ *   - role の標準形以外の selector が札に当たりうる (`svg[...]` / `:hover` / 子孫指定 /
+ *     host 側の class を伴う祖先)
+ *   - `html.dark` を前置する (明暗は変数側で決める規約。 ここに書くと決める場所が 2 つになる)
+ *   - `@media` / `@supports` の中で札に当たりうる
+ *   - 変数表で解けない `var()` が残る
+ *   - 色が不透明な sRGB に解決できない (半透明) / 大きさが px 以外 / 太さが相対値
  *   - `opacity` / `fill-opacity` / `all` を宣言する (配色だけでは対比が決まらなくなる)
  *   - `!important` が付かない (後勝ちで統合できなくなる。 `cdl-theme.css` は全宣言に付ける規約)
  */
@@ -61,6 +72,80 @@ import {
 const CSS_PATH = fileURLToPath(
   new URL("../../../apps/playground-spa/src/styles/cdl-theme.css", import.meta.url),
 );
+/** 明暗の値を持つ変数表の出どころ。 */
+const GLOBALS_PATH = fileURLToPath(
+  new URL("../../../apps/playground-spa/src/styles/globals.css", import.meta.url),
+);
+
+type Mode = "light" | "dark";
+
+/**
+ * `globals.css` から明暗 2 通りの変数表を作る。
+ *
+ * `:root` が明るい表示の値、 `html.dark` が暗い表示の上書き。 暗い表を作る時は
+ * `:root` を土台にして `html.dark` を重ねる (上書きが無い変数は明るい値のまま効く)。
+ *
+ * 取り出しは中括弧の対応を数えて行う。 正規表現で `{[^}]*}` と書くと、 中に別の規則を
+ * 持つ形 (`@layer` 等) で途中で切れる。
+ */
+function readVarTables(globalsText: string): Record<Mode, Map<string, string>> {
+  const block = (selector: string): string => {
+    const head = new RegExp(`(^|\\})\\s*${selector}\\s*\\{`, "m").exec(globalsText);
+    if (!head) return "";
+    let depth = 1;
+    const start = head.index + head[0].length;
+    for (let i = start; i < globalsText.length; i++) {
+      const c = globalsText[i];
+      if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+        if (depth === 0) return globalsText.slice(start, i);
+      }
+    }
+    return "";
+  };
+  const decls = (text: string): Map<string, string> => {
+    const out = new Map<string, string>();
+    // 値に `;` を含む形 (`font-family` の一覧) があるので、 宣言の切れ目は次の `--name:` で見る。
+    for (const m of text.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+      out.set(m[1]!.trim(), m[2]!.trim());
+    }
+    return out;
+  };
+  const light = decls(block(":root"));
+  const dark = new Map(light);
+  for (const [k, v] of decls(block("html\\.dark"))) dark.set(k, v);
+  return { light, dark };
+}
+
+/**
+ * `var(--x)` / `var(--x, fallback)` を変数表の値で置き換える。
+ *
+ * 値の中がさらに `var()` を含む形 (`--v4-ink: var(--d-text-primary)`) があるので繰り返す。
+ * 表に無い変数は **置き換えない** = `var()` が残り、 呼出側が範囲外として落とす。
+ * 循環参照で止まらなくならないよう上限を置く。
+ */
+function expandVars(cssText: string, table: Map<string, string>): string {
+  let out = cssText;
+  for (let round = 0; round < 12; round++) {
+    let changed = false;
+    out = out.replace(/var\(\s*(--[a-z0-9-]+)\s*(?:,([^()]*))?\)/gi, (whole, name: string, fallback?: string) => {
+      const hit = table.get(name);
+      if (hit !== undefined) {
+        changed = true;
+        return hit;
+      }
+      // 表に無くても代替が書かれていれば、 実ブラウザは代替を使う。
+      if (fallback !== undefined && fallback.trim()) {
+        changed = true;
+        return fallback.trim();
+      }
+      return whole;
+    });
+    if (!changed) break;
+  }
+  return out;
+}
 
 type Rgb = [number, number, number];
 
@@ -121,33 +206,35 @@ function firstFamily(value: string | undefined): string | null {
   return head.replace(/^["']|["']$/g, "") || null;
 }
 
-/** 主題 × role の標準形。 これ以外の selector が label に当たったら検査の範囲外。 */
-const CANONICAL = /^(html\.dark )?\[data-cdl-theme="[a-z0-9-]+"\] \[data-cdl-role="(edge-label|edge-label-bg)"\]$/;
+/**
+ * role の標準形。 これ以外の selector が札に当たったら検査の範囲外。
+ *
+ * `html.dark` の前置きも認めない。 明暗は変数側で決める規約で、 ここに書くと決める場所が
+ * 2 つになる (`cdl-theme.css` 冒頭の規約)。
+ */
+const CANONICAL = /^\[data-cdl-role="(edge-label|edge-label-bg)"\]$/;
 
 /**
- * selector が label の要素に当たるかを `matches()` で判定する。
+ * selector が札の要素に当たるかを `matches()` で判定する。
  *
  * 正規表現で selector を読むと、 引用符の種類 (`'` / `"`) / 属性演算子前後の空白 / 大文字小文字の
  * flag といった正しい書き方を取りこぼす。 判定は DOM に任せる。
  *
- * 主題ごとに probe を作るのは、 `[data-cdl-theme="blueprint"] ...` のような selector が
- * 別主題の probe には当たらないため。
+ * 暗い表示の probe も作るのは、 `html.dark` を前置した selector を「当たる」 と判定して
+ * 標準形の検査に載せるため。 作らないと当たらないまま素通りする。
  */
-function makeRoleProbes(themes: string[]): Element[] {
+function makeRoleProbes(): Element[] {
   const out: Element[] = [];
-  for (const theme of themes) {
-    for (const dark of [false, true]) {
-      const dom = new JSDOM(
-        `<html class="${dark ? "dark" : ""}"><body><svg data-cdl-theme="${theme}">` +
-          `<g data-cdl-edge-label-for="e">` +
-          `<rect data-cdl-role="edge-label-bg"></rect>` +
-          `<text data-cdl-role="edge-label">m</text>` +
-          `<text data-cdl-role="edge-label">s</text>` +
-          `</g></svg></body></html>`,
-      );
-      const doc = dom.window.document;
-      out.push(...Array.from(doc.querySelectorAll("[data-cdl-role]")));
-    }
+  for (const dark of [false, true]) {
+    const dom = new JSDOM(
+      `<html class="${dark ? "dark" : ""}"><body><svg data-cdl-stage="">` +
+        `<g data-cdl-edge-label-for="e">` +
+        `<rect data-cdl-role="edge-label-bg"></rect>` +
+        `<text data-cdl-role="edge-label">m</text>` +
+        `<text data-cdl-role="edge-label">s</text>` +
+        `</g></svg></body></html>`,
+    );
+    out.push(...Array.from(dom.window.document.querySelectorAll("[data-cdl-role]")));
   }
   return out;
 }
@@ -240,13 +327,12 @@ function parseWeight(value: string): number | null {
 }
 
 type Role = "edge-label" | "edge-label-bg";
-type Mode = "light" | "dark";
 type Line = "main" | "sub";
 type Decl = { fill?: string; px?: string; weight?: string; family?: string };
 
 type Collected = {
-  /** `主題:明暗` → role → 宣言。 標準形の selector から集めたもの。 */
-  byTheme: Map<string, Partial<Record<Role, Decl>>>;
+  /** role → 宣言。 標準形の selector から集めたもの。 */
+  byRole: Partial<Record<Role, Decl>>;
   /** 本 test が答えられない形。 1 件でもあれば落とす。 */
   outOfScope: string[];
 };
@@ -257,8 +343,8 @@ type Collected = {
  * CSSOM に解析させるのは、 property 名の正規化 / `font` shorthand の展開 / 無効値の破棄を
  * 実ブラウザと揃えるため。 selector の照合はしない (標準形かどうかを見るだけ)。
  */
-function collect(cssText: string, themes: string[]): Collected {
-  const probes = makeRoleProbes(themes);
+function collect(cssText: string): Collected {
+  const probes = makeRoleProbes();
   /**
    * selector が label のいずれかの要素に当たるか。
    *
@@ -310,7 +396,7 @@ function collect(cssText: string, themes: string[]): Collected {
     return [...new Set([subject, stripState(subject)])].some(matchesAny);
   };
   const dom = new JSDOM(`<style>${cssText}</style>`);
-  const byTheme = new Map<string, Partial<Record<Role, Decl>>>();
+  const byRole: Partial<Record<Role, Decl>> = {};
   const outOfScope: string[] = [];
 
   const walk = (rules: ArrayLike<unknown>, condition: string | null): void => {
@@ -360,11 +446,8 @@ function collect(cssText: string, themes: string[]): Collected {
           outOfScope.push(`${sel} { font: var(...) }`);
         }
 
-        const themeKey = `${/^html\.dark /.test(sel) ? "dark" : "light"}`;
-        const theme = /\[data-cdl-theme="([a-z0-9-]+)"\]/.exec(sel)![1]!;
-        const key = `${theme}:${themeKey}`;
-        const role = m[2] as Role;
-        const prev = byTheme.get(key)?.[role] ?? {};
+        const role = m[1] as Role;
+        const prev = byRole[role] ?? {};
         const next: Decl = { ...prev };
         for (const [prop, field] of [
           ["fill", "fill"],
@@ -382,17 +465,16 @@ function collect(cssText: string, themes: string[]): Collected {
           }
           next[field] = value;
         }
-        byTheme.set(key, { ...(byTheme.get(key) ?? {}), [role]: next });
+        byRole[role] = next;
       }
     }
   };
   walk(dom.window.document.styleSheets[0]!.cssRules, null);
-  return { byTheme, outOfScope: [...new Set(outOfScope)] };
+  return { byRole, outOfScope: [...new Set(outOfScope)] };
 }
 
 type Sample = {
   key: string;
-  theme: string;
   mode: Mode;
   line: Line;
   fg: Rgb | null;
@@ -403,55 +485,71 @@ type Sample = {
   family: string | null;
 };
 
-/** 主題 × 明暗 × 行 について、 宣言された配色を解決する。 */
-function resolve(collected: Collected, themes: string[]): Sample[] {
+/** 明暗 × 行 について、 宣言された配色を解決する。 */
+function resolve(byMode: Record<Mode, Collected>): Sample[] {
   const out: Sample[] = [];
-  for (const theme of themes) {
-    const light = collected.byTheme.get(`${theme}:light`) ?? {};
-    const dark = collected.byTheme.get(`${theme}:dark`);
-    for (const mode of ["light", "dark"] as Mode[]) {
-      // 暗色専用の宣言が無ければ明色の宣言がそのまま効く。 entry を作らないと暗色を検査しない。
-      const layer = {
-        "edge-label": { ...light["edge-label"], ...(mode === "dark" ? dark?.["edge-label"] : {}) },
-        "edge-label-bg": { ...light["edge-label-bg"], ...(mode === "dark" ? dark?.["edge-label-bg"] : {}) },
-      };
-      for (const line of ["main", "sub"] as Line[]) {
-        const def = RENDERER_DEFAULT[line];
-        const fgRaw = layer["edge-label"].fill;
-        const bgRaw = layer["edge-label-bg"].fill;
-        const pxRaw = layer["edge-label"].px;
-        const weightRaw = layer["edge-label"].weight;
-        out.push({
-          key: `${theme}:${mode}:${line}`,
-          theme, mode, line,
-          fg: fgRaw === undefined ? null : parseColor(fgRaw) ?? parseHex(fgRaw) ?? parseNamed(fgRaw),
-          bg: bgRaw === undefined ? null : parseColor(bgRaw) ?? parseHex(bgRaw) ?? parseNamed(bgRaw),
-          px: pxRaw === undefined ? def.px : parsePx(pxRaw),
-          weight: weightRaw === undefined ? def.weight : parseWeight(weightRaw),
-          // 主題が宣言しなければ renderer が指定する family に落ちる。 main 行は renderer も
-          // 指定しない (host からの継承) ため null になり、 face の検査対象から外れる。
-          family: firstFamily(layer["edge-label"].family) ?? def.family,
-        });
-      }
+  for (const mode of ["light", "dark"] as Mode[]) {
+    const layer = byMode[mode].byRole;
+    for (const line of ["main", "sub"] as Line[]) {
+      const def = RENDERER_DEFAULT[line];
+      const fgRaw = layer["edge-label"]?.fill;
+      const bgRaw = layer["edge-label-bg"]?.fill;
+      const pxRaw = layer["edge-label"]?.px;
+      const weightRaw = layer["edge-label"]?.weight;
+      out.push({
+        key: `${mode}:${line}`,
+        mode, line,
+        fg: fgRaw === undefined ? null : parseColor(fgRaw) ?? parseHex(fgRaw) ?? parseNamed(fgRaw),
+        bg: bgRaw === undefined ? null : parseColor(bgRaw) ?? parseHex(bgRaw) ?? parseNamed(bgRaw),
+        px: pxRaw === undefined ? def.px : parsePx(pxRaw),
+        weight: weightRaw === undefined ? def.weight : parseWeight(weightRaw),
+        // CSS が宣言しなければ renderer が指定する family に落ちる。 main 行は renderer も
+        // 指定しない (host からの継承) ため null になり、 face の検査対象から外れる。
+        family: firstFamily(layer["edge-label"]?.family) ?? def.family,
+      });
     }
   }
   return out;
 }
 
 const css = readFileSync(CSS_PATH, "utf8");
-/** CSS に現れる主題名。 手で並べず CSS から取る。 */
-const THEMES = [...new Set([...css.matchAll(/\[data-cdl-theme="([a-z0-9-]+)"\]/g)].map((m) => m[1]!))].sort();
-const collected = collect(css, THEMES);
-const resolved = resolve(collected, THEMES);
+const VARS = readVarTables(readFileSync(GLOBALS_PATH, "utf8"));
 
-describe("主題が宣言した edge label の配色 (cdl#388)", () => {
-  it("CSS から 6 主題を取り出す", () => {
-    expect(THEMES).toEqual(["blueprint", "circuit", "handdrawn", "isometric", "neumorphism", "pinboard"]);
+/** 変数を明暗それぞれの値に置き換えた CSS。 検査はこれを読む。 */
+const expanded: Record<Mode, string> = {
+  light: expandVars(css, VARS.light),
+  dark: expandVars(css, VARS.dark),
+};
+const collectedByMode: Record<Mode, Collected> = {
+  light: collect(expanded.light),
+  dark: collect(expanded.dark),
+};
+const collected: Collected = {
+  byRole: collectedByMode.light.byRole,
+  outOfScope: [...new Set([...collectedByMode.light.outOfScope, ...collectedByMode.dark.outOfScope])],
+};
+const resolved = resolve(collectedByMode);
+
+describe("札の配色 (cdl#388)", () => {
+  it("明暗の変数表を取り出す", () => {
+    // 表が空だと全ての `var()` が解けず、 範囲外の検査だけが落ちて原因が見えなくなる。
+    expect(VARS.light.get("--d-text-primary")).toBe("#191714");
+    expect(VARS.dark.get("--d-text-primary")).toBe("#f3f1ec");
+    // 暗い表は明るい表を土台にする = 上書きの無い変数は明るい値のまま効く。
+    expect(VARS.dark.get("--d-r-1")).toBe(VARS.light.get("--d-r-1"));
   });
 
-  it("6 主題 × 明暗 × 2 行 = 24 組を解決する", () => {
+  it("明暗で違う色に解決される", () => {
+    // 同じ宣言から 2 通りの色が出ることが、 明暗 2 表示の前提。
+    const light = resolved.find((r) => r.key === "light:main")!;
+    const dark = resolved.find((r) => r.key === "dark:main")!;
+    expect(light.fg).not.toEqual(dark.fg);
+    expect(light.bg).not.toEqual(dark.bg);
+  });
+
+  it("明暗 × 2 行 = 4 組を解決する", () => {
     expect(resolved.map((r) => r.key).sort()).toEqual(
-      THEMES.flatMap((t) => ["light", "dark"].flatMap((m) => ["main", "sub"].map((l) => `${t}:${m}:${l}`))).sort(),
+      ["dark:main", "dark:sub", "light:main", "light:sub"],
     );
   });
 
@@ -494,11 +592,11 @@ describe("主題が宣言した edge label の配色 (cdl#388)", () => {
 });
 
 describe("CSSOM が値を実ブラウザと同じに解決する (cdl#388)", () => {
-  const T = "neumorphism";
-  const sel = `[data-cdl-theme="${T}"] [data-cdl-role="edge-label"]`;
+  const sel = `[data-cdl-role="edge-label"]`;
   const probe = (decls: string, line: Line = "main") => {
-    const injected = `${css}\n${sel} { ${decls} }`;
-    return resolve(collect(injected, [T]), [T]).find((r) => r.key === `${T}:light:${line}`)!;
+    const injected = `${expanded.light}\n${sel} { ${decls} }`;
+    const one = collect(injected);
+    return resolve({ light: one, dark: one }).find((r) => r.key === `light:${line}`)!;
   };
 
   it("property 名の大文字小文字と colon 前の空白を吸収する", () => {
@@ -516,8 +614,10 @@ describe("CSSOM が値を実ブラウザと同じに解決する (cdl#388)", () 
   });
 
   it("無効な値は宣言が無かったものとして扱う (ブラウザと同じ)", () => {
-    expect(probe("font-size: 24.0.0px !important;").px).toBe(22);
-    expect(probe("font-weight: 1001 !important;").weight).toBe(700);
+    // 期待値は CSS の宣言そのものを読む。 書き写すと配色を変えた時にここだけ古くなる。
+    const declared = resolve(collectedByMode).find((r) => r.key === "light:main")!;
+    expect(probe("font-size: 24.0.0px !important;").px).toBe(declared.px);
+    expect(probe("font-weight: 1001 !important;").weight).toBe(declared.weight);
   });
 
   it("keyword の font-weight を数値に直す", () => {
@@ -540,31 +640,29 @@ describe("CSSOM が値を実ブラウザと同じに解決する (cdl#388)", () 
   });
 
   it("宣言が無ければ renderer の既定値を使う", () => {
-    // 既定は cdl の SSOT (`EDGE_LABEL_TEXT`) から来る。 主題が宣言しない項目はここに落ちる。
+    // 既定は cdl の SSOT (`EDGE_LABEL_TEXT`)。 CSS が宣言しない項目はここに落ちる。
     expect(probe("").px).toBe(EDGE_LABEL_TEXT.main.fontSize);
     expect(probe("", "sub").px).toBe(EDGE_LABEL_TEXT.sub.fontSize);
-    // 太さは neumorphism が 700 を宣言しているので、 両行ともそちらが効く。
-    expect(probe("", "sub").weight).toBe(700);
-    // 宣言しない主題では既定に戻る。
-    const noWeight = resolve(collect(css, THEMES), ["handdrawn"]).find((r) => r.key === "handdrawn:light:sub")!;
-    expect(noWeight.weight).toBe(EDGE_LABEL_TEXT.sub.fontWeight);
+    // 大きさは CSS が宣言しないので、 両行とも renderer の値がそのまま出る。
+    const bare = collect("[data-cdl-role='edge-label'] { fill: #000000 !important; }");
+    const sample = resolve({ light: bare, dark: bare }).find((r) => r.key === "light:sub")!;
+    expect(sample.weight).toBe(EDGE_LABEL_TEXT.sub.fontWeight);
   });
 
   it("engine の既定だけで 2 行とも large text になる", () => {
-    // 主題が太さを宣言しなくても閾値が 3:1 で済む = 主題側の配色の自由度がここで決まる。
-    // engine が sub を通常文字に戻すと、 この test と 24 組の判定が同時に動く。
+    // CSS が太さを宣言しなくても閾値が 3:1 で済む = 配色側の自由度がここで決まる。
+    // engine が sub を通常文字に戻すと、 この test と 4 組の判定が同時に動く。
     expect(requiredRatio(EDGE_LABEL_TEXT.main.fontSize, EDGE_LABEL_TEXT.main.fontWeight)).toBe(WCAG_AA_LARGE);
     expect(requiredRatio(EDGE_LABEL_TEXT.sub.fontSize, EDGE_LABEL_TEXT.sub.fontWeight)).toBe(WCAG_AA_LARGE);
   });
 });
 
 describe("検査の範囲外を検知する (cdl#388)", () => {
-  const T = "neumorphism";
-  const sel = `[data-cdl-theme="${T}"] [data-cdl-role="edge-label"]`;
-  const found = (rule: string) => collect(`${css}\n${rule}`, THEMES).outOfScope;
+  const sel = `[data-cdl-role="edge-label"]`;
+  const found = (rule: string) => collect(`${expanded.light}\n${rule}`).outOfScope;
 
   it("標準形でない selector を検知する", () => {
-    expect(found(`svg[data-cdl-theme="${T}"] [data-cdl-role="edge-label"] { font-size: 11px !important; }`).length).toBeGreaterThan(0);
+    expect(found(`svg[data-cdl-stage] [data-cdl-role="edge-label"] { font-size: 11px !important; }`).length).toBeGreaterThan(0);
     expect(found(`[data-cdl-role="edge-label"]:hover { fill: #cccccc !important; }`).length).toBeGreaterThan(0);
     expect(found(`[data-cdl-edge-label-for] > [data-cdl-role="edge-label"] { fill: #cccccc !important; }`).length).toBeGreaterThan(0);
   });
@@ -574,9 +672,15 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
     expect(found(`@supports (fill: red) { ${sel} { font-size: 11px !important; } }`).length).toBeGreaterThan(0);
   });
 
-  it("var() を検知する", () => {
-    expect(found(`${sel} { fill: var(--x, #ccc) !important; }`).length).toBeGreaterThan(0);
+  it("解けない var() を検知する", () => {
+    // 代替を持たない `var()` は変数表で解けないのでそのまま残り、 範囲外になる。
+    expect(found(`${sel} { fill: var(--not-defined) !important; }`).length).toBeGreaterThan(0);
     expect(found(`${sel} { font: var(--f) !important; }`).length).toBeGreaterThan(0);
+  });
+
+  it("html.dark の前置きを検知する", () => {
+    // 明暗は変数側で決める規約。 ここに書くと決める場所が 2 つになる。
+    expect(found(`html.dark ${sel} { fill: #cccccc !important; }`).length).toBeGreaterThan(0);
   });
 
   it("!important が無い宣言を検知する", () => {
@@ -586,9 +690,8 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
 
   it("小数の font-weight は範囲内として扱う", () => {
     // CSS Fonts Level 4 の絶対値は 1..1000 の数値で、 小数も有効。
-    const r = resolve(collect(`${css}\n${sel} { font-weight: 650.5 !important; }`, [T]), [T])
-      .find((x) => x.key === `${T}:light:main`)!;
-    expect(r.weight).toBe(650.5);
+    const one = collect(`${expanded.light}\n${sel} { font-weight: 650.5 !important; }`);
+    expect(resolve({ light: one, dark: one }).find((x) => x.key === "light:main")!.weight).toBe(650.5);
   });
 
   it("opacity / fill-opacity / all を検知する", () => {
@@ -633,7 +736,9 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
 
   it("名前付きの色を解決する", () => {
     const fgOf = (decl: string) =>
-      resolve(collect(`${css}\n${sel} { ${decl} }`, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
+      ((one) => resolve({ light: one, dark: one }).find((x) => x.key === "light:main")!.fg)(
+        collect(`${expanded.light}\n${sel} { ${decl} }`),
+      );
     expect(fgOf("fill: black !important;")).toEqual([0, 0, 0]);
     expect(fgOf("fill: rebeccapurple !important;")).toEqual([102, 51, 153]);
   });
@@ -642,7 +747,9 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
     // CSSOM が値を保持する形 (keyword / 文脈依存 / `none`)。 一度描かせると既定の黒に
     // 解決されるので、 そのまま読むと「対比十分」 と誤報告する。
     const fgOf = (decl: string) =>
-      resolve(collect(`${css}\n${sel} { ${decl} }`, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
+      ((one) => resolve({ light: one, dark: one }).find((x) => x.key === "light:main")!.fg)(
+        collect(`${expanded.light}\n${sel} { ${decl} }`),
+      );
     for (const v of [
       "currentColor", "inherit", "unset", "none", "transparent",
       // system color = 環境しだいで変わる。 jsdom が返す固定値で判定してはいけない。
@@ -659,11 +766,13 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
     //
     // 期待値は主題の宣言そのもの。 CSS から読んで突き合わせる (色を変えた時に 2 箇所を直す
     // 必要が出ないように = 実際 #977 で `#a66a3d` → `#865631` に変えた時にここが落ちた)。
-    const themeFg = resolve(collect(css, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
+    const declaredFg = resolve(collectedByMode).find((x) => x.key === "light:main")!.fg;
     const fgOf = (decl: string) =>
-      resolve(collect(`${css}\n${sel} { ${decl} }`, [T]), [T]).find((x) => x.key === `${T}:light:main`)!.fg;
-    expect(themeFg, "主題が色を宣言している").not.toBeNull();
-    expect(fgOf("fill: zzznotacolor !important;")).toEqual(themeFg);
+      ((one) => resolve({ light: one, dark: one }).find((x) => x.key === "light:main")!.fg)(
+        collect(`${expanded.light}\n${sel} { ${decl} }`),
+      );
+    expect(declaredFg, "CSS が色を宣言している").not.toBeNull();
+    expect(fgOf("fill: zzznotacolor !important;")).toEqual(declaredFg);
   });
 
   it("引用符の種類や空白が違っても検知する", () => {
@@ -746,9 +855,9 @@ describe("描く太さの face を読み込んでいる (cdl#391)", () => {
     expect([...m.get("Kalam")!]).toEqual([400]);
   });
 
-  it("label を描く太さの face を全主題ぶん読み込んでいる", () => {
+  it("札を描く太さの face を明暗ぶん読み込んでいる", () => {
     const have = loaded();
-    const samples = resolve(collect(css, THEMES), THEMES);
+    const samples = resolve(collectedByMode);
     const missing: string[] = [];
     let checked = 0;
     for (const s of samples) {
@@ -762,17 +871,16 @@ describe("描く太さの face を読み込んでいる (cdl#391)", () => {
       if (!weights.has(s.weight)) missing.push(`${s.key} = ${s.family} の ${s.weight}`);
     }
     expect(missing).toEqual([]);
-    // 件数も固定する。 主題側の宣言が消えると検査対象が減り、 空でも通る状態になる。
-    // sub 行 12 組 (6 主題 × 明暗) は renderer が family を指定するので必ず対象に入り、
-    // 加えて main 行に family を宣言する 4 主題 × 明暗 = 8 組が乗る。
-    expect(checked).toBe(20);
+    // 件数も固定する。 CSS 側の宣言が消えると検査対象が減り、 空でも通る状態になる。
+    // 明暗 × 2 行 = 4 組。 CSS が `font-family` を宣言するので 4 組とも対象に入る。
+    expect(checked).toBe(4);
   });
 
 
   it("engine の既定の太さも読み込んでいる (family を宣言する主題)", () => {
     // 主題が太さを宣言しない場合、 engine の既定 (main / sub とも 700) で描かれる。
     const have = loaded();
-    const samples = resolve(collect(css, THEMES), THEMES);
+    const samples = resolve(collectedByMode);
     const families = new Set(samples.map((s) => s.family).filter((f): f is string => f !== null));
     const missing: string[] = [];
     for (const family of families) {

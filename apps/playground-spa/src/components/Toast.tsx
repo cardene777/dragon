@@ -48,41 +48,30 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
           <Toast.Root
             key={item.id}
             className={cn(
-              "grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-[var(--color-surface)] p-4 shadow-2xl",
+              "toast-root",
+              item.type === "error" && "is-error",
+              item.type === "info" && "is-info",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=open]:slide-in-from-right-full",
             )}
             onOpenChange={(open) => {
               if (!open) setItems((prev) => prev.filter((x) => x.id !== item.id));
             }}
           >
-            <div
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-white",
-                item.type === "success" && "bg-emerald-500",
-                item.type === "error" && "bg-red-500",
-                item.type === "info" && "bg-[var(--color-accent)]",
-              )}
-            >
-              {item.type === "success" && <Check size={16} />}
-              {item.type === "error" && <AlertCircle size={16} />}
-              {item.type === "info" && <Info size={16} />}
+            <div className="toast-icon">
+              {item.type === "success" && <Check size={18} />}
+              {item.type === "error" && <AlertCircle size={18} />}
+              {item.type === "info" && <Info size={18} />}
             </div>
-            <div>
-              <Toast.Title className="text-[13px] font-semibold text-[var(--color-ink)]">
-                {item.title}
-              </Toast.Title>
+            <div className="toast-text">
+              <Toast.Title className="toast-title">{item.title}</Toast.Title>
               {item.description && (
-                <Toast.Description className="mt-0.5 text-[12px] text-[var(--color-ink-dim)]">
+                <Toast.Description className="toast-sub">
                   {item.description}
                 </Toast.Description>
               )}
             </div>
             <Toast.Close asChild>
-              <button
-                type="button"
-                className="rounded-full p-1 text-[var(--color-ink-mute)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]"
-                aria-label={closeLabel}
-              >
+              <button type="button" className="toast-close" aria-label={closeLabel}>
                 <X size={14} />
               </button>
             </Toast.Close>

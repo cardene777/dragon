@@ -3891,7 +3891,7 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
   .node("gitStatusNode", { lane: "git", stack: 0, kind: "card", title: "git status", subtitle: "履歴の状態を見る" })
   .node("pnpmNode", { lane: "dev", stack: 0, kind: "card", title: "pnpm test", subtitle: "検査を回す" })
   .node("dockerNode", { lane: "dev", stack: 1, kind: "card", title: "docker ps", subtitle: "動いている入れ物を見る" })
-  .readout.terminal("tm", { source: "cmds", max: 10, color: "#22c55e", label: "Session (CLI window)" })
+  .readout.terminal("tm", { source: "cmds", max: 10, color: "var(--d-dg-2)", label: "Session (CLI window)" })
   .phase("p1", {
     duration: 1800,
     title: "打ち始め",

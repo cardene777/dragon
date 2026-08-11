@@ -36,7 +36,8 @@ const 幅一覧 = [375, 390] as const;
 
 test("広い画面のカードの並びは変わらない", async ({ page }) => {
   // 下限を `min()` で頭打ちにした時に、 広い画面の列数や幅が動いていないかを見る。
-  // 変更前に測った値 = 1280px でカード 598px が 3 枚 / 2 行
+  // 実測値 = 1280px でカード 339px が 3 枚 / 1 行。
+  // 作り直しの前は 598px の 2 行だった (#1110 で 3 枚が 1 行に収まる幅になった)。
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/contribute");
   await page.waitForLoadState("networkidle");
@@ -50,8 +51,8 @@ test("広い画面のカードの並びは変わらない", async ({ page }) => 
     };
   });
   expect(m.枚数, "カードが無い (検査が空振りしている)").toBe(3);
-  expect(m.幅, "カードの幅が動いた").toEqual([598]);
-  expect(m.行数, "1 行あたりの枚数が動いた").toBe(2);
+  expect(m.幅, "カードの幅が動いた").toEqual([339]);
+  expect(m.行数, "1 行あたりの枚数が動いた").toBe(1);
 });
 
 for (const 幅 of 幅一覧) {

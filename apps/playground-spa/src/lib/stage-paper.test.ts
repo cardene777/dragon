@@ -7,6 +7,8 @@
  * 変えた時にこちらだけ古くなり、書き出した絵の紙だけが別の色になる。
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { stagePaperColor } from "./stage-paper";
 
 /** 背景色を持つ要素を作って body に置く。 */
@@ -46,15 +48,25 @@ describe("図面の紙の色 (#1060)", () => {
 
   it("要素が無い時は画面の明暗に応じた既定に落ちる", () => {
     // 書き出しを止めるより、 近い色で出す方が良い
-    expect(stagePaperColor(null)).toBe("#f0e8d4");
+    expect(stagePaperColor(null)).toBe("#ffffff");
     document.documentElement.classList.add("dark");
-    expect(stagePaperColor(null)).toBe("#3a2f22");
+    expect(stagePaperColor(null)).toBe("#191817");
   });
 
-  it("既定の暗い色が画面の紙と揃っている", () => {
+  it("既定の色が画面の紙と揃っている", () => {
     // ここが CSS とずれると、 読めなかった時だけ別の色で書き出される。
-    // `editor.css` の `html.dark[data-cdl-theme="blueprint"] .v4-editor-stage` と同じ値
+    // 値は `globals.css` の `--d-surface` から読んで突き合わせる = 書き写すと片方だけ古くなる。
+    // `import.meta.url` は jsdom 環境で file 形式にならないので、 作業 dir から辿る。
+    const css = readFileSync(
+      resolve(process.cwd(), "apps/playground-spa/src/styles/globals.css"),
+      "utf8",
+    );
+    const surfaceIn = (block: string): string => {
+      const scope = new RegExp(`${block}\\s*\\{[\\s\\S]*?--d-surface:\\s*([^;]+);`).exec(css);
+      return scope![1]!.trim().toLowerCase();
+    };
+    expect(stagePaperColor(null), "明るい紙と既定がずれている").toBe(surfaceIn(":root"));
     document.documentElement.classList.add("dark");
-    expect(stagePaperColor(null), "CSS の紙と既定がずれている").toBe("#3a2f22");
+    expect(stagePaperColor(null), "暗い紙と既定がずれている").toBe(surfaceIn("html\\.dark"));
   });
 });

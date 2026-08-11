@@ -16,7 +16,7 @@ async function setup(page: Page) {
   mkdirSync(OUT_DIR, { recursive: true });
   page.on("dialog", (d) => { void d.accept(); });
   await page.goto("/editor", { waitUntil: "networkidle" });
-  await page.waitForSelector(".v4-editor-preview svg[data-cdl-theme]", { timeout: 10000 });
+  await page.waitForSelector(".v4-editor-preview svg[data-cdl-stage]", { timeout: 10000 });
   await page.waitForTimeout(600);
 }
 
@@ -29,7 +29,7 @@ async function addParts(page: Page, partId: string): Promise<void> {
 
 async function getAllPartsRects(page: Page): Promise<Array<{ id: string; alias: string; x: number; right: number; y: number; bottom: number }>> {
   return await page.evaluate(() => {
-    const svg = document.querySelector(".v4-editor-preview svg[data-cdl-theme]");
+    const svg = document.querySelector(".v4-editor-preview svg[data-cdl-stage]");
     if (!svg) return [];
     return Array.from(svg.querySelectorAll('[data-cdl-node]'))
       .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"))

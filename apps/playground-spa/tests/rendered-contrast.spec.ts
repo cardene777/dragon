@@ -1,12 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
  *
- * `packages/dragon/test/theme-label-contrast.test.ts` (cardene777/cdl#388) は **宣言された配色**
+ * `packages/dragon/test/edge-label-contrast.test.ts` (cardene777/cdl#388) は **宣言された配色**
  * を見る。 実際に画面に出る対比は半透明の重なり / 祖先の `opacity` / host 側の背景 / `@media` /
  * 状態依存 selector に依存し、 それらは実ブラウザでしか決まらない。
  *
@@ -29,8 +30,6 @@ import { fileURLToPath } from "node:url";
 
 const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4323";
 
-/** `cdl-theme.css` が定義する主題。 */
-const THEMES = ["blueprint", "circuit", "handdrawn", "isometric", "neumorphism", "pinboard"] as const;
 const MODES = ["light", "dark"] as const;
 
 /**
@@ -46,15 +45,6 @@ const TARGETS = [
   { slug: "patterns", id: "pattern-passthrough", expectedLabels: 2, expectedDeclaredPx: [22, 19] },
   { slug: "cookbook", id: "oauth-flow", expectedLabels: 8, expectedDeclaredPx: [22] },
 ] as const;
-
-/**
- * 暗色の宣言を持たない主題。 明暗で同じ結果になるのが正しい。
- *
- * `cdl-theme.css` の `html.dark [data-cdl-theme="<name>"]` の数を数えた実測
- * (blueprint 23 / neumorphism 21 / isometric 6 / circuit 0 / handdrawn 0 / pinboard 0)。
- * 宣言が増えたらこの一覧も動かす。
- */
-const NO_DARK_VARIANT = new Set(["circuit", "handdrawn", "pinboard"]);
 
 /** WCAG 2.x の相対輝度。 */
 function luminance([r, g, b]: [number, number, number]): number {
@@ -78,39 +68,31 @@ type Box = { x: number; y: number; width: number; height: number };
 type Label = { key: string; box: Box; px: number; weight: number; text: string; declaredPx: number };
 
 /**
- * 主題と明暗を当てた状態で見本を開く。
+ * 明暗を当てた状態で見本を開く。
  *
- * 主題は **属性を直接立てる**。 `?theme=` の query は現状 app 側で反映されず (`useTheme` は
- * どこからも import されていない)、 `<html>` も `<svg>` も既定の `blueprint` のままになる。
- * `cdl-theme.css` の selector は `[data-cdl-theme="x"] [data-cdl-role="edge-label"]` の形なので、
- * 属性さえ立てば主題の配色は実際に当たる。
+ * 明暗は `<html>` の class で決まる。 図の色は `cdl-theme.css` が `var(--d-*)` で参照し、
+ * その変数を `globals.css` が `html.dark` で差し替えるので、 class を切り替えるだけで
+ * 図まで追随する。
  *
- * app の UI 経路に依存させないのは、 本 test が見たいのが「主題の配色が実際に描かれた時の
- * 対比」 であって、 主題を選ぶ UI ではないため。
+ * app の切替 UI を経由しないのは、 本 test が見たいのが「配色が実際に描かれた時の対比」
+ * であって、 切替の操作ではないため。
  */
-async function open(page: Page, target: { slug: string; id: string }, theme: string, mode: string): Promise<void> {
+async function open(page: Page, target: { slug: string; id: string }, mode: string): Promise<void> {
   await page.goto(`${BASE}/catalog/${target.slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 20000 });
   await page.locator(".catalog-list-item").filter({ hasText: target.id }).first().click();
   await page.waitForSelector(`[data-cdl-diagram="${target.id}"]`, { timeout: 20000 });
-  await page.evaluate(([t, m]) => {
+  await page.evaluate((m) => {
     document.documentElement.classList.toggle("dark", m === "dark");
-    document.documentElement.setAttribute("data-cdl-theme", t);
-    document.querySelectorAll("[data-cdl-diagram] svg").forEach((el) => {
-      el.setAttribute("data-cdl-theme", t);
-    });
-  }, [theme, mode] as const);
-  // 当たっていないと 12 通りが全て同じ画面になる。
+  }, mode);
+  // 当たっていないと明暗 2 通りが同じ画面になる。
   await page.waitForFunction(
-    (t) => {
-      const svg = document.querySelector("[data-cdl-diagram] svg");
-      return svg?.getAttribute("data-cdl-theme") === t;
-    },
-    theme,
+    (m) => document.documentElement.classList.contains("dark") === (m === "dark"),
+    mode,
     { timeout: 20000 },
   );
   await page.evaluate(() => document.fonts.ready);
-  // 主題の切替に transition が掛かるので落ち着くまで待つ。
+  // 明暗の切替に transition が掛かるので落ち着くまで待つ。
   await page.waitForTimeout(600);
 }
 
@@ -298,18 +280,186 @@ function judge(label: Label, m: Measured): string | null {
  */
 test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 3 });
 
+/**
+ * 宣言の値から **明暗で変わらない固定の色** だけを取り出す。
+ *
+ * 判定も切り出しもブラウザに任せる。 こちらで数え上げるものを 4 度減らした。
+ *
+ *   1. 色の名前の一覧 (`tomato` / `rebeccapurple` …) → `CSS.supports` に聞く
+ *   2. 色関数の種類 (`rgb` / `hsl` / `lab` / `color()` …) → 同上
+ *   3. 色を書ける property の一覧 (`border-left` が漏れた) → 全ての宣言を見る
+ *   4. 環境で変わる名前の一覧 (`background` が漏れた) → 明暗を切り替えて動くかで見る
+ *
+ * 値は **空白で割らない**。 割ると `rgb(255 0 0)` が 3 つに散り、 色として渡らない
+ * (review で実測)。 括弧の対応を数えて関数を 1 つの塊のまま取り出す。
+ *
+ * 残さないもの。
+ *
+ *   - 色として解決しない語 (`solid` / `1px` / `600` 等)。 `CSS.supports` が弾く
+ *     (`style.color` への代入だと `600` が 16 進数として通る、 実測)
+ *   - `var()` / `color-mix()` の塊 (明暗で変わる)。 **中には降りない** =
+ *     降りると `color-mix(in srgb, red 40%, var(--d-bg))` の `red` を拾う
+ *   - `url(...)` の中身 (画像の場所であって色ではない)
+ *   - 明暗の設定で値が動く語 (system color 等)。 環境依存なので固定色ではない
+ *   - 黒 (影に使う。 明暗に依らないので固定でよい)
+ *   - 文脈で決まる語 (`transparent` / `currentColor` / `inherit` 等)
+ */
+async function 固定色を取り出す(page: Page, 宣言: string[]): Promise<string[]> {
+  if (宣言.length === 0) return [];
+
+  return await page.evaluate((vs) => {
+    /**
+     * 値を token に割る。 **関数の中にも降りる**。
+     *
+     * 降りないと `linear-gradient(red, var(--d-bg))` の `red` を見逃す。 降りるので
+     * `var()` / `color-mix()` / `url()` だけは名指しで捨て、 中を見ない。
+     *
+     * 引用符の中は跨がない = `url("a,)b")` の `)` で切ると内側を誤って拾う。
+     */
+    const 割る = (値: string): string[] => {
+      const out: string[] = [];
+      let i = 0;
+      const 語を足す = (t: string): void => {
+        const 語 = t.trim();
+        if (語) out.push(語);
+      };
+      while (i < 値.length) {
+        const c = 値[i]!;
+        if (/[\s,;]/.test(c)) {
+          i++;
+          continue;
+        }
+        if (c === '"' || c === "'") {
+          // 文字列は丸ごと飛ばす (色ではない)
+          const 閉じ = 値.indexOf(c, i + 1);
+          i = 閉じ === -1 ? 値.length : 閉じ + 1;
+          continue;
+        }
+        const m = /^([a-z-]+)\(/i.exec(値.slice(i));
+        if (m) {
+          // 括弧の対応を数えて関数の範囲を取る。 引用符の中の括弧は数えない
+          let 深さ = 0;
+          let j = i + m[0].length - 1;
+          let 引用: string | null = null;
+          for (; j < 値.length; j++) {
+            const d = 値[j]!;
+            if (引用) {
+              if (d === 引用) 引用 = null;
+              continue;
+            }
+            if (d === '"' || d === "'")引用 = d;
+            else if (d === "(") 深さ++;
+            else if (d === ")") {
+              深さ--;
+              if (深さ === 0) {
+                j++;
+                break;
+              }
+            }
+          }
+          const 塊 = 値.slice(i, j);
+          const 名 = m[1]!.toLowerCase();
+          if (名 === "var" || 名 === "url") {
+            // 明暗で変わる / 画像の場所。 中には降りない
+          } else if (名 === "color-mix") {
+            // **中に `var()` があるかで分ける**。 無ければ固定色なので塊のまま拾う
+            // (`color-mix(in srgb, red, blue)` は明暗で変わらない)。 あれば明暗で
+            // 変わるので捨てる。 どちらの場合も中には降りない = 降りると
+            // `color-mix(in srgb, red 40%, var(--d-bg))` の `red` を拾う
+            if (!/\bvar\(/i.test(塊)) 語を足す(塊);
+          } else if (/^(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)$/.test(名)) {
+            語を足す(塊); // 色関数そのもの
+          } else if (
+            // **色を引数に取る関数だけ中を走査する**。 任意の関数に降りると
+            // `counter(blue)` / `attr(green)` の名前を色として拾う (review 指摘)。
+            /^(linear-gradient|radial-gradient|conic-gradient|repeating-linear-gradient|repeating-radial-gradient|repeating-conic-gradient|drop-shadow|cross-fade|image-set|light-dark)$/.test(
+              名,
+            )
+          ) {
+            割る(塊.slice(m[0].length, -1)).forEach(語を足す);
+          }
+          i = j;
+          continue;
+        }
+        let j = i;
+        while (j < 値.length && !/[\s,;]/.test(値[j]!) && 値[j] !== "(") j++;
+        語を足す(値.slice(i, j));
+        i = j === i ? i + 1 : j;
+      }
+      return out;
+    };
+
+    /**
+     * 色を RGBA に正規化する。
+     *
+     * **文字列で比べない**。 `lab()` / `oklch()` / `color()` は解決後も関数の形を保つため、
+     * `rgb(...)` だけを見ると新しい色空間の固定色を取りこぼす (review で指摘)。
+     * Canvas に 1 画素描けば、 どの色空間で書かれていても同じ RGBA になる。
+     */
+    const cv = document.createElement("canvas");
+    cv.width = 1;
+    cv.height = 1;
+    const ctx = cv.getContext("2d")!;
+    const 正規化 = (v: string): [number, number, number] | null => {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = "#000";
+      const 前 = ctx.fillStyle;
+      ctx.fillStyle = v;
+      if (ctx.fillStyle === 前 && !/^#0{3,8}$/i.test(v.trim())) {
+        // 受理されなければ既定値のまま = 色ではない
+        if (!CSS.supports("color", v)) return null;
+      }
+      ctx.fillRect(0, 0, 1, 1);
+      const d = ctx.getImageData(0, 0, 1, 1).data;
+      return [d[0]!, d[1]!, d[2]!];
+    };
+
+    /** 明暗 2 通りで解決させ、 値が動く語 (環境依存) を見分ける。 */
+    const 測る = (scheme: string, ws: string[]): Record<string, string> => {
+      const e = document.createElement("span");
+      e.style.colorScheme = scheme;
+      document.body.appendChild(e);
+      const out: Record<string, string> = {};
+      for (const w of ws) {
+        e.style.color = "";
+        e.style.color = w;
+        out[w] = getComputedStyle(e).color;
+      }
+      e.remove();
+      return out;
+    };
+
+    const 候補 = [...new Set(vs.flatMap((v) => 割る(v)))]
+      .map((w) => w.replace(/%23/g, "#"))
+      .filter((w) => !/^(transparent|currentcolor|inherit|initial|unset|revert|none)$/i.test(w))
+      .filter((w) => CSS.supports("color", w));
+
+    const 明 = 測る("light", 候補);
+    const 暗 = 測る("dark", 候補);
+
+    const out: string[] = [];
+    for (const 語 of 候補) {
+      if (暗[語] !== 明[語]) continue; // 環境依存なので固定色ではない
+      const rgb = 正規化(語);
+      if (!rgb) continue;
+      if (rgb[0] === 0 && rgb[1] === 0 && rgb[2] === 0) continue; // 黒は影に使うので許す
+      out.push(語);
+    }
+    return out;
+  }, 宣言);
+}
+
 test.describe("edge label の描画対比 (#977)", () => {
   test.describe.configure({ timeout: 120000 });
 
-  for (const theme of THEMES) {
-    for (const mode of MODES) {
-      test(`${theme} / ${mode} の edge label が WCAG AA を満たす`, async ({ page }) => {
+  for (const mode of MODES) {
+      test(`${mode} の edge label が WCAG AA を満たす`, async ({ page }) => {
         const failures: string[] = [];
         let measured = 0;
         let worst = Infinity;
 
         for (const target of TARGETS) {
-          await open(page, target, theme, mode);
+          await open(page, target, mode);
           const labels = await collectLabels(page, target.id);
           // **target ごとに** 件数を固定する。 合計だけだと、 `pattern-passthrough` の sub が
           // 消えて `oauth-flow` が 1 件増える形で合計が変わらず、 sub 行の検査を失う。
@@ -339,25 +489,76 @@ test.describe("edge label の描画対比 (#977)", () => {
         // (測れない 3 経路 = 画面が動いた / 文字が背景と同じ / 芯を特定できない、 のどれも
         // `failures.push` を通る)。 件数を先に照合すると「9 対 10」 だけが出て、 なぜ 1 件
         // 落ちたのかが失敗の文面から消える (#1072 の調査で 2 回とも理由が読めなかった)。
-        expect(failures, `${theme}/${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
+        expect(failures, `${mode} 最小の対比 ${worst.toFixed(2)}:1`).toEqual([]);
         // 1 件も測れていなければ、 0 件の failures は「満たした」 ことを意味しない。
-        expect(measured, `${theme}/${mode} で実際に測れた label 数`).toBe(
+        expect(measured, `${mode} で実際に測れた label 数`).toBe(
           TARGETS.reduce((n, t) => n + t.expectedLabels, 0),
         );
       });
-    }
   }
 
-  test("暗色の宣言を持たない主題の一覧が実際と合っている", () => {
-    // 一覧がずれると、 暗色を持つ主題を「持たない」 として飛ばして検査しなくなる。
-    // `cdl-theme.css` を読んで数える。
-    const css = readFileSync(
-      fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)), "utf8",
-    );
-    const actual = THEMES.filter(
-      (t) => !new RegExp(`html\\.dark \\[data-cdl-theme="${t}"\\]`).test(css),
-    );
-    expect([...actual].sort()).toEqual([...NO_DARK_VARIANT].sort());
+  test("図の配色が明暗を 1 箇所でしか決めていない", async ({ page }) => {
+    // 元は「暗色の宣言を持たない主題の一覧」 を照合していた。 主題を廃止したので、
+    // その一覧が守っていた前提 (どこで暗色が決まるか) を直接測る形に置き換えた。
+    //
+    // 図の色は変数の差し替えだけで明暗が決まる。 `cdl-theme.css` に `html.dark` を書くと
+    // 決める場所が 2 つになり、 変数を変えても図だけ古い色のまま残る。
+    // **図に色を当てる CSS を機械的に集める**。 一覧を手で書くと、 3 つ目の file が
+    // 増えた時に漏れる (実測 = `cdl-theme.css` だけ見ていた間、 図の中の操作盤を描く
+    // `catalog-widgets.css` に `html.dark` が 160 行残っていた)。
+    //
+    // 目印は「図の部品に色を当てる selector を持つこと」。 `data-cdl-role` (図の部品) と
+    // `.cdl-ip-` (図の中の操作盤) のどちらかを書いている file が対象。
+    const styles = fileURLToPath(new URL("../src/styles", import.meta.url));
+    // 説明文を先に落としてから目印を探す。 落とさないと「かつて `.cdl-ip-` を使っていた」 と
+    // 書いただけの file を拾う (実測 = `catalog-new.css` が説明文だけで対象に入った)。
+    //
+    // 併せて **目印を持つ規則に色の指定があること** も条件にする。 目印を持つが色を当てない
+    // file (`display: none` だけを書く等) は配色の file ではない。
+    const 対象 = readdirSync(styles)
+      .filter((f) => f.endsWith(".css"))
+      .filter((f) => {
+        const 規則 = readFileSync(join(styles, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+        if (!規則.includes("data-cdl-role") && !規則.includes(".cdl-ip-")) return false;
+        // 目印を含む規則の塊を取り出し、 その中に色の指定があるかを見る
+        return [...規則.matchAll(/([^{}]*)\{([^{}]*)\}/g)].some(
+          ([, sel, body]) =>
+            (sel.includes("data-cdl-role") || sel.includes(".cdl-ip-")) &&
+            /(^|[;\s])(color|background|background-color|fill|stroke|border-color)\s*:/.test(body),
+        );
+      })
+      .sort();
+
+    // 見つからない = 目印を変えたか、 集め方が壊れている。 空で通ると検査が空振りする。
+    expect(対象.length, "図に色を当てる CSS が 1 件も見つからない").toBeGreaterThan(0);
+
+    const 違反: string[] = [];
+    for (const 名 of 対象) {
+      const css = readFileSync(join(styles, 名), "utf8");
+      // 説明文に書くのは構わない (規約そのものを書いてある)。 見るのは規則の側だけ。
+      const 規則だけ = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      const n = (規則だけ.match(/html\.dark/g) ?? []).length;
+      if (n > 0) 違反.push(`${名} に html.dark が ${n} 件`);
+
+      // 色を直に書くと明暗が追随しない。 埋め込み画像の中の色 (`%23`) も同じ。
+      //
+      // **色かどうかの判定はブラウザに任せる**。 自分で色関数と名前を数え上げると
+      // 「また別の書き方が漏れている」 が繰り返し出て収束しない (review 2 巡連続で
+      // `hsl()` の黒 / `tomato` / `rebeccapurple` を指摘された)。
+      //
+      // 値を実際に解決させれば、 色関数の種類も名前の一覧も知らなくてよい。
+      // **property を選ばない**。 一覧を持つと漏れる (実測 = `border-left` が抜けていた)。
+      // 全ての宣言の値を渡し、 色かどうかはブラウザに判定させる。
+      const 宣言 = [...規則だけ.matchAll(/(?:^|[;{])\s*[a-z-]+\s*:\s*([^;{}]*)/gi)].map(
+        ([, 値]) => 値,
+      );
+      const 直書き = await 固定色を取り出す(page, 宣言);
+      if (直書き.length > 0) {
+        違反.push(`${名} に色の直書きが ${直書き.length} 件 (例 ${直書き.slice(0, 3).join(" / ")})`);
+      }
+      if (!/var\(--d-/.test(規則だけ)) 違反.push(`${名} が変数を参照していない`);
+    }
+    expect(違反, "図の配色が明暗を 2 箇所以上で決めている").toEqual([]);
   });
 
   test("judge の境界と種別 (単体)", () => {
@@ -387,9 +588,9 @@ test.describe("edge label の描画対比 (#977)", () => {
     // つまり `declared * scaleY` を `declared` に戻す変異を、 この色でだけ検知できる。
     // 一括で対比を落とす変異 (下の test) は 3:1 も割るので、 両者を区別しない。
     const target = TARGETS[0];
-    await open(page, target, "neumorphism", "light");
+    await open(page, target, "light");
     await page.addStyleTag({
-      content: `html body [data-cdl-theme] [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
+      content: `html body [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
     });
     await page.waitForTimeout(300);
 
@@ -411,7 +612,7 @@ test.describe("edge label の描画対比 (#977)", () => {
   test("対比を落とすと検知する (変異試験)", async ({ page }) => {
     // 本 test の存在理由。 実際に閾値を割る配色を当てて、 検知できることを確かめる。
     const target = TARGETS[0];
-    await open(page, target, "blueprint", "light");
+    await open(page, target, "light");
     const labels = await collectLabels(page, target.id);
     expect(labels.length).toBeGreaterThan(0);
 
@@ -420,7 +621,7 @@ test.describe("edge label の描画対比 (#977)", () => {
     // 主題の CSS も `!important` を使うので、 **主題より詳細度の高い selector** で当てる
     // (`[data-cdl-role="edge-label"]` だけだと主題側が勝って何も変わらない)。
     await page.addStyleTag({
-      content: `html body [data-cdl-theme] [data-cdl-role="edge-label"] { fill: #e8e8e8 !important; }`,
+      content: `html body [data-cdl-role="edge-label"] { fill: #e8e8e8 !important; }`,
     });
     await page.waitForTimeout(300);
 

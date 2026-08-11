@@ -31,7 +31,6 @@ const IDS = [
 ];
 
 /** 青系 = 色相 190-280 度。 */
-const isBlue = (h: number): boolean => h >= 190 && h <= 280;
 
 /** 実効色を HSV に直して色相を返す。 彩度が低い色 (灰) は色相を持たない。 */
 const huesOf = (page: Page, id: string) =>
@@ -39,7 +38,7 @@ const huesOf = (page: Page, id: string) =>
     const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
     if (!root) return null;
     const out: Array<{ hue: number; color: string }> = [];
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline"))) {
+    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon"))) {
       // `<defs>` の marker は定義であって描画ではない。 含めると「実際には出ていない色」 で
       // 前提が成立してしまう (codex review Round 1 の指摘)。
       if (el.closest("defs")) continue;
@@ -143,10 +142,12 @@ const contrastsOf = (page: Page, id: string) =>
       "journey-band": ["fill"],
       "journey-line-glow": ["stroke"],
       "journey-chip": ["fill"],
+      // 放射状の図の中心に敷く光の輪。 不透明度 0.18 で意図して淡く、 読ませる要素ではない。
+      "mind-radial-halo": ["fill"],
     };
 
     const out: Array<{ tag: string; role: string; prop: string; color: string; bg: string; c: number }> = [];
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, text, ellipse"))) {
+    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon, text, ellipse"))) {
       if (el.closest("defs")) continue;
       const cs = getComputedStyle(el);
       const role = el.getAttribute("data-cdl-role") ?? "";
@@ -242,24 +243,26 @@ async function open(page: Page, id: string): Promise<void> {
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
 }
 
-test.describe("dark の図の tone (#383)", () => {
-  test("明色では青系が出ている (前提)", async ({ page }) => {
-    // 出ていなければ dark の 0 件は「暖色にしたから消えた」 ではなく「元から色が無い」 になる。
-    await open(page, "chart-line-demo");
-    const light = await huesOf(page, "chart-line-demo");
-    expect(light, "図が描かれていない").not.toBeNull();
-    expect(light!.filter((x) => isBlue(x.hue)).length, "明色で青系が 1 件も無い").toBeGreaterThan(0);
-  });
+/**
+ * 明暗で同じ値でよい色。
+ *
+ * 紙に依らない中間色がここに入る。 一覧に載っていない色が明暗の両方に現れたら、
+ * 上書きが届いていないとみなす。 **増やす時は理由を書く** = 安易に足すと検査が空洞化する。
+ */
+const 明暗で共有してよい色 = new Set<string>([
+  // 現状は該当なし。 図の色はすべて変数から取るため明暗で入れ替わる。
+]);
 
+test.describe("dark の図の tone (#383)", () => {
   /**
-   * `TONE_HEX` (焼き付けの hex) を使う kind は CSS 変数が効かない。 描画用途を `TONE`
-   * (CSS 変数版) に切り替えたので、 これらでも青系が消えることを見る。
+   * 暗い画面で色が入れ替わること。
    *
-   * chart-line だけを見ていた間は pie / funnel / gantt / journey に青系が残り、 4 図に広げた後も
-   * `toneRgba()` 経由の quadrant と裸 hex の tree に残っていた (codex review Round 1 / Round 2)。
+   * かつては「青系が残っていないこと」 で見ていた。 当時の配色は暖色一色で、 青が出るのは
+   * 上書きが効いていない証拠になったため (#383)。 配色を明暗 2 種に作り直した今は青も紫も
+   * 正規の色なので、 色相ではなく **明暗で値が変わること** を直接見る。
    */
   for (const id of IDS) {
-    test(`${id} に青系が残らない`, async ({ page }) => {
+    test(`${id} の色が明暗で入れ替わる`, async ({ page }) => {
       await open(page, id);
       const light = await huesOf(page, id);
       expect(light, `${id} が描かれていない`).not.toBeNull();
@@ -268,7 +271,22 @@ test.describe("dark の図の tone (#383)", () => {
       await page.evaluate(() => document.documentElement.classList.add("dark"));
       await page.waitForTimeout(600);
       const dark = await huesOf(page, id);
-      expect(dark!.filter((x) => isBlue(x.hue)).map((x) => x.color), `${id} の dark に青系`).toEqual([]);
+      expect(dark!.length, `${id} の dark に色が 1 件も無い`).toBeGreaterThan(0);
+      // **明側の色が 1 つも残らないことを求める**。 「1 色でも変われば」 や「1 つ以上
+      // 入れ替われば」 にすると、 6 色のうち 5 色が明色のまま残っても通る (review 指摘 2 回)。
+      //
+      // 明暗で同じ値でよい色は下の一覧に明示する。 一覧に無い明側の色が暗い画面にも
+      // 現れていたら、 その色は上書きが届いていない。
+      const 明 = new Set(light!.map((x) => x.color));
+      const 暗 = new Set(dark!.map((x) => x.color));
+
+      const 残った = [...暗].filter((c) => 明.has(c) && !明暗で共有してよい色.has(c));
+      expect(残った, `${id} の暗い画面に明側の色が残っている`).toEqual([]);
+
+      // 上書きが届いた証拠として、 暗側にしか無い色があることも見る
+      // (全色が共有一覧に載っていると上の検査が空振りするため)。
+      const 暗だけ = [...暗].filter((c) => !明.has(c));
+      expect(暗だけ.length, `${id} の暗側に新しい色が出ていない`).toBeGreaterThan(0);
     });
   }
 

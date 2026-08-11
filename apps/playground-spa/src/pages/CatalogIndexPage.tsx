@@ -36,7 +36,7 @@ export function CatalogIndexPage(): React.ReactElement {
         <div className="catalog-hero">
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <span className="cur">カタログ</span>
           </nav>
           <h1 className="catalog-title">カタログ</h1>
@@ -47,7 +47,7 @@ export function CatalogIndexPage(): React.ReactElement {
         </div>
 
         <div className="catalog-index-grid">
-          {CATEGORIES.map((c) => {
+          {CATEGORIES.map((c, i) => {
             const jaLabel = CATEGORY_JA_LABEL[c.slug] ?? c.label;
             // parts は dynamic import で空 placeholder、 index page では estimate 表示
             const itemCount =
@@ -56,11 +56,17 @@ export function CatalogIndexPage(): React.ReactElement {
                 : CATALOG_ITEMS[c.slug]?.length ?? 0;
             return (
               <Link key={c.slug} to={`/catalog/${c.slug}`} className="catalog-index-card">
-                <div className="catalog-index-card-head">
+                <div className="catalog-index-card-top">
+                  <div className="catalog-index-card-head">
+                    {/* 連番は分類の並び順そのもの。 目で追う手がかりとして先頭に置く */}
+                    <span className="catalog-index-card-no">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="catalog-index-card-count">{itemCount} 件</span>
+                  </div>
                   <h2 className="catalog-index-card-title">{jaLabel}</h2>
-                  <span className="catalog-index-card-count">{itemCount} 件</span>
+                  <p className="catalog-index-card-desc">{c.desc}</p>
                 </div>
-                <p className="catalog-index-card-desc">{c.desc}</p>
                 <div className="catalog-index-card-foot">
                   <span className="catalog-index-card-link">開く →</span>
                 </div>

@@ -82,80 +82,49 @@ import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
-// v4 syntax highlight (light) ... yaml key warm-brown, string olive-green, number orange, comment muted
-const v4HighlightLight = HighlightStyle.define([
-  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#8a5a2a", fontWeight: "500" },
-  { tag: [t.string, t.special(t.string)], color: "#6a8a3a" },
-  { tag: [t.number, t.integer, t.float], color: "#c2410c" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#8a8678", fontStyle: "italic" },
-  { tag: [t.operator, t.punctuation, t.separator], color: "#6d5a3a" },
-  { tag: [t.invalid], color: "#c15a4a" },
-]);
+// 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
+// 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 エディタの割り当てに合わせる。
+const CODE_TAG_COLORS = [
+  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "var(--d-dg-1)", fontWeight: "500" },
+  { tag: [t.string, t.special(t.string)], color: "var(--d-dg-2)" },
+  { tag: [t.number, t.integer, t.float], color: "var(--d-dg-2)" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--d-text-muted)", fontStyle: "italic" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "var(--d-text-muted)" },
+  { tag: [t.invalid], color: "var(--d-err)" },
+];
 
-// v4 syntax highlight (dark) ... gold-glow / mint / amber-glow (龍鱗ゴールド warm palette)
-const v4HighlightDark = HighlightStyle.define([
-  { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "#f0b840", fontWeight: "500" },
-  { tag: [t.string, t.special(t.string)], color: "#93e0a1" },
-  { tag: [t.number, t.integer, t.float], color: "#ff8c42" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#a08870", fontStyle: "italic" },
-  { tag: [t.operator, t.punctuation, t.separator], color: "#c0a880" },
-  { tag: [t.invalid], color: "#e8807d" },
-]);
+const v4HighlightLight = HighlightStyle.define(CODE_TAG_COLORS);
+const v4HighlightDark = HighlightStyle.define(CODE_TAG_COLORS);
 
-// dragon DSL は YAML 互換、 yaml mode を流用 + v4 palette で theme override
-const v4EditorThemeLight = EditorView.theme(
-  {
-    "&": {
-      backgroundColor: "#fcf8ee",
-      color: "#1a1410",
-      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-      fontSize: "13px",
-      height: "100%",
-    },
-    ".cm-content": { padding: "18px 14px", caretColor: "#8a5a2a" },
-    ".cm-cursor": { borderLeftColor: "#8a5a2a" },
-    ".cm-line": { padding: "0 4px" },
-    ".cm-gutters": {
-      backgroundColor: "#fcf8ee",
-      color: "#8a8678",
-      border: "none",
-      borderRight: "1px solid #e0d9c8",
-      fontFamily: "'JetBrains Mono', monospace",
-    },
-    ".cm-activeLineGutter": { backgroundColor: "rgba(184,134,42,0.06)", color: "#8a5a2a" },
-    ".cm-activeLine": { backgroundColor: "rgba(184,134,42,0.04)" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(184,134,42,0.18) !important" },
-    "&.cm-focused": { outline: "none" },
+// 明暗で同じ指定を使う。 中の色はすべて変数なので、 html.dark が付いた時点で追随する。
+// dark 版を残すのは CodeMirror が明暗の別を内部の判定に使うためで、 見た目の差は変数側が持つ。
+const CODE_THEME_RULES = {
+  "&": {
+    backgroundColor: "var(--d-code-bg)",
+    color: "var(--d-text-primary)",
+    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+    fontSize: "12.5px",
+    height: "100%",
   },
-  { dark: false }
-);
-
-const v4EditorThemeDark = EditorView.theme(
-  {
-    "&": {
-      backgroundColor: "#1a1408",
-      color: "#f0e0b8",
-      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-      fontSize: "13px",
-      height: "100%",
-    },
-    ".cm-content": { padding: "18px 14px", caretColor: "#f0b840" },
-    ".cm-cursor": { borderLeftColor: "#f0b840" },
-    ".cm-line": { padding: "0 4px" },
-    ".cm-gutters": {
-      backgroundColor: "#1a1408",
-      color: "#a08870",
-      border: "none",
-      borderRight: "1px solid #3d322a",
-      fontFamily: "'JetBrains Mono', monospace",
-    },
-    ".cm-activeLineGutter": { backgroundColor: "rgba(240,184,64,0.1)", color: "#f0b840" },
-    ".cm-activeLine": { backgroundColor: "rgba(240,184,64,0.06)" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(240,184,64,0.25) !important" },
-    "&.cm-focused": { outline: "none" },
+  ".cm-content": { padding: "18px 14px", caretColor: "var(--d-accent)" },
+  ".cm-cursor": { borderLeftColor: "var(--d-accent)" },
+  ".cm-line": { padding: "0 4px" },
+  ".cm-gutters": {
+    backgroundColor: "var(--d-code-bg)",
+    color: "var(--d-text-muted)",
+    border: "none",
+    borderRight: "1px solid var(--d-border)",
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: "10.5px",
   },
-  { dark: true }
-);
+  ".cm-activeLineGutter": { backgroundColor: "var(--d-accent-soft)", color: "var(--d-accent)" },
+  ".cm-activeLine": { backgroundColor: "var(--d-accent-soft)" },
+  ".cm-selectionBackground, ::selection": { backgroundColor: "var(--d-surface-3) !important" },
+  "&.cm-focused": { outline: "none" },
+};
+
+const v4EditorThemeLight = EditorView.theme(CODE_THEME_RULES, { dark: false });
+const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
 
 /**
  * Visual Editor v1.1
@@ -2030,9 +1999,9 @@ animation:
                 style={{
                   padding: "8px 12px",
                   marginTop: "8px",
-                  borderRadius: "6px",
-                  background: "var(--v4-brand-soft, #f8ecd8)",
-                  color: "var(--v4-brand-deep, #8a5a2a)",
+                  borderRadius: "var(--d-r-1)",
+                  background: "var(--d-accent-soft)",
+                  color: "var(--d-accent)",
                   fontSize: "12px",
                   lineHeight: 1.5,
                 }}

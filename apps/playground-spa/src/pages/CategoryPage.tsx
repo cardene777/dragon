@@ -35,8 +35,8 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
       aria-label={copied ? "コピー完了" : "コードをコピー"}
       className="catalog-source-copy"
     >
-      {copied ? <Check size={14} /> : <Copy size={14} />}
-      <span>{copied ? "コピーしました" : "コピー"}</span>
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+      <span>{copied ? "コピーしました" : "コードをコピー"}</span>
     </button>
   );
 }
@@ -56,8 +56,9 @@ function SourceTabs({ item }: { item: CatalogItem }): React.ReactElement | null 
           className={`catalog-source-tab ${tab === "yaml" ? "is-active" : ""}`}
           onClick={() => setTab("yaml")}
           disabled={!item.sourceYaml}
+          title="YAML (人向け)"
         >
-          YAML (人向け)
+          yaml
         </button>
         <button
           role="tab"
@@ -66,8 +67,9 @@ function SourceTabs({ item }: { item: CatalogItem }): React.ReactElement | null 
           className={`catalog-source-tab ${tab === "json" ? "is-active" : ""}`}
           onClick={() => setTab("json")}
           disabled={!item.sourceJson}
+          title="JSON (LLM 向け)"
         >
-          JSON (LLM 向け)
+          json
         </button>
         {activeSource && <CopyButton text={activeSource} />}
       </div>
@@ -170,8 +172,8 @@ export function CategoryPage(): React.ReactElement {
     return (
       <div>
         <SiteHeader />
-        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
-          <p className="text-[15px] text-[var(--v4-ink-dim,#5a6270)]">カテゴリが見つかりません</p>
+        <div className="flex min-h-[calc(100vh-60px)] items-center justify-center">
+          <p className="text-[15px] text-[var(--d-text-secondary)]">カテゴリが見つかりません</p>
         </div>
       </div>
     );
@@ -187,9 +189,9 @@ export function CategoryPage(): React.ReactElement {
         <div className="catalog-hero">
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <Link to="/catalog">カタログ</Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true">›</span>
             <span className="cur">{jaLabel}</span>
           </nav>
           <h1 className="catalog-title">{jaLabel}</h1>
