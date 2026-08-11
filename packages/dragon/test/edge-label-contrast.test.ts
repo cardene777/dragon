@@ -801,58 +801,87 @@ describe("描く太さの face を読み込んでいる (cdl#391)", () => {
    * cdl は sub 行を「太字だから large text」 として 3:1 で判定する (`isLargeText`)。 実際に
    * 描かれるのが 600 なら、 その前提が成り立たない。 4.5:1 が要るのに 3:1 で通ってしまう。
    */
-  const FONT_URL_FILES = [
-    "../../../apps/playground-spa/index.html",
-    "../../../apps/playground-spa/src/styles/header.css",
-  ];
+  /**
+   * 字を読み込む経路 (#1122)。
+   *
+   * 以前は `index.html` が Google の配信元から太さを 4 段ずつ読んでいたので、 その URL を
+   * 解析していた。 同梱に切り替えて可変幅の face 1 つが 100-900 を賄う形になったため、
+   * **同梱した css の `@font-face` を読む** 形に変えた。
+   *
+   * 読む css は `main.tsx` の import から取り出す。 list を test 側に写すと、 app 側で
+   * import を増減した時に食い違う。
+   */
+  const ENTRY = "../../../apps/playground-spa/src/main.tsx";
+  const PKG_ROOT = "../../../apps/playground-spa/node_modules/";
 
-  /** web font の宣言から `family → 読み込む太さ` を作る。 */
-  const declaredWeights = (text: string): Map<string, Set<number>> => {
-    const out = new Map<string, Set<number>>();
-    // `family=Inter:wght@400;500;700` / `family=JetBrains+Mono:wght@400;700` の形。
-    for (const m of text.matchAll(/family=([A-Za-z+\d]+)(?::([^&"')]*))?/g)) {
-      const family = m[1]!.replace(/\+/g, " ");
-      const set = out.get(family) ?? new Set<number>();
-      const axes = m[2] ?? "";
-      // `wght@` より後ろの数値。 `opsz,wght@6..72,400;6..72,500` のように軸が複数ある形では
-      // 各組の末尾が weight になる。
-      const wght = /wght@(.+)$/.exec(axes)?.[1];
-      if (wght === undefined) {
-        // 太さの指定が無い形 = regular (400) だけを読み込む。
-        set.add(400);
-      } else {
-        for (const group of wght.split(";")) {
-          const last = group.split(",").pop()!.trim();
-          const n = Number(last);
-          if (Number.isFinite(n)) set.add(n);
-        }
-      }
-      out.set(family, set);
+  /** `main.tsx` が読む同梱 css の相対 path を取り出す。 */
+  const bundledFontCss = (entry: string): string[] =>
+    [...entry.matchAll(/^import\s+"(@fontsource[^"]+\.css)";/gm)].map((m) => PKG_ROOT + m[1]!);
+
+  /**
+   * `@font-face` の宣言から `family → その太さを描けるか` を作る。
+   *
+   * 可変幅は `font-weight: 100 900` のように範囲で書く。 範囲は両端を含む連続値なので、
+   * 描けるかは範囲に入るかで決まる。
+   */
+  const declaredWeights = (text: string): Map<string, (w: number) => boolean> => {
+    const out = new Map<string, (w: number) => boolean>();
+    for (const block of text.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+      const body = block[1]!;
+      const family = /font-family:\s*['"]?([^;'"]+)['"]?\s*;/.exec(body)?.[1]?.trim();
+      const weight = /font-weight:\s*([^;]+);/.exec(body)?.[1]?.trim();
+      if (family === undefined || weight === undefined) continue;
+      const ns = weight.split(/\s+/).map(Number).filter((n) => Number.isFinite(n));
+      if (ns.length === 0) continue;
+      const lo = Math.min(...ns);
+      const hi = Math.max(...ns);
+      const prev = out.get(family);
+      const fn = (w: number): boolean => w >= lo && w <= hi;
+      out.set(family, prev === undefined ? fn : (w: number) => prev(w) || fn(w));
     }
     return out;
   };
 
-  const loaded = (): Map<string, Set<number>> => {
-    const merged = new Map<string, Set<number>>();
-    for (const rel of FONT_URL_FILES) {
-      const text = readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
-      for (const [family, weights] of declaredWeights(text)) {
-        const set = merged.get(family) ?? new Set<number>();
-        for (const w of weights) set.add(w);
-        merged.set(family, set);
+  const read = (rel: string): string => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+
+  const loaded = (): Map<string, (w: number) => boolean> => {
+    const merged = new Map<string, (w: number) => boolean>();
+    for (const rel of bundledFontCss(read(ENTRY))) {
+      for (const [family, fn] of declaredWeights(read(rel))) {
+        const prev = merged.get(family);
+        merged.set(family, prev === undefined ? fn : (w: number) => prev(w) || fn(w));
       }
     }
     return merged;
   };
 
-  it("宣言から family ごとの太さを取り出す", () => {
-    const m = declaredWeights(
-      'href="https://x/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Inter:wght@400;700&family=Kalam"',
-    );
-    expect([...m.get("Newsreader")!].sort()).toEqual([400, 600]);
-    expect([...m.get("Inter")!].sort()).toEqual([400, 700]);
-    // 太さを書かない形は regular だけ。
-    expect([...m.get("Kalam")!]).toEqual([400]);
+  it("`main.tsx` から同梱 css の path を取り出す", () => {
+    const got = bundledFontCss('import "@fontsource-variable/inter/wght.css";\nimport "./x.css";\n');
+    expect(got).toEqual([PKG_ROOT + "@fontsource-variable/inter/wght.css"]);
+    // 同梱以外の import は拾わない。
+    expect(bundledFontCss('import "./styles/globals.css";')).toEqual([]);
+  });
+
+  it("`@font-face` から family ごとの太さの範囲を取り出す", () => {
+    const m = declaredWeights(`
+      @font-face { font-family: 'Inter Variable'; font-weight: 100 900; src: url(a.woff2); }
+      @font-face { font-family: "Old"; font-weight: 400; src: url(b.woff2); }
+    `);
+    // 可変幅は範囲の内側を全部描ける。
+    expect(m.get("Inter Variable")!(400)).toBe(true);
+    expect(m.get("Inter Variable")!(700)).toBe(true);
+    expect(m.get("Inter Variable")!(950)).toBe(false);
+    // 単一値はその太さだけ。
+    expect(m.get("Old")!(400)).toBe(true);
+    expect(m.get("Old")!(700)).toBe(false);
+  });
+
+  it("同梱 css を 1 つ以上読んでいる", () => {
+    // 0 件だと下の検査が「対象なし」 で素通りする (#1122 で index.html から URL を消した時、
+    // 旧実装が 0 件になって checked が 0 に落ちた)。
+    const css = bundledFontCss(read(ENTRY));
+    expect(css.length, "main.tsx が同梱 css を読んでいない").toBeGreaterThan(0);
+    for (const rel of css) expect(read(rel).length, `${rel} が空`).toBeGreaterThan(0);
   });
 
   it("札を描く太さの face を明暗ぶん読み込んでいる", () => {
@@ -864,11 +893,11 @@ describe("描く太さの face を読み込んでいる (cdl#391)", () => {
       // family が決まらない行は見ない。 main 行は主題も renderer も指定せず host からの
       // 継承になるので、 どの face が効くかを CSS からは決められない。
       if (s.family === null || s.weight === null) continue;
-      const weights = have.get(s.family);
-      // 端末に入っている前提の family (`Courier New` 等) は web font として読み込まない。
-      if (weights === undefined) continue;
+      const 描ける = have.get(s.family);
+      // 端末に入っている前提の family (`Courier New` 等) は同梱しない。
+      if (描ける === undefined) continue;
       checked++;
-      if (!weights.has(s.weight)) missing.push(`${s.key} = ${s.family} の ${s.weight}`);
+      if (!描ける(s.weight)) missing.push(`${s.key} = ${s.family} の ${s.weight}`);
     }
     expect(missing).toEqual([]);
     // 件数も固定する。 CSS 側の宣言が消えると検査対象が減り、 空でも通る状態になる。
@@ -884,11 +913,11 @@ describe("描く太さの face を読み込んでいる (cdl#391)", () => {
     const families = new Set(samples.map((s) => s.family).filter((f): f is string => f !== null));
     const missing: string[] = [];
     for (const family of families) {
-      const weights = have.get(family);
-      if (weights === undefined) continue;
+      const 描ける = have.get(family);
+      if (描ける === undefined) continue;
       for (const line of ["main", "sub"] as const) {
         const w = EDGE_LABEL_TEXT[line].fontWeight;
-        if (!weights.has(w)) missing.push(`${family} の ${w} (${line} 行の既定)`);
+        if (!描ける(w)) missing.push(`${family} の ${w} (${line} 行の既定)`);
       }
     }
     expect(missing).toEqual([]);
