@@ -42,6 +42,11 @@
   /* 重ね窓の背後を覆う色。 明暗どちらでも同じ濃さで敷く */
   --d-scrim: #100e0cb8;
 
+  /* 絵の上に敷く暗い覆いと、 その上に乗る文字。 覆いは明暗に依らず暗いので対で固定する。
+     `--d-on-accent` を流用すると暗い画面で黒文字になり読めない (実測 1.24)。 */
+  --d-overlay-dark: rgba(0, 0, 0, 0.7);
+  --d-on-dark: #ffffff;
+
   --d-display: "Space Grotesk", "Inter", -apple-system, "Segoe UI", sans-serif;
   --d-body: "Inter", -apple-system, "Segoe UI", sans-serif;
   --d-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
@@ -65,6 +70,8 @@
   --v4-ink: var(--d-text-primary);
   --v4-ink-dim: var(--d-text-secondary);
   --v4-ink-mute: var(--d-text-muted);
+  --v4-mute: var(--d-text-muted);
+  --v4-bg: var(--d-bg);
   --v4-brand: var(--d-accent);
   --v4-brand-deep: var(--d-accent);
   --v4-brand-soft: var(--d-accent-soft);

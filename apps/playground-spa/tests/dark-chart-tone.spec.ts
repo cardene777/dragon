@@ -31,7 +31,6 @@ const IDS = [
 ];
 
 /** 青系 = 色相 190-280 度。 */
-const isBlue = (h: number): boolean => h >= 190 && h <= 280;
 
 /** 実効色を HSV に直して色相を返す。 彩度が低い色 (灰) は色相を持たない。 */
 const huesOf = (page: Page, id: string) =>
@@ -244,6 +243,16 @@ async function open(page: Page, id: string): Promise<void> {
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
 }
 
+/**
+ * 明暗で同じ値でよい色。
+ *
+ * 紙に依らない中間色がここに入る。 一覧に載っていない色が明暗の両方に現れたら、
+ * 上書きが届いていないとみなす。 **増やす時は理由を書く** = 安易に足すと検査が空洞化する。
+ */
+const 明暗で共有してよい色 = new Set<string>([
+  // 現状は該当なし。 図の色はすべて変数から取るため明暗で入れ替わる。
+]);
+
 test.describe("dark の図の tone (#383)", () => {
   /**
    * 暗い画面で色が入れ替わること。
@@ -263,11 +272,21 @@ test.describe("dark の図の tone (#383)", () => {
       await page.waitForTimeout(600);
       const dark = await huesOf(page, id);
       expect(dark!.length, `${id} の dark に色が 1 件も無い`).toBeGreaterThan(0);
-      // 1 色でも変われば上書きは届いている。 全色の一致を求めると、 明暗で同じにしてよい
-      // 色 (紙に依らない中間色) を持つ図が落ちる。
+      // **明側の色が 1 つも残らないことを求める**。 「1 色でも変われば」 や「1 つ以上
+      // 入れ替われば」 にすると、 6 色のうち 5 色が明色のまま残っても通る (review 指摘 2 回)。
+      //
+      // 明暗で同じ値でよい色は下の一覧に明示する。 一覧に無い明側の色が暗い画面にも
+      // 現れていたら、 その色は上書きが届いていない。
       const 明 = new Set(light!.map((x) => x.color));
       const 暗 = new Set(dark!.map((x) => x.color));
-      expect([...暗].some((c) => !明.has(c)), `${id} の色が明暗で 1 つも変わらない`).toBe(true);
+
+      const 残った = [...暗].filter((c) => 明.has(c) && !明暗で共有してよい色.has(c));
+      expect(残った, `${id} の暗い画面に明側の色が残っている`).toEqual([]);
+
+      // 上書きが届いた証拠として、 暗側にしか無い色があることも見る
+      // (全色が共有一覧に載っていると上の検査が空振りするため)。
+      const 暗だけ = [...暗].filter((c) => !明.has(c));
+      expect(暗だけ.length, `${id} の暗側に新しい色が出ていない`).toBeGreaterThan(0);
     });
   }
 

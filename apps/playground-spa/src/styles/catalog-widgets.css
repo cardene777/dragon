@@ -12,10 +12,7 @@
   color: var(--v4-ink);
   align-items: center;
 }
-html.dark .cdl-ip-root {
-  background: transparent;
-  color: #f8ecd0;
-}
+
 .cdl-ip-group {
   display: flex;
   flex-wrap: wrap;
@@ -40,39 +37,22 @@ html.dark .cdl-ip-root {
   border: none;
   padding: 0;
 }
-html.dark .cdl-ip-item[class*="cdl-ip-readout-"] {
-  background: transparent;
-  border: none;
-}
+
 .cdl-ip-item:hover {
   border-color: var(--v4-brand);
-  box-shadow: 0 0 0 3px rgba(166, 106, 61, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--d-accent) 8%, transparent);
 }
 .cdl-ip-item:focus-within {
   border-color: var(--v4-brand);
-  box-shadow: 0 0 0 3px rgba(166, 106, 61, 0.15);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--d-accent) 15%, transparent);
 }
-html.dark .cdl-ip-item {
-  background: #241c14;
-  border-color: #3d322a;
-}
-html.dark .cdl-ip-item:hover {
-  border-color: #f0b840;
-  box-shadow: 0 0 0 3px rgba(240, 184, 64, 0.14);
-}
-html.dark .cdl-ip-item:focus-within {
-  border-color: #f0b840;
-  box-shadow: 0 0 0 3px rgba(240, 184, 64, 0.24);
-}
+
 .cdl-ip-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--v4-ink-dim);
   letter-spacing: 0.02em;
   white-space: nowrap;
-}
-html.dark .cdl-ip-label {
-  color: #d0c0a5;
 }
 
 /* ── slider ── */
@@ -86,9 +66,7 @@ html.dark .cdl-ip-label {
   outline: none;
   cursor: pointer;
 }
-html.dark .cdl-ip-slider-track {
-  background: #3d322a;
-}
+
 .cdl-ip-slider-track::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -103,7 +81,7 @@ html.dark .cdl-ip-slider-track {
 }
 .cdl-ip-slider-track::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(166, 106, 61, 0.4);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--d-accent) 40%, transparent);
 }
 .cdl-ip-slider-track::-webkit-slider-thumb:active {
   cursor: grabbing;
@@ -118,14 +96,7 @@ html.dark .cdl-ip-slider-track {
   cursor: grab;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
-html.dark .cdl-ip-slider-track::-webkit-slider-thumb {
-  background: #f0b840;
-  border-color: #241c14;
-}
-html.dark .cdl-ip-slider-track::-moz-range-thumb {
-  background: #f0b840;
-  border-color: #241c14;
-}
+
 .cdl-ip-slider-value {
   min-width: 32px;
   text-align: right;
@@ -134,9 +105,6 @@ html.dark .cdl-ip-slider-track::-moz-range-thumb {
   font-weight: 600;
   color: var(--v4-brand);
   font-variant-numeric: tabular-nums;
-}
-html.dark .cdl-ip-slider-value {
-  color: #f0b840;
 }
 
 /* ── number ── */
@@ -158,14 +126,6 @@ html.dark .cdl-ip-slider-value {
 .cdl-ip-number-input:focus {
   border-color: var(--v4-brand);
 }
-html.dark .cdl-ip-number-input {
-  background: #14100c;
-  border-color: #3d322a;
-  color: #f0b840;
-}
-html.dark .cdl-ip-number-input:focus {
-  border-color: #f0b840;
-}
 
 /* ── dropdown ── */
 .cdl-ip-dropdown-select {
@@ -182,21 +142,17 @@ html.dark .cdl-ip-number-input:focus {
   transition: border-color 0.15s;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path fill='%235a6270' d='M2 4l3 3 3-3z'/></svg>");
+  /* 下向きの三角。 埋め込み画像だと色を焼き付けることになるので、 2 本の線を回して描く。
+     こうすると明暗で色が追随する (画像に色を書くと暗い画面で背景に沈む、 実測 2.88)。 */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--d-text-secondary) 50%),
+    linear-gradient(135deg, var(--d-text-secondary) 50%, transparent 50%);
+  background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  background-position: right 6px center;
+  background-position: right 11px center, right 6px center;
 }
 .cdl-ip-dropdown-select:focus {
   border-color: var(--v4-brand);
-}
-html.dark .cdl-ip-dropdown-select {
-  background-color: #14100c;
-  border-color: #3d322a;
-  color: #f8ecd0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path fill='%239ca3b8' d='M2 4l3 3 3-3z'/></svg>");
-}
-html.dark .cdl-ip-dropdown-select:focus {
-  border-color: #f0b840;
 }
 
 /* ── toggle ── */
@@ -237,15 +193,6 @@ html.dark .cdl-ip-dropdown-select:focus {
 .cdl-ip-toggle-checkbox:checked ~ .cdl-ip-toggle-slot .cdl-ip-toggle-knob {
   transform: translateX(14px);
 }
-html.dark .cdl-ip-toggle-slot {
-  background: #3d322a;
-}
-html.dark .cdl-ip-toggle-knob {
-  background: #f8ecd0;
-}
-html.dark .cdl-ip-toggle-checkbox:checked ~ .cdl-ip-toggle-slot {
-  background: #f0b840;
-}
 
 /* ── formula readout ── */
 .cdl-ip-formula .cdl-ip-formula-expr {
@@ -261,12 +208,6 @@ html.dark .cdl-ip-toggle-checkbox:checked ~ .cdl-ip-toggle-slot {
   font-variant-numeric: tabular-nums;
   min-width: 32px;
   text-align: right;
-}
-html.dark .cdl-ip-formula .cdl-ip-formula-expr {
-  color: #6b7285;
-}
-html.dark .cdl-ip-formula .cdl-ip-formula-value {
-  color: #f0b840;
 }
 
 /* ── scroll readout ── */
@@ -292,15 +233,6 @@ html.dark .cdl-ip-formula .cdl-ip-formula-value {
   min-width: 34px;
   text-align: right;
 }
-html.dark .cdl-ip-scroll .cdl-ip-scroll-track {
-  background: #3d322a;
-}
-html.dark .cdl-ip-scroll .cdl-ip-scroll-fill {
-  background: #f0b840;
-}
-html.dark .cdl-ip-scroll .cdl-ip-scroll-value {
-  color: #f0b840;
-}
 
 /* ─────────────────────────────────────────────────────────────
    Interactive panel v2 (extended widgets、 CAR: widget 拡充)
@@ -320,7 +252,7 @@ html.dark .cdl-ip-scroll .cdl-ip-scroll-value {
   position: relative;
   width: 140px;
   height: 140px;
-  background: linear-gradient(180deg, rgba(184,134,42,0.08), rgba(184,134,42,0.03));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--d-accent) 8%, transparent), color-mix(in srgb, var(--d-accent) 3%, transparent));
   border: 1.5px solid var(--v4-brand);
   border-radius: 8px;
   cursor: crosshair;
@@ -354,21 +286,10 @@ html.dark .cdl-ip-scroll .cdl-ip-scroll-value {
   border: 2px solid var(--v4-surface);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 2px 6px rgba(166, 106, 61, 0.35);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--d-accent) 35%, transparent);
   pointer-events: none;
 }
-html.dark .cdl-ip-xypad-pad {
-  background: linear-gradient(180deg, rgba(139,127,250,0.08), rgba(139,127,250,0.02));
-  border-color: #3d322a;
-}
-html.dark .cdl-ip-xypad-pad::before,
-html.dark .cdl-ip-xypad-pad::after {
-  background: #3d322a;
-}
-html.dark .cdl-ip-xypad-thumb {
-  background: #f0b840;
-  border-color: #241c14;
-}
+
 .cdl-ip-xypad-value {
   align-self: center;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -376,12 +297,6 @@ html.dark .cdl-ip-xypad-thumb {
   font-weight: 600;
   color: var(--v4-brand);
   font-variant-numeric: tabular-nums;
-}
-html.dark .cdl-ip-xypad-value {
-  color: #f0b840;
-}
-html.dark .cdl-ip-xypad-pad {
-  border-color: #f0b840;
 }
 
 /* ── stepper ── */
@@ -406,7 +321,7 @@ html.dark .cdl-ip-xypad-pad {
   transition: background 0.15s;
 }
 .cdl-ip-stepper-btn:hover:not(:disabled) {
-  background: rgba(166, 106, 61, 0.08);
+  background: color-mix(in srgb, var(--d-accent) 8%, transparent);
 }
 .cdl-ip-stepper-btn:disabled {
   color: var(--v4-line);
@@ -423,24 +338,6 @@ html.dark .cdl-ip-xypad-pad {
   font-variant-numeric: tabular-nums;
   border-left: 1px solid var(--v4-line);
   border-right: 1px solid var(--v4-line);
-}
-html.dark .cdl-ip-stepper-controls {
-  background: #14100c;
-  border-color: #3d322a;
-}
-html.dark .cdl-ip-stepper-btn {
-  color: #f0b840;
-}
-html.dark .cdl-ip-stepper-btn:hover:not(:disabled) {
-  background: rgba(240, 184, 64, 0.12);
-}
-html.dark .cdl-ip-stepper-btn:disabled {
-  color: #3a4256;
-}
-html.dark .cdl-ip-stepper-value {
-  color: #f0b840;
-  border-left-color: #3d322a;
-  border-right-color: #3d322a;
 }
 
 /* ── radio ── */
@@ -473,7 +370,7 @@ html.dark .cdl-ip-stepper-value {
 .cdl-ip-radio-option:has(input:checked) {
   background: var(--v4-brand);
   border-color: var(--v4-brand);
-  color: #fff;
+  color: var(--d-on-accent);
   font-weight: 600;
 }
 .cdl-ip-radio-input {
@@ -482,16 +379,6 @@ html.dark .cdl-ip-stepper-value {
   pointer-events: none;
   width: 0;
   height: 0;
-}
-html.dark .cdl-ip-radio-option {
-  background: #14100c;
-  border-color: #3d322a;
-  color: #f8ecd0;
-}
-html.dark .cdl-ip-radio-option:has(input:checked) {
-  background: #f0b840;
-  border-color: #f0b840;
-  color: #14100c;
 }
 
 /* ── color picker ── */
@@ -509,13 +396,6 @@ html.dark .cdl-ip-radio-option:has(input:checked) {
   font-size: 11px;
   color: var(--v4-ink-dim);
   text-transform: uppercase;
-}
-html.dark .cdl-ip-color-input {
-  background: #14100c;
-  border-color: #3d322a;
-}
-html.dark .cdl-ip-color-hex {
-  color: #d0c0a5;
 }
 
 /* ── readout: bar ── */
@@ -541,15 +421,6 @@ html.dark .cdl-ip-color-hex {
   min-width: 34px;
   text-align: right;
 }
-html.dark .cdl-ip-readout-bar-track {
-  background: #3d322a;
-}
-html.dark .cdl-ip-readout-bar-fill {
-  background: #f0b840;
-}
-html.dark .cdl-ip-readout-bar-value {
-  color: #f0b840;
-}
 
 /* ── readout: gauge ── */
 .cdl-ip-readout-gauge-svg .cdl-ip-readout-gauge-track {
@@ -567,15 +438,6 @@ html.dark .cdl-ip-readout-bar-value {
   font-variant-numeric: tabular-nums;
   min-width: 30px;
   text-align: right;
-}
-html.dark .cdl-ip-readout-gauge-svg .cdl-ip-readout-gauge-track {
-  stroke: #3d322a;
-}
-html.dark .cdl-ip-readout-gauge-svg .cdl-ip-readout-gauge-fill {
-  stroke: #f0b840;
-}
-html.dark .cdl-ip-readout-gauge-value {
-  color: #f0b840;
 }
 
 /* ── readout: stat ── */
@@ -605,13 +467,6 @@ html.dark .cdl-ip-readout-gauge-value {
   font-size: 10.5px;
   color: var(--v4-ink-dim);
 }
-html.dark .cdl-ip-readout-stat-value {
-  color: #f0b840;
-}
-html.dark .cdl-ip-readout-stat-unit,
-html.dark .cdl-ip-readout-stat-caption {
-  color: #d0c0a5;
-}
 
 /* ── readout: sparkline ── */
 .cdl-ip-readout-sparkline-svg {
@@ -637,19 +492,6 @@ html.dark .cdl-ip-readout-stat-caption {
   color: var(--v4-brand);
   font-variant-numeric: tabular-nums;
 }
-html.dark .cdl-ip-readout-sparkline-svg {
-  border-bottom-color: #3d322a;
-}
-html.dark .cdl-ip-readout-sparkline-line {
-  stroke: #f0b840;
-}
-html.dark .cdl-ip-readout-sparkline-value {
-  color: #f0b840;
-}
-html.dark .cdl-ip-readout-sparkline-empty {
-  border-color: #3d322a;
-  color: #6b7285;
-}
 
 /* ── countup readout ── */
 .cdl-ip-readout-countup-value {
@@ -669,12 +511,6 @@ html.dark .cdl-ip-readout-sparkline-empty {
   font-weight: 500;
   color: var(--v4-ink-dim);
 }
-html.dark .cdl-ip-readout-countup-value {
-  color: #f0b840;
-}
-html.dark .cdl-ip-readout-countup-unit {
-  color: #d0c0a5;
-}
 
 /* ── typewriter readout ── */
 .cdl-ip-readout-typewriter-value {
@@ -691,10 +527,6 @@ html.dark .cdl-ip-readout-countup-unit {
 @keyframes cdl-caret-blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
-}
-html.dark .cdl-ip-readout-typewriter-value,
-html.dark .cdl-ip-readout-typewriter-caret {
-  color: #f0b840;
 }
 
 /* ── delta readout ── */
@@ -720,26 +552,12 @@ html.dark .cdl-ip-readout-typewriter-caret {
   background: var(--v4-line-soft);
 }
 .cdl-ip-delta-up .cdl-ip-readout-delta-change {
-  color: #059669;
-  background: rgba(5, 150, 105, 0.1);
+  color: var(--d-dg-2);
+  background: color-mix(in srgb, var(--d-dg-2) 10%, transparent);
 }
 .cdl-ip-delta-down .cdl-ip-readout-delta-change {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.1);
-}
-html.dark .cdl-ip-readout-delta-value {
-  color: #f8ecd0;
-}
-html.dark .cdl-ip-readout-delta-change {
-  background: #2e2418;
-}
-html.dark .cdl-ip-delta-up .cdl-ip-readout-delta-change {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-}
-html.dark .cdl-ip-delta-down .cdl-ip-readout-delta-change {
-  background: rgba(248, 113, 113, 0.15);
-  color: #f87171;
+  color: var(--d-err);
+  background: color-mix(in srgb, var(--d-err) 10%, transparent);
 }
 
 /* ── percent-ring readout ── */
@@ -758,14 +576,6 @@ html.dark .cdl-ip-delta-down .cdl-ip-readout-delta-change {
   min-width: 30px;
   text-align: right;
 }
-html.dark .cdl-ip-readout-ring-track {
-  stroke: #3d322a;
-}
-html.dark .cdl-ip-readout-ring-fill,
-html.dark .cdl-ip-readout-ring-value {
-  stroke: #f0b840;
-  color: #f0b840;
-}
 
 /* ─────────────────────────────────────────────────────────────
    input と readout の視覚区別 (input = 触れる chip、 readout = 表示 tile)
@@ -783,9 +593,6 @@ html.dark .cdl-ip-readout-ring-value {
   border-top: 1px dashed var(--v4-line);
   padding-top: 12px;
   margin-top: 4px;
-}
-html.dark .cdl-ip-group + .cdl-ip-group {
-  border-top-color: #3d322a;
 }
 
 /* readout (bar / gauge / stat / sparkline / countup / delta / percent-ring / typewriter) は
@@ -817,18 +624,6 @@ html.dark .cdl-ip-group + .cdl-ip-group {
   box-shadow: none !important;
   background: transparent !important;
 }
-html.dark .cdl-ip-readout-bar,
-html.dark .cdl-ip-readout-gauge,
-html.dark .cdl-ip-readout-stat,
-html.dark .cdl-ip-readout-sparkline,
-html.dark .cdl-ip-readout-countup,
-html.dark .cdl-ip-readout-typewriter,
-html.dark .cdl-ip-readout-delta,
-html.dark .cdl-ip-readout-ring,
-html.dark .cdl-ip-formula {
-  background: transparent;
-  border: none;
-}
 
 /* readout の label を tiny cap 化 (input label と区別、 dashboard 風) */
 .cdl-ip-readout-bar > .cdl-ip-label,
@@ -847,17 +642,6 @@ html.dark .cdl-ip-formula {
   color: var(--v4-ink-mute);
   opacity: 0.8;
 }
-html.dark .cdl-ip-readout-bar > .cdl-ip-label,
-html.dark .cdl-ip-readout-gauge > .cdl-ip-label,
-html.dark .cdl-ip-readout-stat > .cdl-ip-label,
-html.dark .cdl-ip-readout-sparkline > .cdl-ip-label,
-html.dark .cdl-ip-readout-countup > .cdl-ip-label,
-html.dark .cdl-ip-readout-typewriter > .cdl-ip-label,
-html.dark .cdl-ip-readout-delta > .cdl-ip-label,
-html.dark .cdl-ip-readout-ring > .cdl-ip-label,
-html.dark .cdl-ip-formula > .cdl-ip-label {
-  color: #6b7285;
-}
 
 /* input side は chip 維持だが、 hover state はよりはっきり見せる (触れる signal) */
 .cdl-ip-slider,
@@ -870,17 +654,6 @@ html.dark .cdl-ip-formula > .cdl-ip-label {
 .cdl-ip-color {
   border: 1px solid var(--v4-line);
   background: var(--v4-surface);
-}
-html.dark .cdl-ip-slider,
-html.dark .cdl-ip-number,
-html.dark .cdl-ip-dropdown,
-html.dark .cdl-ip-toggle,
-html.dark .cdl-ip-xypad,
-html.dark .cdl-ip-stepper,
-html.dark .cdl-ip-radio,
-html.dark .cdl-ip-color {
-  background: #241c14;
-  border-color: #3d322a;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -918,17 +691,6 @@ html.dark .cdl-ip-color {
 .cdl-ip-formula:last-child {
   border-right: none;
 }
-html.dark .cdl-ip-readout-bar,
-html.dark .cdl-ip-readout-gauge,
-html.dark .cdl-ip-readout-stat,
-html.dark .cdl-ip-readout-sparkline,
-html.dark .cdl-ip-readout-countup,
-html.dark .cdl-ip-readout-typewriter,
-html.dark .cdl-ip-readout-delta,
-html.dark .cdl-ip-readout-ring,
-html.dark .cdl-ip-formula {
-  border-right-color: #3d322a;
-}
 
 /* group 内 readout row は align-items: stretch で高さ揃え */
 .cdl-ip-group {
@@ -960,12 +722,6 @@ html.dark .cdl-ip-formula {
   color: var(--v4-brand);
   min-width: unset;
   text-align: left;
-}
-html.dark .cdl-ip-readout-bar-value,
-html.dark .cdl-ip-readout-gauge-value,
-html.dark .cdl-ip-readout-sparkline-value,
-html.dark .cdl-ip-readout-ring-value {
-  color: #f0b840;
 }
 
 /* stat の value は大きめに */
@@ -1012,12 +768,6 @@ html.dark .cdl-ip-readout-ring-value {
   font-size: 15px;
   font-weight: 600;
   color: var(--v4-brand);
-}
-html.dark .cdl-ip-formula-expr {
-  color: #6b7285;
-}
-html.dark .cdl-ip-formula-value {
-  color: #f0b840;
 }
 
 /* SVG 系 readout の左揃え強制 (gauge / sparkline / ring / bar track) */
@@ -1108,7 +858,7 @@ html.dark .cdl-ip-formula-value {
   justify-content: center;
 }
 .cdl-ip-timeline-btn:hover {
-  background: rgba(166, 106, 61, 0.08);
+  background: color-mix(in srgb, var(--d-accent) 8%, transparent);
   border-color: var(--v4-brand);
 }
 .cdl-ip-timeline-play {
@@ -1147,25 +897,6 @@ html.dark .cdl-ip-formula-value {
   font-size: 11px;
   color: var(--v4-ink-dim);
   font-variant-numeric: tabular-nums;
-}
-html.dark .cdl-ip-timeline-btn {
-  background: #14100c;
-  border-color: #3d322a;
-  color: #f0b840;
-}
-html.dark .cdl-ip-timeline-btn:hover {
-  background: rgba(240, 184, 64, 0.14);
-  border-color: #f0b840;
-}
-html.dark .cdl-ip-timeline-scrubber {
-  background: #3d322a;
-}
-html.dark .cdl-ip-timeline-scrubber::-webkit-slider-thumb {
-  background: #f0b840;
-  border-color: #241c14;
-}
-html.dark .cdl-ip-timeline-time {
-  color: #d0c0a5;
 }
 
 /* ── range slider (2 thumb) ── */
@@ -1206,16 +937,6 @@ html.dark .cdl-ip-timeline-time {
   color: var(--v4-brand);
   font-variant-numeric: tabular-nums;
 }
-html.dark .cdl-ip-range-thumb {
-  background: #3d322a;
-}
-html.dark .cdl-ip-range-thumb::-webkit-slider-thumb {
-  background: #f0b840;
-  border-color: #241c14;
-}
-html.dark .cdl-ip-range-value {
-  color: #f0b840;
-}
 
 /* ── multi-select chips ── */
 .cdl-ip-multi-select {
@@ -1241,19 +962,9 @@ html.dark .cdl-ip-range-value {
 }
 .cdl-ip-multi-select-active {
   background: var(--v4-brand);
-  color: #fff;
+  color: var(--d-on-accent);
   border-color: var(--v4-brand);
   font-weight: 600;
-}
-html.dark .cdl-ip-multi-select-chip {
-  background: #14100c;
-  border-color: #3d322a;
-  color: #f8ecd0;
-}
-html.dark .cdl-ip-multi-select-active {
-  background: #f0b840;
-  border-color: #f0b840;
-  color: #14100c;
 }
 
 /* ── tabs ── */
@@ -1286,27 +997,11 @@ html.dark .cdl-ip-multi-select-active {
 }
 .cdl-ip-tabs-active {
   background: var(--v4-brand);
-  color: #fff;
+  color: var(--d-on-accent);
   font-weight: 600;
 }
 .cdl-ip-tabs-active:hover {
   background: var(--v4-brand);
-}
-html.dark .cdl-ip-tabs-bar {
-  background: #14100c;
-  border-color: #3d322a;
-}
-html.dark .cdl-ip-tabs-btn {
-  color: #d0c0a5;
-  border-right-color: #3d322a;
-}
-html.dark .cdl-ip-tabs-btn:hover {
-  background: #2e2418;
-}
-html.dark .cdl-ip-tabs-active,
-html.dark .cdl-ip-tabs-active:hover {
-  background: #f0b840;
-  color: #14100c;
 }
 
 /* ── datetime / text ── */
@@ -1325,16 +1020,6 @@ html.dark .cdl-ip-tabs-active:hover {
 .cdl-ip-text-input:focus {
   border-color: var(--v4-brand);
 }
-html.dark .cdl-ip-datetime-input,
-html.dark .cdl-ip-text-input {
-  background: #14100c;
-  border-color: #3d322a;
-  color: #f8ecd0;
-}
-html.dark .cdl-ip-datetime-input:focus,
-html.dark .cdl-ip-text-input:focus {
-  border-color: #f0b840;
-}
 
 /* ── heat cell readout ── */
 .cdl-ip-readout-heat-cell {
@@ -1349,7 +1034,8 @@ html.dark .cdl-ip-text-input:focus {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #fff;
+  /* 目盛の印。 強調色の上ではなく図の面の上に置くので前景色から取る */
+  background: var(--d-text-primary);
   transform: translateX(-1px);
   box-shadow: 0 0 4px rgba(0,0,0,0.35);
   transition: left 0.2s ease-out;
@@ -1360,9 +1046,6 @@ html.dark .cdl-ip-text-input:focus {
   color: var(--v4-brand);
   font-variant-numeric: tabular-nums;
 }
-html.dark .cdl-ip-readout-heat-value {
-  color: #f0b840;
-}
 
 /* ── badge readout ── */
 .cdl-ip-readout-badge-pill {
@@ -1370,7 +1053,7 @@ html.dark .cdl-ip-readout-heat-value {
   padding: 3px 10px;
   border-radius: 999px;
   background: var(--v4-brand);
-  color: #fff;
+  color: var(--d-on-accent);
   font-size: 11.5px;
   font-weight: 600;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -1393,9 +1076,6 @@ html.dark .cdl-ip-readout-heat-value {
   font-size: 12px;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-status-text {
-  color: #f8ecd0;
-}
 
 /* path-progress readout */
 .cdl-ip-readout-path {
@@ -1411,9 +1091,7 @@ html.dark .cdl-ip-readout-status-text {
   font-weight: 700;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-path-value {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-path-svg {
   display: block;
   max-width: 100%;
@@ -1439,9 +1117,7 @@ html.dark .cdl-ip-readout-path-value {
   font-size: 12px;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-array-list-items {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-array-list-more {
   font-style: italic;
   color: var(--v4-mute);
@@ -1461,7 +1137,7 @@ html.dark .cdl-ip-readout-array-list-items {
   gap: 3px;
   height: 42px;
   padding: 2px;
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
   border-radius: 4px;
 }
 .cdl-ip-readout-array-bar-col {
@@ -1490,7 +1166,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 4px;
 }
 
@@ -1508,7 +1184,7 @@ html.dark .cdl-ip-readout-array-list-items {
   gap: 6px;
   height: 48px;
   padding: 2px;
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
   border-radius: 4px;
 }
 .cdl-ip-readout-stacked-bar-group {
@@ -1537,7 +1213,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 4px;
 }
 
@@ -1553,7 +1229,7 @@ html.dark .cdl-ip-readout-array-list-items {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
   padding: 4px;
 }
@@ -1588,12 +1264,10 @@ html.dark .cdl-ip-readout-array-list-items {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-progress-group-name {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-progress-group-track {
   height: 8px;
-  background: rgba(160,136,112,0.16);
+  background: color-mix(in srgb, var(--d-text-muted) 16%, transparent);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -1622,7 +1296,7 @@ html.dark .cdl-ip-readout-progress-group-name {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1651,7 +1325,7 @@ html.dark .cdl-ip-readout-progress-group-name {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1680,9 +1354,6 @@ html.dark .cdl-ip-readout-progress-group-name {
 }
 .cdl-ip-readout-calendar-heatmap-svg {
   display: block;
-}
-html.dark .cdl-ip-readout-calendar-heatmap-svg rect {
-  filter: brightness(0.85);
 }
 
 /* mini-map readout */
@@ -1718,9 +1389,7 @@ html.dark .cdl-ip-readout-calendar-heatmap-svg rect {
   font-weight: 700;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-kpi-card-value {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-kpi-card-unit {
   font-size: 12px;
   color: var(--v4-mute);
@@ -1748,7 +1417,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1776,7 +1445,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
 .cdl-ip-readout-slope-svg {
   display: block;
   margin: 0 auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1805,7 +1474,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1835,7 +1504,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   display: block;
   max-width: 100%;
   height: auto;
-  background: rgba(160,136,112,0.04);
+  background: color-mix(in srgb, var(--d-text-muted) 4%, transparent);
   border-radius: 4px;
 }
 
@@ -1896,9 +1565,7 @@ html.dark .cdl-ip-readout-kpi-card-value {
   align-items: baseline;
   gap: 4px;
 }
-html.dark .cdl-ip-readout-number-board-value {
-  color: #f8ecd0 !important;
-}
+
 .cdl-ip-readout-number-board-affix {
   font-size: 0.5em;
   font-weight: 600;
@@ -1940,7 +1607,8 @@ html.dark .cdl-ip-readout-number-board-value {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  /* 意味色で塗った面の上に乗る。 面は明暗とも濃いので文字は白で固定する */
+  color: var(--d-on-dark);
   font-weight: 700;
   font-size: 10px;
 }
@@ -1951,12 +1619,10 @@ html.dark .cdl-ip-readout-number-board-value {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-leaderboard-name {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-leaderboard-bar {
   height: 8px;
-  background: rgba(160,136,112,0.16);
+  background: color-mix(in srgb, var(--d-text-muted) 16%, transparent);
   border-radius: 4px;
   overflow: hidden;
   display: block;
@@ -2048,9 +1714,7 @@ html.dark .cdl-ip-readout-leaderboard-name {
 .cdl-ip-readout-activity-feed-action {
   color: var(--v4-mute);
 }
-html.dark .cdl-ip-readout-activity-feed-actor {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-activity-feed-time {
   color: var(--v4-mute);
   font-size: 10px;
@@ -2079,9 +1743,6 @@ html.dark .cdl-ip-readout-activity-feed-actor {
   font-size: 13px;
   font-weight: 700;
   color: var(--v4-ink);
-}
-html.dark .cdl-ip-readout-rating-value {
-  color: #f8ecd0;
 }
 
 /* notification readout */
@@ -2151,7 +1812,7 @@ html.dark .cdl-ip-readout-rating-value {
   display: flex;
   border-radius: 3px;
   overflow: hidden;
-  background: rgba(160,136,112,0.16);
+  background: color-mix(in srgb, var(--d-text-muted) 16%, transparent);
 }
 .cdl-ip-readout-diff-counter-bar-add,
 .cdl-ip-readout-diff-counter-bar-del {
@@ -2175,7 +1836,7 @@ html.dark .cdl-ip-readout-rating-value {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 6px;
   max-height: 260px;
   overflow-y: auto;
@@ -2228,7 +1889,8 @@ html.dark .cdl-ip-readout-rating-value {
   border-radius: 50%;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-weight: 700;
-  color: #fff;
+  /* 面の色は cdl が要素に直接書く (任意色)。 明暗で反転させると片側で読めなくなるため固定する */
+  color: var(--d-on-dark);
   letter-spacing: 0.5px;
 }
 .cdl-ip-readout-avatar-name {
@@ -2236,9 +1898,6 @@ html.dark .cdl-ip-readout-rating-value {
   font-size: 12px;
   color: var(--v4-ink);
   font-weight: 600;
-}
-html.dark .cdl-ip-readout-avatar-name {
-  color: #f8ecd0;
 }
 
 /* checklist readout */
@@ -2261,7 +1920,7 @@ html.dark .cdl-ip-readout-avatar-name {
 }
 .cdl-ip-readout-checklist-progress-bar {
   height: 4px;
-  background: rgba(160,136,112,0.16);
+  background: color-mix(in srgb, var(--d-text-muted) 16%, transparent);
   border-radius: 2px;
   overflow: hidden;
   display: block;
@@ -2294,7 +1953,8 @@ html.dark .cdl-ip-readout-avatar-name {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  /* 面の色は cdl が要素に直接書く (任意色)。 明暗で反転させると片側で読めなくなるため固定する */
+  color: var(--d-on-dark);
   font-size: 10px;
   font-weight: 700;
   transition: background 200ms ease, border-color 200ms ease;
@@ -2305,9 +1965,6 @@ html.dark .cdl-ip-readout-avatar-name {
 .cdl-ip-readout-checklist-row.checked .cdl-ip-readout-checklist-label {
   color: var(--v4-mute);
   text-decoration: line-through;
-}
-html.dark .cdl-ip-readout-checklist-label {
-  color: #f8ecd0;
 }
 
 /* circular-gauge readout */
@@ -2321,9 +1978,6 @@ html.dark .cdl-ip-readout-checklist-label {
 .cdl-ip-readout-circular-gauge-svg {
   display: block;
   margin: 0 auto;
-}
-html.dark .cdl-ip-readout-circular-gauge-svg text {
-  fill: #f8ecd0;
 }
 
 /* price-tag readout */
@@ -2344,9 +1998,7 @@ html.dark .cdl-ip-readout-circular-gauge-svg text {
   font-size: 24px;
   font-weight: 800;
 }
-html.dark .cdl-ip-readout-price-tag-new {
-  color: #f8ecd0 !important;
-}
+
 .cdl-ip-readout-price-tag-old {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 14px;
@@ -2357,7 +2009,8 @@ html.dark .cdl-ip-readout-price-tag-new {
   align-items: center;
   padding: 2px 6px;
   border-radius: 3px;
-  color: #fff;
+  /* 意味色で塗った面の上に乗る。 面は明暗とも濃いので文字は白で固定する */
+  color: var(--d-on-dark);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
   font-weight: 700;
@@ -2394,9 +2047,6 @@ html.dark .cdl-ip-readout-price-tag-new {
   font-size: 12px;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-spinner-text {
-  color: #f8ecd0;
-}
 
 /* grade readout */
 .cdl-ip-readout-grade {
@@ -2429,9 +2079,7 @@ html.dark .cdl-ip-readout-spinner-text {
   font-weight: 700;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-grade-score {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-grade-max {
   color: var(--v4-mute);
   font-weight: 500;
@@ -2515,14 +2163,14 @@ html.dark .cdl-ip-readout-grade-score {
   padding: 3px 8px;
   border: 1.5px solid;
   border-radius: 12px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
   transition: transform 200ms ease, background 200ms ease;
 }
 .cdl-ip-readout-reaction-bar-pill:hover {
   transform: scale(1.05);
-  background: rgba(160,136,112,0.15);
+  background: color-mix(in srgb, var(--d-text-muted) 15%, transparent);
 }
 .cdl-ip-readout-reaction-bar-emoji {
   font-size: 14px;
@@ -2593,7 +2241,7 @@ html.dark .cdl-ip-readout-grade-score {
 }
 .cdl-ip-readout-metrics-grid-cell {
   padding: 8px 10px;
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -2668,7 +2316,7 @@ html.dark .cdl-ip-readout-grade-score {
   align-items: center;
   gap: 10px;
   padding: 6px 8px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 6px;
 }
 .cdl-ip-readout-icon-tile-icon {
@@ -2692,9 +2340,7 @@ html.dark .cdl-ip-readout-grade-score {
   font-weight: 800;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-icon-tile-value {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-icon-tile-name {
   font-size: 11px;
   color: var(--v4-mute);
@@ -2725,7 +2371,7 @@ html.dark .cdl-ip-readout-icon-tile-value {
   gap: 8px;
   padding: 4px 6px;
   border-radius: 4px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
 }
@@ -2737,9 +2383,7 @@ html.dark .cdl-ip-readout-icon-tile-value {
   font-weight: 700;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-token-list-name {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-token-list-amount {
   color: var(--v4-mute);
   text-align: right;
@@ -2762,9 +2406,6 @@ html.dark .cdl-ip-readout-token-list-name {
   display: block;
   max-width: 100%;
   height: auto;
-}
-html.dark .cdl-ip-readout-map-pin-svg text {
-  fill: #f8ecd0;
 }
 
 /* priority-badge readout */
@@ -2803,9 +2444,6 @@ html.dark .cdl-ip-readout-map-pin-svg text {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-priority-badge-text {
-  color: #f8ecd0;
-}
 
 /* podium readout */
 .cdl-ip-readout-podium {
@@ -2818,9 +2456,6 @@ html.dark .cdl-ip-readout-priority-badge-text {
 .cdl-ip-readout-podium-svg {
   display: block;
   margin: 0 auto;
-}
-html.dark .cdl-ip-readout-podium-svg text {
-  fill: #f8ecd0;
 }
 
 /* poll-bar readout */
@@ -2854,9 +2489,7 @@ html.dark .cdl-ip-readout-podium-svg text {
 .cdl-ip-readout-poll-bar-option {
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-poll-bar-option {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-poll-bar-row.winner .cdl-ip-readout-poll-bar-option {
   font-weight: 700;
 }
@@ -2865,7 +2498,7 @@ html.dark .cdl-ip-readout-poll-bar-option {
 }
 .cdl-ip-readout-poll-bar-track {
   height: 6px;
-  background: rgba(160,136,112,0.16);
+  background: color-mix(in srgb, var(--d-text-muted) 16%, transparent);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -2896,22 +2529,16 @@ html.dark .cdl-ip-readout-poll-bar-option {
   justify-content: center;
   border-radius: 50%;
   border: 2px solid var(--v4-bg);
-  color: #fff;
+  /* 面の色は cdl が要素に直接書く (任意色)。 明暗で反転させると片側で読めなくなるため固定する */
+  color: var(--d-on-dark);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-weight: 700;
   letter-spacing: 0.5px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 .cdl-ip-readout-user-stack-overflow {
-  background: rgba(160,136,112,0.7);
+  background: color-mix(in srgb, var(--d-text-muted) 70%, transparent);
   color: var(--v4-ink);
-}
-html.dark .cdl-ip-readout-user-stack-avatar,
-html.dark .cdl-ip-readout-user-stack-overflow {
-  border-color: #241c14;
-}
-html.dark .cdl-ip-readout-user-stack-overflow {
-  color: #f8ecd0;
 }
 
 /* commit-list readout */
@@ -2941,7 +2568,7 @@ html.dark .cdl-ip-readout-user-stack-overflow {
   border-radius: 3px;
 }
 .cdl-ip-readout-commit-list-row:hover {
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
 }
 .cdl-ip-readout-commit-list-sha {
   font-weight: 700;
@@ -2952,9 +2579,7 @@ html.dark .cdl-ip-readout-user-stack-overflow {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-commit-list-msg {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-commit-list-author {
   color: var(--v4-mute);
   font-size: 10px;
@@ -2973,7 +2598,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
   border-radius: 6px;
 }
 .cdl-ip-readout-media-player-icon {
@@ -2993,7 +2618,7 @@ html.dark .cdl-ip-readout-commit-list-msg {
 .cdl-ip-readout-media-player-track {
   flex: 1;
   height: 4px;
-  background: rgba(160,136,112,0.25);
+  background: color-mix(in srgb, var(--d-text-muted) 25%, transparent);
   border-radius: 2px;
   position: relative;
 }
@@ -3013,9 +2638,6 @@ html.dark .cdl-ip-readout-commit-list-msg {
   border: 2px solid var(--v4-bg);
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
   transition: left 200ms ease;
-}
-html.dark .cdl-ip-readout-media-player-thumb {
-  border-color: #241c14;
 }
 
 /* event-log readout */
@@ -3045,7 +2667,7 @@ html.dark .cdl-ip-readout-media-player-thumb {
   font-size: 11px;
 }
 .cdl-ip-readout-event-log-row:hover {
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
 }
 .cdl-ip-readout-event-log-icon {
   font-size: 12px;
@@ -3061,9 +2683,6 @@ html.dark .cdl-ip-readout-media-player-thumb {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-html.dark .cdl-ip-readout-event-log-msg {
-  color: #f8ecd0;
 }
 
 /* search-result readout */
@@ -3091,7 +2710,7 @@ html.dark .cdl-ip-readout-event-log-msg {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-search-result-row:hover {
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
 }
 .cdl-ip-readout-search-result-title {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
@@ -3105,9 +2724,7 @@ html.dark .cdl-ip-readout-event-log-msg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-search-result-snippet {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-search-result-url {
   font-size: 9px;
   color: var(--v4-mute);
@@ -3131,11 +2748,12 @@ html.dark .cdl-ip-readout-search-result-snippet {
   flex-direction: column;
   border-radius: 6px;
   overflow: hidden;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
 }
 .cdl-ip-readout-roadmap-header {
   padding: 4px 8px;
-  color: #fff;
+  /* 面の色は cdl が要素に直接書く。 明暗で反転させると片側で読めなくなるため固定する */
+  color: var(--d-on-dark);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
   font-weight: 700;
@@ -3154,12 +2772,8 @@ html.dark .cdl-ip-readout-search-result-snippet {
   font-size: 10px;
   color: var(--v4-ink);
   padding: 3px 6px;
-  background: rgba(255,255,255,0.7);
+  background: color-mix(in srgb, var(--d-surface) 70%, transparent);
   border-radius: 3px;
-}
-html.dark .cdl-ip-readout-roadmap-item {
-  color: #f8ecd0;
-  background: rgba(30,41,59,0.5);
 }
 
 /* weather-forecast readout */
@@ -3180,7 +2794,7 @@ html.dark .cdl-ip-readout-roadmap-item {
   flex-direction: column;
   align-items: center;
   padding: 6px 4px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 6px;
   gap: 2px;
 }
@@ -3202,9 +2816,7 @@ html.dark .cdl-ip-readout-roadmap-item {
   font-weight: 800;
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-weather-forecast-high {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-weather-forecast-low {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 11px;
@@ -3236,7 +2848,7 @@ html.dark .cdl-ip-readout-weather-forecast-high {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-video-card-row:hover {
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
 }
 .cdl-ip-readout-video-card-thumb {
   position: relative;
@@ -3255,8 +2867,9 @@ html.dark .cdl-ip-readout-weather-forecast-high {
   position: absolute;
   bottom: 2px;
   right: 3px;
-  background: rgba(0,0,0,0.7);
-  color: #fff;
+  background: var(--d-overlay-dark);
+  /* 黒い覆いの上なので明暗で変えない */
+  color: var(--d-on-dark);
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   padding: 1px 4px;
@@ -3278,9 +2891,7 @@ html.dark .cdl-ip-readout-weather-forecast-high {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-video-card-title {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-video-card-views {
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 10px;
@@ -3315,7 +2926,7 @@ html.dark .cdl-ip-readout-video-card-title {
   font-size: 11px;
 }
 .cdl-ip-readout-order-status-row.current {
-  background: rgba(37,99,235,0.08);
+  background: color-mix(in srgb, var(--d-dg-1) 8%, transparent);
   font-weight: 700;
 }
 .cdl-ip-readout-order-status-icon {
@@ -3326,14 +2937,13 @@ html.dark .cdl-ip-readout-video-card-title {
   height: 28px;
   border-radius: 50%;
   font-size: 14px;
-  color: #fff;
+  /* 面の色は cdl が要素に直接書く (任意色)。 明暗で反転させると片側で読めなくなるため固定する */
+  color: var(--d-on-dark);
 }
 .cdl-ip-readout-order-status-name {
   color: var(--v4-ink);
 }
-html.dark .cdl-ip-readout-order-status-name {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-order-status-check {
   font-weight: 800;
   font-size: 12px;
@@ -3372,11 +2982,9 @@ html.dark .cdl-ip-readout-order-status-name {
   color: var(--v4-ink);
   text-align: left;
   padding-right: 8px;
-  border-right: 1px solid rgba(160,136,112,0.2);
+  border-right: 1px solid color-mix(in srgb, var(--d-text-muted) 20%, transparent);
 }
-html.dark .cdl-ip-readout-attendance-grid-day {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-attendance-grid-cell {
   padding: 4px 6px;
   text-align: center;
@@ -3404,7 +3012,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   flex-direction: column;
   align-items: center;
   padding: 6px 4px;
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
   border-radius: 6px;
   gap: 2px;
 }
@@ -3452,7 +3060,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-form-summary-row:hover {
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
 }
 .cdl-ip-readout-form-summary-key {
   margin: 0;
@@ -3500,7 +3108,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   transition: background 200ms ease;
 }
 .cdl-ip-readout-song-queue-row:hover {
-  background: rgba(160,136,112,0.08);
+  background: color-mix(in srgb, var(--d-text-muted) 8%, transparent);
 }
 .cdl-ip-readout-song-queue-icon {
   text-align: center;
@@ -3512,9 +3120,7 @@ html.dark .cdl-ip-readout-attendance-grid-day {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-html.dark .cdl-ip-readout-song-queue-title {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-song-queue-artist {
   color: var(--v4-mute);
   font-size: 10px;
@@ -3537,7 +3143,7 @@ html.dark .cdl-ip-readout-song-queue-title {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(160,136,112,0.06);
+  background: color-mix(in srgb, var(--d-text-muted) 6%, transparent);
   border-radius: 6px;
   padding: 8px;
 }
@@ -3549,9 +3155,7 @@ html.dark .cdl-ip-readout-song-queue-title {
   color: var(--v4-ink);
   padding-bottom: 4px;
 }
-html.dark .cdl-ip-readout-calendar-month-header {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-calendar-month-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -3585,15 +3189,13 @@ html.dark .cdl-ip-readout-calendar-month-header {
   position: relative;
   padding: 2px;
 }
-html.dark .cdl-ip-readout-calendar-month-cell {
-  color: #f8ecd0;
-}
+
 .cdl-ip-readout-calendar-month-cell:hover {
-  background: rgba(160,136,112,0.15);
+  background: color-mix(in srgb, var(--d-text-muted) 15%, transparent);
 }
 .cdl-ip-readout-calendar-month-cell.today {
   font-weight: 800;
-  background: rgba(37,99,235,0.08);
+  background: color-mix(in srgb, var(--d-dg-1) 8%, transparent);
 }
 .cdl-ip-readout-calendar-month-day {
   line-height: 1;
@@ -3616,11 +3218,11 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 .cdl-ip-readout-terminal-window {
   border-radius: 6px;
   overflow: hidden;
-  background: #1a1408;
+  background: var(--d-bg);
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .cdl-ip-readout-terminal-titlebar {
-  background: #241c14;
+  background: var(--d-surface-2);
   padding: 6px 8px;
   display: flex;
   gap: 6px;
@@ -3635,7 +3237,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
   padding: 8px 10px;
   font-family: var(--v4-mono, "JetBrains Mono", monospace);
   font-size: 10px;
-  color: #f0e0b8;
+  color: var(--d-text-primary);
   max-height: 240px;
   overflow-y: auto;
 }
@@ -3651,12 +3253,18 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 }
 .cdl-ip-readout-terminal-prompt {
   font-weight: 800;
+  /* cdl の既定は緑 (`#22c55e`) で、 明るい紙の上では対比 2.16 まで落ちる。
+     地の上で読める意味色から取る。 */
+  color: var(--d-dg-2);
 }
+/* 端末の窓は地 (`--d-bg`) を敷くので、 その上に乗る文字は前景色から取る。
+   面の色 (`--d-surface`) を当てると地とほぼ同じ明るさになり読めない (実測 1.05)。 */
 .cdl-ip-readout-terminal-cmd {
-  color: #f0e8d4;
+  color: var(--d-text-primary);
 }
 .cdl-ip-readout-terminal-output {
-  color: #a08870;
+  /* 地の上に乗る通常の大きさの文字。 `--d-text-muted` は 3.49 で下限を割る */
+  color: var(--d-text-secondary);
   white-space: pre-wrap;
   padding-left: 10px;
 }
@@ -3672,7 +3280,7 @@ html.dark .cdl-ip-readout-calendar-month-cell {
 .cdl-ip-readout-chess-board-svg {
   display: block;
   margin: 0 auto;
-  border: 2px solid #6b4423;
+  border: 2px solid var(--d-border-strong);
   border-radius: 3px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
