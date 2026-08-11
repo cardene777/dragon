@@ -95,9 +95,11 @@
   --d-overlay-dark: rgba(0, 0, 0, 0.7);
   --d-on-dark: #ffffff;
 
-  --d-display: "Space Grotesk", "Inter", -apple-system, "Segoe UI", sans-serif;
-  --d-body: "Inter", -apple-system, "Segoe UI", sans-serif;
-  --d-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  /* 同梱した可変幅の字を先頭に置く (#1122)。 2 番目の非可変名は、 同梱が読めなかった時に
+     手元に入っている同じ字を使うための保険。 日本語はどの系統も持たないので system に落ちる。 */
+  --d-display: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-body: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --d-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   /* 図の枝と札の縁の薄さ。 役割ごとに cdl が持つ既定が違う
      (枝 0.55 / 放射の枝 0.7 / 札の縁 0.6)。
@@ -226,9 +228,9 @@ html.dark {
 }
 
 @theme {
-  --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Space Grotesk", "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --font-sans: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   --radius-sm: 3px;
   --radius-md: 5px;

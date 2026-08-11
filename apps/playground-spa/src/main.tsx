@@ -1,6 +1,12 @@
 import { StrictMode, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router";
+// 字は同梱する。 配信元から読むと向こうの状態で寸法が変わり、 文字が箱に収まるかを見る検査が
+// 実行ごとに別の場所で落ちる (#1122)。 `wght.css` は可変幅の縦書きなし版で、 3 系統で 343KB。
+// 太さ 4 段を個別に持つより小さく、 browser は `unicode-range` で必要な字集合だけ取る。
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/space-grotesk/wght.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
 import "./styles/globals.css";
 import "./styles/cdl-theme.css";
 import "./styles/catalog-new.css";

@@ -102,7 +102,7 @@ const CODE_THEME_RULES = {
   "&": {
     backgroundColor: "var(--d-code-bg)",
     color: "var(--d-text-primary)",
-    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace",
     fontSize: "12.5px",
     height: "100%",
   },
@@ -114,7 +114,7 @@ const CODE_THEME_RULES = {
     color: "var(--d-text-muted)",
     border: "none",
     borderRight: "1px solid var(--d-border)",
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono', monospace",
     fontSize: "10.5px",
   },
   ".cm-activeLineGutter": { backgroundColor: "var(--d-accent-soft)", color: "var(--d-accent)" },
