@@ -1,14 +1,17 @@
 /**
- * 名札に載せる種類を「名前が箱に収まる時だけ」 に絞る検証 (#1061)。
+ * 名札に載せる種類を「絵が箱に収まる時だけ」 に絞る検証 (#1061 / #1067)。
  *
  * `#975` が「書いた種類を名札に載せる」 を入れ、 `#1058` が「書かなかった時は載せない」 を
  * 直した。 残っていたのは **書いた時にはみ出す** 側で、 名札は小型の箱 (`h: 72`) なのに
- * 描画側は `actor` / `function` / `storage` / `event` の名前を固定位置に置くため、 名前が箱の
- * 下端をまたいでいた (実測 = actor 21.6 / function 21.6 / storage 13.6 / event 24.2 world px)。
+ * `shape-` は絵を自分の大きさで描くため、 絵が箱の外に出ていた。
+ *
+ * `actor` / `function` / `storage` / `event` は `#1066` まで落とす対象だった。 描画側
+ * (`cardene777/cdl#416`) が小さい箱で名前を中央に置くようになったので外し、 いまは
+ * **書いたとおりの種類のまま載る** ことを見る (§ 名札で書いたとおりの種類が残る)。
  *
  * ここでは組み立ての結果 (どの種類が名札に残るか) を見る。 **表の値が実際の描画と合っているか**
  * は `apps/playground-spa/tests/node-label-fit.spec.ts` が実 render で両側 (その高さで収まる /
- * 1 低いとはみ出す) を測る。 組み立てだけを見ると、 表の値が実装から乖離しても気付けない。
+ * 2 低いとはみ出す) を測る。 組み立てだけを見ると、 表の値が実装から乖離しても気付けない。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "@cardenelabs/dragon";
@@ -31,19 +34,15 @@ const kindOf = (d: CdlDiagram, id: string): string | undefined =>
 const hOf = (d: CdlDiagram, id: string): number | undefined => d.nodes.find((n) => n.id === id)?.h;
 
 /**
- * 名札の高さ (72) では箱からはみ出すが、 **高さを上げれば収まる** 種別と、 要る高さ。
+ * 名札の高さ (72) では絵が箱からはみ出すが、 **高さを上げれば収まる** `shape-` 4 種 (#1067)。
  *
- * 前半 4 種は名前がはみ出す (#1061)。 後半 4 種は絵が下へはみ出す `shape-` (#1067) で、
- * 高さを上げると下のはみ出しが消えることを実測した (1 低いと 0.9-1 はみ出す)。
+ * `actor` / `function` / `storage` / `event` は `#1066` までここに載っていた。 名前がはみ出す
+ * 側だったが、 `cardene777/cdl#416` が小型用の配置を足して名札の高さでも収まるようになった
+ * (§ 名札で書いたとおりの種類が残る)。
  *
- * 値は `compile.ts` の `LABEL_MIN_H` と揃える。 字を変えると下ばみの量が変わるので、
- * 実装側を測り直したらここも動かす (#1110 で前半 4 種が動いた)。
+ * 値は `compile.ts` の `LABEL_MIN_H` と揃える。 絵を変えたら実装側を測り直してここも動かす。
  */
 const 収まらない種別 = [
-  { kind: "actor", 要る高さ: 94 },
-  { kind: "function", 要る高さ: 92 },
-  { kind: "storage", 要る高さ: 83 },
-  { kind: "event", 要る高さ: 95 },
   { kind: "shape-person", 要る高さ: 228 },
   { kind: "shape-server-rack", 要る高さ: 166 },
   { kind: "shape-website", 要る高さ: 98 },
@@ -111,12 +110,34 @@ describe("名札に載せる種類 (#1061)", () => {
   });
 
   it("収まる種類は触らない", () => {
-    // 落とす対象は「名前を箱の高さに関係なく固定の位置に置く」 4 種だけ。 汎用の種別は
-    // 名札の高さでも名前が箱に収まる (実測 = `database` / `service` とも下端との差 0)。
+    // 汎用の種別は名札の高さでも名前が箱に収まる (実測 = `database` / `service` とも下端との差 0)。
     const d =図(`  - A: database\n  - B: service`);
     expect(kindOf(d, "a-header")).toBe("database");
     expect(kindOf(d, "b-header")).toBe("service");
   });
+
+  /**
+   * `#1066` = 描画側 (`cardene777/cdl#416`) が小型用の配置を足したので、 名前がはみ出す理由で
+   * 落とす必要が無くなった。 落とすと種類ごとの枠線の色と動きが失われる。
+   */
+  describe.each(["actor", "function", "storage", "event"])(
+    "%s (名札で書いたとおりの種類が残る)",
+    (kind) => {
+      it("既定の高さ (72) でも落ちない", () => {
+        const d =図(`  - A\n  - B: ${kind}`);
+        expect(hOf(d, "b-header"), "名札の高さが 72 から動いている").toBe(72);
+        expect(kindOf(d, "b-header")).toBe(kind);
+        expect(kindOf(d, "b-footer")).toBe(kind);
+      });
+
+      it("説明を書いても落ちない", () => {
+        // `#1061` は説明を書いた名札を落とさない扱いにしていた (落とすと文字が消えるため)。
+        // 落とす理由自体が無くなったので、 書いた種類のまま載る
+        const d =図(`  - A\n  - B:\n      kind: ${kind}\n      subtitle: "説明"`);
+        expect(kindOf(d, "b-header")).toBe(kind);
+      });
+    },
+  );
 
   describe.each(高さで直らない種別)("%s (高さで直らない)", (kind) => {
     it("既定の高さでは card に落ちる", () => {
@@ -201,35 +222,77 @@ flow:
     expect(kindOf(d, "b-footer"), "行を持つ組の下端まで落ちている").toBe("storage");
   });
 
-  describe.each([
+  // `describe.each` の入れ子にすると外側の `$名` が展開されず、 3 件が同じ名前で並ぶ
+  // (review 指摘)。 外側は平の loop にして title を自分で組む
+  for (const { 名, 記法, field } of [
     { 名: "説明", 記法: `subtitle: "サブ"`, field: "subtitle" },
     { 名: "肩書", 記法: `eyebrow: "Role"`, field: "eyebrow" },
     { 名: "値", 記法: `value: "42"`, field: "value" },
-  ])("著者が $名 を書いた名札", ({ 記法, field }) => {
-    it("種類を落とさない", () => {
-      // 小型の `card` が描くのは名前だけ。 `subtitle` と `eyebrow` は `h < 100` の分岐で
-      // 外れ、 `value` は `card` が元から描かない。 落とすと書いた文字が画面から消える =
-      // 名前がはみ出すより悪い。
-      const d =図(`  - A\n  - B: { kind: actor, ${記法} }`);
-      expect(kindOf(d, "b-header"), `${field} を書いた名札が card に落ちている`).toBe("actor");
-      expect(kindOf(d, "b-footer")).toBe("actor");
-    });
+  ]) {
+    describe(`著者が ${名} を書いた名札`, () => {
+    /**
+     * **落ちる候補の種類で見る**。
+     *
+     * `#1066` まではここで `actor` を使っていたが、 4 種が落ちる候補から外れたため、
+     * `hasAuthoredText` が常に `false` を返すよう壊れても検査が通る空振りになっていた
+     * (review 指摘)。 今も落ちる候補である `shape-` で見る。
+     *
+     * `shape-person` は高さで落ちる側 (`LABEL_MIN_H`)、 `shape-smart-contract` は高さで
+     * 直らない側 (`LABEL_NEVER_FITS`)。 分岐の両方を通す。
+     */
+    describe.each(["shape-person", "shape-smart-contract"])("%s", (kind) => {
+      it("種類を落とさない", () => {
+        // 小型の `card` が描くのは名前だけ。 `subtitle` と `eyebrow` は `h < 100` の分岐で
+        // 外れ、 `value` は `card` が元から描かない。 落とすと書いた文字が画面から消える =
+        // 絵がはみ出すより悪い。
+        const d =図(`  - A\n  - B: { kind: ${kind}, ${記法} }`);
+        expect(kindOf(d, "b-header"), `${field} を書いた名札が card に落ちている`).toBe(kind);
+        expect(kindOf(d, "b-footer")).toBe(kind);
+      });
 
-    it("書いた文字が名札に残る", () => {
-      // 落とさないことと、 文字が消えないことは別。 組み立て結果に値が載っているかを直接見る。
-      const d =図(`  - A\n  - B: { kind: actor, ${記法} }`);
-      const header = d.nodes.find((n) => n.id === "b-header") as Record<string, unknown>;
-      expect(header[field], `${field} が名札に載っていない`).toBeDefined();
+      it("書いた文字が名札に残る", () => {
+        // 落とさないことと、 文字が消えないことは別。 組み立て結果に値が載っているかを直接見る。
+        const d =図(`  - A\n  - B: { kind: ${kind}, ${記法} }`);
+        const header = d.nodes.find((n) => n.id === "b-header") as Record<string, unknown>;
+        expect(header[field], `${field} が名札に載っていない`).toBeDefined();
+      });
     });
+    });
+  }
+
+  it("揃えで届く種別だけが残る", () => {
+    // `rows` 1 件で名札は 206 になる。 表の値が 206 以下なら収まり、 超える種別は落ちる。
+    // 説明が「揃えれば `shape-` も収まる」 と読める書き方だったので、 境界を検査で固定する
+    // (review 指摘 = `shape-person` は 228 なので届かない)。
+    const 届く =図(`  - A: { kind: storage, rows: ["count: 1"] }\n  - B: shape-server-rack`);
+    expect(hOf(届く, "b-header"), "揃えで名札が 206 になっていない").toBe(206);
+    expect(kindOf(届く, "b-header"), "166 は 206 に収まるのに落ちている").toBe("shape-server-rack");
+
+    const 届かない =図(`  - A: { kind: storage, rows: ["count: 1"] }\n  - B: shape-person`);
+    expect(hOf(届かない, "b-header")).toBe(206);
+    expect(kindOf(届かない, "b-header"), "228 は 206 に収まらないのに残っている").toBe("card");
   });
 
   it("上端だけ高さを書いても上下で形を揃える", () => {
-    // `nodes` override は「その名札だけを指定の大きさにする」 指定なので、 上端 (120) は
-    // 収まり下端 (72) は収まらない。 1 つずつ判定すると同じ登場人物が上下で別の形になる。
+    // `nodes` override は「その名札だけを指定の大きさにする」 指定なので、 上端 (120) と
+    // 下端 (72) で高さが違う。 1 つずつ判定すると同じ登場人物が上下で別の形になりうる。
+    //
+    // `#1066` で `actor` は高さを見ずに残るようになったため、 ここでは **上下で同じ形** で
+    // あることを見る (どちらも `card` に落ちない)。 高さで分かれる種別は `shape-` 側の
+    // `収まらない種別` が同じ形を見ている。
     const d =図(
       `  - A\n  - B: { kind: actor, nodes: { header: { posX: 10, posY: 20, posW: 200, posH: 120 } } }`,
     );
     expect(d.nodes.find((n) => n.id === "b-header")?.posH).toBe(120);
+    expect(kindOf(d, "b-header")).toBe("actor");
+    expect(kindOf(d, "b-footer")).toBe(kindOf(d, "b-header"));
+  });
+
+  it("高さで分かれる種別は上端だけ高さを書いても上下で揃う", () => {
+    // 高さを見て落とす経路 (`shape-` 4 種) が残っているので、 そちらで同じことを見る
+    const d =図(
+      `  - A\n  - B: { kind: shape-person, nodes: { header: { posX: 10, posY: 20, posW: 200, posH: 240 } } }`,
+    );
     expect(kindOf(d, "b-header")).toBe("card");
     expect(kindOf(d, "b-footer")).toBe("card");
   });
@@ -244,7 +307,7 @@ flow:
   });
 
   it("solidity の図でも同じに落ちる", () => {
-    const d =図(`  - A\n  - B: storage`, "solidity");
+    const d =図(`  - A\n  - B: shape-person`, "solidity");
     expect(kindOf(d, "b-header")).toBe("card");
   });
 
