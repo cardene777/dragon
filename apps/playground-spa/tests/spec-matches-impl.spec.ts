@@ -39,55 +39,92 @@ const 仕様書 = (): string => 読む("../../../docs/design/specs/screens.md");
 /** backtick / 全角半角 / 空白の差を吸収する。 語そのものの違いは残す。 */
 const 正規化 = (s: string): string => s.replace(/`/gu, "").normalize("NFKC").replace(/\s+/gu, "");
 
+/** 表のセルに割る。 前後の `|` を落としてから区切る。 */
+const セルに割る = (行: string): string[] =>
+  行
+    .trim()
+    .slice(1, -1)
+    .split("|")
+    .map((c) => c.trim());
+
 /**
  * 節の見出しの直後にある最初の表を、 行ごとのセル配列で返す。
  *
- * 表が見つからなければ空配列を返す。 呼出側が件数を検査するので、 黙って 0 件で通ることはない。
+ * **見出しは完全一致で探す**。 前方一致にすると、 対象名を接頭辞に持つ別の節
+ * (`## 5. ドキュメント (旧版)` を前に置く等) を対象として受理してしまう (review 指摘)。
+ *
+ * **表は「見出し行 + 区切り行」 の対で始まる形しか認めない**。 区切り行だけで開始と判定すると、
+ * 見出し行を消して表が壊れても中身の行を返し、 実装と一致して通ってしまう (review 指摘)。
+ * 列の数も見出し行と揃っていることを求める。
+ *
+ * 見つからない / 形が違う場合は空配列を返す。 呼出側が件数を検査するので、 黙って 0 件で通る
+ * ことはない。
  */
 function 表を読む(見出し: string): string[][] {
   const 行 = 仕様書().split("\n");
-  const 始まり = 行.findIndex((l) => l.trim().startsWith(見出し));
+  const 始まり = 行.findIndex((l) => l.trim() === 見出し);
   if (始まり < 0) return [];
 
   const out: string[][] = [];
+  let 列数 = 0;
   let 表の中 = false;
-  for (const l of 行.slice(始まり + 1)) {
-    const t = l.trim();
-    // 次の節に入ったら打ち切る。 別の節の表を拾わない
-    if (t.startsWith("## ")) break;
+  const 続き = 行.slice(始まり + 1);
+  for (let i = 0; i < 続き.length; i++) {
+    const t = 続き[i].trim();
+    // 次の節 (`## ` / `### `) に入ったら打ち切る。 別の節の表を拾わない
+    if (/^#{2,6}\s/u.test(t)) break;
     if (!t.startsWith("|")) {
       if (表の中) break;
       continue;
     }
-    // 区切り行 (`|---|---|`) は飛ばし、 それ以降を中身とみなす
-    if (/^\|[\s\-|:]+\|$/u.test(t)) {
+    if (!表の中) {
+      // 見出し行の直後が区切り行になっている対だけを表の始まりとみなす
+      const 次 = (続き[i + 1] ?? "").trim();
+      if (!/^\|[\s\-|:]+\|$/u.test(次)) continue;
+      列数 = セルに割る(t).length;
       表の中 = true;
+      i++;
       continue;
     }
-    if (!表の中) continue;
-    out.push(
-      t
-        .slice(1, -1)
-        .split("|")
-        .map((c) => c.trim()),
-    );
+    const セル = セルに割る(t);
+    // 列の数が見出し行と違う行が出たら、 表として読めていないので打ち切る
+    if (セル.length !== 列数) break;
+    out.push(セル);
   }
   return out;
 }
 
-/** 実装の画面から、 指定した見出しの字を集める。 */
+/**
+ * 実装の画面から、 指定した見出しの字を集める。
+ *
+ * **見えない見出しは数えない**。 `display` と `visibility` と寸法だけでは、 `opacity: 0` と
+ * 横に押し出した配置 (`left: -9999px`) が残る = 画面に出ていない古い見出しを置くだけで仕様書と
+ * 一致させられる (review 指摘)。 親から継承する `opacity` も見る。
+ *
+ * 縦の画面外は数える。 長い頁では下の見出しが画面外にあるのが普通で、 これを外すと巻き取り
+ * 位置で結果が変わる。
+ */
 async function 実装の見出し(page: Page, path: string, 選ぶ: string): Promise<string[]> {
   await page.goto(path);
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1200);
   return await page.evaluate((sel) => {
+    const 透けている = (e: Element): boolean => {
+      for (let n: Element | null = e; n !== null; n = n.parentElement) {
+        if (Number(getComputedStyle(n).opacity) === 0) return true;
+      }
+      return false;
+    };
     const out: string[] = [];
     for (const e of document.querySelectorAll(sel)) {
       const c = getComputedStyle(e);
       const r = e.getBoundingClientRect();
       if (c.display === "none" || c.visibility === "hidden") continue;
       if (r.width < 2 || r.height < 2) continue;
+      if (透けている(e)) continue;
+      // 横に押し出された配置は画面に出ていない
+      if (r.right <= 0 || r.left >= window.innerWidth) continue;
       const t = (e.textContent ?? "").trim();
       if (t !== "") out.push(t);
     }
@@ -96,24 +133,46 @@ async function 実装の見出し(page: Page, path: string, 選ぶ: string): Pro
 }
 
 /**
+ * 見る節の見出し。 **完全一致で探すので、 括弧の中まで含めて書く**。
+ *
+ * 見出しを変えたら検査が「節が無い」 で落ちる。 表の位置を見出しで決めている以上、 見出しの
+ * 変更は検査の対象が変わることと同じなので、 落として気付かせる。
+ */
+const 節 = {
+  描く範囲: "## 描く範囲",
+  帯: "## 全画面に共通する上部の帯",
+  カタログ: "## 2. カタログ一覧 (`/catalog`)",
+  ドキュメント: "## 5. ドキュメント (`/docs`)",
+  参加方法: "## 8. 参加方法 (`/contribute`)",
+  手順: "### 8-1. `PR` を出すまでの 5 手順",
+} as const;
+
+/**
  * 仕様書が数を書いている箇所と、 その数が指す表の対応。
  *
  * 「行き先 6 つ」 と書いて 5 つしか並べない形を落とす。 実際に起きていた (#1135)。
  */
 const 数の主張 = [
-  { 節: "## 2. カタログ一覧", 文: /分類の札を (\d+) 枚/u, 表: "## 2. カタログ一覧" },
-  { 節: "## 5. ドキュメント", 文: /本文の節は次の (\d+) つ/u, 表: "## 5. ドキュメント" },
-  { 節: "## 8. 参加方法", 文: /手段の札を (\d+) 枚/u, 表: "## 8. 参加方法" },
+  { 節: 節.カタログ, 文: /分類の札を (\d+) 枚/u },
+  { 節: 節.ドキュメント, 文: /本文の節は次の (\d+) つ/u },
+  { 節: 節.参加方法, 文: /手段の札を (\d+) 枚/u },
 ] as const;
 
-/** 仕様書の節から、 次の節の手前までを切り出す。 */
+/**
+ * 仕様書の節から、 次の節の手前までを切り出す。
+ *
+ * 見出しは `表を読む` と同じく完全一致で探す。 前方一致だと接頭辞を共有する別の節を拾う。
+ */
 function 節の本文(見出し: string): string {
-  const 全文 = 仕様書();
-  const 始まり = 全文.indexOf(見出し);
+  const 行 = 仕様書().split("\n");
+  const 始まり = 行.findIndex((l) => l.trim() === 見出し);
   if (始まり < 0) return "";
-  const 続き = 全文.slice(始まり + 見出し.length);
-  const 次 = 続き.indexOf("\n## ");
-  return 次 < 0 ? 続き : 続き.slice(0, 次);
+  const out: string[] = [];
+  for (const l of 行.slice(始まり + 1)) {
+    if (/^#{2,6}\s/u.test(l.trim())) break;
+    out.push(l);
+  }
+  return out.join("\n");
 }
 
 test("仕様書の中の数の主張と表の行数が一致する", () => {
@@ -123,8 +182,8 @@ test("仕様書の中の数の主張と表の行数が一致する", () => {
     const m = x.文.exec(本文);
     expect(m, `「${x.節}」 に数の主張 (${String(x.文)}) が無い`).not.toBeNull();
 
-    const 表 = 表を読む(x.表);
-    expect(表.length, `「${x.表}」 の表を読めていない`).toBeGreaterThan(0);
+    const 表 = 表を読む(x.節);
+    expect(表.length, `「${x.節}」 の表を読めていない`).toBeGreaterThan(0);
     expect(表.length, `「${x.節}」 は ${m![1]} と書いているのに表は ${表.length} 行`).toBe(
       Number(m![1]),
     );
@@ -132,7 +191,7 @@ test("仕様書の中の数の主張と表の行数が一致する", () => {
 });
 
 test("上部の帯の行き先が実装と揃っている", async ({ page }) => {
-  const 表 = 表を読む("## 全画面に共通する上部の帯");
+  const 表 = 表を読む(節.帯);
   expect(表.length, "上部の帯の表を読めていない").toBeGreaterThan(0);
 
   const 中央 = 表.find((r) => r[0] === "中央");
@@ -159,7 +218,7 @@ test("上部の帯の行き先が実装と揃っている", async ({ page }) => 
 });
 
 test("カタログの分類が実装と揃っている", async ({ page }) => {
-  const 表 = 表を読む("## 2. カタログ一覧");
+  const 表 = 表を読む(節.カタログ);
   expect(表.length, "カタログ一覧の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => 正規化(r[0]));
@@ -169,7 +228,7 @@ test("カタログの分類が実装と揃っている", async ({ page }) => {
 });
 
 test("ドキュメントの節が実装と揃っている", async ({ page }) => {
-  const 表 = 表を読む("## 5. ドキュメント");
+  const 表 = 表を読む(節.ドキュメント);
   expect(表.length, "ドキュメントの節の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => 正規化(r[0]));
@@ -180,10 +239,10 @@ test("ドキュメントの節が実装と揃っている", async ({ page }) => 
 });
 
 test("参加方法の項目が実装と揃っている", async ({ page }) => {
-  const 手段 = 表を読む("## 8. 参加方法");
+  const 手段 = 表を読む(節.参加方法);
   expect(手段.length, "参加方法の手段の表を読めていない").toBeGreaterThan(0);
 
-  const 手順 = 表を読む("### 8-1. `PR` を出すまでの 5 手順");
+  const 手順 = 表を読む(節.手順);
   expect(手順.length, "参加方法の手順の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = [...手段, ...手順].map((r) => 正規化(r[0]));
@@ -201,6 +260,52 @@ test("参加方法の項目が実装と揃っている", async ({ page }) => {
 const 経路の言い換え = new Map<string, string>([["上記以外すべて", "*"]]);
 
 /**
+ * `main.tsx` の `<Route>` から経路を取り出す。
+ *
+ * **`<Route` を先に全件数え、 1 つずつ `path` を取る**。 `<Route\s+path="..."` の 1 つの形だけを
+ * 拾う書き方だと、 属性の並びを変える / 単引用符にする / 式で渡す のいずれでも取り逃がし、
+ * 実装にだけ経路を足しても「未宣言」 に出ない (review 指摘)。
+ *
+ * 取り出せない形は **例外にして落とす**。 取りこぼしを 0 件として黙って通すと、 検査が
+ * 「一致した」 と報告しながら実際には見ていない状態になる。
+ *
+ * 属性の並びの終わりは `{}` の深さと引用符を数えて決める。 `element={<Page />}` の中の `>` で
+ * 切ってしまうと、 その後ろに置いた `path` を読み落とす。
+ */
+function 実装の経路(src: string): string[] {
+  const out: string[] = [];
+  for (const m of src.matchAll(/<Route(?![A-Za-z])/gu)) {
+    const 始まり = m.index;
+    let 深さ = 0;
+    let 引用: string | null = null;
+    let i = 始まり + "<Route".length;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (引用 !== null) {
+        if (c === 引用) 引用 = null;
+        continue;
+      }
+      if (c === '"' || c === "'") {
+        引用 = c;
+        continue;
+      }
+      if (c === "{") 深さ++;
+      else if (c === "}") 深さ--;
+      else if (深さ === 0 && c === ">") break;
+    }
+    const 断片 = src.slice(始まり, i);
+    const p = /\spath=(?:"([^"]*)"|'([^']*)')/u.exec(断片);
+    if (p === null) {
+      throw new Error(
+        `route の path を字として読めない (式や変数で渡さず literal で書くこと): ${断片.trim()}`,
+      );
+    }
+    out.push(p[1] ?? p[2]);
+  }
+  return out;
+}
+
+/**
  * 実装にあって仕様書に無い経路。 1 件ずつ理由を書く。 ここに無い経路が出たら落ちる。
  *
  * 逆に **宣言した経路が仕様書に現れても落ちる**。 宣言が古くなったまま残ると、 仕様書に
@@ -214,7 +319,7 @@ const 経路の除外 = [
 ] as const;
 
 test("画面の経路が実装の route と揃っている", () => {
-  const 表 = 表を読む("## 描く範囲");
+  const 表 = 表を読む(節.描く範囲);
   expect(表.length, "描く範囲の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => {
@@ -222,8 +327,7 @@ test("画面の経路が実装の route と揃っている", () => {
     return 経路の言い換え.get(生) ?? 生;
   });
 
-  const src = 読む("../src/main.tsx");
-  const 実装 = [...src.matchAll(/<Route\s+path="([^"]+)"/gu)].map((m) => m[1]);
+  const 実装 = 実装の経路(読む("../src/main.tsx"));
   expect(実装.length, "main.tsx から route を 1 つも読めていない").toBeGreaterThan(0);
 
   const 宣言 = new Set<string>(経路の除外.map((x) => x.path));
