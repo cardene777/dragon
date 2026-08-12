@@ -1,14 +1,17 @@
 /**
- * 名札に載せる種類を「名前が箱に収まる時だけ」 に絞る検証 (#1061)。
+ * 名札に載せる種類を「絵が箱に収まる時だけ」 に絞る検証 (#1061 / #1067)。
  *
  * `#975` が「書いた種類を名札に載せる」 を入れ、 `#1058` が「書かなかった時は載せない」 を
  * 直した。 残っていたのは **書いた時にはみ出す** 側で、 名札は小型の箱 (`h: 72`) なのに
- * 描画側は `actor` / `function` / `storage` / `event` の名前を固定位置に置くため、 名前が箱の
- * 下端をまたいでいた (実測 = actor 21.6 / function 21.6 / storage 13.6 / event 24.2 world px)。
+ * `shape-` は絵を自分の大きさで描くため、 絵が箱の外に出ていた。
+ *
+ * `actor` / `function` / `storage` / `event` は `#1066` まで落とす対象だった。 描画側
+ * (`cardene777/cdl#416`) が小さい箱で名前を中央に置くようになったので外し、 いまは
+ * **書いたとおりの種類のまま載る** ことを見る (§ 名札で書いたとおりの種類が残る)。
  *
  * ここでは組み立ての結果 (どの種類が名札に残るか) を見る。 **表の値が実際の描画と合っているか**
  * は `apps/playground-spa/tests/node-label-fit.spec.ts` が実 render で両側 (その高さで収まる /
- * 1 低いとはみ出す) を測る。 組み立てだけを見ると、 表の値が実装から乖離しても気付けない。
+ * 2 低いとはみ出す) を測る。 組み立てだけを見ると、 表の値が実装から乖離しても気付けない。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "@cardenelabs/dragon";
@@ -219,11 +222,14 @@ flow:
     expect(kindOf(d, "b-footer"), "行を持つ組の下端まで落ちている").toBe("storage");
   });
 
-  describe.each([
+  // `describe.each` の入れ子にすると外側の `$名` が展開されず、 3 件が同じ名前で並ぶ
+  // (review 指摘)。 外側は平の loop にして title を自分で組む
+  for (const { 名, 記法, field } of [
     { 名: "説明", 記法: `subtitle: "サブ"`, field: "subtitle" },
     { 名: "肩書", 記法: `eyebrow: "Role"`, field: "eyebrow" },
     { 名: "値", 記法: `value: "42"`, field: "value" },
-  ])("著者が $名 を書いた名札", ({ 記法, field }) => {
+  ]) {
+    describe(`著者が ${名} を書いた名札`, () => {
     /**
      * **落ちる候補の種類で見る**。
      *
@@ -251,7 +257,8 @@ flow:
         expect(header[field], `${field} が名札に載っていない`).toBeDefined();
       });
     });
-  });
+    });
+  }
 
   it("上端だけ高さを書いても上下で形を揃える", () => {
     // `nodes` override は「その名札だけを指定の大きさにする」 指定なので、 上端 (120) と
