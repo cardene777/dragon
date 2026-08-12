@@ -124,56 +124,76 @@ for (const [名, 暗い] of [
   });
 }
 
-/** 区切り線の `stroke` を読む。 */
-async function 線の色(page: Page): Promise<string> {
-  const s = await page.evaluate((sel) => {
-    const e = document.querySelector(sel);
-    return e === null ? null : getComputedStyle(e).stroke;
-  }, 役割);
-  expect(s, `${対象} に区切り線が無い`).not.toBeNull();
-  return s!;
+/** 区切り線すべての `stroke` を、 出てくる順に読む。 */
+async function 全部の色(page: Page): Promise<string[]> {
+  return await page.evaluate(
+    (sel) => [...document.querySelectorAll(sel)].map((e) => getComputedStyle(e).stroke),
+    役割,
+  );
 }
 
 /**
- * `--d-text-secondary` を別の色に差し替えて、 線が追随した色を返す。
+ * `--d-text-secondary` を別の色に差し替えて、 線が追随した色を **1 本ずつ** 返す。
  *
  * **値の一致では配線を確かめられない**。 変数と同じ色を直接書けば計算後の値は一致するので、
- * 「繋がっている」 と「たまたま同じ色」 を区別できない (review 指摘)。 値を比べる形は
- * 仮の要素をどこに置くかで解決の文脈も変わり、 正しい配線を誤って落とす形も持っていた。
+ * 「繋がっている」 と「たまたま同じ色」 を区別できない (review 指摘)。 変数を動かして線が
+ * 動くかを見る = 繋がっていれば追随し、 直接書いてあれば動かない。
  *
- * **変数を動かして線が動くかを見る**。 繋がっていれば追随し、 直接書いてあれば動かない。
- * 差し替えは `html` の inline に置く = 明暗どちらの宣言よりも強いので、 どちらの表示でも効く。
+ * **差し替えは線そのものに置く**。 `html` に置くと、 線との間で同じ変数を宣言し直している
+ * 場合に届かず、 正しい配線を誤って落とす (review 指摘)。 線に置けば `stroke` が実際に
+ * 解かれる場所と同じになる。
+ *
+ * **1 本ずつ見る**。 先頭 1 本だけを読むと、 2 本目の配線が切れても気付けない (review 指摘)。
+ *
+ * 元の inline 宣言は優先度ごと控えて戻す。
  */
-async function 差し替えて追随を見る(page: Page, 色: string): Promise<string> {
-  await page.evaluate(
+async function 差し替えて追随を見る(page: Page, 色: string): Promise<string[]> {
+  return await page.evaluate(
     ({ sel, c }) => {
-      document.documentElement.style.setProperty("--d-text-secondary", c);
-      void (document.querySelector(sel) as SVGElement | null)?.getBoundingClientRect();
+      const 名 = "--d-text-secondary";
+      const out: string[] = [];
+      for (const e of document.querySelectorAll(sel)) {
+        const el = e as SVGElement;
+        const 元値 = el.style.getPropertyValue(名);
+        const 元優先 = el.style.getPropertyPriority(名);
+        try {
+          el.style.setProperty(名, c, "important");
+          out.push(getComputedStyle(el).stroke);
+        } finally {
+          el.style.removeProperty(名);
+          if (元値 !== "") el.style.setProperty(名, 元値, 元優先);
+        }
+      }
+      return out;
     },
     { sel: 役割, c: 色 },
   );
-  const 後 = await 線の色(page);
-  await page.evaluate(() => document.documentElement.style.removeProperty("--d-text-secondary"));
-  return 後;
 }
 
 test("表の区切り線が表示ごとの字の色に繋がっている", async ({ page }) => {
   const 印 = "rgb(1, 2, 3)";
 
-  await 開く(page, false);
-  const 明 = await 線の色(page);
-  expect(
-    await 差し替えて追随を見る(page, 印),
-    "明るい画面で `--d-text-secondary` を動かしても区切り線が追随しない (色を直接書いている)",
-  ).toEqual(印);
+  const 見る = async (暗い: boolean): Promise<string[]> => {
+    await 開く(page, 暗い);
+    const 元 = await 全部の色(page);
+    expect(元.length, `${対象} に区切り線が無い`).toBeGreaterThan(0);
 
-  await 開く(page, true);
-  const 暗 = await 線の色(page);
-  expect(
-    await 差し替えて追随を見る(page, 印),
-    "暗い画面で `--d-text-secondary` を動かしても区切り線が追随しない (色を直接書いている)",
-  ).toEqual(印);
+    const 後 = await 差し替えて追随を見る(page, 印);
+    expect(後.length, "差し替えの前後で区切り線の数が違う").toBe(元.length);
+
+    const 追随しない = 後
+      .map((s, i) => (s === 印 ? null : `${i + 1} 本目 (${s})`))
+      .filter((s): s is string => s !== null);
+    expect(
+      追随しない,
+      `${暗い ? "暗い" : "明るい"}画面で \`--d-text-secondary\` を動かしても追随しない区切り線がある (色を直接書いている)`,
+    ).toEqual([]);
+    return 元;
+  };
+
+  const 明 = await 見る(false);
+  const 暗 = await 見る(true);
 
   // 繋がっていても、 明暗で同じ値なら表示ごとに変わっていない
-  expect(暗, `明暗で区切り線の色が同じ (${明})`).not.toEqual(明);
+  expect(暗, `明暗で区切り線の色が同じ (${明.join(" / ")})`).not.toEqual(明);
 });
