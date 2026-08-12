@@ -38,18 +38,44 @@ async function 開く(page: Page, 暗い: boolean): Promise<void> {
   await page.waitForTimeout(1800);
 }
 
-/** 区切り線の矩形を、 線の細さで潰れないよう上下に広げて返す。 */
-async function 線の矩形(page: Page): Promise<Box[]> {
-  return await page.evaluate((sel) => {
-    const out: Box[] = [];
-    for (const e of document.querySelectorAll(sel)) {
-      const r = e.getBoundingClientRect();
-      if (r.width < 2) continue;
-      // 線は高さがほぼ 0 なので、 上下に 3px ずつ足して地の画素も入るようにする
-      out.push({ x: r.x, y: r.y - 3, width: r.width, height: Math.max(r.height, 1) + 6 });
-    }
-    return out;
-  }, 役割);
+/** 写しの範囲。 区切り線がこの外に出たら測れないので、 その形も落とす。 */
+const 写し = { x: 0, y: 0, width: 1280, height: 720 } as const;
+
+/**
+ * 区切り線の矩形を、 線の細さで潰れないよう上下に広げて返す。
+ *
+ * **1 本ずつ結果を持つ**。 幅が無い / 写しの外にある線を黙って飛ばすと、 2 本のうち 1 本が
+ * 消えても「残った 1 本が基準を満たす」 で通る (review 指摘)。 飛ばす代わりに理由を返し、
+ * 呼出側が落とす。
+ */
+async function 線の矩形(page: Page): Promise<Array<{ box: Box | null; 理由: string | null }>> {
+  return await page.evaluate(
+    ({ sel, 写し }) => {
+      const out: Array<{ box: { x: number; y: number; width: number; height: number } | null; 理由: string | null }> = [];
+      for (const e of document.querySelectorAll(sel)) {
+        const r = e.getBoundingClientRect();
+        const 場所 = `(${Math.round(r.x)}, ${Math.round(r.y)})`;
+        if (r.width < 2) {
+          out.push({ box: null, 理由: `${場所} 線の幅が 2 未満 (${r.width.toFixed(2)})` });
+          continue;
+        }
+        // 線は高さがほぼ 0 なので、 上下に 3px ずつ足して地の画素も入るようにする
+        const box = { x: r.x, y: r.y - 3, width: r.width, height: Math.max(r.height, 1) + 6 };
+        if (
+          box.x < 写し.x ||
+          box.y < 写し.y ||
+          box.x + box.width > 写し.x + 写し.width ||
+          box.y + box.height > 写し.y + 写し.height
+        ) {
+          out.push({ box: null, 理由: `${場所} 写しの外にある (写しの範囲を広げること)` });
+          continue;
+        }
+        out.push({ box, 理由: null });
+      }
+      return out;
+    },
+    { sel: 役割, 写し },
+  );
 }
 
 for (const [名, 暗い] of [
@@ -63,45 +89,78 @@ for (const [名, 暗い] of [
     // 線が 1 本も無い画面で測ると、 何も見ずに通る
     expect(矩形.length, `${対象} に区切り線が無い`).toBeGreaterThan(0);
 
-    const 出した = await shoot(page, { x: 0, y: 0, width: 1280, height: 720 });
+    const 出した = await shoot(page, 写し);
     await page.addStyleTag({ content: `${役割} { visibility: hidden !important; }` });
     await page.waitForTimeout(400);
-    const 隠した = await shoot(page, { x: 0, y: 0, width: 1280, height: 720 });
+    const 隠した = await shoot(page, 写し);
 
+    // **1 本ずつ結果を出す**。 測れなかった線を飛ばすと、 残った線が基準を満たすだけで通る
     const 悪い: string[] = [];
     let 測れた = 0;
-    for (const b of 矩形) {
-      const m = measure(出した, 隠した, b);
-      if (m.kind === "invisible") {
-        悪い.push(`(${Math.round(b.x)}, ${Math.round(b.y)}) 線が描かれていない`);
+    for (const { box, 理由 } of 矩形) {
+      if (box === null) {
+        悪い.push(理由!);
         continue;
       }
-      if (m.kind === "unmeasurable") continue;
+      const 場所 = `(${Math.round(box.x)}, ${Math.round(box.y)})`;
+      const m = measure(出した, 隠した, box);
+      if (m.kind === "invisible") {
+        悪い.push(`${場所} 線が描かれていない`);
+        continue;
+      }
+      if (m.kind === "unmeasurable") {
+        悪い.push(`${場所} 測れない (${m.reason})`);
+        continue;
+      }
       測れた++;
       if (m.ratio < 下限) {
-        悪い.push(`(${Math.round(b.x)}, ${Math.round(b.y)}) 対比 ${m.ratio.toFixed(2)}`);
+        悪い.push(`${場所} 対比 ${m.ratio.toFixed(2)}`);
       }
     }
 
-    // 全部が「測れない」 で終わると、 悪い件数 0 のまま通る
-    expect(測れた, "区切り線を 1 本も測れていない").toBeGreaterThan(0);
-    expect(悪い, `区切り線の対比が ${下限} を下回る`).toEqual([]);
+    expect(悪い, `区切り線が ${下限} を満たさない / 測れない`).toEqual([]);
+    // 上が空でも、 全部が測れずに終わっていないことを別に確かめる
+    expect(測れた, "区切り線を 1 本も測れていない").toBe(矩形.length);
   });
 }
 
-test("表の区切り線の色が明暗で変わる", async ({ page }) => {
-  // 同じ色のままなら、 配線 (`--d-text-secondary`) が効いていない
-  const 色 = async (暗い: boolean): Promise<string> => {
-    await 開く(page, 暗い);
-    const s = await page.evaluate((sel) => {
-      const e = document.querySelector(sel);
-      return e === null ? null : getComputedStyle(e).stroke;
-    }, 役割);
-    expect(s, `${対象} に区切り線が無い`).not.toBeNull();
-    return s!;
-  };
+/**
+ * 区切り線の色と、 その線が置かれた場所での `--d-text-secondary` の値を返す。
+ *
+ * **色が明暗で違うことだけを見てはいけない**。 違う色を 2 つ直接書いても通ってしまい、
+ * 「表示ごとの字の色に繋いである」 という配線そのものは確かめられない (review 指摘)。
+ *
+ * 変数の値は `#575349` のような書き方で返るので、 同じ書き方の色を仮の要素に置いて
+ * `rgb(...)` に直してから比べる。
+ */
+async function 線の色(page: Page): Promise<{ 線: string; 変数: string }> {
+  const r = await page.evaluate((sel) => {
+    const e = document.querySelector(sel);
+    if (e === null) return null;
+    const 生 = getComputedStyle(e).getPropertyValue("--d-text-secondary").trim();
+    const 仮 = document.createElement("span");
+    仮.style.color = 生;
+    document.body.appendChild(仮);
+    const 変数 = getComputedStyle(仮).color;
+    仮.remove();
+    return { 線: getComputedStyle(e).stroke, 変数, 生 };
+  }, 役割);
+  expect(r, `${対象} に区切り線が無い`).not.toBeNull();
+  expect(r!.生, "`--d-text-secondary` が定義されていない").not.toEqual("");
+  return { 線: r!.線, 変数: r!.変数 };
+}
 
-  const 明 = await 色(false);
-  const 暗 = await 色(true);
-  expect(暗, `明暗で区切り線の色が同じ (${明})`).not.toEqual(明);
+test("表の区切り線が表示ごとの字の色に繋がっている", async ({ page }) => {
+  await 開く(page, false);
+  const 明 = await 線の色(page);
+  expect(明.線, "明るい画面で区切り線が `--d-text-secondary` と違う色になっている").toEqual(
+    明.変数,
+  );
+
+  await 開く(page, true);
+  const 暗 = await 線の色(page);
+  expect(暗.線, "暗い画面で区切り線が `--d-text-secondary` と違う色になっている").toEqual(暗.変数);
+
+  // 繋がっていても、 明暗で同じ値なら表示ごとに変わっていない
+  expect(暗.線, `明暗で区切り線の色が同じ (${明.線})`).not.toEqual(明.線);
 });
