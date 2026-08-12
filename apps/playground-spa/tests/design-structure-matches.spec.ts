@@ -19,6 +19,13 @@
  * 設計が満杯の状態を描くのは意図的で、 実装が今そう見えないのは中身の量の違い。
  * 寄せると設計の役目 (どう見えるかを先に決める) が減り、 見本が増減するたびに設計が古くなる。
  * 雑音は消えず遅れて戻る。 だから寄せずに、 除外として宣言する。
+ *
+ * ## 対応表そのものも検査する (#1132)
+ *
+ * 下の `画面` は手で書いた対応表で、 **載せ忘れた frame は黙って無視される**。 実際に
+ * `03b` と `06b` が漏れ、 `/ Dark` の 11 枚は最初から対象外だった。
+ *
+ * 設計の frame が対応表に全件載っていることを別の検査で見る。 明暗で構成が食い違う形も落とす。
  */
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -44,7 +51,10 @@ const 数字だけ = (s: string): boolean => /^v?[\d.]+x?$/u.test(s);
 const 画面 = [
   { 設計: "01 トップ", path: "/" },
   { 設計: "02 カタログ一覧", path: "/catalog" },
-  { 設計: "03 カタログの分類", path: "/catalog/presets" },
+  // 設計が描いているのは「アニメーション」 の分類。 `#1128` はここを `/catalog/presets` に
+  // 向けたまま「実装は既定のプリセットだから違う」 と読み、 分類名を除外に宣言していた。
+  // 実装は分類ごとに経路を持つ (`/catalog/:slug`) ので、 描かれている分類に向ける (#1132)。
+  { 設計: "03 カタログの分類", path: "/catalog/animation" },
   { 設計: "04 エディタ", path: "/editor" },
   { 設計: "05 ドキュメント", path: "/docs" },
   { 設計: "06 見本の詳細", path: "/preset/sequence" },
@@ -54,21 +64,40 @@ const 画面 = [
 ] as const;
 
 /**
- * 実装に無くてよい節。 **すべて設計の見本データ由来** で、 画面の作りの差ではない。
+ * 実装に無くてよい節。 1 件ずつ画面と理由を書く。 ここに無い欠けが出たら落ちる。
  *
- * 1 件ずつ画面と理由を書く。 ここに無い欠けが出たら落ちる。
+ * **理由は観測に基づいて書く**。 `#1128` は 5 件のうち 4 件を「実装は別の状態を開くから」 と
+ * 読んでいたが、 実物 (`.pen` の階層と実装の見出し) を見ると別の理由だった (#1132)。
+ * 理由が違うと、 次に読む人が「もう解消できる」 か「まだ解消できない」 かを判断できない。
  */
 const 除外 = [
-  // 設計は「アニメーション」 の分類を選んだ状態を描く。 実装は既定で「プリセット」 を開くため、
-  // 別の分類の節は出ない。 どの分類を選んでも作りは同じ。
-  { 画面: "03 カタログの分類", 節: "アニメーション" },
+  // 設計は分類の項目を **縦積みで並べる**。 実装は左に一覧 + 右に選んだ 1 件で、 一覧の項目は
+  // 見出しではない (`div`)。 作りが違うので、 設計の項目名はどの見出しとも当たらない。
+  //
+  // 項目名の出どころも違う。 設計は `docs/design/specs/screens.md`、 実装は `src/lib/i18n.ts`。
+  // 語を揃えても作りは揃わないので、 描き直すか据え置くかの判断は別で行う。
   { 画面: "03 カタログの分類", 節: "局面での推移" },
   { 画面: "03 カタログの分類", 節: "数値の補間" },
   { 画面: "03 カタログの分類", 節: "名札での局面表示" },
 
-  // 設計の見本は送金と手数料の図。 実装で開くのはシーケンス図なので、 図の題が違う。
+  // 設計の見本「送金と手数料」 は実装のどの見本にも無い (`src/lib/presets.ts` の 20 件、
+  // 設計が描く前後の見本「3 層構成」 「受注データ」 も同じく無い)。 図そのものの描き直しが
+  // 要るので、 文言合わせでは消せない。
   { 画面: "06 見本の詳細", 節: "送金と手数料" },
 
+] as const;
+
+/**
+ * 状態違いの frame。 元の frame に操作を 1 つ加えた姿を描いたもの。
+ *
+ * 節は元と同じなので、 実装との突き合わせは元の frame が担う。 **元と食い違ったら落ちる** =
+ * 重ね窓にだけ節を足したなら、 その frame は対応表 (`画面`) に自分の行を持つ必要がある。
+ */
+const 状態違い = [
+  // 図を拡大した重ね窓。 元の画面の上に載るだけで、 節は増えない
+  { 設計: "03b カタログの分類 重ね窓", 元: "03 カタログの分類" },
+  // コピーに失敗した時の報せ。 元の画面の上に載るだけで、 節は増えない
+  { 設計: "06b 見本の詳細 コピー失敗", 元: "06 見本の詳細" },
 ] as const;
 
 type Node = {
@@ -83,8 +112,13 @@ type Node = {
   children?: Node[];
 };
 
-/** 設計の節の見出しを画面ごとに集める。 */
-function 設計の節(): Map<string, string[]> {
+/**
+ * 設計の節の見出しを画面ごとに集める。
+ *
+ * `明暗` で見る frame を選ぶ。 返る key は frame 名から ` / Light` ` / Dark` を除いたもので、
+ * 明暗どちらを読んでも同じ key になる = そのまま突き合わせられる。
+ */
+function 設計の節(明暗: "Light" | "Dark" = "Light"): Map<string, string[]> {
   const doc = JSON.parse(読む("../../../docs/design/app.pen")) as { children?: Node[] };
   const 部品 = new Map<string, Node>();
   const 探す = (n: Node): void => {
@@ -146,13 +180,14 @@ function 設計の節(): Map<string, string[]> {
     return out.filter((t) => !数字だけ(t));
   };
 
+  const 尾 = ` / ${明暗}`;
   const out = new Map<string, string[]>();
   for (const f of doc.children ?? []) {
     const nm = f.name ?? "";
-    if (!nm.endsWith(" / Light")) continue;
+    if (!nm.endsWith(尾)) continue;
     const 群: { 字: string; px: number }[][] = [];
     集める(f, 群);
-    out.set(nm.slice(0, -" / Light".length), [...new Set(繋ぐ(群))]);
+    out.set(nm.slice(0, -尾.length), [...new Set(繋ぐ(群))]);
   }
   return out;
 }
@@ -186,6 +221,63 @@ async function 実装の見出し(page: Page, path: string): Promise<string[]> {
 }
 
 const 正規化 = (s: string): string => s.normalize("NFKC").replace(/\s+/gu, "");
+
+test("設計の frame が対応表に全件載っている", () => {
+  const 明 = 設計の節("Light");
+  const 暗 = 設計の節("Dark");
+  expect(明.size, "`.pen` から明るい側の frame を 1 つも読めていない").toBeGreaterThan(5);
+
+  // 部品 frame (`C / TopBar` 等) は明暗の尾を持たないので、 ここには最初から入らない
+  const 載っている = new Set<string>([...画面.map((x) => x.設計), ...状態違い.map((x) => x.設計)]);
+
+  const 漏れ = [...明.keys()].filter((n) => !載っている.has(n));
+  expect(漏れ, "設計にあるのに対応表 (画面 / 状態違い) に無い frame").toEqual([]);
+
+  const 幽霊 = [...載っている].filter((n) => !明.has(n));
+  expect(幽霊, "対応表にあるのに設計に無い frame").toEqual([]);
+
+  // 明暗は対で描く。 片側だけ足す / 消すと、 もう片方は誰も見ていない状態になる
+  const 片側 = [
+    ...[...明.keys()].filter((n) => !暗.has(n)).map((n) => `${n} (明るい側だけ)`),
+    ...[...暗.keys()].filter((n) => !明.has(n)).map((n) => `${n} (暗い側だけ)`),
+  ];
+  expect(片側, "明暗の片側しか無い frame").toEqual([]);
+});
+
+test("明暗 2 種の frame で節が同じ", () => {
+  // 構成は明暗で変わらない。 変わるのは色だけ (色は `palette-matches-pen.spec.ts` が見る)。
+  // 片側にだけ節を足すと、 実装との突き合わせは明るい側しか見ないため気付けない。
+  const 明 = 設計の節("Light");
+  const 暗 = 設計の節("Dark");
+  const 食い違い: string[] = [];
+  for (const [名, 節] of 明) {
+    const d = 暗.get(名);
+    // 片側の欠けは 1 つ上の検査が見る。 ここでは中身の差だけを見る
+    if (d === undefined) continue;
+    if (JSON.stringify(節) !== JSON.stringify(d)) {
+      食い違い.push(`${名}: 明 ${JSON.stringify(節)} / 暗 ${JSON.stringify(d)}`);
+    }
+  }
+  expect(食い違い, "明暗で節が違う frame").toEqual([]);
+});
+
+test("状態違いの frame は元と同じ節を持つ", () => {
+  const 明 = 設計の節("Light");
+  const 食い違い: string[] = [];
+  for (const x of 状態違い) {
+    const a = 明.get(x.設計);
+    const b = 明.get(x.元);
+    expect(a, `設計に「${x.設計}」 が無い`).toBeDefined();
+    expect(b, `状態違いの元「${x.元}」 が設計に無い`).toBeDefined();
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
+      食い違い.push(`${x.設計} ${JSON.stringify(a)} / ${x.元} ${JSON.stringify(b)}`);
+    }
+  }
+  expect(
+    食い違い,
+    "状態違いの frame が元と違う節を持つ (対応表 `画面` に自分の行を持たせること)",
+  ).toEqual([]);
+});
 
 test("設計の節が実装にある (除外は宣言したものだけ)", async ({ page }) => {
   const 設計 = 設計の節();
