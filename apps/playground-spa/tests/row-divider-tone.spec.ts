@@ -124,43 +124,56 @@ for (const [名, 暗い] of [
   });
 }
 
-/**
- * 区切り線の色と、 その線が置かれた場所での `--d-text-secondary` の値を返す。
- *
- * **色が明暗で違うことだけを見てはいけない**。 違う色を 2 つ直接書いても通ってしまい、
- * 「表示ごとの字の色に繋いである」 という配線そのものは確かめられない (review 指摘)。
- *
- * 変数の値は `#575349` のような書き方で返るので、 同じ書き方の色を仮の要素に置いて
- * `rgb(...)` に直してから比べる。
- */
-async function 線の色(page: Page): Promise<{ 線: string; 変数: string }> {
-  const r = await page.evaluate((sel) => {
+/** 区切り線の `stroke` を読む。 */
+async function 線の色(page: Page): Promise<string> {
+  const s = await page.evaluate((sel) => {
     const e = document.querySelector(sel);
-    if (e === null) return null;
-    const 生 = getComputedStyle(e).getPropertyValue("--d-text-secondary").trim();
-    const 仮 = document.createElement("span");
-    仮.style.color = 生;
-    document.body.appendChild(仮);
-    const 変数 = getComputedStyle(仮).color;
-    仮.remove();
-    return { 線: getComputedStyle(e).stroke, 変数, 生 };
+    return e === null ? null : getComputedStyle(e).stroke;
   }, 役割);
-  expect(r, `${対象} に区切り線が無い`).not.toBeNull();
-  expect(r!.生, "`--d-text-secondary` が定義されていない").not.toEqual("");
-  return { 線: r!.線, 変数: r!.変数 };
+  expect(s, `${対象} に区切り線が無い`).not.toBeNull();
+  return s!;
+}
+
+/**
+ * `--d-text-secondary` を別の色に差し替えて、 線が追随した色を返す。
+ *
+ * **値の一致では配線を確かめられない**。 変数と同じ色を直接書けば計算後の値は一致するので、
+ * 「繋がっている」 と「たまたま同じ色」 を区別できない (review 指摘)。 値を比べる形は
+ * 仮の要素をどこに置くかで解決の文脈も変わり、 正しい配線を誤って落とす形も持っていた。
+ *
+ * **変数を動かして線が動くかを見る**。 繋がっていれば追随し、 直接書いてあれば動かない。
+ * 差し替えは `html` の inline に置く = 明暗どちらの宣言よりも強いので、 どちらの表示でも効く。
+ */
+async function 差し替えて追随を見る(page: Page, 色: string): Promise<string> {
+  await page.evaluate(
+    ({ sel, c }) => {
+      document.documentElement.style.setProperty("--d-text-secondary", c);
+      void (document.querySelector(sel) as SVGElement | null)?.getBoundingClientRect();
+    },
+    { sel: 役割, c: 色 },
+  );
+  const 後 = await 線の色(page);
+  await page.evaluate(() => document.documentElement.style.removeProperty("--d-text-secondary"));
+  return 後;
 }
 
 test("表の区切り線が表示ごとの字の色に繋がっている", async ({ page }) => {
+  const 印 = "rgb(1, 2, 3)";
+
   await 開く(page, false);
   const 明 = await 線の色(page);
-  expect(明.線, "明るい画面で区切り線が `--d-text-secondary` と違う色になっている").toEqual(
-    明.変数,
-  );
+  expect(
+    await 差し替えて追随を見る(page, 印),
+    "明るい画面で `--d-text-secondary` を動かしても区切り線が追随しない (色を直接書いている)",
+  ).toEqual(印);
 
   await 開く(page, true);
   const 暗 = await 線の色(page);
-  expect(暗.線, "暗い画面で区切り線が `--d-text-secondary` と違う色になっている").toEqual(暗.変数);
+  expect(
+    await 差し替えて追随を見る(page, 印),
+    "暗い画面で `--d-text-secondary` を動かしても区切り線が追随しない (色を直接書いている)",
+  ).toEqual(印);
 
   // 繋がっていても、 明暗で同じ値なら表示ごとに変わっていない
-  expect(暗.線, `明暗で区切り線の色が同じ (${明.線})`).not.toEqual(明.線);
+  expect(暗, `明暗で区切り線の色が同じ (${明})`).not.toEqual(明);
 });
