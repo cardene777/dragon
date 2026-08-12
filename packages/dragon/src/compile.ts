@@ -2262,10 +2262,12 @@ function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
  * 10 種のうち `shape-wallet` だけは落とす (#1106)。 上へ 12.1 しか出ないのに絵が潰れて名前と
  * 重なるため = 分ける基準ははみ出し量ではなく「名前が読めるか」。
  *
- * **著者が文字を書いた名札は、 名前がはみ出したままになる**。 4 種は `subtitle` を `y=126`
- * 付近、 `value` を `y=152` に置くため、 収める高さは 150 以上になる。 揃えの伝播で全名札が
- * 2 倍になるので、 高さで解く道は上と同じ理由で採れない。 直すには描画側 (`cdl`) に小型用の
- * 配置が要る。
+ * **著者が文字を書いた名札は落とさない**。 小型の `card` は名前しか描かないため、 落とすと
+ * 書いた文字が画面から消える。 `shape-` はこの保護によって絵が箱の外に出たまま残る (`#1105`)。
+ *
+ * `actor` / `function` / `storage` / `event` は `#1066` まで落とす対象だった。 描画側
+ * (`cardene777/cdl#416`) が小さい箱で名前を中央に置くようになったので外した = 名前がはみ出す
+ * 理由で落とす経路はもう無い。 いま落とすのは `shape-` だけで、 理由は絵のはみ出し。
  */
 function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
@@ -2927,8 +2929,9 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
   // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
   // 「同じ高さから下りる」 読み方が崩れる (実測 = 行を持つ名札だけ 134px 下にずれた)。
   alignSeqHeaderHeights(diagram, doc);
-  // 揃えた後の高さで、 名前が箱に収まらない種別を名札から外す (#1061)。 揃えは高さを上げる
-  // 方向にしか動かないので、 ここで見れば「行を書いた図では書いた種別が残る」 が成立する。
+  // 揃えた後の高さで、 絵が箱に収まらない `shape-` を名札から外す (#1061 / #1067、 #1066 で
+  // 4 種を対象から外した)。 揃えは高さを上げる方向にしか動かないので、 ここで見れば
+  // 「行を書いた図では書いた種別が残る」 が成立する。
   dropUnfittableEndKinds(diagram, doc);
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
   // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。

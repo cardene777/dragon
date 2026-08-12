@@ -224,20 +224,32 @@ flow:
     { 名: "肩書", 記法: `eyebrow: "Role"`, field: "eyebrow" },
     { 名: "値", 記法: `value: "42"`, field: "value" },
   ])("著者が $名 を書いた名札", ({ 記法, field }) => {
-    it("種類を落とさない", () => {
-      // 小型の `card` が描くのは名前だけ。 `subtitle` と `eyebrow` は `h < 100` の分岐で
-      // 外れ、 `value` は `card` が元から描かない。 落とすと書いた文字が画面から消える =
-      // 名前がはみ出すより悪い。
-      const d =図(`  - A\n  - B: { kind: actor, ${記法} }`);
-      expect(kindOf(d, "b-header"), `${field} を書いた名札が card に落ちている`).toBe("actor");
-      expect(kindOf(d, "b-footer")).toBe("actor");
-    });
+    /**
+     * **落ちる候補の種類で見る**。
+     *
+     * `#1066` まではここで `actor` を使っていたが、 4 種が落ちる候補から外れたため、
+     * `hasAuthoredText` が常に `false` を返すよう壊れても検査が通る空振りになっていた
+     * (review 指摘)。 今も落ちる候補である `shape-` で見る。
+     *
+     * `shape-person` は高さで落ちる側 (`LABEL_MIN_H`)、 `shape-smart-contract` は高さで
+     * 直らない側 (`LABEL_NEVER_FITS`)。 分岐の両方を通す。
+     */
+    describe.each(["shape-person", "shape-smart-contract"])("%s", (kind) => {
+      it("種類を落とさない", () => {
+        // 小型の `card` が描くのは名前だけ。 `subtitle` と `eyebrow` は `h < 100` の分岐で
+        // 外れ、 `value` は `card` が元から描かない。 落とすと書いた文字が画面から消える =
+        // 絵がはみ出すより悪い。
+        const d =図(`  - A\n  - B: { kind: ${kind}, ${記法} }`);
+        expect(kindOf(d, "b-header"), `${field} を書いた名札が card に落ちている`).toBe(kind);
+        expect(kindOf(d, "b-footer")).toBe(kind);
+      });
 
-    it("書いた文字が名札に残る", () => {
-      // 落とさないことと、 文字が消えないことは別。 組み立て結果に値が載っているかを直接見る。
-      const d =図(`  - A\n  - B: { kind: actor, ${記法} }`);
-      const header = d.nodes.find((n) => n.id === "b-header") as Record<string, unknown>;
-      expect(header[field], `${field} が名札に載っていない`).toBeDefined();
+      it("書いた文字が名札に残る", () => {
+        // 落とさないことと、 文字が消えないことは別。 組み立て結果に値が載っているかを直接見る。
+        const d =図(`  - A\n  - B: { kind: ${kind}, ${記法} }`);
+        const header = d.nodes.find((n) => n.id === "b-header") as Record<string, unknown>;
+        expect(header[field], `${field} が名札に載っていない`).toBeDefined();
+      });
     });
   });
 
