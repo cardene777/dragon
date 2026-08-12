@@ -170,24 +170,32 @@ async function 差し替えて追随を見る(page: Page, 色: string): Promise<
   );
 }
 
-test("表の区切り線が表示ごとの字の色に繋がっている", async ({ page }) => {
-  const 印 = "rgb(1, 2, 3)";
+/**
+ * 差し替えに使う色。 **2 つ要る**。
+ *
+ * 1 つだと、 その色を直接書いた線が「追随した」 ことになる (review 指摘)。 直接書いた色は
+ * 違う 2 つの値に同時には一致できないので、 2 回動かせば見分けられる。
+ */
+const 印 = ["rgb(1, 2, 3)", "rgb(4, 5, 6)"] as const;
 
+test("表の区切り線が表示ごとの字の色に繋がっている", async ({ page }) => {
   const 見る = async (暗い: boolean): Promise<string[]> => {
     await 開く(page, 暗い);
     const 元 = await 全部の色(page);
     expect(元.length, `${対象} に区切り線が無い`).toBeGreaterThan(0);
 
-    const 後 = await 差し替えて追随を見る(page, 印);
-    expect(後.length, "差し替えの前後で区切り線の数が違う").toBe(元.length);
+    for (const c of 印) {
+      const 後 = await 差し替えて追随を見る(page, c);
+      expect(後.length, "差し替えの前後で区切り線の数が違う").toBe(元.length);
 
-    const 追随しない = 後
-      .map((s, i) => (s === 印 ? null : `${i + 1} 本目 (${s})`))
-      .filter((s): s is string => s !== null);
-    expect(
-      追随しない,
-      `${暗い ? "暗い" : "明るい"}画面で \`--d-text-secondary\` を動かしても追随しない区切り線がある (色を直接書いている)`,
-    ).toEqual([]);
+      const 追随しない = 後
+        .map((s, i) => (s === c ? null : `${i + 1} 本目 (${s})`))
+        .filter((s): s is string => s !== null);
+      expect(
+        追随しない,
+        `${暗い ? "暗い" : "明るい"}画面で \`--d-text-secondary\` を ${c} にしても追随しない区切り線がある (色を直接書いている)`,
+      ).toEqual([]);
+    }
     return 元;
   };
 
