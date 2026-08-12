@@ -39,13 +39,33 @@ const 仕様書 = (): string => 読む("../../../docs/design/specs/screens.md");
 /** backtick / 全角半角 / 空白の差を吸収する。 語そのものの違いは残す。 */
 const 正規化 = (s: string): string => s.replace(/`/gu, "").normalize("NFKC").replace(/\s+/gu, "");
 
-/** 表のセルに割る。 前後の `|` を落としてから区切る。 */
-const セルに割る = (行: string): string[] =>
-  行
-    .trim()
-    .slice(1, -1)
-    .split("|")
-    .map((c) => c.trim());
+/**
+ * 表のセルに割る。 前後の `|` を落としてから区切る。
+ *
+ * **`\|` は区切りではなく字としての縦棒**。 markdown はセルの中の縦棒をこの形で書く。
+ * 素朴に `|` で割ると、 正しい表を「列が増えた」 と誤って読む (review 指摘)。
+ */
+const セルに割る = (行: string): string[] => {
+  const 中 = 行.trim().slice(1, -1);
+  const out: string[] = [];
+  let 今 = "";
+  for (let i = 0; i < 中.length; i++) {
+    const c = 中[i];
+    if (c === "\\" && 中[i + 1] === "|") {
+      今 += "|";
+      i++;
+      continue;
+    }
+    if (c === "|") {
+      out.push(今.trim());
+      今 = "";
+      continue;
+    }
+    今 += c;
+  }
+  out.push(今.trim());
+  return out;
+};
 
 /**
  * 節の見出しの直後にある最初の表を、 行ごとのセル配列で返す。
@@ -81,7 +101,10 @@ function 表を読む(見出し: string): string[][] {
       // 見出し行の直後が区切り行になっている対だけを表の始まりとみなす
       const 次 = (続き[i + 1] ?? "").trim();
       if (!/^\|[\s\-|:]+\|$/u.test(次)) continue;
-      列数 = セルに割る(t).length;
+      const 見出し行 = セルに割る(t).length;
+      // 区切り行の列数も見出し行と揃っていること。 揃わない形は表として壊れている (review 指摘)
+      if (セルに割る(次).length !== 見出し行) break;
+      列数 = 見出し行;
       表の中 = true;
       i++;
       continue;
@@ -274,7 +297,8 @@ const 経路の言い換え = new Map<string, string>([["上記以外すべて",
  */
 function 実装の経路(src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(/<Route(?![A-Za-z])/gu)) {
+  // 名前の続きを持つ tag (`<Routes` / `<Route2`) は別物。 数字と `_` も名前の続きに含める
+  for (const m of src.matchAll(/<Route(?![\p{L}\p{N}_])/gu)) {
     const 始まり = m.index;
     let 深さ = 0;
     let 引用: string | null = null;
@@ -282,6 +306,12 @@ function 実装の経路(src: string): string[] {
     for (; i < src.length; i++) {
       const c = src[i];
       if (引用 !== null) {
+        // 引用の中の `\` は次の 1 文字を字として読む。 数えないと `{"a\"b"}` で引用が閉じたと
+        // 誤り、 走査が次の tag まで伸びて別の route の `path` を拾う (review 指摘)
+        if (c === "\\") {
+          i++;
+          continue;
+        }
         if (c === 引用) 引用 = null;
         continue;
       }
@@ -292,6 +322,10 @@ function 実装の経路(src: string): string[] {
       if (c === "{") 深さ++;
       else if (c === "}") 深さ--;
       else if (深さ === 0 && c === ">") break;
+    }
+    // 終わりを見つけられない = 読めていない。 その先の字を拾って別の route の値にしない
+    if (i >= src.length) {
+      throw new Error(`route の属性の終わりを読めない: ${src.slice(始まり, 始まり + 80)}`);
     }
     const 断片 = src.slice(始まり, i);
     const p = /\spath=(?:"([^"]*)"|'([^']*)')/u.exec(断片);
