@@ -26,6 +26,16 @@
  * `03b` と `06b` が漏れ、 `/ Dark` の 11 枚は最初から対象外だった。
  *
  * 設計の frame が対応表に全件載っていることを別の検査で見る。 明暗で構成が食い違う形も落とす。
+ *
+ * **「載っている」 を数える前に、 数える母集合そのものを固定する** (review 指摘)。 母集合が
+ * 揺れると網羅の検査は成立しない = 4 つの抜け道がある。
+ *
+ * | 抜け道 | 塞ぎ方 |
+ * |---|---|
+ * | 明暗以外の尾 (`/ Sepia`) や尾なしで画面を足す | 尾を持たない frame は `共通部品` に宣言が要る |
+ * | 同名 frame を 2 枚置く | `Map` の後勝ちを名前の重複検査で先に落とす |
+ * | 画面 frame を入れ子に置く | top-level 以外の画面 frame を落とす |
+ * | 状態違いの `元` を自分自身や別の状態違いにする | `元` は `画面` の行に限る |
  */
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -100,6 +110,18 @@ const 状態違い = [
   { 設計: "06b 見本の詳細 コピー失敗", 元: "06 見本の詳細" },
 ] as const;
 
+/**
+ * 画面ではない frame。 複数の画面が参照する共通部品で、 明暗の対を持たない。
+ *
+ * **宣言しないと落ちる**。 明暗の尾を持たず、 ここにも無い frame は「画面なのか部品なのか」
+ * を決められない = 新しい命名で足した画面が黙って検査の外に落ちる (review 指摘)。
+ */
+const 共通部品: readonly string[] = ["C / TopBar", "C / Buttons"];
+
+/** 画面 frame の名前が持つ尾。 明暗は対で描くので、 どちらか片方だけの frame は落とす。 */
+const 明暗 = ["Light", "Dark"] as const;
+type 明暗 = (typeof 明暗)[number];
+
 type Node = {
   type?: string;
   id?: string;
@@ -112,14 +134,56 @@ type Node = {
   children?: Node[];
 };
 
+const 設計を読む = (): { children?: Node[] } =>
+  JSON.parse(読む("../../../docs/design/app.pen")) as { children?: Node[] };
+
+/**
+ * frame の並びそのものを見る。 節の中身ではなく **どんな frame があるか** を返す。
+ *
+ * 節を集める側 (`設計の節`) は `Map` に詰めるため、 同名 frame の 2 枚目が 1 枚目を
+ * 黙って上書きする。 上書きされた側の節差は誰にも見えなくなるので、 名前の重複はここで見る。
+ */
+function 設計のframe構成(): {
+  /** top-level frame 名 (出現順、 重複もそのまま) */
+  一覧: string[];
+  /** 2 枚以上ある frame 名 */
+  重複: string[];
+  /** top-level 以外に置かれた画面 frame の名前 */
+  入れ子の画面: string[];
+} {
+  const doc = 設計を読む();
+  const 一覧 = (doc.children ?? []).map((f) => f.name ?? "");
+  const 見た = new Set<string>();
+  const 重複 = new Set<string>();
+  for (const n of 一覧) {
+    if (見た.has(n)) 重複.add(n);
+    見た.add(n);
+  }
+
+  // 画面 frame は top-level に置く。 入れ子に置くと `設計の節` の走査 (top-level のみ) から
+  // 外れ、 対応表に載せなくても検査されない
+  const 入れ子の画面: string[] = [];
+  const 潜る = (n: Node, 深さ: number): void => {
+    const nm = n.name ?? "";
+    if (深さ > 0 && 明暗.some((t) => nm.endsWith(` / ${t}`))) 入れ子の画面.push(nm);
+    for (const c of n.children ?? []) 潜る(c, 深さ + 1);
+  };
+  for (const c of doc.children ?? []) 潜る(c, 0);
+
+  return { 一覧, 重複: [...重複], 入れ子の画面 };
+}
+
 /**
  * 設計の節の見出しを画面ごとに集める。
  *
- * `明暗` で見る frame を選ぶ。 返る key は frame 名から ` / Light` ` / Dark` を除いたもので、
+ * `見る明暗` で見る frame を選ぶ。 返る key は frame 名から ` / Light` ` / Dark` を除いたもので、
  * 明暗どちらを読んでも同じ key になる = そのまま突き合わせられる。
+ *
+ * **値は重複を落とさない**。 落とすと片側にだけ同じ節が 2 つある差が消え、 明暗の比較が
+ * 一致してしまう (review 指摘)。 実装との突き合わせ側で必要なら呼出側が一意化する。
  */
-function 設計の節(明暗: "Light" | "Dark" = "Light"): Map<string, string[]> {
-  const doc = JSON.parse(読む("../../../docs/design/app.pen")) as { children?: Node[] };
+function 設計の節(見る明暗: 明暗 = "Light"): Map<string, string[]> {
+  const doc = 設計を読む();
   const 部品 = new Map<string, Node>();
   const 探す = (n: Node): void => {
     if (n.reusable === true && n.id !== undefined) 部品.set(n.id, n);
@@ -180,14 +244,14 @@ function 設計の節(明暗: "Light" | "Dark" = "Light"): Map<string, string[]>
     return out.filter((t) => !数字だけ(t));
   };
 
-  const 尾 = ` / ${明暗}`;
+  const 尾 = ` / ${見る明暗}`;
   const out = new Map<string, string[]>();
   for (const f of doc.children ?? []) {
     const nm = f.name ?? "";
     if (!nm.endsWith(尾)) continue;
     const 群: { 字: string; px: number }[][] = [];
     集める(f, 群);
-    out.set(nm.slice(0, -尾.length), [...new Set(繋ぐ(群))]);
+    out.set(nm.slice(0, -尾.length), 繋ぐ(群));
   }
   return out;
 }
@@ -223,11 +287,30 @@ async function 実装の見出し(page: Page, path: string): Promise<string[]> {
 const 正規化 = (s: string): string => s.normalize("NFKC").replace(/\s+/gu, "");
 
 test("設計の frame が対応表に全件載っている", () => {
+  const 構成 = 設計のframe構成();
   const 明 = 設計の節("Light");
   const 暗 = 設計の節("Dark");
   expect(明.size, "`.pen` から明るい側の frame を 1 つも読めていない").toBeGreaterThan(5);
 
-  // 部品 frame (`C / TopBar` 等) は明暗の尾を持たないので、 ここには最初から入らない
+  // 名前が重なると `設計の節` の `Map` が後勝ちで上書きし、 先の 1 枚の節差が消える
+  expect(構成.重複, "同じ名前の frame が 2 枚以上ある").toEqual([]);
+
+  // 入れ子の画面 frame は top-level しか見ない走査から外れる
+  expect(構成.入れ子の画面, "top-level 以外に置かれた画面 frame").toEqual([]);
+
+  // **明暗の尾で画面を判別している**。 尾を持たない frame は共通部品として宣言が要る =
+  // 別の命名 (`/ Sepia` / 尾なし) で画面を足しても検査の外に落ちない
+  const 未分類 = 構成.一覧.filter(
+    (n) => !明暗.some((t) => n.endsWith(` / ${t}`)) && !共通部品.includes(n),
+  );
+  expect(
+    未分類,
+    "画面でも共通部品でもない frame (共通部品に宣言するか、 明暗の対で描くこと)",
+  ).toEqual([]);
+
+  const 消えた部品 = 共通部品.filter((n) => !構成.一覧.includes(n));
+  expect(消えた部品, "共通部品に宣言されているが設計に無い frame").toEqual([]);
+
   const 載っている = new Set<string>([...画面.map((x) => x.設計), ...状態違い.map((x) => x.設計)]);
 
   const 漏れ = [...明.keys()].filter((n) => !載っている.has(n));
@@ -263,8 +346,20 @@ test("明暗 2 種の frame で節が同じ", () => {
 
 test("状態違いの frame は元と同じ節を持つ", () => {
   const 明 = 設計の節("Light");
+  const 画面名 = new Set<string>(画面.map((x) => x.設計));
+  const 宣言済 = new Set<string>();
   const 食い違い: string[] = [];
   for (const x of 状態違い) {
+    // **元は対応表 (`画面`) の画面でなければならない**。 状態違い同士を繋ぐと、 実装と
+    // 突き合わせる相手がどこにも無いまま「元と同じ」 だけが成り立つ (review 指摘)。
+    // 自分自身を元にする形も、 下の 2 つ目と併せてここで落ちる (常に一致して空回りする)。
+    expect(画面名.has(x.元), `状態違い「${x.設計}」 の元「${x.元}」 が対応表 (画面) に無い`).toBe(
+      true,
+    );
+    expect(画面名.has(x.設計), `状態違い「${x.設計}」 が対応表 (画面) にも載っている`).toBe(false);
+    expect(宣言済.has(x.設計), `状態違い「${x.設計}」 が 2 回宣言されている`).toBe(false);
+    宣言済.add(x.設計);
+
     const a = 明.get(x.設計);
     const b = 明.get(x.元);
     expect(a, `設計に「${x.設計}」 が無い`).toBeDefined();
@@ -299,7 +394,8 @@ test("設計の節が実装にある (除外は宣言したものだけ)", async
       `${path} から見出しを 1 つも読めていない (設計は節を ${節!.length} 件持つ)`,
     ).toBeGreaterThan(0);
 
-    for (const s of 節!) {
+    // 同じ節が 2 つあっても実装との照合は 1 回でよい (重複は明暗の比較側が見る)
+    for (const s of new Set(節!)) {
       const key = `${名} / ${正規化(s)}`;
       // **完全一致で照合する**。 部分一致にすると、 設計の 1 節に実装の複数の見出しが
       // 当たり、 片方を消しても通る (review 指摘 = 「コントリビュート」 が
