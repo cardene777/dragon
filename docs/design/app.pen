@@ -17052,7 +17052,7 @@
           "x": 0,
           "y": 0,
           "name": "Scrim",
-          "fill": "#100E0CB8",
+          "fill": "$scrim",
           "width": 1440,
           "height": 2579
         },
@@ -20095,7 +20095,7 @@
           "x": 0,
           "y": 0,
           "name": "Scrim",
-          "fill": "#100E0CB8",
+          "fill": "$scrim",
           "width": 1440,
           "height": 2579
         },
@@ -48184,7 +48184,7 @@
           }
         },
         {
-          "value": "#111110",
+          "value": "#23211E",
           "theme": {
             "mode": "dark"
           }
@@ -48201,7 +48201,7 @@
           }
         },
         {
-          "value": "#191817",
+          "value": "#2E2C28",
           "theme": {
             "mode": "dark"
           }
@@ -48218,7 +48218,7 @@
           }
         },
         {
-          "value": "#221F1D",
+          "value": "#3B3834",
           "theme": {
             "mode": "dark"
           }
@@ -48235,7 +48235,7 @@
           }
         },
         {
-          "value": "#2B2825",
+          "value": "#494540",
           "theme": {
             "mode": "dark"
           }
@@ -48252,7 +48252,7 @@
           }
         },
         {
-          "value": "#302D29",
+          "value": "#54504A",
           "theme": {
             "mode": "dark"
           }
@@ -48269,7 +48269,7 @@
           }
         },
         {
-          "value": "#494440",
+          "value": "#6E6860",
           "theme": {
             "mode": "dark"
           }
@@ -48303,7 +48303,7 @@
           }
         },
         {
-          "value": "#A9A399",
+          "value": "#C4BDB3",
           "theme": {
             "mode": "dark"
           }
@@ -48314,13 +48314,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#8A857A",
+          "value": "#6D6960",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#77716A",
+          "value": "#A8A199",
           "theme": {
             "mode": "dark"
           }
@@ -48354,7 +48354,7 @@
           }
         },
         {
-          "value": "#3A211A",
+          "value": "#41241B",
           "theme": {
             "mode": "dark"
           }
@@ -48388,7 +48388,7 @@
           }
         },
         {
-          "value": "#151413",
+          "value": "#1F1D1B",
           "theme": {
             "mode": "dark"
           }
@@ -48570,7 +48570,7 @@
           }
         },
         {
-          "value": "#3A1C16",
+          "value": "#4A2620",
           "theme": {
             "mode": "dark"
           }
@@ -48587,7 +48587,7 @@
           }
         },
         {
-          "value": "#332711",
+          "value": "#40331A",
           "theme": {
             "mode": "dark"
           }
@@ -48604,7 +48604,58 @@
           }
         },
         {
-          "value": "#16233A",
+          "value": "#22304A",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "scrim": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#100E0CB8",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#100E0CB8",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "on-dark": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "code-selection-bg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E8EEF7",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#292521",
           "theme": {
             "mode": "dark"
           }
