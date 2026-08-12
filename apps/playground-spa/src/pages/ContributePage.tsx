@@ -4,6 +4,48 @@ import { useLocale } from "@/lib/useLocale";
 import "@/styles/compare.css";
 
 /**
+ * PR を出すまでの 5 手順 (#1126)。
+ *
+ * 設計 (`docs/design/app.pen` の「08 参加方法」) が持っていた節を実装に足したもの。
+ *
+ * **命令は実物に合わせる**。 設計は `bun` 前提の検査を置いていたが、 この repo には無い。
+ * `CONTRIBUTING.md § 開発フロー` と `package.json` の scripts が正で、 食い違うと
+ * 読んだ人がそのまま打って失敗する。 一致は `contribute-pr-steps.spec.ts` が見る。
+ */
+const PR_STEPS = [
+  {
+    id: "branch",
+    cmd: "git switch -c feature/128-er-labels",
+    ja: { title: "branch を切る", desc: "branch 名は feature/<番号>-<短い説明> で揃える。" },
+    en: { title: "Cut a branch", desc: "Name it feature/<number>-<short-slug>." },
+  },
+  {
+    id: "write",
+    cmd: null,
+    ja: { title: "test を先に書く", desc: "動作証明のないコードは merge の対象外。 1 つの PR で 1 つの話題に絞る。" },
+    en: { title: "Write the test first", desc: "Code without proof of behavior is not merged. Keep one PR to one concern." },
+  },
+  {
+    id: "verify",
+    cmd: "pnpm verify",
+    ja: { title: "検査を通す", desc: "型検査と test がどちらも通ること。 build も緑にする。" },
+    en: { title: "Make the checks pass", desc: "Both typecheck and tests must pass. Keep the build green too." },
+  },
+  {
+    id: "describe",
+    cmd: "Closes #128",
+    ja: { title: "説明文を書く", desc: "何を変えたか、 なぜそうしたかを分けて書く。 起票番号を必ず結ぶ。" },
+    en: { title: "Write the description", desc: "Separate what changed from why. Always link the issue number." },
+  },
+  {
+    id: "open",
+    cmd: "gh pr create",
+    ja: { title: "出す", desc: "下書きで出しても構わない。 迷った時点で相談してほしい。" },
+    en: { title: "Open it", desc: "A draft is fine. Ask as soon as you are unsure." },
+  },
+] as const;
+
+/**
  * /contribute = 旧 contribute.astro placeholder。 旧版は build 時に CONTRIBUTING.md を fs.read で
  * markdown 変換、 SPA では GitHub 上の CONTRIBUTING.md 直リンクで代替。
  */
@@ -133,6 +175,38 @@ export function ContributePage(): React.ReactElement {
               </footer>
             </article>
           </div>
+        </section>
+
+        <section className="pr-steps" aria-label={locale === "ja" ? "PR を出すまでの 5 手順" : "Five steps to a pull request"}>
+          <div className="nm-section-head">
+            <span className="nm-eyebrow">PULL REQUEST</span>
+            <h2 className="nm-section-title">
+              {locale === "ja" ? "PR を出すまでの 5 手順" : "Five steps to a pull request"}
+            </h2>
+            <p className="nm-section-desc">
+              {locale === "ja"
+                ? "上の 3 経路のうち PR は手を動かす人向け。 branch を切ってから出すまでを順に置いた。 詳細は CONTRIBUTING.md § 開発フロー。"
+                : "Of the three routes above, a PR is the hands-on one. Here is the path from branching to opening it. See CONTRIBUTING.md for details."}
+            </p>
+          </div>
+          <ol className="pr-step-list">
+            {PR_STEPS.map((s, i) => (
+              <li key={s.id} className="pr-step">
+                <div className="pr-step-num">{String(i + 1).padStart(2, "0")}</div>
+                <div className="pr-step-body">
+                  <h3 className="pr-step-title">{locale === "ja" ? s.ja.title : s.en.title}</h3>
+                  <p className="pr-step-desc">{locale === "ja" ? s.ja.desc : s.en.desc}</p>
+                </div>
+                {s.cmd === null ? (
+                  <div className="pr-step-cmd is-empty" aria-hidden="true">
+                    —
+                  </div>
+                ) : (
+                  <code className="pr-step-cmd">{s.cmd}</code>
+                )}
+              </li>
+            ))}
+          </ol>
         </section>
       </main>
     </div>
