@@ -2,16 +2,16 @@
  * 実装の配色が設計 (`docs/design/app.pen`) と一致していることの検証 (#1124)。
  *
  * `globals.css` の冒頭は「値の出どころは `docs/design/app.pen` の variables」 と宣言している。
- * それが本当かを誰も確かめていなかったため、 実装だけが動いて 14 箇所ずれていた
+ * それを確かめる経路が無かったため、 実装だけが動いて 14 箇所ずれていた
  * (`#1112` / `#1113` の暗い側の作り直しと `#1116` の薄い文字)。
  *
- * ## `.pen` を直接読めない
+ * ## `.pen` を直接読む
  *
- * `.pen` は暗号化されていて `Read` も `grep` も通らない。 Pencil の MCP 経由でしか読めず、
- * 検査から呼べない。 そこで **書き出した写し** (`docs/design/palette.tsv`) と突き合わせる。
+ * 初版は「`.pen` は暗号化されていて読めない」 という前提で写し (`palette.tsv`) を経由して
+ * いた。 **前提が誤りだった** = `.pen` は素の UTF-8 JSON で `JSON.parse` がそのまま通る。
  *
- * 写しが古いと検査は嘘をつく。 それを防ぐため、 写しの更新手順を `docs/design/README.md` に
- * 置き、 写し自体が `.pen` の全変数を持つことを本検査で確かめる (件数と名前の双方向)。
+ * 写しを経由すると、 `.pen` だけを直した時に検査が通ってしまう (review 指摘)。 設計と実装の
+ * どちらが取り残されても落ちる、 という本検査の目的を満たさない。 直接読む。
  *
  * ## 双方向で見る
  *
@@ -23,23 +23,40 @@ import { fileURLToPath } from "node:url";
 
 const 読む = (rel: string): string => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
-/** 設計側の写し。 `名前 \t 明 \t 暗` の 3 列。 */
-function penPalette(): Map<string, { light: string; dark: string }> {
-  const out = new Map<string, { light: string; dark: string }>();
-  for (const line of 読む("../../../docs/design/palette.tsv").split("\n")) {
-    const s = line.trim();
-    if (s === "" || s.startsWith("#!")) continue;
-    const [名, l, d] = s.split("\t");
-    expect(名, `写しの行を読めない: ${line}`).toBeTruthy();
-    expect(l, `${名} の明が無い`).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
-    expect(d, `${名} の暗が無い`).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
-    out.set(名!, { light: l!, dark: d! });
+type 色 = { light: string; dark: string };
+
+/** 設計側。 `.pen` の `variables` から色だけを取る。 */
+function penPalette(): Map<string, 色> {
+  const doc = JSON.parse(読む("../../../docs/design/app.pen")) as {
+    variables?: Record<string, { type: string; value: unknown }>;
+  };
+  const vars = doc.variables;
+  expect(vars, "`.pen` に variables が無い").toBeTruthy();
+
+  const out = new Map<string, 色>();
+  for (const [名, d] of Object.entries(vars!)) {
+    if (d.type !== "color") continue;
+    // 明暗を持つ色は `{value, theme}` の配列。 1 値だけの色は明暗とも同じ値になる。
+    const v = d.value;
+    if (typeof v === "string") {
+      out.set(名, { light: v.toLowerCase(), dark: v.toLowerCase() });
+      continue;
+    }
+    expect(Array.isArray(v), `${名} の value を読めない`).toBe(true);
+    const m: Record<string, string> = {};
+    for (const x of v as { value: string; theme?: { mode?: string } }[]) {
+      const mode = x.theme?.mode;
+      if (mode !== undefined) m[mode] = String(x.value).toLowerCase();
+    }
+    expect(m.light, `${名} に light の値が無い`).toBeTruthy();
+    expect(m.dark, `${名} に dark の値が無い`).toBeTruthy();
+    out.set(名, { light: m.light!, dark: m.dark! });
   }
   return out;
 }
 
 /** 実装側。 `:root` と `html.dark` の `--d-*` を読む。 */
-function cssPalette(): Map<string, { light: string; dark: string }> {
+function cssPalette(): Map<string, 色> {
   const css = 読む("../src/styles/globals.css");
   const 塊 = (start: string): Map<string, string> => {
     const i = css.indexOf(start);
@@ -53,7 +70,7 @@ function cssPalette(): Map<string, { light: string; dark: string }> {
   };
   const light = 塊(":root {");
   const dark = 塊("html.dark {");
-  const out = new Map<string, { light: string; dark: string }>();
+  const out = new Map<string, 色>();
   for (const [k, v] of light) {
     // `html.dark` で上書きしない変数は、 明の値がそのまま暗でも効く
     out.set(k, { light: v, dark: dark.get(k) ?? v });
@@ -64,7 +81,9 @@ function cssPalette(): Map<string, { light: string; dark: string }> {
 test("設計と実装の色の名前が両側で揃っている", () => {
   const pen = penPalette();
   const css = cssPalette();
-  expect(pen.size, "写しが空 (書き出しに失敗している)").toBeGreaterThan(20);
+  // 0 件だと下の値の検査が「対象なし」 で素通りする
+  expect(pen.size, "`.pen` から色を 1 つも読めていない").toBeGreaterThan(20);
+  expect(css.size, "`globals.css` から色を 1 つも読めていない").toBeGreaterThan(20);
 
   const 設計のみ = [...pen.keys()].filter((k) => !css.has(k)).sort();
   const 実装のみ = [...css.keys()].filter((k) => !pen.has(k)).sort();

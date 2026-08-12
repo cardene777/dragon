@@ -7,37 +7,34 @@
 配色は 28 個の色変数に集約してあり、 図の側は 3231 箇所が変数を参照する。
 直書きは透明 2 箇所だけなので、 **変数を直せば図全体に届く**。
 
-## `palette.tsv`
+中身は素の UTF-8 JSON で、 `JSON.parse` がそのまま通る。 検査もこれを直接読む。
 
-`app.pen` の色変数の写し。 `名前 / 明 / 暗` の 3 列 (tab 区切り)。
+### 配色を変える時
 
-`.pen` は暗号化されていて検査から読めないため、 実装との一致を機械で見るために置いている。
-`apps/playground-spa/tests/palette-matches-pen.spec.ts` が写しと `globals.css` を突き合わせ、
-名前の集合と値の両方が一致することを見る。
+`.pen` と実装 (`apps/playground-spa/src/styles/globals.css`) の両方を同じ値に直す。
 
-**手で編集しない**。 写しが `.pen` からずれると検査が嘘をつく。
+片方だけ直すと `apps/playground-spa/tests/palette-matches-pen.spec.ts` が落ちる。
+それが狙いで、 **どちらかが取り残される状態を検知する**。
 
-### 更新手順
+検査は 2 点を見る。
 
-配色を変えたら、 `.pen` を直してから写しを書き出し直す。
+| 見るもの | 落ちる形 |
+|---|---|
+| 名前の集合が両側で同じ | 片方にだけ変数を足した |
+| 明暗の値が一致 | 片方だけ色を変えた |
 
-1. Pencil で `app.pen` を開く
-2. MCP の `execute` で下の script を流し、 出力を得る
-3. 出力を `palette.tsv` の 4 行目以降に貼る (先頭 3 行の `#!` は残す)
+`.pen` を Pencil で編集した後は **保存 (Cmd+S) が要る**。 MCP の `execute` は editor 上の
+状態を変えるだけで、 disk には書かない。
 
-```js
-const v = GetVariables().variables;
-for (const n of Object.keys(v).sort()) {
-  const d = v[n];
-  if (d.type !== "color") continue;
-  const m = {};
-  for (const x of d.value) m[x.theme.mode] = String(x.value).toLowerCase();
-  Print(`${n}\t${m.light}\t${m.dark}`);
-}
+### 変数を読む
+
+Pencil を開かずに現在の配色を見たい時は、 `.pen` を JSON として読む。
+
+```bash
+node -e "const v=JSON.parse(require('fs').readFileSync('docs/design/app.pen','utf8')).variables;
+for (const [n,d] of Object.entries(v)) if (d.type==='color')
+  console.log(n, d.value.map(x=>x.theme.mode+'='+x.value).join(' '));"
 ```
-
-書き出したら実装側 (`apps/playground-spa/src/styles/globals.css`) も同じ値に直す。
-片方だけ直すと検査が落ちる = それが狙いで、 **どちらかが取り残される状態を検知する**。
 
 ## 設計と実装がずれた経緯 (#1124)
 
