@@ -29,13 +29,13 @@
 import { test, expect } from "@playwright/test";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 
-/** 組み立て側の表 (`packages/dragon/src/compile.ts` の `LABEL_MIN_H`) と同じ値。 */
-const 要る高さ = [
-  { kind: "actor", h: 94 },
-  { kind: "function", h: 92 },
-  { kind: "storage", h: 83 },
-  { kind: "event", h: 95 },
-] as const;
+/**
+ * 名札に書ける種類。 `#1066` まではこの 4 種が「名札に載せると名前がはみ出す」 側だった。
+ *
+ * `cardene777/cdl#416` が小型用の配置 (箱が低い時は名前を中央に置く) を足したので、 名札の
+ * 高さ (72) のままで収まる。 組み立て側が `card` に落とす必要も無くなった。
+ */
+const 名札に書ける種類 = ["actor", "function", "storage", "event"] as const;
 
 /** 記法を URL に載せてエディタへ渡す (`CdlEditor.tsx` の `#s=<base64>`)。 */
 const share = (src: string): string => Buffer.from(src, "utf8").toString("base64");
@@ -164,10 +164,10 @@ flow:
   ).toEqual([]);
 });
 
-for (const { kind, h } of 要る高さ) {
-  test(`${kind} は高さ ${h} で名前が箱に収まる`, async ({ page }) => {
-    // 表の値で載せた時に本当に収まるか。 表を小さくする誤り (はみ出す高さで載せてしまう) を
-    // ここで捕まえる。
+for (const kind of 名札に書ける種類) {
+  test(`${kind} は名札の高さでも名前が箱に収まる`, async ({ page }) => {
+    // `#1066` まではここで名前が箱の下端をまたぎ、 組み立て側が `card` に落としていた。
+    // `cardene777/cdl#416` の小型用の配置で収まるようになった。
     await 記法を開く(
       page,
       `title: "t"
@@ -177,7 +177,6 @@ actors:
   - A
   - B:
       kind: ${kind}
-      大きさ: 300,${h}
 
 flow:
   - A -> B: "x"
@@ -185,37 +184,40 @@ flow:
     );
     const 実測 = await 名札を測る(page, "B");
     expect(実測, "名札 B が測れていない").not.toBeNull();
-    expect(実測!.箱高, `名札の高さが ${h} になっていない`).toBeGreaterThanOrEqual(h - 1);
+    expect(実測!.箱高, "名札の高さが 72 になっていない").toBeLessThanOrEqual(80);
     expect(実測!.下, `名前が箱の下端を ${実測!.下} はみ出す`).toBeLessThanOrEqual(1);
   });
 
-  test(`${kind} は高さ ${h - 2} だと名前が箱をはみ出す`, async ({ page }) => {
-    // 表を大きくする誤り (収まるのに落とす) を捕まえる。 順序図の名札はこの高さだと `card` に
-    // 落ちて測れないので、 名札を持たない `type: flow` で同じ種類を同じ高さに描いて測る。
-    //
-    // 2 低い高さで見るのは、 1 低い時のはみ出しが 0.01-0.69 world しかない種別があるため
-    // (`function` / `storage`)。 2 低ければ 1.0 以上のはみ出しが出るので、 表が 2 以上
-    // 過大になっていればここで落ちる。
+  test(`${kind} は名札で書いたとおりの種類のまま載る`, async ({ page }) => {
+    // **これが `#1066` の目的**。 `card` に落とすと種類ごとの枠線の色と動きが失われる。
     await 記法を開く(
       page,
       `title: "t"
-type: flow
+type: sequence
 
 actors:
-  - A:
+  - A
+  - B:
       kind: ${kind}
-      位置: 400,300
-      大きさ: 300,${h - 2}
-  - B
 
 flow:
   - A -> B: "x"
 `,
     );
-    const 実測 = await 名札を測る(page, "A");
-    expect(実測, "箱 A が測れていない").not.toBeNull();
-    expect(実測!.箱高, `箱の高さが ${h - 2} になっていない`).toBeLessThanOrEqual(h);
-    expect(実測!.下, "表の値より 2 低いのに名前が収まっている (表が過大)").toBeGreaterThan(0);
+    const 実際 = await page.evaluate(() => {
+      const g = document.querySelector("svg [data-cdl-node$='-header'][data-cdl-kind]");
+      const 名 = g?.querySelector("[data-cdl-role='node-label']");
+      // 名札は lane ごとに 1 つ。 B の名札を名前で選ぶ
+      for (const n of document.querySelectorAll("svg [data-cdl-node][data-cdl-kind]")) {
+        const t = n.querySelector("[data-cdl-role='node-label']");
+        if ((t?.textContent ?? "").trim() === "B") return n.getAttribute("data-cdl-kind");
+      }
+      void g;
+      void 名;
+      return null;
+    });
+    expect(実際, `名札 B の種類が読めていない`).not.toBeNull();
+    expect(実際, `名札 B が ${kind} でなく ${実際} で載っている (card に落ちた)`).toBe(kind);
   });
 }
 
