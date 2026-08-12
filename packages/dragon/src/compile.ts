@@ -2231,7 +2231,11 @@ function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
  *
  * **収まる高さがある時は書いたとおりに載せる**。 `rows` を書いた名札は
  * `requiredRowsHeight` で 206 以上になり、 揃え (`alignSeqHeaderHeights`) がその高さを
- * 全本に配るので、 同じ図の `shape-` も収まる。 判定を揃えの後に置くのはこのため。
+ * 全本に配る。 判定を揃えの後に置くのはこのため。
+ *
+ * ただし **揃えで届くのは表の値が 206 以下の種別だけ**。 `shape-warehouse` (79) /
+ * `shape-website` (98) / `shape-server-rack` (166) は収まるが、 `shape-person` (228) は
+ * 届かず `card` に落ちる (`rows` 1 件では 206 まで)。
  *
  * **著者が書いた文字を持つ名札は落とさない**。 小型の `card` は名前しか描かない
  * (`subtitle` / `eyebrow` は `h < 100` の分岐で外れ、 `value` は元から描かない)。 落とすと

@@ -260,6 +260,19 @@ flow:
     });
   }
 
+  it("揃えで届く種別だけが残る", () => {
+    // `rows` 1 件で名札は 206 になる。 表の値が 206 以下なら収まり、 超える種別は落ちる。
+    // 説明が「揃えれば `shape-` も収まる」 と読める書き方だったので、 境界を検査で固定する
+    // (review 指摘 = `shape-person` は 228 なので届かない)。
+    const 届く =図(`  - A: { kind: storage, rows: ["count: 1"] }\n  - B: shape-server-rack`);
+    expect(hOf(届く, "b-header"), "揃えで名札が 206 になっていない").toBe(206);
+    expect(kindOf(届く, "b-header"), "166 は 206 に収まるのに落ちている").toBe("shape-server-rack");
+
+    const 届かない =図(`  - A: { kind: storage, rows: ["count: 1"] }\n  - B: shape-person`);
+    expect(hOf(届かない, "b-header")).toBe(206);
+    expect(kindOf(届かない, "b-header"), "228 は 206 に収まらないのに残っている").toBe("card");
+  });
+
   it("上端だけ高さを書いても上下で形を揃える", () => {
     // `nodes` override は「その名札だけを指定の大きさにする」 指定なので、 上端 (120) と
     // 下端 (72) で高さが違う。 1 つずつ判定すると同じ登場人物が上下で別の形になりうる。
