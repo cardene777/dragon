@@ -73,6 +73,8 @@ const 除外 = [
   // から書き直したため、 設計側だけ別の言い方になっている。
   { 画面: "05 ドキュメント", 節: "Mermaid からの移行" },
   { 画面: "05 ドキュメント", 節: "「目」 による自動検証" },
+  // 設計は頁の題を「コントリビュート」、 実装は「dragon にコントリビュートする」 と書く。
+  { 画面: "08 参加方法", 節: "コントリビュート" },
 ] as const;
 
 type Node = {
@@ -97,26 +99,66 @@ function 設計の節(): Map<string, string[]> {
   };
   for (const c of doc.children ?? []) 探す(c);
 
-  const 集める = (n: Node, out: string[], 差?: Record<string, { content?: string }>): void => {
-    if (n.type === "text") {
-      const t = String(差?.[n.id ?? ""]?.content ?? n.content ?? "").trim();
-      const px = typeof n.fontSize === "number" ? n.fontSize : 0;
-      if (t !== "" && px >= 節の大きさ && !数字だけ(t)) out.push(t);
-    }
+  /**
+   * 節の見出しを集める。 **隣り合う同じ大きさの字は 1 つに繋ぐ**。
+   *
+   * 設計は 1 つの見出しを色分けのために複数の字に割ることがある
+   * (トップの `書くと、` / `動く` / `。` は 74px の 3 つで 1 つの見出し)。
+   * 割れたまま比べると、 実装の 1 つの見出しと突き合わせられない。
+   */
+  const 集める = (
+    n: Node,
+    群: { 字: string; px: number }[][],
+    差?: Record<string, { content?: string }>,
+  ): void => {
     if (n.type === "ref" && n.ref !== undefined && 部品.has(n.ref)) {
-      集める(部品.get(n.ref)!, out, n.descendants);
+      集める(部品.get(n.ref)!, 群, n.descendants);
       return;
     }
-    for (const c of n.children ?? []) 集める(c, out, 差);
+    // 直下の字だけを 1 つの群にまとめる。 子 frame は別の群として辿る
+    const 直下: { 字: string; px: number }[] = [];
+    for (const c of n.children ?? []) {
+      if (c.type === "text") {
+        const t = String(差?.[c.id ?? ""]?.content ?? c.content ?? "").trim();
+        const px = typeof c.fontSize === "number" ? c.fontSize : 0;
+        if (t !== "" && px >= 節の大きさ) 直下.push({ 字: t, px });
+        continue;
+      }
+      集める(c, 群, 差);
+    }
+    if (直下.length > 0) 群.push(直下);
+  };
+
+  /**
+   * 同じ親の直下で隣り合う同じ大きさの字を 1 つに繋ぎ、 数字だけの字を落とす。
+   *
+   * **親が違えば繋がない**。 同じ大きさの別々の節 (`5 分で動かす` と `9 実用例` 等) を
+   * 繋いでしまい、 実装のどの見出しとも一致しなくなる。
+   */
+  const 繋ぐ = (群: { 字: string; px: number }[][]): string[] => {
+    const out: string[] = [];
+    for (const a of 群) {
+      let 束: { 字: string; px: number } | null = null;
+      for (const x of a) {
+        if (束 !== null && 束.px === x.px) {
+          束 = { 字: 束.字 + x.字, px: x.px };
+          continue;
+        }
+        if (束 !== null) out.push(束.字);
+        束 = x;
+      }
+      if (束 !== null) out.push(束.字);
+    }
+    return out.filter((t) => !数字だけ(t));
   };
 
   const out = new Map<string, string[]>();
   for (const f of doc.children ?? []) {
     const nm = f.name ?? "";
     if (!nm.endsWith(" / Light")) continue;
-    const a: string[] = [];
-    集める(f, a);
-    out.set(nm.slice(0, -" / Light".length), [...new Set(a)]);
+    const 群: { 字: string; px: number }[][] = [];
+    集める(f, 群);
+    out.set(nm.slice(0, -" / Light".length), [...new Set(繋ぐ(群))]);
   }
   return out;
 }
@@ -173,9 +215,14 @@ test("設計の節が実装にある (除外は宣言したものだけ)", async
 
     for (const s of 節!) {
       const key = `${名} / ${正規化(s)}`;
-      // 見出しの中身と照合する。 完全一致だけでなく、 見出しが節を含む形 (前置きが付く等) も許す
+      // **完全一致で照合する**。 部分一致にすると、 設計の 1 節に実装の複数の見出しが
+      // 当たり、 片方を消しても通る (review 指摘 = 「コントリビュート」 が
+      // 「dragon にコントリビュートする」 と「コントリビュート方法」 の両方に当たった)。
+      //
+      // 言い回しが違う節は下の `除外` に宣言する。 許す差を宣言に集めることで、
+      // 「なぜ揃っていないか」 が 1 箇所に残る。
       const n = 正規化(s);
-      if (見出し.some((h) => h === n || h.includes(n))) {
+      if (見出し.includes(n)) {
         // 実装に出ている。 除外に宣言されていたなら、 その宣言はもう古い
         if (宣言.has(key)) 使われた.add(key);
         continue;
