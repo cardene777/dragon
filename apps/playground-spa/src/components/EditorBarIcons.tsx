@@ -87,6 +87,19 @@ export const IconGrow = (): JSX.Element => (
   </Icon>
 );
 
+/**
+ * 舞台に方眼を出す。 **点で描く** = 出る方眼そのものが点だから (#1141)。
+ *
+ * 罫 (線) の絵にすると、 押した後に出るものと絵が食い違う。
+ */
+export const IconGrid = (): JSX.Element => (
+  <Icon>
+    {[4, 8, 12].map((cy) =>
+      [4, 8, 12].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1" fill="currentColor" />),
+    )}
+  </Icon>
+);
+
 /** 各要素の居場所を図に重ねる。 枠 + 2 点を結ぶ線 = 座標。 */
 export const IconPositions = (): JSX.Element => (
   <Icon>

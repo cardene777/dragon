@@ -30,7 +30,7 @@ import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } fro
 import { stagePaperColor } from "@/lib/stage-paper";
 import {
   IconShare, IconExport, IconList, IconTextDown, IconTextUp, IconShrink, IconGrow,
-  IconPositions, IconFit, IconReset, IconActualSize, IconZoomOut, IconZoomIn,
+  IconPositions, IconGrid, IconFit, IconReset, IconActualSize, IconZoomOut, IconZoomIn,
 } from "@/components/EditorBarIcons";
 import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
@@ -395,6 +395,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    * 直せるようにする。 常時出すと図が読めなくなるので切り替えにする。
    */
   const [showPositions, setShowPositions] = useState(false);
+  /**
+   * 舞台に方眼を出すか。 **既定は出さない** (#1141)。
+   *
+   * 方眼は設計 (`docs/design/app.pen`) に無く、 実装だけが足していた。 実画素で測ると罫が
+   * 1.33、 名札の面が 1.47 で、 背景と図がほぼ同じ強さで鳴っていた。 加えて図の中身
+   * (生存線 / 矢印) も線なので、 同じ種類のものが画面全体に敷き詰められる。
+   *
+   * 掴んで動かせる合図として要る場面はあるので、 消すのではなく切り替えにする。
+   * 出す時は罫ではなく点にする = 点は線と競合しない。
+   */
+  const [showGrid, setShowGrid] = useState(false);
 
   /** 対応可 warning 数 (edge-label offset で fix 可能な 3 axis のみ)、 button state 制御用 */
   // 判定は `lib/auto-fix-offsets` に集約する。 以前は同じ判定を handleAutoFix と 2 箇所に
@@ -2099,6 +2110,17 @@ animation:
           </button>
           <button
             type="button"
+            className={`v4-editor-bar-btn v4-editor-bar-btn-icon ${showGrid ? "is-on" : ""}`}
+            data-testid="editor-toggle-grid"
+            aria-pressed={showGrid}
+            onClick={() => setShowGrid((v) => !v)}
+            aria-label="方眼を表示"
+            title="舞台に点の方眼を出す (掴んで動かす時の目安)"
+          >
+            <IconGrid />
+          </button>
+          <button
+            type="button"
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-fit"
             onClick={handleFit}
@@ -2150,7 +2172,7 @@ animation:
           <span className="v4-editor-bar-zoom">{scaleDisplay}</span>
         </header>
         <div
-          className="v4-editor-stage"
+          className={`v4-editor-stage ${showGrid ? "has-grid" : ""}`}
           ref={previewRef}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}

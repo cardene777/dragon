@@ -504,20 +504,15 @@
     justify-content: center;
     flex: none;
   }
-  /* 3 ペインを保つ最小幅 (901px) まで収める (#1063)。 アイコンは 30px 角で押せる大きさを
-     保ち、 代わりに **間の余白と左右の余白を詰める**。 ボタン 10 個の間隔 6px は 66px を
-     占め、 それだけで 901px 幅の不足分 (60px) を超える。 */
-  @media (max-width: 1100px) {
-    .v4-editor-bar {
-      gap: 2px;
-      padding: 0 8px;
-    }
-  }
-  /* それでも足りない幅では、 **数字の周りの余白を削る** (#1063)。
-     隠さないと 901px で 10px 溢れて右端が消えるが、 **消してもいけない** = 今の倍率を
+  /* 3 ペインを保つ最小幅 (901px) まで収める (#1063)。 間の余白と左右の余白を詰め、 それでも
+     足りなければアイコンを 30px → 26px に縮める。 数字の周りの余白も削る = 隠すと今の倍率を
      知る手段が画面から完全に無くなる (実測 = 画面上に百分率を出す要素は他に無い)。
-     区切り線と左右の余白で 15px 空くので、 それで足りる。 */
-  @media (max-width: 1000px) {
+
+     **段は 1 つにまとめてある** (#1141)。 方眼の切替を足して 13 個になり、 余白を詰めるだけの
+     段 (1001-1100px) では 4px 足りなかった (実測 = 1024px 幅でプレビュー側の欄が 428px に
+     対し 432px)。 12 個の頃は 2 段に分ける余裕があったが、 いまは 1100px を割った時点で
+     全部を使わないと収まらない。 */
+  @media (max-width: 1100px) {
     .v4-editor-bar-zoom {
       padding-left: 4px;
       margin-left: 0;
@@ -798,20 +793,24 @@
     overflow: hidden;
     position: relative;
     background: var(--d-surface);
-    /* 方眼は掴む場所の目安。 図より前に出ないよう、 罫線の色を半分まで薄める */
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        transparent 0 23px,
-        color-mix(in srgb, var(--d-border) 55%, transparent) 23px 24px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        transparent 0 23px,
-        color-mix(in srgb, var(--d-border) 55%, transparent) 23px 24px
-      );
     cursor: grab;
     user-select: none;
+  }
+  /*
+     方眼は既定で出さない (#1141)。 設計 (`docs/design/app.pen`) に方眼は無く、 実装だけが
+     足していた。 暗い配色の実画素で測ると罫が 1.33、 名札の面が 1.47 で、 背景と図がほぼ
+     同じ強さで鳴っていた。
+
+     出す時は罫ではなく点にする。 図の中身 (生存線 / 矢印) が線なので、 罫だと同じ種類の
+     ものが画面全体に敷き詰められて競合する。 点は線と競合しない。
+  */
+  .v4-editor-stage.has-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--d-border-strong) 70%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 24px 24px;
   }
   .v4-editor-stage:active {
     cursor: grabbing;
