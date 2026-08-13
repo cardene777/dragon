@@ -439,11 +439,19 @@ const 節以外の照合 = [
  * 変わらないため素通りする (review 指摘)。 枚数も見る。
  *
  * **枚数は設計から数える**。 手で書いた数を置くと、 設計だけ 1 枚増えた形が通る
- * (review 指摘 2 度目)。 設計の入れ物を id で指し、 その子の数を期待値にする。
+ * (review 指摘 2 度目)。 設計の入れ物を id で指し、 その中の札の数を期待値にする。
+ *
+ * **数えるのは指定した部品を参照する子だけ**。 子の数を丸ごと数えると、 区切り線のような
+ * 札でない子を足しただけで正しい設計が落ちる (review 指摘 3 度目)。
  */
-const 兄弟の枚数: ReadonlyArray<{ selector: string; 入れ物: readonly string[] }> = [
-  // トップの前置きの札。 設計は `Hero/Eyebrow` frame の子として札を持つ
-  { selector: ".hero-eyebrow .chip", 入れ物: ["lP5Ib", "ddEDU"] },
+const 兄弟の枚数: ReadonlyArray<{
+  selector: string;
+  入れ物: readonly string[];
+  /** 札として数える部品の id (`reusable` な frame)。 これを参照する子だけを数える */
+  部品: string;
+}> = [
+  // トップの前置きの札。 設計は `Hero/Eyebrow` frame の中に `C / Chip` への参照を並べる
+  { selector: ".hero-eyebrow .chip", 入れ物: ["lP5Ib", "ddEDU"], 部品: "TgIJr" },
 ];
 
 test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
@@ -493,23 +501,35 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
 
   // **枚数も見る**。 位置ごとの照合は「その位置に何があるか」 しか言わないので、
   // 末尾に 1 枚足す形が素通りする (review 指摘、 実測で通った)。
-  const 子の数 = (id: string): number | null => {
-    let n: number | null = null;
+  /**
+   * 入れ物の中で、 指定した部品を参照する子を数える。
+   *
+   * **見つからない / 入れ物でない / id が重複** は数えずに理由を返す。 0 を返すと
+   * 「札が無い」 と区別できず、 設定の誤りが正常として通る。
+   */
+  const 札の数 = (id: string, 部品: string): { n: number } | { 理由: string } => {
+    const 当たり: Node[] = [];
     const 歩く = (x: Node): void => {
       for (const c of x.children ?? []) {
-        if (c.id === id) n = (c.children ?? []).length;
+        if (c.id === id) 当たり.push(c);
         歩く(c);
       }
     };
     歩く(doc as Node);
-    return n;
+    if (当たり.length === 0) return { 理由: `id=${id} が設計に無い` };
+    if (当たり.length > 1) return { 理由: `id=${id} が設計に ${当たり.length} 件ある` };
+    const 入れ物 = 当たり[0];
+    if (入れ物.type !== "frame") return { 理由: `id=${id} が frame でない (${入れ物.type})` };
+    return { n: (入れ物.children ?? []).filter((c) => c.type === "ref" && c.ref === 部品).length };
   };
 
   for (const x of 兄弟の枚数) {
     const 設計の枚数 = x.入れ物.map((id) => {
-      const n = 子の数(id);
-      expect(n, `設計に id=${id} の入れ物が無い`).not.toBeNull();
-      return n!;
+      const r = 札の数(id, x.部品);
+      expect("n" in r ? null : r.理由, `設計の入れ物を読めない`).toBeNull();
+      const n = (r as { n: number }).n;
+      expect(n, `id=${id} の中に部品 ${x.部品} を参照する子が無い`).toBeGreaterThan(0);
+      return n;
     });
     expect(new Set(設計の枚数).size, `${x.selector} の枚数が明暗で違う`).toBe(1);
 
