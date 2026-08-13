@@ -218,7 +218,7 @@ function 設計の節(見る明暗: 明暗 = "Light"): Map<string, string[]> {
    * 節の見出しを集める。 **隣り合う同じ大きさの字は 1 つに繋ぐ**。
    *
    * 設計は 1 つの見出しを色分けのために複数の字に割ることがある
-   * (トップの `書くと、` / `動く` / `。` は 74px の 3 つで 1 つの見出し)。
+   * (トップの `より自由な` / `図` / `を` は 74px の 3 つで 1 つの見出し)。
    * 割れたまま比べると、 実装の 1 つの見出しと突き合わせられない。
    */
   const 集める = (
@@ -414,18 +414,43 @@ const 節以外の照合 = [
     名: "トップの説明文",
     path: "/",
     選ぶ: ".hero .lead",
-    /** `.pen` の中の text node の id (明暗 2 枚)。 名前では引けないので id で指す */
+    /** `.pen` の中の id (明暗 2 枚)。 名前では引けないので id で指す */
     id: ["XI97C", "kt70p"],
+  },
+  {
+    // 版の札。 中身が `package.json` と合っているかは `spec-matches-impl.spec.ts` が別に見る
+    名: "トップの版の札",
+    path: "/",
+    選ぶ: ".hero-eyebrow .chip:nth-of-type(1)",
+    id: ["fOI0s", "ROIps"],
+  },
+  {
+    名: "トップの 2 枚目の札",
+    path: "/",
+    選ぶ: ".hero-eyebrow .chip:nth-of-type(2)",
+    id: ["nMqGO", "x8nMs"],
   },
 ] as const;
 
 test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
   const doc = 設計を読む();
+  /**
+   * id から字を引く。 **`ref` の `descendants` も見る**。
+   *
+   * 共通部品を参照して中身だけ差し替える形 (`type: "ref"` + `descendants`) があり、
+   * `type: "text"` だけを探すと引けない。 実際にトップの札がこの形で、 旧い語が残ったまま
+   * 2 度見落とした (#1139 の review 指摘)。
+   */
   const 拾う = (id: string): string | null => {
     let 見つけた: string | null = null;
     const 歩く = (n: Node): void => {
       for (const c of n.children ?? []) {
         if (c.type === "text" && c.id === id) 見つけた = String(c.content ?? "");
+        // `ref` 自身の id で指した場合、 差し替えた字が 1 つだけならそれを返す
+        if (c.type === "ref" && c.id === id && c.descendants !== undefined) {
+          const 差し替え = Object.values(c.descendants).map((d) => String(d.content ?? ""));
+          if (差し替え.length === 1) 見つけた = 差し替え[0];
+        }
         歩く(c);
       }
     };

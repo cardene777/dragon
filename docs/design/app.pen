@@ -579,7 +579,7 @@
                   "name": "Version",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "v0.5"
+                      "content": "v0.7"
                     }
                   }
                 },
@@ -590,7 +590,7 @@
                   "name": "Kind",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "text dsl × svg animation"
+                      "content": "49 種の形 × 時間軸 × 絶対配置"
                     }
                   }
                 }
@@ -4108,7 +4108,7 @@
                   "name": "Version",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "v0.5"
+                      "content": "v0.7"
                     }
                   }
                 },
@@ -4119,7 +4119,7 @@
                   "name": "Kind",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "text dsl × svg animation"
+                      "content": "49 種の形 × 時間軸 × 絶対配置"
                     }
                   }
                 }
