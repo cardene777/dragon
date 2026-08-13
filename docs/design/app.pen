@@ -527,6 +527,9 @@
     {
       "type": "frame",
       "id": "f6f3L9",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 302,
       "name": "01 トップ / Light",
@@ -4050,6 +4053,9 @@
     {
       "type": "frame",
       "id": "r5U6R",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 302,
       "name": "01 トップ / Dark",
@@ -7579,6 +7585,9 @@
     {
       "type": "frame",
       "id": "wAwPv",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 3719,
       "name": "02 カタログ一覧 / Light",
@@ -8491,6 +8500,9 @@
     {
       "type": "frame",
       "id": "CbXQl",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 3719,
       "name": "02 カタログ一覧 / Dark",
@@ -9409,6 +9421,9 @@
     {
       "type": "frame",
       "id": "FMiCK",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 5211,
       "name": "03 カタログの分類 / Light",
@@ -11954,6 +11969,9 @@
     {
       "type": "frame",
       "id": "MRvc1",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 5211,
       "name": "03 カタログの分類 / Dark",
@@ -14505,6 +14523,9 @@
     {
       "type": "frame",
       "id": "gjhot",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 3200,
       "y": 5211,
       "name": "03b カタログの分類 重ね窓 / Light",
@@ -17542,6 +17563,9 @@
     {
       "type": "frame",
       "id": "p5Txw",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 4800,
       "y": 5211,
       "name": "03b カタログの分類 重ね窓 / Dark",
@@ -20585,6 +20609,9 @@
     {
       "type": "frame",
       "id": "z1He1S",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 7970,
       "name": "04 エディタ / Light",
@@ -24322,6 +24349,9 @@
     {
       "type": "frame",
       "id": "QYg77",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 7970,
       "name": "04 エディタ / Dark",
@@ -28065,6 +28095,9 @@
     {
       "type": "frame",
       "id": "Dsu6C",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 9034,
       "name": "05 ドキュメント / Light",
@@ -31936,6 +31969,9 @@
     {
       "type": "frame",
       "id": "wilh7",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 9034,
       "name": "05 ドキュメント / Dark",
@@ -35813,6 +35849,9 @@
     {
       "type": "frame",
       "id": "X9rBK5",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 12759,
       "name": "06 見本の詳細 / Light",
@@ -37510,6 +37549,9 @@
     {
       "type": "frame",
       "id": "dJDVi",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 12759,
       "name": "06 見本の詳細 / Dark",
@@ -39213,6 +39255,9 @@
     {
       "type": "frame",
       "id": "bnaKf",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 3200,
       "y": 12759,
       "name": "06b 見本の詳細 コピー失敗 / Light",
@@ -40907,6 +40952,9 @@
     {
       "type": "frame",
       "id": "N5ON0F",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 4800,
       "y": 12759,
       "name": "06b 見本の詳細 コピー失敗 / Dark",
@@ -42607,6 +42655,9 @@
     {
       "type": "frame",
       "id": "RWCgB",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 14330,
       "name": "07 更新履歴 / Light",
@@ -44216,6 +44267,9 @@
     {
       "type": "frame",
       "id": "AiZ60",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 14330,
       "name": "07 更新履歴 / Dark",
@@ -45831,6 +45885,9 @@
     {
       "type": "frame",
       "id": "ElqTx",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 16048,
       "name": "08 参加方法 / Light",
@@ -46797,6 +46854,9 @@
     {
       "type": "frame",
       "id": "mTQ9G",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 16048,
       "name": "08 参加方法 / Dark",
@@ -47771,6 +47831,9 @@
     {
       "type": "frame",
       "id": "audfr",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 0,
       "y": 17588,
       "name": "09 見つからない頁 / Light",
@@ -47987,6 +48050,9 @@
     {
       "type": "frame",
       "id": "jxIkN",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 17588,
       "name": "09 見つからない頁 / Dark",
@@ -48211,6 +48277,9 @@
     {
       "type": "frame",
       "id": "s28WXa",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 18548,
       "name": "04b エディタ 点の方眼 / Light",
@@ -51967,6 +52036,9 @@
     {
       "type": "frame",
       "id": "hZxNI",
+      "metadata": {
+        "type": "screen"
+      },
       "x": 1600,
       "y": 19552,
       "name": "04b エディタ 点の方眼 / Dark",
