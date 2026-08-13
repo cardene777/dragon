@@ -282,6 +282,25 @@ test("参加方法の項目が実装と揃っている", async ({ page }) => {
  */
 const 経路の言い換え = new Map<string, string>([["上記以外すべて", "*"]]);
 
+test("トップの版の札が package.json と一致する", async ({ page }) => {
+  // 札は手で書いた文字列で、 版を上げても自動では追随しない。 実際に 2 版分古いまま
+  // 残っていた (`v0.5` に対して package は `0.7.0`、 #1139 の review 指摘)。
+  const pkg = JSON.parse(読む("../../../packages/dragon/package.json")) as { version?: string };
+  expect(pkg.version, "package.json に version が無い").toBeDefined();
+  const 期待 = `v${pkg.version!.split(".").slice(0, 2).join(".")}`;
+
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  const 札 = await page.$$eval(".hero-eyebrow .chip", (els) =>
+    els.map((e) => (e.textContent ?? "").trim()),
+  );
+  expect(札.length, "トップに前置きの札が無い").toBeGreaterThan(0);
+  // 版を表す札は 1 枚だけ。 `v` + 数字の形のものを探す
+  const 版 = 札.filter((t) => /^v[\d.]+$/u.test(t));
+  expect(版, "版の札が 1 枚に定まらない").toHaveLength(1);
+  expect(版[0], `札が ${版[0]} だが package.json は ${pkg.version}`).toBe(期待);
+});
+
 /**
  * `main.tsx` の `<Route>` から経路を取り出す。
  *

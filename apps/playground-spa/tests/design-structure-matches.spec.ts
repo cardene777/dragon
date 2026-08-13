@@ -218,7 +218,7 @@ function 設計の節(見る明暗: 明暗 = "Light"): Map<string, string[]> {
    * 節の見出しを集める。 **隣り合う同じ大きさの字は 1 つに繋ぐ**。
    *
    * 設計は 1 つの見出しを色分けのために複数の字に割ることがある
-   * (トップの `書くと、` / `動く` / `。` は 74px の 3 つで 1 つの見出し)。
+   * (トップの `より自由な` / `図` / `を` は 74px の 3 つで 1 つの見出し)。
    * 割れたまま比べると、 実装の 1 つの見出しと突き合わせられない。
    */
   const 集める = (
@@ -398,6 +398,147 @@ test("状態違いの frame は元と同じ節を持つ", () => {
     食い違い,
     "状態違いの frame が元と違う節を持つ (対応表 `画面` に自分の行を持たせること)",
   ).toEqual([]);
+});
+
+/**
+ * 節ではないが、 **設計と実装で同じでなければならない字**。
+ *
+ * 節の突き合わせは 24px 以上しか見ない。 トップの説明文は 15.5px なので閾値の下にあり、
+ * 見出しだけ直して説明文を旧いまま残す形がすり抜けた (#1139 の review 指摘、 実際に踏んだ)。
+ *
+ * 閾値を下げると全画面の小さい字が対象になり、 除外の宣言が膨らむ。 代わりに
+ * **1 箇所ずつ名指しで** 突き合わせる。 増やす時はここに 1 行足す。
+ */
+const 節以外の照合 = [
+  {
+    名: "トップの説明文",
+    path: "/",
+    選ぶ: ".hero .lead",
+    /** `.pen` の中の id (明暗 2 枚)。 名前では引けないので id で指す */
+    id: ["XI97C", "kt70p"],
+  },
+  {
+    // 版の札。 中身が `package.json` と合っているかは `spec-matches-impl.spec.ts` が別に見る
+    名: "トップの版の札",
+    path: "/",
+    選ぶ: ".hero-eyebrow .chip:nth-of-type(1)",
+    id: ["fOI0s", "ROIps"],
+  },
+  {
+    名: "トップの 2 枚目の札",
+    path: "/",
+    選ぶ: ".hero-eyebrow .chip:nth-of-type(2)",
+    id: ["nMqGO", "x8nMs"],
+  },
+] as const;
+
+/**
+ * 位置ごとに照合する要素の、 **兄弟の枚数**。
+ *
+ * `nth-of-type` は「その位置に何があるか」 しか言わない。 末尾に 1 枚足しても各位置の中身は
+ * 変わらないため素通りする (review 指摘)。 枚数も見る。
+ *
+ * **枚数は設計から数える**。 手で書いた数を置くと、 設計だけ 1 枚増えた形が通る
+ * (review 指摘 2 度目)。 設計の入れ物を id で指し、 その中の札の数を期待値にする。
+ *
+ * **数えるのは指定した部品を参照する子だけ**。 子の数を丸ごと数えると、 区切り線のような
+ * 札でない子を足しただけで正しい設計が落ちる (review 指摘 3 度目)。
+ */
+const 兄弟の枚数: ReadonlyArray<{
+  selector: string;
+  入れ物: readonly string[];
+  /** 札として数える部品の id (`reusable` な frame)。 これを参照する子だけを数える */
+  部品: string;
+}> = [
+  // トップの前置きの札。 設計は `Hero/Eyebrow` frame の中に `C / Chip` への参照を並べる
+  { selector: ".hero-eyebrow .chip", 入れ物: ["lP5Ib", "ddEDU"], 部品: "TgIJr" },
+];
+
+test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
+  const doc = 設計を読む();
+  /**
+   * id から字を引く。 **`ref` の `descendants` も見る**。
+   *
+   * 共通部品を参照して中身だけ差し替える形 (`type: "ref"` + `descendants`) があり、
+   * `type: "text"` だけを探すと引けない。 実際にトップの札がこの形で、 旧い語が残ったまま
+   * 2 度見落とした (#1139 の review 指摘)。
+   */
+  const 拾う = (id: string): string | null => {
+    let 見つけた: string | null = null;
+    const 歩く = (n: Node): void => {
+      for (const c of n.children ?? []) {
+        if (c.type === "text" && c.id === id) 見つけた = String(c.content ?? "");
+        // `ref` 自身の id で指した場合、 差し替えた字が 1 つだけならそれを返す
+        if (c.type === "ref" && c.id === id && c.descendants !== undefined) {
+          const 差し替え = Object.values(c.descendants).map((d) => String(d.content ?? ""));
+          if (差し替え.length === 1) 見つけた = 差し替え[0];
+        }
+        歩く(c);
+      }
+    };
+    歩く(doc as Node);
+    return 見つけた;
+  };
+
+  for (const x of 節以外の照合) {
+    const 設計側 = x.id.map((id) => {
+      const t = 拾う(id);
+      expect(t, `設計に id=${id} の字が無い (${x.名})`).not.toBeNull();
+      return 正規化(t!);
+    });
+    // 明暗で同じ字であること
+    expect(new Set(設計側).size, `${x.名} が明暗で違う`).toBe(1);
+
+    await page.goto(x.path);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(600);
+    const 実装側 = await page.$$eval(x.選ぶ, (els) =>
+      els.map((e) => (e.textContent ?? "").trim()),
+    );
+    expect(実装側.length, `${x.path} に ${x.選ぶ} が無い`).toBe(1);
+    expect(正規化(実装側[0]), `${x.名} が設計と実装で違う`).toBe(設計側[0]);
+  }
+
+  // **枚数も見る**。 位置ごとの照合は「その位置に何があるか」 しか言わないので、
+  // 末尾に 1 枚足す形が素通りする (review 指摘、 実測で通った)。
+  /**
+   * 入れ物の中で、 指定した部品を参照する子を数える。
+   *
+   * **見つからない / 入れ物でない / id が重複** は数えずに理由を返す。 0 を返すと
+   * 「札が無い」 と区別できず、 設定の誤りが正常として通る。
+   */
+  const 札の数 = (id: string, 部品: string): { n: number } | { 理由: string } => {
+    const 当たり: Node[] = [];
+    const 歩く = (x: Node): void => {
+      for (const c of x.children ?? []) {
+        if (c.id === id) 当たり.push(c);
+        歩く(c);
+      }
+    };
+    歩く(doc as Node);
+    if (当たり.length === 0) return { 理由: `id=${id} が設計に無い` };
+    if (当たり.length > 1) return { 理由: `id=${id} が設計に ${当たり.length} 件ある` };
+    const 入れ物 = 当たり[0];
+    if (入れ物.type !== "frame") return { 理由: `id=${id} が frame でない (${入れ物.type})` };
+    return { n: (入れ物.children ?? []).filter((c) => c.type === "ref" && c.ref === 部品).length };
+  };
+
+  for (const x of 兄弟の枚数) {
+    const 設計の枚数 = x.入れ物.map((id) => {
+      const r = 札の数(id, x.部品);
+      expect("n" in r ? null : r.理由, `設計の入れ物を読めない`).toBeNull();
+      const n = (r as { n: number }).n;
+      expect(n, `id=${id} の中に部品 ${x.部品} を参照する子が無い`).toBeGreaterThan(0);
+      return n;
+    });
+    expect(new Set(設計の枚数).size, `${x.selector} の枚数が明暗で違う`).toBe(1);
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(400);
+    const 実装の枚数 = await page.$$eval(x.selector, (els) => els.length);
+    expect(実装の枚数, `${x.selector} の枚数が設計 ${設計の枚数[0]} と違う`).toBe(設計の枚数[0]);
+  }
 });
 
 test("設計の節が実装にある (除外は宣言したものだけ)", async ({ page }) => {

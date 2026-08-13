@@ -147,20 +147,20 @@ export function HomePage(): React.ReactElement {
 
       <section className="hero">
         <div className="hero-eyebrow">
-          <span className="chip">v0.5</span>
-          <span className="chip">text dsl × svg animation</span>
+          <span className="chip">v0.7</span>
+          <span className="chip">49 種の形 × 時間軸 × 絶対配置</span>
         </div>
         <h1>
           {isJa ? (
-            <>書くと、<em>動く</em>。</>
+            <>より自由な<em>図</em>を</>
           ) : (
-            <>Write. <em>Watch it move</em>.</>
+            <><em>Diagrams</em> beyond the template</>
           )}
         </h1>
         <p className="lead">
           {isJa
-            ? "登場人物と流れを YAML に 1 行ずつ並べる。 それだけで、 時間を持つ SVG 図が立ち上がる。 静止画では届かなかった順序と因果を、 動きで伝える。"
-            : "Lay actors and flow into YAML, one line at a time. What appears is an SVG that carries time—delivering order and causality that stills could never reach."}
+            ? "形を選び置き場所を決め局面ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。"
+            : "Pick the shape, place it where you want, move it phase by phase. Diagrams you gave up on—because the template could not hold them—now build themselves from plain text."}
         </p>
         <div className="hero-cta">
           <Link className="btn-primary" to="/editor">

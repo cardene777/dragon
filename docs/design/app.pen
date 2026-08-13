@@ -579,7 +579,7 @@
                   "name": "Version",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "v0.5"
+                      "content": "v0.7"
                     }
                   }
                 },
@@ -590,7 +590,7 @@
                   "name": "Kind",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "text dsl × svg animation"
+                      "content": "49 種の形 × 時間軸 × 絶対配置"
                     }
                   }
                 }
@@ -607,7 +607,7 @@
                   "id": "pmKCC",
                   "name": "H1 A",
                   "fill": "$text-primary",
-                  "content": "書くと、",
+                  "content": "より自由な",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -618,7 +618,7 @@
                   "id": "RdbR9",
                   "name": "H1 B",
                   "fill": "$accent",
-                  "content": "動く",
+                  "content": "図",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -629,7 +629,7 @@
                   "id": "F8s21",
                   "name": "H1 C",
                   "fill": "$text-primary",
-                  "content": "。",
+                  "content": "を",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -652,7 +652,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "登場人物と流れを YAML に 1 行ずつ並べる。 それだけで、 時間を持つ SVG 図が立ち上がる。 静止画では届かなかった順序と因果を、 動きで伝える。",
+                  "content": "形を選び置き場所を決め局面ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
                   "lineHeight": 1.95,
                   "textAlign": "center",
                   "fontFamily": "$font-body",
@@ -4108,7 +4108,7 @@
                   "name": "Version",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "v0.5"
+                      "content": "v0.7"
                     }
                   }
                 },
@@ -4119,7 +4119,7 @@
                   "name": "Kind",
                   "descendants": {
                     "h2Aveu": {
-                      "content": "text dsl × svg animation"
+                      "content": "49 種の形 × 時間軸 × 絶対配置"
                     }
                   }
                 }
@@ -4136,7 +4136,7 @@
                   "id": "D0ydW",
                   "name": "H1 A",
                   "fill": "$text-primary",
-                  "content": "書くと、",
+                  "content": "より自由な",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -4147,7 +4147,7 @@
                   "id": "KOO8k",
                   "name": "H1 B",
                   "fill": "$accent",
-                  "content": "動く",
+                  "content": "図",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -4158,7 +4158,7 @@
                   "id": "D941I",
                   "name": "H1 C",
                   "fill": "$text-primary",
-                  "content": "。",
+                  "content": "を",
                   "fontFamily": "$font-display",
                   "fontSize": 74,
                   "fontWeight": "700",
@@ -4181,7 +4181,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "登場人物と流れを YAML に 1 行ずつ並べる。 それだけで、 時間を持つ SVG 図が立ち上がる。 静止画では届かなかった順序と因果を、 動きで伝える。",
+                  "content": "形を選び置き場所を決め局面ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
                   "lineHeight": 1.95,
                   "textAlign": "center",
                   "fontFamily": "$font-body",
