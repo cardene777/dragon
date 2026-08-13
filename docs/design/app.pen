@@ -23881,7 +23881,7 @@
                       "name": "Actor Web",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -23919,7 +23919,7 @@
                       "name": "Actor Auth",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -27624,7 +27624,7 @@
                       "name": "Actor Web",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -27662,7 +27662,7 @@
                       "name": "Actor Auth",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -51526,7 +51526,7 @@
                       "name": "Actor Web",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -51564,7 +51564,7 @@
                       "name": "Actor Auth",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -55288,7 +55288,7 @@
                       "name": "Actor Web",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -55326,7 +55326,7 @@
                       "name": "Actor Auth",
                       "width": 90,
                       "height": 32,
-                      "fill": "$accent-soft",
+                      "fill": "$accent-face",
                       "cornerRadius": 3,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -55909,6 +55909,23 @@
       "value": [
         {
           "value": "#FBEAE4",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#41241B",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "accent-face": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF",
           "theme": {
             "mode": "light"
           }
