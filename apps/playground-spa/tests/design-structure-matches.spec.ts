@@ -436,9 +436,15 @@ const 節以外の照合 = [
  * 位置ごとに照合する要素の、 **兄弟の枚数**。
  *
  * `nth-of-type` は「その位置に何があるか」 しか言わない。 末尾に 1 枚足しても各位置の中身は
- * 変わらないため素通りする (review 指摘)。 枚数を別に固定する。
+ * 変わらないため素通りする (review 指摘)。 枚数も見る。
+ *
+ * **枚数は設計から数える**。 手で書いた数を置くと、 設計だけ 1 枚増えた形が通る
+ * (review 指摘 2 度目)。 設計の入れ物を id で指し、 その子の数を期待値にする。
  */
-const 兄弟の枚数: ReadonlyArray<readonly [string, number]> = [[".hero-eyebrow .chip", 2]];
+const 兄弟の枚数: ReadonlyArray<{ selector: string; 入れ物: readonly string[] }> = [
+  // トップの前置きの札。 設計は `Hero/Eyebrow` frame の子として札を持つ
+  { selector: ".hero-eyebrow .chip", 入れ物: ["lP5Ib", "ddEDU"] },
+];
 
 test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
   const doc = 設計を読む();
@@ -487,12 +493,31 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
 
   // **枚数も見る**。 位置ごとの照合は「その位置に何があるか」 しか言わないので、
   // 末尾に 1 枚足す形が素通りする (review 指摘、 実測で通った)。
-  for (const [selector, 期待] of 兄弟の枚数) {
+  const 子の数 = (id: string): number | null => {
+    let n: number | null = null;
+    const 歩く = (x: Node): void => {
+      for (const c of x.children ?? []) {
+        if (c.id === id) n = (c.children ?? []).length;
+        歩く(c);
+      }
+    };
+    歩く(doc as Node);
+    return n;
+  };
+
+  for (const x of 兄弟の枚数) {
+    const 設計の枚数 = x.入れ物.map((id) => {
+      const n = 子の数(id);
+      expect(n, `設計に id=${id} の入れ物が無い`).not.toBeNull();
+      return n!;
+    });
+    expect(new Set(設計の枚数).size, `${x.selector} の枚数が明暗で違う`).toBe(1);
+
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(400);
-    const n = await page.$$eval(selector, (els) => els.length);
-    expect(n, `${selector} の枚数が ${期待} でなく ${n}`).toBe(期待);
+    const 実装の枚数 = await page.$$eval(x.selector, (els) => els.length);
+    expect(実装の枚数, `${x.selector} の枚数が設計 ${設計の枚数[0]} と違う`).toBe(設計の枚数[0]);
   }
 });
 
