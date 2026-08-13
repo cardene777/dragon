@@ -154,7 +154,7 @@ export function HomePage(): React.ReactElement {
           {isJa ? (
             <>より自由な<em>図</em>を</>
           ) : (
-            <>Diagrams <em>without limits</em></>
+            <><em>Diagrams</em> beyond the template</>
           )}
         </h1>
         <p className="lead">

@@ -400,6 +400,59 @@ test("状態違いの frame は元と同じ節を持つ", () => {
   ).toEqual([]);
 });
 
+/**
+ * 節ではないが、 **設計と実装で同じでなければならない字**。
+ *
+ * 節の突き合わせは 24px 以上しか見ない。 トップの説明文は 15.5px なので閾値の下にあり、
+ * 見出しだけ直して説明文を旧いまま残す形がすり抜けた (#1139 の review 指摘、 実際に踏んだ)。
+ *
+ * 閾値を下げると全画面の小さい字が対象になり、 除外の宣言が膨らむ。 代わりに
+ * **1 箇所ずつ名指しで** 突き合わせる。 増やす時はここに 1 行足す。
+ */
+const 節以外の照合 = [
+  {
+    名: "トップの説明文",
+    path: "/",
+    選ぶ: ".hero .lead",
+    /** `.pen` の中の text node の id (明暗 2 枚)。 名前では引けないので id で指す */
+    id: ["XI97C", "kt70p"],
+  },
+] as const;
+
+test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
+  const doc = 設計を読む();
+  const 拾う = (id: string): string | null => {
+    let 見つけた: string | null = null;
+    const 歩く = (n: Node): void => {
+      for (const c of n.children ?? []) {
+        if (c.type === "text" && c.id === id) 見つけた = String(c.content ?? "");
+        歩く(c);
+      }
+    };
+    歩く(doc as Node);
+    return 見つけた;
+  };
+
+  for (const x of 節以外の照合) {
+    const 設計側 = x.id.map((id) => {
+      const t = 拾う(id);
+      expect(t, `設計に id=${id} の字が無い (${x.名})`).not.toBeNull();
+      return 正規化(t!);
+    });
+    // 明暗で同じ字であること
+    expect(new Set(設計側).size, `${x.名} が明暗で違う`).toBe(1);
+
+    await page.goto(x.path);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(600);
+    const 実装側 = await page.$$eval(x.選ぶ, (els) =>
+      els.map((e) => (e.textContent ?? "").trim()),
+    );
+    expect(実装側.length, `${x.path} に ${x.選ぶ} が無い`).toBe(1);
+    expect(正規化(実装側[0]), `${x.名} が設計と実装で違う`).toBe(設計側[0]);
+  }
+});
+
 test("設計の節が実装にある (除外は宣言したものだけ)", async ({ page }) => {
   const 設計 = 設計の節();
   expect(設計.size, "`.pen` から画面を 1 つも読めていない").toBeGreaterThan(5);
