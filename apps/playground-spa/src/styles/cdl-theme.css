@@ -101,6 +101,36 @@
   stroke-width: 1.75 !important;
 }
 
+/* 今の局面に関わる箱だけ枠を変える (#1143)。
+ *
+ * engine は局面ごとに `data-cdl-active` を付け替え、 箱の枠を描き分けている
+ * (`CardNode` = `stroke={active ? accent : divider}` / `strokeWidth={active ? 3 : 1.25}`)。
+ * 上の規則が `!important` で全部の箱に同じ枠を当てるため、 その描き分けが消えていた
+ * (実測 = `active=true` の `api-header` と `false` の `db-header` が
+ * `stroke: rgb(196,189,179)` / `strokeWidth: 1.75px` で完全一致)。
+ *
+ * **塗りも一緒に変える**。 枠だけ橙にすると、 箱の面 (`--d-surface-3`) に対して対比 3.26 で、
+ * この repo が箱の枠に課している 4.61 を割る (`dark-ground-step.spec.ts`)。 面だけ / 枠だけでは
+ * 成立しない。
+ *
+ * 面に使う色は `--d-accent-face` が明暗それぞれで持つ。 明で `--d-accent-soft` を使うと 4.17 で
+ * 届かず、 暗では 4.82 で満たす = 必要な向きが明暗で逆なので 1 色にできない (定義と理由は
+ * `globals.css`)。
+ */
+[data-cdl-active="true"] [data-cdl-role="node-body"],
+[data-cdl-active="true"] [data-cdl-role="node-body"] > rect,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > path,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > ellipse,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > circle,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > g > rect,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > g > path,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > g > ellipse,
+[data-cdl-active="true"] [data-cdl-role="node-body"] > g > circle {
+  fill: var(--d-accent-face) !important;
+  stroke: var(--d-accent) !important;
+  stroke-width: 2.5 !important;
+}
+
 [data-cdl-role="node-label"] {
   fill: var(--d-text-primary) !important;
   font-family: var(--d-body) !important;

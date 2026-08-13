@@ -69,6 +69,12 @@
   --d-text-muted: #6d6960;
   --d-accent: #c8442a;
   --d-accent-soft: #fbeae4;
+  /* 強調した箱の面 (#1143)。 **`--d-accent-soft` とは別に持つ**。
+     箱の枠は `--d-accent` で描き、 この repo は箱の枠に対比 4.61 を課している
+     (`dark-ground-step.spec.ts`)。 明では `--d-accent-soft` (#fbeae4) との対比が 4.17 で
+     届かず、 白まで明るくして 4.86 で満たす。 暗では逆に `--d-accent-soft` (#41241b) が
+     4.82 で満たすので、 そちらをそのまま使う。 明暗で必要な向きが逆なので 1 色にできない。 */
+  --d-accent-face: #ffffff;
   --d-on-accent: #ffffff;
   --d-code-bg: #f5f4ef;
 
@@ -198,6 +204,7 @@ html.dark {
   --d-accent: #f2704c;
   /* 強調色の文字が乗るので、 面より一段落とす (#4a2a20 だと 4.38 で下限を割る) */
   --d-accent-soft: #41241b;
+  --d-accent-face: #41241b;
   --d-on-accent: #1c0f09;
   --d-code-bg: #1f1d1b;
 

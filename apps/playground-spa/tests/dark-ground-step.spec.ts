@@ -42,9 +42,23 @@ const Lstar = (color: string): number => {
   return 116 * f - 16;
 };
 
+/**
+ * 今の局面に **関わっていない** 箱を選ぶ (#1143)。
+ *
+ * 局面に関わる箱は面と枠を橙の対 (`--d-accent-soft` + `--d-accent`) に切り替える。 この 2 色は
+ * 互いに 4.82 で読めるが、 面は舞台とほぼ同じ明るさになり、 分離は枠が担う。
+ *
+ * 下の 2 件が測っているのは **既定の箱** が紙に沈まないことなので、 局面で切り替わった箱を
+ * 拾うと測る対象が変わってしまう。 橙に切り替わった箱そのものの読みやすさは
+ * `editor-phase-chrome.spec.ts` が別に見る。
+ */
+const 既定の箱 = "svg [data-cdl-active='false'] [data-cdl-role='node-body']";
+
 /** エディタの図面から、 面と線の色をまとめて測る。 */
 async function surfaces(page: import("@playwright/test").Page) {
-  return await page.evaluate(() => {
+  // 選択子は引数で渡す。 `page.evaluate` の中は browser 側で走るため、 module 直下の
+  // 定数はそのままでは見えない
+  return await page.evaluate((既定の箱: string) => {
     const fill = (sel: string) => {
       const el = document.querySelector(sel);
       return el ? getComputedStyle(el).fill : null;
@@ -64,15 +78,15 @@ async function surfaces(page: import("@playwright/test").Page) {
     };
     return {
       紙: paper,
-      箱: fill("svg [data-cdl-role='node-body']"),
+      箱: fill(既定の箱),
       座布団: fill("svg [data-cdl-role='edge-label-bg']"),
-      枠: strokeOf("svg [data-cdl-role='node-body']"),
+      枠: strokeOf(既定の箱),
       文字: fill("svg [data-cdl-role='node-label']"),
       線: [...document.querySelectorAll("svg [data-cdl-role='edge-line']")]
         .map((el) => getComputedStyle(el).stroke)
         .filter((v, i, a) => a.indexOf(v) === i),
     };
-  });
+  }, 既定の箱);
 }
 
 async function openDark(page: import("@playwright/test").Page): Promise<void> {
@@ -184,7 +198,7 @@ test("暗い画面で紙と箱の明るさが離れている", async ({ page }) 
   await openDark(page);
   const 測定 = await page.evaluate(() => {
     const stage = document.querySelector(".v4-editor-stage");
-    const box = document.querySelector("svg [data-cdl-role='node-body']");
+    const box = document.querySelector("svg [data-cdl-active='false'] [data-cdl-role='node-body']");
     if (!stage || !box) return null;
     return {
       紙: getComputedStyle(stage).backgroundColor,

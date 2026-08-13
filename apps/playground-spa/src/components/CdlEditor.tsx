@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
 import { CdlDiagramView, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
+import { EditorPhaseChrome } from "@/components/EditorPhaseChrome";
 import {
   textDslToDiagram,
   partRenderSize,
@@ -744,6 +745,15 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     return () => { for (const o of observers) o.disconnect(); };
   }, [overlayParts, applyOverlayBg]);
   const previewRef = useRef<HTMLDivElement>(null);
+  /**
+   * 舞台の要素そのもの。 `previewRef` は最初の描画で `null` のままで、 埋まっても再描画が
+   * 起きないため、 舞台に重ねる表示 (`EditorPhaseChrome`) に渡せない (#1143)。
+   */
+  const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null);
+  const setStage = useCallback((el: HTMLDivElement | null) => {
+    previewRef.current = el;
+    setStageEl(el);
+  }, []);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
@@ -2173,7 +2183,7 @@ animation:
         </header>
         <div
           className={`v4-editor-stage ${showGrid ? "has-grid" : ""}`}
-          ref={previewRef}
+          ref={setStage}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -2184,6 +2194,7 @@ animation:
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
           )}
+          <EditorPhaseChrome stage={stageEl} laid={laid ?? null} />
           <div
             className="v4-editor-pan"
             style={{
