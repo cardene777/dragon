@@ -10,12 +10,12 @@
  * ## 検査の作り
  *
  * **「1 つ以上ある」 では守れない**。 選択子を全画面に対して掛けると、 プレビューの操作列を
- * まるごと消しても記法欄の 2 個だけで通る。 操作列の数と、 12 個それぞれの `data-testid` が
+ * まるごと消しても記法欄の 2 個だけで通る。 操作列の数と、 13 個それぞれの `data-testid` が
  * 1 個ずつ在ることを直接見る。
  */
 import { test, expect } from "@playwright/test";
 
-/** 操作列に並ぶ 12 個。 id が変わると e2e が壊れるので、ここを唯一の一覧にする。 */
+/** 操作列に並ぶ 13 個。 id が変わると e2e が壊れるので、ここを唯一の一覧にする。 */
 const 操作 = [
   { id: "editor-share", 名: "共有URL" },
   { id: "editor-export", 名: "エクスポート" },
@@ -24,6 +24,7 @@ const 操作 = [
   { id: "editor-diagram-scale-down", 名: "図を縮小" },
   { id: "editor-diagram-scale-up", 名: "図を拡大" },
   { id: "editor-toggle-positions", 名: "位置を表示" },
+  { id: "editor-toggle-grid", 名: "方眼を表示" },
   { id: "editor-fit", 名: "フィット" },
   { id: "editor-reset", 名: "リセット" },
   { id: "editor-actual-size", 名: "等倍表示" },
@@ -65,7 +66,7 @@ for (const width of 幅一覧) {
   });
 }
 
-test("12 個の操作がすべて画面の中にある", async ({ page }) => {
+test("13 個の操作がすべて画面の中にある", async ({ page }) => {
   // 収まっているだけでは足りない。 **消えていないこと** と **切られていないこと** を見る。
   // 親に隠れる形は `scrollWidth` では取れない
   await openEditor(page, 901);
