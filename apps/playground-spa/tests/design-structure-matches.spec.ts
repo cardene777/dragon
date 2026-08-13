@@ -432,6 +432,14 @@ const 節以外の照合 = [
   },
 ] as const;
 
+/**
+ * 位置ごとに照合する要素の、 **兄弟の枚数**。
+ *
+ * `nth-of-type` は「その位置に何があるか」 しか言わない。 末尾に 1 枚足しても各位置の中身は
+ * 変わらないため素通りする (review 指摘)。 枚数を別に固定する。
+ */
+const 兄弟の枚数: ReadonlyArray<readonly [string, number]> = [[".hero-eyebrow .chip", 2]];
+
 test("節ではないが揃えると決めた字が一致する", async ({ page }) => {
   const doc = 設計を読む();
   /**
@@ -475,6 +483,16 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
     );
     expect(実装側.length, `${x.path} に ${x.選ぶ} が無い`).toBe(1);
     expect(正規化(実装側[0]), `${x.名} が設計と実装で違う`).toBe(設計側[0]);
+  }
+
+  // **枚数も見る**。 位置ごとの照合は「その位置に何があるか」 しか言わないので、
+  // 末尾に 1 枚足す形が素通りする (review 指摘、 実測で通った)。
+  for (const [selector, 期待] of 兄弟の枚数) {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(400);
+    const n = await page.$$eval(selector, (els) => els.length);
+    expect(n, `${selector} の枚数が ${期待} でなく ${n}`).toBe(期待);
   }
 });
 
