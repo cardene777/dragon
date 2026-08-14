@@ -21,6 +21,7 @@ import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
+import * as Charts from "@/topics/catalog/charts.cdl";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 
 const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
@@ -36,6 +37,7 @@ const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
   ["text-dsl", TextDsl as unknown as Record<string, unknown>],
   // parts は画面では遅延読み込みだが、名前の衝突は読み込み方に関係なく起きる
   ["parts", Parts as unknown as Record<string, unknown>],
+  ["charts", Charts as unknown as Record<string, unknown>],
 ];
 
 /**
@@ -64,7 +66,7 @@ describe("一覧の名前 (#1030)", () => {
     const expected: Record<string, number> = {
       interactive: 129, cookbook: 25, patterns: 12, primitives: 89,
       "primitives-extra": 21, animation: 10, styles: 10, presets: 20,
-      ethereum: 4, "text-dsl": 12, parts: 80,
+      ethereum: 4, "text-dsl": 12, parts: 80, charts: 10,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);

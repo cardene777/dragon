@@ -30,6 +30,8 @@ import * as TdMod from "@/topics/catalog/text-dsl.cdl";
 import * as InteractiveMod from "@/topics/catalog/interactive.cdl";
 // --- category: ethereum (仕組み解説アニメーション、 CAR-2160) ---
 import * as EthMod from "@/topics/catalog/ethereum.cdl";
+// --- category: charts (図表系 10 種、 #1152) ---
+import * as ChartsMod from "@/topics/catalog/charts.cdl";
 
 export interface CatalogItem {
   id: string;
@@ -114,6 +116,7 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   "text-dsl": moduleToItems(TdMod),
   interactive: moduleToItems(InteractiveMod),
   ethereum: moduleToItems(EthMod),
+  charts: moduleToItems(ChartsMod),
 };
 
 /** parts.cdl.ts の N 個 diagram を lazy-load する。 CategoryPage で params.slug === "parts" 時のみ発火。 */
