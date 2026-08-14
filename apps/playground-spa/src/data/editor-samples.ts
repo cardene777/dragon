@@ -275,6 +275,64 @@ animation:
 `,
   },
   {
+    label: "経路別の流入 (bar)",
+    slug: "bar",
+    code: `title: "経路別の流入"
+type: bar
+
+actors:
+  - 検索: "420"
+  - SNS: "310"
+  - 直接: "180"
+  - 紹介: "90"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [検索, SNS, 直接, 紹介]
+`,
+  },
+  {
+    label: "週ごとの応答時間 (line)",
+    slug: "line",
+    code: `title: "週ごとの応答時間"
+type: line
+
+actors:
+  - W1: "180"
+  - W2: "240"
+  - W3: "210"
+  - W4: "120"
+  - W5: "95"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [W1, W2, W3, W4, W5]
+`,
+  },
+  {
+    label: "投票コントラクト (solidity)",
+    slug: "solidity",
+    code: `title: "投票コントラクト"
+type: solidity
+
+actors:
+  - 有権者: actor
+  - Ballot: contract
+  - 集計: function
+
+flow:
+  - 有権者 -> Ballot: "vote(id)"
+  - Ballot -> 集計: "tally()"
+  - 集計 -> 有権者: "結果"
+
+animation:
+  - step: "投票" 1.5s
+    focus: [有権者, Ballot]
+  - step: "集計" 1.5s
+    focus: [Ballot, 集計]
+`,
+  },
+  {
     label: "C4コンテキストモデル (c4)",
     slug: "c4",
     code: `title: "C4コンテキストモデル"

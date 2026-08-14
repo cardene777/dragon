@@ -17,6 +17,8 @@ export type PresetType =
   | "gantt"
   | "class"
   | "pie"
+  | "bar"
+  | "line"
   | "c4"
   | "mind";
 

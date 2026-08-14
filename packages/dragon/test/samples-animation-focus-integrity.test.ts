@@ -1,5 +1,5 @@
 /**
- * 全 12 EDITOR_SAMPLES の animation.focus 参照整合性 網羅 unit test (iter10、 2026-07-19)。
+ * 全 15 EDITOR_SAMPLES の animation.focus 参照整合性 網羅 unit test (iter10、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter10。
  * 各 sample の animation phase / step の focus[] に列挙される actor / edge 名が、
@@ -8,7 +8,7 @@
  * dangling reference (存在しない actor / edge を focus に指定) を検知することで、
  * sample DSL 修正時の regression を防ぐ integrity gate として機能する。
  *
- * 検証 phase / step / focus は samples 定義 (12 sample) × 各 4-6 phase = 60+ focus reference
+ * 検証 phase / step / focus は samples 定義 (15 sample) × 各 4-6 phase = 60+ focus reference
  * を全件 traverse。
  */
 import { describe, it, expect } from "vitest";
@@ -53,9 +53,9 @@ function isEdgeRef(ref: string): boolean {
   return ref.includes("->") || ref.includes("→");
 }
 
-describe("iter10: 全 12 EDITOR_SAMPLES × animation focus 参照整合性 網羅", () => {
-  it(`SAMPLES count 12`, () => {
-    expect(EDITOR_SAMPLES.length).toBe(12);
+describe("iter10: 全 15 EDITOR_SAMPLES × animation focus 参照整合性 網羅", () => {
+  it(`SAMPLES count 15`, () => {
+    expect(EDITOR_SAMPLES.length).toBe(15);
   });
 
   for (const sample of EDITOR_SAMPLES) {

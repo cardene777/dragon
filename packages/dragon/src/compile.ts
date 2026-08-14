@@ -114,6 +114,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "pie":
       diagram = compilePie(doc);
       break;
+    case "bar":
+      diagram = compileValueChart(doc, "bar", "chart-bar");
+      break;
+    case "line":
+      diagram = compileValueChart(doc, "line", "chart-line");
+      break;
     case "c4":
       diagram = compileC4(doc);
       break;
@@ -2577,18 +2583,26 @@ function parseShareValue(raw: string | undefined): number | null {
 }
 
 /**
- * Pie preset (円グラフ)。
+ * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
  *
- * 描画側の `chart-pie` に 1 node で渡す。 以前は `card` を縦に積むだけで、 `type: pie` と
- * 書いても円が出ず、 割合が箱の説明文として枠からはみ出していた (実機報告)。
+ * 3 種とも `- 名前: "45"` の 1 行 1 値で書く。 違うのは描画側の種別と、 値の意味だけ。
  *
- * 大きさは cdl の `chart()` preset と同じ 640x320 (どちらも格子 16 の倍数)。 lane 幅は
- * `chart()` が使う `gridAlignedLaneW` と同じ計算 = 中身 + 左右の余白 32 ずつ。
+ * | 型 | 種別 | 値の意味 |
+ * |---|---|---|
+ * | `pie` | `chart-pie` | 全体に対する取り分 |
+ * | `bar` | `chart-bar` | 棒の高さ (単位は問わない) |
+ * | `line` | `chart-line` | 線の高さ。 **書いた順に並ぶ** |
  *
- * 値は actor の説明文から読む (`- TypeScript: "45%"`)。 読めない actor は円に載せず、
- * まとめて警告に出す。 合計が 100 にならなくても描画側が比で割るので、 こちらでは正規化しない。
+ * 値を読めない項目は載せず、 まとめて警告に出す。 **黙って 0 にしない** = その項目だけ欠けた
+ * 図が「正しい図」 として出てしまうため。
+ *
+ * 矢印は描けない。 書かれていたら警告に出して捨てる (「書いたのに効かない」 を残さない)。
  */
-function compilePie(doc: DslDocument): CdlDiagram {
+function compileValueChart(
+  doc: DslDocument,
+  型: "pie" | "bar" | "line",
+  kind: "chart-pie" | "chart-bar" | "chart-line",
+): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 640;
   const CHART_H = 320;
@@ -2597,35 +2611,33 @@ function compilePie(doc: DslDocument): CdlDiagram {
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
   for (const a of doc.actors) {
-    // 割合の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
+    // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
     const value = parseShareValue(a.value ?? a.subtitle);
     if (value === null) {
       読めない.push(a.name);
       continue;
     }
-    // 色は扇にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
+    // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
     data.push({ label: a.name, value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
   if (読めない.length > 0 && typeof console !== "undefined" && console.warn) {
     console.warn(
-      `[dragon] type: pie で割合を読めない項目があります (円に載せません): ${読めない.join(", ")}。` +
-        ` \`- 名前: "45%"\` の形で書いてください`,
+      `[dragon] type: ${型} で値を読めない項目があります (図に載せません): ${読めない.join(", ")}。` +
+        ` \`- 名前: "45"\` の形で書いてください`,
     );
   }
-  // 円グラフは扇 1 枚が 1 項目で、 項目どうしを結ぶ線が無い。 書いた矢印は描けないので、
-  // 黙って捨てずに伝える (「書いたのに効かない」 を残さない)
   if (doc.flow.length > 0 && typeof console !== "undefined" && console.warn) {
     console.warn(
-      `[dragon] type: pie では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
+      `[dragon] type: ${型} では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
         ` 関係を描くなら type: flow を使ってください`,
     );
   }
 
-  b.node(`${slugify(doc.title) || "pie"}-chart`, {
+  b.node(`${slugify(doc.title) || 型}-chart`, {
     lane: "chart",
     stack: 0,
-    kind: "chart-pie",
+    kind,
     title: doc.title,
     w: CHART_W,
     h: CHART_H,
@@ -2633,6 +2645,19 @@ function compilePie(doc: DslDocument): CdlDiagram {
   });
 
   return b.build();
+}
+
+/**
+ * Pie preset (円グラフ)。
+ *
+ * 描画側の `chart-pie` に 1 node で渡す。 以前は `card` を縦に積むだけで、 `type: pie` と
+ * 書いても円が出ず、 割合が箱の説明文として枠からはみ出していた (実機報告)。
+ *
+ * 中身は `compileValueChart` と同じ = 棒 / 折れ線と入力の形が変わらないため。 合計が 100 に
+ * ならなくても描画側が比で割るので、 こちらでは正規化しない。
+ */
+function compilePie(doc: DslDocument): CdlDiagram {
+  return compileValueChart(doc, "pie", "chart-pie");
 }
 
 /**
