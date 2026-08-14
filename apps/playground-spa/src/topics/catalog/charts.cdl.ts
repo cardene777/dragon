@@ -4,8 +4,10 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 /**
  * Catalog - Charts ... 図表系 10 種の見本 (#1152)。
  *
- * cdl は 90 種を描けるが、 catalog に見本があるのは 80 種だった。 **図表系だけがまるごと
- * 抜けていた** = 実装があって描けるのに、 どこにも見た目が無い状態。
+ * 図表系の 10 種を **1 つずつ単体で** 見せる。
+ *
+ * 9 種は `presets` にも出るが、 そちらは完成した図の型 (スイムレーン / ER 図 等) の中に埋まって
+ * いて、 「この種別だけを見たい」 時に届かない。 `chart-bar` は本当にどこにも無かった。
  *
  * 他の catalog と同じく lane の幅を揃える (SVG の viewBox が同じ大きさになり、 一覧の格子が
  * 崩れない)。 値を持たせて描く = 空の枠だけの見本にしない。
@@ -128,11 +130,12 @@ export const ganttTimeline = diagram("gantt-timeline", { topic: "gantt-timeline 
     kind: "gantt-timeline",
     title: "公開までの段取り",
     w: 400,
-    h: 300,
+    h: 340,
     ganttData: [
       { id: "t1", title: "設計", startIdx: 0, endIdx: 1, startLabel: "1月", endLabel: "2月", owner: "設計", tone: "info" },
-      { id: "t2", title: "実装", startIdx: 1, endIdx: 3, startLabel: "2月", endLabel: "4月", owner: "開発", dependsOn: "t1", tone: "accent" },
-      { id: "t3", title: "検証", startIdx: 3, endIdx: 4, startLabel: "4月", endLabel: "5月", owner: "品質", dependsOn: "t2" },
+      { id: "t2", title: "実装", startIdx: 1, endIdx: 2, startLabel: "2月", endLabel: "3月", owner: "開発", dependsOn: "t1", tone: "accent" },
+      { id: "t2b", title: "見直し", startIdx: 2, endIdx: 3, startLabel: "3月", endLabel: "4月", owner: "開発", dependsOn: "t2" },
+      { id: "t3", title: "検証", startIdx: 3, endIdx: 4, startLabel: "4月", endLabel: "5月", owner: "品質", dependsOn: "t2b" },
       { id: "t4", title: "公開", startIdx: 4, endIdx: 4, startLabel: "5月", endLabel: "5月", owner: "運用", dependsOn: "t3", tone: "success" },
     ],
   })

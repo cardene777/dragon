@@ -223,7 +223,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   journeyMap: "体験の道筋",
   mindMap: "枝分かれ図",
   mindRadial: "放射図",
-  quadrantMatrix: "4 象限図",
+  quadrantMatrix: "4象限図",
   treeHierarchy: "階層図",
 
   // === parts catalog (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ===
