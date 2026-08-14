@@ -66,7 +66,11 @@ export type CompileNotice = {
     // 図の中に描く部品を持たない見本を重ねた (#1017)
     | "part-not-drawn"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
-    | "scale-reserved";
+    | "scale-reserved"
+    // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
+    | "chart-value-unreadable"
+    // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
+    | "chart-edge-dropped";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -112,13 +116,13 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileClass(doc);
       break;
     case "pie":
-      diagram = compilePie(doc);
+      diagram = compileValueChart(doc, "pie", "chart-pie", opts?.onNotice);
       break;
     case "bar":
-      diagram = compileValueChart(doc, "bar", "chart-bar");
+      diagram = compileValueChart(doc, "bar", "chart-bar", opts?.onNotice);
       break;
     case "line":
-      diagram = compileValueChart(doc, "line", "chart-line");
+      diagram = compileValueChart(doc, "line", "chart-line", opts?.onNotice);
       break;
     case "c4":
       diagram = compileC4(doc);
@@ -2576,7 +2580,9 @@ function compileClass(doc: DslDocument): CdlDiagram {
  */
 function parseShareValue(raw: string | undefined): number | null {
   if (raw === undefined) return null;
-  const m = raw.trim().match(/^(\d+(?:\.\d+)?)\s*%?$/);
+  // **負の数も受ける**。 折れ線は増減を追う図なので、 気温や損益のように 0 を跨ぐ値が来る
+  // (review 指摘)。 円グラフに負を書いた場合は描画側が扱いを決める
+  const m = raw.trim().match(/^(-?\d+(?:\.\d+)?)\s*%?$/);
   if (m === null) return null;
   const v = Number(m[1]);
   return Number.isFinite(v) ? v : null;
@@ -2602,10 +2608,13 @@ function compileValueChart(
   doc: DslDocument,
   型: "pie" | "bar" | "line",
   kind: "chart-pie" | "chart-bar" | "chart-line",
+  onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 640;
-  const CHART_H = 320;
+  // **高さは型で違う**。 描画側 (`cdl` の `chart()` preset) が `pie` を 320、 棒と折れ線を 360
+  // にしている。 揃えないと、 同じ値を同じ図種で描いても catalog と記法で高さが変わる
+  const CHART_H = 型 === "pie" ? 320 : 360;
   b.lane("chart", { width: CHART_W + 64, label: doc.title });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
@@ -2621,15 +2630,37 @@ function compileValueChart(
     // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
     data.push({ label: a.name, value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
-  if (読めない.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: ${型} で値を読めない項目があります (図に載せません): ${読めない.join(", ")}。` +
-        ` \`- 名前: "45"\` の形で書いてください`,
+  // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
+  // 薄まり、 既存の案内が後退した (review 指摘)。 何を書けばよいかは型ごとに違う
+  const 語 =
+    型 === "pie"
+      ? { 量: "割合", 図: "円", 例: '"45%"' }
+      : 型 === "bar"
+        ? { 量: "値", 図: "棒", 例: '"420"' }
+        : { 量: "値", 図: "折れ線", 例: '"180"' };
+
+  /**
+   * 利用者に伝える。 **`console.warn` だけにしない**。 エディタは受け取った notice を画面に
+   * 出す経路を持っており、 log だけだと項目が消えた理由が誰にも見えない (review 指摘)。
+   */
+  const 伝える = (種類: CompileNotice["kind"], 名前: string, message: string) => {
+    onNotice?.({ kind: 種類, actor: 名前, line: 0, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+
+  if (読めない.length > 0) {
+    伝える(
+      "chart-value-unreadable",
+      読めない[0]!,
+      `type: ${型} で${語.量}を読めない項目があります (${語.図}に載せません): ${読めない.join(", ")}。` +
+        ` \`- 名前: ${語.例}\` の形で書いてください`,
     );
   }
-  if (doc.flow.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: ${型} では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
+  if (doc.flow.length > 0) {
+    伝える(
+      "chart-edge-dropped",
+      doc.flow[0]?.from ?? "",
+      `type: ${型} では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
         ` 関係を描くなら type: flow を使ってください`,
     );
   }
@@ -2647,18 +2678,6 @@ function compileValueChart(
   return b.build();
 }
 
-/**
- * Pie preset (円グラフ)。
- *
- * 描画側の `chart-pie` に 1 node で渡す。 以前は `card` を縦に積むだけで、 `type: pie` と
- * 書いても円が出ず、 割合が箱の説明文として枠からはみ出していた (実機報告)。
- *
- * 中身は `compileValueChart` と同じ = 棒 / 折れ線と入力の形が変わらないため。 合計が 100 に
- * ならなくても描画側が比で割るので、 こちらでは正規化しない。
- */
-function compilePie(doc: DslDocument): CdlDiagram {
-  return compileValueChart(doc, "pie", "chart-pie");
-}
 
 /**
  * 段の目印を読み取る。 目印と、 それを落とした残りの説明を返す (#1098)。
