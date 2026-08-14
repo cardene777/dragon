@@ -214,6 +214,18 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // === composite exemplar (dragon-diagram skill 生成) ===
   richLayeredPriorityFee: "3層優先度手数料",
 
+  // === charts = 図表系 10 種 (#1152) ===
+  chartBar: "棒グラフ",
+  chartLine: "折れ線グラフ",
+  chartPie: "円グラフ",
+  funnelStages: "絞り込み図",
+  ganttTimeline: "工程表",
+  journeyMap: "体験の道筋",
+  mindMap: "枝分かれ図",
+  mindRadial: "放射図",
+  quadrantMatrix: "4象限図",
+  treeHierarchy: "階層図",
+
   // === parts catalog (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ===
   partsWaveGauge: "波打つ矩形ゲージ",
   partsStackedLayer: "縦積み層バー",
@@ -845,6 +857,16 @@ export const ITEM_NAME_EN: Record<string, string> = {
   exemplarPaymentFlow: "E-commerce payment flow",
   exemplarLoginFlow: "Login authentication flow",
   exemplarNotificationFlow: "Push notification delivery flow",
+  chartBar: "Bar chart",
+  chartLine: "Line chart",
+  chartPie: "Pie chart",
+  funnelStages: "Funnel",
+  ganttTimeline: "Gantt chart",
+  journeyMap: "Journey map",
+  mindMap: "Mind map",
+  mindRadial: "Radial map",
+  quadrantMatrix: "Quadrant matrix",
+  treeHierarchy: "Tree hierarchy",
   partsWaveGauge: "Wave gauge",
   partsStackedLayer: "Stacked layer bar",
   partsStateIndicator: "State indicator",

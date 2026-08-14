@@ -74,6 +74,14 @@ export const CATEGORIES: CategoryMeta[] = [
     cluster: "extended",
   },
   {
+    slug: "charts",
+    label: "図表",
+    eyebrow: "数を形にして比べる",
+    desc: "数そのものを見せる図。 大小を棒の高さで比べる / 移り変わりを線で追う / 全体に占める割合を扇で見る といった、 箱と矢印では表せない量の関係を扱う。 値を持たせて描くので、 そのまま自分の数に差し替えて使える。",
+    items: ["棒で比べる", "線で追う", "割合を見る", "絞り込み", "期間", "体験の起伏", "枝分かれ", "2 軸", "親子"],
+    cluster: "extended",
+  },
+  {
     slug: "parts",
     label: "パーツ",
     eyebrow: "合成用の小さな部品",
