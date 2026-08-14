@@ -56,15 +56,19 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
-    "@cardenelabs/cdl": "link:../../../cdl/packages/cdl"
+    "@cardenelabs/cdl": "^0.5.0"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.1.0",
