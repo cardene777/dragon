@@ -2109,7 +2109,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
       "h": 318,
       "id": "kv-header",
       "kind": "storage",
-      "w": 152,
+      "w": 178,
     },
     {
       "cx": 170,
@@ -3005,7 +3005,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "h": 206,
       "id": "d-header",
       "kind": "storage",
-      "w": 140,
+      "w": 147,
     },
     {
       "cx": 1910,
