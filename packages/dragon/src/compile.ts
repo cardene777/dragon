@@ -2916,7 +2916,9 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
       // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
       if (isSeqLike && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
         node.h = Math.max(node.h ?? 0, requiredRowsHeight(a.kind, a.rows.length) ?? 0);
-        node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows));
+        // **種別も渡す**。 省くと cdl 側は「どちらで描かれるか分からない」 として広い方を返す
+        // ため、 名札が余分に広くなる (実測 = `storage` で 152 → 178)。 高さと同じく種別を渡す。
+        node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows, a.kind));
       }
       // 名札の大きさも書いたとおりにする (#975)。 縦線の位置は `位置:` の x が lane に効く
       // (実測) が、 大きさはどこにも載っていなかった。
