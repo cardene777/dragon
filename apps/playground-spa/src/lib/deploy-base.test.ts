@@ -24,7 +24,9 @@ describe("配信先ごとの前置き (#1156)", () => {
     expect(v.buildCommand, "buildCommand が無い").toBeTruthy();
     // **部分一致で見てはいけない**。 `GH_PAGES_BASE=/dragon/` のような誤った値も
     // `GH_PAGES_BASE=/` を含むため通ってしまう (review 指摘)。 値そのものを取り出して比べる
-    const m = v.buildCommand!.match(/GH_PAGES_BASE=(\S*)/u);
+    // 左の境界も要る。 無いと `MY_GH_PAGES_BASE=/` のような別の変数への代入でも通る
+    // (review 指摘、 これで 3 度目の「見る範囲が広すぎる」)
+    const m = v.buildCommand!.match(/(?:^|\s)GH_PAGES_BASE=(\S*)/u);
     expect(m, "GH_PAGES_BASE の指定が無い (資産が /dragon/ を指して画面が白くなる)").not.toBeNull();
     expect(m?.[1], "前置きが root になっていない").toBe("/");
   });
