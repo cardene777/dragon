@@ -29,8 +29,13 @@ describe("配信先ごとの前置き (#1156)", () => {
   });
 
   it("既定は GitHub Pages の前置きのまま", () => {
-    // Vercel 側を直した時に、 こちらを巻き添えで変えていないことを見る
+    // Vercel 側を直した時に、 こちらを巻き添えで変えていないことを見る。
+    //
+    // **file 全体から探してはいけない**。 説明文にも `/dragon/` が出るので、 既定値を壊しても
+    // 通ってしまう (review 指摘)。 既定値を決めている式そのものを見る
     const c = readFileSync(resolve(root, "apps/playground-spa/vite.config.ts"), "utf8");
-    expect(c, "既定の前置きが変わっている").toContain('"/dragon/"');
+    const m = c.match(/process\.env\.GH_PAGES_BASE\s*\?\?\s*"([^"]*)"/u);
+    expect(m, "既定値を決める式が見つからない (書き方が変わった)").not.toBeNull();
+    expect(m?.[1], "既定の前置きが変わっている").toBe("/dragon/");
   });
 });
