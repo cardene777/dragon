@@ -22,10 +22,11 @@ describe("配信先ごとの前置き (#1156)", () => {
       buildCommand?: string;
     };
     expect(v.buildCommand, "buildCommand が無い").toBeTruthy();
-    expect(
-      v.buildCommand,
-      "GH_PAGES_BASE=/ が無い (資産が /dragon/ を指して画面が白くなる)",
-    ).toContain("GH_PAGES_BASE=/");
+    // **部分一致で見てはいけない**。 `GH_PAGES_BASE=/dragon/` のような誤った値も
+    // `GH_PAGES_BASE=/` を含むため通ってしまう (review 指摘)。 値そのものを取り出して比べる
+    const m = v.buildCommand!.match(/GH_PAGES_BASE=(\S*)/u);
+    expect(m, "GH_PAGES_BASE の指定が無い (資産が /dragon/ を指して画面が白くなる)").not.toBeNull();
+    expect(m?.[1], "前置きが root になっていない").toBe("/");
   });
 
   it("既定は GitHub Pages の前置きのまま", () => {
