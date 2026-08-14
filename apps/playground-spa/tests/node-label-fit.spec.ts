@@ -535,9 +535,13 @@ flow:
  *
  * ## 枠線は測れない (#434)
  *
- * `getBBox` は幾何だけを返し枠線を数えない。 **ブラウザに墨を測る API が無い** =
- * `getBoundingClientRect` も `getBBox({ stroke: true })` も Chromium では幾何を返す
- * (実測 = `r=10` / `stroke-width=4` の円で 3 つとも 20、 墨なら 24)。
+ * `getBBox` は既定では幾何だけを返し枠線を数えない。 SVG 2 は `getBBox({ stroke: true })` を
+ * 「枠線を含めた外接矩形」 として定めているが、 **この検査が使う Chromium は option を反映
+ * しない** (実測 = `r=10` / `stroke-width=4` の円で `getBoundingClientRect` /
+ * `getBBox()` / `getBBox({ stroke: true })` の 3 つとも 20、 墨なら 24)。
+ *
+ * API が存在しないのではなく、 いま動かしているブラウザが返さない。 Chromium が反映するように
+ * なったら、 ここは `getBBox({ stroke: true })` に寄せられる。
  *
  * 描画側で属性から組み立てて測ったところ、 `shape-iot-sensor` は幅 140 の箱で左右へ **0.75**
  * 出る (波紋の半径 70 が幾何としてはちょうど収まり、 枠線 1.5 の半分が外に残る)。 本検査は
