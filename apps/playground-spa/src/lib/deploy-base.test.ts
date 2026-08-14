@@ -24,10 +24,19 @@ describe("配信先ごとの前置き (#1156)", () => {
     expect(v.buildCommand, "buildCommand が無い").toBeTruthy();
     // **部分一致で見てはいけない**。 `GH_PAGES_BASE=/dragon/` のような誤った値も
     // `GH_PAGES_BASE=/` を含むため通ってしまう (review 指摘)。 値そのものを取り出して比べる
-    // 左の境界も要る。 無いと `MY_GH_PAGES_BASE=/` のような別の変数への代入でも通る
-    // (review 指摘、 これで 3 度目の「見る範囲が広すぎる」)
-    const m = v.buildCommand!.match(/(?:^|\s)GH_PAGES_BASE=(\S*)/u);
-    expect(m, "GH_PAGES_BASE の指定が無い (資産が /dragon/ を指して画面が白くなる)").not.toBeNull();
+    // **どの build に掛かるかまで見る**。 `buildCommand` は `&&` で繋いだ複数の build で、
+    // 前置きが要るのは画面を作る側だけ。 命令全体から探すと、 別の build に付いていても通る
+    // (review 指摘)。 左の境界も要る = 無いと `MY_GH_PAGES_BASE=/` でも通る。
+    //
+    // 同じ穴で 4 度目。 file 全体 → 部分一致 → 境界なし → 位置を見ない と、 毎回「見る範囲が
+    // 広すぎる」 側に外していた
+    const 画面を作る側 = v
+      .buildCommand!.split("&&")
+      .map((x) => x.trim())
+      .find((x) => x.includes("dragon-playground-spa build"));
+    expect(画面を作る側, "画面を作る build が buildCommand に無い").toBeTruthy();
+    const m = 画面を作る側!.match(/(?:^|\s)GH_PAGES_BASE=(\S*)/u);
+    expect(m, "画面を作る build に GH_PAGES_BASE の指定が無い (資産が /dragon/ を指す)").not.toBeNull();
     expect(m?.[1], "前置きが root になっていない").toBe("/");
   });
 
