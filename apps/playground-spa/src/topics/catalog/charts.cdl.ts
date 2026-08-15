@@ -31,7 +31,8 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * | `tree` | 段の深さ。 7 要素 → 5 要素 (孫を書く形が無い) |
  * | `journey` | 接点と改善の余地 (`touchpoint` / `opportunity`) |
  * | `funnel` | 各段の率 (`subtitle`) |
- * | `bar` / `pie` | 色 (`tone`) |
+ * | `bar` / `pie` / `line` | 色 (`tone`) |
+ * | `radial` | 枝の色と補足。 枝は名前だけになる |
  *
  * 一番重いのは `quadrant`。 軸の名前が書けないと図の意味そのものが消える。
  *

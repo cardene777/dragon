@@ -293,6 +293,17 @@ describe("矢印を使わない型はすべて伝える (#1154)", () => {
 });
 
 describe("高さが描画側の格子に載る (#1154)", () => {
+  it("値で描かない 5 型も 16 の倍数", () => {
+    // 前回は棒と折れ線だけ直し、 図表 5 型が 360 のまま残っていた (review Round 6)
+    const 高さ = (t: string, body: string) =>
+      textDslToDiagram(`title: "確認"\ntype: ${t}\n\nactors:\n${body}`).nodes[0]?.h ?? 0;
+    expect(高さ("funnel", `  - A: "10"\n`) % 16, "funnel が格子に載っていない").toBe(0);
+    expect(高さ("journey", `  - A: "普通"\n`) % 16, "journey が格子に載っていない").toBe(0);
+    expect(高さ("quadrant", `  - A: "左上"\n`) % 16, "quadrant が格子に載っていない").toBe(0);
+    expect(高さ("tree", `  - A\n`) % 16, "tree が格子に載っていない").toBe(0);
+    expect(高さ("radial", `  - A\n  - B\n`) % 16, "radial が格子に載っていない").toBe(0);
+  });
+
   it("棒と折れ線は 16 の倍数", () => {
     // 360 は 16 で割り切れない。 切り上げないと下端が格子から外れ、 位置の警告が出る
     const 高さ = (t: string) =>

@@ -2711,6 +2711,16 @@ function compileValueChart(
  * `tree` だけ `flow` を読む = 親子は 2 つの名前の関係で、 1 行 1 値では書けないため。
  */
 
+/**
+ * 図表の大きさ。 **格子 (16) の倍数にする**。
+ *
+ * 描画側 (`cdl` の `chart()` preset) は高さを 16 の倍数へ切り上げる。 揃えないと下端が格子から
+ * 外れ、 正しい記法でも位置の警告が出る (review 指摘、 360 のまま 5 型が該当していた)。
+ */
+const CHART_W_STD = 640;
+const CHART_H = 368;
+const CHART_TALL = 400;
+
 /** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
 //
 // **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
@@ -2760,7 +2770,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
-    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: 360, funnelData: data,
+    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: CHART_H, funnelData: data,
   });
   return b.build();
 }
@@ -2778,6 +2788,9 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   }
   const 名前 = new Set(slug別.keys());
   const 伝える = (名: string, message: string) => {
+    // **行番号は持てない**。 `DslActor` / `DslStep` が行を覚えていないため、 ここから遡れない
+    // (review 指摘)。 `0` は「不明」 の意味で、 実在の 1 行目ではない。 行を出すには parser が
+    // 行番号を持つところからで、 本 PR の範囲外
     onNotice?.({ kind: "chart-value-unreadable", actor: 名, line: 0, message });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
@@ -2834,7 +2847,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
-    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: 360, treeData: data,
+    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: CHART_H, treeData: data,
   });
   return b.build();
 }
@@ -2861,7 +2874,7 @@ function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     })),
   };
   b.node(`${slugify(doc.title) || "radial"}-chart`, {
-    lane: "chart", stack: 0, kind: "mind-radial", title: doc.title, w: W, h: 400, mindData: data,
+    lane: "chart", stack: 0, kind: "mind-radial", title: doc.title, w: W, h: CHART_TALL, mindData: data,
   });
   return b.build();
 }
@@ -2893,7 +2906,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
-    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: 360, journeyData: data,
+    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: CHART_H, journeyData: data,
   });
   return b.build();
 }
@@ -2925,7 +2938,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
-    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: 400,
+    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: CHART_TALL,
     quadrantData: {
       xAxis: { left: "小さい", right: "大きい" },
       yAxis: { bottom: "小さい", top: "大きい" },
