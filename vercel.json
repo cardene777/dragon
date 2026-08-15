@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @cardenelabs/dragon build && pnpm --filter dragon-playground-spa build",
+  "buildCommand": "pnpm --filter @cardenelabs/dragon build && GH_PAGES_BASE=/ pnpm --filter dragon-playground-spa build",
   "outputDirectory": "apps/playground-spa/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
