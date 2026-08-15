@@ -124,6 +124,21 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "line":
       diagram = compileValueChart(doc, "line", "chart-line", opts?.onNotice);
       break;
+    case "funnel":
+      diagram = compileFunnel(doc, opts?.onNotice);
+      break;
+    case "tree":
+      diagram = compileTree(doc);
+      break;
+    case "radial":
+      diagram = compileRadial(doc);
+      break;
+    case "journey":
+      diagram = compileJourney(doc, opts?.onNotice);
+      break;
+    case "quadrant":
+      diagram = compileQuadrant(doc, opts?.onNotice);
+      break;
     case "c4":
       diagram = compileC4(doc);
       break;
@@ -2678,6 +2693,159 @@ function compileValueChart(
   return b.build();
 }
 
+
+/**
+ * 図表 5 種の組立て (#1154 段 2 / 段 3)。
+ *
+ * 描画側に 1 node で渡す形は値で描く 3 型と同じ。 違うのは **actor から何を読むか**。
+ *
+ * | 型 | 読むもの | 書き方 |
+ * |---|---|---|
+ * | `funnel` | 数 | `- 訪問: "12000"` |
+ * | `tree` | 親子 | `flow` の矢印 (`親 -> 子`) |
+ * | `radial` | 根と枝 | 1 つ目が根、 残りが枝 |
+ * | `journey` | 気持ち | `- 登録: "不満"` |
+ * | `quadrant` | どの区画か | `- 重複削除: "左上"` |
+
+ * `tree` だけ `flow` を読む = 親子は 2 つの名前の関係で、 1 行 1 値では書けないため。
+ */
+
+/** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
+const 気持ち: Record<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry"> = {
+  最高: "delighted",
+  満足: "happy",
+  普通: "neutral",
+  不満: "frustrated",
+  怒り: "angry",
+};
+
+/** 区画の言葉。 縦横の位置をそのまま書く。 */
+const 区画: Record<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight"> = {
+  左上: "topLeft",
+  右上: "topRight",
+  左下: "bottomLeft",
+  右下: "bottomRight",
+};
+
+function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = 640;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const v = parseShareValue(a.value ?? a.subtitle);
+    if (v === null) {
+      読めない.push(a.name);
+      continue;
+    }
+    data.push({ id: slugify(a.name), title: a.name, count: v });
+  }
+  if (読めない.length > 0) {
+    const m = `type: funnel で数を読めない項目があります (段に載せません): ${読めない.join(", ")}。 \`- 訪問: "12000"\` の形で書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  b.node(`${slugify(doc.title) || "funnel"}-chart`, {
+    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: 360, funnelData: data,
+  });
+  return b.build();
+}
+
+function compileTree(doc: DslDocument): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = 640;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる
+  const 親: Record<string, string> = {};
+  for (const f of doc.flow) 親[slugify(f.to)] = slugify(f.from);
+  const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
+    const id = slugify(a.name);
+    return { id, title: a.name, ...(親[id] !== undefined ? { parent: 親[id] } : {}) };
+  });
+  b.node(`${slugify(doc.title) || "tree"}-chart`, {
+    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: 360, treeData: data,
+  });
+  return b.build();
+}
+
+function compileRadial(doc: DslDocument): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = 640;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const root = doc.actors[0];
+  const data = {
+    rootId: root ? slugify(root.name) : "root",
+    rootTitle: root?.name ?? doc.title,
+    branches: doc.actors.slice(1).map((a) => ({
+      id: slugify(a.name),
+      title: a.name,
+      parent: root ? slugify(root.name) : "root",
+    })),
+  };
+  b.node(`${slugify(doc.title) || "radial"}-chart`, {
+    lane: "chart", stack: 0, kind: "mind-radial", title: doc.title, w: W, h: 400, mindData: data,
+  });
+  return b.build();
+}
+
+function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = 640;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const 語 = (a.value ?? a.subtitle ?? "").trim();
+    const e = 気持ち[語];
+    if (e === undefined) {
+      読めない.push(a.name);
+      continue;
+    }
+    data.push({ id: slugify(a.name), title: a.name, emotion: e });
+  }
+  if (読めない.length > 0) {
+    const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${Object.keys(気持ち).join(" / ")} のどれかを書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  b.node(`${slugify(doc.title) || "journey"}-chart`, {
+    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: 360, journeyData: data,
+  });
+  return b.build();
+}
+
+function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = 640;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const 語 = (a.value ?? a.subtitle ?? "").trim();
+    const q = 区画[語];
+    if (q === undefined) {
+      読めない.push(a.name);
+      continue;
+    }
+    items.push({ id: slugify(a.name), title: a.name, quadrant: q });
+  }
+  if (読めない.length > 0) {
+    const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${Object.keys(区画).join(" / ")} のどれかを書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
+    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: 400,
+    quadrantData: {
+      xAxis: { left: "小さい", right: "大きい" },
+      yAxis: { bottom: "小さい", top: "大きい" },
+      quadrantLabels: { topLeft: "左上", topRight: "右上", bottomLeft: "左下", bottomRight: "右下" },
+      items,
+    },
+  });
+  return b.build();
+}
 
 /**
  * 段の目印を読み取る。 目印と、 それを落とした残りの説明を返す (#1098)。

@@ -14,7 +14,7 @@
     },
     "type": {
       "type": "string",
-      "enum": ["sequence", "flow", "swimlane", "er", "state", "topology", "solidity", "gantt", "class", "pie", "bar", "line", "c4", "mind"],
+      "enum": ["sequence", "flow", "swimlane", "er", "state", "topology", "solidity", "gantt", "class", "pie", "bar", "line", "funnel", "tree", "radial", "journey", "quadrant", "c4", "mind"],
       "description": "preset type = 図の種類。 sequence (時系列 API 呼び出し) / flow (処理 flow) / swimlane (責務分担 flow) / er (DB schema) / state (状態遷移) / topology (network) / solidity (contract) / gantt (schedule) / class (UML class) / pie (円グラフ) / c4 (architecture) / mind (mind map)"
     },
     "actors": {

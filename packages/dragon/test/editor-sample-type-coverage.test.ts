@@ -132,3 +132,66 @@ describe("値で描く型の直し (#1154)", () => {
     expect(高さ("line")).toBe(360);
   });
 });
+
+/**
+ * 段 2 / 段 3 の 5 型 (#1154)。
+ *
+ * 値で描く 3 型と違い、 actor から読むものが型ごとに違う。 何を読むかを検査で固定する。
+ */
+describe("残り 5 型が記法から描ける (#1154)", () => {
+  const 記法 = (t: string, body: string) => `title: "確認"\ntype: ${t}\n\nactors:\n${body}`;
+
+  it("funnel = 数を読む", () => {
+    const d = textDslToDiagram(記法("funnel", `  - 訪問: "12000"\n  - 申込み: "480"\n`));
+    expect(d.nodes[0]?.kind).toBe("funnel-stages");
+    expect(d.nodes[0]?.funnelData?.map((x) => x.count)).toEqual([12000, 480]);
+  });
+
+  it("tree = 矢印で親子を読む", () => {
+    // 親子は 2 つの名前の関係なので、 1 行 1 値では書けない。 矢印を使う
+    const d = textDslToDiagram(
+      `title: "確認"\ntype: tree\n\nactors:\n  - 親\n  - 子\n\nflow:\n  - 親 -> 子: ""\n`,
+    );
+    expect(d.nodes[0]?.kind).toBe("tree-hierarchy");
+    const t = d.nodes[0]?.treeData ?? [];
+    expect(t.find((x) => x.title === "子")?.parent, "子の親が読めていない").toBeTruthy();
+    expect(t.find((x) => x.title === "親")?.parent, "根に親が付いている").toBeUndefined();
+  });
+
+  it("radial = 1 つ目が根、 残りが枝", () => {
+    const d = textDslToDiagram(記法("radial", `  - 根\n  - 枝A\n  - 枝B\n`));
+    expect(d.nodes[0]?.kind).toBe("mind-radial");
+    expect(d.nodes[0]?.mindData?.rootTitle).toBe("根");
+    expect(d.nodes[0]?.mindData?.branches).toHaveLength(2);
+  });
+
+  it("journey = 気持ちを日本語で読む", () => {
+    const d = textDslToDiagram(記法("journey", `  - 知る: "普通"\n  - 登録: "不満"\n`));
+    expect(d.nodes[0]?.kind).toBe("journey-map");
+    expect(d.nodes[0]?.journeyData?.map((x) => x.emotion)).toEqual(["neutral", "frustrated"]);
+  });
+
+  it("quadrant = 区画を縦横の言葉で読む", () => {
+    const d = textDslToDiagram(記法("quadrant", `  - A: "左上"\n  - B: "右下"\n`));
+    expect(d.nodes[0]?.kind).toBe("quadrant-matrix");
+    expect(d.nodes[0]?.quadrantData?.items.map((x) => x.quadrant)).toEqual([
+      "topLeft",
+      "bottomRight",
+    ]);
+  });
+
+  // 読める語は型で違うので、 型ごとに 1 つ正しい語を渡す
+  it.each([
+    ["journey", "普通"],
+    ["quadrant", "左上"],
+  ])("%s = 読めない語は載せずに伝える", (t, 正しい語) => {
+    const 届いた: string[] = [];
+    const d = textDslToDiagram(記法(t, `  - A: "${正しい語}"\n  - B: "よくわからない"\n`), {
+      onNotice: (n) => 届いた.push(n.kind),
+    });
+    const 件数 =
+      t === "journey" ? d.nodes[0]?.journeyData?.length : d.nodes[0]?.quadrantData?.items.length;
+    expect(件数, "読めない語を載せている").toBe(1);
+    expect(届いた, "利用者に届く経路へ出していない").toContain("chart-value-unreadable");
+  });
+});

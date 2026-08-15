@@ -333,6 +333,91 @@ animation:
 `,
   },
   {
+    label: "申込みまでの絞り込み (funnel)",
+    slug: "funnel",
+    code: `title: "申込みまでの絞り込み"
+type: funnel
+
+actors:
+  - 訪問: "12000"
+  - 会員登録: "3400"
+  - カート投入: "1200"
+  - 申込み: "480"
+`,
+  },
+  {
+    label: "配布物の構成 (tree)",
+    slug: "tree",
+    code: `title: "配布物の構成"
+type: tree
+
+actors:
+  - dragon
+  - 記法
+  - 描画
+  - 読み取り
+  - 配置
+
+flow:
+  - dragon -> 記法: ""
+  - dragon -> 描画: ""
+  - 記法 -> 読み取り: ""
+  - 描画 -> 配置: ""
+`,
+  },
+  {
+    label: "扱う入力 (radial)",
+    slug: "radial",
+    code: `title: "扱う入力"
+type: radial
+
+actors:
+  - 扱う入力
+  - 記法
+  - JSON
+  - 組立て
+  - 取込み
+
+animation:
+  - step: "枝を配る" 2.0s
+    focus: [記法, JSON, 組立て, 取込み]
+`,
+  },
+  {
+    label: "初めて使うまで (journey)",
+    slug: "journey",
+    code: `title: "初めて使うまで"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "不満"
+  - 設定: "満足"
+  - 初回の成功: "最高"
+
+animation:
+  - step: "道筋をたどる" 2.0s
+    focus: [知る, 登録, 設定, 初回の成功]
+`,
+  },
+  {
+    label: "着手の順番 (quadrant)",
+    slug: "quadrant",
+    code: `title: "着手の順番"
+type: quadrant
+
+actors:
+  - 重複削除: "左上"
+  - 描画刷新: "右上"
+  - 配色統一: "左下"
+  - 旧記法: "右下"
+
+animation:
+  - step: "仕分ける" 2.0s
+    focus: [重複削除, 描画刷新, 配色統一, 旧記法]
+`,
+  },
+  {
     label: "C4コンテキストモデル (c4)",
     slug: "c4",
     code: `title: "C4コンテキストモデル"
