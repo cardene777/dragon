@@ -195,3 +195,49 @@ describe("残り 5 型が記法から描ける (#1154)", () => {
     expect(届いた, "利用者に届く経路へ出していない").toContain("chart-value-unreadable");
   });
 });
+
+/**
+ * 書ける語の一覧を親から引かせない (#1154 review Round 3)。
+ *
+ * 日本語の語を plain object で持つと、 `__proto__` や `constructor` が親から引けてしまい、
+ * **一覧に無い入力が値として通る**。 型は付いていても中身は object や function になり、
+ * 描画側へそのまま流れる。
+ */
+describe("書ける語の一覧が親から引けない (#1154)", () => {
+  const 記法 = (t: string, 語: string) =>
+    `title: "確認"\ntype: ${t}\n\nactors:\n  - A: "${語}"\n`;
+
+  it.each([
+    ["journey", "__proto__"],
+    ["journey", "constructor"],
+    ["quadrant", "__proto__"],
+    ["quadrant", "constructor"],
+  ])("%s = %s は書ける語ではない", (t, 語) => {
+    const d = textDslToDiagram(記法(t, 語));
+    const 件数 =
+      t === "journey" ? d.nodes[0]?.journeyData?.length : d.nodes[0]?.quadrantData?.items.length;
+    expect(件数, `${語} が値として通っている`).toBe(0);
+  });
+
+  it("tree = 書いていない名前への矢印も伝える", () => {
+    const 届いた: string[] = [];
+    textDslToDiagram(
+      `title: "確認"\ntype: tree\n\nactors:\n  - 親\n\nflow:\n  - 親 -> 居ない子: ""\n`,
+      { onNotice: (n) => 届いた.push(n.kind) },
+    );
+    expect(届いた, "子の側を見ていない").toContain("chart-value-unreadable");
+  });
+
+  it.each(["pie", "bar", "funnel"])("%s = 負の数は受けない", (t) => {
+    const d = textDslToDiagram(記法(t, "-5"));
+    const 件数 =
+      t === "funnel" ? d.nodes[0]?.funnelData?.length : d.nodes[0]?.chartData?.length;
+    expect(件数, "負の数を載せている").toBe(0);
+  });
+
+  it("line = 負の数は受ける", () => {
+    expect(textDslToDiagram(記法("line", "-5")).nodes[0]?.chartData).toEqual([
+      { label: "A", value: -5 },
+    ]);
+  });
+});

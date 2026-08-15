@@ -2711,21 +2711,26 @@ function compileValueChart(
  */
 
 /** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
-const 気持ち: Record<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry"> = {
-  最高: "delighted",
-  満足: "happy",
-  普通: "neutral",
-  不満: "frustrated",
-  怒り: "angry",
-};
+//
+// **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
+// 書ける語の一覧に無い入力が値として通る (review 指摘)。 型は付いていても中身は object や
+// function になり、 描画側へそのまま流れる。
+const 気持ち = new Map<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry">([
+  ["最高", "delighted"],
+  ["満足", "happy"],
+  ["普通", "neutral"],
+  ["不満", "frustrated"],
+  ["怒り", "angry"],
+]);
 
 /** 区画の言葉。 縦横の位置をそのまま書く。 */
-const 区画: Record<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight"> = {
-  左上: "topLeft",
-  右上: "topRight",
-  左下: "bottomLeft",
-  右下: "bottomRight",
-};
+// 同上の理由で `Map`。
+const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight">([
+  ["左上", "topLeft"],
+  ["右上", "topRight"],
+  ["左下", "bottomLeft"],
+  ["右下", "bottomRight"],
+]);
 
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
@@ -2766,7 +2771,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   //
   // **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
   // 矢印は無い親を作る。 どちらも図が静かに変わるので伝える (review 指摘)
-  const 親: Record<string, string> = {};
+  const 親 = new Map<string, string>();
   for (const f of doc.flow) {
     const 子 = slugify(f.to);
     const 親名 = slugify(f.from);
@@ -2774,33 +2779,40 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
       伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`);
       continue;
     }
+    // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
+    if (!名前.has(子)) {
+      伝える(f.to, `type: tree で書いていない名前を子にしています: ${f.from} -> ${f.to}`);
+      continue;
+    }
     if (子 === 親名) {
       伝える(f.to, `type: tree で自分を親にしています: ${f.to}`);
       continue;
     }
-    if (親[子] !== undefined && 親[子] !== 親名) {
+    const 既存 = 親.get(子);
+    if (既存 !== undefined && 既存 !== 親名) {
       伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`);
       continue;
     }
-    親[子] = 親名;
+    親.set(子, 親名);
   }
   // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
-  for (const 子 of Object.keys(親)) {
+  for (const 子 of [...親.keys()]) {
     const 見た = new Set<string>([子]);
-    let p2: string | undefined = 親[子];
+    let p2 = 親.get(子);
     while (p2 !== undefined) {
       if (見た.has(p2)) {
         伝える(子, `type: tree で親を辿ると輪になります (${子} の親を外しました)`);
-        delete 親[子];
+        親.delete(子);
         break;
       }
       見た.add(p2);
-      p2 = 親[p2];
+      p2 = 親.get(p2);
     }
   }
   const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
     const id = slugify(a.name);
-    return { id, title: a.name, ...(親[id] !== undefined ? { parent: 親[id] } : {}) };
+    const p3 = 親.get(id);
+    return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
     lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: 360, treeData: data,
@@ -2836,7 +2848,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
   const 読めない: string[] = [];
   for (const a of doc.actors) {
     const 語 = (a.value ?? a.subtitle ?? "").trim();
-    const e = 気持ち[語];
+    const e = 気持ち.get(語);
     if (e === undefined) {
       読めない.push(a.name);
       continue;
@@ -2844,7 +2856,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
     data.push({ id: slugify(a.name), title: a.name, emotion: e });
   }
   if (読めない.length > 0) {
-    const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${Object.keys(気持ち).join(" / ")} のどれかを書いてください`;
+    const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${[...気持ち.keys()].join(" / ")} のどれかを書いてください`;
     onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
   }
@@ -2862,7 +2874,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   const 読めない: string[] = [];
   for (const a of doc.actors) {
     const 語 = (a.value ?? a.subtitle ?? "").trim();
-    const q = 区画[語];
+    const q = 区画.get(語);
     if (q === undefined) {
       読めない.push(a.name);
       continue;
@@ -2870,7 +2882,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
     items.push({ id: slugify(a.name), title: a.name, quadrant: q });
   }
   if (読めない.length > 0) {
-    const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${Object.keys(区画).join(" / ")} のどれかを書いてください`;
+    const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${[...区画.keys()].join(" / ")} のどれかを書いてください`;
     onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
   }

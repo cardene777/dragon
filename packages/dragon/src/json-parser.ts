@@ -19,6 +19,7 @@
  */
 
 import { PRESET_TYPES } from "./v05/parser";
+import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, PresetType, LayoutMode, LayoutPos } from "./types";
 import { compileToCdl } from "./compile";
@@ -406,7 +407,10 @@ export function jsonToDoc(json: DragonJson): DslDocument {
  */
 export function jsonToDiagram(
   json: unknown,
-  opts?: { partsCatalog?: Record<string, CdlDiagram> },
+  // **`onNotice` も通す**。 記法経路だけに通知を付けていたため、 同じ型を受ける JSON / YAML
+  // 経路では読めない値や捨てた矢印が利用者へ届かなかった (review 指摘)。 エディタの YAML タブは
+  // ここを通る
+  opts?: { partsCatalog?: Record<string, CdlDiagram>; onNotice?: CompileToCdlOpts["onNotice"] },
 ): CdlDiagram {
   const v = validateJson(json);
   if (!v.ok) {
