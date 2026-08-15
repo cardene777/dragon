@@ -2625,9 +2625,10 @@ function compileValueChart(
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 640;
-  // **高さは型で違う**。 描画側 (`cdl` の `chart()` preset) が `pie` を 320、 棒と折れ線を 360
-  // にしている。 揃えないと、 同じ値を同じ図種で描いても catalog と記法で高さが変わる
-  const CHART_H = 型 === "pie" ? 320 : 360;
+  // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、
+  // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
+  // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
+  const CHART_H = 型 === "pie" ? 320 : 368;
   b.lane("chart", { width: CHART_W + 64, label: doc.title });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
@@ -2752,6 +2753,12 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
   }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: funnel では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
+  }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
     lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: 360, funnelData: data,
   });
@@ -2762,11 +2769,23 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = 640;
   b.lane("chart", { width: W + 64, label: doc.title });
-  const 名前 = new Set(doc.actors.map((a) => slugify(a.name)));
+  // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
+  // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
+  const slug別 = new Map<string, string[]>();
+  for (const a of doc.actors) {
+    const k = slugify(a.name);
+    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
+  }
+  const 名前 = new Set(slug別.keys());
   const 伝える = (名: string, message: string) => {
     onNotice?.({ kind: "chart-value-unreadable", actor: 名, line: 0, message });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
+  for (const [k, 群] of slug別) {
+    if (群.length > 1) {
+      伝える(群[0]!, `type: tree で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`);
+    }
+  }
   // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる。
   //
   // **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
@@ -2867,6 +2886,12 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
     onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
   }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: journey では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
+  }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
     lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: 360, journeyData: data,
   });
@@ -2892,6 +2917,12 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
     const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${[...区画.keys()].join(" / ")} のどれかを書いてください`;
     onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: quadrant では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
     lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: 400,

@@ -128,8 +128,9 @@ describe("値で描く型の直し (#1154)", () => {
     // 揃えないと、 同じ値を同じ図種で描いても catalog と記法で高さが変わる
     const 高さ = (t: string) => textDslToDiagram(記法(t, `  - A: "10"\n`)).nodes[0]?.h;
     expect(高さ("pie")).toBe(320);
-    expect(高さ("bar")).toBe(360);
-    expect(高さ("line")).toBe(360);
+    // 360 は 16 で割り切れないので 368 へ切り上げる (格子に載せる)
+    expect(高さ("bar")).toBe(368);
+    expect(高さ("line")).toBe(368);
   });
 });
 
@@ -273,5 +274,43 @@ describe("radial は矢印を読まないことを伝える (#1154)", () => {
       { onNotice: (n) => 届いた.push(n.kind) },
     );
     expect(届いた, "捨てたことを伝えていない").toContain("chart-edge-dropped");
+  });
+});
+
+/**
+ * Round 5 の指摘 (#1154)。
+ */
+describe("矢印を使わない型はすべて伝える (#1154)", () => {
+  it.each(["funnel", "journey", "quadrant", "radial"])("%s = 矢印を捨てたら伝える", (t) => {
+    const 値 = t === "journey" ? "普通" : t === "quadrant" ? "左上" : "10";
+    const 届いた: string[] = [];
+    textDslToDiagram(
+      `title: "確認"\ntype: ${t}\n\nactors:\n  - A: "${値}"\n  - B: "${値}"\n\nflow:\n  - A -> B: "x"\n`,
+      { onNotice: (n) => 届いた.push(n.kind) },
+    );
+    expect(届いた, "捨てたことを伝えていない").toContain("chart-edge-dropped");
+  });
+});
+
+describe("高さが描画側の格子に載る (#1154)", () => {
+  it("棒と折れ線は 16 の倍数", () => {
+    // 360 は 16 で割り切れない。 切り上げないと下端が格子から外れ、 位置の警告が出る
+    const 高さ = (t: string) =>
+      textDslToDiagram(`title: "確認"\ntype: ${t}\n\nactors:\n  - A: "10"\n`).nodes[0]?.h ?? 0;
+    expect(高さ("bar") % 16, "棒が格子に載っていない").toBe(0);
+    expect(高さ("line") % 16, "折れ線が格子に載っていない").toBe(0);
+    expect(高さ("pie") % 16, "円が格子に載っていない").toBe(0);
+  });
+});
+
+describe("同じ id になる名前を伝える (#1154)", () => {
+  it("tree = 違う名前が同じ id に潰れたら伝える", () => {
+    // 記号だけが違う名前は同じ id になる。 黙って通すと自己参照や重複を生む
+    const 届いた: string[] = [];
+    textDslToDiagram(
+      `title: "確認"\ntype: tree\n\nactors:\n  - "a b"\n  - "a-b"\n`,
+      { onNotice: (n) => 届いた.push(n.kind) },
+    );
+    expect(届いた, "同じ id になることを伝えていない").toContain("chart-value-unreadable");
   });
 });
