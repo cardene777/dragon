@@ -2633,6 +2633,8 @@ function compileValueChart(
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
+  // 最初に読めなかった行を覚える。 画面が案内できるようにする
+  let 読めない行 = 0;
   for (const a of doc.actors) {
     // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
@@ -2640,6 +2642,8 @@ function compileValueChart(
     // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
     // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)
     if (value === null || (value < 0 && 型 !== "line")) {
+      // `pos` を持たない経路がある (JSON 経路で組み立てた actor)。 無ければ 0 のまま
+      if (読めない.length === 0) 読めない行 = a.pos?.line ?? 0;
       読めない.push(a.name);
       continue;
     }
@@ -2659,8 +2663,8 @@ function compileValueChart(
    * 利用者に伝える。 **`console.warn` だけにしない**。 エディタは受け取った notice を画面に
    * 出す経路を持っており、 log だけだと項目が消えた理由が誰にも見えない (review 指摘)。
    */
-  const 伝える = (種類: CompileNotice["kind"], 名前: string, message: string) => {
-    onNotice?.({ kind: 種類, actor: 名前, line: 0, message });
+  const 伝える = (種類: CompileNotice["kind"], 名前: string, message: string, line = 0) => {
+    onNotice?.({ kind: 種類, actor: 名前, line, message });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
 
@@ -2670,6 +2674,7 @@ function compileValueChart(
       読めない[0]!,
       `type: ${型} で${語.量}を読めない項目があります (${語.図}に載せません): ${読めない.join(", ")}。` +
         ` \`- 名前: ${語.例}\` の形で書いてください`,
+      読めない行,
     );
   }
   if (doc.flow.length > 0) {
@@ -2678,6 +2683,7 @@ function compileValueChart(
       doc.flow[0]?.from ?? "",
       `type: ${型} では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
         ` 関係を描くなら type: flow を使ってください`,
+      doc.flow[0]?.pos?.line ?? 0,
     );
   }
 
@@ -2745,7 +2751,7 @@ const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRi
 
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = 640;
+  const W = CHART_W_STD;
   b.lane("chart", { width: W + 64, label: doc.title });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
@@ -2766,7 +2772,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: funnel では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
@@ -2777,7 +2783,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
 
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = 640;
+  const W = CHART_W_STD;
   b.lane("chart", { width: W + 64, label: doc.title });
   // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
   // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
@@ -2787,11 +2793,10 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
   }
   const 名前 = new Set(slug別.keys());
-  const 伝える = (名: string, message: string) => {
-    // **行番号は持てない**。 `DslActor` / `DslStep` が行を覚えていないため、 ここから遡れない
-    // (review 指摘)。 `0` は「不明」 の意味で、 実在の 1 行目ではない。 行を出すには parser が
-    // 行番号を持つところからで、 本 PR の範囲外
-    onNotice?.({ kind: "chart-value-unreadable", actor: 名, line: 0, message });
+  // **行番号を渡す**。 `DslActor` / `DslStep` は `pos.line` を持つので遡れる。 前回「持てない」
+  // と書いたのは誤り (review 指摘)。 0 にすると画面が問題の行を案内できない
+  const 伝える = (名: string, message: string, line = 0) => {
+    onNotice?.({ kind: "chart-value-unreadable", actor: 名, line, message });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
   for (const [k, 群] of slug別) {
@@ -2808,21 +2813,21 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     const 子 = slugify(f.to);
     const 親名 = slugify(f.from);
     if (!名前.has(親名)) {
-      伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`);
+      伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
       continue;
     }
     // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
     if (!名前.has(子)) {
-      伝える(f.to, `type: tree で書いていない名前を子にしています: ${f.from} -> ${f.to}`);
+      伝える(f.to, `type: tree で書いていない名前を子にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
       continue;
     }
     if (子 === 親名) {
-      伝える(f.to, `type: tree で自分を親にしています: ${f.to}`);
+      伝える(f.to, `type: tree で自分を親にしています: ${f.to}`, f.pos?.line ?? 0);
       continue;
     }
     const 既存 = 親.get(子);
     if (既存 !== undefined && 既存 !== 親名) {
-      伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`);
+      伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`, f.pos?.line ?? 0);
       continue;
     }
     親.set(子, 親名);
@@ -2854,13 +2859,13 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
 
 function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = 640;
+  const W = CHART_W_STD;
   b.lane("chart", { width: W + 64, label: doc.title });
   // 枝は書いた順に一段で配る。 **矢印は読まない**ので、 書かれていたら伝える (黙って捨てると
   // 「書いたのに効かない」 が残る、 review 指摘)
   if (doc.flow.length > 0) {
     const m = `type: radial では矢印を読みません (${doc.flow.length} 本を無視しました)。 枝は書いた順に配ります。 親子を描くなら type: tree を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m });
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
   }
   const root = doc.actors[0];
@@ -2881,7 +2886,7 @@ function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
 
 function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = 640;
+  const W = CHART_W_STD;
   b.lane("chart", { width: W + 64, label: doc.title });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
   const 読めない: string[] = [];
@@ -2902,7 +2907,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: journey では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
@@ -2913,7 +2918,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
 
 function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = 640;
+  const W = CHART_W_STD;
   b.lane("chart", { width: W + 64, label: doc.title });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
@@ -2934,7 +2939,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: quadrant では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m2 });
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {

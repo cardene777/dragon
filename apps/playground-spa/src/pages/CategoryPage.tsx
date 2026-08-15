@@ -107,7 +107,9 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
  * そこに無く、 押しても既定の見本が出るだけになる (実機で確認)。
  */
 function catalogEditorHash(item: { sourceYaml?: string; sourceJson?: string }): string | null {
-  const src = item.sourceYaml ?? item.sourceJson;
+  // **記法だけを渡す**。 `#s=` はエディタの記法欄に入るので、 JSON を流すと読めずに落ちる
+  // (review 指摘)。 記法を持たない図は開けない扱いにする
+  const src = item.sourceYaml;
   if (!src) return null;
   try {
     return `#s=${btoa(unescape(encodeURIComponent(src)))}`;

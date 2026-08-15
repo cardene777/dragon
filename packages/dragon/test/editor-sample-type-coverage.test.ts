@@ -325,3 +325,29 @@ describe("同じ id になる名前を伝える (#1154)", () => {
     expect(届いた, "同じ id になることを伝えていない").toContain("chart-value-unreadable");
   });
 });
+
+/**
+ * 知らせが行番号を持つ (#1154 review Round 7)。
+ *
+ * `DslActor` / `DslStep` は `pos.line` を持つので遡れる。 0 に潰すと、 画面が問題の行を
+ * 案内できない。
+ */
+describe("知らせが行番号を持つ (#1154)", () => {
+  it("読めない値の行を伝える", () => {
+    const 届いた: { line: number }[] = [];
+    // 5 行目に読めない値を置く
+    textDslToDiagram(`title: "確認"\ntype: bar\n\nactors:\n  - A: "四割"\n`, {
+      onNotice: (n) => 届いた.push({ line: n.line }),
+    });
+    expect(届いた[0]?.line, "行を 0 に潰している").toBeGreaterThan(0);
+  });
+
+  it("捨てた矢印の行を伝える", () => {
+    const 届いた: { line: number }[] = [];
+    textDslToDiagram(
+      `title: "確認"\ntype: bar\n\nactors:\n  - A: "10"\n  - B: "20"\n\nflow:\n  - A -> B: "x"\n`,
+      { onNotice: (n) => 届いた.push({ line: n.line }) },
+    );
+    expect(届いた[0]?.line, "行を 0 に潰している").toBeGreaterThan(0);
+  });
+});
