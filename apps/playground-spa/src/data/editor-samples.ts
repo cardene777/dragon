@@ -275,6 +275,147 @@ animation:
 `,
   },
   {
+    label: "経路別の流入 (bar)",
+    slug: "bar",
+    code: `title: "経路別の流入"
+type: bar
+
+actors:
+  - 検索: "420"
+  - SNS: "310"
+  - 直接: "180"
+  - 紹介: "90"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [検索, SNS, 直接, 紹介]
+`,
+  },
+  {
+    label: "週ごとの応答時間 (line)",
+    slug: "line",
+    code: `title: "週ごとの応答時間"
+type: line
+
+actors:
+  - W1: "180"
+  - W2: "240"
+  - W3: "210"
+  - W4: "120"
+  - W5: "95"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [W1, W2, W3, W4, W5]
+`,
+  },
+  {
+    label: "投票コントラクト (solidity)",
+    slug: "solidity",
+    code: `title: "投票コントラクト"
+type: solidity
+
+actors:
+  - 有権者: actor
+  - Ballot: contract
+  - 集計: function
+
+flow:
+  - 有権者 -> Ballot: "vote(id)"
+  - Ballot -> 集計: "tally()"
+  - 集計 -> 有権者: "結果"
+
+animation:
+  - step: "投票" 1.5s
+    focus: [有権者, Ballot]
+  - step: "集計" 1.5s
+    focus: [Ballot, 集計]
+`,
+  },
+  {
+    label: "申込みまでの絞り込み (funnel)",
+    slug: "funnel",
+    code: `title: "申込みまでの絞り込み"
+type: funnel
+
+actors:
+  - 訪問: "12000"
+  - 会員登録: "3400"
+  - カート投入: "1200"
+  - 申込み: "480"
+`,
+  },
+  {
+    label: "配布物の構成 (tree)",
+    slug: "tree",
+    code: `title: "配布物の構成"
+type: tree
+
+actors:
+  - dragon
+  - 記法
+  - 描画
+  - 読み取り
+  - 配置
+
+flow:
+  - dragon -> 記法: ""
+  - dragon -> 描画: ""
+  - 記法 -> 読み取り: ""
+  - 描画 -> 配置: ""
+`,
+  },
+  {
+    label: "障害の切り分け (radial)",
+    slug: "radial",
+    code: `title: "障害の切り分け"
+type: radial
+
+actors:
+  - 画面が出ない
+  - 通信が届かない
+  - 認証が通らない
+  - 描画で落ちる
+  - 設定が読めない
+  - 依存が古い
+  - 権限が足りない
+  - 資源が尽きた
+`,
+  },
+  {
+    label: "初めて使うまで (journey)",
+    slug: "journey",
+    code: `title: "初めて使うまで"
+type: journey
+
+actors:
+  - 記事で知る: "普通"
+  - 登録画面: "不満"
+  - メール確認: "怒り"
+  - 初期設定: "普通"
+  - 見本を開く: "満足"
+  - 初めて描けた: "最高"
+  - 共有する: "満足"
+`,
+  },
+  {
+    label: "着手の順番 (quadrant)",
+    slug: "quadrant",
+    code: `title: "着手の順番"
+type: quadrant
+
+actors:
+  - 重複削除: "左上"
+  - 警告の文面: "左上"
+  - 描画刷新: "右上"
+  - 記法の拡張: "右上"
+  - 配色統一: "左下"
+  - 用語の統一: "左下"
+  - 旧記法: "右下"
+  - 実験機能: "右下"
+`,
+  },
+  {
     label: "C4コンテキストモデル (c4)",
     slug: "c4",
     code: `title: "C4コンテキストモデル"

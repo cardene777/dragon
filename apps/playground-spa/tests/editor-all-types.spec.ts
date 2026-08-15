@@ -25,22 +25,20 @@ async function openSample(page: import("@playwright/test").Page, slug: string): 
 }
 
 /** 図の SVG (viewBox を持つもの) を返す。 icon の SVG を掴まないための絞り込み。 */
+import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+
 const DIAGRAM_SVG = '[data-testid="editor-preview-stage"] svg[viewBox]';
 
-/** 対象 type の代表 sample。 label の部分一致で引く。 */
-const TYPES: Array<{ type: string; label: string }> = [
-  { type: "sequence", label: "sequence" },
-  { type: "flow", label: "flow" },
-  { type: "swimlane", label: "swimlane" },
-  { type: "topology", label: "topology" },
-  { type: "er", label: "er" },
-  { type: "state", label: "state-machine" },
-  { type: "class", label: "class" },
-  { type: "gantt", label: "gantt" },
-  { type: "mind", label: "mind" },
-  { type: "pie", label: "pie" },
-  { type: "c4", label: "c4" },
-];
+/**
+ * 対象 type の代表 sample。 label の部分一致で引く。
+ *
+ * **見本の一覧から導く**。 手で並べると、 記法に型を足した時にここが古いまま残り、 新しい型が
+ * 1 度も画面で確かめられない (`solidity` / `bar` / `line` で実際に起きた)。
+ */
+const TYPES: Array<{ type: string; label: string }> = EDITOR_SAMPLES.map((s) => {
+  const m = s.code.match(/^type:\s*([a-z0-9-]+)\s*$/mu);
+  return { type: m?.[1] ?? "", label: s.slug };
+}).filter((t, i, a) => t.type !== "" && a.findIndex((x) => x.type === t.type) === i);
 
 for (const { type, label } of TYPES) {
 

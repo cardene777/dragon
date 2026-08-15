@@ -18,6 +18,8 @@
  *   YAML `animation: [step: "..."]` ⇔ JSON `{animation: [{step: "...", duration: 1.4, focus: [...]}]}`
  */
 
+import { PRESET_TYPES } from "./v05/parser";
+import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, PresetType, LayoutMode, LayoutPos } from "./types";
 import { compileToCdl } from "./compile";
@@ -155,20 +157,13 @@ const VALID_KIND_SET: ReadonlySet<string> = new Set([
   "contract", "eoa", "multisig", "proxy", "library", "interface",
 ]);
 
-const VALID_PRESETS: readonly PresetType[] = [
-  "sequence",
-  "flow",
-  "swimlane",
-  "er",
-  "state",
-  "topology",
-  "solidity",
-  "gantt",
-  "class",
-  "pie",
-  "c4",
-  "mind",
-] as const;
+/**
+ * 受け付ける図種。 **記法側と同じ集合を使う** (`v05/parser.ts` の `PRESET_TYPES`)。
+ *
+ * 以前はここに一覧を写していたため、 記法に型を足しても JSON 経路が古い一覧のまま弾いた
+ * (`bar` / `line` で実際に起きた)。 型が 3 箇所に散らばると、 必ずどれかが古くなる。
+ */
+const VALID_PRESETS: readonly PresetType[] = [...PRESET_TYPES];
 
 /**
  * shape validation。 layer 1 = 必須 field + 型 check、 layer 2 は compile 側の validation に委譲。
@@ -412,7 +407,10 @@ export function jsonToDoc(json: DragonJson): DslDocument {
  */
 export function jsonToDiagram(
   json: unknown,
-  opts?: { partsCatalog?: Record<string, CdlDiagram> },
+  // **`onNotice` も通す**。 記法経路だけに通知を付けていたため、 同じ型を受ける JSON / YAML
+  // 経路では読めない値や捨てた矢印が利用者へ届かなかった (review 指摘)。 エディタの YAML タブは
+  // ここを通る
+  opts?: { partsCatalog?: Record<string, CdlDiagram>; onNotice?: CompileToCdlOpts["onNotice"] },
 ): CdlDiagram {
   const v = validateJson(json);
   if (!v.ok) {

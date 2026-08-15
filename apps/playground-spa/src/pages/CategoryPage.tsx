@@ -100,6 +100,24 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   interactive: "インタラクティブ",
 };
 
+/**
+ * catalog の図をエディタで開く時の hash。 記法が無ければ `null`。
+ *
+ * `#preset=<id>` は使わない。 あれはエディタの見本から slug を引く仕組みで、 catalog の図は
+ * そこに無く、 押しても既定の見本が出るだけになる (実機で確認)。
+ */
+function catalogEditorHash(item: { sourceYaml?: string; sourceJson?: string }): string | null {
+  // **記法だけを渡す**。 `#s=` はエディタの記法欄に入るので、 JSON を流すと読めずに落ちる
+  // (review 指摘)。 記法を持たない図は開けない扱いにする
+  const src = item.sourceYaml;
+  if (!src) return null;
+  try {
+    return `#s=${btoa(unescape(encodeURIComponent(src)))}`;
+  } catch {
+    return null;
+  }
+}
+
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();
@@ -296,12 +314,25 @@ export function CategoryPage(): React.ReactElement {
                 </div>
                 <SourceTabs item={currentItem} />
                 <footer className="catalog-preview-foot">
-                  <Link
-                    to={`/editor#preset=${currentItem.id}`}
-                    className="catalog-preview-link"
-                  >
-                    エディタで開く →
-                  </Link>
+                  {/*
+                    **記法を持つ図だけ開ける**。 `#preset=<id>` はエディタの見本から slug を
+                    引く仕組みで、 catalog の図はそこに無い = 押しても既定の見本が出るだけ
+                    だった。 記法があれば中身をそのまま渡せる (`#s=`)。
+
+                    無い図は押せる見た目にしない = 「押したのに何も起きない」 を残さない。
+                  */}
+                  {catalogEditorHash(currentItem) ? (
+                    <Link
+                      to={`/editor${catalogEditorHash(currentItem)}`}
+                      className="catalog-preview-link"
+                    >
+                      エディタで開く →
+                    </Link>
+                  ) : (
+                    <span className="catalog-preview-note" aria-disabled="true">
+                      記法が無いので開けません
+                    </span>
+                  )}
                 </footer>
               </article>
             ) : (

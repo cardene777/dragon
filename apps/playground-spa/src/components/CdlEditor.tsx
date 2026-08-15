@@ -965,8 +965,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   }, [activeTab, src, yamlSrc, partsItems.length]);
 
   /** 組み立てて載せるまでを 1 度に済ませる経路 (測った配置を途中で使わない入口向け) */
-  const applyDiagram = useCallback((d: CdlDiagram): void => {
-    commitBuilt(d, buildAndValidate(d), []);
+  // **集めた知らせをそのまま渡す**。 空配列を渡していたため、 YAML 欄で集めた知らせが捨てられ
+  // ていた (review 指摘)。 呼出側が集めていないなら空でよいが、 集めたなら渡す
+  const applyDiagram = useCallback((d: CdlDiagram, notices: CompileNotice[] = []): void => {
+    commitBuilt(d, buildAndValidate(d), notices);
   }, [commitBuilt]);
 
   // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
@@ -1007,12 +1009,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             // 書き換えると、 次の待機が明ける前に古い方が届く = 一瞬だけ古い図が出る
             // (実測 = 照合を外すと `onlyfirst` の図が描かれた)
             if (yamlSrcRef.current !== requestedSrc || activeTabRef.current !== "yaml") return;
-            const result = yamlToDiagram(requestedSrc, { partsCatalog });
+            // 読めない値や捨てた矢印の知らせは、 記法欄と同じく YAML 欄でも出す
+            const yamlNotices: CompileNotice[] = [];
+            const result = yamlToDiagram(requestedSrc, {
+              partsCatalog,
+              onNotice: (n) => yamlNotices.push(n),
+            });
             if (result.ok) {
               try {
                 // 絞り込みは本文欄と同じ関数を通る (`applyDiagram` の中)。 別々に書くと、
                 // 片方だけ直した時に同じ図なのに欄によって出る警告が変わる。
-                applyDiagram(result.diagram);
+                applyDiagram(result.diagram, yamlNotices);
                 setYamlError(null);
                 setError(null);
               } catch (e) {
@@ -1967,7 +1974,8 @@ animation:
         {/* 書いたのに効かなかったこと。 誤りではない (図は出る) が、 黙って捨てると
             書いた人が理由を追えないので、 行番号と直し方を添えて出す。
             本文の行番号を指すので、 その本文を映していない YAML 欄では出さない。 */}
-        {activeTab === "cdl" && !error && compileNotices.length > 0 && (
+        {/* **欄で絞らない**。 知らせは記法欄でも YAML 欄でも同じように出す (review 指摘) */}
+        {!error && !yamlError && compileNotices.length > 0 && (
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
             {compileNotices.map((n, i) => (
               // 同じ名前 / 同じ行で種類だけ違う知らせが並ぶ (箱を持たない見本に効かない相対指定を
