@@ -83,10 +83,10 @@ export const sourceYaml__ganttTimeline = `title: "公開までの段取り"
 type: gantt
 
 actors:
-  - 設計
-  - 実装
-  - 検証
-  - 公開
+  - 設計: "1月"
+  - 実装: "2月"
+  - 検証: "4月"
+  - 公開: "5月"
 
 flow:
   - 設計 -> 実装: ""

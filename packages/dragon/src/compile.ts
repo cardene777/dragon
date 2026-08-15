@@ -128,7 +128,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileFunnel(doc, opts?.onNotice);
       break;
     case "tree":
-      diagram = compileTree(doc);
+      diagram = compileTree(doc, opts?.onNotice);
       break;
     case "radial":
       diagram = compileRadial(doc);
@@ -2595,8 +2595,6 @@ function compileClass(doc: DslDocument): CdlDiagram {
  */
 function parseShareValue(raw: string | undefined): number | null {
   if (raw === undefined) return null;
-  // **負の数も受ける**。 折れ線は増減を追う図なので、 気温や損益のように 0 を跨ぐ値が来る
-  // (review 指摘)。 円グラフに負を書いた場合は描画側が扱いを決める
   const m = raw.trim().match(/^(-?\d+(?:\.\d+)?)\s*%?$/);
   if (m === null) return null;
   const v = Number(m[1]);
@@ -2638,7 +2636,9 @@ function compileValueChart(
     // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
     const value = parseShareValue(a.value ?? a.subtitle);
-    if (value === null) {
+    // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
+    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)
+    if (value === null || (value < 0 && 型 !== "line")) {
       読めない.push(a.name);
       continue;
     }
@@ -2735,7 +2735,8 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   const 読めない: string[] = [];
   for (const a of doc.actors) {
     const v = parseShareValue(a.value ?? a.subtitle);
-    if (v === null) {
+    // 段の数なので負に意味が無い
+    if (v === null || v < 0) {
       読めない.push(a.name);
       continue;
     }
@@ -2752,13 +2753,51 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   return b.build();
 }
 
-function compileTree(doc: DslDocument): CdlDiagram {
+function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = 640;
   b.lane("chart", { width: W + 64, label: doc.title });
-  // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる
+  const 名前 = new Set(doc.actors.map((a) => slugify(a.name)));
+  const 伝える = (名: string, message: string) => {
+    onNotice?.({ kind: "chart-value-unreadable", actor: 名, line: 0, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+  // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる。
+  //
+  // **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
+  // 矢印は無い親を作る。 どちらも図が静かに変わるので伝える (review 指摘)
   const 親: Record<string, string> = {};
-  for (const f of doc.flow) 親[slugify(f.to)] = slugify(f.from);
+  for (const f of doc.flow) {
+    const 子 = slugify(f.to);
+    const 親名 = slugify(f.from);
+    if (!名前.has(親名)) {
+      伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`);
+      continue;
+    }
+    if (子 === 親名) {
+      伝える(f.to, `type: tree で自分を親にしています: ${f.to}`);
+      continue;
+    }
+    if (親[子] !== undefined && 親[子] !== 親名) {
+      伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`);
+      continue;
+    }
+    親[子] = 親名;
+  }
+  // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
+  for (const 子 of Object.keys(親)) {
+    const 見た = new Set<string>([子]);
+    let p2: string | undefined = 親[子];
+    while (p2 !== undefined) {
+      if (見た.has(p2)) {
+        伝える(子, `type: tree で親を辿ると輪になります (${子} の親を外しました)`);
+        delete 親[子];
+        break;
+      }
+      見た.add(p2);
+      p2 = 親[p2];
+    }
+  }
   const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
     const id = slugify(a.name);
     return { id, title: a.name, ...(親[id] !== undefined ? { parent: 親[id] } : {}) };

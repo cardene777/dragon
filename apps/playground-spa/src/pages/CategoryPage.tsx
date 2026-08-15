@@ -327,7 +327,7 @@ export function CategoryPage(): React.ReactElement {
                       エディタで開く →
                     </Link>
                   ) : (
-                    <span className="catalog-preview-link is-disabled" aria-disabled="true">
+                    <span className="catalog-preview-note" aria-disabled="true">
                       記法が無いので開けません
                     </span>
                   )}
