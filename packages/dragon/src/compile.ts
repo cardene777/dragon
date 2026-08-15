@@ -131,7 +131,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileTree(doc, opts?.onNotice);
       break;
     case "radial":
-      diagram = compileRadial(doc);
+      diagram = compileRadial(doc, opts?.onNotice);
       break;
     case "journey":
       diagram = compileJourney(doc, opts?.onNotice);
@@ -2820,10 +2820,17 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   return b.build();
 }
 
-function compileRadial(doc: DslDocument): CdlDiagram {
+function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = 640;
   b.lane("chart", { width: W + 64, label: doc.title });
+  // 枝は書いた順に一段で配る。 **矢印は読まない**ので、 書かれていたら伝える (黙って捨てると
+  // 「書いたのに効かない」 が残る、 review 指摘)
+  if (doc.flow.length > 0) {
+    const m = `type: radial では矢印を読みません (${doc.flow.length} 本を無視しました)。 枝は書いた順に配ります。 親子を描くなら type: tree を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
   const root = doc.actors[0];
   const data = {
     rootId: root ? slugify(root.name) : "root",

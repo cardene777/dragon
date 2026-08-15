@@ -1007,7 +1007,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             // 書き換えると、 次の待機が明ける前に古い方が届く = 一瞬だけ古い図が出る
             // (実測 = 照合を外すと `onlyfirst` の図が描かれた)
             if (yamlSrcRef.current !== requestedSrc || activeTabRef.current !== "yaml") return;
-            const result = yamlToDiagram(requestedSrc, { partsCatalog });
+            // 読めない値や捨てた矢印の知らせは、 記法欄と同じく YAML 欄でも出す
+            const yamlNotices: CompileNotice[] = [];
+            const result = yamlToDiagram(requestedSrc, {
+              partsCatalog,
+              onNotice: (n) => yamlNotices.push(n),
+            });
             if (result.ok) {
               try {
                 // 絞り込みは本文欄と同じ関数を通る (`applyDiagram` の中)。 別々に書くと、

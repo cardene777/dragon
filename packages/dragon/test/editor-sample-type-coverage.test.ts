@@ -241,3 +241,37 @@ describe("書ける語の一覧が親から引けない (#1154)", () => {
     ]);
   });
 });
+
+/**
+ * JSON 経路でも知らせが届く (#1154 review Round 4)。
+ *
+ * `onNotice` を記法経路にしか通していなかった。 **エディタの YAML 欄は JSON 経路を通る**ので、
+ * そこで読めない値を書いても理由が出なかった。
+ */
+describe("JSON 経路でも知らせが届く (#1154)", () => {
+  it("読めない値を伝える", async () => {
+    const { jsonToDiagram } = await import("../src/json-parser");
+    const 届いた: string[] = [];
+    jsonToDiagram(
+      {
+        title: "確認",
+        type: "bar",
+        actors: [{ name: "A", subtitle: "10" }, { name: "B", subtitle: "四割" }],
+        flow: [],
+      },
+      { onNotice: (n) => 届いた.push(n.kind) },
+    );
+    expect(届いた, "JSON 経路で知らせが出ていない").toContain("chart-value-unreadable");
+  });
+});
+
+describe("radial は矢印を読まないことを伝える (#1154)", () => {
+  it("矢印を書いたら知らせる", () => {
+    const 届いた: string[] = [];
+    textDslToDiagram(
+      `title: "確認"\ntype: radial\n\nactors:\n  - 根\n  - 枝\n\nflow:\n  - 根 -> 枝: ""\n`,
+      { onNotice: (n) => 届いた.push(n.kind) },
+    );
+    expect(届いた, "捨てたことを伝えていない").toContain("chart-edge-dropped");
+  });
+});

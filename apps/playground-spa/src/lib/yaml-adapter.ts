@@ -1,5 +1,6 @@
 import { load, YAMLException } from "js-yaml";
 import { jsonToDiagram, describeOversizeSource } from "@cardenelabs/dragon";
+import type { CompileNotice } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { YamlObjectResult, YamlDiagramResult } from "@/lib/yaml-error";
 
@@ -102,7 +103,9 @@ export function yamlToObject(src: string): YamlObjectResult {
  */
 export function yamlToDiagram(
   src: string,
-  opts?: { partsCatalog?: Record<string, CdlDiagram> },
+  // **`onNotice` も通す**。 読めない値や捨てた矢印の知らせは、 記法経路だけでなく YAML 欄でも
+  // 利用者に届く必要がある (review 指摘)
+  opts?: { partsCatalog?: Record<string, CdlDiagram>; onNotice?: (n: CompileNotice) => void },
 ): YamlDiagramResult {
   const parseResult = yamlToObject(src);
   if (!parseResult.ok) return parseResult;
