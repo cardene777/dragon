@@ -288,3 +288,126 @@ export const treeHierarchy = diagram("tree-hierarchy", { topic: "tree-hierarchy 
     (p: PhaseBuilder) => p.activate("t"),
   )
   .build();
+
+/**
+ * 記法で書いた同じ図 (#1152 / #1154)。
+ *
+ * これを持つと 2 つが成立する。 catalog の画面に記法のタブが出て、 「エディタで開く」 が
+ * 実際に開く (記法を持たない図は、 押しても既定の見本が出るだけになる)。
+ *
+ * 上の組立て API と **同じ図を記法で書き直したもの**。 値も揃えてある。
+ */
+export const sourceYaml__chartBar = `title: "経路別の流入"
+type: bar
+
+actors:
+  - 検索: "420"
+  - SNS: "310"
+  - 直接: "180"
+  - 紹介: "90"
+`;
+
+export const sourceYaml__chartLine = `title: "週ごとの応答時間"
+type: line
+
+actors:
+  - W1: "180"
+  - W2: "240"
+  - W3: "210"
+  - W4: "120"
+  - W5: "95"
+`;
+
+export const sourceYaml__chartPie = `title: "費用の内訳"
+type: pie
+
+actors:
+  - 計算: "45"
+  - 保存: "25"
+  - 通信: "20"
+  - その他: "10"
+`;
+
+export const sourceYaml__funnelStages = `title: "申込みまでの絞り込み"
+type: funnel
+
+actors:
+  - 訪問: "12000"
+  - 会員登録: "3400"
+  - カート投入: "1200"
+  - 申込み: "480"
+`;
+
+export const sourceYaml__ganttTimeline = `title: "公開までの段取り"
+type: gantt
+
+actors:
+  - 設計
+  - 実装
+  - 検証
+  - 公開
+
+flow:
+  - 設計 -> 実装: ""
+  - 実装 -> 検証: ""
+  - 検証 -> 公開: ""
+`;
+
+export const sourceYaml__journeyMap = `title: "初めて使うまで"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "不満"
+  - 設定: "満足"
+  - 初回の成功: "最高"
+`;
+
+export const sourceYaml__mindMap = `title: "図を速くする"
+type: mind
+
+actors:
+  - 図を速くする
+  - 描く量を減らす
+  - 計算を減らす
+  - 見えない所を省く
+  - 結果を覚える
+`;
+
+export const sourceYaml__mindRadial = `title: "扱う入力"
+type: radial
+
+actors:
+  - 扱う入力
+  - 記法
+  - JSON
+  - 組立て
+  - 取込み
+`;
+
+export const sourceYaml__quadrantMatrix = `title: "着手の順番"
+type: quadrant
+
+actors:
+  - 重複削除: "左上"
+  - 描画刷新: "右上"
+  - 配色統一: "左下"
+  - 旧記法: "右下"
+`;
+
+export const sourceYaml__treeHierarchy = `title: "配布物の構成"
+type: tree
+
+actors:
+  - dragon
+  - 記法
+  - 描画
+  - 読み取り
+  - 配置
+
+flow:
+  - dragon -> 記法: ""
+  - dragon -> 描画: ""
+  - 記法 -> 読み取り: ""
+  - 描画 -> 配置: ""
+`;
