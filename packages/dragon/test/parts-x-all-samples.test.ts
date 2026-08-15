@@ -1,12 +1,12 @@
 /**
- * 全 80 parts × 全 12 EDITOR_SAMPLES × 究極 cross matrix (iter19、 2026-07-19)。
+ * 全 80 parts × 全 20 EDITOR_SAMPLES × 究極 cross matrix (iter19、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter19。
- * iter8 (5 sample types × 80 parts = 400) を「実 12 sample 全て」 に拡張。
+ * iter8 (5 sample types × 80 parts = 400) を「実 15 sample 全て」 に拡張。
  * 各 sample DSL の actors: 末尾に parts alias を append、 textDslToDiagram + compile で
  * throw なし + parts sub-node prefix 出力を assert する。
  *
- * 12 × 80 = 960 test で「parts が任意の実 sample に inject 可能」 の invariant を保証。
+ * 12 × 80 = 1600 test で「parts が任意の実 sample に inject 可能」 の invariant を保証。
  * cross-syntax portability + 実 sample の actor / flow 構造との共存性を verify。
  */
 import { describe, it, expect } from "vitest";
@@ -51,10 +51,10 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   return [...before, injectLine, ...after].join("\n");
 }
 
-describe("iter19: 全 80 parts × 全 12 EDITOR_SAMPLES cross matrix (960 test)", () => {
-  it(`parts count >= 60 + samples count = 12`, () => {
+describe("iter19: 全 80 parts × 全 20 EDITOR_SAMPLES cross matrix (1600 test)", () => {
+  it(`parts count >= 60 + samples count = 20`, () => {
     expect(ALL_PARTS.length).toBeGreaterThanOrEqual(60);
-    expect(EDITOR_SAMPLES.length).toBe(12);
+    expect(EDITOR_SAMPLES.length).toBe(20);
   });
 
   for (const sample of EDITOR_SAMPLES) {

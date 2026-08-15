@@ -66,7 +66,11 @@ export type CompileNotice = {
     // 図の中に描く部品を持たない見本を重ねた (#1017)
     | "part-not-drawn"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
-    | "scale-reserved";
+    | "scale-reserved"
+    // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
+    | "chart-value-unreadable"
+    // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
+    | "chart-edge-dropped";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -112,7 +116,28 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileClass(doc);
       break;
     case "pie":
-      diagram = compilePie(doc);
+      diagram = compileValueChart(doc, "pie", "chart-pie", opts?.onNotice);
+      break;
+    case "bar":
+      diagram = compileValueChart(doc, "bar", "chart-bar", opts?.onNotice);
+      break;
+    case "line":
+      diagram = compileValueChart(doc, "line", "chart-line", opts?.onNotice);
+      break;
+    case "funnel":
+      diagram = compileFunnel(doc, opts?.onNotice);
+      break;
+    case "tree":
+      diagram = compileTree(doc, opts?.onNotice);
+      break;
+    case "radial":
+      diagram = compileRadial(doc, opts?.onNotice);
+      break;
+    case "journey":
+      diagram = compileJourney(doc, opts?.onNotice);
+      break;
+    case "quadrant":
+      diagram = compileQuadrant(doc, opts?.onNotice);
       break;
     case "c4":
       diagram = compileC4(doc);
@@ -2570,68 +2595,362 @@ function compileClass(doc: DslDocument): CdlDiagram {
  */
 function parseShareValue(raw: string | undefined): number | null {
   if (raw === undefined) return null;
-  const m = raw.trim().match(/^(\d+(?:\.\d+)?)\s*%?$/);
+  const m = raw.trim().match(/^(-?\d+(?:\.\d+)?)\s*%?$/);
   if (m === null) return null;
   const v = Number(m[1]);
   return Number.isFinite(v) ? v : null;
 }
 
 /**
- * Pie preset (円グラフ)。
+ * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
  *
- * 描画側の `chart-pie` に 1 node で渡す。 以前は `card` を縦に積むだけで、 `type: pie` と
- * 書いても円が出ず、 割合が箱の説明文として枠からはみ出していた (実機報告)。
+ * 3 種とも `- 名前: "45"` の 1 行 1 値で書く。 違うのは描画側の種別と、 値の意味だけ。
  *
- * 大きさは cdl の `chart()` preset と同じ 640x320 (どちらも格子 16 の倍数)。 lane 幅は
- * `chart()` が使う `gridAlignedLaneW` と同じ計算 = 中身 + 左右の余白 32 ずつ。
+ * | 型 | 種別 | 値の意味 |
+ * |---|---|---|
+ * | `pie` | `chart-pie` | 全体に対する取り分 |
+ * | `bar` | `chart-bar` | 棒の高さ (単位は問わない) |
+ * | `line` | `chart-line` | 線の高さ。 **書いた順に並ぶ** |
  *
- * 値は actor の説明文から読む (`- TypeScript: "45%"`)。 読めない actor は円に載せず、
- * まとめて警告に出す。 合計が 100 にならなくても描画側が比で割るので、 こちらでは正規化しない。
+ * 値を読めない項目は載せず、 まとめて警告に出す。 **黙って 0 にしない** = その項目だけ欠けた
+ * 図が「正しい図」 として出てしまうため。
+ *
+ * 矢印は描けない。 書かれていたら警告に出して捨てる (「書いたのに効かない」 を残さない)。
  */
-function compilePie(doc: DslDocument): CdlDiagram {
+function compileValueChart(
+  doc: DslDocument,
+  型: "pie" | "bar" | "line",
+  kind: "chart-pie" | "chart-bar" | "chart-line",
+  onNotice?: (notice: CompileNotice) => void,
+): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 640;
-  const CHART_H = 320;
+  // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、
+  // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
+  // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
+  const CHART_H = 型 === "pie" ? 320 : 368;
   b.lane("chart", { width: CHART_W + 64, label: doc.title });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
+  // 最初に読めなかった行を覚える。 画面が案内できるようにする
+  let 読めない行 = 0;
   for (const a of doc.actors) {
-    // 割合の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
+    // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
     const value = parseShareValue(a.value ?? a.subtitle);
-    if (value === null) {
+    // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
+    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)
+    if (value === null || (value < 0 && 型 !== "line")) {
+      // `pos` を持たない経路がある (JSON 経路で組み立てた actor)。 無ければ 0 のまま
+      if (読めない.length === 0) 読めない行 = a.pos?.line ?? 0;
       読めない.push(a.name);
       continue;
     }
-    // 色は扇にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
+    // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
     data.push({ label: a.name, value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
-  if (読めない.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: pie で割合を読めない項目があります (円に載せません): ${読めない.join(", ")}。` +
-        ` \`- 名前: "45%"\` の形で書いてください`,
+  // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
+  // 薄まり、 既存の案内が後退した (review 指摘)。 何を書けばよいかは型ごとに違う
+  const 語 =
+    型 === "pie"
+      ? { 量: "割合", 図: "円", 例: '"45%"' }
+      : 型 === "bar"
+        ? { 量: "値", 図: "棒", 例: '"420"' }
+        : { 量: "値", 図: "折れ線", 例: '"180"' };
+
+  /**
+   * 利用者に伝える。 **`console.warn` だけにしない**。 エディタは受け取った notice を画面に
+   * 出す経路を持っており、 log だけだと項目が消えた理由が誰にも見えない (review 指摘)。
+   */
+  const 伝える = (種類: CompileNotice["kind"], 名前: string, message: string, line = 0) => {
+    onNotice?.({ kind: 種類, actor: 名前, line, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+
+  if (読めない.length > 0) {
+    伝える(
+      "chart-value-unreadable",
+      読めない[0]!,
+      `type: ${型} で${語.量}を読めない項目があります (${語.図}に載せません): ${読めない.join(", ")}。` +
+        ` \`- 名前: ${語.例}\` の形で書いてください`,
+      読めない行,
     );
   }
-  // 円グラフは扇 1 枚が 1 項目で、 項目どうしを結ぶ線が無い。 書いた矢印は描けないので、
-  // 黙って捨てずに伝える (「書いたのに効かない」 を残さない)
-  if (doc.flow.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: pie では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
+  if (doc.flow.length > 0) {
+    伝える(
+      "chart-edge-dropped",
+      doc.flow[0]?.from ?? "",
+      `type: ${型} では矢印を描けません (${doc.flow.length} 本を無視しました)。` +
         ` 関係を描くなら type: flow を使ってください`,
+      doc.flow[0]?.pos?.line ?? 0,
     );
   }
 
-  b.node(`${slugify(doc.title) || "pie"}-chart`, {
+  b.node(`${slugify(doc.title) || 型}-chart`, {
     lane: "chart",
     stack: 0,
-    kind: "chart-pie",
+    kind,
     title: doc.title,
     w: CHART_W,
     h: CHART_H,
     chartData: data,
   });
 
+  return b.build();
+}
+
+
+/**
+ * 図表 5 種の組立て (#1154 段 2 / 段 3)。
+ *
+ * 描画側に 1 node で渡す形は値で描く 3 型と同じ。 違うのは **actor から何を読むか**。
+ *
+ * | 型 | 読むもの | 書き方 |
+ * |---|---|---|
+ * | `funnel` | 数 | `- 訪問: "12000"` |
+ * | `tree` | 親子 | `flow` の矢印 (`親 -> 子`) |
+ * | `radial` | 根と枝 | 1 つ目が根、 残りが枝 |
+ * | `journey` | 気持ち | `- 登録: "不満"` |
+ * | `quadrant` | どの区画か | `- 重複削除: "左上"` |
+
+ * `tree` だけ `flow` を読む = 親子は 2 つの名前の関係で、 1 行 1 値では書けないため。
+ */
+
+/**
+ * 図表の大きさ。 **格子 (16) の倍数にする**。
+ *
+ * 描画側 (`cdl` の `chart()` preset) は高さを 16 の倍数へ切り上げる。 揃えないと下端が格子から
+ * 外れ、 正しい記法でも位置の警告が出る (review 指摘、 360 のまま 5 型が該当していた)。
+ */
+const CHART_W_STD = 640;
+const CHART_H = 368;
+const CHART_TALL = 400;
+
+/** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
+//
+// **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
+// 書ける語の一覧に無い入力が値として通る (review 指摘)。 型は付いていても中身は object や
+// function になり、 描画側へそのまま流れる。
+const 気持ち = new Map<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry">([
+  ["最高", "delighted"],
+  ["満足", "happy"],
+  ["普通", "neutral"],
+  ["不満", "frustrated"],
+  ["怒り", "angry"],
+]);
+
+/** 区画の言葉。 縦横の位置をそのまま書く。 */
+// 同上の理由で `Map`。
+const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight">([
+  ["左上", "topLeft"],
+  ["右上", "topRight"],
+  ["左下", "bottomLeft"],
+  ["右下", "bottomRight"],
+]);
+
+function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = CHART_W_STD;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const v = parseShareValue(a.value ?? a.subtitle);
+    // 段の数なので負に意味が無い
+    if (v === null || v < 0) {
+      読めない.push(a.name);
+      continue;
+    }
+    data.push({ id: slugify(a.name), title: a.name, count: v });
+  }
+  if (読めない.length > 0) {
+    const m = `type: funnel で数を読めない項目があります (段に載せません): ${読めない.join(", ")}。 \`- 訪問: "12000"\` の形で書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: funnel では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
+  }
+  b.node(`${slugify(doc.title) || "funnel"}-chart`, {
+    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: CHART_H, funnelData: data,
+  });
+  return b.build();
+}
+
+function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = CHART_W_STD;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
+  // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
+  const slug別 = new Map<string, string[]>();
+  for (const a of doc.actors) {
+    const k = slugify(a.name);
+    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
+  }
+  const 名前 = new Set(slug別.keys());
+  // **行番号を渡す**。 `DslActor` / `DslStep` は `pos.line` を持つので遡れる。 前回「持てない」
+  // と書いたのは誤り (review 指摘)。 0 にすると画面が問題の行を案内できない
+  const 伝える = (名: string, message: string, line = 0) => {
+    onNotice?.({ kind: "chart-value-unreadable", actor: 名, line, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+  for (const [k, 群] of slug別) {
+    if (群.length > 1) {
+      伝える(群[0]!, `type: tree で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`);
+    }
+  }
+  // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる。
+  //
+  // **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
+  // 矢印は無い親を作る。 どちらも図が静かに変わるので伝える (review 指摘)
+  const 親 = new Map<string, string>();
+  for (const f of doc.flow) {
+    const 子 = slugify(f.to);
+    const 親名 = slugify(f.from);
+    if (!名前.has(親名)) {
+      伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
+    if (!名前.has(子)) {
+      伝える(f.to, `type: tree で書いていない名前を子にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    if (子 === 親名) {
+      伝える(f.to, `type: tree で自分を親にしています: ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    const 既存 = 親.get(子);
+    if (既存 !== undefined && 既存 !== 親名) {
+      伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`, f.pos?.line ?? 0);
+      continue;
+    }
+    親.set(子, 親名);
+  }
+  // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
+  for (const 子 of [...親.keys()]) {
+    const 見た = new Set<string>([子]);
+    let p2 = 親.get(子);
+    while (p2 !== undefined) {
+      if (見た.has(p2)) {
+        伝える(子, `type: tree で親を辿ると輪になります (${子} の親を外しました)`);
+        親.delete(子);
+        break;
+      }
+      見た.add(p2);
+      p2 = 親.get(p2);
+    }
+  }
+  const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
+    const id = slugify(a.name);
+    const p3 = 親.get(id);
+    return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
+  });
+  b.node(`${slugify(doc.title) || "tree"}-chart`, {
+    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: CHART_H, treeData: data,
+  });
+  return b.build();
+}
+
+function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = CHART_W_STD;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  // 枝は書いた順に一段で配る。 **矢印は読まない**ので、 書かれていたら伝える (黙って捨てると
+  // 「書いたのに効かない」 が残る、 review 指摘)
+  if (doc.flow.length > 0) {
+    const m = `type: radial では矢印を読みません (${doc.flow.length} 本を無視しました)。 枝は書いた順に配ります。 親子を描くなら type: tree を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  const root = doc.actors[0];
+  const data = {
+    rootId: root ? slugify(root.name) : "root",
+    rootTitle: root?.name ?? doc.title,
+    branches: doc.actors.slice(1).map((a) => ({
+      id: slugify(a.name),
+      title: a.name,
+      parent: root ? slugify(root.name) : "root",
+    })),
+  };
+  b.node(`${slugify(doc.title) || "radial"}-chart`, {
+    lane: "chart", stack: 0, kind: "mind-radial", title: doc.title, w: W, h: CHART_TALL, mindData: data,
+  });
+  return b.build();
+}
+
+function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = CHART_W_STD;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const 語 = (a.value ?? a.subtitle ?? "").trim();
+    const e = 気持ち.get(語);
+    if (e === undefined) {
+      読めない.push(a.name);
+      continue;
+    }
+    data.push({ id: slugify(a.name), title: a.name, emotion: e });
+  }
+  if (読めない.length > 0) {
+    const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${[...気持ち.keys()].join(" / ")} のどれかを書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: journey では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
+  }
+  b.node(`${slugify(doc.title) || "journey"}-chart`, {
+    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: CHART_H, journeyData: data,
+  });
+  return b.build();
+}
+
+function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
+  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const W = CHART_W_STD;
+  b.lane("chart", { width: W + 64, label: doc.title });
+  const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
+  const 読めない: string[] = [];
+  for (const a of doc.actors) {
+    const 語 = (a.value ?? a.subtitle ?? "").trim();
+    const q = 区画.get(語);
+    if (q === undefined) {
+      読めない.push(a.name);
+      continue;
+    }
+    items.push({ id: slugify(a.name), title: a.name, quadrant: q });
+  }
+  if (読めない.length > 0) {
+    const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${[...区画.keys()].join(" / ")} のどれかを書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 読めない[0]!, line: 0, message: m });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
+  }
+  // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
+  if (doc.flow.length > 0) {
+    const m2 = `type: quadrant では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
+    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
+  }
+  b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
+    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: CHART_TALL,
+    quadrantData: {
+      xAxis: { left: "小さい", right: "大きい" },
+      yAxis: { bottom: "小さい", top: "大きい" },
+      quadrantLabels: { topLeft: "左上", topRight: "右上", bottomLeft: "左下", bottomRight: "右下" },
+      items,
+    },
+  });
   return b.build();
 }
 

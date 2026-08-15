@@ -199,10 +199,17 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
   // |---|---|---|---|
   // | `swimlane` | 8 | 6 | `DB` / `Client保存` (レーンを 1 本外した) |
   // | `state-machine` | 10 | 8 | `失敗` / `認証失敗` / `再試行` が消え `認証失敗・再試行` が増えた |
+  // **ここは手で並べる**。 各見本の「読める下限」 は実測した数で、 見本ごとに違うため導けない。
+  //
+  // 代わりに、 一覧から漏れていないことを別の検査 (`editor-sample-coverage.spec.ts`) が見る。
+  // 漏れると新しい見本の読みやすさが 1 度も確かめられない (`#1154` の review 指摘)。
   const 見本: ReadonlyArray<readonly [string, number]> = [
     ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
     ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
     ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
+    // `#1154` で足した 8 型。 実測値をそのまま置く
+    ["solidity", 12], ["bar", 14], ["line", 16], ["funnel", 12],
+    ["tree", 6], ["radial", 9], ["journey", 18], ["quadrant", 17],
   ];
   const 問題: string[] = [];
 

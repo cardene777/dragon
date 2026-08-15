@@ -78,6 +78,13 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "gantt",
   "class",
   "pie",
+  "bar",
+  "line",
+  "funnel",
+  "tree",
+  "radial",
+  "journey",
+  "quadrant",
   "c4",
   "mind",
 ]);
