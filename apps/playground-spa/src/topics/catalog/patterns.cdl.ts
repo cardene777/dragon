@@ -30,7 +30,9 @@ export const patternDirect = diagram("pattern-direct", { topic: "pattern: Direct
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "Client" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "Service" })
   .edge("a", "b", { id: "e", label: "request", sub: "node 端 stop", tone: "accent", style: "dotted-flow" })
-  .phase("p", { duration: 2400, title: "直結", body: "粒子が Client 端 → Service 端で stop、 node 内には入らない。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("direct"))
+  .phase("p1", { duration: 1200, title: "送り手", body: "" }, (p: PhaseBuilder) => p.activate("a").badge("direct"))
+  .phase("p2", { duration: 1200, title: "受け手まで", body: "" }, (p: PhaseBuilder) => p.activate("a", "b").badge("direct"))
+  .phase("p3", { duration: 2400, title: "直結", body: "粒子が Client 端 → Service 端で stop、 node 内には入らない。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("direct"))
   .build();
 
 /** 2. 経由 node 貫通 (Passthrough) */
@@ -42,7 +44,9 @@ export const patternPassthrough = diagram("pattern-passthrough", { topic: "patte
   .node("router", { lane: "l2", stack: 0, kind: "function", title: "API Gateway", subtitle: "Client → Service を relay (proxy pattern)" })
   .node("c", { lane: "l3", stack: 0, kind: "function", title: "Service" })
   .edge("a", "c", { id: "e", label: "Client → Service", sub: "Gateway 経由", tone: "accent", style: "dotted-flow" })
-  .phase("p", { duration: 2800, title: "貫通", body: "edge path が Gateway の上を通るため、 cdl が auto 判定で粒子を Gateway 中央まで動かす。" }, (p: PhaseBuilder) => p.activate("a", "router", "c", "e").badge("through"))
+  .phase("p1", { duration: 1200, title: "送り手", body: "" }, (p: PhaseBuilder) => p.activate("a").badge("through"))
+  .phase("p2", { duration: 1200, title: "中継まで", body: "" }, (p: PhaseBuilder) => p.activate("a", "router").badge("through"))
+  .phase("p3", { duration: 2800, title: "貫通", body: "edge path が Gateway の上を通るため、 cdl が auto 判定で粒子を Gateway 中央まで動かす。" }, (p: PhaseBuilder) => p.activate("a", "router", "c", "e").badge("through"))
   .build();
 
 /** 3. call → read → write (関数内部処理) */
@@ -68,7 +72,9 @@ export const patternEmit = diagram("pattern-emit", { topic: "pattern: Emit Event
   .node("fn", { lane: "c", stack: 0, kind: "function", title: "processOrder(...)", w: 426 })
   .node("ev", { lane: "o", stack: 0, kind: "event", title: "OrderCreated", subtitle: "(orderId, userId, total)" })
   .edge("fn", "ev", { id: "emit", label: "emit", tone: "success", style: "dotted-flow" })
-  .phase("p", { duration: 2400, title: "emit", body: "関数内で emit したイベントが event bus / log に書き込まれる。" }, (p: PhaseBuilder) => p.activate("fn", "ev", "emit").badge("emit"))
+  .phase("p1", { duration: 1200, title: "関数", body: "" }, (p: PhaseBuilder) => p.activate("fn").badge("emit"))
+  .phase("p2", { duration: 1200, title: "受け皿まで", body: "" }, (p: PhaseBuilder) => p.activate("fn", "ev").badge("emit"))
+  .phase("p3", { duration: 2400, title: "emit", body: "関数内で emit したイベントが event bus / log に書き込まれる。" }, (p: PhaseBuilder) => p.activate("fn", "ev", "emit").badge("emit"))
   .build();
 
 /** 5. Hook callback ... 受信側 hook で「受け取れますか」 確認 */

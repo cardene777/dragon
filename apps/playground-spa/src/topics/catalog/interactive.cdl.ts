@@ -2388,9 +2388,13 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
   .edge("prefsNode", "verifyNode", { label: "next", tone: "accent" })
   .edge("verifyNode", "doneNode", { label: "finish", tone: "success" })
   .readout.stepIndicator("wizard", { source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress (dot strip)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "最初の 2 段", body: "" }, (p: PhaseBuilder) =>
+    p.activate("signupNode").badge("wizard"))
+  .phase("p2", { duration: 1200, title: "中ほどまで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("signupNode", "profileNode", "prefsNode").badge("wizard"))
+  .phase("p3", {
     duration: 1200,
-    title: "wizard pipeline",
+    title: "最後まで",
     body: "5 区画 pipeline (Sign up → Profile → Preferences → Verify → Done) を 3 列 2 段に置いて + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。",
   }, (p: PhaseBuilder) => p.activate("signupNode", "profileNode", "prefsNode", "verifyNode", "doneNode").badge("wizard"))
   .build();
@@ -2450,9 +2454,13 @@ export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
   .edge("currentNode", "targetNode", { label: "progress", tone: "info" })
   .edge("targetNode", "gapNode", { label: "delta", tone: "warning" })
   .readout.numberBoard("nb", { source: "rev", prefix: "$", suffix: "M", size: 56, color: "#241c14", caption: "vs $500M target", label: "Revenue (scoreboard)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "現在を見る", body: "" }, (p: PhaseBuilder) =>
+    p.activate("currentNode").badge("scoreboard"))
+  .phase("p2", { duration: 1200, title: "目標を並べる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("currentNode", "targetNode").badge("scoreboard"))
+  .phase("p3", {
     duration: 1200,
-    title: "revenue progress flow",
+    title: "差を出す",
     body: "3 区画 (Current / Target / Gap) を 2 列 2 段に置いて revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "targetNode", "gapNode").badge("scoreboard"))
   .build();
@@ -2640,9 +2648,13 @@ export const productRating = diagram("interactive-product-rating", {
   .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High range", subtitle: "4-5 stars · excellent" })
   .node("currentNode", { lane: "mid", stack: 1, kind: "card", title: "◆ Current", subtitle: "{score} / 5" })
   .readout.rating("r", { source: "score", count: 5, color: "#eab308", label: "Rating (star display)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "帯を並べる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode").badge("rating"))
+  .phase("p2", { duration: 1200, title: "現在の帯", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode", "midNode").badge("rating"))
+  .phase("p3", {
     duration: 1200,
-    title: "rating range map",
+    title: "いまの評価",
     body: "3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) で rating range を分散、 default 3.5 の位置 (mid lane) を currentNode で明示、 slider (0.5 刻み) 変化で rating readout 追随 (star display half-star 対応)、 range 分類と star 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentNode").badge("rating"))
   .build();
@@ -2668,9 +2680,13 @@ export const alertNotification = diagram("interactive-alert-notification", {
   .node("successNode", { lane: "success", stack: 0, kind: "card", title: "✓ Success", subtitle: "green · 成功" })
   .node("currentAlert", { lane: "warn", stack: 1, kind: "card", title: "◆ Current", subtitle: "kind: {kind}" })
   .readout.notification("nt", { kindSource: "kind", titleSource: "title", bodySource: "body", label: "Alert (color + icon)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "情報と注意", body: "" }, (p: PhaseBuilder) =>
+    p.activate("infoNode").badge("alert"))
+  .phase("p2", { duration: 1200, title: "異常と成功", body: "" }, (p: PhaseBuilder) =>
+    p.activate("infoNode", "warnNode", "errorNode").badge("alert"))
+  .phase("p3", {
     duration: 1200,
-    title: "alert kind split",
+    title: "いまの通知",
     body: "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("infoNode", "warnNode", "errorNode", "successNode", "currentAlert").badge("alert"))
   .build();
@@ -2694,9 +2710,13 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   .node("delDetail", { lane: "dels", stack: 1, kind: "card", title: "cleanup", subtitle: "remove obsolete code" })
   .edge("addCard", "delCard", { label: "net = add - del", tone: "info" })
   .readout.diffCounter("dc", { additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff (+N/-N bar)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "追加を見る", body: "" }, (p: PhaseBuilder) =>
+    p.activate("addCard").badge("diff"))
+  .phase("p2", { duration: 1200, title: "削除を並べる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("addCard", "addDetail").badge("diff"))
+  .phase("p3", {
     duration: 1200,
-    title: "diff split",
+    title: "差し引き",
     body: "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("addCard", "addDetail", "delCard", "delDetail").badge("diff"))
   .build();
@@ -2757,9 +2777,13 @@ export const userAvatar = diagram("interactive-user-avatar", {
   .edge("inputNode", "initialsNode", { label: "parse", tone: "info" })
   .edge("initialsNode", "circleNode", { label: "render", tone: "success" })
   .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "名前を受ける", body: "" }, (p: PhaseBuilder) =>
+    p.activate("inputNode").badge("avatar"))
+  .phase("p2", { duration: 1200, title: "頭文字を取る", body: "" }, (p: PhaseBuilder) =>
+    p.activate("inputNode", "initialsNode").badge("avatar"))
+  .phase("p3", {
     duration: 1200,
-    title: "avatar pipeline",
+    title: "絵にする",
     body: "3 区画 (Input name / Initials extract / Circle render) を 2 列 2 段に置いて avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。",
   }, (p: PhaseBuilder) => p.activate("inputNode", "initialsNode", "circleNode").badge("avatar"))
   .build();
@@ -2822,9 +2846,13 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
   .node("redlineNode", { lane: "redline", stack: 0, kind: "card", title: "Redline", subtitle: "5000-8000 rpm (red) · caution" })
   .node("currentRpm", { lane: "cruise", stack: 1, kind: "card", title: "◆ Current", subtitle: "{rpm} rpm (default 3500 = cruise)" })
   .readout.circularGauge("g", { source: "rpm", min: 0, max: 8000, unit: "rpm", color: "#f97316", viewW: 200, viewH: 160, label: "Tachometer (270° dial)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "通常と巡航", body: "" }, (p: PhaseBuilder) =>
+    p.activate("idleNode").badge("tachometer"))
+  .phase("p2", { duration: 1200, title: "過回転まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("idleNode", "cruiseNode").badge("tachometer"))
+  .phase("p3", {
     duration: 1200,
-    title: "rpm range map",
+    title: "いまの回転数",
     body: "3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) で rpm 範囲を領域別分散、 各 range 個別 card + 現在 rpm indicator (default 3500 = cruise lane)、 circularGauge readout も併存で 270° dial 表示、 range 分類と needle 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("idleNode", "cruiseNode", "redlineNode", "currentRpm").badge("tachometer"))
   .build();
@@ -2847,9 +2875,13 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
   .edge("oldNode", "newNode", { label: "sale", tone: "warning" })
   .edge("newNode", "discountNode", { label: "%", tone: "error" })
   .readout.priceTag("pt", { oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#241c14", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "旧価格", body: "" }, (p: PhaseBuilder) =>
+    p.activate("oldNode").badge("price"))
+  .phase("p2", { duration: 1200, title: "新価格", body: "" }, (p: PhaseBuilder) =>
+    p.activate("oldNode", "newNode").badge("price"))
+  .phase("p3", {
     duration: 1200,
-    title: "price flow",
+    title: "割引率",
     body: "3 区画 (Old / New / Discount) を 2 列 2 段に置いて price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。",
   }, (p: PhaseBuilder) => p.activate("oldNode", "newNode", "discountNode").badge("price"))
   .build();
@@ -2873,9 +2905,13 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   .node("errorNode", { lane: "error", stack: 0, kind: "card", title: "✕ Error", subtitle: "red · deploy failed" })
   .node("currentState", { lane: "running", stack: 1, kind: "card", title: "◆ Deploy", subtitle: "status: {status} · msg: {msg}" })
   .readout.spinner("sp", { source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" })
-  .phase("p",  {
+  .phase("p1", { duration: 1200, title: "実行中", body: "" }, (p: PhaseBuilder) =>
+    p.activate("runningNode").badge("loading"))
+  .phase("p2", { duration: 1200, title: "完了と失敗", body: "" }, (p: PhaseBuilder) =>
+    p.activate("runningNode", "doneNode").badge("loading"))
+  .phase("p3", {
     duration: 1200,
-    title: "deploy state split",
+    title: "いまの状態",
     body: "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("runningNode", "doneNode", "errorNode", "currentState").badge("loading"))
   .build();
@@ -2901,9 +2937,13 @@ export const examGrade = diagram("interactive-exam-grade", {
   .node("fNode", { lane: "F", stack: 0, kind: "card", title: "F", subtitle: "< 60 (red)" })
   .node("currentGrade", { lane: "B", stack: 1, kind: "card", title: "◆ Current", subtitle: "score = {score} / 100" })
   .readout.grade("g", { source: "score", max: 100, label: "Letter grade (band)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "上の 2 段階", body: "" }, (p: PhaseBuilder) =>
+    p.activate("aNode", "bNode").badge("grade"))
+  .phase("p2", { duration: 1200, title: "下の 3 段階", body: "" }, (p: PhaseBuilder) =>
+    p.activate("aNode", "bNode", "cNode", "dNode").badge("grade"))
+  .phase("p3", {
     duration: 1200,
-    title: "grade band split",
+    title: "いまの成績",
     body: "5-lane (A ≥90 / B 80-89 / C 70-79 / D 60-69 / F <60) で 5 letter grade band を分散、 各 band 個別 card + current indicator (default score 85 → B lane)、 slider 変化で grade readout が letter + color 追随、 grade band 分類と current の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("aNode", "bNode", "cNode", "dNode", "fNode", "currentGrade").badge("grade"))
   .build();
@@ -2930,9 +2970,13 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .edge("secNode", "displayNode", { label: "× 1000", tone: "info" })
   .edge("runNode", "displayNode", { label: "color", tone: "success" })
   .readout.stopwatch("sw", { source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "Timer (MM:SS.ms)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "秒数", body: "" }, (p: PhaseBuilder) =>
+    p.activate("secNode").badge("timer"))
+  .phase("p2", { duration: 1200, title: "実行状態", body: "" }, (p: PhaseBuilder) =>
+    p.activate("secNode", "runNode").badge("timer"))
+  .phase("p3", {
     duration: 1200,
-    title: "timer signal flow",
+    title: "時計表示",
     body: "3-lane (Seconds / Running / Display) で stopwatch 3 component を分散、 2 edge (× 1000 info tone / color success tone) で 2 signal → 1 display の fan-in 明示、 stepper + toggle 変化で stopwatch readout の time + color が同時追随。",
   }, (p: PhaseBuilder) => p.activate("secNode", "runNode", "displayNode").badge("timer"))
   .build();
@@ -2954,9 +2998,13 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High band", subtitle: "≥ 75% (green · confident)" })
   .node("currentConf", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "conf = {conf}% (default 82 → high)" })
   .readout.confidenceMeter("cm", { source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence (3-band bar)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "低い帯", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode").badge("ML conf"))
+  .phase("p2", { duration: 1200, title: "高い帯まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode", "midNode").badge("ML conf"))
+  .phase("p3", {
     duration: 1200,
-    title: "confidence band split",
+    title: "いまの確信度",
     body: "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentConf").badge("ML conf"))
   .build();
@@ -3057,9 +3105,13 @@ export const deviceBattery = diagram("interactive-device-battery", {
   .node("highNode", { lane: "high", stack: 0, kind: "card", title: "High band", subtitle: "≥ 60% (green · healthy)" })
   .node("currentBattery", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "battery = {battery}% (default 72 → high)" })
   .readout.fuelBar("fb", { source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level (10 segment bar)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "低い帯", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode").badge("battery"))
+  .phase("p2", { duration: 1200, title: "高い帯まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("lowNode", "midNode").badge("battery"))
+  .phase("p3", {
     duration: 1200,
-    title: "battery band split",
+    title: "いまの残量",
     body: "3-lane (Low <20 red / Mid 20-60 yellow / High ≥60 green) で battery 3 band を分散、 current indicator (default 72 → high lane)、 slider 変化で fuelBar readout の filled 数 + color 追随、 battery / fuel / stamina 状態を lane 分割で可視化。",
   }, (p: PhaseBuilder) => p.activate("lowNode", "midNode", "highNode", "currentBattery").badge("battery"))
   .build();
@@ -3120,9 +3172,13 @@ export const roomThermometer = diagram("interactive-room-thermometer", {
   .node("hotNode", { lane: "hot", stack: 0, kind: "card", title: "Hot band", subtitle: "≥ 25°C (red · cooling)" })
   .node("currentTemp", { lane: "comfort", stack: 1, kind: "card", title: "◆ Current", subtitle: "temp = {temp}°C (default 24 → comfort)" })
   .readout.thermometer("th", { source: "temp", min: 0, max: 40, viewW: 70, viewH: 180, color: "#ef4444", unit: "°C", label: "Temp (vertical bar)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "寒い帯", body: "" }, (p: PhaseBuilder) =>
+    p.activate("coldNode").badge("temp"))
+  .phase("p2", { duration: 1200, title: "暑い帯まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("coldNode", "comfortNode").badge("temp"))
+  .phase("p3", {
     duration: 1200,
-    title: "temperature band split",
+    title: "いまの室温",
     body: "3-lane (Cold <15 / Comfort 15-25 / Hot ≥25) で room 温度を band 別分散、 current indicator (default 24 → comfort lane)、 slider 変化で thermometer readout 縦 bar + 球部 追随、 温度帯分類と thermometer 表示の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("coldNode", "comfortNode", "hotNode", "currentTemp").badge("temp"))
   .build();
@@ -3258,9 +3314,13 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   .node("lowNode", { lane: "low", stack: 0, kind: "card", title: "▼ Low", subtitle: "gray · nice-to-have" })
   .node("currentIssue", { lane: "high", stack: 1, kind: "card", title: "◆ Current", subtitle: "prio: {prio} · {desc}" })
   .readout.priorityBadge("pb", { source: "prio", textSource: "desc", label: "Priority (badge + icon + text)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "高い優先度", body: "" }, (p: PhaseBuilder) =>
+    p.activate("highNode").badge("issue"))
+  .phase("p2", { duration: 1200, title: "低い優先度まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("highNode", "medNode").badge("issue"))
+  .phase("p3", {
     duration: 1200,
-    title: "priority split",
+    title: "いまの課題",
     body: "3-lane (High red ▲ / Med yellow ● / Low gray ▼) で 3 priority level を分散、 各 level 個別 card + 現在 issue の位置 (default=high lane) を currentIssue card で明示、 priorityBadge readout も併存で dropdown 追随 badge 表示、 priority 分類と現在 state の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("highNode", "medNode", "lowNode", "currentIssue").badge("issue"))
   .build();
@@ -3434,9 +3494,13 @@ export const audioPlayer = diagram("interactive-audio-player", {
   .edge("currentNode", "durationNode", { label: "progress %", tone: "info" })
   .edge("toggleNode", "currentNode", { label: "advance/pause", tone: "success" })
   .readout.mediaPlayer("mp", { source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player (icon + progress + MM:SS)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "再生位置", body: "" }, (p: PhaseBuilder) =>
+    p.activate("currentNode").badge("media"))
+  .phase("p2", { duration: 1200, title: "再生状態", body: "" }, (p: PhaseBuilder) =>
+    p.activate("currentNode", "toggleNode").badge("media"))
+  .phase("p3", {
     duration: 1200,
-    title: "player signal flow",
+    title: "時間表示",
     body: "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。",
   }, (p: PhaseBuilder) => p.activate("currentNode", "toggleNode", "durationNode").badge("media"))
   .build();
@@ -3667,9 +3731,13 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .edge("shippedNode", "deliveryNode", { label: "in transit", tone: "info" })
   .edge("deliveryNode", "deliveredNode", { label: "arrived", tone: "warning" })
   .readout.orderStatus("os", { source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status (icon strip)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "梱包と発送", body: "" }, (p: PhaseBuilder) =>
+    p.activate("packedNode").badge("tracking"))
+  .phase("p2", { duration: 1200, title: "配達中まで", body: "" }, (p: PhaseBuilder) =>
+    p.activate("packedNode", "shippedNode").badge("tracking"))
+  .phase("p3", {
     duration: 1200,
-    title: "delivery pipeline",
+    title: "配達完了",
     body: "4 区画 pipeline (Packed / Shipped / Out for delivery / Delivered) を 2 列 2 段に置いて + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。",
   }, (p: PhaseBuilder) => p.activate("packedNode", "shippedNode", "deliveryNode", "deliveredNode").badge("tracking"))
   .build();
@@ -3819,9 +3887,13 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
   .node("song3", { lane: "next", stack: 1, kind: "card", title: "Sweet Child", subtitle: "Guns N' Roses · 5:56" })
   .node("song4", { lane: "next", stack: 2, kind: "card", title: "Imagine", subtitle: "John Lennon · 3:03" })
   .readout.songQueue("sq", { source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue (current highlight)" })
-  .phase("p", {
+  .phase("p1", { duration: 1200, title: "再生済", body: "" }, (p: PhaseBuilder) =>
+    p.activate("song0").badge("music"))
+  .phase("p2", { duration: 1200, title: "再生中", body: "" }, (p: PhaseBuilder) =>
+    p.activate("song0", "song1", "song2").badge("music"))
+  .phase("p3", {
     duration: 1200,
-    title: "playback split",
+    title: "次に続く",
     body: "3-lane (Played 過去 / Now Playing 現在 / Up Next 未来) で 5 song を playback state 別分散、 default current=1 の状態を lane 配置で明示、 各 song 個別 card、 songQueue readout も併存で highlight 追随、 timeline 状態と queue の 2 経路 view。",
   }, (p: PhaseBuilder) => p.activate("song0", "song1", "song2", "song3", "song4").badge("music"))
   .build();
