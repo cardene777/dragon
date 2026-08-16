@@ -2324,7 +2324,10 @@ function writeFormula(ast: FormulaAst): string {
     case "number":
       return writeNumber(ast.value);
     case "identifier":
-      return ast.name;
+      // **裸で書ける形とそうでない形がある**。 engine は裸の名前を `[A-Za-z_$][\w$]*` で読む
+      // 一方、波括弧の中は `\w+` なので数字始まりの名前は波括弧付きでしか書けない。
+      // 名前は前置きで変わる (`1p__v` のように数字始まりになりうる) ため、書ける方を選ぶ
+      return /^[A-Za-z_$][\w$]*$/.test(ast.name) ? ast.name : `{${ast.name}}`;
     case "unaryOp":
       return `(${ast.op}${writeFormula(ast.operand)})`;
     case "binaryOp":
