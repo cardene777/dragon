@@ -2193,20 +2193,36 @@ function reportUnresolvedValues(
   if (!onNotice) return;
   // 描画側 (`computeStateValues`) が段を進める前に組み立てるのと同じ形。 値を解く手順は
   // engine に渡すので、ここで組み立てるのは初期値の表だけにする
+  //
+  // **通常の object で作る**。 engine 側も `{}` で組むため、`__proto__` のような名前は
+  // どちらでも同じように落ちる。 ここだけ `Object.create(null)` にすると、組み立てでは
+  // 解けて描画では解けない状態ができ、「知らせは出ないのに箱には `{名前}` が出る」 が起きる
+  // (この食い違いこそ本 Issue が消そうとしているもの)
   const 初期値: Record<string, string> = {};
   for (const s of diagram.states) 初期値[s.id] = String(s.initial);
 
   // engine は同じ名前では先に書いた式を使う。 Map の一括生成で後ろから
   // 上書きすると、先の式の未解決を後の行の問題として伝えてしまう
-  const 行 = new Map<string, number>();
+  const 最初の行 = new Map<string, number>();
+  const 重複した行 = new Map<string, number[]>();
   for (const v of doc.values ?? []) {
-    if (!行.has(v.name)) 行.set(v.name, v.pos?.line ?? 0);
+    if (!最初の行.has(v.name)) {
+      最初の行.set(v.name, v.pos?.line ?? 0);
+      continue;
+    }
+    const 同じ名前の行 = 重複した行.get(v.name) ?? [];
+    同じ名前の行.push(v.pos?.line ?? 0);
+    重複した行.set(v.name, 同じ名前の行);
   }
   for (const n of applyDerivedValues(初期値, diagram.derived).notices) {
     onNotice({
       kind: n.kind === "duplicate-id" ? "value-duplicate" : "value-unresolved",
       actor: n.id,
-      line: 行.get(n.id) ?? 0,
+      // 重複は後から書いた宣言そのものを、式の問題は engine が使う最初の宣言を指す
+      line:
+        n.kind === "duplicate-id"
+          ? (重複した行.get(n.id)?.shift() ?? 最初の行.get(n.id) ?? 0)
+          : (最初の行.get(n.id) ?? 0),
       message: n.message,
       hint: VALUE_NOTICE_HINT[n.kind],
     });

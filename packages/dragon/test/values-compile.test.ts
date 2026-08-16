@@ -143,6 +143,15 @@ describe("値の反例 6 種 (#1162)", () => {
     expect(知らせ(src).map((n) => n.kind)).toContain("value-unresolved");
   });
 
+  it("object の予約名 (`__proto__`) を状態名にすると、組み立てと描画が同じ結果になる", () => {
+    // 状態の表は組み立ても描画も通常の object で作るため、この名前はどちらでも落ちる。
+    // **揃っていることが要点**。 片方だけ拾える形にすると「知らせは出ないのに箱には
+    // `{__proto__}` が出る」 状態ができ、本 Issue が消そうとしている食い違いが復活する
+    const src = 記法('states:\n  __proto__: 4\n\nvalues:\n  a: "{__proto__} + 1"');
+    expect(描画が読む値(src).a).toBeUndefined();
+    expect(知らせ(src).find((n) => n.actor === "a")?.kind).toBe("value-unresolved");
+  });
+
   it("states と values に同じ名前を書くと values を優先して伝える", () => {
     const src = 記法('states:\n  x: 1\n\nvalues:\n  x: "2 * 3"');
     // 値が勝つ (states 側の初期値は、まだ計算されていない間の値、spec 4.5)
@@ -154,6 +163,7 @@ describe("値の反例 6 種 (#1162)", () => {
     const src = 記法('states:\n  x: 1\n\nvalues:\n  a: "{x} + 1"\n  a: "{x} + 100"');
     expect(描画が読む値(src).a).toBe("2");
     expect(知らせ(src).map((n) => n.kind)).toContain("value-duplicate");
+    expect(知らせ(src).find((n) => n.kind === "value-duplicate")?.line).toBe(13);
   });
 
   it("知らせは書いた行を指す", () => {
