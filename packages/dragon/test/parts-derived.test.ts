@@ -78,6 +78,36 @@ describe("見本の値を引き継ぐ (#1180)", () => {
     expect(組む().derived?.[0]?.expression).toBe("{p1__v} / 2");
   });
 
+  it("波括弧なしの参照も、関数名を保ったまま前置きが付く", () => {
+    // CDL engine は `v` も参照として読む。 `{v}` だけを書き換えると本文の v と混ざる
+    const bare = {
+      ...見本(),
+      derived: [{ id: "limited", expression: "max(v, Math.min(v * 2, 50))" }],
+    } as CdlDiagram;
+    const d = 組む({
+      見本たち: [{ alias: "p1", part: bare }],
+      values: [{ name: "v", expression: "999" }],
+    });
+
+    expect(d.derived).toContainEqual({
+      id: "p1__limited",
+      expression: "max(p1__v, Math.min(p1__v * 2, 50))",
+    });
+    expect(描画が読む値(d).p1__limited).toBe("50");
+  });
+
+  it("関数と同じ名前の状態でも、関数呼び出しを壊さない", () => {
+    // 参照かどうかの判定を engine に任せているため、`min` が状態名でも関数呼び出しは残る
+    const 紛らわしい = {
+      ...見本(),
+      states: [{ id: "min", initial: 8 }],
+      derived: [{ id: "clamped", expression: "min(min, 5)" }],
+    } as CdlDiagram;
+    const d = 組む({ 見本たち: [{ alias: "p1", part: 紛らわしい }] });
+    expect(d.derived).toContainEqual({ id: "p1__clamped", expression: "min(p1__min, 5)" });
+    expect(描画が読む値(d).p1__clamped).toBe("5");
+  });
+
   it("引き継いだ値が描画側で解ける", () => {
     // 図に載っただけでは届いたと言えない。 実経路で値になることを見る
     const v = 描画が読む値(組む());
