@@ -1844,7 +1844,12 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
       "id": "flow",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "v",
+      "initial": "x",
+    },
+  ],
   "topic": "F15",
   "viewBox": {
     "h": 960,
@@ -2064,7 +2069,12 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "m",
+      "initial": 42,
+    },
+  ],
   "topic": "X02",
   "viewBox": {
     "h": 726,
@@ -2174,7 +2184,20 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "v1",
+      "initial": "a",
+    },
+    {
+      "id": "v2",
+      "initial": "b",
+    },
+    {
+      "id": "v3",
+      "initial": "c",
+    },
+  ],
   "topic": "X03",
   "viewBox": {
     "h": 1218,
@@ -3142,7 +3165,12 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "n",
+      "initial": 0,
+    },
+  ],
   "topic": "X10",
   "viewBox": {
     "h": 1300,
@@ -3882,7 +3910,12 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "count",
+      "initial": 0,
+    },
+  ],
   "topic": "S06",
   "viewBox": {
     "h": 726,
@@ -4556,7 +4589,16 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "a",
+      "initial": 100,
+    },
+    {
+      "id": "b",
+      "initial": 0,
+    },
+  ],
   "topic": "S10",
   "viewBox": {
     "h": 1208,
@@ -5749,7 +5791,16 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
       "id": "seq",
     },
   ],
-  "states": [],
+  "states": [
+    {
+      "id": "a",
+      "initial": 100,
+    },
+    {
+      "id": "b",
+      "initial": 0,
+    },
+  ],
   "topic": "Y02",
   "viewBox": {
     "h": 1208,
