@@ -70,12 +70,14 @@ const 描画が読む値 = (d: CdlDiagram): Record<string, string> => computeSta
 describe("見本の値を引き継ぐ (#1180)", () => {
   it("見本の値が前置き付きの名前で図に載る", () => {
     const d = 組む();
-    expect(d.derived).toEqual([{ id: "p1__half", expression: "{p1__v} / 2" }]);
+    // 式は engine の木を通して組み直すため、括弧が全て付いた形になる (意味は変わらない)
+    expect(d.derived).toEqual([{ id: "p1__half", expression: "(p1__v / 2)" }]);
   });
 
   it("式の中の参照も前置きが付く", () => {
     // 付けないと、重ねた先に同じ名前の状態があるとそちらを読む
-    expect(組む().derived?.[0]?.expression).toBe("{p1__v} / 2");
+    expect(組む().derived?.[0]?.expression).toContain("p1__v");
+    expect(描画が読む値(組む()).p1__half).toBe("20");
   });
 
   it("波括弧なしの参照も、関数名を保ったまま前置きが付く", () => {
@@ -89,10 +91,10 @@ describe("見本の値を引き継ぐ (#1180)", () => {
       values: [{ name: "v", expression: "999" }],
     });
 
-    expect(d.derived).toContainEqual({
-      id: "p1__limited",
-      expression: "max(p1__v, Math.min(p1__v * 2, 50))",
-    });
+    // 関数は木の上で名前と別の種類なので取り違えない (`max` は engine の書き方に揃う)
+    expect(d.derived?.find((x) => x.id === "p1__limited")?.expression).toBe(
+      "Math.max(p1__v, Math.min((p1__v * 2), 50))",
+    );
     expect(描画が読む値(d).p1__limited).toBe("50");
   });
 
@@ -104,7 +106,7 @@ describe("見本の値を引き継ぐ (#1180)", () => {
       derived: [{ id: "clamped", expression: "min(min, 5)" }],
     } as CdlDiagram;
     const d = 組む({ 見本たち: [{ alias: "p1", part: 紛らわしい }] });
-    expect(d.derived).toContainEqual({ id: "p1__clamped", expression: "min(p1__min, 5)" });
+    expect(d.derived?.find((x) => x.id === "p1__clamped")?.expression).toBe("Math.min(p1__min, 5)");
     expect(描画が読む値(d).p1__clamped).toBe("5");
   });
 
@@ -120,10 +122,7 @@ describe("見本の値を引き継ぐ (#1180)", () => {
     } as CdlDiagram;
     const d = 組む({ 見本たち: [{ alias: "p1", part: engineの名前 }] });
 
-    expect(d.derived).toContainEqual({
-      id: "p1__result",
-      expression: "{p1__1v} / p1__$step",
-    });
+    expect(d.derived?.find((x) => x.id === "p1__result")?.expression).toBe("(p1__1v / p1__$step)");
     expect(描画が読む値(d).p1__result).toBe("20");
   });
 
@@ -166,7 +165,7 @@ describe("見本の値を引き継ぐ (#1180)", () => {
       見本たち: [{ alias: "p1", part: 連鎖 }],
       values: [{ name: "half", expression: "999" }],
     });
-    expect(d.derived).toContainEqual({ id: "p1__quarter", expression: "{p1__half} / 2" });
+    expect(d.derived?.find((x) => x.id === "p1__quarter")?.expression).toContain("p1__half");
     expect(描画が読む値(d).p1__quarter).toBe("10");
   });
 
@@ -237,7 +236,7 @@ describe("見本の中で解けない値も伝える (#1180)", () => {
       onNotice: (n) => 届いた.push(n),
     });
 
-    expect(d.derived).toContainEqual({ id: "p1__broken", expression: "{p1__missing} + 1" });
+    expect(d.derived?.find((x) => x.id === "p1__broken")?.expression).toContain("p1__missing");
     expect(描画が読む値(d).p1__broken).toBeUndefined();
     expect(届いた.find((n) => n.actor === "p1__broken")?.kind).toBe("value-unresolved");
   });

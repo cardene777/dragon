@@ -10,11 +10,11 @@
  */
 
 import type { DslDocument, DslPhase } from "./types";
-import type { CdlDiagram, ErRelationCardinality, LaidDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
-  applyDerivedValues, parseFormula, extractIdentifiers,
+  applyDerivedValues, parseFormula,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
@@ -1777,24 +1777,13 @@ function mergePartIntoDiagram(
   // 記法側 (`value-syntax.ts`) と engine に続く 3 つ目の写しになり、engine が関数を足した時に
   // 静かにずれる。
   const rewriteDerivedExpression = (expression: string): string => {
-    let refs: ReadonlySet<string>;
     try {
-      refs = new Set(extractIdentifiers(parseFormula(expression)));
+      return writeFormula(renameFormulaIdentifiers(parseFormula(expression), prefix));
     } catch {
-      // 読めない式は engine が止めて伝える。 ここでは形が確かな `{名前}` だけを前置きする
-      return expression.replace(/\{\s*(\w+)\s*\}/g, (_m, name: string) => `{${prefix(name)}}`);
+      // 読めない式は engine が止めて伝える (`value-unresolved`)。 書き換えられないので
+      // そのまま載せる = 名前は前置き無しのままだが、式自体が解けないため値は出ない
+      return expression;
     }
-    if (refs.size === 0) return expression;
-    // 波括弧付きを先に直す。 直した後の名前は `{` の後ろに来るので、裸の名前を探す 2 周目が
-    // 拾わない (`p1__v` の `v` は語の途中なので境界に当たらない)
-    const braced = expression.replace(/\{\s*(\w+)\s*\}/g, (m, name: string) =>
-      refs.has(name) ? `{${prefix(name)}}` : m,
-    );
-    // 裸の名前。 engine と同じく `$` も識別子に含める。 `{` / `.` / 語の途中に続くものと、
-    // 直後が `(` のもの (関数呼び出し) は除く
-    return braced.replace(/(?<![\w$.{])[a-zA-Z_$][a-zA-Z0-9_$]*(?![\w$])(?!\s*\()/g, (m) =>
-      refs.has(m) ? prefix(m) : m,
-    );
   };
 
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
@@ -2260,6 +2249,64 @@ function attachDerivedValues(
     ...(diagram.derived ?? []),
   ];
   reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
+}
+
+/**
+ * 式の中の名前を付け替える (#1180)。
+ *
+ * **字句ではなく木を経由する**。 engine の式は `{v}` / 裸の `v` / 数字始まり / `$` 入りと
+ * 参照の書き方が複数あり、正規表現で追うと書き方が 1 つ増えるたびに漏れる (review が 3 round
+ * 続けて別の漏れを見つけた)。 木は識別子をそのまま持つので、字句を網羅しなくてよい。
+ *
+ * 関数呼び出し (`min` / `Math.max`) は木の上で別の種類なので、名前と取り違えない。
+ */
+function renameFormulaIdentifiers(ast: FormulaAst, rename: (name: string) => string): FormulaAst {
+  switch (ast.type) {
+    case "number":
+      return ast;
+    case "identifier":
+      return { type: "identifier", name: rename(ast.name) };
+    case "unaryOp":
+      return { ...ast, operand: renameFormulaIdentifiers(ast.operand, rename) };
+    case "binaryOp":
+      return {
+        ...ast,
+        left: renameFormulaIdentifiers(ast.left, rename),
+        right: renameFormulaIdentifiers(ast.right, rename),
+      };
+    case "ternary":
+      return {
+        type: "ternary",
+        condition: renameFormulaIdentifiers(ast.condition, rename),
+        whenTrue: renameFormulaIdentifiers(ast.whenTrue, rename),
+        whenFalse: renameFormulaIdentifiers(ast.whenFalse, rename),
+      };
+    case "call":
+      return { ...ast, args: ast.args.map((a) => renameFormulaIdentifiers(a, rename)) };
+  }
+}
+
+/**
+ * 式の木を文字列へ戻す (#1180)。
+ *
+ * **括弧を全て付ける**。 演算子の優先順位を再現しようとすると engine の表を写すことになり、
+ * 表がずれた時に式の意味が静かに変わる。 括弧が増えても解いた結果は変わらない。
+ */
+function writeFormula(ast: FormulaAst): string {
+  switch (ast.type) {
+    case "number":
+      return String(ast.value);
+    case "identifier":
+      return ast.name;
+    case "unaryOp":
+      return `(${ast.op}${writeFormula(ast.operand)})`;
+    case "binaryOp":
+      return `(${writeFormula(ast.left)} ${ast.op} ${writeFormula(ast.right)})`;
+    case "ternary":
+      return `(${writeFormula(ast.condition)} ? ${writeFormula(ast.whenTrue)} : ${writeFormula(ast.whenFalse)})`;
+    case "call":
+      return `${ast.fn}(${ast.args.map(writeFormula).join(", ")})`;
+  }
 }
 
 /** `derived` の同名宣言を、engine が読む順のまま行番号の列として残す。 */
