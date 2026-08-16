@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Dragon — Mermaid 感覚で animated SVG を生成する Text DSL。 cdl engine を内部利用。",
   "license": "MIT",
   "author": "cardene777",
@@ -56,7 +56,7 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
-    "@cardenelabs/cdl": "^0.6.0"
+    "@cardenelabs/cdl": "^0.6.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",

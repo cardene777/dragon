@@ -15,7 +15,7 @@ import { describe, it, expect } from "vitest";
 import { layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
-import { computeStateValues, interpolate } from "../../../../../cdl/packages/cdl/src/render/utils";
+import { computeStateValues, interpolate } from "@cardenelabs/cdl";
 
 /** 段で表示部品を動かす図 (#1032 / #1033 の対象)。 */
 const DRIVEN = [
