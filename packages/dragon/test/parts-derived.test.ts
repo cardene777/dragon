@@ -108,6 +108,25 @@ describe("見本の値を引き継ぐ (#1180)", () => {
     expect(描画が読む値(d).p1__clamped).toBe("5");
   });
 
+  it("engine が受け付ける数字始まりと $ 入りの参照にも前置きが付く", () => {
+    // `{名前}` は \w+、裸の名前は $ も使える。compile 側だけ狭い正規表現だと取り残される
+    const engineの名前 = {
+      ...見本(),
+      states: [
+        { id: "1v", initial: 40 },
+        { id: "$step", initial: 2 },
+      ],
+      derived: [{ id: "result", expression: "{ 1v } / $step" }],
+    } as CdlDiagram;
+    const d = 組む({ 見本たち: [{ alias: "p1", part: engineの名前 }] });
+
+    expect(d.derived).toContainEqual({
+      id: "p1__result",
+      expression: "{p1__1v} / p1__$step",
+    });
+    expect(描画が読む値(d).p1__result).toBe("20");
+  });
+
   it("引き継いだ値が描画側で解ける", () => {
     // 図に載っただけでは届いたと言えない。 実経路で値になることを見る
     const v = 描画が読む値(組む());

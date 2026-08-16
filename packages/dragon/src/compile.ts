@@ -1765,7 +1765,7 @@ function mergePartIntoDiagram(
   ]);
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
-    return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
+    return s.replace(/\{(\w+)\}/g, (m, name: string) => {
       return ownIdSet.has(name) ? `{${prefix(name)}}` : m;
     });
   };
@@ -1782,16 +1782,17 @@ function mergePartIntoDiagram(
       refs = new Set(extractIdentifiers(parseFormula(expression)));
     } catch {
       // 読めない式は engine が止めて伝える。 ここでは形が確かな `{名前}` だけを前置きする
-      return expression.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_m, name: string) => `{${prefix(name)}}`);
+      return expression.replace(/\{\s*(\w+)\s*\}/g, (_m, name: string) => `{${prefix(name)}}`);
     }
     if (refs.size === 0) return expression;
     // 波括弧付きを先に直す。 直した後の名前は `{` の後ろに来るので、裸の名前を探す 2 周目が
     // 拾わない (`p1__v` の `v` は語の途中なので境界に当たらない)
-    const braced = expression.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) =>
+    const braced = expression.replace(/\{\s*(\w+)\s*\}/g, (m, name: string) =>
       refs.has(name) ? `{${prefix(name)}}` : m,
     );
-    // 裸の名前。 `{` / `.` / 語の途中に続くものと、直後が `(` のもの (関数呼び出し) は除く
-    return braced.replace(/(?<![\w.{])[a-zA-Z_][a-zA-Z0-9_]*\b(?!\s*\()/g, (m) =>
+    // 裸の名前。 engine と同じく `$` も識別子に含める。 `{` / `.` / 語の途中に続くものと、
+    // 直後が `(` のもの (関数呼び出し) は除く
+    return braced.replace(/(?<![\w$.{])[a-zA-Z_$][a-zA-Z0-9_$]*(?![\w$])(?!\s*\()/g, (m) =>
       refs.has(m) ? prefix(m) : m,
     );
   };
