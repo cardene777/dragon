@@ -60,10 +60,10 @@ function withSteps(d: CdlDiagram, steps: readonly Step[], states: readonly State
 /**
  * 図表の箱の中身に状態を通す (#1194)。
  *
- * 図表の payload (`chartData` / `funnelData` / `ganttData` / `quadrantData` / `journeyData`) は
+ * 図表の中身 (`chartData` / `funnelData` / `ganttData` / `quadrantData` / `journeyData`) は
  * `{名前}` を受ける型で宣言されている一方、preset の入口 (`.datum({ value })` 等) は数と語しか
- * 受けない。 そこで組み上がった図の payload を書き換える。 読む側は `render/payload-binding.ts`
- * が `{名前}` を解いてから数と語として扱う。
+ * 受けない。 そこで組み上がった図の中身を書き換える。 読む側は cdl の
+ * `render/payload-binding.ts` が `{名前}` を解いてから数と語として扱う。
  *
  * 図表の preset はいずれも箱を 1 つだけ作り、そこに配列を丸ごと載せる。 対象が先頭の箱に
  * 限られるのはそのため。
@@ -240,9 +240,9 @@ export const presetClassDiagram = withSteps(
 // tree preset ... 組織図 / file tree / class 階層
 //
 // 段を付けていない (#1194)。 `tree-hierarchy` は箱 1 つに階層を丸ごと載せる型で、
-// 中身が状態を読む経路を持たない (`render/payload-binding.ts` が「動かさない 2 種」 として
-// resolver を持たない旨を書いている)。 動かせるのは箱ごと消す形だけで、それは見本として
-// 点滅するだけになる。 cdl 側に resolver を足す作業は別 Issue。
+// 中身が状態を読む経路を持たない (cdl の `render/payload-binding.ts` が「動かさない 2 種」
+// として解決層を持たない旨を書いている)。 動かせるのは箱ごと消す形だけで、それは見本として
+// 点滅するだけになる。 cdl 側に解決層を足す作業は別 Issue。
 export const presetTree = tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
   .node({ id: "ceo", title: "CEO" })
   .node({ id: "cto", title: "CTO", parent: "ceo" })
@@ -277,7 +277,7 @@ export const presetUserJourney = withSteps(
 // mindMap preset ... 中心 + 放射 branch
 //
 // 段を付けていない (#1194)。 理由は `presetTree` と同じで、`mind-map` も中身が状態を読む
-// 経路を持たない。 cdl 側に resolver を足す作業は別 Issue。
+// 経路を持たない。 cdl 側に解決層を足す作業は別 Issue。
 export const presetMindMap = mindMap({ id: "mind-demo", topic: "中心の主題から発想を放射状に広げる図", rootId: "root", rootTitle: "Project" })
   .branch({ id: "feat", title: "Features", parent: "root" })
   .branch({ id: "ui", title: "UI design", parent: "root" })

@@ -291,7 +291,7 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
 /**
  * 段の人数が減っていくことを見る。
  *
- * 人数の欄は `{名前}` を書ける (状態から取る形、 `render/payload-binding.ts` が解く)。
+ * 人数の欄は `{名前}` を書ける (状態から取る形、 cdl の `render/payload-binding.ts` が解く)。
  * その場合ここでは値が決まらないので、**数どうしの組だけを比べる** (#1194)。
  *
  * 素通しで比べると文字列の大小比較になり、`{trial}` が `{signup}` より大きいという理由で
