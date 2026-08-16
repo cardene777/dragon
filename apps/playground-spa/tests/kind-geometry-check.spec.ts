@@ -2,7 +2,7 @@
  * Kind geometry check (層 3、 developer 向け検知システム)。
  *
  * 目的 ... CAR-994 で追加した新 kind (chart-line / chart-pie / chart-bar /
- * gantt-timeline / mind-map / mind-radial / funnel-stages / quadrant-matrix /
+ * gantt-timeline / mind-map / funnel-stages / quadrant-matrix /
  * tree-hierarchy / journey-map) の SVG geometry を DOM inspect で検証する。
  *
  * 既存 2 層 check (層 1 = SPA route regression / 層 2 = engine visualValidate)

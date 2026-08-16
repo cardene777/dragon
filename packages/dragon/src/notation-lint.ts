@@ -102,7 +102,6 @@ const KIND_TO_JA: Record<string, string> = {
   tree: "階層ツリー",
   userJourney: "ユーザージャーニー",
   mindMap: "マインドマップ",
-  mindMapRadial: "放射状マインドマップ",
   funnel: "ファネル (段階別離脱)",
   quadrant: "四象限マトリクス",
   gantt: "ガントチャート",
@@ -205,7 +204,7 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
 function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];
   for (const n of d.nodes) {
-    if ((n.kind === "mind-map" || n.kind === "mind-radial") && n.mindData) {
+    if (n.kind === "mind-map" && n.mindData) {
       const known = new Set<string>([n.mindData.rootId]);
       for (const b of n.mindData.branches) known.add(b.id);
       for (const b of n.mindData.branches) {

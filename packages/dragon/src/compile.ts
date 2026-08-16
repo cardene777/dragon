@@ -130,9 +130,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "tree":
       diagram = compileTree(doc, opts?.onNotice);
       break;
-    case "radial":
-      diagram = compileRadial(doc, opts?.onNotice);
-      break;
     case "journey":
       diagram = compileJourney(doc, opts?.onNotice);
       break;
@@ -2106,7 +2103,7 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "chart-pie", "chart-line", "chart-bar",
-  "gantt-timeline", "mind-map", "mind-radial",
+  "gantt-timeline", "mind-map",
   "funnel-stages", "quadrant-matrix", "tree-hierarchy", "journey-map",
 ]);
 
@@ -2853,33 +2850,6 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
     lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: CHART_H, treeData: data,
-  });
-  return b.build();
-}
-
-function compileRadial(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
-  b.lane("chart", { width: W + 64, label: doc.title });
-  // 枝は書いた順に一段で配る。 **矢印は読まない**ので、 書かれていたら伝える (黙って捨てると
-  // 「書いたのに効かない」 が残る、 review 指摘)
-  if (doc.flow.length > 0) {
-    const m = `type: radial では矢印を読みません (${doc.flow.length} 本を無視しました)。 枝は書いた順に配ります。 親子を描くなら type: tree を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m });
-    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m}`);
-  }
-  const root = doc.actors[0];
-  const data = {
-    rootId: root ? slugify(root.name) : "root",
-    rootTitle: root?.name ?? doc.title,
-    branches: doc.actors.slice(1).map((a) => ({
-      id: slugify(a.name),
-      title: a.name,
-      parent: root ? slugify(root.name) : "root",
-    })),
-  };
-  b.node(`${slugify(doc.title) || "radial"}-chart`, {
-    lane: "chart", stack: 0, kind: "mind-radial", title: doc.title, w: W, h: CHART_TALL, mindData: data,
   });
   return b.build();
 }

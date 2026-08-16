@@ -21,7 +21,6 @@ export type PresetType =
   | "line"
   | "funnel"
   | "tree"
-  | "radial"
   | "journey"
   | "quadrant"
   | "c4"

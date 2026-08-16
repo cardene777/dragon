@@ -366,23 +366,6 @@ flow:
 `,
   },
   {
-    label: "障害の切り分け (radial)",
-    slug: "radial",
-    code: `title: "障害の切り分け"
-type: radial
-
-actors:
-  - 画面が出ない
-  - 通信が届かない
-  - 認証が通らない
-  - 描画で落ちる
-  - 設定が読めない
-  - 依存が古い
-  - 権限が足りない
-  - 資源が尽きた
-`,
-  },
-  {
     label: "初めて使うまで (journey)",
     slug: "journey",
     code: `title: "初めて使うまで"

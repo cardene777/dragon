@@ -21,7 +21,7 @@
 |---|---|---|---|
 | 層 1 = CDL check (SPA UI level) | 全 route × 3 viewport の render / navigation / a11y / console error | `apps/playground-spa/tests/audit-3vp.spec.ts` + `full-regression.spec.ts` | `pnpm check:cdl` |
 | 層 2 = dragon 記法 check (engine geometry level) | 全 100+ diagram の geometry axis (edge-node-cross / row-gap-uniform / lane-border-clearance / clearance / edge-label-overlap 他 12 axis) | `packages/dragon/test/visual-validate-sweep.test.ts` | `pnpm check:dragon` |
-| 層 3 = kind 描画 check (SVG DOM geometry level) | CAR-994 で追加した新 kind (chart / gantt / mind-map / mind-radial / funnel / quadrant / tree / journey) の SVG geometry (arrow 方向 / polygon 単調減少 / root 中央 / edge fill:none 等) | `apps/playground-spa/tests/kind-geometry-check.spec.ts` | `pnpm check:kind` |
+| 層 3 = kind 描画 check (SVG DOM geometry level) | CAR-994 で追加した新 kind (chart / gantt / mind-map / funnel / quadrant / tree / journey) の SVG geometry (arrow 方向 / polygon 単調減少 / root 中央 / edge fill:none 等) | `apps/playground-spa/tests/kind-geometry-check.spec.ts` | `pnpm check:kind` |
 
 ### 統合 command
 
@@ -71,7 +71,7 @@ catalog 記述の author (`presets.cdl.ts` を書く開発者、 dragon DSL を�
 | chart-empty-datum | warn | — | chart-{line,pie,bar} kind の datum 0 件 |
 | chart-single-datum | info | — | datum 1 件 (2 件以上推奨) |
 | gantt-unknown-depends-on | warn | — | 未定義 task への dependsOn 参照 |
-| mindmap-unknown-parent | warn | — | mind-map / mind-radial の branch 未定義 parent 参照 |
+| mindmap-unknown-parent | warn | — | mind-map の branch 未定義 parent 参照 |
 | tree-unknown-parent | warn | — | tree の node 未定義 parent 参照 |
 | quadrant-empty | warn | — | quadrant の item 0 件 |
 | quadrant-single-quadrant | info | — | item が 1 象限に集中 |

@@ -207,9 +207,9 @@ test("全 12 見本で描画側の文字が下限の計算に載る (#1084)", as
     ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
     ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
     ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
-    // `#1154` で足した 8 型。 実測値をそのまま置く
+    // `#1154` で足した 8 型のうち、 `radial` を外した残り 7 型 (`#1170`)。 実測値をそのまま置く
     ["solidity", 12], ["bar", 14], ["line", 16], ["funnel", 12],
-    ["tree", 6], ["radial", 9], ["journey", 18], ["quadrant", 17],
+    ["tree", 6], ["journey", 18], ["quadrant", 17],
   ];
   const 問題: string[] = [];
 

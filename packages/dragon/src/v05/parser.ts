@@ -83,7 +83,6 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "line",
   "funnel",
   "tree",
-  "radial",
   "journey",
   "quadrant",
   "c4",

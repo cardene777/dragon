@@ -145,22 +145,7 @@ actors:
 export const mindMap = textDslToDiagram(sourceYaml__mindMap);
 
 // ============================================================
-// 8. 放射状に置く
-// ============================================================
-export const sourceYaml__mindRadial = `title: "扱う入力"
-type: radial
-
-actors:
-  - 扱う入力
-  - 記法
-  - JSON
-  - 組立て
-  - 取込み
-`;
-export const mindRadial = textDslToDiagram(sourceYaml__mindRadial);
-
-// ============================================================
-// 9. 2 軸で分ける
+// 8. 2 軸で分ける
 // ============================================================
 export const sourceYaml__quadrantMatrix = `title: "着手の順番"
 type: quadrant
@@ -174,7 +159,7 @@ actors:
 export const quadrantMatrix = textDslToDiagram(sourceYaml__quadrantMatrix);
 
 // ============================================================
-// 10. 親子で束ねる
+// 9. 親子で束ねる
 // ============================================================
 export const sourceYaml__treeHierarchy = `title: "配布物の構成"
 type: tree

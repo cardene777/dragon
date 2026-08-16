@@ -2,7 +2,7 @@
  * preset diagram stability 網羅 (iter25、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter25。
- * presets.cdl.ts の全 20 preset diagram に対して以下 invariant を verify。
+ * presets.cdl.ts の全 19 preset diagram に対して以下 invariant を verify。
  *
  * (a) 各 preset の nodes / edges が空でない
  * (b) 各 preset の nodes id が内部 unique
@@ -28,9 +28,9 @@ function collectDiagramExports(mod: unknown): Array<{ name: string; diagram: Cdl
 
 const ALL_PRESETS = collectDiagramExports(PresetsMod);
 
-describe("iter25: 全 20 preset × diagram stability 網羅", () => {
-  it(`preset 数 = 20`, () => {
-    expect(ALL_PRESETS.length).toBe(20);
+describe("iter25: 全 19 preset × diagram stability 網羅", () => {
+  it(`preset 数 = 19`, () => {
+    expect(ALL_PRESETS.length).toBe(19);
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

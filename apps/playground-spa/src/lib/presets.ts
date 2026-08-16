@@ -16,7 +16,6 @@ import {
   presetTree,
   presetUserJourney,
   presetMindMap,
-  presetMindMapRadial,
   presetFunnel,
   presetQuadrant,
   presetChartPie,
@@ -30,9 +29,9 @@ import {
 /**
  * preset の metadata。
  *
- * **画面に出す名前は持たない** (#1047)。 以前は `title` を持ち、`stateMachine2` /
- * `mindMapRadial` のような識別子風の文字列がそのまま見出しに出ていた。 表示名は
- * `presetName()` が catalog と同じ名前の表から引く。
+ * **画面に出す名前は持たない** (#1047)。 以前は `title` を持ち、`stateMachine2` の
+ * ような識別子風の文字列がそのまま見出しに出ていた。 表示名は `presetName()` が
+ * catalog と同じ名前の表から引く。
  */
 export interface PresetMetadata {
   /** 図を指す識別子。 catalog の名前の表を引く鍵を導く元にもなる。 */
@@ -75,7 +74,6 @@ export const PRESETS: PresetMetadata[] = [
   { id: "tree", slug: "tree", eyebrow: "TREE / ORG CHART", subtitle: "組織図 / hierarchy tree。 root → branch 縦展開。", tags: ["hierarchy", "org"], diagram: presetTree },
   { id: "userJourney", slug: "user-journey", eyebrow: "USER JOURNEY", subtitle: "Signup / Onboarding 等の step 別 emotion / touchpoint。", tags: ["ux", "journey"], diagram: presetUserJourney },
   { id: "mindMap", slug: "mind", eyebrow: "MIND MAP / IDEA", subtitle: "root + branch 放射。 idea / brain storm 図風。", tags: ["mind map", "brain storm"], diagram: presetMindMap },
-  { id: "mindMapRadial", slug: "mindmap-radial", eyebrow: "MIND MAP / RADIAL", subtitle: "center → 8 方向。 中心軸型 concept map、 対称配置。", tags: ["radial", "8-way"], diagram: presetMindMapRadial },
   { id: "funnel", slug: "funnel", eyebrow: "FUNNEL / CONVERSION", subtitle: "Visit → Signup → Purchase の conversion funnel。", tags: ["metric", "conversion"], diagram: presetFunnel },
   { id: "quadrant", slug: "quadrant", eyebrow: "QUADRANT / MATRIX", subtitle: "2x2 マトリクス、 impact vs effort 型の decision matrix。", tags: ["matrix", "2x2"], diagram: presetQuadrant },
   { id: "chartPie", slug: "chart-pie", eyebrow: "CHART / PIE", subtitle: "pie chart、 category 比率の可視化。", tags: ["chart", "pie"], diagram: presetChartPie },
