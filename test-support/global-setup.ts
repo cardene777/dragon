@@ -8,9 +8,12 @@ import { staleReport } from "./dist-freshness";
 /**
  * test の前に、 test が実際に読む `dist` が `src` より古くないかを見る。
  *
- * dragon の test は `@cardenelabs/dragon` と `@cardenelabs/cdl` を package として import する =
- * どちらも `dist` を読む。 `pnpm test` に build は含まれていないため、 古い `dist` が手元に
- * 残っていると **src を壊しても test が通る**。
+ * dragon の test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
+ * `pnpm test` に build は含まれていないため、 古い `dist` が手元に残っていると
+ * **src を壊しても test が通る**。
+ *
+ * `@cardenelabs/cdl` は対象外。 `#1166` で `link:` を外して公開版に寄せたため、 手元の
+ * build 状態に左右されない。
  *
  * 環境変数 `SKIP_DIST_FRESHNESS=1` で外せる。 build 中に test を回す等、 一時的に食い違う形が
  * 正常な場面のため。
@@ -65,11 +68,6 @@ export const TARGETS: readonly Target[] = [
     name: "@cardenelabs/dragon",
     from: join(ROOT, "packages", "dragon"),
     hint: "pnpm build:packages",
-  },
-  {
-    name: "@cardenelabs/cdl",
-    from: join(ROOT, "packages", "dragon"),
-    hint: "cdl の repo で pnpm build",
   },
 ];
 

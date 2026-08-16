@@ -210,7 +210,7 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
  * 消えたため、 本規則が当たるのは組立て API で組んだ図に限られる。
  *
  * 記法側にも同じ検査を届かせるなら `compileMind` を `mind-map` 種別に寄せる必要があり、
- * それは記法の絵が変わる変更なので `#1174` で扱う。
+ * それは記法の絵が変わる変更なので `#1177` で扱う。
  */
 function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];

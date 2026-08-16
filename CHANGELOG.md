@@ -5,7 +5,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-予定 ... 公開後の feedback を反映した patch / minor。
+**破壊的変更を含む**。 記法から型を 1 つ落としているため、 次の版は patch ではなく minor に
+なる (`package.json` は 0.8.0 に上げてある)。
 
 ### Removed (破壊的変更)
 

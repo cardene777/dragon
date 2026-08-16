@@ -2107,7 +2107,7 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
  *
  * それでも一覧に残すのは、 ここが「1 箱で図全体を描く種別」 という **性質の一覧** だから。
  * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは今の
- * `compileMind` の実装による。 `compileMind` を `mind-map` に寄せる時 (別 Issue) に
+ * `compileMind` の実装による。 `compileMind` を `mind-map` に寄せる時 (`#1177`) に
  * 一覧へ戻す作業が要らない。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([

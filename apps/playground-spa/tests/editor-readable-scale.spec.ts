@@ -11,6 +11,7 @@
  * 画面上の文字の大きさで決まるので、 そちらを直接測る。
  */
 import { test, expect } from "@playwright/test";
+import { 見本が開けたことを確かめる } from "./opened-sample";
 
 /**
  * 見本ごとの下限 (`#1102`)。 `#1084` の時点では 10px の 1 つだったが、 **10px では箱が枠から
@@ -48,7 +49,7 @@ import { 下限 } from "./readable-floor";
  * 出すと、 その文字だけ下限の計算から漏れてその見本の下限を割る**。 描画は種別ごとに別なので、
  * これは層 1 の 3 件では捕まらない (Round 2 review の指摘)。
  *
- * 12 件を別々の検査にすると 12 件分の立ち上げ時間がかかるので、 1 件の中で回す。
+ * 見本ごとに別の検査にすると立ち上げ時間がその数だけかかるので、 1 件の中で回す。
  *
  * 実測 (`#1084` 当時の 12 見本) では 12 種とも大きさを計算値から読めており、 属性しか持たない文字も
  * 読めない文字も 0 件だった。 この検査はその状態が崩れた時に落ちる。
@@ -102,6 +103,7 @@ for (const slug of SAMPLES) {
     await page.goto(`/editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2500);
+    await 見本が開けたことを確かめる(page, slug);
 
     const m = await 測る(page);
     expect(m, "図が画面に無い").not.toBeNull();
@@ -120,6 +122,7 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
   await page.goto("/editor#preset=swimlane");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
+  await 見本が開けたことを確かめる(page, "swimlane");
 
   await page.locator('[data-testid="editor-zoom-out"]').click();
   await page.locator('[data-testid="editor-zoom-out"]').click();
@@ -154,6 +157,7 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
   await page.goto("/editor#preset=er");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
+  await 見本が開けたことを確かめる(page, "er");
 
   const m = await 測る(page);
   expect(m!.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
@@ -173,19 +177,36 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   await page.goto("/editor#preset=flow");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
+  await 見本が開けたことを確かめる(page, "flow");
 
   const m = await 測る(page);
   expect(m!.倍率, `倍率が動いた: ${m!.倍率}`).toBeGreaterThan(0.55);
   expect(m!.倍率, `倍率が上がった: ${m!.倍率}`).toBeLessThan(0.65);
 });
 
-test("全 19 見本で描画側の文字が下限の計算に載る (#1084)", async ({ page }) => {
+// **ここは手で並べる**。 各見本の「読める下限」 は実測した数で、 見本ごとに違うため導けない。
+//
+// 代わりに、 一覧から漏れていないことを別の検査 (`editor-sample-coverage.spec.ts`) が見る。
+// 漏れると新しい見本の読みやすさが 1 度も確かめられない (`#1154` の review 指摘)。
+const 見本: ReadonlyArray<readonly [string, number]> = [
+  ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
+  ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
+  ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
+  // `#1154` で足した 8 型のうち、 `radial` を外した残り 7 型 (`#1170`)。 実測値をそのまま置く
+  ["solidity", 12], ["bar", 14], ["line", 16], ["funnel", 12],
+  ["tree", 6], ["journey", 18], ["quadrant", 17],
+];
+
+/** 1 見本あたりの待ち時間 (ms)。 描画が落ち着くまで待つ。 */
+const 待ち時間 = 1600;
+
+test(`全 ${見本.length} 見本で描画側の文字が下限の計算に載る (#1084)`, async ({ page }) => {
   // 層 2 (file 冒頭の説明を参照)。 下限は `smallestFontWorld` が読んだ文字の大きさから決まり、
   // その読み取りは `getComputedStyle` に依存する。 描画側 (cdl、 別 repo) が大きさを計算値から
   // 読めない形で出すと、 その文字だけ計算から漏れてその見本の下限 (`readable-floor.ts`) を
   // 割る。 描画は種別ごとに別なので層 1 の 3 件では捕まらない。
   //
-  // 12 件を別々の検査にすると立ち上げ時間が 12 回かかるので、 1 件の中で回す
+  // 見本ごとに別の検査にすると立ち上げ時間がその数だけかかるので、 1 件の中で回す
   // 見本ごとの「画面に出ている文字の数」 を下限として記録する。 描画側が文字を隠す形に変わると
   // この数が減る = 図から言葉が黙って消える (Round 2 review 3 巡目の指摘)。
   //
@@ -199,25 +220,15 @@ test("全 19 見本で描画側の文字が下限の計算に載る (#1084)", as
   // |---|---|---|---|
   // | `swimlane` | 8 | 6 | `DB` / `Client保存` (レーンを 1 本外した) |
   // | `state-machine` | 10 | 8 | `失敗` / `認証失敗` / `再試行` が消え `認証失敗・再試行` が増えた |
-  // **ここは手で並べる**。 各見本の「読める下限」 は実測した数で、 見本ごとに違うため導けない。
-  //
-  // 代わりに、 一覧から漏れていないことを別の検査 (`editor-sample-coverage.spec.ts`) が見る。
-  // 漏れると新しい見本の読みやすさが 1 度も確かめられない (`#1154` の review 指摘)。
-  const 見本: ReadonlyArray<readonly [string, number]> = [
-    ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
-    ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
-    ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
-    // `#1154` で足した 8 型のうち、 `radial` を外した残り 7 型 (`#1170`)。 実測値をそのまま置く
-    ["solidity", 12], ["bar", 14], ["line", 16], ["funnel", 12],
-    ["tree", 6], ["journey", 18], ["quadrant", 17],
-  ];
+
   const 問題: string[] = [];
 
   for (const [slug, 見える下限] of 見本) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(1600);
+    await page.waitForTimeout(待ち時間);
+    await 見本が開けたことを確かめる(page, slug);
 
     const m = await page.evaluate(() => {
       const svg = document.querySelector<SVGSVGElement>(".v4-editor-preview svg[data-cdl-stage]");

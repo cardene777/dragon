@@ -181,14 +181,6 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     expect(diagramJsonSchema.required).toContain("flow");
   });
 
-  it("schema の type field は 12 preset enum を持つ", () => {
-    const typeSchema = (diagramJsonSchema.properties as Record<string, { enum?: string[] }>).type;
-    expect(typeSchema?.enum).toContain("sequence");
-    expect(typeSchema?.enum).toContain("flow");
-    expect(typeSchema?.enum).toContain("solidity");
-    expect(typeSchema?.enum?.length).toBeGreaterThanOrEqual(12);
-  });
-
   it("schema の type enum は記法の型と完全に一致する", () => {
     // 型の一覧は 3 箇所にある = 記法の型 (`PRESET_TYPES`)、 JSON 経路の検査
     // (`VALID_PRESETS`、 `PRESET_TYPES` から導出済)、 そして本 schema。 schema だけは手で
@@ -213,25 +205,28 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     const 説明 = typeSchema?.description ?? "";
     expect(説明, "型の説明文が空").not.toBe("");
 
-    // 説明文に出てくる型名を集める。 型名は `pie (割合)` のように後ろに括弧が付く形か、
-    // `/` で並ぶ形で書かれる。 語の境界で拾う
-    const 出てくる型 = new Set(
-      [...説明.matchAll(/(?:^|[\s/(])([a-z][a-z0-9]*)(?=[\s/(）)])/gu)].map((m) => m[1]!),
-    );
+    // **型の項目は「名前 + 半角空白 + 括弧」 の形で書く**。 説明文はこの形を守っており
+    // (`sequence (時系列の呼び出し)` / `gantt (工程の並び)`)、 欄の名前として出る `flow` や
+    // `actors` はこの形を取らない (`flow に矢印を書く`)。
+    //
+    // この形を手掛かりにすると、 **型名の一覧を手で持たずに済む**。 手で持つと、 後から
+    // 足した型が一覧に無いまま消された時に検出できない (この検査を最初に書いた時は
+    // 手書きの一覧に依存しており、 その穴があった)。
+    const 項目 = (s: string) =>
+      new Set([...s.matchAll(/(?:^|[\s/(])([a-z][a-z0-9]*) \(/gu)].map((m) => m[1]!));
+    const 出てくる型 = 項目(説明);
     const 実在 = new Set<string>(PRESET_TYPES);
-    const 消えた型が残っている = [...出てくる型].filter(
-      // 型名と同じ綴りの普通の語を除く。 `type` は見出しの語、 `actors` / `flow` は欄の名前
-      (w) => !実在.has(w) && ["sequence", "flow", "swimlane", "er", "state", "topology",
-        "solidity", "gantt", "class", "pie", "bar", "line", "funnel", "tree", "journey",
-        "quadrant", "c4", "mind", "radial"].includes(w),
-    );
+
+    // 消した型の項目が残っていないか
+    const 消えた型が残っている = [...出てくる型].filter((w) => !実在.has(w));
     expect(
       消えた型が残っている,
       `説明文に実在しない型が残っている: ${消えた型が残っている.join(", ")}`,
     ).toEqual([]);
 
-    // 逆向き = 実在する型が説明文に 1 つも出てこない (足した時に書き忘れる)
-    const 書かれていない = [...実在].filter((t) => !説明.includes(t));
+    // 足した型の項目が書かれているか。 **素の部分一致では見られない** = `flow` は欄の名前
+    // としても出るため、 型の項目を消しても `説明.includes("flow")` は真のまま通る
+    const 書かれていない = [...実在].filter((t) => !出てくる型.has(t));
     expect(書かれていない, `説明文に書かれていない型がある: ${書かれていない.join(", ")}`).toEqual([]);
   });
 
