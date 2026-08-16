@@ -2329,6 +2329,8 @@ function writeFormula(ast: FormulaAst): string {
       // 名前は前置きで変わる (`1p__v` のように数字始まりになりうる) ため、書ける方を選ぶ
       return /^[A-Za-z_$][\w$]*$/.test(ast.name) ? ast.name : `{${ast.name}}`;
     case "unaryOp":
+      // 空白は挟まない。 読み手は負の数を字面として持たず (`-5` は単項 `-` と `5` の木になる)、
+      // `--5` も単項の 2 段として読む (実測)。 挟んでも挟まなくても意味が同じなので足さない
       return `(${ast.op}${writeFormula(ast.operand)})`;
     case "binaryOp":
       return `(${writeFormula(ast.left)} ${ast.op} ${writeFormula(ast.right)})`;
