@@ -52,6 +52,7 @@ import type {
   DslStep,
   DslAnimate,
   DslState,
+  DslValue,
   DslPhase,
   DslTween,
   DslSet,
@@ -167,6 +168,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let actors: DslActor[] = [];
   const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
+  const values: DslValue[] = [];
   let viewport: DslViewport | undefined = undefined;
   let lanesMap: Record<string, DslLane> | undefined = undefined;
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
@@ -183,7 +185,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       errors.push({
         line: line.no,
         message: `unknown top-level key: "${line.trimmed}"`,
-        hint: "expected one of: title, type, actors, flow, states, animation, viewport, lanes, groups",
+        hint: "expected one of: title, type, actors, flow, states, values, animation, viewport, lanes, groups",
       });
       i += 1;
       continue;
@@ -268,6 +270,29 @@ export function parseTextDslV05(src: string): V05ParseResult {
         const st = parseStateEntry(it.trimmed.replace(/^-\s*/, ""), it.no);
         if (st) animate.states.push(st);
         else errors.push({ line: it.no, message: `invalid state entry: "${it.trimmed}"`, hint: "use `name: initial`" });
+      }
+      i = next;
+      continue;
+    }
+    if (head.key === "values") {
+      // 1 行に詰める形 (`values: { a: "...", b: "..." }`) は受けない。 式に `,` が入る
+      // (`min({a}, {b})`) ため、 `states` が使う素朴な `,` 分割では式が壊れる。
+      const inline = head.value?.trim();
+      if (inline && inline.startsWith("{")) {
+        errors.push({
+          line: line.no,
+          message: "values は 1 行にまとめて書けない",
+          hint: '式に `,` が入るため。 次の行から字下げして `待ち: "{流入} - {処理}"` の形で並べる',
+        });
+        i += 1;
+        continue;
+      }
+      // `collectIndentedList` は `:` を含まない行を黙って捨てる。 捨てられると
+      // 書き間違えた行が「書かなかった」 と同じになり、 値が 1 つ消えたことに気付けない
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      for (const it of items) {
+        const v = parseValueEntry(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
+        if (v) values.push(v);
       }
       i = next;
       continue;
@@ -399,6 +424,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       actors,
       flow,
       animate,
+      ...(values.length > 0 ? { values } : {}),
       viewport,
       lanes: lanesMap,
       groups: groupsMap,
@@ -1474,6 +1500,140 @@ function parseStateEntry(text: string, lineNo: number): DslState | null {
   const asNum = Number(stripped);
   const initial: number | string = Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
   return { name, initial, pos: { line: lineNo } };
+}
+
+/**
+ * 字下げした行を 1 行も落とさずに集める。
+ *
+ * `collectIndentedList` は形が合わない行を黙って捨てるが、 `values` では捨てずに
+ * 読み手 (`parseValueEntry`) へ渡して書き間違いとして報告させる。
+ */
+function collectIndentedRaw(
+  lines: Line[],
+  start: number,
+  parentIndent: number,
+): { items: Line[]; next: number } {
+  const items: Line[] = [];
+  let i = start;
+  while (i < lines.length) {
+    const ln = lines[i];
+    if (!ln || !ln.trimmed || ln.trimmed.startsWith("#")) {
+      i += 1;
+      continue;
+    }
+    if (ln.indent <= parentIndent) break;
+    items.push(ln);
+    i += 1;
+  }
+  return { items, next: i };
+}
+
+/** 値の名前。 `states` と同じ規則に揃える (揃えないと `{名前}` の解決先が食い違う) */
+const VALUE_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+/** 式に書ける関数。 spec が「関数呼び出しは入れない」 としつつ例外にしている 2 つだけ */
+const VALUE_FNS: ReadonlySet<string> = new Set(["min", "max"]);
+
+/**
+ * `待ち: "{流入} - {処理}"` を 1 件の値として読む。
+ *
+ * 式が文法として正しいかは見ない。 そこは描画側が評価する時に判定して、 その値だけを
+ * 止める (spec § 4.2 = 1 箇所の壊れで図全体を止めない)。 ここで見るのは
+ * **記法として書ける範囲に収まっているか**で、 描画側が受け付けるが記法としては
+ * 認めない書き方 (余り / 条件分岐 / `min` `max` 以外の関数) を弾く。
+ */
+function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslValue | null {
+  const m = text.match(/^([^:]+?)\s*:\s*(.+)$/);
+  if (!m) {
+    errors.push({
+      line: lineNo,
+      message: `invalid value entry: "${text}"`,
+      hint: '`待ち: "{流入} - {処理}"` の形で書く',
+    });
+    return null;
+  }
+  const name = (m[1] ?? "").trim();
+  if (!VALUE_NAME_RE.test(name)) {
+    errors.push({
+      line: lineNo,
+      message: `invalid value name: "${name}"`,
+      hint: "英字か _ で始め、 英数字と _ だけを使う (states と同じ規則)",
+    });
+    return null;
+  }
+  const expression = stripQuotes((m[2] ?? "").trim());
+  if (expression === "") {
+    errors.push({ line: lineNo, message: `empty expression for "${name}"`, hint: '`"{a} + {b}"` のように式を書く' });
+    return null;
+  }
+  if (!checkExpressionSurface(expression, name, lineNo, errors)) return null;
+  return { name, expression, pos: { line: lineNo } };
+}
+
+/**
+ * 式が記法として書ける範囲に収まっているかを見る。
+ *
+ * `{名前}` の中身と外側を分けて見る。 分けないと、 名前に紛れた記号を式の記号と読み違える。
+ */
+function checkExpressionSurface(
+  expression: string,
+  name: string,
+  lineNo: number,
+  errors: DslError[],
+): boolean {
+  const before = errors.length;
+
+  // `{名前}` の中身は名前の規則で見る
+  const refRe = /\{([^}]*)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = refRe.exec(expression)) !== null) {
+    const ref = (m[1] ?? "").trim();
+    if (!VALUE_NAME_RE.test(ref)) {
+      errors.push({
+        line: lineNo,
+        message: `invalid reference "{${ref}}" in "${name}"`,
+        hint: "英字か _ で始め、 英数字と _ だけを使う",
+      });
+    }
+  }
+  if (expression.includes("{") && !expression.includes("}")) {
+    errors.push({ line: lineNo, message: `unclosed "{" in "${name}"`, hint: "`{名前}` の形で閉じる" });
+  }
+
+  // 名前を外した残りが式の骨格。 ここに記法外の記号や関数が無いかを見る
+  const outside = expression.replace(/\{[^}]*\}/g, " ");
+  if (outside.includes("%")) {
+    errors.push({ line: lineNo, message: `"%" は式に書けない ("${name}")`, hint: "四則 (+ - * /) だけを使う" });
+  }
+  if (outside.includes("?")) {
+    errors.push({
+      line: lineNo,
+      message: `条件分岐 (?:) は式に書けない ("${name}")`,
+      hint: "比較の結果は真 = 1 / 偽 = 0 の数になるので、 掛け算で切り替える",
+    });
+  }
+  for (const fn of outside.matchAll(/[a-zA-Z_][a-zA-Z0-9_.]*/g)) {
+    const word = fn[0];
+    if (VALUE_FNS.has(word)) continue;
+    errors.push({
+      line: lineNo,
+      message: `"${word}" は式に書けない ("${name}")`,
+      hint:
+        word.startsWith("Math.")
+          ? "min / max は Math. を付けずに書く"
+          : `使えるのは ${[...VALUE_FNS].join(" / ")} だけ。 値は {名前} で読む`,
+    });
+  }
+  const stray = outside.replace(/[a-zA-Z_][a-zA-Z0-9_.]*/g, " ").match(/[^0-9.,+\-*/()<>=!\s]/g);
+  if (stray) {
+    errors.push({
+      line: lineNo,
+      message: `"${[...new Set(stray)].join("")}" は式に書けない ("${name}")`,
+      hint: "四則 (+ - * /) / 括弧 / 比較 (> >= < <= == !=) / min / max だけを使う",
+    });
+  }
+
+  return errors.length === before;
 }
 
 function splitTopLevelCommas(s: string): string[] {

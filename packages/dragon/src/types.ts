@@ -60,6 +60,13 @@ export type DslDocument = {
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;
+  /**
+   * 他の値から自動で決まる値 (`values:`)。 時間を持たず、 参照した値が動けば常に追随する。
+   *
+   * `states` (初期値だけを持つ) と `animation` (いつ何を動かすか) の間に置く層で、
+   * 値どうしの関係を書く場所。 書かなければ今までと同じ挙動。
+   */
+  values?: DslValue[];
   /** v0.5+ 拡張 ... viewport / lanes / groups */
   viewport?: DslViewport;
   lanes?: Record<string, DslLane>;
@@ -263,6 +270,19 @@ export type DslAnimate = {
 export type DslState = {
   name: string;
   initial: number | string;
+  pos: Position;
+};
+
+/**
+ * 他の値から自動で決まる値の宣言 (`待ち: "{流入} - {処理}"`)。
+ *
+ * 式には四則 (`+ - * /`) と括弧、 比較 (`> >= < <= == !=`)、 `min` / `max` が書ける。
+ * 他の値は `{名前}` で読む。 比較の結果は真 = 1 / 偽 = 0 の数になる。
+ */
+export type DslValue = {
+  name: string;
+  /** 式そのもの。 評価は描画側が毎 frame 行う */
+  expression: string;
   pos: Position;
 };
 
