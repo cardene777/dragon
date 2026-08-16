@@ -337,3 +337,52 @@ animation:
     focus: [Server, OrderCreated]
     badge: "OrderCreated"
 `);
+
+// ─── values (値どうしの関係) ─────
+//
+// `states` は初期値だけを持ち、`values` が「他の値からどう決まるか」 を書く。 段が動かすのは
+// `inflow` と `done` の 2 つで、待ち行列の数はその 2 つから毎 frame 決まる。 段ごとに書くと
+// 4 段 × 3 値を手で合わせることになり、1 つ直すたびに残りがずれる。
+export const textDslValues = textDslToDiagram(`
+title: "値どうしの関係を書く例"
+type: flow
+
+actors:
+  - 受付: api "入ってくる数" "{inflow}"
+  - 待ち行列: queue "まだ捌けていない" "{waiting}"
+  - 処理: service "捌いた数" "{done}"
+
+flow:
+  - 受付 -> 待ち行列: "積む"
+  - 待ち行列 -> 処理: "取り出す" (success)
+
+states:
+  inflow: 0
+  done: 0
+
+values:
+  waiting: "{inflow} - {done}"
+  busy: "{waiting} > 20"
+
+animation:
+  - step: "入ってくる" 1.4s
+    focus: [受付, 待ち行列]
+    tween:
+      inflow: 0 -> 40
+    badge: "流入 40"
+    description: "待ち行列は書かなくても 40 になる"
+
+  - step: "捌き始める" 1.4s
+    focus: [待ち行列, 処理]
+    tween:
+      done: 0 -> 10
+    badge: "処理 10"
+    description: "待ち行列は 30 に減る"
+
+  - step: "追いつく" 1.4s
+    focus: [処理]
+    tween:
+      done: 10 -> 25
+    badge: "処理 25"
+    description: "待ち行列は 15 まで減る"
+`);
