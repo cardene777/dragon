@@ -126,6 +126,25 @@ describe("見本の値を引き継ぐ (#1180)", () => {
     expect(描画が読む値(d).p1__result).toBe("20");
   });
 
+  it("小さい数 / 大きい数を含む式も、書き換えた後で解ける", () => {
+    // 木から式に戻す時、JavaScript の既定では `0.0000001` が `1e-7` になる。 engine の読み手は
+    // 指数表記を読めないため、そのまま書くと元は解けていた式が書き換えた後だけ止まる (実測)
+    const 数 = {
+      ...見本(),
+      states: [{ id: "v", initial: 40 }],
+      derived: [
+        { id: "tiny", expression: "0.0000001 * {v}" },
+        { id: "huge", expression: "{v} * 100000000000000000000000" },
+      ],
+    } as CdlDiagram;
+    const d = 組む({ 見本たち: [{ alias: "p1", part: 数 }] });
+    const 式 = d.derived?.map((x) => x.expression).join(" | ") ?? "";
+    expect(式, `指数表記が残っている: ${式}`).not.toMatch(/[eE][+-]?\d/);
+    const v = 描画が読む値(d);
+    expect(v.p1__tiny).toBe("0.000004");
+    expect(v.p1__huge).toBeDefined();
+  });
+
   it("引き継いだ値が描画側で解ける", () => {
     // 図に載っただけでは届いたと言えない。 実経路で値になることを見る
     const v = 描画が読む値(組む());
@@ -173,6 +192,50 @@ describe("見本の値を引き継ぐ (#1180)", () => {
     const 値なし = { ...見本(), derived: undefined } as CdlDiagram;
     const d = 組む({ 見本たち: [{ alias: "p1", part: 値なし }] });
     expect(d.derived).toBeUndefined();
+  });
+});
+
+describe("書き換えても式の意味が変わらない (#1180)", () => {
+  it("代表的な書き方で、重ねる前と後の値が一致する", () => {
+    // **書き換えの形ではなく、解いた結果で見る**。 木から式に戻す時の取りこぼし (指数表記 /
+    // 括弧の付け方 / 関数の書き方) は、どれも「重ねた後だけ値が変わる」 形で現れる。
+    // 1 件ずつ形を固定するより、意味が保たれることを直接見る方が抜けにくい
+    const 式 = [
+      "{v} + 1",
+      "-{v}",
+      "{v} - -1",
+      "{v} % 7",
+      "{v} > 10",
+      "{v} != 40",
+      "min({v}, 10)",
+      "Math.round({v} / 7)",
+      "{v} > 10 ? 1 : 0",
+      "0.0000001 * {v}",
+      "(({v}))",
+      "{v} / 0",
+      "{half} * 3",
+    ];
+    const part = {
+      ...見本(),
+      derived: [
+        { id: "half", expression: "{v} / 2" },
+        ...式.map((expression, i) => ({ id: `e${i}`, expression })),
+      ],
+    } as CdlDiagram;
+
+    const 重ねた後 = 描画が読む値(組む({ 見本たち: [{ alias: "p1", part }] }));
+    // 重ねる前は、見本を単体で描いた時の値。 **こちらも実経路で出す** = 解く関数を直接
+    // 呼ぶと、図に載っていない値でも比較が成立してしまう
+    const 単体 = { ...part, phases: [{ id: "p", duration: 1000, title: "", body: "", activate: [], tweens: [], sets: [] }] } as CdlDiagram;
+    const 重ねる前 = 描画が読む値(単体);
+
+    const 違う = 式
+      .map((expression, i) => ({ expression, 前: 重ねる前[`e${i}`], 後: 重ねた後[`p1__e${i}`] }))
+      .filter((x) => x.前 !== x.後);
+    expect(
+      違う,
+      `重ねた後で値が変わった: ${違う.map((x) => `${x.expression} (${x.前} → ${x.後})`).join(" / ")}`,
+    ).toHaveLength(0);
   });
 });
 

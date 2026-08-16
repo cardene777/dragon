@@ -2287,6 +2287,33 @@ function renameFormulaIdentifiers(ast: FormulaAst, rename: (name: string) => str
 }
 
 /**
+ * 数を、engine の読み手が受け付ける形で書く (#1180)。
+ *
+ * **指数表記を出さない**。 `0.0000001` は JavaScript の既定では `"1e-7"` になるが、engine の
+ * 読み手は指数表記を読めない (実測 = `unexpected token after expression`)。 そのまま書くと、
+ * 元は解けていた式が書き換えた後だけ止まる。
+ *
+ * 展開は桁をずらすだけで、丸めない。 `String` が返す最短の形をそのまま使うため、値は変わらない。
+ * 有限でない数は書けないので投げる (呼出側が元の式のまま載せる)。
+ */
+function writeNumber(value: number): string {
+  if (!Number.isFinite(value)) throw new Error(`cannot write non-finite number: ${String(value)}`);
+  const s = String(value);
+  if (!/[eE]/.test(s)) return s;
+  const m = /^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(s);
+  if (!m) throw new Error(`cannot write number: ${s}`);
+  const sign = m[1] ?? "";
+  const int = m[2] ?? "";
+  const frac = m[3] ?? "";
+  const digits = int + frac;
+  // 小数点の位置。 元の整数部の桁数を指数のぶんだけずらす
+  const point = int.length + Number(m[4] ?? "0");
+  if (point <= 0) return `${sign}0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length) return `${sign}${digits}${"0".repeat(point - digits.length)}`;
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+/**
  * 式の木を文字列へ戻す (#1180)。
  *
  * **括弧を全て付ける**。 演算子の優先順位を再現しようとすると engine の表を写すことになり、
@@ -2295,7 +2322,7 @@ function renameFormulaIdentifiers(ast: FormulaAst, rename: (name: string) => str
 function writeFormula(ast: FormulaAst): string {
   switch (ast.type) {
     case "number":
-      return String(ast.value);
+      return writeNumber(ast.value);
     case "identifier":
       return ast.name;
     case "unaryOp":
