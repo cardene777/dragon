@@ -2196,7 +2196,12 @@ function reportUnresolvedValues(
   const 初期値: Record<string, string> = {};
   for (const s of diagram.states) 初期値[s.id] = String(s.initial);
 
-  const 行 = new Map((doc.values ?? []).map((v) => [v.name, v.pos?.line ?? 0]));
+  // engine は同じ名前では先に書いた式を使う。 Map の一括生成で後ろから
+  // 上書きすると、先の式の未解決を後の行の問題として伝えてしまう
+  const 行 = new Map<string, number>();
+  for (const v of doc.values ?? []) {
+    if (!行.has(v.name)) 行.set(v.name, v.pos?.line ?? 0);
+  }
   for (const n of applyDerivedValues(初期値, diagram.derived).notices) {
     onNotice({
       kind: n.kind === "duplicate-id" ? "value-duplicate" : "value-unresolved",

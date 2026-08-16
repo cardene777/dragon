@@ -164,6 +164,15 @@ describe("値の反例 6 種 (#1162)", () => {
     // 12 行目 = `a: "{missing} + 1"` を書いた行
     expect(n?.line).toBe(12);
   });
+
+  it("同名の値でも実際に使った先の式の行を指す", () => {
+    // engine は先の式を使う。 後の同名行で行番号まで上書きすると、
+    // `missing` が無いという知らせが、実際には正しい後の式を指してしまう
+    const n = 知らせ(
+      記法('states:\n  x: 1\n\nvalues:\n  a: "{missing} + 1"\n  a: "{x} + 1"'),
+    ).find((x) => x.kind === "value-unresolved" && x.actor === "a");
+    expect(n?.line).toBe(12);
+  });
 });
 
 describe("重なりは図に載った状態で見る (#1162)", () => {
