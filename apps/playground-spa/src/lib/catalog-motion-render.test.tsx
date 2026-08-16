@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as PrimExt from "@/topics/catalog/primitives-extra.cdl";
+import * as Prim from "@/topics/catalog/primitives.cdl";
 import { motionOf } from "./catalog-motion";
 
 /**
@@ -151,5 +152,57 @@ describe("動かすと決めた見本は絵が変わる (#1172)", () => {
     const 違う = 対象.filter((k) => motionOf(mod[k]!) !== "continuous")
       .map((k) => `${k}: ${motionOf(mod[k]!)}`);
     expect(違う, `一文が実装と合わない: ${違う.join(", ")}`).toHaveLength(0);
+  });
+});
+
+/**
+ * 場面の見本 (`scene-*` 30 件) は、箱を 1 つずつ光らせて流れとして読ませる (#1192)。
+ *
+ * 値を持たせる形は採れない = 場面が使う種別 (`shape-*` 系) は値を描く経路を持たず、値を
+ * 足しても絵が変わらない (実測 = 30 件すべてで SVG が 1 byte も変わらなかった)。 一方で
+ * 注目先を変えると絵は変わるので、そちらで動かす。
+ */
+describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
+  const 場面 = Object.entries(Prim as unknown as Record<string, CdlDiagram>)
+    .filter(([, d]) => {
+      if (!d || typeof d !== "object") return false;
+      return typeof d.id === "string" && d.id.startsWith("scene-") && Array.isArray(d.nodes);
+    })
+    .map(([k, d]) => [k, d] as const);
+
+  it("対象が 30 件ある", () => {
+    // 名前の付け方が変わると以下が空振りする
+    expect(場面).toHaveLength(30);
+  });
+
+  it("30 件すべてが 3 段を持つ", () => {
+    const 足りない = 場面.filter(([, d]) => d.phases.length !== 3).map(([k, d]) => `${k}: ${d.phases.length}`);
+    expect(足りない, `段が 3 つでない: ${足りない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("30 件すべてで、最初の段と最後の段の絵が違う", () => {
+    // **宣言ではなく描画結果で見る**。 段を足しても絵が変わらなければ、開いた人には
+    // 静止画と区別が付かない (#1173 で 79 件がこの形だった)
+    const 変わらない: string[] = [];
+    for (const [k, d] of 場面) {
+      const 最初 = renderToStaticMarkup(
+        <CdlDiagramView diagram={d} hideHeader focusPhaseId={d.phases[0]!.id} />,
+      );
+      const 最後 = renderToStaticMarkup(
+        <CdlDiagramView diagram={d} hideHeader focusPhaseId={d.phases[d.phases.length - 1]!.id} />,
+      );
+      if (最初 === 最後) 変わらない.push(k);
+    }
+    expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("段ごとに光る箱が増える (流れとして読める)", () => {
+    // 光る箱の数が変わらないと、段を分けた意味が無い
+    const 増えない: string[] = [];
+    for (const [k, d] of 場面) {
+      const 数 = d.phases.map((p) => (p.activate ?? []).length);
+      if (!(数[0]! < 数[1]! && 数[1]! < 数[2]!)) 増えない.push(`${k}: ${数.join(" → ")}`);
+    }
+    expect(増えない, `光る箱が増えない: ${増えない.join(", ")}`).toHaveLength(0);
   });
 });
