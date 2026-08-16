@@ -54,7 +54,7 @@ function isEdgeRef(ref: string): boolean {
 }
 
 describe("iter10: 全 19 EDITOR_SAMPLES × animation focus 参照整合性 網羅", () => {
-  it(`SAMPLES count 20`, () => {
+  it(`SAMPLES count 19`, () => {
     expect(EDITOR_SAMPLES.length).toBe(19);
   });
 

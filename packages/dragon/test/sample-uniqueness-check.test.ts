@@ -17,7 +17,7 @@ function hash(s: string): string {
 }
 
 describe("iter64: EDITOR_SAMPLES 一意性 verify", () => {
-  it("count = 20", () => {
+  it("count = 19", () => {
     expect(EDITOR_SAMPLES.length).toBe(19);
   });
 

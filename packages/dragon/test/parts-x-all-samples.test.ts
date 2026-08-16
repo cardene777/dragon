@@ -6,7 +6,7 @@
  * 各 sample DSL の actors: 末尾に parts alias を append、 textDslToDiagram + compile で
  * throw なし + parts sub-node prefix 出力を assert する。
  *
- * 12 × 80 = 1600 test で「parts が任意の実 sample に inject 可能」 の invariant を保証。
+ * 19 × 80 = 1520 test で「parts が任意の実 sample に inject 可能」 の invariant を保証。
  * cross-syntax portability + 実 sample の actor / flow 構造との共存性を verify。
  */
 import { describe, it, expect } from "vitest";
@@ -51,7 +51,7 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   return [...before, injectLine, ...after].join("\n");
 }
 
-describe("iter19: 全 80 parts × 全 19 EDITOR_SAMPLES cross matrix (1600 test)", () => {
+describe("iter19: 全 80 parts × 全 19 EDITOR_SAMPLES cross matrix (1520 test)", () => {
   it(`parts count >= 60 + samples count = 19`, () => {
     expect(ALL_PARTS.length).toBeGreaterThanOrEqual(60);
     expect(EDITOR_SAMPLES.length).toBe(19);

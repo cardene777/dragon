@@ -135,7 +135,7 @@ describe("値で描く型の直し (#1154)", () => {
 });
 
 /**
- * 段 2 / 段 3 の 5 型 (#1154)。
+ * 段 2 / 段 3 の 4 型 (#1154)。
  *
  * 値で描く 3 型と違い、 actor から読むものが型ごとに違う。 何を読むかを検査で固定する。
  */
@@ -158,7 +158,6 @@ describe("残り 4 型が記法から描ける (#1154)", () => {
     expect(t.find((x) => x.title === "子")?.parent, "子の親が読めていない").toBeTruthy();
     expect(t.find((x) => x.title === "親")?.parent, "根に親が付いている").toBeUndefined();
   });
-
 
   it("journey = 気持ちを日本語で読む", () => {
     const d = textDslToDiagram(記法("journey", `  - 知る: "普通"\n  - 登録: "不満"\n`));
@@ -260,12 +259,11 @@ describe("JSON 経路でも知らせが届く (#1154)", () => {
   });
 });
 
-
 /**
  * Round 5 の指摘 (#1154)。
  */
 describe("矢印を使わない型はすべて伝える (#1154)", () => {
-  it.each(["funnel", "journey", "quadrant", ])("%s = 矢印を捨てたら伝える", (t) => {
+  it.each(["funnel", "journey", "quadrant"])("%s = 矢印を捨てたら伝える", (t) => {
     const 値 = t === "journey" ? "普通" : t === "quadrant" ? "左上" : "10";
     const 届いた: string[] = [];
     textDslToDiagram(
@@ -277,8 +275,8 @@ describe("矢印を使わない型はすべて伝える (#1154)", () => {
 });
 
 describe("高さが描画側の格子に載る (#1154)", () => {
-  it("値で描かない 5 型も 16 の倍数", () => {
-    // 前回は棒と折れ線だけ直し、 図表 5 型が 360 のまま残っていた (review Round 6)
+  it("値で描かない 4 型も 16 の倍数", () => {
+    // 前回は棒と折れ線だけ直し、 図表 4 型が 360 のまま残っていた (review Round 6)
     const 高さ = (t: string, body: string) =>
       textDslToDiagram(`title: "確認"\ntype: ${t}\n\nactors:\n${body}`).nodes[0]?.h ?? 0;
     expect(高さ("funnel", `  - A: "10"\n`) % 16, "funnel が格子に載っていない").toBe(0);

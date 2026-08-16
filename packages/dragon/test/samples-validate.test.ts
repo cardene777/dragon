@@ -1,5 +1,5 @@
 /**
- * Editor SAMPLES 20 diagram の cdl validate check (CAR-1659)。
+ * Editor SAMPLES 19 diagram の cdl validate check (CAR-1659)。
  *
  * user report = 「サンプルで cdl validate failed: phase が 0 件です」 error が出るものがある。
  * 15 sample の text DSL を textDslToDiagram + compile で machine check、 error 出す sample を
@@ -14,8 +14,8 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import { compile } from "@cardenelabs/cdl";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("editor SAMPLES 20 diagram validate", () => {
-  it("SAMPLES count が 20 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
+describe("editor SAMPLES 19 diagram validate", () => {
+  it("SAMPLES count が 19 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
     expect(EDITOR_SAMPLES.length).toBe(19);
   });
 

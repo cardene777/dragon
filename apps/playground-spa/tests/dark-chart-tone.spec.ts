@@ -27,7 +27,6 @@ const IDS = [
   "quad-demo",
   "tree-demo",
   "mind-demo",
-  "mindmap-radial-demo",
 ];
 
 /** 青系 = 色相 190-280 度。 */

@@ -99,7 +99,7 @@ pnpm lint:notation:proof
 - `"gantt preset (Release timeline)"` → `"ガントチャート を示す図"`
 - `"mindMap preset (Project ideas)"` → `"マインドマップ を示す図"`
 
-kind 判定 20+ pattern (chart / flow / swimlane / sequence / topology / er / stateMachine / infrastructure / classDiagram / tree / userJourney / mindMap(Radial) / funnel / quadrant / gantt / flowchart / network 等)。
+kind 判定 20+ pattern (chart / flow / swimlane / sequence / topology / er / stateMachine / infrastructure / classDiagram / tree / userJourney / mindMap / funnel / quadrant / gantt / flowchart / network 等)。
 
 CLI から任意 file を lint する場合:
 

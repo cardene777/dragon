@@ -256,5 +256,4 @@
  * ───────────────────────────────────────────────────────────────────────────── */
 [data-cdl-role="tree-edge"] { stroke-opacity: var(--d-tree-edge-opacity) !important; }
 [data-cdl-role="mind-edge"] { stroke-opacity: var(--d-mind-edge-opacity) !important; }
-[data-cdl-role="mind-radial-edge"] { stroke-opacity: var(--d-mind-radial-edge-opacity) !important; }
 [data-cdl-role="journey-chip"] { stroke-opacity: var(--d-journey-chip-opacity) !important; }

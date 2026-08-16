@@ -13,6 +13,7 @@ import {
   validateDragonJson,
   diagramJsonSchema,
   textDslToDiagram,
+  PRESET_TYPES,
 } from "../src/index";
 
 describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
@@ -186,6 +187,18 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     expect(typeSchema?.enum).toContain("flow");
     expect(typeSchema?.enum).toContain("solidity");
     expect(typeSchema?.enum?.length).toBeGreaterThanOrEqual(12);
+  });
+
+  it("schema の type enum は記法の型と完全に一致する", () => {
+    // 型の一覧は 3 箇所にある = 記法の型 (`PRESET_TYPES`)、 JSON 経路の検査
+    // (`VALID_PRESETS`、 `PRESET_TYPES` から導出済)、 そして本 schema。 schema だけは手で
+    // 持っているため、 型を足しても消しても気付けない。
+    //
+    // 下限だけを見る上の検査は増減のどちらにも当たらない (19 件でも 18 件でも通る)。 実際
+    // `#1170` で `radial` を消した時、 schema に残ったまま全ての検査が通った。 schema は
+    // LLM に渡す契約なので、 残ると「schema 通りに書いたのに弾かれる」 出力を誘発する。
+    const typeSchema = (diagramJsonSchema.properties as Record<string, { enum?: string[] }>).type;
+    expect(new Set(typeSchema?.enum ?? [])).toEqual(new Set(PRESET_TYPES));
   });
 
   it("schema は $schema field を持つ (Draft 7 declaration)", () => {
