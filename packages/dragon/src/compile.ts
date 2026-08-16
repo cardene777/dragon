@@ -171,7 +171,19 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, placed);
-  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog, opts?.onNotice);
+  // 値の知らせは、本文なら値を書いた行、見本なら見本を置いた行を指す。 `derived` 自体には
+  // source position が無いため、見本を重ねる間だけ別表で宣言元を持ち回る (#1180)。
+  const inheritedDerivedSourceLines = opts?.onNotice ? new Map<string, number[]>() : undefined;
+  for (const value of extended.derived ?? []) {
+    recordDerivedSourceLine(inheritedDerivedSourceLines, value.id, 0);
+  }
+  const merged = mergePartsFromActors(
+    extended,
+    placed,
+    opts?.partsCatalog,
+    opts?.onNotice,
+    inheritedDerivedSourceLines,
+  );
   // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
   // 途中で消えた edge の行を知らせても呼出側が使えない。
   if (edgeSourceLines && opts?.onEdgeSource) {
@@ -193,7 +205,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
   // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる。
   materializeStates(merged, doc);
-  attachDerivedValues(merged, doc, opts?.onNotice);
+  attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
@@ -1541,6 +1553,7 @@ function mergePartsFromActors(
   doc: DslDocument,
   partsCatalog?: Record<string, CdlDiagram>,
   onNotice?: (notice: CompileNotice) => void,
+  derivedSourceLines?: Map<string, number[]>,
 ): CdlDiagram {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   if (partsActors.length === 0) return target;
@@ -1641,7 +1654,20 @@ function mergePartsFromActors(
       }
     }
     const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
-    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, t.w, t.h, onNotice, actor.pos?.line ?? 0);
+    mergePartIntoDiagram(
+      target,
+      part,
+      actor.name,
+      merged,
+      actor.lane,
+      placeX,
+      placeY,
+      t.w,
+      t.h,
+      onNotice,
+      actor.pos?.line ?? 0,
+      derivedSourceLines,
+    );
   }
   return target;
 }
@@ -1725,6 +1751,8 @@ function mergePartIntoDiagram(
   onNotice?: (notice: CompileNotice) => void,
   /** 知らせに載せる行。 パーツを書いた行を指す。 行が取れない経路 (JSON) では 0 */
   noticeLine = 0,
+  /** 見本から引き継いだ値の宣言元。 notice を見本を書いた行へ戻すために使う */
+  derivedSourceLines?: Map<string, number[]>,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
   // 見本が自分で持つ名前。 **状態と、他の値から決まる値の両方** (#1180)。
@@ -1741,6 +1769,10 @@ function mergePartIntoDiagram(
       return ownIdSet.has(name) ? `{${prefix(name)}}` : m;
     });
   };
+  // 値の式は見本の名前空間の中で閉じる。 存在が確認できた名前だけを書き換えると、綴り違いの
+  // 参照が取り込み先の同名 state / value に偶然つながり、単体では止まる見本の意味が変わる。
+  const rewriteDerivedExpression = (expression: string): string =>
+    expression.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_m, name: string) => `{${prefix(name)}}`);
 
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
   const targetLaneId = laneMapping;
@@ -1956,13 +1988,15 @@ function mergePartIntoDiagram(
   //
   // 引き継がないと、見本の中で書いた関係が重ねた先で解かれず、その値を読む箱に `{名前}` の
   // 生の形が出る。 名前は状態と同じ規則で前置きを付ける = 見本を 2 つ重ねても互いの値を
-  // 読まない。 式の中の参照も同じ規則で書き換える (`rewriteTemplate`)。
+  // 読まない。 式の中の参照は、未定義の名前も含めて見本の名前空間へ閉じ込める。
   for (const derivedOrig of part.derived ?? []) {
     if (!target.derived) target.derived = [];
+    const id = prefix(derivedOrig.id);
     target.derived.push({
-      id: prefix(derivedOrig.id),
-      expression: rewriteTemplate(derivedOrig.expression) ?? derivedOrig.expression,
+      id,
+      expression: rewriteDerivedExpression(derivedOrig.expression),
     });
+    recordDerivedSourceLine(derivedSourceLines, id, noticeLine);
   }
 
   // edge merge = id / from / to prefix (parts 内 edge は稀だが対応)
@@ -2168,12 +2202,15 @@ function attachDerivedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
+  inheritedSourceLines?: ReadonlyMap<string, readonly number[]>,
 ): void {
   const values = doc.values ?? [];
   // 本文に値を書いていなくても、重ねた見本が値を持つことがある (#1180)。 その場合も
   // 解けなかった分は伝える = 見本の中で止まった値も、画面には `{名前}` の生の形で出る
   if (values.length === 0) {
-    if ((diagram.derived?.length ?? 0) > 0) reportUnresolvedValues(diagram, doc, onNotice);
+    if ((diagram.derived?.length ?? 0) > 0) {
+      reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
+    }
     return;
   }
 
@@ -2199,7 +2236,19 @@ function attachDerivedValues(
     ...values.map((v) => ({ id: v.name, expression: v.expression })),
     ...(diagram.derived ?? []),
   ];
-  reportUnresolvedValues(diagram, doc, onNotice);
+  reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
+}
+
+/** `derived` の同名宣言を、engine が読む順のまま行番号の列として残す。 */
+function recordDerivedSourceLine(
+  sourceLines: Map<string, number[]> | undefined,
+  id: string,
+  line: number,
+): void {
+  if (!sourceLines) return;
+  const lines = sourceLines.get(id) ?? [];
+  lines.push(line);
+  sourceLines.set(id, lines);
 }
 
 /**
@@ -2221,6 +2270,7 @@ function reportUnresolvedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
+  inheritedSourceLines?: ReadonlyMap<string, readonly number[]>,
 ): void {
   if (!onNotice) return;
   // 描画側 (`computeStateValues`) が段を進める前に組み立てるのと同じ形。 値を解く手順は
@@ -2245,6 +2295,19 @@ function reportUnresolvedValues(
     const 同じ名前の行 = 重複した行.get(v.name) ?? [];
     同じ名前の行.push(v.pos?.line ?? 0);
     重複した行.set(v.name, 同じ名前の行);
+  }
+  // 本文の値は `attachDerivedValues` が先頭へ置き、見本から引き継いだ値はその後ろに残る。
+  // 同じ順で行を足すことで、duplicate-id を「後から書かれた宣言」へ正確に戻す。
+  for (const [id, lines] of inheritedSourceLines ?? []) {
+    for (const line of lines) {
+      if (!最初の行.has(id)) {
+        最初の行.set(id, line);
+        continue;
+      }
+      const 同じ名前の行 = 重複した行.get(id) ?? [];
+      同じ名前の行.push(line);
+      重複した行.set(id, 同じ名前の行);
+    }
   }
   for (const n of applyDerivedValues(初期値, diagram.derived).notices) {
     onNotice({

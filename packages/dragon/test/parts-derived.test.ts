@@ -156,6 +156,8 @@ describe("名前が重なった時は本文が勝つ (#1180)", () => {
     );
     expect(v.p1__half).toBe("7");
     expect(届いた.map((n) => n.kind)).toContain("value-duplicate");
+    // 重複した後ろ側は見本なので、本文の values 行ではなく見本を置いた行を指す
+    expect(届いた.find((n) => n.kind === "value-duplicate")?.line).toBe(2);
   });
 });
 
@@ -170,5 +172,35 @@ describe("見本の中で解けない値も伝える (#1180)", () => {
     組む({ 見本たち: [{ alias: "p1", part: 壊れた }], onNotice: (n) => 届いた.push(n) });
     expect(届いた.map((n) => n.kind)).toContain("value-unresolved");
     expect(届いた.find((n) => n.kind === "value-unresolved")?.actor).toBe("p1__broken");
+  });
+
+  it("見本に無い参照は本文の同名の値へつながらない", () => {
+    // 見本の名前空間に無い参照をそのまま残すと、取り込み先に同名の値がある時だけ偶然解ける。
+    // 単体で壊れている見本の意味を、重ねた先の内容で変えない
+    const 壊れた = {
+      ...見本(),
+      derived: [{ id: "broken", expression: "{missing} + 1" }],
+    } as CdlDiagram;
+    const 届いた: CompileNotice[] = [];
+    const d = 組む({
+      見本たち: [{ alias: "p1", part: 壊れた }],
+      values: [{ name: "missing", expression: "40" }],
+      onNotice: (n) => 届いた.push(n),
+    });
+
+    expect(d.derived).toContainEqual({ id: "p1__broken", expression: "{p1__missing} + 1" });
+    expect(描画が読む値(d).p1__broken).toBeUndefined();
+    expect(届いた.find((n) => n.actor === "p1__broken")?.kind).toBe("value-unresolved");
+  });
+
+  it("見本で解けない値の知らせは、見本を置いた行を指す", () => {
+    const 壊れた = {
+      ...見本(),
+      derived: [{ id: "broken", expression: "{missing} + 1" }],
+    } as CdlDiagram;
+    const 届いた: CompileNotice[] = [];
+    組む({ 見本たち: [{ alias: "p1", part: 壊れた }], onNotice: (n) => 届いた.push(n) });
+
+    expect(届いた.find((n) => n.actor === "p1__broken")?.line).toBe(2);
   });
 });
