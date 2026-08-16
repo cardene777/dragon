@@ -284,6 +284,75 @@ describe("動きの記述 (#1043)", () => {
   });
 });
 
+describe("見本帳の動き (#1172)", () => {
+  /**
+   * 見本帳で **動かないまま残す図** を名前で固定する。
+   *
+   * 看板が「動く図の記法」 なので、 見本帳が静止しているのは説明と中身の食い違いになる。
+   * 一方で全部を動かせばよいわけでもない。 箱の並び方を見せる札と、 色と線種を見せる札は
+   * 動かす値をそもそも持たず、 値を作って足すと見せたいものが埋もれる。
+   *
+   * そこで「動かさないと決めた図」 を列挙し、 **それ以外が静止していたら落とす**。 件数だけを
+   * 固定すると、 動かすつもりの図が止まった代わりに別の図が動いた時に素通りする。
+   */
+  const 静止のまま = new Set([
+    // 箱の並び方を見せる札。 lane / stack の配置そのものが主題
+    "lane-single", "lane-multi", "lane-contain", "stack-pair", "stack-triple",
+  ]);
+
+  /**
+   * **まだ動かしていない図**。 動かさないと決めた図 (`静止のまま`) とは別に持つ。
+   *
+   * 混ぜると「作業が終わっていない」 と「動かさないと決めた」 が区別できなくなり、
+   * 積み残しが判断として固定されてしまう。 こちらは PR ごとに減り、 最後に空になる。
+   *
+   * 残りは `shape-*` 49 件 と `scene-*` 30 件 と `kind-*` 5 件 (`#1172` の続き)。
+   */
+  const 未着手 = new Set(
+    (CATALOG_ITEMS.primitives ?? [])
+      .map((i) => i.id)
+      .filter((id) => id.startsWith("shape-") || id.startsWith("scene-") || id.startsWith("kind-")),
+  );
+
+  it("動かすと決めた見本が静止していない", () => {
+    const 止まっている = (CATALOG_ITEMS.primitives ?? [])
+      .filter((i) => motionOf(i.diagram) === "none")
+      .map((i) => i.id)
+      .sort();
+    const 想定外 = 止まっている.filter((id) => !静止のまま.has(id) && !未着手.has(id));
+    expect(想定外, `動かすと決めた見本が静止している: ${想定外.join(", ")}`).toEqual([]);
+  });
+
+  it("未着手の一覧が実態より広くない", () => {
+    // 動かし終えた図を一覧に残したままにすると、 その図が静止に戻っても気付けない。
+    // 一覧から外す作業を強制する
+    const 既に動く = [...未着手].filter((id) => {
+      const item = (CATALOG_ITEMS.primitives ?? []).find((i) => i.id === id);
+      return item && motionOf(item.diagram) !== "none";
+    });
+    expect(既に動く, `動かし終えた図が未着手の一覧に残っている: ${既に動く.join(", ")}`).toEqual([]);
+  });
+
+  it("動かさないと決めた図が動いていない (一覧が古くなっていない)", () => {
+    // 一覧に載せたまま動かすと、 一覧が実態と食い違ったまま残る。 逆向きも見る
+    const items = CATALOG_ITEMS.primitives ?? [];
+    const 動いている = items.filter((i) => 静止のまま.has(i.id) && motionOf(i.diagram) !== "none");
+    expect(
+      動いている.map((i) => i.id),
+      "静止のままと決めた図が動いている (一覧から外すか、 動きを外す)",
+    ).toEqual([]);
+  });
+
+  it("動く見本には動きの一文が付く", () => {
+    for (const item of CATALOG_ITEMS.primitives ?? []) {
+      const 種類 = motionOf(item.diagram);
+      if (種類 === "none") continue;
+      expect(item.motionNote, `${item.id} の一文が動きと食い違う`).toBe(motionNote(item.diagram));
+      expect(item.motionNote, `${item.id} に静止の一文が付いている`).not.toBe("段を進めても値は変わらない");
+    }
+  });
+});
+
 /** 画面を組み立てる file (`pages/` と `components/` の `.tsx`)。 */
 function screenSources(): Array<{ name: string; src: string }> {
   const roots = [new URL("../pages/", import.meta.url), new URL("../components/", import.meta.url)];
