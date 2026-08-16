@@ -31,12 +31,19 @@ describe("iter73: parts category distribution 網羅", () => {
     expect(withState.length).toBeGreaterThanOrEqual(20);
   });
 
-  it("state を持たない parts 数 (static) が 10 以上", () => {
+  it("全ての parts が state を持つ (静止した部品を残さない)", () => {
+    // 元は「state を持たない parts が 1 件以上」 を要求していた (#1164 以前)。
+    // parts は「使い回す完成した部品」 で、 動くことに意味がある物 (トグル / 再生 /
+    // 進捗 / 電波 / 信号) が静止したまま並んでいた。 全件に動きを付けたので、
+    // 逆向きに「静止した部品を残さない」 を固定する。
+    //
+    // 状態を持たない書き方の見本は `primitives` が担う (形を見せるのが役目で、
+    // そちらは静止していてよい)。
     const withoutState = ALL_PARTS.filter((p) => {
       const s = (p.diagram as unknown as { states?: unknown[] }).states;
       return !Array.isArray(s) || s.length === 0;
     });
-    expect(withoutState.length).toBeGreaterThanOrEqual(1);
+    expect(withoutState.map((p) => p.name)).toEqual([]);
   });
 
   it("edges 0 の parts (単純 visual) 分布", () => {

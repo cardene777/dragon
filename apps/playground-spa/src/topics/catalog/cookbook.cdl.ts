@@ -188,8 +188,11 @@ flow:
 
 animation:
   - step: "issue" 1.2s
-    focus: [Browser, Server, Session]
+    focus: [Browser, Server]
     badge: "issue"
+  - step: "store" 1.2s
+    focus: [Server, Session]
+    badge: "store"
   - step: "submit" 1.5s
     focus: [Browser, Server, Session]
     badge: "verify"
@@ -445,16 +448,16 @@ flow:
 
 animation:
   - step: "open" 1.0s
-    focus: [Browser, Server]
+    focus: ["Browser -> Server"]
     badge: "open"
   - step: "event1" 0.8s
-    focus: [Server, Browser]
+    focus: ["Server -> Browser"]
     badge: "event 1"
   - step: "event2" 0.8s
-    focus: [Server, Browser]
+    focus: ["Server -> Browser", Browser]
     badge: "event 2"
   - step: "event3" 0.8s
-    focus: [Server, Browser]
+    focus: ["Server -> Browser", Browser, Server]
     badge: "event 3"
 `),
 );
@@ -478,13 +481,13 @@ flow:
 
 animation:
   - step: "handshake" 1.0s
-    focus: [Client, Server]
+    focus: ["Client -> Server"]
     badge: "ws"
   - step: "send" 1.0s
-    focus: [Client, Server]
+    focus: ["Client -> Server", Client]
     badge: "msg"
   - step: "broadcast" 1.0s
-    focus: [Server, Client]
+    focus: ["Server -> Client", Client, Server]
     badge: "recv"
 `),
 );
@@ -574,13 +577,13 @@ flow:
 
 animation:
   - step: "attempt1" 1.0s
-    focus: [Client, API]
+    focus: ["Client -> API"]
     badge: "500"
   - step: "attempt2" 1.2s
-    focus: [Client, API]
+    focus: ["Client -> API", Client]
     badge: "wait 1s"
   - step: "attempt3" 1.2s
-    focus: [Client, API]
+    focus: ["API -> Client", Client, API]
     badge: "200"
 `),
 );
