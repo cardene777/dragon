@@ -14,9 +14,9 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 + `presets` 17 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 + `presets` 17 件 + `kind-*` 5 件 + `shape-*` 45 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` 10 件 + `lane-*` 3 件 + `stack-*` 2 件 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
- * | まだ動かしていない | `primitives` の `kind-*` 5 / `shape-*` 49、 `presets` 2、 `charts` 9 | 別 Issue 待ち。 件数を固定して減り方を追う |
+ * | まだ動かしていない | 副題を描かない `shape-*` 4 件、 `presets` 2 件、 `charts` 9 件 | 別 Issue 待ち。 件数を固定して減り方を追う |
  *
  * 3 つの一覧は互いに重ならず、合わせて見本帳の全件になることを機械で見る。 分類から漏れた
  * 図が「どちらでもない」 まま残らないようにするため。
@@ -101,6 +101,24 @@ const 型の見本で残す: Record<string, string> = {
   "mind-demo": "放射を箱 1 つに載せる型。 同上",
 };
 
+/**
+ * 1 箱の見本のうち、まだ動かしていない図と、その理由 (#1196)。
+ *
+ * 形の見本 54 件のうち 50 件は副題 (or 値の欄 / 行) に数を置いて動かした。 残る 4 件は
+ * **種別が副題を描かない**。 1 件は題 / 目次も読まず絵の文字を丸ごと固定しており、残り 3 件は
+ * 題と目次だけを自前で描く。 どちらも数を置ける欄が識別の文字しか残らず、形の見本としての
+ * 説明を潰すことになる (cdl #469)。
+ *
+ * この 4 件は **描画結果で見つけた** = 副題に数を置いても絵の文字が変わらないことを
+ * `catalog-motion-render.test.tsx` の検査が落として教えた。 宣言だけを見ていると通っていた。
+ */
+const 形の見本で残す: Record<string, string> = {
+  "shape-blockchain-block": "連鎖の箱。 種別が絵の文字を固定していて、書き手の値を読まない (cdl #469)",
+  "shape-terminal": "端末の箱。 種別が副題を描かず、数を置ける欄が識別の文字しか残らない (cdl #469)",
+  "shape-code-block": "コードの箱。 同上",
+  "shape-kanban-card": "付箋の箱。 同上",
+};
+
 /** 見本帳の図を 3 つの一覧に振り分ける (#1172)。 どれにも入らない図は `未分類` に落ちる */
 function 見本帳の振り分け(): {
   動かす: string[];
@@ -124,7 +142,9 @@ function 見本帳の振り分け(): {
     if (d.id.startsWith("lane-") || d.id.startsWith("stack-")) 動かさない.push(d.id);
     // 場面の見本は箱を 1 つずつ光らせて流れとして読ませる (#1192)
     else if (d.id.startsWith("scene-")) 動かす.push(d.id);
-    else if (d.id.startsWith("kind-") || d.id.startsWith("shape-")) まだ.push(d.id);
+    // 形と種別の見本は数を動かす。 cdl 側が値を読まない 1 件だけ残る (#1196)
+    else if (d.id.startsWith("kind-") || d.id.startsWith("shape-"))
+      (形の見本で残す[d.id] ? まだ : 動かす).push(d.id);
     else 未分類.push(d.id);
   }
   return { 動かす, 動かさない, まだ, 未分類 };
@@ -174,9 +194,9 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 動かす作業が進むと この数が減り、検査が「更新しろ」 と言う
     const { 動かす, 動かさない, まだ } = 見本帳の振り分け();
     expect({ 動かす: 動かす.length, 動かさない: 動かさない.length, まだ: まだ.length }).toEqual({
-      動かす: 68,
+      動かす: 118,
       動かさない: 15,
-      まだ: 65,
+      まだ: 15,
     });
   });
 
@@ -185,10 +205,21 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 描画結果で見る。 ここでは宣言の層で静止が混ざっていないことを見る
     const 場面 = diagramsOf(Primitives).filter(([, d]) => d.id.startsWith("scene-"));
     const 型 = diagramsOf(Presets).filter(([, d]) => !型の見本で残す[d.id]);
-    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型]
+    const 形 = diagramsOf(Primitives).filter(
+      ([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && !形の見本で残す[d.id],
+    );
+    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型, ...形]
       .filter(([, d]) => !moves(d))
       .map(([k]) => k);
     expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);
+  });
+
+  it("まだ動かしていない形の見本は 1 件ずつ理由を持つ", () => {
+    // 動かせないのか手が回っていないだけなのかを、後から見た人が判断できる形にする
+    const 残った = diagramsOf(Primitives)
+      .filter(([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && 形の見本で残す[d.id])
+      .map(([, d]) => d.id);
+    expect([...残った].sort()).toEqual(Object.keys(形の見本で残す).sort());
   });
 
   it("まだ動かしていない図の型は 1 件ずつ理由を持つ", () => {

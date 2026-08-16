@@ -343,6 +343,83 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
 });
 
 /**
+ * 形の見本 (`shape-*` 45 件 + `kind-*` 5 件) は数が段で動く (#1196)。
+ *
+ * 箱が 1 つしか無いので光らせ方では動かせない。 その形が表すものの数量を副題 (種別により
+ * 値の欄 / 行) に置き、段の中で動かす。 **形そのものの見え方は変えない** = 題と目次は
+ * 段をまたいで同じであることをここで固定する。
+ *
+ * 副題を描かない 4 種別は対象外 (理由と一覧は
+ * `packages/dragon/test/catalog-motion-coverage.test.ts` の `形の見本で残す`)。 この 4 件は
+ * 下の「動かす値が絵の文字に出る」 が落ちて見つかった = 副題に数を置いても絵が変わらなかった。
+ */
+describe("形の見本は数が段で動く (#1196)", () => {
+  const 経路無し = new Set(["shape-blockchain-block", "shape-terminal", "shape-code-block", "shape-kanban-card"]);
+  const 形 = Object.entries(Prim as unknown as Record<string, CdlDiagram>)
+    .filter(([, d]) => {
+      if (!d || typeof d !== "object") return false;
+      if (typeof d.id !== "string") return false;
+      return (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && Array.isArray(d.phases);
+    })
+    .filter(([, d]) => !経路無し.has(d.id))
+    .map(([k, d]) => [k, d] as const);
+
+  it("対象が 50 件ある", () => {
+    // 見本を足し引きすると以下が空振りする
+    expect(形).toHaveLength(50);
+  });
+
+  it("50 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+    const 足りない = 形
+      .filter(([, d]) => d.phases.length < 2 || !d.phases.some((p) => (p.tweens?.length ?? 0) > 0))
+      .map(([k]) => k);
+    expect(足りない, `段か動かす値が無い: ${足りない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("50 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+    // **本 describe の中核**。 宣言だけを見る検査は、値を描かない欄に置いた図を通してしまう
+    const 変わらない: string[] = [];
+    for (const [k, d] of 形) {
+      const 最初 = 見える部分(d, d.phases[0]!.id);
+      const 最後 = 見える部分(d, d.phases[d.phases.length - 1]!.id);
+      if (最初 === 最後) 変わらない.push(k);
+    }
+    expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("50 件すべてで、題と目次が段をまたいで変わらない", () => {
+    // 数を足す作業で形の見本としての説明を潰さない (#1172 が種別の見本で同じ形を固定している)
+    const 違う: string[] = [];
+    for (const [k, d] of 形) {
+      const n = d.nodes[0] as { title?: string; eyebrow?: string } | undefined;
+      if (!n) { 違う.push(`${k}: 箱が無い`); continue; }
+      if ((n.title ?? "").includes("{")) 違う.push(`${k}.title に段の値が入っている`);
+      if ((n.eyebrow ?? "").includes("{")) 違う.push(`${k}.eyebrow に段の値が入っている`);
+    }
+    expect(違う, `形の説明が段で動いている: ${違う.join(" / ")}`).toHaveLength(0);
+  });
+
+  it("50 件すべてで、動かす値が絵の文字に出る", () => {
+    // 値を描かない欄 (`shape-*` の `value` 欄 等) に置くと、宣言はあるのに絵が変わらない。
+    // 段の始点と終点をそれぞれ初期値に据えて描き、文字が変わることを見る
+    const 出ない: string[] = [];
+    for (const [k, d] of 形) {
+      const tw = d.phases.flatMap((p) => p.tweens ?? [])[0] as
+        | { stateId: string; from: number; to: number }
+        | undefined;
+      if (!tw) { 出ない.push(`${k}: 動かす値が無い`); continue; }
+      const 文字 = (v: number) => {
+        const c = structuredClone(d) as CdlDiagram;
+        c.states = (c.states ?? []).map((st) => (st.id === tw.stateId ? { ...st, initial: v } : st));
+        return 絵の文字(c).join("|");
+      };
+      if (文字(tw.from) === 文字(tw.to)) 出ない.push(k);
+    }
+    expect(出ない, `動かす値が絵の文字に出ない: ${出ない.join(", ")}`).toHaveLength(0);
+  });
+});
+
+/**
  * 比べ方そのものが効いていることを見る (#1194)。
  *
  * 上の 2 つの describe は「絵が変わる」 を根拠にしている。 その物差しが図の外の差を拾うと、
