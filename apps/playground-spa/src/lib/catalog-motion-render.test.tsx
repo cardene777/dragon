@@ -366,17 +366,25 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
     expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
   });
 
-  it("見えない控えの欄だけが変わる図は、同じと判定される", () => {
-    // `shape-blockchain-block` は文字を種別が自前で固定している。 副題に値を置いても
-    // 変わるのは `data-cdl-subtitle` だけで、見える文字は 1 つも変わらない
-    const 元 = 見本("shape-blockchain-block");
-    const d = 二段にする(
-      { ...元, nodes: 元.nodes.map((n) => ({ ...n, subtitle: "{v}" })), states: [{ id: "v", initial: "11" }] },
-      { sets: [{ stateId: "v", value: "11" }], tweens: [] },
-      { sets: [{ stateId: "v", value: "999999" }], tweens: [] },
-    );
-    expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
-  });
+  // 控えの欄は 3 つある。 **3 つとも材料を置く** = 1 つずつ試さないと、落とす対象から
+  // 1 つ外しても検査が通ってしまう (実測 = 正規表現を `subtitle` だけに縮めても 32 件すべて
+  // 通った)。 見える文字が変わる種別では `<text>` 側の差が残るため、この材料には
+  // 文字を自前で固定している `shape-blockchain-block` を使う。
+  for (const 欄 of ["title", "subtitle", "eyebrow"] as const) {
+    it(`見えない控えの欄 (${欄}) だけが変わる図は、同じと判定される`, () => {
+      const 元 = 見本("shape-blockchain-block");
+      const d = 二段にする(
+        { ...元, nodes: 元.nodes.map((n) => ({ ...n, [欄]: "{v}" })), states: [{ id: "v", initial: "11" }] },
+        { sets: [{ stateId: "v", value: "11" }], tweens: [] },
+        { sets: [{ stateId: "v", value: "999999" }], tweens: [] },
+      );
+      // 材料が成立していること = この種別はその欄を文字として描かない
+      const 文字 = (id: string) =>
+        [...見える部分(d, id).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]).join("|");
+      expect(文字("a"), "この欄が見える文字に出ている = 材料として使えない").toBe(文字("b"));
+      expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
+    });
+  }
 
   it("光らせ方を変えた 2 段の図は、違うと判定される", () => {
     // 落とす側に寄せすぎると、本物の動きまで見えなくなる
