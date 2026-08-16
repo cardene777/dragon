@@ -201,6 +201,40 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     expect(new Set(typeSchema?.enum ?? [])).toEqual(new Set(PRESET_TYPES));
   });
 
+  it("schema の説明文が実在する型だけを挙げる", () => {
+    // **説明文も型の一覧を持っている** (`#1174`)。 enum だけ縛っても、 同じ object の
+    // `description` が型名を並べているのでそちらが古くなる。
+    //
+    // 説明文の方が実害が大きい。 enum は一致しなければ弾くが、 説明文は LLM が
+    // 「どう actors を書くか」 を決める材料なので、 消えた型の書き方が残っていると
+    // **黙って誤った出力を誘導する**。 `#1170` で `radial` を消した時、 enum と説明文の
+    // 両方を手で直す必要があった。
+    const typeSchema = (diagramJsonSchema.properties as Record<string, { description?: string }>).type;
+    const 説明 = typeSchema?.description ?? "";
+    expect(説明, "型の説明文が空").not.toBe("");
+
+    // 説明文に出てくる型名を集める。 型名は `pie (割合)` のように後ろに括弧が付く形か、
+    // `/` で並ぶ形で書かれる。 語の境界で拾う
+    const 出てくる型 = new Set(
+      [...説明.matchAll(/(?:^|[\s/(])([a-z][a-z0-9]*)(?=[\s/(）)])/gu)].map((m) => m[1]!),
+    );
+    const 実在 = new Set<string>(PRESET_TYPES);
+    const 消えた型が残っている = [...出てくる型].filter(
+      // 型名と同じ綴りの普通の語を除く。 `type` は見出しの語、 `actors` / `flow` は欄の名前
+      (w) => !実在.has(w) && ["sequence", "flow", "swimlane", "er", "state", "topology",
+        "solidity", "gantt", "class", "pie", "bar", "line", "funnel", "tree", "journey",
+        "quadrant", "c4", "mind", "radial"].includes(w),
+    );
+    expect(
+      消えた型が残っている,
+      `説明文に実在しない型が残っている: ${消えた型が残っている.join(", ")}`,
+    ).toEqual([]);
+
+    // 逆向き = 実在する型が説明文に 1 つも出てこない (足した時に書き忘れる)
+    const 書かれていない = [...実在].filter((t) => !説明.includes(t));
+    expect(書かれていない, `説明文に書かれていない型がある: ${書かれていない.join(", ")}`).toEqual([]);
+  });
+
   it("schema は $schema field を持つ (Draft 7 declaration)", () => {
     expect(diagramJsonSchema.$schema).toMatch(/json-schema.org/);
   });

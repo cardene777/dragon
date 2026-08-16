@@ -4,9 +4,11 @@ import { join, sep } from "node:path";
 /**
  * package の `dist` が `src` より古くないかを見る。
  *
- * dragon は cdl を `link:` で参照し、 dragon 自身の test も `@cardenelabs/dragon` (= `dist`) を
- * 読む。 どちらの test script にも build は含まれていないため、 古い `dist` が手元に残っていると
- * **src を壊しても test が通る**。
+ * dragon 自身の test は `@cardenelabs/dragon` (= `dist`) を読む。 test script に build は
+ * 含まれていないため、 古い `dist` が手元に残っていると **src を壊しても test が通る**。
+ *
+ * cdl はここの対象外。 `#1166` で `link:` を外して公開版 (`^0.6.1`) に寄せたため、
+ * 手元の build 状態に左右されない。
  *
  * `dist` が無い場合は import 解決に失敗して落ちるので見逃しにならない。 危ないのは
  * 「古い `dist` が残っている」 場合だけで、 それを検知する。
@@ -83,7 +85,8 @@ export const newestMtime = (dir: string): number | null => foldMtime(dir, Math.m
  * dir の mtime は混ぜない。 混ぜると「dir を作った時刻」 が最古になり、 中身より古い値で
  * 判定してしまう。
  */
-export const oldestMtime = (dir: string): number | null => foldMtime(dir, Math.min, DIST_SKIP, false);
+export const oldestMtime = (dir: string): number | null =>
+  foldMtime(dir, Math.min, DIST_SKIP, false);
 
 /** `checkFreshness` の判定結果。 */
 export type FreshnessVerdict =

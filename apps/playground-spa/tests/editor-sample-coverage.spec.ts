@@ -31,3 +31,23 @@ test("読みやすさの検査が全ての見本を走査する", () => {
     `読みやすさの検査に並べていない見本がある (editor-readable-scale.spec.ts に足す): ${漏れ.join(", ")}`,
   ).toEqual([]);
 });
+
+test("読みやすさの検査に消えた見本が残っていない", () => {
+  // **逆向きも見る** (`#1174`)。 上は「足した見本が漏れる」 だけを見るので、 見本を消した時に
+  // 一覧へ残った行に当たらない。
+  //
+  // 残ると黙って別の図を測る。 `CdlEditor.tsx` は一致しない slug で `SAMPLES[0]` に落ちる
+  // ため、 `/editor#preset=<消えた slug>` は 1 つ目の見本を出す。 そこで消えた見本の下限と
+  // 比べることになり、 **下限を満たせば通ってしまう**。 落ちないので誰も気付かない。
+  //
+  // 実際 `#1170` で `radial` を消した時、 一覧の `["radial", 9]` を外し忘れていれば
+  // `sequence` (下限 10) を測って 9 と比べ、 通っていた。
+  const src = readFileSync(resolve(ここ, "editor-readable-scale.spec.ts"), "utf8");
+  const 並べた = [...src.matchAll(/\["([a-z0-9-]+)",\s*\d+\]/gu)].map((m) => m[1]!);
+  const 実在 = new Set(EDITOR_SAMPLES.map((s) => s.slug));
+  const 余り = 並べた.filter((s) => !実在.has(s));
+  expect(
+    余り,
+    `消えた見本が読みやすさの検査に残っている (editor-readable-scale.spec.ts から外す): ${余り.join(", ")}`,
+  ).toEqual([]);
+});
