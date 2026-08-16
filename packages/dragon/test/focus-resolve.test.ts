@@ -306,3 +306,83 @@ animation:
     expect(notices.join(" ")).toContain("a-b");
   });
 });
+
+describe("空白を含む名前を引用符で指す (#1192)", () => {
+  // catalog の見本は `Aave v3` / `iOS app` のように空白を含む名前を使う。 引用符で囲んでも
+  // 空白で切られていたため、その名前を指した段は 1 件も光らなかった (実測 30 件中 4 件)
+  const 光る = (focus: string): string[] => {
+    const src = `title: "t"
+type: topology
+actors:
+  - "Aave v3": shape-smart-contract "pool"
+  - 供給者: shape-wallet "USDC"
+flow:
+  - 供給者 -> "Aave v3": ""
+animation:
+  - step: "s" 1s
+    focus: [${focus}]
+`;
+    return textDslToDiagram(src).phases.flatMap((p) => p.activate ?? []);
+  };
+
+  it("引用符で囲んだ名前は 1 つとして扱う", () => {
+    expect(光る('"Aave v3"')).toEqual(["aave-v3"]);
+  });
+
+  it("引用符で囲んだ名前と囲まない名前を並べられる", () => {
+    expect(光る('供給者, "Aave v3"').sort()).toEqual(["aave-v3", "供給者"]);
+  });
+
+  it("引用符で囲んだ名前と空白区切りの名前を並べられる", () => {
+    expect(光る('供給者 "Aave v3"').sort()).toEqual(["aave-v3", "供給者"]);
+  });
+
+  it("囲まない空白区切りは今まで通り 2 つとして読む", () => {
+    // 旧来の書き方 (`focus: [Client API]`) を壊さない。 2 つの名前として読むので、
+    // 同じ名前を 2 つ書けば 2 回光らせる指定になる
+    expect(光る("供給者 供給者")).toEqual(["供給者", "供給者"]);
+  });
+});
+
+describe("名前の途中の引用符は囲みにしない (#1192)", () => {
+  // 囲みの開始を「先頭か空白の直後」 に限らないと、名前に混じった引用符 (`Aave' v3`) が
+  // 囲みを開き、閉じないまま残りを 1 つの名前として飲み込む
+  it("閉じていない引用符が残りを飲み込まない", () => {
+    expect(parseFocusEntry("Aave' v3")).toEqual({ kind: "node", name: "Aave' v3" });
+  });
+
+  it("閉じていない引用符が後続の区切りを飲み込まない", () => {
+    // 途中の `'` で囲みが開くと、その先の `,` まで名前の一部として飲み込まれ、
+    // 後ろに書いた箱が 1 つも光らなくなる
+    const src = `title: "t"
+type: topology
+actors:
+  - 供給者: shape-wallet "USDC"
+  - v3: shape-smart-contract "pool"
+flow:
+  - 供給者 -> v3: ""
+animation:
+  - step: "s" 1s
+    focus: [供給者' 未知, v3]
+`;
+    expect(textDslToDiagram(src).phases.flatMap((p) => p.activate ?? [])).toContain("v3");
+  });
+
+  it("段の指定でも、名前の途中の引用符は空白で切る側に残る", () => {
+    const src = `title: "t"
+type: topology
+actors:
+  - "Aave' v3": shape-smart-contract "pool"
+  - 供給者: shape-wallet "USDC"
+flow:
+  - 供給者 -> "Aave' v3": ""
+animation:
+  - step: "s" 1s
+    focus: [供給者 Aave' v3]
+`;
+    // 空白区切りとして読むので `Aave'` と `v3` の 2 つになり、どちらも箱に当たらない。
+    // **飲み込まれて 1 つの名前になっていないこと** が要点 (当たらないことは知らせで伝わる)
+    const 光る = textDslToDiagram(src).phases.flatMap((p) => p.activate ?? []);
+    expect(光る).toEqual(["供給者"]);
+  });
+});

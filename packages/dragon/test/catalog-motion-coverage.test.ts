@@ -14,9 +14,9 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` 21 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` 10 件 + `lane-*` 3 件 + `stack-*` 2 件 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
- * | まだ動かしていない | `primitives` の `kind-*` 5 / `shape-*` 49 / `scene-*` 30、 `presets` 19、 `charts` 9 | 別 Issue 待ち。 件数を固定して減り方を追う |
+ * | まだ動かしていない | `primitives` の `kind-*` 5 / `shape-*` 49、 `presets` 19、 `charts` 9 | 別 Issue 待ち。 件数を固定して減り方を追う |
  *
  * 3 つの一覧は互いに重ならず、合わせて見本帳の全件になることを機械で見る。 分類から漏れた
  * 図が「どちらでもない」 まま残らないようにするため。
@@ -108,7 +108,9 @@ function 見本帳の振り分け(): {
   // 動かさないと決めた側、 種別と図形の見本は まだ動かしていない側
   for (const [, d] of diagramsOf(Primitives)) {
     if (d.id.startsWith("lane-") || d.id.startsWith("stack-")) 動かさない.push(d.id);
-    else if (d.id.startsWith("kind-") || d.id.startsWith("shape-") || d.id.startsWith("scene-")) まだ.push(d.id);
+    // 場面の見本は箱を 1 つずつ光らせて流れとして読ませる (#1192)
+    else if (d.id.startsWith("scene-")) 動かす.push(d.id);
+    else if (d.id.startsWith("kind-") || d.id.startsWith("shape-")) まだ.push(d.id);
     else 未分類.push(d.id);
   }
   return { 動かす, 動かさない, まだ, 未分類 };
@@ -158,16 +160,17 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 動かす作業が進むと この数が減り、検査が「更新しろ」 と言う
     const { 動かす, 動かさない, まだ } = 見本帳の振り分け();
     expect({ 動かす: 動かす.length, 動かさない: 動かさない.length, まだ: まだ.length }).toEqual({
-      動かす: 21,
+      動かす: 51,
       動かさない: 15,
-      まだ: 112,
+      まだ: 82,
     });
   });
 
   it("動かすと決めた見本に静止した図が無い", () => {
     // 絵として動くかは `apps/playground-spa/src/lib/catalog-motion-render.test.tsx` が
     // 描画結果で見る。 ここでは宣言の層で静止が混ざっていないことを見る
-    const 静止 = diagramsOf(PrimitivesExtra).filter(([, d]) => !moves(d)).map(([k]) => k);
+    const 場面 = diagramsOf(Primitives).filter(([, d]) => d.id.startsWith("scene-"));
+    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面].filter(([, d]) => !moves(d)).map(([k]) => k);
     expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);
   });
 

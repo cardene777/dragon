@@ -1714,12 +1714,26 @@ function parseFocusList(s: string): string[] {
   // quote 内の space / comma / arrow は保護し、 quote 外の comma でのみ split する。
   let body = s.trim();
   if (body.startsWith("[") && body.endsWith("]")) body = body.slice(1, -1);
-  const parts: string[] = [];
+  // **引用部分を非引用部分と分けて覚えておく** (#1192)。 区間全体に quoted flag を
+  // 付けるだけだと `Client "Aave v3"` まで 1 item になり、従来の空白区切りと混在できない。
+  type FocusFragment = { text: string; quoted: boolean };
+  const groups: FocusFragment[][] = [];
+  let group: FocusFragment[] = [];
   let buf = "";
   let quote: string | null = null;
+  const pushFragment = (quoted: boolean): void => {
+    if (buf.trim()) group.push({ text: buf, quoted });
+    buf = "";
+  };
+  const pushGroup = (): void => {
+    pushFragment(false);
+    if (group.length > 0) groups.push(group);
+    group = [];
+  };
   for (const ch of body) {
     if (quote) {
       if (ch === quote) {
+        pushFragment(true);
         quote = null;
         continue;
       }
@@ -1727,36 +1741,43 @@ function parseFocusList(s: string): string[] {
       continue;
     }
     if (ch === "\"" || ch === "'") {
-      quote = ch;
-      continue;
+      // item の途中にある引用符は名前の一部。 空白または区切りの直後だけ囲みを開始する。
+      if (!buf || /\s$/.test(buf)) {
+        pushFragment(false);
+        quote = ch;
+        continue;
+      }
     }
     if (ch === ",") {
-      const t = buf.trim();
-      if (t) parts.push(t);
-      buf = "";
+      pushGroup();
       continue;
     }
     buf += ch;
   }
-  const tail = buf.trim();
-  if (tail) parts.push(tail);
-  // "User -> API" のような quote 済 item は「1 item」 として parts に入る。
+  pushFragment(quote !== null);
+  if (group.length > 0) groups.push(group);
+  // "User -> API" のような quote 済 item は「1 item」 として groups に入る。
   // quote 外 item は依然として space split (旧挙動、 「Client API」 が 2 item として解釈される互換維持)。
   const out: string[] = [];
-  for (const p of parts) {
-    if (/[-→][>]?/.test(p) && /\s/.test(p)) {
-      // arrow を含む item は「A -> B」 パターン、 分割せず 1 item として保持
-      out.push(p);
+  for (const fragments of groups) {
+    const whole = fragments.map(({ text }) => text).join("").trim();
+    if (fragments.every(({ quoted }) => !quoted) && /[-→][>]?/.test(whole) && /\s/.test(whole)) {
+      // arrow を含む非引用区間は「A -> B」パターン。 空白で分割しない。
+      out.push(whole);
       continue;
     }
-    if (/\s/.test(p)) {
-      // space 含み + arrow なし = 旧挙動の「Client API」 → 2 item
-      for (const x of p.split(/\s+/)) {
-        if (x) out.push(x);
+    for (const { text, quoted } of fragments) {
+      const p = text.trim();
+      if (!p) continue;
+      // 引用符で囲んだ item は空白があっても切らず、非引用部分だけを従来どおり空白で切る。
+      if (quoted) {
+        out.push(p);
+      } else {
+        for (const x of p.split(/\s+/)) {
+          if (x) out.push(x);
+        }
       }
-      continue;
     }
-    out.push(p);
   }
   return out;
 }
