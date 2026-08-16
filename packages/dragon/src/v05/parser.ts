@@ -281,7 +281,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         errors.push({
           line: line.no,
           message: "values は 1 行にまとめて書けない",
-          hint: '式に `,` が入るため。 次の行から字下げして `待ち: "{流入} - {処理}"` の形で並べる',
+          hint: '式に `,` が入るため。 次の行から字下げして `waiting: "{inflow} - {done}"` の形で並べる',
         });
         i += 1;
         continue;
@@ -1534,7 +1534,7 @@ const VALUE_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const VALUE_FNS: ReadonlySet<string> = new Set(["min", "max"]);
 
 /**
- * `待ち: "{流入} - {処理}"` を 1 件の値として読む。
+ * `waiting: "{inflow} - {done}"` を 1 件の値として読む。
  *
  * 式が文法として正しいかは見ない。 そこは描画側が評価する時に判定して、 その値だけを
  * 止める (spec § 4.2 = 1 箇所の壊れで図全体を止めない)。 ここで見るのは
@@ -1547,7 +1547,7 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     errors.push({
       line: lineNo,
       message: `invalid value entry: "${text}"`,
-      hint: '`待ち: "{流入} - {処理}"` の形で書く',
+      hint: '`waiting: "{inflow} - {done}"` の形で書く',
     });
     return null;
   }

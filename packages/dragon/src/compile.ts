@@ -70,7 +70,9 @@ export type CompileNotice = {
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
     | "chart-value-unreadable"
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
-    | "chart-edge-dropped";
+    | "chart-edge-dropped"
+    // 同じ名前を `states` と `values` の両方に書いた (#1162)
+    | "value-shadows-state";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -197,6 +199,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
     });
   }
+  applyDerivedValues(merged, doc, opts?.onNotice);
   return merged;
 }
 
@@ -2093,6 +2096,45 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
   library: "shape-code-block",
   interface: "shape-code-block",
 };
+
+/**
+ * 記法の `values:` を図に載せる (#1162)。
+ *
+ * `values` は「他の値から自動で決まる値」 で、 時間を持たない。 参照した値が動けば常に
+ * 追随する。 解くのは描画側 (`@cardenelabs/cdl` の `applyDerivedValues`) で、 段の値を出した
+ * 後に参照順で解いて `stateValues` に載せる。 **毎 frame ここを通る**ので、 掛け算や比較の
+ * ように端点 2 点では表せない関係も段の補間の途中で正しい値になる。
+ *
+ * ここは載せるだけで、 式は評価しない。 評価を compile 時に畳むと段の補間中に決まり直せない。
+ *
+ * **出口で 1 度だけ載せる**。 図の種類は 18 あり、 経路ごとに書くとどれかを見落とす
+ * (`injectStaticPhase` と同じ理由)。
+ *
+ * 名前が `states` と重なった場合は `values` を優先し、 重なったことを伝える。 spec の
+ * 4 節で決めた挙動で、 黙って一方を捨てると「書いたのに効かない」 が残る。
+ */
+function applyDerivedValues(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  const values = doc.values ?? [];
+  if (values.length === 0) return;
+
+  const 状態の名前 = new Set((doc.animate?.states ?? []).map((s) => s.name));
+  for (const v of values) {
+    if (!状態の名前.has(v.name)) continue;
+    onNotice?.({
+      kind: "value-shadows-state",
+      actor: v.name,
+      line: v.pos?.line ?? 0,
+      message: `"${v.name}" を states と values の両方に書いています。 values を使います`,
+      hint: "states から外すか、 values の名前を変える",
+    });
+  }
+
+  diagram.derived = values.map((v) => ({ id: v.name, expression: v.expression }));
+}
 
 /**
  * 図全体を 1 つの箱で描く種別。

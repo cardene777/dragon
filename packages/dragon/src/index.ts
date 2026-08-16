@@ -14,6 +14,9 @@ export type { CompileNotice } from "./compile";
 export { parseTextDslV05 } from "./v05";
 // 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
 export { PRESET_TYPES } from "./v05/parser";
+// 記法の `values:` を解く経路。 図に載せた式を engine と同じ手順で解けるよう、
+// engine の関数をそのまま通す (自前で書き直すと解く順序と既定値がずれる)。
+export { applyDerivedValues, withDerivedValues } from "@cardenelabs/cdl";
 export { TONE_ALIAS, NODE_KIND_ALIAS } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
