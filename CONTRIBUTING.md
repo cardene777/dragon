@@ -116,6 +116,40 @@ pnpm typecheck                                   # tsc -b 全 workspace
 
 新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/tests/` のいずれか。
 
+### 値が動くことの検査は実経路に載せる
+
+記法に書いた値 (`states:` / `values:`) が動くことを見る検査は、**描画側と同じ入口を通す**。
+
+```ts
+// 記法 → 組み立て → 配置 → その瞬間に描画側が読む値
+const values = computeStateValues(layout(textDslToDiagram(src)), 段, 進み);
+```
+
+engine の解く関数 (`applyDerivedValues` / `withDerivedValues`) を検査から直接呼ばない。
+渡す値を手で組み立てると、**図に状態が 1 件も載らない形を通り抜ける**。 実際に
+`#1179` はこの書き方で「値が届く」 ことを証明したつもりになり、`animation:` を書かない図で
+値が 1 つも届かない状態を素通りさせた。 `packages/dragon/test/values-compile.test.ts` の
+「検査が実経路を迂回していない」 が、検査 file 全件を走査してこれを禁止している。
+
+**値が絵に出るところまで見る検査を 1 本は置く**
+(`apps/playground-spa/src/lib/values-on-screen.test.tsx`)。 値の計算が合っていても、その値を
+描く経路が無ければ画面は変わらない。 実際に `#1173` は 110 件に手を入れて 79 件が画面上
+動かず、宣言だけを見る検査がそれを「動いている」 と判定した。
+
+```ts
+const svg = renderToStaticMarkup(<CdlDiagramView diagram={textDslToDiagram(src)} />);
+expect(svg).toContain(">6<");
+expect(svg).not.toContain("{waiting}");
+```
+
+段の途中 (`進み` が 0 と 1 の間) は静止した描画では作れないので、そこは
+`computeStateValues` を直接見る。 2 段の役割はこう分かれる。
+
+| 段 | 見るもの |
+|---|---|
+| `computeStateValues` | 段ごとの値、段の補間の途中の値、解けない値の扱い |
+| SVG 文字列 | 値が実際に絵の文字として出ること (描く経路の有無を含む) |
+
 ## Pull request
 
 - 1 PR = 1 concern (機能 / 修正 / refactor を混ぜない)
