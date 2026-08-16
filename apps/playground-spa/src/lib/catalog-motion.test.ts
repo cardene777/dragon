@@ -300,47 +300,13 @@ describe("見本帳の動き (#1172)", () => {
     "lane-single", "lane-multi", "lane-contain", "stack-pair", "stack-triple",
   ]);
 
-  /**
-   * **まだ動かしていない図**。 動かさないと決めた図 (`静止のまま`) とは別に持つ。
-   *
-   * 混ぜると「作業が終わっていない」 と「動かさないと決めた」 が区別できなくなり、
-   * 積み残しが判断として固定されてしまう。 こちらは PR ごとに減り、 最後に空になる。
-   *
-   * 残りは `shape-*` 49 件 と `scene-*` 30 件 と `kind-*` 5 件 (`#1172` の続き)。
-   */
-  const 未着手 = new Set(
-    (CATALOG_ITEMS.primitives ?? [])
-      .map((i) => i.id)
-      .filter((id) => id.startsWith("shape-") || id.startsWith("scene-") || id.startsWith("kind-")),
-  );
-
   it("動かすと決めた見本が静止していない", () => {
     const 止まっている = (CATALOG_ITEMS.primitives ?? [])
       .filter((i) => motionOf(i.diagram) === "none")
       .map((i) => i.id)
       .sort();
-    const 想定外 = 止まっている.filter((id) => !静止のまま.has(id) && !未着手.has(id));
+    const 想定外 = 止まっている.filter((id) => !静止のまま.has(id));
     expect(想定外, `動かすと決めた見本が静止している: ${想定外.join(", ")}`).toEqual([]);
-  });
-
-  it("未着手の一覧が実態より広くない", () => {
-    // 動かし終えた図を一覧に残したままにすると、 その図が静止に戻っても気付けない。
-    // 一覧から外す作業を強制する
-    const 既に動く = [...未着手].filter((id) => {
-      const item = (CATALOG_ITEMS.primitives ?? []).find((i) => i.id === id);
-      return item && motionOf(item.diagram) !== "none";
-    });
-    expect(既に動く, `動かし終えた図が未着手の一覧に残っている: ${既に動く.join(", ")}`).toEqual([]);
-  });
-
-  it("動かさないと決めた図が動いていない (一覧が古くなっていない)", () => {
-    // 一覧に載せたまま動かすと、 一覧が実態と食い違ったまま残る。 逆向きも見る
-    const items = CATALOG_ITEMS.primitives ?? [];
-    const 動いている = items.filter((i) => 静止のまま.has(i.id) && motionOf(i.diagram) !== "none");
-    expect(
-      動いている.map((i) => i.id),
-      "静止のままと決めた図が動いている (一覧から外すか、 動きを外す)",
-    ).toEqual([]);
   });
 
   it("動く見本には動きの一文が付く", () => {
