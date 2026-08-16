@@ -288,13 +288,25 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
   return out;
 }
 
+/**
+ * 段の人数が減っていくことを見る。
+ *
+ * 人数の欄は `{名前}` を書ける (状態から取る形、 `render/payload-binding.ts` が解く)。
+ * その場合ここでは値が決まらないので、**数どうしの組だけを比べる** (#1194)。
+ *
+ * 素通しで比べると文字列の大小比較になり、`{trial}` が `{signup}` より大きいという理由で
+ * 発火する。 実際に見本帳の funnel を状態から取る形にした時、その偽発火が出た。
+ */
 function ruleFunnelMonotonicCount(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];
   for (const n of d.nodes) {
     if (n.kind === "funnel-stages" && n.funnelData) {
       const stages = n.funnelData;
       for (let i = 1; i < stages.length; i++) {
-        if (stages[i]!.count > stages[i - 1]!.count) {
+        const 今 = stages[i]!.count;
+        const 前 = stages[i - 1]!.count;
+        if (typeof 今 !== "number" || typeof 前 !== "number") continue;
+        if (今 > 前) {
           out.push({
             rule: "funnel-increasing-count",
             severity: "warn",

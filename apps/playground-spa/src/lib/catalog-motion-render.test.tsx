@@ -19,6 +19,7 @@ import { CdlDiagramView } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as PrimExt from "@/topics/catalog/primitives-extra.cdl";
 import * as Prim from "@/topics/catalog/primitives.cdl";
+import * as Presets from "@/topics/catalog/presets.cdl";
 import { motionOf } from "./catalog-motion";
 
 /**
@@ -92,6 +93,39 @@ function 絵の文字(d: CdlDiagram): string[] {
   return [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1] ?? "");
 }
 
+/**
+ * 描いた結果のうち、**図の中の見える部分だけ** (#1194)。
+ *
+ * 描いた markup を丸ごと比べると、図の中身が 1 画素も変わらない 2 段でも差が出る。
+ * 段の状態が図の外に 2 箇所出るため。
+ *
+ * | 出どころ | 中身 |
+ * |---|---|
+ * | 外側の属性 | `data-cdl-phase-id` に段の id がそのまま出る |
+ * | 画面下部のしるし | 今どの段かを表す点の並び (幅と色が変わる) |
+ *
+ * 図の中にも見た目に出ない欄がある。 `data-cdl-title` / `data-cdl-subtitle` /
+ * `data-cdl-eyebrow` は文字を写した控えで、種別が文字を自前で固定している場合
+ * (`shape-blockchain-block`) は控えだけが変わり、見える文字は 1 つも変わらない。
+ *
+ * そこで SVG の外を落とし、控えの欄も落として比べる。 文字が本当に変わる図では `<text>` の
+ * 中身が変わるので、控えを落としても取りこぼさない。 この 2 つを落とさない物差しが
+ * 何を通してしまうかは、末尾の「図の外の差を『動いた』 と数えない」 が材料付きで固定する。
+ */
+function 見える部分(d: CdlDiagram, phaseId?: string): string {
+  const s = renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader focusPhaseId={phaseId} />);
+  const 始 = s.indexOf("<svg");
+  const 終 = s.lastIndexOf("</svg>");
+  if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
+  return s.slice(始, 終 + 6).replace(/ data-cdl-(title|subtitle|eyebrow)="[^"]*"/g, "");
+}
+
+/** 同じ図から 2 段だけを取り出した図。 比べ方そのものを試すのに使う */
+function 二段にする(d: CdlDiagram, a: Partial<CdlDiagram["phases"][number]>, b: Partial<CdlDiagram["phases"][number]>): CdlDiagram {
+  const 元 = d.phases[0]!;
+  return { ...d, phases: [{ ...元, id: "a", ...a }, { ...元, id: "b", ...b }] };
+}
+
 describe("動かすと決めた見本は絵が変わる (#1172)", () => {
   it("対象 21 件が実在する", () => {
     // 名前を打ち間違えると以下の検査が空振りする
@@ -158,9 +192,13 @@ describe("動かすと決めた見本は絵が変わる (#1172)", () => {
 /**
  * 場面の見本 (`scene-*` 30 件) は、箱を 1 つずつ光らせて流れとして読ませる (#1192)。
  *
- * 値を持たせる形は採れない = 場面が使う種別 (`shape-*` 系) は値を描く経路を持たず、値を
- * 足しても絵が変わらない (実測 = 30 件すべてで SVG が 1 byte も変わらなかった)。 一方で
- * 注目先を変えると絵は変わるので、そちらで動かす。
+ * ここには当初「値を持たせる形は採れない」 と書いていたが、**それは測り方の誤りだった**
+ * (#1194)。 差し替えていたのは値の欄 (`node.value`) だけで、その欄を描くのは 2 種別しか無い。
+ * `title` / `subtitle` / `eyebrow` は `render/nodes.tsx` が全種別で `{名前}` 置換するので、
+ * `shape-*` 系にも値で動かす道はある。
+ *
+ * それでも注目先で動かすのは、場面が見せたいのが「どの順で通るか」 だから。 値を足すと
+ * 数の変化に目が行き、順番が読み取りにくくなる。
  */
 describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
   const 場面 = Object.entries(Prim as unknown as Record<string, CdlDiagram>)
@@ -182,15 +220,14 @@ describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
 
   it("30 件すべてで、最初の段と最後の段の絵が違う", () => {
     // **宣言ではなく描画結果で見る**。 段を足しても絵が変わらなければ、開いた人には
-    // 静止画と区別が付かない (#1173 で 79 件がこの形だった)
+    // 静止画と区別が付かない (#1173 で 79 件がこの形だった)。
+    //
+    // 比べるのは図の中の見える部分だけ。 描いた markup を丸ごと比べていた間、この検査は
+    // 段の id と画面下部のしるしが必ず変わるため **落ちない検査** だった (#1194)
     const 変わらない: string[] = [];
     for (const [k, d] of 場面) {
-      const 最初 = renderToStaticMarkup(
-        <CdlDiagramView diagram={d} hideHeader focusPhaseId={d.phases[0]!.id} />,
-      );
-      const 最後 = renderToStaticMarkup(
-        <CdlDiagramView diagram={d} hideHeader focusPhaseId={d.phases[d.phases.length - 1]!.id} />,
-      );
+      const 最初 = 見える部分(d, d.phases[0]!.id);
+      const 最後 = 見える部分(d, d.phases[d.phases.length - 1]!.id);
       if (最初 === 最後) 変わらない.push(k);
     }
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
@@ -212,5 +249,150 @@ describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
       }
     }
     expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
+  });
+});
+
+/**
+ * 図の型の見本 (`presets` 17 件) は段ごとに絵が変わる (#1194)。
+ *
+ * 動かし方は箱の数で 2 通りに分かれる。 箱を複数持つ 11 件は `scene-*` と同じく 1 つずつ
+ * 光らせ、図全体が箱 1 つの 6 件は図表の中身 (割合 / 段階 / 期間 / 感情 / 象限) を状態から取る。
+ * 見るのはどちらも同じで、図の中の見える部分が段で変わることだけ。
+ *
+ * `tree-demo` / `mind-demo` は対象外。 cdl 側に状態を読む経路が無い型で、理由と一覧は
+ * `packages/dragon/test/catalog-motion-coverage.test.ts` の `型の見本で残す` が持つ。
+ */
+describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
+  /** 図全体が箱 1 つの型。 光らせ方では動かせないので、図表の中身を状態から取る */
+  const 箱が1つ = new Set([
+    "journey-demo", "funnel-demo", "quad-demo",
+    "chart-pie-demo", "chart-line-demo", "gantt-demo",
+  ]);
+  const 経路無し = new Set(["tree-demo", "mind-demo"]);
+
+  const 型 = Object.entries(Presets as unknown as Record<string, CdlDiagram>)
+    .filter(([, d]) => {
+      if (!d || typeof d !== "object") return false;
+      return typeof d.id === "string" && Array.isArray(d.nodes) && Array.isArray(d.phases);
+    })
+    .filter(([, d]) => !経路無し.has(d.id))
+    .map(([k, d]) => [k, d] as const);
+
+  it("対象が 17 件ある", () => {
+    // preset を足し引きすると以下が空振りする
+    expect(型).toHaveLength(17);
+  });
+
+  it("17 件すべてが 2 段以上を持つ", () => {
+    // preset の `build()` は段を 1 つだけ作り、全要素を光らせて終わる
+    const 足りない = 型.filter(([, d]) => d.phases.length < 2).map(([k, d]) => `${k}: ${d.phases.length}`);
+    expect(足りない, `段が 1 つのまま: ${足りない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("17 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+    // **本 describe の中核**。 段を足しても図が変わらなければ、開いた人には静止画と同じ
+    const 変わらない: string[] = [];
+    for (const [k, d] of 型) {
+      const 最初 = 見える部分(d, d.phases[0]!.id);
+      const 最後 = 見える部分(d, d.phases[d.phases.length - 1]!.id);
+      if (最初 === 最後) 変わらない.push(k);
+    }
+    expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱を複数持つ 11 件は、段ごとに光る箱が増える", () => {
+    const 対象 = 型.filter(([, d]) => !箱が1つ.has(d.id));
+    expect(対象, "箱が 1 つの型の一覧が実物とずれている").toHaveLength(11);
+
+    const 進まない: string[] = [];
+    for (const [k, d] of 対象) {
+      let 前 = new Set<string>();
+      for (const [i, p] of d.phases.entries()) {
+        const 今 = new Set(p.activate ?? []);
+        const 消えた = [...前].filter((id) => !今.has(id));
+        if (消えた.length > 0) 進まない.push(`${k}[${i}]: 前段の要素が消えた (${消えた.join(", ")})`);
+        if (今.size <= 前.size) 進まない.push(`${k}[${i}]: 増えていない (${前.size} → ${今.size})`);
+        前 = 今;
+      }
+    }
+    expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("箱が 1 つの 6 件は、段が図表の中身を動かす", () => {
+    // 箱が 1 つしか無いので光らせ方では動かせない。 値を動かす宣言を持つことを見る
+    const 対象 = 型.filter(([, d]) => 箱が1つ.has(d.id));
+    expect(対象).toHaveLength(6);
+
+    const 動かさない = 対象
+      .filter(([, d]) => !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0))
+      .map(([k]) => k);
+    expect(動かさない, `値を動かす宣言が無い: ${動かさない.join(", ")}`).toHaveLength(0);
+  });
+
+  it("図表の欄が全部解決する (既定値に落ちていない)", () => {
+    // `{名前}` を解けなかった項目は落とさず既定値で描かれ、`data-cdl-unresolved` が付く。
+    // 状態の名前を書き間違えても図は出るので、印を見ないと気付けない
+    const 未解決: string[] = [];
+    for (const [k, d] of 型) {
+      for (const p of d.phases) {
+        if (見える部分(d, p.id).includes("data-cdl-unresolved")) 未解決.push(`${k}[${p.id}]`);
+      }
+    }
+    expect(未解決, `解決できない欄がある: ${未解決.join(", ")}`).toHaveLength(0);
+  });
+});
+
+/**
+ * 比べ方そのものが効いていることを見る (#1194)。
+ *
+ * 上の 2 つの describe は「絵が変わる」 を根拠にしている。 その物差しが図の外の差を拾うと、
+ * 何も動かしていない図まで通る。 #1194 まで実際にそうなっていた = 描いた markup を丸ごと
+ * 比べており、段の id と画面下部のしるしが必ず変わるため、**どんな図でも必ず通っていた**。
+ *
+ * 通ってはいけない材料を 2 つ、通らなければいけない材料を 1 つ置いて、物差しを固定する。
+ */
+describe("図の外の差を『動いた』 と数えない (#1194)", () => {
+  const 見本 = (id: string): CdlDiagram => {
+    const d = Object.values(Prim as unknown as Record<string, CdlDiagram>).find(
+      (x) => x && typeof x === "object" && x.id === id,
+    );
+    if (!d) throw new Error(`見本が無い: ${id}`);
+    return d;
+  };
+
+  it("値を 1 つも読まない 2 段の図は、同じと判定される", () => {
+    // 段の id と画面下部のしるしだけが違う図。 これを「動いた」 と数えると検査が空になる
+    const d = 二段にする(見本("shape-file"), {}, {});
+    expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
+  });
+
+  it("見えない控えの欄だけが変わる図は、同じと判定される", () => {
+    // `shape-blockchain-block` は文字を種別が自前で固定している。 副題に値を置いても
+    // 変わるのは `data-cdl-subtitle` だけで、見える文字は 1 つも変わらない
+    const 元 = 見本("shape-blockchain-block");
+    const d = 二段にする(
+      { ...元, nodes: 元.nodes.map((n) => ({ ...n, subtitle: "{v}" })), states: [{ id: "v", initial: "11" }] },
+      { sets: [{ stateId: "v", value: "11" }], tweens: [] },
+      { sets: [{ stateId: "v", value: "999999" }], tweens: [] },
+    );
+    expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
+  });
+
+  it("光らせ方を変えた 2 段の図は、違うと判定される", () => {
+    // 落とす側に寄せすぎると、本物の動きまで見えなくなる
+    const 元 = 見本("shape-file");
+    const d = 二段にする(元, { activate: [] }, { activate: [元.nodes[0]!.id] });
+    expect(見える部分(d, "a")).not.toBe(見える部分(d, "b"));
+  });
+
+  it("文字が変わる図は、違うと判定される", () => {
+    // 控えの欄を落とすときに `<text>` まで落としていないことを見る
+    const 元 = 見本("shape-file");
+    const d = 二段にする(
+      { ...元, nodes: 元.nodes.map((n) => ({ ...n, subtitle: "残り {v}" })), states: [{ id: "v", initial: "11" }] },
+      { sets: [{ stateId: "v", value: "11" }], tweens: [] },
+      { sets: [{ stateId: "v", value: "99" }], tweens: [] },
+    );
+    expect(見える部分(d, "a")).not.toBe(見える部分(d, "b"));
   });
 });
