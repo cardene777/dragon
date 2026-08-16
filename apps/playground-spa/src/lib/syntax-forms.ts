@@ -9,21 +9,23 @@
  */
 
 /** 例文のどこに行を差し込むか。 */
-export type SampleSlot = "root" | "actors" | "flow" | "animation";
+export type SampleSlot = "root" | "actors" | "flow" | "states" | "values" | "animation";
 
 export type Section = {
   title: string;
   /**
    * 例文の組み立て方。
    *
-   * `slot` = 表示する行を置く場所。 `actors` / `flow` = 例文を成立させるために足りない分。
-   * 行だけでは図にならない (基準にする相手が要る等) ため、 補いを持たせる。
+   * `slot` = 表示する行を置く場所。 `actors` / `flow` / `states` = 例文を成立させるために
+   * 足りない分。 行だけでは図にならない (基準にする相手が要る / 参照する値が要る等) ため、
+   * 補いを持たせる。
    */
   sample: {
     slot: SampleSlot;
     type?: string;
     actors?: string[];
     flow?: string[];
+    states?: string[];
   };
   lines: Array<{ code: string; note: string }>;
 };
@@ -55,6 +57,8 @@ export const FORMS: Section[] = [
       { code: "  - 決済: 失敗", note: "色だけ" },
       { code: '  - 表: storage ["id: PK", "name: 文字列"]', note: "行を持つ箱" },
       { code: "  - 保存: s3", note: "固有名でも書ける (storage になる)" },
+      // 値は箱に出して初めて見える。 書き方を「値」 の節と離さない
+      { code: '  - 受付: actor "待ち行列" "{waiting}"', note: "2 つ目の引用符が値の欄 ({名前} で読む)" },
     ],
   },
   {
@@ -85,6 +89,35 @@ export const FORMS: Section[] = [
       { code: '  - Client -> API: "要求"', note: "矢印と説明" },
       { code: '  - API -> DB: "検索" 成功', note: "矢印の色" },
       { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類" },
+    ],
+  },
+  {
+    // 節の題に記法の項目名を出す。 中身は字下げした行なので、どの節の下に書くのかが
+    // 題からしか分からない
+    title: "値 (states:)",
+    // 値は箱に出して初めて意味がある。 例文の箱に `{名前}` を置いて、出るところまで見せる
+    sample: {
+      slot: "states",
+      actors: ['  - 受付: "待ち行列" "{inflow}"', "  - 処理"],
+      flow: ['  - 受付 -> 処理: "渡す"'],
+    },
+    lines: [
+      { code: "  inflow: 10", note: "名前は英数字と _ だけ" },
+      { code: "  done: 4", note: "数でも文字列でもよい" },
+    ],
+  },
+  {
+    title: "値どうしの関係 (values:)",
+    sample: {
+      slot: "values",
+      actors: ['  - 受付: "待ち行列" "{waiting}"', "  - 処理"],
+      flow: ['  - 受付 -> 処理: "渡す"'],
+      states: ["  inflow: 10", "  done: 4"],
+    },
+    lines: [
+      { code: '  waiting: "{inflow} - {done}"', note: "四則 + 括弧。 参照は {名前}" },
+      { code: '  busy: "{waiting} > 80"', note: "比較は 真 = 1 / 偽 = 0" },
+      { code: '  peak: "max({waiting}, 50)"', note: "min / max が書ける" },
     ],
   },
   {
@@ -130,6 +163,22 @@ export const FORMS: Section[] = [
       { code: "viewport: { laneWidth: 400 }", note: "縦列の幅" },
     ],
   },
+  {
+    // 縦列と囲みは `topology` / `swimlane` で使う。 一覧に無いと、記法にあることすら伝わらない
+    title: "縦列と囲み (lanes: / groups:)",
+    sample: {
+      slot: "root",
+      type: "topology",
+      actors: ["  - Web: service", "  - DB: database"],
+      flow: ['  - Web -> DB: "問い合わせ"'],
+    },
+    lines: [
+      { code: "lanes:", note: "縦列の位置と幅を決める" },
+      { code: '  front: { x: 0, width: 360, label: "表" }', note: "id: { x, width, label }" },
+      { code: "groups:", note: "縦列をまとめて囲む" },
+      { code: '  aws: { label: "AWS", lanes: [front] }', note: "id: { label, lanes: [...] }" },
+    ],
+  },
 ];
 
 /**
@@ -139,7 +188,7 @@ export const FORMS: Section[] = [
  * test は通ってしまう。
  */
 export function buildSample(section: Section): string {
-  const { slot, actors = [], flow = [] } = section.sample;
+  const { slot, actors = [], flow = [], states = [] } = section.sample;
   const codes = section.lines.map((l) => l.code);
   const rootLines = slot === "root" ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
@@ -151,6 +200,11 @@ export function buildSample(section: Section): string {
   const out = [...head, "actors:", ...actors, ...(slot === "actors" ? codes : [])];
   const flowLines = [...flow, ...(slot === "flow" ? codes : [])];
   if (flowLines.length > 0) out.push("flow:", ...flowLines);
+  // 値は `states` → `values` の順に置く。 解く順は参照から決まるので順序に意味は無いが、
+  // 例文として読む時に「初期値があって、そこから決まる」 の順が自然
+  const stateLines = [...states, ...(slot === "states" ? codes : [])];
+  if (stateLines.length > 0) out.push("states:", ...stateLines);
+  if (slot === "values") out.push("values:", ...codes);
   if (slot === "animation") out.push("animation:", ...codes);
   return `${out.join("\n")}\n`;
 }

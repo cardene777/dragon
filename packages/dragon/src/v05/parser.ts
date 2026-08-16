@@ -68,6 +68,21 @@ export type V05ParseResult =
   | { ok: true; doc: DslDocument }
   | { ok: false; errors: DslError[] };
 
+/**
+ * 記法が受ける top-level の項目 (#1190)。
+ *
+ * 読めない行の案内と、記法一覧が全て載せているかの検査が、どちらもここを見る。 一覧に手で
+ * 書くと、項目を足した時に案内か一覧のどちらかが取り残される (実際に `states` / `values` が
+ * 一覧に 1 件も無い状態で放置されていた)。
+ */
+export const TOP_LEVEL_KEYS = [
+  "title", "type", "actors", "flow", "states", "values", "animation", "viewport", "lanes", "groups",
+] as const;
+
+function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
+  return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
+}
+
 /** 受け付ける図種。 記法一覧はここを見る。 */
 export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "sequence",
@@ -181,11 +196,11 @@ export function parseTextDslV05(src: string): V05ParseResult {
       continue;
     }
     const head = matchTopHeader(line.trimmed);
-    if (!head) {
+    if (!head || !isTopLevelKey(head.key)) {
       errors.push({
         line: line.no,
         message: `unknown top-level key: "${line.trimmed}"`,
-        hint: "expected one of: title, type, actors, flow, states, values, animation, viewport, lanes, groups",
+        hint: `expected one of: ${TOP_LEVEL_KEYS.join(", ")}`,
       });
       i += 1;
       continue;
