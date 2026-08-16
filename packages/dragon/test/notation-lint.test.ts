@@ -124,6 +124,18 @@ describe("lintDiagram — quadrant / funnel rule", () => {
     const report = lintDiagram(diagram({ nodes: [node({ kind: "funnel-stages", funnelData: [{ id: "s1", count: 200 }, { id: "s2", count: 100 }] })] }));
     expect(report.issues.some((i) => i.rule === "funnel-increasing-count")).toBe(false);
   });
+
+  it("人数を状態から取る形 → 無発火 (静的には値が決まらない)", () => {
+    // 素通しで比べると文字列の大小比較になり、`{trial}` > `{signup}` で偽発火する (#1194)
+    const report = lintDiagram(diagram({ nodes: [node({ kind: "funnel-stages", funnelData: [{ id: "signup", count: "{signup}" }, { id: "trial", count: "{trial}" }] })] }));
+    expect(report.issues.some((i) => i.rule === "funnel-increasing-count")).toBe(false);
+  });
+
+  it("片方だけ状態から取る形 → 無発火", () => {
+    // 数と `{名前}` の組も比べられない。 数側だけを見て発火させると根拠が無い
+    const report = lintDiagram(diagram({ nodes: [node({ kind: "funnel-stages", funnelData: [{ id: "s1", count: 100 }, { id: "s2", count: "{s2}" }] })] }));
+    expect(report.issues.some((i) => i.rule === "funnel-increasing-count")).toBe(false);
+  });
 });
 
 describe("autoFix — topic 変換", () => {

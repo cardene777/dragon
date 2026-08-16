@@ -14,9 +14,9 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 + `presets` 17 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` 10 件 + `lane-*` 3 件 + `stack-*` 2 件 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
- * | まだ動かしていない | `primitives` の `kind-*` 5 / `shape-*` 49、 `presets` 19、 `charts` 9 | 別 Issue 待ち。 件数を固定して減り方を追う |
+ * | まだ動かしていない | `primitives` の `kind-*` 5 / `shape-*` 49、 `presets` 2、 `charts` 9 | 別 Issue 待ち。 件数を固定して減り方を追う |
  *
  * 3 つの一覧は互いに重ならず、合わせて見本帳の全件になることを機械で見る。 分類から漏れた
  * 図が「どちらでもない」 まま残らないようにするため。
@@ -88,6 +88,19 @@ const 動かさないと決めた: Record<string, string> = {
   "style-dotted-flow": "線種の見本。 同上",
 };
 
+/**
+ * 図の型の見本のうち、まだ動かしていない図と、その理由 (#1194)。
+ *
+ * 残るのは **cdl 側に状態を読む経路が無い型** だけ。 cdl の `render/payload-binding.ts` は
+ * 図表 5 系統 (割合 / 段階 / 期間 / 感情 / 象限) の解決層を持つ一方、この 2 種は
+ * 「動かさない 2 種」 として解決層を持たない。 箱ごと消す形なら動かせるが、それは
+ * 中身が 1 つも変わらず点滅するだけになる。
+ */
+const 型の見本で残す: Record<string, string> = {
+  "tree-demo": "階層を箱 1 つに載せる型。 中身が状態を読む経路を cdl が持たない",
+  "mind-demo": "放射を箱 1 つに載せる型。 同上",
+};
+
 /** 見本帳の図を 3 つの一覧に振り分ける (#1172)。 どれにも入らない図は `未分類` に落ちる */
 function 見本帳の振り分け(): {
   動かす: string[];
@@ -102,7 +115,8 @@ function 見本帳の振り分け(): {
 
   for (const [, d] of diagramsOf(PrimitivesExtra)) 動かす.push(d.id);
   for (const [, d] of diagramsOf(Styles)) 動かさない.push(d.id);
-  for (const [, d] of diagramsOf(Presets)) まだ.push(d.id);
+  // 図の型の見本は cdl 側に経路がある型だけ動かす (#1194)
+  for (const [, d] of diagramsOf(Presets)) (型の見本で残す[d.id] ? まだ : 動かす).push(d.id);
   for (const [, d] of diagramsOf(Charts)) まだ.push(d.id);
   // `primitives` は 1 file の中に 2 つの扱いが混ざる。 並び方の見本 (`lane-*` / `stack-*`) は
   // 動かさないと決めた側、 種別と図形の見本は まだ動かしていない側
@@ -160,9 +174,9 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 動かす作業が進むと この数が減り、検査が「更新しろ」 と言う
     const { 動かす, 動かさない, まだ } = 見本帳の振り分け();
     expect({ 動かす: 動かす.length, 動かさない: 動かさない.length, まだ: まだ.length }).toEqual({
-      動かす: 51,
+      動かす: 68,
       動かさない: 15,
-      まだ: 82,
+      まだ: 65,
     });
   });
 
@@ -170,8 +184,18 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 絵として動くかは `apps/playground-spa/src/lib/catalog-motion-render.test.tsx` が
     // 描画結果で見る。 ここでは宣言の層で静止が混ざっていないことを見る
     const 場面 = diagramsOf(Primitives).filter(([, d]) => d.id.startsWith("scene-"));
-    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面].filter(([, d]) => !moves(d)).map(([k]) => k);
+    const 型 = diagramsOf(Presets).filter(([, d]) => !型の見本で残す[d.id]);
+    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型]
+      .filter(([, d]) => !moves(d))
+      .map(([k]) => k);
     expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);
+  });
+
+  it("まだ動かしていない図の型は 1 件ずつ理由を持つ", () => {
+    // 動かせないのか手が回っていないだけなのかを、後から見た人が判断できる形にする。
+    // 一覧が実物とずれたら落とす
+    const 残った = diagramsOf(Presets).filter(([, d]) => 型の見本で残す[d.id]).map(([, d]) => d.id);
+    expect([...残った].sort()).toEqual(Object.keys(型の見本で残す).sort());
   });
 
   it("動かさないと決めた図は 1 件ずつ理由を持つ", () => {
