@@ -139,6 +139,39 @@ describe("記法として書けない形は読む時に弾く", () => {
   });
 });
 
+describe("状態の名前も値と同じ規則で見る (#1181)", () => {
+  // 判定は `value-syntax.ts` の 1 か所にある。 状態を書く 3 箇所 (`states:` / `tween` / `set`)
+  // が同じ関数を呼ぶことで、「値では弾かれる名前が状態では通る」 形を無くす。
+  //
+  // 通してはいけない理由は描画側にある。 `{名前}` を置き換える時に見るのも英数字と `_` の
+  // 範囲なので、日本語の名前を受け付けると「書けたのに置き換わらない」 図ができる。
+
+  it("`states:` の名前が規則を外れたら誤りにする", () => {
+    expect(errs(`states:\n  流入: 0`).join()).toContain("invalid state entry");
+  });
+
+  it("`tween` の状態名が規則を外れたら誤りにする", () => {
+    const src = `animation:\n  - step: "動く" 1.4s\n    tween: 流入 0 -> 10`;
+    expect(errs(src).join()).toContain("invalid tween");
+  });
+
+  it("`set` の状態名が規則を外れても図に載せない", () => {
+    // `set` は読めない行を黙って捨てる (誤りにしない) ので、載っていないことで見る
+    const doc = ok(`animation:\n  - step: "動く" 1.4s\n    set: 流入 5`);
+    expect(doc.animate?.phases[0]?.sets ?? []).toHaveLength(0);
+  });
+
+  it("規則に合う名前は今まで通り読む", () => {
+    // 上の 3 件だけだと、全ての状態を弾く形でも通ってしまう
+    const doc = ok(
+      `states:\n  inflow: 0\n\nanimation:\n  - step: "動く" 1.4s\n    tween: inflow 0 -> 10\n    set: inflow 3`,
+    );
+    expect(doc.animate?.states).toEqual([{ name: "inflow", initial: 0, pos: { line: 8 } }]);
+    expect(doc.animate?.phases[0]?.tweens ?? []).toHaveLength(1);
+    expect(doc.animate?.phases[0]?.sets ?? []).toHaveLength(1);
+  });
+});
+
 describe("top-level key として案内に載る", () => {
   it("読めない行の案内に values が並ぶ", () => {
     const r = parseTextDslV05(`title: "t"\ntype: flow\n\nactors:\n  - A\n\nvaluez`);

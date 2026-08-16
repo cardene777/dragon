@@ -45,6 +45,7 @@ import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
 import { TONE_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
+import { checkValueExpression, isValueName, valueNameIssue } from "../value-syntax";
 import type {
   DslDocument,
   DslActor,
@@ -1491,9 +1492,10 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
 
 function parseStateEntry(text: string, lineNo: number): DslState | null {
   // `client_bal: 100` / `status: "idle"`
-  const m = text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.+)$/);
+  const m = text.match(/^([^:]+?)\s*:\s*(.+)$/);
   if (!m) return null;
-  const name = m[1] ?? "";
+  const name = (m[1] ?? "").trim();
+  if (!isValueName(name)) return null;
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
@@ -1527,19 +1529,11 @@ function collectIndentedRaw(
   return { items, next: i };
 }
 
-/** 値の名前。 `states` と同じ規則に揃える (揃えないと `{名前}` の解決先が食い違う) */
-const VALUE_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
-/** 式に書ける関数。 spec が「関数呼び出しは入れない」 としつつ例外にしている 2 つだけ */
-const VALUE_FNS: ReadonlySet<string> = new Set(["min", "max"]);
-
 /**
  * `waiting: "{inflow} - {done}"` を 1 件の値として読む。
  *
- * 式が文法として正しいかは見ない。 そこは描画側が評価する時に判定して、 その値だけを
- * 止める (spec § 4.2 = 1 箇所の壊れで図全体を止めない)。 ここで見るのは
- * **記法として書ける範囲に収まっているか**で、 描画側が受け付けるが記法としては
- * 認めない書き方 (余り / 条件分岐 / `min` `max` 以外の関数) を弾く。
+ * 名前と式の判定は `value-syntax.ts` が持つ (#1181)。 JSON 経路も同じ判定を使うため、
+ * ここでは行番号を付けて報告する形にだけ責任を持つ。
  */
 function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslValue | null {
   const m = text.match(/^([^:]+?)\s*:\s*(.+)$/);
@@ -1552,12 +1546,8 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     return null;
   }
   const name = (m[1] ?? "").trim();
-  if (!VALUE_NAME_RE.test(name)) {
-    errors.push({
-      line: lineNo,
-      message: `invalid value name: "${name}"`,
-      hint: "英字か _ で始め、 英数字と _ だけを使う (states と同じ規則)",
-    });
+  if (!isValueName(name)) {
+    errors.push({ line: lineNo, ...valueNameIssue(name) });
     return null;
   }
   const expression = stripQuotes((m[2] ?? "").trim());
@@ -1565,74 +1555,12 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     errors.push({ line: lineNo, message: `empty expression for "${name}"`, hint: '`"{a} + {b}"` のように式を書く' });
     return null;
   }
-  if (!checkExpressionSurface(expression, name, lineNo, errors)) return null;
+  const issues = checkValueExpression(expression, name);
+  if (issues.length > 0) {
+    for (const issue of issues) errors.push({ line: lineNo, ...issue });
+    return null;
+  }
   return { name, expression, pos: { line: lineNo } };
-}
-
-/**
- * 式が記法として書ける範囲に収まっているかを見る。
- *
- * `{名前}` の中身と外側を分けて見る。 分けないと、 名前に紛れた記号を式の記号と読み違える。
- */
-function checkExpressionSurface(
-  expression: string,
-  name: string,
-  lineNo: number,
-  errors: DslError[],
-): boolean {
-  const before = errors.length;
-
-  // `{名前}` の中身は名前の規則で見る
-  const refRe = /\{([^}]*)\}/g;
-  let m: RegExpExecArray | null;
-  while ((m = refRe.exec(expression)) !== null) {
-    const ref = (m[1] ?? "").trim();
-    if (!VALUE_NAME_RE.test(ref)) {
-      errors.push({
-        line: lineNo,
-        message: `invalid reference "{${ref}}" in "${name}"`,
-        hint: "英字か _ で始め、 英数字と _ だけを使う",
-      });
-    }
-  }
-  if (expression.includes("{") && !expression.includes("}")) {
-    errors.push({ line: lineNo, message: `unclosed "{" in "${name}"`, hint: "`{名前}` の形で閉じる" });
-  }
-
-  // 名前を外した残りが式の骨格。 ここに記法外の記号や関数が無いかを見る
-  const outside = expression.replace(/\{[^}]*\}/g, " ");
-  if (outside.includes("%")) {
-    errors.push({ line: lineNo, message: `"%" は式に書けない ("${name}")`, hint: "四則 (+ - * /) だけを使う" });
-  }
-  if (outside.includes("?")) {
-    errors.push({
-      line: lineNo,
-      message: `条件分岐 (?:) は式に書けない ("${name}")`,
-      hint: "比較の結果は真 = 1 / 偽 = 0 の数になるので、 掛け算で切り替える",
-    });
-  }
-  for (const fn of outside.matchAll(/[a-zA-Z_][a-zA-Z0-9_.]*/g)) {
-    const word = fn[0];
-    if (VALUE_FNS.has(word)) continue;
-    errors.push({
-      line: lineNo,
-      message: `"${word}" は式に書けない ("${name}")`,
-      hint:
-        word.startsWith("Math.")
-          ? "min / max は Math. を付けずに書く"
-          : `使えるのは ${[...VALUE_FNS].join(" / ")} だけ。 値は {名前} で読む`,
-    });
-  }
-  const stray = outside.replace(/[a-zA-Z_][a-zA-Z0-9_.]*/g, " ").match(/[^0-9.,+\-*/()<>=!\s]/g);
-  if (stray) {
-    errors.push({
-      line: lineNo,
-      message: `"${[...new Set(stray)].join("")}" は式に書けない ("${name}")`,
-      hint: "四則 (+ - * /) / 括弧 / 比較 (> >= < <= == !=) / min / max だけを使う",
-    });
-  }
-
-  return errors.length === before;
 }
 
 function splitTopLevelCommas(s: string): string[] {
@@ -1821,10 +1749,12 @@ function parseFocusList(s: string): string[] {
 function parseTweenLine(s: string, lineNo: number): DslTween | null {
   // `client_bal 100 -> 90` / `client_bal: 100 -> 90`
   const cleaned = s.replace(/^-\s*/, "").trim();
-  const m = cleaned.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
+  const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
   if (!m) return null;
+  const state = m[1] ?? "";
+  if (!isValueName(state)) return null;
   return {
-    state: m[1] ?? "",
+    state,
     from: parseFloat(m[2] ?? "0"),
     to: parseFloat(m[3] ?? "0"),
     pos: { line: lineNo },
@@ -1834,11 +1764,13 @@ function parseTweenLine(s: string, lineNo: number): DslTween | null {
 function parseSetLine(s: string, lineNo: number): DslSet | null {
   // `status: "loading"` / `status loading`
   const cleaned = s.replace(/^-\s*/, "").trim();
-  const m = cleaned.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:\s]\s*(.+)$/);
+  const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(.+)$/);
   if (!m) return null;
+  const state = m[1] ?? "";
+  if (!isValueName(state)) return null;
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
   const value: number | string = Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
-  return { state: m[1] ?? "", value, pos: { line: lineNo } };
+  return { state, value, pos: { line: lineNo } };
 }
