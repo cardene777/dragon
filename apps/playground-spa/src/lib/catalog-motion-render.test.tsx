@@ -197,12 +197,20 @@ describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
   });
 
   it("段ごとに光る箱が増える (流れとして読める)", () => {
-    // 光る箱の数が変わらないと、段を分けた意味が無い
-    const 増えない: string[] = [];
+    // 数だけ増えても、前段の箱を別の箱に入れ替えたら流れの積み上げにならない
+    const 進まない: string[] = [];
     for (const [k, d] of 場面) {
-      const 数 = d.phases.map((p) => (p.activate ?? []).length);
-      if (!(数[0]! < 数[1]! && 数[1]! < 数[2]!)) 増えない.push(`${k}: ${数.join(" → ")}`);
+      let 前 = new Set<string>();
+      for (const [i, p] of d.phases.entries()) {
+        const 生 = p.activate ?? [];
+        const 今 = new Set(生);
+        const 消えた = [...前].filter((id) => !今.has(id));
+        if (生.length !== 今.size) 進まない.push(`${k}[${i}]: 同じ箱が重複`);
+        if (消えた.length > 0) 進まない.push(`${k}[${i}]: 前段の箱が消えた (${消えた.join(", ")})`);
+        if (今.size <= 前.size) 進まない.push(`${k}[${i}]: 箱が増えていない (${前.size} → ${今.size})`);
+        前 = 今;
+      }
     }
-    expect(増えない, `光る箱が増えない: ${増えない.join(", ")}`).toHaveLength(0);
+    expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
   });
 });

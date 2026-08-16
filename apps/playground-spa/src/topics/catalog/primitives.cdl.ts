@@ -394,7 +394,7 @@ export const sceneCryptoTransfer = diagram("scene-crypto-transfer", { topic: "sc
   .edge("e", "c", { label: "" })
   .phase("p1", { duration: 750, title: "1. 送金者", body: "MetaMask EOA" }, (p: PhaseBuilder) => p.activate("w").badge("wallet"))
   .phase("p2", { duration: 750, title: "2. DEX", body: "clearing" }, (p: PhaseBuilder) => p.activate("w").activate("e").badge("exchange"))
-  .phase("p3", { duration: 750, title: "crypto 送金", body: "wallet が exchange に order を送り、 exchange が chain に settle。 EOA → DEX → L1 の 3-hop scene" }, (p: PhaseBuilder) => p.activate("w").activate("e").activate("c").badge("chain"))
+  .phase("p3", { duration: 750, title: "crypto 送金", body: "wallet が exchange に order を送り、 exchange が chain に settle。 EOA → DEX → L1 の 3-stage scene" }, (p: PhaseBuilder) => p.activate("w").activate("e").activate("c").badge("chain"))
   .build();
 
 /** S-2. 弁護士 → 公証人 → 登記 (法務 flow) */
@@ -446,7 +446,7 @@ export const sceneAuditFlow = diagram("scene-audit-flow", { topic: "scene: 監�
   .edge("f", "r", { label: "" })
   .phase("p1", { duration: 750, title: "1. 監査法人", body: "検査" }, (p: PhaseBuilder) => p.activate("a").badge("auditor"))
   .phase("p2", { duration: 750, title: "2. 会計帳簿", body: "ledger" }, (p: PhaseBuilder) => p.activate("a").activate("f").badge("record"))
-  .phase("p3", { duration: 750, title: "監査 flow", body: "監査法人 → 帳簿 検証 → 規制当局 報告。 上場企業 財務監査の 3-hop" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("regulator"))
+  .phase("p3", { duration: 750, title: "監査 flow", body: "監査法人 → 帳簿 検証 → 規制当局 報告。 上場企業 財務監査の 3-stage flow" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("regulator"))
   .build();
 
 /** S-6. トレーダー → 証券会社 → 取引所 (証券取引) */
@@ -459,7 +459,7 @@ export const sceneStockTrading = diagram("scene-stock-trading", { topic: "scene:
   .edge("b", "e", { label: "" })
   .phase("p1", { duration: 750, title: "1. 個人投資家", body: "retail" }, (p: PhaseBuilder) => p.activate("t").badge("trader"))
   .phase("p2", { duration: 750, title: "2. 野村証券", body: "投資銀行" }, (p: PhaseBuilder) => p.activate("t").activate("b").badge("broker"))
-  .phase("p3", { duration: 750, title: "証券取引", body: "トレーダー → 証券会社 発注 → 取引所 約定。 株式売買の 3-hop scene" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("e").badge("exchange"))
+  .phase("p3", { duration: 750, title: "証券取引", body: "トレーダー → 証券会社 発注 → 取引所 約定。 株式売買の 3-stage scene" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("e").badge("exchange"))
   .build();
 
 /** S-7. カスタマーサポート → チケット → 開発チーム (問い合わせ flow) */
@@ -472,7 +472,7 @@ export const sceneSupportFlow = diagram("scene-support-flow", { topic: "scene: �
   .edge("k", "d", { label: "" })
   .phase("p1", { duration: 750, title: "1. サポート担当", body: "24H 対応" }, (p: PhaseBuilder) => p.activate("c").badge("support"))
   .phase("p2", { duration: 750, title: "2. BUG-1234", body: "Linear" }, (p: PhaseBuilder) => p.activate("c").activate("k").badge("ticket"))
-  .phase("p3", { duration: 750, title: "問い合わせ flow", body: "CS 受電 → Ticket 起票 → 開発 hotfix。 一般 SaaS の bug report → fix の 3-hop" }, (p: PhaseBuilder) => p.activate("c").activate("k").activate("d").badge("commit"))
+  .phase("p3", { duration: 750, title: "問い合わせ flow", body: "CS 受電 → Ticket 起票 → 開発 hotfix。 一般 SaaS の bug report → fix の 3-stage flow" }, (p: PhaseBuilder) => p.activate("c").activate("k").activate("d").badge("commit"))
   .build();
 
 /** S-8. 決済業者 → クレカ → 銀行 (決済 flow) */
@@ -485,7 +485,7 @@ export const scenePaymentSettlement = diagram("scene-payment-settlement", { topi
   .edge("c", "b", { label: "" })
   .phase("p1", { duration: 750, title: "1. Stripe", body: "SaaS" }, (p: PhaseBuilder) => p.activate("p").badge("provider"))
   .phase("p2", { duration: 750, title: "2. VISA", body: "credit" }, (p: PhaseBuilder) => p.activate("p").activate("c").badge("card"))
-  .phase("p3", { duration: 750, title: "決済 flow", body: "Stripe → クレカ authorization → 発行銀行 決済。 EC 決済の card processing 3-hop" }, (p: PhaseBuilder) => p.activate("p").activate("c").activate("b").badge("issuer"))
+  .phase("p3", { duration: 750, title: "決済 flow", body: "Stripe → クレカ authorization → 発行銀行 決済。 EC 決済の card processing 3-stage flow" }, (p: PhaseBuilder) => p.activate("p").activate("c").activate("b").badge("issuer"))
   .build();
 
 /** S-9. website → CDN → server-rack (web infra) */
@@ -511,7 +511,7 @@ export const sceneNftMint = diagram("scene-nft-mint", { topic: "scene: NFT mint 
   .edge("c", "n", { label: "" })
   .phase("p1", { duration: 750, title: "1. creator", body: "artist" }, (p: PhaseBuilder) => p.activate("w").badge("wallet"))
   .phase("p2", { duration: 750, title: "2. ERC-721", body: "OpenSea" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("contract"))
-  .phase("p3", { duration: 750, title: "NFT mint", body: "wallet → ERC-721 contract 呼出 → NFT 発行。 minting の canonical 3-hop" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("nft"))
+  .phase("p3", { duration: 750, title: "NFT mint", body: "wallet → ERC-721 contract 呼出 → NFT 発行。 minting の canonical 3-stage flow" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("nft"))
   .build();
 
 /** S-11. token bridge (chain A → bridge contract → chain B) */
@@ -530,12 +530,12 @@ export const sceneTokenBridge = diagram("scene-token-bridge", { topic: "scene: t
 /** S-12. DeFi lending (wallet → lending contract → interest) */
 export const sceneDefiLending = diagram("scene-defi-lending", { topic: "scene: DeFi lending (wallet → contract → token)" })
   .lane("l", { x: 0, width: W })
-  .node("w", { lane: "l", stack: 0, kind: "shape-wallet", title: "深度者", eyebrow: "wallet", subtitle: "USDC 供給" })
+  .node("w", { lane: "l", stack: 0, kind: "shape-wallet", title: "供給者", eyebrow: "wallet", subtitle: "USDC 供給" })
   .node("c", { lane: "l", stack: 1, kind: "shape-smart-contract", title: "Aave v3", eyebrow: "lending", subtitle: "pool" })
   .node("t", { lane: "l", stack: 2, kind: "shape-token", title: "aUSDC", eyebrow: "token", subtitle: "yield-bearing" })
   .edge("w", "c", { label: "" })
   .edge("c", "t", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 深度者", body: "USDC 供給" }, (p: PhaseBuilder) => p.activate("w").badge("wallet"))
+  .phase("p1", { duration: 750, title: "1. 供給者", body: "USDC 供給" }, (p: PhaseBuilder) => p.activate("w").badge("wallet"))
   .phase("p2", { duration: 750, title: "2. Aave v3", body: "pool" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("lending"))
   .phase("p3", { duration: 750, title: "DeFi lending", body: "wallet が Aave に USDC を供給 → aUSDC (yield-bearing) を発行受領。 利息付き貸出の canonical flow" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("t").badge("token"))
   .build();
@@ -550,7 +550,7 @@ export const sceneBitcoinTx = diagram("scene-bitcoin-tx", { topic: "scene: bitco
   .edge("c", "n", { label: "" })
   .phase("p1", { duration: 750, title: "1. sender", body: "Bitcoin Core" }, (p: PhaseBuilder) => p.activate("w").badge("wallet"))
   .phase("p2", { duration: 750, title: "2. BTC mainnet", body: "PoW" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("chain"))
-  .phase("p3", { duration: 750, title: "bitcoin tx", body: "wallet で tx 署名 → BTC chain broadcast → full node が承認。 P2P 送金の 3-hop" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("node"))
+  .phase("p3", { duration: 750, title: "bitcoin tx", body: "wallet で tx 署名 → BTC chain broadcast → full node が承認。 P2P 送金の 3-stage flow" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("node"))
   .build();
 
 /** S-14. e-commerce order (customer → storefront → warehouse) */
@@ -615,7 +615,7 @@ export const sceneDevOps = diagram("scene-devops", { topic: "scene: DevOps (code
   .edge("g", "d", { label: "" })
   .phase("p1", { duration: 750, title: "1. src/", body: "TypeScript" }, (p: PhaseBuilder) => p.activate("c").badge("code"))
   .phase("p2", { duration: 750, title: "2. GitHub Actions", body: "build + test" }, (p: PhaseBuilder) => p.activate("c").activate("g").badge("ci"))
-  .phase("p3", { duration: 750, title: "DevOps", body: "code push → CI build/test → cloud deploy。 modern CI/CD の canonical 3-hop" }, (p: PhaseBuilder) => p.activate("c").activate("g").activate("d").badge("deploy"))
+  .phase("p3", { duration: 750, title: "DevOps", body: "code push → CI build/test → cloud deploy。 modern CI/CD の canonical 3-stage flow" }, (p: PhaseBuilder) => p.activate("c").activate("g").activate("d").badge("deploy"))
   .build();
 
 /** S-19. kanban task (kanban → terminal → file) */
@@ -719,7 +719,7 @@ export const sceneNetworkPath = diagram("scene-network-path", { topic: "scene: n
   .edge("n", "s", { label: "" })
   .phase("p1", { duration: 750, title: "1. client", body: "端末" }, (p: PhaseBuilder) => p.activate("m").badge("device"))
   .phase("p2", { duration: 750, title: "2. core switch", body: "L2/L3" }, (p: PhaseBuilder) => p.activate("m").activate("n").badge("network"))
-  .phase("p3", { duration: 750, title: "network path", body: "client 端末 → network core switch 経由 → server 到達。 typical enterprise network 3-hop" }, (p: PhaseBuilder) => p.activate("m").activate("n").activate("s").badge("server"))
+  .phase("p3", { duration: 750, title: "network path", body: "client 端末 → network core switch 経由 → server 到達。 typical enterprise network 3-stage path" }, (p: PhaseBuilder) => p.activate("m").activate("n").activate("s").badge("server"))
   .build();
 
 /** S-27. website checkout (website → payment → credit card) */
@@ -783,15 +783,9 @@ export const sceneAuditChain = diagram("scene-audit-chain", { topic: "scene: aud
 export const sourceYaml__sceneCryptoTransfer = `title: "crypto 送金"
 type: topology
 actors:
-  - name: 送金者
-    kind: shape-wallet
-    subtitle: "MetaMask EOA"
-  - name: DEX
-    kind: shape-exchange
-    subtitle: "clearing"
-  - name: Ethereum
-    kind: shape-ethereum-chain
-    subtitle: "L1 mainnet"
+  - 送金者: shape-wallet "MetaMask EOA"
+  - DEX: shape-exchange "clearing"
+  - Ethereum: shape-ethereum-chain "L1 mainnet"
 flow:
   - 送金者 -> DEX: ""
   - DEX -> Ethereum: ""
@@ -826,15 +820,9 @@ export const sourceJson__sceneCryptoTransfer = `{
 export const sourceYaml__sceneLegalNotarization = `title: "法務 flow"
 type: topology
 actors:
-  - name: 代理人
-    kind: shape-lawyer
-    subtitle: "起草"
-  - name: 公証役場
-    kind: shape-notary
-    subtitle: "認証"
-  - name: 登記簿
-    kind: shape-file
-    subtitle: "official record"
+  - 代理人: shape-lawyer "起草"
+  - 公証役場: shape-notary "認証"
+  - 登記簿: shape-file "official record"
 flow:
   - 代理人 -> 公証役場: ""
   - 公証役場 -> 登記簿: ""
@@ -869,25 +857,19 @@ export const sourceJson__sceneLegalNotarization = `{
 export const sourceYaml__sceneNftMint = `title: "NFT mint"
 type: topology
 actors:
-  - name: creator
-    kind: shape-wallet
-    subtitle: "artist"
-  - name: ERC-721
-    kind: shape-smart-contract
-    subtitle: "OpenSea"
-  - name: Rare Punk
-    kind: shape-nft
-    subtitle: "#42"
+  - creator: shape-wallet "artist"
+  - ERC-721: shape-smart-contract "OpenSea"
+  - "Rare Punk": shape-nft "#42"
 flow:
   - creator -> ERC-721: ""
-  - ERC-721 -> Rare Punk: ""
+  - ERC-721 -> "Rare Punk": ""
 animation:
   - step: "1. creator" 0.75s
     focus: [creator]
   - step: "2. ERC-721" 0.75s
     focus: [creator, ERC-721]
   - step: "NFT mint" 0.75s
-    focus: [creator, ERC-721, Rare Punk]
+    focus: [creator, ERC-721, "Rare Punk"]
 `;
 
 export const sourceJson__sceneNftMint = `{
@@ -912,15 +894,9 @@ export const sourceJson__sceneNftMint = `{
 export const sourceYaml__sceneBankingFlow = `title: "銀行 flow"
 type: topology
 actors:
-  - name: ATM
-    kind: shape-atm
-    subtitle: "cash 出金"
-  - name: みずほ銀行
-    kind: shape-bank
-    subtitle: "都銀"
-  - name: Amazon
-    kind: shape-online-shop
-    subtitle: "EC"
+  - ATM: shape-atm "cash 出金"
+  - みずほ銀行: shape-bank "都銀"
+  - Amazon: shape-online-shop "EC"
 flow:
   - ATM -> みずほ銀行: ""
   - みずほ銀行 -> Amazon: ""
@@ -955,15 +931,9 @@ export const sourceJson__sceneBankingFlow = `{
 export const sourceYaml__sceneIotOnchain = `title: "IoT オンチェーン"
 type: topology
 actors:
-  - name: 温度計
-    kind: shape-iot-sensor
-    subtitle: "BLE"
-  - name: Infura
-    kind: shape-rpc-node
-    subtitle: "provider"
-  - name: OracleContract
-    kind: shape-smart-contract
-    subtitle: "Solidity"
+  - 温度計: shape-iot-sensor "BLE"
+  - Infura: shape-rpc-node "provider"
+  - OracleContract: shape-smart-contract "Solidity"
 flow:
   - 温度計 -> Infura: ""
   - Infura -> OracleContract: ""
@@ -998,15 +968,9 @@ export const sourceJson__sceneIotOnchain = `{
 export const sourceYaml__sceneAuditFlow = `title: "監査 flow"
 type: topology
 actors:
-  - name: 監査法人
-    kind: shape-auditor
-    subtitle: "検査"
-  - name: 会計帳簿
-    kind: shape-file
-    subtitle: "ledger"
-  - name: 金融庁
-    kind: shape-regulator
-    subtitle: "監督"
+  - 監査法人: shape-auditor "検査"
+  - 会計帳簿: shape-file "ledger"
+  - 金融庁: shape-regulator "監督"
 flow:
   - 監査法人 -> 会計帳簿: ""
   - 会計帳簿 -> 金融庁: ""
@@ -1041,15 +1005,9 @@ export const sourceJson__sceneAuditFlow = `{
 export const sourceYaml__sceneStockTrading = `title: "証券取引"
 type: topology
 actors:
-  - name: 個人投資家
-    kind: shape-trader
-    subtitle: "retail"
-  - name: 野村証券
-    kind: shape-brokerage
-    subtitle: "投資銀行"
-  - name: 東証
-    kind: shape-exchange
-    subtitle: "TSE"
+  - 個人投資家: shape-trader "retail"
+  - 野村証券: shape-brokerage "投資銀行"
+  - 東証: shape-exchange "TSE"
 flow:
   - 個人投資家 -> 野村証券: ""
   - 野村証券 -> 東証: ""
@@ -1084,15 +1042,9 @@ export const sourceJson__sceneStockTrading = `{
 export const sourceYaml__sceneSupportFlow = `title: "問い合わせ flow"
 type: topology
 actors:
-  - name: サポート担当
-    kind: shape-customer-service
-    subtitle: "24H 対応"
-  - name: BUG-1234
-    kind: shape-kanban-card
-    subtitle: "Linear"
-  - name: hotfix.ts
-    kind: shape-code-block
-    subtitle: "fix by dev"
+  - サポート担当: shape-customer-service "24H 対応"
+  - BUG-1234: shape-kanban-card "Linear"
+  - hotfix.ts: shape-code-block "fix by dev"
 flow:
   - サポート担当 -> BUG-1234: ""
   - BUG-1234 -> hotfix.ts: ""
@@ -1127,15 +1079,9 @@ export const sourceJson__sceneSupportFlow = `{
 export const sourceYaml__scenePaymentSettlement = `title: "決済 flow"
 type: topology
 actors:
-  - name: Stripe
-    kind: shape-payment-provider
-    subtitle: "SaaS"
-  - name: VISA
-    kind: shape-credit-card
-    subtitle: "credit"
-  - name: 発行銀行
-    kind: shape-bank
-    subtitle: "MUFG"
+  - Stripe: shape-payment-provider "SaaS"
+  - VISA: shape-credit-card "credit"
+  - 発行銀行: shape-bank "MUFG"
 flow:
   - Stripe -> VISA: ""
   - VISA -> 発行銀行: ""
@@ -1170,15 +1116,9 @@ export const sourceJson__scenePaymentSettlement = `{
 export const sourceYaml__sceneWebInfra = `title: "web infra"
 type: topology
 actors:
-  - name: example.com
-    kind: shape-website
-    subtitle: "SPA"
-  - name: Cloudflare
-    kind: shape-cdn-edge
-    subtitle: "edge"
-  - name: origin
-    kind: shape-server-rack
-    subtitle: "AWS"
+  - example.com: shape-website "SPA"
+  - Cloudflare: shape-cdn-edge "edge"
+  - origin: shape-server-rack "AWS"
 flow:
   - example.com -> Cloudflare: ""
   - Cloudflare -> origin: ""
@@ -1213,15 +1153,9 @@ export const sourceJson__sceneWebInfra = `{
 export const sourceYaml__sceneTokenBridge = `title: "token bridge"
 type: topology
 actors:
-  - name: Ethereum
-    kind: shape-ethereum-chain
-    subtitle: "L1"
-  - name: Bridge
-    kind: shape-smart-contract
-    subtitle: "lock"
-  - name: Arbitrum
-    kind: shape-blockchain
-    subtitle: "L2"
+  - Ethereum: shape-ethereum-chain "L1"
+  - Bridge: shape-smart-contract "lock"
+  - Arbitrum: shape-blockchain "L2"
 flow:
   - Ethereum -> Bridge: ""
   - Bridge -> Arbitrum: ""
@@ -1256,68 +1190,56 @@ export const sourceJson__sceneTokenBridge = `{
 export const sourceYaml__sceneDefiLending = `title: "DeFi lending"
 type: topology
 actors:
-  - name: 深度者
-    kind: shape-wallet
-    subtitle: "USDC 供給"
-  - name: Aave v3
-    kind: shape-smart-contract
-    subtitle: "pool"
-  - name: aUSDC
-    kind: shape-token
-    subtitle: "yield-bearing"
+  - 供給者: shape-wallet "USDC 供給"
+  - "Aave v3": shape-smart-contract "pool"
+  - aUSDC: shape-token "yield-bearing"
 flow:
-  - 深度者 -> Aave v3: ""
-  - Aave v3 -> aUSDC: ""
+  - 供給者 -> "Aave v3": ""
+  - "Aave v3" -> aUSDC: ""
 animation:
-  - step: "1. 深度者" 0.75s
-    focus: [深度者]
+  - step: "1. 供給者" 0.75s
+    focus: [供給者]
   - step: "2. Aave v3" 0.75s
-    focus: [深度者, Aave v3]
+    focus: [供給者, "Aave v3"]
   - step: "DeFi lending" 0.75s
-    focus: [深度者, Aave v3, aUSDC]
+    focus: [供給者, "Aave v3", aUSDC]
 `;
 
 export const sourceJson__sceneDefiLending = `{
   "title": "DeFi lending",
   "type": "topology",
   "actors": [
-    { "name": "深度者", "kind": "shape-wallet", "subtitle": "USDC 供給" },
+    { "name": "供給者", "kind": "shape-wallet", "subtitle": "USDC 供給" },
     { "name": "Aave v3", "kind": "shape-smart-contract", "subtitle": "pool" },
     { "name": "aUSDC", "kind": "shape-token", "subtitle": "yield-bearing" }
   ],
   "flow": [
-    { "from": "深度者", "to": "Aave v3", "label": "" },
+    { "from": "供給者", "to": "Aave v3", "label": "" },
     { "from": "Aave v3", "to": "aUSDC", "label": "" }
   ],
   "animation": [
-    { "step": "1. 深度者", "duration": 0.75, "focus": ["深度者"] },
-    { "step": "2. Aave v3", "duration": 0.75, "focus": ["深度者", "Aave v3"] },
-    { "step": "DeFi lending", "duration": 0.75, "focus": ["深度者", "Aave v3", "aUSDC"] }
+    { "step": "1. 供給者", "duration": 0.75, "focus": ["供給者"] },
+    { "step": "2. Aave v3", "duration": 0.75, "focus": ["供給者", "Aave v3"] },
+    { "step": "DeFi lending", "duration": 0.75, "focus": ["供給者", "Aave v3", "aUSDC"] }
   ]
 }`;
 
 export const sourceYaml__sceneBitcoinTx = `title: "bitcoin tx"
 type: topology
 actors:
-  - name: sender
-    kind: shape-wallet
-    subtitle: "Bitcoin Core"
-  - name: BTC mainnet
-    kind: shape-bitcoin-chain
-    subtitle: "PoW"
-  - name: full node
-    kind: shape-blockchain-node
-    subtitle: "validator"
+  - sender: shape-wallet "Bitcoin Core"
+  - "BTC mainnet": shape-bitcoin-chain "PoW"
+  - "full node": shape-blockchain-node "validator"
 flow:
-  - sender -> BTC mainnet: ""
-  - BTC mainnet -> full node: ""
+  - sender -> "BTC mainnet": ""
+  - "BTC mainnet" -> "full node": ""
 animation:
   - step: "1. sender" 0.75s
     focus: [sender]
   - step: "2. BTC mainnet" 0.75s
-    focus: [sender, BTC mainnet]
+    focus: [sender, "BTC mainnet"]
   - step: "bitcoin tx" 0.75s
-    focus: [sender, BTC mainnet, full node]
+    focus: [sender, "BTC mainnet", "full node"]
 `;
 
 export const sourceJson__sceneBitcoinTx = `{
@@ -1342,15 +1264,9 @@ export const sourceJson__sceneBitcoinTx = `{
 export const sourceYaml__sceneEcOrder = `title: "EC 注文"
 type: topology
 actors:
-  - name: 顧客
-    kind: shape-customer-service
-    subtitle: "注文"
-  - name: Rakuten
-    kind: shape-online-shop
-    subtitle: "EC"
-  - name: 物流倉庫
-    kind: shape-warehouse
-    subtitle: "出荷"
+  - 顧客: shape-customer-service "注文"
+  - Rakuten: shape-online-shop "EC"
+  - 物流倉庫: shape-warehouse "出荷"
 flow:
   - 顧客 -> Rakuten: ""
   - Rakuten -> 物流倉庫: ""
@@ -1385,25 +1301,19 @@ export const sourceJson__sceneEcOrder = `{
 export const sourceYaml__sceneMobileApi = `title: "mobile API"
 type: topology
 actors:
-  - name: iOS app
-    kind: shape-mobile-device
-    subtitle: "SwiftUI"
-  - name: GraphQL
-    kind: shape-api-gateway
-    subtitle: "Apollo"
-  - name: backend
-    kind: shape-server-rack
-    subtitle: "K8s"
+  - "iOS app": shape-mobile-device "SwiftUI"
+  - GraphQL: shape-api-gateway "Apollo"
+  - backend: shape-server-rack "K8s"
 flow:
-  - iOS app -> GraphQL: ""
+  - "iOS app" -> GraphQL: ""
   - GraphQL -> backend: ""
 animation:
   - step: "1. iOS app" 0.75s
-    focus: [iOS app]
+    focus: ["iOS app"]
   - step: "2. GraphQL" 0.75s
-    focus: [iOS app, GraphQL]
+    focus: ["iOS app", GraphQL]
   - step: "mobile API" 0.75s
-    focus: [iOS app, GraphQL, backend]
+    focus: ["iOS app", GraphQL, backend]
 `;
 
 export const sourceJson__sceneMobileApi = `{
@@ -1428,25 +1338,19 @@ export const sourceJson__sceneMobileApi = `{
 export const sourceYaml__sceneFactoryLine = `title: "factory line"
 type: topology
 actors:
-  - name: FANUC robot
-    kind: shape-robot-arm
-    subtitle: "組立"
-  - name: 計測 sensor
-    kind: shape-iot-sensor
-    subtitle: "品質"
-  - name: MES DB
-    kind: shape-cylinder
-    subtitle: "traceability"
+  - "FANUC robot": shape-robot-arm "組立"
+  - "計測 sensor": shape-iot-sensor "品質"
+  - "MES DB": shape-cylinder "traceability"
 flow:
-  - FANUC robot -> 計測 sensor: ""
-  - 計測 sensor -> MES DB: ""
+  - "FANUC robot" -> "計測 sensor": ""
+  - "計測 sensor" -> "MES DB": ""
 animation:
   - step: "1. FANUC robot" 0.75s
-    focus: [FANUC robot]
+    focus: ["FANUC robot"]
   - step: "2. 計測 sensor" 0.75s
-    focus: [FANUC robot, 計測 sensor]
+    focus: ["FANUC robot", "計測 sensor"]
   - step: "factory line" 0.75s
-    focus: [FANUC robot, 計測 sensor, MES DB]
+    focus: ["FANUC robot", "計測 sensor", "MES DB"]
 `;
 
 export const sourceJson__sceneFactoryLine = `{
@@ -1471,15 +1375,9 @@ export const sourceJson__sceneFactoryLine = `{
 export const sourceYaml__sceneSatelliteChain = `title: "satellite chain"
 type: topology
 actors:
-  - name: Starlink
-    kind: shape-satellite
-    subtitle: "LEO"
-  - name: Alchemy
-    kind: shape-rpc-node
-    subtitle: "endpoint"
-  - name: Solana
-    kind: shape-blockchain
-    subtitle: "high TPS"
+  - Starlink: shape-satellite "LEO"
+  - Alchemy: shape-rpc-node "endpoint"
+  - Solana: shape-blockchain "high TPS"
 flow:
   - Starlink -> Alchemy: ""
   - Alchemy -> Solana: ""
@@ -1514,25 +1412,19 @@ export const sourceJson__sceneSatelliteChain = `{
 export const sourceYaml__sceneDevOps = `title: "DevOps"
 type: topology
 actors:
-  - name: src/
-    kind: shape-code-block
-    subtitle: "TypeScript"
-  - name: GitHub Actions
-    kind: shape-gear
-    subtitle: "build + test"
-  - name: AWS ECS
-    kind: shape-cloud
-    subtitle: "container"
+  - src/: shape-code-block "TypeScript"
+  - "GitHub Actions": shape-gear "build + test"
+  - "AWS ECS": shape-cloud "container"
 flow:
-  - src/ -> GitHub Actions: ""
-  - GitHub Actions -> AWS ECS: ""
+  - src/ -> "GitHub Actions": ""
+  - "GitHub Actions" -> "AWS ECS": ""
 animation:
   - step: "1. src/" 0.75s
     focus: [src/]
   - step: "2. GitHub Actions" 0.75s
-    focus: [src/, GitHub Actions]
+    focus: [src/, "GitHub Actions"]
   - step: "DevOps" 0.75s
-    focus: [src/, GitHub Actions, AWS ECS]
+    focus: [src/, "GitHub Actions", "AWS ECS"]
 `;
 
 export const sourceJson__sceneDevOps = `{
@@ -1557,25 +1449,19 @@ export const sourceJson__sceneDevOps = `{
 export const sourceYaml__sceneTaskFlow = `title: "task flow"
 type: topology
 actors:
-  - name: todo #42
-    kind: shape-kanban-card
-    subtitle: "in progress"
-  - name: $ npm run build
-    kind: shape-terminal
-    subtitle: "shell"
-  - name: build.log
-    kind: shape-file
-    subtitle: "output"
+  - "todo #42": shape-kanban-card "in progress"
+  - "$ npm run build": shape-terminal "shell"
+  - build.log: shape-file "output"
 flow:
-  - todo #42 -> $ npm run build: ""
-  - $ npm run build -> build.log: ""
+  - "todo #42" -> "$ npm run build": ""
+  - "$ npm run build" -> build.log: ""
 animation:
   - step: "1. todo #42" 0.75s
-    focus: [todo #42]
+    focus: ["todo #42"]
   - step: "2. $ npm run build" 0.75s
-    focus: [todo #42, $ npm run build]
+    focus: ["todo #42", "$ npm run build"]
   - step: "task flow" 0.75s
-    focus: [todo #42, $ npm run build, build.log]
+    focus: ["todo #42", "$ npm run build", build.log]
 `;
 
 export const sourceJson__sceneTaskFlow = `{
@@ -1600,15 +1486,9 @@ export const sourceJson__sceneTaskFlow = `{
 export const sourceYaml__sceneNotification = `title: "通知"
 type: topology
 actors:
-  - name: @alice
-    kind: shape-message-bubble
-    subtitle: "Slack"
-  - name: NotifyService
-    kind: shape-hexagon
-    subtitle: "push"
-  - name: デスクトップ通知
-    kind: shape-window
-    subtitle: "OS native"
+  - @alice: shape-message-bubble "Slack"
+  - NotifyService: shape-hexagon "push"
+  - デスクトップ通知: shape-window "OS native"
 flow:
   - @alice -> NotifyService: ""
   - NotifyService -> デスクトップ通知: ""
@@ -1643,15 +1523,9 @@ export const sourceJson__sceneNotification = `{
 export const sourceYaml__sceneTrustAsset = `title: "信託資産"
 type: topology
 actors:
-  - name: 資産運用者
-    kind: shape-trader
-    subtitle: "buy 指示"
-  - name: 三井住友信託
-    kind: shape-trust-bank
-    subtitle: "受託"
-  - name: 運用報告書
-    kind: shape-file
-    subtitle: "月次"
+  - 資産運用者: shape-trader "buy 指示"
+  - 三井住友信託: shape-trust-bank "受託"
+  - 運用報告書: shape-file "月次"
 flow:
   - 資産運用者 -> 三井住友信託: ""
   - 三井住友信託 -> 運用報告書: ""
@@ -1686,25 +1560,19 @@ export const sourceJson__sceneTrustAsset = `{
 export const sourceYaml__sceneConsensus = `title: "consensus"
 type: topology
 actors:
-  - name: validator
-    kind: shape-blockchain-node
-    subtitle: "PoS"
-  - name: block #8123456
-    kind: shape-blockchain-block
-    subtitle: "proposed"
-  - name: canonical chain
-    kind: shape-blockchain
-    subtitle: "finalized"
+  - validator: shape-blockchain-node "PoS"
+  - "block #8123456": shape-blockchain-block "proposed"
+  - "canonical chain": shape-blockchain "finalized"
 flow:
-  - validator -> block #8123456: ""
-  - block #8123456 -> canonical chain: ""
+  - validator -> "block #8123456": ""
+  - "block #8123456" -> "canonical chain": ""
 animation:
   - step: "1. validator" 0.75s
     focus: [validator]
   - step: "2. block #8123456" 0.75s
-    focus: [validator, block #8123456]
+    focus: [validator, "block #8123456"]
   - step: "consensus" 0.75s
-    focus: [validator, block #8123456, canonical chain]
+    focus: [validator, "block #8123456", "canonical chain"]
 `;
 
 export const sourceJson__sceneConsensus = `{
@@ -1729,15 +1597,9 @@ export const sourceJson__sceneConsensus = `{
 export const sourceYaml__sceneTokenDeploy = `title: "token deploy"
 type: topology
 actors:
-  - name: deployer
-    kind: shape-lawyer
-    subtitle: "founder"
-  - name: ERC-20
-    kind: shape-smart-contract
-    subtitle: "OpenZeppelin"
-  - name: $KIWA
-    kind: shape-token
-    subtitle: "1B supply"
+  - deployer: shape-lawyer "founder"
+  - ERC-20: shape-smart-contract "OpenZeppelin"
+  - $KIWA: shape-token "1B supply"
 flow:
   - deployer -> ERC-20: ""
   - ERC-20 -> $KIWA: ""
@@ -1772,15 +1634,9 @@ export const sourceJson__sceneTokenDeploy = `{
 export const sourceYaml__sceneCompliance = `title: "compliance"
 type: topology
 actors:
-  - name: 金融庁
-    kind: shape-regulator
-    subtitle: "検査"
-  - name: 取引記録
-    kind: shape-file
-    subtitle: "audit trail"
-  - name: 対象銀行
-    kind: shape-bank
-    subtitle: "検査対象"
+  - 金融庁: shape-regulator "検査"
+  - 取引記録: shape-file "audit trail"
+  - 対象銀行: shape-bank "検査対象"
 flow:
   - 金融庁 -> 取引記録: ""
   - 取引記録 -> 対象銀行: ""
@@ -1815,25 +1671,19 @@ export const sourceJson__sceneCompliance = `{
 export const sourceYaml__sceneNftMarketplace = `title: "NFT marketplace"
 type: topology
 actors:
-  - name: buyer
-    kind: shape-wallet
-    subtitle: "collector"
-  - name: OpenSea
-    kind: shape-exchange
-    subtitle: "royalty 5%"
-  - name: BAYC #7890
-    kind: shape-nft
-    subtitle: "Bored Ape"
+  - buyer: shape-wallet "collector"
+  - OpenSea: shape-exchange "royalty 5%"
+  - "BAYC #7890": shape-nft "Bored Ape"
 flow:
   - buyer -> OpenSea: ""
-  - OpenSea -> BAYC #7890: ""
+  - OpenSea -> "BAYC #7890": ""
 animation:
   - step: "1. buyer" 0.75s
     focus: [buyer]
   - step: "2. OpenSea" 0.75s
     focus: [buyer, OpenSea]
   - step: "NFT marketplace" 0.75s
-    focus: [buyer, OpenSea, BAYC #7890]
+    focus: [buyer, OpenSea, "BAYC #7890"]
 `;
 
 export const sourceJson__sceneNftMarketplace = `{
@@ -1858,25 +1708,19 @@ export const sourceJson__sceneNftMarketplace = `{
 export const sourceYaml__sceneNetworkPath = `title: "network path"
 type: topology
 actors:
-  - name: client
-    kind: shape-mobile-device
-    subtitle: "端末"
-  - name: core switch
-    kind: shape-network-node
-    subtitle: "L2/L3"
-  - name: app server
-    kind: shape-server-rack
-    subtitle: "DC"
+  - client: shape-mobile-device "端末"
+  - "core switch": shape-network-node "L2/L3"
+  - "app server": shape-server-rack "DC"
 flow:
-  - client -> core switch: ""
-  - core switch -> app server: ""
+  - client -> "core switch": ""
+  - "core switch" -> "app server": ""
 animation:
   - step: "1. client" 0.75s
     focus: [client]
   - step: "2. core switch" 0.75s
-    focus: [client, core switch]
+    focus: [client, "core switch"]
   - step: "network path" 0.75s
-    focus: [client, core switch, app server]
+    focus: [client, "core switch", "app server"]
 `;
 
 export const sourceJson__sceneNetworkPath = `{
@@ -1901,15 +1745,9 @@ export const sourceJson__sceneNetworkPath = `{
 export const sourceYaml__sceneCheckout = `title: "checkout"
 type: topology
 actors:
-  - name: shop.example.com
-    kind: shape-website
-    subtitle: "cart"
-  - name: PayPal
-    kind: shape-payment-provider
-    subtitle: "checkout"
-  - name: MasterCard
-    kind: shape-credit-card
-    subtitle: "credit"
+  - shop.example.com: shape-website "cart"
+  - PayPal: shape-payment-provider "checkout"
+  - MasterCard: shape-credit-card "credit"
 flow:
   - shop.example.com -> PayPal: ""
   - PayPal -> MasterCard: ""
@@ -1944,25 +1782,19 @@ export const sourceJson__sceneCheckout = `{
 export const sourceYaml__sceneEdgeCompute = `title: "edge compute"
 type: topology
 actors:
-  - name: Android app
-    kind: shape-mobile-device
-    subtitle: "user"
-  - name: Fastly edge
-    kind: shape-cdn-edge
-    subtitle: "compute@edge"
-  - name: GCP origin
-    kind: shape-cloud
-    subtitle: "fallback"
+  - "Android app": shape-mobile-device "user"
+  - "Fastly edge": shape-cdn-edge "compute@edge"
+  - "GCP origin": shape-cloud "fallback"
 flow:
-  - Android app -> Fastly edge: ""
-  - Fastly edge -> GCP origin: ""
+  - "Android app" -> "Fastly edge": ""
+  - "Fastly edge" -> "GCP origin": ""
 animation:
   - step: "1. Android app" 0.75s
-    focus: [Android app]
+    focus: ["Android app"]
   - step: "2. Fastly edge" 0.75s
-    focus: [Android app, Fastly edge]
+    focus: ["Android app", "Fastly edge"]
   - step: "edge compute" 0.75s
-    focus: [Android app, Fastly edge, GCP origin]
+    focus: ["Android app", "Fastly edge", "GCP origin"]
 `;
 
 export const sourceJson__sceneEdgeCompute = `{
@@ -1987,25 +1819,19 @@ export const sourceJson__sceneEdgeCompute = `{
 export const sourceYaml__sceneVersionDeploy = `title: "version deploy"
 type: topology
 actors:
-  - name: release v3.2.0
-    kind: shape-stack
-    subtitle: "tagged"
-  - name: deploy pipeline
-    kind: shape-gear
-    subtitle: "canary"
-  - name: prod.example.com
-    kind: shape-website
-    subtitle: "live"
+  - "release v3.2.0": shape-stack "tagged"
+  - "deploy pipeline": shape-gear "canary"
+  - prod.example.com: shape-website "live"
 flow:
-  - release v3.2.0 -> deploy pipeline: ""
-  - deploy pipeline -> prod.example.com: ""
+  - "release v3.2.0" -> "deploy pipeline": ""
+  - "deploy pipeline" -> prod.example.com: ""
 animation:
   - step: "1. release v3.2.0" 0.75s
-    focus: [release v3.2.0]
+    focus: ["release v3.2.0"]
   - step: "2. deploy pipeline" 0.75s
-    focus: [release v3.2.0, deploy pipeline]
+    focus: ["release v3.2.0", "deploy pipeline"]
   - step: "version deploy" 0.75s
-    focus: [release v3.2.0, deploy pipeline, prod.example.com]
+    focus: ["release v3.2.0", "deploy pipeline", prod.example.com]
 `;
 
 export const sourceJson__sceneVersionDeploy = `{
@@ -2030,15 +1856,9 @@ export const sourceJson__sceneVersionDeploy = `{
 export const sourceYaml__sceneAuditChain = `title: "audit chain"
 type: topology
 actors:
-  - name: 監査法人
-    kind: shape-auditor
-    subtitle: "PwC"
-  - name: 監査報告書
-    kind: shape-file
-    subtitle: "signed"
-  - name: 金融庁
-    kind: shape-regulator
-    subtitle: "受領"
+  - 監査法人: shape-auditor "PwC"
+  - 監査報告書: shape-file "signed"
+  - 金融庁: shape-regulator "受領"
 flow:
   - 監査法人 -> 監査報告書: ""
   - 監査報告書 -> 金融庁: ""

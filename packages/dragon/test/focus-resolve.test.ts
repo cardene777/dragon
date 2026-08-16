@@ -306,3 +306,36 @@ animation:
     expect(notices.join(" ")).toContain("a-b");
   });
 });
+
+describe("空白を含む名前を引用符で指す (#1192)", () => {
+  // catalog の見本は `Aave v3` / `iOS app` のように空白を含む名前を使う。 引用符で囲んでも
+  // 空白で切られていたため、その名前を指した段は 1 件も光らなかった (実測 30 件中 4 件)
+  const 光る = (focus: string): string[] => {
+    const src = `title: "t"
+type: topology
+actors:
+  - "Aave v3": shape-smart-contract "pool"
+  - 供給者: shape-wallet "USDC"
+flow:
+  - 供給者 -> "Aave v3": ""
+animation:
+  - step: "s" 1s
+    focus: [${focus}]
+`;
+    return textDslToDiagram(src).phases.flatMap((p) => p.activate ?? []);
+  };
+
+  it("引用符で囲んだ名前は 1 つとして扱う", () => {
+    expect(光る('"Aave v3"')).toEqual(["aave-v3"]);
+  });
+
+  it("引用符で囲んだ名前と囲まない名前を並べられる", () => {
+    expect(光る('供給者, "Aave v3"').sort()).toEqual(["aave-v3", "供給者"]);
+  });
+
+  it("囲まない空白区切りは今まで通り 2 つとして読む", () => {
+    // 旧来の書き方 (`focus: [Client API]`) を壊さない。 2 つの名前として読むので、
+    // 同じ名前を 2 つ書けば 2 回光らせる指定になる
+    expect(光る("供給者 供給者")).toEqual(["供給者", "供給者"]);
+  });
+});

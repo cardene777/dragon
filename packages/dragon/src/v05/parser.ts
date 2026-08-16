@@ -1714,8 +1714,11 @@ function parseFocusList(s: string): string[] {
   // quote 内の space / comma / arrow は保護し、 quote 外の comma でのみ split する。
   let body = s.trim();
   if (body.startsWith("[") && body.endsWith("]")) body = body.slice(1, -1);
-  const parts: string[] = [];
+  // **引用符で囲んだかを覚えておく** (#1192)。 忘れると、後段の空白分割が
+  // `"Aave v3"` を 2 つの名前として切り、空白を含む名前が 1 件も当たらなくなる
+  const parts: Array<{ text: string; quoted: boolean }> = [];
   let buf = "";
+  let quoted = false;
   let quote: string | null = null;
   for (const ch of body) {
     if (quote) {
@@ -1728,22 +1731,29 @@ function parseFocusList(s: string): string[] {
     }
     if (ch === "\"" || ch === "'") {
       quote = ch;
+      quoted = true;
       continue;
     }
     if (ch === ",") {
       const t = buf.trim();
-      if (t) parts.push(t);
+      if (t) parts.push({ text: t, quoted });
       buf = "";
+      quoted = false;
       continue;
     }
     buf += ch;
   }
   const tail = buf.trim();
-  if (tail) parts.push(tail);
+  if (tail) parts.push({ text: tail, quoted });
   // "User -> API" のような quote 済 item は「1 item」 として parts に入る。
   // quote 外 item は依然として space split (旧挙動、 「Client API」 が 2 item として解釈される互換維持)。
   const out: string[] = [];
-  for (const p of parts) {
+  for (const { text: p, quoted: wasQuoted } of parts) {
+    // 引用符で囲んだ item は書いた人が 1 つの名前として指した形。 空白があっても切らない
+    if (wasQuoted) {
+      out.push(p);
+      continue;
+    }
     if (/[-→][>]?/.test(p) && /\s/.test(p)) {
       // arrow を含む item は「A -> B」 パターン、 分割せず 1 item として保持
       out.push(p);
