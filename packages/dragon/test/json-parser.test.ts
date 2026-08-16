@@ -181,14 +181,6 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     expect(diagramJsonSchema.required).toContain("flow");
   });
 
-  it("schema の type field は 12 preset enum を持つ", () => {
-    const typeSchema = (diagramJsonSchema.properties as Record<string, { enum?: string[] }>).type;
-    expect(typeSchema?.enum).toContain("sequence");
-    expect(typeSchema?.enum).toContain("flow");
-    expect(typeSchema?.enum).toContain("solidity");
-    expect(typeSchema?.enum?.length).toBeGreaterThanOrEqual(12);
-  });
-
   it("schema の type enum は記法の型と完全に一致する", () => {
     // 型の一覧は 3 箇所にある = 記法の型 (`PRESET_TYPES`)、 JSON 経路の検査
     // (`VALID_PRESETS`、 `PRESET_TYPES` から導出済)、 そして本 schema。 schema だけは手で
@@ -199,6 +191,43 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     // LLM に渡す契約なので、 残ると「schema 通りに書いたのに弾かれる」 出力を誘発する。
     const typeSchema = (diagramJsonSchema.properties as Record<string, { enum?: string[] }>).type;
     expect(new Set(typeSchema?.enum ?? [])).toEqual(new Set(PRESET_TYPES));
+  });
+
+  it("schema の説明文が実在する型だけを挙げる", () => {
+    // **説明文も型の一覧を持っている** (`#1174`)。 enum だけ縛っても、 同じ object の
+    // `description` が型名を並べているのでそちらが古くなる。
+    //
+    // 説明文の方が実害が大きい。 enum は一致しなければ弾くが、 説明文は LLM が
+    // 「どう actors を書くか」 を決める材料なので、 消えた型の書き方が残っていると
+    // **黙って誤った出力を誘導する**。 `#1170` で `radial` を消した時、 enum と説明文の
+    // 両方を手で直す必要があった。
+    const typeSchema = (diagramJsonSchema.properties as Record<string, { description?: string }>).type;
+    const 説明 = typeSchema?.description ?? "";
+    expect(説明, "型の説明文が空").not.toBe("");
+
+    // **型の項目は「名前 + 半角空白 + 括弧」 の形で書く**。 説明文はこの形を守っており
+    // (`sequence (時系列の呼び出し)` / `gantt (工程の並び)`)、 欄の名前として出る `flow` や
+    // `actors` はこの形を取らない (`flow に矢印を書く`)。
+    //
+    // この形を手掛かりにすると、 **型名の一覧を手で持たずに済む**。 手で持つと、 後から
+    // 足した型が一覧に無いまま消された時に検出できない (この検査を最初に書いた時は
+    // 手書きの一覧に依存しており、 その穴があった)。
+    const 項目 = (s: string) =>
+      new Set([...s.matchAll(/(?:^|[\s/(])([a-z][a-z0-9]*) \(/gu)].map((m) => m[1]!));
+    const 出てくる型 = 項目(説明);
+    const 実在 = new Set<string>(PRESET_TYPES);
+
+    // 消した型の項目が残っていないか
+    const 消えた型が残っている = [...出てくる型].filter((w) => !実在.has(w));
+    expect(
+      消えた型が残っている,
+      `説明文に実在しない型が残っている: ${消えた型が残っている.join(", ")}`,
+    ).toEqual([]);
+
+    // 足した型の項目が書かれているか。 **素の部分一致では見られない** = `flow` は欄の名前
+    // としても出るため、 型の項目を消しても `説明.includes("flow")` は真のまま通る
+    const 書かれていない = [...実在].filter((t) => !出てくる型.has(t));
+    expect(書かれていない, `説明文に書かれていない型がある: ${書かれていない.join(", ")}`).toEqual([]);
   });
 
   it("schema は $schema field を持つ (Draft 7 declaration)", () => {

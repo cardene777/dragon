@@ -2100,6 +2100,15 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
  * これらは中身 (扇 / 帯 / 枝) を payload で受け取り、 1 node で図全体を描く。 登場人物ごとの箱を
  * 持たないので、 段の `focus:` で名前を指しても引く先が無い。 `injectPhasesFallback` が
  * この一覧を使って「実在する名前ならその箱を光らせる」 に読み替える (#1076 / #1077)。
+ *
+ * **`mind-map` は記法から到達しない** (`#1174`)。 この種別を作っていたのは `compileRadial`
+ * だけで、 `#1170` で消えた。 記法の `type: mind` は `compileMind` が `card` を 3 列に
+ * 並べる別実装で、 `mind-map` にはならない。
+ *
+ * それでも一覧に残すのは、 ここが「1 箱で図全体を描く種別」 という **性質の一覧** だから。
+ * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは今の
+ * `compileMind` の実装による。 `compileMind` を `mind-map` に寄せる時 (`#1177`) に
+ * 一覧へ戻す作業が要らない。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "chart-pie", "chart-line", "chart-bar",

@@ -5,7 +5,39 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-予定 ... npm publish (`@cardenelabs/dragon` / `@cardenelabs/cdl`) + GitHub Pages 公開後の feedback を反映した patch / minor。
+**破壊的変更を含む**。 記法から型を 1 つ落としているため、 次の版は patch ではなく minor に
+なる (`package.json` は 0.8.0 に上げてある)。
+
+### Removed (破壊的変更)
+
+- **記法から `type: radial` を外した** (#1170)
+
+  放射状に枝を配る記法で、 繋がる先の `mind-radial` 種別を engine 側で落としたため
+  (`@cardenelabs/cdl` 0.6.0)、 記法の入口も同じ段で閉じた。 閉じないと「型は通るのに
+  描けない記法」 が一覧に残る。
+
+  | 消えたもの | 代わりに使うもの |
+  |---|---|
+  | 記法の `type: radial` | 無し。 下記 |
+  | `PresetType` の `"radial"` | 同上 |
+  | `diagramJsonSchema` の型一覧の `radial` | 同上 |
+
+  **そのまま置き換えられる記法は無い**。 `type: mind` は枝を書き並べる用途では足りるが、
+  `card` を 3 列に並べる別実装なので出てくる絵が変わる (放射状にはならない)。
+
+  `type: radial` を書いた記法は `unknown type: "radial"` で弾かれる。 黙って別の絵に
+  なることは無い。
+
+### Changed
+
+- **`@cardenelabs/cdl` の依存を `^0.5.0` から `^0.6.1` に上げた** (#1166)
+
+  同じ workspace の中で cdl の解決先が 2 つに割れており (`apps/playground-spa` が隣の
+  checkout を `link:` で、 `packages/dragon` が公開版を掴む)、 同名だが別物の型として
+  扱われて型検査が 103 件落ちていた。 両方を公開版に揃えて 0 件になった。
+
+  cdl 0.6.0 は `mindMapRadial` と `mind-radial` を消しているため、 これらを使う図は
+  cdl 側の移行が要る (cdl の `CHANGELOG` に手順がある)。
 
 ## [0.7.0] - 2026-07-15
 
