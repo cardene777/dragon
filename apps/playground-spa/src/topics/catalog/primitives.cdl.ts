@@ -796,7 +796,11 @@ flow:
   - 送金者 -> DEX: ""
   - DEX -> Ethereum: ""
 animation:
-  - step: "crypto 送金" 1.5s
+  - step: "1. 送金者" 0.75s
+    focus: [送金者]
+  - step: "2. DEX" 0.75s
+    focus: [送金者, DEX]
+  - step: "crypto 送金" 0.75s
     focus: [送金者, DEX, Ethereum]
 `;
 
@@ -813,7 +817,9 @@ export const sourceJson__sceneCryptoTransfer = `{
     { "from": "DEX", "to": "Ethereum", "label": "" }
   ],
   "animation": [
-    { "step": "crypto 送金", "duration": 1.5, "focus": ["送金者", "DEX", "Ethereum"] }
+    { "step": "1. 送金者", "duration": 0.75, "focus": ["送金者"] },
+    { "step": "2. DEX", "duration": 0.75, "focus": ["送金者", "DEX"] },
+    { "step": "crypto 送金", "duration": 0.75, "focus": ["送金者", "DEX", "Ethereum"] }
   ]
 }`;
 
@@ -833,7 +839,11 @@ flow:
   - 代理人 -> 公証役場: ""
   - 公証役場 -> 登記簿: ""
 animation:
-  - step: "法務 flow" 1.5s
+  - step: "1. 代理人" 0.75s
+    focus: [代理人]
+  - step: "2. 公証役場" 0.75s
+    focus: [代理人, 公証役場]
+  - step: "法務 flow" 0.75s
     focus: [代理人, 公証役場, 登記簿]
 `;
 
@@ -850,7 +860,9 @@ export const sourceJson__sceneLegalNotarization = `{
     { "from": "公証役場", "to": "登記簿", "label": "" }
   ],
   "animation": [
-    { "step": "法務 flow", "duration": 1.5, "focus": ["代理人", "公証役場", "登記簿"] }
+    { "step": "1. 代理人", "duration": 0.75, "focus": ["代理人"] },
+    { "step": "2. 公証役場", "duration": 0.75, "focus": ["代理人", "公証役場"] },
+    { "step": "法務 flow", "duration": 0.75, "focus": ["代理人", "公証役場", "登記簿"] }
   ]
 }`;
 
@@ -870,7 +882,11 @@ flow:
   - creator -> ERC-721: ""
   - ERC-721 -> Rare Punk: ""
 animation:
-  - step: "NFT mint" 1.5s
+  - step: "1. creator" 0.75s
+    focus: [creator]
+  - step: "2. ERC-721" 0.75s
+    focus: [creator, ERC-721]
+  - step: "NFT mint" 0.75s
     focus: [creator, ERC-721, Rare Punk]
 `;
 
@@ -887,7 +903,9 @@ export const sourceJson__sceneNftMint = `{
     { "from": "ERC-721", "to": "Rare Punk", "label": "" }
   ],
   "animation": [
-    { "step": "NFT mint", "duration": 1.5, "focus": ["creator", "ERC-721", "Rare Punk"] }
+    { "step": "1. creator", "duration": 0.75, "focus": ["creator"] },
+    { "step": "2. ERC-721", "duration": 0.75, "focus": ["creator", "ERC-721"] },
+    { "step": "NFT mint", "duration": 0.75, "focus": ["creator", "ERC-721", "Rare Punk"] }
   ]
 }`;
 
@@ -907,7 +925,11 @@ flow:
   - ATM -> みずほ銀行: ""
   - みずほ銀行 -> Amazon: ""
 animation:
-  - step: "銀行 flow" 1.5s
+  - step: "1. ATM" 0.75s
+    focus: [ATM]
+  - step: "2. みずほ銀行" 0.75s
+    focus: [ATM, みずほ銀行]
+  - step: "銀行 flow" 0.75s
     focus: [ATM, みずほ銀行, Amazon]
 `;
 
@@ -924,7 +946,9 @@ export const sourceJson__sceneBankingFlow = `{
     { "from": "みずほ銀行", "to": "Amazon", "label": "" }
   ],
   "animation": [
-    { "step": "銀行 flow", "duration": 1.5, "focus": ["ATM", "みずほ銀行", "Amazon"] }
+    { "step": "1. ATM", "duration": 0.75, "focus": ["ATM"] },
+    { "step": "2. みずほ銀行", "duration": 0.75, "focus": ["ATM", "みずほ銀行"] },
+    { "step": "銀行 flow", "duration": 0.75, "focus": ["ATM", "みずほ銀行", "Amazon"] }
   ]
 }`;
 
@@ -944,7 +968,11 @@ flow:
   - 温度計 -> Infura: ""
   - Infura -> OracleContract: ""
 animation:
-  - step: "IoT オンチェーン" 1.5s
+  - step: "1. 温度計" 0.75s
+    focus: [温度計]
+  - step: "2. Infura" 0.75s
+    focus: [温度計, Infura]
+  - step: "IoT オンチェーン" 0.75s
     focus: [温度計, Infura, OracleContract]
 `;
 
@@ -961,7 +989,9 @@ export const sourceJson__sceneIotOnchain = `{
     { "from": "Infura", "to": "OracleContract", "label": "" }
   ],
   "animation": [
-    { "step": "IoT オンチェーン", "duration": 1.5, "focus": ["温度計", "Infura", "OracleContract"] }
+    { "step": "1. 温度計", "duration": 0.75, "focus": ["温度計"] },
+    { "step": "2. Infura", "duration": 0.75, "focus": ["温度計", "Infura"] },
+    { "step": "IoT オンチェーン", "duration": 0.75, "focus": ["温度計", "Infura", "OracleContract"] }
   ]
 }`;
 
@@ -981,7 +1011,11 @@ flow:
   - 監査法人 -> 会計帳簿: ""
   - 会計帳簿 -> 金融庁: ""
 animation:
-  - step: "監査 flow" 1.5s
+  - step: "1. 監査法人" 0.75s
+    focus: [監査法人]
+  - step: "2. 会計帳簿" 0.75s
+    focus: [監査法人, 会計帳簿]
+  - step: "監査 flow" 0.75s
     focus: [監査法人, 会計帳簿, 金融庁]
 `;
 
@@ -998,7 +1032,9 @@ export const sourceJson__sceneAuditFlow = `{
     { "from": "会計帳簿", "to": "金融庁", "label": "" }
   ],
   "animation": [
-    { "step": "監査 flow", "duration": 1.5, "focus": ["監査法人", "会計帳簿", "金融庁"] }
+    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"] },
+    { "step": "2. 会計帳簿", "duration": 0.75, "focus": ["監査法人", "会計帳簿"] },
+    { "step": "監査 flow", "duration": 0.75, "focus": ["監査法人", "会計帳簿", "金融庁"] }
   ]
 }`;
 
@@ -1018,7 +1054,11 @@ flow:
   - 個人投資家 -> 野村証券: ""
   - 野村証券 -> 東証: ""
 animation:
-  - step: "証券取引" 1.5s
+  - step: "1. 個人投資家" 0.75s
+    focus: [個人投資家]
+  - step: "2. 野村証券" 0.75s
+    focus: [個人投資家, 野村証券]
+  - step: "証券取引" 0.75s
     focus: [個人投資家, 野村証券, 東証]
 `;
 
@@ -1035,7 +1075,9 @@ export const sourceJson__sceneStockTrading = `{
     { "from": "野村証券", "to": "東証", "label": "" }
   ],
   "animation": [
-    { "step": "証券取引", "duration": 1.5, "focus": ["個人投資家", "野村証券", "東証"] }
+    { "step": "1. 個人投資家", "duration": 0.75, "focus": ["個人投資家"] },
+    { "step": "2. 野村証券", "duration": 0.75, "focus": ["個人投資家", "野村証券"] },
+    { "step": "証券取引", "duration": 0.75, "focus": ["個人投資家", "野村証券", "東証"] }
   ]
 }`;
 
@@ -1055,7 +1097,11 @@ flow:
   - サポート担当 -> BUG-1234: ""
   - BUG-1234 -> hotfix.ts: ""
 animation:
-  - step: "問い合わせ flow" 1.5s
+  - step: "1. サポート担当" 0.75s
+    focus: [サポート担当]
+  - step: "2. BUG-1234" 0.75s
+    focus: [サポート担当, BUG-1234]
+  - step: "問い合わせ flow" 0.75s
     focus: [サポート担当, BUG-1234, hotfix.ts]
 `;
 
@@ -1072,7 +1118,9 @@ export const sourceJson__sceneSupportFlow = `{
     { "from": "BUG-1234", "to": "hotfix.ts", "label": "" }
   ],
   "animation": [
-    { "step": "問い合わせ flow", "duration": 1.5, "focus": ["サポート担当", "BUG-1234", "hotfix.ts"] }
+    { "step": "1. サポート担当", "duration": 0.75, "focus": ["サポート担当"] },
+    { "step": "2. BUG-1234", "duration": 0.75, "focus": ["サポート担当", "BUG-1234"] },
+    { "step": "問い合わせ flow", "duration": 0.75, "focus": ["サポート担当", "BUG-1234", "hotfix.ts"] }
   ]
 }`;
 
@@ -1092,7 +1140,11 @@ flow:
   - Stripe -> VISA: ""
   - VISA -> 発行銀行: ""
 animation:
-  - step: "決済 flow" 1.5s
+  - step: "1. Stripe" 0.75s
+    focus: [Stripe]
+  - step: "2. VISA" 0.75s
+    focus: [Stripe, VISA]
+  - step: "決済 flow" 0.75s
     focus: [Stripe, VISA, 発行銀行]
 `;
 
@@ -1109,7 +1161,9 @@ export const sourceJson__scenePaymentSettlement = `{
     { "from": "VISA", "to": "発行銀行", "label": "" }
   ],
   "animation": [
-    { "step": "決済 flow", "duration": 1.5, "focus": ["Stripe", "VISA", "発行銀行"] }
+    { "step": "1. Stripe", "duration": 0.75, "focus": ["Stripe"] },
+    { "step": "2. VISA", "duration": 0.75, "focus": ["Stripe", "VISA"] },
+    { "step": "決済 flow", "duration": 0.75, "focus": ["Stripe", "VISA", "発行銀行"] }
   ]
 }`;
 
@@ -1129,7 +1183,11 @@ flow:
   - example.com -> Cloudflare: ""
   - Cloudflare -> origin: ""
 animation:
-  - step: "web infra" 1.5s
+  - step: "1. example.com" 0.75s
+    focus: [example.com]
+  - step: "2. Cloudflare" 0.75s
+    focus: [example.com, Cloudflare]
+  - step: "web infra" 0.75s
     focus: [example.com, Cloudflare, origin]
 `;
 
@@ -1146,7 +1204,9 @@ export const sourceJson__sceneWebInfra = `{
     { "from": "Cloudflare", "to": "origin", "label": "" }
   ],
   "animation": [
-    { "step": "web infra", "duration": 1.5, "focus": ["example.com", "Cloudflare", "origin"] }
+    { "step": "1. example.com", "duration": 0.75, "focus": ["example.com"] },
+    { "step": "2. Cloudflare", "duration": 0.75, "focus": ["example.com", "Cloudflare"] },
+    { "step": "web infra", "duration": 0.75, "focus": ["example.com", "Cloudflare", "origin"] }
   ]
 }`;
 
@@ -1166,7 +1226,11 @@ flow:
   - Ethereum -> Bridge: ""
   - Bridge -> Arbitrum: ""
 animation:
-  - step: "token bridge" 1.5s
+  - step: "1. Ethereum" 0.75s
+    focus: [Ethereum]
+  - step: "2. Bridge" 0.75s
+    focus: [Ethereum, Bridge]
+  - step: "token bridge" 0.75s
     focus: [Ethereum, Bridge, Arbitrum]
 `;
 
@@ -1183,7 +1247,9 @@ export const sourceJson__sceneTokenBridge = `{
     { "from": "Bridge", "to": "Arbitrum", "label": "" }
   ],
   "animation": [
-    { "step": "token bridge", "duration": 1.5, "focus": ["Ethereum", "Bridge", "Arbitrum"] }
+    { "step": "1. Ethereum", "duration": 0.75, "focus": ["Ethereum"] },
+    { "step": "2. Bridge", "duration": 0.75, "focus": ["Ethereum", "Bridge"] },
+    { "step": "token bridge", "duration": 0.75, "focus": ["Ethereum", "Bridge", "Arbitrum"] }
   ]
 }`;
 
@@ -1203,7 +1269,11 @@ flow:
   - 深度者 -> Aave v3: ""
   - Aave v3 -> aUSDC: ""
 animation:
-  - step: "DeFi lending" 1.5s
+  - step: "1. 深度者" 0.75s
+    focus: [深度者]
+  - step: "2. Aave v3" 0.75s
+    focus: [深度者, Aave v3]
+  - step: "DeFi lending" 0.75s
     focus: [深度者, Aave v3, aUSDC]
 `;
 
@@ -1220,7 +1290,9 @@ export const sourceJson__sceneDefiLending = `{
     { "from": "Aave v3", "to": "aUSDC", "label": "" }
   ],
   "animation": [
-    { "step": "DeFi lending", "duration": 1.5, "focus": ["深度者", "Aave v3", "aUSDC"] }
+    { "step": "1. 深度者", "duration": 0.75, "focus": ["深度者"] },
+    { "step": "2. Aave v3", "duration": 0.75, "focus": ["深度者", "Aave v3"] },
+    { "step": "DeFi lending", "duration": 0.75, "focus": ["深度者", "Aave v3", "aUSDC"] }
   ]
 }`;
 
@@ -1240,7 +1312,11 @@ flow:
   - sender -> BTC mainnet: ""
   - BTC mainnet -> full node: ""
 animation:
-  - step: "bitcoin tx" 1.5s
+  - step: "1. sender" 0.75s
+    focus: [sender]
+  - step: "2. BTC mainnet" 0.75s
+    focus: [sender, BTC mainnet]
+  - step: "bitcoin tx" 0.75s
     focus: [sender, BTC mainnet, full node]
 `;
 
@@ -1257,7 +1333,9 @@ export const sourceJson__sceneBitcoinTx = `{
     { "from": "BTC mainnet", "to": "full node", "label": "" }
   ],
   "animation": [
-    { "step": "bitcoin tx", "duration": 1.5, "focus": ["sender", "BTC mainnet", "full node"] }
+    { "step": "1. sender", "duration": 0.75, "focus": ["sender"] },
+    { "step": "2. BTC mainnet", "duration": 0.75, "focus": ["sender", "BTC mainnet"] },
+    { "step": "bitcoin tx", "duration": 0.75, "focus": ["sender", "BTC mainnet", "full node"] }
   ]
 }`;
 
@@ -1277,7 +1355,11 @@ flow:
   - 顧客 -> Rakuten: ""
   - Rakuten -> 物流倉庫: ""
 animation:
-  - step: "EC 注文" 1.5s
+  - step: "1. 顧客" 0.75s
+    focus: [顧客]
+  - step: "2. Rakuten" 0.75s
+    focus: [顧客, Rakuten]
+  - step: "EC 注文" 0.75s
     focus: [顧客, Rakuten, 物流倉庫]
 `;
 
@@ -1294,7 +1376,9 @@ export const sourceJson__sceneEcOrder = `{
     { "from": "Rakuten", "to": "物流倉庫", "label": "" }
   ],
   "animation": [
-    { "step": "EC 注文", "duration": 1.5, "focus": ["顧客", "Rakuten", "物流倉庫"] }
+    { "step": "1. 顧客", "duration": 0.75, "focus": ["顧客"] },
+    { "step": "2. Rakuten", "duration": 0.75, "focus": ["顧客", "Rakuten"] },
+    { "step": "EC 注文", "duration": 0.75, "focus": ["顧客", "Rakuten", "物流倉庫"] }
   ]
 }`;
 
@@ -1314,7 +1398,11 @@ flow:
   - iOS app -> GraphQL: ""
   - GraphQL -> backend: ""
 animation:
-  - step: "mobile API" 1.5s
+  - step: "1. iOS app" 0.75s
+    focus: [iOS app]
+  - step: "2. GraphQL" 0.75s
+    focus: [iOS app, GraphQL]
+  - step: "mobile API" 0.75s
     focus: [iOS app, GraphQL, backend]
 `;
 
@@ -1331,7 +1419,9 @@ export const sourceJson__sceneMobileApi = `{
     { "from": "GraphQL", "to": "backend", "label": "" }
   ],
   "animation": [
-    { "step": "mobile API", "duration": 1.5, "focus": ["iOS app", "GraphQL", "backend"] }
+    { "step": "1. iOS app", "duration": 0.75, "focus": ["iOS app"] },
+    { "step": "2. GraphQL", "duration": 0.75, "focus": ["iOS app", "GraphQL"] },
+    { "step": "mobile API", "duration": 0.75, "focus": ["iOS app", "GraphQL", "backend"] }
   ]
 }`;
 
@@ -1351,7 +1441,11 @@ flow:
   - FANUC robot -> 計測 sensor: ""
   - 計測 sensor -> MES DB: ""
 animation:
-  - step: "factory line" 1.5s
+  - step: "1. FANUC robot" 0.75s
+    focus: [FANUC robot]
+  - step: "2. 計測 sensor" 0.75s
+    focus: [FANUC robot, 計測 sensor]
+  - step: "factory line" 0.75s
     focus: [FANUC robot, 計測 sensor, MES DB]
 `;
 
@@ -1368,7 +1462,9 @@ export const sourceJson__sceneFactoryLine = `{
     { "from": "計測 sensor", "to": "MES DB", "label": "" }
   ],
   "animation": [
-    { "step": "factory line", "duration": 1.5, "focus": ["FANUC robot", "計測 sensor", "MES DB"] }
+    { "step": "1. FANUC robot", "duration": 0.75, "focus": ["FANUC robot"] },
+    { "step": "2. 計測 sensor", "duration": 0.75, "focus": ["FANUC robot", "計測 sensor"] },
+    { "step": "factory line", "duration": 0.75, "focus": ["FANUC robot", "計測 sensor", "MES DB"] }
   ]
 }`;
 
@@ -1388,7 +1484,11 @@ flow:
   - Starlink -> Alchemy: ""
   - Alchemy -> Solana: ""
 animation:
-  - step: "satellite chain" 1.5s
+  - step: "1. Starlink" 0.75s
+    focus: [Starlink]
+  - step: "2. Alchemy" 0.75s
+    focus: [Starlink, Alchemy]
+  - step: "satellite chain" 0.75s
     focus: [Starlink, Alchemy, Solana]
 `;
 
@@ -1405,7 +1505,9 @@ export const sourceJson__sceneSatelliteChain = `{
     { "from": "Alchemy", "to": "Solana", "label": "" }
   ],
   "animation": [
-    { "step": "satellite chain", "duration": 1.5, "focus": ["Starlink", "Alchemy", "Solana"] }
+    { "step": "1. Starlink", "duration": 0.75, "focus": ["Starlink"] },
+    { "step": "2. Alchemy", "duration": 0.75, "focus": ["Starlink", "Alchemy"] },
+    { "step": "satellite chain", "duration": 0.75, "focus": ["Starlink", "Alchemy", "Solana"] }
   ]
 }`;
 
@@ -1425,7 +1527,11 @@ flow:
   - src/ -> GitHub Actions: ""
   - GitHub Actions -> AWS ECS: ""
 animation:
-  - step: "DevOps" 1.5s
+  - step: "1. src/" 0.75s
+    focus: [src/]
+  - step: "2. GitHub Actions" 0.75s
+    focus: [src/, GitHub Actions]
+  - step: "DevOps" 0.75s
     focus: [src/, GitHub Actions, AWS ECS]
 `;
 
@@ -1442,7 +1548,9 @@ export const sourceJson__sceneDevOps = `{
     { "from": "GitHub Actions", "to": "AWS ECS", "label": "" }
   ],
   "animation": [
-    { "step": "DevOps", "duration": 1.5, "focus": ["src/", "GitHub Actions", "AWS ECS"] }
+    { "step": "1. src/", "duration": 0.75, "focus": ["src/"] },
+    { "step": "2. GitHub Actions", "duration": 0.75, "focus": ["src/", "GitHub Actions"] },
+    { "step": "DevOps", "duration": 0.75, "focus": ["src/", "GitHub Actions", "AWS ECS"] }
   ]
 }`;
 
@@ -1462,7 +1570,11 @@ flow:
   - todo #42 -> $ npm run build: ""
   - $ npm run build -> build.log: ""
 animation:
-  - step: "task flow" 1.5s
+  - step: "1. todo #42" 0.75s
+    focus: [todo #42]
+  - step: "2. $ npm run build" 0.75s
+    focus: [todo #42, $ npm run build]
+  - step: "task flow" 0.75s
     focus: [todo #42, $ npm run build, build.log]
 `;
 
@@ -1479,7 +1591,9 @@ export const sourceJson__sceneTaskFlow = `{
     { "from": "$ npm run build", "to": "build.log", "label": "" }
   ],
   "animation": [
-    { "step": "task flow", "duration": 1.5, "focus": ["todo #42", "$ npm run build", "build.log"] }
+    { "step": "1. todo #42", "duration": 0.75, "focus": ["todo #42"] },
+    { "step": "2. $ npm run build", "duration": 0.75, "focus": ["todo #42", "$ npm run build"] },
+    { "step": "task flow", "duration": 0.75, "focus": ["todo #42", "$ npm run build", "build.log"] }
   ]
 }`;
 
@@ -1499,7 +1613,11 @@ flow:
   - @alice -> NotifyService: ""
   - NotifyService -> デスクトップ通知: ""
 animation:
-  - step: "通知" 1.5s
+  - step: "1. @alice" 0.75s
+    focus: [@alice]
+  - step: "2. NotifyService" 0.75s
+    focus: [@alice, NotifyService]
+  - step: "通知" 0.75s
     focus: [@alice, NotifyService, デスクトップ通知]
 `;
 
@@ -1516,7 +1634,9 @@ export const sourceJson__sceneNotification = `{
     { "from": "NotifyService", "to": "デスクトップ通知", "label": "" }
   ],
   "animation": [
-    { "step": "通知", "duration": 1.5, "focus": ["@alice", "NotifyService", "デスクトップ通知"] }
+    { "step": "1. @alice", "duration": 0.75, "focus": ["@alice"] },
+    { "step": "2. NotifyService", "duration": 0.75, "focus": ["@alice", "NotifyService"] },
+    { "step": "通知", "duration": 0.75, "focus": ["@alice", "NotifyService", "デスクトップ通知"] }
   ]
 }`;
 
@@ -1536,7 +1656,11 @@ flow:
   - 資産運用者 -> 三井住友信託: ""
   - 三井住友信託 -> 運用報告書: ""
 animation:
-  - step: "信託資産" 1.5s
+  - step: "1. 資産運用者" 0.75s
+    focus: [資産運用者]
+  - step: "2. 三井住友信託" 0.75s
+    focus: [資産運用者, 三井住友信託]
+  - step: "信託資産" 0.75s
     focus: [資産運用者, 三井住友信託, 運用報告書]
 `;
 
@@ -1553,7 +1677,9 @@ export const sourceJson__sceneTrustAsset = `{
     { "from": "三井住友信託", "to": "運用報告書", "label": "" }
   ],
   "animation": [
-    { "step": "信託資産", "duration": 1.5, "focus": ["資産運用者", "三井住友信託", "運用報告書"] }
+    { "step": "1. 資産運用者", "duration": 0.75, "focus": ["資産運用者"] },
+    { "step": "2. 三井住友信託", "duration": 0.75, "focus": ["資産運用者", "三井住友信託"] },
+    { "step": "信託資産", "duration": 0.75, "focus": ["資産運用者", "三井住友信託", "運用報告書"] }
   ]
 }`;
 
@@ -1573,7 +1699,11 @@ flow:
   - validator -> block #8123456: ""
   - block #8123456 -> canonical chain: ""
 animation:
-  - step: "consensus" 1.5s
+  - step: "1. validator" 0.75s
+    focus: [validator]
+  - step: "2. block #8123456" 0.75s
+    focus: [validator, block #8123456]
+  - step: "consensus" 0.75s
     focus: [validator, block #8123456, canonical chain]
 `;
 
@@ -1590,7 +1720,9 @@ export const sourceJson__sceneConsensus = `{
     { "from": "block #8123456", "to": "canonical chain", "label": "" }
   ],
   "animation": [
-    { "step": "consensus", "duration": 1.5, "focus": ["validator", "block #8123456", "canonical chain"] }
+    { "step": "1. validator", "duration": 0.75, "focus": ["validator"] },
+    { "step": "2. block #8123456", "duration": 0.75, "focus": ["validator", "block #8123456"] },
+    { "step": "consensus", "duration": 0.75, "focus": ["validator", "block #8123456", "canonical chain"] }
   ]
 }`;
 
@@ -1610,7 +1742,11 @@ flow:
   - deployer -> ERC-20: ""
   - ERC-20 -> $KIWA: ""
 animation:
-  - step: "token deploy" 1.5s
+  - step: "1. deployer" 0.75s
+    focus: [deployer]
+  - step: "2. ERC-20" 0.75s
+    focus: [deployer, ERC-20]
+  - step: "token deploy" 0.75s
     focus: [deployer, ERC-20, $KIWA]
 `;
 
@@ -1627,7 +1763,9 @@ export const sourceJson__sceneTokenDeploy = `{
     { "from": "ERC-20", "to": "$KIWA", "label": "" }
   ],
   "animation": [
-    { "step": "token deploy", "duration": 1.5, "focus": ["deployer", "ERC-20", "$KIWA"] }
+    { "step": "1. deployer", "duration": 0.75, "focus": ["deployer"] },
+    { "step": "2. ERC-20", "duration": 0.75, "focus": ["deployer", "ERC-20"] },
+    { "step": "token deploy", "duration": 0.75, "focus": ["deployer", "ERC-20", "$KIWA"] }
   ]
 }`;
 
@@ -1647,7 +1785,11 @@ flow:
   - 金融庁 -> 取引記録: ""
   - 取引記録 -> 対象銀行: ""
 animation:
-  - step: "compliance" 1.5s
+  - step: "1. 金融庁" 0.75s
+    focus: [金融庁]
+  - step: "2. 取引記録" 0.75s
+    focus: [金融庁, 取引記録]
+  - step: "compliance" 0.75s
     focus: [金融庁, 取引記録, 対象銀行]
 `;
 
@@ -1664,7 +1806,9 @@ export const sourceJson__sceneCompliance = `{
     { "from": "取引記録", "to": "対象銀行", "label": "" }
   ],
   "animation": [
-    { "step": "compliance", "duration": 1.5, "focus": ["金融庁", "取引記録", "対象銀行"] }
+    { "step": "1. 金融庁", "duration": 0.75, "focus": ["金融庁"] },
+    { "step": "2. 取引記録", "duration": 0.75, "focus": ["金融庁", "取引記録"] },
+    { "step": "compliance", "duration": 0.75, "focus": ["金融庁", "取引記録", "対象銀行"] }
   ]
 }`;
 
@@ -1684,7 +1828,11 @@ flow:
   - buyer -> OpenSea: ""
   - OpenSea -> BAYC #7890: ""
 animation:
-  - step: "NFT marketplace" 1.5s
+  - step: "1. buyer" 0.75s
+    focus: [buyer]
+  - step: "2. OpenSea" 0.75s
+    focus: [buyer, OpenSea]
+  - step: "NFT marketplace" 0.75s
     focus: [buyer, OpenSea, BAYC #7890]
 `;
 
@@ -1701,7 +1849,9 @@ export const sourceJson__sceneNftMarketplace = `{
     { "from": "OpenSea", "to": "BAYC #7890", "label": "" }
   ],
   "animation": [
-    { "step": "NFT marketplace", "duration": 1.5, "focus": ["buyer", "OpenSea", "BAYC #7890"] }
+    { "step": "1. buyer", "duration": 0.75, "focus": ["buyer"] },
+    { "step": "2. OpenSea", "duration": 0.75, "focus": ["buyer", "OpenSea"] },
+    { "step": "NFT marketplace", "duration": 0.75, "focus": ["buyer", "OpenSea", "BAYC #7890"] }
   ]
 }`;
 
@@ -1721,7 +1871,11 @@ flow:
   - client -> core switch: ""
   - core switch -> app server: ""
 animation:
-  - step: "network path" 1.5s
+  - step: "1. client" 0.75s
+    focus: [client]
+  - step: "2. core switch" 0.75s
+    focus: [client, core switch]
+  - step: "network path" 0.75s
     focus: [client, core switch, app server]
 `;
 
@@ -1738,7 +1892,9 @@ export const sourceJson__sceneNetworkPath = `{
     { "from": "core switch", "to": "app server", "label": "" }
   ],
   "animation": [
-    { "step": "network path", "duration": 1.5, "focus": ["client", "core switch", "app server"] }
+    { "step": "1. client", "duration": 0.75, "focus": ["client"] },
+    { "step": "2. core switch", "duration": 0.75, "focus": ["client", "core switch"] },
+    { "step": "network path", "duration": 0.75, "focus": ["client", "core switch", "app server"] }
   ]
 }`;
 
@@ -1758,7 +1914,11 @@ flow:
   - shop.example.com -> PayPal: ""
   - PayPal -> MasterCard: ""
 animation:
-  - step: "checkout" 1.5s
+  - step: "1. shop.example.com" 0.75s
+    focus: [shop.example.com]
+  - step: "2. PayPal" 0.75s
+    focus: [shop.example.com, PayPal]
+  - step: "checkout" 0.75s
     focus: [shop.example.com, PayPal, MasterCard]
 `;
 
@@ -1775,7 +1935,9 @@ export const sourceJson__sceneCheckout = `{
     { "from": "PayPal", "to": "MasterCard", "label": "" }
   ],
   "animation": [
-    { "step": "checkout", "duration": 1.5, "focus": ["shop.example.com", "PayPal", "MasterCard"] }
+    { "step": "1. shop.example.com", "duration": 0.75, "focus": ["shop.example.com"] },
+    { "step": "2. PayPal", "duration": 0.75, "focus": ["shop.example.com", "PayPal"] },
+    { "step": "checkout", "duration": 0.75, "focus": ["shop.example.com", "PayPal", "MasterCard"] }
   ]
 }`;
 
@@ -1795,7 +1957,11 @@ flow:
   - Android app -> Fastly edge: ""
   - Fastly edge -> GCP origin: ""
 animation:
-  - step: "edge compute" 1.5s
+  - step: "1. Android app" 0.75s
+    focus: [Android app]
+  - step: "2. Fastly edge" 0.75s
+    focus: [Android app, Fastly edge]
+  - step: "edge compute" 0.75s
     focus: [Android app, Fastly edge, GCP origin]
 `;
 
@@ -1812,7 +1978,9 @@ export const sourceJson__sceneEdgeCompute = `{
     { "from": "Fastly edge", "to": "GCP origin", "label": "" }
   ],
   "animation": [
-    { "step": "edge compute", "duration": 1.5, "focus": ["Android app", "Fastly edge", "GCP origin"] }
+    { "step": "1. Android app", "duration": 0.75, "focus": ["Android app"] },
+    { "step": "2. Fastly edge", "duration": 0.75, "focus": ["Android app", "Fastly edge"] },
+    { "step": "edge compute", "duration": 0.75, "focus": ["Android app", "Fastly edge", "GCP origin"] }
   ]
 }`;
 
@@ -1832,7 +2000,11 @@ flow:
   - release v3.2.0 -> deploy pipeline: ""
   - deploy pipeline -> prod.example.com: ""
 animation:
-  - step: "version deploy" 1.5s
+  - step: "1. release v3.2.0" 0.75s
+    focus: [release v3.2.0]
+  - step: "2. deploy pipeline" 0.75s
+    focus: [release v3.2.0, deploy pipeline]
+  - step: "version deploy" 0.75s
     focus: [release v3.2.0, deploy pipeline, prod.example.com]
 `;
 
@@ -1849,7 +2021,9 @@ export const sourceJson__sceneVersionDeploy = `{
     { "from": "deploy pipeline", "to": "prod.example.com", "label": "" }
   ],
   "animation": [
-    { "step": "version deploy", "duration": 1.5, "focus": ["release v3.2.0", "deploy pipeline", "prod.example.com"] }
+    { "step": "1. release v3.2.0", "duration": 0.75, "focus": ["release v3.2.0"] },
+    { "step": "2. deploy pipeline", "duration": 0.75, "focus": ["release v3.2.0", "deploy pipeline"] },
+    { "step": "version deploy", "duration": 0.75, "focus": ["release v3.2.0", "deploy pipeline", "prod.example.com"] }
   ]
 }`;
 
@@ -1869,7 +2043,11 @@ flow:
   - 監査法人 -> 監査報告書: ""
   - 監査報告書 -> 金融庁: ""
 animation:
-  - step: "audit chain" 1.5s
+  - step: "1. 監査法人" 0.75s
+    focus: [監査法人]
+  - step: "2. 監査報告書" 0.75s
+    focus: [監査法人, 監査報告書]
+  - step: "audit chain" 0.75s
     focus: [監査法人, 監査報告書, 金融庁]
 `;
 
@@ -1886,6 +2064,8 @@ export const sourceJson__sceneAuditChain = `{
     { "from": "監査報告書", "to": "金融庁", "label": "" }
   ],
   "animation": [
-    { "step": "audit chain", "duration": 1.5, "focus": ["監査法人", "監査報告書", "金融庁"] }
+    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"] },
+    { "step": "2. 監査報告書", "duration": 0.75, "focus": ["監査法人", "監査報告書"] },
+    { "step": "audit chain", "duration": 0.75, "focus": ["監査法人", "監査報告書", "金融庁"] }
   ]
 }`;

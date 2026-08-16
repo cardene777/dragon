@@ -119,3 +119,47 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
     expect(failures).toEqual([]);
   });
 });
+
+/**
+ * 段まで一致することを見る (#1192)。
+ *
+ * 既存の検査は actors / flow だけを突き合わせていたため、図の段を割った時に source 側が
+ * 1 段のまま取り残されても通っていた (実際に起きた)。 画面は source を「この記法で この図に
+ * なる」 として見せるので、段がずれると嘘になる。
+ */
+describe("source の段が図の段と一致する (#1192)", () => {
+  const 場面 = sceneKeys().filter((k) => k.startsWith("scene"));
+
+  it("対象が 30 件ある", () => {
+    expect(場面.length).toBe(30);
+  });
+
+  it("JSON source から作った図の段が、catalog の図の段と一致する", () => {
+    const 違う: string[] = [];
+    for (const key of 場面) {
+      const 図 = mod[key] as { phases: Array<{ title?: string; activate?: string[] }> };
+      const src = mod[`sourceJson__${key}`];
+      if (typeof src !== "string") {
+        違う.push(`${key}: JSON source が無い`);
+        continue;
+      }
+      const 作った = jsonToDiagram(JSON.parse(src)) as unknown as {
+        phases: Array<{ title?: string; activate?: string[] }>;
+      };
+      if (作った.phases.length !== 図.phases.length) {
+        違う.push(`${key}: 段の数 ${作った.phases.length} ≠ ${図.phases.length}`);
+        continue;
+      }
+      for (const [i, p] of 図.phases.entries()) {
+        const q = 作った.phases[i]!;
+        if (q.title !== p.title) 違う.push(`${key}[${i}]: 題 "${q.title}" ≠ "${p.title}"`);
+        // 光らせる相手の id は経路で違う (図は箱の id、source は名前を解決した id)。
+        // 数が合っていれば「同じ段で同じだけ光る」 ことは言える
+        if ((q.activate ?? []).length !== (p.activate ?? []).length) {
+          違う.push(`${key}[${i}]: 光る数 ${(q.activate ?? []).length} ≠ ${(p.activate ?? []).length}`);
+        }
+      }
+    }
+    expect(違う, `source と図の段が食い違う:\n${違う.slice(0, 8).join("\n")}`).toHaveLength(0);
+  });
+});
