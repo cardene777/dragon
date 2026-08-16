@@ -1727,11 +1727,18 @@ function mergePartIntoDiagram(
   noticeLine = 0,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
-  const stateIdSet = new Set(part.states.map((s) => s.id));
+  // 見本が自分で持つ名前。 **状態と、他の値から決まる値の両方** (#1180)。
+  //
+  // 値を含めないと、見本の中の `{決まる値}` が名前を付け替えられずに残り、重ねた先の同名の
+  // 値を指してしまう (見本どうしが互いの値を読む形になる)。
+  const ownIdSet = new Set([
+    ...part.states.map((s) => s.id),
+    ...(part.derived ?? []).map((d) => d.id),
+  ]);
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
     return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
-      return stateIdSet.has(name) ? `{${prefix(name)}}` : m;
+      return ownIdSet.has(name) ? `{${prefix(name)}}` : m;
     });
   };
 
@@ -1945,6 +1952,19 @@ function mergePartIntoDiagram(
     target.states.push({ id: prefix(stateOrig.id), initial });
   }
 
+  // 見本が持つ「他の値から決まる値」 を引き継ぐ (#1180)。
+  //
+  // 引き継がないと、見本の中で書いた関係が重ねた先で解かれず、その値を読む箱に `{名前}` の
+  // 生の形が出る。 名前は状態と同じ規則で前置きを付ける = 見本を 2 つ重ねても互いの値を
+  // 読まない。 式の中の参照も同じ規則で書き換える (`rewriteTemplate`)。
+  for (const derivedOrig of part.derived ?? []) {
+    if (!target.derived) target.derived = [];
+    target.derived.push({
+      id: prefix(derivedOrig.id),
+      expression: rewriteTemplate(derivedOrig.expression) ?? derivedOrig.expression,
+    });
+  }
+
   // edge merge = id / from / to prefix (parts 内 edge は稀だが対応)
   for (const edgeOrig of part.edges) {
     target.edges.push({
@@ -2150,7 +2170,12 @@ function attachDerivedValues(
   onNotice?: (n: CompileNotice) => void,
 ): void {
   const values = doc.values ?? [];
-  if (values.length === 0) return;
+  // 本文に値を書いていなくても、重ねた見本が値を持つことがある (#1180)。 その場合も
+  // 解けなかった分は伝える = 見本の中で止まった値も、画面には `{名前}` の生の形で出る
+  if (values.length === 0) {
+    if ((diagram.derived?.length ?? 0) > 0) reportUnresolvedValues(diagram, doc, onNotice);
+    return;
+  }
 
   // 名前が重なったかは **図に載った状態** で見る。 書いた `states:` だけを見ると、見本から
   // 引き継いだ状態 (`alias__id`) との重なりを見落とす
@@ -2166,7 +2191,14 @@ function attachDerivedValues(
     });
   }
 
-  diagram.derived = values.map((v) => ({ id: v.name, expression: v.expression }));
+  // **見本から引き継いだ分に足す** (#1180)。 代入で書くと、重ねた見本が持つ値が消える。
+  //
+  // 本文に書いた分を先に置く = engine は同じ名前では先に書いた式を使うため、名前が重なった
+  // 時に本文が勝つ。 重なったことは engine の知らせ (`duplicate-id`) がそのまま伝える
+  diagram.derived = [
+    ...values.map((v) => ({ id: v.name, expression: v.expression })),
+    ...(diagram.derived ?? []),
+  ];
   reportUnresolvedValues(diagram, doc, onNotice);
 }
 
