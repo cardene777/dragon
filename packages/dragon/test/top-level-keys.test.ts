@@ -11,7 +11,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
-import { TOP_LEVEL_KEYS } from "../src/index";
+import { parseTextDslV05, TOP_LEVEL_KEYS } from "../src/index";
 
 /**
  * 記法が実際に処理している項目を実装から取る。
@@ -34,6 +34,24 @@ describe("top-level 項目の一覧が実装と一致する (#1190)", () => {
     // 足りない = 案内と記法一覧がその項目を知らない。
     // 余る = 書けない項目を案内が勧める
     expect([...new Set(実装が処理する項目())].sort()).toEqual([...TOP_LEVEL_KEYS].sort());
+  });
+
+  it.each(TOP_LEVEL_KEYS)("一覧内の %s を不明な項目として扱わない", (key) => {
+    const result = parseTextDslV05(`${key}:`);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.filter((error) => error.message.startsWith("unknown top-level key"))).toEqual([]);
+  });
+
+  it("一覧外の識別子形式の項目を拒否する", () => {
+    const result = parseTextDslV05('title: "test"\ntype: sequence\nfuture: value');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors).toContainEqual({
+      line: 3,
+      message: 'unknown top-level key: "future: value"',
+      hint: `expected one of: ${TOP_LEVEL_KEYS.join(", ")}`,
+    });
   });
 
   it("読めない行の案内が一覧をそのまま出す", () => {

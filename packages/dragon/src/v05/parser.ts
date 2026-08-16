@@ -79,6 +79,10 @@ export const TOP_LEVEL_KEYS = [
   "title", "type", "actors", "flow", "states", "values", "animation", "viewport", "lanes", "groups",
 ] as const;
 
+function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
+  return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
+}
+
 /** 受け付ける図種。 記法一覧はここを見る。 */
 export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "sequence",
@@ -192,7 +196,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       continue;
     }
     const head = matchTopHeader(line.trimmed);
-    if (!head) {
+    if (!head || !isTopLevelKey(head.key)) {
       errors.push({
         line: line.no,
         message: `unknown top-level key: "${line.trimmed}"`,
