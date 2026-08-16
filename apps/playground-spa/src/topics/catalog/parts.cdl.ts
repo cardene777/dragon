@@ -67,10 +67,11 @@ export const partsStateIndicator = diagram("parts-state-indicator", { structured
 })
   .lane("l", { x: 0, width: 380 })
   .state("stFill", { initial: "#22c55e" })
+  .state("lvl", { initial: 0 })
   .node("ind", { lane: "l", stack: 0, kind: "dyn-circle", title: "現在の状態", subtitle: "active", w: 360, h: 380,
-    shape: { kind: "circle", radius: 140, fill: "{stFill}" } })
-  .phase("p", { duration: 3000, title: "状態表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("ind"))
+    shape: { kind: "circle", radius: 140, fillProgress: "{lvl}", fill: "{stFill}" } })
+  .phase("p", { duration: 3000, title: "状態が立ち上がる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("ind").tween("lvl", 0, 1))
   .build();
 
 // ============================================================
@@ -124,14 +125,15 @@ export const partsTrafficLightStack = diagram("parts-traffic-light-stack", {
   .state("rFill", { initial: "#e5e7eb" })
   .state("yFill", { initial: "#e5e7eb" })
   .state("gFill", { initial: "#22c55e" })
+  .state("gOn", { initial: 0 })
   .node("rC", { lane: "l", stack: 0, kind: "dyn-circle", title: "赤", subtitle: "", w: 160, h: 160,
     shape: { kind: "circle", radius: 60, fill: "{rFill}" } })
   .node("yC", { lane: "l", stack: 1, kind: "dyn-circle", title: "黄", subtitle: "", w: 160, h: 160,
     shape: { kind: "circle", radius: 60, fill: "{yFill}" } })
   .node("gC", { lane: "l", stack: 2, kind: "dyn-circle", title: "緑", subtitle: "", w: 160, h: 160,
-    shape: { kind: "circle", radius: 60, fill: "{gFill}" } })
-  .phase("p", { duration: 3000, title: "signal 表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("rC", "yC", "gC"))
+    shape: { kind: "circle", radius: 60, fillProgress: "{gOn}", fill: "{gFill}" } })
+  .phase("p", { duration: 3000, title: "緑が点く", body: "" }, (p: PhaseBuilder) =>
+    p.activate("rC", "yC", "gC").tween("gOn", 0, 1))
   .build();
 
 // ============================================================
@@ -400,18 +402,22 @@ export const partsRatingStars = diagram("parts-rating-stars", {
   .state("s3", { initial: "#f59e0b" })
   .state("s4", { initial: "#f5e6b8" })
   .state("s5", { initial: "#f5e6b8" })
+  .state("f1", { initial: 0 })
+  .state("f2", { initial: 0 })
+  .state("f3", { initial: 0 })
   .node("st1", { lane: "l", stack: 0, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
-    shape: { kind: "circle", radius: 40, fill: "{s1}" } })
+    shape: { kind: "circle", radius: 40, fillProgress: "{f1}", fill: "{s1}" } })
   .node("st2", { lane: "l", stack: 1, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
-    shape: { kind: "circle", radius: 40, fill: "{s2}" } })
+    shape: { kind: "circle", radius: 40, fillProgress: "{f2}", fill: "{s2}" } })
   .node("st3", { lane: "l", stack: 2, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
-    shape: { kind: "circle", radius: 40, fill: "{s3}" } })
+    shape: { kind: "circle", radius: 40, fillProgress: "{f3}", fill: "{s3}" } })
   .node("st4", { lane: "l", stack: 3, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
     shape: { kind: "circle", radius: 40, fill: "{s4}" } })
   .node("st5", { lane: "l", stack: 4, kind: "dyn-circle", title: "★", subtitle: "", w: 100, h: 100,
     shape: { kind: "circle", radius: 40, fill: "{s5}" } })
-  .phase("p", { duration: 3000, title: "3/5 表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("st1", "st2", "st3", "st4", "st5"))
+  .phase("p", { duration: 3000, title: "3 つ点く", body: "" }, (p: PhaseBuilder) =>
+    p.activate("st1", "st2", "st3", "st4", "st5")
+      .tween("f1", 0, 1).tween("f2", 0, 1).tween("f3", 0, 1))
   .build();
 
 // ============================================================
@@ -440,10 +446,11 @@ export const partsToggleSwitch = diagram("parts-toggle-switch", { structuredData
 })
   .lane("l", { x: 0, width: 400 })
   .state("bg", { initial: "#22c55e" })
+  .state("on", { initial: 0 })
   .node("track", { lane: "l", stack: 0, kind: "dyn-rect", title: "", subtitle: "ON", w: 320, h: 160,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "{bg}", radius: 80 } })
-  .phase("p", { duration: 3000, title: "on 状態", body: "" }, (p: PhaseBuilder) =>
-    p.activate("track"))
+    shape: { kind: "rect", source: "{on}", fillMax: 100, orient: "right", fill: "{bg}", radius: 80 } })
+  .phase("p", { duration: 3000, title: "off から on へ", body: "" }, (p: PhaseBuilder) =>
+    p.activate("track").tween("on", 0, 100))
   .build();
 
 // ============================================================
@@ -546,10 +553,11 @@ export const partsMessageBubble = diagram("parts-message-bubble", { structuredDa
   topic: "メッセージ吹き出し — chat bubble",
 })
   .lane("l", { x: 0, width: 500 })
+  .state("pop", { initial: 0 })
   .node("bubble", { lane: "l", stack: 0, kind: "dyn-rect", title: "Hi there!", subtitle: "10:30 AM", w: 460, h: 200,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 24 } })
-  .phase("p", { duration: 3000, title: "メッセージ受信", body: "" }, (p: PhaseBuilder) =>
-    p.activate("bubble"))
+    shape: { kind: "rect", source: "{pop}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 24 } })
+  .phase("p", { duration: 3000, title: "メッセージが届く", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bubble").tween("pop", 0, 100))
   .build();
 
 // ============================================================
@@ -560,10 +568,11 @@ export const partsUserAvatar = diagram("parts-user-avatar", { structuredData: "e
 })
   .lane("l", { x: 0, width: 380 })
   .state("bg", { initial: "#4e9dc4" })
+  .state("r", { initial: 40 })
   .node("avatar", { lane: "l", stack: 0, kind: "dyn-circle", title: "JD", subtitle: "John Doe", w: 340, h: 340,
-    shape: { kind: "circle", radius: 150, fill: "{bg}" } })
-  .phase("p", { duration: 3000, title: "avatar 表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("avatar"))
+    shape: { kind: "circle", radius: "{r}", fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "avatar が現れる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("avatar").tween("r", 40, 150))
   .build();
 
 // ============================================================
@@ -622,10 +631,11 @@ export const partsWeatherIcon = diagram("parts-weather-icon", { structuredData: 
 })
   .lane("l", { x: 0, width: 380 })
   .state("bg", { initial: "#f59e0b" })
+  .state("shine", { initial: 0 })
   .node("sun", { lane: "l", stack: 0, kind: "dyn-circle", title: "晴れ", subtitle: "☀ 24°C", w: 340, h: 340,
-    shape: { kind: "circle", radius: 140, fill: "{bg}" } })
-  .phase("p", { duration: 3000, title: "天気表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("sun"))
+    shape: { kind: "circle", radius: 140, fillProgress: "{shine}", fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "日が差す", body: "" }, (p: PhaseBuilder) =>
+    p.activate("sun").tween("shine", 0, 1))
   .build();
 
 // ============================================================
@@ -658,14 +668,16 @@ export const partsProgressDots = diagram("parts-progress-dots", {
   .state("d1", { initial: "#22c55e" })
   .state("d2", { initial: "#22c55e" })
   .state("d3", { initial: "#f5e6b8" })
+  .state("p1", { initial: 0 })
+  .state("p2", { initial: 0 })
   .node("dot1", { lane: "la", stack: 0, kind: "dyn-circle", title: "1", subtitle: "受注", w: 140, h: 140,
-    shape: { kind: "circle", radius: 55, fill: "{d1}" } })
+    shape: { kind: "circle", radius: 55, fillProgress: "{p1}", fill: "{d1}" } })
   .node("dot2", { lane: "lb", stack: 0, kind: "dyn-circle", title: "2", subtitle: "処理中", w: 140, h: 140,
-    shape: { kind: "circle", radius: 55, fill: "{d2}" } })
+    shape: { kind: "circle", radius: 55, fillProgress: "{p2}", fill: "{d2}" } })
   .node("dot3", { lane: "lc", stack: 0, kind: "dyn-circle", title: "3", subtitle: "配送", w: 140, h: 140,
     shape: { kind: "circle", radius: 55, fill: "{d3}" } })
-  .phase("p", { duration: 3000, title: "進捗", body: "" }, (p: PhaseBuilder) =>
-    p.activate("dot1", "dot2", "dot3"))
+  .phase("p", { duration: 3000, title: "進捗が進む", body: "" }, (p: PhaseBuilder) =>
+    p.activate("dot1", "dot2", "dot3").tween("p1", 0, 1).tween("p2", 0, 1))
   .build();
 
 // ============================================================
@@ -788,10 +800,11 @@ export const partsLocationPin = diagram("parts-location-pin", { structuredData: 
 })
   .lane("l", { x: 0, width: 380 })
   .state("bg", { initial: "#dc2626" })
+  .state("drop", { initial: 0 })
   .node("pin", { lane: "l", stack: 0, kind: "dyn-circle", title: "現在地", subtitle: "東京駅", w: 340, h: 340,
-    shape: { kind: "circle", radius: 130, fill: "{bg}" } })
-  .phase("p", { duration: 3000, title: "位置表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("pin"))
+    shape: { kind: "circle", radius: 130, fillProgress: "{drop}", fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "位置が定まる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("pin").tween("drop", 0, 1))
   .build();
 
 // ============================================================
@@ -815,10 +828,11 @@ export const partsSearchBar = diagram("parts-search-bar", { structuredData: "exc
   topic: "検索バー — 入力域 metaphor",
 })
   .lane("l", { x: 0, width: 700 })
+  .state("typed", { initial: 0 })
   .node("bar", { lane: "l", stack: 0, kind: "dyn-rect", title: "🔍 検索", subtitle: "keyword を入力", w: 680, h: 140,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 70 } })
-  .phase("p", { duration: 3000, title: "検索フォーム", body: "" }, (p: PhaseBuilder) =>
-    p.activate("bar"))
+    shape: { kind: "rect", source: "{typed}", fillMax: 100, orient: "right", fill: "#f5e6b8", radius: 70 } })
+  .phase("p", { duration: 3000, title: "入力が伸びる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bar").tween("typed", 0, 100))
   .build();
 
 // ============================================================
@@ -842,10 +856,11 @@ export const partsBookmark = diagram("parts-bookmark", { structuredData: "exclud
   topic: "ブックマーク — 保存済み metaphor",
 })
   .lane("l", { x: 0, width: 300 })
+  .state("mark", { initial: 0 })
   .node("bm", { lane: "l", stack: 0, kind: "dyn-rect", title: "🔖", subtitle: "保存済み", w: 240, h: 400,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 8 } })
-  .phase("p", { duration: 3000, title: "bookmark", body: "" }, (p: PhaseBuilder) =>
-    p.activate("bm"))
+    shape: { kind: "rect", source: "{mark}", fillMax: 100, orient: "down", fill: "#f59e0b", radius: 8 } })
+  .phase("p", { duration: 3000, title: "しおりが挿さる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("bm").tween("mark", 0, 100))
   .build();
 
 // ============================================================
@@ -884,10 +899,11 @@ export const partsAchievement = diagram("parts-achievement", { structuredData: "
 })
   .lane("l", { x: 0, width: 400 })
   .state("bg", { initial: "#f59e0b" })
+  .state("unlock", { initial: 0 })
   .node("trophy", { lane: "l", stack: 0, kind: "dyn-circle", title: "🏆", subtitle: "初回達成", w: 380, h: 380,
-    shape: { kind: "circle", radius: 150, fill: "{bg}" } })
-  .phase("p", { duration: 3000, title: "trophy 表示", body: "" }, (p: PhaseBuilder) =>
-    p.activate("trophy"))
+    shape: { kind: "circle", radius: 150, fillProgress: "{unlock}", fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "実績が解放される", body: "" }, (p: PhaseBuilder) =>
+    p.activate("trophy").tween("unlock", 0, 1))
   .build();
 
 // ============================================================
@@ -912,10 +928,11 @@ export const partsPlayButton = diagram("parts-play-button", { structuredData: "e
 })
   .lane("l", { x: 0, width: 380 })
   .state("bg", { initial: "#22c55e" })
+  .state("press", { initial: 0 })
   .node("play", { lane: "l", stack: 0, kind: "dyn-circle", title: "▶", subtitle: "再生", w: 340, h: 340,
-    shape: { kind: "circle", radius: 140, fill: "{bg}" } })
-  .phase("p", { duration: 3000, title: "play", body: "" }, (p: PhaseBuilder) =>
-    p.activate("play"))
+    shape: { kind: "circle", radius: 140, fillProgress: "{press}", fill: "{bg}" } })
+  .phase("p", { duration: 3000, title: "再生が始まる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("play").tween("press", 0, 1))
   .build();
 
 // ============================================================
@@ -939,10 +956,11 @@ export const partsAlarmClock = diagram("parts-alarm-clock", { structuredData: "e
   topic: "目覚まし時計 — alarm 表示",
 })
   .lane("l", { x: 0, width: 380 })
+  .state("tick", { initial: 0 })
   .node("alarm", { lane: "l", stack: 0, kind: "dyn-circle", title: "⏰", subtitle: "07:00", w: 340, h: 340,
-    shape: { kind: "circle", radius: 140, fill: "#f59e0b" } })
-  .phase("p", { duration: 3000, title: "alarm 設定", body: "" }, (p: PhaseBuilder) =>
-    p.activate("alarm"))
+    shape: { kind: "circle", radius: 140, fillProgress: "{tick}", fill: "#f59e0b" } })
+  .phase("p", { duration: 3000, title: "時刻が迫る", body: "" }, (p: PhaseBuilder) =>
+    p.activate("alarm").tween("tick", 0, 1))
   .build();
 
 // ============================================================
@@ -956,18 +974,22 @@ export const partsWifiSignal = diagram("parts-wifi-signal", { structuredData: "e
   .lane("lc", { x: 280, width: 120 })
   .lane("ld", { x: 420, width: 120 })
   .lane("le", { x: 560, width: 120 })
+  .state("s1", { initial: 0 })
+  .state("s2", { initial: 0 })
+  .state("s3", { initial: 0 })
   .node("b1", { lane: "la", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 100,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+    shape: { kind: "rect", source: "{s1}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
   .node("b2", { lane: "lb", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 160,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+    shape: { kind: "rect", source: "{s2}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
   .node("b3", { lane: "lc", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 220,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
+    shape: { kind: "rect", source: "{s3}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 4 } })
   .node("b4", { lane: "ld", stack: 0, kind: "dyn-rect", title: "", subtitle: "", w: 100, h: 280,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
-  .node("b5", { lane: "le", stack: 0, kind: "dyn-rect", title: "", subtitle: "5/5 有り", w: 100, h: 340,
-    shape: { kind: "rect", source: "100", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
-  .phase("p", { duration: 3000, title: "信号 3/5", body: "" }, (p: PhaseBuilder) =>
-    p.activate("b1", "b2", "b3", "b4", "b5"))
+    shape: { kind: "rect", source: "0", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
+  .node("b5", { lane: "le", stack: 0, kind: "dyn-rect", title: "", subtitle: "3/5 有り", w: 100, h: 340,
+    shape: { kind: "rect", source: "0", fillMax: 100, orient: "up", fill: "#f5e6b8", radius: 4 } })
+  .phase("p", { duration: 3000, title: "強度が上がる", body: "" }, (p: PhaseBuilder) =>
+    p.activate("b1", "b2", "b3", "b4", "b5")
+      .tween("s1", 0, 100).tween("s2", 0, 100).tween("s3", 0, 100))
   .build();
 
 // ============================================================

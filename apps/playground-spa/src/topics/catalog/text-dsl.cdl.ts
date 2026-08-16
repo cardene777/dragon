@@ -167,7 +167,13 @@ flow:
   - User -> Order: "places" (info)
 
 animation:
-  - step: "show" 1s
+  - step: "片方" 1s
+    focus: [User]
+    badge: "User"
+  - step: "つながり" 1s
+    focus: ["User -> Order"]
+    badge: "places"
+  - step: "全体" 1s
     focus: [User, Order]
     badge: "1:N"
 `);
@@ -217,7 +223,13 @@ flow:
   - User -> Admin: "extends"
 
 animation:
-  - step: "継承" 1s
+  - step: "親" 1s
+    focus: [User]
+    badge: "User"
+  - step: "つながり" 1s
+    focus: ["User -> Admin"]
+    badge: "extends"
+  - step: "子まで" 1s
     focus: [User, Admin]
     badge: "Admin extends User"
 `);
@@ -282,9 +294,15 @@ actors:
   - Idea3: { kind: card, subtitle: "案 3" }
 
 animation:
-  - step: "展開" 1s
+  - step: "中心" 1s
     focus: [Core]
     badge: "発想"
+  - step: "案が出る" 1s
+    focus: [Core, Idea1]
+    badge: "案 1"
+  - step: "広がる" 1s
+    focus: [Core, Idea1, Idea2, Idea3]
+    badge: "案 3"
 `);
 
 // ─── code preset (関数呼出 + DB write + event emit) ─────
