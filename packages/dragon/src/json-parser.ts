@@ -21,7 +21,8 @@
 import { PRESET_TYPES } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, PresetType, LayoutMode, LayoutPos } from "./types";
+import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, DslState, PresetType, LayoutMode, LayoutPos } from "./types";
+import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
 import { compileToCdl } from "./compile";
 
 /**
@@ -36,6 +37,23 @@ export interface DragonJson {
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
   flow: JsonStep[];
+  /**
+   * 状態の初期値 (optional)。 記法の `states:` と同じ (#1181)。
+   *
+   * `{名前}` を箱の文字に置くと、ここに書いた値が描画側で置き換わる。 名前は英数字と `_`
+   * だけ (描画側が置き換える時に見る範囲と揃える)。
+   *
+   * **段で動かす指定 (`tween` / `set`) は JSON 経路にまだ無い** (`#1186`)。 ここに書けるのは
+   * 初期値までで、値は段を進めても変わらない。
+   */
+  states?: Record<string, number | string>;
+  /**
+   * 他の値から自動で決まる値 (optional)。 記法の `values:` と同じ (#1181)。
+   *
+   * 式には四則 (`+ - * /`) と括弧、比較 (`> >= < <= == !=`)、`min` / `max` が書ける。
+   * 他の値は `{名前}` で読む。 解くのは描画側で、毎 frame 参照から順に決まる。
+   */
+  values?: Record<string, string>;
   /** animation phase 配列 (optional) */
   animation?: JsonPhase[];
   /** viewport (optional): 全体 canvas size / gap */
@@ -288,8 +306,71 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
       });
     }
   }
+  validateStates(j.states, errors);
+  validateValues(j.values, errors);
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, data: j as unknown as DragonJson };
+}
+
+/**
+ * 状態の初期値を見る (#1181)。
+ *
+ * 名前の判定は記法と同じものを使う (`value-syntax.ts`)。 別々に持つと、YAML では弾かれる
+ * 名前が JSON では通る形ができ、描画側が `{名前}` を置き換えられない図が生まれる。
+ */
+function validateStates(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.states", message: "states must be a plain object of name -> initial value" });
+    return;
+  }
+  for (const [name, initial] of Object.entries(v as Record<string, unknown>)) {
+    if (!isValueName(name)) {
+      errors.push({ path: `$.states.${name}`, ...valueNameIssue(name) });
+    }
+    const t = typeof initial;
+    if (t !== "number" && t !== "string") {
+      errors.push({
+        path: `$.states.${name}`,
+        message: "state initial must be a number or string",
+        hint: `got ${t}`,
+      });
+    } else if (t === "number" && !Number.isFinite(initial as number)) {
+      // `NaN` / `Infinity` は JSON には書けないが、object を直接渡す経路では届く。
+      // 描画側は文字列に直して式に流すため、そのまま通すと計算が全て壊れる
+      errors.push({ path: `$.states.${name}`, message: "state initial must be a finite number" });
+    }
+  }
+}
+
+/**
+ * 他の値から決まる値を見る (#1181)。
+ *
+ * 名前と式の判定は記法と同じものを使う。 式が文法として正しいかまでは見ない (描画側が
+ * 評価する時に判定して、その値だけを止める = spec § 4.2)。
+ */
+function validateValues(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.values", message: "values must be a plain object of name -> expression" });
+    return;
+  }
+  for (const [name, expression] of Object.entries(v as Record<string, unknown>)) {
+    if (!isValueName(name)) {
+      errors.push({ path: `$.values.${name}`, ...valueNameIssue(name) });
+    }
+    if (typeof expression !== "string" || expression.trim() === "") {
+      errors.push({
+        path: `$.values.${name}`,
+        message: "value expression must be a non-empty string",
+        hint: '`"{inflow} - {done}"` の形で書く',
+      });
+      continue;
+    }
+    for (const issue of checkValueExpression(expression, name)) {
+      errors.push({ path: `$.values.${name}`, ...issue });
+    }
+  }
 }
 
 /**
@@ -344,24 +425,34 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     layoutPos: s.pos,
     pos: p0,
   }));
-  let animate: DslAnimate | undefined;
-  if (json.animation && json.animation.length > 0) {
-    const phases: DslPhase[] = json.animation.map((p) => ({
-      name: p.step,
-      durationMs: Math.round((p.duration ?? 1.4) * 1000),
-      highlight: p.focus,
-      body: p.body,
-      badge: p.badge,
-      pos: p0,
-    }));
-    animate = { states: [], phases, pos: p0 };
-  }
+  // 状態は段が無くても図に載る (#1162 で組み立ての出口が載せる)。 **段の有無で分けない** =
+  // 分けると `states` だけを書いた JSON で値が 1 つも届かない (記法側で起きていた形、 #1181)
+  const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
+    name,
+    initial,
+    pos: p0,
+  }));
+  const phases: DslPhase[] = (json.animation ?? []).map((p) => ({
+    name: p.step,
+    durationMs: Math.round((p.duration ?? 1.4) * 1000),
+    highlight: p.focus,
+    body: p.body,
+    badge: p.badge,
+    pos: p0,
+  }));
+  const animate: DslAnimate | undefined =
+    states.length > 0 || phases.length > 0 ? { states, phases, pos: p0 } : undefined;
   return {
     title: json.title,
     type: json.type,
     actors,
     flow,
     animate,
+    // 他の値から決まる値 (#1181)。 書いた順に並べる = 解く順は参照から決まるので順序に
+    // 意味は無いが、知らせの並びが書いた順になる
+    values: json.values
+      ? Object.entries(json.values).map(([name, expression]) => ({ name, expression, pos: p0 }))
+      : undefined,
     viewport: json.viewport ? { ...json.viewport, pos: p0 } : undefined,
     lanes: json.lanes
       ? Object.fromEntries(
