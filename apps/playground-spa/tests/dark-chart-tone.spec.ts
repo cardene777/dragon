@@ -27,7 +27,6 @@ const IDS = [
   "quad-demo",
   "tree-demo",
   "mind-demo",
-  "mindmap-radial-demo",
 ];
 
 /** 青系 = 色相 190-280 度。 */
@@ -142,8 +141,6 @@ const contrastsOf = (page: Page, id: string) =>
       "journey-band": ["fill"],
       "journey-line-glow": ["stroke"],
       "journey-chip": ["fill"],
-      // 放射状の図の中心に敷く光の輪。 不透明度 0.18 で意図して淡く、 読ませる要素ではない。
-      "mind-radial-halo": ["fill"],
     };
 
     const out: Array<{ tag: string; role: string; prop: string; color: string; bg: string; c: number }> = [];

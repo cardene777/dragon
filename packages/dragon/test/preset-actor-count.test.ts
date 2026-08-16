@@ -2,7 +2,7 @@
  * preset actor / edge count 妥当性網羅 (iter39、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter39。
- * 全 20 preset diagram の actor / edge / phase 数の合理性を verify。
+ * 全 19 preset diagram の actor / edge / phase 数の合理性を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
@@ -22,9 +22,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter39: 全 20 preset × actor / edge / phase count 妥当性", () => {
-  it(`preset 数 = 20`, () => {
-    expect(ALL_PRESETS.length).toBe(20);
+describe("iter39: 全 19 preset × actor / edge / phase count 妥当性", () => {
+  it(`preset 数 = 19`, () => {
+    expect(ALL_PRESETS.length).toBe(19);
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

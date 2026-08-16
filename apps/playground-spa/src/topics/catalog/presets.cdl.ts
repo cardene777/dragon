@@ -1,4 +1,4 @@
-import { swimlane, flow, sequence, topology, er, stateMachine, infrastructure, classDiagram, tree, userJourney, mindMap, mindMapRadial, funnel, quadrant, chart, gantt, flowchart, network, stateMachine2 } from "@cardenelabs/cdl";
+import { swimlane, flow, sequence, topology, er, stateMachine, infrastructure, classDiagram, tree, userJourney, mindMap, funnel, quadrant, chart, gantt, flowchart, network, stateMachine2 } from "@cardenelabs/cdl";
 import type { PhaseBuilder } from "@cardenelabs/cdl";
 
 /**
@@ -132,22 +132,6 @@ export const presetMindMap = mindMap({ id: "mind-demo", topic: "中心の主題�
   .branch({ id: "launch", title: "Launch", parent: "root" })
   .branch({ id: "auth", title: "Auth", parent: "feat" })
   .branch({ id: "billing", title: "Billing", parent: "feat" })
-  .build();
-
-// mindMapRadial preset ... 中心 node から 8 方向 (45 度間隔) へ放射配置 (mindMap との使い分け demo)
-export const presetMindMapRadial = mindMapRadial({
-  id: "mindmap-radial-demo",
-  topic: "中心テーマから 8 方向へ放射状に要素を配置する図",
-  centerTitle: "Product",
-})
-  .branch({ id: "users", title: "Users" })
-  .branch({ id: "roadmap", title: "Roadmap" })
-  .branch({ id: "metrics", title: "Metrics" })
-  .branch({ id: "team", title: "Team" })
-  .branch({ id: "design", title: "Design" })
-  .branch({ id: "marketing", title: "Marketing" })
-  .branch({ id: "support", title: "Support" })
-  .branch({ id: "finance", title: "Finance" })
   .build();
 
 // funnel preset ... Sales / marketing funnel

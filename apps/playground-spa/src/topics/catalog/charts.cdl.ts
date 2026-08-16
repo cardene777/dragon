@@ -1,7 +1,7 @@
 import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
- * Catalog - Charts ... 図表 10 種の見本 (#1152 / #1159)。
+ * Catalog - Charts ... 図表 9 種の見本 (#1152 / #1159)。
  *
  * **記法で書く**。 図は記法から組み立てる。
  *
@@ -20,7 +20,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  *
  * ## 組立て API 版から情報が落ちている
  *
- * 記法に書ける項目が少ないため、 **10 種すべてで何かが落ちている**。 記法の穴がそのまま出た形で、
+ * 記法に書ける項目が少ないため、 **9 種すべてで何かが落ちている**。 記法の穴がそのまま出た形で、
  * 組立て API に戻すと「エディタで開けない」 に逆戻りするので、 穴として残す。
  *
  * | 見本 | 落ちたもの |
@@ -32,7 +32,6 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * | `journey` | 接点と改善の余地 (`touchpoint` / `opportunity`) |
  * | `funnel` | 各段の率 (`subtitle`) |
  * | `bar` / `pie` / `line` | 色 (`tone`) |
- * | `radial` | 枝の色と補足。 枝は名前だけになる |
  *
  * 一番重いのは `quadrant`。 軸の名前が書けないと図の意味そのものが消える。
  *
@@ -145,22 +144,7 @@ actors:
 export const mindMap = textDslToDiagram(sourceYaml__mindMap);
 
 // ============================================================
-// 8. 放射状に置く
-// ============================================================
-export const sourceYaml__mindRadial = `title: "扱う入力"
-type: radial
-
-actors:
-  - 扱う入力
-  - 記法
-  - JSON
-  - 組立て
-  - 取込み
-`;
-export const mindRadial = textDslToDiagram(sourceYaml__mindRadial);
-
-// ============================================================
-// 9. 2 軸で分ける
+// 8. 2 軸で分ける
 // ============================================================
 export const sourceYaml__quadrantMatrix = `title: "着手の順番"
 type: quadrant
@@ -174,7 +158,7 @@ actors:
 export const quadrantMatrix = textDslToDiagram(sourceYaml__quadrantMatrix);
 
 // ============================================================
-// 10. 親子で束ねる
+// 9. 親子で束ねる
 // ============================================================
 export const sourceYaml__treeHierarchy = `title: "配布物の構成"
 type: tree

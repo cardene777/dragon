@@ -1,7 +1,7 @@
 /**
  * preset 詳細ページの見出しが言語に応じた名前になることの確認 (#1047)。
  *
- * 直す前は `stateMachine2` / `mindMapRadial` のような識別子風の文字列が出ており、
+ * 直す前は `stateMachine2` のような識別子風の文字列が出ており、
  * 言語を切り替えても変わらなかった。 catalog の一覧は #1035 で対応したが、
  * preset 詳細は別の入れ物 (`PRESETS`) を持つため届いていなかった。
  */
@@ -39,18 +39,18 @@ test.describe("preset 詳細の見出し (#1047)", () => {
 
   test("識別子とは違う名前が出る", async ({ page }) => {
     // 形ではなく値で見る。 直す前は `stateMachine2` (= 図の識別子) が出ていた
-    await page.goto(`${SPA_URL}/preset/mindmap-radial`, { waitUntil: "networkidle" });
+    await page.goto(`${SPA_URL}/preset/mind`, { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
     const name = await headingName(page);
-    for (const identifier of ["mindMapRadial", "mindmap-radial", "presetMindMapRadial"]) {
+    for (const identifier of ["mindMap", "mind", "presetMindMap"]) {
       expect(name, `識別子がそのまま出ている: ${identifier}`).not.toBe(identifier);
     }
-    expect(name, "日本語名が出ない").toBe("放射状マインドマップ");
+    expect(name, "日本語名が出ない").toBe("マインドマップ");
   });
 
   test("見出しに識別子がそのまま出ない", async ({ page }) => {
     // 直す前は `stateMachine2 プリセット` のように識別子が出ていた
-    for (const slug of ["state-machine-2", "mindmap-radial", "swimlane"]) {
+    for (const slug of ["state-machine-2", "mind", "swimlane"]) {
       await page.goto(`${SPA_URL}/preset/${slug}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(500);
       const words = (await heading(page)).split(/\s+/).filter(Boolean);

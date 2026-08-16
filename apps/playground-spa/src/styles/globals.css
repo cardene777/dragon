@@ -114,7 +114,6 @@
      暗い側だけ面が明るいぶん沈むので、 下の `html.dark` で上げる。 */
   --d-tree-edge-opacity: 0.85;
   --d-mind-edge-opacity: 0.85;
-  --d-mind-radial-edge-opacity: 0.7;
   --d-journey-chip-opacity: 0.6;
 
   /* 記述欄で選んだ範囲の地。 面の色を流用すると、 面を明るくした時に構文の色が沈む
@@ -219,7 +218,6 @@ html.dark {
      暗い側だけ 0.92 に揃える。 明るい側は上の既定 (cdl の値) がそのまま効く。 */
   --d-tree-edge-opacity: 0.92;
   --d-mind-edge-opacity: 0.92;
-  --d-mind-radial-edge-opacity: 0.92;
   --d-journey-chip-opacity: 0.92;
 
   /* 選んだ範囲の地。 構文の色 (12.5px) が乗るので、 記述欄の地 (`--d-code-bg`) に対する

@@ -102,7 +102,6 @@ const KIND_TO_JA: Record<string, string> = {
   tree: "階層ツリー",
   userJourney: "ユーザージャーニー",
   mindMap: "マインドマップ",
-  mindMapRadial: "放射状マインドマップ",
   funnel: "ファネル (段階別離脱)",
   quadrant: "四象限マトリクス",
   gantt: "ガントチャート",
@@ -113,7 +112,7 @@ const KIND_TO_JA: Record<string, string> = {
 function applyTopicAutoFix(topic: string): string {
   // 1. 先頭の kind name を検出、 マッチしたら JA description に置換
   const kindMatch = topic.match(
-    /^\s*(chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap(?:Radial)?|funnel|quadrant|gantt|flowchart|network|line chart|pie chart|bar chart)\b/i,
+    /^\s*(chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap|funnel|quadrant|gantt|flowchart|network|line chart|pie chart|bar chart)\b/i,
   );
   if (kindMatch) {
     const kind = kindMatch[1]!.toLowerCase();
@@ -202,10 +201,21 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
   return out;
 }
 
+/**
+ * 枝の親が実在するかを見る。
+ *
+ * **記法からは届かない**。 `mind-map` 種別と `mindData` を作るのは組立て API
+ * (`mindMap()` builder) だけで、 記法の `type: mind` は `card` を 3 列に並べる別実装
+ * (`compileMind`)。 `#1170` まで `type: radial` が記法側の唯一の作り手だったが、 種別ごと
+ * 消えたため、 本規則が当たるのは組立て API で組んだ図に限られる。
+ *
+ * 記法側にも同じ検査を届かせるなら `compileMind` を `mind-map` 種別に寄せる必要があり、
+ * それは記法の絵が変わる変更なので別で扱う。
+ */
 function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];
   for (const n of d.nodes) {
-    if ((n.kind === "mind-map" || n.kind === "mind-radial") && n.mindData) {
+    if (n.kind === "mind-map" && n.mindData) {
       const known = new Set<string>([n.mindData.rootId]);
       for (const b of n.mindData.branches) known.add(b.id);
       for (const b of n.mindData.branches) {
