@@ -190,11 +190,15 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // **出口で 1 度だけ見る**。 種類ごとに塞ぐと 12 経路のどれかを見落とす。 図は必ずここを
   // 通るので、 ここで段が無ければ入れる。
   injectStaticPhase(merged);
+  // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
+  // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる。
+  materializeStates(merged, doc);
+  attachDerivedValues(merged, doc, opts?.onNotice);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
-  // 埋め込んだ JSON と入口が 4 つ以上あり、 1 つ見落とすと穴が残る。 描画へ渡る図は必ず
-  // ここを通るので、 出口で 1 度だけ見る。
+  // 埋め込んだ JSON / states / values と入口が複数あり、 1 つ見落とすと穴が残る。
+  // **図への追加を全て終えた後**、 出口で 1 度だけ見る。 この後に状態を足すと検査を迂回する。
   for (const dropped of stripExternalPaint(merged)) {
     opts?.onNotice?.({
       kind: "external-paint-dropped",
@@ -204,10 +208,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
     });
   }
-  // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
-  // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる
-  materializeStates(merged, doc);
-  attachDerivedValues(merged, doc, opts?.onNotice);
   return merged;
 }
 

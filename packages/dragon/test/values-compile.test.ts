@@ -98,6 +98,15 @@ describe("値が描画側に届く (#1162)", () => {
     // 状態はそのまま届く (値を書かないことで状態まで消えない)
     expect(描画が読む値(記法("states:\n  x: 1")).x).toBe("1");
   });
+
+  it("段なしで載せた state も外部参照を描画へ渡さない", () => {
+    // state は `{name}` で SVG の paint 属性へ差し込める。 出口検査より後に state を載せると、
+    // url(...) が検査を迂回して図を開いた人の環境から外部へ要求できてしまう
+    const src = 記法('states:\n  fill: "url(https://example.invalid/pixel)"');
+    const d = textDslToDiagram(src);
+    expect(d.states.find((s) => s.id === "fill")?.initial).toBe("none");
+    expect(知らせ(src).map((n) => n.kind)).toContain("external-paint-dropped");
+  });
 });
 
 describe("値の反例 6 種 (#1162)", () => {
