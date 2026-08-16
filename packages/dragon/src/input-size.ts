@@ -49,6 +49,9 @@ export interface InputSize {
  * **段の中身 (光らせる相手 / 遷移 / 即時変更) も数える**。 段の数だけを見ると、
  * 1 段に 1,000 件の相手を書いた形が 1 件として通る。 実測ではこの形が組み立ての中で
  * 約 100 万件に展開され、 呼び出しの深さが上限を超えて落ちた。
+ *
+ * **他の値から決まる値 (`values:`) も数える** (#1162)。 これらは毎 frame 解かれるので、
+ * 数に入れないと上限をすり抜けた本文が描画のたびに重さを持つ。
  */
 export function countDocElements(doc: DslDocument): number {
   const phases = doc.animate?.phases ?? [];
@@ -62,6 +65,7 @@ export function countDocElements(doc: DslDocument): number {
     phases.length +
     phaseChildren +
     (doc.animate?.states.length ?? 0) +
+    (doc.values?.length ?? 0) +
     (doc.groups ? Object.keys(doc.groups).length : 0) +
     (doc.lanes ? Object.keys(doc.lanes).length : 0)
   );
@@ -87,6 +91,7 @@ export function countDiagramElements(diagram: {
   formulas?: unknown[];
   scrollTriggers?: unknown[];
   eventBindings?: unknown[];
+  derived?: unknown[];
 }): number {
   const phases = Array.isArray(diagram.phases) ? diagram.phases : [];
   const phaseChildren = phases.reduce((acc: number, p) => {
@@ -111,7 +116,9 @@ export function countDiagramElements(diagram: {
     (diagram.inputs?.length ?? 0) +
     (diagram.formulas?.length ?? 0) +
     (diagram.scrollTriggers?.length ?? 0) +
-    (diagram.eventBindings?.length ?? 0)
+    (diagram.eventBindings?.length ?? 0) +
+    // 他の値から決まる値 (#1162)。 記法側 (`countDocElements`) が数えるので、こちらも揃える
+    (diagram.derived?.length ?? 0)
   );
 }
 

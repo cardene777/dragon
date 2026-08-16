@@ -14,6 +14,7 @@ import type { CdlDiagram, ErRelationCardinality, LaidDiagram } from "@cardenelab
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
+  applyDerivedValues,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
@@ -72,7 +73,11 @@ export type CompileNotice = {
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
     | "chart-edge-dropped"
     // 同じ名前を `states` と `values` の両方に書いた (#1162)
-    | "value-shadows-state";
+    | "value-shadows-state"
+    // 式を解けず、その値を止めた (輪 / 無い名前 / 読めない式 / 数として読めない値、 #1162)
+    | "value-unresolved"
+    // 同じ名前を `values` に 2 度書いた。 先に書いた式を使う (#1162)
+    | "value-duplicate";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -199,8 +204,34 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
     });
   }
-  applyDerivedValues(merged, doc, opts?.onNotice);
+  // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
+  // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる
+  materializeStates(merged, doc);
+  attachDerivedValues(merged, doc, opts?.onNotice);
   return merged;
+}
+
+/**
+ * 書いた状態 (`states:`) を図に載せる (#1162)。
+ *
+ * 状態を図に登録するのは `animation:` を書いた経路だけだった (`compileGenericWithAnimate` と
+ * `injectPhasesFallback` のどちらも段がある時しか走らない)。 このため `states:` と `values:`
+ * だけを書いた図では図の状態が 0 件になり、描画側が組み立てる値が空になる。 書いた値は
+ * 1 つも届かず、箱には `{waiting}` の生の形が出ていた (実測)。
+ *
+ * **出口で 1 度だけ載せる**。 段を作る経路は図の種類ごとにばらけており、経路ごとに書くと
+ * どれかを見落とす (`injectStaticPhase` と同じ理由)。
+ *
+ * 既に載っている名前は触らない。 段の経路が登録した初期値と、見本から引き継いだ状態
+ * (`alias__id` の形) の両方を保つ。
+ */
+function materializeStates(diagram: CdlDiagram, doc: DslDocument): void {
+  const 載っている = new Set(diagram.states.map((s) => s.id));
+  for (const st of doc.animate?.states ?? []) {
+    if (載っている.has(st.name)) continue;
+    diagram.states.push({ id: st.name, initial: st.initial });
+    載っている.add(st.name);
+  }
 }
 
 /**
@@ -2113,7 +2144,7 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
  * 名前が `states` と重なった場合は `values` を優先し、 重なったことを伝える。 spec の
  * 4 節で決めた挙動で、 黙って一方を捨てると「書いたのに効かない」 が残る。
  */
-function applyDerivedValues(
+function attachDerivedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
@@ -2121,7 +2152,9 @@ function applyDerivedValues(
   const values = doc.values ?? [];
   if (values.length === 0) return;
 
-  const 状態の名前 = new Set((doc.animate?.states ?? []).map((s) => s.name));
+  // 名前が重なったかは **図に載った状態** で見る。 書いた `states:` だけを見ると、見本から
+  // 引き継いだ状態 (`alias__id`) との重なりを見落とす
+  const 状態の名前 = new Set(diagram.states.map((s) => s.id));
   for (const v of values) {
     if (!状態の名前.has(v.name)) continue;
     onNotice?.({
@@ -2134,7 +2167,56 @@ function applyDerivedValues(
   }
 
   diagram.derived = values.map((v) => ({ id: v.name, expression: v.expression }));
+  reportUnresolvedValues(diagram, doc, onNotice);
 }
+
+/**
+ * 解けなかった値を書いた人に伝える (#1162)。
+ *
+ * 描画側は解けない値を黙って飛ばす (`computeStateValues` が engine の知らせを捨てている)。
+ * 書き間違えても図は描かれ、箱に `{waiting}` の生の形が出るだけになる。 綴りを疑う以外に
+ * 手掛かりが無いので、組み立ての時点で分かる分をここで伝える。
+ *
+ * **判定は engine にさせる**。 解く順序と、止める条件 (輪 / 無い名前 / 読めない式 / 数として
+ * 読めない値) は engine が持つ。 同じ判定を書き直すと、描画は動くのに知らせだけ出る
+ * (またはその逆) 状態を作る。
+ *
+ * 見るのは初期値 1 組だけ。 輪 / 無い名前 / 読めない式 / 二重宣言は値に依らないのでこれで
+ * 全て取れる。 段の途中でだけ起きる形 (割る数が段の途中で 0 になる等) は取れない =
+ * 毎 frame の知らせは engine 側が返し口を持たないため、ここでは扱わない。
+ */
+function reportUnresolvedValues(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  // 描画側 (`computeStateValues`) が段を進める前に組み立てるのと同じ形。 値を解く手順は
+  // engine に渡すので、ここで組み立てるのは初期値の表だけにする
+  const 初期値: Record<string, string> = {};
+  for (const s of diagram.states) 初期値[s.id] = String(s.initial);
+
+  const 行 = new Map((doc.values ?? []).map((v) => [v.name, v.pos?.line ?? 0]));
+  for (const n of applyDerivedValues(初期値, diagram.derived).notices) {
+    onNotice({
+      kind: n.kind === "duplicate-id" ? "value-duplicate" : "value-unresolved",
+      actor: n.id,
+      line: 行.get(n.id) ?? 0,
+      message: n.message,
+      hint: VALUE_NOTICE_HINT[n.kind],
+    });
+  }
+}
+
+/** 止まった理由ごとの直し方。 engine の知らせは何が起きたかまでで、直し方は記法側が持つ */
+const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
+  cycle: "参照が一周しています。 どれか 1 つを states の初期値に変える",
+  "unknown-reference": "その名前の states / values を足すか、綴りを直す",
+  "parse-error": "式に書けるのは四則 (+ - * /) と括弧、比較、min / max だけ",
+  "eval-error": "初期値で計算できない形です。 割る数や、数として読めない初期値を見直す",
+  "duplicate-id": "同じ名前が 2 度あります。 片方を消すか名前を変える",
+  "invalid-id": "名前に使えるのは英数字と _ だけ",
+};
 
 /**
  * 図全体を 1 つの箱で描く種別。
