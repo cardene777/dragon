@@ -10,11 +10,11 @@
  */
 
 import type { DslDocument, DslPhase } from "./types";
-import type { CdlDiagram, ErRelationCardinality, LaidDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
-  applyDerivedValues,
+  applyDerivedValues, parseFormula,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { isColorValue, stripExternalPaint } from "./color";
@@ -171,7 +171,19 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const extended = applyV05Extensions(diagram, placed);
-  const merged = mergePartsFromActors(extended, placed, opts?.partsCatalog, opts?.onNotice);
+  // 値の知らせは、本文なら値を書いた行、見本なら見本を置いた行を指す。 `derived` 自体には
+  // source position が無いため、見本を重ねる間だけ別表で宣言元を持ち回る (#1180)。
+  const inheritedDerivedSourceLines = opts?.onNotice ? new Map<string, number[]>() : undefined;
+  for (const value of extended.derived ?? []) {
+    recordDerivedSourceLine(inheritedDerivedSourceLines, value.id, 0);
+  }
+  const merged = mergePartsFromActors(
+    extended,
+    placed,
+    opts?.partsCatalog,
+    opts?.onNotice,
+    inheritedDerivedSourceLines,
+  );
   // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
   // 途中で消えた edge の行を知らせても呼出側が使えない。
   if (edgeSourceLines && opts?.onEdgeSource) {
@@ -193,7 +205,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
   // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる。
   materializeStates(merged, doc);
-  attachDerivedValues(merged, doc, opts?.onNotice);
+  attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
@@ -1541,6 +1553,7 @@ function mergePartsFromActors(
   doc: DslDocument,
   partsCatalog?: Record<string, CdlDiagram>,
   onNotice?: (notice: CompileNotice) => void,
+  derivedSourceLines?: Map<string, number[]>,
 ): CdlDiagram {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   if (partsActors.length === 0) return target;
@@ -1641,7 +1654,20 @@ function mergePartsFromActors(
       }
     }
     const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
-    mergePartIntoDiagram(target, part, actor.name, merged, actor.lane, placeX, placeY, t.w, t.h, onNotice, actor.pos?.line ?? 0);
+    mergePartIntoDiagram(
+      target,
+      part,
+      actor.name,
+      merged,
+      actor.lane,
+      placeX,
+      placeY,
+      t.w,
+      t.h,
+      onNotice,
+      actor.pos?.line ?? 0,
+      derivedSourceLines,
+    );
   }
   return target;
 }
@@ -1725,14 +1751,39 @@ function mergePartIntoDiagram(
   onNotice?: (notice: CompileNotice) => void,
   /** 知らせに載せる行。 パーツを書いた行を指す。 行が取れない経路 (JSON) では 0 */
   noticeLine = 0,
+  /** 見本から引き継いだ値の宣言元。 notice を見本を書いた行へ戻すために使う */
+  derivedSourceLines?: Map<string, number[]>,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
-  const stateIdSet = new Set(part.states.map((s) => s.id));
+  // 見本が自分で持つ名前。 **状態と、他の値から決まる値の両方** (#1180)。
+  //
+  // 値を含めないと、見本の中の `{決まる値}` が名前を付け替えられずに残り、重ねた先の同名の
+  // 値を指してしまう (見本どうしが互いの値を読む形になる)。
+  const ownIdSet = new Set([
+    ...part.states.map((s) => s.id),
+    ...(part.derived ?? []).map((d) => d.id),
+  ]);
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
-    return s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (m, name: string) => {
-      return stateIdSet.has(name) ? `{${prefix(name)}}` : m;
+    return s.replace(/\{(\w+)\}/g, (m, name: string) => {
+      return ownIdSet.has(name) ? `{${prefix(name)}}` : m;
     });
+  };
+  // 値の式は見本の名前空間の中で閉じる。 見本が持つ名前だけを書き換えると、綴り違いの参照が
+  // 取り込み先の同名の値に偶然つながり、単体では止まる見本の意味が置いた場所で変わる。
+  //
+  // **どれが参照かは engine に決めさせる**。 engine は `{v}` と裸の `v` の両方を参照として
+  // 読み、関数名 (`min` / `Math.max` 等) は参照に数えない (実測)。 ここで関数の一覧を持つと
+  // 記法側 (`value-syntax.ts`) と engine に続く 3 つ目の写しになり、engine が関数を足した時に
+  // 静かにずれる。
+  const rewriteDerivedExpression = (expression: string): string => {
+    try {
+      return writeFormula(renameFormulaIdentifiers(parseFormula(expression), prefix));
+    } catch {
+      // 読めない式は engine が止めて伝える (`value-unresolved`)。 書き換えられないので
+      // そのまま載せる = 名前は前置き無しのままだが、式自体が解けないため値は出ない
+      return expression;
+    }
   };
 
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
@@ -1945,6 +1996,21 @@ function mergePartIntoDiagram(
     target.states.push({ id: prefix(stateOrig.id), initial });
   }
 
+  // 見本が持つ「他の値から決まる値」 を引き継ぐ (#1180)。
+  //
+  // 引き継がないと、見本の中で書いた関係が重ねた先で解かれず、その値を読む箱に `{名前}` の
+  // 生の形が出る。 名前は状態と同じ規則で前置きを付ける = 見本を 2 つ重ねても互いの値を
+  // 読まない。 式の中の参照は、未定義の名前も含めて見本の名前空間へ閉じ込める。
+  for (const derivedOrig of part.derived ?? []) {
+    if (!target.derived) target.derived = [];
+    const id = prefix(derivedOrig.id);
+    target.derived.push({
+      id,
+      expression: rewriteDerivedExpression(derivedOrig.expression),
+    });
+    recordDerivedSourceLine(derivedSourceLines, id, noticeLine);
+  }
+
   // edge merge = id / from / to prefix (parts 内 edge は稀だが対応)
   for (const edgeOrig of part.edges) {
     target.edges.push({
@@ -2148,9 +2214,17 @@ function attachDerivedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
+  inheritedSourceLines?: ReadonlyMap<string, readonly number[]>,
 ): void {
   const values = doc.values ?? [];
-  if (values.length === 0) return;
+  // 本文に値を書いていなくても、重ねた見本が値を持つことがある (#1180)。 その場合も
+  // 解けなかった分は伝える = 見本の中で止まった値も、画面には `{名前}` の生の形で出る
+  if (values.length === 0) {
+    if ((diagram.derived?.length ?? 0) > 0) {
+      reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
+    }
+    return;
+  }
 
   // 名前が重なったかは **図に載った状態** で見る。 書いた `states:` だけを見ると、見本から
   // 引き継いだ状態 (`alias__id`) との重なりを見落とす
@@ -2166,8 +2240,117 @@ function attachDerivedValues(
     });
   }
 
-  diagram.derived = values.map((v) => ({ id: v.name, expression: v.expression }));
-  reportUnresolvedValues(diagram, doc, onNotice);
+  // **見本から引き継いだ分に足す** (#1180)。 代入で書くと、重ねた見本が持つ値が消える。
+  //
+  // 本文に書いた分を先に置く = engine は同じ名前では先に書いた式を使うため、名前が重なった
+  // 時に本文が勝つ。 重なったことは engine の知らせ (`duplicate-id`) がそのまま伝える
+  diagram.derived = [
+    ...values.map((v) => ({ id: v.name, expression: v.expression })),
+    ...(diagram.derived ?? []),
+  ];
+  reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
+}
+
+/**
+ * 式の中の名前を付け替える (#1180)。
+ *
+ * **字句ではなく木を経由する**。 engine の式は `{v}` / 裸の `v` / 数字始まり / `$` 入りと
+ * 参照の書き方が複数あり、正規表現で追うと書き方が 1 つ増えるたびに漏れる (review が 3 round
+ * 続けて別の漏れを見つけた)。 木は識別子をそのまま持つので、字句を網羅しなくてよい。
+ *
+ * 関数呼び出し (`min` / `Math.max`) は木の上で別の種類なので、名前と取り違えない。
+ */
+function renameFormulaIdentifiers(ast: FormulaAst, rename: (name: string) => string): FormulaAst {
+  switch (ast.type) {
+    case "number":
+      return ast;
+    case "identifier":
+      return { type: "identifier", name: rename(ast.name) };
+    case "unaryOp":
+      return { ...ast, operand: renameFormulaIdentifiers(ast.operand, rename) };
+    case "binaryOp":
+      return {
+        ...ast,
+        left: renameFormulaIdentifiers(ast.left, rename),
+        right: renameFormulaIdentifiers(ast.right, rename),
+      };
+    case "ternary":
+      return {
+        type: "ternary",
+        condition: renameFormulaIdentifiers(ast.condition, rename),
+        whenTrue: renameFormulaIdentifiers(ast.whenTrue, rename),
+        whenFalse: renameFormulaIdentifiers(ast.whenFalse, rename),
+      };
+    case "call":
+      return { ...ast, args: ast.args.map((a) => renameFormulaIdentifiers(a, rename)) };
+  }
+}
+
+/**
+ * 数を、engine の読み手が受け付ける形で書く (#1180)。
+ *
+ * **指数表記を出さない**。 `0.0000001` は JavaScript の既定では `"1e-7"` になるが、engine の
+ * 読み手は指数表記を読めない (実測 = `unexpected token after expression`)。 そのまま書くと、
+ * 元は解けていた式が書き換えた後だけ止まる。
+ *
+ * 展開は桁をずらすだけで、丸めない。 `String` が返す最短の形をそのまま使うため、値は変わらない。
+ * 有限でない数は書けないので投げる (呼出側が元の式のまま載せる)。
+ */
+function writeNumber(value: number): string {
+  if (!Number.isFinite(value)) throw new Error(`cannot write non-finite number: ${String(value)}`);
+  const s = String(value);
+  if (!/[eE]/.test(s)) return s;
+  const m = /^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(s);
+  if (!m) throw new Error(`cannot write number: ${s}`);
+  const sign = m[1] ?? "";
+  const int = m[2] ?? "";
+  const frac = m[3] ?? "";
+  const digits = int + frac;
+  // 小数点の位置。 元の整数部の桁数を指数のぶんだけずらす
+  const point = int.length + Number(m[4] ?? "0");
+  if (point <= 0) return `${sign}0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length) return `${sign}${digits}${"0".repeat(point - digits.length)}`;
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+/**
+ * 式の木を文字列へ戻す (#1180)。
+ *
+ * **括弧を全て付ける**。 演算子の優先順位を再現しようとすると engine の表を写すことになり、
+ * 表がずれた時に式の意味が静かに変わる。 括弧が増えても解いた結果は変わらない。
+ */
+function writeFormula(ast: FormulaAst): string {
+  switch (ast.type) {
+    case "number":
+      return writeNumber(ast.value);
+    case "identifier":
+      // **裸で書ける形とそうでない形がある**。 engine は裸の名前を `[A-Za-z_$][\w$]*` で読む
+      // 一方、波括弧の中は `\w+` なので数字始まりの名前は波括弧付きでしか書けない。
+      // 名前は前置きで変わる (`1p__v` のように数字始まりになりうる) ため、書ける方を選ぶ
+      return /^[A-Za-z_$][\w$]*$/.test(ast.name) ? ast.name : `{${ast.name}}`;
+    case "unaryOp":
+      // 空白は挟まない。 読み手は負の数を字面として持たず (`-5` は単項 `-` と `5` の木になる)、
+      // `--5` も単項の 2 段として読む (実測)。 挟んでも挟まなくても意味が同じなので足さない
+      return `(${ast.op}${writeFormula(ast.operand)})`;
+    case "binaryOp":
+      return `(${writeFormula(ast.left)} ${ast.op} ${writeFormula(ast.right)})`;
+    case "ternary":
+      return `(${writeFormula(ast.condition)} ? ${writeFormula(ast.whenTrue)} : ${writeFormula(ast.whenFalse)})`;
+    case "call":
+      return `${ast.fn}(${ast.args.map(writeFormula).join(", ")})`;
+  }
+}
+
+/** `derived` の同名宣言を、engine が読む順のまま行番号の列として残す。 */
+function recordDerivedSourceLine(
+  sourceLines: Map<string, number[]> | undefined,
+  id: string,
+  line: number,
+): void {
+  if (!sourceLines) return;
+  const lines = sourceLines.get(id) ?? [];
+  lines.push(line);
+  sourceLines.set(id, lines);
 }
 
 /**
@@ -2189,6 +2372,7 @@ function reportUnresolvedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
+  inheritedSourceLines?: ReadonlyMap<string, readonly number[]>,
 ): void {
   if (!onNotice) return;
   // 描画側 (`computeStateValues`) が段を進める前に組み立てるのと同じ形。 値を解く手順は
@@ -2213,6 +2397,19 @@ function reportUnresolvedValues(
     const 同じ名前の行 = 重複した行.get(v.name) ?? [];
     同じ名前の行.push(v.pos?.line ?? 0);
     重複した行.set(v.name, 同じ名前の行);
+  }
+  // 本文の値は `attachDerivedValues` が先頭へ置き、見本から引き継いだ値はその後ろに残る。
+  // 同じ順で行を足すことで、duplicate-id を「後から書かれた宣言」へ正確に戻す。
+  for (const [id, lines] of inheritedSourceLines ?? []) {
+    for (const line of lines) {
+      if (!最初の行.has(id)) {
+        最初の行.set(id, line);
+        continue;
+      }
+      const 同じ名前の行 = 重複した行.get(id) ?? [];
+      同じ名前の行.push(line);
+      重複した行.set(id, 同じ名前の行);
+    }
   }
   for (const n of applyDerivedValues(初期値, diagram.derived).notices) {
     onNotice({
