@@ -1492,9 +1492,10 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
 
 function parseStateEntry(text: string, lineNo: number): DslState | null {
   // `client_bal: 100` / `status: "idle"`
-  const m = text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.+)$/);
+  const m = text.match(/^([^:]+?)\s*:\s*(.+)$/);
   if (!m) return null;
-  const name = m[1] ?? "";
+  const name = (m[1] ?? "").trim();
+  if (!isValueName(name)) return null;
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
@@ -1748,10 +1749,12 @@ function parseFocusList(s: string): string[] {
 function parseTweenLine(s: string, lineNo: number): DslTween | null {
   // `client_bal 100 -> 90` / `client_bal: 100 -> 90`
   const cleaned = s.replace(/^-\s*/, "").trim();
-  const m = cleaned.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
+  const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
   if (!m) return null;
+  const state = m[1] ?? "";
+  if (!isValueName(state)) return null;
   return {
-    state: m[1] ?? "",
+    state,
     from: parseFloat(m[2] ?? "0"),
     to: parseFloat(m[3] ?? "0"),
     pos: { line: lineNo },
@@ -1761,11 +1764,13 @@ function parseTweenLine(s: string, lineNo: number): DslTween | null {
 function parseSetLine(s: string, lineNo: number): DslSet | null {
   // `status: "loading"` / `status loading`
   const cleaned = s.replace(/^-\s*/, "").trim();
-  const m = cleaned.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*[:\s]\s*(.+)$/);
+  const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(.+)$/);
   if (!m) return null;
+  const state = m[1] ?? "";
+  if (!isValueName(state)) return null;
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
   const value: number | string = Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
-  return { state: m[1] ?? "", value, pos: { line: lineNo } };
+  return { state, value, pos: { line: lineNo } };
 }
