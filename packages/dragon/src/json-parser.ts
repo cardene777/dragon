@@ -43,8 +43,8 @@ export interface DragonJson {
    * `{名前}` を箱の文字に置くと、ここに書いた値が描画側で置き換わる。 名前は英数字と `_`
    * だけ (描画側が置き換える時に見る範囲と揃える)。
    *
-   * **段で動かす指定 (`tween` / `set`) は JSON 経路にまだ無い** (`#1186`)。 ここに書けるのは
-   * 初期値までで、値は段を進めても変わらない。
+   * ここに書けるのは初期値まで。 段で動かすのは `animation[].tween` / `animation[].set`
+   * (`#1186` で追加、記法の `tween:` / `set:` と同じ)。
    */
   states?: Record<string, number | string>;
   /**
