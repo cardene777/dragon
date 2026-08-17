@@ -2950,6 +2950,101 @@ function parseShareValue(raw: string | undefined): number | null {
 }
 
 /**
+ * 状態を読む欄かどうか (`{名前}`)。
+ *
+ * **`{名前}` そのものだけを受ける**。 `{v} 件` のような混ざった形は、描画側が数として
+ * 読めず既定値に落ちて印が付くだけになる (`render/payload-binding.ts` は解いた文字列を
+ * そのまま数にする)。 書けたのに効かない形を作らない。
+ *
+ * `%` を付けた形も受けない。 同じ理由で `"45%"` は数に直せるが `"{v}%"` は直せない。
+ *
+ * 名前に使えるのは英数字と `_` で、読む側 (cdl の `interpolate`) と同じ範囲に合わせる。
+ * 決まった accessor (`.sum` 等) は付けてよい。
+ */
+function parseBoundValue(raw: string | undefined): string | null {
+  if (raw === undefined) return null;
+  const t = raw.trim();
+  return /^\{\w+(?:\.(?:length|sum|max|min|avg)|\[\d+\])?\}$/.test(t) ? t : null;
+}
+
+/**
+ * 図表の数の欄を読む。 数そのものか、状態を読む `{名前}` を返す。
+ *
+ * 数として解けない `{名前}` は、そのまま図表の中身に渡して描画側が段ごとに解く。
+ * 受け取る側の型 (`BoundNumber`) は元から 2 通りを想定している = 入口だけが塞がっていた。
+ */
+function parseChartValue(raw: string | undefined): number | string | null {
+  const n = parseShareValue(raw);
+  if (n !== null) return n;
+  return parseBoundValue(raw);
+}
+
+/**
+ * 数の欄から参照してよい名前。
+ *
+ * 2 つを確かめる。 **その名前が宣言されていること** と、**数として読めること**。
+ *
+ * どちらを外しても図は出るが、数が入らない。 描画側は解けなかった `{名前}` をそのまま
+ * 文字として描き、数に直せない値は既定値に落として印を付ける (`data-cdl-unresolved`)。
+ * どちらも「壊れているのに正しい図に見える」 形なので、入口で落として警告する
+ * (数として読めない値を落とす既存の扱いと同じ)。
+ *
+ * 他の値から自動で決まる値 (`values:`) は名前だけを見る。 式の評価は実行時に起きるため、
+ * ここでは結果を知りようがない。
+ *
+ * ## 責務境界 (#1198 / #1200)
+ *
+ * **見るのは組み立ての時点で決まっている範囲だけ**。 記法の値は実行時に決まるため、
+ * ここで全部を判定しようとすると式の評価を組み立て側で再現することになる。 実際に
+ * `#1199` の review で 4 round 続けて同じ形の指摘が出て収束しなかった (穴を 1 つ塞ぐと
+ * 別の形が出る = 塞ぎ方ではなく責務の置き場所の問題)。
+ *
+ * | 見る | 見ない |
+ * |---|---|
+ * | 名前が宣言されているか | 段で負に動いた結果 (`tween` の行き先) |
+ * | 宣言の時点で数として読めるか | 自動で決まる値の式が返す値 |
+ * | 段の切り替え (`set`) の行き先も数か | |
+ *
+ * 見ない範囲は描画側が受け持つ = 解けない値は既定値で描いて `data-cdl-unresolved` を付ける。
+ * これを記法の書き手に届ける経路と、検査を 1 か所に集める作業は `#1200` が持つ。
+ */
+function 数として読めるか(v: number | string): boolean {
+  if (typeof v === "number") return Number.isFinite(v);
+  const t = v.trim();
+  // **空文字と空白だけを先に弾く**。 `Number("")` は 0 を返すため、素通しすると
+  // 「何も書いていない状態」 が「0 と書いた状態」 と区別できなくなる。 図には 0 が出て
+  // 印も付かないので、壊れていることが誰にも見えない (実測)
+  if (t === "") return false;
+  return Number.isFinite(Number(t));
+}
+
+function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
+  // **段の途中で語に切り替わる状態も弾く**。 最初の値だけを見ると、その段に来たときだけ
+  // 数が入らない図になる (実測で `data-cdl-unresolved` が付いた)。 段で動かす値は数しか
+  // 書けないので、見るのは切り替え (`set`) だけでよい
+  const 語になる = new Set<string>();
+  for (const p of doc.animate?.phases ?? []) {
+    for (const st of p.sets ?? []) if (!数として読めるか(st.value)) 語になる.add(st.state);
+  }
+
+  const out = new Set<string>();
+  for (const s of doc.animate?.states ?? []) {
+    if (!数として読めるか(s.initial)) continue;
+    if (語になる.has(s.name)) continue;
+    out.add(s.name);
+  }
+  for (const v of doc.values ?? []) out.add(v.name);
+  return out;
+}
+
+/** 状態を読む欄が指している名前 (`{v.sum}` なら `v`)。 欄でなければ null */
+function 参照する名前(value: number | string | null): string | null {
+  if (typeof value !== "string") return null;
+  const m = value.match(/^\{(\w+)/);
+  return m ? m[1]! : null;
+}
+
+/**
  * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
  *
  * 3 種とも `- 名前: "45"` の 1 行 1 値で書く。 違うのは描画側の種別と、 値の意味だけ。
@@ -2981,18 +3076,29 @@ function compileValueChart(
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
+  const 未宣言: string[] = [];
+  let 未宣言行 = 0;
+  const 参照できる = 数の欄から参照できる名前(doc);
   // 最初に読めなかった行を覚える。 画面が案内できるようにする
   let 読めない行 = 0;
   for (const a of doc.actors) {
     // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
-    const value = parseShareValue(a.value ?? a.subtitle);
+    const value = parseChartValue(a.value ?? a.subtitle);
     // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
-    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)
-    if (value === null || (value < 0 && 型 !== "line")) {
+    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)。
+    // 状態を読む欄 (`{名前}`) は書いた時点で符号が決まらないため、この検査を通す
+    if (value === null || (typeof value === "number" && value < 0 && 型 !== "line")) {
       // `pos` を持たない経路がある (JSON 経路で組み立てた actor)。 無ければ 0 のまま
       if (読めない.length === 0) 読めない行 = a.pos?.line ?? 0;
       読めない.push(a.name);
+      continue;
+    }
+    // 数にならない参照は落とす。 通すと図は出るのに数が入っていない状態になる
+    const 名前 = 参照する名前(value);
+    if (名前 !== null && !参照できる.has(名前)) {
+      if (未宣言.length === 0) 未宣言行 = a.pos?.line ?? 0;
+      未宣言.push(a.name);
       continue;
     }
     // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
@@ -3023,6 +3129,15 @@ function compileValueChart(
       `type: ${型} で${語.量}を読めない項目があります (${語.図}に載せません): ${読めない.join(", ")}。` +
         ` \`- 名前: ${語.例}\` の形で書いてください`,
       読めない行,
+    );
+  }
+  if (未宣言.length > 0) {
+    伝える(
+      "chart-value-unreadable",
+      未宣言[0]!,
+      `type: ${型} で数にならない値を参照した項目があります (${語.図}に載せません): ${未宣言.join(", ")}。` +
+        ` \`states:\` にその名前を数で書いてください`,
+      未宣言行,
     );
   }
   if (doc.flow.length > 0) {
@@ -3102,14 +3217,27 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   b.lane("chart", { width: W + 64, label: doc.title });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
+  const 未宣言: string[] = [];
+  const 参照できる = 数の欄から参照できる名前(doc);
   for (const a of doc.actors) {
-    const v = parseShareValue(a.value ?? a.subtitle);
-    // 段の数なので負に意味が無い
-    if (v === null || v < 0) {
+    const v = parseChartValue(a.value ?? a.subtitle);
+    // 段の数なので負に意味が無い (状態を読む欄は符号が決まらないので通す)
+    if (v === null || (typeof v === "number" && v < 0)) {
       読めない.push(a.name);
       continue;
     }
+    // 数にならない参照は落とす (棒 / 折れ線 / 円と同じ扱い)
+    const 名前 = 参照する名前(v);
+    if (名前 !== null && !参照できる.has(名前)) {
+      未宣言.push(a.name);
+      continue;
+    }
     data.push({ id: slugify(a.name), title: a.name, count: v });
+  }
+  if (未宣言.length > 0) {
+    const m3 = `type: funnel で数にならない値を参照した項目があります (段に載せません): ${未宣言.join(", ")}。 \`states:\` にその名前を数で書いてください`;
+    onNotice?.({ kind: "chart-value-unreadable", actor: 未宣言[0]!, line: 0, message: m3 });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m3}`);
   }
   if (読めない.length > 0) {
     const m = `type: funnel で数を読めない項目があります (段に載せません): ${読めない.join(", ")}。 \`- 訪問: "12000"\` の形で書いてください`;
