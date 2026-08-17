@@ -344,6 +344,30 @@ animation:
     expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
   });
 
+  it("段で数に補間される状態を指した項目は落ちて警告が出る", () => {
+    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる。
+    // 記法としては書けてしまい、実測では警告が出ないまま図が壊れていた
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "不満"
+
+animation:
+  - step: "はじめ" 1.2s
+  - step: "数になる" 1.2s
+    tween:
+      mood: 0 -> 5
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d), "補間される状態を指した項目が載っている").toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
   it("区画の欄でも同じことができる", () => {
     const d = textDslToDiagram(`title: "試し"
 type: quadrant
