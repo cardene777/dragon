@@ -130,6 +130,76 @@ animation:
     }
   });
 
+  it("空文字の状態は落ちる", () => {
+    // `Number("")` は 0 を返す。 素通しすると「何も書いていない状態」 と「0 と書いた状態」 が
+    // 区別できず、描画側で解けないまま図だけが出る (実測で `data-cdl-unresolved` が付いた)。
+    //
+    // 空白だけを書いた場合は **読み取りの時点で数の 0 になる** ため、ここには届かない
+    // (`v: "   "` の実際の初期値は 0)。 それは読み取り側の扱いで、本 file の対象ではない
+    for (const 初期値 of ['""']) {
+      const notices: Array<{ kind: string }> = [];
+      const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: ${初期値}
+
+animation:
+  - step: "動く" 1.5s
+`, { onNotice: (n) => notices.push(n) });
+      expect(中身(d), `初期値 ${初期値} が通っている`).toEqual([200]);
+      expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+    }
+  });
+
+  it("段の途中で語に切り替わる状態は落ちる", () => {
+    // 最初の値だけを見ると、その段に来たときだけ数が入らない図になる
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "はじめ" 1.5s
+  - step: "語になる" 1.5s
+    set:
+      v: "こんにちは"
+`, { onNotice: (n) => notices.push(n) });
+    expect(中身(d), "段で語になる状態が通っている").toEqual([200]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("段で数に切り替わる状態は通る", () => {
+    // 切り替え先が数なら問題ない。 弾き過ぎると段で値を差し替える書き方ができなくなる
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "はじめ" 1.5s
+  - step: "差し替え" 1.5s
+    set:
+      v: 900
+`);
+    expect(中身(d)).toEqual(["{v}", 200]);
+  });
+
   it("数として読める語の状態は通る", () => {
     // 記法は数を引用符で書く形も許す。 `"100"` は数として読めるので落とさない
     const d = textDslToDiagram(`title: "試し"

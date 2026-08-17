@@ -2991,11 +2991,30 @@ function parseChartValue(raw: string | undefined): number | string | null {
  *
  * 他の値から自動で決まる値 (`values:`) は式の評価結果なので必ず数になる。
  */
+function 数として読めるか(v: number | string): boolean {
+  if (typeof v === "number") return Number.isFinite(v);
+  const t = v.trim();
+  // **空文字と空白だけを先に弾く**。 `Number("")` は 0 を返すため、素通しすると
+  // 「何も書いていない状態」 が「0 と書いた状態」 と区別できなくなる。 図には 0 が出て
+  // 印も付かないので、壊れていることが誰にも見えない (実測)
+  if (t === "") return false;
+  return Number.isFinite(Number(t));
+}
+
 function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
+  // **段の途中で語に切り替わる状態も弾く**。 最初の値だけを見ると、その段に来たときだけ
+  // 数が入らない図になる (実測で `data-cdl-unresolved` が付いた)。 段で動かす値は数しか
+  // 書けないので、見るのは切り替え (`set`) だけでよい
+  const 語になる = new Set<string>();
+  for (const p of doc.animate?.phases ?? []) {
+    for (const st of p.sets ?? []) if (!数として読めるか(st.value)) 語になる.add(st.state);
+  }
+
   const out = new Set<string>();
   for (const s of doc.animate?.states ?? []) {
-    const n = typeof s.initial === "number" ? s.initial : Number(String(s.initial).trim());
-    if (Number.isFinite(n)) out.add(s.name);
+    if (!数として読めるか(s.initial)) continue;
+    if (語になる.has(s.name)) continue;
+    out.add(s.name);
   }
   for (const v of doc.values ?? []) out.add(v.name);
   return out;
