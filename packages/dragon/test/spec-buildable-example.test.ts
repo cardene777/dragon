@@ -50,14 +50,31 @@ function 解けるべき例(): string[] {
   return blocks;
 }
 
+/**
+ * 走査は **1 度だけ** 行い、結果を全ての検査が共有する。
+ *
+ * `it.each` の引数は describe の収集時に評価され、`it` の中身は実行時に評価される。
+ * 走査を検査ごとに呼ぶと **収集時と実行時で別々に file を読む** ことになり、
+ * 収集時に 0 件でも実行時に 1 件あれば「空振りしていない」 が通る = その assert が
+ * 実際に走った case 数を保証しない (本 file が塞ごうとしている恒真と同じ形)。
+ *
+ * 1 度だけ評価すれば、`it.each` が受け取る配列と assert が見る配列が同一になる。
+ *
+ * **この形は変異試験で覆えていない**。 検査ごとの呼出へ戻すだけでは 3 件とも通る
+ * (collection と execution の間で file が変わらない限り顕在化しない)。 落ちる入力を作れない
+ * ため、構造で閉じてある。
+ */
+const 解けるべき例一覧 = 解けるべき例();
+const SPEC_SRC = readFileSync(SPEC_URL, "utf8");
+
 describe("spec の「今書ける形」 が記法として解ける (#1207)", () => {
   it("走査が空振りしていない", () => {
-    // block が 1 件も取れないと、以下の検査が「全て通った」 として素通りする。
+    // 0 件だと `it.each` が case を 1 つも登録せず、以下の検査が「全て通った」 として素通りする。
     // fence の書き方が変わった時と、例そのものが消えた時の両方をここで捕まえる
-    expect(解けるべき例().length, "`title:` で始まる block を 1 件も取れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(解けるべき例一覧.length, "`title:` で始まる block を 1 件も取れていない (検査が空振りしている)").toBeGreaterThan(0);
   });
 
-  it.each(解けるべき例().map((body, i) => [i + 1, body] as const))(
+  it.each(解けるべき例一覧.map((body, i) => [i + 1, body] as const))(
     "%i 件目の例が解ける",
     (_index, body) => {
       const result = parseTextDslV05(body);
@@ -69,9 +86,8 @@ describe("spec の「今書ける形」 が記法として解ける (#1207)", ()
 
   it("計画の例は対象に入らない", () => {
     // 段 2-3 の形は解けないのが正しい。 対象に入ると計画を消す方向の圧力になる
-    const src = readFileSync(SPEC_URL, "utf8");
-    expect(src).toContain("### 3.2 段 2-3 の後に書ける形 (未実装)");
-    expect(解けるべき例().some((b) => b.includes("trigger:"))).toBe(false);
-    expect(解けるべき例().some((b) => b.includes("reads:"))).toBe(false);
+    expect(SPEC_SRC).toContain("### 3.2 段 2-3 の後に書ける形 (未実装)");
+    expect(解けるべき例一覧.some((b) => b.includes("trigger:"))).toBe(false);
+    expect(解けるべき例一覧.some((b) => b.includes("reads:"))).toBe(false);
   });
 });
