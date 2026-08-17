@@ -21,6 +21,13 @@ const PKG_URL = new URL("../package.json", import.meta.url);
 
 const CHANGELOG = readFileSync(CHANGELOG_URL, "utf8");
 
+/** Markdown の code span だけを取り出す。 通常の文章に同じ語があるだけでは記載済みにしない。 */
+function codeSpans(markdown: string): Set<string> {
+  return new Set([...markdown.matchAll(/`([^`\n]+)`/g)].map((m) => m[1] ?? ""));
+}
+
+const CHANGELOGのcodeSpans = codeSpans(CHANGELOG);
+
 /**
  * `CHANGELOG.md` に記載が無いまま受け入れる項目。
  *
@@ -56,11 +63,18 @@ describe("記法の項目と依存の版が CHANGELOG に載っている (#1206)
     expect(迷子, "記法に無い項目が既知の空白に残っている").toEqual([]);
   });
 
+  it("通常の文章や長い値の一部を記載済みにしない", () => {
+    const spans = codeSpans("type: と ^0.7.0 と `prototype:` と `^0.7.0-next.1`");
+    expect(spans.has("prototype:")).toBe(true);
+    expect(spans.has("type:")).toBe(false);
+    expect(spans.has("^0.7.0")).toBe(false);
+  });
+
   it.each(TOP_LEVEL_KEYS.filter((k) => !記載が無い既知の項目.has(k)))(
     "%s が CHANGELOG に載っている",
     (key) => {
-      // 語の一部に一致すると `type` が `prototype` に当たるため、語の境界で見る
-      const 出現 = new RegExp(`\\b${key}\\b`).test(CHANGELOG);
+      // 記法として載せた項目だけを見る。 通常の文章や別の識別子に同じ語があっても通さない
+      const 出現 = CHANGELOGのcodeSpans.has(`${key}:`);
       expect(出現, `記法の項目 "${key}" が CHANGELOG.md に 1 度も出てこない`).toBe(true);
     },
   );
@@ -68,7 +82,7 @@ describe("記法の項目と依存の版が CHANGELOG に載っている (#1206)
   it("cdlの依存版が CHANGELOG に載っている", () => {
     const v = cdlの依存版();
     expect(
-      CHANGELOG.includes(v),
+      CHANGELOGのcodeSpans.has(v),
       `packages/dragon/package.json の @cardenelabs/cdl (${v}) が CHANGELOG.md に出てこない`,
     ).toBe(true);
   });
