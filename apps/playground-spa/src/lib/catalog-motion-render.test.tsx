@@ -421,16 +421,19 @@ describe("形の見本は数が段で動く (#1196)", () => {
 });
 
 /**
- * 図表の見本 (`charts` 5 件) は数が段で動く (#1198)。
+ * 図表の見本 (`charts` 7 件) は段で動く (#1198 / #1201)。
  *
  * 図表の見本は **記法で書く** (画面のコードのタブと「エディタで開く」 を成立させるため)。
  * そのため段も状態も記法に書いてあり、数の欄は `{名前}` で状態を読む。
  *
- * 残る 4 件は数以外の欄 (期間 / 感情 / 象限 / 階層) を動かす必要があり対象外
+ * 数の欄で動く 5 件と、語の欄 (感情 / 象限) で動く 2 件がある。 語の欄は位置と色が変わり
+ * 文字は変わらないため、文字の検査は数を動かす 5 件だけに掛ける。
+ *
+ * 残る 2 件は期間の欄と階層の型で対象外
  * (理由と一覧は `packages/dragon/test/catalog-motion-coverage.test.ts` の `図表で残す`)。
  */
 describe("図表の見本は数が段で動く (#1198)", () => {
-  const 経路無し = new Set(["公開までの段取り", "初めて使うまで", "着手の順番", "配布物の構成"]);
+  const 経路無し = new Set(["公開までの段取り", "配布物の構成"]);
   const 図表 = Object.entries(Charts as unknown as Record<string, CdlDiagram>)
     .filter(([, d]) => {
       if (!d || typeof d !== "object") return false;
@@ -439,18 +442,23 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     .filter(([, d]) => !経路無し.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 5 件ある", () => {
-    expect(図表).toHaveLength(5);
+  it("対象が 7 件ある", () => {
+    expect(図表).toHaveLength(7);
   });
 
-  it("5 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+  it("7 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+    // 数の欄は段の中で動かし (`tweens`)、語の欄は段に入った時点で切り替える (`sets`)。
+    // 片方だけを見ると、もう片方で動かしている図を「動いていない」 と判定する
     const 足りない = 図表
-      .filter(([, d]) => d.phases.length < 2 || !d.phases.some((p) => (p.tweens?.length ?? 0) > 0))
+      .filter(([, d]) =>
+        d.phases.length < 2 ||
+        !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0),
+      )
       .map(([k]) => k);
     expect(足りない, `段か動かす値が無い: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("5 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("7 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
     const 変わらない: string[] = [];
     for (const [k, d] of 図表) {
       const 最初 = 見える部分(d, d.phases[0]!.id);
@@ -460,13 +468,17 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("5 件すべてで、動かす値が絵の文字に出る", () => {
+  it("7 件のうち数を動かす 5 件で、動かす値が絵の文字に出る", () => {
     // 記法の入口が `{名前}` を数に潰すと、宣言はあるのに絵が変わらない (#1198 で塞いだ形)。
     // 段を指定して描き、`<text>` の中身が変わることを見る
     const 文字 = (d: CdlDiagram, phaseId: string) =>
       [...見える部分(d, phaseId).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]).join("|");
+    // 語の欄で動く 2 件は位置と色が変わり、文字は変わらない。 数を動かす 5 件だけを見る
+    const 語で動く = new Set(["初めて使うまで", "着手の順番"]);
+    const 数で動く = 図表.filter(([, d]) => !語で動く.has(d.id));
+    expect(数で動く, "数を動かす図の数が変わっている").toHaveLength(5);
     const 出ない: string[] = [];
-    for (const [k, d] of 図表) {
+    for (const [k, d] of 数で動く) {
       const 最初 = 文字(d, d.phases[0]!.id);
       const 最後 = 文字(d, d.phases[d.phases.length - 1]!.id);
       if (最初 === 最後) 出ない.push(k);
@@ -474,7 +486,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(出ない, `動かす値が絵の文字に出ない: ${出ない.join(", ")}`).toHaveLength(0);
   });
 
-  it("5 件すべてで、項目が 1 つも落ちていない", () => {
+  it("7 件すべてで、項目が 1 つも落ちていない", () => {
     // 記法が `{名前}` を読めないと項目ごと落ちる。 落ちた図は「正しい図」 に見えてしまう。
     //
     // **一覧に無い図を黙って飛ばさない**。 期待値の無い図を素通りさせると、対象が増えた時に
@@ -486,6 +498,8 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       費用の内訳: { 中身: 4 },
       申込みまでの絞り込み: { 中身: 4 },
       "図を速くする": { 箱: 5 },
+      初めて使うまで: { 中身: 4 },
+      着手の順番: { 中身: 4 },
     };
     expect(Object.keys(期待).sort(), "期待値の一覧が対象とずれている").toEqual(
       図表.map(([, d]) => d.id).sort(),
@@ -496,15 +510,18 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       const e = 期待[d.id]!;
       if (e.箱 !== undefined && d.nodes.length !== e.箱) 違う.push(`${d.id}: 箱 ${d.nodes.length} (期待 ${e.箱})`);
       if (e.中身 !== undefined) {
-        const n = d.nodes[0] as unknown as { chartData?: unknown[]; funnelData?: unknown[] };
-        const 件数 = (n.chartData ?? n.funnelData)?.length;
+        const n = d.nodes[0] as unknown as {
+          chartData?: unknown[]; funnelData?: unknown[];
+          journeyData?: unknown[]; quadrantData?: { items?: unknown[] };
+        };
+        const 件数 = (n.chartData ?? n.funnelData ?? n.journeyData ?? n.quadrantData?.items)?.length;
         if (件数 !== e.中身) 違う.push(`${d.id}: 中身 ${件数} (期待 ${e.中身})`);
       }
     }
     expect(違う, `項目が落ちている: ${違う.join(", ")}`).toHaveLength(0);
   });
 
-  it("5 件すべてで、解決できない欄が無い", () => {
+  it("7 件すべてで、解決できない欄が無い", () => {
     const 未解決: string[] = [];
     for (const [k, d] of 図表) {
       for (const p of d.phases) if (見える部分(d, p.id).includes("data-cdl-unresolved")) 未解決.push(`${k}[${p.id}]`);
