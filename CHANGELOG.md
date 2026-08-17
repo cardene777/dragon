@@ -68,6 +68,15 @@ dragon DSL の主要変更履歴。
   **検査を描画結果ベースにした**。 宣言の層で見る検査だと、値を足しても絵が変わらない種別が
   「動いている」 と判定される (値を描く経路は 2 種別しか持たない)。
 
+- **`@cardenelabs/cdl` の依存を `^0.5.0` から `^0.6.1` に上げた** (#1166)
+
+  同じ workspace の中で cdl の解決先が 2 つに割れており (`apps/playground-spa` が隣の
+  checkout を `link:` で、 `packages/dragon` が公開版を掴む)、 同名だが別物の型として
+  扱われて型検査が 103 件落ちていた。 両方を公開版に揃えて 0 件になった。
+
+  cdl 0.6.0 は `mindMapRadial` と `mind-radial` を消しているため、 これらを使う図は
+  cdl 側の移行が要る (cdl の `CHANGELOG` に手順がある)。
+
 ### Fixed
 
 - **見本が持つ値を重ねた先でも解けるようにした** (#1188)
@@ -99,17 +108,6 @@ dragon DSL の主要変更履歴。
 
   `type: radial` を書いた記法は `unknown type: "radial"` で弾かれる。 黙って別の絵に
   なることは無い。
-
-### Changed
-
-- **`@cardenelabs/cdl` の依存を `^0.5.0` から `^0.6.1` に上げた** (#1166)
-
-  同じ workspace の中で cdl の解決先が 2 つに割れており (`apps/playground-spa` が隣の
-  checkout を `link:` で、 `packages/dragon` が公開版を掴む)、 同名だが別物の型として
-  扱われて型検査が 103 件落ちていた。 両方を公開版に揃えて 0 件になった。
-
-  cdl 0.6.0 は `mindMapRadial` と `mind-radial` を消しているため、 これらを使う図は
-  cdl 側の移行が要る (cdl の `CHANGELOG` に手順がある)。
 
 ## [0.7.0] - 2026-07-15
 
