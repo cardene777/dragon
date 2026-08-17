@@ -56,12 +56,21 @@ const diagramsOf = (mod: Record<string, unknown>): Array<[string, CdlDiagram]> =
 
 const key = (a: readonly string[] = []) => [...new Set(a)].sort().join(",");
 
-/** 開いて何かが変わるか */
+/**
+ * 開いて何かが変わるか。
+ *
+ * **badge は条件に入れない** (#1168)。 badge だけが変わる図は図そのものが 1 mm も変わらず、
+ * 開いても静止画と区別が付かない。 条件に入れると「動く」 の保証が緩み、値も注目先も持たない
+ * 図が緑のまま通る。
+ *
+ * 元は `badgePerPhase` (badge の見本) を通すために入れていた。 実測すると 417 図のうち
+ * badge だけに頼っていたのはその 1 件だけで、他の図は値か注目先で判定できている。
+ * 特別な 1 件のために全体の条件を緩めるのではなく、名指しの例外に置く。
+ */
 const moves = (d: CdlDiagram): boolean => {
   const 値 = d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0);
   const 注目 = new Set(d.phases.map((p) => key(p.activate))).size > 1;
-  const badge = new Set(d.phases.map((p) => p.badge ?? "")).size > 1;
-  return 値 || 注目 || badge;
+  return 値 || 注目;
 };
 
 /**
@@ -86,6 +95,23 @@ const 動かさないと決めた: Record<string, string> = {
   "state-inactive": "強調の見本。 同上",
   "style-solid": "線種の見本。 見せたいのは線の引き方",
   "style-dotted-flow": "線種の見本。 同上",
+};
+
+/**
+ * 図そのものは変わらないが、それが見せたいものである図 (#1168)。
+ *
+ * `moves()` は値と注目先の 2 つだけを見る。 badge だけが変わる図はそこに引っかからないが、
+ * **badge が変わること自体が見せたいもの** なので静止した図として扱うのは誤りになる。
+ *
+ * 元は `moves()` の条件に badge を足して通していた。 その形だと **図そのものが 1 mm も
+ * 変わらない図が全群で緑になる** = 「動く」 の保証が緩む。 実測で 417 図のうち badge だけに
+ * 頼っていたのは下の 1 件だけだったので、条件を戻して名指しの例外に置いた。
+ *
+ * `動かさないと決めた` と分けるのは対象群が違うため。 あちらは `primitives` 群の振り分けと
+ * 1:1 で結ばれており、別群の図を混ぜると振り分けの検査が落ちる。
+ */
+const 図は変わらないが意図どおり: Record<string, string> = {
+  badgePerPhase: "badge の見本。 段ごとに badge が変わることを見せる図で、図そのものは変わらない",
 };
 
 /**
@@ -173,10 +199,23 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
 
   for (const [name, mod] of 対象) {
     it(`${name} に静止した図が無い`, () => {
-      const 静止 = diagramsOf(mod).filter(([, d]) => !moves(d)).map(([k]) => k);
+      const 静止 = diagramsOf(mod)
+        .filter(([, d]) => !moves(d))
+        .map(([k]) => k)
+        .filter((k) => !図は変わらないが意図どおり[k]);
       expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);
     });
   }
+
+  it("図は変わらないが意図どおりの図が実物と一致する", () => {
+    // 一覧が実物とずれると、動かすべき図が例外に紛れて静止したまま残る。
+    // 実物側で動くようになったら一覧から外す
+    const 実物 = 対象
+      .flatMap(([, mod]) => diagramsOf(mod))
+      .filter(([k, d]) => !moves(d) && 図は変わらないが意図どおり[k])
+      .map(([k]) => k);
+    expect([...実物].sort()).toEqual(Object.keys(図は変わらないが意図どおり).sort());
+  });
 });
 
 describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
