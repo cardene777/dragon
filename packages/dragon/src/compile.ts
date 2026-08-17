@@ -2981,66 +2981,6 @@ function parseChartValue(raw: string | undefined): number | string | null {
   return parseBoundValue(raw);
 }
 
-/**
- * 数の欄から参照してよい名前。
- *
- * 2 つを確かめる。 **その名前が宣言されていること** と、**数として読めること**。
- *
- * どちらを外しても図は出るが、数が入らない。 描画側は解けなかった `{名前}` をそのまま
- * 文字として描き、数に直せない値は既定値に落として印を付ける (`data-cdl-unresolved`)。
- * どちらも「壊れているのに正しい図に見える」 形なので、入口で落として警告する
- * (数として読めない値を落とす既存の扱いと同じ)。
- *
- * 他の値から自動で決まる値 (`values:`) は名前だけを見る。 式の評価は実行時に起きるため、
- * ここでは結果を知りようがない。
- *
- * ## 責務境界 (#1198 / #1200)
- *
- * **見るのは組み立ての時点で決まっている範囲だけ**。 記法の値は実行時に決まるため、
- * ここで全部を判定しようとすると式の評価を組み立て側で再現することになる。 実際に
- * `#1199` の review で 4 round 続けて同じ形の指摘が出て収束しなかった (穴を 1 つ塞ぐと
- * 別の形が出る = 塞ぎ方ではなく責務の置き場所の問題)。
- *
- * | 見る | 見ない |
- * |---|---|
- * | 名前が宣言されているか | 段で負に動いた結果 (`tween` の行き先) |
- * | 宣言の時点で数として読めるか | 自動で決まる値の式が返す値 |
- * | 段の切り替え (`set`) の行き先も数か | |
- *
- * 見ない範囲は描画側が受け持つ = 解けない値は既定値で描いて `data-cdl-unresolved` を付ける。
- * これを記法の書き手に届ける経路と、検査を 1 か所に集める作業は `#1200` が持つ。
- */
-function 数として読めるか(v: number | string): boolean {
-  if (typeof v === "number") return Number.isFinite(v);
-  const t = v.trim();
-  // **空文字と空白だけを先に弾く**。 `Number("")` は 0 を返すため、素通しすると
-  // 「何も書いていない状態」 が「0 と書いた状態」 と区別できなくなる。 図には 0 が出て
-  // 印も付かないので、壊れていることが誰にも見えない (実測)
-  if (t === "") return false;
-  return Number.isFinite(Number(t));
-}
-
-function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
-  // **同じ名前を 2 回宣言した時は後ろが効く**。 描画側は後の宣言を有効値として扱うため、
-  // 前の宣言だけを見て判定すると「読めると判定したのに読めない値が入る」 状態になる
-  // (実測では組み立てが通り、描画で落ちた)。 名前ごとに最後の宣言へ畳んでから見る
-  const 実効 = new Map<string, number | string>();
-  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
-
-  const 語になる = new Set<string>();
-  for (const p of doc.animate?.phases ?? []) {
-    for (const st of p.sets ?? []) if (!数として読めるか(st.value)) 語になる.add(st.state);
-  }
-
-  const out = new Set<string>();
-  for (const [名前, 値] of 実効) {
-    if (!数として読めるか(値)) continue;
-    if (語になる.has(名前)) continue;
-    out.add(名前);
-  }
-  for (const v of doc.values ?? []) out.add(v.name);
-  return out;
-}
 
 /** 状態を読む欄が指している名前 (`{v.sum}` なら `v`)。 欄でなければ null */
 function 参照する名前(value: number | string | null): string | null {
@@ -3217,40 +3157,92 @@ const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRi
 ]);
 
 /**
- * 語の欄に書いた `{名前}` を受けてよいか (#1201)。
+ * 図表の欄が `{名前}` で読む値を、**1 か所で** 確かめる (#1200)。
  *
- * 語の欄は数の欄と違い、**流れ込む値が組み立ての時点で全部わかる**。 状態の初期値と、
- * 段で状態に入る値 (切り替え `set` / 補間 `tween`) はいずれも記法に書いてある。
- * だから「その名前が必ず読める語になるか」 をここで言い切れる
- * (`#1200` が扱う「実行時に決まる範囲」 に当たらない)。
+ * 図表には数の欄 (割合 / 段の人数) と語の欄 (気持ち / 区画) があり、どちらも `{名前}` で
+ * 状態を読める。 確かめることは欄の種類で違うが、**土台は同じ** = 同じ名前を 2 回書いた時に
+ * 後ろが効くこと、段で状態に入る値 (切り替え / 補間) も見ること、の 2 つ。
  *
- * **補間 (`tween`) を見落とさない**。 補間の行き先は数なので、語の欄が読む状態を補間すると
- * その段で語が数に変わり、描画側が解けなくなる。 記法としては書けてしまうため、ここで弾く
- * (実測では警告が出ないまま `data-cdl-unresolved` が付いた)。
+ * #1198 と #1201 では欄ごとに検査を書き足しており、同じ土台を 3 度書いていた。 3 度とも
+ * review で同じ形の穴を指摘されている (最初の宣言で判定する / 段で入る値を見落とす)。
+ * 土台を 1 つにして、欄ごとの違いだけを外から渡す。
  *
- * 自動で決まる値 (`values:`) は式の評価結果で数になるため、語の欄からは参照できない。
+ * ## 確かめること
+ *
+ * | 欄 | 通す値 | 段で入る値 |
+ * |---|---|---|
+ * | 数 | 数として読める (空文字は弾く、`Number("")` が 0 を返すため) | 切り替え先が数 |
+ * | 語 | 語表にある語 | 切り替え先が語表にあり、補間されない (補間の行き先は数) |
+ *
+ * 自動で決まる値 (`values:`) は式の評価結果で必ず数になるため、数の欄からは参照できて
+ * 語の欄からは参照できない。 式そのものの不備 (語を読む / 名前が無い) は
+ * `value-unresolved` の警告が別に出る (実測で確認済)。
+ *
+ * ## 責務境界 (#1198 / #1200)
+ *
+ * **見るのは組み立ての時点で決まっている範囲だけ**。 記法の値は実行時に決まるため、ここで
+ * 全部を判定しようとすると式の評価を組み立て側で再現することになる。 実際に #1199 の review で
+ * 4 round 続けて同じ形の指摘が出て収束せず、境界を決めて切り分けた (穴を 1 つ塞ぐと別の形が
+ * 出る = 塞ぎ方ではなく責務の置き場所の問題だった)。
+ *
+ * | 見る | 見ない | 見ない理由 |
+ * |---|---|---|
+ * | 名前が宣言されているか | 段の行き先が負になる形 | 描画側が問題なく描く (負の大きさも `NaN` も出ないことを実測) |
+ * | 宣言の時点で読める値か | 式が実行時に返す値 | 式の不備は `value-unresolved` の警告が別に出る (実測で確認) |
+ * | 段で状態に入る値 | | |
+ *
+ * 見ない範囲は描画側が受け持つ = 解けない値は既定値で描いて `data-cdl-unresolved` を付ける。
  */
-function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<string, string>): Set<string> {
-  // 数の欄と同じく、同じ名前を 2 回宣言した時は後ろが効く
+function 図表の欄から参照できる名前(
+  doc: DslDocument,
+  欄: { 読めるか: (v: number | string) => boolean; 補間で壊れるか: boolean; 自動の値を許すか: boolean },
+): Set<string> {
+  // 同じ名前を 2 回宣言した時は後ろが効く。 描画側が後の宣言を有効値として扱うため、
+  // 前の宣言で判定すると「読めると判定したのに読めない値が入る」 状態になる (実測)
   const 実効 = new Map<string, number | string>();
   for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
 
-  const 直せない = new Set<string>();
+  const 壊れる = new Set<string>();
   for (const p of doc.animate?.phases ?? []) {
-    for (const st of p.sets ?? []) {
-      if (!語表.has(String(st.value).trim())) 直せない.add(st.state);
-    }
-    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる
-    for (const tw of p.tweens ?? []) 直せない.add(tw.state);
+    for (const st of p.sets ?? []) if (!欄.読めるか(st.value)) 壊れる.add(st.state);
+    if (欄.補間で壊れるか) for (const tw of p.tweens ?? []) 壊れる.add(tw.state);
   }
 
   const out = new Set<string>();
   for (const [名前, 値] of 実効) {
-    if (!語表.has(String(値).trim())) continue;
-    if (直せない.has(名前)) continue;
+    if (!欄.読めるか(値)) continue;
+    if (壊れる.has(名前)) continue;
     out.add(名前);
   }
+  if (欄.自動の値を許すか) for (const v of doc.values ?? []) out.add(v.name);
   return out;
+}
+
+/** 数の欄が読める値か。 空文字と空白だけは弾く (`Number("")` は 0 を返す) */
+function 数として読めるか(v: number | string): boolean {
+  if (typeof v === "number") return Number.isFinite(v);
+  const t = v.trim();
+  if (t === "") return false;
+  return Number.isFinite(Number(t));
+}
+
+function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
+  return 図表の欄から参照できる名前(doc, {
+    読めるか: 数として読めるか,
+    // 補間の行き先は数なので、数の欄では壊れない
+    補間で壊れるか: false,
+    自動の値を許すか: true,
+  });
+}
+
+function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<string, string>): Set<string> {
+  return 図表の欄から参照できる名前(doc, {
+    読めるか: (v) => 語表.has(String(v).trim()),
+    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる
+    補間で壊れるか: true,
+    // 式の評価結果は数になるため、語の欄からは読めない
+    自動の値を許すか: false,
+  });
 }
 
 /**
