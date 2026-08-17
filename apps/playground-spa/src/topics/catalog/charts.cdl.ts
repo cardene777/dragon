@@ -45,10 +45,27 @@ export const sourceYaml__chartBar = `title: "経路別の流入"
 type: bar
 
 actors:
-  - 検索: "420"
-  - SNS: "310"
-  - 直接: "180"
-  - 紹介: "90"
+  - 検索: "{search}"
+  - SNS: "{sns}"
+  - 直接: "{direct}"
+  - 紹介: "{referral}"
+
+states:
+  search: 420
+  sns: 310
+  direct: 180
+  referral: 90
+
+animation:
+  - step: "先月" 1.2s
+    description: "検索が 420 で最も多い"
+  - step: "今月" 1.2s
+    tween:
+      search: 420 -> 680
+      sns: 310 -> 420
+      direct: 180 -> 150
+      referral: 90 -> 240
+    description: "紹介が 90 から 240 へ伸びる"
 `;
 export const chartBar = textDslToDiagram(sourceYaml__chartBar);
 
@@ -59,11 +76,30 @@ export const sourceYaml__chartLine = `title: "週ごとの応答時間"
 type: line
 
 actors:
-  - W1: "180"
-  - W2: "240"
-  - W3: "210"
-  - W4: "120"
-  - W5: "95"
+  - W1: "{w1}"
+  - W2: "{w2}"
+  - W3: "{w3}"
+  - W4: "{w4}"
+  - W5: "{w5}"
+
+states:
+  w1: 180
+  w2: 240
+  w3: 210
+  w4: 120
+  w5: 95
+
+animation:
+  - step: "改善前" 1.2s
+    description: "2 週目に 240 ms まで伸びている"
+  - step: "改善後" 1.2s
+    tween:
+      w1: 180 -> 140
+      w2: 240 -> 160
+      w3: 210 -> 130
+      w4: 120 -> 90
+      w5: 95 -> 70
+    description: "全週が下がり、山も消える"
 `;
 export const chartLine = textDslToDiagram(sourceYaml__chartLine);
 
@@ -74,10 +110,27 @@ export const sourceYaml__chartPie = `title: "費用の内訳"
 type: pie
 
 actors:
-  - 計算: "45"
-  - 保存: "25"
-  - 通信: "20"
-  - その他: "10"
+  - 計算: "{compute}"
+  - 保存: "{storage}"
+  - 通信: "{network}"
+  - その他: "{other}"
+
+states:
+  compute: 45
+  storage: 25
+  network: 20
+  other: 10
+
+animation:
+  - step: "昨年" 1.2s
+    description: "計算が 45% で半分近くを占める"
+  - step: "今年" 1.2s
+    tween:
+      compute: 45 -> 30
+      storage: 25 -> 35
+      network: 20 -> 25
+      other: 10 -> 10
+    description: "計算が下がり、保存が最大になる"
 `;
 export const chartPie = textDslToDiagram(sourceYaml__chartPie);
 
@@ -88,10 +141,27 @@ export const sourceYaml__funnelStages = `title: "申込みまでの絞り込み"
 type: funnel
 
 actors:
-  - 訪問: "12000"
-  - 会員登録: "3400"
-  - カート投入: "1200"
-  - 申込み: "480"
+  - 訪問: "{visit}"
+  - 会員登録: "{signup}"
+  - カート投入: "{cart}"
+  - 申込み: "{order}"
+
+states:
+  visit: 12000
+  signup: 3400
+  cart: 1200
+  order: 480
+
+animation:
+  - step: "改善前" 1.2s
+    description: "訪問 12000 から申込み 480 まで絞られる"
+  - step: "改善後" 1.2s
+    tween:
+      visit: 12000 -> 12000
+      signup: 3400 -> 5200
+      cart: 1200 -> 2400
+      order: 480 -> 1100
+    description: "入口は同じまま、途中の残り方が変わる"
 `;
 export const funnelStages = textDslToDiagram(sourceYaml__funnelStages);
 
@@ -135,11 +205,30 @@ export const sourceYaml__mindMap = `title: "図を速くする"
 type: mind
 
 actors:
-  - 図を速くする
-  - 描く量を減らす
-  - 計算を減らす
-  - 見えない所を省く
-  - 結果を覚える
+  - 図を速くする: "{total} ms 短縮"
+  - 描く量を減らす: "{draw} ms"
+  - 計算を減らす: "{calc} ms"
+  - 見えない所を省く: "{skip} ms"
+  - 結果を覚える: "{cache} ms"
+
+states:
+  total: 0
+  draw: 0
+  calc: 0
+  skip: 0
+  cache: 0
+
+animation:
+  - step: "手を付ける前" 1.2s
+    description: "どの枝もまだ 0 ms"
+  - step: "4 つを入れた後" 1.2s
+    tween:
+      draw: 0 -> 120
+      calc: 0 -> 80
+      skip: 0 -> 60
+      cache: 0 -> 40
+      total: 0 -> 300
+    description: "枝ごとの短縮が積み上がって 300 ms になる"
 `;
 export const mindMap = textDslToDiagram(sourceYaml__mindMap);
 

@@ -2950,6 +2950,36 @@ function parseShareValue(raw: string | undefined): number | null {
 }
 
 /**
+ * 状態を読む欄かどうか (`{名前}`)。
+ *
+ * **`{名前}` そのものだけを受ける**。 `{v} 件` のような混ざった形は、描画側が数として
+ * 読めず既定値に落ちて印が付くだけになる (`render/payload-binding.ts` は解いた文字列を
+ * そのまま数にする)。 書けたのに効かない形を作らない。
+ *
+ * `%` を付けた形も受けない。 同じ理由で `"45%"` は数に直せるが `"{v}%"` は直せない。
+ *
+ * 名前に使えるのは英数字と `_` で、読む側 (cdl の `interpolate`) と同じ範囲に合わせる。
+ * 決まった accessor (`.sum` 等) は付けてよい。
+ */
+function parseBoundValue(raw: string | undefined): string | null {
+  if (raw === undefined) return null;
+  const t = raw.trim();
+  return /^\{\w+(?:\.(?:length|sum|max|min|avg)|\[\d+\])?\}$/.test(t) ? t : null;
+}
+
+/**
+ * 図表の数の欄を読む。 数そのものか、状態を読む `{名前}` を返す。
+ *
+ * 数として解けない `{名前}` は、そのまま図表の中身に渡して描画側が段ごとに解く。
+ * 受け取る側の型 (`BoundNumber`) は元から 2 通りを想定している = 入口だけが塞がっていた。
+ */
+function parseChartValue(raw: string | undefined): number | string | null {
+  const n = parseShareValue(raw);
+  if (n !== null) return n;
+  return parseBoundValue(raw);
+}
+
+/**
  * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
  *
  * 3 種とも `- 名前: "45"` の 1 行 1 値で書く。 違うのは描画側の種別と、 値の意味だけ。
@@ -2986,10 +3016,11 @@ function compileValueChart(
   for (const a of doc.actors) {
     // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
-    const value = parseShareValue(a.value ?? a.subtitle);
+    const value = parseChartValue(a.value ?? a.subtitle);
     // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
-    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)
-    if (value === null || (value < 0 && 型 !== "line")) {
+    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)。
+    // 状態を読む欄 (`{名前}`) は書いた時点で符号が決まらないため、この検査を通す
+    if (value === null || (typeof value === "number" && value < 0 && 型 !== "line")) {
       // `pos` を持たない経路がある (JSON 経路で組み立てた actor)。 無ければ 0 のまま
       if (読めない.length === 0) 読めない行 = a.pos?.line ?? 0;
       読めない.push(a.name);
@@ -3103,9 +3134,9 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
   for (const a of doc.actors) {
-    const v = parseShareValue(a.value ?? a.subtitle);
-    // 段の数なので負に意味が無い
-    if (v === null || v < 0) {
+    const v = parseChartValue(a.value ?? a.subtitle);
+    // 段の数なので負に意味が無い (状態を読む欄は符号が決まらないので通す)
+    if (v === null || (typeof v === "number" && v < 0)) {
       読めない.push(a.name);
       continue;
     }

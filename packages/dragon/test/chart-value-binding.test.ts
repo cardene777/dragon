@@ -1,0 +1,90 @@
+/**
+ * 図表の数の欄に状態を書ける (#1198)。
+ *
+ * 図表の見本は記法で書く (画面のコードのタブと「エディタで開く」 を成立させるため)。
+ * そのため動かすには記法側で値を書けることが要るが、数の欄は数しか受け付けず、
+ * `{名前}` を書いた項目は **落ちて警告になっていた**。
+ *
+ * 受け取る側の型 (`BoundNumber`) は元から 2 通りを想定しており、描画側 (cdl の
+ * `render/payload-binding.ts`) が段ごとに解く。 塞がっていたのは入口だけだった。
+ *
+ * ここでは 3 分岐を固定する = 数はそのまま / `{名前}` はそのまま渡す / それ以外は落とす。
+ */
+import { describe, it, expect } from "vitest";
+import { textDslToDiagram } from "../src/index";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+
+/** 図表 1 件を記法から組み立てる。 1 件目の値だけを差し替える */
+const 組み立てる = (型: string, 値: string): CdlDiagram =>
+  textDslToDiagram(`title: "試し"
+type: ${型}
+
+actors:
+  - A: "${値}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "動く" 1.5s
+    tween:
+      v: 100 -> 900
+`);
+
+/** 図表の中身 (棒 / 折れ線 / 円は `chartData`、 絞り込みは `funnelData`) */
+function 中身(d: CdlDiagram): Array<number | string> {
+  const n = d.nodes[0] as unknown as {
+    chartData?: Array<{ value: number | string }>;
+    funnelData?: Array<{ count: number | string }>;
+  };
+  if (n.chartData) return n.chartData.map((r) => r.value);
+  if (n.funnelData) return n.funnelData.map((r) => r.count);
+  throw new Error("図表の中身が無い");
+}
+
+const 型一覧 = ["bar", "line", "pie", "funnel"] as const;
+
+describe("数の欄に状態を書ける (#1198)", () => {
+  for (const 型 of 型一覧) {
+    it(`${型}: {名前} を書いた項目が落ちずに、そのまま中身に入る`, () => {
+      // 数に潰すと段で動かせない。 `{名前}` のまま渡して描画側が解く
+      expect(中身(組み立てる(型, "{v}"))).toEqual(["{v}", 200]);
+    });
+
+    it(`${型}: 数を書いた項目は今までどおり数で入る`, () => {
+      expect(中身(組み立てる(型, "420"))).toEqual([420, 200]);
+    });
+
+    it(`${型}: 読めない値は今までどおり落ちる`, () => {
+      // 黙って 0 にしない = その項目だけ欠けた図が「正しい図」 として出てしまう
+      expect(中身(組み立てる(型, "abc"))).toEqual([200]);
+    });
+
+    it(`${型}: 混ざった形は受けない`, () => {
+      // `{v} 件` は描画側が数として読めず、既定値に落ちて印が付くだけになる。
+      // 書けたのに効かない形を作らない
+      expect(中身(組み立てる(型, "{v} 件"))).toEqual([200]);
+      expect(中身(組み立てる(型, "{v}%"))).toEqual([200]);
+    });
+  }
+
+  it("負の数の扱いは今までどおり (折れ線だけが受ける)", () => {
+    expect(中身(組み立てる("line", "-5"))).toEqual([-5, 200]);
+    for (const 型 of ["bar", "pie", "funnel"] as const) {
+      expect(中身(組み立てる(型, "-5")), `${型} が負を受けている`).toEqual([200]);
+    }
+  });
+
+  it("状態を書いた欄は符号の検査を通る", () => {
+    // `{名前}` は書いた時点で符号が決まらない。 弾くと段で負になりうる図が書けなくなる
+    expect(中身(組み立てる("bar", "{v}"))).toContain("{v}");
+  });
+
+  it("段の値が図に入る", () => {
+    // 入口が通っても段が入らなければ動かない
+    const d = 組み立てる("bar", "{v}");
+    expect(d.states?.map((s) => s.id)).toContain("v");
+    expect(d.phases.flatMap((p) => p.tweens ?? [])).toEqual([{ stateId: "v", from: 100, to: 900 }]);
+  });
+});
