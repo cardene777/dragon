@@ -156,6 +156,27 @@ animation:
     }
   });
 
+  it("同じ名前を 2 回宣言した時は後ろの宣言で判定する (数の欄)", () => {
+    // 語の欄と同じ理由。 描画側は後の宣言を有効値として扱う
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+  v: "こんにちは"
+
+animation:
+  - step: "動く" 1.5s
+`, { onNotice: (n) => notices.push(n) });
+    expect(中身(d), "後ろの宣言が数でないのに項目が載っている").toEqual([200]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
   it("段の途中で語に切り替わる状態は落ちる", () => {
     // 最初の値だけを見ると、その段に来たときだけ数が入らない図になる
     const notices: Array<{ kind: string }> = [];
@@ -254,8 +275,11 @@ animation:
  * 語の欄に状態を書ける (#1201)。
  *
  * 語の欄 (気持ち / 区画) は数の欄と違い、**流れ込む値が組み立ての時点で全部わかる**。
- * 状態の初期値と段の切り替えはどちらも記法に書いてあり、段で動かす値は数しか書けない。
+ * 状態の初期値と、段で状態に入る値 (切り替え / 補間) はいずれも記法に書いてある。
  * だから「その名前が必ず読める語になるか」 を言い切れる。
+ *
+ * 補間の行き先は数なので、語の欄が読む状態を補間する形は弾く (記法としては書けてしまい、
+ * 実測では警告が出ないまま図が壊れていた)。
  *
  * 記法には記法の語 (「不満」 「左上」) を書き、図の語 (`frustrated` / `topLeft`) へは
  * 組み立てが直す。 記法の語彙に engine の内部語を混ぜないため。
@@ -366,6 +390,46 @@ animation:
 `, { onNotice: (n) => notices.push(n) });
     expect(気持ち(d), "補間される状態を指した項目が載っている").toEqual(["neutral"]);
     expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("同じ名前を 2 回宣言した時は後ろの宣言で判定する", () => {
+    // 描画側は後の宣言を有効値として扱う。 前の宣言だけを見て判定すると「読めると判定した
+    // のに読めない値が入る」 状態になり、組み立ては通って描画で落ちる (実測)
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "不満"
+  mood: "ふつう"
+
+animation:
+  - step: "動く" 1.2s
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d), "後ろの宣言が読めないのに項目が載っている").toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("同じ名前を 2 回宣言しても、後ろが読めれば通る", () => {
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "ふつう"
+  mood: "不満"
+
+animation:
+  - step: "動く" 1.2s
+`);
+    expect(気持ち(d)).toEqual(["neutral", "{mood}"]);
   });
 
   it("区画の欄でも同じことができる", () => {

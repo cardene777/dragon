@@ -3021,19 +3021,22 @@ function 数として読めるか(v: number | string): boolean {
 }
 
 function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
-  // **段の途中で語に切り替わる状態も弾く**。 最初の値だけを見ると、その段に来たときだけ
-  // 数が入らない図になる (実測で `data-cdl-unresolved` が付いた)。 段で動かす値は数しか
-  // 書けないので、見るのは切り替え (`set`) だけでよい
+  // **同じ名前を 2 回宣言した時は後ろが効く**。 描画側は後の宣言を有効値として扱うため、
+  // 前の宣言だけを見て判定すると「読めると判定したのに読めない値が入る」 状態になる
+  // (実測では組み立てが通り、描画で落ちた)。 名前ごとに最後の宣言へ畳んでから見る
+  const 実効 = new Map<string, number | string>();
+  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
+
   const 語になる = new Set<string>();
   for (const p of doc.animate?.phases ?? []) {
     for (const st of p.sets ?? []) if (!数として読めるか(st.value)) 語になる.add(st.state);
   }
 
   const out = new Set<string>();
-  for (const s of doc.animate?.states ?? []) {
-    if (!数として読めるか(s.initial)) continue;
-    if (語になる.has(s.name)) continue;
-    out.add(s.name);
+  for (const [名前, 値] of 実効) {
+    if (!数として読めるか(値)) continue;
+    if (語になる.has(名前)) continue;
+    out.add(名前);
   }
   for (const v of doc.values ?? []) out.add(v.name);
   return out;
@@ -3228,6 +3231,10 @@ const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRi
  * 自動で決まる値 (`values:`) は式の評価結果で数になるため、語の欄からは参照できない。
  */
 function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<string, string>): Set<string> {
+  // 数の欄と同じく、同じ名前を 2 回宣言した時は後ろが効く
+  const 実効 = new Map<string, number | string>();
+  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
+
   const 直せない = new Set<string>();
   for (const p of doc.animate?.phases ?? []) {
     for (const st of p.sets ?? []) {
@@ -3236,11 +3243,12 @@ function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<stri
     // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる
     for (const tw of p.tweens ?? []) 直せない.add(tw.state);
   }
+
   const out = new Set<string>();
-  for (const s of doc.animate?.states ?? []) {
-    if (!語表.has(String(s.initial).trim())) continue;
-    if (直せない.has(s.name)) continue;
-    out.add(s.name);
+  for (const [名前, 値] of 実効) {
+    if (!語表.has(String(値).trim())) continue;
+    if (直せない.has(名前)) continue;
+    out.add(名前);
   }
   return out;
 }
