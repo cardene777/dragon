@@ -89,8 +89,60 @@ actors:
 
 ## 3. 記法の全体像
 
+例を 2 つに分ける。 **段 1 まで入った今の記法で書ける形**と、**段 2-3 の後に書ける形**。
+
+分ける理由は、片方を検査に載せるため。 前者は `parseTextDslV05` に通して解けることを
+`packages/dragon/test/spec-buildable-example.test.ts` が確かめる。 後者は未実装の計画なので
+解けないのが正しく、検査対象にしない。
+
+分けていなかった間、この節の例は **25 件の error** を出す状態だった (#1207 で実測)。
+そのうち `type: pipeline` と点付きの値名は段 2-3 が入っても解けるようにならない誤りで、
+計画部分に紛れて気付けなかった。
+
+### 3.1 今書ける形 (段 1 まで)
+
 ```
 title: "取込みの流れ"
+type: flow
+
+# --- 配置 ---
+actors:
+  - 検証 as v: { kind: process, value: "{vdone}" }
+  - 変換 as c: { kind: process, value: "{cdone}" }
+  - 加工 as p: { kind: process, value: "{pdone}" }
+  - 保存 as s: { kind: process, value: "{sdone}" }
+  - 全体:      { kind: process, value: "{progress}" }
+
+flow:
+  - v -> c: "変換"
+  - c -> p: "加工"
+  - p -> s: "確定"
+
+# --- 初期値 ---
+states:
+  vdone: 0
+  cdone: 0
+  pdone: 0
+  sdone: 0
+
+# --- 依存 ---
+values:
+  progress: "({vdone} + {cdone} + {pdone} + {sdone}) / 4"
+
+# --- 動き ---
+animation:
+  - step: "取込み" 8.0s
+```
+
+段は 1 つ。 要素を 1 つ足す時に触るのは `actors` と `states` と `values` に 1 行ずつ。
+
+この形で書けないのは工程の連なり。 `vdone` が 100 になっても `cdone` は動かないため、
+5 つの値を段が手で書くことになる (§ 0 で挙げた `richPipelineDemo` と同じ形)。
+それを解くのが段 2。
+
+### 3.2 段 2-3 の後に書ける形 (未実装)
+
+```text
 type: pipeline
 
 # --- 配置 ---
@@ -119,7 +171,11 @@ animation:
   - step: "取込み" 8.0s
 ```
 
-段は 1 つ。 要素を 1 つ足す時に触るのは `actors` と `values` に 1 行ずつ。
+段 2 が `trigger` / `to` / `dur` を、段 3 が `reads` を足す。 `type: pipeline` と点付きの値名
+(`v.done`) も未実装で、段 2 の範囲で決める。
+
+**`title:` を書いていないのは検査対象から外す印**。 検査は `title:` で始まる block だけを
+parser に通すため、計画の例が誤って落とされない。
 
 ## 4. 決めた論点
 
