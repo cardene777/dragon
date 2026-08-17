@@ -109,8 +109,12 @@ function 絵の文字(d: CdlDiagram): string[] {
  * `data-cdl-eyebrow` は文字を写した控えで、種別が文字を自前で固定している場合
  * (`shape-blockchain-block`) は控えだけが変わり、見える文字は 1 つも変わらない。
  *
- * そこで SVG の外を落とし、控えの欄も落として比べる。 文字が本当に変わる図では `<text>` の
- * 中身が変わるので、控えを落としても取りこぼさない。 この 2 つを落とさない物差しが
+ * **段の題と説明も落とす**。 これは読み上げ用の説明として SVG の `aria-label` に入るため、
+ * 段ごとに違う題を付けた図は中身が 1 つも変わらなくても差が出る (実測)。 段の題は図の
+ * 見た目ではないので、比べる対象から外す。
+ *
+ * そこで SVG の外を落とし、控えの欄と読み上げ用の説明も落として比べる。 文字が本当に変わる
+ * 図では `<text>` の中身が変わるので、落としても取りこぼさない。 これらを落とさない物差しが
  * 何を通してしまうかは、末尾の「図の外の差を『動いた』 と数えない」 が材料付きで固定する。
  */
 function 見える部分(d: CdlDiagram, phaseId?: string): string {
@@ -118,7 +122,10 @@ function 見える部分(d: CdlDiagram, phaseId?: string): string {
   const 始 = s.indexOf("<svg");
   const 終 = s.lastIndexOf("</svg>");
   if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
-  return s.slice(始, 終 + 6).replace(/ data-cdl-(title|subtitle|eyebrow)="[^"]*"/g, "");
+  return s
+    .slice(始, 終 + 6)
+    .replace(/ data-cdl-(title|subtitle|eyebrow)="[^"]*"/g, "")
+    .replace(/ aria-label="[^"]*"/g, "");
 }
 
 /** 同じ図から 2 段だけを取り出した図。 比べ方そのものを試すのに使う */
@@ -257,19 +264,22 @@ describe("場面の見本は段ごとに絵が変わる (#1192)", () => {
  * 図の型の見本 (`presets` 17 件) は段ごとに絵が変わる (#1194)。
  *
  * 動かし方は箱の数で 2 通りに分かれる。 箱を複数持つ 11 件は `scene-*` と同じく 1 つずつ
- * 光らせ、図全体が箱 1 つの 6 件は図表の中身 (割合 / 段階 / 期間 / 感情 / 象限) を状態から取る。
+ * 光らせ、図全体が箱 1 つの 8 件は中身 (割合 / 段階 / 期間 / 感情 / 象限 / 名前) を状態から取る。
  * 見るのはどちらも同じで、図の中の見える部分が段で変わることだけ。
  *
- * `tree-demo` / `mind-demo` は対象外。 cdl 側に状態を読む経路が無い型で、理由と一覧は
- * `packages/dragon/test/catalog-motion-coverage.test.ts` の `型の見本で残す` が持つ。
+ * `tree-demo` / `mind-demo` は cdl 0.7.0 で名前が状態を読むようになり、対象に入った。
+ * 対象外の一覧 (`型の見本で残す`) は空になっている。
  */
 describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
   /** 図全体が箱 1 つの型。 光らせ方では動かせないので、図表の中身を状態から取る */
   const 箱が1つ = new Set([
     "journey-demo", "funnel-demo", "quad-demo",
     "chart-pie-demo", "chart-line-demo", "gantt-demo",
+    // cdl 0.7.0 で名前が状態を読むようになった 2 件 (#1194 では対象外だった)
+    "tree-demo", "mind-demo",
   ]);
-  const 経路無し = new Set(["tree-demo", "mind-demo"]);
+  // cdl 0.7.0 で木と放射も名前が状態を読むようになり、対象外は 0 件になった
+  const 経路無し = new Set<string>();
 
   const 型 = Object.entries(Presets as unknown as Record<string, CdlDiagram>)
     .filter(([, d]) => {
@@ -279,18 +289,18 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     .filter(([, d]) => !経路無し.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 17 件ある", () => {
+  it("対象が 19 件ある", () => {
     // preset を足し引きすると以下が空振りする
-    expect(型).toHaveLength(17);
+    expect(型).toHaveLength(19);
   });
 
-  it("17 件すべてが 2 段以上を持つ", () => {
+  it("19 件すべてが 2 段以上を持つ", () => {
     // preset の `build()` は段を 1 つだけ作り、全要素を光らせて終わる
     const 足りない = 型.filter(([, d]) => d.phases.length < 2).map(([k, d]) => `${k}: ${d.phases.length}`);
     expect(足りない, `段が 1 つのまま: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("17 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("19 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
     // **本 describe の中核**。 段を足しても図が変わらなければ、開いた人には静止画と同じ
     const 変わらない: string[] = [];
     for (const [k, d] of 型) {
@@ -319,10 +329,10 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
   });
 
-  it("箱が 1 つの 6 件は、段が図表の中身を動かす", () => {
+  it("箱が 1 つの 8 件は、段が図表の中身を動かす", () => {
     // 箱が 1 つしか無いので光らせ方では動かせない。 値を動かす宣言を持つことを見る
     const 対象 = 型.filter(([, d]) => 箱が1つ.has(d.id));
-    expect(対象).toHaveLength(6);
+    expect(対象).toHaveLength(8);
 
     const 動かさない = 対象
       .filter(([, d]) => !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0))
@@ -573,6 +583,14 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
       expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
     });
   }
+
+  it("段の題と説明だけが違う 2 段の図は、同じと判定される", () => {
+    // 段の題は読み上げ用の説明として `aria-label` に入る。 図の見た目ではないので、
+    // これを差として数えると「段ごとに題を変えただけの図」 が動いた扱いになる (実測)
+    const 元 = 見本("shape-file");
+    const d = 二段にする(元, { title: "題 A", body: "説明 A" }, { title: "題 B", body: "説明 B" });
+    expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
+  });
 
   it("光らせ方を変えた 2 段の図は、違うと判定される", () => {
     // 落とす側に寄せすぎると、本物の動きまで見えなくなる

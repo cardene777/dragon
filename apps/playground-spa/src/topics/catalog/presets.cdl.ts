@@ -238,18 +238,27 @@ export const presetClassDiagram = withSteps(
 );
 
 // tree preset ... 組織図 / file tree / class 階層
-//
-// 段を付けていない (#1194)。 `tree-hierarchy` は箱 1 つに階層を丸ごと載せる型で、
-// 中身が状態を読む経路を持たない (cdl の `render/payload-binding.ts` が「動かさない 2 種」
-// として解決層を持たない旨を書いている)。 動かせるのは箱ごと消す形だけで、それは見本として
-// 点滅するだけになる。 cdl 側に解決層を足す作業は別 Issue。
-export const presetTree = tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
-  .node({ id: "ceo", title: "CEO" })
-  .node({ id: "cto", title: "CTO", parent: "ceo" })
-  .node({ id: "cfo", title: "CFO", parent: "ceo" })
-  .node({ id: "eng", title: "Eng Manager", parent: "cto" })
-  .node({ id: "ops", title: "Ops Manager", parent: "cto" })
-  .build();
+// 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
+export const presetTree = withSteps(
+  bindFirstNode(
+    tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
+      .node({ id: "ceo", title: "CEO" })
+      .node({ id: "cto", title: "CTO", parent: "ceo" })
+      .node({ id: "cfo", title: "CFO", parent: "ceo" })
+      .node({ id: "eng", title: "Eng Manager", parent: "cto" })
+      .node({ id: "ops", title: "Ops Manager", parent: "cto" })
+      .build(),
+    (n) => ({
+      ...n,
+      treeData: n.treeData?.map((t) => (t.id === "eng" ? { ...t, title: "{eng}" } : t)),
+    }),
+  ),
+  [
+    { ids: ["tree-demo-tree"], title: "組織を作った時", body: "開発の責任者を Eng Manager と呼んでいる。" },
+    { body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。", sets: [{ id: "eng", value: "VP of Engineering" }] },
+  ],
+  [{ id: "eng", initial: "Eng Manager" }],
+);
 
 // userJourney preset ... step + emotion + touchpoint
 // 段で 1 つの段階の気持ちを動かす。 感情の欄は `{名前}` を受けるので、同じ図が改善前と
@@ -275,16 +284,27 @@ export const presetUserJourney = withSteps(
 );
 
 // mindMap preset ... 中心 + 放射 branch
-//
-// 段を付けていない (#1194)。 理由は `presetTree` と同じで、`mind-map` も中身が状態を読む
-// 経路を持たない。 cdl 側に解決層を足す作業は別 Issue。
-export const presetMindMap = mindMap({ id: "mind-demo", topic: "中心の主題から発想を放射状に広げる図", rootId: "root", rootTitle: "Project" })
-  .branch({ id: "feat", title: "Features", parent: "root" })
-  .branch({ id: "ui", title: "UI design", parent: "root" })
-  .branch({ id: "launch", title: "Launch", parent: "root" })
-  .branch({ id: "auth", title: "Auth", parent: "feat" })
-  .branch({ id: "billing", title: "Billing", parent: "feat" })
-  .build();
+// 中心の主題を状態から取り、主題が定まる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
+export const presetMindMap = withSteps(
+  bindFirstNode(
+    mindMap({ id: "mind-demo", topic: "中心の主題から発想を放射状に広げる図", rootId: "root", rootTitle: "Project" })
+      .branch({ id: "feat", title: "Features", parent: "root" })
+      .branch({ id: "ui", title: "UI design", parent: "root" })
+      .branch({ id: "launch", title: "Launch", parent: "root" })
+      .branch({ id: "auth", title: "Auth", parent: "feat" })
+      .branch({ id: "billing", title: "Billing", parent: "feat" })
+      .build(),
+    (n) => ({
+      ...n,
+      mindData: n.mindData && { ...n.mindData, rootTitle: "{theme}" },
+    }),
+  ),
+  [
+    { ids: ["mind-demo-mind"], title: "書き出した時", body: "中心はまだ Project のまま。" },
+    { body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。", sets: [{ id: "theme", value: "認証と課金の刷新" }] },
+  ],
+  [{ id: "theme", initial: "Project" }],
+);
 
 // funnel preset ... Sales / marketing funnel
 // 段の人数を状態から取り、先月と今月を同じ図で見る。
