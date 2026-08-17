@@ -109,6 +109,9 @@ export type {
   DslPhase,
   DslTween,
   DslSet,
+  // `DslDocument.values` を触る利用者が型を import できるようにする (#1169)。
+  // 兄弟の `DslState` / `DslTween` / `DslSet` は公開されており、これだけ漏れていた
+  DslValue,
   DslError,
   PresetType,
   DslLane,
