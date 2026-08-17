@@ -9,7 +9,7 @@
  * 書き間違いを黙って捨てないという `collectIndentedRaw` を自前で持った理由と矛盾していた。
  */
 import { describe, it, expect } from "vitest";
-import { parseTextDslV05 } from "../src/index";
+import { countDocElements, parseTextDslV05 } from "../src/index";
 import type { DslValue } from "../src/index";
 
 const 図 = (values: string) => `title: "確認"
@@ -83,10 +83,9 @@ values:
     const 数える = (src: string) => {
       const r = parseTextDslV05(src);
       if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
-      return r.doc.values?.length ?? 0;
+      return countDocElements(r.doc);
     };
-    expect(数える(値なし)).toBe(0);
-    expect(数える(値あり)).toBe(3);
+    expect(数える(値あり) - 数える(値なし)).toBe(3);
   });
 });
 
