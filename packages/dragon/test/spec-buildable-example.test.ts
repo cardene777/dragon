@@ -1,5 +1,5 @@
 /**
- * spec の「今書ける形」 の例が、実際に記法として解けることの検査 (#1207)。
+ * spec の「今書ける形」 の例が、実際に図へ組み立てられることの検査 (#1207)。
  *
  * `docs/spec-reactive-diagram.md` は「実装着手前の SSOT」 = 計画文書で、5 段の変更計画を持つ。
  * 段 1 (`values` を式のみで足す) は入ったが、段 2 (トリガー) と段 3 (図表が値を読む) は未実装。
@@ -18,7 +18,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
-import { parseTextDslV05 } from "../src/index";
+import { textDslToDiagram } from "../src/index";
 
 const SPEC_URL = new URL("../../../docs/spec-reactive-diagram.md", import.meta.url);
 
@@ -67,7 +67,7 @@ function 解けるべき例(): string[] {
 const 解けるべき例一覧 = 解けるべき例();
 const SPEC_SRC = readFileSync(SPEC_URL, "utf8");
 
-describe("spec の「今書ける形」 が記法として解ける (#1207)", () => {
+describe("spec の「今書ける形」 が図へ組み立てられる (#1207)", () => {
   it("走査が空振りしていない", () => {
     // 0 件だと `it.each` が case を 1 つも登録せず、以下の検査が「全て通った」 として素通りする。
     // fence の書き方が変わった時と、例そのものが消えた時の両方をここで捕まえる
@@ -75,12 +75,11 @@ describe("spec の「今書ける形」 が記法として解ける (#1207)", ()
   });
 
   it.each(解けるべき例一覧.map((body, i) => [i + 1, body] as const))(
-    "%i 件目の例が解ける",
+    "%i 件目の例が図へ組み立てられる",
     (_index, body) => {
-      const result = parseTextDslV05(body);
-      // 落ちた時に何が読めなかったかを出す。 出さないと spec の 200 行から探すことになる
-      const detail = result.ok ? "" : result.errors.map((e) => `line ${e.line}: ${e.message}`).join("\n");
-      expect(result.ok, detail).toBe(true);
+      // 公開変換経路を通し、parse 成功だけでなく compile まで完走することを保証する。
+      // parse error は `textDslToDiagram` が行番号付きで投げるため、spec 内の箇所も追える。
+      expect(() => textDslToDiagram(body)).not.toThrow();
     },
   );
 
