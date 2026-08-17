@@ -290,10 +290,17 @@ export function parseTextDslV05(src: string): V05ParseResult {
       continue;
     }
     if (head.key === "values") {
-      // 1 行に詰める形 (`values: { a: "...", b: "..." }`) は受けない。 式に `,` が入る
-      // (`min({a}, {b})`) ため、 `states` が使う素朴な `,` 分割では式が壊れる。
+      // 1 行に詰める形 (`values: { a: "..." }` / `values: a: "..."`) は受けない。 式に `,` が
+      // 入る (`min({a}, {b})`) ため、 `states` が使う素朴な `,` 分割では式が壊れる。
+      //
+      // **`{` で始まるかを見てはいけない** (#1169)。 `values: a: "{b} + 1"` は `{` で始まらない
+      // ため判定を通り抜け、 その後 `collectIndentedRaw` が次行以降しか見ないので **値が
+      // 1 件も読まれずに黙って消える**。 書き間違いを黙って捨てないという `collectIndentedRaw`
+      // を自前で持った理由と矛盾する。
+      //
+      // 同じ行に何か書いてあれば形を問わず弾く = 1 行形は全て受けないという規則そのもの。
       const inline = head.value?.trim();
-      if (inline && inline.startsWith("{")) {
+      if (inline) {
         errors.push({
           line: line.no,
           message: "values は 1 行にまとめて書けない",
