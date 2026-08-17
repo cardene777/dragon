@@ -475,18 +475,31 @@ describe("図表の見本は数が段で動く (#1198)", () => {
   });
 
   it("5 件すべてで、項目が 1 つも落ちていない", () => {
-    // 記法が `{名前}` を読めないと項目ごと落ちる。 落ちた図は「正しい図」 に見えてしまう
-    const 期待: Record<string, number> = {
-      経路別の流入: 4, 週ごとの応答時間: 5, 費用の内訳: 4, 申込みまでの絞り込み: 4,
+    // 記法が `{名前}` を読めないと項目ごと落ちる。 落ちた図は「正しい図」 に見えてしまう。
+    //
+    // **一覧に無い図を黙って飛ばさない**。 期待値の無い図を素通りさせると、対象が増えた時に
+    // その図だけ誰も数えないまま通る (図表は箱 1 つに配列を載せる型と、札を並べる型の
+    // 2 通りがあるので、数える場所も分けて書く)
+    const 期待: Record<string, { 中身?: number; 箱?: number }> = {
+      経路別の流入: { 中身: 4 },
+      週ごとの応答時間: { 中身: 5 },
+      費用の内訳: { 中身: 4 },
+      申込みまでの絞り込み: { 中身: 4 },
+      "図を速くする": { 箱: 5 },
     };
+    expect(Object.keys(期待).sort(), "期待値の一覧が対象とずれている").toEqual(
+      図表.map(([, d]) => d.id).sort(),
+    );
+
     const 違う: string[] = [];
     for (const [, d] of 図表) {
-      const n = d.nodes[0] as unknown as {
-        chartData?: unknown[]; funnelData?: unknown[];
-      };
-      const 件数 = (n.chartData ?? n.funnelData)?.length;
-      const e = 期待[d.id];
-      if (e !== undefined && 件数 !== e) 違う.push(`${d.id}: ${件数} (期待 ${e})`);
+      const e = 期待[d.id]!;
+      if (e.箱 !== undefined && d.nodes.length !== e.箱) 違う.push(`${d.id}: 箱 ${d.nodes.length} (期待 ${e.箱})`);
+      if (e.中身 !== undefined) {
+        const n = d.nodes[0] as unknown as { chartData?: unknown[]; funnelData?: unknown[] };
+        const 件数 = (n.chartData ?? n.funnelData)?.length;
+        if (件数 !== e.中身) 違う.push(`${d.id}: 中身 ${件数} (期待 ${e.中身})`);
+      }
     }
     expect(違う, `項目が落ちている: ${違う.join(", ")}`).toHaveLength(0);
   });

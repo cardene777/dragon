@@ -81,6 +81,56 @@ describe("数の欄に状態を書ける (#1198)", () => {
     expect(中身(組み立てる("bar", "{v}"))).toContain("{v}");
   });
 
+  it("参照先の無い名前を書いた項目は落ちて警告が出る", () => {
+    // 通すと図は出るのに数が入っていない状態になる = 「正しい図」 に見えてしまう。
+    // 数として読めない値を落として警告する既存の扱いと揃える
+    for (const 型 of 型一覧) {
+      const notices: Array<{ kind: string; message: string }> = [];
+      const d = textDslToDiagram(`title: "試し"
+type: ${型}
+
+actors:
+  - A: "{missing}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "動く" 1.5s
+    tween:
+      v: 100 -> 900
+`, { onNotice: (n) => notices.push(n) });
+      expect(中身(d), `${型} で参照先の無い項目が載っている`).toEqual([200]);
+      expect(notices.map((n) => n.kind), `${型} で警告が出ていない`).toContain("chart-value-unreadable");
+      expect(notices.some((n) => n.message.includes("参照先の無い")), `${型} の警告が理由を説明していない`).toBe(true);
+    }
+  });
+
+  it("自動で決まる値も参照先として認める", () => {
+    // `values:` で宣言した名前も状態と同じく `{名前}` で読める
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{waiting}"
+  - B: "200"
+
+states:
+  inflow: 100
+  done: 40
+
+values:
+  waiting: "{inflow} - {done}"
+
+animation:
+  - step: "動く" 1.5s
+    tween:
+      inflow: 100 -> 300
+`);
+    expect(中身(d)).toEqual(["{waiting}", 200]);
+  });
+
   it("段の値が図に入る", () => {
     // 入口が通っても段が入らなければ動かない
     const d = 組み立てる("bar", "{v}");
