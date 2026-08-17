@@ -108,7 +108,9 @@
           "duration": {"type": "number", "minimum": 0.1, "description": "phase 時間 (秒、 default 1.4)"},
           "focus": {"type": "array", "items": {"type": "string"}, "description": "この phase で active 化する actor 名 or edge 'A -> B' の配列"},
           "body": {"type": "string", "description": "phase 説明文"},
-          "badge": {"type": "string", "description": "phase 中に表示する badge label"}
+          "badge": {"type": "string", "description": "phase 中に表示する badge label"},
+          "tween": {"type": "object", "description": "この phase で補間する状態。 状態名 -> [開始値, 終了値]。 states に宣言した名前のみ", "additionalProperties": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}},
+          "set": {"type": "object", "description": "この phase の切替で差し替える状態。 状態名 -> 値。 states に宣言した名前のみ", "additionalProperties": {"type": ["number", "string"]}}
         }
       }
     },
