@@ -2980,15 +2980,23 @@ function parseChartValue(raw: string | undefined): number | string | null {
 }
 
 /**
- * 記法で宣言された値の名前 (状態と、他の値から自動で決まる値)。
+ * 数の欄から参照してよい名前。
  *
- * 状態を読む欄は参照先が要る。 **無い名前を書いた項目を通してはいけない** = 描画側は
- * 解けなかった `{名前}` をそのまま文字として描き、図は出るのに数が入っていない状態になる。
- * 数として読めない値を落として警告する既存の扱いと揃える。
+ * 2 つを確かめる。 **その名前が宣言されていること** と、**数として読めること**。
+ *
+ * どちらを外しても図は出るが、数が入らない。 描画側は解けなかった `{名前}` をそのまま
+ * 文字として描き、数に直せない値は既定値に落として印を付ける (`data-cdl-unresolved`)。
+ * どちらも「壊れているのに正しい図に見える」 形なので、入口で落として警告する
+ * (数として読めない値を落とす既存の扱いと同じ)。
+ *
+ * 他の値から自動で決まる値 (`values:`) は式の評価結果なので必ず数になる。
  */
-function 宣言された値の名前(doc: DslDocument): Set<string> {
+function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
   const out = new Set<string>();
-  for (const s of doc.animate?.states ?? []) out.add(s.name);
+  for (const s of doc.animate?.states ?? []) {
+    const n = typeof s.initial === "number" ? s.initial : Number(String(s.initial).trim());
+    if (Number.isFinite(n)) out.add(s.name);
+  }
   for (const v of doc.values ?? []) out.add(v.name);
   return out;
 }
@@ -3034,7 +3042,7 @@ function compileValueChart(
   const 読めない: string[] = [];
   const 未宣言: string[] = [];
   let 未宣言行 = 0;
-  const 宣言済 = 宣言された値の名前(doc);
+  const 参照できる = 数の欄から参照できる名前(doc);
   // 最初に読めなかった行を覚える。 画面が案内できるようにする
   let 読めない行 = 0;
   for (const a of doc.actors) {
@@ -3050,9 +3058,9 @@ function compileValueChart(
       読めない.push(a.name);
       continue;
     }
-    // 参照先の無い状態は落とす。 通すと図は出るのに数が入っていない状態になる
+    // 数にならない参照は落とす。 通すと図は出るのに数が入っていない状態になる
     const 名前 = 参照する名前(value);
-    if (名前 !== null && !宣言済.has(名前)) {
+    if (名前 !== null && !参照できる.has(名前)) {
       if (未宣言.length === 0) 未宣言行 = a.pos?.line ?? 0;
       未宣言.push(a.name);
       continue;
@@ -3091,8 +3099,8 @@ function compileValueChart(
     伝える(
       "chart-value-unreadable",
       未宣言[0]!,
-      `type: ${型} で参照先の無い値を書いた項目があります (${語.図}に載せません): ${未宣言.join(", ")}。` +
-        ` \`states:\` にその名前を書いてください`,
+      `type: ${型} で数にならない値を参照した項目があります (${語.図}に載せません): ${未宣言.join(", ")}。` +
+        ` \`states:\` にその名前を数で書いてください`,
       未宣言行,
     );
   }
@@ -3174,7 +3182,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
   const 未宣言: string[] = [];
-  const 宣言済 = 宣言された値の名前(doc);
+  const 参照できる = 数の欄から参照できる名前(doc);
   for (const a of doc.actors) {
     const v = parseChartValue(a.value ?? a.subtitle);
     // 段の数なので負に意味が無い (状態を読む欄は符号が決まらないので通す)
@@ -3182,16 +3190,16 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
       読めない.push(a.name);
       continue;
     }
-    // 参照先の無い状態は落とす (棒 / 折れ線 / 円と同じ扱い)
+    // 数にならない参照は落とす (棒 / 折れ線 / 円と同じ扱い)
     const 名前 = 参照する名前(v);
-    if (名前 !== null && !宣言済.has(名前)) {
+    if (名前 !== null && !参照できる.has(名前)) {
       未宣言.push(a.name);
       continue;
     }
     data.push({ id: slugify(a.name), title: a.name, count: v });
   }
   if (未宣言.length > 0) {
-    const m3 = `type: funnel で参照先の無い値を書いた項目があります (段に載せません): ${未宣言.join(", ")}。 \`states:\` にその名前を書いてください`;
+    const m3 = `type: funnel で数にならない値を参照した項目があります (段に載せません): ${未宣言.join(", ")}。 \`states:\` にその名前を数で書いてください`;
     onNotice?.({ kind: "chart-value-unreadable", actor: 未宣言[0]!, line: 0, message: m3 });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m3}`);
   }

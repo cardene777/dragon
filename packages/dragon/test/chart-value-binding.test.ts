@@ -103,8 +103,49 @@ animation:
 `, { onNotice: (n) => notices.push(n) });
       expect(中身(d), `${型} で参照先の無い項目が載っている`).toEqual([200]);
       expect(notices.map((n) => n.kind), `${型} で警告が出ていない`).toContain("chart-value-unreadable");
-      expect(notices.some((n) => n.message.includes("参照先の無い")), `${型} の警告が理由を説明していない`).toBe(true);
+      expect(notices.some((n) => n.message.includes("数にならない")), `${型} の警告が理由を説明していない`).toBe(true);
     }
+  });
+
+  it("語の状態を数の欄に指した項目は落ちて警告が出る", () => {
+    // 宣言はされていても数に直せない。 通すと描画側で既定値に落ちて印が付き、
+    // 図は出るのに数が入っていない状態になる (実測で `data-cdl-unresolved` が付いた)
+    for (const 型 of 型一覧) {
+      const notices: Array<{ kind: string; message: string }> = [];
+      const d = textDslToDiagram(`title: "試し"
+type: ${型}
+
+actors:
+  - A: "{label}"
+  - B: "200"
+
+states:
+  label: "こんにちは"
+
+animation:
+  - step: "動く" 1.5s
+`, { onNotice: (n) => notices.push(n) });
+      expect(中身(d), `${型} で語の状態を指した項目が載っている`).toEqual([200]);
+      expect(notices.map((n) => n.kind), `${型} で警告が出ていない`).toContain("chart-value-unreadable");
+    }
+  });
+
+  it("数として読める語の状態は通る", () => {
+    // 記法は数を引用符で書く形も許す。 `"100"` は数として読めるので落とさない
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: "100"
+
+animation:
+  - step: "動く" 1.5s
+`);
+    expect(中身(d)).toEqual(["{v}", 200]);
   });
 
   it("自動で決まる値も参照先として認める", () => {
