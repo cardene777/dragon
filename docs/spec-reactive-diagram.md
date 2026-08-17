@@ -91,7 +91,8 @@ actors:
 
 例を 2 つに分ける。 **段 1 まで入った今の記法で書ける形**と、**段 2-3 の後に書ける形**。
 
-分ける理由は、片方を検査に載せるため。 前者は `textDslToDiagram` に通して図へ組み立てられることを
+分ける理由は、片方を検査に載せるため。 前者は `textDslToDiagram` と CDL の `compile` に通して
+図へ組み立てられることを
 `packages/dragon/test/spec-buildable-example.test.ts` が確かめる。 後者は未実装の計画なので
 組み立てられないのが正しく、検査対象にしない。
 
@@ -128,13 +129,13 @@ states:
 # --- 依存 ---
 values:
   progress: "({vdone} + {cdone} + {pdone} + {sdone}) / 4"
-
-# --- 動き ---
-animation:
-  - step: "取込み" 8.0s
 ```
 
 段は 1 つ。 要素を 1 つ足す時に触るのは `actors` と `states` と `values` に 1 行ずつ。
+
+**`animation:` は今この例に足せない**。 `as` の別名と `animation:` を併記すると矢印の指す
+node が消えて組み立てが落ちる (`#1209`)。 検査を CDL の組み立てまで通した時に出た。
+`#1209` が直ったら、この例に `animation:` の段を戻す。
 
 この形で書けないのは工程の連なり。 `vdone` が 100 になっても `cdone` は動かないため、
 5 つの値を段が手で書くことになる (§ 0 で挙げた `richPipelineDemo` と同じ形)。

@@ -18,6 +18,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
+import { compile } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 
 const SPEC_URL = new URL("../../../docs/spec-reactive-diagram.md", import.meta.url);
@@ -77,9 +78,9 @@ describe("spec の「今書ける形」 が図へ組み立てられる (#1207)",
   it.each(解けるべき例一覧.map((body, i) => [i + 1, body] as const))(
     "%i 件目の例が図へ組み立てられる",
     (_index, body) => {
-      // 公開変換経路を通し、parse 成功だけでなく compile まで完走することを保証する。
+      // 公開変換経路を通し、parse / Dragon 側の組立てだけでなく CDL compile まで完走することを保証する。
       // parse error は `textDslToDiagram` が行番号付きで投げるため、spec 内の箇所も追える。
-      expect(() => textDslToDiagram(body)).not.toThrow();
+      expect(() => compile(textDslToDiagram(body))).not.toThrow();
     },
   );
 
