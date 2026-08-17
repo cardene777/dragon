@@ -14,7 +14,7 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 + `presets` 17 件 + `kind-*` 5 件 + `shape-*` 45 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かすと決めた | `primitives-extra` 21 件 + `scene-*` 30 件 + `presets` 19 件 + `kind-*` 5 件 + `shape-*` 45 件 + `charts` 7 件 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` 10 件 + `lane-*` 3 件 + `stack-*` 2 件 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
  * | まだ動かしていない | 副題を描かない `shape-*` 4 件、 `charts` 2 件 | 別 Issue 待ち。 件数を固定して減り方を追う |
  *
