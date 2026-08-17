@@ -205,6 +205,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
   // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる。
   materializeStates(merged, doc);
+  // 語の欄が状態を読むとき、その状態には記法の語が入っている。 図の語へ直す (#1201)
+  語の状態を図の語へ直す(merged);
   attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
@@ -3019,19 +3021,22 @@ function 数として読めるか(v: number | string): boolean {
 }
 
 function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
-  // **段の途中で語に切り替わる状態も弾く**。 最初の値だけを見ると、その段に来たときだけ
-  // 数が入らない図になる (実測で `data-cdl-unresolved` が付いた)。 段で動かす値は数しか
-  // 書けないので、見るのは切り替え (`set`) だけでよい
+  // **同じ名前を 2 回宣言した時は後ろが効く**。 描画側は後の宣言を有効値として扱うため、
+  // 前の宣言だけを見て判定すると「読めると判定したのに読めない値が入る」 状態になる
+  // (実測では組み立てが通り、描画で落ちた)。 名前ごとに最後の宣言へ畳んでから見る
+  const 実効 = new Map<string, number | string>();
+  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
+
   const 語になる = new Set<string>();
   for (const p of doc.animate?.phases ?? []) {
     for (const st of p.sets ?? []) if (!数として読めるか(st.value)) 語になる.add(st.state);
   }
 
   const out = new Set<string>();
-  for (const s of doc.animate?.states ?? []) {
-    if (!数として読めるか(s.initial)) continue;
-    if (語になる.has(s.name)) continue;
-    out.add(s.name);
+  for (const [名前, 値] of 実効) {
+    if (!数として読めるか(値)) continue;
+    if (語になる.has(名前)) continue;
+    out.add(名前);
   }
   for (const v of doc.values ?? []) out.add(v.name);
   return out;
@@ -3211,6 +3216,93 @@ const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRi
   ["右下", "bottomRight"],
 ]);
 
+/**
+ * 語の欄に書いた `{名前}` を受けてよいか (#1201)。
+ *
+ * 語の欄は数の欄と違い、**流れ込む値が組み立ての時点で全部わかる**。 状態の初期値と、
+ * 段で状態に入る値 (切り替え `set` / 補間 `tween`) はいずれも記法に書いてある。
+ * だから「その名前が必ず読める語になるか」 をここで言い切れる
+ * (`#1200` が扱う「実行時に決まる範囲」 に当たらない)。
+ *
+ * **補間 (`tween`) を見落とさない**。 補間の行き先は数なので、語の欄が読む状態を補間すると
+ * その段で語が数に変わり、描画側が解けなくなる。 記法としては書けてしまうため、ここで弾く
+ * (実測では警告が出ないまま `data-cdl-unresolved` が付いた)。
+ *
+ * 自動で決まる値 (`values:`) は式の評価結果で数になるため、語の欄からは参照できない。
+ */
+function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<string, string>): Set<string> {
+  // 数の欄と同じく、同じ名前を 2 回宣言した時は後ろが効く
+  const 実効 = new Map<string, number | string>();
+  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
+
+  const 直せない = new Set<string>();
+  for (const p of doc.animate?.phases ?? []) {
+    for (const st of p.sets ?? []) {
+      if (!語表.has(String(st.value).trim())) 直せない.add(st.state);
+    }
+    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる
+    for (const tw of p.tweens ?? []) 直せない.add(tw.state);
+  }
+
+  const out = new Set<string>();
+  for (const [名前, 値] of 実効) {
+    if (!語表.has(String(値).trim())) continue;
+    if (直せない.has(名前)) continue;
+    out.add(名前);
+  }
+  return out;
+}
+
+/**
+ * 記法の語で書いた状態を、図の語へ直す (#1201)。
+ *
+ * 語の欄が `{名前}` を持つとき、その名前が指す状態には記法の語 (「不満」 「左上」) が
+ * 入っている。 描画側が知っているのは図の語 (`frustrated` / `topLeft`) なので、ここで直す。
+ *
+ * **記法の語彙に engine の内部語を混ぜないため**にこの形にしている。 状態にも図の語を
+ * 書かせる形なら直す処理は要らないが、記法の語と内部語が同じ file に並ぶことになる。
+ *
+ * 直すのは語の欄から参照されている名前だけ。 同じ名前を数の欄からも参照している図では
+ * 直さない (数として読めなくなるため)。
+ *
+ * **この「数の欄からも参照している」 分岐は、到達する入力を今は作れない**。 記法の図は
+ * 1 つの型しか持たず、語の欄を持つ型 (`journey` / `quadrant`) と数の欄を持つ型
+ * (`bar` / `line` / `pie` / `funnel`) は同時に現れないため。 変異試験でもこの行を外して
+ * 検査が落ちないことを確かめた = 覆えていない。 見本を重ねる経路で両方の欄を持つ箱が
+ * できた時のために残す。
+ */
+function 語の状態を図の語へ直す(diagram: CdlDiagram): void {
+  const 対象 = new Map<string, Map<string, string>>();
+  const 数の欄から = new Set<string>();
+  const 拾う = (v: unknown, 語表: Map<string, string>) => {
+    const m = typeof v === "string" ? v.match(/^\{(\w+)/) : null;
+    if (m) 対象.set(m[1]!, 語表);
+  };
+  for (const n of diagram.nodes) {
+    for (const st of n.journeyData ?? []) 拾う(st.emotion, 気持ち);
+    for (const it of n.quadrantData?.items ?? []) 拾う(it.quadrant, 区画);
+    for (const d of n.chartData ?? []) {
+      const m = typeof d.value === "string" ? d.value.match(/^\{(\w+)/) : null;
+      if (m) 数の欄から.add(m[1]!);
+    }
+    for (const f of n.funnelData ?? []) {
+      const m = typeof f.count === "string" ? f.count.match(/^\{(\w+)/) : null;
+      if (m) 数の欄から.add(m[1]!);
+    }
+  }
+  if (対象.size === 0) return;
+
+  const 直す = (名前: string, 値: string | number): string | number => {
+    const 語表 = 対象.get(名前);
+    if (!語表 || 数の欄から.has(名前)) return 値;
+    return 語表.get(String(値).trim()) ?? 値;
+  };
+  for (const s of diagram.states) s.initial = 直す(s.id, s.initial);
+  for (const p of diagram.phases) {
+    for (const st of p.sets) st.value = 直す(st.stateId, st.value);
+  }
+}
+
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
@@ -3338,8 +3430,19 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
   b.lane("chart", { width: W + 64, label: doc.title });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
   const 読めない: string[] = [];
+  const 参照できる = 語の欄から参照できる名前(doc, 気持ち);
   for (const a of doc.actors) {
     const 語 = (a.value ?? a.subtitle ?? "").trim();
+    // 状態を読む欄はそのまま渡す。 指す先の語は `語の状態を図の語へ直す` が図の語に直す
+    const 参照 = 語.match(/^\{(\w+)\}$/);
+    if (参照) {
+      if (!参照できる.has(参照[1]!)) {
+        読めない.push(a.name);
+        continue;
+      }
+      data.push({ id: slugify(a.name), title: a.name, emotion: 語 as never });
+      continue;
+    }
     const e = 気持ち.get(語);
     if (e === undefined) {
       読めない.push(a.name);
@@ -3370,8 +3473,18 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   b.lane("chart", { width: W + 64, label: doc.title });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
+  const 参照できる = 語の欄から参照できる名前(doc, 区画);
   for (const a of doc.actors) {
     const 語 = (a.value ?? a.subtitle ?? "").trim();
+    const 参照 = 語.match(/^\{(\w+)\}$/);
+    if (参照) {
+      if (!参照できる.has(参照[1]!)) {
+        読めない.push(a.name);
+        continue;
+      }
+      items.push({ id: slugify(a.name), title: a.name, quadrant: 語 as never });
+      continue;
+    }
     const q = 区画.get(語);
     if (q === undefined) {
       読めない.push(a.name);

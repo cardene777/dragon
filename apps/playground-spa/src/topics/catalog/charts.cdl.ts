@@ -192,9 +192,22 @@ type: journey
 
 actors:
   - 知る: "普通"
-  - 登録: "不満"
-  - 設定: "満足"
+  - 登録: "{signup}"
+  - 設定: "{setup}"
   - 初回の成功: "最高"
+
+states:
+  signup: "不満"
+  setup: "満足"
+
+animation:
+  - step: "改善前" 1.2s
+    description: "登録でつまずき、設定でようやく持ち直す"
+  - step: "改善後" 1.2s
+    set:
+      signup: "満足"
+      setup: "最高"
+    description: "登録の作りを直すと、その後の山も上がる"
 `;
 export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
 
@@ -241,8 +254,21 @@ type: quadrant
 actors:
   - 重複削除: "左上"
   - 描画刷新: "右上"
-  - 配色統一: "左下"
-  - 旧記法: "右下"
+  - 配色統一: "{color}"
+  - 旧記法: "{legacy}"
+
+states:
+  color: "左下"
+  legacy: "右下"
+
+animation:
+  - step: "見直し前" 1.2s
+    description: "配色統一と旧記法はどちらも後回しに置いてある"
+  - step: "見直し後" 1.2s
+    set:
+      color: "左上"
+      legacy: "右上"
+    description: "効きを測り直すと、2 件とも上の段へ移る"
 `;
 export const quadrantMatrix = textDslToDiagram(sourceYaml__quadrantMatrix);
 

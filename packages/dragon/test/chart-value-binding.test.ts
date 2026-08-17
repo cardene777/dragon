@@ -156,6 +156,27 @@ animation:
     }
   });
 
+  it("同じ名前を 2 回宣言した時は後ろの宣言で判定する (数の欄)", () => {
+    // 語の欄と同じ理由。 描画側は後の宣言を有効値として扱う
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+  v: "こんにちは"
+
+animation:
+  - step: "動く" 1.5s
+`, { onNotice: (n) => notices.push(n) });
+    expect(中身(d), "後ろの宣言が数でないのに項目が載っている").toEqual([200]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
   it("段の途中で語に切り替わる状態は落ちる", () => {
     // 最初の値だけを見ると、その段に来たときだけ数が入らない図になる
     const notices: Array<{ kind: string }> = [];
@@ -247,5 +268,216 @@ animation:
     const d = 組み立てる("bar", "{v}");
     expect(d.states?.map((s) => s.id)).toContain("v");
     expect(d.phases.flatMap((p) => p.tweens ?? [])).toEqual([{ stateId: "v", from: 100, to: 900 }]);
+  });
+});
+
+/**
+ * 語の欄に状態を書ける (#1201)。
+ *
+ * 語の欄 (気持ち / 区画) は数の欄と違い、**流れ込む値が組み立ての時点で全部わかる**。
+ * 状態の初期値と、段で状態に入る値 (切り替え / 補間) はいずれも記法に書いてある。
+ * だから「その名前が必ず読める語になるか」 を言い切れる。
+ *
+ * 補間の行き先は数なので、語の欄が読む状態を補間する形は弾く (記法としては書けてしまい、
+ * 実測では警告が出ないまま図が壊れていた)。
+ *
+ * 記法には記法の語 (「不満」 「左上」) を書き、図の語 (`frustrated` / `topLeft`) へは
+ * 組み立てが直す。 記法の語彙に engine の内部語を混ぜないため。
+ */
+describe("語の欄に状態を書ける (#1201)", () => {
+  const 気持ちの図 = (登録: string, 状態: string) =>
+    textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "${登録}"
+
+states:
+  mood: "${状態}"
+
+animation:
+  - step: "はじめ" 1.2s
+  - step: "あと" 1.2s
+    set:
+      mood: "満足"
+`);
+
+  const 気持ち = (d: CdlDiagram) =>
+    (d.nodes[0] as unknown as { journeyData?: Array<{ emotion: unknown }> }).journeyData?.map((r) => r.emotion);
+  const 区画 = (d: CdlDiagram) =>
+    (d.nodes[0] as unknown as { quadrantData?: { items: Array<{ quadrant: unknown }> } }).quadrantData?.items.map(
+      (r) => r.quadrant,
+    );
+
+  it("気持ちの欄に {名前} を書いた項目が落ちない", () => {
+    expect(気持ち(気持ちの図("{mood}", "不満"))).toEqual(["neutral", "{mood}"]);
+  });
+
+  it("状態に書いた記法の語が図の語に直る", () => {
+    // 記法には「不満」 と書き、図には `frustrated` が入る
+    const d = 気持ちの図("{mood}", "不満");
+    expect(d.states?.find((s) => s.id === "mood")?.initial).toBe("frustrated");
+  });
+
+  it("段の切り替えに書いた語も図の語に直る", () => {
+    // 初期値だけ直すと、段に入った時点で読めない語に戻る
+    const d = 気持ちの図("{mood}", "不満");
+    expect(d.phases.flatMap((p) => p.sets ?? [])).toEqual([{ stateId: "mood", value: "happy" }]);
+  });
+
+  it("読めない語の状態を指した項目は落ちて警告が出る", () => {
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "ふつう"
+
+animation:
+  - step: "動く" 1.2s
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d)).toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("段で読めない語に切り替わる状態も落ちる", () => {
+    // 初期値だけを見ると、その段に来たときだけ読めない語になる
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "不満"
+
+animation:
+  - step: "はじめ" 1.2s
+  - step: "あと" 1.2s
+    set:
+      mood: "ふつう"
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d)).toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("段で数に補間される状態を指した項目は落ちて警告が出る", () => {
+    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる。
+    // 記法としては書けてしまい、実測では警告が出ないまま図が壊れていた
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "不満"
+
+animation:
+  - step: "はじめ" 1.2s
+  - step: "数になる" 1.2s
+    tween:
+      mood: 0 -> 5
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d), "補間される状態を指した項目が載っている").toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("同じ名前を 2 回宣言した時は後ろの宣言で判定する", () => {
+    // 描画側は後の宣言を有効値として扱う。 前の宣言だけを見て判定すると「読めると判定した
+    // のに読めない値が入る」 状態になり、組み立ては通って描画で落ちる (実測)
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "不満"
+  mood: "ふつう"
+
+animation:
+  - step: "動く" 1.2s
+`, { onNotice: (n) => notices.push(n) });
+    expect(気持ち(d), "後ろの宣言が読めないのに項目が載っている").toEqual(["neutral"]);
+    expect(notices.map((n) => n.kind)).toContain("chart-value-unreadable");
+  });
+
+  it("同じ名前を 2 回宣言しても、後ろが読めれば通る", () => {
+    const d = textDslToDiagram(`title: "試し"
+type: journey
+
+actors:
+  - 知る: "普通"
+  - 登録: "{mood}"
+
+states:
+  mood: "ふつう"
+  mood: "不満"
+
+animation:
+  - step: "動く" 1.2s
+`);
+    expect(気持ち(d)).toEqual(["neutral", "{mood}"]);
+  });
+
+  it("区画の欄でも同じことができる", () => {
+    const d = textDslToDiagram(`title: "試し"
+type: quadrant
+
+actors:
+  - A: "左上"
+  - B: "{place}"
+
+states:
+  place: "左下"
+
+animation:
+  - step: "はじめ" 1.2s
+  - step: "あと" 1.2s
+    set:
+      place: "右上"
+`);
+    expect(区画(d)).toEqual(["topLeft", "{place}"]);
+    expect(d.states?.find((s) => s.id === "place")?.initial).toBe("bottomLeft");
+    expect(d.phases.flatMap((p) => p.sets ?? [])).toEqual([{ stateId: "place", value: "topRight" }]);
+  });
+
+  it("語を書いた既存の見本は今までどおり", () => {
+    expect(気持ち(気持ちの図("満足", "不満"))).toEqual(["neutral", "happy"]);
+  });
+
+  it("数の欄だけを読む図では語に直さない", () => {
+    // 語の欄を持たない図では直す対象が 1 つも無い。 数の状態が語に化けないことを見る
+    //
+    // 「同じ名前を語の欄と数の欄の両方から読む」 形は **入力を作れない** (記法の図は
+    // 1 つの型しか持たないため)。 その分岐は覆えていないことを `compile.ts` 側に書いてある
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "動く" 1.5s
+    tween:
+      v: 100 -> 900
+`);
+    expect(d.states?.find((s) => s.id === "v")?.initial).toBe(100);
   });
 });
