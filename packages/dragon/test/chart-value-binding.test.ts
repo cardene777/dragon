@@ -263,6 +263,29 @@ animation:
     expect(中身(d)).toEqual(["{waiting}", 200]);
   });
 
+  it("段で負に動かす形は通す (描画側が受け持つ)", () => {
+    // 組み立てでは弾かない。 描画側が問題なく描くことを実測した (負の大きさも NaN も出ない)。
+    // ここで弾くと、増減を追う図で 0 を跨ぐ値が書けなくなる
+    const notices: Array<{ kind: string }> = [];
+    const d = textDslToDiagram(`title: "試し"
+type: bar
+
+actors:
+  - A: "{v}"
+  - B: "200"
+
+states:
+  v: 100
+
+animation:
+  - step: "動く" 1.5s
+    tween:
+      v: 100 -> -50
+`, { onNotice: (n) => notices.push(n) });
+    expect(中身(d)).toEqual(["{v}", 200]);
+    expect(notices, "組み立てで警告を出している").toHaveLength(0);
+  });
+
   it("段の値が図に入る", () => {
     // 入口が通っても段が入らなければ動かない
     const d = 組み立てる("bar", "{v}");
