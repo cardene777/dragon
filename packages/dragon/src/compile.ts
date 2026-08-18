@@ -373,8 +373,15 @@ function reportMissingFlowActors(
   const 表 = actorRefTable(doc);
   // hint は **1 度だけ作る**。 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限
   // (各 1,000) まで書いた図で数百 MB になる (Round 1 の指摘)。 並べる数にも上限を置く
+  //
+  // **1 件ずつの長さも切る**。 件数だけを絞っても、 名前 1 つが 2 万字なら知らせも 2 万字に
+  // なる (Round 4 の実測)。 名前も矢印の指定も外から来る文字列なので、 表示に使う所は
+  // すべて `truncateForMessage` を通す (光らせる相手の知らせと同じ扱い)。
   const 見せる数 = 8;
-  const 名前一覧 = doc.actors.slice(0, 見せる数).map((a) => a.name).join(" / ");
+  const 名前一覧 = doc.actors
+    .slice(0, 見せる数)
+    .map((a) => truncateForMessage(a.name))
+    .join(" / ");
   const 残り = doc.actors.length - 見せる数;
   const hint =
     doc.actors.length > 0
@@ -389,7 +396,7 @@ function reportMissingFlowActors(
         kind: "flow-actor-missing",
         actor: ref,
         line: s.pos.line,
-        message: `矢印が "${ref}" を指していますが、 actors に書かれていません`,
+        message: `矢印が "${truncateForMessage(ref)}" を指していますが、 actors に書かれていません`,
         hint,
       });
     }

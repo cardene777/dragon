@@ -166,6 +166,24 @@ animation:
     expect(d.phases?.[0]?.activate).toContain("e0-api-gateway-db");
   });
 
+  it("長い名前 / 長い指定でも知らせが短いまま", () => {
+    // 件数だけを絞っても、 名前 1 つが 2 万字なら知らせも 2 万字になる (Round 4 の実測)。
+    // 名前も矢印の指定も外から来る文字列なので、 表示に使う所はすべて切る
+    const 長い = "あ".repeat(20000);
+    const { 未知 } = 組み立てる(`title: "t"
+type: flow
+actors:
+  - ${長い}
+flow:
+  - ${長い}2 -> ${長い}: "x"
+`);
+    expect(未知).toHaveLength(1);
+    expect(未知[0]!.message.length).toBeLessThan(200);
+    expect(未知[0]!.hint!.length).toBeLessThan(200);
+    // 相手を指す欄は生のまま残す (光らせる相手の知らせと同じ扱い、 表示用ではなく識別用)
+    expect(未知[0]!.actor.length).toBeGreaterThan(20000);
+  });
+
   it("知らせの hint は actors が多くても短いまま", () => {
     // 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限まで書いた図で数百 MB になる
     const 名前 = Array.from({ length: 200 }, (_, i) => `  - actor${i}`).join("\n");
