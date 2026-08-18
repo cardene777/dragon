@@ -281,16 +281,93 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(Object.keys(写した状態).length).toBe(100_001);
   }, 30_000);
 
-  it("巨大な配列を、 添字を並べる前に長さで止める (Round 6)", () => {
+  it("巨大な配列を、 添字を 1 つも読まずに長さで止める (Round 6 / 7)", () => {
     // 添字を文字の並びとして作ると、 上限を見る前にその並びを作ってしまう
-    // (Round 6 の実測 = `new Array(5_000_001)` で 500 万個の添字を作ろうとした)
-    const 巨大 = new Array(5_000_001);
+    // (Round 6 の実測 = `new Array(5_000_001)` で 500 万個の添字を作ろうとした)。
+    //
+    // **添字を読んだ回数で見る** (Round 7 の指摘)。 素の巨大配列は旧い形でも最後は同じ誤りに
+    // なるため、 「並びを作る前に止まった」 ことを分けて見る必要がある
+    let 添字を読んだ = 0;
+    let 長さを読んだ = 0;
+    const 巨大 = new Proxy([] as unknown[], {
+      get(t, k, r) {
+        if (k === "length") {
+          長さを読んだ += 1;
+          return 5_000_001;
+        }
+        if (typeof k === "string" && /^\d+$/.test(k)) 添字を読んだ += 1;
+        return Reflect.get(t, k, r);
+      },
+    });
+
     const r = validateDragonJson(図の素({ 使わない項目: 巨大 }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.errors[0]?.message).toContain("項目が多すぎる");
     expect(r.errors[0]?.path).toBe("$.使わない項目");
+    expect(添字を読んだ, "添字を読んでから止まっている").toBe(0);
+    expect(長さを読んだ, "長さを 2 度以上読んでいる").toBe(1);
   }, 30_000);
+
+  it("長さが整数でない配列を ToLength と同じに扱う (Round 7)", () => {
+    // `Array.from({ length })` は仕様の `ToLength` を通す。 生の値をそのまま使うと
+    // 2.5 で 3 回読む
+    const 端数 = new Proxy(["a", "b", "c"] as unknown[], {
+      get(t, k, r) {
+        if (k === "length") return 2.5;
+        return Reflect.get(t, k, r);
+      },
+    });
+    const r = validateDragonJson(図の素({ 使わない項目: 端数 }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect((r.data as unknown as Record<string, unknown[]>).使わない項目).toEqual(["a", "b"]);
+  });
+
+  it("長さが数でない配列は空として扱い、 読み続けない (Round 7)", () => {
+    // `NaN` を返すと数の合計が `NaN` になり、 上限も終わりも判定できず読み続ける
+    let 添字を読んだ = 0;
+    const 壊れた = new Proxy(["a", "b"] as unknown[], {
+      get(t, k, r) {
+        if (k === "length") return NaN;
+        if (typeof k === "string" && /^\d+$/.test(k)) 添字を読んだ += 1;
+        return Reflect.get(t, k, r);
+      },
+    });
+    const r = validateDragonJson(図の素({ 使わない項目: 壊れた }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect((r.data as unknown as Record<string, unknown[]>).使わない項目).toEqual([]);
+    expect(添字を読んだ, "読み続けている").toBe(0);
+  }, 20_000);
+
+  it("長さが負の配列も空として扱い、 数の残りを増やさない (Round 7)", () => {
+    const 負を作る = (長さ: number): unknown[] =>
+      new Proxy(["a"] as unknown[], {
+        get(t, k, r) {
+          if (k === "length") return 長さ;
+          return Reflect.get(t, k, r);
+        },
+      });
+
+    // 空として写る
+    const r1 = validateDragonJson(図の素({ 使わない項目: 負を作る(-5) }));
+    expect(r1.ok).toBe(true);
+    if (!r1.ok) return;
+    expect((r1.data as unknown as Record<string, unknown[]>).使わない項目).toEqual([]);
+
+    // **数の残りを増やさない**。 0 に寄せずに足すと、 大きな負の長さで上限の判定を無効にできる
+    const 巨大 = new Proxy([] as unknown[], {
+      get(t, k, r) {
+        if (k === "length") return 5_000_001;
+        return Reflect.get(t, k, r);
+      },
+    });
+    const r2 = validateDragonJson(図の素({ 使わない項目: [負を作る(-1e15), 巨大] }));
+    expect(r2.ok, "負の長さで上限の判定が無効になっている").toBe(false);
+    if (r2.ok) return;
+    expect(r2.errors[0]?.message).toContain("項目が多すぎる");
+  }, 20_000);
 
   it("普通の大きさの配列は通る", () => {
     const 並び = Array.from({ length: 1000 }, (_, i) => i);
