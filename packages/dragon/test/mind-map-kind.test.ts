@@ -15,8 +15,9 @@
  * 親を壊せば報告されること。
  */
 import { describe, it, expect } from "vitest";
-import { textDslToDiagram, lintDiagram } from "../src/index";
+import { textDslToDiagram, lintDiagram, compileToCdl } from "../src/index";
 import type { CdlDiagram, CompileNotice } from "../src/index";
+import type { DslActor } from "../src/types";
 
 /** 最小の放射の記法。 登場人物だけを差し替える */
 const 記法 = (actors: string[], extra = ""): string =>
@@ -152,6 +153,51 @@ describe("矢印と重なる名前の扱い", () => {
     const m = 放射の箱(図(["Core", "Core", "Idea1"])).mindData!;
     expect(m.rootId).toBe("core");
     expect(m.branches.map((b) => b.title)).toEqual(["Idea1"]);
+  });
+});
+
+describe("描けない欄を表から導く (Round 4)", () => {
+  /** 記法を通さず、 組み立てた AST を直接渡す。 記法が受けない欄も確かめるため */
+  const 直接組む = (枝: Partial<DslActor>) => {
+    const 出た: CompileNotice[] = [];
+    const doc = {
+      title: "アイデア",
+      type: "mind" as const,
+      actors: [
+        { name: "Core", kind: "actor" as const, kindWritten: false, pos: { line: 1 } },
+        { name: "Idea1", kind: "actor" as const, kindWritten: false, pos: { line: 2 }, ...枝 },
+      ],
+      flow: [],
+    };
+    compileToCdl(doc as never, { onNotice: (n) => 出た.push(n) });
+    return 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+  };
+
+  it.each([
+    ["initial", { initial: true }, "始まり / 終わり の印"],
+    ["final", { final: true }, "始まり / 終わり の印"],
+    ["nodes", { nodes: { spacer: { posX: 1 } } }, "中の箱ごとの指定"],
+    ["layoutPos", { layoutPos: { dx: 1, dy: 2 } }, "配置のずらし"],
+    ["scale", { scale: 1.5 }, "倍率"],
+    ["scaleKeys", { scaleKeys: ["k"] }, "倍率"],
+    ["stateOverride", { stateOverride: { v: 1 } }, "状態の上書き"],
+  ])("%s を書くと伝える", (_名, 枝, 説明) => {
+    // 記法が受けない欄もある。 組み立てた AST を直接渡す入口 (`compileToCdl`) は公開されており、
+    // そこからは書けるため「届かない」 とは言えない
+    const 該当 = 直接組む(枝 as Partial<DslActor>);
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain(説明);
+  });
+
+  it("何も書かなければ伝えない", () => {
+    expect(直接組む({})).toEqual([]);
+  });
+
+  it("同じ名前を持つ欄は 1 度だけ出す", () => {
+    // `posX` と `posY` はどちらも「位置 (座標)」
+    const 該当 = 直接組む({ posX: 1, posY: 2 });
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message.match(/位置 \(座標\)/g)).toHaveLength(1);
   });
 });
 
