@@ -77,7 +77,9 @@ export type CompileNotice = {
     // 式を解けず、その値を止めた (輪 / 無い名前 / 読めない式 / 数として読めない値、 #1162)
     | "value-unresolved"
     // 同じ名前を `values` に 2 度書いた。 先に書いた式を使う (#1162)
-    | "value-duplicate";
+    | "value-duplicate"
+    // 矢印が `actors` に無い名前を指した (#1209)
+    | "flow-actor-missing";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -92,6 +94,13 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 両方の記法がここを通るので、 入口ごとに置かずここで 1 度だけ見る
   const oversize = describeOversize({ elements: countDocElements(doc), bytes: 0 });
   if (oversize) throw new Error(oversize);
+
+  // 矢印の指す先を `actors` に書いた名前へ揃える (#1209)。 **図種ごとの組み立てより前**。
+  //
+  // 動きを書いた図は slug に落として引き、 書いていない図は名前の完全一致で引く。 揃えないと
+  // 同じ本文が図種ごとに別の相手を指す = 知らせは出ないのに label が消える / 題が slug に
+  // 化ける / 依存が切れる (Round 1 で実測)。
+  doc = canonicalizeFlowActors(doc);
 
   let diagram: CdlDiagram;
   switch (doc.type) {
@@ -165,6 +174,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
   // 居ないかは記述だけで決まるので 1 か所で見る
   reportMissingFocusTargets(doc, opts?.onNotice);
+  // 矢印が指す名前が actors に居るかを確かめる。 図種ごとの解決より前に、 記述だけで決まる
+  reportMissingFlowActors(doc, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -297,6 +308,101 @@ function truncateForMessage(v: string): string {
  * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
  * たびに検査が取り残される。
  */
+/**
+ * 矢印の指す先を `actors` に書いた **正規の名前** へ解決する表 (#1209)。
+ *
+ * 名前そのものに加えて **一意な slug も受ける**。 動きを書いた図の組み立ては `slugify` に
+ * 落として引くため、 `API Gateway` を `api-gateway` と書いた形が届く。 2 つ以上の名前が
+ * 同じ slug になる時は受けない = どちらを指したか決められない。
+ *
+ * **返すのは正規の名前で、 slug ではない**。 slug を返すと、 動きを書いていない図の組み立て
+ * (名前の完全一致で引く) と食い違う = 知らせは出ないのに label が消える / 題が slug に化ける /
+ * 依存が切れる、 という形になる (Round 1 で実測)。 中央で名前へ揃えれば全経路が同じ相手を指す。
+ */
+function actorRefTable(doc: DslDocument): Map<string, string> {
+  const 表 = new Map<string, string>();
+  const slug数 = new Map<string, number>();
+  for (const a of doc.actors) {
+    const sl = slugify(a.name);
+    slug数.set(sl, (slug数.get(sl) ?? 0) + 1);
+  }
+  for (const a of doc.actors) {
+    表.set(a.name, a.name);
+    const sl = slugify(a.name);
+    if ((slug数.get(sl) ?? 0) === 1) 表.set(sl, a.name);
+  }
+  return 表;
+}
+
+/**
+ * 矢印の指す先を正規の名前へ揃えた `flow` を返す (#1209)。
+ *
+ * 解決できない矢印はそのまま残す = 図種ごとに扱いが違う (木は独自の知らせを出し、 値で描く図は
+ * 落とす)。 中央で消すとその扱いが効かなくなる。 残した分は `reportMissingFlowActors` が
+ * 知らせ、 動きを書いた図の組み立てが落とす。
+ */
+function canonicalizeFlowActors(doc: DslDocument): DslDocument {
+  const 表 = actorRefTable(doc);
+  let 変えた = false;
+  const flow = doc.flow.map((s) => {
+    const from = 表.get(s.from) ?? s.from;
+    const to = 表.get(s.to) ?? s.to;
+    if (from === s.from && to === s.to) return s;
+    変えた = true;
+    return { ...s, from, to };
+  });
+  return 変えた ? { ...doc, flow } : doc;
+}
+
+/**
+ * 矢印が `actors` に無い名前を指したことを知らせる (#1209)。
+ *
+ * 知らせずに通すと、 **どちらに転んでも書いた人の意図が消える**。 動きを書いていない図では
+ * 種類ごとの組み立てが actors を順に繋ぐため、 書いた矢印そのものが捨てられて label も
+ * 消える (実測 = "変換" が "→" になった)。 動きを書いた図では名前がそのまま下流へ渡り、
+ * 存在しない node を指す図ができて描画の直前で落ちる
+ * (実測 = `unknown-ref: edge "e0-v-c" の from "v" が node に存在しません`)。
+ *
+ * 落ちる場所も消える場所も本文から遠いので、 書いた行で知らせる。
+ */
+function reportMissingFlowActors(
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const 表 = actorRefTable(doc);
+  // hint は **1 度だけ作る**。 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限
+  // (各 1,000) まで書いた図で数百 MB になる (Round 1 の指摘)。 並べる数にも上限を置く
+  //
+  // **1 件ずつの長さも切る**。 件数だけを絞っても、 名前 1 つが 2 万字なら知らせも 2 万字に
+  // なる (Round 4 の実測)。 名前も矢印の指定も外から来る文字列なので、 表示に使う所は
+  // すべて `truncateForMessage` を通す (光らせる相手の知らせと同じ扱い)。
+  const 見せる数 = 8;
+  const 名前一覧 = doc.actors
+    .slice(0, 見せる数)
+    .map((a) => truncateForMessage(a.name))
+    .join(" / ");
+  const 残り = doc.actors.length - 見せる数;
+  const hint =
+    doc.actors.length > 0
+      ? `actors に書いた名前で指す (${名前一覧}${残り > 0 ? ` ほか ${残り} 件` : ""})`
+      : "actors に登場人物を書く";
+  const 知らせた = new Set<string>();
+  for (const s of doc.flow) {
+    for (const ref of [s.from, s.to]) {
+      if (表.has(ref) || 知らせた.has(ref)) continue;
+      知らせた.add(ref);
+      onNotice({
+        kind: "flow-actor-missing",
+        actor: ref,
+        line: s.pos.line,
+        message: `矢印が "${truncateForMessage(ref)}" を指していますが、 actors に書かれていません`,
+        hint,
+      });
+    }
+  }
+}
+
 function reportMissingFocusTargets(
   doc: DslDocument,
   onNotice?: (notice: CompileNotice) => void,
@@ -328,12 +434,20 @@ function reportMissingFocusTargets(
     steps.set(st.from, tos);
   }
 
+  // 矢印の両端は **流れと同じ表で名前へ揃えてから** 照合する (#1209 Round 2)。
+  //
+  // 流れは入口で名前へ揃えている (`canonicalizeFlowActors`) 一方、 光らせる指定は生のまま
+  // 来る。 揃えずに比べると、 slug で書いた矢印 (`api-gateway -> db`) が実際は光るのに
+  // 「見つかりません」 と誤報する (実測)
+  const 名前へ = actorRefTable(doc);
+  const 揃える = (ref: string): string => 名前へ.get(ref) ?? ref;
+
   for (const phase of doc.animate.phases) {
     for (const raw of phase.highlight ?? []) {
       const entry = parseFocusEntry(raw, names);
       const found =
         entry.kind === "edge"
-          ? (steps.get(entry.from)?.has(entry.to) ?? false)
+          ? (steps.get(揃える(entry.from))?.has(揃える(entry.to)) ?? false)
           : accepted.has(entry.name);
       if (found) continue;
       onNotice({
@@ -4025,8 +4139,11 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
   // step ごとに DSL flow item に対応、 actor 名 → lane id の slugify を活用。
   const stepEdgeIds: string[] = [];
   doc.flow.forEach((s, idx) => {
-    const fromLaneId = actorIds.get(s.from) ?? s.from;
-    const toLaneId = actorIds.get(s.to) ?? s.to;
+    // 解決できない名前の矢印は落とす (#1209)。 以前は名前をそのまま lane id として使い、
+    // 存在しない lane に箱を置いた図ができていた
+    const fromLaneId = actorIds.get(s.from);
+    const toLaneId = actorIds.get(s.to);
+    if (fromLaneId === undefined || toLaneId === undefined) return;
     const stack = idx + 2;
     const fromBoxId = `s${idx}-${fromLaneId}`;
     const toBoxId = `s${idx}-${toLaneId}`;
@@ -4412,10 +4529,18 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   }
 
   // edge ... flow の各 step を edge として登録
+  //
+  // 解決できない名前の矢印は **落とす** (#1209)。 以前は名前をそのまま id として使っており、
+  // 存在しない node を指す図ができて描画の直前で落ちていた
+  // (実測 = `unknown-ref: edge "e0-v-c" の from "v" が node に存在しません`)。
+  // 書いた人には `flow-actor-missing` の知らせが届く。
   const edgeIds: string[] = [];
   doc.flow.forEach((s, idx) => {
-    const fromId = actorToNodeId.get(s.from) ?? slugify(s.from);
-    const toId = actorToNodeId.get(s.to) ?? slugify(s.to);
+    // 名前は入口で正規化済 (`canonicalizeFlowActors`)。 ここで slug を受け直すと、
+    // 動きを書いていない図の組み立てと扱いが割れる
+    const fromId = actorToNodeId.get(s.from);
+    const toId = actorToNodeId.get(s.to);
+    if (fromId === undefined || toId === undefined) return;
     const edgeId = `e${idx}-${fromId}-${toId}`;
     // ER preset では cardinality を label に "(1:N)" 形式で併記、 他 preset は label そのまま。
     const labelWithCard =
