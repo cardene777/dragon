@@ -332,6 +332,13 @@ function 素のデータに写す(
     const 名前の並び = 並びか
       ? Array.from({ length: (v as unknown[]).length }, (_, i) => String(i))
       : Object.keys(v as Record<string, unknown>);
+    // **名前も数に入れる** (Round 5 の指摘)。 値を読む前に名前の一覧を作るため、 値だけを
+    // 数えると「名前が 20,000 個ある段を 63 回降りる」 形で 126 万個を並べられる = 上限を
+    // 見る前に資源を使い切れる
+    項目数 += 名前の並び.length;
+    if (項目数 > 写しの最大の項目数) {
+      throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
+    }
     return { 値: 器, 枠: { 元: v, 器, 名前の並び, 次: 0, 深さ, path } };
   };
 

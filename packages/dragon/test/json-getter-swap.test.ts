@@ -281,6 +281,33 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(Object.keys(写した状態).length).toBe(100_001);
   }, 30_000);
 
+  it("名前だけを大量に並べる形も数の上限で止める (Round 5)", () => {
+    // 値を読む前に名前の一覧を作るため、 値だけを数えると「名前が多い段を深く降りる」 形で
+    // 上限を見る前に資源を使い切れる (Round 5 の実測 = 値を 63 回しか読まない間に 126 万個)
+    let 並べた数 = 0;
+    const 名前が多い = (深さ: number): unknown => {
+      const 名前 = Array.from({ length: 20_000 }, (_, i) => `k${i}`);
+      return new Proxy(
+        {},
+        {
+          ownKeys: () => {
+            並べた数 += 名前.length;
+            return 名前;
+          },
+          getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+          get: () => (深さ > 0 ? 名前が多い(深さ - 1) : 1),
+        },
+      );
+    };
+
+    const r = validateDragonJson(図の素({ 使わない項目: 名前が多い(60) }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toContain("項目が多すぎる");
+    // 上限を大きく超えて並べていないこと (名前を数えていないと 126 万で止まらない)
+    expect(並べた数, `${並べた数} 個並べた`).toBeLessThanOrEqual(5_020_000);
+  }, 60_000);
+
   it("読まれるたびに枝を生やす Proxy を、 数の上限で止める (Round 4)", () => {
     // Proxy は読まれるたびに新しい object を返せるため、 小さな入力から枝を生やせる。
     // 深さの上限だけでは横の広がりを止められない (実測 = 深さ 6 / 6 分岐で 55,987 個)
