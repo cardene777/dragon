@@ -23,6 +23,7 @@ import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, DslState, PresetType, LayoutMode, LayoutPos } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
+import { MAX_INPUT_ELEMENTS } from "./input-size";
 import { compileToCdl } from "./compile";
 
 /**
@@ -222,8 +223,14 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
 /** 写しを作る時の入れ子の深さの上限 */
 const 写しの最大の深さ = 64;
 
-/** 写しを作る時に触る値の数の上限 */
-const 写しの最大の項目数 = 100_000;
+/**
+ * 写しを作る時に触る値の数の上限。
+ *
+ * 図そのものの要素数の上限 (`MAX_INPUT_ELEMENTS` = 2000) の 50 倍を取る。 写しは検査が見ない
+ * 項目まで降りるため図の要素数とは一致しないが、 **正当な図がこの数に届くことはない**
+ * (要素 1 つあたり 50 個の値を持つ形でようやく届く)。
+ */
+const 写しの最大の項目数 = MAX_INPUT_ELEMENTS * 50;
 
 /** 写しを作れなかった理由 (path 付き) */
 class 写せない extends Error {
@@ -270,6 +277,9 @@ function 素のデータに写す(
 ): { ok: true; value: unknown } | { ok: false; error: JsonDslError } {
   const 写し済 = new WeakMap<object, unknown[] | Record<string, unknown>>();
   let 項目数 = 0;
+  // 例外を拾った時に「どこを読んでいたか」 を言うために持つ。 投げるのは値を読む所と名前を
+  // 数える所の両方で、 どちらも path を持たないまま外へ出ると `$` としか言えない
+  let 読んでいる場所 = "$";
 
   /** 後で中身を埋める入れ物 */
   type 仕事 = { 元: object; 器: unknown[] | Record<string, unknown>; 深さ: number; path: string };
@@ -277,6 +287,7 @@ function 素のデータに写す(
 
   /** 入れ物だけ作って中身は待ち行列に回す (ここでは降りない) */
   const 器を作る = (v: unknown, 深さ: number, path: string): unknown => {
+    読んでいる場所 = path;
     項目数 += 1;
     if (項目数 > 写しの最大の項目数) {
       throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
@@ -297,23 +308,32 @@ function 素のデータに写す(
 
   try {
     const 出 = 器を作る(root, 0, "$");
-    while (待ち.length > 0) {
-      const { 元, 器, 深さ, path } = 待ち.pop()!;
+    // **先に積んだものから処理する**。 `pop` で取ると兄弟の順が逆になり、 値を返す関数が
+    // 副作用を持つ入力で写しの中身が元の実装と変わる (Round 2 の指摘)
+    let 読む位置 = 0;
+    while (読む位置 < 待ち.length) {
+      const { 元, 器, 深さ, path } = 待ち[読む位置]!;
+      読む位置 += 1;
       if (Array.isArray(元)) {
+        読んでいる場所 = path;
         // 長さも 1 度だけ読む (getter で毎回変わる形を避ける)
         const 長さ = 元.length;
         const 並び = 器 as unknown[];
         for (let i = 0; i < 長さ; i += 1) {
+          // 添字の読み取りそのものが投げうるので、 読む前に場所を控える
+          読んでいる場所 = `${path}[${i}]`;
           並び.push(器を作る(元[i], 深さ + 1, `${path}[${i}]`));
         }
         continue;
       }
       // 名前を先に取り、 値は 1 つずつ読む。 `Object.entries` は値を全部先に読むため、
       // どの項目の読み取りで投げたのかが分からなくなる
+      読んでいる場所 = path;
       const 名前の並び = Object.keys(元 as Record<string, unknown>);
       const 表 = 器 as Record<string, unknown>;
       for (const key of 名前の並び) {
         const 子のpath = `${path}.${key}`;
+        読んでいる場所 = 子のpath;
         Object.defineProperty(表, key, {
           value: 器を作る((元 as Record<string, unknown>)[key], 深さ + 1, 子のpath),
           enumerable: true,
@@ -331,7 +351,7 @@ function 素のデータに写す(
     return {
       ok: false,
       error: {
-        path: "$",
+        path: 読んでいる場所,
         message: "入力を読み取れない",
         hint: e instanceof Error ? e.message : String(e),
       },
@@ -341,13 +361,16 @@ function 素のデータに写す(
 
 function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
   const errors: JsonDslError[] = [];
-  if (!json || typeof json !== "object" || Array.isArray(json)) {
-    return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
-  }
-  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
+  // **写しを先に作る**。 root の形を先に見ると、 `Array.isArray` が失効した Proxy で
+  // `TypeError` を投げて外へ出る (Round 2 の指摘)。 写しの中でなら誤りとして受けられる
   const 写し = 素のデータに写す(json);
   if (!写し.ok) return { ok: false, errors: [写し.error] };
-  const j = 写し.value as Record<string, unknown>;
+  const 写した値 = 写し.value;
+  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
+  if (!写した値 || typeof 写した値 !== "object" || Array.isArray(写した値)) {
+    return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
+  }
+  const j = 写した値 as Record<string, unknown>;
 
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });

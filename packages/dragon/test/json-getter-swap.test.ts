@@ -274,3 +274,81 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
   });
 });
 
+describe("読み取りの誤りの出し方 (Round 2)", () => {
+  it("失効した Proxy を渡しても throw しない (r1-f1)", () => {
+    // `Array.isArray` は失効した Proxy で `TypeError` を投げる。 root の形を写しより先に
+    // 見ていると、 その判定が外へ出て約束が破れる
+    const { proxy, revoke } = Proxy.revocable(図の素({ states: { amount: 0 } }), {});
+    revoke();
+    const r = validateDragonJson(proxy);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toBe("入力を読み取れない");
+  });
+
+  it("投げた場所を path で示す (r1-f1)", () => {
+    // `$` としか言えないと、 大きな図でどの項目が原因か追えない
+    const 素 = 図の素({ states: { amount: 0 } }) as Record<string, unknown>;
+    const 入れ子: Record<string, unknown> = {};
+    Object.defineProperty(入れ子, "壊れた項目", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        throw new Error("boom");
+      },
+    });
+    素.使わない項目 = 入れ子;
+
+    const r = validateDragonJson(素);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.path).toBe("$.使わない項目.壊れた項目");
+  });
+
+  it("配列の中で投げた場所も path で示す (r1-f1)", () => {
+    const 並び: unknown[] = [{ ok: 1 }];
+    Object.defineProperty(並び, "1", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        throw new Error("boom");
+      },
+    });
+    const r = validateDragonJson(図の素({ 使わない項目: 並び }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.path).toBe("$.使わない項目[1]");
+  });
+
+  it("兄弟の項目を書いた順に読む (r1-f2 の fix が順を変えていない)", () => {
+    // `pop` で取り出すと兄弟の順が逆になり、 値を返す関数が副作用を持つ入力で写しの中身が
+    // 変わる。 読んだ順を記録して確かめる
+    const 読んだ順: string[] = [];
+    const 見る = (名: string): Record<string, unknown> => {
+      const o: Record<string, unknown> = {};
+      Object.defineProperty(o, "印", {
+        enumerable: true,
+        configurable: true,
+        get() {
+          読んだ順.push(名);
+          return 名;
+        },
+      });
+      return o;
+    };
+    const r = validateDragonJson(図の素({ 使わない項目: { 甲: 見る("甲"), 乙: 見る("乙"), 丙: 見る("丙") } }));
+    expect(r.ok).toBe(true);
+    expect(読んだ順).toEqual(["甲", "乙", "丙"]);
+  });
+
+  it("同じ object を 2 か所から指しても 1 つの写しを共有する", () => {
+    const 共有 = { 値: 1 };
+    const r = validateDragonJson(図の素({ 使わない項目: { 甲: 共有, 乙: 共有 } }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const 写し = (r.data as unknown as Record<string, Record<string, unknown>>).使わない項目;
+    expect(写し.甲).toBe(写し.乙);
+    expect(写し.甲).not.toBe(共有);
+  });
+});
+
