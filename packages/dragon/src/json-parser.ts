@@ -23,7 +23,6 @@ import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, DslState, PresetType, LayoutMode, LayoutPos } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
-import { MAX_INPUT_ELEMENTS } from "./input-size";
 import { compileToCdl } from "./compile";
 
 /**
@@ -220,17 +219,18 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
 }
 
-/** 写しを作る時の入れ子の深さの上限 */
-const 写しの最大の深さ = 64;
-
 /**
- * 写しを作る時に触る値の数の上限。
+ * 写しを作る時の入れ子の深さの上限。
  *
- * 図そのものの要素数の上限 (`MAX_INPUT_ELEMENTS` = 2000) の 50 倍を取る。 写しは検査が見ない
- * 項目まで降りるため図の要素数とは一致しないが、 **正当な図がこの数に届くことはない**
- * (要素 1 つあたり 50 個の値を持つ形でようやく届く)。
+ * 深さだけを見るのは、 待ち行列 (`枠`) の長さが入れ子の深さで決まるため。 図の入れ子は深くても
+ * 数段で、 64 に届く形は書けない。
+ *
+ * **触る値の数には上限を置かない** (Round 3 の指摘)。 数の上限は図の書式が持っていない規則で、
+ * 置くと「構造としては正しいのに大きいから拒む」 入力が生まれる (実測 = 1 つの `actors` に
+ * 100,001 個の値を持たせた形が拒まれた)。 写しの大きさは元の入力の大きさで決まり、 元は呼ぶ側が
+ * 既に持っているため、 数を数えても守れるものが無い。
  */
-const 写しの最大の項目数 = MAX_INPUT_ELEMENTS * 50;
+const 写しの最大の深さ = 64;
 
 /** 写しを作れなかった理由 (path 付き) */
 class 写せない extends Error {
@@ -259,11 +259,15 @@ class 写せない extends Error {
  *
  * **再帰では書かない** (Round 1 の指摘)。 検査が見ない項目も含めて写すため、 深い入れ子を渡すと
  * 呼び出しの積み上げが溢れる (実測 = 使わない項目に 20,000 段の入れ子を付けると
- * `RangeError: Maximum call stack size exceeded`)。 待ち行列で回し、 深さと項目数に上限を置く。
+ * `RangeError: Maximum call stack size exceeded`)。 枠を自前で積んで回す。
  *
- * **読み取りの例外も外に出さない** (同)。 項目の名前を数える所も値を読む所も、 getter や Proxy が
- * 投げれば `validateDragonJson` 自体が throw して約束が破れる。 投げた場所を path として拾い、
- * 検査の誤りに変える。
+ * **読む順は書いた順のまま、 深さ優先で降りる** (Round 2 / 3 の指摘)。 値を返す関数が副作用を
+ * 持つ入力では読む順が結果に出るため、 再帰で書いた時と同じ順を保つ。 幅優先で回すと、 先に
+ * 書いた兄弟の深い所より後の兄弟の浅い所を先に読む。
+ *
+ * **読み取りの例外も外に出さない** (Round 1 の指摘)。 項目の名前を数える所も値を読む所も、
+ * getter や Proxy が投げれば `validateDragonJson` 自体が throw して約束が破れる。 投げた場所を
+ * path として拾い、 検査の誤りに変える。
  *
  * 書き込みは `Object.defineProperty` で行う = `__proto__` を項目名に持つ入力で代入が
  * prototype の setter に落ちるのを避ける (`JSON.parse` と同じく普通の項目として持つ)。
@@ -276,73 +280,77 @@ function 素のデータに写す(
   root: unknown,
 ): { ok: true; value: unknown } | { ok: false; error: JsonDslError } {
   const 写し済 = new WeakMap<object, unknown[] | Record<string, unknown>>();
-  let 項目数 = 0;
   // 例外を拾った時に「どこを読んでいたか」 を言うために持つ。 投げるのは値を読む所と名前を
   // 数える所の両方で、 どちらも path を持たないまま外へ出ると `$` としか言えない
   let 読んでいる場所 = "$";
 
-  /** 後で中身を埋める入れ物 */
-  type 仕事 = { 元: object; 器: unknown[] | Record<string, unknown>; 深さ: number; path: string };
-  const 待ち: 仕事[] = [];
+  /** まだ中身を埋めていない入れ物と、 その進み具合 */
+  type 枠 = {
+    元: object;
+    器: unknown[] | Record<string, unknown>;
+    名前の並び: string[];
+    次: number;
+    深さ: number;
+    path: string;
+  };
 
-  /** 入れ物だけ作って中身は待ち行列に回す (ここでは降りない) */
-  const 器を作る = (v: unknown, 深さ: number, path: string): unknown => {
-    読んでいる場所 = path;
-    項目数 += 1;
-    if (項目数 > 写しの最大の項目数) {
-      throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
-    }
-    if (v === null || typeof v !== "object") return v;
+  /** 入れ物だけ作る (ここでは降りない)。 新しく作った時だけ枠を返す */
+  const 器を作る = (
+    v: unknown,
+    深さ: number,
+    path: string,
+  ): { 値: unknown; 枠: 枠 | null } => {
+    if (v === null || typeof v !== "object") return { 値: v, 枠: null };
 
     const 既にある = 写し済.get(v);
-    if (既にある !== undefined) return 既にある;
+    if (既にある !== undefined) return { 値: 既にある, 枠: null };
 
     if (深さ >= 写しの最大の深さ) {
       throw new 写せない(path, `入れ子が深すぎる (上限 ${写しの最大の深さ})`);
     }
-    const 器: unknown[] | Record<string, unknown> = Array.isArray(v) ? [] : {};
+    読んでいる場所 = path;
+    const 並びか = Array.isArray(v);
+    const 器: unknown[] | Record<string, unknown> = 並びか ? [] : {};
     写し済.set(v, 器);
-    待ち.push({ 元: v, 器, 深さ, path });
-    return 器;
+    // 名前はここで 1 度だけ数える。 値は降りながら 1 つずつ読む
+    const 名前の並び = 並びか
+      ? Array.from({ length: (v as unknown[]).length }, (_, i) => String(i))
+      : Object.keys(v as Record<string, unknown>);
+    return { 値: 器, 枠: { 元: v, 器, 名前の並び, 次: 0, 深さ, path } };
   };
 
   try {
-    const 出 = 器を作る(root, 0, "$");
-    // **先に積んだものから処理する**。 `pop` で取ると兄弟の順が逆になり、 値を返す関数が
-    // 副作用を持つ入力で写しの中身が元の実装と変わる (Round 2 の指摘)
-    let 読む位置 = 0;
-    while (読む位置 < 待ち.length) {
-      const { 元, 器, 深さ, path } = 待ち[読む位置]!;
-      読む位置 += 1;
-      if (Array.isArray(元)) {
-        読んでいる場所 = path;
-        // 長さも 1 度だけ読む (getter で毎回変わる形を避ける)
-        const 長さ = 元.length;
-        const 並び = 器 as unknown[];
-        for (let i = 0; i < 長さ; i += 1) {
-          // 添字の読み取りそのものが投げうるので、 読む前に場所を控える
-          読んでいる場所 = `${path}[${i}]`;
-          並び.push(器を作る(元[i], 深さ + 1, `${path}[${i}]`));
-        }
+    const 先頭 = 器を作る(root, 0, "$");
+    const 積み: 枠[] = 先頭.枠 ? [先頭.枠] : [];
+
+    while (積み.length > 0) {
+      const 今 = 積み[積み.length - 1]!;
+      if (今.次 >= 今.名前の並び.length) {
+        積み.pop();
         continue;
       }
-      // 名前を先に取り、 値は 1 つずつ読む。 `Object.entries` は値を全部先に読むため、
-      // どの項目の読み取りで投げたのかが分からなくなる
-      読んでいる場所 = path;
-      const 名前の並び = Object.keys(元 as Record<string, unknown>);
-      const 表 = 器 as Record<string, unknown>;
-      for (const key of 名前の並び) {
-        const 子のpath = `${path}.${key}`;
-        読んでいる場所 = 子のpath;
-        Object.defineProperty(表, key, {
-          value: 器を作る((元 as Record<string, unknown>)[key], 深さ + 1, 子のpath),
+      const key = 今.名前の並び[今.次]!;
+      今.次 += 1;
+      const 子のpath = Array.isArray(今.元) ? `${今.path}[${key}]` : `${今.path}.${key}`;
+
+      // 読む直前に場所を控える = 値の読み取りそのものが投げるため、 読んだ後では遅い
+      読んでいる場所 = 子のpath;
+      const 生の値 = (今.元 as Record<string, unknown>)[key];
+
+      const 子 = 器を作る(生の値, 今.深さ + 1, 子のpath);
+      if (Array.isArray(今.器)) 今.器.push(子.値);
+      else {
+        Object.defineProperty(今.器, key, {
+          value: 子.値,
           enumerable: true,
           writable: true,
           configurable: true,
         });
       }
+      // 深さ優先で降りる = 次の兄弟を読む前に、 この子の中身を全部読む
+      if (子.枠) 積み.push(子.枠);
     }
-    return { ok: true, value: 出 };
+    return { ok: true, value: 先頭.値 };
   } catch (e) {
     if (e instanceof 写せない) {
       return { ok: false, error: { path: e.path, message: e.理由 } };
@@ -361,16 +369,35 @@ function 素のデータに写す(
 
 function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
   const errors: JsonDslError[] = [];
-  // **写しを先に作る**。 root の形を先に見ると、 `Array.isArray` が失効した Proxy で
-  // `TypeError` を投げて外へ出る (Round 2 の指摘)。 写しの中でなら誤りとして受けられる
-  const 写し = 素のデータに写す(json);
-  if (!写し.ok) return { ok: false, errors: [写し.error] };
-  const 写した値 = 写し.value;
-  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
-  if (!写した値 || typeof 写した値 !== "object" || Array.isArray(写した値)) {
+  // root の形は写しより先に見る = 形が違う入力には従来どおり `root must be a JSON object` を
+  // 返すため。 写した後に見ると、 root が配列の入力で中の getter が先に動き、 別の誤りに化ける
+  // (Round 3 の指摘)。
+  //
+  // ただし `Array.isArray` は失効した Proxy で `TypeError` を投げる (Round 2 の指摘)。 判定
+  // そのものを受けて、 投げた形は「読み取れない」 として返す。
+  let rootがobjectか: boolean;
+  try {
+    rootがobjectか = !!json && typeof json === "object" && !Array.isArray(json);
+  } catch (e) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: "$",
+          message: "入力を読み取れない",
+          hint: e instanceof Error ? e.message : String(e),
+        },
+      ],
+    };
+  }
+  if (!rootがobjectか) {
     return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
   }
-  const j = 写した値 as Record<string, unknown>;
+
+  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
+  const 写し = 素のデータに写す(json);
+  if (!写し.ok) return { ok: false, errors: [写し.error] };
+  const j = 写し.value as Record<string, unknown>;
 
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });

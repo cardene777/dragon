@@ -252,14 +252,23 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(r.errors[0]?.path.startsWith("$.使わない項目")).toBe(true);
   });
 
-  it("項目が多すぎる入力を誤りとして返す (r1-f2)", () => {
+  it("項目が多い入力でも数を理由に拒まない (Round 3)", () => {
+    // 数の上限は図の書式が持っていない規則で、 置くと「構造としては正しいのに大きいから拒む」
+    // 入力が生まれる (Round 3 の指摘 = 1 つの actors に 100,001 個の値を持たせた形が拒まれた)
     const 多い: Record<string, unknown> = {};
     for (let i = 0; i < 200_000; i += 1) 多い[`k${i}`] = i;
     const r = validateDragonJson(図の素({ 使わない項目: 多い }));
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.errors[0]?.message).toContain("項目が多すぎる");
-  });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const 写し = (r.data as unknown as Record<string, Record<string, unknown>>).使わない項目;
+    expect(Object.keys(写し).length).toBe(200_000);
+  }, 30_000);
+
+  it("正規の項目に大きな値を持たせても通る (Round 3)", () => {
+    const 状態: Record<string, unknown> = {};
+    for (let i = 0; i < 100_001; i += 1) 状態[`s${i}`] = i;
+    expect(validateDragonJson(図の素({ 使わない項目: 状態 })).ok).toBe(true);
+  }, 30_000);
 
   it("普通の大きさの入れ子は通る", () => {
     // 上限を厳しくしすぎて正当な図を弾いていないことを見る
@@ -349,6 +358,62 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
     const 写し = (r.data as unknown as Record<string, Record<string, unknown>>).使わない項目;
     expect(写し.甲).toBe(写し.乙);
     expect(写し.甲).not.toBe(共有);
+  });
+});
+
+describe("読む順は書いた順で深さ優先 (Round 3)", () => {
+  /** 読まれた時に名前を記録する項目を持つ object を作る */
+  const 見る = (読んだ順: string[], 名: string, 中身: Record<string, unknown> = {}): Record<string, unknown> => {
+    const o: Record<string, unknown> = { ...中身 };
+    Object.defineProperty(o, "印", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        読んだ順.push(名);
+        return 名;
+      },
+    });
+    return o;
+  };
+
+  it("深さの違う兄弟でも、 先の兄弟の中を全部読んでから次の兄弟へ行く", () => {
+    // 幅優先で回すと、 先に書いた兄弟の深い所より後の兄弟の浅い所を先に読む
+    const 読んだ順: string[] = [];
+    const 甲 = 見る(読んだ順, "甲", { 中: 見る(読んだ順, "甲の中") });
+    const 乙 = 見る(読んだ順, "乙");
+    const r = validateDragonJson(図の素({ 使わない項目: { 甲, 乙 } }));
+    expect(r.ok).toBe(true);
+    expect(読んだ順).toEqual(["甲の中", "甲", "乙"]);
+  });
+
+  it("3 段の入れ子でも書いた順のまま降りる", () => {
+    const 読んだ順: string[] = [];
+    const 素 = {
+      甲: 見る(読んだ順, "甲", { 中: 見る(読んだ順, "甲の中", { 奥: 見る(読んだ順, "甲の奥") }) }),
+      乙: 見る(読んだ順, "乙", { 中: 見る(読んだ順, "乙の中") }),
+    };
+    const r = validateDragonJson(図の素({ 使わない項目: 素 }));
+    expect(r.ok).toBe(true);
+    expect(読んだ順).toEqual(["甲の奥", "甲の中", "甲", "乙の中", "乙"]);
+  });
+
+  it("root が配列の入力は、 中を読まずに root の形の誤りとして返す", () => {
+    // 写しを先に作ると配列の中の getter が動き、 誤りが `入力を読み取れない` に化ける
+    let 読んだ = false;
+    const 並び: unknown[] = [];
+    Object.defineProperty(並び, "0", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        読んだ = true;
+        throw new Error("読んではいけない");
+      },
+    });
+    const r = validateDragonJson(並び);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toBe("root must be a JSON object");
+    expect(読んだ, "root の形を見る前に中を読んでいる").toBe(false);
   });
 });
 
