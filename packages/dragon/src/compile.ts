@@ -109,6 +109,11 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 描画の直前で落ちる (実測 = 8 図種)
   doc = dropUnresolvedFlow(doc);
 
+  // 名前から作る id が重なる分を解く (#1220)。 **矢印を落とした後**に見る = 落とした矢印の
+  // 端にしか出てこない名前で id を分けても、 その箱は作られない
+  const 分けた = disambiguateActorIds(doc, opts?.onNotice);
+  doc = 分けた.doc;
+
   let diagram: CdlDiagram;
   switch (doc.type) {
     case "sequence":
@@ -180,7 +185,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
   // 居ないかは記述だけで決まるので 1 か所で見る
-  reportMissingFocusTargets(doc, opts?.onNotice);
+  reportMissingFocusTargets(書いたまま, opts?.onNotice);
   // 矢印が指す名前が actors に居るかを確かめる。 図種ごとの解決より前に、 記述だけで決まる
   reportMissingFlowActors(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
@@ -240,6 +245,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
     });
   }
+  // 作り替えた名前を表示だけ戻す (#1220)。 **図への追加を全て終えた後**に戻す = 途中で戻すと、
+  // 後続の処理が名前で引く時に作り替え前と後が混ざる
+  restoreActorNames(merged, 分けた.元の名前);
   return merged;
 }
 
@@ -362,44 +370,49 @@ function canonicalizeFlowActors(doc: DslDocument): DslDocument {
 }
 
 /**
- * 図種ごとの、 解決できない矢印 (`actors` に無い名前を指した矢印) の扱い (#1219)。
+ * 図種ごとの図の作り (#1219 / #1220)。
+ *
+ * 2 つの判断がここから決まる。 解決できない矢印を中央で落とすか (#1219) と、 名前が同じ id に
+ * 潰れる登場人物を作り替えるか (#1220)。 どちらも **登場人物の名前が箱や枠の id になる図種**
+ * でだけ要る。
  *
  * `#1209` は動きを書いた 2 経路だけを塞いだ。 残る経路では **知らせは出るのに図まで壊れる**
  * 状態だった (実測 = 8 図種が `compile` の `unknown-ref` で落ちる)。
  *
- * | 扱い | 中身 | どの図種 |
+ * | 作り | 解決できない矢印 | 同じ id に潰れる名前 |
  * |---|---|---|
- * | 中央で落とす | 組み立てに渡す前に矢印を外す | 登場人物ごとに箱を作る 9 図種 |
- * | 図種に任せる | そのまま渡す | 図全体を 1 箱で描く 9 図種 |
+ * | 登場人物ごとに箱 | 中央で落とす | 名前を作り替えて id を分ける |
+ * | 図全体を 1 箱 | 図種に任せる | 触らない |
  *
  * **1 箱で描く図種を中央で落とさない**。 これらは矢印そのものを描かず、 書かれた本数を数えて
  * 独自の知らせを出す (`chart-edge-dropped` / 木の親子の知らせ)。 中央で外すと本数が変わり、
- * 全部が解決できない図では知らせごと消える。
+ * 全部が解決できない図では知らせごと消える。 同じ id に潰れる名前も、 中身を payload が
+ * 持つため箱の id にならず、 木と放射は独自の知らせを出す。
  *
  * `Record<PresetType, ...>` にしてあるので、 図種を足した時にどちらかを決めないと型検査が
  * 落ちる (`rules/quality.md § 多層 SSOT 経路の全 registration 保証` と同じ形)。
  */
-const 解決できない矢印の扱い: Record<PresetType, "中央で落とす" | "図種に任せる"> = {
-  // 登場人物ごとに箱を作る = 矢印の端が箱の id になるため、 解決できないと壊れた図になる
-  sequence: "中央で落とす",
-  flow: "中央で落とす",
-  swimlane: "中央で落とす",
-  er: "中央で落とす",
-  state: "中央で落とす",
-  topology: "中央で落とす",
-  solidity: "中央で落とす",
-  class: "中央で落とす",
-  c4: "中央で落とす",
-  // 図全体を 1 箱で描く = 矢印を描かず、 本数を数えて独自の知らせを出す
-  gantt: "図種に任せる",
-  pie: "図種に任せる",
-  bar: "図種に任せる",
-  line: "図種に任せる",
-  funnel: "図種に任せる",
-  tree: "図種に任せる",
-  journey: "図種に任せる",
-  quadrant: "図種に任せる",
-  mind: "図種に任せる",
+const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "図全体を 1 箱"> = {
+  // 矢印の端と登場人物の名前が、 そのまま箱や枠の id になる
+  sequence: "登場人物ごとに箱",
+  flow: "登場人物ごとに箱",
+  swimlane: "登場人物ごとに箱",
+  er: "登場人物ごとに箱",
+  state: "登場人物ごとに箱",
+  topology: "登場人物ごとに箱",
+  solidity: "登場人物ごとに箱",
+  class: "登場人物ごとに箱",
+  c4: "登場人物ごとに箱",
+  // 中身は payload が持ち、 図そのものは 1 箱。 矢印は描かず本数を数えて知らせる
+  gantt: "図全体を 1 箱",
+  pie: "図全体を 1 箱",
+  bar: "図全体を 1 箱",
+  line: "図全体を 1 箱",
+  funnel: "図全体を 1 箱",
+  tree: "図全体を 1 箱",
+  journey: "図全体を 1 箱",
+  quadrant: "図全体を 1 箱",
+  mind: "図全体を 1 箱",
 };
 
 /**
@@ -409,10 +422,143 @@ const 解決できない矢印の扱い: Record<PresetType, "中央で落とす"
  * 見るので、 落とした矢印も書いた人に届く。
  */
 function dropUnresolvedFlow(doc: DslDocument): DslDocument {
-  if (解決できない矢印の扱い[doc.type] === "図種に任せる") return doc;
+  if (図種の作り[doc.type] === "図全体を 1 箱") return doc;
   const 表 = actorRefTable(doc);
   const flow = doc.flow.filter((s) => 表.has(s.from) && 表.has(s.to));
   return flow.length === doc.flow.length ? doc : { ...doc, flow };
+}
+
+/**
+ * 名前から作る id の重なりを解く (#1220)。
+ *
+ * 箱と枠の id は登場人物の名前から作る (`slugify`)。 **違う名前が同じ id に潰れる** と、
+ * どちらも正しく書いているのに図が組み立たない (実測 = `foo-bar` と `Foo Bar` を書くと
+ * 9 図種が `duplicate-id` で落ちる)。 知らせも出ない = どちらの名前も `actors` に在るため。
+ *
+ * ## なぜ名前を作り替えるのか
+ *
+ * id を作る所は 90 箇所を超え、 さらに **cdl 側の組み立てが名前から id を作る経路** がある
+ * (`swimlane()` / `er()` は渡した名札から lane id を作る)。 dragon 側だけを直しても届かない。
+ *
+ * そこで **渡す名前を変え、 最後に表示だけ戻す**。 作り替えた名前は組み立ての間だけ使い、
+ * 出口で `nodes[].title` と `lanes[].label` を元に戻す (`restoreActorNames`)。
+ *
+ * ## 尾は名前から作る
+ *
+ * 書き順で決めると、 登場人物を並べ替えただけで id が入れ替わる。 元の名前だけから決まる
+ * 短い値を尾に付ければ、 並べ替えても同じ id になる。
+ *
+ * ## まったく同じ名前は畳む
+ *
+ * 名前が 1 文字も違わない登場人物は区別できない。 2 つの箱に同じ題が付くだけなので、
+ * 先に書いた方を残して知らせる。
+ */
+function 名前の尾(name: string): string {
+  // FNV-1a。 短くて名前だけから決まればよく、 衝突しても id が重なるだけで壊れない
+  let h = 0x811c9dc5;
+  for (const c of name) {
+    h ^= c.codePointAt(0) ?? 0;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0").slice(0, 6);
+}
+
+function disambiguateActorIds(
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): { doc: DslDocument; 元の名前: Map<string, string> } {
+  const 元の名前 = new Map<string, string>();
+  if (図種の作り[doc.type] !== "登場人物ごとに箱") return { doc, 元の名前 };
+
+  // 1. まったく同じ名前を畳む
+  const 見た = new Set<string>();
+  const 残す: DslActor[] = [];
+  for (const a of doc.actors) {
+    if (見た.has(a.name)) {
+      onNotice?.({
+        kind: "chart-value-unreadable",
+        actor: a.name,
+        line: a.pos?.line ?? 0,
+        message: `"${truncateForMessage(a.name)}" を 2 度書いています (先に書いた方だけ描きます)`,
+        hint: "違う名前にするか、 1 つにまとめる",
+      });
+      continue;
+    }
+    見た.add(a.name);
+    残す.push(a);
+  }
+
+  // 2. 違う名前で id が重なる分に、 名前から決まる尾を付ける
+  //
+  // **見本 (`parts`) を重ねた登場人物は数えない**。 見本の中身は `別名__元の id` の形で
+  // 名前空間を持つため、 素の名前と id が重ならない (実測 = `A` と見本 `a` は `a` と
+  // `a__badge` になり、 衝突していない)。 数えると別名が変わり、 見本の id が総入れ替えになる
+  const slug別 = new Map<string, string[]>();
+  for (const a of 残す) {
+    if (a.partId !== undefined) continue;
+    const k = slugify(a.name);
+    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
+  }
+  const 新しい名前 = new Map<string, string>();
+  const 使う名前 = new Set(残す.map((a) => a.name));
+  for (const [, 群] of slug別) {
+    if (群.length <= 1) continue;
+    for (const 名 of 群) {
+      // 既に居る名前とぶつからないところまで尾を伸ばす (ぶつかる形は現実には起きないが、
+      // ぶつかったまま進むと別の登場人物を書き換えることになる)
+      let 候補 = `${名} ${名前の尾(名)}`;
+      let n = 0;
+      while (使う名前.has(候補)) 候補 = `${名} ${名前の尾(名)}${(n += 1)}`;
+      使う名前.add(候補);
+      新しい名前.set(名, 候補);
+      元の名前.set(候補, 名);
+    }
+  }
+
+  if (新しい名前.size === 0 && 残す.length === doc.actors.length) return { doc, 元の名前 };
+
+  const 直す = (名: string): string => 新しい名前.get(名) ?? 名;
+  const 次: DslDocument = {
+    ...doc,
+    actors: 残す.map((a) => (新しい名前.has(a.name) ? { ...a, name: 直す(a.name) } : a)),
+    flow: doc.flow.map((s) => {
+      const from = 直す(s.from);
+      const to = 直す(s.to);
+      return from === s.from && to === s.to ? s : { ...s, from, to };
+    }),
+  };
+  // 光らせる指定と位置の基準も名前で書くので、 同じ表で直す
+  if (次.animate) {
+    次.animate = {
+      ...次.animate,
+      phases: 次.animate.phases.map((ph) =>
+        ph.highlight ? { ...ph, highlight: ph.highlight.map((h) => 直す(h)) } : ph,
+      ),
+    };
+  }
+  次.actors = 次.actors.map((a) =>
+    a.posRel ? { ...a, posRel: { ...a.posRel, anchor: 直す(a.posRel.anchor) } } : a,
+  );
+  return { doc: 次, 元の名前 };
+}
+
+/**
+ * 作り替えた名前を、 図の表示だけ元に戻す (#1220)。
+ *
+ * 戻すのは題と名札だけ。 id は作り替えたまま = 分けるために作り替えたので、 戻すと元の
+ * 重なりに帰る。
+ */
+function restoreActorNames(diagram: CdlDiagram, 元の名前: Map<string, string>): void {
+  if (元の名前.size === 0) return;
+  for (const n of diagram.nodes) {
+    const 元 = 元の名前.get(n.title);
+    if (元 !== undefined) n.title = 元;
+  }
+  for (const l of diagram.lanes) {
+    if (l.label === undefined) continue;
+    const 元 = 元の名前.get(l.label);
+    if (元 !== undefined) l.label = 元;
+  }
 }
 
 /**
