@@ -427,12 +427,20 @@ function reportMissingFocusTargets(
     steps.set(st.from, tos);
   }
 
+  // 矢印の両端は **流れと同じ表で名前へ揃えてから** 照合する (#1209 Round 2)。
+  //
+  // 流れは入口で名前へ揃えている (`canonicalizeFlowActors`) 一方、 光らせる指定は生のまま
+  // 来る。 揃えずに比べると、 slug で書いた矢印 (`api-gateway -> db`) が実際は光るのに
+  // 「見つかりません」 と誤報する (実測)
+  const 名前へ = actorRefTable(doc);
+  const 揃える = (ref: string): string => 名前へ.get(ref) ?? ref;
+
   for (const phase of doc.animate.phases) {
     for (const raw of phase.highlight ?? []) {
       const entry = parseFocusEntry(raw, names);
       const found =
         entry.kind === "edge"
-          ? (steps.get(entry.from)?.has(entry.to) ?? false)
+          ? (steps.get(揃える(entry.from))?.has(揃える(entry.to)) ?? false)
           : accepted.has(entry.name);
       if (found) continue;
       onNotice({

@@ -143,6 +143,29 @@ ${animation ? 'animation:\n  - step: "s" 1.0s\n' : ""}`;
     expect(slugで.d.edges.map((e) => e.label)).toEqual(["問い合わせ"]);
   });
 
+  it("slug で書いた矢印を光らせても誤報しない", () => {
+    // 流れは入口で名前へ揃えている一方、 光らせる指定は生のまま来る。 揃えずに比べると
+    // 実際は光るのに「見つかりません」 と誤報する (Round 2 の指摘)
+    const 知らせ: CompileNotice[] = [];
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+actors:
+  - API Gateway
+  - DB
+flow:
+  - api-gateway -> db: "問い合わせ"
+animation:
+  - step: "s" 1.0s
+    focus: [api-gateway -> db]
+`,
+      { onNotice: (n) => 知らせ.push(n) },
+    );
+    expect(知らせ.filter((n) => n.kind === "focus-target-missing")).toEqual([]);
+    // 誤報が消えただけでなく、 実際に光っていることも見る
+    expect(d.phases?.[0]?.activate).toContain("e0-api-gateway-db");
+  });
+
   it("知らせの hint は actors が多くても短いまま", () => {
     // 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限まで書いた図で数百 MB になる
     const 名前 = Array.from({ length: 200 }, (_, i) => `  - actor${i}`).join("\n");
