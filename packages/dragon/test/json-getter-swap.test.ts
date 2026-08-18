@@ -264,11 +264,49 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(Object.keys(写し).length).toBe(200_000);
   }, 30_000);
 
-  it("正規の項目に大きな値を持たせても通る (Round 3)", () => {
-    const 状態: Record<string, unknown> = {};
+  it("書式にある項目に大きな値を持たせても通る (Round 3 / 4)", () => {
+    // Round 4 の指摘 = 前の書き方は未知の root 項目を使っており、 書式にある形を固定できて
+    // いなかった。 `actors[].state` は書式が持つ項目で、 値の数に上限が無い
+    const 状態: Record<string, number> = {};
     for (let i = 0; i < 100_001; i += 1) 状態[`s${i}`] = i;
-    expect(validateDragonJson(図の素({ 使わない項目: 状態 })).ok).toBe(true);
+    const r = validateDragonJson({
+      title: "確認",
+      type: "flow",
+      actors: [{ name: "受付", state: 状態 }, { name: "処理" }],
+      flow: [{ from: "受付", to: "処理", label: "渡す" }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const 写した状態 = (r.data.actors[0] as { state: Record<string, number> }).state;
+    expect(Object.keys(写した状態).length).toBe(100_001);
   }, 30_000);
+
+  it("読まれるたびに枝を生やす Proxy を、 数の上限で止める (Round 4)", () => {
+    // Proxy は読まれるたびに新しい object を返せるため、 小さな入力から枝を生やせる。
+    // 深さの上限だけでは横の広がりを止められない (実測 = 深さ 6 / 6 分岐で 55,987 個)
+    let 作った数 = 0;
+    const 生やす = (深さ: number): unknown =>
+      new Proxy(
+        {},
+        {
+          ownKeys: () => ["a", "b", "c", "d", "e", "f", "g", "h"],
+          getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+          get: () => {
+            作った数 += 1;
+            return 深さ > 0 ? 生やす(深さ - 1) : 1;
+          },
+        },
+      );
+
+    const r = validateDragonJson(図の素({ 使わない項目: 生やす(30) }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    // 深さの上限か数の上限のどちらかで止まる。 どちらでも「止まる」 ことが要点
+    expect(
+      (r.errors[0]?.message ?? "").match(/項目が多すぎる|入れ子が深すぎる/) !== null,
+      `止まらずに ${作った数} 個作った`,
+    ).toBe(true);
+  }, 60_000);
 
   it("普通の大きさの入れ子は通る", () => {
     // 上限を厳しくしすぎて正当な図を弾いていないことを見る
