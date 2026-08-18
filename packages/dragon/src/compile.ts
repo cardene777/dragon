@@ -3753,20 +3753,37 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
 
-  // 登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096 で決めた形)
-  if (doc.actors.length === 0) return b.build();
-
-  b.lane("chart", { width: W + 64, label: doc.title });
-
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
     onNotice?.({ kind, actor: 名, line, message });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
 
+  // **見本 (`parts`) を重ねた登場人物は中心にも枝にもしない** (review 指摘)。 後段の
+  // `mergePartsFromActors` が見本の中身を別の箱として足すため、 こちらにも載せると同じ
+  // 登場人物が 2 箇所に描かれる。 中心だけ外し忘れると、 中心が見本の記法で二重になる
+  const 見本でない: DslActor[] = [];
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) {
+      伝える(
+        "part-not-drawn",
+        a.name,
+        `type: mind では見本 (${a.partId}) を中心にも枝にもできません。 見本はそのまま描き、 放射には載せません`,
+        a.pos?.line ?? 0,
+      );
+      continue;
+    }
+    見本でない.push(a);
+  }
+  // 放射に載る登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096)。
+  // **枠を作る前に見る** = 見本しか居ない記法で作ると、 見本だけが描かれた図に空の枠が残る
+  if (見本でない.length === 0) return b.build();
+
+  b.lane("chart", { width: W + 64, label: doc.title });
+
   // **同じ slug になる名前を先に見る** (`type: tree` と同じ理由)。 違う名前が同じ id に潰れると、
   // 枝が 1 本消えたり、 枝の親を見る規則が別の枝を指したりする
   const slug別 = new Map<string, string[]>();
-  for (const a of doc.actors) {
+  for (const a of 見本でない) {
     const k = slugify(a.name);
     slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
   }
@@ -3780,7 +3797,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     }
   }
 
-  const root = doc.actors[0]!;
+  const root = 見本でない[0]!;
   const rootId = slugify(root.name) || "root";
 
   // **1 箱で描く種別が持てる欄は限られる**。 枝は名前と色、 中心は名前だけ。 書いても描けない
@@ -3791,6 +3808,10 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     if (a.eyebrow !== undefined) out.push("上の小見出し");
     if (a.value !== undefined) out.push("値");
     if (a.rows !== undefined) out.push("行");
+    // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い
+    if (a.posX !== undefined || a.posY !== undefined) out.push("位置 (座標)");
+    if (a.posW !== undefined || a.posH !== undefined) out.push("大きさ");
+    if (a.posRel !== undefined) out.push("位置 (相対)");
     return out;
   };
   const 消えた欄 = new Map<string, string[]>();
@@ -3806,18 +3827,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   // 中心は色の欄を持たない (`MindBranchPayload` に `tone` が無い)
   if (root.tone) 消えた欄.set(root.name, [...(消えた欄.get(root.name) ?? []), "色 (中心は持てない)"]);
 
-  doc.actors.slice(1).forEach((a, i) => {
-    // **見本 (`parts`) を重ねた登場人物は枝にしない** (review 指摘)。 後段の `mergePartsFromActors`
-    // が見本の中身を別の箱として足すため、 枝にも載せると同じ登場人物が 2 箇所に描かれる
-    if (a.partId !== undefined) {
-      伝える(
-        "part-not-drawn",
-        a.name,
-        `type: mind では見本 (${a.partId}) を枝にできません。 見本はそのまま描き、 枝には載せません`,
-        a.pos?.line ?? 0,
-      );
-      return;
-    }
+  見本でない.slice(1).forEach((a, i) => {
     const id = slugify(a.name) || `leaf-${i}`;
     if (使った.has(id)) {
       伝える(

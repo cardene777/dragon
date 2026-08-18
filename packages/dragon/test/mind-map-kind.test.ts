@@ -195,6 +195,30 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     expect(該当[0]!.message).toContain("Core の副題 / 値");
   });
 
+  it("位置と大きさも伝える (Round 2)", () => {
+    // 箱が 1 つの図では置く先が無い。 黙って無効になると「書いたのに効かない」 が残る
+    const 出た = 知らせを集める(記法(["Core", "Idea1:\n      kind: card\n      位置: 300,200"]));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("位置 (座標)");
+  });
+
+  it("大きさも伝える (Round 2)", () => {
+    const 出た = 知らせを集める(記法(["Core", "Idea1:\n      kind: card\n      大きさ: 400,200"]));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("大きさ");
+  });
+
+  it("相対の位置も伝える (Round 2)", () => {
+    const 出た = 知らせを集める(
+      記法(["Core", "Idea1", "Idea2:\n      kind: card\n      位置: Idea1 の右 200"]),
+    );
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("位置 (相対)");
+  });
+
   it("行 (rows) も伝える", () => {
     const 出た = 知らせを集める(記法(["Core", 'Idea1: { rows: ["件数: 3"] }']));
     const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
@@ -220,31 +244,66 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
   });
 });
 
-describe("見本 (parts) を重ねた登場人物 (Round 1)", () => {
-  it("見本は枝にせず、 枝にしないことを伝える", () => {
-    // 後段が見本の中身を別の箱として足すため、 枝にも載せると同じ登場人物が 2 箇所に描かれる
+describe("見本 (parts) を重ねた登場人物 (Round 1 / 2)", () => {
+  /** 見本 1 件を持つ図録。 名前は parser が小文字に揃えるため、 鍵も小文字で持つ */
+  const 見本の図録 = { trophy: { id: "trophy", topic: "見本", lanes: [{ id: "l", x: 0, width: 200 }], nodes: [{ id: "cup", lane: "l", stack: 0, kind: "card" as const, title: "杯" }], edges: [], states: [], phases: [] } };
+
+  const 組む = (actors: string[]) => {
     const 出た: CompileNotice[] = [];
-    const d = textDslToDiagram(記法(["Core", "見本1: partsAchievement", "Idea1"]), {
+    const d = textDslToDiagram(記法(actors), {
       onNotice: (n) => 出た.push(n),
-      partsCatalog: {
-        partsAchievement: {
-          id: "partsAchievement",
-          topic: "見本",
-          lanes: [{ id: "l", x: 0, width: 200 }],
-          nodes: [{ id: "trophy", lane: "l", stack: 0, kind: "card", title: "杯" }],
-          edges: [],
-          states: [],
-          phases: [],
-        },
-      },
+      partsCatalog: 見本の図録,
     });
-    const m = 放射の箱(d).mindData!;
-    expect(m.branches.map((b) => b.title), "見本が枝に残っている").toEqual(["Idea1"]);
+    return { d, 出た };
+  };
+
+  it("見本は枝にせず、 載せないことを伝える", () => {
+    // 後段が見本の中身を別の箱として足すため、 枝にも載せると同じ登場人物が 2 箇所に描かれる
+    const { d, 出た } = 組む(["Core", "見本1: trophy", "Idea1"]);
+    expect(放射の箱(d).mindData!.branches.map((b) => b.title), "見本が枝に残っている").toEqual([
+      "Idea1",
+    ]);
+    // 見本の中身は別の箱として描かれる (二重にならず、 消えてもいない)
+    expect(d.nodes.some((n) => n.title === "杯"), "見本の中身が描かれていない").toBe(true);
     const 該当 = 出た.filter((n) => n.kind === "part-not-drawn");
     expect(該当).toHaveLength(1);
-    // 見本の名前は小文字に揃えられて届く (parser の扱い)
-    expect(該当[0]!.message).toContain("を枝にできません");
     expect(該当[0]!.actor).toBe("見本1");
+  });
+
+  it("中心が見本でも載せない (Round 2)", () => {
+    // 中心だけ外し忘れると、 中心の名前と展開した見本が併存する
+    const { d, 出た } = 組む(["見本1: trophy", "Idea1", "Idea2"]);
+    const m = 放射の箱(d).mindData!;
+    expect(m.rootTitle, "見本が中心に残っている").toBe("Idea1");
+    expect(m.branches.map((b) => b.title)).toEqual(["Idea2"]);
+    expect(出た.filter((n) => n.kind === "part-not-drawn")).toHaveLength(1);
+  });
+
+  it("見本が複数あっても全部外す (Round 2)", () => {
+    const { d, 出た } = 組む(["見本1: trophy", "見本2: trophy", "Core", "Idea1"]);
+    const m = 放射の箱(d).mindData!;
+    expect(m.rootTitle).toBe("Core");
+    expect(m.branches.map((b) => b.title)).toEqual(["Idea1"]);
+    expect(出た.filter((n) => n.kind === "part-not-drawn")).toHaveLength(2);
+  });
+
+  it("見本と同じ id になる名前を「同じ id」 として数えない (Round 2)", () => {
+    // 見本は放射に載らないので、 同じ id になっても枝が消えることはない。 数えると
+    // 起きていない衝突を伝えることになる
+    const { 出た } = 組む(["Core", "見本1: trophy", "見本1"]);
+    expect(
+      出た.filter((n) => n.message.includes("同じ id")),
+      "見本を同じ id の衝突として数えている",
+    ).toEqual([]);
+  });
+
+  it("見本しか居ない記法では放射の箱も枠も作らない (Round 2)", () => {
+    const { d, 出た } = 組む(["見本1: trophy"]);
+    expect(d.nodes.filter((n) => n.kind === "mind-map"), "空の放射の箱が残っている").toEqual([]);
+    expect(d.lanes.some((l) => l.id === "chart"), "中身の無い枠が残っている").toBe(false);
+    // 見本そのものは描かれる
+    expect(d.nodes.some((n) => n.title === "杯")).toBe(true);
+    expect(出た.filter((n) => n.kind === "part-not-drawn")).toHaveLength(1);
   });
 });
 
