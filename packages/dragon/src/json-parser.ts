@@ -219,12 +219,257 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
 }
 
+/**
+ * 写しを作る時の入れ子の深さの上限。
+ *
+ * 枠の並びの長さが入れ子の深さで決まる。 図の入れ子は深くても数段で、 64 に届く形は書けない。
+ */
+const 写しの最大の深さ = 64;
+
+/**
+ * 写しを作る時に触る値の数の上限。
+ *
+ * **書式の規則ではなく、 資源を使い切らないための歯止め**。 図の書式は値の数を制限していないので、
+ * ここで拒むのは「構造としては正しいが大きすぎる」 入力になる。 だから **正当な入力が届かない
+ * 高さ** に置く。
+ *
+ * 500 万は、 記法の入力の大きさの上限 (`input-size.ts` の 512KB) を全て 2 文字の値で埋めても
+ * 届かない数になる。 JSON でも同じ規模の図が 500 万個の値を持つことはない。
+ *
+ * **数を数えないと守れない** (Round 4 の指摘)。 一度は「写しの大きさは元の入力の大きさで決まる
+ * から数える意味が無い」 として外したが、 これは誤りだった。 Proxy は読まれるたびに新しい object
+ * を返せるため、 **小さな入力から枝を生やせる** (実測 = 1 個の Proxy が深さ 6 / 6 分岐で
+ * 55,987 個の object に膨らんだ)。 深さの上限だけでは横の広がりを止められない。
+ */
+const 写しの最大の項目数 = 5_000_000;
+
+/** 写しを作れなかった理由 (path 付き) */
+class 写せない extends Error {
+  constructor(
+    readonly path: string,
+    readonly 理由: string,
+  ) {
+    super(`${path}: ${理由}`);
+  }
+}
+
+/**
+ * 検査の前に 1 度だけ読んで作る、 素のデータの複製 (#1217)。
+ *
+ * 入口は検査する時と図に写す時で同じ項目を 2 度読んでいた。 渡された object が値を返す関数
+ * (getter) を持っていると、 2 度目の読み取りで別の値を返せる = **検査を通った値と図に届く値が
+ * 別物になり、 検査が意味を持たない** (実測 = `animation[0].tween` を 6 回目から
+ * `[NaN, Infinity]` を返す getter にすると、 検査を通って図に `from: null` が届いた)。
+ *
+ * ここで 1 度だけ読んで写しを作り、 以降は写しだけを読む。 各項目の読み取りは 1 回で、
+ * 項目の名前も添字も同じ値を 2 度取りに行かない。
+ *
+ * **`structuredClone` は使わない**。 関数や symbol を含む入力で `DataCloneError` を投げるため、
+ * `validateDragonJson` が約束している「誤りは `{ ok: false, errors }` で返す」 が破れる。
+ * 自前で写せば、 写せない値もそのまま持ち越して検査側の型の判定に落とせる。
+ *
+ * **再帰では書かない** (Round 1 の指摘)。 検査が見ない項目も含めて写すため、 深い入れ子を渡すと
+ * 呼び出しの積み上げが溢れる (実測 = 使わない項目に 20,000 段の入れ子を付けると
+ * `RangeError: Maximum call stack size exceeded`)。 枠を自前で積んで回す。
+ *
+ * **読む順は書いた順のまま、 深さ優先で降りる** (Round 2 / 3 の指摘)。 値を返す関数が副作用を
+ * 持つ入力では読む順が結果に出るため、 再帰で書いた時と同じ順を保つ。 幅優先で回すと、 先に
+ * 書いた兄弟の深い所より後の兄弟の浅い所を先に読む。
+ *
+ * **読み取りの例外も外に出さない** (Round 1 の指摘)。 項目の名前を数える所も値を読む所も、
+ * getter や Proxy が投げれば `validateDragonJson` 自体が throw して約束が破れる。 投げた場所を
+ * path として拾い、 検査の誤りに変える。
+ *
+ * 書き込みは `Object.defineProperty` で行う = `__proto__` を項目名に持つ入力で代入が
+ * prototype の setter に落ちるのを避ける (`JSON.parse` と同じく普通の項目として持つ)。
+ * `__proto__` を書いた時の扱いそのものは `#1184` が持つ。
+ *
+ * 輪 (自分を指す入れ子) は同じ写しを返して止める。 JSON からは作れないが、 object を直接
+ * 渡す経路では作れる。
+ *
+ * ## 守る範囲 (Round 6 で線を引いた)
+ *
+ * この関数が守るのは **自分が確保する量** = 写しの入れ物と、 名前の一覧と、 枠の並び。 いずれも
+ * 上限 (深さ / 数) を見てから作る。
+ *
+ * **渡された側が自分で確保する量は守れない**。 Proxy の `ownKeys` は「名前の並びを返す」 のが
+ * 仕事で、 その並びは trap の中で作られる。 こちらが受け取った時点で既に在るため、 長さを見て
+ * 拒んでも確保そのものは起きた後になる。 これは呼ぶ側の code が確保するもので、 同じ process に
+ * 任意の object を渡せる相手は、 この関数を通さずに同じことができる。
+ *
+ * 線を引くのは、 5 round にわたって「読む前に量を作れる経路」 を潰し続けた末に、 残りが
+ * 呼ぶ側の code の中に移ったため。 潰す対象が自分の外に出た時点で、 この関数の責務ではない。
+ */
+function 素のデータに写す(
+  root: unknown,
+): { ok: true; value: unknown } | { ok: false; error: JsonDslError } {
+  const 写し済 = new WeakMap<object, unknown[] | Record<string, unknown>>();
+  let 項目数 = 0;
+  // 例外を拾った時に「どこを読んでいたか」 を言うために持つ。 投げるのは値を読む所と名前を
+  // 数える所の両方で、 どちらも path を持たないまま外へ出ると `$` としか言えない
+  let 読んでいる場所 = "$";
+
+  /**
+   * まだ中身を埋めていない入れ物と、 その進み具合。
+   *
+   * 配列は名前の並びを持たず長さだけを持つ (Round 6 の指摘)。 添字を文字の並びとして実体化すると、
+   * **上限を見る前にその並びを作ってしまう** (実測 = `new Array(5_000_001)` で 500 万個の添字を
+   * 作ろうとした)。 添字は数から導けるので持つ必要がない。
+   */
+  type 枠 = {
+    元: object;
+    器: unknown[] | Record<string, unknown>;
+    /** object の時だけ持つ。 配列は `長さ` を使う */
+    名前の並び: string[] | null;
+    長さ: number;
+    次: number;
+    深さ: number;
+    path: string;
+  };
+
+  /** 入れ物だけ作る (ここでは降りない)。 新しく作った時だけ枠を返す */
+  const 器を作る = (
+    v: unknown,
+    深さ: number,
+    path: string,
+  ): { 値: unknown; 枠: 枠 | null } => {
+    項目数 += 1;
+    if (項目数 > 写しの最大の項目数) {
+      throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
+    }
+    if (v === null || typeof v !== "object") return { 値: v, 枠: null };
+
+    const 既にある = 写し済.get(v);
+    if (既にある !== undefined) return { 値: 既にある, 枠: null };
+
+    if (深さ >= 写しの最大の深さ) {
+      throw new 写せない(path, `入れ子が深すぎる (上限 ${写しの最大の深さ})`);
+    }
+    読んでいる場所 = path;
+    const 並びか = Array.isArray(v);
+    const 器: unknown[] | Record<string, unknown> = 並びか ? [] : {};
+    写し済.set(v, 器);
+
+    if (並びか) {
+      // **長さを先に見てから降りる** (Round 6 の指摘)。 添字を文字の並びとして作ると、 上限を
+      // 見る前にその並びを作ってしまう。 長さは数を読むだけなので何も作らない。
+      //
+      // **長さは正規化してから使う** (Round 7 の指摘)。 `Array.from({ length })` は仕様の
+      // `ToLength` を通しており、 生の値をそのまま使うと 2 つの形で壊れる。
+      //
+      // | `length` が返す値 | 正規化しないと |
+      // |---|---|
+      // | `2.5` | 3 回読む (`Array.from` は 2 要素) |
+      // | `NaN` | 数の合計が `NaN` になり、 上限も終わりも判定できず読み続ける |
+      //
+      // `ToLength` と同じく 0 へ丸め、 0 以上 2^53-1 以下に収める。
+      //
+      // **数に直すのは単項 `+`** (Round 8 の指摘)。 `Number()` は `BigInt` を通してしまうが、
+      // 仕様の `ToNumber` は `TypeError` を投げる = `Array.from({ length: 2n })` は投げる。
+      // 単項 `+` は `ToNumber` そのものなので、 投げる形も含めて元の挙動と揃う (投げた分は
+      // 下の `catch` が検査の誤りに変える)。
+      const 生の長さ = +(v as unknown[]).length;
+      const 長さ = Number.isNaN(生の長さ)
+        ? 0
+        : Math.min(Math.max(Math.trunc(生の長さ), 0), Number.MAX_SAFE_INTEGER);
+      項目数 += 長さ;
+      if (項目数 > 写しの最大の項目数) {
+        throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
+      }
+      return { 値: 器, 枠: { 元: v, 器, 名前の並び: null, 長さ, 次: 0, 深さ, path } };
+    }
+
+    // **名前も数に入れる** (Round 5 の指摘)。 値を読む前に名前の一覧を作るため、 値だけを
+    // 数えると「名前が 20,000 個ある段を 63 回降りる」 形で 126 万個を並べられる = 上限を
+    // 見る前に資源を使い切れる
+    const 名前の並び = Object.keys(v as Record<string, unknown>);
+    項目数 += 名前の並び.length;
+    if (項目数 > 写しの最大の項目数) {
+      throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
+    }
+    return { 値: 器, 枠: { 元: v, 器, 名前の並び, 長さ: 名前の並び.length, 次: 0, 深さ, path } };
+  };
+
+  try {
+    const 先頭 = 器を作る(root, 0, "$");
+    const 積み: 枠[] = 先頭.枠 ? [先頭.枠] : [];
+
+    while (積み.length > 0) {
+      const 今 = 積み[積み.length - 1]!;
+      if (今.次 >= 今.長さ) {
+        積み.pop();
+        continue;
+      }
+      // 配列は添字をその場で作る (並びとして持たない)
+      const key = 今.名前の並び === null ? String(今.次) : 今.名前の並び[今.次]!;
+      今.次 += 1;
+      const 子のpath = 今.名前の並び === null ? `${今.path}[${key}]` : `${今.path}.${key}`;
+
+      // 読む直前に場所を控える = 値の読み取りそのものが投げるため、 読んだ後では遅い
+      読んでいる場所 = 子のpath;
+      const 生の値 = (今.元 as Record<string, unknown>)[key];
+
+      const 子 = 器を作る(生の値, 今.深さ + 1, 子のpath);
+      if (Array.isArray(今.器)) 今.器.push(子.値);
+      else {
+        Object.defineProperty(今.器, key, {
+          value: 子.値,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+      // 深さ優先で降りる = 次の兄弟を読む前に、 この子の中身を全部読む
+      if (子.枠) 積み.push(子.枠);
+    }
+    return { ok: true, value: 先頭.値 };
+  } catch (e) {
+    if (e instanceof 写せない) {
+      return { ok: false, error: { path: e.path, message: e.理由 } };
+    }
+    // getter / Proxy が投げた形。 約束どおり誤りとして返す (throw しない)
+    return {
+      ok: false,
+      error: {
+        path: 読んでいる場所,
+        message: "入力を読み取れない",
+        hint: e instanceof Error ? e.message : String(e),
+      },
+    };
+  }
+}
+
 function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
   const errors: JsonDslError[] = [];
-  if (!json || typeof json !== "object" || Array.isArray(json)) {
+  // root の形は写しより先に見る = 形が違う入力には従来どおり `root must be a JSON object` を
+  // 返すため。 写した後に見ると、 root が配列の入力で中の getter が先に動き、 別の誤りに化ける
+  // (Round 3 の指摘)。
+  //
+  // ただし `Array.isArray` は失効した Proxy で `TypeError` を投げる (Round 2 の指摘)。 判定
+  // そのものを受けて、 投げた形は「読み取れない」 として返す。
+  let rootがobjectか: boolean;
+  try {
+    rootがobjectか = !!json && typeof json === "object" && !Array.isArray(json);
+  } catch (e) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: "$",
+          message: "入力を読み取れない",
+          hint: e instanceof Error ? e.message : String(e),
+        },
+      ],
+    };
+  }
+  if (!rootがobjectか) {
     return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
   }
-  const j = json as Record<string, unknown>;
+
+  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
+  const 写し = 素のデータに写す(json);
+  if (!写し.ok) return { ok: false, errors: [写し.error] };
+  const j = 写し.value as Record<string, unknown>;
 
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });
