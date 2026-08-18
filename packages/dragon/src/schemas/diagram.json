@@ -109,8 +109,27 @@
           "focus": {"type": "array", "items": {"type": "string"}, "description": "この phase で active 化する actor 名 or edge 'A -> B' の配列"},
           "body": {"type": "string", "description": "phase 説明文"},
           "badge": {"type": "string", "description": "phase 中に表示する badge label"},
-          "tween": {"type": "object", "description": "この phase で補間する状態。 状態名 -> [開始値, 終了値]", "additionalProperties": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}},
-          "set": {"type": "object", "description": "この phase の切替で差し替える状態。 状態名 -> 値", "additionalProperties": {"type": ["number", "string"]}}
+          "tween": {
+            "type": "object",
+            "description": "この phase で補間する状態。 状態名 -> [開始値, 終了値]。 名前は英字か _ で始め、 英数字と _ だけを使う",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                "type": "array",
+                "items": {"type": "number"},
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          },
+          "set": {
+            "type": "object",
+            "description": "この phase の切替で差し替える状態。 状態名 -> 値。 名前は英字か _ で始め、 英数字と _ だけを使う",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^[a-zA-Z_][a-zA-Z0-9_]*$": {"type": ["number", "string"]}
+            }
+          }
         }
       }
     },

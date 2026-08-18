@@ -151,4 +151,20 @@ animation:
     const phase = (diagramJsonSchema as Record<string, any>).properties.animation.items.properties;
     expect(Object.keys(phase)).toEqual(expect.arrayContaining(["tween", "set"]));
   });
+
+  it.each(["tween", "set"] as const)("%s の状態名を schema と検査が同じ規則で見る", (口) => {
+    // schema は LLM への公開契約で、 検査はその入力を実際に受ける側。 片方だけが通す名前が
+    // あると、 schema に沿って作った図が `jsonToDiagram` で落ちて作り直しになる
+    const phase = (diagramJsonSchema as Record<string, any>).properties.animation.items.properties;
+    const 規則 = Object.keys(phase[口].patternProperties);
+    expect(規則).toHaveLength(1);
+    expect(phase[口].additionalProperties).toBe(false);
+
+    const 型 = new RegExp(規則[0]);
+    const 値 = 口 === "tween" ? [0, 1] : 1;
+    for (const 名 of ["amount", "_x", "a1", "無い名前", "bad.name", "1st", "with space", ""]) {
+      const 検査 = validateDragonJson(図({ animation: [{ step: "読込", [口]: { [名]: 値 } }] }));
+      expect(型.test(名), `${口}.${名} で schema と検査が食い違う`).toBe(検査.ok);
+    }
+  });
 });
