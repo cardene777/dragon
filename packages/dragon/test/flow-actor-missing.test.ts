@@ -112,20 +112,50 @@ describe("素直に書いた図は変わらない (#1209)", () => {
     expect(() => compile(d)).not.toThrow();
   });
 
-  it("名前の代わりに slug で指しても届く", () => {
-    // 組み立て側が slug に落として引くため、 `API Gateway` を `api-gateway` と書いた形も通る
-    const { d, 未知 } = 組み立てる(`title: "t"
-type: flow
+  it.each([
+    ["flow", false],
+    ["flow", true],
+    ["swimlane", false],
+    ["swimlane", true],
+  ] as const)("%s (動き %s) で slugで指しても、 名前で指したのと同じ図になる", (種類, animation) => {
+    // **図種と動きの有無で扱いが割れてはいけない** (Round 1 の指摘)。
+    //
+    // 動きを書いた図は slug に落として引き、 書いていない図は名前の完全一致で引く。
+    // 揃える前は `api-gateway -> db` と書くと、 知らせは出ないのに flow の label が
+    // "→" に変わり、 swimlane の題が slug に化けていた (実測)。
+    const 本文 = (指し方: [string, string]) => `title: "t"
+type: ${種類}
 actors:
   - API Gateway
   - DB
 flow:
-  - api-gateway -> db: "問い合わせ"
-animation:
-  - step: "s" 1.0s
+  - ${指し方[0]} -> ${指し方[1]}: "問い合わせ"
+${animation ? 'animation:\n  - step: "s" 1.0s\n' : ""}`;
+
+    const slugで = 組み立てる(本文(["api-gateway", "db"]));
+    const 名前で = 組み立てる(本文(["API Gateway", "DB"]));
+
+    expect(slugで.未知).toEqual([]);
+    expect(slugで.d.edges.map((e) => e.label)).toEqual(名前で.d.edges.map((e) => e.label));
+    expect(slugで.d.nodes.map((n) => n.title)).toEqual(名前で.d.nodes.map((n) => n.title));
+    // 題が slug に化けていないことを直接も見る
+    expect(slugで.d.nodes.map((n) => n.title)).toEqual(["API Gateway", "DB"]);
+    expect(slugで.d.edges.map((e) => e.label)).toEqual(["問い合わせ"]);
+  });
+
+  it("知らせの hint は actors が多くても短いまま", () => {
+    // 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限まで書いた図で数百 MB になる
+    const 名前 = Array.from({ length: 200 }, (_, i) => `  - actor${i}`).join("\n");
+    const { 未知 } = 組み立てる(`title: "t"
+type: flow
+actors:
+${名前}
+flow:
+  - 居ない -> actor0: "x"
 `);
-    expect(未知).toEqual([]);
-    expect(d.edges.length).toBe(1);
+    expect(未知).toHaveLength(1);
+    expect(未知[0]!.hint!.length).toBeLessThan(200);
+    expect(未知[0]!.hint).toContain("ほか 192 件");
   });
 
   it("2 つの名前が同じ slug になる時は受けない", () => {

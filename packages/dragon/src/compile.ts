@@ -95,6 +95,13 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   const oversize = describeOversize({ elements: countDocElements(doc), bytes: 0 });
   if (oversize) throw new Error(oversize);
 
+  // 矢印の指す先を `actors` に書いた名前へ揃える (#1209)。 **図種ごとの組み立てより前**。
+  //
+  // 動きを書いた図は slug に落として引き、 書いていない図は名前の完全一致で引く。 揃えないと
+  // 同じ本文が図種ごとに別の相手を指す = 知らせは出ないのに label が消える / 題が slug に
+  // 化ける / 依存が切れる (Round 1 で実測)。
+  doc = canonicalizeFlowActors(doc);
+
   let diagram: CdlDiagram;
   switch (doc.type) {
     case "sequence":
@@ -302,11 +309,15 @@ function truncateForMessage(v: string): string {
  * たびに検査が取り残される。
  */
 /**
- * `actors` に書いた名前で矢印の指す先を引く表 (#1209)。
+ * 矢印の指す先を `actors` に書いた **正規の名前** へ解決する表 (#1209)。
  *
- * 名前そのものに加えて **一意な slug も受ける**。 組み立て側が `slugify` に落として引くため、
- * `API Gateway` を `api-gateway` と書いた形も届く。 2 つ以上の名前が同じ slug になる時は
- * 受けない = どちらを指したか決められない。
+ * 名前そのものに加えて **一意な slug も受ける**。 動きを書いた図の組み立ては `slugify` に
+ * 落として引くため、 `API Gateway` を `api-gateway` と書いた形が届く。 2 つ以上の名前が
+ * 同じ slug になる時は受けない = どちらを指したか決められない。
+ *
+ * **返すのは正規の名前で、 slug ではない**。 slug を返すと、 動きを書いていない図の組み立て
+ * (名前の完全一致で引く) と食い違う = 知らせは出ないのに label が消える / 題が slug に化ける /
+ * 依存が切れる、 という形になる (Round 1 で実測)。 中央で名前へ揃えれば全経路が同じ相手を指す。
  */
 function actorRefTable(doc: DslDocument): Map<string, string> {
   const 表 = new Map<string, string>();
@@ -316,11 +327,31 @@ function actorRefTable(doc: DslDocument): Map<string, string> {
     slug数.set(sl, (slug数.get(sl) ?? 0) + 1);
   }
   for (const a of doc.actors) {
+    表.set(a.name, a.name);
     const sl = slugify(a.name);
-    表.set(a.name, sl);
-    if ((slug数.get(sl) ?? 0) === 1) 表.set(sl, sl);
+    if ((slug数.get(sl) ?? 0) === 1) 表.set(sl, a.name);
   }
   return 表;
+}
+
+/**
+ * 矢印の指す先を正規の名前へ揃えた `flow` を返す (#1209)。
+ *
+ * 解決できない矢印はそのまま残す = 図種ごとに扱いが違う (木は独自の知らせを出し、 値で描く図は
+ * 落とす)。 中央で消すとその扱いが効かなくなる。 残した分は `reportMissingFlowActors` が
+ * 知らせ、 動きを書いた図の組み立てが落とす。
+ */
+function canonicalizeFlowActors(doc: DslDocument): DslDocument {
+  const 表 = actorRefTable(doc);
+  let 変えた = false;
+  const flow = doc.flow.map((s) => {
+    const from = 表.get(s.from) ?? s.from;
+    const to = 表.get(s.to) ?? s.to;
+    if (from === s.from && to === s.to) return s;
+    変えた = true;
+    return { ...s, from, to };
+  });
+  return 変えた ? { ...doc, flow } : doc;
 }
 
 /**
@@ -340,6 +371,15 @@ function reportMissingFlowActors(
 ): void {
   if (!onNotice) return;
   const 表 = actorRefTable(doc);
+  // hint は **1 度だけ作る**。 知らせごとに全 actor 名を並べ直すと、 名前も矢印も上限
+  // (各 1,000) まで書いた図で数百 MB になる (Round 1 の指摘)。 並べる数にも上限を置く
+  const 見せる数 = 8;
+  const 名前一覧 = doc.actors.slice(0, 見せる数).map((a) => a.name).join(" / ");
+  const 残り = doc.actors.length - 見せる数;
+  const hint =
+    doc.actors.length > 0
+      ? `actors に書いた名前で指す (${名前一覧}${残り > 0 ? ` ほか ${残り} 件` : ""})`
+      : "actors に登場人物を書く";
   const 知らせた = new Set<string>();
   for (const s of doc.flow) {
     for (const ref of [s.from, s.to]) {
@@ -350,10 +390,7 @@ function reportMissingFlowActors(
         actor: ref,
         line: s.pos.line,
         message: `矢印が "${ref}" を指していますが、 actors に書かれていません`,
-        hint:
-          doc.actors.length > 0
-            ? `actors に書いた名前で指す (${doc.actors.map((a) => a.name).join(" / ")})`
-            : "actors に登場人物を書く",
+        hint,
       });
     }
   }
@@ -4483,11 +4520,11 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   // (実測 = `unknown-ref: edge "e0-v-c" の from "v" が node に存在しません`)。
   // 書いた人には `flow-actor-missing` の知らせが届く。
   const edgeIds: string[] = [];
-  const 解決 = (ref: string): string | undefined =>
-    actorToNodeId.get(ref) ?? ([...actorToNodeId.values()].includes(ref) ? ref : undefined);
   doc.flow.forEach((s, idx) => {
-    const fromId = 解決(s.from);
-    const toId = 解決(s.to);
+    // 名前は入口で正規化済 (`canonicalizeFlowActors`)。 ここで slug を受け直すと、
+    // 動きを書いていない図の組み立てと扱いが割れる
+    const fromId = actorToNodeId.get(s.from);
+    const toId = actorToNodeId.get(s.to);
     if (fromId === undefined || toId === undefined) return;
     const edgeId = `e${idx}-${fromId}-${toId}`;
     // ER preset では cardinality を label に "(1:N)" 形式で併記、 他 preset は label そのまま。
