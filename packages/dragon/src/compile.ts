@@ -175,6 +175,10 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       // never 型を直接埋込めないので String() で明示 (defensive runtime error message 用)。
       throw new Error(`unknown type: ${String(doc.type)}`);
   }
+  // 作り替えた名前を持つ箱と枠を、 **組み立て直後に** 控える (#1220)。 出口で題の文字だけを
+  // 見て戻すと、 後から足された見本の中の箱がたまたま同じ題を持っていた時に書き換えてしまう
+  const 作り替えた対象 = collectRenamedTargets(diagram, 分けた.元の名前);
+
   // edge と本文の行の対応は表に集めてから 1 edge = 1 回で知らせる (#998)。 経路ごとに
   // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
   const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
@@ -247,7 +251,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   }
   // 作り替えた名前を表示だけ戻す (#1220)。 **図への追加を全て終えた後**に戻す = 途中で戻すと、
   // 後続の処理が名前で引く時に作り替え前と後が混ざる
-  restoreActorNames(merged, 分けた.元の名前);
+  restoreActorNames(merged, 分けた.元の名前, 作り替えた対象);
   return merged;
 }
 
@@ -454,13 +458,35 @@ function dropUnresolvedFlow(doc: DslDocument): DslDocument {
  * 先に書いた方を残して知らせる。
  */
 function 名前の尾(name: string): string {
-  // FNV-1a。 短くて名前だけから決まればよく、 衝突しても id が重なるだけで壊れない
+  // FNV-1a。 短くて名前だけから決まればよく、 衝突しても下の検査が拾う
   let h = 0x811c9dc5;
   for (const c of name) {
     h ^= c.codePointAt(0) ?? 0;
     h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h.toString(16).padStart(8, "0").slice(0, 6);
+}
+
+/**
+ * cdl 側が名札から id を作る時の規則 (`presets.ts` の `slugify`)。
+ *
+ * **dragon の規則と違う**。 dragon は `-` と `_` を残し `NFKC` で揃え 64 字で切るが、 cdl は
+ * どちらも `-` に潰し、 長さも切らない。 このため `a_b` と `a-b` は **dragon では別 id、 cdl では
+ * 同じ id** になる (実測 = 動きを書かない `sequence` / `solidity` が `duplicate-id` で落ちる)。
+ *
+ * ここに写している = cdl は `slugify` を公開していない。 **ずれると衝突を見落とす** ので、
+ * 下の検査が既知の組で対応を固定する。
+ */
+function cdl側のslug(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9぀-ゟ゠-ヿ一-龯]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** その名前が下流で id になりうる形。 どちらか一方でも重なれば衝突する */
+function idになる形(name: string): string[] {
+  return [slugify(name), cdl側のslug(name)];
 }
 
 function disambiguateActorIds(
@@ -488,31 +514,51 @@ function disambiguateActorIds(
     残す.push(a);
   }
 
-  // 2. 違う名前で id が重なる分に、 名前から決まる尾を付ける
-  //
-  // **見本 (`parts`) を重ねた登場人物は数えない**。 見本の中身は `別名__元の id` の形で
-  // 名前空間を持つため、 素の名前と id が重ならない (実測 = `A` と見本 `a` は `a` と
-  // `a__badge` になり、 衝突していない)。 数えると別名が変わり、 見本の id が総入れ替えになる
-  const slug別 = new Map<string, string[]>();
+  // 2. どの名前が重なるかを見る。 **両方の規則で見る** = 片方だけだと cdl 側の経路で落ちる
+  const 形ごとの名前 = new Map<string, Set<string>>();
   for (const a of 残す) {
-    if (a.partId !== undefined) continue;
-    const k = slugify(a.name);
-    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
+    for (const 形 of idになる形(a.name)) {
+      const 群 = 形ごとの名前.get(形) ?? new Set<string>();
+      群.add(a.name);
+      形ごとの名前.set(形, 群);
+    }
+  }
+  const 重なる = (name: string): boolean =>
+    idになる形(name).some((形) => (形ごとの名前.get(形)?.size ?? 0) > 1);
+
+  // **見本 (`parts`) を重ねた登場人物は作り替えない**。 見本の中身は `別名__元の id` の形で
+  // 名前空間を持ち、 別名は名前から作るため、 作り替えると見本の id が総入れ替えになる。
+  //
+  // ただし **重なりの判定には数える** (Round 1 の指摘)。 数えないと、 素の登場人物と見本が
+  // 同じ id の仮置きを共有し、 見本を片付ける時に素の登場人物の箱まで消える。
+  const 作り替える = 残す.filter((a) => a.partId === undefined && 重なる(a.name));
+
+  // 3. 名前から決まる尾を付ける。 **できあがる id が一意になるまで見る**
+  //
+  // 尾は元の名前だけから決まる = 並べ替えても同じ id になる。 それでも重なる時 (尾そのものが
+  // 重なる形) は、 名前を並べ替えた順で番号を足す = ここも書き順に依らない
+  const 使う形 = new Set<string>();
+  for (const a of 残す) {
+    if (作り替える.some((b) => b.name === a.name)) continue;
+    for (const 形 of idになる形(a.name)) 使う形.add(形);
   }
   const 新しい名前 = new Map<string, string>();
-  const 使う名前 = new Set(残す.map((a) => a.name));
-  for (const [, 群] of slug別) {
-    if (群.length <= 1) continue;
-    for (const 名 of 群) {
-      // 既に居る名前とぶつからないところまで尾を伸ばす (ぶつかる形は現実には起きないが、
-      // ぶつかったまま進むと別の登場人物を書き換えることになる)
-      let 候補 = `${名} ${名前の尾(名)}`;
-      let n = 0;
-      while (使う名前.has(候補)) 候補 = `${名} ${名前の尾(名)}${(n += 1)}`;
-      使う名前.add(候補);
-      新しい名前.set(名, 候補);
-      元の名前.set(候補, 名);
+  // 名前で並べてから配る = 書いた順に依らない
+  for (const a of [...作り替える].sort((x, y) => (x.name < y.name ? -1 : x.name > y.name ? 1 : 0))) {
+    const 尾 = 名前の尾(a.name);
+    // **id の長さの上限のぶん、 元の名前を先に切る** (Round 1 の指摘)。 切らないと尾が
+    // 64 字で落ちて、 同じ頭を持つ長い名前どうしが元のまま重なる
+    const 余地 = ID_MAX - (尾.length + 1);
+    const 基底 = a.name.slice(0, 余地);
+    let 候補 = `${基底} ${尾}`;
+    let n = 0;
+    while (idになる形(候補).some((形) => 使う形.has(形))) {
+      n += 1;
+      候補 = `${基底.slice(0, 余地 - String(n).length)} ${尾}${n}`;
     }
+    for (const 形 of idになる形(候補)) 使う形.add(形);
+    新しい名前.set(a.name, 候補);
+    元の名前.set(候補, a.name);
   }
 
   if (新しい名前.size === 0 && 残す.length === doc.actors.length) return { doc, 元の名前 };
@@ -543,19 +589,42 @@ function disambiguateActorIds(
 }
 
 /**
+ * 作り替えた名前を持つ箱と枠を控える (#1220)。
+ *
+ * **組み立て直後に控える** (Round 1 の指摘)。 出口で題の文字だけを見て戻すと、 後から足された
+ * 見本の中の箱がたまたま同じ題を持っていた時に、 その表示まで書き換えてしまう。
+ */
+function collectRenamedTargets(
+  diagram: CdlDiagram,
+  元の名前: Map<string, string>,
+): { 箱: Set<string>; 枠: Set<string> } {
+  const 箱 = new Set<string>();
+  const 枠 = new Set<string>();
+  if (元の名前.size === 0) return { 箱, 枠 };
+  for (const n of diagram.nodes) if (元の名前.has(n.title)) 箱.add(n.id);
+  for (const l of diagram.lanes) if (l.label !== undefined && 元の名前.has(l.label)) 枠.add(l.id);
+  return { 箱, 枠 };
+}
+
+/**
  * 作り替えた名前を、 図の表示だけ元に戻す (#1220)。
  *
  * 戻すのは題と名札だけ。 id は作り替えたまま = 分けるために作り替えたので、 戻すと元の
  * 重なりに帰る。
  */
-function restoreActorNames(diagram: CdlDiagram, 元の名前: Map<string, string>): void {
+function restoreActorNames(
+  diagram: CdlDiagram,
+  元の名前: Map<string, string>,
+  対象: { 箱: Set<string>; 枠: Set<string> },
+): void {
   if (元の名前.size === 0) return;
   for (const n of diagram.nodes) {
+    if (!対象.箱.has(n.id)) continue;
     const 元 = 元の名前.get(n.title);
     if (元 !== undefined) n.title = 元;
   }
   for (const l of diagram.lanes) {
-    if (l.label === undefined) continue;
+    if (!対象.枠.has(l.id) || l.label === undefined) continue;
     const 元 = 元の名前.get(l.label);
     if (元 !== undefined) l.label = 元;
   }
@@ -5046,6 +5115,9 @@ function resolveHighlightGeneric(
 
 // ─── helpers ──────────────────────────────────────────────────
 
+/** id の長さの上限。 `slugify` が切る幅で、 尾を付ける側もこの値から余地を決める (#1220) */
+const ID_MAX = 64;
+
 function slugify(s: string): string {
   return (
     s
@@ -5053,7 +5125,7 @@ function slugify(s: string): string {
       .normalize("NFKC")
       .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
       .replace(/^-+|-+$/g, "")
-      .slice(0, 64) || "n"
+      .slice(0, ID_MAX) || "n"
   );
 }
 

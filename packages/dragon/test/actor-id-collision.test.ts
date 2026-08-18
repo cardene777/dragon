@@ -213,3 +213,170 @@ describe("見本 (parts) を重ねた登場人物は数えない", () => {
     expect(図.nodes.some((n) => n.id.startsWith("a__")), "見本の別名が変わっている").toBe(true);
   });
 });
+
+describe("cdl 側の規則でだけ重なる名前 (Round 1 r1-f1)", () => {
+  // dragon は `-` と `_` を残すが、 cdl はどちらも `-` に潰す。 このため `a_b` と `a-b` は
+  // **dragon では別 id、 cdl では同じ id** になる
+  const 片方だけ重なる2人 = ["a_b", "a-b"];
+
+  for (const type of 箱を作る図種) {
+    it(`${type} で組み立てが通る`, () => {
+      const { 図 } = 組む(記法(type, 片方だけ重なる2人, ['a_b -> a-b: "x"']));
+      expect(() => compile(図)).not.toThrow();
+    });
+  }
+
+  it("それぞれ別の箱になり、 題は書いた名前のまま", () => {
+    const { 図 } = 組む(記法("sequence", 片方だけ重なる2人, ['a_b -> a-b: "x"']));
+    const 題 = 図.nodes.map((n) => n.title).filter((t) => t !== "");
+    expect(new Set(題)).toEqual(new Set(["a_b", "a-b"]));
+  });
+
+  it("dragon の規則だけで重なる名前も引き続き通る", () => {
+    const { 図 } = 組む(記法("sequence", ["foo-bar", "Foo Bar"], ['foo-bar -> Foo Bar: "x"']));
+    expect(() => compile(図)).not.toThrow();
+  });
+});
+
+describe("長い名前でも尾が落ちない (Round 1 r1-f2)", () => {
+  // id は 64 字で切られる。 尾を後ろに足すだけだと、 同じ頭を持つ長い名前で尾が落ちる
+  const 長い = (末尾: string): string => "a".repeat(64) + 末尾;
+
+  it("64 字を超える同じ頭の名前 2 つで組み立てが通る", () => {
+    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    expect(() => compile(図)).not.toThrow();
+  });
+
+  it("id が重ならず、 長さの上限も超えない", () => {
+    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    const ids = 図.nodes.map((n) => n.id);
+    expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
+    for (const id of ids) expect(id.length, `id が長すぎる: ${id}`).toBeLessThanOrEqual(64);
+  });
+
+  it("長い名前でも題は書いたまま", () => {
+    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    expect(図.nodes.map((n) => n.title).sort()).toEqual([長い("x"), 長い("y")].sort());
+  });
+});
+
+describe("見本と素の登場人物が重なる時 (Round 1 r1-f3)", () => {
+  const 図録 = {
+    badge: {
+      id: "badge",
+      topic: "見本",
+      lanes: [{ id: "l", x: 0, width: 200 }],
+      nodes: [{ id: "mark", lane: "l", stack: 0, kind: "card" as const, title: "印" }],
+      edges: [],
+      states: [],
+      phases: [],
+    },
+  };
+  const 組む見本 = (actors: string[], flow: string[] = []): CdlDiagram =>
+    textDslToDiagram(記法("sequence", actors, flow), { partsCatalog: 図録 });
+
+  it("素の登場人物の箱が消えない", () => {
+    // 仮置きの id を共有すると、 見本を片付ける時に素の登場人物の箱まで消える
+    const 図 = 組む見本(["A", "a: { kind: badge }", "B"], ['A -> B: "x"']);
+    expect(図.nodes.some((n) => n.title === "A"), "素の登場人物の箱が消えている").toBe(true);
+    expect(図.nodes.some((n) => n.id.startsWith("a__")), "見本の中身が消えている").toBe(true);
+  });
+
+  it("見本の別名は変わらない", () => {
+    // 見本を作り替えると、 見本の id が総入れ替えになる
+    const 図 = 組む見本(["A", "a: { kind: badge }"], ['A -> A: "x"']);
+    expect(図.nodes.some((n) => n.id.startsWith("a__"))).toBe(true);
+  });
+
+  it("素の登場人物どうしが重なる図でも見本は無事", () => {
+    const 図 = 組む見本(["foo-bar", "Foo Bar", "b: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']);
+    expect(図.nodes.some((n) => n.id.startsWith("b__"))).toBe(true);
+    expect(図.nodes.filter((n) => n.title === "foo-bar" || n.title === "Foo Bar").length).toBeGreaterThan(1);
+  });
+});
+
+describe("表示を戻す相手を取り違えない (Round 1 r1-f4)", () => {
+  it("後から足された箱の題を書き換えない", () => {
+    // 出口で題の文字だけを見て戻すと、 見本の中の箱がたまたま同じ題を持っていた時に
+    // その表示まで書き換える。 組み立て直後に控えた箱だけを戻す
+    const 作り替え後の題 = (): string => {
+      const { 図 } = 組む(記法("sequence", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
+      // 作り替えた名前は表示に出ないので、 図録側から同じ文字を作って渡す
+      return 図.nodes.map((n) => n.title).join("");
+    };
+    expect(作り替え後の題()).toContain("Foo Bar");
+
+    const 図録 = {
+      badge: {
+        id: "badge",
+        topic: "見本",
+        lanes: [{ id: "l", x: 0, width: 200 }],
+        // 作り替えた名前と同じ形の題を持つ箱 (尾は名前から決まるので同じ値になる)
+        nodes: [{ id: "mark", lane: "l", stack: 0, kind: "card" as const, title: "Foo Bar 13df66" }],
+        edges: [],
+        states: [],
+        phases: [],
+      },
+    };
+    const 図 = textDslToDiagram(
+      記法("sequence", [...衝突する2人, "見本1: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']),
+      { partsCatalog: 図録 },
+    );
+    const 見本の箱 = 図.nodes.find((n) => n.id.includes("__mark"));
+    expect(見本の箱, "見本の箱が無い").toBeDefined();
+    expect(見本の箱!.title, "見本の箱の題を書き換えている").toBe("Foo Bar 13df66");
+  });
+});
+
+describe("尾を付けた先も既に使われている時 (Round 1 r1-f2)", () => {
+  // 作り替えた名前が、 既に居る登場人物の id とぶつかる形。 できあがる id を見ずに配ると、
+  // 作り替えた先で新しい重なりを作る
+  const ぶつかる3人 = ["foo-bar", "Foo Bar", "foo-bar 360878"];
+
+  it("組み立てが通り、 id が重ならない", () => {
+    const { 図 } = 組む(記法("state", ぶつかる3人));
+    const ids = 図.nodes.map((n) => n.id);
+    expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
+    expect(() => compile(図)).not.toThrow();
+  });
+
+  it("先に居た方の id は変わらない", () => {
+    // 作り替えるのは重なっている 2 人だけ。 既に居る `foo-bar 360878` は動かさない
+    const { 図 } = 組む(記法("state", ぶつかる3人));
+    const 先に居た = 図.nodes.find((n) => n.title === "foo-bar 360878");
+    expect(先に居た?.id).toBe("foo-bar-360878");
+  });
+
+  it("ぶつかった時の付け方も書き順に依らない", () => {
+    const idの表 = (actors: string[]): Record<string, string> => {
+      const { 図 } = 組む(記法("state", actors));
+      return Object.fromEntries(図.nodes.map((n) => [n.title, n.id]));
+    };
+    expect(idの表(ぶつかる3人)).toEqual(idの表([...ぶつかる3人].reverse()));
+  });
+});
+
+describe("枠の名札も控えた相手だけ戻す (Round 1 r1-f4)", () => {
+  it("後から足された枠の名札を書き換えない", () => {
+    const 図録 = {
+      badge: {
+        id: "badge",
+        topic: "見本",
+        // 作り替えた名前と同じ名札を持つ枠
+        lanes: [{ id: "l", x: 0, width: 200, label: "Foo Bar 13df66" }],
+        nodes: [{ id: "mark", lane: "l", stack: 0, kind: "card" as const, title: "印" }],
+        edges: [],
+        states: [],
+        phases: [],
+      },
+    };
+    const 図 = textDslToDiagram(
+      記法("swimlane", [...衝突する2人, "見本1: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']),
+      { partsCatalog: 図録 },
+    );
+    const 見本の枠 = 図.lanes.find((l) => l.id.includes("__l"));
+    expect(見本の枠, "見本の枠が無い").toBeDefined();
+    expect(見本の枠!.label, "見本の枠の名札を書き換えている").toBe("Foo Bar 13df66");
+  });
+});
+
