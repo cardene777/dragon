@@ -219,6 +219,17 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     expect(該当[0]!.message).toContain("位置 (相対)");
   });
 
+  it("種類 / 枠 / 積む順 / 色番号 も伝える (Round 3)", () => {
+    const 出た = 知らせを集める(
+      記法(["Core", 'Idea1:\n      kind: service\n      lane: l\n      stack: 2\n      色: "#ff0000"']),
+    );
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    for (const 欄 of ["種類", "枠の指定", "積む順", "色番号"]) {
+      expect(該当[0]!.message, `${欄} を伝えていない`).toContain(欄);
+    }
+  });
+
   it("行 (rows) も伝える", () => {
     const 出た = 知らせを集める(記法(["Core", 'Idea1: { rows: ["件数: 3"] }']));
     const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
@@ -295,6 +306,17 @@ describe("見本 (parts) を重ねた登場人物 (Round 1 / 2)", () => {
       出た.filter((n) => n.message.includes("同じ id")),
       "見本を同じ id の衝突として数えている",
     ).toEqual([]);
+  });
+
+  it("見本しか居ない記法で矢印を書いても伝える (Round 3)", () => {
+    // 早期 return より後ろで伝えると、 この形で矢印が黙って消える
+    const 出た: CompileNotice[] = [];
+    textDslToDiagram(記法(["見本1: trophy"], `\nflow:\n  - 見本1 -> 見本1: "x"\n`), {
+      onNotice: (n) => 出た.push(n),
+      partsCatalog: 見本の図録,
+    });
+    const 該当 = 出た.filter((n) => n.kind === "chart-edge-dropped");
+    expect(該当, "矢印が黙って消えている").toHaveLength(1);
   });
 
   it("見本しか居ない記法では放射の箱も枠も作らない (Round 2)", () => {

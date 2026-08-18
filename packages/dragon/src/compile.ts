@@ -3749,6 +3749,68 @@ function compileC4(doc: DslDocument): CdlDiagram {
  *
  * 絵は変わる (3 列の箱 → 中心から放射)。 破壊的変更として `CHANGELOG` に記録している。
  */
+/**
+ * 1 箱で描く放射が **描ける欄**。 これ以外は書いても出ない (#1177 Round 3)。
+ *
+ * 数え上げは 3 度直した。 副題 / 値 / 行 → 位置 / 大きさ → 種類 / 枠 / 積む順 …と、 見落とした
+ * 欄が review のたびに出た。 数え漏らしても検査は通ってしまう = 「書いたのに出ない」 が黙って
+ * 残る形が繰り返し発生した。
+ *
+ * そこで **`DslActor` の全ての欄を、 描ける側か描けない側のどちらかに必ず割り当てる**。
+ * 欄が増えた時に両方へ入れ忘れると型検査が落ちるので、 「描けるのか描けないのか」 を必ず
+ * 判断することになる (`rules/quality.md § 多層 SSOT 経路の全 registration 保証` と同じ形)。
+ */
+type 放射で描ける欄 =
+  /** 中心の名前 / 枝の名前になる */
+  | "name"
+  /** 枝の色 (`MindBranchNode.tone`)。 中心は持てないので `描けない欄` が別に見る */
+  | "tone"
+  /** 見本は放射に載せず、 見本の中身だけを描く (別経路で伝える) */
+  | "partId"
+  /** 種類を書いたかどうかの印。 `kind` と対で見るので単独では扱わない */
+  | "kindWritten"
+  /** 本文の行番号。 知らせに載せるために使う */
+  | "pos";
+
+/** 放射では描けない欄。 書かれていたら伝える */
+type 放射で描けない欄 =
+  | "kind"
+  | "subtitle"
+  | "eyebrow"
+  | "value"
+  | "rows"
+  | "lane"
+  | "stack"
+  | "initial"
+  | "final"
+  | "colorHex"
+  | "stateOverride"
+  | "posX"
+  | "posY"
+  | "posW"
+  | "posH"
+  | "scale"
+  | "scaleKeys"
+  | "posRel"
+  | "nodes"
+  | "layoutPos";
+
+/** 引数が `never` でなければ型検査が落ちる */
+type 空であること<T extends never> = T;
+
+/** `DslActor` に割り当て漏れの欄があると落ちる */
+export type _放射の欄を覆えている = 空であること<
+  Exclude<keyof DslActor, 放射で描ける欄 | 放射で描けない欄>
+>;
+
+/** `DslActor` に無い欄を割り当てていると落ちる */
+export type _放射の欄に余りがない = 空であること<
+  Exclude<放射で描ける欄 | 放射で描けない欄, keyof DslActor>
+>;
+
+/** 描ける側と描けない側が重なっていると落ちる */
+export type _放射の欄が重なっていない = 空であること<Extract<放射で描ける欄, 放射で描けない欄>>;
+
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
@@ -3774,6 +3836,19 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     }
     見本でない.push(a);
   }
+  // 矢印は描けない。 書かれていたら伝える。
+  //
+  // **早期 return より前に出す** (Round 3 の指摘)。 後ろに置くと、 見本しか居ない記法で
+  // 矢印を書いた時に黙って消える
+  if (doc.flow.length > 0) {
+    伝える(
+      "chart-edge-dropped",
+      doc.flow[0]?.from ?? "",
+      `type: mind では矢印を描けません (${doc.flow.length} 本を無視しました)。 枝は全て中心の直下に置きます。 親子を矢印で書くなら type: tree を使ってください`,
+      doc.flow[0]?.pos?.line ?? 0,
+    );
+  }
+
   // 放射に載る登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096)。
   // **枠を作る前に見る** = 見本しか居ない記法で作ると、 見本だけが描かれた図に空の枠が残る
   if (見本でない.length === 0) return b.build();
@@ -3804,14 +3879,26 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   // 欄は伝える = 箱ごとに描いていた頃は載っていた欄で、 黙って消すと「書いたのに出ない」 が残る
   const 描けない欄 = (a: DslActor): string[] => {
     const out: string[] = [];
+    if (a.kind !== undefined && a.kindWritten) out.push("種類");
     if (a.subtitle !== undefined) out.push("副題");
     if (a.eyebrow !== undefined) out.push("上の小見出し");
     if (a.value !== undefined) out.push("値");
     if (a.rows !== undefined) out.push("行");
+    if (a.lane !== undefined) out.push("枠の指定");
+    if (a.stack !== undefined) out.push("積む順");
+    if (a.initial === true || a.final === true) out.push("始まり / 終わり の印");
+    if (a.colorHex !== undefined) out.push("色番号");
     // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い
     if (a.posX !== undefined || a.posY !== undefined) out.push("位置 (座標)");
     if (a.posW !== undefined || a.posH !== undefined) out.push("大きさ");
     if (a.posRel !== undefined) out.push("位置 (相対)");
+    if (a.layoutPos !== undefined) out.push("配置のずらし");
+    if (a.nodes !== undefined) out.push("中の箱ごとの指定");
+    // **ここから下は見本 (`parts`) を書いた時にしか付かない欄**。 見本は上で全部外しているので
+    // この関数には届かない = 到達しない分岐として残す。 記法の側で見本以外にも書けるように
+    // なった時に、 黙って落ちないための受け皿
+    if (a.scale !== undefined || a.scaleKeys !== undefined) out.push("倍率");
+    if (a.stateOverride !== undefined) out.push("状態の上書き");
     return out;
   };
   const 消えた欄 = new Map<string, string[]>();
@@ -3850,16 +3937,6 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
       "chart-value-unreadable",
       [...消えた欄.keys()][0]!,
       `type: mind は名前と枝の色しか描けません (描かない欄: ${一覧})。 これらを描くなら type: tree か type: flow を使ってください`,
-    );
-  }
-
-  // 矢印は描けない。 書かれていたら伝える
-  if (doc.flow.length > 0) {
-    伝える(
-      "chart-edge-dropped",
-      doc.flow[0]?.from ?? "",
-      `type: mind では矢印を描けません (${doc.flow.length} 本を無視しました)。 枝は全て中心の直下に置きます。 親子を矢印で書くなら type: tree を使ってください`,
-      doc.flow[0]?.pos?.line ?? 0,
     );
   }
 
