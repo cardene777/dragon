@@ -363,7 +363,12 @@ function 素のデータに写す(
       // | `NaN` | 数の合計が `NaN` になり、 上限も終わりも判定できず読み続ける |
       //
       // `ToLength` と同じく 0 へ丸め、 0 以上 2^53-1 以下に収める。
-      const 生の長さ = Number((v as unknown[]).length);
+      //
+      // **数に直すのは単項 `+`** (Round 8 の指摘)。 `Number()` は `BigInt` を通してしまうが、
+      // 仕様の `ToNumber` は `TypeError` を投げる = `Array.from({ length: 2n })` は投げる。
+      // 単項 `+` は `ToNumber` そのものなので、 投げる形も含めて元の挙動と揃う (投げた分は
+      // 下の `catch` が検査の誤りに変える)。
+      const 生の長さ = +(v as unknown[]).length;
       const 長さ = Number.isNaN(生の長さ)
         ? 0
         : Math.min(Math.max(Math.trunc(生の長さ), 0), Number.MAX_SAFE_INTEGER);

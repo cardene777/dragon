@@ -341,6 +341,22 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(添字を読んだ, "読み続けている").toBe(0);
   }, 20_000);
 
+  it("長さが BigInt の配列は誤りとして返す (Round 8)", () => {
+    // 仕様の `ToNumber` は `BigInt` で `TypeError` を投げる = `Array.from({ length: 2n })` は
+    // 投げる。 `Number()` は通してしまうため、 単項 `+` を使って元の挙動と揃える
+    const bigint長 = new Proxy(["a", "b", "c"] as unknown[], {
+      get(t, k, r) {
+        if (k === "length") return 2n;
+        return Reflect.get(t, k, r);
+      },
+    });
+    const r = validateDragonJson(図の素({ 使わない項目: bigint長 }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toBe("入力を読み取れない");
+    expect(r.errors[0]?.hint).toContain("BigInt");
+  });
+
   it("長さが負の配列も空として扱い、 数の残りを増やさない (Round 7)", () => {
     const 負を作る = (長さ: number): unknown[] =>
       new Proxy(["a"] as unknown[], {
