@@ -281,6 +281,27 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(Object.keys(写した状態).length).toBe(100_001);
   }, 30_000);
 
+  it("巨大な配列を、 添字を並べる前に長さで止める (Round 6)", () => {
+    // 添字を文字の並びとして作ると、 上限を見る前にその並びを作ってしまう
+    // (Round 6 の実測 = `new Array(5_000_001)` で 500 万個の添字を作ろうとした)
+    const 巨大 = new Array(5_000_001);
+    const r = validateDragonJson(図の素({ 使わない項目: 巨大 }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toContain("項目が多すぎる");
+    expect(r.errors[0]?.path).toBe("$.使わない項目");
+  }, 30_000);
+
+  it("普通の大きさの配列は通る", () => {
+    const 並び = Array.from({ length: 1000 }, (_, i) => i);
+    const r = validateDragonJson(図の素({ 使わない項目: 並び }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const 写し = (r.data as unknown as Record<string, number[]>).使わない項目;
+    expect(写し.length).toBe(1000);
+    expect(写し[999]).toBe(999);
+  });
+
   it("名前だけを大量に並べる形も数の上限で止める (Round 5)", () => {
     // 値を読む前に名前の一覧を作るため、 値だけを数えると「名前が多い段を深く降りる」 形で
     // 上限を見る前に資源を使い切れる (Round 5 の実測 = 値を 63 回しか読まない間に 126 万個)
