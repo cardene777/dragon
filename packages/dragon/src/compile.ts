@@ -9,7 +9,7 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslActor, DslDocument, DslPhase } from "./types";
+import type { DslActor, DslDocument, DslPhase, PresetType } from "./types";
 import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
@@ -102,6 +102,13 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 化ける / 依存が切れる (Round 1 で実測)。
   doc = canonicalizeFlowActors(doc);
 
+  // 知らせは **落とす前の矢印** を見る (#1219)。 落とした後を渡すと、 図が壊れないように
+  // 外した矢印が書いた人に届かなくなる
+  const 書いたまま = doc;
+  // 解決できない矢印を組み立てから外す (#1219)。 残すと、 存在しない箱や枠を指す図ができて
+  // 描画の直前で落ちる (実測 = 8 図種)
+  doc = dropUnresolvedFlow(doc);
+
   let diagram: CdlDiagram;
   switch (doc.type) {
     case "sequence":
@@ -175,7 +182,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 居ないかは記述だけで決まるので 1 か所で見る
   reportMissingFocusTargets(doc, opts?.onNotice);
   // 矢印が指す名前が actors に居るかを確かめる。 図種ごとの解決より前に、 記述だけで決まる
-  reportMissingFlowActors(doc, opts?.onNotice);
+  reportMissingFlowActors(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -352,6 +359,60 @@ function canonicalizeFlowActors(doc: DslDocument): DslDocument {
     return { ...s, from, to };
   });
   return 変えた ? { ...doc, flow } : doc;
+}
+
+/**
+ * 図種ごとの、 解決できない矢印 (`actors` に無い名前を指した矢印) の扱い (#1219)。
+ *
+ * `#1209` は動きを書いた 2 経路だけを塞いだ。 残る経路では **知らせは出るのに図まで壊れる**
+ * 状態だった (実測 = 8 図種が `compile` の `unknown-ref` で落ちる)。
+ *
+ * | 扱い | 中身 | どの図種 |
+ * |---|---|---|
+ * | 中央で落とす | 組み立てに渡す前に矢印を外す | 登場人物ごとに箱を作る 9 図種 |
+ * | 図種に任せる | そのまま渡す | 図全体を 1 箱で描く 9 図種 |
+ *
+ * **1 箱で描く図種を中央で落とさない**。 これらは矢印そのものを描かず、 書かれた本数を数えて
+ * 独自の知らせを出す (`chart-edge-dropped` / 木の親子の知らせ)。 中央で外すと本数が変わり、
+ * 全部が解決できない図では知らせごと消える。
+ *
+ * `Record<PresetType, ...>` にしてあるので、 図種を足した時にどちらかを決めないと型検査が
+ * 落ちる (`rules/quality.md § 多層 SSOT 経路の全 registration 保証` と同じ形)。
+ */
+const 解決できない矢印の扱い: Record<PresetType, "中央で落とす" | "図種に任せる"> = {
+  // 登場人物ごとに箱を作る = 矢印の端が箱の id になるため、 解決できないと壊れた図になる
+  sequence: "中央で落とす",
+  flow: "中央で落とす",
+  swimlane: "中央で落とす",
+  er: "中央で落とす",
+  state: "中央で落とす",
+  topology: "中央で落とす",
+  solidity: "中央で落とす",
+  class: "中央で落とす",
+  c4: "中央で落とす",
+  // 図全体を 1 箱で描く = 矢印を描かず、 本数を数えて独自の知らせを出す
+  gantt: "図種に任せる",
+  pie: "図種に任せる",
+  bar: "図種に任せる",
+  line: "図種に任せる",
+  funnel: "図種に任せる",
+  tree: "図種に任せる",
+  journey: "図種に任せる",
+  quadrant: "図種に任せる",
+  mind: "図種に任せる",
+};
+
+/**
+ * 解決できない矢印を落とした `flow` を返す (#1219)。
+ *
+ * 落とすのは **組み立てに渡す分だけ**。 知らせ (`reportMissingFlowActors`) は元の `flow` を
+ * 見るので、 落とした矢印も書いた人に届く。
+ */
+function dropUnresolvedFlow(doc: DslDocument): DslDocument {
+  if (解決できない矢印の扱い[doc.type] === "図種に任せる") return doc;
+  const 表 = actorRefTable(doc);
+  const flow = doc.flow.filter((s) => 表.has(s.from) && 表.has(s.to));
+  return flow.length === doc.flow.length ? doc : { ...doc, flow };
 }
 
 /**
@@ -4549,6 +4610,25 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       ...(s.cardinality ? { cardinality: s.cardinality } : {}),
       ...(s.labelOffsetX !== undefined ? { labelOffsetX: s.labelOffsetX } : {}),
       ...(s.labelOffsetY !== undefined ? { labelOffsetY: s.labelOffsetY } : {}),
+    });
+  }
+
+  // **箱が 1 つも置けなかった時は、 登場人物をそのまま置く** (#1219)。
+  //
+  // この図種は矢印の端から箱を作るため、 矢印が 1 本も無いと箱が 0 件になり `compile` が
+  // 落ちる (実測 = 矢印を書かない図は本 Issue の前から落ちていた)。 解決できない矢印を
+  // 外すと同じ形になるので、 受け皿を置く。
+  //
+  // **1 つでも置けた時は触らない**。 矢印に出てこない登場人物にも箱を置くと、 今まで枠だけ
+  // だった所に箱が増えて既存の図の見た目が変わる (それを変えるかは別の判断)。
+  if (placedNodes.size === 0) {
+    doc.actors.forEach((a, i) => {
+      swim.node(slugify(a.name) || `n${i}`, {
+        lane: swim.laneId(a.name),
+        stack: 0,
+        kind: a.kind ?? "actor",
+        title: a.name,
+      });
     });
   }
   return swim.build();
