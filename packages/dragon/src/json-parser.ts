@@ -43,8 +43,8 @@ export interface DragonJson {
    * `{名前}` を箱の文字に置くと、ここに書いた値が描画側で置き換わる。 名前は英数字と `_`
    * だけ (描画側が置き換える時に見る範囲と揃える)。
    *
-   * **段で動かす指定 (`tween` / `set`) は JSON 経路にまだ無い** (`#1186`)。 ここに書けるのは
-   * 初期値までで、値は段を進めても変わらない。
+   * ここに書けるのは初期値まで。 段で動かすのは `animation[].tween` / `animation[].set`
+   * (`#1186` で追加、記法の `tween:` / `set:` と同じ)。
    */
   states?: Record<string, number | string>;
   /**
@@ -152,6 +152,19 @@ export interface JsonPhase {
   body?: string;
   /** badge label */
   badge?: string;
+  /**
+   * 段の中で値を動かす (#1186)。 記法の `tween: name 100 -> 90` と同じ。
+   *
+   * 足すまで JSON の入口は `states:` で初期値を書けても **動かす手段が無かった** ため、
+   * 同じ図を記法で書くと動き JSON で書くと静止する状態だった (#1181 で状態を足した時の残り)。
+   */
+  tween?: Record<string, readonly [number, number]>;
+  /**
+   * 段の切替で値を差し替える (#1186)。 記法の `set: name value` と同じ。
+   *
+   * `tween` が段の中を補間するのに対し、こちらは段の切替時に 1 度だけ変える。
+   */
+  set?: Record<string, number | string>;
 }
 
 /**
@@ -303,6 +316,7 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
         if (typeof po.step !== "string" || po.step.length === 0) {
           errors.push({ path: `$.animation[${i}].step`, message: "phase.step must be a non-empty string" });
         }
+        validatePhaseMotion(po, i, errors);
       });
     }
   }
@@ -310,6 +324,64 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
   validateValues(j.values, errors);
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, data: j as unknown as DragonJson };
+}
+
+/**
+ * 段の中で値を動かす指定を見る (#1186)。
+ *
+ * 状態名の記法は `states:` と同じ判定を使う。 参照先はこの JSON の `states` だけでは決めない。
+ * 見本や preset が持つ状態を動かす指定もあるためで、記法側と同じく compile 後の図で解決する。
+ */
+function validatePhaseMotion(
+  po: Record<string, unknown>,
+  i: number,
+  errors: JsonDslError[],
+): void {
+  if (po.tween !== undefined) {
+    if (!po.tween || typeof po.tween !== "object" || Array.isArray(po.tween)) {
+      errors.push({
+        path: `$.animation[${i}].tween`,
+        message: "tween must be a plain object of state -> [from, to]",
+      });
+    } else {
+      for (const [name, range] of Object.entries(po.tween as Record<string, unknown>)) {
+        const path = `$.animation[${i}].tween.${name}`;
+        if (!isValueName(name)) errors.push({ path, ...valueNameIssue(name) });
+        if (!Array.isArray(range) || range.length !== 2) {
+          errors.push({ path, message: "tween value must be [from, to]" });
+          continue;
+        }
+        // 補間は数どうしでしか成り立たない。 文字列を通すと描画側が数として読めず
+        // 段の途中が壊れる (記法側も数だけを受ける)
+        for (const v of range) {
+          if (typeof v !== "number" || !Number.isFinite(v)) {
+            errors.push({ path, message: "tween value must be finite numbers", hint: `got ${typeof v}` });
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (po.set !== undefined) {
+    if (!po.set || typeof po.set !== "object" || Array.isArray(po.set)) {
+      errors.push({
+        path: `$.animation[${i}].set`,
+        message: "set must be a plain object of state -> value",
+      });
+    } else {
+      for (const [name, value] of Object.entries(po.set as Record<string, unknown>)) {
+        const path = `$.animation[${i}].set.${name}`;
+        if (!isValueName(name)) errors.push({ path, ...valueNameIssue(name) });
+        const t = typeof value;
+        if (t !== "number" && t !== "string") {
+          errors.push({ path, message: "set value must be a number or string", hint: `got ${t}` });
+        } else if (t === "number" && !Number.isFinite(value as number)) {
+          errors.push({ path, message: "set value must be a finite number" });
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -438,6 +510,16 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     highlight: p.focus,
     body: p.body,
     badge: p.badge,
+    // 段の中で動かす分 (#1186)。 記法側の `tweens` / `sets` と同じ形に写す。
+    // 空の配列を置かないのは、記法側が「無ければ field ごと持たない」 形だから
+    ...(p.tween && Object.keys(p.tween).length > 0
+      ? {
+          tweens: Object.entries(p.tween).map(([state, [from, to]]) => ({ state, from, to, pos: p0 })),
+        }
+      : {}),
+    ...(p.set && Object.keys(p.set).length > 0
+      ? { sets: Object.entries(p.set).map(([state, value]) => ({ state, value, pos: p0 })) }
+      : {}),
     pos: p0,
   }));
   const animate: DslAnimate | undefined =
