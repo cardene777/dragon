@@ -471,6 +471,34 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
     expect(絵文字のid("swimlane", "actor-0")).toBe("lane-0");
   });
 
+  it("動きを書いた図では cdl の逃げ道を通らないので触らない (Round 4)", () => {
+    // 動きがあると組み立てが別経路になり、 id は dragon 側の規則で作られる。
+    // 逃げ先を鍵に入れたままだと、 重なっていない図の id を変える
+    const 動きつき = (type: string, 相手: string): string | undefined => {
+      const src = [
+        'title: "t"',
+        `type: ${type}`,
+        "",
+        "actors:",
+        "  - 😀",
+        `  - ${相手}`,
+        "",
+        "flow:",
+        `  - 😀 -> ${相手}: "x"`,
+        "",
+        "animation:",
+        '  - step: "s" 1.0s',
+        `    focus: [${相手}]`,
+        "",
+      ].join("\n");
+      const { 図 } = { 図: textDslToDiagram(src) };
+      return 図.lanes.find((l) => l.label === "😀")?.id ?? 図.nodes.find((n) => n.title === "😀")?.id;
+    };
+    expect(動きつき("sequence", "actor-0"), "sequence で作り替えている").toBe("n");
+    expect(動きつき("solidity", "actor-0"), "solidity で作り替えている").toBe("n");
+    expect(動きつき("swimlane", "lane-0"), "swimlane で作り替えている").toBe("lane-n");
+  });
+
   it("cdl の逃げ道を通らない図種はどちらでも触らない", () => {
     // これらは dragon 側の逃げ先 (`n`) に落ちるので、 cdl の逃げ先とは重ならない
     for (const type of ["flow", "er", "state", "topology", "class", "c4"]) {

@@ -501,6 +501,9 @@ function cdl側のslug(s: string): string {
  *
  * 空配列は「cdl の逃げ道を通らない」 を表す。 1 箱で描く図種はここに来ない (作り替え自体を
  * しない) が、 図種を足した時に決め忘れないよう全種を並べる。
+ *
+ * **この表が効くのは動きを書いていない図だけ** (Round 4 の指摘)。 動きを書くと組み立てが別経路に
+ * 切り替わり、 id は dragon 側の規則で作られる = cdl の逃げ道を通らない。 使う側で条件を見る。
  */
 const 空の形の逃げ先: Record<PresetType, string[]> = {
   sequence: ["actor-"],
@@ -568,7 +571,14 @@ function disambiguateActorIds(
   const 形ごとの名前 = new Map<string, Set<string>>();
   const 位置 = new Map<string, number>();
   残す.forEach((a, i) => 位置.set(a.name, i));
-  const 逃げ先の頭 = 空の形の逃げ先[doc.type];
+  // **動きを書いた図では cdl の逃げ道を通らない** (Round 4 の指摘)。 動きがあると組み立てが
+  // 別経路 (`compileGenericWithAnimate` / `compileSequenceWithAnimate`) に切り替わり、 id は
+  // dragon 側の規則で作られる (実測 = `😀` は 枠 `n` / `lane-n` になり、 位置を使わない)。
+  //
+  // 逃げ先を鍵に入れたままにすると、 その経路で **重なっていない図の id を変える**。
+  // dragon 側の規則で作る分は、 1 つ目の鍵 (`slugify`) が既に見ている。
+  const 動きを書いた = (doc.animate?.phases.length ?? 0) > 0;
+  const 逃げ先の頭 = 動きを書いた ? [] : 空の形の逃げ先[doc.type];
   for (const a of 残す) {
     for (const 形 of idになる形(a.name, 位置.get(a.name), 逃げ先の頭)) {
       const 群 = 形ごとの名前.get(形) ?? new Set<string>();
