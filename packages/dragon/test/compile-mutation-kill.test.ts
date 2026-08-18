@@ -299,21 +299,30 @@ describe("compileState", () => {
 });
 
 // ── compileMind: 3 lane + root 中央配置 + leaf 左右分配 + 暗黙 edge ──
+// #1177 で `card` の 3 列から `mind-map` 種別 (図全体を 1 箱) に寄せた。 以前の検査は
+// 枠の名前 (`mind-left` / `mind-center` / `mind-right`) と暗黙の矢印を見ていたが、
+// どちらも作らなくなったため中身を payload の検査に置き換えている
 describe("compileMind", () => {
-  it("root は mind-center / w 320、 leaf は左右 / w 280", () => {
+  it("箱は 1 つ / kind は mind-map / 枠は chart", () => {
     const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
-    expect(node(d, "root").lane).toBe("mind-center");
-    expect(node(d, "root").w).toBe(320);
-    expect(node(d, "l1").lane).toBe("mind-left");
-    expect(node(d, "l1").w).toBe(280);
-    expect(node(d, "l2").lane).toBe("mind-right");
+    expect(d.nodes).toHaveLength(1);
+    expect(d.nodes[0]!.kind).toBe("mind-map");
+    expect(d.nodes[0]!.lane).toBe("chart");
+    expect(d.lanes.map((l) => l.id)).toEqual(["chart"]);
   });
-  it("flow 未宣言なら root → 各 leaf の暗黙 edge を生成 ({from,to} 完全一致)", () => {
+  it("中心は 1 つ目の登場人物、 枝は残り全部で親は中心", () => {
     const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
-    expect(d.edges.map((e) => ({ from: e.from, to: e.to }))).toEqual([
-      { from: "root", to: "l1" },
-      { from: "root", to: "l2" },
+    const m = d.nodes[0]!.mindData!;
+    expect(m.rootId).toBe("root");
+    expect(m.rootTitle).toBe("Root");
+    expect(m.branches.map((b) => ({ id: b.id, title: b.title, parent: b.parent }))).toEqual([
+      { id: "l1", title: "L1", parent: "root" },
+      { id: "l2", title: "L2", parent: "root" },
     ]);
+  });
+  it("矢印は作らない", () => {
+    const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
+    expect(d.edges).toEqual([]);
   });
 });
 
@@ -603,17 +612,27 @@ describe("applyCanvasPivotPositions sub-node override", () => {
   });
 });
 
-// ── compileMind: rootStack と leaf 左右分配の詳細 ──
+// ── compileMind 詳細: 枝の並びと id の重なり (#1177 で 3 列の配置から payload に変わった) ──
 describe("compileMind 詳細", () => {
-  it("rootStack は floor(leafCount / 2) (4 leaf → 2)", () => {
+  it("枝は書いた順のまま並ぶ", () => {
     const d = compile("mind", { actors: [actor("R"), actor("L1"), actor("L2"), actor("L3"), actor("L4")], flow: [] });
-    expect(node(d, "r").stack).toBe(2);
+    expect(d.nodes[0]!.mindData!.branches.map((b) => b.title)).toEqual(["L1", "L2", "L3", "L4"]);
   });
-  it("leaf は i%2 で left / right 交互分配", () => {
-    const d = compile("mind", { actors: [actor("R"), actor("L1"), actor("L2"), actor("L3")], flow: [] });
-    expect(node(d, "l1").lane).toBe("mind-left");
-    expect(node(d, "l2").lane).toBe("mind-right");
-    expect(node(d, "l3").lane).toBe("mind-left");
+  it("中心と同じ id になる枝は載せない (自分を親にする形を作らない)", () => {
+    const d = compile("mind", { actors: [actor("R"), actor("R"), actor("L1")], flow: [] });
+    const m = d.nodes[0]!.mindData!;
+    expect(m.rootId).toBe("r");
+    expect(m.branches.map((b) => b.title)).toEqual(["L1"]);
+  });
+  it("登場人物が 1 人なら枝が無い箱を作る", () => {
+    const d = compile("mind", { actors: [actor("R")], flow: [] });
+    expect(d.nodes).toHaveLength(1);
+    expect(d.nodes[0]!.mindData!.branches).toEqual([]);
+  });
+  it("登場人物が 0 人なら箱も枠も作らない", () => {
+    const d = compile("mind", { actors: [], flow: [] });
+    expect(d.nodes).toEqual([]);
+    expect(d.lanes).toEqual([]);
   });
 });
 
@@ -748,23 +767,24 @@ describe("injectPhasesFallback 網羅", () => {
   }
 });
 
-// ── compileMind lane 座標 (LEAF_W 280 / ROOT_W 320 / gap 80) ──
-describe("compileMind lane 座標", () => {
-  it("枝が 2 本なら lane x = left 0 / center 360 / right 760", () => {
-    // 枝 2 本で左右とも中身が入る。 変更前は登場人物 2 人 (枝 1 本) で見ていたが、 その形では
-    // 右の枠が中身なしで残っていた (#1096)。 中身のある枠だけ作るようにしたので、 3 枠が
-    // 揃う形で座標を固定する
-    const d = compile("mind", { actors: [actor("R"), actor("L1"), actor("R1")], flow: [] });
-    expect(lane(d, "mind-left").x).toBe(0);
-    expect(lane(d, "mind-center").x).toBe(360);
-    expect(lane(d, "mind-right").x).toBe(760);
+// ── compileMind の枠と箱の大きさ (#1177 で 3 枠から 1 枠になった) ──
+describe("compileMind 枠と大きさ", () => {
+  it("枠は枝の数によらず 1 つ", () => {
+    // 変更前は枝の数で 2 枠 / 3 枠が切り替わり、 中身の無い枠が残る形を避けていた (#1096)。
+    // 図全体を 1 箱で描くので、 その切り替えごと無くなった
+    for (const n of [1, 2, 3, 6]) {
+      const actors = [actor("R"), ...Array.from({ length: n }, (_, i) => actor(`L${i}`))];
+      const d = compile("mind", { actors, flow: [] });
+      expect(d.lanes.map((l) => l.id), `枝 ${n} 本`).toEqual(["chart"]);
+    }
   });
 
-  it("枝が 1 本なら右の枠を作らない", () => {
-    // 作ると中身の無い枠が残る (#1096)。 中央は左の枠の分だけ右に寄る
+  it("箱の大きさは他の 1 箱の図と同じ", () => {
     const d = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
-    expect(d.lanes.map((l) => l.id)).toEqual(["mind-left", "mind-center"]);
-    expect(lane(d, "mind-center").x).toBe(360);
+    // 木も 1 箱で描く種別で、 同じ寸法の定数を使う
+    const 木 = compile("tree", { actors: [actor("R"), actor("C")], flow: [step("R", "C", { label: "" })] });
+    expect(d.nodes[0]!.w).toBe(木.nodes[0]!.w);
+    expect(d.nodes[0]!.h).toBe(木.nodes[0]!.h);
   });
 });
 
@@ -2133,56 +2153,45 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
   });
 });
 
-describe("compileMind: 暗黙 edge と lane 構成", () => {
-  it("flow が空 かつ actor 2 個以上なら root から全 leaf に暗黙 edge", () => {
+describe("compileMind: 矢印の扱いと枠 (#1177)", () => {
+  it("矢印を書いていなければ 1 本も作らない", () => {
+    // 変更前は root から全 leaf に暗黙の矢印を作っていた。 枝の繋がりは payload が持つ
     const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
-    expect(d.edges.length).toBe(2);
-    expect(d.edges.every((e) => e.from === "root")).toBe(true);
-    expect(d.edges.map((e) => e.to).sort()).toEqual(["l1", "l2"]);
+    expect(d.edges).toEqual([]);
+    expect(d.nodes[0]!.mindData!.branches.map((b) => b.parent)).toEqual(["root", "root"]);
   });
 
-  it("暗黙 edge の label は空文字", () => {
-    const d = compile("mind", { actors: [actor("Root"), actor("L1")], flow: [] });
-    expect(d.edges[0]!.label).toBe("");
+  it("矢印を書いても 1 本も作らず、 書いたことを伝える", () => {
+    // 黙って捨てると「書いたのに効かない」 が残る (`type: journey` / `type: quadrant` と同じ)
+    const 知らせ: Array<{ kind: string; message: string }> = [];
+    const d = compileToCdl(
+      makeDoc("mind", {
+        actors: [actor("Root"), actor("L1"), actor("L2")],
+        flow: [step("Root", "L1", { label: "x" })],
+      }),
+      { onNotice: (n) => 知らせ.push({ kind: n.kind, message: n.message }) },
+    );
+    expect(d.edges).toEqual([]);
+    expect(知らせ.filter((n) => n.kind === "chart-edge-dropped")).toHaveLength(1);
+    expect(知らせ[0]!.message).toContain("type: mind では矢印を描けません");
+    expect(知らせ[0]!.message).toContain("type: tree");
   });
 
-  it("flow がある場合は暗黙 edge を作らず flow に従う", () => {
-    const d = compile("mind", {
-      actors: [actor("Root"), actor("L1"), actor("L2")],
-      flow: [step("Root", "L1", { label: "x" })],
+  it("矢印を書いていなければ知らせも出さない", () => {
+    const 知らせ: string[] = [];
+    compileToCdl(makeDoc("mind", { actors: [actor("Root"), actor("L1")], flow: [] }), {
+      onNotice: (n) => 知らせ.push(n.kind),
     });
-    expect(d.edges.length).toBe(1);
-    expect(d.edges[0]!.label).toBe("x");
+    expect(知らせ.filter((k) => k === "chart-edge-dropped")).toEqual([]);
   });
 
-  it("actor 1 個 (root のみ) なら暗黙 edge を作らない (length > 1 条件)", () => {
-    const d = compile("mind", { actors: [actor("Root")], flow: [] });
-    expect(d.edges.length).toBe(0);
-  });
-
-  it("actor 0 個なら早期 return で node も空", () => {
-    const d = compile("mind", { actors: [], flow: [] });
-    expect(d.nodes.length).toBe(0);
-  });
-
-  it("mind-left / mind-right lane が生成され label は空", () => {
+  it("枠は 1 つで、 見出しは図の題", () => {
     const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
-    expect(d.lanes.some((l) => l.id === "mind-left")).toBe(true);
-    expect(d.lanes.some((l) => l.id === "mind-right")).toBe(true);
-    expect(lane(d, "mind-left").label).toBe("");
-  });
-
-  it("mind-left は x 0、 mind-right はその右側に配置", () => {
-    // 枝 2 本にする = 1 本では右の枠を作らない (作ると中身が無い、 #1096)
-    const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("R1")], flow: [] });
-    expect(lane(d, "mind-left").x).toBe(0);
-    expect(lane(d, "mind-right").x!).toBeGreaterThan(lane(d, "mind-left").x!);
+    expect(d.lanes).toHaveLength(1);
+    expect(d.lanes[0]!.id).toBe("chart");
+    expect(d.lanes[0]!.label).toBe(d.topic);
   });
 });
-
-// ── 第 4 弾 (f): mergePartsFromActors の fallback 経路 (共有 lane preset) と warn 分岐 ──
-// seq-like は lane 由来 exact set 経路を通るため、 matchesAliasSlug の prefix / step-anchor 分岐は
-// 共有 lane preset (flow / topology 等) でのみ実行される。 そちらから突く。
 
 describe("mergePartsFromActors: 共有 lane preset の slug fallback 経路", () => {
   const PART = (): CdlDiagram => ({

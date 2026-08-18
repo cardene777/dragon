@@ -287,7 +287,9 @@ flow:
    * 中心を狙って書くと縦列の幅の半分だけずれる (実測 = 200 と書いて 370 空いた)。
    * 置いてから測り直す経路が無いとこの図種だけ落ちる。
    */
-  const TYPES = ["sequence", "flow", "state", "er", "mind", "class", "topology", "c4"] as const;
+  // `mind` は #1177 で `mind-map` 種別 (図全体を 1 箱で描く) に寄せたため外した。 登場人物ごとの
+  // 箱が無く、 相対の位置を測る相手が居ない = `pie` / `gantt` / `journey` と同じ扱いになる
+  const TYPES = ["sequence", "flow", "state", "er", "class", "topology", "c4"] as const;
   for (const type of TYPES) {
     it(`${type}: 書いた間隔がそのまま空く`, () => {
       const b = boxesOf(`title: "t"

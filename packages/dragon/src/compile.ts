@@ -156,7 +156,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileC4(doc);
       break;
     case "mind":
-      diagram = compileMind(doc);
+      diagram = compileMind(doc, opts?.onNotice);
       break;
     default:
       // switch case で全 type を網羅済のため default は unreachable、 template expression で
@@ -2559,14 +2559,14 @@ const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
  * 持たないので、 段の `focus:` で名前を指しても引く先が無い。 `injectPhasesFallback` が
  * この一覧を使って「実在する名前ならその箱を光らせる」 に読み替える (#1076 / #1077)。
  *
- * **`mind-map` は記法から到達しない** (`#1174`)。 この種別を作っていたのは `compileRadial`
- * だけで、 `#1170` で消えた。 記法の `type: mind` は `compileMind` が `card` を 3 列に
- * 並べる別実装で、 `mind-map` にはならない。
+ * `mind-map` は一時期 **記法から到達しなかった** (`#1174`)。 この種別を作っていたのは
+ * `compileRadial` だけで `#1170` で消え、 記法の `type: mind` は `card` を 3 列に並べる
+ * 別実装だった。
  *
  * それでも一覧に残すのは、 ここが「1 箱で図全体を描く種別」 という **性質の一覧** だから。
- * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは今の
- * `compileMind` の実装による。 `compileMind` を `mind-map` に寄せる時 (`#1177`) に
- * 一覧へ戻す作業が要らない。
+ * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは当時の
+ * `compileMind` の実装によるものだった。 `#1177` で `compileMind` を `mind-map` に寄せたため、
+ * **今は記法からも到達する** (一覧へ戻す作業が要らなかったのはこのため)。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "chart-pie", "chart-line", "chart-bar",
@@ -3729,86 +3729,98 @@ function compileC4(doc: DslDocument): CdlDiagram {
  *
  * flow ... 宣言なしなら root → 各 leaf の暗黙 edge を自動生成、 宣言ありならそれを採用。
  */
-function compileMind(doc: DslDocument): CdlDiagram {
+/**
+ * 記法の `type: mind` を engine の `mind-map` 種別に寄せる (#1177)。
+ *
+ * 以前は `card` を 3 列 (`mind-left` / `mind-center` / `mind-right`) に並べる別実装で、
+ * engine の `mind-map` を使っていなかった。 そのため 2 つの穴があった。
+ *
+ * | 穴 | 中身 |
+ * |---|---|
+ * | 枝の親を見る規則が届かない | `ruleMindMapParentReference` は `kind === "mind-map"` かつ `mindData` を持つ node にしか当たらない |
+ * | `SINGLE_BOX_KINDS` の `mind-map` が到達しない | 一覧に載っているのに記法から辿り着けない項目として残る |
+ *
+ * **枝の親は書けない**。 記法の `actors` は「1 つ目が根、 残りが枝」 の並びで、 `parent` を
+ * 書く場所が無い。 全ての枝を根の直下に置く。 親子を矢印で書く形は `type: tree` が持っており、
+ * `mind` は簡便形として別に残す (Issue の 実装しない条件)。
+ *
+ * したがって **矢印は描けない**。 書かれていたら伝える = 黙って捨てると「書いたのに効かない」
+ * が残る (`type: journey` / `type: quadrant` と同じ扱い)。
+ *
+ * 絵は変わる (3 列の箱 → 中心から放射)。 破壊的変更として `CHANGELOG` に記録している。
+ */
+function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const LEAF_W = 280;
-  const ROOT_W = 320;
-  const GAP = 80;
+  const W = CHART_W_STD;
 
-  // 枝は左右に交互に置く。 中身のある枠だけ作る (#1096)。
-  //
-  // 3 枠を固定で作ると、 枝が 1 本の図で右の枠が中身なしで残る (実測 = 登場人物 2 人で
-  // `mind-right` が空)。 見る人には「何かが描かれ損ねた」 ようにしか見えない (`#1078` で
-  // `c4` を直したのと同じ欠陥)。
-  const 枝の数 = Math.max(0, doc.actors.length - 1);
-  const 左に置く数 = Math.ceil(枝の数 / 2);
-  const 右に置く数 = 枝の数 - 左に置く数;
-  const 左を使う = 左に置く数 > 0;
-  const 右を使う = 右に置く数 > 0;
-
-  // 登場人物が 0 人なら枠も作らない。 中央の枠を先に作ると、 中身の無い枠が 1 つ残る
-  // (実測 = `title` と `type` だけの本文で `mind-center` が空、 Round 1 review の指摘)
+  // 登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096 で決めた形)
   if (doc.actors.length === 0) return b.build();
 
-  // 使う枠だけ左から詰める。 飛ばした位置に隙間を残すと、 やはり「抜けている」 ように見える
-  let x = 0;
-  if (左を使う) {
-    b.lane("mind-left", { x, width: LEAF_W, label: "" });
-    x += LEAF_W + GAP;
+  b.lane("chart", { width: W + 64, label: doc.title });
+
+  const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
+    onNotice?.({ kind, actor: 名, line, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+
+  // **同じ slug になる名前を先に見る** (`type: tree` と同じ理由)。 違う名前が同じ id に潰れると、
+  // 枝が 1 本消えたり、 枝の親を見る規則が別の枝を指したりする
+  const slug別 = new Map<string, string[]>();
+  for (const a of doc.actors) {
+    const k = slugify(a.name);
+    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
   }
-  b.lane("mind-center", { x, width: ROOT_W, label: doc.title });
-  x += ROOT_W + GAP;
-  if (右を使う) {
-    b.lane("mind-right", { x, width: LEAF_W, label: "" });
+  for (const [k, 群] of slug別) {
+    if (群.length > 1) {
+      伝える(
+        "chart-value-unreadable",
+        群[0]!,
+        `type: mind で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`,
+      );
+    }
   }
 
   const root = doc.actors[0]!;
   const rootId = slugify(root.name) || "root";
-  const leafCount = doc.actors.length - 1;
-  const rootStack = Math.floor(leafCount / 2);
-  b.node(rootId, {
-    lane: "mind-center",
-    stack: rootStack,
-    kind: "card",
-    title: root.name,
-    w: ROOT_W,
-  });
 
-  const stackLeft = { v: 0 };
-  const stackRight = { v: 0 };
+  // 枝は根の直下。 根と同じ id になる枝は載せない = 自分を親にする形になり、 描けない
+  const branches: NonNullable<CdlDiagram["nodes"][number]["mindData"]>["branches"] = [];
+  const 使った = new Set<string>([rootId]);
   doc.actors.slice(1).forEach((a, i) => {
-    const isLeft = i % 2 === 0;
-    const lid = isLeft ? "mind-left" : "mind-right";
-    const counter = isLeft ? stackLeft : stackRight;
-    const nodeId = slugify(a.name) || `leaf-${i}`;
-    b.node(nodeId, {
-      lane: lid,
-      stack: counter.v,
-      kind: "card",
-      title: a.name,
-      w: LEAF_W,
-    });
-    counter.v += 1;
+    const id = slugify(a.name) || `leaf-${i}`;
+    if (使った.has(id)) {
+      伝える(
+        "chart-value-unreadable",
+        a.name,
+        `type: mind で ${a.name} が既にある id (${id}) と重なります (枝に載せません)`,
+        a.pos?.line ?? 0,
+      );
+      return;
+    }
+    使った.add(id);
+    // 枝は色を持てる (`MindBranchNode.tone`)。 中心は payload に色の欄が無いので載せられない
+    branches.push({ id, title: a.name, parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
   });
 
-  if (doc.flow.length === 0 && doc.actors.length > 1) {
-    doc.actors.slice(1).forEach((a) => {
-      const leafId = slugify(a.name);
-      b.edge(rootId, leafId, { label: "" });
-    });
-  } else {
-    for (const s of doc.flow) {
-      const fromId = slugify(s.from);
-      const toId = slugify(s.to);
-      b.edge(fromId, toId, {
-        label: s.label,
-        ...(s.sub ? { sub: s.sub } : {}),
-        ...(s.tone ? { tone: s.tone } : {}),
-        ...(s.style ? { style: s.style } : {}),
-      });
-    }
+  // 矢印は描けない。 書かれていたら伝える
+  if (doc.flow.length > 0) {
+    伝える(
+      "chart-edge-dropped",
+      doc.flow[0]?.from ?? "",
+      `type: mind では矢印を描けません (${doc.flow.length} 本を無視しました)。 枝は全て中心の直下に置きます。 親子を矢印で書くなら type: tree を使ってください`,
+      doc.flow[0]?.pos?.line ?? 0,
+    );
   }
 
+  b.node(`${slugify(doc.title) || "mind"}-chart`, {
+    lane: "chart",
+    stack: 0,
+    kind: "mind-map",
+    title: doc.title,
+    w: W,
+    h: CHART_H,
+    mindData: { rootId, rootTitle: root.name, branches },
+  });
   return b.build();
 }
 

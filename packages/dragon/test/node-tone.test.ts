@@ -49,8 +49,9 @@ const TYPES = [
 
 describe("登場人物の色が箱に届く", () => {
   for (const type of TYPES) {
-    // 円グラフとガントは図全体を 1 箱で描くので、 箱ごとの色を持たない。 下の専用 test で見る
-    if (type === "pie" || type === "gantt") continue;
+    // 円グラフ / ガント / 放射は図全体を 1 箱で描くので、 箱ごとの色を持たない。
+    // 放射は #1177 で `mind-map` 種別に寄せた時にこちら側へ移った (枝の色は下の専用 test で見る)
+    if (type === "pie" || type === "gantt" || type === "mind") continue;
     it(`${type} で色が載る`, () => {
       const diagram = build(type, `- Client: { kind: service, tone: error }`);
       // 「1 つ以上に載った」 では、 意図しない箱だけが染まっても通る。 対象の登場人物を
@@ -96,6 +97,37 @@ describe("登場人物の色が箱に届く", () => {
     const api = diagram.nodes.find((n) => n.id === "api");
     expect(api, "api の箱がある").toBeDefined();
     expect(api!.tone).toBeUndefined();
+  });
+
+  it("放射は枝の色を payload に載せる (#1177)", () => {
+    // 図全体を 1 箱で描くので `node.tone` には載らない。 枝ごとの色は `mindData` が持つ
+    const diagram = build("mind", `- Client: { kind: service, tone: error }`);
+    expect(tonedNodes(diagram), "箱そのものに色が載っている").toEqual([]);
+    const 箱 = diagram.nodes.find((n) => n.kind === "mind-map");
+    expect(箱, "mind-map の箱がない").toBeDefined();
+    const 枝 = 箱!.mindData!.branches;
+    // `build` の 1 件目が中心、 2 件目 (API) 以降が枝になる。 色を書いた Client が中心のため、
+    // 中心を色付きにできないことも併せて見る
+    expect(箱!.mindData!.rootTitle).toBe("Client");
+    expect(枝.every((b) => b.tone === undefined), "色を書いていない枝に色が載った").toBe(true);
+  });
+
+  it("放射の枝に書いた色が payload に載る (#1177)", () => {
+    const src = [
+      `title: "t"`,
+      `type: mind`,
+      ``,
+      `actors:`,
+      `  - Center`,
+      `  - Client: { kind: service, tone: error }`,
+      `  - API`,
+    ].join("\n");
+    const parsed = parseTextDslV05(src);
+    if (!parsed.ok) throw new Error("parse 失敗");
+    const diagram = compileToCdl(parsed.doc);
+    const 枝 = diagram.nodes.find((n) => n.kind === "mind-map")!.mindData!.branches;
+    expect(枝.find((b) => b.title === "Client")?.tone, "枝に色が届いていない").toBe("error");
+    expect(枝.find((b) => b.title === "API")?.tone, "書いていない枝に色が載った").toBeUndefined();
   });
 
   it("誰も色を書かなければ 1 つも載らない", () => {
