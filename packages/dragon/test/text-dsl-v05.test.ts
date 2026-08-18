@@ -481,7 +481,7 @@ flow:
     expect(diagram).toBeDefined();
   });
 
-  it("type: mind を受理し flow 空時に root → leaf の暗黙 edge を生成", () => {
+  it("type: mind を受理し、 中心と枝を 1 箱の中に持つ (#1177)", () => {
     const r = parseTextDslV05(`
 title: "アイデア"
 type: mind
@@ -495,9 +495,12 @@ actors:
     if (!r.ok) return;
     expect(r.doc.type).toBe("mind");
     const diagram = compileToCdl(r.doc);
-    expect(diagram).toBeDefined();
-    // 暗黙 edge ... Core → Idea1, Core → Idea2 が 2 本生成
-    expect(diagram.edges.length).toBeGreaterThanOrEqual(2);
+    // **図全体を 1 箱で描く**。 以前は card を 3 列に並べ、 root → leaf の矢印を作っていた
+    expect(diagram.nodes).toHaveLength(1);
+    expect(diagram.nodes[0]!.kind).toBe("mind-map");
+    expect(diagram.edges).toHaveLength(0);
+    expect(diagram.nodes[0]!.mindData?.rootTitle).toBe("Core");
+    expect(diagram.nodes[0]!.mindData?.branches.map((b) => b.title)).toEqual(["Idea1", "Idea2"]);
   });
 });
 
@@ -710,7 +713,7 @@ flow:
     expect(diagram.edges).toHaveLength(1);
   });
 
-  it("mind: root を中央 lane、 leaf を左右 lane に交互配置 + edge 自動生成", () => {
+  it("mind: 中心と枝を 1 箱の mindData に持つ (#1177)", () => {
     const r = parseTextDslV05(`
 title: "アイデア"
 type: mind
@@ -725,22 +728,21 @@ actors:
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const diagram = compileToCdl(r.doc);
-    // 3 lane (left / center / right)
-    expect(diagram.lanes).toHaveLength(3);
-    expect(diagram.lanes.map((l) => l.id)).toEqual(["mind-left", "mind-center", "mind-right"]);
-    // root は center lane
-    const rootNode = diagram.nodes.find((n) => n.id === "core");
-    expect(rootNode?.lane).toBe("mind-center");
-    // leaf は左右交互配置 (Idea1 → left、 Idea2 → right、 Idea3 → left、 Idea4 → right)
-    expect(diagram.nodes.find((n) => n.id === "idea1")?.lane).toBe("mind-left");
-    expect(diagram.nodes.find((n) => n.id === "idea2")?.lane).toBe("mind-right");
-    expect(diagram.nodes.find((n) => n.id === "idea3")?.lane).toBe("mind-left");
-    expect(diagram.nodes.find((n) => n.id === "idea4")?.lane).toBe("mind-right");
-    // 全 node は card kind
-    expect(diagram.nodes.every((n) => n.kind === "card")).toBe(true);
-    // 暗黙 edge ... root → 各 leaf の 4 本
-    expect(diagram.edges).toHaveLength(4);
-    expect(diagram.edges.every((e) => e.from === "core")).toBe(true);
+    // 枠は 1 つ。 以前は left / center / right の 3 つを作っていた
+    expect(diagram.lanes).toHaveLength(1);
+    expect(diagram.lanes[0]!.id).toBe("chart");
+    // 箱も 1 つ。 中心と枝は payload の中に持つ
+    expect(diagram.nodes).toHaveLength(1);
+    const 箱 = diagram.nodes[0]!;
+    expect(箱.kind).toBe("mind-map");
+    expect(箱.mindData?.rootId).toBe("core");
+    expect(箱.mindData?.rootTitle).toBe("Core");
+    expect(箱.mindData?.branches.map((b) => b.id)).toEqual(["idea1", "idea2", "idea3", "idea4"]);
+    // **枝の親は全て中心**。 記法の `actors` は「1 つ目が根、 残りが枝」 の並びで、
+    // 親を書く場所が無い (親子を矢印で書く形は `type: tree` が持つ)
+    expect(箱.mindData?.branches.every((b) => b.parent === "core")).toBe(true);
+    // 矢印は作らない
+    expect(diagram.edges).toHaveLength(0);
   });
 });
 

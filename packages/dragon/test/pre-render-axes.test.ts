@@ -59,7 +59,8 @@ const 型と種類 = {
   class: ["storage"],
   pie: ["chart-pie"],
   c4: ["actor"],
-  mind: ["card"],
+  // #1177 で `mind-map` 種別に寄せた (以前は card を 3 列に並べていた)
+  mind: ["mind-map"],
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */

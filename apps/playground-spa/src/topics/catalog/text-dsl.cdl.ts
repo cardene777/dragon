@@ -284,24 +284,30 @@ animation:
 
 // ─── mind preset (放射状 mind map) ─────
 export const textDslMind = textDslToDiagram(`
-title: "アイデア DSL (Core + Idea1-3 中心 + 放射 branch)"
+title: "アイデア DSL (中心 + 放射の枝)"
 type: mind
 
+states:
+  stage: "下書き"
+
 actors:
-  - Core: { kind: card, subtitle: "中心テーマ" }
-  - Idea1: { kind: card, subtitle: "案 1" }
-  - Idea2: { kind: card, subtitle: "案 2" }
-  - Idea3: { kind: card, subtitle: "案 3" }
+  - Core
+  - Idea1
+  - Idea2
+  - "決め手 {stage}"
 
 animation:
   - step: "中心" 1s
-    focus: [Core]
+    set:
+      stage: "下書き"
     badge: "発想"
   - step: "案が出る" 1s
-    focus: [Core, Idea1]
+    set:
+      stage: "比べる"
     badge: "案 1"
   - step: "広がる" 1s
-    focus: [Core, Idea1, Idea2, Idea3]
+    set:
+      stage: "選ぶ"
     badge: "案 3"
 `);
 

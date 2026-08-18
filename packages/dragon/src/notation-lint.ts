@@ -204,13 +204,14 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
 /**
  * 枝の親が実在するかを見る。
  *
- * **記法からは届かない**。 `mind-map` 種別と `mindData` を作るのは組立て API
- * (`mindMap()` builder) だけで、 記法の `type: mind` は `card` を 3 列に並べる別実装
- * (`compileMind`)。 `#1170` まで `type: radial` が記法側の唯一の作り手だったが、 種別ごと
- * 消えたため、 本規則が当たるのは組立て API で組んだ図に限られる。
+ * **記法からも届く** (`#1177`)。 一時期は組立て API (`mindMap()` builder) で組んだ図にしか
+ * 当たらなかった = 記法の `type: mind` が `card` を 3 列に並べる別実装で、 `mind-map` 種別を
+ * 作っていなかったため (`#1170` で `type: radial` が消えて唯一の作り手が無くなった)。
+ * `#1177` で `compileMind` を `mind-map` 種別に寄せたので、 前提が揃うようになった。
  *
- * 記法側にも同じ検査を届かせるなら `compileMind` を `mind-map` 種別に寄せる必要があり、
- * それは記法の絵が変わる変更なので `#1177` で扱う。
+ * ただし **記法から違反が出ることは無い**。 記法の `actors` は「1 つ目が中心、 残りが枝」 の
+ * 並びで親を書く場所が無く、 全ての枝が中心の直下 (必ず実在する) になるため。 違反が出るのは
+ * 組立て API で親を書き間違えた図になる。
  */
 function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];

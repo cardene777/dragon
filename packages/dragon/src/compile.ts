@@ -9,7 +9,7 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslDocument, DslPhase } from "./types";
+import type { DslActor, DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
@@ -156,7 +156,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileC4(doc);
       break;
     case "mind":
-      diagram = compileMind(doc);
+      diagram = compileMind(doc, opts?.onNotice);
       break;
     default:
       // switch case で全 type を網羅済のため default は unreachable、 template expression で
@@ -2559,14 +2559,14 @@ const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
  * 持たないので、 段の `focus:` で名前を指しても引く先が無い。 `injectPhasesFallback` が
  * この一覧を使って「実在する名前ならその箱を光らせる」 に読み替える (#1076 / #1077)。
  *
- * **`mind-map` は記法から到達しない** (`#1174`)。 この種別を作っていたのは `compileRadial`
- * だけで、 `#1170` で消えた。 記法の `type: mind` は `compileMind` が `card` を 3 列に
- * 並べる別実装で、 `mind-map` にはならない。
+ * `mind-map` は一時期 **記法から到達しなかった** (`#1174`)。 この種別を作っていたのは
+ * `compileRadial` だけで `#1170` で消え、 記法の `type: mind` は `card` を 3 列に並べる
+ * 別実装だった。
  *
  * それでも一覧に残すのは、 ここが「1 箱で図全体を描く種別」 という **性質の一覧** だから。
- * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは今の
- * `compileMind` の実装による。 `compileMind` を `mind-map` に寄せる時 (`#1177`) に
- * 一覧へ戻す作業が要らない。
+ * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは当時の
+ * `compileMind` の実装によるものだった。 `#1177` で `compileMind` を `mind-map` に寄せたため、
+ * **今は記法からも到達する** (一覧へ戻す作業が要らなかったのはこのため)。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "chart-pie", "chart-line", "chart-bar",
@@ -3729,86 +3729,266 @@ function compileC4(doc: DslDocument): CdlDiagram {
  *
  * flow ... 宣言なしなら root → 各 leaf の暗黙 edge を自動生成、 宣言ありならそれを採用。
  */
-function compileMind(doc: DslDocument): CdlDiagram {
+/**
+ * 記法の `type: mind` を engine の `mind-map` 種別に寄せる (#1177)。
+ *
+ * 以前は `card` を 3 列 (`mind-left` / `mind-center` / `mind-right`) に並べる別実装で、
+ * engine の `mind-map` を使っていなかった。 そのため 2 つの穴があった。
+ *
+ * | 穴 | 中身 |
+ * |---|---|
+ * | 枝の親を見る規則が届かない | `ruleMindMapParentReference` は `kind === "mind-map"` かつ `mindData` を持つ node にしか当たらない |
+ * | `SINGLE_BOX_KINDS` の `mind-map` が到達しない | 一覧に載っているのに記法から辿り着けない項目として残る |
+ *
+ * **枝の親は書けない**。 記法の `actors` は「1 つ目が根、 残りが枝」 の並びで、 `parent` を
+ * 書く場所が無い。 全ての枝を根の直下に置く。 親子を矢印で書く形は `type: tree` が持っており、
+ * `mind` は簡便形として別に残す (Issue の 実装しない条件)。
+ *
+ * したがって **矢印は描けない**。 書かれていたら伝える = 黙って捨てると「書いたのに効かない」
+ * が残る (`type: journey` / `type: quadrant` と同じ扱い)。
+ *
+ * 絵は変わる (3 列の箱 → 中心から放射)。 破壊的変更として `CHANGELOG` に記録している。
+ */
+/**
+ * 1 箱で描く放射が **描ける欄**。 これ以外は書いても出ない (#1177 Round 3)。
+ *
+ * 数え上げは 3 度直した。 副題 / 値 / 行 → 位置 / 大きさ → 種類 / 枠 / 積む順 …と、 見落とした
+ * 欄が review のたびに出た。 数え漏らしても検査は通ってしまう = 「書いたのに出ない」 が黙って
+ * 残る形が繰り返し発生した。
+ *
+ * そこで **`DslActor` の全ての欄を、 描ける側か描けない側のどちらかに必ず割り当てる**。
+ * 欄が増えた時に両方へ入れ忘れると型検査が落ちるので、 「描けるのか描けないのか」 を必ず
+ * 判断することになる (`rules/quality.md § 多層 SSOT 経路の全 registration 保証` と同じ形)。
+ */
+type 放射で描ける欄 =
+  /** 中心の名前 / 枝の名前になる */
+  | "name"
+  /** 枝の色 (`MindBranchNode.tone`)。 中心は持てないので `描けない欄` が別に見る */
+  | "tone"
+  /** 見本は放射に載せず、 見本の中身だけを描く (別経路で伝える) */
+  | "partId"
+  /** 種類を書いたかどうかの印。 `kind` と対で見るので単独では扱わない */
+  | "kindWritten"
+  /** 本文の行番号。 知らせに載せるために使う */
+  | "pos";
+
+/** 放射では描けない欄。 書かれていたら伝える */
+type 放射で描けない欄 =
+  | "kind"
+  | "subtitle"
+  | "eyebrow"
+  | "value"
+  | "rows"
+  | "lane"
+  | "stack"
+  | "initial"
+  | "final"
+  | "colorHex"
+  | "stateOverride"
+  | "posX"
+  | "posY"
+  | "posW"
+  | "posH"
+  | "scale"
+  | "scaleKeys"
+  | "posRel"
+  | "nodes"
+  | "layoutPos";
+
+/** 引数が `never` でなければ型検査が落ちる */
+type 空であること<T extends never> = T;
+
+/** `DslActor` に割り当て漏れの欄があると落ちる */
+export type _放射の欄を覆えている = 空であること<
+  Exclude<keyof DslActor, 放射で描ける欄 | 放射で描けない欄>
+>;
+
+/** `DslActor` に無い欄を割り当てていると落ちる */
+export type _放射の欄に余りがない = 空であること<
+  Exclude<放射で描ける欄 | 放射で描けない欄, keyof DslActor>
+>;
+
+/** 描ける側と描けない側が重なっていると落ちる */
+export type _放射の欄が重なっていない = 空であること<Extract<放射で描ける欄, 放射で描けない欄>>;
+
+/**
+ * 描けない欄と、 知らせに出す名前。
+ *
+ * **欄ごとに式を持たせない** (Round 5 の指摘)。 `{ 説明, 書いたか }` の形にすると、 項目名と式が
+ * 型で結ばれず `scale: { 書いたか: () => false }` のように **判定を骨抜きにしても型検査が通る**。
+ * 名前だけを持ち、 書かれていたかは下の 1 つの式で見る。
+ *
+ * `Record<放射で描けない欄, string>` なので、 欄を足すと項目も要る。 判定の側は欄ごとに書く所が
+ * 無いため、 書き忘れも骨抜きも起きない。
+ *
+ * 表示の名前は複数の欄で同じでよい (`posX` と `posY` はどちらも「位置 (座標)」)。 出す時に
+ * 重複を除く。
+ */
+const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
+  kind: "種類",
+  subtitle: "副題",
+  eyebrow: "上の小見出し",
+  value: "値",
+  rows: "行",
+  lane: "枠の指定",
+  stack: "積む順",
+  initial: "始まり / 終わり の印",
+  final: "始まり / 終わり の印",
+  colorHex: "色番号",
+  stateOverride: "状態の上書き",
+  // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い
+  posX: "位置 (座標)",
+  posY: "位置 (座標)",
+  posW: "大きさ",
+  posH: "大きさ",
+  scale: "倍率",
+  scaleKeys: "倍率",
+  posRel: "位置 (相対)",
+  nodes: "中の箱ごとの指定",
+  layoutPos: "配置のずらし",
+};
+
+/**
+ * その欄が書かれていたか。 **全ての欄をこの 1 つの式で見る**。
+ *
+ * 欄ごとに式を持たせると、 1 つだけ骨抜きにしても型検査が通る (Round 5 の指摘)。 1 つにすれば
+ * 骨抜きにした時点で全ての欄の検査が落ちる。
+ *
+ * 例外は種類だけ。 既定値 (`actor`) が必ず入るので、 書いたかどうかの印 (`kindWritten`) で見る。
+ * 真偽を持つ欄 (`initial` / `final`) は `false` を「書いていない」 として扱う = 既定と同じ意味で、
+ * 伝えると書いていない人にも出る。
+ */
+function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描けない欄): boolean {
+  if (欄 === "kind") return a.kindWritten === true;
+  const v = a[欄];
+  if (typeof v === "boolean") return v;
+  return v !== undefined;
+}
+
+function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const LEAF_W = 280;
-  const ROOT_W = 320;
-  const GAP = 80;
+  const W = CHART_W_STD;
 
-  // 枝は左右に交互に置く。 中身のある枠だけ作る (#1096)。
+  const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
+    onNotice?.({ kind, actor: 名, line, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+
+  // **見本 (`parts`) を重ねた登場人物は中心にも枝にもしない** (review 指摘)。 後段の
+  // `mergePartsFromActors` が見本の中身を別の箱として足すため、 こちらにも載せると同じ
+  // 登場人物が 2 箇所に描かれる。 中心だけ外し忘れると、 中心が見本の記法で二重になる
+  const 見本でない: DslActor[] = [];
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) {
+      伝える(
+        "part-not-drawn",
+        a.name,
+        `type: mind では見本 (${a.partId}) を中心にも枝にもできません。 見本はそのまま描き、 放射には載せません`,
+        a.pos?.line ?? 0,
+      );
+      continue;
+    }
+    見本でない.push(a);
+  }
+  // 矢印は描けない。 書かれていたら伝える。
   //
-  // 3 枠を固定で作ると、 枝が 1 本の図で右の枠が中身なしで残る (実測 = 登場人物 2 人で
-  // `mind-right` が空)。 見る人には「何かが描かれ損ねた」 ようにしか見えない (`#1078` で
-  // `c4` を直したのと同じ欠陥)。
-  const 枝の数 = Math.max(0, doc.actors.length - 1);
-  const 左に置く数 = Math.ceil(枝の数 / 2);
-  const 右に置く数 = 枝の数 - 左に置く数;
-  const 左を使う = 左に置く数 > 0;
-  const 右を使う = 右に置く数 > 0;
-
-  // 登場人物が 0 人なら枠も作らない。 中央の枠を先に作ると、 中身の無い枠が 1 つ残る
-  // (実測 = `title` と `type` だけの本文で `mind-center` が空、 Round 1 review の指摘)
-  if (doc.actors.length === 0) return b.build();
-
-  // 使う枠だけ左から詰める。 飛ばした位置に隙間を残すと、 やはり「抜けている」 ように見える
-  let x = 0;
-  if (左を使う) {
-    b.lane("mind-left", { x, width: LEAF_W, label: "" });
-    x += LEAF_W + GAP;
-  }
-  b.lane("mind-center", { x, width: ROOT_W, label: doc.title });
-  x += ROOT_W + GAP;
-  if (右を使う) {
-    b.lane("mind-right", { x, width: LEAF_W, label: "" });
+  // **早期 return より前に出す** (Round 3 の指摘)。 後ろに置くと、 見本しか居ない記法で
+  // 矢印を書いた時に黙って消える
+  if (doc.flow.length > 0) {
+    伝える(
+      "chart-edge-dropped",
+      doc.flow[0]?.from ?? "",
+      `type: mind では矢印を描けません (${doc.flow.length} 本を無視しました)。 枝は全て中心の直下に置きます。 親子を矢印で書くなら type: tree を使ってください`,
+      doc.flow[0]?.pos?.line ?? 0,
+    );
   }
 
-  const root = doc.actors[0]!;
-  const rootId = slugify(root.name) || "root";
-  const leafCount = doc.actors.length - 1;
-  const rootStack = Math.floor(leafCount / 2);
-  b.node(rootId, {
-    lane: "mind-center",
-    stack: rootStack,
-    kind: "card",
-    title: root.name,
-    w: ROOT_W,
-  });
+  // 放射に載る登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096)。
+  // **枠を作る前に見る** = 見本しか居ない記法で作ると、 見本だけが描かれた図に空の枠が残る
+  if (見本でない.length === 0) return b.build();
 
-  const stackLeft = { v: 0 };
-  const stackRight = { v: 0 };
-  doc.actors.slice(1).forEach((a, i) => {
-    const isLeft = i % 2 === 0;
-    const lid = isLeft ? "mind-left" : "mind-right";
-    const counter = isLeft ? stackLeft : stackRight;
-    const nodeId = slugify(a.name) || `leaf-${i}`;
-    b.node(nodeId, {
-      lane: lid,
-      stack: counter.v,
-      kind: "card",
-      title: a.name,
-      w: LEAF_W,
-    });
-    counter.v += 1;
-  });
+  b.lane("chart", { width: W + 64, label: doc.title });
 
-  if (doc.flow.length === 0 && doc.actors.length > 1) {
-    doc.actors.slice(1).forEach((a) => {
-      const leafId = slugify(a.name);
-      b.edge(rootId, leafId, { label: "" });
-    });
-  } else {
-    for (const s of doc.flow) {
-      const fromId = slugify(s.from);
-      const toId = slugify(s.to);
-      b.edge(fromId, toId, {
-        label: s.label,
-        ...(s.sub ? { sub: s.sub } : {}),
-        ...(s.tone ? { tone: s.tone } : {}),
-        ...(s.style ? { style: s.style } : {}),
-      });
+  // **同じ slug になる名前を先に見る** (`type: tree` と同じ理由)。 違う名前が同じ id に潰れると、
+  // 枝が 1 本消えたり、 枝の親を見る規則が別の枝を指したりする
+  const slug別 = new Map<string, string[]>();
+  for (const a of 見本でない) {
+    const k = slugify(a.name);
+    slug別.set(k, [...(slug別.get(k) ?? []), a.name]);
+  }
+  for (const [k, 群] of slug別) {
+    if (群.length > 1) {
+      伝える(
+        "chart-value-unreadable",
+        群[0]!,
+        `type: mind で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`,
+      );
     }
   }
 
+  const root = 見本でない[0]!;
+  const rootId = slugify(root.name) || "root";
+
+  // **1 箱で描く種別が持てる欄は限られる**。 枝は名前と色、 中心は名前だけ。 書いても描けない
+  // 欄は伝える = 箱ごとに描いていた頃は載っていた欄で、 黙って消すと「書いたのに出ない」 が残る
+  const 描けない欄 = (a: DslActor): string[] => {
+    const out: string[] = [];
+    for (const 欄 of Object.keys(放射で描けない欄の名前) as 放射で描けない欄[]) {
+      if (!放射で描けない欄を書いたか(a, 欄)) continue;
+      const 名前 = 放射で描けない欄の名前[欄];
+      // 同じ名前を持つ欄 (`posX` と `posY`) は 1 度だけ出す
+      if (!out.includes(名前)) out.push(名前);
+    }
+    return out;
+  };
+  const 消えた欄 = new Map<string, string[]>();
+  const 記録する = (a: DslActor): void => {
+    const 欄 = 描けない欄(a);
+    if (欄.length > 0) 消えた欄.set(a.name, 欄);
+  };
+
+  // 枝は根の直下。 根と同じ id になる枝は載せない = 自分を親にする形になり、 描けない
+  const branches: NonNullable<CdlDiagram["nodes"][number]["mindData"]>["branches"] = [];
+  const 使った = new Set<string>([rootId]);
+  記録する(root);
+  // 中心は色の欄を持たない (`MindBranchPayload` に `tone` が無い)
+  if (root.tone) 消えた欄.set(root.name, [...(消えた欄.get(root.name) ?? []), "色 (中心は持てない)"]);
+
+  見本でない.slice(1).forEach((a, i) => {
+    const id = slugify(a.name) || `leaf-${i}`;
+    if (使った.has(id)) {
+      伝える(
+        "chart-value-unreadable",
+        a.name,
+        `type: mind で ${a.name} が既にある id (${id}) と重なります (枝に載せません)`,
+        a.pos?.line ?? 0,
+      );
+      return;
+    }
+    使った.add(id);
+    記録する(a);
+    // 枝は色を持てる (`MindBranchNode.tone`)
+    branches.push({ id, title: a.name, parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
+  });
+
+  if (消えた欄.size > 0) {
+    const 一覧 = [...消えた欄].map(([名, 欄]) => `${名} の${欄.join(" / ")}`).join("、 ");
+    伝える(
+      "chart-value-unreadable",
+      [...消えた欄.keys()][0]!,
+      `type: mind は名前と枝の色しか描けません (描かない欄: ${一覧})。 これらを描くなら type: tree か type: flow を使ってください`,
+    );
+  }
+
+  b.node(`${slugify(doc.title) || "mind"}-chart`, {
+    lane: "chart",
+    stack: 0,
+    kind: "mind-map",
+    title: doc.title,
+    w: W,
+    h: CHART_H,
+    mindData: { rootId, rootTitle: root.name, branches },
+  });
   return b.build();
 }
 

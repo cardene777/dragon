@@ -125,7 +125,7 @@ animation:
       expect(() => compile(diagram)).not.toThrow();
     });
 
-    it("mind SAMPLE の focus 5 件 (5 node、 edge なし) を正しく activate", () => {
+    it("mind SAMPLE の focus 5 件が 1 箱に集まる (#1177 で mind-map 種別に寄せた)", () => {
       // 見本と同じ内容。 変更前は `- root: { title: "新プロジェクト" }` と書いていたが、
       // `title` は読める項目ではなく黙って捨てられていた (#1090)。 見本を名前で書く形に
       // 直したので、 こちらも揃える
@@ -146,8 +146,12 @@ animation:
       const diagram = textDslToDiagram(src);
       expect(diagram.phases.length).toBe(1);
       const phase = diagram.phases[0]!;
-      // 5 node、 edge なし = 5 IDs
-      expect(phase.activate.length).toBe(5);
+      // **図全体を 1 箱で描く種別になった** (#1177)。 焦点に 5 つ書いても指す先は同じ箱 1 つで、
+      // `SINGLE_BOX_KINDS` の経路がそこへ寄せる。 以前は登場人物ごとに card があり 5 件だった
+      expect(phase.activate.length).toBe(1);
+      const 箱 = diagram.nodes.filter((n) => n.kind === "mind-map");
+      expect(箱.length, "mind-map の箱が 1 つでない").toBe(1);
+      expect(phase.activate[0], "焦点が mind-map の箱を指していない").toBe(箱[0]!.id);
       expect(() => compile(diagram)).not.toThrow();
     });
 
