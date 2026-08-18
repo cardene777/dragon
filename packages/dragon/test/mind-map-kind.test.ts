@@ -113,9 +113,16 @@ describe("SINGLE_BOX_KINDS の mind-map が記法から到達する", () => {
     expect(phase.activate).toEqual([放射の箱(d).id]);
   });
 
-  it("記法に無い名前を焦点に書いても箱に寄る", () => {
-    const d = 図(["Core", "Idea1"], `\nanimation:\n  - step: "見る" 1s\n    focus: [Core]\n`);
-    expect(d.phases[0]!.activate).toEqual([放射の箱(d).id]);
+  it("記法に無い名前を焦点に書いた時は箱に寄せず、 伝える", () => {
+    // 実在する名前だけを 1 箱へ寄せる。 無い名前まで寄せると、 書き間違いが黙って通る
+    const 知らせ: CompileNotice[] = [];
+    const d = textDslToDiagram(
+      記法(["Core", "Idea1"], `\nanimation:\n  - step: "見る" 1s\n    focus: [居ない人]\n`),
+      { onNotice: (n) => 知らせ.push(n) },
+    );
+    expect(d.phases[0]!.activate).toEqual([]);
+    const 該当 = 知らせ.filter((n) => n.kind === "focus-target-missing");
+    expect(該当.length, "無い名前を伝えていない").toBeGreaterThan(0);
   });
 });
 
@@ -160,3 +167,84 @@ describe("枝が状態を読む", () => {
     expect(d.phases[0]!.sets).toEqual([{ stateId: "stage", value: "選ぶ" }]);
   });
 });
+
+describe("1 箱で描けない欄を伝える (Round 1)", () => {
+  const 知らせを集める = (src: string): CompileNotice[] => {
+    const 出た: CompileNotice[] = [];
+    textDslToDiagram(src, { onNotice: (n) => 出た.push(n) });
+    return 出た;
+  };
+
+  it("枝の副題 / 値 / 行 / 上の小見出しを伝える", () => {
+    // 箱ごとに描いていた頃は載っていた欄。 1 箱では名前と枝の色しか描けない
+    const 出た = 知らせを集める(
+      記法(["Core", 'Idea1: { subtitle: "案 1", value: "42", eyebrow: "見出し" }']),
+    );
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("副題");
+    expect(該当[0]!.message).toContain("値");
+    expect(該当[0]!.message).toContain("上の小見出し");
+    expect(該当[0]!.message).toContain("type: tree");
+  });
+
+  it("中心の副題 / 値 も伝える (枝だけを見ていない)", () => {
+    const 出た = 知らせを集める(記法(['Core: { subtitle: "中心テーマ", value: "3" }', "Idea1"]));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("Core の副題 / 値");
+  });
+
+  it("行 (rows) も伝える", () => {
+    const 出た = 知らせを集める(記法(["Core", 'Idea1: { rows: ["件数: 3"] }']));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("行");
+  });
+
+  it("中心の色は持てないので伝える", () => {
+    // `MindBranchPayload` に中心の色の欄が無い
+    const 出た = 知らせを集める(記法(["Core: { tone: error }", "Idea1"]));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain("色 (中心は持てない)");
+  });
+
+  it("枝の色は描けるので伝えない", () => {
+    const 出た = 知らせを集める(記法(["Core", "Idea1: { tone: error }"]));
+    expect(出た.filter((n) => n.message.includes("名前と枝の色しか描けません"))).toEqual([]);
+  });
+
+  it("名前だけの記法では何も伝えない", () => {
+    expect(知らせを集める(記法(["Core", "Idea1", "Idea2"]))).toEqual([]);
+  });
+});
+
+describe("見本 (parts) を重ねた登場人物 (Round 1)", () => {
+  it("見本は枝にせず、 枝にしないことを伝える", () => {
+    // 後段が見本の中身を別の箱として足すため、 枝にも載せると同じ登場人物が 2 箇所に描かれる
+    const 出た: CompileNotice[] = [];
+    const d = textDslToDiagram(記法(["Core", "見本1: partsAchievement", "Idea1"]), {
+      onNotice: (n) => 出た.push(n),
+      partsCatalog: {
+        partsAchievement: {
+          id: "partsAchievement",
+          topic: "見本",
+          lanes: [{ id: "l", x: 0, width: 200 }],
+          nodes: [{ id: "trophy", lane: "l", stack: 0, kind: "card", title: "杯" }],
+          edges: [],
+          states: [],
+          phases: [],
+        },
+      },
+    });
+    const m = 放射の箱(d).mindData!;
+    expect(m.branches.map((b) => b.title), "見本が枝に残っている").toEqual(["Idea1"]);
+    const 該当 = 出た.filter((n) => n.kind === "part-not-drawn");
+    expect(該当).toHaveLength(1);
+    // 見本の名前は小文字に揃えられて届く (parser の扱い)
+    expect(該当[0]!.message).toContain("を枝にできません");
+    expect(該当[0]!.actor).toBe("見本1");
+  });
+});
+

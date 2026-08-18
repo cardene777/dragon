@@ -26,7 +26,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * | 見本 | 落ちたもの |
  * |---|---|
  * | `quadrant` | **軸の名前と区画の名前**。 「手間 × 効き」 「すぐやる / やらない」 が「小さい / 大きい」 「左上 / 右下」 になり、 何を判断する図か読めない |
- * | `mind` | `mind-map` 種別。 記法の `mind` は card を並べる別実装 |
+ * | `mind` | **穴は塞がった** (`#1177`)。 記法の `mind` も `mind-map` 種別を作る。 枝の親を書く形だけは記法に無い (`type: tree` が持つ) |
  * | `gantt` | 期間。 開始しか書けず各工程が 1 コマ幅になる |
  * | `tree` | 段の深さ。 7 要素 → 5 要素 (孫を書く形が無い) |
  * | `journey` | 接点と改善の余地 (`touchpoint` / `opportunity`) |

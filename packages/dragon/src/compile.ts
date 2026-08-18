@@ -9,7 +9,7 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslDocument, DslPhase } from "./types";
+import type { DslActor, DslDocument, DslPhase } from "./types";
 import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
@@ -3783,10 +3783,41 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const root = doc.actors[0]!;
   const rootId = slugify(root.name) || "root";
 
+  // **1 箱で描く種別が持てる欄は限られる**。 枝は名前と色、 中心は名前だけ。 書いても描けない
+  // 欄は伝える = 箱ごとに描いていた頃は載っていた欄で、 黙って消すと「書いたのに出ない」 が残る
+  const 描けない欄 = (a: DslActor): string[] => {
+    const out: string[] = [];
+    if (a.subtitle !== undefined) out.push("副題");
+    if (a.eyebrow !== undefined) out.push("上の小見出し");
+    if (a.value !== undefined) out.push("値");
+    if (a.rows !== undefined) out.push("行");
+    return out;
+  };
+  const 消えた欄 = new Map<string, string[]>();
+  const 記録する = (a: DslActor): void => {
+    const 欄 = 描けない欄(a);
+    if (欄.length > 0) 消えた欄.set(a.name, 欄);
+  };
+
   // 枝は根の直下。 根と同じ id になる枝は載せない = 自分を親にする形になり、 描けない
   const branches: NonNullable<CdlDiagram["nodes"][number]["mindData"]>["branches"] = [];
   const 使った = new Set<string>([rootId]);
+  記録する(root);
+  // 中心は色の欄を持たない (`MindBranchPayload` に `tone` が無い)
+  if (root.tone) 消えた欄.set(root.name, [...(消えた欄.get(root.name) ?? []), "色 (中心は持てない)"]);
+
   doc.actors.slice(1).forEach((a, i) => {
+    // **見本 (`parts`) を重ねた登場人物は枝にしない** (review 指摘)。 後段の `mergePartsFromActors`
+    // が見本の中身を別の箱として足すため、 枝にも載せると同じ登場人物が 2 箇所に描かれる
+    if (a.partId !== undefined) {
+      伝える(
+        "part-not-drawn",
+        a.name,
+        `type: mind では見本 (${a.partId}) を枝にできません。 見本はそのまま描き、 枝には載せません`,
+        a.pos?.line ?? 0,
+      );
+      return;
+    }
     const id = slugify(a.name) || `leaf-${i}`;
     if (使った.has(id)) {
       伝える(
@@ -3798,9 +3829,19 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
       return;
     }
     使った.add(id);
-    // 枝は色を持てる (`MindBranchNode.tone`)。 中心は payload に色の欄が無いので載せられない
+    記録する(a);
+    // 枝は色を持てる (`MindBranchNode.tone`)
     branches.push({ id, title: a.name, parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
   });
+
+  if (消えた欄.size > 0) {
+    const 一覧 = [...消えた欄].map(([名, 欄]) => `${名} の${欄.join(" / ")}`).join("、 ");
+    伝える(
+      "chart-value-unreadable",
+      [...消えた欄.keys()][0]!,
+      `type: mind は名前と枝の色しか描けません (描かない欄: ${一覧})。 これらを描くなら type: tree か type: flow を使ってください`,
+    );
+  }
 
   // 矢印は描けない。 書かれていたら伝える
   if (doc.flow.length > 0) {
