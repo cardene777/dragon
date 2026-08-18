@@ -451,3 +451,33 @@ describe("64 字を超える名前の id (Round 2)", () => {
   });
 });
 
+describe("逃げ先は図種ごとに違う (Round 3)", () => {
+  // cdl は形が空になった名前を並びの位置へ逃がすが、 逃げ先は図種ごとに違う。
+  // 両方を鍵に入れると、 その図種では使われない逃げ先まで衝突とみなして id を変える
+  const 絵文字のid = (type: string, 相手: string): string | undefined => {
+    const { 図 } = 組む(記法(type, ["😀", 相手], [`😀 -> ${相手}: "x"`]));
+    return 図.lanes.find((l) => l.label === "😀")?.id ?? 図.nodes.find((n) => n.title === "😀")?.id;
+  };
+
+  it("sequence は actor- に逃げるので actor-0 とだけ重なる", () => {
+    // 重なる方は作り替える
+    expect(絵文字のid("sequence", "actor-0")).not.toBe("actor-0");
+    // 重ならない方は触らない
+    expect(絵文字のid("sequence", "lane-0")).toBe("actor-0");
+  });
+
+  it("swimlane は lane- に逃げるので lane-0 とだけ重なる", () => {
+    expect(絵文字のid("swimlane", "lane-0")).not.toBe("lane-0");
+    expect(絵文字のid("swimlane", "actor-0")).toBe("lane-0");
+  });
+
+  it("cdl の逃げ道を通らない図種はどちらでも触らない", () => {
+    // これらは dragon 側の逃げ先 (`n`) に落ちるので、 cdl の逃げ先とは重ならない
+    for (const type of ["flow", "er", "state", "topology", "class", "c4"]) {
+      for (const 相手 of ["lane-0", "actor-0"]) {
+        expect(絵文字のid(type, 相手), `${type} / ${相手} で作り替えている`).toBe("n");
+      }
+    }
+  });
+});
+

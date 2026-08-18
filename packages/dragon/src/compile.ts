@@ -485,19 +485,57 @@ function cdl側のslug(s: string): string {
 }
 
 /**
+ * cdl 側が「形が空になった名前」 に付ける id の頭 (#1220 Round 2 / 3)。
+ *
+ * cdl は形が空になった時に並びの位置へ逃げる。 逃げ先を鍵に入れないと、 逃げ先と同じ名前の
+ * 登場人物が居る図で重なる (実測 = `sequence` の `😀` と `actor-0`)。
+ *
+ * **図種ごとに違う** (Round 3 の指摘)。 両方を入れると、 その図種では使われない逃げ先まで
+ * 衝突とみなして **重なっていない図の id を変える**。 実測した対応は次のとおり。
+ *
+ * | 図種 | `😀` だけを書いた時に付く id |
+ * |---|---|
+ * | `sequence` / `solidity` | 枠 `actor-0` (cdl の `sequence()`) |
+ * | `swimlane` | 枠 `lane-0` (cdl の `swimlane()`) |
+ * | 残る 6 図種 | 箱 `n` (dragon 側の逃げ先。 cdl の逃げ道を通らない) |
+ *
+ * 空配列は「cdl の逃げ道を通らない」 を表す。 1 箱で描く図種はここに来ない (作り替え自体を
+ * しない) が、 図種を足した時に決め忘れないよう全種を並べる。
+ */
+const 空の形の逃げ先: Record<PresetType, string[]> = {
+  sequence: ["actor-"],
+  solidity: ["actor-"],
+  swimlane: ["lane-"],
+  flow: [],
+  er: [],
+  state: [],
+  topology: [],
+  class: [],
+  c4: [],
+  // 図全体を 1 箱で描く群 (作り替えないのでここは使わない)
+  gantt: [],
+  pie: [],
+  bar: [],
+  line: [],
+  funnel: [],
+  tree: [],
+  journey: [],
+  quadrant: [],
+  mind: [],
+};
+
+/**
  * その名前が下流で id になりうる形。 どれか 1 つでも重なれば衝突する。
  *
- * **cdl 側は形が空になった時に並びの位置へ逃げる** (Round 2 の指摘)。 `swimlane()` は
- * `lane-<位置>`、 `sequence()` は `actor-<位置>` を使うので、 逃げ先も鍵に入れる。 入れないと
- * 逃げ先と同じ名前の登場人物が居る図で重なる (実測 = `😀` と `actor-0`)。
- *
- * 位置が分からない時 (作り替えた候補を確かめる時) は逃げ先を数えない。 作り替えた名前は尾が
- * 付いて形が空にならないので、 そもそも逃げ道を通らない。
+ * 位置と逃げ先が分からない時 (作り替えた候補を確かめる時) は逃げ先を数えない。 作り替えた
+ * 名前は尾が付いて形が空にならないので、 そもそも逃げ道を通らない。
  */
-function idになる形(name: string, 位置?: number): string[] {
+function idになる形(name: string, 位置?: number, 逃げ先の頭: string[] = []): string[] {
   const cdl = cdl側のslug(name);
   const out = [slugify(name), cdl];
-  if (cdl === "" && 位置 !== undefined) out.push(`lane-${位置}`, `actor-${位置}`);
+  if (cdl === "" && 位置 !== undefined) {
+    for (const 頭 of 逃げ先の頭) out.push(`${頭}${位置}`);
+  }
   return out;
 }
 
@@ -530,15 +568,18 @@ function disambiguateActorIds(
   const 形ごとの名前 = new Map<string, Set<string>>();
   const 位置 = new Map<string, number>();
   残す.forEach((a, i) => 位置.set(a.name, i));
+  const 逃げ先の頭 = 空の形の逃げ先[doc.type];
   for (const a of 残す) {
-    for (const 形 of idになる形(a.name, 位置.get(a.name))) {
+    for (const 形 of idになる形(a.name, 位置.get(a.name), 逃げ先の頭)) {
       const 群 = 形ごとの名前.get(形) ?? new Set<string>();
       群.add(a.name);
       形ごとの名前.set(形, 群);
     }
   }
   const 重なる = (name: string): boolean =>
-    idになる形(name, 位置.get(name)).some((形) => (形ごとの名前.get(形)?.size ?? 0) > 1);
+    idになる形(name, 位置.get(name), 逃げ先の頭).some(
+      (形) => (形ごとの名前.get(形)?.size ?? 0) > 1,
+    );
 
   // **見本 (`parts`) を重ねた登場人物は作り替えない**。 見本の中身は `別名__元の id` の形で
   // 名前空間を持ち、 別名は名前から作るため、 作り替えると見本の id が総入れ替えになる。
