@@ -484,9 +484,21 @@ function cdl側のslug(s: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/** その名前が下流で id になりうる形。 どちらか一方でも重なれば衝突する */
-function idになる形(name: string): string[] {
-  return [slugify(name), cdl側のslug(name)];
+/**
+ * その名前が下流で id になりうる形。 どれか 1 つでも重なれば衝突する。
+ *
+ * **cdl 側は形が空になった時に並びの位置へ逃げる** (Round 2 の指摘)。 `swimlane()` は
+ * `lane-<位置>`、 `sequence()` は `actor-<位置>` を使うので、 逃げ先も鍵に入れる。 入れないと
+ * 逃げ先と同じ名前の登場人物が居る図で重なる (実測 = `😀` と `actor-0`)。
+ *
+ * 位置が分からない時 (作り替えた候補を確かめる時) は逃げ先を数えない。 作り替えた名前は尾が
+ * 付いて形が空にならないので、 そもそも逃げ道を通らない。
+ */
+function idになる形(name: string, 位置?: number): string[] {
+  const cdl = cdl側のslug(name);
+  const out = [slugify(name), cdl];
+  if (cdl === "" && 位置 !== undefined) out.push(`lane-${位置}`, `actor-${位置}`);
+  return out;
 }
 
 function disambiguateActorIds(
@@ -516,15 +528,17 @@ function disambiguateActorIds(
 
   // 2. どの名前が重なるかを見る。 **両方の規則で見る** = 片方だけだと cdl 側の経路で落ちる
   const 形ごとの名前 = new Map<string, Set<string>>();
+  const 位置 = new Map<string, number>();
+  残す.forEach((a, i) => 位置.set(a.name, i));
   for (const a of 残す) {
-    for (const 形 of idになる形(a.name)) {
+    for (const 形 of idになる形(a.name, 位置.get(a.name))) {
       const 群 = 形ごとの名前.get(形) ?? new Set<string>();
       群.add(a.name);
       形ごとの名前.set(形, 群);
     }
   }
   const 重なる = (name: string): boolean =>
-    idになる形(name).some((形) => (形ごとの名前.get(形)?.size ?? 0) > 1);
+    idになる形(name, 位置.get(name)).some((形) => (形ごとの名前.get(形)?.size ?? 0) > 1);
 
   // **見本 (`parts`) を重ねた登場人物は作り替えない**。 見本の中身は `別名__元の id` の形で
   // 名前空間を持ち、 別名は名前から作るため、 作り替えると見本の id が総入れ替えになる。

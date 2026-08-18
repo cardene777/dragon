@@ -380,3 +380,74 @@ describe("枠の名札も控えた相手だけ戻す (Round 1 r1-f4)", () => {
   });
 });
 
+describe("cdl 側の逃げ先と重なる名前 (Round 2)", () => {
+  // cdl は形が空になった時に並びの位置へ逃げる (`lane-<位置>` / `actor-<位置>`)。
+  // 逃げ先と同じ名前の登場人物が居ると重なる
+  it("sequence で 😀 と actor-0 が重ならない", () => {
+    const { 図 } = 組む(記法("sequence", ["😀", "actor-0"], ['😀 -> actor-0: "x"']));
+    expect(() => compile(図)).not.toThrow();
+  });
+
+  it("swimlane で 😀 と lane-0 が重ならない", () => {
+    const { 図 } = 組む(記法("swimlane", ["😀", "lane-0"], ['😀 -> lane-0: "x"']));
+    expect(() => compile(図)).not.toThrow();
+  });
+
+  it("見本と逃げ先が重なっても素の箱が消えない", () => {
+    const 図録 = {
+      badge: {
+        id: "badge",
+        topic: "見本",
+        lanes: [{ id: "l", x: 0, width: 200 }],
+        nodes: [{ id: "mark", lane: "l", stack: 0, kind: "card" as const, title: "印" }],
+        edges: [],
+        states: [],
+        phases: [],
+      },
+    };
+    const 図 = textDslToDiagram(記法("sequence", ["😀: { kind: badge }", "actor-0", "B"], ['actor-0 -> B: "x"']), {
+      partsCatalog: 図録,
+    });
+    expect(図.nodes.some((n) => n.title === "actor-0"), "素の登場人物の箱が消えている").toBe(true);
+  });
+
+  it("逃げ先と重ならない図では id を変えない", () => {
+    // 形が空になるだけでは作り替えない = 衝突していない図の id を変えないため
+    const { 図 } = 組む(記法("flow", ["!!!", "B"], ['!!! -> B: "x"']));
+    expect(図.nodes.some((n) => n.id === "n"), "重なっていないのに作り替えている").toBe(true);
+  });
+});
+
+describe("尾が同じになる 2 つの名前 (Round 2)", () => {
+  // 尾 (6 桁) が偶然重なる組。 配る順で結果が変わると、 並べ替えただけで id が入れ替わる
+  const 尾が同じ2人 = ["AbcDEfGhIJKlmnopqrstuvwx", "abcDeFGhIJKlMnopqrstuvwx"];
+
+  it("組み立てが通り、 id が重ならない", () => {
+    const { 図 } = 組む(記法("state", 尾が同じ2人));
+    const ids = 図.nodes.map((n) => n.id);
+    expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
+    expect(() => compile(図)).not.toThrow();
+  });
+
+  it("並べ替えても同じ名前が同じ id になる", () => {
+    const idの表 = (actors: string[]): Record<string, string> => {
+      const { 図 } = 組む(記法("state", actors));
+      return Object.fromEntries(図.nodes.map((n) => [n.title, n.id]));
+    };
+    expect(idの表(尾が同じ2人)).toEqual(idの表([...尾が同じ2人].reverse()));
+  });
+});
+
+describe("64 字を超える名前の id (Round 2)", () => {
+  // 元の名前を切らないと、 最初の 1 人の id が元のまま (64 字ぎりぎり) になる
+  const 長い = (末尾: string): string => "a".repeat(64) + 末尾;
+
+  it("作り替えた id に尾が入る", () => {
+    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    for (const n of 図.nodes) {
+      expect(n.id, `尾が入っていない: ${n.id}`).not.toBe("a".repeat(64));
+      expect(n.id.length).toBeLessThanOrEqual(64);
+    }
+  });
+});
+
