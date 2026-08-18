@@ -219,12 +219,64 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
 }
 
+/**
+ * 検査の前に 1 度だけ読んで作る、 素のデータの複製 (#1217)。
+ *
+ * 入口は検査する時と図に写す時で同じ項目を 2 度読んでいた。 渡された object が値を返す関数
+ * (getter) を持っていると、 2 度目の読み取りで別の値を返せる = **検査を通った値と図に届く値が
+ * 別物になり、 検査が意味を持たない** (実測 = `animation[0].tween` を 6 回目から
+ * `[NaN, Infinity]` を返す getter にすると、 検査を通って図に `from: null` が届いた)。
+ *
+ * ここで 1 度だけ読んで写しを作り、 以降は写しだけを読む。 各項目の読み取りは 1 回で、
+ * `Object.entries` も配列の添字も同じ値を 2 度取りに行かない。
+ *
+ * **`structuredClone` は使わない**。 関数や symbol を含む入力で `DataCloneError` を投げるため、
+ * `validateDragonJson` が約束している「誤りは `{ ok: false, errors }` で返す」 が破れる。
+ * 自前で写せば、 写せない値もそのまま持ち越して検査側の型の判定に落とせる。
+ *
+ * 書き込みは `Object.defineProperty` で行う = `__proto__` を項目名に持つ入力で代入が
+ * prototype の setter に落ちるのを避ける (`JSON.parse` と同じく普通の項目として持つ)。
+ * `__proto__` を書いた時の扱いそのものは `#1184` が持つ。
+ *
+ * 輪 (自分を指す入れ子) は同じ写しを返して止める。 JSON からは作れないが、 object を直接
+ * 渡す経路では作れるため、 無限に降りない形にしておく。
+ */
+function 素のデータに写す(value: unknown, 写し済: WeakMap<object, unknown>): unknown {
+  if (value === null || typeof value !== "object") return value;
+
+  const 既にある = 写し済.get(value);
+  if (既にある !== undefined) return 既にある;
+
+  if (Array.isArray(value)) {
+    const out: unknown[] = [];
+    写し済.set(value, out);
+    // 長さも 1 度だけ読む (getter で毎回変わる形を避ける)
+    const 長さ = value.length;
+    for (let i = 0; i < 長さ; i += 1) out.push(素のデータに写す(value[i], 写し済));
+    return out;
+  }
+
+  const out: Record<string, unknown> = {};
+  写し済.set(value, out);
+  // `Object.entries` は自分が持つ項目を 1 度ずつ読む (getter も 1 度だけ動く)
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+    Object.defineProperty(out, key, {
+      value: 素のデータに写す(v, 写し済),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return out;
+}
+
 function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
   const errors: JsonDslError[] = [];
   if (!json || typeof json !== "object" || Array.isArray(json)) {
     return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
   }
-  const j = json as Record<string, unknown>;
+  // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
+  const j = 素のデータに写す(json, new WeakMap()) as Record<string, unknown>;
 
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });
