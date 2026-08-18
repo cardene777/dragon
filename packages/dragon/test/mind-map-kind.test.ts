@@ -193,6 +193,33 @@ describe("描けない欄を表から導く (Round 4)", () => {
     expect(直接組む({})).toEqual([]);
   });
 
+  it.each([
+    ["kind (書いた時だけ)", { kind: "service", kindWritten: true }, "種類"],
+    ["subtitle", { subtitle: "補足" }, "副題"],
+    ["eyebrow", { eyebrow: "見出し" }, "上の小見出し"],
+    ["value", { value: "42" }, "値"],
+    ["rows", { rows: ["a: 1"] }, "行"],
+    ["lane", { lane: "l" }, "枠の指定"],
+    ["stack", { stack: 2 }, "積む順"],
+    ["colorHex", { colorHex: "#ff0000" }, "色番号"],
+    ["posW", { posW: 100 }, "大きさ"],
+    ["posRel", { posRel: { anchor: "Core", dir: "right" as const, gap: 10 } }, "位置 (相対)"],
+  ])("%s も伝える (Round 5)", (_名, 枝, 説明) => {
+    // 全ての欄を 1 つの式で見る形にしたので、 1 欄でも骨抜きにすると全ての欄が落ちる
+    const 該当 = 直接組む(枝 as Partial<DslActor>);
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.message).toContain(説明);
+  });
+
+  it("書いていない種類は伝えない (既定値が入るため)", () => {
+    // `kind` は必ず値が入る。 書いたかどうかの印で見ないと、 誰も書いていない図で毎回出る
+    expect(直接組む({ kind: "actor", kindWritten: false })).toEqual([]);
+  });
+
+  it("false を書いた印は伝えない (既定と同じ意味)", () => {
+    expect(直接組む({ initial: false, final: false })).toEqual([]);
+  });
+
   it("同じ名前を持つ欄は 1 度だけ出す", () => {
     // `posX` と `posY` はどちらも「位置 (座標)」
     const 該当 = 直接組む({ posX: 1, posY: 2 });

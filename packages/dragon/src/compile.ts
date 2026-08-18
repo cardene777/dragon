@@ -3812,42 +3812,58 @@ export type _放射の欄に余りがない = 空であること<
 export type _放射の欄が重なっていない = 空であること<Extract<放射で描ける欄, 放射で描けない欄>>;
 
 /**
- * 描けない欄を、 書かれていたか見る式と一緒に持つ表。
+ * 描けない欄と、 知らせに出す名前。
  *
- * **実行時の判定をこの表から導く** (Round 4 の指摘)。 型で割り当てを固定しただけでは、
- * 欄を `放射で描けない欄` に足して **実行時の判定を書き忘れても型検査が通る**。 表を
- * `Record<放射で描けない欄, ...>` にすれば、 欄を足した時に表の項目も要る。
+ * **欄ごとに式を持たせない** (Round 5 の指摘)。 `{ 説明, 書いたか }` の形にすると、 項目名と式が
+ * 型で結ばれず `scale: { 書いたか: () => false }` のように **判定を骨抜きにしても型検査が通る**。
+ * 名前だけを持ち、 書かれていたかは下の 1 つの式で見る。
+ *
+ * `Record<放射で描けない欄, string>` なので、 欄を足すと項目も要る。 判定の側は欄ごとに書く所が
+ * 無いため、 書き忘れも骨抜きも起きない。
  *
  * 表示の名前は複数の欄で同じでよい (`posX` と `posY` はどちらも「位置 (座標)」)。 出す時に
  * 重複を除く。
  */
-const 放射で描けない欄の表: Record<
-  放射で描けない欄,
-  { 説明: string; 書いたか: (a: DslActor) => boolean }
-> = {
-  // 種類は既定値が入るので、 書いたかどうかの印 (`kindWritten`) で見る
-  kind: { 説明: "種類", 書いたか: (a) => a.kindWritten === true },
-  subtitle: { 説明: "副題", 書いたか: (a) => a.subtitle !== undefined },
-  eyebrow: { 説明: "上の小見出し", 書いたか: (a) => a.eyebrow !== undefined },
-  value: { 説明: "値", 書いたか: (a) => a.value !== undefined },
-  rows: { 説明: "行", 書いたか: (a) => a.rows !== undefined },
-  lane: { 説明: "枠の指定", 書いたか: (a) => a.lane !== undefined },
-  stack: { 説明: "積む順", 書いたか: (a) => a.stack !== undefined },
-  initial: { 説明: "始まり / 終わり の印", 書いたか: (a) => a.initial === true },
-  final: { 説明: "始まり / 終わり の印", 書いたか: (a) => a.final === true },
-  colorHex: { 説明: "色番号", 書いたか: (a) => a.colorHex !== undefined },
-  stateOverride: { 説明: "状態の上書き", 書いたか: (a) => a.stateOverride !== undefined },
+const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
+  kind: "種類",
+  subtitle: "副題",
+  eyebrow: "上の小見出し",
+  value: "値",
+  rows: "行",
+  lane: "枠の指定",
+  stack: "積む順",
+  initial: "始まり / 終わり の印",
+  final: "始まり / 終わり の印",
+  colorHex: "色番号",
+  stateOverride: "状態の上書き",
   // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い
-  posX: { 説明: "位置 (座標)", 書いたか: (a) => a.posX !== undefined },
-  posY: { 説明: "位置 (座標)", 書いたか: (a) => a.posY !== undefined },
-  posW: { 説明: "大きさ", 書いたか: (a) => a.posW !== undefined },
-  posH: { 説明: "大きさ", 書いたか: (a) => a.posH !== undefined },
-  scale: { 説明: "倍率", 書いたか: (a) => a.scale !== undefined },
-  scaleKeys: { 説明: "倍率", 書いたか: (a) => a.scaleKeys !== undefined },
-  posRel: { 説明: "位置 (相対)", 書いたか: (a) => a.posRel !== undefined },
-  nodes: { 説明: "中の箱ごとの指定", 書いたか: (a) => a.nodes !== undefined },
-  layoutPos: { 説明: "配置のずらし", 書いたか: (a) => a.layoutPos !== undefined },
+  posX: "位置 (座標)",
+  posY: "位置 (座標)",
+  posW: "大きさ",
+  posH: "大きさ",
+  scale: "倍率",
+  scaleKeys: "倍率",
+  posRel: "位置 (相対)",
+  nodes: "中の箱ごとの指定",
+  layoutPos: "配置のずらし",
 };
+
+/**
+ * その欄が書かれていたか。 **全ての欄をこの 1 つの式で見る**。
+ *
+ * 欄ごとに式を持たせると、 1 つだけ骨抜きにしても型検査が通る (Round 5 の指摘)。 1 つにすれば
+ * 骨抜きにした時点で全ての欄の検査が落ちる。
+ *
+ * 例外は種類だけ。 既定値 (`actor`) が必ず入るので、 書いたかどうかの印 (`kindWritten`) で見る。
+ * 真偽を持つ欄 (`initial` / `final`) は `false` を「書いていない」 として扱う = 既定と同じ意味で、
+ * 伝えると書いていない人にも出る。
+ */
+function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描けない欄): boolean {
+  if (欄 === "kind") return a.kindWritten === true;
+  const v = a[欄];
+  if (typeof v === "boolean") return v;
+  return v !== undefined;
+}
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
@@ -3917,10 +3933,11 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   // 欄は伝える = 箱ごとに描いていた頃は載っていた欄で、 黙って消すと「書いたのに出ない」 が残る
   const 描けない欄 = (a: DslActor): string[] => {
     const out: string[] = [];
-    for (const 欄 of Object.values(放射で描けない欄の表)) {
-      if (!欄.書いたか(a)) continue;
+    for (const 欄 of Object.keys(放射で描けない欄の名前) as 放射で描けない欄[]) {
+      if (!放射で描けない欄を書いたか(a, 欄)) continue;
+      const 名前 = 放射で描けない欄の名前[欄];
       // 同じ名前を持つ欄 (`posX` と `posY`) は 1 度だけ出す
-      if (!out.includes(欄.説明)) out.push(欄.説明);
+      if (!out.includes(名前)) out.push(名前);
     }
     return out;
   };
