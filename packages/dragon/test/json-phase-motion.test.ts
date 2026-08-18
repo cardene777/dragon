@@ -92,23 +92,28 @@ animation:
     }
   });
 
-  it("実在しない状態名を指した tween を誤りとして伝える", () => {
-    // 黙って捨てると「書いたのに動かない」 が手掛かりなしで起きる
+  it("この JSON の states に無い名前も tween の参照先にできる", () => {
+    // 見本や preset から入る state は JSON の states だけを見ても存在を判定できない
     const r = validateDragonJson(
-      図({ states: { amount: 0 }, animation: [{ step: "読込", tween: { 無い名前: [0, 1] } }] }),
+      図({ states: { amount: 0 }, animation: [{ step: "読込", tween: { inherited_amount: [0, 1] } }] }),
     );
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.errors.some((e) => e.message.includes("unknown state"))).toBe(true);
+    expect(r.ok, r.ok ? "" : r.errors.map((e) => `${e.path}: ${e.message}`).join(" / ")).toBe(true);
   });
 
-  it("実在しない状態名を指した set を誤りとして伝える", () => {
+  it("この JSON の states に無い名前も set の参照先にできる", () => {
     const r = validateDragonJson(
-      図({ states: { amount: 0 }, animation: [{ step: "読込", set: { 無い名前: 1 } }] }),
+      図({ states: { amount: 0 }, animation: [{ step: "読込", set: { inherited_phase: 1 } }] }),
+    );
+    expect(r.ok, r.ok ? "" : r.errors.map((e) => `${e.path}: ${e.message}`).join(" / ")).toBe(true);
+  });
+
+  it("tween / set の状態名を states と同じ規則で見る", () => {
+    const r = validateDragonJson(
+      図({ animation: [{ step: "読込", tween: { 無い名前: [0, 1] }, set: { "bad.name": 1 } }] }),
     );
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors.some((e) => e.message.includes("unknown state"))).toBe(true);
+    expect(r.errors.filter((e) => e.message.includes("invalid value name"))).toHaveLength(2);
   });
 
   it("tween に数でない値を書くと誤りとして伝える", () => {

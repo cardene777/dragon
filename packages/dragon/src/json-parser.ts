@@ -316,7 +316,7 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
         if (typeof po.step !== "string" || po.step.length === 0) {
           errors.push({ path: `$.animation[${i}].step`, message: "phase.step must be a non-empty string" });
         }
-        validatePhaseMotion(po, i, j.states, errors);
+        validatePhaseMotion(po, i, errors);
       });
     }
   }
@@ -329,21 +329,14 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
 /**
  * 段の中で値を動かす指定を見る (#1186)。
  *
- * **実在しない状態名を黙って捨てない**。 捨てると「書いたのに動かない」 が手掛かりなしで起きる。
- * 記法側は宣言していない名前を誤りとして伝えるので、JSON も同じ扱いにする
- * (別々にすると YAML では弾かれる指定が JSON では通る形ができる)。
+ * 状態名の記法は `states:` と同じ判定を使う。 参照先はこの JSON の `states` だけでは決めない。
+ * 見本や preset が持つ状態を動かす指定もあるためで、記法側と同じく compile 後の図で解決する。
  */
 function validatePhaseMotion(
   po: Record<string, unknown>,
   i: number,
-  states: unknown,
   errors: JsonDslError[],
 ): void {
-  const 宣言済 =
-    states && typeof states === "object" && !Array.isArray(states)
-      ? new Set(Object.keys(states as Record<string, unknown>))
-      : new Set<string>();
-
   if (po.tween !== undefined) {
     if (!po.tween || typeof po.tween !== "object" || Array.isArray(po.tween)) {
       errors.push({
@@ -353,9 +346,7 @@ function validatePhaseMotion(
     } else {
       for (const [name, range] of Object.entries(po.tween as Record<string, unknown>)) {
         const path = `$.animation[${i}].tween.${name}`;
-        if (!宣言済.has(name)) {
-          errors.push({ path, message: `unknown state: "${name}"`, hint: "states に初期値を書く" });
-        }
+        if (!isValueName(name)) errors.push({ path, ...valueNameIssue(name) });
         if (!Array.isArray(range) || range.length !== 2) {
           errors.push({ path, message: "tween value must be [from, to]" });
           continue;
@@ -381,9 +372,7 @@ function validatePhaseMotion(
     } else {
       for (const [name, value] of Object.entries(po.set as Record<string, unknown>)) {
         const path = `$.animation[${i}].set.${name}`;
-        if (!宣言済.has(name)) {
-          errors.push({ path, message: `unknown state: "${name}"`, hint: "states に初期値を書く" });
-        }
+        if (!isValueName(name)) errors.push({ path, ...valueNameIssue(name) });
         const t = typeof value;
         if (t !== "number" && t !== "string") {
           errors.push({ path, message: "set value must be a number or string", hint: `got ${t}` });
