@@ -219,6 +219,22 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
 }
 
+/** 写しを作る時の入れ子の深さの上限 */
+const 写しの最大の深さ = 64;
+
+/** 写しを作る時に触る値の数の上限 */
+const 写しの最大の項目数 = 100_000;
+
+/** 写しを作れなかった理由 (path 付き) */
+class 写せない extends Error {
+  constructor(
+    readonly path: string,
+    readonly 理由: string,
+  ) {
+    super(`${path}: ${理由}`);
+  }
+}
+
 /**
  * 検査の前に 1 度だけ読んで作る、 素のデータの複製 (#1217)。
  *
@@ -228,46 +244,99 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
  * `[NaN, Infinity]` を返す getter にすると、 検査を通って図に `from: null` が届いた)。
  *
  * ここで 1 度だけ読んで写しを作り、 以降は写しだけを読む。 各項目の読み取りは 1 回で、
- * `Object.entries` も配列の添字も同じ値を 2 度取りに行かない。
+ * 項目の名前も添字も同じ値を 2 度取りに行かない。
  *
  * **`structuredClone` は使わない**。 関数や symbol を含む入力で `DataCloneError` を投げるため、
  * `validateDragonJson` が約束している「誤りは `{ ok: false, errors }` で返す」 が破れる。
  * 自前で写せば、 写せない値もそのまま持ち越して検査側の型の判定に落とせる。
+ *
+ * **再帰では書かない** (Round 1 の指摘)。 検査が見ない項目も含めて写すため、 深い入れ子を渡すと
+ * 呼び出しの積み上げが溢れる (実測 = 使わない項目に 20,000 段の入れ子を付けると
+ * `RangeError: Maximum call stack size exceeded`)。 待ち行列で回し、 深さと項目数に上限を置く。
+ *
+ * **読み取りの例外も外に出さない** (同)。 項目の名前を数える所も値を読む所も、 getter や Proxy が
+ * 投げれば `validateDragonJson` 自体が throw して約束が破れる。 投げた場所を path として拾い、
+ * 検査の誤りに変える。
  *
  * 書き込みは `Object.defineProperty` で行う = `__proto__` を項目名に持つ入力で代入が
  * prototype の setter に落ちるのを避ける (`JSON.parse` と同じく普通の項目として持つ)。
  * `__proto__` を書いた時の扱いそのものは `#1184` が持つ。
  *
  * 輪 (自分を指す入れ子) は同じ写しを返して止める。 JSON からは作れないが、 object を直接
- * 渡す経路では作れるため、 無限に降りない形にしておく。
+ * 渡す経路では作れる。
  */
-function 素のデータに写す(value: unknown, 写し済: WeakMap<object, unknown>): unknown {
-  if (value === null || typeof value !== "object") return value;
+function 素のデータに写す(
+  root: unknown,
+): { ok: true; value: unknown } | { ok: false; error: JsonDslError } {
+  const 写し済 = new WeakMap<object, unknown[] | Record<string, unknown>>();
+  let 項目数 = 0;
 
-  const 既にある = 写し済.get(value);
-  if (既にある !== undefined) return 既にある;
+  /** 後で中身を埋める入れ物 */
+  type 仕事 = { 元: object; 器: unknown[] | Record<string, unknown>; 深さ: number; path: string };
+  const 待ち: 仕事[] = [];
 
-  if (Array.isArray(value)) {
-    const out: unknown[] = [];
-    写し済.set(value, out);
-    // 長さも 1 度だけ読む (getter で毎回変わる形を避ける)
-    const 長さ = value.length;
-    for (let i = 0; i < 長さ; i += 1) out.push(素のデータに写す(value[i], 写し済));
-    return out;
+  /** 入れ物だけ作って中身は待ち行列に回す (ここでは降りない) */
+  const 器を作る = (v: unknown, 深さ: number, path: string): unknown => {
+    項目数 += 1;
+    if (項目数 > 写しの最大の項目数) {
+      throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
+    }
+    if (v === null || typeof v !== "object") return v;
+
+    const 既にある = 写し済.get(v);
+    if (既にある !== undefined) return 既にある;
+
+    if (深さ >= 写しの最大の深さ) {
+      throw new 写せない(path, `入れ子が深すぎる (上限 ${写しの最大の深さ})`);
+    }
+    const 器: unknown[] | Record<string, unknown> = Array.isArray(v) ? [] : {};
+    写し済.set(v, 器);
+    待ち.push({ 元: v, 器, 深さ, path });
+    return 器;
+  };
+
+  try {
+    const 出 = 器を作る(root, 0, "$");
+    while (待ち.length > 0) {
+      const { 元, 器, 深さ, path } = 待ち.pop()!;
+      if (Array.isArray(元)) {
+        // 長さも 1 度だけ読む (getter で毎回変わる形を避ける)
+        const 長さ = 元.length;
+        const 並び = 器 as unknown[];
+        for (let i = 0; i < 長さ; i += 1) {
+          並び.push(器を作る(元[i], 深さ + 1, `${path}[${i}]`));
+        }
+        continue;
+      }
+      // 名前を先に取り、 値は 1 つずつ読む。 `Object.entries` は値を全部先に読むため、
+      // どの項目の読み取りで投げたのかが分からなくなる
+      const 名前の並び = Object.keys(元 as Record<string, unknown>);
+      const 表 = 器 as Record<string, unknown>;
+      for (const key of 名前の並び) {
+        const 子のpath = `${path}.${key}`;
+        Object.defineProperty(表, key, {
+          value: 器を作る((元 as Record<string, unknown>)[key], 深さ + 1, 子のpath),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+    return { ok: true, value: 出 };
+  } catch (e) {
+    if (e instanceof 写せない) {
+      return { ok: false, error: { path: e.path, message: e.理由 } };
+    }
+    // getter / Proxy が投げた形。 約束どおり誤りとして返す (throw しない)
+    return {
+      ok: false,
+      error: {
+        path: "$",
+        message: "入力を読み取れない",
+        hint: e instanceof Error ? e.message : String(e),
+      },
+    };
   }
-
-  const out: Record<string, unknown> = {};
-  写し済.set(value, out);
-  // `Object.entries` は自分が持つ項目を 1 度ずつ読む (getter も 1 度だけ動く)
-  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-    Object.defineProperty(out, key, {
-      value: 素のデータに写す(v, 写し済),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
-  }
-  return out;
 }
 
 function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
@@ -276,7 +345,9 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
     return { ok: false, errors: [{ path: "$", message: "root must be a JSON object" }] };
   }
   // 以降は写しだけを読む。 元の object には二度と触らない (#1217)
-  const j = 素のデータに写す(json, new WeakMap()) as Record<string, unknown>;
+  const 写し = 素のデータに写す(json);
+  if (!写し.ok) return { ok: false, errors: [写し.error] };
+  const j = 写し.value as Record<string, unknown>;
 
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });

@@ -188,3 +188,89 @@ describe("写しそのものの性質", () => {
     expect(({} as Record<string, unknown>).汚染).toBeUndefined();
   });
 });
+
+describe("写しを作れない入力を誤りとして返す (Round 1)", () => {
+  it("値を返す関数が投げても throw しない (r1-f1)", () => {
+    // 検査が見ない項目でも、 名前を数える所と値を読む所で getter は動く。 投げたら
+    // `validateDragonJson` 自体が throw して「誤りは {ok:false} で返す」 が破れる
+    const 素 = 図の素({ states: { amount: 0 } });
+    Object.defineProperty(素, "使わない項目", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        throw new Error("getter exploded");
+      },
+    });
+
+    const r = validateDragonJson(素);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toBe("入力を読み取れない");
+    expect(r.errors[0]?.hint).toContain("getter exploded");
+  });
+
+  it("項目の名前を数える所で投げても throw しない (r1-f1)", () => {
+    const 素 = new Proxy(図の素({ states: { amount: 0 } }), {
+      ownKeys() {
+        throw new Error("ownKeys exploded");
+      },
+    });
+    const r = validateDragonJson(素);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.hint).toContain("ownKeys exploded");
+  });
+
+  it("jsonToDiagram でも同じ入力が検査の誤りとして出る (r1-f1)", () => {
+    const 素 = 図の素({ states: { amount: 0 } });
+    Object.defineProperty(素, "使わない項目", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        throw new Error("getter exploded");
+      },
+    });
+    // 投げるのは検査の誤りとして。 生の Error がそのまま出ない
+    expect(() => jsonToDiagram(素)).toThrow(/Dragon JSON DSL validation error/);
+  });
+
+  it("深すぎる入れ子を誤りとして返す (r1-f2)", () => {
+    // 検査が見ない項目でも写しは降りるため、 上限が無いと呼び出しが積み上がって溢れる
+    // (実測 = 20,000 段で RangeError: Maximum call stack size exceeded)
+    const 深い: Record<string, unknown> = {};
+    let 先 = 深い;
+    for (let i = 0; i < 20_000; i += 1) {
+      const 次: Record<string, unknown> = {};
+      先.next = 次;
+      先 = 次;
+    }
+    const r = validateDragonJson(図の素({ 使わない項目: 深い }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toContain("入れ子が深すぎる");
+    // どこで止まったかが path から読める
+    expect(r.errors[0]?.path.startsWith("$.使わない項目")).toBe(true);
+  });
+
+  it("項目が多すぎる入力を誤りとして返す (r1-f2)", () => {
+    const 多い: Record<string, unknown> = {};
+    for (let i = 0; i < 200_000; i += 1) 多い[`k${i}`] = i;
+    const r = validateDragonJson(図の素({ 使わない項目: 多い }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]?.message).toContain("項目が多すぎる");
+  });
+
+  it("普通の大きさの入れ子は通る", () => {
+    // 上限を厳しくしすぎて正当な図を弾いていないことを見る
+    const 入れ子: Record<string, unknown> = {};
+    let 先 = 入れ子;
+    for (let i = 0; i < 30; i += 1) {
+      const 次: Record<string, unknown> = {};
+      先.next = 次;
+      先 = 次;
+    }
+    expect(validateDragonJson(図の素({ 使わない項目: 入れ子 })).ok).toBe(true);
+  });
+});
+
