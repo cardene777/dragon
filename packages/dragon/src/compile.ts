@@ -2077,6 +2077,9 @@ function mergePartsFromActors(
 ): CdlDiagram {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   if (partsActors.length === 0) return target;
+  // 値と状態の名前に使う前置きを **書いた順に 1 度だけ** 決める (#1189)。 見本ごとに作ると
+  // 同じ形に潰れた時の番号が揃わず、後から重ねた見本が先の名前空間を踏む
+  const 値の前置き = 値の前置きを作る(partsActors.map((a) => a.name));
   if (!partsCatalog) {
     if (typeof console !== "undefined" && console.warn) {
       const names = partsActors.map((a) => `${a.name} (kind: ${a.partId ?? "?"})`).join(", ");
@@ -2187,6 +2190,7 @@ function mergePartsFromActors(
       onNotice,
       actor.pos?.line ?? 0,
       derivedSourceLines,
+      値の前置き.get(actor.name),
     );
   }
   return target;
@@ -2246,6 +2250,47 @@ function applyColorHex(
  * state initial は stateOverride で上書き可、 shape / subtitle / value 内の '{stateName}' template も
  * '{alias__stateName}' に rewrite する。 phase parallel merge (activate / tweens / sets の id 参照 rename)。
  */
+/**
+ * 値と状態の名前に使う前置きを、登場人物の名前から作る (#1189)。
+ *
+ * `{名前}` に書ける字種は engine が 1 箇所で決めており (`template-name.ts`)、英数字と `_` に
+ * 限る。 **読む側 (置き換え) と書ける側 (式) の両方がその定義を使う** ため、記法の側だけ
+ * 広げることはできない。
+ *
+ * この記法では日本語の名前が普通なので、名前をそのまま前置きにすると値が 1 つも届かない。
+ * 実測 = `受付 1` に見本を重ねると、状態は表に載るのに箱の `{受付 1__v}` が置き換わらず、
+ * 見本の中の式は識別子として読めずに止まる (`value-unresolved`)。
+ *
+ * **箱 / 縦列 / 矢印の id は変えない**。 これらは `{名前}` の対象ではなく、画面側が id から
+ * 登場人物の名前を取り出す経路があるため、変えると別の場所が壊れる。
+ *
+ * ## 同じ形に潰れる名前
+ *
+ * `受付 1` と `受付-1` はどちらも英数字だけにすると同じ形になる。 潰れたまま使うと 2 つの
+ * 見本が同じ名前空間を共有し、片方の値がもう片方を上書きする。
+ *
+ * そこで **書いた順に番号を足して分ける**。 先に書いた方が番号なしを取り、後から同じ形に
+ * なった方が `_2` / `_3` と続く。 英数字の名前しか無い図では 1 つも番号が付かないため、
+ * 既存の図の名前は変わらない。
+ */
+function 値の前置きを作る(名前たち: readonly string[]): Map<string, string> {
+  const 出力 = new Map<string, string>();
+  const 使用中 = new Map<string, number>();
+  for (const 名前 of 名前たち) {
+    if (出力.has(名前)) continue;
+    let 素 = 名前
+      .normalize("NFKC")
+      .replace(/[^A-Za-z0-9_]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    // 空になる形 (記号だけの名前) と数字始まりは、そのままでは名前として使えない
+    if (素 === "" || /^[0-9]/.test(素)) 素 = `p${素}`;
+    const 回数 = (使用中.get(素) ?? 0) + 1;
+    使用中.set(素, 回数);
+    出力.set(名前, 回数 === 1 ? 素 : `${素}_${回数}`);
+  }
+  return 出力;
+}
+
 function mergePartIntoDiagram(
   target: CdlDiagram,
   part: CdlDiagram,
@@ -2273,8 +2318,16 @@ function mergePartIntoDiagram(
   noticeLine = 0,
   /** 見本から引き継いだ値の宣言元。 notice を見本を書いた行へ戻すために使う */
   derivedSourceLines?: Map<string, number[]>,
+  /**
+   * 値と状態の名前に使う前置き (#1189)。 `{名前}` は英数字と `_` しか読めないため、
+   * 登場人物の名前をそのまま使えない。 渡されない経路では従来どおり名前をそのまま使う
+   */
+  valueAlias?: string,
 ): void {
   const prefix = (id: string): string => `${alias}__${id}`;
+  // 値と状態だけ別の前置きを使う (#1189)。 箱 / 縦列 / 矢印の id は `prefix` のまま
+  const 値前置き = valueAlias ?? alias;
+  const valuePrefix = (id: string): string => `${値前置き}__${id}`;
   // 見本が自分で持つ名前。 **状態と、他の値から決まる値の両方** (#1180)。
   //
   // 値を含めないと、見本の中の `{決まる値}` が名前を付け替えられずに残り、重ねた先の同名の
@@ -2286,7 +2339,7 @@ function mergePartIntoDiagram(
   const rewriteTemplate = (s: string | undefined): string | undefined => {
     if (!s) return s;
     return s.replace(/\{(\w+)\}/g, (m, name: string) => {
-      return ownIdSet.has(name) ? `{${prefix(name)}}` : m;
+      return ownIdSet.has(name) ? `{${valuePrefix(name)}}` : m;
     });
   };
   // 値の式は見本の名前空間の中で閉じる。 見本が持つ名前だけを書き換えると、綴り違いの参照が
@@ -2298,7 +2351,7 @@ function mergePartIntoDiagram(
   // 静かにずれる。
   const rewriteDerivedExpression = (expression: string): string => {
     try {
-      return writeFormula(renameFormulaIdentifiers(parseFormula(expression), prefix));
+      return writeFormula(renameFormulaIdentifiers(parseFormula(expression), valuePrefix));
     } catch {
       // 読めない式は engine が止めて伝える (`value-unresolved`)。 書き換えられないので
       // そのまま載せる = 名前は前置き無しのままだが、式自体が解けないため値は出ない
@@ -2513,7 +2566,7 @@ function mergePartIntoDiagram(
         hint: "色は `#ff0000` のような色番号か、 `red` のような色名で書く",
       });
     }
-    target.states.push({ id: prefix(stateOrig.id), initial });
+    target.states.push({ id: valuePrefix(stateOrig.id), initial });
   }
 
   // 見本が持つ「他の値から決まる値」 を引き継ぐ (#1180)。
@@ -2523,7 +2576,7 @@ function mergePartIntoDiagram(
   // 読まない。 式の中の参照は、未定義の名前も含めて見本の名前空間へ閉じ込める。
   for (const derivedOrig of part.derived ?? []) {
     if (!target.derived) target.derived = [];
-    const id = prefix(derivedOrig.id);
+    const id = valuePrefix(derivedOrig.id);
     target.derived.push({
       id,
       expression: rewriteDerivedExpression(derivedOrig.expression),
@@ -2570,8 +2623,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) })),
       });
     }
   } else {
@@ -2585,8 +2638,8 @@ function mergePartIntoDiagram(
       const partPhase = part.phases[i]!;
       targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
       targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
-      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) }))];
-      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) }))];
+      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) }))];
+      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) }))];
     }
     // parts phase 余剰は append (target より parts が長い場合)
     for (let i = commonLen; i < partsLen; i++) {
@@ -2595,8 +2648,8 @@ function mergePartIntoDiagram(
         ...phaseOrig,
         id: prefix(phaseOrig.id),
         activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: prefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: prefix(s.stateId) })),
+        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) })),
+        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) })),
       });
     }
   }
