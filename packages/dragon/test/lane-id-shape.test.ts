@@ -84,6 +84,11 @@ describe("書き間違いが別の縦列として通らない (Round 1 の指摘
     ["引用符", '  "lane-idle": { width: 370 }'],
     ["角括弧", "  lane[0]: { width: 370 }"],
     ["丸括弧", "  lane(idle): { width: 370 }"],
+    // 非 ASCII をまとめて許すと、全角の句読点や絵文字まで通る (Round 2 の指摘、実測)
+    ["全角の読点", "  lane-idle、: { width: 370 }"],
+    ["全角の句点", "  lane-idle。: { width: 370 }"],
+    ["全角の感嘆符", "  lane-idle！: { width: 370 }"],
+    ["絵文字", "  lane-idle🙂: { width: 370 }"],
   ])("%s は誤りとして伝える", (_name, 行) => {
     const 出た = 誤り(記法(`lanes:\n${行}\n`));
     expect(出た.some((m) => m.startsWith("invalid lane entry")), 出た.join(" / ")).toBe(true);
