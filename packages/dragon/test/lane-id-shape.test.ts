@@ -74,3 +74,27 @@ describe("読み取りを壊す形は受けない (陰性対照)", () => {
     expect(誤り(記法(`lanes:\n  lane-idle: { width: 370 }\n`))).toEqual([]);
   });
 });
+
+describe("書き間違いが別の縦列として通らない (Round 1 の指摘)", () => {
+  // 「読み取りを壊す字以外は何でも」 にすると、句読点の混じった書き間違いが **別の縦列として
+  // 通り**、書いた幅が黙って効かなくなる。 組み立て側が作りうる字だけに絞る
+  it.each([
+    ["末尾に読点", "  lane-idle,: { width: 370 }"],
+    ["末尾に句点", "  lane-idle.: { width: 370 }"],
+    ["引用符", '  "lane-idle": { width: 370 }'],
+    ["角括弧", "  lane[0]: { width: 370 }"],
+    ["丸括弧", "  lane(idle): { width: 370 }"],
+  ])("%s は誤りとして伝える", (_name, 行) => {
+    const 出た = 誤り(記法(`lanes:\n${行}\n`));
+    expect(出た.some((m) => m.startsWith("invalid lane entry")), 出た.join(" / ")).toBe(true);
+  });
+
+  it("組み立て側が作る字は通る (陰性対照)", () => {
+    // 絞りすぎると自動生成の縦列を指せなくなる = 本 PR の目的が消える
+    for (const id of ["main", "chart", "lane-idle", "lane-sign-up", "lane_1", "lane-待機", "c4-l1"]) {
+      const src = `title: "T"\ntype: state\nlanes:\n  ${id}: { width: 370 }\n\n` +
+        `actors:\n  - Idle\n  - Loading\nflow:\n  - Idle -> Loading: "x"\n`;
+      expect(誤り(src), `${id} が受からない`).toEqual([]);
+    }
+  });
+});

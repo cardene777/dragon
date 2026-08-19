@@ -98,10 +98,11 @@ export const TOP_LEVEL_KEYS = [
  * `type: swimlane` で `lane-sign-up`)。 英数字と下線だけを受けていた間、
  * **自動で作られた縦列の幅や見出しを書き直す手段が無かった**。
  *
- * 受けないのは読み取りを壊す 4 種だけ = 空白 (行の区切りと紛れる) と `:` (id と中身の境目) と
- * 中括弧 (中身の囲み)。 それ以外は組み立て側が作りうるため通す。
+ * 受けるのは **組み立て側が作りうる字だけ** に絞る (Round 1 の指摘)。 英数字と下線と hyphen、
+ * それと非 ASCII (日本語等)。 「読み取りを壊す字以外は何でも」 にすると、`lane-idle,` のような
+ * 書き間違いが **別の縦列として通り**、書いた幅が黙って効かなくなる (実測)。
  */
-const LANE_ID_ENTRY = /^([^\s:{}]+)\s*:\s*\{([^}]*)\}\s*$/;
+const LANE_ID_ENTRY = /^([\w\-\u0080-\uFFFF]+)\s*:\s*\{([^}]*)\}\s*$/;
 
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
   return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
