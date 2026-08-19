@@ -165,6 +165,20 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
+    title: "軸の名前 (axes:)",
+    sample: {
+      slot: "root",
+      type: "quadrant",
+      actors: ['  - 重複削除: "左上"', '  - 型を直す: "右上"'],
+    },
+    lines: [
+      { code: "axes:", note: "2 つの軸に名前を付ける" },
+      { code: '  x: { left: "手間 小", right: "手間 大" }', note: "横の軸" },
+      { code: '  y: { bottom: "効き 小", top: "効き 大" }', note: "縦の軸。 区画の名前は軸から決まる" },
+    ],
+  },
+  {
     // 体験の道筋の段だけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "体験の道筋の欄 (touchpoint: / opportunity:)",
     sample: {

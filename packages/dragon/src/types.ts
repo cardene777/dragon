@@ -71,6 +71,17 @@ export type DslDocument = {
    * を 1 行目として知らせることになり、 書いた場所に辿り着けない。
    */
   eyebrowPos?: Position;
+  /**
+   * 2 軸で仕分ける図 (`type: quadrant`) の軸の名前 (#1251)。
+   *
+   * 書かないと「小さい / 大きい」 のままになり、何を判断する図か読めない。
+   * 区画の名前 (`右上` 等) は軸の名前から `{上} × {右}` の形で決まる。
+   *
+   * 他の図種には軸が無いため、書かれていたら組み立て側が知らせる。
+   */
+  axes?: DslAxes;
+  /** `axes` を書いた行 (#1251)。 知らせの行番号に使う */
+  axesPos?: Position;
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;
@@ -91,6 +102,12 @@ export type DslDocument = {
    */
   layout?: LayoutMode;
   pos: Position;
+};
+
+/** 2 軸で仕分ける図の軸の名前 (#1251) */
+export type DslAxes = {
+  x?: { left?: string; right?: string };
+  y?: { bottom?: string; top?: string };
 };
 
 /** 登場人物 (v0.5+ ... inline option 拡張) */

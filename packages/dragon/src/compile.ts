@@ -208,6 +208,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportJourneyFieldsNotHonored(書いたまま, opts?.onNotice);
+  reportAxesNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -4413,6 +4414,65 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
   return b.build();
 }
 
+/** 軸を書かなかった時の名前。 何の軸か分からないため、位置をそのまま出す */
+const 軸の既定 = {
+  xAxis: { left: "小さい", right: "大きい" },
+  yAxis: { bottom: "小さい", top: "大きい" },
+  quadrantLabels: { topLeft: "左上", topRight: "右上", bottomLeft: "左下", bottomRight: "右下" },
+} as const;
+
+/**
+ * 2 軸で仕分ける図の軸と区画の名前を決める (#1251)。
+ *
+ * `axes:` を書かなければ従来どおり位置の名前 (`左上` 等) を出す = 既に描いてある図が動かない。
+ *
+ * 書いたら区画の名前は **軸の名前から決める** (`{上} × {右}`)。 組立て API 側が同じ規則で
+ * 導いており (実測 = `xAxis: {left: "L", right: "R"}` / `yAxis: {bottom: "B", top: "T"}` で
+ * `topLeft: "T × L"`)、 別の規則にすると同じ内容を書いても図が食い違う。
+ *
+ * 片側だけ書いた形では、書かなかった側は既定のままにする。 空文字を渡すと名前の無い軸が描かれる。
+ */
+function 軸と区画の名前(doc: DslDocument): {
+  xAxis: { left: string; right: string };
+  yAxis: { bottom: string; top: string };
+  quadrantLabels: { topLeft: string; topRight: string; bottomLeft: string; bottomRight: string };
+} {
+  if (doc.axes === undefined) return 軸の既定;
+  const left = doc.axes.x?.left ?? 軸の既定.xAxis.left;
+  const right = doc.axes.x?.right ?? 軸の既定.xAxis.right;
+  const bottom = doc.axes.y?.bottom ?? 軸の既定.yAxis.bottom;
+  const top = doc.axes.y?.top ?? 軸の既定.yAxis.top;
+  return {
+    xAxis: { left, right },
+    yAxis: { bottom, top },
+    quadrantLabels: {
+      topLeft: `${top} × ${left}`,
+      topRight: `${top} × ${right}`,
+      bottomLeft: `${bottom} × ${left}`,
+      bottomRight: `${bottom} × ${right}`,
+    },
+  };
+}
+
+/**
+ * 軸の名前を、それを持たない図種で書いた時に伝える (#1251)。
+ *
+ * 軸を持つのは `type: quadrant` だけ。 他の図種では相手が無く、黙って捨てると
+ * 「書いたのに出ない」 が手掛かりなしで起きる。
+ */
+function reportAxesNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.axes === undefined) return;
+  if (doc.type === "quadrant") return;
+  onNotice({
+    kind: "chart-value-unreadable",
+    actor: doc.title,
+    line: doc.axesPos?.line ?? doc.pos?.line ?? 0,
+    message: `最上位に書いた axes は効きません (type: ${doc.type} には軸がありません)`,
+    hint: "2 つの軸で仕分ける図を描くなら type: quadrant を使ってください",
+  });
+}
+
 function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
@@ -4451,12 +4511,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
     lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_TALL,
-    quadrantData: {
-      xAxis: { left: "小さい", right: "大きい" },
-      yAxis: { bottom: "小さい", top: "大きい" },
-      quadrantLabels: { topLeft: "左上", topRight: "右上", bottomLeft: "左下", bottomRight: "右下" },
-      items,
-    },
+    quadrantData: { ...軸と区画の名前(doc), items },
   });
   return b.build();
 }
