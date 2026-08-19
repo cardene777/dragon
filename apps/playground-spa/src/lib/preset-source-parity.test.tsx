@@ -24,7 +24,9 @@
  * 宣言に無い差が出たら落ちる = 記法を書き換えて図がずれた時に気付ける。
  */
 import { describe, it, expect } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { textDslToDiagram } from "@cardenelabs/dragon";
+import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 
@@ -79,6 +81,17 @@ function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
 }
 
 const 対象 = 記法つき();
+
+/**
+ * 描いた図の大きさ。 viewBox をそのまま読む。
+ *
+ * **中身ではなく絵で見る**。 箱の大きさや矢印の回し方は中身の比較に現れないが、
+ * 読む人には図の大きさとして届く。
+ */
+function 描いた大きさ(d: Diagram): string {
+  const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
+  return svg.match(/data-cdl-viewbox="([^"]+)"/)?.[1] ?? "(読めない)";
+}
 const ids = (a: readonly { id: string }[] | undefined): string[] => (a ?? []).map((x) => x.id);
 const 題 = (a: readonly { title?: string }[] | undefined): string[] => (a ?? []).map((x) => x.title ?? "");
 const 説明 = (a: readonly { label?: string }[] | undefined): string[] => (a ?? []).map((x) => x.label ?? "");
@@ -409,6 +422,15 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
       it("矢印の中身が一致する", () => {
         expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
+      });
+
+      it("描いた図の大きさが一致する", () => {
+        // **中身だけを比べても足りない** (#1260)。 箱の題も矢印も段も同じなのに、
+        // 描くと大きさの違う図が 7 件通っていた (実測 = viewBox が 785x488 対 712x600 等)。
+        //
+        // 原因は 2 系統。 図表の箱の大きさが組立て API と違っていたことと、
+        // 後ろへ戻る矢印の回し方が違っていたこと。 どちらも中身の比較には現れない。
+        expect(描いた大きさ(記法), "描いた図の大きさが違う").toBe(描いた大きさ(t.built));
       });
 
       it("縦列の幅が一致する", () => {
