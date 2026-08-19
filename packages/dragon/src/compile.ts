@@ -5889,6 +5889,26 @@ function 後ろへ戻る矢印か(
   return 先 < 元;
 }
 
+/**
+ * 箱に書いた大きさを渡す (#1259)。
+ *
+ * 書かなければ渡さない = 描画側の既定になる。 組立て API 側は箱ごとに幅を指定することがあり、
+ * **既定より狭い幅を指定した図では、記法から書けないと縦列ごと広がる**
+ * (実測 = 拡張ステート図は箱 280 / 縦列 330。 記法の既定 640 が縦列を押し広げ、
+ * 描いた図の幅が 2439 対 2279 になった)。
+ *
+ * 既定より広い幅 (実測 = ステート図の 320) では縦列 370 に収まるため図は変わらない。
+ * **1 件で確かめて「見た目に出ない」 と決めない** = 幅は縦列との大小で効いたり効かなかったりする。
+ *
+ * `posW` / `posH` は絶対配置の欄として既に読んでいる。 大きさとしてもここで使う。
+ */
+function 箱の大きさ(a: DslActor): { w?: number; h?: number } {
+  return {
+    ...(a.posW !== undefined ? { w: a.posW } : {}),
+    ...(a.posH !== undefined ? { h: a.posH } : {}),
+  };
+}
+
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const { kind, laneWidth } = opts;
@@ -5902,7 +5922,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
-      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: a.name });
+      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: a.name, ...箱の大きさ(a) });
     });
   } else {
     // swimlane / er / state ... actor ごとに 1 lane (横並び)
@@ -5928,6 +5948,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         stack: 0,
         kind: a.kind,
         title: a.name,
+        ...箱の大きさ(a),
         ...(isInitial ? { eyebrow: "初期" } : {}),
         ...(isFinal ? { eyebrow: "最終" } : {}),
       });

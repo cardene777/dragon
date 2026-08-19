@@ -165,6 +165,19 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 箱の大きさ。 書かないと描画側の既定になる。 既定より狭い幅を書くと縦列に収まる (#1259)
+    title: "箱の大きさ (posW: / posH:)",
+    sample: {
+      slot: "actors",
+      type: "state",
+      flow: ['  - 待機 -> 読込み: "start"'],
+    },
+    lines: [
+      { code: '  - 待機: { kind: card, posW: 280 }', note: "幅" },
+      { code: '  - 読込み: { kind: card, posW: 280, posH: 120 }', note: "幅と高さ" },
+    ],
+  },
+  {
     // 工程の並びだけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "工程の並びの欄 (owner: / end:)",
     sample: {

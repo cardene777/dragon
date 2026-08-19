@@ -866,7 +866,7 @@ lanes:
 actors:
   - Idle: { kind: card, eyebrow: "初期" }
   - Loading: { kind: card, eyebrow: "状態" }
-  - Done: { kind: card, eyebrow: "最終" }
+  - Done: { kind: card, eyebrow: "最終", posW: 280 }
   - Error: { kind: card, eyebrow: "状態" }
 
 flow:
@@ -892,4 +892,38 @@ animation:
     badge: "fsm"
     focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Idle"]
     body: "FSM の全 state + transition を visible 化。"
+`;
+
+export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移アクションを持つ拡張ステート図"
+type: state
+
+lanes:
+  lane-idle: { width: 330 }
+  lane-active: { width: 330 }
+  lane-loading: { width: 330 }
+  lane-done: { width: 330 }
+
+actors:
+  - Idle: { kind: card, eyebrow: "初期", subtitle: "entry: clearForm", posW: 280 }
+  - Active: { kind: card, eyebrow: "状態", posW: 280 }
+  - Loading: { kind: card, eyebrow: "状態 / nested in active", subtitle: "entry: startSpinner / exit: stopSpinner", posW: 280 }
+  - Done: { kind: card, eyebrow: "最終", posW: 280 }
+
+flow:
+  - Idle -> Loading: "submit" (accent, solid) { sub: "/validate" }
+  - Loading -> Done: "success" (success, solid)
+
+animation:
+  - step: "1. Idle" 0.9s
+    badge: "statemachine2"
+    focus: [Idle]
+    body: "clearForm を実行して待つ。"
+  - step: "2. Active の中の Loading" 0.9s
+    badge: "statemachine2"
+    focus: [Idle, Active, Loading, "Idle -> Loading"]
+    body: "submit で入れ子の状態に入る。"
+  - step: "階層状態や遷移アクションを持つ拡張ステート図" 0.9s
+    badge: "statemachine2"
+    focus: [Idle, Active, Loading, Done, "Idle -> Loading", "Loading -> Done"]
+    body: "拡張 FSM (nested + action) を visible 化。"
 `;
