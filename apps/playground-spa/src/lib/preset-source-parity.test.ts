@@ -114,6 +114,96 @@ type 箱の中身 = {
   mindData?: unknown;
 };
 
+/**
+ * 図表の中身の識別子を、並び順から作る名前に置き換える。
+ *
+ * **識別子は記法で書けない**。 記法は図表の項目の識別子を名前から導く (`Sign up` なら
+ * `sign-up`) 一方、preset は組み立て API で明示 識別子 を書いている (`signup`)。 節の題は
+ * 「読む人が受け取るもの」 として比べるが、識別子はどこにも描かれない。
+ *
+ * 箱の識別子を比べない理由 (本 file の冒頭) と同じ。 そちらは宣言した preset だけ識別子まで
+ * 見るが、図表の項目には宣言の仕組みを置かない = 記法側で合わせる手段が無いため。
+ *
+ * ## 落とすのではなく置き換える (Round 1 の指摘)
+ *
+ * `id` だけを落として `parent` を残すと、**指す先が居ない木が一致とみなされる**。
+ * 木や放射の図は `parent` が他の項目の識別子を指すため、識別子を消すと参照の正しさを
+ * 見る手掛かりが無くなる (実測 = `parent` に無い名前を書いても比較を通った)。
+ *
+ * そこで並び順から名前を作り (`#0` / `#1` ...)、**指す側も同じ名前に読み替える**。
+ *
+ * | 入力 | 置き換え後 |
+ * |---|---|
+ * | 識別子の付け方だけが違う同じ木 | 一致する |
+ * | 親の違う木 | 一致しない |
+ * | 居ない項目を指す木 | `未解決:<書かれた名前>` になり、解決できる木と一致しない |
+ *
+ * 中心 (`rootId`) は項目の並びに居ないため `#root` として別に名前を作る。
+ */
+const 参照する欄 = ["parent", "rootId", "dependsOn"] as const;
+
+function 識別子を並び順に読み替える(v: unknown): unknown {
+  if (Array.isArray(v)) {
+    const 表 = 識別子の表(v);
+    return v.map((x, i) => 項目を読み替える(x, 表, `#${i}`));
+  }
+  if (v === null || typeof v !== "object") return v;
+  const o = v as Record<string, unknown>;
+  // 放射の図は `{ rootId, rootTitle, branches: [...] }` の形。 中心は枝の並びに居ない
+  if (Array.isArray(o.branches)) {
+    const 表 = 識別子の表(o.branches);
+    if (typeof o.rootId === "string") {
+      if (表.has(o.rootId)) throw new Error(`放射の中心と枝で識別子 "${o.rootId}" が重複している`);
+      表.set(o.rootId, "#root");
+    }
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(o)) {
+      if (k === "branches") {
+        out[k] = (x as unknown[]).map((b, i) => 項目を読み替える(b, 表, `#${i}`));
+      } else if ((参照する欄 as readonly string[]).includes(k)) {
+        out[k] = 読み替えた参照(x, 表);
+      } else {
+        out[k] = x;
+      }
+    }
+    return out;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(o)) out[k] = 識別子を並び順に読み替える(x);
+  return out;
+}
+
+/** 並びの中の識別子から、並び順の名前への表を作る */
+function 識別子の表(items: readonly unknown[]): Map<string, string> {
+  const 表 = new Map<string, string>();
+  items.forEach((x, i) => {
+    if (x === null || typeof x !== "object") return;
+    const id = (x as { id?: unknown }).id;
+    if (typeof id === "string") {
+      if (表.has(id)) throw new Error(`図表の識別子 "${id}" が重複している`);
+      表.set(id, `#${i}`);
+    }
+  });
+  return 表;
+}
+
+function 項目を読み替える(x: unknown, 表: Map<string, string>, 自分: string): unknown {
+  if (x === null || typeof x !== "object") return x;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(x as Record<string, unknown>)) {
+    if (k === "id") out[k] = 自分;
+    else if ((参照する欄 as readonly string[]).includes(k)) out[k] = 読み替えた参照(v, 表);
+    else out[k] = 識別子を並び順に読み替える(v);
+  }
+  return out;
+}
+
+/** 指す先を並び順の名前に読み替える。 居ない項目を指していたらそれと分かる形にする */
+function 読み替えた参照(v: unknown, 表: Map<string, string>): unknown {
+  if (typeof v !== "string") return v;
+  return 表.get(v) ?? `未解決:${v}`;
+}
+
 const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
   (a ?? []).map((x) =>
     JSON.stringify({
@@ -123,13 +213,13 @@ const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
       eyebrow: x.eyebrow ?? "",
       value: x.value ?? "",
       rows: x.rows ?? [],
-      chartData: x.chartData ?? null,
-      funnelData: x.funnelData ?? null,
-      ganttData: x.ganttData ?? null,
-      quadrantData: x.quadrantData ?? null,
-      journeyData: x.journeyData ?? null,
-      treeData: x.treeData ?? null,
-      mindData: x.mindData ?? null,
+      chartData: 識別子を並び順に読み替える(x.chartData ?? null),
+      funnelData: 識別子を並び順に読み替える(x.funnelData ?? null),
+      ganttData: 識別子を並び順に読み替える(x.ganttData ?? null),
+      quadrantData: 識別子を並び順に読み替える(x.quadrantData ?? null),
+      journeyData: 識別子を並び順に読み替える(x.journeyData ?? null),
+      treeData: 識別子を並び順に読み替える(x.treeData ?? null),
+      mindData: 識別子を並び順に読み替える(x.mindData ?? null),
     }),
   );
 
@@ -147,8 +237,120 @@ describe("図表と状態の一致検査", () => {
     "treeData",
     "mindData",
   ] as const)("%s の差を検出する", (field) => {
-    // 現在の sourceYaml 付き preset は図表を含まないため、比較関数自体の退行をここで固定する
-    expect(中身([{ [field]: [{ id: "a" }] }])).not.toEqual(中身([{ [field]: [{ id: "b" }] }]));
+    // **`id` で差をつけてはいけない**。 `id` は比較から落としているため、それで差をつけると
+    // 検査が常に通り、比較関数が壊れても気付けない (実測で恒真になった)。 描かれる欄で見る
+    expect(中身([{ [field]: [{ title: "a" }] }])).not.toEqual(中身([{ [field]: [{ title: "b" }] }]));
+  });
+
+  it.each([
+    "chartData",
+    "funnelData",
+    "ganttData",
+    "quadrantData",
+    "journeyData",
+    "treeData",
+    "mindData",
+  ] as const)("%s の id だけの差は見ない", (field) => {
+    // 落としていることを検査でも残す。 記法は図表の項目の id を名前から導くため
+    // (`Sign up` なら `sign-up`)、preset の明示 id (`signup`) と揃える手段が無い。
+    // **この判断は目に見えないところで効くので、意図として固定しておく**
+    expect(中身([{ [field]: [{ id: "a", title: "x" }] }])).toEqual(
+      中身([{ [field]: [{ id: "b", title: "x" }] }]),
+    );
+  });
+
+  it("入れ子の中の id も落とす", () => {
+    // 放射の図は `mindData: { rootId, rootTitle, branches: [{ id, ... }] }` の形で、
+    // 落とす対象が 1 段深い所にも出る
+    expect(中身([{ mindData: { rootId: "r", branches: [{ id: "x", title: "枝" }] } }])).toEqual(
+      中身([{ mindData: { rootId: "r", branches: [{ id: "y", title: "枝" }] } }]),
+    );
+    expect(中身([{ mindData: { branches: [{ id: "x", title: "枝" }] } }])).not.toEqual(
+      中身([{ mindData: { branches: [{ id: "x", title: "別" }] } }]),
+    );
+  });
+
+  it("居ない項目を指す木は、指す先のある木と一致しない (Round 1 の指摘)", () => {
+    // 識別子を落とすだけだと、`parent` の指す先が居なくても比較を通ってしまう。
+    // 並び順に読み替えることで、解決できない参照が `未解決:` として残り差になる
+    const 指す先あり = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "a" }] };
+    const 指す先なし = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "居ない" }] };
+    expect(中身([指す先あり])).not.toEqual(中身([指す先なし]));
+  });
+
+  it("重複する識別子で参照先が曖昧な木を通さない (Round 2 の指摘)", () => {
+    // Map の後勝ちにすると、`x` は 2 番目の親を指す形へ読み替わり、正常な木と一致してしまう。
+    // 描画側では同じ識別子の親が 2 つあり参照先を一意に決められないため、比較前に落とす
+    const 重複あり = {
+      treeData: [
+        { id: "x", title: "親 1" },
+        { id: "x", title: "親 2" },
+        { id: "child", title: "子", parent: "x" },
+      ],
+    };
+    expect(() => 中身([重複あり])).toThrow('図表の識別子 "x" が重複している');
+  });
+
+  it("放射の中心と枝で識別子が重なる形を通さない", () => {
+    const 重複あり = {
+      mindData: { rootId: "same", branches: [{ id: "same", title: "枝", parent: "same" }] },
+    };
+    expect(() => 中身([重複あり])).toThrow('放射の中心と枝で識別子 "same" が重複している');
+  });
+
+  it("識別子の付け方だけが違う同じ木は一致する", () => {
+    // 記法は名前から識別子を導き (`Sign up` なら `sign-up`)、preset は明示 識別子 を書く。
+    // 形が同じなら通す = これが通らないと記法を書けない
+    const 記法ふう = { treeData: [{ id: "eng-manager", title: "親" }, { id: "ops", title: "子", parent: "eng-manager" }] };
+    const 見本ふう = { treeData: [{ id: "eng", title: "親" }, { id: "op", title: "子", parent: "eng" }] };
+    expect(中身([記法ふう])).toEqual(中身([見本ふう]));
+  });
+
+  it("放射の図でも中心を指す枝が読み替わる", () => {
+    const 記法ふう = { mindData: { rootId: "theme", branches: [{ id: "f", title: "枝", parent: "theme" }] } };
+    const 見本ふう = { mindData: { rootId: "root", branches: [{ id: "feat", title: "枝", parent: "root" }] } };
+    expect(中身([記法ふう])).toEqual(中身([見本ふう]));
+  });
+
+  it("放射の図で枝の親が違えば一致しない", () => {
+    // 中心の直下に並べた形と、枝の下に入れ子にした形を分ける = mind の記法が書けない差そのもの
+    const 平ら = { mindData: { rootId: "r", branches: [{ id: "a", title: "A", parent: "r" }, { id: "b", title: "B", parent: "r" }] } };
+    const 入れ子 = { mindData: { rootId: "r", branches: [{ id: "a", title: "A", parent: "r" }, { id: "b", title: "B", parent: "a" }] } };
+    expect(中身([平ら])).not.toEqual(中身([入れ子]));
+  });
+
+  it("工程の前後関係も読み替える", () => {
+    // **識別子の付け方だけが違う形で見る**。 指す先が居ない形との差だけを見ると、
+    // 読み替えを外しても文字列が違うまま通ってしまい、検査が空振りする (変異試験で判明)
+    const 記法ふう = { ganttData: [{ id: "design", title: "設計" }, { id: "build", title: "作る", dependsOn: "design" }] };
+    const 見本ふう = { ganttData: [{ id: "d", title: "設計" }, { id: "b", title: "作る", dependsOn: "d" }] };
+    expect(中身([記法ふう]), "識別子の付け方だけで差になる").toEqual(中身([見本ふう]));
+  });
+
+  it("工程の前後関係が違えば一致しない", () => {
+    const 順に並ぶ = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2", dependsOn: "a" }] };
+    const 前後なし = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2" }] };
+    const 指す先なし = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2", dependsOn: "居ない" }] };
+    expect(中身([順に並ぶ])).not.toEqual(中身([前後なし]));
+    expect(中身([順に並ぶ])).not.toEqual(中身([指す先なし]));
+  });
+
+  it.each([
+    ["rootId", { mindData: { rootId: "a" } }, { mindData: { rootId: "b" } }],
+    [
+      "parent",
+      { mindData: { branches: [{ title: "枝", parent: "a" }] } },
+      { mindData: { branches: [{ title: "枝", parent: "b" }] } },
+    ],
+    [
+      "treeData の parent",
+      { treeData: [{ title: "子", parent: "a" }] },
+      { treeData: [{ title: "子", parent: "b" }] },
+    ],
+  ] as const)("%s の差は残る (図の形が変わるため)", (_name, 左, 右) => {
+    // **指す側の欄は消さない**。 `rootId` / `parent` / `dependsOn` は他の項目を指して
+    // 親子関係や前後関係を作るため、消すと **形の違う木が一致とみなされる**
+    expect(中身([左])).not.toEqual(中身([右]));
   });
 
   it("状態の id と初期値の差を検出する", () => {

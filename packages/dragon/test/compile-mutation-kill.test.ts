@@ -2189,11 +2189,13 @@ describe("compileMind: 矢印の扱いと枠 (#1177)", () => {
     expect(知らせ.filter((k) => k === "chart-edge-dropped")).toEqual([]);
   });
 
-  it("枠は 1 つで、 見出しは図の題", () => {
+  it("枠は 1 つで、 見出しは付かない", () => {
+    // 見出しは #1249 で外した。 図表は箱を 1 つしか作らず、その箱が既に図の題を持つため、
+    // 見出しにも同じ題を渡すと同じ字が縦に 2 つ並ぶ (描いた絵で実測)
     const d = compile("mind", { actors: [actor("Root"), actor("L1"), actor("L2")], flow: [] });
     expect(d.lanes).toHaveLength(1);
     expect(d.lanes[0]!.id).toBe("chart");
-    expect(d.lanes[0]!.label).toBe(d.topic);
+    expect(d.lanes[0]!.label).toBeUndefined();
   });
 });
 
