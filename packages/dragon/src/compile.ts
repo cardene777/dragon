@@ -4747,6 +4747,19 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const root = 見本でない[0]!;
   const rootId = slugify(root.name) || "root";
 
+  // **中心を子にする矢印は表せない** (#1251 Round 1 の指摘)。 中心は枝の並びに居ないため
+  // 親を持てず、 解決はできても誰にも読まれずに消える。 黙って捨てると「書いたのに
+  // 図が変わらない」 が手掛かりなしで起きるので、 行番号付きで伝える
+  for (const f of doc.flow) {
+    if (slugify(f.to) !== rootId) continue;
+    伝える(
+      "chart-edge-dropped",
+      f.to,
+      `type: mind で中心 (${truncateForMessage(f.to)}) を子にはできません (${truncateForMessage(f.from)} -> ${truncateForMessage(f.to)} を使いません)。 中心は放射の真ん中に置く 1 つだけです`,
+      f.pos?.line ?? 0,
+    );
+  }
+
   // **1 箱で描く種別が持てる欄は限られる**。 枝は名前と色、 中心は名前だけ。 書いても描けない
   // 欄は伝える = 箱ごとに描いていた頃は載っていた欄で、 黙って消すと「書いたのに出ない」 が残る
   const 描けない欄 = (a: DslActor): string[] => {

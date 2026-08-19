@@ -503,3 +503,45 @@ describe("枝の親を矢印で書く (#1251)", () => {
     }
   });
 });
+
+describe("中心を子にする矢印 (Round 1 の指摘)", () => {
+  const 本文 = (矢印: string) =>
+    `title: "T"\ntype: mind\n\nactors:\n  - Project\n  - Features\n  - Auth\n${矢印}`;
+
+  const 知らせを取る = (src: string) => {
+    const out: CompileNotice[] = [];
+    textDslToDiagram(src, { onNotice: (n) => out.push(n) });
+    return out.filter((n) => n.kind === "chart-edge-dropped");
+  };
+
+  it("中心を子にする矢印を伝える", () => {
+    // 中心は枝の並びに居ないため親を持てない。 解決はできても誰にも読まれずに消えるため、
+    // 黙って捨てると「書いたのに図が変わらない」 が手掛かりなしで起きる
+    const 該当 = 知らせを取る(本文(`\nflow:\n  - Features -> Project: ""\n`));
+    expect(該当, "黙って消えている").toHaveLength(1);
+    expect(該当[0]!.message).toContain("中心 (Project) を子にはできません");
+  });
+
+  it("知らせに書いた行が入る", () => {
+    const 該当 = 知らせを取る(本文(`\nflow:\n  - Features -> Project: ""\n`));
+    expect(該当[0]!.line, "行番号が違う").toBe(10);
+  });
+
+  it("枝の親は従来どおり決まる", () => {
+    // 中心を子にする矢印を伝えるだけで、他の矢印の扱いは変わらない
+    const src = 本文(`\nflow:\n  - Features -> Project: ""\n  - Features -> Auth: ""\n`);
+    const d = textDslToDiagram(src);
+    const 枝 = (d.nodes[0] as { mindData?: { branches?: { id: string; parent?: string }[] } })
+      .mindData?.branches;
+    expect(枝?.find((b) => b.id === "auth")?.parent).toBe("features");
+  });
+
+  it("中心を親にする矢印では知らせない (陰性対照)", () => {
+    // 向きが逆なら表せる。 両方を伝えると正しい記法が警告だらけになる
+    expect(知らせを取る(本文(`\nflow:\n  - Project -> Features: ""\n`))).toEqual([]);
+  });
+
+  it("中心が絡まない矢印では知らせない (陰性対照)", () => {
+    expect(知らせを取る(本文(`\nflow:\n  - Features -> Auth: ""\n`))).toEqual([]);
+  });
+});
