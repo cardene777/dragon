@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 54px 0 46px;
+  padding: 54px 0 44px;
 }
 
 .catalog-crumb {
