@@ -20,7 +20,7 @@ dragon の看板は `animated diagram dsl`。 実測すると catalog 422 件の
 | 事実 | 出どころ |
 |---|---|
 | 動く部品 (`dyn-*`) 5 種は `{signal}` を読む | `kinds/dyn-shape.tsx` に 28 箇所 |
-| 図表 10 種 (`chart-*` / `funnel` 等) は状態を **1 度も読まない** | `kinds/chart-bar.tsx` 他に 0 箇所 |
+| 図表 10 種 (`chart-*` / `funnel` 等) も状態を読む | `kinds/chart-bar.tsx` 他が `stateValues` を `resolveChartData` に渡す |
 | 記法の top-level は 9 種 (`title` / `type` / `actors` / `flow` / `states` / `animation` / `viewport` / `lanes` / `groups`) | `v05/parser.ts` |
 | `states` は初期値のみを持ち、 値どうしの関係を書けない | 同上 |
 | 段 (`animation.step`) だけが値を動かせる | `compile.ts` |
@@ -290,10 +290,10 @@ values:
 - 流入: { shape: bar, reads: [{検索}, {SNS}, {直接}] }
 ```
 
-いまは配列を受け取って一度描くだけで、 状態を読む経路が無い (実測 = `chart-bar.tsx` に
-`stateValues` が 0 箇所)。 これが無いと図表は永久に静止する。
+**cdl 側で実装済み**。 `chart-bar` / `chart-pie` / `chart-line` / `funnel` / `mind-map` が
+`stateValues` を受け取り、 `resolveChartData` / `resolveMindData` に渡している。
 
-cdl 側の変更で、 段 1 / 段 2 と並行して進められる。
+この節を書いた時点では配列を受け取って一度描くだけで、 状態を読む経路が無かった。
 
 ### 4.5 既存の `states` との関係
 
