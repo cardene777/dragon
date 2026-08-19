@@ -64,6 +64,13 @@ export type DslDocument = {
    * 分かれる図種では決まらないので、 書かれていたら組み立て側が知らせる。
    */
   eyebrow?: string;
+  /**
+   * `eyebrow` を書いた行 (#1247)。 知らせの行番号に使う。
+   *
+   * 図の `pos` は常に 1 行目を指すため、 そこを使うと「10 行目に書いた `eyebrow` が効かない」
+   * を 1 行目として知らせることになり、 書いた場所に辿り着けない。
+   */
+  eyebrowPos?: Position;
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;

@@ -189,6 +189,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let title: string | null = null;
   let type: PresetType | null = null;
   let eyebrow: string | null = null;
+  let eyebrowLine = 0;
   let actors: DslActor[] = [];
   const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
@@ -227,6 +228,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // 描画側が中身のない帯を出す
       const v = (head.value ?? "").trim();
       eyebrow = v.length > 0 ? v : null;
+      eyebrowLine = line.no;
       i += 1;
       continue;
     }
@@ -460,7 +462,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
     doc: {
       title: title!,
       type: type!,
-      ...(eyebrow !== null ? { eyebrow } : {}),
+      ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
       actors,
       flow,
       animate,

@@ -527,7 +527,8 @@ function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
   onNotice({
     kind: "eyebrow-not-honored",
     actor: doc.title,
-    line: doc.pos?.line ?? 0,
+    // 図の `pos` は常に 1 行目を指す。 書いた行に辿り着けるよう `eyebrowPos` を優先する
+    line: doc.eyebrowPos?.line ?? doc.pos?.line ?? 0,
     message: `最上位に書いた eyebrow は効きません (type: ${doc.type} は箱ごとに分かれるため相手が決まりません)`,
     hint: '箱ごとに書いてください (`- A: { eyebrow: "..." }`)',
   });

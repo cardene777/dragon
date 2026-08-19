@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { parseTextDslV05 } from "../src/v05";
 import { compileToCdl, type CompileNotice } from "../src/compile";
+import { jsonToDiagram, validateDragonJson } from "../src/json-parser";
+import DIAGRAM_SCHEMA from "../src/schemas/diagram.json";
 
 /**
  * 図表の箱に上の小見出しを書けることの検証 (#1247)。
@@ -112,5 +114,74 @@ describe("記法の読み取り", () => {
   it("書かなければ持たない", () => {
     const r = parseTextDslV05(記法("bar"));
     expect(r.ok ? "eyebrow" in r.doc : true, "書いていないのに項目がある").toBe(false);
+  });
+});
+
+describe("知らせの行番号 (Round 1 の指摘)", () => {
+  // 図の pos は常に 1 行目を指す。 そこを使うと、 離れた行に書いた eyebrow が効かないことを
+  // 1 行目として知らせることになり、 書いた場所に辿り着けない
+  it("書いた行を指す", () => {
+    const src = `title: "確認"\ntype: flow\n\n\n\neyebrow: "見出し"\n\n` +
+      `actors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n`;
+    expect(小見出しの知らせ(src)[0]?.line, "書いた行を指していない").toBe(6);
+  });
+
+  it("1 行目に書いた時も一致する", () => {
+    // 上の検査だけだと「常に 1 を返す」 実装と区別できない位置に居るため、 両端を押さえる
+    const src = `eyebrow: "見出し"\ntitle: "確認"\ntype: flow\n\n` +
+      `actors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n`;
+    expect(小見出しの知らせ(src)[0]?.line).toBe(1);
+  });
+});
+
+describe("JSON の入口でも同じ図になる (Round 1 の指摘)", () => {
+  // 記法と JSON は同じ図を作る 2 つの入口。 片方だけに項目を足すと、 同じ内容を書いても
+  // 入口によって図が変わる
+  const json = (extra: Record<string, unknown>) => ({
+    title: "確認",
+    type: "bar",
+    actors: [{ name: "A", value: "1" }, { name: "B", value: "2" }],
+    flow: [],
+    ...extra,
+  });
+
+  it("schema が最上位の eyebrow を受ける", () => {
+    // schema は additionalProperties: false のため、 載せないと JSON 側で必ず弾かれる
+    const props = (DIAGRAM_SCHEMA as { properties: Record<string, unknown> }).properties;
+    expect(Object.keys(props), "schema に載っていない").toContain("eyebrow");
+  });
+
+  it("検証を通る", () => {
+    expect(validateDragonJson(json({ eyebrow: "棒グラフ" })).ok, "検証で弾かれた").toBe(true);
+  });
+
+  it("文字列でない値は弾く", () => {
+    const r = validateDragonJson(json({ eyebrow: 1 }));
+    expect(r.ok, "数を通している").toBe(false);
+  });
+
+  it("図表の箱に届く", () => {
+    const d = jsonToDiagram(json({ eyebrow: "棒グラフ" }));
+    expect((d.nodes[0] as { eyebrow?: string }).eyebrow, "箱に届いていない").toBe("棒グラフ");
+  });
+
+  it("書かなければ付かない", () => {
+    const d = jsonToDiagram(json({}));
+    expect((d.nodes[0] as { eyebrow?: string }).eyebrow).toBeUndefined();
+  });
+
+  it("空文字は書かなかったのと同じ", () => {
+    // 記法側と揃える。 揃えないと同じ内容を書いても入口によって図が変わる
+    const d = jsonToDiagram(json({ eyebrow: "" }));
+    expect((d.nodes[0] as { eyebrow?: string }).eyebrow).toBeUndefined();
+  });
+
+  it("記法と JSON が同じ小見出しになる", () => {
+    const 記法の図 = 組み立てる(記法("bar", '"棒グラフ"')).図;
+    const JSONの図 = jsonToDiagram(json({ eyebrow: "棒グラフ" }));
+    expect(
+      (JSONの図.nodes[0] as { eyebrow?: string }).eyebrow,
+      "入口によって小見出しが変わる",
+    ).toBe((記法の図.nodes[0] as { eyebrow?: string }).eyebrow);
   });
 });

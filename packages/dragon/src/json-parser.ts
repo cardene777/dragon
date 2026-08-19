@@ -33,6 +33,14 @@ export interface DragonJson {
   title: string;
   /** preset type (必須): sequence / flow / swimlane / er / state / topology / solidity / gantt / class / pie / c4 / mind */
   type: PresetType;
+  /**
+   * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
+   *
+   * 効くのは図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
+   * `quadrant` / `mind` / `gantt`) だけ。 箱ごとに分かれる図種では相手が決まらないため、
+   * 組み立て側が知らせを出す。 そちらは `actors[].eyebrow` に書く。
+   */
+  eyebrow?: string;
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -474,6 +482,11 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });
   }
+  // 図表の箱の上の小見出し (#1247)。 空文字は「書かなかった」 と同じ扱いにするため通す
+  // (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
+  if (j.eyebrow !== undefined && typeof j.eyebrow !== "string") {
+    errors.push({ path: "$.eyebrow", message: "eyebrow must be a string if present" });
+  }
   // CAR-1693 Phase 1: diagram-level layout mode の validation (未指定 = auto default で backward compat)
   if (j.layout !== undefined && j.layout !== "auto" && j.layout !== "manual") {
     errors.push({ path: "$.layout", message: 'layout must be "auto" or "manual" if present' });
@@ -772,6 +785,11 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   return {
     title: json.title,
     type: json.type,
+    // 空文字は「書かなかった」 と同じにする。 記法側 (`v05/parser.ts`) と揃えないと、
+    // 同じ内容を書いても入口によって図が変わる
+    ...(json.eyebrow !== undefined && json.eyebrow.length > 0
+      ? { eyebrow: json.eyebrow, eyebrowPos: p0 }
+      : {}),
     actors,
     flow,
     animate,
