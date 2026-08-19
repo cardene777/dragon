@@ -83,7 +83,9 @@ export type CompileNotice = {
     // きっかけ形の値を段に畳めなかった (段が無い / 相手が境目を通らない / 段からはみ出す、 #1161)
     | "value-trigger-unresolved"
     // 矢印の両端が同じ登場人物だった (#1227)
-    | "flow-self-loop";
+    | "flow-self-loop"
+    // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
+    | "lane-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -201,6 +203,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportMissingFlowActors(書いたまま, opts?.onNotice);
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
+  reportLaneNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -491,6 +494,45 @@ function reportSelfLoopFlow(doc: DslDocument, onNotice?: (n: CompileNotice) => v
       line: s.pos.line,
       message: `"${truncateForMessage(s.from)}" から自分へ戻る矢印は描けません (組み立てから外しました)`,
       hint: "途中の箱を 1 つ足して 2 本に分けるか、 段 (animation) で状態が変わる様子として見せる",
+    });
+  }
+}
+
+/**
+ * 箱に書いた縦列が効かないことを伝える (#1246)。
+ *
+ * 縦列は **図種が決める**。 `flow` / `topology` は 1 本にまとめ、 `swimlane` / `er` / `state`
+ * は箱ごとに 1 本作り、 `sequence` はそれがそのまま生命線になる。 図全体を 1 箱にする図種
+ * (`pie` / `bar` 等) では箱が 1 つしかない。 **どの図種も箱の `lane` を読まない**。
+ *
+ * 黙って捨てると、 書いた縦列は消え、 `lanes:` で宣言した縦列だけが中身のないまま残る。
+ * 実測 = `type: flow` で `lane: ui` / `lane: api` を書くと箱は両方 `flow` に入り、
+ * 宣言した `ui` / `api` は空のまま増えた。 知らせは 1 件も出なかった。
+ *
+ * ## なぜ組み立ての側で伝えるのか
+ *
+ * 記法の解析は図種を見ずに 1 行ずつ読む。 そこで弾くと **見本 (parts) の張替え先** まで
+ * 巻き添えになる = 見本では `lane` が実際に読まれる (`mergePartsFromActors` が唯一の読み手)。
+ * 図種を知っているのは組み立ての側なので、 効くかどうかの判断もここに置く。
+ *
+ * ## 見本と `type: mind` では伝えない
+ *
+ * 見本は上のとおり実際に効く。 `type: mind` は描けない欄をまとめて 1 件で伝えており
+ * (`compileMind` の「名前と副題 / 値、 枝の色しか描けません」)、 そこに `枠の指定` が既に
+ * 入っている。 二重に伝えると同じ 1 行について知らせが 2 件並ぶ。
+ */
+function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.type === "mind") return;
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    if (a.lane === undefined) continue;
+    onNotice({
+      kind: "lane-not-honored",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた lane は効きません (縦列は type: ${doc.type} が決めます)`,
+      hint: "縦列は図種が決めるため箱からは選べません。 lane を消してください (見本では張替え先として使えます)",
     });
   }
 }
