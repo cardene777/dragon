@@ -498,3 +498,38 @@ export const presetStateMachine2 = withSteps(
     { ids: ["done", "sm2-1-loading-done"] },
   ],
 );
+
+// ───────────── 記法 (#1237) ─────────────
+//
+// catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
+// 記法があると画面で「コード」 を読めて「エディタで開く」 が押せる。
+//
+// **記法と組み立て API が同じ図になることは検査で確かめる** (`lib/preset-source-parity.test.ts`)。
+// 箱と矢印と縦列の id と並び、段の題、段が光らせる先を突き合わせる。
+//
+// 段の `focus:` は **箱の名前か矢印しか受けない** (`focus.ts` が生成 id を意図的に拒否する)。
+// 組み立て API 側は光った先を積み上げるので、記法でも各段に前の段の分を並べて書く。
+
+export const sourceYaml__presetSequence = `title: "時系列のやり取りを縦の時間軸で並べる図"
+type: sequence
+actors:
+  - User
+  - API
+  - DB
+flow:
+  - User -> API: "POST /login" { sub: "email + password" }
+  - API -> DB: "SELECT credentials"
+  - DB -> API: "rows" { style: "dotted-flow" }
+  - API -> User: "200 OK" { sub: "JWT token" }
+animation:
+  - step: "1. POST /login" 0.9s
+    focus: [User -> API]
+  - step: "2. SELECT credentials" 0.9s
+    focus: [User -> API, API -> DB]
+  - step: "3. rows" 0.9s
+    focus: [User -> API, API -> DB, DB -> API]
+  - step: "時系列のやり取りを縦の時間軸で並べる図" 0.9s
+    focus: [User -> API, API -> DB, DB -> API, API -> User]
+`;
+
+
