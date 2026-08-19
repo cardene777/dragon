@@ -40,6 +40,21 @@ import * as Presets from "@/topics/catalog/presets.cdl";
  */
 const id完全一致: readonly string[] = ["presetSequence"];
 
+/**
+ * 縦列の見出しが合わないと分かっている preset。 1 件ずつ理由を書く。
+ *
+ * 記法は縦列の見出しを箱の名前から自動で付ける (`er` なら `User` / `Order`)。 組み立て API は
+ * 空のまま置く。 **ただしこの図種は縦列の見出しを描かない** ため、字が違っても画面に出ない
+ * (実画面で確認 = エディタで開いた図と catalog の図に見出しの帯がどちらも無い)。
+ *
+ * 空文字の見出しは記法が受け付けない (`label: ""` は `invalid lane entry` で落ちる) ので、
+ * 記法側で合わせる手段が無い。
+ */
+const 縦列の見出しの既知の差: Record<string, string> = {
+  presetEr: "この図種は縦列の見出しを描かない",
+  presetStateMachine: "この図種は縦列の見出しを描かない",
+};
+
 const 光らせる先の既知の差: Record<string, string> = {
   // 順序図の縦線 (`user-header` 等) は `focus:` が受け付けない (`focus.ts` が縦列の id を
   // 意図的に拒否する)。 組み立て API は最初の段から縦線を光らせて「誰の時間軸か」 を
@@ -142,8 +157,21 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
       });
 
-      it("縦列の数が一致する", () => {
-        expect((記法.lanes ?? []).length).toBe((t.built.lanes ?? []).length);
+      it("縦列の数と見出しが一致する (既知の差は宣言したものだけ)", () => {
+        // 数だけを見ていると、見出し (`Authentication Flow` 等) が落ちた記法を通してしまう。
+        // 縦列の見出しは画面に出る字なので、そこまで比べる。 id は名前から導かれるため見ない
+        const 見出し = (a: readonly { label?: string }[] | undefined): string[] =>
+          (a ?? []).map((x) => x.label ?? "");
+        if (t.key in 縦列の見出しの既知の差) {
+          // 見出しは違っても **数は合わせる** = 縦列が増減したら画面の配置が変わる
+          expect((記法.lanes ?? []).length).toBe((t.built.lanes ?? []).length);
+          // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
+          expect(見出し(記法.lanes), `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(
+            見出し(t.built.lanes),
+          );
+          return;
+        }
+        expect(見出し(記法.lanes)).toEqual(見出し(t.built.lanes));
       });
 
       it("段の中身が並びごと一致する", () => {
@@ -179,6 +207,8 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     const 実在2 = new Set(対象.map((t) => t.key));
     const 幽霊2 = Object.keys(光らせる先の既知の差).filter((k) => !実在2.has(k));
     expect(幽霊2, "光らせる先の既知の差に宣言されているが記法を持たない preset").toEqual([]);
+    const 幽霊4 = Object.keys(縦列の見出しの既知の差).filter((k) => !実在2.has(k));
+    expect(幽霊4, "縦列の見出しの既知の差に宣言されているが記法を持たない preset").toEqual([]);
   });
 
   it("id 完全一致の宣言が全て実在する preset を指す", () => {

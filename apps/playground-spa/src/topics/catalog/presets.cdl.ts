@@ -540,3 +540,84 @@ animation:
     body: "sequence の全 message を時系列展開。"
 `;
 
+
+export const sourceYaml__presetEr = `title: "テーブル間の関係を表す図"
+type: er
+actors:
+  - User: { kind: storage, eyebrow: "エンティティ", rows: ["id: PK", "email: string", "createdAt: timestamp"] }
+  - Order: { kind: storage, eyebrow: "エンティティ", rows: ["id: PK", "userId: FK", "total: number", "status: enum"] }
+flow:
+  - User -> Order: "places" (info, solid) { sub: "1:N" }
+animation:
+  - step: "1. User 表" 0.9s
+    focus: [User]
+    badge: "er"
+    body: "利用者 1 行が主キーを持つ。"
+  - step: "テーブル間の関係を表す図" 0.9s
+    focus: [User, Order, "User -> Order"]
+    badge: "er"
+    body: "ER 図の全 entity + relation を visible 化。"
+`;
+
+export const sourceYaml__presetStateMachine = `title: "状態と遷移条件を示す図"
+type: state
+actors:
+  - Idle: { kind: card, eyebrow: "初期" }
+  - Loading: { kind: card, eyebrow: "状態" }
+  - Done: { kind: card, eyebrow: "最終" }
+  - Error: { kind: card, eyebrow: "状態" }
+flow:
+  - Idle -> Loading: "submit" (accent, solid)
+  - Loading -> Done: "success" (success, solid)
+  - Loading -> Error: "fail" (error, solid)
+  - Error -> Idle: "retry" (accent, solid) { sub: "if attempts < 3" }
+animation:
+  - step: "1. Idle" 0.9s
+    badge: "fsm"
+    focus: [Idle]
+    body: "何も起きていない初期状態。"
+  - step: "2. submit で Loading" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, "Idle -> Loading"]
+    body: "送信を受けて処理中になる。"
+  - step: "3. success で Done" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, Done, "Idle -> Loading", "Loading -> Done"]
+    body: "成功して終わりの状態へ。"
+  - step: "状態と遷移条件を示す図" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Idle"]
+    body: "FSM の全 state + transition を visible 化。"
+`;
+
+export const sourceYaml__presetFlow = `title: "処理の順番を上から下へ 1 本の流れで示す図"
+type: flow
+lanes:
+  main: { label: "Authentication Flow" }
+actors:
+  - User: { kind: person, eyebrow: "ユーザー" }
+  - POST /login: { kind: api, eyebrow: "API" }
+  - AuthService: { kind: service, eyebrow: "サービス" }
+  - users 表: { kind: database, eyebrow: "DB" }
+flow:
+  - User -> POST /login: "ログイン要求" (teal, dotted-flow)
+  - POST /login -> AuthService: "認証処理" (teal, dotted-flow)
+  - AuthService -> users 表: "credential 検証" (teal, dotted-flow)
+animation:
+  - step: "1. User" 0.9s
+    badge: "flow"
+    focus: [User]
+    body: "ログインしようとする人から始まる。"
+  - step: "2. POST /login" 0.9s
+    badge: "flow"
+    focus: [User, "POST /login", "User -> POST /login"]
+    body: "ログイン要求を受け取る。"
+  - step: "3. AuthService" 0.9s
+    badge: "flow"
+    focus: [User, "POST /login", AuthService, "User -> POST /login", "POST /login -> AuthService"]
+    body: "認証の処理に渡す。"
+  - step: "処理の順番を上から下へ 1 本の流れで示す図" 0.9s
+    badge: "flow"
+    focus: [User, "POST /login", AuthService, "users 表", "User -> POST /login", "POST /login -> AuthService", "AuthService -> users 表"]
+    body: "全 step 順次実行。"
+`;
