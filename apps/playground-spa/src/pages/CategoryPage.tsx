@@ -343,7 +343,13 @@ export function CategoryPage(): React.ReactElement {
                   </button>
                 </div>
                 <div className="catalog-preview-stage" hidden={showSource}>
+                  {/*
+                    `keepMounted` を渡す (#1236)。 渡さないと `hidden` にした瞬間に box が消えて
+                    「見えない」 と判定され、図が外れる = 上のコメントが言う「どちらも DOM に残す」
+                    が破れて、切り替えるたびに描き直しになる。
+                  */}
                   <InViewMount
+                    keepMounted
                     className="catalog-preview-stage-inner"
                     placeholder={
                       <div className="catalog-preview-loading">読み込み中…</div>

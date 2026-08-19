@@ -258,10 +258,6 @@
   color: var(--d-text-primary);
 }
 
-.catalog-search-clear:hover {
-  color: var(--d-text-primary);
-}
-
 .catalog-list {
   display: flex;
   flex-direction: column;
