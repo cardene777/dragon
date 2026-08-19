@@ -93,9 +93,28 @@ const 説明 = (a: readonly { label?: string }[] | undefined): string[] => (a ??
  *
  * 座標と色は見ない = 組み立て API 側の既定に依存し、記法で書かない限り一致する保証が無い。
  */
-const 中身 = (
-  a: readonly { kind?: string; title?: string; subtitle?: string; eyebrow?: string; value?: string; rows?: string[] }[] | undefined,
-): string[] =>
+type 箱の中身 = {
+  kind?: string;
+  title?: string;
+  subtitle?: string;
+  eyebrow?: string;
+  value?: string;
+  rows?: string[];
+  /**
+   * 図表の中身。 図表の preset は箱を 1 つだけ作り、そこに配列を丸ごと載せる
+   * (`presets.cdl.ts` の `bindFirstNode`)。 **ここを比べないと図表の記法は素通りする** =
+   * 箱の題と種類だけ合わせれば、中身が空でも一致とみなされる
+   */
+  chartData?: unknown;
+  funnelData?: unknown;
+  ganttData?: unknown;
+  quadrantData?: unknown;
+  journeyData?: unknown;
+  treeData?: unknown;
+  mindData?: unknown;
+};
+
+const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
   (a ?? []).map((x) =>
     JSON.stringify({
       kind: x.kind ?? "",
@@ -104,8 +123,19 @@ const 中身 = (
       eyebrow: x.eyebrow ?? "",
       value: x.value ?? "",
       rows: x.rows ?? [],
+      chartData: x.chartData ?? null,
+      funnelData: x.funnelData ?? null,
+      ganttData: x.ganttData ?? null,
+      quadrantData: x.quadrantData ?? null,
+      journeyData: x.journeyData ?? null,
+      treeData: x.treeData ?? null,
+      mindData: x.mindData ?? null,
     }),
   );
+
+/** 図の状態 (図表の値の入れ物)。 初期値が違うと最初に描かれる図が変わる */
+const 状態 = (a: readonly { id: string; initial: unknown }[] | undefined): string[] =>
+  (a ?? []).map((x) => JSON.stringify({ id: x.id, initial: x.initial }));
 
 /** 矢印が読む人に見せる中身。 説明 / 補足 / 色 / 線種 */
 const 矢印の中身 = (
@@ -146,6 +176,11 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // 題だけを見ていると、行や小見出しが落ちた記法を通してしまう (実測 = er の行を
         // 1 つ削っても題は変わらず素通りした)。 読む人が見るのは中身なので、そこまで比べる
         expect(中身(記法.nodes)).toEqual(中身(t.built.nodes));
+      });
+
+      it("図の状態が一致する", () => {
+        // 図表は値を状態に持たせて段で動かす。 初期値が違うと最初に描かれる図が変わる
+        expect(状態(記法.states)).toEqual(状態(t.built.states));
       });
 
       it("矢印の数と説明が一致する", () => {
