@@ -90,6 +90,19 @@ export const TOP_LEVEL_KEYS = [
   "axes",
 ] as const;
 
+/**
+ * `lanes:` / `groups:` の 1 行を読む形 (#1241)。
+ *
+ * **id は英数字と下線に限らない**。 組み立て側は登場人物の名前から縦列 id を作るため、
+ * hyphen と日本語が入る (実測 = `type: state` で `lane-idle` / `lane-待機`、
+ * `type: swimlane` で `lane-sign-up`)。 英数字と下線だけを受けていた間、
+ * **自動で作られた縦列の幅や見出しを書き直す手段が無かった**。
+ *
+ * 受けないのは読み取りを壊す 4 種だけ = 空白 (行の区切りと紛れる) と `:` (id と中身の境目) と
+ * 中括弧 (中身の囲み)。 それ以外は組み立て側が作りうるため通す。
+ */
+const LANE_ID_ENTRY = /^([^\s:{}]+)\s*:\s*\{([^}]*)\}\s*$/;
+
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
   return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
 }
@@ -438,7 +451,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       lanesMap = {};
       for (const it of items) {
-        const m = it.trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*\{([^}]*)\}\s*$/);
+        const m = it.trimmed.match(LANE_ID_ENTRY);
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);
@@ -467,7 +480,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       groupsMap = {};
       for (const it of items) {
-        const m = it.trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*\{([^}]*)\}\s*$/);
+        const m = it.trimmed.match(LANE_ID_ENTRY);
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);

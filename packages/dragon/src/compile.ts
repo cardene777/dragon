@@ -5770,9 +5770,18 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     });
   } else {
     // swimlane / er / state ... actor ごとに 1 lane (横並び)
+    //
+    // **見出しを付けるのは `swimlane` だけ** (#1241)。 3 図種とも箱を 1 つずつ持ち、
+    // その箱が既に名前を描く。 縦列にも同じ名前を渡すと **同じ字が縦に 2 つ並ぶ**
+    // (実測 = 描いた絵に `Alpha` `Beta` が 2 度出る)。
+    //
+    // `swimlane` は縦列そのものが「誰の担当か」 を読ませる図なので見出しが要る。
+    // `er` の縦列は表を並べるための入れ物、 `state` の縦列は状態を並べるための入れ物で、
+    // どちらも読む人に見せる意味を持たない (組立て API 側も見出しを空のまま置く)。
+    const 見出しを付ける = kind === "swimlane";
     doc.actors.forEach((a, idx) => {
       const lid = `lane-${slugify(a.name) || idx}`;
-      b.lane(lid, { width: laneWidth, label: a.name });
+      b.lane(lid, { width: laneWidth, ...(見出しを付ける ? { label: a.name } : {}) });
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
       // er は entity、 state は initial/final marker、 swimlane はそのまま actor
