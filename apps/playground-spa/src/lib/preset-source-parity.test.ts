@@ -52,8 +52,6 @@ const id完全一致: readonly string[] = ["presetSequence"];
  */
 const 縦列の見出しの既知の差: Record<string, string> = {
   presetEr: "この図種は縦列の見出しを描かない",
-  presetStateMachine: "この図種は縦列の見出しを描かない",
-  presetStateMachine2: "この図種は縦列の見出しを描かない",
 };
 
 const 光らせる先の既知の差: Record<string, string> = {
@@ -156,6 +154,16 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
       it("矢印の中身が一致する", () => {
         expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
+      });
+
+      it("縦列の幅が一致する", () => {
+        // 幅が違うと箱の並ぶ間隔が変わる = 配置が変わる。 見出しと違って画面に直接出る
+        // (実測 = 拡張ステート図は元 280 に対し記法経由で 320 になり、レビューで指摘された)。
+        // 自動生成される縦列の id は hyphen を含みうるが、記法の `lanes:` ブロックは
+        // 英数字と下線しか受けないため、その図種では幅を書き直せない
+        const 幅 = (a: readonly { width?: number }[] | undefined): (number | undefined)[] =>
+          (a ?? []).map((x) => x.width);
+        expect(幅(記法.lanes)).toEqual(幅(t.built.lanes));
       });
 
       it("縦列の数と見出しが一致する (既知の差は宣言したものだけ)", () => {
