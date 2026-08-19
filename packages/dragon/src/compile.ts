@@ -3692,7 +3692,7 @@ function compileSolidity(doc: DslDocument): CdlDiagram {
 function compileGantt(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 720;
-  b.lane("gantt", { width: CHART_W, label: doc.title });
+  b.lane("gantt", { width: CHART_W });
 
   // 目盛りは **書かれた順** に並べる。 以前は `Q1=200 / Q2=600 / ...` の決め打ちで、 Q1-Q4 以外は
   // 全て同じ位置に落ちていた。 順に並べれば月名でも週番号でも同じ規則で置ける
@@ -3910,7 +3910,7 @@ function compileValueChart(
   // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
   // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
   const CHART_H = 型 === "pie" ? 320 : 368;
-  b.lane("chart", { width: CHART_W + 64, label: doc.title });
+  b.lane("chart", { width: CHART_W + 64 });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
@@ -4192,7 +4192,7 @@ function 語の状態を図の語へ直す(diagram: CdlDiagram): void {
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
-  b.lane("chart", { width: W + 64, label: doc.title });
+  b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
   const 未宣言: string[] = [];
@@ -4237,7 +4237,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
-  b.lane("chart", { width: W + 64, label: doc.title });
+  b.lane("chart", { width: W + 64 });
   // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
   // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
   const slug別 = new Map<string, string[]>();
@@ -4313,7 +4313,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
 function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
-  b.lane("chart", { width: W + 64, label: doc.title });
+  b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
   const 読めない: string[] = [];
   const 参照できる = 語の欄から参照できる名前(doc, 気持ち);
@@ -4356,7 +4356,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
 function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
-  b.lane("chart", { width: W + 64, label: doc.title });
+  b.lane("chart", { width: W + 64 });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
   const 参照できる = 語の欄から参照できる名前(doc, 区画);
@@ -4710,7 +4710,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   // **枠を作る前に見る** = 見本しか居ない記法で作ると、 見本だけが描かれた図に空の枠が残る
   if (見本でない.length === 0) return b.build();
 
-  b.lane("chart", { width: W + 64, label: doc.title });
+  b.lane("chart", { width: W + 64 });
 
   // **同じ slug になる名前を先に見る** (`type: tree` と同じ理由)。 違う名前が同じ id に潰れると、
   // 枝が 1 本消えたり、 枝の親を見る規則が別の枝を指したりする

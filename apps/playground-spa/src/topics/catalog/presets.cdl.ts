@@ -591,3 +591,136 @@ animation:
     focus: [User, "POST /login", AuthService, "users 表", "User -> POST /login", "POST /login -> AuthService", "AuthService -> users 表"]
     body: "全 step 順次実行。"
 `;
+
+export const sourceYaml__presetChartPie = `title: "全体に対する内訳の割合を示す円グラフ"
+eyebrow: "pie"
+type: pie
+
+actors:
+  - Web: "{pie_web}"
+  - Mobile: "{pie_mobile}"
+  - API: "{pie_api}"
+
+states:
+  pie_web: 45
+  pie_mobile: 35
+  pie_api: 20
+
+animation:
+  - step: "昨年の内訳" 0.9s
+    badge: "pie"
+    focus: [Web]
+    body: "Web 45 / Mobile 35 / API 20。"
+  - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
+    badge: "pie"
+    focus: [Web]
+    tween:
+      pie_web: 45 -> 30
+      pie_mobile: 35 -> 45
+      pie_api: 20 -> 25
+    body: "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。"
+`;
+
+export const sourceYaml__presetChartLine = `title: "時系列データの推移を線で示す折れ線グラフ"
+eyebrow: "line"
+type: line
+
+actors:
+  - Jan: "{line_jan}"
+  - Feb: "{line_feb}"
+  - Mar: "{line_mar}"
+  - Apr: "{line_apr}"
+
+states:
+  line_jan: 1000
+  line_feb: 1300
+  line_mar: 1100
+  line_apr: 1600
+
+animation:
+  - step: "計画" 0.9s
+    badge: "line"
+    focus: [Jan]
+    body: "四半期ごとの見込みを引いた線。"
+  - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
+    badge: "line"
+    focus: [Jan]
+    tween:
+      line_jan: 1000 -> 900
+      line_feb: 1300 -> 1400
+      line_mar: 1100 -> 1250
+      line_apr: 1600 -> 1750
+    body: "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。"
+`;
+
+export const sourceYaml__presetFunnel = `title: "各段階での離脱率を示す絞込みの図"
+eyebrow: "funnel"
+type: funnel
+
+lanes:
+  chart: { width: 624 }
+
+actors:
+  - Visit: "{visit}"
+  - Sign up: "{signup}"
+  - Trial: "{trial}"
+  - Paid: "{paid}"
+
+states:
+  visit: 8200
+  signup: 1100
+  trial: 520
+  paid: 130
+
+animation:
+  - step: "先月" 0.9s
+    badge: "funnel"
+    focus: [Visit]
+    body: "訪問 8200 から申込み 130 まで絞られる。"
+  - step: "各段階での離脱率を示す絞込みの図" 0.9s
+    badge: "funnel"
+    focus: [Visit]
+    tween:
+      visit: 8200 -> 10000
+      signup: 1100 -> 1500
+      trial: 520 -> 800
+      paid: 130 -> 200
+    body: "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。"
+`;
+
+export const sourceYaml__presetTree = `title: "親子関係を縦階層で示す組織図・木構造"
+eyebrow: "tree"
+type: tree
+
+lanes:
+  chart: { width: 720 }
+
+actors:
+  - CEO
+  - CTO
+  - CFO
+  - "{eng}"
+  - Ops Manager
+
+states:
+  eng: "Eng Manager"
+
+flow:
+  - CEO -> CTO: ""
+  - CEO -> CFO: ""
+  - CTO -> "{eng}": ""
+  - CTO -> Ops Manager: ""
+
+animation:
+  - step: "組織を作った時" 0.9s
+    badge: "tree"
+    focus: [CEO]
+    body: "開発の責任者を Eng Manager と呼んでいる。"
+  - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
+    badge: "tree"
+    focus: [CEO]
+    set:
+      eng: "VP of Engineering"
+    body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。"
+`;
+

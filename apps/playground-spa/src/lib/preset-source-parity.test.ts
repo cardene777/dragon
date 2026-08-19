@@ -114,6 +114,31 @@ type 箱の中身 = {
   mindData?: unknown;
 };
 
+/**
+ * 図表の中身から id を落とす。
+ *
+ * **id は記法で書けない**。 記法は図表の項目の id を名前から導く (`Sign up` なら `sign-up`)
+ * 一方、preset は組み立て API で明示 id を書いている (`signup`)。 節の題は「読む人が受け取る
+ * もの」 として比べるが、id はどこにも描かれない。
+ *
+ * 箱の id を比べない理由 (本 file の冒頭) と同じ。 そちらは宣言した preset だけ id まで見るが、
+ * 図表の項目には宣言の仕組みを置かない = 記法側で合わせる手段が無く、宣言しても「差がある」
+ * としか言えないため。
+ *
+ * **落とすのは `id` だけ**。 題 / 値 / 親子 / 気持ち / 区画は落とさないので、中身が変われば
+ * 検出できる (`図表と状態の一致検査` が欄ごとに固定している)。
+ */
+function 識別子を落とす(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(識別子を落とす);
+  if (v === null || typeof v !== "object") return v;
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+    if (k === "id") continue;
+    out[k] = 識別子を落とす(x);
+  }
+  return out;
+}
+
 const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
   (a ?? []).map((x) =>
     JSON.stringify({
@@ -123,13 +148,13 @@ const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
       eyebrow: x.eyebrow ?? "",
       value: x.value ?? "",
       rows: x.rows ?? [],
-      chartData: x.chartData ?? null,
-      funnelData: x.funnelData ?? null,
-      ganttData: x.ganttData ?? null,
-      quadrantData: x.quadrantData ?? null,
-      journeyData: x.journeyData ?? null,
-      treeData: x.treeData ?? null,
-      mindData: x.mindData ?? null,
+      chartData: 識別子を落とす(x.chartData ?? null),
+      funnelData: 識別子を落とす(x.funnelData ?? null),
+      ganttData: 識別子を落とす(x.ganttData ?? null),
+      quadrantData: 識別子を落とす(x.quadrantData ?? null),
+      journeyData: 識別子を落とす(x.journeyData ?? null),
+      treeData: 識別子を落とす(x.treeData ?? null),
+      mindData: 識別子を落とす(x.mindData ?? null),
     }),
   );
 
@@ -147,8 +172,55 @@ describe("図表と状態の一致検査", () => {
     "treeData",
     "mindData",
   ] as const)("%s の差を検出する", (field) => {
-    // 現在の sourceYaml 付き preset は図表を含まないため、比較関数自体の退行をここで固定する
-    expect(中身([{ [field]: [{ id: "a" }] }])).not.toEqual(中身([{ [field]: [{ id: "b" }] }]));
+    // **`id` で差をつけてはいけない**。 `id` は比較から落としているため、それで差をつけると
+    // 検査が常に通り、比較関数が壊れても気付けない (実測で恒真になった)。 描かれる欄で見る
+    expect(中身([{ [field]: [{ title: "a" }] }])).not.toEqual(中身([{ [field]: [{ title: "b" }] }]));
+  });
+
+  it.each([
+    "chartData",
+    "funnelData",
+    "ganttData",
+    "quadrantData",
+    "journeyData",
+    "treeData",
+    "mindData",
+  ] as const)("%s の id だけの差は見ない", (field) => {
+    // 落としていることを検査でも残す。 記法は図表の項目の id を名前から導くため
+    // (`Sign up` なら `sign-up`)、preset の明示 id (`signup`) と揃える手段が無い。
+    // **この判断は目に見えないところで効くので、意図として固定しておく**
+    expect(中身([{ [field]: [{ id: "a", title: "x" }] }])).toEqual(
+      中身([{ [field]: [{ id: "b", title: "x" }] }]),
+    );
+  });
+
+  it("入れ子の中の id も落とす", () => {
+    // 放射の図は `mindData: { rootId, rootTitle, branches: [{ id, ... }] }` の形で、
+    // 落とす対象が 1 段深い所にも出る
+    expect(中身([{ mindData: { rootId: "r", branches: [{ id: "x", title: "枝" }] } }])).toEqual(
+      中身([{ mindData: { rootId: "r", branches: [{ id: "y", title: "枝" }] } }]),
+    );
+    expect(中身([{ mindData: { branches: [{ id: "x", title: "枝" }] } }])).not.toEqual(
+      中身([{ mindData: { branches: [{ id: "x", title: "別" }] } }]),
+    );
+  });
+
+  it.each([
+    ["rootId", { mindData: { rootId: "a" } }, { mindData: { rootId: "b" } }],
+    [
+      "parent",
+      { mindData: { branches: [{ title: "枝", parent: "a" }] } },
+      { mindData: { branches: [{ title: "枝", parent: "b" }] } },
+    ],
+    [
+      "treeData の parent",
+      { treeData: [{ title: "子", parent: "a" }] },
+      { treeData: [{ title: "子", parent: "b" }] },
+    ],
+  ] as const)("%s は落とさない (図の形が変わるため)", (_name, 左, 右) => {
+    // **落とすのは `id` という名前の欄だけ**。 `rootId` / `parent` は他の項目を指して
+    // 親子関係を作るため、落とすと **形の違う木が一致とみなされる**
+    expect(中身([左])).not.toEqual(中身([右]));
   });
 
   it("状態の id と初期値の差を検出する", () => {
