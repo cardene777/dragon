@@ -2676,8 +2676,22 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
 /** 数を式に埋める。 指数表記 (`1e-7`) は engine の式が読めないため十進で書く */
 function 式に書く数(n: number): string {
   if (!Number.isFinite(n)) return "0";
-  if (Number.isInteger(n)) return String(n);
-  return n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  const text = String(n);
+  if (!/[eE]/.test(text)) return text;
+
+  // Number の有効桁を丸めず、指数表記だけを通常の十進表記へ展開する。 `toFixed(6)` では
+  // 1e-7 が 0 になり、正しく読める `to` の値が動かなくなる。
+  const [coefficient = "0", exponentText = "0"] = text.toLowerCase().split("e");
+  const negative = coefficient.startsWith("-");
+  const unsigned = negative ? coefficient.slice(1) : coefficient;
+  const [whole = "0", fraction = ""] = unsigned.split(".");
+  const digits = `${whole}${fraction}`;
+  const decimalAt = whole.length + Number(exponentText);
+  let expanded: string;
+  if (decimalAt <= 0) expanded = `0.${"0".repeat(-decimalAt)}${digits}`;
+  else if (decimalAt >= digits.length) expanded = `${digits}${"0".repeat(decimalAt - digits.length)}`;
+  else expanded = `${digits.slice(0, decimalAt)}.${digits.slice(decimalAt)}`;
+  return negative ? `-${expanded}` : expanded;
 }
 
 /** 段の中で 1 本の値が動く区間。 `from` から `to` へ `[start, end]` の間で線形に動く */
@@ -2704,7 +2718,15 @@ function 境目を通る時刻(区間: 動く区間, op: string, 境目: number)
     }
   };
   if (満たす(区間.from)) return 区間.start;
-  if (!満たす(区間.to)) return null;
+  // `==` は終点が一致しなくても、線形補間の途中で境目を通る。 終点だけを見ると
+  // 0 → 100 に対する `== 50` を「満たさない」と誤判定する。
+  if (op === "==") {
+    const min = Math.min(区間.from, 区間.to);
+    const max = Math.max(区間.from, 区間.to);
+    if (境目 < min || 境目 > max) return null;
+  } else if (!満たす(区間.to)) {
+    return null;
+  }
   if (区間.to === 区間.from) return null;
   const t = 区間.start + (区間.dur * (境目 - 区間.from)) / (区間.to - 区間.from);
   if (!Number.isFinite(t)) return null;

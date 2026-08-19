@@ -59,7 +59,10 @@ export function parseDurationMs(text: string): number | null {
   const n = parseFloat(m[1] ?? "0");
   if (!Number.isFinite(n) || n <= 0) return null;
   const unit = m[2] ?? "s";
-  return unit === "ms" ? Math.round(n) : Math.round(n * 1000);
+  const durationMs = unit === "ms" ? Math.round(n) : Math.round(n * 1000);
+  // 描画側の時計は ms の整数。 正の小数でも丸めた結果が 0ms なら、 後段で傾斜の式が
+  // 0 除算になるため、この入口で「動く長さではない」として弾く。
+  return durationMs > 0 ? durationMs : null;
 }
 
 /**

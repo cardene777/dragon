@@ -273,15 +273,6 @@ export type DslState = {
 };
 
 /**
- * 他の値から自動で決まる値の宣言 (`waiting: "{inflow} - {done}"`)。
- *
- * 式には四則 (`+ - * /`) と括弧、 比較 (`> >= < <= == !=`)、 `min` / `max` が書ける。
- * 他の値は `{name}` で読む。 比較の結果は真 = 1 / 偽 = 0 の数になる。
- *
- * **名前に使えるのは英数字と `_` だけ**。 描画側が `{name}` を置き換える時に見るのも同じ
- * 範囲のため、日本語の名前を書くと解析で弾かれる (書けたとしても置き換わらない)。
- */
-/**
  * 値が動き出すきっかけ (#1161 段 2)。
  *
  * `step` は段が始まった時、 `reaches` は別の値が境目を越えた時。 どちらも「成り立った瞬間の
@@ -310,16 +301,25 @@ export type DslValueTrigger =
  */
 export type DslValue = {
   name: string;
-  /** 式そのもの。 評価は描画側が毎 frame 行う。 きっかけ形では持たない */
-  expression?: string;
-  /** 動き出すきっかけ。 式形では持たない */
-  trigger?: DslValueTrigger;
-  /** 動いた先の値。 きっかけ形でのみ持つ */
-  to?: number;
-  /** 動く長さ (ms)。 きっかけ形でのみ持つ */
-  durationMs?: number;
   pos: Position;
-};
+} & (
+  | {
+      /** 式そのもの。 評価は描画側が毎 frame 行う */
+      expression: string;
+      trigger?: never;
+      to?: never;
+      durationMs?: never;
+    }
+  | {
+      expression?: never;
+      /** 動き出すきっかけ */
+      trigger: DslValueTrigger;
+      /** 動いた先の値 */
+      to: number;
+      /** 動く長さ (ms) */
+      durationMs: number;
+    }
+);
 
 /** ステップ (phase) */
 export type DslPhase = {

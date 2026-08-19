@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { computeStateValues, layout } from "@cardenelabs/cdl";
-import { textDslToDiagram } from "../src/index";
+import { parseTextDslV05, textDslToDiagram } from "../src/index";
 import type { CompileNotice } from "../src/compile";
 
 const 記法 = (body: string) => `title: "確認"\ntype: flow\n\nactors:\n  - A\n  - B\n\n${body}`;
@@ -86,6 +86,39 @@ describe("連鎖する値 (#1161 段 2)", () => {
     const 半ば = 描画が読む値(連鎖する, 0, 0.5);
     expect(数(半ば.vDone)).toBe(100);
     expect(数(半ば.cDone)).toBe(0);
+  });
+
+  it("相手が補間の途中で `==` の境目を通る時刻から動く", () => {
+    const src = 記法(
+      'states:\n  a: 0\n  b: 0\n\nvalues:\n' +
+        '  a: { trigger: step "取込み", to: 100, dur: 2s }\n' +
+        '  b: { trigger: a == 50, to: 100, dur: 1s }\n\n' +
+        'animation:\n  - step: "取込み" 4s',
+    );
+    // a は 1000ms で 50 に達し、 b はそこから 1s 動く。 1500ms 時点では半分。
+    expect(数(描画が読む値(src, 0, 0.375).b)).toBe(50);
+  });
+});
+
+describe("きっかけ形の数値境界 (#1161 段 2)", () => {
+  it("指数表記になる小さい to を 0 に丸めない", () => {
+    const src = 記法(
+      'states:\n  a: 0\n\nvalues:\n  a: { trigger: step "取込み", to: 0.0000001, dur: 2s }\n\n' +
+        'animation:\n  - step: "取込み" 4s',
+    );
+    expect(数(描画が読む値(src, 0, 0.25).a)).toBeCloseTo(0.00000005, 12);
+    expect(数(描画が読む値(src, 0, 0.5).a)).toBeCloseTo(0.0000001, 12);
+  });
+
+  it("ms 整数へ丸めると 0 になる dur を受け付けない", () => {
+    const parsed = parseTextDslV05(
+      記法(
+        'values:\n  a: { trigger: step "取込み", to: 100, dur: 0.0004ms }\n\n' +
+          'animation:\n  - step: "取込み" 4s',
+      ),
+    );
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.errors.some((e) => e.message.includes("dur が読めません"))).toBe(true);
   });
 });
 
