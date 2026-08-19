@@ -396,7 +396,21 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "axes") {
       // axes:\n  x: { left: "...", right: "..." }\n  y: { bottom: "...", top: "..." }
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      //
+      // **1 行にまとめて書く形は受けない** (Round 1 の指摘)。 受けないなら黙って捨てず、
+      // その場で伝える = 捨てると軸を書いたつもりの本文が既定のまま描かれる (`values:` と同じ)
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "axes は 1 行にまとめて書けない",
+          hint: '次の行から字下げして `x: { left: "...", right: "..." }` の形で並べる',
+        });
+        i += 1;
+        continue;
+      }
+      // **`collectIndentedList` を使わない** (Round 1 の指摘)。 あちらは `:` を含まない行を
+      // 黙って捨てるため、書き間違えた行が「書かなかった」 と同じになる
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       axesLine = line.no;
       const 組み立て: DslAxes = {};
       for (const it of items) {

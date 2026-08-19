@@ -80,8 +80,11 @@ describe("書かなければ従来どおり (陰性対照)", () => {
   });
 
   it("中身の無い axes は書かなかったのと同じ", () => {
-    // 1 本も読めなかった形で空の軸を渡すと、名前の無い軸が描かれる
-    const q = 区画(仕分け(`axes:\n  読めない行\n`));
+    // 空の軸を渡すと名前の無い軸が描かれる。 中身が 1 本も無い形は「書かなかった」 に倒す
+    //
+    // **書き間違えた行は別扱い** = 解析で落とす (下の describe)。 ここで見るのは
+    // 行が 1 本も無い形だけ
+    const q = 区画(仕分け(`axes:\n`));
     expect(q?.quadrantLabels.topLeft).toBe("左上");
   });
 });
@@ -115,5 +118,38 @@ describe("書き方の誤りを伝える", () => {
     expect(r.ok, "誤りを通している").toBe(false);
     const 本文 = r.ok ? [] : r.errors.map((e) => e.message);
     expect(本文.some((m) => m.startsWith("invalid axes entry")), 本文.join(" / ")).toBe(true);
+  });
+});
+
+describe("書き間違えた行を黙って捨てない (Round 1 の指摘)", () => {
+  const 誤り = (src: string) => {
+    const r = parseTextDslV05(src);
+    return r.ok ? [] : r.errors.map((e) => e.message);
+  };
+
+  it("コロンの無い行を伝える", () => {
+    // `collectIndentedList` は `:` を含まない行を黙って捨てる。 捨てると書き間違えた行が
+    // 「書かなかった」 と同じになり、軸を書いたつもりの本文が既定のまま描かれる
+    const 出た = 誤り(仕分け(`axes:\n  コロンの無い行\n`));
+    expect(出た.some((m) => m.startsWith("invalid axes entry")), 出た.join(" / ")).toBe(true);
+  });
+
+  it("1 行にまとめて書く形を伝える", () => {
+    const 出た = 誤り(仕分け(`axes: { x: { left: "手間 小" } }\n`));
+    expect(出た, "黙って捨てている").toContain("axes は 1 行にまとめて書けない");
+  });
+
+  it("1 行形を書いた時に軸が既定のままにならない", () => {
+    // 伝えるだけでなく解析を落とす = 気付かないまま図が描かれる状態にしない
+    expect(parseTextDslV05(仕分け(`axes: { x: { left: "手間 小" } }\n`)).ok).toBe(false);
+  });
+
+  it("正しい書き方では誤りが出ない (陰性対照)", () => {
+    expect(誤り(仕分け(両軸))).toEqual([]);
+  });
+
+  it("空行とコメントは誤りにしない (陰性対照)", () => {
+    const 出た = 誤り(仕分け(`axes:\n  # 手間と効き\n\n  x: { left: "小", right: "大" }\n`));
+    expect(出た, "コメントを誤りにしている").toEqual([]);
   });
 });
