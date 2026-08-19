@@ -56,6 +56,21 @@ export type LayoutMode = "auto" | "manual";
 export type DslDocument = {
   title: string;
   type: PresetType;
+  /**
+   * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
+   * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。
+   *
+   * これらの図種は箱を 1 つしか作らないため「どの箱の小見出しか」 が決まる。 箱ごとに
+   * 分かれる図種では決まらないので、 書かれていたら組み立て側が知らせる。
+   */
+  eyebrow?: string;
+  /**
+   * `eyebrow` を書いた行 (#1247)。 知らせの行番号に使う。
+   *
+   * 図の `pos` は常に 1 行目を指すため、 そこを使うと「10 行目に書いた `eyebrow` が効かない」
+   * を 1 行目として知らせることになり、 書いた場所に辿り着けない。
+   */
+  eyebrowPos?: Position;
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;

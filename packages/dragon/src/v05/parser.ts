@@ -83,6 +83,8 @@ export type V05ParseResult =
  */
 export const TOP_LEVEL_KEYS = [
   "title", "type", "actors", "flow", "states", "values", "animation", "viewport", "lanes", "groups",
+  // 図全体を 1 箱にする図種で、 その箱の上に出す小見出し (#1247)
+  "eyebrow",
 ] as const;
 
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
@@ -186,6 +188,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
 
   let title: string | null = null;
   let type: PresetType | null = null;
+  let eyebrow: string | null = null;
+  let eyebrowLine = 0;
   let actors: DslActor[] = [];
   const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
@@ -216,6 +220,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
       if (!title) {
         errors.push({ line: line.no, message: "title is required", hint: 'use `title: "..."`' });
       }
+      i += 1;
+      continue;
+    }
+    if (head.key === "eyebrow") {
+      // 空で書いた形 (`eyebrow:`) は「書かなかった」 と同じにする。 空文字を残すと
+      // 描画側が中身のない帯を出す
+      const v = (head.value ?? "").trim();
+      eyebrow = v.length > 0 ? v : null;
+      eyebrowLine = line.no;
       i += 1;
       continue;
     }
@@ -449,6 +462,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
     doc: {
       title: title!,
       type: type!,
+      ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
       actors,
       flow,
       animate,

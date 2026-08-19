@@ -17,6 +17,10 @@
       "enum": ["sequence", "flow", "swimlane", "er", "state", "topology", "solidity", "gantt", "class", "pie", "bar", "line", "funnel", "tree", "journey", "quadrant", "c4", "mind"],
       "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / swimlane (責務ごとの流れ) / er (DB の schema) / state (状態の遷移) / topology (network) / solidity (contract) / class (UML の class) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] pie (割合) / bar (棒の高さ) / line (線の高さ、 書いた順に並ぶ) は actors に `- 名前: \"45\"` の形で数を書く。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)"
     },
+    "eyebrow": {
+      "type": "string",
+      "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (pie / bar / line / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
+    },
     "actors": {
       "type": "array",
       "minItems": 1,

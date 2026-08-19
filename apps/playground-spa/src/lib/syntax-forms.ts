@@ -165,6 +165,17 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 図表は箱を 1 つしか作らないため、 上の小見出しの相手が決まる。 箱ごとに分かれる図種で
+    // 書くと組み立て側が知らせる (#1247)
+    title: "図表の上の小見出し (eyebrow:)",
+    sample: {
+      slot: "root",
+      type: "bar",
+      actors: ['  - 検索: "420"', '  - SNS: "310"'],
+    },
+    lines: [{ code: 'eyebrow: "棒グラフ"', note: "図表の箱の上に出す。 箱ごとに分かれる図種では書けない" }],
+  },
+  {
     // 縦列と囲みは `topology` / `swimlane` で使う。 一覧に無いと、記法にあることすら伝わらない
     title: "縦列と囲み (lanes: / groups:)",
     sample: {

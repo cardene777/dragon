@@ -33,6 +33,14 @@ export interface DragonJson {
   title: string;
   /** preset type (必須): sequence / flow / swimlane / er / state / topology / solidity / gantt / class / pie / c4 / mind */
   type: PresetType;
+  /**
+   * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
+   *
+   * 効くのは図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
+   * `quadrant` / `mind` / `gantt`) だけ。 箱ごとに分かれる図種では相手が決まらないため、
+   * 組み立て側が知らせを出す。 そちらは `actors[].eyebrow` に書く。
+   */
+  eyebrow?: string;
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -474,6 +482,11 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });
   }
+  // 図表の箱の上の小見出し (#1247)。 空文字は「書かなかった」 と同じ扱いにするため通す
+  // (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
+  if (j.eyebrow !== undefined && typeof j.eyebrow !== "string") {
+    errors.push({ path: "$.eyebrow", message: "eyebrow must be a string if present" });
+  }
   // CAR-1693 Phase 1: diagram-level layout mode の validation (未指定 = auto default で backward compat)
   if (j.layout !== undefined && j.layout !== "auto" && j.layout !== "manual") {
     errors.push({ path: "$.layout", message: 'layout must be "auto" or "manual" if present' });
@@ -696,6 +709,18 @@ function validateValues(v: unknown, errors: JsonDslError[]): void {
  * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` → 内部 AST `layoutPos:` の 2 層 mapping の実装 core。
  * test で mapping logic を実 execute するため export する (pos-field.test.ts の regression guard)。
  */
+/**
+ * 図表の箱の上の小見出しを、 記法側と同じ形に整える (#1247)。
+ *
+ * 記法は値を `trim()` してから空かどうかを見る。 JSON でも同じ順で見ないと、 空白だけの値が
+ * 入口によって別の意味になる (記法は書かなかった扱い、 JSON は中身のない帯)。
+ */
+function 整えた小見出し(v: string | undefined): string | undefined {
+  if (v === undefined) return undefined;
+  const t = v.trim();
+  return t.length > 0 ? t : undefined;
+}
+
 export function jsonToDoc(json: DragonJson): DslDocument {
   const p0 = { line: 0 };
   const actors: DslActor[] = json.actors.map((a) => {
@@ -772,6 +797,12 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   return {
     title: json.title,
     type: json.type,
+    // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
+    // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**
+    // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
+    ...(整えた小見出し(json.eyebrow) !== undefined
+      ? { eyebrow: 整えた小見出し(json.eyebrow), eyebrowPos: p0 }
+      : {}),
     actors,
     flow,
     animate,

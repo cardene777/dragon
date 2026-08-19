@@ -85,7 +85,9 @@ export type CompileNotice = {
     // 矢印の両端が同じ登場人物だった (#1227)
     | "flow-self-loop"
     // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
-    | "lane-not-honored";
+    | "lane-not-honored"
+    // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)
+    | "eyebrow-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -204,6 +206,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
+  reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -496,6 +499,39 @@ function reportSelfLoopFlow(doc: DslDocument, onNotice?: (n: CompileNotice) => v
       hint: "途中の箱を 1 つ足して 2 本に分けるか、 段 (animation) で状態が変わる様子として見せる",
     });
   }
+}
+
+/**
+ * 図全体を 1 箱にする図種で、 その箱の上に出す小見出しを渡す (#1247)。
+ *
+ * 書かなければ何も渡さない = 従来どおり小見出しは付かない。 `undefined` を明示して渡すと、
+ * 組立て側が「空の小見出しを書いた」 と区別できなくなるので、 項目ごと落とす。
+ */
+function 図の小見出し(doc: DslDocument): { eyebrow?: string } {
+  return doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow };
+}
+
+/**
+ * 箱ごとに分かれる図種で最上位の小見出しを書いた時に伝える (#1247)。
+ *
+ * 小見出しは **箱 1 つに対して 1 つ**。 図全体を 1 箱にする図種 (`pie` / `bar` 等) では
+ * 相手が決まるが、 箱ごとに分かれる図種では「どの箱の小見出しか」 が決まらない。
+ *
+ * 黙って捨てると「書いたのに出ない」 が手掛かりなしで起きる。 箱ごとに書く形
+ * (`- A: { eyebrow: "..." }`) を案内する = そちらは従来どおり効く。
+ */
+function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.eyebrow === undefined) return;
+  if (図種の作り[doc.type] === "図全体を 1 箱") return;
+  onNotice({
+    kind: "eyebrow-not-honored",
+    actor: doc.title,
+    // 図の `pos` は常に 1 行目を指す。 書いた行に辿り着けるよう `eyebrowPos` を優先する
+    line: doc.eyebrowPos?.line ?? doc.pos?.line ?? 0,
+    message: `最上位に書いた eyebrow は効きません (type: ${doc.type} は箱ごとに分かれるため相手が決まりません)`,
+    hint: '箱ごとに書いてください (`- A: { eyebrow: "..." }`)',
+  });
 }
 
 /**
@@ -3717,6 +3753,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     stack: 0,
     kind: "gantt-timeline",
     title: doc.title,
+    ...図の小見出し(doc),
     w: CHART_W,
     h: CHART_H,
     ganttData: タスク.map((t) => {
@@ -3956,6 +3993,7 @@ function compileValueChart(
     stack: 0,
     kind,
     title: doc.title,
+    ...図の小見出し(doc),
     w: CHART_W,
     h: CHART_H,
     chartData: data,
@@ -4191,7 +4229,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
-    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, w: W, h: CHART_H, funnelData: data,
+    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, funnelData: data,
   });
   return b.build();
 }
@@ -4267,7 +4305,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
-    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, w: W, h: CHART_H, treeData: data,
+    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, treeData: data,
   });
   return b.build();
 }
@@ -4310,7 +4348,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
-    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, w: W, h: CHART_H, journeyData: data,
+    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, journeyData: data,
   });
   return b.build();
 }
@@ -4352,7 +4390,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
-    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, w: W, h: CHART_TALL,
+    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_TALL,
     quadrantData: {
       xAxis: { left: "小さい", right: "大きい" },
       yAxis: { bottom: "小さい", top: "大きい" },
@@ -4750,6 +4788,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     stack: 0,
     kind: "mind-map",
     title: doc.title,
+    ...図の小見出し(doc),
     w: W,
     h: CHART_H,
     mindData: { rootId, rootTitle: 放射に出す文字(root), branches },
