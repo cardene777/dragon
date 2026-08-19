@@ -128,17 +128,29 @@ describe("SINGLE_BOX_KINDS の mind-map が記法から到達する", () => {
 });
 
 describe("矢印と重なる名前の扱い", () => {
-  it("矢印を書いても 1 本も作らず、 書いたことを伝える", () => {
+  it("矢印は線にならず、 枝の親になる (#1251)", () => {
+    // 放射の図は線を描かない。 矢印は「どの枝の下に置くか」 の指定として読む。
+    // 以前は矢印を落として伝えていたが、 それだと階層を書く手段が無かった
     const 知らせ: CompileNotice[] = [];
     const d = textDslToDiagram(
-      記法(["Core", "Idea1", "Idea2"], `\nflow:\n  - Core -> Idea1: "x"\n`),
+      記法(["Core", "Idea1", "Idea2"], `\nflow:\n  - Idea1 -> Idea2: "x"\n`),
       { onNotice: (n) => 知らせ.push(n) },
     );
-    expect(d.edges).toEqual([]);
+    expect(d.edges, "線を描いている").toEqual([]);
+    expect(知らせ.filter((n) => n.kind === "chart-edge-dropped"), "使えた矢印を落としている").toEqual([]);
+    const 枝 = (d.nodes[0] as { mindData?: { branches?: { id: string; parent?: string }[] } }).mindData?.branches;
+    expect(枝?.find((x) => x.id === "idea2")?.parent, "枝の親になっていない").toBe("idea1");
+  });
+
+  it("親にできない矢印は落として伝える", () => {
+    // 書いていない名前を指した矢印は親にできない。 黙って捨てると図から関係が消える
+    const 知らせ: CompileNotice[] = [];
+    textDslToDiagram(記法(["Core", "Idea1"], `\nflow:\n  - Idea1 -> 居ない: "x"\n`), {
+      onNotice: (n) => 知らせ.push(n),
+    });
     const 該当 = 知らせ.filter((n) => n.kind === "chart-edge-dropped");
     expect(該当).toHaveLength(1);
-    expect(該当[0]!.message).toContain("type: mind では矢印を描けません");
-    expect(該当[0]!.message).toContain("type: tree");
+    expect(該当[0]!.message).toContain("書いていない名前を子にしています");
   });
 
   it("同じ id になる名前を伝える", () => {
@@ -403,6 +415,8 @@ describe("見本 (parts) を重ねた登場人物 (Round 1 / 2)", () => {
     });
     const 該当 = 出た.filter((n) => n.kind === "chart-edge-dropped");
     expect(該当, "矢印が黙って消えている").toHaveLength(1);
+    // 枝が 1 本も無いため、 どの矢印も親にできない
+    expect(該当[0]!.message).toContain("書いていない名前を親にしています");
   });
 
   it("見本しか居ない記法では放射の箱も枠も作らない (Round 2)", () => {
@@ -415,3 +429,77 @@ describe("見本 (parts) を重ねた登場人物 (Round 1 / 2)", () => {
   });
 });
 
+
+describe("枝の親を矢印で書く (#1251)", () => {
+  const 枝 = (src: string) => {
+    const d = textDslToDiagram(src);
+    return (d.nodes[0] as { mindData?: { rootId?: string; branches?: { id: string; parent?: string }[] } })
+      .mindData;
+  };
+
+  const 本文 = (矢印 = "") =>
+    `title: "T"\ntype: mind\n\nactors:\n  - Project\n  - Features\n  - Auth\n  - Launch\n${矢印}`;
+
+  it("矢印を書かなければ全ての枝が中心の直下 (陰性対照)", () => {
+    // 従来の図が変わらないことを見る。 これが落ちれば既に描いてある図が動く
+    const m = 枝(本文());
+    expect(m?.branches?.map((b) => b.parent)).toEqual(["project", "project", "project"]);
+  });
+
+  it("矢印を書いた枝だけが下に入る", () => {
+    const m = 枝(本文(`\nflow:\n  - Features -> Auth: ""\n`));
+    expect(m?.branches?.map((b) => [b.id, b.parent])).toEqual([
+      ["features", "project"],
+      ["auth", "features"],
+      ["launch", "project"],
+    ]);
+  });
+
+  it("中心を親に指した矢印は書かなかったのと同じ", () => {
+    expect(枝(本文(`\nflow:\n  - Project -> Features: ""\n`))?.branches?.[0]?.parent).toBe("project");
+  });
+
+  it("親を辿ると輪になる形は枝を切って伝える", () => {
+    // 規則は type: tree と共有するため、輪の扱いも揃う
+    const 知らせ: CompileNotice[] = [];
+    const src = 本文(`\nflow:\n  - Features -> Auth: ""\n  - Auth -> Features: ""\n`);
+    textDslToDiagram(src, { onNotice: (n) => 知らせ.push(n) });
+    expect(知らせ.some((n) => n.message.includes("親を辿ると輪になります")), "輪を伝えていない").toBe(true);
+    // **伝えるだけでなく実際に切れていることを見る**。 残すと親を辿って戻る図ができ、
+    // 描画側が扱えない (伝えるだけの実装でも知らせの検査は通ってしまう)
+    const 親一覧 = new Map((枝(src)?.branches ?? []).map((b) => [b.id, b.parent]));
+    const 輪 = 親一覧.get("auth") === "features" && 親一覧.get("features") === "auth";
+    expect(輪, "輪が残っている").toBe(false);
+  });
+
+  it("同じ枝に親が 2 つある形を伝える", () => {
+    const 知らせ: CompileNotice[] = [];
+    textDslToDiagram(本文(`\nflow:\n  - Features -> Auth: ""\n  - Launch -> Auth: ""\n`), {
+      onNotice: (n) => 知らせ.push(n),
+    });
+    expect(知らせ.some((n) => n.message.includes("親が 2 つあります")), "2 つ目の親を伝えていない").toBe(true);
+  });
+
+  it("自分を親にする形を伝える", () => {
+    const 知らせ: CompileNotice[] = [];
+    textDslToDiagram(本文(`\nflow:\n  - Auth -> Auth: ""\n`), { onNotice: (n) => 知らせ.push(n) });
+    expect(知らせ.some((n) => n.message.includes("自分を親にしています")), "自分への矢印を伝えていない").toBe(true);
+  });
+
+  // 親を決める規則は type: tree と共有する。 **知らせの図種名まで共有してはいけない** =
+  // 放射の図で `type: tree` と書かれると、書いていない図種の名前で直し方を案内することになる
+  it.each([
+    ["書いていない名前", `\nflow:\n  - Features -> 居ない: ""\n`],
+    ["自分を親にする", `\nflow:\n  - Auth -> Auth: ""\n`],
+    ["親が 2 つ", `\nflow:\n  - Features -> Auth: ""\n  - Launch -> Auth: ""\n`],
+    ["輪になる", `\nflow:\n  - Features -> Auth: ""\n  - Auth -> Features: ""\n`],
+  ])("%s の知らせに type: mind が入る", (_name, 矢印) => {
+    const 知らせ: CompileNotice[] = [];
+    textDslToDiagram(本文(矢印), { onNotice: (n) => 知らせ.push(n) });
+    const 該当 = 知らせ.filter((n) => n.message.includes("type: "));
+    expect(該当.length, "知らせが出ていない").toBeGreaterThan(0);
+    for (const n of 該当) {
+      expect(n.message, "別の図種の名前で案内している").toContain("type: mind");
+    }
+  });
+});

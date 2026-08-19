@@ -4234,6 +4234,64 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   return b.build();
 }
 
+/**
+ * 矢印から親子を決める (#1251)。
+ *
+ * 矢印の先が子で、 どこからも指されない名前が根になる。 `type: tree` と `type: mind` が
+ * 同じ規則を使う = 同じ本文を書いた時に、 図種を変えただけで親子の解釈が変わらないようにする。
+ *
+ * **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
+ * 矢印は無い親を作る。 どちらも図が静かに変わるので伝える。
+ *
+ * 親を辿って自分に戻る形は木にならないため、 その枝を切って伝える。
+ */
+function 矢印から親を決める(
+  doc: DslDocument,
+  図種: "tree" | "mind",
+  名前: ReadonlySet<string>,
+  伝える: (名: string, message: string, line?: number) => void,
+): Map<string, string> {
+  const 親 = new Map<string, string>();
+  for (const f of doc.flow) {
+    const 子 = slugify(f.to);
+    const 親名 = slugify(f.from);
+    if (!名前.has(親名)) {
+      伝える(f.from, `type: ${図種} で書いていない名前を親にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
+    if (!名前.has(子)) {
+      伝える(f.to, `type: ${図種} で書いていない名前を子にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    if (子 === 親名) {
+      伝える(f.to, `type: ${図種} で自分を親にしています: ${f.to}`, f.pos?.line ?? 0);
+      continue;
+    }
+    const 既存 = 親.get(子);
+    if (既存 !== undefined && 既存 !== 親名) {
+      伝える(f.to, `type: ${図種} で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`, f.pos?.line ?? 0);
+      continue;
+    }
+    親.set(子, 親名);
+  }
+  // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
+  for (const 子 of [...親.keys()]) {
+    const 見た = new Set<string>([子]);
+    let p2 = 親.get(子);
+    while (p2 !== undefined) {
+      if (見た.has(p2)) {
+        伝える(子, `type: ${図種} で親を辿ると輪になります (${子} の親を外しました)`);
+        親.delete(子);
+        break;
+      }
+      見た.add(p2);
+      p2 = 親.get(p2);
+    }
+  }
+  return 親;
+}
+
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
@@ -4257,48 +4315,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
       伝える(群[0]!, `type: tree で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`);
     }
   }
-  // 親は矢印で決まる。 矢印の先が子で、 どこからも指されない名前が根になる。
-  //
-  // **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
-  // 矢印は無い親を作る。 どちらも図が静かに変わるので伝える (review 指摘)
-  const 親 = new Map<string, string>();
-  for (const f of doc.flow) {
-    const 子 = slugify(f.to);
-    const 親名 = slugify(f.from);
-    if (!名前.has(親名)) {
-      伝える(f.from, `type: tree で書いていない名前を親にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
-      continue;
-    }
-    // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
-    if (!名前.has(子)) {
-      伝える(f.to, `type: tree で書いていない名前を子にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
-      continue;
-    }
-    if (子 === 親名) {
-      伝える(f.to, `type: tree で自分を親にしています: ${f.to}`, f.pos?.line ?? 0);
-      continue;
-    }
-    const 既存 = 親.get(子);
-    if (既存 !== undefined && 既存 !== 親名) {
-      伝える(f.to, `type: tree で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`, f.pos?.line ?? 0);
-      continue;
-    }
-    親.set(子, 親名);
-  }
-  // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
-  for (const 子 of [...親.keys()]) {
-    const 見た = new Set<string>([子]);
-    let p2 = 親.get(子);
-    while (p2 !== undefined) {
-      if (見た.has(p2)) {
-        伝える(子, `type: tree で親を辿ると輪になります (${子} の親を外しました)`);
-        親.delete(子);
-        break;
-      }
-      見た.add(p2);
-      p2 = 親.get(p2);
-    }
-  }
+  const 親 = 矢印から親を決める(doc, "tree", 名前, 伝える);
   const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
     const id = slugify(a.name);
     const p3 = 親.get(id);
@@ -4693,18 +4710,16 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     }
     見本でない.push(a);
   }
-  // 矢印は描けない。 書かれていたら伝える。
+  // 枝の親は矢印で決まる (#1251)。 書かなければ全て中心の直下 = 従来と同じ図になる。
+  // 規則は `type: tree` と共有する = 同じ本文で図種だけ変えた時に親子の解釈が割れない。
   //
-  // **早期 return より前に出す** (Round 3 の指摘)。 後ろに置くと、 見本しか居ない記法で
-  // 矢印を書いた時に黙って消える
-  if (doc.flow.length > 0) {
-    伝える(
-      "chart-edge-dropped",
-      doc.flow[0]?.from ?? "",
-      `type: mind では矢印を描けません (${doc.flow.length} 本を無視しました)。 枝は全て中心の直下に置きます。 親子を矢印で書くなら type: tree を使ってください`,
-      doc.flow[0]?.pos?.line ?? 0,
-    );
-  }
+  // **早期 return より前に置く** = 見本しか居ない記法で矢印を書いた時、 枝が 1 本も無いため
+  // どの矢印も親にできない。 後ろに置くと、その形で矢印が黙って消える (Round 3 の指摘と同じ理由)
+  const 枝の名前 = new Set(見本でない.map((a) => slugify(a.name)));
+  const 親 = 矢印から親を決める(doc, "mind", 枝の名前, (名, message, line) =>
+    // 親にできなかった矢印は描かれない。 知らせの種別も「矢印を落とした」 にする
+    伝える("chart-edge-dropped", 名, message, line ?? 0),
+  );
 
   // 放射に載る登場人物が 0 人なら枠も作らない。 中身の無い枠が 1 つ残るのを避ける (#1096)。
   // **枠を作る前に見る** = 見本しか居ない記法で作ると、 見本だけが描かれた図に空の枠が残る
@@ -4750,7 +4765,6 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     if (欄.length > 0) 消えた欄.set(a.name, 欄);
   };
 
-  // 枝は根の直下。 根と同じ id になる枝は載せない = 自分を親にする形になり、 描けない
   const branches: NonNullable<CdlDiagram["nodes"][number]["mindData"]>["branches"] = [];
   const 使った = new Set<string>([rootId]);
   記録する(root);
@@ -4770,8 +4784,15 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     }
     使った.add(id);
     記録する(a);
+    // 矢印を書かなかった枝は中心の直下。 中心を親に指した矢印も同じ値になる
+    // (中心は `見本でない` の先頭なので、 その名前の slug が `rootId` そのもの)
     // 枝は色を持てる (`MindBranchNode.tone`)
-    branches.push({ id, title: 放射に出す文字(a), parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
+    branches.push({
+      id,
+      title: 放射に出す文字(a),
+      parent: 親.get(id) ?? rootId,
+      ...(a.tone ? { tone: a.tone } : {}),
+    });
   });
 
   if (消えた欄.size > 0) {
