@@ -2275,7 +2275,8 @@ function applyColorHex(
  */
 function 値の前置きを作る(名前たち: readonly string[]): Map<string, string> {
   const 出力 = new Map<string, string>();
-  const 使用中 = new Map<string, number>();
+  const 使用中 = new Set<string>();
+  const 次の番号 = new Map<string, number>();
   for (const 名前 of 名前たち) {
     if (出力.has(名前)) continue;
     let 素 = 名前
@@ -2284,9 +2285,17 @@ function 値の前置きを作る(名前たち: readonly string[]): Map<string, 
       .replace(/^_+|_+$/g, "");
     // 空になる形 (記号だけの名前) と数字始まりは、そのままでは名前として使えない
     if (素 === "" || /^[0-9]/.test(素)) 素 = `p${素}`;
-    const 回数 = (使用中.get(素) ?? 0) + 1;
-    使用中.set(素, 回数);
-    出力.set(名前, 回数 === 1 ? 素 : `${素}_${回数}`);
+    // 接尾辞で分けた名前も使用済みとして扱う。 `p1` / `p1!` / `p1_2` の順では、
+    // base ごとの回数だけを見ると後ろ 2 つがどちらも `p1_2` になって再衝突する
+    let 候補 = 素;
+    let 番号 = 次の番号.get(素) ?? 2;
+    while (使用中.has(候補)) {
+      候補 = `${素}_${番号}`;
+      番号 += 1;
+    }
+    次の番号.set(素, 番号);
+    使用中.add(候補);
+    出力.set(名前, 候補);
   }
   return 出力;
 }
