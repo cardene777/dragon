@@ -54,11 +54,21 @@ const id完全一致: readonly string[] = ["presetSequence"];
  */
 const 縦列の見出しの既知の差: Record<string, string> = {};
 
-const 光らせる先の既知の差: Record<string, string> = {
+const 光らせる先の既知の差: Record<string, readonly string[]> = {
   // 順序図の縦線 (`user-header` 等) は `focus:` が受け付けない (`focus.ts` が縦列の id を
   // 意図的に拒否する)。 組み立て API は最初の段から縦線を光らせて「誰の時間軸か」 を
-  // 読ませているが、記法には書く手段が無い。 骨格と字は一致する。
-  presetSequence: "縦線を光らせる指定が記法に無い",
+  // 読ませているが、記法には書く手段が無い。 ここに挙げた対象だけを組立側から除いて比べる。
+  presetSequence: [
+    "user-header",
+    "user-spacer",
+    "api-header",
+    "api-spacer",
+    "db-header",
+    "db-spacer",
+    "user-footer",
+    "api-footer",
+    "db-footer",
+  ],
 };
 
 type Diagram = CdlDiagram;
@@ -88,12 +98,20 @@ const 対象 = 記法つき();
  * 箱は題、矢印は端の題と説明。 id は記法と組立て API で違うため直接は比べられないが、
  * **読み替えれば比べられる**。
  */
+function 箱の見える名前(d: Diagram, id: string): string {
+  const 箱 = d.nodes.find((n) => n.id === id);
+  if (箱 === undefined) return `(無い箱:${id})`;
+  const 縦列 = (d.lanes ?? []).find((l) => l.id === 箱.lane)?.label ?? "";
+  return `箱:${箱.title ?? ""}|縦列:${縦列}|段:${箱.stack ?? ""}`;
+}
+
 function 見える名前の表(d: Diagram): Map<string, string> {
   const 表 = new Map<string, string>();
-  for (const n of d.nodes) 表.set(n.id, `箱:${n.title ?? ""}`);
-  // **矢印は説明だけで名乗らせる**。 端の題まで入れると、向きの違いを `矢印の両端` と
-  // ここの両方が捕まえてしまい、どちらが何を守っているか分からなくなる (変異試験で判明)
-  for (const e of d.edges) 表.set(e.id, `矢印:${e.label ?? ""}`);
+  for (const n of d.nodes) 表.set(n.id, 箱の見える名前(d, n.id));
+  // 同じ説明の矢印が複数あっても、段が別の矢印を光らせた差を残す。
+  for (const e of d.edges) {
+    表.set(e.id, `矢印:${e.label ?? ""}|${箱の見える名前(d, e.from)}->${箱の見える名前(d, e.to)}`);
+  }
   for (const l of d.lanes ?? []) 表.set(l.id, `縦列:${l.label ?? ""}`);
   return 表;
 }
@@ -105,11 +123,7 @@ function 見える名前の表(d: Diagram): Map<string, string> {
  * 説明は変わらないため、向きの違う図が通っていた。
  */
 const 矢印の両端 = (d: Diagram): string[] =>
-  d.edges.map((e) => {
-    const 元 = d.nodes.find((n) => n.id === e.from)?.title ?? "(無い箱)";
-    const 先 = d.nodes.find((n) => n.id === e.to)?.title ?? "(無い箱)";
-    return `${元} -> ${先}`;
-  });
+  d.edges.map((e) => `${箱の見える名前(d, e.from)} -> ${箱の見える名前(d, e.to)}`);
 
 /**
  * 段が光らせる先を、読む人に見える名前で並べる (Round 1 の指摘)。
@@ -117,10 +131,67 @@ const 矢印の両端 = (d: Diagram): string[] =>
  * **数だけを比べても足りない**。 `User` の代わりに `Order` を光らせても数が同じなら
  * 通っていた。 名前で比べれば取り違えを落とせる。
  */
-const 光らせる先 = (d: Diagram): string[][] => {
+const 光らせる先 = (d: Diagram, 除く: ReadonlySet<string> = new Set()): string[][] => {
   const 表 = 見える名前の表(d);
-  return d.phases.map((p) => [...p.activate].map((id) => 表.get(id) ?? `(不明:${id})`).sort());
+  return d.phases.map((p) =>
+    [
+      ...new Set(
+        p.activate.filter((id) => !除く.has(id)).map((id) => 表.get(id) ?? `(不明:${id})`),
+      ),
+    ].sort(),
+  );
 };
+
+describe("矢印と段の表示要素への読み替え", () => {
+  it("題のない順序図の箱でも、矢印の向きを区別する", () => {
+    const 元 = Presets.presetSequence;
+    const 反転 = {
+      ...元,
+      edges: 元.edges.map((e, i) => (i === 0 ? { ...e, from: e.to, to: e.from } : e)),
+    };
+    expect(矢印の両端(反転)).not.toEqual(矢印の両端(元));
+  });
+
+  it("どの段も光らせない矢印の向きは、両端の比較だけが捕まえる", () => {
+    // **2 つの検査は役割が違う**。 向きの違いはどちらも捕まえるが、それは段がその矢印を
+    // 光らせている時だけ。 光らせない矢印では両端の比較だけが残る = 片方に寄せられない
+    const 元 = Presets.presetEr;
+    const 光らせない = { ...元, phases: 元.phases.map((p) => ({ ...p, activate: [] })) };
+    const 反転 = {
+      ...光らせない,
+      edges: 光らせない.edges.map((e, i) => (i === 0 ? { ...e, from: e.to, to: e.from } : e)),
+    };
+    expect(矢印の両端(反転), "両端の比較が向きを見ていない").not.toEqual(矢印の両端(光らせない));
+    expect(光らせる先(反転), "光らせる先が向きを見てしまっている").toEqual(光らせる先(光らせない));
+  });
+
+  it("同じ説明の矢印が 2 本ある時、光らせる先が取り違えを捕まえる", () => {
+    // 逆に、説明だけで名乗らせると同じ説明の矢印を区別できない = 両端を名前に含める理由
+    const 元 = Presets.presetEr;
+    const 先頭 = 元.edges[0];
+    if (先頭 === undefined) throw new Error("矢印を持たない preset では確かめられない");
+    const 二本 = {
+      ...元,
+      edges: [...元.edges, { ...先頭, id: "dup", from: 先頭.to, to: 先頭.from }],
+      phases: 元.phases.map((p, i) => (i === 0 ? { ...p, activate: [先頭.id] } : p)),
+    };
+    const 取違え = { ...二本, phases: 二本.phases.map((p, i) => (i === 0 ? { ...p, activate: ["dup"] } : p)) };
+    expect(光らせる先(取違え), "同じ説明の矢印を区別できていない").not.toEqual(光らせる先(二本));
+  });
+
+  it("題のない順序図の箱でも、段が光らせる位置を区別する", () => {
+    const 元 = Presets.presetSequence;
+    const 取違え = {
+      ...元,
+      phases: 元.phases.map((p, i) =>
+        i === 0
+          ? { ...p, activate: p.activate.map((id) => (id === "s0-user" ? "s1-api" : id)) }
+          : p,
+      ),
+    };
+    expect(光らせる先(取違え)).not.toEqual(光らせる先(元));
+  });
+});
 
 /**
  * 描いた図の大きさ。 viewBox をそのまま読む。
@@ -516,14 +587,29 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // **数だけを比べても足りない** (Round 1 の指摘)。 `User` の代わりに `Order` を
         // 光らせても数が同じなら通っていた。 読む人に見える名前へ読み替えて比べる
         const 記法側 = 光らせる先(記法);
-        const 組立側 = 光らせる先(t.built);
         if (t.key in 光らせる先の既知の差) {
+          const 既知の差 = new Set(光らせる先の既知の差[t.key]);
+          const 組立側の全対象 = new Set(t.built.phases.flatMap((p) => p.activate));
+          const 宣言したが光らない対象 = [...既知の差].filter((id) => !組立側の全対象.has(id));
+          expect(
+            宣言したが光らない対象,
+            `${t.key} の既知の差に、実際には光らない対象がある`,
+          ).toEqual([]);
+
+          const 組立側 = 光らせる先(t.built, 既知の差);
+          expect(記法側, `${t.key} で宣言外の光らせる先が違う`).toEqual(組立側);
           // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
-          expect(記法側, `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(組立側);
+          expect(記法側, `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(
+            光らせる先(t.built),
+          );
           // 解決できていない形 (全段 0) は差ではなく壊れなので、別に落とす
-          expect(記法側.some((a) => a.length > 0), `${t.key} で focus が 1 つも解決していない`).toBe(true);
+          expect(
+            記法側.some((a) => a.length > 0),
+            `${t.key} で focus が 1 つも解決していない`,
+          ).toBe(true);
           return;
         }
+        const 組立側 = 光らせる先(t.built);
         expect(記法側).toEqual(組立側);
       });
 
