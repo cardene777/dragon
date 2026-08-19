@@ -83,6 +83,46 @@ function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
 const 対象 = 記法つき();
 
 /**
+ * id を「読む人に見える名前」 へ読み替える表 (Round 1 の指摘)。
+ *
+ * 箱は題、矢印は端の題と説明。 id は記法と組立て API で違うため直接は比べられないが、
+ * **読み替えれば比べられる**。
+ */
+function 見える名前の表(d: Diagram): Map<string, string> {
+  const 表 = new Map<string, string>();
+  for (const n of d.nodes) 表.set(n.id, `箱:${n.title ?? ""}`);
+  // **矢印は説明だけで名乗らせる**。 端の題まで入れると、向きの違いを `矢印の両端` と
+  // ここの両方が捕まえてしまい、どちらが何を守っているか分からなくなる (変異試験で判明)
+  for (const e of d.edges) 表.set(e.id, `矢印:${e.label ?? ""}`);
+  for (const l of d.lanes ?? []) 表.set(l.id, `縦列:${l.label ?? ""}`);
+  return 表;
+}
+
+/**
+ * 矢印がどの箱とどの箱を、どちら向きに繋ぐか (Round 1 の指摘)。
+ *
+ * **説明だけを比べても足りない**。 `User -> Order` を `Order -> User` に反転しても
+ * 説明は変わらないため、向きの違う図が通っていた。
+ */
+const 矢印の両端 = (d: Diagram): string[] =>
+  d.edges.map((e) => {
+    const 元 = d.nodes.find((n) => n.id === e.from)?.title ?? "(無い箱)";
+    const 先 = d.nodes.find((n) => n.id === e.to)?.title ?? "(無い箱)";
+    return `${元} -> ${先}`;
+  });
+
+/**
+ * 段が光らせる先を、読む人に見える名前で並べる (Round 1 の指摘)。
+ *
+ * **数だけを比べても足りない**。 `User` の代わりに `Order` を光らせても数が同じなら
+ * 通っていた。 名前で比べれば取り違えを落とせる。
+ */
+const 光らせる先 = (d: Diagram): string[][] => {
+  const 表 = 見える名前の表(d);
+  return d.phases.map((p) => [...p.activate].map((id) => 表.get(id) ?? `(不明:${id})`).sort());
+};
+
+/**
  * 描いた図の大きさ。 viewBox をそのまま読む。
  *
  * **中身ではなく絵で見る**。 箱の大きさや矢印の回し方は中身の比較に現れないが、
@@ -424,6 +464,12 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
       });
 
+      it("矢印の両端と向きが一致する", () => {
+        // **説明だけを比べても足りない** (Round 1 の指摘)。 `User -> Order` を
+        // `Order -> User` に反転しても説明は変わらないため、向きの違う図が通っていた
+        expect(矢印の両端(記法), "矢印の向きか繋ぎ先が違う").toEqual(矢印の両端(t.built));
+      });
+
       it("描いた図の大きさが一致する", () => {
         // **中身だけを比べても足りない** (#1260)。 箱の題も矢印も段も同じなのに、
         // 描くと大きさの違う図が 7 件通っていた (実測 = viewBox が 785x488 対 712x600 等)。
@@ -466,16 +512,16 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(段の中身(記法.phases)).toEqual(段の中身(t.built.phases));
       });
 
-      it("段が光らせる先の数が一致する (既知の差は宣言したものだけ)", () => {
-        // id は違いうるので数で見る。 0 と非 0 の取り違え (`focus:` が解決できていない形) は
-        // これで落ちる
-        const 記法側 = 記法.phases.map((p) => p.activate.length);
-        const 組立側 = t.built.phases.map((p) => p.activate.length);
+      it("段が光らせる先が一致する (既知の差は宣言したものだけ)", () => {
+        // **数だけを比べても足りない** (Round 1 の指摘)。 `User` の代わりに `Order` を
+        // 光らせても数が同じなら通っていた。 読む人に見える名前へ読み替えて比べる
+        const 記法側 = 光らせる先(記法);
+        const 組立側 = 光らせる先(t.built);
         if (t.key in 光らせる先の既知の差) {
           // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
           expect(記法側, `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(組立側);
           // 解決できていない形 (全段 0) は差ではなく壊れなので、別に落とす
-          expect(記法側.some((n) => n > 0), `${t.key} で focus が 1 つも解決していない`).toBe(true);
+          expect(記法側.some((a) => a.length > 0), `${t.key} で focus が 1 つも解決していない`).toBe(true);
           return;
         }
         expect(記法側).toEqual(組立側);
