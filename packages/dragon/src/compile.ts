@@ -4144,9 +4144,24 @@ function compileValueChart(
  * 描画側 (`cdl` の `chart()` preset) は高さを 16 の倍数へ切り上げる。 揃えないと下端が格子から
  * 外れ、 正しい記法でも位置の警告が出る (review 指摘、 360 のまま 5 型が該当していた)。
  */
-const CHART_W_STD = 640;
-const CHART_H = 368;
-const CHART_TALL = 400;
+/**
+ * 図表の箱の大きさ (#1260)。
+ *
+ * **組立て API と同じ値を使う**。 別の値にすると、同じ内容を書いても描いた図の大きさが変わる
+ * (実測 = 記法の `funnel` は 640x368、組立て API は 560x480 で、描いた図の viewBox が
+ * 785x488 対 712x600 になっていた)。
+ *
+ * 組立て API 側は中身の件数で変えない (実測 = 2 / 4 / 8 件のどれでも同じ値)。 そのため
+ * こちらも定数で持つ。 `gantt` だけは件数で高さを変える = 8 件目から最後の帯が枠の外に
+ * 出るため (`compileGantt` の実測)、組立て API の固定 360 より正しい。
+ */
+const 図表の大きさ = {
+  funnel: { w: 560, h: 480 },
+  tree: { w: 720, h: 480 },
+  mind: { w: 720, h: 480 },
+  journey: { w: 720, h: 480 },
+  quadrant: { w: 640, h: 480 },
+} as const;
 
 /** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
 //
@@ -4311,7 +4326,7 @@ function 語の状態を図の語へ直す(diagram: CdlDiagram): void {
 
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
+  const { w: W, h: H } = 図表の大きさ.funnel;
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];
@@ -4349,7 +4364,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
-    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, funnelData: data,
+    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, ...図の小見出し(doc), w: W, h: H, funnelData: data,
   });
   return b.build();
 }
@@ -4414,7 +4429,7 @@ function 矢印から親を決める(
 
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
+  const { w: W, h: H } = 図表の大きさ.tree;
   b.lane("chart", { width: W + 64 });
   // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
   // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
@@ -4442,7 +4457,7 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
-    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, treeData: data,
+    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, ...図の小見出し(doc), w: W, h: H, treeData: data,
   });
   return b.build();
 }
@@ -4505,7 +4520,7 @@ function reportChartFieldsNotHonored(doc: DslDocument, onNotice?: (n: CompileNot
 
 function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
+  const { w: W, h: H } = 図表の大きさ.journey;
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
   const 読めない: string[] = [];
@@ -4541,7 +4556,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
-    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_H, journeyData: data,
+    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, ...図の小見出し(doc), w: W, h: H, journeyData: data,
   });
   return b.build();
 }
@@ -4607,7 +4622,7 @@ function reportAxesNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 
 function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
+  const { w: W, h: H } = 図表の大きさ.quadrant;
   b.lane("chart", { width: W + 64 });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
@@ -4642,7 +4657,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
-    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, ...図の小見出し(doc), w: W, h: CHART_TALL,
+    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, ...図の小見出し(doc), w: W, h: H,
     quadrantData: { ...軸と区画の名前(doc), items },
   });
   return b.build();
@@ -4925,7 +4940,7 @@ function 放射に出す文字(a: DslActor): string {
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
-  const W = CHART_W_STD;
+  const { w: W, h: H } = 図表の大きさ.mind;
 
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
     onNotice?.({ kind, actor: 名, line, message });
@@ -5062,7 +5077,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     title: doc.title,
     ...図の小見出し(doc),
     w: W,
-    h: CHART_H,
+    h: H,
     mindData: { rootId, rootTitle: 放射に出す文字(root), branches },
   });
   return b.build();
@@ -5849,6 +5864,31 @@ type GenericOpts = {
   laneWidth: number;
 };
 
+/**
+ * 後ろへ戻る矢印か (#1260)。
+ *
+ * 状態の図は、後ろの状態へ戻る矢印を **箱の上を回して** 描く (`routing: "back-detour"`)。
+ * 組立て API 側がそうしており、記法側で付けないと **描いた図の高さが変わる**
+ * (実測 = viewBox が 404 対 486 で、戻る矢印が箱の右横を回っていた)。
+ *
+ * 判定は並び順。 指す先が指す元より前にあれば戻る矢印
+ * (実測 = `stateMachine()` は c -> a と c -> b の 2 本だけに付け、a -> b と b -> c には付けない)。
+ *
+ * **状態の図だけに付ける**。 他の図種の組立て API は付けない (実測 = `er()` は付けなかった)。
+ */
+function 後ろへ戻る矢印か(
+  kind: GenericKind,
+  fromId: string,
+  toId: string,
+  箱の並び: ReadonlyMap<string, number>,
+): boolean {
+  if (kind !== "state") return false;
+  const 元 = 箱の並び.get(fromId);
+  const 先 = 箱の並び.get(toId);
+  if (元 === undefined || 先 === undefined) return false;
+  return 先 < 元;
+}
+
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const { kind, laneWidth } = opts;
@@ -5900,6 +5940,8 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   // 存在しない node を指す図ができて描画の直前で落ちていた
   // (実測 = `unknown-ref: edge "e0-v-c" の from "v" が node に存在しません`)。
   // 書いた人には `flow-actor-missing` の知らせが届く。
+  // 箱の並び。 後ろへ戻る矢印を見分けるために使う (#1260)
+  const 箱の並び = new Map([...actorToNodeId.values()].map((id, i) => [id, i]));
   const edgeIds: string[] = [];
   doc.flow.forEach((s, idx) => {
     // 名前は入口で正規化済 (`canonicalizeFlowActors`)。 ここで slug を受け直すと、
@@ -5918,6 +5960,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     b.edge(fromId, toId, {
       id: edgeId,
       label: labelWithCard,
+      ...後ろへ戻る矢印か(kind, fromId, toId, 箱の並び) ? { routing: "back-detour" as const } : {},
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
