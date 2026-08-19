@@ -86,6 +86,8 @@ export type CompileNotice = {
     | "flow-self-loop"
     // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
     | "lane-not-honored"
+    // `lanes:` に書いた縦列に箱が 1 つも入らなかった (#1241)
+    | "lane-declared-empty"
     // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)
     | "eyebrow-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
@@ -5079,6 +5081,42 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
 /**
+ * `lanes:` で作った縦列と、見本 (parts) が作った同一idの縦列を 1 つに重ねる (#1241)。
+ *
+ * `lanes:` の中身を読むのは見本を重ねるより前で、その時点では見本の縦列がまだ無い。
+ * そのため同じ id を書くと **縦列が 2 つできて、書いた幅は箱の入っていない方に付く**
+ * (実測 = `g__l` が 777 と 400 の 2 本になり、箱は 400 の方に入った)。
+ *
+ * 後から来た見本の縦列に書いた値を移し、先に作った空の方を外す。 書いた人から見れば
+ * 「id を書けば効く」 が成り立つ。
+ */
+function mergeDuplicateDeclaredLanes(
+  diagram: CdlDiagram,
+  追加した縦列: readonly { id: string; line: number }[],
+): void {
+  const 使われている = new Set(diagram.nodes.map((n) => n.lane));
+  for (const { id } of 追加した縦列) {
+    const 同一idの縦列 = diagram.lanes.filter((l) => l.id === id);
+    if (同一idの縦列.length < 2) continue;
+    // 箱が入っている方を残す。 入っていなければ後から来た方 (見本が作った方) を残す
+    const 書いた分 = 同一idの縦列[0];
+    // 箱が入っている方を残す。 入っていなければ後から来た方 (見本が作った方) を残す
+    const 残す = 使われている.has(id)
+      ? 同一idの縦列.slice(1).find((l) => l.id === id)
+      : 同一idの縦列[同一idの縦列.length - 1];
+    if (書いた分 === undefined || 残す === undefined || 書いた分 === 残す) continue;
+    if (書いた分 === 残す) continue;
+    if (書いた分.x !== undefined) 残す.x = 書いた分.x;
+    if (書いた分.width !== undefined) 残す.width = 書いた分.width;
+    if (書いた分.label !== undefined) 残す.label = 書いた分.label;
+    if (書いた分.contain !== undefined) 残す.contain = 書いた分.contain;
+    if (書いた分.lifeline !== undefined) 残す.lifeline = 書いた分.lifeline;
+    const i = diagram.lanes.indexOf(書いた分);
+    if (i >= 0) diagram.lanes.splice(i, 1);
+  }
+}
+
+/**
  * `lanes:` で作った縦列に箱が 1 つも入らなかったら伝える (#1241)。
  *
  * 意図して空の縦列を置くことはあるが、その場合も「置いた」 と分かる形で知らせる方が、
@@ -5089,13 +5127,15 @@ function reportEmptyDeclaredLanes(
   追加した縦列: readonly { id: string; line: number }[],
   onNotice?: (n: CompileNotice) => void,
 ): void {
-  if (!onNotice || 追加した縦列.length === 0) return;
+  if (追加した縦列.length === 0) return;
+  mergeDuplicateDeclaredLanes(diagram, 追加した縦列);
+  if (!onNotice) return;
   const 使われている = new Set(diagram.nodes.map((n) => n.lane));
   const ある縦列 = diagram.lanes.map((l) => l.id).filter((x) => 使われている.has(x));
   for (const { id, line } of 追加した縦列) {
     if (使われている.has(id)) continue;
     onNotice({
-      kind: "lane-not-honored",
+      kind: "lane-declared-empty",
       actor: id,
       line,
       message: `lanes に書いた ${truncateForMessage(id)} はどの箱も入らない縦列です (新しく作りました)`,

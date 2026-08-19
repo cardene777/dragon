@@ -134,6 +134,16 @@ describe("どの箱も入らない縦列を伝える (Round 3 の指摘)", () =>
     expect(該当?.hint).toContain("lane-idle");
   });
 
+  it("箱の lane を無視した知らせとは別の種別で伝える", () => {
+    // 同じ種別にすると、受け取る側 (画面 / lint) が「箱の lane が効かない」 と
+    // 「宣言した縦列が空」 を区別できない。 直し方が違うので分ける
+    const r = parseTextDslV05(記法("lanes:\n  lane-idl: { width: 999 }\n"));
+    const out: { kind: string }[] = [];
+    if (r.ok) compileToCdl(r.doc, { onNotice: (n) => out.push(n) });
+    expect(out.map((n) => n.kind)).toContain("lane-declared-empty");
+    expect(out.map((n) => n.kind), "箱の lane の知らせと混ざっている").not.toContain("lane-not-honored");
+  });
+
   it("合う id では伝えない (陰性対照)", () => {
     // 正しい記法が警告だらけになると、知らせそのものが読まれなくなる
     expect(知らせ("lanes:\n  lane-idle: { width: 370 }\n")).toEqual([]);
@@ -178,5 +188,34 @@ describe("見本が入った縦列には伝えない (変異試験で見つけ�
     // 「常に伝えない」 実装と区別できない状態にしない
     const { 知らせ } = 組む("flow");
     expect(知らせ, "空のままの縦列を見逃している").toHaveLength(1);
+  });
+
+  // Round 4 の指摘。 `lanes:` の中身を読むのは見本を重ねるより前で、その時点では見本の縦列が
+  // まだ無い。 そのため同じ id を書くと **縦列が 2 つできて、書いた幅は箱の入っていない方に付く**
+  const 見本の縦列を宣言する = (width: number) => {
+    const r = parseTextDslV05(
+      `title: "T"\ntype: flow\n\nlanes:\n  g__l: { width: ${width} }\n\n` +
+        `actors:\n  - A\n  - g: { kind: trophy }\n\nflow:\n  - A -> A: "x"\n`,
+    );
+    if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+    const out: string[] = [];
+    const d = compileToCdl(r.doc, { partsCatalog: { trophy: 見本 }, onNotice: (n) => out.push(n.message) });
+    return { 縦列: (d.lanes ?? []).filter((l) => l.id === "g__l"), 知らせ: out };
+  };
+
+  it("見本が作る縦列と同じ id を書いても 2 本にならない", () => {
+    expect(見本の縦列を宣言する(777).縦列, "縦列が 2 本できている").toHaveLength(1);
+  });
+
+  it("書いた幅が見本の縦列に効く", () => {
+    // 2 本できていた時は、書いた幅が箱の入っていない方に付いていた (実測)
+    expect(見本の縦列を宣言する(777).縦列[0]?.width).toBe(777);
+  });
+
+  it("重ねた縦列には知らせを出さない", () => {
+    expect(
+      見本の縦列を宣言する(777).知らせ.filter((m) => m.includes("どの箱も入らない縦列")),
+      "効いている指定に知らせが出ている",
+    ).toEqual([]);
   });
 });
