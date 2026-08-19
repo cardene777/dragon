@@ -207,7 +207,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
-  reportJourneyFieldsNotHonored(書いたまま, opts?.onNotice);
+  reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
@@ -3691,6 +3691,29 @@ function compileSolidity(doc: DslDocument): CdlDiagram {
  *
  * flow は依存関係を edge で表現 (横棒間の矢印)。
  */
+/**
+ * 工程が終わる位置を決める (#1251)。
+ *
+ * 書かなければ始まりと同じ = 帯が 1 コマ (従来の挙動)。
+ *
+ * `{名前}` を書いたらそのまま渡す。 描画側が状態を解いて位置に直すため、段で帯が伸び縮みする。
+ * その場合 **時期の名前は始まりのものを使う** = 状態が指すのは位置であって時期の名前ではなく、
+ * 帯の端に出す字が段ごとに変わるわけではない。
+ *
+ * 時期の名前を書いたら、その名前の位置に終わる。 書いた名前が目盛りに無い形は始まりと同じに
+ * 倒す = 目盛りは書かれた順に作るため、載っていない名前は位置を持たない。
+ */
+function 終わる位置(
+  end: string | undefined,
+  始まり: number,
+  目盛り: readonly string[],
+): { idx: number | string; label?: string } {
+  if (end === undefined) return { idx: 始まり };
+  if (/^\{\w+\}$/.test(end)) return { idx: end };
+  const i = 目盛り.indexOf(end);
+  return i < 0 ? { idx: 始まり } : { idx: i, label: end };
+}
+
 function compileGantt(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CHART_W = 720;
@@ -3700,7 +3723,13 @@ function compileGantt(doc: DslDocument): CdlDiagram {
   // 全て同じ位置に落ちていた。 順に並べれば月名でも週番号でも同じ規則で置ける
   const 目盛り: string[] = [];
   const 目盛りなし: string[] = [];
-  const タスク: { name: string; label: string; tone?: DslDocument["actors"][number]["tone"] }[] = [];
+  const タスク: {
+    name: string;
+    label: string;
+    tone?: DslDocument["actors"][number]["tone"];
+    owner?: string;
+    end?: string;
+  }[] = [];
   for (const a of doc.actors) {
     const label = (a.value ?? a.subtitle ?? "").trim();
     if (label === "") {
@@ -3709,7 +3738,13 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     }
     if (!目盛り.includes(label)) 目盛り.push(label);
     // 色は帯にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
-    タスク.push({ name: a.name, label, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
+    タスク.push({
+      name: a.name,
+      label,
+      ...(a.tone !== undefined ? { tone: a.tone } : {}),
+      ...(a.owner !== undefined ? { owner: a.owner } : {}),
+      ...(a.end !== undefined ? { end: a.end } : {}),
+    });
   }
   if (目盛りなし.length > 0 && typeof console !== "undefined" && console.warn) {
     console.warn(
@@ -3761,13 +3796,15 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     ganttData: タスク.map((t) => {
       const idx = 目盛り.indexOf(t.label);
       const from = 依存元.get(t.name);
+      const 終わり = 終わる位置(t.end, idx, 目盛り);
       return {
         id: slugify(t.name) || t.name,
         title: t.name,
         startIdx: idx,
-        endIdx: idx,
+        endIdx: 終わり.idx,
         startLabel: t.label,
-        endLabel: t.label,
+        endLabel: 終わり.label ?? t.label,
+        ...(t.owner !== undefined ? { owner: t.owner } : {}),
         ...(from !== undefined ? { dependsOn: slugify(from) || from } : {}),
         ...(t.tone !== undefined ? { tone: t.tone } : {}),
       };
@@ -4351,23 +4388,37 @@ function 道筋の欄(a: DslActor): { touchpoint?: string; opportunity?: string 
  * `type: mind` では伝えない = `compileMind` が描けない欄をまとめて 1 件で伝えており、
  * そこに 2 つとも入っている (`放射で描けない欄`)。 二重に伝えない (#1246 と同じ扱い)。
  */
-function reportJourneyFieldsNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+function reportChartFieldsNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
-  if (doc.type === "journey" || doc.type === "mind") return;
+  if (doc.type === "mind") return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
-    const 欄 = [
+    const 道筋 = doc.type === "journey" ? [] : [
       ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
       ...(a.opportunity !== undefined ? ["opportunity"] : []),
     ];
-    if (欄.length === 0) continue;
-    onNotice({
-      kind: "chart-value-unreadable",
-      actor: a.name,
-      line: a.pos?.line ?? 0,
-      message: `"${truncateForMessage(a.name)}" に書いた ${欄.join(" / ")} は効きません (type: ${doc.type} には体験の道筋の欄がありません)`,
-      hint: "体験の道筋を描くなら type: journey を使ってください",
-    });
+    const 工程 = doc.type === "gantt" ? [] : [
+      ...(a.owner !== undefined ? ["owner"] : []),
+      ...(a.end !== undefined ? ["end"] : []),
+    ];
+    if (道筋.length > 0) {
+      onNotice({
+        kind: "chart-value-unreadable",
+        actor: a.name,
+        line: a.pos?.line ?? 0,
+        message: `"${truncateForMessage(a.name)}" に書いた ${道筋.join(" / ")} は効きません (type: ${doc.type} には体験の道筋の欄がありません)`,
+        hint: "体験の道筋を描くなら type: journey を使ってください",
+      });
+    }
+    if (工程.length > 0) {
+      onNotice({
+        kind: "chart-value-unreadable",
+        actor: a.name,
+        line: a.pos?.line ?? 0,
+        message: `"${truncateForMessage(a.name)}" に書いた ${工程.join(" / ")} は効きません (type: ${doc.type} には工程の並びの欄がありません)`,
+        hint: "工程の並びを描くなら type: gantt を使ってください",
+      });
+    }
   }
 }
 
@@ -4685,6 +4736,8 @@ type 放射で描けない欄 =
   | "eyebrow"
   | "touchpoint"
   | "opportunity"
+  | "owner"
+  | "end"
   | "rows"
   | "lane"
   | "stack"
@@ -4736,6 +4789,8 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   eyebrow: "上の小見出し",
   touchpoint: "場所 (体験の道筋の欄)",
   opportunity: "改善の余地 (体験の道筋の欄)",
+  owner: "担当 (工程の並びの欄)",
+  end: "終わる時期 (工程の並びの欄)",
   rows: "行",
   lane: "枠の指定",
   stack: "積む順",
