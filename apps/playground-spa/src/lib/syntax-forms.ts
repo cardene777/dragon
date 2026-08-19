@@ -165,6 +165,19 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 工程の並びだけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
+    title: "工程の並びの欄 (owner: / end:)",
+    sample: {
+      slot: "actors",
+      type: "gantt",
+    },
+    lines: [
+      { code: '  - 設計: { value: "Q1", owner: "デザイナー" }', note: "担当" },
+      { code: '  - 実装: { value: "Q2", end: "Q3" }', note: "終わる時期。 帯が 2 コマになる" },
+      { code: '  - 検証: { value: "Q3", end: "{done}" }', note: "状態から取ると段で伸び縮みする" },
+    ],
+  },
+  {
     // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "軸の名前 (axes:)",
     sample: {

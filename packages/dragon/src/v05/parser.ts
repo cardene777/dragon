@@ -929,7 +929,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
    * パーツでは状態の上書きとして意味を持つため、どちらに入れるかは block を読み終わってから
    * 決める。 `kind:` の行が後ろに書かれることもあり、読んだ時点ではパーツか分からない。
    */
-  const 道筋の欄 = new Map<string, string>();
+  const 図種ごとの欄 = new Map<string, string>();
   // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
   const unknownKeys: Array<{ key: string; line: number }> = [];
 
@@ -1045,10 +1045,12 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       }
       case "touchpoint":
       case "opportunity":
+      case "owner":
+      case "end":
         // **どちらに入れるかは block を読み終わるまで決まらない** (#1251 Round 1 の指摘)。
         // パーツかどうかは `kind:` の行で決まり、それが後ろに書かれることもある。
         // 倍率 (`scaleWritten`) と読めない項目名 (`unknownKeys`) が同じ理由で後回しにしている
-        道筋の欄.set(key, stripQuotes(raw));
+        図種ごとの欄.set(key, stripQuotes(raw));
         break;
       case "lane":
         out.lane = stripQuotes(raw);
@@ -1072,14 +1074,16 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
   // 体験の道筋の欄は、パーツなら状態の上書き、そうでなければ道筋の欄として入れる
-  for (const [key, v] of 道筋の欄) {
+  for (const [key, v] of 図種ごとの欄) {
     if (out.partId !== undefined) {
       state[key] = coerceStateValue(v);
       touchedState = true;
       continue;
     }
     if (key === "touchpoint") out.touchpoint = v;
-    else out.opportunity = v;
+    else if (key === "opportunity") out.opportunity = v;
+    else if (key === "owner") out.owner = v;
+    else out.end = v;
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
@@ -1115,6 +1119,8 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "lane", "stack",
   // 体験の道筋の欄 (#1251)
   "touchpoint", "opportunity",
+  // 工程の並びの欄 (#1251)
+  "owner", "end",
 ]);
 
 /**
@@ -1374,6 +1380,8 @@ const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "initial", "final", "tone", "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint", "opportunity",
+  // 工程の並びの欄 (#1251)
+  "owner", "end",
   "posX", "posY", "posW", "posH",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
@@ -1458,6 +1466,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // パーツでは状態の上書きとして意味を持つため、道筋の欄として横取りしない (#1251)
       touchpoint: isPart ? undefined : opts.touchpoint,
       opportunity: isPart ? undefined : opts.opportunity,
+      // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
+      owner: isPart ? undefined : opts.owner,
+      end: isPart ? undefined : opts.end,
       value: opts.value,
       rows: opts.rows
         ? opts.rows

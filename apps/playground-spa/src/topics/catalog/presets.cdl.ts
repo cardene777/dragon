@@ -822,3 +822,34 @@ animation:
       fill_in_at: "左上"
     body: "見直しで Fill in を価値の高い枠へ移す。 どの枠に居るかを状態から取っている。"
 `;
+
+export const sourceYaml__presetGantt = `title: "タスクの期間と依存関係を横棒で示す進捗図"
+eyebrow: "gantt"
+type: gantt
+
+actors:
+  - Design: { value: "Q1", owner: "Designer", tone: teal }
+  - Build: { value: "Q2", owner: "Eng", tone: teal, end: "{build_end}" }
+  - Test: { value: "Q3", owner: "QA", tone: teal }
+  - Ship: { value: "Q4", owner: "PM", tone: teal }
+
+states:
+  build_end: 1
+
+flow:
+  - Design -> Build: ""
+  - Build -> Test: ""
+  - Test -> Ship: ""
+
+animation:
+  - step: "当初の計画" 0.9s
+    badge: "gantt"
+    focus: [Design]
+    body: "Build は Q2 で終わる想定。"
+  - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
+    badge: "gantt"
+    focus: [Design]
+    tween:
+      build_end: 1 -> 2
+    body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。"
+`;
