@@ -1111,10 +1111,12 @@ describe("resolveHighlight: 矢印記法 (A→B)", () => {
     expect(d.phases[0]!.activate).toContain("e0-a-b");
   });
 
-  it("自己 edge (A→A) は step box を 1 個だけ push (from === to で重複させない)", () => {
+  it("自己 edge (A→A) は矢印ごと落ちるので何も activate しない (#1227)", () => {
+    // 描画側が自己ループを受けないため、組み立てに渡す前に外す。 光らせる相手も残らない
     const d = compileSeqHighlight(["A→A"], { flow: [step("A", "A")] });
     const act = d.phases[0]!.activate;
-    expect(act.filter((id) => id === "s0-a").length).toBe(1);
+    expect(act.filter((id) => id === "s0-a")).toHaveLength(0);
+    expect(act.some((id) => id.endsWith("-a-a"))).toBe(false);
   });
 
   it("同一 from/to の flow が複数あれば全 edge を activate", () => {
@@ -1729,9 +1731,11 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
     expect(e?.labelOffsetX).toBeUndefined();
   });
 
-  it("自己 edge (A→A) も seq-like 条件 (from === to) で解決される", () => {
+  it("自己 edge (A→A) は矢印ごと落ちるので edge が作られない (#1227)", () => {
+    // 落とす前に inline option を解決しても、その edge 自体が図に載らない
     const d = compile("sequence", { flow: [step("A", "A", { guard: "self" })] });
-    expect(d.edges.some((e) => e.guard === "self")).toBe(true);
+    expect(d.edges.some((e) => e.guard === "self")).toBe(false);
+    expect(d.edges.filter((e) => e.from === e.to)).toHaveLength(0);
   });
 });
 

@@ -95,8 +95,6 @@ actors:
   - 実績:
       kind: achievement
       位置: Web の右 200
-flow:
-  - Web -> Web: "a"
 `);
     const web = boxes.get("Web")!;
     const part = boxes.get("実績")!;
@@ -117,8 +115,6 @@ actors:
   - 実績:
       kind: achievement
       位置: Web の${dir} 200
-flow:
-  - Web -> Web: "a"
 `);
     const right = mk("右");
     expect(right.boxes.get("実績")!.cx).toBeGreaterThan(right.boxes.get("Web")!.cx);
@@ -141,8 +137,6 @@ actors:
   - 時計:
       kind: clock
       位置: 実績 の右 150
-flow:
-  - Web -> Web: "a"
 `);
     const part = boxes.get("実績")!;
     const clock = boxes.get("時計")!;
@@ -160,8 +154,6 @@ actors:
   - API:
       kind: service
       位置: 実績 の右 200
-flow:
-  - API -> API: "a"
 `);
     const part = boxes.get("実績")!;
     const api = boxes.get("API")!;
@@ -179,8 +171,6 @@ actors:
   - 時計:
       kind: clock
       位置: 実績 の右 150
-flow:
-  - Web -> Web: "a"
 `);
     const part = boxes.get("実績")!;
     const clock = boxes.get("時計")!;
@@ -197,8 +187,6 @@ actors:
   - 実績:
       kind: achievement
       位置: 1200,800
-flow:
-  - Web -> Web: "a"
 `);
     const part = boxes.get("実績")!;
     expect(part.cx).toBeCloseTo(1200, 0);
@@ -214,8 +202,6 @@ actors:
   - b: achievement
   - c: clock
   - d: clock
-flow:
-  - Web -> Web: "a"
 `);
     const names = ["a", "b", "c", "d"];
     for (let i = 0; i < names.length; i += 1) {
@@ -238,8 +224,6 @@ actors:
   - 実績:
       kind: achievement
       位置: いない人 の右 200
-flow:
-  - Web -> Web: "a"
 `),
     ).toThrow(/位置の基準が見つかりません/);
   });
@@ -256,8 +240,6 @@ actors:
   - b:
       kind: clock
       位置: a の右 200
-flow:
-  - Web -> Web: "a"
 `),
     ).toThrow(/互いを指しています/);
   });
@@ -270,8 +252,6 @@ actors:
   - 実績:
       kind: achievement
       位置: Web の右 200
-flow:
-  - Web -> Web: "a"
 `;
     expect(() => textDslToDiagram(src)).not.toThrow();
   });
@@ -288,8 +268,6 @@ actors:
   - 積:
       kind: stacked
       位置: Web の下 200
-flow:
-  - Web -> Web: "a"
 `);
     const web = boxes.get("Web")!;
     const part = boxes.get("積")!;
@@ -324,8 +302,6 @@ actors:
       kind: achievement
       位置: Web の右 200
       大きさ: 800,600
-flow:
-  - Web -> Web: "a"
 `);
     const web = boxes.get("Web")!;
     const part = boxes.get("実績")!;
@@ -342,8 +318,6 @@ actors:
       kind: achievement
       位置: Web の下 200
       大きさ: 800,900
-flow:
-  - Web -> Web: "a"
 `);
     const web = boxes.get("Web")!;
     const part = boxes.get("実績")!;
@@ -363,16 +337,12 @@ actors:
       kind: stacked
       posX: 5000
   - y: stacked
-flow:
-  - Web -> Web: "a"
 `);
     const only = boxesOf(`title: "t"
 type: flow
 actors:
   - Web: service
   - y: stacked
-flow:
-  - Web -> Web: "a"
 `);
     expect(boxes.get("y")!.cx).toBeCloseTo(only.boxes.get("y")!.cx, 0);
   });
@@ -395,8 +365,6 @@ actors:
   - b:
       kind: broken
       位置: Web の右 200
-flow:
-  - Web -> Web: "a"
 `;
     const d = textDslToDiagram(src, { partsCatalog: catalog });
     // 異常値をそのまま計算に入れると、 座標が非有限になって図が描けない
@@ -453,8 +421,6 @@ actors:
   - x:
       kind: s
       位置: Web の下 200
-flow:
-  - Web -> Web: "a"
 `,
         { partsCatalog: catalog },
       );
@@ -531,8 +497,6 @@ actors:
       kind: bw
       位置: Web の右 200
       大きさ: 800,600
-flow:
-  - Web -> Web: "a"
 `,
       { partsCatalog: catalog },
     );
@@ -571,8 +535,6 @@ actors:
   - Web: service
   - s: sym
   - a: asym
-flow:
-  - Web -> Web: "x"
 `,
       { partsCatalog: catalog },
     );
