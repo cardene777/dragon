@@ -192,15 +192,20 @@ describe("見本が入った縦列には伝えない (変異試験で見つけ�
 
   // Round 4 の指摘。 `lanes:` の中身を読むのは見本を重ねるより前で、その時点では見本の縦列が
   // まだ無い。 そのため同じ id を書くと **縦列が 2 つできて、書いた幅は箱の入っていない方に付く**
-  const 見本の縦列を宣言する = (width: number) => {
+  const 見本の縦列を宣言する = (width?: number, x?: number, label?: string) => {
+    const options = [
+      ...(x === undefined ? [] : [`x: ${x}`]),
+      ...(width === undefined ? [] : [`width: ${width}`]),
+      ...(label === undefined ? [] : [`label: "${label}"`]),
+    ].join(", ");
     const r = parseTextDslV05(
-      `title: "T"\ntype: flow\n\nlanes:\n  g__l: { width: ${width} }\n\n` +
+      `title: "T"\ntype: flow\n\nlanes:\n  g__l: { ${options} }\n\n` +
         `actors:\n  - A\n  - g: { kind: trophy }\n\nflow:\n  - A -> A: "x"\n`,
     );
     if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
     const out: string[] = [];
     const d = compileToCdl(r.doc, { partsCatalog: { trophy: 見本 }, onNotice: (n) => out.push(n.message) });
-    return { 縦列: (d.lanes ?? []).filter((l) => l.id === "g__l"), 知らせ: out };
+    return { 図: d, 縦列: (d.lanes ?? []).filter((l) => l.id === "g__l"), 知らせ: out };
   };
 
   it("見本が作る縦列と同じ id を書いても 2 本にならない", () => {
@@ -210,6 +215,20 @@ describe("見本が入った縦列には伝えない (変異試験で見つけ�
   it("書いた幅が見本の縦列に効く", () => {
     // 2 本できていた時は、書いた幅が箱の入っていない方に付いていた (実測)
     expect(見本の縦列を宣言する(777).縦列[0]?.width).toBe(777);
+  });
+
+  it("書いた位置へ見本の箱も移す", () => {
+    const 宣言した左端 = 900;
+    const 宣言した幅 = 400;
+    const { 図 } = 見本の縦列を宣言する(宣言した幅, 宣言した左端);
+    expect(図.nodes.find((n) => n.id === "g__n")?.posX, "箱が縦列の外に残っている").toBe(
+      宣言した左端 + 宣言した幅 / 2,
+    );
+  });
+
+  it("書かなかった位置と幅は見本の値を保つ", () => {
+    const { 縦列 } = 見本の縦列を宣言する(undefined, undefined, "表示名");
+    expect(縦列[0]).toMatchObject({ width: 400, label: "表示名" });
   });
 
   it("重ねた縦列には知らせを出さない", () => {

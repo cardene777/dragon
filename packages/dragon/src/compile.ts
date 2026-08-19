@@ -9,7 +9,7 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslActor, DslDocument, DslPhase, DslValue, PresetType } from "./types";
+import type { DslActor, DslDocument, DslLane, DslPhase, DslValue, PresetType } from "./types";
 import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
@@ -216,7 +216,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
-  const 追加した縦列: { id: string; line: number }[] = [];
+  const 追加した縦列: DslLane[] = [];
   const extended = applyV05Extensions(diagram, placed, 追加した縦列);
   // 値の知らせは、本文なら値を書いた行、見本なら見本を置いた行を指す。 `derived` 自体には
   // source position が無いため、見本を重ねる間だけ別表で宣言元を持ち回る (#1180)。
@@ -5092,27 +5092,30 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
  */
 function mergeDuplicateDeclaredLanes(
   diagram: CdlDiagram,
-  追加した縦列: readonly { id: string; line: number }[],
+  追加した縦列: readonly DslLane[],
 ): void {
-  const 使われている = new Set(diagram.nodes.map((n) => n.lane));
-  for (const { id } of 追加した縦列) {
+  for (const 宣言 of 追加した縦列) {
+    const { id } = 宣言;
     const 同一idの縦列 = diagram.lanes.filter((l) => l.id === id);
     if (同一idの縦列.length < 2) continue;
-    // 箱が入っている方を残す。 入っていなければ後から来た方 (見本が作った方) を残す
-    const 書いた分 = 同一idの縦列[0];
-    // 箱が入っている方を残す。 入っていなければ後から来た方 (見本が作った方) を残す
-    const 残す = 使われている.has(id)
-      ? 同一idの縦列.slice(1).find((l) => l.id === id)
-      : 同一idの縦列[同一idの縦列.length - 1];
-    if (書いた分 === undefined || 残す === undefined || 書いた分 === 残す) continue;
-    if (書いた分 === 残す) continue;
-    if (書いた分.x !== undefined) 残す.x = 書いた分.x;
-    if (書いた分.width !== undefined) 残す.width = 書いた分.width;
-    if (書いた分.label !== undefined) 残す.label = 書いた分.label;
-    if (書いた分.contain !== undefined) 残す.contain = 書いた分.contain;
-    if (書いた分.lifeline !== undefined) 残す.lifeline = 書いた分.lifeline;
-    const i = diagram.lanes.indexOf(書いた分);
-    if (i >= 0) diagram.lanes.splice(i, 1);
+    // 宣言 lane は parts より先に追加されるため、後から作った parts lane を残す。
+    const 残す = 同一idの縦列.at(-1);
+    if (残す === undefined) continue;
+    const 元の中心X = (残す.x ?? 0) + 残す.width / 2;
+    // 新規 lane に入れた既定値ではなく、DSL に明示された値だけを parts lane へ重ねる。
+    if (宣言.x !== undefined) 残す.x = 宣言.x;
+    if (宣言.width !== undefined) 残す.width = 宣言.width;
+    if (宣言.label !== undefined) 残す.label = 宣言.label;
+    if (宣言.contain !== undefined) 残す.contain = 宣言.contain;
+    if (宣言.lifeline !== undefined) 残す.lifeline = 宣言.lifeline;
+    const 移動X = (残す.x ?? 0) + 残す.width / 2 - 元の中心X;
+    // parts node は絶対座標を持つため、lane だけ動かすと箱が元の場所に残る。
+    for (const node of diagram.nodes) {
+      if (node.lane === id && node.posX !== undefined) node.posX += 移動X;
+    }
+    for (let i = diagram.lanes.length - 1; i >= 0; i -= 1) {
+      if (diagram.lanes[i]?.id === id && diagram.lanes[i] !== 残す) diagram.lanes.splice(i, 1);
+    }
   }
 }
 
@@ -5124,7 +5127,7 @@ function mergeDuplicateDeclaredLanes(
  */
 function reportEmptyDeclaredLanes(
   diagram: CdlDiagram,
-  追加した縦列: readonly { id: string; line: number }[],
+  追加した縦列: readonly DslLane[],
   onNotice?: (n: CompileNotice) => void,
 ): void {
   if (追加した縦列.length === 0) return;
@@ -5132,12 +5135,12 @@ function reportEmptyDeclaredLanes(
   if (!onNotice) return;
   const 使われている = new Set(diagram.nodes.map((n) => n.lane));
   const ある縦列 = diagram.lanes.map((l) => l.id).filter((x) => 使われている.has(x));
-  for (const { id, line } of 追加した縦列) {
+  for (const { id, pos } of 追加した縦列) {
     if (使われている.has(id)) continue;
     onNotice({
       kind: "lane-declared-empty",
       actor: id,
-      line,
+      line: pos?.line ?? 0,
       message: `lanes に書いた ${truncateForMessage(id)} はどの箱も入らない縦列です (新しく作りました)`,
       hint:
         ある縦列.length > 0
@@ -5151,7 +5154,7 @@ function applyV05Extensions(
   diagram: CdlDiagram,
   doc: DslDocument,
   /** `lanes:` が新しく作った縦列。 箱が入ったかは見本を重ねた後でないと分からない (#1241) */
-  追加した縦列out?: { id: string; line: number }[],
+  追加した縦列out?: DslLane[],
 ): CdlDiagram {
   // actor の主要 node を preset 種別で回収する。 sequence / solidity は header/footer を対で生成する
   // preset で主要 node は header、 それ以外の preset は actor 名 slug がそのまま node id になる。
@@ -5274,7 +5277,7 @@ function applyV05Extensions(
   // 作るだけで、書いた幅や見出しは元の縦列に届かない。 書き間違い (`lane-idl` / 全角の
   // `lane-Ａ`) がこの形になり、黙って捨てられていた (実測 = 幅 999 を持つ空の縦列が増え、
   // 元の縦列は 360 のままだった)
-  const 追加した縦列: { id: string; line: number }[] = 追加した縦列out ?? [];
+  const 追加した縦列: DslLane[] = 追加した縦列out ?? [];
   if (doc.lanes) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
       const lane = diagram.lanes.find((l) => l.id === id);
@@ -5294,7 +5297,7 @@ function applyV05Extensions(
           contain: laneOpt.contain,
           lifeline: laneOpt.lifeline,
         });
-        追加した縦列.push({ id, line: laneOpt.pos?.line ?? 0 });
+        追加した縦列.push(laneOpt);
       }
     }
   }
