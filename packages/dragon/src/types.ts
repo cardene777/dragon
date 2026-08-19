@@ -56,6 +56,14 @@ export type LayoutMode = "auto" | "manual";
 export type DslDocument = {
   title: string;
   type: PresetType;
+  /**
+   * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
+   * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。
+   *
+   * これらの図種は箱を 1 つしか作らないため「どの箱の小見出しか」 が決まる。 箱ごとに
+   * 分かれる図種では決まらないので、 書かれていたら組み立て側が知らせる。
+   */
+  eyebrow?: string;
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;
