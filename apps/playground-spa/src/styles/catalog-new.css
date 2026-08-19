@@ -385,6 +385,52 @@
   color: var(--d-text-muted);
 }
 
+/* ── 図 / コードの切替 ── */
+
+.catalog-preview-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 18px 0;
+  border-top: 1px solid var(--d-border);
+}
+
+/* 下線で選択を示す。 枠で囲むと記法の切替 (`.catalog-source-tab`) と見分けが付かない */
+.catalog-preview-tab {
+  padding: 7px 14px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--d-body);
+  font-size: 13px;
+  color: var(--d-text-secondary);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.catalog-preview-tab:hover:not(:disabled) {
+  color: var(--d-text-primary);
+}
+
+.catalog-preview-tab.is-active {
+  color: var(--d-text-primary);
+  border-bottom-color: var(--d-accent);
+}
+
+.catalog-preview-tab:disabled {
+  color: var(--d-text-muted);
+  cursor: not-allowed;
+}
+
+/*
+  隠す側は `display` を明示して消す。 `hidden` 属性が持つ既定の `display: none` は、
+  要素側の `display: grid` / `flex` に負けて効かない。
+*/
+.catalog-preview-stage[hidden],
+.catalog-source-section[hidden] {
+  display: none;
+}
+
 /* ── 記法の欄 ── */
 
 .catalog-source-section {
