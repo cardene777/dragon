@@ -53,6 +53,7 @@ const id完全一致: readonly string[] = ["presetSequence"];
 const 縦列の見出しの既知の差: Record<string, string> = {
   presetEr: "この図種は縦列の見出しを描かない",
   presetStateMachine: "この図種は縦列の見出しを描かない",
+  presetStateMachine2: "この図種は縦列の見出しを描かない",
 };
 
 const 光らせる先の既知の差: Record<string, string> = {

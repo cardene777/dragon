@@ -621,3 +621,29 @@ animation:
     focus: [User, "POST /login", AuthService, "users 表", "User -> POST /login", "POST /login -> AuthService", "AuthService -> users 表"]
     body: "全 step 順次実行。"
 `;
+
+
+export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移アクションを持つ拡張ステート図"
+type: state
+actors:
+  - Idle: { kind: card, eyebrow: "初期", subtitle: "entry: clearForm" }
+  - Active: { kind: card, eyebrow: "状態" }
+  - Loading: { kind: card, eyebrow: "状態 / nested in active", subtitle: "entry: startSpinner / exit: stopSpinner" }
+  - Done: { kind: card, eyebrow: "最終" }
+flow:
+  - Idle -> Loading: "submit" (accent, solid) { sub: "/validate" }
+  - Loading -> Done: "success" (success, solid)
+animation:
+  - step: "1. Idle" 0.9s
+    badge: "statemachine2"
+    focus: [Idle]
+    body: "clearForm を実行して待つ。"
+  - step: "2. Active の中の Loading" 0.9s
+    badge: "statemachine2"
+    focus: [Idle, Active, Loading, "Idle -> Loading"]
+    body: "submit で入れ子の状態に入る。"
+  - step: "階層状態や遷移アクションを持つ拡張ステート図" 0.9s
+    badge: "statemachine2"
+    focus: [Idle, Active, Loading, Done, "Idle -> Loading", "Loading -> Done"]
+    body: "拡張 FSM (nested + action) を visible 化。"
+`;
