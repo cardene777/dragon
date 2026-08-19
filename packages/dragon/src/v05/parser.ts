@@ -991,6 +991,12 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         });
         break;
       }
+      case "touchpoint":
+        out.touchpoint = stripQuotes(raw);
+        break;
+      case "opportunity":
+        out.opportunity = stripQuotes(raw);
+        break;
       case "lane":
         out.lane = stripQuotes(raw);
         break;
@@ -1044,6 +1050,8 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "大きさ", "size",
   "倍率", "scale",
   "lane", "stack",
+  // 体験の道筋の欄 (#1251)
+  "touchpoint", "opportunity",
 ]);
 
 /**
@@ -1167,6 +1175,8 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "initial",
   "final",
   "state",
+  "touchpoint",
+  "opportunity",
   // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
   "posX",
   "posY",
@@ -1298,6 +1308,8 @@ function reportScaleOnNonPart(
 const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
   "initial", "final", "tone", "nodes",
+  // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
+  "touchpoint", "opportunity",
   "posX", "posY", "posW", "posH",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
@@ -1379,6 +1391,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
       eyebrow: opts.eyebrow,
+      touchpoint: opts.touchpoint,
+      opportunity: opts.opportunity,
       value: opts.value,
       rows: opts.rows
         ? opts.rows

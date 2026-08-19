@@ -165,6 +165,18 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 体験の道筋の段だけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
+    title: "体験の道筋の欄 (touchpoint: / opportunity:)",
+    sample: {
+      slot: "actors",
+      type: "journey",
+    },
+    lines: [
+      { code: '  - 登録: { value: "不満", touchpoint: "申込み画面" }', note: "どこで起きたか" },
+      { code: '  - 決済: { value: "普通", opportunity: "入力を減らす" }', note: "何を直せるか" },
+    ],
+  },
+  {
     // 図表は箱を 1 つしか作らないため、 上の小見出しの相手が決まる。 箱ごとに分かれる図種で
     // 書くと組み立て側が知らせる (#1247)
     title: "図表の上の小見出し (eyebrow:)",

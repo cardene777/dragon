@@ -207,6 +207,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
+  reportJourneyFieldsNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -4327,6 +4328,48 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   return b.build();
 }
 
+/**
+ * 体験の道筋の段に添える欄 (#1251)。
+ *
+ * 書かなければ項目ごと落とす = `undefined` を明示して渡すと、 組立て側が「空を書いた」 と
+ * 区別できなくなる (`図の小見出し` と同じ理由)。
+ */
+function 道筋の欄(a: DslActor): { touchpoint?: string; opportunity?: string } {
+  return {
+    ...(a.touchpoint !== undefined ? { touchpoint: a.touchpoint } : {}),
+    ...(a.opportunity !== undefined ? { opportunity: a.opportunity } : {}),
+  };
+}
+
+/**
+ * 体験の道筋の欄を、 それを描けない図種で書いた時に伝える (#1251)。
+ *
+ * `touchpoint` と `opportunity` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
+ * 黙って捨てると「書いたのに出ない」 が手掛かりなしで起きる。
+ *
+ * `type: mind` では伝えない = `compileMind` が描けない欄をまとめて 1 件で伝えており、
+ * そこに 2 つとも入っている (`放射で描けない欄`)。 二重に伝えない (#1246 と同じ扱い)。
+ */
+function reportJourneyFieldsNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.type === "journey" || doc.type === "mind") return;
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    const 欄 = [
+      ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
+      ...(a.opportunity !== undefined ? ["opportunity"] : []),
+    ];
+    if (欄.length === 0) continue;
+    onNotice({
+      kind: "chart-value-unreadable",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${欄.join(" / ")} は効きません (type: ${doc.type} には体験の道筋の欄がありません)`,
+      hint: "体験の道筋を描くなら type: journey を使ってください",
+    });
+  }
+}
+
 function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const W = CHART_W_STD;
@@ -4343,7 +4386,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
         読めない.push(a.name);
         continue;
       }
-      data.push({ id: slugify(a.name), title: a.name, emotion: 語 as never });
+      data.push({ id: slugify(a.name), title: a.name, emotion: 語 as never, ...道筋の欄(a) });
       continue;
     }
     const e = 気持ち.get(語);
@@ -4351,7 +4394,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
       読めない.push(a.name);
       continue;
     }
-    data.push({ id: slugify(a.name), title: a.name, emotion: e });
+    data.push({ id: slugify(a.name), title: a.name, emotion: e, ...道筋の欄(a) });
   }
   if (読めない.length > 0) {
     const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${[...気持ち.keys()].join(" / ")} のどれかを書いてください`;
@@ -4585,6 +4628,8 @@ type 放射で描ける欄 =
 type 放射で描けない欄 =
   | "kind"
   | "eyebrow"
+  | "touchpoint"
+  | "opportunity"
   | "rows"
   | "lane"
   | "stack"
@@ -4634,6 +4679,8 @@ export type _放射の欄が重なっていない = 空であること<Extract<�
 const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
   kind: "種類",
   eyebrow: "上の小見出し",
+  touchpoint: "場所 (体験の道筋の欄)",
+  opportunity: "改善の余地 (体験の道筋の欄)",
   rows: "行",
   lane: "枠の指定",
   stack: "積む順",

@@ -759,3 +759,34 @@ animation:
       theme: "認証と課金の刷新"
     body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。"
 `;
+
+export const sourceYaml__presetUserJourney = `title: "ユーザー体験の感情変化をステップ順に示す図"
+eyebrow: "userJourney"
+type: journey
+
+lanes:
+  chart: { width: 720 }
+
+actors:
+  - Land on /: { value: "普通", touchpoint: "Website" }
+  - Fill signup form: { value: "{form_mood}", touchpoint: "Form", opportunity: "input UX 改善" }
+  - Email verify: { value: "満足", touchpoint: "Email" }
+  - Dashboard: { value: "最高", touchpoint: "Dashboard" }
+
+states:
+  form_mood: "不満"
+
+animation:
+  - step: "改善前" 0.9s
+    badge: "journey"
+    focus: ["Land on /"]
+    set:
+      form_mood: "不満"
+    body: "申込みの入力で気持ちが落ちる。"
+  - step: "ユーザー体験の感情変化をステップ順に示す図" 0.9s
+    badge: "journey"
+    focus: ["Land on /"]
+    set:
+      form_mood: "満足"
+    body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。"
+`;
