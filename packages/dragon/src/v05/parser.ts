@@ -45,7 +45,13 @@ import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
 import { TONE_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
-import { checkValueExpression, isValueName, valueNameIssue } from "../value-syntax";
+import {
+  checkValueExpression,
+  isTriggerBody,
+  isValueName,
+  parseValueTriggerBody,
+  valueNameIssue,
+} from "../value-syntax";
 import type {
   DslDocument,
   DslActor,
@@ -1572,7 +1578,18 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     errors.push({ line: lineNo, ...valueNameIssue(name) });
     return null;
   }
-  const expression = stripQuotes((m[2] ?? "").trim());
+  const rest = (m[2] ?? "").trim();
+  // きっかけ形 (`{ trigger: ..., to: ..., dur: ... }`) を先に見る。 式として読むと中括弧の中身が
+  // 値の名前として検査され、 「trigger は名前に使えない」 のような直し方の伝わらない誤りになる
+  if (isTriggerBody(rest)) {
+    const { spec, issues } = parseValueTriggerBody(rest.slice(1, -1), name);
+    if (spec === null) {
+      for (const issue of issues) errors.push({ line: lineNo, ...issue });
+      return null;
+    }
+    return { name, trigger: spec.trigger, to: spec.to, durationMs: spec.durationMs, pos: { line: lineNo } };
+  }
+  const expression = stripQuotes(rest);
   if (expression === "") {
     errors.push({ line: lineNo, message: `empty expression for "${name}"`, hint: '`"{a} + {b}"` のように式を書く' });
     return null;

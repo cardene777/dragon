@@ -281,10 +281,43 @@ export type DslState = {
  * **名前に使えるのは英数字と `_` だけ**。 描画側が `{name}` を置き換える時に見るのも同じ
  * 範囲のため、日本語の名前を書くと解析で弾かれる (書けたとしても置き換わらない)。
  */
+/**
+ * 値が動き出すきっかけ (#1161 段 2)。
+ *
+ * `step` は段が始まった時、 `reaches` は別の値が境目を越えた時。 どちらも「成り立った瞬間の
+ * 出来事」 で、 常に成り立つ関係を表す式とは別物 (spec § 2.3)。
+ */
+export type DslValueTrigger =
+  | { kind: "step"; step: string }
+  | {
+      kind: "reaches";
+      /** 見張る相手の値の名前 */
+      source: string;
+      op: ">=" | ">" | "<=" | "<" | "==" | "!=";
+      threshold: number;
+    };
+
+/**
+ * 記法の `values:` の 1 件。 形は 2 つある。
+ *
+ * | 形 | 持つもの | 意味 |
+ * |---|---|---|
+ * | 式 | `expression` | 常に成り立つ関係。 時間を持たない |
+ * | きっかけ | `trigger` / `to` / `durationMs` | きっかけから `to` まで動く。 時間を持つ |
+ *
+ * 両方を持つ形は無い (parser が弾く)。 きっかけ形は組み立ての時点で段の時計を読む式へ畳まれる
+ * ため、 図に載る時にはどちらも `derived` になる。
+ */
 export type DslValue = {
   name: string;
-  /** 式そのもの。 評価は描画側が毎 frame 行う */
-  expression: string;
+  /** 式そのもの。 評価は描画側が毎 frame 行う。 きっかけ形では持たない */
+  expression?: string;
+  /** 動き出すきっかけ。 式形では持たない */
+  trigger?: DslValueTrigger;
+  /** 動いた先の値。 きっかけ形でのみ持つ */
+  to?: number;
+  /** 動く長さ (ms)。 きっかけ形でのみ持つ */
+  durationMs?: number;
   pos: Position;
 };
 

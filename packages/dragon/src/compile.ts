@@ -9,7 +9,7 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslActor, DslDocument, DslPhase, PresetType } from "./types";
+import type { DslActor, DslDocument, DslPhase, DslValue, PresetType } from "./types";
 import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
@@ -79,7 +79,9 @@ export type CompileNotice = {
     // 同じ名前を `values` に 2 度書いた。 先に書いた式を使う (#1162)
     | "value-duplicate"
     // 矢印が `actors` に無い名前を指した (#1209)
-    | "flow-actor-missing";
+    | "flow-actor-missing"
+    // きっかけ形の値を段に畳めなかった (段が無い / 相手が境目を通らない / 段からはみ出す、 #1161)
+    | "value-trigger-unresolved";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -234,7 +236,11 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   materializeStates(merged, doc);
   // 語の欄が状態を読むとき、その状態には記法の語が入っている。 図の語へ直す (#1201)
   語の状態を図の語へ直す(merged);
-  attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines);
+  // きっかけ形の値を段の時計を読む式へ畳む (#1161 段 2)。 **値を載せるより先に呼ぶ** =
+  // 畳んだ式を `attachDerivedValues` が他の値と同じ経路で載せるため、 順序 / 重なり / 知らせの
+  // 扱いが式形と揃う。 時計の状態と段の補間もここで足す
+  const 畳んだきっかけ = foldValueTriggers(merged, doc, opts?.onNotice);
+  attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines, 畳んだきっかけ);
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
@@ -2667,11 +2673,215 @@ const KIND_ALIAS: Readonly<Record<string, string>> = {
  * 名前が `states` と重なった場合は `values` を優先し、 重なったことを伝える。 spec の
  * 4 節で決めた挙動で、 黙って一方を捨てると「書いたのに効かない」 が残る。
  */
+/** 数を式に埋める。 指数表記 (`1e-7`) は engine の式が読めないため十進で書く */
+function 式に書く数(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+/** 段の中で 1 本の値が動く区間。 `from` から `to` へ `[start, end]` の間で線形に動く */
+type 動く区間 = { 段: number; start: number; end: number; dur: number; from: number; to: number };
+
+/**
+ * 相手の値が境目を通る時刻を求める。
+ *
+ * 相手は段の中で線形に動くので、 境目を通る時刻は逆算できる。 始めから成り立っているなら
+ * 相手が動き始めた時刻、 終わりまで成り立たないなら「通らない」 とする。
+ *
+ * `>` と `!=` の厳密な瞬間は境目の直後だが、 1 frame 未満の差なので境目そのものを返す。
+ */
+function 境目を通る時刻(区間: 動く区間, op: string, 境目: number): number | null {
+  const 満たす = (x: number): boolean => {
+    switch (op) {
+      case ">=": return x >= 境目;
+      case ">": return x > 境目;
+      case "<=": return x <= 境目;
+      case "<": return x < 境目;
+      case "==": return x === 境目;
+      case "!=": return x !== 境目;
+      default: return false;
+    }
+  };
+  if (満たす(区間.from)) return 区間.start;
+  if (!満たす(区間.to)) return null;
+  if (区間.to === 区間.from) return null;
+  const t = 区間.start + (区間.dur * (境目 - 区間.from)) / (区間.to - 区間.from);
+  if (!Number.isFinite(t)) return null;
+  return Math.min(Math.max(t, 区間.start), 区間.end);
+}
+
+/**
+ * きっかけ形の値 (`trigger` / `to` / `dur`) を、段の時計を読む式へ畳む (#1161 段 2)。
+ *
+ * ## なぜ式へ畳むのか
+ *
+ * 描画側の動きの模型は段と、 段の中の線形補間しか持たない。 条件で動き出す仕組みも、 値ごとの
+ * 長さも無い (実測)。 そのままでは `trigger` も `dur` も渡せない。
+ *
+ * 一方で描画側は `derived` の式を **毎 frame** 解く。 そこで段に時計を 1 本引き
+ * (`0` から段の長さまでの補間)、 各値を「時計を読む傾斜」 として書けば、 段を割らずに
+ * 値ごとの長さを守れる。
+ *
+ * ```
+ * 値 = from + (to - from) * min(max((時計 - 開始) / 長さ, 0), 1)
+ * ```
+ *
+ * `min` / `max` で挟むのは、 開始前は `from` のまま、 終了後は `to` のまま止めるため。
+ *
+ * ## 段を割らない
+ *
+ * 段は見出し / 本文 / 印を持つ表示物なので、 割ると段送りの見え方と件数が変わる。 時計を使えば
+ * 段は 1 つのまま値だけが順に動く。 収まらない形 (開始 + 長さ > 段の長さ) は畳まずに知らせる。
+ *
+ * ## 連鎖の解き方
+ *
+ * `trigger: <相手> >= <境目>` は、 相手も段の中で線形に動くため境目を通る時刻を逆算できる。
+ * 相手が動く値でない (式だけ、 または初期値のまま) 場合は時刻が決まらないので畳まない。
+ *
+ * 返すのは名前から式への表で、 `attachDerivedValues` がこれを `derived` に載せる。 畳めなかった
+ * 値は表に入らないため図に載らない = 半端に止まった値を黙って置かない。
+ */
+function foldValueTriggers(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): Map<string, string> {
+  const 出力 = new Map<string, string>();
+  const きっかけ付き = (doc.values ?? []).filter((v) => v.trigger !== undefined);
+  if (きっかけ付き.length === 0) return 出力;
+
+  // 同じ名前を 2 度書いた時は先に書いた方を使う (`values` の既存の扱いと揃える)
+  const 宣言 = new Map<string, DslValue>();
+  for (const v of きっかけ付き) if (!宣言.has(v.name)) 宣言.set(v.name, v);
+
+  const 初期値 = new Map<string, number>();
+  for (const s of diagram.states) {
+    const n = Number(s.initial);
+    if (Number.isFinite(n)) 初期値.set(s.id, n);
+  }
+
+  // 段は書いた名前でも slug でも指せる。 `focus:` が名前で指せるのと揃える
+  const 段の番号 = new Map<string, number>();
+  diagram.phases.forEach((p, i) => {
+    if (!段の番号.has(p.title)) 段の番号.set(p.title, i);
+    if (!段の番号.has(p.id)) 段の番号.set(p.id, i);
+  });
+
+  const 解けた = new Map<string, 動く区間>();
+  const 解けない = new Set<string>();
+  const 解決中 = new Set<string>();
+
+  const 知らせる = (v: DslValue, message: string, hint: string): void => {
+    onNotice?.({ kind: "value-trigger-unresolved", actor: v.name, line: v.pos?.line ?? 0, message, hint });
+  };
+
+  const 解く = (name: string): 動く区間 | null => {
+    const 既出 = 解けた.get(name);
+    if (既出) return 既出;
+    if (解けない.has(name)) return null;
+    const v = 宣言.get(name);
+    if (!v || !v.trigger) return null;
+    if (解決中.has(name)) {
+      解けない.add(name);
+      知らせる(v, `"${name}" のきっかけが一周しています`, "どれか 1 つを `trigger: step ...` に変える");
+      return null;
+    }
+    解決中.add(name);
+    const 区間 = 組み立てる(v);
+    解決中.delete(name);
+    if (!区間) {
+      解けない.add(name);
+      return null;
+    }
+    解けた.set(name, 区間);
+    return 区間;
+  };
+
+  const 組み立てる = (v: DslValue): 動く区間 | null => {
+    const trigger = v.trigger!;
+    const from = 初期値.get(v.name) ?? 0;
+    const to = v.to ?? 0;
+    const dur = v.durationMs ?? 0;
+    let 段 = 0;
+    let start = 0;
+    if (trigger.kind === "step") {
+      const idx = 段の番号.get(trigger.step);
+      if (idx === undefined) {
+        知らせる(v, `"${trigger.step}" という段がありません`, "`animation:` にその名前の段を書くか、 段の名前に合わせる");
+        return null;
+      }
+      段 = idx;
+      start = 0;
+    } else {
+      const 相手 = 解く(trigger.source);
+      if (!相手) {
+        知らせる(
+          v,
+          `"${trigger.source}" が動く値でないため、 きっかけの時刻を決められません`,
+          "見張る相手も `trigger:` を持つ値にする",
+        );
+        return null;
+      }
+      const at = 境目を通る時刻(相手, trigger.op, trigger.threshold);
+      if (at === null) {
+        知らせる(
+          v,
+          `"${trigger.source}" は ${trigger.op} ${trigger.threshold} を満たしません`,
+          "相手が通る値を境目にするか、 相手の `to` を見直す",
+        );
+        return null;
+      }
+      段 = 相手.段;
+      start = at;
+    }
+    const 段の長さ = diagram.phases[段]?.duration ?? 0;
+    if (start + dur > 段の長さ) {
+      知らせる(
+        v,
+        `段 "${diagram.phases[段]?.title ?? ""}" (${段の長さ}ms) に収まりません (${Math.round(start + dur)}ms 必要)`,
+        "段を長くするか `dur` を短くする",
+      );
+      return null;
+    }
+    return { 段, start, end: start + dur, dur, from, to };
+  };
+
+  for (const v of 宣言.values()) 解く(v.name);
+  if (解けた.size === 0) return 出力;
+
+  // 時計は段ごとに 1 本。 名前が既にある時は末尾に数を足してずらす = 書いた値を上書きしない
+  const 使用中 = new Set(diagram.states.map((s) => s.id));
+  for (const v of doc.values ?? []) 使用中.add(v.name);
+  const 段ごとの時計 = new Map<number, string>();
+  const 時計を用意する = (段: number): string => {
+    const 既出 = 段ごとの時計.get(段);
+    if (既出) return 既出;
+    let 名前 = `__step_clock_${段}`;
+    let 連番 = 2;
+    while (使用中.has(名前)) 名前 = `__step_clock_${段}_${連番++}`;
+    使用中.add(名前);
+    段ごとの時計.set(段, 名前);
+    diagram.states.push({ id: 名前, initial: 0 });
+    const 段の中身 = diagram.phases[段];
+    if (段の中身) 段の中身.tweens = [...段の中身.tweens, { stateId: 名前, from: 0, to: 段の中身.duration }];
+    return 名前;
+  };
+
+  for (const [name, 区間] of 解けた) {
+    const 時計 = 時計を用意する(区間.段);
+    const 進み = `min(max(({${時計}} - ${式に書く数(区間.start)}) / ${式に書く数(区間.dur)}, 0), 1)`;
+    出力.set(name, `((${進み} * ${式に書く数(区間.to - 区間.from)}) + ${式に書く数(区間.from)})`);
+  }
+  return 出力;
+}
+
 function attachDerivedValues(
   diagram: CdlDiagram,
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
   inheritedSourceLines?: ReadonlyMap<string, readonly number[]>,
+  foldedTriggers?: ReadonlyMap<string, string>,
 ): void {
   const values = doc.values ?? [];
   // 本文に値を書いていなくても、重ねた見本が値を持つことがある (#1180)。 その場合も
@@ -2688,6 +2898,9 @@ function attachDerivedValues(
   const 状態の名前 = new Set(diagram.states.map((s) => s.id));
   for (const v of values) {
     if (!状態の名前.has(v.name)) continue;
+    // きっかけ形は `states:` の値を **動き始めの値として使う**。 両方書くのが正しい形なので
+    // 重なりとして知らせない (#1161)。 知らせると、 仕様どおりに書いた図が毎回警告を出す
+    if (v.trigger !== undefined) continue;
     onNotice?.({
       kind: "value-shadows-state",
       actor: v.name,
@@ -2701,10 +2914,15 @@ function attachDerivedValues(
   //
   // 本文に書いた分を先に置く = engine は同じ名前では先に書いた式を使うため、名前が重なった
   // 時に本文が勝つ。 重なったことは engine の知らせ (`duplicate-id`) がそのまま伝える
-  diagram.derived = [
-    ...values.map((v) => ({ id: v.name, expression: v.expression })),
-    ...(diagram.derived ?? []),
-  ];
+  // きっかけ形は `foldValueTriggers` が畳んだ式を使う。 畳めなかった値はここに現れないため
+  // 図に載らない = 半端に止まった値を黙って置かない (知らせは畳む時点で出している)
+  const 載せる: Array<{ id: string; expression: string }> = [];
+  for (const v of values) {
+    const expression = v.expression ?? foldedTriggers?.get(v.name);
+    if (expression === undefined) continue;
+    載せる.push({ id: v.name, expression });
+  }
+  diagram.derived = [...載せる, ...(diagram.derived ?? [])];
   reportUnresolvedValues(diagram, doc, onNotice, inheritedSourceLines);
 }
 
