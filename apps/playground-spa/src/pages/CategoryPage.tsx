@@ -14,6 +14,9 @@ import { InViewMount } from "@/components/InViewMount";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
 type SourceTab = "yaml" | "json";
 
+/** プレビューの表示切替 (図 / コード) */
+type PreviewTab = "diagram" | "source";
+
 /** copy-to-clipboard button (2 秒間 チェック表示) */
 function CopyButton({ text }: { text: string }): React.ReactElement {
   const [copied, setCopied] = useState(false);
@@ -41,13 +44,18 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
   );
 }
 
-/** source 記法 tab section (YAML / JSON 切替、 source なしの場合は表示しない) */
-function SourceTabs({ item }: { item: CatalogItem }): React.ReactElement | null {
+/**
+ * source 記法 tab section (YAML / JSON 切替、 source なしの場合は表示しない)。
+ *
+ * `hidden` は **外さずに隠す**。 外すと記法の選択 (yaml / json) が毎回 yaml へ戻り、
+ * 図とコードを往復しながら比べる時に選び直すことになる。
+ */
+function SourceTabs({ item, hidden }: { item: CatalogItem; hidden?: boolean }): React.ReactElement | null {
   const [tab, setTab] = useState<SourceTab>("yaml");
   if (!item.sourceYaml && !item.sourceJson) return null;
   const activeSource = tab === "yaml" ? item.sourceYaml : item.sourceJson;
   return (
-    <section className="catalog-source-section" aria-label="この diagram の記法">
+    <section className="catalog-source-section" aria-label="この diagram の記法" hidden={hidden}>
       <div className="catalog-source-tabs" role="tablist">
         <button
           role="tab"
@@ -124,6 +132,7 @@ export function CategoryPage(): React.ReactElement {
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
 
   const displayName = (item: CatalogItem): string => itemName(item.title, locale);
 
@@ -185,6 +194,11 @@ export function CategoryPage(): React.ReactElement {
     if (selectedId) return items.find((i) => i.id === selectedId) ?? filtered[0] ?? null;
     return filtered[0] ?? null;
   }, [filtered, items, selectedId]);
+
+  const hasSource = Boolean(currentItem?.sourceYaml || currentItem?.sourceJson);
+  // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
+  // 空のコード欄が出て「壊れている」 ように見える
+  const showSource = previewTab === "source" && hasSource;
 
   if (!category) {
     return (
@@ -302,8 +316,40 @@ export function CategoryPage(): React.ReactElement {
                     <span>拡大</span>
                   </button>
                 </header>
-                <div className="catalog-preview-stage">
+                {/*
+                  図とコードは **どちらも DOM に残したまま** 表示だけ入れ替える (#1236)。
+                  外すと切り替えるたびに図を描き直すことになり、記法の選択も毎回戻る。
+                */}
+                <div className="catalog-preview-tabs" role="tablist" aria-label="表示の切替">
+                  <button
+                    role="tab"
+                    type="button"
+                    aria-selected={!showSource}
+                    className={`catalog-preview-tab ${!showSource ? "is-active" : ""}`}
+                    onClick={() => setPreviewTab("diagram")}
+                  >
+                    図
+                  </button>
+                  <button
+                    role="tab"
+                    type="button"
+                    aria-selected={showSource}
+                    className={`catalog-preview-tab ${showSource ? "is-active" : ""}`}
+                    onClick={() => setPreviewTab("source")}
+                    disabled={!hasSource}
+                    title={hasSource ? undefined : "この図に記法は登録されていません"}
+                  >
+                    コード
+                  </button>
+                </div>
+                <div className="catalog-preview-stage" hidden={showSource}>
+                  {/*
+                    `keepMounted` を渡す (#1236)。 渡さないと `hidden` にした瞬間に box が消えて
+                    「見えない」 と判定され、図が外れる = 上のコメントが言う「どちらも DOM に残す」
+                    が破れて、切り替えるたびに描き直しになる。
+                  */}
                   <InViewMount
+                    keepMounted
                     className="catalog-preview-stage-inner"
                     placeholder={
                       <div className="catalog-preview-loading">読み込み中…</div>
@@ -312,7 +358,7 @@ export function CategoryPage(): React.ReactElement {
                     <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
                   </InViewMount>
                 </div>
-                <SourceTabs item={currentItem} />
+                <SourceTabs item={currentItem} hidden={!showSource} />
                 <footer className="catalog-preview-foot">
                   {/*
                     **記法を持つ図だけ開ける**。 `#preset=<id>` はエディタの見本から slug を

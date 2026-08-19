@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 54px 0 46px;
+  padding: 54px 0 44px;
 }
 
 .catalog-crumb {
@@ -181,24 +181,45 @@
   border-radius: var(--d-r-2);
 }
 
+/*
+  検索欄 (#1236)。
+  角丸 3px (`--d-r-1`) + 濃い実線枠 + 高さ 34px の組み合わせが、画面の中でここだけ古い
+  見た目になっていた。 枠を薄くして面で見せ、focus は色ではなく **輪郭の広がり** で示す。
+*/
 .catalog-search-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 12px;
   background: var(--d-surface-2);
-  border: 1px solid var(--d-border-strong);
-  border-radius: var(--d-r-1);
+  border: 1px solid var(--d-border);
+  border-radius: 10px;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
 }
 
+.catalog-search-wrap:hover {
+  border-color: var(--d-border-strong);
+}
+
+/*
+  枠の色だけを変える形では、focus したことが分かりにくい (色覚と輝度の差が小さい)。
+  外側に薄い輪を出して、面積で分かるようにする。
+*/
 .catalog-search-wrap:focus-within {
+  background: var(--d-surface);
   border-color: var(--d-accent);
+  box-shadow: 0 0 0 3px var(--d-accent-soft);
 }
 
 .catalog-search-icon {
   flex: 0 0 auto;
   color: var(--d-text-muted);
+  transition: color 0.14s ease;
+}
+
+.catalog-search-wrap:focus-within .catalog-search-icon {
+  color: var(--d-accent);
 }
 
 .catalog-search {
@@ -208,7 +229,7 @@
   border: none;
   outline: none;
   font-family: var(--d-body);
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--d-text-primary);
 }
 
@@ -220,14 +241,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: none;
+  border-radius: 999px;
   background: transparent;
   color: var(--d-text-muted);
   cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
+/* 押せる範囲を面で示す。 2px の padding だけでは的が小さく、外すと消えない */
 .catalog-search-clear:hover {
+  background: var(--d-border);
   color: var(--d-text-primary);
 }
 
@@ -383,6 +410,52 @@
   font-family: var(--d-body);
   font-size: 13px;
   color: var(--d-text-muted);
+}
+
+/* ── 図 / コードの切替 ── */
+
+.catalog-preview-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 18px 0;
+  border-top: 1px solid var(--d-border);
+}
+
+/* 下線で選択を示す。 枠で囲むと記法の切替 (`.catalog-source-tab`) と見分けが付かない */
+.catalog-preview-tab {
+  padding: 7px 14px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--d-body);
+  font-size: 13px;
+  color: var(--d-text-secondary);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.catalog-preview-tab:hover:not(:disabled) {
+  color: var(--d-text-primary);
+}
+
+.catalog-preview-tab.is-active {
+  color: var(--d-text-primary);
+  border-bottom-color: var(--d-accent);
+}
+
+.catalog-preview-tab:disabled {
+  color: var(--d-text-muted);
+  cursor: not-allowed;
+}
+
+/*
+  隠す側は `display` を明示して消す。 `hidden` 属性が持つ既定の `display: none` は、
+  要素側の `display: grid` / `flex` に負けて効かない。
+*/
+.catalog-preview-stage[hidden],
+.catalog-source-section[hidden] {
+  display: none;
 }
 
 /* ── 記法の欄 ── */
