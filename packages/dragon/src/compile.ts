@@ -5216,6 +5216,19 @@ function applyV05Extensions(
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
+      // 箱の大きさを反映する (#1259)。 **animation の有無に関係なく** = 動く図専用の
+      // 組み立てだけで渡すと、同じ記法でも静止図では指定が消える。
+      //
+      // 順序図は名札 / 余白 / 足を組で作り、大きさが縦線の並びと結びつくため対象外。
+      //
+      // **幅が図に出るかは縦列との大小で決まる**。 縦列に収まれば箱だけが変わり、
+      // 縦列より広ければ縦列ごと押し広げる (実測 = ステート図の 320 は縦列 370 に収まって
+      // 図が変わらないが、拡張ステート図の 280 に対し既定 640 は縦列 330 を押し広げた)。
+      // #1260 で 1 件だけ見て「見た目に出ない」 と判断し配線を外した = 同じ誤りを繰り返さない
+      if (!isSeqLike) {
+        if (a.posW !== undefined) node.w = a.posW;
+        if (a.posH !== undefined) node.h = a.posH;
+      }
       // seq-like preset の header / footer は kind を card 固定で作る。 書いた kind を載せる
       // (#975)。 載せないと「書いたのに効かない項目」 が残り、 `rows` を書いた時は行が card に
       // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
@@ -5889,26 +5902,6 @@ function 後ろへ戻る矢印か(
   return 先 < 元;
 }
 
-/**
- * 箱に書いた大きさを渡す (#1259)。
- *
- * 書かなければ渡さない = 描画側の既定になる。 組立て API 側は箱ごとに幅を指定することがあり、
- * **既定より狭い幅を指定した図では、記法から書けないと縦列ごと広がる**
- * (実測 = 拡張ステート図は箱 280 / 縦列 330。 記法の既定 640 が縦列を押し広げ、
- * 描いた図の幅が 2439 対 2279 になった)。
- *
- * 既定より広い幅 (実測 = ステート図の 320) では縦列 370 に収まるため図は変わらない。
- * **1 件で確かめて「見た目に出ない」 と決めない** = 幅は縦列との大小で効いたり効かなかったりする。
- *
- * `posW` / `posH` は絶対配置の欄として既に読んでいる。 大きさとしてもここで使う。
- */
-function 箱の大きさ(a: DslActor): { w?: number; h?: number } {
-  return {
-    ...(a.posW !== undefined ? { w: a.posW } : {}),
-    ...(a.posH !== undefined ? { h: a.posH } : {}),
-  };
-}
-
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const { kind, laneWidth } = opts;
@@ -5922,7 +5915,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
-      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: a.name, ...箱の大きさ(a) });
+      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: a.name });
     });
   } else {
     // swimlane / er / state ... actor ごとに 1 lane (横並び)
@@ -5948,7 +5941,6 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         stack: 0,
         kind: a.kind,
         title: a.name,
-        ...箱の大きさ(a),
         ...(isInitial ? { eyebrow: "初期" } : {}),
         ...(isFinal ? { eyebrow: "最終" } : {}),
       });

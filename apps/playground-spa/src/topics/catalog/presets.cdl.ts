@@ -866,7 +866,7 @@ lanes:
 actors:
   - Idle: { kind: card, eyebrow: "初期" }
   - Loading: { kind: card, eyebrow: "状態" }
-  - Done: { kind: card, eyebrow: "最終", posW: 280 }
+  - Done: { kind: card, eyebrow: "最終" }
   - Error: { kind: card, eyebrow: "状態" }
 
 flow:

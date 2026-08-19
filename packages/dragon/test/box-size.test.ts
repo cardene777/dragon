@@ -11,9 +11,10 @@ import { compileToCdl } from "../src/compile";
  * 描いた図の幅が 2439 対 2279 になった)。
  */
 
-const 記法 = (欄: string, type = "state") =>
+const 記法 = (欄: string, type = "state", 動き = true) =>
   `title: "T"\ntype: ${type}\n\nactors:\n  - A: { kind: card${欄} }\n  - B: { kind: card }\n` +
-  `flow:\n  - A -> B: "x"\n\nanimation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n`;
+  `flow:\n  - A -> B: "x"\n` +
+  (動き ? `\nanimation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n` : "");
 
 function 箱(src: string) {
   const r = parseTextDslV05(src);
@@ -46,8 +47,12 @@ describe("箱に書いた大きさが図に届く (#1259)", () => {
 
   // 箱ごとに縦列を作る図種と、1 縦列にまとめる図種の両方で効くことを見る
   for (const type of ["state", "swimlane", "er", "flow", "topology"]) {
-    it(`${type} で幅が届く`, () => {
+    it(`${type} で幅が届く (動きあり)`, () => {
       expect(箱(記法(", posW: 280", type))[0]?.w).toBe(280);
+    });
+
+    it(`${type} で幅が届く (動きなし)`, () => {
+      expect(箱(記法(", posW: 280", type, false))[0]?.w).toBe(280);
     });
   }
 });
@@ -72,5 +77,34 @@ describe("幅が図に出るかは縦列との大小で決まる (実測)", () =
 
   it("書かなければ箱の幅を持たない", () => {
     expect(縦列の幅("")).toEqual({ 箱: undefined, 縦列: 330 });
+  });
+});
+
+describe("順序図は別の経路で大きさを受ける (変異試験で判明)", () => {
+  // 本 file が足した反映は順序図を対象外にしているが、**順序図でも幅は届く**。
+  // 絶対配置の後処理 (`applyCanvasPivotPositions`) が `posW` を先に反映するため。
+  //
+  // そのため対象外にする判定を外しても検査は落ちない (二重に書くだけで結果が同じ)。
+  // ここで実測を固定しておき、どちらかの経路が変わったら気付けるようにする。
+  const 順序図 = (欄: string) => {
+    const src = `title: "T"\ntype: sequence\n\nactors:\n  - Client${欄}\n  - API\n` +
+      `flow:\n  - Client -> API: "req"\n`;
+    const r = parseTextDslV05(src);
+    if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+    return compileToCdl(r.doc).nodes;
+  };
+
+  it("名札の幅が届く", () => {
+    expect(順序図(": { posW: 280 }").find((n) => n.id === "client-header")?.w).toBe(280);
+  });
+
+  it("書かなければ組み立てが決めた幅のまま", () => {
+    // 「常に 280」 の実装と区別できない状態にしない
+    expect(順序図("").find((n) => n.id === "client-header")?.w).toBe(184);
+  });
+
+  it("書いた登場人物の縦線にだけ効く", () => {
+    const n = 順序図(": { posW: 280 }");
+    expect(n.find((x) => x.id === "api-header")?.w, "書いていない縦線にも効いている").toBe(140);
   });
 });
