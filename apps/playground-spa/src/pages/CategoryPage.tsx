@@ -10,6 +10,7 @@ import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
+import { PhaseChrome } from "@/components/PhaseChrome";
 
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
 type SourceTab = "yaml" | "json";
@@ -133,6 +134,9 @@ export function CategoryPage(): React.ReactElement {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
+  // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
+  const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
+  const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
 
   const displayName = (item: CatalogItem): string => itemName(item.title, locale);
 
@@ -342,7 +346,7 @@ export function CategoryPage(): React.ReactElement {
                     コード
                   </button>
                 </div>
-                <div className="catalog-preview-stage" hidden={showSource}>
+                <div className="catalog-preview-stage" hidden={showSource} ref={setStageEl}>
                   {/*
                     `keepMounted` を渡す (#1236)。 渡さないと `hidden` にした瞬間に box が消えて
                     「見えない」 と判定され、図が外れる = 上のコメントが言う「どちらも DOM に残す」
@@ -357,6 +361,8 @@ export function CategoryPage(): React.ReactElement {
                   >
                     <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
                   </InViewMount>
+                  {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
+                  <PhaseChrome stage={stageEl} phases={currentItem.diagram.phases} align="right" />
                 </div>
                 <SourceTabs item={currentItem} hidden={!showSource} />
                 <footer className="catalog-preview-foot">
@@ -413,8 +419,9 @@ export function CategoryPage(): React.ReactElement {
                 </button>
               </Dialog.Close>
             </div>
-            <div className="cdl-modal-body">
+            <div className="cdl-modal-body" ref={setModalStageEl}>
               {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={modalItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />}
+              <PhaseChrome stage={modalStageEl} phases={modalItem?.diagram.phases} align="right" />
             </div>
           </Dialog.Content>
         </Dialog.Portal>

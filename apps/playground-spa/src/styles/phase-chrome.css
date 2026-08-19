@@ -1,0 +1,88 @@
+/* ================================================================
+ * 図に重ねる局面の表示 (#1143 でエディタに作り、#1239 で画面をまたげる形へ出した)。
+ *
+ * 図と同じ入れ物に置くと、掴んで動かした時に一緒に出ていく。 そこで図の入れ物ではなく
+ * **舞台に貼り付ける**。 掴む操作を邪魔しないよう、重ねたものはマウスを受け取らない。
+ *
+ * 置く側は親に `position: relative` を持たせる。
+ * ================================================================ */
+
+.cdl-phase {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cdl-phase-chip {
+  position: absolute;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  font-family: var(--d-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* 寄せる側は画面ごとに違う。 設計がそう描いているため、片方に固定しない */
+.cdl-phase-chip.is-left {
+  left: 14px;
+}
+
+.cdl-phase-chip.is-right {
+  right: 14px;
+}
+
+.cdl-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--d-accent);
+}
+
+/* 題名は書いた人の言葉なので長くなりうる。 札ごと横に伸びて図を覆わないよう、端で切る */
+.cdl-phase-title {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cdl-phase-foot {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cdl-phase-bar {
+  display: flex;
+  gap: 6px;
+}
+
+/* 区切りは段の数だけ並べて等分する。 幅を数から計算すると、段が増えた時に
+   計算式と実際の並びが 2 か所に分かれる */
+.cdl-phase-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--d-border);
+}
+
+.cdl-phase-seg.is-done {
+  background: var(--d-accent);
+}
+
+.cdl-phase-meta {
+  font-family: var(--d-mono);
+  font-size: 10.5px;
+  color: var(--d-text-muted);
+}

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
@@ -7,6 +7,7 @@ import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
+import { PhaseChrome } from "@/components/PhaseChrome";
 import "@/styles/compare.css";
 
 /**
@@ -18,6 +19,8 @@ export function PresetDetailPage(): React.ReactElement {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [locale] = useLocale();
+  // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
+  const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
 
   const preset = PRESETS.find((p) => p.slug === params.id);
 
@@ -142,8 +145,10 @@ export function PresetDetailPage(): React.ReactElement {
         </section>
 
         <section className="nm-presets-section" aria-label={`${presetName(preset, locale)} 詳細`}>
-          <div className="nm-preset-detail-stage">
+          <div className="nm-preset-detail-stage" ref={setStageEl}>
             <CdlDiagramView hideMiniPhaseIndicator diagram={preset.diagram} hideHeader />
+            {/* 設計 (`06 見本の詳細`) は札を左上に描いている (#1239) */}
+            <PhaseChrome stage={stageEl} phases={preset.diagram.phases} />
           </div>
           <div className="nm-preset-detail-nav">
             <Link
