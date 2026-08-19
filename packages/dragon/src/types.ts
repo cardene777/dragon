@@ -111,6 +111,20 @@ export type DslActor = {
   eyebrow?: string;
   value?: string;
   rows?: string[];
+  /**
+   * 体験の道筋 (`type: journey`) で、その段階が起きる場所 (#1251)。
+   *
+   * 「どこで起きたか」 を段の下に出す。 他の図種では相手が無いため、書かれていたら
+   * 組み立て側が知らせる。
+   */
+  touchpoint?: string;
+  /**
+   * 体験の道筋 (`type: journey`) で、その段階の改善の余地 (#1251)。
+   *
+   * 気持ちが落ちる段に「何を直せるか」 を添える。 他の図種では相手が無いため、
+   * 書かれていたら組み立て側が知らせる。
+   */
+  opportunity?: string;
   lane?: string;
   stack?: number;
   initial?: boolean;
