@@ -176,3 +176,59 @@ describe("始まりより前に終わる帯 (Round 1 の指摘)", () => {
     expect(t?.endIdx).toBe(2);
   });
 });
+
+describe("状態から取る終わりも下限を見る (Round 2 の指摘)", () => {
+  // 描画側 (別 package) は状態を解いてから位置に使うため、そこで下限を掛けることはできない。
+  // ただし **状態が取る値は記法に全部書いてある** = 初期値と段が動かす先を集めれば見つかる
+  const 集める = (src: string): string[] => {
+    const 出た: string[] = [];
+    const もとの = console.warn;
+    console.warn = (m: unknown) => 出た.push(String(m));
+    try {
+      組み立てる(src);
+    } finally {
+      console.warn = もとの;
+    }
+    return 出た.filter((m) => m.includes("始まりより前になる値"));
+  };
+
+  const 状態つき = (初期: string, 段 = "") =>
+    `title: "T"\ntype: gantt\n\nactors:\n  - 設計: { value: "Q1" }\n` +
+    `  - 実装: { value: "Q2", end: "{done}" }\n\nstates:\n  done: ${初期}\n${段}`;
+
+  it("初期値が始まりより前なら伝える", () => {
+    // 始まりは 1 番目 (Q2)。 0 は Q1 の位置
+    expect(集める(状態つき("0")), "初期値を見ていない").toHaveLength(1);
+  });
+
+  it("段が動かす先が始まりより前なら伝える", () => {
+    // 初期値は正しくても、段で前へ動かせば同じことが起きる
+    const 段 = `\nanimation:\n  - step: "s1" 1s\n    tween:\n      done: 1 -> 0\n`;
+    expect(集める(状態つき("1", 段)), "段の行き先を見ていない").toHaveLength(1);
+  });
+
+  it("段が切り替える値が始まりより前なら伝える", () => {
+    const 段 = `\nanimation:\n  - step: "s1" 1s\n    set:\n      done: 0\n`;
+    expect(集める(状態つき("1", 段)), "切替の値を見ていない").toHaveLength(1);
+  });
+
+  it("知らせに始まりの位置が入る", () => {
+    expect(集める(状態つき("0"))[0]).toContain("始まりは 1 番目です");
+  });
+
+  it("始まり以上の値だけなら伝えない (陰性対照)", () => {
+    const 段 = `\nanimation:\n  - step: "s1" 1s\n    tween:\n      done: 1 -> 2\n`;
+    expect(集める(状態つき("1", 段)), "正しい記法に知らせが出ている").toEqual([]);
+  });
+
+  it("始まりと同じ値では伝えない (陰性対照)", () => {
+    // 境目。 1 コマの帯は正しい書き方
+    expect(集める(状態つき("1"))).toEqual([]);
+  });
+
+  it("見つけても位置は状態の参照のまま渡す", () => {
+    // 伝えるだけで倒さない = 段で正しい値に戻る書き方を潰さない
+    const t = 帯一覧(状態つき("0"))?.[1];
+    expect(t?.endIdx).toBe("{done}");
+  });
+});

@@ -3692,6 +3692,31 @@ function compileSolidity(doc: DslDocument): CdlDiagram {
  * flow は依存関係を edge で表現 (横棒間の矢印)。
  */
 /**
+ * `{名前}` が指す状態が取りうる値を、記法に書かれた範囲で集める (#1251)。
+ *
+ * 初期値と、段が動かす先 (`tween:` の両端と `set:` の値) を見る。 数として読めない値は
+ * 落とす = 位置として使われないため、下限の判定には関係しない。
+ */
+function 状態が取る値(参照: string, doc: DslDocument): number[] {
+  const 名 = 参照.slice(1, -1);
+  const out: number[] = [];
+  const 数にする = (v: unknown): void => {
+    const n = typeof v === "number" ? v : Number(String(v));
+    if (Number.isFinite(n)) out.push(n);
+  };
+  for (const st of doc.animate?.states ?? []) if (st.name === 名) 数にする(st.initial);
+  for (const p of doc.animate?.phases ?? []) {
+    for (const t of p.tweens ?? []) {
+      if (t.state !== 名) continue;
+      数にする(t.from);
+      数にする(t.to);
+    }
+    for (const v of p.sets ?? []) if (v.state === 名) 数にする(v.value);
+  }
+  return out;
+}
+
+/**
  * 工程が終わる位置を決める (#1251)。
  *
  * 書かなければ始まりと同じ = 帯が 1 コマ (従来の挙動)。
@@ -3709,11 +3734,24 @@ function 終わる位置(
   目盛り: readonly string[],
   名前: string,
   伝える: (名: string, message: string) => void,
+  doc: DslDocument,
 ): { idx: number | string; label?: string } {
   if (end === undefined) return { idx: 始まり };
-  // 状態から取る形は **ここでは下限を見られない**。 値は描画側が段ごとに解くため、
-  // 組み立ての時点では分からない。 逆向きになる値を書けてしまう点は覆えていない
-  if (/^\{\w+\}$/.test(end)) return { idx: end };
+  if (/^\{\w+\}$/.test(end)) {
+    // **状態が取る値は記法に全部書いてある**。 初期値と、段が動かす先 (`tween:` の両端と
+    // `set:` の値) を集めれば、始まりより前に落ちる値をここで見つけられる。
+    //
+    // 覆えないのは `values:` の式から決まる値だけ = 他の状態から計算されるため、
+    // 段ごとの結果を組み立ての時点では出せない
+    const 低い = 状態が取る値(end, doc).filter((v) => v < 始まり);
+    if (低い.length > 0) {
+      伝える(
+        名前,
+        `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前になる値を取ります (${[...new Set(低い)].join(", ")})。 始まりは ${始まり} 番目です`,
+      );
+    }
+    return { idx: end };
+  }
   const i = 目盛り.indexOf(end);
   if (i < 0) return { idx: 始まり };
   // 始まりより前に終わる帯は描けない。 そのまま渡すと横幅が負になり、帯が始まりの位置から
@@ -3816,7 +3854,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     ganttData: タスク.map((t) => {
       const idx = 目盛り.indexOf(t.label);
       const from = 依存元.get(t.name);
-      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える);
+      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える, doc);
       return {
         id: slugify(t.name) || t.name,
         title: t.name,
