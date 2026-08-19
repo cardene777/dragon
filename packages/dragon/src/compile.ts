@@ -3701,7 +3701,16 @@ function 状態が取る値(参照: string, doc: DslDocument): number[] {
   const 名 = 参照.slice(1, -1);
   const out: number[] = [];
   const 数にする = (v: unknown): void => {
-    const n = typeof v === "number" ? v : Number(String(v));
+    if (typeof v === "number") {
+      if (Number.isFinite(v)) out.push(v);
+      return;
+    }
+    // **空文字と空白だけの値を数にしない**。 `Number("")` は 0 を返すため、そのままだと
+    // 位置 0 として扱われ、始まりが 1 以降の帯に誤った知らせが出る。 描画側はこの値を
+    // 解けず始まりへ倒すので、警告する相手ではない
+    const 文字 = String(v).trim();
+    if (文字 === "") return;
+    const n = Number(文字);
     if (Number.isFinite(n)) out.push(n);
   };
   for (const st of doc.animate?.states ?? []) if (st.name === 名) 数にする(st.initial);
