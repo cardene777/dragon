@@ -137,6 +137,26 @@ const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
 const 状態 = (a: readonly { id: string; initial: unknown }[] | undefined): string[] =>
   (a ?? []).map((x) => JSON.stringify({ id: x.id, initial: x.initial }));
 
+describe("図表と状態の一致検査", () => {
+  it.each([
+    "chartData",
+    "funnelData",
+    "ganttData",
+    "quadrantData",
+    "journeyData",
+    "treeData",
+    "mindData",
+  ] as const)("%s の差を検出する", (field) => {
+    // 現在の sourceYaml 付き preset は図表を含まないため、比較関数自体の退行をここで固定する
+    expect(中身([{ [field]: [{ id: "a" }] }])).not.toEqual(中身([{ [field]: [{ id: "b" }] }]));
+  });
+
+  it("状態の id と初期値の差を検出する", () => {
+    expect(状態([{ id: "value", initial: 1 }])).not.toEqual(状態([{ id: "other", initial: 1 }]));
+    expect(状態([{ id: "value", initial: 1 }])).not.toEqual(状態([{ id: "value", initial: 2 }]));
+  });
+});
+
 /** 矢印が読む人に見せる中身。 説明 / 補足 / 色 / 線種 */
 const 矢印の中身 = (
   a: readonly { label?: string; sub?: string; tone?: string; style?: string }[] | undefined,
