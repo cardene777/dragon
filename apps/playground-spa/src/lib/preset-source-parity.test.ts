@@ -152,7 +152,10 @@ function 識別子を並び順に読み替える(v: unknown): unknown {
   // 放射の図は `{ rootId, rootTitle, branches: [...] }` の形。 中心は枝の並びに居ない
   if (Array.isArray(o.branches)) {
     const 表 = 識別子の表(o.branches);
-    if (typeof o.rootId === "string") 表.set(o.rootId, "#root");
+    if (typeof o.rootId === "string") {
+      if (表.has(o.rootId)) throw new Error(`放射の中心と枝で識別子 "${o.rootId}" が重複している`);
+      表.set(o.rootId, "#root");
+    }
     const out: Record<string, unknown> = {};
     for (const [k, x] of Object.entries(o)) {
       if (k === "branches") {
@@ -176,7 +179,10 @@ function 識別子の表(items: readonly unknown[]): Map<string, string> {
   items.forEach((x, i) => {
     if (x === null || typeof x !== "object") return;
     const id = (x as { id?: unknown }).id;
-    if (typeof id === "string") 表.set(id, `#${i}`);
+    if (typeof id === "string") {
+      if (表.has(id)) throw new Error(`図表の識別子 "${id}" が重複している`);
+      表.set(id, `#${i}`);
+    }
   });
   return 表;
 }
@@ -270,6 +276,26 @@ describe("図表と状態の一致検査", () => {
     const 指す先あり = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "a" }] };
     const 指す先なし = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "居ない" }] };
     expect(中身([指す先あり])).not.toEqual(中身([指す先なし]));
+  });
+
+  it("重複する識別子で参照先が曖昧な木を通さない (Round 2 の指摘)", () => {
+    // Map の後勝ちにすると、`x` は 2 番目の親を指す形へ読み替わり、正常な木と一致してしまう。
+    // 描画側では同じ識別子の親が 2 つあり参照先を一意に決められないため、比較前に落とす
+    const 重複あり = {
+      treeData: [
+        { id: "x", title: "親 1" },
+        { id: "x", title: "親 2" },
+        { id: "child", title: "子", parent: "x" },
+      ],
+    };
+    expect(() => 中身([重複あり])).toThrow('図表の識別子 "x" が重複している');
+  });
+
+  it("放射の中心と枝で識別子が重なる形を通さない", () => {
+    const 重複あり = {
+      mindData: { rootId: "same", branches: [{ id: "same", title: "枝", parent: "same" }] },
+    };
+    expect(() => 中身([重複あり])).toThrow('放射の中心と枝で識別子 "same" が重複している');
   });
 
   it("識別子の付け方だけが違う同じ木は一致する", () => {
