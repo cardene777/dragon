@@ -517,19 +517,26 @@ actors:
   - API
   - DB
 flow:
-  - User -> API: "POST /login" { sub: "email + password" }
-  - API -> DB: "SELECT credentials"
-  - DB -> API: "rows" { style: "dotted-flow" }
-  - API -> User: "200 OK" { sub: "JWT token" }
+  - User -> API: "POST /login" (solid) { sub: "email + password" }
+  - API -> DB: "SELECT credentials" (solid)
+  - DB -> API: "rows" (success, dotted-flow)
+  - API -> User: "200 OK" (success, solid) { sub: "JWT token" }
 animation:
   - step: "1. POST /login" 0.9s
     focus: [User -> API]
+    badge: "sequence"
+    body: "User が API に送る。"
   - step: "2. SELECT credentials" 0.9s
     focus: [User -> API, API -> DB]
+    badge: "sequence"
+    body: "API が DB に問い合わせる。"
   - step: "3. rows" 0.9s
     focus: [User -> API, API -> DB, DB -> API]
+    badge: "sequence"
+    body: "DB が結果を返す。"
   - step: "時系列のやり取りを縦の時間軸で並べる図" 0.9s
     focus: [User -> API, API -> DB, DB -> API, API -> User]
+    badge: "sequence"
+    body: "sequence の全 message を時系列展開。"
 `;
-
 

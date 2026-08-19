@@ -40,18 +40,6 @@ import * as Presets from "@/topics/catalog/presets.cdl";
  */
 const id完全一致: readonly string[] = ["presetSequence"];
 
-/**
- * 矢印の線種が合わないと分かっている preset。 1 件ずつ理由を書く。
- *
- * 宣言に無い差が出たら落ちる。 宣言した差が解消しても落ちる = 宣言が古くなったまま残らない。
- */
-const 矢印の線種の既知の差: Record<string, string> = {
-  // 順序図の矢印に線種 (`dotted-flow`) を書く手段が記法に無い (実測 = `{ style: "dotted-flow" }`
-  // は `type: flow` では効くが `type: sequence` では落ちる)。 返りの矢印 1 本が実線で描かれる。
-  // 説明 / 補足 / 並びは一致するので、線種だけの差として宣言する。
-  presetSequence: "順序図の矢印に線種を書く手段が記法に無い",
-};
-
 const 光らせる先の既知の差: Record<string, string> = {
   // 順序図の縦線 (`user-header` 等) は `focus:` が受け付けない (`focus.ts` が縦列の id を
   // 意図的に拒否する)。 組み立て API は最初の段から縦線を光らせて「誰の時間軸か」 を
@@ -70,7 +58,9 @@ function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
     const key = k.slice("sourceYaml__".length);
     const built = mod[key];
     // 記法だけあって図が無い形を落とす。 通すと「比べる相手が無いのに通った」 になる
-    if (built === undefined || typeof built !== "object") continue;
+    if (built === null || typeof built !== "object") {
+      throw new Error(`sourceYaml__${key} に対応する preset export が無い`);
+    }
     out.push({ key, yaml: v, built: built as Diagram });
   }
   return out;
@@ -103,11 +93,26 @@ const 中身 = (
     }),
   );
 
-/** 矢印が読む人に見せる中身。 説明 / 補足 / 線種 */
+/** 矢印が読む人に見せる中身。 説明 / 補足 / 色 / 線種 */
 const 矢印の中身 = (
-  a: readonly { label?: string; sub?: string; style?: string }[] | undefined,
+  a: readonly { label?: string; sub?: string; tone?: string; style?: string }[] | undefined,
 ): string[] =>
-  (a ?? []).map((x) => JSON.stringify({ label: x.label ?? "", sub: x.sub ?? "", style: x.style ?? "" }));
+  (a ?? []).map((x) =>
+    JSON.stringify({ label: x.label ?? "", sub: x.sub ?? "", tone: x.tone ?? "", style: x.style ?? "" }),
+  );
+
+/** 段が読む人に見せる中身と動き。 光らせる先は id 差があるので別に比べる */
+const 段の中身 = (a: Diagram["phases"]): string[] =>
+  a.map((x) =>
+    JSON.stringify({
+      duration: x.duration,
+      title: x.title,
+      body: x.body,
+      badge: x.badge ?? "",
+      tweens: x.tweens,
+      sets: x.sets,
+    }),
+  );
 
 describe("記法が組み立て API と同じ図になる (#1237)", () => {
   it("対象を 1 件以上見つけている", () => {
@@ -133,27 +138,16 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(説明(記法.edges)).toEqual(説明(t.built.edges));
       });
 
-      it("矢印の中身が一致する (既知の差は宣言したものだけ)", () => {
-        const 記法側 = 矢印の中身(記法.edges);
-        const 組立側 = 矢印の中身(t.built.edges);
-        if (t.key in 矢印の線種の既知の差) {
-          // 線種を除けば一致することを見る = 説明や補足まで落ちていたら気付ける
-          const 線種を除く = (a: string[]): string[] =>
-            a.map((x) => JSON.stringify({ ...(JSON.parse(x) as Record<string, unknown>), style: "" }));
-          expect(線種を除く(記法側)).toEqual(線種を除く(組立側));
-          // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
-          expect(記法側, `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(組立側);
-          return;
-        }
-        expect(記法側).toEqual(組立側);
+      it("矢印の中身が一致する", () => {
+        expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
       });
 
       it("縦列の数が一致する", () => {
         expect((記法.lanes ?? []).length).toBe((t.built.lanes ?? []).length);
       });
 
-      it("段の題が並びごと一致する", () => {
-        expect(記法.phases.map((p) => p.title)).toEqual(t.built.phases.map((p) => p.title));
+      it("段の中身が並びごと一致する", () => {
+        expect(段の中身(記法.phases)).toEqual(段の中身(t.built.phases));
       });
 
       it("段が光らせる先の数が一致する (既知の差は宣言したものだけ)", () => {
@@ -185,8 +179,6 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     const 実在2 = new Set(対象.map((t) => t.key));
     const 幽霊2 = Object.keys(光らせる先の既知の差).filter((k) => !実在2.has(k));
     expect(幽霊2, "光らせる先の既知の差に宣言されているが記法を持たない preset").toEqual([]);
-    const 幽霊3 = Object.keys(矢印の線種の既知の差).filter((k) => !実在2.has(k));
-    expect(幽霊3, "矢印の線種の既知の差に宣言されているが記法を持たない preset").toEqual([]);
   });
 
   it("id 完全一致の宣言が全て実在する preset を指す", () => {
