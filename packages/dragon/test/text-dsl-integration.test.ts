@@ -105,16 +105,23 @@ describe("Text DSL integration ... 公開品質保証", () => {
       expect(r.ok).toBe(false);
     });
 
-    it("1 actor のみ + self-loop edge", () => {
-      const diag = textDslToDiagram(`
+    it("1 actor のみ + self-loop edge は矢印を落として知らせる (#1227)", () => {
+      // 描画側が図種を問わず自己ループを受けないため、組み立てから外す。
+      // 落ちずに図が返ること自体がこの edge case の要点
+      const 知らせ: { kind: string }[] = [];
+      const diag = textDslToDiagram(
+        `
 タイトル: Self
 種類: sequence
 登場人物:
   - A
 流れ:
   1. A → A: self-call
-`);
-      expect(diag.edges.length).toBe(1);
+`,
+        { onNotice: (n) => 知らせ.push(n) },
+      );
+      expect(diag.edges.length).toBe(0);
+      expect(知らせ.filter((n) => n.kind === "flow-self-loop")).toHaveLength(1);
     });
 
     it("10 actor + 20 step (large diagram)", () => {

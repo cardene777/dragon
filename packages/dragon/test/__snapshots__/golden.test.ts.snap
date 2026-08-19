@@ -565,16 +565,9 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
 }
 `;
 
-exports[`golden: er preset > E09 self-reference 1`] = `
+exports[`golden: er preset > E09 自己参照は落ちる (#1227) 1`] = `
 {
-  "edges": [
-    {
-      "from": "employee",
-      "id": "rel-0-employee-employee",
-      "label": "manages (1:N)",
-      "to": "employee",
-    },
-  ],
+  "edges": [],
   "id": "e09",
   "lanes": [
     {
@@ -604,10 +597,10 @@ exports[`golden: er preset > E09 self-reference 1`] = `
   "states": [],
   "topic": "E09",
   "viewBox": {
-    "h": 331,
-    "w": 566,
+    "h": 270,
+    "w": 545,
     "x": -35,
-    "y": 66,
+    "y": 68,
   },
 }
 `;
@@ -3181,20 +3174,13 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
 }
 `;
 
-exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
+exports[`golden: sequence preset > S01 minimal 1 actor + 自分宛ては落ちる (#1227) 1`] = `
 {
-  "edges": [
-    {
-      "from": "s0-alice",
-      "id": "e0-alice-alice",
-      "label": "noop",
-      "to": "s0-alice",
-    },
-  ],
+  "edges": [],
   "id": "s01",
   "lanes": [
     {
-      "height": 614,
+      "height": 512,
       "id": "alice",
       "width": 340,
       "x": 0,
@@ -3220,15 +3206,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
     },
     {
       "cx": 170,
-      "cy": 441,
-      "h": 2,
-      "id": "s0-alice",
-      "kind": "card",
-      "w": 2,
-    },
-    {
-      "cx": 170,
-      "cy": 578,
+      "cy": 476,
       "h": 72,
       "id": "alice-footer",
       "kind": "card",
@@ -3244,7 +3222,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 1 self msg 1`] = `
   "states": [],
   "topic": "S01",
   "viewBox": {
-    "h": 726,
+    "h": 624,
     "w": 444,
     "x": -44,
     "y": -24,
@@ -9021,7 +8999,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
 }
 `;
 
-exports[`golden: state preset > M09 self-loop 1`] = `
+exports[`golden: state preset > M09 自己遷移は落ちる (#1227) 1`] = `
 {
   "edges": [
     {
@@ -9032,13 +9010,7 @@ exports[`golden: state preset > M09 self-loop 1`] = `
     },
     {
       "from": "wait",
-      "id": "t1-wait-wait",
-      "label": "tick",
-      "to": "wait",
-    },
-    {
-      "from": "wait",
-      "id": "t2-wait-done",
+      "id": "t1-wait-done",
       "label": "exit",
       "to": "done",
     },
@@ -9102,10 +9074,10 @@ exports[`golden: state preset > M09 self-loop 1`] = `
   "states": [],
   "topic": "M09",
   "viewBox": {
-    "h": 315,
+    "h": 270,
     "w": 1713,
     "x": -35,
-    "y": 66,
+    "y": 68,
   },
 }
 `;
@@ -10317,16 +10289,9 @@ exports[`golden: swimlane preset > L13 labelOffset on swimlane 1`] = `
 }
 `;
 
-exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
+exports[`golden: swimlane preset > L14 single lane 自己ループは落ちる (#1227) 1`] = `
 {
-  "edges": [
-    {
-      "from": "solo",
-      "id": "e0-solo-solo",
-      "label": "retry",
-      "to": "solo",
-    },
-  ],
+  "edges": [],
   "id": "l14",
   "lanes": [
     {
@@ -10356,7 +10321,7 @@ exports[`golden: swimlane preset > L14 single lane self-loop 1`] = `
   "states": [],
   "topic": "L14",
   "viewBox": {
-    "h": 420,
+    "h": 392,
     "w": 504,
     "x": -44,
     "y": -24,

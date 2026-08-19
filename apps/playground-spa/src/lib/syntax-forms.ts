@@ -73,7 +73,8 @@ export const FORMS: Section[] = [
   },
   {
     title: "パーツ",
-    sample: { slot: "actors", actors: ["  - Client"], flow: ['  - Client -> Client: "動く"'] },
+    // 自分へ戻る矢印は描けない (#1227)。 例文が使うと、記法一覧が描けない形を教えることになる
+    sample: { slot: "actors", actors: ["  - Client", "  - API"], flow: ['  - Client -> API: "動く"'] },
     lines: [
       { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
       { code: "  - 実績:", note: "変えられる値があれば縦に並ぶ" },
