@@ -53,6 +53,7 @@ import {
   valueNameIssue,
 } from "../value-syntax";
 import type {
+  DslAxes,
   DslDocument,
   DslActor,
   DslActorNodeOverride,
@@ -85,6 +86,8 @@ export const TOP_LEVEL_KEYS = [
   "title", "type", "actors", "flow", "states", "values", "animation", "viewport", "lanes", "groups",
   // 図全体を 1 箱にする図種で、 その箱の上に出す小見出し (#1247)
   "eyebrow",
+  // 2 軸で仕分ける図の軸の名前 (#1251)
+  "axes",
 ] as const;
 
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
@@ -190,6 +193,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let type: PresetType | null = null;
   let eyebrow: string | null = null;
   let eyebrowLine = 0;
+  let axes: DslAxes | undefined = undefined;
+  let axesLine = 0;
   let actors: DslActor[] = [];
   const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
@@ -389,6 +394,31 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "axes") {
+      // axes:\n  x: { left: "...", right: "..." }\n  y: { bottom: "...", top: "..." }
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      axesLine = line.no;
+      const 組み立て: DslAxes = {};
+      for (const it of items) {
+        const m = it.trimmed.match(/^(x|y)\s*:\s*\{([^}]*)\}\s*$/);
+        if (!m) {
+          errors.push({
+            line: it.no,
+            message: `invalid axes entry: "${it.trimmed}"`,
+            hint: 'use `x: { left: "...", right: "..." }` or `y: { bottom: "...", top: "..." }`',
+          });
+          continue;
+        }
+        const opts = parseInlineMapping(m[2] ?? "");
+        if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
+        else 組み立て.y = { bottom: opts.bottom, top: opts.top };
+      }
+      // 1 本も読めなかった形は「書かなかった」 と同じにする。 空の軸を渡すと、
+      // 書いていない側の名前が空文字で描かれる
+      axes = 組み立て.x !== undefined || 組み立て.y !== undefined ? 組み立て : undefined;
+      i = next;
+      continue;
+    }
     if (head.key === "lanes") {
       // lanes:\n  l1: { x: 0, width: 320, label: "..." }\n  l2: { ... }
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
@@ -463,6 +493,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       title: title!,
       type: type!,
       ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
+      ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,
       flow,
       animate,

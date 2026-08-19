@@ -790,3 +790,35 @@ animation:
       form_mood: "満足"
     body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。"
 `;
+
+export const sourceYaml__presetQuadrant = `title: "2 つの軸で 4 象限に分けて配置する優先度マトリクス"
+eyebrow: "quadrant"
+type: quadrant
+
+axes:
+  x: { left: "Low effort", right: "High effort" }
+  y: { bottom: "Low value", top: "High value" }
+
+actors:
+  - Quick win: "左上"
+  - Major project: "右上"
+  - Fill in: "{fill_in_at}"
+  - Thankless: "右下"
+
+states:
+  fill_in_at: "左下"
+
+animation:
+  - step: "見直し前" 0.9s
+    badge: "quadrant"
+    focus: ["Quick win"]
+    set:
+      fill_in_at: "左下"
+    body: "Fill in は価値も労力も低い枠に置いてある。"
+  - step: "2 つの軸で 4 象限に分けて配置する優先度マトリクス" 0.9s
+    badge: "quadrant"
+    focus: ["Quick win"]
+    set:
+      fill_in_at: "左上"
+    body: "見直しで Fill in を価値の高い枠へ移す。 どの枠に居るかを状態から取っている。"
+`;
