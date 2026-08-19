@@ -176,6 +176,37 @@ describe("JSON の入口でも同じ図になる (Round 1 の指摘)", () => {
     expect((d.nodes[0] as { eyebrow?: string }).eyebrow).toBeUndefined();
   });
 
+  // Round 2 の指摘。 記法は値を trim() してから空かどうかを見るが、 JSON は長さだけを見て
+  // いたため、 空白だけの値で入口ごとに図が変わっていた (記法は書かなかった扱い、
+  // JSON は中身のない帯を描く)
+  it.each([
+    ["空白だけ", "   "],
+    ["全角空白だけ", "　"],
+    ["改行だけ", "\n"],
+  ])("%s は書かなかったのと同じ", (_name, v) => {
+    const d = jsonToDiagram(json({ eyebrow: v }));
+    expect((d.nodes[0] as { eyebrow?: string }).eyebrow, "中身のない帯を描く").toBeUndefined();
+  });
+
+  it("前後の空白を落とす", () => {
+    const d = jsonToDiagram(json({ eyebrow: "  棒グラフ  " }));
+    expect((d.nodes[0] as { eyebrow?: string }).eyebrow).toBe("棒グラフ");
+  });
+
+  it.each([
+    ["普通の値", '"棒グラフ"', "棒グラフ"],
+    ["空白だけ", '"   "', "   "],
+    ["前後に空白", '"  棒グラフ  "', "  棒グラフ  "],
+  ])("%s で記法と JSON が一致する", (_name, 記法の値, JSONの値) => {
+    // 1 つの値だけで見ると、 空白の扱いが割れていても気付けない (Round 2 で実測)
+    const 記法の図 = 組み立てる(記法("bar", 記法の値)).図;
+    const JSONの図 = jsonToDiagram(json({ eyebrow: JSONの値 }));
+    expect(
+      (JSONの図.nodes[0] as { eyebrow?: string }).eyebrow,
+      "入口によって小見出しが変わる",
+    ).toBe((記法の図.nodes[0] as { eyebrow?: string }).eyebrow);
+  });
+
   it("記法と JSON が同じ小見出しになる", () => {
     const 記法の図 = 組み立てる(記法("bar", '"棒グラフ"')).図;
     const JSONの図 = jsonToDiagram(json({ eyebrow: "棒グラフ" }));

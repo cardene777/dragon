@@ -709,6 +709,18 @@ function validateValues(v: unknown, errors: JsonDslError[]): void {
  * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` → 内部 AST `layoutPos:` の 2 層 mapping の実装 core。
  * test で mapping logic を実 execute するため export する (pos-field.test.ts の regression guard)。
  */
+/**
+ * 図表の箱の上の小見出しを、 記法側と同じ形に整える (#1247)。
+ *
+ * 記法は値を `trim()` してから空かどうかを見る。 JSON でも同じ順で見ないと、 空白だけの値が
+ * 入口によって別の意味になる (記法は書かなかった扱い、 JSON は中身のない帯)。
+ */
+function 整えた小見出し(v: string | undefined): string | undefined {
+  if (v === undefined) return undefined;
+  const t = v.trim();
+  return t.length > 0 ? t : undefined;
+}
+
 export function jsonToDoc(json: DragonJson): DslDocument {
   const p0 = { line: 0 };
   const actors: DslActor[] = json.actors.map((a) => {
@@ -785,10 +797,11 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   return {
     title: json.title,
     type: json.type,
-    // 空文字は「書かなかった」 と同じにする。 記法側 (`v05/parser.ts`) と揃えないと、
-    // 同じ内容を書いても入口によって図が変わる
-    ...(json.eyebrow !== undefined && json.eyebrow.length > 0
-      ? { eyebrow: json.eyebrow, eyebrowPos: p0 }
+    // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
+    // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**
+    // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
+    ...(整えた小見出し(json.eyebrow) !== undefined
+      ? { eyebrow: 整えた小見出し(json.eyebrow), eyebrowPos: p0 }
       : {}),
     actors,
     flow,
