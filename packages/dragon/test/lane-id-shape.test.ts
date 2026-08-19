@@ -103,3 +103,80 @@ describe("書き間違いが別の縦列として通らない (Round 1 の指摘
     }
   });
 });
+
+describe("どの箱も入らない縦列を伝える (Round 3 の指摘)", () => {
+  // **字の集合では防げない**。 全角 (`lane-Ａ` に対し生成は `lane-a`) でも、ただの打ち間違い
+  // (`lane-idl`) でも、結果は同じ = 新しい縦列が増えるだけで書いた幅は元の縦列に届かない。
+  // 字で受け付けを絞るのではなく、**合わなかったこと自体を伝える**
+  const 知らせ = (lanes: string): string[] => {
+    const r = parseTextDslV05(記法(lanes));
+    if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+    const out: string[] = [];
+    compileToCdl(r.doc, { onNotice: (n) => out.push(n.message) });
+    return out.filter((m) => m.includes("どの箱も入らない縦列"));
+  };
+
+  it.each([
+    ["打ち間違い", "lanes:\n  lane-idl: { width: 999 }\n"],
+    ["全角の字", "lanes:\n  lane-Ｉdle: { width: 999 }\n"],
+    ["まったく別の名前", "lanes:\n  sidebar: { width: 999 }\n"],
+  ])("%s を伝える", (_name, lanes) => {
+    expect(知らせ(lanes), "黙って新しい縦列を作っている").toHaveLength(1);
+  });
+
+  it("知らせにこの図が持つ縦列を並べる", () => {
+    // どう直せばよいかが分かる形にする
+    expect(知らせ("lanes:\n  lane-idl: { width: 999 }\n")[0]).toBeDefined();
+    const r = parseTextDslV05(記法("lanes:\n  lane-idl: { width: 999 }\n"));
+    const out: { message: string; hint?: string }[] = [];
+    if (r.ok) compileToCdl(r.doc, { onNotice: (n) => out.push(n) });
+    const 該当 = out.find((n) => n.message.includes("どの箱も入らない縦列"));
+    expect(該当?.hint).toContain("lane-idle");
+  });
+
+  it("合う id では伝えない (陰性対照)", () => {
+    // 正しい記法が警告だらけになると、知らせそのものが読まれなくなる
+    expect(知らせ("lanes:\n  lane-idle: { width: 370 }\n")).toEqual([]);
+  });
+
+  it("lanes を書かなければ伝えない (陰性対照)", () => {
+    expect(知らせ("")).toEqual([]);
+  });
+});
+
+describe("見本が入った縦列には伝えない (変異試験で見つけた)", () => {
+  // 見本 (parts) の箱は `lane` で行き先を選べるため、`lanes:` で作った縦列に後から入る。
+  // **見本を重ねる前に判定すると、箱が入っている縦列にまで知らせが出る** (実測)
+  const 見本 = {
+    id: "trophy",
+    topic: "t",
+    lanes: [{ id: "l", x: 0, width: 400 }],
+    nodes: [{ id: "n", lane: "l", stack: 0, kind: "actor", title: "N" }],
+    edges: [],
+    phases: [],
+    states: [],
+  } as never;
+
+  const 組む = (lane: string) => {
+    const r = parseTextDslV05(
+      `title: "T"\ntype: flow\n\nlanes:\n  mylane: { x: 900, width: 400 }\n\n` +
+        `actors:\n  - A\n  - g: { kind: trophy, lane: ${lane} }\n\nflow:\n  - A -> A: "x"\n`,
+    );
+    if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+    const out: string[] = [];
+    const d = compileToCdl(r.doc, { partsCatalog: { trophy: 見本 }, onNotice: (n) => out.push(n.message) });
+    return { 図: d, 知らせ: out.filter((m) => m.includes("どの箱も入らない縦列")) };
+  };
+
+  it("見本を入れた縦列には伝えない", () => {
+    const { 図, 知らせ } = 組む("mylane");
+    expect(図.nodes.some((n) => n.lane === "mylane"), "見本が入っていない").toBe(true);
+    expect(知らせ, "箱が入っている縦列に知らせが出ている").toEqual([]);
+  });
+
+  it("見本が別の縦列へ行ったら伝える (陰性対照)", () => {
+    // 「常に伝えない」 実装と区別できない状態にしない
+    const { 知らせ } = 組む("flow");
+    expect(知らせ, "空のままの縦列を見逃している").toHaveLength(1);
+  });
+});

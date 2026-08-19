@@ -214,7 +214,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
   applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
-  const extended = applyV05Extensions(diagram, placed);
+  const 追加した縦列: { id: string; line: number }[] = [];
+  const extended = applyV05Extensions(diagram, placed, 追加した縦列);
   // 値の知らせは、本文なら値を書いた行、見本なら見本を置いた行を指す。 `derived` 自体には
   // source position が無いため、見本を重ねる間だけ別表で宣言元を持ち回る (#1180)。
   const inheritedDerivedSourceLines = opts?.onNotice ? new Map<string, number[]>() : undefined;
@@ -228,6 +229,17 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     opts?.onNotice,
     inheritedDerivedSourceLines,
   );
+  // 箱が 1 つも入らなかった縦列を伝える (#1241)。
+  //
+  // **見本 (parts) を重ねた後に見る**。 見本の箱は `lane` で行き先を選べるため、
+  // `lanes:` で作った縦列に後から入る (実測 = 重ねる前に見ると、箱が入っている縦列にまで
+  // 知らせが出た)。
+  //
+  // 字の集合では防げない = 全角 (`lane-Ａ` に対し生成は `lane-a`) でも打ち間違い
+  // (`lane-idl`) でも結果は同じで、新しい縦列が増えるだけで書いた幅は元の縦列に届かない。
+  // 受け付けを字で絞るのではなく、合わなかったこと自体を伝える
+  reportEmptyDeclaredLanes(merged, 追加した縦列, opts?.onNotice);
+
   // 表が揃ってから 1 edge = 1 回で知らせる。 merge 後に残っている edge だけを対象にする =
   // 途中で消えた edge の行を知らせても呼出側が使えない。
   if (edgeSourceLines && opts?.onEdgeSource) {
@@ -5066,7 +5078,41 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
  * これにより v0.5 syntax で 19 機能のうち以下が動く:
  * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
  */
-function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
+/**
+ * `lanes:` で作った縦列に箱が 1 つも入らなかったら伝える (#1241)。
+ *
+ * 意図して空の縦列を置くことはあるが、その場合も「置いた」 と分かる形で知らせる方が、
+ * 書き間違いを黙って捨てるより良い。
+ */
+function reportEmptyDeclaredLanes(
+  diagram: CdlDiagram,
+  追加した縦列: readonly { id: string; line: number }[],
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice || 追加した縦列.length === 0) return;
+  const 使われている = new Set(diagram.nodes.map((n) => n.lane));
+  const ある縦列 = diagram.lanes.map((l) => l.id).filter((x) => 使われている.has(x));
+  for (const { id, line } of 追加した縦列) {
+    if (使われている.has(id)) continue;
+    onNotice({
+      kind: "lane-not-honored",
+      actor: id,
+      line,
+      message: `lanes に書いた ${truncateForMessage(id)} はどの箱も入らない縦列です (新しく作りました)`,
+      hint:
+        ある縦列.length > 0
+          ? `この図が持つ縦列 = ${ある縦列.join(" / ")}`
+          : "この図は箱の入った縦列を持ちません",
+    });
+  }
+}
+
+function applyV05Extensions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  /** `lanes:` が新しく作った縦列。 箱が入ったかは見本を重ねた後でないと分からない (#1241) */
+  追加した縦列out?: { id: string; line: number }[],
+): CdlDiagram {
   // actor の主要 node を preset 種別で回収する。 sequence / solidity は header/footer を対で生成する
   // preset で主要 node は header、 それ以外の preset は actor 名 slug がそのまま node id になる。
   //
@@ -5183,6 +5229,12 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
     injectPhasesFallback(diagram, doc);
   }
   // top-level lanes section → lane merge
+  //
+  // **書いた id がどの縦列とも合わない形を後で伝える** (#1241)。 合わない id は新しい縦列を
+  // 作るだけで、書いた幅や見出しは元の縦列に届かない。 書き間違い (`lane-idl` / 全角の
+  // `lane-Ａ`) がこの形になり、黙って捨てられていた (実測 = 幅 999 を持つ空の縦列が増え、
+  // 元の縦列は 360 のままだった)
+  const 追加した縦列: { id: string; line: number }[] = 追加した縦列out ?? [];
   if (doc.lanes) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
       const lane = diagram.lanes.find((l) => l.id === id);
@@ -5202,6 +5254,7 @@ function applyV05Extensions(diagram: CdlDiagram, doc: DslDocument): CdlDiagram {
           contain: laneOpt.contain,
           lifeline: laneOpt.lifeline,
         });
+        追加した縦列.push({ id, line: laneOpt.pos?.line ?? 0 });
       }
     }
   }
