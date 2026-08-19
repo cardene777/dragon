@@ -134,3 +134,45 @@ describe("見本 (parts) の状態を横取りしない", () => {
     expect(r.ok ? r.doc.actors[0]?.stateOverride : undefined).toEqual({ owner: 5 });
   });
 });
+
+describe("始まりより前に終わる帯 (Round 1 の指摘)", () => {
+  // そのまま渡すと横幅が負になり、帯が始まりの位置から左へはみ出す
+  const 逆向き = `title: "T"\ntype: gantt\n\nactors:\n  - 設計: { value: "Q1" }\n  - 実装: { value: "Q3", end: "Q1" }\n`;
+
+  it("始まりと同じに倒す", () => {
+    const t = 帯一覧(逆向き)?.[1];
+    expect(t?.startIdx, "始まりが動いている").toBe(1);
+    expect(t?.endIdx, "終わりが始まりより前のまま").toBe(1);
+  });
+
+  it("倒したことを伝える", () => {
+    // 黙って倒すと「書いたのに 1 コマのまま」 が手掛かりなしで起きる
+    const 出た: string[] = [];
+    const もとの = console.warn;
+    console.warn = (m: unknown) => 出た.push(String(m));
+    try {
+      組み立てる(逆向き);
+    } finally {
+      console.warn = もとの;
+    }
+    expect(出た.some((m) => m.includes("始まりより前です")), 出た.join(" / ")).toBe(true);
+  });
+
+  it("同じ時期に終わる形は伝えない (陰性対照)", () => {
+    // 1 コマの帯は正しい書き方。 境目で誤って伝えると正しい記法が警告だらけになる
+    const 出た: string[] = [];
+    const もとの = console.warn;
+    console.warn = (m: unknown) => 出た.push(String(m));
+    try {
+      組み立てる(`title: "T"\ntype: gantt\n\nactors:\n  - 設計: { value: "Q1", end: "Q1" }\n`);
+    } finally {
+      console.warn = もとの;
+    }
+    expect(出た.filter((m) => m.includes("始まりより前です"))).toEqual([]);
+  });
+
+  it("後の時期に終わる形は伝えない (陰性対照)", () => {
+    const t = 帯一覧(工程(', end: "Q3"'))?.[1];
+    expect(t?.endIdx).toBe(2);
+  });
+});

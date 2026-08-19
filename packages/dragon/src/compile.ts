@@ -3707,11 +3707,25 @@ function 終わる位置(
   end: string | undefined,
   始まり: number,
   目盛り: readonly string[],
+  名前: string,
+  伝える: (名: string, message: string) => void,
 ): { idx: number | string; label?: string } {
   if (end === undefined) return { idx: 始まり };
+  // 状態から取る形は **ここでは下限を見られない**。 値は描画側が段ごとに解くため、
+  // 組み立ての時点では分からない。 逆向きになる値を書けてしまう点は覆えていない
   if (/^\{\w+\}$/.test(end)) return { idx: end };
   const i = 目盛り.indexOf(end);
-  return i < 0 ? { idx: 始まり } : { idx: i, label: end };
+  if (i < 0) return { idx: 始まり };
+  // 始まりより前に終わる帯は描けない。 そのまま渡すと横幅が負になり、帯が始まりの位置から
+  // 左へはみ出す。 始まりと同じに倒して伝える (黙って倒すと「書いたのに 1 コマのまま」 になる)
+  if (i < 始まり) {
+    伝える(
+      名前,
+      `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前です (始まりと同じに倒しました)`,
+    );
+    return { idx: 始まり };
+  }
+  return { idx: i, label: end };
 }
 
 function compileGantt(doc: DslDocument): CdlDiagram {
@@ -3781,6 +3795,12 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     );
   }
 
+  // 帯の向きの誤りは `console.warn` に出す。 この図種の他の知らせ (時期なし / 依存が結べない /
+  // 矢印の飾り) が同じ経路を使っており、揃えないとどれが出るかが書き方で変わる
+  const 逆向きを伝える = (_名: string, message: string): void => {
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
+
   // 高さは件数から決める。 描画側は 1 行 28 以上 + 行間 20 で積み、 上下に 32 / 44 の余白を取る
   // (`kinds/gantt.tsx`)。 360 の固定だと 8 件目から最後の帯が枠の外に出る (実測 = 8 件で 56 はみ出す)
   const CHART_H = Math.max(360, 48 * タスク.length + 96);
@@ -3796,7 +3816,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     ganttData: タスク.map((t) => {
       const idx = 目盛り.indexOf(t.label);
       const from = 依存元.get(t.name);
-      const 終わり = 終わる位置(t.end, idx, 目盛り);
+      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える);
       return {
         id: slugify(t.name) || t.name,
         title: t.name,
