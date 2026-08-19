@@ -93,3 +93,71 @@ describe("描けない図種では伝える", () => {
     ).toBe(true);
   });
 });
+
+describe("見本 (parts) の状態を横取りしない (Round 1 の指摘)", () => {
+  // 道筋の欄と同じ名前の状態を持つ見本は実在しうる。 予約語にすると、既に動いている見本が
+  // 静かに変わる (状態が届かなくなり、図の見た目だけが変わる)
+  const 見本 = (欄: string) =>
+    parseTextDslV05(`title: "T"\ntype: flow\n\nactors:\n  - g: { kind: arc-gauge, ${欄} }\n`);
+
+  it("中括弧の形で状態として残る", () => {
+    const r = 見本('touchpoint: 50, opportunity: 100');
+    expect(r.ok, "解析に失敗した").toBe(true);
+    expect(r.ok ? r.doc.actors[0]?.stateOverride : undefined, "状態が横取りされている").toEqual({
+      touchpoint: 50,
+      opportunity: 100,
+    });
+  });
+
+  it("縦に並べた形でも状態として残る", () => {
+    const r = parseTextDslV05(
+      `title: "T"\ntype: flow\n\nactors:\n  - g:\n      kind: arc-gauge\n      touchpoint: 50\n      opportunity: 100\n`,
+    );
+    expect(r.ok, "解析に失敗した").toBe(true);
+    expect(r.ok ? r.doc.actors[0]?.stateOverride : undefined, "状態が横取りされている").toEqual({
+      touchpoint: 50,
+      opportunity: 100,
+    });
+  });
+
+  it("見本では道筋の欄にしない", () => {
+    const r = 見本('touchpoint: 50');
+    const a = r.ok ? r.doc.actors[0] : undefined;
+    expect(a?.touchpoint, "道筋の欄に入れている").toBeUndefined();
+  });
+
+  it("見本でない箱では従来どおり道筋の欄になる (陰性対照)", () => {
+    const r = parseTextDslV05(
+      `title: "T"\ntype: journey\n\nactors:\n  - 登録: { value: "不満", touchpoint: "申込み画面" }\n`,
+    );
+    const a = r.ok ? r.doc.actors[0] : undefined;
+    expect(a?.touchpoint).toBe("申込み画面");
+    expect(a?.stateOverride, "状態に落ちている").toBeUndefined();
+  });
+});
+
+describe("書く順番に依存しない (Round 1 の指摘)", () => {
+  // パーツかどうかは `kind:` の行で決まり、それが道筋の欄より後ろに書かれることもある。
+  // 読んだ時点で決めると、同じ内容でも並び順で行き先が変わる (実測で変わった)
+  const 縦 = (行: string) => parseTextDslV05(`title: "T"\ntype: flow\n\nactors:\n  - g:\n${行}\n`);
+
+  it.each([
+    ["kind が先", "      kind: arc-gauge\n      touchpoint: 50"],
+    ["kind が後", "      touchpoint: 50\n      kind: arc-gauge"],
+  ])("見本は %s でも状態に入る", (_name, 行) => {
+    const r = 縦(行);
+    expect(r.ok, "解析に失敗した").toBe(true);
+    expect(r.ok ? r.doc.actors[0]?.stateOverride : undefined).toEqual({ touchpoint: 50 });
+    expect(r.ok ? r.doc.actors[0]?.touchpoint : undefined, "道筋の欄に入れている").toBeUndefined();
+  });
+
+  it.each([
+    ["kind が先", '      kind: storage\n      touchpoint: "申込み画面"'],
+    ["kind が後", '      touchpoint: "申込み画面"\n      kind: storage'],
+  ])("見本でない箱は %s でも道筋の欄に入る", (_name, 行) => {
+    const r = 縦(行);
+    expect(r.ok, "解析に失敗した").toBe(true);
+    expect(r.ok ? r.doc.actors[0]?.touchpoint : undefined).toBe("申込み画面");
+    expect(r.ok ? r.doc.actors[0]?.stateOverride : undefined, "状態に落ちている").toBeUndefined();
+  });
+});

@@ -878,6 +878,13 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   let touchedState = false;
   /** 縦に並べて書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
   const scaleWritten = new Map<string, string>();
+  /**
+   * 縦に並べて書かれた体験の道筋の欄 (#1251)。
+   *
+   * パーツでは状態の上書きとして意味を持つため、どちらに入れるかは block を読み終わってから
+   * 決める。 `kind:` の行が後ろに書かれることもあり、読んだ時点ではパーツか分からない。
+   */
+  const 道筋の欄 = new Map<string, string>();
   // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
   const unknownKeys: Array<{ key: string; line: number }> = [];
 
@@ -992,10 +999,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         break;
       }
       case "touchpoint":
-        out.touchpoint = stripQuotes(raw);
-        break;
       case "opportunity":
-        out.opportunity = stripQuotes(raw);
+        // **どちらに入れるかは block を読み終わるまで決まらない** (#1251 Round 1 の指摘)。
+        // パーツかどうかは `kind:` の行で決まり、それが後ろに書かれることもある。
+        // 倍率 (`scaleWritten`) と読めない項目名 (`unknownKeys`) が同じ理由で後回しにしている
+        道筋の欄.set(key, stripQuotes(raw));
         break;
       case "lane":
         out.lane = stripQuotes(raw);
@@ -1017,6 +1025,16 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     const s = resolveScale(scaleWritten);
     out.scale = s.scale;
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
+  }
+  // 体験の道筋の欄は、パーツなら状態の上書き、そうでなければ道筋の欄として入れる
+  for (const [key, v] of 道筋の欄) {
+    if (out.partId !== undefined) {
+      state[key] = coerceStateValue(v);
+      touchedState = true;
+      continue;
+    }
+    if (key === "touchpoint") out.touchpoint = v;
+    else out.opportunity = v;
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
@@ -1175,8 +1193,9 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "initial",
   "final",
   "state",
-  "touchpoint",
-  "opportunity",
+  // 体験の道筋の欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
+  // 載せるとパーツで同じ名前の状態を書いた時に横取りされる = 既に動いている見本が静かに変わる。
+  // パーツでない箱でだけ道筋の欄として読む (`parseActor` / `applyContinuationLines` が分岐する)
   // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
   "posX",
   "posY",
@@ -1391,8 +1410,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
       eyebrow: opts.eyebrow,
-      touchpoint: opts.touchpoint,
-      opportunity: opts.opportunity,
+      // パーツでは状態の上書きとして意味を持つため、道筋の欄として横取りしない (#1251)
+      touchpoint: isPart ? undefined : opts.touchpoint,
+      opportunity: isPart ? undefined : opts.opportunity,
       value: opts.value,
       rows: opts.rows
         ? opts.rows
