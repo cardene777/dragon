@@ -170,7 +170,7 @@ describe("描けない欄を表から導く (Round 4)", () => {
       flow: [],
     };
     compileToCdl(doc as never, { onNotice: (n) => 出た.push(n) });
-    return 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    return 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
   };
 
   it.each([
@@ -195,9 +195,7 @@ describe("描けない欄を表から導く (Round 4)", () => {
 
   it.each([
     ["kind (書いた時だけ)", { kind: "service", kindWritten: true }, "種類"],
-    ["subtitle", { subtitle: "補足" }, "副題"],
     ["eyebrow", { eyebrow: "見出し" }, "上の小見出し"],
-    ["value", { value: "42" }, "値"],
     ["rows", { rows: ["a: 1"] }, "行"],
     ["lane", { lane: "l" }, "枠の指定"],
     ["stack", { stack: 2 }, "積む順"],
@@ -248,37 +246,52 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     return 出た;
   };
 
-  it("枝の副題 / 値 / 行 / 上の小見出しを伝える", () => {
-    // 箱ごとに描いていた頃は載っていた欄。 1 箱では名前と枝の色しか描けない
-    const 出た = 知らせを集める(
-      記法(["Core", 'Idea1: { subtitle: "案 1", value: "42", eyebrow: "見出し" }']),
-    );
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+  it("枝の行 / 上の小見出しを伝える", () => {
+    // 箱ごとに描いていた頃は載っていた欄。 1 箱では名前と副題 / 値、 枝の色しか描けない
+    const 出た = 知らせを集める(記法(["Core", 'Idea1: { rows: ["a: 1"], eyebrow: "見出し" }']));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
-    expect(該当[0]!.message).toContain("副題");
-    expect(該当[0]!.message).toContain("値");
+    expect(該当[0]!.message).toContain("行");
     expect(該当[0]!.message).toContain("上の小見出し");
     expect(該当[0]!.message).toContain("type: tree");
   });
 
-  it("中心の副題 / 値 も伝える (枝だけを見ていない)", () => {
-    const 出た = 知らせを集める(記法(['Core: { subtitle: "中心テーマ", value: "3" }', "Idea1"]));
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
-    expect(該当).toHaveLength(1);
-    expect(該当[0]!.message).toContain("Core の副題 / 値");
+  it("枝の副題 / 値は名前の後ろに描く (#1230)", () => {
+    // 描画側が描くのは枝の `title` だけで、状態を読み替えるのもそこに限る。 伝えて終わりに
+    // すると `type: mind` で数を見せる手段が無くなる
+    const d = 図(["Core", 'Idea1: { subtitle: "案 1", value: "42" }']);
+    const 枝 = 放射の箱(d).mindData!.branches;
+    expect(枝[0]!.title).toBe("Idea1 案 1 42");
+    const 出た = 知らせを集める(記法(["Core", 'Idea1: { subtitle: "案 1", value: "42" }']));
+    expect(
+      出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません")),
+      "描く欄を伝えている",
+    ).toHaveLength(0);
+  });
+
+  it("中心の副題 / 値も名前の後ろに描く (枝だけを見ていない)", () => {
+    const d = 図(['Core: { subtitle: "中心テーマ", value: "3" }', "Idea1"]);
+    expect(放射の箱(d).mindData!.rootTitle).toBe("Core 中心テーマ 3");
+  });
+
+  it("副題も値も書かない枝は名前だけになる", () => {
+    // 変更前と同じ文字列になることを固定する = 空白が末尾に付く形を作らない
+    const d = 図(["Core", "Idea1"]);
+    expect(放射の箱(d).mindData!.branches[0]!.title).toBe("Idea1");
+    expect(放射の箱(d).mindData!.rootTitle).toBe("Core");
   });
 
   it("位置と大きさも伝える (Round 2)", () => {
     // 箱が 1 つの図では置く先が無い。 黙って無効になると「書いたのに効かない」 が残る
     const 出た = 知らせを集める(記法(["Core", "Idea1:\n      kind: card\n      位置: 300,200"]));
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("位置 (座標)");
   });
 
   it("大きさも伝える (Round 2)", () => {
     const 出た = 知らせを集める(記法(["Core", "Idea1:\n      kind: card\n      大きさ: 400,200"]));
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("大きさ");
   });
@@ -287,7 +300,7 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     const 出た = 知らせを集める(
       記法(["Core", "Idea1", "Idea2:\n      kind: card\n      位置: Idea1 の右 200"]),
     );
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("位置 (相対)");
   });
@@ -296,7 +309,7 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     const 出た = 知らせを集める(
       記法(["Core", 'Idea1:\n      kind: service\n      lane: l\n      stack: 2\n      色: "#ff0000"']),
     );
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     for (const 欄 of ["種類", "枠の指定", "積む順", "色番号"]) {
       expect(該当[0]!.message, `${欄} を伝えていない`).toContain(欄);
@@ -305,7 +318,7 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
 
   it("行 (rows) も伝える", () => {
     const 出た = 知らせを集める(記法(["Core", 'Idea1: { rows: ["件数: 3"] }']));
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("行");
   });
@@ -313,14 +326,14 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
   it("中心の色は持てないので伝える", () => {
     // `MindBranchPayload` に中心の色の欄が無い
     const 出た = 知らせを集める(記法(["Core: { tone: error }", "Idea1"]));
-    const 該当 = 出た.filter((n) => n.message.includes("名前と枝の色しか描けません"));
+    const 該当 = 出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"));
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("色 (中心は持てない)");
   });
 
   it("枝の色は描けるので伝えない", () => {
     const 出た = 知らせを集める(記法(["Core", "Idea1: { tone: error }"]));
-    expect(出た.filter((n) => n.message.includes("名前と枝の色しか描けません"))).toEqual([]);
+    expect(出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません"))).toEqual([]);
   });
 
   it("名前だけの記法では何も伝えない", () => {

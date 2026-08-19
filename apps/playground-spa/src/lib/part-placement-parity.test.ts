@@ -488,10 +488,11 @@ actors:
     );
   });
 
-  it("本体と同じ名前のパーツでも本体に重ならない", () => {
-    // 名札でも列でも本体と区別できない。 区別できない時に「パーツのもの」 として数から外すと、
-    // 本体の箱まで消えてパーツが本体の中に入る (実測 = 上端が 1140 から 300 に飛んだ)。
-    // 外さない側に倒すと間隔が広がるだけで済む
+  it("同じ名前を 2 度書いたら後の 1 件は落ち、知らせが出る", () => {
+    // `#1220` で同名の登場人物を畳むようにした。 見本を後に書いても取り込まれないため、
+    // 「見本が本体と名前で区別できない」 状態そのものが作れなくなっている。
+    //
+    // 落ちること自体を固定しておく = 畳む挙動を戻した時に、次の検査が守る前提が黙って変わる
     const dup = `title: "t"
 type: sequence
 
@@ -499,12 +500,39 @@ actors:
   - p: {}
   - p: { kind: wide }
 `;
-    const laid = layout(textDslToDiagram(dup, { partsCatalog: CATALOG }));
-    const part = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    const 知らせ: string[] = [];
+    const laid = layout(
+      textDslToDiagram(dup, { partsCatalog: CATALOG, onNotice: (n) => 知らせ.push(n.message) }),
+    );
+    expect(
+      laid.nodes.filter((n) => n.id.startsWith("p__")),
+      "同名なのに見本が取り込まれている",
+    ).toHaveLength(0);
+    expect(
+      知らせ.some((m) => m.includes("2 度書いています")),
+      `名前が重なったことを知らせていない (${知らせ.join(" / ")})`,
+    ).toBe(true);
+  });
+
+  it("名前の違うパーツは本体に重ならない", () => {
+    // 名札でも列でも本体と区別できない。 区別できない時に「パーツのもの」 として数から外すと、
+    // 本体の箱まで消えてパーツが本体の中に入る (実測 = 上端が 1140 から 300 に飛んだ)。
+    // 外さない側に倒すと間隔が広がるだけで済む。
+    //
+    // 同名は畳まれるようになったため (`#1220`)、この形は名前を分けて書く
+    const src = `title: "t"
+type: sequence
+
+actors:
+  - p: {}
+  - q: { kind: wide }
+`;
+    const laid = layout(textDslToDiagram(src, { partsCatalog: CATALOG }));
+    const part = laid.nodes.filter((n) => n.id.startsWith("q__"));
     expect(part.length, "パーツが取り込まれていない").toBeGreaterThan(0);
     const partTop = Math.min(...part.map((n) => n.cy - n.h / 2));
     const baseBottom = Math.max(
-      ...laid.nodes.filter((n) => !n.id.startsWith("p__")).map((n) => n.cy + n.h / 2),
+      ...laid.nodes.filter((n) => !n.id.startsWith("q__")).map((n) => n.cy + n.h / 2),
     );
     expect(partTop, `パーツが本体に重なっている (${partTop} < ${baseBottom})`).toBeGreaterThan(
       baseBottom,

@@ -4344,6 +4344,18 @@ function compileC4(doc: DslDocument): CdlDiagram {
 type 放射で描ける欄 =
   /** 中心の名前 / 枝の名前になる */
   | "name"
+  /**
+   * 名前の後ろに続けて出す 2 欄。
+   *
+   * `- 描く量を減らす: "{draw} ms"` の形は副題として解析されるため、 値の欄だけを見ると
+   * 記法で最も普通な書き方が届かない (#1230 で実測)。 明示的に書いた値の欄も同じ場所へ出す。
+   *
+   * 描画側が描くのは枝と中心の `title` だけで (`mind-map.tsx` は型にある `subtitle` を
+   * 1 度も描かない)、 状態を読み替えるのも `title` と `rootTitle` に限る
+   * (`resolveMindData`)。 届ける先が他に無いため名前と同じ欄へ載せる。
+   */
+  | "subtitle"
+  | "value"
   /** 枝の色 (`MindBranchNode.tone`)。 中心は持てないので `描けない欄` が別に見る */
   | "tone"
   /** 見本は放射に載せず、 見本の中身だけを描く (別経路で伝える) */
@@ -4356,9 +4368,7 @@ type 放射で描ける欄 =
 /** 放射では描けない欄。 書かれていたら伝える */
 type 放射で描けない欄 =
   | "kind"
-  | "subtitle"
   | "eyebrow"
-  | "value"
   | "rows"
   | "lane"
   | "stack"
@@ -4407,9 +4417,7 @@ export type _放射の欄が重なっていない = 空であること<Extract<�
  */
 const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
   kind: "種類",
-  subtitle: "副題",
   eyebrow: "上の小見出し",
-  value: "値",
   rows: "行",
   lane: "枠の指定",
   stack: "積む順",
@@ -4444,6 +4452,21 @@ function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描�
   const v = a[欄];
   if (typeof v === "boolean") return v;
   return v !== undefined;
+}
+
+/**
+ * 放射の枝と中心に出す文字を組む (#1230)。
+ *
+ * 値の欄を書いた登場人物は名前の後ろに空白 1 つで続ける。 書いていない図は名前だけになり、
+ * 変更前と同じ文字列になる。
+ *
+ * **名前と同じ欄に載せるしかない**。 描画側が描くのは枝と中心の `title` だけで
+ * (`mind-map.tsx` は型にある `subtitle` を 1 度も描かない)、 状態を読み替えるのも
+ * `title` と `rootTitle` に限る (`resolveMindData`)。 値を別の欄へ渡しても絵に出ない。
+ */
+function 放射に出す文字(a: DslActor): string {
+  const 続き = [a.subtitle, a.value].map((x) => x?.trim()).filter((x): x is string => !!x);
+  return 続き.length > 0 ? `${a.name} ${続き.join(" ")}` : a.name;
 }
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
@@ -4549,7 +4572,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     使った.add(id);
     記録する(a);
     // 枝は色を持てる (`MindBranchNode.tone`)
-    branches.push({ id, title: a.name, parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
+    branches.push({ id, title: 放射に出す文字(a), parent: rootId, ...(a.tone ? { tone: a.tone } : {}) });
   });
 
   if (消えた欄.size > 0) {
@@ -4557,7 +4580,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     伝える(
       "chart-value-unreadable",
       [...消えた欄.keys()][0]!,
-      `type: mind は名前と枝の色しか描けません (描かない欄: ${一覧})。 これらを描くなら type: tree か type: flow を使ってください`,
+      `type: mind は名前と副題 / 値、 枝の色しか描けません (描かない欄: ${一覧})。 これらを描くなら type: tree か type: flow を使ってください`,
     );
   }
 
@@ -4568,7 +4591,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     title: doc.title,
     w: W,
     h: CHART_H,
-    mindData: { rootId, rootTitle: root.name, branches },
+    mindData: { rootId, rootTitle: 放射に出す文字(root), branches },
   });
   return b.build();
 }
