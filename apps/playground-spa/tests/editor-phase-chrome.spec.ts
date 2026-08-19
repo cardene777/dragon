@@ -1,6 +1,9 @@
 /**
  * 舞台に重ねる局面の表示の検証 (#1143)。
  *
+ * 表示そのものは `#1239` で画面をまたげる部品 (`PhaseChrome`、 class は `cdl-phase-*`) へ
+ * 出したため、 選択子は共有側の名前を見る。 検査の中身 (中身と色の変化を直接見る) は変えていない。
+ *
  * 設計 (`docs/design/app.pen` の `04 エディタ`) は 3 つを描いているが、 実装は 1 つも持って
  * いなかった。 図がどの局面を見せているのか、 あと何段あるのか、 どの速さで回っているのかが
  * 画面から一切分からない状態だった。
@@ -43,7 +46,7 @@ flow:
 test.describe("局面の表示 (#1143)", () => {
   test("札に今の局面と全体の数と題名が出る", async ({ page }) => {
     await 開く(page);
-    const 札 = page.locator(".v4-editor-phase-chip");
+    const 札 = page.locator(".cdl-phase-chip");
     await expect(札).toBeVisible();
     // 既定の見本は 4 局面 (`call` / `query` / `return` / `ok`)
     await expect(札).toContainText(/局面 [1-4] \/ 4/u);
@@ -52,8 +55,8 @@ test.describe("局面の表示 (#1143)", () => {
 
   test("局面が進むと札の数字とバーが追随する", async ({ page }) => {
     await 開く(page);
-    const 札 = page.locator(".v4-editor-phase-chip");
-    const 済 = page.locator(".v4-editor-phase-seg.is-done");
+    const 札 = page.locator(".cdl-phase-chip");
+    const 済 = page.locator(".cdl-phase-seg.is-done");
 
     const 前文 = (await 札.textContent()) ?? "";
     const 前済 = await 済.count();
@@ -69,11 +72,11 @@ test.describe("局面の表示 (#1143)", () => {
 
   test("バーは局面の数だけ区切られる", async ({ page }) => {
     await 開く(page);
-    await expect(page.locator(".v4-editor-phase-seg")).toHaveCount(4);
+    await expect(page.locator(".cdl-phase-seg")).toHaveCount(4);
 
     // 済んだ側とこれからの側で色が違う。 同じなら進み具合を示せていない
     const 色 = await page.evaluate(() => {
-      const segs = [...document.querySelectorAll(".v4-editor-phase-seg")];
+      const segs = [...document.querySelectorAll(".cdl-phase-seg")];
       return segs.map((s) => ({
         done: s.classList.contains("is-done"),
         bg: getComputedStyle(s).backgroundColor,
@@ -89,13 +92,13 @@ test.describe("局面の表示 (#1143)", () => {
   test("動きの長さと繰り返しが出る", async ({ page }) => {
     await 開く(page);
     // `ease-out` は書かない = cdl の内部既定で API に出ておらず、 写すと黙って古くなる
-    await expect(page.locator(".v4-editor-phase-meta")).toHaveText(/^\d+ms · 繰り返し$/u);
+    await expect(page.locator(".cdl-phase-meta")).toHaveText(/^\d+ms · 繰り返し$/u);
   });
 
   test("局面を持たない図では何も出さない", async ({ page }) => {
     await 開く(page, 共有(局面なし));
-    await expect(page.locator(".v4-editor-phase-chip")).toHaveCount(0);
-    await expect(page.locator(".v4-editor-phase-seg")).toHaveCount(0);
+    await expect(page.locator(".cdl-phase-chip")).toHaveCount(0);
+    await expect(page.locator(".cdl-phase-seg")).toHaveCount(0);
   });
 
   test("重ねても舞台を掴んで動かせる", async ({ page }) => {
@@ -105,13 +108,13 @@ test.describe("局面の表示 (#1143)", () => {
 
     // 重ねたものはマウスを受け取らない。 受け取ると札の上で掴めなくなる
     const pe = await page
-      .locator(".v4-editor-phase")
+      .locator(".cdl-phase")
       .evaluate((el) => getComputedStyle(el).pointerEvents);
     expect(pe, "重ねたものがマウスを受け取っている").toBe("none");
 
     // 札のちょうど上から掴んで実際に動くことまで見る。 `pointer-events` だけだと、
     // 別の要素が上に載った時に気付けない
-    const 札 = await page.locator(".v4-editor-phase-chip").boundingBox();
+    const 札 = await page.locator(".cdl-phase-chip").boundingBox();
     if (札 === null) throw new Error("札が見つからない");
     const 前 = await 位置();
     await page.mouse.move(札.x + 札.width / 2, 札.y + 札.height / 2);
@@ -123,11 +126,11 @@ test.describe("局面の表示 (#1143)", () => {
 
   test("拡大しても札の位置と大きさが変わらない", async ({ page }) => {
     await 開く(page);
-    const 前 = await page.locator(".v4-editor-phase-chip").boundingBox();
+    const 前 = await page.locator(".cdl-phase-chip").boundingBox();
     await page.getByTestId("editor-zoom-in").click();
     await page.getByTestId("editor-zoom-in").click();
     await page.waitForTimeout(400);
-    const 後 = await page.locator(".v4-editor-phase-chip").boundingBox();
+    const 後 = await page.locator(".cdl-phase-chip").boundingBox();
     expect(後?.x).toBeCloseTo(前?.x ?? -1, 0);
     expect(後?.y).toBeCloseTo(前?.y ?? -1, 0);
     expect(後?.width).toBeCloseTo(前?.width ?? -1, 0);

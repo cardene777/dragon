@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router";
 import { CdlDiagramView, type CdlDiagram, type LaidDiagram, type Violation } from "@cardenelabs/cdl";
-import { EditorPhaseChrome } from "@/components/EditorPhaseChrome";
+import { PhaseChrome } from "@/components/PhaseChrome";
 import {
   textDslToDiagram,
   partRenderSize,
@@ -747,7 +747,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const previewRef = useRef<HTMLDivElement>(null);
   /**
    * 舞台の要素そのもの。 `previewRef` は最初の描画で `null` のままで、 埋まっても再描画が
-   * 起きないため、 舞台に重ねる表示 (`EditorPhaseChrome`) に渡せない (#1143)。
+   * 起きないため、 舞台に重ねる表示 (`PhaseChrome`) に渡せない (#1143)。
    */
   const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null);
   const setStage = useCallback((el: HTMLDivElement | null) => {
@@ -2202,7 +2202,7 @@ animation:
           {dropHintMessage && (
             <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
           )}
-          <EditorPhaseChrome stage={stageEl} laid={laid ?? null} />
+          <PhaseChrome stage={stageEl} phases={laid?.phases} />
           <div
             className="v4-editor-pan"
             style={{
