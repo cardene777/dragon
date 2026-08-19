@@ -557,10 +557,10 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "states": [],
   "topic": "E08",
   "viewBox": {
-    "h": 362,
-    "w": 1272,
-    "x": -44,
-    "y": -24,
+    "h": 270,
+    "w": 1223,
+    "x": 5,
+    "y": 68,
   },
 }
 `;
@@ -8860,10 +8860,10 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   ],
   "topic": "M07",
   "viewBox": {
-    "h": 362,
-    "w": 1706,
-    "x": -44,
-    "y": -24,
+    "h": 270,
+    "w": 1697,
+    "x": -35,
+    "y": 68,
   },
 }
 `;
@@ -9166,10 +9166,10 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   ],
   "topic": "M10",
   "viewBox": {
-    "h": 362,
-    "w": 1694,
-    "x": -44,
-    "y": -24,
+    "h": 270,
+    "w": 1685,
+    "x": -35,
+    "y": 68,
   },
 }
 `;

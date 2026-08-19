@@ -90,6 +90,25 @@ export const TOP_LEVEL_KEYS = [
   "axes",
 ] as const;
 
+/**
+ * `lanes:` / `groups:` の 1 行を読む形 (#1241)。
+ *
+ * **id は英数字と下線に限らない**。 組み立て側は登場人物の名前から縦列 id を作るため、
+ * hyphen と日本語が入る (実測 = `type: state` で `lane-idle` / `lane-待機`、
+ * `type: swimlane` で `lane-sign-up`)。 英数字と下線だけを受けていた間、
+ * **自動で作られた縦列の幅や見出しを書き直す手段が無かった**。
+ *
+ * 受けるのは **組み立て側が作りうる字だけ** に絞る。 字と数と下線と hyphen。
+ *
+ * 「読み取りを壊す字以外は何でも」 にすると、`lane-idle,` のような書き間違いが
+ * **別の縦列として通り**、書いた幅が黙って効かなくなる (Round 1 の指摘、実測)。
+ *
+ * **非 ASCII をまとめて許すのも広すぎる** (Round 2 の指摘)。 全角の読点や感嘆符、絵文字まで
+ * 通ってしまう (実測 = `lane-idle、` / `lane-idle！` / `lane-idle🙂` が受かった)。
+ * 字 (`\p{L}`) と数 (`\p{N}`) だけを許せば、日本語の縦列 id は通しつつ句読点は外せる。
+ */
+const LANE_ID_ENTRY = /^([\p{L}\p{N}_-]+)\s*:\s*\{([^}]*)\}\s*$/u;
+
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
   return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
 }
@@ -438,7 +457,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       lanesMap = {};
       for (const it of items) {
-        const m = it.trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*\{([^}]*)\}\s*$/);
+        const m = it.trimmed.match(LANE_ID_ENTRY);
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);
@@ -467,7 +486,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       groupsMap = {};
       for (const it of items) {
-        const m = it.trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*\{([^}]*)\}\s*$/);
+        const m = it.trimmed.match(LANE_ID_ENTRY);
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);

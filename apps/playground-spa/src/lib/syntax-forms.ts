@@ -225,9 +225,12 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "lanes:", note: "縦列の位置と幅を決める" },
-      { code: '  front: { x: 0, width: 360, label: "表" }', note: "id: { x, width, label }" },
+      // **図が作る縦列の id を書く**。 合わない id を書くと箱の入らない縦列が増えるだけで、
+      // 書いた幅も見出しも元の縦列に届かない (#1241 で知らせが出るようにした)。
+      // `type: topology` は箱を全て `main` に入れる
+      { code: '  main: { x: 0, width: 360, label: "表" }', note: "id: { x, width, label }" },
       { code: "groups:", note: "縦列をまとめて囲む" },
-      { code: '  aws: { label: "AWS", lanes: [front] }', note: "id: { label, lanes: [...] }" },
+      { code: '  aws: { label: "AWS", lanes: [main] }', note: "id: { label, lanes: [...] }" },
     ],
   },
 ];

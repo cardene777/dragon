@@ -853,3 +853,43 @@ animation:
       build_end: 1 -> 2
     body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。"
 `;
+
+export const sourceYaml__presetStateMachine = `title: "状態と遷移条件を示す図"
+type: state
+
+lanes:
+  lane-idle: { width: 370 }
+  lane-loading: { width: 370 }
+  lane-done: { width: 370 }
+  lane-error: { width: 370 }
+
+actors:
+  - Idle: { kind: card, eyebrow: "初期" }
+  - Loading: { kind: card, eyebrow: "状態" }
+  - Done: { kind: card, eyebrow: "最終" }
+  - Error: { kind: card, eyebrow: "状態" }
+
+flow:
+  - Idle -> Loading: "submit" (accent, solid)
+  - Loading -> Done: "success" (success, solid)
+  - Loading -> Error: "fail" (error, solid)
+  - Error -> Idle: "retry" (accent, solid) { sub: "if attempts < 3" }
+
+animation:
+  - step: "1. Idle" 0.9s
+    badge: "fsm"
+    focus: [Idle]
+    body: "何も起きていない初期状態。"
+  - step: "2. submit で Loading" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, "Idle -> Loading"]
+    body: "送信を受けて処理中になる。"
+  - step: "3. success で Done" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, Done, "Idle -> Loading", "Loading -> Done"]
+    body: "成功して終わりの状態へ。"
+  - step: "状態と遷移条件を示す図" 0.9s
+    badge: "fsm"
+    focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Idle"]
+    body: "FSM の全 state + transition を visible 化。"
+`;
