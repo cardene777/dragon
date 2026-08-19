@@ -15,12 +15,17 @@
  * 再び開くたびに描き直されても検出できない。
  */
 import React from "react";
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { CategoryPage } from "./CategoryPage";
 import { ToastProvider } from "@/components/Toast";
+import {
+  drive as driveIntersection,
+  installIntersectionObserverStub,
+  restoreIntersectionObserver,
+} from "../../../../test-support/intersection-observer-stub";
 
 vi.mock("@cardenelabs/cdl", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@cardenelabs/cdl")>();
@@ -30,7 +35,11 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
   };
 });
 
-afterEach(() => cleanup());
+beforeEach(() => installIntersectionObserverStub());
+afterEach(() => {
+  cleanup();
+  restoreIntersectionObserver();
+});
 
 /**
  * `/catalog/:slug` を描いた HTML。 画面と同じ route を通す。
@@ -137,9 +146,12 @@ describe("図とコードを切り替えられる (#1236)", () => {
 
   it("コードへ切り替えても図の DOM を作り直さない", () => {
     操作できる画面("charts");
+    act(() => driveIntersection(true));
     const 描画前 = screen.getByTestId("catalog-diagram");
 
     fireEvent.click(screen.getByRole("tab", { name: "コード" }));
+    // hidden になった結果を observer から届ける。 keepMounted の配線が無ければ、ここで図が外れる。
+    act(() => driveIntersection(false));
     expect(screen.getByTestId("catalog-diagram")).toBe(描画前);
 
     fireEvent.click(screen.getByRole("tab", { name: "図" }));
