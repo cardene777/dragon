@@ -2165,20 +2165,20 @@ describe("compileMind: 矢印の扱いと枠 (#1177)", () => {
     expect(d.nodes[0]!.mindData!.branches.map((b) => b.parent)).toEqual(["root", "root"]);
   });
 
-  it("矢印を書いても 1 本も作らず、 書いたことを伝える", () => {
-    // 黙って捨てると「書いたのに効かない」 が残る (`type: journey` / `type: quadrant` と同じ)
-    const 知らせ: Array<{ kind: string; message: string }> = [];
+  it("矢印は線にならず、 枝の親になる (#1251)", () => {
+    // 放射の図は線を描かない。 矢印は「どの枝の下に置くか」 の指定として読む (#1251 で変更)
+    const 知らせ: string[] = [];
     const d = compileToCdl(
       makeDoc("mind", {
         actors: [actor("Root"), actor("L1"), actor("L2")],
-        flow: [step("Root", "L1", { label: "x" })],
+        flow: [step("L1", "L2", "x")],
       }),
-      { onNotice: (n) => 知らせ.push({ kind: n.kind, message: n.message }) },
+      { onNotice: (n) => 知らせ.push(n.kind) },
     );
     expect(d.edges).toEqual([]);
-    expect(知らせ.filter((n) => n.kind === "chart-edge-dropped")).toHaveLength(1);
-    expect(知らせ[0]!.message).toContain("type: mind では矢印を描けません");
-    expect(知らせ[0]!.message).toContain("type: tree");
+    expect(知らせ.filter((k) => k === "chart-edge-dropped"), "使えた矢印を落としている").toEqual([]);
+    const 枝 = (d.nodes[0] as { mindData?: { branches?: { id: string; parent?: string }[] } }).mindData?.branches;
+    expect(枝?.find((x) => x.id === "l2")?.parent).toBe("l1");
   });
 
   it("矢印を書いていなければ知らせも出さない", () => {

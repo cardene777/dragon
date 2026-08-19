@@ -724,3 +724,38 @@ animation:
     body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。"
 `;
 
+
+export const sourceYaml__presetMindMap = `title: "中心の主題から発想を放射状に広げる図"
+eyebrow: "mindMap"
+type: mind
+
+lanes:
+  chart: { width: 720 }
+
+actors:
+  - "{theme}"
+  - Features
+  - UI design
+  - Launch
+  - Auth
+  - Billing
+
+states:
+  theme: "Project"
+
+flow:
+  - Features -> Auth: ""
+  - Features -> Billing: ""
+
+animation:
+  - step: "書き出した時" 0.9s
+    badge: "mindmap"
+    focus: [Features]
+    body: "中心はまだ Project のまま。"
+  - step: "中心の主題から発想を放射状に広げる図" 0.9s
+    badge: "mindmap"
+    focus: [Features]
+    set:
+      theme: "認証と課金の刷新"
+    body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。"
+`;
