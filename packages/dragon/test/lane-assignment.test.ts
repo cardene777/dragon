@@ -130,6 +130,33 @@ describe("書き方が混ざった形を伝える", () => {
     const なし = "  - A\n  - B\n  - C";
     expect(組み立てる(記法(なし)).知らせ.filter((n) => n.kind === "lane-not-honored")).toEqual([]);
   });
+
+  // **知らせと配置は動きの有無で食い違ってはいけない** (Round 2 の指摘)。
+  // 静止図で配置だけ直しても、知らせが動く図の判定のままだと
+  // 「効いているのに知らせが出る」 / 「効いていないのに黙る」 が起きる
+  describe("動きなしでも知らせと配置が一致する", () => {
+    const 知らせ = (actors: string, type: string) =>
+      組み立てる(記法(actors, type, false)).知らせ.filter((n) => n.kind === "lane-not-honored");
+
+    for (const type of ["topology", "flow", "swimlane"]) {
+      it(`${type} は全部書けば知らせず、書いた縦列に入る`, () => {
+        expect(知らせ(三人, type), "効く形に知らせが出ている").toEqual([]);
+        expect(配置(記法(三人, type, false)).縦列).toEqual(["left", "right"]);
+      });
+
+      it(`${type} は混ざれば知らせ、従来の並びになる`, () => {
+        const 混在 = "  - A: { lane: left }\n  - B: { lane: right }\n  - C";
+        const 出た = 知らせ(混在, type);
+        expect(出た, "黙って捨てている").toHaveLength(1);
+        expect(出た[0]?.message).toContain("全ての箱に書きます");
+        expect(配置(記法(混在, type, false)).縦列, "書いた縦列に入れてしまっている").not.toContain("left");
+      });
+
+      it(`${type} は 1 つも書かなければ知らせない`, () => {
+        expect(知らせ("  - A\n  - B\n  - C", type)).toEqual([]);
+      });
+    }
+  });
 });
 
 describe("見本 (parts) は判定から外す", () => {
