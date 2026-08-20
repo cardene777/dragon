@@ -3909,15 +3909,23 @@ function compileGantt(doc: DslDocument): CdlDiagram {
 function compileClass(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const CLASS_W = 400;
+  // 縦列の幅は箱より広く取る。 組立て API 側の値に揃える (#1263)
+  const CLASS_LANE_W = 450;
   // 登場人物が 0 人なら枠も作らない。 先に作ると中身の無い枠が 1 つ残る (#1096)
   if (doc.actors.length === 0) return b.build();
-  b.lane("class-stack", { width: CLASS_W, label: doc.title });
 
+  // **クラスごとに縦列を 1 本作る** (#1263)。 組立て API 側がそう並べており、1 本にまとめると
+  // 同じ内容でも横並びが縦並びになる (実測 = 見本は 3 縦列 450 幅、記法は 1 縦列に縦積み)。
+  //
+  // 縦列に見出しは付けない。 クラスの名前は箱が既に描いており、縦列は並べるための入れ物
+  // (`er` / `state` と同じ扱い、#1241)
   doc.actors.forEach((a, idx) => {
     const nodeId = slugify(a.name) || `c${idx}`;
+    const laneId = `lane-${nodeId}`;
+    b.lane(laneId, { width: CLASS_LANE_W });
     b.node(nodeId, {
-      lane: "class-stack",
-      stack: idx,
+      lane: laneId,
+      stack: 0,
       kind: "storage",
       title: a.name,
       w: CLASS_W,

@@ -554,9 +554,12 @@ flow:
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const diagram = compileToCdl(r.doc);
-    // 1 lane に縦 stack
-    expect(diagram.lanes).toHaveLength(1);
-    expect(diagram.lanes[0]!.id).toBe("class-stack");
+    // **クラスごとに 1 縦列** (#1263 で変更)。 組立て API 側がそう並べており、1 本にまとめると
+    // 同じ内容でも横並びが縦並びになっていた。 縦列に見出しは付けない (箱が名前を描くため)
+    expect(diagram.lanes).toHaveLength(2);
+    expect(diagram.lanes.map((l) => l.id)).toEqual(["lane-user", "lane-admin"]);
+    expect(diagram.lanes.map((l) => l.label)).toEqual([undefined, undefined]);
+    expect(diagram.nodes.map((n) => n.stack)).toEqual([0, 0]);
     // 全 actor は storage kind に強制 (UML class box 表示)
     expect(diagram.nodes.every((n) => n.kind === "storage")).toBe(true);
     expect(diagram.nodes).toHaveLength(2);
