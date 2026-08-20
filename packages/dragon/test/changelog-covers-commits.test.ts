@@ -51,11 +51,21 @@ function 版を上げたcommit(): string | undefined {
     .pop();
 }
 
+/**
+ * いま切ろうとしている版に属する tag か。
+ *
+ * `v0.8.0` だけでなく `v0.8.0-rc1` のような前触れの tag も含む (Round 2 の指摘)。
+ * 含めないと、前触れを前の版とみなして範囲がその後ろだけに縮む。
+ */
+function 今の版のtag(tag: string): boolean {
+  return tag === `v${版}` || tag.startsWith(`v${版}-`);
+}
+
 function 前の版(): string {
   const 前 = git("tag", "--list", "v*", "--sort=-v:refname")
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l !== "" && l !== `v${版}`)[0];
+    .filter((l) => l !== "" && !今の版のtag(l))[0];
   if (前) return 前;
   const 上げた = 版を上げたcommit();
   if (!上げた) throw new Error(`版 ${版} へ上げた commit が見つからない`);
@@ -139,13 +149,11 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     // **範囲を狭める向きの誤りは、上の検査では捕まらない** (Round 1 の指摘)。
     // 覆う対象が減るだけなので「全て辿れる」 は通ってしまう。 下端を直接固定する。
     //
-    // tagを使っている時はこの起点を使わないので見ない
+    // **tag を使っている時も見る** (Round 2 の指摘)。 前の版の tag から測っても、版を
+    // 上げた commit はその後ろにあるので範囲に入るはず。 入らないなら起点が誤っている
     const 上げた = 版を上げたcommit();
-    const tagを使っている = git("tag", "--list", "v*", "--sort=-v:refname")
-      .split("\n")
-      .map((l) => l.trim())
-      .some((l) => l !== "" && l !== `v${版}`);
-    if (tagを使っている || !上げた) return;
+    expect(上げた, "版を上げた commit が見つからない (検査が空振りしている)").toBeDefined();
+    if (!上げた) return;
     const 範囲のsha = new Set(git("log", "--format=%H", 範囲).split("\n").filter((l) => l !== ""));
     expect(範囲のsha.size, "範囲の commit を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(範囲のsha.has(上げた), "版を上げた commit が範囲から漏れている").toBe(true);
