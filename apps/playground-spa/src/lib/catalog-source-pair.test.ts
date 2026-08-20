@@ -54,6 +54,16 @@ describe("見本の記法が YAML / JSON で揃っている (#1292)", () => {
     expect(jsonなし, "YAML はあるが JSON が無い見本がある").toEqual([]);
   });
 
+  it("JSON を持つ見本は YAML も持つ", async () => {
+    const 見本 = await 全見本();
+    const jsonあり = 見本.filter((i) => i.sourceJson);
+    expect(jsonあり.length, "JSON を持つ見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
+    const yamlなし = jsonあり.filter((i) => !i.sourceYaml).map((i) => i.id);
+    expect(yamlなし, "JSON はあるが YAML が無い見本がある").toEqual([]);
+  });
+
   it("YAML と JSON が同じ図に解決される", async () => {
     const 見本 = await 全見本();
     const 対 = 見本.filter((i) => i.sourceYaml && i.sourceJson);
