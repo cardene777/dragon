@@ -250,9 +250,32 @@ print(f"  番号を持つが commit 件名の形でない行 {説明候補}")'
 ## code style
 
 - TypeScript ... strict mode 全面 ON、 `any` 禁止
-- prettier ... `pnpm format` (eslint + prettier)
+- lint ... `pnpm lint` (eslint、 自動修正はしない)
+- 整形 ... 設定は `.prettierrc` (`semi` / `singleQuote` / `printWidth: 100`)。 **触った `.ts` /
+  `.tsx` だけ** `npx prettier --write <path>` で整形する
 - import 順 ... 標準 lib → 外部 → 自 package → 相対 path
 - 1 file 1 責務、 巨大ファイル禁止
+
+### markdown には prettier をかけない
+
+prettier は表の桁を揃える時、**文字数で数えて表示幅で数えない**。 日本語は全角 1 文字が
+2 文字分の幅を占めるため、揃えたはずの `|` が実際にはずれる。
+
+```
+prettier をかける前 (見た目が揃う)     かけた後 (見た目がずれる)
+| 理由 | 確かめ方 |                      | 理由                     | 確かめ方           |
+|---|---|                                | ------------------------ | ------------------ |
+| 未認証 | 下記の command で認証する |   | 未認証                   | 下記の command で認証する |
+```
+
+この repo の文書は日本語の表を多く持つため、markdown は手で書いた形のまま残す。
+
+### repo 全体を整形する script は置いていない
+
+`npx prettier --check .` は **398 file** を指摘する (実測)。 一括整形すると `git blame` が
+全面的に塗り替わり、整形だけで数千行動く差分は review しても中身が読めない。
+
+全体を準拠させるかどうかは `#1285` で決める。 それまでは触った `.ts` / `.tsx` だけを整形する。
 
 ## License
 
