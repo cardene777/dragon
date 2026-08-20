@@ -26,7 +26,16 @@ function 知らせを集める(src: string): CompileNotice[] {
 const 縦列の知らせ = (src: string): CompileNotice[] =>
   知らせを集める(src).filter((n) => n.kind === "lane-not-honored");
 
-const 記法 = (actors: string, type = "flow") =>
+/**
+ * 既定を `sequence` にする (#1263)。
+ *
+ * `flow` / `topology` / `swimlane` は **縦列を選べるようになった** = 縦列を箱を並べる
+ * ための入れ物として使う図種だから。 これらで知らせを期待すると、効く形を「効かない」 と
+ * 書いた検査になる。
+ *
+ * 順序図は縦列がそのまま生命線として描かれる骨格なので、従来どおり選べない。
+ */
+const 記法 = (actors: string, type = "sequence") =>
   `title: "t"\ntype: ${type}\n\nactors:\n${actors}\nflow:\n  - A -> A2: "x"\n`;
 
 const 二人 = (opts: string) => `  - A: { ${opts} }\n  - A2`;
@@ -47,8 +56,8 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
 
   it("知らせに図種の名前が入る", () => {
     // どの図種が縦列を決めているかが分からないと、 図種を変える判断ができない
-    expect(縦列の知らせ(記法(二人("lane: ui"), "swimlane"))[0]?.message).toContain(
-      "type: swimlane",
+    expect(縦列の知らせ(記法(二人("lane: ui"), "solidity"))[0]?.message).toContain(
+      "type: solidity",
     );
   });
 
@@ -65,13 +74,34 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
   });
 
   // 縦列を選べない図種すべてで伝える。 1 図種だけ知らせて他が黙る状態を作らない。
-  // `mind` は自分でまとめて伝えるため別扱い (下の describe)
+  // `mind` は自分でまとめて伝えるため別扱い (下の describe)。
+  // `flow` / `topology` / `swimlane` は #1263 で選べるようになったため別扱い (下の describe)
   for (const type of [
-    "sequence", "flow", "swimlane", "er", "state", "topology", "solidity", "class", "c4",
+    "sequence", "er", "state", "solidity", "class", "c4",
     "gantt", "pie", "bar", "line", "funnel", "tree", "journey", "quadrant",
   ]) {
     it(`${type} でも知らせが出る`, () => {
-      expect(縦列の知らせ(記法(二人("lane: ui"), type))).toHaveLength(1);
+      const 出た = 縦列の知らせ(記法(二人("lane: ui"), type));
+      expect(出た).toHaveLength(1);
+      expect(出た[0]?.message, "効かない旨ではない知らせが出ている").toContain("効きません");
+    });
+  }
+});
+
+describe("縦列を選べる図種では中身が違う (#1263)", () => {
+  // **知らせが出るかどうかだけを見ると気付けない**。 一部の箱だけ縦列を書いた形でも
+  // 知らせは出るが、中身は「効かない」 ではなく「全部に書け」 になる (変異試験で判明)
+  for (const type of ["flow", "topology", "swimlane"]) {
+    it(`${type} は全部に書けと伝える`, () => {
+      const 出た = 縦列の知らせ(記法(二人("lane: ui"), type));
+      expect(出た).toHaveLength(1);
+      expect(出た[0]?.message, "効かない旨を伝えている").toContain("全ての箱に書きます");
+      expect(出た[0]?.message, "書いていない箱を挙げていない").toContain("A2");
+    });
+
+    it(`${type} で全部に書けば知らせない`, () => {
+      const src = 記法(`  - A: { lane: ui }\n  - A2: { lane: ui }`, type);
+      expect(縦列の知らせ(src), "効く形に知らせが出ている").toEqual([]);
     });
   }
 });
