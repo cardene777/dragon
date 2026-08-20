@@ -1038,7 +1038,7 @@ actors:
   - Revise: { kind: function, eyebrow: "process", lane: user }
 
 flow:
-  - Submit request -> Review: "" (accent, solid)
+  - Submit request -> Review: "" (accent, solid) { overlay: false }
   - Review -> Approved: "true" (success, solid) { overlay: true }
   - Review -> Revise: "false" (warning, solid) { overlay: true }
 

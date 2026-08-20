@@ -5669,7 +5669,18 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     const laneId = actorIds.get(a.name) ?? slugify(a.name);
     const footerId = `${laneId}-footer`;
     const actorW = Math.max(140, a.name.length * 22 + 52);
-    b.node(footerId, { lane: laneId, stack: footerStack, kind: "card", title: a.name, w: actorW, h: 72 });
+    // `role` を付ける (#1273)。 付けないと生命線の終わりが footer より 100 下まで伸びる
+    // (実測 = 組立て API は `y2=848`、記法は `y2=948`)。 枠の大きさは同じなので
+    // 描いた図の大きさの比較では捕まらない
+    b.node(footerId, {
+      lane: laneId,
+      stack: footerStack,
+      kind: "card",
+      title: a.name,
+      w: actorW,
+      h: 72,
+      role: "lifeline-footer",
+    });
   });
 
   // state を builder に登録
