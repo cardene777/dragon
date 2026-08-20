@@ -1023,3 +1023,125 @@ animation:
     focus: [Browser, ALB, "Browser -> ALB", "ECS Task", "ALB -> ECS Task", RDS, "ECS Task -> RDS"]
     body: "topology の全 container + connection を visible 化。"
 `;
+
+export const sourceYaml__presetFlowchart = `title: "分岐や判定を含む処理の流れを示す図"
+type: swimlane
+
+lanes:
+  user: { width: 380, label: "User" }
+  manager: { width: 380, label: "Manager" }
+
+actors:
+  - Submit request: { kind: event, eyebrow: "start", lane: user }
+  - Review: { kind: card, eyebrow: "decision", lane: manager }
+  - Approved: { kind: event, eyebrow: "end", lane: manager }
+  - Revise: { kind: function, eyebrow: "process", lane: user }
+
+flow:
+  - Submit request -> Review: "" (accent, solid)
+  - Review -> Approved: "true" (success, solid)
+  - Review -> Revise: "false" (warning, solid)
+
+animation:
+  - step: "1. Submit request" 0.9s
+    badge: "flowchart"
+    focus: ["Submit request"]
+    body: "User が申請を出す。"
+  - step: "2. Review" 0.9s
+    badge: "flowchart"
+    focus: ["Submit request", Review, "Submit request -> Review"]
+    body: "Manager が判定する。"
+  - step: "3. true なら Approved" 0.9s
+    badge: "flowchart"
+    focus: ["Submit request", Review, "Submit request -> Review", Approved, "Review -> Approved"]
+    body: "承認して終わる枝。"
+  - step: "分岐や判定を含む処理の流れを示す図" 0.9s
+    badge: "flowchart"
+    focus: ["Submit request", Review, "Submit request -> Review", Approved, "Review -> Approved", Revise, "Review -> Revise"]
+    body: "flowchart 全 node + edge を visible 化、 swimlane + decision を表現。"
+`;
+
+export const sourceYaml__presetNetwork = `title: "ネットワーク機器とセグメントの接続関係を示す図"
+type: flow
+
+lanes:
+  n-col-0: { width: 320 }
+  n-col-1: { width: 320 }
+  n-col-2: { width: 320 }
+
+actors:
+  - Firewall: { kind: service, eyebrow: "firewall / DMZ", lane: n-col-0 }
+  - Switch A: { kind: service, eyebrow: "switch / LAN", lane: n-col-1 }
+  - App Server: { kind: backend, eyebrow: "server", lane: n-col-2 }
+  - DB Server: { kind: backend, eyebrow: "server", lane: n-col-2 }
+
+flow:
+  - Firewall -> Switch A: "VLAN 10" (info, solid)
+  - Switch A -> App Server: "TCP 22" (info, solid)
+  - Switch A -> DB Server: "TCP 5432" (info, solid)
+
+animation:
+  - step: "1. Firewall" 0.9s
+    badge: "network"
+    focus: [Firewall]
+    body: "DMZ の入口。"
+  - step: "2. Switch A" 0.9s
+    badge: "network"
+    focus: [Firewall, "Switch A", "Firewall -> Switch A"]
+    body: "VLAN 10 で LAN に流す。"
+  - step: "3. App Server" 0.9s
+    badge: "network"
+    focus: [Firewall, "Switch A", "Firewall -> Switch A", "App Server", "Switch A -> App Server"]
+    body: "TCP 22 で繋がる。"
+  - step: "ネットワーク機器とセグメントの接続関係を示す図" 0.9s
+    badge: "network"
+    focus: [Firewall, "Switch A", "Firewall -> Switch A", "App Server", "Switch A -> App Server", "DB Server", "Switch A -> DB Server"]
+    body: "network 全 device + link を visible 化。"
+`;
+
+export const sourceYaml__presetInfrastructure = `title: "クラウド・ネットワーク構成を階層で示す図"
+type: flow
+
+lanes:
+  col-0: { width: 380 }
+  col-1: { width: 380 }
+  col-2: { width: 380 }
+  col-3: { width: 380 }
+
+actors:
+  - User: { kind: person, lane: col-0 }
+  - CloudFront: { kind: cdn, lane: col-1 }
+  - ALB: { kind: service, lane: col-2 }
+  - App: { kind: service, lane: col-2 }
+  - RDS: { kind: database, lane: col-3 }
+  - Redis: { kind: cache, lane: col-3 }
+
+flow:
+  - User -> CloudFront: "HTTPS" (accent, solid)
+  - CloudFront -> ALB: "origin" (accent, solid)
+  - ALB -> App: "route" (accent, solid)
+  - App -> RDS: "SQL" (accent, solid)
+  - App -> Redis: "GET/SET" (accent, solid)
+
+animation:
+  - step: "1. User" 0.9s
+    badge: "infrastructure"
+    focus: [User]
+    body: "利用者から始まる。"
+  - step: "2. CloudFront" 0.9s
+    badge: "infrastructure"
+    focus: [User, CloudFront, "User -> CloudFront"]
+    body: "HTTPS を受ける。"
+  - step: "3. ALB" 0.9s
+    badge: "infrastructure"
+    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB"]
+    body: "origin へ振り分ける。"
+  - step: "4. App" 0.9s
+    badge: "infrastructure"
+    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB", App, "ALB -> App"]
+    body: "処理を担う。"
+  - step: "クラウド・ネットワーク構成を階層で示す図" 0.9s
+    badge: "infrastructure"
+    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB", App, "ALB -> App", RDS, Redis, "App -> RDS", "App -> Redis"]
+    body: "infrastructure 全 node + connection を visible 化。"
+`;
