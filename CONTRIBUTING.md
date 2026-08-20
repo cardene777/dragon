@@ -251,7 +251,7 @@ print(f"  番号を持つが commit 件名の形でない行 {説明候補}")'
 
 - TypeScript ... strict mode 全面 ON、 `any` 禁止
 - lint ... `pnpm lint` (eslint、 自動修正はしない)
-- 整形 ... 設定は `.prettierrc` (`semi` / `singleQuote` / `printWidth: 100`)。 **触った `.ts` /
+- 整形 ... 設定は `.prettierrc` (`semi: true` / `singleQuote: false` / `printWidth: 100`)。 **触った `.ts` /
   `.tsx` だけ** `npx prettier --write <path>` で整形する
 - import 順 ... 標準 lib → 外部 → 自 package → 相対 path
 - 1 file 1 責務、 巨大ファイル禁止
