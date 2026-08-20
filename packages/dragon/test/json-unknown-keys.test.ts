@@ -49,9 +49,21 @@ const 未知を足す: Record<階層, { input: Record<string, unknown>; path: st
     input: 図({ actors: [{ name: "A", nodes: { header: { foo: 1 } } }, { name: "B" }] }),
     path: "$.actors[0].nodes.header.foo",
   },
-  axesEnd: {
-    input: 図({ type: "quadrant", axes: { x: { left: "低", foo: 1 } } }),
-    path: "$.axes.x.foo",
+  axes: {
+    input: 図({ type: "quadrant", axes: { z: { left: "低" } } }),
+    path: "$.axes.z",
+  },
+  axesX: {
+    input: 図({ type: "quadrant", axes: { x: { left: "低", bottom: "小" } } }),
+    path: "$.axes.x.bottom",
+  },
+  axesY: {
+    input: 図({ type: "quadrant", axes: { y: { bottom: "小", left: "低" } } }),
+    path: "$.axes.y.left",
+  },
+  layoutPos: {
+    input: 図({ actors: [{ name: "A", pos: { x: 1, y: 2, z: 3 } }, { name: "B" }] }),
+    path: "$.actors[0].pos.z",
   },
 };
 
@@ -133,7 +145,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
   lane: { x: 10, width: 300, label: "縦列", contain: true, lifeline: true, pos: { x: 1, y: 2 } },
   group: { label: "群", lanes: ["L1"] },
   actorNode: { posX: 1, posY: 2, posW: 3, posH: 4 },
-  axesEnd: { left: "低", right: "高", bottom: "小", top: "大" },
+  axes: { x: { left: "低" }, y: { bottom: "小" } },
+  axesX: { left: "低", right: "高" },
+  axesY: { bottom: "小", top: "大" },
+  layoutPos: { x: 1, y: 2 },
 };
 
 /** その階層に、受ける項目を 1 つだけ足した入力を組む */
@@ -156,10 +171,15 @@ function 正しい値で組む(層: 階層, key: string): Record<string, unknown
       return 図({ lanes: { L1: {} }, groups: { G1: { lanes: ["L1"], [key]: v } } });
     case "actorNode":
       return 図({ actors: [{ name: "A", nodes: { header: { [key]: v } } }, { name: "B" }] });
-    case "axesEnd":
+    case "axes":
+      return 図({ type: "quadrant", axes: { [key]: v } });
+    case "axesX":
+      return 図({ type: "quadrant", axes: { x: { [key]: v } } });
+    case "axesY":
+      return 図({ type: "quadrant", axes: { y: { [key]: v } } });
+    case "layoutPos":
       return 図({
-        type: "quadrant",
-        axes: key === "left" || key === "right" ? { x: { [key]: v } } : { y: { [key]: v } },
+        actors: [{ name: "A", pos: { x: 1, y: 2, [key]: v } }, { name: "B" }],
       });
   }
 }
@@ -178,7 +198,10 @@ function schemaの項目(層: 階層): string[] {
     lane: root.lanes.additionalProperties.properties,
     group: root.groups.additionalProperties.properties,
     actorNode: actor.nodes.additionalProperties.properties,
-    axesEnd: { ...root.axes.properties.x.properties, ...root.axes.properties.y.properties },
+    axes: root.axes.properties,
+    axesX: root.axes.properties.x.properties,
+    axesY: root.axes.properties.y.properties,
+    layoutPos: actor.pos.properties,
   };
   return Object.keys(場所[層]);
 }

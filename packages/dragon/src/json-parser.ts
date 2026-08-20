@@ -379,7 +379,10 @@ export const ACCEPTED_KEYS = {
   lane: ["x", "width", "label", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
   actorNode: ["posX", "posY", "posW", "posH"],
-  axesEnd: ["left", "right", "bottom", "top"],
+  axes: ["x", "y"],
+  axesX: ["left", "right"],
+  axesY: ["bottom", "top"],
+  layoutPos: ["x", "y"],
 } as const satisfies Record<string, readonly string[]>;
 
 /** 受ける項目を持つ階層の名前 */
@@ -462,6 +465,7 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
     return;
   }
   const p = v as Record<string, unknown>;
+  checkUnknownKeys(p, "layoutPos", path, errors);
   if (typeof p.x !== "number" || !Number.isFinite(p.x)) {
     errors.push({ path: `${path}.x`, message: "pos.x must be a finite number" });
   }
@@ -571,8 +575,13 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
     return;
   }
   const 軸 = v as Record<string, unknown>;
-  const 端 = { x: ["left", "right"], y: ["bottom", "top"] } as const;
-  for (const [名, 端の名前] of Object.entries(端)) {
+  checkUnknownKeys(軸, "axes", "$.axes", errors);
+  const 端 = {
+    x: { 層: "axesX", 名前: ["left", "right"] },
+    y: { 層: "axesY", 名前: ["bottom", "top"] },
+  } as const;
+  for (const 名 of ["x", "y"] as const) {
+    const { 層, 名前: 端の名前 } = 端[名];
     const 一方 = 軸[名];
     if (一方 === undefined) continue;
     if (!一方 || typeof 一方 !== "object" || Array.isArray(一方)) {
@@ -580,7 +589,7 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
       continue;
     }
     const o = 一方 as Record<string, unknown>;
-    checkUnknownKeys(o, "axesEnd", `$.axes.${名}`, errors);
+    checkUnknownKeys(o, 層, `$.axes.${名}`, errors);
     for (const 端名 of 端の名前) {
       validateOptionalString(o[端名], `$.axes.${名}.${端名}`, `axes.${名}.${端名}`, errors);
     }
