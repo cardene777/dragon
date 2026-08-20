@@ -927,3 +927,35 @@ animation:
     focus: [Idle, Active, Loading, Done, "Idle -> Loading", "Loading -> Done"]
     body: "拡張 FSM (nested + action) を visible 化。"
 `;
+
+export const sourceYaml__presetSwimlane = `title: "処理を役割ごとに縦レーン分けして流れを示す図"
+type: swimlane
+
+lanes:
+  lane-user: { width: 520, label: "Client" }
+  lane-handler: { width: 520, label: "Service" }
+  lane-processed: { width: 520, label: "Event" }
+
+actors:
+  - User: { kind: actor }
+  - handler(...): { kind: function }
+  - Processed: { kind: event }
+
+flow:
+  - User -> handler(...): "call" (accent, dotted-flow)
+  - handler(...) -> Processed: "emit" (success, dotted-flow)
+
+animation:
+  - step: "1. Client の User" 0.9s
+    badge: "preset"
+    focus: [User]
+    body: "外から呼ぶ人が最初の縦列に立つ。"
+  - step: "2. Service の handler" 0.9s
+    badge: "preset"
+    focus: [User, "handler(...)", "User -> handler(...)"]
+    body: "呼び出しが隣の縦列に渡る。"
+  - step: "swimlane" 0.9s
+    badge: "preset"
+    focus: [User, "handler(...)", Processed, "User -> handler(...)", "handler(...) -> Processed"]
+    body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。"
+`;
