@@ -18,11 +18,7 @@ export { TONE_ALIAS, NODE_KIND_ALIAS } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)
-export {
-  computeDiagramBoundingBox,
-  rectsOverlap,
-  DIAGRAM_BOUNDARY_PADDING,
-} from "./canvas-bounds";
+export { computeDiagramBoundingBox, rectsOverlap, DIAGRAM_BOUNDARY_PADDING } from "./canvas-bounds";
 export type { DiagramBoundingBox } from "./canvas-bounds";
 // 位置を相対で書くための解決。 組み立て側と画面側の両方が同じ規則を使うために公開する。
 export {
@@ -96,6 +92,8 @@ export { diagramJsonSchema } from "./schema";
 export type {
   DragonJson,
   JsonActor,
+  JsonActorNodeOverride,
+  JsonAxes,
   JsonStep,
   JsonPhase,
   JsonDslError,
@@ -205,14 +203,14 @@ function isV05Source(src: string): boolean {
   // negative marker に追加。
   const V04_KEYWORDS = [
     // Japanese v0.4 専用 keyword (v0.5 は英語のみ)
-    /^\s*タイトル\s*[:：]/,     // title (JA)
-    /^\s*種類\s*[:：]/,          // type (JA)
-    /^\s*登場人物\s*[:：]/,      // actors (JA)
-    /^\s*流れ\s*[:：]/,          // flow (JA)
-    /^\s*アニメーション\s*[:：]/,  // animation (JA)
-    /^\s*動作\s*[:：]/,          // step (JA)
-    /^\s*状態\s*[:：]/,          // state (JA)
-    /^\s*ステップ\s*[「『]/,     // step (JA)
+    /^\s*タイトル\s*[:：]/, // title (JA)
+    /^\s*種類\s*[:：]/, // type (JA)
+    /^\s*登場人物\s*[:：]/, // actors (JA)
+    /^\s*流れ\s*[:：]/, // flow (JA)
+    /^\s*アニメーション\s*[:：]/, // animation (JA)
+    /^\s*動作\s*[:：]/, // step (JA)
+    /^\s*状態\s*[:：]/, // state (JA)
+    /^\s*ステップ\s*[「『]/, // step (JA)
     // v0.4 English-specific syntax = colon なし step (v0.5 は step: 必須)
     /^\s*step\s+"[^"]+"\s+[\d.]+\s*s\b/,
     /^\s*step\s+'[^']+'\s+[\d.]+\s*s\b/,

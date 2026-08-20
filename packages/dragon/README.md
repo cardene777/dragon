@@ -279,6 +279,10 @@ const diagram = jsonToDiagram(json);
 | `step: "..." 1.4s` | `{step: "...", duration: 1.4}` |
 | `focus: [A, B]` | `{focus: ["A", "B"]}` |
 
+箱に書ける項目 (`tone` / `owner` / `posX` 等) は両方の記法で同じ。 一覧は実装
+(`INLINE_ACTOR_KEYS`) が持ち、`packages/dragon/test/json-actor-fields.test.ts` が
+両入口の一致を確かめる。 ここに一覧を写すと項目が増えた時に取り残されるため書かない。
+
 ## License
 
 MIT

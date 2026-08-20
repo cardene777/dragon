@@ -739,7 +739,7 @@ function classifyValues(values: string[]): ActorValues {
         continue;
       }
     }
-    const tone = toneOrUndef(v);
+    const tone = resolveTone(v);
     if (tone) {
       out.tone = tone;
       continue;
@@ -788,7 +788,7 @@ function boolOrUndef(s: string | undefined): boolean | undefined {
  * `valueOf` / `__proto__` が JavaScript の既定の持ち物として引けてしまい、 色名として
  * 関数やオブジェクトが通る (実測)。 最後に解決結果が正規の色名かも確かめる。
  */
-function toneOrUndef(s: string | undefined): Tone | undefined {
+export function resolveTone(s: string | undefined): Tone | undefined {
   if (s === undefined) return undefined;
   const raw = stripQuotes(s.trim());
   const lower = raw.toLowerCase();
@@ -943,10 +943,10 @@ function collectIndentedList(
  * 書く人は「色を変えたい」 としか思わないので、 項目は `色:` 1 つにまとめる。 意味の色
  * (`失敗`) と色番号 (`#f59e0b`) は形で見分ける。 前者は箱の色、 後者はパーツの塗りになる。
  */
-function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
+export function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
   const v = stripQuotes(raw.trim());
   if (v.startsWith("#")) return { hex: v };
-  const tone = toneOrUndef(v);
+  const tone = resolveTone(v);
   return tone ? { tone } : {};
 }
 
@@ -1627,7 +1627,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       initial: boolOrUndef(opts.initial),
       final: boolOrUndef(opts.final),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
-      tone: isPart ? undefined : toneOrUndef(opts.tone),
+      tone: isPart ? undefined : resolveTone(opts.tone),
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
       // canvas pivot 新 spec = 絶対座標 field を actor に格納、 compile 経由で CDL に受け渡す
@@ -1725,7 +1725,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   if (optMatch) {
     const opts = (optMatch[1] ?? "").split(",").map((s) => s.trim());
     for (const opt of opts) {
-      const resolvedTone = toneOrUndef(opt);
+      const resolvedTone = resolveTone(opt);
       if (resolvedTone !== undefined) tone = resolvedTone;
       else if (STYLE_VALID.has(opt.toLowerCase())) style = opt.toLowerCase() as EdgeStyle;
     }
@@ -1738,7 +1738,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
       const last = words[words.length - 1]!;
       // 引用符付きは説明文なので取らない
       if (last.startsWith('"') || last.startsWith("'")) break;
-      const resolvedTone = toneOrUndef(last);
+      const resolvedTone = resolveTone(last);
       if (resolvedTone !== undefined) {
         tone = resolvedTone;
         words.pop();
