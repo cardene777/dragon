@@ -569,13 +569,20 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
     expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
   });
 
-  // 控えの欄は 3 つある。 **3 つとも材料を置く** = 1 つずつ試さないと、落とす対象から
+  // 控えの欄は 3 つある。 **3 つとも守る** = 1 つずつ試さないと、落とす対象から
   // 1 つ外しても検査が通ってしまう (実測 = 正規表現を `subtitle` だけに縮めても 32 件すべて
-  // 通った)。 見える文字が変わる種別では `<text>` 側の差が残るため、この材料には
-  // 文字を自前で固定している `shape-blockchain-block` を使う。
-  for (const 欄 of ["title", "subtitle", "eyebrow"] as const) {
+  // 通った)。
+  //
+  // 守り方は欄によって分かれる。 `subtitle` と `eyebrow` は、その欄を文字として描かない
+  // 種別があるので実際の図で見る。 `title` は **描かない種別がもう無い** ため
+  // (cdl 0.9.0 で全ての種別が題を描くようになった、実測で 110 種すべて)、
+  // 絞り込みそのものを直接見る。
+  for (const [欄, 見本の名] of [
+    ["subtitle", "shape-terminal"],
+    ["eyebrow", "shape-kanban-card"],
+  ] as const) {
     it(`見えない控えの欄 (${欄}) だけが変わる図は、同じと判定される`, () => {
-      const 元 = 見本("shape-blockchain-block");
+      const 元 = 見本(見本の名);
       const d = 二段にする(
         { ...元, nodes: 元.nodes.map((n) => ({ ...n, [欄]: "{v}" })), states: [{ id: "v", initial: "11" }] },
         { sets: [{ stateId: "v", value: "11" }], tweens: [] },
@@ -588,6 +595,25 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
       expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
     });
   }
+
+  it("控えの欄 (title) は絞り込みで落ちる", () => {
+    // 題を描かない種別が無くなったため、実際の図では材料を作れない。
+    // 絞り込みが `data-cdl-title` を落とすことを直接見る。
+    //
+    // **描く側が変わっても落とす対象は残す**。 いま全ての種別が題を描くのは cdl 側の
+    // 都合で、描かない種別が戻れば控えだけが変わる図がまた作れる
+    const 元 = 見本("shape-terminal");
+    const 生 = 二段にする(
+      { ...元, nodes: 元.nodes.map((n) => ({ ...n, title: "{v}" })), states: [{ id: "v", initial: "11" }] },
+      { sets: [{ stateId: "v", value: "11" }], tweens: [] },
+      { sets: [{ stateId: "v", value: "999999" }], tweens: [] },
+    );
+    for (const id of ["a", "b"]) {
+      expect(見える部分(生, id), `${id} 段に data-cdl-title が残っている`).not.toContain("data-cdl-title");
+    }
+    // 空振り検査。 題は実際に図へ渡っている (渡っていなければ落とす意味が無い)
+    expect(生.nodes.some((n) => n.title === "{v}"), "題が図に渡っていない (検査が空振りしている)").toBe(true);
+  });
 
   it("段の題と説明だけが違う 2 段の図は、同じと判定される", () => {
     // 段の題は読み上げ用の説明として `aria-label` に入る。 図の見た目ではないので、

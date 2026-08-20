@@ -3420,11 +3420,15 @@ function reportUnresolvedValues(
   // 描画側 (`computeStateValues`) が段を進める前に組み立てるのと同じ形。 値を解く手順は
   // engine に渡すので、ここで組み立てるのは初期値の表だけにする
   //
-  // **通常の object で作る**。 engine 側も `{}` で組むため、`__proto__` のような名前は
-  // どちらでも同じように落ちる。 ここだけ `Object.create(null)` にすると、組み立てでは
-  // 解けて描画では解けない状態ができ、「知らせは出ないのに箱には `{名前}` が出る」 が起きる
-  // (この食い違いこそ本 Issue が消そうとしているもの)
-  const 初期値: Record<string, string> = {};
+  // **継承を持たない入れ物で作る**。 engine 側 (`computeStateValues` /
+  // `applyDerivedValues`) が同じ形で組むため、ここを通常の object にすると
+  // `__proto__` のような名前で **組み立てだけが「値が無い」 と知らせる** 状態ができる
+  // (実測 = 描画は `a = 5` を出すのに、知らせは `value-unresolved` を出していた)。
+  //
+  // engine が `{}` で組んでいた頃はここも `{}` で揃えていた。 cdl 側が継承なしに
+  // 揃えた (cdl#456 / cdl#490) ので、こちらも合わせる。 **揃っていることが要点**で、
+  // どちらの形にするかは engine が決める
+  const 初期値: Record<string, string> = Object.create(null) as Record<string, string>;
   for (const s of diagram.states) 初期値[s.id] = String(s.initial);
 
   // engine は同じ名前では先に書いた式を使う。 Map の一括生成で後ろから
