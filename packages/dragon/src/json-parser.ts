@@ -18,10 +18,20 @@
  *   YAML `animation: [step: "..."]` ⇔ JSON `{animation: [{step: "...", duration: 1.4, focus: [...]}]}`
  */
 
-import { PRESET_TYPES } from "./v05/parser";
+import { PRESET_TYPES, NODE_KIND_VALID } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import type { DslDocument, DslActor, DslStep, DslAnimate, DslPhase, DslState, PresetType, LayoutMode, LayoutPos } from "./types";
+import type {
+  DslDocument,
+  DslActor,
+  DslStep,
+  DslAnimate,
+  DslPhase,
+  DslState,
+  PresetType,
+  LayoutMode,
+  LayoutPos,
+} from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
 import { compileToCdl } from "./compile";
 
@@ -75,23 +85,29 @@ export interface DragonJson {
     labelMargin?: number;
   };
   /** lanes (optional): topology / swimlane preset で使う lane 宣言 */
-  lanes?: Record<string, {
-    x?: number;
-    width?: number;
-    label?: string;
-    contain?: boolean;
-    lifeline?: boolean;
-    /**
-     * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = auto layout offset。 未指定は
-     * backward compat、 set 済は Phase 2 の applyPosOffset で lane 位置を shift する。
-     */
-    pos?: LayoutPos;
-  }>;
+  lanes?: Record<
+    string,
+    {
+      x?: number;
+      width?: number;
+      label?: string;
+      contain?: boolean;
+      lifeline?: boolean;
+      /**
+       * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = auto layout offset。 未指定は
+       * backward compat、 set 済は Phase 2 の applyPosOffset で lane 位置を shift する。
+       */
+      pos?: LayoutPos;
+    }
+  >;
   /** groups (optional): topology preset で使う group 宣言 */
-  groups?: Record<string, {
-    label?: string;
-    lanes: string[];
-  }>;
+  groups?: Record<
+    string,
+    {
+      label?: string;
+      lanes: string[];
+    }
+  >;
   /**
    * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 "auto" (default) は catalog 100+
    * backward compat、 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode として使う予定。
@@ -187,16 +203,19 @@ export interface JsonDslError {
 }
 
 /**
- * CAR-1657 = 既存 NodeKind list (v05/parser.ts の NODE_KIND_VALID と揃える必要あり)。
- * 未知 kind 値は parts identifier 候補として partId に格納する経路の判定基準。
- * v05 parser との drift 防止のため、 別 PR で共通化検討 (`packages/dragon/src/kinds.ts` etc)。
+ * 受け付ける種類 (`kind`)。 **記法側と同じ集合を使う** (`v05/parser.ts` の `NODE_KIND_VALID`)。
+ *
+ * ここに無い値は見本 (parts) の名前とみなし、`partId` へ退避して箱を `actor` に倒す
+ * (CAR-1657 の unified syntax)。 つまりこの集合が小さいほど、**書いた種類が黙って消える**。
+ *
+ * 以前はここに一覧を写していたため、記法に種類が増えても JSON 経路が古い一覧のまま
+ * 見本の名前として扱った (実測 = 記法が知る 108 種のうち 77 種が該当、`shape-*` は全滅)。
+ * 見本帳に無い名前は `console.warn` にしか残らず `onNotice` を呼ばないため、
+ * 画面には何も出ないまま `actor` の箱が描かれていた (#1293)。
+ *
+ * 型が 2 箇所に散らばると、必ずどちらかが古くなる。 `VALID_PRESETS` (図種) と同じ扱いにする。
  */
-const VALID_KIND_SET: ReadonlySet<string> = new Set([
-  "actor", "function", "storage", "event", "cdn", "service", "database",
-  "cache", "queue", "api", "person", "entity", "state", "container", "card",
-  "lambda", "kms", "secret", "alb", "ecs", "rds", "s3", "iam", "user", "browser",
-  "contract", "eoa", "multisig", "proxy", "library", "interface",
-]);
+const VALID_KIND_SET: ReadonlySet<string> = NODE_KIND_VALID;
 
 /**
  * 受け付ける図種。 **記法側と同じ集合を使う** (`v05/parser.ts` の `PRESET_TYPES`)。
@@ -338,11 +357,7 @@ function 素のデータに写す(
   };
 
   /** 入れ物だけ作る (ここでは降りない)。 新しく作った時だけ枠を返す */
-  const 器を作る = (
-    v: unknown,
-    深さ: number,
-    path: string,
-  ): { 値: unknown; 枠: 枠 | null } => {
+  const 器を作る = (v: unknown, 深さ: number, path: string): { 値: unknown; 枠: 枠 | null } => {
     項目数 += 1;
     if (項目数 > 写しの最大の項目数) {
       throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
@@ -449,7 +464,9 @@ function 素のデータに写す(
   }
 }
 
-function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
+function validateJson(
+  json: unknown,
+): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
   const errors: JsonDslError[] = [];
   // root の形は写しより先に見る = 形が違う入力には従来どおり `root must be a JSON object` を
   // 返すため。 写した後に見ると、 root が配列の入力で中の getter が先に動き、 別の誤りに化ける
@@ -511,18 +528,27 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
       }
       const ao = a as Record<string, unknown>;
       if (typeof ao.name !== "string" || ao.name.length === 0) {
-        errors.push({ path: `$.actors[${i}].name`, message: "actor.name must be a non-empty string" });
+        errors.push({
+          path: `$.actors[${i}].name`,
+          message: "actor.name must be a non-empty string",
+        });
       }
       // CAR-1657 (+ codex-review MAJOR fix) = kind の validation、 non-empty string 必須。
       // parts identifier or existing NodeKind のどちらかを想定、 空文字 or 非 string は reject。
       if (ao.kind !== undefined && (typeof ao.kind !== "string" || ao.kind.length === 0)) {
-        errors.push({ path: `$.actors[${i}].kind`, message: "actor.kind must be a non-empty string" });
+        errors.push({
+          path: `$.actors[${i}].kind`,
+          message: "actor.kind must be a non-empty string",
+        });
       }
       // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
       // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
       if (ao.state !== undefined) {
         if (!ao.state || typeof ao.state !== "object" || Array.isArray(ao.state)) {
-          errors.push({ path: `$.actors[${i}].state`, message: "actor.state must be a plain object" });
+          errors.push({
+            path: `$.actors[${i}].state`,
+            message: "actor.state must be a plain object",
+          });
         } else {
           for (const [sk, sv] of Object.entries(ao.state as Record<string, unknown>)) {
             const svType = typeof sv;
@@ -548,9 +574,12 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
         return;
       }
       const so = s as Record<string, unknown>;
-      if (typeof so.from !== "string") errors.push({ path: `$.flow[${i}].from`, message: "step.from must be a string" });
-      if (typeof so.to !== "string") errors.push({ path: `$.flow[${i}].to`, message: "step.to must be a string" });
-      if (typeof so.label !== "string") errors.push({ path: `$.flow[${i}].label`, message: "step.label must be a string" });
+      if (typeof so.from !== "string")
+        errors.push({ path: `$.flow[${i}].from`, message: "step.from must be a string" });
+      if (typeof so.to !== "string")
+        errors.push({ path: `$.flow[${i}].to`, message: "step.to must be a string" });
+      if (typeof so.label !== "string")
+        errors.push({ path: `$.flow[${i}].label`, message: "step.label must be a string" });
       // CAR-1693 Phase 1: step DSL 表面 pos の validation
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
     });
@@ -574,7 +603,10 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
         }
         const po = p as Record<string, unknown>;
         if (typeof po.step !== "string" || po.step.length === 0) {
-          errors.push({ path: `$.animation[${i}].step`, message: "phase.step must be a non-empty string" });
+          errors.push({
+            path: `$.animation[${i}].step`,
+            message: "phase.step must be a non-empty string",
+          });
         }
         validatePhaseMotion(po, i, errors);
       });
@@ -592,11 +624,7 @@ function validateJson(json: unknown): { ok: true; data: DragonJson } | { ok: fal
  * 状態名の記法は `states:` と同じ判定を使う。 参照先はこの JSON の `states` だけでは決めない。
  * 見本や preset が持つ状態を動かす指定もあるためで、記法側と同じく compile 後の図で解決する。
  */
-function validatePhaseMotion(
-  po: Record<string, unknown>,
-  i: number,
-  errors: JsonDslError[],
-): void {
+function validatePhaseMotion(po: Record<string, unknown>, i: number, errors: JsonDslError[]): void {
   if (po.tween !== undefined) {
     if (!po.tween || typeof po.tween !== "object" || Array.isArray(po.tween)) {
       errors.push({
@@ -615,7 +643,11 @@ function validatePhaseMotion(
         // 段の途中が壊れる (記法側も数だけを受ける)
         for (const v of range) {
           if (typeof v !== "number" || !Number.isFinite(v)) {
-            errors.push({ path, message: "tween value must be finite numbers", hint: `got ${typeof v}` });
+            errors.push({
+              path,
+              message: "tween value must be finite numbers",
+              hint: `got ${typeof v}`,
+            });
             break;
           }
         }
@@ -653,7 +685,10 @@ function validatePhaseMotion(
 function validateStates(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!v || typeof v !== "object" || Array.isArray(v)) {
-    errors.push({ path: "$.states", message: "states must be a plain object of name -> initial value" });
+    errors.push({
+      path: "$.states",
+      message: "states must be a plain object of name -> initial value",
+    });
     return;
   }
   for (const [name, initial] of Object.entries(v as Record<string, unknown>)) {
@@ -684,7 +719,10 @@ function validateStates(v: unknown, errors: JsonDslError[]): void {
 function validateValues(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!v || typeof v !== "object" || Array.isArray(v)) {
-    errors.push({ path: "$.values", message: "values must be a plain object of name -> expression" });
+    errors.push({
+      path: "$.values",
+      message: "values must be a plain object of name -> expression",
+    });
     return;
   }
   for (const [name, expression] of Object.entries(v as Record<string, unknown>)) {
@@ -734,7 +772,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
     return {
       name: a.name,
-      kind: isPart ? "actor" as NodeKind : (a.kind ?? "actor") as NodeKind,
+      kind: isPart ? ("actor" as NodeKind) : ((a.kind ?? "actor") as NodeKind),
       // parts 候補は `kind` を `actor` に倒して `partId` へ退避するため、 名札に載せる種類としては
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: a.kind !== undefined && !isPart,
@@ -787,7 +825,12 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     // 空の配列を置かないのは、記法側が「無ければ field ごと持たない」 形だから
     ...(p.tween && Object.keys(p.tween).length > 0
       ? {
-          tweens: Object.entries(p.tween).map(([state, [from, to]]) => ({ state, from, to, pos: p0 })),
+          tweens: Object.entries(p.tween).map(([state, [from, to]]) => ({
+            state,
+            from,
+            to,
+            pos: p0,
+          })),
         }
       : {}),
     ...(p.set && Object.keys(p.set).length > 0
@@ -827,7 +870,10 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       : undefined,
     groups: json.groups
       ? Object.fromEntries(
-          Object.entries(json.groups).map(([id, g]) => [id, { id, label: g.label, lanes: g.lanes, pos: p0 }]),
+          Object.entries(json.groups).map(([id, g]) => [
+            id,
+            { id, label: g.label, lanes: g.lanes, pos: p0 },
+          ]),
         )
       : undefined,
     // CAR-1693 Phase 1: diagram-level layout mode (auto|manual)、 未指定は undefined = auto default
@@ -866,7 +912,9 @@ export function jsonToDiagram(
 ): CdlDiagram {
   const v = validateJson(json);
   if (!v.ok) {
-    const msg = v.errors.map((e) => `  ${e.path}: ${e.message}${e.hint ? ` (${e.hint})` : ""}`).join("\n");
+    const msg = v.errors
+      .map((e) => `  ${e.path}: ${e.message}${e.hint ? ` (${e.hint})` : ""}`)
+      .join("\n");
     throw new Error(`Dragon JSON DSL validation error:\n${msg}`);
   }
   const doc = jsonToDoc(v.data);
