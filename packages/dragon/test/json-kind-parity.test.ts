@@ -14,12 +14,14 @@
  * 一覧が 2 箇所にある限り同じことが起きるので、**集合そのものを突き合わせる**。
  * 代表値を数個書く形にすると、次に種類が増えた時に検査が空振りする。
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
+
+import { jsonToDiagram, textDslToDiagram } from "@cardenelabs/dragon";
+import { describe, expect, it } from "vitest";
+
 import { jsonToDoc, type DragonJson } from "../src/json-parser";
-import { NODE_KIND_VALID } from "../src/v05/parser";
+import { NODE_KIND_VALID, parseTextDslV05 } from "../src/v05/parser";
 
 const 図 = (kind: string): DragonJson => ({
   title: "t",
@@ -33,20 +35,32 @@ describe("2 つの入口が同じ種類を受ける (#1293)", () => {
     // 母集合が空だと以下の走査は 1 件も回らずに通る
     expect(NODE_KIND_VALID.size, "種類の一覧が空 (検査が空振りしている)").toBeGreaterThan(0);
 
-    const 見本の名前になった: string[] = [];
+    const 違った種類: string[] = [];
     let 測れた = 0;
     for (const kind of NODE_KIND_VALID) {
-      const actor = jsonToDoc(図(kind)).actors[0]!;
+      const jsonActor = jsonToDoc(図(kind)).actors[0];
+      const textResult = parseTextDslV05(
+        `title: "t"\ntype: flow\nactors:\n  - A: { kind: ${kind} }\n  - B\nflow:\n  - A -> B: "x"\n`,
+      );
+      if (!textResult.ok) throw new Error(`${kind} の記法を読めない`);
+      const textActor = textResult.doc.actors[0];
+      if (jsonActor === undefined || textActor === undefined) {
+        throw new Error(`${kind} の actor が無い`);
+      }
       測れた += 1;
-      if (actor.partId !== undefined || actor.kind !== kind) {
-        見本の名前になった.push(`${kind} (kind: ${actor.kind}, partId: ${actor.partId ?? "-"})`);
+      if (
+        jsonActor.kind !== textActor.kind ||
+        jsonActor.partId !== textActor.partId ||
+        jsonActor.kindWritten !== textActor.kindWritten
+      ) {
+        違った種類.push(
+          `${kind} (JSON: ${jsonActor.kind}/${jsonActor.partId ?? "-"}, ` +
+            `記法: ${textActor.kind}/${textActor.partId ?? "-"})`,
+        );
       }
     }
     expect(測れた, "種類を 1 つも測れていない (検査が空振りしている)").toBe(NODE_KIND_VALID.size);
-    expect(
-      見本の名前になった,
-      "記法では種類なのに JSON では見本の名前として扱われる値がある",
-    ).toEqual([]);
+    expect(違った種類, "記法と JSON で種類の解決結果が違う値がある").toEqual([]);
   });
 
   it("一覧に無い値は従来どおり見本の名前として扱う", () => {
@@ -65,8 +79,8 @@ describe("2 つの入口が同じ種類を受ける (#1293)", () => {
   });
 
   it("記法と JSON が同じ図に解決される", () => {
-    // 種類ごとに組み立て後の形が変わるため、`shape-` を含む代表 3 種で端から端まで比べる
-    for (const kind of ["shape-wallet", "shape-smart-contract", "cloud"]) {
+    // 種類ごとに組み立て後の形が変わるため、直接の種類 3 種と読み替える種類を端から端まで比べる
+    for (const kind of ["shape-wallet", "shape-smart-contract", "cloud", "lambda"]) {
       const 記法 = textDslToDiagram(
         `title: "t"\ntype: flow\nactors:\n  - A: { kind: ${kind} }\n  - B\nflow:\n  - A -> B: "x"\n`,
       );

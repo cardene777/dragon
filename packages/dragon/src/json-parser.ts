@@ -18,7 +18,7 @@
  *   YAML `animation: [step: "..."]` ⇔ JSON `{animation: [{step: "...", duration: 1.4, focus: [...]}]}`
  */
 
-import { PRESET_TYPES, NODE_KIND_VALID } from "./v05/parser";
+import { NODE_KIND_VALID, PRESET_TYPES, resolveNodeKind } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type {
@@ -772,7 +772,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
     return {
       name: a.name,
-      kind: isPart ? ("actor" as NodeKind) : ((a.kind ?? "actor") as NodeKind),
+      kind: isPart ? "actor" : resolveNodeKind(kindStr),
       // parts 候補は `kind` を `actor` に倒して `partId` へ退避するため、 名札に載せる種類としては
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: a.kind !== undefined && !isPart,
