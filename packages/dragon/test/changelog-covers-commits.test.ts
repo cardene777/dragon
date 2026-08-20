@@ -27,8 +27,9 @@ import { describe, it, expect } from "vitest";
 const ここ = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ここ, "..", "..", "..");
 const CHANGELOG = readFileSync(join(REPO, "CHANGELOG.md"), "utf8");
-const 版 = (JSON.parse(readFileSync(join(ここ, "..", "package.json"), "utf8")) as { version: string })
-  .version;
+const 版 = (
+  JSON.parse(readFileSync(join(ここ, "..", "package.json"), "utf8")) as { version: string }
+).version;
 
 const git = (...args: string[]): string =>
   execFileSync("git", ["-C", REPO, ...args], { encoding: "utf8" }).trim();
@@ -129,6 +130,7 @@ const 利用者から見えない: Record<string, string> = {
   "1277": "版を切る commit そのもの。 変更履歴の更新が中身",
   "1279": "記載漏れの検査を取り込み前後で通るようにした commit。 記法も出力も変わらない",
   "1282": "CONTRIBUTING.md に検査の書き方の規範を足しただけ。 記法も出力も変わらない",
+  "1284": "CONTRIBUTING.md の整形の案内を実在する手順に直しただけ。 記法も出力も変わらない",
 };
 
 /**
@@ -247,7 +249,9 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
 
   it("commit を 1 件以上集められている", () => {
     // 集められていなければ、以下の検査は通って当然になる
-    expect(commit.length, `${範囲} の commit が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(0);
+    expect(commit.length, `${範囲} の commit が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(
+      0,
+    );
   });
 
   it("全ての commit が変更履歴か宣言のどちらかから辿れる", () => {
@@ -265,7 +269,10 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     // 宣言が古くなったまま残らないようにする。 同じ番号が別の変更で再び現れた時に
     // 黙って除外されるのを防ぐ
     const 範囲の番号 = new Set(commit.flatMap((s) => commitの番号(s)));
-    expect(範囲の番号.size, "commit から番号を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      範囲の番号.size,
+      "commit から番号を 1 つも読めていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     // **抜け道は持たない** (#1279)。 本文まで見るので、branch 上の番号がそのまま
     // 取り込み後も残る = 宣言は常に範囲の中にあるはず
     const 範囲に無い = Object.keys(利用者から見えない).filter((n) => !範囲の番号.has(n));
@@ -281,8 +288,15 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     const 上げた = 版を上げたcommit();
     expect(上げた, "版を上げた commit が見つからない (検査が空振りしている)").toBeDefined();
     if (!上げた) return;
-    const 範囲のsha = new Set(git("log", "--format=%H", 範囲).split("\n").filter((l) => l !== ""));
-    expect(範囲のsha.size, "範囲の commit を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    const 範囲のsha = new Set(
+      git("log", "--format=%H", 範囲)
+        .split("\n")
+        .filter((l) => l !== ""),
+    );
+    expect(
+      範囲のsha.size,
+      "範囲の commit を 1 件も読めていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     expect(範囲のsha.has(上げた), "版を上げた commit が範囲から漏れている").toBe(true);
   });
 
@@ -400,7 +414,9 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     it("番号を持たない元件名しか無ければ件名で辿るしかない", () => {
       // 元件名から辿れる番号が 1 つも無い = 元件名は判定材料にならない。
       // 件名が載っていなければ辿れないままにする
-      const m = ["✨ feat(catalog): 段を付ける (#9001)", "", "* ⏪ revert(design): 戻す"].join("\n");
+      const m = ["✨ feat(catalog): 段を付ける (#9001)", "", "* ⏪ revert(design): 戻す"].join(
+        "\n",
+      );
       expect(辿れるか(m, (n) => n === "9002")).toBe(false);
       expect(辿れるか(m, (n) => n === "9001")).toBe(true);
     });
