@@ -183,28 +183,34 @@ expect(svg).not.toContain("{waiting}");
 
 round 3 と round 5 の外れは、どちらも **実履歴を数えて初めて分かった**。 数えていれば
 その場で出た数字なので、往復の 2 回は避けられた。 とくに round 5 は、実在しない形
-(説明の箇条書き、実測 0 件) を防ぐために実在する 82 件を壊している。
+(説明の箇条書き、実測 0 件) を防ぐために、実在する 82 commit (実測時) を壊している。
 
-数え方は短い script で足りる。 全履歴 1,421 commit を走査して 1 秒かからない。
+数え方は短い script で足りる。 全履歴を走査しても 1 秒かからない。 件数は履歴が伸びれば
+変わるので、**本文の数値を信じずに自分で走らせる**。
 
 ```bash
-# 列 0 の `* ` 行を、番号の付き方で分類する
+# 新旧 2 つの述語で列 0 の `* ` 行を分類し、判定が変わる件数を出す
 git log --format=%B%x00 --all | python3 -c '
 import sys, re
 msgs = [m.strip() for m in sys.stdin.read().split("\0") if m.strip()]
-末尾 = re.compile(r"\(#\d+\)$")
-持つ, 末尾形, 番号なし, 該当commit = 0, 0, 0, 0
+# round 3 の述語 (実物をそのまま写した)
+旧 = re.compile(r"^\* (?:\S+ )?[a-z]+(?:\([^)]+\))?!?: .+ \(#\d+\)$")
+全, 旧が拾う, 番号なし, 該当commit = 0, 0, 0, 0
 for m in msgs:
     行 = [l for l in m.split("\n")[1:] if l.startswith("* ")]
     if 行 and any(not re.search(r"#\d+", l) for l in 行): 該当commit += 1
     for l in 行:
+        全 += 1
         if not re.search(r"#\d+", l): 番号なし += 1; continue
-        持つ += 1
-        if 末尾.search(l.rstrip()): 末尾形 += 1
-print(f"commit {len(msgs)}")
-print(f"  番号を持つ行 {持つ} (うち末尾が (#N) {末尾形} / 注記付き {持つ - 末尾形})")
+        if 旧.match(l): 旧が拾う += 1
+番号あり = 全 - 番号なし
+print(f"commit {len(msgs)} / 列 0 の * 行 {全}")
+print(f"  番号を持つ行 {番号あり} (旧述語が拾う {旧が拾う} / 落とす {番号あり - 旧が拾う})")
 print(f"  番号なしの行 {番号なし} (それを含む commit {該当commit})")'
 ```
+
+出力の「落とす」 が round 3 の取りこぼし、「番号なしの行を含む commit」 が round 5 の
+巻き込みにあたる。 **本節の数値はこの出力から取っている**。
 
 適用するのは **入力を分類する述語** に限る。 出力の書式や、分類を伴わない実装変更には
 課さない。 全変更に課すと、形だけ数えた記録が増えて記録そのものが信用されなくなる。
