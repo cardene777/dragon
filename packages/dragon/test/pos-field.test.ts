@@ -4,8 +4,9 @@ import { validateDragonJson, jsonToDiagram, jsonToDoc, type DragonJson } from ".
 /**
  * CAR-1693 (dragon canvas pivot Phase 1) の behavior test。
  *
- * DSL 表面 `pos: {x, y}` (auto layout の offset dx, dy) と diagram-level `layout: auto | manual`
- * field の parse + AST の `layoutPos:` mapping を検証する。 内部 AST の既存 `pos: Position`
+ * DSL 表面 `pos: {x, y}` (auto layout の offset dx, dy) の parse と mapping を検証する。
+ * `layout: auto | manual` は #1295 で受けるのをやめた (記法に無く、読む場所も無かった)。
+ * 内部 AST の既存 `pos: Position`
  * (source location) と naming collision しないこと、 未指定 element は auto fallback で render 挙動が
  * 現状維持 (catalog 100+ backward compat) であることを固定する。
  *
@@ -21,7 +22,7 @@ const validDoc: DragonJson = {
   flow: [{ from: "A", to: "B", label: "call" }],
 };
 
-describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
+describe("#CAR-1693 Phase 1: DSL 表面 pos field", () => {
   describe("validation", () => {
     it("actor.pos は {x, y} 形式で accept される", () => {
       const r = validateDragonJson({
@@ -56,7 +57,10 @@ describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
     it("actor.pos が非 object なら reject", () => {
       const r = validateDragonJson({
         ...validDoc,
-        actors: [{ name: "A", pos: "invalid" as unknown as { x: number; y: number } }, { name: "B" }],
+        actors: [
+          { name: "A", pos: "invalid" as unknown as { x: number; y: number } },
+          { name: "B" },
+        ],
       });
       expect(r.ok).toBe(false);
       if (!r.ok) {
@@ -102,25 +106,16 @@ describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
       }
     });
 
-    it("layout は 'auto' / 'manual' 以外を reject", () => {
-      const r = validateDragonJson({
-        ...validDoc,
-        layout: "invalid" as "auto" | "manual",
-      });
-      expect(r.ok).toBe(false);
-      if (!r.ok) {
-        expect(r.errors.some((e) => e.path === "$.layout")).toBe(true);
+    // `layout` は受けない (#1295)。 記法 (`TOP_LEVEL_KEYS`) に無く、`doc.layout` を読む場所も
+    // 実装に 1 つも無いため、受けると「検査を通るのに何も起きない」 項目が残る。
+    // Phase 4 (drag で位置を保存する mode) が入る時に両入口へ同時に足す
+    it("layout は値に関わらず知らない項目として誤りになる", () => {
+      for (const 値 of ["auto", "manual", "invalid"]) {
+        const r = validateDragonJson({ ...validDoc, layout: 値 });
+        expect(r.ok, `layout: "${値}" が通ってしまう`).toBe(false);
+        if (r.ok) continue;
+        expect(r.errors.map((e) => e.path)).toContain("$.layout");
       }
-    });
-
-    it("layout が 'auto' なら accept される", () => {
-      const r = validateDragonJson({ ...validDoc, layout: "auto" });
-      expect(r.ok).toBe(true);
-    });
-
-    it("layout が 'manual' なら accept される", () => {
-      const r = validateDragonJson({ ...validDoc, layout: "manual" });
-      expect(r.ok).toBe(true);
     });
 
     it("layout / pos とも未指定なら backward compat で accept (catalog 100+ 互換)", () => {
@@ -184,14 +179,6 @@ describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
       expect(doc.lanes?.l1?.pos).toEqual({ line: 0 });
     });
 
-    it("layout: 'manual' が DslDocument.layout に mapping される", () => {
-      const r = validateDragonJson({ ...validDoc, layout: "manual" });
-      expect(r.ok).toBe(true);
-      if (!r.ok) return;
-      const doc = jsonToDoc(r.data);
-      expect(doc.layout).toBe("manual");
-    });
-
     it("layout / pos とも未指定なら AST の layoutPos / layout は undefined (backward compat)", () => {
       const r = validateDragonJson(validDoc);
       expect(r.ok).toBe(true);
@@ -221,11 +208,6 @@ describe("#CAR-1693 Phase 1: DSL 表面 pos field + layout mode", () => {
       expect(d.nodes.length).toBeGreaterThan(0);
       // Phase 2 実装後は node の posX/Y に (auto + offset) が反映される予定、 本 test はそれまで
       // 「pos 指定でも既存 render を壊さない」 の regression guard として機能する。
-    });
-
-    it("layout: 'manual' でも Phase 1 では render 崩れない (Phase 4 で本格反映)", () => {
-      const d = jsonToDiagram({ ...validDoc, layout: "manual" });
-      expect(d.nodes.length).toBeGreaterThan(0);
     });
   });
 });

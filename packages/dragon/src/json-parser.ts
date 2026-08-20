@@ -35,7 +35,6 @@ import type {
   DslPhase,
   DslState,
   PresetType,
-  LayoutMode,
   LayoutPos,
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
@@ -123,11 +122,6 @@ export interface DragonJson {
       lanes: string[];
     }
   >;
-  /**
-   * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 "auto" (default) は catalog 100+
-   * backward compat、 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode として使う予定。
-   */
-  layout?: LayoutMode;
 }
 
 export interface JsonActor {
@@ -313,6 +307,147 @@ const VALID_KIND_SET: ReadonlySet<string> = NODE_KIND_VALID;
 const VALID_PRESETS: readonly PresetType[] = [...PRESET_TYPES];
 
 /**
+ * 受け付ける項目の一覧 (#1295)。 **知らない項目を誤りにする判定と、公開 schema との
+ * 突き合わせが、どちらもここを見る**。
+ *
+ * 一覧を型 / 検査 / schema の 3 箇所に手で置くと必ずどれかが古くなる。 型は TypeScript が
+ * 見る宣言で実行時には残らないため、実行時の判定と schema はこの表を出どころにする。
+ *
+ * 公開している JSON Schema は元から全階層で `additionalProperties: false` を宣言していた。
+ * 知らない項目を弾くのは新しい方針ではなく、parser が自分の契約に追いついていなかった。
+ *
+ * `states` / `values` / `tween` / `set` / `lanes` / `groups` の **鍵は利用者が決める**
+ * (状態の名前 / 縦列の id)。 表が縛るのはその中の値の形で、鍵そのものではない。
+ */
+export const ACCEPTED_KEYS = {
+  root: [
+    "title",
+    "type",
+    "eyebrow",
+    "axes",
+    "actors",
+    "flow",
+    "states",
+    "values",
+    "animation",
+    "viewport",
+    "lanes",
+    "groups",
+  ],
+  actor: [
+    "name",
+    "kind",
+    "subtitle",
+    "eyebrow",
+    "value",
+    "rows",
+    "lane",
+    "stack",
+    "initial",
+    "final",
+    "tone",
+    "color",
+    "owner",
+    "end",
+    "touchpoint",
+    "opportunity",
+    "posX",
+    "posY",
+    "posW",
+    "posH",
+    "nodes",
+    "scale",
+    "state",
+    "pos",
+  ],
+  step: [
+    "from",
+    "to",
+    "label",
+    "sub",
+    "tone",
+    "style",
+    "guard",
+    "cardinality",
+    "labelOffsetX",
+    "labelOffsetY",
+    "overlay",
+    "pos",
+  ],
+  phase: ["step", "duration", "focus", "body", "badge", "tween", "set"],
+  viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
+  lane: ["x", "width", "label", "contain", "lifeline", "pos"],
+  group: ["label", "lanes"],
+  actorNode: ["posX", "posY", "posW", "posH"],
+  axesEnd: ["left", "right", "bottom", "top"],
+} as const satisfies Record<string, readonly string[]>;
+
+/** 受ける項目を持つ階層の名前 */
+export type 階層 = keyof typeof ACCEPTED_KEYS;
+
+/**
+ * 綴り違いの候補を返す (#1295)。
+ *
+ * 「知らない項目です」 だけだと、`animations` と書いた人は正しい綴りを探しに行く必要がある。
+ * 1 文字の違い (足りない / 多い / 入れ替わり / 別の字) までを候補とする。
+ *
+ * 遠い名前は勧めない。 無関係な項目名を勧めると、書いた人がそちらへ直して二度手間になる。
+ */
+function 近い項目名(key: string, 候補: readonly string[]): string | undefined {
+  const 小文字 = key.toLowerCase();
+  let 最短: { 名: string; 距離: number } | undefined;
+  for (const c of 候補) {
+    const d = 編集距離(小文字, c.toLowerCase(), 2);
+    if (d <= 2 && (最短 === undefined || d < 最短.距離)) 最短 = { 名: c, 距離: d };
+  }
+  return 最短?.名;
+}
+
+/**
+ * 2 つの語の編集距離 (上限付き)。
+ *
+ * 上限を持つのは、長い語どうしで表を全部埋めないため。 上限を超えた時点で打ち切る。
+ */
+function 編集距離(a: string, b: string, 上限: number): number {
+  if (Math.abs(a.length - b.length) > 上限) return 上限 + 1;
+  let 前 = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    const 今: number[] = [i];
+    let 行の最小 = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const 費用 = a[i - 1] === b[j - 1] ? 0 : 1;
+      const v = Math.min(今[j - 1]! + 1, 前[j]! + 1, 前[j - 1]! + 費用);
+      今.push(v);
+      if (v < 行の最小) 行の最小 = v;
+    }
+    // その行の最小が上限を超えたら、以降どう進んでも上限以下にはならない
+    if (行の最小 > 上限) return 上限 + 1;
+    前 = 今;
+  }
+  return 前[b.length]!;
+}
+
+/**
+ * 知らない項目を誤りとして積む (#1295)。
+ *
+ * 対象は plain object だけ。 形が違う入力は呼出側が別に誤りを積むため、ここでは何もしない
+ * (同じ入力に 2 つの誤りを出すと、どちらを直せばよいか読めなくなる)。
+ */
+function checkUnknownKeys(v: unknown, 層: 階層, path: string, errors: JsonDslError[]): void {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return;
+  const 受ける = ACCEPTED_KEYS[層] as readonly string[];
+  for (const key of Object.keys(v as Record<string, unknown>)) {
+    if (受ける.includes(key)) continue;
+    const 候補 = 近い項目名(key, 受ける);
+    errors.push({
+      path: `${path}.${key}`,
+      message: `unknown key "${key}"`,
+      hint: 候補 !== undefined ? `"${候補}" のことですか` : `使える項目 = ${受ける.join(", ")}`,
+    });
+  }
+}
+
+/**
  * shape validation。 layer 1 = 必須 field + 型 check、 layer 2 は compile 側の validation に委譲。
  * fail-fast ではなく全 error 収集して返す (LLM に一括で修正させるため)。
  */
@@ -398,9 +533,30 @@ function validateActorNodes(v: unknown, path: string, errors: JsonDslError[]): v
       continue;
     }
     const n = o as Record<string, unknown>;
-    for (const key of ["posX", "posY", "posW", "posH"] as const) {
+    checkUnknownKeys(n, "actorNode", nodePath, errors);
+    for (const key of ACCEPTED_KEYS.actorNode) {
       validateOptionalFiniteNumber(n[key], `${nodePath}.${key}`, `nodes.${name}.${key}`, errors);
     }
+  }
+}
+
+/**
+ * 図全体の大きさと間隔を見る (#1295)。
+ *
+ * これまで `viewport` は検査そのものが無く、中身を丸ごと写していた
+ * (`{ ...json.viewport }`)。 型にも schema にも無い `scale` が素通しで効いていた一方、
+ * 数でない値を書いても誰も止めなかった。
+ */
+function validateViewport(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.viewport", message: "viewport must be a plain object" });
+    return;
+  }
+  checkUnknownKeys(v, "viewport", "$.viewport", errors);
+  const o = v as Record<string, unknown>;
+  for (const key of ACCEPTED_KEYS.viewport) {
+    validateOptionalFiniteNumber(o[key], `$.viewport.${key}`, `viewport.${key}`, errors);
   }
 }
 
@@ -424,6 +580,7 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
       continue;
     }
     const o = 一方 as Record<string, unknown>;
+    checkUnknownKeys(o, "axesEnd", `$.axes.${名}`, errors);
     for (const 端名 of 端の名前) {
       validateOptionalString(o[端名], `$.axes.${名}.${端名}`, `axes.${名}.${端名}`, errors);
     }
@@ -510,8 +667,14 @@ class 写せない extends Error {
  *
  * 線を引くのは、 5 round にわたって「読む前に量を作れる経路」 を潰し続けた末に、 残りが
  * 呼ぶ側の code の中に移ったため。 潰す対象が自分の外に出た時点で、 この関数の責務ではない。
+ *
+ * **test のために export する** (#1295)。 写しの性質 (深さ / 数の上限 / 読む順 / 値を返す
+ * 関数の扱い) を確かめる検査は、以前は「検査が見ない項目」 に構造をぶら下げて
+ * `validateDragonJson` 越しに見ていた。 知らない項目を誤りにしたことでその足場が無くなり、
+ * かつ写しは検査より前に走るため、検査の結果からは写しの中身を取り出せない。
+ * 検査の対象そのものを直接呼ぶ形にする。
  */
-function 素のデータに写す(
+export function 素のデータに写す(
   root: unknown,
 ): { ok: true; value: unknown } | { ok: false; error: JsonDslError } {
   const 写し済 = new WeakMap<object, unknown[] | Record<string, unknown>>();
@@ -680,6 +843,10 @@ function validateJson(
   if (!写し.ok) return { ok: false, errors: [写し.error] };
   const j = 写し.value as Record<string, unknown>;
 
+  // 知らない項目を先に見る (#1295)。 綴り違いは「書いた項目が効かない」 形で表に出るため、
+  // 個々の型の誤りより先に伝える方が直しやすい
+  checkUnknownKeys(j, "root", "$", errors);
+
   if (typeof j.title !== "string" || j.title.length === 0) {
     errors.push({ path: "$.title", message: "title must be a non-empty string" });
   }
@@ -687,10 +854,6 @@ function validateJson(
   // (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
   if (j.eyebrow !== undefined && typeof j.eyebrow !== "string") {
     errors.push({ path: "$.eyebrow", message: "eyebrow must be a string if present" });
-  }
-  // CAR-1693 Phase 1: diagram-level layout mode の validation (未指定 = auto default で backward compat)
-  if (j.layout !== undefined && j.layout !== "auto" && j.layout !== "manual") {
-    errors.push({ path: "$.layout", message: 'layout must be "auto" or "manual" if present' });
   }
   if (typeof j.type !== "string" || !VALID_PRESETS.includes(j.type as PresetType)) {
     errors.push({
@@ -709,6 +872,7 @@ function validateJson(
         return;
       }
       const ao = a as Record<string, unknown>;
+      checkUnknownKeys(ao, "actor", `$.actors[${i}]`, errors);
       if (typeof ao.name !== "string" || ao.name.length === 0) {
         errors.push({
           path: `$.actors[${i}].name`,
@@ -795,6 +959,7 @@ function validateJson(
         return;
       }
       const so = s as Record<string, unknown>;
+      checkUnknownKeys(so, "step", `$.flow[${i}]`, errors);
       if (typeof so.from !== "string")
         errors.push({ path: `$.flow[${i}].from`, message: "step.from must be a string" });
       if (typeof so.to !== "string")
@@ -805,12 +970,25 @@ function validateJson(
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
     });
   }
-  // CAR-1693 Phase 1: lane DSL 表面 pos の validation
+  validateViewport(j.viewport, errors);
+  // 縦列と群は **鍵を利用者が決める** (id)。 表が縛るのはその中の項目
   if (j.lanes !== undefined && j.lanes && typeof j.lanes === "object" && !Array.isArray(j.lanes)) {
     for (const [laneId, lane] of Object.entries(j.lanes as Record<string, unknown>)) {
       if (lane && typeof lane === "object" && !Array.isArray(lane)) {
+        checkUnknownKeys(lane, "lane", `$.lanes.${laneId}`, errors);
+        // CAR-1693 Phase 1: lane DSL 表面 pos の validation
         validateLayoutPos((lane as Record<string, unknown>).pos, `$.lanes.${laneId}.pos`, errors);
       }
+    }
+  }
+  if (
+    j.groups !== undefined &&
+    j.groups &&
+    typeof j.groups === "object" &&
+    !Array.isArray(j.groups)
+  ) {
+    for (const [groupId, group] of Object.entries(j.groups as Record<string, unknown>)) {
+      checkUnknownKeys(group, "group", `$.groups.${groupId}`, errors);
     }
   }
   if (j.animation !== undefined) {
@@ -823,6 +1001,7 @@ function validateJson(
           return;
         }
         const po = p as Record<string, unknown>;
+        checkUnknownKeys(po, "phase", `$.animation[${i}]`, errors);
         if (typeof po.step !== "string" || po.step.length === 0) {
           errors.push({
             path: `$.animation[${i}].step`,
@@ -1133,8 +1312,6 @@ export function jsonToDoc(json: DragonJson): DslDocument {
           ]),
         )
       : undefined,
-    // CAR-1693 Phase 1: diagram-level layout mode (auto|manual)、 未指定は undefined = auto default
-    layout: json.layout,
     pos: p0,
   };
 }
