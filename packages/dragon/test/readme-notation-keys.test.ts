@@ -37,6 +37,31 @@ import { compileToCdl } from "../src/compile";
 
 const README = join(dirname(fileURLToPath(import.meta.url)), "..", "README.md");
 
+/** Markdown 表の 1 行を、エスケープされていない `|` だけで列に割る */
+function 表の列(行: string): string[] {
+  const 内側 = 行.replace(/^\|/, "").replace(/\|$/, "");
+  const 列 = [""];
+
+  for (let i = 0; i < 内側.length; i++) {
+    if (内側[i] === "|") {
+      let 直前のバックスラッシュ数 = 0;
+      for (let j = i - 1; j >= 0 && 内側[j] === "\\"; j--) 直前のバックスラッシュ数++;
+      if (直前のバックスラッシュ数 % 2 === 0) {
+        列.push("");
+        continue;
+      }
+    }
+    列[列.length - 1] += 内側[i];
+  }
+
+  return 列.map((c) => c.trim());
+}
+
+function 記法行が読める(行: string): boolean {
+  const 列 = 表の列(行);
+  return 列.length === 2 && /^`[^`]+`$/.test(列[0] ?? "") && (列[1] ?? "") !== "";
+}
+
 /**
  * README の印で囲まれた表から、1 列目の `` `名前` `` を取り出す。
  *
@@ -54,7 +79,7 @@ function 一覧(名: string): string[] {
   //
   // **区切りの前後の空白は数を問わない** (Round 2 の指摘)。 markdown の表は空白の数が
   // 自由なので、1 個に決め打つと正しい書き方を落とす。 見るのは「2 列であること」 と
-  // 「1 列目が `欄` の形であること」 の 2 点
+  // 「1 列目が `欄` の形であること」 と「説明が空でないこと」 の 3 点
   const 行 = md
     .slice(始, 終)
     .split("\n")
@@ -63,22 +88,11 @@ function 一覧(名: string): string[] {
     // 見出し行と区切り行は表の骨格なので飛ばす
     .filter((l) => !/^\|\s*欄\s*\|/.test(l) && !/^\|[\s:|-]+\|$/.test(l));
 
-  /** 1 行を列に割る。 前後の `|` を外してから区切る */
-  const 列 = (l: string): string[] =>
-    l
-      .replace(/^\|/, "")
-      .replace(/\|$/, "")
-      .split("|")
-      .map((c) => c.trim());
-
-  const 読めない = 行.filter((l) => {
-    const c = 列(l);
-    return c.length !== 2 || !/^`[^`]+`$/.test(c[0] ?? "") || (c[1] ?? "") === "";
-  });
+  const 読めない = 行.filter((l) => !記法行が読める(l));
   if (読めない.length > 0) {
     throw new Error(`notation:${名} に読めない行がある (\`欄\` と説明の 2 列で書く): ${読めない.join(" / ")}`);
   }
-  return 行.map((l) => /^`([^`]+)`$/.exec(列(l)[0] ?? "")![1]!);
+  return 行.map((l) => /^`([^`]+)`$/.exec(表の列(l)[0] ?? "")![1]!);
 }
 
 /** `scale` の別名。 同じ欄を 2 行に分けて書かず、説明の中で触れる */
@@ -99,20 +113,13 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
   });
 
   it("表の空白の数を問わない", () => {
-    // markdown の表は空白の数が自由。 1 個に決め打つと正しい書き方を落とす
-    const 読める = (行: string): boolean => {
-      const c = 行
-        .replace(/^\|/, "")
-        .replace(/\|$/, "")
-        .split("|")
-        .map((x) => x.trim());
-      return c.length === 2 && /^`[^`]+`$/.test(c[0] ?? "") && (c[1] ?? "") !== "";
-    };
-    expect(読める("|`a`|説明|"), "空白なしが読めない").toBe(true);
-    expect(読める("|   `a`   |   説明   |"), "空白が多いと読めない").toBe(true);
-    expect(読める("| a | 説明 |"), "backtick 無しを読めてしまう").toBe(false);
-    expect(読める("| `a` |"), "1 列を読めてしまう").toBe(false);
-    expect(読める("| `a` | 説明 | 余分 |"), "3 列を読めてしまう").toBe(false);
+    // `一覧` と同じ判定を直接呼び、検査側だけが drift しないようにする
+    expect(記法行が読める("|`a`|説明|"), "空白なしが読めない").toBe(true);
+    expect(記法行が読める("|   `a`   |   説明   |"), "空白が多いと読めない").toBe(true);
+    expect(記法行が読める("| `a` | A \\| B |"), "説明内の pipe が読めない").toBe(true);
+    expect(記法行が読める("| a | 説明 |"), "backtick 無しを読めてしまう").toBe(false);
+    expect(記法行が読める("| `a` |"), "1 列を読めてしまう").toBe(false);
+    expect(記法行が読める("| `a` | 説明 | 余分 |"), "3 列を読めてしまう").toBe(false);
   });
 
   it("別名が実装に残っている", () => {
