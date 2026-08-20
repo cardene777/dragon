@@ -195,7 +195,9 @@ import sys, re
 msgs = [m.strip() for m in sys.stdin.read().split("\0") if m.strip()]
 # round 3 の述語 (実物をそのまま写した)
 旧 = re.compile(r"^\* (?:\S+ )?[a-z]+(?:\([^)]+\))?!?: .+ \(#\d+\)$")
-全, 旧が拾う, 番号なし, 該当commit = 0, 0, 0, 0
+# commit 件名らしい形 (これに当たらない = 説明の箇条書きの候補)
+件名形 = re.compile(r"^\* (?:\S+ )?[A-Za-z]+(?:\([^)]+\))?!?: |^\* Revert \"")
+全, 旧が拾う, 番号なし, 該当commit, 説明候補 = 0, 0, 0, 0, 0
 for m in msgs:
     行 = [l for l in m.split("\n")[1:] if l.startswith("* ")]
     if 行 and any(not re.search(r"#\d+", l) for l in 行): 該当commit += 1
@@ -203,14 +205,21 @@ for m in msgs:
         全 += 1
         if not re.search(r"#\d+", l): 番号なし += 1; continue
         if 旧.match(l): 旧が拾う += 1
+        if not 件名形.match(l): 説明候補 += 1
 番号あり = 全 - 番号なし
 print(f"commit {len(msgs)} / 列 0 の * 行 {全}")
 print(f"  番号を持つ行 {番号あり} (旧述語が拾う {旧が拾う} / 落とす {番号あり - 旧が拾う})")
-print(f"  番号なしの行 {番号なし} (それを含む commit {該当commit})")'
+print(f"  番号なしの行 {番号なし} (それを含む commit {該当commit})")
+print(f"  番号を持つが commit 件名の形でない行 {説明候補}")'
 ```
 
-出力の「落とす」 が round 3 の取りこぼし、「番号なしの行を含む commit」 が round 5 の
-巻き込みにあたる。 **本節の数値はこの出力から取っている**。
+出力の対応はこう読む。 **本節の数値は全てこの出力から取っている**。
+
+| 出力 | 本節のどの数値か |
+|---|---|
+| 落とす | round 3 の取りこぼし (109) |
+| 番号なしの行を含む commit | round 5 の巻き込み (82) |
+| 番号を持つが commit 件名の形でない行 | 説明の箇条書きの実測 (0) |
 
 適用するのは **入力を分類する述語** に限る。 出力の書式や、分類を伴わない実装変更には
 課さない。 全変更に課すと、形だけ数えた記録が増えて記録そのものが信用されなくなる。
