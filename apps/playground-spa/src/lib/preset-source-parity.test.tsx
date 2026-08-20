@@ -226,8 +226,18 @@ const 見た目を決めない欄 = [
 
 const 落とす式 = new RegExp(` (${見た目を決めない欄.join("|")})="[^"]*"`, "g");
 
-function 見た目(d: Diagram): string {
-  const s = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
+function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> = new Set()): string {
+  const 対象 =
+    光らせる先から外す.size === 0
+      ? d
+      : {
+          ...d,
+          phases: d.phases.map((p) => ({
+            ...p,
+            activate: p.activate.filter((id) => !光らせる先から外す.has(id)),
+          })),
+        };
+  const s = renderToStaticMarkup(<CdlDiagramView diagram={layout(対象)} />);
   const 始 = s.indexOf("<svg");
   const 終 = s.lastIndexOf("</svg>");
   if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
@@ -752,12 +762,12 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         //
         // id は記法と組立て API で作り方が違うため落とす (本 file 冒頭)。 落とすのは
         // id を載せる欄と、id を埋め込む塗り (`url(#...)`) だけで、座標も色も残す。
-        if (t.key in 光らせる先の既知の差) {
-          // 光らせる先に宣言した差がある図は、その差が枠線の太さと色に出る。
-          // 光らせ方の差は `段が光らせる先が一致する` が宣言付きで見るので、ここでは見ない
-          return;
-        }
-        expect(見た目(記法), "描いた図が違う").toBe(見た目(t.built));
+        // 光らせる先に宣言した差がある図は、その差が枠線の太さと色に出る。
+        // **図ごと飛ばすと、その図だけ描画の比較が丸ごと抜ける** (Round 1 の指摘)。
+        // 宣言した id を光らせる先から外してから比べれば、光らせ方以外は見られる。
+        // 光らせ方の差そのものは `段が光らせる先が一致する` が宣言付きで見る
+        const 外す = new Set(光らせる先の既知の差[t.key] ?? []);
+        expect(見た目(記法), "描いた図が違う").toBe(見た目(t.built, 外す));
       });
 
       it("描いた図の大きさが一致する", () => {
