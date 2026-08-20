@@ -35,7 +35,8 @@ const 箱ごとの図種: readonly (readonly [string, readonly (string | null | 
   ["state", [undefined, undefined]],
   ["topology", ["図の題"]],
   ["solidity", ["A", "B"]],
-  ["class", ["図の題"]],
+  // #1263 でクラスごとに 1 縦列へ変更。 縦列は並べるための入れ物で見出しを持たない
+  ["class", [undefined, undefined]],
   ["c4", ["System Context"]],
 ];
 

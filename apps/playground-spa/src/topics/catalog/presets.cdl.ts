@@ -959,3 +959,30 @@ animation:
     focus: [User, "handler(...)", Processed, "User -> handler(...)", "handler(...) -> Processed"]
     body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。"
 `;
+
+export const sourceYaml__presetClassDiagram = `title: "クラスの継承・保有関係を示す UML 図"
+type: class
+
+actors:
+  - User: { eyebrow: "クラス", rows: ["+name: string", "+email: string", "───", "+login(): void", "+logout(): void"] }
+  - Admin: { eyebrow: "クラス", rows: ["+permissions: string[]", "───", "+banUser(): void"] }
+  - Order: { eyebrow: "クラス", rows: ["+id: number", "+total: number", "───", "+pay(): void"] }
+
+flow:
+  - Admin -> User: "extends" (info, solid)
+  - Admin -> Order: "aggregates" (info, solid) { sub: "1..*" }
+
+animation:
+  - step: "1. User" 0.9s
+    badge: "class"
+    focus: [User]
+    body: "基になるクラス。"
+  - step: "2. Admin が継承" 0.9s
+    badge: "class"
+    focus: [User, Admin, "Admin -> User"]
+    body: "User を継ぎ、権限を足す。"
+  - step: "クラスの継承・保有関係を示す UML 図" 0.9s
+    badge: "class"
+    focus: [User, Admin, "Admin -> User", Order, "Admin -> Order"]
+    body: "UML class 全 class + relation を visible 化。"
+`;
