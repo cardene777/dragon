@@ -133,6 +133,7 @@ const 利用者から見えない: Record<string, string> = {
   "1284": "CONTRIBUTING.md の整形の案内を実在する手順に直しただけ。 記法も出力も変わらない",
   "1285": "repo 全体を整形しない方針を CONTRIBUTING.md に書いただけ。 記法も出力も変わらない",
   "1288": "却下された spec に superseded の印を付けただけ。 記法も出力も変わらない",
+  "1290": ".gitignore の規則を root 固定にしただけ。 記法も出力も変わらない",
 };
 
 /**
