@@ -20,6 +20,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { CategoryPage } from "./CategoryPage";
+import { CATALOG_ITEMS } from "@/lib/catalog-items";
 import { ToastProvider } from "@/components/Toast";
 import {
   drive as driveIntersection,
@@ -72,6 +73,34 @@ function 操作できる画面(slug: string): ReturnType<typeof render> {
   );
 }
 
+/**
+ * 先頭の図が記法を持たない分類か。
+ *
+ * **記法は 2 種類ある** (yaml / json)。 タブが押せるかは画面側で
+ * `Boolean(sourceYaml || sourceJson)` と決まるため、片方だけを見ると json だけ持つ図を
+ * 「記法なし」 として選んでしまう。
+ */
+function 記法を持たない(item: { sourceYaml?: string; sourceJson?: string } | undefined): boolean {
+  return item !== undefined && item.sourceYaml === undefined && item.sourceJson === undefined;
+}
+
+describe("陰性対照の選び方 (Round 1 の指摘)", () => {
+  // 今の一覧に json だけ持つ図は無いため、選び方の規則を直接確かめる。
+  // 規則を緩めると、押せるタブを持つ分類を「記法なし」 として選んでしまう
+  it.each([
+    ["どちらも無い", {}, true],
+    ["yaml を持つ", { sourceYaml: "x" }, false],
+    ["json を持つ", { sourceJson: "x" }, false],
+    ["両方持つ", { sourceYaml: "x", sourceJson: "x" }, false],
+  ])("%s 図を %s と判定する", (_name, item, 期待) => {
+    expect(記法を持たない(item)).toBe(期待);
+  });
+
+  it("項目が無い分類は選ばない", () => {
+    expect(記法を持たない(undefined)).toBe(false);
+  });
+});
+
 describe("図とコードを切り替えられる (#1236)", () => {
   // **最初の項目が記法を持つ分類で見る**。 選ばれるのは一覧の先頭なので、記法を持つ図が
   // 混ざっているだけでは足りない (`primitives` は 149 件中 30 件が持つが先頭は持たない)
@@ -101,12 +130,16 @@ describe("図とコードを切り替えられる (#1236)", () => {
     expect(コード, "コードのタブが見つからない").toContain('aria-selected="false"');
   });
 
-  it("記法を持たない分類ではコードのタブを押せない (陰性対照)", () => {
-    // `presets` は 19 件すべてが記法を持たない。 押せる見た目にすると「押したのに何も
-    // 出ない」 が残る
-    const presets = 画面("presets");
-    const コード = presets.match(/<button role="tab"[^>]*>コード</)?.[0] ?? "";
-    expect(コード, "コードのタブが見つからない").toContain("disabled");
+  it("記法を持たない図ではコードのタブを押せない (陰性対照)", () => {
+    // 押せる見た目にすると「押したのに何も出ない」 が残る。
+    //
+    // **分類の名前を書かない**。 記法は増えていくため、名前で決め打ちすると持った時点で
+    // 落ちる (実測 = `presets` を書いていたが `presetSwimlane` が記法を持って落ちた)。
+    // 一覧から「先頭が記法を持たない分類」 を引く
+    const 記法なし = Object.entries(CATALOG_ITEMS).find(([, items]) => 記法を持たない(items[0]));
+    expect(記法なし, "先頭が記法を持たない分類が 1 つも無い").toBeDefined();
+    const コード = 画面(記法なし![0]).match(/<button role="tab"[^>]*>コード</)?.[0] ?? "";
+    expect(コード, `${記法なし![0]} でコードのタブが押せてしまう`).toContain("disabled");
   });
 
   it("最初は記法の欄が隠れている", () => {
