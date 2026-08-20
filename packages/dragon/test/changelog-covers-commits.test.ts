@@ -156,14 +156,18 @@ function 本文で割る(raw: string): string[] {
  * | 行 | 何か |
  * |---|---|
  * | 1 行目 | その commit の件名 |
- * | `* ` で始まる行 | squash merge が並べた、元の commit の件名 |
+ * | `* type(scope): ... (#N)` の形の行 | squash merge が並べた、元の commit の件名 |
  *
  * squash した commit は件名が「PR の題 + PR 番号」 に置き換わるが、元の件名は `* ` 付きで
  * 本文の先頭に並ぶ。 この 2 種類を見れば、取り込みの前と後で同じ番号で辿れる。
  */
 function commitの番号(message: string): string[] {
   const 行 = message.split("\n");
-  const 名乗る行 = [行[0] ?? "", ...行.slice(1).filter((l) => l.trimStart().startsWith("* "))];
+  // **単なる箇条書きは元件名にしない**。 GitHub が並べる行頭 `* ` に加え、この repo の
+  // commit 件名 (`type(scope): ... (#N)`、先頭の絵文字は任意) の形まで固定する。
+  // `trimStart` すると、説明中で字下げした Markdown の箇条書きまで名乗る行になってしまう。
+  const squashの元件名 = /^\* (?:\S+ )?[a-z]+(?:\([^)]+\))?!?: .+ \(#\d+\)$/;
+  const 名乗る行 = [行[0] ?? "", ...行.slice(1).filter((l) => squashの元件名.test(l))];
   return 名乗る行.flatMap((l) => [...l.matchAll(/#(\d+)/g)].map((m) => m[1]!));
 }
 
@@ -253,9 +257,9 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
         "",
         "* 🔖 chore(release): 版を切る (#1277)",
         "",
-        "本文の説明。",
+        "* test(catalog): 絵文字なしの元件名 (#1267)",
       ].join("\n");
-      expect(commitの番号(m)).toEqual(["1278", "1277"]);
+      expect(commitの番号(m)).toEqual(["1278", "1277", "1267"]);
     });
 
     it("説明の本文にある番号は拾わない", () => {
@@ -265,6 +269,16 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
         "既存の検査 (#9999) は別の観点を見る。 関連は #8888。",
       ].join("\n");
       expect(commitの番号(m), "説明の本文から拾ってしまっている").toEqual(["1234"]);
+    });
+
+    it("説明本文の箇条書きにある番号は拾わない", () => {
+      const m = [
+        "🐛 fix(dsl): 何かを直す (#1234)",
+        "",
+        "* 関連 Issue は別の変更で扱う (#9999)",
+        "  * fix(test): 字下げした補足 (#8888)",
+      ].join("\n");
+      expect(commitの番号(m), "説明の箇条書きから拾ってしまっている").toEqual(["1234"]);
     });
 
     it("番号を持たない commit は空", () => {
