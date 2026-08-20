@@ -89,7 +89,9 @@ export type CompileNotice = {
     // `lanes:` に書いた縦列に箱が 1 つも入らなかった (#1241)
     | "lane-declared-empty"
     // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)
-    | "eyebrow-not-honored";
+    | "eyebrow-not-honored"
+    // 静止した `type: flow` で、書いた矢印の端が使われなかった (#1269)
+    | "flow-endpoint-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -205,6 +207,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportMissingFlowActors(書いたまま, opts?.onNotice);
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
+  // 静止した `type: flow` で書いた矢印の端が使われないことを伝える (#1269)。
+  // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
+  reportFlowEndpointNotHonored(doc, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
@@ -568,6 +573,54 @@ function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void)
     message: `type: ${doc.type} では縦列を書くなら全ての箱に書きます (書いていない箱: ${書いていない.map((a) => truncateForMessage(a.name)).join(" / ")})`,
     hint: "書かなかった箱をどの縦列に置くかを決められないため、全部書くか 1 つも書かないかにしてください",
   });
+}
+
+/**
+ * 静止した `type: flow` で、書いた矢印の端が使われないことを伝える (#1269)。
+ *
+ * この図種は **登場人物を書いた順に鎖状に繋ぐ**。 矢印の説明文は「その箱を to に持つ行」
+ * から拾い、書いた側の端 (from) は使わない (`compileFlow`)。
+ *
+ * そのため `A -> C` と書いても出来るのは `A -> B` で、書いた形と違う図になる。
+ * 実測 = `A -> C` / `C -> B` と書くと `A -> B` に `"y"`、`B -> C` に `"x"` が載った。
+ * 知らせは 1 件も出ていなかった。
+ *
+ * ## 鎖にすること自体は変えない
+ *
+ * 線形の流れを描く図種なので、鎖にするのは仕様。 書いた端どおりに繋ぎたい形は
+ * 箱に `lane:` を書けば別の経路へ回る (#1266)。 知らせの hint でそれを案内する。
+ *
+ * ## 偶然一致する形では知らせない
+ *
+ * `A -> B` / `B -> C` のように書いた端がそのまま鎖になる形は、書いたとおりの図になる。
+ * ここで知らせると、正しく書いた人にまで出る。
+ *
+ * ## 既に落ちた行は見ない
+ *
+ * 自分へ戻る形 (`flow-self-loop`) と居ない名前を指す形 (`flow-actor-missing`) は
+ * 別の知らせが担う。 落とした後の `doc` を見ることで、同じ 1 行に知らせが 2 件並ぶのを避ける。
+ */
+function reportFlowEndpointNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (!鎖でつなぐ形か(doc)) return;
+  // 鎖が作る組を集める。 登場人物が 1 人以下なら矢印が 1 本も出来ないので、
+  // 書いた矢印は全て使われない扱いになる
+  const 鎖の組 = new Set<string>();
+  doc.actors.forEach((a, i) => {
+    const 次 = doc.actors[i + 1];
+    if (次 === undefined) return;
+    鎖の組.add(`${a.name}\u0000${次.name}`);
+  });
+  for (const s of doc.flow) {
+    if (鎖の組.has(`${s.from}\u0000${s.to}`)) continue;
+    onNotice({
+      kind: "flow-endpoint-not-honored",
+      actor: s.from,
+      line: s.pos.line,
+      message: `"${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}" の端は使われません (type: flow は登場人物を書いた順に繋ぎます)`,
+      hint: "書いた端どおりに繋ぐには、箱に lane: を書いてください (縦列を書いた形は書いた端がそのまま矢印になります)",
+    });
+  }
 }
 
 /**
