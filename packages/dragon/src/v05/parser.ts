@@ -1394,7 +1394,7 @@ function reportScaleOnNonPart(
  * 並べた形) とは別に持つ = 中括弧の形は位置や大きさを未対応にしてあり、 同じ集合にすると
  * 「知らせない」 側がずれる。
  */
-const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
   "initial", "final", "tone", "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
@@ -1410,6 +1410,25 @@ const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
 // 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
 // している経路が予約語で残る (Round 1 review の指摘、 実測で確認)。 パーツ側は `isPart` の
 // 早期 return が先に効くのでここに載せる必要が無い
+
+/**
+ * 矢印の中括弧に書ける欄と、その読み方 (#1275)。
+ *
+ * **parser がこの表を回して読む**。 欄ごとに `opts.xxx` を並べる形だと、README や検査が
+ * 持つ一覧が実装と drift する = 欄を足しても誰も気付けない。 表を唯一の出どころにして、
+ * `FLOW_INLINE_KEYS` から一覧を導けるようにする。
+ */
+const FLOW_INLINE_READERS = {
+  sub: (v: string | undefined) => v,
+  guard: (v: string | undefined) => v,
+  cardinality: (v: string | undefined) => v,
+  labelOffsetX: (v: string | undefined) => numberOrUndef(v),
+  labelOffsetY: (v: string | undefined) => numberOrUndef(v),
+  overlay: (v: string | undefined) => boolOrUndef(v),
+} as const;
+
+/** 矢印の中括弧に書ける欄の名前。 README の一覧と突き合わせる (#1275) */
+export const FLOW_INLINE_KEYS = Object.keys(FLOW_INLINE_READERS) as readonly (keyof typeof FLOW_INLINE_READERS)[];
 
 /**
  * 中括弧に書かれた読めない項目名を知らせる (#1090)。
@@ -1575,24 +1594,21 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   let label = "";
   let tone: Tone | undefined;
   let style: EdgeStyle | undefined;
-  let sub: string | undefined;
-  let guard: string | undefined;
-  let cardinality: string | undefined;
-  let labelOffsetX: number | undefined;
-  let labelOffsetY: number | undefined;
-  let overlay: boolean | undefined;
+  // 欄は `FLOW_INLINE_READERS` の表から読む。 個別に並べると一覧が実装と drift する
+  const 中括弧: Partial<Record<keyof typeof FLOW_INLINE_READERS, unknown>> = {};
   // inline option (`{ ... }`) を末尾から抽出
   const mapMatch = rest.match(/\s*\{([^}]*)\}\s*$/);
   if (mapMatch) {
     const opts = parseInlineMapping(mapMatch[1]!);
-    sub = opts.sub;
-    guard = opts.guard;
-    cardinality = opts.cardinality;
-    labelOffsetX = numberOrUndef(opts.labelOffsetX);
-    labelOffsetY = numberOrUndef(opts.labelOffsetY);
-    overlay = boolOrUndef(opts.overlay);
+    for (const k of FLOW_INLINE_KEYS) 中括弧[k] = FLOW_INLINE_READERS[k](opts[k]);
     rest = rest.slice(0, mapMatch.index ?? 0).trim();
   }
+  const sub = 中括弧.sub as string | undefined;
+  const guard = 中括弧.guard as string | undefined;
+  const cardinality = 中括弧.cardinality as string | undefined;
+  const labelOffsetX = 中括弧.labelOffsetX as number | undefined;
+  const labelOffsetY = 中括弧.labelOffsetY as number | undefined;
+  const overlay = 中括弧.overlay as boolean | undefined;
   // 色と線種を末尾から取る。 括弧 (`(成功)`) と空白区切り (`成功`) の両方を受け付ける。
   //
   // 括弧は従来の書き方で、 catalog が使っている。 空白区切りは登場人物と揃えた形。

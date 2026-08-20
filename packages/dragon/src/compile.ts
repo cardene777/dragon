@@ -2928,6 +2928,10 @@ function applyEdgeInlineOptions(
 
 /** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */
 function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): void {
+  // **書いた補足が勝つ** (#1275)。 ここで写さないと 2 つ落ちる。 静止した `type: flow` は
+  // 鎖を作る時に説明文しか渡さないため補足が消え、`er` は見本が多重度から作った補足が
+  // 残って書いた値が無視される (どちらも実測)
+  if (s.sub !== undefined) target.sub = s.sub;
   if (s.guard !== undefined) {
     target.guard = s.guard;
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
@@ -5935,6 +5939,29 @@ function compileEr(doc: DslDocument): CdlDiagram {
   return erBuilder.build();
 }
 
+/**
+ * 状態遷移図で、どの箱を始まり / 終わりとみなすか (#1275)。
+ *
+ * **書いた値が勝つ**。 `initial:` / `final:` は記法で書けるのに 1 度も読まれておらず、
+ * 位置だけで決まっていた (実測 = 中央の箱に `final: true` を書いても、最後に書いた箱が
+ * 「最終」 になった)。
+ *
+ * 1 つも書いていなければ従来どおり位置で決める = 書かない記法の図は変わらない。
+ * 片方だけ書いた形も、書いた側だけが切り替わる。
+ */
+function 始まりと終わりの決め方(doc: DslDocument): {
+  始まり: (a: DslActor, idx: number) => boolean;
+  終わり: (a: DslActor, idx: number) => boolean;
+} {
+  const 書いた始まり = doc.actors.some((a) => a.initial === true);
+  const 書いた終わり = doc.actors.some((a) => a.final === true);
+  return {
+    始まり: (a, idx) => (書いた始まり ? a.initial === true : idx === 0),
+    終わり: (a, idx) =>
+      書いた終わり ? a.final === true : idx === doc.actors.length - 1 && doc.actors.length > 1,
+  };
+}
+
 function compileState(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 state を lane で配置、 transition を edge)
   if (doc.animate && doc.animate.phases.length > 0) {
@@ -5945,11 +5972,12 @@ function compileState(doc: DslDocument): CdlDiagram {
     id: slugify(doc.title),
     topic: doc.title,
   });
+  const 決め方 = 始まりと終わりの決め方(doc);
   for (let i = 0; i < doc.actors.length; i++) {
     const a = doc.actors[i]!;
-    // 初期 / 最終 は (initial) / (final) を kind 部分に書く慣習、 もしくは順序で決め打ち
-    const initial = i === 0;
-    const final = i === doc.actors.length - 1 && doc.actors.length > 1;
+    // 書いた `initial:` / `final:` が勝つ。 1 つも書いていなければ順序で決める
+    const initial = 決め方.始まり(a, i);
+    const final = 決め方.終わり(a, i);
     fsm.state({
       id: slugify(a.name) || `s${i}`,
       title: a.name,
@@ -6118,14 +6146,15 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     // `er` の縦列は表を並べるための入れ物、 `state` の縦列は状態を並べるための入れ物で、
     // どちらも読む人に見せる意味を持たない (組立て API 側も見出しを空のまま置く)。
     const 見出しを付ける = kind === "swimlane";
+    const 決め方2 = 始まりと終わりの決め方(doc);
     doc.actors.forEach((a, idx) => {
       const lid = `lane-${slugify(a.name) || idx}`;
       b.lane(lid, { width: laneWidth, ...(見出しを付ける ? { label: a.name } : {}) });
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
       // er は entity、 state は initial/final marker、 swimlane はそのまま actor
-      const isInitial = kind === "state" && idx === 0;
-      const isFinal = kind === "state" && idx === doc.actors.length - 1 && doc.actors.length > 1;
+      const isInitial = kind === "state" && 決め方2.始まり(a, idx);
+      const isFinal = kind === "state" && 決め方2.終わり(a, idx);
       b.node(id, {
         lane: lid,
         stack: 0,
