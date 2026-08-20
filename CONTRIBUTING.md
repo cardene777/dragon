@@ -288,13 +288,13 @@ npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | un
 
 採らない理由は 3 つある。
 
-1. **維持する仕組みが無い**。 この repo は CI を持たず (`## Pull request` の方針)、
-   `pre-commit` 等の local hook も置かない。 一度整形しても新しい file は準拠しないまま
+1. **維持する仕組みが無い**。 この repo は CI を持たず、`pre-commit` 等の local hook も
+   置かない。 一度整形しても新しい file は準拠しないまま
    増えるため、全体準拠は保てない
 2. **markdown が壊れる**。 17 file が対象に入るが、prettier は表の桁を文字数で揃えるため
    日本語の表がずれる (上記)
-3. **`git blame` が失われる**。 398 file を 1 commit で塗り替えると、行ごとの由来が
-   全て整形 commit を指すようになる
+3. **`git blame` が失われる**。 397 file を 1 commit で塗り替えると、整形で動く多くの行が
+   整形 commit を指すようになる
 
 代わりに **触った `.ts` / `.tsx` だけを整形する**。 触るたびに 1 file ずつ準拠していくため、
 実際に読まれる file から順に揃う。 整形だけの commit は作らない。
