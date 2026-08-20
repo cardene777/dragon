@@ -5583,12 +5583,12 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
   });
 
   // state を builder に登録
-  for (const st of doc.animate!.states) {
+  for (const st of doc.animate?.states ?? []) {
     b.state(st.name, { initial: st.initial });
   }
 
   // phase を順次注入 ... highlight / tween / set / badge / body 全反映
-  for (const p of doc.animate!.phases) {
+  for (const p of doc.animate?.phases ?? []) {
     b.phase(
       slugify(p.name) || p.name,
       {
@@ -5698,7 +5698,9 @@ function slugLookup(byName: ReadonlyMap<string, string>, wanted: string): string
 
 function compileFlow(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路で複数 phase 注入
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("flow", doc)) {
     return compileGenericWithAnimate(doc, { kind: "flow", laneId: "main", laneWidth: 400 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま
@@ -5732,7 +5734,9 @@ function compileFlow(doc: DslDocument): CdlDiagram {
 
 function compileSwimlane(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor 別 lane で配置)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("swimlane", doc)) {
     return compileGenericWithAnimate(doc, { kind: "swimlane", laneWidth: 400 });
   }
   // swimlane preset は lane 配置 + 自由 node/edge。
@@ -5870,7 +5874,9 @@ function compileState(doc: DslDocument): CdlDiagram {
 
 function compileTopology(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor を別 lane に)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("topology", doc)) {
     return compileGenericWithAnimate(doc, { kind: "topology", laneWidth: 460 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `topology()` は枠を必ず 1 つ作るため、 そのまま
@@ -6073,12 +6079,12 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   });
 
   // state 登録
-  for (const st of doc.animate!.states) {
+  for (const st of doc.animate?.states ?? []) {
     b.state(st.name, { initial: st.initial });
   }
 
   // phase 注入
-  for (const p of doc.animate!.phases) {
+  for (const p of doc.animate?.phases ?? []) {
     b.phase(
       slugify(p.name) || p.name,
       {

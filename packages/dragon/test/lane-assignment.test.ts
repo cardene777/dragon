@@ -23,9 +23,9 @@ function 組み立てる(src: string) {
   return { 図: compileToCdl(r.doc, { onNotice: (n) => 知らせ.push(n) }), 知らせ };
 }
 
-const 記法 = (actors: string, type = "topology") =>
-  `title: "T"\ntype: ${type}\n\nactors:\n${actors}\nflow:\n  - A -> B: "x"\n\n` +
-  `animation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n`;
+const 記法 = (actors: string, type = "topology", 動き = true) =>
+  `title: "T"\ntype: ${type}\n\nactors:\n${actors}\nflow:\n  - A -> B: "x"\n` +
+  (動き ? `\nanimation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n` : "");
 
 const 三人 = "  - A: { lane: left }\n  - B: { lane: right }\n  - C: { lane: right }";
 
@@ -66,8 +66,18 @@ describe("箱を書いた縦列へ入れられる (#1263)", () => {
 
   // 縦列を「箱を並べるための入れ物」 として使う 3 図種で効く
   for (const type of ["topology", "flow", "swimlane"]) {
-    it(`${type} で効く`, () => {
+    it(`${type} で効く (動きあり)`, () => {
       expect(配置(記法(三人, type)).縦列).toEqual(["left", "right"]);
+    });
+
+    it(`${type} で効く (動きなし)`, () => {
+      // **動く図だけで効かせると、同じ記法でも静止図では指定が黙って消える**
+      // (実測 = 縦列 3 本のはずが 1 本になり、知らせも出なかった)
+      expect(配置(記法(三人, type, false)).縦列).toEqual(["left", "right"]);
+    });
+
+    it(`${type} は動きの有無で箱の行き先が変わらない`, () => {
+      expect(配置(記法(三人, type, false)).箱).toEqual(配置(記法(三人, type)).箱);
     });
   }
 });
