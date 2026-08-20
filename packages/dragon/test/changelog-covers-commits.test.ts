@@ -36,19 +36,48 @@ const git = (...args: string[]): string =>
 /**
  * 前の版の位置。
  *
- * tag があればそれを使う。 **無い時は版を最後に変えた commit へ落とす** = この repo は
- * tag を 1 つも持たない状態で 55 commit 積んだ実績があり、tag が無いと検査ごと止まる形に
- * すると同じことが起きる。
+ * **いま切ろうとしている版の tag は使わない** (Round 1 の指摘)。 使うと `v0.8.0` を
+ * 打った直後に `v0.8.0..HEAD` が空になり、検査が何も見なくなる。
+ *
+ * 1 つ前の版の tag があればそれを使う。 **無い時は版を最後に変えた commit へ落とす** =
+ * この repo は tag を 1 つも持たない状態で 55 commit 積んだ実績があり、tag が無いと
+ * 検査ごと止まる形にすると同じことが起きる。
  */
-function 前の版(): string {
-  const tag = git("tag", "--list", "v*", "--sort=-v:refname").split("\n")[0]?.trim();
-  if (tag) return tag;
-  const 上げた = git("log", "--format=%H", `-S"version": "${版}"`, "--", "packages/dragon/package.json")
+/** 版を最後に変えた commit。 tag が無い時の起点に使う */
+function 版を上げたcommit(): string | undefined {
+  return git("log", "--format=%H", `-S"version": "${版}"`, "--", "packages/dragon/package.json")
     .split("\n")
     .filter((l) => l !== "")
     .pop();
+}
+
+function 前の版(): string {
+  const 前 = git("tag", "--list", "v*", "--sort=-v:refname")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "" && l !== `v${版}`)[0];
+  if (前) return 前;
+  const 上げた = 版を上げたcommit();
   if (!上げた) throw new Error(`版 ${版} へ上げた commit が見つからない`);
-  return 上げた;
+  // **その commit 自身も範囲に含める** = 版を上げたcommit は次の版の一部で、
+  // `..` は始点を含まないため 1 件取りこぼす
+  return `${上げた}^`;
+}
+
+/**
+ * 履歴が切り詰められていないか (Round 1 の指摘)。
+ *
+ * `--depth 1` の clone では版を変えた commit を辿れず、範囲が空になって検査が通ってしまう。
+ * **通してはいけない** ので、その場で止めて理由を出す。
+ */
+function 履歴が揃っている(): void {
+  const shallow = git("rev-parse", "--is-shallow-repository");
+  if (shallow === "true") {
+    throw new Error(
+      "履歴が切り詰められている (shallow clone)。 版の範囲を導けないため検査できない。 " +
+        "`git fetch --unshallow` で完全な履歴を取ってから実行する",
+    );
+  }
 }
 
 /** 変更履歴のうち、いま切ろうとしている版の節 */
@@ -73,10 +102,11 @@ const 利用者から見えない: Record<string, string> = {
   "1235": "spec の記述が実装と食い違っていたのを直しただけ",
   "1245": "一致検査に比べる軸を足した。 出力は変わらない",
   "1270": "組み立て 3 経路の死んだ受け渡しを外した。 出力は 98 形で 1 文字も変わらない",
-  "1274": "一致検査の作り方を変えた。 出力は変わらない",
+  "1277": "版を切る commit そのもの。 変更履歴の更新が中身",
 };
 
 describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
+  履歴が揃っている();
   const 範囲 = `${前の版()}..HEAD`;
   const commit = git("log", "--format=%s", 範囲)
     .split("\n")
@@ -103,6 +133,22 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     expect(範囲の番号.size, "commit から番号を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
     const 範囲に無い = Object.keys(利用者から見えない).filter((n) => !範囲の番号.has(n));
     expect(範囲に無い, "宣言に、この版の範囲に無い番号がある").toEqual([]);
+  });
+
+  it("版を上げた commit が範囲に入っている", () => {
+    // **範囲を狭める向きの誤りは、上の検査では捕まらない** (Round 1 の指摘)。
+    // 覆う対象が減るだけなので「全て辿れる」 は通ってしまう。 下端を直接固定する。
+    //
+    // tagを使っている時はこの起点を使わないので見ない
+    const 上げた = 版を上げたcommit();
+    const tagを使っている = git("tag", "--list", "v*", "--sort=-v:refname")
+      .split("\n")
+      .map((l) => l.trim())
+      .some((l) => l !== "" && l !== `v${版}`);
+    if (tagを使っている || !上げた) return;
+    const 範囲のsha = new Set(git("log", "--format=%H", 範囲).split("\n").filter((l) => l !== ""));
+    expect(範囲のsha.size, "範囲の commit を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(範囲のsha.has(上げた), "版を上げた commit が範囲から漏れている").toBe(true);
   });
 
   it("宣言に理由が書かれている", () => {
