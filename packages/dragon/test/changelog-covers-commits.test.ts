@@ -180,10 +180,43 @@ function 本文で割る(raw: string): string[] {
  * 実履歴には該当が無い。
  */
 function commitの番号(message: string): string[] {
+  const { 件名, 元件名 } = 名乗る行の番号(message);
+  return [...件名, ...元件名.flat()];
+}
+
+/**
+ * 名乗る行の番号を、件名の分と元件名ごとの分に分けて返す (#1279)。
+ *
+ * 分けるのは **元件名を 1 行ずつ確かめる** ため。 まとめて「どれか 1 つが載っていれば
+ * 辿れた」 にすると、説明として書いた箇条書きが載っている番号を含むだけで、**同じ commit の
+ * 別の元件名が未記載でも通ってしまう** (Round 5 の指摘)。
+ */
+function 名乗る行の番号(message: string): { 件名: string[]; 元件名: string[][] } {
   const 行 = message.split("\n");
+  const 番号 = (l: string): string[] => [...l.matchAll(/#(\d+)/g)].map((m) => m[1]!);
   // **列 0 の `* ` だけ**。 字下げは認めない = 説明の中で字下げした箇条書きを拾わない
-  const 元件名 = 行.slice(1).filter((l) => l.startsWith("* "));
-  return [行[0] ?? "", ...元件名].flatMap((l) => [...l.matchAll(/#(\d+)/g)].map((m) => m[1]!));
+  return {
+    件名: 番号(行[0] ?? ""),
+    元件名: 行
+      .slice(1)
+      .filter((l) => l.startsWith("* "))
+      .map(番号),
+  };
+}
+
+/**
+ * その commit が辿れるか (#1279)。
+ *
+ * 件名の番号が載っていればそれでよい。 載っていなければ、**元件名を 1 行ずつ** 確かめる。
+ *
+ * どれか 1 行が載っていれば通す形にはしない (Round 5 の指摘)。 説明として列 0 に書いた
+ * 箇条書きが載っている番号を含むだけで、**同じ commit の別の元件名が未記載でも通って
+ * しまう** = 記載漏れを見逃す方向に倒れる。
+ */
+function 辿れるか(message: string, 載る: (n: string) => boolean): boolean {
+  const { 件名, 元件名 } = 名乗る行の番号(message);
+  if (件名.some(載る)) return true;
+  return 元件名.length > 0 && 元件名.every((ns) => ns.some(載る));
 }
 
 describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
@@ -203,10 +236,9 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
 
   it("全ての commit が変更履歴か宣言のどちらかから辿れる", () => {
     const 載っている = new Set([...版の節().matchAll(/#(\d+)/g)].map((m) => m[1]!));
-    const 辿れない = commit.filter((s) => {
-      const 番号 = commitの番号(s);
-      return !番号.some((n) => 載っている.has(n) || n in 利用者から見えない);
-    });
+    /** その番号が変更履歴か宣言のどちらかにあるか */
+    const 載る = (n: string): boolean => 載っている.has(n) || n in 利用者から見えない;
+    const 辿れない = commit.filter((s) => !辿れるか(s, 載る));
     expect(
       辿れない.map((c) => c.split("\n")[0]),
       "変更履歴にも宣言にも無い commit がある",
@@ -300,6 +332,37 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
         "本文 B。",
       ].join("\n");
       expect(commitの番号(m)).toEqual(["1278", "1277", "1277"]);
+    });
+
+    it("説明の箇条書きが未記載の元件名を隠さない", () => {
+      // **Round 5 の反例**。 説明として書いた箇条書きが載っている番号を含んでいても、
+      // 同じ commit の別の元件名が未記載なら辿れないままにする
+      const m = [
+        "🔖 chore(release): 版を切る (#9001)",
+        "",
+        "* 🔖 chore(release): 版を切る (#9002)",
+        "",
+        "* 既に記載済の話 (#1206)",
+      ].join("\n");
+      const 載る = (n: string): boolean => n === "1206";
+      expect(辿れるか(m, 載る), "説明の箇条書きが未記載の元件名を隠している").toBe(false);
+    });
+
+    it("全ての元件名が載っていれば辿れる", () => {
+      const m = [
+        "🔖 chore(release): 版を切る (#9001)",
+        "",
+        "* 🔖 chore(release): 版を切る (#9002)",
+        "",
+        "* 既に記載済の話 (#1206)",
+      ].join("\n");
+      const 載る = (n: string): boolean => n === "1206" || n === "9002";
+      expect(辿れるか(m, 載る)).toBe(true);
+    });
+
+    it("件名が載っていれば元件名を問わない", () => {
+      const m = ["🔖 版を切る (#9001)", "", "* 未記載の話 (#9002)"].join("\n");
+      expect(辿れるか(m, (n) => n === "9001")).toBe(true);
     });
 
     it("字下げした箇条書きは拾わない", () => {
