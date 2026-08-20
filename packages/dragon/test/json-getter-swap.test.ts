@@ -121,7 +121,7 @@ describe("validateDragonJson が返す data", () => {
     const r = validateDragonJson(入力);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.data as unknown === 入力, "入力そのものを返している").toBe(false);
+    expect((r.data as unknown) === 入力, "入力そのものを返している").toBe(false);
     // 入れ子も写している (元を書き換えても返り値は変わらない)
     expect((r.data.actors as unknown[])[0] === 入力.actors[0]).toBe(false);
   });
@@ -182,8 +182,13 @@ describe("写しそのものの性質", () => {
 
     const 写し = r.data as unknown as Record<string, unknown>;
     expect(写し.汚染, "写しが差し替わった prototype から継承している").toBeUndefined();
-    expect(Object.getPrototypeOf(写し), "写しの prototype が差し替わっている").toBe(Object.prototype);
-    expect(Object.prototype.hasOwnProperty.call(写し, "__proto__"), "普通の項目として持っていない").toBe(true);
+    expect(Object.getPrototypeOf(写し), "写しの prototype が差し替わっている").toBe(
+      Object.prototype,
+    );
+    expect(
+      Object.prototype.hasOwnProperty.call(写し, "__proto__"),
+      "普通の項目として持っていない",
+    ).toBe(true);
     // 全体を汚していないことも併せて見る
     expect(({} as Record<string, unknown>).汚染).toBeUndefined();
   });
@@ -272,7 +277,7 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     const r = validateDragonJson({
       title: "確認",
       type: "flow",
-      actors: [{ name: "受付", state: 状態 }, { name: "処理" }],
+      actors: [{ name: "受付", kind: "arc-gauge", state: 状態 }, { name: "処理" }],
       flow: [{ from: "受付", to: "処理", label: "渡す" }],
     });
     expect(r.ok).toBe(true);
@@ -524,7 +529,9 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
       });
       return o;
     };
-    const r = validateDragonJson(図の素({ 使わない項目: { 甲: 見る("甲"), 乙: 見る("乙"), 丙: 見る("丙") } }));
+    const r = validateDragonJson(
+      図の素({ 使わない項目: { 甲: 見る("甲"), 乙: 見る("乙"), 丙: 見る("丙") } }),
+    );
     expect(r.ok).toBe(true);
     expect(読んだ順).toEqual(["甲", "乙", "丙"]);
   });
@@ -542,7 +549,11 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
 
 describe("読む順は書いた順で深さ優先 (Round 3)", () => {
   /** 読まれた時に名前を記録する項目を持つ object を作る */
-  const 見る = (読んだ順: string[], 名: string, 中身: Record<string, unknown> = {}): Record<string, unknown> => {
+  const 見る = (
+    読んだ順: string[],
+    名: string,
+    中身: Record<string, unknown> = {},
+  ): Record<string, unknown> => {
     const o: Record<string, unknown> = { ...中身 };
     Object.defineProperty(o, "印", {
       enumerable: true,
@@ -595,4 +606,3 @@ describe("読む順は書いた順で深さ優先 (Round 3)", () => {
     expect(読んだ, "root の形を見る前に中を読んでいる").toBe(false);
   });
 });
-

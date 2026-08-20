@@ -18,7 +18,13 @@
  *   YAML `animation: [step: "..."]` ⇔ JSON `{animation: [{step: "...", duration: 1.4, focus: [...]}]}`
  */
 
-import { NODE_KIND_VALID, PRESET_TYPES, resolveNodeKind } from "./v05/parser";
+import {
+  NODE_KIND_VALID,
+  PRESET_TYPES,
+  resolveNodeKind,
+  resolveTone,
+  splitColorValue,
+} from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type {
@@ -51,6 +57,15 @@ export interface DragonJson {
    * 組み立て側が知らせを出す。 そちらは `actors[].eyebrow` に書く。
    */
   eyebrow?: string;
+  /**
+   * 2 軸で仕分ける図 (`type: quadrant`) の軸の名前 (#1294)。 記法の `axes:` と同じ。
+   *
+   * 書かないと「小さい / 大きい」 のままになり、何を判断する図か読めない。 区画の名前
+   * (`右上` 等) は軸の名前から決まる。
+   *
+   * 他の図種には軸が無いため、書かれていたら組み立て側が知らせる。
+   */
+  axes?: JsonAxes;
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -143,8 +158,80 @@ export interface JsonActor {
    * LLM JSON DSL では nested 明示 = `{ "state": { "v": 50 } }` が natural、 human 側の
    * inline 拡散 pattern (`- arc1: { kind: arc-gauge, v: 50 }`) とは記述形式が分岐する
    * (spec § 2.3 分岐設計、 human = YAML 手書き最適 / LLM = JSON structured 最適)。
+   *
+   * 見本でない箱に書くと誤りとして返す (#1294)。 記法側は読めない項目名として行番号付きで
+   * 知らせるため、黙って捨てると入口によって扱いが変わる。
    */
   state?: Record<string, number | string | boolean>;
+  /**
+   * 箱の色 (#1294)。 記法の `tone:` と同じ。
+   *
+   * 色の名前と別名 (`成功` / `success` 等) を受ける。 見本 (parts) では色ではなく状態の
+   * 上書きとして意味を持つため、記法と同じく見本の箱には効かない。
+   */
+  tone?: Tone | (string & {});
+  /**
+   * 色番号または色の名前 (#1294)。 記法の `色:` / `color:` と同じ。
+   *
+   * `#` で始まる値は色番号として `colorHex` に入り、見本の絵の色を変える。 それ以外は
+   * 色の名前として読む (記法の `splitColorValue` と同じ振り分け)。
+   */
+  color?: string;
+  /**
+   * 工程の並び (`type: gantt`) で、その工程の担当 (#1294)。 記法の `owner:` と同じ。
+   */
+  owner?: string;
+  /**
+   * 工程の並び (`type: gantt`) で、その工程が終わる時期 (#1294)。 記法の `end:` と同じ。
+   *
+   * 値は他の工程が書いた時期のどれかに一致させる。 一致しない値は始まりと同じ位置に落ちる
+   * (記法側と同じ扱い)。
+   */
+  end?: string;
+  /**
+   * 体験の道筋 (`type: journey`) で、その段階が起きる場所 (#1294)。 記法の `touchpoint:` と同じ。
+   */
+  touchpoint?: string;
+  /**
+   * 体験の道筋 (`type: journey`) で、その段階の改善の余地 (#1294)。 記法の `opportunity:` と同じ。
+   */
+  opportunity?: string;
+  /**
+   * 箱を置く絶対座標と大きさ (#1294)。 記法の `posX:` / `posY:` / `posW:` / `posH:` と同じ。
+   *
+   * `pos` (ずらし幅) とは別物。 こちらは auto layout を使わずに位置そのものを決める。
+   */
+  posX?: number;
+  posY?: number;
+  posW?: number;
+  posH?: number;
+  /**
+   * 箱の中の要素ごとに位置と大きさを固定する (#1294)。 記法の `nodes:` と同じ。
+   *
+   * key は箱が作る要素の名前 (`header` / `footer` / `spacer` / `s0` 等)。
+   */
+  nodes?: Record<string, JsonActorNodeOverride>;
+  /**
+   * 見本を何倍で描くか (#1294)。 記法の `scale:` / `倍率:` と同じ。
+   *
+   * 見本 (parts) にしか効かない。 見本でない箱に書くと誤りとして返す (記法側も同じく
+   * 読めない項目名として知らせる)。
+   */
+  scale?: number;
+}
+
+/** 2 軸で仕分ける図の軸の名前 (#1294)。 記法の `axes:` と同じ形 */
+export interface JsonAxes {
+  x?: { left?: string; right?: string };
+  y?: { bottom?: string; top?: string };
+}
+
+/** 箱の中の要素 1 つ分の位置と大きさ (#1294)。 記法の `nodes: { header: { ... } }` と同じ */
+export interface JsonActorNodeOverride {
+  posX?: number;
+  posY?: number;
+  posW?: number;
+  posH?: number;
 }
 
 export interface JsonStep {
@@ -245,6 +332,101 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
   if (typeof p.y !== "number" || !Number.isFinite(p.y)) {
     errors.push({ path: `${path}.y`, message: "pos.y must be a finite number" });
+  }
+}
+
+/**
+ * 見本 (parts) の名前として扱う値かどうか (#1294)。
+ *
+ * 判定は `jsonToDoc` と同じにする。 別々に書くと、検査が「見本でない」 と見た箱を
+ * 組み立て側が見本として扱う形ができ、見本にしか効かない項目の誤り判定がずれる。
+ */
+function 見本の名前か(kind: unknown): boolean {
+  if (typeof kind !== "string" || kind.length === 0) return false;
+  return kind !== "actor" && !VALID_KIND_SET.has(kind);
+}
+
+/** 書いてあれば文字列であることを確かめる (#1294) */
+function validateOptionalString(
+  v: unknown,
+  path: string,
+  name: string,
+  errors: JsonDslError[],
+): void {
+  if (v === undefined) return;
+  if (typeof v !== "string") {
+    errors.push({ path, message: `${name} must be a string if present`, hint: `got ${typeof v}` });
+  }
+}
+
+/**
+ * 書いてあれば有限の数であることを確かめる (#1294)。
+ *
+ * `NaN` / `Infinity` を通すと配置の計算がすべて壊れる。 JSON には書けないが、object を
+ * 直接渡す経路では届く (`states` の初期値と同じ理由)。
+ */
+function validateOptionalFiniteNumber(
+  v: unknown,
+  path: string,
+  name: string,
+  errors: JsonDslError[],
+): void {
+  if (v === undefined) return;
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    errors.push({
+      path,
+      message: `${name} must be a finite number if present`,
+      hint: typeof v === "number" ? `got ${String(v)}` : `got ${typeof v}`,
+    });
+  }
+}
+
+/** 箱の中の要素ごとの位置と大きさを見る (#1294) */
+function validateActorNodes(v: unknown, path: string, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path,
+      message: "actor.nodes must be a plain object of name -> { posX, posY, posW, posH }",
+    });
+    return;
+  }
+  for (const [name, o] of Object.entries(v as Record<string, unknown>)) {
+    const nodePath = `${path}.${name}`;
+    if (!o || typeof o !== "object" || Array.isArray(o)) {
+      errors.push({ path: nodePath, message: "actor.nodes entry must be a plain object" });
+      continue;
+    }
+    const n = o as Record<string, unknown>;
+    for (const key of ["posX", "posY", "posW", "posH"] as const) {
+      validateOptionalFiniteNumber(n[key], `${nodePath}.${key}`, `nodes.${name}.${key}`, errors);
+    }
+  }
+}
+
+/** 2 軸で仕分ける図の軸の名前を見る (#1294) */
+function validateAxes(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path: "$.axes",
+      message: "axes must be a plain object like { x: { left, right }, y: { bottom, top } }",
+    });
+    return;
+  }
+  const 軸 = v as Record<string, unknown>;
+  const 端 = { x: ["left", "right"], y: ["bottom", "top"] } as const;
+  for (const [名, 端の名前] of Object.entries(端)) {
+    const 一方 = 軸[名];
+    if (一方 === undefined) continue;
+    if (!一方 || typeof 一方 !== "object" || Array.isArray(一方)) {
+      errors.push({ path: `$.axes.${名}`, message: `axes.${名} must be a plain object` });
+      continue;
+    }
+    const o = 一方 as Record<string, unknown>;
+    for (const 端名 of 端の名前) {
+      validateOptionalString(o[端名], `$.axes.${名}.${端名}`, `axes.${名}.${端名}`, errors);
+    }
   }
 }
 
@@ -541,6 +723,45 @@ function validateJson(
           message: "actor.kind must be a non-empty string",
         });
       }
+      // 見本 (parts) にしか効かない項目は、見本でない箱に書かれたら誤りにする (#1294)。
+      // 記法側は読めない項目名として行番号付きで知らせるため、黙って捨てると入口で扱いが変わる。
+      const 見本か = 見本の名前か(ao.kind);
+      if (!見本か && ao.state !== undefined) {
+        errors.push({
+          path: `$.actors[${i}].state`,
+          message: "actor.state is only for parts (kind must be a parts identifier)",
+          hint: "箱の見た目を変えるなら tone / color を使う",
+        });
+      }
+      if (!見本か && ao.scale !== undefined) {
+        errors.push({
+          path: `$.actors[${i}].scale`,
+          message: "actor.scale is only for parts (kind must be a parts identifier)",
+          hint: "大きさを変えるなら posW / posH を使う",
+        });
+      }
+      // 記法と同じ項目を同じ型で受ける (#1294)
+      validateOptionalString(ao.tone, `$.actors[${i}].tone`, "actor.tone", errors);
+      validateOptionalString(ao.color, `$.actors[${i}].color`, "actor.color", errors);
+      validateOptionalString(ao.owner, `$.actors[${i}].owner`, "actor.owner", errors);
+      validateOptionalString(ao.end, `$.actors[${i}].end`, "actor.end", errors);
+      validateOptionalString(
+        ao.touchpoint,
+        `$.actors[${i}].touchpoint`,
+        "actor.touchpoint",
+        errors,
+      );
+      validateOptionalString(
+        ao.opportunity,
+        `$.actors[${i}].opportunity`,
+        "actor.opportunity",
+        errors,
+      );
+      for (const key of ["posX", "posY", "posW", "posH"] as const) {
+        validateOptionalFiniteNumber(ao[key], `$.actors[${i}].${key}`, `actor.${key}`, errors);
+      }
+      validateOptionalFiniteNumber(ao.scale, `$.actors[${i}].scale`, "actor.scale", errors);
+      validateActorNodes(ao.nodes, `$.actors[${i}].nodes`, errors);
       // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
       // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
       if (ao.state !== undefined) {
@@ -614,6 +835,7 @@ function validateJson(
   }
   validateStates(j.states, errors);
   validateValues(j.values, errors);
+  validateAxes(j.axes, errors);
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, data: j as unknown as DragonJson };
 }
@@ -770,6 +992,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
     const kindStr = (a.kind ?? "actor") as string;
     const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
+    // 色は記法と同じ振り分けを通す (#1294)。 `#` で始まれば色番号、それ以外は色の名前。
+    // 別々に書くと、同じ値が入口によって色番号にも色名にもなる
+    const 色 = a.color !== undefined ? splitColorValue(a.color) : {};
     return {
       name: a.name,
       kind: isPart ? "actor" : resolveNodeKind(kindStr),
@@ -784,6 +1009,33 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       stack: a.stack,
       initial: a.initial,
       final: a.final,
+      // 見本では `tone` を状態の上書きとして従来から使えるため、色として横取りしない
+      // (記法側 `parseActor` と同じ分岐、 #1294)
+      tone: isPart ? undefined : (resolveTone(a.tone) ?? 色.tone),
+      colorHex: 色.hex,
+      // 工程の並びと体験の道筋の欄。 見本では状態の上書きとして意味を持つため横取りしない
+      owner: isPart ? undefined : a.owner,
+      end: isPart ? undefined : a.end,
+      touchpoint: isPart ? undefined : a.touchpoint,
+      opportunity: isPart ? undefined : a.opportunity,
+      // 絶対座標と大きさ (#1294)。 `pos` (ずらし幅) とは別経路
+      posX: a.posX,
+      posY: a.posY,
+      posW: a.posW,
+      posH: a.posH,
+      // 箱の中の要素ごとの固定 (#1294)。 写しを作って外から書き換えられないようにする
+      nodes: a.nodes
+        ? Object.fromEntries(
+            Object.entries(a.nodes).map(([id, o]) => [
+              id,
+              { posX: o.posX, posY: o.posY, posW: o.posW, posH: o.posH },
+            ]),
+          )
+        : undefined,
+      // 倍率は見本にしか効かない (検査が見本でない箱を弾く)。 書かれた名前は JSON では
+      // 常に `scale` で、記法の別名 (`倍率`) は JSON に持ち込まない
+      scale: isPart ? a.scale : undefined,
+      scaleKeys: isPart && a.scale !== undefined ? ["scale"] : undefined,
       partId: isPart ? kindStr : undefined,
       stateOverride: isPart ? a.state : undefined,
       // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos の 2 層 mapping (naming collision 回避)
@@ -848,6 +1100,11 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
     ...(整えた小見出し(json.eyebrow) !== undefined
       ? { eyebrow: 整えた小見出し(json.eyebrow), eyebrowPos: p0 }
+      : {}),
+    // 2 軸で仕分ける図の軸の名前 (#1294)。 中身の無い形は「書かなかった」 と同じにする =
+    // 空の軸を渡すと、書いていない側の名前が空文字で描かれる (記法側と同じ扱い)
+    ...(json.axes && (json.axes.x !== undefined || json.axes.y !== undefined)
+      ? { axes: json.axes, axesPos: p0 }
       : {}),
     actors,
     flow,

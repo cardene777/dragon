@@ -52,19 +52,28 @@ describe("validateDragonJson — actors 異常系", () => {
   });
 
   it("object actor で name 欠落 → $.actors[0].name", () => {
-    expect(errorPaths({ ...validBase(), actors: [{ kind: "function" }] })).toContain("$.actors[0].name");
+    expect(errorPaths({ ...validBase(), actors: [{ kind: "function" }] })).toContain(
+      "$.actors[0].name",
+    );
   });
 
   it("actor.kind が空文字 → $.actors[0].kind", () => {
-    expect(errorPaths({ ...validBase(), actors: [{ name: "API", kind: "" }] })).toContain("$.actors[0].kind");
+    expect(errorPaths({ ...validBase(), actors: [{ name: "API", kind: "" }] })).toContain(
+      "$.actors[0].kind",
+    );
   });
 
   it("actor.state が配列 (plain object でない) → $.actors[0].state", () => {
-    expect(errorPaths({ ...validBase(), actors: [{ name: "API", state: [1, 2] }] })).toContain("$.actors[0].state");
+    expect(errorPaths({ ...validBase(), actors: [{ name: "API", state: [1, 2] }] })).toContain(
+      "$.actors[0].state",
+    );
   });
 
   it("actor.state.X が null → $.actors[0].state.X (message に null 明記)", () => {
-    const r = validateDragonJson({ ...validBase(), actors: [{ name: "API", state: { v: null } }] });
+    const r = validateDragonJson({
+      ...validBase(),
+      actors: [{ name: "API", kind: "arc-gauge", state: { v: null } }],
+    });
     expect(r.ok).toBe(false);
     if (!r.ok) {
       const e = r.errors.find((x) => x.path === "$.actors[0].state.v");
@@ -74,11 +83,19 @@ describe("validateDragonJson — actors 異常系", () => {
   });
 
   it("actor.state.X が nested object → reject", () => {
-    expect(errorPaths({ ...validBase(), actors: [{ name: "API", state: { v: {} } }] })).toContain("$.actors[0].state.v");
+    expect(
+      errorPaths({
+        ...validBase(),
+        actors: [{ name: "API", kind: "arc-gauge", state: { v: {} } }],
+      }),
+    ).toContain("$.actors[0].state.v");
   });
 
   it("actor.state.X が primitive (number/string/boolean) → 通過", () => {
-    const r = validateDragonJson({ ...validBase(), actors: [{ name: "API", state: { n: 1, s: "x", b: true } }] });
+    const r = validateDragonJson({
+      ...validBase(),
+      actors: [{ name: "API", kind: "arc-gauge", state: { n: 1, s: "x", b: true } }],
+    });
     expect(r.ok).toBe(true);
   });
 
@@ -98,15 +115,25 @@ describe("validateDragonJson — flow 異常系", () => {
   });
 
   it("step.to が非 string → $.flow[0].to", () => {
-    expect(errorPaths({ ...validBase(), flow: [{ from: "A", to: 3, label: "x" }] })).toContain("$.flow[0].to");
+    expect(errorPaths({ ...validBase(), flow: [{ from: "A", to: 3, label: "x" }] })).toContain(
+      "$.flow[0].to",
+    );
   });
 
   it("step.label が非 string → $.flow[0].label", () => {
-    expect(errorPaths({ ...validBase(), flow: [{ from: "A", to: "B" }] })).toContain("$.flow[0].label");
+    expect(errorPaths({ ...validBase(), flow: [{ from: "A", to: "B" }] })).toContain(
+      "$.flow[0].label",
+    );
   });
 
   it("2 番目の step の error は index 1 で示す", () => {
-    const paths = errorPaths({ ...validBase(), flow: [{ from: "A", to: "B", label: "ok" }, { from: "A", to: 9, label: "x" }] });
+    const paths = errorPaths({
+      ...validBase(),
+      flow: [
+        { from: "A", to: "B", label: "ok" },
+        { from: "A", to: 9, label: "x" },
+      ],
+    });
     expect(paths).toContain("$.flow[1].to");
     expect(paths).not.toContain("$.flow[0].to");
   });
@@ -127,11 +154,16 @@ describe("validateDragonJson — animation 異常系 (optional field)", () => {
   });
 
   it("phase.step が空文字 → $.animation[0].step", () => {
-    expect(errorPaths({ ...validBase(), animation: [{ step: "" }] })).toContain("$.animation[0].step");
+    expect(errorPaths({ ...validBase(), animation: [{ step: "" }] })).toContain(
+      "$.animation[0].step",
+    );
   });
 
   it("有効 animation phase → 通過", () => {
-    const r = validateDragonJson({ ...validBase(), animation: [{ step: "呼ぶ", focus: ["ユーザー"] }] });
+    const r = validateDragonJson({
+      ...validBase(),
+      animation: [{ step: "呼ぶ", focus: ["ユーザー"] }],
+    });
     expect(r.ok).toBe(true);
   });
 });
