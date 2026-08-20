@@ -9,8 +9,8 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslActor, DslDocument, DslLane, DslPhase, DslValue, PresetType } from "./types";
-import type { CdlDiagram, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
+import type { DslActor, DslDocument, DslLane, DslPhase, DslStep, DslValue, PresetType } from "./types";
+import type { CdlDiagram, CdlEdge, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import {
   sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
   rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
@@ -196,8 +196,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
   const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
   applyEdgeInlineOptions(diagram, doc, edgeSourceLines);
-  // `type: flow` は actor を鎖状に繋ぐため上の (from, to) 一致では取れない。 preset の規則で埋める。
-  if (edgeSourceLines) fillFlowEdgeSources(diagram, doc, edgeSourceLines);
   applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
@@ -2812,7 +2810,7 @@ function deepRewriteStrings(
 }
 
 /**
- * v0.5+ flow inline option (guard / cardinality / labelOffsetX / labelOffsetY) を
+ * v0.5+ flow inline option (guard / cardinality / labelOffsetX / labelOffsetY / overlay) を
  * 既存 preset 経由で生成された CdlEdge に対し、 doc.flow の (from, to) 一致順マッチングで反映する。
  *
  * 設計:
@@ -2829,6 +2827,16 @@ function applyEdgeInlineOptions(
   /** 対応が取れた edge を記録する表。 callback は呼ばない (1 edge = 1 回にするため)。 */
   sourceLines?: Map<string, number>,
 ): void {
+  // **静止した `type: flow` は書いた端で対応が取れない** (#1267)。 鎖の規則で先に埋める
+  if (鎖でつなぐ形か(doc)) {
+    diagram.edges.forEach((e, idx) => {
+      const s = 鎖のどの行から来たか(doc, idx);
+      if (s === undefined) return;
+      sourceLines?.set(e.id, s.pos.line);
+      矢印へ書き写す(e, s, doc);
+    });
+    return;
+  }
   const used = new Set<string>();
   // sequence preset では actor 名 が lane id、 edge.from は `s{stepIdx}-{laneId}` 形式。
   // solidity は sorted-actor を sequence preset 経由するため sequence と同形。
@@ -2852,23 +2860,56 @@ function applyEdgeInlineOptions(
     if (!target) return;
     used.add(target.id);
     sourceLines?.set(target.id, s.pos.line);
-    if (s.guard !== undefined) {
-      target.guard = s.guard;
-      // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
-      if (doc.type === "state" && target.sub === undefined) target.sub = s.guard;
-    }
-    if (s.cardinality !== undefined) {
-      target.cardinality = s.cardinality;
-      // ER preset の場合 label に "(1:N)" 形式で併記 (既に含まれていればスキップ)
-      if (doc.type === "er" && !target.label.includes(s.cardinality)) {
-        target.label = target.label
-          ? `${target.label} (${s.cardinality})`
-          : `(${s.cardinality})`;
-      }
-    }
-    if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
-    if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+    矢印へ書き写す(target, s, doc);
   });
+}
+
+/** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */
+function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): void {
+  if (s.guard !== undefined) {
+    target.guard = s.guard;
+    // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
+    if (doc.type === "state" && target.sub === undefined) target.sub = s.guard;
+  }
+  if (s.cardinality !== undefined) {
+    target.cardinality = s.cardinality;
+    // ER preset の場合 label に "(1:N)" 形式で併記 (既に含まれていればスキップ)
+    if (doc.type === "er" && !target.label.includes(s.cardinality)) {
+      target.label = target.label
+        ? `${target.label} (${s.cardinality})`
+        : `(${s.cardinality})`;
+    }
+  }
+  if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
+  if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  if (s.overlay !== undefined) target.overlay = s.overlay;
+}
+
+/**
+ * 静止した `type: flow` かどうか。 この形だけ矢印を鎖状に作る (`compileFlow`)。
+ *
+ * 段を持つ形と縦列を書いた形は generic 経路へ回るため鎖にならない。 判定を 1 か所に
+ * 集めるのは、`compileFlow` の分岐と食い違うと対応の取り方だけがずれるため。
+ */
+function 鎖でつなぐ形か(doc: DslDocument): boolean {
+  if (doc.type !== "flow") return false;
+  if (doc.animate && doc.animate.phases.length > 0) return false;
+  return !書いた縦列に置く("flow", doc);
+}
+
+/**
+ * 鎖の N 本目の矢印が、本文のどの行から来たかを返す (#1267)。
+ *
+ * `compileFlow` は登場人物を書いた順に繋ぎ、説明文は **その箱を to に持つ行** から拾う。
+ * 書いた側の端 (from) は使わない。 そのため `A -> C` と書いても矢印は `A -> B` になり、
+ * (from, to) の一致では対応が取れない (実測 = 説明文だけが載り、指定が黙って落ちていた)。
+ *
+ * 説明文を決めた規則と同じ規則で指定も決める = 説明文と指定が必ず同じ行から来る。
+ */
+function 鎖のどの行から来たか(doc: DslDocument, edgeIndex: number): DslStep | undefined {
+  const to = doc.actors[edgeIndex + 1];
+  if (to === undefined) return undefined;
+  return doc.flow.find((s) => s.to === to.name);
 }
 
 /**
@@ -3643,19 +3684,6 @@ function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
  * 対応が取れない edge には何も入れない (呼出側が「対応が無い」 と「行 0」 を区別できるように
  * するため、 #998)。
  */
-function fillFlowEdgeSources(diagram: CdlDiagram, doc: DslDocument, sourceLines: Map<string, number>): void {
-  if (doc.type !== "flow") return;
-  // animation ありは別経路 (`compileGenericWithAnimate`) で、 鎖の規則が当てはまらない。
-  if (doc.animate && doc.animate.phases.length > 0) return;
-  diagram.edges.forEach((e, idx) => {
-    const to = doc.actors[idx + 1];
-    if (to === undefined) return;
-    const step = doc.flow.find((s) => s.to === to.name);
-    if (step === undefined) return;
-    sourceLines.set(e.id, step.pos.line);
-  });
-}
-
 /**
  * v0.5+ groups section を topology preset 経由の diagram に container lane として反映。
  * group.lanes に含まれる lane id 集合に対し、 wrap する `group-{id}` lane を contain: true で生成。

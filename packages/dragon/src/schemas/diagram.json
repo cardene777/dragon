@@ -71,7 +71,8 @@
           "guard": {"type": "string", "description": "state 遷移の条件 (kind: state 用)"},
           "cardinality": {"type": "string", "description": "ER の多重度 (1..N 等、 kind: er 用)"},
           "labelOffsetX": {"type": "number", "description": "ラベル位置 x 調整"},
-          "labelOffsetY": {"type": "number", "description": "ラベル位置 y 調整"}
+          "labelOffsetY": {"type": "number", "description": "ラベル位置 y 調整"},
+          "overlay": {"type": "boolean", "description": "true で説明文を矢印の線の上に重ねる (分岐図の条件ラベル用)"}
         }
       }
     },

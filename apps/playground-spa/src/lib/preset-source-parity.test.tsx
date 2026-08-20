@@ -483,10 +483,33 @@ describe("図表と状態の一致検査", () => {
 
 /** 矢印が読む人に見せる中身。 説明 / 補足 / 色 / 線種 */
 const 矢印の中身 = (
-  a: readonly { label?: string; sub?: string; tone?: string; style?: string }[] | undefined,
+  a:
+    | readonly {
+        label?: string;
+        sub?: string;
+        tone?: string;
+        style?: string;
+        overlay?: boolean;
+        labelOffsetX?: number;
+        labelOffsetY?: number;
+      }[]
+    | undefined,
 ): string[] =>
   (a ?? []).map((x) =>
-    JSON.stringify({ label: x.label ?? "", sub: x.sub ?? "", tone: x.tone ?? "", style: x.style ?? "" }),
+    JSON.stringify({
+      label: x.label ?? "",
+      sub: x.sub ?? "",
+      tone: x.tone ?? "",
+      style: x.style ?? "",
+      // **説明と色だけでは足りない** (#1267 の指摘)。 説明文を線の上に重ねるか
+      // (`overlay`)、 位置をずらすか (`labelOffset*`) は説明の中身を変えないが、
+      // 描くと文字の座標が変わる (実測 = 分岐図の `true` が x=883 対 x=946)。
+      //
+      // 描いた図の大きさの比較でも捕まらない。 全体の枠は変わらず文字だけが動くため。
+      overlay: x.overlay ?? false,
+      labelOffsetX: x.labelOffsetX ?? 0,
+      labelOffsetY: x.labelOffsetY ?? 0,
+    }),
   );
 
 /** 段が読む人に見せる中身と動き。 光らせる先は id 差があるので別に比べる */
