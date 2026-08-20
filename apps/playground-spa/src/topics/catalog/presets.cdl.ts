@@ -1039,8 +1039,8 @@ actors:
 
 flow:
   - Submit request -> Review: "" (accent, solid)
-  - Review -> Approved: "true" (success, solid)
-  - Review -> Revise: "false" (warning, solid)
+  - Review -> Approved: "true" (success, solid) { overlay: true }
+  - Review -> Revise: "false" (warning, solid) { overlay: true }
 
 animation:
   - step: "1. Submit request" 0.9s

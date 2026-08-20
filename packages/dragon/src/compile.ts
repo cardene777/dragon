@@ -2812,7 +2812,7 @@ function deepRewriteStrings(
 }
 
 /**
- * v0.5+ flow inline option (guard / cardinality / labelOffsetX / labelOffsetY) を
+ * v0.5+ flow inline option (guard / cardinality / labelOffsetX / labelOffsetY / overlay) を
  * 既存 preset 経由で生成された CdlEdge に対し、 doc.flow の (from, to) 一致順マッチングで反映する。
  *
  * 設計:
@@ -2868,6 +2868,7 @@ function applyEdgeInlineOptions(
     }
     if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
     if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+    if (s.overlay !== undefined) target.overlay = s.overlay;
   });
 }
 

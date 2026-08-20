@@ -1565,7 +1565,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   // 1. `Client -> API`                            ... label / option なし
   // 2. `Client -> API: "deposit"`                 ... label
   // 3. `Client -> API: "deposit" (success)`       ... label + tone tuple
-  // 4. `Client -> API: "deposit" { sub: "...", guard: "...", cardinality: "1:N", labelOffsetY: -8 }` ... inline option
+  // 4. `Client -> API: "deposit" { sub: "...", guard: "...", cardinality: "1:N", labelOffsetY: -8, overlay: true }` ... inline option
   // 5. `Client -> API: "deposit" (success) { guard: "..." }` ... 両方
   const raw = line.trimmed;
   const arrowIdx = raw.indexOf("->");
@@ -1580,6 +1580,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
   let cardinality: string | undefined;
   let labelOffsetX: number | undefined;
   let labelOffsetY: number | undefined;
+  let overlay: boolean | undefined;
   // inline option (`{ ... }`) を末尾から抽出
   const mapMatch = rest.match(/\s*\{([^}]*)\}\s*$/);
   if (mapMatch) {
@@ -1589,6 +1590,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
     cardinality = opts.cardinality;
     labelOffsetX = numberOrUndef(opts.labelOffsetX);
     labelOffsetY = numberOrUndef(opts.labelOffsetY);
+    overlay = boolOrUndef(opts.overlay);
     rest = rest.slice(0, mapMatch.index ?? 0).trim();
   }
   // 色と線種を末尾から取る。 括弧 (`(成功)`) と空白区切り (`成功`) の両方を受け付ける。
@@ -1637,6 +1639,7 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
     cardinality,
     labelOffsetX,
     labelOffsetY,
+    overlay,
     pos: { line: line.no },
   };
 }

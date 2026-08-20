@@ -142,6 +142,8 @@ export interface JsonStep {
   cardinality?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
+  overlay?: boolean;
   /**
    * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = edge label offset。 未指定は
    * backward compat、 set 済は Phase 2 の applyPosOffset で edge label 位置を shift する。
@@ -763,6 +765,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     cardinality: s.cardinality,
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
+    overlay: s.overlay,
     // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos
     layoutPos: s.pos,
     pos: p0,

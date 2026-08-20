@@ -263,6 +263,8 @@ export type DslStep = {
   cardinality?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
+  overlay?: boolean;
   /**
    * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 step の edge
    * label 位置を auto layout compute から (dx, dy) shift する。 未指定は auto、 set 済は Phase 2 で適用。
