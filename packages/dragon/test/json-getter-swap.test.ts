@@ -12,6 +12,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { jsonToDiagram, validateDragonJson } from "../src/index";
+import { 素のデータに写す } from "../src/json-parser";
 
 /** JSON の最小形。 差し替えたい項目だけを渡す */
 const 図の素 = (extra: Record<string, unknown>): Record<string, unknown> => ({
@@ -176,11 +177,11 @@ describe("写しそのものの性質", () => {
     const 素 = JSON.parse(
       '{"title":"確認","type":"flow","actors":[{"name":"受付"},{"name":"処理"}],"flow":[{"from":"受付","to":"処理","label":"渡す"}],"__proto__":{"汚染":1}}',
     ) as Record<string, unknown>;
-    const r = validateDragonJson(素);
+    const r = 素のデータに写す(素);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
 
-    const 写し = r.data as unknown as Record<string, unknown>;
+    const 写し = r.value as Record<string, unknown>;
     expect(写し.汚染, "写しが差し替わった prototype から継承している").toBeUndefined();
     expect(Object.getPrototypeOf(写し), "写しの prototype が差し替わっている").toBe(
       Object.prototype,
@@ -249,12 +250,12 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
       先.next = 次;
       先 = 次;
     }
-    const r = validateDragonJson(図の素({ 使わない項目: 深い }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 深い }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]?.message).toContain("入れ子が深すぎる");
+    expect(r.error.message).toContain("入れ子が深すぎる");
     // どこで止まったかが path から読める
-    expect(r.errors[0]?.path.startsWith("$.使わない項目")).toBe(true);
+    expect(r.error.path.startsWith("$.使わない項目")).toBe(true);
   });
 
   it("項目が多い入力でも数を理由に拒まない (Round 3)", () => {
@@ -262,10 +263,10 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     // 入力が生まれる (Round 3 の指摘 = 1 つの actors に 100,001 個の値を持たせた形が拒まれた)
     const 多い: Record<string, unknown> = {};
     for (let i = 0; i < 200_000; i += 1) 多い[`k${i}`] = i;
-    const r = validateDragonJson(図の素({ 使わない項目: 多い }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 多い }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    const 写し = (r.data as unknown as Record<string, Record<string, unknown>>).使わない項目;
+    const 写し = (r.value as Record<string, Record<string, unknown>>).使わない項目;
     expect(Object.keys(写し).length).toBe(200_000);
   }, 30_000);
 
@@ -305,11 +306,11 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
       },
     });
 
-    const r = validateDragonJson(図の素({ 使わない項目: 巨大 }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 巨大 }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]?.message).toContain("項目が多すぎる");
-    expect(r.errors[0]?.path).toBe("$.使わない項目");
+    expect(r.error.message).toContain("項目が多すぎる");
+    expect(r.error.path).toBe("$.使わない項目");
     expect(添字を読んだ, "添字を読んでから止まっている").toBe(0);
     expect(長さを読んだ, "長さを 2 度以上読んでいる").toBe(1);
   }, 30_000);
@@ -323,10 +324,10 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
         return Reflect.get(t, k, r);
       },
     });
-    const r = validateDragonJson(図の素({ 使わない項目: 端数 }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 端数 }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect((r.data as unknown as Record<string, unknown[]>).使わない項目).toEqual(["a", "b"]);
+    expect((r.value as Record<string, unknown[]>).使わない項目).toEqual(["a", "b"]);
   });
 
   it("長さが数でない配列は空として扱い、 読み続けない (Round 7)", () => {
@@ -339,10 +340,10 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
         return Reflect.get(t, k, r);
       },
     });
-    const r = validateDragonJson(図の素({ 使わない項目: 壊れた }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 壊れた }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect((r.data as unknown as Record<string, unknown[]>).使わない項目).toEqual([]);
+    expect((r.value as Record<string, unknown[]>).使わない項目).toEqual([]);
     expect(添字を読んだ, "読み続けている").toBe(0);
   }, 20_000);
 
@@ -355,11 +356,11 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
         return Reflect.get(t, k, r);
       },
     });
-    const r = validateDragonJson(図の素({ 使わない項目: bigint長 }));
+    const r = 素のデータに写す(図の素({ 使わない項目: bigint長 }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]?.message).toBe("入力を読み取れない");
-    expect(r.errors[0]?.hint).toContain("BigInt");
+    expect(r.error.message).toBe("入力を読み取れない");
+    expect(r.error.hint).toContain("BigInt");
   });
 
   it("長さが負の配列も空として扱い、 数の残りを増やさない (Round 7)", () => {
@@ -372,10 +373,10 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
       });
 
     // 空として写る
-    const r1 = validateDragonJson(図の素({ 使わない項目: 負を作る(-5) }));
+    const r1 = 素のデータに写す(図の素({ 使わない項目: 負を作る(-5) }));
     expect(r1.ok).toBe(true);
     if (!r1.ok) return;
-    expect((r1.data as unknown as Record<string, unknown[]>).使わない項目).toEqual([]);
+    expect((r1.value as Record<string, unknown[]>).使わない項目).toEqual([]);
 
     // **数の残りを増やさない**。 0 に寄せずに足すと、 大きな負の長さで上限の判定を無効にできる
     const 巨大 = new Proxy([] as unknown[], {
@@ -384,18 +385,18 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
         return Reflect.get(t, k, r);
       },
     });
-    const r2 = validateDragonJson(図の素({ 使わない項目: [負を作る(-1e15), 巨大] }));
+    const r2 = 素のデータに写す(図の素({ 使わない項目: [負を作る(-1e15), 巨大] }));
     expect(r2.ok, "負の長さで上限の判定が無効になっている").toBe(false);
     if (r2.ok) return;
-    expect(r2.errors[0]?.message).toContain("項目が多すぎる");
+    expect(r2.error.message).toContain("項目が多すぎる");
   }, 20_000);
 
   it("普通の大きさの配列は通る", () => {
     const 並び = Array.from({ length: 1000 }, (_, i) => i);
-    const r = validateDragonJson(図の素({ 使わない項目: 並び }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 並び }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    const 写し = (r.data as unknown as Record<string, number[]>).使わない項目;
+    const 写し = (r.value as Record<string, number[]>).使わない項目;
     expect(写し.length).toBe(1000);
     expect(写し[999]).toBe(999);
   });
@@ -419,10 +420,10 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
       );
     };
 
-    const r = validateDragonJson(図の素({ 使わない項目: 名前が多い(60) }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 名前が多い(60) }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]?.message).toContain("項目が多すぎる");
+    expect(r.error.message).toContain("項目が多すぎる");
     // 上限を大きく超えて並べていないこと (名前を数えていないと 126 万で止まらない)
     expect(並べた数, `${並べた数} 個並べた`).toBeLessThanOrEqual(5_020_000);
   }, 60_000);
@@ -444,12 +445,12 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
         },
       );
 
-    const r = validateDragonJson(図の素({ 使わない項目: 生やす(30) }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 生やす(30) }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
     // 深さの上限か数の上限のどちらかで止まる。 どちらでも「止まる」 ことが要点
     expect(
-      (r.errors[0]?.message ?? "").match(/項目が多すぎる|入れ子が深すぎる/) !== null,
+      (r.error.message ?? "").match(/項目が多すぎる|入れ子が深すぎる/) !== null,
       `止まらずに ${作った数} 個作った`,
     ).toBe(true);
   }, 60_000);
@@ -463,7 +464,7 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
       先.next = 次;
       先 = 次;
     }
-    expect(validateDragonJson(図の素({ 使わない項目: 入れ子 })).ok).toBe(true);
+    expect(素のデータに写す(図の素({ 使わない項目: 入れ子 })).ok).toBe(true);
   });
 });
 
@@ -507,10 +508,10 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
         throw new Error("boom");
       },
     });
-    const r = validateDragonJson(図の素({ 使わない項目: 並び }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 並び }));
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.errors[0]?.path).toBe("$.使わない項目[1]");
+    expect(r.error.path).toBe("$.使わない項目[1]");
   });
 
   it("兄弟の項目を書いた順に読む (r1-f2 の fix が順を変えていない)", () => {
@@ -529,7 +530,7 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
       });
       return o;
     };
-    const r = validateDragonJson(
+    const r = 素のデータに写す(
       図の素({ 使わない項目: { 甲: 見る("甲"), 乙: 見る("乙"), 丙: 見る("丙") } }),
     );
     expect(r.ok).toBe(true);
@@ -538,10 +539,10 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
 
   it("同じ object を 2 か所から指しても 1 つの写しを共有する", () => {
     const 共有 = { 値: 1 };
-    const r = validateDragonJson(図の素({ 使わない項目: { 甲: 共有, 乙: 共有 } }));
+    const r = 素のデータに写す(図の素({ 使わない項目: { 甲: 共有, 乙: 共有 } }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    const 写し = (r.data as unknown as Record<string, Record<string, unknown>>).使わない項目;
+    const 写し = (r.value as Record<string, Record<string, unknown>>).使わない項目;
     expect(写し.甲).toBe(写し.乙);
     expect(写し.甲).not.toBe(共有);
   });
@@ -571,7 +572,7 @@ describe("読む順は書いた順で深さ優先 (Round 3)", () => {
     const 読んだ順: string[] = [];
     const 甲 = 見る(読んだ順, "甲", { 中: 見る(読んだ順, "甲の中") });
     const 乙 = 見る(読んだ順, "乙");
-    const r = validateDragonJson(図の素({ 使わない項目: { 甲, 乙 } }));
+    const r = 素のデータに写す(図の素({ 使わない項目: { 甲, 乙 } }));
     expect(r.ok).toBe(true);
     expect(読んだ順).toEqual(["甲の中", "甲", "乙"]);
   });
@@ -582,7 +583,7 @@ describe("読む順は書いた順で深さ優先 (Round 3)", () => {
       甲: 見る(読んだ順, "甲", { 中: 見る(読んだ順, "甲の中", { 奥: 見る(読んだ順, "甲の奥") }) }),
       乙: 見る(読んだ順, "乙", { 中: 見る(読んだ順, "乙の中") }),
     };
-    const r = validateDragonJson(図の素({ 使わない項目: 素 }));
+    const r = 素のデータに写す(図の素({ 使わない項目: 素 }));
     expect(r.ok).toBe(true);
     expect(読んだ順).toEqual(["甲の奥", "甲の中", "甲", "乙の中", "乙"]);
   });

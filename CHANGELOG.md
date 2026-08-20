@@ -344,6 +344,17 @@ dragon DSL の主要変更履歴。
 
 #### 書いたのに効かない / 黙って消える形
 
+- **JSON が知らない項目を誤りとして返すようにした** (#1295)
+
+  綴り違い (`animation` → `animations`) や打ち間違いが検査を通り、書いたのに効かない図が
+  出来ていた。 公開している JSON Schema は元から全階層で `additionalProperties: false` を
+  宣言しており、parser が自分の契約に追いついていなかった。 近い項目名があれば hint で勧める。
+
+  併せて、受ける項目の一覧を実装の表 (`ACCEPTED_KEYS`) 1 箇所に集め、schema との一致を
+  両方向で検査するようにした。 `viewport` は検査そのものが無かったため型を見るようにし、
+  schema に無かった 4 項目 (`actors[].pos` / `flow[].pos` / `lanes.*.pos` / `viewport.scale`)
+  を載せ、色の一覧を engine と揃えた。
+
 - **記法では効く箱の項目 12 個と `axes` を JSON でも書けるようにした** (#1294)
 
   `tone` / `owner` / `end` / `touchpoint` / `opportunity` / `posX` / `posY` / `posW` / `posH` /
@@ -469,6 +480,12 @@ dragon DSL の主要変更履歴。
   (同じ名前を 2 回宣言した時に後ろが効くこと / 段で状態に入る値も見ること)。
 
 ### Removed (破壊的変更)
+
+- **JSON の `layout` を受けるのをやめた** (#1295)
+
+  記法 (`TOP_LEVEL_KEYS`) に無く、JSON にだけあった。 `doc.layout` を読む場所が実装にも
+  画面にも 1 つも無く、検査を通っても何も起きない項目だった。 drag で位置を保存する mode
+  (Phase 4) が入る時に、記法と JSON の両方へ同時に足す。
 
 - **記法から `type: radial` を外した** (#1170)
 
