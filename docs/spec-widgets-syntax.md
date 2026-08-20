@@ -1,6 +1,20 @@
 # spec — dragon `parts:` widgets syntax (CAR-1657)
 
-grilling 全枝走査結果と 4 survey (editor / parser / parts / test-infra) findings を統合した lock-in spec。 実装着手前の SSOT。
+**status** = superseded (2026-07-17)
+**superseded-by** = `docs/spec-parts-actors-unified.md`
+**却下理由** = `parts:` を top-level keyword として新設する案を採らず、parts を actor の一種と
+して既存の `actors` 記法に寄せる案を採った。 記法の入口を増やさずに済むため。
+
+**本 file は履歴として残している**。 grilling の全枝走査結果 (5 critical + 2 optional 論点) が
+書かれており、なぜこの案を採らなかったかを読むのに要る。 **実装はこの spec に従っていない**。
+
+実装との対応を確かめる場合は次のとおり。 本 spec が挙げる識別子は `parts:` keyword /
+`prefixIds` / `applyLaneOffset` / `convertJsonPartsToWidgetsSyntax` / `DslPartsRef` のいずれも
+実装に存在せず、実際に動いているのは actors 版の `mergePartsFromActors`
+(`packages/dragon/src/compile.ts`) になる。
+
+以下は grilling 全枝走査結果と 4 survey (editor / parser / parts / test-infra) findings を
+統合した当時の内容で、**当時は実装着手前の SSOT として書かれた**。
 
 ## 0. 目的 (Why)
 
