@@ -209,7 +209,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportSelfLoopFlow(書いたまま, opts?.onNotice);
   // 静止した `type: flow` で書いた矢印の端が使われないことを伝える (#1269)。
   // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
-  reportFlowEndpointNotHonored(doc, opts?.onNotice);
+  reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
@@ -600,9 +600,18 @@ function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void)
  * 自分へ戻る形 (`flow-self-loop`) と居ない名前を指す形 (`flow-actor-missing`) は
  * 別の知らせが担う。 落とした後の `doc` を見ることで、同じ 1 行に知らせが 2 件並ぶのを避ける。
  */
-function reportFlowEndpointNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+function reportFlowEndpointNotHonored(
+  doc: DslDocument,
+  元の名前: Map<string, string>,
+  onNotice?: (n: CompileNotice) => void,
+): void {
   if (!onNotice) return;
   if (!鎖でつなぐ形か(doc)) return;
+  // 名前が重なった登場人物は組み立ての間だけ尾を付けて分けている (`disambiguateActorIds`)。
+  // **判定は分けた後の名前で行い、伝える時は書いた名前に戻す** = 判定は `compileFlow` の
+  // 繋ぎ方と揃える必要があり、伝える先は本文なので書いていない名前を指すと直せない
+  // (実測 = `"A B 546d26" の端は使われません` と出て、本文にその名前は無い)
+  const 書いた名前 = (name: string): string => 元の名前.get(name) ?? name;
   // 鎖が作る組を集める。 登場人物が 1 人以下なら矢印が 1 本も出来ないので、
   // 書いた矢印は全て使われない扱いになる
   const 鎖の組 = new Set<string>();
@@ -615,9 +624,9 @@ function reportFlowEndpointNotHonored(doc: DslDocument, onNotice?: (n: CompileNo
     if (鎖の組.has(`${s.from}\u0000${s.to}`)) continue;
     onNotice({
       kind: "flow-endpoint-not-honored",
-      actor: s.from,
+      actor: 書いた名前(s.from),
       line: s.pos.line,
-      message: `"${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}" の端は使われません (type: flow は登場人物を書いた順に繋ぎます)`,
+      message: `"${truncateForMessage(書いた名前(s.from))} -> ${truncateForMessage(書いた名前(s.to))}" の端は使われません (type: flow は登場人物を書いた順に繋ぎます)`,
       hint: "書いた端どおりに繋ぐには、箱に lane: を書いてください (縦列を書いた形は書いた端がそのまま矢印になります)",
     });
   }

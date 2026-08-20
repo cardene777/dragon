@@ -125,3 +125,52 @@ flow:
     expect(知らせ(yaml).some((n) => n.kind === "flow-actor-missing")).toBe(true);
   });
 });
+
+describe("名前が重なる登場人物 (#1271 r1-f1)", () => {
+  // 名前が重なると組み立ての間だけ尾を付けて分ける (`disambiguateActorIds`)。
+  // 知らせが分けた後の名前を指すと、本文にその名前が無いため直しようがない
+  const 重なる = `title: "t"
+type: flow
+
+actors:
+  - "A B": { kind: card }
+  - "A-B": { kind: card }
+  - C: { kind: card }
+
+flow:
+  - "A B" -> C: "x"
+  - C -> "A-B": "y"
+`;
+
+  it("知らせが書いた名前を指す", () => {
+    const n = 端の知らせ(重なる);
+    expect(n.length, "知らせが 1 件も無い (検査が空振りしている)").toBe(2);
+    // 尾 (16 進の並び) が混ざっていないこと
+    for (const x of n) {
+      expect(x.actor, `actor に尾が付いている: ${x.actor}`).not.toMatch(/ [0-9a-f]{6}$/);
+      expect(x.message, `message に尾が付いている: ${x.message}`).not.toMatch(/[0-9a-f]{6}/);
+    }
+    expect(n[0]?.actor).toBe("A B");
+    expect(n[0]?.message).toContain('"A B -> C"');
+    expect(n[1]?.message).toContain('"C -> A-B"');
+  });
+
+  it("名前が重ならない形では戻す処理が何もしない", () => {
+    // **空白を含む名前を使う**。 短い名前だと、名前を切り詰める実装でも結果が同じになり
+    // 「何もしない」 ことを確かめられない (変異試験で実測)
+    const n = 端の知らせ(`title: "t"
+type: flow
+
+actors:
+  - "X Y": { kind: card }
+  - B: { kind: card }
+  - C: { kind: card }
+
+flow:
+  - "X Y" -> C: "x"
+`);
+    expect(n.length, "知らせが 1 件も無い (検査が空振りしている)").toBe(1);
+    expect(n[0]?.actor).toBe("X Y");
+    expect(n[0]?.message).toContain('"X Y -> C"');
+  });
+});
