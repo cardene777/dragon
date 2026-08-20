@@ -3896,15 +3896,19 @@ function compileGantt(doc: DslDocument): CdlDiagram {
 }
 
 /**
- * Class preset (UML class diagram 専用 layout)
+ * クラス図の組み立て。
  *
- * 設計 ... 各 class を 1 storage node として配置、 縦に stack する。 storage node renderer は
- * title (class 名) + divider + rows (fields / methods) を UML class box 風に表示する。
+ * 各クラスを 1 つの箱 (`storage`) にする。 描画側は題 (クラス名) と区切り線と行
+ * (項目 / 手続き) を UML のクラス箱として描く。
  *
- * 実装 ... 全 class を 1 lane に縦 stack 配置。 actor の kind を強制 storage、 rows / subtitle は
- * applyV05Extensions で node に merge される。
+ * **クラスごとに縦列を 1 本作り、横に並べる** (#1263)。 組立て API 側がそう並べており、
+ * 1 本にまとめると同じ内容でも横並びが縦並びになる (実測 = 見本は 3 縦列 450 幅)。
+ * 縦列に見出しは付けない = クラスの名前は箱が既に描いており、縦列は並べるための入れ物
+ * (`er` / `state` と同じ扱い、#1241)。
  *
- * flow ... 継承 / 関連を edge で表現 (label に "extends" / "implements" 等を author が指定)。
+ * 箱の種類は `storage` に強制する。 行と小見出しは `applyV05Extensions` が後から載せる。
+ *
+ * 矢印は継承や保有を表す (`extends` / `aggregates` 等を書き手が説明に書く)。
  */
 function compileClass(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
