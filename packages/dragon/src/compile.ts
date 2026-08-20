@@ -5593,10 +5593,6 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
-      ...(s.guard ? { guard: s.guard } : {}),
-      ...(s.cardinality ? { cardinality: s.cardinality } : {}),
-      ...(s.labelOffsetX !== undefined ? { labelOffsetX: s.labelOffsetX } : {}),
-      ...(s.labelOffsetY !== undefined ? { labelOffsetY: s.labelOffsetY } : {}),
     });
     stepEdgeIds.push(edgeId);
   });
@@ -5804,10 +5800,6 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
-      ...(s.guard ? { guard: s.guard } : {}),
-      ...(s.cardinality ? { cardinality: s.cardinality } : {}),
-      ...(s.labelOffsetX !== undefined ? { labelOffsetX: s.labelOffsetX } : {}),
-      ...(s.labelOffsetY !== undefined ? { labelOffsetY: s.labelOffsetY } : {}),
     });
   }
 
@@ -6098,10 +6090,6 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
-      ...(s.guard ? { guard: s.guard } : {}),
-      ...(s.cardinality ? { cardinality: s.cardinality } : {}),
-      ...(s.labelOffsetX !== undefined ? { labelOffsetX: s.labelOffsetX } : {}),
-      ...(s.labelOffsetY !== undefined ? { labelOffsetY: s.labelOffsetY } : {}),
     });
     edgeIds.push(edgeId);
   });
