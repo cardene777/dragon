@@ -199,6 +199,44 @@ describe("矢印と段の表示要素への読み替え", () => {
  * **中身ではなく絵で見る**。 箱の大きさや矢印の回し方は中身の比較に現れないが、
  * 読む人には図の大きさとして届く。
  */
+/**
+ * 描いた図のうち、**見た目を決める部分だけ** (#1273)。
+ *
+ * id は記法と組立て API で作り方が違う (本 file 冒頭)。 id を載せる欄と、id を埋め込む
+ * 塗り (`url(#tree-root-grad-...)`) を落とす。 座標 / 大きさ / 色 / 文字はすべて残すので、
+ * 見た目に出る差は落とした後も残る。
+ *
+ * 光らせているかどうか (`data-cdl-active`) も落とす。 光らせ方は
+ * `段が光らせる先が一致する` が宣言付きで見る = 二重に見ると宣言が効かなくなる。
+ */
+const 見た目を決めない欄 = [
+  "data-cdl-edge",
+  "data-cdl-node",
+  "data-cdl-lane",
+  "data-cdl-from",
+  "data-cdl-to",
+  "data-cdl-edge-label-for",
+  "data-cdl-edge-label",
+  "data-cdl-edge-sub",
+  "id",
+  "marker-end",
+  "aria-label",
+  "data-cdl-active",
+] as const;
+
+const 落とす式 = new RegExp(` (${見た目を決めない欄.join("|")})="[^"]*"`, "g");
+
+function 見た目(d: Diagram): string {
+  const s = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
+  const 始 = s.indexOf("<svg");
+  const 終 = s.lastIndexOf("</svg>");
+  if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
+  return s
+    .slice(始, 終 + 6)
+    .replace(落とす式, "")
+    .replace(/url\(#[^)]*\)/g, "url(#)");
+}
+
 function 描いた大きさ(d: Diagram): string {
   const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
   return svg.match(/data-cdl-viewbox="([^"]+)"/)?.[1] ?? "(読めない)";
@@ -215,25 +253,90 @@ const 説明 = (a: readonly { label?: string }[] | undefined): string[] => (a ??
  *
  * 座標と色は見ない = 組み立て API 側の既定に依存し、記法で書かない限り一致する保証が無い。
  */
-type 箱の中身 = {
-  kind?: string;
-  title?: string;
-  subtitle?: string;
-  eyebrow?: string;
-  value?: string;
-  rows?: string[];
-  /**
-   * 図表の中身。 図表の preset は箱を 1 つだけ作り、そこに配列を丸ごと載せる
-   * (`presets.cdl.ts` の `bindFirstNode`)。 **ここを比べないと図表の記法は素通りする** =
-   * 箱の題と種類だけ合わせれば、中身が空でも一致とみなされる
-   */
-  chartData?: unknown;
-  funnelData?: unknown;
-  ganttData?: unknown;
-  quadrantData?: unknown;
-  journeyData?: unknown;
-  treeData?: unknown;
-  mindData?: unknown;
+/**
+ * **比べる欄を列挙しない** (#1273)。
+ *
+ * 列挙する形にしていた間、欄が増えても検査は増えず、見ていない欄が黙って素通りしていた。
+ * 直近 4 件の指摘 (#1244 縦列の幅 / #1258 図表の値 / #1260 描いた大きさ / #1267 矢印の
+ * `overlay`) はすべてこの形で、実測すると 15 欄が比較対象から漏れていた。
+ *
+ * 反転して **比べない欄を宣言する**。 宣言に無い欄が実物に現れたら、
+ * 「宣言していない欄が増えていない」 の検査が落ちる = 増えた欄は必ず判断を通る。
+ *
+ * 宣言は 2 種類ある。
+ *
+ * | 種類 | 意味 |
+ * |---|---|
+ * | 比べない | 記法側で合わせる手段が無い、または別の検査が担う |
+ * | 読み替える | そのままでは比べられないが、読む人に見える形へ直せば比べられる |
+ */
+type 欄の宣言 = {
+  /** 比べない欄と、その理由 */
+  比べない: Record<string, string>;
+  /** 読み替えてから比べる欄 */
+  読み替える?: Record<string, string>;
+};
+
+const 箱の宣言: 欄の宣言 = {
+  比べない: {
+    id: "記法と組立て API で作り方が違う (本 file 冒頭)。 読む人に見える名前へ直した上で `光らせる先` が使う",
+    // 大きさは書いていない側が既定に落ちるだけで、描いた図は変わらない。
+    // 実測 = 組立て API 側から `w` を落として描くと出力が 1 文字も変わらない
+    // (`presetEr` 13305 byte / `presetStateMachine` 16185 byte がいずれも同一)。
+    // **変わる場合は `描いた図が一致する` が捕まえる**
+    w: "書かない側は既定に落ちる。 描画に出るかは `描いた図が一致する` が見る",
+    h: "同上",
+  },
+  読み替える: {
+    lane: "縦列の id は作り方が違う。 読む人に見えるのは見出しなので、見出しへ直して比べる",
+    chartData: "図表の項目の id は記法で書けない。 並び順から作る名前へ直して比べる",
+    funnelData: "同上",
+    ganttData: "同上",
+    quadrantData: "同上",
+    journeyData: "同上",
+    treeData: "同上",
+    mindData: "同上",
+  },
+};
+
+const 矢印の宣言: 欄の宣言 = {
+  比べない: {
+    id: "記法と組立て API で作り方が違う",
+    // 0 と書かないことは描画上まったく同じ。 実測 = `presetInfrastructure` から
+    // `labelOffsetX` / `labelOffsetY` を落として描くと 21601 byte が 1 文字も変わらない
+    labelOffsetX: "0 と未指定で描画が変わらない。 描画に出るかは `描いた図が一致する` が見る",
+    labelOffsetY: "同上",
+  },
+  読み替える: {
+    from: "箱の id は作り方が違う。 読む人に見える名前へ直して比べる",
+    to: "同上",
+  },
+};
+
+const 縦列の宣言: 欄の宣言 = {
+  比べない: {
+    id: "記法と組立て API で作り方が違う。 見出しと幅で比べる",
+  },
+};
+
+const 段の宣言: 欄の宣言 = {
+  比べない: {
+    id: "記法と組立て API で作り方が違う",
+    activate: "光らせる先は id の列。 読む人に見える名前へ直して `光らせる先が一致する` が比べる",
+  },
+};
+
+const 状態の宣言: 欄の宣言 = { 比べない: {} };
+
+const 図の直下の宣言: 欄の宣言 = {
+  比べない: {
+    id: "記法と組立て API で作り方が違う",
+    nodes: "箱として別に比べる",
+    edges: "矢印として別に比べる",
+    lanes: "縦列として別に比べる",
+    phases: "段として別に比べる",
+    states: "状態として別に比べる",
+  },
 };
 
 /**
@@ -326,28 +429,121 @@ function 読み替えた参照(v: unknown, 表: Map<string, string>): unknown {
   return 表.get(v) ?? `未解決:${v}`;
 }
 
-const 中身 = (a: readonly 箱の中身[] | undefined): string[] =>
-  (a ?? []).map((x) =>
-    JSON.stringify({
-      kind: x.kind ?? "",
-      title: x.title ?? "",
-      subtitle: x.subtitle ?? "",
-      eyebrow: x.eyebrow ?? "",
-      value: x.value ?? "",
-      rows: x.rows ?? [],
-      chartData: 識別子を並び順に読み替える(x.chartData ?? null),
-      funnelData: 識別子を並び順に読み替える(x.funnelData ?? null),
-      ganttData: 識別子を並び順に読み替える(x.ganttData ?? null),
-      quadrantData: 識別子を並び順に読み替える(x.quadrantData ?? null),
-      journeyData: 識別子を並び順に読み替える(x.journeyData ?? null),
-      treeData: 識別子を並び順に読み替える(x.treeData ?? null),
-      mindData: 識別子を並び順に読み替える(x.mindData ?? null),
-    }),
+type 中身の欄 = Record<string, unknown>;
+
+/** 実物に現れた欄の和集合。 **両側から取る** = 片側にしか無い欄も差として出す */
+function 現れた欄(左: readonly 中身の欄[], 右: readonly 中身の欄[]): string[] {
+  const s = new Set<string>();
+  for (const x of [...左, ...右]) for (const k of Object.keys(x)) s.add(k);
+  return [...s].sort();
+}
+
+/**
+ * 宣言に従って比べる形を作る。 **比べる欄は実物から決まる**。
+ *
+ * `undefined` は `null` に寄せる。 書いていない欄と `undefined` を書いた欄は
+ * 読む人から見て同じなので、片方だけ落とすと差が出る。
+ */
+function 比べる形(
+  xs: readonly 中身の欄[],
+  相手: readonly 中身の欄[],
+  宣言: 欄の宣言,
+  読み替え: (欄名: string, 値: unknown) => unknown,
+): string[] {
+  const 見る欄 = 現れた欄(xs, 相手).filter((k) => !(k in 宣言.比べない));
+  return xs.map((x) =>
+    JSON.stringify(
+      Object.fromEntries(見る欄.map((k) => [k, 読み替え(k, x[k] === undefined ? null : x[k])])),
+    ),
   );
+}
+
+const 図表の欄 = new Set([
+  "chartData",
+  "funnelData",
+  "ganttData",
+  "quadrantData",
+  "journeyData",
+  "treeData",
+  "mindData",
+]);
+
+/**
+ * 箱の中身。 図表の項目の id は並び順から作る名前へ直す。
+ *
+ * 縦列の読み替えは呼出側が渡す。 図を持たない検査 (図表の中身だけを見る下の describe) は
+ * 縦列を持たないため、既定は素通しにする。
+ */
+function 中身(
+  a: readonly 中身の欄[] | undefined,
+  相手: readonly 中身の欄[] = a ?? [],
+  縦列の見出し: (id: unknown) => unknown = (v) => v,
+): string[] {
+  return 比べる形(a ?? [], 相手, 箱の宣言, (k, v) => {
+    if (k === "lane") return 縦列の見出し(v);
+    if (図表の欄.has(k)) return 識別子を並び順に読み替える(v);
+    return v;
+  });
+}
+
+/** 図の縦列の id から見出しを引く。 見出しが無い縦列は id が分かる形で残す */
+function 縦列の見出しを引く(d: Diagram): (id: unknown) => unknown {
+  return (id) =>
+    typeof id === "string"
+      ? ((d.lanes ?? []).find((l) => l.id === id)?.label ?? `(見出し無し)`)
+      : id;
+}
+
+/** 矢印の中身。 両端は読む人に見える名前へ直す */
+function 矢印の中身(d: Diagram, 相手: Diagram): string[] {
+  return 比べる形(d.edges, 相手.edges, 矢印の宣言, (k, v) =>
+    (k === "from" || k === "to") && typeof v === "string" ? 箱の見える名前(d, v) : v,
+  );
+}
+
+/** 縦列。 見出し / 幅 / 内包 / 生命線 をまとめて比べる */
+function 縦列の中身(d: Diagram, 相手: Diagram): string[] {
+  return 比べる形(d.lanes ?? [], 相手.lanes ?? [], 縦列の宣言, (_k, v) => v);
+}
+
+/** 段の中身と動き。 光らせる先は id の列なので別に比べる */
+function 段の中身(d: Diagram, 相手: Diagram): string[] {
+  return 比べる形(d.phases, 相手.phases, 段の宣言, (_k, v) => v);
+}
 
 /** 図の状態 (図表の値の入れ物)。 初期値が違うと最初に描かれる図が変わる */
-const 状態 = (a: readonly { id: string; initial: unknown }[] | undefined): string[] =>
-  (a ?? []).map((x) => JSON.stringify({ id: x.id, initial: x.initial }));
+function 状態(a: readonly 中身の欄[] | undefined, 相手: readonly 中身の欄[] = a ?? []): string[] {
+  return 比べる形(a ?? [], 相手, 状態の宣言, (_k, v) => v);
+}
+
+/** 図の直下 (題など)。 まとまりは対象ごとに別で比べる */
+function 図の直下(d: Diagram, 相手: Diagram): string {
+  return (
+    比べる形(
+      [d],
+      [相手],
+      図の直下の宣言,
+      (_k, v) => v,
+    )[0] ?? ""
+  );
+}
+
+/**
+ * 実物に現れた欄が、すべて宣言を通っているか (#1273)。
+ *
+ * **比べる欄を列挙していた頃の穴を塞ぐ検査**。 比べ方を反転しても、新しい欄が増えた時に
+ * 誰も気付かなければ同じことが起きる。 実物から欄を集め、比べる / 読み替える / 比べない の
+ * どれにも入っていない欄があれば落とす。
+ *
+ * 「比べる」 は宣言に列挙しない (それをやめたのが本 Issue) ので、ここで見るのは
+ * **読み替えと比べないの宣言が実物と食い違っていないか** になる。 具体的には、
+ * 宣言に書いたのに実物に無い欄を落とす = 消えた欄の宣言が残り続けるのを防ぐ。
+ */
+function 実物に無い宣言(実物: readonly 中身の欄[], 宣言: 欄の宣言): string[] {
+  const ある = new Set(実物.flatMap((x) => Object.keys(x)));
+  const 宣言した = [...Object.keys(宣言.比べない), ...Object.keys(宣言.読み替える ?? {})];
+  return 宣言した.filter((k) => !ある.has(k)).sort();
+}
 
 describe("図表と状態の一致検査", () => {
   it.each([
@@ -482,53 +678,32 @@ describe("図表と状態の一致検査", () => {
 });
 
 /** 矢印が読む人に見せる中身。 説明 / 補足 / 色 / 線種 */
-const 矢印の中身 = (
-  a:
-    | readonly {
-        label?: string;
-        sub?: string;
-        tone?: string;
-        style?: string;
-        overlay?: boolean;
-        labelOffsetX?: number;
-        labelOffsetY?: number;
-      }[]
-    | undefined,
-): string[] =>
-  (a ?? []).map((x) =>
-    JSON.stringify({
-      label: x.label ?? "",
-      sub: x.sub ?? "",
-      tone: x.tone ?? "",
-      style: x.style ?? "",
-      // **説明と色だけでは足りない** (#1267 の指摘)。 説明文を線の上に重ねるか
-      // (`overlay`)、 位置をずらすか (`labelOffset*`) は説明の中身を変えないが、
-      // 描くと文字の座標が変わる (実測 = 分岐図の `true` が x=883 対 x=946)。
-      //
-      // 描いた図の大きさの比較でも捕まらない。 全体の枠は変わらず文字だけが動くため。
-      overlay: x.overlay ?? false,
-      labelOffsetX: x.labelOffsetX ?? 0,
-      labelOffsetY: x.labelOffsetY ?? 0,
-    }),
-  );
-
-/** 段が読む人に見せる中身と動き。 光らせる先は id 差があるので別に比べる */
-const 段の中身 = (a: Diagram["phases"]): string[] =>
-  a.map((x) =>
-    JSON.stringify({
-      duration: x.duration,
-      title: x.title,
-      body: x.body,
-      badge: x.badge ?? "",
-      tweens: x.tweens,
-      sets: x.sets,
-    }),
-  );
-
 describe("記法が組み立て API と同じ図になる (#1237)", () => {
   it("対象を 1 件以上見つけている", () => {
     // 0 件だと以下の検査が空回りする = 記法を 1 つも書いていないのに全部通る
     expect(対象.length, "`sourceYaml__<key>` を持つ preset が 1 件も無い").toBeGreaterThan(0);
+  });
+
+  it("宣言した欄が実物に残っている", () => {
+    // **宣言が古くなったまま残らないようにする** (#1273)。 比べる欄を列挙するのをやめても、
+    // 比べない / 読み替える の宣言が実物と食い違えば同じ穴が開く = 消えた欄の宣言が残ると、
+    // 同じ名前の欄が別の意味で復活した時に黙って比較から外れる。
+    //
+    // 逆向き (実物にあって宣言に無い欄) は宣言が要らない。 反転したので、宣言していない欄は
+    // **既定で比べる** = 増えた欄は必ず比較に入る。
+    const 全部 = [...対象.map((t) => t.built), ...対象.map((t) => textDslToDiagram(t.yaml))];
+    const 対象ごと: [string, 中身の欄[], 欄の宣言][] = [
+      ["箱", 全部.flatMap((d) => d.nodes), 箱の宣言],
+      ["矢印", 全部.flatMap((d) => d.edges), 矢印の宣言],
+      ["縦列", 全部.flatMap((d) => d.lanes ?? []), 縦列の宣言],
+      ["段", 全部.flatMap((d) => d.phases), 段の宣言],
+      ["状態", 全部.flatMap((d) => d.states ?? []), 状態の宣言],
+      ["図の直下", 全部, 図の直下の宣言],
+    ];
+    for (const [名, 実物, 宣言] of 対象ごと) {
+      expect(実物.length, `${名} が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(0);
+      expect(実物に無い宣言(実物, 宣言), `${名} の宣言に、実物に無い欄がある`).toEqual([]);
+    }
   });
 
   for (const t of 対象) {
@@ -542,12 +717,14 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       it("箱の中身が一致する", () => {
         // 題だけを見ていると、行や小見出しが落ちた記法を通してしまう (実測 = er の行を
         // 1 つ削っても題は変わらず素通りした)。 読む人が見るのは中身なので、そこまで比べる
-        expect(中身(記法.nodes)).toEqual(中身(t.built.nodes));
+        expect(
+          中身(記法.nodes, t.built.nodes, 縦列の見出しを引く(記法)),
+        ).toEqual(中身(t.built.nodes, 記法.nodes, 縦列の見出しを引く(t.built)));
       });
 
       it("図の状態が一致する", () => {
         // 図表は値を状態に持たせて段で動かす。 初期値が違うと最初に描かれる図が変わる
-        expect(状態(記法.states)).toEqual(状態(t.built.states));
+        expect(状態(記法.states, t.built.states)).toEqual(状態(t.built.states, 記法.states));
       });
 
       it("矢印の数と説明が一致する", () => {
@@ -555,13 +732,32 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       });
 
       it("矢印の中身が一致する", () => {
-        expect(矢印の中身(記法.edges)).toEqual(矢印の中身(t.built.edges));
+        expect(矢印の中身(記法, t.built)).toEqual(矢印の中身(t.built, 記法));
       });
 
       it("矢印の両端と向きが一致する", () => {
         // **説明だけを比べても足りない** (Round 1 の指摘)。 `User -> Order` を
         // `Order -> User` に反転しても説明は変わらないため、向きの違う図が通っていた
         expect(矢印の両端(記法), "矢印の向きか繋ぎ先が違う").toEqual(矢印の両端(t.built));
+      });
+
+      it("描いた図が一致する", () => {
+        // **大きさだけを比べても足りない** (#1273)。 枠は同じで中身が違う図が通っていた
+        // (実測 = 順序図の生命線が組立て API は `y2=848`、記法は `y2=948` で 100 長かった。
+        // 原因は footer の `role` 欠落で、枠の大きさには出ない)。
+        //
+        // **欄を 1 つずつ比べる形では追いつかない**。 比べる欄を列挙していた間に 15 欄が
+        // 漏れており、欄が増えるたびに同じことが起きる。 描いた図そのものを比べれば、
+        // どの欄が増えても見た目に出る差は必ず捕まる。
+        //
+        // id は記法と組立て API で作り方が違うため落とす (本 file 冒頭)。 落とすのは
+        // id を載せる欄と、id を埋め込む塗り (`url(#...)`) だけで、座標も色も残す。
+        if (t.key in 光らせる先の既知の差) {
+          // 光らせる先に宣言した差がある図は、その差が枠線の太さと色に出る。
+          // 光らせ方の差は `段が光らせる先が一致する` が宣言付きで見るので、ここでは見ない
+          return;
+        }
+        expect(見た目(記法), "描いた図が違う").toBe(見た目(t.built));
       });
 
       it("描いた図の大きさが一致する", () => {
@@ -573,16 +769,22 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(描いた大きさ(記法), "描いた図の大きさが違う").toBe(描いた大きさ(t.built));
       });
 
-      it("縦列の幅が一致する", () => {
+      it("縦列の中身が一致する", () => {
         // 幅が違うと箱の並ぶ間隔が変わる = 配置が変わる。 見出しと違って画面に直接出る
         // (実測 = 拡張ステート図は元 280 に対し記法経由で 320 になり、レビューで指摘された)。
         //
         // 自動生成される縦列の id は hyphen を含む (`lane-idle` 等)。 #1241 で `lanes:` ブロックが
         // その形を受けるようになったため、**記法側で幅を書き直せる** (`presetStateMachine` が
         // 370 をそう書いている)。
-        const 幅 = (a: readonly { width?: number }[] | undefined): (number | undefined)[] =>
-          (a ?? []).map((x) => x.width);
-        expect(幅(記法.lanes)).toEqual(幅(t.built.lanes));
+        //
+        // **幅だけを見ていた** (#1273)。 内包 (`contain`) と生命線 (`lifeline`) は
+        // どちらも描画に出るのに比較対象から漏れていた。 id 以外をまとめて見る。
+        // 見出しは既知の差の宣言を持つため、下の検査が別に見る
+        const 見出しを外す = (a: string[]): string[] =>
+          a.map((x) => JSON.stringify({ ...(JSON.parse(x) as Record<string, unknown>), label: null }));
+        expect(見出しを外す(縦列の中身(記法, t.built))).toEqual(
+          見出しを外す(縦列の中身(t.built, 記法)),
+        );
       });
 
       it("縦列の数と見出しが一致する (既知の差は宣言したものだけ)", () => {
@@ -602,8 +804,14 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(見出し(記法.lanes)).toEqual(見出し(t.built.lanes));
       });
 
+      it("図の直下が一致する", () => {
+        // 題 (`topic`) は画面の見出しに出るのに比較対象から漏れていた (#1273)。
+        // まとまり (箱 / 矢印 / 縦列 / 段 / 状態) は対象ごとに別で比べる
+        expect(図の直下(記法, t.built)).toBe(図の直下(t.built, 記法));
+      });
+
       it("段の中身が並びごと一致する", () => {
-        expect(段の中身(記法.phases)).toEqual(段の中身(t.built.phases));
+        expect(段の中身(記法, t.built)).toEqual(段の中身(t.built, 記法));
       });
 
       it("段が光らせる先が一致する (既知の差は宣言したものだけ)", () => {
