@@ -5216,6 +5216,19 @@ function applyV05Extensions(
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
+      // 箱の大きさを反映する (#1259)。 **animation の有無に関係なく** = 動く図専用の
+      // 組み立てだけで渡すと、同じ記法でも静止図では指定が消える。
+      //
+      // 順序図は名札 / 余白 / 足を組で作り、大きさが縦線の並びと結びつくため対象外。
+      //
+      // **幅が図に出るかは縦列との大小で決まる**。 縦列に収まれば箱だけが変わり、
+      // 縦列より広ければ縦列ごと押し広げる (実測 = ステート図の 320 は縦列 370 に収まって
+      // 図が変わらないが、拡張ステート図の 280 に対し既定 640 は縦列 330 を押し広げた)。
+      // #1260 で 1 件だけ見て「見た目に出ない」 と判断し配線を外した = 同じ誤りを繰り返さない
+      if (!isSeqLike) {
+        if (a.posW !== undefined) node.w = a.posW;
+        if (a.posH !== undefined) node.h = a.posH;
+      }
       // seq-like preset の header / footer は kind を card 固定で作る。 書いた kind を載せる
       // (#975)。 載せないと「書いたのに効かない項目」 が残り、 `rows` を書いた時は行が card に
       // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
