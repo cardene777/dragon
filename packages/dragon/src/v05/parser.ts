@@ -71,9 +71,7 @@ import type {
   DslViewport,
 } from "../types";
 
-export type V05ParseResult =
-  | { ok: true; doc: DslDocument }
-  | { ok: false; errors: DslError[] };
+export type V05ParseResult = { ok: true; doc: DslDocument } | { ok: false; errors: DslError[] };
 
 /**
  * 記法が受ける top-level の項目 (#1190)。
@@ -83,7 +81,16 @@ export type V05ParseResult =
  * 一覧に 1 件も無い状態で放置されていた)。
  */
 export const TOP_LEVEL_KEYS = [
-  "title", "type", "actors", "flow", "states", "values", "animation", "viewport", "lanes", "groups",
+  "title",
+  "type",
+  "actors",
+  "flow",
+  "states",
+  "values",
+  "animation",
+  "viewport",
+  "lanes",
+  "groups",
   // 図全体を 1 箱にする図種で、 その箱の上に出す小見出し (#1247)
   "eyebrow",
   // 2 軸で仕分ける図の軸の名前 (#1251)
@@ -145,8 +152,14 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
  * 種類に置き換わるため、 そのまま描画側に渡ることはない。
  */
 const DSL_ONLY_KINDS = [
-  "entity", "state",
-  "contract", "eoa", "multisig", "proxy", "library", "interface",
+  "entity",
+  "state",
+  "contract",
+  "eoa",
+  "multisig",
+  "proxy",
+  "library",
+  "interface",
 ] as const;
 
 /**
@@ -160,17 +173,17 @@ const DSL_ONLY_KINDS = [
  * 保管する役)。 見た目が同じになるが、 役割が同じなので嘘にはならない。
  */
 const INFRA_KIND_ALIAS: Record<string, NodeKind> = {
-  alb: "shape-api-gateway",   // 入口で振り分ける
-  browser: "frontend",         // 画面側
-  ecs: "microservice",         // コンテナ群
-  iam: "admin",                // 権限を守る
-  kms: "admin",                // 鍵を守る
-  lambda: "function",          // 呼ぶと動く
-  rds: "database",             // 表を持つ
-  s3: "storage",               // 置き場
-  secret: "storage",           // 機密の置き場
-  user: "person",              // 人
-  container: "service",        // 動かす単位 (C4 の container)
+  alb: "shape-api-gateway", // 入口で振り分ける
+  browser: "frontend", // 画面側
+  ecs: "microservice", // コンテナ群
+  iam: "admin", // 権限を守る
+  kms: "admin", // 鍵を守る
+  lambda: "function", // 呼ぶと動く
+  rds: "database", // 表を持つ
+  s3: "storage", // 置き場
+  secret: "storage", // 機密の置き場
+  user: "person", // 人
+  container: "service", // 動かす単位 (C4 の container)
 };
 
 /**
@@ -280,7 +293,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
           errors.push({
             line: entry[0]!.no,
             message: `invalid actor entry: "${entry[0]!.trimmed}"`,
-            hint: 'use `- Client` or `- Client: storage`',
+            hint: "use `- Client` or `- Client: storage`",
           });
           continue;
         }
@@ -327,7 +340,12 @@ export function parseTextDslV05(src: string): V05ParseResult {
       for (const it of items) {
         const st = parseStateEntry(it.trimmed.replace(/^-\s*/, ""), it.no);
         if (st) animate.states.push(st);
-        else errors.push({ line: it.no, message: `invalid state entry: "${it.trimmed}"`, hint: "use `name: initial`" });
+        else
+          errors.push({
+            line: it.no,
+            message: `invalid state entry: "${it.trimmed}"`,
+            hint: "use `name: initial`",
+          });
       }
       i = next;
       continue;
@@ -515,8 +533,14 @@ export function parseTextDslV05(src: string): V05ParseResult {
     i += 1;
   }
 
-  if (!title) errors.push({ line: 1, message: "title is required", hint: 'add `title: "..."` at top' });
-  if (!type) errors.push({ line: 1, message: "type is required", hint: "add `type: sequence|flow|swimlane|er|state|topology|solidity|gantt|class|pie|c4|mind`" });
+  if (!title)
+    errors.push({ line: 1, message: "title is required", hint: 'add `title: "..."` at top' });
+  if (!type)
+    errors.push({
+      line: 1,
+      message: "type is required",
+      hint: "add `type: sequence|flow|swimlane|er|state|topology|solidity|gantt|class|pie|c4|mind`",
+    });
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -590,7 +614,10 @@ function lastTopLevelColon(s: string): number {
       if (c === quote) quote = "";
       continue;
     }
-    if (c === '"' || c === "'") { quote = c; continue; }
+    if (c === '"' || c === "'") {
+      quote = c;
+      continue;
+    }
     if (c === "[" || c === "{") depth += 1;
     else if (c === "]" || c === "}") depth -= 1;
     else if (c === ":" && depth === 0) last = i;
@@ -615,11 +642,26 @@ function splitValues(s: string): string[] {
       if (c === quote) quote = "";
       continue;
     }
-    if (c === '"' || c === "'") { quote = c; buf += c; continue; }
-    if (c === "[" || c === "{") { depth += 1; buf += c; continue; }
-    if (c === "]" || c === "}") { depth -= 1; buf += c; continue; }
+    if (c === '"' || c === "'") {
+      quote = c;
+      buf += c;
+      continue;
+    }
+    if (c === "[" || c === "{") {
+      depth += 1;
+      buf += c;
+      continue;
+    }
+    if (c === "]" || c === "}") {
+      depth -= 1;
+      buf += c;
+      continue;
+    }
     if (/\s/.test(c) && depth === 0) {
-      if (buf) { out.push(buf); buf = ""; }
+      if (buf) {
+        out.push(buf);
+        buf = "";
+      }
       continue;
     }
     buf += c;
@@ -656,7 +698,10 @@ function classifyValues(values: string[]): ActorValues {
   const scaleWritten = new Map<string, string>();
   const kindWords: string[] = [];
   for (const v of values) {
-    if ((v.startsWith('"') && v.endsWith('"') && v.length > 1) || (v.startsWith("'") && v.endsWith("'") && v.length > 1)) {
+    if (
+      (v.startsWith('"') && v.endsWith('"') && v.length > 1) ||
+      (v.startsWith("'") && v.endsWith("'") && v.length > 1)
+    ) {
       // 1 つ目の引用符は補足、 2 つ目は値 (`storage` の右側に出る数値等)
       if (out.subtitle === undefined) out.subtitle = stripQuotes(v);
       else if (out.value === undefined) out.value = stripQuotes(v);
@@ -672,7 +717,11 @@ function classifyValues(values: string[]): ActorValues {
     }
     // `@300,200` は位置。 2 つ揃わないと効かないので、 1 つの値としてまとめて書く
     const at = v.match(/^@(-?\d+(?:\.\d+)?)\s*[,、]\s*(-?\d+(?:\.\d+)?)$/);
-    if (at) { out.posX = Number(at[1]); out.posY = Number(at[2]); continue; }
+    if (at) {
+      out.posX = Number(at[1]);
+      out.posY = Number(at[2]);
+      continue;
+    }
     // `名前=値` は parts の状態の上書き。 状態名は自由なので、 形では見分けられない。
     // 等号を書いてもらう。
     const eq = v.indexOf("=");
@@ -691,7 +740,10 @@ function classifyValues(values: string[]): ActorValues {
       }
     }
     const tone = toneOrUndef(v);
-    if (tone) { out.tone = tone; continue; }
+    if (tone) {
+      out.tone = tone;
+      continue;
+    }
     kindWords.push(v);
   }
   out.kind = kindWords.join(" ").toLowerCase();
@@ -706,7 +758,7 @@ function classifyValues(values: string[]): ActorValues {
  *
  * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 それ以外はそのまま返す。
  */
-function resolveKind(raw: string): NodeKind {
+export function resolveNodeKind(raw: string): NodeKind {
   if (raw === "") return NODE_KIND_DEFAULT;
   // `Object.hasOwn` で引く。 素の添字だと `toString` 等の既定の持ち物が引けてしまい、
   // 種類として関数が返る。 呼ぶ前に受理集合で弾いてはいるが、 表を引く側でも閉じておく。
@@ -846,7 +898,11 @@ function splitInlineFields(inner: string): string[] {
   return parts;
 }
 
-function collectIndentedList(lines: Line[], start: number, parentIndent: number): { items: Line[]; next: number } {
+function collectIndentedList(
+  lines: Line[],
+  start: number,
+  parentIndent: number,
+): { items: Line[]; next: number } {
   const items: Line[] = [];
   let i = start;
   while (i < lines.length) {
@@ -979,7 +1035,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "種類": {
         const k = stripQuotes(raw).toLowerCase();
         const isPart = k !== "" && !NODE_KIND_VALID.has(k);
-        out.kind = isPart ? NODE_KIND_DEFAULT : resolveKind(k);
+        out.kind = isPart ? NODE_KIND_DEFAULT : resolveNodeKind(k);
         // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
         // 「書かなかった」 と同じ扱いにする (#1058)
         out.kindWritten = k !== "" && !isPart;
@@ -996,7 +1052,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         break;
       case "rows":
       case "行":
-        out.rows = raw.replace(/^\[|\]$/g, "").split(/,(?![^[]*\])/).map((x) => stripQuotes(x.trim())).filter(Boolean);
+        out.rows = raw
+          .replace(/^\[|\]$/g, "")
+          .split(/,(?![^[]*\])/)
+          .map((x) => stripQuotes(x.trim()))
+          .filter(Boolean);
         break;
       case "位置":
       case "pos": {
@@ -1025,7 +1085,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         //
         // 負の間隔 (`Web の右 -200`) もここに来る。 向きを書いた上で裏返す指定は、
         // 書いた人の意図と図が食い違うので誤りとして返す
-        const negative = /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\s*[\d.]/i.test(value);
+        const negative =
+          /^(.+?)\s*(?:の\s*(?:右|左|上|下)|\s(?:right|left|above|below))\s*-\s*[\d.]/i.test(value);
         errors.push({
           line: ln.no,
           message: negative
@@ -1128,18 +1189,30 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
  */
 export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   ...COLOR_KEYS,
-  "kind", "種類",
-  "subtitle", "補足",
-  "value", "値",
-  "rows", "行",
-  "位置", "pos", "posX", "posY",
-  "大きさ", "size",
-  "倍率", "scale",
-  "lane", "stack",
+  "kind",
+  "種類",
+  "subtitle",
+  "補足",
+  "value",
+  "値",
+  "rows",
+  "行",
+  "位置",
+  "pos",
+  "posX",
+  "posY",
+  "大きさ",
+  "size",
+  "倍率",
+  "scale",
+  "lane",
+  "stack",
   // 体験の道筋の欄 (#1251)
-  "touchpoint", "opportunity",
+  "touchpoint",
+  "opportunity",
   // 工程の並びの欄 (#1251)
-  "owner", "end",
+  "owner",
+  "end",
 ]);
 
 /**
@@ -1198,14 +1271,21 @@ function validateRelativePositions(actors: DslActor[], errors: DslError[]): void
   }
 }
 
-function collectActorEntries(lines: Line[], start: number, parentIndent: number): { items: Line[][]; next: number } {
+function collectActorEntries(
+  lines: Line[],
+  start: number,
+  parentIndent: number,
+): { items: Line[][]; next: number } {
   const items: Line[][] = [];
   let cur: Line[] | null = null;
   let headIndent = -1;
   let i = start;
   while (i < lines.length) {
     const ln = lines[i]!;
-    if (!ln.trimmed) { i += 1; continue; }
+    if (!ln.trimmed) {
+      i += 1;
+      continue;
+    }
     if (ln.indent <= parentIndent) break;
     if (ln.trimmed.startsWith("- ")) {
       if (cur) items.push(cur);
@@ -1221,7 +1301,11 @@ function collectActorEntries(lines: Line[], start: number, parentIndent: number)
   return { items, next: i };
 }
 
-function collectAnimationSteps(lines: Line[], start: number, parentIndent: number): { items: Line[][]; next: number } {
+function collectAnimationSteps(
+  lines: Line[],
+  start: number,
+  parentIndent: number,
+): { items: Line[][]; next: number } {
   // 各 `- step: "..."` 開始を 1 block の頭として識別、 後続の同 indent 以下を block 本文として吸収
   const out: Line[][] = [];
   let i = start;
@@ -1288,7 +1372,9 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "色",
 ]);
 
-function extractStateOverride(opts: Record<string, string>): Record<string, number | string | boolean> | undefined {
+function extractStateOverride(
+  opts: Record<string, string>,
+): Record<string, number | string | boolean> | undefined {
   const out: Record<string, number | string | boolean> = {};
   let count = 0;
   // 明示 `state: {...}` fallback がある場合はそちらを優先 (nested map parse)
@@ -1317,7 +1403,9 @@ function extractStateOverride(opts: Record<string, string>): Record<string, numb
  * key: sub-map ペアに再 split → 各 sub-map を parseInlineMapping で解いて posX/Y/W/H に coerce」 する。
  * 未 field or 空 object なら undefined 返し (caller は actor.nodes を set しない)。
  */
-function parseActorNodesField(raw: string | undefined): Record<string, DslActorNodeOverride> | undefined {
+function parseActorNodesField(
+  raw: string | undefined,
+): Record<string, DslActorNodeOverride> | undefined {
   if (!raw) return undefined;
   const trimmed = raw.trim();
   if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return undefined;
@@ -1395,16 +1483,31 @@ function reportScaleOnNonPart(
  * 「知らせない」 側がずれる。
  */
 export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
-  "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
-  "initial", "final", "tone", "nodes",
+  "kind",
+  "subtitle",
+  "eyebrow",
+  "value",
+  "rows",
+  "lane",
+  "stack",
+  "initial",
+  "final",
+  "tone",
+  "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
-  "touchpoint", "opportunity",
+  "touchpoint",
+  "opportunity",
   // 工程の並びの欄 (#1251)
-  "owner", "end",
-  "posX", "posY", "posW", "posH",
+  "owner",
+  "end",
+  "posX",
+  "posY",
+  "posW",
+  "posH",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
-  "scale", "倍率",
+  "scale",
+  "倍率",
 ]);
 // `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
 // 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
@@ -1428,7 +1531,9 @@ const FLOW_INLINE_READERS = {
 } as const;
 
 /** 矢印の中括弧に書ける欄の名前。 README の一覧と突き合わせる (#1275) */
-export const FLOW_INLINE_KEYS = Object.keys(FLOW_INLINE_READERS) as readonly (keyof typeof FLOW_INLINE_READERS)[];
+export const FLOW_INLINE_KEYS = Object.keys(
+  FLOW_INLINE_READERS,
+) as readonly (keyof typeof FLOW_INLINE_READERS)[];
 
 /**
  * 中括弧に書かれた読めない項目名を知らせる (#1090)。
@@ -1492,7 +1597,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
     reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
-    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
+    const kind = isPart
+      ? NODE_KIND_DEFAULT
+      : resolveNodeKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
     return {
       name: namePart,
       kind,
@@ -1553,7 +1660,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
     // 倍率はパーツにしか効かない (#1026)
     reportScaleOnNonPart(isPart, v.scaleKeys?.[0], line.no, errors);
-    const kind = isPart ? NODE_KIND_DEFAULT : resolveKind(NODE_KIND_VALID.has(v.kind) ? v.kind : "");
+    const kind = isPart
+      ? NODE_KIND_DEFAULT
+      : resolveNodeKind(NODE_KIND_VALID.has(v.kind) ? v.kind : "");
     return {
       name: namePart,
       kind,
@@ -1630,8 +1739,16 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
       // 引用符付きは説明文なので取らない
       if (last.startsWith('"') || last.startsWith("'")) break;
       const resolvedTone = toneOrUndef(last);
-      if (resolvedTone !== undefined) { tone = resolvedTone; words.pop(); continue; }
-      if (STYLE_VALID.has(last.toLowerCase())) { style = last.toLowerCase() as EdgeStyle; words.pop(); continue; }
+      if (resolvedTone !== undefined) {
+        tone = resolvedTone;
+        words.pop();
+        continue;
+      }
+      if (STYLE_VALID.has(last.toLowerCase())) {
+        style = last.toLowerCase() as EdgeStyle;
+        words.pop();
+        continue;
+      }
       break;
     }
     rest = words.join(" ");
@@ -1669,7 +1786,8 @@ function parseStateEntry(text: string, lineNo: number): DslState | null {
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
-  const initial: number | string = Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
+  const initial: number | string =
+    Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
   return { name, initial, pos: { line: lineNo } };
 }
 
@@ -1729,11 +1847,21 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
       for (const issue of issues) errors.push({ line: lineNo, ...issue });
       return null;
     }
-    return { name, trigger: spec.trigger, to: spec.to, durationMs: spec.durationMs, pos: { line: lineNo } };
+    return {
+      name,
+      trigger: spec.trigger,
+      to: spec.to,
+      durationMs: spec.durationMs,
+      pos: { line: lineNo },
+    };
   }
   const expression = stripQuotes(rest);
   if (expression === "") {
-    errors.push({ line: lineNo, message: `empty expression for "${name}"`, hint: '`"{a} + {b}"` のように式を書く' });
+    errors.push({
+      line: lineNo,
+      message: `empty expression for "${name}"`,
+      hint: '`"{a} + {b}"` のように式を書く',
+    });
     return null;
   }
   const issues = checkValueExpression(expression, name);
@@ -1746,7 +1874,10 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
 
 function splitTopLevelCommas(s: string): string[] {
   // brace 内を考慮 ... 今回は単純 split (動作する範囲)
-  return s.split(",").map((x) => x.trim()).filter(Boolean);
+  return s
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 function ensureAnimate(a: DslAnimate | undefined, lineNo: number): DslAnimate {
@@ -1759,14 +1890,22 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
   const head = block[0]!;
   const m = head.trimmed.match(/^step\s*:\s*(.+)$/);
   if (!m) {
-    errors.push({ line: head.no, message: `invalid step header: "${head.trimmed}"`, hint: 'use `- step: "name" 1.5s`' });
+    errors.push({
+      line: head.no,
+      message: `invalid step header: "${head.trimmed}"`,
+      hint: 'use `- step: "name" 1.5s`',
+    });
     return null;
   }
   const headRest = (m[1] ?? "").trim();
   // `"request" 1.5s` 形式 ... quote 後の duration 抽出
   const headParse = parseStepHead(headRest);
   if (!headParse) {
-    errors.push({ line: head.no, message: `invalid step value: "${headRest}"`, hint: 'use `"name" 1.5s` (duration in s)' });
+    errors.push({
+      line: head.no,
+      message: `invalid step value: "${headRest}"`,
+      hint: 'use `"name" 1.5s` (duration in s)',
+    });
     return null;
   }
   const phase: DslPhase = {
@@ -1809,7 +1948,12 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       if (value) {
         const tw = parseTweenLine(value, ln.no);
         if (tw) phase.tweens!.push(tw);
-        else errors.push({ line: ln.no, message: `invalid tween: "${value}"`, hint: "use `tween: name 100 -> 90`" });
+        else
+          errors.push({
+            line: ln.no,
+            message: `invalid tween: "${value}"`,
+            hint: "use `tween: name 100 -> 90`",
+          });
         i += 1;
         continue;
       }
@@ -1821,7 +1965,12 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
         if (nx.indent <= baseIndent) break;
         const tw = parseTweenLine(nx.trimmed, nx.no);
         if (tw) phase.tweens!.push(tw);
-        else errors.push({ line: nx.no, message: `invalid tween entry: "${nx.trimmed}"`, hint: "use `name: 100 -> 90`" });
+        else
+          errors.push({
+            line: nx.no,
+            message: `invalid tween entry: "${nx.trimmed}"`,
+            hint: "use `name: 100 -> 90`",
+          });
         j += 1;
       }
       i = j;
@@ -1906,7 +2055,7 @@ function parseFocusList(s: string): string[] {
       buf += ch;
       continue;
     }
-    if (ch === "\"" || ch === "'") {
+    if (ch === '"' || ch === "'") {
       // item の途中にある引用符は名前の一部。 空白または区切りの直後だけ囲みを開始する。
       if (!buf || /\s$/.test(buf)) {
         pushFragment(false);
@@ -1926,7 +2075,10 @@ function parseFocusList(s: string): string[] {
   // quote 外 item は依然として space split (旧挙動、 「Client API」 が 2 item として解釈される互換維持)。
   const out: string[] = [];
   for (const fragments of groups) {
-    const whole = fragments.map(({ text }) => text).join("").trim();
+    const whole = fragments
+      .map(({ text }) => text)
+      .join("")
+      .trim();
     if (fragments.every(({ quoted }) => !quoted) && /[-→][>]?/.test(whole) && /\s/.test(whole)) {
       // arrow を含む非引用区間は「A -> B」パターン。 空白で分割しない。
       out.push(whole);
@@ -1973,6 +2125,7 @@ function parseSetLine(s: string, lineNo: number): DslSet | null {
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
-  const value: number | string = Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
+  const value: number | string =
+    Number.isFinite(asNum) && stripped !== "" && !isNaN(asNum) ? asNum : stripped;
   return { state, value, pos: { line: lineNo } };
 }
