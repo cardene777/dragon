@@ -67,6 +67,34 @@ animation:
       referral: 90 -> 240
     description: "紹介が 90 から 240 へ伸びる"
 `;
+
+export const sourceJson__chartBar = `{
+  "title": "経路別の流入",
+  "type": "bar",
+  "actors": [
+    { "name": "検索", "subtitle": "{search}" },
+    { "name": "SNS", "subtitle": "{sns}" },
+    { "name": "直接", "subtitle": "{direct}" },
+    { "name": "紹介", "subtitle": "{referral}" }
+  ],
+  "flow": [],
+  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "animation": [
+    { "step": "先月", "duration": 1.2, "body": "検索が 420 で最も多い" },
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "body": "紹介が 90 から 240 へ伸びる",
+      "tween": {
+        "search": [420, 680],
+        "sns": [310, 420],
+        "direct": [180, 150],
+        "referral": [90, 240]
+      }
+    }
+  ]
+}`;
+
 export const chartBar = textDslToDiagram(sourceYaml__chartBar);
 
 // ============================================================
@@ -101,6 +129,36 @@ animation:
       w5: 95 -> 70
     description: "全週が下がり、山も消える"
 `;
+
+export const sourceJson__chartLine = `{
+  "title": "週ごとの応答時間",
+  "type": "line",
+  "actors": [
+    { "name": "W1", "subtitle": "{w1}" },
+    { "name": "W2", "subtitle": "{w2}" },
+    { "name": "W3", "subtitle": "{w3}" },
+    { "name": "W4", "subtitle": "{w4}" },
+    { "name": "W5", "subtitle": "{w5}" }
+  ],
+  "flow": [],
+  "states": { "w1": 180, "w2": 240, "w3": 210, "w4": 120, "w5": 95 },
+  "animation": [
+    { "step": "改善前", "duration": 1.2, "body": "2 週目に 240 ms まで伸びている" },
+    {
+      "step": "改善後",
+      "duration": 1.2,
+      "body": "全週が下がり、山も消える",
+      "tween": {
+        "w1": [180, 140],
+        "w2": [240, 160],
+        "w3": [210, 130],
+        "w4": [120, 90],
+        "w5": [95, 70]
+      }
+    }
+  ]
+}`;
+
 export const chartLine = textDslToDiagram(sourceYaml__chartLine);
 
 // ============================================================
@@ -132,6 +190,34 @@ animation:
       other: 10 -> 10
     description: "計算が下がり、保存が最大になる"
 `;
+
+export const sourceJson__chartPie = `{
+  "title": "費用の内訳",
+  "type": "pie",
+  "actors": [
+    { "name": "計算", "subtitle": "{compute}" },
+    { "name": "保存", "subtitle": "{storage}" },
+    { "name": "通信", "subtitle": "{network}" },
+    { "name": "その他", "subtitle": "{other}" }
+  ],
+  "flow": [],
+  "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
+  "animation": [
+    { "step": "昨年", "duration": 1.2, "body": "計算が 45% で半分近くを占める" },
+    {
+      "step": "今年",
+      "duration": 1.2,
+      "body": "計算が下がり、保存が最大になる",
+      "tween": {
+        "compute": [45, 30],
+        "storage": [25, 35],
+        "network": [20, 25],
+        "other": [10, 10]
+      }
+    }
+  ]
+}`;
+
 export const chartPie = textDslToDiagram(sourceYaml__chartPie);
 
 // ============================================================
@@ -163,6 +249,34 @@ animation:
       order: 480 -> 1100
     description: "入口は同じまま、途中の残り方が変わる"
 `;
+
+export const sourceJson__funnelStages = `{
+  "title": "申込みまでの絞り込み",
+  "type": "funnel",
+  "actors": [
+    { "name": "訪問", "subtitle": "{visit}" },
+    { "name": "会員登録", "subtitle": "{signup}" },
+    { "name": "カート投入", "subtitle": "{cart}" },
+    { "name": "申込み", "subtitle": "{order}" }
+  ],
+  "flow": [],
+  "states": { "visit": 12000, "signup": 3400, "cart": 1200, "order": 480 },
+  "animation": [
+    { "step": "改善前", "duration": 1.2, "body": "訪問 12000 から申込み 480 まで絞られる" },
+    {
+      "step": "改善後",
+      "duration": 1.2,
+      "body": "入口は同じまま、途中の残り方が変わる",
+      "tween": {
+        "visit": [12000, 12000],
+        "signup": [3400, 5200],
+        "cart": [1200, 2400],
+        "order": [480, 1100]
+      }
+    }
+  ]
+}`;
+
 export const funnelStages = textDslToDiagram(sourceYaml__funnelStages);
 
 // ============================================================
@@ -182,6 +296,23 @@ flow:
   - 実装 -> 検証: ""
   - 検証 -> 公開: ""
 `;
+
+export const sourceJson__ganttTimeline = `{
+  "title": "公開までの段取り",
+  "type": "gantt",
+  "actors": [
+    { "name": "設計", "subtitle": "1月" },
+    { "name": "実装", "subtitle": "2月" },
+    { "name": "検証", "subtitle": "4月" },
+    { "name": "公開", "subtitle": "5月" }
+  ],
+  "flow": [
+    { "from": "設計", "to": "実装", "label": "" },
+    { "from": "実装", "to": "検証", "label": "" },
+    { "from": "検証", "to": "公開", "label": "" }
+  ]
+}`;
+
 export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
 
 // ============================================================
@@ -209,6 +340,29 @@ animation:
       setup: "最高"
     description: "登録の作りを直すと、その後の山も上がる"
 `;
+
+export const sourceJson__journeyMap = `{
+  "title": "初めて使うまで",
+  "type": "journey",
+  "actors": [
+    { "name": "知る", "subtitle": "普通" },
+    { "name": "登録", "subtitle": "{signup}" },
+    { "name": "設定", "subtitle": "{setup}" },
+    { "name": "初回の成功", "subtitle": "最高" }
+  ],
+  "flow": [],
+  "states": { "signup": "不満", "setup": "満足" },
+  "animation": [
+    { "step": "改善前", "duration": 1.2, "body": "登録でつまずき、設定でようやく持ち直す" },
+    {
+      "step": "改善後",
+      "duration": 1.2,
+      "body": "登録の作りを直すと、その後の山も上がる",
+      "set": { "signup": "満足", "setup": "最高" }
+    }
+  ]
+}`;
+
 export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
 
 // ============================================================
@@ -243,6 +397,36 @@ animation:
       total: 0 -> 300
     description: "枝ごとの短縮が積み上がって 300 ms になる"
 `;
+
+export const sourceJson__mindMap = `{
+  "title": "図を速くする",
+  "type": "mind",
+  "actors": [
+    { "name": "図を速くする", "subtitle": "{total} ms 短縮" },
+    { "name": "描く量を減らす", "subtitle": "{draw} ms" },
+    { "name": "計算を減らす", "subtitle": "{calc} ms" },
+    { "name": "見えない所を省く", "subtitle": "{skip} ms" },
+    { "name": "結果を覚える", "subtitle": "{cache} ms" }
+  ],
+  "flow": [],
+  "states": { "total": 0, "draw": 0, "calc": 0, "skip": 0, "cache": 0 },
+  "animation": [
+    { "step": "手を付ける前", "duration": 1.2, "body": "どの枝もまだ 0 ms" },
+    {
+      "step": "4 つを入れた後",
+      "duration": 1.2,
+      "body": "枝ごとの短縮が積み上がって 300 ms になる",
+      "tween": {
+        "draw": [0, 120],
+        "calc": [0, 80],
+        "skip": [0, 60],
+        "cache": [0, 40],
+        "total": [0, 300]
+      }
+    }
+  ]
+}`;
+
 export const mindMap = textDslToDiagram(sourceYaml__mindMap);
 
 // ============================================================
@@ -270,6 +454,29 @@ animation:
       legacy: "右上"
     description: "効きを測り直すと、2 件とも上の段へ移る"
 `;
+
+export const sourceJson__quadrantMatrix = `{
+  "title": "着手の順番",
+  "type": "quadrant",
+  "actors": [
+    { "name": "重複削除", "subtitle": "左上" },
+    { "name": "描画刷新", "subtitle": "右上" },
+    { "name": "配色統一", "subtitle": "{color}" },
+    { "name": "旧記法", "subtitle": "{legacy}" }
+  ],
+  "flow": [],
+  "states": { "color": "左下", "legacy": "右下" },
+  "animation": [
+    { "step": "見直し前", "duration": 1.2, "body": "配色統一と旧記法はどちらも後回しに置いてある" },
+    {
+      "step": "見直し後",
+      "duration": 1.2,
+      "body": "効きを測り直すと、2 件とも上の段へ移る",
+      "set": { "color": "左上", "legacy": "右上" }
+    }
+  ]
+}`;
+
 export const quadrantMatrix = textDslToDiagram(sourceYaml__quadrantMatrix);
 
 // ============================================================
@@ -291,4 +498,23 @@ flow:
   - 記法 -> 読み取り: ""
   - 描画 -> 配置: ""
 `;
+
+export const sourceJson__treeHierarchy = `{
+  "title": "配布物の構成",
+  "type": "tree",
+  "actors": [
+    { "name": "dragon" },
+    { "name": "記法" },
+    { "name": "描画" },
+    { "name": "読み取り" },
+    { "name": "配置" }
+  ],
+  "flow": [
+    { "from": "dragon", "to": "記法", "label": "" },
+    { "from": "dragon", "to": "描画", "label": "" },
+    { "from": "記法", "to": "読み取り", "label": "" },
+    { "from": "描画", "to": "配置", "label": "" }
+  ]
+}`;
+
 export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
