@@ -137,6 +137,11 @@ describe("書き方が混ざった形を伝える", () => {
   describe("動きなしでも知らせと配置が一致する", () => {
     const 知らせ = (actors: string, type: string) =>
       組み立てる(記法(actors, type, false)).知らせ.filter((n) => n.kind === "lane-not-honored");
+    const 従来の縦列: Record<string, string[]> = {
+      topology: ["main"],
+      flow: ["flow"],
+      swimlane: ["a", "b", "c"],
+    };
 
     for (const type of ["topology", "flow", "swimlane"]) {
       it(`${type} は全部書けば知らせず、書いた縦列に入る`, () => {
@@ -149,7 +154,9 @@ describe("書き方が混ざった形を伝える", () => {
         const 出た = 知らせ(混在, type);
         expect(出た, "黙って捨てている").toHaveLength(1);
         expect(出た[0]?.message).toContain("全ての箱に書きます");
-        expect(配置(記法(混在, type, false)).縦列, "書いた縦列に入れてしまっている").not.toContain("left");
+        expect(配置(記法(混在, type, false)).縦列, "従来の並びから変わっている").toEqual(
+          従来の縦列[type],
+        );
       });
 
       it(`${type} は 1 つも書かなければ知らせない`, () => {
