@@ -986,3 +986,40 @@ animation:
     focus: [User, Admin, "Admin -> User", Order, "Admin -> Order"]
     body: "UML class 全 class + relation を visible 化。"
 `;
+
+export const sourceYaml__presetTopology = `title: "システムの構成要素と接続を配置で示す図"
+type: topology
+
+lanes:
+  client: { width: 460, label: "Client" }
+  aws: { width: 460, label: "AWS" }
+
+actors:
+  - Browser: { kind: frontend, lane: client }
+  - ALB: { kind: service, eyebrow: "Load Balancer", lane: aws }
+  - ECS Task: { kind: service, eyebrow: "Container", lane: aws }
+  - RDS: { kind: database, eyebrow: "Postgres", lane: aws }
+
+flow:
+  - Browser -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3" }
+  - ALB -> ECS Task: "round-robin" (teal, solid)
+  - ECS Task -> RDS: "TCP 5432" (success, solid) { sub: "pgbouncer" }
+
+animation:
+  - step: "1. Browser" 0.9s
+    badge: "topology"
+    focus: [Browser]
+    body: "利用者側の入口。"
+  - step: "2. ALB" 0.9s
+    badge: "topology"
+    focus: [Browser, ALB, "Browser -> ALB"]
+    body: "HTTPS を受けて振り分ける。"
+  - step: "3. ECS Task" 0.9s
+    badge: "topology"
+    focus: [Browser, ALB, "Browser -> ALB", "ECS Task", "ALB -> ECS Task"]
+    body: "container が処理する。"
+  - step: "システムの構成要素と接続を配置で示す図" 0.9s
+    badge: "topology"
+    focus: [Browser, ALB, "Browser -> ALB", "ECS Task", "ALB -> ECS Task", RDS, "ECS Task -> RDS"]
+    body: "topology の全 container + connection を visible 化。"
+`;

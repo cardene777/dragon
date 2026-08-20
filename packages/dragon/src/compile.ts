@@ -551,6 +551,28 @@ function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
 }
 
 /**
+ * 縦列を選べる図種で、一部の箱だけが縦列を書いた時に伝える (#1263)。
+ *
+ * 書かなかった箱の行き先を決める規則が要るが、既定の縦列に集めても自分の縦列を作っても
+ * 書いた人の意図と一致する保証が無い。 **全部書くか 1 つも書かないか** を求める。
+ *
+ * 1 つも書いていない形は従来どおりの並びになるだけなので知らせない。
+ */
+function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void): void {
+  const 対象 = doc.actors.filter((a) => a.partId === undefined);
+  const 書いた = 対象.filter((a) => a.lane !== undefined);
+  if (書いた.length === 0 || 書いた.length === 対象.length) return;
+  const 書いていない = 対象.filter((a) => a.lane === undefined);
+  onNotice({
+    kind: "lane-not-honored",
+    actor: 書いていない[0]?.name ?? "",
+    line: 書いていない[0]?.pos?.line ?? 0,
+    message: `type: ${doc.type} では縦列を書くなら全ての箱に書きます (書いていない箱: ${書いていない.map((a) => truncateForMessage(a.name)).join(" / ")})`,
+    hint: "書かなかった箱をどの縦列に置くかを決められないため、全部書くか 1 つも書かないかにしてください",
+  });
+}
+
+/**
  * 箱に書いた縦列が効かないことを伝える (#1246)。
  *
  * 縦列は **図種が決める**。 `flow` / `topology` は 1 本にまとめ、 `swimlane` / `er` / `state`
@@ -576,6 +598,13 @@ function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
 function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type === "mind") return;
+  // 縦列を選べる図種では、全ての箱が書いていれば効く (#1263)。 効く形では知らせない
+  const 効く図種 = 縦列を選べる図種.has(doc.type as GenericKind);
+  if (効く図種 && 書いた縦列に置く(doc.type as GenericKind, doc)) return;
+  if (効く図種) {
+    reportLaneMixed(doc, onNotice);
+    return;
+  }
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
     if (a.lane === undefined) continue;
@@ -5554,12 +5583,12 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
   });
 
   // state を builder に登録
-  for (const st of doc.animate!.states) {
+  for (const st of doc.animate?.states ?? []) {
     b.state(st.name, { initial: st.initial });
   }
 
   // phase を順次注入 ... highlight / tween / set / badge / body 全反映
-  for (const p of doc.animate!.phases) {
+  for (const p of doc.animate?.phases ?? []) {
     b.phase(
       slugify(p.name) || p.name,
       {
@@ -5669,7 +5698,9 @@ function slugLookup(byName: ReadonlyMap<string, string>, wanted: string): string
 
 function compileFlow(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路で複数 phase 注入
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("flow", doc)) {
     return compileGenericWithAnimate(doc, { kind: "flow", laneId: "main", laneWidth: 400 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま
@@ -5703,7 +5734,9 @@ function compileFlow(doc: DslDocument): CdlDiagram {
 
 function compileSwimlane(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor 別 lane で配置)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("swimlane", doc)) {
     return compileGenericWithAnimate(doc, { kind: "swimlane", laneWidth: 400 });
   }
   // swimlane preset は lane 配置 + 自由 node/edge。
@@ -5841,7 +5874,9 @@ function compileState(doc: DslDocument): CdlDiagram {
 
 function compileTopology(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor を別 lane に)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
+  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("topology", doc)) {
     return compileGenericWithAnimate(doc, { kind: "topology", laneWidth: 460 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `topology()` は枠を必ず 1 つ作るため、 そのまま
@@ -5914,13 +5949,59 @@ function 後ろへ戻る矢印か(
   return 先 < 元;
 }
 
+/**
+ * 縦列を選べる図種 (#1263)。
+ *
+ * 縦列を **箱を並べるための入れ物** として使う図種だけを許す。 順序図と solidity は
+ * 縦列がそのまま生命線として描かれる骨格なので許さない (#1248 の判断はこちらに当たる)。
+ *
+ * `er` / `state` / `class` は「1 縦列 1 箱」 が図の読み方そのもの (表 / 状態 / クラスが
+ * 横に並ぶ) なので、2 つの箱を同じ縦列へ入れられる形にはしない。
+ */
+const 縦列を選べる図種: ReadonlySet<GenericKind> = new Set(["flow", "topology", "swimlane"]);
+
+/**
+ * 書いた縦列に箱を置く形か (#1263)。
+ *
+ * **全ての箱が縦列を書いた時だけ** この形にする。 一部だけ書いた形は、書かなかった箱の
+ * 行き先を決める規則が要る (既定の縦列に集める / 自分の縦列を作る) が、どちらも
+ * 書いた人の意図と一致する保証が無い。 混ざった形は `reportLaneMixed` が知らせる。
+ *
+ * 見本 (parts) は縦列を張替え先として使うため、この判定からは外す。
+ */
+function 書いた縦列に置く(kind: GenericKind, doc: DslDocument): boolean {
+  if (!縦列を選べる図種.has(kind)) return false;
+  const 対象 = doc.actors.filter((a) => a.partId === undefined);
+  return 対象.length > 0 && 対象.every((a) => a.lane !== undefined);
+}
+
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
   const { kind, laneWidth } = opts;
 
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();
-  if (kind === "flow" || kind === "topology") {
+  if (書いた縦列に置く(kind, doc)) {
+    // **書いた縦列に置く** (#1263)。 縦列を並べるための入れ物として使う図種でだけ効く。
+    // 縦列は書かれた順に作り、同じ縦列の箱は書かれた順に積む
+    const 並び: string[] = [];
+    for (const a of doc.actors) {
+      const lid = a.lane;
+      if (lid !== undefined && !並び.includes(lid)) 並び.push(lid);
+    }
+    for (const lid of 並び) {
+      b.lane(lid, { width: laneWidth, ...(kind === "topology" ? { contain: true } : {}) });
+    }
+    const 積んだ数 = new Map<string, number>();
+    doc.actors.forEach((a, idx) => {
+      const id = slugify(a.name) || `n${idx}`;
+      actorToNodeId.set(a.name, id);
+      const lid = a.lane!;
+      const stack = 積んだ数.get(lid) ?? 0;
+      積んだ数.set(lid, stack + 1);
+      b.node(id, { lane: lid, stack, kind: a.kind, title: a.name });
+    });
+  } else if (kind === "flow" || kind === "topology") {
     // 1 lane に全 actor を縦 stack
     const lid = opts.laneId ?? "main";
     b.lane(lid, { width: laneWidth, label: doc.title, ...(kind === "topology" ? { contain: true } : {}) });
@@ -5998,12 +6079,12 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   });
 
   // state 登録
-  for (const st of doc.animate!.states) {
+  for (const st of doc.animate?.states ?? []) {
     b.state(st.name, { initial: st.initial });
   }
 
   // phase 注入
-  for (const p of doc.animate!.phases) {
+  for (const p of doc.animate?.phases ?? []) {
     b.phase(
       slugify(p.name) || p.name,
       {
