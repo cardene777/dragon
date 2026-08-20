@@ -130,15 +130,52 @@ const 利用者から見えない: Record<string, string> = {
   "1279": "記載漏れの検査を取り込み前後で通るようにした commit。 記法も出力も変わらない",
 };
 
+/**
+ * `git log --format=%B%x00` の出力を commit ごとに割る (#1279)。
+ *
+ * **区切りは NUL** (Round 2 の指摘)。 記録区切り (U+001E) は commit の本文に書けてしまう
+ * ため、その文字を含む 1 件が複数に割れて番号の対応が壊れる。 NUL は commit message に
+ * 含められないので、どんな本文でも 1 件が 1 件のまま残る。
+ */
+function 本文で割る(raw: string): string[] {
+  return raw
+    .split("\u0000")
+    .map((c) => c.trim())
+    .filter((c) => c !== "");
+}
+
+/**
+ * その commit を名乗る番号 (#1279)。
+ *
+ * **説明の本文からは拾わない** (Round 2 の指摘)。 本文には review の指摘や関連 Issue の
+ * 番号も書くため、丸ごと拾うと「変更履歴に載っている別の番号がたまたま本文にある」 だけで
+ * 辿れた扱いになる。
+ *
+ * 見るのは 2 種類の行だけ。
+ *
+ * | 行 | 何か |
+ * |---|---|
+ * | 1 行目 | その commit の件名 |
+ * | `* ` で始まる行 | squash merge が並べた、元の commit の件名 |
+ *
+ * squash した commit は件名が「PR の題 + PR 番号」 に置き換わるが、元の件名は `* ` 付きで
+ * 本文の先頭に並ぶ。 この 2 種類を見れば、取り込みの前と後で同じ番号で辿れる。
+ */
+function commitの番号(message: string): string[] {
+  const 行 = message.split("\n");
+  const 名乗る行 = [行[0] ?? "", ...行.slice(1).filter((l) => l.trimStart().startsWith("* "))];
+  return 名乗る行.flatMap((l) => [...l.matchAll(/#(\d+)/g)].map((m) => m[1]!));
+}
+
 describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
   履歴が揃っている();
   const 範囲 = `${前の版()}..HEAD`;
   // **本文まで読む** (#1279)。 件名だけだと squash で番号が変わる。
-  // commit の区切りは記録区切り (U+001E) で、本文の改行と混ざらない
-  const commit = git("log", "--format=%B%x1e", 範囲)
-    .split("\u001e")
-    .map((c) => c.trim())
-    .filter((c) => c !== "");
+  //
+  // 区切りは **NUL** にする (Round 2 の指摘)。 記録区切り (U+001E) は commit の本文に
+  // 書けてしまうため、その文字を含む 1 件が複数に割れて番号の対応が壊れる。
+  // NUL は commit message に含められない
+  const commit = 本文で割る(git("log", "--format=%B%x00", 範囲));
 
   it("commit を 1 件以上集められている", () => {
     // 集められていなければ、以下の検査は通って当然になる
@@ -148,7 +185,7 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
   it("全ての commit が変更履歴か宣言のどちらかから辿れる", () => {
     const 載っている = new Set([...版の節().matchAll(/#(\d+)/g)].map((m) => m[1]!));
     const 辿れない = commit.filter((s) => {
-      const 番号 = [...s.matchAll(/#(\d+)/g)].map((m) => m[1]!);
+      const 番号 = commitの番号(s);
       return !番号.some((n) => 載っている.has(n) || n in 利用者から見えない);
     });
     expect(
@@ -160,7 +197,7 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
   it("宣言が実物の範囲に残っている", () => {
     // 宣言が古くなったまま残らないようにする。 同じ番号が別の変更で再び現れた時に
     // 黙って除外されるのを防ぐ
-    const 範囲の番号 = new Set(commit.flatMap((s) => [...s.matchAll(/#(\d+)/g)].map((m) => m[1]!)));
+    const 範囲の番号 = new Set(commit.flatMap((s) => commitの番号(s)));
     expect(範囲の番号.size, "commit から番号を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
     // **抜け道は持たない** (#1279)。 本文まで見るので、branch 上の番号がそのまま
     // 取り込み後も残る = 宣言は常に範囲の中にあるはず
@@ -180,6 +217,59 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     const 範囲のsha = new Set(git("log", "--format=%H", 範囲).split("\n").filter((l) => l !== ""));
     expect(範囲のsha.size, "範囲の commit を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(範囲のsha.has(上げた), "版を上げた commit が範囲から漏れている").toBe(true);
+  });
+
+  describe("commit の割り方 (#1279)", () => {
+    // **記録区切りでは割れない形を固定する**。 実履歴に U+001E を含む commit は無いので、
+    // 割り方だけを切り出して確かめる
+    it("NUL で 1 件ずつに割る", () => {
+      const raw = "題 A\n\n本文 A\u0000題 B\n\n本文 B\u0000";
+      expect(本文で割る(raw)).toEqual(["題 A\n\n本文 A", "題 B\n\n本文 B"]);
+    });
+
+    it("本文に記録区切り (U+001E) があっても 1 件のまま", () => {
+      const raw = "題 A\n\n本文に \u001e が入る\u0000題 B\u0000";
+      const 割った = 本文で割る(raw);
+      expect(割った.length, "本文の U+001E で割れてしまっている").toBe(2);
+      expect(割った[0]).toContain("\u001e");
+    });
+
+    it("末尾の空きは数えない", () => {
+      expect(本文で割る("題 A\u0000")).toEqual(["題 A"]);
+      expect(本文で割る("")).toEqual([]);
+    });
+  });
+
+  describe("番号を拾う行 (#1279)", () => {
+    // **説明の本文からは拾わない**。 本文には review の指摘や関連 Issue の番号も書くため、
+    // 丸ごと拾うと「別の番号がたまたま本文にある」 だけで辿れた扱いになる
+    it("件名から拾う", () => {
+      expect(commitの番号("✨ feat(dsl): 何かする (#1234)")).toEqual(["1234"]);
+    });
+
+    it("squash が並べた元の件名から拾う", () => {
+      const m = [
+        "🔖 chore(release): 版を切る (#1278)",
+        "",
+        "* 🔖 chore(release): 版を切る (#1277)",
+        "",
+        "本文の説明。",
+      ].join("\n");
+      expect(commitの番号(m)).toEqual(["1278", "1277"]);
+    });
+
+    it("説明の本文にある番号は拾わない", () => {
+      const m = [
+        "🐛 fix(dsl): 何かを直す (#1234)",
+        "",
+        "既存の検査 (#9999) は別の観点を見る。 関連は #8888。",
+      ].join("\n");
+      expect(commitの番号(m), "説明の本文から拾ってしまっている").toEqual(["1234"]);
+    });
+
+    it("番号を持たない commit は空", () => {
+      expect(commitの番号("題だけの commit")).toEqual([]);
+    });
   });
 
   it("宣言に理由が書かれている", () => {
