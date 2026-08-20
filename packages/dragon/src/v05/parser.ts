@@ -1394,7 +1394,7 @@ function reportScaleOnNonPart(
  * 並べた形) とは別に持つ = 中括弧の形は位置や大きさを未対応にしてあり、 同じ集合にすると
  * 「知らせない」 側がずれる。
  */
-const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "kind", "subtitle", "eyebrow", "value", "rows", "lane", "stack",
   "initial", "final", "tone", "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる

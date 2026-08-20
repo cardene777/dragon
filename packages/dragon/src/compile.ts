@@ -2928,6 +2928,10 @@ function applyEdgeInlineOptions(
 
 /** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */
 function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): void {
+  // **書いた補足が勝つ** (#1275)。 ここで写さないと 2 つ落ちる。 静止した `type: flow` は
+  // 鎖を作る時に説明文しか渡さないため補足が消え、`er` は見本が多重度から作った補足が
+  // 残って書いた値が無視される (どちらも実測)
+  if (s.sub !== undefined) target.sub = s.sub;
   if (s.guard !== undefined) {
     target.guard = s.guard;
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)

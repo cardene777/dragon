@@ -41,6 +41,117 @@ flow:
 <CdlDiagramView diagram={diagram} />
 ```
 
+## 記法に書ける欄
+
+**この節の一覧は検査が実装と突き合わせる** (`test/readme-notation-keys.test.ts`)。
+実装に欄が増えてここを直さないと落ちる。
+
+### 最上位のブロック
+
+<!-- notation:top-level:start -->
+| 欄 | 何を書くか |
+|---|---|
+| `title` | 図の題 |
+| `type` | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `solidity` / 図表各種) |
+| `actors` | 箱 |
+| `flow` | 矢印 |
+| `states` | 状態の初期値 |
+| `values` | 他の状態から決まる値 (式) |
+| `animation` | 段 |
+| `viewport` | 図全体の大きさと間隔 |
+| `lanes` | 縦列の見出しと幅 |
+| `groups` | 縦列を束ねる枠 |
+| `eyebrow` | 図全体を 1 箱にする図種で、その箱の上に出す小見出し |
+| `axes` | 2 軸で仕分ける図の軸の名前 |
+<!-- notation:top-level:end -->
+
+### 箱に書ける欄
+
+`- 名前: { 欄: 値, ... }` の形で書く。
+
+<!-- notation:actor:start -->
+| 欄 | 何を書くか |
+|---|---|
+| `kind` | 見た目の種別 (`card` / `storage` / `service` / `person` 等) |
+| `subtitle` | 題の下の補足 |
+| `eyebrow` | 題の上の小見出し |
+| `value` | 箱に出す値 |
+| `rows` | 箱の中に並べる行 |
+| `lane` | どの縦列に置くか |
+| `stack` | 縦列の中の何段目に置くか |
+| `initial` | 状態遷移図で始まりの状態か |
+| `final` | 状態遷移図で終わりの状態か |
+| `tone` | 色 |
+| `nodes` | 見本 (parts) の中の箱を差し替える |
+| `touchpoint` | 体験の道筋で、利用者が触れる場所 |
+| `opportunity` | 体験の道筋で、改善の余地 |
+| `owner` | 工程の並びで、担当 |
+| `end` | 工程の並びで、終わりの位置 |
+| `posX` | 置く場所の横位置 |
+| `posY` | 置く場所の縦位置 |
+| `posW` | 箱の幅 |
+| `posH` | 箱の高さ |
+| `scale` | 見本 (parts) の倍率 (`倍率` とも書ける) |
+<!-- notation:actor:end -->
+
+### 矢印に書ける欄
+
+`- A -> B: "説明" (色, 線種) { 欄: 値, ... }` の形で書く。
+
+<!-- notation:flow:start -->
+| 欄 | 何を書くか |
+|---|---|
+| `sub` | 説明の下の補足 |
+| `guard` | 状態遷移の条件 |
+| `cardinality` | 関係の多重度 (`1:N` 等) |
+| `labelOffsetX` | 説明文の位置を横にずらす |
+| `labelOffsetY` | 説明文の位置を縦にずらす |
+| `overlay` | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用) |
+<!-- notation:flow:end -->
+
+## 記法の癖
+
+### 箱の `lane:` が効く図種は限られる
+
+縦列を並べるために使う図種 (`flow` / `topology` / `swimlane`) では効く。 縦列が骨格その
+ものになる図種 (`sequence` は縦列がそのまま時間軸の線) では効かず、知らせが出る。
+
+効く図種でも **全ての箱に書いた時だけ** 効く。 一部だけ書くと、書かなかった箱をどこに
+置くか決められないため知らせが出る。
+
+```yaml
+type: flow
+
+lanes:
+  left: { width: 320 }
+  right: { width: 320 }
+
+actors:
+  - A: { kind: card, lane: left }
+  - B: { kind: card, lane: right }
+```
+
+`lanes:` の id は組み立て側が作る形に合わせて、字 / 数 / 下線 / hyphen を受ける
+(`lane-idle` のような自動で作られた縦列の幅も書き直せる)。
+
+### 静止した `type: flow` は書いた矢印の端を使わない
+
+この図種は **登場人物を書いた順に鎖状に繋ぐ**。 矢印の説明文は「その箱を to に持つ行」
+から拾い、書いた側の端は使わない。
+
+```yaml
+type: flow
+
+actors: [A, B, C]
+
+flow:
+  - A -> C: "x"    # 出来るのは A -> B
+  - C -> B: "y"    # 出来るのは B -> C
+```
+
+書いた端どおりに繋ぎたい時は箱に `lane:` を書く。 縦列を書いた形は別の組み立てを通り、
+書いた端がそのまま矢印になる。 端が使われなかった行には知らせが出る。
+
 ## API
 
 **Text DSL (人向け YAML)**
