@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { jsonToDoc, type DragonJson, type JsonActor } from "../src/json-parser";
-import { validateDragonJson } from "@cardenelabs/dragon";
+import { diagramJsonSchema, validateDragonJson } from "@cardenelabs/dragon";
 import { parseTextDslV05, INLINE_ACTOR_KEYS } from "../src/v05/parser";
 import type { DslActor } from "../src/types";
 
@@ -64,6 +64,14 @@ const 対応表: Record<string, 対応> = {
  * ため、JSON に写すと名前が変わってしまう。 意味が同じことは別の検査で確かめる。
  */
 const 記法だけの別名: Record<string, string> = { 倍率: "scale" };
+
+/**
+ * 見本 (parts) でだけ意味を持つ項目。
+ *
+ * 記法では見本の状態の上書きとして読まれるため `INLINE_ACTOR_KEYS` には載らない。
+ * 下の describe が 1 件ずつ実際に効くことを確かめ、schema の検査もここを出どころにする。
+ */
+const 見本だけの項目 = ["state", "color"] as const;
 
 /** 記法の 1 行から図を組み、最初の箱を返す */
 function 記法の箱(中身: string): DslActor {
@@ -245,6 +253,35 @@ describe("2 軸で仕分ける図の軸の名前 (#1294)", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.errors.map((e) => e.path)).toContain("$.axes.x.left");
+  });
+});
+
+describe("LLM に渡す JSON Schema (#1294)", () => {
+  const rootProperties = diagramJsonSchema.properties as Record<string, unknown>;
+  const actorProperties =
+    (
+      rootProperties.actors as {
+        items: { oneOf: Array<{ properties?: Record<string, unknown> }> };
+      }
+    ).items.oneOf.find((item) => item.properties !== undefined)?.properties ?? {};
+
+  it("変換器が読む箱の項目を structured output でも生成できる", () => {
+    // **項目名を手で並べない**。 並べると、項目が増えた時に schema の検査だけが古くなる。
+    // 上の対応表 (記法の `INLINE_ACTOR_KEYS` から網羅を導いている) と、見本だけの項目を
+    // 出どころにする = 項目を足すと自動でこの検査の対象にも入る
+    const 箱の項目 = new Set([
+      ...Object.values(対応表).flatMap((対) => Object.keys(対.json)),
+      ...見本だけの項目,
+    ]);
+    expect(
+      箱の項目.size,
+      "箱の項目を 1 つも集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect([...箱の項目].filter((key) => !(key in actorProperties))).toEqual([]);
+  });
+
+  it("axes を structured output でも生成できる", () => {
+    expect(rootProperties).toHaveProperty("axes");
   });
 });
 

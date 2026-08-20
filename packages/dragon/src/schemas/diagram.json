@@ -21,6 +21,29 @@
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (pie / bar / line / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
     },
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "quadrant の x / y 軸の端に表示する名前。 記法の axes と同じ。",
+      "properties": {
+        "x": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "left": {"type": "string"},
+            "right": {"type": "string"}
+          }
+        },
+        "y": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bottom": {"type": "string"},
+            "top": {"type": "string"}
+          }
+        }
+      }
+    },
     "actors": {
       "type": "array",
       "minItems": 1,
@@ -48,7 +71,37 @@
               "lane": {"type": "string", "description": "swimlane / topology で属する lane id"},
               "stack": {"type": "integer", "minimum": 0, "description": "lane 内の縦位置 (0-based)"},
               "initial": {"type": "boolean", "description": "state 開始点 (kind: state 用)"},
-              "final": {"type": "boolean", "description": "state 終了点 (kind: state 用)"}
+              "final": {"type": "boolean", "description": "state 終了点 (kind: state 用)"},
+              "state": {
+                "type": "object",
+                "description": "parts の状態の上書き。 kind に parts identifier を指定した時だけ使える。",
+                "additionalProperties": {"type": ["number", "string", "boolean"]}
+              },
+              "tone": {"type": "string", "description": "箱の色調。 success / warning 等の別名も使える。"},
+              "color": {"type": "string", "description": "箱の色名、または # で始まる parts の色番号。"},
+              "owner": {"type": "string", "description": "gantt の工程の担当。"},
+              "end": {"type": "string", "description": "gantt の工程が終わる時期。"},
+              "touchpoint": {"type": "string", "description": "journey の段階が起きる場所。"},
+              "opportunity": {"type": "string", "description": "journey の段階の改善の余地。"},
+              "posX": {"type": "number", "description": "箱の絶対 x 座標。"},
+              "posY": {"type": "number", "description": "箱の絶対 y 座標。"},
+              "posW": {"type": "number", "description": "箱の幅。"},
+              "posH": {"type": "number", "description": "箱の高さ。"},
+              "nodes": {
+                "type": "object",
+                "description": "箱の中の要素ごとの位置と大きさ。 key は header / footer / s0 等の要素名。",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "posX": {"type": "number"},
+                    "posY": {"type": "number"},
+                    "posW": {"type": "number"},
+                    "posH": {"type": "number"}
+                  }
+                }
+              },
+              "scale": {"type": "number", "description": "parts の描画倍率。 kind に parts identifier を指定した時だけ使える。"}
             }
           }
         ]
