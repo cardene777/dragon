@@ -72,11 +72,11 @@ flow:
 <!-- notation:actor:start -->
 | 欄 | 何を書くか |
 |---|---|
-| `kind` | 見た目の種別 (`card` / `storage` / `service` / `person` 等) |
-| `subtitle` | 題の下の補足 |
+| `kind` | 見た目の種別 (`card` / `storage` / `service` / `person` 等、`種類` とも書ける) |
+| `subtitle` | 題の下の補足 (`補足` とも書ける) |
 | `eyebrow` | 題の上の小見出し |
-| `value` | 箱に出す値 |
-| `rows` | 箱の中に並べる行 |
+| `value` | 箱に出す値 (`値` とも書ける) |
+| `rows` | 箱の中に並べる行 (`行` とも書ける) |
 | `lane` | どの縦列に置くか |
 | `stack` | 縦列の中の何段目に置くか |
 | `initial` | 状態遷移図で始まりの状態か |

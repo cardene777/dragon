@@ -12,12 +12,13 @@ import { parseTextDslV05 } from "../src/v05";
  * には「書いたのに図が変わらない」 としか見えない。
  */
 
-const 解析 = (actors: string) =>
-  parseTextDslV05(`title: "t"\ntype: flow\n\nactors:\n${actors}\n`);
+const 解析 = (actors: string) => parseTextDslV05(`title: "t"\ntype: flow\n\nactors:\n${actors}\n`);
 
 /** 読めない項目名の知らせだけを取り出す。 誤りが 0 件なら空 (`ok: true` で `errors` を持たない) */
 const 読めない項目 = (r: ReturnType<typeof parseTextDslV05>): string[] =>
-  r.ok ? [] : r.errors.filter((e) => e.message.includes("項目名が読めません")).map((e) => e.message);
+  r.ok
+    ? []
+    : r.errors.filter((e) => e.message.includes("項目名が読めません")).map((e) => e.message);
 
 /** 行番号つきで取り出す。 知らせが 0 件なら `undefined` */
 const 最初の知らせ = (r: ReturnType<typeof parseTextDslV05>) =>
@@ -65,28 +66,44 @@ describe("中括弧に書いた読めない項目名を知らせる (#1090)", ()
   });
 
   it("縦に並べた形の知らせは今までどおり出る", () => {
-    const r = parseTextDslV05(`title: "t"\ntype: flow\n\nactors:\n  - A:\n      title: "あ"\n  - B\n`);
+    const r = parseTextDslV05(
+      `title: "t"\ntype: flow\n\nactors:\n  - A:\n      title: "あ"\n  - B\n`,
+    );
     expect(読めない項目(r)).toEqual([`項目名が読めません: "title"`]);
   });
 });
 
-describe("中括弧では日本語の項目名が読めない (#1090 で判明)", () => {
-  // 実測 = 中括弧の形は日本語の項目名 7 種すべてを読まず、 英字の名前だけが効いていた
-  // (`行` / `補足` / `種類` / `値` / `色` / `位置` / `大きさ`)。 縦に並べた形では読める。
+describe("中括弧で読める日本語 (#1301 で読めるようにした)", () => {
+  // #1090 の時点では日本語 7 種すべてが読めず、知らせだけを出していた (「読めるようにするのは
+  // 別の変更」 と書いてあった)。 #1301 が **英語が中括弧で読める欄** の日本語を読めるようにした。
   //
-  // 読めるようにするのは別の変更。 ここでは **黙って捨てない** ことを固定する = 書いた人が
-  // 英字で書き直せると分かる状態にする。
-  for (const key of ["行", "補足", "種類", "値", "色", "位置", "大きさ"]) {
+  // `色` / `位置` / `大きさ` は英語側 (`color` / `pos` / `size`) も中括弧では読めないため
+  // 対象外 = 英語で出来ないことを日本語で出来るようにはしない (次の describe が固定する)。
+  for (const key of ["行", "補足", "種類", "値"]) {
+    it(`${key} を中括弧に書いても知らせが出ない`, () => {
+      const 値 = key === "行" ? `["x"]` : key === "種類" ? "storage" : `"x"`;
+      const r = 解析(`  - A: { ${key}: ${値} }`);
+      expect(読めない項目(r)).toEqual([]);
+    });
+  }
+
+  it("同じ意味の英字の名前では知らせが出ない", () => {
+    const r = 解析(
+      `  - A: { rows: ["x: 1"], subtitle: "あ", kind: storage, value: "9", tone: success }`,
+    );
+    expect(読めない項目(r)).toEqual([]);
+  });
+});
+
+describe("中括弧で読めない日本語 (#1301 で範囲を固定)", () => {
+  // 英語側も中括弧では読めない欄。 日本語だけを読めるようにすると、
+  // 「英語で出来ないことが日本語で出来る」 という逆の非対称ができる
+  for (const key of ["色", "位置", "大きさ"]) {
     it(`${key} を中括弧に書くと知らせが出る`, () => {
       const r = 解析(`  - A: { ${key}: "x" }`);
       expect(読めない項目(r)).toEqual([`項目名が読めません: "${key}"`]);
     });
   }
-
-  it("同じ意味の英字の名前では知らせが出ない", () => {
-    const r = 解析(`  - A: { rows: ["x: 1"], subtitle: "あ", kind: storage, value: "9", tone: success }`);
-    expect(読めない項目(r)).toEqual([]);
-  });
 });
 
 describe("知らせが入力の整形に依存しない (Round 1 review の指摘)", () => {

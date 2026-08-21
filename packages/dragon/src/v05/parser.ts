@@ -43,7 +43,7 @@
 
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
-import { TONE_ALIAS } from "../keywords";
+import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
   checkValueExpression,
@@ -950,6 +950,36 @@ export function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
   return tone ? { tone } : {};
 }
 
+/**
+ * v0.4 で使えた箱の種類の名前 (#1301)。
+ *
+ * v0.5 の受理集合 (`NODE_KIND_VALID`) に無いため、書くと見本 (parts) の名前として扱われ、
+ * 見本帳に無ければ `actor` に潰れて **黙って消えていた**。 見本の名前と区別が付かないので、
+ * 「v0.4 で種類として使えた語」 であることを根拠に誤りとして知らせる。
+ *
+ * 対応は `keywords.ts` の `NODE_KIND_ALIAS` が持つ (日本語 → 英語の種類名)。
+ */
+function v04の種類名(値: string): string | undefined {
+  if (!Object.hasOwn(NODE_KIND_ALIAS, 値)) return undefined;
+  if (NODE_KIND_VALID.has(値)) return undefined; // v0.5 でも受ける名前は対象外
+  return NODE_KIND_ALIAS[値];
+}
+
+/**
+ * 箱の種類に v0.4 の日本語を書いた時に知らせる (#1301)。
+ *
+ * 黙って見本の名前として扱うと、見本帳に無い場合に `actor` へ潰れて手掛かりが残らない。
+ */
+function reportV04Kind(kindRaw: string, line: number, errors: DslError[]): void {
+  const 英語 = v04の種類名(kindRaw);
+  if (英語 === undefined) return;
+  errors.push({
+    line,
+    message: `箱の種類に v0.4 の名前は使えません: "${kindRaw}"`,
+    hint: `v0.5 では英語で書く (\`${英語}\`)`,
+  });
+}
+
 /** `色` / `color` のどちらでも書ける。 */
 const COLOR_KEYS = new Set(["色", "color", "tone"]);
 
@@ -1034,6 +1064,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "kind":
       case "種類": {
         const k = stripQuotes(raw).toLowerCase();
+        reportV04Kind(k, ln.no, errors);
         const isPart = k !== "" && !NODE_KIND_VALID.has(k);
         out.kind = isPart ? NODE_KIND_DEFAULT : resolveNodeKind(k);
         // parts 候補は `kind` を既定に倒して `partId` へ退避するため、 名札に載せる種類としては
@@ -1317,7 +1348,10 @@ function collectAnimationSteps(
       continue;
     }
     if (ln.indent <= parentIndent) break;
-    if (ln.trimmed.startsWith("- step")) {
+    // v0.4 の日本語の段名も block の頭として拾い、parsePhase で英語の `step` を案内する
+    // (#1301)。ここで英語だけに絞ると `- ステップ:` は block 自体が作られず、段全体が
+    // 誤りなしで黙って消える。
+    if (ln.trimmed.startsWith("- step") || ln.trimmed.startsWith("- ステップ")) {
       if (cur) out.push(cur);
       cur = [{ ...ln, trimmed: ln.trimmed.slice(2).trim() }];
     } else if (cur) {
@@ -1482,6 +1516,37 @@ function reportScaleOnNonPart(
  * 並べた形) とは別に持つ = 中括弧の形は位置や大きさを未対応にしてあり、 同じ集合にすると
  * 「知らせない」 側がずれる。
  */
+/**
+ * 中括弧の形で読める日本語と、その英語名 (#1301)。
+ *
+ * **英語が中括弧で読める欄だけを載せる**。 `位置` / `大きさ` / `色` は英語側
+ * (`pos` / `size` / `color`) も中括弧では読めないため載せない = 英語で出来ないことを
+ * 日本語で出来るようにはしない。
+ *
+ * 載せる前は、同じ意味の語が縦書きでは通り中括弧では「項目名が読めません」 になっていた。
+ * 書き方によって日本語だけが落ちる状態を無くす。
+ */
+export const INLINE_ACTOR_ALIASES: Record<string, string> = {
+  種類: "kind",
+  補足: "subtitle",
+  値: "value",
+  行: "rows",
+};
+
+/** 中括弧に書かれた日本語の項目名を、同じ意味の英語名に寄せる (#1301) */
+function 中括弧の別名を寄せる(opts: Record<string, string>): Record<string, string> {
+  let 触った = false;
+  const out: Record<string, string> = { ...opts };
+  for (const [日, 英] of Object.entries(INLINE_ACTOR_ALIASES)) {
+    if (!(日 in out)) continue;
+    触った = true;
+    // 英語を併記した時は英語を優先する (縦書き形が後勝ちなのと違い、こちらは 1 行に同居する)
+    if (!(英 in out)) out[英] = out[日]!;
+    delete out[日];
+  }
+  return 触った ? out : opts;
+}
+
 export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
@@ -1508,6 +1573,8 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   // 同じ名前で 2 度知らせることになる
   "scale",
   "倍率",
+  // 英語が読める欄の日本語別名 (#1301)。 一覧は `INLINE_ACTOR_ALIASES` が持つ
+  ...Object.keys(INLINE_ACTOR_ALIASES),
 ]);
 // `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
 // 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
@@ -1586,7 +1653,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
   if (mapMatch) {
     const namePart = stripQuotes(mapMatch.name.trim());
     if (!namePart) return null;
-    const opts = parseInlineMapping(mapMatch.inner);
+    // 日本語の項目名を英語名に寄せてから読む (#1301)。 寄せないと、同じ意味の語が
+    // 縦書きでは通り中括弧では落ちる
+    const opts = 中括弧の別名を寄せる(parseInlineMapping(mapMatch.inner));
     const kindRaw = (opts.kind ?? "").toLowerCase();
     // CAR-1657 = kind が既存 NODE_KIND_VALID に無い場合 parts identifier 候補として partId に格納、
     // kind は actor default fallback。 compile 側 partsCatalog lookup で解決する。
@@ -1597,6 +1666,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
     reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
+    reportV04Kind(kindRaw, line.no, errors);
     const kind = isPart
       ? NODE_KIND_DEFAULT
       : resolveNodeKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
@@ -1658,6 +1728,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
+    reportV04Kind(v.kind, line.no, errors);
     // 倍率はパーツにしか効かない (#1026)
     reportScaleOnNonPart(isPart, v.scaleKeys?.[0], line.no, errors);
     const kind = isPart
@@ -1921,7 +1992,10 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
   while (i < block.length) {
     const ln = block[i]!;
     const t = ln.trimmed;
-    const propMatch = t.match(/^([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.*)$/);
+    // **英数字以外の項目名も拾う** (#1301)。 以前は `[a-zA-Z]` で始まる名前しか見ておらず、
+    // 日本語の項目名 (`強調` / `説明` 等) は match そのものが外れて **黙って捨てられていた**。
+    // 拾った上で、知らない名前は下で誤りとして知らせる
+    const propMatch = t.match(/^([^\s:]+)\s*:\s*(.*)$/);
     if (!propMatch) {
       i += 1;
       continue;
@@ -1995,10 +2069,55 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       i = j;
       continue;
     }
+    // ここに来るのは上のどれにも当たらなかった名前 (#1301)。 黙って捨てると
+    // 「書いたのに段が変わらない」 が手掛かりなしで起きる
+    errors.push({
+      line: ln.no,
+      message: `段の項目名が読めません: "${propMatch[1] ?? ""}"`,
+      hint: 段の項目のヒント(propMatch[1] ?? ""),
+    });
     i += 1;
   }
   return phase;
 }
+
+/**
+ * 段の項目名が読めない時のヒント (#1301)。
+ *
+ * 日本語の名前は v0.4 の記法では使えたため、**同じ意味の英語を勧める**。
+ * 「使えません」 だけだと、書いた人は代わりに何を書けばよいか分からない。
+ */
+function 段の項目のヒント(書いた名前: string): string {
+  const 英語 = 段の項目の日本語[書いた名前];
+  return 英語 !== undefined
+    ? `v0.5 では英語で書く (\`${英語}\`)`
+    : `使える項目 = ${段の項目の英語.join(", ")}`;
+}
+
+/** 段に書ける項目の英語名。 `parsePhase` の分岐から導く一覧 */
+const 段の項目の英語 = ["focus", "badge", "body", "description", "tween", "set"] as const;
+
+/**
+ * v0.4 で使えた段の項目名と、v0.5 での書き方 (#1301)。
+ *
+ * **`ANIM_SUBKEYS` からは導けない**。 あの表は v0.4 の日本語と v0.4 の英語を組にしており、
+ * v0.5 が使う名前とは一致しない (`強調` の相手は v0.4 では `highlight`、v0.5 では `focus`)。
+ * 2 つの記法の間の翻訳なので、対応は手で書く。
+ *
+ * 表に語が増えた時に取り残されないよう、`ANIM_SUBKEYS` の日本語を全て覆っていることを
+ * 検査が確かめる (`v05-japanese-scope.test.ts`)。
+ */
+export const 段の項目の日本語: Record<string, string> = {
+  強調: "focus",
+  説明: "body",
+  バッジ: "badge",
+  遷移: "tween",
+  切替: "set",
+  // 状態は段の中ではなく最上位に書く (`states:`)
+  状態: "states (最上位に書く)",
+  // 段そのものの名前
+  ステップ: "step",
+};
 
 function parseStepHead(s: string): { name: string; durationMs: number } | null {
   // 例: `"request" 1.5s` / `"step1" 1500ms` / `step1 2s`

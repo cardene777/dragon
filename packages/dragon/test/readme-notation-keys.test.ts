@@ -31,7 +31,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { TOP_LEVEL_KEYS, INLINE_ACTOR_KEYS, FLOW_INLINE_KEYS } from "../src/v05/parser";
+import {
+  TOP_LEVEL_KEYS,
+  INLINE_ACTOR_KEYS,
+  INLINE_ACTOR_ALIASES,
+  FLOW_INLINE_KEYS,
+} from "../src/v05/parser";
 import { parseTextDslV05 } from "../src/v05";
 import { compileToCdl } from "../src/compile";
 
@@ -90,24 +95,38 @@ function 一覧(名: string): string[] {
 
   const 読めない = 行.filter((l) => !記法行が読める(l));
   if (読めない.length > 0) {
-    throw new Error(`notation:${名} に読めない行がある (\`欄\` と説明の 2 列で書く): ${読めない.join(" / ")}`);
+    throw new Error(
+      `notation:${名} に読めない行がある (\`欄\` と説明の 2 列で書く): ${読めない.join(" / ")}`,
+    );
   }
   return 行.map((l) => /^`([^`]+)`$/.exec(表の列(l)[0] ?? "")![1]!);
 }
 
-/** `scale` の別名。 同じ欄を 2 行に分けて書かず、説明の中で触れる */
-const 別名 = new Set(["倍率"]);
+/**
+ * 別名。 同じ欄を 2 行に分けて書かず、説明の中で触れる。
+ *
+ * 日本語の別名は **実装から導く** (#1301)。 手で並べると、実装に別名が増えた時に
+ * README の検査だけが古くなる。 `倍率` は別経路 (`resolveScale`) が読むため実装の表に
+ * 載っておらず、ここで足す (下の「別名が実装に残っている」 が実在を確かめる)。
+ */
+const 別名 = new Set([...Object.keys(INLINE_ACTOR_ALIASES), "倍率"]);
 
 describe("README の記法の一覧が実装と一致する (#1275)", () => {
   it("最上位のブロック", () => {
     const 書いた = 一覧("top-level");
-    expect(書いた.length, "README から 1 件も読み取れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      書いた.length,
+      "README から 1 件も読み取れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     expect([...書いた].sort()).toEqual([...TOP_LEVEL_KEYS].sort());
   });
 
   it("箱に書ける欄", () => {
     const 書いた = 一覧("actor");
-    expect(書いた.length, "README から 1 件も読み取れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      書いた.length,
+      "README から 1 件も読み取れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     const 実装 = [...INLINE_ACTOR_KEYS].filter((k) => !別名.has(k));
     expect([...書いた].sort()).toEqual(実装.sort());
   });
@@ -134,7 +153,10 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
     // 直さない形が通ってしまう。 `FLOW_INLINE_KEYS` は parser が読み取りに使う表から
     // 導いているので、実装との drift が起きない
     const 書いた = 一覧("flow");
-    expect(書いた.length, "README から 1 件も読み取れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      書いた.length,
+      "README から 1 件も読み取れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     expect([...書いた].sort()).toEqual([...FLOW_INLINE_KEYS].sort());
   });
 
@@ -145,7 +167,10 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
     //
     // **1 つずつ書く** = まとめて書くと、1 つが落ちても他が届いていれば気付けない
     const 書いた = 一覧("flow");
-    expect(書いた.length, "README から 1 件も読み取れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      書いた.length,
+      "README から 1 件も読み取れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
 
     /** 欄ごとの試す値。 README に欄を足したらここにも足す (足さないと下の検査が落ちる) */
     const 試す値: Record<string, { 書く: string; 期待: unknown }> = {
@@ -239,22 +264,29 @@ ${動きあり ? 段 : ""}`);
     });
 
     it("中央に書いた initial が効く", () => {
-      expect(小見出し("  - A: { kind: card }\n  - B: { kind: card, initial: true }\n  - C: { kind: card }\n")).toBe(
-        "a=状態 b=初期 c=最終",
-      );
+      expect(
+        小見出し(
+          "  - A: { kind: card }\n  - B: { kind: card, initial: true }\n  - C: { kind: card }\n",
+        ),
+      ).toBe("a=状態 b=初期 c=最終");
     });
 
     it("中央に書いた final が効く", () => {
-      expect(小見出し("  - A: { kind: card }\n  - B: { kind: card, final: true }\n  - C: { kind: card }\n")).toBe(
-        "a=初期 b=最終 c=状態",
-      );
+      expect(
+        小見出し(
+          "  - A: { kind: card }\n  - B: { kind: card, final: true }\n  - C: { kind: card }\n",
+        ),
+      ).toBe("a=初期 b=最終 c=状態");
     });
 
     it("段のある図でも書いた値が効く", () => {
       // 段の有無で組み立ての経路が分かれる。 片方だけ直すと、同じ記法で結果が割れる
-      expect(小見出し("  - A: { kind: card }\n  - B: { kind: card, initial: true }\n  - C: { kind: card }\n", true)).toContain(
-        "b=初期",
-      );
+      expect(
+        小見出し(
+          "  - A: { kind: card }\n  - B: { kind: card, initial: true }\n  - C: { kind: card }\n",
+          true,
+        ),
+      ).toContain("b=初期");
     });
   });
 });

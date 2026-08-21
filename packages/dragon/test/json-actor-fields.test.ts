@@ -63,7 +63,14 @@ const 対応表: Record<string, 対応> = {
  * 別名は書かれた名前そのものを `scaleKeys` に残す (見本が同じ名前の状態を持つ時の知らせに使う)
  * ため、JSON に写すと名前が変わってしまう。 意味が同じことは別の検査で確かめる。
  */
-const 記法だけの別名: Record<string, string> = { 倍率: "scale" };
+const 記法だけの別名: Record<string, string> = {
+  倍率: "scale",
+  // #1301 で中括弧の形でも読めるようになった日本語。 JSON は英語名だけを持つ
+  種類: "kind",
+  補足: "subtitle",
+  値: "value",
+  行: "rows",
+};
 
 /**
  * 見本 (parts) でだけ意味を持つ項目。
