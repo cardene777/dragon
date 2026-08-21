@@ -560,10 +560,10 @@ function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
 }
 
 /**
- * 左から描く動きを持たない図種で段に `draw:` を書いた時に伝える (#1312)。
+ * 起点から描く動きを持たない図種で段に `draw:` を書いた時に伝える (#1312 / #1318)。
  *
- * 描く動きを持つのは今のところ折れ線だけ。 他の図種では書いても何も起きないため、
- * 黙って捨てると「書いたのに伸びない」 が手掛かりなしで起きる。
+ * 対応する 8 図種以外では書いても何も起きないため、黙って捨てると
+ * 「書いたのに現れない」 が手掛かりなしで起きる。
  *
  * 段ごとに知らせる = 5 段のうち 1 段だけに書いた形で、どの段が効いていないかを読めるようにする。
  */
@@ -598,10 +598,10 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 /**
- * 段の `draw:` が効く図種 (#1312 / #1314)。
+ * 段の `draw:` が効く図種 (#1312 / #1314 / #1318)。
  *
  * **語と図種の対応表から導く** (`DRAW_TARGETS`)。 一覧を写すと、語を足した時に片方だけ
- * 古いまま残る。 描画側 (`cdl` の `CdlPhase.draw`) が対応する 3 種と一致する。
+ * 古いまま残る。 描画側 (`cdl` の `CdlPhase.draw`) が対応する 8 種と一致する。
  */
 const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(DRAW_TARGETS.values());
 
@@ -5615,8 +5615,8 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // phase 注入。 CdlPhase.tweens[].stateId / sets[].stateId で state 参照 (state ではない)。
   for (const p of doc.animate.phases) {
     const activateIds: string[] = [...resolveIds(p.highlight ?? [])];
-    // `draw: line` を描画側の欄へ写す (#1312)。 相手は 1 箱で図全体を描く種別の箱で、
-    // 折れ線は必ずこの形になるため名前を書かせずに引ける。
+    // `draw:` を描画側の欄へ写す (#1312 / #1314 / #1318)。 相手は 1 箱で図全体を描く
+    // 対象 8 種の箱で、必ず 1 つに決まるため名前を書かせずに引ける。
     //
     // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ

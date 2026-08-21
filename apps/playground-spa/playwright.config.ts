@@ -45,7 +45,20 @@ import { defineConfig } from "@playwright/test";
 /** 他と重ねない検査。 負荷で結果が変わる側と、 負荷を出す側の両方を含む */
 const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry)\.spec\.ts$/;
 
-const 共通 = { baseURL: "http://localhost:4323", trace: "on-first-retry" } as const;
+/**
+ * 見に行く server。 既定は `pnpm dev` の port (4323)。
+ *
+ * `SPA_URL` で差し替えられるようにするのは、依存の版を上げた直後に **動いている server が
+ * 古い版を配り続ける** ため (Vite は起動時に依存を抱え込む)。 別 port に立て直した server へ
+ * 向けないと、新しい描画を見ているつもりで古い描画を見ることになる。
+ *
+ * 固定していた間、`chart-line-draw.spec.ts` だけが自前で `SPA_URL` を読んでいた = 同じ回の
+ * 検査が 2 つの server に分かれ、片方が古いことに気付けなかった (#1318 で踏んだ)。
+ */
+const 共通 = {
+  baseURL: process.env.SPA_URL ?? "http://localhost:4323",
+  trace: "on-first-retry",
+} as const;
 
 export default defineConfig({
   testDir: "./tests",

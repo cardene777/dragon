@@ -268,10 +268,9 @@ export interface JsonPhase {
   /** badge label */
   badge?: string;
   /**
-   * その段で左の起点から描くもの (#1312)。 記法の `draw: line` と同じ。
+   * その段で起点から描くもの (#1312 / #1314 / #1318)。 記法の `draw:` と同じ。
    *
-   * 受ける語は `line` だけ (`DRAW_WORDS`)。 折れ線の図で、その段の間に線が左端から
-   * 右へ伸びる。
+   * 受ける 8 語は `DRAW_WORDS` が持つ。 語と同じ図種で、その段の間に図が起点から現れる。
    */
   draw?: string;
   /**

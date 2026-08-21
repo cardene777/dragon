@@ -13,15 +13,6 @@
  */
 import { test, expect } from "@playwright/test";
 
-/**
- * 見る先。 既定は他の spec と同じ 4323。
- *
- * 環境変数で上書きできるようにしてあるのは、**依存の版を上げた直後に既に動いている dev
- * server が古い版を配り続ける**ため (Vite は起動時に依存を最適化して抱え込む)。 別 port で
- * 立て直した server に向けて確かめられるようにする。
- */
-const SPA_URL = process.env.SPA_URL ?? "http://localhost:4323";
-
 /** 画面に出ている折れ線の dash 属性を読む */
 async function 折れ線のdash(page: import("@playwright/test").Page): Promise<{
   dasharray: string | null;
@@ -69,7 +60,7 @@ async function 扇の切り抜き(page: import("@playwright/test").Page): Promis
 
 test.describe("棒を横軸から伸ばす (#1314)", () => {
   test("`draw: bar` を書いた見本では倍率が付き、動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -99,7 +90,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
      * preset 側に棒グラフの見本が無いため (`presets.ts` は円と折れ線だけ)、別の図を
      * 対照に取れない。 同じ図の段で対照を取る方が、図の違いによる差も入らない
      */
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
 
@@ -119,7 +110,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
 
 test.describe("扇を 12 時から開く (#1314)", () => {
   test("`draw: pie` を書いた見本では切り抜きが付き、形が変わる", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -146,7 +137,7 @@ test.describe("扇を 12 時から開く (#1314)", () => {
   });
 
   test("`draw:` を書いていない円の見本には切り抜きが付かない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -174,7 +165,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
 
   for (const [見本, _sel] of Object.entries(観測)) {
     test(`${見本}: 枝や線の残りが動く`, async ({ page }) => {
-      await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+      await page.goto("/catalog/charts", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByText(見本, { exact: true }).first().click();
 
@@ -196,7 +187,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
   }
 
   test("工程表: 帯の倍率が動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("工程表", { exact: true }).first().click();
 
@@ -215,7 +206,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
   });
 
   test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("絞り込み図", { exact: true }).first().click();
 
@@ -234,7 +225,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
 
 test.describe("折れ線を左から伸ばす (#1312)", () => {
   test("`draw: line` を書いた見本では dash が付き、残りが動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -266,7 +257,7 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
   });
 
   test("`draw:` を書いていない見本では dash が 1 つも付かない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);

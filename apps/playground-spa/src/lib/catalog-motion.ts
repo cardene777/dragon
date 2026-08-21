@@ -105,19 +105,19 @@ export function motionOf(diagram: CdlDiagram): Motion {
 export function motionNote(diagram: CdlDiagram): string {
   // 起点から描かれる動きは値の動きと別軸 (#1312 / #1318)。 対象が 8 種に増えたため
   // 「線が」 とは書かない (棒は上へ伸び、扇は開き、枝は中心から広がる)。 描画側は
-  // 状態を 1 つも触らないため `motionOf` からは見えない。 併記しないと、線が伸びる図に
+  // 状態を 1 つも触らないため `motionOf` からは見えない。 併記しないと、図が描かれる見本に
   // 「段を進めても値は変わらない」 と書くことになる
-  const 線が伸びる = (diagram.phases ?? []).some((p) => (p.draw ?? []).length > 0);
+  const 起点から描く = (diagram.phases ?? []).some((p) => (p.draw ?? []).length > 0);
   switch (motionOf(diagram)) {
     case "continuous":
-      return 線が伸びる
+      return 起点から描く
         ? "段の中で図が起点から描かれ、値も連続して動く"
         : "段の中で値が連続して動く";
     case "step":
-      return 線が伸びる
+      return 起点から描く
         ? "段の中で図が起点から描かれ、段の切替で値が一度に変わる"
         : "段の切替で値が一度に変わる";
     case "none":
-      return 線が伸びる ? "段の中で図が起点から描かれる" : "段を進めても値は変わらない";
+      return 起点から描く ? "段の中で図が起点から描かれる" : "段を進めても値は変わらない";
   }
 }

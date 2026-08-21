@@ -66,6 +66,55 @@ test("載っている箱の種類が実際に書ける", async ({ page }) => {
   expect(await page.locator("[data-cdl-node]").count(), "箱が出ない").toBeGreaterThan(0);
 });
 
+/** 段に `draw:` を書いた最小の図。 語と図種を別々に渡せる形にして、食い違いも作れるようにする */
+const drawDsl = (type: string, word: string): string =>
+  `title: "t"\ntype: ${type}\n\nactors:\n  - W1: "180"\n  - W2: "240"\n  - W3: "210"\n\nanimation:\n  - step: "描く" 1.2s\n    draw: ${word}\n`;
+
+/** 組み立ての知らせのうち `draw` に触れているものだけを読む */
+const drawNotices = async (page: import("@playwright/test").Page): Promise<string[]> => {
+  const all = await page
+    .locator('[data-testid="editor-compile-notices"] .v4-editor-notice-text')
+    .allTextContents();
+  return all.filter((t) => t.includes("draw"));
+};
+
+test("載っている描ける図種が実際に効く", async ({ page }) => {
+  await openEditor(page);
+  await page.locator('[data-testid="editor-syntax-tab"]').click();
+  const draws = await page.locator('[data-testid="editor-syntax-draws"] code').allTextContents();
+  expect(draws.length, "描ける図種が 1 つ以上 (検査が空振りしていない)").toBeGreaterThan(0);
+
+  // 一覧の語を、同じ名前の図種の段にそのまま書く。 その語が組み立ての対応表に無ければ
+  // 「効きません」 の知らせが出る = 一覧だけが先に増えた形をここで捕まえる
+  let 確かめた = 0;
+  for (const word of draws) {
+    await setDsl(page, drawDsl(word, word));
+    expect(await page.locator(".v4-editor-error").count(), `${word} で組み立てに失敗した`).toBe(0);
+    expect(await page.locator("[data-cdl-node]").count(), `${word} で図が出ない`).toBeGreaterThan(0);
+    expect(await drawNotices(page), `${word} が効いていない`).toEqual([]);
+    確かめた += 1;
+  }
+  expect(確かめた, "一覧の語を 1 つも確かめていない").toBe(draws.length);
+});
+
+test("効かない形は 2 通りとも知らせる", async ({ page }) => {
+  // 陰性対照。 上の検査は「知らせが 0 件」 を見るため、知らせが出ない作りだと恒真になる。
+  //
+  // **2 通りを別々に見る**。 まとめて 1 通りだけ見ると、片方の分岐を外しても もう片方が
+  // 同じ入力で発火して落ちない (実測で `draw-not-honored` を外しても 0 件 FAIL だった)
+  await openEditor(page);
+
+  // (1) 描く動きを持たない図種に書いた
+  await setDsl(page, drawDsl("flow", "line"));
+  expect(await drawNotices(page), "描けない図種で知らせが出ない").toHaveLength(1);
+
+  // (2) 描ける図種だが、語が別の図種を指している
+  await setDsl(page, drawDsl("line", "bar"));
+  const 食い違い = await drawNotices(page);
+  expect(食い違い, "語の食い違いで知らせが出ない").toHaveLength(1);
+  expect(食い違い[0], "どう直すかが読めない").toContain("bar");
+});
+
 test("載っている色が実際に効く", async ({ page }) => {
   await openEditor(page);
   await page.locator('[data-testid="editor-syntax-tab"]').click();

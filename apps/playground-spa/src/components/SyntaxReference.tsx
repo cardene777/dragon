@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PRESET_TYPES, TONE_ALIAS } from "@cardenelabs/dragon";
+import { DRAW_WORDS, PRESET_TYPES, TONE_ALIAS } from "@cardenelabs/dragon";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 import { FORMS } from "@/lib/syntax-forms";
 import { SyntaxInline } from "./SyntaxCode";
@@ -16,6 +16,8 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
   // 実装が受け付ける値をそのまま並べる
   const types = useMemo(() => [...PRESET_TYPES].sort(), []);
   const kinds = useMemo(() => [...NODE_KINDS].sort(), []);
+  // 段の `draw:` が受ける語。 記法の対応表 (`DRAW_TARGETS`) から引く (#1318)
+  const draws = useMemo(() => [...DRAW_WORDS].sort(), []);
   const tones = useMemo(() => {
     // 別名表は「別名 → 正式名」 の対応。 正式名ごとに別名をまとめる
     const byTone = new Map<string, string[]>();
@@ -63,6 +65,15 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-kinds">
           {kinds.map((k) => (
             <code key={k} className="v4-editor-syntax-chip">{k}</code>
+          ))}
+        </div>
+      </div>
+
+      <div className="v4-editor-syntax-section">
+        <div className="v4-editor-syntax-title">起点から描ける図種 ({draws.length})</div>
+        <div className="v4-editor-syntax-chips" data-testid="editor-syntax-draws">
+          {draws.map((d) => (
+            <code key={d} className="v4-editor-syntax-chip">{d}</code>
           ))}
         </div>
       </div>
