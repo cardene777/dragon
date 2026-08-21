@@ -292,27 +292,19 @@
   width: 32px;
 }
 
+/* 段の中の `focus:` は 2 段目の字下げになる (#1310 で本文を実記法に直した時に現れた) */
+.code-line .ind-2 {
+  width: 50px;
+}
+
 .code-line .code-text {
   font-family: var(--d-mono);
   font-size: 12.5px;
   white-space: pre;
 }
 
-.code-text .t-k {
-  color: var(--d-dg-1);
-}
-.code-text .t-v {
-  color: var(--d-dg-2);
-}
-.code-text .t-p {
-  color: var(--d-text-muted);
-}
-.code-text .t-id {
-  color: var(--d-text-primary);
-}
-.code-text .t-a {
-  color: var(--d-accent);
-}
+/* 記述の色は `styles/syntax.css` が持つ (#1310)。 かつてここに `.t-k` 等 5 役を置いて
+   いたが、色の割り当てが画面ごとに割れる元になっていたため分解器側へ寄せた。 */
 
 /* ── 右の図 ── */
 

@@ -5,6 +5,7 @@ import { presetSequence, presetTopology, presetEr } from "@/topics/catalog/prese
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 
+import { 区間, 区間のspan } from "@/components/SyntaxCode";
 /**
  * dragon の入口。 見た目の SSOT = docs/design/app.pen の 01 トップ、
  * class の中身は src/styles/home.css。
@@ -12,121 +13,38 @@ import { useLocale } from "@/lib/useLocale";
  */
 
 /** 記述の 1 かたまり。 role が色を決める (k=鍵 / v=値 / p=区切り / id=登場人物 / a=矢印) */
-interface CodeToken {
-  text: string;
-  role?: "k" | "v" | "p" | "id" | "a";
-}
+/**
+ * ヒーローに出す記法 (#1310)。
+ *
+ * かつては 1 行ずつ手で `<span>` を貼っていた (`.t-k` / `.t-v` / `.t-p` / `.t-id` / `.t-a`)。
+ * 実装から導けるものを人手で書いていたため検査が無く、**記法として通らない本文が出ていた**
+ * (`animate:` は最上位に無い項目、箱の書き方が違う、`(1)` が色名として読まれる の 6 件)。
+ *
+ * 本文を 1 つ持ち、色は分解器が決める。 記法として通ることは検査が固定する。
+ */
+const DEMO_SRC = `title: ログイン処理
+type: sequence
 
-/** 記述の 1 行。 indent は 0 か 1 の 2 段だけ、 hl を付けた行が今の局面 */
-interface CodeLine {
-  no: number;
-  indent: 0 | 1;
-  tokens: CodeToken[];
-  hl?: boolean;
-}
+actors:
+  - User
+  - API: service
+  - DB: database
 
-const DEMO_CODE: CodeLine[] = [
-  { no: 1, indent: 0, tokens: [{ text: "title:", role: "k" }, { text: " ログイン処理", role: "v" }] },
-  { no: 2, indent: 0, tokens: [{ text: "type:", role: "k" }, { text: " sequence", role: "v" }] },
-  { no: 3, indent: 0, tokens: [] },
-  { no: 4, indent: 0, tokens: [{ text: "actors:", role: "k" }] },
-  {
-    no: 5,
-    indent: 1,
-    tokens: [
-      { text: "- { ", role: "p" },
-      { text: "id: ", role: "k" },
-      { text: "user", role: "v" },
-      { text: ", ", role: "p" },
-      { text: "label: ", role: "k" },
-      { text: "User", role: "v" },
-      { text: " }", role: "p" },
-    ],
-  },
-  {
-    no: 6,
-    indent: 1,
-    tokens: [
-      { text: "- { ", role: "p" },
-      { text: "id: ", role: "k" },
-      { text: "api", role: "v" },
-      { text: ", ", role: "p" },
-      { text: "label: ", role: "k" },
-      { text: "API", role: "v" },
-      { text: " }", role: "p" },
-    ],
-  },
-  {
-    no: 7,
-    indent: 1,
-    tokens: [
-      { text: "- { ", role: "p" },
-      { text: "id: ", role: "k" },
-      { text: "db", role: "v" },
-      { text: ", ", role: "p" },
-      { text: "label: ", role: "k" },
-      { text: "DB", role: "v" },
-      { text: " }", role: "p" },
-    ],
-  },
-  { no: 8, indent: 0, tokens: [] },
-  { no: 9, indent: 0, tokens: [{ text: "flow:", role: "k" }] },
-  {
-    no: 10,
-    indent: 1,
-    tokens: [
-      { text: "- ", role: "p" },
-      { text: "user", role: "id" },
-      { text: " -> ", role: "a" },
-      { text: "api", role: "id" },
-      { text: ": ", role: "p" },
-      { text: "POST /login", role: "v" },
-    ],
-  },
-  {
-    no: 11,
-    indent: 1,
-    hl: true,
-    tokens: [
-      { text: "- ", role: "p" },
-      { text: "api", role: "id" },
-      { text: " -> ", role: "a" },
-      { text: "db", role: "id" },
-      { text: ": ", role: "p" },
-      { text: "SELECT user", role: "v" },
-    ],
-  },
-  {
-    no: 12,
-    indent: 1,
-    tokens: [
-      { text: "- ", role: "p" },
-      { text: "db", role: "id" },
-      { text: " -> ", role: "a" },
-      { text: "api", role: "id" },
-      { text: ": ", role: "p" },
-      { text: "row (1)", role: "v" },
-    ],
-  },
-  {
-    no: 13,
-    indent: 1,
-    tokens: [
-      { text: "- ", role: "p" },
-      { text: "api", role: "id" },
-      { text: " -> ", role: "a" },
-      { text: "user", role: "id" },
-      { text: ": ", role: "p" },
-      { text: "200 OK", role: "v" },
-    ],
-  },
-  { no: 14, indent: 0, tokens: [] },
-  { no: 15, indent: 0, tokens: [{ text: "animate:", role: "k" }] },
-  { no: 16, indent: 1, tokens: [{ text: "mode:", role: "k" }, { text: " phase", role: "v" }] },
-  { no: 17, indent: 1, tokens: [{ text: "duration:", role: "k" }, { text: " 600", role: "v" }] },
-  { no: 18, indent: 1, tokens: [{ text: "easing:", role: "k" }, { text: " ease-out", role: "v" }] },
-  { no: 19, indent: 1, tokens: [{ text: "loop:", role: "k" }, { text: " true", role: "v" }] },
-];
+flow:
+  - User -> API: "POST /login"
+  - API -> DB: "SELECT user"
+  - DB -> API: "row" (success)
+  - API -> User: "200 OK" (success)
+
+animation:
+  - step: "1. 認証要求" 0.6s
+    focus: [User, API]
+  - step: "2. 照会" 0.6s
+    focus: [API, DB]
+`;
+
+/** いま光らせる行 (1 始まり)。 右の図の局面と対になる */
+const DEMO_HIGHLIGHT_LINE = 11;
 
 /** 3 手順の 2 つ目に添える短い記述 */
 const STEP_CODE = [
@@ -189,19 +107,17 @@ export function HomePage(): React.ReactElement {
           </div>
           <div className="canvas-body">
             <div className="canvas-code">
-              {DEMO_CODE.map((line) => (
-                <div key={line.no} className={`code-line${line.hl ? " hl" : ""}`}>
-                  <span className="ln">{line.no}</span>
-                  <span className={`ind ind-${line.indent}`}></span>
-                  <span className="code-text">
-                    {line.tokens.map((tok, i) => (
-                      <span key={i} className={tok.role ? `t-${tok.role}` : undefined}>
-                        {tok.text}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-              ))}
+              {DEMO_SRC.replace(/\n$/, "").split("\n").map((行, i) => {
+                const no = i + 1;
+                const 字下げ = 行.startsWith("    ") ? 2 : 行.startsWith("  ") ? 1 : 0;
+                return (
+                  <div key={no} className={`code-line${no === DEMO_HIGHLIGHT_LINE ? " hl" : ""}`}>
+                    <span className="ln">{no}</span>
+                    <span className={`ind ind-${字下げ}`}></span>
+                    <span className="code-text">{区間のspan(区間(行.slice(字下げ * 2), "記法"))}</span>
+                  </div>
+                );
+              })}
             </div>
             <div className="canvas-stage">
               {/* 左の記法と対になる図解。 読み上げでも何の図か分かるよう名前を付ける */}

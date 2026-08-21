@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { PRESET_TYPES, TONE_ALIAS } from "@cardenelabs/dragon";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 import { FORMS } from "@/lib/syntax-forms";
+import { SyntaxInline } from "./SyntaxCode";
 
 /**
  * 記法一覧。 editor の左に出して「何が書けるか」 を調べられるようにする。
@@ -40,7 +41,8 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
               onClick={onInsert ? () => onInsert(l.code) : undefined}
               data-syntax-code={l.code}
             >
-              <code className="v4-editor-syntax-code">{l.code}</code>
+              {/* 色は分解器と `styles/syntax.css` が持つ (#1310) */}
+              <SyntaxInline src={l.code} />
               <span className="v4-editor-syntax-note">{l.note}</span>
             </button>
           ))}
@@ -70,7 +72,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
         <div className="v4-editor-syntax-tones" data-testid="editor-syntax-tones">
           {tones.map(([tone, aliases]) => (
             <div key={tone} className="v4-editor-syntax-row">
-              <code className="v4-editor-syntax-code">{tone}</code>
+              <code className="v4-editor-syntax-code tok-色名" data-tone={tone}>{tone}</code>
               <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : "別名なし"}</span>
             </div>
           ))}

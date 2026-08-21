@@ -16,6 +16,7 @@ import "./styles/header.css";
 import "./styles/home.css";
 import "./styles/docs-site.css";
 import "./styles/editor.css";
+import "./styles/syntax.css";
 // 図に重ねる局面の表示 (#1239)。 エディタ / カタログの分類 / 見本の詳細 が共有する
 import "./styles/phase-chrome.css";
 // compare.css は PresetDetailPage / ContributePage / ReleaseNotesPage の nm-* class 用、 各 lazy page 側で import。

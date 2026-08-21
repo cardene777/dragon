@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
 
+import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
 type SourceTab = "yaml" | "json";
 
@@ -82,9 +83,19 @@ function SourceTabs({ item, hidden }: { item: CatalogItem; hidden?: boolean }): 
         </button>
         {activeSource && <CopyButton text={activeSource} />}
       </div>
-      <pre className="catalog-source-code" data-lang={tab}>
-        <code>{activeSource ?? "(この記法の source は未登録です)"}</code>
-      </pre>
+      {activeSource === undefined ? (
+        <pre className="catalog-source-code" data-lang={tab}>
+          <code>(この記法の source は未登録です)</code>
+        </pre>
+      ) : (
+        // 色は分解器と `styles/syntax.css` が持つ (#1310)。 ここでは種別だけを渡す
+        <SyntaxCode
+          src={activeSource}
+          種別={tab === "json" ? "json" : "記法"}
+          className="catalog-source-code"
+          data-lang={tab}
+        />
+      )}
     </section>
   );
 }
