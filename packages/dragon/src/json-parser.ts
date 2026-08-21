@@ -557,6 +557,41 @@ function JSONの色名か(v: string): boolean {
 }
 
 /**
+ * 見本 (parts) にしか効かない欄 (#1294)。
+ *
+ * 普通の箱に書くと `jsonToDoc` が落とすため、書いても何も起きない。 #1294 で誤りにした。
+ *
+ * `見本に効かない欄` (#1308) と対になる。 2 つの表で「どちらの箱にしか効かないか」 を
+ * 両方向から宣言する = 片方だけ増えると鏡の関係が崩れる。
+ */
+export const 見本にしか効かない欄 = ["state", "scale"] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
+
+/**
+ * 普通の箱にしか効かない欄 (#1308)。
+ *
+ * 見本 (parts) の箱に書くと `jsonToDoc` が丸ごと落とす。 検査を通ったうえで値が消えるため、
+ * 書いた人には「書いたのに図が変わらない」 としか見えない (実測 = 5 欄すべてが消えていた)。
+ *
+ * 記法では同じ本文が状態の上書きに入る。 特別扱いしているのではなく、見本の中括弧に書いた
+ * 名前を **すべて** 状態の上書きとして読むため、結果として届いている。 JSON は欄ごとに型を
+ * 宣言する形なので同じ設計を持ち込めない。
+ *
+ * したがって **誤りとして返す**。 #1294 が決めた向き (見本にしか効かない `state` / `scale` を
+ * 普通の箱に書いたら誤り) の鏡になる。 効く書き方は `state` が既に持つため、誤りにしても
+ * 利用者の手段は失われない。
+ *
+ * **この表は検査と組み立ての両方が見る**。 落とす欄と誤りにする欄が別々に並ぶと、片方だけ
+ * 増えた時に「検査は通すが組み立てが捨てる」 状態が戻る。
+ */
+export const 見本に効かない欄 = [
+  "tone",
+  "owner",
+  "end",
+  "touchpoint",
+  "opportunity",
+] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
+
+/**
  * 表に沿って 1 つの欄の値を見る (#1304)。
  *
  * `名前` は知らせの文に出す欄の呼び名 (`actor.tone` / `viewport.width`)。 `path` は直す場所を
@@ -1197,19 +1232,32 @@ function validateJson(
       // 見本 (parts) にしか効かない項目は、見本でない箱に書かれたら誤りにする (#1294)。
       // 記法側は読めない項目名として行番号付きで知らせるため、黙って捨てると入口で扱いが変わる。
       const 見本か = 見本の名前か(ao.kind);
-      if (!見本か && ao.state !== undefined) {
-        errors.push({
-          path: `$.actors[${i}].state`,
-          message: "actor.state is only for parts (kind must be a parts identifier)",
-          hint: "箱の見た目を変えるなら tone / color を使う",
-        });
+      // 見本にしか効かない欄を普通の箱に書いた形 (#1294)。 一覧は表が持つ
+      const 代わりに使う欄: Record<(typeof 見本にしか効かない欄)[number], string> = {
+        state: "箱の見た目を変えるなら tone / color を使う",
+        scale: "大きさを変えるなら posW / posH を使う",
+      };
+      if (!見本か) {
+        for (const 欄 of 見本にしか効かない欄) {
+          if (ao[欄] === undefined) continue;
+          errors.push({
+            path: `$.actors[${i}].${欄}`,
+            message: `actor.${欄} is only for parts (kind must be a parts identifier)`,
+            hint: 代わりに使う欄[欄],
+          });
+        }
       }
-      if (!見本か && ao.scale !== undefined) {
-        errors.push({
-          path: `$.actors[${i}].scale`,
-          message: "actor.scale is only for parts (kind must be a parts identifier)",
-          hint: "大きさを変えるなら posW / posH を使う",
-        });
+      // 逆向きも同じく誤りにする (#1308)。 普通の箱にしか効かない欄を見本に書くと、
+      // `jsonToDoc` が丸ごと落として何も起きない
+      if (見本か) {
+        for (const 欄 of 見本に効かない欄) {
+          if (ao[欄] === undefined) continue;
+          errors.push({
+            path: `$.actors[${i}].${欄}`,
+            message: `actor.${欄} is not for parts (kind is a parts identifier)`,
+            hint: `見本の状態を変えるなら state を使う (\`"state": { "${欄}": ... }\`)`,
+          });
+        }
       }
       validateActorNodes(ao.nodes, `$.actors[${i}].nodes`, errors);
       // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
@@ -1458,15 +1506,19 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       stack: a.stack,
       initial: a.initial,
       final: a.final,
-      // 見本では `tone` を状態の上書きとして従来から使えるため、色として横取りしない
-      // (記法側 `parseActor` と同じ分岐、 #1294)
-      tone: isPart ? undefined : (resolveTone(a.tone) ?? 色.tone),
+      // 普通の箱にしか効かない欄は見本では落とす。 落とす欄の一覧は `見本に効かない欄` が
+      // 唯一の出どころで、検査 (#1308) も同じ表を見る = 「検査は通すが組み立てが捨てる」
+      // 状態が作れない
+      ...(isPart
+        ? {}
+        : {
+            tone: resolveTone(a.tone) ?? 色.tone,
+            owner: a.owner,
+            end: a.end,
+            touchpoint: a.touchpoint,
+            opportunity: a.opportunity,
+          }),
       colorHex: 色.hex,
-      // 工程の並びと体験の道筋の欄。 見本では状態の上書きとして意味を持つため横取りしない
-      owner: isPart ? undefined : a.owner,
-      end: isPart ? undefined : a.end,
-      touchpoint: isPart ? undefined : a.touchpoint,
-      opportunity: isPart ? undefined : a.opportunity,
       // 絶対座標と大きさ (#1294)。 `pos` (ずらし幅) とは別経路
       posX: a.posX,
       posY: a.posY,
