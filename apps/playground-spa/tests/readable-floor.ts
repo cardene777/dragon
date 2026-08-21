@@ -18,10 +18,30 @@
  * | `swimlane` | 8px | 10px では箱が枠から出る |
  * | `state-machine` | 8px | 同上 |
  * | `er` | 8px | 同上 |
+ * | `class` | 8px | 同上 (#1320 で追加) |
  * | それ以外 | 10px | 箱が枠に収まる |
  *
  * `sequence` は図の外枠が 886px で枠 840px を超えるが、 箱は 17 個すべて内側なので譲らない。
  * 外枠で判定すると全図が譲る側に落ちる (実測)。
+ *
+ * ## `class` を足した経緯 (#1320)
+ *
+ * 窓 1440×900 での実測 (2026-08-22)。 `10px にする倍率` は、いまの最小文字を 10px に
+ * するために図全体を何倍にするかで、その時の箱の幅を枠 840px と比べる。
+ *
+ * | 見本 | 最小文字 | 箱幅 | 10px にする倍率 | 10px 時の箱幅 | 枠から出るか |
+ * |---|---|---|---|---|---|
+ * | `class` | 8.4px | 717px | 1.19 | 853px | 出る (13px) |
+ * | `er` | 8.0px | 761px | 1.25 | 951px | 出る |
+ * | `swimlane` | 8.0px | 730px | 1.25 | 913px | 出る |
+ * | `sequence` | 10.0px | 745px | 1.00 | 745px | 出ない |
+ *
+ * **見本の中身は変わっていない**。 `editor-samples.ts` の `class` を最後に触ったのは
+ * #415 で、それ以降は形も文字も同じ。 描画側 (`@cardenelabs/cdl`) の字の測り方が版を経て
+ * 変わり、同じ中身でも箱が広くなったため 10px では収まらなくなった。
+ *
+ * 譲る側に落とすのは、この file が **実測の記録** で、判定の条件
+ * (「10px では箱が枠から出る」) を `class` が満たすため。 描画側を細くする話は別で扱う。
  */
 
 /** 画面上でこれを下回ると本文として読めない (`src/lib/readable-scale.ts` と同じ値を書き写す)。 */
@@ -31,7 +51,7 @@ export const MIN_PX = 10;
 export const RELAXED_PX = 8;
 
 /** 8px まで譲る見本。 窓 1440×900 での実測。 */
-export const 譲る見本: readonly string[] = ["swimlane", "state-machine", "er"];
+export const 譲る見本: readonly string[] = ["swimlane", "state-machine", "er", "class"];
 
 /** 見本の下限 (px)。 窓 1440×900 が前提で、 枠が狭い場合は別の見本も譲る側に落ちる。 */
 export const 下限 = (slug: string): number => (譲る見本.includes(slug) ? RELAXED_PX : MIN_PX);

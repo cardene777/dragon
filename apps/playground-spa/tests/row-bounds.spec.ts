@@ -69,7 +69,8 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
   { slug: "patterns", id: "pattern-call-rw", rows: 1 },
   { slug: "patterns", id: "pattern-rollback", rows: 1 },
   { slug: "patterns", id: "pattern-validate-process", rows: 1 },
-  { slug: "primitives", id: "kind-storage", rows: 2 },
+  // #1196 で「行数: {v}」 の行が増えて 3 になった。 一覧を直していなかったため落ちていた
+  { slug: "primitives", id: "kind-storage", rows: 3 },
   { slug: "text-dsl", id: "service-call-write-emit", rows: 1 },
 ];
 
