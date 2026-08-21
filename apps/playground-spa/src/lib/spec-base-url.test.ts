@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
 
 /**
  * 画面の検査が見に行く先を 1 箇所に保つ (#1318)。
@@ -27,7 +28,20 @@ const TESTS_DIR = join(import.meta.dirname, "../../tests");
  */
 const 本番を見る検査 = new Set(["a11y-check.spec.ts", "final-check.spec.ts", "prod-check.spec.ts"]);
 
-const specFiles = readdirSync(TESTS_DIR).filter((f) => f.endsWith(".spec.ts"));
+const URLを自分で持つ記述 =
+  /https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?|process\.env\.[A-Z0-9_]*URL\b|\bbaseURL\s*:/u;
+
+/**
+ * spec の列挙。 subdir も見る。
+ *
+ * **今は subdir に spec が 1 件も無いため、この再帰は検査で覆えていない** (`recursive` を
+ * 外しても 1 件も落ちない)。 覆うには `tests/` 配下に fixture を置くことになるが、
+ * それは Playwright が実行する対象そのものなので置けない。 spec を分類し始めた時に
+ * 静かに対象から外れないよう、先に再帰にしてある。
+ */
+const specFiles = readdirSync(TESTS_DIR, { recursive: true, encoding: "utf8" }).filter((f) =>
+  f.endsWith(".spec.ts"),
+);
 
 describe("画面の検査が見に行く先", () => {
   it("spec file が 1 つ以上ある (検査が空振りしていない)", () => {
@@ -41,10 +55,23 @@ describe("画面の検査が見に行く先", () => {
       if (本番を見る検査.has(f)) continue;
       const src = readFileSync(join(TESTS_DIR, f), "utf8");
       読めた += 1;
-      if (/https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/u.test(src)) 持っている.push(f);
+      if (URLを自分で持つ記述.test(src)) 持っている.push(f);
     }
     expect(読めた, "dev server を見る spec を 1 つも読めていない").toBeGreaterThan(0);
     expect(持っている, "spec が URL を自分で持つと SPA_URL で別 server に分かれる").toEqual([]);
+  });
+
+  it("URL の直書きだけでなく env と baseURL 上書きも見つける", () => {
+    // **3 つを別々に突く**。 env と baseURL 上書きを 1 つの記述で見ると、片方を外しても
+    // もう片方が同じ記述で当たって落ちない (実測で `baseURL` の側を外して 0 件 FAIL だった)
+    for (const src of [
+      "const BASE = process.env.AI_VERIFY_BASE_URL;", // env だけ
+      "test.use({ baseURL: SERVER });", // baseURL 上書きだけ
+      'page.goto("http://localhost:4323/editor");', // 直書きだけ
+    ]) {
+      expect(URLを自分で持つ記述.test(src), src).toBe(true);
+    }
+    expect(URLを自分で持つ記述.test('page.goto("/editor");'), "相対 path を誤検出する").toBe(false);
   });
 
   it("本番を見る検査として除いた file が実在する", () => {
