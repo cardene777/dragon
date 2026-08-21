@@ -243,6 +243,7 @@ states:
 
 animation:
   - step: "改善前" 1.2s
+    draw: funnel
     description: "訪問 12000 から申込み 480 まで絞られる"
   - step: "改善後" 1.2s
     tween:
@@ -265,7 +266,7 @@ export const sourceJson__funnelStages = `{
   "flow": [],
   "states": { "visit": 12000, "signup": 3400, "cart": 1200, "order": 480 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "body": "訪問 12000 から申込み 480 まで絞られる" },
+    { "step": "改善前", "duration": 1.2, "draw": "funnel", "body": "訪問 12000 から申込み 480 まで絞られる" },
     {
       "step": "改善後",
       "duration": 1.2,
@@ -298,6 +299,11 @@ flow:
   - 設計 -> 実装: ""
   - 実装 -> 検証: ""
   - 検証 -> 公開: ""
+
+animation:
+  - step: "段取りを引く" 1.2s
+    draw: gantt
+    description: "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る"
 `;
 
 export const sourceJson__ganttTimeline = `{
@@ -313,6 +319,14 @@ export const sourceJson__ganttTimeline = `{
     { "from": "設計", "to": "実装", "label": "" },
     { "from": "実装", "to": "検証", "label": "" },
     { "from": "検証", "to": "公開", "label": "" }
+  ],
+  "animation": [
+    {
+      "step": "段取りを引く",
+      "duration": 1.2,
+      "draw": "gantt",
+      "body": "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る"
+    }
   ]
 }`;
 
@@ -336,6 +350,7 @@ states:
 
 animation:
   - step: "改善前" 1.2s
+    draw: journey
     description: "登録でつまずき、設定でようやく持ち直す"
   - step: "改善後" 1.2s
     set:
@@ -356,7 +371,7 @@ export const sourceJson__journeyMap = `{
   "flow": [],
   "states": { "signup": "不満", "setup": "満足" },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "body": "登録でつまずき、設定でようやく持ち直す" },
+    { "step": "改善前", "duration": 1.2, "draw": "journey", "body": "登録でつまずき、設定でようやく持ち直す" },
     {
       "step": "改善後",
       "duration": 1.2,
@@ -390,6 +405,7 @@ states:
 
 animation:
   - step: "手を付ける前" 1.2s
+    draw: mind
     description: "どの枝もまだ 0 ms"
   - step: "4 つを入れた後" 1.2s
     tween:
@@ -414,7 +430,7 @@ export const sourceJson__mindMap = `{
   "flow": [],
   "states": { "total": 0, "draw": 0, "calc": 0, "skip": 0, "cache": 0 },
   "animation": [
-    { "step": "手を付ける前", "duration": 1.2, "body": "どの枝もまだ 0 ms" },
+    { "step": "手を付ける前", "duration": 1.2, "draw": "mind", "body": "どの枝もまだ 0 ms" },
     {
       "step": "4 つを入れた後",
       "duration": 1.2,
@@ -500,6 +516,11 @@ flow:
   - dragon -> 描画: ""
   - 記法 -> 読み取り: ""
   - 描画 -> 配置: ""
+
+animation:
+  - step: "構成を辿る" 1.2s
+    draw: tree
+    description: "枝が根から段ごとに伸び、箱は枝が届いてから出る"
 `;
 
 export const sourceJson__treeHierarchy = `{
@@ -517,6 +538,14 @@ export const sourceJson__treeHierarchy = `{
     { "from": "dragon", "to": "描画", "label": "" },
     { "from": "記法", "to": "読み取り", "label": "" },
     { "from": "描画", "to": "配置", "label": "" }
+  ],
+  "animation": [
+    {
+      "step": "構成を辿る",
+      "duration": 1.2,
+      "draw": "tree",
+      "body": "枝が根から段ごとに伸び、箱は枝が届いてから出る"
+    }
   ]
 }`;
 

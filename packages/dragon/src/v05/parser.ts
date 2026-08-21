@@ -2344,6 +2344,14 @@ const 段の項目の英語 = ["focus", "badge", "body", "description", "tween",
  * | `line` | `line` | 左端から右へ線が伸びる |
  * | `bar` | `bar` | 横軸から上へ棒が伸びる |
  * | `pie` | `pie` | 12 時から時計回りに扇が開く |
+ * | `journey` | `journey` | 左端から右へ気持ちの線が伸びる |
+ * | `mind` | `mind` | 中心から外へ枝が伸びる |
+ * | `tree` | `tree` | 根から下へ枝が伸びる |
+ * | `gantt` | `gantt` | 各帯の始端から右へ帯が伸びる |
+ * | `funnel` | `funnel` | 上端から順に段が積まれる |
+ *
+ * `quadrant` は入れない。 4 つの区画に項目を置く図で **項目に順序が無く**、起点を決められない
+ * (順番を書いた順で決めると、動きが図の意味を持たない)。
  *
  * いまは語と図種が同じ綴りだが、**同じものとして扱わない**。 語は書き手が書く名前で、
  * 図種は `type:` が取る値。 片方だけ別名を足したくなった時に、対応が表に残っている形にする。
@@ -2352,6 +2360,11 @@ export const DRAW_TARGETS: ReadonlyMap<string, PresetType> = new Map<string, Pre
   ["line", "line"],
   ["bar", "bar"],
   ["pie", "pie"],
+  ["journey", "journey"],
+  ["mind", "mind"],
+  ["tree", "tree"],
+  ["gantt", "gantt"],
+  ["funnel", "funnel"],
 ]);
 
 /** `draw:` に書ける語。 表から導く (#1314) */

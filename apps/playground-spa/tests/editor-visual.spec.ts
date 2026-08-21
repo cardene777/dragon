@@ -13,9 +13,8 @@ import { test, expect } from "@playwright/test";
  *   4. achievement SE corner drag で 1.5x resize 後
  */
 
-const BASE_URL = process.env.AI_VERIFY_BASE_URL ?? "http://localhost:4323";
 
-test.use({ baseURL: BASE_URL, viewport: { width: 1920, height: 1080 } });
+test.use({ viewport: { width: 1920, height: 1080 } });
 
 // visual regression では animation を止めて決定的スナップショット
 test.beforeEach(async ({ page }) => {

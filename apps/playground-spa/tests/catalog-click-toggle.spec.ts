@@ -10,12 +10,11 @@
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
 const ITEM_LABEL = "クリックで状態切替";
 
 /** 一覧を開いて `clickToggle` を選び、preview 領域を返す。 */
 async function openClickToggle(page: Page): Promise<Locator> {
-  await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+  await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.locator("aside.catalog-sidebar").getByText(ITEM_LABEL, { exact: false }).first().click();
   await page.waitForTimeout(400);

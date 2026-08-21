@@ -35,8 +35,6 @@ import { fileURLToPath } from "node:url";
  * 実際の値が入る。
  */
 
-const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4323";
-
 const MODES = ["light", "dark"] as const;
 
 /**
@@ -66,7 +64,7 @@ type Label = { key: string; box: Box; px: number; weight: number; text: string; 
  * であって、 切替の操作ではないため。
  */
 async function open(page: Page, target: { slug: string; id: string }, mode: string): Promise<void> {
-  await page.goto(`${BASE}/catalog/${target.slug}`);
+  await page.goto(`/catalog/${target.slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 20000 });
   await page.locator(".catalog-list-item").filter({ hasText: target.id }).first().click();
   await page.waitForSelector(`[data-cdl-diagram="${target.id}"]`, { timeout: 20000 });

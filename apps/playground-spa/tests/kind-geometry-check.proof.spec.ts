@@ -16,11 +16,9 @@
  */
 import { test, expect } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
-
 test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
   });
 

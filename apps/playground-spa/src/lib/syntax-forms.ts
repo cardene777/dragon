@@ -134,9 +134,10 @@ export const FORMS: Section[] = [
     ],
   },
   {
-    // `draw:` は折れ線にしか効かない。 他の図種の例文に混ぜると、一覧を見て書いた人が
-    // 効かない段を作ることになる (組み立てが `draw-not-honored` を返す)
-    title: "折れ線を左から伸ばす",
+    // 例は折れ線で見せる。 `draw:` は語と同じ図種にだけ効く (#1312 / #1314 / #1318)。
+    // **受ける語をここに並べない**。 この file の役割は書式の例で、受け付ける値は
+    // `SyntaxReference` が実装から引いて並べる (図種 / 箱の種類 / 色と同じ扱い)
+    title: "図を起点から描く",
     sample: {
       slot: "animation",
       type: "line",
@@ -144,7 +145,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: '  - step: "描く" 1.2s', note: "1 段の長さ" },
-      { code: "    draw: line", note: "その段で線が左の起点から伸びる" },
+      { code: "    draw: line", note: "図種と同じ語を書く。 受ける語は下の一覧" },
       { code: '  - step: "読む" 1.2s', note: "書かない段は全長のまま" },
     ],
   },

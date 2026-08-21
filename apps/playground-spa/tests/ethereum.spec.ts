@@ -23,8 +23,7 @@ import { ITEM_NAME_JA } from "../src/lib/i18n";
  * 表に無い export 名は「図を消した / 名前を変えた」 なので、 その場で落とす。
  */
 
-const BASE_URL = process.env.AI_VERIFY_BASE_URL ?? "http://localhost:4323";
-test.use({ baseURL: BASE_URL, viewport: { width: 1920, height: 1200 } });
+test.use({ viewport: { width: 1920, height: 1200 } });
 
 const DIAGRAMS = ["erc20Transfer", "eip1559Gas", "erc4337Flow", "blockProduction"] as const;
 

@@ -16,8 +16,6 @@
  */
 import { test, expect } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
-
 type EdgeInspection = {
   d: string;
   points: Array<{ x: number; y: number }>;
@@ -41,7 +39,7 @@ function parsePath(d: string): Array<{ x: number; y: number }> {
 
 test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
   });
 

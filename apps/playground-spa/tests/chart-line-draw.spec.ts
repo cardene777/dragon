@@ -13,15 +13,6 @@
  */
 import { test, expect } from "@playwright/test";
 
-/**
- * 見る先。 既定は他の spec と同じ 4323。
- *
- * 環境変数で上書きできるようにしてあるのは、**依存の版を上げた直後に既に動いている dev
- * server が古い版を配り続ける**ため (Vite は起動時に依存を最適化して抱え込む)。 別 port で
- * 立て直した server に向けて確かめられるようにする。
- */
-const SPA_URL = process.env.SPA_URL ?? "http://localhost:4323";
-
 /** 画面に出ている折れ線の dash 属性を読む */
 async function 折れ線のdash(page: import("@playwright/test").Page): Promise<{
   dasharray: string | null;
@@ -69,7 +60,7 @@ async function 扇の切り抜き(page: import("@playwright/test").Page): Promis
 
 test.describe("棒を横軸から伸ばす (#1314)", () => {
   test("`draw: bar` を書いた見本では倍率が付き、動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -99,7 +90,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
      * preset 側に棒グラフの見本が無いため (`presets.ts` は円と折れ線だけ)、別の図を
      * 対照に取れない。 同じ図の段で対照を取る方が、図の違いによる差も入らない
      */
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
 
@@ -119,7 +110,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
 
 test.describe("扇を 12 時から開く (#1314)", () => {
   test("`draw: pie` を書いた見本では切り抜きが付き、形が変わる", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -146,7 +137,7 @@ test.describe("扇を 12 時から開く (#1314)", () => {
   });
 
   test("`draw:` を書いていない円の見本には切り抜きが付かない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -156,9 +147,85 @@ test.describe("扇を 12 時から開く (#1314)", () => {
   });
 });
 
+test.describe("残り 5 種も起点から現れる (#1318)", () => {
+  /**
+   * 種別ごとに「動いていること」 の見え方が違う。 それぞれの図で観測できる形を 1 つ選ぶ。
+   *
+   * | 見本 | 観測するもの |
+   * |---|---|
+   * | 体験の道筋 / 放射 / 木 | `stroke-dashoffset` が 2 種類以上出る |
+   * | 工程表 | 帯の包みの倍率が 2 種類以上出る |
+   * | 漏斗 | 切り抜きの高さが 2 種類以上出る |
+   */
+  const 観測 = {
+    "体験の道筋": 'document.querySelectorAll(\'[data-cdl-role="journey-line"]\')',
+    "枝分かれ図": 'document.querySelectorAll(\'[data-cdl-role="mind-edge"]\')',
+    "階層図": 'document.querySelectorAll(\'[data-cdl-role="tree-edge"]\')',
+  } as const;
+
+  for (const [見本, _sel] of Object.entries(観測)) {
+    test(`${見本}: 枝や線の残りが動く`, async ({ page }) => {
+      await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      await page.getByText(見本, { exact: true }).first().click();
+
+      const 値 = new Set<string>();
+      for (let i = 0; i < 60; i++) {
+        const 残り = await page.evaluate((name: string) => {
+          const role =
+            name === "体験の道筋" ? "journey-line" : name === "枝分かれ図" ? "mind-edge" : "tree-edge";
+          return Array.from(document.querySelectorAll(`[data-cdl-role="${role}"]`))
+            .map((el) => el.getAttribute("stroke-dashoffset"))
+            .filter((v): v is string => v !== null);
+        }, 見本);
+        for (const v of 残り) 値.add(v);
+        if (値.size >= 2) break;
+        await page.waitForTimeout(100);
+      }
+      expect(値.size, `残りが動かない (観測できた値 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
+    });
+  }
+
+  test("工程表: 帯の倍率が動く", async ({ page }) => {
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.getByText("工程表", { exact: true }).first().click();
+
+    const 値 = new Set<string>();
+    for (let i = 0; i < 60; i++) {
+      const 倍率 = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]'))
+          .map((el) => el.parentElement?.getAttribute("transform") ?? "")
+          .filter((t) => t.includes("scale(")),
+      );
+      for (const t of 倍率) 値.add(t);
+      if (値.size >= 2) break;
+      await page.waitForTimeout(100);
+    }
+    expect(値.size, `倍率が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
+  });
+
+  test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.getByText("絞り込み図", { exact: true }).first().click();
+
+    const 値 = new Set<string>();
+    for (let i = 0; i < 60; i++) {
+      const 高さ = await page.evaluate(
+        () => document.querySelector('clipPath[id^="cdl-funnel-draw-"] rect')?.getAttribute("height") ?? null,
+      );
+      if (高さ !== null) 値.add(高さ);
+      if (値.size >= 2) break;
+      await page.waitForTimeout(100);
+    }
+    expect(値.size, `高さが動かない (観測できた値 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
+  });
+});
+
 test.describe("折れ線を左から伸ばす (#1312)", () => {
   test("`draw: line` を書いた見本では dash が付き、残りが動く", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/charts`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -190,7 +257,7 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
   });
 
   test("`draw:` を書いていない見本では dash が 1 つも付かない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/presets`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
