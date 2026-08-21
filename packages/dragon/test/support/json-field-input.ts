@@ -8,7 +8,7 @@
  *
  * `.test.ts` ではないため vitest の収集対象にならない (`packages/**\/test\/**\/*.test.ts`)。
  */
-import { type 階層 } from "../../src/json-parser";
+import { type 階層, 見本にしか効かない欄 } from "../../src/json-parser";
 
 /** 最小の図。 差し替えたい欄だけを上書きして使う */
 export const 図 = (o: Record<string, unknown> = {}): Record<string, unknown> => ({
@@ -20,17 +20,29 @@ export const 図 = (o: Record<string, unknown> = {}): Record<string, unknown> =>
 });
 
 /**
- * その階層の `key` に `v` を置いた入力を組む。
+ * 箱の種類を欄から決める (#1308)。
  *
- * 箱は見本 (parts) の種類にしておく = 見本にしか効かない項目 (`state` / `scale`) を
- * 置いた時に「見本でない箱に書いた」 側の誤りが混ざらないようにするため。
+ * どちらの箱にしか効かないかで分かれる欄があり、**片方に固定できない**。
+ *
+ * | 欄 | 使う種類 | 固定すると |
+ * |---|---|---|
+ * | `state` / `scale` (見本にしか効かない) | 見本 (`arc-gauge`) | 普通の箱では #1294 の誤りが混ざる |
+ * | `tone` / `owner` / `end` / `touchpoint` / `opportunity` (普通の箱にしか効かない) | 普通 (`card`) | 見本では #1308 の誤りが混ざる |
+ * | それ以外 | 普通 (`card`) | どちらでも通る |
+ *
+ * 一覧は実装の表から導く = 表に欄が増えた時に、ここだけ古い種類を使い続ける形を作らない。
  */
+function 箱の種類(key: string): string {
+  return (見本にしか効かない欄 as readonly string[]).includes(key) ? "arc-gauge" : "card";
+}
+
+/** その階層の `key` に `v` を置いた入力を組む */
 export function 欄に値を置く(層: 階層, key: string, v: unknown): Record<string, unknown> {
   switch (層) {
     case "root":
       return 図({ [key]: v });
     case "actor":
-      return 図({ actors: [{ name: "A", kind: "arc-gauge", [key]: v }, { name: "B" }] });
+      return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: v }, { name: "B" }] });
     case "step":
       return 図({ flow: [{ from: "A", to: "B", label: "x", [key]: v }] });
     case "phase":
