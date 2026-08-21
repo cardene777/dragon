@@ -4,6 +4,7 @@
  * 見るのは 4 つ。 書いた段だけが描画側の欄を持つこと、2 つの入口 (記法 / JSON) が同じ図に
  * なること、読めない語と効かない図種を知らせること、書かない図が変わらないこと。
  */
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
   textDslToDiagram,
@@ -13,6 +14,9 @@ import {
   DRAW_WORDS,
 } from "../src/index";
 import type { CompileNotice } from "../src/compile";
+
+/** JSON Schema の実体。 表との一致を見るために読む (#1318) */
+const SCHEMA_PATH = new URL("../src/schemas/diagram.json", import.meta.url);
 
 const 折れ線 = (段: string): string => `title: "週ごとの応答時間"
 type: line
@@ -135,6 +139,40 @@ describe("語と図種の対応を 1 つの表から導く (#1314)", () => {
 
   it("受ける語の一覧が表の鍵と一致する", () => {
     expect([...DRAW_WORDS].sort()).toEqual([...DRAW_TARGETS.keys()].sort());
+  });
+
+  it("JSON Schema の enum が表と一致する (#1318)", () => {
+    /*
+     * `enum` は JSON file なので実装から生成できない。 表に語を足した時に片方だけ古くなる
+     * 形を、この検査だけが塞ぐ (他の 2 つの一覧は表から導いてある)。
+     */
+    const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf8")) as {
+      properties: {
+        animation: { items: { properties: { draw: { enum: string[] } } } };
+      };
+    };
+    const en = schema.properties.animation.items.properties.draw.enum;
+    expect([...en].sort()).toEqual([...DRAW_TARGETS.keys()].sort());
+  });
+
+  it("表の 8 組が語と図種の対で固定されている", () => {
+    /*
+     * **手で並べる**。 実装から導くと恒真になる (下の `it.each` も同じ表から出る)。
+     *
+     * 鍵だけでなく **組で** 固定する。 鍵だけを見ると、語と図種の対応をずらす変更
+     * (`["funnel", "tree"]` 等) を 1 件も捕まえられない = `it.each` が表から両側を
+     * 作るため、ずれた表でも辻褄が合ってしまう (変異試験で実測)。
+     */
+    expect([...DRAW_TARGETS].sort()).toEqual([
+      ["bar", "bar"],
+      ["funnel", "funnel"],
+      ["gantt", "gantt"],
+      ["journey", "journey"],
+      ["line", "line"],
+      ["mind", "mind"],
+      ["pie", "pie"],
+      ["tree", "tree"],
+    ]);
   });
 
   it.each([...DRAW_TARGETS])("`draw: %s` を type: %s の段に書くと箱を指す", (語, 図種) => {

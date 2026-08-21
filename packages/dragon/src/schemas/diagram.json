@@ -373,8 +373,8 @@
           },
           "draw": {
             "type": "string",
-            "enum": ["line", "bar", "pie"],
-            "description": "この phase で起点から描くもの。 語は図種と揃える。 line = 折れ線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く"
+            "enum": ["line", "bar", "pie", "journey", "mind", "tree", "gantt", "funnel"],
+            "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる"
           },
           "tween": {
             "type": "object",
