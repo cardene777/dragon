@@ -145,7 +145,15 @@
               },
               "color": {
                 "type": "string",
-                "description": "箱の色名、または # で始まる parts の色番号。"
+                "description": "箱の色名、または # で始まる parts の色番号。",
+                "anyOf": [
+                  {
+                    "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                  },
+                  {
+                    "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                  }
+                ]
               },
               "owner": {
                 "type": "string",

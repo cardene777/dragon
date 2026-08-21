@@ -280,6 +280,20 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
     expect([...(step.tone.enum as string[])].sort(), "矢印").toEqual(実装);
   });
 
+  it("color の色名と色番号が parser の受理範囲と一致する", () => {
+    // parser は #1304 で任意の文字列を受けなくなった。 schema が `type: string` だけのままだと、
+    // structured output が作った値を jsonToDiagram が後から拒み、schema を入口にする意味がない
+    const [色名, 色番号] = actor.color.anyOf as Array<{ enum?: string[]; pattern?: string }>;
+    expect([...(色名?.enum ?? [])].sort(), "色名").toEqual([...書ける色名()].sort());
+    const pattern = new RegExp(色番号?.pattern ?? "(?!)");
+    for (const v of ["#fff", "#ffff", "#f59e0b", "#f59e0bcc", "#F59E0B"]) {
+      expect(pattern.test(v), v).toBe(true);
+    }
+    for (const v of ["bogus", "#zzz", "#12345", "#", "#1234567"]) {
+      expect(pattern.test(v), v).toBe(false);
+    }
+  });
+
   it("正規の色名が一覧に全て入っている", () => {
     // 別名だけを並べて正規名が抜ける形を防ぐ
     for (const t of TONES) expect(書ける色名(), t).toContain(t);
