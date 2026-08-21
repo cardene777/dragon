@@ -1,0 +1,133 @@
+/* ══════════════════════════════════════════════════════════════
+   記法と JSON の色 (#1310)
+
+   記述を見せる場所は 5 つある (見本帳 / エディタ / ホーム / 記法一覧 / ドキュメント)。
+   色の割り当てはこの file だけが持ち、5 箇所とも同じ種類名を使う。
+
+   種類名と位置は `packages/dragon` の分解器が返す。 分解器は色を知らない =
+   埋め込み先ごとに自分の配色を当てられるようにするため。
+
+   ## 色名は図で引く色そのもので描く
+
+   `(成功)` と書いた語を、その図で実際に引かれる枝と同じ色にする。 色が飾りではなく
+   予告になり、本文と図が目で対応する。
+
+   出どころは `cdl-theme.css` の `--cdl-tone-*` で、図の描画が使うものと同一。
+   ここで別の色を作らない = 作ると本文と図がずれる。
+
+   ## warning だけ明で暗く派生させる
+
+   `--d-code-bg` (#f5f4ef) の上で測ると `--d-warn` (#9a6b1f) は 4.24 で基準を割る
+   (他 5 色は 4.74-6.34)。 90% に暗くして 5.03 にする。
+
+   派生は **この file の中だけ**で行う。 `globals.css` の `:root` に新しい変数を足すと
+   `palette-matches-pen.spec.ts` が `docs/design/app.pen` との一致を求めるため、
+   設計 file の更新を伴う。 色の追加ではなく既存色の調整として扱う。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 5 種 + 注記 ── */
+
+.tok-項目名 {
+  color: var(--d-text-primary);
+  font-weight: 600;
+}
+
+.tok-説明文 {
+  color: var(--d-dg-2);
+}
+
+.tok-矢印 {
+  color: var(--d-dg-1);
+  font-weight: 600;
+}
+
+.tok-値の参照 {
+  color: var(--d-dg-4);
+  font-weight: 600;
+}
+
+.tok-注記 {
+  color: var(--d-text-muted);
+  font-style: italic;
+}
+
+/* ── 色名は図で引く色そのもの ── */
+
+.tok-色名 {
+  font-weight: 600;
+}
+
+.tok-色名[data-tone="accent"] {
+  color: var(--cdl-tone-accent);
+}
+.tok-色名[data-tone="teal"] {
+  color: var(--cdl-tone-teal);
+}
+.tok-色名[data-tone="success"] {
+  color: var(--cdl-tone-success);
+}
+.tok-色名[data-tone="error"] {
+  color: var(--cdl-tone-error);
+}
+.tok-色名[data-tone="info"] {
+  color: var(--cdl-tone-info);
+}
+
+/* 明では 4.24 と基準を割るため 90% に暗くする (5.03)。 暗はそのままで 7.97 */
+.tok-色名[data-tone="warning"] {
+  color: color-mix(in srgb, var(--cdl-tone-warning) 90%, black);
+}
+html.dark .tok-色名[data-tone="warning"] {
+  color: var(--cdl-tone-warning);
+}
+
+/* 線種 (`solid` / `dotted-flow`) は色を持たない語なので、色名と同じ枠で中立色にする */
+.tok-色名:not([data-tone]) {
+  color: var(--d-dg-6);
+}
+
+/* ── 読むだけの塊 (見本帳 / 記法一覧 / ドキュメント) ── */
+
+.syntax-block {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--d-code-bg);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--d-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--d-text-primary);
+  white-space: pre;
+  tab-size: 2;
+}
+
+.syntax-block code {
+  font: inherit;
+  color: inherit;
+  background: none;
+  padding: 0;
+}
+
+/* 行の中に置く短い記述 (記法一覧の 1 行例)
+
+   **必ず code の地の上に載せる**。 記法一覧の周りは `--d-surface-2` で、暗い側だと
+   `値の参照` 4.25 / `error` 4.45 / `info` 4.25 と基準を割る (実測)。 色の側を動かすと
+   図の色まで変わるため、地の側を揃える。
+
+   これで色の対比は `--d-code-bg` 1 つを見ればよくなり、検査も 1 つの地で測れる。 */
+.syntax-inline {
+  display: inline-block;
+  font-family: var(--d-mono);
+  font-size: 12px;
+  color: var(--d-text-primary);
+  background: var(--d-code-bg);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: pre;
+}
+
+/* 色の一覧 (記法一覧の下段) も同じ理由で code の地に載せる */
+.v4-editor-syntax-code.tok-色名 {
+  background: var(--d-code-bg);
+}

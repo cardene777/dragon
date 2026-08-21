@@ -82,6 +82,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
+import { 記法の色分け } from "@/lib/syntax-decoration";
 
 // 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
 // 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 エディタの割り当てに合わせる。
@@ -1951,7 +1952,14 @@ animation:
           <CodeMirror
             value={activeTab === "yaml" ? yamlSrc : src}
             theme={isDark ? v4EditorThemeDark : v4EditorThemeLight}
-            extensions={[yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]}
+            extensions={
+              // 記法のタブは記法の分解器で色を付ける (#1310)。 汎用 YAML 文法と併用すると
+              // 同じ語に 2 つの色が当たって後勝ちになるため、記法では YAML 文法を外す。
+              // `yaml` タブは記法ではない別形式なので従来どおり YAML 文法を使う
+              activeTab === "yaml"
+                ? [yaml(), syntaxHighlighting(isDark ? v4HighlightDark : v4HighlightLight)]
+                : [記法の色分け]
+            }
             onChange={(v) => (activeTab === "yaml" ? setYamlSrc(v) : setSrc(v))}
             height="100%"
             basicSetup={{
