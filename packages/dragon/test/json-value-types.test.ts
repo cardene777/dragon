@@ -60,6 +60,7 @@ const 型ごとの値: Record<string, { 誤り: unknown; 他の誤り?: unknown[
   真偽: { 誤り: "yes", 正しい: true },
   色: { 誤り: "bogus", 正しい: "success" },
   線種: { 誤り: "bogus", 正しい: "solid" },
+  描くもの: { 誤り: "bogus", 他の誤り: ["", "LINE", " line"], 正しい: "line" },
   色か色番号: { 誤り: "bogus", 正しい: "#f59e0b" },
   必須の図種: { 誤り: "bogus", 正しい: "flow" },
   // 中身の形は欄ごとに違うため、専用の検査が見る。 ここでは外側の形だけを測る

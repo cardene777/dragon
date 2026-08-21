@@ -2230,6 +2230,23 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       i += 1;
       continue;
     }
+    if (key === "draw") {
+      const 語 = stripQuotes(value).trim();
+      // **読めない語を黙って捨てない** (#1304 / #1306 と同じ扱い)。 受ける語は 1 つだけで、
+      // 書き間違いはその段が何も描かない形になって手掛かりが残らない
+      if (!DRAW_WORDS.has(語)) {
+        errors.push({
+          line: ln.no,
+          message: `draw に書けない語です: "${語}"`,
+          hint: `使える語 = ${[...DRAW_WORDS].join(", ")}`,
+        });
+      } else {
+        phase.draw = 語;
+        phase.drawPos = { line: ln.no };
+      }
+      i += 1;
+      continue;
+    }
     if (key === "description" || key === "body") {
       phase.body = stripQuotes(value);
       i += 1;
@@ -2313,7 +2330,15 @@ function 段の項目のヒント(書いた名前: string): string {
 }
 
 /** 段に書ける項目の英語名。 `parsePhase` の分岐から導く一覧 */
-const 段の項目の英語 = ["focus", "badge", "body", "description", "tween", "set"] as const;
+const 段の項目の英語 = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
+
+/**
+ * `draw:` に書ける語 (#1312)。 今は折れ線だけが左から伸びる動きを持つ。
+ *
+ * 一覧を持つのは、書き間違いをその場で誤りにするため。 受ける語が増えたらここに足す
+ * (`compile` 側の対応と検査が同じ一覧を見る)。
+ */
+export const DRAW_WORDS: ReadonlySet<string> = new Set(["line"]);
 
 /**
  * v0.4 で使えた段の項目名と、v0.5 での書き方 (#1301)。

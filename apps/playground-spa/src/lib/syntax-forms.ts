@@ -134,6 +134,21 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // `draw:` は折れ線にしか効かない。 他の図種の例文に混ぜると、一覧を見て書いた人が
+    // 効かない段を作ることになる (組み立てが `draw-not-honored` を返す)
+    title: "折れ線を左から伸ばす",
+    sample: {
+      slot: "animation",
+      type: "line",
+      actors: ['  - W1: "180"', '  - W2: "240"', '  - W3: "210"'],
+    },
+    lines: [
+      { code: '  - step: "描く" 1.2s', note: "1 段の長さ" },
+      { code: "    draw: line", note: "その段で線が左の起点から伸びる" },
+      { code: '  - step: "読む" 1.2s', note: "書かない段は全長のまま" },
+    ],
+  },
+  {
     title: "位置と大きさ",
     sample: { slot: "actors", actors: ["  - Client"], flow: ['  - Client -> Web: "要求"'] },
     lines: [

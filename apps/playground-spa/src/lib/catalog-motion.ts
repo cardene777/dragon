@@ -103,9 +103,20 @@ export function motionOf(diagram: CdlDiagram): Motion {
  * 疑問になる。 動かないことを明示する方が、何も書かないより読み手の助けになる。
  */
 export function motionNote(diagram: CdlDiagram): string {
+  // 線が伸びる動きは値の動きと別軸 (#1312)。 描画側は段の `draw` を進みで描くだけで、
+  // 状態を 1 つも触らないため `motionOf` からは見えない。 併記しないと、線が伸びる図に
+  // 「段を進めても値は変わらない」 と書くことになる
+  const 線が伸びる = (diagram.phases ?? []).some((p) => (p.draw ?? []).length > 0);
   switch (motionOf(diagram)) {
-    case "continuous": return "段の中で値が連続して動く";
-    case "step": return "段の切替で値が一度に変わる";
-    case "none": return "段を進めても値は変わらない";
+    case "continuous":
+      return 線が伸びる
+        ? "段の中で線が左から伸び、値も連続して動く"
+        : "段の中で値が連続して動く";
+    case "step":
+      return 線が伸びる
+        ? "段の中で線が左から伸び、段の切替で値が一度に変わる"
+        : "段の切替で値が一度に変わる";
+    case "none":
+      return 線が伸びる ? "段の中で線が左から伸びる" : "段を進めても値は変わらない";
   }
 }
