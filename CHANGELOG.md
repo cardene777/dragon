@@ -5,6 +5,10 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+予定 ... feedback を反映した patch / minor。
+
+## [0.10.0] - 2026-08-22
+
 ### Added
 
 - **`draw:` が残り 5 種も受けるようにした** (#1318)
