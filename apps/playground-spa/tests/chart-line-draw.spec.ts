@@ -57,7 +57,8 @@ async function 扇の切り抜き(page: import("@playwright/test").Page): Promis
   扇の数: number;
 }> {
   return page.evaluate(() => {
-    const clip = document.querySelector("clipPath");
+    // 他の kind も clipPath を使うため、円の draw 専用 id に限定する。
+    const clip = document.querySelector('clipPath[id^="cdl-pie-draw-"]');
     return {
       ある: clip !== null,
       形: clip?.firstElementChild?.tagName ?? null,
@@ -125,15 +126,21 @@ test.describe("扇を 12 時から開く (#1314)", () => {
 
     const 形 = new Set<string>();
     let 扇の数 = 0;
+    let 切り抜きを見た回数 = 0;
     for (let i = 0; i < 60; i++) {
       const 見た = await 扇の切り抜き(page);
-      expect(見た.ある, "切り抜きが付いている").toBe(true);
       扇の数 = 見た.扇の数;
-      形.add(String(見た.形));
+      // 2 段目には draw が無い。再生タイミング次第で先にそちらを観測しても、
+      // 1 段目へ戻るまで待って draw 中の形だけを集める。
+      if (見た.ある) {
+        切り抜きを見た回数 += 1;
+        形.add(String(見た.形));
+      }
       // 進みの途中は扇形、1 周は円。 2 種類出れば開いて閉じている
       if (形.size >= 2) break;
       await page.waitForTimeout(100);
     }
+    expect(切り抜きを見た回数, "切り抜きが付いている").toBeGreaterThan(0);
     expect(扇の数, "扇の数は進みに関わらず 4 つ").toBe(4);
     expect(形.size, `切り抜きの形が変わらない (観測できた形 = ${[...形].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
