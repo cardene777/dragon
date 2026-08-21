@@ -5,7 +5,13 @@
  * なること、読めない語と効かない図種を知らせること、書かない図が変わらないこと。
  */
 import { describe, it, expect } from "vitest";
-import { textDslToDiagram, jsonToDiagram, parseTextDslV05, DRAW_WORDS } from "../src/index";
+import {
+  textDslToDiagram,
+  jsonToDiagram,
+  parseTextDslV05,
+  DRAW_TARGETS,
+  DRAW_WORDS,
+} from "../src/index";
 import type { CompileNotice } from "../src/compile";
 
 const 折れ線 = (段: string): string => `title: "週ごとの応答時間"
@@ -119,6 +125,76 @@ describe("読めない語を知らせる", () => {
     const r = parseTextDslV05(折れ線(`  - step: "s1" 1.2s\n    drawww: line\n`));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.map((e) => e.hint ?? "").join("\n")).toContain("draw");
+  });
+});
+
+describe("語と図種の対応を 1 つの表から導く (#1314)", () => {
+  it("表が空でない (検査が空振りしていない)", () => {
+    expect(DRAW_TARGETS.size).toBeGreaterThan(0);
+  });
+
+  it("受ける語の一覧が表の鍵と一致する", () => {
+    expect([...DRAW_WORDS].sort()).toEqual([...DRAW_TARGETS.keys()].sort());
+  });
+
+  it.each([...DRAW_TARGETS])("`draw: %s` を type: %s の段に書くと箱を指す", (語, 図種) => {
+    const src = `title: "t"
+type: ${図種}
+
+actors:
+  - A: "45"
+  - B: "25"
+
+animation:
+  - step: "s1" 1.2s
+    draw: ${語}
+`;
+    const d = textDslToDiagram(src);
+    expect(d.phases[0]!.draw, `${語} が箱を指していない`).toHaveLength(1);
+    // 指す先は図全体を 1 箱で描く箱そのもの
+    expect(d.nodes.some((n) => n.id === d.phases[0]!.draw![0])).toBe(true);
+  });
+});
+
+describe("語と図種が食い違う形を知らせる (#1314)", () => {
+  const 食い違い = `title: "t"
+type: bar
+
+actors:
+  - A: "45"
+  - B: "25"
+
+animation:
+  - step: "s1" 1.2s
+    draw: pie
+`;
+
+  it("知らせが 1 件出て、行は `draw:` を指す", () => {
+    const notices: CompileNotice[] = [];
+    textDslToDiagram(食い違い, { onNotice: (n) => notices.push(n) });
+    const 該当 = notices.filter((n) => n.kind === "draw-target-mismatch");
+    expect(該当).toHaveLength(1);
+    expect(該当[0]!.line).toBe(10);
+    expect(該当[0]!.hint, "その図で書く語を案内する").toContain("draw: bar");
+  });
+
+  it("誤りにはしない (図は描かれ、段も残る)", () => {
+    const d = textDslToDiagram(食い違い, { onNotice: () => {} });
+    expect(d.nodes.length).toBeGreaterThan(0);
+    expect(d.phases).toHaveLength(1);
+  });
+
+  it("効かないので段は箱を指さない", () => {
+    const d = textDslToDiagram(食い違い, { onNotice: () => {} });
+    expect(d.phases[0]!.draw).toBeUndefined();
+  });
+
+  it("語と図種が一致する形では知らせが出ない", () => {
+    const notices: CompileNotice[] = [];
+    textDslToDiagram(食い違い.replace("draw: pie", "draw: bar"), {
+      onNotice: (n) => notices.push(n),
+    });
+    expect(notices.filter((n) => n.kind === "draw-target-mismatch")).toHaveLength(0);
   });
 });
 

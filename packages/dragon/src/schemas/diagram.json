@@ -373,8 +373,8 @@
           },
           "draw": {
             "type": "string",
-            "enum": ["line"],
-            "description": "この phase で左の起点から描くもの。 折れ線 (type: line) の図で、 線が左端から右へ伸び、 点と値の数字は線の先が届いた時に現れる"
+            "enum": ["line", "bar", "pie"],
+            "description": "この phase で起点から描くもの。 語は図種と揃える。 line = 折れ線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く"
           },
           "tween": {
             "type": "object",

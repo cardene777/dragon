@@ -58,6 +58,7 @@ states:
 
 animation:
   - step: "先月" 1.2s
+    draw: bar
     description: "検索が 420 で最も多い"
   - step: "今月" 1.2s
     tween:
@@ -80,7 +81,7 @@ export const sourceJson__chartBar = `{
   "flow": [],
   "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "body": "検索が 420 で最も多い" },
+    { "step": "先月", "duration": 1.2, "draw": "bar", "body": "検索が 420 で最も多い" },
     {
       "step": "今月",
       "duration": 1.2,
@@ -182,6 +183,7 @@ states:
 
 animation:
   - step: "昨年" 1.2s
+    draw: pie
     description: "計算が 45% で半分近くを占める"
   - step: "今年" 1.2s
     tween:
@@ -204,7 +206,7 @@ export const sourceJson__chartPie = `{
   "flow": [],
   "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
   "animation": [
-    { "step": "昨年", "duration": 1.2, "body": "計算が 45% で半分近くを占める" },
+    { "step": "昨年", "duration": 1.2, "draw": "pie", "body": "計算が 45% で半分近くを占める" },
     {
       "step": "今年",
       "duration": 1.2,
