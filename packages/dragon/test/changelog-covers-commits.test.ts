@@ -91,12 +91,23 @@ function 履歴が揃っている(): void {
   }
 }
 
-/** 変更履歴のうち、いま切ろうとしている版の節 */
-function 版の節(): string {
-  const 始 = CHANGELOG.indexOf(`## [${版}]`);
-  if (始 < 0) throw new Error(`変更履歴に [${版}] の節が無い`);
+/** 変更履歴の指定した節。 `Unreleased` と版番号の両方を同じ規則で切り出す */
+function 変更履歴の節(名前: string): string {
+  const 始 = CHANGELOG.indexOf(`## [${名前}]`);
+  if (始 < 0) throw new Error(`変更履歴に [${名前}] の節が無い`);
   const 次 = CHANGELOG.indexOf("\n## [", 始 + 1);
   return CHANGELOG.slice(始, 次 < 0 ? undefined : 次);
+}
+
+/**
+ * commit を辿る対象の節。
+ *
+ * 現行版の tag を打った後の変更は `Unreleased` に入る。 現行版の節だけを見ると、tag 後の
+ * 最初の commit が正しく `Unreleased` に載っていても「記載漏れ」になる (#1312 で実測)。
+ * 一方、範囲の下端は前の版なので、現行版を作った commit も引き続き現行版の節から辿る。
+ */
+function 対象の節(): string {
+  return `${変更履歴の節("Unreleased")}\n${変更履歴の節(版)}`;
 }
 
 /**
@@ -162,6 +173,7 @@ function 本文で割る(raw: string): string[] {
  * | 行 | 何か |
  * |---|---|
  * | 1 行目 | その commit の件名 |
+ * | closing keyword で始まる行 | commit が閉じる Issue (`Closes #1234` 等) |
  * | 列 0 の `* ` で始まる行 | squash merge が並べた、元の commit の件名 |
  *
  * squash した commit は件名が「PR の題 + PR 番号」 に置き換わるが、元の件名は列 0 の
@@ -200,9 +212,12 @@ function commitの番号(message: string): string[] {
 function 名乗る行の番号(message: string): { 件名: string[]; 元件名: string[][] } {
   const 行 = message.split("\n");
   const 番号 = (l: string): string[] => [...l.matchAll(/#(\d+)/g)].map((m) => m[1]!);
+  // GitHub が Issue を閉じると解釈する keyword 行は commit 自身の識別子として扱う。
+  // 行頭だけに限る = 説明の途中に `Closes #N` と書いた引用や補足からは拾わない。
+  const 閉じる行 = 行.filter((l) => /^(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#\d+/i.test(l));
   // **列 0 の `* ` だけ**。 字下げは認めない = 説明の中で字下げした箇条書きを拾わない
   return {
-    件名: 番号(行[0] ?? ""),
+    件名: [...番号(行[0] ?? ""), ...閉じる行.flatMap(番号)],
     元件名: 行
       .slice(1)
       .filter((l) => l.startsWith("* "))
@@ -258,7 +273,7 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
   });
 
   it("全ての commit が変更履歴か宣言のどちらかから辿れる", () => {
-    const 載っている = new Set([...版の節().matchAll(/#(\d+)/g)].map((m) => m[1]!));
+    const 載っている = new Set([...対象の節().matchAll(/#(\d+)/g)].map((m) => m[1]!));
     /** その番号が変更履歴か宣言のどちらかにあるか */
     const 載る = (n: string): boolean => 載っている.has(n) || n in 利用者から見えない;
     const 辿れない = commit.filter((s) => !辿れるか(s, 載る));
@@ -349,6 +364,18 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
         "既存の検査 (#9999) は別の観点を見る。 関連は #8888。",
       ].join("\n");
       expect(commitの番号(m), "説明の本文から拾ってしまっている").toEqual(["1234"]);
+    });
+
+    it("closing keyword の行から拾う", () => {
+      const m = [
+        "✨ feat(dsl): 何かを足す",
+        "",
+        "変更の説明。",
+        "",
+        "Closes #1234",
+      ].join("\n");
+      expect(commitの番号(m)).toEqual(["1234"]);
+      expect(辿れるか(m, (n) => n === "1234")).toBe(true);
     });
 
     it("元件名の間に本文が挟まっても拾う", () => {

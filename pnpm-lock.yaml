@@ -199,8 +199,8 @@ importers:
   packages/dragon:
     dependencies:
       '@cardenelabs/cdl':
-        specifier: ^0.9.0
-        version: 0.9.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.10.0
+        version: 0.10.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
@@ -417,13 +417,6 @@ packages:
 
   '@cardenelabs/cdl@0.10.0':
     resolution: {integrity: sha512-wT8zVwUIgTOvFcj6Q2R9tU4SNdkKtO7UBOwcgYmRStmiiAP9fnIRCFzCboJ46ljR8X+NoqW8AbvUKj+aoQ7RzQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^19.0.0
-      react-dom: ^19.0.0
-
-  '@cardenelabs/cdl@0.9.0':
-    resolution: {integrity: sha512-w0nWsHz+PnNB8R4+kpKw9eGoAIpGniEOFB2vLSTx5zWLVSTLDjuoipn28MuyMuMZAX9RBfoousJDYYNRuqE2uQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^19.0.0
@@ -4501,11 +4494,6 @@ snapshots:
       css-tree: 3.2.1
 
   '@cardenelabs/cdl@0.10.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-
-  '@cardenelabs/cdl@0.9.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
