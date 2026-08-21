@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -29,19 +30,20 @@ const TESTS_DIR = join(import.meta.dirname, "../../tests");
 const 本番を見る検査 = new Set(["a11y-check.spec.ts", "final-check.spec.ts", "prod-check.spec.ts"]);
 
 const URLを自分で持つ記述 =
-  /https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?|process\.env\.[A-Z0-9_]*URL\b|\bbaseURL\s*:/u;
+  /https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?|process\.env\.[A-Z0-9_]*URL\b|\bbaseURL\s*(?=:|[,}])/u;
+
+const specFilesを列挙 = (dir: string) =>
+  readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".spec.ts"));
+
+const 本番を見る検査か = (file: string) => 本番を見る検査.has(basename(file));
 
 /**
  * spec の列挙。 subdir も見る。
  *
- * **今は subdir に spec が 1 件も無いため、この再帰は検査で覆えていない** (`recursive` を
- * 外しても 1 件も落ちない)。 覆うには `tests/` 配下に fixture を置くことになるが、
- * それは Playwright が実行する対象そのものなので置けない。 spec を分類し始めた時に
- * 静かに対象から外れないよう、先に再帰にしてある。
+ * 実物の `tests/` に fixture を置くと Playwright が実行してしまうため、
+ * 再帰の回帰検査は一時 directory で行う。
  */
-const specFiles = readdirSync(TESTS_DIR, { recursive: true, encoding: "utf8" }).filter((f) =>
-  f.endsWith(".spec.ts"),
-);
+const specFiles = specFilesを列挙(TESTS_DIR);
 
 describe("画面の検査が見に行く先", () => {
   it("spec file が 1 つ以上ある (検査が空振りしていない)", () => {
@@ -52,7 +54,7 @@ describe("画面の検査が見に行く先", () => {
     const 持っている: string[] = [];
     let 読めた = 0;
     for (const f of specFiles) {
-      if (本番を見る検査.has(f)) continue;
+      if (本番を見る検査か(f)) continue;
       const src = readFileSync(join(TESTS_DIR, f), "utf8");
       読めた += 1;
       if (URLを自分で持つ記述.test(src)) 持っている.push(f);
@@ -67,6 +69,7 @@ describe("画面の検査が見に行く先", () => {
     for (const src of [
       "const BASE = process.env.AI_VERIFY_BASE_URL;", // env だけ
       "test.use({ baseURL: SERVER });", // baseURL 上書きだけ
+      "test.use({ baseURL });", // baseURL 短縮記法だけ
       'page.goto("http://localhost:4323/editor");', // 直書きだけ
     ]) {
       expect(URLを自分で持つ記述.test(src), src).toBe(true);
@@ -74,8 +77,27 @@ describe("画面の検査が見に行く先", () => {
     expect(URLを自分で持つ記述.test('page.goto("/editor");'), "相対 path を誤検出する").toBe(false);
   });
 
+  it("subdir の spec も列挙し、本番用の名前は深さに関係なく除外する", () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), "spec-base-url-"));
+    try {
+      const nestedDir = join(fixtureRoot, "nested");
+      mkdirSync(nestedDir);
+      writeFileSync(join(nestedDir, "a11y-check.spec.ts"), "");
+
+      const nestedSpec = join("nested", "a11y-check.spec.ts");
+      const files = specFilesを列挙(fixtureRoot);
+      expect(files).toContain(nestedSpec);
+      expect(files.filter(本番を見る検査か)).toEqual([nestedSpec]);
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("本番を見る検査として除いた file が実在する", () => {
-    // 名指しの list が実物からずれると、消えた file を除き続けて対象が静かに減る
-    for (const f of 本番を見る検査) expect(specFiles, `${f} が無い`).toContain(f);
+    // 名指しの list が実物からずれると、消えた file を除き続けて対象が静かに減る。
+    // **除外と同じく basename で見る** = 除外は深さを問わないのに、実在の確認だけ
+    // top-level に限ると、prod の spec を subdir へ移しただけでここが落ちる
+    const 名前 = specFiles.map((f) => basename(f));
+    for (const f of 本番を見る検査) expect(名前, `${f} が無い`).toContain(f);
   });
 });
