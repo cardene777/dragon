@@ -72,6 +72,15 @@ describe("範囲外の日本語は誤りとして知らせる (#1301)", () => {
     expect(e?.hint, "英語の名前を勧めていない").toContain("focus");
   });
 
+  it("段そのものを日本語で書いても黙って消えない", () => {
+    const r = 読む(`${頭}animation:\n  - ステップ: "s1" 1.2s\n    focus: [A]\n`);
+    expect(r.ok, "日本語の段が誤りなしで消えている").toBe(false);
+    if (r.ok) return;
+    const e = r.errors.find((x) => x.message.includes("ステップ"));
+    expect(e?.line, "日本語の段を行番号付きで知らせていない").toBe(9);
+    expect(e?.hint, "英語の段名を勧めていない").toContain("step");
+  });
+
   it("箱の種類の値は誤りになる", () => {
     const 黙って消える: string[] = [];
     let 測れた = 0;

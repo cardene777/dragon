@@ -1348,7 +1348,10 @@ function collectAnimationSteps(
       continue;
     }
     if (ln.indent <= parentIndent) break;
-    if (ln.trimmed.startsWith("- step")) {
+    // v0.4 の日本語の段名も block の頭として拾い、parsePhase で英語の `step` を案内する
+    // (#1301)。ここで英語だけに絞ると `- ステップ:` は block 自体が作られず、段全体が
+    // 誤りなしで黙って消える。
+    if (ln.trimmed.startsWith("- step") || ln.trimmed.startsWith("- ステップ")) {
       if (cur) out.push(cur);
       cur = [{ ...ln, trimmed: ln.trimmed.slice(2).trim() }];
     } else if (cur) {
