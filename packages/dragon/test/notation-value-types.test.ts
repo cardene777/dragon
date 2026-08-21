@@ -243,6 +243,25 @@ describe("同じ欄は書き方が違っても同じ知らせが出る (#1306)",
 });
 
 describe("知らせは既にある形と揃っている (#1306)", () => {
+  it("倍率の別名を併記しても、読めない値を書いた行を指す", () => {
+    const 本文 = [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - A:",
+      "      kind: sample",
+      "      scale: q",
+      "      倍率: 3",
+      "",
+    ].join("\n");
+    const r = parseTextDslV05(本文);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    const e = r.errors.find((x) => x.message.includes('箱の scale は数で書きます: "q"'));
+    expect(e?.line, "後ろに書いた別名の行を指している").toBe(7);
+  });
+
   it("同じ欄名が別の場所に出ても、どこの欄かが分かる", () => {
     // `width` は図全体と縦列、`posX` は箱と箱の中の要素に出る。 欄名だけを出すと
     // どこを直せばよいか読めない

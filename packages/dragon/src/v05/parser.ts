@@ -1200,7 +1200,7 @@ const SCALE_ORDER = ["scale", "倍率"] as const;
  */
 function resolveScale(
   written: Map<string, string>,
-  line: number,
+  line: number | ((key: string) => number),
   errors: DslError[],
 ): { scale?: number; keys: string[] } {
   const keys = [...written.keys()];
@@ -1208,7 +1208,10 @@ function resolveScale(
     const raw = written.get(key);
     // 読めない値は黙って捨てず知らせる (#1306)。 書かれた名前 (`keys`) は値の読めなさに
     // 関わらず残す = 見本が同じ名前の状態を持つ時の知らせが消えないようにするため
-    if (raw !== undefined) return { scale: 数として読む(raw, `箱の ${key}`, line, errors), keys };
+    if (raw !== undefined) {
+      const 当該行 = typeof line === "number" ? line : line(key);
+      return { scale: 数として読む(raw, `箱の ${key}`, 当該行, errors), keys };
+    }
   }
   return { keys };
 }
@@ -1225,11 +1228,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   let touchedState = false;
   /** 縦に並べて書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
   const scaleWritten = new Map<string, string>();
-  /**
-   * 倍率を最後に書いた行 (#1306)。 読めない値の知らせは書いた行を指す必要があるが、
-   * 倍率の解決 (`resolveScale`) は block を読み終わってから走るため行が失われる。
-   */
-  let scaleLine = actor.pos.line;
+  /** 倍率を名前ごとに最後に書いた行。 別名の優先順と行番号を取り違えないために保持する。 */
+  const scaleLines = new Map<string, number>();
   /**
    * 縦に並べて書かれた体験の道筋の欄 (#1251)。
    *
@@ -1250,7 +1250,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     // 予約の知らせが消え、別名 (`倍率`) に降りて別の値が効いてしまう
     if (SCALE_KEYS.has(key)) {
       scaleWritten.set(key, stripQuotes(raw));
-      scaleLine = ln.no;
+      scaleLines.set(key, ln.no);
       unknownKeys.push({ key, line: ln.no });
       continue;
     }
@@ -1386,7 +1386,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   // 名前の行と縦に並べた行の両方に倍率がある形では、後に書いた縦の行を採る。
   // 知らせ (`scale-reserved`) は書かれた名前をすべて見るので、名前だけは足し合わせる
   if (scaleWritten.size > 0) {
-    const s = resolveScale(scaleWritten, scaleLine, errors);
+    const s = resolveScale(
+      scaleWritten,
+      (key) => scaleLines.get(key) ?? actor.pos.line,
+      errors,
+    );
     out.scale = s.scale;
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
