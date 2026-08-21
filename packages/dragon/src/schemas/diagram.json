@@ -141,7 +141,7 @@
               "tone": {
                 "type": "string",
                 "description": "箱の色調。 success / warning 等の別名も使える。",
-                "enum": ["accent", "teal", "success", "error", "warning", "info"]
+                "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
               },
               "color": {
                 "type": "string",
@@ -250,12 +250,12 @@
           },
           "tone": {
             "type": "string",
-            "enum": ["accent", "teal", "success", "error", "warning", "info"],
-            "description": "矢印の色調"
+            "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"],
+            "description": "矢印の色調。 success / 成功 等の別名も使える。"
           },
           "style": {
             "type": "string",
-            "enum": ["solid", "dashed", "dotted", "dotted-flow"],
+            "enum": ["solid", "dotted-flow"],
             "description": "矢印の線種"
           },
           "guard": {

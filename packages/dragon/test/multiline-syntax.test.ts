@@ -65,9 +65,19 @@ describe("色は 1 つの項目で両方書ける", () => {
     expect(actorOf([`  - A:`, `      kind: service`, `      tone: 成功`]).tone).toBe("success");
   });
 
-  it("未知の色名は無視する", () => {
-    const a = actorOf([`  - A:`, `      kind: service`, `      色: むらさき`]);
-    expect([a.tone, a.stateOverride]).toEqual([undefined, undefined]);
+  it("未知の色名は誤りとして知らせる (#1304)", () => {
+    // 黙って既定色に落とすと「書いたのに色が変わらない」 が手掛かりなしで起きる。
+    // 位置 / 大きさ が読めない値を知らせるのと同じ形に揃える
+    const src = [
+      `title: "t"`, `type: flow`, ``, `actors:`,
+      `  - A:`, `      kind: service`, `      色: むらさき`, `  - Z`, ``,
+      `flow:`, `  - Z -> Z: "y"`,
+    ].join("\n");
+    const r = parseTextDslV05(src);
+    expect(r.ok, "読めない色名は parse を通さない").toBe(false);
+    if (r.ok) return;
+    expect(r.errors.map((e) => e.message)).toContain('色の名前が読めません: "むらさき"');
+    expect(r.errors[0]?.line, "書いた行を指す").toBe(7);
   });
 });
 

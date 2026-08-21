@@ -234,6 +234,26 @@ describe("parts に tone を書いた時", () => {
   });
 });
 
+/** 箱に色を書いた時の parse 結果 (誤りも見られる形)。 #1304 で読めない色名を知らせるようにした */
+const parseBoxTone = (
+  value: string,
+): { tone: string | undefined; errors: { line: number; message: string }[] } => {
+  const src = [
+    `title: "t"`,
+    `type: flow`,
+    ``,
+    `actors:`,
+    `  - Client: { kind: service, tone: ${value} }`,
+    `  - API`,
+    ``,
+    `flow:`,
+    `  - Client -> API: "call"`,
+  ].join("\n");
+  const parsed = parseTextDslV05(src);
+  if (!parsed.ok) return { tone: undefined, errors: parsed.errors };
+  return { tone: parsed.doc.actors[0]?.tone, errors: [] };
+};
+
 describe("色名の受理範囲", () => {
   const parseTone = (value: string): string | undefined => {
     const diagram = build("flow", `- Client: { kind: service, tone: ${value} }`);
@@ -250,9 +270,13 @@ describe("色名の受理範囲", () => {
     }
   });
 
-  it("未知の色名は既定色に落とす", () => {
-    // 矢印の色と同じ扱い。 描画側の検査は cdl が持つ
-    expect(parseTone("purple")).toBeUndefined();
+  it("未知の色名は誤りとして知らせる (#1304)", () => {
+    // 既定色に落として黙る形だと「書いたのに色が変わらない」 が手掛かりなしで起きる。
+    // 矢印の色と同じ扱いにする (どちらも読めない値を行番号付きで知らせる)
+    const { tone, errors } = parseBoxTone("purple");
+    expect(tone, "色としては載せない").toBeUndefined();
+    expect(errors.map((e) => e.message)).toContain('色の名前が読めません: "purple"');
+    expect(errors[0]?.line, "書いた行を指す").toBe(5);
   });
 
   it("受理する色名は cdl の一覧と一致する", () => {
@@ -266,13 +290,18 @@ describe("色名の受理範囲", () => {
     // 別名表を素の添字で引くと、 どの object も持っている `toString` 等が引けてしまい、
     // 関数やオブジェクトが色として通る (実測 = `tone: toString` で関数が入った)。
     for (const name of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"]) {
-      expect(parseTone(name), name).toBeUndefined();
+      const { tone, errors } = parseBoxTone(name);
+      expect(tone, name).toBeUndefined();
+      // 通さないだけでなく、 読めない色名として知らせる (#1304)
+      expect(errors.map((e) => e.message), name).toContain(`色の名前が読めません: "${name}"`);
     }
   });
 });
 
 describe("箱と矢印で同じ色名が使える", () => {
-  const arrowTone = (value: string): string | undefined => {
+  const arrowParse = (
+    value: string,
+  ): { tone: string | undefined; errors: { line: number; message: string }[] } => {
     const src = [
       `title: "t"`,
       `type: flow`,
@@ -285,8 +314,14 @@ describe("箱と矢印で同じ色名が使える", () => {
       `  - A -> B: "x" (${value})`,
     ].join("\n");
     const parsed = parseTextDslV05(src);
-    if (!parsed.ok) throw new Error("parse 失敗");
-    return parsed.doc.flow[0]?.tone;
+    if (!parsed.ok) return { tone: undefined, errors: parsed.errors };
+    return { tone: parsed.doc.flow[0]?.tone, errors: [] };
+  };
+
+  const arrowTone = (value: string): string | undefined => {
+    const { tone, errors } = arrowParse(value);
+    if (errors.length > 0) throw new Error(`parse 失敗: ${errors.map((e) => e.message).join(" / ")}`);
+    return tone;
   };
 
   const boxTone = (value: string): string | undefined => {
@@ -302,9 +337,34 @@ describe("箱と矢印で同じ色名が使える", () => {
     }
   });
 
-  it("未知の名前は両方で既定色に落ちる", () => {
-    expect(arrowTone("purple")).toBeUndefined();
-    expect(boxTone("purple")).toBeUndefined();
+  it("未知の名前は両方で誤りになる (#1304)", () => {
+    // 受理範囲が食い違ってはいけないのと同じ理由で、 読めない値の扱いも揃える。
+    // 矢印は線種も受けるため知らせの文が違う (箱に `solid` と書いても効かない)
+    const 矢印 = arrowParse("purple");
+    expect(矢印.tone, "矢印: 色としては載せない").toBeUndefined();
+    expect(矢印.errors.map((e) => e.message)).toContain('色名か線種が読めません: "purple"');
+    const 箱 = parseBoxTone("purple");
+    expect(箱.tone, "箱: 色としては載せない").toBeUndefined();
+    expect(箱.errors.map((e) => e.message)).toContain('色の名前が読めません: "purple"');
+  });
+
+  it("説明文の括弧が消える形も知らせ、引用符で囲む道を案内する (#1304)", () => {
+    // 引用符なしの説明文に括弧を書くと、丸括弧は色 / 線種の欄として読まれる。 これまでは
+    // 読めない語を黙って捨てていたため、**説明文から括弧の中だけが消えた図**が出ていた
+    const { tone, errors } = arrowParse("非同期");
+    expect(tone).toBeUndefined();
+    const e = errors.find((x) => x.message.includes("非同期"));
+    expect(e?.message).toBe('色名か線種が読めません: "非同期"');
+    expect(e?.hint, "直し方が「別の語に変える」 しか案内されない").toContain('`"…"` で囲む');
+  });
+
+  it("箱の知らせには線種を案内しない", () => {
+    // 箱に `solid` と書いても効かない。 使える語として並べると、書いても何も起きない値を
+    // 勧めることになる
+    const { errors } = parseBoxTone("purple");
+    const e = errors.find((x) => x.message.includes("purple"));
+    expect(e?.hint).toContain("使える値 = ");
+    expect(e?.hint, "箱に効かない線種を勧めている").not.toContain("dotted-flow");
   });
 
   it("線の種類の指定は色として拾わない", () => {
