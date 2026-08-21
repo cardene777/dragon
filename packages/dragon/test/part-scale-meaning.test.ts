@@ -167,13 +167,14 @@ describe("倍率の意味 (#1026)", () => {
   });
 
   it("別名と重複の規則が 2 経路で揃う", () => {
-    // 規則は 3 つ = 別名は scale が先 / 同じ名前は後勝ち / 読めない値でも別名に降りない。
-    // どれか 1 つでもずれると、同じ本文が画面と組み立てで別の大きさになる (実測で 4 例とも割れた)
+    // 規則は 2 つ = 別名は scale が先 / 同じ名前は後勝ち。
+    // どちらかがずれると、同じ本文が画面と組み立てで別の大きさになる (実測で 4 例とも割れた)
+    //
+    // 3 つ目の規則「読めない値でも別名に降りない」 は #1306 で誤りに変えたため、
+    // 下の「読めない値は誤りになり、別名に降りない」 が受け持つ
     const cases: Array<[string, string, number]> = [
       ["縦・同じ名前を 2 度", `  - a:\n      kind: sample\n      倍率: 2\n      倍率: 3\n`, 3],
       ["短・同じ名前を 2 度", `  - a: sample scale=2 scale=3\n`, 3],
-      ["短・読めない値と別名", `  - a: sample scale=x 倍率=3\n`, 1],
-      ["縦・読めない値と別名", `  - a:\n      kind: sample\n      scale: x\n      倍率: 3\n`, 1],
       ["中括弧・別名を両方", `  - a: { kind: sample, scale: 2, 倍率: 3 }\n`, 2],
       ["中括弧・同じ名前を 2 度", `  - a: { kind: sample, scale: 2, scale: 3 }\n`, 3],
       ["縦・値が空と別名", `  - a:\n      kind: sample\n      scale:\n      倍率: 3\n`, 1],
@@ -190,10 +191,29 @@ describe("倍率の意味 (#1026)", () => {
     }
   });
 
-  it("読めない値でも知らせは出る", () => {
-    // 読めた値で判定すると `scale: x` で知らせが消える。 意味が変わったことは値と無関係
+  it("読めない値は誤りになり、別名に降りない (#1306)", () => {
+    // 黙って捨てると「書いたのに大きさが変わらない」 が手掛かりなしで起きる。
+    //
+    // **誤りが出ること自体が「別名に降りていない」 証拠になる**。 降りていれば `倍率: 3` を
+    // 読んで通ってしまい、誤りは 1 件も出ない
+    const cases: Array<[string, string]> = [
+      ["短・読めない値と別名", `  - a: sample scale=x 倍率=3\n`],
+      ["縦・読めない値と別名", `  - a:\n      kind: sample\n      scale: x\n      倍率: 3\n`],
+      ["中括弧・読めない値と別名", `  - a: { kind: sample, scale: x, 倍率: 3 }\n`],
+    ];
+    for (const [name, actors] of cases) {
+      const r = parseTextDslV05(`${head}actors:\n${actors}${tail}`);
+      expect(r.ok, `${name} で読めない値が通ってしまう (別名に降りた可能性)`).toBe(false);
+      if (r.ok) continue;
+      expect(r.errors.map((e) => e.message), name).toContain('箱の scale は数で書きます: "x"');
+    }
+  });
+
+  it("値を直せば予約の知らせが出る (#1306)", () => {
+    // 読めない値を誤りにしたことで `scale: x` は組み立てまで届かなくなった。
+    // 予約の知らせ (`scale-reserved`) は値を直した後に出る = 情報が消えたのではなく順番が付いた
     const notices: string[] = [];
-    textDslToDiagram(`${head}actors:\n  - a: { kind: sample, scale: x }\n${tail}`, {
+    textDslToDiagram(`${head}actors:\n  - a: { kind: sample, scale: 2 }\n${tail}`, {
       partsCatalog: catalog,
       onNotice: (n) => notices.push(n.kind),
     });

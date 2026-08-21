@@ -680,13 +680,14 @@ describe("倍率の意味 (#1026)", () => {
   });
 
   it("別名と重複の規則が 2 経路で揃う", () => {
-    // 規則は 3 つ = 別名は scale が先 / 同じ名前は後勝ち / 読めない値でも別名に降りない。
+    // 規則は 2 つ = 別名は scale が先 / 同じ名前は後勝ち。
     // 実測では 4 例すべてで engine と画面が違う値を返していた
+    //
+    // 3 つ目の規則「読めない値でも別名に降りない」 は #1306 で組み立て側を誤りに変えたため、
+    // 下の「読めない値は組み立て側が止める」 が受け持つ
     const cases: Array<[string, string, number]> = [
       ["縦・同じ名前を 2 度", `  - a:\n      kind: wide\n      倍率: 2\n      倍率: 3\n`, 3],
       ["短・同じ名前を 2 度", `  - a: wide scale=2 scale=3\n`, 3],
-      ["短・読めない値と別名", `  - a: wide scale=x 倍率=3\n`, 1],
-      ["縦・読めない値と別名", `  - a:\n      kind: wide\n      scale: x\n      倍率: 3\n`, 1],
       ["中括弧・別名を両方", `  - a: { kind: wide, scale: 2, 倍率: 3 }\n`, 2],
       ["中括弧・同じ名前を 2 度", `  - a: { kind: wide, scale: 2, scale: 3 }\n`, 3],
       ["縦・値が空と別名", `  - a:\n      kind: wide\n      scale:\n      倍率: 3\n`, 1],
@@ -698,9 +699,30 @@ describe("倍率の意味 (#1026)", () => {
       // 画面側
       const scr = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((p) => p.id === "a");
       expect(scr?.scale, `${name} の画面側が違う`).toBe(want);
-      // 組み立て側 (読めない値は倍率として書かなかった扱いになる)
+      // 組み立て側
       const lib = textDslToDiagram(src, { partsCatalog: CATALOG });
       expect(lib.nodes.some((n) => String(n.id ?? "").startsWith("a__")), `${name} が取り込まれていない`).toBe(true);
+    }
+  });
+
+  it("読めない値は組み立て側が止める (#1306)", () => {
+    // 画面側は下書きを出し続ける経路なので、読めない値は倍率 1 に丸めて描く。
+    // 組み立て側は図そのものを作る経路なので、読めない値を黙って捨てず止める。
+    //
+    // **2 経路が別の大きさで描くことは無い**。 片方が止まるので、
+    // 「同じ本文が画面と組み立てで別の大きさになる」 という本検査の目的は保たれる
+    const cases: Array<[string, string]> = [
+      ["短・読めない値と別名", `  - a: wide scale=x 倍率=3\n`],
+      ["縦・読めない値と別名", `  - a:\n      kind: wide\n      scale: x\n      倍率: 3\n`],
+    ];
+    for (const [name, actors] of cases) {
+      const src = `title: "t"\ntype: sequence\n\nactors:\n  - 本体: {}\n${actors}`;
+      const scr = extractPartsFromSrc(src, KIND_SET, ITEMS).parts.find((p) => p.id === "a");
+      expect(scr?.scale, `${name} の画面側が別名に降りている`).toBe(1);
+      expect(
+        () => textDslToDiagram(src, { partsCatalog: CATALOG }),
+        `${name} で組み立て側が止まらない`,
+      ).toThrow(/箱の scale は数で書きます/);
     }
   });
 
