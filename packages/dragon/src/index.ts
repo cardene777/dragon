@@ -202,14 +202,23 @@ function isV05Source(src: string): boolean {
   // 判定不足。 v0.4-specific syntax (`step "..." Xs` = colon なし step / `^\d+\.\s+` = 番号 flow) を
   // negative marker に追加。
   const V04_KEYWORDS = [
-    // Japanese v0.4 専用 keyword (v0.5 は英語のみ)
-    /^\s*タイトル\s*[:：]/, // title (JA)
-    /^\s*種類\s*[:：]/, // type (JA)
-    /^\s*登場人物\s*[:：]/, // actors (JA)
-    /^\s*流れ\s*[:：]/, // flow (JA)
-    /^\s*アニメーション\s*[:：]/, // animation (JA)
-    /^\s*動作\s*[:：]/, // step (JA)
-    /^\s*状態\s*[:：]/, // state (JA)
+    // Japanese v0.4 専用 keyword (v0.5 は英語のみ)。
+    //
+    // **字下げした行には当てない** (#1300)。 v0.4 の見出しは行頭に書くが、v0.5 の縦書き形は
+    // 必ず字下げする。 同じ語が「v0.4 の見出し」 と「v0.5 の箱の欄 / 見本の状態名」 の両方で
+    // 使われるため、`\s*` を許すと **正しい v0.5 の本文が旧 parser へ回る**。
+    //
+    // 実測 = `種類:` を箱の欄として縦に書いた本文と、見本の状態名が下の 7 語のいずれかである
+    // 本文が、いずれも v0.4 として読まれて別の行を指す誤りを返していた。
+    /^タイトル\s*[:：]/, // title (JA)
+    /^種類\s*[:：]/, // type (JA)
+    /^登場人物\s*[:：]/, // actors (JA)
+    /^流れ\s*[:：]/, // flow (JA)
+    /^アニメーション\s*[:：]/, // animation (JA)
+    /^動作\s*[:：]/, // step (JA)
+    /^状態\s*[:：]/, // state (JA)
+    // 鉤括弧が続く形は v0.5 に無い (状態名は `ステップ: 5` の形しか取れない) ため、
+    // 字下げを許しても v0.5 と衝突しない。 v0.4 では `アニメーション:` の下に字下げして書く
     /^\s*ステップ\s*[「『]/, // step (JA)
     // v0.4 English-specific syntax = colon なし step (v0.5 は step: 必須)
     /^\s*step\s+"[^"]+"\s+[\d.]+\s*s\b/,
