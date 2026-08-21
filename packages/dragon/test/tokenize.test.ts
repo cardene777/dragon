@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { TONES } from "@cardenelabs/cdl";
 import { 記法を分解する, JSONを分解する, 区間に広げる, type トークン } from "../src/tokenize";
 import { TONE_ALIAS, ARROW_PATTERNS } from "../src/keywords";
+import { NODE_KIND_VALID } from "../src/v05/parser";
 
 const 種類 = (src: string, t: トークン): string => `${t.種類}:${src.slice(t.開始, t.終わり)}`;
 const 一覧 = (src: string): string[] => 記法を分解する(src).map((t) => 種類(src, t));
@@ -122,6 +123,23 @@ describe("語彙は keywords.ts から導く (#1310)", () => {
     expect(通る("dotted-flow"), "dotted-flow を線種として分解できない").toBe(true);
     expect(通る("dashed"), "受けない線種を分解している").toBe(false);
   });
+
+  it("箱の種類は色分けしない (箱の名前と衝突するため)", () => {
+    // 受理する 108 種には `user` / `api` / `actor` / `card` / `state` / `service` が
+    // 含まれ、`- User` や `- API` のような普通の名前と衝突する。 語だけでは
+    // 「種類として書かれたか」 を判定できないため色分けしない (#1310 review r1-f1)
+    const 衝突する語 = ["user", "api", "actor", "card", "state", "service"].filter((w) =>
+      NODE_KIND_VALID.has(w),
+    );
+    expect(衝突する語.length, "衝突する語が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+
+    const src = `actors:\n  - User\n  - API: service`;
+    const 名前 = 記法を分解する(src).filter((t) => {
+      const 語 = src.slice(t.開始, t.終わり);
+      return 語 === "User" || 語 === "service";
+    });
+    expect(名前, "箱の名前や種類に色が付いている").toEqual([]);
+  });
 });
 
 describe("記法の 5 種を切り分ける (#1310)", () => {
@@ -188,5 +206,14 @@ describe("JSON は鍵と文字列を分け、色の欄だけ意味色にする (
     // `subtitle` の `"success"` は色名にしない (欄が違えば意味が違う)
     const subtitleの値 = src.lastIndexOf('"success"');
     expect(色名[0]?.開始, "subtitle の値まで色名にしている").not.toBe(subtitleの値);
+  });
+
+  it("数値は符号・小数・指数を含めて値として分解する", () => {
+    const 数を含むsrc = `{ "zero": 0, "negative": -12.5, "exponent": 1e+3, "text": "42" }`;
+    const 値 = JSONを分解する(数を含むsrc)
+      .filter((t) => t.種類 === "説明文")
+      .map((t) => 数を含むsrc.slice(t.開始, t.終わり));
+    expect(値).toEqual(expect.arrayContaining(["0", "-12.5", "1e+3", '"42"']));
+    expect(値, "文字列内の数字を別トークンにしている").not.toContain("42");
   });
 });

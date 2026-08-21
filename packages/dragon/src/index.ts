@@ -76,7 +76,7 @@ export { isColorValue, pointsOutside, stripExternalPaint } from "./color";
 export { stripQuotes } from "./v05/parser";
 
 // 画面で色分けするための分解器 (#1310)。 色は持たず、種類名と位置だけを返す
-export { 記法を分解する, JSONを分解する, 区間に広げる, 種類として読むか } from "./tokenize";
+export { 記法を分解する, JSONを分解する, 区間に広げる } from "./tokenize";
 export type { トークン, トークンの種類 } from "./tokenize";
 // 大きすぎる入力を組み立てる前に止める上限 (#1005)。 画面側も同じ物差しで事前に知らせられるよう公開する。
 export {

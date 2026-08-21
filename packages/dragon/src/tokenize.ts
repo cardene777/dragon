@@ -32,7 +32,7 @@
  * 値の参照は説明文の中にも出る (`value: "{count}"`)。 その場合は説明文を参照の前後で
  * 分割して返す = 参照だけ別の色にできる。
  */
-import { TONE_ALIAS, NODE_KIND_ALIAS, ARROW_PATTERNS } from "./keywords";
+import { TONE_ALIAS, ARROW_PATTERNS } from "./keywords";
 import { TONES } from "@cardenelabs/cdl";
 import type { Tone } from "@cardenelabs/cdl";
 
@@ -62,9 +62,6 @@ const 色名の表 = new Map<string, Tone>([
   ...Object.entries(TONE_ALIAS).map(([k, v]) => [k.toLowerCase(), v] as [string, Tone]),
 ]);
 
-/** 種類として読める語 (別名を含む)。 色は持たないが `項目名` として扱うために引く */
-const 種類の表 = new Set(Object.keys(NODE_KIND_ALIAS).map((k) => k.toLowerCase()));
-
 /**
  * 矢印の書き方。 並べ替えない。
  *
@@ -89,10 +86,17 @@ function 線種として読むか(語: string): boolean {
   return (線種 as readonly string[]).includes(語.toLowerCase());
 }
 
-/** 種類として読める語か (画面では項目名と同じ扱いにする) */
-export function 種類として読むか(語: string): boolean {
-  return 種類の表.has(語.toLowerCase());
-}
+/*
+ * 箱の種類 (`service` / `database` 等) は色分けしない (#1310 review r1-f1)。
+ *
+ * 一度は種類名を `項目名` として扱ったが、**箱の名前まで巻き込む**。 受理する 108 種には
+ * `user` / `api` / `actor` / `card` / `state` / `service` が含まれ、`- User` や `- API` の
+ * ような普通の名前と衝突する (実測で両方とも項目名になった)。
+ *
+ * 正しく分けるには「種類の位置に書かれているか」 を見る必要があり、それは 5 種
+ * (項目名 / 説明文 / 矢印 / 色名 / 値の参照) の外側になる。 語だけで判定できないものは
+ * 色分けしない。
+ */
 
 /** 重なりを持たない並びに整える。 先に入れたものを優先し、後から重なる分は捨てる */
 function 重なりを外す(候補: トークン[]): トークン[] {
@@ -228,6 +232,11 @@ export function JSONを分解する(src: string): トークン[] {
       continue;
     }
     候補.push({ 種類: "説明文", 開始, 終わり });
+  }
+  // 数値も文字列と同じ「値」の色にする。 JSON の数値文法に合わせ、符号・小数・指数を拾う。
+  // 文字列の中に現れた数字は、先に積んだ説明文と重なるため `重なりを外す` で落ちる。
+  for (const m of src.matchAll(/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g)) {
+    候補.push({ 種類: "説明文", 開始: m.index, 終わり: m.index + m[0].length });
   }
   // 色名を取る欄の値を色名に格上げする
   for (const m of src.matchAll(/"(tone|color)"\s*:\s*"((?:[^"\\]|\\.)*)"/g)) {
