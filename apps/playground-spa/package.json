@@ -20,7 +20,7 @@
     "shoot:3vp": "node scripts/shoot-3vp.mjs"
   },
   "dependencies": {
-    "@cardenelabs/cdl": "^0.10.0",
+    "@cardenelabs/cdl": "^0.11.0",
     "@cardenelabs/dragon": "workspace:*",
     "@codemirror/lang-yaml": "^6.1.3",
     "@codemirror/language": "^6.12.4",

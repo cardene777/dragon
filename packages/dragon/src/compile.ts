@@ -17,6 +17,7 @@ import {
   applyDerivedValues, parseFormula,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
+import { DRAW_TARGETS } from "./v05/parser";
 import { isColorValue, stripExternalPaint } from "./color";
 import {
   MAX_INPUT_ELEMENTS,
@@ -92,8 +93,10 @@ export type CompileNotice = {
     | "eyebrow-not-honored"
     // 静止した `type: flow` で、書いた矢印の端が使われなかった (#1269)
     | "flow-endpoint-not-honored"
-    // 左から描く動きを持たない図種で段に `draw:` を書いた (#1312)
-    | "draw-not-honored";
+    // 起点から描く動きを持たない図種で段に `draw:` を書いた (#1312)
+    | "draw-not-honored"
+    // `draw:` の語がその図種と食い違う (`type: bar` に `draw: pie`、 #1314)
+    | "draw-target-mismatch";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -568,25 +571,39 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
   if (!onNotice) return;
   for (const phase of doc.animate?.phases ?? []) {
     if (phase.draw === undefined) continue;
-    if (DRAWABLE_DOC_TYPES.has(doc.type)) continue;
-    onNotice({
-      kind: "draw-not-honored",
-      actor: phase.name,
-      // 段の `pos` は `- step:` の行を指す。 書いた行に辿り着けるよう `drawPos` を優先する
-      line: phase.drawPos?.line ?? phase.pos?.line ?? 0,
-      message: `段 "${phase.name}" に書いた draw は効きません (type: ${doc.type} は左から描く動きを持ちません)`,
-      hint: `draw が効くのは type: ${[...DRAWABLE_DOC_TYPES].join(" / ")} です`,
-    });
+    // 段の `pos` は `- step:` の行を指す。 書いた行に辿り着けるよう `drawPos` を優先する
+    const line = phase.drawPos?.line ?? phase.pos?.line ?? 0;
+    if (!DRAWABLE_DOC_TYPES.has(doc.type)) {
+      onNotice({
+        kind: "draw-not-honored",
+        actor: phase.name,
+        line,
+        message: `段 "${phase.name}" に書いた draw は効きません (type: ${doc.type} は起点から描く動きを持ちません)`,
+        hint: `draw が効くのは type: ${[...DRAWABLE_DOC_TYPES].join(" / ")} です`,
+      });
+      continue;
+    }
+    // 語が別の図種を指している形 (#1314)。 図は描けるので誤りにはしない
+    const 語の図種 = DRAW_TARGETS.get(phase.draw);
+    if (語の図種 !== undefined && 語の図種 !== doc.type) {
+      onNotice({
+        kind: "draw-target-mismatch",
+        actor: phase.name,
+        line,
+        message: `段 "${phase.name}" の draw: ${phase.draw} は type: ${doc.type} では効きません (${phase.draw} は type: ${語の図種} の図に書きます)`,
+        hint: `この図では draw: ${doc.type} と書いてください`,
+      });
+    }
   }
 }
 
 /**
- * 段の `draw:` が効く図種 (#1312)。
+ * 段の `draw:` が効く図種 (#1312 / #1314)。
  *
- * 描画側 (`cdl` の `CdlPhase.draw`) が左から描ける種別に対応する。 いまは折れ線だけで、
- * 棒と円は同じ動きを持たない (棒は下から伸び、円は回るのが自然で、別の動きになる)。
+ * **語と図種の対応表から導く** (`DRAW_TARGETS`)。 一覧を写すと、語を足した時に片方だけ
+ * 古いまま残る。 描画側 (`cdl` の `CdlPhase.draw`) が対応する 3 種と一致する。
  */
-const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(["line"]);
+const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(DRAW_TARGETS.values());
 
 /**
  * 縦列を選べる図種で、一部の箱だけが縦列を書いた時に伝える (#1263)。
@@ -5604,7 +5621,9 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
     // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
     const drawIds =
-      p.draw !== undefined && DRAWABLE_DOC_TYPES.has(doc.type) && singleBoxNode !== undefined
+      p.draw !== undefined &&
+      DRAW_TARGETS.get(p.draw) === doc.type &&
+      singleBoxNode !== undefined
         ? [singleBoxNode.id]
         : [];
     diagram.phases.push({

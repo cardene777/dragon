@@ -2333,12 +2333,29 @@ function 段の項目のヒント(書いた名前: string): string {
 const 段の項目の英語 = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
 
 /**
- * `draw:` に書ける語 (#1312)。 今は折れ線だけが左から伸びる動きを持つ。
+ * `draw:` に書ける語と、その語が効く図種 (#1312 / #1314)。
  *
- * 一覧を持つのは、書き間違いをその場で誤りにするため。 受ける語が増えたらここに足す
- * (`compile` 側の対応と検査が同じ一覧を見る)。
+ * **語と図種の対応をここ 1 箇所で持つ**。 受ける語の一覧 (`DRAW_WORDS`) も、組み立て側が見る
+ * 図種の一覧 (`DRAWABLE_DOC_TYPES`) も、この表から導く。 3 つを別々に並べると、語を足した時に
+ * どれかが古いまま残る (#1310 / #1304 で 3 度直した形)。
+ *
+ * | 語 | 図種 | 起点 |
+ * |---|---|---|
+ * | `line` | `line` | 左端から右へ線が伸びる |
+ * | `bar` | `bar` | 横軸から上へ棒が伸びる |
+ * | `pie` | `pie` | 12 時から時計回りに扇が開く |
+ *
+ * いまは語と図種が同じ綴りだが、**同じものとして扱わない**。 語は書き手が書く名前で、
+ * 図種は `type:` が取る値。 片方だけ別名を足したくなった時に、対応が表に残っている形にする。
  */
-export const DRAW_WORDS: ReadonlySet<string> = new Set(["line"]);
+export const DRAW_TARGETS: ReadonlyMap<string, PresetType> = new Map<string, PresetType>([
+  ["line", "line"],
+  ["bar", "bar"],
+  ["pie", "pie"],
+]);
+
+/** `draw:` に書ける語。 表から導く (#1314) */
+export const DRAW_WORDS: ReadonlySet<string> = new Set(DRAW_TARGETS.keys());
 
 /**
  * v0.4 で使えた段の項目名と、v0.5 での書き方 (#1301)。
