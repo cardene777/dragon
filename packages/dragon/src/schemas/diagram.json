@@ -371,6 +371,11 @@
             "type": "string",
             "description": "phase 中に表示する badge label"
           },
+          "draw": {
+            "type": "string",
+            "enum": ["line"],
+            "description": "この phase で左の起点から描くもの。 折れ線 (type: line) の図で、 線が左端から右へ伸び、 点と値の数字は線の先が届いた時に現れる"
+          },
           "tween": {
             "type": "object",
             "description": "この phase で補間する状態。 状態名 -> [開始値, 終了値]。 名前は英字か _ で始め、 英数字と _ だけを使う",

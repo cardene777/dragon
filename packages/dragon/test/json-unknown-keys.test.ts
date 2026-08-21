@@ -126,6 +126,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     badge: "印",
     tween: { v: [0, 1] },
     set: { v: 2 },
+    draw: "line",
   },
   viewport: {
     width: 800,

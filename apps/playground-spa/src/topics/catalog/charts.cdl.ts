@@ -119,6 +119,7 @@ states:
 
 animation:
   - step: "改善前" 1.2s
+    draw: line
     description: "2 週目に 240 ms まで伸びている"
   - step: "改善後" 1.2s
     tween:
@@ -143,7 +144,7 @@ export const sourceJson__chartLine = `{
   "flow": [],
   "states": { "w1": 180, "w2": 240, "w3": 210, "w4": 120, "w5": 95 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "body": "2 週目に 240 ms まで伸びている" },
+    { "step": "改善前", "duration": 1.2, "draw": "line", "body": "2 週目に 240 ms まで伸びている" },
     {
       "step": "改善後",
       "duration": 1.2,

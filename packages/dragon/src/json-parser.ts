@@ -19,6 +19,7 @@
  */
 
 import {
+  DRAW_WORDS,
   NODE_KIND_VALID,
   PRESET_TYPES,
   STYLE_VALID,
@@ -267,6 +268,13 @@ export interface JsonPhase {
   /** badge label */
   badge?: string;
   /**
+   * その段で左の起点から描くもの (#1312)。 記法の `draw: line` と同じ。
+   *
+   * 受ける語は `line` だけ (`DRAW_WORDS`)。 折れ線の図で、その段の間に線が左端から
+   * 右へ伸びる。
+   */
+  draw?: string;
+  /**
    * 段の中で値を動かす (#1186)。 記法の `tween: name 100 -> 90` と同じ。
    *
    * 足すまで JSON の入口は `states:` で初期値を書けても **動かす手段が無かった** ため、
@@ -381,7 +389,7 @@ export const ACCEPTED_KEYS = {
     "overlay",
     "pos",
   ],
-  phase: ["step", "duration", "focus", "body", "badge", "tween", "set"],
+  phase: ["step", "duration", "focus", "body", "badge", "tween", "set", "draw"],
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
@@ -428,6 +436,7 @@ export type 欄の型 =
   | "色"
   | "線種"
   | "色か色番号"
+  | "描くもの"
   | "必須の図種"
   | "object"
   | "並び"
@@ -497,6 +506,7 @@ export const 欄の型表 = {
     badge: "文字列",
     tween: "object",
     set: "object",
+    draw: "描くもの",
   },
   viewport: {
     width: "数",
@@ -682,6 +692,17 @@ function 値を検査(
         errors.push({
           path,
           message: `${名前} must be one of: ${[...STYLE_VALID].join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "描くもの":
+      if (v === undefined) return;
+      // 受ける語は記法と同じ一覧を見る (`DRAW_WORDS`)。 写すと語が増えた時に片方だけ古くなる
+      if (typeof v !== "string" || !DRAW_WORDS.has(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${[...DRAW_WORDS].join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
         });
       }
@@ -1576,6 +1597,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     highlight: p.focus,
     body: p.body,
     badge: p.badge,
+    // 書いた段だけが欄を持つ。 空文字を置くと「書いた」 と「書いていない」 が同じ形になる
+    ...(p.draw !== undefined ? { draw: p.draw, drawPos: p0 } : {}),
     // 段の中で動かす分 (#1186)。 記法側の `tweens` / `sets` と同じ形に写す。
     // 空の配列を置かないのは、記法側が「無ければ field ごと持たない」 形だから
     ...(p.tween && Object.keys(p.tween).length > 0

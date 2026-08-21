@@ -91,7 +91,9 @@ export type CompileNotice = {
     // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)
     | "eyebrow-not-honored"
     // 静止した `type: flow` で、書いた矢印の端が使われなかった (#1269)
-    | "flow-endpoint-not-honored";
+    | "flow-endpoint-not-honored"
+    // 左から描く動きを持たない図種で段に `draw:` を書いた (#1312)
+    | "draw-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -212,6 +214,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
+  reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
@@ -552,6 +555,38 @@ function reportDocEyebrowNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
     hint: '箱ごとに書いてください (`- A: { eyebrow: "..." }`)',
   });
 }
+
+/**
+ * 左から描く動きを持たない図種で段に `draw:` を書いた時に伝える (#1312)。
+ *
+ * 描く動きを持つのは今のところ折れ線だけ。 他の図種では書いても何も起きないため、
+ * 黙って捨てると「書いたのに伸びない」 が手掛かりなしで起きる。
+ *
+ * 段ごとに知らせる = 5 段のうち 1 段だけに書いた形で、どの段が効いていないかを読めるようにする。
+ */
+function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  for (const phase of doc.animate?.phases ?? []) {
+    if (phase.draw === undefined) continue;
+    if (DRAWABLE_DOC_TYPES.has(doc.type)) continue;
+    onNotice({
+      kind: "draw-not-honored",
+      actor: phase.name,
+      // 段の `pos` は `- step:` の行を指す。 書いた行に辿り着けるよう `drawPos` を優先する
+      line: phase.drawPos?.line ?? phase.pos?.line ?? 0,
+      message: `段 "${phase.name}" に書いた draw は効きません (type: ${doc.type} は左から描く動きを持ちません)`,
+      hint: `draw が効くのは type: ${[...DRAWABLE_DOC_TYPES].join(" / ")} です`,
+    });
+  }
+}
+
+/**
+ * 段の `draw:` が効く図種 (#1312)。
+ *
+ * 描画側 (`cdl` の `CdlPhase.draw`) が左から描ける種別に対応する。 いまは折れ線だけで、
+ * 棒と円は同じ動きを持たない (棒は下から伸び、円は回るのが自然で、別の動きになる)。
+ */
+const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(["line"]);
 
 /**
  * 縦列を選べる図種で、一部の箱だけが縦列を書いた時に伝える (#1263)。
@@ -5563,12 +5598,22 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   // phase 注入。 CdlPhase.tweens[].stateId / sets[].stateId で state 参照 (state ではない)。
   for (const p of doc.animate.phases) {
     const activateIds: string[] = [...resolveIds(p.highlight ?? [])];
+    // `draw: line` を描画側の欄へ写す (#1312)。 相手は 1 箱で図全体を描く種別の箱で、
+    // 折れ線は必ずこの形になるため名前を書かせずに引ける。
+    //
+    // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
+    // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
+    const drawIds =
+      p.draw !== undefined && DRAWABLE_DOC_TYPES.has(doc.type) && singleBoxNode !== undefined
+        ? [singleBoxNode.id]
+        : [];
     diagram.phases.push({
       id: slugify(p.name) || p.name,
       duration: p.durationMs,
       title: p.name,
       body: p.body ?? "",
       activate: activateIds,
+      ...(drawIds.length > 0 ? { draw: drawIds } : {}),
       tweens: (p.tweens ?? []).map((t) => ({ stateId: t.state, from: t.from, to: t.to })),
       sets: (p.sets ?? []).map((s) => ({ stateId: s.state, value: s.value })),
       ...(p.badge ? { badge: p.badge } : {}),

@@ -75,6 +75,8 @@ function diagramWith(opts: {
   sets?: Array<string | { id: string; value: number }>;
   inputs?: string[];
   formulas?: string[];
+  /** その段で左から描く箱 (#1312)。 値を 1 つも触らない動き */
+  draw?: string[];
 }): Parameters<typeof motionOf>[0] {
   const tweens = (opts.tweens ?? []).map((t) => (typeof t === "string" ? { id: t, from: 0, to: 1 } : t));
   const sets = (opts.sets ?? []).map((s) => (typeof s === "string" ? { id: s, value: 1 } : s));
@@ -89,6 +91,7 @@ function diagramWith(opts: {
       id: "p1",
       tweens: tweens.map((t) => ({ stateId: t.id, from: t.from, to: t.to })),
       sets: sets.map((s) => ({ stateId: s.id, value: s.value })),
+      ...(opts.draw ? { draw: opts.draw } : {}),
     }],
   } as unknown as Parameters<typeof motionOf>[0];
 }
@@ -100,6 +103,34 @@ describe("動きの記述 (#1043)", () => {
     expect(motionOf(diagramWith({})), "何も無い図を動くと読む").toBe("none");
     // tween が 1 つでもあれば連続 (set と併存する図がある)
     expect(motionOf(diagramWith({ tweens: ["a"], sets: ["b"] }))).toBe("continuous");
+  });
+
+  it("線が伸びる動きを一文に併記する (#1312)", () => {
+    // 描画側は段の `draw` を進みで描くだけで状態を 1 つも触らないため、`motionOf` からは
+    // 見えない。 併記しないと、線が伸びる図に「段を進めても値は変わらない」 と書くことになる
+    expect(motionNote(diagramWith({ draw: ["chart"] })), "線だけが動く図").toBe(
+      "段の中で線が左から伸びる",
+    );
+    expect(motionNote(diagramWith({ draw: ["chart"], tweens: ["a"] })), "線と値が動く図").toBe(
+      "段の中で線が左から伸び、値も連続して動く",
+    );
+    expect(motionNote(diagramWith({ draw: ["chart"], sets: ["a"] })), "線が動き値は段で変わる図").toBe(
+      "段の中で線が左から伸び、段の切替で値が一度に変わる",
+    );
+  });
+
+  it("`draw` を書かない図の一文は変わらない (#1312)", () => {
+    expect(motionNote(diagramWith({}))).toBe("段を進めても値は変わらない");
+    expect(motionNote(diagramWith({ tweens: ["a"] }))).toBe("段の中で値が連続して動く");
+    expect(motionNote(diagramWith({ sets: ["a"] }))).toBe("段の切替で値が一度に変わる");
+    // 空の並びは「書いていない」 と同じ扱いにする = 欄だけ置いた図で文が変わらない
+    expect(motionNote(diagramWith({ draw: [] }))).toBe("段を進めても値は変わらない");
+  });
+
+  it("線が伸びても値の動きの判定は変わらない (#1312)", () => {
+    // `motionOf` は値だけを見る。 ここが `draw` を数え始めると、値が動かない図が
+    // 「値が動く」 側に混ざる
+    expect(motionOf(diagramWith({ draw: ["chart"] }))).toBe("none");
   });
 
   it("値が実際に変わらない段は動きに数えない", () => {
@@ -185,10 +216,17 @@ describe("動きの記述 (#1043)", () => {
     const items = await allDescriptions();
     expect(items.length, "図が 1 件も見つからない").toBeGreaterThan(430);
 
+    // **手で並べる**。 `motionNote` から導くと、この検査は恒真になる (下の `note` も
+    // 同じ関数から出るため)。 一文が増えた時にここが落ちて、書き手が気付くのが役目。
+    // 後半の「一覧の項目に載っていること」 は保存された文字列を見るため恒真にならない
     const allowed = new Set([
       "段の中で値が連続して動く",
       "段の切替で値が一度に変わる",
       "段を進めても値は変わらない",
+      // 線が伸びる図 (#1312)。 値の動きと別軸なので 3 種それぞれに対がある
+      "段の中で線が左から伸び、値も連続して動く",
+      "段の中で線が左から伸び、段の切替で値が一度に変わる",
+      "段の中で線が左から伸びる",
     ]);
     const bad: string[] = [];
     for (const { where, name, diagram } of items) {
