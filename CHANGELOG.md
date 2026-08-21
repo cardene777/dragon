@@ -42,6 +42,15 @@ dragon DSL の主要変更履歴。
   `chart-line-draw.spec.ts` だけが自前で `SPA_URL` を読んでいたため、**同じ回の検査が 2 つの
   server に分かれていた**。 設定側に移し、spec からは相対 path で書くようにした。
 
+  URL を自分で持っていた 12 spec も相対 path に直した。 内訳は固定値が 8 件、
+  `AI_VERIFY_BASE_URL` で `baseURL` を上書きしていたものが 3 件、`PROD_BASE_URL` の名前で
+  dev server を指していたものが 1 件。 `scripts/test-editor-dashboard.sh` は
+  `AI_VERIFY_BASE_URL` を受け取る口を保ったまま、spec へは `SPA_URL` として渡す。
+
+  同じ形が戻らないよう、**dev server を見る spec が URL を自分で持たない**ことを見る検査を
+  足した。 本番 build の preview を見る 3 件だけを名指しで除き、その 3 件が実在することも
+  併せて確かめる (名指しが実物からずれると対象が静かに減るため)。
+
 ## [0.9.0] - 2026-08-21
 
 `v0.8.0` の tag を打った後も `[0.8.0]` の節に書き足していたため、**公開済の `0.8.0` に

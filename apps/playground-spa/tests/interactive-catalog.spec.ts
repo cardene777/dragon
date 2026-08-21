@@ -10,11 +10,9 @@
  */
 import { test, expect } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
-
 test.describe("interactive catalog category (CAR #231)", () => {
   test("interactive category が catalog top に表示される", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog`, { waitUntil: "networkidle" });
+    await page.goto("/catalog", { waitUntil: "networkidle" });
     await page.waitForTimeout(500);
     // interactive category card は JA label 「インタラクティブ」 (`src/lib/catalog.ts § CATEGORIES`
     // + `pages/CatalogIndexPage.tsx § category name`)、 URL 経路で確実に hit
@@ -23,7 +21,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
   });
 
   test("interactive category page で 4 例が全て render される", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     // 4 diagram の title 相当 label が表示 (JA)
     for (const label of ["スライダー入力が説明欄に反映", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"]) {
@@ -32,7 +30,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
   });
 
   test("各 example の SVG preview が sidebar 選択で表示される", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     // 各 example を sidebar で選択して preview area の SVG を verify する
@@ -49,7 +47,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
   });
 
   test("domain-neutral: catalog 内に crypto / finance 系 domain 語彙が含まれない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     const bodyText = await page.locator("body").innerText();
     // domain 特化語 (crypto / chain / gas / merkle) が interactive category 内に出ないこと

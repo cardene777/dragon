@@ -8,6 +8,7 @@
 # 前提:
 #   - dev server (localhost:4323) 起動済
 #   - AI_VERIFY_BASE_URL env 変数で URL override 可 (default localhost:4323)
+#     spec 側へは `SPA_URL` として渡す = 見に行く先は playwright.config.ts が 1 箇所で持つ
 
 set -e
 set -o pipefail
@@ -129,7 +130,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   for group in A B; do
     declare -n specs="L3_GROUP_$group"
     echo "  --- group $group (${#specs[@]} spec) ---"
-    if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test "${specs[@]}" --reporter=list --timeout=45000 2>&1 | tee -a "$LOG_DIR/editor-test-l3.log"; then
+    if SPA_URL="$BASE_URL" npx playwright test "${specs[@]}" --reporter=list --timeout=45000 2>&1 | tee -a "$LOG_DIR/editor-test-l3.log"; then
       :
     else
       RESULT_L3="fail"
@@ -144,7 +145,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "4" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 4 = visual regression (4 baseline snapshot)"
   echo "───────────────────────────────────────────────────────────"
-  if AI_VERIFY_BASE_URL="$BASE_URL" npx playwright test tests/editor-visual.spec.ts --reporter=list --timeout=60000 2>&1 | tee "$LOG_DIR/editor-test-l4.log"; then
+  if SPA_URL="$BASE_URL" npx playwright test tests/editor-visual.spec.ts --reporter=list --timeout=60000 2>&1 | tee "$LOG_DIR/editor-test-l4.log"; then
     RESULT_L4="pass"
   else
     RESULT_L4="fail"

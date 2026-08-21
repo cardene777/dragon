@@ -6,7 +6,6 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
 const NOTES = [
   "段の中で値が連続して動く",
   "段の切替で値が一度に変わる",
@@ -14,7 +13,7 @@ const NOTES = [
 ];
 
 async function openItem(page: Page, category: string, label: string): Promise<void> {
-  await page.goto(`${SPA_URL}/catalog/${category}`, { waitUntil: "networkidle" });
+  await page.goto(`/catalog/${category}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
   await page.locator("aside.catalog-sidebar").getByText(label, { exact: false }).first().click();
   await page.waitForTimeout(500);
@@ -36,7 +35,7 @@ test.describe("動きの記述の表示 (#1053)", () => {
   });
 
   test("preset 詳細でも一文が出る", async ({ page }) => {
-    await page.goto(`${SPA_URL}/preset/swimlane`, { waitUntil: "networkidle" });
+    await page.goto("/preset/swimlane", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
     const note = (await page.locator(".nm-hero-motion").first().textContent())?.trim();
     expect(NOTES, `preset 詳細の一文が想定外: ${note}`).toContain(note);

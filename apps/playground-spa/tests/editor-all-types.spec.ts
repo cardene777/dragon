@@ -8,8 +8,7 @@ import { test, expect } from "@playwright/test";
  * sample を順に開いて、 選択 / 移動 / 図の倍率 / 文字倍率 の 4 操作を全 type で確認する。
  */
 
-const BASE_URL = process.env.AI_VERIFY_BASE_URL ?? "http://localhost:4323";
-test.use({ baseURL: BASE_URL, viewport: { width: 1920, height: 1080 } });
+test.use({ viewport: { width: 1920, height: 1080 } });
 
 /** sidebar の「サンプル」 tab から slug 指定で開く。 */
 async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {

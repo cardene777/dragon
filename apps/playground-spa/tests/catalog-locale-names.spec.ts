@@ -8,8 +8,6 @@
  */
 import { test, expect } from "@playwright/test";
 
-const SPA_URL = "http://localhost:4323";
-
 /**
  * 表示名の表に載っている名前 (= 一覧に出てよい名前)。
  *
@@ -27,7 +25,7 @@ const ALLOWED_EN = new Set(Object.values(ITEM_NAME_EN));
 
 test.describe("catalog の一覧の名前 (#1035)", () => {
   test("言語を切り替えると一覧の名前が変わる", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     const first = page.locator(".catalog-list-item-name").first();
@@ -42,7 +40,7 @@ test.describe("catalog の一覧の名前 (#1035)", () => {
   });
 
   test("英語表示で export 名がそのまま出ない", async ({ page }) => {
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.locator("button.v4-nav-lang-toggle").click();
     await page.waitForTimeout(500);
@@ -58,7 +56,7 @@ test.describe("catalog の一覧の名前 (#1035)", () => {
 
   test("日本語表示でも export 名がそのまま出ない", async ({ page }) => {
     // 英語名を足す際に日本語側を壊していないことを見る
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     const names = (await page.locator(".catalog-list-item-name").allTextContents())
@@ -73,7 +71,7 @@ test.describe("catalog の一覧の名前 (#1035)", () => {
   test("英語表示の名前で検索できる", async ({ page }) => {
     // 一覧に出す名前と、検索が見る名前がずれていると、見えているものを打っても消える
     // (実測 = 検索は日本語名だけを見ており、英語で見えている名前を打つと 0 件になった)
-    await page.goto(`${SPA_URL}/catalog/interactive`, { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.locator("button.v4-nav-lang-toggle").click();
     await page.waitForTimeout(500);
