@@ -528,6 +528,35 @@ export const 欄の型表 = {
 };
 
 /**
+ * 色番号の形 (#1304)。 公開 schema の `pattern` と同じ形を実装側でも 1 箇所に持つ。
+ *
+ * 受けるのは 3 / 4 / 6 / 8 桁 (`#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`)。 5 桁や 7 桁は
+ * CSS の色として成立しないため通さない。
+ */
+const 色番号の形 = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+/**
+ * JSON で色名として受ける値か (#1304、 review Round 2 の指摘)。
+ *
+ * **記法の `resolveTone` は通さない**。 あちらは前後の空白と引用符を落として小文字に寄せるが、
+ * それは記法の本文から語を切り出すために要る処理で、JSON には要らない。 JSON の値は既に
+ * 切り出された文字列なので、`" success "` や `"\"success\""` は書き手の意図ではなく
+ * 記法の癖が漏れた形になる。
+ *
+ * 公開 schema は色名を `enum` で宣言する。 `enum` は完全一致なので、**parser 側も完全一致に
+ * 揃える**。 揃えないと「schema が拒む値を parser が受ける」 ずれが残り、本 file が閉じようと
+ * している宣言と実装の食い違いを別の形で作ることになる。
+ *
+ * 揃え方は 2 通りあった。 schema を parser に合わせて広げる案は、大文字小文字と空白と引用符を
+ * `pattern` で書くことになり、**色名の一覧が `enum` と `pattern` の 2 か所に写る**。 色が増えた
+ * 時に片方だけ直る形を作るため採らなかった。 同じ理由で、この判定は `tone` (箱と矢印) と
+ * `color` の 3 欄すべてが共有する。
+ */
+function JSONの色名か(v: string): boolean {
+  return 書ける色名().includes(v);
+}
+
+/**
  * 表に沿って 1 つの欄の値を見る (#1304)。
  *
  * `名前` は知らせの文に出す欄の呼び名 (`actor.tone` / `viewport.width`)。 `path` は直す場所を
@@ -603,13 +632,12 @@ function 値を検査(
         型違い("a color name if present");
         return;
       }
-      // 別名 (`成功` / `neutral`) も受ける。 記法と同じ判定を通す = 同じ値が入口によって
-      // 通ったり落ちたりする状態を作らない
-      if (resolveTone(v) === undefined) {
+      // 別名 (`成功` / `neutral`) も受ける。 一覧は engine から取る
+      if (!JSONの色名か(v)) {
         errors.push({
           path,
           message: `${名前} must be a known color name`,
-          hint: `使える値 = ${書ける色名().join(", ")} (got "${v}")`,
+          hint: `使える値 = ${書ける色名().join(", ")} (got ${JSON.stringify(v)})`,
         });
       }
       return;
@@ -630,21 +658,21 @@ function 値を検査(
         return;
       }
       // 振り分けは記法と同じ (`splitColorValue`)。 `#` で始まれば色番号、それ以外は色の名前
-      if (v.trim().startsWith("#")) {
-        if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v.trim())) {
+      if (v.startsWith("#")) {
+        if (!色番号の形.test(v)) {
           errors.push({
             path,
             message: `${名前} must be a #hex color`,
-            hint: `\`#f59e0b\` の形で書く (got "${v}")`,
+            hint: `\`#f59e0b\` の形で書く (got ${JSON.stringify(v)})`,
           });
         }
         return;
       }
-      if (resolveTone(v) === undefined) {
+      if (!JSONの色名か(v)) {
         errors.push({
           path,
           message: `${名前} must be a known color name or a #hex value`,
-          hint: `使える値 = ${書ける色名().join(", ")} / \`#f59e0b\` (got "${v}")`,
+          hint: `使える値 = ${書ける色名().join(", ")} / \`#f59e0b\` (got ${JSON.stringify(v)})`,
         });
       }
       return;

@@ -280,16 +280,59 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
     expect([...(step.tone.enum as string[])].sort(), "矢印").toEqual(実装);
   });
 
-  it("color の色名と色番号が parser の受理範囲と一致する", () => {
-    // parser は #1304 で任意の文字列を受けなくなった。 schema が `type: string` だけのままだと、
-    // structured output が作った値を jsonToDiagram が後から拒み、schema を入口にする意味がない
-    const [色名, 色番号] = actor.color.anyOf as Array<{ enum?: string[]; pattern?: string }>;
-    expect([...(色名?.enum ?? [])].sort(), "色名").toEqual([...書ける色名()].sort());
+  it("色を受ける 3 欄で、schema が受ける値と parser が受ける値が一致する", () => {
+    // 本 PR は parser を狭めた。 schema を `type: string` のままにすると、schema が許した値を
+    // parser が後から拒む = schema を入口にする意味が消える (review Round 1 の指摘)。
+    //
+    // 逆向きのずれも見る。 記法の `resolveTone` は前後の空白と引用符を落として小文字に寄せる
+    // ため、それを JSON でも通すと schema の `enum` が拒む値を parser が受ける
+    // (review Round 2 の指摘)。 JSON 側は完全一致に揃えてある。
+    const 欄 = [
+      { 名: "箱の tone", schema: actor.tone, 置く: (v: string) => ({ actors: [{ name: "A", tone: v }, { name: "B" }] }) },
+      { 名: "矢印の tone", schema: step.tone, 置く: (v: string) => ({ flow: [{ from: "A", to: "B", label: "x", tone: v }] }) },
+      { 名: "箱の color", schema: actor.color, 置く: (v: string) => ({ actors: [{ name: "A", color: v }, { name: "B" }] }) },
+    ];
+
+    const schemaが受ける = (定義: { enum?: string[]; anyOf?: Array<{ enum?: string[]; pattern?: string }> }, v: string): boolean => {
+      const 選択肢 = 定義.anyOf ?? [定義];
+      return 選択肢.some(
+        (o) => o.enum?.includes(v) === true || (o.pattern !== undefined && new RegExp(o.pattern).test(v)),
+      );
+    };
+
+    // 値は型から導く = 手で並べると色が増えた時に取り残される。 崩し方 (大文字 / 前後の空白 /
+    // 引用符) は記法の `resolveTone` が落とす 3 種で、JSON では受けないことを見る
+    const 色名 = 書ける色名();
+    const 値 = [
+      ...色名,
+      ...色名.flatMap((v) => [v.toUpperCase(), ` ${v} `, `"${v}"`, `'${v}'`]),
+      "#fff", "#ffff", "#f59e0b", "#f59e0bcc", "#F59E0B", " #fff ",
+      "bogus", "#zzz", "#12345", "#", "#1234567", "x#fff", "#fffz", "",
+    ];
+
+    let 測れた = 0;
+    const 食い違い: string[] = [];
+    for (const { 名, schema: 定義, 置く } of 欄) {
+      for (const v of 値) {
+        測れた += 1;
+        const parserが受ける = validateDragonJson(図(置く(v))).ok;
+        if (schemaが受ける(定義, v) !== parserが受ける) {
+          食い違い.push(`${名}: ${JSON.stringify(v)} (schema=${!parserが受ける} parser=${parserが受ける})`);
+        }
+      }
+    }
+    expect(測れた, "1 件も測れていない (検査が空振りしている)").toBe(欄.length * 値.length);
+    expect(食い違い, "schema と parser が別の値を受ける").toEqual([]);
+  });
+
+  it("色番号の形は 3 / 4 / 6 / 8 桁だけを受ける", () => {
+    // 一致だけを見ると、両方が同時に緩い形も通る。 受ける値そのものを固定する
+    const 色番号 = (actor.color.anyOf as Array<{ pattern?: string }>).find((o) => o.pattern !== undefined);
     const pattern = new RegExp(色番号?.pattern ?? "(?!)");
     for (const v of ["#fff", "#ffff", "#f59e0b", "#f59e0bcc", "#F59E0B"]) {
       expect(pattern.test(v), v).toBe(true);
     }
-    for (const v of ["bogus", "#zzz", "#12345", "#", "#1234567"]) {
+    for (const v of ["bogus", "#zzz", "#12345", "#", "#1234567", " #fff "]) {
       expect(pattern.test(v), v).toBe(false);
     }
   });
