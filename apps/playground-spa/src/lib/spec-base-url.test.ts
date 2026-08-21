@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -29,18 +30,56 @@ const TESTS_DIR = join(import.meta.dirname, "../../tests");
  */
 const 本番を見る検査 = new Set(["a11y-check.spec.ts", "final-check.spec.ts", "prod-check.spec.ts"]);
 
+const URLを自分で持つ文字列 =
+  /https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?|process\.env\.[A-Z0-9_]*URL\b/u;
+
+const baseURL名か = (name: ts.PropertyName) => {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) return name.text === "baseURL";
+  return ts.isComputedPropertyName(name) && ts.isStringLiteral(name.expression) && name.expression.text === "baseURL";
+};
+
+const testUseか = (call: ts.CallExpression) =>
+  ts.isPropertyAccessExpression(call.expression) &&
+  ts.isIdentifier(call.expression.expression) &&
+  call.expression.expression.text === "test" &&
+  call.expression.name.text === "use";
+
 /**
  * spec が見に行く先を自分で持っている記述。
  *
- * 短縮記法 (`test.use({ baseURL })`) は `test.use` の中に限る。 限らないと、Playwright が
- * 渡す `baseURL` を受け取るだけの `async ({ page, baseURL })` まで拾う = 設定側の値を読む
- * 正当な形を誤って止める。
+ * `baseURL: ...` は object property の時だけ拾う。 text の並びだけで判定すると、Playwright が
+ * 渡す値の別名 destructuring (`async ({ baseURL: serverURL })`) まで上書きと誤認する。
  *
- * 入れ子を 1 段だけ跨げるようにしてある。 `[^{}]*` だけだと
- * `test.use({ viewport: { ... }, baseURL })` の形で内側の `}` に当たって止まり、素通しする。
+ * 短縮記法 (`test.use({ baseURL })`) は `test.use` の直下だけを見る。 AST で object を辿るため、
+ * その前に何段の入れ子があっても外側の `}` までの正規表現を組み立てる必要がない。
  */
-const URLを自分で持つ記述 =
-  /https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?|process\.env\.[A-Z0-9_]*URL\b|\bbaseURL\s*:|\btest\.use\s*\(\s*\{(?:[^{}]|\{[^{}]*\})*\bbaseURL\s*(?=[,}])/u;
+const URLを自分で持つ記述か = (src: string) => {
+  if (URLを自分で持つ文字列.test(src)) return true;
+
+  const source = ts.createSourceFile("candidate.spec.ts", src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let 見つけた = false;
+  const visit = (node: ts.Node) => {
+    if (見つけた) return;
+    if (ts.isPropertyAssignment(node) && baseURL名か(node.name)) {
+      見つけた = true;
+      return;
+    }
+    if (ts.isCallExpression(node) && testUseか(node)) {
+      const options = node.arguments[0];
+      if (
+        options &&
+        ts.isObjectLiteralExpression(options) &&
+        options.properties.some((property) => ts.isShorthandPropertyAssignment(property) && property.name.text === "baseURL")
+      ) {
+        見つけた = true;
+        return;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return 見つけた;
+};
 
 const specFilesを列挙 = (dir: string) =>
   readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".spec.ts"));
@@ -67,7 +106,7 @@ describe("画面の検査が見に行く先", () => {
       if (本番を見る検査か(f)) continue;
       const src = readFileSync(join(TESTS_DIR, f), "utf8");
       読めた += 1;
-      if (URLを自分で持つ記述.test(src)) 持っている.push(f);
+      if (URLを自分で持つ記述か(src)) 持っている.push(f);
     }
     expect(読めた, "dev server を見る spec を 1 つも読めていない").toBeGreaterThan(0);
     expect(持っている, "spec が URL を自分で持つと SPA_URL で別 server に分かれる").toEqual([]);
@@ -80,15 +119,25 @@ describe("画面の検査が見に行く先", () => {
       "const BASE = process.env.AI_VERIFY_BASE_URL;", // env だけ
       "test.use({ baseURL: SERVER });", // baseURL 上書きだけ
       "test.use({ baseURL });", // baseURL 短縮記法だけ
-      "test.use({ viewport: { width: 1920, height: 1080 }, baseURL });", // 入れ子の後ろの短縮記法
+      "test.use({ storageState: { cookies: [{ name: 'sid' }], origins: [] }, baseURL });", // 深い入れ子の後ろ
       'page.goto("http://localhost:4323/editor");', // 直書きだけ
     ]) {
-      expect(URLを自分で持つ記述.test(src), src).toBe(true);
+      expect(URLを自分で持つ記述か(src), src).toBe(true);
     }
-    expect(URLを自分で持つ記述.test('page.goto("/editor");'), "相対 path を誤検出する").toBe(false);
+    expect(URLを自分で持つ記述か('page.goto("/editor");'), "相対 path を誤検出する").toBe(false);
     expect(
-      URLを自分で持つ記述.test("test('uses config', async ({ page, baseURL }) => {});"),
+      URLを自分で持つ記述か("test('uses config', async ({ page, baseURL }) => {});"),
       "config の baseURL fixture を誤検出する",
+    ).toBe(false);
+    expect(
+      URLを自分で持つ記述か("test('aliases config', async ({ baseURL: serverURL }) => {});"),
+      "別名で受け取る baseURL fixture を誤検出する",
+    ).toBe(false);
+    // 短縮記法を上書きとみなすのは `test.use` に渡した時だけ。 他の呼出に同じ名前で
+    // 渡すのは、設定側から受け取った値をそのまま流す形で、自分で持っているわけではない
+    expect(
+      URLを自分で持つ記述か("const ctx = await browser.newContext({ baseURL });"),
+      "設定側の値を流すだけの短縮記法を誤検出する",
     ).toBe(false);
   });
 
