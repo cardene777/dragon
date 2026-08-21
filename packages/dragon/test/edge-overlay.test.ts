@@ -199,7 +199,7 @@ flow:
       });
     });
 
-    it("読めない値は書かなかった扱いになる", () => {
+    it("読めない値は誤りとして知らせる (#1306)", () => {
       const yaml = `title: "t"
 type: flow
 
@@ -210,9 +210,15 @@ actors:
 flow:
   - A -> B: "x" { overlay: maybe }
 `;
-      // 真偽として読めない語は落とす。 真に倒すと、綴りを間違えた時に
-      // 書いていない指定が効く
-      expect(矢印(yaml)[0]?.overlay).toBeUndefined();
+      // 真偽として読めない語を真に倒すと、綴りを間違えた時に書いていない指定が効く。
+      // かといって黙って落とすと、書いた人には「書いたのに重ならない」 としか見えない。
+      // 行番号付きで知らせる (#1306)
+      const r = parseTextDslV05(yaml);
+      expect(r.ok, "読めない値が通ってしまう").toBe(false);
+      if (r.ok) return;
+      expect(r.errors.map((e) => e.message)).toContain('矢印の overlay は true か false で書きます: "maybe"');
+      expect(r.errors[0]?.hint).toBe("使える値 = true, false");
+      expect(r.errors[0]?.line, "書いた行を指す").toBe(9);
     });
   });
 

@@ -442,14 +442,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       if (inline && inline.startsWith("{") && inline.endsWith("}")) {
         const opts = parseInlineMapping(inline.slice(1, -1));
         viewport = {
-          width: numberOrUndef(opts.width),
-          height: numberOrUndef(opts.height),
-          laneWidth: numberOrUndef(opts.laneWidth),
-          gap: numberOrUndef(opts.gap),
-          laneGap: numberOrUndef(opts.laneGap),
-          nodeGap: numberOrUndef(opts.nodeGap),
-          scale: numberOrUndef(opts.scale),
-          labelMargin: numberOrUndef(opts.labelMargin),
+          ...表で読む(VIEWPORT_VALUE_KINDS, opts, "viewport の ", line.no, errors),
           pos: { line: line.no },
         };
         i += 1;
@@ -458,19 +451,24 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // block: viewport:\n  width: 1400\n  height: 900\n  ...
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       const opts: Record<string, string> = {};
+      // 知らせは **値を書いた行** を指す (#1306)。 `viewport:` の行を指すと、欄が縦に並ぶ形で
+      // どの行を直せばよいか分からない
+      const optLines: Record<string, number> = {};
       for (const it of items) {
         const m = it.trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.+)$/);
-        if (m) opts[m[1]!] = stripQuotes(m[2]!.trim());
+        if (!m) continue;
+        const 欄 = m[1] ?? "";
+        opts[欄] = stripQuotes((m[2] ?? "").trim());
+        optLines[欄] = it.no;
       }
       viewport = {
-        width: numberOrUndef(opts.width),
-        height: numberOrUndef(opts.height),
-        laneWidth: numberOrUndef(opts.laneWidth),
-        gap: numberOrUndef(opts.gap),
-        laneGap: numberOrUndef(opts.laneGap),
-        nodeGap: numberOrUndef(opts.nodeGap),
-        scale: numberOrUndef(opts.scale),
-        labelMargin: numberOrUndef(opts.labelMargin),
+        ...表で読む(
+          VIEWPORT_VALUE_KINDS,
+          opts,
+          "viewport の ",
+          (欄) => optLines[欄] ?? line.no,
+          errors,
+        ),
         pos: { line: line.no },
       };
       i = next;
@@ -526,11 +524,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
           const opts = parseInlineMapping(m[2]!);
           lanesMap[id] = {
             id,
-            x: numberOrUndef(opts.x),
-            width: numberOrUndef(opts.width),
+            ...表で読む(LANE_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
             label: opts.label,
-            contain: boolOrUndef(opts.contain),
-            lifeline: boolOrUndef(opts.lifeline),
             pos: { line: it.no },
           };
         } else {
@@ -737,7 +732,7 @@ type ActorValues = {
  * 振り分けは値の形で決まる。 引用符付きは補足 (2 つ目は値)、 角括弧は行、 色名は色、
  * 残りが種類。 形が違うので取り違えない。
  */
-function classifyValues(values: string[]): ActorValues {
+function classifyValues(values: string[], line: number, errors: DslError[]): ActorValues {
   const out: ActorValues = { kind: "" };
   /** 書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
   const scaleWritten = new Map<string, string>();
@@ -792,7 +787,7 @@ function classifyValues(values: string[]): ActorValues {
     kindWords.push(v);
   }
   out.kind = kindWords.join(" ").toLowerCase();
-  const s = resolveScale(scaleWritten);
+  const s = resolveScale(scaleWritten, line, errors);
   out.scale = s.scale;
   out.scaleKeys = s.keys;
   return out;
@@ -823,6 +818,157 @@ function boolOrUndef(s: string | undefined): boolean | undefined {
   if (lower === "false") return false;
   return undefined;
 }
+
+/**
+ * 欄が期待する値の形 (#1306)。
+ *
+ * 記法の値はすべて文字列なので「型」 は無いが、**欄ごとに読める形は決まっている**
+ * (`posX` は数、`overlay` は真偽)。 その形を表に並べ、読めない値を行番号付きで知らせる。
+ */
+type 値の形 = "数" | "真偽";
+
+/** 表から作る、欄の名前と読んだ結果の対応 */
+type 読んだ結果<T extends Record<string, 値の形>> = {
+  [K in keyof T]: T[K] extends "数" ? number | undefined : boolean | undefined;
+};
+
+/**
+ * 数として読む。 読めない値は行番号付きで知らせる (#1306)。
+ *
+ * `numberOrUndef` は読めない値を黙って `undefined` に落とすため、書いた欄が無かったことに
+ * なる。 誤りも警告も出ないので、書いた人には「書いたのに図が変わらない」 としか見えない。
+ *
+ * 値を書かなかった形 (`posX:` の右が空) は「書かなかった」 と同じ扱いのままにする。
+ * こちらは黙って消えているわけではなく、書いていないものが効かないだけ。
+ */
+function 数として読む(
+  raw: string | undefined,
+  欄: string,
+  line: number,
+  errors: DslError[],
+): number | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  const n = numberOrUndef(raw);
+  if (n !== undefined) return n;
+  errors.push({
+    line,
+    message: `${欄} は数で書きます: "${raw}"`,
+    hint: "`300` / `-8` / `1.5` の形で書く",
+  });
+  return undefined;
+}
+
+/**
+ * 真偽として読む。 読めない値は行番号付きで知らせる (#1306)。
+ *
+ * 受けるのは `true` と `false` だけ。 `yes` / `1` / `はい` は読めないため、使える値を
+ * 添えて知らせる (読めない値を捨てるだけだと、別の綴りを試し続けることになる)。
+ */
+function 真偽として読む(
+  raw: string | undefined,
+  欄: string,
+  line: number,
+  errors: DslError[],
+): boolean | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  const b = boolOrUndef(raw);
+  if (b !== undefined) return b;
+  errors.push({
+    line,
+    message: `${欄} は true か false で書きます: "${raw}"`,
+    hint: "使える値 = true, false",
+  });
+  return undefined;
+}
+
+/**
+ * 表に並べた欄をまとめて読む (#1306)。
+ *
+ * **呼出側に欄名を並べない**。 並べると欄を足した時に知らせだけが漏れる (JSON 入口が
+ * #1304 で踏んだ形と同じ)。 表を 1 つ置き、読む側も検査もそこから導く。
+ *
+ * `接頭` は知らせに出す欄の呼び名の前半 (`viewport.` / `縦列 l1 の `)。 同じ欄名が別の
+ * 場所に出る (`width` は図全体と縦列、`posX` は箱と箱の中の要素) ため、どこの欄かが
+ * 分かる形にする。
+ */
+function 表で読む<T extends Record<string, 値の形>>(
+  表: T,
+  opts: Record<string, string | undefined>,
+  接頭: string,
+  // 欄ごとに行が違う書き方 (縦に並べる形) では関数で渡す。 1 行に収まる書き方 (中括弧) は数で渡す
+  line: number | ((欄: string) => number),
+  errors: DslError[],
+): 読んだ結果<T> {
+  const out: Record<string, number | boolean | undefined> = {};
+  const 行を引く = (欄: string): number => (typeof line === "number" ? line : line(欄));
+  for (const [欄, 形] of Object.entries<値の形>(表)) {
+    out[欄] =
+      形 === "数"
+        ? 数として読む(opts[欄], `${接頭}${欄}`, 行を引く(欄), errors)
+        : 真偽として読む(opts[欄], `${接頭}${欄}`, 行を引く(欄), errors);
+  }
+  return out as 読んだ結果<T>;
+}
+
+/**
+ * 図全体の大きさと間隔の欄 (#1306)。 `DslViewport` の数の欄をすべて覆う。
+ *
+ * `satisfies` で `DslViewport` から欄を導く = 欄を足して表に書き忘れると型検査が落ちる。
+ */
+export const VIEWPORT_VALUE_KINDS = {
+  width: "数",
+  height: "数",
+  scale: "数",
+  laneWidth: "数",
+  gap: "数",
+  laneGap: "数",
+  nodeGap: "数",
+  labelMargin: "数",
+} as const satisfies Record<Exclude<keyof DslViewport, "pos">, 値の形>;
+
+/**
+ * 縦列の欄 (#1306)。 `label` は文字列なので表に載せない (記法の値は全て文字列で、
+ * 文字列の欄には読めない値という状態が無い)。
+ */
+export const LANE_VALUE_KINDS = {
+  x: "数",
+  width: "数",
+  contain: "真偽",
+  lifeline: "真偽",
+} as const satisfies Record<string, 値の形>;
+
+/** 箱の中の要素の欄 (#1306)。 `DslActorNodeOverride` の全欄を覆う */
+export const ACTOR_NODE_VALUE_KINDS = {
+  posX: "数",
+  posY: "数",
+  posW: "数",
+  posH: "数",
+} as const satisfies Record<keyof DslActorNodeOverride, 値の形>;
+
+/** 中括弧の形で箱に書ける、数と真偽の欄 (#1306) */
+export const ACTOR_INLINE_VALUE_KINDS = {
+  stack: "数",
+  initial: "真偽",
+  final: "真偽",
+  posX: "数",
+  posY: "数",
+  posW: "数",
+  posH: "数",
+} as const satisfies Record<string, 値の形>;
+
+/** 縦に並べる形で箱に書ける、数と真偽の欄 (#1306)。 `posW` / `posH` は `大きさ:` が受ける */
+export const ACTOR_BLOCK_VALUE_KINDS = {
+  stack: "数",
+  posX: "数",
+  posY: "数",
+} as const satisfies Record<string, 値の形>;
+
+/** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
+export const FLOW_INLINE_VALUE_KINDS = {
+  labelOffsetX: "数",
+  labelOffsetY: "数",
+  overlay: "真偽",
+} as const satisfies Record<string, 値の形>;
 
 /**
  * 色名を解決する。 別名 (`成功` / `neutral` 等) も受け付ける。
@@ -1052,11 +1198,20 @@ const SCALE_ORDER = ["scale", "倍率"] as const;
  * `keys` は書かれた名前そのもの。 値が読めたかに関わらず入る。 見本が同じ名前の状態を
  * 持つ時の知らせ (`scale-reserved`) が、値の読めなさに左右されないようにするため。
  */
-function resolveScale(written: Map<string, string>): { scale?: number; keys: string[] } {
+function resolveScale(
+  written: Map<string, string>,
+  line: number | ((key: string) => number),
+  errors: DslError[],
+): { scale?: number; keys: string[] } {
   const keys = [...written.keys()];
   for (const key of SCALE_ORDER) {
     const raw = written.get(key);
-    if (raw !== undefined) return { scale: numberOrUndef(raw), keys };
+    // 読めない値は黙って捨てず知らせる (#1306)。 書かれた名前 (`keys`) は値の読めなさに
+    // 関わらず残す = 見本が同じ名前の状態を持つ時の知らせが消えないようにするため
+    if (raw !== undefined) {
+      const 当該行 = typeof line === "number" ? line : line(key);
+      return { scale: 数として読む(raw, `箱の ${key}`, 当該行, errors), keys };
+    }
   }
   return { keys };
 }
@@ -1073,6 +1228,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   let touchedState = false;
   /** 縦に並べて書かれた倍率。 同じ名前が 2 度出たら後の値で上書きする */
   const scaleWritten = new Map<string, string>();
+  /** 倍率を名前ごとに最後に書いた行。 別名の優先順と行番号を取り違えないために保持する。 */
+  const scaleLines = new Map<string, number>();
   /**
    * 縦に並べて書かれた体験の道筋の欄 (#1251)。
    *
@@ -1093,6 +1250,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     // 予約の知らせが消え、別名 (`倍率`) に降りて別の値が効いてしまう
     if (SCALE_KEYS.has(key)) {
       scaleWritten.set(key, stripQuotes(raw));
+      scaleLines.set(key, ln.no);
       unknownKeys.push({ key, line: ln.no });
       continue;
     }
@@ -1178,10 +1336,10 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         break;
       }
       case "posX":
-        out.posX = numberOrUndef(raw);
+        out.posX = 数として読む(raw, "箱の posX", ln.no, errors);
         break;
       case "posY":
-        out.posY = numberOrUndef(raw);
+        out.posY = 数として読む(raw, "箱の posY", ln.no, errors);
         break;
       case "大きさ":
       case "size": {
@@ -1215,7 +1373,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         out.lane = stripQuotes(raw);
         break;
       case "stack":
-        out.stack = numberOrUndef(raw);
+        out.stack = 数として読む(raw, "箱の stack", ln.no, errors);
         break;
       default:
         // 残りはパーツの状態の上書き
@@ -1228,7 +1386,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   // 名前の行と縦に並べた行の両方に倍率がある形では、後に書いた縦の行を採る。
   // 知らせ (`scale-reserved`) は書かれた名前をすべて見るので、名前だけは足し合わせる
   if (scaleWritten.size > 0) {
-    const s = resolveScale(scaleWritten);
+    const s = resolveScale(
+      scaleWritten,
+      (key) => scaleLines.get(key) ?? actor.pos.line,
+      errors,
+    );
     out.scale = s.scale;
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
@@ -1487,6 +1649,8 @@ function extractStateOverride(
  */
 function parseActorNodesField(
   raw: string | undefined,
+  line: number,
+  errors: DslError[],
 ): Record<string, DslActorNodeOverride> | undefined {
   if (!raw) return undefined;
   const trimmed = raw.trim();
@@ -1517,12 +1681,7 @@ function parseActorNodesField(
     const val = p.slice(colonIdx + 1).trim();
     if (!key || !val.startsWith("{") || !val.endsWith("}")) continue;
     const nodeOpts = parseInlineMapping(val.slice(1, -1));
-    out[key] = {
-      posX: numberOrUndef(nodeOpts.posX),
-      posY: numberOrUndef(nodeOpts.posY),
-      posW: numberOrUndef(nodeOpts.posW),
-      posH: numberOrUndef(nodeOpts.posH),
-    };
+    out[key] = 表で読む(ACTOR_NODE_VALUE_KINDS, nodeOpts, `nodes の ${key} の `, line, errors);
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
@@ -1640,9 +1799,11 @@ const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
-  labelOffsetX: (v: string | undefined) => numberOrUndef(v),
-  labelOffsetY: (v: string | undefined) => numberOrUndef(v),
-  overlay: (v: string | undefined) => boolOrUndef(v),
+  // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
+  // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
+  labelOffsetX: null,
+  labelOffsetY: null,
+  overlay: null,
 } as const;
 
 /** 矢印の中括弧に書ける欄の名前。 README の一覧と突き合わせる (#1275) */
@@ -1710,7 +1871,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     const isPart = kindRaw !== "" && !NODE_KIND_VALID.has(kindRaw);
     // 倍率はパーツにしか効かない。 書いたのに効かない状態を黙って作らない (#1026)。
     // 値が空の形でも名前を残すため、`opts` ではなく中身から直接拾う
-    const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner));
+    const inlineScale = resolveScale(writtenScaleFields(mapMatch.inner), line.no, errors);
     reportScaleOnNonPart(isPart, inlineScale.keys[0], line.no, errors);
     // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
     reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
@@ -1746,23 +1907,17 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
             .filter(Boolean)
         : undefined,
       lane: opts.lane,
-      stack: numberOrUndef(opts.stack),
-      initial: boolOrUndef(opts.initial),
-      final: boolOrUndef(opts.final),
+      ...表で読む(ACTOR_INLINE_VALUE_KINDS, opts, "箱の ", line.no, errors),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
       tone: isPart ? undefined : resolveTone(opts.tone),
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
-      // canvas pivot 新 spec = 絶対座標 field を actor に格納、 compile 経由で CDL に受け渡す
-      posX: numberOrUndef(opts.posX),
-      posY: numberOrUndef(opts.posY),
-      posW: numberOrUndef(opts.posW),
-      posH: numberOrUndef(opts.posH),
+      // canvas pivot 新 spec = 絶対座標 field は `ACTOR_INLINE_VALUE_KINDS` の表が読む (#1306)
       // 図形の倍率 (#1026)。 どれが効くかは `resolveScale` が 1 箇所で決める
       scale: inlineScale.scale,
       scaleKeys: inlineScale.keys.length ? inlineScale.keys : undefined,
       // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
-      nodes: parseActorNodesField(opts.nodes),
+      nodes: parseActorNodesField(opts.nodes, line.no, errors),
       pos: { line: line.no },
     };
   }
@@ -1777,7 +1932,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     //
     // 値は形で見分ける。 引用符付きは補足、 角括弧は行、 色名は色、 残りが種類。
     // 種類と色は語の集合が閉じているので取り違えない。
-    const v = classifyValues(splitValues(rest));
+    const v = classifyValues(splitValues(rest), line.no, errors);
 
     // CAR-1657 = short form (`arc1: arc-gauge`) でも parts kind 対応、 未知 kind は partId 経路
     const isPart = v.kind !== "" && !NODE_KIND_VALID.has(v.kind);
@@ -1831,17 +1986,23 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const 中括弧: Partial<Record<keyof typeof FLOW_INLINE_READERS, unknown>> = {};
   // inline option (`{ ... }`) を末尾から抽出
   const mapMatch = rest.match(/\s*\{([^}]*)\}\s*$/);
+  let 数と真偽: 読んだ結果<typeof FLOW_INLINE_VALUE_KINDS> | undefined;
   if (mapMatch) {
     const opts = parseInlineMapping(mapMatch[1]!);
-    for (const k of FLOW_INLINE_KEYS) 中括弧[k] = FLOW_INLINE_READERS[k](opts[k]);
+    // 文字列の欄はそのまま入れ、数と真偽の欄は表が読んで読めない値を知らせる (#1306)
+    for (const k of FLOW_INLINE_KEYS) {
+      if (FLOW_INLINE_READERS[k] === null) continue;
+      中括弧[k] = opts[k];
+    }
+    数と真偽 = 表で読む(FLOW_INLINE_VALUE_KINDS, opts, "矢印の ", line.no, errors);
     rest = rest.slice(0, mapMatch.index ?? 0).trim();
   }
   const sub = 中括弧.sub as string | undefined;
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
-  const labelOffsetX = 中括弧.labelOffsetX as number | undefined;
-  const labelOffsetY = 中括弧.labelOffsetY as number | undefined;
-  const overlay = 中括弧.overlay as boolean | undefined;
+  const labelOffsetX = 数と真偽?.labelOffsetX;
+  const labelOffsetY = 数と真偽?.labelOffsetY;
+  const overlay = 数と真偽?.overlay;
   // 色と線種を末尾から取る。 括弧 (`(成功)`) と空白区切り (`成功`) の両方を受け付ける。
   //
   // 括弧は従来の書き方で、 catalog が使っている。 空白区切りは登場人物と揃えた形。
