@@ -21,9 +21,11 @@
 import {
   NODE_KIND_VALID,
   PRESET_TYPES,
+  STYLE_VALID,
   resolveNodeKind,
   resolveTone,
   splitColorValue,
+  書ける色名,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
@@ -233,7 +235,12 @@ export interface JsonStep {
   to: string;
   label: string;
   sub?: string;
-  tone?: Tone;
+  /**
+   * 矢印の色 (#1304)。 記法の `(成功)` と同じく別名 (`成功` / `neutral` 等) も受ける。
+   *
+   * `string & {}` は箱の `tone` と同じ idiom = 正規の色名を補完に出しつつ別名も通す。
+   */
+  tone?: Tone | (string & {});
   style?: EdgeStyle;
   guard?: string;
   cardinality?: string;
@@ -389,6 +396,328 @@ export const ACCEPTED_KEYS = {
 export type 階層 = keyof typeof ACCEPTED_KEYS;
 
 /**
+ * 欄ごとの値の型 (#1304)。 **`ACCEPTED_KEYS` と同じ欄を必ず持つ**。
+ *
+ * 項目名の側は `#1295` で閉じたが、値の側は一部の欄にしか検査が無かった。 実測すると
+ * 20 欄が型違いの値をそのまま通し、`type: sequence` では 17 欄の値が図まで届いていた
+ * (`labelOffsetX: "q"` が矢印の中に `"q"` のまま入る、`tone: "bogus"` がそのまま色として載る)。
+ *
+ * 表を `ACCEPTED_KEYS` の隣に置き、下の `satisfies` で **欄が 1 つでも欠けたら型検査が落ちる**
+ * ようにする。 欄を足した時に「名前は受けるが値は見ない」 状態が作れない。
+ *
+ * ## 誰がどの欄を見るか
+ *
+ * | 型 | 見る場所 |
+ * |---|---|
+ * | 値そのものの型 (文字列 / 数 / 真偽 / 色 / 線種 等) | 本 file の `表で検査` |
+ * | `object` / `並び` | 欄ごとの専用の検査 (`validateViewport` 等) |
+ *
+ * 分けるのは、中身の形が欄ごとに違うから。 外側の形だけを表で見ても中身は見られないので、
+ * 専用の検査に任せて二重に誤りを出さない。 **専用の検査が抜けても表からは分からない** ため、
+ * 検査 (`test/json-value-types.test.ts`) が全欄に型違いの値を入れて誤りが返ることを確かめる。
+ */
+export type 欄の型 =
+  | "必須の非空文字列"
+  | "必須の文字列"
+  | "非空の文字列"
+  | "文字列"
+  | "文字列の並び"
+  | "数"
+  | "必須の数"
+  | "真偽"
+  | "色"
+  | "線種"
+  | "色か色番号"
+  | "必須の図種"
+  | "object"
+  | "並び"
+  | "必須の並び"
+  | "必須の非空の並び";
+
+export const 欄の型表 = {
+  root: {
+    title: "必須の非空文字列",
+    type: "必須の図種",
+    eyebrow: "文字列",
+    axes: "object",
+    actors: "必須の非空の並び",
+    flow: "必須の並び",
+    states: "object",
+    values: "object",
+    animation: "並び",
+    viewport: "object",
+    lanes: "object",
+    groups: "object",
+  },
+  actor: {
+    name: "必須の非空文字列",
+    kind: "非空の文字列",
+    subtitle: "文字列",
+    eyebrow: "文字列",
+    value: "文字列",
+    rows: "文字列の並び",
+    lane: "文字列",
+    stack: "数",
+    initial: "真偽",
+    final: "真偽",
+    tone: "色",
+    color: "色か色番号",
+    owner: "文字列",
+    end: "文字列",
+    touchpoint: "文字列",
+    opportunity: "文字列",
+    posX: "数",
+    posY: "数",
+    posW: "数",
+    posH: "数",
+    nodes: "object",
+    scale: "数",
+    state: "object",
+    pos: "object",
+  },
+  step: {
+    from: "必須の文字列",
+    to: "必須の文字列",
+    label: "必須の文字列",
+    sub: "文字列",
+    tone: "色",
+    style: "線種",
+    guard: "文字列",
+    cardinality: "文字列",
+    labelOffsetX: "数",
+    labelOffsetY: "数",
+    overlay: "真偽",
+    pos: "object",
+  },
+  phase: {
+    step: "必須の非空文字列",
+    duration: "数",
+    focus: "文字列の並び",
+    body: "文字列",
+    badge: "文字列",
+    tween: "object",
+    set: "object",
+  },
+  viewport: {
+    width: "数",
+    height: "数",
+    scale: "数",
+    laneWidth: "数",
+    gap: "数",
+    laneGap: "数",
+    nodeGap: "数",
+    labelMargin: "数",
+  },
+  lane: {
+    x: "数",
+    width: "数",
+    label: "文字列",
+    contain: "真偽",
+    lifeline: "真偽",
+    pos: "object",
+  },
+  group: { label: "文字列", lanes: "文字列の並び" },
+  actorNode: { posX: "数", posY: "数", posW: "数", posH: "数" },
+  axes: { x: "object", y: "object" },
+  axesX: { left: "文字列", right: "文字列" },
+  axesY: { bottom: "文字列", top: "文字列" },
+  // 位置は書けば x と y の両方が要る。 片方だけでは寄せ幅が決まらない
+  layoutPos: { x: "必須の数", y: "必須の数" },
+} as const satisfies {
+  [層 in 階層]: { [欄 in (typeof ACCEPTED_KEYS)[層][number]]: 欄の型 };
+};
+
+/**
+ * 色番号の形 (#1304)。 公開 schema の `pattern` と同じ形を実装側でも 1 箇所に持つ。
+ *
+ * 受けるのは 3 / 4 / 6 / 8 桁 (`#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`)。 5 桁や 7 桁は
+ * CSS の色として成立しないため通さない。
+ */
+const 色番号の形 = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+/**
+ * JSON で色名として受ける値か (#1304、 review Round 2 の指摘)。
+ *
+ * **記法の `resolveTone` は通さない**。 あちらは前後の空白と引用符を落として小文字に寄せるが、
+ * それは記法の本文から語を切り出すために要る処理で、JSON には要らない。 JSON の値は既に
+ * 切り出された文字列なので、`" success "` や `"\"success\""` は書き手の意図ではなく
+ * 記法の癖が漏れた形になる。
+ *
+ * 公開 schema は色名を `enum` で宣言する。 `enum` は完全一致なので、**parser 側も完全一致に
+ * 揃える**。 揃えないと「schema が拒む値を parser が受ける」 ずれが残り、本 file が閉じようと
+ * している宣言と実装の食い違いを別の形で作ることになる。
+ *
+ * 揃え方は 2 通りあった。 schema を parser に合わせて広げる案は、大文字小文字と空白と引用符を
+ * `pattern` で書くことになり、**色名の一覧が `enum` と `pattern` の 2 か所に写る**。 色が増えた
+ * 時に片方だけ直る形を作るため採らなかった。 同じ理由で、この判定は `tone` (箱と矢印) と
+ * `color` の 3 欄すべてが共有する。
+ */
+function JSONの色名か(v: string): boolean {
+  return 書ける色名().includes(v);
+}
+
+/**
+ * 表に沿って 1 つの欄の値を見る (#1304)。
+ *
+ * `名前` は知らせの文に出す欄の呼び名 (`actor.tone` / `viewport.width`)。 `path` は直す場所を
+ * 指す JSON pointer 風の文字列で、この 2 つは役割が違う (前者は「何の欄か」、後者は「どこか」)。
+ */
+function 値を検査(
+  v: unknown,
+  型: 欄の型,
+  path: string,
+  名前: string,
+  errors: JsonDslError[],
+): void {
+  const 型違い = (期待: string, 補足?: string): void => {
+    errors.push({
+      path,
+      message: `${名前} must be ${期待}`,
+      hint: 補足 ?? `got ${v === null ? "null" : Array.isArray(v) ? "array" : typeof v}`,
+    });
+  };
+  switch (型) {
+    case "必須の非空文字列":
+      if (typeof v !== "string" || v.length === 0) 型違い("a non-empty string");
+      return;
+    case "必須の文字列":
+      if (typeof v !== "string") 型違い("a string");
+      return;
+    case "非空の文字列":
+      if (v === undefined) return;
+      if (typeof v !== "string" || v.length === 0) 型違い("a non-empty string if present");
+      return;
+    case "文字列":
+      if (v === undefined) return;
+      if (typeof v !== "string") 型違い("a string if present");
+      return;
+    case "文字列の並び":
+      if (v === undefined) return;
+      if (!Array.isArray(v)) {
+        型違い("an array of strings if present");
+        return;
+      }
+      // 要素の場所まで指す。 並び全体を指すと、どれを直せばよいか読めない
+      v.forEach((要素, i) => {
+        if (typeof 要素 !== "string") {
+          errors.push({
+            path: `${path}[${i}]`,
+            message: `${名前}[${i}] must be a string`,
+            hint: `got ${要素 === null ? "null" : typeof 要素}`,
+          });
+        }
+      });
+      return;
+    case "数":
+      if (v === undefined) return;
+      if (typeof v !== "number" || !Number.isFinite(v)) {
+        型違い(
+          "a finite number if present",
+          typeof v === "number" ? `got ${String(v)}` : undefined,
+        );
+      }
+      return;
+    case "必須の数":
+      if (typeof v !== "number" || !Number.isFinite(v)) {
+        型違い("a finite number", typeof v === "number" ? `got ${String(v)}` : undefined);
+      }
+      return;
+    case "真偽":
+      if (v === undefined) return;
+      if (typeof v !== "boolean") 型違い("true or false if present");
+      return;
+    case "色":
+      if (v === undefined) return;
+      if (typeof v !== "string") {
+        型違い("a color name if present");
+        return;
+      }
+      // 別名 (`成功` / `neutral`) も受ける。 一覧は engine から取る
+      if (!JSONの色名か(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be a known color name`,
+          hint: `使える値 = ${書ける色名().join(", ")} (got ${JSON.stringify(v)})`,
+        });
+      }
+      return;
+    case "線種":
+      if (v === undefined) return;
+      if (typeof v !== "string" || !STYLE_VALID.has(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${[...STYLE_VALID].join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "色か色番号":
+      if (v === undefined) return;
+      if (typeof v !== "string") {
+        型違い("a color name or a #hex value if present");
+        return;
+      }
+      // 振り分けは記法と同じ (`splitColorValue`)。 `#` で始まれば色番号、それ以外は色の名前
+      if (v.startsWith("#")) {
+        if (!色番号の形.test(v)) {
+          errors.push({
+            path,
+            message: `${名前} must be a #hex color`,
+            hint: `\`#f59e0b\` の形で書く (got ${JSON.stringify(v)})`,
+          });
+        }
+        return;
+      }
+      if (!JSONの色名か(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be a known color name or a #hex value`,
+          hint: `使える値 = ${書ける色名().join(", ")} / \`#f59e0b\` (got ${JSON.stringify(v)})`,
+        });
+      }
+      return;
+    case "必須の図種":
+      if (typeof v !== "string" || !VALID_PRESETS.includes(v as PresetType)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${VALID_PRESETS.join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : undefined,
+        });
+      }
+      return;
+    case "object":
+    case "並び":
+    case "必須の並び":
+    case "必須の非空の並び":
+      // 中身の形が欄ごとに違うため専用の検査が見る (`validateViewport` / `validateStates` 等)。
+      // ここで外側の形も見ると、同じ入力に 2 つ誤りが出てどちらを直せばよいか読めなくなる
+      return;
+  }
+  // 型を足して `case` を書き忘れると、その型の欄が黙って素通りする。 網羅を型検査で固定する
+  型 satisfies never;
+}
+
+/**
+ * 1 つの階層の欄をまとめて見る (#1304)。
+ *
+ * `名前接頭` は知らせの文に出す呼び名の前半 (`actor` / `viewport` / `lanes.web`)。 空文字なら
+ * 欄名だけを出す (最上位の `title` 等)。
+ */
+function 表で検査(
+  o: Record<string, unknown>,
+  層: 階層,
+  path: string,
+  名前接頭: string,
+  errors: JsonDslError[],
+): void {
+  // 表が `ACCEPTED_KEYS` と同じ欄を持つことは `欄の型表` の `satisfies` が固定する。 欄を
+  // 足して型を書き忘れると型検査が落ちるため、ここでは欠落を扱わない
+  for (const [欄, 型] of Object.entries<欄の型>(欄の型表[層])) {
+    値を検査(o[欄], 型, `${path}.${欄}`, 名前接頭 === "" ? 欄 : `${名前接頭}.${欄}`, errors);
+  }
+}
+
+/**
  * 綴り違いの候補を返す (#1295)。
  *
  * 「知らない項目です」 だけだと、`animations` と書いた人は正しい綴りを探しに行く必要がある。
@@ -466,12 +795,7 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   }
   const p = v as Record<string, unknown>;
   checkUnknownKeys(p, "layoutPos", path, errors);
-  if (typeof p.x !== "number" || !Number.isFinite(p.x)) {
-    errors.push({ path: `${path}.x`, message: "pos.x must be a finite number" });
-  }
-  if (typeof p.y !== "number" || !Number.isFinite(p.y)) {
-    errors.push({ path: `${path}.y`, message: "pos.y must be a finite number" });
-  }
+  表で検査(p, "layoutPos", path, "pos", errors);
 }
 
 /**
@@ -483,41 +807,6 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
 function 見本の名前か(kind: unknown): boolean {
   if (typeof kind !== "string" || kind.length === 0) return false;
   return kind !== "actor" && !VALID_KIND_SET.has(kind);
-}
-
-/** 書いてあれば文字列であることを確かめる (#1294) */
-function validateOptionalString(
-  v: unknown,
-  path: string,
-  name: string,
-  errors: JsonDslError[],
-): void {
-  if (v === undefined) return;
-  if (typeof v !== "string") {
-    errors.push({ path, message: `${name} must be a string if present`, hint: `got ${typeof v}` });
-  }
-}
-
-/**
- * 書いてあれば有限の数であることを確かめる (#1294)。
- *
- * `NaN` / `Infinity` を通すと配置の計算がすべて壊れる。 JSON には書けないが、object を
- * 直接渡す経路では届く (`states` の初期値と同じ理由)。
- */
-function validateOptionalFiniteNumber(
-  v: unknown,
-  path: string,
-  name: string,
-  errors: JsonDslError[],
-): void {
-  if (v === undefined) return;
-  if (typeof v !== "number" || !Number.isFinite(v)) {
-    errors.push({
-      path,
-      message: `${name} must be a finite number if present`,
-      hint: typeof v === "number" ? `got ${String(v)}` : `got ${typeof v}`,
-    });
-  }
 }
 
 /** 箱の中の要素ごとの位置と大きさを見る (#1294) */
@@ -538,9 +827,7 @@ function validateActorNodes(v: unknown, path: string, errors: JsonDslError[]): v
     }
     const n = o as Record<string, unknown>;
     checkUnknownKeys(n, "actorNode", nodePath, errors);
-    for (const key of ACCEPTED_KEYS.actorNode) {
-      validateOptionalFiniteNumber(n[key], `${nodePath}.${key}`, `nodes.${name}.${key}`, errors);
-    }
+    表で検査(n, "actorNode", nodePath, `nodes.${name}`, errors);
   }
 }
 
@@ -558,9 +845,48 @@ function validateViewport(v: unknown, errors: JsonDslError[]): void {
     return;
   }
   checkUnknownKeys(v, "viewport", "$.viewport", errors);
-  const o = v as Record<string, unknown>;
-  for (const key of ACCEPTED_KEYS.viewport) {
-    validateOptionalFiniteNumber(o[key], `$.viewport.${key}`, `viewport.${key}`, errors);
+  表で検査(v as Record<string, unknown>, "viewport", "$.viewport", "viewport", errors);
+}
+
+/**
+ * 鍵を利用者が決める入れ物 (縦列 / 群) を見る (#1304)。
+ *
+ * `lanes` / `groups` は id を鍵に持つため、鍵そのものは縛れない。 縛れるのは
+ * 「入れ物が plain object か」 と「各 id の中身の項目名と値の型」 の 2 つ。
+ *
+ * #1304 まで外側の形が違う入力 (`lanes: 5`) は走査ごと飛ばされ、誤りが 1 件も返らなかった。
+ * 形が違うものを黙って捨てると、書いた縦列が 1 つも効かない図が知らせなしで出る。
+ */
+function validateIdMap(
+  v: unknown,
+  欄: "lanes" | "groups",
+  層: 階層,
+  errors: JsonDslError[],
+  中身を見る: (o: Record<string, unknown>, id: string, path: string) => void,
+): void {
+  if (v === undefined) return;
+  const path = `$.${欄}`;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path,
+      message: `${欄} must be a plain object of id -> settings`,
+      hint: `got ${v === null ? "null" : Array.isArray(v) ? "array" : typeof v}`,
+    });
+    return;
+  }
+  for (const [id, 中] of Object.entries(v as Record<string, unknown>)) {
+    const idPath = `${path}.${id}`;
+    if (!中 || typeof 中 !== "object" || Array.isArray(中)) {
+      errors.push({
+        path: idPath,
+        message: `${欄}.${id} must be a plain object`,
+        hint: `got ${中 === null ? "null" : Array.isArray(中) ? "array" : typeof 中}`,
+      });
+      continue;
+    }
+    const o = 中 as Record<string, unknown>;
+    checkUnknownKeys(o, 層, idPath, errors);
+    中身を見る(o, id, idPath);
   }
 }
 
@@ -576,12 +902,8 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
   }
   const 軸 = v as Record<string, unknown>;
   checkUnknownKeys(軸, "axes", "$.axes", errors);
-  const 端 = {
-    x: { 層: "axesX", 名前: ["left", "right"] },
-    y: { 層: "axesY", 名前: ["bottom", "top"] },
-  } as const;
+  const 層の名 = { x: "axesX", y: "axesY" } as const;
   for (const 名 of ["x", "y"] as const) {
-    const { 層, 名前: 端の名前 } = 端[名];
     const 一方 = 軸[名];
     if (一方 === undefined) continue;
     if (!一方 || typeof 一方 !== "object" || Array.isArray(一方)) {
@@ -589,10 +911,8 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
       continue;
     }
     const o = 一方 as Record<string, unknown>;
-    checkUnknownKeys(o, 層, `$.axes.${名}`, errors);
-    for (const 端名 of 端の名前) {
-      validateOptionalString(o[端名], `$.axes.${名}.${端名}`, `axes.${名}.${端名}`, errors);
-    }
+    checkUnknownKeys(o, 層の名[名], `$.axes.${名}`, errors);
+    表で検査(o, 層の名[名], `$.axes.${名}`, `axes.${名}`, errors);
   }
 }
 
@@ -856,21 +1176,10 @@ function validateJson(
   // 個々の型の誤りより先に伝える方が直しやすい
   checkUnknownKeys(j, "root", "$", errors);
 
-  if (typeof j.title !== "string" || j.title.length === 0) {
-    errors.push({ path: "$.title", message: "title must be a non-empty string" });
-  }
-  // 図表の箱の上の小見出し (#1247)。 空文字は「書かなかった」 と同じ扱いにするため通す
-  // (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
-  if (j.eyebrow !== undefined && typeof j.eyebrow !== "string") {
-    errors.push({ path: "$.eyebrow", message: "eyebrow must be a string if present" });
-  }
-  if (typeof j.type !== "string" || !VALID_PRESETS.includes(j.type as PresetType)) {
-    errors.push({
-      path: "$.type",
-      message: `type must be one of: ${VALID_PRESETS.join(", ")}`,
-      hint: typeof j.type === "string" ? `got "${j.type}"` : undefined,
-    });
-  }
+  // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
+  // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
+  表で検査(j, "root", "$", "", errors);
+
   if (!Array.isArray(j.actors) || j.actors.length === 0) {
     errors.push({ path: "$.actors", message: "actors must be a non-empty array" });
   } else {
@@ -882,20 +1191,9 @@ function validateJson(
       }
       const ao = a as Record<string, unknown>;
       checkUnknownKeys(ao, "actor", `$.actors[${i}]`, errors);
-      if (typeof ao.name !== "string" || ao.name.length === 0) {
-        errors.push({
-          path: `$.actors[${i}].name`,
-          message: "actor.name must be a non-empty string",
-        });
-      }
-      // CAR-1657 (+ codex-review MAJOR fix) = kind の validation、 non-empty string 必須。
-      // parts identifier or existing NodeKind のどちらかを想定、 空文字 or 非 string は reject。
-      if (ao.kind !== undefined && (typeof ao.kind !== "string" || ao.kind.length === 0)) {
-        errors.push({
-          path: `$.actors[${i}].kind`,
-          message: "actor.kind must be a non-empty string",
-        });
-      }
+      // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
+      // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
+      表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
       // 見本 (parts) にしか効かない項目は、見本でない箱に書かれたら誤りにする (#1294)。
       // 記法側は読めない項目名として行番号付きで知らせるため、黙って捨てると入口で扱いが変わる。
       const 見本か = 見本の名前か(ao.kind);
@@ -913,27 +1211,6 @@ function validateJson(
           hint: "大きさを変えるなら posW / posH を使う",
         });
       }
-      // 記法と同じ項目を同じ型で受ける (#1294)
-      validateOptionalString(ao.tone, `$.actors[${i}].tone`, "actor.tone", errors);
-      validateOptionalString(ao.color, `$.actors[${i}].color`, "actor.color", errors);
-      validateOptionalString(ao.owner, `$.actors[${i}].owner`, "actor.owner", errors);
-      validateOptionalString(ao.end, `$.actors[${i}].end`, "actor.end", errors);
-      validateOptionalString(
-        ao.touchpoint,
-        `$.actors[${i}].touchpoint`,
-        "actor.touchpoint",
-        errors,
-      );
-      validateOptionalString(
-        ao.opportunity,
-        `$.actors[${i}].opportunity`,
-        "actor.opportunity",
-        errors,
-      );
-      for (const key of ["posX", "posY", "posW", "posH"] as const) {
-        validateOptionalFiniteNumber(ao[key], `$.actors[${i}].${key}`, `actor.${key}`, errors);
-      }
-      validateOptionalFiniteNumber(ao.scale, `$.actors[${i}].scale`, "actor.scale", errors);
       validateActorNodes(ao.nodes, `$.actors[${i}].nodes`, errors);
       // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
       // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
@@ -969,37 +1246,25 @@ function validateJson(
       }
       const so = s as Record<string, unknown>;
       checkUnknownKeys(so, "step", `$.flow[${i}]`, errors);
-      if (typeof so.from !== "string")
-        errors.push({ path: `$.flow[${i}].from`, message: "step.from must be a string" });
-      if (typeof so.to !== "string")
-        errors.push({ path: `$.flow[${i}].to`, message: "step.to must be a string" });
-      if (typeof so.label !== "string")
-        errors.push({ path: `$.flow[${i}].label`, message: "step.label must be a string" });
+      // 値そのものの型は表が見る (#1304)。 色と線種は engine の一覧と突き合わせる
+      表で検査(so, "step", `$.flow[${i}]`, "step", errors);
       // CAR-1693 Phase 1: step DSL 表面 pos の validation
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
     });
   }
   validateViewport(j.viewport, errors);
   // 縦列と群は **鍵を利用者が決める** (id)。 表が縛るのはその中の項目
-  if (j.lanes !== undefined && j.lanes && typeof j.lanes === "object" && !Array.isArray(j.lanes)) {
-    for (const [laneId, lane] of Object.entries(j.lanes as Record<string, unknown>)) {
-      if (lane && typeof lane === "object" && !Array.isArray(lane)) {
-        checkUnknownKeys(lane, "lane", `$.lanes.${laneId}`, errors);
-        // CAR-1693 Phase 1: lane DSL 表面 pos の validation
-        validateLayoutPos((lane as Record<string, unknown>).pos, `$.lanes.${laneId}.pos`, errors);
-      }
-    }
-  }
-  if (
-    j.groups !== undefined &&
-    j.groups &&
-    typeof j.groups === "object" &&
-    !Array.isArray(j.groups)
-  ) {
-    for (const [groupId, group] of Object.entries(j.groups as Record<string, unknown>)) {
-      checkUnknownKeys(group, "group", `$.groups.${groupId}`, errors);
-    }
-  }
+  //
+  // #1304 まで外側の形すら見ておらず、`lanes: 5` のような値が誤りにならないまま素通りしていた
+  // (形が違えば中の走査ごと飛ばす書き方だったため)。 形が違う値は黙って捨てない
+  validateIdMap(j.lanes, "lanes", "lane", errors, (lane, laneId, path) => {
+    表で検査(lane, "lane", path, `lanes.${laneId}`, errors);
+    // CAR-1693 Phase 1: lane DSL 表面 pos の validation
+    validateLayoutPos(lane.pos, `${path}.pos`, errors);
+  });
+  validateIdMap(j.groups, "groups", "group", errors, (group, groupId, path) => {
+    表で検査(group, "group", path, `groups.${groupId}`, errors);
+  });
   if (j.animation !== undefined) {
     if (!Array.isArray(j.animation)) {
       errors.push({ path: "$.animation", message: "animation must be an array if present" });
@@ -1011,12 +1276,8 @@ function validateJson(
         }
         const po = p as Record<string, unknown>;
         checkUnknownKeys(po, "phase", `$.animation[${i}]`, errors);
-        if (typeof po.step !== "string" || po.step.length === 0) {
-          errors.push({
-            path: `$.animation[${i}].step`,
-            message: "phase.step must be a non-empty string",
-          });
-        }
+        // 値そのものの型は表が見る (#1304)
+        表で検査(po, "phase", `$.animation[${i}]`, "phase", errors);
         validatePhaseMotion(po, i, errors);
       });
     }
@@ -1237,7 +1498,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     to: s.to,
     label: s.label,
     sub: s.sub,
-    tone: s.tone,
+    // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
+    // 図に届き、同じ値が箱では色になり矢印では色にならない
+    tone: resolveTone(s.tone),
     style: s.style,
     guard: s.guard,
     cardinality: s.cardinality,

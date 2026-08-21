@@ -208,7 +208,52 @@ export const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([
 // 受理する色名は cdl 側の一覧をそのまま使う。 手書きすると cdl に色が増えた時に取り残される。
 const TONE_VALID: ReadonlySet<string> = new Set<string>(TONES);
 
-const STYLE_VALID: ReadonlySet<string> = new Set<string>(["solid", "dotted-flow"]);
+/**
+ * 受理する線種。 `EdgeStyle` は型だけで実体を持たないため、 実行時の一覧はここが唯一の出どころ。
+ *
+ * JSON 経路も同じ集合を読む (#1304)。 別に持つと、 線種が増えた時に片方だけ取り残される。
+ */
+export const STYLE_VALID: ReadonlySet<string> = new Set<string>(["solid", "dotted-flow"]);
+
+/**
+ * 色の名前として書ける語の一覧 (#1304)。 知らせの `hint` に出す。
+ *
+ * 正規の色名 (`TONES`) と別名 (`TONE_ALIAS` の鍵) を合わせる。 手で並べると色が増えた時に
+ * 取り残されるため、 どちらも実装の集合から導く。
+ */
+export function 書ける色名(): string[] {
+  return [...new Set<string>([...TONES, ...Object.keys(TONE_ALIAS)])];
+}
+
+/**
+ * 色名として読めない値を知らせる (#1304)。
+ *
+ * 線種を受ける場所 (矢印) と受けない場所 (箱) で hint を変える。 箱に `solid` と書いても
+ * 効かないため、 使える語として案内しない。
+ *
+ * 矢印の丸括弧には、 説明文の一部が入り込むことがある
+ * (`- A -> B: 呼び出し (非同期)` の `非同期`)。 これまでは黙って捨てられ、 **説明文から
+ * 括弧の中だけが消えた図** が出ていた。 直し方が「別の語に変える」 とは限らないため、
+ * 引用符で囲む道も併せて案内する。
+ */
+function report読めない色(
+  値: string,
+  line: number,
+  errors: DslError[],
+  opts: { 線種も受ける: boolean },
+): void {
+  const 語 = stripQuotes(値.trim());
+  const 使える = opts.線種も受ける ? [...書ける色名(), ...STYLE_VALID] : 書ける色名();
+  errors.push({
+    line,
+    message: opts.線種も受ける
+      ? `色名か線種が読めません: "${語}"`
+      : `色の名前が読めません: "${語}"`,
+    hint: opts.線種も受ける
+      ? `使える値 = ${使える.join(", ")}。 説明文に括弧を含めるなら \`"…"\` で囲む`
+      : `使える値 = ${使える.join(", ")}`,
+  });
+}
 
 type Line = {
   raw: string;
@@ -307,7 +352,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       let stepNo = 1;
       for (const it of items) {
-        const step = parseFlowStep(it, stepNo);
+        const step = parseFlowStep(it, stepNo, errors);
         if (step) {
           flow.push(step);
           stepNo += 1;
@@ -1058,6 +1103,9 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       if (tone) out.tone = tone;
       // 色番号を入れる状態の名前はパーツごとに違う。 組み立て時に解決する
       if (hex) out.colorHex = hex;
+      // 色名としても色番号としても読めない値は黙って捨てない (#1304)。 捨てると
+      // 既定色のまま描かれ、 手掛かりが 1 つも残らない
+      if (!tone && !hex) report読めない色(raw, ln.no, errors, { 線種も受ける: false });
       continue;
     }
     switch (key) {
@@ -1667,6 +1715,11 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     // 中括弧に書いた読めない項目名も知らせる (#1090)。 縦に並べた形だけが知らせていた
     reportUnknownInlineKeys(isPart, mapMatch.inner, line.no, errors);
     reportV04Kind(kindRaw, line.no, errors);
+    // 中括弧に書いた読めない色名も知らせる (#1304)。 パーツでは `tone` が状態の上書きとして
+    // 意味を持つため対象外 = 色として読もうとしない値を色として叱らない
+    if (!isPart && opts.tone !== undefined && resolveTone(opts.tone) === undefined) {
+      report読めない色(opts.tone, line.no, errors, { 線種も受ける: false });
+    }
     const kind = isPart
       ? NODE_KIND_DEFAULT
       : resolveNodeKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
@@ -1759,7 +1812,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
   return { name: namePart, kind: NODE_KIND_DEFAULT, kindWritten: false, pos: { line: line.no } };
 }
 
-function parseFlowStep(line: Line, no: number): DslStep | null {
+function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | null {
   // 形式 (順序自由、 部分省略可):
   // 1. `Client -> API`                            ... label / option なし
   // 2. `Client -> API: "deposit"`                 ... label
@@ -1799,6 +1852,10 @@ function parseFlowStep(line: Line, no: number): DslStep | null {
       const resolvedTone = resolveTone(opt);
       if (resolvedTone !== undefined) tone = resolvedTone;
       else if (STYLE_VALID.has(opt.toLowerCase())) style = opt.toLowerCase() as EdgeStyle;
+      // 丸括弧に書けるのは色名と線種だけ。 読めない語を黙って捨てると、 書いた人には
+      // 「書いたのに色が変わらない」 としか見えない (#1304)。 空の語 (`( )` / `(a,,b)`) は
+      // 書き間違いというより余分な区切りなので知らせない
+      else if (opt !== "") report読めない色(opt, line.no, errors, { 線種も受ける: true });
     }
     rest = rest.slice(0, optMatch.index ?? 0).trim();
   } else {

@@ -18,14 +18,9 @@
 import { describe, it, expect } from "vitest";
 import { diagramJsonSchema, validateDragonJson } from "@cardenelabs/dragon";
 import { ACCEPTED_KEYS, type 階層 } from "../src/json-parser";
-
-const 図 = (o: Record<string, unknown> = {}) => ({
-  title: "t",
-  type: "flow",
-  actors: [{ name: "A" }, { name: "B" }],
-  flow: [{ from: "A", to: "B", label: "x" }],
-  ...o,
-});
+// 欄 1 つだけを差し替えた入力の組み立ては、値の型の検査 (#1304) と共通の 1 箇所が持つ。
+// 別々に持つと、階層が増えた時に片方だけが古くなる
+import { 図, 欄に値を置く } from "./support/json-field-input";
 
 /** 階層ごとに「知らない項目を 1 つ足した入力」 と、誤りが出るべき path */
 const 未知を足す: Record<階層, { input: Record<string, unknown>; path: string }> = {
@@ -153,35 +148,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
 
 /** その階層に、受ける項目を 1 つだけ足した入力を組む */
 function 正しい値で組む(層: 階層, key: string): Record<string, unknown> {
-  const v = 正しい値[層][key];
-  switch (層) {
-    case "root":
-      return 図({ [key]: v });
-    case "actor":
-      return 図({ actors: [{ name: "A", kind: "arc-gauge", [key]: v }, { name: "B" }] });
-    case "step":
-      return 図({ flow: [{ from: "A", to: "B", label: "x", [key]: v }] });
-    case "phase":
-      return 図({ states: { v: 0 }, animation: [{ step: "s1", [key]: v }] });
-    case "viewport":
-      return 図({ viewport: { [key]: v } });
-    case "lane":
-      return 図({ lanes: { L1: { [key]: v } } });
-    case "group":
-      return 図({ lanes: { L1: {} }, groups: { G1: { lanes: ["L1"], [key]: v } } });
-    case "actorNode":
-      return 図({ actors: [{ name: "A", nodes: { header: { [key]: v } } }, { name: "B" }] });
-    case "axes":
-      return 図({ type: "quadrant", axes: { [key]: v } });
-    case "axesX":
-      return 図({ type: "quadrant", axes: { x: { [key]: v } } });
-    case "axesY":
-      return 図({ type: "quadrant", axes: { y: { [key]: v } } });
-    case "layoutPos":
-      return 図({
-        actors: [{ name: "A", pos: { x: 1, y: 2, [key]: v } }, { name: "B" }],
-      });
-  }
+  return 欄に値を置く(層, key, 正しい値[層][key]);
 }
 
 /** schema のどこに、その階層の項目が並んでいるか */

@@ -67,15 +67,31 @@ describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
   });
 
   it("tone / style option が step に反映される", () => {
+    // 線種は描画側が実際に分ける値で測る (#1304)。 以前は `dashed` で測っていたが、
+    // 描画側は `dotted-flow` しか分岐を持たない = 図では `solid` と同じ線が出ていた。
+    // 「届いた」 ことだけを見ると、届いても何も起きない値を通す形を検査が固定してしまう
     const diagram = jsonToDiagram({
       title: "toned",
       type: "sequence",
       actors: ["A", "B"],
-      flow: [{ from: "A", to: "B", label: "ok", tone: "success", style: "dashed" }],
+      flow: [{ from: "A", to: "B", label: "ok", tone: "success", style: "dotted-flow" }],
     });
     const edge = diagram.edges[0]!;
     expect(edge.tone).toBe("success");
-    expect(edge.style).toBe("dashed");
+    expect(edge.style).toBe("dotted-flow");
+  });
+
+  it("描画側が持たない線種は誤りになる (#1304)", () => {
+    // `dashed` / `dotted` は schema が宣言していたが実装は受けない = 書いても線が変わらず、
+    // 知らせも出なかった
+    expect(() =>
+      jsonToDiagram({
+        title: "toned",
+        type: "sequence",
+        actors: ["A", "B"],
+        flow: [{ from: "A", to: "B", label: "ok", style: "dashed" }],
+      }),
+    ).toThrow(/step\.style must be one of: solid, dotted-flow/);
   });
 
   it("YAML と JSON で同じ diagram が生成される (1:1 対応)", () => {

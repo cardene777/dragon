@@ -141,11 +141,19 @@
               "tone": {
                 "type": "string",
                 "description": "箱の色調。 success / warning 等の別名も使える。",
-                "enum": ["accent", "teal", "success", "error", "warning", "info"]
+                "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
               },
               "color": {
                 "type": "string",
-                "description": "箱の色名、または # で始まる parts の色番号。"
+                "description": "箱の色名、または # で始まる parts の色番号。",
+                "anyOf": [
+                  {
+                    "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                  },
+                  {
+                    "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                  }
+                ]
               },
               "owner": {
                 "type": "string",
@@ -250,12 +258,12 @@
           },
           "tone": {
             "type": "string",
-            "enum": ["accent", "teal", "success", "error", "warning", "info"],
-            "description": "矢印の色調"
+            "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"],
+            "description": "矢印の色調。 success / 成功 等の別名も使える。"
           },
           "style": {
             "type": "string",
-            "enum": ["solid", "dashed", "dotted", "dotted-flow"],
+            "enum": ["solid", "dotted-flow"],
             "description": "矢印の線種"
           },
           "guard": {
