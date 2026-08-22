@@ -109,12 +109,54 @@ issue が数から漏れた。 数え方を「見た状態の列挙」 で書く
 ```bash
 pnpm test                                        # vitest 全件 (unit + integration)
 pnpm test:watch                                  # vitest watch mode
-pnpm --filter dragon-playground-spa test         # Playwright E2E
 pnpm lint                                        # eslint
 pnpm typecheck                                   # tsc -b 全 workspace
 ```
 
 新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/tests/` のいずれか。
+
+### 画面の検査 (Playwright)
+
+**server を 2 つ立ててから回す**。 立てずに回すと、見に行く先が無い検査がまとめて落ちる。
+
+```bash
+# 1. 開発 server (記法を書く画面を配る)
+pnpm dev
+
+# 2. 本番 build の preview (base path が付いた形を配る、別の terminal で)
+pnpm build
+cd apps/playground-spa && pnpm preview
+
+# 3. 検査を回す (さらに別の terminal で)
+pnpm --filter dragon-playground-spa test:e2e
+```
+
+2 つ要るのは、本番 build が dev と別の経路だから。 `base: "/dragon/"` が付き、chunk が
+分かれ、変数名が変わる。 dev で動いても本番で壊れることがあるため、`prod-check` /
+`a11y-check` / `final-check` の 3 spec だけは preview を見に行く。
+
+port は `apps/playground-spa/ports.ts` が持つ。 開発と preview で別の port を使うので、
+2 つを同時に立てたままにできる。
+
+見に行く先は環境変数で差し替えられる。
+
+| 変数 | 差し替える先 | 既定 |
+| --- | --- | --- |
+| `SPA_URL` | 開発 server を見る検査 | `ports.ts` の `DEV_URL` |
+| `PROD_BASE_URL` | 本番 build を見る 3 spec | `ports.ts` の `PREVIEW_URL` |
+
+**依存の版を上げた直後は server を立て直す**。 Vite は起動時に依存を抱え込むため、
+動いている server は古い版を配り続ける。 `--force` を付けて別 port で立て、`SPA_URL` で
+そこへ向けると確実。
+
+#### 書いた cmd が実在することを検査で見る
+
+この節に書いた `pnpm` の cmd は `src/lib/contributing-commands.test.ts` が
+`package.json` と突き合わせる。
+
+実在しない script を `--filter` 付きで呼ぶと、pnpm は **黙って skip して exit 0 を返す**。
+以前この節には `pnpm --filter dragon-playground-spa test` と書かれていたが、その script は
+無く、手順どおりに打つと 1 件も走らないまま「成功」 に見えていた (`#1328`)。
 
 ### 値が動くことの検査は実経路に載せる
 

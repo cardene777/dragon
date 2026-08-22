@@ -9,6 +9,7 @@
     "build:pages": "tsc -b && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
     "test:editor": "bash scripts/test-editor-dashboard.sh",
     "test:editor:l1": "vitest run src/lib/overlay-dsl.test.ts",
     "test:editor:l2": "vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts src/lib/text-edit-replace.test.ts",
