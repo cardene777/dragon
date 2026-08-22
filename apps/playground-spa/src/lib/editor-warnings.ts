@@ -78,6 +78,32 @@ export function hasExplicitPositions(diagram: CdlDiagram): boolean {
 }
 
 /**
+ * 箱の id から、書き手が書いた名前を引く表。
+ *
+ * **名前を持たない箱は載せない** (`a-spacer` のような組み立てが作る詰め物)。 載せると
+ * 空文字に置き換わり、何を指しているか読めなくなる。
+ *
+ * 指摘ごとに作り直さず、表示する分をまとめて読み替える時に 1 度だけ作る。
+ */
+function 箱の名前(diagram: CdlDiagram): ReadonlyMap<string, string> {
+  const 名前 = new Map<string, string>();
+  for (const n of diagram.nodes) {
+    const t = (n.title ?? "").trim();
+    if (t !== "") 名前.set(n.id, t);
+  }
+  return 名前;
+}
+
+/** 引いた表で 1 件の文面を読み替える。 表を作る側と分けてあるのは作り直しを避けるため。 */
+function 箱のidを名前にする(detail: string, 名前: ReadonlyMap<string, string>): string {
+  // `node "<id>"` の形だけを見る。 文面の他の場所に同じ文字列があっても触らない
+  return detail.replace(/node "([^"]+)"/gu, (元, id: string) => {
+    const t = 名前.get(id);
+    return t === undefined ? 元 : `名札 "${t}"`;
+  });
+}
+
+/**
  * 描画側の指摘に出る箱の id を、書き手が書いた名前に読み替える (#1324)。
  *
  * 描画側は `node "a-header"` のように **組み立てが作った id** で指す。 書き手が書いたのは
@@ -89,20 +115,10 @@ export function hasExplicitPositions(diagram: CdlDiagram): boolean {
  * 書いたか `shape-smart-contract` と書いたかは組み立ての後に残らないため、書いた方に
  * 戻すこともできない。 置き換えてよいのは書き手が絶対に書かない語に限る。
  *
- * 名前を持たない箱 (`a-spacer` のような組み立てが作る詰め物) は id のまま残す。 空文字に
- * すると何を指しているか読めなくなる。
+ * 1 件だけ読み替える入口。 表示する分をまとめて通す経路は `visibleWarnings` が持つ。
  */
 export function 書き手の名前で読める(detail: string, diagram: CdlDiagram): string {
-  const 名前 = new Map<string, string>();
-  for (const n of diagram.nodes) {
-    const t = (n.title ?? "").trim();
-    if (t !== "") 名前.set(n.id, t);
-  }
-  // `node "<id>"` の形だけを見る。 文面の他の場所に同じ文字列があっても触らない
-  return detail.replace(/node "([^"]+)"/gu, (元, id: string) => {
-    const t = 名前.get(id);
-    return t === undefined ? 元 : `名札 "${t}"`;
-  });
+  return 箱のidを名前にする(detail, 箱の名前(diagram));
 }
 
 /**
@@ -128,5 +144,6 @@ export function visibleWarnings(violations: Violation[], diagram: CdlDiagram): V
     // 対象が読み取れない指摘は残す。 隠す判断がつかないものを黙って落とさない
     return true;
   });
-  return 残す.map((v) => ({ ...v, detail: 書き手の名前で読める(v.detail, diagram) }));
+  const 名前 = 箱の名前(diagram);
+  return 残す.map((v) => ({ ...v, detail: 箱のidを名前にする(v.detail, 名前) }));
 }

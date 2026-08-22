@@ -42,7 +42,7 @@ test("指摘が書き手の書いた名前で出る", async ({ page }) => {
   const 落ちた説明 = 文面.filter((t) => t.includes("描かれない"));
   expect(落ちた説明.length, "説明が落ちた指摘が出ていない").toBeGreaterThan(0);
 
-  const 対象 = 落ちた説明[0]!;
+  const 対象 = 落ちた説明[0];
   expect(対象, "組み立てが作った id が画面に出ている").not.toContain("a-header");
   expect(対象, "書き手が書いた名前が出ていない").toContain('名札 "A"');
 });
@@ -55,5 +55,5 @@ test("書き手が書ける種別名は残る", async ({ page }) => {
   const 文面 = await page.locator(".v4-editor-warning-detail").allTextContents();
   const 対象 = 文面.find((t) => t.includes("描かれない"));
   expect(対象, "説明が落ちた指摘が出ていない").toBeDefined();
-  expect(対象!, "種別名まで読み替えている").toContain("shape-smart-contract");
+  expect(対象, "種別名まで読み替えている").toContain("shape-smart-contract");
 });
