@@ -65,7 +65,8 @@ export function HomePage(): React.ReactElement {
 
       <section className="hero">
         <div className="hero-eyebrow">
-          <span className="chip">v0.7</span>
+          {/* 版は `packages/dragon/package.json` から差し込む (#1320)。 手で書くと追随しない */}
+          <span className="chip">v{__DRAGON_VERSION__.split(".").slice(0, 2).join(".")}</span>
           <span className="chip">49 種の形 × 時間軸 × 絶対配置</span>
         </div>
         <h1>

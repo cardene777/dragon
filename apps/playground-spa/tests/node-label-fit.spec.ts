@@ -629,7 +629,15 @@ flow:
 async function 名札の絵と文字を測る(
   page: import("@playwright/test").Page,
   nodeId: string,
-): Promise<{ kind: string; 下: number; 左: number; 右: number; 文字: string[] } | null> {
+): Promise<{
+  kind: string;
+  幅: number;
+  高さ: number;
+  下: number;
+  左: number;
+  右: number;
+  文字: string[];
+} | null> {
   return await page.evaluate((want) => {
     const svg = document
       .querySelector(".v4-editor-stage")
@@ -651,6 +659,8 @@ async function 名札の絵と文字を測る(
     const r = (v: number): number => Math.round(v * 10) / 10;
     return {
       kind: n.getAttribute("data-cdl-kind") ?? "",
+      幅: w,
+      高さ: h,
       下: r(b.y + b.height - (cy + h / 2)),
       左: r(cx - w / 2 - b.x),
       右: r(b.x + b.width - (cx + w / 2)),
@@ -659,7 +669,7 @@ async function 名札の絵と文字を測る(
   }, nodeId);
 }
 
-test("Issue の再現手順そのままで絵が収まり書いた文字も出る (#1105)", async ({ page }) => {
+test("Issue の再現手順そのままで絵が収まる (#1105)", async ({ page }) => {
   // `#1105` の本文にある記法をそのまま使う。 実測は下 34 / 右 15.1 だった
   await 記法を開く(
     page,
@@ -684,10 +694,60 @@ flow:
   expect(実測!.下, `絵が箱の下端を ${実測!.下} はみ出す`).toBeLessThanOrEqual(0.5);
   expect(実測!.右, `絵が箱の右端を ${実測!.右} はみ出す`).toBeLessThanOrEqual(0.5);
   expect(実測!.左, `絵が箱の左端を ${実測!.左} はみ出す`).toBeLessThanOrEqual(0.5);
-  // **収まるだけでは足りない**。 絵を消しても収まりは通るので、 書いた文字が出ていることを見る
-  expect(実測!.文字, `書いた「説明」 が画面に出ていない (出た文字 ${実測!.文字.join(" / ")})`).toContain(
-    "説明",
+  // **収まるだけでは足りない**。 絵を消しても収まりは通るので、名前が出ていることを見る
+  expect(実測!.文字, `名前が画面に出ていない (出た文字 ${実測!.文字.join(" / ")})`).toContain("A");
+});
+
+/**
+ * 小さい `shape-` の箱では、書いた説明が絵の帯に譲られる (#1320)。
+ *
+ * `#1105` を書いた時点では、上の再現手順で `subtitle` の「説明」 も画面に出ていた。
+ * その後 描画側 (`@cardenelabs/cdl`) が **絵に残る帯が下限を割るなら補いの行を落とす** 形に
+ * 変えた (cdl#459)。 落とす順は肩書 → 説明で、名前は落とさない。
+ *
+ * 落ちるのは `shape-` 種別だけで、絵を持たない種別は同じ大きさでも説明を出す。 実測 (140×72)。
+ *
+ * | 種別 | 出た文字 |
+ * |---|---|
+ * | `contract` (`shape-smart-contract`) | `function execute()` / `A` |
+ * | `service` (絵を持たない) | `A` / `説明` |
+ *
+ * **「説明が出ない」 だけを見ると、全部の文字が消えても通る**。 絵を持たない種別で同じ
+ * 記法が説明を出すことを対にして見る = 落とす判断が種別で分かれていることを固定する。
+ *
+ * 書いた文字が黙って消えること自体は別の課題として残る。 描画側は落とした行を返す口
+ * (`labelPlan` の `落とした`) を持つが、記法側はまだ知らせに繋いでいない。
+ */
+test("小さい shape- の箱では説明が絵に譲られ、絵を持たない種別では出る (#1320)", async ({ page }) => {
+  await 記法を開く(
+    page,
+    `title: "t"
+type: sequence
+
+actors:
+  - A: { kind: contract, subtitle: "説明" }
+  - B: { kind: service, subtitle: "説明" }
+
+flow:
+  - A -> B: "x"
+`,
   );
+
+  const 絵あり = await 名札の絵と文字を測る(page, "a-header");
+  const 絵なし = await 名札の絵と文字を測る(page, "b-header");
+  expect(絵あり, "名札 A が測れていない").not.toBeNull();
+  expect(絵なし, "名札 B が測れていない").not.toBeNull();
+
+  // 同じ大きさであることを先に固定する。 大きさが違えば比べても意味が無い
+  expect(絵あり?.幅, "A と B の幅が違う").toBe(絵なし?.幅);
+  expect(絵あり?.高さ, "A と B の高さが違う").toBe(絵なし?.高さ);
+  expect(絵なし!.kind, "B が service で描かれていない").toBe("service");
+  expect(絵あり!.kind, "A が shape- で描かれていない").toBe("shape-smart-contract");
+
+  expect(絵なし!.文字, "絵を持たない種別で説明が出ていない").toContain("説明");
+  expect(絵あり!.文字, "絵を持つ種別で説明が出ている (帯に譲る形が変わった)").not.toContain("説明");
+  // 名前は落とさない = 全部の文字が消えた形をここで弾く
+  expect(絵あり!.文字, "絵を持つ種別で名前まで消えている").toContain("A");
 });
 
 /**
