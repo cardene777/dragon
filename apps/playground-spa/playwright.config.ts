@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+import { DEV_URL } from "./ports";
+
 /**
  * Playwright config。
  *
@@ -46,7 +48,7 @@ import { defineConfig } from "@playwright/test";
 const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry)\.spec\.ts$/;
 
 /**
- * 見に行く server。 既定は `pnpm dev` の port (4323)。
+ * 見に行く server。 既定は `pnpm dev` の port (`ports.ts` の `DEV_PORT`)。
  *
  * `SPA_URL` で差し替えられるようにするのは、依存の版を上げた直後に **動いている server が
  * 古い版を配り続ける** ため (Vite は起動時に依存を抱え込む)。 別 port に立て直した server へ
@@ -56,7 +58,7 @@ const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-te
  * 検査が 2 つの server に分かれ、片方が古いことに気付けなかった (#1318 で踏んだ)。
  */
 const 共通 = {
-  baseURL: process.env.SPA_URL ?? "http://localhost:4323",
+  baseURL: process.env.SPA_URL ?? DEV_URL,
   trace: "on-first-retry",
 } as const;
 

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { PREVIEW_URL } from "../ports";
 
 /**
  * 公開前の a11y / 表示崩れ確認。
@@ -7,7 +8,7 @@ import { test, expect } from "@playwright/test";
  * 横スクロールの発生、 キーボード到達性)。 見た目の良し悪しは別途目視で確認する。
  */
 
-const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4324/dragon";
+const BASE = process.env.PROD_BASE_URL ?? PREVIEW_URL;
 const PAGES = ["/", "/editor", "/catalog/ethereum"];
 
 test.use({ viewport: { width: 1440, height: 900 } });

@@ -5,6 +5,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+import { DEV_PORT, PREVIEW_PORT } from "./ports";
+
 /**
  * 記法の版。 画面の札に出す (#1320)。
  *
@@ -43,11 +45,13 @@ export default defineConfig(({ command, mode }) => ({
     },
   },
   server: {
-    port: 4323,
+    port: DEV_PORT,
     strictPort: true,
   },
+  // **開発 server と別の port にする** (#1326)。 同じにすると本番 build の検査を回すたびに
+  // 開発 server を落とすことになり、実際には誰も立てないまま 22 件が落ち続けていた
   preview: {
-    port: 4323,
+    port: PREVIEW_PORT,
     strictPort: true,
   },
   build: {

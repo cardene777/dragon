@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { PREVIEW_URL } from "../ports";
 
 /**
  * 公開判断のための通し確認。
@@ -7,7 +8,7 @@ import { test, expect } from "@playwright/test";
  * 1 つの操作の後に別の操作をした時に状態が壊れる、 という組合せの欠陥を狙う。
  */
 
-const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4324/dragon";
+const BASE = process.env.PROD_BASE_URL ?? PREVIEW_URL;
 test.use({ viewport: { width: 1920, height: 1080 } });
 
 function collectErrors(page: import("@playwright/test").Page): string[] {

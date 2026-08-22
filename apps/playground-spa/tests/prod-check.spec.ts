@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { ITEM_NAME_JA } from "../src/lib/i18n";
+import { PREVIEW_URL } from "../ports";
 
 /**
  * 本番ビルドでの動作確認 (公開前の最終ゲート)。
@@ -9,7 +10,7 @@ import { ITEM_NAME_JA } from "../src/lib/i18n";
  * 公開前に本番 build を preview して主要機能を一通り触る。
  */
 
-const BASE = process.env.PROD_BASE_URL ?? "http://localhost:4324/dragon";
+const BASE = process.env.PROD_BASE_URL ?? PREVIEW_URL;
 test.use({ viewport: { width: 1920, height: 1080 } });
 
 /**
