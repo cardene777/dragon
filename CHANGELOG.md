@@ -7,6 +7,16 @@ dragon DSL の主要変更履歴。
 
 ### Fixed
 
+- **画面の検査を回す手順を書き、書いた cmd が実在することを検査で見るようにした** (#1328)
+
+  `CONTRIBUTING.md` に書かれていた `pnpm --filter dragon-playground-spa test` は、その
+  script が存在せず **何も実行せずに exit 0** を返していた。 pnpm は filter 付きで
+  存在しない script を求められると黙って skip する。 手順どおりに打った人は「通った」 と
+  読むが、1 件も走っていない。
+
+  実際に走る `test:e2e` を足し、2 つの server (開発 4323 / 本番 build の preview 4324) を
+  立てる手順を書いた。 書いた cmd が `package.json` に実在することは検査が見る。
+
 - **本番 build を配る port を検査と揃えた** (#1326)
 
   画面の検査 22 件が常に落ちていた。 検査は `http://localhost:4324/dragon` を見に行くのに、
