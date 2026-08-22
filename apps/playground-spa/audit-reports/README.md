@@ -19,7 +19,7 @@
 
 | 層 | 対象 | 実装 | 実行 |
 |---|---|---|---|
-| 層 1 = CDL check (SPA UI level) | 全 route × 3 viewport の render / navigation / a11y / console error | `apps/playground-spa/tests/audit-3vp.spec.ts` + `full-regression.spec.ts` | `pnpm check:cdl` |
+| 層 1 = CDL check (SPA UI level) | 全 route × 3 viewport の render / navigation / a11y / console error | `apps/playground-spa/tests/full-regression.spec.ts` | `pnpm check:cdl` |
 | 層 2 = dragon 記法 check (engine geometry level) | 全 100+ diagram の geometry axis (edge-node-cross / row-gap-uniform / lane-border-clearance / clearance / edge-label-overlap 他 12 axis) | `packages/dragon/test/visual-validate-sweep.test.ts` | `pnpm check:dragon` |
 | 層 3 = kind 描画 check (SVG DOM geometry level) | CAR-994 で追加した新 kind (chart / gantt / mind-map / funnel / quadrant / tree / journey) の SVG geometry (arrow 方向 / polygon 単調減少 / root 中央 / edge fill:none 等) | `apps/playground-spa/tests/kind-geometry-check.spec.ts` | `pnpm check:kind` |
 
@@ -126,7 +126,7 @@ const patched = autoFix(diagram); // autoFixable な issue を全部解消
 
 ## 実装 file 一覧
 
-- 層 1 = `apps/playground-spa/tests/audit-3vp.spec.ts` / `full-regression.spec.ts`
+- 層 1 = `apps/playground-spa/tests/full-regression.spec.ts`
 - 層 2 = `packages/dragon/test/visual-validate-sweep.test.ts`
 - 層 3 = `apps/playground-spa/tests/kind-geometry-check.spec.ts` (CAR-1064 新規)
 - notation lint = `packages/dragon/src/notation-lint.ts` (CAR-1064 新規)
