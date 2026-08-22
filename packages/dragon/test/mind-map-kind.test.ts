@@ -268,12 +268,13 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     expect(該当[0]!.message).toContain("type: tree");
   });
 
-  it("枝の副題 / 値は名前の後ろに描く (#1230)", () => {
-    // 描画側が描くのは枝の `title` だけで、状態を読み替えるのもそこに限る。 伝えて終わりに
-    // すると `type: mind` で数を見せる手段が無くなる
+  it("枝の副題 / 値は補足として渡す (#1230 / #1332)", () => {
+    // `#1230` は名前の後ろに連結していた。 1 行に全部入るため箱幅を超えて切られるので、
+    // `#1332` で **名前と補足に分けて渡す** 形に変えた (描画側が 2 行に積む)
     const d = 図(["Core", 'Idea1: { subtitle: "案 1", value: "42" }']);
     const 枝 = 放射の箱(d).mindData!.branches;
-    expect(枝[0]!.title).toBe("Idea1 案 1 42");
+    expect(枝[0]!.title).toBe("Idea1");
+    expect(枝[0]!.subtitle, "副題と値が補足に渡っていない").toBe("案 1 42");
     const 出た = 知らせを集める(記法(["Core", 'Idea1: { subtitle: "案 1", value: "42" }']));
     expect(
       出た.filter((n) => n.message.includes("名前と副題 / 値、 枝の色しか描けません")),
@@ -281,9 +282,11 @@ describe("1 箱で描けない欄を伝える (Round 1)", () => {
     ).toHaveLength(0);
   });
 
-  it("中心の副題 / 値も名前の後ろに描く (枝だけを見ていない)", () => {
+  it("中心の副題 / 値も補足として渡す (枝だけを見ていない)", () => {
     const d = 図(['Core: { subtitle: "中心テーマ", value: "3" }', "Idea1"]);
-    expect(放射の箱(d).mindData!.rootTitle).toBe("Core 中心テーマ 3");
+    const m = 放射の箱(d).mindData!;
+    expect(m.rootTitle).toBe("Core");
+    expect(m.rootSubtitle, "中心の副題と値が補足に渡っていない").toBe("中心テーマ 3");
   });
 
   it("副題も値も書かない枝は名前だけになる", () => {
