@@ -629,7 +629,15 @@ flow:
 async function 名札の絵と文字を測る(
   page: import("@playwright/test").Page,
   nodeId: string,
-): Promise<{ kind: string; 下: number; 左: number; 右: number; 文字: string[] } | null> {
+): Promise<{
+  kind: string;
+  幅: number;
+  高さ: number;
+  下: number;
+  左: number;
+  右: number;
+  文字: string[];
+} | null> {
   return await page.evaluate((want) => {
     const svg = document
       .querySelector(".v4-editor-stage")
@@ -651,6 +659,8 @@ async function 名札の絵と文字を測る(
     const r = (v: number): number => Math.round(v * 10) / 10;
     return {
       kind: n.getAttribute("data-cdl-kind") ?? "",
+      幅: w,
+      高さ: h,
       下: r(b.y + b.height - (cy + h / 2)),
       左: r(cx - w / 2 - b.x),
       右: r(b.x + b.width - (cx + w / 2)),
@@ -729,6 +739,8 @@ flow:
   expect(絵なし, "名札 B が測れていない").not.toBeNull();
 
   // 同じ大きさであることを先に固定する。 大きさが違えば比べても意味が無い
+  expect(絵あり?.幅, "A と B の幅が違う").toBe(絵なし?.幅);
+  expect(絵あり?.高さ, "A と B の高さが違う").toBe(絵なし?.高さ);
   expect(絵なし!.kind, "B が service で描かれていない").toBe("service");
   expect(絵あり!.kind, "A が shape- で描かれていない").toBe("shape-smart-contract");
 

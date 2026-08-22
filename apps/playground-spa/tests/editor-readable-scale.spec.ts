@@ -20,12 +20,12 @@ import { 見本が開けたことを確かめる } from "./opened-sample";
  * どの見本がどちらに落ちるかは `readable-floor.ts` が持つ (`editor-preview-width.spec.ts` と
  * 共有)。 それぞれの file に書くと、 片方だけ直しても両方が独立した期待値で通ってしまう。
  */
-import { 下限 } from "./readable-floor";
+import { MIN_PX, 下限 } from "./readable-floor";
 
 /**
  * 検査は 2 層に分ける。
  *
- * ## 層 1 = 下限の計算 (3 件)
+ * ## 層 1 = 下限の計算 (4 件)
  *
  * 世界座標の最小文字が種別ごとに違うため、 **下限がどこで決まるかが変わる**。 その分かれ目を
  * 1 つずつ踏む。
@@ -35,6 +35,7 @@ import { 下限 } from "./readable-floor";
  * | swimlane | 20 | 40% (8px) | 下限が倍率を決める。 かつ **譲る側** (#1102) |
  * | flow | 22 | 45% (10px) | 下限が効かない (収める倍率 60% の方が大きい) |
  * | pie | 11 | 91% (10px) | 100% の頭打ちのすぐ手前 |
+ * | class | 20 | 42% (8.4px) | 10px では箱が枠から出るため **譲る側** (#1320) |
  *
  * `pie` を落とすと上限を下げる変異 (100% → 80%) を見逃す (実測で確認)。 swimlane と flow の
  * 下限は 40% / 45% で、 どちらも 80% を下回るため上限に触れない。
@@ -68,7 +69,7 @@ import { 下限 } from "./readable-floor";
  * | mind | 24 | 9.9px | 10.0px | 12.0px |
  * | flow | 22 | 13.3px | 13.3px (下限が効かない) | 13.3px |
  */
-const SAMPLES = ["swimlane", "flow", "pie"];
+const SAMPLES = ["swimlane", "flow", "pie", "class"];
 
 async function 測る(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
@@ -93,7 +94,20 @@ async function 測る(page: import("@playwright/test").Page) {
       }))
       .filter((x) => Number.isFinite(x.px));
     rows.sort((a, b) => a.px - b.px);
-    return { 最小: rows[0], 件数: rows.length, 倍率: Math.round(scale * 1000) / 1000 };
+    // 箱の外接と枠の幅。 譲る必要があるか (10px にすると箱が枠から出るか) を測るのに使う
+    const 箱 = [...svg.querySelectorAll("[data-cdl-node]")].map((n) => n.getBoundingClientRect());
+    const 箱幅 =
+      箱.length === 0
+        ? 0
+        : Math.max(...箱.map((b) => b.right)) - Math.min(...箱.map((b) => b.left));
+    return {
+      最小: rows[0],
+      件数: rows.length,
+      倍率: Math.round(scale * 1000) / 1000,
+      箱幅: Math.round(箱幅),
+      箱数: 箱.length,
+      枠幅: Math.round(host?.getBoundingClientRect().width ?? 0),
+    };
   });
 }
 
@@ -113,6 +127,28 @@ for (const slug of SAMPLES) {
       m!.最小.px,
       `文字が小さすぎる: ${m!.最小.s} が ${m!.最小.px}px (倍率 ${m!.倍率})`,
     ).toBeGreaterThanOrEqual(下限(slug));
+    // **譲る側に入れてよいかを、譲る理由そのもので見る** (#1320)。
+    //
+    // 「譲る見本は 10px より小さく描かれる」 だけを見ると恒真に近い = 譲ること自体が
+    // 小さく描く原因なので、譲る必要の無い見本を足しても落ちない (実測で `pie` を足して
+    // 0 件 FAIL だった)。
+    //
+    // 判定の条件は `readable-floor.ts` が書いているとおり「10px にすると箱が枠から出る」。
+    // いまの最小文字を 10px にする倍率を求め、その時の箱の幅を枠と比べる。
+    expect(m!.箱数, "箱を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    const 十pxにする倍率 = MIN_PX / m!.最小.px;
+    const 十px時の箱幅 = m!.箱幅 * 十pxにする倍率;
+    if (下限(slug) < MIN_PX) {
+      expect(
+        十px時の箱幅,
+        `譲る側に入れているが ${MIN_PX}px でも箱が枠に収まる (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m!.枠幅})`,
+      ).toBeGreaterThan(m!.枠幅);
+    } else {
+      expect(
+        十px時の箱幅,
+        `${MIN_PX}px では箱が枠から出るのに譲る側に入っていない (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m!.枠幅})`,
+      ).toBeLessThanOrEqual(m!.枠幅);
+    }
   });
 }
 
