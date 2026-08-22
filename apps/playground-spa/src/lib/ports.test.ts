@@ -21,6 +21,7 @@ const 数字を持たない = [
   "vite.config.ts",
   "playwright.config.ts",
   "package.json",
+  "scripts/test-editor-dashboard.sh",
   "tests/prod-check.spec.ts",
   "tests/a11y-check.spec.ts",
   "tests/final-check.spec.ts",

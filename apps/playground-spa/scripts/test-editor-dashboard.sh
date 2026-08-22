@@ -6,13 +6,19 @@
 #   pnpm test:editor --layer 2  # 特定 layer のみ
 #
 # 前提:
-#   - dev server (localhost:4323) 起動済
-#   - AI_VERIFY_BASE_URL env 変数で URL override 可 (default localhost:4323)
+#   - dev server (`ports.ts` の `DEV_URL`) 起動済
+#   - AI_VERIFY_BASE_URL env 変数で URL override 可 (default は `ports.ts` の `DEV_URL`)
 #     spec 側へは `SPA_URL` として渡す = 見に行く先は playwright.config.ts が 1 箇所で持つ
 
 set -e
 set -o pipefail
 cd "$(dirname "$0")/.."
+
+# 設定と同じ `ports.ts` から既定 URL を読む。 ここに数字を複製すると、 port を変えた時に
+# dashboard だけ古い server を見続け、今回と同じ不整合が戻る。
+DEFAULT_URLS="$(pnpm exec tsx -e 'import { DEV_URL, PREVIEW_URL } from "./ports.ts"; process.stdout.write(`${DEV_URL}\n${PREVIEW_URL}`)')"
+DEFAULT_DEV_URL="${DEFAULT_URLS%%$'\n'*}"
+DEFAULT_PREVIEW_URL="${DEFAULT_URLS#*$'\n'}"
 
 # CAR-2158 = /tmp log の並列 collision fix。 実行ごとに固有 dir を作り、 終了時に必ず消す。
 LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/editor-test.XXXXXX")"
@@ -27,7 +33,7 @@ extract_count() {
   echo "${n:-0}"
 }
 
-BASE_URL="${AI_VERIFY_BASE_URL:-http://localhost:4323}"
+BASE_URL="${AI_VERIFY_BASE_URL:-$DEFAULT_DEV_URL}"
 LAYER_FILTER="${LAYER:-all}"
 
 # server が落ちていると E2E が全滅するが、 失敗理由が assertion に見えて原因を追いにくい
@@ -40,7 +46,7 @@ require_server() {
   if [[ "$code" != "200" ]]; then
     echo "✗ $label が応答しない (HTTP $code)" >&2
     echo "  URL = $url" >&2
-    echo "  起動 = cd apps/playground-spa && npm run dev  (本番検証は npm run build && npx vite preview --port 4324)" >&2
+    echo "  起動 = cd apps/playground-spa && npm run dev  (本番検証は npm run build && npm run preview)" >&2
     exit 1
   fi
 }
@@ -161,8 +167,8 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "5" ]]; then
   # 本番 build は base path (/dragon/) が付き code split も効くため dev とは経路が違う。
   # PROD_BASE_URL 未設定時は skip = dev だけ回したい時に落とさない。
   if [[ -z "${PROD_BASE_URL:-}" ]]; then
-    echo "  (PROD_BASE_URL 未設定のため skip。 本番検証は npm run build && npx vite preview --port 4324 の後に"
-    echo "   PROD_BASE_URL=http://localhost:4324/dragon で再実行する)"
+    echo "  (PROD_BASE_URL 未設定のため skip。 本番検証は npm run build && npm run preview の後に"
+    echo "   PROD_BASE_URL=$DEFAULT_PREVIEW_URL で再実行する)"
     RESULT_L5="skip"
   else
     require_server "$PROD_BASE_URL/editor" "本番 preview"
