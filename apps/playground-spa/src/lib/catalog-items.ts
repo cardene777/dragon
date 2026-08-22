@@ -17,7 +17,7 @@ import * as PatMod from "@/topics/catalog/patterns.cdl";
 // --- category: animation ---
 import * as AnimMod from "@/topics/catalog/animation.cdl";
 // --- category: parts (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ---
-// N 個の diagram(...).build() が top-level で走るため (現時点 = 60 個、 PARTS_COUNT_ESTIMATE 参照)、
+// top-level で diagram(...).build() が走る数だけ初期 chunk が重くなるため (数は PARTS_COUNT_ESTIMATE 参照)、
 // dynamic import で lazy-load して初期 catalog-items chunk (348 kB gzip) からは除外する (CAR-1613)。
 // CategoryPage が params.slug === "parts" 時のみ loadPartsItems() を呼び、 State に populate する経路。
 // --- category: styles ---
@@ -125,11 +125,14 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
   return moduleToItems(mod);
 }
 
-/** CatalogIndexPage の totalItems 集計で parts を加算するための概算値 (実 loading せず表示だけ)。
+/**
+ * CatalogIndexPage が総数を出すために使う parts の数。
  *
- * ⚠️ SYNC REQUIRED = parts.cdl.ts の top-level export diagram 数と手動同期必須。
- * parts に diagram を追加 / 削除する時は本 constant も更新する (drift すると index page で
- * itemCount 誤表示 + total 集計もズレる)。 現時点 = 80 個 (2026-07-16 CAR-1560 Round 2-4 で 20 → 60、
- * CAR-1646 Round 5 で state bind pattern demo 20 追加 = 60 → 80)。
+ * **実 loading せずに数だけ要る**。 parts は初期 chunk から外すため後から読む設計で
+ * (`CAR-1613`)、総数の表示のために全件を読み込むと分けた意味が消える。
+ *
+ * **実物とずれたら検査が落ちる** (`parts-count.test.ts`)。 以前は「人が忘れずに直す」 ことに
+ * 依存しており、実際に片方だけ直された記述が残っていた (#1341)。 数を変える時は
+ * `parts.cdl.ts` を直せば検査が本 constant のずれを教える。
  */
 export const PARTS_COUNT_ESTIMATE = 80;
