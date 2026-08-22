@@ -164,9 +164,10 @@ describe("1 箱で描く図種は作り替えない", () => {
     // `#1177` で決めた扱い。 中央で作り替えると id が分かれてこの知らせが出なくなる
     const { 図, 知らせ } = 組む(記法("mind", 衝突する2人));
     const m = 図.nodes[0]!.mindData!;
-    // 見るのは **名前が作り替えられていないこと**。 後ろに続く `10` は書いた副題で、
-    // `#1230` で名前の後ろに描くようにした分 (id の作り替えとは別の話)
-    expect(m.rootTitle, "中心の題が作り替えられている").toBe("foo-bar 10");
+    // 見るのは **名前が作り替えられていないこと**。 副題 (`10`) は `#1332` で名前と分けて
+    // 渡す形にしたので、名前は書いたそのままになる (id の作り替えとは別の話)
+    expect(m.rootTitle, "中心の題が作り替えられている").toBe("foo-bar");
+    expect(m.rootSubtitle, "副題が補足に渡っていない").toBe("10");
     expect(m.branches, "枝が載っている").toEqual([]);
     expect(知らせ.filter((n) => n.message.includes("既にある id")).length).toBeGreaterThan(0);
   });

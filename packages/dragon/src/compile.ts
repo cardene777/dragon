@@ -4645,7 +4645,9 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const data: NonNullable<CdlDiagram["nodes"][number]["treeData"]> = doc.actors.map((a) => {
     const id = slugify(a.name);
     const p3 = 親.get(id);
-    return { id, title: a.name, ...(p3 !== undefined ? { parent: p3 } : {}) };
+    // 木も放射と同じく名前と補足を分けて渡す (#1332)。 分けないと補足が捨てられ、
+    // 書いた文字が図に出ない
+    return { id, ...放射に出す文字(a), ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
     lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, ...図の小見出し(doc), w: W, h: H, treeData: data,
@@ -4997,14 +4999,13 @@ type 放射で描ける欄 =
   /** 中心の名前 / 枝の名前になる */
   | "name"
   /**
-   * 名前の後ろに続けて出す 2 欄。
+   * 名前とは分けて補足に出す 2 欄。
    *
    * `- 描く量を減らす: "{draw} ms"` の形は副題として解析されるため、 値の欄だけを見ると
    * 記法で最も普通な書き方が届かない (#1230 で実測)。 明示的に書いた値の欄も同じ場所へ出す。
    *
-   * 描画側が描くのは枝と中心の `title` だけで (`mind-map.tsx` は型にある `subtitle` を
-   * 1 度も描かない)、 状態を読み替えるのも `title` と `rootTitle` に限る
-   * (`resolveMindData`)。 届ける先が他に無いため名前と同じ欄へ載せる。
+   * 描画側は枝の `subtitle` と中心の `rootSubtitle` を名前とは別の行に描く。 2 欄を
+   * `放射に出す文字` で 1 つの補足にまとめ、 名前とは分けて渡す。
    */
   | "subtitle"
   | "value"
@@ -5115,18 +5116,17 @@ function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描�
 }
 
 /**
- * 放射の枝と中心に出す文字を組む (#1230)。
+ * 放射と木の箱に出す名前と補足 (#1332)。
  *
- * 値の欄を書いた登場人物は名前の後ろに空白 1 つで続ける。 書いていない図は名前だけになり、
- * 変更前と同じ文字列になる。
+ * **連結しない**。 描画側は名前と補足を別々に受け取れば箱の中で 2 行に積む。 1 つの文字列に
+ * すると 1 行に全部入り、箱幅を超えて末尾が切られる (実測 = 箱 120px に対し文字 163px)。
  *
- * **名前と同じ欄に載せるしかない**。 描画側が描くのは枝と中心の `title` だけで
- * (`mind-map.tsx` は型にある `subtitle` を 1 度も描かない)、 状態を読み替えるのも
- * `title` と `rootTitle` に限る (`resolveMindData`)。 値を別の欄へ渡しても絵に出ない。
+ * `subtitle` と `value` の両方が書かれた場合は空白で繋いで 1 つの補足にする。 描画側の
+ * 補足は 1 行なので、2 つを別々の行にはできない。
  */
-function 放射に出す文字(a: DslActor): string {
+function 放射に出す文字(a: DslActor): { title: string; subtitle?: string } {
   const 続き = [a.subtitle, a.value].map((x) => x?.trim()).filter((x): x is string => !!x);
-  return 続き.length > 0 ? `${a.name} ${続き.join(" ")}` : a.name;
+  return { title: a.name, ...(続き.length > 0 ? { subtitle: 続き.join(" ") } : {}) };
 }
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
@@ -5246,7 +5246,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     // 枝は色を持てる (`MindBranchNode.tone`)
     branches.push({
       id,
-      title: 放射に出す文字(a),
+      ...放射に出す文字(a),
       parent: 親.get(id) ?? rootId,
       ...(a.tone ? { tone: a.tone } : {}),
     });
@@ -5269,7 +5269,15 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     ...図の小見出し(doc),
     w: W,
     h: H,
-    mindData: { rootId, rootTitle: 放射に出す文字(root), branches },
+    mindData: (() => {
+      const 中心 = 放射に出す文字(root);
+      return {
+        rootId,
+        rootTitle: 中心.title,
+        ...(中心.subtitle === undefined ? {} : { rootSubtitle: 中心.subtitle }),
+        branches,
+      };
+    })(),
   });
   return b.build();
 }
