@@ -44,9 +44,18 @@ export function 値の名前(yaml: string): string[] {
 /** 見本の module から記法の文字列をすべて拾う */
 function 記法たち(src: string): Array<{ key: string; yaml: string }> {
   const out: Array<{ key: string; yaml: string }> = [];
-  const re = /export const sourceYaml__(\w+)\s*=\s*`([\s\S]*?)`;/gu;
+  const 名前付き = /export const sourceYaml__(\w+)\s*=\s*`([\s\S]*?)`;/gu;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) out.push({ key: m[1], yaml: m[2] });
+  while ((m = 名前付き.exec(src)) !== null) out.push({ key: m[1], yaml: m[2] });
+
+  // text-dsl / cookbook の見本は sourceYaml__ へ分けず、呼出しに記法を直接書いている。
+  // ここを見ないと、一覧に実際に出る相当数の見本が検査の外になる。
+  const 直接記述 = /textDslToDiagram\(\s*`([\s\S]*?)`\s*\)/gu;
+  let n = 0;
+  while ((m = 直接記述.exec(src)) !== null) {
+    n += 1;
+    out.push({ key: `textDslToDiagram-${n}`, yaml: m[1] });
+  }
   return out;
 }
 
@@ -59,6 +68,13 @@ describe("見本の値の名前 (#1330)", () => {
   it("見本を 1 つ以上読めている (検査が空振りしていない)", () => {
     expect(files.length).toBeGreaterThan(0);
     expect(見本.length).toBeGreaterThan(0);
+  });
+
+  it("名前付きと直接記述の両方の見本を読めている", () => {
+    // catalog は sourceYaml__ で記法を分ける形と、textDslToDiagram に直接書く形の両方を使う。
+    // 片方の抽出規則が壊れても全体件数だけでは気付けないため、それぞれを明示して見る。
+    expect(見本.some((x) => !x.key.startsWith("textDslToDiagram-"))).toBe(true);
+    expect(見本.some((x) => x.key.startsWith("textDslToDiagram-"))).toBe(true);
   });
 
   it("値を持つ見本を 1 つ以上読めている", () => {

@@ -2174,6 +2174,18 @@ function ensureAnimate(a: DslAnimate | undefined, lineNo: number): DslAnimate {
   return { states: [], phases: [], pos: { line: lineNo } };
 }
 
+/**
+ * 段に書ける項目の英語名。 `parsePhase` が受け付ける名前の入口でも使う。
+ *
+ * 誤りの案内で使うほか、**見本が値の名前にこの語を使っていないか** を見るのにも使う
+ * (#1330)。 段の項目と値は階層が違うので衝突しないが、同じ語が 2 つの意味で並ぶと
+ * 見本を読む人が階層から意味を判断することになる。
+ */
+export const PHASE_ITEM_WORDS = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
+
+const 段の項目の英語 = PHASE_ITEM_WORDS;
+const 段の項目の集合: ReadonlySet<string> = new Set(PHASE_ITEM_WORDS);
+
 function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
   // block[0]!: `step: "request" 1.5s`
   const head = block[0]!;
@@ -2220,6 +2232,17 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
     }
     const key = (propMatch[1] ?? "").toLowerCase();
     const value = (propMatch[2] ?? "").trim();
+    // 一覧を parse の入口にも使う。 分岐だけを増やして一覧を更新し忘れると、見本の名前との
+    // 重なり検査が新しい項目を見落とすため、一覧にない語は各分岐へ到達させない。
+    if (!段の項目の集合.has(key)) {
+      errors.push({
+        line: ln.no,
+        message: `段の項目名が読めません: "${propMatch[1] ?? ""}"`,
+        hint: 段の項目のヒント(propMatch[1] ?? ""),
+      });
+      i += 1;
+      continue;
+    }
     if (key === "focus") {
       phase.highlight = parseFocusList(value);
       i += 1;
@@ -2304,8 +2327,8 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       i = j;
       continue;
     }
-    // ここに来るのは上のどれにも当たらなかった名前 (#1301)。 黙って捨てると
-    // 「書いたのに段が変わらない」 が手掛かりなしで起きる
+    // ここに来るのは一覧へ語を足したのに処理分岐を足していない時だけ。 黙って捨てると
+    // 「一覧にはあるのに段が変わらない」 が手掛かりなしで起きる。
     errors.push({
       line: ln.no,
       message: `段の項目名が読めません: "${propMatch[1] ?? ""}"`,
@@ -2328,17 +2351,6 @@ function 段の項目のヒント(書いた名前: string): string {
     ? `v0.5 では英語で書く (\`${英語}\`)`
     : `使える項目 = ${段の項目の英語.join(", ")}`;
 }
-
-/**
- * 段に書ける項目の英語名。 `parsePhase` の分岐から導く一覧。
- *
- * 誤りの案内で使うほか、**見本が値の名前にこの語を使っていないか** を見るのにも使う
- * (#1330)。 段の項目と値は階層が違うので衝突しないが、同じ語が 2 つの意味で並ぶと
- * 見本を読む人が階層から意味を判断することになる。
- */
-export const PHASE_ITEM_WORDS = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
-
-const 段の項目の英語 = PHASE_ITEM_WORDS;
 
 /**
  * `draw:` に書ける語と、その語が効く図種 (#1312 / #1314)。
