@@ -11,6 +11,7 @@ import {
   visibleWarnings,
   hasExplicitPositions,
   violationTargets,
+  書き手の名前で読める,
   AUTO_LAYOUT_ALIGNMENT_AXES,
 } from "./editor-warnings";
 
@@ -197,5 +198,97 @@ flow:
       { axis: "column-gap-uniform" as const, diagramId: d.id, detail: 'lane "untouched" 内 node 間の gap variance', severity: "warn" as const },
     ];
     expect(visibleWarnings(fake, d)).toHaveLength(1);
+  });
+});
+
+/**
+ * 書き手が書いた名前で読めるかの検証 (#1324)。
+ *
+ * **実際の検証結果で確かめる**。 文面を手で書くと、cdl が本当にその形で id を書くかが
+ * 分からず、読み替えの正規表現がずれても気付けない。
+ */
+const 落ちる説明 = `title: "t"
+type: sequence
+
+actors:
+  - A: { kind: contract, subtitle: "説明" }
+  - B
+
+flow:
+  - A -> B: "x"
+`;
+
+describe("書き手の名前で読める (#1324)", () => {
+  it("実際の指摘の id が書いた名前に変わる", async () => {
+    const { compile, visualValidateLaid } = await import("@cardenelabs/cdl");
+    const d = textDslToDiagram(落ちる説明);
+    const 元 = visualValidateLaid(compile(d), d).violations;
+    const 対象 = 元.filter((v) => v.detail.includes('node "a-header"'));
+    expect(対象.length, "id を含む指摘が 1 件も出ていない (検査が空振りしている)").toBeGreaterThan(0);
+
+    const 読める = visibleWarnings(元, d);
+    const 直った = 読める.filter((v) => v.detail.includes('名札 "A"'));
+    expect(直った.length, "id が名前に変わっていない").toBe(対象.length);
+    expect(
+      読める.filter((v) => v.detail.includes("a-header")),
+      "組み立てが作った id が残っている",
+    ).toEqual([]);
+  });
+
+  it("書き手が書ける種別名は残す", () => {
+    // `shape-smart-contract` は記法にそのまま書ける語で、記法一覧にも並ぶ。 読み替えると
+    // 書き手が書いた語を消すことになる
+    const d = textDslToDiagram(落ちる説明);
+    const 出た = 書き手の名前で読める(
+      'node "a-header" (shape-smart-contract, 140x72) は書いた 説明 が描かれない',
+      d,
+    );
+    expect(出た, "種別名まで読み替えている").toContain("shape-smart-contract");
+    expect(出た, "id が読み替えられていない").toContain('名札 "A"');
+  });
+
+  it("名前を持たない箱は id のまま残す", () => {
+    const d = textDslToDiagram(落ちる説明);
+    const 詰め物 = d.nodes.find((n) => (n.title ?? "").trim() === "");
+    expect(詰め物, "名前を持たない箱が図に無い (検査が空振りしている)").toBeDefined();
+    const 出た = 書き手の名前で読める(`node "${詰め物!.id}" が unused`, d);
+    expect(出た, "名前の無い箱まで置き換えている").toContain(`node "${詰め物!.id}"`);
+  });
+
+  it("箱を指さない文面は変えない", () => {
+    const d = textDslToDiagram(落ちる説明);
+    const 文 = 'diagram "t" topic 長 1 < 3、 SEO title として短すぎ';
+    expect(書き手の名前で読める(文, d), "関係ない文面を書き換えている").toBe(文);
+  });
+
+  /** 3 箱のうち 1 箱だけ手で置いた図。 絞り込みの順序を見るのに使う */
+  const 手置き1件 = `title: "t"
+type: flow
+actors:
+  - Web: service
+  - API: service
+  - DB:
+      kind: database
+      位置: 900,900
+flow:
+  - Web -> API: "a"
+  - API -> DB: "b"
+`;
+
+  it("絞り込みは読み替える前の文面で行う", () => {
+    // `violationTargets` は `node "<id>"` を探す。 読み替えた後に絞り込むと引けなくなり、
+    // 手で置いた箱の整列の指摘が隠れなくなる
+    const d = textDslToDiagram(手置き1件);
+    const 手で置いた = d.nodes.find((n) => n.posX !== undefined);
+    expect(手で置いた, "手で置いた箱が図に無い").toBeDefined();
+    const fake = [
+      {
+        axis: "alignment" as const,
+        diagramId: d.id,
+        detail: `node "${手で置いた!.id}" cx=1 が不一致`,
+        severity: "warn" as const,
+      },
+    ];
+    expect(visibleWarnings(fake, d), "読み替えた後に絞り込んでいる").toEqual([]);
   });
 });
