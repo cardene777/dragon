@@ -5,7 +5,23 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-予定 ... feedback を反映した patch / minor。
+### Fixed
+
+- **script が実在しない検査を名指ししていたのを直し、同じ形が戻らない検査を足した** (#1339)
+
+  `#923` (図の直接操作を外す) と `#1095` (判定を持たない 91 件を外す) で検査 file が消えたが、
+  それを呼ぶ script 側が残っていた。 実測で `package.json` の 20 件中 10 件、dashboard の
+  25 件中 14 件が実在しない file を名指ししていた。
+
+  **Playwright は名指しが外れても exit 0 を返す**。 `pnpm test:audit` は
+  `Total: 0 tests in 0 files` を出しながら成功扱いで、打った人には「通った」 と読めていた。
+  vitest 側は exit 1 で落ちるため気付ける。
+
+  `test:audit` を外し、`test:editor:l2` / `l3` と dashboard の一覧を実在する file だけに揃えた。
+  併せて、script が名指しする path と pattern が実在することを見る検査を足した。
+
+  `#1328` は「`CONTRIBUTING.md` に書いた cmd が `package.json` に実在するか」 を見る。
+  本検査はその 1 つ先を見る = どちらが欠けても「打ったが 1 件も走らない」 が起きる。
 
 ## [0.11.0] - 2026-08-22
 
