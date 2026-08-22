@@ -2329,8 +2329,16 @@ function 段の項目のヒント(書いた名前: string): string {
     : `使える項目 = ${段の項目の英語.join(", ")}`;
 }
 
-/** 段に書ける項目の英語名。 `parsePhase` の分岐から導く一覧 */
-const 段の項目の英語 = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
+/**
+ * 段に書ける項目の英語名。 `parsePhase` の分岐から導く一覧。
+ *
+ * 誤りの案内で使うほか、**見本が値の名前にこの語を使っていないか** を見るのにも使う
+ * (#1330)。 段の項目と値は階層が違うので衝突しないが、同じ語が 2 つの意味で並ぶと
+ * 見本を読む人が階層から意味を判断することになる。
+ */
+export const PHASE_ITEM_WORDS = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
+
+const 段の項目の英語 = PHASE_ITEM_WORDS;
 
 /**
  * `draw:` に書ける語と、その語が効く図種 (#1312 / #1314)。

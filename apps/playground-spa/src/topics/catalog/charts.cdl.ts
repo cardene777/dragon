@@ -391,14 +391,14 @@ type: mind
 
 actors:
   - 図を速くする: "{total} ms 短縮"
-  - 描く量を減らす: "{draw} ms"
+  - 描く量を減らす: "{paint} ms"
   - 計算を減らす: "{calc} ms"
   - 見えない所を省く: "{skip} ms"
   - 結果を覚える: "{cache} ms"
 
 states:
   total: 0
-  draw: 0
+  paint: 0
   calc: 0
   skip: 0
   cache: 0
@@ -409,7 +409,7 @@ animation:
     description: "どの枝もまだ 0 ms"
   - step: "4 つを入れた後" 1.2s
     tween:
-      draw: 0 -> 120
+      paint: 0 -> 120
       calc: 0 -> 80
       skip: 0 -> 60
       cache: 0 -> 40
@@ -422,13 +422,13 @@ export const sourceJson__mindMap = `{
   "type": "mind",
   "actors": [
     { "name": "図を速くする", "subtitle": "{total} ms 短縮" },
-    { "name": "描く量を減らす", "subtitle": "{draw} ms" },
+    { "name": "描く量を減らす", "subtitle": "{paint} ms" },
     { "name": "計算を減らす", "subtitle": "{calc} ms" },
     { "name": "見えない所を省く", "subtitle": "{skip} ms" },
     { "name": "結果を覚える", "subtitle": "{cache} ms" }
   ],
   "flow": [],
-  "states": { "total": 0, "draw": 0, "calc": 0, "skip": 0, "cache": 0 },
+  "states": { "total": 0, "paint": 0, "calc": 0, "skip": 0, "cache": 0 },
   "animation": [
     { "step": "手を付ける前", "duration": 1.2, "draw": "mind", "body": "どの枝もまだ 0 ms" },
     {
@@ -436,7 +436,7 @@ export const sourceJson__mindMap = `{
       "duration": 1.2,
       "body": "枝ごとの短縮が積み上がって 300 ms になる",
       "tween": {
-        "draw": [0, 120],
+        "paint": [0, 120],
         "calc": [0, 80],
         "skip": [0, 60],
         "cache": [0, 40],
