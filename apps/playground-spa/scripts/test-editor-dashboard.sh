@@ -94,7 +94,7 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "2" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 2 = state machine + align pure test"
   echo "───────────────────────────────────────────────────────────"
-  if npx vitest run src/lib/overlay-reducer.test.ts src/lib/overlay-align.test.ts src/lib/text-edit-replace.test.ts src/lib/overlay-duplicate.test.ts src/lib/cdl-actor-move.test.ts src/lib/cdl-actor-move-layout.test.ts src/lib/edge-stretch.test.ts src/lib/diagram-scale.test.ts 2>&1 | tee "$LOG_DIR/editor-test-l2.log"; then
+  if npx vitest run src/lib/diagram-scale.test.ts 2>&1 | tee "$LOG_DIR/editor-test-l2.log"; then
     RESULT_L2="pass"
   else
     RESULT_L2="fail"
@@ -111,20 +111,10 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   echo "───────────────────────────────────────────────────────────"
   echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
   echo "───────────────────────────────────────────────────────────"
-  # spec を 2 group に分けて順に流す。 1 回で 100 件超を回すと browser が
-  # メモリ不足で OS に落とされ、「Target page, context or browser has been closed」 が
-  # 数件だけ混ざる (実測 = 空きメモリ 0.1GB で 3 件 fail、 単独実行では全 pass)。
-  # group ごとに browser を起動し直すことでピークを下げる。
-  L3_GROUP_A=(
-    tests/editor-flagship.spec.ts
-    tests/editor-cdl-element-selection.spec.ts
-    tests/editor-cdl-resize.spec.ts
-    tests/editor-selection-grouping.spec.ts
-    tests/editor-miro-features.spec.ts
-    tests/editor-figma-features.spec.ts
-    tests/editor-cdl-selection-text-edit.spec.ts
-  )
-  L3_GROUP_B=(
+  # **group 分割はやめた** (#1339)。 分けていたのは 1 回で 100 件超を回すと browser が
+  # メモリ不足で落ちるためだったが、`#923` で図の直接操作を外した際に group A の 7 spec が
+  # 全て消え、残ったのは group B の 5 spec だけになった。 100 件に届かないので分ける理由が無い。
+  L3_SPECS=(
     tests/editor-all-types.spec.ts
     tests/ethereum.spec.ts
     tests/editor-stage-svg.spec.ts
@@ -133,16 +123,12 @@ if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   )
   RESULT_L3="pass"
   : > "$LOG_DIR/editor-test-l3.log"
-  for group in A B; do
-    declare -n specs="L3_GROUP_$group"
-    echo "  --- group $group (${#specs[@]} spec) ---"
-    if SPA_URL="$BASE_URL" npx playwright test "${specs[@]}" --reporter=list --timeout=45000 2>&1 | tee -a "$LOG_DIR/editor-test-l3.log"; then
-      :
-    else
-      RESULT_L3="fail"
-    fi
-  done
-  # group ごとの "N passed" を合算する
+  echo "  --- ${#L3_SPECS[@]} spec ---"
+  if SPA_URL="$BASE_URL" npx playwright test "${L3_SPECS[@]}" --reporter=list --timeout=45000 2>&1 | tee -a "$LOG_DIR/editor-test-l3.log"; then
+    :
+  else
+    RESULT_L3="fail"
+  fi
   COUNT_L3="$(grep -oE '^[[:space:]]*[0-9]+ passed' "$LOG_DIR/editor-test-l3.log" 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END{print s+0}')"
 fi
 

@@ -20,7 +20,6 @@
     "test:ui": "vitest --ui",
     "test:sweep": "vitest run visual-validate-sweep",
     "test:playwright": "pnpm --filter dragon-playground-spa exec playwright test",
-    "test:audit": "pnpm --filter dragon-playground-spa exec playwright test audit-3vp",
     "test:kind": "pnpm --filter dragon-playground-spa exec playwright test kind-geometry-check.spec",
     "test:kind:proof": "pnpm --filter dragon-playground-spa exec playwright test kind-geometry-check.proof",
     "check:cdl": "pnpm test:playwright",
