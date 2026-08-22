@@ -92,7 +92,7 @@ fi
 if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "2" ]]; then
   echo ""
   echo "───────────────────────────────────────────────────────────"
-  echo "  Layer 2 = state machine + align pure test"
+  echo "  Layer 2 = diagram scale pure test"
   echo "───────────────────────────────────────────────────────────"
   if npx vitest run src/lib/diagram-scale.test.ts 2>&1 | tee "$LOG_DIR/editor-test-l2.log"; then
     RESULT_L2="pass"
@@ -109,7 +109,7 @@ fi
 if [[ "$LAYER_FILTER" == "all" || "$LAYER_FILTER" == "3" ]]; then
   echo ""
   echo "───────────────────────────────────────────────────────────"
-  echo "  Layer 3 = Playwright E2E flagship + cdl element selection"
+  echo "  Layer 3 = Playwright E2E core editor rendering"
   echo "───────────────────────────────────────────────────────────"
   # **group 分割はやめた** (#1339)。 分けていたのは 1 回で 100 件超を回すと browser が
   # メモリ不足で落ちるためだったが、`#923` で図の直接操作を外した際に group A の 7 spec が
@@ -172,8 +172,8 @@ echo "════════════════════════�
 echo "  SUMMARY"
 echo "═══════════════════════════════════════════════════════════"
 printf "  %-40s %-6s %s\n" "Layer 1 = geometry / DSL parse (fast)" "$RESULT_L1" "$COUNT_L1 tests"
-printf "  %-40s %-6s %s\n" "Layer 2 = state machine (fast)"        "$RESULT_L2" "$COUNT_L2 tests"
-printf "  %-40s %-6s %s\n" "Layer 3 = E2E flagship (medium)"       "$RESULT_L3" "$COUNT_L3 tests"
+printf "  %-40s %-6s %s\n" "Layer 2 = diagram scale (fast)"        "$RESULT_L2" "$COUNT_L2 tests"
+printf "  %-40s %-6s %s\n" "Layer 3 = core editor E2E (medium)"    "$RESULT_L3" "$COUNT_L3 tests"
 printf "  %-40s %-6s %s\n" "Layer 4 = visual regression (slow)"    "$RESULT_L4" "$COUNT_L4 tests"
 printf "  %-40s %-6s %s\n" "Layer 5 = 本番 build + a11y"            "$RESULT_L5" "$COUNT_L5 tests"
 echo "═══════════════════════════════════════════════════════════"

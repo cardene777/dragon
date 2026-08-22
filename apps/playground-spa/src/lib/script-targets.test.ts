@@ -68,7 +68,13 @@ function 検査fileら(dir: string, 出: string[] = []): string[] {
   return 出;
 }
 
-const 全検査file = [...検査fileら(join(SPA, "src")), ...検査fileら(join(SPA, "tests"))];
+const Vitest検査file = 検査fileら(join(SPA, "src"));
+const Playwright検査file = 検査fileら(join(SPA, "tests"));
+
+/** Playwright の `testDir` (`tests/`) 内で pattern に一致する検査があるか */
+function Playwright検査に一致する(pattern: string): boolean {
+  return Playwright検査file.some((f) => f.includes(pattern));
+}
 
 describe("script が名指しする検査が実在する (#1339)", () => {
   it("走査対象を読めている", () => {
@@ -76,7 +82,8 @@ describe("script が名指しする検査が実在する (#1339)", () => {
     for (const t of 走査対象) {
       expect(existsSync(join(ROOT, t.rel)), `走査対象が無い: ${t.rel}`).toBe(true);
     }
-    expect(全検査file.length, "検査 file を 1 件も集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(Vitest検査file.length, "Vitest の検査 file を 1 件も集められていない").toBeGreaterThan(0);
+    expect(Playwright検査file.length, "Playwright の検査 file を 1 件も集められていない").toBeGreaterThan(0);
   });
 
   it("名指しを 1 件以上拾えている", () => {
@@ -105,7 +112,7 @@ describe("script が名指しする検査が実在する (#1339)", () => {
     for (const t of 走査対象) {
       const text = readFileSync(join(ROOT, t.rel), "utf8");
       for (const pat of 名指しされたpattern(text)) {
-        if (!全検査file.some((f) => f.includes(pat))) 空振り.push(`${t.rel} → ${pat}`);
+        if (!Playwright検査に一致する(pat)) 空振り.push(`${t.rel} → ${pat}`);
       }
     }
     expect(空振り, "script の pattern がどの検査にも一致しない").toEqual([]);
@@ -124,5 +131,10 @@ describe("script が名指しする検査が実在する (#1339)", () => {
     // 何でも拾う実装だと、上の検査は名指しの有無に関わらず落ちる
     expect(名指しされたpath('"build": "vite build"'), "名指しの無い script を拾っている").toEqual([]);
     expect(名指しされたpattern('"dev": "vite"'), "pattern の無い script を拾っている").toEqual([]);
+  });
+
+  it("Playwright pattern の一致対象を tests/ に限る (陽性・陰性対照)", () => {
+    expect(Playwright検査に一致する("editor-stage-svg.spec"), "E2E 検査に一致しない").toBe(true);
+    expect(Playwright検査に一致する("diagram-scale.test"), "Vitest の検査を E2E と判定している").toBe(false);
   });
 });
