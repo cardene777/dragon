@@ -4,7 +4,7 @@
  * AC 5 (catalog byte-identical) は既存 sweep test (`sweep-5-category.spec.ts` 他) に責務、
  * 本 file は「YAML tab UI が spec 通り動くか」 に集約する。
  *
- * 前提 = dev server が localhost:4323 で起動していること (playwright.config.ts SSOT)。
+ * 前提 = dev server が起動していること (port は `ports.ts` の `DEV_PORT` が SSOT)。
  */
 import { test, expect, type Page } from "@playwright/test";
 
