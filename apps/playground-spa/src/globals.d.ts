@@ -5,5 +5,5 @@
  * 画面から見ると literal に置き換わるので、実行時に import する経路は無い。
  */
 
-/** 記法の版 (`packages/dragon/package.json` の `version`)。 例 `0.10.0` */
+/** 記法の版。 `packages/dragon/package.json` の `version` がそのまま入る */
 declare const __DRAGON_VERSION__: string;
