@@ -77,11 +77,44 @@ export function hasExplicitPositions(diagram: CdlDiagram): boolean {
   return m.nodes.size > 0 || m.lanes.size > 0;
 }
 
-/** 画面に出す指摘を選ぶ。 手で置いた分に関わる整列の指摘だけを外す。 */
+/**
+ * 描画側の指摘に出る箱の id を、書き手が書いた名前に読み替える (#1324)。
+ *
+ * 描画側は `node "a-header"` のように **組み立てが作った id** で指す。 書き手が書いたのは
+ * `A` で、`a-header` は source のどこにも現れない。 id の作り方も書き手に見えていないため、
+ * 対応付けを頭の中でやることになる。
+ *
+ * **読み替えるのは id だけ**。 同じ文面に出る種別名 (`shape-smart-contract`) は記法に
+ * そのまま書ける語で、記法一覧の「箱の種類」 にも並んでいる。 書き手が `contract` と
+ * 書いたか `shape-smart-contract` と書いたかは組み立ての後に残らないため、書いた方に
+ * 戻すこともできない。 置き換えてよいのは書き手が絶対に書かない語に限る。
+ *
+ * 名前を持たない箱 (`a-spacer` のような組み立てが作る詰め物) は id のまま残す。 空文字に
+ * すると何を指しているか読めなくなる。
+ */
+export function 書き手の名前で読める(detail: string, diagram: CdlDiagram): string {
+  const 名前 = new Map<string, string>();
+  for (const n of diagram.nodes) {
+    const t = (n.title ?? "").trim();
+    if (t !== "") 名前.set(n.id, t);
+  }
+  // `node "<id>"` の形だけを見る。 文面の他の場所に同じ文字列があっても触らない
+  return detail.replace(/node "([^"]+)"/gu, (元, id: string) => {
+    const t = 名前.get(id);
+    return t === undefined ? 元 : `名札 "${t}"`;
+  });
+}
+
+/**
+ * 画面に出す指摘を選ぶ。 手で置いた分に関わる整列の指摘だけを外す。
+ *
+ * 残した指摘は `書き手の名前で読める` を通してから返す。 **絞り込みは元の文面で行う** =
+ * 対象を読み取る `violationTargets` は `node "<id>"` を探すため、読み替えた後だと引けない。
+ */
 export function visibleWarnings(violations: Violation[], diagram: CdlDiagram): Violation[] {
   const manual = manuallyPlaced(diagram);
   const hasManual = manual.nodes.size > 0 || manual.lanes.size > 0;
-  return violations.filter((v) => {
+  const 残す = violations.filter((v) => {
     // `error` は軸に関わらず出す。 隠す軸は「書く人が直せない滲み」 を対象にしたもので、
     // 図の破綻を伏せるためではない。
     if (HIDDEN_WARNING_AXES.has(v.axis) && v.severity !== "error") return false;
@@ -95,4 +128,5 @@ export function visibleWarnings(violations: Violation[], diagram: CdlDiagram): V
     // 対象が読み取れない指摘は残す。 隠す判断がつかないものを黙って落とさない
     return true;
   });
+  return 残す.map((v) => ({ ...v, detail: 書き手の名前で読める(v.detail, diagram) }));
 }
