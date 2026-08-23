@@ -27,11 +27,14 @@ async function 開く(page: Page, 名前: string): Promise<void> {
   await page.waitForTimeout(300);
 }
 
-/** 一定時間見て、観測できた値の種類を集める */
+/** 一定時間見て、観測できた状態の種類を集める */
 async function 値の種類(page: Page, 読む: () => Promise<string[]>): Promise<Set<string>> {
   const 値 = new Set<string>();
   for (let i = 0; i < 80; i++) {
-    for (const v of await 読む()) 値.add(v);
+    // 1 回に読んだ全要素を 1 snapshot として比べる。値を個別に集めると、複数の枝や帯が
+    // 同じ frame で違う値を持つだけで「動いた」と判定し、停止した animation も通ってしまう。
+    const snapshot = await 読む();
+    if (snapshot.length > 0) 値.add(JSON.stringify(snapshot));
     if (値.size >= 2) break;
     await page.waitForTimeout(100);
   }
