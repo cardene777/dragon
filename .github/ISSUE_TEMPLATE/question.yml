@@ -1,0 +1,42 @@
+name: Question
+description: 使い方 / 仕様の質問
+title: "[q] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        質問歓迎です。
+        docs / playground catalog で見当たらない動作仕様は遠慮なくどうぞ。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 質問内容
+      description: 何を知りたいか
+      placeholder: "phase 内で tween と set を同じ state に対して併用したらどう動く？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 試したこと / context
+      description: 既に試した code / 読んだ docs / 想定 use case
+      render: tsx
+
+  - type: input
+    id: version
+    attributes:
+      label: cdl version
+      placeholder: "0.5.0"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: README / docs / catalog で探した
+          required: true
+        - label: 既存 issue を検索した
+          required: true

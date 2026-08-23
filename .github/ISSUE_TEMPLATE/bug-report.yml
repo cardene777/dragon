@@ -1,0 +1,78 @@
+name: Bug report
+description: cdl の動作が想定と違うときに使う template
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        bug 報告ありがとうございます。
+        再現手順を明確にすると修正が早く進みます。
+
+  - type: input
+    id: version
+    attributes:
+      label: cdl version
+      description: 使っている `@chainome/cdl` の version (package.json 参照)
+      placeholder: "0.5.0"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 環境
+      description: OS / node / package manager
+      placeholder: "macOS 14, node 22, pnpm 10"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 何が起きたか
+      description: 観測した現象を 1-3 文で
+      placeholder: "sequence preset の step に sub を渡すと SVG が空で render される"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      description: あるべき挙動
+      placeholder: "sub label が arrow の下に表示される"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: 最小再現コード (TypeScript) または playground URL
+      render: tsx
+      placeholder: |
+        import { sequence } from "@chainome/cdl";
+
+        const seq = sequence({ id: "x", topic: "X", actors: ["A", "B"] })
+          .step({ from: "A", to: "B", label: "msg", sub: "details" })
+          .build();
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: error / log
+      description: console error / stack trace があれば
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: 最新 version で再現する
+          required: true
+        - label: 既存 issue を検索した
+          required: true
