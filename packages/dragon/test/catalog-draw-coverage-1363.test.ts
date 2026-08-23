@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { validate, type CdlDiagram } from "@cardenelabs/cdl";
 
@@ -40,6 +41,13 @@ const ページ: Record<string, Record<string, unknown>> = {
   parts,
   charts,
 };
+
+/** catalog directory の実ファイル。 手動 import からページが漏れた時に検知する */
+const 実在するページ = (): string[] =>
+  readdirSync(new URL("../../../apps/playground-spa/src/topics/catalog", import.meta.url))
+    .filter((name) => name.endsWith(".cdl.ts"))
+    .map((name) => name.slice(0, -".cdl.ts".length))
+    .sort();
 
 type 見本 = { page: string; id: string; diagram: CdlDiagram };
 
@@ -91,6 +99,10 @@ const 描ける箱 = (d: CdlDiagram): string[] =>
 
 describe("見本帳の全ページで、起点から描ける図は描く指定を持つ (#1363)", () => {
   const 見本 = 全見本();
+
+  it("catalog の全ページを走査対象にしている", () => {
+    expect(Object.keys(ページ).sort(), "新しいページが全ページ走査から漏れている").toEqual(実在するページ());
+  });
 
   it("見本を集められている", () => {
     expect(見本.length, "見本を 1 件も集められていない (検査が空振りしている)").toBeGreaterThan(50);
