@@ -20,15 +20,15 @@ import ghpages from "gh-pages";
  * |---|---|
  * | `.` (既定) | `a.txt` のみ |
  * | `**\/*` | `a.txt` のみ |
- * | `**\/*` + `.*` | `a.txt` / `.npmrc` |
- * | `**\/*` + `.*` + `.*\/**` | `a.txt` / `.npmrc` / `.github/t.yml` |
+ * | `**\/*` + `**\/.*` | `a.txt` / `.npmrc` |
+ * | `**\/*` + `**\/.*` + `**\/.*\/**` | `a.txt` / `.npmrc` / `.github/t.yml` |
  *
  * 実際に 1 度配信したところ、48 file のうち 12 件が repo の dotfile だった
  * (`.claude` / `.mcp.json` / `.npmrc` / `.github` 等)。
  *
  * ## `.git` を除外する
  *
- * `.*\/**` は **`.git/**` にも一致する**。 除外しないと clone の git 情報を消してしまう
+ * `**\/.*\/**` は **`.git/**` にも一致する**。 除外しないと clone の git 情報を消してしまう
  * (実測で `.git/HEAD` と `.git/objects/o` が一致した)。
  */
 
@@ -38,7 +38,7 @@ import ghpages from "gh-pages";
  * `dist` に無いものを全て消す形にする = 公開されるのは `dist` の中身だけになる。
  * `.git` は clone の管理情報なので残す。
  */
-export const 掃除の対象 = ["**/*", ".*", ".*/**", "!.git", "!.git/**"];
+export const 掃除の対象 = ["**/*", "**/.*", "**/.*/**", "!.git", "!.git/**"];
 
 /** 配信する branch */
 export const 配信先branch = "gh-pages";

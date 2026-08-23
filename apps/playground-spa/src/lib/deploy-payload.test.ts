@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, describe, it, expect } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import globby from "globby";
@@ -33,11 +33,17 @@ import { 掃除の対象 } from "../../scripts/deploy-pages.mjs";
  */
 
 /** 配信の clone を模した一時 dir を作る (repo の dotfile と `.git` を含む) */
+const 一時dirs = new Set<string>();
+
 function 模したclone(): string {
   const d = mkdtempSync(join(tmpdir(), "deploy-payload-"));
+  一時dirs.add(d);
   writeFileSync(join(d, "index.html"), "x");
   mkdirSync(join(d, "assets"));
   writeFileSync(join(d, "assets", "app.js"), "x");
+  writeFileSync(join(d, "assets", ".old"), "x");
+  mkdirSync(join(d, "assets", ".cache"));
+  writeFileSync(join(d, "assets", ".cache", "entry.json"), "x");
   // repo から残る dotfile
   writeFileSync(join(d, ".npmrc"), "x");
   writeFileSync(join(d, ".prettierrc"), "x");
@@ -56,6 +62,11 @@ function 模したclone(): string {
 
 const 掃除される = (pattern: readonly string[]): string[] =>
   globby.sync([...pattern], { cwd: 模したclone() }).sort();
+
+afterEach(() => {
+  for (const d of 一時dirs) rmSync(d, { recursive: true, force: true });
+  一時dirs.clear();
+});
 
 describe("配信の掃除が dotfile に届く (#1347)", () => {
   it("gh-pages と同じ matcher を使っている", async () => {
@@ -82,7 +93,14 @@ describe("配信の掃除が dotfile に届く (#1347)", () => {
 
   it("repo の dotfile を掃除の対象にする", () => {
     const 消える = 掃除される(掃除の対象);
-    for (const f of [".npmrc", ".prettierrc", ".github/t.yml", ".claude/skills/s.md"]) {
+    for (const f of [
+      ".npmrc",
+      ".prettierrc",
+      ".github/t.yml",
+      ".claude/skills/s.md",
+      "assets/.old",
+      "assets/.cache/entry.json",
+    ]) {
       expect(消える, `dotfile が掃除されない: ${f}`).toContain(f);
     }
   });
