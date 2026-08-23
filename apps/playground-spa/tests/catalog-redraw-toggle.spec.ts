@@ -90,14 +90,27 @@ test.describe("2 段目以降の描き方を切替えられる (#1359)", () => {
      */
     const 二段目で残りが付いた回数 = async (page: Page): Promise<number> => {
       let n = 0;
+      let 前も2段目 = false;
       for (let i = 0; i < 60; i++) {
         const 見た = await page.evaluate(() => {
           const 札 = document.querySelector(".cdl-phase-chip")?.textContent ?? "";
           const el = document.querySelector('[data-cdl-role="chart-line"]');
           return { 札, 残り: el?.getAttribute("stroke-dashoffset") ?? null };
         });
-        // 1 段目の名前は「計画」。 それ以外の段に居る時だけ数える
-        if (!見た.札.includes("計画") && 見た.残り !== null) n += 1;
+        // 局面表示が一時的に空でも 2 段目と誤認しないよう、番号を正方向に照合する
+        const 今2段目 = 見た.札.includes("局面 2 / 2");
+        /*
+         * **2 回続けて 2 段目だった時だけ数える** (#1365 で実測)。
+         *
+         * 段の札と図は別々に更新されるため、段が切り替わる瞬間に「札は 2 段目だが図はまだ
+         * 1 段目の dash を持っている」 状態が 1 sample だけ現れる。 全件を並列で回して負荷が
+         * 上がると再現し、「動かすだけ」 側が 1 を数えて落ちていた。
+         *
+         * 続けて 2 回見れば切り替わりの瞬間は外れる。 2 段目は 0.9 秒あって 9 sample 取れるので、
+         * 引き直している時は依然として何度も数えられる。
+         */
+        if (今2段目 && 前も2段目 && 見た.残り !== null) n += 1;
+        前も2段目 = 今2段目;
         await page.waitForTimeout(100);
       }
       return n;
