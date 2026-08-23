@@ -9,7 +9,7 @@
  * 2. 各 JSON source が JSON.parse できる
  * 3. 各 JSON source が validateDragonJson を通る
  * 4. YAML / JSON source がどちらも CdlDiagram になり、対応 scene と同じ段を持つ
- * 5. JSON の actors / flow が対応する diagram の shape kind と一致する
+ * 5. JSON の actor kind が対応する diagram の node kind と一致する
  */
 import { describe, it, expect } from "vitest";
 import { validateDragonJson, jsonToDiagram, textDslToDiagram } from "../src/index";
@@ -75,7 +75,10 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
     // 畳む形にした以上、同名があると片方が黙って消えて検査を素通りする
     const 片方 = new Set(Object.keys(PrimMod as unknown as AnyRecord));
     const 衝突 = Object.keys(PrimExtMod as unknown as AnyRecord).filter((k) => 片方.has(k));
-    expect(片方.size, "primitives を 1 件も集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      片方.size,
+      "primitives を 1 件も集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
     expect(衝突, "primitives と primitives-extra で export 名が重複している").toEqual([]);
   });
 
