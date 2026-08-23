@@ -11,6 +11,13 @@ import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
+import {
+  図の速さを変える,
+  記法の速さを変える,
+  既定の速さ,
+  速さの選択肢,
+  type 速さ,
+} from "@/lib/playback-speed";
 
 import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
@@ -52,10 +59,22 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
  * `hidden` は **外さずに隠す**。 外すと記法の選択 (yaml / json) が毎回 yaml へ戻り、
  * 図とコードを往復しながら比べる時に選び直すことになる。
  */
-function SourceTabs({ item, hidden }: { item: CatalogItem; hidden?: boolean }): React.ReactElement | null {
+function SourceTabs({
+  item,
+  hidden,
+  速さ,
+}: {
+  item: CatalogItem;
+  hidden?: boolean;
+  /** 画面で選んだ再生速度 (#1355)。 出す秒数をこれに合わせる */
+  速さ: 速さ;
+}): React.ReactElement | null {
   const [tab, setTab] = useState<SourceTab>("yaml");
   if (!item.sourceYaml && !item.sourceJson) return null;
-  const activeSource = tab === "yaml" ? item.sourceYaml : item.sourceJson;
+  const 元 = tab === "yaml" ? item.sourceYaml : item.sourceJson;
+  // 見ている図と同じ速さの秒数を出す (#1355)。 元のままだと、写したコードが画面と違う
+  // 速さで動く
+  const activeSource = 元 === undefined ? undefined : 記法の速さを変える(元, 速さ, tab);
   return (
     <section className="catalog-source-section" aria-label="この diagram の記法" hidden={hidden}>
       <div className="catalog-source-tabs" role="tablist">
@@ -145,6 +164,8 @@ export function CategoryPage(): React.ReactElement {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
+  // 再生速度は **見ている 1 件だけ** に効く (#1355)。 項目を選び直すと既定に戻る
+  const [速さ, set速さ] = useState<速さ>(既定の速さ);
   // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
@@ -209,6 +230,24 @@ export function CategoryPage(): React.ReactElement {
     if (selectedId) return items.find((i) => i.id === selectedId) ?? filtered[0] ?? null;
     return filtered[0] ?? null;
   }, [filtered, items, selectedId]);
+
+  // 項目を選び直したら速さを既定へ戻す (#1355)。 残すと、次の図が遅い理由を見失う
+  const 見ている項目 = currentItem?.id ?? null;
+  useEffect(() => {
+    set速さ(既定の速さ);
+  }, [見ている項目]);
+
+  // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
+  // 速さを触っていない図は描き直されない
+  const 図 = useMemo(
+    () => (currentItem ? 図の速さを変える(currentItem.diagram, 速さ) : null),
+    [currentItem, 速さ],
+  );
+  // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
+  const 拡大の図 = useMemo(
+    () => (modalItem ? 図の速さを変える(modalItem.diagram, 速さ) : null),
+    [modalItem, 速さ],
+  );
 
   const hasSource = Boolean(currentItem?.sourceYaml || currentItem?.sourceJson);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
@@ -356,6 +395,28 @@ export function CategoryPage(): React.ReactElement {
                   >
                     コード
                   </button>
+                  {/*
+                    再生速度の切替 (#1355)。 **コードのタブでも出したまま** にする =
+                    出ている秒数がこの倍率で決まるため、隠すと数字が変わった理由が読めない。
+
+                    `role="tablist"` の中に置くが、これは表示の切替ではないので `radiogroup`
+                    として別に名前を付ける (支援技術に 4 つ目のタブとして読ませない)。
+                  */}
+                  <div className="catalog-speed" role="radiogroup" aria-label="再生速度">
+                    {速さの選択肢.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        role="radio"
+                        aria-checked={速さ === v}
+                        className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
+                        onClick={() => set速さ(v)}
+                        title={`再生速度 ${v}x`}
+                      >
+                        {v}x
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="catalog-preview-stage" hidden={showSource} ref={setStageEl}>
                   {/*
@@ -370,12 +431,12 @@ export function CategoryPage(): React.ReactElement {
                       <div className="catalog-preview-loading">読み込み中…</div>
                     }
                   >
-                    <CdlDiagramView hideMiniPhaseIndicator diagram={currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
+                    <CdlDiagramView hideMiniPhaseIndicator diagram={図 ?? currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
                   </InViewMount>
                   {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
-                  <PhaseChrome stage={stageEl} phases={currentItem.diagram.phases} align="right" />
+                  <PhaseChrome stage={stageEl} phases={(図 ?? currentItem.diagram).phases} align="right" />
                 </div>
-                <SourceTabs item={currentItem} hidden={!showSource} />
+                <SourceTabs item={currentItem} hidden={!showSource} 速さ={速さ} />
                 <footer className="catalog-preview-foot">
                   {/*
                     **記法を持つ図だけ開ける**。 `#preset=<id>` はエディタの見本から slug を
@@ -431,8 +492,8 @@ export function CategoryPage(): React.ReactElement {
               </Dialog.Close>
             </div>
             <div className="cdl-modal-body" ref={setModalStageEl}>
-              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={modalItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />}
-              <PhaseChrome stage={modalStageEl} phases={modalItem?.diagram.phases} align="right" />
+              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={拡大の図 ?? modalItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />}
+              <PhaseChrome stage={modalStageEl} phases={(拡大の図 ?? modalItem?.diagram)?.phases} align="right" />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
