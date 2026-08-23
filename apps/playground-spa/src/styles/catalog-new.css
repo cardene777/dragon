@@ -451,6 +451,46 @@
   cursor: not-allowed;
 }
 
+/* ── 再生速度の切替 (#1355) ── */
+
+/*
+  タブ列の右端に寄せる。 表示の切替 (図 / コード) とは役割が違うので、間を空けて
+  区切りを付ける = 並べて置くと 4 つ目のタブに見える。
+*/
+.catalog-speed {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--d-surface-2, rgba(0, 0, 0, 0.04));
+}
+
+.catalog-speed-btn {
+  padding: 4px 9px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--d-body);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--d-text-secondary);
+  cursor: pointer;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.catalog-speed-btn:hover {
+  color: var(--d-text-primary);
+}
+
+/* 選んだものは面で示す。 下線にすると上のタブと見分けが付かない */
+.catalog-speed-btn.is-active {
+  background: var(--d-bg, #fff);
+  color: var(--d-text-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
 /*
   隠す側は `display` を明示して消す。 `hidden` 属性が持つ既定の `display: none` は、
   要素側の `display: grid` / `flex` に負けて効かない。
