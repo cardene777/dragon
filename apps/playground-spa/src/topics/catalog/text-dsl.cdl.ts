@@ -197,8 +197,9 @@ states:
   task2_progress: 0
 
 animation:
-  - step: "Q1 進行" 1.2s
+  - step: "Q1 進行" 2.4s
     focus: [task1]
+    draw: gantt
     tween:
       task1_progress: 0 -> 100
     badge: "Q1 完了"
@@ -249,8 +250,9 @@ states:
   b_share: 50
 
 animation:
-  - step: "シェア更新" 1s
+  - step: "シェア更新" 2.4s
     focus: [A, B]
+    draw: pie
     tween:
       a_share: 30 -> 40
       b_share: 50 -> 40
@@ -297,7 +299,8 @@ actors:
   - "決め手 {stage}"
 
 animation:
-  - step: "中心" 1s
+  - step: "中心" 2.4s
+    draw: mind
     set:
       stage: "下書き"
     badge: "発想"
