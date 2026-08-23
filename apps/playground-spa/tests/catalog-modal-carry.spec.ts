@@ -63,7 +63,10 @@ async function 拡大の段の長さ(page: Page): Promise<Set<number>> {
  *
  * 1 段目の名前は「計画」。 札にその名前が出ていない間だけ数える。
  */
-async function 拡大の2段目で残りが付いた回数(page: Page): Promise<number> {
+async function 拡大の2段目で残りが付いた回数(
+  page: Page,
+  一度出たら終える = false,
+): Promise<number> {
   let n = 0;
   for (let i = 0; i < 見る回数; i++) {
     const 見た = await page.evaluate((sel: string) => {
@@ -76,7 +79,11 @@ async function 拡大の2段目で残りが付いた回数(page: Page): Promise<
       await page.waitForTimeout(100);
       continue;
     }
-    if (!見た.札.includes("計画") && 見た.残り !== null) n += 1;
+    if (!見た.札.includes("計画") && 見た.残り !== null) {
+      n += 1;
+      // 陽性側は 1 度見つければ判定できる。 陰性対照だけは観測窓を最後まで見る
+      if (一度出たら終える) break;
+    }
     await page.waitForTimeout(100);
   }
   return n;
@@ -131,7 +138,7 @@ test.describe("切替が拡大表示にも届く (#1361)", () => {
     await 拡大を開く(page);
 
     expect(
-      await 拡大の2段目で残りが付いた回数(page),
+      await 拡大の2段目で残りが付いた回数(page, true),
       "描き直すのに拡大表示の 2 段目で線を引き直していない",
     ).toBeGreaterThan(0);
   });
@@ -147,7 +154,7 @@ test.describe("切替が拡大表示にも届く (#1361)", () => {
     expect(長さ.size, "拡大表示の札を読めていない (検査が空振りしている)").toBeGreaterThan(0);
     expect([...長さ].sort((a, b) => a - b)).toEqual([1800, 4800]);
     expect(
-      await 拡大の2段目で残りが付いた回数(page),
+      await 拡大の2段目で残りが付いた回数(page, true),
       "描き直すのに拡大表示の 2 段目で線を引き直していない",
     ).toBeGreaterThan(0);
   });
