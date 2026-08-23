@@ -49,9 +49,16 @@ describe("見本ごとに段の長さを書ける (#1353)", () => {
     expect(段[1]!.duration).toBe(既定の長さ);
   });
 
-  it("長さを書いていない見本は、どの段も既定のまま (陰性対照)", () => {
-    const 図 = 図の一覧().filter((x) => x.diagram.id !== "chart-line-demo");
-    expect(図.length, "比べる見本が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+  it("描く段を持たない見本は、どの段も既定のまま (陰性対照)", () => {
+    /*
+     * #1357 で 6 件の見本にも描く段が入ったため、「折れ線以外は全て既定」 という形の対照は
+     * 成立しなくなった。 **描く段を持たない見本** で取り直す = 起点から描けない種別
+     * (順序図 / 関係図 等) の見本は長さを触らない。
+     */
+    const 図 = 図の一覧().filter((x) =>
+      x.diagram.phases.every((p) => (p.draw ?? []).length === 0),
+    );
+    expect(図.length, "描く段を持たない見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
 
     let 見た段 = 0;
     for (const { name, diagram } of 図) {
@@ -61,6 +68,27 @@ describe("見本ごとに段の長さを書ける (#1353)", () => {
       }
     }
     expect(見た段, "段を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("描く段を持つ見本は 1 件ではない (#1357 で 7 件に増えた)", () => {
+    /*
+     * 「描く段だけが長い」 の検査は、描く段が 1 件しか無くても通る。 見本を増やした後に
+     * **1 件へ戻っていないこと** をここで見る = 増やした分が黙って外れたら落ちる。
+     */
+    const 描く見本 = 図の一覧().filter((x) =>
+      x.diagram.phases.some((p) => (p.draw ?? []).length > 0),
+    );
+    expect(描く見本.map((x) => x.diagram.id).sort()).toEqual(
+      [
+        "chart-line-demo",
+        "chart-pie-demo",
+        "funnel-demo",
+        "gantt-demo",
+        "journey-demo",
+        "mind-demo",
+        "tree-demo",
+      ].sort(),
+    );
   });
 
   it("長さを伸ばしたのは、起点から描く段だけ", () => {

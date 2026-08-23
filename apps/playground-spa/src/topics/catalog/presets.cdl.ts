@@ -68,6 +68,15 @@ type Step = {
 const STEP_DURATION = 900;
 
 /**
+ * 起点から描く段の長さ (ミリ秒、#1357)。
+ *
+ * 既定の 0.9 秒では、線が伸びる / 扇が開く様子を追う前に描き終わる。 見本ごとに違う値を
+ * 置ける (`Step` の `duration`) が、同じページの中で速さがばらつくと比べにくいので
+ * **描く段は 1 つの値に揃える**。
+ */
+const DRAW_DURATION = 2400;
+
+/**
  * 組み上がった図に段を組み直す (#1194)。
  *
  * preset の builder は `.phase()` を持たない (`swimlane` だけが `DiagramBuilder` を返す) ため、
@@ -374,6 +383,9 @@ export const presetTree = withSteps(
   [
     {
       ids: ["tree-demo-tree"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["tree-demo-tree"],
+      duration: DRAW_DURATION,
       title: "組織を作った時",
       body: "開発の責任者を Eng Manager と呼んでいる。",
     },
@@ -412,6 +424,9 @@ export const presetUserJourney = withSteps(
   [
     {
       ids: ["journey-demo-journey"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["journey-demo-journey"],
+      duration: DRAW_DURATION,
       title: "改善前",
       body: "申込みの入力で気持ちが落ちる。",
       sets: [{ id: "form_mood", value: "frustrated" }],
@@ -446,7 +461,14 @@ export const presetMindMap = withSteps(
     }),
   ),
   [
-    { ids: ["mind-demo-mind"], title: "書き出した時", body: "中心はまだ Project のまま。" },
+    {
+      ids: ["mind-demo-mind"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["mind-demo-mind"],
+      duration: DRAW_DURATION,
+      title: "書き出した時",
+      body: "中心はまだ Project のまま。",
+    },
     {
       body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       sets: [{ id: "theme", value: "認証と課金の刷新" }],
@@ -473,7 +495,14 @@ export const presetFunnel = withSteps(
     funnelData: n.funnelData?.map((s) => ({ ...s, count: `{${s.id}}` })),
   })),
   [
-    { ids: ["funnel-demo-funnel"], title: "先月", body: "訪問 8200 から申込み 130 まで絞られる。" },
+    {
+      ids: ["funnel-demo-funnel"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["funnel-demo-funnel"],
+      duration: DRAW_DURATION,
+      title: "先月",
+      body: "訪問 8200 から申込み 130 まで絞られる。",
+    },
     {
       body: "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       tweens: FUNNEL_STAGES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
@@ -543,7 +572,14 @@ export const presetChartPie = withSteps(
     chartData: n.chartData?.map((c, i) => ({ ...c, value: `{${PIE_SLICES[i].id}}` })),
   })),
   [
-    { ids: ["chart-pie-demo-chart"], title: "昨年の内訳", body: "Web 45 / Mobile 35 / API 20。" },
+    {
+      ids: ["chart-pie-demo-chart"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["chart-pie-demo-chart"],
+      duration: DRAW_DURATION,
+      title: "昨年の内訳",
+      body: "Web 45 / Mobile 35 / API 20。",
+    },
     {
       body: "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。",
       tweens: PIE_SLICES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
@@ -579,7 +615,7 @@ export const presetChartLine = withSteps(
       // 左端から右へ線が伸びる (#1351)。 開いた瞬間に全長で出ると静止画と区別が付かない
       draw: ["chart-line-demo-chart"],
       // 描く段は伸ばす (#1353)。 既定の 0.9 秒では引かれる様子を追う前に引き終わる
-      duration: 2400,
+      duration: DRAW_DURATION,
       title: "計画",
       body: "四半期ごとの見込みを引いた線。 左から順に引かれる。",
     },
@@ -614,7 +650,14 @@ export const presetGantt = withSteps(
     }),
   ),
   [
-    { ids: ["gantt-demo-gantt"], title: "当初の計画", body: "Build は Q2 で終わる想定。" },
+    {
+      ids: ["gantt-demo-gantt"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["gantt-demo-gantt"],
+      duration: DRAW_DURATION,
+      title: "当初の計画",
+      body: "Build は Q2 で終わる想定。",
+    },
     {
       body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
       tweens: [{ id: "build_end", from: 1, to: 2 }],
@@ -988,9 +1031,10 @@ states:
   pie_api: 20
 
 animation:
-  - step: "昨年の内訳" 0.9s
+  - step: "昨年の内訳" 2.4s
     badge: "pie"
     focus: [Web]
+    draw: pie
     body: "Web 45 / Mobile 35 / API 20。"
   - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
     badge: "pie"
@@ -1016,8 +1060,9 @@ export const sourceJson__presetChartPie = `{
   "animation": [
     {
       "step": "昨年の内訳",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Web"],
+      "draw": "pie",
       "body": "Web 45 / Mobile 35 / API 20。",
       "badge": "pie"
     },
@@ -1122,9 +1167,10 @@ states:
   paid: 130
 
 animation:
-  - step: "先月" 0.9s
+  - step: "先月" 2.4s
     badge: "funnel"
     focus: [Visit]
+    draw: funnel
     body: "訪問 8200 から申込み 130 まで絞られる。"
   - step: "各段階での離脱率を示す絞込みの図" 0.9s
     badge: "funnel"
@@ -1153,8 +1199,9 @@ export const sourceJson__presetFunnel = `{
   "animation": [
     {
       "step": "先月",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Visit"],
+      "draw": "funnel",
       "body": "訪問 8200 から申込み 130 まで絞られる。",
       "badge": "funnel"
     },
@@ -1198,9 +1245,10 @@ flow:
   - CTO -> Ops Manager: ""
 
 animation:
-  - step: "組織を作った時" 0.9s
+  - step: "組織を作った時" 2.4s
     badge: "tree"
     focus: [CEO]
+    draw: tree
     body: "開発の責任者を Eng Manager と呼んでいる。"
   - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
     badge: "tree"
@@ -1232,8 +1280,9 @@ export const sourceJson__presetTree = `{
   "animation": [
     {
       "step": "組織を作った時",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["CEO"],
+      "draw": "tree",
       "body": "開発の責任者を Eng Manager と呼んでいる。",
       "badge": "tree"
     },
@@ -1271,9 +1320,10 @@ flow:
   - Features -> Billing: ""
 
 animation:
-  - step: "書き出した時" 0.9s
+  - step: "書き出した時" 2.4s
     badge: "mindmap"
     focus: [Features]
+    draw: mind
     body: "中心はまだ Project のまま。"
   - step: "中心の主題から発想を放射状に広げる図" 0.9s
     badge: "mindmap"
@@ -1304,8 +1354,9 @@ export const sourceJson__presetMindMap = `{
   "animation": [
     {
       "step": "書き出した時",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Features"],
+      "draw": "mind",
       "body": "中心はまだ Project のまま。",
       "badge": "mindmap"
     },
@@ -1337,9 +1388,10 @@ states:
   form_mood: "不満"
 
 animation:
-  - step: "改善前" 0.9s
+  - step: "改善前" 2.4s
     badge: "journey"
     focus: ["Land on /"]
+    draw: journey
     set:
       form_mood: "不満"
     body: "申込みの入力で気持ちが落ちる。"
@@ -1372,8 +1424,9 @@ export const sourceJson__presetUserJourney = `{
   "animation": [
     {
       "step": "改善前",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Land on /"],
+      "draw": "journey",
       "body": "申込みの入力で気持ちが落ちる。",
       "badge": "journey",
       "set": { "form_mood": "不満" }
@@ -1476,9 +1529,10 @@ flow:
   - Test -> Ship: ""
 
 animation:
-  - step: "当初の計画" 0.9s
+  - step: "当初の計画" 2.4s
     badge: "gantt"
     focus: [Design]
+    draw: gantt
     body: "Build は Q2 で終わる想定。"
   - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
     badge: "gantt"
@@ -1507,8 +1561,9 @@ export const sourceJson__presetGantt = `{
   "animation": [
     {
       "step": "当初の計画",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Design"],
+      "draw": "gantt",
       "body": "Build は Q2 で終わる想定。",
       "badge": "gantt"
     },

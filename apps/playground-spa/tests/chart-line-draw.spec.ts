@@ -138,14 +138,32 @@ test.describe("扇を 12 時から開く (#1314)", () => {
     expect(形.size, `切り抜きの形が変わらない (観測できた形 = ${[...形].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("`draw:` を書いていない円の見本には切り抜きが付かない", async ({ page }) => {
+  test("`draw:` を書いていない段では切り抜きが付かない", async ({ page }) => {
+    /*
+     * 陰性対照を **同じ図の中** に取る (#1357)。 見本帳の「プリセット」 の円は 1 段目にだけ
+     * `draw` を書いており、2 段目には書いていない。 2 段目では切り抜きが付かない。
+     *
+     * #1357 より前はこの図が丸ごと `draw` を持たず、図そのものを対照にしていた。 図に
+     * `draw` を入れた時点でその対照は消えるため、段で取り直した (折れ線と同じ形)。
+     */
     await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
-    await page.waitForTimeout(600);
-    const 見た = await 扇の切り抜き(page);
-    expect(見た.ある, "書いていない図に切り抜きが付いている").toBe(false);
-    expect(見た.扇の数).toBeGreaterThan(0);
+
+    let 付いた回数 = 0;
+    let 付かない回数 = 0;
+    let 扇の数 = 0;
+    for (let i = 0; i < 80; i++) {
+      const 見た = await 扇の切り抜き(page);
+      扇の数 = 見た.扇の数;
+      if (見た.ある) 付いた回数 += 1;
+      else 付かない回数 += 1;
+      if (付いた回数 > 0 && 付かない回数 > 0) break;
+      await page.waitForTimeout(100);
+    }
+    expect(付いた回数, "書いた段で切り抜きが付かない").toBeGreaterThan(0);
+    expect(付かない回数, "書いていない段でも切り抜きが付いている").toBeGreaterThan(0);
+    expect(扇の数, "扇が 1 つも出ていない").toBeGreaterThan(0);
   });
 });
 
