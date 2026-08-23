@@ -40,7 +40,7 @@ const yamlの描く語 = (src: string): string[] => {
     (m) => m.index ?? 0,
   );
   return 位置.map((始, i) => {
-    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1]! : src.length);
+    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1] : src.length);
     return /^[ \t]*draw:[ \t]*(\S+)[ \t]*$/m.exec(本体)?.[1] ?? "";
   });
 };
@@ -50,7 +50,7 @@ const jsonの描く語 = (src: string): string[] => {
   const 見出し = [...src.matchAll(/"step"\s*:\s*"[^"]*"\s*,/g)];
   const 位置 = 見出し.map((m) => m.index ?? 0);
   return 位置.map((始, i) => {
-    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1]! : src.length);
+    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1] : src.length);
     return /"draw"\s*:\s*"([^"]+)"/.exec(本体)?.[1] ?? "";
   });
 };
@@ -76,7 +76,7 @@ describe("切替えられる図の判定 (#1359)", () => {
 
   it("段が 1 つしかない図では選べない (写す先が無い)", () => {
     const d = 折れ線().diagram;
-    expect(描き方を選べる({ ...d, phases: [d.phases[0]!] })).toBe(false);
+    expect(描き方を選べる({ ...d, phases: [d.phases[0]] })).toBe(false);
   });
 });
 
@@ -90,7 +90,7 @@ describe("図の 2 段目以降に描く指定が写る (#1359)", () => {
   it("写した相手は 1 段目と同じ箱", () => {
     const 元 = 折れ線().diagram;
     const 後 = 図の描き方を変える(元, "描き直す");
-    for (const p of 後.phases) expect(p.draw).toEqual(元.phases[0]!.draw);
+    for (const p of 後.phases) expect(p.draw).toEqual(元.phases[0].draw);
   });
 
   it("既定では元の object をそのまま返す", () => {
@@ -145,7 +145,7 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     const 後 = 記法の描き方を変える(x.yaml!, "描き直す", "yaml");
     const 秒 = (s: string): string[] =>
       [...s.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+(\d+(?:\.\d+)?)s[ \t]*$/gm)].map(
-        (m) => m[1]!,
+        (m) => m[1],
       );
     expect(秒(後)).toEqual(秒(x.yaml!));
     expect(後.split("body:").length, "本文の数が変わっている").toBe(x.yaml!.split("body:").length);

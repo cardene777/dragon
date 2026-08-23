@@ -17,7 +17,7 @@ async function コードの描く段(page: Page): Promise<boolean[]> {
     ...src.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+\d+(?:\.\d+)?s[ \t]*$/gm),
   ].map((m) => m.index ?? 0);
   return 位置.map((始, i) => {
-    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1]! : src.length);
+    const 本体 = src.slice(始, i + 1 < 位置.length ? 位置[i + 1] : src.length);
     return /^[ \t]*draw:/m.test(本体);
   });
 }

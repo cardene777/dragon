@@ -43,7 +43,7 @@ export function 描き方を選べる(diagram: CdlDiagram): boolean {
  */
 export function 図の描き方を変える(diagram: CdlDiagram, 描き方: 描き方): CdlDiagram {
   if (描き方 !== "描き直す" || !描き方を選べる(diagram)) return diagram;
-  const 写す = diagram.phases[0]!.draw ?? [];
+  const 写す = diagram.phases[0].draw ?? [];
   return {
     ...diagram,
     phases: diagram.phases.map((p, i) => (i === 0 ? p : { ...p, draw: [...写す] })),
@@ -58,7 +58,7 @@ const YAMLの段の見出し = /^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+\d+(?:\.\d
 
 /** 文字列を、渡した位置で区切って並べる */
 function 位置で割る(source: string, 位置: number[]): string[] {
-  return 位置.map((始, i) => source.slice(始, i + 1 < 位置.length ? 位置[i + 1]! : source.length));
+  return 位置.map((始, i) => source.slice(始, i + 1 < 位置.length ? 位置[i + 1] : source.length));
 }
 
 /**
@@ -74,10 +74,10 @@ function yamlの描き方を変える(source: string): string {
   if (位置.length < 2) return source;
 
   const 段 = 位置で割る(source, 位置);
-  const draw行 = /^([ \t]*)draw:[ \t]*(\S+)[ \t]*$/m.exec(段[0]!);
+  const draw行 = /^([ \t]*)draw:[ \t]*(\S+)[ \t]*$/m.exec(段[0]);
   if (!draw行) return source;
-  const 字下げ = draw行[1]!;
-  const 語 = draw行[2]!;
+  const 字下げ = draw行[1];
+  const 語 = draw行[2];
 
   const 直した = 段.map((本体, i) => {
     if (i === 0 || /^[ \t]*draw:/m.test(本体)) return 本体;
@@ -87,7 +87,7 @@ function yamlの描き方を変える(source: string): string {
     return `${本体.slice(0, 改行)}\n${字下げ}draw: ${語}${本体.slice(改行)}`;
   });
 
-  return source.slice(0, 位置[0]!) + 直した.join("");
+  return source.slice(0, 位置[0]) + 直した.join("");
 }
 
 /** 記法 (JSON) の段の見出し (`"step": "..."` とその直後のコンマ) */
@@ -111,17 +111,17 @@ function jsonの描き方を変える(source: string): string {
 
   const 直した = 段.map((本体, i) => {
     if (i === 0 || /"draw"\s*:/.test(本体)) return 本体;
-    const 見出しの長さ = 見出し[i]![0].length;
+    const 見出しの長さ = 見出し[i][0].length;
     const 頭 = 本体.slice(0, 見出しの長さ);
     const 残り = 本体.slice(見出しの長さ);
     // 直後が改行なら同じ字下げで次の行に、そうでなければ空白 1 つで続ける
     const 次の字下げ = /^\n([ \t]*)/.exec(残り);
     return 次の字下げ
-      ? `${頭}\n${次の字下げ[1]!}"draw": "${語}",${残り}`
+      ? `${頭}\n${次の字下げ[1]}"draw": "${語}",${残り}`
       : `${頭} "draw": "${語}",${残り}`;
   });
 
-  return source.slice(0, 位置[0]!) + 直した.join("");
+  return source.slice(0, 位置[0]) + 直した.join("");
 }
 
 /**
