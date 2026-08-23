@@ -457,14 +457,28 @@
   タブ列の右端に寄せる。 表示の切替 (図 / コード) とは役割が違うので、間を空けて
   区切りを付ける = 並べて置くと 4 つ目のタブに見える。
 */
-.catalog-speed {
+.catalog-speed,
+.catalog-redraw {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
   padding: 2px;
   border-radius: 6px;
   background: var(--d-surface-2, rgba(0, 0, 0, 0.04));
+}
+
+/* 右端に寄せるのは左側の 1 つだけ。 2 つとも寄せると間が開く */
+.catalog-redraw {
+  margin-left: auto;
+}
+
+.catalog-redraw + .catalog-speed {
+  margin-left: 6px;
+}
+
+/* 描き方の切替が出ない図では、速さが右端に来る */
+.catalog-preview-tabs > .catalog-speed:not(.catalog-redraw + .catalog-speed) {
+  margin-left: auto;
 }
 
 .catalog-speed-btn {
