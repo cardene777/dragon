@@ -97,8 +97,8 @@ type Diagram = CdlDiagram;
  * 網羅そのものは別の検査が見る (`catalog-notation-coverage.test.ts`)。
  */
 const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
-  ["presets", Presets as unknown as Record<string, unknown>],
-  ["patterns", Patterns as unknown as Record<string, unknown>],
+  ["presets", Presets],
+  ["patterns", Patterns],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */
