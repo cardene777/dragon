@@ -16,6 +16,25 @@
  */
 import { test, expect } from "@playwright/test";
 
+/**
+ * gantt の依存の矢印が出るまで待つ (#1357)。
+ *
+ * 帯を起点から描く段では、矢印は **帯が出揃ってから** 出る (`cdl` の `draw` の仕様)。
+ * 固定の待ち時間だと、描いている途中を読んで 0 件になる。
+ *
+ * 上限を置いて待ち、出なければそのまま先へ進む = 「1 件以上」 の assert がそこで落ちるので、
+ * 本当に出ない形は見逃さない。
+ */
+async function 矢印が出るまで待つ(page: import("@playwright/test").Page): Promise<void> {
+  for (let i = 0; i < 60; i++) {
+    const n = await page.evaluate(
+      () => document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').length,
+    );
+    if (n > 0) return;
+    await page.waitForTimeout(100);
+  }
+}
+
 test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/catalog/presets", { waitUntil: "networkidle" });
@@ -25,6 +44,8 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   test("[proof] gantt arrow head gap axis = 食い込み状態を注入すると検知される", async ({ page }) => {
     await page.getByText("ガントチャート", { exact: true }).first().click();
     await page.waitForTimeout(1000);
+    // 帯を起点から描く段では、矢印は帯が出揃ってから出る (#1357)
+    await 矢印が出るまで待つ(page);
 
     // 検査ロジックを inline 再実装 (kind-geometry-check.spec.ts と同一)
     const checkGap = async () => {
