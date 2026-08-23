@@ -30,6 +30,8 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Patterns from "@/topics/catalog/patterns.cdl";
+import * as Styles from "@/topics/catalog/styles.cdl";
+import * as Animation from "@/topics/catalog/animation.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -99,6 +101,8 @@ type Diagram = CdlDiagram;
 const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["presets", Presets],
   ["patterns", Patterns],
+  ["styles", Styles],
+  ["animation", Animation],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */

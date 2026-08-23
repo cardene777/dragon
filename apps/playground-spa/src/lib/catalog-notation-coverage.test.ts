@@ -30,13 +30,23 @@ import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 
 /** 全件が YAML と JSON を持つページ */
-const 揃ったページ = ["presets", "patterns", "charts", "text-dsl"] as const;
+const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles"] as const;
 
-/** 一部だけ持つページ */
-const 一部のページ = ["primitives"] as const;
+/**
+ * 一部だけ持つページ。
+ *
+ * **なぜ全件でないか** を 1 ページずつ書く。 書かないと「まだ書いていない」 と
+ * 「書けない」 が区別できず、残りを埋める時にどちらを相手にしているか分からない。
+ *
+ * | ページ | 持たない件の理由 |
+ * |---|---|
+ * | `primitives` | まだ書いていないだけ |
+ * | `animation` | rich な 5 件が `dyn-wave` / `dyn-arc` の箱に `shape` を渡し `readouts` を使う。 記法にこの 2 つを書く欄が無い (#1373) |
+ */
+const 一部のページ = ["primitives", "animation"] as const;
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
-const まだのページ = ["animation", "styles", "cookbook", "ethereum", "parts", "interactive"] as const;
+const まだのページ = ["cookbook", "ethereum", "parts", "interactive"] as const;
 
 async function ページごとの見本(): Promise<Map<string, CatalogItem[]>> {
   const m = new Map<string, CatalogItem[]>(Object.entries(CATALOG_ITEMS));
