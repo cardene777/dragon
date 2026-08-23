@@ -751,7 +751,7 @@ export const presetStateMachine2 = withSteps(
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
 // 記法があると画面で「コード」 を読めて「エディタで開く」 が押せる。
 //
-// **記法と組み立て API が同じ図になることは検査で確かめる** (`lib/preset-source-parity.test.ts`)。
+// **記法と組み立て API が同じ図になることは検査で確かめる** (`lib/catalog-source-parity.test.tsx`)。
 // 箱と矢印と縦列の id と並び、段の題、段が光らせる先を突き合わせる。
 //
 // 段の `focus:` は **箱の名前か矢印しか受けない** (`focus.ts` が生成 id を意図的に拒否する)。

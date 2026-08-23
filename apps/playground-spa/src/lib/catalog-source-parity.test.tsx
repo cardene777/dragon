@@ -29,6 +29,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
+import * as Patterns from "@/topics/catalog/patterns.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -54,6 +55,20 @@ const id完全一致: readonly string[] = ["presetSequence"];
  */
 const 縦列の見出しの既知の差: Record<string, string> = {};
 
+/**
+ * 記法で光らせ分けられない矢印を、**説明で** 宣言する (#1371)。
+ *
+ * `focus:` は `A -> B` の形しか受けない (`focus.ts`)。 同じ 2 者を結ぶ矢印が 2 本ある図は
+ * どちらか一方だけを段ごとに光らせる書き方が無く、書くと両方が光る。
+ *
+ * 宣言した説明を持つ矢印を **両側から** 外して比べる = 残りの光らせ方は従来どおり見る。
+ * 記法側だけを外すと、組立て API 側がその矢印を光らせなくなった変更に気付けない。
+ */
+const 光らせ分けられない矢印: Record<string, readonly string[]> = {
+  // read と write はどちらも `decrement(...) -> counter table`。 記法では書き分けられない
+  patternCallReadWrite: ["read", "write"],
+};
+
 const 光らせる先の既知の差: Record<string, readonly string[]> = {
   // 順序図の縦線 (`user-header` 等) は `focus:` が受け付けない (`focus.ts` が縦列の id を
   // 意図的に拒否する)。 組み立て API は最初の段から縦線を光らせて「誰の時間軸か」 を
@@ -73,19 +88,38 @@ const 光らせる先の既知の差: Record<string, readonly string[]> = {
 
 type Diagram = CdlDiagram;
 
-/** `sourceYaml__<key>` を持つ preset を集める */
+/**
+ * 記法を併記した見本を持つ module。
+ *
+ * **1 つずつ足す**。 見本帳は 11 ページあり、記法を持つのは一部しかない。 ここに足した
+ * ページだけが本 file の検査を通るので、足し忘れは「検査が増えない」 という形で残る。
+ *
+ * 網羅そのものは別の検査が見る (`catalog-notation-coverage.test.ts`)。
+ */
+const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
+  ["presets", Presets as unknown as Record<string, unknown>],
+  ["patterns", Patterns as unknown as Record<string, unknown>],
+];
+
+/** `sourceYaml__<key>` を持つ見本を集める */
 function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
-  const mod = Presets as unknown as Record<string, unknown>;
   const out: { key: string; yaml: string; built: Diagram }[] = [];
-  for (const [k, v] of Object.entries(mod)) {
-    if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
-    const key = k.slice("sourceYaml__".length);
-    const built = mod[key];
-    // 記法だけあって図が無い形を落とす。 通すと「比べる相手が無いのに通った」 になる
-    if (built === null || typeof built !== "object") {
-      throw new Error(`sourceYaml__${key} に対応する preset export が無い`);
+  const 既出の名前 = new Set<string>();
+  for (const [名, mod] of 記法を持つ見本帳) {
+    for (const [k, v] of Object.entries(mod)) {
+      if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
+      const key = k.slice("sourceYaml__".length);
+      const built = mod[key];
+      // 記法だけあって図が無い形を落とす。 通すと「比べる相手が無いのに通った」 になる
+      if (built === null || typeof built !== "object") {
+        throw new Error(`${名}: sourceYaml__${key} に対応する図の export が無い`);
+      }
+      // **key の重複を落とす**。 宣言 (既知の差 / id 完全一致) は key で引くため、
+      // 別 module に同名があると宣言が意図しない図に効く
+      if (既出の名前.has(key)) throw new Error(`見本の名前 "${key}" がページをまたいで重複している`);
+      既出の名前.add(key);
+      out.push({ key, yaml: v, built: built as Diagram });
     }
-    out.push({ key, yaml: v, built: built as Diagram });
   }
   return out;
 }
@@ -244,6 +278,29 @@ const 見た目を決めない欄 = [
 
 const 落とす式 = new RegExp(` (${見た目を決めない欄.join("|")})="[^"]*"`, "g");
 
+/**
+ * 粒子が載る矢印の参照 (`data-cdl-particle` / `data-cdl-particle-path-ref` / `mpath` の `href`)。
+ *
+ * **落とさず読み替える**。 中身は矢印の id なので記法と組立て API で文字列が違うが、
+ * 落とすと **粒子が別の矢印に載っている図** まで一致になる (参照先が消えるため)。
+ * 読む人に見える名前へ直せば、載せ違いは差として残る。
+ */
+function 粒子の参照を読み替える(s: string, 表: Map<string, string>): string {
+  return s
+    .replace(
+      / data-cdl-particle="([^"]*)"/g,
+      (_m, id: string) => ` data-cdl-particle="${表.get(id) ?? `(不明:${id})`}"`,
+    )
+    .replace(
+      / data-cdl-particle-path-ref="#cdl-edge-([^"]*)"/g,
+      (_m, id: string) => ` data-cdl-particle-path-ref="${表.get(id) ?? `(不明:${id})`}"`,
+    )
+    .replace(
+      / href="#cdl-edge-([^"]*)"/g,
+      (_m, id: string) => ` href="${表.get(id) ?? `(不明:${id})`}"`,
+    );
+}
+
 function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> = new Set()): string {
   const 対象 =
     光らせる先から外す.size === 0
@@ -259,10 +316,13 @@ function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> 
   const 始 = s.indexOf("<svg");
   const 終 = s.lastIndexOf("</svg>");
   if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
-  return s
-    .slice(始, 終 + 6)
-    .replace(落とす式, "")
-    .replace(/url\(#[^)]*\)/g, "url(#)");
+  return 粒子の参照を読み替える(
+    s
+      .slice(始, 終 + 6)
+      .replace(落とす式, "")
+      .replace(/url\(#[^)]*\)/g, "url(#)"),
+    見える名前の表(d),
+  );
 }
 
 function 描いた大きさ(d: Diagram): string {
@@ -710,7 +770,14 @@ describe("図表と状態の一致検査", () => {
 describe("記法が組み立て API と同じ図になる (#1237)", () => {
   it("対象を 1 件以上見つけている", () => {
     // 0 件だと以下の検査が空回りする = 記法を 1 つも書いていないのに全部通る
-    expect(対象.length, "`sourceYaml__<key>` を持つ preset が 1 件も無い").toBeGreaterThan(0);
+    expect(対象.length, "`sourceYaml__<key>` を持つ見本が 1 件も無い").toBeGreaterThan(0);
+
+    // **module ごとに 1 件以上見ている**。 全体の件数だけだと、片方の module の import を
+    // 落としても残り側の件数で通ってしまう (実測で patterns を外しても通った)
+    for (const [名, mod] of 記法を持つ見本帳) {
+      const 件数 = Object.keys(mod).filter((k) => k.startsWith("sourceYaml__")).length;
+      expect(件数, `${名} に記法つきの見本が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(0);
+    }
   });
 
   it("宣言した欄が実物に残っている", () => {
@@ -852,7 +919,27 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       it("段が光らせる先が一致する (既知の差は宣言したものだけ)", () => {
         // **数だけを比べても足りない** (Round 1 の指摘)。 `User` の代わりに `Order` を
         // 光らせても数が同じなら通っていた。 読む人に見える名前へ読み替えて比べる
-        const 記法側 = 光らせる先(記法);
+        // 記法で光らせ分けられない矢印は **両側から** 外す (#1371)
+        const 外す説明 = 光らせ分けられない矢印[t.key] ?? [];
+        const 説明が合う矢印 = (d: Diagram): Set<string> =>
+          new Set(d.edges.filter((e) => 外す説明.includes(e.label ?? "")).map((e) => e.id));
+        const 記法から外す = 説明が合う矢印(記法);
+        const 組立から外す = 説明が合う矢印(t.built);
+        if (外す説明.length > 0) {
+          // 宣言した説明の矢印が両側に実在すること = 説明を書き換えたら宣言が空振りする
+          expect(記法から外す.size, `${t.key} の宣言した説明の矢印が記法側に無い`).toBe(
+            外す説明.length,
+          );
+          expect(組立から外す.size, `${t.key} の宣言した説明の矢印が組立て API 側に無い`).toBe(
+            外す説明.length,
+          );
+          // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
+          expect(
+            光らせる先(記法),
+            `${t.key} の矢印の光らせ分けの差が解消している。 宣言から外すこと`,
+          ).not.toEqual(光らせる先(t.built));
+        }
+        const 記法側 = 光らせる先(記法, 記法から外す);
         if (t.key in 光らせる先の既知の差) {
           const 既知の差 = new Set(光らせる先の既知の差[t.key]);
           const 組立側の全対象 = new Set(t.built.phases.flatMap((p) => p.activate));
@@ -862,7 +949,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
             `${t.key} の既知の差に、実際には光らない対象がある`,
           ).toEqual([]);
 
-          const 組立側 = 光らせる先(t.built, 既知の差);
+          const 組立側 = 光らせる先(t.built, new Set([...既知の差, ...組立から外す]));
           expect(記法側, `${t.key} で宣言外の光らせる先が違う`).toEqual(組立側);
           // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
           expect(記法側, `${t.key} の差が解消している。 宣言から外すこと`).not.toEqual(
@@ -875,8 +962,19 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
           ).toBe(true);
           return;
         }
-        const 組立側 = 光らせる先(t.built);
+        const 組立側 = 光らせる先(t.built, 組立から外す);
         expect(記法側).toEqual(組立側);
+      });
+
+      it("記法の組み立てが注意を 1 件も出さない", () => {
+        // **注意は画面に出ない**。 一覧は組み立て時の注意を受け取らないため、
+        // 光らせ忘れ (`focus-target-missing`) のような取りこぼしが黙って残る。
+        //
+        // 実測 = 箱の名前に空白があると `focus: [counter table]` が 2 つの名前として読まれ、
+        // どちらも実在しないので何も光らない。 記法は全件を引用符付きで書く。
+        const 注意: string[] = [];
+        textDslToDiagram(t.yaml, { onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`) });
+        expect(注意, `${t.key} の記法が注意を出している`).toEqual([]);
       });
 
       if (id完全一致.includes(t.key)) {
