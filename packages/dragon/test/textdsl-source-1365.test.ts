@@ -16,13 +16,15 @@ import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookb
  * 変わらない (あるいはその逆) 状態が生まれ、見せている記法が嘘になる。
  */
 
-/** 図として扱える export */
+/** production の catalog と同じ条件で図として扱える export */
 const 図の一覧 = (mod: Record<string, unknown>): { key: string; diagram: CdlDiagram }[] => {
   const out: { key: string; diagram: CdlDiagram }[] = [];
   for (const [key, v] of Object.entries(mod)) {
-    if (v && typeof v === "object" && "id" in v && "nodes" in v && "phases" in v) {
-      out.push({ key, diagram: v as CdlDiagram });
-    }
+    // `catalog-items.ts` は phases が無い図も拾い、表示用の phase を後から補う。
+    // ここだけ phases を必須にすると、その形の図が増えても固定件数の検査が気付けない。
+    if (!v || typeof v !== "object") continue;
+    const diagram = v as CdlDiagram;
+    if (diagram.id && diagram.nodes) out.push({ key, diagram });
   }
   return out;
 };
@@ -39,6 +41,12 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
   it("図を 13 件集められている", () => {
     // 件数を固定する = 図が増えた時に、記法を足す前に気付ける
     expect(図.map((x) => x.key).sort()).toHaveLength(13);
+  });
+
+  it("phases の無い catalog の図も走査対象に含める", () => {
+    // production が一覧に出す最小条件を陰性変異にして、固定件数の収集条件を守る。
+    const phasesなし = { id: "phase-less", nodes: [] } as unknown as CdlDiagram;
+    expect(図の一覧({ phasesなし }).map((x) => x.key)).toEqual(["phasesなし"]);
   });
 
   it("13 件すべてが記法を持つ", () => {
