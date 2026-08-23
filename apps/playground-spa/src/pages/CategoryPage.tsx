@@ -18,6 +18,14 @@ import {
   速さの選択肢,
   type 速さ,
 } from "@/lib/playback-speed";
+import {
+  図の描き方を変える,
+  記法の描き方を変える,
+  描き方を選べる,
+  描き方の選択肢,
+  既定の描き方,
+  type 描き方,
+} from "@/lib/redraw-mode";
 
 import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
@@ -63,18 +71,24 @@ function SourceTabs({
   item,
   hidden,
   速さ,
+  描き方,
 }: {
   item: CatalogItem;
   hidden?: boolean;
   /** 画面で選んだ再生速度 (#1355)。 出す秒数をこれに合わせる */
   速さ: 速さ;
+  /** 画面で選んだ 2 段目以降の描き方 (#1359)。 出す描く指定をこれに合わせる */
+  描き方: 描き方;
 }): React.ReactElement | null {
   const [tab, setTab] = useState<SourceTab>("yaml");
   if (!item.sourceYaml && !item.sourceJson) return null;
   const 元 = tab === "yaml" ? item.sourceYaml : item.sourceJson;
   // 見ている図と同じ速さの秒数を出す (#1355)。 元のままだと、写したコードが画面と違う
   // 速さで動く
-  const activeSource = 元 === undefined ? undefined : 記法の速さを変える(元, 速さ, tab);
+  // 見ている図と同じ形のコードを出す (#1355 / #1359)。 元のままだと、写したコードが画面と
+  // 違う速さ / 違う描き方で動く。 **順序は図の側と同じ** = 描き方を先に反映してから速さを掛ける
+  const activeSource =
+    元 === undefined ? undefined : 記法の速さを変える(記法の描き方を変える(元, 描き方, tab), 速さ, tab);
   return (
     <section className="catalog-source-section" aria-label="この diagram の記法" hidden={hidden}>
       <div className="catalog-source-tabs" role="tablist">
@@ -166,6 +180,8 @@ export function CategoryPage(): React.ReactElement {
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
   // 再生速度は **見ている 1 件だけ** に効く (#1355)。 項目を選び直すと既定に戻る
   const [速さ, set速さ] = useState<速さ>(既定の速さ);
+  // 2 段目以降を描き直すか (#1359)。 速さと同じく、見ている 1 件だけに効く
+  const [描き方, set描き方] = useState<描き方>(既定の描き方);
   // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
@@ -235,19 +251,25 @@ export function CategoryPage(): React.ReactElement {
   const 見ている項目 = currentItem?.id ?? null;
   useEffect(() => {
     set速さ(既定の速さ);
+    set描き方(既定の描き方);
   }, [見ている項目]);
 
   // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
   // 速さを触っていない図は描き直されない
   const 図 = useMemo(
-    () => (currentItem ? 図の速さを変える(currentItem.diagram, 速さ) : null),
-    [currentItem, 速さ],
+    () =>
+      currentItem
+        ? 図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ)
+        : null,
+    [currentItem, 速さ, 描き方],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   const 拡大の図 = useMemo(
-    () => (modalItem ? 図の速さを変える(modalItem.diagram, 速さ) : null),
-    [modalItem, 速さ],
+    () => (modalItem ? 図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ) : null),
+    [modalItem, 速さ, 描き方],
   );
+  // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
+  const 描き方を選べるか = currentItem ? 描き方を選べる(currentItem.diagram) : false;
 
   const hasSource = Boolean(currentItem?.sourceYaml || currentItem?.sourceJson);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
@@ -402,6 +424,27 @@ export function CategoryPage(): React.ReactElement {
                     `role="tablist"` の中に置くが、これは表示の切替ではないので `radiogroup`
                     として別に名前を付ける (支援技術に 4 つ目のタブとして読ませない)。
                   */}
+                  {/*
+                    2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
+                    押しても何も変わらないため、置くと「効かない操作」 になる。
+                  */}
+                  {描き方を選べるか && (
+                    <div className="catalog-redraw" role="radiogroup" aria-label="2 段目以降">
+                      {描き方の選択肢.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={描き方 === v}
+                          className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
+                          onClick={() => set描き方(v)}
+                          title={`2 段目以降を${v}`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="catalog-speed" role="radiogroup" aria-label="再生速度">
                     {速さの選択肢.map((v) => (
                       <button
@@ -436,7 +479,7 @@ export function CategoryPage(): React.ReactElement {
                   {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
                   <PhaseChrome stage={stageEl} phases={(図 ?? currentItem.diagram).phases} align="right" />
                 </div>
-                <SourceTabs item={currentItem} hidden={!showSource} 速さ={速さ} />
+                <SourceTabs item={currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
                 <footer className="catalog-preview-foot">
                   {/*
                     **記法を持つ図だけ開ける**。 `#preset=<id>` はエディタの見本から slug を
