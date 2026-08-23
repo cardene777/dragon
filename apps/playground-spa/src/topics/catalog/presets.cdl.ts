@@ -40,6 +40,16 @@ type Step = {
   /** 段の説明。 省略すると preset が自動で作った段の説明を使う */
   body?: string;
   /**
+   * その段の長さ (ミリ秒、#1353)。 省略すると `STEP_DURATION`。
+   *
+   * 起点から描く段は伸ばす。 既定の 0.9 秒では、線が引かれる様子を追う前に引き終わる。
+   * 図の性質で追える速さが違う (線は目で追い、扇は開き方を見る) ため、見本ごとに書く。
+   *
+   * 記法 (text DSL) は元から段ごとに秒数を書ける (`- step: "計画" 2.4s`)。 組み立て API 側
+   * だけが 1 つの値に固定されており、その表現力を落としていた。
+   */
+  duration?: number;
+  /**
    * その段で **起点から描く** 要素 (#1351)。
    *
    * 折れ線なら左端から右へ、円なら 12 時から時計回りに伸びる。 書かない段では従来どおり
@@ -78,7 +88,7 @@ function withSteps(
     for (const id of s.ids ?? []) if (!lit.includes(id)) lit.push(id);
     return {
       id: `p${i + 1}`,
-      duration: STEP_DURATION,
+      duration: s.duration ?? STEP_DURATION,
       title: s.title ?? auto?.title ?? "",
       body: s.body ?? auto?.body ?? "",
       activate: [...lit],
@@ -568,6 +578,8 @@ export const presetChartLine = withSteps(
       ids: ["chart-line-demo-chart"],
       // 左端から右へ線が伸びる (#1351)。 開いた瞬間に全長で出ると静止画と区別が付かない
       draw: ["chart-line-demo-chart"],
+      // 描く段は伸ばす (#1353)。 既定の 0.9 秒では引かれる様子を追う前に引き終わる
+      duration: 2400,
       title: "計画",
       body: "四半期ごとの見込みを引いた線。 左から順に引かれる。",
     },
@@ -1037,7 +1049,7 @@ states:
   line_apr: 1600
 
 animation:
-  - step: "計画" 0.9s
+  - step: "計画" 2.4s
     badge: "line"
     focus: [Jan]
     draw: line
@@ -1068,7 +1080,7 @@ export const sourceJson__presetChartLine = `{
   "animation": [
     {
       "step": "計画",
-      "duration": 0.9,
+      "duration": 2.4,
       "focus": ["Jan"],
       "draw": "line",
       "body": "四半期ごとの見込みを引いた線。 左から順に引かれる。",
