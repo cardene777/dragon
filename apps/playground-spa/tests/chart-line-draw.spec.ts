@@ -5,9 +5,11 @@
  * `pathLength` を 1 に正規化した dash で線を伸ばす。 **記法から画面まで通っているか**を
  * ここで見る (組み立てまでは `packages/dragon/test/draw-notation.test.ts` が見る)。
  *
- * 陰性対照を同じ spec に置く。 `draw:` を書いていない見本 (`presetChartLine`) では dash の
- * 属性が 1 つも付かないことを見る = 「全ての折れ線に付いている」 形なら本検査は通っても
- * 意味を持たない。
+ * 陰性対照を同じ spec に置く。 `draw:` を書いていない段では dash の属性が 1 つも付かない
+ * ことを見る = 「全ての折れ線に付いている」 形なら本検査は通っても意味を持たない。
+ *
+ * 対照は **同じ図の中** に取る (#1351)。 見本帳の折れ線は 1 段目にだけ `draw` を書いており、
+ * 2 段目には書いていない。 図を分けて取ると、図の違いによる差も混ざる。
  *
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test chart-line-draw`
  */
@@ -256,17 +258,39 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
     expect(値.size, `残りが動かない (観測できた値 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("`draw:` を書いていない見本では dash が 1 つも付かない", async ({ page }) => {
+  test("`draw:` を書いていない段では dash が 1 つも付かない", async ({ page }) => {
+    /*
+     * 陰性対照を **同じ図の中** に取る (#1351)。 見本帳の「プリセット」 の折れ線は 1 段目に
+     * だけ `draw` を書いており、2 段目には書いていない。 2 段目では属性が 1 つも付かない。
+     *
+     * #1351 より前はこの図が丸ごと `draw` を持たず、図そのものを対照にしていた。 図に
+     * `draw` を入れた時点でその対照は消えるため、段で取り直した (棒グラフと同じ形)。
+     */
     await page.goto("/catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
-    await page.waitForTimeout(600);
 
-    const 見た = await 折れ線のdash(page);
-    expect(見た, "折れ線が画面に出ている").not.toBeNull();
-    expect(見た!.dasharray, "書いていない図に dash が付いている").toBeNull();
-    expect(見た!.dashoffset, "書いていない図に残りが付いている").toBeNull();
-    expect(見た!.pathLength, "書いていない図に長さの正規化が付いている").toBeNull();
-    expect(見た!.points, "4 点すべてが points に残る").toBe(4);
+    let 付いた回数 = 0;
+    let 付かない回数 = 0;
+    let 点の数 = 0;
+    for (let i = 0; i < 60; i++) {
+      const 見た = await 折れ線のdash(page);
+      if (見た !== null) {
+        点の数 = 見た.points;
+        if (見た.dasharray !== null) 付いた回数 += 1;
+        else {
+          付かない回数 += 1;
+          // 書いていない段では 3 つとも付かない (1 つだけ残る形を落とす)
+          expect(見た.dashoffset, "書いていない段に残りが付いている").toBeNull();
+          expect(見た.pathLength, "書いていない段に長さの正規化が付いている").toBeNull();
+        }
+      }
+      if (付いた回数 > 0 && 付かない回数 > 0) break;
+      await page.waitForTimeout(100);
+    }
+    expect(付いた回数, "書いた段で dash が付かない").toBeGreaterThan(0);
+    expect(付かない回数, "書いていない段でも dash が付いている").toBeGreaterThan(0);
+    // 点の数は進みに関わらず datum 数のまま (点を削って伸ばしていない)
+    expect(点の数, "4 点すべてが points に残る").toBe(4);
   });
 });

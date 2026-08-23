@@ -39,6 +39,16 @@ type Step = {
   title?: string;
   /** 段の説明。 省略すると preset が自動で作った段の説明を使う */
   body?: string;
+  /**
+   * その段で **起点から描く** 要素 (#1351)。
+   *
+   * 折れ線なら左端から右へ、円なら 12 時から時計回りに伸びる。 書かない段では従来どおり
+   * 全長で出る。 対象の種別は描画側の `DRAW_KINDS` が持つ。
+   *
+   * `ids` (光らせる) とは別の欄にする。 図表の見本は箱が 1 つしか無く、その箱は最初の段から
+   * 最後まで光り続けるため、光っていることを描く合図に使うと段が進むたびに線を引き直す。
+   */
+  draw?: readonly string[];
   /** 段の中で数を動かす (始点 → 終点) */
   tweens?: ReadonlyArray<{ id: string; from: number; to: number }>;
   /** 段に入った時点で値を切り替える */
@@ -72,6 +82,9 @@ function withSteps(
       title: s.title ?? auto?.title ?? "",
       body: s.body ?? auto?.body ?? "",
       activate: [...lit],
+      // 空なら欄ごと置かない (#1351)。 置くと `draw` を使わない見本の JSON の形が変わる =
+      // 描画側の `builder.ts` も同じ扱いをしている
+      ...((s.draw ?? []).length > 0 ? { draw: [...(s.draw ?? [])] } : {}),
       tweens: (s.tweens ?? []).map((t) => ({ stateId: t.id, from: t.from, to: t.to })),
       sets: (s.sets ?? []).map((v) => ({ stateId: v.id, value: v.value })),
       badge: auto?.badge,
@@ -551,7 +564,13 @@ export const presetChartLine = withSteps(
     chartData: n.chartData?.map((c, i) => ({ ...c, value: `{${LINE_POINTS[i].id}}` })),
   })),
   [
-    { ids: ["chart-line-demo-chart"], title: "計画", body: "四半期ごとの見込みを引いた線。" },
+    {
+      ids: ["chart-line-demo-chart"],
+      // 左端から右へ線が伸びる (#1351)。 開いた瞬間に全長で出ると静止画と区別が付かない
+      draw: ["chart-line-demo-chart"],
+      title: "計画",
+      body: "四半期ごとの見込みを引いた線。 左から順に引かれる。",
+    },
     {
       body: "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
       tweens: LINE_POINTS.map((p) => ({ id: p.id, from: p.plan, to: p.actual })),
@@ -1021,7 +1040,8 @@ animation:
   - step: "計画" 0.9s
     badge: "line"
     focus: [Jan]
-    body: "四半期ごとの見込みを引いた線。"
+    draw: line
+    body: "四半期ごとの見込みを引いた線。 左から順に引かれる。"
   - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
     badge: "line"
     focus: [Jan]
@@ -1050,7 +1070,8 @@ export const sourceJson__presetChartLine = `{
       "step": "計画",
       "duration": 0.9,
       "focus": ["Jan"],
-      "body": "四半期ごとの見込みを引いた線。",
+      "draw": "line",
+      "body": "四半期ごとの見込みを引いた線。 左から順に引かれる。",
       "badge": "line"
     },
     {
