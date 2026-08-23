@@ -5,6 +5,26 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Fixed
+
+- **配信対象に repo の dotfile が混ざるのを直した** (#1347)
+
+  1 度配信して数えたところ、48 file のうち 12 件が repo の dotfile だった
+  (`.claude` / `.mcp.json` / `.npmrc` / `.github` 等)。 `dist` 自体には dotfile が 1 件も
+  無いので、`dist` の外から入っていた。
+
+  `gh-pages` は公開用の clone を掃除してから `dist` を写すが、掃除は `globby` の既定
+  (`dot: false`) で走るため **dotfile に届かない**。 clone に残った repo の file がそのまま
+  commit されていた。
+
+  掃除の対象を dotfile まで広げた。 `.git` は clone の管理情報なので除外する
+  (`.*/**` は `.git/**` にも一致するため、外さないと配信そのものが壊れる)。
+
+  CLI の `--remove` は pattern を 1 つしか受けず `.git` の除外を書けないため、API を呼ぶ
+  script に差し替えた。
+
+  **公開はされていない**。 GitHub Pages は現在の plan で有効化できず、branch も削除済。
+
 ### Changed
 
 - **配信の script を `deploy` から `deploy:pages` に改名した** (#1345)
