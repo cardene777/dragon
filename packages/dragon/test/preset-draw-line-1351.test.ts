@@ -16,8 +16,8 @@ import * as presets from "../../../apps/playground-spa/src/topics/catalog/preset
 const 図の一覧 = (): { name: string; diagram: CdlDiagram }[] => {
   const out: { name: string; diagram: CdlDiagram }[] = [];
   for (const [name, v] of Object.entries(presets)) {
-    if (v && typeof v === "object" && "id" in (v as object) && "phases" in (v as object)) {
-      out.push({ name, diagram: v as CdlDiagram });
+    if (v && typeof v === "object" && "id" in v && "phases" in v) {
+      out.push({ name, diagram: v });
     }
   }
   return out;
