@@ -5,6 +5,9 @@
  * `sourceYaml__<key>` / `sourceJson__<key>` の suffix pair convention に依存する。
  * scene を足して source を書き忘れる / JSON を壊す事故を防ぐため、 以下を固定する。
  *
+ * **残骸の判定だけは図の種類を問わない** (#1376)。 記法を持つのが `scene*` だけでは
+ * なくなったため、`scene*` に限ると正しい記法まで残骸として落ちる。
+ *
  * 1. 全 scene に YAML / JSON pair が揃っている (missing / orphan ゼロ)
  * 2. 各 JSON source が JSON.parse できる
  * 3. 各 JSON source が validateDragonJson を通る
@@ -27,6 +30,19 @@ type SceneDiagram = {
 function activatedActors(diagram: SceneDiagram, phase: SceneDiagram["phases"][number]): string[] {
   const names = new Map(diagram.nodes.map((node) => [node.id, node.title ?? node.id]));
   return (phase.activate ?? []).map((id) => names.get(id) ?? `<unknown:${id}>`).sort();
+}
+
+/**
+ * 図の export key 一覧 (種類を問わない、#1376)。
+ *
+ * **記法を持つのは `scene*` だけではなくなった**。 このページの 110 件すべてが
+ * `sourceYaml__` / `sourceJson__` を持つため、残骸の判定を `scene*` に限ると
+ * 正しい記法まで残骸として落ちる。
+ */
+function diagramKeys(): string[] {
+  return Object.entries(mod)
+    .filter(([, v]) => v && typeof v === "object" && "nodes" in (v as AnyRecord))
+    .map(([k]) => k);
 }
 
 /** scene diagram の export key 一覧 (`scene` prefix + diagram object) */
@@ -59,10 +75,13 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
     expect(missing).toEqual([]);
   });
 
-  it("source pair に orphan がない (scene 削除後の残骸検知)", () => {
-    const scenes = new Set(sceneKeys());
-    const orphanYaml = sourceKeys("sourceYaml__").filter((k) => !scenes.has(k));
-    const orphanJson = sourceKeys("sourceJson__").filter((k) => !scenes.has(k));
+  it("source pair に orphan がない (図の削除後の残骸検知)", () => {
+    // **判定は図の有無で行う** (#1376)。 `scene*` に限ると、種別 / 縦列 / 段 / 図形の
+    // 見本に足した記法が残骸として落ちる
+    const 図 = new Set(diagramKeys());
+    expect(図.size, "図を 1 件も集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    const orphanYaml = sourceKeys("sourceYaml__").filter((k) => !図.has(k));
+    const orphanJson = sourceKeys("sourceJson__").filter((k) => !図.has(k));
     expect(orphanYaml).toEqual([]);
     expect(orphanJson).toEqual([]);
   });

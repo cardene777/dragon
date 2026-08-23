@@ -32,6 +32,8 @@ import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Patterns from "@/topics/catalog/patterns.cdl";
 import * as Styles from "@/topics/catalog/styles.cdl";
 import * as Animation from "@/topics/catalog/animation.cdl";
+import * as Primitives from "@/topics/catalog/primitives.cdl";
+import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -103,6 +105,8 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["patterns", Patterns],
   ["styles", Styles],
   ["animation", Animation],
+  ["primitives", Primitives],
+  ["primitives-extra", PrimitivesExtra],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */
@@ -424,6 +428,9 @@ const 状態の宣言: 欄の宣言 = { 比べない: {} };
 const 図の直下の宣言: 欄の宣言 = {
   比べない: {
     id: "記法と組立て API で作り方が違う",
+    // 検索結果に構造化データとして載せるかを決める欄で、描いた図には出ない。
+    // 記法に書く欄が無いため、記法側から合わせる手段がない (#1376)
+    structuredData: "SEO の構造化データに載せるかだけを決める。 記法に欄が無く、描いた図にも出ない",
     nodes: "箱として別に比べる",
     edges: "矢印として別に比べる",
     lanes: "縦列として別に比べる",
