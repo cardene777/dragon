@@ -16,7 +16,7 @@
     "test:editor:l3": "playwright test tests/editor-stage-svg.spec.ts tests/editor-initial-animation.spec.ts tests/editor-yaml-tab.spec.ts",
     "test:editor:l4": "playwright test tests/editor-visual.spec.ts",
     "test:editor:l4:update": "playwright test tests/editor-visual.spec.ts --update-snapshots",
-    "deploy": "pnpm build:pages && gh-pages -d dist -b gh-pages -m 'chore(deploy): GitHub Pages'",
+    "deploy:pages": "pnpm run build:pages && gh-pages -d dist -b gh-pages -m 'chore(deploy): GitHub Pages'",
     "shoot:zoom": "node scripts/shoot-zoom.mjs",
     "shoot:3vp": "node scripts/shoot-3vp.mjs"
   },

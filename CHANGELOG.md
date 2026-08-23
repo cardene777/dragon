@@ -5,7 +5,27 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Changed
+
+- **配信の script を `deploy` から `deploy:pages` に改名した** (#1345)
+
+  pnpm 組込みの `deploy` command が同名の script を食うため、`pnpm deploy` は script に
+  届かず **一度も動いたことがなかった** (実測 = `ERR_PNPM_NOTHING_TO_DEPLOY`)。
+  組込みの command 名に `:` は含まれないため、`:` を持つ名前は構造的に衝突しない。
+
+  打つ時は `pnpm run deploy:pages`。
+
 ### Fixed
+
+- **script から script を呼ぶ 20 箇所に `run` を明示した** (#1345)
+
+  `run` を挟めば組込みかどうかに関わらず script に届く。 `pnpm --help` は `deploy` を
+  列挙せず、help に出ない組込みがあるため、名前の一覧と突き合わせる形は作れない。
+
+  今壊れていたのは `deploy` の 1 件だけだが、組込みは後から増える。 `pnpm` が将来 `build` の
+  組込みを足せば、何も変えていないのに `pnpm build` が別のものを指す。
+
+  併せて、`run` の省略を見つける検査を足した。
 
 - **監査 README が消えた検査を層 1 の実装として案内していたのを直した** (#1343)
 
