@@ -292,3 +292,334 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       .tween("effectiveGwei", 113, 182).tween("congestion", 88, 96)
       .badge("極混雑"))
   .build();
+
+// ============================================================
+// 記法 (#1373)
+// ============================================================
+//
+// catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
+// 記法があると画面で「コード」 を読めて「エディタで開く」 が押せる。
+//
+// **記法を持つのは上の 5 件だけ**。 rich な 5 件 (`richPipelineDemo` 以降) は
+// `dyn-wave` / `dyn-arc` の箱に `shape` を渡す。 うち 4 件は `readouts` (割合の輪 /
+// 数え上げ) も使う (`richLayeredPriorityFee` は `shape` だけ)。
+//
+// 記法にはこの 2 つを書く欄が無い (`TOP_LEVEL_KEYS` に `readouts` が無く、箱の欄にも
+// `shape` が無い)。 記法側に欄を足す話は #1374 で扱う。
+//
+// **図は組み立て API のまま残す**。 記法から組み立て直すと図の識別子が題から導かれる。
+// 併記の写し違いは `lib/catalog-source-parity.test.tsx` が止める。
+
+export const sourceYaml__tweenSimple = `title: "tween: 数値線形補間"
+type: flow
+
+lanes:
+  l: { x: 0, width: 400 }
+
+states:
+  counter: 0
+
+actors:
+  - Counter: { kind: actor, lane: l, value: "{counter}" }
+
+flow:
+
+animation:
+  - step: "Counter を滑らかに進行 (0 → 100)" 2.5s
+    focus: ["Counter"]
+    tween:
+      counter: 0 -> 100
+    badge: "tween 中"
+    description: "phase 内で counter を 0 から 100 へ滑らかに変化。"
+`;
+
+export const sourceJson__tweenSimple = `{
+  "title": "tween: 数値線形補間",
+  "type": "flow",
+  "lanes": {
+    "l": { "x": 0, "width": 400 }
+  },
+  "actors": [
+    { "name": "Counter", "kind": "actor", "lane": "l", "value": "{counter}" }
+  ],
+  "flow": [],
+  "states": { "counter": 0 },
+  "animation": [
+    {
+      "step": "Counter を滑らかに進行 (0 → 100)",
+      "duration": 2.5,
+      "focus": ["Counter"],
+      "body": "phase 内で counter を 0 から 100 へ滑らかに変化。",
+      "tween": { "counter": [0, 100] },
+      "badge": "tween 中"
+    }
+  ]
+}`;
+
+export const sourceYaml__tweenChain = `title: "tween: 連続 phase で累積"
+type: flow
+
+lanes:
+  l: { x: 0, width: 400 }
+
+states:
+  n: 0
+
+actors:
+  - Sum: { kind: actor, lane: l, value: "{n}" }
+
+flow:
+
+animation:
+  - step: "初動 (0 → 10)" 2s
+    focus: ["Sum"]
+    tween:
+      n: 0 -> 10
+    badge: "p1"
+    description: "1 phase 目の tween。"
+  - step: "加速 (10 → 50)" 2s
+    focus: ["Sum"]
+    tween:
+      n: 10 -> 50
+    badge: "p2"
+    description: "前 phase の終端値から続けて tween。"
+  - step: "完了 (50 → 100)" 2s
+    focus: ["Sum"]
+    tween:
+      n: 50 -> 100
+    badge: "p3"
+    description: "最終 phase で 100 まで。 hold で静止表示。"
+`;
+
+export const sourceJson__tweenChain = `{
+  "title": "tween: 連続 phase で累積",
+  "type": "flow",
+  "lanes": {
+    "l": { "x": 0, "width": 400 }
+  },
+  "actors": [
+    { "name": "Sum", "kind": "actor", "lane": "l", "value": "{n}" }
+  ],
+  "flow": [],
+  "states": { "n": 0 },
+  "animation": [
+    {
+      "step": "初動 (0 → 10)",
+      "duration": 2,
+      "focus": ["Sum"],
+      "body": "1 phase 目の tween。",
+      "tween": { "n": [0, 10] },
+      "badge": "p1"
+    },
+    {
+      "step": "加速 (10 → 50)",
+      "duration": 2,
+      "focus": ["Sum"],
+      "body": "前 phase の終端値から続けて tween。",
+      "tween": { "n": [10, 50] },
+      "badge": "p2"
+    },
+    {
+      "step": "完了 (50 → 100)",
+      "duration": 2,
+      "focus": ["Sum"],
+      "body": "最終 phase で 100 まで。 hold で静止表示。",
+      "tween": { "n": [50, 100] },
+      "badge": "p3"
+    }
+  ]
+}`;
+
+export const sourceYaml__setSwitch = `title: "set: 即時切替 (lerp なし)"
+type: flow
+
+lanes:
+  l: { x: 0, width: 500 }
+
+states:
+  status: "idle"
+
+actors:
+  - Process: { kind: function, lane: l, subtitle: "status: {status}" }
+
+flow:
+
+animation:
+  - step: "idle → running" 2s
+    focus: ["Process"]
+    set:
+      status: "running"
+    badge: "running"
+    description: "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。"
+  - step: "running → done" 2s
+    focus: ["Process"]
+    set:
+      status: "done"
+    badge: "done"
+    description: "次 phase で done に切替。 tween と違い段階的でなく瞬間遷移。"
+`;
+
+export const sourceJson__setSwitch = `{
+  "title": "set: 即時切替 (lerp なし)",
+  "type": "flow",
+  "lanes": {
+    "l": { "x": 0, "width": 500 }
+  },
+  "actors": [
+    { "name": "Process", "kind": "function", "lane": "l", "subtitle": "status: {status}" }
+  ],
+  "flow": [],
+  "states": { "status": "idle" },
+  "animation": [
+    {
+      "step": "idle → running",
+      "duration": 2,
+      "focus": ["Process"],
+      "body": "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。",
+      "set": { "status": "running" },
+      "badge": "running"
+    },
+    {
+      "step": "running → done",
+      "duration": 2,
+      "focus": ["Process"],
+      "body": "次 phase で done に切替。 tween と違い段階的でなく瞬間遷移。",
+      "set": { "status": "done" },
+      "badge": "done"
+    }
+  ]
+}`;
+
+export const sourceYaml__badgePerPhase = `title: "badge: phase ごと切替"
+type: flow
+
+lanes:
+  l: { x: 0, width: 400 }
+
+actors:
+  - Step: { kind: actor, lane: l }
+
+flow:
+
+animation:
+  - step: "準備中" 1.5s
+    focus: ["Step"]
+    badge: "preparing"
+    description: "header に badge='preparing' を表示。"
+  - step: "処理中" 1.5s
+    focus: ["Step"]
+    badge: "processing"
+    description: "header の badge を 'processing' に切替。"
+  - step: "完了" 1.5s
+    focus: ["Step"]
+    badge: "completed"
+    description: "最終 phase で badge='completed'、 step 完了示唆。"
+`;
+
+export const sourceJson__badgePerPhase = `{
+  "title": "badge: phase ごと切替",
+  "type": "flow",
+  "lanes": {
+    "l": { "x": 0, "width": 400 }
+  },
+  "actors": [
+    { "name": "Step", "kind": "actor", "lane": "l" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "準備中",
+      "duration": 1.5,
+      "focus": ["Step"],
+      "body": "header に badge='preparing' を表示。",
+      "badge": "preparing"
+    },
+    {
+      "step": "処理中",
+      "duration": 1.5,
+      "focus": ["Step"],
+      "body": "header の badge を 'processing' に切替。",
+      "badge": "processing"
+    },
+    {
+      "step": "完了",
+      "duration": 1.5,
+      "focus": ["Step"],
+      "body": "最終 phase で badge='completed'、 step 完了示唆。",
+      "badge": "completed"
+    }
+  ]
+}`;
+
+export const sourceYaml__mixedTweenSet = `title: "tween + set 併用"
+type: flow
+
+lanes:
+  l: { x: 0, width: 500 }
+
+states:
+  amount: 0
+  phase: "init"
+
+actors:
+  - Operation: { kind: function, lane: l, subtitle: "phase: {phase}", value: "{amount}" }
+
+flow:
+
+animation:
+  - step: "読込開始 (状態 + 進捗を併走)" 2.4s
+    focus: ["Operation"]
+    tween:
+      amount: 0 -> 50
+    set:
+      phase: "loading"
+    badge: "loading"
+    description: "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。"
+  - step: "完了 (状態 + 進捗を仕上げ)" 2.4s
+    focus: ["Operation"]
+    tween:
+      amount: 50 -> 100
+    set:
+      phase: "done"
+    badge: "done"
+    description: "次 phase で完了状態へ。"
+`;
+
+export const sourceJson__mixedTweenSet = `{
+  "title": "tween + set 併用",
+  "type": "flow",
+  "lanes": {
+    "l": { "x": 0, "width": 500 }
+  },
+  "actors": [
+    {
+      "name": "Operation",
+      "kind": "function",
+      "lane": "l",
+      "subtitle": "phase: {phase}",
+      "value": "{amount}"
+    }
+  ],
+  "flow": [],
+  "states": { "amount": 0, "phase": "init" },
+  "animation": [
+    {
+      "step": "読込開始 (状態 + 進捗を併走)",
+      "duration": 2.4,
+      "focus": ["Operation"],
+      "body": "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。",
+      "tween": { "amount": [0, 50] },
+      "set": { "phase": "loading" },
+      "badge": "loading"
+    },
+    {
+      "step": "完了 (状態 + 進捗を仕上げ)",
+      "duration": 2.4,
+      "focus": ["Operation"],
+      "body": "次 phase で完了状態へ。",
+      "tween": { "amount": [50, 100] },
+      "set": { "phase": "done" },
+      "badge": "done"
+    }
+  ]
+}`;
