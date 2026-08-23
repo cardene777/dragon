@@ -71,6 +71,18 @@ describe("引用符の中のカンマで値が切れない (#1367)", () => {
     expect(n.value, "後ろの項目が消えている").toBe("5:56");
   });
 
+  it("二重引用の逃がし文字を終端と誤認しない", () => {
+    const n = 箱(`{ kind: card, subtitle: "say \\"hello, world", value: "42" }`);
+    expect(n.subtitle).toBe('say \\"hello, world');
+    expect(n.value, "後ろの項目が消えている").toBe("42");
+  });
+
+  it("引用符なしの値にある apostrophe を開始記号と誤認しない", () => {
+    const n = 箱("{ kind: card, subtitle: Alice's order, value: Bob's order }");
+    expect(n.subtitle).toBe("Alice's order");
+    expect(n.value).toBe("Bob's order");
+  });
+
   it("角括弧で守られている書き方は変わらない", () => {
     // 変更前から通っていた形。 引用符を見るようにしても読み方が変わらない
     const n = 箱(`{ kind: card, rows: ["x: 1", "y: 2"] }`);

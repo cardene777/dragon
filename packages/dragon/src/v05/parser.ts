@@ -1079,19 +1079,29 @@ function splitInlineFields(inner: string): string[] {
   const 引用符を見て割る = (見る: boolean): { parts: string[]; 閉じた: boolean } => {
     let depth = 0;
     let 引用符: '"' | "'" | null = null;
+    let 直前: string | null = null;
     let buf = "";
     const parts: string[] = [];
     for (let i = 0; i < inner.length; i += 1) {
       const c = inner[i]!;
       if (見る) {
         if (引用符 !== null) {
+          // 二重引用の中では、逃がした引用符を終端と取り違えない
+          if (引用符 === '"' && c === "\\" && i + 1 < inner.length) {
+            buf += c;
+            i += 1;
+            buf += inner[i]!;
+            continue;
+          }
           // **開いた記号と同じものだけが閉じる**。 `"Guns N' Roses"` の `'` は文字として残す
           if (c === 引用符) 引用符 = null;
           buf += c;
           continue;
         }
-        if (c === '"' || c === "'") {
+        // 値の途中の apostrophe まで開始記号にすると、別 field まで引用内として飲み込む
+        if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
           引用符 = c;
+          直前 = c;
           buf += c;
           continue;
         }
@@ -1101,9 +1111,11 @@ function splitInlineFields(inner: string): string[] {
       if (c === "," && depth === 0) {
         parts.push(buf);
         buf = "";
+        直前 = c;
         continue;
       }
       buf += c;
+      if (c !== " " && c !== "\t") 直前 = c;
     }
     if (buf.trim()) parts.push(buf);
     return { parts, 閉じた: 引用符 === null };
