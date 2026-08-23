@@ -30,7 +30,7 @@ import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 
 /** 全件が YAML と JSON を持つページ */
-const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles"] as const;
+const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles", "primitives"] as const;
 
 /**
  * 一部だけ持つページ。
@@ -40,10 +40,9 @@ const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles
  *
  * | ページ | 持たない件の理由 |
  * |---|---|
- * | `primitives` | まだ書いていないだけ |
  * | `animation` | rich な 5 件が `dyn-wave` / `dyn-arc` の箱に `shape` を渡す (うち 4 件は `readouts` も使う)。 記法にこの 2 つを書く欄が無い。 欄を足す話は #1374 |
  */
-const 一部のページ = ["primitives", "animation"] as const;
+const 一部のページ = ["animation"] as const;
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
 const まだのページ = ["cookbook", "ethereum", "parts", "interactive"] as const;

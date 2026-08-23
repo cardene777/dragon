@@ -26,7 +26,7 @@
     "check:dragon": "pnpm run test:sweep",
     "check:kind": "pnpm run test:kind && pnpm run test:kind:proof",
     "check:all": "pnpm run typecheck && pnpm run check:cdl && pnpm run check:dragon && pnpm run check:kind",
-    "lint:notation": "pnpm run build:packages && node packages/dragon/scripts/dragon-lint.mjs apps/playground-spa/src/topics/catalog/presets.cdl.ts apps/playground-spa/src/topics/catalog/text-dsl.cdl.ts apps/playground-spa/src/topics/catalog/patterns.cdl.ts apps/playground-spa/src/topics/catalog/styles.cdl.ts apps/playground-spa/src/topics/catalog/animation.cdl.ts apps/playground-spa/src/topics/catalog/charts.cdl.ts apps/playground-spa/src/topics/catalog/primitives.cdl.ts",
+    "lint:notation": "pnpm run build:packages && node packages/dragon/scripts/dragon-lint.mjs apps/playground-spa/src/topics/catalog/presets.cdl.ts apps/playground-spa/src/topics/catalog/text-dsl.cdl.ts apps/playground-spa/src/topics/catalog/patterns.cdl.ts apps/playground-spa/src/topics/catalog/styles.cdl.ts apps/playground-spa/src/topics/catalog/animation.cdl.ts apps/playground-spa/src/topics/catalog/charts.cdl.ts apps/playground-spa/src/topics/catalog/primitives.cdl.ts apps/playground-spa/src/topics/catalog/primitives-extra.cdl.ts",
     "lint:notation:proof": "pnpm run build:packages && node packages/dragon/scripts/lint-proof-fixture.mjs",
     "fix:notation": "pnpm run build:packages && node packages/dragon/scripts/dragon-lint.mjs --fix apps/playground-spa/src/topics/catalog/presets.cdl.ts",
     "verify": "pnpm run typecheck && pnpm run test",
