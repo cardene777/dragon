@@ -55,13 +55,13 @@ const runが要らない = new Set(["run", "exec", "install", "add", "dlx"]);
 /**
  * `pnpm ... <語>` の形を拾う。
  *
- * `--filter <pkg>` が間に入る形も同じ扱い。 `<語>` が script 名なら、`run` を挟まないと
- * 組込みに食われうる。
+ * `--filter <pkg>` / `--filter=<pkg>` / `-F <pkg>` が間に入る形も同じ扱い。 `<語>` が
+ * script 名なら、`run` を挟まないと組込みに食われうる。
  */
 export function runを省いた呼出(本文: string, script名: ReadonlySet<string>): string[] {
   const 出: string[] = [];
-  for (const m of 本文.matchAll(/pnpm\s+((?:--filter\s+\S+\s+)?)([a-zA-Z][\w:.-]*)/gu)) {
-    const 語 = m[2];
+  for (const m of 本文.matchAll(/pnpm\s+(?:(?:--filter|-F)(?:\s+|=)\S+\s+)?([a-zA-Z][\w:.-]*)/gu)) {
+    const 語 = m[1];
     if (runが要らない.has(語)) continue;
     if (!script名.has(語)) continue;
     出.push(m[0]);
@@ -69,12 +69,17 @@ export function runを省いた呼出(本文: string, script名: ReadonlySet<str
   return 出;
 }
 
-const 全script名: ReadonlySet<string> = new Set(走査対象.flatMap((rel) => Object.keys(scriptsを読む(rel))));
+const 全script名: ReadonlySet<string> = new Set(
+  走査対象.flatMap((rel) => Object.keys(scriptsを読む(rel))),
+);
 
 describe("script から script を呼ぶ時は run を明示する (#1345)", () => {
   it("script を集められている", () => {
     // 集められていなければ、以下の検査は通って当然になる
-    expect(全script名.size, "script を 1 つも集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      全script名.size,
+      "script を 1 つも集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
   });
 
   it("script から script を呼ぶ箇所を拾えている", () => {
@@ -103,11 +108,24 @@ describe("script から script を呼ぶ時は run を明示する (#1345)", () 
 
   it("run 付きの呼出を誤検出しない (陰性対照)", () => {
     // 何でも拾う実装だと、上の検査は run の有無に関わらず落ちる
-    expect(runを省いた呼出("pnpm run build", new Set(["build"])), "run 付きを拾っている").toEqual([]);
+    expect(runを省いた呼出("pnpm run build", new Set(["build"])), "run 付きを拾っている").toEqual(
+      [],
+    );
     expect(
       runを省いた呼出("pnpm --filter x run build", new Set(["build"])),
       "filter 付き run を拾っている",
     ).toEqual([]);
-    expect(runを省いた呼出("pnpm build", new Set(["build"])), "run 無しを拾えていない").toHaveLength(1);
+    expect(
+      runを省いた呼出("pnpm build", new Set(["build"])),
+      "run 無しを拾えていない",
+    ).toHaveLength(1);
+    expect(
+      runを省いた呼出("pnpm -F x build", new Set(["build"])),
+      "短縮 filter 付きの run 無しを拾えていない",
+    ).toHaveLength(1);
+    expect(
+      runを省いた呼出("pnpm --filter=x build", new Set(["build"])),
+      "等号 filter 付きの run 無しを拾えていない",
+    ).toHaveLength(1);
   });
 });
