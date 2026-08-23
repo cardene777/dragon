@@ -1069,24 +1069,63 @@ function writtenScaleFields(inner: string): Map<string, string> {
  *
  * `parseInlineMapping` と、倍率の「書かれた名前」 を拾う経路 (#1026) で共用する。
  * 割り方を 2 つ持つと、片方だけが拾える項目という食い違いが生まれる。
+ *
+ * **引用符の中のカンマでは割らない** (#1367)。 見ていなかった間、`{ subtitle: "a, b" }` の
+ * 補足が `"a` に切れて図に出ていた (実測で見本 1 件が踏んでいた)。 配列
+ * (`{ initial: '["入力", "確認"]' }`) が壊れていなかったのは角括弧の深さで守られていたためで、
+ * 引用符だけで守られる値は守られていなかった。
  */
 function splitInlineFields(inner: string): string[] {
-  let depth = 0;
-  let buf = "";
-  const parts: string[] = [];
-  for (let i = 0; i < inner.length; i += 1) {
-    const c = inner[i]!;
-    if (c === "[" || c === "{") depth += 1;
-    else if (c === "]" || c === "}") depth -= 1;
-    if (c === "," && depth === 0) {
-      parts.push(buf);
-      buf = "";
-      continue;
+  const 引用符を見て割る = (見る: boolean): { parts: string[]; 閉じた: boolean } => {
+    let depth = 0;
+    let 引用符: '"' | "'" | null = null;
+    let 直前: string | null = null;
+    let buf = "";
+    const parts: string[] = [];
+    for (let i = 0; i < inner.length; i += 1) {
+      const c = inner[i]!;
+      if (見る) {
+        if (引用符 !== null) {
+          // 二重引用の中では、逃がした引用符を終端と取り違えない
+          if (引用符 === '"' && c === "\\" && i + 1 < inner.length) {
+            buf += c;
+            i += 1;
+            buf += inner[i]!;
+            continue;
+          }
+          // **開いた記号と同じものだけが閉じる**。 `"Guns N' Roses"` の `'` は文字として残す
+          if (c === 引用符) 引用符 = null;
+          buf += c;
+          continue;
+        }
+        // 値の途中の apostrophe まで開始記号にすると、別 field まで引用内として飲み込む
+        if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+          引用符 = c;
+          直前 = c;
+          buf += c;
+          continue;
+        }
+      }
+      if (c === "[" || c === "{") depth += 1;
+      else if (c === "]" || c === "}") depth -= 1;
+      if (c === "," && depth === 0) {
+        parts.push(buf);
+        buf = "";
+        直前 = c;
+        continue;
+      }
+      buf += c;
+      if (c !== " " && c !== "\t") 直前 = c;
     }
-    buf += c;
-  }
-  if (buf.trim()) parts.push(buf);
-  return parts;
+    if (buf.trim()) parts.push(buf);
+    return { parts, 閉じた: 引用符 === null };
+  };
+
+  const 見た = 引用符を見て割る(true);
+  // **閉じない引用符が残ったらこれまでどおりに割る** (#1367)。 壊れた入力で挙動が変わると、
+  // 今まで通っていた書き方が黙って別の結果になる。 実測では見本 9832 件の中括弧のうち
+  // 閉じない形は 0 件で、この経路は保険
+  return 見た.閉じた ? 見た.parts : 引用符を見て割る(false).parts;
 }
 
 function collectIndentedList(
