@@ -301,9 +301,11 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
 // 記法があると画面で「コード」 を読めて「エディタで開く」 が押せる。
 //
 // **記法を持つのは上の 5 件だけ**。 rich な 5 件 (`richPipelineDemo` 以降) は
-// `dyn-wave` / `dyn-arc` の箱に `shape` を渡し、`readouts` (割合の輪 / 数え上げ) を使う。
+// `dyn-wave` / `dyn-arc` の箱に `shape` を渡す。 うち 4 件は `readouts` (割合の輪 /
+// 数え上げ) も使う (`richLayeredPriorityFee` は `shape` だけ)。
+//
 // 記法にはこの 2 つを書く欄が無い (`TOP_LEVEL_KEYS` に `readouts` が無く、箱の欄にも
-// `shape` が無い)。 記法側を直す話は別 Issue で扱う。
+// `shape` が無い)。 記法側に欄を足す話は #1374 で扱う。
 //
 // **図は組み立て API のまま残す**。 記法から組み立て直すと図の識別子が題から導かれる。
 // 併記の写し違いは `lib/catalog-source-parity.test.tsx` が止める。

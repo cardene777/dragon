@@ -41,7 +41,7 @@ const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles
  * | ページ | 持たない件の理由 |
  * |---|---|
  * | `primitives` | まだ書いていないだけ |
- * | `animation` | rich な 5 件が `dyn-wave` / `dyn-arc` の箱に `shape` を渡し `readouts` を使う。 記法にこの 2 つを書く欄が無い (#1373) |
+ * | `animation` | rich な 5 件が `dyn-wave` / `dyn-arc` の箱に `shape` を渡す (うち 4 件は `readouts` も使う)。 記法にこの 2 つを書く欄が無い。 欄を足す話は #1374 |
  */
 const 一部のページ = ["primitives", "animation"] as const;
 

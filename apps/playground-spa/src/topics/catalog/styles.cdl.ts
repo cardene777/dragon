@@ -61,8 +61,8 @@ export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 
 // 併記は写し違いが起きるため、**同じ図になることを検査で固定する**
 // (`lib/catalog-source-parity.test.tsx`)。 記法を直して図がずれたらそこで落ちる。
 //
-// 図の直前ではなく末尾にまとめるのは、上の 8 件が 1 行ずつ並ぶ形だから。
-// 間に 50 行の記法を挟むと「線種 2 種 / 色 6 種」 の対比が読めなくなる。
+// 図の直前ではなく末尾にまとめるのは、10 件のうち 8 件が `smallPair(...)` の 1 行で
+// 並ぶ形だから。 間に 50 行の記法を挟むと「線種 2 種 / 色 6 種」 の対比が読めなくなる。
 
 export const sourceYaml__styleSolid = `title: "solid style (実線 + 矢頭、 edge の default)"
 type: flow
