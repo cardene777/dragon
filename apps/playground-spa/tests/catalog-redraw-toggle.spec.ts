@@ -97,8 +97,8 @@ test.describe("2 段目以降の描き方を切替えられる (#1359)", () => {
           const el = document.querySelector('[data-cdl-role="chart-line"]');
           return { 札, 残り: el?.getAttribute("stroke-dashoffset") ?? null };
         });
-        // 1 段目の名前は「計画」。 それ以外の段に居る時だけ数える
-        const 今2段目 = !見た.札.includes("計画");
+        // 局面表示が一時的に空でも 2 段目と誤認しないよう、番号を正方向に照合する
+        const 今2段目 = 見た.札.includes("局面 2 / 2");
         /*
          * **2 回続けて 2 段目だった時だけ数える** (#1365 で実測)。
          *

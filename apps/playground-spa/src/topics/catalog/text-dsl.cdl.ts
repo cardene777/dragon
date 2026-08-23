@@ -991,7 +991,7 @@ actors:
   - Client: { kind: actor, subtitle: "request" }
   - Server: { kind: function, subtitle: "handler" }
   - DB: { kind: storage, rows: ["count: {count}"] }
-  - OrderCreated: { kind: event, subtitle: "orderId, total" }
+  - OrderCreated: event "orderId, total"
 
 states:
   count: 100
@@ -1041,7 +1041,7 @@ export const sourceJson__textDslCode = `{
     {
       "name": "OrderCreated",
       "kind": "event",
-      "subtitle": "\\"orderId"
+      "subtitle": "orderId, total"
     }
   ],
   "flow": [

@@ -95,6 +95,20 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
     expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(13);
   });
 
+  it("引用符の中のカンマを補足の一部として保つ", () => {
+    /*
+     * inline mapping は引用符の中でもカンマを項目区切りとして扱う。 見本でその形を使うと、
+     * YAML と JSON が同じ壊れ方をして上の図全体の比較を通ってしまうため、見える値も固定する。
+     */
+    const yamlDiagram = textDslToDiagram(textDsl.sourceYaml__textDslCode);
+    const jsonDiagram = jsonToDiagram(JSON.parse(textDsl.sourceJson__textDslCode) as unknown);
+    for (const diagram of [yamlDiagram, jsonDiagram]) {
+      expect(diagram.nodes.find((node) => node.title === "OrderCreated")?.subtitle).toBe(
+        "orderId, total",
+      );
+    }
+  });
+
   it("記法に段の指定がそのまま出ている", () => {
     // コードタブに出す以上、画面の動きを決めている行が記法にも見えている必要がある。
     // #1364 で足した 3 件の `draw:` が読めることを確かめる
