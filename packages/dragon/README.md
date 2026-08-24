@@ -49,21 +49,23 @@ flow:
 ### 最上位のブロック
 
 <!-- notation:top-level:start -->
-| 欄 | 何を書くか |
-|---|---|
-| `title` | 図の題 |
-| `type` | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `solidity` / 図表各種) |
-| `actors` | 箱 |
-| `flow` | 矢印 |
-| `states` | 状態の初期値 |
-| `values` | 他の状態から決まる値 (式) |
-| `animation` | 段 |
-| `viewport` | 図全体の大きさと間隔 |
-| `lanes` | 縦列の見出しと幅 |
-| `groups` | 縦列を束ねる枠 |
-| `eyebrow` | 図全体を 1 箱にする図種で、その箱の上に出す小見出し |
-| `axes` | 2 軸で仕分ける図の軸の名前 |
-| `readouts` | 値を見せる部品 (割合の輪 / 数え上げ / 目盛り) |
+
+| 欄          | 何を書くか                                                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `title`     | 図の題                                                                                                                                     |
+| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `solidity` / 図表各種) |
+| `actors`    | 箱                                                                                                                                         |
+| `flow`      | 矢印                                                                                                                                       |
+| `states`    | 状態の初期値                                                                                                                               |
+| `values`    | 他の状態から決まる値 (式)                                                                                                                  |
+| `animation` | 段                                                                                                                                         |
+| `viewport`  | 図全体の大きさと間隔                                                                                                                       |
+| `lanes`     | 縦列の見出しと幅                                                                                                                           |
+| `groups`    | 縦列を束ねる枠                                                                                                                             |
+| `eyebrow`   | 図全体を 1 箱にする図種で、その箱の上に出す小見出し                                                                                        |
+| `axes`      | 2 軸で仕分ける図の軸の名前                                                                                                                 |
+| `readouts`  | 値を見せる部品 (割合の輪 / 数え上げ / 目盛り)                                                                                              |
+
 <!-- notation:top-level:end -->
 
 ### 箱に書ける欄
@@ -71,29 +73,33 @@ flow:
 `- 名前: { 欄: 値, ... }` の形で書く。
 
 <!-- notation:actor:start -->
-| 欄 | 何を書くか |
-|---|---|
-| `kind` | 見た目の種別 (`card` / `storage` / `service` / `person` 等、`種類` とも書ける) |
-| `subtitle` | 題の下の補足 (`補足` とも書ける) |
-| `eyebrow` | 題の上の小見出し |
-| `value` | 箱に出す値 (`値` とも書ける) |
-| `rows` | 箱の中に並べる行 (`行` とも書ける) |
-| `lane` | どの縦列に置くか |
-| `stack` | 縦列の中の何段目に置くか |
-| `initial` | 状態遷移図で始まりの状態か |
-| `final` | 状態遷移図で終わりの状態か |
-| `tone` | 色 |
-| `nodes` | 見本 (parts) の中の箱を差し替える |
-| `touchpoint` | 体験の道筋で、利用者が触れる場所 |
-| `opportunity` | 体験の道筋で、改善の余地 |
-| `owner` | 工程の並びで、担当 |
-| `end` | 工程の並びで、終わりの位置 |
-| `posX` | 置く場所の横位置 |
-| `posY` | 置く場所の縦位置 |
-| `posW` | 箱の幅 |
-| `posH` | 箱の高さ |
-| `scale` | 見本 (parts) の倍率 (`倍率` とも書ける) |
-| `shape` | 箱の中に描く図形 (水位 / 角度 / 半径を状態で動かす、`図形` とも書ける) |
+
+| 欄            | 何を書くか                                                                     |
+| ------------- | ------------------------------------------------------------------------------ |
+| `kind`        | 見た目の種別 (`card` / `storage` / `service` / `person` 等、`種類` とも書ける) |
+| `subtitle`    | 題の下の補足 (`補足` とも書ける)                                               |
+| `eyebrow`     | 題の上の小見出し                                                               |
+| `value`       | 箱に出す値 (`値` とも書ける)                                                   |
+| `rows`        | 箱の中に並べる行 (`行` とも書ける)                                             |
+| `lane`        | どの縦列に置くか                                                               |
+| `stack`       | 縦列の中の何段目に置くか                                                       |
+| `initial`     | 状態遷移図で始まりの状態か                                                     |
+| `final`       | 状態遷移図で終わりの状態か                                                     |
+| `tone`        | 色                                                                             |
+| `nodes`       | 見本 (parts) の中の箱を差し替える                                              |
+| `touchpoint`  | 体験の道筋で、利用者が触れる場所                                               |
+| `opportunity` | 体験の道筋で、改善の余地                                                       |
+| `owner`       | 工程の並びで、担当                                                             |
+| `end`         | 工程の並びで、終わりの位置                                                     |
+| `posX`        | 置く場所の横位置                                                               |
+| `posY`        | 置く場所の縦位置                                                               |
+| `posW`        | 箱の幅                                                                         |
+| `posH`        | 箱の高さ                                                                       |
+| `scale`       | 見本 (parts) の倍率 (`倍率` とも書ける)                                        |
+| `shape`       | 箱の中に描く図形 (水位 / 角度 / 半径を状態で動かす、`図形` とも書ける)         |
+| `visibleIf`   | その箱を出すかどうかの条件 (`出す条件` とも書ける)                             |
+| `title`       | 箱に出す題。 書かなければ名前がそのまま題になる (`題` とも書ける)              |
+
 <!-- notation:actor:end -->
 
 ### 矢印に書ける欄
@@ -101,14 +107,16 @@ flow:
 `- A -> B: "説明" (色, 線種) { 欄: 値, ... }` の形で書く。
 
 <!-- notation:flow:start -->
-| 欄 | 何を書くか |
-|---|---|
-| `sub` | 説明の下の補足 |
-| `guard` | 状態遷移の条件 |
-| `cardinality` | 関係の多重度 (`1:N` 等) |
-| `labelOffsetX` | 説明文の位置を横にずらす |
-| `labelOffsetY` | 説明文の位置を縦にずらす |
-| `overlay` | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用) |
+
+| 欄             | 何を書くか                                             |
+| -------------- | ------------------------------------------------------ |
+| `sub`          | 説明の下の補足                                         |
+| `guard`        | 状態遷移の条件                                         |
+| `cardinality`  | 関係の多重度 (`1:N` 等)                                |
+| `labelOffsetX` | 説明文の位置を横にずらす                               |
+| `labelOffsetY` | 説明文の位置を縦にずらす                               |
+| `overlay`      | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用) |
+
 <!-- notation:flow:end -->
 
 ## 記法の癖
@@ -147,8 +155,8 @@ type: flow
 actors: [A, B, C]
 
 flow:
-  - A -> C: "x"    # 出来るのは A -> B
-  - C -> B: "y"    # 出来るのは B -> C
+  - A -> C: "x" # 出来るのは A -> B
+  - C -> B: "y" # 出来るのは B -> C
 ```
 
 書いた端どおりに繋ぎたい時は箱に `lane:` を書く。 縦列を書いた形は別の組み立てを通り、
@@ -157,16 +165,19 @@ flow:
 ## API
 
 **Text DSL (人向け YAML)**
+
 - `textDslToDiagram(src: string): CdlDiagram` ... 一発変換 (v0.4 / v0.5 auto-detect、 recommended entry)
 - `parseTextDslV05(src: string): V05ParseResult` ... v0.5 parser を直接呼出 (error 詳細取得)
 - `compileToCdl(doc: DslDocument): CdlDiagram` ... AST → CdlDiagram
 
 **JSON DSL (LLM 向け)**
+
 - `jsonToDiagram(json: unknown): CdlDiagram` ... JSON DSL → CdlDiagram、 validation error は throw
 - `validateDragonJson(json: unknown): { ok, data | errors }` ... compile なしで validation のみ
 - `diagramJsonSchema` ... JSON Schema (Draft 7)、 LLM の tool schema にそのまま注入可能
 
 **Deprecated (2026-12-31 削除予定)**
+
 - `parseTextDsl(src: string): ParseResult` ... v0.4 parser、 `textDslToDiagram` に移行推奨
 
 ## LLM 向け JSON DSL
@@ -213,11 +224,13 @@ async function generateDiagramFromLLM(userRequest: string, maxRetry = 3) {
     const res = await client.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 4096,
-      tools: [{
-        name: "create_diagram",
-        description: "Create an animated diagram from user's request using Dragon DSL.",
-        input_schema: diagramJsonSchema,
-      }],
+      tools: [
+        {
+          name: "create_diagram",
+          description: "Create an animated diagram from user's request using Dragon DSL.",
+          input_schema: diagramJsonSchema,
+        },
+      ],
       tool_choice: { type: "tool", name: "create_diagram" },
       messages,
     });
@@ -240,7 +253,7 @@ async function generateDiagramFromLLM(userRequest: string, maxRetry = 3) {
 
 // 使用例
 const diagram = await generateDiagramFromLLM(
-  "ユーザーが API 経由で DB に検索をかけて結果を受け取るシーケンス図を作って"
+  "ユーザーが API 経由で DB に検索をかけて結果を受け取るシーケンス図を作って",
 );
 ```
 
@@ -273,13 +286,13 @@ const diagram = jsonToDiagram(json);
 
 同じ図を両方の記法で書ける。 人 → YAML、 LLM → JSON が推奨だが、 混在可能。
 
-| YAML | JSON |
-|---|---|
-| `title: "..."` | `{title: "..."}` |
+| YAML                   | JSON                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `title: "..."`         | `{title: "..."}`                                        |
 | `actors: [A, B: kind]` | `{actors: [{name: "A"}, {name: "B", kind: "storage"}]}` |
-| `- A -> B: "label"` | `{from: "A", to: "B", label: "label"}` |
-| `step: "..." 1.4s` | `{step: "...", duration: 1.4}` |
-| `focus: [A, B]` | `{focus: ["A", "B"]}` |
+| `- A -> B: "label"`    | `{from: "A", to: "B", label: "label"}`                  |
+| `step: "..." 1.4s`     | `{step: "...", duration: 1.4}`                          |
+| `focus: [A, B]`        | `{focus: ["A", "B"]}`                                   |
 
 箱に書ける項目 (`tone` / `owner` / `posX` 等) は両方の記法で同じ。 一覧は実装
 (`INLINE_ACTOR_KEYS`) が持ち、`packages/dragon/test/json-actor-fields.test.ts` が

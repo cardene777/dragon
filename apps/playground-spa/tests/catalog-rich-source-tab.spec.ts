@@ -90,9 +90,13 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
   test("記法を持たないページではまだ押せない (陰性対照)", async ({ page }) => {
     /*
      * 「どのページでも押せる」 形なら上の検査は通っても意味を持たない。
-     * 残る 2 ページ (`parts` / `interactive`) は記法をまだ書いていないので押せない。
+     *
+     * **対照は 4 度移している** = `cookbook` は #1378 で、`ethereum` は #1374 で、
+     * `parts` は #1381 で記法を持った。 残るのは `interactive` だけで、次に埋めると
+     * 実在のページで対照を取る形そのものが成り立たなくなる。 その時は記法を持たない図を
+     * 検査の中で組み立てる形へ変える。
      */
-    await page.goto("/catalog/parts", { waitUntil: "networkidle" });
+    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await expect(
       page.getByRole("tab", { name: "コード" }),

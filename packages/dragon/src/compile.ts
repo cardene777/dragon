@@ -4234,7 +4234,7 @@ function compileClass(doc: DslDocument): CdlDiagram {
       lane: laneId,
       stack: 0,
       kind: "storage",
-      title: a.name,
+      title: 箱の題(a),
       w: CLASS_W,
     });
   });
@@ -4662,7 +4662,7 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
       未宣言.push(a.name);
       continue;
     }
-    data.push({ id: slugify(a.name), title: a.name, count: v });
+    data.push({ id: slugify(a.name), title: 箱の題(a), count: v });
   }
   if (未宣言.length > 0) {
     const m3 = `type: funnel で数にならない値を参照した項目があります (段に載せません): ${未宣言.join(", ")}。 \`states:\` にその名前を数で書いてください`;
@@ -4893,7 +4893,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
         読めない.push(a.name);
         continue;
       }
-      data.push({ id: slugify(a.name), title: a.name, emotion: 語 as never, ...道筋の欄(a) });
+      data.push({ id: slugify(a.name), title: 箱の題(a), emotion: 語 as never, ...道筋の欄(a) });
       continue;
     }
     const e = 気持ち.get(語);
@@ -4901,7 +4901,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
       読めない.push(a.name);
       continue;
     }
-    data.push({ id: slugify(a.name), title: a.name, emotion: e, ...道筋の欄(a) });
+    data.push({ id: slugify(a.name), title: 箱の題(a), emotion: e, ...道筋の欄(a) });
   }
   if (読めない.length > 0) {
     const m = `type: journey で気持ちを読めない項目があります (道筋に載せません): ${読めない.join(", ")}。 \`- 登録: "不満"\` の形で、 ${[...気持ち.keys()].join(" / ")} のどれかを書いてください`;
@@ -5006,7 +5006,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
         読めない.push(a.name);
         continue;
       }
-      items.push({ id: slugify(a.name), title: a.name, quadrant: 語 as never });
+      items.push({ id: slugify(a.name), title: 箱の題(a), quadrant: 語 as never });
       continue;
     }
     const q = 区画.get(語);
@@ -5014,7 +5014,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
       読めない.push(a.name);
       continue;
     }
-    items.push({ id: slugify(a.name), title: a.name, quadrant: q });
+    items.push({ id: slugify(a.name), title: 箱の題(a), quadrant: q });
   }
   if (読めない.length > 0) {
     const m = `type: quadrant で区画を読めない項目があります (図に載せません): ${読めない.join(", ")}。 \`- 重複削除: "左上"\` の形で、 ${[...区画.keys()].join(" / ")} のどれかを書いてください`;
@@ -5210,6 +5210,16 @@ type 放射で描ける欄 =
   /** 本文の行番号。 知らせに載せるために使う */
   | "pos";
 
+/**
+ * 箱に出す題 (#1381)。 書いていなければ名前をそのまま使う。
+ *
+ * 名前は図の中で 1 つに決まる必要がある (`focus:` と `flow:` が名前で指す) 一方、題は
+ * 重なってよい。 同じ題の箱を並べる図と、題を持たない箱は、名前と切り離さないと書けない。
+ */
+function 箱の題(a: DslActor): string {
+  return a.title ?? a.name;
+}
+
 /** 放射では描けない欄。 書かれていたら伝える */
 type 放射で描けない欄 =
   | "kind"
@@ -5235,7 +5245,11 @@ type 放射で描けない欄 =
   | "nodes"
   | "layoutPos"
   // 箱の中に描く図形 (#1374)。 放射の枝は箱の中に図形を持たない
-  | "shape";
+  | "shape"
+  // 出す条件 (#1381)。 放射の枝は個別に出し分けられない
+  | "visibleIf"
+  // 箱に出す題 (#1381)。 放射の枝は名前をそのまま出す
+  | "title";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -5291,6 +5305,8 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   nodes: "中の箱ごとの指定",
   layoutPos: "配置のずらし",
   shape: "箱の中の図形",
+  visibleIf: "出す条件",
+  title: "箱に出す題",
 };
 
 /**
@@ -5321,7 +5337,7 @@ function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描�
  */
 function 放射に出す文字(a: DslActor): { title: string; subtitle?: string } {
   const 続き = [a.subtitle, a.value].map((x) => x?.trim()).filter((x): x is string => !!x);
-  return { title: a.name, ...(続き.length > 0 ? { subtitle: 続き.join(" ") } : {}) };
+  return { title: 箱の題(a), ...(続き.length > 0 ? { subtitle: 続き.join(" ") } : {}) };
 }
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
@@ -5691,6 +5707,15 @@ function applyV05Extensions(
           }
         }
       }
+      // その箱を出すかどうかの条件 (#1381)。 名札と足にも同じ条件を渡す = 片方だけ隠すと
+      // 順序図で縦線の頭と足が食い違う
+      if (a.visibleIf !== undefined) {
+        node.visibleIf = a.visibleIf;
+        if (isSeqLike) {
+          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+          if (footer) footer.visibleIf = a.visibleIf;
+        }
+      }
     }
   }
   // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
@@ -5918,7 +5943,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
     // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
     const actorW = Math.max(140, a.name.length * 22 + 52);
-    b.node(headerId, { lane: id, stack: 0, kind: "card", title: a.name, w: actorW, h: 72 });
+    b.node(headerId, { lane: id, stack: 0, kind: "card", title: 箱の題(a), w: actorW, h: 72 });
     headerNodeIds.push(headerId);
     const spacerId = `${id}-spacer`;
     b.node(spacerId, { lane: id, stack: 1, kind: "card", title: "", w: 2, h: 40 });
@@ -5964,7 +5989,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
       lane: laneId,
       stack: footerStack,
       kind: "card",
-      title: a.name,
+      title: 箱の題(a),
       w: actorW,
       h: 72,
       role: "lifeline-footer",
@@ -6113,7 +6138,7 @@ function compileFlow(doc: DslDocument): CdlDiagram {
       {
         id: slugify(a.name) || `n${i}`,
         kind: a.kind,
-        title: a.name,
+        title: 箱の題(a),
       },
       edgeLabel,
     );
@@ -6182,7 +6207,7 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
         lane: swim.laneId(a.name),
         stack: 0,
         kind: a.kind ?? "actor",
-        title: a.name,
+        title: 箱の題(a),
       });
     });
   }
@@ -6207,7 +6232,7 @@ function compileEr(doc: DslDocument): CdlDiagram {
     // v0.3 で「列定義」 ブロックを追加検討
     erBuilder.entity({
       id: slugify(a.name) || a.name,
-      title: a.name,
+      title: 箱の題(a),
       rows: [], // v0.2 では rows なし
     });
   }
@@ -6264,7 +6289,7 @@ function compileState(doc: DslDocument): CdlDiagram {
     const final = 決め方.終わり(a, i);
     fsm.state({
       id: slugify(a.name) || `s${i}`,
-      title: a.name,
+      title: 箱の題(a),
       ...(initial ? { initial: true } : {}),
       ...(final ? { final: true } : {}),
     });
@@ -6305,7 +6330,7 @@ function compileTopology(doc: DslDocument): CdlDiagram {
     groupBuilder.add({
       id: slugify(a.name) || a.name,
       kind: a.kind,
-      title: a.name,
+      title: 箱の題(a),
     });
   }
   for (const s of doc.flow) {
@@ -6408,7 +6433,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
       const lid = a.lane!;
       const stack = 積んだ数.get(lid) ?? 0;
       積んだ数.set(lid, stack + 1);
-      b.node(id, { lane: lid, stack, kind: a.kind, title: a.name });
+      b.node(id, { lane: lid, stack, kind: a.kind, title: 箱の題(a) });
     });
   } else if (kind === "flow" || kind === "topology") {
     // 1 lane に全 actor を縦 stack
@@ -6421,7 +6446,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
-      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: a.name });
+      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: 箱の題(a) });
     });
   } else {
     // swimlane / er / state ... actor ごとに 1 lane (横並び)
@@ -6447,7 +6472,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         lane: lid,
         stack: 0,
         kind: a.kind,
-        title: a.name,
+        title: 箱の題(a),
         ...(isInitial ? { eyebrow: "初期" } : {}),
         ...(isFinal ? { eyebrow: "最終" } : {}),
       });

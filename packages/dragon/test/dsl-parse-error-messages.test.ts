@@ -161,6 +161,12 @@ flow:
     // 箱の中に描く図形 (#1374)。 中括弧の中に種類ごとの欄を書く
     shape: "{ kind: wave, level: 50, amplitude: 100 }",
     図形: "{ kind: wave, level: 50, amplitude: 100 }",
+    // その箱を出すかどうかの条件 (#1381)
+    visibleIf: '"{flag}"',
+    出す条件: '"{flag}"',
+    // 箱に出す題 (#1381)
+    title: '"題"',
+    題: '"題"',
   };
 
   /**

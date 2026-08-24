@@ -60,6 +60,10 @@ const 対応表: Record<string, 対応> = {
     記法: "shape: { kind: wave, level: 50, amplitude: 100 }",
     json: { shape: { kind: "wave", level: 50, amplitude: 100 } },
   },
+  // その箱を出すかどうかの条件 (#1381)
+  visibleIf: { 記法: 'visibleIf: "{flag}"', json: { visibleIf: "{flag}" } },
+  // 箱に出す題 (#1381)。 名前と切り離して書ける
+  title: { 記法: 'title: "題"', json: { title: "題" } },
 };
 
 /**

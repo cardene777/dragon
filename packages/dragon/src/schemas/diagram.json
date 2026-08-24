@@ -253,6 +253,14 @@
                   }
                 }
               },
+              "visibleIf": {
+                "type": "string",
+                "description": "その箱を出すかどうかの条件。 状態を差し込める文字列で、\"0\" / \"false\" / 空文字が偽、それ以外は真。"
+              },
+              "title": {
+                "type": "string",
+                "description": "箱に出す題。 書かなければ name がそのまま題になる。 name は図の中で 1 つに決まる必要があるが、題は重なってよい。"
+              },
               "shape": {
                 "type": "object",
                 "description": "箱の中に描く図形。 水位 / 角度 / 半径を状態で動かせる。 kind ごとに書ける欄が違う (rect / circle / arc / wave / polygon)。",

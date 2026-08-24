@@ -57,6 +57,10 @@ const 箱の値: Record<string, unknown> = {
   state: { v: 1 },
   pos: { x: 1, y: 2 },
   shape: { kind: "wave", level: 50, amplitude: 100 },
+  // その箱を出すかどうかの条件 (#1381)
+  visibleIf: "{flag}",
+  // 箱に出す題 (#1381)
+  title: "題",
 };
 
 /** 全欄を書いた箱を組み立てて、届いた欄の名前を集める */

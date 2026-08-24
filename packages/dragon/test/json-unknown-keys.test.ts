@@ -107,6 +107,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     pos: { x: 1, y: 2 },
     // 箱の中に描く図形 (#1374)
     shape: { kind: "wave", level: 50, amplitude: 100 },
+    // その箱を出すかどうかの条件 (#1381)
+    visibleIf: "{flag}",
+    // 箱に出す題 (#1381)
+    title: "題",
   },
   step: {
     from: "A",

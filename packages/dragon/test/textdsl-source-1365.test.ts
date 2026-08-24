@@ -3,7 +3,7 @@ import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
 import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
+import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 
 /**
  * 「Text DSL」 のページで記法がコードタブに出ることの検査 (#1365)。
@@ -137,10 +137,13 @@ describe("記法を持たない図では従来どおり (陰性対照、 #1365)"
      * 「どの図でも引ける」 形なら、上の検査は通っても意味を持たない。
      * 記法を登録していないページでは `undefined` のままであることを見る。
      */
-    // `parts` は記法を 1 件も登録していないページ (実測)。
-    // 対照は 2 度移している = `cookbook` は #1378 で、`ethereum` は #1374 で記法を持った。
-    // 残るのは `parts` と `interactive` の 2 ページだけ
-    const mod = parts as Record<string, unknown>;
+    // `interactive` は記法を 1 件も登録していないページ (実測)。
+    //
+    // **対照は 3 度移している** = `cookbook` は #1378 で、`ethereum` は #1374 で、
+    // `parts` は #1381 で記法を持った。 対照に選んだページを次の作業が埋める形が続いている。
+    // 記法を持たないページは `interactive` だけになったので、次に埋める時は対照の作り方
+    // そのものを変える (実物のページではなく、記法を持たない図を検査の中で組み立てる)。
+    const mod = interactive as Record<string, unknown>;
     const 図 = 図の一覧(mod);
     expect(図.length, "比べる図が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
 

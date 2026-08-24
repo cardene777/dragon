@@ -10,6 +10,10 @@ import { parseTextDslV05 } from "../src/v05";
  * 実測 = 見本「プロジェクト構想」 は `- root: { title: "新プロジェクト" }` と書かれており、
  * 5 つの箱すべてで題が捨てられて識別子 (`root` 等) が出ていた。 知らせも出ないため、 書いた人
  * には「書いたのに図が変わらない」 としか見えない。
+ *
+ * **この検査が使う「読めない項目名」 は `title` から `label` へ移した** (#1381)。
+ * `title:` は #1381 で読める項目になった = 上の実測で人が自然に書いた形が、そのまま効くように
+ * なった。 読めるようになった名前を「読めない例」 に使い続けると検査が実装とずれる。
  */
 
 const 解析 = (actors: string) => parseTextDslV05(`title: "t"\ntype: flow\n\nactors:\n${actors}\n`);
@@ -26,8 +30,8 @@ const 最初の知らせ = (r: ReturnType<typeof parseTextDslV05>) =>
 
 describe("中括弧に書いた読めない項目名を知らせる (#1090)", () => {
   it("読めない項目名で知らせが出る", () => {
-    const r = 解析(`  - A: { title: "あ" }`);
-    expect(読めない項目(r)).toEqual([`項目名が読めません: "title"`]);
+    const r = 解析(`  - A: { label: "あ" }`);
+    expect(読めない項目(r)).toEqual([`項目名が読めません: "label"`]);
   });
 
   it("読める項目名では知らせが出ない", () => {
@@ -36,18 +40,18 @@ describe("中括弧に書いた読めない項目名を知らせる (#1090)", ()
   });
 
   it("読める項目と読めない項目が混ざっていたら読めない方だけ知らせる", () => {
-    const r = 解析(`  - A: { subtitle: "あ", title: "い" }`);
-    expect(読めない項目(r)).toEqual([`項目名が読めません: "title"`]);
+    const r = 解析(`  - A: { subtitle: "あ", label: "い" }`);
+    expect(読めない項目(r)).toEqual([`項目名が読めません: "label"`]);
   });
 
   it("読めない項目が複数あれば全部知らせる", () => {
     // 1 件だけ知らせると、 直した後に次の 1 件が出る形になり手戻りが増える
-    const r = 解析(`  - A: { title: "あ", label: "い" }`);
+    const r = 解析(`  - A: { label: "あ", caption: "い" }`);
     expect(読めない項目(r)).toHaveLength(2);
   });
 
   it("知らせに行番号が入る", () => {
-    const r = 解析(`  - A\n  - B: { title: "あ" }`);
+    const r = 解析(`  - A\n  - B: { label: "あ" }`);
     expect(最初の知らせ(r)?.line, "行番号が違う").toBe(6);
   });
 
@@ -67,9 +71,9 @@ describe("中括弧に書いた読めない項目名を知らせる (#1090)", ()
 
   it("縦に並べた形の知らせは今までどおり出る", () => {
     const r = parseTextDslV05(
-      `title: "t"\ntype: flow\n\nactors:\n  - A:\n      title: "あ"\n  - B\n`,
+      `title: "t"\ntype: flow\n\nactors:\n  - A:\n      label: "あ"\n  - B\n`,
     );
-    expect(読めない項目(r)).toEqual([`項目名が読めません: "title"`]);
+    expect(読めない項目(r)).toEqual([`項目名が読めません: "label"`]);
   });
 });
 
@@ -108,16 +112,16 @@ describe("中括弧で読めない日本語 (#1301 で範囲を固定)", () => {
 
 describe("知らせが入力の整形に依存しない (Round 1 review の指摘)", () => {
   // `parseInlineMapping` は値が 1 文字以上ある項目しか拾わない。 その結果を走査していた間、
-  // 空白の有無で知らせが消えていた (実測 = `{title:}` と `{ title:}` は黙って通り、
-  // `{ title: }` だけ知らせが出た)。 整形だけで診断が消えると、 契約が入力の書き方に依存する
+  // 空白の有無で知らせが消えていた (実測 = `{label:}` と `{ label:}` は黙って通り、
+  // `{ label: }` だけ知らせが出た)。 整形だけで診断が消えると、 契約が入力の書き方に依存する
   for (const [name, actor] of [
-    ["空白なし", `  - A: {title:}`],
-    ["前だけ空白", `  - A: { title:}`],
-    ["前後に空白", `  - A: { title: }`],
-    ["値あり", `  - A: { title: "あ" }`],
+    ["空白なし", `  - A: {label:}`],
+    ["前だけ空白", `  - A: { label:}`],
+    ["前後に空白", `  - A: { label: }`],
+    ["値あり", `  - A: { label: "あ" }`],
   ] as const) {
     it(`${name} でも知らせが出る`, () => {
-      expect(読めない項目(解析(actor))).toEqual([`項目名が読めません: "title"`]);
+      expect(読めない項目(解析(actor))).toEqual([`項目名が読めません: "label"`]);
     });
   }
 
