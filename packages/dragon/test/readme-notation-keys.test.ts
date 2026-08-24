@@ -177,6 +177,8 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       sub: { 書く: '"補足"', 期待: "補足" },
       guard: { 書く: '"g"', 期待: "g" },
       cardinality: { 書く: '"1:N"', 期待: "1:N" },
+      // 矢印がどの辺から出るか (#1385)
+      side: { 書く: "left", 期待: "left" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },
       overlay: { 書く: "true", 期待: true },

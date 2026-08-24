@@ -329,22 +329,42 @@
                 "additionalProperties": false,
                 "oneOf": [
                   {
-                    "properties": { "kind": { "enum": ["rect"] } },
+                    "properties": {
+                      "kind": {
+                        "enum": ["rect"]
+                      }
+                    },
                     "required": ["source", "fillMax"]
                   },
                   {
-                    "properties": { "kind": { "enum": ["circle"] } }
+                    "properties": {
+                      "kind": {
+                        "enum": ["circle"]
+                      }
+                    }
                   },
                   {
-                    "properties": { "kind": { "enum": ["arc"] } },
+                    "properties": {
+                      "kind": {
+                        "enum": ["arc"]
+                      }
+                    },
                     "required": ["angle"]
                   },
                   {
-                    "properties": { "kind": { "enum": ["wave"] } },
+                    "properties": {
+                      "kind": {
+                        "enum": ["wave"]
+                      }
+                    },
                     "required": ["level", "amplitude"]
                   },
                   {
-                    "properties": { "kind": { "enum": ["polygon"] } },
+                    "properties": {
+                      "kind": {
+                        "enum": ["polygon"]
+                      }
+                    },
                     "required": ["sides"]
                   }
                 ]
@@ -408,6 +428,11 @@
           "cardinality": {
             "type": "string",
             "description": "ER の多重度 (1..N 等、 kind: er 用)"
+          },
+          "side": {
+            "type": "string",
+            "enum": ["top", "right", "bottom", "left"],
+            "description": "矢印がどの辺から出るか。 書かなければ描画側が自動で選ぶ。"
           },
           "labelOffsetX": {
             "type": "number",
@@ -654,111 +679,179 @@
           "kind": {
             "type": "string",
             "enum": [
+              "activity-feed",
+              "alert-banner",
+              "array-bar",
+              "array-list",
+              "article-preview",
+              "attendance-grid",
+              "avatar",
+              "badge",
               "bar",
-              "gauge",
-              "stat",
-              "sparkline",
+              "breadcrumb",
+              "bubble-chart",
+              "bullet-chart",
+              "calendar-heatmap",
+              "calendar-month",
+              "calendar-week",
+              "candlestick",
+              "cart-summary",
+              "chat-bubble",
+              "checklist",
+              "chess-board",
+              "circular-gauge",
+              "commit-list",
+              "confidence-meter",
               "countup",
-              "typewriter",
+              "coupon-code",
               "delta",
-              "percent-ring",
-              "heat-cell",
+              "diff-counter",
               "donut",
-              "radar",
-              "step-progress",
-              "status-dot",
-              "notification",
+              "event-log",
+              "file-dropzone",
+              "form-summary",
+              "fuel-bar",
+              "funnel",
+              "gantt",
+              "gauge",
+              "grade",
+              "heat-cell",
+              "icon-tile",
+              "kanban-board",
               "kpi-card",
-              "status-timeline"
+              "kpi-comparison",
+              "kpi-trend-tile",
+              "leaderboard",
+              "line-chart",
+              "log-stream",
+              "map-pin",
+              "matrix",
+              "media-player",
+              "metrics-grid",
+              "mini-map",
+              "notification",
+              "number-board",
+              "order-status",
+              "org-chart-mini",
+              "otp-input",
+              "password-strength",
+              "path-progress",
+              "percent-ring",
+              "pill-group",
+              "podium",
+              "polar-area",
+              "poll-bar",
+              "price-tag",
+              "pricing-tier",
+              "priority-badge",
+              "progress-group",
+              "quick-poll-emoji",
+              "radar",
+              "rating",
+              "rating-thumb",
+              "reaction-bar",
+              "read-receipt",
+              "roadmap",
+              "sankey",
+              "search-result",
+              "sequence-timeline",
+              "service-health",
+              "share-buttons",
+              "slope",
+              "song-queue",
+              "sparkline",
+              "spinner",
+              "stacked-bar",
+              "stat",
+              "status-dot",
+              "status-timeline",
+              "step-indicator",
+              "step-progress",
+              "stopwatch",
+              "tag-cloud",
+              "terminal",
+              "thermometer",
+              "thread-summary",
+              "timeline-vertical",
+              "timezone-clock",
+              "toc-nav",
+              "token-list",
+              "traffic-light",
+              "treemap",
+              "typewriter",
+              "user-presence",
+              "user-stack",
+              "venn",
+              "video-card",
+              "voice-message",
+              "waterfall",
+              "weather-forecast"
             ]
           },
-          "source": {
-            "type": "string"
-          },
-          "min": {
-            "type": "number"
-          },
-          "max": {
-            "type": "number"
-          },
-          "color": {
-            "type": "string"
-          },
-          "colors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "label": {
-            "type": "string"
-          },
-          "caption": {
-            "type": "string"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "history": {
-            "type": "number"
-          },
-          "durationMs": {
-            "type": "number"
-          },
-          "decimals": {
-            "type": "number"
-          },
-          "charMs": {
-            "type": "number"
-          },
-          "viewW": {
-            "type": "number"
-          },
-          "viewH": {
-            "type": "number"
-          },
-          "innerRatio": {
-            "type": "number"
-          },
-          "labelSource": {
-            "type": "string"
-          },
-          "stepsSource": {
-            "type": "string"
-          },
-          "map": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "required": ["value", "color"],
-              "additionalProperties": false,
-              "properties": {
-                "value": { "type": "string" },
-                "color": { "type": "string" },
-                "label": { "type": "string" }
-              }
-            }
-          },
-          "kindSource": {
-            "type": "string"
-          },
-          "titleSource": {
+          "additionsSource": {
             "type": "string"
           },
           "bodySource": {
             "type": "string"
           },
-          "historySource": {
+          "canvasH": {
+            "type": "number"
+          },
+          "canvasW": {
+            "type": "number"
+          },
+          "caption": {
             "type": "string"
           },
-          "comparisonSource": {
+          "cellGap": {
+            "type": "number"
+          },
+          "cellSize": {
+            "type": "number"
+          },
+          "charMs": {
+            "type": "number"
+          },
+          "color": {
             "type": "string"
           },
-          "colorPos": {
+          "colorA": {
             "type": "string"
           },
-          "colorNeg": {
+          "colorAccent": {
+            "type": "string"
+          },
+          "colorActive": {
+            "type": "string"
+          },
+          "colorActual": {
+            "type": "string"
+          },
+          "colorAdd": {
+            "type": "string"
+          },
+          "colorApplied": {
+            "type": "string"
+          },
+          "colorB": {
+            "type": "string"
+          },
+          "colorBar": {
+            "type": "string"
+          },
+          "colorBottom": {
+            "type": "string"
+          },
+          "colorDel": {
+            "type": "string"
+          },
+          "colorDiscount": {
+            "type": "string"
+          },
+          "colorDown": {
+            "type": "string"
+          },
+          "colorFocus": {
             "type": "string"
           },
           "colorMap": {
@@ -769,64 +862,404 @@
               "required": ["status", "color"],
               "additionalProperties": false,
               "properties": {
-                "status": { "type": "string" },
-                "color": { "type": "string" }
+                "status": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                }
               }
             }
+          },
+          "colorNeg": {
+            "type": "string"
+          },
+          "colorNew": {
+            "type": "string"
+          },
+          "colorOld": {
+            "type": "string"
+          },
+          "colorOther": {
+            "type": "string"
+          },
+          "colorPending": {
+            "type": "string"
+          },
+          "colorPlay": {
+            "type": "string"
+          },
+          "colorPos": {
+            "type": "string"
+          },
+          "colorRead": {
+            "type": "string"
+          },
+          "colorSelf": {
+            "type": "string"
+          },
+          "colorSource": {
+            "type": "string"
+          },
+          "colorStrong": {
+            "type": "string"
+          },
+          "colorTop": {
+            "type": "string"
+          },
+          "colorTotal": {
+            "type": "string"
+          },
+          "colorUnread": {
+            "type": "string"
+          },
+          "colorUp": {
+            "type": "string"
+          },
+          "colorWeak": {
+            "type": "string"
+          },
+          "colorWinner": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "columnWidth": {
+            "type": "number"
+          },
+          "comparisonSource": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "currentSource": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "number"
+          },
+          "deletionsSource": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "durationSource": {
+            "type": "string"
+          },
+          "fill": {
+            "type": "boolean"
+          },
+          "highThreshold": {
+            "type": "number"
+          },
+          "history": {
+            "type": "number"
+          },
+          "historySource": {
+            "type": "string"
+          },
+          "innerRatio": {
+            "type": "number"
+          },
+          "itemTemplate": {
+            "type": "string"
+          },
+          "kindSource": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "labelA": {
+            "type": "string"
+          },
+          "labelB": {
+            "type": "string"
+          },
+          "labelSource": {
+            "type": "string"
+          },
+          "lowThreshold": {
+            "type": "number"
+          },
+          "map": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["value", "color"],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "max": {
+            "type": "number"
+          },
+          "maxSize": {
+            "type": "number"
+          },
+          "membersSource": {
+            "type": "string"
+          },
+          "min": {
+            "type": "number"
+          },
+          "minSize": {
+            "type": "number"
+          },
+          "monthName": {
+            "type": "string"
+          },
+          "newSource": {
+            "type": "string"
+          },
+          "oldSource": {
+            "type": "string"
+          },
+          "pathD": {
+            "type": "string"
+          },
+          "playingSource": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "prevSource": {
+            "type": "string"
+          },
+          "progressSource": {
+            "type": "string"
+          },
+          "rMax": {
+            "type": "number"
+          },
+          "rMin": {
+            "type": "number"
+          },
+          "rangeAvg": {
+            "type": "number"
+          },
+          "rangeBad": {
+            "type": "number"
+          },
+          "runningSource": {
+            "type": "string"
+          },
+          "segments": {
+            "type": "number"
+          },
+          "showValue": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceA": {
+            "type": "string"
+          },
+          "sourceB": {
+            "type": "string"
+          },
+          "stepsSource": {
+            "type": "string"
+          },
+          "strokeWidth": {
+            "type": "number"
+          },
+          "suffix": {
+            "type": "string"
+          },
+          "targetSource": {
+            "type": "string"
+          },
+          "textSource": {
+            "type": "string"
+          },
+          "titleSource": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "viewH": {
+            "type": "number"
+          },
+          "viewW": {
+            "type": "number"
+          },
+          "xMax": {
+            "type": "number"
+          },
+          "xMin": {
+            "type": "number"
+          },
+          "yMax": {
+            "type": "number"
+          },
+          "yMin": {
+            "type": "number"
           }
         },
         "oneOf": [
           {
-            "properties": { "kind": { "enum": ["bar"] } },
+            "properties": {
+              "kind": {
+                "enum": ["bar"]
+              }
+            },
             "required": ["min", "max"]
           },
           {
-            "properties": { "kind": { "enum": ["gauge"] } },
+            "properties": {
+              "kind": {
+                "enum": ["gauge"]
+              }
+            },
             "required": ["min", "max"]
           },
-          { "properties": { "kind": { "enum": ["stat"] } } },
-          { "properties": { "kind": { "enum": ["sparkline"] } } },
-          { "properties": { "kind": { "enum": ["countup"] } } },
-          { "properties": { "kind": { "enum": ["typewriter"] } } },
-          { "properties": { "kind": { "enum": ["delta"] } } },
           {
-            "properties": { "kind": { "enum": ["percent-ring"] } },
+            "properties": {
+              "kind": {
+                "enum": ["stat"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["sparkline"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["countup"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["typewriter"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["delta"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["percent-ring"]
+              }
+            },
             "required": ["max"]
           },
           {
-            "properties": { "kind": { "enum": ["heat-cell"] } },
+            "properties": {
+              "kind": {
+                "enum": ["heat-cell"]
+              }
+            },
             "required": ["min", "max"]
           },
           {
-            "properties": { "kind": { "enum": ["donut"] } }
+            "properties": {
+              "kind": {
+                "enum": ["donut"]
+              }
+            }
           },
           {
-            "properties": { "kind": { "enum": ["radar"] } },
+            "properties": {
+              "kind": {
+                "enum": ["radar"]
+              }
+            },
             "required": ["max"]
           },
           {
-            "properties": { "kind": { "enum": ["step-progress"] } },
+            "properties": {
+              "kind": {
+                "enum": ["step-progress"]
+              }
+            },
             "required": ["stepsSource"]
           },
           {
-            "properties": { "kind": { "enum": ["status-dot"] } },
+            "properties": {
+              "kind": {
+                "enum": ["status-dot"]
+              }
+            },
             "required": ["map"]
           },
           {
-            "properties": { "kind": { "enum": ["notification"] } },
+            "properties": {
+              "kind": {
+                "enum": ["notification"]
+              }
+            },
             "required": ["kindSource", "titleSource"]
           },
           {
-            "properties": { "kind": { "enum": ["kpi-card"] } },
+            "properties": {
+              "kind": {
+                "enum": ["kpi-card"]
+              }
+            },
             "required": ["historySource", "comparisonSource"]
           },
           {
-            "properties": { "kind": { "enum": ["status-timeline"] } }
+            "properties": {
+              "kind": {
+                "enum": ["status-timeline"]
+              }
+            }
           }
         ],
         "anyOf": [
-          { "properties": { "kind": { "enum": ["notification"] } } },
-          { "required": ["source"] }
+          {
+            "properties": {
+              "kind": {
+                "enum": ["notification"]
+              }
+            }
+          },
+          {
+            "required": ["source"]
+          }
         ]
       }
     }

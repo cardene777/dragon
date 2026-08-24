@@ -49,13 +49,28 @@ const 揃ったページ = [
  * **なぜ全件でないか** を 1 ページずつ書く。 書かないと「まだ書いていない」 と
  * 「書けない」 が区別できず、残りを埋める時にどちらを相手にしているか分からない。
  *
- * **今は 1 ページも無い**。 #1374 で記法に `shape` と `readouts` の欄を足し、
- * 「書けないから持てない」 ページが消えた。 残るのは「まだ書いていない」 だけになる。
+ * **`interactive` が唯一** (#1385)。 記法は図を書くためのもので、つまみや押下で値が変わる
+ * 仕掛けを持たない。 129 件のうち 56 件がそれを使っており、記法では書けない。
+ *
+ * | 書けない理由 | 件数 |
+ * |---|---|
+ * | つまみ / 選択肢などの入力 (`inputs`) | 52 |
+ * | 式で値を導く (`formulas`) | 11 |
+ * | 押下 / 巻き上げに応じて動く (`eventBindings` / `scrollTriggers`) | 3 |
+ * | 箱の欄 4 つ (`wBind` / `opacity` / `renderOffsetX` / `renderOffsetY`) | 4 |
+ * | 縦列の並びが箱の並びで決まる (`radialHubAndSpoke`) | 1 |
+ * | 段の番号が読み直しで詰められる (`decisionTree`) | 1 |
+ * | 値が二重引用符と単引用符の両方を含む (`supportChat`) | 1 |
+ *
+ * 上 4 行は重なりがあるため合計は 56 ではない。 下 3 行は記法の作りに由来し、1 件ずつ。
+ *
+ * **これは「まだ書いていない」 ではない**。 書ける 73 件は本 Issue で埋め終わっており、
+ * 残りは記法の対象を広げないと書けない。
  */
-const 一部のページ: readonly string[] = [];
+const 一部のページ: readonly string[] = ["interactive"];
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
-const まだのページ = ["interactive"] as const;
+const まだのページ: readonly string[] = [];
 
 async function ページごとの見本(): Promise<Map<string, CatalogItem[]>> {
   const m = new Map<string, CatalogItem[]>(Object.entries(CATALOG_ITEMS));

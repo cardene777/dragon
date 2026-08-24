@@ -1038,9 +1038,9 @@ export const LANE_VALUE_KINDS = {
  * 指定が消え、後者は綴り違いがそのまま描画側へ流れて別の形で失敗する。 表があれば
  * 書いた場所と使える欄を添えて知らせられる。
  */
-export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び" | "向き" | "組の並び";
-
-export type 図形の定義 = { 必須: readonly string[]; 欄: Record<string, 欄の形> };
+// 欄の形と定義の型は `parser-types.ts` が持つ (#1385)。 生成した部品の表がこの型を使うため、
+// `parser.ts` に置いたままだと 生成した表 → parser → 生成した表 の輪ができる
+export type { 欄の形, 図形の定義 } from "./parser-types";
 
 /** 描ける図形と、その欄 (`CdlDynShape` の全 5 種を覆う) */
 export const 図形の表: Record<string, 図形の定義> = {
@@ -1095,104 +1095,18 @@ export const 図形の表: Record<string, 図形の定義> = {
 };
 
 /**
- * 書ける部品と、その欄 (#1374)。
+ * 記法が受ける部品と、その欄。
  *
- * **1 行の中括弧で書ける種類だけを載せる**。 `badge` / `status-dot` / `stacked-bar` は値と色の
- * 対応表 (`map`) や 2 つ目の状態を必要とし、1 行の中括弧では書けない。 載せない種類を
- * 書いたら、使える種類を添えて知らせる = 黙って捨てない。
+ * **手で書かず、描画側の型定義から生成する** (#1385)。 描画側は 107 種を持ち欄は 510 個あり、
+ * 手で写すと写し間違いと描画側の変更への drift が残る (`rules/quality.md § 導出可能記述は
+ * 人手で書かない`)。
+ *
+ * 作り直す = `node packages/dragon/scripts/gen-readout-table.mjs`
+ * ずれの検知 = `packages/dragon/test/readout-table-generated.test.ts`
  */
-export const 部品の表: Record<string, 図形の定義> = {
-  bar: {
-    必須: ["source", "min", "max"],
-    欄: { source: "文字列", min: "数", max: "数", color: "文字列", label: "文字列" },
-  },
-  gauge: {
-    必須: ["source", "min", "max"],
-    欄: { source: "文字列", min: "数", max: "数", color: "文字列", label: "文字列" },
-  },
-  stat: {
-    必須: ["source"],
-    欄: { source: "文字列", caption: "文字列", unit: "文字列", label: "文字列" },
-  },
-  sparkline: {
-    必須: ["source"],
-    欄: { source: "文字列", history: "数", color: "文字列", label: "文字列" },
-  },
-  countup: {
-    必須: ["source"],
-    欄: { source: "文字列", durationMs: "数", decimals: "数", unit: "文字列", label: "文字列" },
-  },
-  typewriter: { 必須: ["source"], 欄: { source: "文字列", charMs: "数", label: "文字列" } },
-  delta: {
-    必須: ["source"],
-    欄: { source: "文字列", decimals: "数", unit: "文字列", label: "文字列" },
-  },
-  "percent-ring": {
-    必須: ["source", "max"],
-    欄: { source: "文字列", max: "数", color: "文字列", label: "文字列" },
-  },
-  "heat-cell": {
-    必須: ["source", "min", "max"],
-    欄: { source: "文字列", min: "数", max: "数", colors: "文字列の並び", label: "文字列" },
-  },
-  // #1381 で足した 7 種。 描画側 (`CdlReadout`) が持つ種類のうち、見本帳が使っているもの
-  donut: {
-    必須: ["source"],
-    欄: {
-      source: "文字列",
-      viewW: "数",
-      viewH: "数",
-      colors: "文字列の並び",
-      innerRatio: "数",
-      label: "文字列",
-    },
-  },
-  radar: {
-    必須: ["source", "max"],
-    欄: {
-      source: "文字列",
-      max: "数",
-      viewW: "数",
-      viewH: "数",
-      color: "文字列",
-      labelSource: "文字列",
-      label: "文字列",
-    },
-  },
-  "step-progress": {
-    必須: ["source", "stepsSource"],
-    欄: { source: "文字列", stepsSource: "文字列", color: "文字列", label: "文字列" },
-  },
-  "status-dot": {
-    必須: ["source", "map"],
-    欄: { source: "文字列", map: "組の並び", label: "文字列" },
-  },
-  notification: {
-    必須: ["kindSource", "titleSource"],
-    欄: {
-      kindSource: "文字列",
-      titleSource: "文字列",
-      bodySource: "文字列",
-      label: "文字列",
-    },
-  },
-  "kpi-card": {
-    必須: ["source", "historySource", "comparisonSource"],
-    欄: {
-      source: "文字列",
-      historySource: "文字列",
-      comparisonSource: "文字列",
-      unit: "文字列",
-      colorPos: "文字列",
-      colorNeg: "文字列",
-      label: "文字列",
-    },
-  },
-  "status-timeline": {
-    必須: ["source"],
-    欄: { source: "文字列", colorMap: "組の並び", max: "数", label: "文字列" },
-  },
-};
+export { 部品の表, 部品の組の表 } from "./readout-table.generated";
+import { 部品の表, 部品の組の表 } from "./readout-table.generated";
+import type { 図形の定義 } from "./parser-types";
 
 /** `[a, b]` の形を文字列の並びに読む */
 function 並びとして読む(raw: string): string[] {
@@ -1275,15 +1189,6 @@ function 組の並びとして読む(raw: string): Record<string, string>[] | un
   return 出;
 }
 
-/** 組の並びを持つ部品の、1 組ごとの欄。 描画側の CdlReadout と同じ形に縛る。 */
-const 部品の組の表: Record<
-  string,
-  Record<string, { 必須: readonly string[]; 欄: readonly string[] }>
-> = {
-  "status-dot": { map: { 必須: ["value", "color"], 欄: ["value", "color", "label"] } },
-  "status-timeline": { colorMap: { 必須: ["status", "color"], 欄: ["status", "color"] } },
-};
-
 function 部品の組を検査する(
   kind: string,
   読めた: Record<string, unknown>,
@@ -1296,11 +1201,11 @@ function 部品の組を検査する(
     並び.forEach((組, i) => {
       const o = 組 as Record<string, unknown>;
       for (const k of Object.keys(o)) {
-        if (定義.欄.includes(k)) continue;
+        if (k in 定義.欄) continue;
         errors.push({
           line,
           message: `部品の ${欄}[${i}] の項目名が読めません: "${k}"`,
-          hint: `使える項目 = ${定義.欄.join(", ")}`,
+          hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
         });
       }
       for (const k of 定義.必須) {
@@ -1340,7 +1245,16 @@ function 表に従って読む(
       });
       continue;
     }
-    if (値 === "") continue;
+    /*
+     * 空の値を落とすのは文字列以外だけ (#1385)。
+     *
+     * `unit: ""` は「単位を出さない」 という指定で、書いた人の意図がある。 落とすと
+     * 書かなかった場合と同じになり、描画側の既定が出る = 書いたのに効かない。
+     *
+     * 値を書かなかった形 (`unit:`) はここに届かない = `parseInlineMapping` が値 1 文字以上を
+     * 求めるため、名前ごと拾われない。 したがって空が来るのは引用符で明示した時だけ。
+     */
+    if (値 === "" && 形 !== "文字列") continue;
     if (形 === "数") {
       const n = 数として読む(値, `${接頭}${欄}`, line, errors);
       if (n !== undefined) out[欄] = n;
@@ -1357,6 +1271,17 @@ function 表に従って読む(
           line,
           message: `${接頭}${欄} の並びが読めません: "${値}"`,
           hint: '`[{ value: "online", color: "#22c55e" }]` の形で書く',
+        });
+      }
+    } else if (形 === "真偽") {
+      // 描画側は `boolean` を取る。 `"true"` / `"false"` の 2 語だけを受け、それ以外は
+      // 黙って真に倒さず知らせる = `visibleIf` と違い、ここは真偽そのものを渡す欄
+      if (値 === "true" || 値 === "false") out[欄] = 値 === "true";
+      else {
+        errors.push({
+          line,
+          message: `${接頭}${欄} の真偽が読めません: "${値}"`,
+          hint: "使える値 = true, false",
         });
       }
     } else if (形 === "向き") {
@@ -2402,6 +2327,11 @@ const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
+  // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
+  side: (v: string | undefined) =>
+    v !== undefined && ["top", "right", "bottom", "left"].includes(v)
+      ? (v as "top" | "right" | "bottom" | "left")
+      : undefined,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
   // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
   labelOffsetX: null,
@@ -2612,6 +2542,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const sub = 中括弧.sub as string | undefined;
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
+  const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
   const labelOffsetX = 数と真偽?.labelOffsetX;
   const labelOffsetY = 数と真偽?.labelOffsetY;
   const overlay = 数と真偽?.overlay;
@@ -2671,6 +2602,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     sub,
     guard,
     cardinality,
+    side,
     labelOffsetX,
     labelOffsetY,
     overlay,

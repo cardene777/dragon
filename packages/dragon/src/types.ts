@@ -297,6 +297,8 @@ export type DslStep = {
   /** v0.5+ inline option */
   guard?: string;
   cardinality?: string;
+  /** 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ */
+  side?: "top" | "right" | "bottom" | "left";
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */

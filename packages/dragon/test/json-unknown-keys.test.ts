@@ -120,6 +120,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     tone: "success",
     style: "solid",
     guard: "g",
+    // 矢印がどの辺から出るか (#1385)
+    side: "left",
     cardinality: "1..N",
     labelOffsetX: 1,
     labelOffsetY: 2,
