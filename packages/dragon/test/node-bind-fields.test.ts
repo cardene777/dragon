@@ -218,6 +218,29 @@ actors:
     expect(r.doc.actors[0]?.stateOverride).toEqual({ opacity: 0.5 });
     expect(r.doc.actors[0]?.opacity).toBeUndefined();
   });
+
+  it("2 つの書き方で状態の値が同じ型になる", () => {
+    /*
+     * **型まで見る** (Round 2 の指摘)。 縦に並べた形で専用の読み取りを先に通すと、
+     * `wBind: 120` が中括弧では数、縦では文字列になって書き方で割れる。
+     * 状態の値は描画側が計算に使うため、型が違うと同じ記述が別の絵になる。
+     */
+    const 読む = (actor: string) => {
+      const r = parseTextDslV05(`title: "t"\ntype: flow\nactors:\n  ${actor}\n`);
+      if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+      return r.doc.actors[0]?.stateOverride;
+    };
+    const 中括弧 = 読む("- A: { kind: some-part, wBind: 120, hBind: 80, opacity: 0.5 }");
+    const 縦 = 読む(
+      "- A:\n      wBind: 120\n      hBind: 80\n      opacity: 0.5\n      kind: some-part",
+    );
+    expect(中括弧, "中括弧の形で状態に届いていない").toEqual({
+      wBind: 120,
+      hBind: 80,
+      opacity: 0.5,
+    });
+    expect(縦, "縦に並べた形が中括弧と違う値になる").toEqual(中括弧);
+  });
 });
 
 describe("公開している形が 5 欄を持つ (#1392)", () => {

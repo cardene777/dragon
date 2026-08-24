@@ -1458,7 +1458,11 @@ function 追随する大きさとして読む(
   return 値;
 }
 
-/** 値に追随する箱の欄 (#1392) */
+/**
+ * 値に追随する箱の欄 (#1392)。
+ *
+ * `satisfies` で `DslActor` から欄を導く = 綴りを誤ると型検査が落ちる。
+ */
 const 値に追随する箱の欄 = [
   "wBind",
   "hBind",
@@ -1467,7 +1471,12 @@ const 値に追随する箱の欄 = [
   "renderOffsetY",
 ] as const satisfies readonly (keyof DslActor)[];
 
-/** 縦に並べた時も空値を validator へ渡す欄 (#1392) */
+/**
+ * 縦に並べた時、値が空でも読み取りへ渡す欄 (#1392)。
+ *
+ * 他の欄は空を「書かなかった」 として落とすが、この 5 欄は描画側が空文字を数として
+ * 読むため、落とすと書き忘れが「箱が消えた」 形で出る。
+ */
 const 空を知らせる箱の欄: ReadonlySet<string> = new Set(値に追随する箱の欄);
 
 /** Object.prototype の持ち物を、表にある種類として扱わない。 */
@@ -1914,6 +1923,12 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   const 図種ごとの欄 = new Map<string, string>();
   // パーツでなければどこにも入らない項目。 パーツかどうかは block を読み終わるまで決まらない
   const unknownKeys: Array<{ key: string; line: number }> = [];
+  /**
+   * 値に追随する 5 欄に書かれた字 (#1392)。
+   *
+   * 見本かどうかで読み方が変わるため、行を読む時点では振り分けない。
+   */
+  const 追随する欄の生値 = new Map<string, { 値: string; line: number }>();
 
   for (const ln of rest) {
     const idx = ln.trimmed.indexOf(":");
@@ -1976,32 +1991,22 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "題":
         out.title = stripQuotes(raw);
         break;
-      // 値に追随する 5 欄 (#1392)。 日本語の別名は置かない = 描画側の欄名がそのまま
-      // 状態の名前と並ぶ場所なので、英字 1 種に絞って書き方の揺れを作らない
+      /*
+       * 値に追随する 5 欄 (#1392)。 日本語の別名は置かない = 描画側の欄名がそのまま
+       * 状態の名前と並ぶ場所なので、英字 1 種に絞って書き方の揺れを作らない。
+       *
+       * **ここでは読まずに書かれた字だけを控える**。 見本 (parts) では同じ名前が状態の
+       * 上書きになり、中括弧の形は生の字を `coerceStateValue` に通す。 ここで先に読むと
+       * `wBind: 120` が中括弧では数、縦に並べると文字列になって書き方で割れる。
+       * 見本かどうかは `kind` で決まり、それが後ろの行に書かれることがあるため、
+       * 全行を読み終えてから振り分ける。
+       */
       case "wBind":
-        out.wBind = 追随する大きさとして読む(stripQuotes(raw), "箱の wBind ", ln.no, errors);
-        break;
       case "hBind":
-        out.hBind = 追随する大きさとして読む(stripQuotes(raw), "箱の hBind ", ln.no, errors);
-        break;
       case "opacity":
-        out.opacity = 値に追随する欄として読む(stripQuotes(raw), "箱の opacity ", ln.no, errors);
-        break;
       case "renderOffsetX":
-        out.renderOffsetX = 値に追随する欄として読む(
-          stripQuotes(raw),
-          "箱の renderOffsetX ",
-          ln.no,
-          errors,
-        );
-        break;
       case "renderOffsetY":
-        out.renderOffsetY = 値に追随する欄として読む(
-          stripQuotes(raw),
-          "箱の renderOffsetY ",
-          ln.no,
-          errors,
-        );
+        追随する欄の生値.set(key, { 値: stripQuotes(raw), line: ln.no });
         break;
       case "rows":
       case "行":
@@ -2120,17 +2125,30 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
-    // 普通の箱では専用欄だが、parts では他の inline option と同じく状態名として
-    // 扱う。 縦に並べた形では kind が後ろに書かれるため、全行を読んだ後に移す。
-    for (const 欄 of 値に追随する箱の欄) {
-      const v = out[欄];
-      if (v === undefined) continue;
-      state[欄] = v;
-      delete out[欄];
+    /*
+     * 見本では 5 欄も他の名前と同じく状態の上書きになる。
+     *
+     * **中括弧の形と同じ `coerceStateValue` を通す**。 専用の読み取りを通した値を移すと、
+     * `wBind: 120` が中括弧では数、縦に並べると文字列になって書き方で割れる (Round 2 の指摘)。
+     */
+    for (const [欄, { 値 }] of 追随する欄の生値) {
+      state[欄] = coerceStateValue(値);
       touchedState = true;
     }
     if (touchedState) out.stateOverride = state;
     return out;
+  }
+  /*
+   * 普通の箱では専用の欄として読む (#1392)。
+   *
+   * 見本かどうかが決まってから読むため、空の知らせも見本でない箱にだけ出る。
+   */
+  for (const [欄, { 値, line }] of 追随する欄の生値) {
+    if (欄 === "wBind" || 欄 === "hBind") {
+      out[欄] = 追随する大きさとして読む(値, `箱の ${欄} `, line, errors);
+    } else if (欄 === "opacity" || 欄 === "renderOffsetX" || 欄 === "renderOffsetY") {
+      out[欄] = 値に追随する欄として読む(値, `箱の ${欄} `, line, errors);
+    }
   }
   // パーツでない箱に書かれた見知らぬ項目は、 どこにも入らずに消える。 黙って捨てると
   // 「書いたのに図が変わらない」 が手掛かりなしで起きるので、 綴りの誤りとして知らせる
