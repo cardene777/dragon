@@ -62,12 +62,33 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
 }
 
 /**
+ * その見本が記法を持つか (#1383)。
+ *
+ * **タブの有効と無効はこの 1 つの判定だけで決まる**。 呼出が 2 箇所 (`SourceTabs` の
+ * 早期 return と「コード」 のタブの `disabled`) にあり、条件を書き写すと片方だけ変わる。
+ *
+ * 検査はここを出どころにして、記法を持たない見本を自分で組み立てる = 実在のページに
+ * 依存しない。 実在のページを名指しする形は、そのページに記法を足すたびに成立しなくなり、
+ * 3 度移した末に移し先が尽きた (#1378 / #1374 / #1381)。
+ */
+export function 記法を持つか(
+  item: Pick<CatalogItem, "sourceYaml" | "sourceJson"> | null | undefined,
+): boolean {
+  // **無い見本も受ける**。 `parts` は一覧を後から読むため、選んでいる見本が `null` の
+  // 時間がある。 呼出側で分けると片方だけ書き忘れて、その間だけ画面が落ちる (実測)
+  return Boolean(item?.sourceYaml || item?.sourceJson);
+}
+
+/**
  * source 記法 tab section (YAML / JSON 切替、 source なしの場合は表示しない)。
  *
  * `hidden` は **外さずに隠す**。 外すと記法の選択 (yaml / json) が毎回 yaml へ戻り、
  * 図とコードを往復しながら比べる時に選び直すことになる。
+ *
+ * **検査から描けるように export する** (#1383)。 記法を持たない見本と、片方だけ持つ
+ * 見本を検査側が組み立てて、押せる側が変わることを確かめる。
  */
-function SourceTabs({
+export function SourceTabs({
   item,
   hidden,
   速さ,
@@ -81,14 +102,16 @@ function SourceTabs({
   描き方: 描き方;
 }): React.ReactElement | null {
   const [tab, setTab] = useState<SourceTab>("yaml");
-  if (!item.sourceYaml && !item.sourceJson) return null;
+  if (!記法を持つか(item)) return null;
   const 元 = tab === "yaml" ? item.sourceYaml : item.sourceJson;
   // 見ている図と同じ速さの秒数を出す (#1355)。 元のままだと、写したコードが画面と違う
   // 速さで動く
   // 見ている図と同じ形のコードを出す (#1355 / #1359)。 元のままだと、写したコードが画面と
   // 違う速さ / 違う描き方で動く。 **順序は図の側と同じ** = 描き方を先に反映してから速さを掛ける
   const activeSource =
-    元 === undefined ? undefined : 記法の速さを変える(記法の描き方を変える(元, 描き方, tab), 速さ, tab);
+    元 === undefined
+      ? undefined
+      : 記法の速さを変える(記法の描き方を変える(元, 描き方, tab), 速さ, tab);
   return (
     <section className="catalog-source-section" aria-label="この diagram の記法" hidden={hidden}>
       <div className="catalog-source-tabs" role="tablist">
@@ -220,9 +243,8 @@ export function CategoryPage(): React.ReactElement {
       cancelled = true;
     };
   }, [params.slug]);
-  const items = params.slug === "parts"
-    ? partsItems
-    : (params.slug ? CATALOG_ITEMS[params.slug] ?? [] : []);
+  const items =
+    params.slug === "parts" ? partsItems : params.slug ? (CATALOG_ITEMS[params.slug] ?? []) : [];
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
@@ -258,20 +280,19 @@ export function CategoryPage(): React.ReactElement {
   // 速さを触っていない図は描き直されない
   const 図 = useMemo(
     () =>
-      currentItem
-        ? 図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ)
-        : null,
+      currentItem ? 図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ) : null,
     [currentItem, 速さ, 描き方],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   const 拡大の図 = useMemo(
-    () => (modalItem ? 図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ) : null),
+    () =>
+      modalItem ? 図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ) : null,
     [modalItem, 速さ, 描き方],
   );
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 描き方を選べるか = currentItem ? 描き方を選べる(currentItem.diagram) : false;
 
-  const hasSource = Boolean(currentItem?.sourceYaml || currentItem?.sourceJson);
+  const hasSource = 記法を持つか(currentItem);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
   // 空のコード欄が出て「壊れている」 ように見える
   const showSource = previewTab === "source" && hasSource;
@@ -295,7 +316,10 @@ export function CategoryPage(): React.ReactElement {
       <div className="catalog-page">
         {/* breadcrumb + hero (簡潔) */}
         <div className="catalog-hero">
-          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
+          <nav
+            aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"}
+            className="catalog-crumb"
+          >
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
             <Link to="/catalog">カタログ</Link>
@@ -470,14 +494,21 @@ export function CategoryPage(): React.ReactElement {
                   <InViewMount
                     keepMounted
                     className="catalog-preview-stage-inner"
-                    placeholder={
-                      <div className="catalog-preview-loading">読み込み中…</div>
-                    }
+                    placeholder={<div className="catalog-preview-loading">読み込み中…</div>}
                   >
-                    <CdlDiagramView hideMiniPhaseIndicator diagram={図 ?? currentItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />
+                    <CdlDiagramView
+                      hideMiniPhaseIndicator
+                      diagram={図 ?? currentItem.diagram}
+                      hideHeader
+                      interactiveHandlers={CATALOG_HANDLERS}
+                    />
                   </InViewMount>
                   {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
-                  <PhaseChrome stage={stageEl} phases={(図 ?? currentItem.diagram).phases} align="right" />
+                  <PhaseChrome
+                    stage={stageEl}
+                    phases={(図 ?? currentItem.diagram).phases}
+                    align="right"
+                  />
                 </div>
                 <SourceTabs item={currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
                 <footer className="catalog-preview-foot">
@@ -535,8 +566,19 @@ export function CategoryPage(): React.ReactElement {
               </Dialog.Close>
             </div>
             <div className="cdl-modal-body" ref={setModalStageEl}>
-              {modalItem && <CdlDiagramView hideMiniPhaseIndicator diagram={拡大の図 ?? modalItem.diagram} hideHeader interactiveHandlers={CATALOG_HANDLERS} />}
-              <PhaseChrome stage={modalStageEl} phases={(拡大の図 ?? modalItem?.diagram)?.phases} align="right" />
+              {modalItem && (
+                <CdlDiagramView
+                  hideMiniPhaseIndicator
+                  diagram={拡大の図 ?? modalItem.diagram}
+                  hideHeader
+                  interactiveHandlers={CATALOG_HANDLERS}
+                />
+              )}
+              <PhaseChrome
+                stage={modalStageEl}
+                phases={(拡大の図 ?? modalItem?.diagram)?.phases}
+                align="right"
+              />
             </div>
           </Dialog.Content>
         </Dialog.Portal>
