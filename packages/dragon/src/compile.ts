@@ -9,16 +9,41 @@
  * v0.2 ... 6 preset 全対応 (sequence / flow / swimlane / er / state / topology)
  */
 
-import type { DslActor, DslDocument, DslLane, DslPhase, DslStep, DslValue, PresetType } from "./types";
-import type { CdlDiagram, CdlEdge, ErRelationCardinality, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
+import type {
+  DslActor,
+  DslDocument,
+  DslLane,
+  DslPhase,
+  DslStep,
+  DslValue,
+  PresetType,
+} from "./types";
+import type {
+  CdlDiagram,
+  CdlEdge,
+  ErRelationCardinality,
+  FormulaAst,
+  LaidDiagram,
+} from "@cardenelabs/cdl";
 import {
-  sequence, flow, swimlane, er, stateMachine, topology, diagram, layout,
-  rendersRows, requiredRowsHeight, requiredRowsWidth, NODE_KINDS,
-  applyDerivedValues, parseFormula,
+  sequence,
+  flow,
+  swimlane,
+  er,
+  stateMachine,
+  topology,
+  diagram,
+  layout,
+  rendersRows,
+  requiredRowsHeight,
+  requiredRowsWidth,
+  NODE_KINDS,
+  applyDerivedValues,
+  parseFormula,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS } from "./v05/parser";
-import { isColorValue, stripExternalPaint } from "./color";
+import { isColorValue, pointsOutside, stripExternalPaint } from "./color";
 import {
   MAX_INPUT_ELEMENTS,
   countDiagramElements,
@@ -279,12 +304,24 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 扱いが式形と揃う。 時計の状態と段の補間もここで足す
   const 畳んだきっかけ = foldValueTriggers(merged, doc, opts?.onNotice);
   attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines, 畳んだきっかけ);
+  // 値を見せる部品を図に載せる (#1374)。 parts が持つ部品は merge 済みなので残したまま足す。
+  // **外部参照を落とす前に載せる**。 後から足すと readout の color / colors だけが出口の検査を
+  // 迂回し、 `url(https://...)` がそのまま SVG の paint 属性へ届く。
+  if (doc.readouts && doc.readouts.length > 0) {
+    // 出口の paint 検査は diagram を直接書き換える。 doc の object を共有すると、検査が
+    // compileToCdl の入力まで書き換えて入力不変性を壊すため、nested field も含めて写す。
+    const ownReadouts = doc.readouts.map(
+      (readout) => deepRewriteStrings(readout, (value) => value) as typeof readout,
+    );
+    merged.readouts = [...(merged.readouts ?? []), ...ownReadouts];
+  }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
   // 埋め込んだ JSON / states / values と入口が複数あり、 1 つ見落とすと穴が残る。
   // **図への追加を全て終えた後**、 出口で 1 度だけ見る。 この後に状態を足すと検査を迂回する。
-  for (const dropped of stripExternalPaint(merged)) {
+  const 外した部品の配色 = stripExternalReadoutPalettes(merged);
+  for (const dropped of [...stripExternalPaint(merged), ...外した部品の配色]) {
     opts?.onNotice?.({
       kind: "external-paint-dropped",
       actor: dropped.path,
@@ -297,6 +334,29 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 後続の処理が名前で引く時に作り替え前と後が混ざる
   restoreActorNames(merged, 分けた.元の名前, 作り替えた対象);
   return merged;
+}
+
+/**
+ * readout の配色配列から外部参照を落とす (#1374)。
+ *
+ * 共通の `stripExternalPaint` は `color` / `fill` のような key を見るが、 `colors` の中へ
+ * 入ると配列要素には key が無い。 `heat-cell` が公開した配色だけはここで要素ごとに閉じる。
+ */
+function stripExternalReadoutPalettes(diagram: CdlDiagram): Array<{ path: string; value: string }> {
+  const stripped: Array<{ path: string; value: string }> = [];
+  for (let i = 0; i < (diagram.readouts?.length ?? 0); i += 1) {
+    const readout = diagram.readouts?.[i] as { colors?: readonly string[] } | undefined;
+    if (!readout?.colors) continue;
+    const colors = [...readout.colors];
+    for (let j = 0; j < colors.length; j += 1) {
+      const color = colors[j];
+      if (color === undefined || !pointsOutside(color)) continue;
+      colors[j] = "none";
+      stripped.push({ path: `readouts[${i}].colors[${j}]`, value: color });
+    }
+    readout.colors = colors;
+  }
+  return stripped;
 }
 
 /**
@@ -907,7 +967,9 @@ function disambiguateActorIds(
   }
   const 新しい名前 = new Map<string, string>();
   // 名前で並べてから配る = 書いた順に依らない
-  for (const a of [...作り替える].sort((x, y) => (x.name < y.name ? -1 : x.name > y.name ? 1 : 0))) {
+  for (const a of [...作り替える].sort((x, y) =>
+    x.name < y.name ? -1 : x.name > y.name ? 1 : 0,
+  )) {
     const 尾 = 名前の尾(a.name);
     // **id の長さの上限のぶん、 元の名前を先に切る** (Round 1 の指摘)。 切らないと尾が
     // 64 字で落ちて、 同じ頭を持つ長い名前どうしが元のまま重なる
@@ -1453,10 +1515,7 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
       for (const [subKey, override] of Object.entries(actor.nodes)) {
         if (override.posX === undefined || override.posY === undefined) continue;
         for (const node of diagram.nodes) {
-          if (
-            node.id === `${aliasSlug}-${subKey}` ||
-            node.id === `${subKey}-${aliasSlug}`
-          ) {
+          if (node.id === `${aliasSlug}-${subKey}` || node.id === `${subKey}-${aliasSlug}`) {
             node.posX = override.posX;
             node.posY = override.posY;
             if (override.posW !== undefined) node.posW = override.posW;
@@ -1683,8 +1742,6 @@ export function partTargetScale(
   // 倍率を書かない場合の合成率。 上限の掛け方を 1 箇所に閉じるため同じ関数を通す
   return partScaleFactor(part, targetW, targetH, undefined);
 }
-
-
 
 /**
  * パーツ 1 個が図の上で占める外接矩形。
@@ -2009,8 +2066,7 @@ export function partsGridCenters(
   if (items.length === 0) return out;
   // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない箱の数や桁溢れを
   // そのまま計算に入れると、 描けない座標を返すことになる
-  const safeCount =
-    Number.isSafeInteger(baseNodeCount) && baseNodeCount >= 0 ? baseNodeCount : 0;
+  const safeCount = Number.isSafeInteger(baseNodeCount) && baseNodeCount >= 0 ? baseNodeCount : 0;
   const top = safeCount * STACK_PITCH + PARTS_GAP * 2;
   // 同じ名前が 2 度来たら先の方だけを見る。 後の分を残すと、 どちらを指したか決められない
   // まま列の送り幅にも影響する
@@ -2212,9 +2268,7 @@ function partBoxes(
     const t = partTargetSize(part, a.posW, a.posH, a.scale);
     const size = partExtent(part, t.w, t.h);
     const placed =
-      a.posX !== undefined && a.posY !== undefined
-        ? { cx: a.posX, cy: a.posY }
-        : grid.get(a.name);
+      a.posX !== undefined && a.posY !== undefined ? { cx: a.posX, cy: a.posY } : grid.get(a.name);
     // 相対で書いた分はここでは決まらない (解決側が後で埋める)
     if (!placed) continue;
     // 渡す座標は段の中心。 矩形の中心はそこからずれる
@@ -2234,68 +2288,68 @@ function cleanupPlaceholderActor(
   doc: DslDocument,
   a: { name: string; lane?: string },
 ): void {
-    const aliasSlug = slugify(a.name);
-    const ownedLaneIds = new Set<string>();
-    if (doc.type === "sequence" || doc.type === "solidity") {
-      for (const l of target.lanes) {
-        // 明示 lane mapping (a.lane) 先は part の張替え先で actor 専用 lane ではないため除外
-        if (a.lane !== undefined && l.id === a.lane) continue;
-        if (l.label === a.name) ownedLaneIds.add(l.id);
-      }
+  const aliasSlug = slugify(a.name);
+  const ownedLaneIds = new Set<string>();
+  if (doc.type === "sequence" || doc.type === "solidity") {
+    for (const l of target.lanes) {
+      // 明示 lane mapping (a.lane) 先は part の張替え先で actor 専用 lane ではないため除外
+      if (a.lane !== undefined && l.id === a.lane) continue;
+      if (l.label === a.name) ownedLaneIds.add(l.id);
     }
-    const ownedNodeIds = new Set<string>();
-    for (const n of target.nodes) {
-      if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
-    }
-    // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
-    // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
-    const matchesAliasSlug = (id: string): boolean => {
-      if (id === aliasSlug) return true;
-      if (id.startsWith(`${aliasSlug}-`)) return true;
-      // sequence step anchor = `s{N}-{aliasSlug}` pattern
-      if (/^s\d+-/.test(id) && id.endsWith(`-${aliasSlug}`)) return true;
-      return false;
-    };
-    const relatedToActor = (id: string): boolean =>
-      ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
-    target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
-    // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
-    // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
-    const removedEdgeIds = new Set<string>();
-    target.edges = target.edges.filter((e) => {
-      const drop = relatedToActor(e.from) || relatedToActor(e.to);
-      if (drop) removedEdgeIds.add(e.id);
-      return !drop;
+  }
+  const ownedNodeIds = new Set<string>();
+  for (const n of target.nodes) {
+    if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
+  }
+  // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
+  // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
+  const matchesAliasSlug = (id: string): boolean => {
+    if (id === aliasSlug) return true;
+    if (id.startsWith(`${aliasSlug}-`)) return true;
+    // sequence step anchor = `s{N}-{aliasSlug}` pattern
+    if (/^s\d+-/.test(id) && id.endsWith(`-${aliasSlug}`)) return true;
+    return false;
+  };
+  const relatedToActor = (id: string): boolean =>
+    ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
+  target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
+  // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
+  // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
+  const removedEdgeIds = new Set<string>();
+  target.edges = target.edges.filter((e) => {
+    const drop = relatedToActor(e.from) || relatedToActor(e.to);
+    if (drop) removedEdgeIds.add(e.id);
+    return !drop;
+  });
+  // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
+  // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
+  // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
+  //
+  // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
+  // 1 actor = 1 lane (lane.label === a.name、 lane.id は actor 名の slug) の生成規則が成立し、
+  // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
+  // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
+  // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
+  //
+  // leftover lane の特定は lane.label === a.name を第一に使う。 seq-like preset は非 animate 経路
+  // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
+  // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
+  // は両経路とも a.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
+  // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
+  if (doc.type === "sequence" || doc.type === "solidity") {
+    target.lanes = target.lanes.filter((l) => {
+      // 明示 lane mapping (a.lane) 先は part の張替え先なので保持する。
+      if (a.lane !== undefined && l.id === a.lane) return true;
+      if (l.label === a.name) return false;
+      if (l.id === aliasSlug) return false;
+      return true;
     });
-    // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
-    // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
-    // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
-    //
-    // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
-    // 1 actor = 1 lane (lane.label === a.name、 lane.id は actor 名の slug) の生成規則が成立し、
-    // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
-    // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
-    // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
-    //
-    // leftover lane の特定は lane.label === a.name を第一に使う。 seq-like preset は非 animate 経路
-    // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
-    // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
-    // は両経路とも a.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
-    // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
-    if (doc.type === "sequence" || doc.type === "solidity") {
-      target.lanes = target.lanes.filter((l) => {
-        // 明示 lane mapping (a.lane) 先は part の張替え先なので保持する。
-        if (a.lane !== undefined && l.id === a.lane) return true;
-        if (l.label === a.name) return false;
-        if (l.id === aliasSlug) return false;
-        return true;
-      });
-    }
-    // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
-    // = 取りこぼすと存在しない id が activate に残り dangling 参照になる、 #873)
-    for (const phase of target.phases) {
-      phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
-    }
+  }
+  // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
+  // = 取りこぼすと存在しない id が activate に残り dangling 参照になる、 #873)
+  for (const phase of target.phases) {
+    phase.activate = phase.activate.filter((id) => !relatedToActor(id) && !removedEdgeIds.has(id));
+  }
 }
 
 /**
@@ -2362,7 +2416,9 @@ function mergePartsFromActors(
     const part = found;
     if (!part) {
       if (typeof console !== "undefined" && console.warn) {
-        console.warn(`[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`);
+        console.warn(
+          `[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`,
+        );
       }
       continue;
     }
@@ -2450,7 +2506,8 @@ function resolveStateOverride(
   override: number | string | boolean | undefined,
 ): { initial: number | string; rejected: boolean } {
   if (override === undefined) return { initial: original, rejected: false };
-  if (isColorValue(original) && !isColorValue(override)) return { initial: original, rejected: true };
+  if (isColorValue(original) && !isColorValue(override))
+    return { initial: original, rejected: true };
   return { initial: override as number | string, rejected: false };
 }
 
@@ -2615,9 +2672,8 @@ function mergePartIntoDiagram(
   //     directive で廃止 (2026-07-21)。 重なりは user の意図位置を優先し、 手動移動で回避する経路。
   //   未指定 (座標なし fallback) 時のみ existingMax + gap で右外配置 (通常経路は drop/click で座標を渡す)。
   const PARTS_LANE_GAP = 300;
-  const existingLaneMaxX = target.lanes.length > 0
-    ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width))
-    : 0;
+  const existingLaneMaxX =
+    target.lanes.length > 0 ? Math.max(...target.lanes.map((l) => (l.x ?? 0) + l.width)) : 0;
   // parts 全体 resize (I2 forensic): user が SE handle drag で targetW/H 指定 = actor.posW/H。
   // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
   // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
@@ -2649,9 +2705,10 @@ function mergePartIntoDiagram(
   // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
   // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
   const partOrigBboxCenterX = partMinLaneX + partsBboxW / 2;
-  const dropCenterX = offsetX !== undefined
-    ? offsetX
-    : existingLaneMaxX + PARTS_LANE_GAP + (partsBboxW * laneScaleX) / 2;
+  const dropCenterX =
+    offsetX !== undefined
+      ? offsetX
+      : existingLaneMaxX + PARTS_LANE_GAP + (partsBboxW * laneScaleX) / 2;
   const mapLaneX = (x: number): number => (x - partOrigBboxCenterX) * laneScaleX + dropCenterX;
 
   for (const laneOrig of part.lanes) {
@@ -2688,9 +2745,10 @@ function mergePartIntoDiagram(
   const shouldForcePos = offsetX !== undefined || offsetY !== undefined;
   // target 側の現在 max stack + isolation offset で parts node の stack を shift、
   // sequence の rowH 計算と完全分離 (D2 fix、 posX/posY 明示との 2 段防御)。
-  const targetMaxStack = shouldForcePos && target.nodes.length > 0
-    ? Math.max(...target.nodes.map((n) => n.stack ?? 0))
-    : 0;
+  const targetMaxStack =
+    shouldForcePos && target.nodes.length > 0
+      ? Math.max(...target.nodes.map((n) => n.stack ?? 0))
+      : 0;
   const stackShiftBase = shouldForcePos ? targetMaxStack + STACK_ISOLATION_OFFSET : 0;
   // parts 全体 resize scale (I2 forensic 対応): targetW / targetH 指定時、 parts の元 total size
   // に対する比率 = scale 係数、 全 sub-node の w / h + cx / cy 相対位置に scale 反映。
@@ -2758,8 +2816,10 @@ function mergePartIntoDiagram(
     // (cc-codex #879 Round 2/3 MAJOR + #880)。 mapLaneX は part bbox 中心 → drop 座標の scale 変換で、
     // lane / node / 明示 posX / auto-layout の全経路がこの 1 式を共有するため、 lane.x != 0 でも
     // multi-lane でも node 中心と自 lane 中心が一致する。
-    let nodePosX: number | undefined = nodeOrig.posX !== undefined ? mapLaneX(nodeOrig.posX) : undefined;
-    let nodePosY: number | undefined = nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
+    let nodePosX: number | undefined =
+      nodeOrig.posX !== undefined ? mapLaneX(nodeOrig.posX) : undefined;
+    let nodePosY: number | undefined =
+      nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
     if (shouldForcePos && nodePosX === undefined) {
       // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
       const geom = partLaneGeom.get(nodeOrig.lane) ?? { x: 0, w: 320 };
@@ -2775,12 +2835,10 @@ function mergePartIntoDiagram(
     // 座標が非有限になって図が描けない (実測 = 箱の中心が NaN になった)
     const rawNodeW = nodeOrig.w !== undefined ? positiveOr(nodeOrig.w, 200) : undefined;
     const rawNodeH = nodeOrig.h !== undefined ? positiveOr(nodeOrig.h, 200) : undefined;
-    const nodeW = rawNodeW !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? rawNodeW * scaleX
-      : rawNodeW;
-    const nodeH = rawNodeH !== undefined && (scaleX !== 1 || scaleY !== 1)
-      ? rawNodeH * scaleY
-      : rawNodeH;
+    const nodeW =
+      rawNodeW !== undefined && (scaleX !== 1 || scaleY !== 1) ? rawNodeW * scaleX : rawNodeW;
+    const nodeH =
+      rawNodeH !== undefined && (scaleX !== 1 || scaleY !== 1) ? rawNodeH * scaleY : rawNodeH;
     target.nodes.push({
       ...nodeOrig,
       id: prefix(nodeOrig.id),
@@ -2800,7 +2858,10 @@ function mergePartIntoDiagram(
 
   // state merge = id prefix + initial override
   for (const stateOrig of part.states) {
-    const { initial, rejected } = resolveStateOverride(stateOrig.initial, stateOverride[stateOrig.id]);
+    const { initial, rejected } = resolveStateOverride(
+      stateOrig.initial,
+      stateOverride[stateOrig.id],
+    );
     if (rejected) {
       onNotice?.({
         kind: "state-override-rejected",
@@ -2844,7 +2905,10 @@ function mergePartIntoDiagram(
   if (part.readouts && part.readouts.length > 0) {
     if (!target.readouts) target.readouts = [];
     for (const readoutOrig of part.readouts) {
-      const rewritten = deepRewriteStrings(readoutOrig as unknown, rewriteTemplate) as CdlDiagram["readouts"] extends readonly (infer R)[] ? R : never;
+      const rewritten = deepRewriteStrings(
+        readoutOrig as unknown,
+        rewriteTemplate,
+      ) as CdlDiagram["readouts"] extends readonly (infer R)[] ? R : never;
       // id は shape 全 walk で rewrite されないので個別に prefix
       target.readouts.push({
         ...(rewritten as { id: string }),
@@ -2882,8 +2946,14 @@ function mergePartIntoDiagram(
       const partPhase = part.phases[i]!;
       targetPhase.duration = Math.max(targetPhase.duration, partPhase.duration);
       targetPhase.activate = [...targetPhase.activate, ...partPhase.activate.map(prefix)];
-      targetPhase.tweens = [...targetPhase.tweens, ...partPhase.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) }))];
-      targetPhase.sets = [...targetPhase.sets, ...partPhase.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) }))];
+      targetPhase.tweens = [
+        ...targetPhase.tweens,
+        ...partPhase.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) })),
+      ];
+      targetPhase.sets = [
+        ...targetPhase.sets,
+        ...partPhase.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) })),
+      ];
     }
     // parts phase 余剰は append (target より parts が長い場合)
     for (let i = commonLen; i < partsLen; i++) {
@@ -2993,9 +3063,7 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
     target.cardinality = s.cardinality;
     // ER preset の場合 label に "(1:N)" 形式で併記 (既に含まれていればスキップ)
     if (doc.type === "er" && !target.label.includes(s.cardinality)) {
-      target.label = target.label
-        ? `${target.label} (${s.cardinality})`
-        : `(${s.cardinality})`;
+      target.label = target.label ? `${target.label} (${s.cardinality})` : `(${s.cardinality})`;
     }
   }
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
@@ -3090,7 +3158,8 @@ function 式に書く数(n: number): string {
   const decimalAt = whole.length + Number(exponentText);
   let expanded: string;
   if (decimalAt <= 0) expanded = `0.${"0".repeat(-decimalAt)}${digits}`;
-  else if (decimalAt >= digits.length) expanded = `${digits}${"0".repeat(decimalAt - digits.length)}`;
+  else if (decimalAt >= digits.length)
+    expanded = `${digits}${"0".repeat(decimalAt - digits.length)}`;
   else expanded = `${digits.slice(0, decimalAt)}.${digits.slice(decimalAt)}`;
   return negative ? `-${expanded}` : expanded;
 }
@@ -3109,13 +3178,20 @@ type 動く区間 = { 段: number; start: number; end: number; dur: number; from
 function 境目を通る時刻(区間: 動く区間, op: string, 境目: number): number | null {
   const 満たす = (x: number): boolean => {
     switch (op) {
-      case ">=": return x >= 境目;
-      case ">": return x > 境目;
-      case "<=": return x <= 境目;
-      case "<": return x < 境目;
-      case "==": return x === 境目;
-      case "!=": return x !== 境目;
-      default: return false;
+      case ">=":
+        return x >= 境目;
+      case ">":
+        return x > 境目;
+      case "<=":
+        return x <= 境目;
+      case "<":
+        return x < 境目;
+      case "==":
+        return x === 境目;
+      case "!=":
+        return x !== 境目;
+      default:
+        return false;
     }
   };
   if (満たす(区間.from)) return 区間.start;
@@ -3196,7 +3272,13 @@ function foldValueTriggers(
   const 解決中 = new Set<string>();
 
   const 知らせる = (v: DslValue, message: string, hint: string): void => {
-    onNotice?.({ kind: "value-trigger-unresolved", actor: v.name, line: v.pos?.line ?? 0, message, hint });
+    onNotice?.({
+      kind: "value-trigger-unresolved",
+      actor: v.name,
+      line: v.pos?.line ?? 0,
+      message,
+      hint,
+    });
   };
 
   const 解く = (name: string): 動く区間 | null => {
@@ -3207,7 +3289,11 @@ function foldValueTriggers(
     if (!v || !v.trigger) return null;
     if (解決中.has(name)) {
       解けない.add(name);
-      知らせる(v, `"${name}" のきっかけが一周しています`, "どれか 1 つを `trigger: step ...` に変える");
+      知らせる(
+        v,
+        `"${name}" のきっかけが一周しています`,
+        "どれか 1 つを `trigger: step ...` に変える",
+      );
       return null;
     }
     解決中.add(name);
@@ -3231,7 +3317,11 @@ function foldValueTriggers(
     if (trigger.kind === "step") {
       const idx = 段の番号.get(trigger.step);
       if (idx === undefined) {
-        知らせる(v, `"${trigger.step}" という段がありません`, "`animation:` にその名前の段を書くか、 段の名前に合わせる");
+        知らせる(
+          v,
+          `"${trigger.step}" という段がありません`,
+          "`animation:` にその名前の段を書くか、 段の名前に合わせる",
+        );
         return null;
       }
       段 = idx;
@@ -3287,7 +3377,8 @@ function foldValueTriggers(
     段ごとの時計.set(段, 名前);
     diagram.states.push({ id: 名前, initial: 0 });
     const 段の中身 = diagram.phases[段];
-    if (段の中身) 段の中身.tweens = [...段の中身.tweens, { stateId: 名前, from: 0, to: 段の中身.duration }];
+    if (段の中身)
+      段の中身.tweens = [...段の中身.tweens, { stateId: 名前, from: 0, to: 段の中身.duration }];
     return 名前;
   };
 
@@ -3555,9 +3646,15 @@ const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
  * **今は記法からも到達する** (一覧へ戻す作業が要らなかったのはこのため)。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
-  "chart-pie", "chart-line", "chart-bar",
-  "gantt-timeline", "mind-map",
-  "funnel-stages", "quadrant-matrix", "tree-hierarchy", "journey-map",
+  "chart-pie",
+  "chart-line",
+  "chart-bar",
+  "gantt-timeline",
+  "mind-map",
+  "funnel-stages",
+  "quadrant-matrix",
+  "tree-hierarchy",
+  "journey-map",
 ]);
 
 /** 記法の種別を描画の種別に直す。 描けない種別のままなら `undefined`。 */
@@ -3666,14 +3763,36 @@ const LABEL_MIN_H: Readonly<Record<string, number>> = {
  */
 const LABEL_NEVER_FITS: ReadonlySet<string> = new Set([
   // 左右にはみ出す 24 種。 横幅は高さで変わらないため直らない
-  "shape-api-gateway", "shape-atm", "shape-auditor", "shape-bank", "shape-bitcoin-chain",
-  "shape-blockchain", "shape-blockchain-block", "shape-blockchain-node", "shape-brokerage",
-  "shape-code-block", "shape-customer-service", "shape-ethereum-chain", "shape-hexagon",
-  "shape-kanban-card", "shape-lawyer", "shape-network-node", "shape-nft", "shape-notary",
-  "shape-regulator", "shape-satellite", "shape-smart-contract", "shape-terminal",
-  "shape-trader", "shape-trust-bank",
+  "shape-api-gateway",
+  "shape-atm",
+  "shape-auditor",
+  "shape-bank",
+  "shape-bitcoin-chain",
+  "shape-blockchain",
+  "shape-blockchain-block",
+  "shape-blockchain-node",
+  "shape-brokerage",
+  "shape-code-block",
+  "shape-customer-service",
+  "shape-ethereum-chain",
+  "shape-hexagon",
+  "shape-kanban-card",
+  "shape-lawyer",
+  "shape-network-node",
+  "shape-nft",
+  "shape-notary",
+  "shape-regulator",
+  "shape-satellite",
+  "shape-smart-contract",
+  "shape-terminal",
+  "shape-trader",
+  "shape-trust-bank",
   // 下のはみ出しが高さに依らない 6 種
-  "shape-cylinder", "shape-diamond", "shape-file", "shape-folder", "shape-mobile-device",
+  "shape-cylinder",
+  "shape-diamond",
+  "shape-file",
+  "shape-folder",
+  "shape-mobile-device",
   "shape-stack",
   // 上へ出る絵が名札の大きさでは読めない。 `#1067` では「上は何ともぶつからない」 として残したが、
   // 実際には絵が小さく潰れて名前と重なり、 横に並べた時も 1 本だけ頭が浮く (user 実機確認)
@@ -4020,7 +4139,12 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     }
     依存元.set(s.to, s.from);
     // 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた文字や色は描けないので伝える
-    if ((s.label ?? "") !== "" || (s.sub ?? "") !== "" || s.tone !== undefined || s.style !== undefined) {
+    if (
+      (s.label ?? "") !== "" ||
+      (s.sub ?? "") !== "" ||
+      s.tone !== undefined ||
+      s.style !== undefined
+    ) {
       装飾つき.push(`${s.from} -> ${s.to}`);
     }
   }
@@ -4185,7 +4309,6 @@ function parseChartValue(raw: string | undefined): number | string | null {
   return parseBoundValue(raw);
 }
 
-
 /** 状態を読む欄が指している名前 (`{v.sum}` なら `v`)。 欄でなければ null */
 function 参照する名前(value: number | string | null): string | null {
   if (typeof value !== "string") return null;
@@ -4313,7 +4436,6 @@ function compileValueChart(
   return b.build();
 }
 
-
 /**
  * 図表 4 種の組立て (#1154 段 2 / 段 3)。
  *
@@ -4415,7 +4537,11 @@ const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRi
  */
 function 図表の欄から参照できる名前(
   doc: DslDocument,
-  欄: { 読めるか: (v: number | string) => boolean; 補間で壊れるか: boolean; 自動の値を許すか: boolean },
+  欄: {
+    読めるか: (v: number | string) => boolean;
+    補間で壊れるか: boolean;
+    自動の値を許すか: boolean;
+  },
 ): Set<string> {
   // 同じ名前を 2 回宣言した時は後ろが効く。 描画側が後の宣言を有効値として扱うため、
   // 前の宣言で判定すると「読めると判定したのに読めない値が入る」 状態になる (実測)
@@ -4551,11 +4677,23 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: funnel では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    onNotice?.({
+      kind: "chart-edge-dropped",
+      actor: doc.flow[0]?.from ?? "",
+      line: doc.flow[0]?.pos?.line ?? 0,
+      message: m2,
+    });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "funnel"}-chart`, {
-    lane: "chart", stack: 0, kind: "funnel-stages", title: doc.title, ...図の小見出し(doc), w: W, h: H, funnelData: data,
+    lane: "chart",
+    stack: 0,
+    kind: "funnel-stages",
+    title: doc.title,
+    ...図の小見出し(doc),
+    w: W,
+    h: H,
+    funnelData: data,
   });
   return b.build();
 }
@@ -4582,12 +4720,20 @@ function 矢印から親を決める(
     const 子 = slugify(f.to);
     const 親名 = slugify(f.from);
     if (!名前.has(親名)) {
-      伝える(f.from, `type: ${図種} で書いていない名前を親にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      伝える(
+        f.from,
+        `type: ${図種} で書いていない名前を親にしています: ${f.from} -> ${f.to}`,
+        f.pos?.line ?? 0,
+      );
       continue;
     }
     // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
     if (!名前.has(子)) {
-      伝える(f.to, `type: ${図種} で書いていない名前を子にしています: ${f.from} -> ${f.to}`, f.pos?.line ?? 0);
+      伝える(
+        f.to,
+        `type: ${図種} で書いていない名前を子にしています: ${f.from} -> ${f.to}`,
+        f.pos?.line ?? 0,
+      );
       continue;
     }
     if (子 === 親名) {
@@ -4596,7 +4742,11 @@ function 矢印から親を決める(
     }
     const 既存 = 親.get(子);
     if (既存 !== undefined && 既存 !== 親名) {
-      伝える(f.to, `type: ${図種} で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`, f.pos?.line ?? 0);
+      伝える(
+        f.to,
+        `type: ${図種} で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`,
+        f.pos?.line ?? 0,
+      );
       continue;
     }
     親.set(子, 親名);
@@ -4638,7 +4788,10 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   };
   for (const [k, 群] of slug別) {
     if (群.length > 1) {
-      伝える(群[0]!, `type: tree で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`);
+      伝える(
+        群[0]!,
+        `type: tree で ${群.join(" / ")} が同じ id (${k}) になります。 名前を変えてください`,
+      );
     }
   }
   const 親 = 矢印から親を決める(doc, "tree", 名前, 伝える);
@@ -4650,7 +4803,14 @@ function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
     return { id, ...放射に出す文字(a), ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
-    lane: "chart", stack: 0, kind: "tree-hierarchy", title: doc.title, ...図の小見出し(doc), w: W, h: H, treeData: data,
+    lane: "chart",
+    stack: 0,
+    kind: "tree-hierarchy",
+    title: doc.title,
+    ...図の小見出し(doc),
+    w: W,
+    h: H,
+    treeData: data,
   });
   return b.build();
 }
@@ -4677,19 +4837,25 @@ function 道筋の欄(a: DslActor): { touchpoint?: string; opportunity?: string 
  * `type: mind` では伝えない = `compileMind` が描けない欄をまとめて 1 件で伝えており、
  * そこに 2 つとも入っている (`放射で描けない欄`)。 二重に伝えない (#1246 と同じ扱い)。
  */
-function reportChartFieldsNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+function reportChartFieldsNotHonored(
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
   if (!onNotice) return;
   if (doc.type === "mind") return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
-    const 道筋 = doc.type === "journey" ? [] : [
-      ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
-      ...(a.opportunity !== undefined ? ["opportunity"] : []),
-    ];
-    const 工程 = doc.type === "gantt" ? [] : [
-      ...(a.owner !== undefined ? ["owner"] : []),
-      ...(a.end !== undefined ? ["end"] : []),
-    ];
+    const 道筋 =
+      doc.type === "journey"
+        ? []
+        : [
+            ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
+            ...(a.opportunity !== undefined ? ["opportunity"] : []),
+          ];
+    const 工程 =
+      doc.type === "gantt"
+        ? []
+        : [...(a.owner !== undefined ? ["owner"] : []), ...(a.end !== undefined ? ["end"] : [])];
     if (道筋.length > 0) {
       onNotice({
         kind: "chart-value-unreadable",
@@ -4745,11 +4911,23 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: journey では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    onNotice?.({
+      kind: "chart-edge-dropped",
+      actor: doc.flow[0]?.from ?? "",
+      line: doc.flow[0]?.pos?.line ?? 0,
+      message: m2,
+    });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "journey"}-chart`, {
-    lane: "chart", stack: 0, kind: "journey-map", title: doc.title, ...図の小見出し(doc), w: W, h: H, journeyData: data,
+    lane: "chart",
+    stack: 0,
+    kind: "journey-map",
+    title: doc.title,
+    ...図の小見出し(doc),
+    w: W,
+    h: H,
+    journeyData: data,
   });
   return b.build();
 }
@@ -4846,11 +5024,22 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   // 矢印は描けない。 書かれていたら伝える (黙って捨てると「書いたのに効かない」 が残る)
   if (doc.flow.length > 0) {
     const m2 = `type: quadrant では矢印を描けません (${doc.flow.length} 本を無視しました)。 関係を描くなら type: flow を使ってください`;
-    onNotice?.({ kind: "chart-edge-dropped", actor: doc.flow[0]?.from ?? "", line: doc.flow[0]?.pos?.line ?? 0, message: m2 });
+    onNotice?.({
+      kind: "chart-edge-dropped",
+      actor: doc.flow[0]?.from ?? "",
+      line: doc.flow[0]?.pos?.line ?? 0,
+      message: m2,
+    });
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${m2}`);
   }
   b.node(`${slugify(doc.title) || "quadrant"}-chart`, {
-    lane: "chart", stack: 0, kind: "quadrant-matrix", title: doc.title, ...図の小見出し(doc), w: W, h: H,
+    lane: "chart",
+    stack: 0,
+    kind: "quadrant-matrix",
+    title: doc.title,
+    ...図の小見出し(doc),
+    w: W,
+    h: H,
     quadrantData: { ...軸と区画の名前(doc), items },
   });
   return b.build();
@@ -4879,7 +5068,10 @@ function 段を読み取る(subtitle: string | undefined): { 段: number; 説明
   const m = 元.match(/^L([123])(?![0-9A-Za-z])/i);
   if (m === null) return { 段: 1, 説明: subtitle };
   // 目印と、 その直後の区切り (`:` / 全角コロン / 空白) を落とす
-  const 残り = 元.slice(m[0].length).replace(/^[:：\s]+/, "").trim();
+  const 残り = 元
+    .slice(m[0].length)
+    .replace(/^[:：\s]+/, "")
+    .trim();
   return { 段: Number(m[1]), 説明: 残り === "" ? undefined : 残り };
 }
 
@@ -5041,7 +5233,9 @@ type 放射で描けない欄 =
   | "scaleKeys"
   | "posRel"
   | "nodes"
-  | "layoutPos";
+  | "layoutPos"
+  // 箱の中に描く図形 (#1374)。 放射の枝は箱の中に図形を持たない
+  | "shape";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -5096,6 +5290,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   posRel: "位置 (相対)",
   nodes: "中の箱ごとの指定",
   layoutPos: "配置のずらし",
+  shape: "箱の中の図形",
 };
 
 /**
@@ -5226,7 +5421,8 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
   const 使った = new Set<string>([rootId]);
   記録する(root);
   // 中心は色の欄を持たない (`MindBranchPayload` に `tone` が無い)
-  if (root.tone) 消えた欄.set(root.name, [...(消えた欄.get(root.name) ?? []), "色 (中心は持てない)"]);
+  if (root.tone)
+    消えた欄.set(root.name, [...(消えた欄.get(root.name) ?? []), "色 (中心は持てない)"]);
 
   見本でない.slice(1).forEach((a, i) => {
     const id = slugify(a.name) || `leaf-${i}`;
@@ -5304,10 +5500,7 @@ function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): C
  * 後から来た見本の縦列に書いた値を移し、先に作った空の方を外す。 書いた人から見れば
  * 「id を書けば効く」 が成り立つ。
  */
-function mergeDuplicateDeclaredLanes(
-  diagram: CdlDiagram,
-  追加した縦列: readonly DslLane[],
-): void {
+function mergeDuplicateDeclaredLanes(diagram: CdlDiagram, 追加した縦列: readonly DslLane[]): void {
   for (const 宣言 of 追加した縦列) {
     const { id } = 宣言;
     const 同一idの縦列 = diagram.lanes.filter((l) => l.id === id);
@@ -5399,9 +5592,10 @@ function applyV05Extensions(
       // `s{idx}-{laneId}` が actor 名末尾 "Header" (slug `...-header`) で誤マッチし、 option が invisible
       // な step anchor にも copy される (cc-codex #883 MAJOR)。 lane id との構造 exact 一致で header だけを
       // 引くことで step box / spacer / footer を排除する。
-      primaryNodes = ownedLaneIds.size > 0
-        ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id === `${n.lane}-header`)
-        : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
+      primaryNodes =
+        ownedLaneIds.size > 0
+          ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id === `${n.lane}-header`)
+          : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
     } else {
       // 非 seq preset は 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。
       primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
@@ -5481,6 +5675,21 @@ function applyV05Extensions(
         if (a.posH !== undefined) node.h = a.posH;
         const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
         if (footer && a.posW !== undefined) footer.w = a.posW;
+      }
+      // 箱の中に描く図形 (#1374)。 renderer が shape を描くのは dyn-* kind だけなので、
+      // shape 自身を SSOT にして対応する kind へ揃える。 card 等のまま shape だけ渡すと、指定を
+      // 保持しているのに画面には何も出ない。 paint 検査が入力を mutate しないよう object も写す。
+      if (a.shape !== undefined) {
+        const dynamicKind = `dyn-${a.shape.kind}` as typeof node.kind;
+        node.kind = dynamicKind;
+        node.shape = { ...a.shape };
+        if (isSeqLike) {
+          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+          if (footer) {
+            footer.kind = dynamicKind;
+            footer.shape = { ...a.shape };
+          }
+        }
       }
     }
   }
@@ -5599,7 +5808,12 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
         }
         // 線を持たない種類 (帯の依存等) では矢印が edge にならない。 両端が実在するなら
         // その箱を光らせる = 矢印を指した段で何も光らないより意図に近い (#1077)
-        if (!見つかった && singleBoxNode !== undefined && knownNames.has(entry.from) && knownNames.has(entry.to)) {
+        if (
+          !見つかった &&
+          singleBoxNode !== undefined &&
+          knownNames.has(entry.from) &&
+          knownNames.has(entry.to)
+        ) {
           out.push(singleBoxNode.id);
         }
         continue;
@@ -5629,9 +5843,7 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
     // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
     const drawIds =
-      p.draw !== undefined &&
-      DRAW_TARGETS.get(p.draw) === doc.type &&
-      singleBoxNode !== undefined
+      p.draw !== undefined && DRAW_TARGETS.get(p.draw) === doc.type && singleBoxNode !== undefined
         ? [singleBoxNode.id]
         : [];
     diagram.phases.push({
@@ -6201,7 +6413,11 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   } else if (kind === "flow" || kind === "topology") {
     // 1 lane に全 actor を縦 stack
     const lid = opts.laneId ?? "main";
-    b.lane(lid, { width: laneWidth, label: doc.title, ...(kind === "topology" ? { contain: true } : {}) });
+    b.lane(lid, {
+      width: laneWidth,
+      label: doc.title,
+      ...(kind === "topology" ? { contain: true } : {}),
+    });
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
@@ -6264,7 +6480,9 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     b.edge(fromId, toId, {
       id: edgeId,
       label: labelWithCard,
-      ...後ろへ戻る矢印か(kind, fromId, toId, 箱の並び) ? { routing: "back-detour" as const } : {},
+      ...(後ろへ戻る矢印か(kind, fromId, toId, 箱の並び)
+        ? { routing: "back-detour" as const }
+        : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),

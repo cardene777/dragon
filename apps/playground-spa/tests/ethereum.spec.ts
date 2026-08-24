@@ -62,7 +62,9 @@ for (const id of DIAGRAMS) {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(String(e)));
     await openDiagram(page, id);
-    const svg = page.locator("svg[viewBox]").last();
+    // **図の svg を名指しする** (#1374)。 `svg[viewBox]` の最後を採ると、記法を持つように
+    // なった今は隠れているコードのタブの写しボタンの図記号を拾う (実測 = 大きさが取れず null)
+    const svg = page.locator("svg[data-cdl-stage]").last();
     const box = await svg.boundingBox();
     expect(box, `${id} の SVG`).not.toBeNull();
     expect(box!.width, `${id} の幅`).toBeGreaterThan(200);

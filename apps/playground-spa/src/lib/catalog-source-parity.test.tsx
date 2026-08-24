@@ -23,7 +23,7 @@
  *
  * 宣言に無い差が出たら落ちる = 記法を書き換えて図がずれた時に気付ける。
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
@@ -35,6 +35,7 @@ import * as Animation from "@/topics/catalog/animation.cdl";
 import * as Primitives from "@/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
 import * as Cookbook from "@/topics/catalog/cookbook.cdl";
+import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -112,6 +113,7 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   // ここは同じ source なので骨格は必ず一致する。 それでも入れるのは、記法の組み立てが
   // 注意を出さないことと、図の側だけを書き換えた変更を落とすため
   ["cookbook", Cookbook],
+  ["ethereum", Ethereum],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */
@@ -129,7 +131,8 @@ function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
       }
       // **key の重複を落とす**。 宣言 (既知の差 / id 完全一致) は key で引くため、
       // 別 module に同名があると宣言が意図しない図に効く
-      if (既出の名前.has(key)) throw new Error(`見本の名前 "${key}" がページをまたいで重複している`);
+      if (既出の名前.has(key))
+        throw new Error(`見本の名前 "${key}" がページをまたいで重複している`);
       既出の名前.add(key);
       out.push({ key, yaml: v, built: built as Diagram });
     }
@@ -240,7 +243,10 @@ describe("矢印と段の表示要素への読み替え", () => {
       edges: [...元.edges, { ...先頭, id: "dup", from: 先頭.to, to: 先頭.from }],
       phases: 元.phases.map((p, i) => (i === 0 ? { ...p, activate: [先頭.id] } : p)),
     };
-    const 取違え = { ...二本, phases: 二本.phases.map((p, i) => (i === 0 ? { ...p, activate: ["dup"] } : p)) };
+    const 取違え = {
+      ...二本,
+      phases: 二本.phases.map((p, i) => (i === 0 ? { ...p, activate: ["dup"] } : p)),
+    };
     expect(光らせる先(取違え), "同じ説明の矢印を区別できていない").not.toEqual(光らせる先(二本));
   });
 
@@ -314,6 +320,27 @@ function 粒子の参照を読み替える(s: string, 表: Map<string, string>):
     );
 }
 
+/**
+ * 描く時刻を止める (#1374)。
+ *
+ * 波の図形 (`shape: { kind: wave }`) は水面の位相を時計から決めるため、**同じ図を 2 度
+ * 描くと違う絵になる** (実測 = `M 40.0 126.4` と `M 40.0 126.5`)。 止めずに比べると、
+ * 記法と組み立て API が完全に同じでも 0.1 の差で落ちる。
+ *
+ * 止める時刻は固定値にする。 2 つの絵が同じ瞬間を見れば、時計に依らない差だけが残る。
+ */
+const 描く時刻 = new Date("2026-01-01T00:00:00Z");
+
+function 時刻を止めて描く<T>(描く: () => T): T {
+  vi.useFakeTimers();
+  vi.setSystemTime(描く時刻);
+  try {
+    return 描く();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> = new Set()): string {
   const 対象 =
     光らせる先から外す.size === 0
@@ -325,7 +352,7 @@ function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> 
             activate: p.activate.filter((id) => !光らせる先から外す.has(id)),
           })),
         };
-  const s = renderToStaticMarkup(<CdlDiagramView diagram={layout(対象)} />);
+  const s = 時刻を止めて描く(() => renderToStaticMarkup(<CdlDiagramView diagram={layout(対象)} />));
   const 始 = s.indexOf("<svg");
   const 終 = s.lastIndexOf("</svg>");
   if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
@@ -339,12 +366,14 @@ function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> 
 }
 
 function 描いた大きさ(d: Diagram): string {
-  const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
+  const svg = 時刻を止めて描く(() => renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />));
   return svg.match(/data-cdl-viewbox="([^"]+)"/)?.[1] ?? "(読めない)";
 }
 const ids = (a: readonly { id: string }[] | undefined): string[] => (a ?? []).map((x) => x.id);
-const 題 = (a: readonly { title?: string }[] | undefined): string[] => (a ?? []).map((x) => x.title ?? "");
-const 説明 = (a: readonly { label?: string }[] | undefined): string[] => (a ?? []).map((x) => x.label ?? "");
+const 題 = (a: readonly { title?: string }[] | undefined): string[] =>
+  (a ?? []).map((x) => x.title ?? "");
+const 説明 = (a: readonly { label?: string }[] | undefined): string[] =>
+  (a ?? []).map((x) => x.label ?? "");
 
 /**
  * 箱が読む人に見せる中身。 種類 / 小見出し / 上の小見出し / 行 / 値。
@@ -623,14 +652,7 @@ function 状態(a: readonly 中身の欄[] | undefined, 相手: readonly 中身�
 
 /** 図の直下 (題など)。 まとまりは対象ごとに別で比べる */
 function 図の直下(d: Diagram, 相手: Diagram): string {
-  return (
-    比べる形(
-      [d],
-      [相手],
-      図の直下の宣言,
-      (_k, v) => v,
-    )[0] ?? ""
-  );
+  return 比べる形([d], [相手], 図の直下の宣言, (_k, v) => v)[0] ?? "";
 }
 
 /**
@@ -662,7 +684,9 @@ describe("図表と状態の一致検査", () => {
   ] as const)("%s の差を検出する", (field) => {
     // **`id` で差をつけてはいけない**。 `id` は比較から落としているため、それで差をつけると
     // 検査が常に通り、比較関数が壊れても気付けない (実測で恒真になった)。 描かれる欄で見る
-    expect(中身([{ [field]: [{ title: "a" }] }])).not.toEqual(中身([{ [field]: [{ title: "b" }] }]));
+    expect(中身([{ [field]: [{ title: "a" }] }])).not.toEqual(
+      中身([{ [field]: [{ title: "b" }] }]),
+    );
   });
 
   it.each([
@@ -696,8 +720,18 @@ describe("図表と状態の一致検査", () => {
   it("居ない項目を指す木は、指す先のある木と一致しない (Round 1 の指摘)", () => {
     // 識別子を落とすだけだと、`parent` の指す先が居なくても比較を通ってしまう。
     // 並び順に読み替えることで、解決できない参照が `未解決:` として残り差になる
-    const 指す先あり = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "a" }] };
-    const 指す先なし = { treeData: [{ id: "a", title: "親" }, { id: "b", title: "子", parent: "居ない" }] };
+    const 指す先あり = {
+      treeData: [
+        { id: "a", title: "親" },
+        { id: "b", title: "子", parent: "a" },
+      ],
+    };
+    const 指す先なし = {
+      treeData: [
+        { id: "a", title: "親" },
+        { id: "b", title: "子", parent: "居ない" },
+      ],
+    };
     expect(中身([指す先あり])).not.toEqual(中身([指す先なし]));
   });
 
@@ -724,36 +758,91 @@ describe("図表と状態の一致検査", () => {
   it("識別子の付け方だけが違う同じ木は一致する", () => {
     // 記法は名前から識別子を導き (`Sign up` なら `sign-up`)、preset は明示 識別子 を書く。
     // 形が同じなら通す = これが通らないと記法を書けない
-    const 記法ふう = { treeData: [{ id: "eng-manager", title: "親" }, { id: "ops", title: "子", parent: "eng-manager" }] };
-    const 見本ふう = { treeData: [{ id: "eng", title: "親" }, { id: "op", title: "子", parent: "eng" }] };
+    const 記法ふう = {
+      treeData: [
+        { id: "eng-manager", title: "親" },
+        { id: "ops", title: "子", parent: "eng-manager" },
+      ],
+    };
+    const 見本ふう = {
+      treeData: [
+        { id: "eng", title: "親" },
+        { id: "op", title: "子", parent: "eng" },
+      ],
+    };
     expect(中身([記法ふう])).toEqual(中身([見本ふう]));
   });
 
   it("放射の図でも中心を指す枝が読み替わる", () => {
-    const 記法ふう = { mindData: { rootId: "theme", branches: [{ id: "f", title: "枝", parent: "theme" }] } };
-    const 見本ふう = { mindData: { rootId: "root", branches: [{ id: "feat", title: "枝", parent: "root" }] } };
+    const 記法ふう = {
+      mindData: { rootId: "theme", branches: [{ id: "f", title: "枝", parent: "theme" }] },
+    };
+    const 見本ふう = {
+      mindData: { rootId: "root", branches: [{ id: "feat", title: "枝", parent: "root" }] },
+    };
     expect(中身([記法ふう])).toEqual(中身([見本ふう]));
   });
 
   it("放射の図で枝の親が違えば一致しない", () => {
     // 中心の直下に並べた形と、枝の下に入れ子にした形を分ける = mind の記法が書けない差そのもの
-    const 平ら = { mindData: { rootId: "r", branches: [{ id: "a", title: "A", parent: "r" }, { id: "b", title: "B", parent: "r" }] } };
-    const 入れ子 = { mindData: { rootId: "r", branches: [{ id: "a", title: "A", parent: "r" }, { id: "b", title: "B", parent: "a" }] } };
+    const 平ら = {
+      mindData: {
+        rootId: "r",
+        branches: [
+          { id: "a", title: "A", parent: "r" },
+          { id: "b", title: "B", parent: "r" },
+        ],
+      },
+    };
+    const 入れ子 = {
+      mindData: {
+        rootId: "r",
+        branches: [
+          { id: "a", title: "A", parent: "r" },
+          { id: "b", title: "B", parent: "a" },
+        ],
+      },
+    };
     expect(中身([平ら])).not.toEqual(中身([入れ子]));
   });
 
   it("工程の前後関係も読み替える", () => {
     // **識別子の付け方だけが違う形で見る**。 指す先が居ない形との差だけを見ると、
     // 読み替えを外しても文字列が違うまま通ってしまい、検査が空振りする (変異試験で判明)
-    const 記法ふう = { ganttData: [{ id: "design", title: "設計" }, { id: "build", title: "作る", dependsOn: "design" }] };
-    const 見本ふう = { ganttData: [{ id: "d", title: "設計" }, { id: "b", title: "作る", dependsOn: "d" }] };
+    const 記法ふう = {
+      ganttData: [
+        { id: "design", title: "設計" },
+        { id: "build", title: "作る", dependsOn: "design" },
+      ],
+    };
+    const 見本ふう = {
+      ganttData: [
+        { id: "d", title: "設計" },
+        { id: "b", title: "作る", dependsOn: "d" },
+      ],
+    };
     expect(中身([記法ふう]), "識別子の付け方だけで差になる").toEqual(中身([見本ふう]));
   });
 
   it("工程の前後関係が違えば一致しない", () => {
-    const 順に並ぶ = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2", dependsOn: "a" }] };
-    const 前後なし = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2" }] };
-    const 指す先なし = { ganttData: [{ id: "a", title: "1" }, { id: "b", title: "2", dependsOn: "居ない" }] };
+    const 順に並ぶ = {
+      ganttData: [
+        { id: "a", title: "1" },
+        { id: "b", title: "2", dependsOn: "a" },
+      ],
+    };
+    const 前後なし = {
+      ganttData: [
+        { id: "a", title: "1" },
+        { id: "b", title: "2" },
+      ],
+    };
+    const 指す先なし = {
+      ganttData: [
+        { id: "a", title: "1" },
+        { id: "b", title: "2", dependsOn: "居ない" },
+      ],
+    };
     expect(中身([順に並ぶ])).not.toEqual(中身([前後なし]));
     expect(中身([順に並ぶ])).not.toEqual(中身([指す先なし]));
   });
@@ -829,9 +918,9 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       it("箱の中身が一致する", () => {
         // 題だけを見ていると、行や小見出しが落ちた記法を通してしまう (実測 = er の行を
         // 1 つ削っても題は変わらず素通りした)。 読む人が見るのは中身なので、そこまで比べる
-        expect(
-          中身(記法.nodes, t.built.nodes, 縦列の見出しを引く(記法)),
-        ).toEqual(中身(t.built.nodes, 記法.nodes, 縦列の見出しを引く(t.built)));
+        expect(中身(記法.nodes, t.built.nodes, 縦列の見出しを引く(記法))).toEqual(
+          中身(t.built.nodes, 記法.nodes, 縦列の見出しを引く(t.built)),
+        );
       });
 
       it("図の状態が一致する", () => {
@@ -893,7 +982,9 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // どちらも描画に出るのに比較対象から漏れていた。 id 以外をまとめて見る。
         // 見出しは既知の差の宣言を持つため、下の検査が別に見る
         const 見出しを外す = (a: string[]): string[] =>
-          a.map((x) => JSON.stringify({ ...(JSON.parse(x) as Record<string, unknown>), label: null }));
+          a.map((x) =>
+            JSON.stringify({ ...(JSON.parse(x) as Record<string, unknown>), label: null }),
+          );
         expect(見出しを外す(縦列の中身(記法, t.built))).toEqual(
           見出しを外す(縦列の中身(t.built, 記法)),
         );

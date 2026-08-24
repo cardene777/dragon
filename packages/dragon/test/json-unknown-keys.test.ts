@@ -77,6 +77,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     viewport: { width: 800 },
     lanes: { L1: { width: 300 } },
     groups: { G1: { lanes: ["L1"] } },
+    // 値を見せる部品 (#1374)
+    readouts: [{ id: "r", kind: "percent-ring", source: "v", max: 100 }],
   },
   actor: {
     name: "A",
@@ -103,6 +105,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     scale: 2,
     state: { v: 1 },
     pos: { x: 1, y: 2 },
+    // 箱の中に描く図形 (#1374)
+    shape: { kind: "wave", level: 50, amplitude: 100 },
   },
   step: {
     from: "A",

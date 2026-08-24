@@ -68,7 +68,7 @@ test.describe("見た目の見本で記法が読める (#1373)", () => {
   });
 });
 
-test.describe("動きの見本は記法を持つ件と持たない件が混ざる (#1373)", () => {
+test.describe("動きの見本で記法が読める (#1373 / #1374)", () => {
   test("記法を持つ件はコードのタブが押せる", async ({ page }) => {
     await 開く(page, "animation", "set-switch");
 
@@ -82,15 +82,21 @@ test.describe("動きの見本は記法を持つ件と持たない件が混ざ�
     expect(yaml, "即時切替が出ていない").toContain("set:");
   });
 
-  test("記法で書けない件はコードのタブが押せない (陰性対照)", async ({ page }) => {
+  test("rich な件でも押せるようになった (#1374)", async ({ page }) => {
     /*
-     * 「このページなら押せる」 形なら上の検査は通っても意味を持たない。
-     * `shape` と `readouts` を使う件は記法で書けないので、従来どおり押せない。
+     * **元は陰性対照だった**。 `shape` と `readouts` を使う 5 件は記法で書けなかったため
+     * 「このページでも押せない件がある」 ことを見ていた。 #1374 で記法に欄を足したので、
+     * 押せる側に変わった。
+     *
+     * 陰性対照は `catalog-rich-source-tab.spec.ts` が `parts` で持つ (まだ記法が無いページ)。
      */
     await 開く(page, "animation", "animation-rich-pipeline-demo");
-    await expect(
-      page.getByRole("tab", { name: "コード" }),
-      "記法で書けない件でコードのタブが押せる",
-    ).toBeDisabled();
+    const タブ = page.getByRole("tab", { name: "コード" });
+    await expect(タブ, "rich な件でコードのタブが押せない").toBeEnabled();
+    await タブ.click();
+    await page.waitForTimeout(300);
+    const yaml = await page.locator(".catalog-source-code").first().innerText();
+    expect(yaml, "箱の中の図形が出ていない").toContain("shape: { kind: wave");
+    expect(yaml, "値を見せる部品が出ていない").toContain("readouts:");
   });
 });

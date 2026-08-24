@@ -3,7 +3,7 @@ import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
 import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
+import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 
 /**
  * 「Text DSL」 のページで記法がコードタブに出ることの検査 (#1365)。
@@ -137,10 +137,10 @@ describe("記法を持たない図では従来どおり (陰性対照、 #1365)"
      * 「どの図でも引ける」 形なら、上の検査は通っても意味を持たない。
      * 記法を登録していないページでは `undefined` のままであることを見る。
      */
-    // `ethereum` は記法を 1 件も登録していないページ (実測)。
-    // 元は `cookbook` を使っていたが、#1378 で記法を持つようになり対照にならなくなった。
-    // `primitives` / `presets` / `charts` / `styles` / `patterns` も登録済
-    const mod = ethereum as Record<string, unknown>;
+    // `parts` は記法を 1 件も登録していないページ (実測)。
+    // 対照は 2 度移している = `cookbook` は #1378 で、`ethereum` は #1374 で記法を持った。
+    // 残るのは `parts` と `interactive` の 2 ページだけ
+    const mod = parts as Record<string, unknown>;
     const 図 = 図の一覧(mod);
     expect(図.length, "比べる図が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
 

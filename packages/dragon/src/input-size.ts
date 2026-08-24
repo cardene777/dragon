@@ -66,6 +66,9 @@ export function countDocElements(doc: DslDocument): number {
     phaseChildren +
     (doc.animate?.states.length ?? 0) +
     (doc.values?.length ?? 0) +
+    // 値を見せる部品も描画時に 1 widget ずつ展開される (#1374)。 数えないと、 actors が
+    // 少ないまま readouts だけを大量に並べた入力が組み立て前の上限をすり抜ける。
+    (doc.readouts?.length ?? 0) +
     (doc.groups ? Object.keys(doc.groups).length : 0) +
     (doc.lanes ? Object.keys(doc.lanes).length : 0)
   );
@@ -95,7 +98,12 @@ export function countDiagramElements(diagram: {
 }): number {
   const phases = Array.isArray(diagram.phases) ? diagram.phases : [];
   const phaseChildren = phases.reduce((acc: number, p) => {
-    const ph = p as { activate?: unknown[]; highlight?: unknown[]; tweens?: unknown[]; sets?: unknown[] };
+    const ph = p as {
+      activate?: unknown[];
+      highlight?: unknown[];
+      tweens?: unknown[];
+      sets?: unknown[];
+    };
     return (
       acc +
       (Array.isArray(ph?.activate) ? ph.activate.length : 0) +

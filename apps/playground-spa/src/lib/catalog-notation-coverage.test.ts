@@ -38,6 +38,8 @@ const 揃ったページ = [
   "styles",
   "primitives",
   "cookbook",
+  "animation",
+  "ethereum",
 ] as const;
 
 /**
@@ -46,14 +48,13 @@ const 揃ったページ = [
  * **なぜ全件でないか** を 1 ページずつ書く。 書かないと「まだ書いていない」 と
  * 「書けない」 が区別できず、残りを埋める時にどちらを相手にしているか分からない。
  *
- * | ページ | 持たない件の理由 |
- * |---|---|
- * | `animation` | rich な 5 件が `dyn-wave` / `dyn-arc` の箱に `shape` を渡す (うち 4 件は `readouts` も使う)。 記法にこの 2 つを書く欄が無い。 欄を足す話は #1374 |
+ * **今は 1 ページも無い**。 #1374 で記法に `shape` と `readouts` の欄を足し、
+ * 「書けないから持てない」 ページが消えた。 残るのは「まだ書いていない」 だけになる。
  */
-const 一部のページ = ["animation"] as const;
+const 一部のページ: readonly string[] = [];
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
-const まだのページ = ["ethereum", "parts", "interactive"] as const;
+const まだのページ = ["parts", "interactive"] as const;
 
 async function ページごとの見本(): Promise<Map<string, CatalogItem[]>> {
   const m = new Map<string, CatalogItem[]>(Object.entries(CATALOG_ITEMS));
@@ -67,7 +68,9 @@ const 記法あり = (i: CatalogItem): boolean => Boolean(i.sourceYaml) && Boole
 describe("記法を持つページの台帳 (#1371)", () => {
   it("台帳の割り振りが実物のページと過不足なく一致する", async () => {
     const ページ = await ページごとの見本();
-    expect(ページ.size, "ページを 1 つも集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(ページ.size, "ページを 1 つも集められていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
     const 台帳 = [...揃ったページ, ...一部のページ, ...まだのページ].sort();
     expect(new Set(台帳).size, "台帳に同じページが 2 度出ている").toBe(台帳.length);
     expect(台帳, "台帳と実物のページが食い違っている").toEqual([...ページ.keys()].sort());
@@ -86,7 +89,9 @@ describe("記法を持つページの台帳 (#1371)", () => {
     const items = (await ページごとの見本()).get(名) ?? [];
     expect(items.length, `${名} の見本が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(0);
     const 持つ = items.filter(記法あり).length;
-    expect(持つ, `${名} が 1 件も持たなくなっている。 台帳を「まだ」 へ移すこと`).toBeGreaterThan(0);
+    expect(持つ, `${名} が 1 件も持たなくなっている。 台帳を「まだ」 へ移すこと`).toBeGreaterThan(
+      0,
+    );
     expect(持つ, `${名} が全件持つようになっている。 台帳を「揃った」 へ移すこと`).toBeLessThan(
       items.length,
     );

@@ -27,6 +27,9 @@ import {
   resolveTone,
   splitColorValue,
   書ける色名,
+  図形の表,
+  部品の表,
+  type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
@@ -39,6 +42,8 @@ import type {
   DslState,
   PresetType,
   LayoutPos,
+  DslReadout,
+  DslDynShape,
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
 import { compileToCdl } from "./compile";
@@ -72,6 +77,12 @@ export interface DragonJson {
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
   flow: JsonStep[];
+  /**
+   * 値を見せる部品 (optional、 #1374)。 記法の最上位 `readouts:` と同じ。
+   *
+   * 箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
+   */
+  readouts?: DslReadout[];
   /**
    * 状態の初期値 (optional)。 記法の `states:` と同じ (#1181)。
    *
@@ -129,6 +140,12 @@ export interface DragonJson {
 
 export interface JsonActor {
   name: string;
+  /**
+   * 箱の中に描く図形 (optional、 #1374)。 記法の `shape:` と同じ。
+   *
+   * 水位や角度を状態で動かす。 形は描画側の型が縛る。
+   */
+  shape?: DslDynShape;
   /**
    * CAR-1657 unified syntax = 既存 NodeKind (28 個) に加えて parts identifier (arc-gauge 等) を
    * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
@@ -347,6 +364,8 @@ export const ACCEPTED_KEYS = {
     "viewport",
     "lanes",
     "groups",
+    // 値を見せる部品 (#1374)
+    "readouts",
   ],
   actor: [
     "name",
@@ -373,6 +392,8 @@ export const ACCEPTED_KEYS = {
     "scale",
     "state",
     "pos",
+    // 箱の中に描く図形 (#1374)
+    "shape",
   ],
   step: [
     "from",
@@ -456,6 +477,8 @@ export const 欄の型表 = {
     viewport: "object",
     lanes: "object",
     groups: "object",
+    // 値を見せる部品 (#1374)。 中身は下の検査が種類ごとに見る
+    readouts: "並び",
   },
   actor: {
     name: "必須の非空文字列",
@@ -482,6 +505,8 @@ export const 欄の型表 = {
     scale: "数",
     state: "object",
     pos: "object",
+    // 箱の中に描く図形 (#1374)。 中身は下の検査が種類ごとに見る
+    shape: "object",
   },
   step: {
     from: "必須の文字列",
@@ -573,7 +598,10 @@ function JSONの色名か(v: string): boolean {
  * `見本に効かない欄` (#1308) と対になる。 2 つの表で「どちらの箱にしか効かないか」 を
  * 両方向から宣言する = 片方だけ増えると鏡の関係が崩れる。
  */
-export const 見本にしか効かない欄 = ["state", "scale"] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
+export const 見本にしか効かない欄 = [
+  "state",
+  "scale",
+] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
 
 /**
  * 普通の箱にしか効かない欄 (#1308)。
@@ -598,6 +626,8 @@ export const 見本に効かない欄 = [
   "end",
   "touchpoint",
   "opportunity",
+  // 箱の中に描く図形 (#1374)。 見本は自分の形を持つため、外から図形を差し替えられない
+  "shape",
 ] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
 
 /**
@@ -912,6 +942,122 @@ function validateViewport(v: unknown, errors: JsonDslError[]): void {
  * #1304 まで外側の形が違う入力 (`lanes: 5`) は走査ごと飛ばされ、誤りが 1 件も返らなかった。
  * 形が違うものを黙って捨てると、書いた縦列が 1 つも効かない図が知らせなしで出る。
  */
+/**
+ * 図形と部品の中身を、記法と **同じ表** で検査する (#1374)。
+ *
+ * 表を 2 つ持つと片方だけ直してずれる。 記法側 (`v05/parser.ts`) が持つ表をそのまま引く。
+ *
+ * 記法は値が全て文字列で届くため読み替えが要るが、JSON は型のまま届く。 ここでは
+ * 「知らない種類」 「知らない欄」 「足りない必須の欄」 「欄の型違い」 の 4 つを見る。
+ */
+function 表で中身を検査する(
+  o: Record<string, unknown>,
+  表: Record<string, 図形の定義>,
+  path: string,
+  何: string,
+  errors: JsonDslError[],
+): void {
+  const kind = typeof o.kind === "string" ? o.kind.toLowerCase() : "";
+  const 定義 = 表[kind];
+  if (定義 === undefined) {
+    errors.push({
+      path: `${path}.kind`,
+      // **文字列でない値をそのまま文にしない**。 object を混ぜると `[object Object]` になり、
+      // 何を書いたのかが読み手に届かない
+      message: `unknown ${何} kind ${typeof o.kind === "string" ? `"${o.kind}"` : JSON.stringify(o.kind ?? null)}`,
+      hint: `使える種類 = ${Object.keys(表).join(", ")}`,
+    });
+    return;
+  }
+  for (const [欄, 値] of Object.entries(o)) {
+    if (欄 === "kind" || 欄 === "id") continue;
+    const 形 = 定義.欄[欄];
+    if (形 === undefined) {
+      errors.push({
+        path: `${path}.${欄}`,
+        message: `unknown key "${欄}"`,
+        hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
+      });
+      continue;
+    }
+    const 型が合う =
+      形 === "数"
+        ? typeof 値 === "number" && Number.isFinite(値)
+        : 形 === "数か文字列"
+          ? (typeof 値 === "number" && Number.isFinite(値)) || typeof 値 === "string"
+          : 形 === "文字列の並び"
+            ? Array.isArray(値) && 値.every((x) => typeof x === "string")
+            : 形 === "向き"
+              ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
+              : typeof 値 === "string";
+    if (!型が合う) {
+      errors.push({
+        path: `${path}.${欄}`,
+        message: `${欄} must be ${形}`,
+        hint: `got ${Array.isArray(値) ? "array" : 値 === null ? "null" : typeof 値}`,
+      });
+    }
+  }
+  for (const 欄 of 定義.必須) {
+    if (o[欄] === undefined) {
+      errors.push({
+        path: `${path}.${欄}`,
+        message: `${欄} is required for ${何} kind "${kind}"`,
+        hint: `必須の項目 = ${定義.必須.join(", ")}`,
+      });
+    }
+  }
+}
+
+/**
+ * 値を見せる部品の並びを検査する (#1374)。
+ *
+ * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
+ * 委ねる作りなので (`checkFieldType` の `case "並び"`)、ここで見ないと `readouts: 1` が
+ * 素通りする。
+ */
+function validateReadouts(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!Array.isArray(v)) {
+    errors.push({
+      path: "$.readouts",
+      message: "readouts must be an array of readout objects",
+      hint: `got ${v === null ? "null" : typeof v}`,
+    });
+    return;
+  }
+  v.forEach((r, i) => {
+    const path = `$.readouts[${i}]`;
+    if (!r || typeof r !== "object" || Array.isArray(r)) {
+      errors.push({ path, message: "readout must be a plain object", hint: `got ${typeof r}` });
+      return;
+    }
+    const o = r as Record<string, unknown>;
+    if (typeof o.id !== "string" || o.id === "") {
+      errors.push({ path: `${path}.id`, message: "id is required", hint: "空でない文字列で書く" });
+    }
+    表で中身を検査する(o, 部品の表, path, "readout", errors);
+  });
+}
+
+/**
+ * 箱の中に描く図形を検査する (#1374)。
+ *
+ * `validateReadouts` と同じ理由で外側の形もここで見る。
+ */
+function validateActorShape(v: unknown, path: string, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path,
+      message: "shape must be a plain object",
+      hint: `got ${v === null ? "null" : Array.isArray(v) ? "array" : typeof v}`,
+    });
+    return;
+  }
+  表で中身を検査する(v as Record<string, unknown>, 図形の表, path, "shape", errors);
+}
+
 function validateIdMap(
   v: unknown,
   欄: "lanes" | "groups",
@@ -1230,6 +1376,8 @@ function validateJson(
   // 知らない項目を先に見る (#1295)。 綴り違いは「書いた項目が効かない」 形で表に出るため、
   // 個々の型の誤りより先に伝える方が直しやすい
   checkUnknownKeys(j, "root", "$", errors);
+  // 値を見せる部品の中身を、記法と同じ表で見る (#1374)
+  validateReadouts(j.readouts, errors);
 
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
@@ -1249,6 +1397,8 @@ function validateJson(
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
+      // 箱の中に描く図形の中身を、記法と同じ表で見る (#1374)
+      validateActorShape(ao.shape, `$.actors[${i}].shape`, errors);
       // 見本 (parts) にしか効かない項目は、見本でない箱に書かれたら誤りにする (#1294)。
       // 記法側は読めない項目名として行番号付きで知らせるため、黙って捨てると入口で扱いが変わる。
       const 見本か = 見本の名前か(ao.kind);
@@ -1526,6 +1676,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       stack: a.stack,
       initial: a.initial,
       final: a.final,
+      // 箱の中に描く図形 (#1374)。 見本では状態の上書きが効くため、通常の箱にだけ渡す
+      shape: isPart ? undefined : a.shape,
       // 普通の箱にしか効かない欄は見本では落とす。 落とす欄の一覧は `見本に効かない欄` が
       // 唯一の出どころで、検査 (#1308) も同じ表を見る = 「検査は通すが組み立てが捨てる」
       // 状態が作れない
@@ -1585,6 +1737,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   }));
   // 状態は段が無くても図に載る (#1162 で組み立ての出口が載せる)。 **段の有無で分けない** =
   // 分けると `states` だけを書いた JSON で値が 1 つも届かない (記法側で起きていた形、 #1181)
+  // 値を見せる部品はそのまま渡す (#1374)。 形は描画側の型が縛る
+  const readouts: DslReadout[] | undefined = json.readouts ? [...json.readouts] : undefined;
   const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
     name,
     initial,
@@ -1658,6 +1812,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
           ]),
         )
       : undefined,
+    readouts,
     pos: p0,
   };
 }

@@ -56,15 +56,14 @@ const 箱の値: Record<string, unknown> = {
   scale: 2,
   state: { v: 1 },
   pos: { x: 1, y: 2 },
+  shape: { kind: "wave", level: 50, amplitude: 100 },
 };
 
 /** 全欄を書いた箱を組み立てて、届いた欄の名前を集める */
 function 届いた欄(kind: string): Set<string> {
   const actor: Record<string, unknown> = { ...箱の値, kind };
   // 検査を通さずに組み立てだけを見る = 検査が誤りにする欄も含めて「落ちるか」 を測るため
-  const doc = jsonToDoc(
-    図({ actors: [actor, { name: "Z" }] }) as unknown as DragonJson,
-  );
+  const doc = jsonToDoc(図({ actors: [actor, { name: "Z" }] }) as unknown as DragonJson);
   const a = doc.actors[0] as unknown as Record<string, unknown>;
   return new Set(Object.keys(a).filter((k) => a[k] !== undefined));
 }

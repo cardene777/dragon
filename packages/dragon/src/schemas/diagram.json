@@ -141,14 +141,40 @@
               "tone": {
                 "type": "string",
                 "description": "箱の色調。 success / warning 等の別名も使える。",
-                "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                "enum": [
+                  "accent",
+                  "teal",
+                  "success",
+                  "error",
+                  "warning",
+                  "info",
+                  "成功",
+                  "失敗",
+                  "警告",
+                  "情報",
+                  "中立",
+                  "neutral"
+                ]
               },
               "color": {
                 "type": "string",
                 "description": "箱の色名、または # で始まる parts の色番号。",
                 "anyOf": [
                   {
-                    "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                    "enum": [
+                      "accent",
+                      "teal",
+                      "success",
+                      "error",
+                      "warning",
+                      "info",
+                      "成功",
+                      "失敗",
+                      "警告",
+                      "情報",
+                      "中立",
+                      "neutral"
+                    ]
                   },
                   {
                     "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
@@ -226,6 +252,94 @@
                     "type": "number"
                   }
                 }
+              },
+              "shape": {
+                "type": "object",
+                "description": "箱の中に描く図形。 水位 / 角度 / 半径を状態で動かせる。 kind ごとに書ける欄が違う (rect / circle / arc / wave / polygon)。",
+                "required": ["kind"],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["rect", "circle", "arc", "wave", "polygon"]
+                  },
+                  "source": {
+                    "type": ["number", "string"]
+                  },
+                  "fillMax": {
+                    "type": "number"
+                  },
+                  "orient": {
+                    "type": "string",
+                    "enum": ["up", "down", "left", "right"]
+                  },
+                  "radius": {
+                    "type": ["number", "string"]
+                  },
+                  "fillProgress": {
+                    "type": ["number", "string"]
+                  },
+                  "innerRadius": {
+                    "type": "number"
+                  },
+                  "outerRadius": {
+                    "type": "number"
+                  },
+                  "startAngle": {
+                    "type": "number"
+                  },
+                  "angle": {
+                    "type": ["number", "string"]
+                  },
+                  "sweepMax": {
+                    "type": "number"
+                  },
+                  "level": {
+                    "type": ["number", "string"]
+                  },
+                  "amplitude": {
+                    "type": "number"
+                  },
+                  "frequency": {
+                    "type": "number"
+                  },
+                  "waveHeight": {
+                    "type": "number"
+                  },
+                  "sides": {
+                    "type": "number"
+                  },
+                  "rotation": {
+                    "type": ["number", "string"]
+                  },
+                  "fill": {
+                    "type": "string"
+                  },
+                  "stroke": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "properties": { "kind": { "enum": ["rect"] } },
+                    "required": ["source", "fillMax"]
+                  },
+                  {
+                    "properties": { "kind": { "enum": ["circle"] } }
+                  },
+                  {
+                    "properties": { "kind": { "enum": ["arc"] } },
+                    "required": ["angle"]
+                  },
+                  {
+                    "properties": { "kind": { "enum": ["wave"] } },
+                    "required": ["level", "amplitude"]
+                  },
+                  {
+                    "properties": { "kind": { "enum": ["polygon"] } },
+                    "required": ["sides"]
+                  }
+                ]
               }
             }
           }
@@ -258,7 +372,20 @@
           },
           "tone": {
             "type": "string",
-            "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"],
+            "enum": [
+              "accent",
+              "teal",
+              "success",
+              "error",
+              "warning",
+              "info",
+              "成功",
+              "失敗",
+              "警告",
+              "情報",
+              "中立",
+              "neutral"
+            ],
             "description": "矢印の色調。 success / 成功 等の別名も使える。"
           },
           "style": {
@@ -502,6 +629,97 @@
             "minItems": 1
           }
         }
+      }
+    },
+    "readouts": {
+      "type": "array",
+      "description": "値を見せる部品。 状態の値を割合の輪 / 数え上げ / 目盛りで出す。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "bar",
+              "gauge",
+              "stat",
+              "sparkline",
+              "countup",
+              "typewriter",
+              "delta",
+              "percent-ring",
+              "heat-cell"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "history": {
+            "type": "number"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "decimals": {
+            "type": "number"
+          },
+          "charMs": {
+            "type": "number"
+          }
+        },
+        "oneOf": [
+          {
+            "properties": { "kind": { "enum": ["bar"] } },
+            "required": ["min", "max"]
+          },
+          {
+            "properties": { "kind": { "enum": ["gauge"] } },
+            "required": ["min", "max"]
+          },
+          { "properties": { "kind": { "enum": ["stat"] } } },
+          { "properties": { "kind": { "enum": ["sparkline"] } } },
+          { "properties": { "kind": { "enum": ["countup"] } } },
+          { "properties": { "kind": { "enum": ["typewriter"] } } },
+          { "properties": { "kind": { "enum": ["delta"] } } },
+          {
+            "properties": { "kind": { "enum": ["percent-ring"] } },
+            "required": ["max"]
+          },
+          {
+            "properties": { "kind": { "enum": ["heat-cell"] } },
+            "required": ["min", "max"]
+          }
+        ]
       }
     }
   }

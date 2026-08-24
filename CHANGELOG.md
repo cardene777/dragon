@@ -7,6 +7,35 @@ dragon DSL の主要変更履歴。
 
 予定 ... feedback を反映した patch / minor。
 
+### Added
+
+- **記法に `shape:` (箱の中に描く図形) と `readouts:` (値を見せる部品) を足した** (#1374)
+
+  この 2 つが書けなかったため、見本帳で最も動きが豊かな 9 件 (`animation` の rich 5 件 /
+  `ethereum` 4 件) が記法を持てなかった。 コードのタブが押せず、見た図を自分で書けない
+  状態だった。
+
+  ```yaml
+  readouts:
+    ring: { kind: percent-ring, source: total, max: 500, label: "全体進捗" }
+
+  actors:
+    - 検証: { kind: dyn-wave, posW: 140, posH: 200,
+              shape: { kind: wave, level: "{s}", amplitude: 100 } }
+  ```
+
+  描ける図形 5 種 (`rect` / `circle` / `arc` / `wave` / `polygon`) と、1 行で書ける部品
+  9 種 (`bar` / `gauge` / `stat` / `sparkline` / `countup` / `typewriter` / `delta` /
+  `percent-ring` / `heat-cell`) を受ける。 値と色の対応表が要る 3 種 (`badge` /
+  `status-dot` / `stacked-bar`) は 1 行に収まらないため載せていない。
+
+  **知らない種類 / 知らない欄 / 足りない必須の欄は黙って捨てず知らせる**。 捨てると
+  「書いたのに図に出ない」 が手掛かりなしで起きる。 YAML と JSON が **同じ表** を見るので、
+  片方だけ通る形は作れない。
+
+  これで **見本帳の 9 ページが全て記法を揃えた**。 残るのは `parts` と `interactive` の
+  2 ページで、どちらも「まだ書いていない」 だけになる。
+
 ### Fixed
 
 - **基本パーツの見本 30 件が、図と違う記法をコードタブに出していたのを直した** (#1376)
