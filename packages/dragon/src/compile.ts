@@ -3066,6 +3066,8 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
       target.label = target.label ? `${target.label} (${s.cardinality})` : `(${s.cardinality})`;
     }
   }
+  // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
+  if (s.side !== undefined) target.side = s.side;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;
@@ -4247,6 +4249,7 @@ function compileClass(doc: DslDocument): CdlDiagram {
     b.edge(fromId, toId, {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -5137,6 +5140,7 @@ function compileC4(doc: DslDocument): CdlDiagram {
     b.edge(fromId, toId, {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -5920,6 +5924,7 @@ function compileSequence(doc: DslDocument): CdlDiagram {
       to: s.to,
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -5987,6 +5992,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
       id: edgeId,
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6205,6 +6211,7 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       id: `e${edgeIdx++}-${fromId}-${toId}`,
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6354,6 +6361,7 @@ function compileTopology(doc: DslDocument): CdlDiagram {
     topo.connect(slugify(s.from), slugify(s.to), {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6526,6 +6534,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         ? { routing: "back-detour" as const }
         : {}),
       ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });

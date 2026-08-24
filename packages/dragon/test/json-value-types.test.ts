@@ -35,7 +35,7 @@ import {
   jsonToDiagram,
   type 欄の型,
 } from "../src/json-parser";
-import { STYLE_VALID, 書ける色名 } from "../src/v05/parser";
+import { EDGE_SIDE_VALUES, STYLE_VALID, 書ける色名 } from "../src/v05/parser";
 import { 図, 欄に値を置く, 欄のpath } from "./support/json-field-input";
 
 type 階層 = keyof typeof ACCEPTED_KEYS;
@@ -60,6 +60,7 @@ const 型ごとの値: Record<string, { 誤り: unknown; 他の誤り?: unknown[
   真偽: { 誤り: "yes", 正しい: true },
   色: { 誤り: "bogus", 正しい: "success" },
   線種: { 誤り: "bogus", 正しい: "solid" },
+  辺: { 誤り: "diagonal", 正しい: EDGE_SIDE_VALUES[0] },
   描くもの: { 誤り: "bogus", 他の誤り: ["", "LINE", " line"], 正しい: "line" },
   色か色番号: { 誤り: "bogus", 正しい: "#f59e0b" },
   必須の図種: { 誤り: "bogus", 正しい: "flow" },
@@ -154,7 +155,8 @@ describe("型違いの値は誤りになる (#1304)", () => {
       if (正しい === undefined) continue;
       測れた += 1;
       const r = validateDragonJson(欄に値を置く(層, 欄, 正しい));
-      if (!r.ok) 落ちた.push(`${層}.${欄}: ${r.errors.map((e) => `${e.path} ${e.message}`).join(" / ")}`);
+      if (!r.ok)
+        落ちた.push(`${層}.${欄}: ${r.errors.map((e) => `${e.path} ${e.message}`).join(" / ")}`);
     }
     expect(測れた, "正しい値を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(落ちた, "受けるはずの値が誤りになる").toEqual([]);
@@ -201,7 +203,10 @@ describe("不正な値が図に届かない (#1304)", () => {
       );
       expect(r.ok, `${悪い色番号} が通ってしまう`).toBe(false);
       if (r.ok) continue;
-      expect(r.errors.map((e) => e.path), 悪い色番号).toContain("$.actors[0].color");
+      expect(
+        r.errors.map((e) => e.path),
+        悪い色番号,
+      ).toContain("$.actors[0].color");
     }
   });
 
@@ -289,15 +294,32 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
     // ため、それを JSON でも通すと schema の `enum` が拒む値を parser が受ける
     // (review Round 2 の指摘)。 JSON 側は完全一致に揃えてある。
     const 欄 = [
-      { 名: "箱の tone", schema: actor.tone, 置く: (v: string) => ({ actors: [{ name: "A", tone: v }, { name: "B" }] }) },
-      { 名: "矢印の tone", schema: step.tone, 置く: (v: string) => ({ flow: [{ from: "A", to: "B", label: "x", tone: v }] }) },
-      { 名: "箱の color", schema: actor.color, 置く: (v: string) => ({ actors: [{ name: "A", color: v }, { name: "B" }] }) },
+      {
+        名: "箱の tone",
+        schema: actor.tone,
+        置く: (v: string) => ({ actors: [{ name: "A", tone: v }, { name: "B" }] }),
+      },
+      {
+        名: "矢印の tone",
+        schema: step.tone,
+        置く: (v: string) => ({ flow: [{ from: "A", to: "B", label: "x", tone: v }] }),
+      },
+      {
+        名: "箱の color",
+        schema: actor.color,
+        置く: (v: string) => ({ actors: [{ name: "A", color: v }, { name: "B" }] }),
+      },
     ];
 
-    const schemaが受ける = (定義: { enum?: string[]; anyOf?: Array<{ enum?: string[]; pattern?: string }> }, v: string): boolean => {
+    const schemaが受ける = (
+      定義: { enum?: string[]; anyOf?: Array<{ enum?: string[]; pattern?: string }> },
+      v: string,
+    ): boolean => {
       const 選択肢 = 定義.anyOf ?? [定義];
       return 選択肢.some(
-        (o) => o.enum?.includes(v) === true || (o.pattern !== undefined && new RegExp(o.pattern).test(v)),
+        (o) =>
+          o.enum?.includes(v) === true ||
+          (o.pattern !== undefined && new RegExp(o.pattern).test(v)),
       );
     };
 
@@ -307,8 +329,20 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
     const 値 = [
       ...色名,
       ...色名.flatMap((v) => [v.toUpperCase(), ` ${v} `, `"${v}"`, `'${v}'`]),
-      "#fff", "#ffff", "#f59e0b", "#f59e0bcc", "#F59E0B", " #fff ",
-      "bogus", "#zzz", "#12345", "#", "#1234567", "x#fff", "#fffz", "",
+      "#fff",
+      "#ffff",
+      "#f59e0b",
+      "#f59e0bcc",
+      "#F59E0B",
+      " #fff ",
+      "bogus",
+      "#zzz",
+      "#12345",
+      "#",
+      "#1234567",
+      "x#fff",
+      "#fffz",
+      "",
     ];
 
     let 測れた = 0;
@@ -318,7 +352,9 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
         測れた += 1;
         const parserが受ける = validateDragonJson(図(置く(v))).ok;
         if (schemaが受ける(定義, v) !== parserが受ける) {
-          食い違い.push(`${名}: ${JSON.stringify(v)} (schema=${!parserが受ける} parser=${parserが受ける})`);
+          食い違い.push(
+            `${名}: ${JSON.stringify(v)} (schema=${!parserが受ける} parser=${parserが受ける})`,
+          );
         }
       }
     }
@@ -328,7 +364,9 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
 
   it("色番号の形は 3 / 4 / 6 / 8 桁だけを受ける", () => {
     // 一致だけを見ると、両方が同時に緩い形も通る。 受ける値そのものを固定する
-    const 色番号 = (actor.color.anyOf as Array<{ pattern?: string }>).find((o) => o.pattern !== undefined);
+    const 色番号 = (actor.color.anyOf as Array<{ pattern?: string }>).find(
+      (o) => o.pattern !== undefined,
+    );
     const pattern = new RegExp(色番号?.pattern ?? "(?!)");
     for (const v of ["#fff", "#ffff", "#f59e0b", "#f59e0bcc", "#F59E0B"]) {
       expect(pattern.test(v), v).toBe(true);

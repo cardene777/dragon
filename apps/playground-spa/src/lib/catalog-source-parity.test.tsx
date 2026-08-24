@@ -37,6 +37,7 @@ import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
 import * as Cookbook from "@/topics/catalog/cookbook.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
+import * as Interactive from "@/topics/catalog/interactive.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -116,6 +117,9 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["cookbook", Cookbook],
   ["ethereum", Ethereum],
   ["parts", Parts],
+  // 全件ではない (#1385)。 つまみや押下で値が変わる仕掛けを持つ 56 件は記法で書けないので、
+  // 記法を持つ 73 件だけがここの対象になる (`記法つき` が `sourceYaml__` で絞る)
+  ["interactive", Interactive],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */

@@ -169,6 +169,10 @@ export const FORMS: Section[] = [
         code: '  dot: { kind: status-dot, source: done, map: [{ value: "ok", color: "#22c55e" }] }',
         note: "値に対応する色の点。 他に step-progress / status-timeline",
       },
+      {
+        code: "  lc: { kind: line-chart, source: hist, min: 0, max: 100 }",
+        note: "種類は 107 ある。 描ける部品はすべて書ける (#1385)",
+      },
     ],
   },
   {

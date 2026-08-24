@@ -20,6 +20,7 @@
 
 import {
   DRAW_WORDS,
+  EDGE_SIDE_VALUES,
   NODE_KIND_VALID,
   PRESET_TYPES,
   STYLE_VALID,
@@ -29,6 +30,7 @@ import {
   書ける色名,
   図形の表,
   部品の表,
+  部品の組の表,
   type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
@@ -261,6 +263,8 @@ export interface JsonStep {
   to: string;
   label: string;
   sub?: string;
+  /** 矢印がどの辺から出るか (#1385)。 記法の `side:` と同じ */
+  side?: "top" | "right" | "bottom" | "left";
   /**
    * 矢印の色 (#1304)。 記法の `(成功)` と同じく別名 (`成功` / `neutral` 等) も受ける。
    *
@@ -412,6 +416,8 @@ export const ACCEPTED_KEYS = {
     "to",
     "label",
     "sub",
+    // 矢印がどの辺から出るか (#1385)
+    "side",
     "tone",
     "style",
     "guard",
@@ -467,6 +473,7 @@ export type 欄の型 =
   | "真偽"
   | "色"
   | "線種"
+  | "辺"
   | "色か色番号"
   | "描くもの"
   | "必須の図種"
@@ -529,6 +536,8 @@ export const 欄の型表 = {
     to: "必須の文字列",
     label: "必須の文字列",
     sub: "文字列",
+    // 矢印がどの辺から出るか (#1385)
+    side: "辺",
     tone: "色",
     style: "線種",
     guard: "文字列",
@@ -741,6 +750,16 @@ function 値を検査(
         errors.push({
           path,
           message: `${名前} must be one of: ${[...STYLE_VALID].join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "辺":
+      if (v === undefined) return;
+      if (typeof v !== "string" || !(EDGE_SIDE_VALUES as readonly string[]).includes(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${EDGE_SIDE_VALUES.join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
         });
       }
@@ -1009,22 +1028,25 @@ function 表で中身を検査する(
           ? (typeof 値 === "number" && Number.isFinite(値)) || typeof 値 === "string"
           : 形 === "文字列の並び"
             ? Array.isArray(値) && 値.every((x) => typeof x === "string")
-            : 形 === "組の並び"
-              ? Array.isArray(値) &&
-                値.length > 0 &&
-                値.every(
-                  (x) =>
-                    typeof x === "object" &&
-                    x !== null &&
-                    !Array.isArray(x) &&
-                    Object.keys(x as object).length > 0 &&
-                    Object.values(x as object).every(
-                      (y) => typeof y === "string" || (typeof y === "number" && Number.isFinite(y)),
-                    ),
-                )
-              : 形 === "向き"
-                ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
-                : typeof 値 === "string";
+            : 形 === "真偽"
+              ? typeof 値 === "boolean"
+              : 形 === "組の並び"
+                ? Array.isArray(値) &&
+                  値.length > 0 &&
+                  値.every(
+                    (x) =>
+                      typeof x === "object" &&
+                      x !== null &&
+                      !Array.isArray(x) &&
+                      Object.keys(x as object).length > 0 &&
+                      Object.values(x as object).every(
+                        (y) =>
+                          typeof y === "string" || (typeof y === "number" && Number.isFinite(y)),
+                      ),
+                  )
+                : 形 === "向き"
+                  ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
+                  : typeof 値 === "string";
     if (!型が合う) {
       errors.push({
         path: `${path}.${欄}`,
@@ -1073,38 +1095,44 @@ function validateReadouts(v: unknown, errors: JsonDslError[]): void {
     }
     表で中身を検査する(o, 部品の表, path, "readout", errors);
 
-    const 組の欄 =
-      o.kind === "status-dot"
-        ? { name: "map", required: ["value", "color"], allowed: ["value", "color", "label"] }
-        : o.kind === "status-timeline"
-          ? { name: "colorMap", required: ["status", "color"], allowed: ["status", "color"] }
-          : undefined;
-    if (組の欄 !== undefined && Array.isArray(o[組の欄.name])) {
-      (o[組の欄.name] as unknown[]).forEach((entry, j) => {
-        const entryPath = `${path}.${組の欄.name}[${j}]`;
+    /*
+     * 組の並びを取る欄の中身を、記法と同じ表で見る (#1385)。
+     *
+     * **種類を手で並べない**。 元は `status-dot` と `status-timeline` を直書きしていたが、
+     * 表は描画側の型定義から生成しており、種類が増えるたびに書き足す形になる。
+     */
+    const 組の定義 = 部品の組の表[String(o.kind)];
+    for (const [欄名, 定義] of Object.entries(組の定義 ?? {})) {
+      if (!Array.isArray(o[欄名])) continue;
+      (o[欄名] as unknown[]).forEach((entry, j) => {
+        const entryPath = `${path}.${欄名}[${j}]`;
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
         const item = entry as Record<string, unknown>;
         for (const key of Object.keys(item)) {
-          if (組の欄.allowed.includes(key)) continue;
+          if (key in 定義.欄) continue;
           errors.push({
             path: `${entryPath}.${key}`,
             message: `${key} is not allowed for readout kind "${String(o.kind)}"`,
-            hint: `使える項目 = ${組の欄.allowed.join(", ")}`,
+            hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
           });
         }
-        for (const key of 組の欄.required) {
+        for (const key of 定義.必須) {
           if (item[key] !== undefined) continue;
           errors.push({
             path: `${entryPath}.${key}`,
             message: `${key} is required for readout kind "${String(o.kind)}"`,
           });
         }
-        for (const key of 組の欄.allowed) {
-          if (item[key] === undefined || typeof item[key] === "string") continue;
+        for (const [key, 形] of Object.entries(定義.欄)) {
+          const 値 = item[key];
+          if (値 === undefined) continue;
+          const 合う =
+            形 === "数" ? typeof 値 === "number" && Number.isFinite(値) : typeof 値 === "string";
+          if (合う) continue;
           errors.push({
             path: `${entryPath}.${key}`,
-            message: `${key} must be 文字列`,
-            hint: `got ${item[key] === null ? "null" : typeof item[key]}`,
+            message: `${key} must be ${形}`,
+            hint: `got ${Array.isArray(値) ? "array" : 値 === null ? "null" : typeof 値}`,
           });
         }
       });
@@ -1796,6 +1824,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     to: s.to,
     label: s.label,
     sub: s.sub,
+    side: s.side as "top" | "right" | "bottom" | "left" | undefined,
     // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
     // 図に届き、同じ値が箱では色になり矢印では色にならない
     tone: resolveTone(s.tone),
