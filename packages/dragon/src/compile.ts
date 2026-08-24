@@ -40,6 +40,7 @@ import {
   NODE_KINDS,
   applyDerivedValues,
   parseFormula,
+  extractIdentifiers,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS } from "./v05/parser";
@@ -121,7 +122,9 @@ export type CompileNotice = {
     // 起点から描く動きを持たない図種で段に `draw:` を書いた (#1312)
     | "draw-not-honored"
     // `draw:` の語がその図種と食い違う (`type: bar` に `draw: pie`、 #1314)
-    | "draw-target-mismatch";
+    | "draw-target-mismatch"
+    // 式が、どこにも書かれていない名前を読んだ (#1391)
+    | "formula-unresolved";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -326,6 +329,53 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       (input) => deepRewriteStrings(input, (value) => value) as typeof input,
     );
     merged.inputs = [...(merged.inputs ?? []), ...ownInputs];
+  }
+  /*
+   * つまみの値から決まる値を図に載せる (#1391)。
+   *
+   * 部品やつまみと同じく写して載せる。 式の文字列は色を塗る位置に届かないが、
+   * 入力を書き換えない形を 3 経路で揃える方が読み手に説明しやすい。
+   */
+  if (doc.formulas && doc.formulas.length > 0) {
+    const ownFormulas = doc.formulas.map(
+      (formula) => deepRewriteStrings(formula, (value) => value) as typeof formula,
+    );
+    merged.formulas = [...(merged.formulas ?? []), ...ownFormulas];
+    /*
+     * 式が読む名前が、どこにも書かれていないことを知らせる (#1391)。
+     *
+     * 描画側は解けない名前を 0 として扱うため、綴りを誤ると「動かない図」 になって
+     * 手掛かりが残らない。 名前の出どころは 4 つ (つまみ / 状態 / 他の式 /
+     * 段が動かす値) で、そのどれにも無い名前だけを知らせる。
+     *
+     * **止めずに知らせるだけにする**。 描画側は解けない名前を含む式も受け取るため、
+     * 図そのものは出る。 `values:` の解けない参照 (`value-unresolved`) と揃える。
+     */
+    const 書かれた名前 = new Set<string>([
+      ...(merged.inputs ?? []).map((x) => x.id),
+      ...(merged.states ?? []).map((x) => String(x.id)),
+      ...(merged.formulas ?? []).map((x) => x.id),
+      ...(merged.derived ?? []).map((x) => x.id),
+    ]);
+    for (const formula of ownFormulas) {
+      let 名前たち: Set<string>;
+      try {
+        名前たち = extractIdentifiers(parseFormula(formula.expression));
+      } catch {
+        // 読めない式は記法の読み取りが既に知らせている。 ここで二重に出さない
+        continue;
+      }
+      for (const 名 of 名前たち) {
+        if (書かれた名前.has(名)) continue;
+        opts?.onNotice?.({
+          kind: "formula-unresolved",
+          actor: formula.id,
+          line: 0,
+          message: `式 "${formula.id}" が、どこにも書かれていない名前 "${名}" を読んでいます`,
+          hint: "`inputs:` / `states:` / `formulas:` / `values:` のどれかに書く",
+        });
+      }
+    }
   }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //

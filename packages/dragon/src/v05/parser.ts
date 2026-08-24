@@ -42,7 +42,7 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS, parseFormula } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
@@ -59,6 +59,7 @@ import type {
   DslDynShape,
   DslReadout,
   DslInput,
+  DslFormula,
   DslActorNodeOverride,
   DslStep,
   DslAnimate,
@@ -105,6 +106,8 @@ export const TOP_LEVEL_KEYS = [
   "readouts",
   // 読む人が動かすつまみ (#1389)
   "inputs",
+  // つまみの値から決まる値 (#1391)
+  "formulas",
 ] as const;
 
 /**
@@ -337,6 +340,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let lanesMap: Record<string, DslLane> | undefined = undefined;
   let readoutsList: DslReadout[] | undefined = undefined;
   let inputsList: DslInput[] | undefined = undefined;
+  let formulasList: DslFormula[] | undefined = undefined;
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
 
   let i = 0;
@@ -662,6 +666,30 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "formulas") {
+      // formulas:\n  doubled: "input * 2"
+      //
+      // 1 行にまとめた形は受けない (`values:` と同じ理由)。 式に `,` が入るため、
+      // 素朴な `,` 分割では式が壊れる。
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "formulas は 1 行にまとめて書けない",
+          hint: '式に `,` が入るため。 次の行から字下げして `doubled: "input * 2"` の形で並べる',
+        });
+        i += 1;
+        continue;
+      }
+      // 字下げした行を全て読み手へ渡す = 綴りを誤った行も知らせるため
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      formulasList = [];
+      for (const it of items) {
+        const f = 式として読む(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
+        if (f) formulasList.push(f);
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "groups") {
       // groups:\n  aws: { label: "AWS", lanes: [ecs, rds] }
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
@@ -722,6 +750,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       lanes: lanesMap,
       readouts: readoutsList,
       inputs: inputsList,
+      formulas: formulasList,
       groups: groupsMap,
       pos: { line: 1 },
     },
@@ -1532,6 +1561,56 @@ function 部品として読む(
   部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
   return { id, kind, ...読めた } as DslReadout;
+}
+
+/**
+ * つまみの値から決まる値を読む (#1391)。 読めなければ `undefined` を返す。
+ *
+ * 形は `名前: "式"` の 1 行。 `values:` と同じ形で、**違うのは解かれる仕組み**。
+ * あちらは段が動かす状態を読み、こちらはつまみが握る値を読む。
+ *
+ * 名前を中括弧で囲うかは自由 (実測 = 描画側の parser は `"{a} + 1"` と `"a + 1"` を
+ * 同じ名前として読む)。 `values:` から式を書き写しても、そのまま通る。
+ *
+ * **式は描画側の parser に通す**。 自前で書き方を決めると、通ったのに描画側が
+ * 解けない式を受けてしまう。 描画側が投げた誤りの本文をそのまま知らせに載せる。
+ */
+function 式として読む(行: string, line: number, errors: DslError[]): DslFormula | undefined {
+  const c = 行.indexOf(":");
+  if (c < 0) {
+    errors.push({
+      line,
+      message: `式の行が読めません: "${行}"`,
+      hint: '`名前: "式"` の形で書く (例 `doubled: "input * 2"`)',
+    });
+    return undefined;
+  }
+  const 名前 = 行.slice(0, c).trim();
+  const 式 = stripQuotes(行.slice(c + 1).trim());
+  if (!isValueName(名前)) {
+    // 名前の規則は状態と揃える = 式の名前も `{名前}` で箱の文字に差し込める
+    errors.push({ line, ...valueNameIssue(名前) });
+    return undefined;
+  }
+  if (式 === "") {
+    errors.push({
+      line,
+      message: `式 "${名前}" が空です`,
+      hint: '`doubled: "input * 2"` のように式を書く',
+    });
+    return undefined;
+  }
+  try {
+    parseFormula(式);
+  } catch (e) {
+    errors.push({
+      line,
+      message: `式 "${名前}" を読めません: ${(e as Error).message}`,
+      hint: "使えるのは四則と括弧、比較、三項 (`a > 1 ? 2 : 3`)、`Math.min` などの関数",
+    });
+    return undefined;
+  }
+  return { id: 名前, expression: 式 };
 }
 
 /**

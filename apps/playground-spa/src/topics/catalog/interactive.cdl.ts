@@ -11422,7 +11422,7 @@ export const subtitle__exemplarNotificationFlow =
   "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
 
 // ============================================================
-// 記法 (#1385 / #1389 / #1392)
+// 記法 (#1385 / #1389 / #1391 / #1392)
 // ============================================================
 //
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
@@ -11432,8 +11432,9 @@ export const subtitle__exemplarNotificationFlow =
 // `jsonToDiagram` の両方に通して、元の図と骨格が一致することを確かめてから貼っている。
 //
 // **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄
-// (`wBind` / `opacity` / `renderOffsetX` 等) を書けるようにしたが、式 (`formulas`) /
-// 押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) を使う図はまだ書けない。
+// (`wBind` / `opacity` / `renderOffsetX` 等)、#1391 で式 (`formulas:`) を書けるように
+// したが、押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) / 矢印を値に追随させる欄
+// (`widthBind` 等) を使う図はまだ書けない。
 // 内訳は台帳 (`lib/catalog-notation-coverage.test.ts`) の「一部のページ」 が持つ。
 
 export const sourceYaml__arrayLineChart = `title: "配列の値から面グラフを描く"
@@ -25298,6 +25299,1394 @@ export const sourceJson__visualBindBar = `{
       "duration": 1.8,
       "focus": ["signalNode", "bar", "readoutNode"],
       "body": "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__eip1559GasFlow = `title: "EIP-1559 の手数料が 3 ブロックで変わる"
+type: flow
+
+inputs:
+  baseFee: { kind: slider, min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" }
+  priority: { kind: slider, min: 1, max: 30, defaultValue: 5, label: "Priority tip" }
+
+readouts:
+  gas: { kind: stacked-bar, sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip per block" }
+
+formulas:
+  total1: "baseFee + priority"
+  total2: "(baseFee + priority) * 12 / 10"
+  total3: "(baseFee + priority) * 15 / 10"
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 300 }
+
+states:
+  baseFee: 50
+  priority: 5
+  burned: "[50,60,72]"
+  tips: "[5,8,10]"
+  total1: 55
+  total2: 66
+  total3: 82
+
+actors:
+  - Wallet: { kind: card, lane: col1, stack: 0, subtitle: "base {baseFee} + tip {priority} gwei", posW: 320 }
+  - Block N: { kind: card, lane: col1, stack: 1, subtitle: "1.0x = {total1} gwei", posW: 240 }
+  - Block N+1: { kind: card, lane: col2, stack: 0, subtitle: "1.2x = {total2} gwei", posW: 250 }
+  - Block N+2: { kind: card, lane: col2, stack: 1, subtitle: "1.5x = {total3} gwei", posW: 250 }
+
+flow:
+  - Wallet -> Block N: "tx submit" (info) { sub: "base + tip" }
+  - Block N -> Block N+1: "next block" (warning) { sub: "+20% fee" }
+  - Block N+1 -> Block N+2: "next block" (error) { sub: "+25% fee" }
+
+animation:
+  - step: "1 ブロック目" 1.8s
+    focus: ["Wallet", "Block N"]
+    set:
+      burned: "[50,0,0]"
+      tips: "[5,0,0]"
+    description: "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
+  - step: "2 ブロック目" 1.8s
+    focus: ["Wallet", "Block N", "Block N+1"]
+    set:
+      burned: "[50,60,0]"
+      tips: "[5,8,0]"
+    description: "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
+  - step: "3 ブロック目" 1.8s
+    focus: ["Wallet", "Block N", "Block N+1", "Block N+2"]
+    set:
+      burned: "[50,60,72]"
+      tips: "[5,8,10]"
+    description: "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。"
+`;
+
+export const sourceJson__eip1559GasFlow = `{
+  "title": "EIP-1559 の手数料が 3 ブロックで変わる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "baseFee",
+      "kind": "slider",
+      "min": 10,
+      "max": 200,
+      "defaultValue": 50,
+      "label": "Base fee (gwei)"
+    },
+    {
+      "id": "priority",
+      "kind": "slider",
+      "min": 1,
+      "max": 30,
+      "defaultValue": 5,
+      "label": "Priority tip"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "gas",
+      "kind": "stacked-bar",
+      "sourceA": "burned",
+      "sourceB": "tips",
+      "min": 0,
+      "max": 120,
+      "colorA": "#ef4444",
+      "colorB": "#22c55e",
+      "label": "Burned / Tip per block"
+    }
+  ],
+  "formulas": {
+    "total1": "baseFee + priority",
+    "total2": "(baseFee + priority) * 12 / 10",
+    "total3": "(baseFee + priority) * 15 / 10"
+  },
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 300 }
+  },
+  "actors": [
+    {
+      "name": "Wallet",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "base {baseFee} + tip {priority} gwei",
+      "posW": 320
+    },
+    {
+      "name": "Block N",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "1.0x = {total1} gwei",
+      "posW": 240
+    },
+    {
+      "name": "Block N+1",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "1.2x = {total2} gwei",
+      "posW": 250
+    },
+    {
+      "name": "Block N+2",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "1.5x = {total3} gwei",
+      "posW": 250
+    }
+  ],
+  "flow": [
+    {
+      "from": "Wallet",
+      "to": "Block N",
+      "label": "tx submit",
+      "sub": "base + tip",
+      "tone": "info"
+    },
+    {
+      "from": "Block N",
+      "to": "Block N+1",
+      "label": "next block",
+      "sub": "+20% fee",
+      "tone": "warning"
+    },
+    {
+      "from": "Block N+1",
+      "to": "Block N+2",
+      "label": "next block",
+      "sub": "+25% fee",
+      "tone": "error"
+    }
+  ],
+  "states": {
+    "baseFee": 50,
+    "priority": 5,
+    "burned": "[50,60,72]",
+    "tips": "[5,8,10]",
+    "total1": 55,
+    "total2": 66,
+    "total3": 82
+  },
+  "animation": [
+    {
+      "step": "1 ブロック目",
+      "duration": 1.8,
+      "focus": ["Wallet", "Block N"],
+      "set": { "burned": "[50,0,0]", "tips": "[5,0,0]" },
+      "body": "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
+    },
+    {
+      "step": "2 ブロック目",
+      "duration": 1.8,
+      "focus": ["Wallet", "Block N", "Block N+1"],
+      "set": { "burned": "[50,60,0]", "tips": "[5,8,0]" },
+      "body": "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
+    },
+    {
+      "step": "3 ブロック目",
+      "duration": 1.8,
+      "focus": ["Wallet", "Block N", "Block N+1", "Block N+2"],
+      "set": { "burned": "[50,60,72]", "tips": "[5,8,10]" },
+      "body": "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__formulaTextBind = `title: "入力値から 2 倍と半分を自動計算する"
+type: flow
+
+inputs:
+  input: { kind: number, defaultValue: 10, label: "Input" }
+
+formulas:
+  doubled: "input * 2"
+  halved: "input / 2"
+
+lanes:
+  input: { x: 0, width: 200 }
+  doubled: { x: 240, width: 200 }
+  halved: { x: 480, width: 200 }
+
+states:
+  input: 10
+  doubled: 20
+  halved: 5
+
+actors:
+  - in: { kind: card, lane: input, stack: 0, subtitle: "value = {input}", title: "Input" }
+  - out1: { kind: card, lane: doubled, stack: 0, subtitle: "input * 2 = {doubled}", title: "Doubled" }
+  - out2: { kind: card, lane: halved, stack: 0, subtitle: "input / 2 = {halved}", title: "Halved" }
+
+flow:
+  - in -> out1: "× 2" (success)
+  - in -> out2: "÷ 2" (info)
+
+animation:
+  - step: "元の値を置く" 1.6s
+    focus: ["in"]
+    description: "左の箱に入力値を置く。 まだ計算式は動いていない。"
+  - step: "2 倍を出す" 1.6s
+    focus: ["in", "out1"]
+    description: "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。"
+  - step: "半分も出す" 1.6s
+    focus: ["in", "out1", "out2"]
+    description: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。"
+`;
+
+export const sourceJson__formulaTextBind = `{
+  "title": "入力値から 2 倍と半分を自動計算する",
+  "type": "flow",
+  "inputs": [
+    { "id": "input", "kind": "number", "defaultValue": 10, "label": "Input" }
+  ],
+  "formulas": { "doubled": "input * 2", "halved": "input / 2" },
+  "lanes": {
+    "input": { "x": 0, "width": 200 },
+    "doubled": { "x": 240, "width": 200 },
+    "halved": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "in",
+      "kind": "card",
+      "lane": "input",
+      "stack": 0,
+      "subtitle": "value = {input}",
+      "title": "Input"
+    },
+    {
+      "name": "out1",
+      "kind": "card",
+      "lane": "doubled",
+      "stack": 0,
+      "subtitle": "input * 2 = {doubled}",
+      "title": "Doubled"
+    },
+    {
+      "name": "out2",
+      "kind": "card",
+      "lane": "halved",
+      "stack": 0,
+      "subtitle": "input / 2 = {halved}",
+      "title": "Halved"
+    }
+  ],
+  "flow": [
+    { "from": "in", "to": "out1", "label": "× 2", "tone": "success" },
+    { "from": "in", "to": "out2", "label": "÷ 2", "tone": "info" }
+  ],
+  "states": { "input": 10, "doubled": 20, "halved": 5 },
+  "animation": [
+    { "step": "元の値を置く", "duration": 1.6, "focus": ["in"], "body": "左の箱に入力値を置く。 まだ計算式は動いていない。" },
+    {
+      "step": "2 倍を出す",
+      "duration": 1.6,
+      "focus": ["in", "out1"],
+      "body": "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。"
+    },
+    {
+      "step": "半分も出す",
+      "duration": 1.6,
+      "focus": ["in", "out1", "out2"],
+      "body": "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__kpiDashboard = `title: "SaaS の主要指標 4 つを 1 画面に並べる"
+type: flow
+
+inputs:
+  revenueInput: { kind: slider, min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" }
+
+readouts:
+  rev: { kind: stat, source: "revenueInput", unit: "k", label: "Revenue" }
+  usr: { kind: stat, source: "users", label: "Users" }
+  chr: { kind: gauge, source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" }
+  np: { kind: percent-ring, source: "nps", max: 100, color: "#22c55e", label: "NPS" }
+
+formulas:
+  users: "revenueInput * 8"
+  churn: "50 - revenueInput / 10"
+  nps: "revenueInput / 2 + 20"
+
+lanes:
+  revenue: { x: 0, width: 200 }
+  users: { x: 260, width: 200 }
+  churn: { x: 520, width: 200 }
+  nps: { x: 780, width: 200 }
+
+states:
+  revenueInput: 120
+  users: 960
+  churn: 38
+  nps: 80
+
+actors:
+  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue" }
+  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users" }
+  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn" }
+  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS" }
+
+flow:
+  - revCard -> usersCard: "×8" (info) { sub: "acquisition" }
+  - revCard -> churnCard: "inverse" (error) { sub: "50 − rev/10" }
+  - revCard -> npsCard: "correlate" (success) { sub: "rev/2 + 20", side: "bottom" }
+
+animation:
+  - step: "利用者を見る" 1.8s
+    focus: ["usersCard"]
+    description: "売上のつまみから計算式で利用者数を導く。 4 指標のうち 1 つ目。"
+  - step: "解約率も導く" 1.8s
+    focus: ["usersCard", "churnCard"]
+    description: "同じ元の値から解約率を導く。 売上を動かすと 2 つが同時に変わる。"
+  - step: "4 指標が揃う" 1.8s
+    focus: ["revCard", "usersCard", "churnCard", "npsCard"]
+    description: "推奨度まで並ぶ。 つまみが持つ 1 指標と、そこから導く 3 指標の組になっている。"
+`;
+
+export const sourceJson__kpiDashboard = `{
+  "title": "SaaS の主要指標 4 つを 1 画面に並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "revenueInput",
+      "kind": "slider",
+      "min": 10,
+      "max": 500,
+      "defaultValue": 120,
+      "label": "Revenue (k)"
+    }
+  ],
+  "readouts": [
+    { "id": "rev", "kind": "stat", "source": "revenueInput", "unit": "k", "label": "Revenue" },
+    { "id": "usr", "kind": "stat", "source": "users", "label": "Users" },
+    {
+      "id": "chr",
+      "kind": "gauge",
+      "source": "churn",
+      "min": 0,
+      "max": 60,
+      "color": "#ef4444",
+      "label": "Churn %"
+    },
+    {
+      "id": "np",
+      "kind": "percent-ring",
+      "source": "nps",
+      "max": 100,
+      "color": "#22c55e",
+      "label": "NPS"
+    }
+  ],
+  "formulas": {
+    "users": "revenueInput * 8",
+    "churn": "50 - revenueInput / 10",
+    "nps": "revenueInput / 2 + 20"
+  },
+  "lanes": {
+    "revenue": { "x": 0, "width": 200 },
+    "users": { "x": 260, "width": 200 },
+    "churn": { "x": 520, "width": 200 },
+    "nps": { "x": 780, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "revCard",
+      "kind": "card",
+      "lane": "revenue",
+      "stack": 0,
+      "subtitle": "\${revenueInput}k / month",
+      "title": "Revenue"
+    },
+    {
+      "name": "usersCard",
+      "kind": "card",
+      "lane": "users",
+      "stack": 0,
+      "subtitle": "{users} active",
+      "title": "Users"
+    },
+    {
+      "name": "churnCard",
+      "kind": "card",
+      "lane": "churn",
+      "stack": 0,
+      "subtitle": "{churn}% / month",
+      "title": "Churn"
+    },
+    {
+      "name": "npsCard",
+      "kind": "card",
+      "lane": "nps",
+      "stack": 0,
+      "subtitle": "{nps} score",
+      "title": "NPS"
+    }
+  ],
+  "flow": [
+    {
+      "from": "revCard",
+      "to": "usersCard",
+      "label": "×8",
+      "sub": "acquisition",
+      "tone": "info"
+    },
+    {
+      "from": "revCard",
+      "to": "churnCard",
+      "label": "inverse",
+      "sub": "50 − rev/10",
+      "tone": "error"
+    },
+    {
+      "from": "revCard",
+      "to": "npsCard",
+      "label": "correlate",
+      "sub": "rev/2 + 20",
+      "tone": "success",
+      "side": "bottom"
+    }
+  ],
+  "states": { "revenueInput": 120, "users": 960, "churn": 38, "nps": 80 },
+  "animation": [
+    {
+      "step": "利用者を見る",
+      "duration": 1.8,
+      "focus": ["usersCard"],
+      "body": "売上のつまみから計算式で利用者数を導く。 4 指標のうち 1 つ目。"
+    },
+    {
+      "step": "解約率も導く",
+      "duration": 1.8,
+      "focus": ["usersCard", "churnCard"],
+      "body": "同じ元の値から解約率を導く。 売上を動かすと 2 つが同時に変わる。"
+    },
+    {
+      "step": "4 指標が揃う",
+      "duration": 1.8,
+      "focus": ["revCard", "usersCard", "churnCard", "npsCard"],
+      "body": "推奨度まで並ぶ。 つまみが持つ 1 指標と、そこから導く 3 指標の組になっている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pathProgressDemo = `title: "経路の進捗と完了状態を連動させる"
+type: flow
+
+inputs:
+  progress: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "Progress" }
+
+readouts:
+  pp: { kind: path-progress, source: "progress", pathD: "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10", viewW: 270, viewH: 40, strokeWidth: 5, color: "#22c55e", max: 100, label: "Path (zigzag)" }
+  ring: { kind: percent-ring, source: "progress", max: 100, color: "#22c55e", label: "Ring" }
+
+formulas:
+  done: "progress >= 100 ? 1 : 0"
+
+lanes:
+  state: { x: 0, width: 200 }
+  visual: { x: 240, width: 300 }
+  done: { x: 560, width: 200 }
+
+states:
+  progress: 40
+  done: 0
+
+actors:
+  - main: { kind: card, lane: state, stack: 0, subtitle: "{progress}% complete", title: "Task state" }
+  - pathNode: { kind: card, lane: visual, stack: 0, subtitle: "SVG stroke-dashoffset で進行", title: "Path visual" }
+  - ringNode: { kind: card, lane: visual, stack: 1, subtitle: "同時追随", title: "Percent ring" }
+  - ok: { kind: card, lane: done, stack: 0, subtitle: "progress=100% で visibleIf 発動", visibleIf: "{done}", title: "✓ Done" }
+
+animation:
+  - step: "元の値を見る" 1.8s
+    focus: ["main"]
+    description: "進捗の値をつまみが持つ。 この 1 つの値から 2 つの表示を作る。"
+  - step: "経路と円に届く" 1.8s
+    focus: ["main", "pathNode", "ringNode"]
+    description: "同じ進捗が経路の塗りと円の角度になる。 つまみを動かすと両方が動く。"
+  - step: "完了の印" 1.8s
+    focus: ["main", "pathNode", "ringNode", "ok"]
+    description: "進捗が満ちた時だけ出る印。 条件付きの表示で、満たない間は隠れている。"
+`;
+
+export const sourceJson__pathProgressDemo = `{
+  "title": "経路の進捗と完了状態を連動させる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "progress",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 40,
+      "label": "Progress"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "pp",
+      "kind": "path-progress",
+      "source": "progress",
+      "pathD": "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10",
+      "viewW": 270,
+      "viewH": 40,
+      "strokeWidth": 5,
+      "color": "#22c55e",
+      "max": 100,
+      "label": "Path (zigzag)"
+    },
+    {
+      "id": "ring",
+      "kind": "percent-ring",
+      "source": "progress",
+      "max": 100,
+      "color": "#22c55e",
+      "label": "Ring"
+    }
+  ],
+  "formulas": { "done": "progress >= 100 ? 1 : 0" },
+  "lanes": {
+    "state": { "x": 0, "width": 200 },
+    "visual": { "x": 240, "width": 300 },
+    "done": { "x": 560, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "main",
+      "kind": "card",
+      "lane": "state",
+      "stack": 0,
+      "subtitle": "{progress}% complete",
+      "title": "Task state"
+    },
+    {
+      "name": "pathNode",
+      "kind": "card",
+      "lane": "visual",
+      "stack": 0,
+      "subtitle": "SVG stroke-dashoffset で進行",
+      "title": "Path visual"
+    },
+    {
+      "name": "ringNode",
+      "kind": "card",
+      "lane": "visual",
+      "stack": 1,
+      "subtitle": "同時追随",
+      "title": "Percent ring"
+    },
+    {
+      "name": "ok",
+      "kind": "card",
+      "lane": "done",
+      "stack": 0,
+      "subtitle": "progress=100% で visibleIf 発動",
+      "visibleIf": "{done}",
+      "title": "✓ Done"
+    }
+  ],
+  "flow": [],
+  "states": { "progress": 40, "done": 0 },
+  "animation": [
+    {
+      "step": "元の値を見る",
+      "duration": 1.8,
+      "focus": ["main"],
+      "body": "進捗の値をつまみが持つ。 この 1 つの値から 2 つの表示を作る。"
+    },
+    {
+      "step": "経路と円に届く",
+      "duration": 1.8,
+      "focus": ["main", "pathNode", "ringNode"],
+      "body": "同じ進捗が経路の塗りと円の角度になる。 つまみを動かすと両方が動く。"
+    },
+    {
+      "step": "完了の印",
+      "duration": 1.8,
+      "focus": ["main", "pathNode", "ringNode", "ok"],
+      "body": "進捗が満ちた時だけ出る印。 条件付きの表示で、満たない間は隠れている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__repeatDeriveChain = `title: "repeatNodes + deriveChain で N 個の rect を宣言的に生成、 前値連鎖で伝搬"
+type: flow
+
+inputs:
+  base: { kind: slider, min: 0, max: 60, defaultValue: 20, label: "Base" }
+
+formulas:
+  gas1: "base"
+  gas2: "gas1 * 1.2"
+  gas3: "gas2 * 1.2"
+  gas4: "gas3 * 1.2"
+  gas5: "gas4 * 1.2"
+
+lanes:
+  l1: { x: 0, width: 100 }
+  l2: { x: 120, width: 100 }
+  l3: { x: 240, width: 100 }
+  l4: { x: 360, width: 100 }
+  l5: { x: 480, width: 100 }
+
+states:
+  base: 20
+  gas1: 20
+  gas2: 24
+  gas3: 28.8
+  gas4: 34.56
+  gas5: 41.472
+
+actors:
+  - Block 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "gas: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - Block 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "gas: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - Block 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "gas: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - Block 4: { kind: dyn-rect, lane: l4, stack: 0, subtitle: "gas: {gas4}", shape: { kind: rect, source: "{gas4}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - Block 5: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "gas: {gas5}", shape: { kind: rect, source: "{gas5}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+
+animation:
+  - step: "起点を置く" 1.6s
+    focus: ["Block 1"]
+    description: "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
+  - step: "2 つ目まで伝わる" 1.6s
+    focus: ["Block 1", "Block 2"]
+    description: "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
+  - step: "4 つ目まで伝わる" 1.6s
+    focus: ["Block 1", "Block 2", "Block 3", "Block 4"]
+    description: "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
+  - step: "端まで届く" 1.6s
+    focus: ["Block 1", "Block 2", "Block 3", "Block 4", "Block 5"]
+    description: "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
+`;
+
+export const sourceJson__repeatDeriveChain = `{
+  "title": "repeatNodes + deriveChain で N 個の rect を宣言的に生成、 前値連鎖で伝搬",
+  "type": "flow",
+  "inputs": [
+    { "id": "base", "kind": "slider", "min": 0, "max": 60, "defaultValue": 20, "label": "Base" }
+  ],
+  "formulas": {
+    "gas1": "base",
+    "gas2": "gas1 * 1.2",
+    "gas3": "gas2 * 1.2",
+    "gas4": "gas3 * 1.2",
+    "gas5": "gas4 * 1.2"
+  },
+  "lanes": {
+    "l1": { "x": 0, "width": 100 },
+    "l2": { "x": 120, "width": 100 },
+    "l3": { "x": 240, "width": 100 },
+    "l4": { "x": 360, "width": 100 },
+    "l5": { "x": 480, "width": 100 }
+  },
+  "actors": [
+    {
+      "name": "Block 1",
+      "kind": "dyn-rect",
+      "lane": "l1",
+      "stack": 0,
+      "subtitle": "gas: {gas1}",
+      "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 220
+    },
+    {
+      "name": "Block 2",
+      "kind": "dyn-rect",
+      "lane": "l2",
+      "stack": 0,
+      "subtitle": "gas: {gas2}",
+      "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 220
+    },
+    {
+      "name": "Block 3",
+      "kind": "dyn-rect",
+      "lane": "l3",
+      "stack": 0,
+      "subtitle": "gas: {gas3}",
+      "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 220
+    },
+    {
+      "name": "Block 4",
+      "kind": "dyn-rect",
+      "lane": "l4",
+      "stack": 0,
+      "subtitle": "gas: {gas4}",
+      "shape": { "kind": "rect", "source": "{gas4}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 220
+    },
+    {
+      "name": "Block 5",
+      "kind": "dyn-rect",
+      "lane": "l5",
+      "stack": 0,
+      "subtitle": "gas: {gas5}",
+      "shape": { "kind": "rect", "source": "{gas5}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 220
+    }
+  ],
+  "flow": [],
+  "states": { "base": 20, "gas1": 20, "gas2": 24, "gas3": 28.8, "gas4": 34.56, "gas5": 41.472 },
+  "animation": [
+    {
+      "step": "起点を置く",
+      "duration": 1.6,
+      "focus": ["Block 1"],
+      "body": "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
+    },
+    {
+      "step": "2 つ目まで伝わる",
+      "duration": 1.6,
+      "focus": ["Block 1", "Block 2"],
+      "body": "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
+    },
+    {
+      "step": "4 つ目まで伝わる",
+      "duration": 1.6,
+      "focus": ["Block 1", "Block 2", "Block 3", "Block 4"],
+      "body": "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
+    },
+    {
+      "step": "端まで届く",
+      "duration": 1.6,
+      "focus": ["Block 1", "Block 2", "Block 3", "Block 4", "Block 5"],
+      "body": "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapeChainFill = `title: "3 個の dyn-rect を並列、 base slider で各 fill が formula 経由で連動変化"
+type: flow
+
+inputs:
+  base: { kind: slider, min: 0, max: 100, defaultValue: 30, label: "Base" }
+
+formulas:
+  gas1: "base"
+  gas2: "base * 1.2"
+  gas3: "base * 1.5"
+
+lanes:
+  l1: { x: 0, width: 130 }
+  l2: { x: 150, width: 130 }
+  l3: { x: 300, width: 130 }
+
+states:
+  base: 30
+  gas1: 30
+  gas2: 36
+  gas3: 45
+
+actors:
+  - Block 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "gas: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 220 }
+  - Block 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "gas: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" }, posW: 100, posH: 220 }
+  - Block 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "gas: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" }, posW: 100, posH: 220 }
+
+animation:
+  - step: "等倍で見る" 1.6s
+    focus: ["Block 1"]
+    description: "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
+  - step: "1.2 倍で見る" 1.6s
+    focus: ["Block 1", "Block 2"]
+    description: "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
+  - step: "1.5 倍で見る" 1.6s
+    focus: ["Block 1", "Block 2", "Block 3"]
+    description: "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
+`;
+
+export const sourceJson__shapeChainFill = `{
+  "title": "3 個の dyn-rect を並列、 base slider で各 fill が formula 経由で連動変化",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "base",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 30,
+      "label": "Base"
+    }
+  ],
+  "formulas": { "gas1": "base", "gas2": "base * 1.2", "gas3": "base * 1.5" },
+  "lanes": {
+    "l1": { "x": 0, "width": 130 },
+    "l2": { "x": 150, "width": 130 },
+    "l3": { "x": 300, "width": 130 }
+  },
+  "actors": [
+    {
+      "name": "Block 1",
+      "kind": "dyn-rect",
+      "lane": "l1",
+      "stack": 0,
+      "subtitle": "gas: {gas1}",
+      "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 150, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 100,
+      "posH": 220
+    },
+    {
+      "name": "Block 2",
+      "kind": "dyn-rect",
+      "lane": "l2",
+      "stack": 0,
+      "subtitle": "gas: {gas2}",
+      "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 150, "orient": "up", "fill": "#4e9dc4" },
+      "posW": 100,
+      "posH": 220
+    },
+    {
+      "name": "Block 3",
+      "kind": "dyn-rect",
+      "lane": "l3",
+      "stack": 0,
+      "subtitle": "gas: {gas3}",
+      "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 150, "orient": "up", "fill": "#7ec4dd" },
+      "posW": 100,
+      "posH": 220
+    }
+  ],
+  "flow": [],
+  "states": { "base": 30, "gas1": 30, "gas2": 36, "gas3": 45 },
+  "animation": [
+    {
+      "step": "等倍で見る",
+      "duration": 1.6,
+      "focus": ["Block 1"],
+      "body": "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
+    },
+    {
+      "step": "1.2 倍で見る",
+      "duration": 1.6,
+      "focus": ["Block 1", "Block 2"],
+      "body": "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
+    },
+    {
+      "step": "1.5 倍で見る",
+      "duration": 1.6,
+      "focus": ["Block 1", "Block 2", "Block 3"],
+      "body": "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapeCirclePulse = `title: "円の進捗リングを 4 段階で見せる"
+type: flow
+
+inputs:
+  p: { kind: slider, min: 0, max: 100, defaultValue: 60, label: "Progress" }
+
+formulas:
+  prog: "p / 100"
+
+lanes:
+  empty: { x: 0, width: 170 }
+  third: { x: 195, width: 170 }
+  twothird: { x: 390, width: 170 }
+  interactive: { x: 585, width: 180 }
+
+states:
+  p: 60
+  prog: 0.6
+  prog0: 0
+  prog33: 0.33
+  prog66: 0.66
+
+actors:
+  - 0%: { kind: dyn-circle, lane: empty, stack: 0, subtitle: "empty", shape: { kind: circle, fillProgress: "{prog0}", fill: "#a08870" }, posW: 160, posH: 160 }
+  - 33%: { kind: dyn-circle, lane: third, stack: 0, subtitle: "one-third", shape: { kind: circle, fillProgress: "{prog33}", fill: "#2563eb" }, posW: 160, posH: 160 }
+  - 66%: { kind: dyn-circle, lane: twothird, stack: 0, subtitle: "two-third", shape: { kind: circle, fillProgress: "{prog66}", fill: "#f97316" }, posW: 160, posH: 160 }
+  - Ring: { kind: dyn-circle, lane: interactive, stack: 0, subtitle: "{p}%", shape: { kind: circle, fillProgress: "{prog}", fill: "#8a5a2a" }, posW: 160, posH: 160 }
+
+animation:
+  - step: "0% を見る" 1.6s
+    focus: ["0%"]
+    description: "輪がまだ描かれていない状態。 ここが目盛りの始まりで、右へ行くほど輪が伸びる。"
+  - step: "33% と並べる" 1.6s
+    focus: ["0%", "33%"]
+    description: "3 分の 1 まで描いた輪を隣に置く。 0% との差が、輪の長さの違いとして読み取れる。"
+  - step: "66% まで並べる" 1.6s
+    focus: ["0%", "33%", "66%"]
+    description: "3 分の 2 まで並べる。 角度の差が輪の長さで分かる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["0%", "33%", "66%", "Ring"]
+    description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+`;
+
+export const sourceJson__shapeCirclePulse = `{
+  "title": "円の進捗リングを 4 段階で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "p",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 60,
+      "label": "Progress"
+    }
+  ],
+  "formulas": { "prog": "p / 100" },
+  "lanes": {
+    "empty": { "x": 0, "width": 170 },
+    "third": { "x": 195, "width": 170 },
+    "twothird": { "x": 390, "width": 170 },
+    "interactive": { "x": 585, "width": 180 }
+  },
+  "actors": [
+    {
+      "name": "0%",
+      "kind": "dyn-circle",
+      "lane": "empty",
+      "stack": 0,
+      "subtitle": "empty",
+      "shape": { "kind": "circle", "fillProgress": "{prog0}", "fill": "#a08870" },
+      "posW": 160,
+      "posH": 160
+    },
+    {
+      "name": "33%",
+      "kind": "dyn-circle",
+      "lane": "third",
+      "stack": 0,
+      "subtitle": "one-third",
+      "shape": { "kind": "circle", "fillProgress": "{prog33}", "fill": "#2563eb" },
+      "posW": 160,
+      "posH": 160
+    },
+    {
+      "name": "66%",
+      "kind": "dyn-circle",
+      "lane": "twothird",
+      "stack": 0,
+      "subtitle": "two-third",
+      "shape": { "kind": "circle", "fillProgress": "{prog66}", "fill": "#f97316" },
+      "posW": 160,
+      "posH": 160
+    },
+    {
+      "name": "Ring",
+      "kind": "dyn-circle",
+      "lane": "interactive",
+      "stack": 0,
+      "subtitle": "{p}%",
+      "shape": { "kind": "circle", "fillProgress": "{prog}", "fill": "#8a5a2a" },
+      "posW": 160,
+      "posH": 160
+    }
+  ],
+  "flow": [],
+  "states": { "p": 60, "prog": 0.6, "prog0": 0, "prog33": 0.33, "prog66": 0.66 },
+  "animation": [
+    {
+      "step": "0% を見る",
+      "duration": 1.6,
+      "focus": ["0%"],
+      "body": "輪がまだ描かれていない状態。 ここが目盛りの始まりで、右へ行くほど輪が伸びる。"
+    },
+    {
+      "step": "33% と並べる",
+      "duration": 1.6,
+      "focus": ["0%", "33%"],
+      "body": "3 分の 1 まで描いた輪を隣に置く。 0% との差が、輪の長さの違いとして読み取れる。"
+    },
+    {
+      "step": "66% まで並べる",
+      "duration": 1.6,
+      "focus": ["0%", "33%", "66%"],
+      "body": "3 分の 2 まで並べる。 角度の差が輪の長さで分かる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["0%", "33%", "66%", "Ring"],
+      "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__timelineDrive = `title: "1 つの時間信号が図形 2 種を同時に動かす"
+type: flow
+
+inputs:
+  t: { kind: timeline, duration: 3000, autoplay: true, loop: true, label: "Timeline" }
+
+readouts:
+  timeCu: { kind: countup, source: "bar", unit: "%", label: "Time %" }
+
+formulas:
+  bar: "t * 100"
+  angle: "t * 270"
+
+lanes:
+  time: { x: 0, width: 200 }
+  bar: { x: 240, width: 180 }
+  arc: { x: 440, width: 220 }
+
+states:
+  t: 0
+  bar: 0
+  angle: 0
+
+actors:
+  - timeNode: { kind: card, lane: time, stack: 0, subtitle: "t (0-1 loop 3s autoplay)", title: "Timeline" }
+  - r: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "bar = t * 100", shape: { kind: rect, source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 200, title: "Bar (rect)" }
+  - a: { kind: dyn-arc, lane: arc, stack: 0, subtitle: "angle = t * 270", shape: { kind: arc, angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" }, posW: 140, posH: 140, title: "Arc" }
+
+flow:
+  - timeNode -> r: "→ bar" (info)
+  - timeNode -> a: "→ angle" (accent) { labelOffsetX: -45 }
+
+animation:
+  - step: "時間の元を見る" 1.8s
+    focus: ["timeNode"]
+    description: "時間の入力が元になる。 この値から計算式で図形の値を導く。"
+  - step: "四角に届く" 1.8s
+    focus: ["timeNode", "r"]
+    description: "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。"
+  - step: "弧にも届く" 1.8s
+    focus: ["timeNode", "r", "a"]
+    description: "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。"
+`;
+
+export const sourceJson__timelineDrive = `{
+  "title": "1 つの時間信号が図形 2 種を同時に動かす",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "t",
+      "kind": "timeline",
+      "duration": 3000,
+      "autoplay": true,
+      "loop": true,
+      "label": "Timeline"
+    }
+  ],
+  "readouts": [
+    { "id": "timeCu", "kind": "countup", "source": "bar", "unit": "%", "label": "Time %" }
+  ],
+  "formulas": { "bar": "t * 100", "angle": "t * 270" },
+  "lanes": {
+    "time": { "x": 0, "width": 200 },
+    "bar": { "x": 240, "width": 180 },
+    "arc": { "x": 440, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "timeNode",
+      "kind": "card",
+      "lane": "time",
+      "stack": 0,
+      "subtitle": "t (0-1 loop 3s autoplay)",
+      "title": "Timeline"
+    },
+    {
+      "name": "r",
+      "kind": "dyn-rect",
+      "lane": "bar",
+      "stack": 0,
+      "subtitle": "bar = t * 100",
+      "shape": { "kind": "rect", "source": "{bar}", "fillMax": 100, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 200,
+      "title": "Bar (rect)"
+    },
+    {
+      "name": "a",
+      "kind": "dyn-arc",
+      "lane": "arc",
+      "stack": 0,
+      "subtitle": "angle = t * 270",
+      "shape": {
+        "kind": "arc",
+        "angle": "{angle}",
+        "startAngle": -135,
+        "sweepMax": 270,
+        "fill": "#4e9dc4"
+      },
+      "posW": 140,
+      "posH": 140,
+      "title": "Arc"
+    }
+  ],
+  "flow": [
+    { "from": "timeNode", "to": "r", "label": "→ bar", "tone": "info" },
+    { "from": "timeNode", "to": "a", "label": "→ angle", "tone": "accent", "labelOffsetX": -45 }
+  ],
+  "states": { "t": 0, "bar": 0, "angle": 0 },
+  "animation": [
+    {
+      "step": "時間の元を見る",
+      "duration": 1.8,
+      "focus": ["timeNode"],
+      "body": "時間の入力が元になる。 この値から計算式で図形の値を導く。"
+    },
+    {
+      "step": "四角に届く",
+      "duration": 1.8,
+      "focus": ["timeNode", "r"],
+      "body": "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。"
+    },
+    {
+      "step": "弧にも届く",
+      "duration": 1.8,
+      "focus": ["timeNode", "r", "a"],
+      "body": "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。"
+    }
+  ]
+}`;
+
+export const sourceYaml__timerStopwatch = `title: "秒数と実行状態から時計表示を作る"
+type: flow
+
+inputs:
+  sec: { kind: stepper, min: 0, max: 3600, step: 5, defaultValue: 125, label: "Elapsed sec" }
+  running: { kind: toggle, defaultValue: true, label: "Running" }
+
+readouts:
+  sw: { kind: stopwatch, source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "Timer (MM:SS.ms)" }
+
+formulas:
+  elapsed: "sec * 1000"
+
+lanes:
+  input: { x: 0, width: 200 }
+  toggle: { x: 240, width: 200 }
+  display: { x: 480, width: 220 }
+
+states:
+  sec: 125
+  running: "true"
+  elapsed: 125000
+
+actors:
+  - secNode: { kind: card, lane: input, stack: 0, subtitle: "sec = {sec}s (0-3600)", title: "Seconds" }
+  - runNode: { kind: card, lane: toggle, stack: 0, subtitle: "running = {running}", title: "Running" }
+  - displayNode: { kind: card, lane: display, stack: 0, subtitle: "elapsed = sec × 1000 = {elapsed}ms", title: "MM:SS.ms" }
+
+flow:
+  - secNode -> displayNode: "× 1000" (info)
+  - runNode -> displayNode: "color" (success)
+
+animation:
+  - step: "秒数" 1.2s
+    focus: ["secNode"]
+    badge: "timer"
+  - step: "実行状態" 1.2s
+    focus: ["secNode", "runNode"]
+    badge: "timer"
+  - step: "時計表示" 1.2s
+    focus: ["secNode", "runNode", "displayNode"]
+    badge: "timer"
+    description: "3-lane (Seconds / Running / Display) で stopwatch 3 component を分散、 2 edge (× 1000 info tone / color success tone) で 2 signal → 1 display の fan-in 明示、 stepper + toggle 変化で stopwatch readout の time + color が同時追随。"
+`;
+
+export const sourceJson__timerStopwatch = `{
+  "title": "秒数と実行状態から時計表示を作る",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "sec",
+      "kind": "stepper",
+      "min": 0,
+      "max": 3600,
+      "step": 5,
+      "defaultValue": 125,
+      "label": "Elapsed sec"
+    },
+    { "id": "running", "kind": "toggle", "defaultValue": true, "label": "Running" }
+  ],
+  "readouts": [
+    {
+      "id": "sw",
+      "kind": "stopwatch",
+      "source": "elapsed",
+      "runningSource": "running",
+      "size": 40,
+      "color": "#241c14",
+      "label": "Timer (MM:SS.ms)"
+    }
+  ],
+  "formulas": { "elapsed": "sec * 1000" },
+  "lanes": {
+    "input": { "x": 0, "width": 200 },
+    "toggle": { "x": 240, "width": 200 },
+    "display": { "x": 480, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "secNode",
+      "kind": "card",
+      "lane": "input",
+      "stack": 0,
+      "subtitle": "sec = {sec}s (0-3600)",
+      "title": "Seconds"
+    },
+    {
+      "name": "runNode",
+      "kind": "card",
+      "lane": "toggle",
+      "stack": 0,
+      "subtitle": "running = {running}",
+      "title": "Running"
+    },
+    {
+      "name": "displayNode",
+      "kind": "card",
+      "lane": "display",
+      "stack": 0,
+      "subtitle": "elapsed = sec × 1000 = {elapsed}ms",
+      "title": "MM:SS.ms"
+    }
+  ],
+  "flow": [
+    { "from": "secNode", "to": "displayNode", "label": "× 1000", "tone": "info" },
+    { "from": "runNode", "to": "displayNode", "label": "color", "tone": "success" }
+  ],
+  "states": { "sec": 125, "running": "true", "elapsed": 125000 },
+  "animation": [
+    { "step": "秒数", "duration": 1.2, "focus": ["secNode"], "badge": "timer" },
+    { "step": "実行状態", "duration": 1.2, "focus": ["secNode", "runNode"], "badge": "timer" },
+    {
+      "step": "時計表示",
+      "duration": 1.2,
+      "focus": ["secNode", "runNode", "displayNode"],
+      "badge": "timer",
+      "body": "3-lane (Seconds / Running / Display) で stopwatch 3 component を分散、 2 edge (× 1000 info tone / color success tone) で 2 signal → 1 display の fan-in 明示、 stepper + toggle 変化で stopwatch readout の time + color が同時追随。"
+    }
+  ]
+}`;
+
+export const sourceYaml__visualBindOpacity = `title: "信号に追随する濃さと固定の濃さを並べる"
+type: flow
+
+inputs:
+  fade: { kind: slider, min: 0, max: 100, defaultValue: 100, label: "Opacity" }
+
+readouts:
+  opGauge: { kind: gauge, source: "fade", min: 0, max: 100, label: "Fade % gauge" }
+
+formulas:
+  op: "fade / 100"
+
+lanes:
+  control: { x: 0, width: 200 }
+  target-lane: { x: 240, width: 220 }
+  ref-lane: { x: 500, width: 200 }
+
+states:
+  fade: 100
+  op: 1
+
+actors:
+  - Fade control: { kind: card, lane: control, stack: 0, subtitle: "fade = {fade} · op = {op}" }
+  - Target: { kind: card, lane: target-lane, stack: 0, subtitle: "opacity: {op}", opacity: "{op}" }
+  - Reference: { kind: card, lane: ref-lane, stack: 0, subtitle: "always visible (opacity=1)" }
+
+flow:
+  - Fade control -> Target: "op bind" (info)
+  - Fade control -> Reference: "no bind" (warning)
+
+animation:
+  - step: "動かす側を見る" 1.8s
+    focus: ["Fade control", "Reference"]
+    description: "左の箱がつまみで濃さを持つ。 この値が右の 1 つだけに届く。"
+  - step: "追随する側" 1.8s
+    focus: ["Fade control", "Target", "Reference"]
+    description: "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。"
+  - step: "固定の側と比べる" 1.8s
+    focus: ["Target", "Reference"]
+    description: "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。"
+`;
+
+export const sourceJson__visualBindOpacity = `{
+  "title": "信号に追随する濃さと固定の濃さを並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "fade",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 100,
+      "label": "Opacity"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "opGauge",
+      "kind": "gauge",
+      "source": "fade",
+      "min": 0,
+      "max": 100,
+      "label": "Fade % gauge"
+    }
+  ],
+  "formulas": { "op": "fade / 100" },
+  "lanes": {
+    "control": { "x": 0, "width": 200 },
+    "target-lane": { "x": 240, "width": 220 },
+    "ref-lane": { "x": 500, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "Fade control",
+      "kind": "card",
+      "lane": "control",
+      "stack": 0,
+      "subtitle": "fade = {fade} · op = {op}"
+    },
+    {
+      "name": "Target",
+      "kind": "card",
+      "lane": "target-lane",
+      "stack": 0,
+      "subtitle": "opacity: {op}",
+      "opacity": "{op}"
+    },
+    {
+      "name": "Reference",
+      "kind": "card",
+      "lane": "ref-lane",
+      "stack": 0,
+      "subtitle": "always visible (opacity=1)"
+    }
+  ],
+  "flow": [
+    { "from": "Fade control", "to": "Target", "label": "op bind", "tone": "info" },
+    { "from": "Fade control", "to": "Reference", "label": "no bind", "tone": "warning" }
+  ],
+  "states": { "fade": 100, "op": 1 },
+  "animation": [
+    {
+      "step": "動かす側を見る",
+      "duration": 1.8,
+      "focus": ["Fade control", "Reference"],
+      "body": "左の箱がつまみで濃さを持つ。 この値が右の 1 つだけに届く。"
+    },
+    {
+      "step": "追随する側",
+      "duration": 1.8,
+      "focus": ["Fade control", "Target", "Reference"],
+      "body": "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。"
+    },
+    {
+      "step": "固定の側と比べる",
+      "duration": 1.8,
+      "focus": ["Target", "Reference"],
+      "body": "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。"
     }
   ]
 }`;
