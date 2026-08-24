@@ -315,6 +315,18 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     );
     merged.readouts = [...(merged.readouts ?? []), ...ownReadouts];
   }
+  /*
+   * 読む人が動かすつまみを図に載せる (#1389)。
+   *
+   * 部品と同じく写して載せる = 出口の paint 検査が diagram を直接書き換えるため、doc の
+   * object を共有すると `compileToCdl` の入力まで書き換わって入力不変性が壊れる。
+   */
+  if (doc.inputs && doc.inputs.length > 0) {
+    const ownInputs = doc.inputs.map(
+      (input) => deepRewriteStrings(input, (value) => value) as typeof input,
+    );
+    merged.inputs = [...(merged.inputs ?? []), ...ownInputs];
+  }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /

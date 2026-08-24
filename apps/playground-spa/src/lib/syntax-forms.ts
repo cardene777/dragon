@@ -17,7 +17,9 @@ export type SampleSlot =
   | "values"
   | "animation"
   // 値を見せる部品 (#1374)
-  | "readouts";
+  | "readouts"
+  // 読む人が動かすつまみ (#1389)
+  | "inputs";
 
 export type Section = {
   title: string;
@@ -172,6 +174,37 @@ export const FORMS: Section[] = [
       {
         code: "  lc: { kind: line-chart, source: hist, min: 0, max: 100 }",
         note: "種類は 107 ある。 描ける部品はすべて書ける (#1385)",
+      },
+    ],
+  },
+  {
+    title: "読む人が動かすつまみ (inputs:)",
+    sample: {
+      slot: "inputs",
+      type: "flow",
+      actors: ['  - 処理: { kind: card, value: "{v}" }'],
+      states: ["  v: 50"],
+    },
+    lines: [
+      {
+        code: '  v: { kind: slider, min: 0, max: 100, defaultValue: 50, label: "量" }',
+        note: "つまみを動かすと値が変わる。 名前が状態の名前になる",
+      },
+      {
+        code: "  n: { kind: number, defaultValue: 3, min: 0, max: 10 }",
+        note: "数を直に打つ。 他に stepper (増減ボタン)",
+      },
+      {
+        code: "  mode: { kind: dropdown, options: [日, 週, 月], defaultValue: 日 }",
+        note: "選択肢から 1 つ。 他に radio / tabs (見た目が違うだけ)",
+      },
+      {
+        code: "  on: { kind: toggle, defaultValue: true }",
+        note: "入り切り。 他に color (色) / text (文字) / datetime (日時)",
+      },
+      {
+        code: "  clock: { kind: timeline, duration: 3000, speeds: [0.5, 1, 2] }",
+        note: "時間を進める。 他に range (下限と上限) / multi-select / xypad",
       },
     ],
   },
@@ -424,6 +457,8 @@ export function buildSample(section: Section): string {
   if (slot === "values") out.push("values:", ...codes);
   // 値を見せる部品 (#1374)。 状態を見せるものなので `states` の後ろに置く
   if (slot === "readouts") out.push("readouts:", ...codes);
+  // 読む人が動かすつまみ (#1389)。 値を握るものなので部品と同じ並びに置く
+  if (slot === "inputs") out.push("inputs:", ...codes);
   if (slot === "animation") out.push("animation:", ...codes);
   return `${out.join("\n")}\n`;
 }

@@ -80,6 +80,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     groups: { G1: { lanes: ["L1"] } },
     // 値を見せる部品 (#1374)
     readouts: [{ id: "r", kind: "percent-ring", source: "v", max: 100 }],
+    inputs: [{ id: "i", kind: "slider", min: 0, max: 100, defaultValue: 50 }],
   },
   actor: {
     name: "A",

@@ -58,6 +58,7 @@ import type {
   DslActor,
   DslDynShape,
   DslReadout,
+  DslInput,
   DslActorNodeOverride,
   DslStep,
   DslAnimate,
@@ -102,6 +103,8 @@ export const TOP_LEVEL_KEYS = [
   "axes",
   // 値を見せる部品 (#1374)
   "readouts",
+  // 読む人が動かすつまみ (#1389)
+  "inputs",
 ] as const;
 
 /**
@@ -333,6 +336,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let viewport: DslViewport | undefined = undefined;
   let lanesMap: Record<string, DslLane> | undefined = undefined;
   let readoutsList: DslReadout[] | undefined = undefined;
+  let inputsList: DslInput[] | undefined = undefined;
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
 
   let i = 0;
@@ -626,6 +630,38 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "inputs") {
+      // inputs:\n  value: { kind: slider, min: 0, max: 100, defaultValue: 50, label: "Value" }
+      // 1 行にまとめた形は受けない。 黙って空の並びにすると、書いたつまみが全て消えた図になる。
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "inputs は 1 行にまとめて書けない",
+          hint: "次の行から字下げして `value: { kind: slider, min: 0, max: 100, defaultValue: 50 }` の形で並べる",
+        });
+        i += 1;
+        continue;
+      }
+      // `collectIndentedList` は `:` の無い行を落とす。 つまみを綴り違えた行も知らせるため、
+      // 字下げした行を全て読み手へ渡す。
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      inputsList = [];
+      for (const it of items) {
+        const m = 名前と中括弧に割る(it.trimmed);
+        if (m) {
+          const 読めた = つまみとして読む(m[0], m[1], it.no, errors);
+          if (読めた) inputsList.push(読めた);
+        } else {
+          errors.push({
+            line: it.no,
+            message: `invalid input entry: "${it.trimmed}"`,
+            hint: "use `id: { kind: slider, min: 0, max: 100, defaultValue: 50 }`",
+          });
+        }
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "groups") {
       // groups:\n  aws: { label: "AWS", lanes: [ecs, rds] }
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
@@ -685,6 +721,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       viewport,
       lanes: lanesMap,
       readouts: readoutsList,
+      inputs: inputsList,
       groups: groupsMap,
       pos: { line: 1 },
     },
@@ -1109,6 +1146,18 @@ export const 図形の表: Record<string, 図形の定義> = {
  */
 export { 部品の表, 部品の組の表 } from "./readout-table.generated";
 import { 部品の表, 部品の組の表 } from "./readout-table.generated";
+
+/**
+ * 記法が受けるつまみと、その欄 (#1389)。
+ *
+ * **部品の表と同じく、描画側の型定義から生成する**。 14 種それぞれ欄が違い、手で写すと
+ * 描画側が種類を足した時に drift が残る (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ *
+ * 作り直す = `node packages/dragon/scripts/gen-input-table.mjs`
+ * ずれの検知 = `packages/dragon/test/input-table-generated.test.ts`
+ */
+export { つまみの表 } from "./input-table.generated";
+import { つまみの表 } from "./input-table.generated";
 import type { 図形の定義 } from "./parser-types";
 
 /** `[a, b]` の形を文字列の並びに読む */
@@ -1266,6 +1315,25 @@ function 表に従って読む(
       out[欄] = n !== undefined ? n : 値;
     } else if (形 === "文字列の並び") {
       out[欄] = 並びとして読む(値);
+    } else if (形 === "数の並び") {
+      /*
+       * 数の並びは、1 つでも数として読めなければ欄ごと落とす (#1389)。
+       *
+       * 読めた分だけ渡すと並びの長さが変わり、番号で指す欄 (`defaultSpeedIdx`) が
+       * 別の要素を指す。 書き間違いが「別の値が選ばれている図」 になって出るため、
+       * 数え落としを黙って通さない。
+       */
+      const 生 = 並びとして読む(値);
+      const 数 = 生.map((x) => numberOrUndef(x));
+      if (数.some((n) => n === undefined)) {
+        errors.push({
+          line,
+          message: `${接頭}${欄} に数でない値があります: "${値}"`,
+          hint: "`[0.5, 1, 2, 4]` の形で数だけを並べる",
+        });
+      } else {
+        out[欄] = 数;
+      }
     } else if (形 === "組の並び") {
       const 組 = 組の並びとして読む(値);
       if (組 !== undefined) out[欄] = 組;
@@ -1384,6 +1452,34 @@ function 部品として読む(
   部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
   return { id, kind, ...読めた } as DslReadout;
+}
+
+/**
+ * 読む人が動かすつまみを読む (#1389)。 読めなければ `undefined` を返す。
+ *
+ * 部品 (`readouts:`) と同じ経路で読む。 違いは組の並びを取る欄が無いことだけで、
+ * 知らない欄と足りない必須欄の知らせ方は同じ。
+ */
+function つまみとして読む(
+  id: string,
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslInput | undefined {
+  const opts = parseInlineMapping(raw);
+  const kind = (opts.kind ?? "").toLowerCase();
+  const 定義 = つまみの表[kind];
+  if (定義 === undefined) {
+    errors.push({
+      line,
+      message: `つまみの種類が読めません: "${opts.kind ?? ""}"`,
+      hint: `使える種類 = ${Object.keys(つまみの表).join(", ")}`,
+    });
+    return undefined;
+  }
+  const 読めた = 表に従って読む(定義, opts, `つまみ ${id} の `, line, errors);
+  for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
+  return { id, kind, ...読めた } as DslInput;
 }
 
 /** 箱の中の要素の欄 (#1306)。 `DslActorNodeOverride` の全欄を覆う */
