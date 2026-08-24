@@ -34,6 +34,7 @@ import * as Styles from "@/topics/catalog/styles.cdl";
 import * as Animation from "@/topics/catalog/animation.cdl";
 import * as Primitives from "@/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
+import * as Cookbook from "@/topics/catalog/cookbook.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -107,6 +108,10 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["animation", Animation],
   ["primitives", Primitives],
   ["primitives-extra", PrimitivesExtra],
+  // **図が記法から組み立つページ** (#1378)。 他は組み立て API の図と記法を突き合わせるが、
+  // ここは同じ source なので骨格は必ず一致する。 それでも入れるのは、記法の組み立てが
+  // 注意を出さないことと、図の側だけを書き換えた変更を落とすため
+  ["cookbook", Cookbook],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */

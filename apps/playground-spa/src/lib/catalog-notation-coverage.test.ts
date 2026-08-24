@@ -30,7 +30,15 @@ import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 
 /** 全件が YAML と JSON を持つページ */
-const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles", "primitives"] as const;
+const 揃ったページ = [
+  "presets",
+  "patterns",
+  "charts",
+  "text-dsl",
+  "styles",
+  "primitives",
+  "cookbook",
+] as const;
 
 /**
  * 一部だけ持つページ。
@@ -45,7 +53,7 @@ const 揃ったページ = ["presets", "patterns", "charts", "text-dsl", "styles
 const 一部のページ = ["animation"] as const;
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
-const まだのページ = ["cookbook", "ethereum", "parts", "interactive"] as const;
+const まだのページ = ["ethereum", "parts", "interactive"] as const;
 
 async function ページごとの見本(): Promise<Map<string, CatalogItem[]>> {
   const m = new Map<string, CatalogItem[]>(Object.entries(CATALOG_ITEMS));

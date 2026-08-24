@@ -48,8 +48,9 @@ function 記法たち(src: string): Array<{ key: string; yaml: string }> {
   let m: RegExpExecArray | null;
   while ((m = 名前付き.exec(src)) !== null) out.push({ key: m[1], yaml: m[2] });
 
-  // text-dsl / cookbook の見本は sourceYaml__ へ分けず、呼出しに記法を直接書いている。
-  // ここを見ないと、一覧に実際に出る相当数の見本が検査の外になる。
+  // 呼出しに記法を直接書く形。 **今は 1 件も無い** (#1378 で cookbook を最後に、
+  // 全ての見本が `sourceYaml__` へ分かれた) が、抽出規則は残す = 直接書く形が
+  // 復活した時に検査の外へ出ないようにするため。
   const 直接記述 = /textDslToDiagram\(\s*`([\s\S]*?)`\s*\)/gu;
   let n = 0;
   while ((m = 直接記述.exec(src)) !== null) {
@@ -70,11 +71,33 @@ describe("見本の値の名前 (#1330)", () => {
     expect(見本.length).toBeGreaterThan(0);
   });
 
-  it("名前付きと直接記述の両方の見本を読めている", () => {
-    // catalog は sourceYaml__ で記法を分ける形と、textDslToDiagram に直接書く形の両方を使う。
-    // 片方の抽出規則が壊れても全体件数だけでは気付けないため、それぞれを明示して見る。
-    expect(見本.some((x) => !x.key.startsWith("textDslToDiagram-"))).toBe(true);
-    expect(見本.some((x) => x.key.startsWith("textDslToDiagram-"))).toBe(true);
+  it("抽出規則が 2 つの書き方を両方拾える (#1378)", () => {
+    // **下の検査は 0 件を見る形なので、抽出規則が壊れても通ってしまう** (変異試験で判明)。
+    // 作った入力で両方の書き方を拾えることを先に固定し、0 件の意味を保つ。
+    const 作った = [
+      'export const sourceYaml__sample = `title: "名前付き"\ntype: flow\n`;',
+      'export const 図 = textDslToDiagram(`title: "直接記述"\ntype: flow\n`);',
+    ].join("\n\n");
+    const 拾えた = 記法たち(作った);
+    expect(
+      拾えた.map((x) => x.key).sort(),
+      "作った入力で 2 つの書き方を拾えていない (抽出規則が壊れている)",
+    ).toEqual(["sample", "textDslToDiagram-1"]);
+    expect(拾えた.find((x) => x.key === "sample")?.yaml).toContain("名前付き");
+    expect(拾えた.find((x) => x.key === "textDslToDiagram-1")?.yaml).toContain("直接記述");
+  });
+
+  it("見本が全て名前付きで書かれている (#1378)", () => {
+    // catalog は `sourceYaml__` で記法を分ける形に揃った。 直接書く形が残っていると、
+    // その見本は一覧から拾えず画面のコードのタブに出ない = 揃っていることを固定する。
+    expect(
+      見本.some((x) => !x.key.startsWith("textDslToDiagram-")),
+      "名前付きの見本を 1 つも読めていない (抽出規則が壊れている)",
+    ).toBe(true);
+    expect(
+      見本.filter((x) => x.key.startsWith("textDslToDiagram-")).map((x) => x.file),
+      "呼出しに記法を直接書いた見本が残っている (sourceYaml__ へ分けること)",
+    ).toEqual([]);
   });
 
   it("値を持つ見本を 1 つ以上読めている", () => {
@@ -111,9 +134,15 @@ describe("見本の値の名前 (#1330)", () => {
   it("値の名前を拾う規則が節の外まで拾わない", () => {
     // 節の外の `key:` まで拾うと、段の項目や最上位の項目を値と誤認する
     const 拾えた = 値の名前(
-      ["title: t", "states:", "  a: 1", "  b: 2", "animation:", "  - step: s 1.0s", "    draw: mind"].join(
-        "\n",
-      ),
+      [
+        "title: t",
+        "states:",
+        "  a: 1",
+        "  b: 2",
+        "animation:",
+        "  - step: s 1.0s",
+        "    draw: mind",
+      ].join("\n"),
     );
     expect(拾えた, "節の外まで拾っている").toEqual(["a", "b"]);
   });
