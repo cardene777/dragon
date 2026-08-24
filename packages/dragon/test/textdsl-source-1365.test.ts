@@ -3,7 +3,6 @@ import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
 import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 
 /**
  * 「Text DSL」 のページで記法がコードタブに出ることの検査 (#1365)。
@@ -137,18 +136,28 @@ describe("記法を持たない図では従来どおり (陰性対照、 #1365)"
      * 「どの図でも引ける」 形なら、上の検査は通っても意味を持たない。
      * 記法を登録していないページでは `undefined` のままであることを見る。
      */
-    // `interactive` は記法を 1 件も登録していないページ (実測)。
-    //
-    // **対照は 3 度移している** = `cookbook` は #1378 で、`ethereum` は #1374 で、
-    // `parts` は #1381 で記法を持った。 対照に選んだページを次の作業が埋める形が続いている。
-    // 記法を持たないページは `interactive` だけになったので、次に埋める時は対照の作り方
-    // そのものを変える (実物のページではなく、記法を持たない図を検査の中で組み立てる)。
-    const mod = interactive as Record<string, unknown>;
+    /*
+     * **対照は検査の中で組み立てる** (#1383)。
+     *
+     * 実在のページを名指しする形は 3 度移した (`cookbook` は #1378、`ethereum` は #1374、
+     * `parts` は #1381 で記法を持った)。 残るのは `interactive` だけで、そこを埋めると
+     * 移し先が尽きる。 対照が「まだ埋めていないページがある」 ことに依存しているのが
+     * 誤りで、埋め終わることは目標そのものだった。
+     *
+     * 組み立てれば、ページを何枚埋めても成立しなくなることがない。
+     */
+    const mod: Record<string, unknown> = {
+      // 図はあるが `sourceYaml__` を持たない = 記法を登録していない形
+      図あり記法なし: { id: "neg-ctl-a", nodes: [] } as unknown as CdlDiagram,
+      別の図: { id: "neg-ctl-b", nodes: [] } as unknown as CdlDiagram,
+      // 別の key の記法があっても、上の 2 件では引けない
+      sourceYaml__無関係: 'title: "x"\ntype: flow\n',
+    };
     const 図 = 図の一覧(mod);
-    expect(図.length, "比べる図が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(図.length, "比べる図が 1 件も無い (検査が空振りしている)").toBe(2);
 
     const 引けた = 図.filter((x) => 記法(mod, x.key) !== undefined).map((x) => x.key);
-    expect(引けた, "記法を登録していないページで記法が引けている").toEqual([]);
+    expect(引けた, "記法を登録していない図で記法が引けている").toEqual([]);
   });
 
   it("記法を持つページでは引ける (陽性対照)", () => {

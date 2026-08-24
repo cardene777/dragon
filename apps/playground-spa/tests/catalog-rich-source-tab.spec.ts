@@ -87,20 +87,41 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
     }
   });
 
-  test("記法を持たないページではまだ押せない (陰性対照)", async ({ page }) => {
+  test("同じページの別の項目では別のコードが出る (空振り防止)", async ({ page }) => {
     /*
-     * 「どのページでも押せる」 形なら上の検査は通っても意味を持たない。
+     * 「どの項目でも同じものを出す」 形なら、上の検査は通っても意味を持たない。
      *
-     * **対照は 4 度移している** = `cookbook` は #1378 で、`ethereum` は #1374 で、
-     * `parts` は #1381 で記法を持った。 残るのは `interactive` だけで、次に埋めると
-     * 実在のページで対照を取る形そのものが成り立たなくなる。 その時は記法を持たない図を
-     * 検査の中で組み立てる形へ変える。
+     * **押せない側を実在のページで見る形はやめた** (#1383)。 記法を持たないページを
+     * 名指しする対照は 3 度移しており (`cookbook` は #1378、`ethereum` は #1374、
+     * `parts` は #1381 で記法を持った)、残る `interactive` を埋めると移し先が尽きる。
+     *
+     * 押せない側は `src/lib/catalog-source-tab.test.tsx` が、検査の中で組み立てた見本で
+     * 見る。 片方だけ記法を持つ形は台帳が実在のデータで許さないため、ページを何枚埋めても
+     * 成立しなくなることがない。
      */
-    await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
+    await page.goto("/catalog/animation", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await expect(
-      page.getByRole("tab", { name: "コード" }),
-      "記法を持たないページでタブが押せる",
-    ).toBeDisabled();
+
+    const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
+    const 件数 = await 行.count();
+    expect(件数, "一覧の行を 2 つ以上数えられていない (検査が空振りしている)").toBeGreaterThan(1);
+
+    const コードを読む = async (i: number): Promise<string> => {
+      await 行.nth(i).click();
+      await page.getByRole("tab", { name: "コード" }).click();
+      await page.waitForTimeout(300);
+      return page.locator(".catalog-source-code").first().innerText();
+    };
+
+    const 一件目 = await コードを読む(0);
+    const 二件目 = await コードを読む(1);
+    expect(一件目.length, "1 件目のコードが空 (検査が空振りしている)").toBeGreaterThan(20);
+    expect(二件目.length, "2 件目のコードが空 (検査が空振りしている)").toBeGreaterThan(20);
+    expect(二件目, "別の項目を選んでも同じコードが出ている").not.toBe(一件目);
+
+    // 差が無い入力でも差を検出しないことを見る (陰性対照)。 同じ項目を選び直せば
+    // 同じコードが出るはずで、ここが落ちるなら「常に違う」 と判定している
+    const 一件目もう一度 = await コードを読む(0);
+    expect(一件目もう一度, "同じ項目を選び直したのに違うコードが出ている").toBe(一件目);
   });
 });
