@@ -174,6 +174,29 @@ export type DslActor = {
    */
   visibleIf?: string;
   /**
+   * 箱の幅と高さを値に追随させる (`wBind:` / `hBind:`、 #1392)。
+   *
+   * 状態の名前を `{名前}` の形で書く。 配置計算は追随前の `posW` / `posH` を使い、
+   * 描く時だけ値に合わせて伸び縮みする (矢印の通り道が動かないようにするための分離)。
+   */
+  wBind?: string;
+  hBind?: string;
+  /**
+   * 箱の濃さ (`opacity:`、 #1392)。 0 から 1 の数か、状態の名前を書く。
+   *
+   * 書かなければ完全に見える状態になる。 `visibleIf` が出す / 出さないの 2 値なのに対し、
+   * こちらは途中の濃さを持てる。
+   */
+  opacity?: number | string;
+  /**
+   * 描く時だけ箱をずらす量 (`renderOffsetX:` / `renderOffsetY:`、 #1392)。
+   *
+   * 配置計算と矢印はずらす前の位置を使うため、円周上に並べて見せる等の見た目専用。
+   * 数か、状態の名前を書く。
+   */
+  renderOffsetX?: number | string;
+  renderOffsetY?: number | string;
+  /**
    * 工程の並び (`type: gantt`) で、その工程の担当 (#1251)。
    *
    * 他の図種では相手が無いため、書かれていたら組み立て側が知らせる。

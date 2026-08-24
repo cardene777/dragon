@@ -113,6 +113,12 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     visibleIf: "{flag}",
     // 箱に出す題 (#1381)
     title: "題",
+    // 値に追随する 5 欄 (#1392)
+    wBind: "{barW}",
+    hBind: "{barH}",
+    opacity: 0.5,
+    renderOffsetX: 10,
+    renderOffsetY: "{dy}",
   },
   step: {
     from: "A",
