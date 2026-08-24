@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { textDslToDiagram, jsonToDiagram, validateDragonJson } from "../src";
+import { textDslToDiagram, jsonToDiagram, validateDragonJson, diagramJsonSchema } from "../src";
 import { 部品の表 } from "../src/v05/parser";
 
 /**
@@ -177,11 +177,34 @@ describe("組の並びの欄 (#1381)", () => {
     expect((d.readouts?.[0] as { map: unknown[] }).map).toHaveLength(2);
   });
 
-  it("数で書いた値は数として読む", () => {
+  it("数に見える状態名も文字列のまま読む", () => {
     const d = 図にする(
-      'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111", weight: 3 }] }',
+      'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "1", color: "#111" }] }',
     );
-    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]!.weight).toBe(3);
+    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]!.value).toBe("1");
+  });
+
+  it("引用符の中の中括弧は組の終わりにしない", () => {
+    const d = 図にする(
+      'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "}", color: "#111", label: "{ok}" }] }',
+    );
+    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]).toEqual({
+      value: "}",
+      color: "#111",
+      label: "{ok}",
+    });
+  });
+
+  it("組の読めない項目名は誤りになる", () => {
+    const e = 誤り(
+      'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111", weight: "3" }] }',
+    );
+    expect(e.join("\n")).toContain("weight");
+  });
+
+  it("組の必須項目が足りなければ誤りになる", () => {
+    const e = 誤り('readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a" }] }');
+    expect(e.join("\n")).toContain("color");
   });
 
   const 読めない: readonly [string, string][] = [
@@ -273,6 +296,78 @@ animation:
 `);
     expect(d2.phases[0]!.activate).toEqual(["star1"]);
   });
+
+  it("題の中の中括弧を inline mapping の終わりにしない", () => {
+    const d = 図にする('actors:\n  - star1: { kind: card, lane: l, stack: 0, title: "A } B" }');
+    expect(d.nodes[0]!.title).toBe("A } B");
+  });
+
+  it("静的な sequence / solidity でも上下の名札に題が出る", () => {
+    for (const type of ["sequence", "solidity"] as const) {
+      const d = textDslToDiagram(`title: "t"
+type: ${type}
+actors:
+  - internal: { title: "Shown" }
+`);
+      expect(
+        d.nodes
+          .filter((n) => n.id.endsWith("-header") || n.id.endsWith("-footer"))
+          .map((n) => n.title),
+        type,
+      ).toEqual(["Shown", "Shown"]);
+    }
+  });
+
+  it("静的な swimlane / c4 でも題が出る", () => {
+    for (const type of ["swimlane", "c4"] as const) {
+      const d = textDslToDiagram(`title: "t"
+type: ${type}
+actors:
+  - internal: { title: "Shown" }
+  - target
+flow:
+  - internal -> target: "x"
+`);
+      expect(
+        d.nodes.some((n) => n.title === "Shown"),
+        type,
+      ).toBe(true);
+    }
+  });
+
+  it("値の図表と gantt でも項目の題が出る", () => {
+    for (const type of ["pie", "bar", "line"] as const) {
+      const d = textDslToDiagram(`title: "t"
+type: ${type}
+actors:
+  - internal: { value: "10", title: "Shown" }
+`);
+      expect(d.nodes[0]!.chartData?.[0]?.label, type).toBe("Shown");
+    }
+
+    const gantt = textDslToDiagram(`title: "t"
+type: gantt
+actors:
+  - internal: { value: "Q1", title: "Shown" }
+`);
+    expect(gantt.nodes[0]!.ganttData?.[0]?.title).toBe("Shown");
+  });
+
+  it("mind は題を描いた上で、効かない欄として警告しない", () => {
+    const notices: string[] = [];
+    const d = textDslToDiagram(
+      `title: "t"
+type: mind
+actors:
+  - internal: { title: "Shown" }
+  - child: { title: "Shown child" }
+`,
+      { onNotice: (n) => notices.push(n.message) },
+    );
+    expect(d.nodes[0]!.mindData?.rootTitle).toBe("Shown");
+    expect(d.nodes[0]!.mindData?.branches[0]?.title).toBe("Shown child");
+    expect(notices).toEqual([]);
+  });
 });
 
 describe("JSON でも同じことが書ける (#1381)", () => {
@@ -337,6 +432,31 @@ describe("JSON でも同じことが書ける (#1381)", () => {
     if (!r.ok) expect(r.errors.map((e) => e.path).join(" ")).toContain("visibleIf");
   });
 
+  it("組の項目名と必須項目を検査する", () => {
+    const unknown = validateDragonJson({
+      ...基本,
+      readouts: [
+        {
+          id: "dot",
+          kind: "status-dot",
+          source: "st",
+          map: [{ value: "online", color: "#22c55e", weight: "3" }],
+        },
+      ],
+      actors: [{ name: "A" }],
+    });
+    expect(unknown.ok).toBe(false);
+    if (!unknown.ok) expect(unknown.errors.map((e) => e.path).join(" ")).toContain("weight");
+
+    const missing = validateDragonJson({
+      ...基本,
+      readouts: [{ id: "dot", kind: "status-dot", source: "st", map: [{ value: "online" }] }],
+      actors: [{ name: "A" }],
+    });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.errors.map((e) => e.path).join(" ")).toContain("color");
+  });
+
   it("知らない部品の種類は誤りになる (陽性対照)", () => {
     const r = validateDragonJson({
       ...基本,
@@ -353,5 +473,33 @@ describe("JSON でも同じことが書ける (#1381)", () => {
       actors: [{ name: "A", kind: "card", lane: "l", stack: 0, title: "★", visibleIf: "1" }],
     });
     expect(r.ok, r.ok ? "" : r.errors.map((e) => `${e.path}: ${e.message}`).join("\n")).toBe(true);
+  });
+});
+
+describe("公開 JSON Schema も #1381 の部品を書ける", () => {
+  const readout = (diagramJsonSchema as any).properties.readouts.items;
+
+  it("足した 7 種とその欄を公開する", () => {
+    expect(readout.properties.kind.enum).toEqual(
+      expect.arrayContaining([
+        "donut",
+        "radar",
+        "step-progress",
+        "status-dot",
+        "notification",
+        "kpi-card",
+        "status-timeline",
+      ]),
+    );
+    expect(readout.properties).toHaveProperty("map");
+    expect(readout.properties).toHaveProperty("colorMap");
+    expect(readout.properties).toHaveProperty("kindSource");
+    expect(readout.properties).toHaveProperty("historySource");
+  });
+
+  it("notification は source ではなく kindSource / titleSource を必須にする", () => {
+    const branch = readout.oneOf.find((x: any) => x.properties.kind.enum[0] === "notification");
+    expect(branch.required).toEqual(["kindSource", "titleSource"]);
+    expect(readout.required).toEqual(["id", "kind"]);
   });
 });

@@ -140,14 +140,20 @@ function 名前と中括弧に割る(行: string): [string, string] | undefined 
 
   let 深さ = 0;
   let 引用: string | null = null;
+  let 直前: string | null = null;
   for (let i = 0; i < 残り.length; i += 1) {
     const ch = 残り[i]!;
     if (引用 !== null) {
+      if (引用 === '"' && ch === "\\" && i + 1 < 残り.length) {
+        i += 1;
+        continue;
+      }
       if (ch === 引用) 引用 = null;
       continue;
     }
-    if (ch === '"' || ch === "'") {
+    if ((ch === '"' || ch === "'") && (直前 === null || ":,{[".includes(直前))) {
       引用 = ch;
+      直前 = ch;
       continue;
     }
     if (ch === "{") 深さ += 1;
@@ -156,6 +162,7 @@ function 名前と中括弧に割る(行: string): [string, string] | undefined 
       // 中括弧が閉じた後に文字が残る形は割らない (`{...} x`)
       if (深さ === 0) return i === 残り.length - 1 ? [名前, 残り.slice(1, i)] : undefined;
     }
+    if (!/\s/u.test(ch)) 直前 = ch;
   }
   return undefined;
 }
@@ -1205,56 +1212,107 @@ function 並びとして読む(raw: string): string[] {
  * 読めない形は捨てずに `undefined` を返す。 呼び手が行番号付きで知らせる = 黙って捨てると
  * 「書いたのに出ない」 が手掛かりなしで起きる。
  */
-function 組の並びとして読む(raw: string): Record<string, string | number>[] | undefined {
+function 組の並びとして読む(raw: string): Record<string, string>[] | undefined {
   const 中身 = raw.trim();
   if (!中身.startsWith("[") || !中身.endsWith("]")) return undefined;
   const 本体 = 中身.slice(1, -1);
 
   const 塊: string[] = [];
-  let 深さ = 0;
-  let 始まり = -1;
-  for (let i = 0; i < 本体.length; i += 1) {
-    const c = 本体[i];
-    if (c === "{") {
-      if (深さ === 0) 始まり = i;
-      深さ += 1;
-    } else if (c === "}") {
-      深さ -= 1;
-      // 閉じすぎた形 (`[}]`) は読めない
-      if (深さ < 0) return undefined;
-      if (深さ === 0 && 始まり >= 0) {
-        塊.push(本体.slice(始まり + 1, i));
-        始まり = -1;
-      }
+  let i = 0;
+  let 次は組 = true;
+  while (i < 本体.length) {
+    while (i < 本体.length && /\s/u.test(本体[i]!)) i += 1;
+    if (i >= 本体.length) break;
+
+    if (!次は組) {
+      if (本体[i] !== ",") return undefined;
+      次は組 = true;
+      i += 1;
+      continue;
     }
+    if (本体[i] !== "{") return undefined;
+
+    const 始まり = i + 1;
+    let 引用: '"' | "'" | null = null;
+    let 直前: string | null = "{";
+    i += 1;
+    for (; i < 本体.length; i += 1) {
+      const c = 本体[i]!;
+      if (引用 !== null) {
+        if (引用 === '"' && c === "\\" && i + 1 < 本体.length) {
+          i += 1;
+          continue;
+        }
+        if (c === 引用) 引用 = null;
+        continue;
+      }
+      if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+        引用 = c;
+        直前 = c;
+        continue;
+      }
+      // 組の中身は葉だけ。 引用符の外の入れ子は値の形を保てない。
+      if (c === "{") return undefined;
+      if (c === "}") {
+        塊.push(本体.slice(始まり, i));
+        i += 1;
+        次は組 = false;
+        break;
+      }
+      if (!/\s/u.test(c)) 直前 = c;
+    }
+    if (次は組) return undefined;
   }
-  /*
-   * 中括弧の外に文字が残る形は読めない。
-   *
-   * この 1 つが 3 つの誤りを同時に落とす。 外に値を書いた形 (`[a, { b: 1 }]`)、閉じていない
-   * 形 (`[{ value: "a" ]`)、中括弧が入れ子の形 (`[{ a: { b: 1 } }]`) の 3 つで、いずれも組を
-   * 取り除いた後に中括弧か値が残る。
-   *
-   * **閉じていない形を別に見る枝は置かない** (#1381 の変異試験)。 `深さ !== 0` で落とす枝を
-   * 先に書いていたが、外して 3 つの入力を試しても 1 件も素通りしなかった = 閉じていない形は
-   * 必ず対になっていない中括弧を残すため、この検査が必ず先に当たる。 分離できる入力を作れ
-   * なかったので、決め手にならない枝を残さず 1 つにした。
-   */
-  if (本体.replace(/\{[^{}]*\}/g, "").replace(/[\s,]/g, "") !== "") return undefined;
+  if (次は組 && 塊.length > 0) return undefined;
   if (塊.length === 0) return undefined;
 
-  const 出: Record<string, string | number>[] = [];
+  const 出: Record<string, string>[] = [];
   for (const t of 塊) {
     const 組 = parseInlineMapping(t);
     if (Object.keys(組).length === 0) return undefined;
-    const 一つ: Record<string, string | number> = {};
-    for (const [k, v] of Object.entries(組)) {
-      const n = numberOrUndef(v);
-      一つ[k] = n !== undefined ? n : v;
-    }
-    出.push(一つ);
+    出.push(組);
   }
   return 出;
+}
+
+/** 組の並びを持つ部品の、1 組ごとの欄。 描画側の CdlReadout と同じ形に縛る。 */
+const 部品の組の表: Record<
+  string,
+  Record<string, { 必須: readonly string[]; 欄: readonly string[] }>
+> = {
+  "status-dot": { map: { 必須: ["value", "color"], 欄: ["value", "color", "label"] } },
+  "status-timeline": { colorMap: { 必須: ["status", "color"], 欄: ["status", "color"] } },
+};
+
+function 部品の組を検査する(
+  kind: string,
+  読めた: Record<string, unknown>,
+  line: number,
+  errors: DslError[],
+): void {
+  for (const [欄, 定義] of Object.entries(部品の組の表[kind] ?? {})) {
+    const 並び = 読めた[欄];
+    if (!Array.isArray(並び)) continue;
+    並び.forEach((組, i) => {
+      const o = 組 as Record<string, unknown>;
+      for (const k of Object.keys(o)) {
+        if (定義.欄.includes(k)) continue;
+        errors.push({
+          line,
+          message: `部品の ${欄}[${i}] の項目名が読めません: "${k}"`,
+          hint: `使える項目 = ${定義.欄.join(", ")}`,
+        });
+      }
+      for (const k of 定義.必須) {
+        if (o[k] !== undefined) continue;
+        errors.push({
+          line,
+          message: `部品の ${欄}[${i}].${k} は必ず書きます`,
+          hint: `必須の項目 = ${定義.必須.join(", ")}`,
+        });
+      }
+    });
+  }
 }
 
 /**
@@ -1395,6 +1453,7 @@ function 部品として読む(
     return undefined;
   }
   const 読めた = 表に従って読む(定義, opts, `部品 ${id} の `, line, errors);
+  部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
   return { id, kind, ...読めた } as DslReadout;
 }
@@ -1464,20 +1523,40 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
   const name = raw.slice(0, colonIdx);
   const rest = raw.slice(colonIdx + 1).trim();
   if (!rest.startsWith("{")) return null;
-  // depth count で対応 brace 探す
-  let depth = 0;
-  let endIdx = -1;
-  for (let i = 0; i < rest.length; i += 1) {
-    const c = rest[i]!;
-    if (c === "{") depth += 1;
-    else if (c === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        endIdx = i;
-        break;
+  // depth count で対応 brace 探す。 正しい引用符の中の `}` は飛ばす。
+  const 終わりを探す = (引用符を見る: boolean): number => {
+    let depth = 0;
+    let 引用符: '"' | "'" | null = null;
+    let 直前: string | null = null;
+    for (let i = 0; i < rest.length; i += 1) {
+      const c = rest[i]!;
+      if (引用符を見る) {
+        if (引用符 !== null) {
+          if (引用符 === '"' && c === "\\" && i + 1 < rest.length) {
+            i += 1;
+            continue;
+          }
+          if (c === 引用符) 引用符 = null;
+          continue;
+        }
+        if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+          引用符 = c;
+          直前 = c;
+          continue;
+        }
       }
+      if (c === "{") depth += 1;
+      else if (c === "}") {
+        depth -= 1;
+        if (depth === 0) return i;
+      }
+      if (!/\s/u.test(c)) 直前 = c;
     }
-  }
+    return -1;
+  };
+  let endIdx = 終わりを探す(true);
+  // 閉じない引用符は従来どおり単純分割へ戻す (#1367)。
+  if (endIdx < 0) endIdx = 終わりを探す(false);
   if (endIdx < 0) return null;
   const inner = rest.slice(1, endIdx);
   return { name, inner };

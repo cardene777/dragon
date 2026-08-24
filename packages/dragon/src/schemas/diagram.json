@@ -644,7 +644,7 @@
       "description": "値を見せる部品。 状態の値を割合の輪 / 数え上げ / 目盛りで出す。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
       "items": {
         "type": "object",
-        "required": ["id", "kind", "source"],
+        "required": ["id", "kind"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -662,7 +662,14 @@
               "typewriter",
               "delta",
               "percent-ring",
-              "heat-cell"
+              "heat-cell",
+              "donut",
+              "radar",
+              "step-progress",
+              "status-dot",
+              "notification",
+              "kpi-card",
+              "status-timeline"
             ]
           },
           "source": {
@@ -703,6 +710,69 @@
           },
           "charMs": {
             "type": "number"
+          },
+          "viewW": {
+            "type": "number"
+          },
+          "viewH": {
+            "type": "number"
+          },
+          "innerRatio": {
+            "type": "number"
+          },
+          "labelSource": {
+            "type": "string"
+          },
+          "stepsSource": {
+            "type": "string"
+          },
+          "map": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["value", "color"],
+              "additionalProperties": false,
+              "properties": {
+                "value": { "type": "string" },
+                "color": { "type": "string" },
+                "label": { "type": "string" }
+              }
+            }
+          },
+          "kindSource": {
+            "type": "string"
+          },
+          "titleSource": {
+            "type": "string"
+          },
+          "bodySource": {
+            "type": "string"
+          },
+          "historySource": {
+            "type": "string"
+          },
+          "comparisonSource": {
+            "type": "string"
+          },
+          "colorPos": {
+            "type": "string"
+          },
+          "colorNeg": {
+            "type": "string"
+          },
+          "colorMap": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["status", "color"],
+              "additionalProperties": false,
+              "properties": {
+                "status": { "type": "string" },
+                "color": { "type": "string" }
+              }
+            }
           }
         },
         "oneOf": [
@@ -726,7 +796,37 @@
           {
             "properties": { "kind": { "enum": ["heat-cell"] } },
             "required": ["min", "max"]
+          },
+          {
+            "properties": { "kind": { "enum": ["donut"] } }
+          },
+          {
+            "properties": { "kind": { "enum": ["radar"] } },
+            "required": ["max"]
+          },
+          {
+            "properties": { "kind": { "enum": ["step-progress"] } },
+            "required": ["stepsSource"]
+          },
+          {
+            "properties": { "kind": { "enum": ["status-dot"] } },
+            "required": ["map"]
+          },
+          {
+            "properties": { "kind": { "enum": ["notification"] } },
+            "required": ["kindSource", "titleSource"]
+          },
+          {
+            "properties": { "kind": { "enum": ["kpi-card"] } },
+            "required": ["historySource", "comparisonSource"]
+          },
+          {
+            "properties": { "kind": { "enum": ["status-timeline"] } }
           }
+        ],
+        "anyOf": [
+          { "properties": { "kind": { "enum": ["notification"] } } },
+          { "required": ["source"] }
         ]
       }
     }

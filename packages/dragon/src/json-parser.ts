@@ -1070,6 +1070,43 @@ function validateReadouts(v: unknown, errors: JsonDslError[]): void {
       errors.push({ path: `${path}.id`, message: "id is required", hint: "空でない文字列で書く" });
     }
     表で中身を検査する(o, 部品の表, path, "readout", errors);
+
+    const 組の欄 =
+      o.kind === "status-dot"
+        ? { name: "map", required: ["value", "color"], allowed: ["value", "color", "label"] }
+        : o.kind === "status-timeline"
+          ? { name: "colorMap", required: ["status", "color"], allowed: ["status", "color"] }
+          : undefined;
+    if (組の欄 !== undefined && Array.isArray(o[組の欄.name])) {
+      (o[組の欄.name] as unknown[]).forEach((entry, j) => {
+        const entryPath = `${path}.${組の欄.name}[${j}]`;
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
+        const item = entry as Record<string, unknown>;
+        for (const key of Object.keys(item)) {
+          if (組の欄.allowed.includes(key)) continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} is not allowed for readout kind "${String(o.kind)}"`,
+            hint: `使える項目 = ${組の欄.allowed.join(", ")}`,
+          });
+        }
+        for (const key of 組の欄.required) {
+          if (item[key] !== undefined) continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} is required for readout kind "${String(o.kind)}"`,
+          });
+        }
+        for (const key of 組の欄.allowed) {
+          if (item[key] === undefined || typeof item[key] === "string") continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} must be 文字列`,
+            hint: `got ${item[key] === null ? "null" : typeof item[key]}`,
+          });
+        }
+      });
+    }
   });
 }
 

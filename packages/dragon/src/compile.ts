@@ -4098,6 +4098,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
   const 目盛りなし: string[] = [];
   const タスク: {
     name: string;
+    title: string;
     label: string;
     tone?: DslDocument["actors"][number]["tone"];
     owner?: string;
@@ -4113,6 +4114,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
     // 色は帯にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
     タスク.push({
       name: a.name,
+      title: 箱の題(a),
       label,
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
       ...(a.owner !== undefined ? { owner: a.owner } : {}),
@@ -4183,7 +4185,7 @@ function compileGantt(doc: DslDocument): CdlDiagram {
       const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える, doc);
       return {
         id: slugify(t.name) || t.name,
-        title: t.name,
+        title: t.title,
         startIdx: idx,
         endIdx: 終わり.idx,
         startLabel: t.label,
@@ -4374,7 +4376,7 @@ function compileValueChart(
       continue;
     }
     // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
-    data.push({ label: a.name, value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
+    data.push({ label: 箱の題(a), value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
   }
   // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
   // 薄まり、 既存の案内が後退した (review 指摘)。 何を書けばよいかは型ごとに違う
@@ -5190,6 +5192,8 @@ function compileC4(doc: DslDocument): CdlDiagram {
 type 放射で描ける欄 =
   /** 中心の名前 / 枝の名前になる */
   | "name"
+  /** 名前と分けて中心 / 枝に出す題。 書かなければ名前を出す */
+  | "title"
   /**
    * 名前とは分けて補足に出す 2 欄。
    *
@@ -5247,9 +5251,7 @@ type 放射で描けない欄 =
   // 箱の中に描く図形 (#1374)。 放射の枝は箱の中に図形を持たない
   | "shape"
   // 出す条件 (#1381)。 放射の枝は個別に出し分けられない
-  | "visibleIf"
-  // 箱に出す題 (#1381)。 放射の枝は名前をそのまま出す
-  | "title";
+  | "visibleIf";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -5306,7 +5308,6 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   layoutPos: "配置のずらし",
   shape: "箱の中の図形",
   visibleIf: "出す条件",
-  title: "箱に出す題",
 };
 
 /**
@@ -5617,6 +5618,22 @@ function applyV05Extensions(
       primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
     }
     for (const node of primaryNodes) {
+      // 識別に使う名前と、箱に出す題を分ける (#1381)。 preset が actor 名で
+      // node を作る経路 (sequence / solidity / swimlane / c4) もここで書き換える。
+      if (a.title !== undefined) {
+        node.title = a.title;
+        if (isSeqLike) {
+          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+          if (footer) footer.title = a.title;
+
+          // 名前で決めた preset の幅を題に合わせる。 明示の大きさは後段が優先する。
+          if (a.posW === undefined) {
+            const titleW = Math.max(140, a.title.length * 22 + 52);
+            node.w = titleW;
+            if (footer) footer.w = titleW;
+          }
+        }
+      }
       // `type: c4` では説明の先頭に段の目印 (`L1` / `L2` / `L3`) を書く。 目印は組み立てに
       // 段を伝えるためのもので読む人に意味を持たず、 段の名前は枠のラベルが既に出している。
       // ここで落とさないと、 組み立てが読み取った目印がそのまま箱の説明として出る (#1098)
@@ -5942,7 +5959,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
     const headerId = `${id}-header`;
     // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
     // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
-    const actorW = Math.max(140, a.name.length * 22 + 52);
+    const actorW = Math.max(140, 箱の題(a).length * 22 + 52);
     b.node(headerId, { lane: id, stack: 0, kind: "card", title: 箱の題(a), w: actorW, h: 72 });
     headerNodeIds.push(headerId);
     const spacerId = `${id}-spacer`;
@@ -5981,7 +5998,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
   doc.actors.forEach((a) => {
     const laneId = actorIds.get(a.name) ?? slugify(a.name);
     const footerId = `${laneId}-footer`;
-    const actorW = Math.max(140, a.name.length * 22 + 52);
+    const actorW = Math.max(140, 箱の題(a).length * 22 + 52);
     // `role` を付ける (#1273)。 付けないと生命線の終わりが footer より 100 下まで伸びる
     // (実測 = 組立て API は `y2=848`、記法は `y2=948`)。 枠の大きさは同じなので
     // 描いた図の大きさの比較では捕まらない
