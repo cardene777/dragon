@@ -457,6 +457,23 @@ describe("JSON でも同じことが書ける (#1381)", () => {
     if (!missing.ok) expect(missing.errors.map((e) => e.path).join(" ")).toContain("color");
   });
 
+  it("公開 schema に無い大文字の種類名で組の検査を回避できない", () => {
+    const r = validateDragonJson({
+      ...基本,
+      readouts: [
+        {
+          id: "dot",
+          kind: "STATUS-DOT",
+          source: "st",
+          map: [{ value: 1, color: 2, weight: "3" }],
+        },
+      ],
+      actors: [{ name: "A" }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.readouts[0].kind");
+  });
+
   it("知らない部品の種類は誤りになる (陽性対照)", () => {
     const r = validateDragonJson({
       ...基本,
