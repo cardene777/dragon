@@ -69,6 +69,8 @@ export function countDocElements(doc: DslDocument): number {
     // 値を見せる部品も描画時に 1 widget ずつ展開される (#1374)。 数えないと、 actors が
     // 少ないまま readouts だけを大量に並べた入力が組み立て前の上限をすり抜ける。
     (doc.readouts?.length ?? 0) +
+    // 読む人が動かすつまみも 1 widget ずつ展開される (#1389)。 readouts と同じ上限で守る。
+    (doc.inputs?.length ?? 0) +
     (doc.groups ? Object.keys(doc.groups).length : 0) +
     (doc.lanes ? Object.keys(doc.lanes).length : 0)
   );

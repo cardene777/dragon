@@ -31,6 +31,7 @@ import {
   図形の表,
   部品の表,
   部品の組の表,
+  つまみの表,
   type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
@@ -45,6 +46,7 @@ import type {
   PresetType,
   LayoutPos,
   DslReadout,
+  DslInput,
   DslDynShape,
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
@@ -85,6 +87,12 @@ export interface DragonJson {
    * 箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
    */
   readouts?: DslReadout[];
+  /**
+   * 読む人が動かすつまみ (optional、 #1389)。 記法の最上位 `inputs:` と同じ。
+   *
+   * 部品と同じく箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
+   */
+  inputs?: DslInput[];
   /**
    * 状態の初期値 (optional)。 記法の `states:` と同じ (#1181)。
    *
@@ -378,6 +386,8 @@ export const ACCEPTED_KEYS = {
     "groups",
     // 値を見せる部品 (#1374)
     "readouts",
+    // 読む人が動かすつまみ (#1389)
+    "inputs",
   ],
   actor: [
     "name",
@@ -498,6 +508,8 @@ export const 欄の型表 = {
     groups: "object",
     // 値を見せる部品 (#1374)。 中身は下の検査が種類ごとに見る
     readouts: "並び",
+    // 読む人が動かすつまみ (#1389)。 部品と同じく中身は下の検査が種類ごとに見る
+    inputs: "並び",
   },
   actor: {
     name: "必須の非空文字列",
@@ -999,7 +1011,8 @@ function 表で中身を検査する(
   // JSON は公開 schema の enum と同じ正規名だけを受ける。 ここだけ小文字化すると、
   // schema が拒む種類を validator が通した上、種類別の追加検査も回避できてしまう。
   const kind = typeof o.kind === "string" ? o.kind : "";
-  const 定義 = 表[kind];
+  // 通常の object を表に使うため、継承した名前を own kind として扱わない。
+  const 定義 = Object.hasOwn(表, kind) ? 表[kind] : undefined;
   if (定義 === undefined) {
     errors.push({
       path: `${path}.kind`,
@@ -1028,25 +1041,27 @@ function 表で中身を検査する(
           ? (typeof 値 === "number" && Number.isFinite(値)) || typeof 値 === "string"
           : 形 === "文字列の並び"
             ? Array.isArray(値) && 値.every((x) => typeof x === "string")
-            : 形 === "真偽"
-              ? typeof 値 === "boolean"
-              : 形 === "組の並び"
-                ? Array.isArray(値) &&
-                  値.length > 0 &&
-                  値.every(
-                    (x) =>
-                      typeof x === "object" &&
-                      x !== null &&
-                      !Array.isArray(x) &&
-                      Object.keys(x as object).length > 0 &&
-                      Object.values(x as object).every(
-                        (y) =>
-                          typeof y === "string" || (typeof y === "number" && Number.isFinite(y)),
-                      ),
-                  )
-                : 形 === "向き"
-                  ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
-                  : typeof 値 === "string";
+            : 形 === "数の並び"
+              ? Array.isArray(値) && 値.every((x) => typeof x === "number" && Number.isFinite(x))
+              : 形 === "真偽"
+                ? typeof 値 === "boolean"
+                : 形 === "組の並び"
+                  ? Array.isArray(値) &&
+                    値.length > 0 &&
+                    値.every(
+                      (x) =>
+                        typeof x === "object" &&
+                        x !== null &&
+                        !Array.isArray(x) &&
+                        Object.keys(x as object).length > 0 &&
+                        Object.values(x as object).every(
+                          (y) =>
+                            typeof y === "string" || (typeof y === "number" && Number.isFinite(y)),
+                        ),
+                    )
+                  : 形 === "向き"
+                    ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
+                    : typeof 値 === "string";
     if (!型が合う) {
       errors.push({
         path: `${path}.${欄}`,
@@ -1137,6 +1152,40 @@ function validateReadouts(v: unknown, errors: JsonDslError[]): void {
         }
       });
     }
+  });
+}
+
+/**
+ * 読む人が動かすつまみの並びを検査する (#1389)。
+ *
+ * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
+ * 委ねる作りなので (`checkFieldType` の `case "並び"`)、ここで見ないと `inputs: 1` が
+ * 素通りする。
+ *
+ * 種類ごとの欄は記法と同じ表 (`つまみの表`) で見る。 表は描画側の型定義から生成しており、
+ * 種類が増えても書き足す場所が増えない。
+ */
+function validateInputs(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!Array.isArray(v)) {
+    errors.push({
+      path: "$.inputs",
+      message: "inputs must be an array of input objects",
+      hint: `got ${v === null ? "null" : typeof v}`,
+    });
+    return;
+  }
+  v.forEach((r, i) => {
+    const path = `$.inputs[${i}]`;
+    if (!r || typeof r !== "object" || Array.isArray(r)) {
+      errors.push({ path, message: "input must be a plain object", hint: `got ${typeof r}` });
+      return;
+    }
+    const o = r as Record<string, unknown>;
+    if (typeof o.id !== "string" || o.id === "") {
+      errors.push({ path: `${path}.id`, message: "id is required", hint: "空でない文字列で書く" });
+    }
+    表で中身を検査する(o, つまみの表, path, "input", errors);
   });
 }
 
@@ -1478,6 +1527,8 @@ function validateJson(
   checkUnknownKeys(j, "root", "$", errors);
   // 値を見せる部品の中身を、記法と同じ表で見る (#1374)
   validateReadouts(j.readouts, errors);
+  // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
+  validateInputs(j.inputs, errors);
 
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
@@ -1842,6 +1893,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   // 分けると `states` だけを書いた JSON で値が 1 つも届かない (記法側で起きていた形、 #1181)
   // 値を見せる部品はそのまま渡す (#1374)。 形は描画側の型が縛る
   const readouts: DslReadout[] | undefined = json.readouts ? [...json.readouts] : undefined;
+  // つまみもそのまま渡す (#1389)。 形は描画側の型が縛る
+  const inputs: DslInput[] | undefined = json.inputs ? [...json.inputs] : undefined;
   const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
     name,
     initial,
@@ -1916,6 +1969,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
         )
       : undefined,
     readouts,
+    inputs,
     pos: p0,
   };
 }

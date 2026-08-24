@@ -16,6 +16,9 @@ export type DslDynShape = NonNullable<CdlDiagram["nodes"][number]["shape"]>;
 /** 値を見せる部品 (#1374)。 図形と同じ理由で描画側の型をそのまま使う */
 export type DslReadout = NonNullable<CdlDiagram["readouts"]>[number];
 
+/** 読む人が動かすつまみ (#1389)。 部品と同じ理由で描画側の型をそのまま使う */
+export type DslInput = NonNullable<CdlDiagram["inputs"]>[number];
+
 export type PresetType =
   | "sequence"
   | "flow"
@@ -112,6 +115,12 @@ export type DslDocument = {
    * 箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
    */
   readouts?: DslReadout[];
+  /**
+   * 読む人が動かすつまみ (`inputs:`、 #1389)。 つまみが握る値は状態と同じ名前で参照できる。
+   *
+   * 部品と同じく箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
+   */
+  inputs?: DslInput[];
   /**
    * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 未指定は "auto" default で
    * catalog 100+ backward compat。 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode。

@@ -5223,7 +5223,9 @@ export const alertNotification = diagram("interactive-alert-notification", {
   })
   .state("kind", { initial: "warn" })
   .state("title", { initial: "Deploy in progress" })
-  .state("body", { initial: "Building v1.2.3 for production" })
+  // 値の名前に `body` を使わない (#1389)。 段の項目 (`body:`) と同じ語で、記法に写すと
+  // 1 つの図に `body:` が 2 つの意味で並ぶ (`lib/catalog-state-names.test.ts` が止める)
+  .state("alertBody", { initial: "Building v1.2.3 for production" })
   .node("infoNode", {
     lane: "info",
     stack: 0,
@@ -5262,7 +5264,7 @@ export const alertNotification = diagram("interactive-alert-notification", {
   .readout.notification("nt", {
     kindSource: "kind",
     titleSource: "title",
-    bodySource: "body",
+    bodySource: "alertBody",
     label: "Alert (color + icon)",
   })
   .phase("p1", { duration: 1200, title: "情報と注意", body: "" }, (p: PhaseBuilder) =>
@@ -11420,7 +11422,7 @@ export const subtitle__exemplarNotificationFlow =
   "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
 
 // ============================================================
-// 記法 (#1385)
+// 記法 (#1385 / #1389)
 // ============================================================
 //
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
@@ -11429,8 +11431,9 @@ export const subtitle__exemplarNotificationFlow =
 // **手で書かず、組み立て済みの図から機械で出した**。 出した記法は `textDslToDiagram` と
 // `jsonToDiagram` の両方に通して、元の図と骨格が一致することを確かめてから貼っている。
 //
-// **このページは全件が持つわけではない**。 記法は図を書くためのもので、つまみや押下で
-// 値が変わる仕掛け (`inputs` / `formulas` / `eventBindings` / `scrollTriggers`) を持たない。
+// **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`) を書けるようにして
+// 37 件が加わったが、式 (`formulas`) / 押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) /
+// 箱の欄 (`wBind` 等) を使う図はまだ書けない。
 // 内訳は台帳 (`lib/catalog-notation-coverage.test.ts`) の「一部のページ」 が持つ。
 
 export const sourceYaml__arrayLineChart = `title: "配列の値から面グラフを描く"
@@ -20348,6 +20351,4734 @@ export const sourceJson__exemplarNotificationFlow = `{
       },
       "badge": "retry",
       "body": "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。"
+    }
+  ]
+}`;
+
+export const sourceYaml__alertNotification = `title: "通知 4 種を情報 / 注意 / 異常 / 成功で分ける"
+type: flow
+
+inputs:
+  kind: { kind: dropdown, options: ["info", "warn", "error", "success"], defaultValue: "warn", label: "Kind" }
+
+readouts:
+  nt: { kind: notification, kindSource: "kind", titleSource: "title", bodySource: "alertBody", label: "Alert (color + icon)" }
+
+lanes:
+  info: { x: 0, width: 170 }
+  warn: { x: 190, width: 170 }
+  error: { x: 380, width: 170 }
+  success: { x: 570, width: 170 }
+
+states:
+  kind: "warn"
+  title: "Deploy in progress"
+  alertBody: "Building v1.2.3 for production"
+
+actors:
+  - infoNode: { kind: card, lane: info, stack: 0, subtitle: "blue · 通知", title: "ℹ Info" }
+  - warnNode: { kind: card, lane: warn, stack: 0, subtitle: "yellow · 注意 (default)", title: "⚠ Warn" }
+  - errorNode: { kind: card, lane: error, stack: 0, subtitle: "red · 失敗", title: "✕ Error" }
+  - successNode: { kind: card, lane: success, stack: 0, subtitle: "green · 成功", title: "✓ Success" }
+  - currentAlert: { kind: card, lane: warn, stack: 1, subtitle: "kind: {kind}", title: "◆ Current" }
+
+animation:
+  - step: "情報と注意" 1.2s
+    focus: ["infoNode"]
+    badge: "alert"
+  - step: "異常と成功" 1.2s
+    focus: ["infoNode", "warnNode", "errorNode"]
+    badge: "alert"
+  - step: "いまの通知" 1.2s
+    focus: ["infoNode", "warnNode", "errorNode", "successNode", "currentAlert"]
+    badge: "alert"
+    description: "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。"
+`;
+
+export const sourceJson__alertNotification = `{
+  "title": "通知 4 種を情報 / 注意 / 異常 / 成功で分ける",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "kind",
+      "kind": "dropdown",
+      "options": ["info", "warn", "error", "success"],
+      "defaultValue": "warn",
+      "label": "Kind"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "nt",
+      "kind": "notification",
+      "kindSource": "kind",
+      "titleSource": "title",
+      "bodySource": "alertBody",
+      "label": "Alert (color + icon)"
+    }
+  ],
+  "lanes": {
+    "info": { "x": 0, "width": 170 },
+    "warn": { "x": 190, "width": 170 },
+    "error": { "x": 380, "width": 170 },
+    "success": { "x": 570, "width": 170 }
+  },
+  "actors": [
+    {
+      "name": "infoNode",
+      "kind": "card",
+      "lane": "info",
+      "stack": 0,
+      "subtitle": "blue · 通知",
+      "title": "ℹ Info"
+    },
+    {
+      "name": "warnNode",
+      "kind": "card",
+      "lane": "warn",
+      "stack": 0,
+      "subtitle": "yellow · 注意 (default)",
+      "title": "⚠ Warn"
+    },
+    {
+      "name": "errorNode",
+      "kind": "card",
+      "lane": "error",
+      "stack": 0,
+      "subtitle": "red · 失敗",
+      "title": "✕ Error"
+    },
+    {
+      "name": "successNode",
+      "kind": "card",
+      "lane": "success",
+      "stack": 0,
+      "subtitle": "green · 成功",
+      "title": "✓ Success"
+    },
+    {
+      "name": "currentAlert",
+      "kind": "card",
+      "lane": "warn",
+      "stack": 1,
+      "subtitle": "kind: {kind}",
+      "title": "◆ Current"
+    }
+  ],
+  "flow": [],
+  "states": {
+    "kind": "warn",
+    "title": "Deploy in progress",
+    "alertBody": "Building v1.2.3 for production"
+  },
+  "animation": [
+    { "step": "情報と注意", "duration": 1.2, "focus": ["infoNode"], "badge": "alert" },
+    {
+      "step": "異常と成功",
+      "duration": 1.2,
+      "focus": ["infoNode", "warnNode", "errorNode"],
+      "badge": "alert"
+    },
+    {
+      "step": "いまの通知",
+      "duration": 1.2,
+      "focus": ["infoNode", "warnNode", "errorNode", "successNode", "currentAlert"],
+      "badge": "alert",
+      "body": "4-lane (Info / Warn / Error / Success) で alert 4 kind を分散、 各 kind 個別 card + current indicator (default=warn lane)、 dropdown 切替で notification readout が color + icon (ℹ/⚠/✕/✓) 追随、 kind 分類と現在 state の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__arraySignalHistogram = `title: "配列 5 要素の合計と個別値を並べる"
+type: flow
+
+inputs:
+  bump: { kind: slider, min: 0, max: 50, defaultValue: 20, label: "First bar" }
+
+readouts:
+  hist: { kind: array-bar, source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars (histogram)" }
+  items: { kind: array-list, source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items (bullet list)" }
+  first: { kind: stat, source: "bump", label: "Bump" }
+
+lanes:
+  agg: { x: 0, width: 240 }
+  items: { x: 300, width: 260 }
+
+states:
+  xs: "[12,34,20,45,28]"
+
+actors:
+  - Aggregate: { kind: card, lane: agg, stack: 0, subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}" }
+  - Bump control: { kind: card, lane: agg, stack: 1, subtitle: "1 本目だけを上書きするつまみ" }
+  - #0: { kind: card, lane: items, stack: 0, subtitle: "xs[0] = {xs[0]}" }
+  - #1: { kind: card, lane: items, stack: 1, subtitle: "xs[1] = {xs[1]}" }
+  - #2: { kind: card, lane: items, stack: 2, subtitle: "xs[2] = {xs[2]}" }
+  - #3: { kind: card, lane: items, stack: 3, subtitle: "xs[3] = {xs[3]}" }
+  - #4: { kind: card, lane: items, stack: 4, subtitle: "xs[4] = {xs[4]}" }
+
+animation:
+  - step: "初期の並び" 1.8s
+    focus: ["Aggregate", "#0"]
+    set:
+      xs: "[12,34,20,45,28]"
+    description: "5 つの値が並んだ状態。 棒の高さと一覧が同じ配列を見ている。"
+  - step: "山が右へ移る" 1.8s
+    focus: ["Aggregate", "#0", "#1", "#2"]
+    set:
+      xs: "[40,18,30,26,48]"
+    description: "配列を差し替えると、一番高い棒が左寄りから右端に移る。 各箱の数字も同時に変わる。"
+  - step: "右上がりに整う" 1.8s
+    focus: ["Aggregate", "#0", "#1", "#2", "#3", "#4"]
+    set:
+      xs: "[15,22,30,38,48]"
+    description: "右端を最大に保ったまま、左から右へ揃って上がる形にする。 配列 1 つで棒も箱も追いかける。"
+`;
+
+export const sourceJson__arraySignalHistogram = `{
+  "title": "配列 5 要素の合計と個別値を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "bump",
+      "kind": "slider",
+      "min": 0,
+      "max": 50,
+      "defaultValue": 20,
+      "label": "First bar"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "hist",
+      "kind": "array-bar",
+      "source": "xs",
+      "min": 0,
+      "max": 50,
+      "color": "#2563eb",
+      "label": "Bars (histogram)"
+    },
+    {
+      "id": "items",
+      "kind": "array-list",
+      "source": "xs",
+      "itemTemplate": "#{i} → {item}",
+      "max": 6,
+      "label": "Items (bullet list)"
+    },
+    { "id": "first", "kind": "stat", "source": "bump", "label": "Bump" }
+  ],
+  "lanes": {
+    "agg": { "x": 0, "width": 240 },
+    "items": { "x": 300, "width": 260 }
+  },
+  "actors": [
+    {
+      "name": "Aggregate",
+      "kind": "card",
+      "lane": "agg",
+      "stack": 0,
+      "subtitle": "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}"
+    },
+    {
+      "name": "Bump control",
+      "kind": "card",
+      "lane": "agg",
+      "stack": 1,
+      "subtitle": "1 本目だけを上書きするつまみ"
+    },
+    { "name": "#0", "kind": "card", "lane": "items", "stack": 0, "subtitle": "xs[0] = {xs[0]}" },
+    { "name": "#1", "kind": "card", "lane": "items", "stack": 1, "subtitle": "xs[1] = {xs[1]}" },
+    { "name": "#2", "kind": "card", "lane": "items", "stack": 2, "subtitle": "xs[2] = {xs[2]}" },
+    { "name": "#3", "kind": "card", "lane": "items", "stack": 3, "subtitle": "xs[3] = {xs[3]}" },
+    { "name": "#4", "kind": "card", "lane": "items", "stack": 4, "subtitle": "xs[4] = {xs[4]}" }
+  ],
+  "flow": [],
+  "states": { "xs": "[12,34,20,45,28]" },
+  "animation": [
+    {
+      "step": "初期の並び",
+      "duration": 1.8,
+      "focus": ["Aggregate", "#0"],
+      "set": { "xs": "[12,34,20,45,28]" },
+      "body": "5 つの値が並んだ状態。 棒の高さと一覧が同じ配列を見ている。"
+    },
+    {
+      "step": "山が右へ移る",
+      "duration": 1.8,
+      "focus": ["Aggregate", "#0", "#1", "#2"],
+      "set": { "xs": "[40,18,30,26,48]" },
+      "body": "配列を差し替えると、一番高い棒が左寄りから右端に移る。 各箱の数字も同時に変わる。"
+    },
+    {
+      "step": "右上がりに整う",
+      "duration": 1.8,
+      "focus": ["Aggregate", "#0", "#1", "#2", "#3", "#4"],
+      "set": { "xs": "[15,22,30,38,48]" },
+      "body": "右端を最大に保ったまま、左から右へ揃って上がる形にする。 配列 1 つで棒も箱も追いかける。"
+    }
+  ]
+}`;
+
+export const sourceYaml__audioPlayer = `title: "再生位置と再生状態から時間表示を作る"
+type: flow
+
+inputs:
+  current: { kind: slider, min: 0, max: 240, defaultValue: 65, label: "Current sec" }
+  playing: { kind: toggle, defaultValue: true, label: "Playing" }
+
+readouts:
+  mp: { kind: media-player, source: "current", durationSource: "duration", playingSource: "playing", color: "#2563eb", viewW: 320, label: "Player (icon + progress + MM:SS)" }
+
+lanes:
+  current: { x: 0, width: 220 }
+  toggle: { x: 260, width: 200 }
+  duration: { x: 500, width: 220 }
+
+states:
+  current: 65
+  duration: 240
+  playing: "true"
+
+actors:
+  - currentNode: { kind: card, lane: current, stack: 0, subtitle: "{current}s / 240s (slider driven)", title: "Current time" }
+  - toggleNode: { kind: card, lane: toggle, stack: 0, subtitle: "playing = {playing} (▶/❚❚ icon)", title: "Play toggle" }
+  - durationNode: { kind: card, lane: duration, stack: 0, subtitle: "240s total (fixed)", title: "Duration" }
+
+flow:
+  - currentNode -> durationNode: "progress %" (info)
+  - toggleNode -> currentNode: "advance/pause" (success)
+
+animation:
+  - step: "再生位置" 1.2s
+    focus: ["currentNode"]
+    badge: "media"
+  - step: "再生状態" 1.2s
+    focus: ["currentNode", "toggleNode"]
+    badge: "media"
+  - step: "時間表示" 1.2s
+    focus: ["currentNode", "toggleNode", "durationNode"]
+    badge: "media"
+    description: "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。"
+`;
+
+export const sourceJson__audioPlayer = `{
+  "title": "再生位置と再生状態から時間表示を作る",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "current",
+      "kind": "slider",
+      "min": 0,
+      "max": 240,
+      "defaultValue": 65,
+      "label": "Current sec"
+    },
+    { "id": "playing", "kind": "toggle", "defaultValue": true, "label": "Playing" }
+  ],
+  "readouts": [
+    {
+      "id": "mp",
+      "kind": "media-player",
+      "source": "current",
+      "durationSource": "duration",
+      "playingSource": "playing",
+      "color": "#2563eb",
+      "viewW": 320,
+      "label": "Player (icon + progress + MM:SS)"
+    }
+  ],
+  "lanes": {
+    "current": { "x": 0, "width": 220 },
+    "toggle": { "x": 260, "width": 200 },
+    "duration": { "x": 500, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "currentNode",
+      "kind": "card",
+      "lane": "current",
+      "stack": 0,
+      "subtitle": "{current}s / 240s (slider driven)",
+      "title": "Current time"
+    },
+    {
+      "name": "toggleNode",
+      "kind": "card",
+      "lane": "toggle",
+      "stack": 0,
+      "subtitle": "playing = {playing} (▶/❚❚ icon)",
+      "title": "Play toggle"
+    },
+    {
+      "name": "durationNode",
+      "kind": "card",
+      "lane": "duration",
+      "stack": 0,
+      "subtitle": "240s total (fixed)",
+      "title": "Duration"
+    }
+  ],
+  "flow": [
+    { "from": "currentNode", "to": "durationNode", "label": "progress %", "tone": "info" },
+    { "from": "toggleNode", "to": "currentNode", "label": "advance/pause", "tone": "success" }
+  ],
+  "states": { "current": 65, "duration": 240, "playing": "true" },
+  "animation": [
+    { "step": "再生位置", "duration": 1.2, "focus": ["currentNode"], "badge": "media" },
+    {
+      "step": "再生状態",
+      "duration": 1.2,
+      "focus": ["currentNode", "toggleNode"],
+      "badge": "media"
+    },
+    {
+      "step": "時間表示",
+      "duration": 1.2,
+      "focus": ["currentNode", "toggleNode", "durationNode"],
+      "badge": "media",
+      "body": "3-lane (Current / Play toggle / Duration) で audio player 3 signal を分散、 2 edge (progress info / advance success) で 3 signal の相互関係明示、 slider + toggle 変化で mediaPlayer readout が icon + progress + MM:SS 追随、 player 構造を lane で可視化。"
+    }
+  ]
+}`;
+
+export const sourceYaml__buildStatusTrafficLight = `title: "ビルド状態を信号機の 3 色で見せる"
+type: flow
+
+inputs:
+  status: { kind: dropdown, options: ["red", "yellow", "green"], defaultValue: "green", label: "Build status" }
+
+readouts:
+  tl: { kind: traffic-light, source: "status", viewW: 70, viewH: 180, label: "Status (3-color indicator)" }
+
+lanes:
+  red: { x: 0, width: 200 }
+  yellow: { x: 240, width: 200 }
+  green: { x: 480, width: 200 }
+
+states:
+  status: "green"
+
+actors:
+  - redNode: { kind: card, lane: red, stack: 0, subtitle: "ビルド失敗 · 要修正", title: "● Red" }
+  - yellowNode: { kind: card, lane: yellow, stack: 0, subtitle: "ビルド実行中 · 待機", title: "● Yellow" }
+  - greenNode: { kind: card, lane: green, stack: 0, subtitle: "ビルド成功 · deploy 可", title: "● Green" }
+  - currentCI: { kind: card, lane: green, stack: 1, subtitle: "status: {status}", title: "◆ Current CI" }
+
+animation:
+  - step: "赤を見る" 1.8s
+    focus: ["redNode"]
+    description: "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。"
+  - step: "黄を見る" 1.8s
+    focus: ["redNode", "yellowNode"]
+    description: "走っている間の色。 選んだ状態に応じて 1 つだけが点く。"
+  - step: "緑を見る" 1.8s
+    focus: ["redNode", "yellowNode", "greenNode", "currentCI"]
+    description: "通った時の色。 3 色で状態を読み分ける形になっている。"
+`;
+
+export const sourceJson__buildStatusTrafficLight = `{
+  "title": "ビルド状態を信号機の 3 色で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "status",
+      "kind": "dropdown",
+      "options": ["red", "yellow", "green"],
+      "defaultValue": "green",
+      "label": "Build status"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "tl",
+      "kind": "traffic-light",
+      "source": "status",
+      "viewW": 70,
+      "viewH": 180,
+      "label": "Status (3-color indicator)"
+    }
+  ],
+  "lanes": {
+    "red": { "x": 0, "width": 200 },
+    "yellow": { "x": 240, "width": 200 },
+    "green": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "redNode",
+      "kind": "card",
+      "lane": "red",
+      "stack": 0,
+      "subtitle": "ビルド失敗 · 要修正",
+      "title": "● Red"
+    },
+    {
+      "name": "yellowNode",
+      "kind": "card",
+      "lane": "yellow",
+      "stack": 0,
+      "subtitle": "ビルド実行中 · 待機",
+      "title": "● Yellow"
+    },
+    {
+      "name": "greenNode",
+      "kind": "card",
+      "lane": "green",
+      "stack": 0,
+      "subtitle": "ビルド成功 · deploy 可",
+      "title": "● Green"
+    },
+    {
+      "name": "currentCI",
+      "kind": "card",
+      "lane": "green",
+      "stack": 1,
+      "subtitle": "status: {status}",
+      "title": "◆ Current CI"
+    }
+  ],
+  "flow": [],
+  "states": { "status": "green" },
+  "animation": [
+    {
+      "step": "赤を見る",
+      "duration": 1.8,
+      "focus": ["redNode"],
+      "body": "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。"
+    },
+    {
+      "step": "黄を見る",
+      "duration": 1.8,
+      "focus": ["redNode", "yellowNode"],
+      "body": "走っている間の色。 選んだ状態に応じて 1 つだけが点く。"
+    },
+    {
+      "step": "緑を見る",
+      "duration": 1.8,
+      "focus": ["redNode", "yellowNode", "greenNode", "currentCI"],
+      "body": "通った時の色。 3 色で状態を読み分ける形になっている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__canvasMiniMap = `title: "全体図の中で今見ている範囲を示す"
+type: flow
+
+inputs:
+  panX: { kind: slider, min: 0, max: 600, defaultValue: 300, label: "Pan X" }
+  panY: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "Pan Y" }
+
+readouts:
+  map: { kind: mini-map, source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview (mini-map)" }
+  panXStat: { kind: stat, source: "panX", unit: "px", label: "X stat" }
+  panYStat: { kind: stat, source: "panY", unit: "px", label: "Y stat" }
+
+lanes:
+  xpan: { x: 0, width: 200 }
+  ypan: { x: 240, width: 200 }
+  map: { x: 480, width: 260 }
+
+states:
+  panX: 300
+  panY: 250
+  viewport: "[300,250,400,300]"
+
+actors:
+  - Pan X: { kind: card, lane: xpan, stack: 0, subtitle: "panX = {panX}px (0-600)" }
+  - Pan Y: { kind: card, lane: ypan, stack: 0, subtitle: "panY = {panY}px (0-500)" }
+  - Mini-map: { kind: card, lane: map, stack: 0, subtitle: "pan ({panX}, {panY}) view 400×300" }
+
+animation:
+  - step: "左上を見る" 1.8s
+    focus: ["Pan X"]
+    set:
+      viewport: "[0,0,400,300]"
+    description: "全体図の左上を見ている状態。 小窓の枠が左上にある。"
+  - step: "右へ移る" 1.8s
+    focus: ["Pan X", "Pan Y"]
+    set:
+      viewport: "[500,0,400,300]"
+    description: "見ている範囲が右へ移る。 小窓の枠も追いかける。"
+  - step: "下へ移る" 1.8s
+    focus: ["Pan X", "Pan Y", "Mini-map"]
+    set:
+      viewport: "[500,400,400,300]"
+    description: "さらに下へ移る。 全体の中で今どこを見ているかが枠で分かる。"
+`;
+
+export const sourceJson__canvasMiniMap = `{
+  "title": "全体図の中で今見ている範囲を示す",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "panX",
+      "kind": "slider",
+      "min": 0,
+      "max": 600,
+      "defaultValue": 300,
+      "label": "Pan X"
+    },
+    {
+      "id": "panY",
+      "kind": "slider",
+      "min": 0,
+      "max": 500,
+      "defaultValue": 250,
+      "label": "Pan Y"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "map",
+      "kind": "mini-map",
+      "source": "viewport",
+      "canvasW": 1000,
+      "canvasH": 800,
+      "viewW": 200,
+      "viewH": 160,
+      "color": "#2563eb",
+      "label": "Overview (mini-map)"
+    },
+    { "id": "panXStat", "kind": "stat", "source": "panX", "unit": "px", "label": "X stat" },
+    { "id": "panYStat", "kind": "stat", "source": "panY", "unit": "px", "label": "Y stat" }
+  ],
+  "lanes": {
+    "xpan": { "x": 0, "width": 200 },
+    "ypan": { "x": 240, "width": 200 },
+    "map": { "x": 480, "width": 260 }
+  },
+  "actors": [
+    {
+      "name": "Pan X",
+      "kind": "card",
+      "lane": "xpan",
+      "stack": 0,
+      "subtitle": "panX = {panX}px (0-600)"
+    },
+    {
+      "name": "Pan Y",
+      "kind": "card",
+      "lane": "ypan",
+      "stack": 0,
+      "subtitle": "panY = {panY}px (0-500)"
+    },
+    {
+      "name": "Mini-map",
+      "kind": "card",
+      "lane": "map",
+      "stack": 0,
+      "subtitle": "pan ({panX}, {panY}) view 400×300"
+    }
+  ],
+  "flow": [],
+  "states": { "panX": 300, "panY": 250, "viewport": "[300,250,400,300]" },
+  "animation": [
+    {
+      "step": "左上を見る",
+      "duration": 1.8,
+      "focus": ["Pan X"],
+      "set": { "viewport": "[0,0,400,300]" },
+      "body": "全体図の左上を見ている状態。 小窓の枠が左上にある。"
+    },
+    {
+      "step": "右へ移る",
+      "duration": 1.8,
+      "focus": ["Pan X", "Pan Y"],
+      "set": { "viewport": "[500,0,400,300]" },
+      "body": "見ている範囲が右へ移る。 小窓の枠も追いかける。"
+    },
+    {
+      "step": "下へ移る",
+      "duration": 1.8,
+      "focus": ["Pan X", "Pan Y", "Mini-map"],
+      "set": { "viewport": "[500,400,400,300]" },
+      "body": "さらに下へ移る。 全体の中で今どこを見ているかが枠で分かる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__colorPickerTheme = `title: "選んだ色が見本と 16 進表記に伝わる"
+type: flow
+
+inputs:
+  accent: { kind: color, defaultValue: "#8a5a2a", label: "Accent" }
+
+readouts:
+  hexReadout: { kind: stat, source: "accent", caption: "hex color", label: "Selected" }
+
+lanes:
+  picker: { x: 0, width: 370 }
+  swatch-lane: { x: 410, width: 230 }
+  stat: { x: 680, width: 320 }
+
+states:
+  accent: "#8a5a2a"
+
+actors:
+  - Color picker: { kind: card, lane: picker, stack: 0, subtitle: "input.color widget · default #8a5a2a", posW: 320 }
+  - Swatch: { kind: card, lane: swatch-lane, stack: 0, subtitle: "hex: {accent}", posW: 180 }
+  - Hex stat: { kind: card, lane: stat, stack: 0, subtitle: "readout.stat で hex 表示", posW: 270 }
+
+flow:
+  - Color picker -> Swatch: "select" (info)
+  - Swatch -> Hex stat: "display" (success)
+
+animation:
+  - step: "色を選ぶ" 1.8s
+    focus: ["Color picker"]
+    description: "選んだ色が左の箱に入る。 まだ見本には伝わっていない。"
+  - step: "見本に伝わる" 1.8s
+    focus: ["Color picker", "Swatch"]
+    description: "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。"
+  - step: "表記も揃う" 1.8s
+    focus: ["Color picker", "Swatch", "Hex stat"]
+    description: "右にも同じ 16 進表記が出る。 選んだ値が 2 箇所で読める形になっている。"
+`;
+
+export const sourceJson__colorPickerTheme = `{
+  "title": "選んだ色が見本と 16 進表記に伝わる",
+  "type": "flow",
+  "inputs": [
+    { "id": "accent", "kind": "color", "defaultValue": "#8a5a2a", "label": "Accent" }
+  ],
+  "readouts": [
+    {
+      "id": "hexReadout",
+      "kind": "stat",
+      "source": "accent",
+      "caption": "hex color",
+      "label": "Selected"
+    }
+  ],
+  "lanes": {
+    "picker": { "x": 0, "width": 370 },
+    "swatch-lane": { "x": 410, "width": 230 },
+    "stat": { "x": 680, "width": 320 }
+  },
+  "actors": [
+    {
+      "name": "Color picker",
+      "kind": "card",
+      "lane": "picker",
+      "stack": 0,
+      "subtitle": "input.color widget · default #8a5a2a",
+      "posW": 320
+    },
+    {
+      "name": "Swatch",
+      "kind": "card",
+      "lane": "swatch-lane",
+      "stack": 0,
+      "subtitle": "hex: {accent}",
+      "posW": 180
+    },
+    {
+      "name": "Hex stat",
+      "kind": "card",
+      "lane": "stat",
+      "stack": 0,
+      "subtitle": "readout.stat で hex 表示",
+      "posW": 270
+    }
+  ],
+  "flow": [
+    { "from": "Color picker", "to": "Swatch", "label": "select", "tone": "info" },
+    { "from": "Swatch", "to": "Hex stat", "label": "display", "tone": "success" }
+  ],
+  "states": { "accent": "#8a5a2a" },
+  "animation": [
+    {
+      "step": "色を選ぶ",
+      "duration": 1.8,
+      "focus": ["Color picker"],
+      "body": "選んだ色が左の箱に入る。 まだ見本には伝わっていない。"
+    },
+    {
+      "step": "見本に伝わる",
+      "duration": 1.8,
+      "focus": ["Color picker", "Swatch"],
+      "body": "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。"
+    },
+    {
+      "step": "表記も揃う",
+      "duration": 1.8,
+      "focus": ["Color picker", "Swatch", "Hex stat"],
+      "body": "右にも同じ 16 進表記が出る。 選んだ値が 2 箇所で読める形になっている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__commitDiffCounter = `title: "追加行と削除行から差し引きを出す"
+type: flow
+
+inputs:
+  add: { kind: stepper, min: 0, max: 500, step: 10, defaultValue: 120, label: "Additions" }
+  del: { kind: stepper, min: 0, max: 500, step: 10, defaultValue: 45, label: "Deletions" }
+
+readouts:
+  dc: { kind: diff-counter, additionsSource: "add", deletionsSource: "del", colorAdd: "#22c55e", colorDel: "#ef4444", label: "Diff (+N/-N bar)" }
+
+lanes:
+  adds: { x: 0, width: 260 }
+  dels: { x: 300, width: 260 }
+
+states:
+  add: 120
+  del: 45
+
+actors:
+  - + Additions: { kind: card, lane: adds, stack: 0, subtitle: "+{add} lines (green)" }
+  - adds/del: { kind: card, lane: adds, stack: 1, subtitle: "add > del → net growth" }
+  - - Deletions: { kind: card, lane: dels, stack: 0, subtitle: "-{del} lines (red)" }
+  - cleanup: { kind: card, lane: dels, stack: 1, subtitle: "remove obsolete code" }
+
+flow:
+  - + Additions -> - Deletions: "net = add - del" (info)
+
+animation:
+  - step: "追加を見る" 1.2s
+    focus: ["+ Additions"]
+    badge: "diff"
+  - step: "削除を並べる" 1.2s
+    focus: ["+ Additions", "adds/del"]
+    badge: "diff"
+  - step: "差し引き" 1.2s
+    focus: ["+ Additions", "adds/del", "- Deletions", "cleanup"]
+    badge: "diff"
+    description: "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。"
+`;
+
+export const sourceJson__commitDiffCounter = `{
+  "title": "追加行と削除行から差し引きを出す",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "add",
+      "kind": "stepper",
+      "min": 0,
+      "max": 500,
+      "step": 10,
+      "defaultValue": 120,
+      "label": "Additions"
+    },
+    {
+      "id": "del",
+      "kind": "stepper",
+      "min": 0,
+      "max": 500,
+      "step": 10,
+      "defaultValue": 45,
+      "label": "Deletions"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "dc",
+      "kind": "diff-counter",
+      "additionsSource": "add",
+      "deletionsSource": "del",
+      "colorAdd": "#22c55e",
+      "colorDel": "#ef4444",
+      "label": "Diff (+N/-N bar)"
+    }
+  ],
+  "lanes": {
+    "adds": { "x": 0, "width": 260 },
+    "dels": { "x": 300, "width": 260 }
+  },
+  "actors": [
+    {
+      "name": "+ Additions",
+      "kind": "card",
+      "lane": "adds",
+      "stack": 0,
+      "subtitle": "+{add} lines (green)"
+    },
+    {
+      "name": "adds/del",
+      "kind": "card",
+      "lane": "adds",
+      "stack": 1,
+      "subtitle": "add > del → net growth"
+    },
+    {
+      "name": "- Deletions",
+      "kind": "card",
+      "lane": "dels",
+      "stack": 0,
+      "subtitle": "-{del} lines (red)"
+    },
+    {
+      "name": "cleanup",
+      "kind": "card",
+      "lane": "dels",
+      "stack": 1,
+      "subtitle": "remove obsolete code"
+    }
+  ],
+  "flow": [
+    { "from": "+ Additions", "to": "- Deletions", "label": "net = add - del", "tone": "info" }
+  ],
+  "states": { "add": 120, "del": 45 },
+  "animation": [
+    { "step": "追加を見る", "duration": 1.2, "focus": ["+ Additions"], "badge": "diff" },
+    { "step": "削除を並べる", "duration": 1.2, "focus": ["+ Additions", "adds/del"], "badge": "diff" },
+    {
+      "step": "差し引き",
+      "duration": 1.2,
+      "focus": ["+ Additions", "adds/del", "- Deletions", "cleanup"],
+      "badge": "diff",
+      "body": "2-lane (Additions +N green / Deletions -N red) で PR diff を符号別分散、 各 lane に main card + detail card、 net delta edge (info tone) で add - del の差を明示、 diffCounter readout も併存で proportion bar 表示、 diff 構造と bar の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__deploySpinner = `title: "配備状態を実行中 / 完了 / 失敗で見せる"
+type: flow
+
+inputs:
+  status: { kind: dropdown, options: ["running", "done", "error"], defaultValue: "running", label: "Status" }
+  msg: { kind: text, defaultValue: "Building production bundle...", placeholder: "Status message", maxLength: 60, label: "Message" }
+
+readouts:
+  sp: { kind: spinner, source: "status", textSource: "msg", color: "#2563eb", label: "Deploy (spinner + text)" }
+
+lanes:
+  running: { x: 0, width: 220 }
+  done: { x: 260, width: 220 }
+  error: { x: 520, width: 220 }
+
+states:
+  status: "running"
+  msg: "Building production bundle..."
+
+actors:
+  - runningNode: { kind: card, lane: running, stack: 0, subtitle: "blue spinner · SMIL 回転 circle", title: "◐ Running" }
+  - doneNode: { kind: card, lane: done, stack: 0, subtitle: "green · deploy success", title: "✓ Done" }
+  - errorNode: { kind: card, lane: error, stack: 0, subtitle: "red · deploy failed", title: "✕ Error" }
+  - currentState: { kind: card, lane: running, stack: 1, subtitle: "status: {status} · msg: {msg}", title: "◆ Deploy" }
+
+animation:
+  - step: "実行中" 1.2s
+    focus: ["runningNode"]
+    badge: "loading"
+  - step: "完了と失敗" 1.2s
+    focus: ["runningNode", "doneNode"]
+    badge: "loading"
+  - step: "いまの状態" 1.2s
+    focus: ["runningNode", "doneNode", "errorNode", "currentState"]
+    badge: "loading"
+    description: "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。"
+`;
+
+export const sourceJson__deploySpinner = `{
+  "title": "配備状態を実行中 / 完了 / 失敗で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "status",
+      "kind": "dropdown",
+      "options": ["running", "done", "error"],
+      "defaultValue": "running",
+      "label": "Status"
+    },
+    {
+      "id": "msg",
+      "kind": "text",
+      "defaultValue": "Building production bundle...",
+      "placeholder": "Status message",
+      "maxLength": 60,
+      "label": "Message"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "sp",
+      "kind": "spinner",
+      "source": "status",
+      "textSource": "msg",
+      "color": "#2563eb",
+      "label": "Deploy (spinner + text)"
+    }
+  ],
+  "lanes": {
+    "running": { "x": 0, "width": 220 },
+    "done": { "x": 260, "width": 220 },
+    "error": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "runningNode",
+      "kind": "card",
+      "lane": "running",
+      "stack": 0,
+      "subtitle": "blue spinner · SMIL 回転 circle",
+      "title": "◐ Running"
+    },
+    {
+      "name": "doneNode",
+      "kind": "card",
+      "lane": "done",
+      "stack": 0,
+      "subtitle": "green · deploy success",
+      "title": "✓ Done"
+    },
+    {
+      "name": "errorNode",
+      "kind": "card",
+      "lane": "error",
+      "stack": 0,
+      "subtitle": "red · deploy failed",
+      "title": "✕ Error"
+    },
+    {
+      "name": "currentState",
+      "kind": "card",
+      "lane": "running",
+      "stack": 1,
+      "subtitle": "status: {status} · msg: {msg}",
+      "title": "◆ Deploy"
+    }
+  ],
+  "flow": [],
+  "states": { "status": "running", "msg": "Building production bundle..." },
+  "animation": [
+    { "step": "実行中", "duration": 1.2, "focus": ["runningNode"], "badge": "loading" },
+    {
+      "step": "完了と失敗",
+      "duration": 1.2,
+      "focus": ["runningNode", "doneNode"],
+      "badge": "loading"
+    },
+    {
+      "step": "いまの状態",
+      "duration": 1.2,
+      "focus": ["runningNode", "doneNode", "errorNode", "currentState"],
+      "badge": "loading",
+      "body": "3-lane (Running spinner / Done ✓ / Error ✕) で deploy 3 state を分散、 各 state 個別 card + current indicator (default=running lane)、 dropdown 切替で spinner readout が icon 追随、 state 分類と現在 deploy の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__deviceBattery = `title: "電池残量を低 / 中 / 高で見せる"
+type: flow
+
+inputs:
+  battery: { kind: slider, min: 0, max: 100, defaultValue: 72, label: "Battery %" }
+
+readouts:
+  fb: { kind: fuel-bar, source: "battery", segments: 10, lowThreshold: 20, highThreshold: 60, viewW: 240, viewH: 32, label: "Level (10 segment bar)" }
+
+lanes:
+  low: { x: 0, width: 200 }
+  mid: { x: 240, width: 200 }
+  high: { x: 480, width: 220 }
+
+states:
+  battery: 72
+
+actors:
+  - Low band: { kind: card, lane: low, stack: 0, subtitle: "< 20% (red · critical)" }
+  - Mid band: { kind: card, lane: mid, stack: 0, subtitle: "20-60% (yellow · charge soon)" }
+  - High band: { kind: card, lane: high, stack: 0, subtitle: "≥ 60% (green · healthy)" }
+  - ◆ Current: { kind: card, lane: high, stack: 1, subtitle: "battery = {battery}% (default 72 → high)" }
+
+animation:
+  - step: "低い帯" 1.2s
+    focus: ["Low band"]
+    badge: "battery"
+  - step: "高い帯まで" 1.2s
+    focus: ["Low band", "Mid band"]
+    badge: "battery"
+  - step: "いまの残量" 1.2s
+    focus: ["Low band", "Mid band", "High band", "◆ Current"]
+    badge: "battery"
+    description: "3-lane (Low <20 red / Mid 20-60 yellow / High ≥60 green) で battery 3 band を分散、 current indicator (default 72 → high lane)、 slider 変化で fuelBar readout の filled 数 + color 追随、 battery / fuel / stamina 状態を lane 分割で可視化。"
+`;
+
+export const sourceJson__deviceBattery = `{
+  "title": "電池残量を低 / 中 / 高で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "battery",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 72,
+      "label": "Battery %"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "fb",
+      "kind": "fuel-bar",
+      "source": "battery",
+      "segments": 10,
+      "lowThreshold": 20,
+      "highThreshold": 60,
+      "viewW": 240,
+      "viewH": 32,
+      "label": "Level (10 segment bar)"
+    }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 200 },
+    "mid": { "x": 240, "width": 200 },
+    "high": { "x": 480, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "Low band",
+      "kind": "card",
+      "lane": "low",
+      "stack": 0,
+      "subtitle": "< 20% (red · critical)"
+    },
+    {
+      "name": "Mid band",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 0,
+      "subtitle": "20-60% (yellow · charge soon)"
+    },
+    {
+      "name": "High band",
+      "kind": "card",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "≥ 60% (green · healthy)"
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "high",
+      "stack": 1,
+      "subtitle": "battery = {battery}% (default 72 → high)"
+    }
+  ],
+  "flow": [],
+  "states": { "battery": 72 },
+  "animation": [
+    { "step": "低い帯", "duration": 1.2, "focus": ["Low band"], "badge": "battery" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["Low band", "Mid band"], "badge": "battery" },
+    {
+      "step": "いまの残量",
+      "duration": 1.2,
+      "focus": ["Low band", "Mid band", "High band", "◆ Current"],
+      "badge": "battery",
+      "body": "3-lane (Low <20 red / Mid 20-60 yellow / High ≥60 green) で battery 3 band を分散、 current indicator (default 72 → high lane)、 slider 変化で fuelBar readout の filled 数 + color 追随、 battery / fuel / stamina 状態を lane 分割で可視化。"
+    }
+  ]
+}`;
+
+export const sourceYaml__dynamicReadouts = `title: "数え上げ / 増減 / 円 / 打字の 4 表示を並べる"
+type: flow
+
+inputs:
+  rev: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "Revenue" }
+  status: { kind: dropdown, options: ["active", "pending", "closed"], defaultValue: "active", label: "Status" }
+
+readouts:
+  revCount: { kind: countup, source: "rev", unit: "$", label: "Revenue count" }
+  revDelta: { kind: delta, source: "rev", unit: "$", label: "Δ delta" }
+  revPct: { kind: percent-ring, source: "rev", max: 500, label: "Progress ring" }
+  statusText: { kind: typewriter, source: "status", charMs: 50, label: "Status text" }
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 370 }
+
+states:
+  rev: 250
+  status: "active"
+
+actors:
+  - Countup: { kind: card, lane: col1, stack: 0, subtitle: "rev={rev} · animated $ counter", posW: 320 }
+  - Delta: { kind: card, lane: col2, stack: 0, subtitle: "rev={rev} · ↑↓ arrow", posW: 240 }
+  - Percent ring: { kind: card, lane: col1, stack: 1, subtitle: "rev/500 = {rev} progress", posW: 310 }
+  - Typewriter: { kind: card, lane: col2, stack: 1, subtitle: "status={status} · char reveal", posW: 320 }
+
+animation:
+  - step: "数え上げを見る" 1.8s
+    focus: ["Countup"]
+    description: "件数を数え上げる表示。 4 つのうち 1 つ目で、つまみの値をそのまま出す。"
+  - step: "増減と円を見る" 1.8s
+    focus: ["Countup", "Delta", "Percent ring"]
+    description: "同じ件数から増減の幅と割合の円を出す。 1 つの値を 3 通りに描き分ける。"
+  - step: "文字でも出す" 1.8s
+    focus: ["Countup", "Delta", "Percent ring", "Typewriter"]
+    description: "状態を打ち出す表示まで並ぶ。 数値 3 つと文字 1 つの 4 表示が揃う。"
+`;
+
+export const sourceJson__dynamicReadouts = `{
+  "title": "数え上げ / 増減 / 円 / 打字の 4 表示を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "rev",
+      "kind": "slider",
+      "min": 0,
+      "max": 500,
+      "defaultValue": 250,
+      "label": "Revenue"
+    },
+    {
+      "id": "status",
+      "kind": "dropdown",
+      "options": ["active", "pending", "closed"],
+      "defaultValue": "active",
+      "label": "Status"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "revCount",
+      "kind": "countup",
+      "source": "rev",
+      "unit": "$",
+      "label": "Revenue count"
+    },
+    { "id": "revDelta", "kind": "delta", "source": "rev", "unit": "$", "label": "Δ delta" },
+    {
+      "id": "revPct",
+      "kind": "percent-ring",
+      "source": "rev",
+      "max": 500,
+      "label": "Progress ring"
+    },
+    {
+      "id": "statusText",
+      "kind": "typewriter",
+      "source": "status",
+      "charMs": 50,
+      "label": "Status text"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 370 }
+  },
+  "actors": [
+    {
+      "name": "Countup",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "rev={rev} · animated $ counter",
+      "posW": 320
+    },
+    {
+      "name": "Delta",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "rev={rev} · ↑↓ arrow",
+      "posW": 240
+    },
+    {
+      "name": "Percent ring",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "rev/500 = {rev} progress",
+      "posW": 310
+    },
+    {
+      "name": "Typewriter",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "status={status} · char reveal",
+      "posW": 320
+    }
+  ],
+  "flow": [],
+  "states": { "rev": 250, "status": "active" },
+  "animation": [
+    {
+      "step": "数え上げを見る",
+      "duration": 1.8,
+      "focus": ["Countup"],
+      "body": "件数を数え上げる表示。 4 つのうち 1 つ目で、つまみの値をそのまま出す。"
+    },
+    {
+      "step": "増減と円を見る",
+      "duration": 1.8,
+      "focus": ["Countup", "Delta", "Percent ring"],
+      "body": "同じ件数から増減の幅と割合の円を出す。 1 つの値を 3 通りに描き分ける。"
+    },
+    {
+      "step": "文字でも出す",
+      "duration": 1.8,
+      "focus": ["Countup", "Delta", "Percent ring", "Typewriter"],
+      "body": "状態を打ち出す表示まで並ぶ。 数値 3 つと文字 1 つの 4 表示が揃う。"
+    }
+  ]
+}`;
+
+export const sourceYaml__engineTachometer = `title: "回転数を通常 / 巡航 / 過回転で見せる"
+type: flow
+
+inputs:
+  rpm: { kind: slider, min: 0, max: 8000, defaultValue: 3500, label: "RPM" }
+
+readouts:
+  g: { kind: circular-gauge, source: "rpm", min: 0, max: 8000, viewW: 200, viewH: 160, color: "#f97316", unit: "rpm", label: "Tachometer (270° dial)" }
+
+lanes:
+  idle: { x: 0, width: 200 }
+  cruise: { x: 240, width: 200 }
+  redline: { x: 480, width: 200 }
+
+states:
+  rpm: 3500
+
+actors:
+  - idleNode: { kind: card, lane: idle, stack: 0, subtitle: "0-2000 rpm (green)", title: "Idle range" }
+  - cruiseNode: { kind: card, lane: cruise, stack: 0, subtitle: "2000-5000 rpm (yellow) · normal driving", title: "Cruise range" }
+  - redlineNode: { kind: card, lane: redline, stack: 0, subtitle: "5000-8000 rpm (red) · caution", title: "Redline" }
+  - currentRpm: { kind: card, lane: cruise, stack: 1, subtitle: "{rpm} rpm (default 3500 = cruise)", title: "◆ Current" }
+
+animation:
+  - step: "通常と巡航" 1.2s
+    focus: ["idleNode"]
+    badge: "tachometer"
+  - step: "過回転まで" 1.2s
+    focus: ["idleNode", "cruiseNode"]
+    badge: "tachometer"
+  - step: "いまの回転数" 1.2s
+    focus: ["idleNode", "cruiseNode", "redlineNode", "currentRpm"]
+    badge: "tachometer"
+    description: "3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) で rpm 範囲を領域別分散、 各 range 個別 card + 現在 rpm indicator (default 3500 = cruise lane)、 circularGauge readout も併存で 270° dial 表示、 range 分類と needle 表示の 2 経路 view。"
+`;
+
+export const sourceJson__engineTachometer = `{
+  "title": "回転数を通常 / 巡航 / 過回転で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "rpm",
+      "kind": "slider",
+      "min": 0,
+      "max": 8000,
+      "defaultValue": 3500,
+      "label": "RPM"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "g",
+      "kind": "circular-gauge",
+      "source": "rpm",
+      "min": 0,
+      "max": 8000,
+      "viewW": 200,
+      "viewH": 160,
+      "color": "#f97316",
+      "unit": "rpm",
+      "label": "Tachometer (270° dial)"
+    }
+  ],
+  "lanes": {
+    "idle": { "x": 0, "width": 200 },
+    "cruise": { "x": 240, "width": 200 },
+    "redline": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "idleNode",
+      "kind": "card",
+      "lane": "idle",
+      "stack": 0,
+      "subtitle": "0-2000 rpm (green)",
+      "title": "Idle range"
+    },
+    {
+      "name": "cruiseNode",
+      "kind": "card",
+      "lane": "cruise",
+      "stack": 0,
+      "subtitle": "2000-5000 rpm (yellow) · normal driving",
+      "title": "Cruise range"
+    },
+    {
+      "name": "redlineNode",
+      "kind": "card",
+      "lane": "redline",
+      "stack": 0,
+      "subtitle": "5000-8000 rpm (red) · caution",
+      "title": "Redline"
+    },
+    {
+      "name": "currentRpm",
+      "kind": "card",
+      "lane": "cruise",
+      "stack": 1,
+      "subtitle": "{rpm} rpm (default 3500 = cruise)",
+      "title": "◆ Current"
+    }
+  ],
+  "flow": [],
+  "states": { "rpm": 3500 },
+  "animation": [
+    { "step": "通常と巡航", "duration": 1.2, "focus": ["idleNode"], "badge": "tachometer" },
+    {
+      "step": "過回転まで",
+      "duration": 1.2,
+      "focus": ["idleNode", "cruiseNode"],
+      "badge": "tachometer"
+    },
+    {
+      "step": "いまの回転数",
+      "duration": 1.2,
+      "focus": ["idleNode", "cruiseNode", "redlineNode", "currentRpm"],
+      "badge": "tachometer",
+      "body": "3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) で rpm 範囲を領域別分散、 各 range 個別 card + 現在 rpm indicator (default 3500 = cruise lane)、 circularGauge readout も併存で 270° dial 表示、 range 分類と needle 表示の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__examGrade = `title: "成績を A から F の 5 段階で見せる"
+type: flow
+
+inputs:
+  score: { kind: slider, min: 0, max: 100, defaultValue: 85, label: "Score" }
+
+readouts:
+  g: { kind: grade, source: "score", max: 100, label: "Letter grade (band)" }
+
+lanes:
+  A: { x: 0, width: 130 }
+  B: { x: 150, width: 130 }
+  C: { x: 300, width: 130 }
+  D: { x: 450, width: 130 }
+  F: { x: 600, width: 130 }
+
+states:
+  score: 85
+
+actors:
+  - A: { kind: card, lane: A, stack: 0, subtitle: "≥ 90 (green)" }
+  - B: { kind: card, lane: B, stack: 0, subtitle: "80-89 (blue, default here)" }
+  - C: { kind: card, lane: C, stack: 0, subtitle: "70-79 (yellow)" }
+  - D: { kind: card, lane: D, stack: 0, subtitle: "60-69 (orange)" }
+  - F: { kind: card, lane: F, stack: 0, subtitle: "< 60 (red)" }
+  - ◆ Current: { kind: card, lane: B, stack: 1, subtitle: "score = {score} / 100" }
+
+animation:
+  - step: "上の 2 段階" 1.2s
+    focus: ["A", "B"]
+    badge: "grade"
+  - step: "下の 3 段階" 1.2s
+    focus: ["A", "B", "C", "D"]
+    badge: "grade"
+  - step: "いまの成績" 1.2s
+    focus: ["A", "B", "C", "D", "F", "◆ Current"]
+    badge: "grade"
+    description: "5-lane (A ≥90 / B 80-89 / C 70-79 / D 60-69 / F <60) で 5 letter grade band を分散、 各 band 個別 card + current indicator (default score 85 → B lane)、 slider 変化で grade readout が letter + color 追随、 grade band 分類と current の 2 経路 view。"
+`;
+
+export const sourceJson__examGrade = `{
+  "title": "成績を A から F の 5 段階で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "score",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 85,
+      "label": "Score"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "g",
+      "kind": "grade",
+      "source": "score",
+      "max": 100,
+      "label": "Letter grade (band)"
+    }
+  ],
+  "lanes": {
+    "A": { "x": 0, "width": 130 },
+    "B": { "x": 150, "width": 130 },
+    "C": { "x": 300, "width": 130 },
+    "D": { "x": 450, "width": 130 },
+    "F": { "x": 600, "width": 130 }
+  },
+  "actors": [
+    { "name": "A", "kind": "card", "lane": "A", "stack": 0, "subtitle": "≥ 90 (green)" },
+    {
+      "name": "B",
+      "kind": "card",
+      "lane": "B",
+      "stack": 0,
+      "subtitle": "80-89 (blue, default here)"
+    },
+    { "name": "C", "kind": "card", "lane": "C", "stack": 0, "subtitle": "70-79 (yellow)" },
+    { "name": "D", "kind": "card", "lane": "D", "stack": 0, "subtitle": "60-69 (orange)" },
+    { "name": "F", "kind": "card", "lane": "F", "stack": 0, "subtitle": "< 60 (red)" },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "B",
+      "stack": 1,
+      "subtitle": "score = {score} / 100"
+    }
+  ],
+  "flow": [],
+  "states": { "score": 85 },
+  "animation": [
+    { "step": "上の 2 段階", "duration": 1.2, "focus": ["A", "B"], "badge": "grade" },
+    { "step": "下の 3 段階", "duration": 1.2, "focus": ["A", "B", "C", "D"], "badge": "grade" },
+    {
+      "step": "いまの成績",
+      "duration": 1.2,
+      "focus": ["A", "B", "C", "D", "F", "◆ Current"],
+      "badge": "grade",
+      "body": "5-lane (A ≥90 / B 80-89 / C 70-79 / D 60-69 / F <60) で 5 letter grade band を分散、 各 band 個別 card + current indicator (default score 85 → B lane)、 slider 変化で grade readout が letter + color 追随、 grade band 分類と current の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__gridLayoutMatrix = `title: "3 行 4 列の格子を列ごとに並べる"
+type: flow
+
+inputs:
+  r: { kind: stepper, min: 0, max: 2, defaultValue: 0, label: "Row" }
+  c: { kind: stepper, min: 0, max: 3, defaultValue: 0, label: "Col" }
+
+readouts:
+  hover: { kind: stat, source: "r", label: "Row" }
+  hoverC: { kind: stat, source: "c", label: "Col" }
+
+lanes:
+  col0: { x: 0, width: 150 }
+  col1: { x: 170, width: 150 }
+  col2: { x: 340, width: 150 }
+  col3: { x: 510, width: 150 }
+
+states:
+  r: 0
+  c: 0
+
+actors:
+  - r0 c0: { kind: card, lane: col0, stack: 0, subtitle: "col0 lane · row0 stack" }
+  - r0 c1: { kind: card, lane: col1, stack: 0, subtitle: "col1 lane · row0 stack" }
+  - r0 c2: { kind: card, lane: col2, stack: 0, subtitle: "col2 lane · row0 stack" }
+  - r0 c3: { kind: card, lane: col3, stack: 0, subtitle: "col3 lane · row0 stack" }
+  - r1 c0: { kind: card, lane: col0, stack: 1, subtitle: "col0 lane · row1 stack" }
+  - r1 c1: { kind: card, lane: col1, stack: 1, subtitle: "col1 lane · row1 stack" }
+  - r1 c2: { kind: card, lane: col2, stack: 1, subtitle: "col2 lane · row1 stack" }
+  - r1 c3: { kind: card, lane: col3, stack: 1, subtitle: "col3 lane · row1 stack" }
+  - r2 c0: { kind: card, lane: col0, stack: 2, subtitle: "col0 lane · row2 stack" }
+  - r2 c1: { kind: card, lane: col1, stack: 2, subtitle: "col1 lane · row2 stack" }
+  - r2 c2: { kind: card, lane: col2, stack: 2, subtitle: "col2 lane · row2 stack" }
+  - r2 c3: { kind: card, lane: col3, stack: 2, subtitle: "col3 lane · row2 stack" }
+
+animation:
+  - step: "1 行目を見る" 1.8s
+    focus: ["r0 c0", "r0 c1", "r0 c2", "r0 c3"]
+    description: "格子の 1 行目。 行と列はつまみで選び、選んだ位置が表示に出る。"
+  - step: "2 行目を見る" 1.8s
+    focus: ["r1 c0", "r1 c1", "r1 c2", "r1 c3"]
+    description: "2 行目の 4 つ。 3 行 4 列がすべて同じ形で並んでいる。"
+  - step: "3 行目を見る" 1.8s
+    focus: ["r2 c0", "r2 c1", "r2 c2", "r2 c3"]
+    description: "3 行目まで見ると格子の全体が揃う。 12 個が規則的に並ぶ。"
+`;
+
+export const sourceJson__gridLayoutMatrix = `{
+  "title": "3 行 4 列の格子を列ごとに並べる",
+  "type": "flow",
+  "inputs": [
+    { "id": "r", "kind": "stepper", "min": 0, "max": 2, "defaultValue": 0, "label": "Row" },
+    { "id": "c", "kind": "stepper", "min": 0, "max": 3, "defaultValue": 0, "label": "Col" }
+  ],
+  "readouts": [
+    { "id": "hover", "kind": "stat", "source": "r", "label": "Row" },
+    { "id": "hoverC", "kind": "stat", "source": "c", "label": "Col" }
+  ],
+  "lanes": {
+    "col0": { "x": 0, "width": 150 },
+    "col1": { "x": 170, "width": 150 },
+    "col2": { "x": 340, "width": 150 },
+    "col3": { "x": 510, "width": 150 }
+  },
+  "actors": [
+    {
+      "name": "r0 c0",
+      "kind": "card",
+      "lane": "col0",
+      "stack": 0,
+      "subtitle": "col0 lane · row0 stack"
+    },
+    {
+      "name": "r0 c1",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "col1 lane · row0 stack"
+    },
+    {
+      "name": "r0 c2",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "col2 lane · row0 stack"
+    },
+    {
+      "name": "r0 c3",
+      "kind": "card",
+      "lane": "col3",
+      "stack": 0,
+      "subtitle": "col3 lane · row0 stack"
+    },
+    {
+      "name": "r1 c0",
+      "kind": "card",
+      "lane": "col0",
+      "stack": 1,
+      "subtitle": "col0 lane · row1 stack"
+    },
+    {
+      "name": "r1 c1",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "col1 lane · row1 stack"
+    },
+    {
+      "name": "r1 c2",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "col2 lane · row1 stack"
+    },
+    {
+      "name": "r1 c3",
+      "kind": "card",
+      "lane": "col3",
+      "stack": 1,
+      "subtitle": "col3 lane · row1 stack"
+    },
+    {
+      "name": "r2 c0",
+      "kind": "card",
+      "lane": "col0",
+      "stack": 2,
+      "subtitle": "col0 lane · row2 stack"
+    },
+    {
+      "name": "r2 c1",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 2,
+      "subtitle": "col1 lane · row2 stack"
+    },
+    {
+      "name": "r2 c2",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 2,
+      "subtitle": "col2 lane · row2 stack"
+    },
+    {
+      "name": "r2 c3",
+      "kind": "card",
+      "lane": "col3",
+      "stack": 2,
+      "subtitle": "col3 lane · row2 stack"
+    }
+  ],
+  "flow": [],
+  "states": { "r": 0, "c": 0 },
+  "animation": [
+    {
+      "step": "1 行目を見る",
+      "duration": 1.8,
+      "focus": ["r0 c0", "r0 c1", "r0 c2", "r0 c3"],
+      "body": "格子の 1 行目。 行と列はつまみで選び、選んだ位置が表示に出る。"
+    },
+    {
+      "step": "2 行目を見る",
+      "duration": 1.8,
+      "focus": ["r1 c0", "r1 c1", "r1 c2", "r1 c3"],
+      "body": "2 行目の 4 つ。 3 行 4 列がすべて同じ形で並んでいる。"
+    },
+    {
+      "step": "3 行目を見る",
+      "duration": 1.8,
+      "focus": ["r2 c0", "r2 c1", "r2 c2", "r2 c3"],
+      "body": "3 行目まで見ると格子の全体が揃う。 12 個が規則的に並ぶ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__inputSliderBar = `title: "スライダーの値が右の箱の説明欄に届く"
+type: flow
+
+inputs:
+  value: { kind: slider, min: 0, max: 100, defaultValue: 50, label: "Value" }
+
+lanes:
+  slider: { x: 0, width: 260 }
+  output: { x: 300, width: 260 }
+
+states:
+  value: 50
+
+actors:
+  - sliderNode: { kind: card, lane: slider, stack: 0, subtitle: "value = {value}", title: "Slider" }
+  - bar-node: { kind: card, lane: output, stack: 0, subtitle: "value: {value}", title: "Bar" }
+
+flow:
+  - sliderNode -> bar-node: "signal bind" (info)
+
+animation:
+  - step: "つまみを持つ" 1.6s
+    focus: ["sliderNode"]
+    description: "左の縦列だけを見る。 つまみが \`value\` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。"
+  - step: "値が渡る" 1.6s
+    focus: ["sliderNode", "bar-node"]
+    description: "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
+  - step: "説明欄に出る" 1.6s
+    focus: ["bar-node"]
+    description: "渡った値が右の箱の説明欄に出る。 図形の大きさは変わらず、文字として反映される経路。"
+`;
+
+export const sourceJson__inputSliderBar = `{
+  "title": "スライダーの値が右の箱の説明欄に届く",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "value",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 50,
+      "label": "Value"
+    }
+  ],
+  "lanes": {
+    "slider": { "x": 0, "width": 260 },
+    "output": { "x": 300, "width": 260 }
+  },
+  "actors": [
+    {
+      "name": "sliderNode",
+      "kind": "card",
+      "lane": "slider",
+      "stack": 0,
+      "subtitle": "value = {value}",
+      "title": "Slider"
+    },
+    {
+      "name": "bar-node",
+      "kind": "card",
+      "lane": "output",
+      "stack": 0,
+      "subtitle": "value: {value}",
+      "title": "Bar"
+    }
+  ],
+  "flow": [
+    { "from": "sliderNode", "to": "bar-node", "label": "signal bind", "tone": "info" }
+  ],
+  "states": { "value": 50 },
+  "animation": [
+    {
+      "step": "つまみを持つ",
+      "duration": 1.6,
+      "focus": ["sliderNode"],
+      "body": "左の縦列だけを見る。 つまみが \`value\` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。"
+    },
+    {
+      "step": "値が渡る",
+      "duration": 1.6,
+      "focus": ["sliderNode", "bar-node"],
+      "body": "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
+    },
+    {
+      "step": "説明欄に出る",
+      "duration": 1.6,
+      "focus": ["bar-node"],
+      "body": "渡った値が右の箱の説明欄に出る。 図形の大きさは変わらず、文字として反映される経路。"
+    }
+  ]
+}`;
+
+export const sourceYaml__inputVariety = `title: "スライダー / 複数選択 / タブ / 文字の 4 入力を並べる"
+type: flow
+
+inputs:
+  priceRange: { kind: range, min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "Price Range" }
+  tags: { kind: multi-select, options: ["new", "sale", "hot", "featured"], defaultValues: ["new"], label: "Tags" }
+  view: { kind: tabs, options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" }
+  query: { kind: text, defaultValue: "", placeholder: "Search...", maxLength: 50, label: "Query" }
+
+lanes:
+  range: { x: 0, width: 360 }
+  multi: { x: 380, width: 360 }
+  tabs: { x: 760, width: 230 }
+  text: { x: 1010, width: 320 }
+
+states:
+  priceRange: "200,700"
+  tags: "new"
+  view: "grid"
+  query: ""
+
+actors:
+  - rangeNode: { kind: card, lane: range, stack: 0, subtitle: "price = {priceRange}", posW: 310, title: "Range slider" }
+  - multiNode: { kind: card, lane: multi, stack: 0, subtitle: "tags = {tags}", posW: 310, title: "Multi-select" }
+  - tabsNode: { kind: card, lane: tabs, stack: 0, subtitle: "view = {view}", posW: 180, title: "Tabs" }
+  - textNode: { kind: card, lane: text, stack: 0, subtitle: "query = {query}", posW: 270, title: "Text input" }
+
+animation:
+  - step: "数を選ぶ" 1.6s
+    focus: ["rangeNode"]
+    description: "つまみで数の範囲を選ぶ。 4 種類の入力のうち 1 つ目。"
+  - step: "複数選ぶ" 1.6s
+    focus: ["rangeNode", "multiNode"]
+    description: "札を複数選べる入力を加える。 選んだ数だけ値が増える。"
+  - step: "切り替える" 1.6s
+    focus: ["rangeNode", "multiNode", "tabsNode"]
+    description: "タブで表示を切り替える入力を加える。 1 つだけ選ぶ形。"
+  - step: "文字を打つ" 1.6s
+    focus: ["rangeNode", "multiNode", "tabsNode", "textNode"]
+    description: "文字を打つ入力まで並ぶ。 4 種類が同じ図の中で動く。"
+`;
+
+export const sourceJson__inputVariety = `{
+  "title": "スライダー / 複数選択 / タブ / 文字の 4 入力を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "priceRange",
+      "kind": "range",
+      "min": 0,
+      "max": 1000,
+      "defaultLo": 200,
+      "defaultHi": 700,
+      "label": "Price Range"
+    },
+    {
+      "id": "tags",
+      "kind": "multi-select",
+      "options": ["new", "sale", "hot", "featured"],
+      "defaultValues": ["new"],
+      "label": "Tags"
+    },
+    {
+      "id": "view",
+      "kind": "tabs",
+      "options": ["grid", "list", "compact"],
+      "defaultValue": "grid",
+      "label": "View"
+    },
+    {
+      "id": "query",
+      "kind": "text",
+      "defaultValue": "",
+      "placeholder": "Search...",
+      "maxLength": 50,
+      "label": "Query"
+    }
+  ],
+  "lanes": {
+    "range": { "x": 0, "width": 360 },
+    "multi": { "x": 380, "width": 360 },
+    "tabs": { "x": 760, "width": 230 },
+    "text": { "x": 1010, "width": 320 }
+  },
+  "actors": [
+    {
+      "name": "rangeNode",
+      "kind": "card",
+      "lane": "range",
+      "stack": 0,
+      "subtitle": "price = {priceRange}",
+      "posW": 310,
+      "title": "Range slider"
+    },
+    {
+      "name": "multiNode",
+      "kind": "card",
+      "lane": "multi",
+      "stack": 0,
+      "subtitle": "tags = {tags}",
+      "posW": 310,
+      "title": "Multi-select"
+    },
+    {
+      "name": "tabsNode",
+      "kind": "card",
+      "lane": "tabs",
+      "stack": 0,
+      "subtitle": "view = {view}",
+      "posW": 180,
+      "title": "Tabs"
+    },
+    {
+      "name": "textNode",
+      "kind": "card",
+      "lane": "text",
+      "stack": 0,
+      "subtitle": "query = {query}",
+      "posW": 270,
+      "title": "Text input"
+    }
+  ],
+  "flow": [],
+  "states": { "priceRange": "200,700", "tags": "new", "view": "grid", "query": "" },
+  "animation": [
+    {
+      "step": "数を選ぶ",
+      "duration": 1.6,
+      "focus": ["rangeNode"],
+      "body": "つまみで数の範囲を選ぶ。 4 種類の入力のうち 1 つ目。"
+    },
+    {
+      "step": "複数選ぶ",
+      "duration": 1.6,
+      "focus": ["rangeNode", "multiNode"],
+      "body": "札を複数選べる入力を加える。 選んだ数だけ値が増える。"
+    },
+    {
+      "step": "切り替える",
+      "duration": 1.6,
+      "focus": ["rangeNode", "multiNode", "tabsNode"],
+      "body": "タブで表示を切り替える入力を加える。 1 つだけ選ぶ形。"
+    },
+    {
+      "step": "文字を打つ",
+      "duration": 1.6,
+      "focus": ["rangeNode", "multiNode", "tabsNode", "textNode"],
+      "body": "文字を打つ入力まで並ぶ。 4 種類が同じ図の中で動く。"
+    }
+  ]
+}`;
+
+export const sourceYaml__interactiveOauthFlow = `title: "OAuth 認可コードの往復を追う"
+type: flow
+
+inputs:
+  delay: { kind: slider, min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" }
+
+readouts:
+  seq: { kind: sequence-timeline, source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" }
+  finalDelay: { kind: stat, source: "delay", unit: "ms", label: "Delay" }
+
+lanes:
+  user: { x: 0, width: 220 }
+  auth: { x: 320, width: 220 }
+  resource: { x: 640, width: 220 }
+
+states:
+  delay: 50
+  events: '[[0,"click"],[100,"redirect"],[200,"consent"],[350,"code"],[500,"token"],[650,"resp"]]'
+
+actors:
+  - client: { kind: card, lane: user, stack: 0, subtitle: "user agent", title: "Browser" }
+  - consent: { kind: card, lane: auth, stack: 0, subtitle: "delay {delay}ms", title: "Auth server" }
+  - api: { kind: card, lane: resource, stack: 0, subtitle: "API endpoint", title: "Resource" }
+
+flow:
+  - client -> consent: "1. redirect (with client_id)" (info)
+  - consent -> client: "2. consent screen (user approves)" (info) { side: "left" }
+  - client -> consent: "3. code exchange (with code)" (accent)
+  - consent -> client: "4. token issued (access_token)" (success) { side: "left" }
+  - client -> api: "5. API call" (accent) { sub: "Bearer token" }
+  - api -> client: "6. resp" (success) { sub: "protected data", side: "bottom", labelOffsetY: 120 }
+
+animation:
+  - step: "認可を求める" 1.8s
+    focus: ["client"]
+    set:
+      events: '[[0,"認可要求"]]'
+    description: "利用者が認可画面に進む。 やり取りの 1 つ目が記録される。"
+  - step: "コードを受け取る" 1.8s
+    focus: ["client", "consent"]
+    set:
+      events: '[[0,"認可要求"],[120,"コード発行"]]'
+    description: "認可コードが返る。 やり取りが 2 つに増える。"
+  - step: "引き換える" 1.8s
+    focus: ["client", "consent", "api"]
+    set:
+      events: '[[0,"認可要求"],[120,"コード発行"],[260,"token 交換"],[380,"token 発行"],[500,"資源要求"],[620,"資源応答"]]'
+    description: "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
+`;
+
+export const sourceJson__interactiveOauthFlow = `{
+  "title": "OAuth 認可コードの往復を追う",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "delay",
+      "kind": "slider",
+      "min": 0,
+      "max": 300,
+      "defaultValue": 50,
+      "label": "Server delay (ms)"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "seq",
+      "kind": "sequence-timeline",
+      "source": "events",
+      "min": 0,
+      "max": 700,
+      "viewW": 400,
+      "viewH": 60,
+      "color": "#2563eb",
+      "label": "Timeline"
+    },
+    { "id": "finalDelay", "kind": "stat", "source": "delay", "unit": "ms", "label": "Delay" }
+  ],
+  "lanes": {
+    "user": { "x": 0, "width": 220 },
+    "auth": { "x": 320, "width": 220 },
+    "resource": { "x": 640, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "client",
+      "kind": "card",
+      "lane": "user",
+      "stack": 0,
+      "subtitle": "user agent",
+      "title": "Browser"
+    },
+    {
+      "name": "consent",
+      "kind": "card",
+      "lane": "auth",
+      "stack": 0,
+      "subtitle": "delay {delay}ms",
+      "title": "Auth server"
+    },
+    {
+      "name": "api",
+      "kind": "card",
+      "lane": "resource",
+      "stack": 0,
+      "subtitle": "API endpoint",
+      "title": "Resource"
+    }
+  ],
+  "flow": [
+    {
+      "from": "client",
+      "to": "consent",
+      "label": "1. redirect (with client_id)",
+      "tone": "info"
+    },
+    {
+      "from": "consent",
+      "to": "client",
+      "label": "2. consent screen (user approves)",
+      "tone": "info",
+      "side": "left"
+    },
+    {
+      "from": "client",
+      "to": "consent",
+      "label": "3. code exchange (with code)",
+      "tone": "accent"
+    },
+    {
+      "from": "consent",
+      "to": "client",
+      "label": "4. token issued (access_token)",
+      "tone": "success",
+      "side": "left"
+    },
+    {
+      "from": "client",
+      "to": "api",
+      "label": "5. API call",
+      "sub": "Bearer token",
+      "tone": "accent"
+    },
+    {
+      "from": "api",
+      "to": "client",
+      "label": "6. resp",
+      "sub": "protected data",
+      "tone": "success",
+      "side": "bottom",
+      "labelOffsetY": 120
+    }
+  ],
+  "states": {
+    "delay": 50,
+    "events": "[[0,\\"click\\"],[100,\\"redirect\\"],[200,\\"consent\\"],[350,\\"code\\"],[500,\\"token\\"],[650,\\"resp\\"]]"
+  },
+  "animation": [
+    {
+      "step": "認可を求める",
+      "duration": 1.8,
+      "focus": ["client"],
+      "set": { "events": "[[0,\\"認可要求\\"]]" },
+      "body": "利用者が認可画面に進む。 やり取りの 1 つ目が記録される。"
+    },
+    {
+      "step": "コードを受け取る",
+      "duration": 1.8,
+      "focus": ["client", "consent"],
+      "set": { "events": "[[0,\\"認可要求\\"],[120,\\"コード発行\\"]]" },
+      "body": "認可コードが返る。 やり取りが 2 つに増える。"
+    },
+    {
+      "step": "引き換える",
+      "duration": 1.8,
+      "focus": ["client", "consent", "api"],
+      "set": {
+        "events": "[[0,\\"認可要求\\"],[120,\\"コード発行\\"],[260,\\"token 交換\\"],[380,\\"token 発行\\"],[500,\\"資源要求\\"],[620,\\"資源応答\\"]]"
+      },
+      "body": "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__issuePriorityBadge = `title: "課題の優先度を高 / 中 / 低で見せる"
+type: flow
+
+inputs:
+  prio: { kind: dropdown, options: ["high", "med", "low"], defaultValue: "high", label: "Priority" }
+  desc: { kind: text, defaultValue: "Fix crash on startup", placeholder: "Issue description", maxLength: 60, label: "Description" }
+
+readouts:
+  pb: { kind: priority-badge, source: "prio", textSource: "desc", label: "Priority (badge + icon + text)" }
+
+lanes:
+  high: { x: 0, width: 200 }
+  med: { x: 240, width: 200 }
+  low: { x: 480, width: 200 }
+
+states:
+  prio: "high"
+  desc: "Fix crash on startup"
+
+actors:
+  - highNode: { kind: card, lane: high, stack: 0, subtitle: "red · crash / regression", title: "▲ High" }
+  - medNode: { kind: card, lane: med, stack: 0, subtitle: "yellow · normal bug", title: "● Med" }
+  - lowNode: { kind: card, lane: low, stack: 0, subtitle: "gray · nice-to-have", title: "▼ Low" }
+  - currentIssue: { kind: card, lane: high, stack: 1, subtitle: "prio: {prio} · {desc}", title: "◆ Current" }
+
+animation:
+  - step: "高い優先度" 1.2s
+    focus: ["highNode"]
+    badge: "issue"
+  - step: "低い優先度まで" 1.2s
+    focus: ["highNode", "medNode"]
+    badge: "issue"
+  - step: "いまの課題" 1.2s
+    focus: ["highNode", "medNode", "lowNode", "currentIssue"]
+    badge: "issue"
+    description: "3-lane (High red ▲ / Med yellow ● / Low gray ▼) で 3 priority level を分散、 各 level 個別 card + 現在 issue の位置 (default=high lane) を currentIssue card で明示、 priorityBadge readout も併存で dropdown 追随 badge 表示、 priority 分類と現在 state の 2 経路 view。"
+`;
+
+export const sourceJson__issuePriorityBadge = `{
+  "title": "課題の優先度を高 / 中 / 低で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "prio",
+      "kind": "dropdown",
+      "options": ["high", "med", "low"],
+      "defaultValue": "high",
+      "label": "Priority"
+    },
+    {
+      "id": "desc",
+      "kind": "text",
+      "defaultValue": "Fix crash on startup",
+      "placeholder": "Issue description",
+      "maxLength": 60,
+      "label": "Description"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "pb",
+      "kind": "priority-badge",
+      "source": "prio",
+      "textSource": "desc",
+      "label": "Priority (badge + icon + text)"
+    }
+  ],
+  "lanes": {
+    "high": { "x": 0, "width": 200 },
+    "med": { "x": 240, "width": 200 },
+    "low": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "highNode",
+      "kind": "card",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "red · crash / regression",
+      "title": "▲ High"
+    },
+    {
+      "name": "medNode",
+      "kind": "card",
+      "lane": "med",
+      "stack": 0,
+      "subtitle": "yellow · normal bug",
+      "title": "● Med"
+    },
+    {
+      "name": "lowNode",
+      "kind": "card",
+      "lane": "low",
+      "stack": 0,
+      "subtitle": "gray · nice-to-have",
+      "title": "▼ Low"
+    },
+    {
+      "name": "currentIssue",
+      "kind": "card",
+      "lane": "high",
+      "stack": 1,
+      "subtitle": "prio: {prio} · {desc}",
+      "title": "◆ Current"
+    }
+  ],
+  "flow": [],
+  "states": { "prio": "high", "desc": "Fix crash on startup" },
+  "animation": [
+    { "step": "高い優先度", "duration": 1.2, "focus": ["highNode"], "badge": "issue" },
+    { "step": "低い優先度まで", "duration": 1.2, "focus": ["highNode", "medNode"], "badge": "issue" },
+    {
+      "step": "いまの課題",
+      "duration": 1.2,
+      "focus": ["highNode", "medNode", "lowNode", "currentIssue"],
+      "badge": "issue",
+      "body": "3-lane (High red ▲ / Med yellow ● / Low gray ▼) で 3 priority level を分散、 各 level 個別 card + 現在 issue の位置 (default=high lane) を currentIssue card で明示、 priorityBadge readout も併存で dropdown 追随 badge 表示、 priority 分類と現在 state の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__kpiBullet = `title: "実績と目標を良 / 並 / 悪の帯で見せる"
+type: flow
+
+inputs:
+  actual: { kind: slider, min: 0, max: 100, defaultValue: 55, label: "Actual" }
+
+readouts:
+  b: { kind: bullet-chart, source: "actual", targetSource: "target", max: 100, rangeBad: 40, rangeAvg: 70, viewW: 320, viewH: 40, colorActual: "#241c14", label: "Progress (bullet chart)" }
+  targetStat: { kind: stat, source: "target", label: "Target" }
+
+lanes:
+  bad: { x: 0, width: 180 }
+  avg: { x: 220, width: 180 }
+  good: { x: 440, width: 220 }
+
+states:
+  actual: 55
+  target: 80
+
+actors:
+  - Bad range: { kind: card, lane: bad, stack: 0, subtitle: "0-40 (red)" }
+  - Avg range: { kind: card, lane: avg, stack: 0, subtitle: "40-70 (yellow) · actual {actual} here" }
+  - Good range: { kind: card, lane: good, stack: 0, subtitle: "70-100 (green) · target {target}" }
+  - ◆ Actual: { kind: card, lane: avg, stack: 1, subtitle: "{actual}" }
+  - ▼ Target: { kind: card, lane: good, stack: 1, subtitle: "{target}" }
+
+flow:
+  - ◆ Actual -> ▼ Target: "gap = target - actual" (warning)
+
+animation:
+  - step: "悪い帯を見る" 1.8s
+    focus: ["Bad range", "◆ Actual"]
+    description: "実績が入ると位置づけが分かる 3 本の帯。 一番下の帯。"
+  - step: "並の帯を見る" 1.8s
+    focus: ["Bad range", "Avg range", "◆ Actual"]
+    description: "真ん中の帯。 つまみで実績を動かすと、入る帯が変わる。"
+  - step: "良い帯と目標" 1.8s
+    focus: ["Bad range", "Avg range", "Good range", "◆ Actual", "▼ Target"]
+    description: "一番上の帯と、目標を指す縦線。 実績がどこに立つかで読み分ける。"
+`;
+
+export const sourceJson__kpiBullet = `{
+  "title": "実績と目標を良 / 並 / 悪の帯で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "actual",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 55,
+      "label": "Actual"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "b",
+      "kind": "bullet-chart",
+      "source": "actual",
+      "targetSource": "target",
+      "max": 100,
+      "rangeBad": 40,
+      "rangeAvg": 70,
+      "viewW": 320,
+      "viewH": 40,
+      "colorActual": "#241c14",
+      "label": "Progress (bullet chart)"
+    },
+    { "id": "targetStat", "kind": "stat", "source": "target", "label": "Target" }
+  ],
+  "lanes": {
+    "bad": { "x": 0, "width": 180 },
+    "avg": { "x": 220, "width": 180 },
+    "good": { "x": 440, "width": 220 }
+  },
+  "actors": [
+    { "name": "Bad range", "kind": "card", "lane": "bad", "stack": 0, "subtitle": "0-40 (red)" },
+    {
+      "name": "Avg range",
+      "kind": "card",
+      "lane": "avg",
+      "stack": 0,
+      "subtitle": "40-70 (yellow) · actual {actual} here"
+    },
+    {
+      "name": "Good range",
+      "kind": "card",
+      "lane": "good",
+      "stack": 0,
+      "subtitle": "70-100 (green) · target {target}"
+    },
+    { "name": "◆ Actual", "kind": "card", "lane": "avg", "stack": 1, "subtitle": "{actual}" },
+    { "name": "▼ Target", "kind": "card", "lane": "good", "stack": 1, "subtitle": "{target}" }
+  ],
+  "flow": [
+    {
+      "from": "◆ Actual",
+      "to": "▼ Target",
+      "label": "gap = target - actual",
+      "tone": "warning"
+    }
+  ],
+  "states": { "actual": 55, "target": 80 },
+  "animation": [
+    {
+      "step": "悪い帯を見る",
+      "duration": 1.8,
+      "focus": ["Bad range", "◆ Actual"],
+      "body": "実績が入ると位置づけが分かる 3 本の帯。 一番下の帯。"
+    },
+    {
+      "step": "並の帯を見る",
+      "duration": 1.8,
+      "focus": ["Bad range", "Avg range", "◆ Actual"],
+      "body": "真ん中の帯。 つまみで実績を動かすと、入る帯が変わる。"
+    },
+    {
+      "step": "良い帯と目標",
+      "duration": 1.8,
+      "focus": ["Bad range", "Avg range", "Good range", "◆ Actual", "▼ Target"],
+      "body": "一番上の帯と、目標を指す縦線。 実績がどこに立つかで読み分ける。"
+    }
+  ]
+}`;
+
+export const sourceYaml__mlConfidenceMeter = `title: "推論の確信度を低 / 中 / 高で見せる"
+type: flow
+
+inputs:
+  conf: { kind: slider, min: 0, max: 100, defaultValue: 82, label: "Confidence %" }
+
+readouts:
+  cm: { kind: confidence-meter, source: "conf", lowThreshold: 40, highThreshold: 75, viewW: 280, viewH: 40, label: "Confidence (3-band bar)" }
+
+lanes:
+  low: { x: 0, width: 200 }
+  mid: { x: 240, width: 200 }
+  high: { x: 480, width: 220 }
+
+states:
+  conf: 82
+
+actors:
+  - Low band: { kind: card, lane: low, stack: 0, subtitle: "< 40% (red · uncertain)" }
+  - Mid band: { kind: card, lane: mid, stack: 0, subtitle: "40-74% (yellow · borderline)" }
+  - High band: { kind: card, lane: high, stack: 0, subtitle: "≥ 75% (green · confident)" }
+  - ◆ Current: { kind: card, lane: high, stack: 1, subtitle: "conf = {conf}% (default 82 → high)" }
+
+animation:
+  - step: "低い帯" 1.2s
+    focus: ["Low band"]
+    badge: "ML conf"
+  - step: "高い帯まで" 1.2s
+    focus: ["Low band", "Mid band"]
+    badge: "ML conf"
+  - step: "いまの確信度" 1.2s
+    focus: ["Low band", "Mid band", "High band", "◆ Current"]
+    badge: "ML conf"
+    description: "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。"
+`;
+
+export const sourceJson__mlConfidenceMeter = `{
+  "title": "推論の確信度を低 / 中 / 高で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "conf",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 82,
+      "label": "Confidence %"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "cm",
+      "kind": "confidence-meter",
+      "source": "conf",
+      "lowThreshold": 40,
+      "highThreshold": 75,
+      "viewW": 280,
+      "viewH": 40,
+      "label": "Confidence (3-band bar)"
+    }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 200 },
+    "mid": { "x": 240, "width": 200 },
+    "high": { "x": 480, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "Low band",
+      "kind": "card",
+      "lane": "low",
+      "stack": 0,
+      "subtitle": "< 40% (red · uncertain)"
+    },
+    {
+      "name": "Mid band",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 0,
+      "subtitle": "40-74% (yellow · borderline)"
+    },
+    {
+      "name": "High band",
+      "kind": "card",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "≥ 75% (green · confident)"
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "high",
+      "stack": 1,
+      "subtitle": "conf = {conf}% (default 82 → high)"
+    }
+  ],
+  "flow": [],
+  "states": { "conf": 82 },
+  "animation": [
+    { "step": "低い帯", "duration": 1.2, "focus": ["Low band"], "badge": "ML conf" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["Low band", "Mid band"], "badge": "ML conf" },
+    {
+      "step": "いまの確信度",
+      "duration": 1.2,
+      "focus": ["Low band", "Mid band", "High band", "◆ Current"],
+      "badge": "ML conf",
+      "body": "3-lane (Low <40 red / Mid 40-74 yellow / High ≥75 green) で 3 confidence band を分散、 current indicator (default 82 → high lane)、 slider 変化で confidenceMeter readout が band 色追随、 ML/AI classification band 分類と meter の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__numberSparkline = `title: "現在値と履歴のミニ折れ線を並べる"
+type: flow
+
+inputs:
+  val: { kind: number, defaultValue: 20, label: "Value" }
+
+readouts:
+  valHist: { kind: sparkline, source: "val", history: 15, color: "#e57373", label: "Sparkline history" }
+  valStat: { kind: stat, source: "val", caption: "input 履歴の最新", label: "Latest" }
+
+lanes:
+  current: { x: 0, width: 220 }
+  history: { x: 260, width: 320 }
+
+states:
+  val: 20
+
+actors:
+  - currentNode: { kind: card, lane: current, stack: 0, subtitle: "val = {val}", title: "Current" }
+  - historyNode: { kind: card, lane: history, stack: 0, subtitle: "sparkline で直近 15 push 履歴", title: "History (15)" }
+
+flow:
+  - currentNode -> historyNode: "push" (info)
+
+animation:
+  - step: "現在値を見る" 1.8s
+    focus: ["currentNode"]
+    description: "つまみが持つ今の値。 数字と折れ線の右端が同じ値を指す。"
+  - step: "履歴と並べる" 1.8s
+    focus: ["currentNode", "historyNode"]
+    description: "折れ線は過去の値を並べたもの。 現在値だけが右端で動く。"
+  - step: "形で読む" 1.8s
+    focus: ["historyNode"]
+    description: "上下の動きは折れ線の形に残る。 数字 1 つでは分からない推移が読める。"
+`;
+
+export const sourceJson__numberSparkline = `{
+  "title": "現在値と履歴のミニ折れ線を並べる",
+  "type": "flow",
+  "inputs": [
+    { "id": "val", "kind": "number", "defaultValue": 20, "label": "Value" }
+  ],
+  "readouts": [
+    {
+      "id": "valHist",
+      "kind": "sparkline",
+      "source": "val",
+      "history": 15,
+      "color": "#e57373",
+      "label": "Sparkline history"
+    },
+    {
+      "id": "valStat",
+      "kind": "stat",
+      "source": "val",
+      "caption": "input 履歴の最新",
+      "label": "Latest"
+    }
+  ],
+  "lanes": {
+    "current": { "x": 0, "width": 220 },
+    "history": { "x": 260, "width": 320 }
+  },
+  "actors": [
+    {
+      "name": "currentNode",
+      "kind": "card",
+      "lane": "current",
+      "stack": 0,
+      "subtitle": "val = {val}",
+      "title": "Current"
+    },
+    {
+      "name": "historyNode",
+      "kind": "card",
+      "lane": "history",
+      "stack": 0,
+      "subtitle": "sparkline で直近 15 push 履歴",
+      "title": "History (15)"
+    }
+  ],
+  "flow": [
+    { "from": "currentNode", "to": "historyNode", "label": "push", "tone": "info" }
+  ],
+  "states": { "val": 20 },
+  "animation": [
+    {
+      "step": "現在値を見る",
+      "duration": 1.8,
+      "focus": ["currentNode"],
+      "body": "つまみが持つ今の値。 数字と折れ線の右端が同じ値を指す。"
+    },
+    {
+      "step": "履歴と並べる",
+      "duration": 1.8,
+      "focus": ["currentNode", "historyNode"],
+      "body": "折れ線は過去の値を並べたもの。 現在値だけが右端で動く。"
+    },
+    {
+      "step": "形で読む",
+      "duration": 1.8,
+      "focus": ["historyNode"],
+      "body": "上下の動きは折れ線の形に残る。 数字 1 つでは分からない推移が読める。"
+    }
+  ]
+}`;
+
+export const sourceYaml__onboardingStepper = `title: "5 段の初期設定ウィザードを追う"
+type: flow
+
+inputs:
+  current: { kind: stepper, min: 0, max: 4, defaultValue: 2, label: "Current step" }
+
+readouts:
+  wizard: { kind: step-indicator, source: "current", stepsSource: "steps", viewW: 360, viewH: 60, colorActive: "#2563eb", colorPending: "#cbd5e1", label: "Progress (dot strip)" }
+
+lanes:
+  col1: { x: 0, width: 250 }
+  col2: { x: 290, width: 340 }
+  col3: { x: 670, width: 190 }
+
+states:
+  current: 2
+  steps: '["Sign up","Profile","Preferences","Verify","Done"]'
+
+actors:
+  - Sign up: { kind: card, lane: col1, stack: 0, subtitle: "アカウント作成", posW: 200 }
+  - Profile: { kind: card, lane: col1, stack: 1, subtitle: "プロフィール記入", posW: 200 }
+  - Preferences: { kind: card, lane: col2, stack: 0, subtitle: "設定選択 (現在地)", posW: 290 }
+  - Verify: { kind: card, lane: col2, stack: 1, subtitle: "認証確認", posW: 180 }
+  - Done: { kind: card, lane: col3, stack: 0, subtitle: "完了", posW: 140 }
+
+flow:
+  - Sign up -> Profile: "next" (info)
+  - Profile -> Preferences: "next" (info)
+  - Preferences -> Verify: "next" (accent)
+  - Verify -> Done: "finish" (success)
+
+animation:
+  - step: "最初の 2 段" 1.2s
+    focus: ["Sign up"]
+    badge: "wizard"
+  - step: "中ほどまで" 1.2s
+    focus: ["Sign up", "Profile", "Preferences"]
+    badge: "wizard"
+  - step: "最後まで" 1.2s
+    focus: ["Sign up", "Profile", "Preferences", "Verify", "Done"]
+    badge: "wizard"
+    description: "5 区画 pipeline (Sign up → Profile → Preferences → Verify → Done) を 3 列 2 段に置いて + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。"
+`;
+
+export const sourceJson__onboardingStepper = `{
+  "title": "5 段の初期設定ウィザードを追う",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "current",
+      "kind": "stepper",
+      "min": 0,
+      "max": 4,
+      "defaultValue": 2,
+      "label": "Current step"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "wizard",
+      "kind": "step-indicator",
+      "source": "current",
+      "stepsSource": "steps",
+      "viewW": 360,
+      "viewH": 60,
+      "colorActive": "#2563eb",
+      "colorPending": "#cbd5e1",
+      "label": "Progress (dot strip)"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 250 },
+    "col2": { "x": 290, "width": 340 },
+    "col3": { "x": 670, "width": 190 }
+  },
+  "actors": [
+    {
+      "name": "Sign up",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "アカウント作成",
+      "posW": 200
+    },
+    {
+      "name": "Profile",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "プロフィール記入",
+      "posW": 200
+    },
+    {
+      "name": "Preferences",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "設定選択 (現在地)",
+      "posW": 290
+    },
+    {
+      "name": "Verify",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "認証確認",
+      "posW": 180
+    },
+    {
+      "name": "Done",
+      "kind": "card",
+      "lane": "col3",
+      "stack": 0,
+      "subtitle": "完了",
+      "posW": 140
+    }
+  ],
+  "flow": [
+    { "from": "Sign up", "to": "Profile", "label": "next", "tone": "info" },
+    { "from": "Profile", "to": "Preferences", "label": "next", "tone": "info" },
+    { "from": "Preferences", "to": "Verify", "label": "next", "tone": "accent" },
+    { "from": "Verify", "to": "Done", "label": "finish", "tone": "success" }
+  ],
+  "states": { "current": 2, "steps": "[\\"Sign up\\",\\"Profile\\",\\"Preferences\\",\\"Verify\\",\\"Done\\"]" },
+  "animation": [
+    { "step": "最初の 2 段", "duration": 1.2, "focus": ["Sign up"], "badge": "wizard" },
+    {
+      "step": "中ほどまで",
+      "duration": 1.2,
+      "focus": ["Sign up", "Profile", "Preferences"],
+      "badge": "wizard"
+    },
+    {
+      "step": "最後まで",
+      "duration": 1.2,
+      "focus": ["Sign up", "Profile", "Preferences", "Verify", "Done"],
+      "badge": "wizard",
+      "body": "5 区画 pipeline (Sign up → Profile → Preferences → Verify → Done) を 3 列 2 段に置いて + 4 edge で onboarding 遷移を node network 化、 tone で段階分類 (info=前半 / accent=verify 直前 / success=完了)、 stepIndicator readout も併存で dot strip 表示。"
+    }
+  ]
+}`;
+
+export const sourceYaml__playlistSongQueue = `title: "再生待ち 5 曲を再生済 / 再生中 / 次にで分ける"
+type: flow
+
+inputs:
+  cur: { kind: stepper, min: 0, max: 4, defaultValue: 1, label: "Current index" }
+
+readouts:
+  sq: { kind: song-queue, source: "queue", currentSource: "cur", max: 8, color: "#2563eb", label: "Queue (current highlight)" }
+
+lanes:
+  played: { x: 0, width: 200 }
+  now: { x: 240, width: 220 }
+  next: { x: 500, width: 220 }
+
+states:
+  cur: 1
+  queue: [["Bohemian Rhapsody","Queen","5:55"],["Hotel California","Eagles","6:30"],["Stairway to Heaven","Led Zeppelin","8:02"],["Sweet Child O' Mine","Guns N' Roses","5:56"],["Imagine","John Lennon","3:03"]]
+
+actors:
+  - ✓ Bohemian: { kind: card, lane: played, stack: 0, subtitle: "Queen · 5:55 (played)" }
+  - ▶ Hotel: { kind: card, lane: now, stack: 0, subtitle: "Eagles · 6:30 (now playing)" }
+  - Stairway: { kind: card, lane: next, stack: 0, subtitle: "Led Zeppelin · 8:02" }
+  - Sweet Child: { kind: card, lane: next, stack: 1, subtitle: "Guns N' Roses · 5:56" }
+  - Imagine: { kind: card, lane: next, stack: 2, subtitle: "John Lennon · 3:03" }
+
+animation:
+  - step: "再生済" 1.2s
+    focus: ["✓ Bohemian"]
+    badge: "music"
+  - step: "再生中" 1.2s
+    focus: ["✓ Bohemian", "▶ Hotel", "Stairway"]
+    badge: "music"
+  - step: "次に続く" 1.2s
+    focus: ["✓ Bohemian", "▶ Hotel", "Stairway", "Sweet Child", "Imagine"]
+    badge: "music"
+    description: "3-lane (Played 過去 / Now Playing 現在 / Up Next 未来) で 5 song を playback state 別分散、 default current=1 の状態を lane 配置で明示、 各 song 個別 card、 songQueue readout も併存で highlight 追随、 timeline 状態と queue の 2 経路 view。"
+`;
+
+export const sourceJson__playlistSongQueue = `{
+  "title": "再生待ち 5 曲を再生済 / 再生中 / 次にで分ける",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "cur",
+      "kind": "stepper",
+      "min": 0,
+      "max": 4,
+      "defaultValue": 1,
+      "label": "Current index"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "sq",
+      "kind": "song-queue",
+      "source": "queue",
+      "currentSource": "cur",
+      "max": 8,
+      "color": "#2563eb",
+      "label": "Queue (current highlight)"
+    }
+  ],
+  "lanes": {
+    "played": { "x": 0, "width": 200 },
+    "now": { "x": 240, "width": 220 },
+    "next": { "x": 500, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "✓ Bohemian",
+      "kind": "card",
+      "lane": "played",
+      "stack": 0,
+      "subtitle": "Queen · 5:55 (played)"
+    },
+    {
+      "name": "▶ Hotel",
+      "kind": "card",
+      "lane": "now",
+      "stack": 0,
+      "subtitle": "Eagles · 6:30 (now playing)"
+    },
+    {
+      "name": "Stairway",
+      "kind": "card",
+      "lane": "next",
+      "stack": 0,
+      "subtitle": "Led Zeppelin · 8:02"
+    },
+    {
+      "name": "Sweet Child",
+      "kind": "card",
+      "lane": "next",
+      "stack": 1,
+      "subtitle": "Guns N' Roses · 5:56"
+    },
+    {
+      "name": "Imagine",
+      "kind": "card",
+      "lane": "next",
+      "stack": 2,
+      "subtitle": "John Lennon · 3:03"
+    }
+  ],
+  "flow": [],
+  "states": {
+    "cur": 1,
+    "queue": "[[\\"Bohemian Rhapsody\\",\\"Queen\\",\\"5:55\\"],[\\"Hotel California\\",\\"Eagles\\",\\"6:30\\"],[\\"Stairway to Heaven\\",\\"Led Zeppelin\\",\\"8:02\\"],[\\"Sweet Child O' Mine\\",\\"Guns N' Roses\\",\\"5:56\\"],[\\"Imagine\\",\\"John Lennon\\",\\"3:03\\"]]"
+  },
+  "animation": [
+    { "step": "再生済", "duration": 1.2, "focus": ["✓ Bohemian"], "badge": "music" },
+    {
+      "step": "再生中",
+      "duration": 1.2,
+      "focus": ["✓ Bohemian", "▶ Hotel", "Stairway"],
+      "badge": "music"
+    },
+    {
+      "step": "次に続く",
+      "duration": 1.2,
+      "focus": ["✓ Bohemian", "▶ Hotel", "Stairway", "Sweet Child", "Imagine"],
+      "badge": "music",
+      "body": "3-lane (Played 過去 / Now Playing 現在 / Up Next 未来) で 5 song を playback state 別分散、 default current=1 の状態を lane 配置で明示、 各 song 個別 card、 songQueue readout も併存で highlight 追随、 timeline 状態と queue の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__productPriceTag = `title: "旧価格 / 新価格 / 割引率を並べる"
+type: flow
+
+inputs:
+  newPrice: { kind: stepper, min: 0, max: 200, step: 5, defaultValue: 65, label: "New price" }
+
+readouts:
+  pt: { kind: price-tag, oldSource: "oldPrice", newSource: "newPrice", currency: "$", colorNew: "#241c14", colorOld: "#a08870", colorDiscount: "#ef4444", label: "Price (composite tag)" }
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 370 }
+
+states:
+  newPrice: 65
+  oldPrice: 100
+
+actors:
+  - Old price: { kind: card, lane: col1, stack: 0, subtitle: "\${oldPrice} (strikethrough)", posW: 310 }
+  - New price: { kind: card, lane: col2, stack: 0, subtitle: "\${newPrice} (stepper driven)", posW: 320 }
+  - Discount %: { kind: card, lane: col1, stack: 1, subtitle: "(oldPrice - newPrice) / oldPrice · red badge", posW: 320 }
+
+flow:
+  - Old price -> New price: "sale" (warning)
+  - New price -> Discount %: "%" (error)
+
+animation:
+  - step: "旧価格" 1.2s
+    focus: ["Old price"]
+    badge: "price"
+  - step: "新価格" 1.2s
+    focus: ["Old price", "New price"]
+    badge: "price"
+  - step: "割引率" 1.2s
+    focus: ["Old price", "New price", "Discount %"]
+    badge: "price"
+    description: "3 区画 (Old / New / Discount) を 2 列 2 段に置いて price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。"
+`;
+
+export const sourceJson__productPriceTag = `{
+  "title": "旧価格 / 新価格 / 割引率を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "newPrice",
+      "kind": "stepper",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "defaultValue": 65,
+      "label": "New price"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "pt",
+      "kind": "price-tag",
+      "oldSource": "oldPrice",
+      "newSource": "newPrice",
+      "currency": "$",
+      "colorNew": "#241c14",
+      "colorOld": "#a08870",
+      "colorDiscount": "#ef4444",
+      "label": "Price (composite tag)"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 370 }
+  },
+  "actors": [
+    {
+      "name": "Old price",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "\${oldPrice} (strikethrough)",
+      "posW": 310
+    },
+    {
+      "name": "New price",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "\${newPrice} (stepper driven)",
+      "posW": 320
+    },
+    {
+      "name": "Discount %",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "(oldPrice - newPrice) / oldPrice · red badge",
+      "posW": 320
+    }
+  ],
+  "flow": [
+    { "from": "Old price", "to": "New price", "label": "sale", "tone": "warning" },
+    { "from": "New price", "to": "Discount %", "label": "%", "tone": "error" }
+  ],
+  "states": { "newPrice": 65, "oldPrice": 100 },
+  "animation": [
+    { "step": "旧価格", "duration": 1.2, "focus": ["Old price"], "badge": "price" },
+    { "step": "新価格", "duration": 1.2, "focus": ["Old price", "New price"], "badge": "price" },
+    {
+      "step": "割引率",
+      "duration": 1.2,
+      "focus": ["Old price", "New price", "Discount %"],
+      "badge": "price",
+      "body": "3 区画 (Old / New / Discount) を 2 列 2 段に置いて price tag 3 component を分散、 2 edge (sale warning tone / % error tone) で計算経路明示、 stepper で newPrice 変化 → priceTag readout が strikethrough + 大数字 + red badge を同時追随、 e-commerce 構造を dataflow で可視化。"
+    }
+  ]
+}`;
+
+export const sourceYaml__productRating = `title: "商品評価を低 / 中 / 高の帯で見せる"
+type: flow
+
+inputs:
+  score: { kind: slider, min: 0, max: 5, step: 0.5, defaultValue: 3.5, label: "Score" }
+
+readouts:
+  r: { kind: rating, source: "score", count: 5, color: "#eab308", label: "Rating (star display)" }
+
+lanes:
+  low: { x: 0, width: 220 }
+  mid: { x: 260, width: 220 }
+  high: { x: 520, width: 220 }
+
+states:
+  score: 3.5
+
+actors:
+  - Low range: { kind: card, lane: low, stack: 0, subtitle: "0-1.5 stars · poor" }
+  - Mid range: { kind: card, lane: mid, stack: 0, subtitle: "2-3.5 stars · average · default 3.5 here" }
+  - High range: { kind: card, lane: high, stack: 0, subtitle: "4-5 stars · excellent" }
+  - ◆ Current: { kind: card, lane: mid, stack: 1, subtitle: "{score} / 5" }
+
+animation:
+  - step: "帯を並べる" 1.2s
+    focus: ["Low range"]
+    badge: "rating"
+  - step: "現在の帯" 1.2s
+    focus: ["Low range", "Mid range"]
+    badge: "rating"
+  - step: "いまの評価" 1.2s
+    focus: ["Low range", "Mid range", "High range", "◆ Current"]
+    badge: "rating"
+    description: "3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) で rating range を分散、 default 3.5 の位置 (mid lane) を currentNode で明示、 slider (0.5 刻み) 変化で rating readout 追随 (star display half-star 対応)、 range 分類と star 表示の 2 経路 view。"
+`;
+
+export const sourceJson__productRating = `{
+  "title": "商品評価を低 / 中 / 高の帯で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "score",
+      "kind": "slider",
+      "min": 0,
+      "max": 5,
+      "step": 0.5,
+      "defaultValue": 3.5,
+      "label": "Score"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "r",
+      "kind": "rating",
+      "source": "score",
+      "count": 5,
+      "color": "#eab308",
+      "label": "Rating (star display)"
+    }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 220 },
+    "mid": { "x": 260, "width": 220 },
+    "high": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "Low range",
+      "kind": "card",
+      "lane": "low",
+      "stack": 0,
+      "subtitle": "0-1.5 stars · poor"
+    },
+    {
+      "name": "Mid range",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 0,
+      "subtitle": "2-3.5 stars · average · default 3.5 here"
+    },
+    {
+      "name": "High range",
+      "kind": "card",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "4-5 stars · excellent"
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 1,
+      "subtitle": "{score} / 5"
+    }
+  ],
+  "flow": [],
+  "states": { "score": 3.5 },
+  "animation": [
+    { "step": "帯を並べる", "duration": 1.2, "focus": ["Low range"], "badge": "rating" },
+    { "step": "現在の帯", "duration": 1.2, "focus": ["Low range", "Mid range"], "badge": "rating" },
+    {
+      "step": "いまの評価",
+      "duration": 1.2,
+      "focus": ["Low range", "Mid range", "High range", "◆ Current"],
+      "badge": "rating",
+      "body": "3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) で rating range を分散、 default 3.5 の位置 (mid lane) を currentNode で明示、 slider (0.5 刻み) 変化で rating readout 追随 (star display half-star 対応)、 range 分類と star 表示の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__radioSelect = `title: "3 択のラジオで選んだ 1 つだけが光る"
+type: flow
+
+inputs:
+  mode: { kind: radio, options: ["low", "mid", "high"], defaultValue: "mid", label: "Mode" }
+
+readouts:
+  modeStat: { kind: stat, source: "mode", caption: "選択中", label: "Current" }
+
+lanes:
+  low: { x: 0, width: 200 }
+  mid: { x: 240, width: 200 }
+  high: { x: 480, width: 200 }
+
+states:
+  mode: "mid"
+
+actors:
+  - Low mode: { kind: card, lane: low, stack: 0, subtitle: "option: low" }
+  - Mid mode: { kind: card, lane: mid, stack: 0, subtitle: "option: mid (default)" }
+  - High mode: { kind: card, lane: high, stack: 0, subtitle: "option: high" }
+  - ◆ Current: { kind: card, lane: mid, stack: 1, subtitle: "mode = {mode}" }
+
+animation:
+  - step: "低の札" 1.8s
+    focus: ["Low mode"]
+    description: "3 択の 1 つ目。 どれが選ばれるかはつまみで決まり、選ばれた 1 つだけが光る。"
+  - step: "中の札" 1.8s
+    focus: ["Mid mode"]
+    description: "2 つ目の札。 3 つのうち同時に選べるのは常に 1 つ。"
+  - step: "高の札" 1.8s
+    focus: ["High mode", "◆ Current"]
+    description: "3 つ目の札。 選んだ値は右の箱にも文字で出る。"
+`;
+
+export const sourceJson__radioSelect = `{
+  "title": "3 択のラジオで選んだ 1 つだけが光る",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "mode",
+      "kind": "radio",
+      "options": ["low", "mid", "high"],
+      "defaultValue": "mid",
+      "label": "Mode"
+    }
+  ],
+  "readouts": [
+    { "id": "modeStat", "kind": "stat", "source": "mode", "caption": "選択中", "label": "Current" }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 200 },
+    "mid": { "x": 240, "width": 200 },
+    "high": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    { "name": "Low mode", "kind": "card", "lane": "low", "stack": 0, "subtitle": "option: low" },
+    {
+      "name": "Mid mode",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 0,
+      "subtitle": "option: mid (default)"
+    },
+    {
+      "name": "High mode",
+      "kind": "card",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "option: high"
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "mid",
+      "stack": 1,
+      "subtitle": "mode = {mode}"
+    }
+  ],
+  "flow": [],
+  "states": { "mode": "mid" },
+  "animation": [
+    {
+      "step": "低の札",
+      "duration": 1.8,
+      "focus": ["Low mode"],
+      "body": "3 択の 1 つ目。 どれが選ばれるかはつまみで決まり、選ばれた 1 つだけが光る。"
+    },
+    {
+      "step": "中の札",
+      "duration": 1.8,
+      "focus": ["Mid mode"],
+      "body": "2 つ目の札。 3 つのうち同時に選べるのは常に 1 つ。"
+    },
+    {
+      "step": "高の札",
+      "duration": 1.8,
+      "focus": ["High mode", "◆ Current"],
+      "body": "3 つ目の札。 選んだ値は右の箱にも文字で出る。"
+    }
+  ]
+}`;
+
+export const sourceYaml__readoutVariety = `title: "熱セル / バッジ / 状態点の 3 表示を並べる"
+type: flow
+
+inputs:
+  temp: { kind: slider, min: 0, max: 100, defaultValue: 42, label: "Temp" }
+  state: { kind: dropdown, options: ["online", "offline", "error"], defaultValue: "online", label: "State" }
+
+readouts:
+  tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "Temp gradient" }
+  tempBadge: { kind: badge, source: "temp", label: "Value pill" }
+  statusRead: { kind: status-dot, source: "state", map: [{ value: "online", color: "#22c55e", label: "Online" }, { value: "offline", color: "#a08870", label: "Offline" }, { value: "error", color: "#ef4444", label: "Error" }], label: "State dot" }
+
+lanes:
+  heat: { x: 0, width: 220 }
+  badge: { x: 260, width: 220 }
+  dot: { x: 520, width: 220 }
+
+states:
+  temp: 42
+  state: "online"
+
+actors:
+  - Heat cell: { kind: card, lane: heat, stack: 0, subtitle: "temp = {temp} · 色 gradient" }
+  - Badge (pill): { kind: card, lane: badge, stack: 0, subtitle: "temp = {temp} · number pill" }
+  - Status dot: { kind: card, lane: dot, stack: 0, subtitle: "state = {state} · online/offline/error" }
+
+animation:
+  - step: "熱の升目を見る" 1.8s
+    focus: ["Heat cell"]
+    description: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+  - step: "札でも出す" 1.8s
+    focus: ["Heat cell", "Badge (pill)"]
+    description: "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。"
+  - step: "状態の点を見る" 1.8s
+    focus: ["Heat cell", "Badge (pill)", "Status dot"]
+    description: "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。"
+`;
+
+export const sourceJson__readoutVariety = `{
+  "title": "熱セル / バッジ / 状態点の 3 表示を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "temp",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 42,
+      "label": "Temp"
+    },
+    {
+      "id": "state",
+      "kind": "dropdown",
+      "options": ["online", "offline", "error"],
+      "defaultValue": "online",
+      "label": "State"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "tempHeat",
+      "kind": "heat-cell",
+      "source": "temp",
+      "min": 0,
+      "max": 100,
+      "colors": ["#4e9dc4", "#e57373"],
+      "label": "Temp gradient"
+    },
+    { "id": "tempBadge", "kind": "badge", "source": "temp", "label": "Value pill" },
+    {
+      "id": "statusRead",
+      "kind": "status-dot",
+      "source": "state",
+      "map": [
+        { "value": "online", "color": "#22c55e", "label": "Online" },
+        { "value": "offline", "color": "#a08870", "label": "Offline" },
+        { "value": "error", "color": "#ef4444", "label": "Error" }
+      ],
+      "label": "State dot"
+    }
+  ],
+  "lanes": {
+    "heat": { "x": 0, "width": 220 },
+    "badge": { "x": 260, "width": 220 },
+    "dot": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "Heat cell",
+      "kind": "card",
+      "lane": "heat",
+      "stack": 0,
+      "subtitle": "temp = {temp} · 色 gradient"
+    },
+    {
+      "name": "Badge (pill)",
+      "kind": "card",
+      "lane": "badge",
+      "stack": 0,
+      "subtitle": "temp = {temp} · number pill"
+    },
+    {
+      "name": "Status dot",
+      "kind": "card",
+      "lane": "dot",
+      "stack": 0,
+      "subtitle": "state = {state} · online/offline/error"
+    }
+  ],
+  "flow": [],
+  "states": { "temp": 42, "state": "online" },
+  "animation": [
+    {
+      "step": "熱の升目を見る",
+      "duration": 1.8,
+      "focus": ["Heat cell"],
+      "body": "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+    },
+    {
+      "step": "札でも出す",
+      "duration": 1.8,
+      "focus": ["Heat cell", "Badge (pill)"],
+      "body": "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。"
+    },
+    {
+      "step": "状態の点を見る",
+      "duration": 1.8,
+      "focus": ["Heat cell", "Badge (pill)", "Status dot"],
+      "body": "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__revenueKpiCard = `title: "前期と今期の売上を推移付きで比べる"
+type: flow
+
+inputs:
+  current: { kind: slider, min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" }
+
+readouts:
+  kpi: { kind: kpi-card, source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" }
+  prevStat: { kind: stat, source: "prev", unit: "k", label: "Prev stat" }
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 350 }
+
+states:
+  current: 180
+  prev: 150
+  history: "[120,135,148,152,165,170]"
+
+actors:
+  - Previous: { kind: card, lane: col1, stack: 0, subtitle: "{prev}k (baseline)", posW: 220 }
+  - ◆ Current: { kind: card, lane: col2, stack: 0, subtitle: "{current}k (slider driven)", posW: 300 }
+  - Trend: { kind: card, lane: col1, stack: 1, subtitle: "6 month sparkline (120-170k)", posW: 320 }
+
+flow:
+  - Previous -> ◆ Current: "delta = current - prev" (success)
+  - ◆ Current -> Trend: "sparkline last" (info)
+
+animation:
+  - step: "前期を見る" 1.8s
+    focus: ["Previous"]
+    description: "比べる相手になる前期の値。 これは固定で動かない。"
+  - step: "今期を見る" 1.8s
+    focus: ["Previous", "◆ Current"]
+    description: "今期の値はつまみで動く。 前期との差がその場で出る。"
+  - step: "推移で読む" 1.8s
+    focus: ["Previous", "◆ Current", "Trend"]
+    description: "推移の表示が上下の向きを形で出す。 数字と形の 2 通りで読める。"
+`;
+
+export const sourceJson__revenueKpiCard = `{
+  "title": "前期と今期の売上を推移付きで比べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "current",
+      "kind": "slider",
+      "min": 50,
+      "max": 300,
+      "defaultValue": 180,
+      "label": "Current revenue (k)"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "kpi",
+      "kind": "kpi-card",
+      "source": "current",
+      "historySource": "history",
+      "comparisonSource": "prev",
+      "unit": "k",
+      "colorPos": "#22c55e",
+      "colorNeg": "#ef4444",
+      "label": "Revenue KPI (composite)"
+    },
+    { "id": "prevStat", "kind": "stat", "source": "prev", "unit": "k", "label": "Prev stat" }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 350 }
+  },
+  "actors": [
+    {
+      "name": "Previous",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "{prev}k (baseline)",
+      "posW": 220
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "{current}k (slider driven)",
+      "posW": 300
+    },
+    {
+      "name": "Trend",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "6 month sparkline (120-170k)",
+      "posW": 320
+    }
+  ],
+  "flow": [
+    {
+      "from": "Previous",
+      "to": "◆ Current",
+      "label": "delta = current - prev",
+      "tone": "success"
+    },
+    { "from": "◆ Current", "to": "Trend", "label": "sparkline last", "tone": "info" }
+  ],
+  "states": { "current": 180, "prev": 150, "history": "[120,135,148,152,165,170]" },
+  "animation": [
+    {
+      "step": "前期を見る",
+      "duration": 1.8,
+      "focus": ["Previous"],
+      "body": "比べる相手になる前期の値。 これは固定で動かない。"
+    },
+    {
+      "step": "今期を見る",
+      "duration": 1.8,
+      "focus": ["Previous", "◆ Current"],
+      "body": "今期の値はつまみで動く。 前期との差がその場で出る。"
+    },
+    {
+      "step": "推移で読む",
+      "duration": 1.8,
+      "focus": ["Previous", "◆ Current", "Trend"],
+      "body": "推移の表示が上下の向きを形で出す。 数字と形の 2 通りで読める。"
+    }
+  ]
+}`;
+
+export const sourceYaml__revenueScoreboard = `title: "売上の現在 / 目標 / 差分を並べる"
+type: flow
+
+inputs:
+  rev: { kind: slider, min: 0, max: 999, defaultValue: 234, label: "Revenue" }
+
+readouts:
+  nb: { kind: number-board, source: "rev", prefix: "$", suffix: "M", size: 56, color: "#241c14", caption: "vs $500M target", label: "Revenue (scoreboard)" }
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 250 }
+
+states:
+  rev: 234
+
+actors:
+  - ◆ Current: { kind: card, lane: col1, stack: 0, subtitle: "\${rev}M (slider driven)", posW: 270 }
+  - Target: { kind: card, lane: col2, stack: 0, subtitle: "$500M (Q3 goal)", posW: 200 }
+  - Gap: { kind: card, lane: col1, stack: 1, subtitle: "target - current (progress toward goal)", posW: 320 }
+
+flow:
+  - ◆ Current -> Target: "progress" (info)
+  - Target -> Gap: "delta" (warning)
+
+animation:
+  - step: "現在を見る" 1.2s
+    focus: ["◆ Current"]
+    badge: "scoreboard"
+  - step: "目標を並べる" 1.2s
+    focus: ["◆ Current", "Target"]
+    badge: "scoreboard"
+  - step: "差を出す" 1.2s
+    focus: ["◆ Current", "Target", "Gap"]
+    badge: "scoreboard"
+    description: "3 区画 (Current / Target / Gap) を 2 列 2 段に置いて revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。"
+`;
+
+export const sourceJson__revenueScoreboard = `{
+  "title": "売上の現在 / 目標 / 差分を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "rev",
+      "kind": "slider",
+      "min": 0,
+      "max": 999,
+      "defaultValue": 234,
+      "label": "Revenue"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "nb",
+      "kind": "number-board",
+      "source": "rev",
+      "prefix": "$",
+      "suffix": "M",
+      "size": 56,
+      "color": "#241c14",
+      "caption": "vs $500M target",
+      "label": "Revenue (scoreboard)"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 250 }
+  },
+  "actors": [
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "\${rev}M (slider driven)",
+      "posW": 270
+    },
+    {
+      "name": "Target",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "$500M (Q3 goal)",
+      "posW": 200
+    },
+    {
+      "name": "Gap",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "target - current (progress toward goal)",
+      "posW": 320
+    }
+  ],
+  "flow": [
+    { "from": "◆ Current", "to": "Target", "label": "progress", "tone": "info" },
+    { "from": "Target", "to": "Gap", "label": "delta", "tone": "warning" }
+  ],
+  "states": { "rev": 234 },
+  "animation": [
+    { "step": "現在を見る", "duration": 1.2, "focus": ["◆ Current"], "badge": "scoreboard" },
+    {
+      "step": "目標を並べる",
+      "duration": 1.2,
+      "focus": ["◆ Current", "Target"],
+      "badge": "scoreboard"
+    },
+    {
+      "step": "差を出す",
+      "duration": 1.2,
+      "focus": ["◆ Current", "Target", "Gap"],
+      "badge": "scoreboard",
+      "body": "3 区画 (Current / Target / Gap) を 2 列 2 段に置いて revenue Q3 status を分散、 2 edge (progress info / delta warning) で target 達成経路明示、 slider 変化で current lane 追随、 scoreboard readout も併存で 56px 大数字 表示、 progress dashboard 構造を lane で可視化。"
+    }
+  ]
+}`;
+
+export const sourceYaml__roomThermometer = `title: "室温を寒い / 快適 / 暑いで分ける"
+type: flow
+
+inputs:
+  temp: { kind: slider, min: 0, max: 40, defaultValue: 24, label: "Temp °C" }
+
+readouts:
+  th: { kind: thermometer, source: "temp", min: 0, max: 40, viewW: 70, viewH: 180, color: "#ef4444", unit: "°C", label: "Temp (vertical bar)" }
+
+lanes:
+  cold: { x: 0, width: 200 }
+  comfort: { x: 240, width: 220 }
+  hot: { x: 500, width: 200 }
+
+states:
+  temp: 24
+
+actors:
+  - Cold band: { kind: card, lane: cold, stack: 0, subtitle: "< 15°C (blue · heating)" }
+  - Comfort band: { kind: card, lane: comfort, stack: 0, subtitle: "15-25°C (green · default range)" }
+  - Hot band: { kind: card, lane: hot, stack: 0, subtitle: "≥ 25°C (red · cooling)" }
+  - ◆ Current: { kind: card, lane: comfort, stack: 1, subtitle: "temp = {temp}°C (default 24 → comfort)" }
+
+animation:
+  - step: "寒い帯" 1.2s
+    focus: ["Cold band"]
+    badge: "temp"
+  - step: "暑い帯まで" 1.2s
+    focus: ["Cold band", "Comfort band"]
+    badge: "temp"
+  - step: "いまの室温" 1.2s
+    focus: ["Cold band", "Comfort band", "Hot band", "◆ Current"]
+    badge: "temp"
+    description: "3-lane (Cold <15 / Comfort 15-25 / Hot ≥25) で room 温度を band 別分散、 current indicator (default 24 → comfort lane)、 slider 変化で thermometer readout 縦 bar + 球部 追随、 温度帯分類と thermometer 表示の 2 経路 view。"
+`;
+
+export const sourceJson__roomThermometer = `{
+  "title": "室温を寒い / 快適 / 暑いで分ける",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "temp",
+      "kind": "slider",
+      "min": 0,
+      "max": 40,
+      "defaultValue": 24,
+      "label": "Temp °C"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "th",
+      "kind": "thermometer",
+      "source": "temp",
+      "min": 0,
+      "max": 40,
+      "viewW": 70,
+      "viewH": 180,
+      "color": "#ef4444",
+      "unit": "°C",
+      "label": "Temp (vertical bar)"
+    }
+  ],
+  "lanes": {
+    "cold": { "x": 0, "width": 200 },
+    "comfort": { "x": 240, "width": 220 },
+    "hot": { "x": 500, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "Cold band",
+      "kind": "card",
+      "lane": "cold",
+      "stack": 0,
+      "subtitle": "< 15°C (blue · heating)"
+    },
+    {
+      "name": "Comfort band",
+      "kind": "card",
+      "lane": "comfort",
+      "stack": 0,
+      "subtitle": "15-25°C (green · default range)"
+    },
+    {
+      "name": "Hot band",
+      "kind": "card",
+      "lane": "hot",
+      "stack": 0,
+      "subtitle": "≥ 25°C (red · cooling)"
+    },
+    {
+      "name": "◆ Current",
+      "kind": "card",
+      "lane": "comfort",
+      "stack": 1,
+      "subtitle": "temp = {temp}°C (default 24 → comfort)"
+    }
+  ],
+  "flow": [],
+  "states": { "temp": 24 },
+  "animation": [
+    { "step": "寒い帯", "duration": 1.2, "focus": ["Cold band"], "badge": "temp" },
+    {
+      "step": "暑い帯まで",
+      "duration": 1.2,
+      "focus": ["Cold band", "Comfort band"],
+      "badge": "temp"
+    },
+    {
+      "step": "いまの室温",
+      "duration": 1.2,
+      "focus": ["Cold band", "Comfort band", "Hot band", "◆ Current"],
+      "badge": "temp",
+      "body": "3-lane (Cold <15 / Comfort 15-25 / Hot ≥25) で room 温度を band 別分散、 current indicator (default 24 → comfort lane)、 slider 変化で thermometer readout 縦 bar + 球部 追随、 温度帯分類と thermometer 表示の 2 経路 view。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapeArcSweep = `title: "弧のゲージ角度を 4 段階で見せる"
+type: flow
+
+inputs:
+  a: { kind: slider, min: 0, max: 270, defaultValue: 180, label: "Angle" }
+
+lanes:
+  min: { x: 0, width: 180 }
+  quarter: { x: 205, width: 180 }
+  half: { x: 410, width: 180 }
+  interactive: { x: 615, width: 200 }
+
+states:
+  a: 180
+  a0: 0
+  a90: 90
+  a180: 180
+
+actors:
+  - 0°: { kind: dyn-arc, lane: min, stack: 0, subtitle: "min", shape: { kind: arc, angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#a08870" }, posW: 180, posH: 180 }
+  - 90°: { kind: dyn-arc, lane: quarter, stack: 0, subtitle: "quarter", shape: { kind: arc, angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" }, posW: 180, posH: 180 }
+  - 180°: { kind: dyn-arc, lane: half, stack: 0, subtitle: "half", shape: { kind: arc, angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" }, posW: 180, posH: 180 }
+  - Slider: { kind: dyn-arc, lane: interactive, stack: 0, subtitle: "{a}°", shape: { kind: arc, angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#8a5a2a" }, posW: 180, posH: 180 }
+
+animation:
+  - step: "0 度を見る" 1.6s
+    focus: ["0°"]
+    description: "針が振れていない状態。 ここが目盛りの始まりで、右へ行くほど弧が長くなる。"
+  - step: "90 度と並べる" 1.6s
+    focus: ["0°", "90°"]
+    description: "4 分の 1 まで振れた状態を隣に置く。"
+  - step: "180 度まで並べる" 1.6s
+    focus: ["0°", "90°", "180°"]
+    description: "半周まで並べる。 角度の差が弧の長さで分かる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["0°", "90°", "180°", "Slider"]
+    description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+`;
+
+export const sourceJson__shapeArcSweep = `{
+  "title": "弧のゲージ角度を 4 段階で見せる",
+  "type": "flow",
+  "inputs": [
+    { "id": "a", "kind": "slider", "min": 0, "max": 270, "defaultValue": 180, "label": "Angle" }
+  ],
+  "lanes": {
+    "min": { "x": 0, "width": 180 },
+    "quarter": { "x": 205, "width": 180 },
+    "half": { "x": 410, "width": 180 },
+    "interactive": { "x": 615, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "0°",
+      "kind": "dyn-arc",
+      "lane": "min",
+      "stack": 0,
+      "subtitle": "min",
+      "shape": { "kind": "arc", "angle": "{a0}", "startAngle": -135, "sweepMax": 270, "fill": "#a08870" },
+      "posW": 180,
+      "posH": 180
+    },
+    {
+      "name": "90°",
+      "kind": "dyn-arc",
+      "lane": "quarter",
+      "stack": 0,
+      "subtitle": "quarter",
+      "shape": {
+        "kind": "arc",
+        "angle": "{a90}",
+        "startAngle": -135,
+        "sweepMax": 270,
+        "fill": "#2563eb"
+      },
+      "posW": 180,
+      "posH": 180
+    },
+    {
+      "name": "180°",
+      "kind": "dyn-arc",
+      "lane": "half",
+      "stack": 0,
+      "subtitle": "half",
+      "shape": {
+        "kind": "arc",
+        "angle": "{a180}",
+        "startAngle": -135,
+        "sweepMax": 270,
+        "fill": "#f97316"
+      },
+      "posW": 180,
+      "posH": 180
+    },
+    {
+      "name": "Slider",
+      "kind": "dyn-arc",
+      "lane": "interactive",
+      "stack": 0,
+      "subtitle": "{a}°",
+      "shape": { "kind": "arc", "angle": "{a}", "startAngle": -135, "sweepMax": 270, "fill": "#8a5a2a" },
+      "posW": 180,
+      "posH": 180
+    }
+  ],
+  "flow": [],
+  "states": { "a": 180, "a0": 0, "a90": 90, "a180": 180 },
+  "animation": [
+    {
+      "step": "0 度を見る",
+      "duration": 1.6,
+      "focus": ["0°"],
+      "body": "針が振れていない状態。 ここが目盛りの始まりで、右へ行くほど弧が長くなる。"
+    },
+    {
+      "step": "90 度と並べる",
+      "duration": 1.6,
+      "focus": ["0°", "90°"],
+      "body": "4 分の 1 まで振れた状態を隣に置く。"
+    },
+    {
+      "step": "180 度まで並べる",
+      "duration": 1.6,
+      "focus": ["0°", "90°", "180°"],
+      "body": "半周まで並べる。 角度の差が弧の長さで分かる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["0°", "90°", "180°", "Slider"],
+      "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapePolyRotate = `title: "多角形の角数を 3 / 6 / 8 で見せる"
+type: flow
+
+inputs:
+  rot: { kind: slider, min: 0, max: 360, defaultValue: 0, label: "Rotation" }
+  radius: { kind: slider, min: 20, max: 80, defaultValue: 60, label: "Radius" }
+
+lanes:
+  triangle: { x: 0, width: 180 }
+  hexagon: { x: 200, width: 180 }
+  octagon: { x: 400, width: 180 }
+  interactive: { x: 600, width: 200 }
+
+states:
+  rot: 0
+  radius: 60
+  rot0: 0
+  radius60: 60
+
+actors:
+  - polyTri: { kind: dyn-polygon, lane: triangle, stack: 0, subtitle: "sides=3", shape: { kind: polygon, sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" }, posW: 180, posH: 180, title: "Tri" }
+  - polyHex: { kind: dyn-polygon, lane: hexagon, stack: 0, subtitle: "sides=6", shape: { kind: polygon, sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" }, posW: 180, posH: 180, title: "Hex" }
+  - polyOct: { kind: dyn-polygon, lane: octagon, stack: 0, subtitle: "sides=8", shape: { kind: polygon, sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" }, posW: 180, posH: 180, title: "Oct" }
+  - p: { kind: dyn-polygon, lane: interactive, stack: 0, subtitle: "{rot}° · r={radius}", shape: { kind: polygon, sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" }, posW: 200, posH: 200, title: "Hexagon" }
+
+animation:
+  - step: "3 角を見る" 1.6s
+    focus: ["polyTri"]
+    description: "角が 3 つの状態。 これが最も少ない形で、角を増やすほど丸に近づいていく。"
+  - step: "6 角と並べる" 1.6s
+    focus: ["polyTri", "polyHex"]
+    description: "角を 6 つにした形を隣に置く。 丸みが増す。"
+  - step: "8 角まで並べる" 1.6s
+    focus: ["polyTri", "polyHex", "polyOct"]
+    description: "角を 8 つまで増やす。 角の数と丸みの関係が分かる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["polyTri", "polyHex", "polyOct", "p"]
+    description: "右端はつまみで回転角と大きさを変えられる。 角の数は固定で、3 つの見本と見比べる。"
+`;
+
+export const sourceJson__shapePolyRotate = `{
+  "title": "多角形の角数を 3 / 6 / 8 で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "rot",
+      "kind": "slider",
+      "min": 0,
+      "max": 360,
+      "defaultValue": 0,
+      "label": "Rotation"
+    },
+    {
+      "id": "radius",
+      "kind": "slider",
+      "min": 20,
+      "max": 80,
+      "defaultValue": 60,
+      "label": "Radius"
+    }
+  ],
+  "lanes": {
+    "triangle": { "x": 0, "width": 180 },
+    "hexagon": { "x": 200, "width": 180 },
+    "octagon": { "x": 400, "width": 180 },
+    "interactive": { "x": 600, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "polyTri",
+      "kind": "dyn-polygon",
+      "lane": "triangle",
+      "stack": 0,
+      "subtitle": "sides=3",
+      "shape": {
+        "kind": "polygon",
+        "sides": 3,
+        "radius": "{radius60}",
+        "rotation": "{rot0}",
+        "fill": "#a08870"
+      },
+      "posW": 180,
+      "posH": 180,
+      "title": "Tri"
+    },
+    {
+      "name": "polyHex",
+      "kind": "dyn-polygon",
+      "lane": "hexagon",
+      "stack": 0,
+      "subtitle": "sides=6",
+      "shape": {
+        "kind": "polygon",
+        "sides": 6,
+        "radius": "{radius60}",
+        "rotation": "{rot0}",
+        "fill": "#2563eb"
+      },
+      "posW": 180,
+      "posH": 180,
+      "title": "Hex"
+    },
+    {
+      "name": "polyOct",
+      "kind": "dyn-polygon",
+      "lane": "octagon",
+      "stack": 0,
+      "subtitle": "sides=8",
+      "shape": {
+        "kind": "polygon",
+        "sides": 8,
+        "radius": "{radius60}",
+        "rotation": "{rot0}",
+        "fill": "#f97316"
+      },
+      "posW": 180,
+      "posH": 180,
+      "title": "Oct"
+    },
+    {
+      "name": "p",
+      "kind": "dyn-polygon",
+      "lane": "interactive",
+      "stack": 0,
+      "subtitle": "{rot}° · r={radius}",
+      "shape": {
+        "kind": "polygon",
+        "sides": 6,
+        "radius": "{radius}",
+        "rotation": "{rot}",
+        "fill": "#8a5a2a"
+      },
+      "posW": 200,
+      "posH": 200,
+      "title": "Hexagon"
+    }
+  ],
+  "flow": [],
+  "states": { "rot": 0, "radius": 60, "rot0": 0, "radius60": 60 },
+  "animation": [
+    {
+      "step": "3 角を見る",
+      "duration": 1.6,
+      "focus": ["polyTri"],
+      "body": "角が 3 つの状態。 これが最も少ない形で、角を増やすほど丸に近づいていく。"
+    },
+    {
+      "step": "6 角と並べる",
+      "duration": 1.6,
+      "focus": ["polyTri", "polyHex"],
+      "body": "角を 6 つにした形を隣に置く。 丸みが増す。"
+    },
+    {
+      "step": "8 角まで並べる",
+      "duration": 1.6,
+      "focus": ["polyTri", "polyHex", "polyOct"],
+      "body": "角を 8 つまで増やす。 角の数と丸みの関係が分かる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["polyTri", "polyHex", "polyOct", "p"],
+      "body": "右端はつまみで回転角と大きさを変えられる。 角の数は固定で、3 つの見本と見比べる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapeRectFill = `title: "四角の塗り割合を 4 段階で見せる"
+type: flow
+
+inputs:
+  v: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "Value" }
+
+lanes:
+  low: { x: 0, width: 130 }
+  mid: { x: 150, width: 130 }
+  high: { x: 300, width: 130 }
+  interactive: { x: 450, width: 160 }
+
+states:
+  v: 40
+  low25: 25
+  mid50: 50
+  high75: 75
+
+actors:
+  - Low 25%: { kind: dyn-rect, lane: low, stack: 0, shape: { kind: rect, source: "{low25}", fillMax: 100, orient: "up", fill: "#a08870" }, posW: 100, posH: 240 }
+  - Mid 50%: { kind: dyn-rect, lane: mid, stack: 0, shape: { kind: rect, source: "{mid50}", fillMax: 100, orient: "up", fill: "#2563eb" }, posW: 100, posH: 240 }
+  - High 75%: { kind: dyn-rect, lane: high, stack: 0, shape: { kind: rect, source: "{high75}", fillMax: 100, orient: "up", fill: "#f97316" }, posW: 100, posH: 240 }
+  - Slider ({v}%): { kind: dyn-rect, lane: interactive, stack: 0, shape: { kind: rect, source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 240 }
+
+animation:
+  - step: "25% を見る" 1.6s
+    focus: ["Low 25%"]
+    description: "塗りが 4 分の 1 の状態。 下から少しだけ埋まっている。"
+  - step: "50% と並べる" 1.6s
+    focus: ["Low 25%", "Mid 50%"]
+    description: "半分の状態を隣に置く。 25% との差が高さで分かる。"
+  - step: "75% まで並べる" 1.6s
+    focus: ["Low 25%", "Mid 50%", "High 75%"]
+    description: "4 分の 3 まで並べる。 3 段階の差が一目で比べられる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["Low 25%", "Mid 50%", "High 75%", "Slider ({v}%)"]
+    description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+`;
+
+export const sourceJson__shapeRectFill = `{
+  "title": "四角の塗り割合を 4 段階で見せる",
+  "type": "flow",
+  "inputs": [
+    { "id": "v", "kind": "slider", "min": 0, "max": 100, "defaultValue": 40, "label": "Value" }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 130 },
+    "mid": { "x": 150, "width": 130 },
+    "high": { "x": 300, "width": 130 },
+    "interactive": { "x": 450, "width": 160 }
+  },
+  "actors": [
+    {
+      "name": "Low 25%",
+      "kind": "dyn-rect",
+      "lane": "low",
+      "stack": 0,
+      "shape": { "kind": "rect", "source": "{low25}", "fillMax": 100, "orient": "up", "fill": "#a08870" },
+      "posW": 100,
+      "posH": 240
+    },
+    {
+      "name": "Mid 50%",
+      "kind": "dyn-rect",
+      "lane": "mid",
+      "stack": 0,
+      "shape": { "kind": "rect", "source": "{mid50}", "fillMax": 100, "orient": "up", "fill": "#2563eb" },
+      "posW": 100,
+      "posH": 240
+    },
+    {
+      "name": "High 75%",
+      "kind": "dyn-rect",
+      "lane": "high",
+      "stack": 0,
+      "shape": {
+        "kind": "rect",
+        "source": "{high75}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#f97316"
+      },
+      "posW": 100,
+      "posH": 240
+    },
+    {
+      "name": "Slider ({v}%)",
+      "kind": "dyn-rect",
+      "lane": "interactive",
+      "stack": 0,
+      "shape": { "kind": "rect", "source": "{v}", "fillMax": 100, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 100,
+      "posH": 240
+    }
+  ],
+  "flow": [],
+  "states": { "v": 40, "low25": 25, "mid50": 50, "high75": 75 },
+  "animation": [
+    {
+      "step": "25% を見る",
+      "duration": 1.6,
+      "focus": ["Low 25%"],
+      "body": "塗りが 4 分の 1 の状態。 下から少しだけ埋まっている。"
+    },
+    {
+      "step": "50% と並べる",
+      "duration": 1.6,
+      "focus": ["Low 25%", "Mid 50%"],
+      "body": "半分の状態を隣に置く。 25% との差が高さで分かる。"
+    },
+    {
+      "step": "75% まで並べる",
+      "duration": 1.6,
+      "focus": ["Low 25%", "Mid 50%", "High 75%"],
+      "body": "4 分の 3 まで並べる。 3 段階の差が一目で比べられる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["Low 25%", "Mid 50%", "High 75%", "Slider ({v}%)"],
+      "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shapeWaveTank = `title: "波の水位を 4 段階で見せる"
+type: flow
+
+inputs:
+  lvl: { kind: slider, min: 0, max: 100, defaultValue: 55, label: "Level" }
+
+lanes:
+  low: { x: 0, width: 160 }
+  half: { x: 180, width: 160 }
+  high: { x: 360, width: 160 }
+  interactive: { x: 540, width: 180 }
+
+states:
+  lvl: 55
+  lvl25: 25
+  lvl50: 50
+  lvl75: 75
+
+actors:
+  - wLow: { kind: dyn-wave, lane: low, stack: 0, subtitle: "25%", shape: { kind: wave, level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" }, posW: 140, posH: 220, title: "Low" }
+  - wHalf: { kind: dyn-wave, lane: half, stack: 0, subtitle: "50%", shape: { kind: wave, level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" }, posW: 140, posH: 220, title: "Half" }
+  - wHigh: { kind: dyn-wave, lane: high, stack: 0, subtitle: "75%", shape: { kind: wave, level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" }, posW: 140, posH: 220, title: "High" }
+  - w: { kind: dyn-wave, lane: interactive, stack: 0, subtitle: "{lvl}%", shape: { kind: wave, level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" }, posW: 140, posH: 220, title: "Wave" }
+
+animation:
+  - step: "25% を見る" 1.6s
+    focus: ["wLow"]
+    description: "水位が低い状態。 波の線が下の方にあり、上に空きが多く残っている。"
+  - step: "50% と並べる" 1.6s
+    focus: ["wLow", "wHalf"]
+    description: "半分まで入った状態を隣に置く。 25% との差が、線の高さの違いとして読み取れる。"
+  - step: "75% まで並べる" 1.6s
+    focus: ["wLow", "wHalf", "wHigh"]
+    description: "4 分の 3 まで並べる。 水位の差が線の高さで分かる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["wLow", "wHalf", "wHigh", "w"]
+    description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+`;
+
+export const sourceJson__shapeWaveTank = `{
+  "title": "波の水位を 4 段階で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "lvl",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 55,
+      "label": "Level"
+    }
+  ],
+  "lanes": {
+    "low": { "x": 0, "width": 160 },
+    "half": { "x": 180, "width": 160 },
+    "high": { "x": 360, "width": 160 },
+    "interactive": { "x": 540, "width": 180 }
+  },
+  "actors": [
+    {
+      "name": "wLow",
+      "kind": "dyn-wave",
+      "lane": "low",
+      "stack": 0,
+      "subtitle": "25%",
+      "shape": {
+        "kind": "wave",
+        "level": "{lvl25}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 5,
+        "fill": "#a08870"
+      },
+      "posW": 140,
+      "posH": 220,
+      "title": "Low"
+    },
+    {
+      "name": "wHalf",
+      "kind": "dyn-wave",
+      "lane": "half",
+      "stack": 0,
+      "subtitle": "50%",
+      "shape": {
+        "kind": "wave",
+        "level": "{lvl50}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 5,
+        "fill": "#2563eb"
+      },
+      "posW": 140,
+      "posH": 220,
+      "title": "Half"
+    },
+    {
+      "name": "wHigh",
+      "kind": "dyn-wave",
+      "lane": "high",
+      "stack": 0,
+      "subtitle": "75%",
+      "shape": {
+        "kind": "wave",
+        "level": "{lvl75}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 5,
+        "fill": "#f97316"
+      },
+      "posW": 140,
+      "posH": 220,
+      "title": "High"
+    },
+    {
+      "name": "w",
+      "kind": "dyn-wave",
+      "lane": "interactive",
+      "stack": 0,
+      "subtitle": "{lvl}%",
+      "shape": {
+        "kind": "wave",
+        "level": "{lvl}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 5,
+        "fill": "#4e9dc4"
+      },
+      "posW": 140,
+      "posH": 220,
+      "title": "Wave"
+    }
+  ],
+  "flow": [],
+  "states": { "lvl": 55, "lvl25": 25, "lvl50": 50, "lvl75": 75 },
+  "animation": [
+    {
+      "step": "25% を見る",
+      "duration": 1.6,
+      "focus": ["wLow"],
+      "body": "水位が低い状態。 波の線が下の方にあり、上に空きが多く残っている。"
+    },
+    {
+      "step": "50% と並べる",
+      "duration": 1.6,
+      "focus": ["wLow", "wHalf"],
+      "body": "半分まで入った状態を隣に置く。 25% との差が、線の高さの違いとして読み取れる。"
+    },
+    {
+      "step": "75% まで並べる",
+      "duration": 1.6,
+      "focus": ["wLow", "wHalf", "wHigh"],
+      "body": "4 分の 3 まで並べる。 水位の差が線の高さで分かる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["wLow", "wHalf", "wHigh", "w"],
+      "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__shippingOrderStatus = `title: "配送状況を 4 段階で追う"
+type: flow
+
+inputs:
+  current: { kind: stepper, min: 0, max: 3, defaultValue: 2, label: "Step" }
+
+readouts:
+  os: { kind: order-status, source: "current", stepsSource: "steps", color: "#2563eb", label: "Delivery status (icon strip)" }
+
+lanes:
+  col1: { x: 0, width: 340 }
+  col2: { x: 380, width: 340 }
+
+states:
+  current: 2
+  steps: '["Packed","Shipped","Out for delivery","Delivered"]'
+
+actors:
+  - 📦 Packed: { kind: card, lane: col1, stack: 0, subtitle: "梱包完了", posW: 250 }
+  - 🚚 Shipped: { kind: card, lane: col2, stack: 0, subtitle: "配送開始", posW: 270 }
+  - 🏠 Delivery: { kind: card, lane: col1, stack: 1, subtitle: "配達中 (現在地)", posW: 290 }
+  - ✅ Delivered: { kind: card, lane: col2, stack: 1, subtitle: "配達完了", posW: 290 }
+
+flow:
+  - 📦 Packed -> 🚚 Shipped: "handover" (success)
+  - 🚚 Shipped -> 🏠 Delivery: "in transit" (info)
+  - 🏠 Delivery -> ✅ Delivered: "arrived" (warning)
+
+animation:
+  - step: "梱包と発送" 1.2s
+    focus: ["📦 Packed"]
+    badge: "tracking"
+  - step: "配達中まで" 1.2s
+    focus: ["📦 Packed", "🚚 Shipped"]
+    badge: "tracking"
+  - step: "配達完了" 1.2s
+    focus: ["📦 Packed", "🚚 Shipped", "🏠 Delivery", "✅ Delivered"]
+    badge: "tracking"
+    description: "4 区画 pipeline (Packed / Shipped / Out for delivery / Delivered) を 2 列 2 段に置いて + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。"
+`;
+
+export const sourceJson__shippingOrderStatus = `{
+  "title": "配送状況を 4 段階で追う",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "current",
+      "kind": "stepper",
+      "min": 0,
+      "max": 3,
+      "defaultValue": 2,
+      "label": "Step"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "os",
+      "kind": "order-status",
+      "source": "current",
+      "stepsSource": "steps",
+      "color": "#2563eb",
+      "label": "Delivery status (icon strip)"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 340 },
+    "col2": { "x": 380, "width": 340 }
+  },
+  "actors": [
+    {
+      "name": "📦 Packed",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "梱包完了",
+      "posW": 250
+    },
+    {
+      "name": "🚚 Shipped",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "配送開始",
+      "posW": 270
+    },
+    {
+      "name": "🏠 Delivery",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "配達中 (現在地)",
+      "posW": 290
+    },
+    {
+      "name": "✅ Delivered",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "配達完了",
+      "posW": 290
+    }
+  ],
+  "flow": [
+    { "from": "📦 Packed", "to": "🚚 Shipped", "label": "handover", "tone": "success" },
+    { "from": "🚚 Shipped", "to": "🏠 Delivery", "label": "in transit", "tone": "info" },
+    { "from": "🏠 Delivery", "to": "✅ Delivered", "label": "arrived", "tone": "warning" }
+  ],
+  "states": { "current": 2, "steps": "[\\"Packed\\",\\"Shipped\\",\\"Out for delivery\\",\\"Delivered\\"]" },
+  "animation": [
+    { "step": "梱包と発送", "duration": 1.2, "focus": ["📦 Packed"], "badge": "tracking" },
+    {
+      "step": "配達中まで",
+      "duration": 1.2,
+      "focus": ["📦 Packed", "🚚 Shipped"],
+      "badge": "tracking"
+    },
+    {
+      "step": "配達完了",
+      "duration": 1.2,
+      "focus": ["📦 Packed", "🚚 Shipped", "🏠 Delivery", "✅ Delivered"],
+      "badge": "tracking",
+      "body": "4 区画 pipeline (Packed / Shipped / Out for delivery / Delivered) を 2 列 2 段に置いて + 3 edge で配送状態遷移を node network 化、 tone で段階分類 (success=出荷 / info=輸送中 / warning=到着)、 orderStatus readout も併存で icon strip 表示。"
+    }
+  ]
+}`;
+
+export const sourceYaml__stepperControl = `title: "増減ボタンで棒と数値が動く"
+type: flow
+
+inputs:
+  count: { kind: stepper, min: 0, max: 10, defaultValue: 3, label: "Count" }
+
+readouts:
+  countBar: { kind: bar, source: "count", min: 0, max: 10, label: "Progress bar" }
+  countStat: { kind: stat, source: "count", unit: " items", label: "Total" }
+
+lanes:
+  ctrl: { x: 0, width: 200 }
+  bar: { x: 240, width: 220 }
+  stat: { x: 480, width: 200 }
+
+states:
+  count: 3
+
+actors:
+  - Stepper: { kind: card, lane: ctrl, stack: 0, subtitle: "count = {count} (0-10 range)" }
+  - Bar visual: { kind: card, lane: bar, stack: 0, subtitle: "count 追随 progress bar (readout.bar)" }
+  - Stat readout: { kind: card, lane: stat, stack: 0, subtitle: "count 追随 number + unit (readout.stat)" }
+
+flow:
+  - Stepper -> Bar visual: "→ bar" (info)
+  - Stepper -> Stat readout: "→ stat" (success)
+
+animation:
+  - step: "3 個" 1.8s
+    focus: ["Stepper"]
+    description: "初期の 3 個。 棒の長さと数字が同じ値を見ている。"
+  - step: "増やす" 1.8s
+    focus: ["Stepper", "Bar visual"]
+    description: "ボタンで増やすと棒が伸び、数字も上がる。 2 つが同時に動く。"
+  - step: "読み取る" 1.8s
+    focus: ["Stepper", "Bar visual", "Stat readout"]
+    description: "右の数字で正確な値を読む。 棒は大小、数字は正確さを担う。"
+`;
+
+export const sourceJson__stepperControl = `{
+  "title": "増減ボタンで棒と数値が動く",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "count",
+      "kind": "stepper",
+      "min": 0,
+      "max": 10,
+      "defaultValue": 3,
+      "label": "Count"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "countBar",
+      "kind": "bar",
+      "source": "count",
+      "min": 0,
+      "max": 10,
+      "label": "Progress bar"
+    },
+    { "id": "countStat", "kind": "stat", "source": "count", "unit": " items", "label": "Total" }
+  ],
+  "lanes": {
+    "ctrl": { "x": 0, "width": 200 },
+    "bar": { "x": 240, "width": 220 },
+    "stat": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "Stepper",
+      "kind": "card",
+      "lane": "ctrl",
+      "stack": 0,
+      "subtitle": "count = {count} (0-10 range)"
+    },
+    {
+      "name": "Bar visual",
+      "kind": "card",
+      "lane": "bar",
+      "stack": 0,
+      "subtitle": "count 追随 progress bar (readout.bar)"
+    },
+    {
+      "name": "Stat readout",
+      "kind": "card",
+      "lane": "stat",
+      "stack": 0,
+      "subtitle": "count 追随 number + unit (readout.stat)"
+    }
+  ],
+  "flow": [
+    { "from": "Stepper", "to": "Bar visual", "label": "→ bar", "tone": "info" },
+    { "from": "Stepper", "to": "Stat readout", "label": "→ stat", "tone": "success" }
+  ],
+  "states": { "count": 3 },
+  "animation": [
+    {
+      "step": "3 個",
+      "duration": 1.8,
+      "focus": ["Stepper"],
+      "body": "初期の 3 個。 棒の長さと数字が同じ値を見ている。"
+    },
+    {
+      "step": "増やす",
+      "duration": 1.8,
+      "focus": ["Stepper", "Bar visual"],
+      "body": "ボタンで増やすと棒が伸び、数字も上がる。 2 つが同時に動く。"
+    },
+    {
+      "step": "読み取る",
+      "duration": 1.8,
+      "focus": ["Stepper", "Bar visual", "Stat readout"],
+      "body": "右の数字で正確な値を読む。 棒は大小、数字は正確さを担う。"
+    }
+  ]
+}`;
+
+export const sourceYaml__userAvatar = `title: "名前からアイコン画像を組み立てる"
+type: flow
+
+inputs:
+  user: { kind: text, defaultValue: "Alice Wonderland", placeholder: "Full name", maxLength: 40, label: "User name" }
+
+readouts:
+  av: { kind: avatar, source: "user", size: 56, color: "#2563eb", label: "Avatar (rendered)" }
+
+lanes:
+  col1: { x: 0, width: 370 }
+  col2: { x: 410, width: 370 }
+
+states:
+  user: "Alice Wonderland"
+
+actors:
+  - Text input: { kind: card, lane: col1, stack: 0, subtitle: "user = {user}", posW: 270 }
+  - Initials: { kind: card, lane: col2, stack: 0, subtitle: "first 2 word head chars (Alice Wonderland → AW)", posW: 320 }
+  - Circle: { kind: card, lane: col1, stack: 1, subtitle: "size 56 · blue #2563eb + AW text", posW: 320 }
+
+flow:
+  - Text input -> Initials: "parse" (info)
+  - Initials -> Circle: "render" (success)
+
+animation:
+  - step: "名前を受ける" 1.2s
+    focus: ["Text input"]
+    badge: "avatar"
+  - step: "頭文字を取る" 1.2s
+    focus: ["Text input", "Initials"]
+    badge: "avatar"
+  - step: "絵にする" 1.2s
+    focus: ["Text input", "Initials", "Circle"]
+    badge: "avatar"
+    description: "3 区画 (Input name / Initials extract / Circle render) を 2 列 2 段に置いて avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。"
+`;
+
+export const sourceJson__userAvatar = `{
+  "title": "名前からアイコン画像を組み立てる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "user",
+      "kind": "text",
+      "defaultValue": "Alice Wonderland",
+      "placeholder": "Full name",
+      "maxLength": 40,
+      "label": "User name"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "av",
+      "kind": "avatar",
+      "source": "user",
+      "size": 56,
+      "color": "#2563eb",
+      "label": "Avatar (rendered)"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 370 },
+    "col2": { "x": 410, "width": 370 }
+  },
+  "actors": [
+    {
+      "name": "Text input",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "user = {user}",
+      "posW": 270
+    },
+    {
+      "name": "Initials",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "first 2 word head chars (Alice Wonderland → AW)",
+      "posW": 320
+    },
+    {
+      "name": "Circle",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "size 56 · blue #2563eb + AW text",
+      "posW": 320
+    }
+  ],
+  "flow": [
+    { "from": "Text input", "to": "Initials", "label": "parse", "tone": "info" },
+    { "from": "Initials", "to": "Circle", "label": "render", "tone": "success" }
+  ],
+  "states": { "user": "Alice Wonderland" },
+  "animation": [
+    { "step": "名前を受ける", "duration": 1.2, "focus": ["Text input"], "badge": "avatar" },
+    {
+      "step": "頭文字を取る",
+      "duration": 1.2,
+      "focus": ["Text input", "Initials"],
+      "badge": "avatar"
+    },
+    {
+      "step": "絵にする",
+      "duration": 1.2,
+      "focus": ["Text input", "Initials", "Circle"],
+      "badge": "avatar",
+      "body": "3 区画 (Input name / Initials extract / Circle render) を 2 列 2 段に置いて avatar 生成 3 step を pipeline 分散、 2 edge (parse info tone / render success tone) で dataflow 明示、 text input で name 変化 → 全 lane 追随、 avatar readout も併存で最終 rendered 表示。"
+    }
+  ]
+}`;
+
+export const sourceYaml__xypadNavigate = `title: "XY パッドの座標が 4 象限のどこかを示す"
+type: flow
+
+inputs:
+  pos: { kind: xypad, xMin: 0, xMax: 100, yMin: 0, yMax: 100, defaultX: 50, defaultY: 50, label: "Position" }
+
+readouts:
+  posStat: { kind: stat, source: "pos", caption: "x,y in 0..100", label: "Selected" }
+
+lanes:
+  q2: { x: 0, width: 160 }
+  q1: { x: 180, width: 160 }
+  q3: { x: 360, width: 160 }
+  q4: { x: 540, width: 160 }
+
+states:
+  pos: "50,50"
+
+actors:
+  - q2Node: { kind: card, lane: q2, stack: 0, subtitle: "upper-left", title: "Q2" }
+  - q1Node: { kind: card, lane: q1, stack: 0, subtitle: "upper-right", title: "Q1" }
+  - q3Node: { kind: card, lane: q3, stack: 0, subtitle: "lower-left", title: "Q3" }
+  - q4Node: { kind: card, lane: q4, stack: 0, subtitle: "lower-right", title: "Q4" }
+  - indicator: { kind: card, lane: q1, stack: 1, subtitle: "{pos} (default center → Q1 boundary)", title: "◆ Position" }
+
+animation:
+  - step: "左下の区画" 1.8s
+    focus: ["q3Node", "indicator"]
+    description: "4 つに区切った左下。 座標はつまみで決まり、入った区画の箱が光る。"
+  - step: "右上の区画" 1.8s
+    focus: ["q1Node", "indicator"]
+    description: "右上の区画。 つまみを動かして境界をまたぐと、光る箱が入れ替わる。"
+  - step: "4 区画を見る" 1.8s
+    focus: ["q1Node", "q2Node", "q3Node", "q4Node", "indicator"]
+    description: "4 つの区画が同じ大きさで並ぶ。 座標 1 組がどれか 1 つを指す。"
+`;
+
+export const sourceJson__xypadNavigate = `{
+  "title": "XY パッドの座標が 4 象限のどこかを示す",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "pos",
+      "kind": "xypad",
+      "xMin": 0,
+      "xMax": 100,
+      "yMin": 0,
+      "yMax": 100,
+      "defaultX": 50,
+      "defaultY": 50,
+      "label": "Position"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "posStat",
+      "kind": "stat",
+      "source": "pos",
+      "caption": "x,y in 0..100",
+      "label": "Selected"
+    }
+  ],
+  "lanes": {
+    "q2": { "x": 0, "width": 160 },
+    "q1": { "x": 180, "width": 160 },
+    "q3": { "x": 360, "width": 160 },
+    "q4": { "x": 540, "width": 160 }
+  },
+  "actors": [
+    {
+      "name": "q2Node",
+      "kind": "card",
+      "lane": "q2",
+      "stack": 0,
+      "subtitle": "upper-left",
+      "title": "Q2"
+    },
+    {
+      "name": "q1Node",
+      "kind": "card",
+      "lane": "q1",
+      "stack": 0,
+      "subtitle": "upper-right",
+      "title": "Q1"
+    },
+    {
+      "name": "q3Node",
+      "kind": "card",
+      "lane": "q3",
+      "stack": 0,
+      "subtitle": "lower-left",
+      "title": "Q3"
+    },
+    {
+      "name": "q4Node",
+      "kind": "card",
+      "lane": "q4",
+      "stack": 0,
+      "subtitle": "lower-right",
+      "title": "Q4"
+    },
+    {
+      "name": "indicator",
+      "kind": "card",
+      "lane": "q1",
+      "stack": 1,
+      "subtitle": "{pos} (default center → Q1 boundary)",
+      "title": "◆ Position"
+    }
+  ],
+  "flow": [],
+  "states": { "pos": "50,50" },
+  "animation": [
+    {
+      "step": "左下の区画",
+      "duration": 1.8,
+      "focus": ["q3Node", "indicator"],
+      "body": "4 つに区切った左下。 座標はつまみで決まり、入った区画の箱が光る。"
+    },
+    {
+      "step": "右上の区画",
+      "duration": 1.8,
+      "focus": ["q1Node", "indicator"],
+      "body": "右上の区画。 つまみを動かして境界をまたぐと、光る箱が入れ替わる。"
+    },
+    {
+      "step": "4 区画を見る",
+      "duration": 1.8,
+      "focus": ["q1Node", "q2Node", "q3Node", "q4Node", "indicator"],
+      "body": "4 つの区画が同じ大きさで並ぶ。 座標 1 組がどれか 1 つを指す。"
     }
   ]
 }`;

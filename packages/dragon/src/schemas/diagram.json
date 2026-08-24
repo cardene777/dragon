@@ -1485,6 +1485,204 @@
           }
         ]
       }
+    },
+    "inputs": {
+      "type": "array",
+      "description": "読む人が動かすつまみ。 値を握り、箱の文字や部品がその値を追いかける。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "color",
+              "datetime",
+              "dropdown",
+              "multi-select",
+              "number",
+              "radio",
+              "range",
+              "slider",
+              "stepper",
+              "tabs",
+              "text",
+              "timeline",
+              "toggle",
+              "xypad"
+            ]
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "defaultHi": {
+            "type": "number"
+          },
+          "defaultLo": {
+            "type": "number"
+          },
+          "defaultSpeedIdx": {
+            "type": "number"
+          },
+          "defaultValue": {
+            "type": ["boolean", "number", "string"]
+          },
+          "defaultValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultX": {
+            "type": "number"
+          },
+          "defaultY": {
+            "type": "number"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          },
+          "loop": {
+            "type": "boolean"
+          },
+          "max": {
+            "type": "number"
+          },
+          "maxLength": {
+            "type": "number"
+          },
+          "min": {
+            "type": "number"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "speeds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "step": {
+            "type": "number"
+          },
+          "xMax": {
+            "type": "number"
+          },
+          "xMin": {
+            "type": "number"
+          },
+          "yMax": {
+            "type": "number"
+          },
+          "yMin": {
+            "type": "number"
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "kind": {
+                "enum": ["color", "datetime", "text"]
+              },
+              "defaultValue": {
+                "type": "string"
+              }
+            },
+            "required": ["defaultValue"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["dropdown", "radio", "tabs"]
+              },
+              "defaultValue": {
+                "type": "string"
+              }
+            },
+            "required": ["options", "defaultValue"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["multi-select"]
+              }
+            },
+            "required": ["options", "defaultValues"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["number", "stepper"]
+              },
+              "defaultValue": {
+                "type": "number"
+              }
+            },
+            "required": ["defaultValue"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["range"]
+              }
+            },
+            "required": ["min", "max", "defaultLo", "defaultHi"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["slider"]
+              },
+              "defaultValue": {
+                "type": "number"
+              }
+            },
+            "required": ["min", "max", "defaultValue"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["timeline"]
+              }
+            },
+            "required": ["duration"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["toggle"]
+              },
+              "defaultValue": {
+                "type": "boolean"
+              }
+            },
+            "required": ["defaultValue"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["xypad"]
+              }
+            },
+            "required": ["xMin", "xMax", "yMin", "yMax", "defaultX", "defaultY"]
+          }
+        ]
+      }
     }
   }
 }

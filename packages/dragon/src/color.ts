@@ -106,11 +106,13 @@ export type StrippedPaint = { path: string; value: string };
 /**
  * 図の中から、 色を塗る位置に入った外部参照を落とす。
  *
- * 対象は 2 種類ある。
+ * 対象は 3 種類ある。
  *
  * - 色を塗る key (`fill` / `stroke` / `bg` 等) の値
  * - 状態の値 (`states[].initial` と、 phase が状態へ入れる値)。 状態は `{名前}` の形で
  *   `fill` に差し込まれるため、 色を塗る位置に届く
+ * - つまみの値 (`inputs[].defaultValue` / `defaultValues` / `options`)。 これらも状態を上書きし、
+ *   同じ形で paint に届く
  *
  * 説明文 (`title` / `subtitle` / `value` / `rows`) は対象外。 文字として出るだけで
  * 属性にはならないため、 URL を書く正当な用途を壊さない。
@@ -119,9 +121,12 @@ export type StrippedPaint = { path: string; value: string };
  */
 export function stripExternalPaint(diagram: unknown): StrippedPaint[] {
   const stripped: StrippedPaint[] = [];
-  walk(diagram, "", false, stripped);
+  walk(diagram, "", false, stripped, false);
   return stripped;
 }
+
+/** つまみから状態値になり得る文字列の欄。 */
+const INPUT_VALUE_KEYS: ReadonlySet<string> = new Set(["defaultvalue", "defaultvalues", "options"]);
 
 /**
  * 図の中を辿って外部参照を落とす。
@@ -129,13 +134,27 @@ export function stripExternalPaint(diagram: unknown): StrippedPaint[] {
  * `inStateValue` = 今見ている場所が状態の値かどうか。 状態は key の名前が `initial` や
  * 状態名そのもの (phase の `sets`) になるため、 key の名前だけでは色かどうか分からない。
  * 「状態を入れる箱の中にいる」 ことを引き継いで判断する。
+ * `inInputs` は `inputs` の中にいることを示し、値になる欄だけを `inStateValue` へ合流させる。
  */
-function walk(node: unknown, path: string, inStateValue: boolean, out: StrippedPaint[]): void {
+function walk(
+  node: unknown,
+  path: string,
+  inStateValue: boolean,
+  out: StrippedPaint[],
+  inInputs: boolean,
+): void {
   if (node === null || typeof node !== "object") return;
 
   if (Array.isArray(node)) {
     for (let i = 0; i < node.length; i++) {
-      walk(node[i], `${path}[${i}]`, inStateValue, out);
+      const here = `${path}[${i}]`;
+      const value = node[i];
+      if (inStateValue && typeof value === "string" && pointsOutside(value)) {
+        node[i] = SAFE_PAINT;
+        out.push({ path: here, value });
+      } else {
+        walk(value, here, inStateValue, out, inInputs);
+      }
     }
     return;
   }
@@ -145,7 +164,13 @@ function walk(node: unknown, path: string, inStateValue: boolean, out: StrippedP
     const here = path ? `${path}.${key}` : key;
     const lower = key.toLowerCase();
     // 状態を入れる箱に入ったら、 その中の値はすべて状態の値として扱う
-    const nextInState = inStateValue || lower === "states" || lower === "sets" || lower === "tweens";
+    const nextInState =
+      inStateValue ||
+      lower === "states" ||
+      lower === "sets" ||
+      lower === "tweens" ||
+      (inInputs && INPUT_VALUE_KEYS.has(lower));
+    const nextInInputs = inInputs || lower === "inputs";
 
     if (typeof value === "string") {
       const isPaint = PAINT_KEYS.has(lower) || (nextInState && (lower === "initial" || lower === "to" || lower === "from" || !isReservedStateKey(lower)));
@@ -155,7 +180,7 @@ function walk(node: unknown, path: string, inStateValue: boolean, out: StrippedP
       }
       continue;
     }
-    walk(value, here, nextInState, out);
+    walk(value, here, nextInState, out, nextInInputs);
   }
 }
 
