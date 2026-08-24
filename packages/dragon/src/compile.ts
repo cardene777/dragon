@@ -5267,7 +5267,13 @@ type 放射で描けない欄 =
   // 箱の中に描く図形 (#1374)。 放射の枝は箱の中に図形を持たない
   | "shape"
   // 出す条件 (#1381)。 放射の枝は個別に出し分けられない
-  | "visibleIf";
+  | "visibleIf"
+  // 値に追随する 5 欄 (#1392)。 放射の枝は大きさも位置も中心からの配置で決まる
+  | "wBind"
+  | "hBind"
+  | "opacity"
+  | "renderOffsetX"
+  | "renderOffsetY";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -5324,6 +5330,11 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   layoutPos: "配置のずらし",
   shape: "箱の中の図形",
   visibleIf: "出す条件",
+  wBind: "値に追随する大きさ",
+  hBind: "値に追随する大きさ",
+  opacity: "濃さ",
+  renderOffsetX: "描く時のずらし",
+  renderOffsetY: "描く時のずらし",
 };
 
 /**
@@ -5749,6 +5760,18 @@ function applyV05Extensions(
           if (footer) footer.visibleIf = a.visibleIf;
         }
       }
+      /*
+       * 値に追随する 5 欄 (#1392)。
+       *
+       * **名札と足へは渡さない**。 `visibleIf` は片方だけ隠すと順序図の縦線の頭と足が
+       * 食い違うため揃えるが、こちらは見た目の大きさ / 濃さ / ずらしで、名札まで同じだけ
+       * 動かすと縦線の頭が本体から離れる。 書いた箱にだけ効かせる。
+       */
+      if (a.wBind !== undefined) node.wBind = a.wBind;
+      if (a.hBind !== undefined) node.hBind = a.hBind;
+      if (a.opacity !== undefined) node.opacity = a.opacity;
+      if (a.renderOffsetX !== undefined) node.renderOffsetX = a.renderOffsetX;
+      if (a.renderOffsetY !== undefined) node.renderOffsetY = a.renderOffsetY;
     }
   }
   // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の

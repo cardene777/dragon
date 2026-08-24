@@ -11422,7 +11422,7 @@ export const subtitle__exemplarNotificationFlow =
   "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
 
 // ============================================================
-// 記法 (#1385 / #1389)
+// 記法 (#1385 / #1389 / #1392)
 // ============================================================
 //
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
@@ -11431,9 +11431,9 @@ export const subtitle__exemplarNotificationFlow =
 // **手で書かず、組み立て済みの図から機械で出した**。 出した記法は `textDslToDiagram` と
 // `jsonToDiagram` の両方に通して、元の図と骨格が一致することを確かめてから貼っている。
 //
-// **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`) を書けるようにして
-// 37 件が加わったが、式 (`formulas`) / 押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) /
-// 箱の欄 (`wBind` 等) を使う図はまだ書けない。
+// **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄
+// (`wBind` / `opacity` / `renderOffsetX` 等) を書けるようにしたが、式 (`formulas`) /
+// 押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) を使う図はまだ書けない。
 // 内訳は台帳 (`lib/catalog-notation-coverage.test.ts`) の「一部のページ」 が持つ。
 
 export const sourceYaml__arrayLineChart = `title: "配列の値から面グラフを描く"
@@ -25079,6 +25079,225 @@ export const sourceJson__xypadNavigate = `{
       "duration": 1.8,
       "focus": ["q1Node", "q2Node", "q3Node", "q4Node", "indicator"],
       "body": "4 つの区画が同じ大きさで並ぶ。 座標 1 組がどれか 1 つを指す。"
+    }
+  ]
+}`;
+
+export const sourceYaml__renderOffsetDrift = `title: "固定点に対して浮遊点がずれて動く"
+type: flow
+
+inputs:
+  dx: { kind: slider, min: -80, max: 80, defaultValue: 0, label: "Drift X" }
+  dy: { kind: slider, min: -40, max: 40, defaultValue: 0, label: "Drift Y" }
+
+lanes:
+  anchor-lane: { x: 0, width: 240 }
+  floater-lane: { x: 300, width: 300 }
+
+states:
+  dx: 0
+  dy: 0
+
+actors:
+  - Anchor: { kind: card, lane: anchor-lane, stack: 0, subtitle: "固定位置、 signal bind なし" }
+  - Floater: { kind: card, lane: floater-lane, stack: 0, subtitle: "dx={dx} · dy={dy}", renderOffsetX: "{dx}", renderOffsetY: "{dy}" }
+
+animation:
+  - step: "基準を置く" 1.6s
+    focus: ["Anchor"]
+    description: "動かない点を先に置く。 ここが位置の基準になる。"
+  - step: "ずれを見る" 1.6s
+    focus: ["Anchor", "Floater"]
+    description: "もう 1 つの点が基準からずれて描かれる。 ずれ幅は縦横それぞれで決まる。"
+  - step: "つまみで動かす" 1.6s
+    focus: ["Floater"]
+    description: "つまみで縦横のずれを変えられる。 基準は動かないので差が読み取れる。"
+`;
+
+export const sourceJson__renderOffsetDrift = `{
+  "title": "固定点に対して浮遊点がずれて動く",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "dx",
+      "kind": "slider",
+      "min": -80,
+      "max": 80,
+      "defaultValue": 0,
+      "label": "Drift X"
+    },
+    {
+      "id": "dy",
+      "kind": "slider",
+      "min": -40,
+      "max": 40,
+      "defaultValue": 0,
+      "label": "Drift Y"
+    }
+  ],
+  "lanes": {
+    "anchor-lane": { "x": 0, "width": 240 },
+    "floater-lane": { "x": 300, "width": 300 }
+  },
+  "actors": [
+    {
+      "name": "Anchor",
+      "kind": "card",
+      "lane": "anchor-lane",
+      "stack": 0,
+      "subtitle": "固定位置、 signal bind なし"
+    },
+    {
+      "name": "Floater",
+      "kind": "card",
+      "lane": "floater-lane",
+      "stack": 0,
+      "subtitle": "dx={dx} · dy={dy}",
+      "renderOffsetX": "{dx}",
+      "renderOffsetY": "{dy}"
+    }
+  ],
+  "flow": [],
+  "states": { "dx": 0, "dy": 0 },
+  "animation": [
+    {
+      "step": "基準を置く",
+      "duration": 1.6,
+      "focus": ["Anchor"],
+      "body": "動かない点を先に置く。 ここが位置の基準になる。"
+    },
+    {
+      "step": "ずれを見る",
+      "duration": 1.6,
+      "focus": ["Anchor", "Floater"],
+      "body": "もう 1 つの点が基準からずれて描かれる。 ずれ幅は縦横それぞれで決まる。"
+    },
+    {
+      "step": "つまみで動かす",
+      "duration": 1.6,
+      "focus": ["Floater"],
+      "body": "つまみで縦横のずれを変えられる。 基準は動かないので差が読み取れる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__visualBindBar = `title: "信号の値が棒の実際の幅に反映される"
+type: flow
+
+inputs:
+  barW: { kind: slider, min: 40, max: 320, defaultValue: 160, label: "Bar width" }
+
+readouts:
+  barMon: { kind: bar, source: "barW", min: 40, max: 320, label: "Width readout" }
+
+lanes:
+  signal: { x: 0, width: 200 }
+  bar-lane: { x: 240, width: 340 }
+  readout: { x: 600, width: 220 }
+
+states:
+  barW: 160
+
+actors:
+  - signalNode: { kind: card, lane: signal, stack: 0, subtitle: "barW = {barW}", title: "Signal" }
+  - bar: { kind: card, lane: bar-lane, stack: 0, subtitle: "wBind = {barW}px", wBind: "{barW}", posW: 160, title: "Bar" }
+  - readoutNode: { kind: card, lane: readout, stack: 0, subtitle: "readout.bar が signal を同時追随", title: "Bar readout" }
+
+flow:
+  - signalNode -> bar: "wBind" (info)
+  - signalNode -> readoutNode: "readout" (success)
+
+animation:
+  - step: "信号を見る" 1.8s
+    focus: ["signalNode"]
+    description: "左の箱が信号の値を持つ。 幅はつまみで決まるので、ここでは持ち主だけを見る。"
+  - step: "棒に届く" 1.8s
+    focus: ["signalNode", "bar"]
+    description: "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。"
+  - step: "数でも読む" 1.8s
+    focus: ["signalNode", "bar", "readoutNode"]
+    description: "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。"
+`;
+
+export const sourceJson__visualBindBar = `{
+  "title": "信号の値が棒の実際の幅に反映される",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "barW",
+      "kind": "slider",
+      "min": 40,
+      "max": 320,
+      "defaultValue": 160,
+      "label": "Bar width"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "barMon",
+      "kind": "bar",
+      "source": "barW",
+      "min": 40,
+      "max": 320,
+      "label": "Width readout"
+    }
+  ],
+  "lanes": {
+    "signal": { "x": 0, "width": 200 },
+    "bar-lane": { "x": 240, "width": 340 },
+    "readout": { "x": 600, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "signalNode",
+      "kind": "card",
+      "lane": "signal",
+      "stack": 0,
+      "subtitle": "barW = {barW}",
+      "title": "Signal"
+    },
+    {
+      "name": "bar",
+      "kind": "card",
+      "lane": "bar-lane",
+      "stack": 0,
+      "subtitle": "wBind = {barW}px",
+      "wBind": "{barW}",
+      "posW": 160,
+      "title": "Bar"
+    },
+    {
+      "name": "readoutNode",
+      "kind": "card",
+      "lane": "readout",
+      "stack": 0,
+      "subtitle": "readout.bar が signal を同時追随",
+      "title": "Bar readout"
+    }
+  ],
+  "flow": [
+    { "from": "signalNode", "to": "bar", "label": "wBind", "tone": "info" },
+    { "from": "signalNode", "to": "readoutNode", "label": "readout", "tone": "success" }
+  ],
+  "states": { "barW": 160 },
+  "animation": [
+    {
+      "step": "信号を見る",
+      "duration": 1.8,
+      "focus": ["signalNode"],
+      "body": "左の箱が信号の値を持つ。 幅はつまみで決まるので、ここでは持ち主だけを見る。"
+    },
+    {
+      "step": "棒に届く",
+      "duration": 1.8,
+      "focus": ["signalNode", "bar"],
+      "body": "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。"
+    },
+    {
+      "step": "数でも読む",
+      "duration": 1.8,
+      "focus": ["signalNode", "bar", "readoutNode"],
+      "body": "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。"
     }
   ]
 }`;

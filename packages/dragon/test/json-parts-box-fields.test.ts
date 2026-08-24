@@ -61,6 +61,12 @@ const 箱の値: Record<string, unknown> = {
   visibleIf: "{flag}",
   // 箱に出す題 (#1381)
   title: "題",
+  // 値に追随する 5 欄 (#1392)
+  wBind: "{barW}",
+  hBind: "{barH}",
+  opacity: 0.5,
+  renderOffsetX: 30,
+  renderOffsetY: "{dy}",
 };
 
 /** 全欄を書いた箱を組み立てて、届いた欄の名前を集める */

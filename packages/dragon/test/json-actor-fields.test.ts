@@ -64,6 +64,12 @@ const 対応表: Record<string, 対応> = {
   visibleIf: { 記法: 'visibleIf: "{flag}"', json: { visibleIf: "{flag}" } },
   // 箱に出す題 (#1381)。 名前と切り離して書ける
   title: { 記法: 'title: "題"', json: { title: "題" } },
+  // 値に追随する 5 欄 (#1392)。 大きさは文字列だけ、濃さとずらしは数も受ける
+  wBind: { 記法: 'wBind: "{barW}"', json: { wBind: "{barW}" } },
+  hBind: { 記法: 'hBind: "{barH}"', json: { hBind: "{barH}" } },
+  opacity: { 記法: "opacity: 0.5", json: { opacity: 0.5 } },
+  renderOffsetX: { 記法: "renderOffsetX: 30", json: { renderOffsetX: 30 } },
+  renderOffsetY: { 記法: 'renderOffsetY: "{dy}"', json: { renderOffsetY: "{dy}" } },
 };
 
 /**

@@ -165,6 +165,17 @@ export interface JsonActor {
    */
   title?: string;
   /**
+   * 値に追随する 5 欄 (optional、 #1392)。 記法の `wBind:` / `hBind:` / `opacity:` /
+   * `renderOffsetX:` / `renderOffsetY:` と同じ。
+   *
+   * 大きさは文字列だけ (数を書いても追随のしようが無い)、濃さとずらしは数も受ける。
+   */
+  wBind?: string;
+  hBind?: string;
+  opacity?: number | string;
+  renderOffsetX?: number | string;
+  renderOffsetY?: number | string;
+  /**
    * CAR-1657 unified syntax = 既存 NodeKind (28 個) に加えて parts identifier (arc-gauge 等) を
    * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
    * LLM structured output の typing 制約を緩めるため union に string 追加。
@@ -420,6 +431,12 @@ export const ACCEPTED_KEYS = {
     "visibleIf",
     // 箱に出す題 (#1381)
     "title",
+    // 値に追随する 5 欄 (#1392)
+    "wBind",
+    "hBind",
+    "opacity",
+    "renderOffsetX",
+    "renderOffsetY",
   ],
   step: [
     "from",
@@ -480,6 +497,8 @@ export type 欄の型 =
   | "文字列の並び"
   | "数"
   | "必須の数"
+  // 値に追随する欄 (#1392)。 数を直に書く形と、状態の名前を書く形の両方を受ける
+  | "数か文字列"
   | "真偽"
   | "色"
   | "線種"
@@ -542,6 +561,12 @@ export const 欄の型表 = {
     visibleIf: "文字列",
     // 箱に出す題 (#1381)
     title: "文字列",
+    // 値に追随する 5 欄 (#1392)。 大きさは文字列だけ、濃さとずらしは数も受ける
+    wBind: "非空の文字列",
+    hBind: "非空の文字列",
+    opacity: "数か文字列",
+    renderOffsetX: "数か文字列",
+    renderOffsetY: "数か文字列",
   },
   step: {
     from: "必須の文字列",
@@ -669,6 +694,12 @@ export const 見本に効かない欄 = [
   "visibleIf",
   // 箱に出す題 (#1381)。 見本は自分の題を持つ
   "title",
+  // 値に追随する 5 欄 (#1392)。 見本は自分の大きさと出方を持つ
+  "wBind",
+  "hBind",
+  "opacity",
+  "renderOffsetX",
+  "renderOffsetY",
 ] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
 
 /**
@@ -735,6 +766,20 @@ function 値を検査(
     case "必須の数":
       if (typeof v !== "number" || !Number.isFinite(v)) {
         型違い("a finite number", typeof v === "number" ? `got ${String(v)}` : undefined);
+      }
+      return;
+    case "数か文字列":
+      if (v === undefined) return;
+      // 空文字は受けない。 描画側は 0 として読むため、書き忘れが「箱が消える」 形で出る
+      if (typeof v === "string") {
+        if (v.length === 0) 型違い("a non-empty string if present");
+        return;
+      }
+      if (typeof v !== "number" || !Number.isFinite(v)) {
+        型違い(
+          "a finite number or a non-empty string if present",
+          typeof v === "number" ? `got ${String(v)}` : undefined,
+        );
       }
       return;
     case "真偽":
@@ -1831,6 +1876,12 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       shape: isPart ? undefined : a.shape,
       visibleIf: isPart ? undefined : a.visibleIf,
       title: isPart ? undefined : a.title,
+      // 値に追随する 5 欄 (#1392)。 記法と同じく見本には渡さない
+      wBind: isPart ? undefined : a.wBind,
+      hBind: isPart ? undefined : a.hBind,
+      opacity: isPart ? undefined : a.opacity,
+      renderOffsetX: isPart ? undefined : a.renderOffsetX,
+      renderOffsetY: isPart ? undefined : a.renderOffsetY,
       // 普通の箱にしか効かない欄は見本では落とす。 落とす欄の一覧は `見本に効かない欄` が
       // 唯一の出どころで、検査 (#1308) も同じ表を見る = 「検査は通すが組み立てが捨てる」
       // 状態が作れない

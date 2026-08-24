@@ -1404,6 +1404,60 @@ function 出す条件として読む(
   return 値;
 }
 
+/**
+ * 値に追随する欄を読む (#1392)。 数として読めれば数、読めなければ文字列のまま渡す。
+ *
+ * `箱の中に描く図形` の `source` と同じ読み方に揃える (`表に従って読む` の「数か文字列」)。
+ * 状態の名前 (`"{barW}"`) を書く形と、数を直に書く形の両方を受ける。
+ *
+ * **空は捨てずに知らせる**。 描画側は空文字を「書かなかった」 と同じには扱わず、
+ * `opacity: ""` は 0 として読まれて箱が消える。 書いた人はたいてい値を書き忘れただけ。
+ */
+function 値に追随する欄として読む(
+  raw: string | undefined,
+  接頭: string,
+  line: number,
+  errors: DslError[],
+): number | string | undefined {
+  if (raw === undefined) return undefined;
+  const 値 = raw.trim();
+  if (値 === "") {
+    errors.push({
+      line,
+      message: `${接頭}が空です`,
+      hint: '`{状態の名前}` か数を書く (例 `opacity: "{fade}"` / `opacity: 0.5`)',
+    });
+    return undefined;
+  }
+  const n = numberOrUndef(値);
+  return n !== undefined ? n : 値;
+}
+
+/**
+ * 箱の幅と高さを値に追随させる欄を読む (#1392)。
+ *
+ * 描画側は文字列だけを受ける (`wBind?: string`)。 数を直に書いても追随のしようが無いので、
+ * 数か文字列として読む欄とは分ける。
+ */
+function 追随する大きさとして読む(
+  raw: string | undefined,
+  接頭: string,
+  line: number,
+  errors: DslError[],
+): string | undefined {
+  if (raw === undefined) return undefined;
+  const 値 = raw.trim();
+  if (値 === "") {
+    errors.push({
+      line,
+      message: `${接頭}が空です`,
+      hint: '`{状態の名前}` を書く (例 `wBind: "{barW}"`)',
+    });
+    return undefined;
+  }
+  return 値;
+}
+
 /** Object.prototype の持ち物を、表にある種類として扱わない。 */
 function 表から定義を引く(表: Record<string, 図形の定義>, kind: string): 図形の定義 | undefined {
   return Object.hasOwn(表, kind) ? 表[kind] : undefined;
@@ -1908,6 +1962,33 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "題":
         out.title = stripQuotes(raw);
         break;
+      // 値に追随する 5 欄 (#1392)。 日本語の別名は置かない = 描画側の欄名がそのまま
+      // 状態の名前と並ぶ場所なので、英字 1 種に絞って書き方の揺れを作らない
+      case "wBind":
+        out.wBind = 追随する大きさとして読む(stripQuotes(raw), "箱の wBind ", ln.no, errors);
+        break;
+      case "hBind":
+        out.hBind = 追随する大きさとして読む(stripQuotes(raw), "箱の hBind ", ln.no, errors);
+        break;
+      case "opacity":
+        out.opacity = 値に追随する欄として読む(stripQuotes(raw), "箱の opacity ", ln.no, errors);
+        break;
+      case "renderOffsetX":
+        out.renderOffsetX = 値に追随する欄として読む(
+          stripQuotes(raw),
+          "箱の renderOffsetX ",
+          ln.no,
+          errors,
+        );
+        break;
+      case "renderOffsetY":
+        out.renderOffsetY = 値に追随する欄として読む(
+          stripQuotes(raw),
+          "箱の renderOffsetY ",
+          ln.no,
+          errors,
+        );
+        break;
       case "rows":
       case "行":
         out.rows = raw
@@ -2064,6 +2145,12 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // 箱に出す題 (#1381)
   "title",
   "題",
+  // 値に追随する 5 欄 (#1392)
+  "wBind",
+  "hBind",
+  "opacity",
+  "renderOffsetX",
+  "renderOffsetY",
   "位置",
   "pos",
   "posX",
@@ -2230,6 +2317,12 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   // 図形の倍率 (#1026)。 状態の名前としては読まない
   "scale",
   "倍率",
+  // 値に追随する 5 欄 (#1392)。 状態の名前としては読まない
+  "wBind",
+  "hBind",
+  "opacity",
+  "renderOffsetX",
+  "renderOffsetY",
   // 日本語の項目名 (#1026)。 中括弧の形が日本語の項目名を読めるようになったため、
   // ここに載せないと状態の名前として拾われる。 縦に並べた形での意味 (位置 / 大きさ 等) は
   // 中括弧の形では未対応なので、これまでどおり落とす方に揃える
@@ -2408,6 +2501,12 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "visibleIf",
   // 箱に出す題 (#1381)。 名前と切り離して書ける
   "title",
+  // 値に追随する 5 欄 (#1392)
+  "wBind",
+  "hBind",
+  "opacity",
+  "renderOffsetX",
+  "renderOffsetY",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
   "scale",
@@ -2553,6 +2652,23 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       visibleIf: isPart ? undefined : 出す条件として読む(opts.visibleIf, line.no, errors),
       // 箱に出す題 (#1381)。 空文字も意味を持つ (題を出さない箱) ため undefined と分ける
       title: isPart ? undefined : opts.title,
+      // 値に追随する 5 欄 (#1392)。 図形や出す条件と同じく、パーツでは状態の上書きとして
+      // 意味を持つため横取りしない
+      wBind: isPart
+        ? undefined
+        : 追随する大きさとして読む(opts.wBind, "箱の wBind ", line.no, errors),
+      hBind: isPart
+        ? undefined
+        : 追随する大きさとして読む(opts.hBind, "箱の hBind ", line.no, errors),
+      opacity: isPart
+        ? undefined
+        : 値に追随する欄として読む(opts.opacity, "箱の opacity ", line.no, errors),
+      renderOffsetX: isPart
+        ? undefined
+        : 値に追随する欄として読む(opts.renderOffsetX, "箱の renderOffsetX ", line.no, errors),
+      renderOffsetY: isPart
+        ? undefined
+        : 値に追随する欄として読む(opts.renderOffsetY, "箱の renderOffsetY ", line.no, errors),
       ...表で読む(ACTOR_INLINE_VALUE_KINDS, opts, "箱の ", line.no, errors),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
       tone: isPart ? undefined : resolveTone(opts.tone),
