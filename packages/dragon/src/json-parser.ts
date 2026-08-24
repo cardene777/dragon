@@ -731,7 +731,7 @@ function 値を検査(
       return;
     case "非空の文字列":
       if (v === undefined) return;
-      if (typeof v !== "string" || v.length === 0) 型違い("a non-empty string if present");
+      if (typeof v !== "string" || v.trim().length === 0) 型違い("a non-empty string if present");
       return;
     case "文字列":
       if (v === undefined) return;
@@ -772,7 +772,7 @@ function 値を検査(
       if (v === undefined) return;
       // 空文字は受けない。 描画側は 0 として読むため、書き忘れが「箱が消える」 形で出る
       if (typeof v === "string") {
-        if (v.length === 0) 型違い("a non-empty string if present");
+        if (v.trim().length === 0) 型違い("a non-empty string if present");
         return;
       }
       if (typeof v !== "number" || !Number.isFinite(v)) {

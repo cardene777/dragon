@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { textDslToDiagram, validateDragonJson, jsonToDiagram } from "../src";
+import { textDslToDiagram, validateDragonJson, jsonToDiagram, parseTextDslV05 } from "../src";
 import { INLINE_ACTOR_KEYS, ACTOR_ITEM_KEYS } from "../src/v05/parser";
 import { diagramJsonSchema } from "../src/schema";
 
@@ -138,9 +138,10 @@ describe("値に追随する 5 欄が記法から図に届く (#1392)", () => {
     },
   );
 
-  it.each(五欄)("%s の空は捨てずに知らせる", (欄) => {
-    // 描画側は空文字を 0 として読む。 黙って渡すと「箱が消えた」 としか見えない
+  it.each(五欄)("%s の空は中括弧でも縦に並べても知らせる", (欄) => {
+    // 描画側は空文字を数として読む。 黙って渡すと「箱が消えた」 としか見えない
     expect(() => 中括弧(`${欄}: ""`)).toThrow(new RegExp(`箱の ${欄} が空です`));
+    expect(() => 縦並び(`      ${欄}: ""`)).toThrow(new RegExp(`箱の ${欄} が空です`));
   });
 
   it("大きさの欄は数を書いても文字列のまま渡す", () => {
@@ -193,10 +194,29 @@ describe("値に追随する 5 欄が JSON から図に届く (#1392)", () => {
     },
   );
 
-  it.each(五欄)("%s の空文字は誤りになる", (欄) => {
-    const r = validateDragonJson(JSONの図({ [欄]: "" }));
-    expect(r.ok, `${欄} の空文字が通っている`).toBe(false);
-    if (!r.ok) expect(r.errors.map((e) => e.path)).toContain(`$.actors[0].${欄}`);
+  it.each(五欄)("%s の空文字と空白だけの文字列は誤りになる", (欄) => {
+    for (const 値 of ["", "   "]) {
+      const r = validateDragonJson(JSONの図({ [欄]: 値 }));
+      expect(r.ok, `${欄} の ${JSON.stringify(値)} が通っている`).toBe(false);
+      if (!r.ok) expect(r.errors.map((e) => e.path)).toContain(`$.actors[0].${欄}`);
+    }
+  });
+});
+
+describe("parts で同じ名前を書いた時は状態の上書きになる (#1392)", () => {
+  it.each([
+    "- A: { kind: some-part, opacity: 0.5 }",
+    "- A:\n      opacity: 0.5\n      kind: some-part",
+  ])("中括弧と縦に並べる形の両方で届く", (actor) => {
+    const r = parseTextDslV05(`title: "t"
+type: flow
+actors:
+  ${actor}
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.actors[0]?.stateOverride).toEqual({ opacity: 0.5 });
+    expect(r.doc.actors[0]?.opacity).toBeUndefined();
   });
 });
 
@@ -205,7 +225,12 @@ describe("公開している形が 5 欄を持つ (#1392)", () => {
     diagramJsonSchema as unknown as {
       properties: {
         actors: {
-          items: { oneOf: { type?: string; properties?: Record<string, { type?: unknown }> }[] };
+          items: {
+            oneOf: {
+              type?: string;
+              properties?: Record<string, { type?: unknown; minLength?: number; pattern?: string }>;
+            }[];
+          };
         };
       };
     }
@@ -228,6 +253,13 @@ describe("公開している形が 5 欄を持つ (#1392)", () => {
     expect(型("hBind")).toBe("string");
     for (const 欄 of ["opacity", "renderOffsetX", "renderOffsetY"]) {
       expect(型(欄), `${欄} が数と文字列の両方を受けていない`).toEqual(["number", "string"]);
+    }
+  });
+
+  it("5 欄とも空または空白だけの文字列を生成しない", () => {
+    for (const 欄 of 五欄) {
+      expect(箱の形?.properties?.[欄]?.minLength, `${欄} が空文字を許している`).toBe(1);
+      expect(箱の形?.properties?.[欄]?.pattern, `${欄} が空白だけを許している`).toBe("\\S");
     }
   });
 });

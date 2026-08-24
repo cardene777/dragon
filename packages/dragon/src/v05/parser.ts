@@ -1458,6 +1458,18 @@ function 追随する大きさとして読む(
   return 値;
 }
 
+/** 値に追随する箱の欄 (#1392) */
+const 値に追随する箱の欄 = [
+  "wBind",
+  "hBind",
+  "opacity",
+  "renderOffsetX",
+  "renderOffsetY",
+] as const satisfies readonly (keyof DslActor)[];
+
+/** 縦に並べた時も空値を validator へ渡す欄 (#1392) */
+const 空を知らせる箱の欄: ReadonlySet<string> = new Set(値に追随する箱の欄);
+
 /** Object.prototype の持ち物を、表にある種類として扱わない。 */
 function 表から定義を引く(表: Record<string, 図形の定義>, kind: string): 図形の定義 | undefined {
   return Object.hasOwn(表, kind) ? 表[kind] : undefined;
@@ -1917,7 +1929,9 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       unknownKeys.push({ key, line: ln.no });
       continue;
     }
-    if (!raw) continue;
+    // 従来欄の空値は書かなかった扱いのままにする。 値に追随する 5 欄は、
+    // 空文字を描画側が数として解釈するため、個別の読み取りへ渡して知らせる。
+    if (!raw && !空を知らせる箱の欄.has(key)) continue;
 
     if (COLOR_KEYS.has(key)) {
       const { tone, hex } = splitColorValue(raw);
@@ -2106,6 +2120,15 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
+    // 普通の箱では専用欄だが、parts では他の inline option と同じく状態名として
+    // 扱う。 縦に並べた形では kind が後ろに書かれるため、全行を読んだ後に移す。
+    for (const 欄 of 値に追随する箱の欄) {
+      const v = out[欄];
+      if (v === undefined) continue;
+      state[欄] = v;
+      delete out[欄];
+      touchedState = true;
+    }
     if (touchedState) out.stateOverride = state;
     return out;
   }
@@ -2317,12 +2340,6 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   // 図形の倍率 (#1026)。 状態の名前としては読まない
   "scale",
   "倍率",
-  // 値に追随する 5 欄 (#1392)。 状態の名前としては読まない
-  "wBind",
-  "hBind",
-  "opacity",
-  "renderOffsetX",
-  "renderOffsetY",
   // 日本語の項目名 (#1026)。 中括弧の形が日本語の項目名を読めるようになったため、
   // ここに載せないと状態の名前として拾われる。 縦に並べた形での意味 (位置 / 大きさ 等) は
   // 中括弧の形では未対応なので、これまでどおり落とす方に揃える
