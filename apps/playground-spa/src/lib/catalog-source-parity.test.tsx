@@ -36,6 +36,7 @@ import * as Primitives from "@/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
 import * as Cookbook from "@/topics/catalog/cookbook.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
+import * as Parts from "@/topics/catalog/parts.cdl";
 
 /**
  * id まで完全に一致する preset。
@@ -114,6 +115,7 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   // 注意を出さないことと、図の側だけを書き換えた変更を落とすため
   ["cookbook", Cookbook],
   ["ethereum", Ethereum],
+  ["parts", Parts],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */

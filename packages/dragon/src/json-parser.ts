@@ -147,6 +147,14 @@ export interface JsonActor {
    */
   shape?: DslDynShape;
   /**
+   * その箱を出すかどうかの条件 (optional、 #1381)。 記法の `visibleIf:` と同じ。
+   */
+  visibleIf?: string;
+  /**
+   * 箱に出す題 (optional、 #1381)。 記法の `title:` と同じ。
+   */
+  title?: string;
+  /**
    * CAR-1657 unified syntax = 既存 NodeKind (28 個) に加えて parts identifier (arc-gauge 等) を
    * accept する。 未知 kind 値は parts 候補として partId に格納、 compile 側 partsCatalog で解決。
    * LLM structured output の typing 制約を緩めるため union に string 追加。
@@ -394,6 +402,10 @@ export const ACCEPTED_KEYS = {
     "pos",
     // 箱の中に描く図形 (#1374)
     "shape",
+    // その箱を出すかどうかの条件 (#1381)
+    "visibleIf",
+    // 箱に出す題 (#1381)
+    "title",
   ],
   step: [
     "from",
@@ -507,6 +519,10 @@ export const 欄の型表 = {
     pos: "object",
     // 箱の中に描く図形 (#1374)。 中身は下の検査が種類ごとに見る
     shape: "object",
+    // その箱を出すかどうかの条件 (#1381)
+    visibleIf: "文字列",
+    // 箱に出す題 (#1381)
+    title: "文字列",
   },
   step: {
     from: "必須の文字列",
@@ -628,6 +644,10 @@ export const 見本に効かない欄 = [
   "opportunity",
   // 箱の中に描く図形 (#1374)。 見本は自分の形を持つため、外から図形を差し替えられない
   "shape",
+  // その箱を出すかどうかの条件 (#1381)。 見本は自分の出方を持つ
+  "visibleIf",
+  // 箱に出す題 (#1381)。 見本は自分の題を持つ
+  "title",
 ] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
 
 /**
@@ -957,7 +977,9 @@ function 表で中身を検査する(
   何: string,
   errors: JsonDslError[],
 ): void {
-  const kind = typeof o.kind === "string" ? o.kind.toLowerCase() : "";
+  // JSON は公開 schema の enum と同じ正規名だけを受ける。 ここだけ小文字化すると、
+  // schema が拒む種類を validator が通した上、種類別の追加検査も回避できてしまう。
+  const kind = typeof o.kind === "string" ? o.kind : "";
   const 定義 = 表[kind];
   if (定義 === undefined) {
     errors.push({
@@ -987,9 +1009,22 @@ function 表で中身を検査する(
           ? (typeof 値 === "number" && Number.isFinite(値)) || typeof 値 === "string"
           : 形 === "文字列の並び"
             ? Array.isArray(値) && 値.every((x) => typeof x === "string")
-            : 形 === "向き"
-              ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
-              : typeof 値 === "string";
+            : 形 === "組の並び"
+              ? Array.isArray(値) &&
+                値.length > 0 &&
+                値.every(
+                  (x) =>
+                    typeof x === "object" &&
+                    x !== null &&
+                    !Array.isArray(x) &&
+                    Object.keys(x as object).length > 0 &&
+                    Object.values(x as object).every(
+                      (y) => typeof y === "string" || (typeof y === "number" && Number.isFinite(y)),
+                    ),
+                )
+              : 形 === "向き"
+                ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
+                : typeof 値 === "string";
     if (!型が合う) {
       errors.push({
         path: `${path}.${欄}`,
@@ -1037,6 +1072,43 @@ function validateReadouts(v: unknown, errors: JsonDslError[]): void {
       errors.push({ path: `${path}.id`, message: "id is required", hint: "空でない文字列で書く" });
     }
     表で中身を検査する(o, 部品の表, path, "readout", errors);
+
+    const 組の欄 =
+      o.kind === "status-dot"
+        ? { name: "map", required: ["value", "color"], allowed: ["value", "color", "label"] }
+        : o.kind === "status-timeline"
+          ? { name: "colorMap", required: ["status", "color"], allowed: ["status", "color"] }
+          : undefined;
+    if (組の欄 !== undefined && Array.isArray(o[組の欄.name])) {
+      (o[組の欄.name] as unknown[]).forEach((entry, j) => {
+        const entryPath = `${path}.${組の欄.name}[${j}]`;
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
+        const item = entry as Record<string, unknown>;
+        for (const key of Object.keys(item)) {
+          if (組の欄.allowed.includes(key)) continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} is not allowed for readout kind "${String(o.kind)}"`,
+            hint: `使える項目 = ${組の欄.allowed.join(", ")}`,
+          });
+        }
+        for (const key of 組の欄.required) {
+          if (item[key] !== undefined) continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} is required for readout kind "${String(o.kind)}"`,
+          });
+        }
+        for (const key of 組の欄.allowed) {
+          if (item[key] === undefined || typeof item[key] === "string") continue;
+          errors.push({
+            path: `${entryPath}.${key}`,
+            message: `${key} must be 文字列`,
+            hint: `got ${item[key] === null ? "null" : typeof item[key]}`,
+          });
+        }
+      });
+    }
   });
 }
 
@@ -1678,6 +1750,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       final: a.final,
       // 箱の中に描く図形 (#1374)。 見本では状態の上書きが効くため、通常の箱にだけ渡す
       shape: isPart ? undefined : a.shape,
+      visibleIf: isPart ? undefined : a.visibleIf,
+      title: isPart ? undefined : a.title,
       // 普通の箱にしか効かない欄は見本では落とす。 落とす欄の一覧は `見本に効かない欄` が
       // 唯一の出どころで、検査 (#1308) も同じ表を見る = 「検査は通すが組み立てが捨てる」
       // 状態が作れない

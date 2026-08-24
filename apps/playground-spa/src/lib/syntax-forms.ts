@@ -161,6 +161,14 @@ export const FORMS: Section[] = [
         code: "  g: { kind: gauge, source: done, min: 0, max: 100 }",
         note: "目盛りで出す。 他に bar / stat / sparkline / delta / typewriter / heat-cell",
       },
+      {
+        code: '  d: { kind: donut, source: total, colors: ["#4e9dc4", "#22c55e"] }',
+        note: "内訳を輪で出す。 他に radar / kpi-card / notification",
+      },
+      {
+        code: '  dot: { kind: status-dot, source: done, map: [{ value: "ok", color: "#22c55e" }] }',
+        note: "値に対応する色の点。 他に step-progress / status-timeline",
+      },
     ],
   },
   {
@@ -183,6 +191,29 @@ export const FORMS: Section[] = [
       {
         code: "  - 六角: { kind: card, shape: { kind: polygon, sides: 6, radius: 40 } }",
         note: "他に rect / circle",
+      },
+    ],
+  },
+  {
+    title: "名前と別の題を出す (title: / visibleIf:)",
+    sample: {
+      slot: "actors",
+      type: "flow",
+      flow: [],
+      states: ["  shown: 1"],
+    },
+    lines: [
+      {
+        code: '  - 星1: { kind: card, title: "★" }',
+        note: "名前は 1 つに決まる、題は重なってよい",
+      },
+      {
+        code: '  - 星2: { kind: card, title: "★" }',
+        note: "同じ題の箱を並べられる",
+      },
+      {
+        code: '  - 場所取り: { kind: card, visibleIf: "{shown}", title: "" }',
+        note: "条件が偽なら出ない。 場所だけ空ける箱に使う",
       },
     ],
   },

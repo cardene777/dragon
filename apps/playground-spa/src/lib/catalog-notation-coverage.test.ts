@@ -40,6 +40,7 @@ const 揃ったページ = [
   "cookbook",
   "animation",
   "ethereum",
+  "parts",
 ] as const;
 
 /**
@@ -54,7 +55,7 @@ const 揃ったページ = [
 const 一部のページ: readonly string[] = [];
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
-const まだのページ = ["parts", "interactive"] as const;
+const まだのページ = ["interactive"] as const;
 
 async function ページごとの見本(): Promise<Map<string, CatalogItem[]>> {
   const m = new Map<string, CatalogItem[]>(Object.entries(CATALOG_ITEMS));

@@ -120,6 +120,53 @@ export const TOP_LEVEL_KEYS = [
  */
 const LANE_ID_ENTRY = /^([\p{L}\p{N}_-]+)\s*:\s*\{([^}]*)\}\s*$/u;
 
+/**
+ * `id: { ... }` の 1 行を、名前と中括弧の中身に割る (#1381)。
+ *
+ * `LANE_ID_ENTRY` は中括弧を `[^}]*` で読むため、中身に中括弧を含む形
+ * (`map: [{ value: "a" }]`) を受けられない。 部品の欄には組の並びを取るものがあるので、
+ * 引用符の内側を飛ばしつつ中括弧の深さを数えて割る。
+ *
+ * 割れない形は `undefined` を返す。 呼び手が行番号付きで知らせる。
+ */
+function 名前と中括弧に割る(行: string): [string, string] | undefined {
+  const t = 行.trim();
+  const c = t.indexOf(":");
+  if (c < 0) return undefined;
+  const 名前 = t.slice(0, c).trim();
+  if (!/^[\p{L}\p{N}_-]+$/u.test(名前)) return undefined;
+  const 残り = t.slice(c + 1).trim();
+  if (!残り.startsWith("{")) return undefined;
+
+  let 深さ = 0;
+  let 引用: string | null = null;
+  let 直前: string | null = null;
+  for (let i = 0; i < 残り.length; i += 1) {
+    const ch = 残り[i]!;
+    if (引用 !== null) {
+      if (引用 === '"' && ch === "\\" && i + 1 < 残り.length) {
+        i += 1;
+        continue;
+      }
+      if (ch === 引用) 引用 = null;
+      continue;
+    }
+    if ((ch === '"' || ch === "'") && (直前 === null || ":,{[".includes(直前))) {
+      引用 = ch;
+      直前 = ch;
+      continue;
+    }
+    if (ch === "{") 深さ += 1;
+    else if (ch === "}") {
+      深さ -= 1;
+      // 中括弧が閉じた後に文字が残る形は割らない (`{...} x`)
+      if (深さ === 0) return i === 残り.length - 1 ? [名前, 残り.slice(1, i)] : undefined;
+    }
+    if (!/\s/u.test(ch)) 直前 = ch;
+  }
+  return undefined;
+}
+
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
   return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
 }
@@ -561,9 +608,9 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       readoutsList = [];
       for (const it of items) {
-        const m = it.trimmed.match(LANE_ID_ENTRY);
+        const m = 名前と中括弧に割る(it.trimmed);
         if (m) {
-          const 読めた = 部品として読む(m[1]!, m[2]!, it.no, errors);
+          const 読めた = 部品として読む(m[0], m[1], it.no, errors);
           if (読めた) readoutsList.push(読めた);
         } else {
           errors.push({
@@ -991,7 +1038,7 @@ export const LANE_VALUE_KINDS = {
  * 指定が消え、後者は綴り違いがそのまま描画側へ流れて別の形で失敗する。 表があれば
  * 書いた場所と使える欄を添えて知らせられる。
  */
-export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び" | "向き";
+export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び" | "向き" | "組の並び";
 
 export type 図形の定義 = { 必須: readonly string[]; 欄: Record<string, 欄の形> };
 
@@ -1088,6 +1135,63 @@ export const 部品の表: Record<string, 図形の定義> = {
     必須: ["source", "min", "max"],
     欄: { source: "文字列", min: "数", max: "数", colors: "文字列の並び", label: "文字列" },
   },
+  // #1381 で足した 7 種。 描画側 (`CdlReadout`) が持つ種類のうち、見本帳が使っているもの
+  donut: {
+    必須: ["source"],
+    欄: {
+      source: "文字列",
+      viewW: "数",
+      viewH: "数",
+      colors: "文字列の並び",
+      innerRatio: "数",
+      label: "文字列",
+    },
+  },
+  radar: {
+    必須: ["source", "max"],
+    欄: {
+      source: "文字列",
+      max: "数",
+      viewW: "数",
+      viewH: "数",
+      color: "文字列",
+      labelSource: "文字列",
+      label: "文字列",
+    },
+  },
+  "step-progress": {
+    必須: ["source", "stepsSource"],
+    欄: { source: "文字列", stepsSource: "文字列", color: "文字列", label: "文字列" },
+  },
+  "status-dot": {
+    必須: ["source", "map"],
+    欄: { source: "文字列", map: "組の並び", label: "文字列" },
+  },
+  notification: {
+    必須: ["kindSource", "titleSource"],
+    欄: {
+      kindSource: "文字列",
+      titleSource: "文字列",
+      bodySource: "文字列",
+      label: "文字列",
+    },
+  },
+  "kpi-card": {
+    必須: ["source", "historySource", "comparisonSource"],
+    欄: {
+      source: "文字列",
+      historySource: "文字列",
+      comparisonSource: "文字列",
+      unit: "文字列",
+      colorPos: "文字列",
+      colorNeg: "文字列",
+      label: "文字列",
+    },
+  },
+  "status-timeline": {
+    必須: ["source"],
+    欄: { source: "文字列", colorMap: "組の並び", max: "数", label: "文字列" },
+  },
 };
 
 /** `[a, b]` の形を文字列の並びに読む */
@@ -1097,6 +1201,118 @@ function 並びとして読む(raw: string): string[] {
     .split(/,(?![^[]*\])/)
     .map((x) => stripQuotes(x.trim()))
     .filter((x) => x !== "");
+}
+
+/**
+ * `[{ a: 1 }, { b: 2 }]` の形を、中括弧ごとの組の並びに読む (#1381)。
+ *
+ * `並びとして読む` は葉の値しか想定していないため、中括弧を含む形を渡すと項目の途中で
+ * 割れる。 中括弧の深さを数えて、深さ 0 の位置だけで割る。
+ *
+ * 読めない形は捨てずに `undefined` を返す。 呼び手が行番号付きで知らせる = 黙って捨てると
+ * 「書いたのに出ない」 が手掛かりなしで起きる。
+ */
+function 組の並びとして読む(raw: string): Record<string, string>[] | undefined {
+  const 中身 = raw.trim();
+  if (!中身.startsWith("[") || !中身.endsWith("]")) return undefined;
+  const 本体 = 中身.slice(1, -1);
+
+  const 塊: string[] = [];
+  let i = 0;
+  let 次は組 = true;
+  while (i < 本体.length) {
+    while (i < 本体.length && /\s/u.test(本体[i]!)) i += 1;
+    if (i >= 本体.length) break;
+
+    if (!次は組) {
+      if (本体[i] !== ",") return undefined;
+      次は組 = true;
+      i += 1;
+      continue;
+    }
+    if (本体[i] !== "{") return undefined;
+
+    const 始まり = i + 1;
+    let 引用: '"' | "'" | null = null;
+    let 直前: string | null = "{";
+    i += 1;
+    for (; i < 本体.length; i += 1) {
+      const c = 本体[i]!;
+      if (引用 !== null) {
+        if (引用 === '"' && c === "\\" && i + 1 < 本体.length) {
+          i += 1;
+          continue;
+        }
+        if (c === 引用) 引用 = null;
+        continue;
+      }
+      if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+        引用 = c;
+        直前 = c;
+        continue;
+      }
+      // 組の中身は葉だけ。 引用符の外の入れ子は値の形を保てない。
+      if (c === "{") return undefined;
+      if (c === "}") {
+        塊.push(本体.slice(始まり, i));
+        i += 1;
+        次は組 = false;
+        break;
+      }
+      if (!/\s/u.test(c)) 直前 = c;
+    }
+    if (次は組) return undefined;
+  }
+  if (次は組 && 塊.length > 0) return undefined;
+  if (塊.length === 0) return undefined;
+
+  const 出: Record<string, string>[] = [];
+  for (const t of 塊) {
+    const 組 = parseInlineMapping(t);
+    if (Object.keys(組).length === 0) return undefined;
+    出.push(組);
+  }
+  return 出;
+}
+
+/** 組の並びを持つ部品の、1 組ごとの欄。 描画側の CdlReadout と同じ形に縛る。 */
+const 部品の組の表: Record<
+  string,
+  Record<string, { 必須: readonly string[]; 欄: readonly string[] }>
+> = {
+  "status-dot": { map: { 必須: ["value", "color"], 欄: ["value", "color", "label"] } },
+  "status-timeline": { colorMap: { 必須: ["status", "color"], 欄: ["status", "color"] } },
+};
+
+function 部品の組を検査する(
+  kind: string,
+  読めた: Record<string, unknown>,
+  line: number,
+  errors: DslError[],
+): void {
+  for (const [欄, 定義] of Object.entries(部品の組の表[kind] ?? {})) {
+    const 並び = 読めた[欄];
+    if (!Array.isArray(並び)) continue;
+    並び.forEach((組, i) => {
+      const o = 組 as Record<string, unknown>;
+      for (const k of Object.keys(o)) {
+        if (定義.欄.includes(k)) continue;
+        errors.push({
+          line,
+          message: `部品の ${欄}[${i}] の項目名が読めません: "${k}"`,
+          hint: `使える項目 = ${定義.欄.join(", ")}`,
+        });
+      }
+      for (const k of 定義.必須) {
+        if (o[k] !== undefined) continue;
+        errors.push({
+          line,
+          message: `部品の ${欄}[${i}].${k} は必ず書きます`,
+          hint: `必須の項目 = ${定義.必須.join(", ")}`,
+        });
+      }
+    });
+  }
 }
 
 /**
@@ -1133,6 +1349,16 @@ function 表に従って読む(
       out[欄] = n !== undefined ? n : 値;
     } else if (形 === "文字列の並び") {
       out[欄] = 並びとして読む(値);
+    } else if (形 === "組の並び") {
+      const 組 = 組の並びとして読む(値);
+      if (組 !== undefined) out[欄] = 組;
+      else {
+        errors.push({
+          line,
+          message: `${接頭}${欄} の並びが読めません: "${値}"`,
+          hint: '`[{ value: "online", color: "#22c55e" }]` の形で書く',
+        });
+      }
     } else if (形 === "向き") {
       if (["up", "down", "left", "right"].includes(値)) out[欄] = 値;
       else {
@@ -1156,6 +1382,30 @@ function 表に従って読む(
     }
   }
   return out;
+}
+
+/**
+ * その箱を出すかどうかの条件を読む (#1381)。
+ *
+ * 描画側は空文字を偽として扱うため、`visibleIf: ` と書くと「常に出ない箱」 になる。
+ * 書いた本人はたいてい条件を書き忘れただけなので、空は捨てずに行番号付きで知らせる。
+ */
+function 出す条件として読む(
+  raw: string | undefined,
+  line: number,
+  errors: DslError[],
+): string | undefined {
+  if (raw === undefined) return undefined;
+  const 値 = raw.trim();
+  if (値 === "") {
+    errors.push({
+      line,
+      message: "箱の visibleIf が空です",
+      hint: '`visibleIf: "{flag}"` のように条件を書く。 常に隠すなら `visibleIf: "0"`',
+    });
+    return undefined;
+  }
+  return 値;
 }
 
 /**
@@ -1203,6 +1453,7 @@ function 部品として読む(
     return undefined;
   }
   const 読めた = 表に従って読む(定義, opts, `部品 ${id} の `, line, errors);
+  部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
   return { id, kind, ...読めた } as DslReadout;
 }
@@ -1272,20 +1523,40 @@ function matchActorInlineMapping(raw: string): { name: string; inner: string } |
   const name = raw.slice(0, colonIdx);
   const rest = raw.slice(colonIdx + 1).trim();
   if (!rest.startsWith("{")) return null;
-  // depth count で対応 brace 探す
-  let depth = 0;
-  let endIdx = -1;
-  for (let i = 0; i < rest.length; i += 1) {
-    const c = rest[i]!;
-    if (c === "{") depth += 1;
-    else if (c === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        endIdx = i;
-        break;
+  // depth count で対応 brace 探す。 正しい引用符の中の `}` は飛ばす。
+  const 終わりを探す = (引用符を見る: boolean): number => {
+    let depth = 0;
+    let 引用符: '"' | "'" | null = null;
+    let 直前: string | null = null;
+    for (let i = 0; i < rest.length; i += 1) {
+      const c = rest[i]!;
+      if (引用符を見る) {
+        if (引用符 !== null) {
+          if (引用符 === '"' && c === "\\" && i + 1 < rest.length) {
+            i += 1;
+            continue;
+          }
+          if (c === 引用符) 引用符 = null;
+          continue;
+        }
+        if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+          引用符 = c;
+          直前 = c;
+          continue;
+        }
       }
+      if (c === "{") depth += 1;
+      else if (c === "}") {
+        depth -= 1;
+        if (depth === 0) return i;
+      }
+      if (!/\s/u.test(c)) 直前 = c;
     }
-  }
+    return -1;
+  };
+  let endIdx = 終わりを探す(true);
+  // 閉じない引用符は従来どおり単純分割へ戻す (#1367)。
+  if (endIdx < 0) endIdx = 終わりを探す(false);
   if (endIdx < 0) return null;
   const inner = rest.slice(1, endIdx);
   return { name, inner };
@@ -1600,6 +1871,14 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "図形":
         out.shape = 図形として読む(raw, ln.no, errors);
         break;
+      case "visibleIf":
+      case "出す条件":
+        out.visibleIf = 出す条件として読む(stripQuotes(raw), ln.no, errors);
+        break;
+      case "title":
+      case "題":
+        out.title = stripQuotes(raw);
+        break;
       case "rows":
       case "行":
         out.rows = raw
@@ -1750,6 +2029,12 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // 箱の中に描く図形 (#1374)
   "shape",
   "図形",
+  // その箱を出すかどうかの条件 (#1381)
+  "visibleIf",
+  "出す条件",
+  // 箱に出す題 (#1381)
+  "title",
+  "題",
   "位置",
   "pos",
   "posX",
@@ -2090,6 +2375,10 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "posH",
   // 箱の中に描く図形 (#1374)
   "shape",
+  // その箱を出すかどうかの条件 (#1381)
+  "visibleIf",
+  // 箱に出す題 (#1381)。 名前と切り離して書ける
+  "title",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
   "scale",
@@ -2226,6 +2515,10 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
         isPart || opts.shape === undefined
           ? undefined
           : 図形として読む(opts.shape, line.no, errors),
+      // 出す条件 (#1381)。 パーツでは状態の上書きとして意味を持つため横取りしない
+      visibleIf: isPart ? undefined : 出す条件として読む(opts.visibleIf, line.no, errors),
+      // 箱に出す題 (#1381)。 空文字も意味を持つ (題を出さない箱) ため undefined と分ける
+      title: isPart ? undefined : opts.title,
       ...表で読む(ACTOR_INLINE_VALUE_KINDS, opts, "箱の ", line.no, errors),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
       tone: isPart ? undefined : resolveTone(opts.tone),

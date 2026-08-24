@@ -88,43 +88,60 @@ test.describe("2 段目以降の描き方を切替えられる (#1359)", () => {
      * 動かすだけの時は 2 段目に残りが付かない (属性そのものが出ない)。
      * 引き直す時は付く。 段の名前で今どの段かを判定する。
      */
-    const 二段目で残りが付いた回数 = async (page: Page): Promise<number> => {
-      let n = 0;
-      let 前も2段目 = false;
+    const 二段目を数える = async (page: Page): Promise<{ 残りあり: number; 見た: number }> => {
+      let 残りあり = 0;
+      let 見た = 0;
       for (let i = 0; i < 60; i++) {
-        const 見た = await page.evaluate(() => {
-          const 札 = document.querySelector(".cdl-phase-chip")?.textContent ?? "";
-          const el = document.querySelector('[data-cdl-role="chart-line"]');
-          return { 札, 残り: el?.getAttribute("stroke-dashoffset") ?? null };
-        });
-        // 局面表示が一時的に空でも 2 段目と誤認しないよう、番号を正方向に照合する
-        const 今2段目 = 見た.札.includes("局面 2 / 2");
         /*
-         * **2 回続けて 2 段目だった時だけ数える** (#1365 で実測)。
+         * **今どの段かを、線と同じ枝から読む** (#1381)。
          *
-         * 段の札と図は別々に更新されるため、段が切り替わる瞬間に「札は 2 段目だが図はまだ
-         * 1 段目の dash を持っている」 状態が 1 sample だけ現れる。 全件を並列で回して負荷が
-         * 上がると再現し、「動かすだけ」 側が 1 を数えて落ちていた。
+         * 段の札 (`.cdl-phase-chip`) は図とは別の枝にあり、更新が揃う保証が無い。 段が
+         * 切り替わる瞬間に「札は 2 段目だが図はまだ 1 段目の残りを持っている」 状態が現れ、
+         * 全件を並列で回して負荷が上がると「動かすだけ」 側が 1 を数えて落ちていた。
          *
-         * 続けて 2 回見れば切り替わりの瞬間は外れる。 2 段目は 0.9 秒あって 9 sample 取れるので、
-         * 引き直している時は依然として何度も数えられる。
+         * #1365 では「2 回続けて 2 段目だった時だけ数える」 形でこの窓を外したが、
+         * 負荷が上がると窓が 2 sample に伸びて再発した (#1381 の全件実行で実測)。
+         * 窓を広げても同じことが起きるので、**窓そのものを無くす**。
+         *
+         * 図の枠は `data-cdl-phase-index` で今の段を持つ。 線の祖先から辿れば、段と残りが
+         * 同じ描画から出た値になるため、2 つがずれることが構造的に起きない。
          */
-        if (今2段目 && 前も2段目 && 見た.残り !== null) n += 1;
-        前も2段目 = 今2段目;
+        const 見たもの = await page.evaluate(() => {
+          const el = document.querySelector('[data-cdl-role="chart-line"]');
+          const 枠 = el?.closest("[data-cdl-phase-index]");
+          return {
+            段: 枠?.getAttribute("data-cdl-phase-index") ?? null,
+            残り: el?.getAttribute("stroke-dashoffset") ?? null,
+          };
+        });
+        if (見たもの.段 === "1") {
+          見た += 1;
+          if (見たもの.残り !== null) 残りあり += 1;
+        }
         await page.waitForTimeout(100);
       }
-      return n;
+      return { 残りあり, 見た };
     };
 
     await 開く(page, "折れ線グラフ");
-    const 動かすだけ = await 二段目で残りが付いた回数(page);
+    const 動かすだけ = await 二段目を数える(page);
 
     await page.getByRole("radio", { name: "描き直す" }).click();
     await page.waitForTimeout(400);
-    const 描き直す = await 二段目で残りが付いた回数(page);
+    const 描き直す = await 二段目を数える(page);
 
-    expect(動かすだけ, "動かすだけなのに 2 段目で線を引き直している").toBe(0);
-    expect(描き直す, "描き直すのに 2 段目で線を引き直していない").toBeGreaterThan(0);
+    // 2 段目を 1 度も見ていなければ、下の 2 つは通って当然になる
+    expect(
+      動かすだけ.見た,
+      "動かすだけで 2 段目を 1 度も見ていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(
+      描き直す.見た,
+      "描き直すで 2 段目を 1 度も見ていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+
+    expect(動かすだけ.残りあり, "動かすだけなのに 2 段目で線を引き直している").toBe(0);
+    expect(描き直す.残りあり, "描き直すのに 2 段目で線を引き直していない").toBeGreaterThan(0);
   });
 
   test("項目を選び直すと動かすだけに戻る", async ({ page }) => {

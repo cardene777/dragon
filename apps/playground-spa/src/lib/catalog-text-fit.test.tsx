@@ -32,7 +32,26 @@ import { EDITOR_SAMPLES } from "@/data/editor-samples";
  * 前半を 1 文字も共有しないため当たらない (実測で確認)。
  *
  * 集合で見る形なら、値を埋めた後の切り詰めも新しい文字として現れる。
+ *
+ * ## 打ち切りまでの時間を明示する (#1381)
+ *
+ * 全ての見本を描く 2 件は 400 件以上を描くため、既定の 5 秒では足りないことがある。
+ * 単独で走らせると 2.5 秒で終わるが、全 282 file を並べて走らせると 5 秒を超えて
+ * **打ち切られる** (実測 = #1380 で 3 回に 1 回落ち、#1381 で 2 回に 1 回落ちた)。
+ *
+ * 落ち方が `Test timed out in 5000ms` なので、読むと「切り詰めが起きた」 に見える。
+ * 実際には 1 件も検査していない。 描く件数に見合う時間を明示して、時間切れと不合格を
+ * 区別できるようにする。
  */
+
+/**
+ * 全ての見本を描く検査の打ち切りまでの時間 (ミリ秒)。
+ *
+ * 単独で 2.5 秒、並列で 5 秒を超えることがあるため、実測の 12 倍を上限に置く。 長くするのは
+ * 時間切れを不合格と取り違えないためで、**遅くなったこと自体は見ない** (描く件数が増えれば
+ * 素直に伸びる)。
+ */
+const 全部を描く時間 = 30_000;
 
 /** 描画側が入りきらない文字を切る時に付ける字 */
 const 省略 = "…";
@@ -72,7 +91,8 @@ async function 見本を集める(): Promise<図の組[]> {
     for (const it of items) 全部.push({ 出所: 分類, 名: it.title, 図: it.diagram });
   }
   // `parts` は後から読む形なので `CATALOG_ITEMS` に載らない。 別経路で読む
-  for (const it of await loadPartsItems()) 全部.push({ 出所: "parts", 名: it.title, 図: it.diagram });
+  for (const it of await loadPartsItems())
+    全部.push({ 出所: "parts", 名: it.title, 図: it.diagram });
   // 記法の見本。 `#1332` で実際に切られていたのはこちらで、見本帳だけ見ると同じ見落としが再発する
   for (const sm of EDITOR_SAMPLES) {
     全部.push({ 出所: "editor", 名: sm.slug, 図: textDslToDiagram(sm.code) });
@@ -96,7 +116,7 @@ animation:
 }
 
 describe("見本の文字が切り詰められていない (#1334)", () => {
-  it("見本を集められている", async () => {
+  it("見本を集められている", { timeout: 全部を描く時間 }, async () => {
     // 集められていなければ、以下の検査は通って当然になる
     const 見本 = await 見本を集める();
     expect(見本.length, "見本が少なすぎる (集め方が壊れている)").toBeGreaterThanOrEqual(400);
@@ -106,7 +126,7 @@ describe("見本の文字が切り詰められていない (#1334)", () => {
     expect([...出所], "記法の見本が集まっていない").toContain("editor");
   });
 
-  it("図の上に出る省略は描画側の literal だけ", async () => {
+  it("図の上に出る省略は描画側の literal だけ", { timeout: 全部を描く時間 }, async () => {
     const 見本 = await 見本を集める();
     const 出た = new Map<string, string[]>();
     for (const x of 見本) {
@@ -141,7 +161,7 @@ describe("見本の文字が切り詰められていない (#1334)", () => {
     ).toEqual([]);
   });
 
-  it("描画側の literal は実物に存在する", async () => {
+  it("描画側の literal は実物に存在する", { timeout: 全部を描く時間 }, async () => {
     // 一覧が古くなって実物と食い違うと、素通しの範囲だけが残る
     const 見本 = await 見本を集める();
     const 実際 = new Set(見本.flatMap((x) => 描かれた文字ら(x.図)).filter((t) => t.includes(省略)));
