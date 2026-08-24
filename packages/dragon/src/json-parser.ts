@@ -982,12 +982,14 @@ function 表で中身を検査する(
     }
     const 型が合う =
       形 === "数"
-        ? typeof 値 === "number"
+        ? typeof 値 === "number" && Number.isFinite(値)
         : 形 === "数か文字列"
-          ? typeof 値 === "number" || typeof 値 === "string"
+          ? (typeof 値 === "number" && Number.isFinite(値)) || typeof 値 === "string"
           : 形 === "文字列の並び"
             ? Array.isArray(値) && 値.every((x) => typeof x === "string")
-            : typeof 値 === "string";
+            : 形 === "向き"
+              ? typeof 値 === "string" && ["up", "down", "left", "right"].includes(値)
+              : typeof 値 === "string";
     if (!型が合う) {
       errors.push({
         path: `${path}.${欄}`,

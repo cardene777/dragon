@@ -43,7 +43,7 @@ import {
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS } from "./v05/parser";
-import { isColorValue, stripExternalPaint } from "./color";
+import { isColorValue, pointsOutside, stripExternalPaint } from "./color";
 import {
   MAX_INPUT_ELEMENTS,
   countDiagramElements,
@@ -304,12 +304,19 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 扱いが式形と揃う。 時計の状態と段の補間もここで足す
   const 畳んだきっかけ = foldValueTriggers(merged, doc, opts?.onNotice);
   attachDerivedValues(merged, doc, opts?.onNotice, inheritedDerivedSourceLines, 畳んだきっかけ);
+  // 値を見せる部品を図に載せる (#1374)。 parts が持つ部品は merge 済みなので残したまま足す。
+  // **外部参照を落とす前に載せる**。 後から足すと readout の color / colors だけが出口の検査を
+  // 迂回し、 `url(https://...)` がそのまま SVG の paint 属性へ届く。
+  if (doc.readouts && doc.readouts.length > 0) {
+    merged.readouts = [...(merged.readouts ?? []), ...doc.readouts];
+  }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
   // 入口ごとに塞ぐ形は採らない。 状態の上書き / phase が入れる値 / 画面が直接書く背景色 /
   // 埋め込んだ JSON / states / values と入口が複数あり、 1 つ見落とすと穴が残る。
   // **図への追加を全て終えた後**、 出口で 1 度だけ見る。 この後に状態を足すと検査を迂回する。
-  for (const dropped of stripExternalPaint(merged)) {
+  const 外した部品の配色 = stripExternalReadoutPalettes(merged);
+  for (const dropped of [...stripExternalPaint(merged), ...外した部品の配色]) {
     opts?.onNotice?.({
       kind: "external-paint-dropped",
       actor: dropped.path,
@@ -321,9 +328,30 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 作り替えた名前を表示だけ戻す (#1220)。 **図への追加を全て終えた後**に戻す = 途中で戻すと、
   // 後続の処理が名前で引く時に作り替え前と後が混ざる
   restoreActorNames(merged, 分けた.元の名前, 作り替えた対象);
-  // 値を見せる部品を図に載せる (#1374)。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ
-  if (doc.readouts && doc.readouts.length > 0) merged.readouts = [...doc.readouts];
   return merged;
+}
+
+/**
+ * readout の配色配列から外部参照を落とす (#1374)。
+ *
+ * 共通の `stripExternalPaint` は `color` / `fill` のような key を見るが、 `colors` の中へ
+ * 入ると配列要素には key が無い。 `heat-cell` が公開した配色だけはここで要素ごとに閉じる。
+ */
+function stripExternalReadoutPalettes(diagram: CdlDiagram): Array<{ path: string; value: string }> {
+  const stripped: Array<{ path: string; value: string }> = [];
+  for (let i = 0; i < (diagram.readouts?.length ?? 0); i += 1) {
+    const readout = diagram.readouts?.[i] as { colors?: readonly string[] } | undefined;
+    if (!readout?.colors) continue;
+    const colors = [...readout.colors];
+    for (let j = 0; j < colors.length; j += 1) {
+      const color = colors[j];
+      if (color === undefined || !pointsOutside(color)) continue;
+      colors[j] = "none";
+      stripped.push({ path: `readouts[${i}].colors[${j}]`, value: color });
+    }
+    readout.colors = colors;
+  }
+  return stripped;
 }
 
 /**

@@ -13,7 +13,14 @@
  * 3 が要点。 捨てると「書いたのに図に出ない」 が手掛かりなしで起きる。
  */
 import { describe, it, expect } from "vitest";
-import { textDslToDiagram, jsonToDiagram, parseTextDslV05, validateDragonJson } from "../src/index";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+import {
+  textDslToDiagram,
+  jsonToDiagram,
+  parseTextDslV05,
+  validateDragonJson,
+  diagramJsonSchema,
+} from "../src/index";
 
 const 波の記法 = `title: "波"
 type: flow
@@ -134,6 +141,28 @@ describe("箱の中に描く図形 (#1374)", () => {
       expect(r.ok, `${s} が読めない`).toBe(true);
     }
   });
+
+  it("rect の向きは描画側が受ける 4 値に限る", () => {
+    const y = 波の記法.replace(
+      /^ {2}- 検証: \{.*$/m,
+      "  - 検証: { kind: card, shape: { kind: rect, source: 50, fillMax: 100, orient: sideways } }",
+    );
+    const r = parseTextDslV05(y);
+    expect(r.ok, "描画側が読めない向きが通ってしまった").toBe(false);
+    if (r.ok) return;
+    expect(r.errors.map((e) => e.message).join("\n")).toContain("orient の向きが読めません");
+
+    const v = validateDragonJson({
+      ...波のJSON,
+      actors: [
+        {
+          name: "A",
+          shape: { kind: "rect", source: 50, fillMax: 100, orient: "sideways" },
+        },
+      ],
+    });
+    expect(v.ok, "JSON だけ描画側が読めない向きを通している").toBe(false);
+  });
 });
 
 describe("値を見せる部品 (#1374)", () => {
@@ -164,6 +193,78 @@ describe("値を見せる部品 (#1374)", () => {
     const 無し = 波の記法.replace(/readouts:\n( {2}.*\n)+\n/, "");
     expect(無し, "readouts を落とせていない (検査が空振りしている)").not.toContain("readouts:");
     expect(textDslToDiagram(無し).readouts).toBeUndefined();
+  });
+
+  it("壊れた行と 1 行にまとめた形を黙って捨てない", () => {
+    const 壊れた行 = parseTextDslV05(
+      波の記法.replace(
+        '  ring: { kind: percent-ring, source: total, max: 500, label: "全体進捗" }',
+        "  ring { kind: percent-ring, source: total, max: 500 }",
+      ),
+    );
+    expect(壊れた行.ok, "コロンの無い部品が黙って消えた").toBe(false);
+    if (!壊れた行.ok) {
+      expect(壊れた行.errors.map((e) => e.message).join("\n")).toContain("invalid readout entry");
+    }
+
+    const 一行 = parseTextDslV05(
+      波の記法.replace(
+        /readouts:\n( {2}.*\n)+\n/,
+        "readouts: { ring: { kind: percent-ring, source: total, max: 500 } }\n\n",
+      ),
+    );
+    expect(一行.ok, "対応していない 1 行形が黙って消えた").toBe(false);
+    if (!一行.ok) {
+      expect(一行.errors.map((e) => e.message).join("\n")).toContain(
+        "readouts は 1 行にまとめて書けない",
+      );
+    }
+  });
+
+  it("parts の部品と最上位の部品を両方残す", () => {
+    const part: CdlDiagram = {
+      id: "readout-part",
+      topic: "test",
+      lanes: [{ id: "l", x: 0, width: 100 }],
+      nodes: [{ id: "hidden", lane: "l", stack: 0, kind: "actor", w: 1, h: 1 }],
+      edges: [],
+      states: [{ id: "v", initial: 30 }],
+      phases: [
+        {
+          id: "static",
+          duration: 1000,
+          title: "static",
+          body: "",
+          activate: [],
+          tweens: [],
+          sets: [],
+        },
+      ],
+      readouts: [{ id: "part-stat", kind: "stat", source: "{v}" }],
+    };
+    const src = 波の記法.replace("actors:\n", "actors:\n  - side: { kind: readout-part, v: 30 }\n");
+    const d = textDslToDiagram(src, { partsCatalog: { "readout-part": part } });
+    expect(d.readouts?.map((r) => r.id)).toEqual(["side__part-stat", "ring", "cu"]);
+  });
+
+  it("部品の色に書かれた外部参照を出口で落とす", () => {
+    const notices: { kind: string }[] = [];
+    const src = 波の記法.replace(
+      "max: 500, label:",
+      'max: 500, color: "url(https://example.invalid/pixel)", label:',
+    );
+    const d = textDslToDiagram(src, { onNotice: (n) => notices.push(n) });
+    const ring = d.readouts?.find((r) => r.id === "ring") as { color?: string } | undefined;
+    expect(ring?.color, "外部 paint が readout に残っている").toBe("none");
+    expect(notices.some((n) => n.kind === "external-paint-dropped")).toBe(true);
+
+    const paletteSrc = 波の記法.replace(
+      "readouts:\n",
+      'readouts:\n  heat: { kind: heat-cell, source: total, min: 0, max: 100, colors: ["url(https://example.invalid/pixel)", "#ffffff"] }\n',
+    );
+    const palette = textDslToDiagram(paletteSrc).readouts?.find((r) => r.id === "heat") as
+      { colors?: readonly string[] } | undefined;
+    expect(palette?.colors, "配色配列の外部 paint が残っている").toEqual(["none", "#ffffff"]);
   });
 });
 
@@ -212,8 +313,41 @@ describe("JSON の記法でも同じことが書ける (#1374)", () => {
     expect(v.errors.map((e) => e.message).join("\n")).toContain("max must be 数");
   });
 
+  it("有限でない数は検査が落とす", () => {
+    const v = validateDragonJson({
+      ...波のJSON,
+      readouts: [{ id: "r", kind: "percent-ring", source: "total", max: Number.NaN }],
+    });
+    expect(v.ok, "JSON に書けない非有限値が object API から通ってしまった").toBe(false);
+  });
+
   it("正しい形は検査を通る (陽性対照)", () => {
     // 上は全て 0 件でない側を見る検査なので、通る側も確かめる = 検査そのものが壊れたら気付く
     expect(validateDragonJson(波のJSON).ok, "正しい形が落ちている").toBe(true);
+  });
+});
+
+describe("公開 schema は実際の受理条件と揃う (#1374)", () => {
+  const schema = diagramJsonSchema as unknown as Record<string, any>;
+  const root = schema.properties as Record<string, any>;
+  const actor = root.actors.items.oneOf.find((o: any) => o.properties !== undefined);
+
+  function 種類別の必須(def: any, kind: string): string[] {
+    const branch = def.oneOf.find((o: any) => o.properties.kind.enum[0] === kind);
+    return branch.required ?? [];
+  }
+
+  it("shape の種類別必須欄と向きを宣言する", () => {
+    const shape = actor.properties.shape;
+    expect(種類別の必須(shape, "rect")).toEqual(["source", "fillMax"]);
+    expect(種類別の必須(shape, "wave")).toEqual(["level", "amplitude"]);
+    expect(shape.properties.orient.enum).toEqual(["up", "down", "left", "right"]);
+  });
+
+  it("readout の種類別必須欄を宣言する", () => {
+    const readout = root.readouts.items;
+    expect(種類別の必須(readout, "bar")).toEqual(["min", "max"]);
+    expect(種類別の必須(readout, "percent-ring")).toEqual(["max"]);
+    expect(種類別の必須(readout, "heat-cell")).toEqual(["min", "max"]);
   });
 });

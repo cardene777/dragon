@@ -546,7 +546,19 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "readouts") {
       // readouts:\n  ring: { kind: percent-ring, source: total, max: 500, label: "..." }
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      // 1 行にまとめた形は受けない。 黙って空の並びにすると、書いた部品が全て消えた図になる。
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "readouts は 1 行にまとめて書けない",
+          hint: "次の行から字下げして `id: { kind: percent-ring, source: total, max: 100 }` の形で並べる",
+        });
+        i += 1;
+        continue;
+      }
+      // `collectIndentedList` は `:` の無い行を落とす。 部品を綴り違えた行も知らせるため、
+      // 字下げした行を全て読み手へ渡す。
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       readoutsList = [];
       for (const it of items) {
         const m = it.trimmed.match(LANE_ID_ENTRY);
@@ -979,7 +991,7 @@ export const LANE_VALUE_KINDS = {
  * 指定が消え、後者は綴り違いがそのまま描画側へ流れて別の形で失敗する。 表があれば
  * 書いた場所と使える欄を添えて知らせられる。
  */
-export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び";
+export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び" | "向き";
 
 export type 図形の定義 = { 必須: readonly string[]; 欄: Record<string, 欄の形> };
 
@@ -990,7 +1002,7 @@ export const 図形の表: Record<string, 図形の定義> = {
     欄: {
       source: "数か文字列",
       fillMax: "数",
-      orient: "文字列",
+      orient: "向き",
       fill: "文字列",
       stroke: "文字列",
       radius: "数",
@@ -1121,6 +1133,15 @@ function 表に従って読む(
       out[欄] = n !== undefined ? n : 値;
     } else if (形 === "文字列の並び") {
       out[欄] = 並びとして読む(値);
+    } else if (形 === "向き") {
+      if (["up", "down", "left", "right"].includes(値)) out[欄] = 値;
+      else {
+        errors.push({
+          line,
+          message: `${接頭}${欄} の向きが読めません: "${値}"`,
+          hint: "使える値 = up, down, left, right",
+        });
+      }
     } else {
       out[欄] = 値;
     }
