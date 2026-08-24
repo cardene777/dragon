@@ -150,27 +150,39 @@ describe("陰性対照が実在ページに依存していない (#1383)", () =>
   /**
    * 実在ページを名指しする形へ戻っていないことを、実物から数える。
    *
-   * 見るのは「コードのタブが押せないこと」 を画面の検査で主張する形。 その主張は記法を
-   * 持たないページが実在することを前提にしており、ページを埋めるたびに成立しなくなる。
-   * 押せない側は本 file が組み立てた見本で見るので、画面の検査には残さない。
+   * 見るのは、実在の route や一覧から陰性対照を選び「コードのタブが押せない」 と主張する
+   * 形。 記法を持たない見本を検査内で組み立てて画面へ渡す形は、ページを埋めても壊れない。
    */
   const 画面の検査 = (): { 名: string; 中身: string }[] => {
-    const dir = join(dirname(fileURLToPath(import.meta.url)), "../../tests");
-    return readdirSync(dir)
-      .filter((f) => f.endsWith(".spec.ts") || f.endsWith(".spec.tsx"))
-      .map((f) => ({ 名: f, 中身: readFileSync(join(dir, f), "utf8") }));
+    const ここ = dirname(fileURLToPath(import.meta.url));
+    const dirs = [join(ここ, "../../tests"), join(ここ, "../pages")];
+    return dirs.flatMap((dir) =>
+      readdirSync(dir)
+        .filter(
+          (f) =>
+            f.endsWith(".spec.ts") ||
+            f.endsWith(".spec.tsx") ||
+            f.endsWith(".test.ts") ||
+            f.endsWith(".test.tsx"),
+        )
+        .map((f) => ({ 名: join(dir, f), 中身: readFileSync(join(dir, f), "utf8") })),
+    );
   };
 
-  it("画面の検査でコードのタブが押せないことを主張していない", () => {
+  it("画面の検査が実在ページを陰性対照にしていない", () => {
     const files = 画面の検査();
     expect(files.length, "画面の検査を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(
       0,
     );
 
-    // `コード` のタブに対する `toBeDisabled` を探す。 途中に改行や引数が入るため、
-    // 名前から主張までを 1 つの塊として見る
+    // E2E の実在 route 指定と、SSR unit test の実在一覧からの探索を探す。
+    // `disabled` の検査自体は、合成 fixture を画面へ渡すなら消えない対照として使える
+    const 実在ページに依存する主張 = [
+      /page\.goto\(\s*["']\/catalog\/[^"']+["'][\s\S]{0,500}?name:\s*["']コード["'][\s\S]{0,200}?toBeDisabled/,
+      /Object\.entries\(CATALOG_ITEMS\)\.find\([\s\S]{0,300}?記法を持たない/,
+    ];
     const 見つけた = files
-      .filter((f) => /name:\s*"コード"[\s\S]{0,200}?toBeDisabled/.test(f.中身))
+      .filter((f) => 実在ページに依存する主張.some((pattern) => pattern.test(f.中身)))
       .map((f) => f.名);
     expect(
       見つけた,

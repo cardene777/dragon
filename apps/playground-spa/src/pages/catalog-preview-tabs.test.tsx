@@ -112,8 +112,9 @@ describe("図とコードを切り替えられる (#1236)", () => {
   });
 
   it("タブは図とコードの 2 つ", () => {
-    const tabs = [...html.matchAll(/<button role="tab"[^>]*class="catalog-preview-tab[^"]*"[^>]*>([^<]+)</g)]
-      .map((m) => m[1]);
+    const tabs = [
+      ...html.matchAll(/<button role="tab"[^>]*class="catalog-preview-tab[^"]*"[^>]*>([^<]+)</g),
+    ].map((m) => m[1]);
     expect(tabs).toEqual(["図", "コード"]);
   });
 
@@ -133,13 +134,23 @@ describe("図とコードを切り替えられる (#1236)", () => {
   it("記法を持たない図ではコードのタブを押せない (陰性対照)", () => {
     // 押せる見た目にすると「押したのに何も出ない」 が残る。
     //
-    // **分類の名前を書かない**。 記法は増えていくため、名前で決め打ちすると持った時点で
-    // 落ちる (実測 = `presets` を書いていたが `presetSwimlane` が記法を持って落ちた)。
-    // 一覧から「先頭が記法を持たない分類」 を引く
-    const 記法なし = Object.entries(CATALOG_ITEMS).find(([, items]) => 記法を持たない(items[0]));
-    expect(記法なし, "先頭が記法を持たない分類が 1 つも無い").toBeDefined();
-    const コード = 画面(記法なし![0]).match(/<button role="tab"[^>]*>コード</)?.[0] ?? "";
-    expect(コード, `${記法なし![0]} でコードのタブが押せてしまう`).toContain("disabled");
+    // **実在の分類を陰性対照にしない**。 一覧を埋め終わることが目標なので、記法なしの
+    // 分類を探す検査はいつか必ず成立しなくなる。 記法だけを消した見本を画面へ渡す。
+    const 元 = CATALOG_ITEMS.charts?.[0];
+    if (!元) throw new Error("合成 fixture の元にする catalog item が無い");
+    const 元の一覧 = CATALOG_ITEMS.charts;
+    const 対照 = { ...元, id: "negative-control", sourceYaml: undefined, sourceJson: undefined };
+    expect(記法を持たない(対照), "合成 fixture が記法を持っている").toBe(true);
+
+    CATALOG_ITEMS.charts = [対照];
+    try {
+      const コード = 画面("charts").match(/<button role="tab"[^>]*>コード</)?.[0] ?? "";
+      expect(コード, "記法を持たない合成 fixture でコードのタブが押せてしまう").toContain(
+        "disabled",
+      );
+    } finally {
+      CATALOG_ITEMS.charts = 元の一覧;
+    }
   });
 
   it("最初は記法の欄が隠れている", () => {
