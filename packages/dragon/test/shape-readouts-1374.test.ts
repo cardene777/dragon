@@ -157,6 +157,28 @@ flow:
     expect(d.nodes[0]?.shape).toEqual({ kind: "polygon", sides: 6, radius: 40 });
   });
 
+  it("順序図では上下の名札を同じ動的図形に揃える", () => {
+    // sequence は actor を header / footer の対で作る。主 node だけを見る検査では、下端への
+    // kind / shape の伝播が外れても通るため、対を直接固定する。
+    const d = textDslToDiagram(`title: "六角の順序"
+type: sequence
+actors:
+  - 六角: { kind: card, shape: { kind: polygon, sides: 6, radius: 40 } }
+  - 相手
+flow:
+  - 六角 -> 相手
+`);
+    const 六角の名札 = d.nodes.filter(
+      (node) => node.id === "六角-header" || node.id === "六角-footer",
+    );
+    expect(六角の名札).toHaveLength(2);
+    expect(六角の名札.map((node) => node.kind)).toEqual(["dyn-polygon", "dyn-polygon"]);
+    expect(六角の名札.map((node) => node.shape)).toEqual([
+      { kind: "polygon", sides: 6, radius: 40 },
+      { kind: "polygon", sides: 6, radius: 40 },
+    ]);
+  });
+
   it("rect の向きは描画側が受ける 4 値に限る", () => {
     const y = 波の記法.replace(
       /^ {2}- 検証: \{.*$/m,
