@@ -75,6 +75,9 @@ import type {
 
 export type V05ParseResult = { ok: true; doc: DslDocument } | { ok: false; errors: DslError[] };
 
+/** 矢印を出す辺。 Text DSL / JSON validator / 公開 schema の 3 経路で同じ 4 値を使う。 */
+export const EDGE_SIDE_VALUES = ["top", "right", "bottom", "left"] as const;
+
 /**
  * 記法が受ける top-level の項目 (#1190)。
  *
@@ -2329,7 +2332,7 @@ const FLOW_INLINE_READERS = {
   cardinality: (v: string | undefined) => v,
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
-    v !== undefined && ["top", "right", "bottom", "left"].includes(v)
+    v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
       ? (v as "top" | "right" | "bottom" | "left")
       : undefined,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
@@ -2533,8 +2536,16 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     const opts = parseInlineMapping(mapMatch[1]!);
     // 文字列の欄はそのまま入れ、数と真偽の欄は表が読んで読めない値を知らせる (#1306)
     for (const k of FLOW_INLINE_KEYS) {
-      if (FLOW_INLINE_READERS[k] === null) continue;
-      中括弧[k] = opts[k];
+      const 読み手 = FLOW_INLINE_READERS[k];
+      if (読み手 === null) continue;
+      中括弧[k] = 読み手(opts[k]);
+    }
+    if (opts.side !== undefined && 中括弧.side === undefined) {
+      errors.push({
+        line: line.no,
+        message: `矢印の side が読めません: "${opts.side}"`,
+        hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
+      });
     }
     数と真偽 = 表で読む(FLOW_INLINE_VALUE_KINDS, opts, "矢印の ", line.no, errors);
     rest = rest.slice(0, mapMatch.index ?? 0).trim();

@@ -18,6 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { diagramJsonSchema, validateDragonJson } from "@cardenelabs/dragon";
 import { ACCEPTED_KEYS, type 階層 } from "../src/json-parser";
+import { EDGE_SIDE_VALUES } from "../src/v05/parser";
 // 欄 1 つだけを差し替えた入力の組み立ては、値の型の検査 (#1304) と共通の 1 箇所が持つ。
 // 別々に持つと、階層が増えた時に片方だけが古くなる
 import { 図, 欄に値を置く } from "./support/json-field-input";
@@ -226,6 +227,19 @@ describe("知らない項目を誤りとして返す (#1295)", () => {
     const e = r.errors.find((x) => x.path === "$.全く関係のない項目");
     expect(e?.hint).toContain("使える項目 = ");
     expect(e?.hint, "遠い名前に候補を勧めている").not.toContain("のことですか");
+  });
+
+  it("矢印の side は描画側が受ける 4 値だけを通す", () => {
+    const r = validateDragonJson(
+      図({ flow: [{ from: "A", to: "B", label: "x", side: "diagonal" }] }),
+    );
+    expect(r.ok, "知らない辺が runtime validator を通っている").toBe(false);
+    if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.flow[0].side");
+
+    const sideSchema = (diagramJsonSchema as any).properties.flow.items.properties.side;
+    expect(sideSchema.enum, "公開 schema と runtime validator の値が違う").toEqual([
+      ...EDGE_SIDE_VALUES,
+    ]);
   });
 
   it("受ける項目は 1 つずつ通る (厳しくしすぎていない)", () => {

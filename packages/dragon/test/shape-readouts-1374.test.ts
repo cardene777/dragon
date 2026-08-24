@@ -417,8 +417,8 @@ describe("公開 schema は実際の受理条件と揃う (#1374)", () => {
 
   it("readout の種類別必須欄を宣言する", () => {
     const readout = root.readouts.items;
-    expect(種類別の必須(readout, "bar")).toEqual(["min", "max"]);
-    expect(種類別の必須(readout, "percent-ring")).toEqual(["max"]);
-    expect(種類別の必須(readout, "heat-cell")).toEqual(["min", "max"]);
+    expect(種類別の必須(readout, "bar")).toEqual(["source", "min", "max"]);
+    expect(種類別の必須(readout, "percent-ring")).toEqual(["source", "max"]);
+    expect(種類別の必須(readout, "heat-cell")).toEqual(["source", "min", "max"]);
   });
 });

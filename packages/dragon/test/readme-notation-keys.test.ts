@@ -208,6 +208,21 @@ flow:
     }
   });
 
+  it("矢印の side に知らない辺を書くと誤りになる", () => {
+    const r = parseTextDslV05(`title: "t"
+type: flow
+
+actors:
+  - A
+  - B
+
+flow:
+  - A -> B: "x" { side: diagonal }
+`);
+    expect(r.ok, "知らない辺が記法から描画側へ流れている").toBe(false);
+    if (!r.ok) expect(r.errors.map((e) => e.message).join("\n")).toContain("side");
+  });
+
   describe("補足は書いた値が勝ち、書かなければ見本の既定が残る (#1275)", () => {
     // `er` は多重度から補足を作る。 **書いた値で上書きする実装が、書いていない時まで
     // 上書きしていないか** を両側で見る

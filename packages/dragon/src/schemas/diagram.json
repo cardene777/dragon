@@ -1133,7 +1133,7 @@
                 "enum": ["bar"]
               }
             },
-            "required": ["min", "max"]
+            "required": ["source", "min", "max"]
           },
           {
             "properties": {
@@ -1141,42 +1141,47 @@
                 "enum": ["gauge"]
               }
             },
-            "required": ["min", "max"]
+            "required": ["source", "min", "max"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["stat"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["sparkline"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["countup"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["typewriter"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["delta"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
@@ -1184,7 +1189,7 @@
                 "enum": ["percent-ring"]
               }
             },
-            "required": ["max"]
+            "required": ["source", "max"]
           },
           {
             "properties": {
@@ -1192,14 +1197,15 @@
                 "enum": ["heat-cell"]
               }
             },
-            "required": ["min", "max"]
+            "required": ["source", "min", "max"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["donut"]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
             "properties": {
@@ -1207,7 +1213,7 @@
                 "enum": ["radar"]
               }
             },
-            "required": ["max"]
+            "required": ["source", "max"]
           },
           {
             "properties": {
@@ -1215,7 +1221,7 @@
                 "enum": ["step-progress"]
               }
             },
-            "required": ["stepsSource"]
+            "required": ["source", "stepsSource"]
           },
           {
             "properties": {
@@ -1223,7 +1229,7 @@
                 "enum": ["status-dot"]
               }
             },
-            "required": ["map"]
+            "required": ["source", "map"]
           },
           {
             "properties": {
@@ -1239,26 +1245,243 @@
                 "enum": ["kpi-card"]
               }
             },
-            "required": ["historySource", "comparisonSource"]
+            "required": ["source", "historySource", "comparisonSource"]
           },
           {
             "properties": {
               "kind": {
                 "enum": ["status-timeline"]
               }
-            }
-          }
-        ],
-        "anyOf": [
+            },
+            "required": ["source"]
+          },
           {
             "properties": {
               "kind": {
-                "enum": ["notification"]
+                "enum": [
+                  "activity-feed",
+                  "alert-banner",
+                  "array-list",
+                  "article-preview",
+                  "avatar",
+                  "breadcrumb",
+                  "calendar-month",
+                  "calendar-week",
+                  "cart-summary",
+                  "chat-bubble",
+                  "checklist",
+                  "chess-board",
+                  "commit-list",
+                  "confidence-meter",
+                  "coupon-code",
+                  "event-log",
+                  "file-dropzone",
+                  "form-summary",
+                  "fuel-bar",
+                  "funnel",
+                  "grade",
+                  "icon-tile",
+                  "kanban-board",
+                  "kpi-comparison",
+                  "leaderboard",
+                  "log-stream",
+                  "metrics-grid",
+                  "number-board",
+                  "org-chart-mini",
+                  "otp-input",
+                  "password-strength",
+                  "pill-group",
+                  "podium",
+                  "poll-bar",
+                  "pricing-tier",
+                  "priority-badge",
+                  "quick-poll-emoji",
+                  "rating",
+                  "rating-thumb",
+                  "reaction-bar",
+                  "read-receipt",
+                  "roadmap",
+                  "sankey",
+                  "search-result",
+                  "service-health",
+                  "share-buttons",
+                  "song-queue",
+                  "stopwatch",
+                  "tag-cloud",
+                  "terminal",
+                  "thread-summary",
+                  "timeline-vertical",
+                  "timezone-clock",
+                  "toc-nav",
+                  "token-list",
+                  "traffic-light",
+                  "treemap",
+                  "user-presence",
+                  "user-stack",
+                  "venn",
+                  "video-card",
+                  "voice-message",
+                  "weather-forecast"
+                ]
               }
-            }
+            },
+            "required": ["source"]
           },
           {
+            "properties": {
+              "kind": {
+                "enum": ["badge"]
+              },
+              "map": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["value", "color"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
             "required": ["source"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "array-bar",
+                  "candlestick",
+                  "circular-gauge",
+                  "gantt",
+                  "line-chart",
+                  "matrix",
+                  "sequence-timeline",
+                  "slope",
+                  "thermometer",
+                  "waterfall"
+                ]
+              }
+            },
+            "required": ["source", "min", "max"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["attendance-grid"]
+              }
+            },
+            "required": ["source", "membersSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["bubble-chart"]
+              }
+            },
+            "required": ["source", "xMin", "xMax", "yMin", "yMax", "rMin", "rMax"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["bullet-chart"]
+              }
+            },
+            "required": ["source", "targetSource", "max"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["calendar-heatmap", "polar-area", "progress-group"]
+              }
+            },
+            "required": ["source", "max"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["diff-counter"]
+              }
+            },
+            "required": ["additionsSource", "deletionsSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["kpi-trend-tile"]
+              }
+            },
+            "required": ["source", "prevSource", "historySource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["map-pin"]
+              }
+            },
+            "required": ["source", "xMin", "xMax", "yMin", "yMax"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["media-player"]
+              }
+            },
+            "required": ["source", "durationSource", "playingSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["mini-map"]
+              }
+            },
+            "required": ["source", "canvasW", "canvasH"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["order-status", "step-indicator"]
+              }
+            },
+            "required": ["source", "stepsSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["path-progress"]
+              }
+            },
+            "required": ["source", "pathD"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["price-tag"]
+              }
+            },
+            "required": ["oldSource", "newSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["spinner"]
+              }
+            },
+            "required": ["source", "textSource"]
+          },
+          {
+            "properties": {
+              "kind": {
+                "enum": ["stacked-bar"]
+              }
+            },
+            "required": ["sourceA", "sourceB", "min", "max"]
           }
         ]
       }

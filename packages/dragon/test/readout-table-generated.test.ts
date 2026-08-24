@@ -86,12 +86,29 @@ describe("部品の表は描画側の型定義から生成する (#1385)", () =>
 });
 
 describe("公開している形と記法の表が同じ種類を持つ (#1385)", () => {
-  const schema = diagramJsonSchema as unknown as {
-    properties: {
-      readouts: { items: { properties: { kind: { enum: string[] } } & Record<string, unknown> } };
+  type 公開欄 = {
+    type?: string;
+    items?: {
+      type?: string;
+      properties?: Record<string, 公開欄>;
+      required?: string[];
     };
   };
-  const 公開の種類 = schema.properties.readouts.items.properties.kind.enum;
+  const schema = diagramJsonSchema as unknown as {
+    properties: {
+      readouts: {
+        items: {
+          properties: { kind: { enum: string[] } } & Record<string, 公開欄>;
+          oneOf: {
+            properties: { kind: { enum: string[] } } & Record<string, 公開欄>;
+            required?: string[];
+          }[];
+        };
+      };
+    };
+  };
+  const 公開の部品 = schema.properties.readouts.items;
+  const 公開の種類 = 公開の部品.properties.kind.enum;
 
   it("公開している種類を読めている", () => {
     expect(公開の種類.length, "公開している種類を 1 つも読めていない").toBeGreaterThan(0);
@@ -115,6 +132,79 @@ describe("公開している形と記法の表が同じ種類を持つ (#1385)",
       ...new Set(Object.values(部品の表).flatMap((定義) => Object.keys(定義.欄))),
     ].filter((n) => !公開の欄.has(n));
     expect(無い, "記法で書けるのに公開している形が持たない項目がある").toEqual([]);
+  });
+
+  const 公開の欄の形 = (欄: 公開欄 | undefined): string | undefined => {
+    if (欄?.type === "number") return "数";
+    if (欄?.type === "string") return "文字列";
+    if (欄?.type === "boolean") return "真偽";
+    if (欄?.type === "array" && 欄.items?.type === "string") return "文字列の並び";
+    if (欄?.type === "array" && 欄.items?.type === "object") return "組の並び";
+    return undefined;
+  };
+
+  it("全種類の欄の型が公開している形と一致する", () => {
+    const 食い違い = Object.entries(部品の表).flatMap(([kind, 定義]) =>
+      Object.entries(定義.欄)
+        .filter(([欄, 形]) => 公開の欄の形(公開の部品.properties[欄]) !== 形)
+        .map(
+          ([欄, 形]) =>
+            `${kind}.${欄}: 記法=${形} / 公開=${公開の欄の形(公開の部品.properties[欄]) ?? "無し"}`,
+        ),
+    );
+    expect(食い違い, "記法と公開 schema で欄の型が違う").toEqual([]);
+  });
+
+  it("全種類の必須欄が公開している形と一致する", () => {
+    /*
+     * kind の enum だけ合っていても oneOf に分岐が無い種類は JSON Schema が全て拒む。
+     * #1385 の初稿では新しい 91 種がまさにその形で、runtime validator だけが通っていた。
+     *
+     * 同じ必須欄を持つ種類は 1 分岐に束ねてよい。ここで各 kind に展開して生成表と比べる。
+     */
+    const 公開の必須 = new Map<string, string[]>();
+    const 重複: string[] = [];
+    for (const branch of 公開の部品.oneOf) {
+      for (const kind of branch.properties.kind.enum) {
+        if (公開の必須.has(kind)) 重複.push(kind);
+        公開の必須.set(kind, branch.required ?? []);
+      }
+    }
+    expect(重複, "oneOf の複数分岐に同じ種類がある").toEqual([]);
+    expect(Object.fromEntries([...公開の必須].sort(([a], [b]) => a.localeCompare(b)))).toEqual(
+      Object.fromEntries(
+        Object.entries(部品の表)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([kind, 定義]) => [kind, [...定義.必須]]),
+      ),
+    );
+  });
+
+  it("組の並びの中身が種類ごとに公開している形と一致する", () => {
+    const 食い違い: string[] = [];
+    for (const [kind, 欄の表] of Object.entries(部品の組の表)) {
+      const branch = 公開の部品.oneOf.find((x) => x.properties.kind.enum.includes(kind));
+      for (const [欄, 定義] of Object.entries(欄の表)) {
+        const item = (branch?.properties[欄] ?? 公開の部品.properties[欄])?.items;
+        const 公開の欄 = item?.properties ?? {};
+        if (
+          JSON.stringify(Object.keys(公開の欄).sort()) !==
+          JSON.stringify(Object.keys(定義.欄).sort())
+        ) {
+          食い違い.push(`${kind}.${欄}: 組の欄`);
+        }
+        if (
+          JSON.stringify([...(item?.required ?? [])].sort()) !==
+          JSON.stringify([...定義.必須].sort())
+        ) {
+          食い違い.push(`${kind}.${欄}: 組の必須欄`);
+        }
+        for (const [子欄, 形] of Object.entries(定義.欄)) {
+          if (公開の欄の形(公開の欄[子欄]) !== 形) 食い違い.push(`${kind}.${欄}.${子欄}: 型`);
+        }
+      }
+    }
+    expect(食い違い, "組の並びの中身が記法と公開 schema で違う").toEqual([]);
   });
 });
 

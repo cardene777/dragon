@@ -20,6 +20,7 @@
 
 import {
   DRAW_WORDS,
+  EDGE_SIDE_VALUES,
   NODE_KIND_VALID,
   PRESET_TYPES,
   STYLE_VALID,
@@ -472,6 +473,7 @@ export type 欄の型 =
   | "真偽"
   | "色"
   | "線種"
+  | "辺"
   | "色か色番号"
   | "描くもの"
   | "必須の図種"
@@ -535,7 +537,7 @@ export const 欄の型表 = {
     label: "必須の文字列",
     sub: "文字列",
     // 矢印がどの辺から出るか (#1385)
-    side: "文字列",
+    side: "辺",
     tone: "色",
     style: "線種",
     guard: "文字列",
@@ -748,6 +750,16 @@ function 値を検査(
         errors.push({
           path,
           message: `${名前} must be one of: ${[...STYLE_VALID].join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "辺":
+      if (v === undefined) return;
+      if (typeof v !== "string" || !(EDGE_SIDE_VALUES as readonly string[]).includes(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${EDGE_SIDE_VALUES.join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
         });
       }
