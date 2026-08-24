@@ -20,6 +20,8 @@ import {
   parseTextDslV05,
   validateDragonJson,
   diagramJsonSchema,
+  compileToCdl,
+  MAX_INPUT_ELEMENTS,
 } from "../src/index";
 
 const 波の記法 = `title: "波"
@@ -140,6 +142,19 @@ describe("箱の中に描く図形 (#1374)", () => {
       const r = parseTextDslV05(y);
       expect(r.ok, `${s} が読めない`).toBe(true);
     }
+  });
+
+  it("shape を書いた箱は renderer が図形を描く kind に揃える", () => {
+    // renderer は card の shape を見ない。 shape を保持するだけでは「書けるが描けない」ので、
+    // shape.kind に対応する dyn-* kind が最終 diagram に必要。
+    const d = textDslToDiagram(`title: "六角"
+type: flow
+actors:
+  - 六角: { kind: card, shape: { kind: polygon, sides: 6, radius: 40 } }
+flow:
+`);
+    expect(d.nodes[0]?.kind).toBe("dyn-polygon");
+    expect(d.nodes[0]?.shape).toEqual({ kind: "polygon", sides: 6, radius: 40 });
   });
 
   it("rect の向きは描画側が受ける 4 値に限る", () => {
@@ -265,6 +280,40 @@ describe("値を見せる部品 (#1374)", () => {
     const palette = textDslToDiagram(paletteSrc).readouts?.find((r) => r.id === "heat") as
       { colors?: readonly string[] } | undefined;
     expect(palette?.colors, "配色配列の外部 paint が残っている").toEqual(["none", "#ffffff"]);
+  });
+
+  it("shape と readout の paint を閉じても入力 doc は変えない", () => {
+    const r = parseTextDslV05(
+      波の記法
+        .replace('fill: "#4e9dc4"', 'fill: "url(https://shape.example.invalid/x)"')
+        .replace(
+          "readouts:\n",
+          'readouts:\n  heat: { kind: heat-cell, source: total, min: 0, max: 100, colors: ["url(https://readout.example.invalid/x)", "#ffffff"] }\n',
+        ),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const before = JSON.parse(JSON.stringify(r.doc));
+    compileToCdl(r.doc);
+    expect(r.doc).toEqual(before);
+  });
+
+  it("readouts だけを大量に並べた入力も組み立て前の上限で止める", () => {
+    const readouts = Array.from(
+      { length: MAX_INPUT_ELEMENTS + 1 },
+      (_, i) => `  r${i}: { kind: stat, source: v }`,
+    ).join("\n");
+    const src = `title: "大きすぎる部品"
+type: flow
+states:
+  v: 1
+readouts:
+${readouts}
+actors:
+  - A
+flow:
+`;
+    expect(() => textDslToDiagram(src)).toThrow(/要素が/);
   });
 });
 

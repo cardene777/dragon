@@ -308,7 +308,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // **外部参照を落とす前に載せる**。 後から足すと readout の color / colors だけが出口の検査を
   // 迂回し、 `url(https://...)` がそのまま SVG の paint 属性へ届く。
   if (doc.readouts && doc.readouts.length > 0) {
-    merged.readouts = [...(merged.readouts ?? []), ...doc.readouts];
+    // 出口の paint 検査は diagram を直接書き換える。 doc の object を共有すると、検査が
+    // compileToCdl の入力まで書き換えて入力不変性を壊すため、nested field も含めて写す。
+    const ownReadouts = doc.readouts.map(
+      (readout) => deepRewriteStrings(readout, (value) => value) as typeof readout,
+    );
+    merged.readouts = [...(merged.readouts ?? []), ...ownReadouts];
   }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
@@ -5604,8 +5609,6 @@ function applyV05Extensions(
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
-      // 箱の中に描く図形 (#1374)。 水位や角度を状態で動かす図はこの欄で描く
-      if (a.shape !== undefined) node.shape = a.shape;
       // 箱の大きさを反映する (#1259)。 **animation の有無に関係なく** = 動く図専用の
       // 組み立てだけで渡すと、同じ記法でも静止図では指定が消える。
       //
@@ -5672,6 +5675,21 @@ function applyV05Extensions(
         if (a.posH !== undefined) node.h = a.posH;
         const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
         if (footer && a.posW !== undefined) footer.w = a.posW;
+      }
+      // 箱の中に描く図形 (#1374)。 renderer が shape を描くのは dyn-* kind だけなので、
+      // shape 自身を SSOT にして対応する kind へ揃える。 card 等のまま shape だけ渡すと、指定を
+      // 保持しているのに画面には何も出ない。 paint 検査が入力を mutate しないよう object も写す。
+      if (a.shape !== undefined) {
+        const dynamicKind = `dyn-${a.shape.kind}` as typeof node.kind;
+        node.kind = dynamicKind;
+        node.shape = { ...a.shape };
+        if (isSeqLike) {
+          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
+          if (footer) {
+            footer.kind = dynamicKind;
+            footer.shape = { ...a.shape };
+          }
+        }
       }
     }
   }
