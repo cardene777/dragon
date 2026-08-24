@@ -1011,7 +1011,8 @@ function 表で中身を検査する(
   // JSON は公開 schema の enum と同じ正規名だけを受ける。 ここだけ小文字化すると、
   // schema が拒む種類を validator が通した上、種類別の追加検査も回避できてしまう。
   const kind = typeof o.kind === "string" ? o.kind : "";
-  const 定義 = 表[kind];
+  // 通常の object を表に使うため、継承した名前を own kind として扱わない。
+  const 定義 = Object.hasOwn(表, kind) ? 表[kind] : undefined;
   if (定義 === undefined) {
     errors.push({
       path: `${path}.kind`,

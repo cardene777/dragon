@@ -22,7 +22,7 @@ import { describe, it, expect } from "vitest";
 
 import { つまみの表 } from "../src/v05/parser";
 import { diagramJsonSchema } from "../src/schema";
-import { textDslToDiagram, validateDragonJson, jsonToDiagram } from "../src";
+import { MAX_INPUT_ELEMENTS, textDslToDiagram, validateDragonJson, jsonToDiagram } from "../src";
 
 const ここ = dirname(fileURLToPath(import.meta.url));
 const 生成の段 = join(ここ, "../scripts/gen-input-table.mjs");
@@ -279,9 +279,58 @@ animation:
     expect(つまみ(d).map((x) => x.id)).toEqual(["a", "b"]);
   });
 
+  it("つまみが状態へ入れる外部参照を出口で落とす", () => {
+    const notices: string[] = [];
+    const d = textDslToDiagram(
+      `title: "t"
+type: flow
+
+actors:
+  - A: { kind: card, shape: { kind: circle, fill: "{theme}" } }
+
+inputs:
+  theme: { kind: dropdown, options: [safe, "url(https://example.invalid/paint)"], defaultValue: "url(https://example.invalid/default)", label: "https://example.invalid/help" }
+`,
+      { onNotice: (notice) => notices.push(notice.actor) },
+    );
+    expect(つまみ(d)[0]).toEqual({
+      id: "theme",
+      kind: "dropdown",
+      options: ["safe", "none"],
+      defaultValue: "none",
+      label: "https://example.invalid/help",
+    });
+    expect(notices).toEqual(["inputs[0].options[1]", "inputs[0].defaultValue"]);
+  });
+
+  it("つまみだけを大量に並べた入力も組み立て前の上限で止める", () => {
+    const entries = Array.from(
+      { length: MAX_INPUT_ELEMENTS },
+      (_, i) => `  v${i}: { kind: toggle, defaultValue: true }`,
+    ).join("\n");
+    expect(() =>
+      textDslToDiagram(`title: "t"
+type: flow
+
+actors:
+  - A
+
+inputs:
+${entries}
+`),
+    ).toThrow(/要素が/);
+  });
+
   it("知らない種類は行番号付きで知らせる", () => {
     expect(() => 記法("  x: { kind: knob, defaultValue: 1 }")).toThrow(/つまみの種類が読めません/);
   });
+
+  it.each(["__proto__", "constructor"])(
+    "Object.prototype 由来の種類 %s も、知らない種類として知らせる",
+    (kind) => {
+      expect(() => 記法(`  x: { kind: ${kind} }`)).toThrow(/つまみの種類が読めません/);
+    },
+  );
 
   it("知らない欄は行番号付きで知らせる", () => {
     expect(() =>
@@ -356,6 +405,15 @@ describe("JSON でもつまみを書ける (#1389)", () => {
     expect(r.ok, "id の無いつまみが通っている").toBe(false);
     if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.inputs[0].id");
   });
+
+  it.each(["__proto__", "constructor"])(
+    "Object.prototype 由来の種類 %s も、検証結果として拒む",
+    (kind) => {
+      const r = validateDragonJson({ ...基本, inputs: [{ id: "v", kind }] });
+      expect(r.ok, "内部例外ではなく入力の誤りとして返している").toBe(false);
+      if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.inputs[0].kind");
+    },
+  );
 
   it("知らない欄を拒む", () => {
     const r = validateDragonJson({

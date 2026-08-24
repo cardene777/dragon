@@ -1404,6 +1404,11 @@ function 出す条件として読む(
   return 値;
 }
 
+/** Object.prototype の持ち物を、表にある種類として扱わない。 */
+function 表から定義を引く(表: Record<string, 図形の定義>, kind: string): 図形の定義 | undefined {
+  return Object.hasOwn(表, kind) ? 表[kind] : undefined;
+}
+
 /**
  * 箱の中に描く図形を読む (#1374)。 読めなければ `undefined` を返す。
  *
@@ -1414,7 +1419,7 @@ function 図形として読む(raw: string, line: number, errors: DslError[]): D
   const 中身 = raw.trim().replace(/^\{|\}$/g, "");
   const opts = parseInlineMapping(中身);
   const kind = (opts.kind ?? "").toLowerCase();
-  const 定義 = 図形の表[kind];
+  const 定義 = 表から定義を引く(図形の表, kind);
   if (定義 === undefined) {
     errors.push({
       line,
@@ -1439,7 +1444,7 @@ function 部品として読む(
 ): DslReadout | undefined {
   const opts = parseInlineMapping(raw);
   const kind = (opts.kind ?? "").toLowerCase();
-  const 定義 = 部品の表[kind];
+  const 定義 = 表から定義を引く(部品の表, kind);
   if (定義 === undefined) {
     errors.push({
       line,
@@ -1468,7 +1473,7 @@ function つまみとして読む(
 ): DslInput | undefined {
   const opts = parseInlineMapping(raw);
   const kind = (opts.kind ?? "").toLowerCase();
-  const 定義 = つまみの表[kind];
+  const 定義 = 表から定義を引く(つまみの表, kind);
   if (定義 === undefined) {
     errors.push({
       line,
