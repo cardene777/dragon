@@ -64,9 +64,12 @@ test.describe("Text DSL のページで記法が読める (#1365)", () => {
   test("記法を登録していないページではタブが押せない (陰性対照)", async ({ page }) => {
     /*
      * 「どのページでも押せる」 形なら、上の検査は通っても意味を持たない。
-     * 記法を 1 件も登録していないページ (cookbook) では従来どおり押せない。
+     * 記法を 1 件も登録していないページでは従来どおり押せない。
+     *
+     * **対象は `parts` に移した** (#1378)。 元は `cookbook` を使っていたが、
+     * そのページは記法を持つようになったので陰性対照として成立しなくなった。
      */
-    await page.goto("/catalog/cookbook", { waitUntil: "networkidle" });
+    await page.goto("/catalog/parts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await expect(
       page.getByRole("tab", { name: "コード" }),

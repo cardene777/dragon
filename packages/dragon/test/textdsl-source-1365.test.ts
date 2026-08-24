@@ -3,7 +3,7 @@ import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
 import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
+import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 
 /**
  * 「Text DSL」 のページで記法がコードタブに出ることの検査 (#1365)。
@@ -82,7 +82,9 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
      * **このページで何件あるべきか** を近くに残すため。
      */
     const 無い = 図
-      .filter((x) => typeof (textDsl as Record<string, unknown>)[`sourceJson__${x.key}`] !== "string")
+      .filter(
+        (x) => typeof (textDsl as Record<string, unknown>)[`sourceJson__${x.key}`] !== "string",
+      )
       .map((x) => x.key);
     expect(無い, "JSON の記法を持たない図がある").toEqual([]);
   });
@@ -135,9 +137,10 @@ describe("記法を持たない図では従来どおり (陰性対照、 #1365)"
      * 「どの図でも引ける」 形なら、上の検査は通っても意味を持たない。
      * 記法を登録していないページでは `undefined` のままであることを見る。
      */
-    // `cookbook` は記法を 1 件も登録していないページ (実測)。
-    // `primitives` / `presets` / `charts` は登録しているので対照にならない
-    const mod = cookbook as Record<string, unknown>;
+    // `ethereum` は記法を 1 件も登録していないページ (実測)。
+    // 元は `cookbook` を使っていたが、#1378 で記法を持つようになり対照にならなくなった。
+    // `primitives` / `presets` / `charts` / `styles` / `patterns` も登録済
+    const mod = ethereum as Record<string, unknown>;
     const 図 = 図の一覧(mod);
     expect(図.length, "比べる図が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
 
