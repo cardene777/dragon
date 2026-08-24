@@ -3,8 +3,18 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
 import type { RelativePos } from "./relative-pos";
+
+/**
+ * 箱の中に描く図形 (#1374)。 **描画側の型をそのまま使う**。
+ *
+ * 写して持つと欄が増えた時にずれる。 指した先が変われば型検査が教える。
+ */
+export type DslDynShape = NonNullable<CdlDiagram["nodes"][number]["shape"]>;
+
+/** 値を見せる部品 (#1374)。 図形と同じ理由で描画側の型をそのまま使う */
+export type DslReadout = NonNullable<CdlDiagram["readouts"]>[number];
 
 export type PresetType =
   | "sequence"
@@ -97,6 +107,12 @@ export type DslDocument = {
   lanes?: Record<string, DslLane>;
   groups?: Record<string, DslGroup>;
   /**
+   * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。
+   *
+   * 箱ではないので縦列に載らない。 図全体に 1 つの並びとして持つ。
+   */
+  readouts?: DslReadout[];
+  /**
    * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 未指定は "auto" default で
    * catalog 100+ backward compat。 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode。
    */
@@ -128,6 +144,12 @@ export type DslActor = {
   eyebrow?: string;
   value?: string;
   rows?: string[];
+  /**
+   * 箱の中に描く図形 (`shape:`、 #1374)。 水位や角度を状態で動かせる。
+   *
+   * 種類ごとに書ける欄が違う (`図形の表`)。 知らない種類と欄は読み取りが知らせる。
+   */
+  shape?: DslDynShape;
   /**
    * 工程の並び (`type: gantt`) で、その工程の担当 (#1251)。
    *

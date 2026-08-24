@@ -4,7 +4,12 @@
   "title": "Dragon DSL Diagram",
   "description": "LLM 向け Dragon DSL の JSON Schema。 Anthropic Claude tool use / OpenAI GPT structured output の schema field に注入して使う。 生成された JSON は jsonToDiagram() に渡して CdlDiagram に変換する。",
   "type": "object",
-  "required": ["title", "type", "actors", "flow"],
+  "required": [
+    "title",
+    "type",
+    "actors",
+    "flow"
+  ],
   "additionalProperties": false,
   "properties": {
     "title": {
@@ -83,7 +88,9 @@
           },
           {
             "type": "object",
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -135,20 +142,50 @@
                 "type": "object",
                 "description": "parts の状態の上書き。 kind に parts identifier を指定した時だけ使える。",
                 "additionalProperties": {
-                  "type": ["number", "string", "boolean"]
+                  "type": [
+                    "number",
+                    "string",
+                    "boolean"
+                  ]
                 }
               },
               "tone": {
                 "type": "string",
                 "description": "箱の色調。 success / warning 等の別名も使える。",
-                "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                "enum": [
+                  "accent",
+                  "teal",
+                  "success",
+                  "error",
+                  "warning",
+                  "info",
+                  "成功",
+                  "失敗",
+                  "警告",
+                  "情報",
+                  "中立",
+                  "neutral"
+                ]
               },
               "color": {
                 "type": "string",
                 "description": "箱の色名、または # で始まる parts の色番号。",
                 "anyOf": [
                   {
-                    "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"]
+                    "enum": [
+                      "accent",
+                      "teal",
+                      "success",
+                      "error",
+                      "warning",
+                      "info",
+                      "成功",
+                      "失敗",
+                      "警告",
+                      "情報",
+                      "中立",
+                      "neutral"
+                    ]
                   },
                   {
                     "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
@@ -217,7 +254,10 @@
                 "type": "object",
                 "additionalProperties": false,
                 "description": "auto layout の結果からずらす幅 (dx, dy)。 絶対座標は posX / posY で書く。",
-                "required": ["x", "y"],
+                "required": [
+                  "x",
+                  "y"
+                ],
                 "properties": {
                   "x": {
                     "type": "number"
@@ -226,6 +266,98 @@
                     "type": "number"
                   }
                 }
+              },
+              "shape": {
+                "type": "object",
+                "description": "箱の中に描く図形。 水位 / 角度 / 半径を状態で動かせる。 kind ごとに書ける欄が違う (rect / circle / arc / wave / polygon)。",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "rect",
+                      "circle",
+                      "arc",
+                      "wave",
+                      "polygon"
+                    ]
+                  },
+                  "source": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "fillMax": {
+                    "type": "number"
+                  },
+                  "orient": {
+                    "type": "string"
+                  },
+                  "radius": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "fillProgress": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "innerRadius": {
+                    "type": "number"
+                  },
+                  "outerRadius": {
+                    "type": "number"
+                  },
+                  "startAngle": {
+                    "type": "number"
+                  },
+                  "angle": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "sweepMax": {
+                    "type": "number"
+                  },
+                  "level": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "amplitude": {
+                    "type": "number"
+                  },
+                  "frequency": {
+                    "type": "number"
+                  },
+                  "waveHeight": {
+                    "type": "number"
+                  },
+                  "sides": {
+                    "type": "number"
+                  },
+                  "rotation": {
+                    "type": [
+                      "number",
+                      "string"
+                    ]
+                  },
+                  "fill": {
+                    "type": "string"
+                  },
+                  "stroke": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -237,7 +369,11 @@
       "description": "step の配列 (矢印で actor 間を繋ぐ)。 sequence では順序が意味を持つ。",
       "items": {
         "type": "object",
-        "required": ["from", "to", "label"],
+        "required": [
+          "from",
+          "to",
+          "label"
+        ],
         "additionalProperties": false,
         "properties": {
           "from": {
@@ -258,12 +394,28 @@
           },
           "tone": {
             "type": "string",
-            "enum": ["accent", "teal", "success", "error", "warning", "info", "成功", "失敗", "警告", "情報", "中立", "neutral"],
+            "enum": [
+              "accent",
+              "teal",
+              "success",
+              "error",
+              "warning",
+              "info",
+              "成功",
+              "失敗",
+              "警告",
+              "情報",
+              "中立",
+              "neutral"
+            ],
             "description": "矢印の色調。 success / 成功 等の別名も使える。"
           },
           "style": {
             "type": "string",
-            "enum": ["solid", "dotted-flow"],
+            "enum": [
+              "solid",
+              "dotted-flow"
+            ],
             "description": "矢印の線種"
           },
           "guard": {
@@ -290,7 +442,10 @@
             "type": "object",
             "additionalProperties": false,
             "description": "矢印の説明文をずらす幅 (dx, dy)。",
-            "required": ["x", "y"],
+            "required": [
+              "x",
+              "y"
+            ],
             "properties": {
               "x": {
                 "type": "number"
@@ -309,7 +464,10 @@
       "additionalProperties": false,
       "patternProperties": {
         "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-          "type": ["number", "string"],
+          "type": [
+            "number",
+            "string"
+          ],
           "description": "初期値。 数か文字列。 名前は英字か _ で始め、 英数字と _ だけを使う"
         }
       },
@@ -343,7 +501,9 @@
       "description": "アニメーション phase 配列。 各 phase で focus 対象を highlight し、 tween / set で states の値を動かす。 optional。",
       "items": {
         "type": "object",
-        "required": ["step"],
+        "required": [
+          "step"
+        ],
         "additionalProperties": false,
         "properties": {
           "step": {
@@ -373,7 +533,16 @@
           },
           "draw": {
             "type": "string",
-            "enum": ["line", "bar", "pie", "journey", "mind", "tree", "gantt", "funnel"],
+            "enum": [
+              "line",
+              "bar",
+              "pie",
+              "journey",
+              "mind",
+              "tree",
+              "gantt",
+              "funnel"
+            ],
             "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる"
           },
           "tween": {
@@ -397,7 +566,10 @@
             "additionalProperties": false,
             "patternProperties": {
               "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-                "type": ["number", "string"]
+                "type": [
+                  "number",
+                  "string"
+                ]
               }
             }
           }
@@ -470,7 +642,10 @@
             "type": "object",
             "additionalProperties": false,
             "description": "縦列をずらす幅 (dx, dy)。",
-            "required": ["x", "y"],
+            "required": [
+              "x",
+              "y"
+            ],
             "properties": {
               "x": {
                 "type": "number"
@@ -488,7 +663,9 @@
       "description": "topology で使う group 宣言。 key = group id、 value = { label, lanes }。",
       "additionalProperties": {
         "type": "object",
-        "required": ["lanes"],
+        "required": [
+          "lanes"
+        ],
         "additionalProperties": false,
         "properties": {
           "label": {
@@ -500,6 +677,78 @@
               "type": "string"
             },
             "minItems": 1
+          }
+        }
+      }
+    },
+    "readouts": {
+      "type": "array",
+      "description": "値を見せる部品。 状態の値を割合の輪 / 数え上げ / 目盛りで出す。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "bar",
+              "gauge",
+              "stat",
+              "sparkline",
+              "countup",
+              "typewriter",
+              "delta",
+              "percent-ring",
+              "heat-cell"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "history": {
+            "type": "number"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "decimals": {
+            "type": "number"
+          },
+          "charMs": {
+            "type": "number"
           }
         }
       }

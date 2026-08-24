@@ -56,6 +56,8 @@ import type {
   DslAxes,
   DslDocument,
   DslActor,
+  DslDynShape,
+  DslReadout,
   DslActorNodeOverride,
   DslStep,
   DslAnimate,
@@ -95,6 +97,8 @@ export const TOP_LEVEL_KEYS = [
   "eyebrow",
   // 2 軸で仕分ける図の軸の名前 (#1251)
   "axes",
+  // 値を見せる部品 (#1374)
+  "readouts",
 ] as const;
 
 /**
@@ -278,6 +282,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   const values: DslValue[] = [];
   let viewport: DslViewport | undefined = undefined;
   let lanesMap: Record<string, DslLane> | undefined = undefined;
+  let readoutsList: DslReadout[] | undefined = undefined;
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
 
   let i = 0;
@@ -539,6 +544,26 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "readouts") {
+      // readouts:\n  ring: { kind: percent-ring, source: total, max: 500, label: "..." }
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      readoutsList = [];
+      for (const it of items) {
+        const m = it.trimmed.match(LANE_ID_ENTRY);
+        if (m) {
+          const 読めた = 部品として読む(m[1]!, m[2]!, it.no, errors);
+          if (読めた) readoutsList.push(読めた);
+        } else {
+          errors.push({
+            line: it.no,
+            message: `invalid readout entry: "${it.trimmed}"`,
+            hint: "use `id: { kind: percent-ring, source: total, max: 500 }`",
+          });
+        }
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "groups") {
       // groups:\n  aws: { label: "AWS", lanes: [ecs, rds] }
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
@@ -597,6 +622,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(values.length > 0 ? { values } : {}),
       viewport,
       lanes: lanesMap,
+      readouts: readoutsList,
       groups: groupsMap,
       pos: { line: 1 },
     },
@@ -936,6 +962,229 @@ export const LANE_VALUE_KINDS = {
   contain: "真偽",
   lifeline: "真偽",
 } as const satisfies Record<string, 値の形>;
+
+/**
+ * 箱の中に描く図形 (`shape:`) と、値を見せる部品 (`readouts:`) の欄 (#1374)。
+ *
+ * どちらも描画側 (`CdlDynShape` / `CdlReadout`) の形をそのまま渡す。 記法の値は全て文字列で
+ * 届くため、欄ごとに「数」 「文字列」 「数か文字列」 のどれとして読むかを表で持つ。
+ *
+ * **「数か文字列」 は状態を追いかける欄**。 `level: 80` のように数を直接書くこともできるし、
+ * `level: "{s1}"` のように状態の名前を書いて段の中で動かすこともできる。 数として読めた時
+ * だけ数にし、読めなければ文字列のまま渡す。
+ *
+ * ## 表を持つ理由
+ *
+ * 表が無いと「知らない欄を黙って捨てる」 か「何でも通す」 のどちらかになる。 前者は書いた
+ * 指定が消え、後者は綴り違いがそのまま描画側へ流れて別の形で失敗する。 表があれば
+ * 書いた場所と使える欄を添えて知らせられる。
+ */
+export type 欄の形 = "数" | "文字列" | "数か文字列" | "文字列の並び";
+
+export type 図形の定義 = { 必須: readonly string[]; 欄: Record<string, 欄の形> };
+
+/** 描ける図形と、その欄 (`CdlDynShape` の全 5 種を覆う) */
+export const 図形の表: Record<string, 図形の定義> = {
+  rect: {
+    必須: ["source", "fillMax"],
+    欄: {
+      source: "数か文字列",
+      fillMax: "数",
+      orient: "文字列",
+      fill: "文字列",
+      stroke: "文字列",
+      radius: "数",
+    },
+  },
+  circle: {
+    必須: [],
+    欄: { radius: "数か文字列", fillProgress: "数か文字列", fill: "文字列", stroke: "文字列" },
+  },
+  arc: {
+    必須: ["angle"],
+    欄: {
+      innerRadius: "数",
+      outerRadius: "数",
+      startAngle: "数",
+      angle: "数か文字列",
+      sweepMax: "数",
+      fill: "文字列",
+      stroke: "文字列",
+    },
+  },
+  wave: {
+    必須: ["level", "amplitude"],
+    欄: {
+      level: "数か文字列",
+      amplitude: "数",
+      frequency: "数",
+      waveHeight: "数",
+      fill: "文字列",
+      stroke: "文字列",
+    },
+  },
+  polygon: {
+    必須: ["sides"],
+    欄: {
+      sides: "数",
+      radius: "数か文字列",
+      rotation: "数か文字列",
+      fill: "文字列",
+      stroke: "文字列",
+    },
+  },
+};
+
+/**
+ * 書ける部品と、その欄 (#1374)。
+ *
+ * **1 行の中括弧で書ける種類だけを載せる**。 `badge` / `status-dot` / `stacked-bar` は値と色の
+ * 対応表 (`map`) や 2 つ目の状態を必要とし、1 行の中括弧では書けない。 載せない種類を
+ * 書いたら、使える種類を添えて知らせる = 黙って捨てない。
+ */
+export const 部品の表: Record<string, 図形の定義> = {
+  bar: {
+    必須: ["source", "min", "max"],
+    欄: { source: "文字列", min: "数", max: "数", color: "文字列", label: "文字列" },
+  },
+  gauge: {
+    必須: ["source", "min", "max"],
+    欄: { source: "文字列", min: "数", max: "数", color: "文字列", label: "文字列" },
+  },
+  stat: {
+    必須: ["source"],
+    欄: { source: "文字列", caption: "文字列", unit: "文字列", label: "文字列" },
+  },
+  sparkline: {
+    必須: ["source"],
+    欄: { source: "文字列", history: "数", color: "文字列", label: "文字列" },
+  },
+  countup: {
+    必須: ["source"],
+    欄: { source: "文字列", durationMs: "数", decimals: "数", unit: "文字列", label: "文字列" },
+  },
+  typewriter: { 必須: ["source"], 欄: { source: "文字列", charMs: "数", label: "文字列" } },
+  delta: {
+    必須: ["source"],
+    欄: { source: "文字列", decimals: "数", unit: "文字列", label: "文字列" },
+  },
+  "percent-ring": {
+    必須: ["source", "max"],
+    欄: { source: "文字列", max: "数", color: "文字列", label: "文字列" },
+  },
+  "heat-cell": {
+    必須: ["source", "min", "max"],
+    欄: { source: "文字列", min: "数", max: "数", colors: "文字列の並び", label: "文字列" },
+  },
+};
+
+/** `[a, b]` の形を文字列の並びに読む */
+function 並びとして読む(raw: string): string[] {
+  return raw
+    .replace(/^\[|\]$/g, "")
+    .split(/,(?![^[]*\])/)
+    .map((x) => stripQuotes(x.trim()))
+    .filter((x) => x !== "");
+}
+
+/**
+ * 中括弧の中身を、表に従って読む (#1374)。
+ *
+ * 知らない欄と足りない必須欄は行番号付きで知らせる。 読めた欄だけを返すため、
+ * 知らせが出た欄は描画側へ渡らない。
+ */
+function 表に従って読む(
+  定義: 図形の定義,
+  opts: Record<string, string>,
+  接頭: string,
+  line: number,
+  errors: DslError[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [欄, 値] of Object.entries(opts)) {
+    if (欄 === "kind") continue;
+    const 形 = 定義.欄[欄];
+    if (形 === undefined) {
+      errors.push({
+        line,
+        message: `${接頭}の項目名が読めません: "${欄}"`,
+        hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
+      });
+      continue;
+    }
+    if (値 === "") continue;
+    if (形 === "数") {
+      const n = 数として読む(値, `${接頭}${欄}`, line, errors);
+      if (n !== undefined) out[欄] = n;
+    } else if (形 === "数か文字列") {
+      const n = numberOrUndef(値);
+      out[欄] = n !== undefined ? n : 値;
+    } else if (形 === "文字列の並び") {
+      out[欄] = 並びとして読む(値);
+    } else {
+      out[欄] = 値;
+    }
+  }
+  for (const 欄 of 定義.必須) {
+    if (out[欄] === undefined) {
+      errors.push({
+        line,
+        message: `${接頭}${欄} は必ず書きます`,
+        hint: `必須の項目 = ${定義.必須.join(", ")}`,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * 箱の中に描く図形を読む (#1374)。 読めなければ `undefined` を返す。
+ *
+ * 種類が分からない形は捨てずに知らせる = 黙って捨てると、書いた図形が出ないのに
+ * 手掛かりが 1 つも残らない。
+ */
+function 図形として読む(raw: string, line: number, errors: DslError[]): DslDynShape | undefined {
+  const 中身 = raw.trim().replace(/^\{|\}$/g, "");
+  const opts = parseInlineMapping(中身);
+  const kind = (opts.kind ?? "").toLowerCase();
+  const 定義 = 図形の表[kind];
+  if (定義 === undefined) {
+    errors.push({
+      line,
+      message: `図形の種類が読めません: "${opts.kind ?? ""}"`,
+      hint: `使える種類 = ${Object.keys(図形の表).join(", ")}`,
+    });
+    return undefined;
+  }
+  const 読めた = 表に従って読む(定義, opts, `図形の `, line, errors);
+  for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
+  return { kind, ...読めた } as DslDynShape;
+}
+
+/**
+ * 値を見せる部品を読む (#1374)。 読めなければ `undefined` を返す。
+ */
+function 部品として読む(
+  id: string,
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslReadout | undefined {
+  const opts = parseInlineMapping(raw);
+  const kind = (opts.kind ?? "").toLowerCase();
+  const 定義 = 部品の表[kind];
+  if (定義 === undefined) {
+    errors.push({
+      line,
+      message: `部品の種類が読めません: "${opts.kind ?? ""}"`,
+      hint: `使える種類 = ${Object.keys(部品の表).join(", ")}`,
+    });
+    return undefined;
+  }
+  const 読めた = 表に従って読む(定義, opts, `部品 ${id} の `, line, errors);
+  for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
+  return { id, kind, ...読めた } as DslReadout;
+}
 
 /** 箱の中の要素の欄 (#1306)。 `DslActorNodeOverride` の全欄を覆う */
 export const ACTOR_NODE_VALUE_KINDS = {
@@ -1326,6 +1575,10 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "値":
         out.value = stripQuotes(raw);
         break;
+      case "shape":
+      case "図形":
+        out.shape = 図形として読む(raw, ln.no, errors);
+        break;
       case "rows":
       case "行":
         out.rows = raw
@@ -1425,11 +1678,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   // 名前の行と縦に並べた行の両方に倍率がある形では、後に書いた縦の行を採る。
   // 知らせ (`scale-reserved`) は書かれた名前をすべて見るので、名前だけは足し合わせる
   if (scaleWritten.size > 0) {
-    const s = resolveScale(
-      scaleWritten,
-      (key) => scaleLines.get(key) ?? actor.pos.line,
-      errors,
-    );
+    const s = resolveScale(scaleWritten, (key) => scaleLines.get(key) ?? actor.pos.line, errors);
     out.scale = s.scale;
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
@@ -1477,6 +1726,9 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "値",
   "rows",
   "行",
+  // 箱の中に描く図形 (#1374)
+  "shape",
+  "図形",
   "位置",
   "pos",
   "posX",
@@ -1815,6 +2067,8 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "posY",
   "posW",
   "posH",
+  // 箱の中に描く図形 (#1374)
+  "shape",
   // 倍率は別経路 (`reportScaleOnNonPart`) が知らせる。 ここでも読める扱いにしないと
   // 同じ名前で 2 度知らせることになる
   "scale",
@@ -1946,6 +2200,11 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
             .filter(Boolean)
         : undefined,
       lane: opts.lane,
+      // 箱の中に描く図形 (#1374)。 パーツでは状態の上書きとして意味を持つため横取りしない
+      shape:
+        isPart || opts.shape === undefined
+          ? undefined
+          : 図形として読む(opts.shape, line.no, errors),
       ...表で読む(ACTOR_INLINE_VALUE_KINDS, opts, "箱の ", line.no, errors),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
       tone: isPart ? undefined : resolveTone(opts.tone),
@@ -2220,7 +2479,15 @@ function ensureAnimate(a: DslAnimate | undefined, lineNo: number): DslAnimate {
  * (#1330)。 段の項目と値は階層が違うので衝突しないが、同じ語が 2 つの意味で並ぶと
  * 見本を読む人が階層から意味を判断することになる。
  */
-export const PHASE_ITEM_WORDS = ["focus", "badge", "body", "description", "tween", "set", "draw"] as const;
+export const PHASE_ITEM_WORDS = [
+  "focus",
+  "badge",
+  "body",
+  "description",
+  "tween",
+  "set",
+  "draw",
+] as const;
 
 const 段の項目の英語 = PHASE_ITEM_WORDS;
 const 段の項目の集合: ReadonlySet<string> = new Set(PHASE_ITEM_WORDS);

@@ -9,7 +9,15 @@
  */
 
 /** 例文のどこに行を差し込むか。 */
-export type SampleSlot = "root" | "actors" | "flow" | "states" | "values" | "animation";
+export type SampleSlot =
+  | "root"
+  | "actors"
+  | "flow"
+  | "states"
+  | "values"
+  | "animation"
+  // 値を見せる部品 (#1374)
+  | "readouts";
 
 export type Section = {
   title: string;
@@ -39,7 +47,11 @@ export type Section = {
 export const FORMS: Section[] = [
   {
     title: "全体",
-    sample: { slot: "root", actors: ["  - Client", "  - API"], flow: ['  - Client -> API: "要求"'] },
+    sample: {
+      slot: "root",
+      actors: ["  - Client", "  - API"],
+      flow: ['  - Client -> API: "要求"'],
+    },
     lines: [
       { code: 'title: "ログイン"', note: "図の題名" },
       { code: "type: sequence", note: "図種。 一覧は下" },
@@ -58,7 +70,10 @@ export const FORMS: Section[] = [
       { code: '  - 表: storage ["id: PK", "name: 文字列"]', note: "行を持つ箱" },
       { code: "  - 保存: s3", note: "固有名でも書ける (storage になる)" },
       // 値は箱に出して初めて見える。 書き方を「値」 の節と離さない
-      { code: '  - 受付: actor "待ち行列" "{waiting}"', note: "2 つ目の引用符が値の欄 ({名前} で読む)" },
+      {
+        code: '  - 受付: actor "待ち行列" "{waiting}"',
+        note: "2 つ目の引用符が値の欄 ({名前} で読む)",
+      },
     ],
   },
   {
@@ -74,7 +89,11 @@ export const FORMS: Section[] = [
   {
     title: "パーツ",
     // 自分へ戻る矢印は描けない (#1227)。 例文が使うと、記法一覧が描けない形を教えることになる
-    sample: { slot: "actors", actors: ["  - Client", "  - API"], flow: ['  - Client -> API: "動く"'] },
+    sample: {
+      slot: "actors",
+      actors: ["  - Client", "  - API"],
+      flow: ['  - Client -> API: "動く"'],
+    },
     lines: [
       { code: "  - 時計: alarm-clock", note: "パーツの名前を種類に書く" },
       { code: "  - 実績:", note: "変えられる値があれば縦に並ぶ" },
@@ -122,6 +141,52 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "値を見せる部品 (readouts:)",
+    sample: {
+      slot: "readouts",
+      type: "flow",
+      actors: ['  - 処理: { kind: card, value: "{done}" }'],
+      states: ["  done: 0", "  total: 100"],
+    },
+    lines: [
+      {
+        code: '  ring: { kind: percent-ring, source: total, max: 500, label: "進捗" }',
+        note: "円の環で割合を出す",
+      },
+      {
+        code: '  cu: { kind: countup, source: done, unit: " 件", decimals: 0 }',
+        note: "数を数え上げて出す",
+      },
+      {
+        code: "  g: { kind: gauge, source: done, min: 0, max: 100 }",
+        note: "目盛りで出す。 他に bar / stat / sparkline / delta / typewriter / heat-cell",
+      },
+    ],
+  },
+  {
+    title: "箱の中に描く図形 (shape:)",
+    sample: {
+      slot: "actors",
+      type: "flow",
+      flow: [],
+      states: ["  s: 0"],
+    },
+    lines: [
+      {
+        code: '  - 水位: { kind: dyn-wave, posW: 140, posH: 200, shape: { kind: wave, level: "{s}", amplitude: 100 } }',
+        note: "水面が状態で上下する",
+      },
+      {
+        code: '  - 角度: { kind: dyn-arc, shape: { kind: arc, angle: "{s}", sweepMax: 360 } }',
+        note: "扇形が状態で開く",
+      },
+      {
+        code: "  - 六角: { kind: card, shape: { kind: polygon, sides: 6, radius: 40 } }",
+        note: "他に rect / circle",
+      },
+    ],
+  },
+  {
     title: "動き (図種により必須)",
     sample: {
       slot: "animation",
@@ -162,7 +227,12 @@ export const FORMS: Section[] = [
   {
     title: "他の箱を基準に置く",
     // 縦の相対は順序図では効かない (縦列は横に並ぶもの)。 4 向きが全て効く図種で例を組む
-    sample: { slot: "actors", type: "flow", actors: ["  - Web: service"], flow: ['  - Web -> API: "要求"'] },
+    sample: {
+      slot: "actors",
+      type: "flow",
+      actors: ["  - Web: service"],
+      flow: ['  - Web -> API: "要求"'],
+    },
     lines: [
       { code: "  - API:", note: "座標を知らなくても置ける" },
       { code: "      位置: Web の右", note: "向きは 右 左 上 下" },
@@ -174,7 +244,11 @@ export const FORMS: Section[] = [
   },
   {
     title: "図全体",
-    sample: { slot: "root", actors: ["  - Client", "  - API"], flow: ['  - Client -> API: "要求"'] },
+    sample: {
+      slot: "root",
+      actors: ["  - Client", "  - API"],
+      flow: ['  - Client -> API: "要求"'],
+    },
     lines: [
       { code: "viewport: { scale: 1.5 }", note: "図全体の倍率" },
       { code: "viewport: { laneWidth: 400 }", note: "縦列の幅" },
@@ -204,8 +278,8 @@ export const FORMS: Section[] = [
       flow: ['  - 待機 -> 読込み: "start"'],
     },
     lines: [
-      { code: '  - 待機: { kind: card, posW: 280 }', note: "幅" },
-      { code: '  - 読込み: { kind: card, posW: 280, posH: 120 }', note: "幅と高さ" },
+      { code: "  - 待機: { kind: card, posW: 280 }", note: "幅" },
+      { code: "  - 読込み: { kind: card, posW: 280, posH: 120 }", note: "幅と高さ" },
     ],
   },
   {
@@ -232,7 +306,10 @@ export const FORMS: Section[] = [
     lines: [
       { code: "axes:", note: "2 つの軸に名前を付ける" },
       { code: '  x: { left: "手間 小", right: "手間 大" }', note: "横の軸" },
-      { code: '  y: { bottom: "効き 小", top: "効き 大" }', note: "縦の軸。 区画の名前は軸から決まる" },
+      {
+        code: '  y: { bottom: "効き 小", top: "効き 大" }',
+        note: "縦の軸。 区画の名前は軸から決まる",
+      },
     ],
   },
   {
@@ -256,7 +333,12 @@ export const FORMS: Section[] = [
       type: "bar",
       actors: ['  - 検索: "420"', '  - SNS: "310"'],
     },
-    lines: [{ code: 'eyebrow: "棒グラフ"', note: "図表の箱の上に出す。 箱ごとに分かれる図種では書けない" }],
+    lines: [
+      {
+        code: 'eyebrow: "棒グラフ"',
+        note: "図表の箱の上に出す。 箱ごとに分かれる図種では書けない",
+      },
+    ],
   },
   {
     // 縦列と囲みは `topology` / `swimlane` で使う。 一覧に無いと、記法にあることすら伝わらない
@@ -292,7 +374,9 @@ export function buildSample(section: Section): string {
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),
-    ...(rootLines.some((l) => /^type\s*:/.test(l)) ? [] : [`type: ${section.sample.type ?? "sequence"}`]),
+    ...(rootLines.some((l) => /^type\s*:/.test(l))
+      ? []
+      : [`type: ${section.sample.type ?? "sequence"}`]),
     ...rootLines,
   ];
   const out = [...head, "actors:", ...actors, ...(slot === "actors" ? codes : [])];
@@ -303,6 +387,8 @@ export function buildSample(section: Section): string {
   const stateLines = [...states, ...(slot === "states" ? codes : [])];
   if (stateLines.length > 0) out.push("states:", ...stateLines);
   if (slot === "values") out.push("values:", ...codes);
+  // 値を見せる部品 (#1374)。 状態を見せるものなので `states` の後ろに置く
+  if (slot === "readouts") out.push("readouts:", ...codes);
   if (slot === "animation") out.push("animation:", ...codes);
   return `${out.join("\n")}\n`;
 }

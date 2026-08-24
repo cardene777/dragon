@@ -55,6 +55,11 @@ const 対応表: Record<string, 対応> = {
   posH: { 記法: "posH: 80", json: { posH: 80 } },
   // 倍率は見本にしか効かない。 見本でない箱に書くと記法は誤りを返す (下の describe で見る)
   scale: { 記法: "kind: arc-gauge, scale: 2", json: { kind: "arc-gauge", scale: 2 } },
+  // 箱の中に描く図形 (#1374)。 中括弧の中に種類ごとの欄を書く
+  shape: {
+    記法: "shape: { kind: wave, level: 50, amplitude: 100 }",
+    json: { shape: { kind: "wave", level: 50, amplitude: 100 } },
+  },
 };
 
 /**
