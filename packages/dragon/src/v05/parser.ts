@@ -2688,6 +2688,12 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
  * 持つ一覧が実装と drift する = 欄を足しても誰も気付けない。 表を唯一の出どころにして、
  * `FLOW_INLINE_KEYS` から一覧を導けるようにする。
  */
+const EDGE_BIND_INLINE_READERS = {
+  widthBind: (v: string | undefined) => v,
+  strokeBind: (v: string | undefined) => v,
+  dashOffsetBind: (v: string | undefined) => v,
+} as const;
+
 const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
@@ -2703,9 +2709,7 @@ const FLOW_INLINE_READERS = {
    * ここでは字をそのまま通し、空かどうかは呼出側が知らせる (表の読み手は行番号を
    * 持たないため、知らせを出せる場所で見る)。
    */
-  widthBind: (v: string | undefined) => v,
-  strokeBind: (v: string | undefined) => v,
-  dashOffsetBind: (v: string | undefined) => v,
+  ...EDGE_BIND_INLINE_READERS,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
   // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
   labelOffsetX: null,
@@ -2922,6 +2926,16 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   let 数と真偽: 読んだ結果<typeof FLOW_INLINE_VALUE_KINDS> | undefined;
   if (塊) {
     const opts = parseInlineMapping(塊.中身);
+    // `parseInlineMapping` は値が 1 文字もない `widthBind:` を拾わない。 3 欄は空を
+    // 「書かなかった」扱いにせず知らせる契約なので、書かれた値を空も含めて上書きする。
+    // 同じ欄を複数回書いた時は通常の mapping と同じく後勝ちにする。
+    for (const field of splitInlineFields(塊.中身)) {
+      const idx = field.indexOf(":");
+      if (idx < 0) continue;
+      const key = field.slice(0, idx).trim();
+      if (!Object.hasOwn(EDGE_BIND_INLINE_READERS, key)) continue;
+      opts[key] = stripQuotes(field.slice(idx + 1).trim());
+    }
     // 文字列の欄はそのまま入れ、数と真偽の欄は表が読んで読めない値を知らせる (#1306)
     for (const k of FLOW_INLINE_KEYS) {
       const 読み手 = FLOW_INLINE_READERS[k];
