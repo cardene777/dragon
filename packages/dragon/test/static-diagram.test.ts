@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { compileToCdl } from "../src/compile";
-import type { DslDocument, PresetType } from "../src/types";
+import type {
+  DslActor,
+  DslDocument,
+  DslPhase,
+  DslStep,
+  PresetType,
+} from "../src/types";
 
 /**
  * 動かない図が種類を問わず描けることの検証 (#1086)。
@@ -31,14 +37,39 @@ const TYPES: readonly PresetType[] = [
   "mind",
 ];
 
+/**
+ * 手で組む fixture の既定 (#1415)。
+ *
+ * `DslActor` / `DslStep` / `DslPhase` / `DslDocument` は記法の位置 (`pos`) を必須で持つ。
+ * 解析が埋める metadata で、誤りを知らせる時に「何行目の指定か」 を出すために使う。
+ * 手で組む fixture には行が無いので置き場所だけ埋める。
+ *
+ * `kind` と `no` も同じ。 記法では省ける (解析が既定を入れる) が、型としては必須。
+ *
+ * **`as` で潰さない**。 潰すと本当に必要な項目を書き忘れた時も通ってしまう。
+ */
+const 箱 = (name: string, o: Partial<Omit<DslActor, "name" | "pos">> = {}): DslActor => ({
+  kind: "actor",
+  ...o,
+  name,
+  pos: { line: 1 },
+});
+
+const 矢印 = (
+  from: string,
+  to: string,
+  label: string,
+  o: Partial<Omit<DslStep, "from" | "to" | "no" | "pos" | "label">> = {},
+): DslStep => ({ ...o, no: 1, from, to, label, pos: { line: 1 } });
+
+const 段 = (o: Omit<DslPhase, "pos"> & Partial<DslPhase>): DslPhase => ({ pos: { line: 1 }, ...o });
+
 const 静止図 = (type: PresetType): DslDocument => ({
   title: `静止 ${type}`,
   type,
-  actors: [
-    { name: "A", subtitle: "Q1" },
-    { name: "B", subtitle: "Q2" },
-  ],
-  flow: [{ from: "A", to: "B", label: "進む" }],
+  pos: { line: 1 },
+  actors: [箱("A", { subtitle: "Q1" }), 箱("B", { subtitle: "Q2" })],
+  flow: [矢印("A", "B", "進む")],
 });
 
 describe("動かない図に段が 1 つ入る (#1086)", () => {
@@ -69,7 +100,13 @@ describe("動かない図に段が 1 つ入る (#1086)", () => {
   it("要素が 1 つも無い図でも段は入る", () => {
     // 描画側が要求するのは段の存在であって中身ではない。 ここで諦めると「空の図は描けない」
     // という別の欠落になる
-    const d = compileToCdl({ title: "空", type: "swimlane", actors: [], flow: [] });
+    const d = compileToCdl({
+      title: "空",
+      type: "swimlane",
+      pos: { line: 1 },
+      actors: [],
+      flow: [],
+    });
     expect(d.phases).toHaveLength(1);
     expect(d.phases[0]!.activate).toEqual([]);
   });
@@ -80,10 +117,11 @@ describe("既に段がある図には入れない (#1086)", () => {
     const doc: DslDocument = {
       ...静止図("swimlane"),
       animate: {
+        pos: { line: 1 },
         states: [],
         phases: [
-          { name: "いち", durationMs: 1000, highlight: ["A"] },
-          { name: "に", durationMs: 1000, highlight: ["B"] },
+          段({ name: "いち", durationMs: 1000, highlight: ["A"] }),
+          段({ name: "に", durationMs: 1000, highlight: ["B"] }),
         ],
       },
     };
@@ -101,7 +139,11 @@ describe("既に段がある図には入れない (#1086)", () => {
   it("段を 1 つだけ書いた図でも増えない", () => {
     const doc: DslDocument = {
       ...静止図("pie"),
-      animate: { states: [], phases: [{ name: "ひとつ", durationMs: 800, highlight: ["A"] }] },
+      animate: {
+        pos: { line: 1 },
+        states: [],
+        phases: [段({ name: "ひとつ", durationMs: 800, highlight: ["A"] })],
+      },
     };
     const d = compileToCdl(doc);
     expect(d.phases).toHaveLength(1);

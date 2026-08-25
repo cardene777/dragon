@@ -11,6 +11,17 @@
 export { parseTextDsl } from "./parser";
 export { compileToCdl } from "./compile";
 export type { CompileNotice } from "./compile";
+/**
+ * 組み立てた図の型 (#1415)。
+ *
+ * `textDslToDiagram` が返す型そのもので、実体は `@cardenelabs/cdl` が持つ。 使う側が
+ * 戻り値に型を付けるには必ず要るので、ここから引けるようにする。
+ *
+ * 再 export が無い間、使う側は `@cardenelabs/cdl` を直接の依存に足す必要があった。
+ * 足さずに書くと **型が暗黙の `any` に落ち、その先の `.map((n) => ...)` まで検査が効かなく
+ * なる** (実測 = この 1 件が 39 件の暗黙 `any` を生んでいた)。
+ */
+export type { CdlDiagram } from "@cardenelabs/cdl";
 export { parseTextDslV05 } from "./v05";
 // 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
 export { DRAW_TARGETS, DRAW_WORDS, PHASE_ITEM_WORDS, PRESET_TYPES, TOP_LEVEL_KEYS } from "./v05/parser";

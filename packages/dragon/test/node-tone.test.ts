@@ -3,6 +3,7 @@ import { TONES } from "@cardenelabs/cdl";
 import { parseTextDslV05 } from "../src/v05/parser";
 import { compileToCdl } from "../src/compile";
 import { TONE_ALIAS } from "../src/keywords";
+import type { DslError } from "../src/types";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /**
@@ -237,7 +238,7 @@ describe("parts に tone を書いた時", () => {
 /** 箱に色を書いた時の parse 結果 (誤りも見られる形)。 #1304 で読めない色名を知らせるようにした */
 const parseBoxTone = (
   value: string,
-): { tone: string | undefined; errors: { line: number; message: string }[] } => {
+): { tone: string | undefined; errors: DslError[] } => {
   const src = [
     `title: "t"`,
     `type: flow`,
@@ -301,7 +302,7 @@ describe("色名の受理範囲", () => {
 describe("箱と矢印で同じ色名が使える", () => {
   const arrowParse = (
     value: string,
-  ): { tone: string | undefined; errors: { line: number; message: string }[] } => {
+  ): { tone: string | undefined; errors: DslError[] } => {
     const src = [
       `title: "t"`,
       `type: flow`,

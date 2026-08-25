@@ -143,14 +143,18 @@ describe("compile — v05 extensions (applyV05Extensions / applyGroupContainers)
   it("viewport / lanes を持つ doc", () => {
     const d = compileToCdl(makeDoc("swimlane", {
       viewport: { width: 1400, height: 900, pos: { line: 1 } } as unknown as DslDocument["viewport"],
-      lanes: { l1: { label: "L1" } as unknown as DslDocument["lanes"][string] },
+      lanes: { l1: { label: "L1" } as unknown as NonNullable<DslDocument["lanes"]>[string] },
     }));
     expect(d.nodes.length).toBeGreaterThan(0);
   });
 
   it("groups を持つ doc → container 適用", () => {
     const d = compileToCdl(makeDoc("topology", {
-      groups: { g1: { label: "G1", members: ["A"] } as unknown as DslDocument["groups"][string] },
+      groups: {
+        g1: { label: "G1", members: ["A"] } as unknown as NonNullable<
+          DslDocument["groups"]
+        >[string],
+      },
     }));
     expect(d.nodes.length).toBeGreaterThan(0);
   });
