@@ -308,7 +308,9 @@ describe("LLM に渡す JSON Schema (#1294)", () => {
 });
 
 describe("型が違う値は誤りになる (#1294)", () => {
-  const 図 = (extra: Partial<JsonActor> & Record<string, unknown>) => ({
+  // この block は **わざと型の違う値** を渡す。 `Partial<JsonActor>` は値の型まで縛るため、
+  // 検査したい入力そのものを型が拒む。 項目名だけを `JsonActor` に縛り、 値は `unknown` で受ける
+  const 図 = (extra: Partial<Record<keyof JsonActor, unknown>>) => ({
     title: "t",
     type: "flow",
     actors: [{ name: "A", ...extra }, { name: "B" }],

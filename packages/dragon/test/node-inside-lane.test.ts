@@ -11,6 +11,7 @@ import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
     id: "test-lane",
+    topic: "node lane",
     lanes: [{ id: "L", x: 0, width: 400, label: "L" }],
     nodes: [],
     edges: [],

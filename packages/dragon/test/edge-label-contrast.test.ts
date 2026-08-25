@@ -172,7 +172,7 @@ function contrast(a: Rgb, b: Rgb): number {
  * 太字に変え (cardene777/cdl#391)、 この検査は sub を通常文字として測ったままだった。
  */
 const requiredRatio = (px: number, weight: number): number =>
-  requiredContrastRatio({ fontSize: px, fontWeight: weight, opacity: 1 });
+  requiredContrastRatio({ fontSize: px, fontWeight: weight, opacity: 1, fontFamily: null });
 
 /** `render/edges.tsx` が presentation attribute で与える既定。 主題が宣言しなければこの値。 */
 const RENDERER_DEFAULT = {

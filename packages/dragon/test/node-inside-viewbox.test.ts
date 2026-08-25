@@ -12,6 +12,7 @@ import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
 function baseDiagram(): CdlDiagram {
   return {
     id: "test-viewbox",
+    topic: "node viewBox",
     lanes: [
       { id: "L", x: 0, width: 400, label: "L" },
     ],
