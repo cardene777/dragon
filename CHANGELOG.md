@@ -7,6 +7,21 @@ dragon DSL の主要変更履歴。
 
 ### Fixed
 
+- **重なりの検査が `charts` の 9 図を見ていなかったのを直した** (#1405)
+
+  図の重なりを見る sweep (`visual-validate-sweep.test.ts`) が `charts` を対象に入れて
+  いなかった。 重なりの 4 軸 (`edge-label-overlap` / clearance 違反 / `node-visibility` /
+  alignment) が 9 図ぶん無検査だった。
+
+  同 file は「catalog topic module 全 11 件」 と宣言していたが、**その 11 は一覧の 11 ページ
+  とは別の集合** で、`primitives-extra` を含み `charts` を欠いていた。
+
+  #1403 と同じ形が別 file に残っていたことになる。 どちらも「対象を手で並べ、一覧の SSOT と
+  繋げていない」 ことが原因。 同じ直し方 (一覧から導いて漏れを落とす検査を置く) を適用した。
+
+  **突き合わせは図の id で行う**。 `primitives-extra` は一覧では `primitives` に畳まれるため、
+  ページ名で比べると実在する module が「一覧に無い」 と誤って落ちる。
+
 - **図の一致検査が一覧の 2 ページを見ていなかったのを直した** (#1403)
 
   記法から作った図が組み立ての図と一致するかを見る検査が、一覧に載る 11 ページのうち
