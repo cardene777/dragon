@@ -1402,7 +1402,7 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
         hint: `使える種類 = ${EVENT_KINDS.join(", ")}`,
       });
     }
-    if (typeof o.handler !== "string" || o.handler === "") {
+    if (typeof o.handler !== "string" || o.handler.trim() === "") {
       errors.push({
         path: `${path}.handler`,
         message: "handler is required",
@@ -1434,12 +1434,15 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
       errors.push({ path: `${path}.${鍵}`, message: `${鍵} must be a non-empty string` });
       return;
     }
-    if (鍵 === "arrow" && (o.arrow as string).split("->").length !== 2) {
-      errors.push({
-        path: `${path}.arrow`,
-        message: "arrow must be `A -> B`",
-        hint: "矢印の両端の名前を書く",
-      });
+    if (鍵 === "arrow") {
+      const 両端 = (o.arrow as string).split("->");
+      if (両端.length !== 2 || 両端.some((x) => x.trim() === "")) {
+        errors.push({
+          path: `${path}.arrow`,
+          message: "arrow must be `A -> B`",
+          hint: "矢印の両端の名前を書く",
+        });
+      }
     }
   });
 }
@@ -1449,7 +1452,12 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
  *
  * 形は `{ 名前: { start, end, scrub, label } }`。 名前の規則は状態と揃える。
  */
-function validateScrolls(v: unknown, errors: JsonDslError[]): void {
+function validateScrolls(
+  v: unknown,
+  inputs: unknown,
+  formulas: unknown,
+  errors: JsonDslError[],
+): void {
   if (v === undefined) return;
   if (!v || typeof v !== "object" || Array.isArray(v)) {
     errors.push({
@@ -1459,11 +1467,29 @@ function validateScrolls(v: unknown, errors: JsonDslError[]): void {
     });
     return;
   }
+  const 既に値を作る名前 = new Set<string>();
+  if (Array.isArray(inputs)) {
+    for (const input of inputs) {
+      if (!input || typeof input !== "object" || Array.isArray(input)) continue;
+      const id = (input as { id?: unknown }).id;
+      if (typeof id === "string") 既に値を作る名前.add(id);
+    }
+  }
+  if (formulas && typeof formulas === "object" && !Array.isArray(formulas)) {
+    for (const id of Object.keys(formulas)) 既に値を作る名前.add(id);
+  }
   for (const [名前, spec] of Object.entries(v as Record<string, unknown>)) {
     const path = `$.scrolls.${名前}`;
     if (!isValueName(名前)) {
       errors.push({ path, ...valueNameIssue(名前) });
       continue;
+    }
+    if (既に値を作る名前.has(名前)) {
+      errors.push({
+        path,
+        message: `${名前} collides with an input or formula`,
+        hint: "inputs / formulas / scrolls では重ならない名前を使う",
+      });
     }
     if (!spec || typeof spec !== "object" || Array.isArray(spec)) {
       errors.push({ path, message: `${名前} must be a plain object`, hint: `got ${typeof spec}` });
@@ -1486,6 +1512,12 @@ function validateScrolls(v: unknown, errors: JsonDslError[]): void {
       }
       if (typeof x !== "number" || !Number.isFinite(x)) {
         errors.push({ path: `${path}.${k}`, message: `${k} must be a finite number` });
+      } else if (x < 0 || x > 1) {
+        errors.push({
+          path: `${path}.${k}`,
+          message: `${k} must be between 0 and 1`,
+          hint: "0 と 1 を含む範囲で書く",
+        });
       }
     }
   }
@@ -1835,7 +1867,7 @@ function validateJson(
   validateFormulas(j.formulas, j.inputs, errors);
   // 押下と巻き上げ (#1393)
   validateEvents(j.events, errors);
-  validateScrolls(j.scrolls, errors);
+  validateScrolls(j.scrolls, j.inputs, j.formulas, errors);
 
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
@@ -2231,7 +2263,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
           : e.lane !== undefined
             ? ({ kind: "lane" as const, name: e.lane } as const)
             : ({ kind: "node" as const, name: e.box ?? "" } as const),
-    handlerId: e.handler,
+    handlerId: e.handler.trim(),
     pos: p0,
   }));
   const scrolls: DslScrollTrigger[] | undefined = json.scrolls

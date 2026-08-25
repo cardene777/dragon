@@ -17,6 +17,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram, validateDragonJson, jsonToDiagram, compileToCdl } from "../src";
 import { parseTextDslV05 } from "../src/v05";
 import { EVENT_KINDS } from "../src/v05/parser";
+import { MAX_INPUT_ELEMENTS } from "../src/input-size";
 import { diagramJsonSchema } from "../src/schema";
 import type { CompileNotice } from "../src/compile";
 
@@ -95,6 +96,40 @@ describe("押下が記法から図に届く (#1393)", () => {
     expect(d.eventBindings?.map((e) => e.id)).toEqual(["evt-1", "evt-2"]);
   });
 
+  it("sequence の矢印も図の識別子へ直る", () => {
+    const d = textDslToDiagram(`title: "t"
+type: sequence
+events:
+  - { on: click, arrow: A -> B, handler: h }
+actors:
+  - A
+  - B
+flow:
+  - A -> B: "呼ぶ"
+animation:
+  - step: "p" 1s
+`) as unknown as 図;
+    expect(d.eventBindings?.[0]?.target).toEqual({ kind: "edge", id: "e0-a-b" });
+  });
+
+  it("名前から作る識別子が重なっても箱と矢印を指せる", () => {
+    const d = textDslToDiagram(`title: "t"
+type: flow
+events:
+  - { on: click, box: a_b, handler: node }
+  - { on: click, arrow: a_b -> a-b, handler: edge }
+actors:
+  - a_b
+  - a-b
+flow:
+  - a_b -> a-b: "呼ぶ"
+animation:
+  - step: "p" 1s
+`) as unknown as 図;
+    expect(d.eventBindings?.map((event) => event.target.kind)).toEqual(["node", "edge"]);
+    expect(d.eventBindings?.every((event) => typeof event.target.id === "string")).toBe(true);
+  });
+
   it.each(EVENT_KINDS)("%s を書ける", (kind) => {
     const d = 記法(`events:\n  - { on: ${kind}, box: Button, handler: h }`);
     expect(d.eventBindings?.[0]?.event).toBe(kind);
@@ -114,6 +149,16 @@ describe("押下が記法から図に届く (#1393)", () => {
       /相手を 2 つ以上書いています/,
     ],
     ["handler を書かない", "events:\n  - { on: click, box: Button }", /handler が空です/],
+    [
+      "handler が空白だけ",
+      'events:\n  - { on: click, box: Button, handler: "   " }',
+      /handler が空です/,
+    ],
+    [
+      "diagram を true 以外で書く",
+      "events:\n  - { on: click, diagram: false, handler: h }",
+      /diagram が読めません/,
+    ],
     [
       "知らない項目",
       "events:\n  - { on: click, box: Button, handler: h, foo: 1 }",
@@ -186,6 +231,69 @@ describe("巻き上げが記法から図に届く (#1393)", () => {
   it("数でない値を知らせる", () => {
     expect(() => 記法("scrolls:\n  intro: { start: はやい }")).toThrow(/巻き上げ intro の start/);
   });
+
+  it.each([
+    ["名前", "scrolls:\n  1intro: { start: 0.5 }", /invalid value name/],
+    ["重複した名前", "scrolls:\n  intro: { start: 0.5 }\n  intro: { end: 0.5 }", /重複しています/],
+    ["start", "scrolls:\n  intro: { start: 1.1 }", /start は 0 から 1/],
+    ["end", "scrolls:\n  intro: { end: -0.1 }", /end は 0 から 1/],
+    ["scrub", "scrolls:\n  intro: { scrub: 2 }", /scrub は 0 から 1/],
+  ])("使えない %s を知らせる", (_名, 中身, 期待) => {
+    expect(() => 記法(中身)).toThrow(期待);
+  });
+
+  it.each([
+    [
+      "inputs",
+      "inputs:\n  same: { kind: slider, min: 0, max: 1, defaultValue: 0 }\nscrolls:\n  same: { start: 1 }",
+    ],
+    ["formulas", 'formulas:\n  same: "2"\nscrolls:\n  same: { start: 1 }'],
+  ])("%s と同じ名前は拒む", (_種類, 中身) => {
+    expect(() => 記法(中身)).toThrow(/inputs または formulas と重なっています/);
+  });
+});
+
+describe("大量に並べた入力を組み立て前の上限で止める (#1393)", () => {
+  /*
+   * **図の側は既に数えている**。 記法側だけ数えないと、箱が少ないまま押下や巻き上げを
+   * 大量に並べた入力が組み立て前の上限をすり抜け、組み立て終わってから弾かれる
+   * (= 時間をかけてから止まる)。 つまみ (#1389) / 部品 (#1374) と同じ守り方に揃える。
+   */
+  it("押下だけを大量に並べた入力も止める", () => {
+    const entries = Array.from(
+      { length: MAX_INPUT_ELEMENTS },
+      () => "  - { on: click, box: A, handler: h }",
+    ).join("\n");
+    expect(() =>
+      textDslToDiagram(`title: "t"
+type: flow
+
+actors:
+  - A
+
+events:
+${entries}
+`),
+    ).toThrow(/要素が/);
+  });
+
+  it("巻き上げだけを大量に並べた入力も止める", () => {
+    const entries = Array.from(
+      { length: MAX_INPUT_ELEMENTS },
+      (_, i) => `  s${i}: { start: 0.9 }`,
+    ).join("\n");
+    expect(() =>
+      textDslToDiagram(`title: "t"
+type: flow
+
+actors:
+  - A
+
+scrolls:
+${entries}
+`),
+    ).toThrow(/要素が/);
+  });
 });
 
 describe("JSON でも押下と巻き上げを書ける (#1393)", () => {
@@ -206,6 +314,11 @@ describe("JSON でも押下と巻き上げを書ける (#1393)", () => {
     ["object でない要素", { events: [1] }, "$.events[0]"],
     ["知らない種類", { events: [{ on: "swipe", box: "Button", handler: "h" }] }, "$.events[0].on"],
     ["handler 無し", { events: [{ on: "click", box: "Button" }] }, "$.events[0].handler"],
+    [
+      "handler が空白だけ",
+      { events: [{ on: "click", box: "Button", handler: "   " }] },
+      "$.events[0].handler",
+    ],
     ["相手 0 個", { events: [{ on: "click", handler: "h" }] }, "$.events[0]"],
     [
       "相手 2 個",
@@ -216,6 +329,11 @@ describe("JSON でも押下と巻き上げを書ける (#1393)", () => {
       "知らない項目",
       { events: [{ on: "click", box: "B", handler: "h", foo: 1 }] },
       "$.events[0].foo",
+    ],
+    [
+      "端が空の矢印",
+      { events: [{ on: "click", arrow: "A -> ", handler: "h" }] },
+      "$.events[0].arrow",
     ],
   ])("押下の %s 形を拒む", (_名, extra, path) => {
     const r = validateDragonJson(JSONの図(extra));
@@ -228,6 +346,20 @@ describe("JSON でも押下と巻き上げを書ける (#1393)", () => {
     ["使えない名前", { scrolls: { "1a": {} } }, "$.scrolls.1a"],
     ["知らない項目", { scrolls: { a: { speed: 1 } } }, "$.scrolls.a.speed"],
     ["数でない", { scrolls: { a: { start: "x" } } }, "$.scrolls.a.start"],
+    ["範囲外", { scrolls: { a: { scrub: 1.1 } } }, "$.scrolls.a.scrub"],
+    [
+      "input と同じ名前",
+      {
+        inputs: [{ id: "same", kind: "slider", min: 0, max: 1, defaultValue: 0 }],
+        scrolls: { same: { start: 1 } },
+      },
+      "$.scrolls.same",
+    ],
+    [
+      "式と同じ名前",
+      { formulas: { same: "2" }, scrolls: { same: { start: 1 } } },
+      "$.scrolls.same",
+    ],
   ])("巻き上げの %s 形を拒む", (_名, extra, path) => {
     const r = validateDragonJson(JSONの図(extra));
     expect(r.ok, "誤った形が通っている").toBe(false);
@@ -242,7 +374,10 @@ describe("公開している形が押下と巻き上げを持つ (#1393)", () =>
         string,
         {
           type?: string;
-          items?: { properties?: Record<string, { enum?: string[] }>; oneOf?: unknown[] };
+          items?: {
+            properties?: Record<string, { enum?: string[]; pattern?: string }>;
+            oneOf?: unknown[];
+          };
         }
       >;
     }
@@ -260,5 +395,27 @@ describe("公開している形が押下と巻き上げを持つ (#1393)", () =>
 
   it("相手をちょうど 1 つだけ書く形になっている", () => {
     expect(props.events?.items?.oneOf, "相手の指し方が 1 つに絞られていない").toHaveLength(4);
+  });
+
+  it("矢印は両端の名前を持つ形に限られる", () => {
+    expect(props.events?.items?.properties?.arrow?.pattern).toBeDefined();
+  });
+
+  it("handler は空白以外の文字を持つ形に限られる", () => {
+    expect(props.events?.items?.properties?.handler?.pattern).toBe("\\S");
+  });
+
+  it("巻き上げの数は 0 から 1 に限られる", () => {
+    const scroll = props.scrolls as {
+      additionalProperties?: {
+        properties?: Record<string, { minimum?: number; maximum?: number }>;
+      };
+    };
+    for (const 欄 of ["start", "end", "scrub"]) {
+      expect(scroll.additionalProperties?.properties?.[欄]).toMatchObject({
+        minimum: 0,
+        maximum: 1,
+      });
+    }
   });
 });

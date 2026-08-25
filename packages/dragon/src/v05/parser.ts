@@ -397,6 +397,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let formulasList: DslFormula[] | undefined = undefined;
   let eventsList: DslEventBinding[] | undefined = undefined;
   let scrollsList: DslScrollTrigger[] | undefined = undefined;
+  let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
 
   let i = 0;
@@ -779,11 +780,23 @@ export function parseTextDslV05(src: string): V05ParseResult {
       }
       const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       scrollsList = [];
+      scrollLines = new Map();
       for (const it of items) {
         const m = 名前と中括弧に割る(it.trimmed);
         if (m) {
           const 読めた = 巻き上げとして読む(m[0], m[1], it.no, errors);
-          if (読めた) scrollsList.push(読めた);
+          if (読めた) {
+            if (scrollLines.has(読めた.id)) {
+              errors.push({
+                line: it.no,
+                message: `巻き上げの名前 "${読めた.id}" が重複しています`,
+                hint: "scrolls の名前は 1 度だけ書く",
+              });
+            } else {
+              scrollsList.push(読めた);
+              scrollLines.set(読めた.id, it.no);
+            }
+          }
         } else {
           errors.push({
             line: it.no,
@@ -837,6 +850,20 @@ export function parseTextDslV05(src: string): V05ParseResult {
       message: "type is required",
       hint: "add `type: sequence|flow|swimlane|er|state|topology|solidity|gantt|class|pie|c4|mind`",
     });
+
+  // つまみ・式・巻き上げは同じ名前空間で値を作る。 重なると後から作る値が効かない。
+  const 既に値を作る名前 = new Set([
+    ...(inputsList ?? []).map((input) => input.id),
+    ...(formulasList ?? []).map((formula) => formula.id),
+  ]);
+  for (const scroll of scrollsList ?? []) {
+    if (!既に値を作る名前.has(scroll.id)) continue;
+    errors.push({
+      line: scrollLines.get(scroll.id) ?? 1,
+      message: `巻き上げの名前 "${scroll.id}" が inputs または formulas と重なっています`,
+      hint: "inputs / formulas / scrolls では重ならない名前を使う",
+    });
+  }
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -1734,7 +1761,7 @@ function 出来事として読む(
     });
     return undefined;
   }
-  const handlerId = opts.handler ?? "";
+  const handlerId = (opts.handler ?? "").trim();
   if (handlerId === "") {
     errors.push({
       line,
@@ -1759,7 +1786,14 @@ function 出来事として読む(
   const 値 = (opts[鍵] ?? "").trim();
   let target: DslEventBinding["target"];
   if (鍵 === "diagram") {
-    // 図全体を指す形。 値は書かなくてよい (`diagram: true` も受ける)
+    if (値 !== "true") {
+      errors.push({
+        line,
+        message: `出来事の diagram が読めません: "${値}"`,
+        hint: "図全体を指す時は `diagram: true` と書く",
+      });
+      return undefined;
+    }
     target = { kind: "diagram" };
   } else if (鍵 === "arrow") {
     const m = 値.split("->");
@@ -1805,6 +1839,10 @@ function 巻き上げとして読む(
   line: number,
   errors: DslError[],
 ): DslScrollTrigger | undefined {
+  if (!isValueName(id)) {
+    errors.push({ line, ...valueNameIssue(id) });
+    return undefined;
+  }
   const opts = parseInlineMapping(raw);
   const 使える = [...Object.keys(SCROLL_VALUE_KINDS), "label"];
   for (const k of Object.keys(opts)) {
@@ -1817,6 +1855,15 @@ function 巻き上げとして読む(
     return undefined;
   }
   const 数 = 表で読む(SCROLL_VALUE_KINDS, opts, `巻き上げ ${id} の `, line, errors);
+  for (const 欄 of ["start", "end", "scrub"] as const) {
+    const 値 = 数[欄];
+    if (値 === undefined || (値 >= 0 && 値 <= 1)) continue;
+    errors.push({
+      line,
+      message: `巻き上げ ${id} の ${欄} は 0 から 1 の間で書きます: "${値}"`,
+      hint: "0 は画面の上端または段階的な追随、1 は下端または連続追随",
+    });
+  }
   return {
     id,
     ...(数.start !== undefined ? { start: 数.start } : {}),

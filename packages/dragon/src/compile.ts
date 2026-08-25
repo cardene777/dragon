@@ -421,7 +421,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   if (doc.events && doc.events.length > 0) {
     const 載せる: NonNullable<CdlDiagram["eventBindings"]> = [...(merged.eventBindings ?? [])];
     for (const e of doc.events) {
-      const 相手 = 出来事の相手を解く(merged, e);
+      const 相手 = 出来事の相手を解く(merged, doc, e);
       if (相手 === undefined) {
         opts?.onNotice?.({
           kind: "event-target-missing",
@@ -1129,6 +1129,26 @@ function disambiguateActorIds(
       const from = 直す(s.from);
       const to = 直す(s.to);
       return from === s.from && to === s.to ? s : { ...s, from, to };
+    }),
+    events: doc.events?.map((event) => {
+      const target = event.target;
+      if (target.kind === "node") {
+        const name = 直す(target.name);
+        return name === target.name ? event : { ...event, target: { ...target, name } };
+      }
+      if (target.kind === "edge") {
+        const from = 直す(target.from);
+        const to = 直す(target.to);
+        return from === target.from && to === target.to
+          ? event
+          : { ...event, target: { ...target, from, to } };
+      }
+      // sequence 系の縦列は登場人物から作るため、同じ名前の読み替えが必要。
+      if (target.kind === "lane" && (doc.type === "sequence" || doc.type === "solidity")) {
+        const name = 直す(target.name);
+        return name === target.name ? event : { ...event, target: { ...target, name } };
+      }
+      return event;
     }),
   };
   // 光らせる指定と位置の基準も名前で書くので、 同じ表で直す
@@ -3190,13 +3210,28 @@ function applyEdgeInlineOptions(
  */
 function 出来事の相手を解く(
   diagram: CdlDiagram,
+  doc: DslDocument,
   e: DslEventBinding,
 ): NonNullable<CdlDiagram["eventBindings"]>[number]["target"] | undefined {
   if (e.target.kind === "diagram") return { kind: "diagram" };
   if (e.target.kind === "edge") {
     const from = slugify(e.target.from);
     const to = slugify(e.target.to);
-    const 矢印 = diagram.edges.find((x) => x.from === from && x.to === to);
+    let 矢印: CdlEdge | undefined;
+    if (doc.type === "sequence" || doc.type === "solidity") {
+      const stepIdx = doc.flow.findIndex(
+        (step) => slugify(step.from) === from && slugify(step.to) === to,
+      );
+      if (stepIdx >= 0) {
+        矢印 = diagram.edges.find(
+          (x) =>
+            (x.from === `s${stepIdx}-${from}` || x.from === from) &&
+            (x.to === `s${stepIdx}-${to}` || x.from === x.to),
+        );
+      }
+    } else {
+      矢印 = diagram.edges.find((x) => x.from === from && x.to === to);
+    }
     return 矢印 ? { kind: "edge", id: 矢印.id } : undefined;
   }
   const 名 = e.target.name;

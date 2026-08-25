@@ -1768,7 +1768,8 @@
           },
           "handler": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "box": {
             "type": "string",
@@ -1783,6 +1784,7 @@
           "arrow": {
             "type": "string",
             "minLength": 1,
+            "pattern": "^(?!.*->.*->)\\s*\\S(?:.*\\S)?\\s*->\\s*\\S(?:.*\\S)?\\s*$",
             "description": "矢印。 `A -> B` の形で両端の名前を書く"
           },
           "diagram": {
@@ -1818,14 +1820,20 @@
         "properties": {
           "start": {
             "type": "number",
+            "minimum": 0,
+            "maximum": 1,
             "description": "進み具合が 0 になる画面上の位置 (0 が上端、1 が下端)"
           },
           "end": {
             "type": "number",
+            "minimum": 0,
+            "maximum": 1,
             "description": "進み具合が 1 になる画面上の位置"
           },
           "scrub": {
             "type": "number",
+            "minimum": 0,
+            "maximum": 1,
             "description": "巻き上げへの追随度合い (0 が段階的、1 が連続)"
           },
           "label": {
