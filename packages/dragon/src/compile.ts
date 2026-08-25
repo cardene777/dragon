@@ -3162,6 +3162,11 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;
+  // 値に追随する 3 欄 (#1396)。 太さ / 色 / 破線の位置が値に合わせて動く。
+  // 通り道そのものは動かないので、配置計算と重なり解消には影響しない
+  if (s.widthBind !== undefined) target.widthBind = s.widthBind;
+  if (s.strokeBind !== undefined) target.strokeBind = s.strokeBind;
+  if (s.dashOffsetBind !== undefined) target.dashOffsetBind = s.dashOffsetBind;
 }
 
 /**

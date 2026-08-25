@@ -130,6 +130,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     tone: "success",
     style: "solid",
     guard: "g",
+    // 値に追随する 3 欄 (#1396)
+    widthBind: "{flow}",
+    strokeBind: "{hue}",
+    dashOffsetBind: "{dash}",
     // 矢印がどの辺から出るか (#1385)
     side: "left",
     cardinality: "1..N",

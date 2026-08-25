@@ -301,6 +301,13 @@ export interface JsonStep {
   style?: EdgeStyle;
   guard?: string;
   cardinality?: string;
+  /**
+   * 矢印を値に追随させる 3 欄 (optional、 #1396)。 記法の `widthBind:` / `strokeBind:` /
+   * `dashOffsetBind:` と同じ。 描画側は文字列だけを取る。
+   */
+  widthBind?: string;
+  strokeBind?: string;
+  dashOffsetBind?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
@@ -459,6 +466,10 @@ export const ACCEPTED_KEYS = {
     "style",
     "guard",
     "cardinality",
+    // 値に追随する 3 欄 (#1396)
+    "widthBind",
+    "strokeBind",
+    "dashOffsetBind",
     "labelOffsetX",
     "labelOffsetY",
     "overlay",
@@ -591,6 +602,10 @@ export const 欄の型表 = {
     style: "線種",
     guard: "文字列",
     cardinality: "文字列",
+    // 値に追随する 3 欄 (#1396)。 描画側は文字列だけを取る
+    widthBind: "非空の文字列",
+    strokeBind: "非空の文字列",
+    dashOffsetBind: "非空の文字列",
     labelOffsetX: "数",
     labelOffsetY: "数",
     overlay: "真偽",
@@ -2025,6 +2040,10 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     style: s.style,
     guard: s.guard,
     cardinality: s.cardinality,
+    // 値に追随する 3 欄 (#1396)
+    widthBind: s.widthBind,
+    strokeBind: s.strokeBind,
+    dashOffsetBind: s.dashOffsetBind,
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
     overlay: s.overlay,

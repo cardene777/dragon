@@ -181,6 +181,10 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       side: { 書く: "left", 期待: "left" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },
+      // 矢印を値に追随させる 3 欄 (#1396)
+      widthBind: { 書く: '"{flow}"', 期待: "{flow}" },
+      strokeBind: { 書く: '"{hue}"', 期待: "{hue}" },
+      dashOffsetBind: { 書く: '"{dash}"', 期待: "{dash}" },
       overlay: { 書く: "true", 期待: true },
     };
 

@@ -489,6 +489,24 @@
                 "type": "number"
               }
             }
+          },
+          "widthBind": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "線の太さを値に追随させる。 状態やつまみの名前を {名前} の形で書く"
+          },
+          "strokeBind": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "線の色を値に追随させる。 widthBind と同じ読み方"
+          },
+          "dashOffsetBind": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "破線の位置を値に追随させる (流れているように見せる)。 widthBind と同じ読み方"
           }
         }
       }
