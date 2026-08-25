@@ -11,6 +11,7 @@ import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 interface PartsInfo {
   name: string;
@@ -41,7 +42,7 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   if (actorsIdx === -1) return `${sampleDsl}\nactors:\n  - ${alias}: { kind: ${kind}${overrides ? `, ${overrides}` : ""} }\n`;
   let insertIdx = actorsIdx + 1;
   while (insertIdx < lines.length) {
-    const line = lines[insertIdx];
+    const line = at(lines, insertIdx, "lines");
     if (line.match(/^[a-zA-Z]/) || line.trim() === "") break;
     insertIdx++;
   }
@@ -67,7 +68,7 @@ describe("iter21: 全 state-holding parts × 全 19 sample × state override 網
           const partsCatalog: Record<string, CdlDiagram> = { [info.diagram.id]: info.diagram };
           const compiled = textDslToDiagram(injectedDsl, { partsCatalog });
           for (let i = 0; i < info.stateNames.length; i++) {
-            const stateName = info.stateNames[i];
+            const stateName = at(info.stateNames, i, "info.stateNames");
             const expected = 88 + i;
             const prefixedId = `${alias}__${stateName}`;
             const state = compiled.states.find((s) => s.id === prefixedId);

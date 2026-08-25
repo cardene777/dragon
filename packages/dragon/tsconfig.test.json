@@ -10,6 +10,17 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "../..",
+    // `@/` を `vitest.config.ts` の alias と同じ場所に向ける (#1416)。
+    //
+    // 検査 code は見本帳の道具を `@/lib/...` で引く。 vitest は alias を持つので実行は
+    // 通るが、型検査側に無いと **その import から先が丸ごと `any` に落ちる**
+    // (実測 = `catalog-scope` を引く 3 file が同じ形で落ちていた)。
+    //
+    // 揃えないと「実行は通るのに型検査だけ落ちる」 状態が残り、検査 code を型で守れない。
+    "baseUrl": "../..",
+    "paths": {
+      "@/*": ["apps/playground-spa/src/*"]
+    },
     "composite": false,
     "declaration": false,
     "emitDeclarationOnly": false,

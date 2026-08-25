@@ -158,8 +158,15 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
       const diagrams = collectDiagrams(mod, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams, { profile: "catalog" });
+      /*
+       * 違反に図の id を添える。 **順序を逆にしない** (#1416)。
+       *
+       * `{ diagramId: r.diagramId, ...v }` と書くと、`v` が `diagramId` を持たない時に
+       * `undefined` で上書きされ、添えたはずの id が消える。 落ちた時に「どの図か」 が
+       * 読めなくなる (件数だけを見る assert なので、消えても検査は通ってしまう)。
+       */
       const gatingViolations = report.reports.flatMap((r) =>
-        r.violations.filter(isGatingViolation).map((v) => ({ diagramId: r.diagramId, ...v })),
+        r.violations.filter(isGatingViolation).map((v) => ({ ...v, diagramId: r.diagramId })),
       );
       const detail = formatReport(report.reports);
       // 5 新軸 (PR #75) 込みの warn / error 集計を stderr に流す (info は vitest で suppress される)

@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 describe("iter76: 全 12 sample × title in code 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
@@ -18,21 +19,21 @@ describe("iter76: 全 12 sample × title in code 網羅", () => {
       it(`title フィールド value が 100 char 以下`, () => {
         const m = sample.code.match(/^title:\s*"([^"]+)"/m);
         if (m) {
-          expect(m[1].length).toBeLessThanOrEqual(100);
+          expect(at(m, 1, "m").length).toBeLessThanOrEqual(100);
         }
       });
 
       it(`title に制御文字なし`, () => {
         const m = sample.code.match(/^title:\s*"([^"]+)"/m);
         if (m) {
-          expect(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(m[1])).toBe(false);
+          expect(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(at(m, 1, "m"))).toBe(false);
         }
       });
 
       it(`type field が単一 word or slug`, () => {
         const m = sample.code.match(/^type:\s*([^\s]+)/m);
         if (m) {
-          expect(/^[a-zA-Z][a-zA-Z0-9-_]*$/.test(m[1])).toBe(true);
+          expect(/^[a-zA-Z][a-zA-Z0-9-_]*$/.test(at(m, 1, "m"))).toBe(true);
         }
       });
 

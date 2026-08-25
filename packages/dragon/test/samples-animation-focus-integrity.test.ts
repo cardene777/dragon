@@ -15,6 +15,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { compile } from "@cardenelabs/cdl";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 interface CompiledDiagram {
   nodes: Array<{ id: string }>;
@@ -29,7 +30,7 @@ function collectFocusRefs(diagram: CompiledDiagram): Array<{ phaseIdx: number; s
   const out: Array<{ phaseIdx: number; stepIdx: number | null; ref: string }> = [];
   if (!diagram.phases) return out;
   for (let p = 0; p < diagram.phases.length; p++) {
-    const phase = diagram.phases[p];
+    const phase = at(diagram.phases, p, "diagram.phases");
     if (Array.isArray(phase.focus)) {
       for (const ref of phase.focus) {
         out.push({ phaseIdx: p, stepIdx: null, ref });
@@ -37,7 +38,7 @@ function collectFocusRefs(diagram: CompiledDiagram): Array<{ phaseIdx: number; s
     }
     if (Array.isArray(phase.steps)) {
       for (let s = 0; s < phase.steps.length; s++) {
-        const step = phase.steps[s];
+        const step = at(phase.steps, s, "phase.steps");
         if (Array.isArray(step.focus)) {
           for (const ref of step.focus) {
             out.push({ phaseIdx: p, stepIdx: s, ref });

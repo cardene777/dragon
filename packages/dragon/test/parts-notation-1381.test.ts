@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, jsonToDiagram, validateDragonJson, diagramJsonSchema } from "../src";
 import { 部品の表 } from "../src/v05/parser";
+import { at } from "./support/at";
 
 /**
  * #1381 で記法に足した 3 つの検証。
@@ -31,6 +32,24 @@ ${中身}
 animation:
   - step: "p" 1s
 `);
+
+/**
+ * 先頭の部品を「状態の点」 として取り出す (#1416)。
+ *
+ * `CdlReadout` は種別ごとに持つ項目が違う共用体で、`map` は状態の点だけが持つ。
+ * 種別を確かめずに `as` で通すと、**別の種別が先頭に来た時に `map` が `undefined` の
+ * まま検査へ渡り、何が起きたか読めない形で落ちる**。
+ *
+ * 先頭が別の種別になる入力は実際に書ける (`readouts:` に 2 つ書けば書いた順に並ぶ)。
+ * § 先頭が別の種別なら何が返ったかを残して落ちる がその形を固定する。
+ */
+const 状態の点 = (図: ReturnType<typeof 図にする>) => {
+  const 部品 = at(図.readouts ?? [], 0, "図.readouts");
+  if (部品.kind !== "status-dot") {
+    throw new Error(`status-dot ではなく ${部品.kind} が返った`);
+  }
+  return 部品;
+};
 
 const 誤り = (中身: string): string[] => {
   try {
@@ -174,21 +193,21 @@ describe("組の並びの欄 (#1381)", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111" }, { value: "b", color: "#222" }] }',
     );
-    expect((d.readouts?.[0] as { map: unknown[] }).map).toHaveLength(2);
+    expect(状態の点(d).map).toHaveLength(2);
   });
 
   it("数に見える状態名も文字列のまま読む", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "1", color: "#111" }] }',
     );
-    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]!.value).toBe("1");
+    expect(at(状態の点(d).map, 0, "status-dot.map").value).toBe("1");
   });
 
   it("引用符の中の中括弧は組の終わりにしない", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "}", color: "#111", label: "{ok}" }] }',
     );
-    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]).toEqual({
+    expect(at(状態の点(d).map, 0, "status-dot.map")).toEqual({
       value: "}",
       color: "#111",
       label: "{ok}",
@@ -515,8 +534,33 @@ describe("公開 JSON Schema も #1381 の部品を書ける", () => {
   });
 
   it("notification は source ではなく kindSource / titleSource を必須にする", () => {
-    const branch = readout.oneOf.find((x: any) => x.properties.kind.enum[0] === "notification");
+    const branch = readout.oneOf.find(
+      (x: any) => at(x.properties.kind.enum, 0, "kind.enum") === "notification",
+    );
     expect(branch.required).toEqual(["kindSource", "titleSource"]);
     expect(readout.required).toEqual(["id", "kind"]);
+  });
+});
+
+describe("先頭が別の種別なら何が返ったかを残して落ちる (#1416)", () => {
+  it("`gauge` が先頭でも読み違えない", () => {
+    /*
+     * `readouts:` は書いた順に並ぶので、状態の点より前に別の種別を書けば先頭が入れ替わる。
+     * `as` で通していると `map` が `undefined` のまま渡り、
+     * `Cannot read properties of undefined` で落ちて **何が返ったかが残らない**。
+     */
+    const d = 図にする(
+      "readouts:\n" +
+        "  g: { kind: gauge, source: st, min: 0, max: 100 }\n" +
+        '  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111" }] }',
+    );
+    expect(() => 状態の点(d)).toThrow(/status-dot ではなく gauge が返った/);
+  });
+
+  it("状態の点が先頭なら素通しする", () => {
+    const d = 図にする(
+      'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111" }] }',
+    );
+    expect(状態の点(d).map).toHaveLength(1);
   });
 });

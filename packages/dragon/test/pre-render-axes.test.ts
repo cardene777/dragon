@@ -34,6 +34,7 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
+import { at } from "./support/at";
 
 /**
  * 型ごとに作られるべき節点の種類。
@@ -301,7 +302,7 @@ describe("記法が受ける型が 1 つ残らず見本を持つ (#1411)", () =>
       for (const [k, v] of Object.entries(mod)) {
         if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
         const m = /^type:\s*([a-z0-9-]+)/m.exec(v);
-        if (m) out.set(m[1], (out.get(m[1]) ?? 0) + 1);
+        if (m) out.set(at(m, 1, "m"), (out.get(at(m, 1, "m")) ?? 0) + 1);
       }
     }
     return out;
