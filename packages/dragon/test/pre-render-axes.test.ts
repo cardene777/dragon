@@ -32,6 +32,7 @@ import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.
 import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
+import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 
 /**
  * 型ごとに作られるべき節点の種類。
@@ -64,7 +65,9 @@ const 型と種類 = {
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */
-const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<readonly [PresetType, readonly string[]]>;
+const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<
+  readonly [PresetType, readonly string[]]
+>;
 
 const 記法 = (type: PresetType): string =>
   `title: "t"\ntype: ${type}\n\nactors:\n  - A: "Q1"\n  - B: "Q2"\n\nflow:\n  - A -> B: "x"\n`;
@@ -87,6 +90,7 @@ const catalog: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
   ["interactive", interactive],
   ["ethereum", ethereum],
   ["parts", parts],
+  ["charts", charts],
 ];
 
 const 図か = (v: unknown): v is CdlDiagram =>
@@ -168,7 +172,9 @@ describe("軸 3 = 書いた指定が黙って捨てられない (#1096)", () => 
     expect(EDITOR_SAMPLES.length, "見本を 1 件も読めていない").toBeGreaterThan(0);
     const 問題 = EDITOR_SAMPLES.flatMap((s) => {
       const r = parseTextDslV05(s.code);
-      return r.ok ? [] : [`${s.slug}: ${r.errors.map((e) => `L${e.line} ${e.message}`).join(" / ")}`];
+      return r.ok
+        ? []
+        : [`${s.slug}: ${r.errors.map((e) => `L${e.line} ${e.message}`).join(" / ")}`];
     });
     expect(問題, `見本に誤りがある: ${問題.join(" / ")}`).toEqual([]);
   });
@@ -196,5 +202,44 @@ describe("軸 3 = 書いた指定が黙って捨てられない (#1096)", () => 
       return 知らせ.length > 0 ? [`${s.slug}: ${知らせ.join(", ")}`] : [];
     });
     expect(問題, `見本に効かない指定がある: ${問題.join(" / ")}`).toEqual([]);
+  });
+});
+
+/**
+ * 一覧に載る図が 1 つ残らず対象に入っているか (#1409)。
+ *
+ * `catalog` は手で並べるため、ページを足した時に **ここへ足し忘れる**。
+ * 忘れても本 file は通る = 検査の件数が減るだけで、何も落ちない。
+ *
+ * 実際 `charts` が一覧に載りながら漏れており、「図になる前」 の 3 軸を 1 度も通って
+ * いなかった。
+ *
+ * 同じ形は 4 度目 (#1403 / #1405 / #1407 / #1409)。 突き合わせの道具は
+ * `apps/playground-spa/src/lib/catalog-scope.ts` に括り、そちらが自身の検査を持つ。
+ */
+describe("一覧に載る図が 1 つ残らず対象に入っている (#1409)", () => {
+  /** 一覧を読む道具は 4 つの検査で共有する。 定義と検査は catalog-scope が持つ */
+  const 一覧の図 = async (): Promise<string[]> => (await import("@/lib/catalog-scope")).一覧の図();
+  const 差分 = async (l: readonly string[], r: readonly string[]): Promise<string[]> =>
+    (await import("@/lib/catalog-scope")).差分(l, r);
+
+  /** 本 file が見る図の id (`<ページ>/<id>` の形で持つので id 側だけを取る) */
+  const 対象の図 = (): string[] => catalog図.map(([名]) => 名.slice(名.indexOf("/") + 1));
+
+  it("一覧の図と対象の図を 1 件以上集められている", async () => {
+    // 空振り防止。 どちらかが空だと下の 2 件が両方とも「差が無い」 で通る
+    const [一覧, 対象] = [await 一覧の図(), 対象の図()];
+    expect(一覧.length, "一覧から図を 1 件も集められていない").toBeGreaterThan(0);
+    expect(対象.length, "対象から図を 1 件も集められていない").toBeGreaterThan(0);
+  });
+
+  it("一覧にあって対象に無い図が無い", async () => {
+    const 漏れ = await 差分(await 一覧の図(), 対象の図());
+    expect(漏れ, "一覧に出るのに図になる前の検査を通っていない図").toEqual([]);
+  });
+
+  it("対象だが一覧に無い図が無い", async () => {
+    const 余り = await 差分(対象の図(), await 一覧の図());
+    expect(余り, "図になる前の検査を通っているが一覧に出ない図").toEqual([]);
   });
 });
