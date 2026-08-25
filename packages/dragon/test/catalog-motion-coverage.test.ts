@@ -28,6 +28,7 @@ import * as Interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as Cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
 import * as Patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
 import * as TextDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import * as Ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as Animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
 import * as Primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
 import * as PrimitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
@@ -43,6 +44,7 @@ const 対象: Array<[string, Record<string, unknown>]> = [
   ["patterns", Patterns],
   ["text-dsl", TextDsl],
   ["animation", Animation],
+  ["ethereum", Ethereum],
 ];
 
 const diagramsOf = (mod: Record<string, unknown>): Array<[string, CdlDiagram]> =>
@@ -151,8 +153,10 @@ const 図表で残す: Record<string, string> = {
 };
 
 const 形の見本で残す: Record<string, string> = {
-  "shape-blockchain-block": "連鎖の箱。 種別が絵の文字を固定していて、書き手の値を読まない (cdl #469)",
-  "shape-terminal": "端末の箱。 種別が副題を描かず、数を置ける欄が識別の文字しか残らない (cdl #469)",
+  "shape-blockchain-block":
+    "連鎖の箱。 種別が絵の文字を固定していて、書き手の値を読まない (cdl #469)",
+  "shape-terminal":
+    "端末の箱。 種別が副題を描かず、数を置ける欄が識別の文字しか残らない (cdl #469)",
   "shape-code-block": "コードの箱。 同上",
   "shape-kanban-card": "付箋の箱。 同上",
 };
@@ -200,6 +204,7 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
       patterns: 12,
       "text-dsl": 13,
       animation: 10,
+      ethereum: 4,
     });
   });
 
@@ -267,14 +272,18 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
   });
 
   it("まだ動かしていない図表は 1 件ずつ理由を持つ", () => {
-    const 残った = diagramsOf(Charts).filter(([, d]) => 図表で残す[d.id]).map(([, d]) => d.id);
+    const 残った = diagramsOf(Charts)
+      .filter(([, d]) => 図表で残す[d.id])
+      .map(([, d]) => d.id);
     expect([...残った].sort()).toEqual(Object.keys(図表で残す).sort());
   });
 
   it("まだ動かしていない形の見本は 1 件ずつ理由を持つ", () => {
     // 動かせないのか手が回っていないだけなのかを、後から見た人が判断できる形にする
     const 残った = diagramsOf(Primitives)
-      .filter(([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && 形の見本で残す[d.id])
+      .filter(
+        ([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && 形の見本で残す[d.id],
+      )
       .map(([, d]) => d.id);
     expect([...残った].sort()).toEqual(Object.keys(形の見本で残す).sort());
   });
@@ -282,7 +291,9 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
   it("まだ動かしていない図の型は 1 件ずつ理由を持つ", () => {
     // 動かせないのか手が回っていないだけなのかを、後から見た人が判断できる形にする。
     // 一覧が実物とずれたら落とす
-    const 残った = diagramsOf(Presets).filter(([, d]) => 型の見本で残す[d.id]).map(([, d]) => d.id);
+    const 残った = diagramsOf(Presets)
+      .filter(([, d]) => 型の見本で残す[d.id])
+      .map(([, d]) => d.id);
     expect([...残った].sort()).toEqual(Object.keys(型の見本で残す).sort());
   });
 
@@ -292,5 +303,91 @@ describe("見本帳は 3 つの一覧に分かれる (#1172)", () => {
     // 1 件ずつ理由を書き、一覧が実物とずれたら落とす
     const { 動かさない } = 見本帳の振り分け();
     expect([...動かさない].sort()).toEqual(Object.keys(動かさないと決めた).sort());
+  });
+});
+
+/**
+ * 一覧に載る図が 1 つ残らずどちらかの系統に入っているか (#1407)。
+ *
+ * 本 file は図を 2 系統に分ける。 動きが意味を持つ分類 (`対象`) と、形を見比べる見本帳
+ * (`見本帳の振り分け`) の 2 つ。
+ *
+ * 見本帳側は 3 一覧が互いに重ならず全件を覆うことを見ている。 一方 **2 系統を合わせて
+ * 一覧の全 module を覆うか** は誰も見ていなかった。
+ *
+ * 実際 `ethereum` の 4 図がどちらにも現れず、静止の判定を 1 度も通っていなかった。
+ *
+ * ## 突き合わせは図の id で行う
+ *
+ * ページ名で比べてはいけない。 `primitives-extra` は一覧では `primitives` に畳まれるため、
+ * 名前で比べると実在する module が「一覧に無い」 と誤って落ちる。
+ *
+ * ## 重複数を落とさない
+ *
+ * 集合 (`Set`) で比べてはいけない。 同じ id を持つ図が 2 つある module を足し忘れても、
+ * 既存の 1 件が id を覆い隠して差が 0 件になる = 分類漏れが見えなくなる (#1405 で同じ形を
+ * 直した)。
+ *
+ * ## 件数を書かない
+ *
+ * どれだけ漏れているかは下の検査が名指しで並べる。 数を書くと module が増えた時にずれる
+ * (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ */
+describe("一覧に載る図が 1 つ残らずどちらかの系統に入っている (#1407)", () => {
+  /** 一覧に載る図の id。 `parts` は遅延読み込みなので明示的に足す */
+  async function 一覧の図(): Promise<string[]> {
+    const { CATALOG_ITEMS, loadPartsItems } = await import("@/lib/catalog-items");
+    const out: string[] = [];
+    for (const items of Object.values(CATALOG_ITEMS)) for (const it of items) out.push(it.id);
+    for (const it of await loadPartsItems()) out.push(it.id);
+    return out;
+  }
+
+  /** 2 系統が覆う図の id */
+  function 系統の図(): string[] {
+    const { 動かす, 動かさない, まだ } = 見本帳の振り分け();
+    return [
+      ...対象.flatMap(([, mod]) => diagramsOf(mod).map(([, d]) => d.id)),
+      ...動かす,
+      ...動かさない,
+      ...まだ,
+    ];
+  }
+
+  /** 重複数を保ったまま、 left にだけある id を返す */
+  function 差分(left: string[], right: string[]): string[] {
+    const remaining = new Map<string, number>();
+    for (const id of right) remaining.set(id, (remaining.get(id) ?? 0) + 1);
+    return left
+      .filter((id) => {
+        const count = remaining.get(id) ?? 0;
+        if (count === 0) return true;
+        remaining.set(id, count - 1);
+        return false;
+      })
+      .sort();
+  }
+
+  it("一覧の図と系統の図を 1 件以上集められている", async () => {
+    // 空振り防止。 どちらかが空だと下の 2 件が両方とも「差が無い」 で通る
+    const [一覧, 系統] = [await 一覧の図(), 系統の図()];
+    expect(一覧.length, "一覧から図を 1 件も集められていない").toBeGreaterThan(0);
+    expect(系統.length, "2 系統から図を 1 件も集められていない").toBeGreaterThan(0);
+  });
+
+  it("同じ id の重複数を差分から落とさない", () => {
+    expect(差分(["same", "same"], ["same"])).toEqual(["same"]);
+  });
+
+  it("一覧にあってどちらの系統にも入らない図が無い", async () => {
+    const [一覧, 系統] = [await 一覧の図(), 系統の図()];
+    const 漏れ = 差分(一覧, 系統);
+    expect(漏れ, "一覧に出るのに動きの分類に入っていない図").toEqual([]);
+  });
+
+  it("系統に入るが一覧に無い図が無い", async () => {
+    const [一覧, 系統] = [await 一覧の図(), 系統の図()];
+    const 余り = 差分(系統, 一覧);
+    expect(余り, "動きの分類に入っているが一覧に出ない図").toEqual([]);
   });
 });
