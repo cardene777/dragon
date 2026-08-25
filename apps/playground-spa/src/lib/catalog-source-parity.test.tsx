@@ -38,6 +38,9 @@ import * as Cookbook from "@/topics/catalog/cookbook.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
+import * as Charts from "@/topics/catalog/charts.cdl";
+import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
+import { CATALOG_ITEMS, loadPartsItems } from "./catalog-items";
 
 /**
  * id まで完全に一致する preset。
@@ -99,10 +102,16 @@ type Diagram = CdlDiagram;
 /**
  * 記法を併記した見本を持つ module。
  *
- * **1 つずつ足す**。 見本帳は 11 ページあり、記法を持つのは一部しかない。 ここに足した
- * ページだけが本 file の検査を通るので、足し忘れは「検査が増えない」 という形で残る。
+ * **1 つずつ足す**。 module を動的に集める形にすると、記法を持たない module まで拾って
+ * 別の壊れ方をするため、ここは手で並べる。
  *
- * 網羅そのものは別の検査が見る (`catalog-notation-coverage.test.ts`)。
+ * 足し忘れは「検査が増えない」 という形で残り、通っている件数だけが減る = 気付けない。
+ * 実際 `charts` (19 件) と `text-dsl` (26 件) が一覧に載りながら本 file の対象から漏れて
+ * いた (#1403)。 **漏れは § 一覧に載る記法が 1 つ残らず対象に入っている が落とす**。
+ *
+ * 見本が記法を持つかどうか (網羅) は別の検査が見る
+ * (`catalog-notation-coverage.test.ts`)。 あちらは「ページが記法を揃えたか」 を見るだけで、
+ * **その記法が本 file の対象に入っているかは見ない**。 2 つは別の問いなので両方要る。
  */
 const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["presets", Presets],
@@ -117,9 +126,9 @@ const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
   ["cookbook", Cookbook],
   ["ethereum", Ethereum],
   ["parts", Parts],
-  // 全件ではない (#1385)。 つまみや押下で値が変わる仕掛けを持つ 56 件は記法で書けないので、
-  // 記法を持つ 73 件だけがここの対象になる (`記法つき` が `sourceYaml__` で絞る)
   ["interactive", Interactive],
+  ["charts", Charts],
+  ["text-dsl", TextDsl],
 ];
 
 /** `sourceYaml__<key>` を持つ見本を集める */
@@ -1139,5 +1148,59 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     const 実在 = new Set(対象.map((t) => t.key));
     const 幽霊 = id完全一致.filter((k) => !実在.has(k));
     expect(幽霊, "id 完全一致に宣言されているが記法を持たない preset").toEqual([]);
+  });
+});
+
+/**
+ * 一覧に載る記法が 1 つ残らず対象に入っているか (#1403)。
+ *
+ * 対象 (`記法を持つ見本帳`) は手で並べるため、ページを足した時に **ここへ足し忘れる**。
+ * 忘れても本 file は通る = 検査の件数が減るだけで、何も落ちない。
+ *
+ * 実際 `charts` (19 件) と `text-dsl` (26 件) が一覧に載りながら漏れており、記法から作った
+ * 図が組み立ての図と一致するかを **45 件ぶん誰も確かめていなかった**。
+ *
+ * ## 一覧を SSOT にする
+ *
+ * 画面が読む一覧 (`CATALOG_ITEMS`) が「どの見本が記法を持つか」 の実物になる。
+ * そこから導いて対象と突き合わせれば、次にページを足した時も漏れが落ちる。
+ *
+ * ## 両方向で見る
+ *
+ * 一覧にあって対象に無いのが漏れ。 逆に対象にあって一覧に無いのは、画面に出ない見本を
+ * 比べている形で、宣言 (`比べない` / `読み替える`) が意図しない図に効く元になる。
+ */
+describe("一覧に載る記法が 1 つ残らず対象に入っている (#1403)", () => {
+  /** 一覧に載る見本のうち記法を持つものの名前。 `parts` は遅延読み込みなので明示的に足す */
+  async function 一覧の記法つき(): Promise<Set<string>> {
+    const out = new Set<string>();
+    for (const items of Object.values(CATALOG_ITEMS)) {
+      for (const it of items) if (it.sourceYaml !== undefined) out.add(it.title);
+    }
+    // `parts` は `CATALOG_ITEMS` で空配列。 足さないと 80 件が範囲から漏れる
+    for (const it of await loadPartsItems()) if (it.sourceYaml !== undefined) out.add(it.title);
+    return out;
+  }
+
+  it("一覧の記法つき見本が 1 件以上ある", async () => {
+    // 空振り防止。 一覧を読めていないと下の 2 件が両方とも「差が無い」 で通る
+    const 一覧 = await 一覧の記法つき();
+    expect(一覧.size, "一覧から記法つきの見本を 1 件も集められていない").toBeGreaterThan(0);
+  });
+
+  it("一覧にあって対象に無い見本が無い", async () => {
+    const 一覧 = await 一覧の記法つき();
+    const 対象の名前 = new Set(対象.map((t) => t.key));
+    const 漏れ = [...一覧].filter((k) => !対象の名前.has(k)).sort();
+    expect(漏れ, "一覧に記法があるのに一致検査の対象に入っていない見本").toEqual([]);
+  });
+
+  it("対象にあって一覧に無い見本が無い", async () => {
+    const 一覧 = await 一覧の記法つき();
+    const 余り = 対象
+      .map((t) => t.key)
+      .filter((k) => !一覧.has(k))
+      .sort();
+    expect(余り, "一致検査の対象だが一覧に出ない見本").toEqual([]);
   });
 });
