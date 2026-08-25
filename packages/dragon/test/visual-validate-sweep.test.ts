@@ -259,13 +259,11 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
  * 一覧にあって対象に無いのが漏れ。 逆に対象にあって一覧に無いのは、画面に出ない図を
  * 検査している形で、除外の宣言 (`isGatingViolation`) が意図しない図に効く元になる。
  *
- * ## 重複数を落とさない
+ * ## 突き合わせの道具は共有する
  *
- * 集合 (`Set`) で比べてはいけない。 同じ id を持つ図が 2 つある module を足し忘れても、
- * 既存の 1 件が id を覆い隠して差が 0 件になる = **収録漏れが見えなくなる**。
- *
- * 重複数を保った差分を取る。 左に 2 つ / 右に 1 つあれば 1 件を漏れとして返す
- * (§ 同じ id の重複数を差分から落とさない が、この性質を直接固定する)。
+ * 一覧を集める形と差分の取り方は `apps/playground-spa/src/lib/catalog-scope.ts` が持つ
+ * (#1409)。 4 つの検査が同じ道具を呼び、道具そのものの性質 (重複数を落とさない /
+ * `parts` を漏らさない) は catalog-scope 側の検査が固定する。
  *
  * ## 件数を書かない
  *
@@ -274,35 +272,16 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
  * 下の検査が名指しで並べる。
  */
 describe("一覧に載る図が 1 つ残らず sweep の対象に入っている (#1405)", () => {
-  /** 一覧に載る図の id。 `parts` は遅延読み込みなので明示的に足す */
-  async function 一覧の図(): Promise<string[]> {
-    const { CATALOG_ITEMS, loadPartsItems } = await import("@/lib/catalog-items");
-    const out: string[] = [];
-    for (const items of Object.values(CATALOG_ITEMS)) for (const it of items) out.push(it.id);
-    // `parts` は `CATALOG_ITEMS` で空配列。 足さないと 80 図が範囲から漏れる
-    for (const it of await loadPartsItems()) out.push(it.id);
-    return out;
-  }
+  /** 一覧を読む道具は 4 つの検査で共有する (#1409)。 定義と検査は catalog-scope が持つ */
+  const 一覧の図 = async (): Promise<string[]> => (await import("@/lib/catalog-scope")).一覧の図();
+  const 差分 = async (l: readonly string[], r: readonly string[]): Promise<string[]> =>
+    (await import("@/lib/catalog-scope")).差分(l, r);
 
   /** sweep が見る図の id */
   function 対象の図(): string[] {
     const out: string[] = [];
     for (const { name, mod } of sources) for (const d of collectDiagrams(mod, name)) out.push(d.id);
     return out;
-  }
-
-  /** 重複数を保ったまま、 left にだけある id を返す */
-  function 差分(left: string[], right: string[]): string[] {
-    const remaining = new Map<string, number>();
-    for (const id of right) remaining.set(id, (remaining.get(id) ?? 0) + 1);
-    return left
-      .filter((id) => {
-        const count = remaining.get(id) ?? 0;
-        if (count === 0) return true;
-        remaining.set(id, count - 1);
-        return false;
-      })
-      .sort();
   }
 
   it("一覧の図と sweep の対象を 1 件以上集められている", async () => {
@@ -312,19 +291,13 @@ describe("一覧に載る図が 1 つ残らず sweep の対象に入っている
     expect(対象.length, "sweep の対象から図を 1 件も集められていない").toBeGreaterThan(0);
   });
 
-  it("同じ id の重複数を差分から落とさない", () => {
-    expect(差分(["same", "same"], ["same"])).toEqual(["same"]);
-  });
-
   it("一覧にあって sweep の対象に無い図が無い", async () => {
-    const [一覧, 対象] = [await 一覧の図(), 対象の図()];
-    const 漏れ = 差分(一覧, 対象);
+    const 漏れ = await 差分(await 一覧の図(), 対象の図());
     expect(漏れ, "一覧に出るのに重なりの検査を通っていない図").toEqual([]);
   });
 
   it("sweep の対象だが一覧に無い図が無い", async () => {
-    const [一覧, 対象] = [await 一覧の図(), 対象の図()];
-    const 余り = 差分(対象, 一覧);
+    const 余り = await 差分(対象の図(), await 一覧の図());
     expect(余り, "重なりの検査を通っているが一覧に出ない図").toEqual([]);
   });
 });

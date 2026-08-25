@@ -40,7 +40,7 @@ import * as Parts from "@/topics/catalog/parts.cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 import * as Charts from "@/topics/catalog/charts.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
-import { CATALOG_ITEMS, loadPartsItems } from "./catalog-items";
+import { 一覧の記法つき, 差分 } from "./catalog-scope";
 
 /**
  * id まで完全に一致する preset。
@@ -1175,36 +1175,25 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
  * 比べている形で、宣言 (`比べない` / `読み替える`) が意図しない図に効く元になる。
  */
 describe("一覧に載る記法が 1 つ残らず対象に入っている (#1403)", () => {
-  /** 一覧に載る見本のうち記法を持つものの名前。 `parts` は遅延読み込みなので明示的に足す */
-  async function 一覧の記法つき(): Promise<Set<string>> {
-    const out = new Set<string>();
-    for (const items of Object.values(CATALOG_ITEMS)) {
-      for (const it of items) if (it.sourceYaml !== undefined) out.add(it.title);
-    }
-    // `parts` は `CATALOG_ITEMS` で空配列。 足さないと 80 件が範囲から漏れる
-    for (const it of await loadPartsItems()) if (it.sourceYaml !== undefined) out.add(it.title);
-    return out;
-  }
-
   it("一覧の記法つき見本が 1 件以上ある", async () => {
     // 空振り防止。 一覧を読めていないと下の 2 件が両方とも「差が無い」 で通る
     const 一覧 = await 一覧の記法つき();
-    expect(一覧.size, "一覧から記法つきの見本を 1 件も集められていない").toBeGreaterThan(0);
+    expect(一覧.length, "一覧から記法つきの見本を 1 件も集められていない").toBeGreaterThan(0);
   });
 
   it("一覧にあって対象に無い見本が無い", async () => {
-    const 一覧 = await 一覧の記法つき();
-    const 対象の名前 = new Set(対象.map((t) => t.key));
-    const 漏れ = [...一覧].filter((k) => !対象の名前.has(k)).sort();
+    const 漏れ = 差分(
+      await 一覧の記法つき(),
+      対象.map((t) => t.key),
+    );
     expect(漏れ, "一覧に記法があるのに一致検査の対象に入っていない見本").toEqual([]);
   });
 
   it("対象にあって一覧に無い見本が無い", async () => {
-    const 一覧 = await 一覧の記法つき();
-    const 余り = 対象
-      .map((t) => t.key)
-      .filter((k) => !一覧.has(k))
-      .sort();
+    const 余り = 差分(
+      対象.map((t) => t.key),
+      await 一覧の記法つき(),
+    );
     expect(余り, "一致検査の対象だが一覧に出ない見本").toEqual([]);
   });
 });
