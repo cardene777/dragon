@@ -60,6 +60,8 @@ import type {
   DslReadout,
   DslInput,
   DslFormula,
+  DslEventBinding,
+  DslScrollTrigger,
   DslActorNodeOverride,
   DslStep,
   DslAnimate,
@@ -108,6 +110,10 @@ export const TOP_LEVEL_KEYS = [
   "inputs",
   // つまみの値から決まる値 (#1391)
   "formulas",
+  // 押下などの出来事で動く仕掛け (#1393)
+  "events",
+  // 巻き上げに応じて進む値 (#1393)
+  "scrolls",
 ] as const;
 
 /**
@@ -389,6 +395,9 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let readoutsList: DslReadout[] | undefined = undefined;
   let inputsList: DslInput[] | undefined = undefined;
   let formulasList: DslFormula[] | undefined = undefined;
+  let eventsList: DslEventBinding[] | undefined = undefined;
+  let scrollsList: DslScrollTrigger[] | undefined = undefined;
+  let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
 
   let i = 0;
@@ -738,6 +747,67 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "events") {
+      // events:\n  - { on: click, box: Button, handler: toggle-active }
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "events は 1 行にまとめて書けない",
+          hint: "次の行から字下げして `- { on: click, box: Button, handler: toggle }` の形で並べる",
+        });
+        i += 1;
+        continue;
+      }
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      eventsList = [];
+      for (const it of items) {
+        const e = 出来事として読む(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
+        if (e) eventsList.push(e);
+      }
+      i = next;
+      continue;
+    }
+    if (head.key === "scrolls") {
+      // scrolls:\n  intro: { start: 0.9, end: 0.1, scrub: 1, label: "..." }
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "scrolls は 1 行にまとめて書けない",
+          hint: "次の行から字下げして `intro: { start: 0.9, end: 0.1 }` の形で並べる",
+        });
+        i += 1;
+        continue;
+      }
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      scrollsList = [];
+      scrollLines = new Map();
+      for (const it of items) {
+        const m = 名前と中括弧に割る(it.trimmed);
+        if (m) {
+          const 読めた = 巻き上げとして読む(m[0], m[1], it.no, errors);
+          if (読めた) {
+            if (scrollLines.has(読めた.id)) {
+              errors.push({
+                line: it.no,
+                message: `巻き上げの名前 "${読めた.id}" が重複しています`,
+                hint: "scrolls の名前は 1 度だけ書く",
+              });
+            } else {
+              scrollsList.push(読めた);
+              scrollLines.set(読めた.id, it.no);
+            }
+          }
+        } else {
+          errors.push({
+            line: it.no,
+            message: `invalid scroll entry: "${it.trimmed}"`,
+            hint: "use `id: { start: 0.9, end: 0.1, scrub: 1 }`",
+          });
+        }
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "groups") {
       // groups:\n  aws: { label: "AWS", lanes: [ecs, rds] }
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
@@ -781,6 +851,20 @@ export function parseTextDslV05(src: string): V05ParseResult {
       hint: "add `type: sequence|flow|swimlane|er|state|topology|solidity|gantt|class|pie|c4|mind`",
     });
 
+  // つまみ・式・巻き上げは同じ名前空間で値を作る。 重なると後から作る値が効かない。
+  const 既に値を作る名前 = new Set([
+    ...(inputsList ?? []).map((input) => input.id),
+    ...(formulasList ?? []).map((formula) => formula.id),
+  ]);
+  for (const scroll of scrollsList ?? []) {
+    if (!既に値を作る名前.has(scroll.id)) continue;
+    errors.push({
+      line: scrollLines.get(scroll.id) ?? 1,
+      message: `巻き上げの名前 "${scroll.id}" が inputs または formulas と重なっています`,
+      hint: "inputs / formulas / scrolls では重ならない名前を使う",
+    });
+  }
+
   if (errors.length > 0) return { ok: false, errors };
 
   return {
@@ -799,6 +883,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
       readouts: readoutsList,
       inputs: inputsList,
       formulas: formulasList,
+      events: eventsList,
+      scrolls: scrollsList,
       groups: groupsMap,
       pos: { line: 1 },
     },
@@ -1609,6 +1695,182 @@ function 部品として読む(
   部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
   return { id, kind, ...読めた } as DslReadout;
+}
+
+/**
+ * 出来事の種類 (#1393)。 描画側の `CdlEventKind` と同じ語を並べる。
+ *
+ * **描画側から導けない**。 型は書き出されるが値の一覧は実行時に無いため、ここに書く。
+ * 知らない語を書いた時の知らせがこの一覧をそのまま出すので、増えたら 1 行足す。
+ */
+export const EVENT_KINDS = [
+  "click",
+  "hover",
+  "double-click",
+  "long-press",
+  "drag",
+  "drop",
+  "keydown",
+  "focus",
+  "blur",
+] as const;
+
+/** 出来事の相手を指す書き方。 ちょうど 1 つだけ書く */
+const EVENT_TARGET_KEYS = ["box", "lane", "arrow", "diagram"] as const;
+
+/**
+ * 押下などの出来事で動く仕掛けを 1 件読む (#1393)。
+ *
+ * 形は `{ on: click, box: Button, handler: toggle }`。 相手の指し方は 4 つあり、
+ * **ちょうど 1 つだけ書く** = 2 つ書くとどちらを指したのか決まらず、0 なら相手がいない。
+ *
+ * 相手は名前で書く。 識別子は記法で書けないため、名前から識別子への読み替えは
+ * 組み立てが行う (`focus:` と同じ扱い)。
+ */
+function 出来事として読む(
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslEventBinding | undefined {
+  const t = raw.trim();
+  if (!t.startsWith("{") || !t.endsWith("}")) {
+    errors.push({
+      line,
+      message: `出来事の行が読めません: "${t}"`,
+      hint: "`- { on: click, box: Button, handler: toggle }` の形で書く",
+    });
+    return undefined;
+  }
+  const opts = parseInlineMapping(t.slice(1, -1));
+  for (const k of Object.keys(opts)) {
+    if (k === "on" || k === "handler" || (EVENT_TARGET_KEYS as readonly string[]).includes(k))
+      continue;
+    errors.push({
+      line,
+      message: `出来事の項目名が読めません: "${k}"`,
+      hint: `使える項目 = on, handler, ${EVENT_TARGET_KEYS.join(", ")}`,
+    });
+    return undefined;
+  }
+  const on = opts.on ?? "";
+  if (!(EVENT_KINDS as readonly string[]).includes(on)) {
+    errors.push({
+      line,
+      message: `出来事の種類が読めません: "${on}"`,
+      hint: `使える種類 = ${EVENT_KINDS.join(", ")}`,
+    });
+    return undefined;
+  }
+  const handlerId = (opts.handler ?? "").trim();
+  if (handlerId === "") {
+    errors.push({
+      line,
+      message: "出来事の handler が空です",
+      hint: "`handler: toggle-active` のように、呼び出す仕掛けの名前を書く",
+    });
+    return undefined;
+  }
+  const 書いた相手 = EVENT_TARGET_KEYS.filter((k) => opts[k] !== undefined);
+  if (書いた相手.length !== 1) {
+    errors.push({
+      line,
+      message:
+        書いた相手.length === 0
+          ? "出来事の相手が書かれていません"
+          : `出来事の相手を 2 つ以上書いています: ${書いた相手.join(", ")}`,
+      hint: `${EVENT_TARGET_KEYS.join(" / ")} のどれか 1 つだけを書く`,
+    });
+    return undefined;
+  }
+  const 鍵 = 書いた相手[0]!;
+  const 値 = (opts[鍵] ?? "").trim();
+  let target: DslEventBinding["target"];
+  if (鍵 === "diagram") {
+    if (値 !== "true") {
+      errors.push({
+        line,
+        message: `出来事の diagram が読めません: "${値}"`,
+        hint: "図全体を指す時は `diagram: true` と書く",
+      });
+      return undefined;
+    }
+    target = { kind: "diagram" };
+  } else if (鍵 === "arrow") {
+    const m = 値.split("->");
+    if (m.length !== 2 || m[0]!.trim() === "" || m[1]!.trim() === "") {
+      errors.push({
+        line,
+        message: `出来事の矢印が読めません: "${値}"`,
+        hint: "`arrow: A -> B` の形で、矢印の両端の名前を書く",
+      });
+      return undefined;
+    }
+    target = { kind: "edge", from: stripQuotes(m[0]!.trim()), to: stripQuotes(m[1]!.trim()) };
+  } else {
+    if (値 === "") {
+      errors.push({
+        line,
+        message: `出来事の ${鍵} が空です`,
+        hint: "指す相手の名前を書く",
+      });
+      return undefined;
+    }
+    target = { kind: 鍵 === "box" ? "node" : "lane", name: stripQuotes(値) };
+  }
+  return { event: on as DslEventBinding["event"], target, handlerId, pos: { line } };
+}
+
+/** 巻き上げに応じて進む値の欄 (#1393)。 描画側の `CdlScrollTrigger` を覆う */
+const SCROLL_VALUE_KINDS = {
+  start: "数",
+  end: "数",
+  scrub: "数",
+} as const satisfies Record<string, 値の形>;
+
+/**
+ * 巻き上げに応じて進む値を 1 件読む (#1393)。
+ *
+ * 形は `intro: { start: 0.9, end: 0.1, scrub: 1, label: "..." }`。
+ * 数の欄は表が読み、説明文はそのまま渡す。
+ */
+function 巻き上げとして読む(
+  id: string,
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslScrollTrigger | undefined {
+  if (!isValueName(id)) {
+    errors.push({ line, ...valueNameIssue(id) });
+    return undefined;
+  }
+  const opts = parseInlineMapping(raw);
+  const 使える = [...Object.keys(SCROLL_VALUE_KINDS), "label"];
+  for (const k of Object.keys(opts)) {
+    if (使える.includes(k)) continue;
+    errors.push({
+      line,
+      message: `巻き上げ ${id} の項目名が読めません: "${k}"`,
+      hint: `使える項目 = ${使える.join(", ")}`,
+    });
+    return undefined;
+  }
+  const 数 = 表で読む(SCROLL_VALUE_KINDS, opts, `巻き上げ ${id} の `, line, errors);
+  for (const 欄 of ["start", "end", "scrub"] as const) {
+    const 値 = 数[欄];
+    if (値 === undefined || (値 >= 0 && 値 <= 1)) continue;
+    errors.push({
+      line,
+      message: `巻き上げ ${id} の ${欄} は 0 から 1 の間で書きます: "${値}"`,
+      hint: "0 は画面の上端または段階的な追随、1 は下端または連続追随",
+    });
+  }
+  return {
+    id,
+    ...(数.start !== undefined ? { start: 数.start } : {}),
+    ...(数.end !== undefined ? { end: 数.end } : {}),
+    ...(数.scrub !== undefined ? { scrub: 数.scrub } : {}),
+    ...(opts.label !== undefined ? { label: opts.label } : {}),
+  };
 }
 
 /**

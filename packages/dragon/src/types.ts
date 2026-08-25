@@ -22,6 +22,30 @@ export type DslInput = NonNullable<CdlDiagram["inputs"]>[number];
 /** つまみの値から決まる値 (#1391)。 描画側の型に、知らせ用の記述位置だけを足す。 */
 export type DslFormula = NonNullable<CdlDiagram["formulas"]>[number] & { pos?: Position };
 
+/** 巻き上げに応じて進む値 (#1393)。 描画側の型をそのまま使う */
+export type DslScrollTrigger = NonNullable<CdlDiagram["scrollTriggers"]>[number];
+
+/**
+ * 押下などの出来事で動く仕掛け (`events:`、 #1393)。
+ *
+ * **描画側の型をそのまま使わない**。 描画側は相手を識別子で持つ (`{ kind: "node", id }`) が、
+ * 記法は識別子を書けず名前で指す。 名前から識別子への読み替えは組み立てが行うため、
+ * 記法の段階では「何をどう指したか」 だけを持つ。
+ */
+export type DslEventBinding = {
+  /** 出来事の種類 (`click` / `hover` など、描画側の `CdlEventKind` と同じ語) */
+  event: NonNullable<CdlDiagram["eventBindings"]>[number]["event"];
+  /** 何を指したか。 名前は記法に書かれたまま持ち、組み立てが識別子へ直す */
+  target:
+    | { kind: "node"; name: string }
+    | { kind: "lane"; name: string }
+    | { kind: "edge"; from: string; to: string }
+    | { kind: "diagram" };
+  /** 呼び出す仕掛けの名前。 実体は画面側が持つ */
+  handlerId: string;
+  pos: Position;
+};
+
 export type PresetType =
   | "sequence"
   | "flow"
@@ -135,6 +159,18 @@ export type DslDocument = {
    * どちらも同じ名前として読む)。
    */
   formulas?: DslFormula[];
+  /**
+   * 押下などの出来事で動く仕掛け (`events:`、 #1393)。
+   *
+   * 相手は名前で指す。 組み立てが識別子へ直し、指す先が無ければ知らせる。
+   */
+  events?: DslEventBinding[];
+  /**
+   * 巻き上げに応じて進む値 (`scrolls:`、 #1393)。
+   *
+   * 画面を巻き上げた量から 0 から 1 の進み具合を作る。 描画側はこれを値として読む。
+   */
+  scrolls?: DslScrollTrigger[];
   /**
    * canvas pivot (CAR-1693 Phase 1) diagram-level layout mode。 未指定は "auto" default で
    * catalog 100+ backward compat。 "manual" は Phase 4 で drag → pos: 保存の完全 manual mode。

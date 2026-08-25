@@ -32,6 +32,7 @@ import {
   部品の表,
   部品の組の表,
   つまみの表,
+  EVENT_KINDS,
   type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
@@ -49,6 +50,8 @@ import type {
   DslReadout,
   DslInput,
   DslFormula,
+  DslEventBinding,
+  DslScrollTrigger,
   DslDynShape,
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
@@ -101,6 +104,21 @@ export interface DragonJson {
    * 形は `{ 名前: "式" }`。 `values:` と経路が別で、式は名前を中括弧で囲わない。
    */
   formulas?: Record<string, string>;
+  /**
+   * 押下などの出来事で動く仕掛け (optional、 #1393)。 記法の最上位 `events:` と同じ。
+   *
+   * 相手は名前で指す (`box` / `lane` / `arrow` / `diagram` のどれか 1 つ)。
+   */
+  events?: {
+    on: string;
+    handler: string;
+    box?: string;
+    lane?: string;
+    arrow?: string;
+    diagram?: boolean;
+  }[];
+  /** 巻き上げに応じて進む値 (optional、 #1393)。 記法の最上位 `scrolls:` と同じ */
+  scrolls?: Record<string, { start?: number; end?: number; scrub?: number; label?: string }>;
   /**
    * 状態の初期値 (optional)。 記法の `states:` と同じ (#1181)。
    *
@@ -416,6 +434,9 @@ export const ACCEPTED_KEYS = {
     "inputs",
     // つまみの値から決まる値 (#1391)
     "formulas",
+    // 押下などの出来事で動く仕掛けと、巻き上げに応じて進む値 (#1393)
+    "events",
+    "scrolls",
   ],
   actor: [
     "name",
@@ -552,6 +573,9 @@ export const 欄の型表 = {
     inputs: "並び",
     // つまみの値から決まる値 (#1391)。 中身は下の検査が式ごとに見る
     formulas: "object",
+    // 押下と巻き上げ (#1393)。 中身は下の検査が 1 件ずつ見る
+    events: "並び",
+    scrolls: "object",
   },
   actor: {
     name: "必須の非空文字列",
@@ -1340,6 +1364,166 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
 }
 
 /**
+ * 押下などの出来事で動く仕掛けを検査する (#1393)。
+ *
+ * 相手の指し方は 4 つあり、**ちょうど 1 つだけ書く**。 2 つ書くとどちらを指したのか
+ * 決まらず、0 なら相手がいない。 記法側の読み取りと同じ規則にする。
+ */
+function validateEvents(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!Array.isArray(v)) {
+    errors.push({
+      path: "$.events",
+      message: "events must be an array of event objects",
+      hint: `got ${v === null ? "null" : typeof v}`,
+    });
+    return;
+  }
+  const 相手の鍵 = ["box", "lane", "arrow", "diagram"];
+  v.forEach((e, i) => {
+    const path = `$.events[${i}]`;
+    if (!e || typeof e !== "object" || Array.isArray(e)) {
+      errors.push({ path, message: "event must be a plain object", hint: `got ${typeof e}` });
+      return;
+    }
+    const o = e as Record<string, unknown>;
+    for (const k of Object.keys(o)) {
+      if (k === "on" || k === "handler" || 相手の鍵.includes(k)) continue;
+      errors.push({
+        path: `${path}.${k}`,
+        message: `unknown key "${k}"`,
+        hint: `使える項目 = on, handler, ${相手の鍵.join(", ")}`,
+      });
+    }
+    if (typeof o.on !== "string" || !(EVENT_KINDS as readonly string[]).includes(o.on)) {
+      errors.push({
+        path: `${path}.on`,
+        message: "on must be a known event kind",
+        hint: `使える種類 = ${EVENT_KINDS.join(", ")}`,
+      });
+    }
+    if (typeof o.handler !== "string" || o.handler.trim() === "") {
+      errors.push({
+        path: `${path}.handler`,
+        message: "handler is required",
+        hint: "空でない文字列で書く",
+      });
+    }
+    const 書いた = 相手の鍵.filter((k) => o[k] !== undefined);
+    if (書いた.length !== 1) {
+      errors.push({
+        path,
+        message:
+          書いた.length === 0 ? "event target is required" : "event target must be written once",
+        hint: `${相手の鍵.join(" / ")} のどれか 1 つだけを書く`,
+      });
+      return;
+    }
+    const 鍵 = 書いた[0]!;
+    if (鍵 === "diagram") {
+      if (o.diagram !== true) {
+        errors.push({
+          path: `${path}.diagram`,
+          message: "diagram must be true",
+          hint: "図全体を指す時だけ書く",
+        });
+      }
+      return;
+    }
+    if (typeof o[鍵] !== "string" || (o[鍵] as string).trim() === "") {
+      errors.push({ path: `${path}.${鍵}`, message: `${鍵} must be a non-empty string` });
+      return;
+    }
+    if (鍵 === "arrow") {
+      const 両端 = (o.arrow as string).split("->");
+      if (両端.length !== 2 || 両端.some((x) => x.trim() === "")) {
+        errors.push({
+          path: `${path}.arrow`,
+          message: "arrow must be `A -> B`",
+          hint: "矢印の両端の名前を書く",
+        });
+      }
+    }
+  });
+}
+
+/**
+ * 巻き上げに応じて進む値を検査する (#1393)。
+ *
+ * 形は `{ 名前: { start, end, scrub, label } }`。 名前の規則は状態と揃える。
+ */
+function validateScrolls(
+  v: unknown,
+  inputs: unknown,
+  formulas: unknown,
+  errors: JsonDslError[],
+): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path: "$.scrolls",
+      message: "scrolls must be an object of name to spec",
+      hint: `got ${v === null ? "null" : Array.isArray(v) ? "array" : typeof v}`,
+    });
+    return;
+  }
+  const 既に値を作る名前 = new Set<string>();
+  if (Array.isArray(inputs)) {
+    for (const input of inputs) {
+      if (!input || typeof input !== "object" || Array.isArray(input)) continue;
+      const id = (input as { id?: unknown }).id;
+      if (typeof id === "string") 既に値を作る名前.add(id);
+    }
+  }
+  if (formulas && typeof formulas === "object" && !Array.isArray(formulas)) {
+    for (const id of Object.keys(formulas)) 既に値を作る名前.add(id);
+  }
+  for (const [名前, spec] of Object.entries(v as Record<string, unknown>)) {
+    const path = `$.scrolls.${名前}`;
+    if (!isValueName(名前)) {
+      errors.push({ path, ...valueNameIssue(名前) });
+      continue;
+    }
+    if (既に値を作る名前.has(名前)) {
+      errors.push({
+        path,
+        message: `${名前} collides with an input or formula`,
+        hint: "inputs / formulas / scrolls では重ならない名前を使う",
+      });
+    }
+    if (!spec || typeof spec !== "object" || Array.isArray(spec)) {
+      errors.push({ path, message: `${名前} must be a plain object`, hint: `got ${typeof spec}` });
+      continue;
+    }
+    for (const [k, x] of Object.entries(spec as Record<string, unknown>)) {
+      if (k === "label") {
+        if (typeof x !== "string") {
+          errors.push({ path: `${path}.label`, message: "label must be a string" });
+        }
+        continue;
+      }
+      if (k !== "start" && k !== "end" && k !== "scrub") {
+        errors.push({
+          path: `${path}.${k}`,
+          message: `unknown key "${k}"`,
+          hint: "使える項目 = start, end, scrub, label",
+        });
+        continue;
+      }
+      if (typeof x !== "number" || !Number.isFinite(x)) {
+        errors.push({ path: `${path}.${k}`, message: `${k} must be a finite number` });
+      } else if (x < 0 || x > 1) {
+        errors.push({
+          path: `${path}.${k}`,
+          message: `${k} must be between 0 and 1`,
+          hint: "0 と 1 を含む範囲で書く",
+        });
+      }
+    }
+  }
+}
+
+/**
  * 箱の中に描く図形を検査する (#1374)。
  *
  * `validateReadouts` と同じ理由で外側の形もここで見る。
@@ -1681,6 +1865,9 @@ function validateJson(
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
   validateFormulas(j.formulas, j.inputs, errors);
+  // 押下と巻き上げ (#1393)
+  validateEvents(j.events, errors);
+  validateScrolls(j.scrolls, j.inputs, j.formulas, errors);
 
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
@@ -2057,6 +2244,31 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   const readouts: DslReadout[] | undefined = json.readouts ? [...json.readouts] : undefined;
   // つまみもそのまま渡す (#1389)。 形は描画側の型が縛る
   const inputs: DslInput[] | undefined = json.inputs ? [...json.inputs] : undefined;
+  /*
+   * 押下と巻き上げも記法側と同じ形へ写す (#1393)。
+   *
+   * 相手は名前のまま持ち、識別子への読み替えは組み立てが行う = 2 つの入口で同じ経路を通る。
+   */
+  const events: DslEventBinding[] | undefined = json.events?.map((e) => ({
+    event: e.on as DslEventBinding["event"],
+    target:
+      e.diagram === true
+        ? ({ kind: "diagram" } as const)
+        : e.arrow !== undefined
+          ? ({
+              kind: "edge" as const,
+              from: e.arrow.split("->")[0]?.trim() ?? "",
+              to: e.arrow.split("->")[1]?.trim() ?? "",
+            } as const)
+          : e.lane !== undefined
+            ? ({ kind: "lane" as const, name: e.lane } as const)
+            : ({ kind: "node" as const, name: e.box ?? "" } as const),
+    handlerId: e.handler.trim(),
+    pos: p0,
+  }));
+  const scrolls: DslScrollTrigger[] | undefined = json.scrolls
+    ? Object.entries(json.scrolls).map(([id, spec]) => ({ id, ...spec }))
+    : undefined;
   // 式は `{ 名前: "式" }` から並びへ写す (#1391)。 記法側と同じ形にして組み立てを 1 本にする
   const formulas: DslFormula[] | undefined = json.formulas
     ? Object.entries(json.formulas).map(([id, expression]) => ({ id, expression, pos: p0 }))
@@ -2137,6 +2349,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     readouts,
     inputs,
     formulas,
+    events,
+    scrolls,
     pos: p0,
   };
 }

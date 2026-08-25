@@ -71,6 +71,16 @@ export function countDocElements(doc: DslDocument): number {
     (doc.readouts?.length ?? 0) +
     // 読む人が動かすつまみも 1 widget ずつ展開される (#1389)。 readouts と同じ上限で守る。
     (doc.inputs?.length ?? 0) +
+    /*
+     * 式 (#1391) と、押下 / 巻き上げ (#1393) も数える。
+     *
+     * **図の側 (`countDiagramElements`) は既に数えている**。 記法側だけ数えないと、
+     * 箱が少ないままこれらを大量に並べた入力が組み立て前の上限をすり抜け、
+     * 組み立て終わってから (= 時間をかけてから) 図の側で弾かれる。
+     */
+    (doc.formulas?.length ?? 0) +
+    (doc.events?.length ?? 0) +
+    (doc.scrolls?.length ?? 0) +
     (doc.groups ? Object.keys(doc.groups).length : 0) +
     (doc.lanes ? Object.keys(doc.lanes).length : 0)
   );

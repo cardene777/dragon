@@ -11422,7 +11422,7 @@ export const subtitle__exemplarNotificationFlow =
   "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
 
 // ============================================================
-// 記法 (#1385 / #1389 / #1391 / #1392 / #1396)
+// 記法 (#1385 / #1389 / #1391 / #1392 / #1393 / #1396)
 // ============================================================
 //
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
@@ -11431,10 +11431,9 @@ export const subtitle__exemplarNotificationFlow =
 // **手で書かず、組み立て済みの図から機械で出した**。 出した記法は `textDslToDiagram` と
 // `jsonToDiagram` の両方に通して、元の図と骨格が一致することを確かめてから貼っている。
 //
-// **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄
-// (`wBind` / `opacity` / `renderOffsetX` 等)、#1391 で式 (`formulas:`)、#1396 で矢印の欄
-// (`widthBind` / `strokeBind` / `dashOffsetBind`) を書けるようにしたが、押下
-// (`eventBindings`) / 巻き上げ (`scrollTriggers`) を使う図はまだ書けない。
+// **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄、
+// #1391 で式 (`formulas:`)、#1396 で矢印の欄、#1393 で押下 (`events:`) と巻き上げ
+// (`scrolls:`) を書けるようにした。 残るのは記法の作りに由来する 2 件だけで、
 // 内訳は台帳 (`lib/catalog-notation-coverage.test.ts`) の「一部のページ」 が持つ。
 
 export const sourceYaml__arrayLineChart = `title: "配列の値から面グラフを描く"
@@ -26820,6 +26819,438 @@ export const sourceJson__edgeFlowBind = `{
       "duration": 1.6,
       "focus": ["a", "pipeNode", "b"],
       "body": "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。"
+    }
+  ]
+}`;
+
+export const sourceYaml__clickToggle = `title: "クリックが handler を通って状態に届く"
+type: flow
+
+inputs:
+  active: { kind: toggle, defaultValue: false, label: "Active" }
+
+lanes:
+  col1: { x: 0, width: 360 }
+  col2: { x: 400, width: 370 }
+
+states:
+  active: "off"
+
+actors:
+  - Button: { kind: card, lane: col1, stack: 0, subtitle: "click target", posW: 180 }
+  - Handler: { kind: card, lane: col2, stack: 0, subtitle: "押した時と触れた時の受け取り手", posW: 320 }
+  - Signal state: { kind: card, lane: col1, stack: 1, subtitle: "active = {active}", posW: 310 }
+
+flow:
+  - Button -> Handler: "click / hover" (info)
+  - Handler -> Signal state: "toggle" (success)
+
+events:
+  - { on: click, box: "Button", handler: "toggle-active" }
+  - { on: hover, box: "Button", handler: "hover-state" }
+
+animation:
+  - step: "押す前" 1.6s
+    focus: ["Button"]
+    description: "ボタンだけがある状態。 まだ何も起きていない。"
+  - step: "受け取り手に結ぶ" 1.6s
+    focus: ["Button", "Handler"]
+    description: "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。"
+  - step: "押すと値が変わる" 1.6s
+    focus: ["Button", "Handler", "Signal state"]
+    description: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
+`;
+
+export const sourceJson__clickToggle = `{
+  "title": "クリックが handler を通って状態に届く",
+  "type": "flow",
+  "inputs": [
+    { "id": "active", "kind": "toggle", "defaultValue": false, "label": "Active" }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 360 },
+    "col2": { "x": 400, "width": 370 }
+  },
+  "actors": [
+    {
+      "name": "Button",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "click target",
+      "posW": 180
+    },
+    {
+      "name": "Handler",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "押した時と触れた時の受け取り手",
+      "posW": 320
+    },
+    {
+      "name": "Signal state",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "active = {active}",
+      "posW": 310
+    }
+  ],
+  "flow": [
+    { "from": "Button", "to": "Handler", "label": "click / hover", "tone": "info" },
+    { "from": "Handler", "to": "Signal state", "label": "toggle", "tone": "success" }
+  ],
+  "states": { "active": "off" },
+  "events": [
+    { "on": "click", "box": "Button", "handler": "toggle-active" },
+    { "on": "hover", "box": "Button", "handler": "hover-state" }
+  ],
+  "animation": [
+    { "step": "押す前", "duration": 1.6, "focus": ["Button"], "body": "ボタンだけがある状態。 まだ何も起きていない。" },
+    {
+      "step": "受け取り手に結ぶ",
+      "duration": 1.6,
+      "focus": ["Button", "Handler"],
+      "body": "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。"
+    },
+    {
+      "step": "押すと値が変わる",
+      "duration": 1.6,
+      "focus": ["Button", "Handler", "Signal state"],
+      "body": "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
+    }
+  ]
+}`;
+
+export const sourceYaml__eventVariety = `title: "5 種の操作イベントを受け取り分ける"
+type: flow
+
+inputs:
+  lastEvent: { kind: dropdown, options: ["まだ無し", "2 回押し", "選ばれた", "外れた", "キー入力", "長押し"], defaultValue: "まだ無し", label: "直近に受け取った操作" }
+  received: { kind: stepper, min: 0, max: 99, defaultValue: 0, label: "受け取った回数" }
+
+lanes:
+  pointer: { x: 0, width: 200 }
+  keyboard: { x: 240, width: 240 }
+  touch: { x: 500, width: 240 }
+
+actors:
+  - Double Click: { kind: card, lane: pointer, stack: 0, subtitle: "2 回続けて押す" }
+  - Key Focus: { kind: card, lane: keyboard, stack: 0, subtitle: "選ぶ / 外れる / キーを押す" }
+  - Long Press: { kind: card, lane: touch, stack: 0, subtitle: "押したまま 500 ミリ秒" }
+  - 受け取った結果: { kind: card, lane: touch, stack: 1, subtitle: "{lastEvent} · 累計 {received} 回", posW: 220 }
+
+events:
+  - { on: double-click, box: "Double Click", handler: "on-dbl" }
+  - { on: focus, box: "Key Focus", handler: "on-focus" }
+  - { on: blur, box: "Key Focus", handler: "on-blur" }
+  - { on: keydown, box: "Key Focus", handler: "on-key" }
+  - { on: long-press, box: "Long Press", handler: "on-long" }
+
+animation:
+  - step: "2 回押す" 1.6s
+    focus: ["Double Click", "受け取った結果"]
+    description: "1 つ目は 2 回続けて押した時だけ受け取る。 1 回では何も起きない。 受け取ると右下の箱が変わる。"
+  - step: "選ぶ / キーを押す" 1.6s
+    focus: ["Double Click", "Key Focus", "受け取った結果"]
+    description: "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。"
+  - step: "長く押す" 1.6s
+    focus: ["Double Click", "Key Focus", "Long Press", "受け取った結果"]
+    description: "3 つ目は押したまま一定時間たつと受け取る。 5 つの操作はどれも同じ箱に結果を書く。"
+`;
+
+export const sourceJson__eventVariety = `{
+  "title": "5 種の操作イベントを受け取り分ける",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "lastEvent",
+      "kind": "dropdown",
+      "options": ["まだ無し", "2 回押し", "選ばれた", "外れた", "キー入力", "長押し"],
+      "defaultValue": "まだ無し",
+      "label": "直近に受け取った操作"
+    },
+    {
+      "id": "received",
+      "kind": "stepper",
+      "min": 0,
+      "max": 99,
+      "defaultValue": 0,
+      "label": "受け取った回数"
+    }
+  ],
+  "lanes": {
+    "pointer": { "x": 0, "width": 200 },
+    "keyboard": { "x": 240, "width": 240 },
+    "touch": { "x": 500, "width": 240 }
+  },
+  "actors": [
+    {
+      "name": "Double Click",
+      "kind": "card",
+      "lane": "pointer",
+      "stack": 0,
+      "subtitle": "2 回続けて押す"
+    },
+    {
+      "name": "Key Focus",
+      "kind": "card",
+      "lane": "keyboard",
+      "stack": 0,
+      "subtitle": "選ぶ / 外れる / キーを押す"
+    },
+    {
+      "name": "Long Press",
+      "kind": "card",
+      "lane": "touch",
+      "stack": 0,
+      "subtitle": "押したまま 500 ミリ秒"
+    },
+    {
+      "name": "受け取った結果",
+      "kind": "card",
+      "lane": "touch",
+      "stack": 1,
+      "subtitle": "{lastEvent} · 累計 {received} 回",
+      "posW": 220
+    }
+  ],
+  "flow": [],
+  "events": [
+    { "on": "double-click", "box": "Double Click", "handler": "on-dbl" },
+    { "on": "focus", "box": "Key Focus", "handler": "on-focus" },
+    { "on": "blur", "box": "Key Focus", "handler": "on-blur" },
+    { "on": "keydown", "box": "Key Focus", "handler": "on-key" },
+    { "on": "long-press", "box": "Long Press", "handler": "on-long" }
+  ],
+  "animation": [
+    {
+      "step": "2 回押す",
+      "duration": 1.6,
+      "focus": ["Double Click", "受け取った結果"],
+      "body": "1 つ目は 2 回続けて押した時だけ受け取る。 1 回では何も起きない。 受け取ると右下の箱が変わる。"
+    },
+    {
+      "step": "選ぶ / キーを押す",
+      "duration": 1.6,
+      "focus": ["Double Click", "Key Focus", "受け取った結果"],
+      "body": "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。"
+    },
+    {
+      "step": "長く押す",
+      "duration": 1.6,
+      "focus": ["Double Click", "Key Focus", "Long Press", "受け取った結果"],
+      "body": "3 つ目は押したまま一定時間たつと受け取る。 5 つの操作はどれも同じ箱に結果を書く。"
+    }
+  ]
+}`;
+
+export const sourceYaml__scrollNarrative = `title: "スクロール進行に 3 つの段が同時に追随する"
+type: flow
+
+lanes:
+  s1: { x: 0, width: 220 }
+  s2: { x: 260, width: 220 }
+  s3: { x: 520, width: 220 }
+
+states:
+  intro: 0
+
+actors:
+  - Step 1: { kind: card, lane: s1, stack: 0, subtitle: "progress: {intro}" }
+  - Step 2: { kind: card, lane: s2, stack: 0, subtitle: "progress: {intro}" }
+  - Step 3: { kind: card, lane: s3, stack: 0, subtitle: "progress: {intro}" }
+
+scrolls:
+  intro: { start: 0.9, end: 0.1, scrub: 1, label: "Intro reveal" }
+
+animation:
+  - step: "1 箱で見る" 1.6s
+    focus: ["Step 1"]
+    description: "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。"
+  - step: "2 箱で見る" 1.6s
+    focus: ["Step 1", "Step 2"]
+    description: "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。"
+  - step: "3 箱が同時に追う" 1.6s
+    focus: ["Step 1", "Step 2", "Step 3"]
+    description: "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。"
+`;
+
+export const sourceJson__scrollNarrative = `{
+  "title": "スクロール進行に 3 つの段が同時に追随する",
+  "type": "flow",
+  "lanes": {
+    "s1": { "x": 0, "width": 220 },
+    "s2": { "x": 260, "width": 220 },
+    "s3": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "Step 1",
+      "kind": "card",
+      "lane": "s1",
+      "stack": 0,
+      "subtitle": "progress: {intro}"
+    },
+    {
+      "name": "Step 2",
+      "kind": "card",
+      "lane": "s2",
+      "stack": 0,
+      "subtitle": "progress: {intro}"
+    },
+    {
+      "name": "Step 3",
+      "kind": "card",
+      "lane": "s3",
+      "stack": 0,
+      "subtitle": "progress: {intro}"
+    }
+  ],
+  "flow": [],
+  "states": { "intro": 0 },
+  "scrolls": {
+    "intro": { "start": 0.9, "end": 0.1, "scrub": 1, "label": "Intro reveal" }
+  },
+  "animation": [
+    {
+      "step": "1 箱で見る",
+      "duration": 1.6,
+      "focus": ["Step 1"],
+      "body": "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。"
+    },
+    {
+      "step": "2 箱で見る",
+      "duration": 1.6,
+      "focus": ["Step 1", "Step 2"],
+      "body": "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。"
+    },
+    {
+      "step": "3 箱が同時に追う",
+      "duration": 1.6,
+      "focus": ["Step 1", "Step 2", "Step 3"],
+      "body": "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。"
+    }
+  ]
+}`;
+
+export const sourceYaml__supportChat = `title: "問い合わせ 5 通を客 / 担当で分ける"
+type: flow
+
+readouts:
+  cb: { kind: chat-bubble, source: "thread", max: 6, colorSelf: "#2563eb", colorOther: "#f0e0b8", label: "Conversation (bubbles)" }
+
+lanes:
+  customer: { x: 0, width: 280 }
+  support: { x: 320, width: 320 }
+
+states:
+  thread: [["Alice","Hi, I need help with my order",false],["Support","Sure! What's the order ID?",true],["Alice","#12345",false],["Support","Checking...",true],["Support","Refunded! You'll see it in 3-5 days.",true]]
+
+actors:
+  - Alice #1: { kind: card, lane: customer, stack: 0, subtitle: "利用者の 1 通目" }
+  - Alice #2: { kind: card, lane: customer, stack: 1, subtitle: "利用者の 2 通目" }
+  - Support #1: { kind: card, lane: support, stack: 0, subtitle: "応対側の 1 通目" }
+  - Support #2: { kind: card, lane: support, stack: 1, subtitle: "確認中の返答" }
+  - Support #3: { kind: card, lane: support, stack: 2, subtitle: "解決の返答" }
+
+animation:
+  - step: "問い合わせ" 1.8s
+    focus: ["Alice #1"]
+    set:
+      thread: '[["Alice","Hi, I need help with my order",false]]'
+    description: "利用者からの 1 通目。 左側に吹き出しが出る。"
+  - step: "やり取りが続く" 1.8s
+    focus: ["Alice #1", "Support #1", "Alice #2"]
+    set:
+      thread: '[["Alice","Hi, I need help with my order",false],["Support","Sure! What is the order ID?",true],["Alice","#12345",false]]'
+    description: "応対側が返し、利用者が答える。 左右に交互に並ぶ。"
+  - step: "解決する" 1.8s
+    focus: ["Alice #1", "Support #1", "Alice #2", "Support #2", "Support #3"]
+    set:
+      thread: '[["Alice","Hi, I need help with my order",false],["Support","Sure! What is the order ID?",true],["Alice","#12345",false],["Support","Checking...",true],["Support","Refunded! 3-5 days.",true]]'
+    description: "確認を経て解決に至る。 やり取りの流れが上から下へ読める形になる。"
+`;
+
+export const sourceJson__supportChat = `{
+  "title": "問い合わせ 5 通を客 / 担当で分ける",
+  "type": "flow",
+  "readouts": [
+    {
+      "id": "cb",
+      "kind": "chat-bubble",
+      "source": "thread",
+      "max": 6,
+      "colorSelf": "#2563eb",
+      "colorOther": "#f0e0b8",
+      "label": "Conversation (bubbles)"
+    }
+  ],
+  "lanes": {
+    "customer": { "x": 0, "width": 280 },
+    "support": { "x": 320, "width": 320 }
+  },
+  "actors": [
+    {
+      "name": "Alice #1",
+      "kind": "card",
+      "lane": "customer",
+      "stack": 0,
+      "subtitle": "利用者の 1 通目"
+    },
+    {
+      "name": "Alice #2",
+      "kind": "card",
+      "lane": "customer",
+      "stack": 1,
+      "subtitle": "利用者の 2 通目"
+    },
+    {
+      "name": "Support #1",
+      "kind": "card",
+      "lane": "support",
+      "stack": 0,
+      "subtitle": "応対側の 1 通目"
+    },
+    {
+      "name": "Support #2",
+      "kind": "card",
+      "lane": "support",
+      "stack": 1,
+      "subtitle": "確認中の返答"
+    },
+    { "name": "Support #3", "kind": "card", "lane": "support", "stack": 2, "subtitle": "解決の返答" }
+  ],
+  "flow": [],
+  "states": {
+    "thread": "[[\\"Alice\\",\\"Hi, I need help with my order\\",false],[\\"Support\\",\\"Sure! What's the order ID?\\",true],[\\"Alice\\",\\"#12345\\",false],[\\"Support\\",\\"Checking...\\",true],[\\"Support\\",\\"Refunded! You'll see it in 3-5 days.\\",true]]"
+  },
+  "animation": [
+    {
+      "step": "問い合わせ",
+      "duration": 1.8,
+      "focus": ["Alice #1"],
+      "set": { "thread": "[[\\"Alice\\",\\"Hi, I need help with my order\\",false]]" },
+      "body": "利用者からの 1 通目。 左側に吹き出しが出る。"
+    },
+    {
+      "step": "やり取りが続く",
+      "duration": 1.8,
+      "focus": ["Alice #1", "Support #1", "Alice #2"],
+      "set": {
+        "thread": "[[\\"Alice\\",\\"Hi, I need help with my order\\",false],[\\"Support\\",\\"Sure! What is the order ID?\\",true],[\\"Alice\\",\\"#12345\\",false]]"
+      },
+      "body": "応対側が返し、利用者が答える。 左右に交互に並ぶ。"
+    },
+    {
+      "step": "解決する",
+      "duration": 1.8,
+      "focus": ["Alice #1", "Support #1", "Alice #2", "Support #2", "Support #3"],
+      "set": {
+        "thread": "[[\\"Alice\\",\\"Hi, I need help with my order\\",false],[\\"Support\\",\\"Sure! What is the order ID?\\",true],[\\"Alice\\",\\"#12345\\",false],[\\"Support\\",\\"Checking...\\",true],[\\"Support\\",\\"Refunded! 3-5 days.\\",true]]"
+      },
+      "body": "確認を経て解決に至る。 やり取りの流れが上から下へ読める形になる。"
     }
   ]
 }`;

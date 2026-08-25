@@ -1743,6 +1743,104 @@
       "propertyNames": {
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
       }
+    },
+    "events": {
+      "type": "array",
+      "description": "押下などの出来事で動く仕掛け。 相手は名前で指す (box / lane / arrow / diagram のどれか 1 つ)。",
+      "items": {
+        "type": "object",
+        "required": ["on", "handler"],
+        "additionalProperties": false,
+        "properties": {
+          "on": {
+            "type": "string",
+            "enum": [
+              "click",
+              "hover",
+              "double-click",
+              "long-press",
+              "drag",
+              "drop",
+              "keydown",
+              "focus",
+              "blur"
+            ]
+          },
+          "handler": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "box": {
+            "type": "string",
+            "minLength": 1,
+            "description": "箱の名前"
+          },
+          "lane": {
+            "type": "string",
+            "minLength": 1,
+            "description": "縦列の名前"
+          },
+          "arrow": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!.*->.*->)\\s*\\S(?:.*\\S)?\\s*->\\s*\\S(?:.*\\S)?\\s*$",
+            "description": "矢印。 `A -> B` の形で両端の名前を書く"
+          },
+          "diagram": {
+            "const": true,
+            "description": "図全体を指す"
+          }
+        },
+        "oneOf": [
+          {
+            "required": ["box"]
+          },
+          {
+            "required": ["lane"]
+          },
+          {
+            "required": ["arrow"]
+          },
+          {
+            "required": ["diagram"]
+          }
+        ]
+      }
+    },
+    "scrolls": {
+      "type": "object",
+      "description": "巻き上げに応じて進む値。 画面を巻き上げた量から 0 から 1 の進み具合を作る。",
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "進み具合が 0 になる画面上の位置 (0 が上端、1 が下端)"
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "進み具合が 1 になる画面上の位置"
+          },
+          "scrub": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "巻き上げへの追随度合い (0 が段階的、1 が連続)"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
