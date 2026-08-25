@@ -56,6 +56,7 @@ import type {
   DslAxes,
   DslDocument,
   DslActor,
+  DslNodeKind,
   DslDynShape,
   DslReadout,
   DslInput,
@@ -1088,15 +1089,16 @@ function classifyValues(values: string[], line: number, errors: DslError[]): Act
 }
 
 /**
- * 書かれた種類名を、 描画できる種類に解決する。
+ * 書かれた種類名を、 記法が扱う種類に解決する。
  *
- * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 それ以外はそのまま返す。
+ * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 記法だけが持つ種類はそのまま返し、
+ * 描画側へ渡す時に `compile.ts` の `描ける種別` が読み替える。
  */
-export function resolveNodeKind(raw: string): NodeKind {
+export function resolveNodeKind(raw: string): DslNodeKind {
   if (raw === "") return NODE_KIND_DEFAULT;
   // `Object.hasOwn` で引く。 素の添字だと `toString` 等の既定の持ち物が引けてしまい、
   // 種類として関数が返る。 呼ぶ前に受理集合で弾いてはいるが、 表を引く側でも閉じておく。
-  return Object.hasOwn(INFRA_KIND_ALIAS, raw) ? INFRA_KIND_ALIAS[raw]! : (raw as NodeKind);
+  return Object.hasOwn(INFRA_KIND_ALIAS, raw) ? INFRA_KIND_ALIAS[raw]! : (raw as DslNodeKind);
 }
 
 function numberOrUndef(s: string | undefined): number | undefined {

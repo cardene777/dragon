@@ -26,11 +26,12 @@
  * `lint:notation` は 422 図で 0 件を返していた。 **この組み合わせを書いた見本が 1 つも
  * 無かっただけ** で、守られていたわけではない。 だからここで固定する。
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
 import { layout } from "@cardenelabs/cdl";
 
 import { textDslToDiagram } from "../src";
-import { DSL_ONLY_KINDS } from "../src/v05/parser";
+import type { DslNodeKind } from "../src/types";
+import { DSL_ONLY_KINDS, resolveNodeKind } from "../src/v05/parser";
 
 /** 箱の種類を書ける図種。 図全体を 1 箱にする種 (`pie` 等) は箱ごとの種類を持たない */
 const 図種 = ["flow", "swimlane", "state", "topology", "sequence", "er", "solidity"] as const;
@@ -68,6 +69,21 @@ animation:
 }`;
 
 describe("記法だけの種類を書いても図が組み立つ (#1420)", () => {
+  it("種類の解決結果は記法だけの種類を型でも表す", () => {
+    /*
+     * `NodeKind` と偽ると、読み替え前の値を描画側へ渡しても型検査が止められない。
+     *
+     * **この 1 行は実行時に何も見ていない**。 `expectTypeOf` は型の比較で、`vitest run` は
+     * 型を落として走らせるため、型が食い違っても実行では落ちない (実測 = 戻り値を
+     * `NodeKind` に戻しても 139 件すべて通った)。
+     *
+     * 落とすのは型検査の側。 `tsconfig.test.json` が `test/**` を含み、
+     * `typecheck-ratchet.test.ts` がその件数を天井として見る。 同じ変異で件数が
+     * 208 → 209 に増え、天井の検査が落ちることを確かめている。
+     */
+    expectTypeOf(resolveNodeKind("contract")).toEqualTypeOf<DslNodeKind>();
+  });
+
   it("読み替えの対象が 1 件以上ある", () => {
     // 空振り防止。 一覧が空だと下の検査が 1 度も回らず「全部通った」 と表示される
     expect(DSL_ONLY_KINDS.length, "記法だけの種類が 1 つも無い").toBeGreaterThan(0);
