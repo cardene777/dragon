@@ -1,0 +1,88 @@
+/**
+ * 検査 code の型の誤りを減らす方向にだけ動かす (#1413)。
+ *
+ * `packages/dragon/test/` は **型検査を 1 度も通っていなかった**。 `tsconfig.test.json` は
+ * `include` に `test/**` を持つが、読むのは eslint だけで `tsc` からは呼ばれていない。
+ * eslint は型情報を parse に使うものの、TypeScript の compile error は報告しない。
+ *
+ * その間に誤りが 211 件溜まった。 #1411 で見つかった
+ * `satisfies Readonly<Record<PresetType, ...>>` の不発 (13 型しか並べていないのに通っていた)
+ * も、この穴の現れ方の 1 つ。
+ *
+ * ## なぜ天井を固定するのか
+ *
+ * 211 件を 1 PR で直すと、型注釈の追加が数百行になって「どの変更がどの誤りに効いたか」 が
+ * 読めなくなる。 かといって放置すると増え続ける。
+ *
+ * **今の件数を天井として固定する**。 増えれば落ち、減らしても落ちる (天井を下げろと言う)。
+ * どちらの向きにも気付ける形にして、follow-up が減らしていく。
+ *
+ * ## 一致で見る (以下ではなく)
+ *
+ * `<=` にすると、直した人が天井を下げなくても通る。 天井が実態から離れていき、
+ * 「あと何件か」 を誰も知らない状態に戻る。
+ *
+ * ## 内訳は数えない
+ *
+ * 誤りの種類別 / file 別の件数は書かない。 直す順序で細かく動くため、書くと本質でない
+ * 更新が毎回発生する (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ * 内訳が要る時は同じ command を手で回す。
+ */
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { describe, it, expect } from "vitest";
+
+const ここ = dirname(fileURLToPath(import.meta.url));
+const REPO = join(ここ, "..", "..", "..");
+const 設定 = join(ここ, "..", "tsconfig.test.json");
+const TSC = join(REPO, "node_modules", ".bin", "tsc");
+
+/**
+ * いま残っている型の誤りの件数。
+ *
+ * **減らしたらこの数も下げる**。 下げないとこの検査が落ちて教えてくれる。
+ */
+const 天井 = 211;
+
+/** 型検査を回して誤りの行だけを返す */
+function 誤りの行(): string[] {
+  let 出力 = "";
+  try {
+    出力 = execFileSync(TSC, ["--noEmit", "-p", 設定], {
+      cwd: REPO,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (e) {
+    // 誤りがあると `tsc` は非 0 で終わる。 その時の出力が本体
+    const err = e as { stdout?: string; stderr?: string };
+    出力 = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+  }
+  return 出力.split("\n").filter((l) => / error TS\d+: /.test(l));
+}
+
+describe("検査 code の型の誤りを減らす方向にだけ動かす (#1413)", () => {
+  it("型検査を実際に回せている", () => {
+    /*
+     * 空振り防止。 `tsc` を起動できていないと下の 1 件が「0 件」 を見て、
+     * **誤りが 211 件あるのに天井を下回った** と誤って落ちる = 直したように見える。
+     *
+     * 起動できたかは、`tsc` の実体と設定 file の実在で見る。 出力の件数では見ない
+     * (件数 0 は「起動できなかった」 と「全部直った」 のどちらでも起こる)。
+     */
+    expect(existsSync(TSC), `tsc が見つからない: ${TSC}`).toBe(true);
+    expect(existsSync(設定), `設定が見つからない: ${設定}`).toBe(true);
+  });
+
+  it("残っている誤りが天井と一致する", () => {
+    const 件数 = 誤りの行().length;
+    expect(
+      件数,
+      件数 < 天井
+        ? `誤りが ${天井 - 件数} 件減った。 この file の 天井 を ${件数} に下げる`
+        : `誤りが ${件数 - 天井} 件増えた。 型注釈を足して直す`,
+    ).toBe(天井);
+  });
+});
