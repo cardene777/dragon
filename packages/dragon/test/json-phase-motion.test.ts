@@ -160,7 +160,10 @@ animation:
     expect(規則).toHaveLength(1);
     expect(phase[口].additionalProperties).toBe(false);
 
-    const 型 = new RegExp(規則[0]);
+    const 先頭 = 規則[0];
+    // 上の `toHaveLength(1)` が先に落ちるので、 ここへは 1 件ある時しか来ない
+    if (先頭 === undefined) return;
+    const 型 = new RegExp(先頭);
     const 値 = 口 === "tween" ? [0, 1] : 1;
     for (const 名 of ["amount", "_x", "a1", "無い名前", "bad.name", "1st", "with space", ""]) {
       const 検査 = validateDragonJson(図({ animation: [{ step: "読込", [口]: { [名]: 値 } }] }));

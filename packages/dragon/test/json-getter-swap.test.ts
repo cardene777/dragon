@@ -118,7 +118,9 @@ describe("検査後に値を差し替えられない", () => {
 
 describe("validateDragonJson が返す data", () => {
   it("入力 object と別の実体を返す", () => {
-    const 入力 = 図の素({ states: { amount: 0 } });
+    const 入力 = 図の素({ states: { amount: 0 } }) as Record<string, unknown> & {
+      actors: unknown[];
+    };
     const r = validateDragonJson(入力);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -267,6 +269,8 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const 写し = (r.value as Record<string, Record<string, unknown>>).使わない項目;
+    expect(写し, "写しに 使わない項目 が無い").toBeDefined();
+    if (写し === undefined) return;
     expect(Object.keys(写し).length).toBe(200_000);
   }, 30_000);
 
@@ -397,6 +401,8 @@ describe("写しを作れない入力を誤りとして返す (Round 1)", () => 
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const 写し = (r.value as Record<string, number[]>).使わない項目;
+    expect(写し, "写しに 使わない項目 が無い").toBeDefined();
+    if (写し === undefined) return;
     expect(写し.length).toBe(1000);
     expect(写し[999]).toBe(999);
   });
@@ -543,6 +549,8 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const 写し = (r.value as Record<string, Record<string, unknown>>).使わない項目;
+    expect(写し, "写しに 使わない項目 が無い").toBeDefined();
+    if (写し === undefined) return;
     expect(写し.甲).toBe(写し.乙);
     expect(写し.甲).not.toBe(共有);
   });

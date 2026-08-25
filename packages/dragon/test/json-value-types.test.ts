@@ -318,7 +318,7 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
       定義: { enum?: string[]; anyOf?: Array<{ enum?: string[]; pattern?: string }> },
       v: string,
     ): boolean => {
-      const 選択肢 = 定義.anyOf ?? [定義];
+      const 選択肢: Array<{ enum?: string[]; pattern?: string }> = 定義.anyOf ?? [定義];
       return 選択肢.some(
         (o) =>
           o.enum?.includes(v) === true ||

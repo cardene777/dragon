@@ -289,7 +289,7 @@ describe("parser と JSON Schema が同じ項目を持つ (#1295)", () => {
     let 測れた = 0;
     for (const 層 of 全階層) {
       測れた += 1;
-      const 実装 = [...ACCEPTED_KEYS[層]].sort();
+      const 実装: string[] = [...ACCEPTED_KEYS[層]].sort();
       const schema = schemaの項目(層).sort();
       const 実装だけ = 実装.filter((k) => !schema.includes(k));
       const schemaだけ = schema.filter((k) => !実装.includes(k));

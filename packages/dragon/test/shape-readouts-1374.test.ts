@@ -263,7 +263,7 @@ describe("値を見せる部品 (#1374)", () => {
       id: "readout-part",
       topic: "test",
       lanes: [{ id: "l", x: 0, width: 100 }],
-      nodes: [{ id: "hidden", lane: "l", stack: 0, kind: "actor", w: 1, h: 1 }],
+      nodes: [{ id: "hidden", lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1 }],
       edges: [],
       states: [{ id: "v", initial: 30 }],
       phases: [

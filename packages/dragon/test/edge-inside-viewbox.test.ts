@@ -11,6 +11,7 @@ import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
     id: "test-edge-viewbox",
+    topic: "edge viewBox",
     lanes: [
       { id: "L1", x: 0, width: 400, label: "L1" },
       { id: "L2", x: 480, width: 400, label: "L2" },
@@ -19,7 +20,7 @@ function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
       { id: "n1", lane: "L1", stack: 0, kind: "actor", title: "Actor1" },
       { id: "n2", lane: "L2", stack: 0, kind: "actor", title: "Actor2" },
     ],
-    edges: [{ id: "e1", from: "n1", to: "n2", label: "call" }],
+    edges: [{ id: "e1", from: "n1", to: "n2", label: "call", tone: "accent" }],
     phases: [],
     states: [],
     ...overrides,
