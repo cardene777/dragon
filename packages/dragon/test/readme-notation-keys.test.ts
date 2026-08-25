@@ -39,6 +39,7 @@ import {
 } from "../src/v05/parser";
 import { parseTextDslV05 } from "../src/v05";
 import { compileToCdl } from "../src/compile";
+import { at } from "./support/at";
 
 const README = join(dirname(fileURLToPath(import.meta.url)), "..", "README.md");
 
@@ -56,7 +57,9 @@ function 表の列(行: string): string[] {
         continue;
       }
     }
-    列[列.length - 1] += 内側[i];
+    // 直前に必ず 1 件積んでいるので空にならない。 空なら組み立ての前提が崩れている。
+    // **文字は `at()` を通さない** = `at()` は並びの道具で、文字列の添字は別の話
+    列[列.length - 1] = at(列, 列.length - 1, "列") + 内側[i];
   }
 
   return 列.map((c) => c.trim());

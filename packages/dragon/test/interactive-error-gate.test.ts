@@ -1,6 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateAll, layout, requiredNearClearance } from "@cardenelabs/cdl";
-import type { BBox, CdlDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+
+/**
+ * 図の要素が占める矩形 (#1416)。
+ *
+ * cdl は内部で同じ形を `BBox` として持つが、**公開 API に含めていない**
+ * (`dist/index.d.ts` の export に無い)。 dragon 側からは直せないので、検査が使う形を
+ * ここに宣言する。
+ *
+ * cdl 側が公開したら import に戻す。 それまでは形がずれていないかを
+ * § 宣言した矩形が実物と噛み合う が見る。
+ */
+type BBox = {
+  kind: "node" | "lane-label" | "edge-label" | "edge-path";
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
 import {
   timelineDrive,
   kpiDashboard,
@@ -8,6 +27,7 @@ import {
   trafficSankey,
   exemplarNotificationFlow,
 } from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
+import { at } from "./support/at";
 
 /**
  * #401 interactive error-0 gate (段階拡張)。
@@ -67,6 +87,8 @@ function pathPoints(d: string): Array<[number, number]> {
   const re = /([MLQ])\s*([\d.]+)\s+([\d.]+)(?:\s*,\s*([\d.]+)\s+([\d.]+))?/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(d)) !== null) {
+    // **`at()` を通さない**。 任意の群 (`(?:...)?`) は一致しなければ `undefined` になるのが
+    // 正常で、`at()` は「無い = 前提が崩れた」 として落とす道具なので噛み合わない
     if (m[1] === "Q" && m[4] !== undefined) pts.push([parseFloat(m[4]), parseFloat(m[5]!)]);
     else pts.push([parseFloat(m[2]!), parseFloat(m[3]!)]);
   }
@@ -86,12 +108,14 @@ function curveMidY(d: string): number {
   let cur: [number, number] = [0, 0];
   let m: RegExpExecArray | null;
   while ((m = re.exec(d)) !== null) {
-    if (m[1] === "M") {
+    if (at(m, 1, "m") === "M") {
       cur = [parseFloat(m[2]!), parseFloat(m[3]!)];
-    } else if (m[1] === "L") {
+    } else if (at(m, 1, "m") === "L") {
       const next: [number, number] = [parseFloat(m[2]!), parseFloat(m[3]!)];
-      ys.push((cur[1] + next[1]) / 2);
+      ys.push((at(cur, 1, "cur") + at(next, 1, "next")) / 2);
       cur = next;
+      // 任意の群 (`(?:...)?`) は一致しなければ `undefined` になるのが正常なので
+      // `at()` を通さない (`at()` は「無い = 前提が崩れた」 として落とす道具)
     } else if (m[4] !== undefined) {
       const [cx, cy] = [parseFloat(m[2]!), parseFloat(m[3]!)];
       const next: [number, number] = [parseFloat(m[4]!), parseFloat(m[5]!)];
@@ -99,7 +123,7 @@ function curveMidY(d: string): number {
       for (let i = 1; i <= 16; i++) {
         const t = i / 16;
         const u = 1 - t;
-        ys.push(u * u * cur[1] + 2 * u * t * cy + t * t * next[1]);
+        ys.push(u * u * at(cur, 1, "cur") + 2 * u * t * cy + t * t * at(next, 1, "next"));
       }
       cur = next;
     }
@@ -179,6 +203,36 @@ const boxOf = (laid: ReturnType<typeof layout>, kind: BBox["kind"], id: string):
   expect(b, `${kind} "${id}" の矩形が無い`).toBeDefined();
   return b!;
 };
+
+describe("宣言した矩形が実物と噛み合う (#1416)", () => {
+  it("組み立てが返す矩形をそのまま受けられる", () => {
+    /*
+     * cdl は `BBox` を公開していないので、この file が同じ形を宣言している。
+     * **形がずれると読めない項目が出る** ので、実物を受けて 6 項目を確かめる。
+     *
+     * 型の上でも `boxOf` の戻り値が `BBox` なので、cdl 側が形を変えれば型検査が落ちる
+     * (`typecheck-ratchet` が件数で見る。 実物に無い項目を足す変異で 22 → 31 件に増え、
+     * 天井の検査が落ちることを確かめた)。
+     *
+     * **実行時の確認が守るのは別の壊れ方**。 cdl の型定義が実物と食い違う形
+     * (宣言は `number` なのに実際は文字列) は、型検査では捕まらない。
+     *
+     * この形は **local では変異を当てられない** (`node_modules` を書き換える必要がある)。
+     * `rules/quality.md` 条件 5 の「到達する入力を組めない」 に当たるため、覆えていないことを
+     * ここに残す。
+     */
+    const laid = layout(timelineDrive);
+    const b = laid.bboxes[0];
+    expect(b, "組み立てが矩形を 1 つも返していない").toBeDefined();
+    if (b === undefined) return;
+    const 受けた: BBox = b;
+    expect(["node", "lane-label", "edge-label", "edge-path"]).toContain(受けた.kind);
+    expect(typeof 受けた.id).toBe("string");
+    for (const k of ["x", "y", "w", "h"] as const) {
+      expect(typeof 受けた[k], `${k} が数でない`).toBe("number");
+    }
+  });
+});
 /**
  * label 矩形と path の最短距離。
  *
@@ -257,7 +311,9 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         const g = gapOf(boxes[i]!, boxes[j]!);
-        if (g < LABEL_MIN) tight.push(`${ids[i]} ↔ ${ids[j]} gap ${g.toFixed(1)}`);
+        if (g < LABEL_MIN) {
+          tight.push(`${at(ids, i, "ids")} ↔ ${at(ids, j, "ids")} gap ${g.toFixed(1)}`);
+        }
       }
     }
     expect(tight, `近すぎる label 対:\n${tight.join("\n")}`).toHaveLength(0);

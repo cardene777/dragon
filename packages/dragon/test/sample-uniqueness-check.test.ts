@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 function hash(s: string): string {
   let h = 0;
@@ -34,7 +35,7 @@ describe("iter64: EDITOR_SAMPLES 一意性 verify", () => {
   it("code 内 title フィールド値の重複数 <= 2", () => {
     const titles = EDITOR_SAMPLES.map((s) => {
       const m = s.code.match(/title:\s*"([^"]+)"/);
-      return m ? m[1] : "";
+      return m ? at(m, 1, "m") : "";
     }).filter((t) => t.length > 0);
     // 一部重複 (同一 title の異 type 図) は許容だが、 極端な重複はなし
     const counts = new Map<string, number>();

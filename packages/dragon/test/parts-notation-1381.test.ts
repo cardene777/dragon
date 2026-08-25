@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, jsonToDiagram, validateDragonJson, diagramJsonSchema } from "../src";
 import { 部品の表 } from "../src/v05/parser";
+import { at } from "./support/at";
 
 /**
  * #1381 で記法に足した 3 つの検証。
@@ -174,21 +175,22 @@ describe("組の並びの欄 (#1381)", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "a", color: "#111" }, { value: "b", color: "#222" }] }',
     );
-    expect((d.readouts?.[0] as { map: unknown[] }).map).toHaveLength(2);
+    expect((d.readouts?.[0] as unknown as { map: unknown[] }).map).toHaveLength(2);
   });
 
   it("数に見える状態名も文字列のまま読む", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "1", color: "#111" }] }',
     );
-    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]!.value).toBe("1");
+    const 対応表 = d.readouts?.[0] as unknown as { map: Record<string, unknown>[] };
+    expect(対応表.map[0]!.value).toBe("1");
   });
 
   it("引用符の中の中括弧は組の終わりにしない", () => {
     const d = 図にする(
       'readouts:\n  dot: { kind: status-dot, source: st, map: [{ value: "}", color: "#111", label: "{ok}" }] }',
     );
-    expect((d.readouts?.[0] as { map: Record<string, unknown>[] }).map[0]).toEqual({
+    expect((d.readouts?.[0] as unknown as { map: Record<string, unknown>[] }).map[0]).toEqual({
       value: "}",
       color: "#111",
       label: "{ok}",
@@ -515,7 +517,9 @@ describe("公開 JSON Schema も #1381 の部品を書ける", () => {
   });
 
   it("notification は source ではなく kindSource / titleSource を必須にする", () => {
-    const branch = readout.oneOf.find((x: any) => x.properties.kind.enum[0] === "notification");
+    const branch = readout.oneOf.find(
+      (x: any) => at(x.properties.kind.enum, 0, "kind.enum") === "notification",
+    );
     expect(branch.required).toEqual(["kindSource", "titleSource"]);
     expect(readout.required).toEqual(["id", "kind"]);
   });

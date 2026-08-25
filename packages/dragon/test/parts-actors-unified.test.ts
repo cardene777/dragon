@@ -274,7 +274,9 @@ flow:
         edges: [],
         states: [{ id: "v", initial: 50 }],
         phases: [{ id: "p", duration: 1000, title: "static", body: "", activate: [], tweens: [], sets: [] }] as CdlDiagram["phases"],
-        readouts: [{ id: "ring", kind: "gauge", source: "{v}", nodeId: "hidden" }] as CdlDiagram["readouts"],
+        readouts: [
+          { id: "ring", kind: "gauge", source: "{v}", nodeId: "hidden" },
+        ] as unknown as CdlDiagram["readouts"],
       };
       const src = `title: "test"
 type: sequence

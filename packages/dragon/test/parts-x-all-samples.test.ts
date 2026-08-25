@@ -14,6 +14,7 @@ import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function collectAllParts(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -40,7 +41,7 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   // actors: block の末尾を検出 (次の top-level key or 空行 or EOF)
   let insertIdx = actorsIdx + 1;
   while (insertIdx < lines.length) {
-    const line = lines[insertIdx];
+    const line = at(lines, insertIdx, "lines");
     // 次の top-level key (行頭が文字で始まり : を含む) or 空行 で block 終了
     if (line.match(/^[a-zA-Z]/) || line.trim() === "") break;
     insertIdx++;

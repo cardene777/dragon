@@ -43,7 +43,7 @@ const READOUT_ONLY: CdlDiagram = {
   ] as CdlDiagram["phases"],
   readouts: [
     { id: "ring", kind: "gauge", source: "{v}", nodeId: "hidden" },
-  ] as CdlDiagram["readouts"],
+  ] as unknown as CdlDiagram["readouts"],
 };
 
 describe("partRenderSize", () => {

@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 interface CompiledDiagram {
   nodes: Array<{ id: string }>;
@@ -47,7 +48,7 @@ describe("iter53: 全 12 sample × graph reachability", () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         if (d.nodes.length === 0) return;
         const adj = buildAdjacency(d);
-        const startId = d.nodes[0].id;
+        const startId = at(d.nodes, 0, "d.nodes").id;
         const reachable = bfs(adj, startId);
         expect(reachable.size).toBeGreaterThanOrEqual(1);
       });

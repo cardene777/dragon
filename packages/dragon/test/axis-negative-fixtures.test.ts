@@ -201,7 +201,11 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
         typeof (v as CdlDiagram).id === "string" &&
         Array.isArray((v as CdlDiagram).nodes);
     };
-    const passthrough = Object.values(patterns).find((v) => isDiag(v) && v.id === "pattern-passthrough");
+    // **`find` に絞り込みを持たせない**。 callback が `boolean` を返すため型は絞られず、
+    // 戻り値が元の union のまま残る。 先に `filter` で図だけにしてから探す
+    const passthrough = Object.values(patterns)
+      .filter(isDiag)
+      .find((v) => v.id === "pattern-passthrough");
     if (!passthrough) {
       // 存在しない場合は skip (id 変更等の可能性)
       return;

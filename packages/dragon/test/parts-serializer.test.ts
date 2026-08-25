@@ -18,6 +18,7 @@ import {
   PARTS_MARKER,
 } from "../../../apps/playground-spa/src/lib/parts-serializer";
 import * as partsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
+import { at } from "./support/at";
 
 const SAMPLE_DIAGRAM: CdlDiagram = {
   id: "test-part",
@@ -69,7 +70,7 @@ describe("parts-serializer (CAR-1646)", () => {
       for (const line of lines) {
         const leading = /^( +)/.exec(line);
         if (leading) {
-          expect(leading[1].length % 2).toBe(0);
+          expect(at(leading, 1, "leading").length % 2).toBe(0);
         }
       }
     });
