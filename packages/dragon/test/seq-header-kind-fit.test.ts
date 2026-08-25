@@ -183,8 +183,21 @@ describe("名札に載せる種類 (#1061)", () => {
   });
 
   it("落とすのは順序図の名札だけ", () => {
-    // 判定は `sequence` / `solidity` の `-header` / `-footer` にしか当たらない。
-    // 別の図では書いた語がそのまま残る (読み替えも名札の経路でしか通らない)
+    /*
+     * 判定は `sequence` / `solidity` の `-header` / `-footer` にしか当たらない。
+     *
+     * ## 期待値を変えた (#1420)
+     *
+     * 以前は「別の図では書いた語がそのまま残る」 として `contract` / `library` を期待して
+     * いた。 実際そうなっていたが、**その図は組み立てで落ちる**。 描画側は記法だけの種類の
+     * 大きさを引けず `Cannot read properties of undefined (reading 'h')` で止まる (実測)。
+     *
+     * 記法が受ける値で図が出ないのは誤りなので、描画側へ渡す手前で読み替えるようにした
+     * (`compile.ts` の `描ける種別`)。 名札の判定はこれとは別で、いまも `sequence` /
+     * `solidity` にしか当たらない = この検査が見たかった性質は変わっていない。
+     *
+     * 落ちないことそのものは `dsl-only-kinds.test.ts` が全図種 × 全種類で見る。
+     */
     const d = textDslToDiagram(`
 title: "t"
 type: flow
@@ -196,8 +209,11 @@ actors:
 flow:
   - A -> B: "x"
 `);
-    expect(d.nodes.find((n) => n.id === "a")?.kind).toBe("contract");
-    expect(d.nodes.find((n) => n.id === "b")?.kind).toBe("library");
+    // 名札の判定 (`-header` を `card` にする) は通っていない = id に `-header` が付かない
+    expect(d.nodes.map((n) => n.id)).toEqual(["a", "b"]);
+    // 読み替えは描画側へ渡す手前で通る。 `contract` / `library` はどちらも `card` になる
+    expect(d.nodes.find((n) => n.id === "a")?.kind).toBe("card");
+    expect(d.nodes.find((n) => n.id === "b")?.kind).toBe("card");
   });
 
   it("行を書いた名札は種類が残る", () => {

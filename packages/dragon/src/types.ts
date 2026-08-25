@@ -4,6 +4,18 @@
  */
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import type { DslOnlyKind } from "./v05/parser";
+
+/**
+ * 記法が書ける箱の種類 (#1420)。
+ *
+ * 描画できる種類 (`NodeKind`) に、**記法だけが持つ種類** (`contract` / `eoa` など) を足す。
+ * 後者は図種ごとの役割分け (`solidity` の縦列の並べ替えなど) に使い、描画側へ渡す手前で
+ * `compile.ts` の `描ける種別` が読み替える。
+ *
+ * `NodeKind` だけに縛っていた間、記法が受ける値を型が表せていなかった。
+ */
+export type DslNodeKind = NodeKind | DslOnlyKind;
 import type { RelativePos } from "./relative-pos";
 
 /**
@@ -188,7 +200,7 @@ export type DslAxes = {
 /** 登場人物 (v0.5+ ... inline option 拡張) */
 export type DslActor = {
   name: string;
-  kind: NodeKind;
+  kind: DslNodeKind;
   /**
    * 著者が種類を書いたか。 書かなかった時 `kind` には既定の `actor` が入るため、
    * `kind` の値だけでは「書いた `actor`」 と「書かなかった」 を区別できない。

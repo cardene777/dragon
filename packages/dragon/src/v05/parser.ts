@@ -262,10 +262,13 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
  * 記法だけが持つ種類。 描画側には無いが、 図種ごとの組み立てで意味を持つ。
  *
  * `contract` / `eoa` / `multisig` / `proxy` / `library` / `interface` は Solidity 図の
- * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。 組み立ての段階で描画できる
- * 種類に置き換わるため、 そのまま描画側に渡ることはない。
+ * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。
+ *
+ * **描画側へ渡す前に必ず読み替える** (`compile.ts` の `描ける種別`)。 読み替えを通さずに渡すと
+ * 図の組み立てが落ちる = 描画側は知らない種類の大きさを引けない (#1420 で実測、
+ * `Cannot read properties of undefined (reading 'h')`)。
  */
-const DSL_ONLY_KINDS = [
+export const DSL_ONLY_KINDS = [
   "entity",
   "state",
   "contract",
@@ -275,6 +278,9 @@ const DSL_ONLY_KINDS = [
   "library",
   "interface",
 ] as const;
+
+/** 記法だけが持つ種類。 描画側の `NodeKind` には含まれない */
+export type DslOnlyKind = (typeof DSL_ONLY_KINDS)[number];
 
 /**
  * AWS などの固有名を、 同じ役割を表す汎用の種類に読み替える表。
