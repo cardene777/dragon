@@ -1610,7 +1610,7 @@ function 式として読む(行: string, line: number, errors: DslError[]): DslF
     });
     return undefined;
   }
-  return { id: 名前, expression: 式 };
+  return { id: 名前, expression: 式, pos: { line } };
 }
 
 /**

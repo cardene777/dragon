@@ -36,7 +36,7 @@ import {
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import { parseFormula } from "@cardenelabs/cdl";
+import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
   DslActor,
@@ -1255,7 +1255,7 @@ function validateInputs(v: unknown, errors: JsonDslError[]): void {
  * 式そのものは描画側の parser に通す = 自前で書き方を決めると、通ったのに描画側が
  * 解けない式を受けてしまう。
  */
-function validateFormulas(v: unknown, errors: JsonDslError[]): void {
+function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!v || typeof v !== "object" || Array.isArray(v)) {
     errors.push({
@@ -1265,6 +1265,18 @@ function validateFormulas(v: unknown, errors: JsonDslError[]): void {
     });
     return;
   }
+  const つまみ = new Map<string, string>();
+  if (Array.isArray(inputs)) {
+    for (const input of inputs) {
+      if (input && typeof input === "object" && !Array.isArray(input)) {
+        const candidate = input as { id?: unknown; kind?: unknown };
+        if (typeof candidate.id === "string" && typeof candidate.kind === "string") {
+          つまみ.set(candidate.id, candidate.kind);
+        }
+      }
+    }
+  }
+  const 先に書かれた式 = new Set<string>();
   for (const [名前, 式] of Object.entries(v as Record<string, unknown>)) {
     const path = `$.formulas.${名前}`;
     if (!isValueName(名前)) {
@@ -1280,7 +1292,28 @@ function validateFormulas(v: unknown, errors: JsonDslError[]): void {
       continue;
     }
     try {
-      parseFormula(式);
+      const names = extractIdentifiers(parseFormula(式));
+      if (つまみ.has(名前) || 先に書かれた式.has(名前)) {
+        errors.push({
+          path,
+          message: `${名前} collides with an input or an earlier formula`,
+          hint: "inputs と formulas では重ならない名前を使う",
+        });
+        continue;
+      }
+      let valid = true;
+      for (const name of names) {
+        if (先に書かれた式.has(name)) continue;
+        const kind = つまみ.get(name);
+        if (["slider", "number", "stepper", "timeline", "toggle"].includes(kind ?? "")) continue;
+        valid = false;
+        errors.push({
+          path,
+          message: `${名前} references an unavailable formula identifier`,
+          hint: `${name} は数値/真偽の input にするか、この式より前の formula に書く`,
+        });
+      }
+      if (valid) 先に書かれた式.add(名前);
     } catch (e) {
       errors.push({
         path,
@@ -1632,7 +1665,7 @@ function validateJson(
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
-  validateFormulas(j.formulas, errors);
+  validateFormulas(j.formulas, j.inputs, errors);
 
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
@@ -2007,7 +2040,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   const inputs: DslInput[] | undefined = json.inputs ? [...json.inputs] : undefined;
   // 式は `{ 名前: "式" }` から並びへ写す (#1391)。 記法側と同じ形にして組み立てを 1 本にする
   const formulas: DslFormula[] | undefined = json.formulas
-    ? Object.entries(json.formulas).map(([id, expression]) => ({ id, expression }))
+    ? Object.entries(json.formulas).map(([id, expression]) => ({ id, expression, pos: p0 }))
     : undefined;
   const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
     name,

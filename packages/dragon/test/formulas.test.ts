@@ -14,6 +14,7 @@
  */
 import { describe, it, expect } from "vitest";
 
+import { createFormulaComputeds, createInputSignals } from "@cardenelabs/cdl";
 import { textDslToDiagram, validateDragonJson, jsonToDiagram, compileToCdl } from "../src";
 import { parseTextDslV05 } from "../src/v05";
 import { diagramJsonSchema } from "../src/schema";
@@ -169,10 +170,31 @@ animation:
   - step: "p" 1s
 `;
 
-  it("つまみ / 状態 / 他の式 の名前は知らせない", () => {
-    // 4 つの出どころのどれかにあれば解ける。 知らせると正しい式で毎回警告が出る
-    const 出た = 知らせを集める(元('  a: "input + s"\n  b: "a * 2"'));
+  it("つまみ / 先に書いた式 の名前は知らせない", () => {
+    const 出た = 知らせを集める(元('  a: "input + 1"\n  b: "a * 2"'));
     expect(出た.filter((n) => n.kind === "formula-unresolved")).toEqual([]);
+  });
+
+  it("状態は formula の参照元ではないため知らせて式を載せない", () => {
+    const r = parseTextDslV05(元('  a: "s * 2"'));
+    if (!r.ok) throw new Error("読めない");
+    const 出た: CompileNotice[] = [];
+    const d = compileToCdl(r.doc, { onNotice: (n) => 出た.push(n) }) as unknown as 図;
+    expect(出た.some((n) => n.kind === "formula-unresolved" && n.line > 0)).toBe(true);
+    expect(d.formulas).toBeUndefined();
+  });
+
+  it("後から書く式は engine が読めないため知らせて先の式だけを載せる", () => {
+    const r = parseTextDslV05(元('  a: "b * 2"\n  b: "input + 1"'));
+    if (!r.ok) throw new Error("読めない");
+    const 出た: CompileNotice[] = [];
+    const d = compileToCdl(r.doc, { onNotice: (n) => 出た.push(n) }) as unknown as 図;
+    expect(出た.some((n) => n.kind === "formula-unresolved")).toBe(true);
+    expect(d.formulas).toEqual([{ id: "b", expression: "input + 1" }]);
+    expect(() => {
+      const signals = createInputSignals(d as never);
+      createFormulaComputeds(d as never, signals);
+    }).not.toThrow();
   });
 
   it("どこにも無い名前は知らせる", () => {
@@ -183,12 +205,11 @@ animation:
     expect(知らせ[0]?.message).toContain("missing");
   });
 
-  it("知らせても図は出る", () => {
-    // 描画側は解けない名前を含む式も受け取る。 止めると書きかけの図が見られない
+  it("知らせた式は落とし、図全体が runtime error になるのを防ぐ", () => {
     const r = parseTextDslV05(元('  a: "missing * 2"'));
     if (!r.ok) throw new Error("読めない");
     const d = compileToCdl(r.doc) as unknown as 図;
-    expect(d.formulas).toEqual([{ id: "a", expression: "missing * 2" }]);
+    expect(d.formulas).toBeUndefined();
   });
 });
 
@@ -232,6 +253,18 @@ describe("JSON でも式を書ける (#1391)", () => {
     const r = validateDragonJson(JSONの図({ "1a": "input * 2" }));
     expect(r.ok, "使えない名前が通っている").toBe(false);
     if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.formulas.1a");
+  });
+
+  it("input と同じ名前、前方参照、文字列 input の参照を拒む", () => {
+    const collision = validateDragonJson(JSONの図({ input: "input * 2" }));
+    expect(collision.ok).toBe(false);
+
+    const forward = validateDragonJson(JSONの図({ a: "b * 2", b: "input + 1" }));
+    expect(forward.ok).toBe(false);
+
+    const stringInput = JSONの図({ a: "input * 2" });
+    stringInput.inputs = [{ id: "input", kind: "text", defaultValue: "x" }] as never;
+    expect(validateDragonJson(stringInput).ok).toBe(false);
   });
 });
 

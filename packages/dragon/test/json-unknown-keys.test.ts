@@ -81,7 +81,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     // 値を見せる部品 (#1374)
     readouts: [{ id: "r", kind: "percent-ring", source: "v", max: 100 }],
     inputs: [{ id: "i", kind: "slider", min: 0, max: 100, defaultValue: 50 }],
-    formulas: { doubled: "i * 2" },
+    // 項目を 1 つずつ単独で測るため、別項目の inputs に依存しない式にする
+    formulas: { doubled: "2" },
   },
   actor: {
     name: "A",

@@ -19,8 +19,8 @@ export type DslReadout = NonNullable<CdlDiagram["readouts"]>[number];
 /** 読む人が動かすつまみ (#1389)。 部品と同じ理由で描画側の型をそのまま使う */
 export type DslInput = NonNullable<CdlDiagram["inputs"]>[number];
 
-/** つまみの値から決まる値 (#1391)。 つまみと同じ理由で描画側の型をそのまま使う */
-export type DslFormula = NonNullable<CdlDiagram["formulas"]>[number];
+/** つまみの値から決まる値 (#1391)。 描画側の型に、知らせ用の記述位置だけを足す。 */
+export type DslFormula = NonNullable<CdlDiagram["formulas"]>[number] & { pos?: Position };
 
 export type PresetType =
   | "sequence"
