@@ -51,7 +51,9 @@ export function 書かれたcmd(md: string): 書かれたCmd[] {
       }
       const m = /^pnpm\s+(?:--filter\s+(\S+)\s+)?([a-z][a-z0-9:._-]*)/u.exec(部分);
       if (m === null) continue;
+      // 必須の群。 取れない形は regex と噛み合っていないので捨てる
       const script = m[2];
+      if (script === undefined) continue;
       // pnpm 自身の cmd は script ではない
       if (["install", "exec", "dlx", "add", "remove", "run", "why", "up"].includes(script))
         continue;

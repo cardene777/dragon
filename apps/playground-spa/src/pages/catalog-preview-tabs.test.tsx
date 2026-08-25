@@ -139,6 +139,7 @@ describe("図とコードを切り替えられる (#1236)", () => {
     const 元 = CATALOG_ITEMS.charts?.[0];
     if (!元) throw new Error("合成 fixture の元にする catalog item が無い");
     const 元の一覧 = CATALOG_ITEMS.charts;
+    if (元の一覧 === undefined) throw new Error("charts の一覧が無い");
     const 対照 = { ...元, id: "negative-control", sourceYaml: undefined, sourceJson: undefined };
     expect(記法を持たない(対照), "合成 fixture が記法を持っている").toBe(true);
 

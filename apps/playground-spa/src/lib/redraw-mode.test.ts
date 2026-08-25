@@ -76,7 +76,10 @@ describe("切替えられる図の判定 (#1359)", () => {
 
   it("段が 1 つしかない図では選べない (写す先が無い)", () => {
     const d = 折れ線().diagram;
-    expect(描き方を選べる({ ...d, phases: [d.phases[0]] })).toBe(false);
+    const 一段目 = d.phases[0];
+    expect(一段目, "折れ線の見本に段が 1 つも無い").toBeDefined();
+    if (一段目 === undefined) return;
+    expect(描き方を選べる({ ...d, phases: [一段目] })).toBe(false);
   });
 });
 
@@ -90,7 +93,10 @@ describe("図の 2 段目以降に描く指定が写る (#1359)", () => {
   it("写した相手は 1 段目と同じ箱", () => {
     const 元 = 折れ線().diagram;
     const 後 = 図の描き方を変える(元, "描き直す");
-    for (const p of 後.phases) expect(p.draw).toEqual(元.phases[0].draw);
+    const 一段目 = 元.phases[0];
+    expect(一段目, "元の見本に段が 1 つも無い").toBeDefined();
+    if (一段目 === undefined) return;
+    for (const p of 後.phases) expect(p.draw).toEqual(一段目.draw);
   });
 
   it("既定では元の object をそのまま返す", () => {
@@ -144,8 +150,9 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     const x = 折れ線();
     const 後 = 記法の描き方を変える(x.yaml!, "描き直す", "yaml");
     const 秒 = (s: string): string[] =>
-      [...s.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+(\d+(?:\.\d+)?)s[ \t]*$/gm)].map(
-        (m) => m[1],
+      // 必須の群。 取れない形は regex と噛み合っていないので捨てる
+      [...s.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+(\d+(?:\.\d+)?)s[ \t]*$/gm)].flatMap(
+        (m) => (m[1] === undefined ? [] : [m[1]]),
       );
     expect(秒(後)).toEqual(秒(x.yaml!));
     expect(後.split("body:").length, "本文の数が変わっている").toBe(x.yaml!.split("body:").length);

@@ -14,7 +14,10 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 /** 描いた絵に出る文字を、出る順に並べる */
 function 見える文字(d: CdlDiagram): string[] {
   const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
-  return [...svg.matchAll(/>([^<>]+)</g)].map((m) => m[1].trim()).filter((t) => t.length > 0);
+  // `([^<>]+)` は必須の群。 取れない形は regex と噛み合っていないので捨てる
+  return [...svg.matchAll(/>([^<>]+)</g)]
+    .flatMap((m) => (m[1] === undefined ? [] : [m[1].trim()]))
+    .filter((t) => t.length > 0);
 }
 
 const 記法 = (type: string) =>

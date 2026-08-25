@@ -43,7 +43,8 @@ const 走査対象 = [
  */
 function 名指しされたpath(text: string): string[] {
   const 拾う = text.matchAll(/(?<![\w./-])((?:src|tests)\/[A-Za-z0-9._/-]+\.(?:test|spec)\.(?:ts|tsx))/gu);
-  return [...new Set([...拾う].map((m) => m[1]))];
+  // 必須の群。 取れない形は regex と噛み合っていないので捨てる
+  return [...new Set([...拾う].flatMap((m) => (m[1] === undefined ? [] : [m[1]])))];
 }
 
 /**
@@ -54,7 +55,10 @@ function 名指しされたpath(text: string): string[] {
  */
 function 名指しされたpattern(text: string): string[] {
   const 拾う = text.matchAll(/playwright test\s+([A-Za-z0-9][A-Za-z0-9._-]*)(?=\s|"|$)/gu);
-  return [...new Set([...拾う].map((m) => m[1]))].filter((p) => !p.includes("/"));
+  // 必須の群。 取れない形は regex と噛み合っていないので捨てる
+  return [...new Set([...拾う].flatMap((m) => (m[1] === undefined ? [] : [m[1]])))].filter(
+    (p) => !p.includes("/"),
+  );
 }
 
 /** 検査 file の一覧 (`src/` と `tests/` を再帰で舐める) */
@@ -124,7 +128,10 @@ describe("script が名指しする検査が実在する (#1339)", () => {
     const 偽 = '"test:x": "vitest run src/lib/no-such-check.test.ts"';
     const 拾えた = 名指しされたpath(偽);
     expect(拾えた, "名指しを拾えていない").toHaveLength(1);
-    expect(existsSync(join(SPA, 拾えた[0])), "存在しない file を実在と判定している").toBe(false);
+    // 上の `toHaveLength(1)` が先に落ちるので、 ここへは 1 件ある時しか来ない
+    const 先頭 = 拾えた[0];
+    if (先頭 === undefined) return;
+    expect(existsSync(join(SPA, 先頭)), "存在しない file を実在と判定している").toBe(false);
   });
 
   it("名指しを持たない script を拾わない (陰性対照)", () => {
